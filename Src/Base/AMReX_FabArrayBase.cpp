@@ -1,4 +1,5 @@
 
+#include <algorithm>
 #include <AMReX_FabArrayBase.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_Utility.H>
@@ -8,7 +9,7 @@
 #include <AMReX_BArena.H>
 #include <AMReX_CArena.H>
 
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
 #include <AMReX_MemProfiler.H>
 #endif
 
@@ -70,6 +71,9 @@ std::map<FabArrayBase::BDKey, int> FabArrayBase::m_BD_count;
 
 FabArrayBase::FabArrayStats        FabArrayBase::m_FA_stats;
 
+std::map<std::string,FabArrayBase::meminfo> FabArrayBase::m_mem_usage;
+std::vector<std::string>                    FabArrayBase::m_region_tag;
+
 namespace
 {
     Arena* the_fa_arena = nullptr;
@@ -120,7 +124,7 @@ FabArrayBase::Initialize ()
 
     amrex::ExecOnFinalize(FabArrayBase::Finalize);
 
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
     MemProfiler::add(m_TAC_stats.name, std::function<MemProfiler::MemInfo()>
 		     ([] () -> MemProfiler::MemInfo {
 			 return {m_TAC_stats.bytes, m_TAC_stats.bytes_hwm};
@@ -360,7 +364,7 @@ FabArrayBase::CPC::define (const BoxArray& ba_dst, const DistributionMapping& dm
 
 	auto& recv_tags = *m_RcvTags;
 
-	BaseFab<int,CpuDataAllocator<int> > localtouch, remotetouch;
+	BaseFab<int> localtouch(The_Cpu_Arena()), remotetouch(The_Cpu_Arena());
 	bool check_local = false, check_remote = false;
 #if defined(_OPENMP)
 	if (omp_get_max_threads() > 1) {
@@ -517,7 +521,7 @@ FabArrayBase::flushCPC (bool no_assertion) const
 	    }
 	}
 
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
 	m_CPC_stats.bytes -= it->second->bytes();
 #endif
 	m_CPC_stats.recordErase(it->second->m_nuse);
@@ -544,7 +548,7 @@ FabArrayBase::flushCPCache ()
 	}
     }
     m_TheCPCache.clear();
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
     m_CPC_stats.bytes = 0L;
 #endif
 }
@@ -582,7 +586,7 @@ FabArrayBase::getCPC (const IntVect& dstng, const FabArrayBase& src, const IntVe
     // Have to build a new one
     CPC* new_cpc = new CPC(*this, dstng, src, srcng, period);
 
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
     m_CPC_stats.bytes += new_cpc->bytes();
     m_CPC_stats.bytes_hwm = std::max(m_CPC_stats.bytes_hwm, m_CPC_stats.bytes);
 #endif    
@@ -673,7 +677,7 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
 
     auto& recv_tags = *m_RcvTags;
 
-    BaseFab<int,CpuDataAllocator<int> > localtouch, remotetouch;
+    BaseFab<int> localtouch(The_Cpu_Arena()), remotetouch(The_Cpu_Arena());
     bool check_local = false, check_remote = false;
 #if defined(_OPENMP)
     if (omp_get_max_threads() > 1) {
@@ -880,7 +884,7 @@ FabArrayBase::FB::define_epo (const FabArrayBase& fa)
 
     auto& recv_tags = *m_RcvTags;
 
-    BaseFab<int,CpuDataAllocator<int> > localtouch, remotetouch;
+    BaseFab<int> localtouch(The_Cpu_Arena()), remotetouch(The_Cpu_Arena());
     bool check_local = false, check_remote = false;
 #if defined(_OPENMP)
     if (omp_get_max_threads() > 1) {
@@ -995,7 +999,7 @@ FabArrayBase::flushFB (bool no_assertion) const
     std::pair<FBCacheIter,FBCacheIter> er_it = m_TheFBCache.equal_range(m_bdkey);
     for (FBCacheIter it = er_it.first; it != er_it.second; ++it)
     {
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
 	m_FBC_stats.bytes -= it->second->bytes();
 #endif
 	m_FBC_stats.recordErase(it->second->m_nuse);
@@ -1013,7 +1017,7 @@ FabArrayBase::flushFBCache ()
 	delete it->second;
     }
     m_TheFBCache.clear();
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
     m_FBC_stats.bytes = 0L;
 #endif
 }
@@ -1115,7 +1119,8 @@ FabArrayBase::FPinfo::FPinfo (const FabArrayBase& srcfa,
 #ifdef AMREX_USE_EB
         if (index_space)
         {
-            fact_crse_patch = makeEBFabFactory(index_space, Geometry(cdomain),
+            fact_crse_patch = makeEBFabFactory(index_space,
+                                               index_space->getGeometry(cdomain),
                                                ba_crse_patch,
                                                dm_crse_patch,
                                                {0,0,0}, EBSupport::basic);
@@ -1176,7 +1181,7 @@ FabArrayBase::TheFPinfo (const FabArrayBase& srcfa,
     // Have to build a new one
     FPinfo* new_fpc = new FPinfo(srcfa, dstfa, dstdomain, dstng, coarsener, cdomain, index_space);
 
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
     m_FPinfo_stats.bytes += new_fpc->bytes();
     m_FPinfo_stats.bytes_hwm = std::max(m_FPinfo_stats.bytes_hwm, m_FPinfo_stats.bytes);
 #endif
@@ -1220,7 +1225,7 @@ FabArrayBase::flushFPinfo (bool no_assertion)
 	    }
 	} 
 
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
 	m_FPinfo_stats.bytes -= it->second->bytes();
 #endif
 	m_FPinfo_stats.recordErase(it->second->m_nuse);
@@ -1288,7 +1293,7 @@ FabArrayBase::CFinfo::Domain (const Geometry& geom, const IntVect& ng,
 #if !defined(BL_NO_FORT)
     Box bx = geom.Domain();
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        if (Geometry::isPeriodic(idim)) {
+        if (geom.isPeriodic(idim)) {
             if (include_periodic) {
                 bx.grow(idim, ng[idim]);
             }
@@ -1341,7 +1346,7 @@ FabArrayBase::TheCFinfo (const FabArrayBase& finefa,
     // Have to build a new one
     CFinfo* new_cfinfo = new CFinfo(finefa, finegm, ng, include_periodic, include_physbndry);
 
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
     m_CFinfo_stats.bytes += new_cfinfo->bytes();
     m_CFinfo_stats.bytes_hwm = std::max(m_CFinfo_stats.bytes_hwm, m_CFinfo_stats.bytes);
 #endif
@@ -1362,7 +1367,7 @@ FabArrayBase::flushCFinfo (bool no_assertion)
     auto er_it = m_TheCrseFineCache.equal_range(m_bdkey);
     for (auto it = er_it.first; it != er_it.second; ++it)
     {
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
         m_CFinfo_stats.bytes -= it->second->bytes();
 #endif
         m_CFinfo_stats.recordErase(it->second->m_nuse);
@@ -1386,6 +1391,11 @@ FabArrayBase::Finalize ()
 	m_FPinfo_stats.print();
 	m_CFinfo_stats.print();
     }
+
+    if (amrex::system::verbose > 10) { // xxxxx will lower this to 1 after it's done
+        printMemUsage();
+    }
+    m_region_tag.clear();
 
     m_TAC_stats = CacheStats("TileArrayCache");
     m_FBC_stats = CacheStats("FBCache");
@@ -1419,7 +1429,7 @@ FabArrayBase::getTileArray (const IntVect& tilesize) const
 	    buildTileArray(tilesize, *p);
 	    p->nuse = 0;
 	    m_TAC_stats.recordBuild();
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
 	    m_TAC_stats.bytes += p->bytes();
 	    m_TAC_stats.bytes_hwm = std::max(m_TAC_stats.bytes_hwm,
 					     m_TAC_stats.bytes);
@@ -1544,7 +1554,7 @@ FabArrayBase::flushTileArray (const IntVect& tileSize, bool no_assertion) const
 	    for (TAMap::const_iterator tai_it = tao_it->second.begin();
 		 tai_it != tao_it->second.end(); ++tai_it)
 	    {
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
 		m_TAC_stats.bytes -= tai_it->second.bytes();
 #endif		
 		m_TAC_stats.recordErase(tai_it->second.nuse);
@@ -1557,7 +1567,7 @@ FabArrayBase::flushTileArray (const IntVect& tileSize, bool no_assertion) const
             const IntVect& crse_ratio = boxArray().crseRatio();
 	    TAMap::iterator tai_it = tai.find(std::pair<IntVect,IntVect>(tileSize,crse_ratio));
 	    if (tai_it != tai.end()) {
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
 		m_TAC_stats.bytes -= tai_it->second.bytes();
 #endif		
 		m_TAC_stats.recordErase(tai_it->second.nuse);
@@ -1580,7 +1590,7 @@ FabArrayBase::flushTileArrayCache ()
 	}
     }
     m_TheTileArrayCache.clear();
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
     m_TAC_stats.bytes = 0L;
 #endif
 }
@@ -1686,6 +1696,66 @@ operator<< (std::ostream& os, const FabArrayBase::BDKey& id)
 {
     os << "(" << id.m_ba_id << ", " << id.m_dm_id << ")";
     return os;
+}
+
+void
+FabArrayBase::updateMemUsage (std::string const& tag, long nbytes, Arena const* /*ar*/)
+{
+    auto& mi = m_mem_usage[tag];
+    mi.nbytes += nbytes;
+    mi.nbytes_hwm = std::max(mi.nbytes, mi.nbytes_hwm);
+}
+
+void
+FabArrayBase::printMemUsage ()
+{
+    if (ParallelContext::IOProcessorSub())
+    {
+        std::cout << "MultiFab Tag, current usage and hwm in bytes\n";
+        for (auto const& kv : m_mem_usage) {
+            std::cout << kv.first << ": " << kv.second.nbytes << ", " << kv.second.nbytes_hwm << "\n";
+        }
+    }
+}
+
+long
+FabArrayBase::queryMemUsage (const std::string& t)
+{
+    auto r = m_mem_usage.find(t);
+    if (r != m_mem_usage.end()) {
+        return r->second.nbytes;
+    } else {
+        return 0;
+    }
+}
+
+long
+FabArrayBase::queryMemUsageHWM (const std::string& t)
+{
+    auto r = m_mem_usage.find(t);
+    if (r != m_mem_usage.end()) {
+        return r->second.nbytes_hwm;
+    } else {
+        return 0;
+    }
+}
+
+void
+FabArrayBase::pushRegionTag (const char* t)
+{
+    m_region_tag.emplace_back(t);
+}
+
+void
+FabArrayBase::pushRegionTag (std::string t)
+{
+    m_region_tag.emplace_back(std::move(t));
+}
+
+void
+FabArrayBase::popRegionTag ()
+{
+    m_region_tag.pop_back();
 }
 
 }

@@ -1,5 +1,5 @@
-#ifndef _PROB_H_
-#define _PROB_H_
+#ifndef PROB_H_
+#define PROB_H_
 
 #include <AmrCoreAdv_F.H>
 
@@ -10,7 +10,7 @@
 using namespace amrex;
 
 AMREX_GPU_DEVICE
-AMREX_INLINE
+AMREX_FORCE_INLINE
 void
 initdata(Box const& bx, Array4<Real> const& phi, GeometryData const& geomdata)
 {

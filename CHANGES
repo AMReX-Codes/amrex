@@ -1,3 +1,97 @@
+# 19.10
+
+  -- Add inhomogeneous Neumann BC to MLMG for convenience.
+
+  -- Fix a corner case of tensor solver.
+
+  -- Various fixes for single precision and particle real.
+
+  -- Add amrex::Long that has a size of 8.
+
+  -- Add int8_t support in typecheck.
+
+  -- C++ user literal _rt for amrex::Real and _prt for
+     amrex::ParticleReal.
+
+  -- EB MAC projector now requires the user to specify whether the
+     face velocities are defined on face centers or centroids.
+
+# 19.09
+
+  -- First pass of Sr/EB on GPU.
+
+  -- Optimization of particle redistribution.
+
+  -- EB integral: add integral of x*y*z
+
+  -- HostDevice::Atomic::Add that does atomic add for both device and
+     host omp code.
+
+  -- makeFineMask: optional arguments specifying coarse and fine flag
+     values.
+
+  -- Optimization of FabArray communication for GPU by merging small
+     kernels.
+
+# 19.08
+
+  -- MacProjector has the option to set maximal coarsening level.
+
+  -- OwnerMask and OverlapMask are now built on GPU.
+
+  -- Random number generation on GPU no longer requires an call to
+     initialize seeds.  They are done in amrex::Initialize and resize
+     is not needed when launching with more threads than the size of
+     seed array.
+
+  -- Optimization of NeighborParticles.
+
+# 19.07
+
+  -- Geometry/CoordSys: Static class members have been removed.
+     Functions such as `isPeriodic`, `isAnyPeriodic`, `isAllPeriodic`,
+     `ProbLo`, `ProbHi`, `IsCartesian`, `IsRZ`, and `IsSPHERICAL` are
+     now non-static.  The default Geometry can been obtained via
+     `DefaultGeometry()` function.
+
+  -- Funciton amrex::Loop and amrex:LoopConcurrent are added to help
+     looping over cells in a Box.
+
+  -- Nodal solver: A bug in nodal owner mask that could affect
+     covergence was fixed.
+
+  -- Fortran amrex_amrcore_module: add amrex_set_boxarray,
+     amrex_set_distromap, and amrex_set_finest_level.
+
+  -- Option to allocate MultiFab data in arenas different from
+     The_Arena().
+
+  -- Option to tag MultiFabs and query their memory usages.
+
+  -- AsyncFab has been deleted.
+
+# 19.06
+
+  -- Geometry/CoordSys: New constructor and define function are added.
+     We plan to remove static data from Geometry and its base CoordSys
+     in the next release.  This means most of the static functions in
+     Geometry class will become non-static.  These include
+     `isPeriodic`, `isAnyPeriodic`, `isAllPeriodic`, `ProbLo`,
+     `ProbHi`, `IsCartesian`, `IsRZ`, and `IsSPHERICAL`.  You can
+     prepare codes now for the upcoming changes.  In almost all cases,
+     all you have to do is replace `Geometry::function` with
+     `DefaultGeometry().function`.
+
+  -- Add tensor linear solvers for viscous flows with and without EB.
+
+  -- Algoim: A modified version of Algoim is added.  This removes the
+     dependence of 3d EB nodal MLMG solver on the official Algoim code
+     and Blitz.
+
+  -- EB: Fix the potential ownership issue is IndexSpace.
+
+  -- Add a new FillPatchTwoLevels for EB.
+
 # 19.05
 
   -- Interface of virtual function Interpolater::interp has changed.

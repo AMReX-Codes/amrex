@@ -7,6 +7,9 @@
 #include <AMReX_FArrayBox.H>
 #include <AMReX_IntVect.H>
 
+#include <AMReX_ParmParse.H>
+#include <AMReX_Geometry.H>
+
 namespace amrex {
 
 namespace
@@ -27,11 +30,7 @@ struct Particle
 {
     //
     //! The floating point type used for the particles.
-#ifdef BL_SINGLE_PRECISION_PARTICLES
-    typedef float RealType;
-#else
-    typedef double RealType;
-#endif
+    typedef ParticleReal RealType;
 
     /**
     * The real data. We always have SPACEDIM position coordinates,
@@ -326,9 +325,9 @@ Particle<NReal, NInt>::CIC_Cells_Fracs_Basic (const Particle<NReal, NInt>& p,
     //
     // "cells" should be dimensioned: IntVect cells[AMREX_D_TERM(2,+2,+4)]
     //
-    const Real len[AMREX_SPACEDIM] = { AMREX_D_DECL((p.m_rdata.pos[0]-plo[0])/dx[0] + Real(0.5),
-                                           (p.m_rdata.pos[1]-plo[1])/dx[1] + Real(0.5),
-                                           (p.m_rdata.pos[2]-plo[2])/dx[2] + Real(0.5)) };
+    const Real len[AMREX_SPACEDIM] = { AMREX_D_DECL((p.m_rdata.pos[0]-plo[0])/dx[0] + 0.5_rt,
+                                           (p.m_rdata.pos[1]-plo[1])/dx[1] + 0.5_rt,
+                                           (p.m_rdata.pos[2]-plo[2])/dx[2] + 0.5_rt) };
 
     const IntVect cell(AMREX_D_DECL(floor(len[0]), floor(len[1]), floor(len[2])));
 
@@ -385,34 +384,34 @@ Particle<NReal, NInt>::CIC_Cells_Fracs (const Particle<NReal, NInt>& p,
     for (int xi = locell[0]; xi <= hicell[0]; xi++)
     {
         cells[i][0] = xi;
-        fracs[i] = (std::min(hilen[0]-xi,Real(1))-std::max(lolen[0]-xi,Real(0)))*cell_density;
+        fracs[i] = (std::min(hilen[0]-xi,1_rt)-std::max(lolen[0]-xi,0_rt))*cell_density;
         i++;
     }
 #elif (AMREX_SPACEDIM == 2)
     for (int yi = locell[1]; yi <= hicell[1]; yi++)
     {
-        const Real yf = std::min(hilen[1]-yi,Real(1))-std::max(lolen[1]-yi,Real(0));
+        const Real yf = std::min(hilen[1]-yi,1_rt)-std::max(lolen[1]-yi,0_rt);
         for (int xi = locell[0]; xi <= hicell[0]; xi ++)
         {
             cells[i][0] = xi;
             cells[i][1] = yi;
-            fracs[i] = yf * (std::min(hilen[0]-xi,Real(1))-std::max(lolen[0]-xi,Real(0)))*cell_density;
+            fracs[i] = yf * (std::min(hilen[0]-xi,1_rt)-std::max(lolen[0]-xi,0_rt))*cell_density;
             i++;
         }
     }
 #elif (AMREX_SPACEDIM == 3)
     for (int zi = locell[2]; zi <= hicell[2]; zi++)
     {
-        const Real zf = std::min(hilen[2]-zi,Real(1))-std::max(lolen[2]-zi,Real(0));
+        const Real zf = std::min(hilen[2]-zi,1_rt)-std::max(lolen[2]-zi,0_rt);
         for (int yi = locell[1]; yi <= hicell[1]; yi++)
         {
-            const Real yf = std::min(hilen[1]-yi,Real(1))-std::max(lolen[1]-yi,Real(0));
+            const Real yf = std::min(hilen[1]-yi,1_rt)-std::max(lolen[1]-yi,0_rt);
             for (int xi = locell[0]; xi <= hicell[0]; xi++)
             {
                 cells[i][0] = xi;
                 cells[i][1] = yi;
                 cells[i][2] = zi;
-                fracs[i] = zf * yf * (std::min(hilen[0]-xi,Real(1))-std::max(lolen[0]-xi,Real(0))) * cell_density;
+                fracs[i] = zf * yf * (std::min(hilen[0]-xi,1_rt)-std::max(lolen[0]-xi,0_rt)) * cell_density;
                 i++;
             }
         }
@@ -517,14 +516,13 @@ int
 Particle<NReal, NInt>::NextID ()
 {
     int next;
-
-#ifdef _OPENMP
-#if (__GNUC__ < 5)
+// we should be able to test on _OPENMP < 201107 for capture (version 3.1)
+// but we must work around a bug in gcc < 4.9
+#if defined(_OPENMP) && _OPENMP < 201307
 #pragma omp critical (amrex_particle_nextid)
-#else
+#elif defined(_OPENMP)
 #pragma omp atomic capture
-#endif
-#endif
+#endif    
     next = the_next_id++;
 
     if (next > LastParticleID)

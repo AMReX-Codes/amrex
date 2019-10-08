@@ -51,15 +51,15 @@ YAFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
     m_crse_flag.setVal(crse_cell);
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
         std::vector< std::pair<int,Box> > isects;
 
         for (MFIter mfi(m_crse_flag); mfi.isValid(); ++mfi)
         {
-            auto& fab = m_crse_flag[mfi];
-            const Box& bx = fab.box() & cdomain;
+            auto const& fab = m_crse_flag.array(mfi);
+            const Box& bx = mfi.fabbox() & cdomain;
 
             bool has_fine = false;
 
@@ -69,7 +69,10 @@ YAFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
                 for (const auto& is : isects)
                 {
                     const Box& ibx = is.second - iv;
-                    fab.setVal(crse_fine_boundary_cell, ibx, 0, 1);
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D(ibx, i, j, k,
+                    {
+                        fab(i,j,k) = amrex_yafluxreg_crse_fine_boundary_cell;
+                    });
                     has_fine = true;
                 }
             }
@@ -80,7 +83,10 @@ YAFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
                 for (const auto& is : isects)
                 {
                     const Box& ibx = is.second - iv;
-                    fab.setVal(fine_cell, ibx, 0, 1);
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D(ibx, i, j, k,
+                    {
+                        fab(i,j,k) = amrex_yafluxreg_fine_cell;
+                    });
                 }
             }
 
@@ -197,17 +203,17 @@ YAFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
         const Box& domainbox = m_crse_geom.Domain();
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         {
             std::vector< std::pair<int,Box> > isects;
 
             for (MFIter mfi(m_cfp_mask); mfi.isValid(); ++mfi)
             {
-                auto& fab = m_cfp_mask[mfi];
-                const Box& bx = fab.box();
+                const Box& bx = mfi.fabbox();
                 if (!domainbox.contains(bx))  // part of the box is outside periodic boundary
                 {
+                    auto const& fab = m_cfp_mask.array(mfi);
                     for (const auto& iv : pshifts)
                     {
                         if (iv != IntVect::TheZeroVector())
@@ -216,7 +222,10 @@ YAFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
                             for (const auto& is : isects)
                             {
                                 const Box& ibx = is.second - iv;
-                                fab.setVal(0.0, ibx, 0, 1);
+                                AMREX_HOST_DEVICE_PARALLEL_FOR_3D(ibx,i,j,k,
+                                {
+                                    fab(i,j,k) = 0.0;
+                                });
                             }
                         }
                     }
@@ -238,7 +247,7 @@ YAFluxRegister::reset ()
 void
 YAFluxRegister::CrseAdd (const MFIter& mfi,
                          const std::array<FArrayBox const*, AMREX_SPACEDIM>& flux,
-                         const Real* dx, Real dt) noexcept
+                         const Real* dx, Real dt, RunOn runon) noexcept
 {
     BL_ASSERT(m_crse_data.nComp() == flux[0]->nComp());
 
@@ -258,26 +267,23 @@ YAFluxRegister::CrseAdd (const MFIter& mfi,
     auto fab = m_crse_data.array(mfi);
     auto const flag = m_crse_flag.array(mfi);
 
-    if (Gpu::isDevicePtr(fx))
+    AMREX_D_TERM(Array4<Real const> fxarr = fx->const_array();,
+                 Array4<Real const> fyarr = fy->const_array();,
+                 Array4<Real const> fzarr = fz->const_array(););
+
+    bool run_on_gpu = (runon == RunOn::Gpu && Gpu::inLaunchRegion());
+    AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG ( run_on_gpu, bx, tbx,
     {
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
-        {
-            yafluxreg_crseadd(tbx, fab, flag, AMREX_D_DECL(*fx,*fy,*fz),
-                              AMREX_D_DECL(dtdx,dtdy,dtdz),nc);
-        });
-    }
-    else
-    {
-        yafluxreg_crseadd(bx, fab, flag, AMREX_D_DECL(*fx,*fy,*fz),
+        yafluxreg_crseadd(tbx, fab, flag, AMREX_D_DECL(fxarr,fyarr,fzarr),
                           AMREX_D_DECL(dtdx,dtdy,dtdz),nc);
-    }
+    });
 }
 
 
 void
 YAFluxRegister::FineAdd (const MFIter& mfi,
                          const std::array<FArrayBox const*, AMREX_SPACEDIM>& a_flux,
-                         const Real* dx, Real dt) noexcept
+                         const Real* dx, Real dt, RunOn runon) noexcept
 {
     BL_ASSERT(m_cfpatch.nComp() == a_flux[0]->nComp());
 
@@ -297,7 +303,7 @@ YAFluxRegister::FineAdd (const MFIter& mfi,
     const Dim3 rr = m_ratio.dim3();
 
     std::array<FArrayBox const*,AMREX_SPACEDIM> flux{AMREX_D_DECL(a_flux[0],a_flux[1],a_flux[2])};
-    bool use_gpu = Gpu::isDevicePtr(a_flux[0]) && Gpu::inLaunchRegion();
+    bool use_gpu = (runon == RunOn::Gpu) && Gpu::inLaunchRegion();
     std::array<FArrayBox,AMREX_SPACEDIM> ftmp;
     if (fbx != tbx) {
         AMREX_ASSERT(!use_gpu);
@@ -316,6 +322,7 @@ YAFluxRegister::FineAdd (const MFIter& mfi,
     {
         const Box& lobx = amrex::adjCellLo(bx, idim);
         const Box& hibx = amrex::adjCellHi(bx, idim);
+        FArrayBox const* f = flux[idim];
         for (FArrayBox* cfp : cfp_fabs)
         {
             {
@@ -324,17 +331,13 @@ YAFluxRegister::FineAdd (const MFIter& mfi,
                 if (lobx_is.ok())
                 {
                     auto d = cfp->array();
-                    FArrayBox const* f = flux[idim];
                     Real dtdxs = dtdx[idim];
                     int dirside = idim*2+side;
-                    if (use_gpu) {
-                        AMREX_LAUNCH_DEVICE_LAMBDA ( lobx_is, tmpbox,
-                        {
-                            yafluxreg_fineadd(tmpbox, d, *f, dtdxs, nc, dirside, rr);
-                        });
-                    } else {
-                        yafluxreg_fineadd(lobx_is,  d, *f, dtdxs, nc, dirside, rr);
-                    }
+                    Array4<Real const> farr = f->const_array();
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG(use_gpu, lobx_is, tmpbox,
+                    {
+                        yafluxreg_fineadd(tmpbox, d, farr, dtdxs, nc, dirside, rr);
+                    });
                 }
             }
             {
@@ -343,17 +346,13 @@ YAFluxRegister::FineAdd (const MFIter& mfi,
                 if (hibx_is.ok())
                 {
                     auto d = cfp->array();
-                    FArrayBox const* f = flux[idim];
                     Real dtdxs = dtdx[idim];
                     int dirside = idim*2+side;
-                    if (use_gpu) {
-                        AMREX_LAUNCH_DEVICE_LAMBDA ( hibx_is, tmpbox,
-                        {
-                            yafluxreg_fineadd(tmpbox, d, *f, dtdxs, nc, dirside, rr);
-                        });
-                    } else {
-                        yafluxreg_fineadd(hibx_is, d, *f, dtdxs, nc, dirside, rr);
-                    }
+                    Array4<Real const> farr = f->const_array();
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG(use_gpu, hibx_is, tmpbox,
+                    {
+                        yafluxreg_fineadd(tmpbox, d, farr, dtdxs, nc, dirside, rr);
+                    });
                 }
             }
         }
@@ -375,7 +374,7 @@ YAFluxRegister::Reflux (MultiFab& state, int dc)
             const Box& bx = m_cfpatch[mfi].box();
             auto const maskfab = m_cfp_mask.array(mfi);
             auto       cfptfab = m_cfpatch.array(mfi);
-            AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
             {
                 cfptfab(i,j,k,n) *= maskfab(i,j,k);
             });

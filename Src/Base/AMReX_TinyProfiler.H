@@ -2,11 +2,13 @@
 #define AMREX_TINY_PROFILER_H_
 
 #include <string>
-#include <stack>
+#include <deque>
 #include <map>
 #include <vector>
+#include <tuple>
 #include <utility>
 #include <limits>
+#include <iostream>
 
 #include <AMReX_REAL.H>
 
@@ -20,9 +22,9 @@ namespace amrex {
 class TinyProfiler
 {
 public:
-    TinyProfiler (std::string funcname) noexcept;
+    explicit TinyProfiler (std::string funcname) noexcept;
     TinyProfiler (std::string funcname, bool start_) noexcept;
-    TinyProfiler (const char* funcname) noexcept;
+    explicit TinyProfiler (const char* funcname) noexcept;
     TinyProfiler (const char* funcname, bool start_) noexcept;
     ~TinyProfiler ();
 
@@ -34,6 +36,8 @@ public:
 
     static void StartRegion (std::string regname) noexcept;
     static void StopRegion (const std::string& regname) noexcept;
+
+    static void PrintCallStack (std::ostream& os);
 
 private:
     //! stats on a single process
@@ -72,7 +76,7 @@ private:
     std::vector<Stats*> stats;
 
     static std::vector<std::string> regionstack;
-    static std::stack<std::pair<double,double> > ttstack;
+    static std::deque<std::tuple<double,double,std::string*> > ttstack;
     static std::map<std::string,std::map<std::string, Stats> > statsmap;
     static double t_init;
 
@@ -80,14 +84,14 @@ private:
     nvtxRangeId_t nvtx_id;
 #endif
 
-    static void PrintStats(std::map<std::string,Stats>& regstats, double dt_max);
+    static void PrintStats (std::map<std::string,Stats>& regstats, double dt_max);
 };
 
 class TinyProfileRegion
 {
 public:
-    TinyProfileRegion (std::string a_regname) noexcept;
-    TinyProfileRegion (const char* a_regname) noexcept;
+    explicit TinyProfileRegion (std::string a_regname) noexcept;
+    explicit TinyProfileRegion (const char* a_regname) noexcept;
     ~TinyProfileRegion ();
 private:
     std::string regname;

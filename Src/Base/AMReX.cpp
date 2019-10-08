@@ -8,6 +8,7 @@
 #include <stack>
 #include <limits>
 #include <vector>
+#include <algorithm>
 
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX.H>
@@ -38,7 +39,7 @@
 #include <AMReX_Lazy.H>
 #endif
 
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
 #include <AMReX_MemProfiler.H>
 #endif
 
@@ -49,7 +50,12 @@
 #include <AMReX_BLBackTrace.H>
 #include <AMReX_MemPool.H>
 
+#include <AMReX_Geometry.H>
+
 namespace amrex {
+
+std::vector<std::unique_ptr<AMReX> > AMReX::m_instance;
+
 namespace system
 {
     std::string exename;
@@ -79,8 +85,13 @@ namespace {
     SignalHandler prev_handler_sigint;
     SignalHandler prev_handler_sigabrt;
     SignalHandler prev_handler_sigfpe;
+#if defined(__linux__)
     int           prev_fpe_excepts;
     int           curr_fpe_excepts;
+#elif defined(__APPLE__)
+    unsigned int  prev_fpe_mask;
+    unsigned int  curr_fpe_excepts;
+#endif
 }
 
 std::string amrex::Version ()
@@ -118,7 +129,8 @@ amrex::write_to_stderr_without_buffering (const char* str)
     {
 	std::ostringstream procall;
 	procall << ParallelDescriptor::MyProc() << "::";
-	const char *cprocall = procall.str().c_str();
+        auto tmp = procall.str();
+	const char *cprocall = tmp.c_str();
         const char * const end = " !!!\n";
 	fwrite(cprocall, strlen(cprocall), 1, stderr);
         fwrite(str, strlen(str), 1, stderr);
@@ -143,9 +155,10 @@ write_lib_id(const char* msg)
 void
 amrex::Error (const char* msg)
 {
-#if defined(__CUDA_ARCH__)
+#ifdef AMREX_DEVICE_COMPILE
 #if !defined(__APPLE__)
     if (msg) printf("%s\n", msg);
+    assert(0);
 #endif
 #else
     if (system::error_handler) {
@@ -169,7 +182,7 @@ amrex::Error (const std::string& msg)
 void
 amrex::Abort (const char* msg)
 {
-#if defined(__CUDA_ARCH__)
+#ifdef AMREX_DEVICE_COMPILE
 #if !defined(__APPLE__)
     if (msg) printf("Abort %s\n", msg);
     assert(0);
@@ -199,7 +212,7 @@ amrex::Abort (const std::string& msg)
 void
 amrex::Warning (const char* msg)
 {
-#if defined(__CUDA_ARCH__)
+#ifdef AMREX_DEVICE_COMPILE
 #if !defined(__APPLE__)
     if (msg) printf("%s\n", msg);
 #endif
@@ -223,7 +236,7 @@ amrex::Assert (const char* EX,
                int         line,
                const char* msg)
 {
-#if defined(__CUDA_ARCH__)
+#ifdef AMREX_DEVICE_COMPILE
 #if !defined(__APPLE__)
     if (msg) {
         printf("Assertion `%s' failed, file \"%s\", line %d, Msg: %s",
@@ -286,17 +299,17 @@ amrex::ExecOnInitialize (PTR_TO_VOID_FUNC fp)
     The_Initialize_Function_Stack.push(fp);
 }
 
-void
+amrex::AMReX*
 amrex::Initialize (MPI_Comm mpi_comm,
                    std::ostream& a_osout, std::ostream& a_oserr,
                    ErrorHandler a_errhandler)
 {
     int argc = 0;
     char** argv = 0;
-    Initialize(argc, argv, false, mpi_comm, {}, a_osout, a_oserr, a_errhandler);
+    return Initialize(argc, argv, false, mpi_comm, {}, a_osout, a_oserr, a_errhandler);
 }
 
-void
+amrex::AMReX*
 amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
                    MPI_Comm mpi_comm, const std::function<void()>& func_parm_parse,
                    std::ostream& a_osout, std::ostream& a_oserr,
@@ -354,13 +367,6 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     upcxx::init();
 #endif
 
-#ifdef BL_USE_MPI3
-    BL_MPI_REQUIRE( MPI_Win_create_dynamic(MPI_INFO_NULL, ParallelDescriptor::Communicator(),
-                                           &ParallelDescriptor::cp_win) );
-    BL_MPI_REQUIRE( MPI_Win_create_dynamic(MPI_INFO_NULL, ParallelDescriptor::Communicator(),
-                                           &ParallelDescriptor::fb_win) );
-#endif
-
     while ( ! The_Initialize_Function_Stack.empty())
     {
         //
@@ -384,13 +390,20 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         }
         else if (argc > 1)
         {
-            if (strchr(argv[1],'='))
-            {
-                ParmParse::Initialize(argc-1,argv+1,0);
+            int ppargc = 1;
+            for (; ppargc < argc; ++ppargc) {
+                if (strcmp(argv[ppargc], "--") == 0) break;
             }
-            else
+            if (ppargc > 1)
             {
-                ParmParse::Initialize(argc-2,argv+2,argv[1]);
+                if (strchr(argv[1],'='))
+                {
+                    ParmParse::Initialize(ppargc-1,argv+1,0);
+                }
+                else
+                {
+                    ParmParse::Initialize(ppargc-2,argv+2,argv[1]);
+                }
             }
         }
     } else {
@@ -436,11 +449,12 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
             pp.query("fpe_trap_invalid", invalid);
             pp.query("fpe_trap_zero", divbyzero);
             pp.query("fpe_trap_overflow", overflow);
+
+#if defined(__linux__)
             curr_fpe_excepts = 0;
             if (invalid)   curr_fpe_excepts |= FE_INVALID;
             if (divbyzero) curr_fpe_excepts |= FE_DIVBYZERO;
             if (overflow)  curr_fpe_excepts |= FE_OVERFLOW;
-#if defined(__linux__) && !defined(__NEC__)
 #if !defined(__PGI) || (__PGIC__ >= 16)
             prev_fpe_excepts = fegetexcept();
             if (curr_fpe_excepts != 0) {
@@ -448,6 +462,17 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
                 prev_handler_sigfpe = signal(SIGFPE,  BLBackTrace::handler);
             }
 #endif
+
+#elif defined(__APPLE__)
+	    prev_fpe_mask = _MM_GET_EXCEPTION_MASK();
+	    curr_fpe_excepts = 0u;
+	    if (invalid)   curr_fpe_excepts |= _MM_MASK_INVALID;
+	    if (divbyzero) curr_fpe_excepts |= _MM_MASK_DIV_ZERO;
+	    if (overflow)  curr_fpe_excepts |= _MM_MASK_OVERFLOW;
+	    if (curr_fpe_excepts != 0u) {
+                _MM_SET_EXCEPTION_MASK(prev_fpe_mask & ~curr_fpe_excepts);
+                prev_handler_sigfpe = signal(SIGFPE,  BLBackTrace::handler);
+	    }
 #endif
         }
     }
@@ -468,7 +493,6 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     DistributionMapping::Initialize();
     FArrayBox::Initialize();
     IArrayBox::Initialize();
-    Gpu::AsyncFab::Initialize();
     FabArrayBase::Initialize();
     MultiFab::Initialize();
     iMultiFab::Initialize();
@@ -508,11 +532,22 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     }
 
     BL_TINY_PROFILE_INITIALIZE();
+
+    AMReX::push(new AMReX());
+    return AMReX::top();
 }
 
 void
-amrex::Finalize (bool finalize_parallel)
+amrex::Finalize ()
 {
+    amrex::Finalize(AMReX::top());
+}
+
+void
+amrex::Finalize (amrex::AMReX* pamrex)
+{
+    AMReX::erase(pamrex);
+
     BL_TINY_PROFILE_FINALIZE();
     BL_PROFILE_FINALIZE();
 
@@ -566,7 +601,7 @@ amrex::Finalize (bool finalize_parallel)
     }
 #endif
 
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
     MemProfiler::report("Final");
     MemProfiler::Finalize();
 #endif
@@ -582,13 +617,17 @@ amrex::Finalize (bool finalize_parallel)
         if (prev_handler_sigint != SIG_ERR) signal(SIGINT, prev_handler_sigint);
         if (prev_handler_sigabrt != SIG_ERR) signal(SIGABRT, prev_handler_sigabrt);
         if (prev_handler_sigfpe != SIG_ERR) signal(SIGFPE, prev_handler_sigfpe);
-#if defined(__linux__) && !defined(__NEC__)
+#if defined(__linux__)
 #if !defined(__PGI) || (__PGIC__ >= 16)
         if (curr_fpe_excepts != 0) {
             fedisableexcept(curr_fpe_excepts);
             feenableexcept(prev_fpe_excepts);
         }
 #endif
+#elif defined(__APPLE__)
+	if (curr_fpe_excepts != 0u) {
+            _MM_SET_EXCEPTION_MASK(prev_fpe_mask);
+	}
 #endif
     }
 #endif
@@ -608,12 +647,10 @@ amrex::Finalize (bool finalize_parallel)
 
     bool is_ioproc = ParallelDescriptor::IOProcessor();
 
-    if (finalize_parallel) {
     /* Don't shut down MPI if GASNet is still using MPI */
 #ifndef GASNET_CONDUIT_MPI
-        ParallelDescriptor::EndParallel();
+    ParallelDescriptor::EndParallel();
 #endif
-    }
 
     if (amrex::system::verbose > 0 && is_ioproc) {
         amrex::OutStream() << "AMReX (" << amrex::Version() << ") finalized" << std::endl;
@@ -652,4 +689,43 @@ amrex::get_command_argument (int number)
     } else {
         return std::string();
     }
+}
+
+namespace amrex
+{
+
+AMReX::AMReX ()
+    : m_geom(new Geometry())
+{
+}
+
+AMReX::~AMReX ()
+{
+    delete m_geom;
+}
+
+void
+AMReX::push (AMReX* pamrex)
+{
+    auto r = std::find_if(m_instance.begin(), m_instance.end(),
+                          [=] (const std::unique_ptr<AMReX>& x) -> bool
+                          { return x.get() == pamrex; });
+    if (r == m_instance.end()) {
+        m_instance.emplace_back(pamrex);
+    } else if (r+1 != m_instance.end()) {
+        std::rotate(r, r+1, m_instance.end());
+    }
+}
+
+void
+AMReX::erase (AMReX* pamrex)
+{
+    auto r = std::find_if(m_instance.begin(), m_instance.end(),
+                          [=] (const std::unique_ptr<AMReX>& x) -> bool
+                          { return x.get() == pamrex; });
+    if (r != m_instance.end()) {
+        m_instance.erase(r);
+    }
+}
+
 }

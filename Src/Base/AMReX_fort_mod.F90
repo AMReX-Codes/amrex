@@ -172,7 +172,7 @@ contains
 
     real(amrex_real) :: y
 
-    real(amrex_real), shared :: s(0:(AMREX_CUDA_MAX_THREADS/warpsize) - 1)
+    real(amrex_real), shared :: s(0:(AMREX_GPU_MAX_THREADS/warpsize) - 1)
 
     integer :: lane, wid
 

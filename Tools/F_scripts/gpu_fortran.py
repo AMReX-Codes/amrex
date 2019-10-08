@@ -179,7 +179,7 @@ def append_device_to_line(line, subs):
                 new_line = case_insensitive_replace(new_line, sub_name, sub_name + '_device', 
                                                     on_condition=lambda x: get_replace_procedure(x, sub_name.lower()))
 
-            elif sub_name in line.lower() and sub_name + '_device' not in line.lower():
+            elif sub_name.lower() in line.lower() and sub_name.lower() + '_device' not in line.lower():
                 # Catch function calls here.
                 # Make sure "bar(" is not any of "foobar(" or "foo % bar(" or "foo_bar("
                 old_fun = sub_name.lower() + '('

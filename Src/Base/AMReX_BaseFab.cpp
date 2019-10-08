@@ -4,7 +4,7 @@
 #include <AMReX_BaseFab.H>
 #include <AMReX_BLFort.H>
 
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
 #include <AMReX_MemProfiler.H>
 #endif
 
@@ -27,10 +27,6 @@ BaseFab_Initialize ()
     {
         basefab_initialized = true;
 
-#ifdef AMREX_USE_GPU
-        makeFabPoolAllocator();
-#endif
-
 #ifdef _OPENMP
 #pragma omp parallel
         {
@@ -41,7 +37,7 @@ BaseFab_Initialize ()
         }
 #endif
 
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
         MemProfiler::add("Fab", std::function<MemProfiler::MemInfo()>
                          ([] () -> MemProfiler::MemInfo {
                              return {amrex::TotalBytesAllocatedInFabs(),
@@ -57,9 +53,6 @@ void
 BaseFab_Finalize()
 {
     basefab_initialized = false;
-#ifdef AMREX_USE_GPU
-    destroyFabPoolAllocator();
-#endif
 }
 
 

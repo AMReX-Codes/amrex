@@ -17,68 +17,12 @@
 #include <AMReX_EB2_IF_Difference.H>
 #include <AMReX_EB2_GeometryShop.H>
 
+#include <AMReX_WriteEBSurface.H>
+#include <AMReX_WriteEB_F.H>
+
 #include <AMReX_EB_LSCore.H>
 
-#include "EB_F.H"
-
-
 using namespace amrex;
-
-
-void WriteEBSurface (const BoxArray & ba, const DistributionMapping & dmap, const Geometry & geom,
-                     const EBFArrayBoxFactory & ebf) {
-
-    const Real * dx = geom.CellSize();
-
-    MultiFab mf_ba(ba, dmap, 1, 0, MFInfo(), ebf);
-
-    for (MFIter mfi(mf_ba); mfi.isValid(); ++mfi) {
-
-        const auto & sfab    = static_cast<EBFArrayBox const &>(mf_ba[mfi]);
-        const auto & my_flag = sfab.getEBCellFlagFab();
-
-        const Box & bx = mfi.validbox();
-
-        if (my_flag.getType(bx) == FabType::covered or
-            my_flag.getType(bx) == FabType::regular) continue;
-
-        std::array<const MultiCutFab *, AMREX_SPACEDIM> areafrac;
-        const MultiCutFab * bndrycent;
-
-        areafrac  =   ebf.getAreaFrac();
-        bndrycent = &(ebf.getBndryCent());
-
-        eb_to_polygon(dx, BL_TO_FORTRAN_BOX(bx),
-                      BL_TO_FORTRAN_3D(my_flag),
-                      BL_TO_FORTRAN_3D((* bndrycent)[mfi]),
-                      BL_TO_FORTRAN_3D((* areafrac[0])[mfi]),
-                      BL_TO_FORTRAN_3D((* areafrac[1])[mfi]),
-                      BL_TO_FORTRAN_3D((* areafrac[2])[mfi]) );
-    }
-
-    int cpu = ParallelDescriptor::MyProc();
-    int nProcs = ParallelDescriptor::NProcs();
-
-    write_eb_vtp(& cpu);
-
-    if(ParallelDescriptor::IOProcessor())
-        write_pvtp(& nProcs);
-
-
-    for (MFIter mfi(mf_ba); mfi.isValid(); ++mfi) {
-
-        const auto & sfab    = static_cast<EBFArrayBox const &>(mf_ba[mfi]);
-        const auto & my_flag = sfab.getEBCellFlagFab();
-
-        const Box & bx = mfi.validbox();
-
-        if (my_flag.getType(bx) == FabType::covered or
-            my_flag.getType(bx) == FabType::regular) continue;
-
-        eb_grid_coverage(& cpu, dx, BL_TO_FORTRAN_BOX(bx), BL_TO_FORTRAN_3D(my_flag));
-    }
-}
-
 
 inline
 void set_tooth_pos(RealArray & tooth_pos, Real angle, Real radius, const RealArray & center) {
@@ -222,7 +166,7 @@ int main (int argc, char * argv[]) {
                                        {eb_grow, eb_grow, eb_grow}, EBSupport::full );
 
         Print() << "Writing EB surface" << std::endl;
-        WriteEBSurface (grids, dmap, geom, ebf_donut);
+        WriteEBSurface (grids, dmap, geom, &ebf_donut);
 
 
         /************************************************************************

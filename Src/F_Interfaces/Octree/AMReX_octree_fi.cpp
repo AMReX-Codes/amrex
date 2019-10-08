@@ -185,9 +185,9 @@ extern "C" {
         MultiFab lmf(amrex::coarsen(lba,rr),ldm,ncomp,0);
 
         MultiFab fvolume;
-        if (!Geometry::IsCartesian())
+        const Geometry& fgeom = famrcore->Geom(flev);
+        if (!fgeom.IsCartesian())
         {
-            const Geometry& fgeom = famrcore->Geom(flev);
             fgeom.GetVolume(fvolume, lba, ldm, 0);
         }
 
@@ -197,19 +197,19 @@ extern "C" {
         for (MFIter mfi(lmf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.tilebox();
-            FArrayBox * crsefab = lmf.fabPtr(mfi);
+            Array4<Real> const& crsearr = lmf.array(mfi);
             const int li = li_leaf_to_full[mfi.LocalIndex()];
-            FArrayBox const* finefab = fine->fabPtrAtLocalIdx(li);
-            if (Geometry::IsCartesian()) {
+            Array4<Real const> const& finearr = fine->atLocalIdx(li).const_array();
+            if (fgeom.IsCartesian()) {
                 AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
                 {
-                    amrex_avgdown(tbx,*crsefab,*finefab,0,scomp,ncomp,rr);
+                    amrex_avgdown(tbx,crsearr,finearr,0,scomp,ncomp,rr);
                 });
             } else {
-                FArrayBox const* finevolfab = fvolume.fabPtr(mfi);
+                Array4<Real const> const& finevolarr = fvolume.const_array(mfi);
                 AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
                 {
-                    amrex_avgdown_with_vol(tbx,*crsefab,*finefab,*finevolfab,
+                    amrex_avgdown_with_vol(tbx,crsearr,finearr,finevolarr,
                                            0,scomp,ncomp,rr);
                 });
             }

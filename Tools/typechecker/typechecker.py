@@ -127,9 +127,11 @@ def check_doit(node, workdir, func_src, fout, aux_info):
 
 
 def c_to_f_type(ctyp):
-    # supported C types: char, short, int, long, float, double, void
+    # supported C types: char, short, int, long, float, double, void, _Bool
     if ctyp == 'char':
         return 'CHARACTER 1 1'
+    elif ctyp == 'int8_t':
+        return 'INTEGER 1'
     elif ctyp == 'short':
         return 'INTEGER 2'
     elif ctyp == 'int':
@@ -144,6 +146,8 @@ def c_to_f_type(ctyp):
         return 'REAL 8'
     elif ctyp == 'void':
         return 'void'
+    elif ctyp == '_Bool':
+        return 'LOGICAL 1'
 
 
 def c_ast_get_type(decl):

@@ -1,8 +1,8 @@
 #
-# For NERSC machines: Edison and Cori
+# For NERSC machines: Cori and corigpu
 #
 
-ifneq ($(which_computer),$(filter $(which_computer),cori edison))
+ifneq ($(which_computer),$(filter $(which_computer),cori))
   $(error Unknown NERSC computer, $(which_computer))
 endif
 
@@ -23,7 +23,7 @@ ifeq ($(USE_CUDA),TRUE)
   CXX = mpic++ 
   FC  = mpif90
   F90 = mpif90
-  cori_mvapich_link_flags := $(shell mpic++ -link_info 2>&1)
+  cori_mvapich_link_flags := $(shell mpic++ -link_info)
 
 # Using OPENMPI + UCX
   ifeq ($(cori_mvapich_link_flags),)
@@ -62,8 +62,15 @@ endif
 endif
 
 ifeq ($(USE_CUDA),TRUE)
-  SYSTEM_CUDA_PATH = $(CUDA_ROOT)
-  COMPILE_CUDA_PATH = $(CUDA_ROOT)
+
+  ifneq ($(CUDA_ROOT),)
+      SYSTEM_CUDA_PATH := $(CUDA_ROOT)
+      COMPILE_CUDA_PATH := $(CUDA_ROOT)
+  else ifneq ($(CUDA_HOME),)
+      SYSTEM_CUDA_PATH := $(CUDA_HOME)
+      COMPILE_CUDA_PATH := $(CUDA_HOME)
+  endif
+
   CUDA_ARCH = 70
   GPUS_PER_NODE = 8
   GPUS_PER_SOCKET = 4

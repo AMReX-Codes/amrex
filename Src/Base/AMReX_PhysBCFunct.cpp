@@ -68,7 +68,7 @@ CpuBndryFuncFab::operator() (Box const& bx, FArrayBox& dest,
 
     if (f_user != nullptr)
     {
-        f_user(bx, dest, dcomp, numcomp, geom.data(), time,
+        f_user(bx, dest.array(), dcomp, numcomp, geom.data(), time,
                &(bcr[bcomp]), 0, orig_comp);
     }
 }

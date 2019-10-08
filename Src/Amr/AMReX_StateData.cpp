@@ -66,10 +66,10 @@ StateData::operator= (StateData const& rhs)
     dmap = rhs.dmap;
     new_time = rhs.new_time;
     old_time = rhs.old_time;
-    new_data.reset(new MultiFab(grids,dmap,desc->nComp(),desc->nExtra(), MFInfo(), *m_factory));
+    new_data.reset(new MultiFab(grids,dmap,desc->nComp(),desc->nExtra(), MFInfo().SetTag("StateData"), *m_factory));
     MultiFab::Copy(*new_data, *rhs.new_data, 0, 0, desc->nComp(),desc->nExtra());
     if (rhs.old_data) {
-        old_data.reset(new MultiFab(grids,dmap,desc->nComp(),desc->nExtra(), MFInfo(), *m_factory));
+        old_data.reset(new MultiFab(grids,dmap,desc->nComp(),desc->nExtra(), MFInfo().SetTag("StateData"), *m_factory));
         MultiFab::Copy(*old_data, *rhs.old_data, 0, 0, desc->nComp(),desc->nExtra());
     } else {
         old_data.reset();
@@ -115,7 +115,7 @@ StateData::define (const Box&             p_domain,
     }
     int ncomp = desc->nComp();
 
-    new_data.reset(new MultiFab(grids,dmap,ncomp,desc->nExtra(), MFInfo(), *m_factory));
+    new_data.reset(new MultiFab(grids,dmap,ncomp,desc->nExtra(), MFInfo().SetTag("StateData"), *m_factory));
     old_data.reset();
 }
 
@@ -207,11 +207,11 @@ StateData::restartDoit (std::istream& is, const std::string& chkfile)
     is >> nsets;
 
     new_data.reset(new MultiFab(grids,dmap,desc->nComp(),desc->nExtra(),
-                                MFInfo(), *m_factory));
+                                MFInfo().SetTag("StateData"), *m_factory));
     old_data.reset();
     if (nsets == 2) {
         old_data.reset(new MultiFab(grids,dmap,desc->nComp(),desc->nExtra(),
-                                    MFInfo(), *m_factory));
+                                    MFInfo().SetTag("StateData"), *m_factory));
     }
     //
     // If no data is written then we just allocate the MF instead of reading it in. 
@@ -273,7 +273,7 @@ StateData::restart (const StateDescriptor& d,
     new_time.start = rhs.new_time.start;
     new_time.stop  = rhs.new_time.stop;
     old_data.reset();
-    new_data.reset(new MultiFab(grids,dmap,desc->nComp(),desc->nExtra(), MFInfo(), *m_factory));
+    new_data.reset(new MultiFab(grids,dmap,desc->nComp(),desc->nExtra(), MFInfo().SetTag("StateData"), *m_factory));
     new_data->setVal(0.);
 }
 
@@ -287,7 +287,7 @@ StateData::allocOldData ()
 {
     if (old_data == nullptr)
     {
-        old_data.reset(new MultiFab(grids,dmap,desc->nComp(),desc->nExtra(), MFInfo(), *m_factory));
+        old_data.reset(new MultiFab(grids,dmap,desc->nComp(),desc->nExtra(), MFInfo().SetTag("StateData"), *m_factory));
     }
 }
 
@@ -489,10 +489,10 @@ StateData::FillBoundary (FArrayBox&     dest,
         }
     }
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
     // Add a synchronize here in case the user code launched kernels
     // to handle the boundary fills.
-    AMREX_GPU_SAFE_CALL(cudaDeviceSynchronize());
+    Gpu::synchronize();
 #endif
 }
 
@@ -858,8 +858,9 @@ StateDataPhysBCFunct::FillBoundary (MultiFab& mf, int dest_comp, int num_comp, R
 
 	for (MFIter mfi(mf); mfi.isValid(); ++mfi)
 	{
-	    FArrayBox* dest = run_on_gpu ? mf.fabPtr(mfi) : &(mf[mfi]);
-	    const Box& bx = mfi.fabbox();
+            FArrayBox& dest = mf[mfi];
+            Array4<Real> const& desta = dest.array();
+            const Box& bx = dest.box();
     
 	    bool has_phys_bc = false;
 	    bool is_periodic = false;
@@ -875,9 +876,9 @@ StateDataPhysBCFunct::FillBoundary (MultiFab& mf, int dest_comp, int num_comp, R
 	    if (has_phys_bc)
 	    {
                 if (has_bndryfunc_fab) {
-                    statedata->FillBoundary(bx, *dest, time, geom, dest_comp, src_comp, num_comp);
+                    statedata->FillBoundary(bx, dest, time, geom, dest_comp, src_comp, num_comp);
                 } else {
-                    statedata->FillBoundary(*dest, time, dx, prob_domain, dest_comp, src_comp, num_comp);
+                    statedata->FillBoundary(dest, time, dx, prob_domain, dest_comp, src_comp, num_comp);
                 }
 		
 		if (is_periodic) // fix up corner
@@ -910,36 +911,65 @@ StateDataPhysBCFunct::FillBoundary (MultiFab& mf, int dest_comp, int num_comp, R
 			{
                             if (run_on_gpu)
                             {
-                                AsyncFab asyncfab(lo_slab,num_comp);
-                                FArrayBox* fab = asyncfab.fabPtr();
+                                tmp.resize(lo_slab,num_comp);
+                                Elixir elitmp = tmp.elixir();
+                                Array4<Real> const& tmpa = tmp.array();
                                 const int ishift = -domain.length(dir);
-                                AMREX_LAUNCH_DEVICE_LAMBDA (lo_slab, tbx,
+                                amrex::launch(lo_slab,
+                                [=] AMREX_GPU_DEVICE (Box const& tbx) noexcept
                                 {
                                     const Box db = amrex::shift(tbx, dir, ishift);
-                                    fab->copy(*dest, db, dest_comp, tbx, 0, num_comp);
+                                    const auto dlo = amrex::lbound(db);
+                                    const auto tlo = amrex::lbound(tbx);
+                                    const auto len = amrex::length(db);
+                                    for (int n = 0; n < num_comp; ++n) {
+                                        for         (int k = 0; k < len.z; ++k) {
+                                            for     (int j = 0; j < len.y; ++j) {
+                                                AMREX_PRAGMA_SIMD
+                                                for (int i = 0; i < len.x; ++i) {
+                                                    tmpa(i+tlo.x,j+tlo.y,k+tlo.z,n)
+                                                        = desta(i+dlo.x,j+dlo.y,k+dlo.z,n+dest_comp);
+                                                }
+                                            }
+                                        }
+                                    }
                                 });
                                 if (has_bndryfunc_fab) {
-                                    statedata->FillBoundary(lo_slab, *fab, time, geom, 0, src_comp, num_comp);
+                                    statedata->FillBoundary(lo_slab, tmp, time, geom, 0, src_comp, num_comp);
                                 } else {
-                                    statedata->FillBoundary(*fab, time, dx, prob_domain, 0, src_comp, num_comp);
+                                    statedata->FillBoundary(tmp, time, dx, prob_domain, 0, src_comp, num_comp);
                                 }
-                                AMREX_LAUNCH_DEVICE_LAMBDA (lo_slab, tbx,
+                                amrex::launch(lo_slab,
+                                [=] AMREX_GPU_DEVICE (Box const& tbx) noexcept
                                 {
                                     const Box db = amrex::shift(tbx, dir, ishift);
-                                    dest->copy(*fab, tbx, 0, db, dest_comp, num_comp);
+                                    const auto dlo = amrex::lbound(db);
+                                    const auto tlo = amrex::lbound(tbx);
+                                    const auto len = amrex::length(db);
+                                    for (int n = 0; n < num_comp; ++n) {
+                                        for         (int k = 0; k < len.z; ++k) {
+                                            for     (int j = 0; j < len.y; ++j) {
+                                                AMREX_PRAGMA_SIMD
+                                                for (int i = 0; i < len.x; ++i) {
+                                                    desta(i+dlo.x,j+dlo.y,k+dlo.z,n+dest_comp)
+                                                        = tmpa(i+tlo.x,j+tlo.y,k+tlo.z,n);
+                                                }
+                                            }
+                                        }
+                                    }
                                 });
                             }
                             else
                             {
                                 tmp.resize(lo_slab,num_comp);
                                 const Box db = amrex::shift(lo_slab, dir, -domain.length(dir));
-                                tmp.copy(*dest, db, dest_comp, lo_slab, 0, num_comp);
+                                tmp.copy(dest, db, dest_comp, lo_slab, 0, num_comp);
                                 if (has_bndryfunc_fab) {
                                     statedata->FillBoundary(lo_slab, tmp, time, geom, 0, src_comp, num_comp);
                                 } else {
                                     statedata->FillBoundary(tmp, time, dx, prob_domain, 0, src_comp, num_comp);
                                 }
-                                dest->copy(tmp, lo_slab, 0, db, dest_comp, num_comp);
+                                dest.copy(tmp, lo_slab, 0, db, dest_comp, num_comp);
                             }
 			}
 			
@@ -947,36 +977,65 @@ StateDataPhysBCFunct::FillBoundary (MultiFab& mf, int dest_comp, int num_comp, R
 			{
                             if (run_on_gpu)
                             {
-                                AsyncFab asyncfab(hi_slab,num_comp);
-                                FArrayBox* fab = asyncfab.fabPtr();
+                                tmp.resize(hi_slab,num_comp);
+                                Elixir elitmp = tmp.elixir();
+                                Array4<Real> const& tmpa = tmp.array();
                                 const int ishift = domain.length(dir);
-                                AMREX_LAUNCH_DEVICE_LAMBDA (hi_slab, tbx,
+                                amrex::launch(hi_slab,
+                                [=] AMREX_GPU_DEVICE (Box const& tbx) noexcept
                                 {
                                     const Box db = amrex::shift(tbx, dir, ishift);
-                                    fab->copy(*dest, db, dest_comp, tbx, 0, num_comp);
+                                    const auto dlo = amrex::lbound(db);
+                                    const auto tlo = amrex::lbound(tbx);
+                                    const auto len = amrex::length(db);
+                                    for (int n = 0; n < num_comp; ++n) {
+                                        for         (int k = 0; k < len.z; ++k) {
+                                            for     (int j = 0; j < len.y; ++j) {
+                                                AMREX_PRAGMA_SIMD
+                                                for (int i = 0; i < len.x; ++i) {
+                                                    tmpa(i+tlo.x,j+tlo.y,k+tlo.z,n)
+                                                        = desta(i+dlo.x,j+dlo.y,k+dlo.z,n+dest_comp);
+                                                }
+                                            }
+                                        }
+                                    }
                                 });
                                 if (has_bndryfunc_fab) {
-                                    statedata->FillBoundary(hi_slab, *fab, time, geom, 0, src_comp, num_comp);
+                                    statedata->FillBoundary(hi_slab, tmp, time, geom, 0, src_comp, num_comp);
                                 } else {
-                                    statedata->FillBoundary(*fab, time, dx, prob_domain, 0, src_comp, num_comp);
+                                    statedata->FillBoundary(tmp, time, dx, prob_domain, 0, src_comp, num_comp);
                                 }
-                                AMREX_LAUNCH_DEVICE_LAMBDA (hi_slab, tbx,
+                                amrex::launch(hi_slab,
+                                [=] AMREX_GPU_DEVICE (Box const& tbx) noexcept
                                 {
                                     const Box db = amrex::shift(tbx, dir, ishift);
-                                    dest->copy(*fab, tbx, 0, db, dest_comp, num_comp);
+                                    const auto dlo = amrex::lbound(db);
+                                    const auto tlo = amrex::lbound(tbx);
+                                    const auto len = amrex::length(db);
+                                    for (int n = 0; n < num_comp; ++n) {
+                                        for         (int k = 0; k < len.z; ++k) {
+                                            for     (int j = 0; j < len.y; ++j) {
+                                                AMREX_PRAGMA_SIMD
+                                                for (int i = 0; i < len.x; ++i) {
+                                                    desta(i+dlo.x,j+dlo.y,k+dlo.z,n+dest_comp)
+                                                        = tmpa(i+tlo.x,j+tlo.y,k+tlo.z,n);
+                                                }
+                                            }
+                                        }
+                                    }
                                 });
                             }
                             else
                             {
                                 tmp.resize(hi_slab,num_comp);
                                 const Box db = amrex::shift(hi_slab, dir, domain.length(dir));
-                                tmp.copy(*dest, db, dest_comp, hi_slab, 0, num_comp);
+                                tmp.copy(dest, db, dest_comp, hi_slab, 0, num_comp);
                                 if (has_bndryfunc_fab) {
                                     statedata->FillBoundary(hi_slab, tmp, time, geom, 0, src_comp, num_comp);
                                 } else {
                                     statedata->FillBoundary(tmp, time, dx, prob_domain, 0, src_comp, num_comp);
                                 }
-                                dest->copy(tmp, hi_slab, 0, db, dest_comp, num_comp);
+                                dest.copy(tmp, hi_slab, 0, db, dest_comp, num_comp);
                             }
 			}
 		    }

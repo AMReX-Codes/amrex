@@ -10,7 +10,7 @@
 using namespace amrex;
 
 AMREX_GPU_DEVICE
-AMREX_INLINE
+AMREX_FORCE_INLINE
 void slopex2(Box const& bx,
              Array4<Real> const& q,
              Array4<Real> const& dq)
@@ -35,7 +35,7 @@ void slopex2(Box const& bx,
 }
 
 AMREX_GPU_DEVICE
-AMREX_INLINE
+AMREX_FORCE_INLINE
 void slopex4(Box const& bx,
              Array4<Real> const& q,
              Array4<Real> const& dq,
@@ -64,7 +64,7 @@ void slopex4(Box const& bx,
 // ***********************************************************
 
 AMREX_GPU_DEVICE
-AMREX_INLINE
+AMREX_FORCE_INLINE
 void slopey2(Box const& bx,
              Array4<Real> const& q,
              Array4<Real> const& dq)
@@ -89,7 +89,7 @@ void slopey2(Box const& bx,
 }
 
 AMREX_GPU_DEVICE
-AMREX_INLINE
+AMREX_FORCE_INLINE
 void slopey4(Box const& bx,
              Array4<Real> const& q,
              Array4<Real> const& dq,
@@ -118,7 +118,7 @@ void slopey4(Box const& bx,
 // ***********************************************************
 
 AMREX_GPU_DEVICE
-AMREX_INLINE
+AMREX_FORCE_INLINE
 void slopez2(Box const& bx,
              Array4<Real> const&  q,
              Array4<Real> const& dq)
@@ -143,7 +143,7 @@ void slopez2(Box const& bx,
 }
 
 AMREX_GPU_DEVICE
-AMREX_INLINE
+AMREX_FORCE_INLINE
 void slopez4(Box const& bx,
              Array4<Real> const& q,
              Array4<Real> const& dq,

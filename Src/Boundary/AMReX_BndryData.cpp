@@ -197,7 +197,7 @@ BndryData::setValue (Orientation face, int n, Real val) noexcept
     auto arr = fab.array();
     const Box& bx = fab.box();
     const int ncomp = m_ncomp;
-    AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, m,
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, m,
     {
         arr(i,j,k,m) = val;
     });

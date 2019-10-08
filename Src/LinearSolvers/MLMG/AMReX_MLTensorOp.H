@@ -6,26 +6,27 @@
 
 namespace amrex {
 
-// Tensor solver for high Reynolds flows with small gradient in shear viscosity.
-//
+// Tensor solver for high Reynolds flows with small gradient in viscosity.
 // The system it solves is
 //
-//   a v + [-div dot (eta grad v) + (grad eta) (div dot v) - (grad eta) dot (grad v)^T] = rhs
+//   alpha a v - beta div dot tau = rhs
 //
-// Note that what's inside [] is div dot tau + div dot ((kappa+eta/3) I (div dot v)),
-// where tau is viscous tensor, and eta and kappa are shear and bulk viscosity, respectively.
-// For incompressible flow, div dot v = 0, the system becomes
+// where tau = eta [grad v + (grad v)^T] +  (kappa-(2/3)eta) (div v) I.
+// Here eta and kappa are shear and bulk viscosity, and I is identity tensor.
 //
-//   a v + div dot tau = rhs
+// The user needs to provide `a` by `setACoeffs`, eta by `setShearViscosity`,
+// and kappa by `setBulkViscosity`.  If `setBulkViscosity` is not called,
+// kappa is set to zero.
 //
-// Known limitations: Using hypre or petsc as bottom solver is not supported.
+// The scalars alpha and beta can be set with `setScalar(Real, Real)`.  If
+// they are not set, their default value is 1.
 
 class MLTensorOp
     : public MLABecLaplacian
 {
 public:
 
-    MLTensorOp () {}
+    MLTensorOp ();
     MLTensorOp (const Vector<Geometry>& a_geom,
                 const Vector<BoxArray>& a_grids,
                 const Vector<DistributionMapping>& a_dmap,
@@ -44,13 +45,16 @@ public:
                  const LPInfo& a_info = LPInfo(),
                  const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
 
-    // They are always 1 and 1.
-    void setScalars (Real a, Real b) noexcept = delete;
+    void setShearViscosity (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& eta);
+    void setBulkViscosity (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& kappa);
 
     virtual int getNComp () const final override { return AMREX_SPACEDIM; }
 
+    virtual bool isCrossStencil () const final override { return false; }
+    virtual bool isTensorOp () const final override { return true; }
+
     virtual bool needsUpdate () const final override {
-        return (m_needs_update || MLCellABecLap::needsUpdate());
+        return (m_needs_update || MLABecLaplacian::needsUpdate());
     }
     virtual void update () final override {
         amrex::Abort("MLTensorOp: update TODO");
@@ -63,12 +67,22 @@ public:
     virtual void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
                         StateMode s_mode, const MLMGBndry* bndry=nullptr) const final override;
 
+    virtual void compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
+                           MultiFab& sol, Location loc) const override;
+  
 protected:
 
     bool m_needs_update = true;
 
-    Vector<MultiFab> m_gradeta;
+    bool m_has_kappa = false;
+    Vector<Vector<Array<MultiFab,AMREX_SPACEDIM> > > m_kappa;
 
+    void setBCoeffs (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& beta) = delete;
+
+public: // for cuda
+
+    void applyBCTensor (int amrlev, int mglev, MultiFab& vel,
+                        BCMode bc_mode, const MLMGBndry* bndry) const;
 };
 
 }

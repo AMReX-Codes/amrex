@@ -30,9 +30,11 @@ struct MFItInfo
     bool do_tiling;
     bool dynamic;
     bool device_sync;
+    int  num_streams;
     IntVect tilesize;
     MFItInfo () noexcept
-        : do_tiling(false), dynamic(false), device_sync(true), tilesize(IntVect::TheZeroVector()) {}
+        : do_tiling(false), dynamic(false), device_sync(true), num_streams(Gpu::numGpuStreams()),
+          tilesize(IntVect::TheZeroVector()) {}
     MFItInfo& EnableTiling (const IntVect& ts = FabArrayBase::mfiter_tile_size) noexcept {
         do_tiling = true;
         tilesize = ts;
@@ -44,6 +46,18 @@ struct MFItInfo
     }
     MFItInfo& DisableDeviceSync () noexcept {
         device_sync = false;
+        return *this;
+    }
+    MFItInfo& SetDeviceSync (bool f) noexcept {
+        device_sync = f;
+        return *this;
+    }
+    MFItInfo& SetNumStreams (int n) noexcept {
+        num_streams = n;
+        return *this;
+    }
+    MFItInfo& UseDefaultStream () noexcept {
+        num_streams = -1;
         return *this;
     }
 };
@@ -186,6 +200,7 @@ protected:
     int           currentIndex;
     int           beginIndex;
     int           endIndex;
+    int           streams;
     IndexType     typ;
 
     bool          dynamic;
@@ -223,6 +238,13 @@ private:
     void Initialize ();
     FabArrayBase::TileArray lta;
 };
+
+//! Is it safe to have these two MultiFabs in the same MFiter?
+//! Ture means safe; false means maybe.
+inline bool isMFIterSafe (const FabArrayBase& x, const FabArrayBase& y) {
+    return x.DistributionMap() == y.DistributionMap()
+        && BoxArray::SameRefs(x.boxArray(), y.boxArray());
+}
 
 inline Arena* The_MFIter_Arena () noexcept { return The_Device_Arena(); }
 

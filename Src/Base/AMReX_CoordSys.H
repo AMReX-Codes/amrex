@@ -2,6 +2,8 @@
 #ifndef AMREX_COORDSYS_H_
 #define AMREX_COORDSYS_H_
 
+#include <limits>
+#include <AMReX.H>
 #include <AMReX_REAL.H>
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
@@ -29,10 +31,10 @@ public:
     friend std::istream& operator>> (std::istream&, CoordSys& );
 
     //! Default constructor to undefined state.
-    CoordSys ();
+    CoordSys () noexcept;
 
-    //! Construct, specify a cell size, and low end of index range.
-    explicit CoordSys (const Real* cell_dx);
+//    //! Construct, specify a cell size, and low end of index range.
+//    explicit CoordSys (const Real* cell_dx) noexcept;
 
     ~CoordSys () = default;
     CoordSys (const CoordSys& rhs) = default;
@@ -40,35 +42,37 @@ public:
     CoordSys& operator= (const CoordSys& rhs) = default;
     CoordSys& operator= (CoordSys&& rhs) = default;
 
-    //! Initialize after construction.
-    void define (const Real* cell_dx);
+//    //! Initialize after construction.
+//    void define (const Real* cell_dx);
 
     //! Set the CoordType.
-    static void SetCoord (CoordType coord) { c_sys = coord; }
+    void SetCoord (CoordType coord) noexcept { c_sys = coord; }
 
     //! Returns the CoordType.
-    static CoordType Coord () noexcept { return c_sys; }
+    CoordType Coord () const noexcept { return c_sys; }
 
     //! Returns the CoordType as an int.
-    static int CoordInt () noexcept;
+    int CoordInt () const  noexcept { return static_cast<int>(c_sys); }
 
     //! Is CoordType == SPHERICAL?
-    static bool IsSPHERICAL () noexcept;
+    bool IsSPHERICAL () const noexcept;
 
     //! Is CoordType == RZ?
-    static bool IsRZ () noexcept;
+    bool IsRZ () const noexcept;
 
     //! Is CoordType == cartesion?
-    static bool IsCartesian () noexcept { BL_ASSERT(c_sys != undef); return (c_sys == cartesian); }
+    bool IsCartesian () const noexcept {
+        BL_ASSERT(c_sys != undef); return (c_sys == cartesian);
+    }
 
     //! Sets the offset for each coordinate direction.
-    static void SetOffset (const Real* x_lo);
+    void SetOffset (const Real* x_lo) noexcept;
 
     //! Returns the offset.
-    static const Real* Offset () noexcept { return offset; }
+    const Real* Offset () const noexcept { return offset; }
 
     //! Returns the offset for the specified coordinate direction.
-    static Real Offset (int dir) noexcept { return offset[dir]; }
+    Real Offset (int dir) const noexcept { return offset[dir]; }
 
     //! Returns the cellsize for each coordinate direction.
     const Real* CellSize () const noexcept { BL_ASSERT(ok); return dx; }
@@ -238,19 +242,21 @@ public:
     void GetCellVolCoord (Vector<Real>& loc, const Box& region, int dir) const;
 
 protected:
-    //! Static data.
-    static CoordType c_sys;
-    static Real      offset[AMREX_SPACEDIM];
+    // c_sys and offset used to be static
+    CoordType c_sys = undef;
+    Real      offset[AMREX_SPACEDIM];
 
-    //! Non-static data.
-    Real dx[AMREX_SPACEDIM];
-    Real inv_dx[AMREX_SPACEDIM];
-    bool ok;
+    Real dx[AMREX_SPACEDIM] = {AMREX_D_DECL(0.,0.,0.)};
+    Real inv_dx[AMREX_SPACEDIM]
+        = {AMREX_D_DECL(std::numeric_limits<Real>::infinity(),
+                        std::numeric_limits<Real>::infinity(),
+                        std::numeric_limits<Real>::infinity())};
+    bool ok = false;
 };
 
 inline
 bool
-CoordSys::IsSPHERICAL () noexcept
+CoordSys::IsSPHERICAL () const noexcept
 {
     BL_ASSERT(c_sys != undef);
 #if (AMREX_SPACEDIM <= 2)
@@ -263,7 +269,7 @@ CoordSys::IsSPHERICAL () noexcept
 
 inline
 bool
-CoordSys::IsRZ () noexcept
+CoordSys::IsRZ () const noexcept
 {
     BL_ASSERT(c_sys != undef);
 #if (AMREX_SPACEDIM <= 2)

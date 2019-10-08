@@ -14,10 +14,16 @@ module amrex_habec_module
   use amrex_fort_module, only : rt => amrex_real
   use amrex_lo_bctypes_module, only : amrex_lo_dirichlet, amrex_lo_neumann
   use amrex_error_module, only : amrex_error
-  use amrex_constants_module, only : zero, one, half, three
+  use amrex_constants_module, only : zero, one, two, three, half, fourth
   implicit none
 
 contains
+
+  elemental function amrex_get_dx_eb (kappa)
+    real(rt), intent(in) :: kappa
+    real(rt) :: amrex_get_dx_eb
+    amrex_get_dx_eb = max(0.3_rt, (kappa*kappa-fourth)/(two*kappa))
+  end function amrex_get_dx_eb
 
   subroutine amrex_hpacoef (lo, hi, mat, a, alo, ahi, sa) bind(c,name='amrex_hpacoef')
     integer, intent(in) :: lo(2), hi(2), alo(2), ahi(2)
@@ -366,7 +372,6 @@ contains
        sa, sb, dx, bct, bcl, bho) &
        bind(c,name='amrex_hpeb_ijmatrix')
     use amrex_ebcellflag_module, only : is_covered_cell, is_regular_cell
-    use amrex_mlebabeclap_2d_module, only : amrex_get_dx_eb, blend_beta => amrex_blend_beta
     integer(it), intent(in) :: nrows, cell_id_begin
     integer(it), dimension(0:nrows-1), intent(out) :: ncols, rows
     integer(it), dimension(0:nrows*9-1), intent(out) :: cols
@@ -395,13 +400,13 @@ contains
 
     logical :: is_dirichlet
     integer :: i,j, irow, imat, cdir, idim, ii,jj, ioff, joff
-    real(rt) :: fac(2), mat_tmp(-1:1,-1:1), phig1(4), phig2(4), feb(4)
+    real(rt) :: fac(2), mat_tmp(-1:1,-1:1), phig(4), feb(4)
     real(rt) :: bf1(0:3), bf2(0:3), h, h2, h3, bflo(0:3), c_0(-1:0,-1:0)
     real(rt) :: c_x(-1:0,-1:0), c_y(-1:0,-1:0), c_xy(-1:0,-1:0)
     real(rt) :: fracx, fracy, area, bc
     real(rt) :: gx, gy, anrmx, anrmy, anorm, anorminv, sx, sy
     real(rt) :: bctx, bcty, bsxinv, bsyinv
-    real(rt) :: w1, w2, dg
+    real(rt) :: dg
 
     is_dirichlet = is_eb_dirichlet .ne. 0
     fac = sb/dx**2
@@ -668,51 +673,12 @@ contains
                    ioff = -int(sx)
                    joff = -int(sy)
 
-                   w1 = blend_beta(vfrc(i,j))
-                   w2 = one - w1
+                   phig(1) = one + gx*sx + gy*sy + gx*gy*sx*sy
+                   phig(2) =     - gx*sx         - gx*gy*sx*sy
+                   phig(3) =             - gy*sy - gx*gy*sx*sy
+                   phig(4) =                     + gx*gy*sx*sy
 
-                   if (w1.eq.zero) then 
-                      phig1 = zero
-                   else
-                      phig1(1) = one + gx*sx + gy*sy + gx*gy*sx*sy
-                      phig1(2) =     - gx*sx         - gx*gy*sx*sy
-                      phig1(3) =             - gy*sy - gx*gy*sx*sy
-                      phig1(4) =                     + gx*gy*sx*sy
-                   endif
-
-                   if (w2.eq.zero) then
-                      phig2 = zero
-                   else
-                      bsxinv = one/(bctx+sx)
-                      bsyinv = one/(bcty+sy)
-
-                      ! c_0(0,0) = sx*sy*bsxinv*bsyinv
-                      c_0(-1,0) = bctx*bsxinv
-                      c_0(0,-1) = bcty*bsyinv
-                      c_0(-1,-1) = -bctx*bcty*bsxinv*bsyinv
-
-                      ! c_x(0,0) = sy*bsxinv*bsyinv
-                      c_x(-1,0) = -bsxinv
-                      c_x(0,-1) = sx*bcty*bsyinv
-                      c_x(-1,-1) = -sx*bctx*bcty*bsxinv*bsyinv
-
-                      ! c_y(0,0) = sx*bsxinv*bsyinv
-                      c_y(-1,0) = sy*bctx*bsxinv
-                      c_y(0,-1) = -bsyinv
-                      c_y(-1,-1) = -sy*bctx*bcty*bsxinv*bsyinv
-
-                      ! c_xy(0,0) = bsxinv*bsyinv
-                      c_xy(-1,0) = -sy*bsxinv
-                      c_xy(0,-1) = -sx*bsyinv
-                      c_xy(-1,-1) = (one+sx*bctx+sy*bcty)*bsxinv*bsyinv
-
-                      phig2(1) = zero
-                      phig2(2) = (c_0(-1, 0) + gx*c_x(-1, 0) + gy*c_y(-1, 0) + gx*gy*c_xy(-1, 0))
-                      phig2(3) = (c_0( 0,-1) + gx*c_x( 0,-1) + gy*c_y( 0,-1) + gx*gy*c_xy( 0,-1))
-                      phig2(4) = (c_0(-1,-1) + gx*c_x(-1,-1) + gy*c_y(-1,-1) + gx*gy*c_xy(-1,-1))
-                   endif
-
-                   feb = -(w1*phig1 + w2*phig2) * (ba(i,j) * beb(i,j) / dg)
+                   feb = -phig * (ba(i,j) * beb(i,j) / dg)
                    mat_tmp(0   , 0  ) = mat_tmp(0   , 0  ) - feb(1)*fac(1)
                    mat_tmp(ioff, 0  ) = mat_tmp(ioff, 0  ) - feb(2)*fac(1)
                    mat_tmp(0   ,joff) = mat_tmp(0   ,joff) - feb(3)*fac(1)

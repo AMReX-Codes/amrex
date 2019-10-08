@@ -193,15 +193,22 @@ void FabToBlueprintFields (const FArrayBox& fab,
                            const Vector<std::string>& varnames,
                            Node &res)
 {
+    // make sure we are not asking for more components than exist.
+    BL_ASSERT(varnames.size() <= fab->nComp());
+
     Node &n_fields = res["fields"];
     for(int i=0; i < varnames.size(); i++)
     {
         Node &n_field = n_fields[varnames[i]];
         n_field["association"] = "element";
         n_field["topology"] = "topo";
+        //
         // const_cast is used b/c zero copy via Node::set_external 
         // requires non-const
-        Real *data_ptr = const_cast<Real*>(fab.dataPtr());
+        //
+        // the field data values are the i'th component
+        //
+        Real *data_ptr = const_cast<Real*>(fab.dataPtr(i));
         n_field["values"].set_external(data_ptr,fab.box().numPts());
     }
 }
@@ -292,6 +299,7 @@ MultiLevelToBlueprint (int n_levels,
             Node &patch = res[patch_name];
             // add basic state info
             patch["state/domain_id"] = domain_id;
+            patch["state/cycle"] = level_steps[0];
             patch["state/time"] = time_value;
 
             const FArrayBox &fab = mf[mfi];
@@ -310,16 +318,18 @@ MultiLevelToBlueprint (int n_levels,
     }
 
     Node info;
-    // blueprint verify makes sure we conform to whats expected
+    // if we have mesh data, use blueprint verify
+    // to make sure we conform to whats expected
     // for a multi-domain mesh 
-    if(!blueprint::mesh::verify(res,info))
+    
+    if(!res.dtype().is_empty() && 
+       !blueprint::mesh::verify(res,info))
     {
         // ERROR -- doesn't conform to the mesh blueprint
         // show what went wrong
         amrex::Print() << "ERROR: Conduit Mesh Blueprint Verify Failed!\n"
                        << info.to_json();
     }
-
 
 }
 
@@ -375,24 +385,39 @@ void WriteBlueprintFiles (const conduit::Node &bp_mesh,
         root["tree_pattern"] = "domain_%06d";
         relay::io::save(root,bp_root_file,protocol);
     }
-    else // save 1 file per mpi task + root file
+    else // save 1 per file domain + root file
     {
-        //
-        // For  processor case, save everything (including the 
-        // blueprint index) to one file
-        // 
+        // one file per domain, until blueprint clients
+        // get generalized 
         
         // create a folder to hold data files
         UtilCreateCleanDirectory(bp_base, true);
 
         std::string fname_data_base = bp_base + "/" + bp_base + "_data_";
 
-        // save this rank's data
-        std::string fname_data = amrex::Concatenate(fname_data_base,
-                                                    rank,
-                                                    6);
-        fname_data += "." + protocol;
-        relay::io::save(bp_mesh, fname_data, protocol);
+        // save each domain to its own file
+        NodeConstIterator itr = bp_mesh.children();
+        while(itr.has_next())
+        {
+            const Node &n = itr.next();
+
+            // fetch the domain id
+            int64 domain_id = n["state/domain_id"].to_int64();
+
+            // generate file for this domain
+            std::string fname_data = amrex::Concatenate(fname_data_base,
+                                                        domain_id,
+                                                        6);
+            fname_data += "." + protocol;
+
+            std::string domain_path = amrex::Concatenate(":domain_",
+                                                         domain_id,
+                                                         6);
+            // save this domain's data
+            relay::io::save(n,
+                            fname_data + domain_path, 
+                            protocol);
+        }
 
         // generate root file on the MPI Task designated as 
         // the AMReX IO Processor
@@ -409,13 +434,12 @@ void WriteBlueprintFiles (const conduit::Node &bp_mesh,
             root["protocol/name"] = protocol;
             root["protocol/version"] = "0.4.0";
 
-            root["number_of_files"] = ntasks;
+            root["number_of_files"] = num_domains;
             root["number_of_trees"].set_int64(num_domains);
             root["file_pattern"] =  fname_data_base + "%06d." + protocol;
             root["tree_pattern"] = "domain_%06d";
             relay::io::save(root,bp_root_file,protocol);
         }
-
     }
 }
 

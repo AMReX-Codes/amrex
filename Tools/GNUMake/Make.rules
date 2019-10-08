@@ -98,7 +98,7 @@ install_headers: $(amrexIncludeDir)/AMReX_Config.H
 	    if test -f "$$f"; then \
 	      install -c -m 644 "$$f" $(amrexIncludeDir); \
 	      newf=$(amrexIncludeDir)/$$h; \
-	      perl -pi -e 's/^/#include <AMReX_Config.H>\n/ if $$. == 1' $$newf; \
+              perl -pi -e 'BEGIN{undef $$/;}  s/(^#ifndef.*?\n^#define.*?$$)/$$1\n#include <AMReX_Config.H>/m' $$newf; \
 	    fi; \
 	  done; \
 	done 
@@ -377,7 +377,8 @@ $(TmpBuildDir)/$(optionsSuffix)_cuda_done: $(CEXE_sources)
              --cpp "gcc -E -P -std=c99" \
              --defines "$(CPPFLAGS) $(includes)" \
              --exclude_defines "-DAMREX_USE_MPI -DBL_USE_MPI" \
-	     --num_workers "16"
+	     --num_workers "16" \
+             --device_suffix "$(GPU_PRAGMA_DEVICE_SUFFIX)"
 endif
 
 #
@@ -408,7 +409,7 @@ $(tmpEXETempDir)/%.F.orig: %.F
 # & --> *
 $(tmpEXETempDir)/%-cppd.h: %.H
 	@if [ ! -d $(tmpEXETempDir) ]; then mkdir -p $(tmpEXETempDir); fi
-	$(SILENT) $(CC) $(CPPFLAGS) $(includes) -E -P -x c -std=c99 $< -o $@
+	$(SILENT) $(CC) $(CPPFLAGS) -DAMREX_TYPECHECK $(includes) -E -P -x c -std=c99 $< -o $@
 	@$(SHELL) -ec 'sed -i -e '\''s/amrex::Real/$(amrex_real)/g'\'' $@ ; \
 	               sed -i -e '\''s/amrex_real/$(amrex_real)/g'\''  $@ ; \
 	               sed -i -e '\''s/amrex_particle_real/$(amrex_particle_real)/g'\''  $@ ; \

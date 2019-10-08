@@ -25,6 +25,7 @@ public:
         : m_f(a_f),
           m_g(a_g)
     {}
+    ~DifferenceIF () {}
 
     DifferenceIF (const DifferenceIF& rhs) = default;
     DifferenceIF (DifferenceIF&& rhs) = default;

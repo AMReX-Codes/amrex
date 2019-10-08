@@ -92,7 +92,7 @@ namespace amrex
                 {
                     Real alpha = (t1-time)/(t1-t0);
                     Real beta = (time-t0)/(t1-t0);
-                    AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
                     {
                         dfab(i,j,k,n+destcomp) = alpha*sfab0(i,j,k,n+scomp)
                             +                     beta*sfab1(i,j,k,n+scomp);
@@ -100,7 +100,7 @@ namespace amrex
                 }
                 else
                 {
-                    AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
                     {
                         dfab(i,j,k,n+destcomp) = sfab0(i,j,k,n+scomp);
                     });
@@ -194,12 +194,10 @@ namespace amrex
                         amrex::setBC(dbx,fdomain,bcscomp,0,ncomp,bcs,bcr);
 
                         pre_interp(sfab, sfab.box(), 0, ncomp);
-                        
-                        FArrayBox const* sfabp = mf_crse_patch.fabPtr(mfi);
-                        FArrayBox* dfabp = mf.fabPtr(gi);
-                        mapper->interp(*sfabp,
+
+                        mapper->interp(sfab,
                                        0,
-                                       *dfabp,
+                                       dfab,
                                        dcomp,
                                        ncomp,
                                        dbx,
@@ -207,7 +205,7 @@ namespace amrex
                                        cgeom,
                                        fgeom,
                                        bcr,
-                                       idummy1, idummy2);
+                                       idummy1, idummy2, RunOn::Gpu);
 
                         post_interp(dfab, dbx, dcomp, ncomp);
                     }
@@ -335,11 +333,9 @@ namespace amrex
 
                 pre_interp(sfab, sfab.box(), 0, ncomp);
 
-                FArrayBox const* sfabp = mf_crse_patch.fabPtr(mfi);
-                FArrayBox* dfabp = mf.fabPtr(mfi);
-                mapper->interp(*sfabp,
+                mapper->interp(sfab,
                                0,
-                               *dfabp,
+                               dfab,
                                dcomp,
                                ncomp,
                                dbx,
@@ -347,7 +343,7 @@ namespace amrex
                                cgeom,
                                fgeom,
                                bcr,
-                               idummy1, idummy2);
+                               idummy1, idummy2, RunOn::Gpu);
 
                 post_interp(dfab, dbx, dcomp, ncomp);
             }
@@ -375,6 +371,8 @@ namespace amrex
                                      const Geometry& cgeom, const Geometry& fgeom,
                                      int ref_ratio)
     {
+        // TODO gpu
+
         BL_ASSERT(ref_ratio == 2);
 
         const IntVect& ngrow = fine[0]->nGrowVect();

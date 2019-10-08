@@ -11,6 +11,8 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_Gpu.H>
 
+#include <sys/mman.h>
+
 namespace amrex {
 
 namespace {
@@ -25,6 +27,7 @@ namespace {
     bool use_buddy_allocator = false;
     long buddy_allocator_size = 0L;
     long the_arena_init_size = 0L;
+    bool abort_on_out_of_gpu_memory = false;
 }
 
 const unsigned int Arena::align_size;
@@ -42,49 +45,72 @@ Arena::align (std::size_t s)
 void*
 Arena::allocate_system (std::size_t nbytes)
 {
-#ifdef AMREX_USE_CUDA
-    Gpu::Device::freeMemAvailable();
+#ifdef AMREX_USE_GPU
     void * p;
     if (arena_info.device_use_hostalloc)
     {
-        AMREX_GPU_SAFE_CALL(cudaHostAlloc(&p, nbytes, cudaHostAllocMapped));
-    }
-    else if (arena_info.device_use_managed_memory)
-    {
-        AMREX_GPU_SAFE_CALL(cudaMallocManaged(&p, nbytes));
-        if (arena_info.device_set_readonly)
-        {
-            Gpu::Device::mem_advise_set_readonly(p, nbytes);
-        }
-        if (arena_info.device_set_preferred)
-        {
-            const int device = Gpu::Device::deviceId();
-            Gpu::Device::mem_advise_set_preferred(p, nbytes, device);
-        }
+        AMREX_HIP_OR_CUDA(
+            AMREX_HIP_SAFE_CALL ( hipHostAlloc(&p, nbytes, hipHostMallocMapped));,
+            AMREX_CUDA_SAFE_CALL(cudaHostAlloc(&p, nbytes, cudaHostAllocMapped)););
     }
     else
     {
-        AMREX_GPU_SAFE_CALL(cudaMalloc(&p, nbytes));
+        if (abort_on_out_of_gpu_memory) {
+            std::size_t free_mem_avail = Gpu::Device::freeMemAvailable();
+            if (nbytes >= free_mem_avail) {
+                amrex::Abort("Out of gpu memory. Free: " + std::to_string(free_mem_avail)
+                             + " Asked: " + std::to_string(nbytes));
+            }
+        }
+
+        if (arena_info.device_use_managed_memory)
+        {
+#if defined(__CUDACC__)
+            AMREX_CUDA_SAFE_CALL(cudaMallocManaged(&p, nbytes));
+#else
+            AMREX_HIP_SAFE_CALL(hipMalloc(&p, nbytes));
+#endif
+            if (arena_info.device_set_readonly)
+            {
+                Gpu::Device::mem_advise_set_readonly(p, nbytes);
+            }
+            if (arena_info.device_set_preferred)
+            {
+                const int device = Gpu::Device::deviceId();
+                Gpu::Device::mem_advise_set_preferred(p, nbytes, device);
+            }
+        }
+        else
+        {
+            AMREX_HIP_OR_CUDA(AMREX_HIP_SAFE_CALL ( hipMalloc(&p, nbytes));,
+                              AMREX_CUDA_SAFE_CALL(cudaMalloc(&p, nbytes)););
+        }
     }
     return p;
 #else
-    return std::malloc(nbytes);
+    void* p = std::malloc(nbytes);
+    if (p && arena_info.device_use_hostalloc) mlock(p, nbytes);
+    if (p == nullptr) amrex::Abort("Sorry, malloc failed");
+    return p;
 #endif
 }
 
 void
-Arena::deallocate_system (void* p)
+Arena::deallocate_system (void* p, std::size_t nbytes)
 {
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
     if (arena_info.device_use_hostalloc)
     {
-        AMREX_GPU_SAFE_CALL(cudaFreeHost(p));
+        AMREX_HIP_OR_CUDA(AMREX_HIP_SAFE_CALL ( hipFreeHost(p));,
+                          AMREX_CUDA_SAFE_CALL(cudaFreeHost(p)););
     }
     else
     {
-        AMREX_GPU_SAFE_CALL(cudaFree(p));
+        AMREX_HIP_OR_CUDA(AMREX_HIP_SAFE_CALL ( hipFree(p));,
+                          AMREX_CUDA_SAFE_CALL(cudaFree(p)););
     }
 #else
+    if (p && arena_info.device_use_hostalloc) munlock(p, nbytes);
     std::free(p);
 #endif
 }
@@ -105,6 +131,7 @@ Arena::Initialize ()
     pp.query("use_buddy_allocator", use_buddy_allocator);
     pp.query("buddy_allocator_size", buddy_allocator_size);
     pp.query("the_arena_init_size", the_arena_init_size);
+    pp.query("abort_on_out_of_gpu_memory", abort_on_out_of_gpu_memory);
 
 #ifdef AMREX_USE_GPU
     if (use_buddy_allocator)
@@ -139,19 +166,15 @@ Arena::Initialize ()
     the_device_arena = new BArena;
 #endif
 
-#if defined(AMREX_USE_GPU)
+#ifdef AMREX_USE_GPU
     the_managed_arena = new CArena;
 #else
     the_managed_arena = new BArena;
 #endif
 
-#if defined(AMREX_USE_GPU)
-//    const std::size_t hunk_size = 64 * 1024;
-//    the_pinned_arena = new CArena(hunk_size);
+    // When USE_CUDA=FALSE, we call mlock to pin the cpu memory.
+    // When USE_CUDA=TRUE, we call cudaHostAlloc to pin the host memory.
     the_pinned_arena = new CArena(0, ArenaInfo().SetHostAlloc());
-#else
-    the_pinned_arena = new BArena;
-#endif
 
     std::size_t N = 1024UL*1024UL*8UL;
 

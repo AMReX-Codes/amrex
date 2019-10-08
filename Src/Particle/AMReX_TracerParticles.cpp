@@ -1,6 +1,8 @@
-
+#include <AMReX_TracerParticle_mod_K.H>
 #include <AMReX_TracerParticles.H>
-
+#include "AMReX_TracerParticles.H"
+#include "AMReX_TracerParticle_mod_K.H"
+#include <AMReX_Print.H>
 namespace amrex {
 
 //
@@ -14,21 +16,20 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
     BL_ASSERT(lev >= 0 && lev < GetParticles().size());
 
     AMREX_D_TERM(BL_ASSERT(umac[0].nGrow() >= 1);,
-           BL_ASSERT(umac[1].nGrow() >= 1);,
-           BL_ASSERT(umac[2].nGrow() >= 1););
+                 BL_ASSERT(umac[1].nGrow() >= 1);,
+                 BL_ASSERT(umac[2].nGrow() >= 1););
 
     AMREX_D_TERM(BL_ASSERT(!umac[0].contains_nan());,
-           BL_ASSERT(!umac[1].contains_nan());,
-           BL_ASSERT(!umac[2].contains_nan()););
+                 BL_ASSERT(!umac[1].contains_nan());,
+                 BL_ASSERT(!umac[2].contains_nan()););
 
     const Real      strttime = amrex::second();
     const Geometry& geom     = m_gdb->Geom(lev);
-    const Real*     dx       = geom.CellSize();
-    const Real*     plo      = geom.ProbLo();
-
+    const auto          plo      = geom.ProbLoArray();
+    const auto          dxi      = geom.InvCellSizeArray();
+    
     Vector<std::unique_ptr<MultiFab> > raii_umac(AMREX_SPACEDIM);
     Vector<MultiFab*> umac_pointer(AMREX_SPACEDIM);
-    // We assume that if umac[0]'s boxArray matches then the others will too...
     if (OnSameGrids(lev, umac[0]))
     {
         for (int i = 0; i < AMREX_SPACEDIM; i++) {
@@ -42,84 +43,65 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
 	    int ng = umac[i].nGrow();
 	    raii_umac[i].reset(new MultiFab(amrex::convert(m_gdb->ParticleBoxArray(lev),
                                                            IntVect::TheDimensionVector(i)),
-					    m_gdb->ParticleDistributionMap(lev),
-					    umac[i].nComp(), ng));
+
+					                   m_gdb->ParticleDistributionMap(lev),
+					                   umac[i].nComp(), ng));
 					    
+
 	    umac_pointer[i] = raii_umac[i].get();
 	    umac_pointer[i]->copy(umac[i],0,0,umac[i].nComp(),ng,ng);
         }
     }
-
+    
     for (int ipass = 0; ipass < 2; ipass++)
     {
-        auto& pmap = GetParticles(lev);
-	for (auto& kv : pmap) {
-	  int grid = kv.first.first;
-	  auto& pbox = kv.second.GetArrayOfStructs();
-	  const int n = pbox.size();
-
-	  FArrayBox* fab[AMREX_SPACEDIM] = { AMREX_D_DECL(&((*umac_pointer[0])[grid]),
-						 &((*umac_pointer[1])[grid]),
-						 &((*umac_pointer[2])[grid])) };
-
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-            for (int i = 0; i < n; i++)
-            {
-                ParticleType& p = pbox[i];
+        for (ParIterType pti(*this, lev); pti.isValid(); ++pti)
+        {
+            int grid    = pti.index();
+            auto& ptile = ParticlesAt(lev, pti);
+            auto& aos  = ptile.GetArrayOfStructs();
+            const int n = aos.size();
+            auto p_pbox = aos().data();
+            const FArrayBox* fab[AMREX_SPACEDIM] = { AMREX_D_DECL(&((*umac_pointer[0])[grid]),
+                                                                  &((*umac_pointer[1])[grid]),
+                                                                  &((*umac_pointer[2])[grid])) };
+	  
+            //array of these pointers to pass to the GPU
+            amrex::GpuArray<amrex::Array4<const Real>, AMREX_SPACEDIM>
+            const umacarr {AMREX_D_DECL((*fab[0]).array(),
+                                        (*fab[1]).array(),
+                                        (*fab[2]).array() )};
 
-                if (p.m_idata.id <= 0) continue;
-
-                const IntVect& cc_cell = Index(p, lev);
-
-                const Real len[AMREX_SPACEDIM] = { AMREX_D_DECL((p.m_rdata.pos[0]-plo[0])/dx[0] + Real(0.5),
-                                                       (p.m_rdata.pos[1]-plo[1])/dx[1] + Real(0.5),
-                                                       (p.m_rdata.pos[2]-plo[2])/dx[2] + Real(0.5)) };
-
-                const IntVect cell(AMREX_D_DECL(floor(len[0]), floor(len[1]), floor(len[2])));
-
-                const Real frac[AMREX_SPACEDIM] = { AMREX_D_DECL(len[0]-cell[0], len[1]-cell[1], len[2]-cell[2]) };
-
-                for (int d = 0; d < AMREX_SPACEDIM; d++)
+            amrex::ParallelFor(n,   
+                               [=] AMREX_GPU_DEVICE (int i)      
+            {					
+                ParticleType& p = p_pbox[i];
+                if (p.m_idata.id <= 0) return;
+                Real v[AMREX_SPACEDIM];
+                mac_interpolate(p, plo, dxi, umacarr, v);
+                if (ipass == 0)
                 {
-                    IntVect ecell = cell;
-
-                    ecell[d] = cc_cell[d] + 1;
-
-                    Real efrac[AMREX_SPACEDIM] = { AMREX_D_DECL(frac[0], frac[1], frac[2]) };
-
-                    efrac[d] = (p.m_rdata.pos[d]-plo[d])/dx[d] - cc_cell[d];
-
-                    for (int j = 0; j < AMREX_SPACEDIM; j++)
+                    for (int dim=0; dim < AMREX_SPACEDIM; dim++)
                     {
-                        if (efrac[j] > 1) efrac[j] = 1;
-                        if (efrac[j] < 0) efrac[j] = 0;
-                    }
-
-                    Real vel = ParticleType::InterpDoit(*fab[d], ecell, efrac, 0);
-
-                    if (ipass == 0)
+                        p.m_rdata.arr[AMREX_SPACEDIM+dim] = p.m_rdata.pos[dim];     
+                        p.m_rdata.pos[dim] += 0.5*dt*v[dim];   		 
+                    }    		  
+                }
+                else
+                {
+                    for (int dim=0; dim < AMREX_SPACEDIM; dim++)
                     {
-                        //
-                        // Save old position and the vel & predict location at dt/2.
-                        //
-                        p.m_rdata.arr[AMREX_SPACEDIM+d] = p.m_rdata.pos[d];
-                        p.m_rdata.pos[d] += 0.5*dt*vel;
-                    }
-                    else
-                    {
-		        //
-                        // Update to final time using the orig position and the vel at dt/2.
-                        //
-		        p.m_rdata.pos[d]  = p.m_rdata.arr[AMREX_SPACEDIM+d] + dt*vel;
-                        // Save the velocity for use in Timestamp().
-			p.m_rdata.arr[AMREX_SPACEDIM+d] = vel;
+                        p.m_rdata.pos[dim]  = p.m_rdata.arr[AMREX_SPACEDIM+dim] + dt*v[dim];
+                        p.m_rdata.arr[AMREX_SPACEDIM+dim] = v[dim];
                     }
                 }
-            }
+            });
         }
     }
+    
     if (m_verbose > 1)
     {
         Real stoptime = amrex::second() - strttime;
@@ -135,71 +117,70 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
 #endif
     }
 }
-
+	
 //
 // Uses midpoint method to advance particles using cell-centered velocity
 //
 void
 TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
 {
+    BL_PROFILE("TracerParticleContainer::AdvectWithUcc()");
     BL_ASSERT(Ucc.nGrow() > 0);
     BL_ASSERT(OK(lev, lev, Ucc.nGrow()-1));
     BL_ASSERT(lev >= 0 && lev < GetParticles().size());
-
     BL_ASSERT(!Ucc.contains_nan());
 
-    const Real      strttime = amrex::second();
-    const Geometry& geom     = m_gdb->Geom(lev);
+    const Real          strttime = amrex::second();
+    const Geometry&     geom     = m_gdb->Geom(lev);
+    const auto          plo      = geom.ProbLoArray();
+    const auto          dxi      = geom.InvCellSizeArray();
 
     BL_ASSERT(OnSameGrids(lev, Ucc));
 
-    int idx[AMREX_SPACEDIM] = {AMREX_D_DECL(0,1,2)};
-
     for (int ipass = 0; ipass < 2; ipass++)
     {
-        auto& pmap = GetParticles(lev);
-	for (auto& kv : pmap) {
-	  int grid = kv.first.first;
-	  auto& pbox = kv.second.GetArrayOfStructs();
-	  const int n    = pbox.size();
-	  const FArrayBox& fab = Ucc[grid];
-	    
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-            for (int i = 0; i < n; i++)
+        for (ParIterType pti(*this, lev); pti.isValid(); ++pti)
+        {
+            int grid    = pti.index();
+            auto& ptile = ParticlesAt(lev, pti);
+            auto& aos  = ptile.GetArrayOfStructs();
+            const int n          = aos.size();
+            const FArrayBox& fab = Ucc[grid];
+            const auto uccarr = fab.array();
+            auto  p_pbox = aos().data();
+
+            amrex::ParallelFor(n,
+                               [=] AMREX_GPU_DEVICE (int i)
             {
-                ParticleType& p = pbox[i];
-
-                if (p.m_idata.id <= 0) continue;
-
-		Real v[AMREX_SPACEDIM];
-
-		ParticleType::Interp(p, geom, fab, idx, v, AMREX_SPACEDIM);
-
-		if (ipass == 0) {
-		    //
-		    // Save old position and the vel & predict location at dt/2.
-		    //
-		    for (int d = 0; d < AMREX_SPACEDIM; d++)
-		    {
-			p.m_rdata.arr[AMREX_SPACEDIM+d] = p.m_rdata.pos[d];
-                        p.m_rdata.pos[d] += 0.5*dt*v[d];
-                    }
-		} else {
-		    //
-		    // Update to final time using the orig position and the vel at dt/2.
-		    //
-		    for (int d = 0; d < AMREX_SPACEDIM; d++)
-		    {
-                        p.m_rdata.pos[d]  = p.m_rdata.arr[AMREX_SPACEDIM+d] + dt*v[d];
-                        // Save the velocity for use in Timestamp().
-			p.m_rdata.arr[AMREX_SPACEDIM+d] = v[d];
+                ParticleType& p  = p_pbox[i];
+                if (p.m_idata.id <= 0) return;
+                Real v[AMREX_SPACEDIM];
+                
+                cic_interpolate(p, plo, dxi, uccarr, v);
+                
+                if (ipass == 0)
+                {
+                    for (int dim=0; dim < AMREX_SPACEDIM; dim++)
+                    {
+                        p.m_rdata.arr[AMREX_SPACEDIM+dim] = p.m_rdata.pos[dim];
+                        p.m_rdata.pos[dim] += 0.5*dt*v[dim];
+                    }                  
+                }
+                else
+                {
+                    for (int dim=0; dim < AMREX_SPACEDIM; dim++)
+                    {
+                        p.m_rdata.pos[dim]  = p.m_rdata.arr[AMREX_SPACEDIM+dim] + dt*v[dim];
+                        p.m_rdata.arr[AMREX_SPACEDIM+dim] = v[dim];
                     }
                 }
-            }
+            });
         }
     }
+    
     if (m_verbose > 1)
     {
         Real stoptime = amrex::second() - strttime;
@@ -259,11 +240,11 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
             // Do we have any particles at this level that need writing?
             //
             bool gotwork = false;
-	    
+
             const auto& pmap = GetParticles(lev);
 	    for (auto& kv : pmap) {
               const auto& pbox = kv.second.GetArrayOfStructs();
-	      for (int k = 0; k < pbox.size(); ++k) 
+	      for (int k = 0; k < pbox.size(); ++k)
 	      {
 		const ParticleType& p = pbox[k];
 		if (p.m_idata.id > 0) {
@@ -279,9 +260,9 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
                 std::string FileName = amrex::Concatenate(basename + '_', MyProc % nOutFiles, 2);
 
                 VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
-                
+
                 std::ofstream TimeStampFile;
-		
+
                 TimeStampFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
 
                 TimeStampFile.open(FileName.c_str(), std::ios::out|std::ios::app|std::ios::binary);
@@ -311,17 +292,17 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
 		      const ParticleType& p = pbox[k];
 
 		      if (p.m_idata.id <= 0) continue;
-		      
+
 		      const IntVect& iv = Index(p,lev);
-		      
+
 		      if (!bx.contains(iv) && !ba.contains(iv)) continue;
-		      
+
 		      TimeStampFile << p.m_idata.id  << ' ' << p.m_idata.cpu << ' ';
-		      
+
 		      AMREX_D_TERM(TimeStampFile << p.m_rdata.pos[0] << ' ';,
 			     TimeStampFile << p.m_rdata.pos[1] << ' ';,
 			     TimeStampFile << p.m_rdata.pos[2] << ' ';);
-		      
+
 		      TimeStampFile << time;
 		      //
 		      // AdvectWithUmac stores the velocity in rdata ...
@@ -329,21 +310,21 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
 		      AMREX_D_TERM(TimeStampFile << ' ' << p.m_rdata.arr[AMREX_SPACEDIM+0];,
 			     TimeStampFile << ' ' << p.m_rdata.arr[AMREX_SPACEDIM+1];,
 			     TimeStampFile << ' ' << p.m_rdata.arr[AMREX_SPACEDIM+2];);
-		      
+
 		      if (M > 0)
                         {
 			  ParticleType::Interp(p,m_gdb->Geom(lev),fab,&indices[0],&vals[0],M);
-			  
+
 			  for (int i = 0; i < M; i++)
                             {
 			      TimeStampFile << ' ' << vals[i];
                             }
                         }
-		      
+
 		      TimeStampFile << '\n';
                     }
                 }
-		
+
                 TimeStampFile.flush();
                 TimeStampFile.close();
             }
@@ -382,5 +363,4 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
 #endif
     }
 }
-
 }

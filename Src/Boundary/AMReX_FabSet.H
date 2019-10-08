@@ -63,25 +63,12 @@ public:
     FArrayBox const& operator[] (int i)             const noexcept { return m_mf[i]; }
     FArrayBox      & operator[] (int i)                   noexcept { return m_mf[i]; }
 
-    FArrayBox const* fabPtr (const MFIter& mfi) const noexcept { return m_mf.fabPtr(mfi); }
-    FArrayBox      * fabPtr (const MFIter& mfi)       noexcept { return m_mf.fabPtr(mfi); }
-    FArrayBox const* fabPtr (int i)             const noexcept { return m_mf.fabPtr(i); }
-    FArrayBox      * fabPtr (int i)                   noexcept { return m_mf.fabPtr(i); }
-
-    FArrayBox const* fabHostPtr (const MFIter& mfi) const noexcept { return m_mf.fabHostPtr(mfi); }
-    FArrayBox      * fabHostPtr (const MFIter& mfi)       noexcept { return m_mf.fabHostPtr(mfi); }
-    FArrayBox const* fabHostPtr (int i)             const noexcept { return m_mf.fabHostPtr(i); }
-    FArrayBox      * fabHostPtr (int i)                   noexcept { return m_mf.fabHostPtr(i); }
-
-    FArrayBox const* fabDevicePtr (const MFIter& mfi) const noexcept { return m_mf.fabDevicePtr(mfi); }
-    FArrayBox      * fabDevicePtr (const MFIter& mfi)       noexcept { return m_mf.fabDevicePtr(mfi); }
-    FArrayBox const* fabDevicePtr (int i)             const noexcept { return m_mf.fabDevicePtr(i); }
-    FArrayBox      * fabDevicePtr (int i)                   noexcept { return m_mf.fabDevicePtr(i); }
-
-    Array4<Real const> array (const MFIter& mfi) const noexcept { return m_mf.array(mfi); }
+    Array4<Real const> array (const MFIter& mfi) const noexcept { return m_mf.const_array(mfi); }
     Array4<Real      > array (const MFIter& mfi)       noexcept { return m_mf.array(mfi); }
-    Array4<Real const> array (int i)             const noexcept { return m_mf.array(i);   }
+    Array4<Real const> array (int i)             const noexcept { return m_mf.const_array(i);   }
     Array4<Real      > array (int i)                   noexcept { return m_mf.array(i);   }
+    Array4<Real const> const_array (const MFIter& mfi) const noexcept { return m_mf.const_array(mfi); }
+    Array4<Real const> const_array (int i)             const noexcept { return m_mf.const_array(i); }
 
     Box fabbox (int K) const noexcept { return m_mf.fabbox(K); }
 

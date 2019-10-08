@@ -11,19 +11,18 @@
 #include <AMReX_EB2.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX.H>
+#include <algorithm>
 
 namespace amrex { namespace EB2 {
 
 Vector<std::unique_ptr<IndexSpace> > IndexSpace::m_instance;
 
 int max_grid_size = 64;
-bool compare_with_ch_eb = false;
 
 void Initialize ()
 {
     ParmParse pp("eb2");
     pp.query("max_grid_size", max_grid_size);
-    pp.query("compare_with_ch_eb", compare_with_ch_eb);
 
     amrex::ExecOnFinalize(Finalize);
 }
@@ -31,6 +30,30 @@ void Initialize ()
 void Finalize ()
 {
     IndexSpace::clear();
+}
+
+void
+IndexSpace::push (IndexSpace* ispace)
+{
+    auto r = std::find_if(m_instance.begin(), m_instance.end(),
+                          [=] (const std::unique_ptr<IndexSpace>& x) -> bool
+                          { return x.get() == ispace; });
+    if (r == m_instance.end()) {
+        m_instance.emplace_back(ispace);
+    } else if (r+1 != m_instance.end()) {
+        std::rotate(r, r+1, m_instance.end());
+    }
+}
+
+void
+IndexSpace::erase (IndexSpace* ispace)
+{
+    auto r = std::find_if(m_instance.begin(), m_instance.end(),
+                          [=] (const std::unique_ptr<IndexSpace>& x) -> bool
+                          { return x.get() == ispace; });
+    if (r != m_instance.end()) {
+        m_instance.erase(r);
+    }
 }
 
 const IndexSpace* TopIndexSpaceIfPresent() noexcept {
@@ -85,7 +108,7 @@ Build (const Geometry& geom, int required_coarsening_level,
 
         int direction;
         pp.get("cylinder_direction", direction);
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(direction >=0 && direction < AMREX_SPACEDIM,
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(direction >=0 && direction < 3,
                                          "eb2.cylinder_direction is invalid");
 
         bool has_fluid_inside;

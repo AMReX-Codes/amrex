@@ -17,7 +17,7 @@ using std::ios;
 #include <AMReX_DataServices.H>
 #include <AMReX_Utility.H>
 #include <AMReX_VisMF.H>
-#include <AVGDOWN_F.H>
+#include <AMReX_AVGDOWN_F.H>
 
 #ifdef AMREX_DEBUG
 #include <TV_TempWrite.H>

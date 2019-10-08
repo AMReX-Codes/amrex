@@ -2,14 +2,36 @@ target_include_directories(amrex PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_D
 
 # MPI header is incapsulated in AMReX_ccse-mpi.H
 if (ENABLE_MPI)
-   find_package(MPI REQUIRED CXX)
-   target_link_libraries(amrex PUBLIC MPI::MPI_CXX) 
-endif ()  
+   find_package(MPI REQUIRED C CXX)
+
+   # Make imported target "global" so that it can be seen
+   # from other directories in the project.
+   # This is especially useful when get_target_properties_flattened()
+   # (see module AMReXTargetHelpers.cmake) is called to recover dependecy tree info 
+   # in projects that use amrex directly in the build (via add_subdirectory()).
+   # Without this, get_target_properties_flattened() would not recognize
+   # MPI::MPI_C and MPI::MPI_CXX as targets because they would be visibile only in this
+   # folder and subfolders.
+   set_target_properties(
+      MPI::MPI_C MPI::MPI_CXX
+      PROPERTIES
+      IMPORTED_GLOBAL True )
+
+   target_link_libraries(amrex PUBLIC MPI::MPI_C MPI::MPI_CXX)
+endif ()
+
+# We need threads 
+set( THREADS_PREFER_PTHREAD_FLAG on)
+find_package(Threads REQUIRED)
+set_target_properties( Threads::Threads PROPERTIES IMPORTED_GLOBAL True )
+target_link_libraries(amrex PUBLIC Threads::Threads)
+
 
 target_sources( amrex
    PRIVATE 
    # Utility classes ---------------------------------------------------------
    AMReX_ccse-mpi.H
+   AMReX_Algorithm.H
    AMReX_Array.H
    AMReX_Vector.H
    AMReX_Tuple.H
@@ -25,11 +47,16 @@ target_sources( amrex
    AMReX_ParmParse.cpp
    AMReX_parmparse_fi.cpp
    AMReX_ParmParse.H
+   AMReX_Functional.H
    AMReX_Utility.H
    AMReX_Utility.cpp
+   AMReX_Reduce.H
+   AMReX_Scan.H
+   AMReX_Partition.H
    AMReX_BLassert.H
    AMReX_ArrayLim.H
    AMReX_REAL.H
+   AMReX_INT.H
    AMReX_CONSTANTS.H
    AMReX_SPACE.H
    AMReX_DistributionMapping.H
@@ -53,8 +80,6 @@ target_sources( amrex
    AMReX_DArena.cpp
    AMReX_EArena.H
    AMReX_EArena.cpp
-   AMReX_FabAllocator.H
-   AMReX_FabAllocator.cpp
    AMReX_BLProfiler.H
    AMReX_BLBackTrace.H
    AMReX_BLFort.H
@@ -77,10 +102,12 @@ target_sources( amrex
    AMReX_Box.cpp
    AMReX_BoxIterator.H 
    AMReX_BoxIterator.cpp
+   AMReX_Dim3.H
    AMReX_IntVect.H
    AMReX_IntVect.cpp
    AMReX_IndexType.H
    AMReX_IndexType.cpp
+   AMReX_Loop.H
    AMReX_Orientation.H 
    AMReX_Orientation.cpp
    AMReX_Periodicity.H 
@@ -104,6 +131,7 @@ target_sources( amrex
    AMReX_IArrayBox.cpp 
    AMReX_BaseFab.H
    AMReX_BaseFab.cpp
+   AMReX_Array4.H
    AMReX_MakeType.H
    AMReX_TypeTraits.H
    AMReX_FabFactory.H
@@ -122,6 +150,8 @@ target_sources( amrex
    AMReX_FabArray.H
    AMReX_FACopyDescriptor.H
    AMReX_FabArrayCommI.H
+   AMReX_FBI.H
+   AMReX_PCI.H
    AMReX_FabArrayUtility.H
    AMReX_LayoutData.H
    # Geometry / Coordinate system routines -----------------------------------
@@ -174,29 +204,29 @@ target_sources( amrex
    AMReX_GpuControl.H
    AMReX_GpuControl.cpp
    AMReX_GpuLaunch.H
+   AMReX_GpuLaunch.cpp
+   AMReX_GpuLaunchMacrosG.H
+   AMReX_GpuLaunchMacrosC.H
+   AMReX_GpuLaunchFunctsG.H
+   AMReX_GpuLaunchFunctsC.H
    AMReX_GpuError.H
+   AMReX_GpuDevice.H
+   AMReX_GpuDevice.cpp
+   AMReX_GpuUtility.H
+   AMReX_GpuUtility.cpp
+   AMReX_GpuAsyncArray.H
+   AMReX_GpuAsyncArray.cpp
+   AMReX_GpuElixir.H
+   AMReX_GpuElixir.cpp
+   AMReX_GpuMemory.H
+   AMReX_GpuRange.H
+   AMReX_GpuReduce.H
    # CUDA --------------------------------------------------------------------
    AMReX_CudaAllocators.H
    AMReX_CudaAllocators.cpp
-   AMReX_CudaRange.H
-   AMReX_CudaMemory.H
    AMReX_CudaAllocators.H
-   AMReX_CudaLaunch.H
-   AMReX_CudaLaunch.cpp 
    AMReX_CudaContainers.H
-   AMReX_CudaReduce.H
-   AMReX_CudaDevice.H
-   AMReX_CudaDevice.cpp
-   AMReX_CudaUtility.H
-   AMReX_CudaUtility.cpp
-   AMReX_CudaAsyncFab.H
-   AMReX_CudaAsyncFab.cpp
-   AMReX_CudaAsyncFabImpl.H
-   AMReX_CudaAsyncFabImpl.cpp
-   AMReX_CudaAsyncArray.H
-   AMReX_CudaAsyncArray.cpp
-   AMReX_CudaElixir.H
-   AMReX_CudaElixir.cpp   
+   AMReX_CudaGraph.H
    # Machine model -----------------------------------------------------------
    AMReX_Machine.H
    AMReX_Machine.cpp

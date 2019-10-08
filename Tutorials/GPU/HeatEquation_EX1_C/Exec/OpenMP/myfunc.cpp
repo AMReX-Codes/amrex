@@ -34,44 +34,33 @@ void advance (MultiFab& phi_old,
         const Box& xbx = mfi.nodaltilebox(0);
         const Box& ybx = mfi.nodaltilebox(1);
         const Box& zbx = mfi.nodaltilebox(2);
-        FArrayBox* phi_fab  = phi_old.fabPtr(mfi);
-        FArrayBox* fluxx = flux[0].fabPtr(mfi);
-        FArrayBox* fluxy = flux[1].fabPtr(mfi);
-        FArrayBox* fluxz = flux[2].fabPtr(mfi);
 
         compute_flux_x(BL_TO_FORTRAN_BOX(xbx),
-                           BL_TO_FORTRAN_ANYD(*fluxx),
-                           BL_TO_FORTRAN_ANYD(*phi_fab), dxinv);
+                           BL_TO_FORTRAN_ANYD(flux[0][mfi]),
+                           BL_TO_FORTRAN_ANYD(phi_old[mfi]), dxinv);
 
         compute_flux_y(BL_TO_FORTRAN_BOX(ybx),
-                           BL_TO_FORTRAN_ANYD(*fluxy),
-                           BL_TO_FORTRAN_ANYD(*phi_fab), dyinv);
+                           BL_TO_FORTRAN_ANYD(flux[1][mfi]),
+                           BL_TO_FORTRAN_ANYD(phi_old[mfi]), dyinv);
 
         compute_flux_z(BL_TO_FORTRAN_BOX(zbx),
-                           BL_TO_FORTRAN_ANYD(*fluxz),
-                           BL_TO_FORTRAN_ANYD(*phi_fab), dzinv);
+                           BL_TO_FORTRAN_ANYD(flux[2][mfi]),
+                           BL_TO_FORTRAN_ANYD(phi_old[mfi]), dzinv);
     }
-    Gpu::Device::synchronize();
 
     for(MFIter mfi(phi_old, TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
-        const FArrayBox* pold_fab  = phi_old.fabPtr(mfi);
-        const FArrayBox* fluxx = flux[0].fabPtr(mfi);
-        const FArrayBox* fluxy = flux[1].fabPtr(mfi);
-        const FArrayBox* fluxz = flux[2].fabPtr(mfi);
-        FArrayBox* pnew_fab = phi_new.fabPtr(mfi);
 
         update_phi(BL_TO_FORTRAN_BOX(bx),
-                       BL_TO_FORTRAN_ANYD(*fluxx),
-                       BL_TO_FORTRAN_ANYD(*fluxy),
-                       BL_TO_FORTRAN_ANYD(*fluxz),
-                       BL_TO_FORTRAN_ANYD(*pold_fab),
-                       BL_TO_FORTRAN_ANYD(*pnew_fab),
+                       BL_TO_FORTRAN_ANYD(flux[0][mfi]),
+                       BL_TO_FORTRAN_ANYD(flux[1][mfi]),
+                       BL_TO_FORTRAN_ANYD(flux[2][mfi]),
+                       BL_TO_FORTRAN_ANYD(phi_old[mfi]),
+                       BL_TO_FORTRAN_ANYD(phi_new[mfi]),
                        dt,dxinv,dyinv ,dzinv
                        );
     }
-    Gpu::Device::synchronize();
 }
 
 void init_phi(MultiFab& phi_new, Geometry const& geom)

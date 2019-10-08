@@ -122,7 +122,7 @@ AmrLevelAdv::variableSetUp ()
     
     BCRec bc(lo_bc, hi_bc);
 
-    desc_lst.setComponent(Phi_Type, 0, "phi", bc, 
+    desc_lst.setComponent(Phi_Type, 0, "Phi", bc, 
 			  StateDescriptor::BndryFunc(nullfill));
 }
 
@@ -677,21 +677,21 @@ AmrLevelAdv::read_params ()
     pp.query("cfl",cfl);
     pp.query("do_reflux",do_reflux);
 
+    Geometry const* gg = AMReX::top()->getDefaultGeometry();
+
     // This tutorial code only supports Cartesian coordinates.
-    if (! Geometry::IsCartesian()) {
+    if (! gg->IsCartesian()) {
 	amrex::Abort("Please set geom.coord_sys = 0");
     }
 
     // This tutorial code only supports periodic boundaries.
-    if (! Geometry::isAllPeriodic()) {
+    if (! gg->isAllPeriodic()) {
 	amrex::Abort("Please set geom.is_periodic = 1 1 1");
     }
 
 #ifdef AMREX_PARTICLES
     pp.query("do_tracers", do_tracers);
 #endif 
-
-
 
     //
     // read tagging parameters from probin file
@@ -767,9 +767,6 @@ AmrLevelAdv::init_particles ()
       TracerPC.reset(new AmrTracerParticleContainer(parent));
       TracerPC->do_tiling = true;
       TracerPC->tile_size = IntVect(AMREX_D_DECL(1024000,4,4));
-
-      const BoxArray& ba = TracerPC->ParticleBoxArray(0);
-      const DistributionMapping& dm = TracerPC->ParticleDistributionMap(0);
 
       AmrTracerParticleContainer::ParticleInitData pdata = {AMREX_D_DECL(0.0, 0.0, 0.0)};
 

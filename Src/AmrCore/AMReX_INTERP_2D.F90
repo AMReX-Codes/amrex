@@ -57,38 +57,30 @@ contains
       real(amrex_real)  sl(cb_l1:cb_h1,num_slp)
       real(amrex_real)  strip(strip_lo:strip_hi)
 
-#define SLX 1
-#define SLY 2
-#define SLXY 3
 
       integer lx, ly, hratx, hraty, ic, jc, jfn, jfc, i, n
-      real(amrex_real) x, y, denomx, denomy
+      real(amrex_real) x, y, denomx, denomy, xt, xb
 
-      denomx = one/dble(2*lratiox)
-      denomy = one/dble(2*lratioy)
+      denomx = one/real(2*lratiox,amrex_real)
+      denomy = one/real(2*lratioy,amrex_real)
 
       hratx = lratiox/2
       hraty = lratioy/2
 
-      do n = 1, nvar 
+      do n = 1, nvar
          do jc = cb_l2, cb_h2-1 
-            do ic = cb_l1, cb_h1-1
-               sl(ic,SLX) = crse(ic+1,jc,n)-crse(ic,jc,n)
-               sl(ic,SLY) = crse(ic,jc+1,n)-crse(ic,jc,n)
-               sl(ic,SLXY) = crse(ic+1,jc+1,n)-crse(ic+1,jc,n) &
-                    - crse(ic  ,jc+1,n)+crse(ic  ,jc,n)
-            end do
             do ly = 0, lratioy-1 
                jfn = jc*lratioy + ly
                jfc = jfn + hraty
                if (jfc .ge. fb_l2  .and.  jfc .le. fb_h2) then
-                  y = denomy*(two*ly + one)
+                  y = denomy*(two*real(ly,amrex_real) + one)
                   do lx = 0, lratiox-1
                      do ic = cb_l1, cb_h1-1
                         i = ic*lratiox + lx
-                        x = denomx*(two*lx + one)
-                        strip(i) = crse(ic,jc,n) + x*sl(ic,SLX) + &
-                                   y*sl(ic,SLY) + x*y*sl(ic,SLXY)
+                        x = denomx*(two*real(lx,amrex_real) + one)
+                        xB = crse(ic,jc,  n) + x*(crse(ic+1,jc,  n)-crse(ic,jc,  n))
+                        xT = crse(ic,jc+1,n) + x*(crse(ic+1,jc+1,n)-crse(ic,jc+1,n))
+                        strip(i) = XB + y*(XT - XB)
                      end do
                   end do
                   do i = fb_l1, fb_h1 
@@ -101,9 +93,15 @@ contains
 
     end subroutine AMREX_CBINTERP
 
-#undef  SLX
-#undef  SLY
-#undef  SLXY
+! ::: 
+! ::: --------------------------------------------------------------
+! ::: cqinterp:  cell-centered quadratic interpolation
+! ::: 
+! ::: NOTE: it is assumed that the coarse grid array is
+! ::: large enough to define interpolated values
+! ::: in the region fblo:fbhi on the fine grid
+! ::: 
+! ::: 
 
      subroutine AMREX_CQINTERP (fine, fine_l1,fine_l2,fine_h1,fine_h2, &
                                fb_l1, fb_l2, fb_h1, fb_h2, &

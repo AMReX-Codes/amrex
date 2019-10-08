@@ -34,20 +34,14 @@ public:
     //! Possible values for each cell.
     enum TagVal { CLEAR=0, BUF, SET };
 
-    /**
-    * \brief Construct an invalid TagBox with no memory.
-    */
     TagBox () noexcept;
 
-    /**
-    * \brief Construct a TagBox on Box bx with number of components n.
-    *
-    * \param bx
-    * \param n
-    * \param alloc
-    * \param shared
-    */
-    explicit TagBox (const Box& bx, int n = 1, bool alloc = true, bool shared = false);
+    explicit TagBox (Arena* ar) noexcept;
+
+    TagBox (const Box& bx, int n, Arena* ar);
+
+    explicit TagBox (const Box& bx, int n = 1, bool alloc = true,
+                     bool shared = false, Arena* ar = nullptr);
 
     TagBox (const TagBox& rhs, MakeType make_type, int scomp, int ncomp);
 
@@ -67,7 +61,7 @@ public:
     * \param ratio
     * \param owner
     */
-    void coarsen (const IntVect& ratio, bool owner) noexcept;
+    void coarsen (const IntVect& ratio) noexcept;
 
     /**
     * \brief Mark neighbors of every tagged cell a distance nbuff away

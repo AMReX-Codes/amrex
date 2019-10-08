@@ -13,24 +13,28 @@ namespace amrex {
 
 TagBox::TagBox () noexcept {}
 
-TagBox::TagBox (const Box& bx,
-                int        n,
-                bool       alloc,
-		bool       shared)
-    :
-    BaseFab<TagBox::TagType>(bx,n,alloc,shared)
+TagBox::TagBox (Arena* ar) noexcept
+    : BaseFab<TagBox::TagType>(ar)
+{}
+
+TagBox::TagBox (const Box& bx, int n, Arena* ar)
+    : BaseFab<TagBox::TagType>(bx,n,ar)
+{
+    setVal(TagBox::CLEAR);
+}
+
+TagBox::TagBox (const Box& bx, int n, bool alloc, bool shared, Arena* ar)
+    : BaseFab<TagBox::TagType>(bx,n,alloc,shared,ar)
 {
     if (alloc) setVal(TagBox::CLEAR);
 }
 
 TagBox::TagBox (const TagBox& rhs, MakeType make_type, int scomp, int ncomp)
-    :
-    BaseFab<TagBox::TagType>(rhs,make_type,scomp,ncomp)
-{
-}
+    : BaseFab<TagBox::TagType>(rhs,make_type,scomp,ncomp)
+{}
 
 void
-TagBox::coarsen (const IntVect& ratio, bool owner) noexcept
+TagBox::coarsen (const IntVect& ratio) noexcept
 {
     BL_ASSERT(nComp() == 1);
 
@@ -46,10 +50,6 @@ TagBox::coarsen (const IntVect& ratio, bool owner) noexcept
 
     this->nvar = 1;
     this->domain = cbox;
-
-    if (!owner) {
-        return;
-    }
 
     const int* clo      = cbox.loVect();
     IntVect    cbox_len = cbox.size();
@@ -81,6 +81,7 @@ TagBox::coarsen (const IntVect& ratio, bool owner) noexcept
    for (int k = klo; k <= khi; k++)
    {
        const int kc = IXPROJ(k,ratioz);
+       amrex::ignore_unused(kc);
        for (int j = jlo; j <= jhi; j++)
        {
            const int     jc = IXPROJ(j,ratioy);
@@ -659,10 +660,7 @@ TagBoxArray::coarsen (const IntVect & ratio)
 #endif
     for (MFIter mfi(*this,flags); mfi.isValid(); ++mfi)
     {
-        this->fabHostPtr(mfi)->coarsen(ratio,isOwner(mfi.LocalIndex()));
-#ifdef AMREX_USE_GPU
-        this->fabDevicePtr(mfi)->coarsen(ratio,false);
-#endif
+        this->fabPtr(mfi)->coarsen(ratio);
     }
 
     boxarray.growcoarsen(n_grow,ratio);

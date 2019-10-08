@@ -1,5 +1,6 @@
 module amrex_eb_levelset_module
-    use amrex_fort_module, only: c_real => amrex_real
+
+    use amrex_fort_module, only: amrex_real
     use iso_c_binding,     only: c_int
 
     use amrex_ebcellflag_module, only: is_single_valued_cell
@@ -12,7 +13,7 @@ contains
     !!
     !>   pure subroutine INIT_LEVELSET
     !!
-    !!   Purpose: Initializes level-set array to the fortran huge(real(c_real)) value. This way these values of the
+    !!   Purpose: Initializes level-set array to the fortran huge(real(amrex_real)) value. This way these values of the
     !!   level-set function will be overwritten by the min() function (used in these levelset_update function).
     !!
     !!   Comments: If you want to "clear" the whole level-set array (phi), make sure that lo and hi match the grown
@@ -28,7 +29,7 @@ contains
 
         ! ** define I/O dummy variables
         integer,      dimension(3), intent(in   ) :: lo, hi, phlo, phhi
-        real(c_real),               intent(  out) :: phi ( phlo(1):phhi(1), phlo(2):phhi(2), phlo(3):phhi(3) )
+        real(amrex_real),               intent(  out) :: phi ( phlo(1):phhi(1), phlo(2):phhi(2), phlo(3):phhi(3) )
 
         ! ** define internal variables
         !    i, j, k: loop index variables
@@ -72,17 +73,17 @@ contains
         ! ** define I/O dummy variables
         integer,                       intent(in   ) :: l_eb
         integer,      dimension(3),    intent(in   ) :: lo, hi, vlo, vhi, phlo, phhi
-        real(c_real), dimension(l_eb), intent(in   ) :: eb_list
-        real(c_real),                  intent(  out) :: phi     (phlo(1):phhi(1), phlo(2):phhi(2), phlo(3):phhi(3))
+        real(amrex_real), dimension(l_eb), intent(in   ) :: eb_list
+        real(amrex_real),                  intent(  out) :: phi     (phlo(1):phhi(1), phlo(2):phhi(2), phlo(3):phhi(3))
         integer,                       intent(  out) :: valid   ( vlo(1):vhi(1),   vlo(2):vhi(2),   vlo(3):vhi(3) )
-        real(c_real), dimension(3),    intent(in   ) :: dx, dx_eb
+        real(amrex_real), dimension(3),    intent(in   ) :: dx, dx_eb
 
 
         ! ** define internal variables
         !    pos_node:      position of the level-set MultiFab node (where level-set is evaluated)
         !    levelset_node: value of the signed-distance function at pos_node
-        real(c_real), dimension(3) :: pos_node
-        real(c_real)               :: levelset_node
+        real(amrex_real), dimension(3) :: pos_node
+        real(amrex_real)               :: levelset_node
         !    ii, jj, kk: loop index variables
         !    valid_cell: .true. iff levelset_node is signed (if .false., levelset_node needs to be validated by IF)
         integer :: ii, jj, kk
@@ -143,24 +144,24 @@ contains
       ! ** define I/O dummy variables
       integer,                       intent(in   ) :: l_eb
       integer,      dimension(3),    intent(in   ) :: lo, hi, v_lo, v_hi, p_lo, p_hi, lsg_lo, lsg_hi
-      real(c_real), dimension(l_eb), intent(in   ) :: eb_list
-      real(c_real), dimension(3),    intent(in   ) :: dx, dx_eb
-      real(c_real),                  intent(in   ) :: ls_thres
+      real(amrex_real), dimension(l_eb), intent(in   ) :: eb_list
+      real(amrex_real), dimension(3),    intent(in   ) :: dx, dx_eb
+      real(amrex_real),                  intent(in   ) :: ls_thres
 
-      real(c_real),  intent(  out) :: phi     (  p_lo(1):p_hi(1),     p_lo(2):p_hi(2),     p_lo(3):p_hi(3)  )
+      real(amrex_real),  intent(  out) :: phi     (  p_lo(1):p_hi(1),     p_lo(2):p_hi(2),     p_lo(3):p_hi(3)  )
       integer,       intent(  out) :: valid   (  v_lo(1):v_hi(1),     v_lo(2):v_hi(2),     v_lo(3):v_hi(3)  )
-      real(c_real),  intent(in   ) :: ls_guess(lsg_lo(1):lsg_hi(1), lsg_lo(2):lsg_hi(2), lsg_lo(3):lsg_hi(3))
+      real(amrex_real),  intent(in   ) :: ls_guess(lsg_lo(1):lsg_hi(1), lsg_lo(2):lsg_hi(2), lsg_lo(3):lsg_hi(3))
 
       ! ** define internal variables
       !    pos_node:      position of the level-set MultiFab node (where level-set is evaluated)
       !    levelset_node: value of the signed-distance function at pos_node
-      real(c_real), dimension(3) :: pos_node
-      real(c_real)               :: levelset_node
+      real(amrex_real), dimension(3) :: pos_node
+      real(amrex_real)               :: levelset_node
       !    ii, jj, kk: loop index variables
       !    valid_cell: .true. iff levelset_node is signed (if .false., levelset_node needs to be validated by IF)
       integer      :: ii, jj, kk
       logical      :: valid_cell
-      real(c_real) :: phi_th
+      real(amrex_real) :: phi_th
 
       phi_th = ls_thres
       if (phi_th < 0) phi_th = huge(phi_th)
@@ -199,6 +200,7 @@ contains
     end subroutine amrex_eb_fill_levelset_loc
 
 
+
     pure subroutine amrex_eb_fill_levelset_bcs( phi,      philo, phihi, &
                                                 valid,    vlo,   vhi,   &
                                                 periodic, domlo, domhi, &
@@ -209,13 +211,13 @@ contains
         implicit none
 
         integer,      dimension(3), intent(in   ) :: philo, phihi, vlo, vhi, periodic, domlo, domhi
-        real(c_real),               intent(  out) :: phi(philo(1):phihi(1), philo(2):phihi(2), philo(3):phihi(3))
+        real(amrex_real),               intent(  out) :: phi(philo(1):phihi(1), philo(2):phihi(2), philo(3):phihi(3))
         integer,                    intent(  out) :: valid(vlo(1):vhi(1),     vlo(2):vhi(2),     vlo(3):vhi(3))
 
         ! ** extra data used by fill levelset operation
-        real(c_real), dimension(3),    intent(in   ) :: dx, dx_eb
+        real(amrex_real), dimension(3),    intent(in   ) :: dx, dx_eb
         integer,                       intent(in   ) :: l_eb
-        real(c_real), dimension(l_eb), intent(in   ) :: eb_list
+        real(amrex_real), dimension(l_eb), intent(in   ) :: eb_list
 
 
         integer, dimension(3) :: lo, hi
@@ -339,15 +341,16 @@ contains
                                  pos                   )
 
       use amrex_eb_geometry_module, only: facets_nearest_pt
+      use amrex_constants_module , only : one
 
       implicit none
 
       ! ** define I/O dummy variables
       integer,                       intent(in   ) :: l_eb
       logical,                       intent(  out) :: proj_valid
-      real(c_real),                  intent(  out) :: min_dist
-      real(c_real), dimension(3),    intent(in   ) :: pos, dx_eb
-      real(c_real), dimension(l_eb), intent(in   ) :: eb_data
+      real(amrex_real),                  intent(  out) :: min_dist
+      real(amrex_real), dimension(3),    intent(in   ) :: pos, dx_eb
+      real(amrex_real), dimension(l_eb), intent(in   ) :: eb_data
 
 
       ! ** define internal variables
@@ -360,13 +363,18 @@ contains
       integer,      dimension(3) :: vi_pt, vi_cent
       !    dist_proj:        projected (minimal) distance to the nearest EB facet
       !    dist2, min_dist2: squred distance to the EB facet centre, and square distance to the nearest EB facet
-      real(c_real)               :: dist_proj, dist2, min_dist2, min_edge_dist2
+      real(amrex_real)               :: dist_proj, dist2, min_dist2, min_edge_dist2
       !    ind_dx:           inverse of dx_eb (used to allocate MultiFab indices to position vector)
       !    eb_norm, eb_cent: EB normal and center (LATER: of the nearest EB facet)
       !    eb_min_pt, c_vec: projected point on EB facet (c_vec: onto facet edge)
-      real(c_real), dimension(3) :: inv_dx, eb_norm, eb_cent, eb_min_pt, c_vec
+      real(amrex_real), dimension(3) :: inv_dx, eb_norm, eb_cent, eb_min_pt, c_vec
+      !    min_pt_valid: set to true if the eb_min_pt is in the same cell as eb_cent
+      logical :: min_pt_valid
+      !    *_shift: loop counters for checking off-by-epsilon error when comparing eb_cent and projected point
+      integer :: i_shift, j_shift, k_shift
 
-      inv_dx(:)  = 1.d0 / dx_eb(:)
+
+      inv_dx(:)  = one / dx_eb(:)
 
       min_dist   = huge(min_dist)
       min_dist2  = huge(min_dist2)
@@ -397,9 +405,24 @@ contains
       vi_cent(:) = floor( eb_cent(:) * inv_dx)
       vi_pt(:)   = floor( eb_min_pt(:) * inv_dx);
 
+      min_pt_valid = .false.
+      if ( all( vi_pt == vi_cent ) ) then
+          min_pt_valid = .true.
+      else ! rounding error might give false negatives
+      do k_shift = -1, 1
+         do j_shift = -1, 1
+            do i_shift = -1, 1
+               vi_pt(:) = floor( (eb_min_pt(:) + (/i_shift, j_shift, k_shift /)*1d-6*dx_eb ) * inv_dx);
+               if ( all( vi_pt == vi_cent ) ) min_pt_valid = .true.
+            end do
+         end do
+      end do
+      end if
+
+
       ! If projects onto nearest EB facet, then return projected distance
       ! Alternatively: find the nearest point on the EB edge
-      if ( all( vi_pt == vi_cent ) ) then
+      if ( min_pt_valid ) then
          ! this is a signed distance function
          min_dist   = dist_proj
          proj_valid = .true.
@@ -432,13 +455,13 @@ contains
       implicit none
 
       integer,      dimension(3), intent(in   ) :: lo, hi, phi_lo, phi_hi
-      real(c_real),               intent(in   ) :: threshold
-      real(c_real),               intent(inout) :: phi (phi_lo(1):phi_hi(1), &
+      real(amrex_real),               intent(in   ) :: threshold
+      real(amrex_real),               intent(inout) :: phi (phi_lo(1):phi_hi(1), &
                                                         phi_lo(2):phi_hi(2), &
                                                         phi_lo(3):phi_hi(3))
 
       integer      :: ii, jj, kk
-      real(c_real) :: phi_th
+      real(amrex_real) :: phi_th
 
 
       phi_th = threshold
@@ -482,12 +505,12 @@ contains
 
         integer,      dimension(3), intent(in   ) :: lo, hi, imlo, imhi, vlo, vhi, phlo, phhi
         integer,                    intent(in   ) :: n_pad
-        real(c_real),               intent(in   ) :: impf  ( imlo(1):imhi(1), imlo(2):imhi(2), imlo(3):imhi(3) )
+        real(amrex_real),               intent(in   ) :: impf  ( imlo(1):imhi(1), imlo(2):imhi(2), imlo(3):imhi(3) )
         integer,                    intent(in   ) :: valid (  vlo(1):vhi(1),   vlo(2):vhi(2),   vlo(3):vhi(3)  )
-        real(c_real),               intent(inout) :: phi   ( phlo(1):phhi(1), phlo(2):phhi(2), phlo(3):phhi(3) )
+        real(amrex_real),               intent(inout) :: phi   ( phlo(1):phhi(1), phlo(2):phhi(2), phlo(3):phhi(3) )
 
         integer      :: ii, jj, kk
-        real(c_real) :: levelset_node
+        real(amrex_real) :: levelset_node
 
         do kk = lo(3), hi(3)
             do jj = lo(2), hi(2)
@@ -507,6 +530,7 @@ contains
     end subroutine amrex_eb_validate_levelset
 
 
+
     pure subroutine amrex_eb_validate_levelset_bcs( phi,      phlo,  phhi,  &
                                                     valid,    vlo,   vhi,   &
                                                     periodic, domlo, domhi, &
@@ -517,8 +541,8 @@ contains
 
         integer, dimension(3), intent(in   ) :: phlo, phhi, vlo, vhi, periodic, domlo, domhi, imlo, imhi
         integer,               intent(in   ) :: valid (  vlo(1):vhi(1),   vlo(2):vhi(2),   vlo(3):vhi(3)  )
-        real(c_real),          intent(inout) :: phi   ( phlo(1):phhi(1), phlo(2):phhi(2), phlo(3):phhi(3) )
-        real(c_real),          intent(in   ) :: impf(imlo(1):imhi(1), imlo(2):imhi(2), imlo(3):imhi(3))
+        real(amrex_real),          intent(inout) :: phi   ( phlo(1):phhi(1), phlo(2):phhi(2), phlo(3):phhi(3) )
+        real(amrex_real),          intent(in   ) :: impf(imlo(1):imhi(1), imlo(2):imhi(2), imlo(3):imhi(3))
 
         integer, dimension(3) :: lo, hi
         !-------------------------------------------------------------------------------------------------------------
@@ -636,11 +660,11 @@ contains
 
         integer,      dimension(3), intent(in   ) :: lo, hi, vilo, vihi, lslo, lshi, vlo, vhi, phlo, phhi
         integer,                    intent(in   ) :: v_in  (vilo(1):vihi(1),vilo(2):vihi(2),vilo(3):vihi(3))
-        real(c_real),               intent(in   ) :: ls_in (lslo(1):lshi(1),lslo(2):lshi(2),lslo(3):lshi(3))
+        real(amrex_real),               intent(in   ) :: ls_in (lslo(1):lshi(1),lslo(2):lshi(2),lslo(3):lshi(3))
         integer,                    intent(inout) :: valid ( vlo(1):vhi(1),  vlo(2):vhi(2),  vlo(3):vhi(3) )
-        real(c_real),               intent(inout) :: phi   (phlo(1):phhi(1),phlo(2):phhi(2),phlo(3):phhi(3))
+        real(amrex_real),               intent(inout) :: phi   (phlo(1):phhi(1),phlo(2):phhi(2),phlo(3):phhi(3))
 
-        real(c_real) :: ls_node, in_node
+        real(amrex_real) :: ls_node, in_node
         integer      :: ii, jj, kk
 
         do kk = lo(3), hi(3)
@@ -678,9 +702,9 @@ contains
 
         integer, dimension(3), intent(in   ) :: vilo, vihi, lslo, lshi, vlo, vhi, phlo, phhi, periodic, domlo, domhi
         integer,               intent(in   ) :: v_in  (vilo(1):vihi(1),vilo(2):vihi(2),vilo(3):vihi(3))
-        real(c_real),          intent(in   ) :: ls_in (lslo(1):lshi(1),lslo(2):lshi(2),lslo(3):lshi(3))
+        real(amrex_real),          intent(in   ) :: ls_in (lslo(1):lshi(1),lslo(2):lshi(2),lslo(3):lshi(3))
         integer,               intent(  out) :: valid ( vlo(1):vhi(1),  vlo(2):vhi(2),  vlo(3):vhi(3) )
-        real(c_real),          intent(  out) :: phi   (phlo(1):phhi(1),phlo(2):phhi(2),phlo(3):phhi(3))
+        real(amrex_real),          intent(  out) :: phi   (phlo(1):phhi(1),phlo(2):phhi(2),phlo(3):phhi(3))
 
         integer, dimension(3) :: lo, hi
 
@@ -806,11 +830,11 @@ contains
 
         integer,      dimension(3), intent(in   ) :: lo, hi, vilo, vihi, lslo, lshi, vlo, vhi, phlo, phhi
         integer,                    intent(in   ) :: v_in  (vilo(1):vihi(1),vilo(2):vihi(2),vilo(3):vihi(3))
-        real(c_real),               intent(in   ) :: ls_in (lslo(1):lshi(1),lslo(2):lshi(2),lslo(3):lshi(3))
+        real(amrex_real),               intent(in   ) :: ls_in (lslo(1):lshi(1),lslo(2):lshi(2),lslo(3):lshi(3))
         integer,                    intent(  out) :: valid ( vlo(1):vhi(1),  vlo(2):vhi(2),  vlo(3):vhi(3) )
-        real(c_real),               intent(  out) :: phi   (phlo(1):phhi(1),phlo(2):phhi(2),phlo(3):phhi(3))
+        real(amrex_real),               intent(  out) :: phi   (phlo(1):phhi(1),phlo(2):phhi(2),phlo(3):phhi(3))
 
-        real(c_real) :: ls_node, in_node
+        real(amrex_real) :: ls_node, in_node
         integer      :: ii, jj, kk
 
         do kk = lo(3), hi(3)
@@ -835,6 +859,8 @@ contains
 
     end subroutine amrex_eb_update_levelset_union
 
+
+
     pure subroutine amrex_eb_update_levelset_union_bcs( v_in,     vilo,  vihi,   &
                                                         ls_in,    lslo,  lshi,   &
                                                         valid,    vlo,   vhi,    &
@@ -846,12 +872,12 @@ contains
 
         integer, dimension(3), intent(in   ) :: vilo, vihi, lslo, lshi, vlo, vhi, phlo, phhi, periodic, domlo, domhi
         integer,               intent(in   ) :: v_in  (vilo(1):vihi(1),vilo(2):vihi(2),vilo(3):vihi(3))
-        real(c_real),          intent(in   ) :: ls_in (lslo(1):lshi(1),lslo(2):lshi(2),lslo(3):lshi(3))
+        real(amrex_real),          intent(in   ) :: ls_in (lslo(1):lshi(1),lslo(2):lshi(2),lslo(3):lshi(3))
         integer,               intent(  out) :: valid ( vlo(1):vhi(1),  vlo(2):vhi(2),  vlo(3):vhi(3) )
-        real(c_real),          intent(  out) :: phi   (phlo(1):phhi(1),phlo(2):phhi(2),phlo(3):phhi(3))
+        real(amrex_real),          intent(  out) :: phi   (phlo(1):phhi(1),phlo(2):phhi(2),phlo(3):phhi(3))
 
         !integer      :: i, j, k
-        !real(c_real) :: ls_node, in_node
+        !real(amrex_real) :: ls_node, in_node
 
         integer, dimension(3) :: lo, hi
 
@@ -972,7 +998,7 @@ contains
         integer, dimension(3), intent(in   ) :: lo, hi, vlo, vhi, phlo, phhi
         integer,               intent(in   ) :: n_pad
         integer,               intent(  out) :: valid( vlo(1):vhi(1),   vlo(2):vhi(2),   vlo(3):vhi(3))
-        real(c_real),          intent(in   ) :: phi  (phlo(1):phhi(1), phlo(2):phhi(2), phlo(3):phhi(3))
+        real(amrex_real),          intent(in   ) :: phi  (phlo(1):phhi(1), phlo(2):phhi(2), phlo(3):phhi(3))
 
         integer :: i, j, k
         logical :: valid_cell
@@ -1000,7 +1026,7 @@ contains
     !!   Purpose: Fills elements of valid with 1 whenever it corresponds to a position with n_pad of the level set
     !!   value being negative (i.e. phi < 0), and 0 otherwise. For all ghost cells outside the domain
     !!
-!----------------------------------------------------------------------------------------------------------------
+    !----------------------------------------------------------------------------------------------------------------
 
 
     pure subroutine amrex_eb_fill_valid_bcs( valid, vlo, vhi, periodic, domlo, domhi ) &
@@ -1097,7 +1123,7 @@ contains
 
         ! ** input types
         integer,      dimension(3), intent(in) :: phlo, phhi
-        real(c_real),               intent(in) :: phi( phlo(1):phhi(1), phlo(2):phhi(2), phlo(3):phhi(3) )
+        real(amrex_real),               intent(in) :: phi( phlo(1):phhi(1), phlo(2):phhi(2), phlo(3):phhi(3) )
         integer,                    intent(in) :: i, j, k, n_pad
 
 
@@ -1179,19 +1205,21 @@ contains
                                dx                       ) &
                     bind(C, name="amrex_eb_as_list")
 
+        use amrex_constants_module , only : half
+
         implicit none
 
-        integer,                        intent(in   ) :: lsize
-        integer, dimension(3),          intent(in   ) :: lo, hi, flo, fhi, nlo, nhi, blo, bhi
-        real(c_real),                   intent(in   ) :: dx(3)
-        integer,                        intent(in   ) :: flag  ( flo(1):fhi(1), flo(2):fhi(2), flo(3):fhi(3) )
-        real(c_real),                   intent(in   ) :: norm  ( nlo(1):nhi(1), nlo(2):nhi(2), nlo(3):nhi(3), 3)
-        real(c_real),                   intent(in   ) :: bcent ( blo(1):bhi(1), blo(2):bhi(2), blo(3):bhi(3), 3)
-        real(c_real), dimension(lsize), intent(  out) :: list_out
-        integer,                        intent(inout) :: c_facets
+        integer,                intent(in   ) :: lsize
+        integer, dimension(3),  intent(in   ) :: lo, hi, flo, fhi, nlo, nhi, blo, bhi
+        real(amrex_real),       intent(in   ) :: dx(3)
+        integer,                intent(in   ) :: flag  ( flo(1):fhi(1), flo(2):fhi(2), flo(3):fhi(3) )
+        real(amrex_real),       intent(in   ) :: norm  ( nlo(1):nhi(1), nlo(2):nhi(2), nlo(3):nhi(3), 3)
+        real(amrex_real),       intent(in   ) :: bcent ( blo(1):bhi(1), blo(2):bhi(2), blo(3):bhi(3), 3)
+        real(amrex_real),       intent(  out) :: list_out(lsize)
+        integer,                intent(inout) :: c_facets
 
         integer                    :: i, j, k, i_facet
-        real(c_real), dimension(3) :: eb_cent
+        real(amrex_real), dimension(3) :: eb_cent
 
         i_facet = 6 * c_facets + 1
 
@@ -1203,8 +1231,8 @@ contains
                         c_facets = c_facets + 1
 
                         eb_cent(:) = ( bcent(i, j, k, :)                     &
-                                       + (/ dble(i), dble(j), dble(k) /)     &
-                                       + (/ 0.5d0, 0.5d0, 0.5d0 /) ) * dx(:)
+                                       + (/ real(i,amrex_real), real(j,amrex_real), real(k,amrex_real) /)     &
+                                       + (/ half, half, half /) ) * dx(:)
 
                         list_out( i_facet     : i_facet + 2) = eb_cent(:)
                         list_out( i_facet + 3 : i_facet + 5) = norm(i, j, k, :)
@@ -1225,19 +1253,20 @@ contains
                                              dx,  phi_interp    ) &
                     bind(C, name="amrex_eb_interp_levelset")
 
+        use amrex_constants_module , only : one
 
         implicit none
 
-        real(c_real), dimension(3), intent(in   ) :: pos, plo
+        real(amrex_real), dimension(3), intent(in   ) :: pos, plo
         integer,      dimension(3), intent(in   ) :: phlo, phhi
         integer,                    intent(in   ) :: n_refine
-        real(c_real),               intent(in   ) :: phi( phlo(1):phhi(1), phlo(2):phhi(2), phlo(3):phhi(3) )
-        real(c_real), dimension(3), intent(in   ) :: dx
-        real(c_real),               intent(  out) :: phi_interp
+        real(amrex_real),               intent(in   ) :: phi( phlo(1):phhi(1), phlo(2):phhi(2), phlo(3):phhi(3) )
+        real(amrex_real), dimension(3), intent(in   ) :: dx
+        real(amrex_real),               intent(  out) :: phi_interp
 
         integer                    :: i, j, k
-        real(c_real)               :: xp, yp, zp, lx, ly, lz, wx_lo, wx_hi, wy_lo, wy_hi, wz_lo, wz_hi
-        real(c_real), dimension(3) :: inv_dx
+        real(amrex_real)               :: xp, yp, zp, lx, ly, lz, wx_lo, wx_hi, wy_lo, wy_hi, wz_lo, wz_hi
+        real(amrex_real), dimension(3) :: inv_dx
 
         inv_dx(:) = n_refine / dx(:)
 
@@ -1257,9 +1286,9 @@ contains
         wy_hi = ly - j
         wz_hi = lz - k
 
-        wx_lo = 1.0d0 - wx_hi
-        wy_lo = 1.0d0 - wy_hi
-        wz_lo = 1.0d0 - wz_hi
+        wx_lo = one - wx_hi
+        wy_lo = one - wy_hi
+        wz_lo = one - wz_hi
 
         phi_interp = phi(i,   j,   k  ) * wx_lo * wy_lo * wz_lo &
                    + phi(i+1, j,   k  ) * wx_hi * wy_lo * wz_lo &
@@ -1279,20 +1308,22 @@ contains
                                              dx,  normal         ) &
                     bind(C, name="amrex_eb_normal_levelset")
 
+        use amrex_constants_module , only : one
+
         implicit none
 
-        real(c_real), dimension(3), intent(in   ) :: pos, plo
+        real(amrex_real), dimension(3), intent(in   ) :: pos, plo
         integer,      dimension(3), intent(in   ) :: phlo, phhi
         integer,                    intent(in   ) :: n_refine
-        real(c_real),               intent(in   ) :: phi( phlo(1):phhi(1), phlo(2):phhi(2), phlo(3):phhi(3) )
-        real(c_real), dimension(3), intent(in   ) :: dx
-        real(c_real), dimension(3), intent(  out) :: normal
+        real(amrex_real),               intent(in   ) :: phi( phlo(1):phhi(1), phlo(2):phhi(2), phlo(3):phhi(3) )
+        real(amrex_real), dimension(3), intent(in   ) :: dx
+        real(amrex_real), dimension(3), intent(  out) :: normal
 
         integer                    :: i, j, k
-        real(c_real)               :: xp, yp, zp, lx, ly, lz, wx_lo, wx_hi, wy_lo, wy_hi, wz_lo, wz_hi
-        real(c_real), dimension(3) :: inv_dx
+        real(amrex_real)               :: xp, yp, zp, lx, ly, lz, wx_lo, wx_hi, wy_lo, wy_hi, wz_lo, wz_hi
+        real(amrex_real), dimension(3) :: inv_dx
 
-        real(c_real) :: inv_norm
+        real(amrex_real) :: inv_norm
 
         inv_dx = n_refine / dx
 
@@ -1312,9 +1343,9 @@ contains
         wy_hi = ly - j
         wz_hi = lz - k
 
-        wx_lo = 1.0d0 - wx_hi
-        wy_lo = 1.0d0 - wy_hi
-        wz_lo = 1.0d0 - wz_hi
+        wx_lo = one - wx_hi
+        wy_lo = one - wy_hi
+        wz_lo = one - wz_hi
 
         normal(1) = - phi(i,   j,   k  )*inv_dx(1) * wy_lo * wz_lo  &
                     + phi(i+1, j,   k  )*inv_dx(1) * wy_lo * wz_lo  &
@@ -1344,7 +1375,7 @@ contains
                     + phi(i+1, j+1, k+1)*inv_dx(3) * wx_hi * wy_hi
 
         ! this might not be necessary if the phi grid is dense enough...
-        inv_norm = 1.0d0 / sqrt(normal(1)**2 + normal(2)**2 + normal(3)**2)
+        inv_norm = one / sqrt(normal(1)**2 + normal(2)**2 + normal(3)**2)
         normal(:) = normal(:) * inv_norm
 
     end subroutine amrex_eb_normal_levelset

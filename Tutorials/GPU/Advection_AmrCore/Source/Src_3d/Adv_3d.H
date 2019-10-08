@@ -9,7 +9,7 @@
 using namespace amrex;
 
 AMREX_GPU_DEVICE
-AMREX_INLINE
+AMREX_FORCE_INLINE
 void conservative(int i, int j, int k, 
                   Array4<Real> const& uin,
                   Array4<Real> const& uout,
@@ -25,7 +25,7 @@ void conservative(int i, int j, int k,
 }
 
 AMREX_GPU_DEVICE
-AMREX_INLINE
+AMREX_FORCE_INLINE
 void flux_scale_x(int i, int j, int k,
                   Array4<Real> const& flxx,
                   Real dt,
@@ -35,7 +35,7 @@ void flux_scale_x(int i, int j, int k,
 }
 
 AMREX_GPU_DEVICE
-AMREX_INLINE
+AMREX_FORCE_INLINE
 void flux_scale_y(int i, int j, int k,
                   Array4<Real> const& flxy,
                   Real dt,
@@ -45,7 +45,7 @@ void flux_scale_y(int i, int j, int k,
 }
 
 AMREX_GPU_DEVICE
-AMREX_INLINE
+AMREX_FORCE_INLINE
 void flux_scale_z(int i, int j ,int k,
                   Array4<Real> const& flxz,
                   Real dt,

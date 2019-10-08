@@ -35,7 +35,7 @@ namespace amrex
                                      const IntVect& ratio, int ngcrse);
 
     void EB_computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPACEDIM>& umac,
-                               const Geometry& geom);
+                               const Geometry& geom, bool already_on_centroids);
 
     void EB_average_face_to_cellcenter (MultiFab& ccmf, int dcomp,
                                         const Array<MultiFab const*,AMREX_SPACEDIM>& fmf);

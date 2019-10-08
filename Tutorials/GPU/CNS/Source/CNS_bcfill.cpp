@@ -8,7 +8,7 @@ using namespace amrex;
 struct CnsFillExtDir
 {
     AMREX_GPU_DEVICE
-    void operator() (const IntVect& iv, FArrayBox& dest,
+    void operator() (const IntVect& iv, Array4<Real> const& dest,
                      const int dcomp, const int numcomp,
                      GeometryData const& geom, const Real time,
                      const BCRec* bcr, const int bcomp,
@@ -35,14 +35,7 @@ void cns_bcfill (Box const& bx, FArrayBox& data,
                  const Vector<BCRec>& bcr, const int bcomp,
                  const int scomp)
 {
-#ifdef AMREX_USE_GPU
-    bool run_on_gpu = Gpu::inLaunchRegion();
-#else
-    bool run_on_gpu = false;
-#endif
-
-    if (run_on_gpu) {
-        AMREX_ASSERT(Gpu::isGpuPtr(&data));
+    if (Gpu::inLaunchRegion()) {
         gpu_bndry_func(bx,data,dcomp,numcomp,geom,time,bcr,bcomp,scomp);
     } else {
         cpu_bndry_func(bx,data,dcomp,numcomp,geom,time,bcr,bcomp,scomp);

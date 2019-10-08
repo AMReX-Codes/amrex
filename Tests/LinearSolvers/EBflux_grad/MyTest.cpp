@@ -31,7 +31,7 @@ MyTest::solve ()
     std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_lobc;
     std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_hibc;
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        if (Geometry::isPeriodic(idim)) {
+        if (geom[0].isPeriodic(idim)) {
             mlmg_lobc[idim] = LinOpBCType::Periodic;
             mlmg_hibc[idim] = LinOpBCType::Periodic;
         } else {
@@ -169,18 +169,20 @@ MyTest::initData ()
             bcoef[ilev][idim].setVal(1.0);
         }
 
-        const Real* dx = geom[ilev].CellSize();
+        const auto dx = geom[ilev].CellSizeArray();
 
         // Initialize Dirichlet boundary
         for (MFIter mfi(phi[ilev]); mfi.isValid(); ++mfi)
         {
-            FArrayBox& fab = phi[ilev][mfi];
-            const Box& bx = fab.box();
-            fab.ForEachIV(bx, 0, 1, [=] (Real& p, const IntVect& iv) {
-                    Real rx = (iv[0]+0.5)*dx[0];
-                    Real ry = (iv[1]+0.5)*dx[1];
-                    p = std::sqrt(0.5)*(rx + ry);
-                });
+            const Box& bx = mfi.fabbox();
+            Array4<Real> const& fab = phi[ilev].array(mfi);
+            amrex::ParallelFor(bx,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                Real rx = (i+0.5)*dx[0];
+                Real ry = (j+0.5)*dx[1];
+                fab(i,j,k) = std::sqrt(0.5)*(rx + ry);
+            });
         }
 
         phi[ilev].setVal(0.0, 0, 1, 0);

@@ -40,7 +40,7 @@
 #include <AMReX_Lazy.H>
 #endif
 
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
 #include <AMReX_MemProfiler.H>
 #endif
 
@@ -52,7 +52,9 @@
 #include <WorkerThread.H>
 #include <Perilla.H>
 #ifdef USE_PERILLA
+//#ifndef USE_PERILLA_ON_DEMAND
     pthread_mutex_t teamFinishLock=PTHREAD_MUTEX_INITIALIZER;
+//#endif
 #ifdef PERILLA_USE_UPCXX
 extern struct rMsgMap_t{
     std::map< int, std::map< int,  std::list< Package* > > > map;
@@ -1128,7 +1130,7 @@ Amr::checkInput ()
     //
     // Check that blocking_factor is a power of 2.
     //
-    for (int i = 0; i < max_level; i++)
+    for (int i = 0; i <= max_level; i++)
     {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
         {
@@ -1162,7 +1164,7 @@ Amr::checkInput ()
     //
     // Check that max_grid_size is even.
     //
-    for (int i = 0; i < max_level; i++)
+    for (int i = 0; i <= max_level; i++)
     {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             if (max_grid_size[i][idim]%2 != 0) {
@@ -1174,7 +1176,7 @@ Amr::checkInput ()
     //
     // Check that max_grid_size is a multiple of blocking_factor at every level.
     //
-    for (int i = 0; i < max_level; i++)
+    for (int i = 0; i <= max_level; i++)
     {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             if (max_grid_size[i][idim]%blocking_factor[i][idim] != 0) {
@@ -1183,7 +1185,7 @@ Amr::checkInput ()
         }
     }
 
-    if( ! Geometry::ProbDomain().ok()) {
+    if( ! Geom(0).ProbDomain().ok()) {
         amrex::Error("Amr::checkInput: bad physical problem size");
     }
 
@@ -1205,7 +1207,9 @@ Amr::init (Real strt_time,
     else
     {
         initialInit(strt_time,stop_time);
-        checkPoint();
+        if (check_int > 0 || check_per > 0) {
+            checkPoint();
+        }
 
         if(plot_int > 0 || plot_per > 0 || plot_log_per > 0) {
             writePlotFile();
@@ -1266,16 +1270,16 @@ Amr::readProbinFile (int& a_init)
             amrex_probinit(&a_init,
 			   probin_file_name.dataPtr(),
 			   &probin_file_length,
-			   AMREX_ZFILL(Geometry::ProbLo()),
-			   AMREX_ZFILL(Geometry::ProbHi()));
+			   AMREX_ZFILL(Geom(0).ProbLo()),
+			   AMREX_ZFILL(Geom(0).ProbHi()));
 
 #else
 
             amrex_probinit(&a_init,
 			   probin_file_name.dataPtr(),
 			   &probin_file_length,
-			   Geometry::ProbLo(),
-			   Geometry::ProbHi());
+			   Geom(0).ProbLo(),
+			   Geom(0).ProbHi());
 #endif
 
             piEnd = amrex::second();
@@ -1543,8 +1547,8 @@ Amr::restart (const std::string& filename)
     Vector<Box> inputs_domain(max_level+1);
     for (int lev = 0; lev <= max_level; ++lev)
     {
-	Box bx(Geom(lev).Domain().smallEnd(),Geom(lev).Domain().bigEnd());
-       inputs_domain[lev] = bx;
+        Box bx(Geom(lev).Domain().smallEnd(),Geom(lev).Domain().bigEnd());
+        inputs_domain[lev] = bx;
     }
 
     if (max_level >= mx_lev) {
@@ -1710,6 +1714,13 @@ Amr::restart (const std::string& filename)
        }
     }
 
+    // Old checkpoints do not store isPeriodic.
+    // So we have to set it after restart.
+    for (int lev = 0; lev <= finest_level; ++lev)
+    {
+        amr_level[lev]->geom.setPeriodicity(Geom(lev).isPeriodic());
+    }
+
     // Save the number of steps taken so far. This mainly
     // helps in the edge case where we end up not taking
     // any timesteps before the run terminates, so that
@@ -1719,17 +1730,17 @@ Amr::restart (const std::string& filename)
 
     for (int lev = 0; lev <= finest_level; ++lev)
     {
-	Box restart_domain(Geom(lev).Domain());
-       if ( ! (inputs_domain[lev] == restart_domain) )
-       {
-           std::ostringstream ss;
-           ss  << "Problem at level " << lev << '\n'
-	       << "Domain according to     inputs file is " <<  inputs_domain[lev] << '\n'
-	       << "Domain according to checkpoint file is " << restart_domain      << '\n'
-	       << "Amr::restart() failed -- box from inputs file does not "
-	       << "equal box from restart file. \n";
-           amrex::Abort(ss.str());
-       }
+        Box restart_domain(Geom(lev).Domain());
+        if ( ! (inputs_domain[lev] == restart_domain) )
+        {
+            std::ostringstream ss;
+            ss  << "Problem at level " << lev << '\n'
+                << "Domain according to     inputs file is " <<  inputs_domain[lev] << '\n'
+                << "Domain according to checkpoint file is " << restart_domain      << '\n'
+                << "Amr::restart() failed -- box from inputs file does not "
+                << "equal box from restart file. \n";
+            amrex::Abort(ss.str());
+        }
     }
 
     if (verbose > 0)
@@ -2063,7 +2074,7 @@ Amr::timeStep (int  level,
 	    }
  	    Perilla::updateMetadata_done++;
 	}
-        delete metadataChanged;
+        delete [] metadataChanged;
 #endif
 
         if (max_level == 0 && loadbalance_level0_int > 0 && loadbalance_with_workestimates)
@@ -2102,7 +2113,7 @@ Amr::timeStep (int  level,
     BL_PROFILE_REGION_STOP("amr_level.advance");
 
 #if defined(USE_PERILLA_PTHREADS) || defined(USE_PERILLA_OMP)
-    perilla::syncWorkerThreads();
+    perilla::syncAllWorkerThreads();
     if(perilla::isMasterThread())
     {
 #endif
@@ -2242,7 +2253,6 @@ Amr::coarseTimeStep (Real stop_time)
     BL_PROFILE_REGION_START(stepName.str());
 
 #ifdef USE_PERILLA
-    std::vector<RegionGraph*> flattenedGraphArray;
 #ifdef USE_PERILLA_PTHREADS
     //mpi+pthreads (default) or upcxx+pthreads
     }
@@ -2356,21 +2366,36 @@ Amr::coarseTimeStep (Real stop_time)
             Perilla::communicateTags();
         }
     }
+    Perilla::syncProcesses();
 
 #ifdef USE_PERILLA_OMP
-#pragma omp parallel
+//    int nThreads= perilla::NUM_THREAD_TEAMS * perilla::NUM_THREADS_PER_TEAM; 
+// num_threads(nThreads)
+#pragma omp parallel default(shared)
     {
         if(perilla::isCommunicationThread())
         {
+   	    std::vector<RegionGraph*> flattenedGraphArray;
             while(true){
                 Perilla::flattenGraphHierarchy(graphArray, flattenedGraphArray);
                 Perilla::serviceMultipleGraphCommDynamic(flattenedGraphArray,true,perilla::tid());
                 if( Perilla::numTeamsFinished == perilla::NUM_THREAD_TEAMS)
                 {
+	            //perilla::syncWorkers();
+	            //if(perilla::wid()==0){
+                        //Perilla::syncProcesses();
+                        /*for(int g=0; g<flattenedGraphArray.size(); g++)
+                        {
+                            //cancel messages preposted previously
+                            flattenedGraphArray[g]->graphTeardown();
+                        }*/
+            	    //}
                     flattenedGraphArray.clear();
+	            //perilla::syncWorkers();
+                    if(perilla::wid()==0) Perilla::syncProcesses();
                     break;
                 }
-            }
+	    }
         }
         else{
             timeStep(0,cumtime,1,1,stop_time);
@@ -2431,7 +2456,7 @@ Amr::coarseTimeStep (Real stop_time)
 	});
 #endif
 
-#ifndef BL_MEM_PROFILING
+#ifndef AMREX_MEM_PROFILING
         long min_fab_kilobytes  = amrex::TotalBytesAllocatedInFabsHWM()/1024;
         long max_fab_kilobytes  = min_fab_kilobytes;
 
@@ -2450,7 +2475,7 @@ Amr::coarseTimeStep (Real stop_time)
 #endif
     }
 
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
     {
 	std::ostringstream ss;
 	ss << "[STEP " << level_steps[0] << "]";
@@ -3140,7 +3165,7 @@ Amr::printGridInfo (std::ostream& os,
         int                       numgrid = bs.size();
         long                      ncells  = amr_level[lev]->countCells();
         double                    ntot    = Geom(lev).Domain().d_numPts();
-        Real                      frac    = 100.0*(Real(ncells) / ntot);
+        Real                      frac    = 100.0_rt*(Real(ncells) / ntot);
         const DistributionMapping& map    = amr_level[lev]->get_new_data(0).DistributionMap();
 
         os << "  Level "

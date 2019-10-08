@@ -1,6 +1,5 @@
-
-#ifndef BL_ARENA_H
-#define BL_ARENA_H
+#ifndef AMREX_ARENA_H_
+#define AMREX_ARENA_H_
 
 #include <AMReX_BLassert.H>
 #include <cstddef>
@@ -93,7 +92,7 @@ protected:
     ArenaInfo arena_info;
 
     void* allocate_system (std::size_t nbytes);
-    void deallocate_system (void* p);
+    void deallocate_system (void* p, std::size_t nbytes);
 };
 
 }

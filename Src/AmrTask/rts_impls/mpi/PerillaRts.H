@@ -40,7 +40,6 @@ class RTS
 	void Init(int rank, int nProcs);//Build the runtime system on pre-existing MPI processes
 	void Iterate(void *graph, int max_step, Real stop_time);
 	void Finalize();
-//	double Time();
 	void Barrier();
 	void runAMR(Amr* amrptr, int max_step, Real stop_time);
         void invokeOnDemand(std::vector<RegionGraph *> rg, RGIter *rgi);

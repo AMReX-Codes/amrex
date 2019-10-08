@@ -42,7 +42,7 @@ void average_down_push (Amr& amr, MultiFab& S_fine, MultiFab& S_crse, MultiFab& 
     int lfi = crse_S_fine.IndexArray()[f];
     const Box& tbx = crse_S_fine[ lfi ].box();
 
-    amrex_avgdown_with_vol(tbx,crse_S_fine[lfi],S_fine[lfi],fvolume[mfi],
+    amrex_avgdown_with_vol(tbx,crse_S_fine[lfi].array(),S_fine[lfi].array(),fvolume[mfi].array(),
                            0,scomp,ncomp,ratio);
 
     Perilla::multifabCopyPushAsync(RG_crse, RG_fine, &S_crse, &crse_S_fine, f, scomp, 0, ncomp, 0, 0, false);
@@ -94,7 +94,7 @@ void average_down_push (Amr& amr, MultiFab& S_fine, MultiFab& S_crse, MultiFab& 
 	if(t % (perilla::NUM_THREADS_PER_TEAM-1) == nt)
 	{
 	    const Box& tbx = *(RG_fine->fabTiles[f]->tileBx[t]);
-            amrex_avgdown(tbx,crse_S_fine[lfi],S_fine[lfi],0,scomp,ncomp,ratio);
+            amrex_avgdown(tbx,crse_S_fine[lfi].array(),S_fine[lfi].array(),0,scomp,ncomp,ratio);
 	}
     RG_fine->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-1); // Barrier to synchronize team threads
     Perilla::multifabCopyPushAsync(RG_crse, RG_fine, &S_crse, &crse_S_fine, f, scomp, 0, ncomp, 0, 0, false);
@@ -126,7 +126,7 @@ void average_down_push (RGIter& rgi, MultiFab* S_fine, MultiFab* S_crse, MultiFa
     for(int t=0; t<RG_fine->fabTiles[f]->numTiles; t+= nThreads)
     {
         const Box& tbx = *(RG_fine->fabTiles[f]->tileBx[t]);
-        amrex_avgdown(tbx,(*crse_S_fine)[lfi],(*S_fine)[lfi],0,scomp,ncomp,ratio);
+        amrex_avgdown(tbx,(*crse_S_fine)[lfi].array(),(*S_fine)[lfi].array(),0,scomp,ncomp,ratio);
     }
     perilla::syncWorkerThreads();
     Perilla::multifabCopyPush(RG_crse, RG_fine, S_crse, crse_S_fine, f, scomp, 0, ncomp, 0, 0, false);

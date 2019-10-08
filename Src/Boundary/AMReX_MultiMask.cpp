@@ -43,20 +43,21 @@ MultiMask::define (const BoxArray& regba, const DistributionMapping& dm, const G
 	for (MFIter mfi(m_fa); mfi.isValid(); ++mfi)
 	{
 	    const Box& face_box = m_fa[mfi].box();
-            Mask* m = m_fa.fabPtr(mfi);
+            Array4<int> const& m_arr = m_fa.array(mfi);
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( face_box, tbx,
             {
-                m->setVal(bndrydata_outside_domain, tbx, DestComp{0}, NumComps{ncomp});
+                Mask m(m_arr, tbx.ixType());
+                m.setVal(bndrydata_outside_domain, tbx, DestComp{0}, NumComps{ncomp});
                 const Box& dbox = geomdomain & tbx;
                 if (dbox.ok()) {
-                    m->setVal(bndrydata_not_covered, dbox, DestComp{0}, NumComps{ncomp});
+                    m.setVal(bndrydata_not_covered, dbox, DestComp{0}, NumComps{ncomp});
                 }
             });
         }
     }
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     if (initval)
     {
@@ -82,7 +83,12 @@ MultiMask::define (const BoxArray& regba, const DistributionMapping& dm, const G
 		    m.shift(iv);
 		    const Box& target = geom.Domain() & m.box();
                     if (target.ok()) {
-                        m.setVal(BndryData::not_covered,target,0,ncomp);
+                        auto val = BndryData::not_covered;
+                        auto const& a = m.array();
+                        AMREX_HOST_DEVICE_PARALLEL_FOR_4D (target, ncomp, i, j, k, n,
+                        {
+                            a(i,j,k,n) = val;
+                        });
                     }
 		    m.shift(-iv);
 		}
@@ -91,9 +97,15 @@ MultiMask::define (const BoxArray& regba, const DistributionMapping& dm, const G
 	    // Turn mask off on intersection with regba
 	    //
 	    regba.intersections(face_box,isects);
-	    
+
 	    for (int ii = 0, N = isects.size(); ii < N; ii++) {
-		m.setVal(BndryData::covered, isects[ii].second, 0, ncomp);
+                const Box& b = isects[ii].second;
+                auto val = BndryData::covered;
+                auto const& a = m.array();
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D(b,ncomp,i,j,k,n,
+                {
+                    a(i,j,k,n) = val;
+                });
 	    }
 	    
 	    if (geom.isAnyPeriodic() && !geom.Domain().contains(face_box))
@@ -110,7 +122,13 @@ MultiMask::define (const BoxArray& regba, const DistributionMapping& dm, const G
 		    m.shift(iv);
 		    regba.intersections(m.box(),isects);
 		    for (int ii = 0, N = isects.size(); ii < N; ii++) {
-			m.setVal(BndryData::covered, isects[ii].second, 0, ncomp);
+                        const Box& b = isects[ii].second;
+                        auto val = BndryData::covered;
+                        auto const& a = m.array();
+                        AMREX_HOST_DEVICE_PARALLEL_FOR_4D(b,ncomp,i,j,k,n,
+                        {
+                            a(i,j,k,n) = val;
+                        });
 		    }
 		    m.shift(-iv);
 		}
@@ -133,7 +151,7 @@ MultiMask::Copy (MultiMask& dst, const MultiMask& src)
         auto const srcfab = src.m_fa.array(mfi);
         auto       dstfab = dst.m_fa.array(mfi);
         const Box& bx = dst.m_fa[mfi].box();
-        AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
         {
             dstfab(i,j,k,n) = srcfab(i,j,k,n);
         });

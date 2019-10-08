@@ -10,7 +10,12 @@ COMP    = gcc
 
 PRECISION = DOUBLE
 
-USE_MPI   = TRUE
+#########################################################
+#NOTE: this version of diffmultifab only works in serial;
+#      we must build it with USE_MPI = FALSE
+#########################################################
+
+USE_MPI   = FALSE
 USE_OMP   = FALSE
 
 TEST=TRUE

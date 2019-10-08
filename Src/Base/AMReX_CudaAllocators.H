@@ -8,7 +8,7 @@
 
 #include <AMReX_Print.H>
 #include <AMReX_Arena.H>
-#include <AMReX_CudaDevice.H>
+#include <AMReX_GpuDevice.H>
 
 #ifdef AMREX_USE_CUDA
 #include <cuda.h>
@@ -38,14 +38,10 @@ namespace amrex {
         inline value_type* allocate(std::size_t n)
         {
             value_type* result = nullptr;
-            cudaError_t error = cudaMallocManaged(&result, n*sizeof(T));
-            if(error != cudaSuccess) {
-                amrex::Print() << "Allocation failed in cudaMallocManaged \n";
-                amrex::Abort();
-            }
+            AMREX_CUDA_SAFE_CALL(cudaMallocManaged(&result, n*sizeof(T)));
 
-            const int device = Cuda::Device::deviceId();
-            AMREX_GPU_SAFE_CALL(cudaMemAdvise(result, n*sizeof(T), 
+            const int device = Gpu::Device::deviceId();
+            AMREX_CUDA_SAFE_CALL(cudaMemAdvise(result, n*sizeof(T), 
                                               cudaMemAdviseSetPreferredLocation, device));
 
             return result;
@@ -53,11 +49,7 @@ namespace amrex {
     
         inline void deallocate(value_type* p, std::size_t)
         {
-            cudaError_t error = cudaFree(p);
-            if(error != cudaSuccess) {
-	        amrex::Print() << "Deallocation failed in cudaFree \n";
-                amrex::Abort();
-            }
+            AMREX_CUDA_SAFE_CALL(cudaFree(p));
         }    
     };
 
@@ -71,6 +63,47 @@ namespace amrex {
     template <class T, class U>
     bool
     operator!=(CudaManagedAllocator<T> const& x, CudaManagedAllocator<U> const& y) noexcept
+    {
+        return !(x == y);
+    }
+
+    /**
+
+       This is a custom memory allocator that wraps around cudaMallocManaged.
+       Intended for use with std::vector.
+
+    **/
+    template<typename T>
+    class CudaPinnedAllocator
+    {
+    public :
+
+        using value_type = T;
+
+        inline value_type* allocate(std::size_t n)
+        {
+            value_type* result = nullptr;
+            AMREX_CUDA_SAFE_CALL(cudaMallocHost(&result, n*sizeof(T)));
+
+            return result;
+        }
+    
+        inline void deallocate(value_type* p, std::size_t)
+        {
+            AMREX_CUDA_SAFE_CALL(cudaFreeHost(p));
+        }    
+    };
+
+    template <class T, class U>
+    bool
+    operator==(CudaPinnedAllocator<T> const&, CudaPinnedAllocator<U> const&) noexcept
+    {
+        return true;
+    }
+    
+    template <class T, class U>
+    bool
+    operator!=(CudaPinnedAllocator<T> const& x, CudaPinnedAllocator<U> const& y) noexcept
     {
         return !(x == y);
     }

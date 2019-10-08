@@ -4,6 +4,11 @@
 #include <AMReX_YAFluxRegister.H>
 #include <AMReX_EBCellFlag.H>
 
+extern "C" {
+    void amrex_eb_disable_reredistribution ();
+    amrex::Real amrex_eb_get_reredistribution_threshold ();
+}
+
 namespace amrex {
 
 /**
@@ -70,7 +75,8 @@ public:
                   const std::array<FArrayBox const*, AMREX_SPACEDIM>& flux,
                   const Real* dx, Real dt,
                   const FArrayBox& volfrac,
-                  const std::array<FArrayBox const*, AMREX_SPACEDIM>& areafrac);
+                  const std::array<FArrayBox const*, AMREX_SPACEDIM>& areafrac,
+                  RunOn gpu_or_cpu);
 
     using YAFluxRegister::FineAdd;
     void FineAdd (const MFIter& mfi,
@@ -78,7 +84,8 @@ public:
                   const Real* dx, Real dt,
                   const FArrayBox& volfrac,
                   const std::array<FArrayBox const*, AMREX_SPACEDIM>& areafrac,
-                  const FArrayBox& dm);
+                  const FArrayBox& dm,
+                  RunOn gpu_or_cpu);
 
     void Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
                  MultiFab& fine_state, const amrex::MultiFab& fine_vfrac);
@@ -94,6 +101,8 @@ public:
 private:
 
     iMultiFab m_cfp_inside_mask;
+
+public: // for cuda
 
     void defineExtra (const BoxArray& fba, const DistributionMapping& fdm);
 };

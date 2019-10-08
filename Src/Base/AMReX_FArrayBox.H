@@ -204,6 +204,10 @@ public:
     //! Construct an invalid FAB with no memory.
     FArrayBox () noexcept;
 
+    explicit FArrayBox (Arena* ar) noexcept;
+
+    FArrayBox (const Box& b, int ncomp, Arena* ar);
+
     /**
     * \brief Construct an initial FAB with the data space allocated but
     * not inititialized. ncomp is the number of components
@@ -212,14 +216,30 @@ public:
     explicit FArrayBox (const Box& b,
                         int        ncomp=1,
 			bool       alloc=true,
-			bool       shared=false);
+			bool       shared=false,
+                        Arena*     ar = nullptr);
 
     FArrayBox (const FArrayBox& rhs, MakeType make_type, int scomp, int ncomp);
 
+    FArrayBox (const Box& b, int ncomp, Real const* p) noexcept;
+
     FArrayBox (const Box& b, int ncomp, Real* p) noexcept;
 
+    AMREX_GPU_HOST_DEVICE
+    explicit FArrayBox (Array4<Real> const& a) noexcept : BaseFab<Real>(a) {}
+
+    AMREX_GPU_HOST_DEVICE
+    explicit FArrayBox (Array4<Real> const& a, IndexType t) noexcept : BaseFab<Real>(a,t) {}
+
+    AMREX_GPU_HOST_DEVICE
+    explicit FArrayBox (Array4<Real const> const& a) noexcept : BaseFab<Real>(a) {}
+
+    AMREX_GPU_HOST_DEVICE
+    explicit FArrayBox (Array4<Real const> const& a, IndexType t) noexcept : BaseFab<Real>(a,t) {}
+
     //!  The destructor.
-    ~FArrayBox () = default;
+    AMREX_GPU_HOST_DEVICE
+    ~FArrayBox () noexcept {}
 
     FArrayBox (FArrayBox&& rhs) noexcept = default;
 
@@ -236,7 +256,6 @@ public:
     * This may return false, even if the FAB contains NaNs, if the machine
     * doesn't support the appropriate NaN testing functions.
     */
-    AMREX_GPU_HOST_DEVICE
     bool contains_nan () const noexcept;
 
     AMREX_GPU_HOST_DEVICE
@@ -245,17 +264,14 @@ public:
     * \brief These versions return the cell index (though not the component) of
     * the first location of a NaN if there is one.
     */
-    AMREX_GPU_HOST_DEVICE
     bool contains_nan (IntVect& where) const noexcept;
 
-    AMREX_GPU_HOST_DEVICE
     bool contains_nan (const Box& bx, int scomp, int ncomp, IntVect& where) const noexcept;
     /**
     * \brief Are there any Infs in the FAB?
     * This may return false, even if the FAB contains Infs, if the machine
     * doesn't support the appropriate Inf testing functions.
     */
-    AMREX_GPU_HOST_DEVICE
     bool contains_inf () const noexcept;
 
     AMREX_GPU_HOST_DEVICE
@@ -264,10 +280,8 @@ public:
     * \brief These versions return the cell index (though not the component) of
     * the first location of an Inf if there is one.
     */
-    AMREX_GPU_HOST_DEVICE
     bool contains_inf (IntVect& where) const noexcept;
 
-    AMREX_GPU_HOST_DEVICE
     bool contains_inf (const Box& bx, int scomp, int ncomp, IntVect& where) const noexcept;
 
     //! For debugging purposes we hide BaseFab version and do some extra work.
@@ -411,7 +425,6 @@ protected:
 using FArrayBoxFactory = DefaultFabFactory<FArrayBox>;
 
 
-AMREX_GPU_HOST_DEVICE
 inline
 bool
 FArrayBox::contains_nan () const noexcept
@@ -437,19 +450,24 @@ FArrayBox::contains_nan (const Box& bx, int scomp, int ncomp) const noexcept
     BL_ASSERT(ncomp <= nComp());
     BL_ASSERT(domain.contains(bx));
 
-    for (int i = 0; i < ncomp; i++)
-    {
-        for (IntVect p = bx.smallEnd(); p <= bx.bigEnd(); bx.next(p))
-        {
-            if (amrex::isnan(this->operator()(p,scomp+i))) {
-                return true;
+    const auto lo = amrex::lbound(bx);
+    const auto hi = amrex::ubound(bx);
+    const auto& a = this->array();
+
+    for (int n = scomp; n < scomp+ncomp; ++n) {
+        for         (int k = lo.z; k <= hi.z; ++k) {
+            for     (int j = lo.y; j <= hi.y; ++j) {
+                for (int i = lo.x; i <= hi.x; ++i) {
+                    if (amrex::isnan(a(i,j,k,n))) {
+                        return true;
+                    }
+                }
             }
         }
     }
     return false;
 }
 
-AMREX_GPU_HOST_DEVICE
 inline
 bool
 FArrayBox::contains_nan (IntVect& where) const noexcept
@@ -457,7 +475,6 @@ FArrayBox::contains_nan (IntVect& where) const noexcept
     return contains_nan(domain, 0, nComp(), where);
 }
 
-AMREX_GPU_HOST_DEVICE
 inline
 bool
 FArrayBox::contains_nan (const Box& bx, int scomp, int ncomp, IntVect& where) const noexcept
@@ -468,22 +485,25 @@ FArrayBox::contains_nan (const Box& bx, int scomp, int ncomp, IntVect& where) co
     BL_ASSERT(ncomp <= nComp());
     BL_ASSERT(domain.contains(bx));
 
-    for (int i = 0; i < ncomp; i++)
-    {
-        for (IntVect p = bx.smallEnd(); p <= bx.bigEnd(); bx.next(p))
-        {
-            if (amrex::isnan(this->operator()(p,scomp+i)))
-            {
-                where = p;
+    const auto lo = amrex::lbound(bx);
+    const auto hi = amrex::ubound(bx);
+    const auto& a = this->array();
 
-                return true;
+    for (int n = scomp; n < scomp+ncomp; ++n) {
+        for         (int k = lo.z; k <= hi.z; ++k) {
+            for     (int j = lo.y; j <= hi.y; ++j) {
+                for (int i = lo.x; i <= hi.x; ++i) {
+                    if (amrex::isnan(a(i,j,k,n))) {
+                        where = IntVect(AMREX_D_DECL(i,j,k));
+                        return true;
+                    }
+                }
             }
         }
     }
     return false;
 }
 
-AMREX_GPU_HOST_DEVICE
 inline
 bool
 FArrayBox::contains_inf () const noexcept
@@ -509,19 +529,24 @@ FArrayBox::contains_inf (const Box& bx, int scomp, int ncomp) const noexcept
     BL_ASSERT(ncomp <= nComp());
     BL_ASSERT(domain.contains(bx));
 
-    for (int i = 0; i < ncomp; i++)
-    {
-        for (IntVect p = bx.smallEnd(); p <= bx.bigEnd(); bx.next(p))
-        {
-            if (amrex::isinf(this->operator()(p,scomp+i))) {
-                return true;
+    const auto lo = amrex::lbound(bx);
+    const auto hi = amrex::ubound(bx);
+    const auto& a = this->array();
+
+    for (int n = scomp; n < scomp+ncomp; ++n) {
+        for         (int k = lo.z; k <= hi.z; ++k) {
+            for     (int j = lo.y; j <= hi.y; ++j) {
+                for (int i = lo.x; i <= hi.x; ++i) {
+                    if (amrex::isinf(a(i,j,k,n))) {
+                        return true;
+                    }
+                }
             }
         }
     }
     return false;
 }
 
-AMREX_GPU_HOST_DEVICE
 inline
 bool
 FArrayBox::contains_inf (IntVect& where) const noexcept
@@ -529,7 +554,6 @@ FArrayBox::contains_inf (IntVect& where) const noexcept
     return contains_inf(domain,0,nComp(),where);
 }
 
-AMREX_GPU_HOST_DEVICE
 inline
 bool
 FArrayBox::contains_inf (const Box& bx, int scomp, int ncomp, IntVect& where) const noexcept
@@ -540,15 +564,19 @@ FArrayBox::contains_inf (const Box& bx, int scomp, int ncomp, IntVect& where) co
     BL_ASSERT(ncomp <= nComp());
     BL_ASSERT(domain.contains(bx));
 
-    for (int i = 0; i < ncomp; i++)
-    {
-        for (IntVect p = bx.smallEnd(); p <= bx.bigEnd(); bx.next(p))
-        {
-            if (amrex::isinf(this->operator()(p,scomp+i)))
-            {
-                where = p;
+    const auto lo = amrex::lbound(bx);
+    const auto hi = amrex::ubound(bx);
+    const auto& a = this->array();
 
-                return true;
+    for (int n = scomp; n < scomp+ncomp; ++n) {
+        for         (int k = lo.z; k <= hi.z; ++k) {
+            for     (int j = lo.y; j <= hi.y; ++j) {
+                for (int i = lo.x; i <= hi.x; ++i) {
+                    if (amrex::isinf(a(i,j,k,n))) {
+                        where = IntVect(AMREX_D_DECL(i,j,k));
+                        return true;
+                    }
+                }
             }
         }
     }

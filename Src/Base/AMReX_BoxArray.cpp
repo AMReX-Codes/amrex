@@ -6,7 +6,7 @@
 #include <AMReX_MFIter.H>
 #include <AMReX_BaseFab.H>
 
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
 #include <AMReX_MemProfiler.H>
 #endif
 
@@ -16,7 +16,7 @@
 
 namespace amrex {
 
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
 int  BARef::numboxarrays         = 0;
 int  BARef::numboxarrays_hwm     = 0;
 long BARef::total_box_bytes      = 0L;
@@ -34,7 +34,7 @@ namespace {
 
 BARef::BARef () 
 { 
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
     updateMemoryUsage_box(1);
 #endif	    
 }
@@ -42,7 +42,7 @@ BARef::BARef ()
 BARef::BARef (size_t size) 
     : m_abox(size) 
 { 
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
     updateMemoryUsage_box(1);
 #endif	    
 }
@@ -55,7 +55,7 @@ BARef::BARef (const Box& b)
 BARef::BARef (const BoxList& bl)
     : m_abox(bl.data())
 { 
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
     updateMemoryUsage_box(1);
 #endif	    
 }
@@ -63,7 +63,7 @@ BARef::BARef (const BoxList& bl)
 BARef::BARef (BoxList&& bl) noexcept
     : m_abox(std::move(bl.data()))
 { 
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
     updateMemoryUsage_box(1);
 #endif	    
 }
@@ -77,14 +77,14 @@ BARef::BARef (std::istream& is)
 BARef::BARef (const BARef& rhs) 
     : m_abox(rhs.m_abox) // don't copy hash
 {
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
     updateMemoryUsage_box(1);
 #endif	    
 }
 
 BARef::~BARef ()
 {
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
     updateMemoryUsage_box(-1);
     updateMemoryUsage_hash(-1);
 #endif	    
@@ -140,11 +140,11 @@ void
 BARef::define (const Box& bx)
 {
     BL_ASSERT(m_abox.size() == 0);
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
     updateMemoryUsage_box(-1);
 #endif
     m_abox.push_back(bx);
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
     updateMemoryUsage_box(1);
 #endif
 }
@@ -152,11 +152,11 @@ BARef::define (const Box& bx)
 void
 BARef::define (const BoxList& bl)
 {
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
     updateMemoryUsage_box(-1);
 #endif
     m_abox = bl.data();
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
     updateMemoryUsage_box(1);
 #endif
 }
@@ -164,30 +164,30 @@ BARef::define (const BoxList& bl)
 void
 BARef::define (BoxList&& bl) noexcept
 {
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
     updateMemoryUsage_box(-1);
 #endif
     m_abox = std::move(bl.data());
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
     updateMemoryUsage_box(1);
 #endif
 }
 
 void 
 BARef::resize (long n) {
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
     updateMemoryUsage_box(-1);
     updateMemoryUsage_hash(-1);
 #endif
     m_abox.resize(n);
     hash.clear();
     has_hashmap = false;
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
     updateMemoryUsage_box(1);
 #endif
 }
 
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
 void
 BARef::updateMemoryUsage_box (int s)
 {
@@ -229,7 +229,7 @@ BARef::Initialize ()
 {
     if (!initialized) {
 	initialized = true;
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
 	MemProfiler::add("BoxArray", std::function<MemProfiler::MemInfo()>
 			 ([] () -> MemProfiler::MemInfo {
 			     return {total_box_bytes, total_box_bytes_hwm};
@@ -1239,7 +1239,7 @@ BoxArray::clear_hash_bin () const
 {
     if (!m_ref->hash.empty())
     {
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
 	m_ref->updateMemoryUsage_hash(-1);
 #endif
         m_ref->hash.clear();
@@ -1271,7 +1271,7 @@ BoxArray::removeOverlap (bool simplify)
     //
     // Note that "size()" can increase in this loop!!!
     //
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
     m_ref->updateMemoryUsage_box(-1);
     m_ref->updateMemoryUsage_hash(-1);
     long total_hash_bytes_save = m_ref->total_hash_bytes;
@@ -1303,7 +1303,7 @@ BoxArray::removeOverlap (bool simplify)
             }
         }
     }
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
     m_ref->updateMemoryUsage_box(1);
 #endif
     //
@@ -1324,7 +1324,7 @@ BoxArray::removeOverlap (bool simplify)
 
     *this = nba;
 
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
     m_ref->total_hash_bytes = total_hash_bytes_save;
 #endif
 
@@ -1367,7 +1367,7 @@ BoxArray::getHashMap () const
     if (m_ref->HasHashMap()) return BoxHashMap;
 
 #ifdef _OPENMP
-    #pragma omp critical(intersections_lock)
+#pragma omp critical(intersections_lock)
 #endif
     {
         if (BoxHashMap.empty() && size() > 0)
@@ -1397,11 +1397,15 @@ BoxArray::getHashMap () const
             m_ref->bbox =boundingbox.coarsen(maxext);
             m_ref->bbox.normalize();
 
-	    m_ref->has_hashmap = true;
-
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
 	    m_ref->updateMemoryUsage_hash(1);
 #endif
+
+#ifdef _OPENMP
+#pragma omp flush
+#pragma omp atomic write
+#endif
+            m_ref->has_hashmap = true;
         }
     }
 

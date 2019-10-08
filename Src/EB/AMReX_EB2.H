@@ -15,7 +15,6 @@
 namespace amrex { namespace EB2 {
 
 extern int max_grid_size;
-extern bool compare_with_ch_eb;
 
 void useEB2 (bool);
 
@@ -27,7 +26,15 @@ class IndexSpace
 public:
     virtual ~IndexSpace() {}
 
-    static void push (IndexSpace* ispace) { m_instance.emplace_back(ispace); }
+    // This function will take the ownership of the IndexSpace
+    // pointer, and put it on the top of the stack (i.e., back of the
+    // vector).  If the pointer is already in the stack, it will be
+    // moved to the top.
+    static void push (IndexSpace* ispace);
+
+    // This erases `ispace` from the stack.
+    static void erase (IndexSpace* ispace);
+
     static void pop () noexcept { m_instance.pop_back(); }
     static void clear () noexcept { m_instance.clear(); }
     static const IndexSpace& top () { return *(m_instance.back()); }
@@ -35,6 +42,7 @@ public:
     static int size () noexcept { return m_instance.size(); }
 
     virtual const Level& getLevel (const Geometry & geom) const = 0;
+    virtual const Geometry& getGeometry (const Box& domain) const = 0;
     virtual const Box& coarsestDomain () const = 0;
 
 protected:
@@ -61,6 +69,7 @@ public:
     virtual ~IndexSpaceImp () {}
 
     virtual const Level& getLevel (const Geometry& geom) const final;
+    virtual const Geometry& getGeometry (const Box& dom) const final;
     virtual const Box& coarsestDomain () const final {
         return m_geom.back().Domain();
     }

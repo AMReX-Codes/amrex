@@ -143,7 +143,7 @@ for making a simple plot:
    :math:`\rightarrow` “phi”, and then select “Draw”.
 
 -  To view the grid structure (not particularly interesting yet, but when we
-   add AMR it will be), select “ :math:`\rightarrow` “subset”
+   add AMR it will be), select “Add” :math:`\rightarrow` “Subset”
    :math:`\rightarrow` “levels”. Then double-click the text “Subset - levels”,
    enable the “Wireframe” option, select “Apply”, select “Dismiss”, and then
    select “Draw”.
@@ -208,6 +208,20 @@ The next step is to run VisIt, select “File” :math:`\rightarrow` “Open fil
 “play” button on the VCR-like control panel to preview all the frames. To save
 the movie, choose “File” :math:`\rightarrow` “Save movie ...”, and follow the
 on-screen instructions.
+
+Caveat: 
+
+The Visit reader determines "Cycle" from the name of the plotfile (directory),  
+specifically from the integer that follows the string "plt" in the plotfile name.
+
+So ... if you call it plt00100 or myplt00100 or this_is_my_plt00100 then it will
+correctly recognize and print Cycle: 100.
+
+If you call it plt00100_old it will also correctly recognize and print Cycle: 100
+
+But, if you do not have "plt" followed immediately by the number,
+e.g. you name it pltx00100, then VisIt will not be able to correctly recognize 
+and print the value for "Cycle".  (It will still read and display the data itself.)
 
 .. _section-1:
 

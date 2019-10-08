@@ -2,8 +2,8 @@
 // ---------------------------------------------------------------
 // AmrvisConstants.H
 // ---------------------------------------------------------------
-#ifndef _AMRVISCONSTANTS_H
-#define _AMRVISCONSTANTS_H
+#ifndef AMREX_AMRVISCONSTANTS_H
+#define AMREX_AMRVISCONSTANTS_H
 
 #include <AMReX_REAL.H>
 #include <cfloat>

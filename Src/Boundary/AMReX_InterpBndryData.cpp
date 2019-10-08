@@ -108,12 +108,12 @@ InterpBndryData::setBndryValues (const MultiFab& mf,
                 //
                 // Physical bndry, copy from grid.
                 //
-                auto bnd_fab = bndry[face].fabHostPtr(mfi);
-                auto src_fab = mf.fabHostPtr(mfi);
-                auto bnd_array = bnd_fab->array();
-                auto const src_array = src_fab->array();
-                const Box& b = src_fab->box() & bnd_fab->box();
-                AMREX_HOST_DEVICE_FOR_4D ( b, num_comp, i, j, k, n,
+                auto& bnd_fab = bndry[face][mfi];
+                auto const& src_fab = mf[mfi];
+                auto bnd_array = bnd_fab.array();
+                auto const src_array = src_fab.array();
+                const Box& b = src_fab.box() & bnd_fab.box();
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( b, num_comp, i, j, k, n,
                 {
                     bnd_array(i,j,k,n+bnd_start) = src_array(i,j,k,n+mf_start);
                 });
@@ -179,13 +179,12 @@ InterpBndryData::BndryValuesDoIt (BndryRegister&  crse,
     {
         MultiFab foo(grids,bndry[0].DistributionMap(), 1, 0, MFInfo().SetAlloc(false), FArrayBoxFactory());
 
+        MFItInfo info;
+        if (Gpu::notInLaunchRegion()) info.SetDynamic(true);
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        {
-        Vector<Real> derives;
-
-        for (MFIter mfi(foo,MFItInfo().SetDynamic(true)); mfi.isValid(); ++mfi)
+        for (MFIter mfi(foo,info); mfi.isValid(); ++mfi)
         {
             BL_ASSERT(grids[mfi.index()] == mfi.validbox());
 
@@ -362,18 +361,17 @@ InterpBndryData::BndryValuesDoIt (BndryRegister&  crse,
                     //
                     // Physical bndry, copy from ghost region of corresponding grid
                     //
-                    auto bnd_fab = bndry[face].fabHostPtr(mfi);
-                    auto src_fab = fine->fabHostPtr(mfi);
-                    auto bnd_array = bnd_fab->array();
-                    auto const src_array = src_fab->array();
-                    const Box& b = bnd_fab->box() & src_fab->box();
+                    auto& bnd_fab = bndry[face][mfi];
+                    auto const& src_fab = (*fine)[mfi];
+                    auto bnd_array = bnd_fab.array();
+                    auto const src_array = src_fab.array();
+                    const Box& b = bnd_fab.box() & src_fab.box();
                     AMREX_HOST_DEVICE_FOR_4D ( b, num_comp, ii, jj, kk, nn,
                     {
                         bnd_array(ii,jj,kk,nn+bnd_start) = src_array(ii,jj,kk,nn+f_start);
                     });
                 }
             }
-        }
         }
     }
     else
