@@ -335,7 +335,6 @@ FabArray<FAB>::FB_local_copy_cpu (const FB& TheFB, int scomp, int ncomp)
             {
                 auto const sfab = tag.sfab->array();
                 const auto offset = tag.offset.dim3();
-                const Box sbox = tag.dbox + tag.offset;
                 amrex::LoopConcurrentOnCpu(tag.dbox, ncomp,
                 [=] (int i, int j, int k, int n) noexcept
                 {
