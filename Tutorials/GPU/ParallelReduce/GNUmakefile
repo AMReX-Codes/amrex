@@ -1,15 +1,16 @@
 AMREX_HOME ?= ../../..
 
-DEBUG	= FALSE
+DEBUG	= TRUE 
 
 DIM	= 3
 
-COMP    = gcc
+COMP    = hip
 
-USE_CUDA  = TRUE
+USE_CUDA  = FALSE 
 
 USE_MPI   = FALSE
 USE_OMP   = FALSE
+USE_HIP   = TRUE
 
 TINY_PROFILE = TRUE
 

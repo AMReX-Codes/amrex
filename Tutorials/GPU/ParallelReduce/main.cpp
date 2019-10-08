@@ -43,8 +43,11 @@ void main_main ()
         amrex::ParallelFor(bx,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            fab(i,j,k) = amrex::Random();
-            ifab(i,j,k) = (amrex::Random() > 0.5) ? 1 : 0;
+            fab(i,j,k) = 0.5;
+            ifab(i,j,k) = 1;
+
+//            fab(i,j,k) = amrex::Random();
+//            ifab(i,j,k) = (amrex::Random() > 0.5) ? 1 : 0;
         });
     }
 
@@ -123,7 +126,7 @@ void main_main ()
                 Real rmax = -1.e30; // we should use numeric_limits.
                 long lsum = 0;
                 amrex::Loop(bx,
-                [=,&rsum,&rmin,&rmax,&lsum] (int i, int j, int k) noexcept {
+                [=,&rsum,&rmin,&rmax,&lsum] (int i, int j, int k) /*noexcept*/ {
                     Real x =  fab(i,j,k);
                     long ix = static_cast<long>(ifab(i,j,k));
                     rsum += x;
@@ -243,11 +246,13 @@ void main_main ()
         amrex::Print() << "isum: " << hv << "\n";
     }
 
+/*
     int N = 1000000;
     Gpu::DeviceVector<Real> vec(N);
     Real* pvec = vec.dataPtr();
     amrex::ParallelFor(N, [=] AMREX_GPU_DEVICE (int i) noexcept {
-            pvec[i] = amrex::Random() - 0.5;
+            pvec[i] = 1.75;
+//            pvec[i] = amrex::Random() - 0.5;
     });
 
     {
@@ -260,7 +265,7 @@ void main_main ()
         reduce_op.eval(N, reduce_data,
         [=] AMREX_GPU_DEVICE (int i) -> ReduceTuple
         {
-            return std::abs(pvec[i]);
+            return abs(pvec[i]);
         });
 
         Real hv = amrex::get<0>(reduce_data.value());
@@ -300,6 +305,6 @@ void main_main ()
         amrex::Print().SetPrecision(17) << "thrust::reduce sum " << r << "\n";
     }
 #endif
-
+*/
 
 }
