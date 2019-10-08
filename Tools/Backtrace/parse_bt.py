@@ -17,6 +17,10 @@ with open(bt_file, 'rt') as f:
 
 for l in lines:
 
+  m = re.search("libc\.so", l)
+  if m:
+    continue
+
   matched = False
 
   # gnu compiler
@@ -28,13 +32,13 @@ for l in lines:
 
   # intel compiler
   if not matched:
-    m = re.match("\s*(\d+): \[(0x[\dabcdef]+)\]", l)
+    m = re.match("\s*(\d+): .*\[(0x[\dabcdef]+)\]", l)
     if m:
       matched = True
       frame = m.group(1)
       addr = m.group(2)
 
   if matched:
-    cmd = "addr2line -Cfie %s %s" % (exe_file, addr)
+    cmd = "addr2line -Cpfie %s %s" % (exe_file, addr)
     info = subprocess.check_output(shlex.split(cmd)).decode("utf-8")
     print("%s: %s" % (frame, info))

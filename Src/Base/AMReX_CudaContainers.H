@@ -1,6 +1,8 @@
 #ifndef AMREX_CUDA_CONTAINERS_H_
 #define AMREX_CUDA_CONTAINERS_H_
 
+#include <numeric>
+
 #include <AMReX_Vector.H>
 #include <AMReX_PODVector.H>
 #include <AMReX_CudaAllocators.H>
@@ -70,7 +72,7 @@ public:
     
     void assign(typename thrust::host_vector<T>::size_type count, const T& value )
     {
-        if (Cuda::inLaunchRegion())
+        if (Gpu::inLaunchRegion())
         {
             thrust::fill(thrust::device,
                          thrust::raw_pointer_cast(this->data()),
@@ -131,7 +133,7 @@ public:
     
     void assign(typename thrust::host_vector<T>::size_type count, const T& value )
     {
-        if (Cuda::inLaunchRegion())
+        if (Gpu::inLaunchRegion())
         {
             thrust::fill(thrust::device,
                          thrust::raw_pointer_cast(this->data()),
@@ -159,6 +161,14 @@ public:
     using ManagedDeviceVector = PODVector<T>;
 
     template <class T>
+    using ManagedDeviceVector = PODVector<T>;
+
+    using PinnedVector = Vector<T>;
+
+    template <class T>
+    using ManagedDeviceVector = Vector<T>;
+
+    template <class T>
     using PinnedDeviceVector = PODVector<T>;
 
     template <class T>
@@ -175,6 +185,36 @@ public:
 #endif
     }
 
+    template<class InIter, class OutIter>
+    OutIter inclusive_scan (InIter begin, InIter end, OutIter result)
+    {
+#ifdef AMREX_USE_CUDA
+        return thrust::inclusive_scan(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
+                                      begin, end, result);
+#else
+        return std::partial_sum(begin, end, result);
+#endif
+    }
+
+    template<class InIter, class OutIter>
+    OutIter exclusive_scan(InIter begin, InIter end, OutIter result)
+    {
+#ifdef AMREX_USE_CUDA
+        return thrust::exclusive_scan(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
+                                      begin, end, result);
+#else
+        if (begin == end) return result;
+        
+        typename std::iterator_traits<InIter>::value_type sum = *begin;
+        *result++ = sum - *begin;
+        
+        while (++begin != end) {
+            sum = std::move(sum) + *begin;
+            *result++ = sum - *begin;
+        }
+        return ++result;
+#endif
+    }
 }
 
 

@@ -1,7 +1,7 @@
 
 AMREX_BASE=EXE
 
-C$(AMREX_BASE)_headers += AMReX_ccse-mpi.H AMReX_Array.H AMReX_Vector.H AMReX_Tuple.H
+C$(AMREX_BASE)_headers += AMReX_ccse-mpi.H AMReX_Algorithm.H AMReX_Array.H AMReX_Vector.H AMReX_Tuple.H
 
 #
 # Utility classes.
@@ -17,8 +17,9 @@ C$(AMREX_BASE)_headers += AMReX_PODVector.H
 
 C$(AMREX_BASE)_sources += AMReX_ParmParse.cpp AMReX_parmparse_fi.cpp AMReX_Utility.cpp
 C$(AMREX_BASE)_headers += AMReX_ParmParse.H AMReX_Utility.H AMReX_BLassert.H AMReX_ArrayLim.H
+C$(AMREX_BASE)_headers += AMReX_Functional.H AMReX_Reduce.H AMReX_Scan.H AMReX_Partition.H
 
-C$(AMREX_BASE)_headers += AMReX_REAL.H AMReX_CONSTANTS.H AMReX_SPACE.H
+C$(AMREX_BASE)_headers += AMReX_REAL.H AMReX_INT.H AMReX_CONSTANTS.H AMReX_SPACE.H
 
 C$(AMREX_BASE)_sources += AMReX_DistributionMapping.cpp AMReX_ParallelDescriptor.cpp
 C$(AMREX_BASE)_headers += AMReX_DistributionMapping.H AMReX_ParallelDescriptor.H
@@ -30,9 +31,6 @@ C$(AMREX_BASE)_sources += AMReX_ForkJoin.cpp AMReX_ParallelContext.cpp
 
 C$(AMREX_BASE)_sources += AMReX_VisMF.cpp AMReX_Arena.cpp AMReX_BArena.cpp AMReX_CArena.cpp AMReX_DArena.cpp AMReX_EArena.cpp
 C$(AMREX_BASE)_headers += AMReX_VisMF.H AMReX_Arena.H AMReX_BArena.H AMReX_CArena.H AMReX_DArena.H AMReX_EArena.H
-
-C$(AMREX_BASE)_sources += AMReX_FabAllocator.cpp
-C$(AMREX_BASE)_headers += AMReX_FabAllocator.H
 
 C$(AMREX_BASE)_headers += AMReX_BLProfiler.H
 
@@ -47,28 +45,33 @@ C$(AMREX_BASE)_headers += AMReX_NFiles.H
 C$(AMREX_BASE)_headers += AMReX_parstream.H
 C$(AMREX_BASE)_sources += AMReX_parstream.cpp
 
-C$(AMREX_BASE)_headers += AMReX_Gpu.H AMReX_GpuQualifiers.H AMReX_GpuLaunch.H AMReX_GpuError.H
+C$(AMREX_BASE)_headers += AMReX_Gpu.H AMReX_GpuQualifiers.H AMReX_GpuError.H
+
+C$(AMREX_BASE)_headers += AMReX_GpuLaunchMacrosG.H AMReX_GpuLaunchFunctsG.H
+C$(AMREX_BASE)_headers += AMReX_GpuLaunchMacrosC.H AMReX_GpuLaunchFunctsC.H
+C$(AMREX_BASE)_headers += AMReX_GpuLaunch.H
+C$(AMREX_BASE)_sources += AMReX_GpuLaunch.cpp
 
 C$(AMREX_BASE)_headers += AMReX_GpuControl.H
 C$(AMREX_BASE)_sources += AMReX_GpuControl.cpp
 
-C$(AMREX_BASE)_headers += AMReX_CudaMemory.H AMReX_CudaRange.H AMReX_CudaContainers.H
-C$(AMREX_BASE)_headers += AMReX_CudaReduce.H
+C$(AMREX_BASE)_headers += AMReX_GpuMemory.H AMReX_GpuRange.H
 
-C$(AMREX_BASE)_sources += AMReX_CudaDevice.cpp AMReX_CudaLaunch.cpp AMReX_CudaUtility.cpp AMReX_CudaAllocators.cpp
-C$(AMREX_BASE)_headers += AMReX_CudaDevice.H   AMReX_CudaLaunch.H   AMReX_CudaUtility.H   AMReX_CudaAllocators.H
+C$(AMREX_BASE)_sources += AMReX_GpuDevice.cpp AMReX_GpuUtility.cpp
+C$(AMREX_BASE)_headers += AMReX_GpuDevice.H   AMReX_GpuUtility.H
 
-C$(AMREX_BASE)_headers += AMReX_CudaAsyncFab.H
-C$(AMREX_BASE)_sources += AMReX_CudaAsyncFab.cpp
+C$(AMREX_BASE)_headers += AMReX_GpuAsyncArray.H
+C$(AMREX_BASE)_sources += AMReX_GpuAsyncArray.cpp
 
-C$(AMREX_BASE)_headers += AMReX_CudaAsyncFabImpl.H
-C$(AMREX_BASE)_sources += AMReX_CudaAsyncFabImpl.cpp
+C$(AMREX_BASE)_headers += AMReX_GpuElixir.H
+C$(AMREX_BASE)_sources += AMReX_GpuElixir.cpp
 
-C$(AMREX_BASE)_headers += AMReX_CudaAsyncArray.H
-C$(AMREX_BASE)_sources += AMReX_CudaAsyncArray.cpp
+C$(AMREX_BASE)_headers += AMReX_GpuReduce.H
 
-C$(AMREX_BASE)_headers += AMReX_CudaElixir.H
-C$(AMREX_BASE)_sources += AMReX_CudaElixir.cpp
+C$(AMREX_BASE)_headers += AMReX_CudaGraph.H AMReX_CudaContainers.H
+
+C$(AMREX_BASE)_sources += AMReX_CudaAllocators.cpp
+C$(AMREX_BASE)_headers += AMReX_CudaAllocators.H
 
 #
 # I/O stuff.
@@ -81,6 +84,8 @@ C${AMREX_BASE}_sources += AMReX_FabConv.cpp AMReX_FPC.cpp AMReX_IntConv.cpp AMRe
 #
 C$(AMREX_BASE)_sources += AMReX_Box.cpp AMReX_BoxIterator.cpp AMReX_IntVect.cpp AMReX_IndexType.cpp AMReX_Orientation.cpp AMReX_Periodicity.cpp
 C$(AMREX_BASE)_headers += AMReX_Box.H AMReX_BoxIterator.H AMReX_IntVect.H AMReX_IndexType.H AMReX_Orientation.H AMReX_Periodicity.H
+
+C$(AMREX_BASE)_headers += AMReX_Dim3.H AMReX_Loop.H
 
 #
 # Real space.
@@ -106,6 +111,7 @@ C$(AMREX_BASE)_headers += AMReX_IArrayBox.H
 C$(AMREX_BASE)_headers += AMReX_MakeType.H
 C$(AMREX_BASE)_headers += AMReX_TypeTraits.H
 
+C$(AMREX_BASE)_headers += AMReX_Array4.H
 C$(AMREX_BASE)_sources += AMReX_BaseFab.cpp
 C$(AMREX_BASE)_headers += AMReX_BaseFab.H AMReX_BaseFabUtility.H
 C$(AMREX_BASE)_headers += AMReX_FabFactory.H
@@ -121,7 +127,7 @@ C$(AMREX_BASE)_headers += AMReX_iMultiFab.H
 
 C$(AMREX_BASE)_sources += AMReX_FabArrayBase.cpp AMReX_MFIter.cpp
 C$(AMREX_BASE)_headers += AMReX_FabArray.H AMReX_FACopyDescriptor.H AMReX_FabArrayBase.H AMReX_MFIter.H
-C$(AMREX_BASE)_headers += AMReX_FabArrayCommI.H AMReX_FabArrayUtility.H
+C$(AMREX_BASE)_headers += AMReX_FabArrayCommI.H AMReX_FBI.H AMReX_PCI.H AMReX_FabArrayUtility.H
 C$(AMREX_BASE)_headers += AMReX_LayoutData.H
 
 #

@@ -1,6 +1,5 @@
 
 #include <iostream>
-#include <limits>
 
 #include <AMReX_CoordSys.H>
 #include <AMReX_COORDSYS_C.H>
@@ -8,39 +7,17 @@
 #include <AMReX_ParallelDescriptor.H>
 
 namespace {
+#if (AMREX_SPACEDIM == 2)
     constexpr double  TWOPI = 2.*3.14159265358979323846264338327950288;
+#elif (AMREX_SPACEDIM == 1)
     constexpr double FOURPI = 4.*3.14159265358979323846264338327950288;
+#endif
 }
 
 namespace amrex {
 
-//
-// The definition of static data members.
-//
-CoordSys::CoordType CoordSys::c_sys = CoordSys::undef;
-
-Real CoordSys::offset[AMREX_SPACEDIM];
-
-int
-CoordSys::CoordInt () noexcept
-{
-    switch (c_sys)
-    {
-        case undef:
-            return -1;
-        case cartesian:
-            return 0;
-        case RZ:
-            return 1;
-        case SPHERICAL:
-            return 2;
-        default:
-            return -1;
-    }
-}
-
 void
-CoordSys::SetOffset (const Real* x_lo)
+CoordSys::SetOffset (const Real* x_lo) noexcept
 {
     for (int k = 0; k < AMREX_SPACEDIM; k++)
     {
@@ -48,31 +25,26 @@ CoordSys::SetOffset (const Real* x_lo)
     }
 }
 
-CoordSys::CoordSys ()
+CoordSys::CoordSys () noexcept
 {
-    AMREX_D_TERM(dx[0]=0;,dx[1]=0;,dx[2]=0;)
-    AMREX_D_TERM(inv_dx[0]=std::numeric_limits<Real>::infinity();,
-           inv_dx[1]=std::numeric_limits<Real>::infinity();,
-           inv_dx[2]=std::numeric_limits<Real>::infinity();)
-    ok = false;
 }
 
-void
-CoordSys::define (const Real* cell_dx)
-{
-    AMREX_ASSERT(c_sys != undef);
-    ok = true;
-    for (int k = 0; k < AMREX_SPACEDIM; k++)
-    {
-        dx[k] = cell_dx[k];
-	inv_dx[k] = 1.0/dx[k];
-    }
-}
-
-CoordSys::CoordSys (const Real* cell_dx)
-{
-    define(cell_dx);
-}
+// void
+// CoordSys::define (const Real* cell_dx)
+// {
+//     AMREX_ASSERT(c_sys != undef);
+//     ok = true;
+//     for (int k = 0; k < AMREX_SPACEDIM; k++)
+//     {
+//         dx[k] = cell_dx[k];
+// 	inv_dx[k] = 1.0/dx[k];
+//     }
+// }
+// 
+// CoordSys::CoordSys (const Real* cell_dx)
+// {
+//     define(cell_dx);
+// }
 
 void
 CoordSys::CellCenter (const IntVect& point, Real* loc) const noexcept
@@ -239,7 +211,7 @@ CoordSys::SetVolume (FArrayBox& a_volfab,
 #if (AMREX_SPACEDIM == 3)
     AMREX_ASSERT(IsCartesian());
     const Real dv = a_dx[0]*a_dx[1]*a_dx[2];
-    AMREX_HOST_DEVICE_FOR_3D ( region, i, j, k,
+    AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( region, i, j, k,
     {
         vol(i,j,k) = dv;
     });
@@ -274,7 +246,7 @@ CoordSys::SetDLogA (FArrayBox& a_dlogafab,
 
 #if (AMREX_SPACEDIM == 3)
     AMREX_ASSERT(IsCartesian());
-    AMREX_HOST_DEVICE_FOR_3D ( region, i, j, k,
+    AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( region, i, j, k,
     {
         dloga(i,j,k) = 0.;
     });
@@ -312,7 +284,7 @@ CoordSys::SetFaceArea (FArrayBox& a_areafab,
 #if (AMREX_SPACEDIM == 3)
     AMREX_ASSERT(IsCartesian());
     const Real da = (dir == 0) ? dx[1]*dx[2] : ((dir == 1) ? dx[0]*dx[2] : dx[0]*dx[1]);
-    AMREX_HOST_DEVICE_FOR_3D ( region, i, j, k,
+    AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( region, i, j, k,
     {
         area(i,j,k) = da;
     });
@@ -466,19 +438,23 @@ operator>> (std::istream& is,
     is.ignore(BL_IGNORE_MAX, '(') >> coord;
     c.c_sys = (CoordSys::CoordType) coord;
     AMREX_D_EXPR(is.ignore(BL_IGNORE_MAX, '(') >> c.offset[0],
-           is.ignore(BL_IGNORE_MAX, ',') >> c.offset[1],
-           is.ignore(BL_IGNORE_MAX, ',') >> c.offset[2]);
+                 is.ignore(BL_IGNORE_MAX, ',') >> c.offset[1],
+                 is.ignore(BL_IGNORE_MAX, ',') >> c.offset[2]);
     is.ignore(BL_IGNORE_MAX, ')');
     Real cellsize[3];
     AMREX_D_EXPR(is.ignore(BL_IGNORE_MAX, '(') >> cellsize[0],
-           is.ignore(BL_IGNORE_MAX, ',') >> cellsize[1],
-           is.ignore(BL_IGNORE_MAX, ',') >> cellsize[2]);
+                 is.ignore(BL_IGNORE_MAX, ',') >> cellsize[1],
+                 is.ignore(BL_IGNORE_MAX, ',') >> cellsize[2]);
     is.ignore(BL_IGNORE_MAX, ')');
     int tmp;
     is >> tmp;
     c.ok = tmp?true:false;
     is.ignore(BL_IGNORE_MAX, '\n');
-    c.define(cellsize);
+    for (int k = 0; k < AMREX_SPACEDIM; k++)
+    {
+        c.dx[k] = cellsize[k];
+ 	c.inv_dx[k] = 1.0/cellsize[k];
+    }
     return is;
 }
 
@@ -500,8 +476,8 @@ CoordSys::Volume (const Real xlo[AMREX_SPACEDIM],
     {
     case cartesian:
         return AMREX_D_TERM((xhi[0]-xlo[0]),
-                      *(xhi[1]-xlo[1]),
-                      *(xhi[2]-xlo[2]));
+                            *(xhi[1]-xlo[1]),
+                            *(xhi[2]-xlo[2]));
 #if (AMREX_SPACEDIM==2)
     case RZ:
         return (0.5*TWOPI)*(xhi[1]-xlo[1])*(xhi[0]*xhi[0]-xlo[0]*xlo[0]);

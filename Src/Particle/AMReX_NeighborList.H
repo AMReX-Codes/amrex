@@ -134,11 +134,10 @@ public:
             unsigned int uiy = amrex::min(ny-1,amrex::max(0,iy));
             unsigned int uiz = amrex::min(nz-1,amrex::max(0,iz));
             pcell[i] = (uix * ny + uiy) * nz + uiz;
-            Cuda::Atomic::Add(&pcount[pcell[i]], 1u);
+            Gpu::Atomic::Add(&pcount[pcell[i]], 1u);
         });
 
-        thrust::exclusive_scan(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
-                               m_counts.begin(), m_counts.end(), m_offsets.begin());
+        Gpu::exclusive_scan(m_counts.begin(), m_counts.end(), m_offsets.begin());
         
         thrust::copy(m_offsets.begin(), m_offsets.end()-1, m_counts.begin());
 
@@ -146,7 +145,7 @@ public:
         
         AMREX_FOR_1D ( np, i,
         {
-            unsigned int index = Cuda::Atomic::Inc(&pcount[pcell[i]], max_unsigned_int);
+            unsigned int index = Gpu::Atomic::Inc(&pcount[pcell[i]], max_unsigned_int);
             pperm[index] = i;
         });
     
@@ -190,9 +189,7 @@ public:
         m_nbor_offsets.resize(np + 1, total_nbors);
         unsigned int* pnbor_offset = m_nbor_offsets.dataPtr();
 
-        thrust::exclusive_scan(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
-                               m_nbor_counts.begin(), m_nbor_counts.end(),
-                               m_nbor_offsets.begin());
+        Gpu::exclusive_scan(m_nbor_counts.begin(), m_nbor_counts.end(), m_nbor_offsets.begin());
         
         m_nbor_list.resize(total_nbors);
         unsigned int* pm_nbor_list = m_nbor_list.dataPtr();

@@ -16,7 +16,7 @@
 #include <AMReX_AmrMeshInSituBridge.H>
 #endif
 
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
 #include <AMReX_MemProfiler.H>
 #endif
 
@@ -650,7 +650,7 @@ Vector<MultiFab> LSCoreBase::PlotFileMF () const {
 
         amrex::average_node_to_cellcenter(r[i], 0, level_set[i], 0, 1);
     }
-    return std::move(r);
+    return r;
 }
 
 

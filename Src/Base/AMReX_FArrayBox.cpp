@@ -153,25 +153,34 @@ FABio* FArrayBox::fabio = 0;
 
 FArrayBox::FArrayBox () noexcept {}
 
-FArrayBox::FArrayBox (const Box& b,
-                      int        n,
-		      bool       alloc,
-		      bool       shared)
-    :
-    BaseFab<Real>(b,n,alloc,shared)
+FArrayBox::FArrayBox (Arena* ar) noexcept
+    : BaseFab<Real>(ar)
+{}
+
+FArrayBox::FArrayBox (const Box& b, int ncomp, Arena* ar)
+    : BaseFab<Real>(b,ncomp,ar)
+{
+    initVal();
+}
+
+FArrayBox::FArrayBox (const Box& b, int n, bool alloc, bool shared, Arena* ar)
+    : BaseFab<Real>(b,n,alloc,shared,ar)
 {
     if (alloc) initVal();
 }
 
 FArrayBox::FArrayBox (const FArrayBox& rhs, MakeType make_type, int scomp, int ncomp)
-    :
-    BaseFab<Real>(rhs,make_type,scomp,ncomp)
+    : BaseFab<Real>(rhs,make_type,scomp,ncomp)
 {
 }
 
 FArrayBox::FArrayBox (const Box& b, int ncomp, Real* p) noexcept
-    :
-    BaseFab<Real>(b,ncomp,p)
+    : BaseFab<Real>(b,ncomp,p)
+{
+}
+
+FArrayBox::FArrayBox (const Box& b, int ncomp, Real const* p) noexcept
+    : BaseFab<Real>(b,ncomp,p)
 {
 }
 
@@ -182,6 +191,7 @@ FArrayBox::operator= (Real v) noexcept
     return *this;
 }
 
+// Note that initval is not GPU friendly.
 void
 FArrayBox::initVal () noexcept
 {
@@ -212,8 +222,7 @@ FArrayBox::initVal () noexcept
 }
 
 void
-FArrayBox::resize (const Box& b,
-                   int        N)
+FArrayBox::resize (const Box& b, int N)
 {
     BaseFab<Real>::resize(b,N);
     initVal();
@@ -617,9 +626,7 @@ FABio::read_header (std::istream& is,
 }
 
 void
-FArrayBox::writeOn (std::ostream& os,
-                    int           comp,
-                    int           num_comp) const
+FArrayBox::writeOn (std::ostream& os, int comp, int num_comp) const
 {
 //    BL_PROFILE("FArrayBox::writeOn");
     BL_ASSERT(comp >= 0 && num_comp >= 1 && (comp+num_comp) <= nComp());
@@ -762,7 +769,7 @@ FABio_8bit::write (std::ostream&    os,
 {
     BL_ASSERT(comp >= 0 && num_comp >= 1 && (comp+num_comp) <= f.nComp());
 
-    const Real eps = Real(1.0e-8); // FIXME - whats a better value?
+    const Real eps = 1.0e-8_rt; // FIXME - whats a better value?
     const long siz = f.box().numPts();
 
     unsigned char *c = new unsigned char[siz];

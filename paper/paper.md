@@ -61,15 +61,15 @@ authors:
   affiliation: 5
 
 affiliations:
-- name: Center for Computational Sciences and Engineering (CCSE), Lawrence Berkeley National Laboratory
+- name: Center for Computational Sciences and Engineering (CCSE), Lawrence Berkeley National Laboratory, Berkeley, CA, USA
   index: 1
-- name: Computational Research Division, Lawrence Berkeley National Laboratory
+- name: Computational Research Division, Lawrence Berkeley National Laboratory, Berkeley, CA, USA
   index: 2
-- name: National Energy Research Scientific Computing Center (NERSC)
+- name: National Energy Research Scientific Computing Center (NERSC), Berkeley, CA, USA
   index: 3
-- name: NVIDIA Corporation
+- name: NVIDIA Corporation, Santa Clara, CA, USA
   index: 4
-- name: Department of Physics and Astronomy, Stony Brook University
+- name: Department of Physics and Astronomy, Stony Brook University, Stony Brook, NY, USA
   index: 5
 
 date: 22 March 2019
@@ -82,15 +82,22 @@ bibliography: paper.bib
 AMReX is a C++ software framework that supports the development of 
 block-structured adaptive mesh refinement (AMR) algorithms for solving 
 systems of partial differential equations (PDEs) with complex boundary 
-conditions on current and emerging architectures.  
+conditions on current and emerging architectures.
 
-Block-structured AMR provides the basis for the temporal and spatial 
-discretization strategy for a large number of applications.
-AMR reduces the computational cost 
-and memory footprint compared to a uniform mesh while preserving the
+Block-structured AMR discretization provides the basis for the temporal and spatial 
+strategy for a large number of applications;  see, e.g.,
+[@BergerOliger; @BergerColella; @BBSW; @IAMR; @Pember] 
+for some of the earliest block-structured AMR work.
+There are also a number of block-structured and octree AMR
+software frameworks publicly available; see [@CalhounWebPage] for links to many of them.
+
+AMR reduces the computational cost and memory footprint compared to a uniform mesh while preserving the
 local descriptions of different physical processes in complex multiphysics algorithms. 
-Current AMReX-based application codes span a number of areas; in particular 
-the AMReX-Astro GitHub repository holds a number of astrophysical modeling tools based on AMReX [@Zingale_2018].
+Current AMReX-based application codes span a number of areas, 
+including atmospheric modeling, astrophysics, combustion, cosmology, fluctuating hydrodynamics,
+multiphase flows, and particle accelerators.
+In particular, the AMReX-Astro GitHub repository holds a number of astrophysical modeling 
+tools based on AMReX [@Zingale_2018].
 The origins of AMReX trace back to the BoxLib [@BoxLib] software framework.
 
 AMReX supports a number of different time-stepping strategies
@@ -103,13 +110,14 @@ which wraps the core C++ data structures and operations in Fortran wrappers so t
 code based on AMReX can be written entirely in Fortran.
 
 AMReX developers believe that interoperability is an important feature of sustainable software.
-AMReX has examples of interfaces to other popular software packages such as SUNDIALS,
-PETSc and hypre, and is part of the 2018 xSDK software release thus installable with Spack.  
+AMReX has examples of interfaces to other popular software packages such as 
+SUNDIALS [@sundials], PETSc [@petsc] and hypre [@petsc], and is part of the 
+2018 xSDK [@xsdk] software release thus installable with Spack.
 
 ### Mesh and Particle Data
 
 AMReX supplies data containers and iterators for mesh-based fields and particle data.
-The mesh-based data can be defined on cell centers, cell faces or cell corners (nodes).
+The mesh-based data can be defined on cell centers, cell faces, or cell corners (nodes).
 Coordinate systems include 1D Cartesian or spherical; 2D Cartesian or cylindrical (r-z); and 3D Cartesian.
 
 AMReX provides data structures and iterators for performing data-parallel particle simulations. 
@@ -134,11 +142,12 @@ minimal changes to AMReX-based application codes and maximum flexibility.
 This allows application teams to get running on GPUs quickly while allowing 
 long term performance tuning and programming model selection. 
 AMReX currently uses CUDA for GPUs, but application teams can use CUDA, CUDA Fortran, 
-OpenACC or OpenMP in their individual codes.  AMReX will support non-CUDA strategies 
+OpenACC, or OpenMP in their individual codes.  AMReX will support non-CUDA strategies 
 as appropriate.
 
 When running on CPUs, AMReX uses an MPI+X strategy where the X threads are used to perform 
-parallelization techniques like tiling. The most common X is OpenMP. On GPUs, AMReX requires CUDA 
+parallelization techniques like tiling. The most common X as of this writing is OpenMP 
+but AMReX is rapidly evolving to work effectively on GPUs.  On GPUs, AMReX requires CUDA 
 and can be further combined with other parallel GPU languages, including OpenACC and OpenMP, 
 to control the offloading of subroutines to the GPU. This MPI+CUDA+X GPU strategy has been developed 
 to give users the maximum flexibility to find the best combination of portability, 
@@ -153,9 +162,9 @@ is also support for more user-specific algorithms such as asynchronous filling o
 across multiple ranks, including interpolation of data in space and time.
 
 In addition, AMReX has support for fork-join functionality. During a run of an AMReX-based application,
-the user can divide the MPI ranks into subgroups (i.e. fork) and assign each subgroup an independent task
+the user can divide the MPI ranks into subgroups (i.e., fork) and assign each subgroup an independent task
 to compute in parallel with each other.
-After all of the forked child tasks complete, they synchronize (i.e. join), and the parent task continues execution as before.
+After all of the forked child tasks complete, they synchronize (i.e., join), and the parent task continues execution as before.
 The fork-join operation can also be invoked in a nested fashion, creating a hierarchy of fork-join operations, 
 where each fork further subdivides the ranks of a task into child tasks. 
 This approach enables heterogeneous computation and reduces the strong scaling penalty for 
@@ -164,7 +173,7 @@ operations with less inherent parallelism or with large communication overheads.
 ### Linear Solvers
 
 AMReX includes native linear solvers for parabolic and elliptic equations.  Solution procedures
-include geometric multigrid and BiCGStab iterative solvers; interfaces to external hypre and
+include geometric multigrid [@Briggs] and BiCGStab iterative solvers; interfaces to external hypre and
 PETSc solvers are also provided.   The linear solvers operate on regular mesh data as well 
 as data with cut cells.
 
@@ -172,15 +181,17 @@ as data with cut cells.
 
 AMReX has native I/O for checkpointing and for reading and writing plotfiles for post-processing
 analysis or visualization.   AMReX also supplies interfaces to HDF5.  The AMReX plotfile format
-is supported by VisIt, Paraview, and yt.   AMReX also has linkages to external routines through
-both Conduit and SENSEI.
+is supported by VisIt [@Visit], Paraview [@Paraview], and yt [@yt].
+AMReX also has linkages to external routines through both 
+Conduit [@Conduit] and SENSEI [@SENSEI].
 
 ### Documentation, Tutorials and Profiling Tools
 
 Extensive documentation of core AMReX functionality is available online, and many of the application
-codes based on AMReX are publicly available as well.  Smaller examples of using AMReX for building application codes 
+codes based on AMReX are publicly available as well.
+Smaller examples of using AMReX for building application codes 
 are provided in the AMReX Tutorials section.
-Examples include a Particle-in-Cell (PIC) code, a compressible Navier-Stokes solver in complex geometry, 
+Examples include a Particle-in-Cell (PIC) code, a compressible Navier--Stokes solver in complex geometry, 
 advection-diffusion solvers,  support for spectral deferred corrections time-stepping, and much more.
 
 AMReX-based application codes can be instrumented using AMReX-specific performance profiling tools that take 
@@ -193,8 +204,7 @@ The development of AMReX was supported by the
 U.S. Department of Energy, Office of Science, 
 Office of Advanced Scientific Computing Research, 
 Applied Mathematics program under contract number DE-AC02005CH11231,
-and by the  
-Exascale Computing Project (17-SC-20-SC), a collaborative effort of the 
+and by the Exascale Computing Project (17-SC-20-SC), a collaborative effort of the 
 U.S. Department of Energy Office of Science and the National Nuclear Security Administration.
 
 # References

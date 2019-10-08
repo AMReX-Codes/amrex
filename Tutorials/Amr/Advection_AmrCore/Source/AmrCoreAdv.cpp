@@ -7,7 +7,7 @@
 #include <AMReX_VisMF.H>
 #include <AMReX_PhysBCFunct.H>
 
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
 #include <AMReX_MemProfiler.H>
 #endif
 
@@ -125,7 +125,7 @@ AmrCoreAdv::Evolve ()
             WriteCheckpointFile();
         }
 
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
         {
             std::ostringstream ss;
             ss << "[STEP " << step+1 << "]";

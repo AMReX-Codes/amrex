@@ -22,7 +22,7 @@ extern "C"
                                        const Real* time, const int* bc);
 }
 
-typedef void (*UserFillBox) (Box const& bx, FArrayBox& dest,
+typedef void (*UserFillBox) (Box const& bx, Array4<Real> const& dest,
                              const int dcomp, const int numcomp,
                              GeometryData const& geom, const Real time,
                              const BCRec* bcr, const int bcomp,
@@ -43,7 +43,7 @@ public:
                      const int orig_comp);
 
     bool RunOnGPU () const noexcept { return m_run_on_gpu; }
-    void setRunOnGPU (bool b) noexcept { m_run_on_gpu = b; }
+//    void setRunOnGPU (bool b) noexcept { m_run_on_gpu = b; }
 
 protected:
     BndryFuncDefault   m_func   = nullptr;
@@ -100,6 +100,17 @@ public:
 
 inline PhysBCFunctBase::~PhysBCFunctBase () {}
 
+
+class PhysBCFunctNoOp
+    : public PhysBCFunctBase
+{
+public:
+    virtual void FillBoundary (MultiFab& mf, int dcomp, int ncomp, Real time, int bccomp)
+        override final {}
+    virtual ~PhysBCFunctNoOp () override final {}
+};
+
+
 template <class F>
 class PhysBCFunct
     : public PhysBCFunctBase
@@ -123,14 +134,8 @@ public:
 
         BL_PROFILE("PhysBCFunct::FillBoundary");
 
-        const Box&     domain      = m_geom.Domain();
-        const int*     dlo         = domain.loVect();
-        const int*     dhi         = domain.hiVect();
-        const Real*    dx          = m_geom.CellSize();
-        const RealBox& prob_domain = m_geom.ProbDomain();
-        const Real*    problo      = prob_domain.lo();
-
         //! create a grown domain box containing valid + periodic cells
+        const Box& domain = m_geom.Domain();
         Box gdomain = amrex::convert(domain, mf.boxArray().ixType());
         const IntVect& ngrow = mf.nGrowVect();
         for (int i = 0; i < AMREX_SPACEDIM; ++i) {
@@ -146,7 +151,7 @@ public:
             Vector<BCRec> bcrs(ncomp);
             for (MFIter mfi(mf); mfi.isValid(); ++mfi)
             {
-                FArrayBox* dest = mf.fabPtr(mfi);
+                FArrayBox& dest = mf[mfi];
                 const Box& bx = mfi.fabbox();
 
                 //! if there are cells not in the valid + periodic grown box
@@ -158,7 +163,7 @@ public:
                     amrex::setBC(bx, domain, bccomp, 0, ncomp, m_bcr, bcrs);
 
                     //! Note that we pass 0 as starting component of bcrs.
-                    m_f(bx, *dest, icomp, ncomp, m_geom, time, bcrs, 0, bccomp);
+                    m_f(bx, dest, icomp, ncomp, m_geom, time, bcrs, 0, bccomp);
                 }
             }
         }
@@ -178,22 +183,22 @@ GpuBndryFuncFab<F>::operator() (Box const& bx, FArrayBox& dest,
                                 const Vector<BCRec>& bcr, const int bcomp,
                                 const int orig_comp)
 {
-    FArrayBox* fab = &dest;
-    const auto geomdata = geom.data();
-
-    AsyncArray<BCRec> bcr_aa(bcr.data()+bcomp, numcomp);
-    BCRec* bcr_p = bcr_aa.data();
-
     const IntVect& len = bx.length();
 
     Box gdomain = geom.Domain();
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        if (Geometry::isPeriodic(idim)) {
+        if (geom.isPeriodic(idim)) {
             gdomain.grow(idim,len[idim]);
         }
     }
 
     if (gdomain.contains(bx)) return;
+
+    AsyncArray<BCRec> bcr_aa(bcr.data()+bcomp, numcomp);
+    BCRec* bcr_p = bcr_aa.data();
+
+    Array4<Real> const& fab = dest.array();
+    const auto geomdata = geom.data();
 
     const auto f_user = m_user_f;
 
@@ -225,9 +230,9 @@ GpuBndryFuncFab<F>::operator() (Box const& bx, FArrayBox& dest,
             AMREX_LAUNCH_DEVICE_LAMBDA (ncells, icell,
             {
                 const auto& cell = getCell(boxes_p, n_face_boxes, icell);
-                filcc_cell(cell, *fab, dcomp, numcomp, geomdata, time,
+                filcc_cell(cell, fab, dcomp, numcomp, geomdata, time,
                            bcr_p, 0, orig_comp);
-                f_user(cell, *fab, dcomp, numcomp, geomdata, time,
+                f_user(cell, fab, dcomp, numcomp, geomdata, time,
                        bcr_p, 0, orig_comp);
             });
         }
@@ -278,9 +283,9 @@ GpuBndryFuncFab<F>::operator() (Box const& bx, FArrayBox& dest,
             AMREX_LAUNCH_DEVICE_LAMBDA (ncells, icell,
             {
                 const auto& cell = getCell(boxes_p, n_edge_boxes, icell);
-                filcc_cell(cell, *fab, dcomp, numcomp, geomdata, time,
+                filcc_cell(cell, fab, dcomp, numcomp, geomdata, time,
                            bcr_p, 0, orig_comp);
-                f_user(cell, *fab, dcomp, numcomp, geomdata, time,
+                f_user(cell, fab, dcomp, numcomp, geomdata, time,
                        bcr_p, 0, orig_comp);
             });
         }
@@ -318,9 +323,9 @@ GpuBndryFuncFab<F>::operator() (Box const& bx, FArrayBox& dest,
             AMREX_LAUNCH_DEVICE_LAMBDA (ncells, icell,
             {
                 const auto& cell = getCell(boxes_p, n_corner_boxes, icell);
-                filcc_cell(cell, *fab, dcomp, numcomp, geomdata, time,
+                filcc_cell(cell, fab, dcomp, numcomp, geomdata, time,
                            bcr_p, 0, orig_comp);
-                f_user(cell, *fab, dcomp, numcomp, geomdata, time,
+                f_user(cell, fab, dcomp, numcomp, geomdata, time,
                        bcr_p, 0, orig_comp);
             });
         }

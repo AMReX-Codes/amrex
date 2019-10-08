@@ -56,6 +56,8 @@ public :
 
     void setRZCorrection (bool rz) noexcept { m_is_rz = rz; }
 
+    void setNormalizationThreshold (Real t) noexcept { m_normalization_threshold = t; }
+
     void setSigma (int amrlev, const MultiFab& a_sigma);
 
     void compDivergence (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>& vel);
@@ -104,6 +106,11 @@ public :
 
     virtual void fixUpResidualMask (int amrlev, iMultiFab& resmsk) final override;
 
+    virtual void getFluxes (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_flux,
+                            const Vector<MultiFab*>& a_sol,
+                            Location a_loc) const final override {
+        amrex::Abort("MLLinOp::getFluxes: How did we get here?");
+    }
     virtual void getFluxes (const Vector<MultiFab*>& a_flux,
                             const Vector<MultiFab*>& a_sol) const final override;
 
@@ -144,6 +151,9 @@ private:
 
     Vector<Vector<Array<std::unique_ptr<MultiFab>,AMREX_SPACEDIM> > > m_sigma;
     Vector<Vector<std::unique_ptr<MultiFab> > > m_stencil;
+    Vector<Vector<Real> > m_s0_norm0;
+
+    Real m_normalization_threshold = 1.e-10;
 
 #ifdef AMREX_USE_EB
     // they could be MultiCutFab

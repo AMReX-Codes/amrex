@@ -592,14 +592,19 @@ knapsack (const std::vector<long>&         wgts,
     wblv.reserve(nprocs);
     for (unsigned int i = 0, N = wgts.size(); i < N; ++i)
     {
-        WeightedBoxList wbl = wblq.top();
-        wblq.pop();
-        wbl.push_back(lb[i]);
-	if (wbl.size() < nmax) {
-	    wblq.push(wbl);
-	} else {
-	    wblv.push_back(wbl);
-	}
+        if (!wblq.empty()) {
+            WeightedBoxList wbl = wblq.top();
+            wblq.pop();
+            wbl.push_back(lb[i]);
+            if (wbl.size() < nmax) {
+                wblq.push(wbl);
+            } else {
+                wblv.push_back(wbl);
+            }
+        } else {
+            int ip = static_cast<int>(i) % nprocs;
+            wblv[ip].push_back(lb[i]);
+        }
     }
 
     Real max_weight = 0;
@@ -1563,6 +1568,40 @@ std::ostream&
 operator<< (std::ostream& os, const DistributionMapping::RefID& id)
 {
     os << id.data;
+    return os;
+}
+
+std::istream&
+DistributionMapping::readFrom (std::istream& is)
+{
+    AMREX_ASSERT(size() == 0);
+    m_ref->clear();
+    auto& pmap = m_ref->m_pmap;
+
+    int n;
+    is.ignore(100000, '(') >> n;
+    pmap.resize(n);
+    for (auto& x : pmap) {
+        is >> x;
+    }
+    is.ignore(100000, ')');
+    if (is.fail()) {
+        amrex::Error("DistributionMapping::readFrom(istream&) failed");
+    }
+    return is;
+}
+
+std::ostream&
+DistributionMapping::writeOn (std::ostream& os) const
+{
+    os << '(' << size() << '\n';
+    for (int i = 0; i < size(); ++i) {
+        os << (*this)[i] << '\n';
+    }
+    os << ')';
+    if (os.fail()) {
+        amrex::Error("DistributionMapping::writeOn(ostream&) failed");
+    }
     return os;
 }
 

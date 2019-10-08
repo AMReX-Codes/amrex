@@ -56,6 +56,9 @@ add_subdirectory(Amr)
 # Optional components
 #
 if (ENABLE_EB)
+   if (ENABLE_CUDA AND ( "${NVCC_VERSION_MAJOR}.${NVCC_VERSION_MINOR}" VERSION_EQUAL "9.2") )
+      message(FATAL_ERROR "EB component of AMReX is not compatible with CUDA 9.2")
+   endif ()
    add_subdirectory(EB)
 endif ()
 
@@ -90,10 +93,6 @@ if (ENABLE_PROFPARSER)
    add_subdirectory(Extern/ProfParser)
 endif ()
 
-if (ENABLE_3D_NODAL_MLMG)
-   add_subdirectory(Extern/Algoim)
-endif ()
-
 if (ENABLE_SENSEI_INSITU)
    add_subdirectory(Extern/SENSEI)
 endif ()
@@ -111,42 +110,11 @@ if (ENABLE_HYPRE)
 endif ()
 
 
-find_package(Python)
 #
-# If Python >= 2.7 is available, generate AMReX_BuildInfo.cpp
-# If Python is not available, do not include AMReX_BuildInfo.cpp in library
-# AMReX_Buildinfo.cpp is optional, not required.
-#
-
-if ( Python_Interpreter_FOUND AND (NOT (Python_VERSION VERSION_LESS "2.7") ) )
-   add_custom_command(
-      COMMAND ${Python_EXECUTABLE} ${PROJECT_SOURCE_DIR}/Tools/C_scripts/makebuildinfo_C.py
-      --amrex_home "${PROJECT_SOURCE_DIR}"
-      --COMP ${CMAKE_C_COMPILER_ID} --COMP_VERSION ${CMAKE_C_COMPILER_VERSION}
-      --FCOMP ${CMAKE_Fortran_COMPILER_ID} --FCOMP_VERSION ${CMAKE_C_COMPILER_VERSION}
-      #--GIT ". ${AMREX_GIT}"
-      OUTPUT AMReX_buildInfo.cpp
-      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-      COMMENT "Generating AMReX_buildInfo.cpp" )
-  
-   target_sources( amrex
-      PRIVATE
-      ${CMAKE_CURRENT_BINARY_DIR}/AMReX_buildInfo.cpp
-      )
-endif ()
-
-# Add ${PROJECT_SOURCE_DIR}/Tools/C_scripts/ to include set
-# This is because AMReX_buildInfo.H could be used by application code
-# from within the build tree even if AMReX_buildInfo.cpp is not generated
-target_sources( amrex
-   PRIVATE
-   ${PROJECT_SOURCE_DIR}/Tools/C_scripts/AMReX_buildInfo.H
-   )
-
-target_include_directories(amrex
-   PUBLIC
-   $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/Tools/C_scripts>
-   )
+# Print out summary -- do it here so we already linked all
+# libs at this point
+#  
+print_amrex_configuration_summary ()
 
 #
 # Make all headers as PUBLIC HEADERS so that they get installed

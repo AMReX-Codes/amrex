@@ -11,6 +11,8 @@ module amrex_amrcore_module
   public :: amrex_amrcore_init, amrex_amrcore_finalize, amrex_amrcore_initialized, &
        amrex_get_amrcore, amrex_get_finest_level, amrex_get_numlevels, &
        amrex_get_boxarray, amrex_get_distromap, amrex_get_geometry, &
+       amrex_set_boxarray, amrex_set_distromap, amrex_set_geometry, &
+       amrex_set_finest_level, &
        amrex_init_from_scratch, amrex_init_virtual_functions, amrex_regrid, &
        amrex_init_post_regrid_function
 
@@ -137,6 +139,14 @@ module amrex_amrcore_module
        type(c_ptr), value :: amrcore
      end subroutine amrex_fi_set_distromap
      
+     subroutine amrex_fi_set_geometry (lev, gm, amrcore) bind(c)
+       import
+       implicit none
+       integer(c_int), value :: lev
+       type(c_ptr), value :: gm
+       type(c_ptr), value :: amrcore
+     end subroutine amrex_fi_set_geometry
+
      subroutine amrex_fi_init_from_scratch (t, amrcore) bind(c)
        import
        implicit none
@@ -224,6 +234,29 @@ contains
     call amrex_fi_get_geometry(geom%p, lev, amrcore)
     call amrex_geometry_init_data(geom)
   end function amrex_get_geometry
+
+  subroutine amrex_set_boxarray (lev, ba)
+    integer, intent(in) :: lev
+    type(amrex_boxarray), intent(in) :: ba
+    call amrex_fi_set_boxarray(lev, ba%p, amrcore)
+  end subroutine amrex_set_boxarray
+
+  subroutine amrex_set_distromap (lev, dm)
+    integer, intent(in) :: lev
+    type(amrex_distromap), intent(in) :: dm
+    call amrex_fi_set_distromap(lev, dm%p, amrcore)
+  end subroutine amrex_set_distromap
+
+  subroutine amrex_set_geometry (lev, geom)
+    integer, intent(in) :: lev
+    type(amrex_geometry), intent(in) :: geom
+    call amrex_fi_set_geometry(lev, geom%p, amrcore)
+  end subroutine amrex_set_geometry
+
+  subroutine amrex_set_finest_level (flev)
+    integer, intent(in) :: flev
+    call amrex_fi_set_finest_level(flev, amrcore)
+  end subroutine amrex_set_finest_level
 
   subroutine amrex_init_from_scratch (t)
     real(amrex_real), intent(in) :: t

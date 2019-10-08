@@ -5,6 +5,7 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_iMultiFab.H>
 #include <AMReX_LayoutData.H>
+#include <AMReX_MFIter.H>
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
 
@@ -128,19 +129,14 @@ namespace amrex
                                              const Geometry& geom, int fstart, int ncomp,
                                              bool interpolate=false);
 
-    //! Is it safe to have these two MultiFabs in the same MFiter?
-    //! Ture means safe; false means maybe.
-    inline bool isMFIterSafe (const MultiFab& x, const MultiFab& y) {
-        return x.DistributionMap() == y.DistributionMap()
-            && BoxArray::SameRefs(x.boxArray(), y.boxArray());
-    }
-
     //! Return an iMultiFab that has the same BoxArray and DistributionMapping
     //! as the coarse MultiFab cmf. Cells covered by the coarsened fine grids
-    //! are set to one, whereas other cells are set to zero.
-    iMultiFab makeFineMask (const MultiFab& cmf, const BoxArray& fba, const IntVect& ratio);
+    //! are set to fine_value, whereas other cells are set to crse_value.
+    iMultiFab makeFineMask (const MultiFab& cmf, const BoxArray& fba, const IntVect& ratio,
+                            int crse_value = 0, int fine_value = 1);
     iMultiFab makeFineMask (const BoxArray& cba, const DistributionMapping& cdm,
-                            const BoxArray& fba, const IntVect& ratio);
+                            const BoxArray& fba, const IntVect& ratio,
+                            int crse_value = 0, int fine_value = 1);
 
     //! Computes divergence of face-data stored in the umac MultiFab.
     void computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPACEDIM>& umac,
@@ -154,6 +150,10 @@ namespace amrex
     MultiFab ToMultiFab (const iMultiFab& imf);
     //! Convert iMultiFab to long
     FabArray<BaseFab<long> > ToLongMultiFab (const iMultiFab& imf);
+
+    //! Periodic shift MultiFab
+    MultiFab periodicShift (MultiFab const& mf, IntVect const& offset,
+                            Periodicity const& period);
 
     //! example: auto mf = amrex::cast<MultiFab>(imf);
     template <typename T, typename U>
@@ -169,7 +169,7 @@ namespace amrex
             const long n = mfi.fabbox().numPts() * mf_in.nComp();
             auto pdst = mf_out[mfi].dataPtr();
             auto psrc = mf_in [mfi].dataPtr();
-            AMREX_HOST_DEVICE_FOR_1D ( n, i,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_1D ( n, i,
             {
                 pdst[i] = static_cast<typename U::value_type>(psrc[i]);
             });

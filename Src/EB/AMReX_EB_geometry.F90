@@ -1,6 +1,6 @@
 module amrex_eb_geometry_module
 
-    use amrex_fort_module, only: c_real => amrex_real
+    use amrex_fort_module, only: amrex_real
 
     implicit none
 
@@ -14,13 +14,13 @@ contains
    !!  dimensions.
    !!
    !!  Comments: Vectors are represented as one-dimensional arrays of type
-   !!  real(c_real) and of dimension(3) (i.e. indices range from 1..3).
+   !!  real(amrex_real) and of dimension(3) (i.e. indices range from 1..3).
    !----------------------------------------------------------------------
     pure function dot_3d_real (v1, v2)
         implicit none
 
-        real(c_real)                           :: dot_3d_real
-        real(c_real), dimension(3), intent(in) :: v1, v2
+        real(amrex_real)                           :: dot_3d_real
+        real(amrex_real), dimension(3), intent(in) :: v1, v2
 
         ! really naive implementation
         dot_3d_real = v1(1)*v2(1) + v1(2)*v2(2) + v1(3)*v2(3)
@@ -35,13 +35,13 @@ contains
    !!  three dimensions.
    !!
    !!  Comments: Vectors are represented as one-dimensional arrays of type
-   !!  real(c_real) and of dimension(3) (i.e. indices range from 1..3).
+   !!  real(amrex_real) and of dimension(3) (i.e. indices range from 1..3).
    !----------------------------------------------------------------------
     pure function cross_3d_real (v1, v2)
         implicit none
 
-        real(c_real), dimension(3)             :: cross_3d_real
-        real(c_real), dimension(3), intent(in) :: v1, v2
+        real(amrex_real), dimension(3)             :: cross_3d_real
+        real(amrex_real), dimension(3), intent(in) :: v1, v2
 
         cross_3d_real(1) = v1(2)*v2(3) - v1(3)*v2(2)
         cross_3d_real(2) = v1(3)*v2(1) - v1(1)*v2(3)
@@ -59,7 +59,7 @@ contains
    !!  (axis) to ignore. This allows IN-BOX checking on a box face.
    !!
    !!  Comments: Position vectors are represented as one-dimensional arrays
-   !!  of type real(c_real) and of dimension(3) (i.e. indices range
+   !!  of type real(amrex_real) and of dimension(3) (i.e. indices range
    !!  from 1..3). Cells are enumerated using arrays of type integer and
    !!  dimension(3).
    !----------------------------------------------------------------------
@@ -67,11 +67,11 @@ contains
    !     implicit none
 
    !     logical                                :: pt_in_box
-   !     real(c_real), dimension(3), intent(in) :: pt
+   !     real(amrex_real), dimension(3), intent(in) :: pt
    !     integer,      dimension(3), intent(in) :: id
    !     integer,                    intent(in) :: id_ignore
 
-   !     real(c_real), dimension(3) :: box_max, box_min
+   !     real(amrex_real), dimension(3) :: box_max, box_min
    !     integer                    :: i
 
    !     ! Determine box boundaries
@@ -109,16 +109,16 @@ contains
    !!  cell. Then this line represents the edge of the EB facet.
    !!
    !!  Comments: Vectors are represented as one-dimensional arrays of type
-   !!  real(c_real) and of dimension(3) (i.e. indices range from 1..3).
+   !!  real(amrex_real) and of dimension(3) (i.e. indices range from 1..3).
    !----------------------------------------------------------------------
     pure subroutine calc_facet_edge (p0, v, h1, h2, n1, n2)
         implicit none
 
-        real(c_real), dimension(3), intent(  out) :: p0, v
-        real(c_real), dimension(3), intent(in   ) :: n1, n2
-        real(c_real),               intent(in   ) :: h1, h2
+        real(amrex_real), dimension(3), intent(  out) :: p0, v
+        real(amrex_real), dimension(3), intent(in   ) :: n1, n2
+        real(amrex_real),               intent(in   ) :: h1, h2
 
-        real(c_real) :: c1, c2, c_dp, c_norm
+        real(amrex_real) :: c1, c2, c_dp, c_norm
 
         c_dp = dot_3d_real(n1, n2)
         c_norm = 1 - c_dp * c_dp
@@ -140,16 +140,16 @@ contains
    !!  the corresponing distance along the line corresponding to this point
    !!
    !!  Comments: Vectors are represented as one-dimensional arrays of type
-   !!  real(c_real) and of dimension(3) (i.e. indices range from 1..3).
+   !!  real(amrex_real) and of dimension(3) (i.e. indices range from 1..3).
    !----------------------------------------------------------------------
     pure subroutine lines_nearest_pt (lambda_min, nearest_pt, p0, v, pt)
         implicit none
 
-        real(c_real),               intent(  out) :: lambda_min
-        real(c_real), dimension(3), intent(  out) :: nearest_pt
-        real(c_real), dimension(3), intent(in   ) :: p0, v, pt
+        real(amrex_real),               intent(  out) :: lambda_min
+        real(amrex_real), dimension(3), intent(  out) :: nearest_pt
+        real(amrex_real), dimension(3), intent(in   ) :: p0, v, pt
 
-        real(c_real), dimension(3) :: c
+        real(amrex_real), dimension(3) :: c
 
         c(:) = p0(:) - pt(:)
         lambda_min = - dot_3d_real(v, c) / dot_3d_real(v, v)
@@ -165,14 +165,14 @@ contains
    !!  Purpose: Stupid little subroutine which swaps the values of its
    !!  inputs.
    !!
-   !!  Comments: Inputs are of type real(c_real)
+   !!  Comments: Inputs are of type real(amrex_real)
    !!
    !----------------------------------------------------------------------
     pure subroutine swap_reals(a, b)
         implicit none
 
-        real(c_real), intent(inout) :: a, b
-        real(c_real)                :: bucket
+        real(amrex_real), intent(inout) :: a, b
+        real(amrex_real)                :: bucket
 
         bucket = a
         a      = b
@@ -191,17 +191,20 @@ contains
    !!  lambda to be contained within the box.
    !!
    !!  Comments: Vectors are represented as one-dimensional arrays of type
-   !!  real(c_real) and of dimension(3) (i.e. indices range from 1..3).
+   !!  real(amrex_real) and of dimension(3) (i.e. indices range from 1..3).
    !----------------------------------------------------------------------
     pure subroutine lambda_bounds(lambda_min, lambda_max, id_cell, p0, v, dx)
+
+        use amrex_constants_module , only : one
+
         implicit none
 
-        real(c_real),               intent(  out) :: lambda_min, lambda_max
+        real(amrex_real),               intent(  out) :: lambda_min, lambda_max
         integer,      dimension(3), intent(in   ) :: id_cell
-        real(c_real), dimension(3), intent(in   ) :: p0, v, dx
+        real(amrex_real), dimension(3), intent(in   ) :: p0, v, dx
 
         ! c... are the preliminary boundaries
-        real(c_real) :: cx_lo, cy_lo, cz_lo, cx_hi, cy_hi, cz_hi
+        real(amrex_real) :: cx_lo, cy_lo, cz_lo, cx_hi, cy_hi, cz_hi
 
         ! defaults such that if skipped, min/max will not choose these values anyway
         cx_lo = -huge(cx_lo)
@@ -217,8 +220,8 @@ contains
         ! due to the +/-huge(c...) defaults (above).
 
         if ( abs(v(1)) .gt. epsilon(v) ) then
-            cx_lo = -( p0(1) - dble(id_cell(1)) * dx(1) ) / v(1)
-            cx_hi = -( p0(1) - ( dble(id_cell(1)) + 1. ) * dx(1) ) / v(1)
+            cx_lo = -( p0(1) -   real(id_cell(1),amrex_real)         * dx(1) ) / v(1)
+            cx_hi = -( p0(1) - ( real(id_cell(1),amrex_real) + one ) * dx(1) ) / v(1)
 
             if ( v(1) .lt. 0. ) then
                 call swap_reals(cx_lo, cx_hi)
@@ -226,8 +229,8 @@ contains
         end if
 
         if ( abs(v(2)) .gt. epsilon(v) ) then
-            cy_lo = -( p0(2) - dble(id_cell(2)) * dx(2) ) / v(2)
-            cy_hi = -( p0(2) - ( dble(id_cell(2)) + 1. ) * dx(2) ) / v(2)
+            cy_lo = -( p0(2) -   real(id_cell(2),amrex_real)         * dx(2) ) / v(2)
+            cy_hi = -( p0(2) - ( real(id_cell(2),amrex_real) + one ) * dx(2) ) / v(2)
 
             if ( v(2) .lt. 0. ) then
                 call swap_reals(cy_lo, cy_hi)
@@ -235,8 +238,8 @@ contains
         end if
 
         if ( abs(v(3)) .gt. epsilon(v) )  then
-            cz_lo = -( p0(3) - dble(id_cell(3)) * dx(3) ) / v(3)
-            cz_hi = -( p0(3) - ( dble(id_cell(3)) + 1. ) * dx(3) ) / v(3)
+            cz_lo = -( p0(3) -   real(id_cell(3),amrex_real)         * dx(3) ) / v(3)
+            cz_hi = -( p0(3) - ( real(id_cell(3),amrex_real) + one ) * dx(3) ) / v(3)
 
             if ( v(3) .lt. 0. ) then
                 call swap_reals(cz_lo, cz_hi)
@@ -259,27 +262,30 @@ contains
    !!  an EB facet. This function does not check of collisions.
    !!
    !!  Comments: Position and normal vectors are represented as
-   !!  one-dimensional arrays of type real(c_real) and of dimension(3)
+   !!  one-dimensional arrays of type real(amrex_real) and of dimension(3)
    !!  (i.e. indices range from 1..3). Cells are enumerated using arrays of
    !!  type integer and of dimension(3).
    !----------------------------------------------------------------------
     pure function facets_nearest_pt(ind_pt, ind_loop, r_vec, eb_normal, eb_p0, dx)
+
+        use amrex_constants_module , only : one, half
+
         implicit none
 
-        real(c_real), dimension(3)             :: facets_nearest_pt
+        real(amrex_real), dimension(3)             :: facets_nearest_pt
         integer,      dimension(3), intent(in) :: ind_pt, ind_loop
-        real(c_real), dimension(3), intent(in) :: r_vec, eb_normal, eb_p0, dx
+        real(amrex_real), dimension(3), intent(in) :: r_vec, eb_normal, eb_p0, dx
 
         integer,      dimension(3) :: ind_facets
         integer                    :: n_facets, i_facet, tmp_facet, ind_cell, ind_nb
-        real(c_real), dimension(3) :: c_vec, c_vec_tmp, rc_vec
-        real(c_real), dimension(3) :: facet_normal, facet_p0, edge_p0, edge_v
-        real(c_real)               :: min_dist, min_dist_tmp, eb_h, facet_h
+        real(amrex_real), dimension(3) :: c_vec, c_vec_tmp, rc_vec
+        real(amrex_real), dimension(3) :: facet_normal, facet_p0, edge_p0, edge_v
+        real(amrex_real)               :: min_dist, min_dist_tmp, eb_h, facet_h
 
         ! variables keeping track of coordinates on EB edges
         ! lambda_tmp: current lambda-value being used in testing for edge collions
         ! lambda: minimum (closets to bcentre) lambda value satisfying potential collision
-        real(c_real) :: f_c, lambda_tmp, lambda_max, lambda_min
+        real(amrex_real) :: f_c, lambda_tmp, lambda_max, lambda_min
 
 
         ! Enumerate the possible EB facet edges invovlved.
@@ -312,20 +318,23 @@ contains
             facet_normal = (/ 0., 0., 0. /)
             facet_normal(tmp_facet) = 1.  ! whether facing inwards or outwards is not important here
 
+            ! skip cases where cell faces conincide with the eb facets
+            if (all(abs(eb_normal) == abs(facet_normal))) cycle
+
             ind_cell = ind_loop(tmp_facet)
             ind_nb = ind_pt(tmp_facet)
 
             ! determine position of the cell's facet
             if (ind_cell .lt. ind_nb) then
-                f_c = ( dble(ind_cell) + 1.0 ) * dx(tmp_facet)
+                f_c = ( real(ind_cell,amrex_real) + one ) * dx(tmp_facet)
             else ! if (ind_cell .gt. ind_nb) then
-                f_c = dble(ind_cell) * dx(tmp_facet)
+                f_c =   real(ind_cell,amrex_real)         * dx(tmp_facet)
             end if
 
             facet_p0 = (/                             &
-                ( dble(ind_loop(1)) + 0.5 ) * dx(1) , &
-                ( dble(ind_loop(2)) + 0.5 ) * dx(2) , &
-                ( dble(ind_loop(3)) + 0.5 ) * dx(3)   &
+                ( real(ind_loop(1),amrex_real) + half ) * dx(1) , &
+                ( real(ind_loop(2),amrex_real) + half ) * dx(2) , &
+                ( real(ind_loop(3),amrex_real) + half ) * dx(3)   &
             /)
             facet_p0(tmp_facet) = f_c
 

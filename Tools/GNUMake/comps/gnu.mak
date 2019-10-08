@@ -12,7 +12,9 @@ endif
 
 ########################################################################
 
-ifeq ($(USE_CUDA),TRUE)
+ifeq ($(USE_HIP),TRUE)
+  GCC_VERSION_COMP = g++
+else ifeq ($(USE_CUDA),TRUE)
   GCC_VERSION_COMP = g++
 else
   GCC_VERSION_COMP = $(CXX)
@@ -31,6 +33,12 @@ DEFINES += -DBL_GCC_MINOR_VERSION=$(gcc_minor_version)
 ########################################################################
 
 GENERIC_GNU_FLAGS =
+
+ifeq ($(EXPORT_DYNAMIC),TRUE)
+  CPPFLAGS += -DAMREX_EXPORT_DYNAMIC
+  LIBRARIES += -ldl
+  GENERIC_GNU_FLAGS += -rdynamic -fno-omit-frame-pointer
+endif
 
 gcc_major_ge_8 = $(shell expr $(gcc_major_version) \>= 8)
 
@@ -68,12 +76,17 @@ CFLAGS   += -Werror=return-type
 
 ifeq ($(DEBUG),TRUE)
 
-  CXXFLAGS += -g -O0 -ggdb -Wshadow -Wall -Wno-sign-compare -ftrapv -Wno-unused-but-set-variable
-  CFLAGS   += -g -O0 -ggdb -Wshadow -Wall -Wno-sign-compare -ftrapv -Wno-unused-but-set-variable
+  CXXFLAGS += -g -O0 -ggdb -Wall -Wno-sign-compare -ftrapv -Wno-unused-but-set-variable
+  CFLAGS   += -g -O0 -ggdb -Wall -Wno-sign-compare -ftrapv -Wno-unused-but-set-variable
 
   ifneq ($(gcc_major_version),$(filter $(gcc_major_version),4 5))
     CXXFLAGS += -Wnull-dereference
     CFLAGS += -Wnull-dereference
+  endif
+
+  ifneq ($(WARN_SHADOW),FALSE)
+    CXXFLAGS += -Wshadow
+    CFLAGS += -Wshadow
   endif
 
 else
@@ -110,7 +123,7 @@ CFLAGS     += -std=gnu99
 
 ########################################################################
 
-CXXFLAGS += $(GENERIC_GNU_FLAGS)
+CXXFLAGS += $(GENERIC_GNU_FLAGS) -pthread
 CFLAGS   += $(GENERIC_GNU_FLAGS)
 FFLAGS   += $(GENERIC_GNU_FLAGS)
 F90FLAGS += $(GENERIC_GNU_FLAGS)

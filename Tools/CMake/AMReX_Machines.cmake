@@ -10,7 +10,7 @@
 #   FLASH_MACHINES
 #   SITE
 #   MACHINE
-   
+
 #
 #  CCSE machines
 #
@@ -23,7 +23,7 @@ list ( APPEND CCSE_MACHINES megalon mothra rodan varan naphta orga ghidorah )
 # NERSC machines
 # 
 set ( NERSC_MACHINES )
-list (APPEND NERSC_MACHINES edison cori )
+list (APPEND NERSC_MACHINES cori )
 
 #
 # OLCF machines

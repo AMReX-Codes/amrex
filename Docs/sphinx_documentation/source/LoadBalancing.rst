@@ -18,7 +18,7 @@ Single-level load balancing algorithms are sequentially applied to each AMR leve
 and the resulting distributions are mapped onto the ranks taking into account the weights 
 already assigned to them (assign heaviest set of grids to the least loaded rank)
 
-Options supported by AMReX include:
+Options supported by AMReX include the following; the default is SFC:
 
 - Knapsack: the default weight of a grid in the knapsack algorithm is the number of grid cells, 
   but AMReX supports the option to pass an array of weights – one per grid – or alternatively 
@@ -28,4 +28,4 @@ Options supported by AMReX include:
   resulting ordering across ranks in a way that balances the load
 
 - Round-robin: sort grids and assign them to ranks in round-robin fashion -- specifically
-  FAB *i* is owned by CPU *i*%N where N is the total number of MPI ranks.
+  FAB i is owned by CPU i%N where N is the total number of MPI ranks.

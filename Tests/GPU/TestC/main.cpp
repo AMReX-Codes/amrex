@@ -49,7 +49,7 @@ int main (int argc, char* argv[])
     });
 
     int n;
-    amrex::Gpu::Device::synchronize();
+    amrex::Gpu::synchronize();
     cudaMemcpy(&n, n_cpy, sizeof(int), cudaMemcpyDeviceToHost);
     amrex::Print() << "n after CPU = " << n << std::endl << std::endl;
 
@@ -62,7 +62,7 @@ int main (int argc, char* argv[])
        printf("n_cpy during GPU = %i\n", *n_cpy);
     });
 
-    amrex::Gpu::Device::synchronize();
+    amrex::Gpu::synchronize();
     cudaMemcpy(&n, n_cpy, sizeof(int), cudaMemcpyDeviceToHost);
     amrex::Print() << "n after GPU = " << n << std::endl << std::endl;
 

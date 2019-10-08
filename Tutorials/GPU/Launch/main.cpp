@@ -159,14 +159,11 @@ void main_main ()
             [=] AMREX_GPU_DEVICE (Box const& tbx)
             {
                 // Array4<Real> fab is captured
-                const auto lo = amrex::lbound(tbx);
-                const auto hi = amrex::ubound(tbx);
-                for (int k = lo.z; k <= hi.z; ++k) {
-                for (int j = lo.y; j <= hi.y; ++j) {
-                AMREX_PRAGMA_SIMD
-                for (int i = lo.x; i <= hi.x; ++i) {
+                amrex::Loop(tbx,
+                [=] (int i, int j, int k)
+                {
                     fab(i,j,k) += 1.;
-                }}}  
+                });
             });
         }
     }
@@ -188,6 +185,7 @@ void main_main ()
                 // Array4<Real> fab is captured
                 const auto lo = amrex::lbound(tbx);
                 const auto hi = amrex::ubound(tbx);
+                // We could use amrex::Loop like above.
                 for (int k = lo.z; k <= hi.z; ++k) {
                 for (int j = lo.y; j <= hi.y; ++j) {
                 for (int i = lo.x; i <= hi.x; ++i) {
@@ -197,84 +195,32 @@ void main_main ()
         }
     }
 
-    // (9) C++, amrex::launch function, Capture FArrayBox*
+    // (9) C++ , amrex::launch function, Capture Array4 and then make a Fab on device
     {
-        BL_PROFILE("9-amrex_launch_fab-func");
+        BL_PROFILE("9-amrex_launch_array4-fab-func");
         for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             // Tiling is off in case of gpu.
             // In that case, tilebox simply return validbox
             const Box& bx = mfi.tilebox();
-            // Use fabPtr function to get a managed pointer to fab
-            FArrayBox* fab = mf.fabPtr(mfi);
+            // Get Array4 object
+            Array4<Real> const& arr = mf.array(mfi);
             // Enough threads are launched to work over bx,
             // and tbx is a thread's work box
             amrex::launch(bx,
             [=] AMREX_GPU_DEVICE (Box const& tbx)
             {
-                // FArrayBox* fab is captured
-                plusone_cudacpp(tbx, *fab);
+                // Array4<Real> arr is captured
+                FArrayBox fab(arr);
+                plusone_cudacpp(tbx, fab);
             });
         }
     }
-
-    // (10) C++, AMREX_LAUNCH_DEVICE_LAMBDA macro, Capture FArrayBox*
-    {
-        BL_PROFILE("10-amrex_launch_fab-macro");
-        for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-        {
-            // Tiling is off in case of gpu.
-            // In that case, tilebox simply return validbox
-            const Box& bx = mfi.tilebox();
-            // Use fabPtr function to get a managed pointer to fab
-            FArrayBox* fab = mf.fabPtr(mfi);
-            // Enough threads are launched to work over bx,
-            // and tbx is a thread's work box
-            AMREX_LAUNCH_DEVICE_LAMBDA ( bx, tbx,
-            {
-                // FArrayBox* fab is captured
-                plusone_cudacpp(tbx, *fab);
-            });
-        }
-    }
-
-#if defined(AMREX_USE_CUDA_FORTRAN) || !defined(AMREX_USE_GPU)
-    // (11) launch CUDA Fortran kernel to add 1
-    {
-        BL_PROFILE("11-fortran-func");
-        for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-        {
-            const Box& bx = mfi.tilebox();
-            FArrayBox* fab = mf.fabPtr(mfi);
-            amrex::launch(bx,
-            [=] AMREX_GPU_DEVICE (Box const& tbx)
-            {
-                plusone_cudafort(BL_TO_FORTRAN_BOX(tbx),
-                                 BL_TO_FORTRAN_ANYD(*fab));
-            });
-        }
-    }
-
-    // (12) launch CUDA Fortran kernel to add 1
-    {
-        BL_PROFILE("12-fortran-macro");
-        for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-        {
-            const Box& bx = mfi.tilebox();
-            FArrayBox* fab = mf.fabPtr(mfi);
-            AMREX_LAUNCH_DEVICE_LAMBDA ( bx, tbx,
-            {
-                plusone_cudafort(BL_TO_FORTRAN_BOX(tbx),
-                                 BL_TO_FORTRAN_ANYD(*fab));
-            });
-        }
-    }
-#endif
 
 #ifdef AMREX_USE_ACC
-    // (13) launch OpenACC kernel to add 1 if supported
+    // (10) launch OpenACC kernel to add 1 if supported
     {
-        BL_PROFILE("13-acc");
+        BL_PROFILE("10-acc");
         for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.tilebox();
@@ -287,10 +233,10 @@ void main_main ()
     }
 #endif
 
-#ifdef AMREX_OMP_OFFLOAD
-    // (14) launch OpenOMP kernel to add 1 if supported
+#ifdef AMREX_USE_OMP_OFFLOAD
+    // (11) launch OpenOMP kernel to add 1 if supported
     {
-        BL_PROFILE("14-omp");
+        BL_PROFILE("11-omp");
         for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.tilebox();

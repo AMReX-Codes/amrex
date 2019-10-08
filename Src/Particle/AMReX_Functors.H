@@ -58,26 +58,30 @@ namespace functors
     {        
         GeometryData domain;
         Box box;
-        BaseFab<int>* mask_ptr;
+        Array4<const int> mask_arr;
         
         AMREX_GPU_HOST_DEVICE
-        assignParticleGrid(const GeometryData& a_domain,
-                           const Box&          a_box,
-                           BaseFab<int>*       a_mask_ptr) 
-            : domain(a_domain), box(a_box), mask_ptr(a_mask_ptr) {}
+        assignParticleGrid(const GeometryData&      a_domain,
+                           const Box&               a_box,
+                           const Array4<const int>& a_mask_arr) 
+            : domain(a_domain), box(a_box), mask_arr(a_mask_arr) {}
         
         template <typename Particle>
         AMREX_GPU_HOST_DEVICE
         int operator()(const Particle& p) const {
-	    IntVect iv = IntVect(
-	AMREX_D_DECL(floor((p.m_rdata.pos[0]-domain.ProbLo()[0])/domain.CellSize()[0]),
-		     floor((p.m_rdata.pos[1]-domain.ProbLo()[1])/domain.CellSize()[1]),
-		     floor((p.m_rdata.pos[2]-domain.ProbLo()[2])/domain.CellSize()[2]))
-				 );
+            if (p.id() >= 0) {
+                IntVect iv = IntVect(
+                    AMREX_D_DECL(floor((p.m_rdata.pos[0]-domain.ProbLo()[0])/domain.CellSize()[0]),
+                                 floor((p.m_rdata.pos[1]-domain.ProbLo()[1])/domain.CellSize()[1]),
+                                 floor((p.m_rdata.pos[2]-domain.ProbLo()[2])/domain.CellSize()[2]))
+                    );
 
-	    iv += domain.Domain().smallEnd();
+                iv += domain.Domain().smallEnd();
 
-	    return (*mask_ptr)(iv); 
+                return mask_arr(iv); 
+            } else {
+                return -1;
+            }
         }
     };
 
@@ -85,26 +89,30 @@ namespace functors
     {        
         GeometryData domain;
         Box box;
-        BaseFab<int>* mask_ptr;
+        Array4<const int> mask_arr;
         
         AMREX_GPU_HOST_DEVICE
-        assignParticleTile(const GeometryData& a_domain,
-			   const Box&          a_box,
-			   BaseFab<int>*       a_mask_ptr) 
-            : domain(a_domain), box(a_box), mask_ptr(a_mask_ptr) {}
+        assignParticleTile(const GeometryData&      a_domain,
+			   const Box&               a_box,
+			   const Array4<const int>& a_mask_arr) 
+            : domain(a_domain), box(a_box), mask_arr(a_mask_arr) {}
         
         template <typename Particle>
         AMREX_GPU_HOST_DEVICE
         int operator()(const Particle& p) const {
-	    IntVect iv = IntVect(
-	AMREX_D_DECL(floor((p.m_rdata.pos[0]-domain.ProbLo()[0])/domain.CellSize()[0]),
-		     floor((p.m_rdata.pos[1]-domain.ProbLo()[1])/domain.CellSize()[1]),
-		     floor((p.m_rdata.pos[2]-domain.ProbLo()[2])/domain.CellSize()[2]))
-				 );
+            if (p.id() >= 0) {
+                IntVect iv = IntVect(
+                    AMREX_D_DECL(floor((p.m_rdata.pos[0]-domain.ProbLo()[0])/domain.CellSize()[0]),
+                                 floor((p.m_rdata.pos[1]-domain.ProbLo()[1])/domain.CellSize()[1]),
+                                 floor((p.m_rdata.pos[2]-domain.ProbLo()[2])/domain.CellSize()[2]))
+                    );
 
-	    iv += domain.Domain().smallEnd();
+                iv += domain.Domain().smallEnd();
 
-	    return (*mask_ptr)(iv, 1);
+                return mask_arr(iv, 1);
+            } else {
+                return -1;
+            }
         }
     };
 
@@ -167,26 +175,30 @@ namespace functors
     {        
         GeometryData domain;
         Box box;
-        BaseFab<int>* mask_ptr;
+        Array4<const int> mask_arr;
         
         AMREX_GPU_HOST_DEVICE
-        assignParticleGridAndTile(const GeometryData& a_domain,
-				  const Box&          a_box,
-				  BaseFab<int>*       a_mask_ptr) 
-            : domain(a_domain), box(a_box), mask_ptr(a_mask_ptr) {}
+        assignParticleGridAndTile(const GeometryData&      a_domain,
+				  const Box&               a_box,
+				  const Array4<const int>& a_mask_arr) 
+            : domain(a_domain), box(a_box), mask_arr(a_mask_arr) {}
         
         template <typename Particle>
         AMREX_GPU_HOST_DEVICE
         thrust::tuple<int, int> operator()(const Particle& p) const {
-	    IntVect iv = IntVect(
-	AMREX_D_DECL(floor((p.m_rdata.pos[0]-domain.ProbLo()[0])/domain.CellSize()[0]),
-		     floor((p.m_rdata.pos[1]-domain.ProbLo()[1])/domain.CellSize()[1]),
-		     floor((p.m_rdata.pos[2]-domain.ProbLo()[2])/domain.CellSize()[2]))
-				 );
+            if (p.id() >= 0) {
+                IntVect iv = IntVect(
+                    AMREX_D_DECL(floor((p.m_rdata.pos[0]-domain.ProbLo()[0])/domain.CellSize()[0]),
+                                 floor((p.m_rdata.pos[1]-domain.ProbLo()[1])/domain.CellSize()[1]),
+                                 floor((p.m_rdata.pos[2]-domain.ProbLo()[2])/domain.CellSize()[2]))
+                    );
 
-	    iv += domain.Domain().smallEnd();
+                iv += domain.Domain().smallEnd();
 
-	    return thrust::make_tuple((*mask_ptr)(iv, 0), (*mask_ptr)(iv, 1));
+                return thrust::make_tuple(mask_arr(iv, 0), mask_arr(iv, 1));
+            } else {
+                return thrust::make_tuple(-1,-1);
+            }
         }
     };
 
@@ -238,43 +250,6 @@ namespace functors
         bool operator()(int grid) const
         {
             return grid_id != grid;
-        }
-    };
-
-    struct getPosition
-    {        
-        AMREX_GPU_HOST_DEVICE
-        getPosition() {}
-        
-        template <typename Particle>
-        AMREX_GPU_HOST_DEVICE
-        thrust::tuple<AMREX_D_DECL(Real, Real, Real)> operator()(const Particle& p) const
-        {
-            return thrust::make_tuple(AMREX_D_DECL(p.m_rdata.pos[0],
-                                                   p.m_rdata.pos[1], 
-                                                   p.m_rdata.pos[2]));
-        }
-    };
-
-    template <typename Particle>
-    struct setPosition
-    {
-        AMREX_GPU_HOST_DEVICE
-        setPosition() {}
-
-        template <typename Tuple>
-        AMREX_GPU_HOST_DEVICE
-        Particle operator()(const Tuple& pos) const
-        {
-            Particle p;
-            p.m_rdata.pos[0] = thrust::get<0>(pos);
-#if AMREX_SPACEDIM > 1
-            p.m_rdata.pos[1] = thrust::get<1>(pos);
-#endif
-#if AMREX_SPACEDIM > 2
-            p.m_rdata.pos[2] = thrust::get<2>(pos);
-#endif
-            return p;
         }
     };
 }

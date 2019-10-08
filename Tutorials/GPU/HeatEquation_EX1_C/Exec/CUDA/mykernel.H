@@ -3,7 +3,7 @@
 
 #include <AMReX_FArrayBox.H>
 
-AMREX_GPU_DEVICE AMREX_INLINE
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void init_phi (int i, int j, int k,
                amrex::Array4<amrex::Real> const& phi,
                GpuArray<amrex::Real,AMREX_SPACEDIM> const& dx,
@@ -17,7 +17,7 @@ void init_phi (int i, int j, int k,
 }
 
 
-AMREX_GPU_DEVICE AMREX_INLINE
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void compute_flux_x (int i, int j, int k,
                      amrex::Array4<amrex::Real> const& fluxx,
                      amrex::Array4<amrex::Real const> const& phi, amrex::Real dxinv)
@@ -26,7 +26,7 @@ void compute_flux_x (int i, int j, int k,
 }
 
 
-AMREX_GPU_DEVICE AMREX_INLINE
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void compute_flux_y (int i, int j, int k,
                      amrex::Array4<amrex::Real> const& fluxy,
                      amrex::Array4<amrex::Real const> const& phi, amrex::Real dyinv)
@@ -35,7 +35,7 @@ void compute_flux_y (int i, int j, int k,
 }
 
 
-AMREX_GPU_DEVICE AMREX_INLINE
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void compute_flux_z (int i, int j, int k,
                      amrex::Array4<amrex::Real> const& fluxz,
                      amrex::Array4<amrex::Real const> const& phi, amrex::Real dzinv)
@@ -44,7 +44,7 @@ void compute_flux_z (int i, int j, int k,
 }
 
 
-AMREX_GPU_DEVICE AMREX_INLINE
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void update_phi (int i, int j, int k,
                  amrex::Array4<amrex::Real const> const& phiold,
                  amrex::Array4<amrex::Real      > const& phinew,

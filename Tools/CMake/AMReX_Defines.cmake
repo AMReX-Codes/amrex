@@ -31,7 +31,7 @@ function ( set_amrex_defines )
    #
    # Set compile definition property
    #
-   
+
    # Git version
    add_amrex_define( "AMREX_GIT_VERSION=\"${AMREX_GIT_VERSION}\"" NO_LEGACY )
 
@@ -126,10 +126,9 @@ function ( set_amrex_defines )
    #
    add_amrex_define( AMREX_USE_CUDA NO_LEGACY IF ENABLE_CUDA )
    add_amrex_define( AMREX_USE_NVML NO_LEGACY IF ENABLE_CUDA )
-   add_amrex_define( AMREX_CUDA_MAX_THREADS=${CUDA_MAX_THREADS} NO_LEGACY
+   add_amrex_define( AMREX_GPU_MAX_THREADS=${CUDA_MAX_THREADS} NO_LEGACY
       IF ENABLE_CUDA )
 
-      
    # Fortran macros used by application code only
    # (they are not present in AMReX source code) 
    if (ENABLE_CUDA AND ENABLE_AMREX_FORTRAN )    

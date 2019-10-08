@@ -7,6 +7,9 @@
 #include <map>
 #include <chrono>
 #include <type_traits>
+#include <climits>
+#include <limits>
+#include <cfloat>
 
 #include <sys/types.h>
 #include <unistd.h>
@@ -20,8 +23,6 @@
 #include <AMReX_BoxArray.H>
 #include <AMReX_DistributionMapping.H>
 #include <AMReX_ParallelDescriptor.H>
-
-
 
 namespace amrex
 {
@@ -178,7 +179,7 @@ namespace amrex
     *  distribution with mean 'mean' and standard deviation 'stddev'.
     *
     */
-    AMREX_GPU_HOST_DEVICE double RandomNormal (double mean, double stddev);
+    AMREX_GPU_HOST_DEVICE Real RandomNormal (Real mean, Real stddev);
 
     /**
     * \brief Generate a psuedo-random double using C++11's mt19937.
@@ -187,16 +188,31 @@ namespace amrex
     *  uniformly distributed on [0,1)-interval for each call.
     *
     */
-    AMREX_GPU_HOST_DEVICE double Random (); // [0,1)
+    AMREX_GPU_HOST_DEVICE Real Random (); // [0,1)
+
+
+
+#ifdef AMREX_USE_CUDA
+    // Locking mechanism functions for locking and unlocking
+    AMREX_GPU_DEVICE int get_state(int tid);
+    AMREX_GPU_DEVICE void free_state(int tid);
+#endif
+
 
     /**
-    * \brief Generate a psuedo-random int using C++11's mt19937.
-    *
-    *  Generates one pseudorandom unsigned long integer which is
+    * \brief Generates one pseudorandom unsigned long integer which is
     *  uniformly distributed on [0,n-1]-interval for each call.
     *
+    * The CPU version of this function uses C++11's mt19937.
+    * The GPU version uses CURAND's XORWOW generator.
     */
-    unsigned long Random_int(unsigned long n); // [0,n-1]
+#ifdef __CUDA_ARCH__    
+    AMREX_GPU_DEVICE
+    unsigned int Random_int(unsigned int n); // [0,n-1]
+#else
+    AMREX_GPU_HOST
+    unsigned long Random_int(unsigned long n); // [0,n-1]    
+#endif
 
     /** \brief Set the seed of the random number generator.
     *
@@ -249,17 +265,14 @@ namespace amrex
     *  The pseusorandom sequence currently implemented is obtained 
     *  from the XORWOW and MRG32k3a generator
     */
-    void InitRandSeedOnDevice(int N); 
+    void InitRandSeedOnDevice (int N); 
    
-
     /**
     * \brief Resize seed array and copy address to global symbol 
     */
-    void ResizeRandomSeed(int N);
+    void ResizeRandomSeed (int N);
 
-    void CheckSeedArraySizeAndResize (int N);
-
-    void DeallocateRandomSeedDevArray();
+    void DeallocateRandomSeedDevArray ();
 
     class expect;
     std::istream& operator>>(std::istream&, const expect& exp);
@@ -320,6 +333,7 @@ namespace amrex
     void BroadcastStringArray(Vector<std::string> &bSA, int myLocalId, int rootId, const MPI_Comm &localComm);
 
     template<class T> void BroadcastArray(Vector<T> &aT, int myLocalId, int rootId, const MPI_Comm &localComm);
+
     void USleep(double sleepsec);
 
 
@@ -331,33 +345,6 @@ namespace amrex
     template<typename T> void hash_combine (uint64_t & seed, const T & val) noexcept;
     template<typename T> uint64_t hash_vector (const Vector<T> & vec, uint64_t seed = 0xDEADBEEFDEADBEEF) noexcept;
 
-    template <class T>
-    AMREX_GPU_HOST_DEVICE
-    AMREX_INLINE const T& min (const T& a, const T& b) noexcept
-    {
-        return (b < a) ? b : a;
-    }
-
-    template <class T, class ... Ts>
-    AMREX_GPU_HOST_DEVICE
-    AMREX_INLINE const T& min (const T& a, const T& b, const Ts& ... c) noexcept
-    {
-        return min(min(a,b),c...);
-    }
-
-    template <class T>
-    AMREX_GPU_HOST_DEVICE
-    AMREX_INLINE const T& max (const T& a, const T& b) noexcept
-    {
-        return (a < b) ? b : a;
-    }
-
-    template <class T, class ... Ts>
-    AMREX_GPU_HOST_DEVICE
-    AMREX_INLINE const T& max (const T& a, const T& b, const Ts& ... c) noexcept
-    {
-        return max(max(a,b),c...);
-    }
 }
 
 template<class T> void amrex::BroadcastArray(Vector<T> &aT, int myLocalId, int rootId, const MPI_Comm &localComm)

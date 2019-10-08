@@ -8,7 +8,6 @@ make -j4
 
 # Then we build and deploy the sphinx / doxygen documentation
 SOURCE_BRANCH="development"
-TARGET_BRANCH="gh-pages"
 
 # Pull requests and commits to other branches shouldn't try to deploy
 if [ "$TRAVIS_PULL_REQUEST" != "false" -o "$TRAVIS_BRANCH" != "$SOURCE_BRANCH" ]; then
@@ -18,59 +17,61 @@ fi
 
 # Save some useful information
 REPO=`git config remote.origin.url`
-SSH_REPO=${REPO/https:\/\/github.com\//git@github.com:}
+#SSH_REPO=${REPO/https:\/\/github.com\//git@github.com:}
 SHA=`git rev-parse --verify HEAD`
 
-# Clone the existing gh-pages for this repo into out/
-# Create a new empty branch if gh-pages doesn't exist yet (should only happen on first deploy)
-git clone $REPO out
-cd out
-git checkout $TARGET_BRANCH || git checkout --orphan $TARGET_BRANCH
-cd ..
-
-# Clean out existing contents
-rm -rf out/docs_html/**/* || exit 0
-rm -rf out/tutorials_html/**/* || exit 0
-rm -rf out/docs_xml/**/* || exit 0
-
-# build the Doxygen documentation
+# Doxygen
+echo "Build the Doxygen documentation"
 cd Docs/Doxygen
 doxygen doxygen.conf &> doxygen.out
 cd ../..
 
-mkdir -p out/docs_html
-mkdir -p out/docs_xml
-mkdir -p out/tutorials_html
-
-# move it to the right place
-mkdir -p out/docs_html/doxygen
-mv Docs/Doxygen/html/* out/docs_html/doxygen/
-mkdir -p out/docs_xml/doxygen
-mv Docs/Doxygen/xml/* out/docs_xml/doxygen/
-
+# sphinx
+#
 # run breathe and clean up
 cd Docs/sphinx_documentation
-
+#
 #breathe-apidoc --o source ../../out/docs_xml/doxygen/ -g class,file
 #python make_api.py
-
-# now do sphinx
+#
+echo "Build the Sphinx documentation for Amrex."
 make SPHINX_BUILD="python -msphinx" latexpdf
 mv build/latex/amrex.pdf source/ 
 make SPHINX_BUILD="python -msphinx" html &> make_source_html.out
-
+#
 cd ../sphinx_tutorials
+echo "Build the Sphinx documentation for the Amrex tutorials."
 make SPHINX_BUILD="python -msphinx" latexpdf &> make_tutorials_latex.out
 mv build/latex/amrex.pdf source/
 make SPHINX_BUILD="python -msphinx" html &> make_tutorials_html.out
 cd ../../
 
-mv Docs/sphinx_documentation/build/html/* out/docs_html/
-mv Docs/sphinx_tutorials/build/html/*     out/tutorials_html/
-touch out/.nojekyll
+# Start ssh-agent
+openssl aes-256-cbc -K $encrypted_11fd376b52bf_key -iv $encrypted_11fd376b52bf_iv -in deploy_key.enc -out deploy_key -d
+chmod 600 ./deploy_key
+eval `ssh-agent -s`
+ssh-add ./deploy_key
 
+# clone document
+DOC_SSH_REPO="git@github.com:AMReX-Codes/AMReX-Codes.github.io.git"
+git clone $DOC_SSH_REPO AMReX-Codes.github.io
+cd AMReX-Codes.github.io/amrex
+#
+# clean out existing contents
+git rm -r docs_html tutorials_html docs_xml
+mkdir     docs_html tutorials_html docs_xml
+#
+# add doxygen
+mkdir -p docs_html/doxygen
+cp -rp ../../Docs/Doxygen/html/* docs_html/doxygen/
+mkdir -p docs_xml/doxygen
+cp -rp ../../Docs/Doxygen/xml/* docs_xml/doxygen/
+#
+# add sphinx
+cp -rp ../../Docs/sphinx_documentation/build/html/* docs_html/
+cp -rp ../../Docs/sphinx_tutorials/build/html/* tutorials_html/
+#
 # Now let's go have some fun with the cloned repo
-cd out
 git config user.name "Travis CI"
 git config user.email "$COMMIT_AUTHOR_EMAIL"
 
@@ -80,14 +81,9 @@ fi
 
 # Commit the "changes", i.e. the new version.
 # The delta will show diffs between new and old versions.
-git add --all
+git add docs_html tutorials_html docs_xml
 git commit -m "Deploy to GitHub Pages: ${SHA}" || true
 
-openssl aes-256-cbc -K $encrypted_6602cdd8f9c9_key -iv $encrypted_6602cdd8f9c9_iv -in ../id_rsa_travis.enc -out ../id_rsa_travis -d
-chmod 600 ../id_rsa_travis
-eval `ssh-agent -s`
-ssh-add ../id_rsa_travis
-
-git push $SSH_REPO $TARGET_BRANCH || true
+git push $DOC_SSH_REPO || true
 ssh-agent -k
 cd ..

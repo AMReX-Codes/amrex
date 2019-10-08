@@ -39,12 +39,12 @@ class RGIter;
 
 class AmrLevel
 {
-  friend class FillPatchIterator;
-  friend class FillPatchIteratorHelper;
-  template <class T>
-  friend class MFGraph;
-  friend class RGIter;
-  friend class AsyncFillPatchIterator;
+    friend class Amr;
+    friend class FillPatchIterator;
+    friend class FillPatchIteratorHelper;
+    template <class T> friend class MFGraph;
+    friend class RGIter;
+    friend class AsyncFillPatchIterator;
 
 public:
     //! What time are we at?

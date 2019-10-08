@@ -11,16 +11,20 @@
        real(amrex_particle_real) :: pos(3)     !< Position
        real(amrex_particle_real) :: vel(3)     !< Particle velocity
        real(amrex_particle_real) :: acc(3)     !< Particle acceleration
+       real(amrex_particle_real) :: rtest      !< test comp
        integer(c_int)            :: id         !< Particle id
        integer(c_int)            :: cpu        !< Particle cpu
+       integer(c_int)            :: itest      !< test comp
     end type particle_t
     
     type, bind(C)  :: neighbor_t
        real(amrex_particle_real) :: pos(3)     !< Position
        real(amrex_particle_real) :: vel(3)     !< Particle velocity
        real(amrex_particle_real) :: acc(3)     !< Particle acceleration
+       real(amrex_particle_real) :: rtest      !< test comp
        integer(c_int)            :: id         !< Particle id
        integer(c_int)            :: cpu        !< Particle cpu
+       integer(c_int)            :: itest      !< test comp
     end type neighbor_t
     
   end module short_range_particle_module

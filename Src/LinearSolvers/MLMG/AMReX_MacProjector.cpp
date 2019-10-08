@@ -11,6 +11,7 @@ namespace amrex {
 MacProjector::MacProjector (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_umac,
                             const Vector<Array<MultiFab const*,AMREX_SPACEDIM> >& a_beta,
                             const Vector<Geometry>& a_geom,
+                            const LPInfo& a_lpinfo,
                             const Vector<MultiFab const*>& a_divu)
     : m_umac(a_umac),
       m_geom(a_geom)
@@ -47,7 +48,7 @@ MacProjector::MacProjector (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_um
             }
         }
 
-        m_eb_abeclap.reset(new MLEBABecLap(a_geom, ba, dm, LPInfo(), m_eb_factory));
+        m_eb_abeclap.reset(new MLEBABecLap(a_geom, ba, dm, a_lpinfo, m_eb_factory));
         m_linop = m_eb_abeclap.get();
 
         m_eb_abeclap->setScalars(0.0, 1.0);
@@ -69,7 +70,7 @@ MacProjector::MacProjector (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_um
             }
         }
 
-        m_abeclap.reset(new MLABecLaplacian(a_geom, ba, dm));
+        m_abeclap.reset(new MLABecLaplacian(a_geom, ba, dm, a_lpinfo));
         m_linop = m_abeclap.get();
 
         m_abeclap->setScalars(0.0, 1.0);
@@ -96,13 +97,17 @@ MacProjector::setDomainBC (const Array<LinOpBCType,AMREX_SPACEDIM>& lobc,
 }
 
 void
-MacProjector::project (Real reltol, Real atol )
+MacProjector::project (Real reltol, Real atol, MLMG::Location loc)
 {
     if (m_mlmg == nullptr)
     {
         m_mlmg.reset(new MLMG(*m_linop));
         m_mlmg->setVerbose(m_verbose);
         m_mlmg->setCGVerbose(m_cg_verbose);
+        m_mlmg->setMaxIter(m_maxiter);
+        m_mlmg->setCGMaxIter(m_cg_maxiter);
+        m_mlmg->setBottomTolerance   (m_bottom_reltol);
+        m_mlmg->setBottomToleranceAbs(m_bottom_abstol);
     }
 
     m_mlmg->setBottomSolver(bottom_solver_type);
@@ -121,7 +126,9 @@ MacProjector::project (Real reltol, Real atol )
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             m_umac[ilev][idim]->FillBoundary(m_geom[ilev].periodicity());
         }
-        EB_computeDivergence(divu, u, m_geom[ilev]);
+        bool already_on_centroid = false;
+        if (loc == MLMG::Location::FaceCentroid) already_on_centroid = true;
+        EB_computeDivergence(divu, u, m_geom[ilev], already_on_centroid);
 #else
         computeDivergence(divu, u, m_geom[ilev]);
 #endif
@@ -130,7 +137,7 @@ MacProjector::project (Real reltol, Real atol )
 
     m_mlmg->solve(amrex::GetVecOfPtrs(m_phi), amrex::GetVecOfConstPtrs(m_rhs), reltol, atol);
 
-    m_mlmg->getFluxes(amrex::GetVecOfArrOfPtrs(m_fluxes), MLMG::Location::FaceCenter);
+    m_mlmg->getFluxes(amrex::GetVecOfArrOfPtrs(m_fluxes), loc);
     
     for (int ilev = 0; ilev < nlevs; ++ilev) {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
@@ -143,13 +150,15 @@ MacProjector::project (Real reltol, Real atol )
 }
 
 void
-MacProjector::project (const Vector<MultiFab*>& phi_inout, Real reltol, Real atol )
+MacProjector::project (const Vector<MultiFab*>& phi_inout, Real reltol, Real atol, MLMG::Location loc)
 {
     if (m_mlmg == nullptr)
     {
         m_mlmg.reset(new MLMG(*m_linop));
         m_mlmg->setVerbose(m_verbose);
-        m_mlmg->setVerbose(m_cg_verbose);
+        m_mlmg->setCGVerbose(m_cg_verbose);
+        m_mlmg->setMaxIter(m_maxiter);
+        m_mlmg->setCGMaxIter(m_cg_maxiter);
     }
 
     m_mlmg->setBottomSolver(bottom_solver_type);
@@ -168,7 +177,9 @@ MacProjector::project (const Vector<MultiFab*>& phi_inout, Real reltol, Real ato
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             m_umac[ilev][idim]->FillBoundary(m_geom[ilev].periodicity());
         }
-        EB_computeDivergence(divu, u, m_geom[ilev]);
+        bool already_on_centroid = false;
+        if (loc == MLMG::Location::FaceCentroid) already_on_centroid = true;
+        EB_computeDivergence(divu, u, m_geom[ilev], already_on_centroid);
 #else
         computeDivergence(divu, u, m_geom[ilev]);
 #endif
@@ -179,7 +190,8 @@ MacProjector::project (const Vector<MultiFab*>& phi_inout, Real reltol, Real ato
 
     m_mlmg->solve(amrex::GetVecOfPtrs(m_phi), amrex::GetVecOfConstPtrs(m_rhs), reltol, atol);
 
-    m_mlmg->getFluxes(amrex::GetVecOfArrOfPtrs(m_fluxes), MLMG::Location::FaceCenter);
+    m_mlmg->getFluxes(amrex::GetVecOfArrOfPtrs(m_fluxes), loc);
+
     
     for (int ilev = 0; ilev < nlevs; ++ilev) {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {

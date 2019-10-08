@@ -5,6 +5,7 @@
 #include <omp.h>
 #endif
 
+#include <string>
 #include <AMReX_BoxArray.H>
 #include <AMReX_DistributionMapping.H>
 #include <AMReX_ParallelDescriptor.H>
@@ -12,6 +13,7 @@
 #include <AMReX_Periodicity.H>
 #include <AMReX_Print.H>
 #include <AMReX_Arena.H>
+#include <AMReX_Gpu.H>
 
 namespace amrex {
 
@@ -130,7 +132,7 @@ public:
 	long        bytes;
 	long        bytes_hwm;
 	std::string name;     //!< name of the cache
-	CacheStats (const std::string& name_)
+	explicit CacheStats (const std::string& name_)
 	    : size(0),maxsize(0),maxuse(0),nuse(0),nbuild(0),nerase(0),
 	      bytes(0L),bytes_hwm(0L),name(name_) {;}
 	void recordBuild () noexcept {
@@ -386,7 +388,32 @@ public:
                                    Vector<char*>&       send_data,
                                    Vector<MPI_Status>&  stats);
 
+    // Memory Usage Tags
+    struct meminfo {
+        long nbytes = 0L;
+        long nbytes_hwm = 0L;
+    };
+    static std::map<std::string, meminfo> m_mem_usage;
+
+    static void updateMemUsage (std::string const& tag, long nbytes, Arena const* ar);
+    static void printMemUsage ();
+    static long queryMemUsage (const std::string& tag = std::string("All"));
+    static long queryMemUsageHWM (const std::string& tag = std::string("All"));
+
+    static void pushRegionTag (const char* t);
+    static void pushRegionTag (std::string t);
+    static void popRegionTag ();
+
+    static std::vector<std::string> m_region_tag;
+    struct RegionTag {
+        RegionTag (const char* t) { pushRegionTag(t); }
+        RegionTag (std::string t) { pushRegionTag(std::move(t)); }
+        ~RegionTag () { popRegionTag(); }
+    };
+
+#ifndef AMREX_USE_GPU
 protected:
+#endif
 
     void clear ();
 
@@ -452,6 +479,12 @@ protected:
 	//
 	int                 m_nuse;
 	//
+#if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
+        CudaGraph<CopyMemory> m_localCopy;
+        CudaGraph<CopyMemory> m_copyToBuffer;
+        CudaGraph<CopyMemory> m_copyFromBuffer;
+#endif
+        //
 	long bytes () const;
     private:
 	void define_fb (const FabArrayBase& fa);
@@ -472,9 +505,6 @@ protected:
 
     //
     //! parallel copy or add
-#ifdef AMREX_USE_CUDA
-public:
-#endif
     struct CPC
     {
 	CPC (const FabArrayBase& dstfa, const IntVect& dstng,
@@ -516,9 +546,7 @@ public:
 		     const Vector<int>& imap_src,
 		     int MyProc = ParallelDescriptor::MyProc());
     };
-#ifdef AMREX_USE_CUDA
-protected:
-#endif
+
     //
     typedef std::multimap<BDKey,FabArrayBase::CPC*> CPCache;
     typedef CPCache::iterator CPCacheIter;

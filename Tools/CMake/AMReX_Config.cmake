@@ -33,7 +33,7 @@ function (configure_amrex)
    # 
    include( AMReX_ThirdPartyProfilers )
    include( AMReX_Defines )
-   include( AMReX_Utils )
+   include( AMReXGenexHelpers )
    
    # 
    # Set properties for target "amrex"
@@ -49,17 +49,59 @@ function (configure_amrex)
          ("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "Cray") )
       message(FATAL_ERROR "Support for Cray compiler is currently broken")
    endif()
+   
 
-   # Load flags preset
-   set_compiler_flags_preset(amrex)
+   # Set C++ standard and disable compiler-specific extensions, like "-std=gnu++14" for GNU
+   # This will also enforce the same standard with the CUDA compiler
+   # Moreover, it will also enforce such standard on all the consuming targets
+   target_compile_features(amrex PUBLIC cxx_std_14)
+   set_target_properties(amrex PROPERTIES CXX_EXTENSIONS OFF) # This disable C++ standard extension
+  
+   #
+   # Setup OpenMP 
+   #
+   if (ENABLE_OMP)
+      find_package(OpenMP REQUIRED CXX Fortran)
+      
+      target_link_libraries(amrex
+         PUBLIC
+         OpenMP::OpenMP_CXX
+         OpenMP::OpenMP_Fortran)
+      
+      set_target_properties(
+         OpenMP::OpenMP_CXX OpenMP::OpenMP_Fortran
+         PROPERTIES
+         IMPORTED_GLOBAL True )
+      
+      # We have to manually pass OpenMP flags to host compiler if CUDA is enabled
+      # Since OpenMP imported targets are generated only for the Compiler ID in use, i.e.
+      # they do not provide flags for all possible compiler ids, we assume the same compiler used
+      # for building amrex will be used to build the application code
+      if (ENABLE_CUDA)
+         get_target_property(_cxx_omp_flags OpenMP::OpenMP_CXX INTERFACE_COMPILE_OPTIONS)
+         
+         evaluate_genex(_cxx_omp_flags _omp_flags
+            LANG   CXX
+            COMP   ${_comp}
+            STRING )
+         
+         target_compile_options(amrex PUBLIC $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=${_omp_flags}>)
+      endif ()
+      
+   else ()
+      target_compile_options( amrex
+         PUBLIC
+         $<$<CXX_COMPILER_ID:Cray>:-h;noomp> )     
+   endif ()
 
-   if (ENABLE_CUDA)
+   
+   if (ENABLE_CUDA)     
       # After we load the setups for ALL the supported compilers
       # we can load the setup for NVCC if required
       # This is necessary because we need to know the C++ flags
       # to pass to the Xcompiler option.
-      # include(${CMAKE_MODULE_PATH}/comps/AMReX_NVIDIA.cmake)
-      target_compile_definitions( amrex PUBLIC
+      target_compile_definitions( amrex
+         PUBLIC
          AMREX_NVCC_VERSION=${CMAKE_CUDA_COMPILER_VERSION}
          AMREX_NVCC_MAJOR_VERSION=${NVCC_VERSION_MAJOR}
          AMREX_NVCC_MINOR_VERSION=${NVCC_VERSION_MINOR} )
@@ -70,43 +112,37 @@ function (configure_amrex)
          CUDA_RESOLVE_DEVICE_SYMBOLS OFF
          )
       
-      if (NOT ENABLE_3D_NODAL_MLMG)
-         set_target_properties( amrex
-            PROPERTIES
-            CUDA_STANDARD 11     # Adds -std=<standard>
-            CUDA_STANDARD_REQUIRED ON
-            )
-      else ()
-         set_target_properties( amrex
-            PROPERTIES
-            CUDA_STANDARD 14     # Adds -std=<standard>
-            CUDA_STANDARD_REQUIRED ON
-            )
-      endif ()
-      
       #
       # Retrieve compile flags for the current configuration
       # I haven't find a way to set host compiler flags for all the
       # possible configurations.
       #
-      get_target_property( _amrex_flags amrex COMPILE_OPTIONS)
+      get_target_property( _amrex_flags_1 amrex COMPILE_OPTIONS)
 
       if (NOT CMAKE_CXX_FLAGS)
          get_target_property( _amrex_flags_2 Flags_CXX INTERFACE_COMPILE_OPTIONS)
+      endif ()
+      
+      set(_amrex_flags)
+      if (_amrex_flags_1)
+         list(APPEND _amrex_flags ${_amrex_flags_1})
+      endif ()
+      if (_amrex_flags_2)
          list(APPEND _amrex_flags ${_amrex_flags_2})
       endif ()
-
+     
       evaluate_genex(_amrex_flags _amrex_cxx_flags
          LANG   CXX
          COMP   ${CMAKE_CXX_COMPILER_ID}
          CONFIG ${CMAKE_BUILD_TYPE}
          STRING )
 
-      target_compile_options(amrex PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=${_amrex_cxx_flags}>)
-
+      if (_amrex_cxx_flags)
+         target_compile_options(amrex PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=${_amrex_cxx_flags}>)
+      endif ()
+      
    endif ()
    
-
    #
    # GNU-specific defines
    # 
@@ -141,24 +177,7 @@ function (configure_amrex)
          target_link_options(amrex PUBLIC -Wl,--warn-unresolved-symbols)
       endif()
    endif() 
-   
-   #
-   # Setup OpenMP 
-   #
-   if (ENABLE_OMP)
-      find_package(OpenMP REQUIRED)
-      target_link_libraries(amrex PUBLIC OpenMP::OpenMP_CXX)
-   else ()
-      target_compile_options( amrex PUBLIC
-         $<$<CXX_COMPILER_ID:Cray>:-h;noomp> )     
-   endif ()
-   
-   #
-   # Add third party libraries
-   #
-   if (ENABLE_3D_NODAL_MLMG)
-      include(AMReX_InstallExternalLibs) 
-   endif()
+
    
    #
    # Setup third-party profilers
@@ -167,15 +186,14 @@ function (configure_amrex)
 
    #
    # If CUDA is enabled, add manually libcuda because CMake does not find it
+   # Do the same for nvToolsExt if tiny profiler is on
    #
    if (ENABLE_CUDA)
-      target_link_libraries(amrex PUBLIC cuda)   
+      target_link_libraries(amrex PUBLIC cuda)
+      if (ENABLE_TINY_PROFILE)
+          target_link_libraries(amrex PUBLIC nvToolsExt)
+      endif ()
    endif ()
-
-   #
-   # Print out summary
-   #  
-   print_amrex_configuration_summary ()
 
 endfunction ()
 
@@ -185,6 +203,7 @@ endfunction ()
 # 
 # 
 function (print_amrex_configuration_summary)
+  
 
    # 
    # Check if target "amrex" has been defined before
@@ -193,64 +212,54 @@ function (print_amrex_configuration_summary)
    if (NOT TARGET amrex)
       message (FATAL_ERROR "Target 'amrex' must be defined before calling function 'set_amrex_defines'" )
    endif ()
-   
-   #
-   # Retrieve defines
-   #
-   get_target_property ( AMREX_DEFINES amrex COMPILE_DEFINITIONS )
-   evaluate_genex(AMREX_DEFINES AMREX_CXX_DEFINES     LANG CXX     COMP ${CMAKE_CXX_COMPILER_ID} )
-   evaluate_genex(AMREX_DEFINES AMREX_Fortran_DEFINES LANG Fortran COMP ${CMAKE_Fortran_COMPILER_ID} ) 
-   string (REPLACE ";" " -D" AMREX_CXX_DEFINES "-D${AMREX_CXX_DEFINES}" )
-   string (REPLACE ";" " -D" AMREX_Fortran_DEFINES "-D${AMREX_Fortran_DEFINES}" )
-   
-   #
-   # Retrieve compile flags
-   #
-   get_target_property( AMREX_FLAGS   amrex COMPILE_OPTIONS)
 
-   evaluate_genex(AMREX_FLAGS AMREX_CXX_FLAGS
-      LANG   CXX
-      COMP   ${CMAKE_CXX_COMPILER_ID}
-      CONFIG ${CMAKE_BUILD_TYPE}
-      STRING )
 
-   evaluate_genex(AMREX_FLAGS AMREX_Fortran_FLAGS
-      LANG   Fortran
-      COMP   ${CMAKE_Fortran_COMPILER_ID}
-      CONFIG ${CMAKE_BUILD_TYPE}
-      STRING )
+  # Include AMReX cmake functions 
+  include(AMReXGenexHelpers)
+  include(AMReXTargetHelpers)
 
-   if (ENABLE_CUDA)
-      evaluate_genex(AMREX_FLAGS AMREX_CUDA_FLAGS
-         LANG   CUDA
-         COMP   ${CMAKE_CUDA_COMPILER_ID}
-         CONFIG ${CMAKE_BUILD_TYPE}
-         STRING )
-   endif ()
+  get_target_properties_flattened(amrex  _includes _defines _flags _link_line)
+
+  set(_lang CXX Fortran) 
+  set(_prop _includes _defines _flags _link_line )
+
+
+  # Loop over all combinations of language and property and extract 
+  # what you need 
+  foreach( _p IN LISTS _prop )
+     foreach( _l IN LISTS _lang )
+
+        string(TOLOWER ${_l} _ll) # Lower case language name
+
+        # _${_ll}${_p} is a variable named as _lang_property,
+        # both lower case. 
+        evaluate_genex(${_p} _${_ll}${_p}
+           LANG ${_l}
+           COMP ${CMAKE_${_l}_COMPILER_ID}
+           CONFIG ${CMAKE_BUILD_TYPE}
+           INTERFACE BUILD)
+
+        if (_${_ll}${_p})
+
+           list(REMOVE_DUPLICATES _${_ll}${_p})
+           
+           if ("${_p}" STREQUAL "_defines")
+              string(REPLACE ";" " -D" _${_ll}${_p} "-D${_${_ll}${_p}}")
+           elseif ("${_p}" STREQUAL "_includes")
+              string(REPLACE ";" " -I" _${_ll}${_p} "-I${_${_ll}${_p}}")
+           else()
+              string(REPLACE ";" " " _${_ll}${_p} "${_${_ll}${_p}}")
+           endif ()              
+
+        endif ()
+        
+     endforeach()
+  endforeach ()
+
    
-   # Add base flags
    string ( TOUPPER "${CMAKE_BUILD_TYPE}"  AMREX_BUILD_TYPE )
-   set (AMREX_CXX_FLAGS  "${CMAKE_CXX_FLAGS_${AMREX_BUILD_TYPE}} ${CMAKE_CXX_FLAGS} ${AMREX_CXX_FLAGS}")
-   set (AMREX_Fortran_FLAGS "${CMAKE_Fortran_FLAGS_${AMREX_BUILD_TYPE}} ${CMAKE_Fortran_FLAGS} ${AMREX_Fortran_FLAGS}")
-   string (STRIP "${AMREX_CXX_FLAGS}" AMREX_CXX_FLAGS)
-   string (STRIP "${AMREX_Fortran_FLAGS}" AMREX_Fortran_FLAGS)
-
-   #
-   # Include paths
-   #
-   get_target_property( AMREX_INCLUDE_PATHS amrex INTERFACE_INCLUDE_DIRECTORIES )
-   evaluate_genex(AMREX_INCLUDE_PATHS AMREX_CXX_INCLUDE_PATHS     LANG CXX )
-   evaluate_genex(AMREX_INCLUDE_PATHS AMREX_Fortran_INCLUDE_PATHS LANG Fortran )
-
-   #
-   # Link libraries
-   # 
-   get_target_property ( TMP amrex LINK_LIBRARIES )
-   evaluate_genex(TMP AMREX_LINK_LINE )
-   if (NOT AMREX_LINK_LINE) # LINK_LIBRARIES property can return "NOT_FOUND"
-      set (AMREX_LINK_LINE "")
-   endif ()   
-   string ( REPLACE ";" " " AMREX_LINK_LINE "${AMREX_LINK_LINE}" )
+   set(_cxx_flags "${CMAKE_CXX_FLAGS_${AMREX_BUILD_TYPE}} ${CMAKE_CXX_FLAGS} ${_cxx_flags}")
+   set(_fortran_flags "${CMAKE_Fortran_FLAGS_${AMREX_BUILD_TYPE}} ${CMAKE_Fortran_FLAGS} ${_fortran_flags}")   
 
    
    #
@@ -259,94 +268,24 @@ function (print_amrex_configuration_summary)
    message( STATUS "AMReX configuration summary: ")
    message( STATUS "   Build type               = ${CMAKE_BUILD_TYPE}")
    message( STATUS "   Install directory        = ${CMAKE_INSTALL_PREFIX}")
-   message( STATUS "   C++ defines              = ${AMREX_CXX_DEFINES}")
-   message( STATUS "   Fortran defines          = ${AMREX_Fortran_DEFINES}")
    message( STATUS "   C++ compiler             = ${CMAKE_CXX_COMPILER}")
    message( STATUS "   Fortran compiler         = ${CMAKE_Fortran_COMPILER}")
    if (ENABLE_CUDA)
       message( STATUS "   CUDA compiler            = ${CMAKE_CUDA_COMPILER}")
    endif ()
-   message( STATUS "   C++ flags                = ${AMREX_CXX_FLAGS}")
-   message( STATUS "   Fortran flags            = ${AMREX_Fortran_FLAGS}")
+   
+   message( STATUS "   C++ defines              = ${_cxx_defines}")
+   message( STATUS "   Fortran defines          = ${_fortran_defines}")
+   
+   message( STATUS "   C++ flags                = ${_cxx_flags}")
+   message( STATUS "   Fortran flags            = ${_fortran_flags}")
    if (ENABLE_CUDA)
       message( STATUS "   CUDA flags               = ${CMAKE_CUDA_FLAGS_${AMREX_BUILD_TYPE}} ${CMAKE_CUDA_FLAGS}"
          "${AMREX_CUDA_FLAGS}")
    endif ()
-   message( STATUS "   C++ include paths        = ${AMREX_CXX_INCLUDE_PATHS}")  
-   message( STATUS "   Fortran include paths    = ${AMREX_Fortran_INCLUDE_PATHS}")
-   message( STATUS "   Link line                = ${AMREX_LINK_LINE}") 
+   message( STATUS "   C++ include paths        = ${_cxx_includes}")  
+   message( STATUS "   Fortran include paths    = ${_fortran_includes}")
+   message( STATUS "   Link line                = ${_cxx_link_line}") 
 
 endfunction ()
 
-
-#
-# For now let's keep this here
-# 
-function ( set_compiler_flags_preset _target )
-
-   #
-   # WARNING: since cmake 3.14 the genex Fortran_COMPILER_ID is available!!!
-   #
-
-   # 
-   # Check if target "_target" has been defined before
-   # calling this macro
-   #
-   if ( NOT TARGET ${_target} )
-      message (FATAL_ERROR "Target '${_target}' does not exist" )
-   endif ()
-
-   #
-   # Check wether the compiler ID has been defined
-   # 
-   if (  NOT (DEFINED CMAKE_Fortran_COMPILER_ID) OR
-	 NOT (DEFINED CMAKE_C_COMPILER_ID) OR 
-	 NOT (DEFINED CMAKE_CXX_COMPILER_ID) )
-      message ( FATAL_ERROR "Compiler ID is UNDEFINED" )
-   endif ()
-
-   #
-   # Helper variables
-   # 
-   set(_cxx             "$<COMPILE_LANGUAGE:CXX>")
-   set(_fortran         "$<COMPILE_LANGUAGE:Fortran>")
-
-   set(_debug           "$<CONFIG:Debug>")
-   set(_release         "$<CONFIG:Release>")
-
-   set(_gnu             "$<CXX_COMPILER_ID:GNU>")
-   set(_cxx_gnu         "$<AND:${_cxx},${_gnu}>")
-
-   set(_intel           "$<CXX_COMPILER_ID:Intel>")
-   set(_cxx_intel       "$<AND:${_cxx},${_intel}>")
-
-   set(_pgi             "$<CXX_COMPILER_ID:PGI>")
-   set(_cxx_pgi         "$<AND:${_cxx},${_pgi}>")
-
-   set(_cray            "$<CXX_COMPILER_ID:Cray>")
-   set(_cxx_cray        "$<AND:${_cxx},${_cray}>")
-
-   set(_clang           "$<CXX_COMPILER_ID:Clang>")
-   set(_cxx_clang       "$<AND:${_cxx},${_clang}>")
-   
-   set(_apple           "$<CXX_COMPILER_ID:AppleClang>")
-   set(_cxx_apple       "$<AND:${_cxx},${_apple}>")
-
-
-   if (ENABLE_3D_NODAL_MLMG)
-      set(_cxx_std c++14)
-   else ()
-      set(_cxx_std c++11)
-   endif ()
-   
-   target_compile_options(  ${_target}
-         PUBLIC
-         $<${_cxx_gnu}:-std=${_cxx_std}>
-         $<${_cxx_intel}:-std=${_cxx_std}>
-         $<${_cxx_cray}:-h std=${_cxx_std} -h list=a>
-         $<${_cxx_pgi}:-std=${_cxx_std}>
-         $<${_cxx_clang}:-std=${_cxx_std}>
-         $<${_cxx_apple}:-std=${_cxx_std}>
-         )
-  
-endfunction () 

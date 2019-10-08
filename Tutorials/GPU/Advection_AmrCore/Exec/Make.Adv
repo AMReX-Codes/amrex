@@ -7,7 +7,7 @@ EBASE := main
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
-Bdirs 	:= Source Source/Src_nd Source/Src_$(DIM)d
+Bdirs 	:= Source Source/Src_$(DIM)d
 Bpack	+= $(foreach dir, $(Bdirs), $(TOP)/$(dir)/Make.package)
 Blocs   += $(foreach dir, $(Bdirs), $(TOP)/$(dir))
 

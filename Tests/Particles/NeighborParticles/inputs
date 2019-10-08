@@ -1,0 +1,10 @@
+nbor_parts.size = (24, 24, 24)
+nbor_parts.max_grid_size = 8
+nbor_parts.is_periodic = 1
+nbor_parts.num_ppc = 1
+
+nbor_list.size = (24, 24, 24)
+nbor_list.max_grid_size = 8
+nbor_list.is_periodic = 1
+nbor_list.num_ppc = 1
+

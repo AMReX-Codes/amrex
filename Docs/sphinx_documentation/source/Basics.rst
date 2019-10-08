@@ -96,13 +96,13 @@ simultaneous physics calculations.  These comms are managed by AMReX's
 :cpp:`ParallelContext` in ``AMReX_ParallelContext.H.``  It maintains a
 stack of :cpp:`MPI_Comm` handlers. A global comm is placed in the
 :cpp:`ParallelContext` stack during AMReX's initialization and
-additional subcommunicators can be handled by adding comms with 
+additional subcommunicators can be handled by adding comms with
 :cpp:`push(MPI_Comm)` and removed using :cpp:`pop()`.  This creates a
 hierarchy of :cpp:`MPI_Comm` objects that can be used to split work as
 the user sees fit.   Note that ``ParallelDescriptor`` by default uses
 AMReX's base comm, independent of the status of the
 ``ParallelContext`` stack.
- 
+
 :cpp:`ParallelContext` also tracks and returns information about the
 local (most recently added) and global :cpp:`MPI_Comm`.  The most common
 access functions are given below.  See ``AMReX_ParallelContext.H.`` for
@@ -115,7 +115,7 @@ a full listing of the available functions.
      MPI_Comm subCommA = ....;
      MPI_Comm subCommB = ....;
      // Add a communicator to ParallelContext.
-     // After these pushes, subCommB becomes the 
+     // After these pushes, subCommB becomes the
      //     "local" communicator.
      ParallelContext::push(subCommA);
      ParallelContext::push(subCommB);
@@ -143,7 +143,7 @@ a full listing of the available functions.
 
      // Remove the last added subcommunicator.
      // This would make "subCommA" the new local communicator.
-     // Note: The user still needs to free "subCommB". 
+     // Note: The user still needs to free "subCommB".
      ParallelContext::pop();
 
 .. _sec:basics:print:
@@ -309,6 +309,22 @@ inserted by the compiler) do not function properly after
 (e.g., a pair of curly braces or a separate function) to make sure
 resources are properly freed.
 
+Sharing the Command Line
+------------------------
+
+In some cases we want AMReX to only read part of the command line -- this happens, for example, when we
+are going to use AMReX in cooperation with another code package and that code also takes command-line 
+arguments.
+
+.. highlight:: console
+
+::
+
+    main2d*.exe inputs amrex.v=1 amrex.fpe_trap_invalid=1 -- -tao_monitor
+
+then AMReX will parse the inputs file and the optional AMReX's command
+line arguments, but will ignore everything after "--".
+
 .. _sec:basics:amrgrids:
 
 Example of AMR Grids
@@ -341,7 +357,7 @@ parent-child connection. In this chapter, we will focus on single levels.
 .. raw:: latex
 
    \end{center}
-   
+
 
 .. _sec:basics:box:
 
@@ -623,7 +639,7 @@ following examples.
       Box b0 ({16,16,16}, {31,31,31});
       Box b1 ({ 0, 0,30}, {23,23,63});
       if (b0.intersects(b1)) {                  // true
-          Print() << "b0 and b1 intersect.\n"; 
+          Print() << "b0 and b1 intersect.\n";
       }
 
       Box b2 = b0 & b1;     // b0 and b1 unchanged
@@ -636,6 +652,50 @@ following examples.
       Print() << b0;        // ((16,16,30) (23,23,31) (0,0,0))
 
       b0 &= b3;             // Runtime error because of type mismatch!
+
+.. _sec:basics:dim3:
+
+Dim3 and XDim3
+==============
+
+:cpp:`Dim3` and :cpp:`XDim3` are plain structs with three fields,
+
+.. highlight:: c++
+
+::
+
+    struct Dim3 { int x; int y; int z; };
+    struct XDim3 { Real x; Real y; Real z; };
+
+One can covert an :cpp:`IntVect` to :cpp:`Dim3`,
+
+.. highlight:: c++
+
+::
+
+    IntVect iv(...);
+    Dim3 d3 = iv.dim3();
+
+:cpp:`Dim3` always has three fields even when AMReX is built for 1D or
+2D.  For the example above, the extra fields are set to zero.  Given a
+:cpp:`Box`, one can get its lower and upper bounds and use them to
+write dimension agnostic loops.
+
+.. highlight:: c++
+
+::
+
+    Box bx(...);
+    Dim3 lo = lbound(bx);
+    Dim3 hi = ubound(bx);
+    for     (int k = lo.z; k <= hi.z; ++k) {
+      for   (int j = lo.y; j <= hi.y; ++j) {
+        for (int i = lo.x; i <= hi.x; ++i) {
+        }
+      }
+    }
+
+One can also call function ``Dim3 length(Box const&)`` to return the length of a Box.
 
 .. _sec:basics:geom:
 
@@ -656,23 +716,26 @@ be constructed with
     explicit Geometry (const Box&     dom,
                        const RealBox* rb     = nullptr,
                        int            coord  = -1,
-                       int*           is_per = nullptr);
+                       int*           is_per = nullptr) noexcept;
 
-Here the constructor takes a cell-centered :cpp:`Box` specifying the indexing
-space domain, an optional argument of :cpp:`RealBox` pointer specifying the
-physical domain, an optional :cpp:`int` specifying coordinate system type, and
-an optional :cpp:`int *` specifying periodicity. If a :cpp:`RealBox` is not
-given, AMReX will construct one based on :cpp:`ParmParse` parameters,
+    Geometry (const Box& dom, const RealBox& rb, int coord,
+              Array<int,AMREX_SPACEDIM> const& is_per) noexcept;
+
+Here the constructors take a cell-centered :cpp:`Box` specifying the indexing
+space domain, a :cpp:`RealBox` specifying the
+physical domain, an :cpp:`int` specifying coordinate system type, and
+an :cpp:`int` pointer or array specifying periodicity. If a :cpp:`RealBox` is not
+given in the first constructor, AMReX will construct one based on :cpp:`ParmParse` parameters,
 ``geometry.prob_lo`` and ``geometry.prob_hi``, where each of the parameter is
 an array of ``AMREX_SPACEDIM`` real numbers. It’s a runtime error if this
-fails. The optional argument for coordinate system is an integer type with
+fails. The argument for coordinate system is an integer type with
 valid values being 0 (Cartesian), or 1 (cylindrical), or 2 (spherical). If it
-is invalid as in the case of the default argument value, AMReX will query the
+is invalid as in the case of the default argument value of the first constructor, AMReX will query the
 :cpp:`ParmParse` database for ``geometry.coord_sys`` and use it if one is
 found. If it cannot find the parameter, the coordinate system is set to 0
 (i.e., Cartesian coordinates). The :cpp:`Geometry` class has the concept of
-periodicity.  An optional argument can be passed specifying periodicity in each
-dimension. If it is not given, the domain is assumed to be non-periodic unless
+periodicity.  An argument can be passed specifying periodicity in each
+dimension. If it is not given in the first constructor, the domain is assumed to be non-periodic unless
 there is the :cpp:`ParmParse` integer array parameter ``geometry.is_periodic``
 with 0 denoting non-periodic and 1 denoting periodic. Below is an example of
 defining a :cpp:`Geometry` for a periodic rectangular domain of
@@ -692,15 +755,15 @@ cells in each direction.
       // This defines the physical box, [-1,1] in each direction.
       RealBox real_box({AMREX_D_DECL(-1.0,-1.0,-1.0)},
                        {AMREX_D_DECL( 1.0, 1.0, 1.0)});
-      
+
       // This says we are using Cartesian coordinates
       int coord = 0;
-      
+
       // This sets the boundary conditions to be doubly or triply periodic
       Array<int,AMREX_SPACEDIM> is_periodic {AMREX_D_DECL(1,1,1)};
-      
+
       // This defines a Geometry object
-      Geometry geom(domain, &real_box, coord, is_periodic.data());
+      Geometry geom(domain, real_box, coord, is_periodic);
 
 A :cpp:`Geometry` object can return various information of the physical domain
 and the indexing space domain. For example,
@@ -711,9 +774,9 @@ and the indexing space domain. For example,
       Real yhi = geom.ProbHi(1);             // y-direction upper corner
       const Real* dx = geom.CellSize();      // Cell size for each direction
       const Box& domain = geom.Domain();     // Index domain
-      bool is_per = Geometry::isPeriodic(0); // Is periodic in x-direction?
-      if (Geometry::isAllPeriodic()) {}      // Periodic in all direction?
-      if (Geometry::isAnyPeriodic()) {}      // Periodic in any direction?
+      bool is_per = geom.isPeriodic(0);      // Is periodic in x-direction?
+      if (geom.isAllPeriodic()) {}           // Periodic in all direction?
+      if (geom.isAnyPeriodic()) {}           // Periodic in any direction?
 
 
 .. _sec:basics:ba:
@@ -773,7 +836,7 @@ show how one can convert BoxArray to a different type.
       // Return an all node BoxArray
       const BoxArray& nodeba = amrex::convert(faceba, IntVect{1,1,1});
       Print() << cellba[0] << "\n";  // ((0,0,0) (63,63,63) (0,0,0))
-      Print() << faceba[0] << "\n";  // ((0,0,0) (63,63,64) (0,0,1))  
+      Print() << faceba[0] << "\n";  // ((0,0,0) (63,63,64) (0,0,1))
       Print() << nodeba[0] << "\n";  // ((0,0,0) (64,64,64) (1,1,1))
 
 As shown in the example above, :cpp:`BoxArray` has an :cpp:`operator[]` that
@@ -850,7 +913,7 @@ a :cpp:`BoxArray`,
 
       DistributionMapping dm {ba};
 
-or by simply making a copy, 
+or by simply making a copy,
 
 .. highlight:: c++
 
@@ -882,8 +945,8 @@ mapping of grids to processes.
 
 .. _sec:basics:fab:
 
-BaseFab, FArrayBox and IArrayBox
-================================
+BaseFab, FArrayBox, IArrayBox, and Array4
+=========================================
 
 AMReX is a block-structured AMR framework. Although AMR introduces irregularity
 to the data and algorithms, there is regularity at the block/Box level because
@@ -981,10 +1044,10 @@ returning the minimum or maximum value.
 ::
 
       T min (int comp=0) const;  // Minimum value of given component.
-      T min (const Box& subbox, int comp=0) const; // Minimum value of given 
+      T min (const Box& subbox, int comp=0) const; // Minimum value of given
                                                    // component in given subbox.
       T max (int comp=0) const;  // Maximum value of given component.
-      T max (const Box& subbox, int comp=0) const; // Maximum value of given 
+      T max (const Box& subbox, int comp=0) const; // Maximum value of given
                                                    // component in given subbox.
 
 :cpp:`BaseFab` also has many arithmetic functions. Here are some examples using
@@ -1004,26 +1067,51 @@ FArrayBox.
       Real a = 3.0;
       fab2.saxpy(a, fab1); // For both components, fab2 <- a * fab1 + fab2
 
-For more complicated expressions that are not supported, one can write Fortran or C
-functions for those (see the section on :ref:`sec:basics:fortran`).  Note that
-BaseFab does provide operators for accessing the data directly in C++. For
-example, the :cpp:`saxpy` example above can be done with
+.. _sec:basics:array4:
+
+For more complicated expressions that are not supported, one can write
+Fortran or C/C++ functions for those (see the section
+on :ref:`sec:basics:fortran`).  In C++, one can use :cpp:`Array4`,
+which is a class template for accessing :cpp:`BaseFab` data in a more
+array like manner using :cpp:`operator()`.  Below is an example of
+using :cpp:`Array4`.
 
 .. highlight:: c++
 
 ::
 
-      // Iterate over all components
-      for (int icomp=0; icomp < fab1.nComp(); ++icomp) {
-          // Iterate over all cells in Box
-          for (BoxIterator bit(fab1.box()); bit.ok(); ++bit) {
-              // bit() returns IntVect
-              fab2(bit(),icomp) = a * fab1(bit(),icomp) + fab2(bit(),icomp);
+    FArrayBox afab(...), bfab(...);
+    IArrayBox ifab(...);
+    Array4<Real> const& a = afab.array();
+    Array4<Real const> const b = bfab.const_array();
+    Array4<int const> m = ifab.array();
+    Dim3 lo = lbound(a);
+    Dim3 hi = ubound(a);
+    int nc = a.nComp();
+    for (int n = 0; n < nc; ++n) {
+      for     (int k = lo.z; k <= hi.z; ++k) {
+        for   (int j = lo.y; j <= hi.y; ++j) {
+          for (int i = lo.x; i <= hi.x; ++i) {
+            if (m(i,j,k) > 0) {
+              a(i,j,k,n) *= 2.0;
+            } else {
+              a(i,j,k,n) = 2.0*a(i,j,k,n) + 0.5*(b(i-1,j,k,n)+b(i+1,j,k,n));
+            }
           }
+        }
       }
+    }
 
-But this approach is generally not recommended for performance reasons.
-However, it can be handy for debugging.
+Note that :cpp:`operator()` of :cpp:`Array4` takes either three or
+four arguments.  The optional fourth argument has a default value of
+zero.  The two :cpp:`const`\ s in :cpp:`Array4<Real const> const&`
+have different meaning.  The first :cpp:`const` inside :cpp:`<>` means
+the data accessed via :cpp:`Array4` is read-only, whereas the second
+:cpp:`const` means the :cpp:`Array4` object itself cannot be modified
+to point to other data.  In the example above, neither ``m(i,j,k) =
+0`` nor ``b(i,j,k) = 0.0`` is allowed.  However one is allowed to do
+``m = ifab2.array()`` to assign :cpp:`m` again, but not to :cpp:`b`.
+The behavior is in some sense similar to ``double const * const p``.
 
 :cpp:`BaseFab` and its derived classes are containers for data on :cpp:`Box`.
 Recall that :cpp:`Box` has various types (see the section on :ref:`sec:basics:box`).
@@ -1064,8 +1152,15 @@ However, it is not possible to slice in the real space (i.e., the first
 ``AMREX_SPACEDIM`` dimensions).  Note that no new memory is allocated in
 constructing the alias and the alias contains a non-owning pointer. It should
 be emphasized that the alias will contain a dangling pointer after the original
-:cpp:`FArrayBox` reaches its end of life.
+:cpp:`FArrayBox` reaches its end of life.  One can also construct an
+alias :cpp:`BaseFab` given an :cpp:`Array4`,
 
+.. highlight:: c++
+
+::
+
+    Array4<Real> const a = orig_fab.array();
+    FArrayBox alias_fab(a);
 
 .. _sec:basics:multifab:
 
@@ -1082,7 +1177,7 @@ defined on a union of rectangular regions embedded in a uniform index space.
 For example, a FabArray object can be used to hold data for one level as in
 :numref:`fig:basics:amrgrids`.
 
-:cpp:`FabArray` is a parallel data structure that the data (i.e., FAB) are
+:cpp:`FabArray` is a parallel data structure in which the data (i.e., FAB) are
 distributed among parallel processes. For each process, a FabArray contains
 only the FAB objects owned by that process, and the process operates only on
 its local data. For operations that require data owned by other processes,
@@ -1118,7 +1213,7 @@ on :ref:`sec:basics:fab`) defined on Boxes grown by the number of ghost cells
 (1 in this example). That is the :cpp:`Box` in the :cpp:`FArrayBox` is not
 exactly the same as in the :cpp:`BoxArray`.  If the :cpp:`BoxArray` has a
 :cpp:`Box{(7,7,7) (15,15,15)}`, the one used for constructing :cpp:`FArrayBox`
-will be :cpp:`Box{(8,8,8) (16,16,16)}` in this example. For cells in
+will be :cpp:`Box{(6,6,6) (16,16,16)}` in this example. For cells in
 :cpp:`FArrayBox`, we call those in the original :cpp:`Box` **valid cells** and
 the grown part **ghost cells**. Note that :cpp:`FArrayBox` itself does not have
 the concept of ghost cells.  Ghost cells are a key concept of
@@ -1174,7 +1269,7 @@ achieve this.
       MultiFab mf1(ba,dm,ncomp,ngrow);  // new MF with the same ncomp and ngrow
       MultiFab mf2(ba,dm,ncomp,0);      // new MF with no ghost cells
       // new MF with 1 component and 2 ghost cells
-      MultiFab mf3(mf0.boxArray(), mf0.DistributionMap(), 1, 2);               
+      MultiFab mf3(mf0.boxArray(), mf0.DistributionMap(), 1, 2);
 
 As we have repeatedly mentioned in this chapter that :cpp:`Box` and
 :cpp:`BoxArray` have various index types. Thus, :cpp:`MultiFab` also has an
@@ -1223,7 +1318,7 @@ operations on a :cpp:`MultiFab` or between :cpp:`MultiFab`\ s  built with the
 
       MultiFab::Add(mfdst, mfsrc, sc, dc, nc, ng);  // Add mfsrc to mfdst
       MultiFab::Copy(mfdst, mfsrc, sc, dc, nc, ng); // Copy from mfsrc to mfdst
-      // MultiFab mfdst: destination 
+      // MultiFab mfdst: destination
       // MultiFab mfsrc: source
       // int      sc   : starting component index in mfsrc for this operation
       // int      dc   : starting component index in mfdst for this operation
@@ -1346,50 +1441,35 @@ together. In this section, we will show how you can operate on the
           // A reference to the current FArrayBox in this loop iteration.
           FArrayBox& fab = mf[mfi];
 
-          // Pointer to the floating point data of this FArrayBox.
-          Real* a = fab.dataPtr();
+          // Obtain Array4 from FArrayBox.  We can also do
+          //     Array4<Real> const& a = mf.array(mfi);
+          Array4<Real> const& a = fab.array();
 
-          // This is the Box on which the FArrayBox is defined.
-          // Note that "abox" includes ghost cells (if there are any),
-          // and is thus larger than or equal to "box".
-          const Box& abox = fab.box();
-
-          // We can now pass the information to a function that does
-          // work on the region (specified by box) of the data pointed to
-          // by Real* a.  The data should be viewed as multidimensional
-          // with bounds specified by abox.
-          // Function f1 has the signature of
-          // void f1(const int*, const int*, Real*, const int*, const int*);
-          f1(box.loVect(), box.hiVect(), a, abox.loVect(), abox.hiVect());
+          // Call function f1 to work on the region specified by box.
+          // Note that the whole region of the Fab includes ghost
+          // cells (if there are any), and is thus larger than or
+          // equal to "box". 
+          f1(box, a);
       }
 
-Here function :cpp:`f1` is usually a Fortran subroutine with ISO C binding
-interface like below,
+Here function :cpp:`f1` might be something like below,
 
-.. highlight:: fortran
+.. highlight:: c++
 
 ::
 
-      subroutine f1(lo, hi, a, alo, ahi) bind(c)
-        use amrex_fort_module, only : amrex_real
-        integer, intent(in) :: lo(3), hi(3), alo(3), ahi(3)
-        real(amrex_real),intent(inout)::a(alo(1):ahi(1),alo(2):ahi(2),alo(3):ahi(3))
-        integer :: i,j,k
-        do     k = lo(3), hi(3)
-          do   j = lo(2), hi(2)
-            do i = lo(1), hi(1)
-              a(i,j,k) = ...
-            end do
-          end do
-        end do
-      end subroutine f1
-
-Here :fortran:`amrex_fort_module` is a Fortran module in AMReX and
-:fortran:`amrex_real` is a Fortran kind parameter that matches
-:cpp:`amrex::Real` in C++. In this example, we assumed the spatial dimension is
-3. In 2D, the function interface is different. In the section on
-:ref:`sec:basics:fortran`, we will present a dimension-agnostic approach
-using macros provided by AMReX.
+    void f1 (Box const& bx, Array4<Real> const& a)
+    {
+       const auto lo = lbound(bx);
+       const auto hi = ubound(bx);
+       for     (int k = lo.z; k <= hi.z; ++k) {
+         for   (int j = lo.y; j <= hi.y; ++j) {
+           for (int i = lo.x; i <= hi.x; ++i) {
+             a(i,j,k) = ...
+           }
+         }
+       }
+    }
 
 :cpp:`MFIter` only loops over grids owned by this process. For example, suppose
 there are 5 Boxes in total and processes 0 and 1 own 2 and 3 Boxes,
@@ -1397,9 +1477,9 @@ respectively. That is the MultiFab on process 0 has 2 FArrayBoxes, whereas
 there are 3 FArrayBoxes on process 1. Thus the numbers of iterations of MFIter
 are 2 and 3 on processes 0 and 1, respectively.
 
-In the example above, :cpp:`MultiFab` is assumed to have a single component. If
-it has multiple components, we can call :cpp:`int nc = mf.nComp()` to get the
-number of components and pass :cpp:`nc` to the kernel function.
+In the example above, :cpp:`MultiFab` is assumed to have a single
+component. If it has multiple components, we can call ``int nc =
+mf.nComp()`` or ``int nc = a.nComp()`` to get the number of components.
 
 There is only one :cpp:`MultiFab` in the example above. Below is an example of
 working with multiple MultiFabs. Note that these two MultiFabs are not
@@ -1412,55 +1492,38 @@ they are different due to index types).
 ::
 
       // U and F are MultiFabs
-      int ncU = U.nComp();   // number of components
-      int ncF = F.nComp();
       for (MFIter mfi(F); mfi.isValid(); ++mfi) // Loop over grids
       {
           const Box& box = mfi.validbox();
 
-          const FArrayBox& ufab = U[mfi];
-          FArrayBox&       ffab = F[mfi];
+          Array4<Real const> const& u = U.const_array(mfi);
+          Array4<Real      > const& f = F.array(mfi);
 
-          Real* up = ufab.dataPtr();
-          Real* fp = ufab.dataPtr();
-
-          const Box& ubox = ufab.box();
-          const Box& fbox = ffab.box();
-
-          // Function f2 has the signature of 
-          // void f2(const int*, const int*,
-          //         const Real*, const int*, const int*, const int*
-          //               Real*, const int*, const int*, const int*);
-          // This will compute f using u as inputs.
-          f2(box.loVect(), box.hiVect(),
-             up, ubox.loVect(), ubox.hiVect(), &ncU,
-             fp, fbox.loVect(), fbox.hiVect(), &ncF);
+          f2(box, u, f);
       }
 
-Here again function :cpp:`f2` is usually a Fortran subroutine with ISO C
-binding interface like below,
+Here function :cpp:`f2` might be something like below,
 
-.. highlight:: fortran
+.. highlight:: c++
 
 ::
 
-    subroutine f2(lo, hi, u, ulo, uhi, nu, f, flo, fhi, nf) bind(c)
-      use amrex_fort_module, only : amrex_real
-      integer, intent(in) :: lo(3),hi(3),ulo(3),uhi(3),nu,flo(3),fhi(3),nf
-      real(amrex_real),intent(in   )::u(ulo(1):uhi(1),ulo(2):uhi(2),ulo(3):uhi(3),nu)
-      real(amrex_real),intent(inout)::f(flo(1):fhi(1),flo(2):fhi(2),flo(3):fhi(3),nf)
-      integer :: i,j,k
-      do n = 1, nf
-        do     k = lo(3), hi(3)
-          do   j = lo(2), hi(2)
-            do i = lo(1), hi(1)
-              f(i,j,k,n) = ... u(...) ...
-            end do
-          end do
-        end do
-      end do
-    end subroutine f2
-
+    void f1 (Box const& bx, Array4<Real const> const& u,
+             Array4<Real> const& f)
+    {
+       const auto lo = lbound(bx);
+       const auto hi = ubound(bx);
+       const int nf = f.nComp();
+       for (int n = 0; n < nf; ++n) {
+         for     (int k = lo.z; k <= hi.z; ++k) {
+           for   (int j = lo.y; j <= hi.y; ++j) {
+             for (int i = lo.x; i <= hi.x; ++i) {
+               f(i,j,k,n) = ... u(i,j,k,n) ...
+             }
+           }
+         }
+       }
+    }
 
 .. _sec:basics:mfiter:tiling:
 
@@ -1468,10 +1531,10 @@ MFIter with Tiling
 ------------------
 
 Tiling, also known as cache blocking, is a well known loop transformation
-technique for improving data locality. This is often done by transforming the
+technique for improving data locality.  This is often done by transforming the
 loops into tiling loops that iterate over tiles and element loops that iterate
 over the data elements within a tile. For example, the original loops might
-look like
+look like this in Fortran
 
 .. highlight:: fortran
 
@@ -1515,7 +1578,7 @@ version. The first example in (see the previous section on
 :ref:`sec:basics:mfiter:notiling`) requires only two minor changes:
 
     #. passing :cpp:`true` when defining :cpp:`MFIter` to indicate tiling;
-    #. calling :cpp:`tilebox` instead of :cpp:`validbox` to obtain the work region 
+    #. calling :cpp:`tilebox` instead of :cpp:`validbox` to obtain the work region
        for the loop iteration.
 
 .. highlight:: c++
@@ -1529,10 +1592,8 @@ version. The first example in (see the previous section on
           const Box& box = mfi.tilebox();
 
           FArrayBox& fab = mf[mfi];
-          Real* a = fab.dataPtr();
-          const Box& abox = fab.box();
-
-          f1(box.loVect(), box.hiVect(), a, abox.loVect(), abox.hiVect());
+          Array4<Real> const& a = fab.array();
+          f1(box, a);
       }
 
 The second example in the previous section on :ref:`sec:basics:mfiter:notiling`
@@ -1542,24 +1603,15 @@ also requires only two minor changes.
 
 ::
 
-      //              * true *  turns on tiling  
+      //              * true *  turns on tiling
       for (MFIter mfi(F,true); mfi.isValid(); ++mfi) // Loop over tiles
       {
           //                   tilebox() instead of validbox()
           const Box& box = mfi.tilebox();
 
-          const FArrayBox& ufab = U[mfi];
-          FArrayBox&       ffab = F[mfi];
-
-          Real* up = ufab.dataPtr();
-          Real* fp = ufab.dataPtr();
-
-          const Box& ubox = ufab.box();
-          const Box& fbox = ffab.box();
-
-          f2(box.loVect(), box.hiVect(),
-             up, ubox.loVect(), ubox.hiVect(), &ncU,
-             fp, fbox.loVect(), fbox.hiVect(), &ncF);
+          Array4<Real const> const& u = U.const_array(mfi);
+          Array4<Real      > const& f = F.array(mfi);
+          f2(box, u, f);
       }
 
 The kernels functions like :cpp:`f1` and :cpp:`f2` in the two examples here
@@ -1576,7 +1628,7 @@ usually require very little changes.
 
 .. table:: Comparison of :cpp:`MFIter` with (right) and without (left) tiling.
    :align: center
-   
+
    +-----------------------------------------------------+------------------------------------------------------+
    |                        |a|                          |                        |b|                           |
    +-----------------------------------------------------+------------------------------------------------------+
@@ -1596,7 +1648,7 @@ non-tiling version, whereas in the tiling version the kernel function is called
 8 times.
 
 It is important to use the correct :cpp:`Box` when implementing tiling, especially
-if the box is used to define a work region inside of the loop. For example: 
+if the box is used to define a work region inside of the loop. For example:
 
 .. highlight:: c++
 
@@ -1607,7 +1659,7 @@ if the box is used to define a work region inside of the loop. For example:
     {
         Box bx = mfi.validbox();     // Gets box of entire, untiled region.
         calcOverBox(bx);             // ERROR! Works on entire box, not tiled box.
-                                     // Other iterations will redo many of the same cells.  
+                                     // Other iterations will redo many of the same cells.
     }
 
 The tile size can be explicitly set when defining :cpp:`MFIter`.
@@ -1637,21 +1689,21 @@ tiling flag is on. One can change the default size using :cpp:`ParmParse`
 
 .. table:: Comparison of :cpp:`MFIter` with (right) and without (left) tiling, for face-centered nodal indexing.
    :align: center
-   
+
    +-----------------------------------------------------+------------------------------------------------------+
    |                        |c|                          |                        |d|                           |
    +-----------------------------------------------------+------------------------------------------------------+
    | | Example of face valid boxes. There are two        | | Example of face tile boxes. Each grid is           |
    | | valid boxes in this example. Each has             | | *logically* broken into 4 tiles as indicated by    |
    | | :math:`9\times 8` points. Note that points in one | | the symbols. There are 8 tiles in total. Some      |
-   | | :cpp:`Box` may overlap with points in the other   | | tiles have :math:`5\times 4` points, whereas       | 
+   | | :cpp:`Box` may overlap with points in the other   | | tiles have :math:`5\times 4` points, whereas       |
    | | :cpp:`Box`. However, the memory locations for     | | others have :math:`4 \times 4` points. Points from |
    | | storing floating point data of those points do    | | different Boxes may overlap, but points from       |
    | | not overlap, because they belong to seperate      | | different tiles of the same Box do not.            |
    | | FArrayBoxes.                                      |                                                      |
    +-----------------------------------------------------+------------------------------------------------------+
 
-Dynamic tiling, which runs one box per OpenMP thread, is also available. 
+Dynamic tiling, which runs one box per OpenMP thread, is also available.
 This is useful when the underlying work cannot benefit from thread
 parallelization.  Dynamic tiling is implemented using the :cpp:`MFItInfo`
 object and requires the :cpp:`MFIter` loop to be defined in an OpenMP
@@ -1663,12 +1715,12 @@ parallel region:
 
   // Dynamic tiling, one box per OpenMP thread.
   // No further tiling details,
-  //   so each thread works on a single tilebox. 
-  #ifdef _OPENMP 
+  //   so each thread works on a single tilebox.
+  #ifdef _OPENMP
   #pragma omp parallel
   #endif
       for (MFIter mfi(mf,MFItInfo().SetDynamic(true)); mfi.isValid(); ++mfi)
-      {  
+      {
           const Box& bx = mfi.validbox();
           ...
       }
@@ -1681,11 +1733,11 @@ Dynamic tiling also allows explicit definition of a tile size:
 
   // Dynamic tiling, one box per OpenMP thread.
   // No tiling in x-direction. Tile size is 16 for y and 32 for z.
-  #ifdef _OPENMP 
+  #ifdef _OPENMP
   #pragma omp parallel
   #endif
       for (MFIter mfi(mf,MFItInfo().SetDynamic(true).EnableTiling(1024000,16,32)); mfi.isValid(); ++mfi)
-      {  
+      {
           const Box& bx = mfi.tilebox();
           ...
       }
@@ -1713,7 +1765,7 @@ has a number of functions returning various Boxes.  Examples include,
 
       // Return tilebox with provided nodal flag as if the MFIter
       // is constructed with MultiFab of such flag.
-      Box tilebox(const IntVect& nodal_flag); 
+      Box tilebox(const IntVect& nodal_flag);
 
 It should be noted that the function :cpp:`growntilebox` does not grow the tile
 Box like a normal :cpp:`Box`. Growing a :cpp:`Box` normally means the Box is
@@ -1735,14 +1787,14 @@ multi-threaded codes race conditions could occur.
 
 .. table:: Comparing growing cell-type and face-type tile boxes.
    :align: center
-   
+
    +-----------------------------------------------------+------------------------------------------------------+
    |                        |e|                          |                        |f|                           |
    +-----------------------------------------------------+------------------------------------------------------+
    | | Example of cell-centered grown tile boxes. As     | | Example of face type grown tile boxes. As          |
    | | indicated by symbols, there are 8 tiles and four  | | indicated by symbols, there are 8 tiles and four   |
    | | in each grid in this example. Tiles from the      | | in each grid in this example. Tiles from the       |
-   | | same grid do not overlap. But tiles from          | | same grid do not overlap even though they          | 
+   | | same grid do not overlap. But tiles from          | | same grid do not overlap even though they          |
    | | different grids may overlap.                      | | have face index type.                              |
    |                                                     |                                                      |
    +-----------------------------------------------------+------------------------------------------------------+
@@ -1768,11 +1820,13 @@ value. There are three ways of using these functions.
 
 But :cpp:`Box& bx = mfi.validbox()` is not legal and will not compile.
 
+Finally it should be emphasized that tiling should not be used when
+running on GPUs because of kernel launch overhead.
 
 .. _sec:basics:fortran:
 
-Fortran, C and C++ Kernels
-==========================
+Fortran and C++ Kernels
+=======================
 
 In the section on :ref:`sec:basics:mfiter`, we have shown that a typical
 pattern for working with MultiFabs is to use :cpp:`MFIter` to iterate over the
@@ -1781,8 +1835,9 @@ the work region is specified by a :cpp:`Box`.  When tiling is used, the work
 region is a tile. The tiling is logical in the sense that there is no data
 layout transformation. The kernel function still gets the whole arrays in
 :cpp:`FArrayBox`\ es, even though it is supposed to work on a tile region of the
-arrays.  Fortran is often used for writing these kernels because of its
-native multi-dimensional array support.  To C++, these kernel functions are 
+arrays.  We have shown examples of writing kernels in C++ in the
+previous section.  Fortran is also often used for writing these kernels because of its
+native multi-dimensional array support.  To C++, these kernel functions are
 C functions, whose function signatures are typically declared in a header file
 named ``*_f.H`` or ``*_F.H``. We recommend the users to follow this convention.
 Examples of these function declarations are as follows.
@@ -1804,11 +1859,7 @@ Examples of these function declarations are as follows.
       }
       #endif
 
-One can write the functions in C and should include the header containing the
-function declarations in the C source code to ensure type safety. However, we
-typically write these kernel functions in Fortran because of the native
-multi-dimensional array support by Fortran. As we have seen in the section on
-:ref:`sec:basics:mfiter`, these Fortran functions take C pointers and view them
+These Fortran functions take C pointers and view them
 as multi-dimensional arrays of the shape specified by the additional integer
 arguments.  Note that Fortran takes arguments by reference unless the
 :fortran:`value` keyword is used. So an integer argument on the Fortran side
@@ -1837,8 +1888,7 @@ it into :cpp:`Real *, int *, int *`, where :cpp:`Real *` is the data pointer
 that matches real array argument in Fortran, the first :cpp:`int *` (which
 matches an integer argument in Fortran) specifies the lower bounds, and the
 second :cpp:`int *` the upper bounds of the spatial dimensions of the array.
-Similar to what we have seen in the section on :ref:`sec:basics:mfiter`, a
-matching Fortran function is shown below,
+An example of the Fortran function is shown below,
 
 .. highlight:: fortran
 
@@ -1902,8 +1952,8 @@ Here for simplicity we have omitted passing the tile Box.
 
 Usually :cpp:`MultiFab`\ s  have multiple components. Thus we often also need to
 pass the number of component into Fortran functions. We can obtain the number
-by calling the :cpp:`MultiFab::nComp()` function, and pass it to Fortran as we
-have seen in the section on :ref:`sec:basics:mfiter`.  We can also use the
+by calling the :cpp:`MultiFab::nComp()` function, and pass it to
+Fortran.  We can also use the
 :cpp:`BL_TO_FORTRAN_FAB` macro that is similar to :cpp:`BL_TO_FORTRAN_ANYD`
 except that it provides an additional :cpp:`int *` for the number of
 components. The Fortran function matching :cpp:`BL_TO_FORTRAN_FAB(fab)` is then
@@ -1932,20 +1982,20 @@ cannot catch it.  For example
     extern "C" {
         void f (amrex_real* x);
     }
-    
+
     for (MFIter mfi(mf,true); mfi.isValid(); ++mfi)
     {
         f(mf[mfi].dataPtr()));
     }
 
-    ! Fortra definition
+    ! Fortran definition
     subroutine f(x,y) bind(c)
         implicit none
         integer x, y
     end subroutine f
 
 The code above will compile without errors even though the number of
-arguments and types don't match.  
+arguments and types don't match.
 
 To help detect this kind of issues, AMReX provides a type check tool.
 Note that it only works when GCC is used.  In the directory an AMReX
@@ -1991,21 +2041,25 @@ report issues to us.
 
 .. _sec:basics:cppkernel:
 
-Writing kernels in C++ is also an option.  AMReX provides a
-multi-dimensional array type of syntax, similar to Fortran,
-that is readable and easy to implement. An example is given below: 
+Although Fortran has native multi-dimensional array, we recommend
+writing kernels in C++ because of performance portability for CPU and
+GPU.  AMReX provides a multi-dimensional array type of syntax, similar
+to Fortran, that is readable and easy to implement.  We have
+demonstrated how to use :cpp:`Array4` in previous sections.  Because
+of its importance, we will summarize its basic usage again with the
+example below.
 
 .. highlight:: c++
 
 ::
 
-    void f (Box const& bx, FArrayBox& fab1, FArrayBox const& fab2)
+    void f (Box const& bx, FArrayBox const& sfab, FArrayBox& dfab)
     {
         const Dim3 lo = amrex::lbound(bx);
-        const Dim3 hi = amrex::hbound(bx);
+        const Dim3 hi = amrex::ubound(bx);
 
-        Array4<Real> const& src = fab1.array();
-        Array4<Real> const& dst = fab2.array();
+        Array4<Real const> const& src = sfab.const_array();
+        Array4<Real      > const& dst = dfab2.array();
 
         for         (int k = lo.z; k <= hi.z; ++k) {
             for     (int j = lo.y; j <= hi.y; ++j) {
@@ -2023,22 +2077,22 @@ that is readable and easy to implement. An example is given below:
         f(box, mf1[mfi], mf2[mfi]);
     }
 
-A :cpp:`Box` and two :cpp:`FArrayBox`\es are passed to a C++ kernel 
+A :cpp:`Box` and two :cpp:`FArrayBox`\es are passed to a C++ kernel
 function.  In the function, :cpp:`amrex::lbound` and :cpp:`amrex::hbound`
 are called to get the start and end of the loops from :cpp:`Box::smallend()`
-and :cpp:`Box::bigend` of ``bx``.  Both functions return a 
+and :cpp:`Box::bigend` of ``bx``.  Both functions return a
 :cpp:`amrex::Dim3`, a Plain Old Data (POD) type containing three integers.
 The individual components are accessed by using :cpp:`.x`, :cpp:`.y` and
-:cpp:`.z`, as shown in the :cpp:`for` loops. 
+:cpp:`.z`, as shown in the :cpp:`for` loops.
 
 :cpp:`BaseFab::array()` is called to obtain an :cpp:`Array4` object that is
 designed as an independent, :cpp:`operator()` based accessor to the
 :cpp:`BaseFab` data. :cpp:`Array4` is an AMReX class that contains a
 pointer to the :cpp:`FArrayBox` data and two :cpp:`Dim3` vectors that
-contain the bounds of the :cpp:`FArrayBox`.  The bounds are stored to 
+contain the bounds of the :cpp:`FArrayBox`.  The bounds are stored to
 properly translate the three dimensional coordinates to the appropriate
-location in the one-dimensional array.  :cpp:`Array4`\'s :cpp:`operator()` 
-can also take a fourth integer to access across states of the 
+location in the one-dimensional array.  :cpp:`Array4`\'s :cpp:`operator()`
+can also take a fourth integer to access across states of the
 :cpp:`FArrayBox` and can be used in lower dimensions by passing `0` to
 the higher order dimensions.
 
@@ -2048,14 +2102,47 @@ vectorize the loop.  This should be done whenever possible to achieve the
 best performance. Be aware: the macro generates a compiler dependent
 pragma, so their exact effect on the resulting code is also compiler
 dependent.  It should be emphasized that using the ``AMREX_PRAGMA_SIMD``
-macro on loops that are not safe for vectorization will lead to a variety
-of errors, so if unsure about the independence of the iterations of a
+macro on loops that are not safe for vectorization may lead to errors,
+so if unsure about the independence of the iterations of a
 loop, test and verify before adding the macro.
 
-These loops should always use :cpp:`i <= hi.x`, not :cpp:`i < hi.x`, when 
+These loops should usually use :cpp:`i <= hi.x`, not :cpp:`i < hi.x`, when 
 defining the loop bounds. If not, the highest index cells will be left out
-of the calculation. 
+of the calculation.
 
+.. _sec:basics:loop:
+
+Loop and LoopConcurrent
+=======================
+
+In the examples so far, we have explicitly written out the for loops
+when we iterate over a :cpp:`Box` or a range specified by
+:cpp:`Dim3`\ s.  AMReX also provides function templates for writing
+these in a concise way like below,
+
+.. highlight:: c++
+
+::
+
+    Box bx(...);
+
+    // Loop over Box
+    Loop(bx, [] (int i, int j, int k) { ... });
+
+    // Loop over Dim3 ranges
+    const Dim3 lo = lbound(bx);
+    const Dim3 hi = ubound(bx); // Inclusive upper bound
+    Loop(lo, hi, [] (int i, int j, int k) { ... });
+
+    // 4D loop
+    Loop(bx, numcomps, [] (int i, int j, int k, int comp) { ... });
+
+    // Give hint to compilers that loops can run concurrently
+    LoopConcurrent(bx, [] (int i, int j, int k) { ... });
+
+Note that, unlike :cpp:`ParalleFor` that will be introduced in section
+:ref:`sec:gpu:for`, they do not launch GPU kernels to do the work,
+although they can be used in GPU kernels.
 
 Ghost Cells
 ===========
@@ -2119,7 +2206,7 @@ The basic idea behind physical boundary conditions is as follows:
    all the components are contiguous in memory.  Here we need to provide
    boundary types to each component of the :cpp:`MultiFab`. Below is an example
    of setting up :cpp:`Vector<BCRec>` before the call to ghost cell routines.
-   
+
    .. highlight:: c++
 
    ::
@@ -2130,7 +2217,7 @@ The basic idea behind physical boundary conditions is as follows:
          {
              for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
              {
-                 if (Geometry::isPeriodic(idim))
+                 if (geom.isPeriodic(idim))
                  {
                      bc[n].setLo(idim, BCType::int_dir); // interior
                      bc[n].setHi(idim, BCType::int_dir);
@@ -2164,9 +2251,7 @@ The basic idea behind physical boundary conditions is as follows:
            Reflection from interior cells with sign
            changed, :math:`q(-i) = -q(i)`.
 
--  We have interfaces to a fortran routine that fills ghost cells at domain
-   boundaries based on the boundary condition type defined in the :cpp:`BCRec`
-   object.  It is the user’s responsibility to have a consisent definition of
+-  It is the user’s responsibility to have a consisent definition of
    what the ghost cells represent. A common option used in AMReX codes is to
    fill the domain ghost cells with the value that lies on the boundary (as
    opposed to another common option where the value in the ghost cell represents
@@ -2207,32 +2292,14 @@ example).
 
 :cpp:`FillDomainBoundary()` is a function in
 ``amrex/Src/Base/AMReX_BCUtil.cpp`` that fills the physical domain
-boundary ghost cells with Fortran function ``amrex_fab_filcc`` except
-for external Dirichlet (i.e., :cpp:`BCType:ext_dir`).  The user can
-use it as a template and insert their own function for
-:cpp:`BCType:ext_dir` like below
+boundary ghost cells except for external Dirichlet (i.e.,
+:cpp:`BCType:ext_dir`).  The user can use it as a template and insert
+their own function.
 
-.. highlight:: c++
-
-::
-
-    if (! grown_domain_box.contains(fab_box))
-    {
-        amrex_fab_filcc(BL_TO_FORTRAN_FAB(fab),
-                        BL_TO_FORTRAN_BOX(domain_box),
-                        dx, prob_lo,
-                        bc[0].data());
-        user_fab_filcc(BL_TO_FORTRAN_FAB(fab),
-                       BL_TO_FORTRAN_BOX(domain_box),
-                       dx, prob_lo,
-                       bc[0].data());
-    }
-
-    
 Memory Allocation
 =================
 
-AMReX has a Fortran module, :fortran:`amrex_mempool_module` that can be used to
+AMReX has a Fortran module, :fortran:`amrex_mempool_module` that can be used to
 allocate memory for Fortran pointers. The reason that such a module exists in
 AMReX, is that memory allocation is often very slow in multi-threaded OpenMP
 parallel regions. AMReX :cpp:`amrex_mempool_module` provides a much faster
@@ -2354,7 +2421,7 @@ For example,
 ::
 
     mpiexec -n 4 valgrind --leak-check=yes --track-origins=yes --log-file=vallog.%p ./foo.exe ...
-    
+
 .. _sec:basics:heat1:
 
 Example: HeatEquation_EX1_C
@@ -2391,7 +2458,7 @@ Source code tree for the HeatEquation_EX1_C example
 
     amrex/Tutorials/HeatEquation_EX1_C/Source
         Contains the following source code specific to this tutorial:
-        
+
         #. ``Make.package``: lists the source code files
         #. ``main.cpp``: contains the C++ ``main`` function
         #. ``advance.cpp``: advance the solution by a time step
@@ -2417,7 +2484,7 @@ demonstrate how to read in parameters from the inputs file:
         // ParmParse is way of reading inputs from the inputs file
         ParmParse pp;
 
-        // We need to get n_cell from the inputs file - this is the number of cells on each side of 
+        // We need to get n_cell from the inputs file - this is the number of cells on each side of
         //   a square (or cubic) domain.
         pp.get("n_cell",n_cell);
 
@@ -2470,12 +2537,12 @@ and ghost cells associated with each grid:
 
 ::
 
-    // Nghost = number of ghost cells for each array 
+    // Nghost = number of ghost cells for each array
     int Nghost = 1;
-    
+
     // Ncomp = number of components for each array
     int Ncomp  = 1;
-  
+
     // How Boxes are distrubuted among MPI processes
     DistributionMapping dm(ba);
 
@@ -2534,9 +2601,9 @@ The associated fortran routines must shape the data accordinly:
 
    integer, intent(in) :: lo(2), hi(2), philo(2), phihi(2)
    real(amrex_real), intent(inout) :: phi(philo(1):phihi(1),philo(2):phihi(2))
-   real(amrex_real), intent(in   ) :: dx(2) 
-   real(amrex_real), intent(in   ) :: prob_lo(2) 
-   real(amrex_real), intent(in   ) :: prob_hi(2) 
+   real(amrex_real), intent(in   ) :: dx(2)
+   real(amrex_real), intent(in   ) :: prob_lo(2)
+   real(amrex_real), intent(in   ) :: prob_hi(2)
 
    integer          :: i,j
    double precision :: x,y,r2

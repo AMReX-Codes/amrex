@@ -32,6 +32,7 @@ namespace ParallelDescriptor
     template <> MPI_Datatype Mpi_typemap<unsigned short>::type();
     template <> MPI_Datatype Mpi_typemap<unsigned int>::type();
     template <> MPI_Datatype Mpi_typemap<unsigned long>::type();
+    template <> MPI_Datatype Mpi_typemap<unsigned long long>::type();
     template <> MPI_Datatype Mpi_typemap<float>::type();
     template <> MPI_Datatype Mpi_typemap<double>::type();
 }
@@ -52,6 +53,9 @@ const int MPI_COMM_NULL     = 0;
 const int MPI_GROUP_NULL    = 0;
 const int MPI_PROC_NULL     = 0;
 const int MPI_MAX_PROCESSOR_NAME = 64;
+
+const int MPI_MINLOC = 0;
+const int MPI_MAXLOC = 0;
 
 namespace amrex {
 namespace ParallelDescriptor

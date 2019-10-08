@@ -161,9 +161,9 @@ FluxRegister::CrseInit (const MultiFab& mflx,
     {
 	const Box& bx = mfi.tilebox();
         auto       dfab =   mf.array(mfi);
-        auto const sfab = mflx.array(mfi);
-        auto const afab = area.array(mfi);
-        AMREX_HOST_DEVICE_FOR_4D ( bx, numcomp, i, j, k, n,
+        auto const sfab = mflx.const_array(mfi);
+        auto const afab = area.const_array(mfi);
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, numcomp, i, j, k, n,
         {
             dfab(i,j,k,n) = sfab(i,j,k,n+srccomp)*mult*afab(i,j,k);
         });
@@ -191,9 +191,9 @@ FluxRegister::CrseInit (const MultiFab& mflx,
             for (FabSetIter mfi(fs); mfi.isValid(); ++mfi)
             {
                 const Box& bx = mfi.validbox();
-                auto const sfab =          fs.array(mfi);
+                auto const sfab =          fs.const_array(mfi);
                 auto       dfab = bndry[face].array(mfi);
-                AMREX_HOST_DEVICE_FOR_4D (bx, numcomp, i, j, k, n,
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D (bx, numcomp, i, j, k, n,
                 {
                     dfab(i,j,k,n+destcomp) += sfab(i,j,k,n);
                 });
@@ -248,9 +248,9 @@ FluxRegister::CrseAdd (const MultiFab& mflx,
     {
 	const Box& bx = mfi.tilebox();
         auto       dfab =   mf.array(mfi);
-        auto const sfab = mflx.array(mfi);
-        auto const afab = area.array(mfi);
-        AMREX_HOST_DEVICE_FOR_4D ( bx, numcomp, i, j, k, n,
+        auto const sfab = mflx.const_array(mfi);
+        auto const afab = area.const_array(mfi);
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, numcomp, i, j, k, n,
         {
             dfab(i,j,k,n) = sfab(i,j,k,n+srccomp)*mult*afab(i,j,k);
         });
@@ -297,8 +297,7 @@ FluxRegister::FineAdd (const MultiFab& mflx,
     for (MFIter mfi(mflx); mfi.isValid(); ++mfi)
     {
         const int k = mfi.index();
-        FArrayBox const* flxfab = mflx.fabPtr(mfi);
-        FineAdd(*flxfab,dir,k,srccomp,destcomp,numcomp,mult);
+        FineAdd(mflx[mfi],dir,k,srccomp,destcomp,numcomp,mult,RunOn::Gpu);
     }
 }
 
@@ -317,9 +316,7 @@ FluxRegister::FineAdd (const MultiFab& mflx,
     for (MFIter mfi(mflx); mfi.isValid(); ++mfi)
     {
         const int k = mfi.index();
-        FArrayBox const* flxfab = mflx.fabPtr(mfi);
-        FArrayBox const* areafab = area.fabPtr(mfi);
-        FineAdd(*flxfab,*areafab,dir,k,srccomp,destcomp,numcomp,mult);
+        FineAdd(mflx[mfi],area[mfi],dir,k,srccomp,destcomp,numcomp,mult,RunOn::Gpu);
     }
 }
 
@@ -330,7 +327,8 @@ FluxRegister::FineAdd (const FArrayBox& flux,
                        int              srccomp,
                        int              destcomp,
                        int              numcomp,
-                       Real             mult) noexcept
+                       Real             mult,
+                       RunOn            runon) noexcept
 {
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= flux.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= ncomp);
@@ -340,30 +338,32 @@ FluxRegister::FineAdd (const FArrayBox& flux,
     const Box& lobox = loreg.box();
     const Box& hibox = hireg.box();
 
-    FArrayBox const* pflux = &flux;
-    if (Gpu::isGpuPtr(pflux))
+    Array4<Real> loarr = loreg.array();
+    Array4<Real> hiarr = hireg.array();
+    Array4<Real const> farr = flux.const_array();
+    const Dim3 local_ratio = ratio.dim3();
+
+    if ((runon == RunOn::Gpu) && Gpu::inLaunchRegion())
     {
-        FArrayBox* ploreg = bndry[Orientation(dir,Orientation::low)].fabPtr(boxno);
-        FArrayBox* phireg = bndry[Orientation(dir,Orientation::high)].fabPtr(boxno);
-        const IntVect local_ratio = ratio;
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA
+        AMREX_LAUNCH_DEVICE_LAMBDA
         ( lobox, tlobx,
           {
-              fluxreg_fineadd(tlobx, *ploreg, destcomp, *pflux, srccomp,
+              fluxreg_fineadd(tlobx, loarr, destcomp, farr, srccomp,
                               numcomp, dir, local_ratio, mult);
           },
           hibox, thibx,
           {
-              fluxreg_fineadd(thibx, *phireg, destcomp, *pflux, srccomp,
+              fluxreg_fineadd(thibx, hiarr, destcomp, farr, srccomp,
                               numcomp, dir, local_ratio, mult);
-          });
+          }
+        );
     }
     else
     {
-        fluxreg_fineadd(lobox, loreg, destcomp, flux, srccomp,
-                        numcomp, dir, ratio, mult);
-        fluxreg_fineadd(hibox, hireg, destcomp, flux, srccomp,
-                        numcomp, dir, ratio, mult);
+        fluxreg_fineadd(lobox, loarr, destcomp, farr, srccomp,
+                        numcomp, dir, local_ratio, mult);
+        fluxreg_fineadd(hibox, hiarr, destcomp, farr, srccomp,
+                        numcomp, dir, local_ratio, mult);
     }
 }
 
@@ -375,7 +375,8 @@ FluxRegister::FineAdd (const FArrayBox& flux,
                        int              srccomp,
                        int              destcomp,
                        int              numcomp,
-                       Real             mult) noexcept
+                       Real             mult,
+                       RunOn            runon) noexcept
 {
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= flux.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= ncomp);
@@ -385,33 +386,37 @@ FluxRegister::FineAdd (const FArrayBox& flux,
     const Box& lobox = loreg.box();
     const Box& hibox = hireg.box();
 
-    FArrayBox const* pflux = &flux;
-    FArrayBox const* parea = &area;
-    if (Gpu::isGpuPtr(pflux) && Gpu::isGpuPtr(parea))
+    Array4<Real> loarr = loreg.array();
+    Array4<Real> hiarr = hireg.array();
+    Array4<Real const> farr = flux.const_array();
+    Array4<Real const> aarr = area.const_array();
+    const Dim3 local_ratio = ratio.dim3();
+
+    if ((runon == RunOn::Gpu) && Gpu::inLaunchRegion())
     {
-        FArrayBox* ploreg = bndry[Orientation(dir,Orientation::low)].fabPtr(boxno);
-        FArrayBox* phireg = bndry[Orientation(dir,Orientation::high)].fabPtr(boxno);
-        const IntVect local_ratio = ratio;
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA
+        AMREX_LAUNCH_DEVICE_LAMBDA
         ( lobox, tlobx,
           {
-              fluxreg_fineareaadd(tlobx, *ploreg, destcomp,
-                                  *parea, *pflux, srccomp,
+              fluxreg_fineareaadd(tlobx, loarr, destcomp,
+                                  aarr, farr, srccomp,
                                   numcomp, dir, local_ratio, mult);
           },
           hibox, thibx,
           {
-              fluxreg_fineareaadd(thibx, *phireg, destcomp,
-                                  *parea, *pflux, srccomp,
+              fluxreg_fineareaadd(thibx, hiarr, destcomp,
+                                  aarr, farr, srccomp,
                                   numcomp, dir, local_ratio, mult);
-          });
+          }
+        );
     }
     else
     {
-        fluxreg_fineareaadd(lobox, loreg, destcomp, area, flux, srccomp,
-                            numcomp, dir, ratio, mult);
-        fluxreg_fineareaadd(hibox, hireg, destcomp, area, flux, srccomp,
-                            numcomp, dir, ratio, mult);
+        fluxreg_fineareaadd(lobox, loarr, destcomp,
+                            aarr, farr, srccomp,
+                            numcomp, dir, local_ratio, mult);
+        fluxreg_fineareaadd(hibox, hiarr, destcomp,
+                            aarr, farr, srccomp,
+                            numcomp, dir, local_ratio, mult);
     }
 }
 
@@ -420,8 +425,11 @@ FluxRegister::FineSetVal (int              dir,
                           int              boxno,
                           int              destcomp,
                           int              numcomp,
-                          Real             val) noexcept
+                          Real             val,
+                          RunOn            runon) noexcept
 {
+    // xxxxx gpu todo
+
     // This routine used by FLASH does NOT run on gpu for safety.
 
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= ncomp);
@@ -526,12 +534,12 @@ FluxRegister::Reflux (MultiFab& mf, const MultiFab& volume, Orientation face,
     for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
-        FArrayBox* sfab = mf.fabPtr(mfi);
-        FArrayBox const* ffab = flux.fabPtr(mfi);
-        FArrayBox const* vfab = volume.fabPtr(mfi);
+        Array4<Real> const& sfab = mf.array(mfi);
+        Array4<Real const> const& ffab = flux.const_array(mfi);
+        Array4<Real const> const& vfab = volume.const_array(mfi);
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
         {
-            fluxreg_reflux(tbx, *sfab, dcomp, *ffab, *vfab, nc, scale, face);
+            fluxreg_reflux(tbx, sfab, dcomp, ffab, vfab, nc, scale, face);
         });
     }
 }
@@ -610,7 +618,7 @@ FluxRegister::OverwriteFlux (Array<MultiFab*,AMREX_SPACEDIM> const& crse_fluxes,
 
     Box cdomain = crse_geom.Domain();
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        if (Geometry::isPeriodic(idim)) cdomain.grow(idim, 1);
+        if (crse_geom.isPeriodic(idim)) cdomain.grow(idim, 1);
     }
 
     // cell-centered mask: 0: coarse, 1: covered by fine, 2: phys bc

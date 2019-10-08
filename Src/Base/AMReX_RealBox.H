@@ -15,7 +15,7 @@ namespace amrex {
 
 //!A Box with real dimensions.  A RealBox is OK iff volume >= 0.
 
-class RealBox // : public Gpu::Managed
+class RealBox
 {
 public:
     //! The default constructor.  Builds invalid RealBox.
@@ -83,6 +83,7 @@ public:
 #endif
             ;
     }
+
     //! Returns the volume of the RealBox. If this RealBox is invalid,
     //! it's volume is considered to be zero.
     AMREX_GPU_HOST_DEVICE
@@ -90,17 +91,32 @@ public:
         if (ok()) return AMREX_D_TERM(length(0), *length(1), *length(2));
         return 0.0;
     }
+
     //! Is the specified point contained in the RealBox?
     AMREX_GPU_HOST_DEVICE
-    bool contains (const Real* point, Real eps=0.0) const noexcept {
+    bool contains (const Real* point,
+                   Real eps = 0.0) const noexcept {
         return  AMREX_D_TERM((xlo[0]-eps < point[0]) && (point[0] < xhi[0]+eps),
                           && (xlo[1]-eps < point[1]) && (point[1] < xhi[1]+eps),
                           && (xlo[2]-eps < point[2]) && (point[2] < xhi[2]+eps));
     }
-    bool contains (const RealVect& rv, Real eps=0.0) const noexcept { return contains(rv.dataPtr(), eps); }
+
+    //! Is the specified point contained in the RealBox?
+    AMREX_GPU_HOST_DEVICE
+    bool contains (XDim3 point, Real eps = 0.0) const noexcept {
+        return  AMREX_D_TERM((xlo[0]-eps < point.x) && (point.x < xhi[0]+eps),
+                          && (xlo[1]-eps < point.y) && (point.y < xhi[1]+eps),
+                          && (xlo[2]-eps < point.z) && (point.z < xhi[2]+eps));
+    }
+
+    //! Is the specified RealVect contained in this RealBox?
+    bool contains (const RealVect& rv,
+                   Real eps=0.0) const noexcept { return contains(rv.dataPtr(), eps); }
+
     //! Is the specified RealBox contained in this RealBox?
     AMREX_GPU_HOST_DEVICE
-    bool contains (const RealBox& rb, Real eps=0.0) const noexcept {
+    bool contains (const RealBox& rb,
+                   Real eps = 0.0) const noexcept {
         return contains(rb.xlo, eps) && contains(rb.xhi, eps);
     }
 
@@ -126,6 +142,13 @@ std::ostream& operator<< (std::ostream&, const RealBox&);
 //
 //! Nice ASCII input.
 std::istream& operator>> (std::istream&, RealBox&);
+
+//! Check for equality of real boxes within a certain tolerance
+//! Can use std::numeric_precision::epsilon() * abs(x + y) * ulps for inexact comparison
+//! See https://en.cppreference.com/w/cpp/types/numeric_limits/epsilon
+bool AlmostEqual (const RealBox& box1,
+                  const RealBox& box2,
+                  Real eps = 0.0) noexcept;
 
 }
 

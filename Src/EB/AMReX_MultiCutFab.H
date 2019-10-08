@@ -12,8 +12,15 @@ class CutFab
 public:
 
     CutFab () {}
-    CutFab (const Box& b, int ncomps, bool alloc=true, bool shared=false)
-        : FArrayBox(b, ncomps, alloc, shared) {}
+
+    explicit CutFab (Arena* ar) : FArrayBox(ar) {}
+
+    CutFab (const Box& b, int n, Arena* ar)
+        : FArrayBox(b, n, ar) {}
+
+    CutFab (const Box& b, int ncomps, bool alloc=true,
+            bool shared=false, Arena* ar = nullptr)
+        : FArrayBox(b, ncomps, alloc, shared, ar) {}
 
 #ifdef AMREX_USE_GPU
     CutFab (CutFab const& rhs, MakeType make_type, int scomp, int ncomp)
@@ -93,11 +100,9 @@ public:
     const CutFab& operator[] (const MFIter& mfi) const noexcept;
     CutFab& operator[] (const MFIter& mfi) noexcept;
 
-    CutFab      * fabPtr (const MFIter& mfi) noexcept;
-    CutFab const* fabPtr (const MFIter& mfi) const noexcept;
-
     Array4<Real      > array (const MFIter& mfi) noexcept;
     Array4<Real const> array (const MFIter& mfi) const noexcept;
+    Array4<Real const> const_array (const MFIter& mfi) const noexcept;
 
     bool ok (const MFIter& mfi) const noexcept;
 

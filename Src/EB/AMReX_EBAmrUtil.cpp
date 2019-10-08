@@ -1,6 +1,5 @@
 
 #include <AMReX_EBAmrUtil.H>
-#include <AMReX_EBAmrUtil_F.H>
 #include <AMReX_EBFArrayBox.H>
 #include <AMReX_EBCellFlag.H>
 
@@ -14,15 +13,15 @@ void
 TagCutCells (TagBoxArray& tags, const MultiFab& state)
 {
     const char   tagval = TagBox::SET;
-    const char clearval = TagBox::CLEAR;
+//    const char clearval = TagBox::CLEAR;
 
     auto const& factory = dynamic_cast<EBFArrayBoxFactory const&>(state.Factory());
     auto const& flags = factory.getMultiEBCellFlagFab();
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(state, true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(state, TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
 
@@ -31,11 +30,14 @@ TagCutCells (TagBoxArray& tags, const MultiFab& state)
         const FabType typ = flag.getType(bx);
         if (typ != FabType::regular && typ != FabType::covered)
         {
-            TagBox& tagfab = tags[mfi];
-            amrex_tag_cutcells(BL_TO_FORTRAN_BOX(bx),
-                               BL_TO_FORTRAN_ANYD(tagfab),
-                               BL_TO_FORTRAN_ANYD(flag),
-                               tagval, clearval);
+            Array4<char> const& tagarr = tags.array(mfi);
+            Array4<EBCellFlag const> const& flagarr = flag.const_array();
+            AMREX_HOST_DEVICE_FOR_3D (bx, i, j, k,
+            {
+                if (flagarr(i,j,k).isSingleValued()) {
+                    tagarr(i,j,k) = tagval;
+                }
+            });
         }
     }
 }
@@ -46,22 +48,22 @@ TagVolfrac (TagBoxArray& tags, const MultiFab& volfrac, Real tol)
 {
     BL_PROFILE("amrex::TagVolfrac()");
 
-    const char clearval = TagBox::CLEAR;
+//    const char clearval = TagBox::CLEAR;
     const char   tagval = TagBox::SET;
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(volfrac, true); mfi.isValid(); ++mfi) {
-        const Box &    tilebox = mfi.tilebox();
-              TagBox & tagfab  = tags[mfi];
-
-        //_______________________________________________________________________
-        // Tag cells for refinement
-        amrex_tag_volfrac ( BL_TO_FORTRAN_BOX(tilebox),
-                            BL_TO_FORTRAN_ANYD(tagfab),
-                            BL_TO_FORTRAN_ANYD(volfrac[mfi]),
-                            tagval, clearval, tol );
+    for (MFIter mfi(volfrac, TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+        const Box& bx = mfi.tilebox();
+        Array4<char> const& tagarr = tags.array(mfi);
+        Array4<Real const> const& volarr = volfrac.const_array(mfi);
+        AMREX_HOST_DEVICE_FOR_3D ( bx, i, j, k,
+        {
+            if (volarr(i,j,k) <= (1.-tol) and volarr(i,j,k) >= tol) {
+                tagarr(i,j,k) = tagval;
+            }
+        });
     }
 }
 

@@ -13,6 +13,7 @@ MFIter::MFIter (const FabArrayBase& fabarray_,
     fabArray(fabarray_),
     tile_size((flags_ & Tiling) ? FabArrayBase::mfiter_tile_size : IntVect::TheZeroVector()),
     flags(flags_),
+    streams(Gpu::numGpuStreams()),
     dynamic(false),
     device_sync(true),
     index_map(nullptr),
@@ -30,6 +31,7 @@ MFIter::MFIter (const FabArrayBase& fabarray_,
     fabArray(fabarray_),
     tile_size((do_tiling_) ? FabArrayBase::mfiter_tile_size : IntVect::TheZeroVector()),
     flags(do_tiling_ ? Tiling : 0),
+    streams(Gpu::numGpuStreams()),
     dynamic(false),
     device_sync(true),
     index_map(nullptr),
@@ -48,6 +50,7 @@ MFIter::MFIter (const FabArrayBase& fabarray_,
     fabArray(fabarray_),
     tile_size(tilesize_),
     flags(flags_ | Tiling),
+    streams(Gpu::numGpuStreams()),
     dynamic(false),
     device_sync(true),
     index_map(nullptr),
@@ -67,6 +70,7 @@ MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm, unsigned char
     fabArray(*m_fa),
     tile_size((flags_ & Tiling) ? FabArrayBase::mfiter_tile_size : IntVect::TheZeroVector()),
     flags(flags_),
+    streams(Gpu::numGpuStreams()),
     dynamic(false),
     device_sync(true),
     index_map(nullptr),
@@ -86,6 +90,7 @@ MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm, bool do_tilin
     fabArray(*m_fa),
     tile_size((do_tiling_) ? FabArrayBase::mfiter_tile_size : IntVect::TheZeroVector()),
     flags(do_tiling_ ? Tiling : 0),
+    streams(Gpu::numGpuStreams()),
     dynamic(false),
     device_sync(true),
     index_map(nullptr),
@@ -107,6 +112,7 @@ MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm,
     fabArray(*m_fa),
     tile_size(tilesize_),
     flags(flags_ | Tiling),
+    streams(Gpu::numGpuStreams()),
     dynamic(false),
     device_sync(true),
     index_map(nullptr),
@@ -127,6 +133,7 @@ MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm, const MFItInf
     fabArray(*m_fa),
     tile_size(info.tilesize),
     flags(info.do_tiling ? Tiling : 0),
+    streams(info.num_streams),
 #ifdef _OPENMP
     dynamic(info.dynamic && (omp_get_num_threads() > 1)),
 #else
@@ -156,6 +163,7 @@ MFIter::MFIter (const FabArrayBase& fabarray_, const MFItInfo& info)
     fabArray(fabarray_),
     tile_size(info.tilesize),
     flags(info.do_tiling ? Tiling : 0),
+    streams(info.num_streams),
 #ifdef _OPENMP
     dynamic(info.dynamic && (omp_get_num_threads() > 1)),
 #else
@@ -189,7 +197,7 @@ MFIter::~MFIter ()
 #endif
 
 #ifdef AMREX_USE_GPU
-    if (device_sync) Gpu::Device::synchronize();
+    if (device_sync) Gpu::synchronize();
 #endif
 
 #ifdef AMREX_USE_GPU
@@ -207,6 +215,7 @@ MFIter::~MFIter ()
 #ifdef AMREX_USE_GPU
     AMREX_GPU_ERROR_CHECK();
     Gpu::Device::resetStreamIndex();
+    Gpu::resetNumCallbacks();
 #endif
 }
 
@@ -299,7 +308,8 @@ MFIter::Initialize ()
 	currentIndex = beginIndex;
 
 #ifdef AMREX_USE_GPU
-	Gpu::Device::setStreamIndex(currentIndex);
+	Gpu::Device::setStreamIndex((streams > 0) ? currentIndex%streams : -1);
+        Gpu::resetNumCallbacks();
 #endif
 
 	typ = fabArray.boxArray().ixType();
@@ -456,12 +466,6 @@ void
 MFIter::operator++ () noexcept
 {
 #ifdef _OPENMP
-    int numOmpThreads = omp_get_num_threads();
-#else
-    int numOmpThreads = 1;
-#endif
-
-#ifdef _OPENMP
     if (dynamic)
     {
 #pragma omp atomic capture
@@ -471,13 +475,19 @@ MFIter::operator++ () noexcept
 #endif
     {
 #ifdef AMREX_USE_GPU
+#ifdef _OPENMP
+        int numOmpThreads = omp_get_num_threads();
+#else
+        int numOmpThreads = 1;
+#endif
+        
         bool use_gpu = (numOmpThreads == 1) && Gpu::inLaunchRegion();
         if (use_gpu) {
             if (!real_reduce_list.empty()) {
                 for (int i = 0; i < real_reduce_list[currentIndex].size(); ++i) {
-                    Gpu::Device::dtoh_memcpy_async(&real_reduce_list[currentIndex][i],
-                                                   real_device_reduce_list[currentIndex][i],
-                                                   sizeof(Real));
+                    Gpu::dtoh_memcpy_async(&real_reduce_list[currentIndex][i],
+                                           real_device_reduce_list[currentIndex][i],
+                                           sizeof(Real));
                 }
             }
         }
@@ -487,10 +497,10 @@ MFIter::operator++ () noexcept
 
 #ifdef AMREX_USE_GPU
         if (use_gpu) {
-            Gpu::Device::setStreamIndex(currentIndex);
+            Gpu::Device::setStreamIndex((streams > 0) ? currentIndex%streams : -1);
             AMREX_GPU_ERROR_CHECK();
-#ifdef DEBUG
-//            Gpu::Device::synchronize();
+#ifdef AMREX_DEBUG
+//            Gpu::synchronize();
 #endif
         }
 #endif
@@ -537,9 +547,9 @@ MFIter::add_reduce_value(Real* val, MFReducer r)
 
         const int list_idx = real_reduce_list[currentIndex].size() - 1;
 
-        Gpu::Device::htod_memcpy_async(real_device_reduce_list[currentIndex][list_idx],
-                                       &real_reduce_list[currentIndex][list_idx],
-                                       sizeof(Real));
+        Gpu::htod_memcpy_async(real_device_reduce_list[currentIndex][list_idx],
+                               &real_reduce_list[currentIndex][list_idx],
+                               sizeof(Real));
 
         // If we haven't already, store the address to the variable
         // we will update at the end.
