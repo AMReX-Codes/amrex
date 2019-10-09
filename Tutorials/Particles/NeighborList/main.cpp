@@ -89,6 +89,8 @@ int main(int argc, char* argv[])
 
     myPC.InitParticles();
 
+    myPC.setEnableInverse(true);
+
     for (int i = 0; i < max_step; i++) {
 
         amrex::Print() << "Taking step " << i << "\n";
