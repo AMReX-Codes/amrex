@@ -4,6 +4,7 @@
 //Common definitions for the QED library wrappers
 
 #include <AMReX_AmrCore.H>
+#include <AMReX_Gpu.H>
 
 //Sets the decorator for GPU
 #define PXRMP_GPU AMREX_GPU_DEVICE
