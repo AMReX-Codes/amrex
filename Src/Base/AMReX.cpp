@@ -494,13 +494,13 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 
     ParallelDescriptor::Initialize();
 
+    Arena::Initialize();
+    amrex_mempool_init();
+
     //
     // Initialize random seed after we're running in parallel.
     //
     amrex::InitRandom(ParallelDescriptor::MyProc()+1, ParallelDescriptor::NProcs());
-
-    Arena::Initialize();
-    amrex_mempool_init();
 
     // For thread safety, we should do these initializations here.
     BaseFab_Initialize();
