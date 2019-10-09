@@ -23,7 +23,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                             Array4<Real const> const& crsebcvalyhi,
                             GpuArray<BoundCond,2*AMREX_SPACEDIM*AMREX_SPACEDIM> const& bct,
                             GpuArray<Real,2*AMREX_SPACEDIM*AMREX_SPACEDIM> const& bcl,
-                            int inhomog, int maxorder, int use_crsedata,
+                            int inhomog, int maxorder, int has_crsedata,
                             GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
 			    Dim3 const& rr,
                             Box const& domain) noexcept
@@ -46,83 +46,87 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
             // xlo & ylo
             Box bx = amrex::adjCellLo(amrex::adjCellLo(vbox,xdir,1),ydir,1);
 
-	    if (use_crsedata)
-		  mltensor_interpbndry_o1(bx, icomp, vel, crsebcvalxlo, mxlo, rr);
-	    else if (vlo.x == dlo.x and vlo.y == dlo.y) {
-                vel(vlo.x-1,vlo.y-1,0,icomp) = vel(vlo.x-1,vlo.y,0,icomp)
-                    + vel(vlo.x,vlo.y-1,0,icomp) - vel(vlo.x,vlo.y,0,icomp);
-            } else if (vlo.x == dlo.x) {
-                int offset = AMREX_SPACEDIM * oxlo;
-                mllinop_apply_bc_x(Orientation::low, bx, blen.x,
-                                   vel, mxlo, bct[offset+icomp], bcl[offset+icomp],
-                                   bcvalxlo, maxorder, dxinv[xdir], inhomog, icomp);
-            } else if (vlo.y == dlo.y) {
-                int offset = AMREX_SPACEDIM * oylo;
-                mllinop_apply_bc_y(Orientation::low, bx, blen.y,
-                                   vel, mylo, bct[offset+icomp], bcl[offset+icomp],
-                                   bcvalylo, maxorder, dxinv[ydir], inhomog, icomp);
-            }
+	    if (has_crsedata)
+	        mltensor_interpbndry_o1(bx, icomp, vel, crsebcvalxlo, mxlo, rr);
+
+	    if ( mxlo(vlo.x-1,vlo.y,0)==2 and mylo(vlo.x,vlo.y-1,0)==2 ) {
+	        vel(vlo.x-1,vlo.y-1,0,icomp) = vel(vlo.x-1,vlo.y,0,icomp)
+		  + vel(vlo.x,vlo.y-1,0,icomp) - vel(vlo.x,vlo.y,0,icomp);
+	    } else if ( mxlo(vlo.x-1,vlo.y,0)==2 and vlo.x == dlo.x ) {
+	        int offset = AMREX_SPACEDIM * oxlo;
+		mllinop_apply_bc_x(Orientation::low, bx, blen.x,
+				   vel, mxlo, bct[offset+icomp], bcl[offset+icomp],
+				   bcvalxlo, maxorder, dxinv[xdir], inhomog, icomp);
+	    } else if ( mylo(vlo.x,vlo.y-1,0)==2 and vlo.y == dlo.y ) {
+		int offset = AMREX_SPACEDIM * oylo;
+		mllinop_apply_bc_y(Orientation::low, bx, blen.y,
+				   vel, mylo, bct[offset+icomp], bcl[offset+icomp],
+				   bcvalylo, maxorder, dxinv[ydir], inhomog, icomp);
+	    }
             break;
         }
         case 1: {
             // xhi & ylo
             Box bx = amrex::adjCellLo(amrex::adjCellHi(vbox,xdir,1),ydir,1);
-
-	    if (use_crsedata)
+	      
+	    if (has_crsedata)
 	      mltensor_interpbndry_o1(bx, icomp, vel, crsebcvalxhi, mxhi, rr);
-	    else if (vhi.x == dhi.x and vlo.y == dlo.y) {
-                vel(vhi.x+1,vlo.y-1,0,icomp) = vel(vhi.x+1,vlo.y,0,icomp)
-                    + vel(vhi.x,vlo.y-1,0,icomp) - vel(vhi.x,vlo.y,0,icomp);
-            } else if (vhi.x == dhi.x) {
-                int offset = AMREX_SPACEDIM * oxhi;
-                mllinop_apply_bc_x(Orientation::high, bx, blen.x,
-                                   vel, mxhi, bct[offset+icomp], bcl[offset+icomp],
-                                   bcvalxhi, maxorder, dxinv[xdir], inhomog, icomp);
-            } else if (vlo.y == dlo.y) {
-                int offset = AMREX_SPACEDIM * oylo;
-                mllinop_apply_bc_y(Orientation::low, bx, blen.y,
-                                   vel, mylo, bct[offset+icomp], bcl[offset+icomp],
-                                   bcvalylo, maxorder, dxinv[ydir], inhomog, icomp);
-            }
+
+	    if ( mxhi(vhi.x+1,vlo.y,0)==2 and mylo(vhi.x,vlo.y-1,0)==2 ) {
+	      vel(vhi.x+1,vlo.y-1,0,icomp) = vel(vhi.x+1,vlo.y,0,icomp)
+		+ vel(vhi.x,vlo.y-1,0,icomp) - vel(vhi.x,vlo.y,0,icomp);
+	    } else if ( mxhi(vhi.x+1,vlo.y,0)==2 and vhi.x == dhi.x ) {
+	      int offset = AMREX_SPACEDIM * oxhi;
+	      mllinop_apply_bc_x(Orientation::high, bx, blen.x,
+				 vel, mxhi, bct[offset+icomp], bcl[offset+icomp],
+				 bcvalxhi, maxorder, dxinv[xdir], inhomog, icomp);
+	    } else if ( mylo(vhi.x,vlo.y-1,0)==2 and vlo.y == dlo.y ) {
+	      int offset = AMREX_SPACEDIM * oylo;
+	      mllinop_apply_bc_y(Orientation::low, bx, blen.y,
+				 vel, mylo, bct[offset+icomp], bcl[offset+icomp],
+				 bcvalylo, maxorder, dxinv[ydir], inhomog, icomp);
+	    }
             break;
         }
         case 2: {
             // xlo & yhi
             Box bx = amrex::adjCellHi(amrex::adjCellLo(vbox,xdir,1),ydir,1);
 
-	    if (use_crsedata)
-		  mltensor_interpbndry_o1(bx, icomp, vel, crsebcvalxlo, mxlo, rr);
-            else if (vlo.x == dlo.x and vhi.y == dhi.y) {
-                vel(vlo.x-1,vhi.y+1,0,icomp) = vel(vlo.x-1,vhi.y,0,icomp)
-                    + vel(vlo.x,vhi.y+1,0,icomp) - vel(vlo.x,vhi.y,0,icomp);
-            } else if (vlo.x == dlo.x) {
-                int offset = AMREX_SPACEDIM * oxlo;
-                mllinop_apply_bc_x(Orientation::low, bx, blen.x,
-                                   vel, mxlo, bct[offset+icomp], bcl[offset+icomp],
-                                   bcvalxlo, maxorder, dxinv[xdir], inhomog, icomp);
-            } else if (vhi.y == dhi.y) {
-                int offset = AMREX_SPACEDIM * oyhi;
-                mllinop_apply_bc_y(Orientation::high, bx, blen.y,
-                                   vel, myhi, bct[offset+icomp], bcl[offset+icomp],
-                                   bcvalyhi, maxorder, dxinv[ydir], inhomog, icomp);
-            }
+	    if (has_crsedata)
+	      mltensor_interpbndry_o1(bx, icomp, vel, crsebcvalxlo, mxlo, rr);
+
+	    if ( mxlo(vlo.x-1,vhi.y,0)==2 and myhi(vlo.x,vhi.y+1,0)==2 ) {
+	      vel(vlo.x-1,vhi.y+1,0,icomp) = vel(vlo.x-1,vhi.y,0,icomp)
+		+ vel(vlo.x,vhi.y+1,0,icomp) - vel(vlo.x,vhi.y,0,icomp);
+	    } else if ( mxlo(vlo.x-1,vhi.y,0)==2 and vlo.x == dlo.x ) {
+	      int offset = AMREX_SPACEDIM * oxlo;
+	      mllinop_apply_bc_x(Orientation::low, bx, blen.x,
+				 vel, mxlo, bct[offset+icomp], bcl[offset+icomp],
+				 bcvalxlo, maxorder, dxinv[xdir], inhomog, icomp);
+	    } else if ( myhi(vlo.x,vhi.y+1,0)==2 and vhi.y == dhi.y ) {
+	      int offset = AMREX_SPACEDIM * oyhi;
+	      mllinop_apply_bc_y(Orientation::high, bx, blen.y,
+				 vel, myhi, bct[offset+icomp], bcl[offset+icomp],
+				 bcvalyhi, maxorder, dxinv[ydir], inhomog, icomp);
+	    }
             break;
         }
         case 3: {
             // xhi & yhi
             Box bx = amrex::adjCellHi(amrex::adjCellHi(vbox,xdir,1),ydir,1);
 
-	    if (use_crsedata)
-		  mltensor_interpbndry_o1(bx, icomp, vel, crsebcvalyhi, myhi, rr);
-            else if (vhi.x == dhi.x and vhi.y == dhi.y) {
+	    if (has_crsedata)
+	      mltensor_interpbndry_o1(bx, icomp, vel, crsebcvalyhi, myhi, rr);
+
+            if ( mxhi(vhi.x+1,vhi.y,0)==2 and myhi(vhi.x,vhi.y+1,0)==2 ) {
                 vel(vhi.x+1,vhi.y+1,0,icomp) = vel(vhi.x+1,vhi.y,0,icomp)
                     + vel(vhi.x,vhi.y+1,0,icomp) - vel(vhi.x,vhi.y,0,icomp);
-            } else if (vhi.x == dhi.x) {
+            } else if ( mxhi(vhi.x+1,vhi.y,0)==2 and vhi.x == dhi.x ) {
                 int offset = AMREX_SPACEDIM * oxhi;
                 mllinop_apply_bc_x(Orientation::high, bx, blen.x,
                                    vel, mxhi, bct[offset+icomp], bcl[offset+icomp],
                                    bcvalxhi, maxorder, dxinv[xdir], inhomog, icomp);
-            } else if (vhi.y == dhi.y) {
+            } else if ( myhi(vhi.x,vhi.y+1,0)==2 and vhi.y == dhi.y ) {
                 int offset = AMREX_SPACEDIM * oyhi;
                 mllinop_apply_bc_y(Orientation::high, bx, blen.y,
                                    vel, myhi, bct[offset+icomp], bcl[offset+icomp],
@@ -185,72 +189,6 @@ void mltensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
             Real mut =       etay(i,j,0,0);
             fy(i,j,0,0) = -mut*dvdx;
             fy(i,j,0,1) = -mun*(-twoThirds*divu) - xif*divu;
-	    //fixme
-	    IntVect mypt={0,95};
-	    if (box.contains(mypt)) {
-	      // 	if (i==0 && j==0){
-	      // 	  Print()<<" i,j: "<<i<< ","<<j<<"\n";
-	      // 	  Print()<<"vel(-1,-1) "<<vel(i-1,j-1,0,0)<<" "<<vel(i-1,j-1,0,1)<<"\n";
-	      // 	  Print()<<"vel(-1,0) "<<vel(i-1,j,0,0)<<" "<<vel(i-1,j,0,1)<<"\n";
-	      // 	  Print()<<"vel(0,0) "<<vel(i,j,0,0)<<" "<<vel(i,j,0,1)<<"\n";
-	      // 	  Print()<<"vel(0,-1) "<<vel(i,j-1,0,0)<<" "<<vel(i,j-1,0,1)<<"\n";
-	      // 	}
-	      // 	if (i==0 && j==15){
-	      // 	  Print()<<" i,j: "<<i<< ","<<j<<"\n";
-	      // 	  Print()<<"vel(-1,-1) "<<vel(i-1,j-1,0,0)<<" "<<vel(i-1,j-1,0,1)<<"\n";
-	      // 	  Print()<<"vel(-1,0) "<<vel(i-1,j,0,0)<<" "<<vel(i-1,j,0,1)<<"\n";
-	      // 	  Print()<<"vel(0,0) "<<vel(i,j,0,0)<<" "<<vel(i,j,0,1)<<"\n";
-	      // 	  Print()<<"vel(0,-1) "<<vel(i,j-1,0,0)<<" "<<vel(i,j-1,0,1)<<"\n";
-	      // 	}
-	      if (i==0 && j==95){
-	    	  Print()<<" i,j: "<<i<< ","<<j<<"\n";
-	    	  Print()<<"vel(-1,0) "<<vel(i-1,j,0,0)<<" "<<vel(i-1,j,0,1)<<"\n";
-	    	  Print()<<"vel(-1,+1) "<<vel(i-1,j+1,0,0)<<" "<<vel(i-1,j+1,0,1)<<"\n";
-	    	  Print()<<"vel(0,+1) "<<vel(i,j+1,0,0)<<" "<<vel(i,j+1,0,1)<<"\n";
-	    	  Print()<<"vel(0,0) "<<vel(i,j,0,0)<<" "<<vel(i,j,0,1)<<"\n";
-	    	}
-
-	    }
-	      mypt={8,55};
-	     if (box.contains(mypt)) {
-	    	// if (i==0 && j==32){
-	    	//   Print()<<" i,j: "<<i<< ","<<j<<"\n";
-	    	//   Print()<<"vel(-1,-1) "<<vel(i-1,j-1,0,0)<<" "<<vel(i-1,j-1,0,1)<<"\n";
-	    	//   Print()<<"vel(-1,0) "<<vel(i-1,j,0,0)<<" "<<vel(i-1,j,0,1)<<"\n";
-	    	//   Print()<<"vel(0,0) "<<vel(i,j,0,0)<<" "<<vel(i,j,0,1)<<"\n";
-	    	//   Print()<<"vel(0,-1) "<<vel(i,j-1,0,0)<<" "<<vel(i,j-1,0,1)<<"\n\n";
-	    	// }
-	    	if (i==0 && j==55){
-	    	  Print()<<" i,j: "<<i<< ","<<j<<"\n";
-	    	  Print()<<"vel(-1,0) "<<vel(i-1,j,0,0)<<" "<<vel(i-1,j,0,1)<<"\n";
-	    	  Print()<<"vel(-1,+1) "<<vel(i-1,j+1,0,0)<<" "<<vel(i-1,j+1,0,1)<<"\n";
-	    	  Print()<<"vel(0,+1) "<<vel(i,j+1,0,0)<<" "<<vel(i,j+1,0,1)<<"\n";
-	    	  Print()<<"vel(0,0) "<<vel(i,j,0,0)<<" "<<vel(i,j,0,1)<<"\n";1111111
-	    	}
-	    	// if (i==15 && j==47){
-	    	//   Print()<<" i,j: "<<i<< ","<<j<<"\n";
-	    	//   Print()<<"vel(0,0) "<<vel(i,j,0,0)<<" "<<vel(i,j,0,1)<<"\n";
-	    	//   Print()<<"vel(0,+1) "<<vel(i,j+1,0,0)<<" "<<vel(i,j+1,0,1)<<"\n";
-	    	//   Print()<<"vel(+1,+1) "<<vel(i+1,j+1,0,0)<<" "<<vel(i+1,j+1,0,1)<<"\n";
-	    	//   Print()<<"vel(+1,0) "<<vel(i+1,j,0,0)<<" "<<vel(i+1,j,0,1)<<"\n\n";
-	    	// }
-	       }
-	    // IntVect mypt={1,35};
-	    // if (box.contains(mypt)) {
-	    // 	if (i==0 && j==32){
-	    // 	  Print()<<"vel(0-1,32-1) "<<vel(i-1,j-1,0,0)<<" "<<vel(i-1,j-1,0,1)<<"\n";
-	    // 	  Print()<<"vel(0,32) "<<vel(i,j,0,0)<<" "<<vel(i,j,0,1)<<"\n\n";
-	    // 	}
-	    // 	if (i==0 && j==47){
-	    // 	  Print()<<"vel(0-1,47+1) "<<vel(i-1,j+1,0,0)<<" "<<vel(i-1,j+1,0,1)<<"\n";
-	    // 	  Print()<<"vel(0,47) "<<vel(i,j,0,0)<<" "<<vel(i,j,0,1)<<"\n\n";
-	    // 	}
-	    //   }
-	    // if (i==16 && j==47){
-	    //   Print()<<"vel(16-1,47+1) "<<vel(i-1,j+1,0,0)<<" "<<vel(i-1,j+1,0,1)<<"\n";
-	    //   Print()<<"vel(0,47) "<<vel(i,j,0,0)<<" "<<vel(i,j,0,1)<<"\n\n";
-	    // }
-
         }
     }
 }

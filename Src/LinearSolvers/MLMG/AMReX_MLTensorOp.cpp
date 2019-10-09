@@ -184,7 +184,7 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
 			   ) const
 {
 #if (AMREX_SPACEDIM > 1)
-
+ 
     const int inhomog = bc_mode == BCMode::Inhomogeneous;
     const int imaxorder = maxorder;
     const auto& bcondloc = *m_bcondloc[amrlev][mglev];
@@ -202,13 +202,9 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
     const Box& domain = m_geom[amrlev][mglev].growPeriodicDomain(1);
     Box testbox = domain;
     
-    // pretty sure bc_mode is always inhomog
-    // see MLCellLinOp::solutionResidual()...
-    // but correctionResidual will also get here
-    // don't think having coarse data and homog makes sense...
-    const int use_crsedata = (crsebndry!=nullptr && inhomog);
+    const int has_crsedata = crsebndry!=nullptr;
     
-    // Domain boundaries are handled below.
+    // Domain and coarse-fine boundaries are handled below.
 
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
@@ -219,15 +215,8 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
     {
         const Box& vbx = mfi.validbox();
 
-	if ( crsebndry != nullptr ){
+	if ( has_crsedata ){
 	  testbox = vbx;
-	   if ( !m_geom[amrlev][mglev].isAllPeriodic() ) {
-	     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-	       if (m_geom[amrlev][mglev].isPeriodic(idim)) {
-		 testbox.grow(idim,1);
-	       }
-	     }
-	   }
 	}
 
         const auto& velfab = vel.array(mfi);
@@ -277,7 +266,7 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
                                   mxlo, mylo, mxhi, myhi,
                                   bvxlo, bvylo, bvxhi, bvyhi,
 				  cbvxlo, cbvylo, cbvxhi, cbvyhi,
-                                  bct, bcl, inhomog, imaxorder, use_crsedata,
+                                  bct, bcl, inhomog, imaxorder, has_crsedata,
                                   dxinv, rr, testbox);
         });
 #else
@@ -294,26 +283,23 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
         const auto& cbvzhi = (crsebndry != nullptr) ?
 	  (*crsebndry)[Orientation(2,Orientation::high)].array(mfi) : foo;
 
+	// only edge vals used in 3D stencil
         AMREX_HOST_DEVICE_FOR_1D ( 12, iedge,
         {
             mltensor_fill_edges(iedge, vbx, velfab,
                                 mxlo, mylo, mzlo, mxhi, myhi, mzhi,
                                 bvxlo, bvylo, bvzlo, bvxhi, bvyhi, bvzhi,
 				cbvxlo, cbvylo, cbvzlo, cbvxhi, cbvyhi, cbvzhi,
-                                bct, bcl, inhomog, imaxorder, use_crsedata,
+                                bct, bcl, inhomog, imaxorder, has_crsedata,
 				dxinv, rr, testbox);
         });
-	// Corners are never used in 3D stencil, only edge vals
 
 #endif
     }
 
-    /** \brief Fill cells outside periodic domains with their corresponding cells inside
-    * the domain.  Ghost cells are treated the same as valid cells.  The BoxArray
-    * is allowed to be overlapping.
-    */
     vel.EnforcePeriodicity(0, AMREX_SPACEDIM, m_geom[amrlev][mglev].periodicity());
 #endif
+    VisMF::Write(vel, "vel");
 }
 
 void
