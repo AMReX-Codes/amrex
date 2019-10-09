@@ -76,15 +76,17 @@ public:
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    void transformSourceParticle(int is, 
-                                 WarpXParticleContainer::ParticleType& p_source) const
+    void transformSourceParticle(
+        int is, 
+        WarpXParticleContainer::ParticleType& p_source) const
     {
         amrex::Print()<<"transforming source particle --- ";
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    void transformProductParticle(int ip,
-                                  WarpXParticleContainer::ParticleType& p_product) const
+    void transformProductParticle(
+        int ip,
+        WarpXParticleContainer::ParticleType& p_product) const
     {
         amrex::Print()<<"transforming product particle\n";
     }

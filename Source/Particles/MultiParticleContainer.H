@@ -195,14 +195,6 @@ public:
 
     elementaryProcess<elementaryProcessType::Ionization> ionization_process;
 
-/*
-    void createParticles (
-        int lev, const amrex::MFIter& mfi,
-        std::unique_ptr< WarpXParticleContainer>& pc_source,
-        std::unique_ptr< WarpXParticleContainer>& pc_product,
-        amrex::Gpu::ManagedDeviceVector<int>& is_flagged,
-        elementaryProcess elementary_process);
-*/    
 protected:
 
     // Particle container types
