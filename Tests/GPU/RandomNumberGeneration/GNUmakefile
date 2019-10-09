@@ -4,9 +4,10 @@ DEBUG	= FALSE
 
 DIM	= 3
 
-COMP    = gcc
+COMP    = hip
 
-USE_CUDA  = TRUE
+USE_CUDA  = FALSE 
+USE_HIP   = TRUE
 USE_ACC   = FALSE
 USE_OMP_OFFLOAD = FALSE
 
@@ -14,6 +15,10 @@ USE_MPI   = FALSE
 USE_OMP   = FALSE
 
 TINY_PROFILE = TRUE
+
+INCLUDE_LOCATIONS += /opt/rocm/hiprand/include /opt/rocm/rocrand/include
+LIBRARY_LOCATIONS += /opt/rocm/hiprand/lib/    /opt/rocm/rocrand/lib/
+LIBRARIES += -lhiprand -lrocrand
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
