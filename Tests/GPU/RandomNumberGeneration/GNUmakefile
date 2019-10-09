@@ -16,9 +16,11 @@ USE_OMP   = FALSE
 
 TINY_PROFILE = TRUE
 
-INCLUDE_LOCATIONS += /opt/rocm/hiprand/include /opt/rocm/rocrand/include
-LIBRARY_LOCATIONS += /opt/rocm/hiprand/lib/    /opt/rocm/rocrand/lib/
-LIBRARIES += -lhiprand -lrocrand
+ifeq ($(USE_HIP),TRUE)
+  INCLUDE_LOCATIONS += /opt/rocm/hiprand/include /opt/rocm/rocrand/include
+  LIBRARY_LOCATIONS += /opt/rocm/hiprand/lib/    /opt/rocm/rocrand/lib/
+  LIBRARIES += -lhiprand -lrocrand
+endif
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
