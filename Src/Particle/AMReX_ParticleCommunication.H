@@ -111,7 +111,24 @@ struct ParticleCopyPlan
 
         m_neighbor_procs = pc.NeighborProcs(ngrow);
 
-        if (num_buckets == 1 and (not pc.Geom(0).isAnyPeriodic()) ) return;
+        if (num_buckets == 1 and (not pc.Geom(0).isAnyPeriodic()) )
+        {
+#ifdef BL_USE_MPI
+            const int NProcs = ParallelDescriptor::NProcs();
+            m_Snds.resize(0);
+            m_Snds.resize(NProcs, 0);
+            
+            m_Rcvs.resize(0);
+            m_Rcvs.resize(NProcs, 0);
+            
+            m_snd_num_particles.resize(0);
+            m_snd_num_particles.resize(NProcs, 0);
+            
+            m_rcv_num_particles.resize(0);
+            m_rcv_num_particles.resize(NProcs, 0);
+#endif
+            return;
+        }
 
         m_box_counts.resize(0);
         m_box_counts.resize(num_buckets, 0);
