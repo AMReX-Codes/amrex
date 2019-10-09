@@ -10,9 +10,10 @@
 #include <AMReX_Array4.H>
 #include <iostream>
 #include <cmath>
+
 #ifdef AMREX_USE_CUDA
 #include <cuda.h>
-#include <curand_kernel.h>
+#include <curand_kernel.h>   // Is this needed here?
 #endif
 
 namespace amrex {
