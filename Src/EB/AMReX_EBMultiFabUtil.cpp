@@ -539,8 +539,10 @@ void EB_computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPA
 {
     AMREX_ASSERT(divu.nComp()==umac[0]->nComp());
     AMREX_ASSERT(divu.nComp()==umac[1]->nComp());
+#if (AMREX_SPACEDIM == 3)
     AMREX_ASSERT(divu.nComp()==umac[2]->nComp());
-
+#endif
+    
     if (!divu.hasEBFabFactory())
     {
         amrex::computeDivergence(divu, umac, geom);
