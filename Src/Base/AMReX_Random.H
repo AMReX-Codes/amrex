@@ -26,7 +26,7 @@ namespace amrex
 
 
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
     // Locking mechanism functions for locking and unlocking
     AMREX_GPU_DEVICE int get_state(int tid);
     AMREX_GPU_DEVICE void free_state(int tid);
@@ -40,7 +40,7 @@ namespace amrex
     * The CPU version of this function uses C++11's mt19937.
     * The GPU version uses CURAND's XORWOW generator.
     */
-#ifdef __CUDA_ARCH__    
+#ifdef AMREX_DEVICE_COMPILE 
     AMREX_GPU_DEVICE
     unsigned int Random_int(unsigned int n); // [0,n-1]
 #else
