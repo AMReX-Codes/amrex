@@ -5,6 +5,37 @@
 #include "MultiParticleContainer.H"
 
 enum struct elementaryProcessType { Ionization };
+enum struct PType {source, product};
+
+namespace transform
+{
+    template < elementaryProcessType ElemT, PType PartT >
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    void transformParticle(
+        int i,
+        WarpXParticleContainer::ParticleType& particle)
+    {
+        amrex::Print()<<"primary template\n";
+    }
+
+    template <>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    void transformParticle<elementaryProcessType::Ionization, PType::source>(
+        int i,
+        WarpXParticleContainer::ParticleType& particle)
+    {
+        amrex::Print()<<"ionization source template\n";
+    }
+
+    template <>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    void transformParticle<elementaryProcessType::Ionization, PType::product>(
+        int i,
+        WarpXParticleContainer::ParticleType& particle)
+    {
+        amrex::Print()<<"ionization product template\n";
+    }
+}
 
 template < elementaryProcessType process_type >
 class copyAndTransformParticle
@@ -32,7 +63,7 @@ public:
         m_runtime_uold_source(runtime_uold_source),
         m_attribs_source(attribs_source),
         m_attribs_product(attribs_product),
-        m_runtime_attribs_product(runtime_attribs_product) {}
+        m_runtime_attribs_product(runtime_attribs_product){}
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void operator () (int is, int ip, int pid_product,
@@ -40,8 +71,8 @@ public:
                       WarpXParticleContainer::ParticleType& p_product) const noexcept
     {
         this->copyParticle(is, ip, pid_product, p_source, p_product);
-        this->transformSourceParticle(is, p_source);
-        this->transformProductParticle(is, p_product);
+        transform::transformParticle<process_type, PType::source > (is, p_source );
+        transform::transformParticle<process_type, PType::product> (ip, p_product);
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -73,22 +104,6 @@ public:
             m_runtime_attribs_product[4][ip] = m_runtime_uold_source[1][ip];
             m_runtime_attribs_product[5][ip] = m_runtime_uold_source[2][ip];
         }
-    }
-
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    void transformSourceParticle(
-        int is, 
-        WarpXParticleContainer::ParticleType& p_source) const
-    {
-        amrex::Print()<<"transforming source particle --- ";
-    }
-
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    void transformProductParticle(
-        int ip,
-        WarpXParticleContainer::ParticleType& p_product) const
-    {
-        amrex::Print()<<"transforming product particle\n";
     }
 };
 
@@ -187,11 +202,6 @@ public:
         // --- product runtime attribs
         amrex::GpuArray<amrex::ParticleReal*,6> runtime_attribs_product;
 
-
-        // bool do_boosted_product = WarpX::do_boosted_frame_diagnostic
-        //     && pc_product->DoBoostedFrameDiags();
-
-
         if (do_boosted_product) {
             std::map<std::string, int> comps_product = pc_product->getParticleComps();
             runtime_attribs_product[0] = soa_product.GetRealData(comps_product[ "xold"]).data() + np_product_old;
@@ -218,7 +228,7 @@ public:
             attribs_source,
             attribs_product,
             runtime_attribs_product);
-    
+
         // Loop over all source particles. If is_flagged, copy particle data
         // to corresponding product particle.
         amrex::For(
@@ -240,7 +250,6 @@ public:
             }
             );
     }
-
 };
 
 #endif // ELEMENTARYPROCESS_H_
