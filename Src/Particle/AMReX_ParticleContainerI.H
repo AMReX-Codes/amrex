@@ -1271,15 +1271,17 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     BL_PROFILE("ParticleContainer::EnforcePeriodicGPU()");
     const int lev = 0;
     const Geometry& geom = Geom(lev);
+    auto& plev = m_particles[lev];
     const auto plo = Geom(lev).ProbLoArray();
     const auto phi = Geom(lev).ProbHiArray();
     const auto is_per = Geom(lev).isPeriodicArray();
 
-    for(MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
+    for (auto& kv : plev)
     {
-        const int grid_id = mfi.index();
-        const int tile_id = mfi.LocalTileIndex();
-        auto& particles = ParticlesAt(lev, grid_id, tile_id);
+        int gid = kv.first.first;
+        int tid = kv.first.second;
+        auto index = std::make_pair(gid, tid);
+        auto& particles = plev[index];
 
         const int np = particles.size();
         ParticleType* pstruct = &(particles.GetArrayOfStructs()[0]);
