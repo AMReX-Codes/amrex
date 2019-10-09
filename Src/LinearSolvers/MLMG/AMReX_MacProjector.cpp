@@ -137,7 +137,7 @@ MacProjector::project (Real reltol, Real atol, MLMG::Location loc)
 
     m_mlmg->solve(amrex::GetVecOfPtrs(m_phi), amrex::GetVecOfConstPtrs(m_rhs), reltol, atol);
 
-    m_mlmg->getFluxes(amrex::GetVecOfArrOfPtrs(m_fluxes), MLMG::Location::FaceCenter);
+    m_mlmg->getFluxes(amrex::GetVecOfArrOfPtrs(m_fluxes), loc);
     
     for (int ilev = 0; ilev < nlevs; ++ilev) {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
@@ -190,7 +190,8 @@ MacProjector::project (const Vector<MultiFab*>& phi_inout, Real reltol, Real ato
 
     m_mlmg->solve(amrex::GetVecOfPtrs(m_phi), amrex::GetVecOfConstPtrs(m_rhs), reltol, atol);
 
-    m_mlmg->getFluxes(amrex::GetVecOfArrOfPtrs(m_fluxes), MLMG::Location::FaceCenter);
+    m_mlmg->getFluxes(amrex::GetVecOfArrOfPtrs(m_fluxes), loc);
+
     
     for (int ilev = 0; ilev < nlevs; ++ilev) {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {

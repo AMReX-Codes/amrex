@@ -150,7 +150,12 @@ makeArray4 (T* p, Box const& bx, int ncomp) noexcept
 */
 
 template <typename T>
-typename std::enable_if< AMREX_IS_TRIVIALLY_DEFAULT_CONSTRUCTIBLE(T)>::type
+typename std::enable_if<std::is_arithmetic<T>::value>::type
+placementNew (T* const ptr, long n)
+{}
+
+template <typename T>
+typename std::enable_if< AMREX_IS_TRIVIALLY_DEFAULT_CONSTRUCTIBLE(T) && !std::is_arithmetic<T>::value >::type
 placementNew (T* const ptr, long n)
 {
     for (long i = 0; i < n; ++i) {
