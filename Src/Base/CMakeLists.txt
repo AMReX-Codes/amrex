@@ -43,6 +43,7 @@ target_sources( amrex
    AMReX_error_fi.cpp
    AMReX_Extension.H
    AMReX_IndexSequence.H
+   AMReX_PODVector.H
    AMReX_ParmParse.cpp
    AMReX_parmparse_fi.cpp
    AMReX_ParmParse.H
@@ -52,6 +53,8 @@ target_sources( amrex
    AMReX_Reduce.H
    AMReX_Scan.H
    AMReX_Partition.H
+   AMReX_Random.H
+   AMReX_Random.cpp
    AMReX_BLassert.H
    AMReX_ArrayLim.H
    AMReX_REAL.H
