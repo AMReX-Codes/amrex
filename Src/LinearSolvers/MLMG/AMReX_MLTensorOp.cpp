@@ -202,7 +202,7 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
     const Box& domain = m_geom[amrlev][mglev].growPeriodicDomain(1);
     Box testbox = domain;
     
-    const int has_crsedata = crsebndry!=nullptr;
+    const int has_crsedata = crsebndry!=nullptr && inhomog;
     
     // Domain and coarse-fine boundaries are handled below.
 
