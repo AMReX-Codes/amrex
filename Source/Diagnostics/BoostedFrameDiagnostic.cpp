@@ -638,6 +638,8 @@ BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
 
         IntVect slice_lo(AMREX_D_DECL(0,0,0));
         IntVect slice_hi(AMREX_D_DECL(1,1,1));
+        IntVect slice_lo2(AMREX_D_DECL(0,0,0));
+        IntVect slice_hi2(AMREX_D_DECL(1,1,1));
 
         for ( int i_dim=0; i_dim<AMREX_SPACEDIM; ++i_dim)
         {
@@ -649,11 +651,13 @@ BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
            {
               slice_hi[i_dim] = slice_lo[i_dim] + 1;
            }
-
+           if (slice_lo[i_dim] == slice_hi[i_dim])
+           {
+              slice_hi2[i_dim] = slice_lo2[i_dim] + 1;
+           }
         }
         Box stmp(slice_lo,slice_hi);
         Box slicediag_box = stmp;
-
 
         Real t_slice_lab = i * dt_slice_snapshots_lab_ ;
         RealBox prob_domain_lab = geom.ProbDomain();
@@ -810,7 +814,6 @@ writeLabFrameData(const MultiFab* cell_centered_data,
         if ( LabFrameDiags_[i]->buff_counter_ == 0) {
             // ... reset fields buffer data_buffer_
             if (WarpX::do_boosted_frame_fields) {
-                //Box buff_box = geom.Domain();
                 LabFrameDiags_[i]->buff_box_.setSmall(boost_direction_,
                                              i_lab - num_buffer_ + 1);
                 LabFrameDiags_[i]->buff_box_.setBig(boost_direction_, i_lab);
@@ -831,7 +834,7 @@ writeLabFrameData(const MultiFab* cell_centered_data,
             const int start_comp = 0;
             const bool interpolate = true;
             // tmp_slice_ptr containing slice data is generated only if t_lab != prev_t_lab
-            if (LabFrameDiags_[i]->t_lab != prev_t_lab ) {
+            //if (LabFrameDiags_[i]->t_lab != prev_t_lab ) {
                // Get slice in the boosted frame
                if (tmp_slice_ptr)
                {
@@ -869,7 +872,7 @@ writeLabFrameData(const MultiFab* cell_centered_data,
             // that of the previous diag
             LabFrameDiags_[i]->AddDataToBuffer(*tmp_slice_ptr, i_lab,
                                                map_actual_fields_to_dump);
-        }
+        //}
 
         if (WarpX::do_boosted_frame_particles) {
 
@@ -1339,16 +1342,17 @@ AddDataToBuffer( MultiFab& tmp, int k_lab,
 {
     const int ncomp_to_dump = map_actual_fields_to_dump.size();
     MultiFab& buf = *data_buffer_;
-
     for (MFIter mfi(tmp, TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
-       Array4<Real> tmp_arr = tmp[mfi].array();
-       Array4<Real> buf_arr = buf[mfi].array();
        Box& bx = buff_box_;
        const Box& bx_bf = mfi.tilebox();
+       const auto lo = lbound(bx_bf);
+       const auto hi = ubound(bx_bf);
        bx.setSmall(AMREX_SPACEDIM-1,bx_bf.smallEnd(AMREX_SPACEDIM-1));
        bx.setBig(AMREX_SPACEDIM-1,bx_bf.bigEnd(AMREX_SPACEDIM-1));
-       if (bx_bf.intersects(bx)) {
+       if (bx.intersects(bx_bf)) {
+          Array4<Real> tmp_arr = tmp[mfi].array();
+          Array4<Real> buf_arr = buf[mfi].array();
           const auto field_map_ptr = map_actual_fields_to_dump.dataPtr();
           ParallelFor(bx, ncomp_to_dump,
               [=] AMREX_GPU_DEVICE(int i, int j, int k, int n)
