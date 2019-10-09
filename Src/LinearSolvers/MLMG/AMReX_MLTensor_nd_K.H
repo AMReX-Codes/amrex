@@ -3,6 +3,7 @@
 
 namespace amrex {
 
+  AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
   void mltensor_interpbndry_o1(Box const& box, // area that needs filling
 			       int n, // component
 			       Array4<Real> const& bcval,
