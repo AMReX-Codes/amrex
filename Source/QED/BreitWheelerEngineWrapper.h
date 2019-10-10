@@ -19,7 +19,7 @@ using WarpXBreitWheelerWrapper =
 class BreitWheelerGetOpticalDepth
 {
 public:
-    BreitWheelerGetOpticalDepth()
+    BreitWheelerGetOpticalDepth ()
     {};
 
     AMREX_GPU_DEVICE
@@ -33,10 +33,10 @@ public:
 class BreitWheelerEngine
 {
 public:
-    BreitWheelerEngine();
+    BreitWheelerEngine ();
 
     /* \brief Builds the functor to initialize the optical depth */
-    BreitWheelerGetOpticalDepth build_optical_depth_functor();
+    BreitWheelerGetOpticalDepth build_optical_depth_functor ();
 };
 
 //============================================

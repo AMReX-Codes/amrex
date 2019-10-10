@@ -19,7 +19,7 @@ using WarpXQuantumSynchrotronWrapper =
 class QuantumSynchrotronGetOpticalDepth
 {
 public:
-    QuantumSynchrotronGetOpticalDepth()
+    QuantumSynchrotronGetOpticalDepth ()
     {};
 
     AMREX_GPU_DEVICE
@@ -33,10 +33,10 @@ public:
 class QuantumSynchrotronEngine
 {
 public:
-    QuantumSynchrotronEngine();
+    QuantumSynchrotronEngine ();
 
     /* \brief Builds the functor to initialize the optical depth */
-    QuantumSynchrotronGetOpticalDepth build_optical_depth_functor();
+    QuantumSynchrotronGetOpticalDepth build_optical_depth_functor ();
 };
 
 //============================================

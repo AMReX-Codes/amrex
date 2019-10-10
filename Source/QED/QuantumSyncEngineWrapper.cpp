@@ -19,9 +19,10 @@ QuantumSynchrotronGetOpticalDepth::operator() () const
 
 // Factory class =============================
 
-QuantumSynchrotronEngine::QuantumSynchrotronEngine(){}
+QuantumSynchrotronEngine::QuantumSynchrotronEngine (){}
 
-QuantumSynchrotronGetOpticalDepth QuantumSynchrotronEngine::build_optical_depth_functor()
+QuantumSynchrotronGetOpticalDepth 
+QuantumSynchrotronEngine::build_optical_depth_functor ()
 {
     return QuantumSynchrotronGetOpticalDepth();
 }

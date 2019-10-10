@@ -18,9 +18,9 @@ BreitWheelerGetOpticalDepth::operator() () const
 
 // Factory class =============================
 
-BreitWheelerEngine::BreitWheelerEngine(){}
+BreitWheelerEngine::BreitWheelerEngine (){}
 
-BreitWheelerGetOpticalDepth BreitWheelerEngine::build_optical_depth_functor()
+BreitWheelerGetOpticalDepth BreitWheelerEngine::build_optical_depth_functor ()
 {
     return BreitWheelerGetOpticalDepth();
 }
