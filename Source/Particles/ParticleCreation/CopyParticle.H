@@ -3,18 +3,35 @@
 
 #include "WarpXParticleContainer.H"
 
+/**
+ * \brief Functor to copy one particle
+ * 
+ * This is meant to be a very small class stored in managed memory,
+ * that can be initialized on the host and copied to the device at each
+ * iteration. It should be general enough to be used by all processes.
+ *
+ * Pointers to SoA data are saved when constructor is called.
+ * AoS data is passed as argument of operator ().
+ */
 class copyParticle
 {
 
 public:
 
+    // ID of MPI rank
     int m_cpuid;
+    // If true, will copy old attribs for back-transforme diagnostics
     bool m_do_boosted_product;
+    // Source old (runtime) attribs for back-transformed diagnostics
     amrex::GpuArray<amrex::ParticleReal*,3> m_runtime_uold_source;
+    // Source attribs
     amrex::GpuArray<amrex::ParticleReal*,PIdx::nattribs> m_attribs_source;
+    // Product attribs
     amrex::GpuArray<amrex::ParticleReal*,PIdx::nattribs> m_attribs_product;
+    // Product runtime attribs
     amrex::GpuArray<amrex::ParticleReal*,6> m_runtime_attribs_product;
 
+    // Simple constructor
     AMREX_GPU_HOST_DEVICE
     copyParticle(
         const int cpuid, const int do_boosted_product,
@@ -30,6 +47,7 @@ public:
         m_attribs_product(attribs_product),
         m_runtime_attribs_product(runtime_attribs_product){}
 
+    // Copy constructor.
     AMREX_GPU_HOST_DEVICE
     copyParticle(const copyParticle& in){
         m_cpuid = in.m_cpuid;
@@ -40,6 +58,15 @@ public:
         m_runtime_attribs_product = in.m_runtime_attribs_product;        
     }
 
+    /**
+     * \brief Overload operator () to do the copy of 1 particle
+     *
+     * \param is index of source particle
+     * \param ip index of product particle
+     * \param pid_product ID of first product particle
+     * \param p_source Struct with data for 1 source particle (position etc.)
+     * \param p_source Struct with data for 1 product particle (position etc.)
+     */
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void operator () (int is, int ip, int pid_product,
                       WarpXParticleContainer::ParticleType& p_source,

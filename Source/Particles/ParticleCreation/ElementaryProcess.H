@@ -221,7 +221,11 @@ public:
                         int pid_product = v_pid_product[iproduct];
                         copy_functor(is, ip, pid_product, p_source, p_product);
                     }
+                    // Transform source particle
                     transformSourceParticle<ProcessT>(is, p_source, runtime_iattribs_source);
+                    // Transform product particles. The loop over product
+                    // species is done inside the function to allow for
+                    // more flexibility.
                     transformProductParticle<ProcessT>(ip, v_particles_product);
                 }
             }
