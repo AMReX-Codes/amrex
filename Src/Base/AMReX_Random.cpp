@@ -293,13 +293,10 @@ amrex::ResizeRandomSeed (int N)
     int PrevSize = gpu_nstates > 0 ? gpu_nstates : 0;
     int SizeDiff = N - PrevSize;
 
-    if (gpu_nstates == -1)
+    if (gpu_nstates == -1)  // Only allocate the device int when not already allocated.
     {
         gpu_nstates_h = (int*) The_Device_Arena()->alloc(sizeof(int)); 
-
-        AMREX_HIP_OR_CUDA(
-            AMREX_HIP_SAFE_CALL(hipMemcpyToSymbol(gpu_nstates_d, &gpu_nstates_h, sizeof(int *)); ),
-            AMREX_CUDA_SAFE_CALL(cudaMemcpyToSymbol(gpu_nstates_d, &gpu_nstates_h, sizeof(int *))); );
+        amrex::Gpu::memcpy_to_symbol((void**) &gpu_nstates_d, &gpu_nstates_h, sizeof(int *));
     }
 
     randState_t* new_data;
@@ -324,16 +321,8 @@ amrex::ResizeRandomSeed (int N)
     locks_h_ptr = new_mutex;
     gpu_nstates = N;
 
-    AMREX_HIP_OR_CUDA(
-        AMREX_HIP_SAFE_CALL(hipMemcpyToSymbol(states_d_ptr, &states_h_ptr, sizeof(randState_t *)); ),
-        AMREX_CUDA_SAFE_CALL(cudaMemcpyToSymbol(states_d_ptr, &states_h_ptr, sizeof(randState_t *))); );
-
-    AMREX_HIP_OR_CUDA(
-        AMREX_HIP_SAFE_CALL(hipMemcpyToSymbol(locks_d_ptr, &locks_h_ptr, sizeof(int *)); ),
-        AMREX_CUDA_SAFE_CALL(cudaMemcpyToSymbol(locks_d_ptr, &locks_h_ptr, sizeof(int *))); );
-
-//    amrex::Gpu::memcpy_to_symbol(states_d_ptr, &states_h_ptr, sizeof(randState_t *));
-//    amrex::Gpu::memcpy_to_symbol(locks_d_ptr, &locks_h_ptr, sizeof(int *));
+    amrex::Gpu::memcpy_to_symbol((void**) &states_d_ptr, &states_h_ptr, sizeof(randState_t *));
+    amrex::Gpu::memcpy_to_symbol((void**)  &locks_d_ptr,  &locks_h_ptr, sizeof(int *));
 
     const int MyProc = amrex::ParallelDescriptor::MyProc();
     AMREX_PARALLEL_FOR_1D(SizeDiff, idx,
@@ -346,9 +335,7 @@ amrex::ResizeRandomSeed (int N)
                             curand_init(seed, seqstart, 0, &states_d_ptr[loc]); );
     }); 
 
-    AMREX_HIP_OR_CUDA(
-        AMREX_HIP_SAFE_CALL(hipMemcpy(gpu_nstates_h, &gpu_nstates, sizeof(int), hipMemcpyHostToDevice); ),
-        AMREX_CUDA_SAFE_CALL(cudaMemcpy(gpu_nstates_h, &gpu_nstates, sizeof(int), cudaMemcpyHostToDevice)); );
+    amrex::Gpu::htod_memcpy(gpu_nstates_h, &gpu_nstates, sizeof(int));
 
 #endif
 }
