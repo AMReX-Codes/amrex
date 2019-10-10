@@ -21,7 +21,7 @@ QuantumSynchrotronGetOpticalDepth::operator() () const
 
 QuantumSynchrotronEngine::QuantumSynchrotronEngine (){}
 
-QuantumSynchrotronGetOpticalDepth 
+QuantumSynchrotronGetOpticalDepth
 QuantumSynchrotronEngine::build_optical_depth_functor ()
 {
     return QuantumSynchrotronGetOpticalDepth();
