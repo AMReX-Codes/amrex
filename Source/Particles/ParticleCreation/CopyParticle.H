@@ -5,7 +5,7 @@
 
 /**
  * \brief Functor to copy one particle
- * 
+ *
  * This is meant to be a very small class stored in managed memory,
  * that can be initialized on the host and copied to the device at each
  * iteration. It should be general enough to be used by all processes.
@@ -55,7 +55,7 @@ public:
         m_runtime_uold_source = in.m_runtime_uold_source;
         m_attribs_source = in.m_attribs_source;
         m_attribs_product = in.m_attribs_product;
-        m_runtime_attribs_product = in.m_runtime_attribs_product;        
+        m_runtime_attribs_product = in.m_runtime_attribs_product;
     }
 
     /**

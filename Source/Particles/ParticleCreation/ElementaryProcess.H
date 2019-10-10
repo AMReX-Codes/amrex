@@ -157,7 +157,7 @@ public:
                 runtime_attribs_product[4] = soa_product.GetRealData(comps_product["uyold"]).data() + np_product_old;
                 runtime_attribs_product[5] = soa_product.GetRealData(comps_product["uzold"]).data() + np_product_old;
             }
-            
+
             // --- product runtime integer attribs
             int pid_product;
 #pragma omp critical (doFieldIonization_nextid)
@@ -168,7 +168,7 @@ public:
                 pc_product->setNextID(pid_product+np_ionized);
             }
             const int cpuid = amrex::ParallelDescriptor::MyProc();
-            
+
             // Create instance of copy functor
             v_copy_functor.push_back (initialize_copy(
                 cpuid, v_do_boosted_product[iproduct],
@@ -193,7 +193,7 @@ public:
     void copyAndTransformParticles(
         amrex::Gpu::ManagedDeviceVector<int>& is_flagged,
         amrex::Gpu::ManagedDeviceVector<int>& i_product,
-        int np_source, 
+        int np_source,
         const amrex::Vector<int> v_pid_product,
         const amrex::Vector<WarpXParticleContainer::ParticleType*> v_particles_product,
         WarpXParticleContainer::ParticleType* particles_source,
