@@ -43,11 +43,8 @@ void main_main ()
         amrex::ParallelFor(bx,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            fab(i,j,k) = 0.5;
-            ifab(i,j,k) = 1;
-
-//            fab(i,j,k) = amrex::Random();
-//            ifab(i,j,k) = (amrex::Random() > 0.5) ? 1 : 0;
+            fab(i,j,k) = amrex::Random();
+            ifab(i,j,k) = (amrex::Random() > 0.5) ? 1 : 0;
         });
     }
 
@@ -251,8 +248,7 @@ void main_main ()
     Gpu::DeviceVector<Real> vec(N);
     Real* pvec = vec.dataPtr();
     amrex::ParallelFor(N, [=] AMREX_GPU_DEVICE (int i) noexcept {
-            pvec[i] = 1.75;
-//            pvec[i] = amrex::Random() - 0.5;
+            pvec[i] = amrex::Random() - 0.5;
     });
 
     {
@@ -298,7 +294,7 @@ void main_main ()
                                         << ", " << r.second << "\n";
     }
 
-#ifdef AMREX_USE_GPU
+#ifdef AMREX_USE_CUDA // Make GPU once testing Thrust
     {
         BL_PROFILE("ThrustReduceSum");
         Real r = thrust::reduce(vec.begin(), vec.end(), 0.0, thrust::plus<Real>());
