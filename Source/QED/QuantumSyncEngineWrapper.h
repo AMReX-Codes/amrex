@@ -14,7 +14,7 @@ using WarpXQuantumSynchrotronWrapper =
 // These functors provide the core elementary functions of the library
 // Can be included in GPU kernels
 
-/* \brief Functor to initialize the optical depth of leptons for the 
+/* \brief Functor to initialize the optical depth of leptons for the
 *   Quantum Synchrotron process */
 class QuantumSynchrotronGetOpticalDepth
 {

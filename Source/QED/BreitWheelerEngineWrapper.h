@@ -14,7 +14,7 @@ using WarpXBreitWheelerWrapper =
 // These functors provide the core elementary functions of the library
 // Can be included in GPU kernels
 
-/* \brief Functor to initialize the optical depth of photons for the 
+/* \brief Functor to initialize the optical depth of photons for the
 *   Breit-Wheeler process */
 class BreitWheelerGetOpticalDepth
 {
