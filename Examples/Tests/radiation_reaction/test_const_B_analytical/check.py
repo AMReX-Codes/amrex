@@ -66,7 +66,7 @@ B = p_0 * B_val
 
 #Tolerance
 tol = 0.05
-small = 1e-4 
+small = 1e-4
 #________________________________________
 
 #tau_c
