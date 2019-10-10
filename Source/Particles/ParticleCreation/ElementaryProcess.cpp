@@ -130,8 +130,8 @@ elementaryProcess::copyAndTransformParticles(
                 WarpXParticleContainer::ParticleType& p_product = particles_product[ip];
                 WarpXParticleContainer::ParticleType& p_source  = particles_source[is];
                 copy_functor(is, ip, pid_product, p_source, p_product);
-                transformParticle<PType::source>(is, p_source);
-                transformParticle<PType::product>(ip, p_product);
+                transformSourceParticle(is, p_source);
+                //transformProductParticle<ProcessT>(ip, p_product);
             }
         }
         );

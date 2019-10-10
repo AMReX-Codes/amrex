@@ -47,6 +47,7 @@ MultiParticleContainer::MultiParticleContainer (AmrCore* amr_core)
             nspecies_boosted_frame_diags += 1;
         }
     }
+    ionization_process = IonizationProcess();
 }
 
 void
@@ -586,6 +587,7 @@ MultiParticleContainer::doFieldIonization ()
                 pc_source->buildIonizationMask(mfi, lev, is_ionized);
                 // elementaryProcess ionization_process;
                 // Create particles in pc_product
+                // ionization_process(IonizationProcess());
                 bool do_boosted_product = WarpX::do_boosted_frame_diagnostic
                     && pc_product->DoBoostedFrameDiags();
                 ionization_process.createParticles(lev, mfi, pc_source, pc_product, is_ionized, do_boosted_product);

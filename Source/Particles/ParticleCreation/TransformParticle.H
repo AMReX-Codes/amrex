@@ -3,11 +3,20 @@
 
 #include "WarpXParticleContainer.H"
 
-enum struct PType {source, product};
+enum struct elementaryProcessType { Ionization };
 
-template < PType PT >
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void transformParticle(
+void transformSourceParticle(
+    int i,
+    WarpXParticleContainer::ParticleType& particle)
+{
+    amrex::Print()<<"primary template\n";
+}
+
+/*
+template < elementaryProcessType ProcessT >
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void transformProductParticle(
     int i,
     WarpXParticleContainer::ParticleType& particle)
 {
@@ -16,7 +25,7 @@ void transformParticle(
 
 template <>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void transformParticle < PType::source > (
+void transformSourceParticle < elementaryProcessType:Ionization > (
     int i,
     WarpXParticleContainer::ParticleType& particle)
 {
@@ -25,11 +34,50 @@ void transformParticle < PType::source > (
 
 template <>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void transformParticle < PType::product > (
+void transformProductParticle < elementaryProcessType:Ionization> (
+    int i,
+    WarpXParticleContainer::ParticleType& particle)
+{
+    amrex::Print()<<"specialized source\n";
+}
+*/
+
+
+
+
+
+
+
+
+
+/*
+enum struct PType {source, product};
+
+template < elementaryProcess ProcessT, PType PT >
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void transformParticle(
+    int i,
+    WarpXParticleContainer::ParticleType& particle)
+{
+    amrex::Print()<<"primary template\n";
+}
+
+template <elementaryProcess ProcessT>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void transformParticle < ProcessT, PType::source > (
+    int i,
+    WarpXParticleContainer::ParticleType& particle)
+{
+    amrex::Print()<<"specialized source\n";
+}
+
+template <elementaryProcess ProcessT>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void transformParticle < ProcessT, PType::product > (
     int i,
     WarpXParticleContainer::ParticleType& particle)
 {
     amrex::Print()<<"specialized product\n";
 }
-
+*/
 #endif // TRANSFORMPARTICLE_H_

@@ -5,48 +5,10 @@
 #include "CopyParticle.H"
 #include "TransformParticle.H"
 
-/*
-enum struct elementaryProcessType { Ionization };
-enum struct PType {source, product};
-
-  namespace transform
-  {
-  template < elementaryProcessType ElemT, PType PartT >
-  AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-  void transformParticle(
-  int i,
-  WarpXParticleContainer::ParticleType& particle)
-  {
-  amrex::Print()<<"primary template\n";
-  }
-
-  template <>
-  AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-  void transformParticle<elementaryProcessType::Ionization, PType::source>(
-  int i,
-  WarpXParticleContainer::ParticleType& particle)
-  {
-  amrex::Print()<<"ionization source template\n";
-  }
-
-  template <>
-  AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-  void transformParticle<elementaryProcessType::Ionization, PType::product>(
-  int i,
-  WarpXParticleContainer::ParticleType& particle)
-  {
-  amrex::Print()<<"ionization product template\n";
-  }
-  }
-*/
-
 class elementaryProcess
 {
-
 public:
-
     elementaryProcess() {};
-
     copyParticle initialize_copy(
         int cpuid, int do_boosted_product,
         const amrex::GpuArray<amrex::ParticleReal*,3> runtime_uold_source,
@@ -75,6 +37,11 @@ public:
         WarpXParticleContainer::ParticleType* particles_product,
         WarpXParticleContainer::ParticleType* particles_source,
         copyParticle copy_functor);
+};
+
+class IonizationProcess: public elementaryProcess
+{
+
 };
 
 #endif // ELEMENTARYPROCESS_H_
