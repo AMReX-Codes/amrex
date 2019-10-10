@@ -2143,7 +2143,6 @@ void PhysicalParticleContainer::InitTauQuantumSync()
     BL_PROFILE("PhysicalParticleContainer::InitTauQuantumSync");
     //Get functor
     auto get_opt = shr_ptr_qs_engine->build_optical_depth_functor();
-
     //Looping over all the particles
     int num_levels = finestLevel() + 1;
     for (int lev=0; lev < num_levels; ++lev)

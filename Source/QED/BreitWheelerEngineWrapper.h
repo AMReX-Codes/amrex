@@ -1,9 +1,6 @@
 #ifndef WARPX_breit_wheeler_engine_wrapper_h_
 #define WARPX_breit_wheeler_engine_wrapper_h_
 
-//This file provides a wrapper aroud the breit_wheeler engine
-//provided by the QED modules of the PICSAR library
-
 #include "QedWrapperCommons.h"
 
 //BW ENGINE from PICSAR
@@ -33,11 +30,12 @@ struct BreitWheelerEngineInnards
 // These functors provide the core elementary functions of the library
 // Can be included in GPU kernels
 
-// Initialization of the optical depth
+/* \brief Functor to initialize the optical depth of photons for the
+*   Breit-Wheeler process */
 class BreitWheelerGetOpticalDepth
 {
 public:
-    BreitWheelerGetOpticalDepth()
+    BreitWheelerGetOpticalDepth ()
     {};
 
     AMREX_GPU_DEVICE
@@ -66,22 +64,25 @@ private:
 };
 
 // Factory class =============================
+
+/* \brief Wrapper for the Breit Wheeler engine of the PICSAR library */
 class BreitWheelerEngine
 {
 public:
-    BreitWheelerEngine();
+    BreitWheelerEngine ();
 
-    //Builds the functor to initialize the optical depth
-    BreitWheelerGetOpticalDepth build_optical_depth_functor();
+    /* \brief Builds the functor to initialize the optical depth */
+    BreitWheelerGetOpticalDepth build_optical_depth_functor ();
     
-    //Builds the functor to evolve the optical depth
-    BreitWheelerEvolveOpticalDepth build_evolve_functor();
+    /* \brief Builds the functor to evolve the optical depth */
+    BreitWheelerEvolveOpticalDepth build_evolve_functor ();
 
-    //Computes the Lookup tables using the default settings 
-    //provided by the library
-    void computes_lookup_tables_default();
+    /* \brief Computes the Lookup tables using the default settings 
+     *  provided by the PICSAR library */
+    void computes_lookup_tables_default ();
 
-    bool are_lookup_tables_initialized() const;
+    /* \brief Checks if lookup tables are properly initialized */
+    bool are_lookup_tables_initialized () const;
 
 private:
     bool lookup_tables_initialized = false;
@@ -89,7 +90,7 @@ private:
     BreitWheelerEngineInnards innards;
 
     //Private function which actually computes the lookup tables
-    void computes_lookup_tables(
+    void computes_lookup_tables (
         WarpXBreitWheelerWrapperCtrl ctrl);
 };
 

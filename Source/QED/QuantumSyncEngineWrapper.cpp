@@ -47,16 +47,17 @@ bool QuantumSynchrotronEvolveOpticalDepth::operator()(
 
 // Factory class =============================
 
-QuantumSynchrotronEngine::QuantumSynchrotronEngine(){}
+QuantumSynchrotronEngine::QuantumSynchrotronEngine (){}
 
 //Builds the functor to evolve the optical depth
-QuantumSynchrotronGetOpticalDepth QuantumSynchrotronEngine::build_optical_depth_functor()
+QuantumSynchrotronGetOpticalDepth
+QuantumSynchrotronEngine::build_optical_depth_functor ()
 {
     return QuantumSynchrotronGetOpticalDepth();
 }
 
 //Builds the functor to evolve the optical depth
-QuantumSynchrotronEvolveOpticalDepth QuantumSynchrotronEngine::build_evolve_functor()
+QuantumSynchrotronEvolveOpticalDepth QuantumSynchrotronEngine::build_evolve_functor ()
 {
     AMREX_ALWAYS_ASSERT(lookup_tables_initialized);
 
@@ -65,7 +66,7 @@ QuantumSynchrotronEvolveOpticalDepth QuantumSynchrotronEngine::build_evolve_func
 
 //Initializes the Lookup tables using the default settings 
 //provided by the library
-void QuantumSynchrotronEngine::computes_lookup_tables_default()
+void QuantumSynchrotronEngine::computes_lookup_tables_default ()
 {
     //A control parameters structure
     //with the default values provided by the library
@@ -76,13 +77,13 @@ void QuantumSynchrotronEngine::computes_lookup_tables_default()
     lookup_tables_initialized = true;
 }
 
-bool QuantumSynchrotronEngine::are_lookup_tables_initialized() const
+bool QuantumSynchrotronEngine::are_lookup_tables_initialized () const
 {
     return lookup_tables_initialized;
 }
 
 //Private function which actually computes the lookup tables
-void QuantumSynchrotronEngine::computes_lookup_tables(
+void QuantumSynchrotronEngine::computes_lookup_tables (
     WarpXQuantumSynchrotronWrapperCtrl ctrl)
 {
     //Lambda is not actually used if S.I. units are enabled

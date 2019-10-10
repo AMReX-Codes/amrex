@@ -47,16 +47,16 @@ bool BreitWheelerEvolveOpticalDepth::operator()(
 
 // Factory class =============================
 
-BreitWheelerEngine::BreitWheelerEngine(){}
+BreitWheelerEngine::BreitWheelerEngine (){}
 
 //Builds the functor to initialize the optical depth
-BreitWheelerGetOpticalDepth BreitWheelerEngine::build_optical_depth_functor()
+BreitWheelerGetOpticalDepth BreitWheelerEngine::build_optical_depth_functor ()
 {
     return BreitWheelerGetOpticalDepth();
 }
 
 //Builds the functor to evolve the optical depth
-BreitWheelerEvolveOpticalDepth BreitWheelerEngine::build_evolve_functor()
+BreitWheelerEvolveOpticalDepth BreitWheelerEngine::build_evolve_functor ()
 {
     AMREX_ALWAYS_ASSERT(lookup_tables_initialized);
 
@@ -66,7 +66,7 @@ BreitWheelerEvolveOpticalDepth BreitWheelerEngine::build_evolve_functor()
 
 //Initializes the Lookup tables using the default settings 
 //provided by the library
-void BreitWheelerEngine::computes_lookup_tables_default()
+void BreitWheelerEngine::computes_lookup_tables_default ()
 {
     //A control parameters structure
     //with the default values provided by the library
@@ -77,13 +77,13 @@ void BreitWheelerEngine::computes_lookup_tables_default()
     lookup_tables_initialized = true;
 }
 
-bool BreitWheelerEngine::are_lookup_tables_initialized() const
+bool BreitWheelerEngine::are_lookup_tables_initialized () const
 {
     return lookup_tables_initialized;
 }
 
 //Private function which actually computes the lookup tables
-void BreitWheelerEngine::computes_lookup_tables(
+void BreitWheelerEngine::computes_lookup_tables (
     WarpXBreitWheelerWrapperCtrl ctrl)
 {
     //Lambda is not actually used if S.I. units are enabled
