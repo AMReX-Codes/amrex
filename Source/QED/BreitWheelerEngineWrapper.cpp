@@ -91,27 +91,33 @@ bool BreitWheelerEngine::write_lookup_tables (
     if(!lookup_tables_initialized)
         return false;
 
-    auto all_data = make_tuple(
-        std::ref(innards.ctrl.chi_phot_min),
-        std::ref(innards.ctrl.chi_phot_tdndt_min),
-        std::ref(innards.ctrl.chi_phot_tdndt_max),
-        std::ref(innards.ctrl.chi_phot_tdndt_how_many),
-        std::ref(innards.ctrl.chi_phot_tpair_min),
-        std::ref(innards.ctrl.chi_phot_tpair_max),
-        std::ref(innards.ctrl.chi_phot_tpair_how_many),
-        std::ref(innards.ctrl.chi_frac_tpair_how_many),
-        std::ref(innards.TTfunc_coords),
-        std::ref(innards.TTfunc_data)); 
+    std::vector<char> data_dump;
+    char* begin; 
+    char* end;
 
-    
-       
+    std::tie(begin, end) = get_begin_end_pointers(innards.ctrl.chi_phot_min);
+    data_dump.insert(data_dump.end(), begin, end);
+    std::tie(begin, end) = get_begin_end_pointers(innards.ctrl.chi_phot_tdndt_min);
+    data_dump.insert(data_dump.end(), begin, end);
+    std::tie(begin, end) = get_begin_end_pointers(innards.ctrl.chi_phot_tdndt_max);
+    data_dump.insert(data_dump.end(), begin, end);
+    std::tie(begin, end) = get_begin_end_pointers(innards.ctrl.chi_phot_tdndt_how_many);
+    data_dump.insert(data_dump.end(), begin, end);
+    std::tie(begin, end) = get_begin_end_pointers(innards.ctrl.chi_phot_tpair_min);
+    data_dump.insert(data_dump.end(), begin, end);
+    std::tie(begin, end) = get_begin_end_pointers(innards.ctrl.chi_phot_tpair_max);
+    data_dump.insert(data_dump.end(), begin, end);
+    std::tie(begin, end) = get_begin_end_pointers(innards.ctrl.chi_phot_tpair_how_many);
+    data_dump.insert(data_dump.end(), begin, end);
+    std::tie(begin, end) = get_begin_end_pointers(innards.ctrl.chi_phot_tpair_how_many);
+    data_dump.insert(data_dump.end(), begin, end);
 
-    char* data_dump =  new char(buf_size);
-
-    size_t count = 0;
-    auto copy_and_advance = [&count] (char* source, char*dest, size_t size) {
-        count += size;
-    };    
+    data_dump.insert(data_dump.end(), 
+        (char*)innards.TTfunc_coords.dataPtr(), 
+        ((char*)innards.TTfunc_coords.dataPtr())+ innards.TTfunc_coords.size());
+    data_dump.insert(data_dump.end(), 
+        (char*)innards.TTfunc_data.dataPtr(), 
+        ((char*)innards.TTfunc_data.dataPtr())+ innards.TTfunc_data.size());  
     
     return true;
 }
