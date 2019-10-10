@@ -275,6 +275,7 @@ public:
     {};
 
     std::map<std::string, int> getParticleComps () { return particle_comps;}
+    std::map<std::string, int> getParticleiComps () { return particle_icomps;}
 
 protected:
 

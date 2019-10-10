@@ -1,4 +1,3 @@
-CEXE_sources += ElementaryProcess.cpp
 CEXE_headers += ElementaryProcess.H
 CEXE_headers += CopyParticle.H
 CEXE_headers += TransformParticle.H
