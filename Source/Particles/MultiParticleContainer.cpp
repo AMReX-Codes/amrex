@@ -1,7 +1,6 @@
 #include <limits>
 #include <algorithm>
 #include <string>
-#include <memory>
 
 #include <MultiParticleContainer.H>
 #include <WarpX_f.H>
@@ -740,11 +739,35 @@ void MultiParticleContainer::InitQED ()
         if(pc->has_quantum_sync()){
             pc->set_quantum_sync_engine_ptr
                 (std::make_shared<QuantumSynchrotronEngine>(qs_engine));
+            someone_has_quantum_sync = true;
         }
         if(pc->has_breit_wheeler()){
             pc->set_breit_wheeler_engine_ptr
                 (std::make_shared<BreitWheelerEngine>(bw_engine));
+            someone_has_breit_wheeler = true;
         }
+    }
+
+    if(someone_has_quantum_sync)
+        InitQuantumSync();    
+
+    if(someone_has_breit_wheeler)
+        InitBreitWheeler();
+
+}
+
+void MultiParticleContainer::InitQuantumSync ()
+{
+    if(ParallelDescriptor::IOProcessor()){
+        qs_engine.computes_lookup_tables_default();        
+    }
+}
+
+void MultiParticleContainer::InitBreitWheeler ()
+{
+    if(ParallelDescriptor::IOProcessor()){
+        bw_engine.computes_lookup_tables_default();
+        bw_engine.write_lookup_tables("qed_bw_lookup.bin");
     }
 }
 #endif

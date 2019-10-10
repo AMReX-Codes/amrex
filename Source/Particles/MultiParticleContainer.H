@@ -3,6 +3,7 @@
 #define WARPX_ParticleContainer_H_
 
 #include <AMReX_Particles.H>
+#include <AMReX_ParallelDescriptor.H>
 #include <WarpXParticleContainer.H>
 #include <PhysicalParticleContainer.H>
 #include <RigidInjectedParticleContainer.H>
@@ -222,6 +223,12 @@ protected:
     //Initialize QED engines and provides smart pointers
     //to species who need QED processes
     void InitQED ();
+
+    bool someone_has_quantum_sync = false;
+    bool someone_has_breit_wheeler = false;
+
+    void InitQuantumSync ();
+    void InitBreitWheeler ();
 #endif
 
 private:

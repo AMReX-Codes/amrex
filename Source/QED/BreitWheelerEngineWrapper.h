@@ -3,6 +3,10 @@
 
 #include "QedWrapperCommons.h"
 
+#include<string>
+#include<vector>
+#include<tuple>
+
 //BW ENGINE from PICSAR
 #include "breit_wheeler_engine.hpp"
 
@@ -20,8 +24,8 @@ struct BreitWheelerEngineInnards
     WarpXBreitWheelerWrapperCtrl ctrl;
 
     //Lookup table data
-    amrex::Gpu::ManagedDeviceVector<amrex::Real> TTfunc_coords;
-    amrex::Gpu::ManagedDeviceVector<amrex::Real> TTfunc_data; 
+    amrex::Gpu::ManagedVector<amrex::Real> TTfunc_coords;
+    amrex::Gpu::ManagedVector<amrex::Real> TTfunc_data; 
     //______
 };
 
@@ -83,6 +87,10 @@ public:
 
     /* \brief Checks if lookup tables are properly initialized */
     bool are_lookup_tables_initialized () const;
+
+    /* \brief Writes lookup tables on disk in 'file'
+     *  return false if it fails. */
+    bool write_lookup_tables (std::string file) const;   
 
 private:
     bool lookup_tables_initialized = false;

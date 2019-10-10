@@ -82,6 +82,40 @@ bool BreitWheelerEngine::are_lookup_tables_initialized () const
     return lookup_tables_initialized;
 }
 
+
+// Writes lookup tables on disk in 'folder'
+// return false if it fails. */
+bool BreitWheelerEngine::write_lookup_tables (
+        std::string folder) const
+{
+    if(!lookup_tables_initialized)
+        return false;
+
+    auto all_data = make_tuple(
+        std::ref(innards.ctrl.chi_phot_min),
+        std::ref(innards.ctrl.chi_phot_tdndt_min),
+        std::ref(innards.ctrl.chi_phot_tdndt_max),
+        std::ref(innards.ctrl.chi_phot_tdndt_how_many),
+        std::ref(innards.ctrl.chi_phot_tpair_min),
+        std::ref(innards.ctrl.chi_phot_tpair_max),
+        std::ref(innards.ctrl.chi_phot_tpair_how_many),
+        std::ref(innards.ctrl.chi_frac_tpair_how_many),
+        std::ref(innards.TTfunc_coords),
+        std::ref(innards.TTfunc_data)); 
+
+    
+       
+
+    char* data_dump =  new char(buf_size);
+
+    size_t count = 0;
+    auto copy_and_advance = [&count] (char* source, char*dest, size_t size) {
+        count += size;
+    };    
+    
+    return true;
+}
+
 //Private function which actually computes the lookup tables
 void BreitWheelerEngine::computes_lookup_tables (
     WarpXBreitWheelerWrapperCtrl ctrl)
