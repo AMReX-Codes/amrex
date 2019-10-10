@@ -7,6 +7,7 @@
 enum struct elementaryProcessType { Ionization };
 enum struct PType {source, product};
 
+/*
 namespace transform
 {
     template < elementaryProcessType ElemT, PType PartT >
@@ -36,9 +37,9 @@ namespace transform
         amrex::Print()<<"ionization product template\n";
     }
 }
+*/
 
-template < elementaryProcessType process_type >
-class copyAndTransformParticle
+class copyParticle
 {
 
 public:
@@ -48,10 +49,10 @@ public:
     const amrex::GpuArray<amrex::ParticleReal*,3> m_runtime_uold_source;
     const amrex::GpuArray<amrex::ParticleReal*,PIdx::nattribs> m_attribs_source;
     const amrex::GpuArray<amrex::ParticleReal*,PIdx::nattribs> m_attribs_product;
-    const amrex::GpuArray<amrex::ParticleReal*,6> m_runtime_attribs_product;    
+    const amrex::GpuArray<amrex::ParticleReal*,6> m_runtime_attribs_product;
 
     AMREX_GPU_HOST_DEVICE
-    copyAndTransformParticle(
+    copyParticle(
         int cpuid, int do_boosted_product,
         const amrex::GpuArray<amrex::ParticleReal*,3> runtime_uold_source,
         const amrex::GpuArray<amrex::ParticleReal*,PIdx::nattribs> attribs_source,
@@ -70,17 +71,6 @@ public:
                       WarpXParticleContainer::ParticleType& p_source,
                       WarpXParticleContainer::ParticleType& p_product) const noexcept
     {
-        this->copyParticle(is, ip, pid_product, p_source, p_product);
-        transform::transformParticle<process_type, PType::source > (is, p_source );
-        transform::transformParticle<process_type, PType::product> (ip, p_product);
-    }
-
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    void copyParticle(int is, int ip, int pid_product,
-                      WarpXParticleContainer::ParticleType& p_source,
-                      WarpXParticleContainer::ParticleType& p_product) const
-    {
-        
         // Copy particle from source to product: AoS
         p_product.id() = pid_product + ip;
         p_product.cpu() = m_cpuid;
@@ -107,20 +97,19 @@ public:
     }
 };
 
-template < elementaryProcessType process_type >
 class elementaryProcess
 {
 
 public:
 
-    copyAndTransformParticle< process_type > initialize_functor(
+    copyParticle initialize_functor(
         int cpuid, int do_boosted_product,
         const amrex::GpuArray<amrex::ParticleReal*,3> runtime_uold_source,
         const amrex::GpuArray<amrex::ParticleReal*,PIdx::nattribs> attribs_source,
         const amrex::GpuArray<amrex::ParticleReal*,PIdx::nattribs> attribs_product,
         const amrex::GpuArray<amrex::ParticleReal*,6> runtime_attribs_product) const noexcept
     {
-        return copyAndTransformParticle < process_type > (
+        return copyParticle (
             cpuid, do_boosted_product, runtime_uold_source,
             attribs_source, attribs_product, runtime_attribs_product);
     };
@@ -135,8 +124,6 @@ public:
         bool do_boosted_product)
     {
         BL_PROFILE("createIonizedParticles");
-
-        const int * const AMREX_RESTRICT p_is_flagged = is_flagged.dataPtr();
 
         const int grid_id = mfi.index();
         const int tile_id = mfi.LocalTileIndex();
@@ -179,7 +166,6 @@ public:
         amrex::Gpu::inclusive_scan(is_flagged.begin(), is_flagged.end(), i_product.begin());
         int np_ionized = i_product[np_source-1];
         if (np_ionized == 0) return;
-        int* AMREX_RESTRICT p_i_product = i_product.dataPtr();
 
         // Get product particle data
         auto& ptile_product = pc_product->GetParticles(lev)[std::make_pair(grid_id,tile_id)];
@@ -222,13 +208,27 @@ public:
         }
         const int cpuid = amrex::ParallelDescriptor::MyProc();
 
-        copyAndTransformParticle < process_type > copy_and_transform_functor = initialize_functor(
+        copyParticle copy_functor = initialize_functor(
             cpuid, do_boosted_product,
             runtime_uold_source,
             attribs_source,
             attribs_product,
             runtime_attribs_product);
 
+        copyAndTransformParticles(is_flagged, i_product, np_source, pid_product,
+                                  particles_product, particles_source, copy_functor);
+    }
+
+    void copyAndTransformParticles(
+        amrex::Gpu::ManagedDeviceVector<int>& is_flagged,
+        amrex::Gpu::ManagedDeviceVector<int>& i_product,
+        int np_source, int pid_product,
+        WarpXParticleContainer::ParticleType* particles_product,
+        WarpXParticleContainer::ParticleType* particles_source,
+        copyParticle copy_functor)
+    {
+        int const * const AMREX_RESTRICT p_is_flagged = is_flagged.dataPtr();
+        int const * const AMREX_RESTRICT p_i_product = i_product.dataPtr();
         // Loop over all source particles. If is_flagged, copy particle data
         // to corresponding product particle.
         amrex::For(
@@ -241,11 +241,7 @@ public:
                     // ip: index of corresponding new particle in product species
                     WarpXParticleContainer::ParticleType& p_product = particles_product[ip];
                     WarpXParticleContainer::ParticleType& p_source  = particles_source[is];
-
-                    copy_and_transform_functor(
-                        is, ip, pid_product,
-                        p_source,
-                        p_product);
+                    copy_functor(is, ip, pid_product, p_source, p_product);
                 }
             }
             );

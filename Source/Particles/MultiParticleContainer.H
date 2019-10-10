@@ -193,7 +193,7 @@ public:
 
     PhysicalParticleContainer& GetPCtmp () { return *pc_tmp; }
 
-    elementaryProcess<elementaryProcessType::Ionization> ionization_process;
+    elementaryProcess ionization_process;
 
 protected:
 
