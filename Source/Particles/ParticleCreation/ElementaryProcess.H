@@ -5,11 +5,37 @@
 #include "CopyParticle.H"
 #include "TransformParticle.H"
 
+/**
+ * \brief Base class for particle creation processes
+ *
+ * Particles in a source particle container are copied to a product particle
+ * container if they are flagged. Both source and product particles can be
+ * modified.
+ * 
+ * initialize_copy initializes a general copy functor
+ * createParticles formats the data to prepare for the copy, then 
+ *      calls copyAndTransformParticles
+ * copyAndTransformParticles loops over particles, performs the copy and 
+ * transform source and product particles if needed.
+ *
+ * The class is templated on the process type. This gives flexibility
+ * on source and product particle transformation.
+ */
 template<elementaryProcessType ProcessT>
 class elementaryProcess
 {
 public:
-    elementaryProcess() {};
+
+    /**
+     * \brief initialize and return functor for particle copy
+     *
+     * \param cpuid id of MPI rank
+     * \param do_boosted_product whether to copy old attribs
+     * \param runtime_uold_source momentum of source particles
+     * \param attribs_source attribs of source particles
+     * \param attribs_product attribs of product particles
+     * \param runtime_attribs_product runtime attribs for product, to store old attribs
+     */
     copyParticle initialize_copy(
         int cpuid, int do_boosted_product,
         const amrex::GpuArray<amrex::ParticleReal*,3> runtime_uold_source,
@@ -22,8 +48,19 @@ public:
             attribs_source, attribs_product, runtime_attribs_product);
     };
 
-    // For particle i in mfi, if is_flagged[i]=1, copy particle
-    // particle i from container pc_source into pc_product
+    /**
+     * \brief create particles in product particle containers
+     *
+     * For particle i in mfi, if is_flagged[i]=1, copy particle
+     * particle i from container pc_source into pc_product
+     *
+     * \param lev MR level
+     * \param mfi MFIter where source particles are located
+     * \param pc_source source particle container
+     * \param pc_product product particle container
+     * \param is_flagged particles for which is_flagged is 1 are copied
+     * \param do_boosted_product whether to copy old attribs
+     */
     void createParticles (
         int lev, const amrex::MFIter& mfi,
         std::unique_ptr< WarpXParticleContainer>& pc_source,
@@ -55,6 +92,7 @@ public:
         runtime_uold_source[1] = soa_source.GetRealData(PIdx::uy).data();
         runtime_uold_source[2] = soa_source.GetRealData(PIdx::uz).data();
 
+        // --- source runtime integer attribs
         amrex::GpuArray<int*,1> runtime_iattribs_source;
         std::map<std::string, int> icomps_source = pc_source->getParticleiComps();
         runtime_iattribs_source[0] = soa_source.GetIntData(icomps_source["ionization_level"]).data();
@@ -109,6 +147,7 @@ public:
             runtime_attribs_product[5] = soa_product.GetRealData(comps_product["uzold"]).data() + np_product_old;
         }
         
+        // --- product runtime integer attribs
         amrex::GpuArray<int*,1> runtime_iattribs_product;
         std::map<std::string, int> icomps_product = pc_product->getParticleiComps();
         runtime_iattribs_product[0] = soa_product.GetIntData(icomps_product["ionization_level"]).data() + np_product_old;
@@ -123,6 +162,7 @@ public:
         }
         const int cpuid = amrex::ParallelDescriptor::MyProc();
 
+        // Create instance of copy functor
         copyParticle copy_functor = initialize_copy(
             cpuid, do_boosted_product,
             runtime_uold_source,
@@ -130,12 +170,17 @@ public:
             attribs_product,
             runtime_attribs_product);
 
+        // Loop over source particles and create product particles
         copyAndTransformParticles(is_flagged, i_product, np_source, pid_product,
                                   particles_product, particles_source, copy_functor,
                                   runtime_iattribs_source, runtime_iattribs_product);
     }
 
-
+    /**
+     * \brief Loop over source particles and create product particles
+     * 
+     * \param is_flagged particles for which is_flagged is 1 are copied
+     */
     void copyAndTransformParticles(
         amrex::Gpu::ManagedDeviceVector<int>& is_flagged,
         amrex::Gpu::ManagedDeviceVector<int>& i_product,
@@ -169,6 +214,7 @@ public:
     }
 };
 
+// Derived class for ionization process
 class IonizationProcess: public elementaryProcess<elementaryProcessType::Ionization>
 {};
 
