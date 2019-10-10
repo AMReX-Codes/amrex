@@ -32,7 +32,8 @@ ifdef USE_RPATH
   USE_RPATH := $(strip $(USE_RPATH))
 else
   # the syntax we use below works for all compilers but CCE "classic"
-  USE_RPATH := TRUE
+  # we plan to enable this feature by default in the future
+  USE_RPATH := FALSE
 endif
 
 ifdef DEBUG

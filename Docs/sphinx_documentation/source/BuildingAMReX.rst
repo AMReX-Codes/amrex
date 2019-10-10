@@ -43,7 +43,7 @@ list of important variables.
    +------------+-------------------------------------+-------------+
    | USE_OMP    | TRUE or FALSE                       | FALSE       |
    +------------+-------------------------------------+-------------+
-   | USE_RPATH  | TRUE or FALSE                       | TRUE        |
+   | USE_RPATH  | TRUE or FALSE                       | FALSE       |
    +------------+-------------------------------------+-------------+
 
 .. raw:: latex
@@ -86,7 +86,7 @@ turned off and assertions in  source code are turned on. For production runs,
 ``DEBUG`` should be set to FALSE.
 
 The variable ``USE_RPATH`` controls the link mechanism to dependent libraries.
-By default, the library path at link time will be saved as a
+If enabled, the library path at link time will be saved as a
 `rpath hint <https://en.wikipedia.org/wiki/Rpath>`_ in created binaries.
 When disabled, library paths must be provided via ``export LD_LIBRARY_PATH``
 hints at runtime.
