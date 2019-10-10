@@ -27,7 +27,7 @@ template < elementaryProcessType ProcessT >
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void transformProductParticle(
     int i,
-    amrex::Vector<WarpXParticleContainer::ParticleType*> v_particle){}
+    WarpXParticleContainer::ParticleType* const * const v_particle){}
 
 // For ionization, increase ionization level of source particle
 template <>

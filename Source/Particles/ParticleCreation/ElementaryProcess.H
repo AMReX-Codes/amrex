@@ -125,7 +125,7 @@ public:
         // amrex::Vector<copyParticle> v_copy_functor(nproducts);
         amrex::Vector<copyParticle> v_copy_functor;
         amrex::Vector<int> v_pid_product(nproducts);
-        amrex::Vector<WarpXParticleContainer::ParticleType*> v_particles_product(nproducts);
+        amrex::Gpu::ManagedDeviceVector<WarpXParticleContainer::ParticleType*> v_particles_product(nproducts);
         for (int iproduct=0; iproduct<nproducts; iproduct++){
             WarpXParticleContainer*& pc_product = v_pc_product[iproduct];
             // Get product particle data
@@ -206,13 +206,14 @@ public:
         amrex::Gpu::ManagedDeviceVector<int>& i_product,
         int np_source,
         const amrex::Vector<int> v_pid_product,
-        const amrex::Vector<WarpXParticleContainer::ParticleType*> v_particles_product,
+        const amrex::Gpu::ManagedDeviceVector<WarpXParticleContainer::ParticleType*> v_particles_product,
         WarpXParticleContainer::ParticleType* particles_source,
         const amrex::Vector<copyParticle>& v_copy_functor,
         amrex::GpuArray<int*,1> runtime_iattribs_source)
     {
         int const * const AMREX_RESTRICT p_is_flagged = is_flagged.dataPtr();
         int const * const AMREX_RESTRICT p_i_product = i_product.dataPtr();
+        WarpXParticleContainer::ParticleType* const * const AMREX_RESTRICT p_particles_product = v_particles_product.dataPtr();
         // Loop over all source particles. If is_flagged, copy particle data
         // to corresponding product particle.
         amrex::For(
@@ -237,7 +238,7 @@ public:
                     // Transform product particles. The loop over product
                     // species is done inside the function to allow for
                     // more flexibility.
-                    transformProductParticle<ProcessT>(ip, v_particles_product);
+                    transformProductParticle<ProcessT>(ip, p_particles_product);
                 }
             }
             );
