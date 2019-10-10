@@ -242,11 +242,11 @@ dtod_memcpy_async (void* p_d_dst, const void* p_d_src, const std::size_t sz) noe
 }
 
 inline void
-memcpy_to_symbol (const void* p_sym, const void* p_src, const std::size_t sz, const std::size_t offset=0 ) noexcept
+memcpy_to_symbol (void** p_sym, void* p_src, const std::size_t sz, const std::size_t offset=0 ) noexcept
 {
     AMREX_HIP_OR_CUDA(
-        AMREX_HIP_SAFE_CALL(hipMemcpyToSymbol(p_sym, p_src, sz, offset));,
-        AMREX_CUDA_SAFE_CALL(cudaMemcpyToSymbol(p_sym, p_src, sz, offset)); )
+        AMREX_HIP_SAFE_CALL(hipMemcpyToSymbol(*p_sym, p_src, sz, offset));,
+        AMREX_CUDA_SAFE_CALL(cudaMemcpyToSymbol(*p_sym, p_src, sz, offset)); )
 }
 
 #ifdef AMREX_USE_GPU
