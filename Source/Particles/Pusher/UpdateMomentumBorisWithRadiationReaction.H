@@ -7,7 +7,7 @@
 
 /* \brief Push the particle's positions over one timestep,
  *    given the value of its momenta `ux`, `uy`, `uz`.
- *    Includes Radiation Reaction according to 
+ *    Includes Radiation Reaction according to
  *    https://doi.org/10.1088/1367-2630/12/12/123005 */
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void UpdateMomentumBorisWithRadiationReaction(
