@@ -93,6 +93,7 @@ ifeq ($(QED),TRUE)
   FFLAGS   += -DWARPX_QED
   F90FLAGS += -DWARPX_QED
   include $(WARPX_HOME)/Source/QED/Make.package
+  USERSuffix := $(USERSuffix).QED
 endif
 
 
