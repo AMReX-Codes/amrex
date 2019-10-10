@@ -28,6 +28,13 @@ else
   PRECISION := DOUBLE
 endif
 
+ifdef USE_RPATH
+  USE_RPATH := $(strip $(USE_RPATH))
+else
+  # the syntax we use below works for all compilers but CCE "classic"
+  USE_RPATH := TRUE
+endif
+
 ifdef DEBUG
   DEBUG := $(strip $(DEBUG))
 else
@@ -717,7 +724,11 @@ CPPFLAGS	+= $(DEFINES)
 
 libraries	= $(LIBRARIES) $(XTRALIBS)
 
-LDFLAGS		+= -L. $(addprefix -L, $(LIBRARY_LOCATIONS))
+ifeq ($(USE_RPATH),TRUE)
+  LDFLAGS	+= -Xlinker -rpath -Xlinker . $(addprefix -Xlinker -rpath -Xlinker , $(LIBRARY_LOCATIONS))
+else
+  LDFLAGS	+= -L. $(addprefix -L, $(LIBRARY_LOCATIONS))
+endif
 
 machineSuffix	= $(lowercase_comp)$(archSuffix)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(MProfSuffix)$(BTSuffix)$(MPISuffix)$(UPCXXSuffix)$(OMPSuffix)$(ACCSuffix)$(GPUSuffix)$(USERSuffix)
 
