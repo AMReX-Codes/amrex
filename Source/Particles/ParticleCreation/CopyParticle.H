@@ -10,14 +10,14 @@ public:
 
     int m_cpuid;
     bool m_do_boosted_product;
-    const amrex::GpuArray<amrex::ParticleReal*,3> m_runtime_uold_source;
-    const amrex::GpuArray<amrex::ParticleReal*,PIdx::nattribs> m_attribs_source;
-    const amrex::GpuArray<amrex::ParticleReal*,PIdx::nattribs> m_attribs_product;
-    const amrex::GpuArray<amrex::ParticleReal*,6> m_runtime_attribs_product;
+    amrex::GpuArray<amrex::ParticleReal*,3> m_runtime_uold_source;
+    amrex::GpuArray<amrex::ParticleReal*,PIdx::nattribs> m_attribs_source;
+    amrex::GpuArray<amrex::ParticleReal*,PIdx::nattribs> m_attribs_product;
+    amrex::GpuArray<amrex::ParticleReal*,6> m_runtime_attribs_product;
 
     AMREX_GPU_HOST_DEVICE
     copyParticle(
-        int cpuid, int do_boosted_product,
+        const int cpuid, const int do_boosted_product,
         const amrex::GpuArray<amrex::ParticleReal*,3> runtime_uold_source,
         const amrex::GpuArray<amrex::ParticleReal*,PIdx::nattribs> attribs_source,
         const amrex::GpuArray<amrex::ParticleReal*,PIdx::nattribs> attribs_product,
@@ -31,9 +31,12 @@ public:
         m_runtime_attribs_product(runtime_attribs_product){}
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    //void operator () (int is, int ip, int pid_product,
+    //                  WarpXParticleContainer::ParticleType& p_source,
+    //                  WarpXParticleContainer::ParticleType& p_product) const noexcept
     void operator () (int is, int ip, int pid_product,
                       WarpXParticleContainer::ParticleType& p_source,
-                      WarpXParticleContainer::ParticleType& p_product) const noexcept
+                      WarpXParticleContainer::ParticleType& p_product)
     {
         // Copy particle from source to product: AoS
         p_product.id() = pid_product + ip;
