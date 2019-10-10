@@ -4,7 +4,7 @@ import numpy as np
 import scipy.stats as st 
 import sys
 
-# This script checks if electrons and positrons initialized with 
+# This script checks if electrons and positrons initialized with
 # Quantum Synchrotron process enabled 
 # do actually have an exponentially distributed optical depth
 

@@ -4,7 +4,7 @@ import numpy as np
 import scipy.stats as st 
 import sys
 
-# This script checks if photons initialized with Breit Wheeler process enabled 
+# This script checks if photons initialized with Breit Wheeler process enabled
 # do actually have an exponentially distributed optical depth
 
 # Tolerance
