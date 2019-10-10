@@ -30,10 +30,17 @@ public:
         m_attribs_product(attribs_product),
         m_runtime_attribs_product(runtime_attribs_product){}
 
+    AMREX_GPU_HOST_DEVICE
+    copyParticle(const copyParticle& in){
+        m_cpuid = in.m_cpuid;
+        m_do_boosted_product = in.m_do_boosted_product;
+        m_runtime_uold_source = in.m_runtime_uold_source;
+        m_attribs_source = in.m_attribs_source;
+        m_attribs_product = in.m_attribs_product;
+        m_runtime_attribs_product = in.m_runtime_attribs_product;        
+    }
+
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    //void operator () (int is, int ip, int pid_product,
-    //                  WarpXParticleContainer::ParticleType& p_source,
-    //                  WarpXParticleContainer::ParticleType& p_product) const noexcept
     void operator () (int is, int ip, int pid_product,
                       WarpXParticleContainer::ParticleType& p_source,
                       WarpXParticleContainer::ParticleType& p_product)
