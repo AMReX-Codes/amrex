@@ -54,7 +54,7 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
 
     //Only Boris pusher is compatible with radiation reaction
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-        !(do_classical_radiation_reaction && 
+        !(do_classical_radiation_reaction &&
         WarpX::particle_pusher_algo != ParticlePusherAlgo::Boris),
         "Radiation reaction can be enabled only if Boris pusher is used");
     //_____________________________
