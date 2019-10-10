@@ -11,11 +11,11 @@
  * Particles in a source particle container are copied to a product particle
  * container if they are flagged. Both source and product particles can be
  * modified.
- * 
+ *
  * initialize_copy initializes a general copy functor
- * createParticles formats the data to prepare for the copy, then 
+ * createParticles formats the data to prepare for the copy, then
  *      calls copyAndTransformParticles
- * copyAndTransformParticles loops over particles, performs the copy and 
+ * copyAndTransformParticles loops over particles, performs the copy and
  * transform source and product particles if needed.
  *
  * The class is templated on the process type. This gives flexibility
@@ -146,7 +146,7 @@ public:
             runtime_attribs_product[4] = soa_product.GetRealData(comps_product["uyold"]).data() + np_product_old;
             runtime_attribs_product[5] = soa_product.GetRealData(comps_product["uzold"]).data() + np_product_old;
         }
-        
+
         // --- product runtime integer attribs
         amrex::GpuArray<int*,1> runtime_iattribs_product;
         std::map<std::string, int> icomps_product = pc_product->getParticleiComps();
@@ -178,7 +178,7 @@ public:
 
     /**
      * \brief Loop over source particles and create product particles
-     * 
+     *
      * \param is_flagged particles for which is_flagged is 1 are copied
      */
     void copyAndTransformParticles(

@@ -40,7 +40,7 @@ void transformSourceParticle < elementaryProcessType::Ionization > (
     amrex::GpuArray<int*,1> runtime_iattribs_source)
 {
     // increment particle's ionization level
-    runtime_iattribs_source[0][i] += 1; 
+    runtime_iattribs_source[0][i] += 1;
 }
 
 #endif // TRANSFORMPARTICLE_H_
