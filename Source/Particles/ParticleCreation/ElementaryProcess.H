@@ -57,9 +57,10 @@ public:
      * \param lev MR level
      * \param mfi MFIter where source particles are located
      * \param pc_source source particle container
-     * \param pc_product product particle container
+     * \param v_pc_product vector of product particle containers
      * \param is_flagged particles for which is_flagged is 1 are copied
-     * \param do_boosted_product whether to copy old attribs
+     * \param v_do_boosted_product vector: whether to copy old attribs for
+     *        each product container
      */
     void createParticles (
         int lev, const amrex::MFIter& mfi,
@@ -189,6 +190,16 @@ public:
      * \brief Loop over source particles and create product particles
      *
      * \param is_flagged particles for which is_flagged is 1 are copied
+     * \param i_product relative indices of product particle. This is the same
+     *        for all product particle containers.
+     * \param np_source number of particles in source container
+     * \param v_pid_product for each product particle container: ID of the
+     *        first product particle. Others IDs are incremented from this one
+     * \param v_particles_product for each product particle container: pointer
+     *        to the AoS particle data
+     * \param particles_source pointter to the AoS source particle data
+     * \param v_copy_functor for each product particle container: copy functor
+     * \param runtime_iattribs_source pointer to source runtime integer attribs
      */
     void copyAndTransformParticles(
         amrex::Gpu::ManagedDeviceVector<int>& is_flagged,
