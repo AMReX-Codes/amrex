@@ -48,7 +48,7 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
     pp.query("do_classical_radiation_reaction", do_classical_radiation_reaction);
     //if the species is not a lepton, do_classical_radiation_reaction
     //should be false
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(        
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
         !(do_classical_radiation_reaction && !AmIALepton()),
         "Can't enable classical radiation reaction for non lepton species. " );
 
