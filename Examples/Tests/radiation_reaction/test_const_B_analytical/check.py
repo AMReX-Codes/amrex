@@ -2,7 +2,7 @@
 
 # This script contains few simple tests for the radiation reaction pusher
 # It initializes an electron or a positron with normalized momentum in different
-# directions, propagating in a static magnetic field (along z).
+# directions, propagating in a static magnetic field (along [2/7,3/7,6/7]).
 # If the initial momentum is perpendicular to the the field, there is a very
 # simple analytical formula for the gamma factor:
 # gamma(t) =  coth(t/tc - C)
@@ -11,7 +11,7 @@
 # and r_e = classical electron radius
 # C is chosen so that gamma(0) = initial_gamma
 # If the initial momentum is parallel to the field, it should not change.
-# This module tests these predictions with a tolerance of 5%
+# This test checks these predictions with a tolerance of 5%.
 # If the script is run without a command line argument, it regenerates a new
 # inputfile according to the initial conditions listed below.
 # For detailed references see:
@@ -25,8 +25,6 @@
 import numpy as np
 import sys
 import yt
-import itertools as itr
-
 
 #Input filename
 inputname = "inputs"
@@ -43,31 +41,32 @@ small = 1.0e-100
 
 #Sim box data
 sim_size = 1.0e-6
-resolution = 128
-steps = 128
+resolution = 80
+steps = 80
 init_pos = np.array([0.,0.,0.])
 #________________________________________
 
 #Momentum vals
-p_vals = [10, 20, 50, 100, 200, 500, 1000]
+p_aux_0 = np.array([2.,3.,6.])
+p_aux_1 = np.array([1,0,0])
+p_aux_2 = np.array([0,1,0])
+Q, _ = np.linalg.qr(np.column_stack( [p_aux_0, p_aux_1, p_aux_2] )) #Gram-Schmidt
+p_0 = -Q[:,0]
+p_1 = -Q[:,1]
+p_2 = -Q[:,2]
+
+p_vals = [50,200,1000]
 #________________________________________
 
 #Field val
 B_val_norm = 300
 B_val = B_val_norm*m_e * 2.0 * np.pi * c /q_0/reference_length
-B = np.array([0, 0, B_val])
-#________________________________________
-
-#Dirs
-dirs = (np.array([1.,0.,0.]), np.array([0.,1.,0.]), np.array([0.,0.,1.]))
-#________________________________________
-
-#Types
-types = ["q_e", "-q_e"]
+B = p_0 * B_val
 #________________________________________
 
 #Tolerance
 tol = 0.05
+small = 1e-4 
 #________________________________________
 
 #tau_c
@@ -87,10 +86,11 @@ class sim_case:
 
 #All cases
 cases = [
-    sim_case("s" + str(ii),
-        vv[0]*vv[1], # momentum
-        vv[2]) #type
-        for ii, vv in enumerate(list(itr.product(p_vals, dirs, types)))
+    sim_case("ele_para0", p_0 * p_vals[2], "-q_e"),
+    sim_case("ele_perp0", p_1 * p_vals[0], "-q_e"),
+    sim_case("ele_perp1", p_2 * p_vals[1], "-q_e"),
+    sim_case("ele_perp2", p_1 * p_vals[2], "-q_e"),
+    sim_case("pos_perp2", p_1 * p_vals[2], "q_e"),
 ]
 #________________________________________
 
@@ -99,7 +99,7 @@ def gamma(p) :
     return np.sqrt(1.0 + np.dot(p,p))
 
 def exp_res(cc, time):
-    if np.all(np.cross(cc.init_mom, B) == 0.):
+    if np.all(np.linalg.norm(np.cross(cc.init_mom, B)) < small):
         return gamma(cc.init_mom)
     else :
         tt = time/tau_c
@@ -129,8 +129,8 @@ def check():
     for cc in zip(cases, res_mom):
         init_gamma = gamma(cc[0].init_mom)
         end_gamma = gamma(cc[1]/m_e/c)
-        exp_gamma = exp_res(cc[0], sim_time)
-        assert(np.all(np.abs(end_gamma-exp_gamma)/exp_gamma < tol))
+        exp_gamma = exp_res(cc[0], sim_time)  
+        assert((end_gamma-exp_gamma)/exp_gamma < tol)
 
 def generate():
 

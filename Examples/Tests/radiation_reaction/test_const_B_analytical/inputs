@@ -2,8 +2,8 @@
 #Run check.py without arguments to regenerate
 #
 
-max_step = 128
-amr.n_cell = 128 128 128
+max_step = 80
+amr.n_cell = 80 80 80
 amr.max_level = 0
 amr.blocking_factor = 8
 amr.max_grid_size = 8
@@ -16,347 +16,51 @@ algo.charge_deposition = standard
 algo.field_gathering = standard
 warpx.cfl = 1.0
 
-particles.nspecies = 42
-particles.species_names =  s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 s12 s13 s14 s15 s16 s17 s18 s19 s20 s21 s22 s23 s24 s25 s26 s27 s28 s29 s30 s31 s32 s33 s34 s35 s36 s37 s38 s39 s40 s41
+particles.nspecies = 5
+particles.species_names =  ele_para0 ele_perp0 ele_perp1 ele_perp2 pos_perp2
 
-amr.plot_int = 128
+amr.plot_int = 80
 
 warpx.plot_raw_fields = 0
 
-s0.charge = q_e
-s0.mass = m_e
-s0.injection_style = "SingleParticle"
-s0.single_particle_pos = 0.0 0.0 0.0
-s0.single_particle_vel = 10.0 0.0 0.0
-s0.single_particle_weight = 1e-100
-s0.do_classical_radiation_reaction = 1
+ele_para0.charge = -q_e
+ele_para0.mass = m_e
+ele_para0.injection_style = "SingleParticle"
+ele_para0.single_particle_pos = 0.0 0.0 0.0
+ele_para0.single_particle_vel = 285.7142857142856 428.5714285714285 857.142857142857
+ele_para0.single_particle_weight = 0.0001
+ele_para0.do_classical_radiation_reaction = 1
 
-s1.charge = -q_e
-s1.mass = m_e
-s1.injection_style = "SingleParticle"
-s1.single_particle_pos = 0.0 0.0 0.0
-s1.single_particle_vel = 10.0 0.0 0.0
-s1.single_particle_weight = 1e-100
-s1.do_classical_radiation_reaction = 1
+ele_perp0.charge = -q_e
+ele_perp0.mass = m_e
+ele_perp0.injection_style = "SingleParticle"
+ele_perp0.single_particle_pos = 0.0 0.0 0.0
+ele_perp0.single_particle_vel = -47.91574237499548 6.388765649999412 12.777531299998806
+ele_perp0.single_particle_weight = 0.0001
+ele_perp0.do_classical_radiation_reaction = 1
 
-s2.charge = q_e
-s2.mass = m_e
-s2.injection_style = "SingleParticle"
-s2.single_particle_pos = 0.0 0.0 0.0
-s2.single_particle_vel = 0.0 10.0 0.0
-s2.single_particle_weight = 1e-100
-s2.do_classical_radiation_reaction = 1
+ele_perp1.charge = -q_e
+ele_perp1.mass = m_e
+ele_perp1.injection_style = "SingleParticle"
+ele_perp1.single_particle_pos = 0.0 0.0 0.0
+ele_perp1.single_particle_vel = 1.4274296030894868e-14 178.88543819998318 -89.44271909999159
+ele_perp1.single_particle_weight = 0.0001
+ele_perp1.do_classical_radiation_reaction = 1
 
-s3.charge = -q_e
-s3.mass = m_e
-s3.injection_style = "SingleParticle"
-s3.single_particle_pos = 0.0 0.0 0.0
-s3.single_particle_vel = 0.0 10.0 0.0
-s3.single_particle_weight = 1e-100
-s3.do_classical_radiation_reaction = 1
+ele_perp2.charge = -q_e
+ele_perp2.mass = m_e
+ele_perp2.injection_style = "SingleParticle"
+ele_perp2.single_particle_pos = 0.0 0.0 0.0
+ele_perp2.single_particle_vel = -958.3148474999095 127.77531299998823 255.55062599997612
+ele_perp2.single_particle_weight = 0.0001
+ele_perp2.do_classical_radiation_reaction = 1
 
-s4.charge = q_e
-s4.mass = m_e
-s4.injection_style = "SingleParticle"
-s4.single_particle_pos = 0.0 0.0 0.0
-s4.single_particle_vel = 0.0 0.0 10.0
-s4.single_particle_weight = 1e-100
-s4.do_classical_radiation_reaction = 1
+pos_perp2.charge = q_e
+pos_perp2.mass = m_e
+pos_perp2.injection_style = "SingleParticle"
+pos_perp2.single_particle_pos = 0.0 0.0 0.0
+pos_perp2.single_particle_vel = -958.3148474999095 127.77531299998823 255.55062599997612
+pos_perp2.single_particle_weight = 0.0001
+pos_perp2.do_classical_radiation_reaction = 1
 
-s5.charge = -q_e
-s5.mass = m_e
-s5.injection_style = "SingleParticle"
-s5.single_particle_pos = 0.0 0.0 0.0
-s5.single_particle_vel = 0.0 0.0 10.0
-s5.single_particle_weight = 1e-100
-s5.do_classical_radiation_reaction = 1
-
-s6.charge = q_e
-s6.mass = m_e
-s6.injection_style = "SingleParticle"
-s6.single_particle_pos = 0.0 0.0 0.0
-s6.single_particle_vel = 20.0 0.0 0.0
-s6.single_particle_weight = 1e-100
-s6.do_classical_radiation_reaction = 1
-
-s7.charge = -q_e
-s7.mass = m_e
-s7.injection_style = "SingleParticle"
-s7.single_particle_pos = 0.0 0.0 0.0
-s7.single_particle_vel = 20.0 0.0 0.0
-s7.single_particle_weight = 1e-100
-s7.do_classical_radiation_reaction = 1
-
-s8.charge = q_e
-s8.mass = m_e
-s8.injection_style = "SingleParticle"
-s8.single_particle_pos = 0.0 0.0 0.0
-s8.single_particle_vel = 0.0 20.0 0.0
-s8.single_particle_weight = 1e-100
-s8.do_classical_radiation_reaction = 1
-
-s9.charge = -q_e
-s9.mass = m_e
-s9.injection_style = "SingleParticle"
-s9.single_particle_pos = 0.0 0.0 0.0
-s9.single_particle_vel = 0.0 20.0 0.0
-s9.single_particle_weight = 1e-100
-s9.do_classical_radiation_reaction = 1
-
-s10.charge = q_e
-s10.mass = m_e
-s10.injection_style = "SingleParticle"
-s10.single_particle_pos = 0.0 0.0 0.0
-s10.single_particle_vel = 0.0 0.0 20.0
-s10.single_particle_weight = 1e-100
-s10.do_classical_radiation_reaction = 1
-
-s11.charge = -q_e
-s11.mass = m_e
-s11.injection_style = "SingleParticle"
-s11.single_particle_pos = 0.0 0.0 0.0
-s11.single_particle_vel = 0.0 0.0 20.0
-s11.single_particle_weight = 1e-100
-s11.do_classical_radiation_reaction = 1
-
-s12.charge = q_e
-s12.mass = m_e
-s12.injection_style = "SingleParticle"
-s12.single_particle_pos = 0.0 0.0 0.0
-s12.single_particle_vel = 50.0 0.0 0.0
-s12.single_particle_weight = 1e-100
-s12.do_classical_radiation_reaction = 1
-
-s13.charge = -q_e
-s13.mass = m_e
-s13.injection_style = "SingleParticle"
-s13.single_particle_pos = 0.0 0.0 0.0
-s13.single_particle_vel = 50.0 0.0 0.0
-s13.single_particle_weight = 1e-100
-s13.do_classical_radiation_reaction = 1
-
-s14.charge = q_e
-s14.mass = m_e
-s14.injection_style = "SingleParticle"
-s14.single_particle_pos = 0.0 0.0 0.0
-s14.single_particle_vel = 0.0 50.0 0.0
-s14.single_particle_weight = 1e-100
-s14.do_classical_radiation_reaction = 1
-
-s15.charge = -q_e
-s15.mass = m_e
-s15.injection_style = "SingleParticle"
-s15.single_particle_pos = 0.0 0.0 0.0
-s15.single_particle_vel = 0.0 50.0 0.0
-s15.single_particle_weight = 1e-100
-s15.do_classical_radiation_reaction = 1
-
-s16.charge = q_e
-s16.mass = m_e
-s16.injection_style = "SingleParticle"
-s16.single_particle_pos = 0.0 0.0 0.0
-s16.single_particle_vel = 0.0 0.0 50.0
-s16.single_particle_weight = 1e-100
-s16.do_classical_radiation_reaction = 1
-
-s17.charge = -q_e
-s17.mass = m_e
-s17.injection_style = "SingleParticle"
-s17.single_particle_pos = 0.0 0.0 0.0
-s17.single_particle_vel = 0.0 0.0 50.0
-s17.single_particle_weight = 1e-100
-s17.do_classical_radiation_reaction = 1
-
-s18.charge = q_e
-s18.mass = m_e
-s18.injection_style = "SingleParticle"
-s18.single_particle_pos = 0.0 0.0 0.0
-s18.single_particle_vel = 100.0 0.0 0.0
-s18.single_particle_weight = 1e-100
-s18.do_classical_radiation_reaction = 1
-
-s19.charge = -q_e
-s19.mass = m_e
-s19.injection_style = "SingleParticle"
-s19.single_particle_pos = 0.0 0.0 0.0
-s19.single_particle_vel = 100.0 0.0 0.0
-s19.single_particle_weight = 1e-100
-s19.do_classical_radiation_reaction = 1
-
-s20.charge = q_e
-s20.mass = m_e
-s20.injection_style = "SingleParticle"
-s20.single_particle_pos = 0.0 0.0 0.0
-s20.single_particle_vel = 0.0 100.0 0.0
-s20.single_particle_weight = 1e-100
-s20.do_classical_radiation_reaction = 1
-
-s21.charge = -q_e
-s21.mass = m_e
-s21.injection_style = "SingleParticle"
-s21.single_particle_pos = 0.0 0.0 0.0
-s21.single_particle_vel = 0.0 100.0 0.0
-s21.single_particle_weight = 1e-100
-s21.do_classical_radiation_reaction = 1
-
-s22.charge = q_e
-s22.mass = m_e
-s22.injection_style = "SingleParticle"
-s22.single_particle_pos = 0.0 0.0 0.0
-s22.single_particle_vel = 0.0 0.0 100.0
-s22.single_particle_weight = 1e-100
-s22.do_classical_radiation_reaction = 1
-
-s23.charge = -q_e
-s23.mass = m_e
-s23.injection_style = "SingleParticle"
-s23.single_particle_pos = 0.0 0.0 0.0
-s23.single_particle_vel = 0.0 0.0 100.0
-s23.single_particle_weight = 1e-100
-s23.do_classical_radiation_reaction = 1
-
-s24.charge = q_e
-s24.mass = m_e
-s24.injection_style = "SingleParticle"
-s24.single_particle_pos = 0.0 0.0 0.0
-s24.single_particle_vel = 200.0 0.0 0.0
-s24.single_particle_weight = 1e-100
-s24.do_classical_radiation_reaction = 1
-
-s25.charge = -q_e
-s25.mass = m_e
-s25.injection_style = "SingleParticle"
-s25.single_particle_pos = 0.0 0.0 0.0
-s25.single_particle_vel = 200.0 0.0 0.0
-s25.single_particle_weight = 1e-100
-s25.do_classical_radiation_reaction = 1
-
-s26.charge = q_e
-s26.mass = m_e
-s26.injection_style = "SingleParticle"
-s26.single_particle_pos = 0.0 0.0 0.0
-s26.single_particle_vel = 0.0 200.0 0.0
-s26.single_particle_weight = 1e-100
-s26.do_classical_radiation_reaction = 1
-
-s27.charge = -q_e
-s27.mass = m_e
-s27.injection_style = "SingleParticle"
-s27.single_particle_pos = 0.0 0.0 0.0
-s27.single_particle_vel = 0.0 200.0 0.0
-s27.single_particle_weight = 1e-100
-s27.do_classical_radiation_reaction = 1
-
-s28.charge = q_e
-s28.mass = m_e
-s28.injection_style = "SingleParticle"
-s28.single_particle_pos = 0.0 0.0 0.0
-s28.single_particle_vel = 0.0 0.0 200.0
-s28.single_particle_weight = 1e-100
-s28.do_classical_radiation_reaction = 1
-
-s29.charge = -q_e
-s29.mass = m_e
-s29.injection_style = "SingleParticle"
-s29.single_particle_pos = 0.0 0.0 0.0
-s29.single_particle_vel = 0.0 0.0 200.0
-s29.single_particle_weight = 1e-100
-s29.do_classical_radiation_reaction = 1
-
-s30.charge = q_e
-s30.mass = m_e
-s30.injection_style = "SingleParticle"
-s30.single_particle_pos = 0.0 0.0 0.0
-s30.single_particle_vel = 500.0 0.0 0.0
-s30.single_particle_weight = 1e-100
-s30.do_classical_radiation_reaction = 1
-
-s31.charge = -q_e
-s31.mass = m_e
-s31.injection_style = "SingleParticle"
-s31.single_particle_pos = 0.0 0.0 0.0
-s31.single_particle_vel = 500.0 0.0 0.0
-s31.single_particle_weight = 1e-100
-s31.do_classical_radiation_reaction = 1
-
-s32.charge = q_e
-s32.mass = m_e
-s32.injection_style = "SingleParticle"
-s32.single_particle_pos = 0.0 0.0 0.0
-s32.single_particle_vel = 0.0 500.0 0.0
-s32.single_particle_weight = 1e-100
-s32.do_classical_radiation_reaction = 1
-
-s33.charge = -q_e
-s33.mass = m_e
-s33.injection_style = "SingleParticle"
-s33.single_particle_pos = 0.0 0.0 0.0
-s33.single_particle_vel = 0.0 500.0 0.0
-s33.single_particle_weight = 1e-100
-s33.do_classical_radiation_reaction = 1
-
-s34.charge = q_e
-s34.mass = m_e
-s34.injection_style = "SingleParticle"
-s34.single_particle_pos = 0.0 0.0 0.0
-s34.single_particle_vel = 0.0 0.0 500.0
-s34.single_particle_weight = 1e-100
-s34.do_classical_radiation_reaction = 1
-
-s35.charge = -q_e
-s35.mass = m_e
-s35.injection_style = "SingleParticle"
-s35.single_particle_pos = 0.0 0.0 0.0
-s35.single_particle_vel = 0.0 0.0 500.0
-s35.single_particle_weight = 1e-100
-s35.do_classical_radiation_reaction = 1
-
-s36.charge = q_e
-s36.mass = m_e
-s36.injection_style = "SingleParticle"
-s36.single_particle_pos = 0.0 0.0 0.0
-s36.single_particle_vel = 1000.0 0.0 0.0
-s36.single_particle_weight = 1e-100
-s36.do_classical_radiation_reaction = 1
-
-s37.charge = -q_e
-s37.mass = m_e
-s37.injection_style = "SingleParticle"
-s37.single_particle_pos = 0.0 0.0 0.0
-s37.single_particle_vel = 1000.0 0.0 0.0
-s37.single_particle_weight = 1e-100
-s37.do_classical_radiation_reaction = 1
-
-s38.charge = q_e
-s38.mass = m_e
-s38.injection_style = "SingleParticle"
-s38.single_particle_pos = 0.0 0.0 0.0
-s38.single_particle_vel = 0.0 1000.0 0.0
-s38.single_particle_weight = 1e-100
-s38.do_classical_radiation_reaction = 1
-
-s39.charge = -q_e
-s39.mass = m_e
-s39.injection_style = "SingleParticle"
-s39.single_particle_pos = 0.0 0.0 0.0
-s39.single_particle_vel = 0.0 1000.0 0.0
-s39.single_particle_weight = 1e-100
-s39.do_classical_radiation_reaction = 1
-
-s40.charge = q_e
-s40.mass = m_e
-s40.injection_style = "SingleParticle"
-s40.single_particle_pos = 0.0 0.0 0.0
-s40.single_particle_vel = 0.0 0.0 1000.0
-s40.single_particle_weight = 1e-100
-s40.do_classical_radiation_reaction = 1
-
-s41.charge = -q_e
-s41.mass = m_e
-s41.injection_style = "SingleParticle"
-s41.single_particle_pos = 0.0 0.0 0.0
-s41.single_particle_vel = 0.0 0.0 1000.0
-s41.single_particle_weight = 1e-100
-s41.do_classical_radiation_reaction = 1
-
-warpx.B_external = 0.0 0.0 3212923.8167159916
+warpx.B_external = 917978.2333474257 1376967.350021139 2753934.700042278
