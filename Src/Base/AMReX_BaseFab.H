@@ -461,6 +461,7 @@ public:
         return view(this->domain.loVect3d(),n);
     }
 
+// HIP FIX HERE - Initialization List: {{
     AMREX_GPU_HOST_DEVICE
     AMREX_FORCE_INLINE
     FabView<T const> view (const IntVect& iv, int n = 0) const noexcept
@@ -474,6 +475,7 @@ public:
 #endif
     }
 
+// HIP FIX HERE - Initialization List: {{
     AMREX_GPU_HOST_DEVICE
     AMREX_FORCE_INLINE
     FabView<T> view (const IntVect& iv, int n = 0) noexcept
