@@ -1,11 +1,11 @@
 #! /usr/bin/env python3
 import yt
 import numpy as np
-import scipy.stats as st 
+import scipy.stats as st
 import sys
 
 # This script checks if electrons and positrons initialized with
-# Quantum Synchrotron process enabled 
+# Quantum Synchrotron process enabled
 # do actually have an exponentially distributed optical depth
 
 # Tolerance

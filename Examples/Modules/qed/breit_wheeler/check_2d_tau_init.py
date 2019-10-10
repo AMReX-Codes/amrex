@@ -1,7 +1,7 @@
 #! /usr/bin/env python3
 import yt
 import numpy as np
-import scipy.stats as st 
+import scipy.stats as st
 import sys
 
 # This script checks if photons initialized with Breit Wheeler process enabled
