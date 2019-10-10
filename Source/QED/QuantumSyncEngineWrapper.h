@@ -1,9 +1,6 @@
 #ifndef WARPX_quantum_sync_engine_wrapper_h_
 #define WARPX_quantum_sync_engine_wrapper_h_
 
-//This file provides a wrapper aroud the breit_wheeler engine
-//provided by the QED modules of the PICSAR library
-
 #include "QedWrapperCommons.h"
 
 //QS ENGINE from PICSAR
@@ -17,7 +14,8 @@ using WarpXQuantumSynchrotronWrapper =
 // These functors provide the core elementary functions of the library
 // Can be included in GPU kernels
 
-// Initialization of the optical depth
+/* \brief Functor to initialize the optical depth of leptons for the 
+*   Quantum Synchrotron process */
 class QuantumSynchrotronGetOpticalDepth
 {
 public:
@@ -30,12 +28,14 @@ public:
 //____________________________________________
 
 // Factory class =============================
+
+/* \brief Wrapper for the Quantum Synchrotron engine of the PICSAR library */
 class QuantumSynchrotronEngine
 {
 public:
     QuantumSynchrotronEngine();
 
-    //Builds the functor to initialize the optical depth
+    /* \brief Builds the functor to initialize the optical depth */
     QuantumSynchrotronGetOpticalDepth build_optical_depth_functor();
 };
 

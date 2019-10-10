@@ -1,9 +1,6 @@
 #ifndef WARPX_breit_wheeler_engine_wrapper_h_
 #define WARPX_breit_wheeler_engine_wrapper_h_
 
-//This file provides a wrapper aroud the breit_wheeler engine
-//provided by the QED modules of the PICSAR library
-
 #include "QedWrapperCommons.h"
 
 //BW ENGINE from PICSAR
@@ -17,7 +14,8 @@ using WarpXBreitWheelerWrapper =
 // These functors provide the core elementary functions of the library
 // Can be included in GPU kernels
 
-// Initialization of the optical depth
+/* \brief Functor to initialize the optical depth of photons for the 
+*   Breit-Wheeler process */
 class BreitWheelerGetOpticalDepth
 {
 public:
@@ -30,12 +28,14 @@ public:
 //____________________________________________
 
 // Factory class =============================
+
+/* \brief Wrapper for the Breit Wheeler engine of the PICSAR library */
 class BreitWheelerEngine
 {
 public:
     BreitWheelerEngine();
 
-    //Builds the functor to initialize the optical depth
+    /* \brief Builds the functor to initialize the optical depth */
     BreitWheelerGetOpticalDepth build_optical_depth_functor();
 };
 
