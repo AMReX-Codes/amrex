@@ -22,9 +22,6 @@ def check():
     loc_ele, scale_ele = st.expon.fit(res_ele_tau)
     loc_pos, scale_pos = st.expon.fit(res_pos_tau)
 
-    print(loc_ele, scale_ele)
-    print(loc_pos, scale_pos)
-
     # loc should be very close to 0, scale should be very close to 1
     assert(np.abs(loc_ele - 0) < tol)
     assert(np.abs(loc_pos - 0) < tol)
