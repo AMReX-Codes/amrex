@@ -1,4 +1,4 @@
-#include "QuantumSyncEngineWrapper.h"
+#include "QuantumSyncEngineWrapper.hpp"
 //This file provides a wrapper aroud the quantum_sync engine
 //provided by the PICSAR library
 

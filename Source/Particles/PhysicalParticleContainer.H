@@ -10,8 +10,8 @@
 #include <map>
 
 #ifdef WARPX_QED
-#include <QuantumSyncEngineWrapper.h>
-#include <BreitWheelerEngineWrapper.h>
+    #include <QuantumSyncEngineWrapper.hpp>
+    #include <BreitWheelerEngineWrapper.hpp>
 #endif
 
 class PhysicalParticleContainer

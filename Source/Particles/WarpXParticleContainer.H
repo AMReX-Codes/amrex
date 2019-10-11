@@ -7,8 +7,8 @@
 #include <AMReX_AmrCore.H>
 
 #ifdef WARPX_QED
-#include <QuantumSyncEngineWrapper.h>
-#include <BreitWheelerEngineWrapper.h>
+    #include <QuantumSyncEngineWrapper.hpp>
+    #include <BreitWheelerEngineWrapper.hpp>
 #endif
 
 #include <memory>

@@ -1,4 +1,4 @@
-#include "BreitWheelerEngineWrapper.h"
+#include "BreitWheelerEngineWrapper.hpp"
 //This file provides a wrapper aroud the breit_wheeler engine
 //provided by the PICSAR library
 
