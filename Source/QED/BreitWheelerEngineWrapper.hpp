@@ -22,8 +22,13 @@ public:
     BreitWheelerGetOpticalDepth ()
     {};
 
-    AMREX_GPU_DEVICE
-    amrex::Real operator() () const;
+    AMREX_GPU_DEVICE 
+    AMREX_FORCE_INLINE
+    amrex::Real operator() () const
+    {
+        return WarpXBreitWheelerWrapper::
+            internal_get_optical_depth(amrex::Random());
+    }
 };
 //____________________________________________
 
