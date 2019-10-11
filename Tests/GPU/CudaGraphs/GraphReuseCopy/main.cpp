@@ -254,10 +254,10 @@ int main (int argc, char* argv[])
                 const auto ec = Gpu::ExecutionConfig(ncells);
                 const Dim3 offset = {0,0,0};
 
-                AMREX_CUDA_LAUNCH_GLOBAL(ec, copy,
-                                         lo, len, ncells,
-                                         offset, src, dst,
-                                         0, 0, 1);
+                AMREX_GPU_LAUNCH_GLOBAL(ec, copy,
+                                        lo, len, ncells,
+                                        offset, src, dst,
+                                        0, 0, 1);
             }
 
             amrex::Print() << "No Graph Function FAB sum = " << y.sum() << "; Expected value = " << x.sum() << std::endl;
@@ -315,10 +315,7 @@ int main (int argc, char* argv[])
 
             for (MFIter mfi(x); mfi.isValid(); ++mfi)
             {
-                if (mfi.LocalIndex() == 0)
-                {
-                    amrex::Gpu::Device::startGraphStreamRecording();
-                } 
+                amrex::Gpu::Device::startGraphRecording(mfi.LocalIndex() == 0, NULL, NULL, 0);
 
                 const Box bx = mfi.validbox();
 
@@ -330,14 +327,11 @@ int main (int argc, char* argv[])
                 const auto ec = Gpu::ExecutionConfig(ncells);
                 const Dim3 offset = {0,0,0};
 
-                AMREX_CUDA_LAUNCH_GLOBAL(ec, copy,
-                                         lo, len, ncells,
-                                         offset, &(src_fab_d[idx]), &(dst_fab_d[idx]), 0, 0, 1); 
+                AMREX_GPU_LAUNCH_GLOBAL(ec, copy,
+                                        lo, len, ncells,
+                                        offset, &(src_fab_d[idx]), &(dst_fab_d[idx]), 0, 0, 1); 
 
-                if (mfi.LocalIndex() == (x.local_size() - 1) )
-                {
-                    graphExec = amrex::Gpu::Device::stopGraphStreamRecording(); 
-                }
+                graphExec = amrex::Gpu::Device::stopGraphRecording(mfi.LocalIndex() == (x.local_size() -1)); 
             }
 
             BL_PROFILE_VAR_STOP(cgfc);
@@ -420,10 +414,7 @@ int main (int argc, char* argv[])
 
             for (MFIter mfi(x); mfi.isValid(); ++mfi)
             {
-                if (mfi.LocalIndex() == 0)
-                {
-                    amrex::Gpu::Device::startGraphStreamRecording();
-                } 
+                amrex::Gpu::Device::startGraphRecording(mfi.LocalIndex() == 0, NULL, NULL, 0);
 
                 const Box bx = mfi.validbox();
                 int idx = mfi.LocalIndex();
@@ -436,10 +427,8 @@ int main (int argc, char* argv[])
                     (dst_arrs_d[idx])(i,j,k,dcomp+n) = (src_arrs_d[idx])(i+offset.x,j+offset.y,k+offset.z,scomp+n); 
                 });
 
-                if (mfi.LocalIndex() == (x.local_size() - 1) )
-                {
-                    graphExec = amrex::Gpu::Device::stopGraphStreamRecording(); 
-                }
+
+                graphExec = amrex::Gpu::Device::stopGraphRecording(mfi.LocalIndex() == (x.local_size() -1)); 
             }
 
             BL_PROFILE_VAR_STOP(cgfc);
@@ -535,10 +524,7 @@ int main (int argc, char* argv[])
 
             for (MFIter mfi(x); mfi.isValid(); ++mfi)
             {
-                if (mfi.LocalIndex() == 0)
-                {
-                    amrex::Gpu::Device::startGraphStreamRecording();
-                } 
+                amrex::Gpu::Device::startGraphRecording(mfi.LocalIndex() == 0, NULL, NULL, 0);
 
                 const Box bx = mfi.validbox();
                 int idx = mfi.LocalIndex();
@@ -556,11 +542,10 @@ int main (int argc, char* argv[])
                     }
                 });
 
-                if (mfi.LocalIndex() == (x.local_size() - 1) )
-                {
-                    cgraph.setGraph(amrex::Gpu::Device::stopGraphStreamRecording());
-                }
+                graphExec = amrex::Gpu::Device::stopGraphRecording(mfi.LocalIndex() == (x.local_size() -1)); 
             }
+
+            cgraph.setGraph(graphExec);
 
             BL_PROFILE_VAR_STOP(goc);
 
