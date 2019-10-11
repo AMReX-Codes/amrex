@@ -1096,13 +1096,14 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             m_grids_r.resize(np);
             m_levs_r.resize(np);
             m_levs_tmp.resize(np);
-            
+
             auto grids_ptr = m_grids_tmp.dataPtr();
             auto levs_ptr = m_levs_tmp.dataPtr();
             ParticleType* p_ptr = &(aos[0]);
             amrex::ParallelFor(np, [=] AMREX_GPU_DEVICE (int i) noexcept
             {
                 auto& p = p_ptr[i];
+                
                 if (p.id() < 0) 
                 {    
                     grids_ptr[i] = -1;
@@ -1198,7 +1199,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
     auto& plan = redistribute_copy_plan;
     
-    plan.build(*this, op);
+    plan.build(*this, op, local);
 
     auto& snd_buffer = redistribute_snd_buffer;
     auto& rcv_buffer = redistribute_rcv_buffer;
