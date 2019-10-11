@@ -511,7 +511,7 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
 #ifdef WARPX_QED
         //Pointer to the optical depth component
         amrex::Real* p_tau;
-        
+
         //If a QED effect is enabled, tau has to be initialized
         bool loc_has_quantum_sync = has_quantum_sync();
         bool loc_has_breit_wheeler = has_breit_wheeler();
@@ -529,7 +529,7 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
         if(loc_has_breit_wheeler){
             breit_wheeler_get_opt =
                 shr_ptr_bw_engine->build_optical_depth_functor();
-        }            
+        }
 #endif
 
         const GpuArray<Real,AMREX_SPACEDIM> overlap_corner
