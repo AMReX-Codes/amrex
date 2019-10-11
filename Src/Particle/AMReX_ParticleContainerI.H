@@ -1680,6 +1680,7 @@ BuildRedistributeMask (int lev, int nghost) const
         redistribute_mask_ptr->setVal(-1, nghost);
 
         auto tile_size = this->do_tiling ? this->tile_size : IntVect::TheZeroVector();            
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -2082,10 +2083,8 @@ AssignCellDensitySingleLevel (int rho_index,
     {
         amrex::Error("AssignCellDensitySingleLevel: problem must be periodic in no or all directions");
     }
-    
-    for (MFIter mfi(*mf_pointer); mfi.isValid(); ++mfi) {
-        (*mf_pointer)[mfi].setVal(0);
-    }
+
+    mf_pointer->setVal(0);
     
     using ParConstIter = ParConstIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
 
