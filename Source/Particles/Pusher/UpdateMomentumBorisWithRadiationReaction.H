@@ -13,9 +13,9 @@
  */
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void UpdateMomentumBorisWithRadiationReaction(
-    amrex::Real& ux, amrex::Real& uy, amrex::Real& uz,
-    const amrex::Real Ex, const amrex::Real Ey, const amrex::Real Ez,
-    const amrex::Real Bx, const amrex::Real By, const amrex::Real Bz,
+    amrex::ParticleReal& ux, amrex::ParticleReal& uy, amrex::ParticleReal& uz,
+    const amrex::ParticleReal Ex, const amrex::ParticleReal Ey, const amrex::ParticleReal Ez,
+    const amrex::ParticleReal Bx, const amrex::ParticleReal By, const amrex::ParticleReal Bz,
     const amrex::Real q, const amrex::Real m, const amrex::Real dt )
 {
     //RR algorithm needs to store old value of the normalized momentum
