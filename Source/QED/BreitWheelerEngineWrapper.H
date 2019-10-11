@@ -1,7 +1,7 @@
 #ifndef WARPX_breit_wheeler_engine_wrapper_h_
 #define WARPX_breit_wheeler_engine_wrapper_h_
 
-#include "QedWrapperCommons.h"
+#include "QedWrapperCommons.H"
 
 //BW ENGINE from PICSAR
 #include "breit_wheeler_engine.hpp"

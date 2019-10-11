@@ -1,7 +1,7 @@
 #ifndef WARPX_quantum_sync_engine_wrapper_h_
 #define WARPX_quantum_sync_engine_wrapper_h_
 
-#include "QedWrapperCommons.h"
+#include "QedWrapperCommons.H"
 
 //QS ENGINE from PICSAR
 #include "quantum_sync_engine.hpp"
