@@ -73,7 +73,6 @@ public:
                                 int lev,
                                 int depos_lev,
                                 amrex::Real dt) override {};
-
 };
 
 #endif // #ifndef WARPX_PhotonParticleContainer_H_
