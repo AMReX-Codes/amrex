@@ -422,7 +422,7 @@ MLEBTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
     else if ( s_mode==StateMode::Correction )
       crsebndry = m_crse_cor_br[amrlev].get();
     else
-    amrex:Abort("In amrex::MLTensorOp::applyBCTensor() unknown StateMode.");
+    amrex:Abort("In amrex::MLEBTensorOp::applyBCTensor() unknown StateMode.");
 
     int cr = ( (amrlev>0) ? m_amr_ref_ratio[amrlev-1] : m_coarse_data_crse_ratio );
     const IntVect ratio{cr};
