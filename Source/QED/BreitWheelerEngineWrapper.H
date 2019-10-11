@@ -22,7 +22,7 @@ public:
     BreitWheelerGetOpticalDepth ()
     {};
 
-    AMREX_GPU_DEVICE 
+    AMREX_GPU_DEVICE
     AMREX_FORCE_INLINE
     amrex::Real operator() () const
     {

@@ -23,7 +23,7 @@ public:
     {};
 
     AMREX_GPU_DEVICE
-    AMREX_FORCE_INLINE    
+    AMREX_FORCE_INLINE
     amrex::Real operator() () const
     {
         return WarpXQuantumSynchrotronWrapper::
