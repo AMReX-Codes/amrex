@@ -749,7 +749,7 @@ void MultiParticleContainer::InitQED ()
     }
 
     if(someone_has_quantum_sync)
-        InitQuantumSync();    
+        InitQuantumSync();
 
     if(someone_has_breit_wheeler)
         InitBreitWheeler();
@@ -759,7 +759,7 @@ void MultiParticleContainer::InitQED ()
 void MultiParticleContainer::InitQuantumSync ()
 {
     if(ParallelDescriptor::IOProcessor()){
-        qs_engine.computes_lookup_tables_default();        
+        qs_engine.computes_lookup_tables_default();
     }
 }
 
