@@ -129,7 +129,7 @@ def check():
     for cc in zip(cases, res_mom):
         init_gamma = gamma(cc[0].init_mom)
         end_gamma = gamma(cc[1]/m_e/c)
-        exp_gamma = exp_res(cc[0], sim_time)        
+        exp_gamma = exp_res(cc[0], sim_time)
         assert(np.abs(end_gamma-exp_gamma)/exp_gamma < tol)
 
 def generate():
