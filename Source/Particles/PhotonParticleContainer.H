@@ -53,7 +53,7 @@ public:
                         const amrex::MultiFab& Ey,
                         const amrex::MultiFab& Ez,
                         const amrex::MultiFab& Bx,
-                        const amrex::MultiFab& By, 
+                        const amrex::MultiFab& By,
                         const amrex::MultiFab& Bz) override {};
 
 
