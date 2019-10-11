@@ -523,11 +523,11 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
         QuantumSynchrotronGetOpticalDepth quantum_sync_get_opt;
         BreitWheelerGetOpticalDepth breit_wheeler_get_opt;
         if(loc_has_quantum_sync){
-            quantum_sync_get_opt = 
+            quantum_sync_get_opt =
                 shr_ptr_qs_engine->build_optical_depth_functor();
         }
         if(loc_has_breit_wheeler){
-            breit_wheeler_get_opt = 
+            breit_wheeler_get_opt =
                 shr_ptr_bw_engine->build_optical_depth_functor();
         }            
 #endif
