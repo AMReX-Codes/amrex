@@ -20,7 +20,7 @@ before_install:
     - tar xf boost_1_71_0.tar.gz
     - cd boost_1_71_0
     - ./bootstrap.sh --with-libraries=math
-    - sudo ./b2 -d0 install    
+    - sudo ./b2 -d0 install
     - cd ..
 
 script:
