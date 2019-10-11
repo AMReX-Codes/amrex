@@ -7,12 +7,12 @@
 
 #include <AMReX_IArrayBox.H>
 
-#include <map>
-
 #ifdef WARPX_QED
-    #include <QuantumSyncEngineWrapper.hpp>
-    #include <BreitWheelerEngineWrapper.hpp>
+    #include <QuantumSyncEngineWrapper.H>
+    #include <BreitWheelerEngineWrapper.H>
 #endif
+
+#include <map>
 
 class PhysicalParticleContainer
     : public WarpXParticleContainer

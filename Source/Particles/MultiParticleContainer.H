@@ -10,6 +10,11 @@
 #include <PhotonParticleContainer.H>
 #include <LaserParticleContainer.H>
 
+#ifdef WARPX_QED
+    #include <BreitWheelerEngineWrapper.H>
+    #include <QuantumSyncEngineWrapper.H>
+#endif
+
 #include <memory>
 #include <map>
 #include <string>
@@ -22,11 +27,6 @@
 // polymorphic. PhysicalParticleContainer and LaserParticleContainer are
 // concrete class derived from WarpXParticlContainer.
 //
-
-#ifdef WARPX_QED
-    #include <BreitWheelerEngineWrapper.hpp>
-    #include <QuantumSyncEngineWrapper.hpp>
-#endif
 
 class MultiParticleContainer
 {
