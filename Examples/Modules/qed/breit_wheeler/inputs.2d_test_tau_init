@@ -33,6 +33,7 @@ warpx.plot_crsepatch = 0
 warpx.use_filter = 1
 warpx.cfl = 1. # if 1., the time step is set to its CFL limit
 warpx.do_pml = 1 # use Perfectly Matched Layer as boundary condition
+warpx.serialize_ics = 1
 
 #################################
 ############ PLASMA #############

@@ -1,8 +1,6 @@
 #ifndef WARPX_WarpXParticleContainer_H_
 #define WARPX_WarpXParticleContainer_H_
 
-#include <memory>
-
 #include "WarpXDtType.H"
 
 #include <AMReX_Particles.H>
@@ -12,6 +10,8 @@
 #include <QuantumSyncEngineWrapper.h>
 #include <BreitWheelerEngineWrapper.h>
 #endif
+
+#include <memory>
 
 enum struct ConvertDirection{WarpX_to_SI, SI_to_WarpX};
 
