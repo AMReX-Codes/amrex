@@ -73,13 +73,6 @@ public:
                                 int lev,
                                 int depos_lev,
                                 amrex::Real dt) override {};
-
-private:
-
-#ifdef WARPX_QED
-    // A function to initialize the Tau component according to the BW engine
-    void InitTauBreitWheeler();
-#endif
 };
 
 #endif // #ifndef WARPX_PhotonParticleContainer_H_

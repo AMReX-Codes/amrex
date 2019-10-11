@@ -45,11 +45,6 @@ void PhotonParticleContainer::InitData()
 {
     AddParticles(0); // Note - add on level 0
 
-#ifdef WARPX_QED
-    if(do_qed_breit_wheeler)
-        InitTauBreitWheeler();
-#endif
-
     if (maxLevel() > 0) {
         Redistribute();  // We then redistribute
     }
@@ -122,26 +117,3 @@ PhotonParticleContainer::Evolve (int lev,
                                        t, dt);
 
 }
-
-#ifdef WARPX_QED
-// A function to initialize the Tau component according to the BW engine
-void PhotonParticleContainer::InitTauBreitWheeler()
-{
-    BL_PROFILE("PhotonParticleContainer::InitOpticalDepth");
-    //Get functor
-    auto get_opt = shr_ptr_bw_engine->build_optical_depth_functor();
-
-    //Looping over all the particles
-    int num_levels = finestLevel() + 1;
-    for (int lev=0; lev < num_levels; ++lev)
-        for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti){
-            auto taus = pti.GetAttribs(particle_comps["tau"]).dataPtr();
-            amrex::ParallelFor(
-                pti.numParticles(),
-                [=] AMREX_GPU_DEVICE (long i) {
-                    taus[i] = get_opt();
-                }
-                );
-    }
-}
-#endif
