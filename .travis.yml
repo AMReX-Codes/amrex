@@ -19,9 +19,8 @@ before_install:
     - wget https://dl.bintray.com/boostorg/release/1.71.0/source/boost_1_71_0.tar.gz
     - tar xf boost_1_71_0.tar.gz
     - cd boost_1_71_0
-    - ./bootstrap.sh --with-libraries=math --prefix=/home/travis/local
-    - ./b2 -d0 install
-    - export PATH=$PATH:/home/travis/local
+    - ./bootstrap.sh --with-libraries=math
+    - sudo ./b2 -d0 install    
     - cd ..
 
 script:
