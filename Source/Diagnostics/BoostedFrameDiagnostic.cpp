@@ -851,7 +851,7 @@ writeLabFrameData(const MultiFab* cell_centered_data,
              //Box slice_box = geom.Domain();
              Box slice_box = LabFrameDiags_[i]->buff_box_;
              slice_box.setSmall(boost_direction_, i_boost);
-             slice_box.setBig(boost_direction_, i_boost); 
+             slice_box.setBig(boost_direction_, i_boost);
 
              // Make it a BoxArray slice_ba
              BoxArray slice_ba(slice_box);
@@ -861,10 +861,10 @@ writeLabFrameData(const MultiFab* cell_centered_data,
                              ncomp, 0));
 
              // slice is re-used if the t_lab of a diag is equal to
-             // that of the previous diag. 
-             // Back-transformed data is copied from slice 
-             // which has the dmap of the domain to 
-             // tmp_slice_ptr which has the dmap of the 
+             // that of the previous diag.
+             // Back-transformed data is copied from slice
+             // which has the dmap of the domain to
+             // tmp_slice_ptr which has the dmap of the
              // data_buffer that stores the back-transformed data.
              tmp_slice_ptr->copy(*slice, 0, 0, ncomp);
              LabFrameDiags_[i]->AddDataToBuffer(*tmp_slice_ptr, i_lab,
