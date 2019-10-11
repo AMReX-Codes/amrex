@@ -40,9 +40,9 @@ small = 1.0e-100
 #________________________________________
 
 #Sim box data
-sim_size = 1.0e-6
-resolution = 80
-steps = 80
+sim_size = 0.8e-6
+resolution = 64
+steps = 64
 init_pos = np.array([0.,0.,0.])
 #________________________________________
 
@@ -67,6 +67,10 @@ B = p_0 * B_val
 #Tolerance
 tol = 0.05
 small = 1e-4
+#________________________________________
+
+#A very small weight
+very_small_weight = 1.0e-8
 #________________________________________
 
 #tau_c
@@ -141,8 +145,8 @@ def generate():
         f.write("max_step = {}\n".format(steps))
         f.write("amr.n_cell = {} {} {}\n".format(resolution, resolution, resolution))
         f.write("amr.max_level = 0\n")
-        f.write("amr.blocking_factor = 8\n")
-        f.write("amr.max_grid_size = 8\n")
+        f.write("amr.blocking_factor = 32\n")
+        f.write("amr.max_grid_size = 64\n")
         f.write("geometry.coord_sys   = 0\n")
         f.write("geometry.is_periodic = 1 1 1\n")
         f.write("geometry.prob_lo = {} {} {}\n".format(-sim_size, -sim_size, -sim_size))
@@ -160,7 +164,7 @@ def generate():
 
         f.write("\namr.plot_int = {}\n\n".format(steps))
 
-        f.write("warpx.plot_raw_fields = 0\n\n")
+        f.write("warpx.fields_to_plot = rho\n\n")
 
         for cc in cases:
             f.write("{}.charge = {}\n".format(cc.name, cc.type))
@@ -170,7 +174,7 @@ def generate():
                 format(cc.name, init_pos[0], init_pos[1], init_pos[2]))
             f.write("{}.single_particle_vel = {} {} {}\n".
                 format(cc.name, cc.init_mom[0], cc.init_mom[1], cc.init_mom[2]))
-            f.write("{}.single_particle_weight = {}\n".format(cc.name, small))
+            f.write("{}.single_particle_weight = {}\n".format(cc.name, very_small_weight))
             f.write("{}.do_classical_radiation_reaction = 1\n".format(cc.name))
             f.write("\n")
 
