@@ -686,7 +686,7 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
 
             if(loc_has_breit_wheeler){
                 p_tau[ip] = breit_wheeler_get_opt();
-            }                   
+            }
 #endif
 
             u.x *= PhysConst::c;
