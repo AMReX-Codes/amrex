@@ -39,7 +39,12 @@ public:
     {};
 
     AMREX_GPU_DEVICE
-    amrex::Real operator() () const;
+    AMREX_FORCE_INLINE    
+    amrex::Real operator() () const
+    {
+        return WarpXQuantumSynchrotronWrapper::
+            internal_get_optical_depth(amrex::Random());
+    }
 };
 //____________________________________________
 
@@ -53,11 +58,36 @@ public:
         innards{_innards}{};
 
     AMREX_GPU_DEVICE
+    AMREX_FORCE_INLINE
     bool operator()(
-    amrex::Real px, amrex::Real py, amrex::Real pz, 
-    amrex::Real ex, amrex::Real ey, amrex::Real ez,
-    amrex::Real bx, amrex::Real by, amrex::Real bz,
-    amrex::Real dt, amrex::Real& opt_depth) const;
+        amrex::Real px, amrex::Real py, amrex::Real pz, 
+        amrex::Real ex, amrex::Real ey, amrex::Real ez,
+        amrex::Real bx, amrex::Real by, amrex::Real bz,
+        amrex::Real dt, amrex::Real& opt_depth) const
+    {
+        bool has_event_happend = false;
+        amrex::Real dummy_lambda = 1.0;
+        amrex::Real unused_event_time = 0.0;
+
+        const auto table = picsar::multi_physics
+        ::lookup_1d<amrex::Real>(
+            innards->KKfunc_data.size(),
+            innards->KKfunc_coords.data(),
+            innards->KKfunc_data.data());
+
+        WarpXQuantumSynchrotronWrapper::
+        internal_evolve_opt_depth_and_determine_event(
+            px, py, pz,
+            ex, ey, ez,
+            bx, by, bz,
+            dt, opt_depth, 
+            has_event_happend, unused_event_time,
+            dummy_lambda, 
+            table,
+            innards->ctrl);
+
+        return has_event_happend;
+    }
 
 private:
     QuantumSynchrotronEngineInnards* innards;

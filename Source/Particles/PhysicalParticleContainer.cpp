@@ -124,11 +124,6 @@ void PhysicalParticleContainer::InitData()
 
     AddParticles(0); // Note - add on level 0
 
-#ifdef WARPX_QED
-    if(do_qed_quantum_sync)
-        InitTauQuantumSync();
-#endif
-
     Redistribute();  // We then redistribute
 }
 
@@ -513,6 +508,30 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
             pi = soa.GetIntData(particle_icomps["ionization_level"]).data() + old_size;
         }
 
+#ifdef WARPX_QED
+        //Pointer to the optical depth component
+        amrex::Real* p_tau;
+
+        //If a QED effect is enabled, tau has to be initialized
+        bool loc_has_quantum_sync = has_quantum_sync();
+        bool loc_has_breit_wheeler = has_breit_wheeler();
+        if(loc_has_quantum_sync || loc_has_breit_wheeler){
+            p_tau = soa.GetRealData(particle_comps["tau"]).data() + old_size;
+        }
+
+        //If needed, get the appropriate functors from the engines
+        QuantumSynchrotronGetOpticalDepth quantum_sync_get_opt;
+        BreitWheelerGetOpticalDepth breit_wheeler_get_opt;
+        if(loc_has_quantum_sync){
+            quantum_sync_get_opt =
+                shr_ptr_qs_engine->build_optical_depth_functor();
+        }
+        if(loc_has_breit_wheeler){
+            breit_wheeler_get_opt =
+                shr_ptr_bw_engine->build_optical_depth_functor();
+        }
+#endif
+
         const GpuArray<Real,AMREX_SPACEDIM> overlap_corner
             {AMREX_D_DECL(overlap_realbox.lo(0),
                           overlap_realbox.lo(1),
@@ -659,6 +678,16 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
             if (loc_do_field_ionization) {
                 pi[ip] = loc_ionization_initial_level;
             }
+
+#ifdef WARPX_QED
+            if(loc_has_quantum_sync){
+                p_tau[ip] = quantum_sync_get_opt();
+            }
+
+            if(loc_has_breit_wheeler){
+                p_tau[ip] = breit_wheeler_get_opt();
+            }
+#endif
 
             u.x *= PhysConst::c;
             u.y *= PhysConst::c;
@@ -2135,25 +2164,5 @@ PhysicalParticleContainer::
 set_quantum_sync_engine_ptr(std::shared_ptr<QuantumSynchrotronEngine> ptr)
 {
     shr_ptr_qs_engine = ptr;
-}
-
-// A function to initialize the Tau component according to the QS engine
-void PhysicalParticleContainer::InitTauQuantumSync()
-{
-    BL_PROFILE("PhysicalParticleContainer::InitTauQuantumSync");
-    //Get functor
-    auto get_opt = shr_ptr_qs_engine->build_optical_depth_functor();
-    //Looping over all the particles
-    int num_levels = finestLevel() + 1;
-    for (int lev=0; lev < num_levels; ++lev)
-        for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti){
-            auto taus = pti.GetAttribs(particle_comps["tau"]).dataPtr();
-            amrex::ParallelFor(
-                pti.numParticles(),
-                [=] AMREX_GPU_DEVICE (long i) {
-                    taus[i] = get_opt();
-                }
-                );
-    }
 }
 #endif

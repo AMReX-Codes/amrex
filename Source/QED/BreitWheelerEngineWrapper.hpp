@@ -25,7 +25,7 @@ struct BreitWheelerEngineInnards
 
     //Lookup table data
     amrex::Gpu::ManagedVector<amrex::Real> TTfunc_coords;
-    amrex::Gpu::ManagedVector<amrex::Real> TTfunc_data; 
+    amrex::Gpu::ManagedVector<amrex::Real> TTfunc_data;
     //______
 };
 
@@ -43,7 +43,12 @@ public:
     {};
 
     AMREX_GPU_DEVICE
-    amrex::Real operator() () const;
+    AMREX_FORCE_INLINE
+    amrex::Real operator() () const
+    {
+        return WarpXBreitWheelerWrapper::
+            internal_get_optical_depth(amrex::Random());
+    }
 };
 //____________________________________________
 
@@ -57,11 +62,35 @@ public:
         innards{_innards}{};
 
     AMREX_GPU_DEVICE
+    AMREX_FORCE_INLINE
     bool operator()(
-    amrex::Real px, amrex::Real py, amrex::Real pz, 
+    amrex::Real px, amrex::Real py, amrex::Real pz,
     amrex::Real ex, amrex::Real ey, amrex::Real ez,
     amrex::Real bx, amrex::Real by, amrex::Real bz,
-    amrex::Real dt, amrex::Real& opt_depth) const;
+    amrex::Real dt, amrex::Real& opt_depth) const
+    {
+        bool has_event_happend = false;
+        amrex::Real dummy_lambda = 1.0;
+        amrex::Real unused_event_time = 0.0;
+
+        const auto table = picsar::multi_physics::lookup_1d<amrex::Real>
+            (innards->TTfunc_data.size(),
+            innards->TTfunc_coords.data(),
+            innards->TTfunc_data.data());
+
+        WarpXBreitWheelerWrapper::
+        internal_evolve_opt_depth_and_determine_event(
+            px, py, pz,
+            ex, ey, ez,
+            bx, by, bz,
+            dt, opt_depth,
+            has_event_happend, unused_event_time,
+            dummy_lambda,
+            table,
+            innards->ctrl);
+
+        return has_event_happend;
+    }
 
 private:
     BreitWheelerEngineInnards* innards;
@@ -77,11 +106,11 @@ public:
 
     /* \brief Builds the functor to initialize the optical depth */
     BreitWheelerGetOpticalDepth build_optical_depth_functor ();
-    
+
     /* \brief Builds the functor to evolve the optical depth */
     BreitWheelerEvolveOpticalDepth build_evolve_functor ();
 
-    /* \brief Computes the Lookup tables using the default settings 
+    /* \brief Computes the Lookup tables using the default settings
      *  provided by the PICSAR library */
     void computes_lookup_tables_default ();
 
@@ -90,7 +119,7 @@ public:
 
     /* \brief Writes lookup tables on disk in 'file'
      *  return false if it fails. */
-    bool write_lookup_tables (std::string file) const;   
+    bool write_lookup_tables (std::string file) const;
 
 private:
     bool lookup_tables_initialized = false;

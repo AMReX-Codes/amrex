@@ -10,8 +10,8 @@
 #include <map>
 
 #ifdef WARPX_QED
-#include <QuantumSyncEngineWrapper.h>
-#include <BreitWheelerEngineWrapper.h>
+    #include <QuantumSyncEngineWrapper.hpp>
+    #include <BreitWheelerEngineWrapper.hpp>
 #endif
 
 class PhysicalParticleContainer
@@ -215,9 +215,6 @@ protected:
 
     // A flag to enable breit_wheeler process [photons only!!]
     bool do_qed_breit_wheeler = false;
-
-    // A function to initialize the Tau component according to the QS engine
-    void InitTauQuantumSync();
 
     // A smart pointer to an instance of a Quantum Synchrotron engine
     std::shared_ptr<QuantumSynchrotronEngine> shr_ptr_qs_engine;

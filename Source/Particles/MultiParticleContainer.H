@@ -24,8 +24,8 @@
 //
 
 #ifdef WARPX_QED
-    #include "BreitWheelerEngineWrapper.h"
-    #include "QuantumSyncEngineWrapper.h"
+    #include <BreitWheelerEngineWrapper.hpp>
+    #include <QuantumSyncEngineWrapper.hpp>
 #endif
 
 class MultiParticleContainer

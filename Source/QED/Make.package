@@ -1,6 +1,6 @@
 CEXE_headers += QedWrapperCommons.h
-CEXE_headers += BreitWheelerEngineWrapper.h
-CEXE_headers += QuantumSyncsEngineWrapper.h
+CEXE_headers += BreitWheelerEngineWrapper.hpp
+CEXE_headers += QuantumSyncsEngineWrapper.hpp
 CEXE_sources += BreitWheelerEngineWrapper.cpp
 CEXE_sources += QuantumSyncEngineWrapper.cpp
 
