@@ -28,7 +28,6 @@ allrd, info = read_raw_data.read_lab_snapshot(snapshot_slice, header_slice)
 Fs = allrd['Ez']
 print("Fs.shape", Fs.shape)
 Fs_1D = np.squeeze(Fs[Fs.shape[0]//2,1,:])
-# Fs_1D = np.squeeze(Fs[Fs.shape[0]//2,0,:])
 
 error = np.max(np.abs(Fs_1D - F_1D)) / np.max(np.abs(F_1D))
 
