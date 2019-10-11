@@ -168,7 +168,7 @@ MLEBTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode 
 
     if (mglev >= m_kappa[amrlev].size()) return;
 
-    applyBCTensor(amrlev, mglev, in, bc_mode, bndry);
+    applyBCTensor(amrlev, mglev, in, bc_mode, s_mode, bndry);
 
     auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
@@ -405,7 +405,7 @@ MLEBTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode 
 
 void
 MLEBTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
-                             BCMode bc_mode, const MLMGBndry* bndry) const
+                             BCMode bc_mode, StateMode s_mode, const MLMGBndry* bndry) const
 {
     const int inhomog = bc_mode == BCMode::Inhomogeneous;
     const int imaxorder = maxorder;
@@ -415,7 +415,15 @@ MLEBTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
     FArrayBox foofab(Box::TheUnitBox(),3);
     const auto& foo = foofab.array();
 
-    const BndryRegister* crsebndry = m_crse_sol_br[amrlev].get();
+
+    const BndryRegister* crsebndry;
+    if ( s_mode==StateMode::Solution )
+      crsebndry = m_crse_sol_br[amrlev].get();
+    else if ( s_mode==StateMode::Correction )
+      crsebndry = m_crse_cor_br[amrlev].get();
+    else
+    amrex:Abort("In amrex::MLTensorOp::applyBCTensor() unknown StateMode.");
+
     int cr = ( (amrlev>0) ? m_amr_ref_ratio[amrlev-1] : m_coarse_data_crse_ratio );
     const IntVect ratio{cr};
     
@@ -424,7 +432,7 @@ MLEBTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
     const Box& domain = m_geom[amrlev][mglev].growPeriodicDomain(1);
     Box testbox = domain;
 
-    const int has_crsedata = crsebndry!=nullptr && inhomog;
+    const int has_crsedata = crsebndry!=nullptr; // && inhomog;
 
     auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;

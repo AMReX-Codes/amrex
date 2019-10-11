@@ -116,7 +116,7 @@ MLTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc
 
     if (mglev >= m_kappa[amrlev].size()) return;
 
-    applyBCTensor(amrlev, mglev, in, bc_mode, bndry );
+    applyBCTensor(amrlev, mglev, in, bc_mode, s_mode, bndry );
 
     const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
 
@@ -180,7 +180,7 @@ MLTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc
 
 void
 MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
-                           BCMode bc_mode, const MLMGBndry* bndry 
+                           BCMode bc_mode, StateMode s_mode, const MLMGBndry* bndry 
 			   ) const
 {
 #if (AMREX_SPACEDIM > 1)
@@ -193,7 +193,14 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
     FArrayBox foofab(Box::TheUnitBox(),3);
     const auto& foo = foofab.array();
 
-    const BndryRegister* crsebndry = m_crse_sol_br[amrlev].get();
+    const BndryRegister* crsebndry;
+    if ( s_mode==StateMode::Solution )
+      crsebndry = m_crse_sol_br[amrlev].get();
+    else if ( s_mode==StateMode::Correction )
+      crsebndry = m_crse_cor_br[amrlev].get();
+    else
+    amrex:Abort("In amrex::MLTensorOp::applyBCTensor() unknown StateMode.");
+
     int cr = ( (amrlev>0) ? m_amr_ref_ratio[amrlev-1] : m_coarse_data_crse_ratio );
     const IntVect ratio{cr};
     
@@ -202,7 +209,7 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
     const Box& domain = m_geom[amrlev][mglev].growPeriodicDomain(1);
     Box testbox = domain;
     
-    const int has_crsedata = crsebndry!=nullptr && inhomog;
+    const int has_crsedata = crsebndry!=nullptr; // && inhomog;
     
     // Domain and coarse-fine boundaries are handled below.
 
@@ -313,7 +320,7 @@ MLTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
     const int ncomp = getNComp();
     MLABecLaplacian::compFlux(amrlev, fluxes, sol, loc);
 
-    applyBCTensor(amrlev, mglev, sol, BCMode::Inhomogeneous, m_bndry_sol[amrlev].get());
+    applyBCTensor(amrlev, mglev, sol, BCMode::Inhomogeneous, StateMode::Solution, m_bndry_sol[amrlev].get());
 
     const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
 
