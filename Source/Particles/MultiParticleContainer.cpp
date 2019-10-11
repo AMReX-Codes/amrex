@@ -1,10 +1,11 @@
-#include <limits>
-#include <algorithm>
-#include <string>
-
 #include <MultiParticleContainer.H>
 #include <WarpX_f.H>
 #include <WarpX.H>
+
+#include <limits>
+#include <algorithm>
+#include <string>
+#include <memory>
 
 using namespace amrex;
 
@@ -149,6 +150,11 @@ MultiParticleContainer::InitData ()
     // For each species, get the ID of its product species.
     // This is used for ionization and pair creation processes.
     mapSpeciesProduct();
+
+#ifdef WARPX_QED
+    InitQED();
+#endif
+
 }
 
 
@@ -726,3 +732,19 @@ MultiParticleContainer::doFieldIonization ()
         } // lev
     } // pc_source
 }
+
+#ifdef WARPX_QED
+void MultiParticleContainer::InitQED ()
+{
+    for (auto& pc : allcontainers) {
+        if(pc->has_quantum_sync()){
+            pc->set_quantum_sync_engine_ptr
+                (std::make_shared<QuantumSynchrotronEngine>(qs_engine));
+        }
+        if(pc->has_breit_wheeler()){
+            pc->set_breit_wheeler_engine_ptr
+                (std::make_shared<BreitWheelerEngine>(bw_engine));
+        }
+    }
+}
+#endif
