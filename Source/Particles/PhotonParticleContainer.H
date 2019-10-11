@@ -65,8 +65,8 @@ public:
                                 int depos_lev,
                                 amrex::Real dt) override {};
     //Photons are not leptons 
-    virtual bool AmIALepton () override 
-    { 
+    virtual bool AmIALepton () override
+    {
         return false;
     };
 
