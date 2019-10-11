@@ -14,8 +14,10 @@ using WarpXQuantumSynchrotronWrapper =
 // These functors provide the core elementary functions of the library
 // Can be included in GPU kernels
 
-/* \brief Functor to initialize the optical depth of leptons for the
-*   Quantum Synchrotron process */
+///
+///  \brief Functor to initialize the optical depth of leptons for the
+///  Quantum Synchrotron process
+///
 class QuantumSynchrotronGetOpticalDepth
 {
 public:
@@ -34,13 +36,17 @@ public:
 
 // Factory class =============================
 
-/* \brief Wrapper for the Quantum Synchrotron engine of the PICSAR library */
+///
+/// \brief Wrapper for the Quantum Synchrotron engine of the PICSAR library
+///
 class QuantumSynchrotronEngine
 {
 public:
     QuantumSynchrotronEngine ();
 
-    /* \brief Builds the functor to initialize the optical depth */
+    ///
+    /// \brief Builds the functor to initialize the optical depth
+    ///
     QuantumSynchrotronGetOpticalDepth build_optical_depth_functor ();
 };
 
