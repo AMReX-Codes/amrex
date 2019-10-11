@@ -149,7 +149,7 @@ Similarly, the back-transformed diagnostics on a reduced domain (1D line, 2D sli
 
 
 Note that, in the above snippet, we compare the 0th cell of the reduced diagnostic with F.shape[1]//2-1. For an x-z slice at y=y-mid of the domain, two cells are extracted at the center to ensure that the data format is HDF5 compliant. Let us consider that the domain consists of four cells in the y-dimension : [0,1,2,3], Then the 2D slice would contain the data that corresponds to [1,2]. That is the 0th cell of the reduced diagnostic corresponds to ny/2-1, (where, ny is the number of cells in the y-dimension).
-  
+
 If the back-transformed diagnostics are written in the HDF5 format (This can be done by compiling WarpX with USE_HDF5=TRUE), then the full domain snapshot and reduced domain diagnostics can be visualized using h5py :
 
 ::
