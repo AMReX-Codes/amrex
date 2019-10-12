@@ -6,6 +6,11 @@
 #include <AMReX_Particles.H>
 #include <AMReX_AmrCore.H>
 
+#ifdef WARPX_QED
+    #include <QuantumSyncEngineWrapper.H>
+    #include <BreitWheelerEngineWrapper.H>
+#endif
+
 #include <memory>
 
 enum struct ConvertDirection{WarpX_to_SI, SI_to_WarpX};
@@ -236,14 +241,6 @@ public:
                         const amrex::ParticleReal* vx, const amrex::ParticleReal* vy, const amrex::ParticleReal* vz,
                         int nattr, const amrex::ParticleReal* attr, int uniqueparticles, int id=-1);
 
-    void AddOneParticle (int lev, int grid, int tile,
-                         amrex::ParticleReal x, amrex::ParticleReal y, amrex::ParticleReal z,
-                         std::array<amrex::ParticleReal,PIdx::nattribs>& attribs);
-
-    void AddOneParticle (ParticleTileType& particle_tile,
-                         amrex::ParticleReal x, amrex::ParticleReal y, amrex::ParticleReal z,
-                         std::array<amrex::ParticleReal,PIdx::nattribs>& attribs);
-
     virtual void ReadHeader (std::istream& is);
 
     virtual void WriteHeader (std::ostream& os) const;
@@ -320,6 +317,18 @@ protected:
     std::string physical_element;
 
     int do_boosted_frame_diags = 1;
+
+#ifdef WARPX_QED
+    bool do_qed = false;
+
+    virtual bool has_quantum_sync(){return false;};
+    virtual bool has_breit_wheeler(){return false;};
+
+    virtual void
+    set_breit_wheeler_engine_ptr(std::shared_ptr<BreitWheelerEngine>){};
+    virtual void
+    set_quantum_sync_engine_ptr(std::shared_ptr<QuantumSynchrotronEngine>){};
+#endif
 
     amrex::Vector<amrex::FArrayBox> local_rho;
     amrex::Vector<amrex::FArrayBox> local_jx;

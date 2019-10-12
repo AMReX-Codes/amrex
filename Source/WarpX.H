@@ -438,10 +438,12 @@ private:
      *  averaging the values of the charge density of the fine patch (on the same level).
      *
      * \param[in]  fine             fine patches to interpolate from
-     * \param[out] crse             coarse patches to interpolate to
-     * \param[in]  ref_ratio        integer ratio between the two
+     * \param[out] coarse           coarse patches to interpolate to
+     * \param[in]  refinement_ratio integer ratio between the two
      */
-    void SyncRho (const amrex::MultiFab& fine, amrex::MultiFab& crse, int ref_ratio);
+    void interpolateDensityFineToCoarse (const amrex::MultiFab& fine,
+                                               amrex::MultiFab& coarse,
+                                         int const refinement_ratio);
 
     void ExchangeWithPmlB (int lev);
     void ExchangeWithPmlE (int lev);

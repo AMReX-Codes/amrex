@@ -9,6 +9,11 @@
 #include <PhotonParticleContainer.H>
 #include <LaserParticleContainer.H>
 
+#ifdef WARPX_QED
+    #include <BreitWheelerEngineWrapper.H>
+    #include <QuantumSyncEngineWrapper.H>
+#endif
+
 #include <memory>
 #include <map>
 #include <string>
@@ -207,6 +212,17 @@ protected:
     std::vector<bool> m_gather_from_main_grid;
 
     std::vector<PCTypes> species_types;
+
+#ifdef WARPX_QED
+    // The QED engines
+    BreitWheelerEngine bw_engine;
+    QuantumSynchrotronEngine qs_engine;
+    //_______________________________
+
+    //Initialize QED engines and provides smart pointers
+    //to species who need QED processes
+    void InitQED ();
+#endif
 
 private:
 
