@@ -259,6 +259,7 @@ public:
 
     BaseFab (BaseFab<T>&& rhs) noexcept;
 
+    template <RunOn run_on = RunOn::Cpu>
     AMREX_GPU_HOST_DEVICE
     BaseFab& operator= (T) noexcept;
 
@@ -646,15 +647,19 @@ public:
     * the starting component number, and the number of components
     * to be set.
     */
+    template <RunOn run_on = RunOn::Cpu>
     AMREX_GPU_HOST_DEVICE
     void setVal (T x, const Box& bx, int nstart, int ncomp) noexcept;
     //! Same as above, except the number of modified components is one. N is the component to be modified.
+    template <RunOn run_on = RunOn::Cpu>
     AMREX_GPU_HOST_DEVICE
     void setVal (T x, const Box& bx, int N = 0) noexcept;
     //! Same as above, except the sub-box defaults to the entire domain.
+    template <RunOn run_on = RunOn::Cpu>
     AMREX_GPU_HOST_DEVICE
     void setVal (T x, int N) noexcept;
 
+    template <RunOn run_on = RunOn::Cpu>
     AMREX_GPU_HOST_DEVICE
     void setValIfNot (T x, const Box& bx, const BaseFab<int>& mask, int nstart, int ncomp) noexcept;
 
@@ -681,6 +686,7 @@ public:
     * destcomp. The results are UNDEFINED if the src and dest are the
     * same and the srcbox and destbox overlap.
     */
+    template <RunOn run_on = RunOn::Cpu>
     AMREX_GPU_HOST_DEVICE
     BaseFab<T>& copy (const BaseFab<T>& src,
                       const Box&        srcbox,
@@ -695,6 +701,7 @@ public:
     * of the intersecting region is performed.
     * class.
     */
+    template <RunOn run_on = RunOn::Cpu>
     AMREX_GPU_HOST_DEVICE
     BaseFab<T>& copy (const BaseFab<T>& src,
                       int               srccomp,
@@ -706,19 +713,22 @@ public:
     * Box, and all components of the destination BaseFab are
     * copied.
     */
+    template <RunOn run_on = RunOn::Cpu>
     AMREX_GPU_HOST_DEVICE
     BaseFab<T>& copy (const BaseFab<T>& src,
                       const Box&        destbox) noexcept;
 
     //! Copy from the srcbox of this Fab to raw memory and return the number of bytes copied
+    template <RunOn run_on = RunOn::Cpu>
     AMREX_GPU_HOST_DEVICE
     std::size_t copyToMem (const Box& srcbox,
                            int        srccomp,
                            int        numcomp,
                            void*      dst) const noexcept;
 
-    AMREX_GPU_HOST_DEVICE
     //! Copy from raw memory to the dstbox of this Fab and return the number of bytes copied
+    template <RunOn run_on = RunOn::Cpu>
+    AMREX_GPU_HOST_DEVICE
     std::size_t copyFromMem (const Box&  dstbox,
                              int         dstcomp,
                              int         numcomp,
@@ -1236,6 +1246,7 @@ public:
     * and stored in component comp of this FAB.
     * This FAB is returned as a reference for chaining.
     */
+    template <RunOn run_on = RunOn::Cpu>
     AMREX_GPU_HOST_DEVICE
     BaseFab<T>& linInterp (const BaseFab<T>& f1,
                            const Box&        b1,
@@ -1250,8 +1261,9 @@ public:
                            int               comp,
                            int               numcomp = 1) noexcept;
 
-    AMREX_GPU_HOST_DEVICE
     //! Version of linInterp() in which b, b1, & b2 are the same.
+    template <RunOn run_on = RunOn::Cpu>
+    AMREX_GPU_HOST_DEVICE
     BaseFab<T>& linInterp (const BaseFab<T>& f1,
                            int               comp1,
                            const BaseFab<T>& f2,
@@ -1272,6 +1284,7 @@ public:
     * and stored in component comp of this FAB.
     * This FAB is returned as a reference for chaining.
     */
+    template <RunOn run_on>
     AMREX_GPU_HOST_DEVICE
     BaseFab<T>& linComb (const BaseFab<T>& f1,
                          const Box&        b1,
@@ -1338,24 +1351,30 @@ public:
     //
 
     //! Set value on the whole domain and all components
+    template <RunOn run_on = RunOn::Cpu>
     AMREX_GPU_HOST_DEVICE
     void setVal (T val) noexcept;
     //
     //! Do nothing if bx is empty.
+    template <RunOn run_on = RunOn::Cpu>
     AMREX_GPU_HOST_DEVICE
     void setVal (T val, Box bx, DestComp dcomp, NumComps ncomp) noexcept;
 
+    template <RunOn run_on = RunOn::Cpu>
     AMREX_GPU_HOST_DEVICE
     void setValIf (T val, const BaseFab<int>& mask) noexcept;
     //
     //! Do nothing if bx is empty.
+    template <RunOn run_on = RunOn::Cpu>
     AMREX_GPU_HOST_DEVICE
     void setValIf (T val, Box bx, const BaseFab<int>& mask, DestComp dcomp, NumComps ncomp) noexcept;
 
+    template <RunOn run_on = RunOn::Cpu>
     AMREX_GPU_HOST_DEVICE
     void setValIfNot (T val, const BaseFab<int>& mask) noexcept;
     //
     //! Do nothing if bx is empty.
+    template <RunOn run_on = RunOn::Cpu>
     AMREX_GPU_HOST_DEVICE
     void setValIfNot (T val, Box bx, const BaseFab<int>& mask, DestComp dcomp, NumComps ncomp) noexcept;
 
@@ -1367,10 +1386,12 @@ public:
     * All components of dest fab are copied. src fab must have enough
     * components (more is OK).
     */
+    template <RunOn run_on = RunOn::Cpu>
     AMREX_GPU_HOST_DEVICE
     BaseFab<T>& copy (const BaseFab<T>& src) noexcept;
     //
     //! Do nothing if bx does not intersect with src fab.
+    template <RunOn run_on = RunOn::Cpu>
     AMREX_GPU_HOST_DEVICE
     BaseFab<T>& copy (const BaseFab<T>& src, Box bx, SrcComp scomp, DestComp dcomp, NumComps ncomp) noexcept;
 
@@ -1877,34 +1898,39 @@ BaseFab<T>::shiftHalf (int idir, int n_cell) noexcept
 }
 
 template <class T>
+template <RunOn run_on>
 void
 BaseFab<T>::setVal (T x, const Box& bx, int n) noexcept
 {
-    this->setVal(x, bx, DestComp{n}, NumComps{1});
+    this->setVal<run_on>(x, bx, DestComp{n}, NumComps{1});
 }
 
 template <class T>
+template <RunOn run_on>
 void
 BaseFab<T>::setVal (T x, int n) noexcept
 {
-    this->setVal(x, this->domain, DestComp{n}, NumComps{1});
+    this->setVal<run_on>(x, this->domain, DestComp{n}, NumComps{1});
 }
 
 template <class T>
+template <RunOn run_on>
 void
 BaseFab<T>::setVal (T x, const Box& bx, int dcomp, int ncomp) noexcept
 {
-    this->setVal(x, bx, DestComp{dcomp}, NumComps{ncomp});
+    this->setVal<run_on>(x, bx, DestComp{dcomp}, NumComps{ncomp});
 }
 
 template <class T>
+template <RunOn run_on>
 void
 BaseFab<T>::setValIfNot (T val, const Box& bx, const BaseFab<int>& mask, int ns, int num) noexcept
 {
-    this->setValIfNot(val, bx, mask, DestComp{ns}, NumComps{num});
+    this->setValIfNot<run_on>(val, bx, mask, DestComp{ns}, NumComps{num});
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::copy (const BaseFab<T>& src,
                   const Box&        srcbox,
@@ -1920,38 +1946,38 @@ BaseFab<T>::copy (const BaseFab<T>& src,
     AMREX_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
     AMREX_ASSERT(destcomp >= 0 && destcomp+numcomp <= this->nvar);
 
-    const auto len = amrex::length(destbox);
+    Array4<T> const& d = this->array();
+    Array4<T const> const& s = src.const_array();
     const auto dlo = amrex::lbound(destbox);
     const auto slo = amrex::lbound(srcbox);
-    const auto dp  =     view(dlo, destcomp);
-    const auto sp  = src.view(slo, srccomp);
-
-    for (int n = 0; n < numcomp; ++n) {
-        for         (int k = 0; k < len.z; ++k) {
-            for     (int j = 0; j < len.y; ++j) {
-                AMREX_PRAGMA_SIMD
-                for (int i = 0; i < len.x; ++i) {
-                    dp(i,j,k,n) = sp(i,j,k,n);
-                }
-            }
-        }
-    }
+    const Dim3 offset{slo.x-dlo.x,slo.y-dlo.y,slo.z-dlo.z};
+#ifdef AMREX_DEVICE_COMPILE
+    amrex::LoopConcurrent(destbox, numcomp, [=] (int i, int j, int k, int n) noexcept
+#else
+    AMREX_HOST_DEVICE_FOR_4D_FLAG(run_on == RunOn::Gpu and Gpu::inLaunchRegion(),
+                                  destbox, numcomp, i, j, k, n,
+#endif
+    {
+        d(i,j,k,n+destcomp) = s(i+offset.x,j+offset.y,k+offset.z,n+srccomp);
+    });
 
     return *this;
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::copy (const BaseFab<T>& src, const Box& destbox) noexcept
 {
-    return this->copy(src, destbox, SrcComp{0}, DestComp{0}, NumComps{this->nvar});
+    return this->copy<run_on>(src, destbox, SrcComp{0}, DestComp{0}, NumComps{this->nvar});
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::copy (const BaseFab<T>& src, int srccomp, int destcomp, int numcomp) noexcept
 {
-    return copy(src, this->domain, SrcComp{srccomp}, DestComp{destcomp}, NumComps{numcomp});
+    return copy<run_on>(src, this->domain, SrcComp{srccomp}, DestComp{destcomp}, NumComps{numcomp});
 }
 
 template <class T>
@@ -2083,10 +2109,11 @@ BaseFab<T>::BaseFab (BaseFab<T>&& rhs) noexcept
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::operator= (T t) noexcept
 {
-    setVal(t);
+    setVal<run_on>(t);
     return *this;
 }
 
@@ -2197,6 +2224,7 @@ BaseFab<T>::release () noexcept
 }
 
 template <class T>
+template <RunOn run_on>
 std::size_t
 BaseFab<T>::copyToMem (const Box& srcbox,
                        int        srccomp,
@@ -2208,25 +2236,18 @@ BaseFab<T>::copyToMem (const Box& srcbox,
 
     if (srcbox.ok())
     {
-        T* AMREX_RESTRICT dp = static_cast<T*>(dst);
-
-        const auto len = amrex::length(srcbox);
-        const auto lo  = amrex::lbound(srcbox);
-        const auto sp  = view(lo, srccomp);
-
-        std::size_t offset = 0;
-        for (int n = 0; n < numcomp; ++n) {
-            for         (int k = 0; k < len.z; ++k) {
-                for     (int j = 0; j < len.y; ++j) {
-                    AMREX_PRAGMA_SIMD
-                    for (int i = 0; i < len.x; ++i) {
-                        dp[offset+i] = sp(i,j,k,n);
-                    }
-                    offset += len.x;
-                }
-            }
-        }
-        return sizeof(T)*offset;
+        Array4<T> d(static_cast<T*>(dst),amrex::begin(srcbox),amrex::end(srcbox),numcomp);
+        Array4<T const> const& s = this->const_array();
+#ifdef AMREX_DEVICE_COMPILE
+        amrex::LoopConcurrent(srcbox, numcomp, [=] (int i, int j, int k, int n) noexcept
+#else
+        AMREX_HOST_DEVICE_FOR_4D_FLAG(run_on == RunOn::Gpu and Gpu::inLaunchRegion(),
+                                      srcbox, numcomp, i, j, k, n,
+#endif
+        {
+            d(i,j,k,n) = s(i,j,k,n+srccomp);
+        });
+        return sizeof(T)*d.size();
     }
     else
     {
@@ -2235,6 +2256,7 @@ BaseFab<T>::copyToMem (const Box& srcbox,
 }
 
 template <class T>
+template <RunOn run_on>
 std::size_t
 BaseFab<T>::copyFromMem (const Box&  dstbox,
                          int         dstcomp,
@@ -2246,25 +2268,19 @@ BaseFab<T>::copyFromMem (const Box&  dstbox,
 
     if (dstbox.ok())
     {
-        T const* AMREX_RESTRICT sp = static_cast<T const*>(src);
-
-        const auto len = amrex::length(dstbox);
-        const auto lo  = amrex::lbound(dstbox);
-        const auto dp  = view(lo, dstcomp);
-
-        std::size_t offset = 0;
-        for (int n = 0; n < numcomp; ++n) {
-            for         (int k = 0; k < len.z; ++k) {
-                for     (int j = 0; j < len.y; ++j) {
-                    AMREX_PRAGMA_SIMD
-                    for (int i = 0; i < len.x; ++i) {
-                        dp(i,j,k,n) = sp[offset+i];
-                    }
-                    offset += len.x;
-                }
-            }
-        }
-        return sizeof(T)*offset;
+        Array4<T const> s(static_cast<T const*>(src), amrex::begin(dstbox),
+                          amrex::end(dstbox), numcomp);
+        Array4<T> const& d = this->array();
+#ifdef AMREX_DEVICE_COMPILE
+        amrex::LoopConcurrent(dstbox, numcomp, [=] (int i, int j, int k, int n) noexcept
+#else
+        AMREX_HOST_DEVICE_FOR_4D_FLAG(run_on == RunOn::Gpu and Gpu::inLaunchRegion(),
+                                      dstbox, numcomp, i, j, k, n,
+#endif
+        {
+            d(i,j,k,n+dstcomp) = s(i,j,k,n);
+        });
+        return sizeof(T)*s.size();
     }
     else
     {
@@ -2962,6 +2978,7 @@ BaseFab<T>::addproduct (const Box& destbox, int destcomp, int numcomp,
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::linComb (const BaseFab<T>& f1, const Box& b1, int comp1,
                      const BaseFab<T>& f2, const Box& b2, int comp2,
@@ -2980,25 +2997,24 @@ BaseFab<T>::linComb (const BaseFab<T>& f1, const Box& b1, int comp1,
     BL_ASSERT(comp2 >= 0 && comp2+numcomp <= f2.nComp());
     BL_ASSERT(comp  >= 0 && comp +numcomp <=    nComp());
 
-    const auto len = amrex::length(b);
+    Array4<T> const& d = this->array();
+    Array4<T const> const& s1 = f1.const_array();
+    Array4<T const> const& s2 = f2.const_array();
     const auto dlo = amrex::lbound(b);
     const auto slo1 = amrex::lbound(b1);
     const auto slo2 = amrex::lbound(b2);
-    const auto dp  =    view(dlo,   comp);
-    const auto sp1 = f1.view(slo1, comp1);
-    const auto sp2 = f2.view(slo2, comp2);
-
-    for (int n = 0; n < numcomp; ++n) {
-        for         (int k = 0; k < len.z; ++k) {
-            for     (int j = 0; j < len.y; ++j) {
-                AMREX_PRAGMA_SIMD
-                for (int i = 0; i < len.x; ++i) {
-                    dp(i,j,k,n) = alpha*sp1(i,j,k,n) + beta*sp2(i,j,k,n);
-                }
-            }
-        }
-    }
-
+    const Dim3 off1{slo1.x-dlo.x,slo1.y-dlo.y,slo1.z-dlo.z};
+    const Dim3 off2{slo2.x-dlo.x,slo2.y-dlo.y,slo2.z-dlo.z};    
+#ifdef AMREX_DEVICE_COMPILE
+    amrex::LoopConcurrent(b, numcomp, [=] (int i, int j, int k, int n) noexcept
+#else
+    AMREX_HOST_DEVICE_FOR_4D_FLAG(run_on == RunOn::Gpu and Gpu::inLaunchRegion(),
+                                  b, numcomp, i, j, k, n,
+#endif
+    {
+        d(i,j,k,n+comp) = alpha*s1(i+off1.x,j+off1.y,k+off1.z,n+comp1)
+                         + beta*s2(i+off2.x,j+off2.y,k+off2.z,n+comp2);
+    });
     return *this;
 }
 
@@ -3524,6 +3540,7 @@ BaseFab<T>::protected_divide (const BaseFab<T>& src,
 */
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::linInterp (const BaseFab<T>& f1,
                        const Box&        b1,
@@ -3540,10 +3557,11 @@ BaseFab<T>::linInterp (const BaseFab<T>& f1,
 {
     Real alpha = (t2-t)/(t2-t1);
     Real beta = (t-t1)/(t2-t1);
-    return linComb(f1,b1,comp1,f2,b2,comp2,alpha,beta,b,comp,numcomp);
+    return linComb<run_on>(f1,b1,comp1,f2,b2,comp2,alpha,beta,b,comp,numcomp);
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::linInterp (const BaseFab<T>& f1,
                        int               comp1,
@@ -3562,11 +3580,11 @@ BaseFab<T>::linInterp (const BaseFab<T>& f1,
     Real alpha = (t2-t)/(t2-t1);
     Real beta = (t-t1)/(t2-t1);
 
-    return linComb(f1,b,comp1,f2,b,comp2,alpha,beta,b,comp,numcomp);
+    return linComb<run_on>(f1,b,comp1,f2,b,comp2,alpha,beta,b,comp,numcomp);
   }
   else
   {
-      copy(f1,b,comp1,b,comp,numcomp);
+      copy<run_on>(f1,b,comp1,b,comp,numcomp);
   }
   return *this;
 }
@@ -3576,92 +3594,86 @@ BaseFab<T>::linInterp (const BaseFab<T>& f1,
 //
 
 template <class T>
+template <RunOn run_on>
 void
 BaseFab<T>::setVal (T val) noexcept
 {
-    this->setVal(val, this->domain, DestComp{0}, NumComps{this->nvar});
+    this->setVal<run_on>(val, this->domain, DestComp{0}, NumComps{this->nvar});
 }
 
 template <class T>
+template <RunOn run_on>
 void
 BaseFab<T>::setVal (T x, Box bx, DestComp dcomp, NumComps ncomp) noexcept
 {
     AMREX_ASSERT(dcomp.i >= 0 && dcomp.i + ncomp.n <= this->nvar);
 
-    const auto len = amrex::length(bx);
-    const auto lo  = amrex::lbound(bx);
-    const auto dp  = view(lo, dcomp.i);
-
-    for (int n = 0; n < ncomp.n; ++n) {
-        for         (int k = 0; k < len.z; ++k) {
-            for     (int j = 0; j < len.y; ++j) {
-                AMREX_PRAGMA_SIMD
-                for (int i = 0; i < len.x; ++i) {
-                    dp(i,j,k,n) = x;
-                }
-            }
-        }
-    }
+    Array4<T> const& a = this->array();
+#ifdef AMREX_DEVICE_COMPILE
+    amrex::LoopConcurrent(bx, ncomp.n, [=] (int i, int j, int k, int n) noexcept
+#else
+    AMREX_HOST_DEVICE_FOR_4D_FLAG(run_on == RunOn::Gpu and Gpu::inLaunchRegion(),
+                                  bx, ncomp.n, i, j, k, n,
+#endif
+    {
+        a(i,j,k,n+dcomp.i) = x;
+    });
 }
 
 template <class T>
+template <RunOn run_on>
 void
 BaseFab<T>::setValIf (T val, const BaseFab<int>& mask) noexcept
 {
-    this->setValIf(val, this->domain, mask, DestComp{0}, NumComps{this->nvar});
+    this->setValIf<run_on>(val, this->domain, mask, DestComp{0}, NumComps{this->nvar});
 }
 
 template <class T>
+template <RunOn run_on>
 void
 BaseFab<T>::setValIf (T val, Box bx, const BaseFab<int>& mask, DestComp dcomp, NumComps ncomp) noexcept
 {
     AMREX_ASSERT(dcomp.i >= 0 && dcomp.i + ncomp.n <= this->nvar);
 
-    const auto len = amrex::length(bx);
-    const auto lo  = amrex::lbound(bx);
-    const auto dp  = view(lo, dcomp.i);
-    const auto mp  = mask.view(lo);
-
-    for (int n = 0; n < ncomp.n; ++n) {
-        for         (int k = 0; k < len.z; ++k) {
-            for     (int j = 0; j < len.y; ++j) {
-                AMREX_PRAGMA_SIMD
-                for (int i = 0; i < len.x; ++i) {
-                    if (mp(i,j,k,0)) { dp(i,j,k,n) = val; }
-                }
-            }
-        }
-    }
+    Array4<T> const& a = this->array();
+    Array4<int const> const& m = mask.const_array();
+#ifdef AMREX_DEVICE_COMPILE
+    amrex::LoopConcurrent(bx, ncomp.n, [=] (int i, int j, int k, int n) noexcept
+#else
+    AMREX_HOST_DEVICE_FOR_4D_FLAG(run_on == RunOn::Gpu and Gpu::inLaunchRegion(),
+                                  bx, ncomp.n, i, j, k, n,
+#endif
+    {
+        if (m(i,j,k)) { a(i,j,k,n+dcomp.i) = val; }
+    });
 }
 
 template <class T>
+template <RunOn run_on>
 void
 BaseFab<T>::setValIfNot (T val, const BaseFab<int>& mask) noexcept
 {
-    this->setValIfNot(val, this->domain, mask, DestComp{0}, NumComps{this->nvar});
+    this->setValIfNot<run_on>(val, this->domain, mask, DestComp{0}, NumComps{this->nvar});
 }
 
 template <class T>
+template <RunOn run_on>
 void
 BaseFab<T>::setValIfNot (T val, Box bx, const BaseFab<int>& mask, DestComp dcomp, NumComps ncomp) noexcept
 {
     AMREX_ASSERT(dcomp.i >= 0 && dcomp.i + ncomp.n <= this->nvar);
 
-    const auto len = amrex::length(bx);
-    const auto lo  = amrex::lbound(bx);
-    const auto dp  = view(lo, dcomp.i);
-    const auto mp  = mask.view(lo);
-
-    for (int n = 0; n < ncomp.n; ++n) {
-        for         (int k = 0; k < len.z; ++k) {
-            for     (int j = 0; j < len.y; ++j) {
-                AMREX_PRAGMA_SIMD
-                for (int i = 0; i < len.x; ++i) {
-                    if (!mp(i,j,k,0)) { dp(i,j,k,n) = val; }
-                }
-            }
-        }
-    }
+    Array4<T> const& a = this->array();
+    Array4<int const> const& m = mask.const_array();
+#ifdef AMREX_DEVICE_COMPILE
+    amrex::LoopConcurrent(bx, ncomp.n, [=] (int i, int j, int k, int n) noexcept
+#else
+    AMREX_HOST_DEVICE_FOR_4D_FLAG(run_on == RunOn::Gpu and Gpu::inLaunchRegion(),
+                                  bx, ncomp.n, i, j, k, n,
+#endif
+    {
+        if (!m(i,j,k)) { a(i,j,k,n+dcomp.i) = val; }
+    });
 }
 
 template <class T>
@@ -3675,14 +3687,16 @@ BaseFab<T>::setComplement (T x, const Box& bx, DestComp dcomp, NumComps ncomp) n
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::copy (const BaseFab<T>& src) noexcept
 {
-    this->copy(src, this->domain, SrcComp{0}, DestComp{0}, NumComps{this->nvar});
+    this->copy<run_on>(src, this->domain, SrcComp{0}, DestComp{0}, NumComps{this->nvar});
     return *this;
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::copy (const BaseFab<T>& src, Box bx,
                   SrcComp scomp, DestComp dcomp, NumComps ncomp) noexcept
@@ -3693,21 +3707,17 @@ BaseFab<T>::copy (const BaseFab<T>& src, Box bx,
 
     bx &= src.domain;
 
-    const auto len = amrex::length(bx);
-    const auto  lo = amrex::lbound(bx);
-    const auto dp  =     view(lo, dcomp.i);
-    const auto sp  = src.view(lo, scomp.i);
-
-    for (int n = 0; n < ncomp.n; ++n) {
-        for         (int k = 0; k < len.z; ++k) {
-            for     (int j = 0; j < len.y; ++j) {
-                AMREX_PRAGMA_SIMD
-                for (int i = 0; i < len.x; ++i) {
-                    dp(i,j,k,n) = sp(i,j,k,n);
-                }
-            }
-        }
-    }
+    Array4<T> const& d = this->array();
+    Array4<T const> const& s = src.const_array();
+#ifdef AMREX_DEVICE_COMPILE
+    amrex::LoopConcurrent(bx, ncomp.n, [=] (int i, int j, int k, int n) noexcept
+#else
+    AMREX_HOST_DEVICE_FOR_4D_FLAG(run_on == RunOn::Gpu and Gpu::inLaunchRegion(),
+                                  bx, ncomp.n, i, j, k, n,
+#endif
+    {
+        d(i,j,k,n+dcomp.i) = s(i,j,k,n+scomp.i);
+    });
 
     return *this;
 }
