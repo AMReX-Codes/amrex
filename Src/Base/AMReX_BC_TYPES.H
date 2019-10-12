@@ -48,7 +48,7 @@ EXT_DIR      : data specified on EDGE (FACE) of bndry for the linear solvers
                depend on how they do reconstruction, and may be edge or
                cell-centered.
 HOEXTRAP     : higher order extrapolation to EDGE of bndry
-HOEXTRAPLI   : linear extrapolation to CELL of bndry
+HOEXTRAPCC   : linear extrapolation to CELL of bndry
 FOEXTRAP     : first order extrapolation from last cell in interior
 REFLECT_EVEN : F(-n) = F(n)   true reflection from interior cells
 REFLECT_ODD  : F(-n) = -F(n)  true reflection from interior cells
@@ -72,7 +72,7 @@ enum mathematicalBndryTypes : int {
     foextrap     =  2,
     ext_dir      =  3,
     hoextrap     =  4,
-    hoextrapli   =  5
+    hoextrapcc   =  5
 };
 }
 
@@ -89,7 +89,7 @@ enum mathematicalBndryTypes : int {
 #define FOEXTRAP  2
 #define EXT_DIR 3
 #define HOEXTRAP 4
-#define HOEXTRAPLI 5
+#define HOEXTRAPCC 5
 
 #define Interior 0
 #define Inflow 1
