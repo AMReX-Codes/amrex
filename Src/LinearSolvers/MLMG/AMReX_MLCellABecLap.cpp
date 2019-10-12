@@ -1,5 +1,6 @@
 
 #include <AMReX_MLCellABecLap.H>
+#include <AMReX_MLLinOp_K.H>
 
 #ifdef AMREX_USE_PETSC
 #include <petscksp.h>
@@ -53,6 +54,175 @@ MLCellABecLap::getFluxes (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_flux
                 a_flux[alev][idim]->mult(betainv);
             }
         }
+    }
+}
+
+void
+MLCellABecLap::applyInhomogNeumannTerm (int amrlev, MultiFab& rhs) const
+{
+    int ncomp = rhs.nComp();
+    bool has_inhomog_neumann = false;
+    for (int n = 0; n < ncomp; ++n)
+    {
+        auto itlo = std::find(m_lo_inhomog_neumann[n].begin(),
+                              m_lo_inhomog_neumann[n].end(),   1);
+        auto ithi = std::find(m_hi_inhomog_neumann[n].begin(),
+                              m_hi_inhomog_neumann[n].end(),   1);
+        if (itlo != m_lo_inhomog_neumann[n].end() or
+            ithi != m_hi_inhomog_neumann[n].end())
+        {
+            has_inhomog_neumann = true;
+        }
+    }
+
+    if (!has_inhomog_neumann) return;
+
+    const int mglev = 0;
+
+    const auto problo = m_geom[amrlev][mglev].ProbLoArray();
+    const auto probhi = m_geom[amrlev][mglev].ProbHiArray();
+    const Real dxi = m_geom[amrlev][mglev].InvCellSize(0);
+    const Real dyi = (AMREX_SPACEDIM >= 2) ? m_geom[amrlev][mglev].InvCellSize(1) : 1.0;
+    const Real dzi = (AMREX_SPACEDIM == 3) ? m_geom[amrlev][mglev].InvCellSize(2) : 1.0;
+    const Real xlo = problo[0];
+    const Real dx = m_geom[amrlev][mglev].CellSize(0);
+    const Box& domain = m_geom[amrlev][mglev].Domain();
+
+    const Real beta = getBScalar();
+    Array<MultiFab const*, AMREX_SPACEDIM> const& bcoef = getBCoeffs(amrlev,mglev);
+    FArrayBox foo(Box(IntVect(0),IntVect(1)));
+    bool has_bcoef = (bcoef[0] != nullptr);
+
+    const auto& maskvals = m_maskvals[amrlev][mglev];
+    const auto& bcondloc = *m_bcondloc[amrlev][mglev];
+    const auto& bndry = *m_bndry_sol[amrlev];
+
+    MFItInfo mfi_info;
+    if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
+
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(rhs, mfi_info); mfi.isValid(); ++mfi)
+    {
+        const Box& vbx = mfi.validbox();
+        Array4<Real> const& rhsfab = rhs.array(mfi);
+
+        const auto & bdlv = bcondloc.bndryLocs(mfi);
+        const auto & bdcv = bcondloc.bndryConds(mfi);
+
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+        {
+            Array4<Real const> const bfab = (has_bcoef) ? bcoef[idim]->array(mfi) : foo.array();
+            const Orientation olo(idim,Orientation::low);
+            const Orientation ohi(idim,Orientation::high);
+            const Box blo = amrex::adjCellLo(vbx, idim);
+            const Box bhi = amrex::adjCellHi(vbx, idim);
+            const auto& mlo = maskvals[olo].array(mfi);
+            const auto& mhi = maskvals[ohi].array(mfi);
+            const auto& bvlo = bndry.bndryValues(olo).array(mfi);
+            const auto& bvhi = bndry.bndryValues(ohi).array(mfi);
+            bool outside_domain_lo = !(domain.contains(blo));
+            bool outside_domain_hi = !(domain.contains(bhi));
+            if ((!outside_domain_lo) and (!outside_domain_hi)) continue;
+            for (int icomp = 0; icomp < ncomp; ++icomp) {
+                const BoundCond bctlo = bdcv[icomp][olo];
+                const BoundCond bcthi = bdcv[icomp][ohi];
+                const Real bcllo = bdlv[icomp][olo];
+                const Real bclhi = bdlv[icomp][ohi];
+                if (m_lo_inhomog_neumann[icomp][idim] and outside_domain_lo)
+                {
+                    if (idim == 0) {
+                        Real fac = beta*dxi;
+                        if (m_has_metric_term and !has_bcoef) {
+#if (AMREX_SPACEDIM == 1)
+                            fac *= problo[0]*problo[0];
+#elif (AMREX_SPACEDIM == 2)
+                            fac *= problo[0];
+#endif
+                        }
+                        AMREX_HOST_DEVICE_FOR_3D(blo, i, j, k,
+                        {
+                            mllinop_apply_innu_xlo(i,j,k, rhsfab, mlo, bfab,
+                                                   bctlo, bcllo, bvlo,
+                                                   fac, has_bcoef, icomp);
+                        });
+                    } else if (idim == 1) {
+                        Real fac = beta*dyi;
+                        if (m_has_metric_term and !has_bcoef) {
+                            AMREX_HOST_DEVICE_FOR_3D(blo, i, j, k,
+                            {
+                                mllinop_apply_innu_ylo_m(i,j,k, rhsfab, mlo,
+                                                         bctlo, bcllo, bvlo,
+                                                         fac, xlo, dx, icomp);
+                            });
+                        }
+                        else {
+                            AMREX_HOST_DEVICE_FOR_3D(blo, i, j, k,
+                            {
+                                mllinop_apply_innu_ylo(i,j,k, rhsfab, mlo, bfab,
+                                                       bctlo, bcllo, bvlo,
+                                                       fac, has_bcoef, icomp);
+                            });
+                        }
+                    } else {
+                        Real fac = beta*dzi;
+                        AMREX_HOST_DEVICE_FOR_3D(blo, i, j, k,
+                        {
+                            mllinop_apply_innu_zlo(i,j,k, rhsfab, mlo, bfab,
+                                                   bctlo, bcllo, bvlo,
+                                                   fac, has_bcoef, icomp);
+                        });
+                    }
+                }
+                if (m_hi_inhomog_neumann[icomp][idim] and outside_domain_hi)
+                {
+                    if (idim == 0) {
+                        Real fac = beta*dxi;
+                        if (m_has_metric_term and !has_bcoef) {
+#if (AMREX_SPACEDIM == 1)
+                            fac *= probhi[0]*probhi[0];
+#elif (AMREX_SPACEDIM == 2)
+                            fac *= probhi[0];
+#endif
+                        }
+                        AMREX_HOST_DEVICE_FOR_3D(bhi, i, j, k,
+                        {
+                            mllinop_apply_innu_xhi(i,j,k, rhsfab, mhi, bfab,
+                                                   bcthi, bclhi, bvhi,
+                                                   fac, has_bcoef, icomp);
+                        });
+                    } else if (idim == 1) {
+                        Real fac = beta*dyi;
+                        if (m_has_metric_term and !has_bcoef) {
+                            AMREX_HOST_DEVICE_FOR_3D(bhi, i, j, k,
+                            {
+                                mllinop_apply_innu_yhi_m(i,j,k, rhsfab, mhi,
+                                                         bcthi, bclhi, bvhi,
+                                                         fac, xlo, dx, icomp);
+                            });
+                        } else {
+                            AMREX_HOST_DEVICE_FOR_3D(bhi, i, j, k,
+                            {
+                                mllinop_apply_innu_yhi(i,j,k, rhsfab, mhi, bfab,
+                                                       bcthi, bclhi, bvhi,
+                                                       fac, has_bcoef, icomp);
+                            });
+                        }
+                    } else {
+                        Real fac = beta*dzi;
+                        AMREX_HOST_DEVICE_FOR_3D(bhi, i, j, k,
+                        {
+                            mllinop_apply_innu_zhi(i,j,k, rhsfab, mhi, bfab,
+                                                   bcthi, bclhi, bvhi,
+                                                   fac, has_bcoef, icomp);
+                        });
+                    }
+                }
+
+            }
+        }
+
     }
 }
 

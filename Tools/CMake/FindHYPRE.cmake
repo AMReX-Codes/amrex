@@ -60,7 +60,7 @@ mark_as_advanced(HYPRE_VERSION HYPRE_LIBRARIES HYPRE_INCLUDE_DIRS)
 
 # Create imported target
 if (HYPRE_FOUND AND NOT TARGET HYPRE)
-   add_library(HYPRE UNKNOWN IMPORTED)
+   add_library(HYPRE UNKNOWN IMPORTED GLOBAL)
    set_target_properties(HYPRE
       PROPERTIES
       IMPORTED_LOCATION "${HYPRE_LIBRARIES}"

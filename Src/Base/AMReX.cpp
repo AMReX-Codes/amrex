@@ -366,13 +366,6 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     upcxx::init();
 #endif
 
-#ifdef BL_USE_MPI3
-    BL_MPI_REQUIRE( MPI_Win_create_dynamic(MPI_INFO_NULL, ParallelDescriptor::Communicator(),
-                                           &ParallelDescriptor::cp_win) );
-    BL_MPI_REQUIRE( MPI_Win_create_dynamic(MPI_INFO_NULL, ParallelDescriptor::Communicator(),
-                                           &ParallelDescriptor::fb_win) );
-#endif
-
     while ( ! The_Initialize_Function_Stack.empty())
     {
         //

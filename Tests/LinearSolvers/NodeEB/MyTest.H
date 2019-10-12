@@ -12,13 +12,13 @@ public:
 
     void solve ();
     void writePlotfile ();
+    void initData ();
 
 private:
 
     void initializeEB ();
     void readParameters ();
     void initGrids ();
-    void initData ();
 
     int max_level = 0;
     int ref_ratio = 2;

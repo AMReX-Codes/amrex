@@ -13,84 +13,33 @@
 namespace amrex { namespace Gpu {
 
 #ifdef AMREX_USE_GPU
-
-template <int warpSize, typename T>
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-T warpReduceSum (T x) noexcept
+template <int warpSize, typename T, typename F>
+struct warpReduce
 {
-    for (int offset = warpSize/2; offset > 0; offset /= 2) {
-        x += __shfl_down_sync(0xffffffff, x, offset);
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    T operator() (T x) const noexcept
+    {
+        for (int offset = warpSize/2; offset > 0; offset /= 2) {
+            T y = __shfl_down_sync(0xffffffff, x, offset);
+            x = F()(x,y);
+        }
+        return x;
     }
-    return x;
-}
+};
 
-template <int warpSize, typename T>
+template <int warpSize, typename T, typename WARPREDUCE>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-T blockReduceSum (T x) noexcept
+T blockReduce (T x, WARPREDUCE && warp_reduce, T x0)
 {
     __shared__ T shared[warpSize];
     int lane = threadIdx.x % warpSize;
     int wid = threadIdx.x / warpSize;
-    x = warpReduceSum<warpSize,T>(x);
+    x = warp_reduce(x);
     if (lane == 0) shared[wid] = x;
     __syncthreads();
     bool b = (threadIdx.x < blockDim.x / warpSize);
-    x =  b ? shared[lane] : 0;
-    if (wid == 0) x = warpReduceSum<warpSize,T>(x);
-    return x;
-}
-
-template <int warpSize, typename T>
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-T warpReduceMin (T x) noexcept
-{
-    for (int offset = warpSize/2; offset > 0; offset /= 2) {
-        T y = __shfl_down_sync(0xffffffff, x, offset);
-        x = amrex::min(x,y);
-    }
-    return x;
-}
-
-template <int warpSize, typename T>
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-T blockReduceMin (T x) noexcept
-{
-    __shared__ T shared[warpSize];
-    int lane = threadIdx.x % warpSize;
-    int wid = threadIdx.x / warpSize;
-    x = warpReduceMin<warpSize,T>(x);
-    if (lane == 0) shared[wid] = x;
-    __syncthreads();
-    bool b = (threadIdx.x < blockDim.x / warpSize);
-    x =  b ? shared[lane] : x;
-    if (wid == 0) x = warpReduceMin<warpSize,T>(x);
-    return x;
-}
-
-template <int warpSize, typename T>
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-T warpReduceMax (T x) noexcept
-{
-    for (int offset = warpSize/2; offset > 0; offset /= 2) {
-        T y = __shfl_down_sync(0xffffffff, x, offset);
-        x = amrex::max(x,y);
-    }
-    return x;
-}
-
-template <int warpSize, typename T>
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-T blockReduceMax (T x) noexcept
-{
-    __shared__ T shared[warpSize];
-    int lane = threadIdx.x % warpSize;
-    int wid = threadIdx.x / warpSize;
-    x = warpReduceMax<warpSize,T>(x);
-    if (lane == 0) shared[wid] = x;
-    __syncthreads();
-    bool b = (threadIdx.x < blockDim.x / warpSize);
-    x =  b ? shared[lane] : x;
-    if (wid == 0) x = warpReduceMax<warpSize,T>(x);
+    x =  b ? shared[lane] : x0;
+    if (wid == 0) x = warp_reduce(x);
     return x;
 }
 
@@ -98,7 +47,8 @@ template <typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void deviceReduceSum (T * dest, T source) noexcept
 {
-    source = Gpu::blockReduceSum<Gpu::Device::warp_size,T>(source);
+    source = Gpu::blockReduce<Gpu::Device::warp_size>
+        (source, Gpu::warpReduce<Gpu::Device::warp_size,T,amrex::Plus<T> >(), (T)0);
     if (threadIdx.x == 0) Gpu::Atomic::Add(dest, source);
 }
 
@@ -106,7 +56,8 @@ template <typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void deviceReduceMin (T * dest, T source) noexcept
 {
-    source = Gpu::blockReduceMin<Gpu::Device::warp_size,T>(source);
+    source = Gpu::blockReduce<Gpu::Device::warp_size>
+        (source, Gpu::warpReduce<Gpu::Device::warp_size,T,amrex::Less<T> >(), source);
     if (threadIdx.x == 0) Gpu::Atomic::Min(dest, source);
 }
 
@@ -114,8 +65,25 @@ template <typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void deviceReduceMax (T * dest, T source) noexcept
 {
-    source = Gpu::blockReduceMax<Gpu::Device::warp_size,T>(source);
+    source = Gpu::blockReduce<Gpu::Device::warp_size>
+        (source, Gpu::warpReduce<Gpu::Device::warp_size,T,amrex::Greater<T> >(), source);
     if (threadIdx.x == 0) Gpu::Atomic::Max(dest, source);
+}
+
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+void deviceReduceLogicalAnd (int * dest, int source) noexcept
+{
+    source = Gpu::blockReduce<Gpu::Device::warp_size>
+        (source, Gpu::warpReduce<Gpu::Device::warp_size,int,amrex::LogicalAnd<int> >(), 1);
+    if (threadIdx.x == 0) Gpu::Atomic::LogicalAnd(dest, source);
+}
+
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+void deviceReduceLogicalOr (int * dest, int source) noexcept
+{
+    source = Gpu::blockReduce<Gpu::Device::warp_size>
+        (source, Gpu::warpReduce<Gpu::Device::warp_size,int,amrex::LogicalOr<int> >(), 0);
+    if (threadIdx.x == 0) Gpu::Atomic::LogicalOr(dest, source);
 }
 
 #else
@@ -148,6 +116,24 @@ void deviceReduceMax (T * dest, T source) noexcept
 #pragma omp critical (gpureduce_reducemax)
 #endif
     *dest = std::max(*dest, source);
+}
+
+AMREX_FORCE_INLINE
+void deviceReduceLogicalAnd (int * dest, int source) noexcept
+{
+#ifdef _OPENMP
+#pragma omp critical (gpureduce_reduceand)
+#endif
+    *dest = (*dest) && source;
+}
+
+AMREX_FORCE_INLINE
+void deviceReduceLogicalOr (int * dest, int source) noexcept
+{
+#ifdef _OPENMP
+#pragma omp critical (gpureduce_reduceor)
+#endif
+    *dest = (*dest) || source;
 }
 
 #endif

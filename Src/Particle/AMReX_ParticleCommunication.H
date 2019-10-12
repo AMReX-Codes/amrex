@@ -74,8 +74,11 @@ struct ParticleCopyPlan
 
     long m_NumSnds;
     int m_nrcvs;
-    mutable Vector<MPI_Status> m_stats;
-    mutable Vector<MPI_Request> m_rreqs;
+    mutable Vector<MPI_Status> m_build_stats;
+    mutable Vector<MPI_Request> m_build_rreqs;
+
+    mutable Vector<MPI_Status> m_particle_stats;
+    mutable Vector<MPI_Request> m_particle_rreqs;
 
     Vector<long> m_snd_num_particles;
     Vector<long> m_rcv_num_particles;
@@ -89,16 +92,17 @@ struct ParticleCopyPlan
     Gpu::HostVector<int> m_rcv_data;
 
     template <class PC>
-    void build (const PC& pc, const ParticleCopyOp& op)
+    void build (const PC& pc, const ParticleCopyOp& op, bool do_handshake)
     {
         BL_PROFILE("ParticleCopyPlan::build");
         
         AMREX_ASSERT(pc.numLevels() == 1);
         
         const int lev = 0;
+        const int ngrow = 1;
         const auto& geom = pc.Geom(lev);
                 
-        m_neighbor_procs.assign(pc.NeighborProcs().begin(), pc.NeighborProcs().end());
+        m_neighbor_procs.assign(pc.NeighborProcs(lev, ngrow).begin(), pc.NeighborProcs(lev, ngrow).end());
 
         int num_boxes = pc.ParticleBoxArray(lev).size();
         if (num_boxes == 1 and (not geom.isAnyPeriodic()) ) return;
@@ -137,7 +141,7 @@ struct ParticleCopyPlan
 
         amrex::Gpu::exclusive_scan(m_box_counts.begin(), m_box_counts.end()+1, m_box_offsets.begin());
 
-        buildMPIStart(pc.BufferMap());
+        buildMPIStart(pc.BufferMap(), do_handshake);
     }
 
     void clear();
@@ -146,7 +150,7 @@ struct ParticleCopyPlan
 
 private:
     
-    void buildMPIStart (const ParticleBufferMap& map);
+    void buildMPIStart (const ParticleBufferMap& map, bool do_handshake=true);
 
     //
     // Snds - a Vector with the number of bytes that is process will send to each proc.
@@ -310,7 +314,7 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buff
     const int NProcs = ParallelDescriptor::NProcs();
     const int MyProc = ParallelDescriptor::MyProc();
     
-    if (plan.m_NumSnds == 0) return;
+    if (NProcs == 1) return;
 
     Vector<int> RcvProc;
     Vector<long> rOffset;    
@@ -326,11 +330,11 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buff
 
     plan.m_nrcvs = RcvProc.size();
 
-    plan.m_stats.resize(0);
-    plan.m_stats.resize(plan.m_nrcvs);
+    plan.m_particle_stats.resize(0);
+    plan.m_particle_stats.resize(plan.m_nrcvs);
 
-    plan.m_rreqs.resize(0);
-    plan.m_rreqs.resize(plan.m_nrcvs);
+    plan.m_particle_rreqs.resize(0);
+    plan.m_particle_rreqs.resize(plan.m_nrcvs);
     
     const int SeqNum = ParallelDescriptor::SeqNum();
 
@@ -344,7 +348,8 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buff
         BL_ASSERT(Cnt < std::numeric_limits<int>::max());
         BL_ASSERT(Who >= 0 && Who < NProcs);
         
-        plan.m_rreqs[i] = ParallelDescriptor::Arecv((char*) (rcv_buffer.dataPtr() + offset), Cnt, Who, SeqNum).req();
+        plan.m_particle_rreqs[i] = 
+            ParallelDescriptor::Arecv((char*) (rcv_buffer.dataPtr() + offset), Cnt, Who, SeqNum).req();
     }
     
     // Send.
@@ -376,6 +381,9 @@ void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, co
     AMREX_ASSERT(pc.numLevels() == 1);
 
 #ifdef BL_USE_MPI
+    const int NProcs = ParallelDescriptor::NProcs();
+    if (NProcs == 1) return;
+
     const int MyProc = ParallelDescriptor::MyProc();
     using PTile = typename PC::ParticleTileType;
 
@@ -404,6 +412,7 @@ void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, co
 
         Vector<int> offsets;
         policy.resizeTiles(tiles, sizes, offsets);
+        Gpu::Device::synchronize();
         int uindex = 0;
 	for (int i = 0; i < plan.m_rcv_box_counts.size(); ++i)
 	{

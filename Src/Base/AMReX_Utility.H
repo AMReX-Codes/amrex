@@ -7,6 +7,9 @@
 #include <map>
 #include <chrono>
 #include <type_traits>
+#include <climits>
+#include <limits>
+#include <cfloat>
 
 #include <sys/types.h>
 #include <unistd.h>
@@ -20,8 +23,6 @@
 #include <AMReX_BoxArray.H>
 #include <AMReX_DistributionMapping.H>
 #include <AMReX_ParallelDescriptor.H>
-
-
 
 namespace amrex
 {

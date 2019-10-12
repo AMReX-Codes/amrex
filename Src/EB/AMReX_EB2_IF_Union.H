@@ -25,7 +25,7 @@ namespace UIF_detail {
     template <typename F, typename... Fs>
     inline Real do_max (const RealArray& p, F&& f, Fs&... fs) noexcept
     {
-        return std::max(f(p), do_max(p, std::forward<Fs>(fs)...));
+        return amrex::max(f(p), do_max(p, std::forward<Fs>(fs)...));
     }
 
     template <typename F>
@@ -49,6 +49,8 @@ class UnionIF
 {
 public:
     using GpuTuple<Fs...>::GpuTuple;
+
+    ~UnionIF () {}
 
     inline Real operator() (const RealArray& p) const noexcept
     {

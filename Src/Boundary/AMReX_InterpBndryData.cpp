@@ -113,7 +113,7 @@ InterpBndryData::setBndryValues (const MultiFab& mf,
                 auto bnd_array = bnd_fab.array();
                 auto const src_array = src_fab.array();
                 const Box& b = src_fab.box() & bnd_fab.box();
-                AMREX_HOST_DEVICE_FOR_4D ( b, num_comp, i, j, k, n,
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( b, num_comp, i, j, k, n,
                 {
                     bnd_array(i,j,k,n+bnd_start) = src_array(i,j,k,n+mf_start);
                 });
@@ -179,13 +179,12 @@ InterpBndryData::BndryValuesDoIt (BndryRegister&  crse,
     {
         MultiFab foo(grids,bndry[0].DistributionMap(), 1, 0, MFInfo().SetAlloc(false), FArrayBoxFactory());
 
+        MFItInfo info;
+        if (Gpu::notInLaunchRegion()) info.SetDynamic(true);
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        {
-        Vector<Real> derives;
-
-        for (MFIter mfi(foo,MFItInfo().SetDynamic(true)); mfi.isValid(); ++mfi)
+        for (MFIter mfi(foo,info); mfi.isValid(); ++mfi)
         {
             BL_ASSERT(grids[mfi.index()] == mfi.validbox());
 
@@ -373,7 +372,6 @@ InterpBndryData::BndryValuesDoIt (BndryRegister&  crse,
                     });
                 }
             }
-        }
         }
     }
     else

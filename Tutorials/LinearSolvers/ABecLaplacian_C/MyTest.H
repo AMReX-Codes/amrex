@@ -19,6 +19,7 @@ public:
 public: // make these public for cuda
     void initProbPoisson ();
     void initProbABecLaplacian ();
+    void initProbABecLaplacianInhomNeumann ();
 
 private:
 
@@ -26,6 +27,7 @@ private:
     void initData ();
     void solvePoisson ();
     void solveABecLaplacian ();
+    void solveABecLaplacianInhomNeumann ();
 
     int max_level = 1;
     int ref_ratio = 2;

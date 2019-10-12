@@ -20,6 +20,7 @@ int main_main()
     const int narg = amrex::command_argument_count();
 
     Real global_error = 0.0;
+    Real global_rerror = 0.0;
     bool any_nans = false;
     ErrZone err_zone;
     bool all_variables_found = true;
@@ -31,6 +32,7 @@ int main_main()
     std::string diffvar;
     int zone_info = false;
     int allow_diff_grids = false;
+    Real rtol = 0.0;
     std::string zone_info_var_name;
     Vector<std::string> plot_names(1);
 
@@ -51,6 +53,8 @@ int main_main()
             plot_names[0] = diffvar;
         } else if (fname == "-a" or fname == "--allow_diff_grids") {
             allow_diff_grids = true;
+        } else if (fname == "-r" or fname == "--rel_tol rtol") {
+            rtol = std::stod(amrex::get_command_argument(++farg));
         } else {
             break;
         }
@@ -82,6 +86,7 @@ int main_main()
             << "    -z|--zone_info var    : output the information for a zone corresponding\n"
             << "                            to the maximum error for the given variable\n"
             << "    -a|--allow_diff_grids : allow different BoxArrays covering the same domain\n"
+            << "    -r|--rel_tol rtol     : relative tolerance (default is 0)\n"
             << std::endl;
         return 0;
     }
@@ -283,6 +288,9 @@ int main_main()
         global_error = std::max(global_error,
                                 *(std::max_element(aerror.begin(),
                                                    aerror.end())));
+        global_rerror = std::max(global_rerror,
+                                 *(std::max_element(rerror.begin(),
+                                                    rerror.end())));
         for (int icomp_a = 0; icomp_a < ncomp_a; ++icomp_a) {
             any_nans = any_nans or has_nan_a[icomp_a] or has_nan_b[icomp_a];
         }
@@ -330,11 +338,15 @@ int main_main()
         }
     }
 
+    if (! all_variables_found) {
+        amrex::Print() << " WARNING: not all variables present in both files\n";
+    }
+
     if (global_error == 0.0 and !any_nans) {
-        if (! all_variables_found) {
-            amrex::Print() << " WARNING: not all variables present in both files\n";
-        }
         amrex::Print() << " PLOTFILE AGREE" << std::endl;
+        return EXIT_SUCCESS;
+    } else if (global_rerror <= rtol) {
+        amrex::Print() << " PLOTFILE AGREE to relative tolerance " << rtol << std::endl;
         return EXIT_SUCCESS;
     } else {
         return EXIT_FAILURE;

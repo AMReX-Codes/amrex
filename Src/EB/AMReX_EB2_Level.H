@@ -11,7 +11,6 @@
 #include <AMReX_MultiCutFab.H>
 #include <AMReX_EB2_MultiGFab.H>
 #include <AMReX_EB2_C.H>
-#include <AMReX_EB2_F.H>
 #include <AMReX_EB2_IF_AllRegular.H>
 
 #include <unordered_map>
@@ -66,9 +65,6 @@ protected:
     Level& operator=(Level const& rhs) = delete;
     Level& operator=(Level && rhs) = delete;
 
-    int coarsenFromFine (Level& fineLevel, bool fill_boundary);
-    void buildCellFlag ();
-
     Geometry m_geom;
     IntVect  m_ngrow;
     BoxArray m_grids;
@@ -87,6 +83,10 @@ protected:
     bool m_allregular = false;
     bool m_ok = false;
     IndexSpace const* m_parent;
+
+public: // for cuda
+    int coarsenFromFine (Level& fineLevel, bool fill_boundary);
+    void buildCellFlag ();
 };
 
 template <typename G>
@@ -142,7 +142,7 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
     {
         const Box& vbx = mfi.validbox();
         const Box& gbx = amrex::surroundingNodes(amrex::grow(vbx,1));
-        int box_type = gshop.getBoxType(gbx, geom);
+        int box_type = gshop.getBoxType(gbx, geom, RunOn::Gpu);
         if (box_type == gshop.allcovered) {
             covered_boxes.push_back(vbx);
         } else if (box_type == gshop.mixedcells) {
@@ -222,7 +222,7 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
 
             gfab.buildTypes(cellflag);
 
-            Array4<Real const> const& lst = levelset.array();
+            Array4<Real const> const& lst = levelset.const_array();
             Array4<EBCellFlag> const& cfg = m_cellflag.array(mfi);
             Array4<Real> const& vfr = m_volfrac.array(mfi);
             Array4<Real> const& ctr = m_centroid.array(mfi);

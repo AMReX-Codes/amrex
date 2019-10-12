@@ -11,6 +11,7 @@ int main (int argc, char* argv[])
         MyTest mytest;
         mytest.solve();
         mytest.compute_norms();
+        mytest.writePlotfile();
     }
 
     amrex::Finalize();

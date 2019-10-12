@@ -6,7 +6,7 @@ module amrex_ebcellflag_module
   public :: is_regular_cell, is_single_valued_cell, is_multi_valued_cell, &
        is_covered_cell, get_cell_type, get_neighbor_cells, num_neighbor_cells, pos_ngbr, &
        set_regular_cell, set_covered_cell, set_single_valued_cell, set_neighbor, clear_neighbor, &
-       clear_allneighbors, is_neighbor, amrex_ebcellflag_count, get_neighbor_cells_int_single, &
+       clear_allneighbors, is_neighbor, get_neighbor_cells_int_single, &
        regular, single_valued, multi_valued, covered
   
   integer, parameter :: w_type      = 2
@@ -209,32 +209,5 @@ contains
     integer, intent(inout) :: flag
     call mvbits(single_valued, 0, w_type, flag, 0)
   end subroutine set_single_valued_cell
-
-  subroutine amrex_ebcellflag_count(lo,hi,flag,flo,fhi,nregular,nsingle,nmulti,ncovered) &
-       bind(c,name='amrex_ebcellflag_count')
-    integer, dimension(3), intent(in) :: lo(3), hi(3), flo(3), fhi(3)
-    integer, intent(in) :: flag(flo(1):fhi(1),flo(2):fhi(2),flo(3):fhi(3))
-    integer, intent(out) :: nregular,nsingle,nmulti,ncovered
-    integer :: i,j,k
-    nregular = 0
-    nsingle = 0
-    nmulti = 0
-    ncovered = 0
-    do       k = lo(3), hi(3)
-       do    j = lo(2), hi(2)
-          do i = lo(1), hi(1)
-             if (is_regular_cell(flag(i,j,k))) then
-                nregular = nregular+1
-             else if (is_single_valued_cell(flag(i,j,k))) then
-                nsingle = nsingle+1
-             else if (is_multi_valued_cell(flag(i,j,k))) then
-                nmulti = nmulti+1
-             else
-                ncovered = ncovered+1
-             end if
-          end do
-       end do
-    end do
-  end subroutine amrex_ebcellflag_count
 
 end module amrex_ebcellflag_module

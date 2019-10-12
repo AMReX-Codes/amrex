@@ -33,7 +33,7 @@ function (configure_amrex)
    # 
    include( AMReX_ThirdPartyProfilers )
    include( AMReX_Defines )
-   include( AMReX_Utils )
+   include( AMReXGenexHelpers )
    
    # 
    # Set properties for target "amrex"
@@ -62,11 +62,17 @@ function (configure_amrex)
    #
    if (ENABLE_OMP)
       find_package(OpenMP REQUIRED CXX Fortran)
+      
       target_link_libraries(amrex
          PUBLIC
          OpenMP::OpenMP_CXX
          OpenMP::OpenMP_Fortran)
-
+      
+      set_target_properties(
+         OpenMP::OpenMP_CXX OpenMP::OpenMP_Fortran
+         PROPERTIES
+         IMPORTED_GLOBAL True )
+      
       # We have to manually pass OpenMP flags to host compiler if CUDA is enabled
       # Since OpenMP imported targets are generated only for the Compiler ID in use, i.e.
       # they do not provide flags for all possible compiler ids, we assume the same compiler used
@@ -189,11 +195,6 @@ function (configure_amrex)
       endif ()
    endif ()
 
-   #
-   # Print out summary
-   #  
-   print_amrex_configuration_summary ()
-
 endfunction ()
 
 # 
@@ -202,6 +203,7 @@ endfunction ()
 # 
 # 
 function (print_amrex_configuration_summary)
+  
 
    # 
    # Check if target "amrex" has been defined before
@@ -210,64 +212,54 @@ function (print_amrex_configuration_summary)
    if (NOT TARGET amrex)
       message (FATAL_ERROR "Target 'amrex' must be defined before calling function 'set_amrex_defines'" )
    endif ()
-   
-   #
-   # Retrieve defines
-   #
-   get_target_property ( AMREX_DEFINES amrex COMPILE_DEFINITIONS )
-   evaluate_genex(AMREX_DEFINES AMREX_CXX_DEFINES     LANG CXX     COMP ${CMAKE_CXX_COMPILER_ID} )
-   evaluate_genex(AMREX_DEFINES AMREX_Fortran_DEFINES LANG Fortran COMP ${CMAKE_Fortran_COMPILER_ID} ) 
-   string (REPLACE ";" " -D" AMREX_CXX_DEFINES "-D${AMREX_CXX_DEFINES}" )
-   string (REPLACE ";" " -D" AMREX_Fortran_DEFINES "-D${AMREX_Fortran_DEFINES}" )
-   
-   #
-   # Retrieve compile flags
-   #
-   get_target_property( AMREX_FLAGS   amrex COMPILE_OPTIONS)
 
-   evaluate_genex(AMREX_FLAGS AMREX_CXX_FLAGS
-      LANG   CXX
-      COMP   ${CMAKE_CXX_COMPILER_ID}
-      CONFIG ${CMAKE_BUILD_TYPE}
-      STRING )
 
-   evaluate_genex(AMREX_FLAGS AMREX_Fortran_FLAGS
-      LANG   Fortran
-      COMP   ${CMAKE_Fortran_COMPILER_ID}
-      CONFIG ${CMAKE_BUILD_TYPE}
-      STRING )
+  # Include AMReX cmake functions 
+  include(AMReXGenexHelpers)
+  include(AMReXTargetHelpers)
 
-   if (ENABLE_CUDA)
-      evaluate_genex(AMREX_FLAGS AMREX_CUDA_FLAGS
-         LANG   CUDA
-         COMP   ${CMAKE_CUDA_COMPILER_ID}
-         CONFIG ${CMAKE_BUILD_TYPE}
-         STRING )
-   endif ()
+  get_target_properties_flattened(amrex  _includes _defines _flags _link_line)
+
+  set(_lang CXX Fortran) 
+  set(_prop _includes _defines _flags _link_line )
+
+
+  # Loop over all combinations of language and property and extract 
+  # what you need 
+  foreach( _p IN LISTS _prop )
+     foreach( _l IN LISTS _lang )
+
+        string(TOLOWER ${_l} _ll) # Lower case language name
+
+        # _${_ll}${_p} is a variable named as _lang_property,
+        # both lower case. 
+        evaluate_genex(${_p} _${_ll}${_p}
+           LANG ${_l}
+           COMP ${CMAKE_${_l}_COMPILER_ID}
+           CONFIG ${CMAKE_BUILD_TYPE}
+           INTERFACE BUILD)
+
+        if (_${_ll}${_p})
+
+           list(REMOVE_DUPLICATES _${_ll}${_p})
+           
+           if ("${_p}" STREQUAL "_defines")
+              string(REPLACE ";" " -D" _${_ll}${_p} "-D${_${_ll}${_p}}")
+           elseif ("${_p}" STREQUAL "_includes")
+              string(REPLACE ";" " -I" _${_ll}${_p} "-I${_${_ll}${_p}}")
+           else()
+              string(REPLACE ";" " " _${_ll}${_p} "${_${_ll}${_p}}")
+           endif ()              
+
+        endif ()
+        
+     endforeach()
+  endforeach ()
+
    
-   # Add base flags
    string ( TOUPPER "${CMAKE_BUILD_TYPE}"  AMREX_BUILD_TYPE )
-   set (AMREX_CXX_FLAGS  "${CMAKE_CXX_FLAGS_${AMREX_BUILD_TYPE}} ${CMAKE_CXX_FLAGS} ${AMREX_CXX_FLAGS}")
-   set (AMREX_Fortran_FLAGS "${CMAKE_Fortran_FLAGS_${AMREX_BUILD_TYPE}} ${CMAKE_Fortran_FLAGS} ${AMREX_Fortran_FLAGS}")
-   string (STRIP "${AMREX_CXX_FLAGS}" AMREX_CXX_FLAGS)
-   string (STRIP "${AMREX_Fortran_FLAGS}" AMREX_Fortran_FLAGS)
-
-   #
-   # Include paths
-   #
-   get_target_property( AMREX_INCLUDE_PATHS amrex INTERFACE_INCLUDE_DIRECTORIES )
-   evaluate_genex(AMREX_INCLUDE_PATHS AMREX_CXX_INCLUDE_PATHS     LANG CXX )
-   evaluate_genex(AMREX_INCLUDE_PATHS AMREX_Fortran_INCLUDE_PATHS LANG Fortran )
-
-   #
-   # Link libraries
-   # 
-   get_target_property ( TMP amrex LINK_LIBRARIES )
-   evaluate_genex(TMP AMREX_LINK_LINE )
-   if (NOT AMREX_LINK_LINE) # LINK_LIBRARIES property can return "NOT_FOUND"
-      set (AMREX_LINK_LINE "")
-   endif ()   
-   string ( REPLACE ";" " " AMREX_LINK_LINE "${AMREX_LINK_LINE}" )
+   set(_cxx_flags "${CMAKE_CXX_FLAGS_${AMREX_BUILD_TYPE}} ${CMAKE_CXX_FLAGS} ${_cxx_flags}")
+   set(_fortran_flags "${CMAKE_Fortran_FLAGS_${AMREX_BUILD_TYPE}} ${CMAKE_Fortran_FLAGS} ${_fortran_flags}")   
 
    
    #
@@ -276,22 +268,24 @@ function (print_amrex_configuration_summary)
    message( STATUS "AMReX configuration summary: ")
    message( STATUS "   Build type               = ${CMAKE_BUILD_TYPE}")
    message( STATUS "   Install directory        = ${CMAKE_INSTALL_PREFIX}")
-   message( STATUS "   C++ defines              = ${AMREX_CXX_DEFINES}")
-   message( STATUS "   Fortran defines          = ${AMREX_Fortran_DEFINES}")
    message( STATUS "   C++ compiler             = ${CMAKE_CXX_COMPILER}")
    message( STATUS "   Fortran compiler         = ${CMAKE_Fortran_COMPILER}")
    if (ENABLE_CUDA)
       message( STATUS "   CUDA compiler            = ${CMAKE_CUDA_COMPILER}")
    endif ()
-   message( STATUS "   C++ flags                = ${AMREX_CXX_FLAGS}")
-   message( STATUS "   Fortran flags            = ${AMREX_Fortran_FLAGS}")
+   
+   message( STATUS "   C++ defines              = ${_cxx_defines}")
+   message( STATUS "   Fortran defines          = ${_fortran_defines}")
+   
+   message( STATUS "   C++ flags                = ${_cxx_flags}")
+   message( STATUS "   Fortran flags            = ${_fortran_flags}")
    if (ENABLE_CUDA)
       message( STATUS "   CUDA flags               = ${CMAKE_CUDA_FLAGS_${AMREX_BUILD_TYPE}} ${CMAKE_CUDA_FLAGS}"
          "${AMREX_CUDA_FLAGS}")
    endif ()
-   message( STATUS "   C++ include paths        = ${AMREX_CXX_INCLUDE_PATHS}")  
-   message( STATUS "   Fortran include paths    = ${AMREX_Fortran_INCLUDE_PATHS}")
-   message( STATUS "   Link line                = ${AMREX_LINK_LINE}") 
+   message( STATUS "   C++ include paths        = ${_cxx_includes}")  
+   message( STATUS "   Fortran include paths    = ${_fortran_includes}")
+   message( STATUS "   Link line                = ${_cxx_link_line}") 
 
 endfunction ()
 

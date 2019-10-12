@@ -95,13 +95,13 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
     for (int lev = lev_min; lev <= finest_level; ++lev) {
         const BoxArray& ba = mf[lev]->boxArray();
         const DistributionMapping& dm = mf[lev]->DistributionMap();
-        tmp[lev].reset(new MultiFab(ba, dm, 1, 0));
+        tmp[lev].reset(new MultiFab(ba, dm, ncomp, 0));
         tmp[lev]->setVal(0.0);
     }
     
     for (int lev = lev_min; lev <= finest_level; ++lev) {
         
-        this->AssignCellDensitySingleLevel(rho_index, *mf[lev], lev, 1, 0);
+        this->AssignCellDensitySingleLevel(rho_index, *mf[lev], lev, ncomp, 0);
         
         if (lev < finest_level) {
             PhysBCFunctNoOp cphysbc, fphysbc;
@@ -118,7 +118,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
             // Note - this will double count the mass on the coarse level in 
             // regions covered by the fine level, but this will be corrected
             // below in the call to average_down.
-            amrex::sum_fine_to_coarse(*mf[lev], *mf[lev-1], rho_index, 1,
+            amrex::sum_fine_to_coarse(*mf[lev], *mf[lev-1], rho_index, ncomp,
                                       this->m_gdb->refRatio(lev-1),
                                       this->m_gdb->Geom(lev-1),
                                       this->m_gdb->Geom(lev));
@@ -133,7 +133,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
     
     if (!all_grids_the_same) {
         for (int lev = lev_min; lev <= finest_level; lev++) {
-            mf_to_be_filled[lev]->copy(*mf_part[lev],0,0,1);
+            mf_to_be_filled[lev]->copy(*mf_part[lev],0,0,ncomp);
         }
     }
     if (lev_min > 0) {

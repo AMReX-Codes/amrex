@@ -10,6 +10,7 @@ target_compile_definitions( amrex PUBLIC $<BUILD_INTERFACE:AMREX_USE_F_INTERFACE
 if (ENABLE_MPI)
    find_package(MPI REQUIRED Fortran)
    target_link_libraries(amrex PUBLIC MPI::MPI_Fortran)
+   set_target_properties(MPI::MPI_Frotran  PROPERTIES IMPORTED_GLOBAL True )
 endif ()  
 
 #

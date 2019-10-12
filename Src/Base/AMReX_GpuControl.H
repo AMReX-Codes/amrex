@@ -20,6 +20,13 @@ namespace amrex {
 }
 
 namespace amrex {
+
+#if defined(AMREX_USE_HIP)
+using gpuStream_t     = hipStream_t;
+#elif defined(AMREX_USE_CUDA)
+using gpuStream_t     = cudaStream_t;
+#endif
+
 namespace Gpu {
 
 #if defined(AMREX_USE_GPU)
@@ -63,6 +70,15 @@ namespace Gpu {
         bool m_old;
     };
 
+    struct ScopedDefaultStream
+    {
+    public:
+        ScopedDefaultStream () noexcept;
+        ~ScopedDefaultStream ();
+    private:
+        gpuStream_t m_prev_stream;
+    };
+
 #else
 
     inline static constexpr bool inLaunchRegion () { return false; }
@@ -82,6 +98,8 @@ namespace Gpu {
     {
         explicit GraphSafeGuard (bool) {}
     };
+
+    struct ScopedDefaultStream {};
 
 #endif
 

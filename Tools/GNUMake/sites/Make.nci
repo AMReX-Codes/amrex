@@ -1,0 +1,72 @@
+#
+# For NCI machines: Raijin
+#
+
+# Set the default node architecture to NONE
+NCI_NODE_ARCH ?= NONE
+NCI_NODE_ARCHS := SANDYBRIDGE BROADWELL SKYLAKE SKYLAKE-512 SKYLAKE-512-ZMM KNL
+
+ifneq ($(which_computer),$(filter $(which_computer),raijin))
+  $(error Unknown NCI computer, $(which_computer))
+else
+  $(info Loading compiler settings for Raijin@NCI)
+  ifneq ($(NCI_NODE_ARCH), $(findstring $(NCI_NODE_ARCH), $(NCI_NODE_ARCHS)))
+    $(warning Unknown node architecture: $(NCI_NODE_ARCH))
+  else
+    $(info Node architecture: $(NCI_NODE_ARCH))
+  endif
+endif
+
+CFLAGS   := $(subst -O2,-O3,$(CFLAGS))
+CXXFLAGS := $(subst -O2,-O3,$(CXXFLAGS))
+FFLAGS   := $(subst -O2,-O3,$(FFLAGS))
+F90FLAGS := $(subst -O2,-O3,$(F90FLAGS))
+
+ifeq ($(NCI_NODE_ARCH),SANDYBRIDGE)
+  CFLAGS   += -xSANDYBRIDGE
+  CXXFLAGS += -xSANDYBRIDGE
+  FFLAGS   += -xSANDYBRIDGE
+  F90FLAGS += -xSANDYBRIDGE
+endif
+
+ifeq ($(NCI_NODE_ARCH),BROADWELL)
+  CFLAGS   += -xBROADWELL -fma
+  CXXFLAGS += -xBROADWELL -fma
+  FFLAGS   += -xBROADWELL -fma
+  F90FLAGS += -xBROADWELL -fma
+endif
+
+ifeq ($(NCI_NODE_ARCH),SKYLAKE)
+  CFLAGS   += -xSKYLAKE -fma
+  CXXFLAGS += -xSKYLAKE -fma
+  FFLAGS   += -xSKYLAKE -fma
+  F90FLAGS += -xSKYLAKE -fma
+endif
+
+ifeq ($(NCI_NODE_ARCH),SKYLAKE-512)
+  CFLAGS   += -xSKYLAKE-AVX512 -fma
+  CXXFLAGS += -xSKYLAKE-AVX512 -fma
+  FFLAGS   += -xSKYLAKE-AVX512 -fma
+  F90FLAGS += -xSKYLAKE-AVX512 -fma
+endif
+
+ifeq ($(NCI_NODE_ARCH),SKYLAKE-512-ZMM)
+  CFLAGS   += -xSKYLAKE-AVX512 -fma -qopt-zmm-usage=high
+  CXXFLAGS += -xSKYLAKE-AVX512 -fma -qopt-zmm-usage=high
+  FFLAGS   += -xSKYLAKE-AVX512 -fma -qopt-zmm-usage=high
+  F90FLAGS += -xSKYLAKE-AVX512 -fma -qopt-zmm-usage=high
+endif
+
+ifeq ($(NCI_NODE_ARCH),KNL)
+  CFLAGS   += -xMIC-AVX512
+  CXXFLAGS += -xMIC-AVX512
+  FFLAGS   += -xMIC-AVX512
+  F90FLAGS += -xMIC-AVX512
+endif
+
+ifeq ($(USE_MPI),TRUE)
+  CC  = mpicc
+  CXX = mpicxx
+  FC  = mpifort
+  F90 = mpifort
+endif

@@ -422,6 +422,24 @@ Device::setStreamIndex (const int idx) noexcept
 #endif
 }
 
+#ifdef AMREX_USE_GPU
+gpuStream_t
+Device::resetStream () noexcept
+{
+    gpuStream_t r = gpu_stream;
+    gpu_stream = 0;
+    return r;
+}
+
+gpuStream_t
+Device::setStream (gpuStream_t s) noexcept
+{
+    gpuStream_t r = gpu_stream;
+    gpu_stream = s;
+    return r;
+}
+#endif
+
 void
 Device::synchronize () noexcept
 {

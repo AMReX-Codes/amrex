@@ -1,0 +1,18 @@
+
+max_level = 0
+n_cell = 128
+max_grid_size = 64
+
+# In this tutorial, we set up two examples.
+# prob_type = 1
+# prob_type = 2
+prob_type = 3  # ABecLaplacian with inhomogeneous Neumann
+
+# For MLMG
+verbose = 2
+bottom_verbose = 0
+max_iter = 100
+max_fmg_iter = 0     # # of F-cycles before switching to V.  To do pure V-cycle, set to 0
+linop_maxorder = 2
+agglomeration = 1    # Do agglomeration on AMR Level 0?
+consolidation = 1    # Do consolidation?

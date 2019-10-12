@@ -98,7 +98,7 @@ c     ----------------------------------------------------------
 c     NOTE: switch from C++ 0-based indexing
       lrat = ratios(nodal_dir+1)
 
-      vol_inv = 1.d0 / real(lrat,amrex_real)
+      vol_inv = 1.d0 / dble(lrat)
 
       do n = 1, nvar
 

@@ -199,14 +199,14 @@ extern "C" {
             const Box& bx = mfi.tilebox();
             Array4<Real> const& crsearr = lmf.array(mfi);
             const int li = li_leaf_to_full[mfi.LocalIndex()];
-            Array4<Real const> const& finearr = fine->atLocalIdx(li).array();
+            Array4<Real const> const& finearr = fine->atLocalIdx(li).const_array();
             if (fgeom.IsCartesian()) {
                 AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
                 {
                     amrex_avgdown(tbx,crsearr,finearr,0,scomp,ncomp,rr);
                 });
             } else {
-                Array4<Real const> const& finevolarr = fvolume.array(mfi);
+                Array4<Real const> const& finevolarr = fvolume.const_array(mfi);
                 AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
                 {
                     amrex_avgdown_with_vol(tbx,crsearr,finearr,finevolarr,

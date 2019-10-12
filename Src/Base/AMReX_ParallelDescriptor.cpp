@@ -1555,6 +1555,13 @@ ParallelDescriptor::Mpi_typemap<unsigned long>::type ()
 
 template <>
 MPI_Datatype
+ParallelDescriptor::Mpi_typemap<unsigned long long>::type ()
+{
+    return  MPI_UNSIGNED_LONG_LONG;
+}
+    
+template <>
+MPI_Datatype
 ParallelDescriptor::Mpi_typemap<float>::type ()
 {
     return  MPI_FLOAT;

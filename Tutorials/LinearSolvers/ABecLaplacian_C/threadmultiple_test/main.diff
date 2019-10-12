@@ -1,0 +1,26 @@
+diff --git a/Tutorials/LinearSolvers/ABecLaplacian_C/main.cpp b/Tutorials/LinearSolvers/ABecLaplacian_C/main.cpp
+index 77fd37b..1898cb8 100644
+--- a/Tutorials/LinearSolvers/ABecLaplacian_C/main.cpp
++++ b/Tutorials/LinearSolvers/ABecLaplacian_C/main.cpp
+@@ -8,9 +8,18 @@ int main (int argc, char* argv[])
+ 
+     {
+         BL_PROFILE("main");
+-        MyTest mytest;
+-        mytest.solve();
+-        mytest.writePlotfile();
++        {
++            MyTest mytest;
++            mytest.solve();
++        }
++        {
++            MyTest mytest;
++            {
++                BL_PROFILE_REGION("LinearSolver");
++                mytest.solve();
++            }
++        }
++//        mytest.writePlotfile();
+     }
+ 
+     amrex::Finalize();

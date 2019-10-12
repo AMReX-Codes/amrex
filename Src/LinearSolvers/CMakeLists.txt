@@ -7,8 +7,6 @@ target_sources(amrex
    PRIVATE
    MLMG/AMReX_MLMG.H
    MLMG/AMReX_MLMG.cpp
-   MLMG/AMReX_MLMG_F.H
-   MLMG/AMReX_MLMG_${DIM}d.F90
    MLMG/AMReX_MLMG_K.H
    MLMG/AMReX_MLMG_${DIM}D_K.H
    MLMG/AMReX_MLMGBndry.H
@@ -40,17 +38,16 @@ target_sources(amrex
    MLMG/AMReX_MLPoisson_${DIM}D_K.H
    MLMG/AMReX_MLNodeLaplacian.H
    MLMG/AMReX_MLNodeLaplacian.cpp
+   MLMG/AMReX_MLNodeLap_K.H
+   MLMG/AMReX_MLNodeLap_${DIM}D_K.H
    MLMG/AMReX_MLNodeLap_F.H
    MLMG/AMReX_MLNodeLap_${DIM}d.F90
-   MLMG/AMReX_MLNodeLap_nd.F90
    MLMG/AMReX_MLTensorOp.H
    MLMG/AMReX_MLTensorOp.cpp
    MLMG/AMReX_MLTensor_K.H
    MLMG/AMReX_MLTensor_${DIM}D_K.H
    MLMG/AMReX_MacProjector.H
    MLMG/AMReX_MacProjector.cpp
-   MLMG/AMReX_MG_K.H
-   MLMG/AMReX_MG_${DIM}D_K.H
    )
 
 if (ENABLE_EB)
@@ -58,8 +55,7 @@ if (ENABLE_EB)
       MLMG/AMReX_MLEBABecLap.H
       MLMG/AMReX_MLEBABecLap.cpp
       MLMG/AMReX_MLEBABecLap_K.H
-      MLMG/AMReX_MLEBABecLap_F.H
-      MLMG/AMReX_MLEBABecLap_${DIM}d.F90
+      MLMG/AMReX_MLEBABecLap_${DIM}D_K.H
       MLMG/AMReX_MLEBTensorOp.H
       MLMG/AMReX_MLEBTensorOp.cpp
       MLMG/AMReX_MLEBTensor_K.H

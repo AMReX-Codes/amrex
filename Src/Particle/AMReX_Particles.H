@@ -44,6 +44,7 @@
 #include <AMReX_ParticleReduce.H>
 #include <AMReX_ParticleBufferMap.H>
 #include <AMReX_ParticleCommunication.H>
+#include <AMReX_ParticleLocator.H>
 #include <AMReX_Scan.H>
 
 #ifdef BL_LAZY
@@ -72,11 +73,7 @@ namespace amrex {
 */
 struct ParticleCommData
 {
-#ifdef BL_SINGLE_PRECISION_PARTICLES
-    typedef float RealType;
-#else
-    typedef double RealType;
-#endif
+  typedef ParticleReal RealType;
   int     m_lev;
   int     m_grid;
   IntVect m_cell;
@@ -267,6 +264,12 @@ public:
 
     virtual ~ParticleContainer () {}
 
+    ParticleContainer ( const ParticleContainer &) = delete;
+    ParticleContainer& operator= ( const ParticleContainer & ) = delete; 
+    
+    ParticleContainer ( ParticleContainer && ) = default;
+    ParticleContainer& operator= ( ParticleContainer && ) = default;
+        
     void Define (ParGDBBase* gdb)
     {
         m_gdb = gdb;
@@ -783,16 +786,18 @@ public:
 
     const ParticleBufferMap& BufferMap () const {return m_buffer_map;} 
 
-    virtual const Vector<int>& NeighborProcs() const 
+    const Vector<int>& NeighborProcs(int lev, int ngrow) const         
     {
+        BuildRedistributeMask(lev, ngrow);
         return neighbor_procs;
     };
 
     bool OnSameGrids (int level, const MultiFab& mf) const { return m_gdb->OnSameGrids(level, mf); }
-    
+
 protected:
 
     mutable amrex::Vector<int> neighbor_procs;
+    mutable bool m_need_handshake;
 
     /**
     * \brief Checks a particle's location on levels lev_min and higher.
@@ -897,6 +902,8 @@ protected:
 
     Gpu::PinnedDeviceVector<SuperParticleType> pinned_snd_buffer;
     Gpu::PinnedDeviceVector<SuperParticleType> pinned_rcv_buffer;
+
+    mutable ParticleLocator m_particle_locator;
     
 #endif
 
@@ -1001,7 +1008,13 @@ public:
                                    Container& z)) const;
 
     int numParticles () const { return GetArrayOfStructs().numParticles(); }
+
+    int GetLevel () const { return m_level; }
+
+    std::pair<int, int> GetPairIndex () const { return std::make_pair(this->index(), this->LocalTileIndex()); }
+    
 protected:
+    
     int m_level;
     int m_pariter_index;
     Vector<int> m_valid_index;
@@ -1065,6 +1078,7 @@ public:
 #include "AMReX_ParticleInit.H"
 #include "AMReX_ParticleContainerI.H"
 #include "AMReX_ParIterI.H"
+#include "AMReX_ParticleIO.H"
 
 }
 

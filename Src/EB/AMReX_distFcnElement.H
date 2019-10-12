@@ -22,7 +22,7 @@ class distFcnElement2d {
                    std::vector<amrex::Real> diag,
                    std::vector<amrex::Real> diagplus,
                    std::vector<amrex::Real> rhs,
-                   std::vector<amrex::Real> X);
+                   std::vector<amrex::Real>& X);
 };
 
 

@@ -1,0 +1,66 @@
+
+This tutorial demonstrates the solution of a Poisson equation
+to compute a potential flow field around nine obstacles. 
+
+****************************************************************************************************
+
+To run it in serial, 
+
+./main3d.ex inputs
+
+To run it in parallel, for example on 4 ranks:
+
+mpirun -n 4 ./main3d.ex inputs
+
+The following parameters can be set at run-time -- these are currently set in the inputs
+file but you can also set them on the command line.  
+
+n_cell = 128                             # number of cells in x-direction; we double this in the y-direction
+max_grid_size = 64                       # the maximum number of cells in any direction in a single grid
+
+****************************************************************************************************
+
+The output from your run should look something like this:
+
+********************************************************************
+ Let's project the initial velocity to find
+   the flow field around the obstacles ...
+ The domain has 256 cells in the x-direction
+ The maximum grid size is 64
+********************************************************************
+
+MLMG: # of AMR levels: 1
+      # of MG levels on the coarsest AMR level: 3
+MLMG: Initial rhs               = 128
+MLMG: Initial residual (resid0) = 128
+MLCGSolver_BiCGStab: Initial error (error0) =        0.00585083279
+MLCGSolver_BiCGStab: Final: Iteration  131 rel. err. 8.316094303e-05
+MLMG: Iteration   1 Fine resid/bnorm = 0.5844966018
+MLCGSolver_BiCGStab: Initial error (error0) =        0.0001712929542
+MLCGSolver_BiCGStab: Final: Iteration  117 rel. err. 9.471637432e-05
+MLMG: Iteration   2 Fine resid/bnorm = 0.008993801295
+MLCGSolver_BiCGStab: Initial error (error0) =        7.062486538e-06
+MLCGSolver_BiCGStab: Final: Iteration  126 rel. err. 8.921885015e-05
+MLMG: Iteration   3 Fine resid/bnorm = 0.0003448363733
+MLCGSolver_BiCGStab: Initial error (error0) =        3.522653229e-07
+MLCGSolver_BiCGStab: Final: Iteration  131 rel. err. 6.102633163e-05
+MLMG: Iteration   4 Fine resid/bnorm = 1.818381726e-05
+MLCGSolver_BiCGStab: Initial error (error0) =        1.869194089e-08
+MLCGSolver_BiCGStab: Final: Iteration  131 rel. err. 6.35413132e-05
+MLMG: Iteration   5 Fine resid/bnorm = 1.023441528e-06
+MLCGSolver_BiCGStab: Initial error (error0) =        1.017130677e-09
+MLCGSolver_BiCGStab: Final: Iteration   93 rel. err. 9.168336176e-05
+MLMG: Iteration   6 Fine resid/bnorm = 5.871105663e-08
+MLCGSolver_BiCGStab: Initial error (error0) =        5.645789832e-11
+MLCGSolver_BiCGStab: Final: Iteration  132 rel. err. 8.280742281e-05
+MLMG: Iteration   7 Fine resid/bnorm = 3.394263815e-09
+MLMG: Final Iter. 7 resid, resid/bnorm = 4.344657683e-07, 3.394263815e-09
+MLMG: Timers: Solve = 1.15662553 Iter = 1.132159153 Bottom = 0.499076789
+
+********************************************************************
+ Done!
+********************************************************************
+
+Writing plt00000
+Total run time 1.435699991
+

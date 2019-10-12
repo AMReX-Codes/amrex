@@ -105,7 +105,7 @@ foreach(_comp IN LISTS _sundials_findlist)
    # Create imported target
    set(_target SUNDIALS::${_comp_lower})
    if (SUNDIALS_${_comp_upper}_FOUND AND NOT TARGET ${_target})
-      add_library(${_target} UNKNOWN IMPORTED)
+      add_library(${_target} UNKNOWN IMPORTED GLOBAL)
       set_target_properties(${_target} PROPERTIES
          IMPORTED_LOCATION "${SUNDIALS_${_comp_upper}_LIBRARIES}"
          INTERFACE_INCLUDE_DIRECTORIES "${SUNDIALS_${_comp_upper}_INCLUDE_DIRS}"

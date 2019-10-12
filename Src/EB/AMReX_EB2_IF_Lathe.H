@@ -18,6 +18,7 @@ public:
 
     LatheIF (F&& a_f) : m_f(std::move(a_f)) {}
     LatheIF (F const& a_f) : m_f(a_f) {}
+    ~LatheIF () {}
           
     LatheIF (const LatheIF& rhs) = default;
     LatheIF (LatheIF&& rhs) = default;

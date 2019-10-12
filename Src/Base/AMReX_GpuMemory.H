@@ -45,6 +45,12 @@ struct Pinned {
 #endif
 };
 
+struct Deleter {
+    Arena* m_arena = nullptr;
+    Deleter (Arena* ar) noexcept : m_arena(ar) {}
+    void operator() (void* pt) const noexcept { m_arena->free(pt); }
+};
+
 template <class T, typename = amrex::EnableIf_t<AMREX_IS_TRIVIALLY_COPYABLE(T)> >
 struct DeviceScalar
 {

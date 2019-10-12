@@ -18,7 +18,7 @@ AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void cic_interpolate (const P& p,
 		      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
 		      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
-		      const amrex::Array4<const double> &  uccarr,
+		      const amrex::Array4<amrex::Real const> &  uccarr,
 		      amrex::Real * val){
   
   BL_ASSERT(val != 0);
@@ -111,7 +111,7 @@ AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void mac_interpolate (const P& p,
 		      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
 		      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
-		      amrex::GpuArray<amrex::Array4<const double>,AMREX_SPACEDIM> const& p_uccarr,
+		      amrex::GpuArray<amrex::Array4<amrex::Real const>,AMREX_SPACEDIM> const& p_uccarr,
 		      amrex::Real * val)
 {
 
