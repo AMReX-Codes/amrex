@@ -2205,14 +2205,13 @@ PhysicalParticleContainer::buildIonizationMask (const amrex::MFIter& mfi, const 
     );
 }
 
-<<<<<<< HEAD
 //This function return true if the PhysicalParticleContainer contains electrons
 //or positrons, false otherwise
 bool
 PhysicalParticleContainer::AmIALepton(){
     return (this-> mass == PhysConst::m_e);
 }
-=======
+
 #ifdef WARPX_QED
 
 bool PhysicalParticleContainer::has_quantum_sync()
@@ -2239,4 +2238,3 @@ set_quantum_sync_engine_ptr(std::shared_ptr<QuantumSynchrotronEngine> ptr)
     shr_ptr_qs_engine = ptr;
 }
 #endif
->>>>>>> upstream/dev
