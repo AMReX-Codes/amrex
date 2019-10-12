@@ -199,7 +199,7 @@ contains
                 end do
              end do
 
-          else if (bc(1,1,n) .eq. amrex_bc_hoextrapli) then
+          else if (bc(1,1,n) .eq. amrex_bc_hoextrapcc) then
 
              do k = lo(3), hi(3)
                 do j = lo(2), hi(2)
@@ -271,7 +271,7 @@ contains
                 end do
              end do
 
-          else if (bc(1,2,n) .eq. amrex_bc_hoextrapli) then
+          else if (bc(1,2,n) .eq. amrex_bc_hoextrapcc) then
 
              do k = lo(3), hi(3)
                 do j = lo(2), hi(2)
@@ -345,7 +345,7 @@ contains
                 end do
              end do
 
-          else if (bc(2,1,n) .eq. amrex_bc_hoextrapli) then
+          else if (bc(2,1,n) .eq. amrex_bc_hoextrapcc) then
 
              do k = lo(3), hi(3)
                 do j = jmin, jmax
@@ -417,7 +417,7 @@ contains
                 end do
              end do
 
-          else if (bc(2,2,n) .eq. amrex_bc_hoextrapli) then
+          else if (bc(2,2,n) .eq. amrex_bc_hoextrapcc) then
 
              do k = lo(3), hi(3)
                 do j = jmin, jmax
@@ -495,7 +495,7 @@ contains
                 end do
              end do
           
-          else if (bc(3,1,n) .eq. amrex_bc_hoextrapli) then
+          else if (bc(3,1,n) .eq. amrex_bc_hoextrapcc) then
              
              do k = kmin, kmax
                 do j = lo(2), hi(2)
@@ -567,7 +567,7 @@ contains
                 end do
              end do
           
-          else if (bc(3,2,n) .eq. amrex_bc_hoextrapli) then
+          else if (bc(3,2,n) .eq. amrex_bc_hoextrapcc) then
              
              do k = kmin, kmax
                 do j = lo(2), hi(2)

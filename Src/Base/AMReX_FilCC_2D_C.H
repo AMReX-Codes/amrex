@@ -60,7 +60,7 @@ filcc_cell (const IntVect& iv, Array4<Real> const& q,
                 }
                 break;
             }
-            case (BCType::hoextrapli):
+            case (BCType::hoextrapcc):
             {
                 q(i,j,0,n) = 2.*q(i+1,j,0,n) - q(i+2,j,0,n);
                 break;
@@ -102,7 +102,7 @@ filcc_cell (const IntVect& iv, Array4<Real> const& q,
                 }
                 break;
             }
-            case (BCType::hoextrapli):
+            case (BCType::hoextrapcc):
             {
                 q(i,j,0,n) = 2.*q(i-1,j,0,n) - q(i-2,j,0,n);
                 break;
@@ -145,7 +145,7 @@ filcc_cell (const IntVect& iv, Array4<Real> const& q,
                 }
                 break;
             }
-            case (BCType::hoextrapli):
+            case (BCType::hoextrapcc):
             {
                 q(i,j,0,n) = 2.*q(i,j+1,0,n) - q(i,j+2,0,n);
                 break;
@@ -187,7 +187,7 @@ filcc_cell (const IntVect& iv, Array4<Real> const& q,
                 }
                 break;
             }
-            case (BCType::hoextrapli):
+            case (BCType::hoextrapcc):
             {
                 q(i,j,0,n) = 2.*q(i,j-1,0,n) - q(i,j-2,0,n);
                 break;
