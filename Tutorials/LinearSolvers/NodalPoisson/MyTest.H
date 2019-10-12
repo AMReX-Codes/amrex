@@ -12,13 +12,14 @@ public:
     MyTest ();
 
     void solve ();
-
     void compute_norms () const;
+    void writePlotfile () const;
+
+    void initData ();
 
 private:
 
     void readParameters ();
-    void initData ();
 
     int max_level = 1;
     int ref_ratio = 2;

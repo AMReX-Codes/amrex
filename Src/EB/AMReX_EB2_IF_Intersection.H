@@ -25,7 +25,7 @@ namespace IIF_detail {
     template <typename F, typename... Fs>
     inline Real do_min (const RealArray& p, F&& f, Fs&... fs) noexcept
     {
-        return std::min(f(p), do_min(p, std::forward<Fs>(fs)...));
+        return amrex::min(f(p), do_min(p, std::forward<Fs>(fs)...));
     }
 
     template <typename F>
@@ -49,6 +49,8 @@ class IntersectionIF
 {
 public:
     using GpuTuple<Fs...>::GpuTuple;
+
+    ~IntersectionIF () {}
 
     inline Real operator() (const RealArray& p) const noexcept
     {

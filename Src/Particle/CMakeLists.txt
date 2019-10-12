@@ -40,4 +40,6 @@ target_sources( amrex
    AMReX_ParticleCommunication.cpp
    AMReX_ParticleReduce.H
    AMReX_ParticleMesh.H
+   AMReX_ParticleLocator.H
+   AMReX_ParticleIO.H
    )

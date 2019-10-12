@@ -153,9 +153,9 @@ NeighborParticleContainer<NStructReal, NStructInt>
                 const Box& box = mfi.tilebox();
                 const int grid_id = mfi.index();
                 const int tile_id = mfi.LocalTileIndex();
-                mask_ptr[lev]->setVal(grid_id, box, MaskComps::grid,  1);
-                mask_ptr[lev]->setVal(tile_id, box, MaskComps::tile,  1);
-                mask_ptr[lev]->setVal(lev    , box, MaskComps::level, 1);
+                (*mask_ptr[lev])[mfi].setVal(grid_id, box, MaskComps::grid,  1);
+                (*mask_ptr[lev])[mfi].setVal(tile_id, box, MaskComps::tile,  1);
+                (*mask_ptr[lev])[mfi].setVal(lev    , box, MaskComps::level, 1);
             }
 
             mask_ptr[lev]->FillBoundary(geom.periodicity());

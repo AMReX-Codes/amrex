@@ -1176,7 +1176,7 @@ portable way.
        Elixir eli = q.elixir();
        Array4<Real> const& qarr = q.array();
 
-       Array4<Real const> const& uinarr = uin.array(mfi);
+       Array4<Real const> const& uinarr = uin.const_array(mfi);
        Array4<Real> const& uoutarr = uout.array(mfi);
 
        amrex::launch(gbx,

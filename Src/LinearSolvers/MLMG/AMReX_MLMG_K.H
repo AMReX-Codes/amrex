@@ -2,6 +2,9 @@
 #define AMREX_MLMG_K_H_
 
 #include <AMReX_FArrayBox.H>
+#ifdef AMREX_USE_EB
+#include <AMReX_EBCellFlag.H>
+#endif
 
 #if (AMREX_SPACEDIM == 1)
 #include <AMReX_MLMG_1D_K.H>

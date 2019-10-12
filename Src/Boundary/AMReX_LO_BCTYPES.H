@@ -17,6 +17,7 @@
 #define AMREX_LO_MARSHAK 104
 #define AMREX_LO_SANCHEZ_POMRANING 105
 #define AMREX_LO_INFLOW   106
+#define AMREX_LO_INHOMOG_NEUMANN 107
 #define AMREX_LO_PERIODIC 200
 #define AMREX_LO_BOGUS    1729
 
@@ -33,6 +34,7 @@ namespace amrex {
         Marshak          = AMREX_LO_MARSHAK,
         SanchezPomraning = AMREX_LO_SANCHEZ_POMRANING,
         inflow           = AMREX_LO_INFLOW,
+        inhomogNeumann   = AMREX_LO_INHOMOG_NEUMANN,
         Periodic         = AMREX_LO_PERIODIC,
         bogus            = AMREX_LO_BOGUS
     };

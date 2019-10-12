@@ -46,6 +46,15 @@ public:
         Redistribute(lev_min, lev_max, nGrow, local);
     }
 
+    void RedistributeGlobal ()
+    {
+        const int lev_min = 0;
+        const int lev_max = 0;
+        const int nGrow = 0;
+        const int local = 0;
+        Redistribute(lev_min, lev_max, nGrow, local);
+    }
+    
     void InitParticles (const amrex::IntVect& a_num_particles_per_cell)
     {
         BL_PROFILE("InitParticles");
@@ -213,6 +222,7 @@ struct TestParams
     IntVect move_dir;
     int do_random;
     int nsteps;
+    int do_regrid;
 };
 
 void testRedistribute();
@@ -237,6 +247,7 @@ void get_test_params(TestParams& params, const std::string& prefix)
     pp.get("move_dir", params.move_dir);
     pp.get("do_random", params.do_random);    
     pp.get("nsteps", params.nsteps);
+    pp.get("do_regrid", params.do_regrid);
 }
 
 void testRedistribute ()
@@ -276,10 +287,41 @@ void testRedistribute ()
 
     pc.InitParticles(nppc);
 
+    auto np_old = pc.TotalNumberOfParticles();
+    
     for (int i = 0; i < params.nsteps; ++i)
     {
         pc.moveParticles(params.move_dir, params.do_random);
         pc.RedistributeLocal();
         pc.checkAnswer();
     }
+
+    if (params.do_regrid)
+    {
+        const int NProcs = ParallelDescriptor::NProcs();
+        {
+            DistributionMapping new_dm;
+            Vector<int> pmap;
+            for (int i = 0; i < ba.size(); ++i) pmap.push_back(i % NProcs);
+            new_dm.define(pmap);
+            pc.SetParticleDistributionMap(0, new_dm);
+            pc.RedistributeGlobal();
+            pc.checkAnswer();
+        }
+
+        {
+            DistributionMapping new_dm;
+            Vector<int> pmap;
+            for (int i = 0; i < ba.size(); ++i) pmap.push_back((i+1) % NProcs);
+            new_dm.define(pmap);
+            pc.SetParticleDistributionMap(0, new_dm);
+            pc.RedistributeGlobal();
+            pc.checkAnswer();            
+        }
+    }
+
+    if (geom.isAllPeriodic()) AMREX_ALWAYS_ASSERT(np_old == pc.TotalNumberOfParticles());
+
+    // the way this test is set up, if we make it here we pass
+    amrex::Print() << "pass \n";
 }

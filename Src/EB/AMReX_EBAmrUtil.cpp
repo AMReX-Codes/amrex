@@ -31,7 +31,7 @@ TagCutCells (TagBoxArray& tags, const MultiFab& state)
         if (typ != FabType::regular && typ != FabType::covered)
         {
             Array4<char> const& tagarr = tags.array(mfi);
-            Array4<EBCellFlag const> const& flagarr = flag.array();
+            Array4<EBCellFlag const> const& flagarr = flag.const_array();
             AMREX_HOST_DEVICE_FOR_3D (bx, i, j, k,
             {
                 if (flagarr(i,j,k).isSingleValued()) {
@@ -57,7 +57,7 @@ TagVolfrac (TagBoxArray& tags, const MultiFab& volfrac, Real tol)
     for (MFIter mfi(volfrac, TilingIfNotGPU()); mfi.isValid(); ++mfi) {
         const Box& bx = mfi.tilebox();
         Array4<char> const& tagarr = tags.array(mfi);
-        Array4<Real const> const& volarr = volfrac.array(mfi);
+        Array4<Real const> const& volarr = volfrac.const_array(mfi);
         AMREX_HOST_DEVICE_FOR_3D ( bx, i, j, k,
         {
             if (volarr(i,j,k) <= (1.-tol) and volarr(i,j,k) >= tol) {

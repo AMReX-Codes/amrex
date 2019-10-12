@@ -102,6 +102,7 @@ public:
 
     Array4<Real      > array (const MFIter& mfi) noexcept;
     Array4<Real const> array (const MFIter& mfi) const noexcept;
+    Array4<Real const> const_array (const MFIter& mfi) const noexcept;
 
     bool ok (const MFIter& mfi) const noexcept;
 

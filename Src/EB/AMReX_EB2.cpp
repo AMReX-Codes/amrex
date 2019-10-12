@@ -18,13 +18,11 @@ namespace amrex { namespace EB2 {
 Vector<std::unique_ptr<IndexSpace> > IndexSpace::m_instance;
 
 int max_grid_size = 64;
-bool compare_with_ch_eb = false;
 
 void Initialize ()
 {
     ParmParse pp("eb2");
     pp.query("max_grid_size", max_grid_size);
-    pp.query("compare_with_ch_eb", compare_with_ch_eb);
 
     amrex::ExecOnFinalize(Finalize);
 }

@@ -9,6 +9,8 @@ ParticleBufferMap::ParticleBufferMap (const BoxArray& ba, const DistributionMapp
 
 void ParticleBufferMap::define (const BoxArray& ba, const DistributionMapping& dm)
 {
+    BL_PROFILE("ParticleBufferMap::define");
+
     m_defined = true;
     m_ba = ba;
     m_dm = dm;

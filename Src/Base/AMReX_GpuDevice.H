@@ -12,10 +12,8 @@
 namespace amrex {
 
 #if defined(AMREX_USE_HIP)
-using gpuStream_t     = hipStream_t;
 using gpuDeviceProp_t = hipDeviceProp_t;
 #elif defined(AMREX_USE_CUDA)
-using gpuStream_t     = cudaStream_t;
 using gpuDeviceProp_t = cudaDeviceProp;
 #endif
 
@@ -35,10 +33,16 @@ public:
     // for backward compatibility
     static cudaStream_t cudaStream () noexcept { return gpu_stream; }
 #endif
-    static int numGpuStreams () noexcept { return max_gpu_streams; }
 #endif
+
+    static int numGpuStreams () noexcept { return max_gpu_streams; }
     static void setStreamIndex (const int idx) noexcept;
     static void resetStreamIndex () noexcept { setStreamIndex(-1); }
+
+#ifdef AMREX_USE_GPU
+    static gpuStream_t setStream (gpuStream_t s) noexcept;
+    static gpuStream_t resetStream () noexcept;
+#endif
 
     static int deviceId () noexcept;
 
@@ -138,6 +142,13 @@ private:
 
 #ifdef AMREX_USE_GPU
     static constexpr int max_gpu_streams = 16;
+#else
+    // Equivalent to "single dependent stream". Fits best
+    //  with math this is used in ("x/max_streams").
+    static constexpr int max_gpu_streams = 1;
+#endif
+
+#ifdef AMREX_USE_GPU
     static dim3 numThreadsMin;
     static dim3 numBlocksOverride, numThreadsOverride;
 
@@ -161,13 +172,13 @@ gpuStream () noexcept
 {
     return Device::gpuStream();
 }
+#endif
 
 inline int
 numGpuStreams () noexcept
 {
     return Device::numGpuStreams();
 }
-#endif
 
 inline void
 synchronize () noexcept

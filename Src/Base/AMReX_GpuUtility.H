@@ -441,6 +441,24 @@ std::ostream& operator<< (std::ostream& os, const dim3& d);
 using Gpu::isnan;
 using Gpu::isinf;
 
+namespace HostDevice { namespace Atomic {
+
+    template <class T>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    void Add (T* sum, T value) noexcept
+    {
+#ifdef AMREX_DEVICE_COMPILE
+        Gpu::Atomic::Add(sum,value);
+#else
+#ifdef _OPENMP
+#pragma omp atomic update
+#endif
+        *sum += value;
+#endif
+    }
+
+}}
+
 } // namespace amrex
 
 #endif

@@ -10,7 +10,7 @@ int distFcnElement2d::solve_thomas(std::vector<amrex::Real> ain,
                                    std::vector<amrex::Real> bin,
                                    std::vector<amrex::Real> cin,
                                    std::vector<amrex::Real> din,
-                                   std::vector<amrex::Real> x) {
+                                   std::vector<amrex::Real>& x) {
   std::vector<amrex::Real> a, b, c, d;
   a = ain;  // off diagonal on low side
   b = bin;  // diagonal
@@ -408,7 +408,6 @@ amrex::Real LineDistFcnElement2d::cpside(amrex::RealVect pt,
     }
     */
   }
-  amrex::Abort("Should not get here");
 }
 
 void LineDistFcnElement2d::set_control_points

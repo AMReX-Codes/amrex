@@ -270,10 +270,10 @@ ONES_COMP_NEG (long& n,
 
 inline
 int
-_pd_get_bit (char*      base,
-             int        offs,
-             int        nby,
-             const int* ord)
+_pd_get_bit (char const* base,
+             int         offs,
+             int         nby,
+             const int*  ord)
 {
     int n      = offs >> 3;
     int nbytes = n % nby;
@@ -300,11 +300,11 @@ _pd_get_bit (char*      base,
 
 static
 long
-_pd_extract_field (char*      in,
-                   int        offs,
-                   int        nbi,
-                   int        nby,
-                   const int* ord)
+_pd_extract_field (char const* in,
+                   int         offs,
+                   int         nbi,
+                   int         nby,
+                   const int*  ord)
 {
     int ind;
     long bit_field = 0L;

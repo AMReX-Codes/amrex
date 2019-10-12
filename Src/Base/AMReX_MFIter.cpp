@@ -13,6 +13,7 @@ MFIter::MFIter (const FabArrayBase& fabarray_,
     fabArray(fabarray_),
     tile_size((flags_ & Tiling) ? FabArrayBase::mfiter_tile_size : IntVect::TheZeroVector()),
     flags(flags_),
+    streams(Gpu::numGpuStreams()),
     dynamic(false),
     device_sync(true),
     index_map(nullptr),
@@ -30,6 +31,7 @@ MFIter::MFIter (const FabArrayBase& fabarray_,
     fabArray(fabarray_),
     tile_size((do_tiling_) ? FabArrayBase::mfiter_tile_size : IntVect::TheZeroVector()),
     flags(do_tiling_ ? Tiling : 0),
+    streams(Gpu::numGpuStreams()),
     dynamic(false),
     device_sync(true),
     index_map(nullptr),
@@ -48,6 +50,7 @@ MFIter::MFIter (const FabArrayBase& fabarray_,
     fabArray(fabarray_),
     tile_size(tilesize_),
     flags(flags_ | Tiling),
+    streams(Gpu::numGpuStreams()),
     dynamic(false),
     device_sync(true),
     index_map(nullptr),
@@ -67,6 +70,7 @@ MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm, unsigned char
     fabArray(*m_fa),
     tile_size((flags_ & Tiling) ? FabArrayBase::mfiter_tile_size : IntVect::TheZeroVector()),
     flags(flags_),
+    streams(Gpu::numGpuStreams()),
     dynamic(false),
     device_sync(true),
     index_map(nullptr),
@@ -86,6 +90,7 @@ MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm, bool do_tilin
     fabArray(*m_fa),
     tile_size((do_tiling_) ? FabArrayBase::mfiter_tile_size : IntVect::TheZeroVector()),
     flags(do_tiling_ ? Tiling : 0),
+    streams(Gpu::numGpuStreams()),
     dynamic(false),
     device_sync(true),
     index_map(nullptr),
@@ -107,6 +112,7 @@ MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm,
     fabArray(*m_fa),
     tile_size(tilesize_),
     flags(flags_ | Tiling),
+    streams(Gpu::numGpuStreams()),
     dynamic(false),
     device_sync(true),
     index_map(nullptr),
@@ -127,6 +133,7 @@ MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm, const MFItInf
     fabArray(*m_fa),
     tile_size(info.tilesize),
     flags(info.do_tiling ? Tiling : 0),
+    streams(info.num_streams),
 #ifdef _OPENMP
     dynamic(info.dynamic && (omp_get_num_threads() > 1)),
 #else
@@ -156,6 +163,7 @@ MFIter::MFIter (const FabArrayBase& fabarray_, const MFItInfo& info)
     fabArray(fabarray_),
     tile_size(info.tilesize),
     flags(info.do_tiling ? Tiling : 0),
+    streams(info.num_streams),
 #ifdef _OPENMP
     dynamic(info.dynamic && (omp_get_num_threads() > 1)),
 #else
@@ -300,7 +308,7 @@ MFIter::Initialize ()
 	currentIndex = beginIndex;
 
 #ifdef AMREX_USE_GPU
-	Gpu::Device::setStreamIndex(currentIndex);
+	Gpu::Device::setStreamIndex((streams > 0) ? currentIndex%streams : -1);
         Gpu::resetNumCallbacks();
 #endif
 
@@ -489,11 +497,11 @@ MFIter::operator++ () noexcept
 
 #ifdef AMREX_USE_GPU
         if (use_gpu) {
-            if (Gpu::getNumCallbacks() > 0) {
-                Gpu::Device::setStreamIndex(currentIndex%2);
-            } else {
-                Gpu::Device::setStreamIndex(currentIndex);
+            if (Gpu::getNumCallbacks() > 0 && streams > 0) {
+                streams = 2;
             }
+
+            Gpu::Device::setStreamIndex((streams > 0) ? currentIndex%streams : -1);
             AMREX_GPU_ERROR_CHECK();
 #ifdef AMREX_DEBUG
 //            Gpu::synchronize();

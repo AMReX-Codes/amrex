@@ -1,5 +1,5 @@
 #include <AMReX_EBCellFlag.H>
-#include <AMReX_EBCellFlag_F.H>
+#include <AMReX_Reduce.H>
 
 namespace amrex {
 
@@ -36,27 +36,85 @@ EBCellFlagFab::getType (const Box& bx_in) const noexcept
     else
     {
         const Box& bx = amrex::enclosedCells(bx_in);
-        BL_ASSERT(this->box().contains(bx));
-
-        int nregular, nsingle, nmulti, ncovered;
-        amrex_ebcellflag_count(BL_TO_FORTRAN_BOX(bx),
-                               BL_TO_FORTRAN_ANYD(*this),
-                               &nregular, &nsingle, &nmulti, &ncovered);
-
-        int ncells = bx.numPts();
-
-        FabType t = FabType::undefined;
-        if (nregular == ncells) {
-            t = FabType::regular;
-        } else if (ncovered == ncells) {
-            t = FabType::covered;
-        } else if (nmulti > 0) {
-            t = FabType::multivalued;
-        } else {
-            t = FabType::singlevalued;
+        std::map<Box,FabType>::iterator it;
+#ifdef _OPENMP
+#pragma omp critical (amrex_ebcellflagfab_gettype)
+#endif
+        it = m_typemap.find(bx);
+        if (it != m_typemap.end())
+        {
+            return it->second;
         }
+        else
+        {
+            auto const& flag = this->const_array();
+            int nregular=0, nsingle=0, nmulti=0, ncovered=0;
 
-        return t;
+            if (Gpu::inLaunchRegion())
+            {
+                ReduceOps<ReduceOpSum,ReduceOpSum,ReduceOpSum,ReduceOpSum> reduce_op;
+                ReduceData<int,int,int,int> reduce_data(reduce_op);
+                using ReduceTuple = typename decltype(reduce_data)::Type;
+                reduce_op.eval(bx, reduce_data,
+                [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
+                {
+                    int nr=0, ns=0, nm=0, nc=0;
+                    auto f = flag(i,j,k);
+                    if (f.isRegular()) {
+                        ++nr;
+                    } else if (f.isSingleValued()) {
+                        ++ns;
+                    } else if (f.isMultiValued()) {
+                        ++nm;
+                    } else {
+                        ++nc;
+                    }
+                    return {nr, ns, nm, nc};
+                });
+                ReduceTuple hv = reduce_data.value();
+                nregular = amrex::get<0>(hv);
+                nsingle  = amrex::get<1>(hv);
+                nmulti   = amrex::get<2>(hv);
+                ncovered = amrex::get<3>(hv);
+            }
+            else
+            {
+                amrex::LoopOnCpu(bx,
+                [=,&nregular,&nsingle,&nmulti,&ncovered] (int i, int j, int k) noexcept
+                {
+                    auto f = flag(i,j,k);
+                    if (f.isRegular()) {
+                        ++nregular;
+                    } else if (f.isSingleValued()) {
+                        ++nsingle;
+                    } else if (f.isMultiValued()) {
+                        ++nmulti;
+                    } else {
+                        ++ncovered;
+                    }
+                });
+            }
+
+            int ncells = bx.numPts();
+
+            FabType t = FabType::undefined;
+            if (nregular == ncells) {
+                t = FabType::regular;
+            } else if (ncovered == ncells) {
+                t = FabType::covered;
+            } else if (nmulti > 0) {
+                t = FabType::multivalued;
+            } else {
+                t = FabType::singlevalued;
+            }
+
+#ifdef _OPENMP
+#pragma omp critical (amrex_ebcellflagfab_gettype)
+#endif
+            m_typemap.insert({bx,t});
+
+            return t;
+        }
     }
 }
 

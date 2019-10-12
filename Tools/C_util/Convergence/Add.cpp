@@ -20,7 +20,7 @@ using std::ios;
 #include <TV_TempWrite.H>
 #endif
 
-#include <AVGDOWN_F.H>
+#include <AMReX_AVGDOWN_F.H>
 
 #define GARBAGE 666.e+40
 using namespace amrex;

@@ -883,28 +883,23 @@ public:
     * mask is resized by this function.
     * The number of cells marked with 1 returned.
     */
-    AMREX_GPU_HOST_DEVICE
     int maskLT (BaseFab<int>& mask,
                 T             val,
                 int           comp = 0) const noexcept;
     //! Same as above except mark cells with value less than or equal to val.
-    AMREX_GPU_HOST_DEVICE
     int maskLE (BaseFab<int>& mask,
                 T             val,
                 int           comp = 0) const noexcept;
 
     //! Same as above except mark cells with value equal to val.
-    AMREX_GPU_HOST_DEVICE
     int maskEQ (BaseFab<int>& mask,
                 T             val,
                 int           comp = 0) const noexcept;
     //! Same as above except mark cells with value greater than val.
-    AMREX_GPU_HOST_DEVICE
     int maskGT (BaseFab<int>& mask,
                 T             val,
                 int           comp = 0) const noexcept;
     //! Same as above except mark cells with value greater than or equal to val.
-    AMREX_GPU_HOST_DEVICE
     int maskGE (BaseFab<int>& mask,
                 T             val,
                 int           comp = 0) const noexcept;
@@ -2535,12 +2530,7 @@ BaseFab<T>::maxabs (const Box& subbox, int comp) const noexcept
     const auto lo   = amrex::lbound(subbox);
     const auto dp   = view(lo, comp);
 
-#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
-    T r = std::numeric_limits<T>::lowest();
-#else
-    T r = *dp.p;
-#endif
-
+    T r = 0;
     for         (int k = 0; k < len.z; ++k) {
         for     (int j = 0; j < len.y; ++j) {
             for (int i = 0; i < len.x; ++i) {
@@ -2633,12 +2623,11 @@ BaseFab<T>::minIndex (const Box& subbox, Real& min_val, IntVect& min_idx, int co
             for (int i = 0; i < len.x; ++i) {
                 if (dp(i,j,k,0) < min_val) {
                     min_val = dp(i,j,k,0);
-                    min_idx = IntVect(AMREX_D_DECL(i,j,k));
+                    min_idx = IntVect(AMREX_D_DECL(i+lo.x,j+lo.y,k+lo.z));
                 }
             }
         }
     }
-    AMREX_D_TERM(min_idx[0] += lo.x;, min_idx[1] += lo.y;, min_idx[2] += lo.z);
 }
 
 template <class T>
@@ -2692,12 +2681,11 @@ BaseFab<T>::maxIndex (const Box& subbox, Real& max_val, IntVect& max_idx, int co
             for (int i = 0; i < len.x; ++i) {
                 if (dp(i,j,k,0) > max_val) {
                     max_val = dp(i,j,k,0);
-                    max_idx = IntVect(AMREX_D_DECL(i,j,k));
+                    max_idx = IntVect(AMREX_D_DECL(i+lo.x,j+lo.y,k+lo.z));
                 }
             }
         }
     }
-    AMREX_D_TERM(max_idx[0] += lo.x;, max_idx[1] += lo.y;, max_idx[2] += lo.z);
 }
 
 template <class T>

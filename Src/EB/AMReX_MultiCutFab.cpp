@@ -60,6 +60,13 @@ MultiCutFab::operator[] (const MFIter& mfi) noexcept
 }
 
 Array4<Real const>
+MultiCutFab::const_array (const MFIter& mfi) const noexcept
+{
+    AMREX_ASSERT(ok(mfi));
+    return m_data.array(mfi);
+}
+
+Array4<Real const>
 MultiCutFab::array (const MFIter& mfi) const noexcept
 {
     AMREX_ASSERT(ok(mfi));

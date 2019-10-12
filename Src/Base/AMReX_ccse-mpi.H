@@ -32,6 +32,7 @@ namespace ParallelDescriptor
     template <> MPI_Datatype Mpi_typemap<unsigned short>::type();
     template <> MPI_Datatype Mpi_typemap<unsigned int>::type();
     template <> MPI_Datatype Mpi_typemap<unsigned long>::type();
+    template <> MPI_Datatype Mpi_typemap<unsigned long long>::type();
     template <> MPI_Datatype Mpi_typemap<float>::type();
     template <> MPI_Datatype Mpi_typemap<double>::type();
 }
