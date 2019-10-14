@@ -365,28 +365,62 @@ public:
 	resizeData();
     }
 
+    //! \brief Set the particle BoxArray. If the container was previously set to
+    //! to track the AMR hierarchy of an AmrCore or AmrLevel object, that correspondance
+    //! will be broken here.
+    //!
+    //! \param lev The level on which to set the ba.
+    //! \param new_ba The new BoxArray to use.
+    //!
     void SetParticleBoxArray (int lev, const BoxArray& new_ba)
 	{ m_gdb->SetParticleBoxArray(lev, new_ba); }
 
+    //! \brief Set the particle DistributionMapping. If the container was previously set to
+    //! to track the AMR hierarchy of an AmrCore or AmrLevel object, that correspondance
+    //! will be broken here.
+    //!
+    //! \param lev The level on which to set the dm.
+    //! \param new_dmap The new DistributionMapping to use.
+    //!
     void SetParticleDistributionMap (int lev, const DistributionMapping& new_dmap)
 	{ m_gdb->SetParticleDistributionMap(lev, new_dmap); }
 
+    //! \brief Get the BoxArray for a given level
+    //!
+    //! \param lev The level.
+    //!
     const BoxArray& ParticleBoxArray (int lev) const
 	{ return m_gdb->ParticleBoxArray(lev); }
 
+    //! \brief Get the DistributionMapping for a given level
+    //!
+    //! \param lev The level.
+    //!
     const DistributionMapping& ParticleDistributionMap (int lev) const
 	{ return m_gdb->ParticleDistributionMap(lev); }
 
+    //! \brief Get the Geometry for a given level
+    //!
+    //! \param lev The level.
+    //!
     const Geometry& Geom (int lev) const { return m_gdb->Geom(lev); }
 
+    //! \brief the finest level actually defined for the ParticleContainer
     int finestLevel () const { return m_gdb->finestLevel(); }
+
+    //! \brief the finest allowed level in the ParticleContainer, whether it is defined or not.
     int maxLevel ()    const { return m_gdb->maxLevel(); }
+
+    //! \brief the number of defined levels in the ParticleContainer    
     int numLevels()    const { return finestLevel() + 1; }
 
+    //! \brief The total number of tiles on this rank on this level     
     int numLocalTilesAtLevel (int lev) const { return m_particles[lev].size(); }
 
+    //! \brief Get the ParGDB object used to define this container (const version)    
     const ParGDBBase* GetParGDB () const { return m_gdb; }
 
+    //! \brief Get the ParGDB object used to define this container
           ParGDBBase* GetParGDB ()       { return m_gdb; }
     
     void reserveData ();
@@ -492,8 +526,34 @@ public:
     */
     Real sumParticleMass (int rho_index, int level, bool local = false) const;
 
+    /**
+    * \brief Redistribute puts all the particles back in the right places (for some value of right)
+    *
+    * Assigns particles to the levels, grids, and tiles that contain their current positions. 
+    * If periodic boundary conditions are used, those will be enforced here.
+    *
+    * If Redistribute is called with default arguments, all particles will be placed on the
+    * finest level that covers their current positions. 
+    * 
+    * The lev_min, lev_max, and nGrow flags are used to do proper checking for subcycling particles.
+    * The default values are fine for non-subcycling methods
+    *
+    * The local flag controls whether this is `local` or `global` Redistribute. 
+    * In a local Redistribute, particles can only have moved a certain distance since the last
+    * time Redistribute() was called. Thus, communication only needs to happen between neighboring
+    * ranks. In a global Redistribute, the particles can potentially go from any rank to any rank.
+    * This usually happens after initialiation or when doing dynamic load balancing. 
+    *
+    * \param lev_min
+    * \param lev_max
+    * \param nGrow
+    * \param local
+    */
     void Redistribute (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0);
 
+    /**
+     * \brief Sort the particles on each tile by cell, using Fortran ordering.
+     */
     void SortParticlesByCell();
 
     /**
