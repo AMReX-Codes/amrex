@@ -168,6 +168,25 @@ If the back-transformed diagnostics are written in the HDF5 format (This can be 
     plt.figure()
     plt.plot(f2['Ez'][nx2//2,0,:])
 
+The back-transformed particle data on the full and reduced diagnostic can be visualized as follows
+
+::
+    species='ions'
+    iteration = 1
+
+    snapshot = './lab_frame_data/snapshots/' + 'snapshot' + str(iteration).zfill(5)
+    xbo = get_particle_field(snapshot, species, 'x') # Read particle data
+    ybo = get_particle_field(snapshot, species, 'y')
+    zbo = get_particle_field(snapshot, species, 'z')
+
+    snapshot = './lab_frame_data/slices/' + 'slice' + str(iteration).zfill(5)
+    xbo_slice = get_particle_field(snapshot, species, 'x') # Read particle data
+    ybo_slice = get_particle_field(snapshot, species, 'y')
+    zbo_slice = get_particle_field(snapshot, species, 'z')
+    plt.figure()
+    plt.plot(xbo, ybo, 'r.', markersize=1.)
+    plt.plot(xbo_slice, ybo_slice, 'bx', markersize=1.)
+
 Further information
 -------------------
 
