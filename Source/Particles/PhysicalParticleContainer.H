@@ -7,6 +7,11 @@
 
 #include <AMReX_IArrayBox.H>
 
+#ifdef WARPX_QED
+    #include <QuantumSyncEngineWrapper.H>
+    #include <BreitWheelerEngineWrapper.H>
+#endif
+
 #include <map>
 
 class PhysicalParticleContainer
@@ -180,6 +185,16 @@ public:
         amrex::FArrayBox const * & ezfab, amrex::FArrayBox const * & bxfab,
         amrex::FArrayBox const * & byfab, amrex::FArrayBox const * & bzfab);
 
+#ifdef WARPX_QED
+    bool has_quantum_sync() override;
+    bool has_breit_wheeler() override;
+
+    void set_breit_wheeler_engine_ptr
+        (std::shared_ptr<BreitWheelerEngine>) override;
+    void set_quantum_sync_engine_ptr
+        (std::shared_ptr<QuantumSynchrotronEngine>) override;
+#endif
+
 protected:
 
     std::string species_name;
@@ -201,6 +216,20 @@ protected:
     //When true PhysicalParticleContainer tries to use a pusher including
     //radiation reaction
     bool do_classical_radiation_reaction = false;
+
+#ifdef WARPX_QED
+    // A flag to enable quantum_synchrotron process for leptons
+    bool do_qed_quantum_sync = false;
+
+    // A flag to enable breit_wheeler process [photons only!!]
+    bool do_qed_breit_wheeler = false;
+
+    // A smart pointer to an instance of a Quantum Synchrotron engine
+    std::shared_ptr<QuantumSynchrotronEngine> shr_ptr_qs_engine;
+
+    // A smart pointer to an instance of a Breit Wheeler engine [photons only!]
+    std::shared_ptr<BreitWheelerEngine> shr_ptr_bw_engine;
+#endif
 
 };
 

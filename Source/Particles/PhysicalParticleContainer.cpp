@@ -1,6 +1,8 @@
 #include <limits>
 #include <sstream>
 
+#include <PhysicalParticleContainer.H>
+
 #include <MultiParticleContainer.H>
 #include <WarpX_f.H>
 #include <WarpX.H>
@@ -67,6 +69,33 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
         "version of Redistribute in AMReX does not work with runtime parameters");
 #endif
 
+
+#ifdef WARPX_QED
+    //Add real component if QED is enabled
+    pp.query("do_qed", do_qed);
+    if(do_qed)
+        AddRealComp("tau");
+
+    //IF do_qed is enabled, find out if Quantum Synchrotron process is enabled
+    if(do_qed)
+        pp.query("do_qed_quantum_sync", do_qed_quantum_sync);
+
+    //TODO: SHOULD CHECK IF SPECIES IS EITHER ELECTRONS OR POSITRONS!!
+#endif
+
+    //variable to set plot_flags size
+    int plot_flag_size = PIdx::nattribs;
+    if(WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
+        plot_flag_size += 6;
+
+#ifdef WARPX_QED
+    if(do_qed){
+        // plot_flag will have an entry for the optical depth
+        plot_flag_size++;
+    }
+#endif
+    //_______________________________
+
     pp.query("plot_species", plot_species);
     int do_user_plot_vars;
     do_user_plot_vars = pp.queryarr("plot_vars", plot_vars);
@@ -74,18 +103,11 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
         // By default, all particle variables are dumped to plotfiles,
         // including {x,y,z,ux,uy,uz}old variables when running in a
         // boosted frame
-        if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags){
-            plot_flags.resize(PIdx::nattribs + 6, 1);
-        } else {
-            plot_flags.resize(PIdx::nattribs, 1);
-        }
+        plot_flags.resize(plot_flag_size, 1);
     } else {
         // Set plot_flag to 0 for all attribs
-        if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags){
-            plot_flags.resize(PIdx::nattribs + 6, 0);
-        } else {
-            plot_flags.resize(PIdx::nattribs, 0);
-        }
+        plot_flags.resize(plot_flag_size, 0);
+
         // If not none, set plot_flags values to 1 for elements in plot_vars.
         if (plot_vars[0] != "none"){
             for (const auto& var : plot_vars){
@@ -97,6 +119,13 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
             }
         }
     }
+
+    #ifdef WARPX_QED
+        if(do_qed){
+            //Optical depths is always plotted if QED is on
+            plot_flags[plot_flag_size-1] = 1;
+        }
+    #endif
 }
 
 PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core)
@@ -110,7 +139,9 @@ void PhysicalParticleContainer::InitData()
     // Init ionization module here instead of in the PhysicalParticleContainer
     // constructor because dt is required
     if (do_field_ionization) {InitIonizationModule();}
+
     AddParticles(0); // Note - add on level 0
+
     Redistribute();  // We then redistribute
 }
 
@@ -495,6 +526,30 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
             pi = soa.GetIntData(particle_icomps["ionization_level"]).data() + old_size;
         }
 
+#ifdef WARPX_QED
+        //Pointer to the optical depth component
+        amrex::Real* p_tau;
+
+        //If a QED effect is enabled, tau has to be initialized
+        bool loc_has_quantum_sync = has_quantum_sync();
+        bool loc_has_breit_wheeler = has_breit_wheeler();
+        if(loc_has_quantum_sync || loc_has_breit_wheeler){
+            p_tau = soa.GetRealData(particle_comps["tau"]).data() + old_size;
+        }
+
+        //If needed, get the appropriate functors from the engines
+        QuantumSynchrotronGetOpticalDepth quantum_sync_get_opt;
+        BreitWheelerGetOpticalDepth breit_wheeler_get_opt;
+        if(loc_has_quantum_sync){
+            quantum_sync_get_opt =
+                shr_ptr_qs_engine->build_optical_depth_functor();
+        }
+        if(loc_has_breit_wheeler){
+            breit_wheeler_get_opt =
+                shr_ptr_bw_engine->build_optical_depth_functor();
+        }
+#endif
+
         const GpuArray<Real,AMREX_SPACEDIM> overlap_corner
             {AMREX_D_DECL(overlap_realbox.lo(0),
                           overlap_realbox.lo(1),
@@ -641,6 +696,16 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
             if (loc_do_field_ionization) {
                 pi[ip] = loc_ionization_initial_level;
             }
+
+#ifdef WARPX_QED
+            if(loc_has_quantum_sync){
+                p_tau[ip] = quantum_sync_get_opt();
+            }
+
+            if(loc_has_breit_wheeler){
+                p_tau[ip] = breit_wheeler_get_opt();
+            }
+#endif
 
             u.x *= PhysConst::c;
             u.y *= PhysConst::c;
@@ -2146,3 +2211,30 @@ bool
 PhysicalParticleContainer::AmIALepton(){
     return (this-> mass == PhysConst::m_e);
 }
+
+#ifdef WARPX_QED
+
+bool PhysicalParticleContainer::has_quantum_sync()
+{
+    return do_qed_quantum_sync;
+}
+
+bool PhysicalParticleContainer::has_breit_wheeler()
+{
+    return do_qed_breit_wheeler;
+}
+
+void
+PhysicalParticleContainer::
+set_breit_wheeler_engine_ptr(std::shared_ptr<BreitWheelerEngine> ptr)
+{
+    shr_ptr_bw_engine = ptr;
+}
+
+void
+PhysicalParticleContainer::
+set_quantum_sync_engine_ptr(std::shared_ptr<QuantumSynchrotronEngine> ptr)
+{
+    shr_ptr_qs_engine = ptr;
+}
+#endif

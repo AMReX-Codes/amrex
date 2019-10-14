@@ -36,7 +36,8 @@ m_e = 9.1093837015e-31
 q_0 = 1.602176634e-19
 classical_electron_radius = 2.81794e-15
 reference_length = 1.0e-6
-small = 1.0e-100
+very_small_dot_product = 1.0e-4
+very_small_weight = 1.0e-8
 #________________________________________
 
 #Sim box data
@@ -66,11 +67,6 @@ B = p_0 * B_val
 
 #Tolerance
 tol = 0.05
-small = 1e-4
-#________________________________________
-
-#A very small weight
-very_small_weight = 1.0e-8
 #________________________________________
 
 #tau_c
@@ -103,7 +99,7 @@ def gamma(p) :
     return np.sqrt(1.0 + np.dot(p,p))
 
 def exp_res(cc, time):
-    if np.all(np.linalg.norm(np.cross(cc.init_mom, B)) < small):
+    if np.all(np.linalg.norm(np.cross(cc.init_mom, B)) < very_small_dot_product):
         return gamma(cc.init_mom)
     else :
         tt = time/tau_c
@@ -134,7 +130,7 @@ def check():
         init_gamma = gamma(cc[0].init_mom)
         end_gamma = gamma(cc[1]/m_e/c)
         exp_gamma = exp_res(cc[0], sim_time)
-        assert((end_gamma-exp_gamma)/exp_gamma < tol)
+        assert(np.abs(end_gamma-exp_gamma)/exp_gamma < tol)
 
 def generate():
 
@@ -155,6 +151,7 @@ def generate():
         f.write("algo.charge_deposition = standard\n")
         f.write("algo.field_gathering = standard\n")
         f.write("warpx.cfl = 1.0\n")
+        f.write("warpx.serialize_ics = 1\n")
 
         f.write("\nparticles.nspecies = {}\n".format(len(cases)))
         f.write("particles.species_names = ")
