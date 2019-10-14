@@ -55,9 +55,9 @@ if dim is not None:
 if qed is not None:
     print('Selecting tests with QED = %s' %qed)
     if (qed == "TRUE"):
-        text = re.sub('\[.+\n(^((?!QED).)+$\n)+^$\n', '', text, flags=re.MULTILINE)
+        text = re.sub('\[.+\n(^((?!QED).)+$\n)+analysisRoutine.+\n', '', text, flags=re.MULTILINE)
     else:
-        text = re.sub('\[.+\n(.+\n)*addToCompileString.+QED=TRUE.*\n(.+\n)*', '', text)
+        text = re.sub('\[.+\n(.+\n)*addToCompileString.+QED=TRUE.*\n(.+\n)*analysisRoutine.+', '', text)
 
 
 # Prevent emails from being sent
