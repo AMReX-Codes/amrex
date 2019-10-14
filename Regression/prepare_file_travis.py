@@ -7,7 +7,6 @@ import re
 import os
 # Get relevant environment variables
 dim = os.environ.get('WARPX_TEST_DIM', None)
-qed = os.environ.get('HAS_QED', None)
 arch = os.environ.get('WARPX_TEST_ARCH', 'CPU')
 
 # Find the directory in which the tests should be run
@@ -50,15 +49,6 @@ text = re.sub( '\[Langmuir_[xyz]\]\n(.+\n)*', '', text)
 if dim is not None:
     print('Selecting tests with dim = %s' %dim)
     text = re.sub('\[.+\n(.+\n)*dim = [^%s]\n(.+\n)*' %dim, '', text)
-
-# Remove or keep QED tests according to 'qed' variable
-if qed is not None:
-    print('Selecting tests with QED = %s' %qed)
-    if (qed == "TRUE"):
-        text = re.sub('\[.+\n(^((?!QED).)+$\n)+^$\n', '', text, flags=re.MULTILINE)
-    else:
-        text = re.sub('\[.+\n(.+\n)*addToCompileString.+QED=TRUE.*\n(.+\n)*', '', text)
-
 
 # Prevent emails from being sent
 text = re.sub( 'sendEmailWhenFail = 1', 'sendEmailWhenFail = 0', text )
