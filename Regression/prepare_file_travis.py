@@ -55,9 +55,9 @@ if dim is not None:
 if qed is not None:
     print('Selecting tests with QED = %s' %qed)
     if (qed == "FALSE"):
-        text = re.sub('\[qed.+\n(.+\n)*\n', '', text)
+        text = re.sub('\[qed.+\n(.+\n)*\n*', '', text)
     else:
-        text = re.sub('^\[(?!qed).*$\n(.+\n)*(dim = .+\n)(.+\n)*\n', '', text, flags=re.MULTILINE)
+        text = re.sub('^\[(?!qed).*$\n(.+\n)*(dim = .+\n)(.+\n)*\n*', '', text, flags=re.MULTILINE)
 
 
 # Prevent emails from being sent
