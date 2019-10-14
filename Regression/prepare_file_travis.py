@@ -41,23 +41,23 @@ text = re.sub( 'numprocs = \d+', 'numprocs = 1', text)
 text = re.sub( 'numthreads = \d+', 'numthreads = 1', text)
 
 # Remove Python test (does not compile)
-text = re.sub( '\[Python_Langmuir\]\n(.+\n)*', '', text)
+text = re.sub( '\[Python_Langmuir\]\n(.+\n)*\n', '', text)
 
 # Remove Langmuir_x/y/z test (too long; not that useful)
-text = re.sub( '\[Langmuir_[xyz]\]\n(.+\n)*', '', text)
+text = re.sub( '\[Langmuir_[xyz]\]\n(.+\n)*\n', '', text)
 
 # Remove tests that do not have the right dimension
 if dim is not None:
     print('Selecting tests with dim = %s' %dim)
-    text = re.sub('\[.+\n(.+\n)*dim = [^%s]\n(.+\n)*' %dim, '', text)
+    text = re.sub('\[.+\n(.+\n)*dim = [^%s]\n(.+\n)*\n' %dim, '', text)
 
 # Remove or keep QED tests according to 'qed' variable
 if qed is not None:
     print('Selecting tests with QED = %s' %qed)
-    if (qed == "TRUE"):
-        text = re.sub('\[.+\n(^((?!QED).)+$\n)+analysisRoutine.+\n', '', text, flags=re.MULTILINE)
+    if (qed == "FALSE"):
+        text = re.sub('\[qed.+\n(.+\n)*\n', '', text)
     else:
-        text = re.sub('\[.+\n(.+\n)*addToCompileString.+QED=TRUE.*\n(.+\n)*analysisRoutine.+', '', text)
+        text = re.sub('^\[(?!qed).*$\n(.+\n)*(dim = .+\n)(.+\n)*\n', '', text, flags=re.MULTILINE)
 
 
 # Prevent emails from being sent
