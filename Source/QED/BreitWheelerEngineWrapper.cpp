@@ -40,41 +40,14 @@ bool BreitWheelerEngine::are_lookup_tables_initialized () const
 }
 
 
-// Writes lookup tables on disk in 'folder'
-// return false if it fails. */
+
+/* \brief Writes lookup tables on disk in 'file'
+ *  return false if it fails. */
 bool BreitWheelerEngine::write_lookup_tables (
-        std::string folder) const
+        std::string file) const
 {
     if(!lookup_tables_initialized)
-        return false;
-
-    std::vector<char> data_dump;
-    char* begin;
-    char* end;
-
-    std::tie(begin, end) = get_begin_end_pointers(innards.ctrl.chi_phot_min);
-    data_dump.insert(data_dump.end(), begin, end);
-    std::tie(begin, end) = get_begin_end_pointers(innards.ctrl.chi_phot_tdndt_min);
-    data_dump.insert(data_dump.end(), begin, end);
-    std::tie(begin, end) = get_begin_end_pointers(innards.ctrl.chi_phot_tdndt_max);
-    data_dump.insert(data_dump.end(), begin, end);
-    std::tie(begin, end) = get_begin_end_pointers(innards.ctrl.chi_phot_tdndt_how_many);
-    data_dump.insert(data_dump.end(), begin, end);
-    std::tie(begin, end) = get_begin_end_pointers(innards.ctrl.chi_phot_tpair_min);
-    data_dump.insert(data_dump.end(), begin, end);
-    std::tie(begin, end) = get_begin_end_pointers(innards.ctrl.chi_phot_tpair_max);
-    data_dump.insert(data_dump.end(), begin, end);
-    std::tie(begin, end) = get_begin_end_pointers(innards.ctrl.chi_phot_tpair_how_many);
-    data_dump.insert(data_dump.end(), begin, end);
-    std::tie(begin, end) = get_begin_end_pointers(innards.ctrl.chi_phot_tpair_how_many);
-    data_dump.insert(data_dump.end(), begin, end);
-
-    data_dump.insert(data_dump.end(),
-        (char*)innards.TTfunc_coords.dataPtr(),
-        ((char*)innards.TTfunc_coords.dataPtr())+ innards.TTfunc_coords.size());
-    data_dump.insert(data_dump.end(),
-        (char*)innards.TTfunc_data.dataPtr(),
-        ((char*)innards.TTfunc_data.dataPtr())+ innards.TTfunc_data.size());
+        return false;    
 
     return true;
 }
