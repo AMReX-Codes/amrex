@@ -68,7 +68,7 @@ bool WarpX::do_boosted_frame_fields = true;
 bool WarpX::do_boosted_frame_particles = true;
 
 int  WarpX::num_slice_snapshots_lab = 0;
-Real WarpX::dt_slice_snapshots_lab  = std::numeric_limits<Real>::lowest();
+Real WarpX::dt_slice_snapshots_lab;
 
 bool WarpX::do_dynamic_scheduling = true;
 
@@ -79,9 +79,9 @@ IntVect WarpX::Bx_nodal_flag(1,0,0);
 IntVect WarpX::By_nodal_flag(0,1,0);
 IntVect WarpX::Bz_nodal_flag(0,0,1);
 #elif (AMREX_SPACEDIM == 2)
-IntVect WarpX::Bx_nodal_flag(1,0);  // x is the first dimension to AMReX
-IntVect WarpX::By_nodal_flag(0,0);  // y is the missing dimension to 2D AMReX
-IntVect WarpX::Bz_nodal_flag(0,1);  // z is the second dimension to 2D AMReX
+IntVect WarpX::Bx_nodal_flag(1,0);// x is the first dimension to AMReX
+IntVect WarpX::By_nodal_flag(0,0);// y is the missing dimension to 2D AMReX
+IntVect WarpX::Bz_nodal_flag(0,1);// z is the second dimension to 2D AMReX
 #endif
 
 #if (AMREX_SPACEDIM == 3)
@@ -89,9 +89,9 @@ IntVect WarpX::Ex_nodal_flag(0,1,1);
 IntVect WarpX::Ey_nodal_flag(1,0,1);
 IntVect WarpX::Ez_nodal_flag(1,1,0);
 #elif (AMREX_SPACEDIM == 2)
-IntVect WarpX::Ex_nodal_flag(0,1);  // x is the first dimension to AMReX
-IntVect WarpX::Ey_nodal_flag(1,1);  // y is the missing dimension to 2D AMReX
-IntVect WarpX::Ez_nodal_flag(1,0);  // z is the second dimension to 2D AMReX
+IntVect WarpX::Ex_nodal_flag(0,1);// x is the first dimension to AMReX
+IntVect WarpX::Ey_nodal_flag(1,1);// y is the missing dimension to 2D AMReX
+IntVect WarpX::Ez_nodal_flag(1,0);// z is the second dimension to 2D AMReX
 #endif
 
 #if (AMREX_SPACEDIM == 3)
@@ -99,9 +99,9 @@ IntVect WarpX::jx_nodal_flag(0,1,1);
 IntVect WarpX::jy_nodal_flag(1,0,1);
 IntVect WarpX::jz_nodal_flag(1,1,0);
 #elif (AMREX_SPACEDIM == 2)
-IntVect WarpX::jx_nodal_flag(0,1);  // x is the first dimension to AMReX
-IntVect WarpX::jy_nodal_flag(1,1);  // y is the missing dimension to 2D AMReX
-IntVect WarpX::jz_nodal_flag(1,0);  // z is the second dimension to 2D AMReX
+IntVect WarpX::jx_nodal_flag(0,1);// x is the first dimension to AMReX
+IntVect WarpX::jy_nodal_flag(1,1);// y is the missing dimension to 2D AMReX
+IntVect WarpX::jz_nodal_flag(1,0);// z is the second dimension to 2D AMReX
 #endif
 
 IntVect WarpX::filter_npass_each_dir(1);
@@ -256,13 +256,13 @@ void
 WarpX::ReadParameters ()
 {
     {
-        ParmParse pp;  // Traditionally, max_step and stop_time do not have prefix.
+        ParmParse pp;// Traditionally, max_step and stop_time do not have prefix.
         pp.query("max_step", max_step);
         pp.query("stop_time", stop_time);
     }
 
     {
-        ParmParse pp("amr"); // Traditionally, these have prefix, amr.
+        ParmParse pp("amr");// Traditionally, these have prefix, amr.
 
         pp.query("check_file", check_file);
         pp.query("check_int", check_int);
@@ -595,11 +595,13 @@ WarpX::ReadParameters ()
        }
 
        if (do_boosted_frame_diagnostic) {
-          AMREX_ALWAYS_ASSERT_WITH_MESSAGE(gamma_boost > 1.0, 
+          AMREX_ALWAYS_ASSERT_WITH_MESSAGE(gamma_boost > 1.0,
                  "gamma_boost must be > 1 to use the boost frame diagnostic");
           pp.query("num_slice_snapshots_lab", num_slice_snapshots_lab);
-          pp.query("dt_slice_snapshots_lab", dt_slice_snapshots_lab );          
-       }       
+          if (num_slice_snapshots_lab > 0) {
+             pp.get("dt_slice_snapshots_lab", dt_slice_snapshots_lab );
+          }
+       }
 
     }
 
@@ -925,8 +927,8 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
             RealVect cdx_vect(cdx[0], cdx[2]);
     #endif
             // Get the cell-centered box, with guard cells
-            BoxArray realspace_ba = cba;  // Copy box
-            realspace_ba.enclosedCells().grow(ngE); // cell-centered + guard cells
+            BoxArray realspace_ba = cba;// Copy box
+            realspace_ba.enclosedCells().grow(ngE);// cell-centered + guard cells
             // Define spectral solver
             spectral_solver_cp[lev].reset( new SpectralSolver( realspace_ba, dm,
                 nox_fft, noy_fft, noz_fft, do_nodal, cdx_vect, dt[lev] ) );

@@ -1680,7 +1680,7 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
 
     for (int lev = 0; lev < nlevs; ++lev) {
 
-        const Real* dx  = Geom(lev).CellSize();         
+        const Real* dx  = Geom(lev).CellSize();
         const Real* plo = Geom(lev).ProbLo();
 
         // first we touch each map entry in serial
@@ -1795,6 +1795,7 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
                 {
                     if (Flag[i] == 1)
                     {
+                         // Lorentz Transform particles to lab-frame 
                          const Real gamma_new_p = std::sqrt(1.0 + inv_c2*
                                                   (uxpnew[i]*uxpnew[i]
                                                  + uypnew[i]*uypnew[i]
