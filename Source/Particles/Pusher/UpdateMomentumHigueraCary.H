@@ -23,7 +23,7 @@ void UpdateMomentumHigueraCary(
     const amrex::Real umy = uy + qmt*Ey;
     const amrex::Real umz = uz + qmt*Ez;
     // Compute gamma squared of u_minus
-    const amrex::Real gamma = 1. + (umx*umx + umy*umy + umz*umz)*invclightsq;
+    amrex::Real gamma = 1. + (umx*umx + umy*umy + umz*umz)*invclightsq;
     // Compute beta and betam squared
     const amrex::Real betax = qmt*Bx;
     const amrex::Real betay = qmt*By;
