@@ -96,10 +96,19 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map)
     const int SeqNum = ParallelDescriptor::SeqNum();
     long tot_snds_this_proc = 0;
     long tot_rcvs_this_proc = 0;
-    for (int i = 0; i < NNeighborProcs; ++i)
+    if (m_local)
     {
-        tot_snds_this_proc += m_Snds[m_neighbor_procs[i]];
-        tot_rcvs_this_proc += m_Rcvs[m_neighbor_procs[i]];
+        for (int i = 0; i < NNeighborProcs; ++i)
+        {
+            tot_snds_this_proc += m_Snds[m_neighbor_procs[i]];
+            tot_rcvs_this_proc += m_Rcvs[m_neighbor_procs[i]];
+        }
+    } else {
+        for (int i = 0; i < NProcs; ++i)
+        {
+            tot_snds_this_proc += m_Snds[i];
+            tot_rcvs_this_proc += m_Rcvs[i];
+        }
     }
     if ( (tot_snds_this_proc == 0) and (tot_rcvs_this_proc == 0) )
     {
@@ -213,6 +222,7 @@ void ParticleCopyPlan::buildMPIFinish (const ParticleBufferMap& map)
         }
         m_rcv_num_particles[Who] = nparticles;
     }
+
 #endif // MPI
 }
 
@@ -272,21 +282,22 @@ void ParticleCopyPlan::doHandShakeGlobal (const Vector<long>& Snds, Vector<long>
 
     long num_rcvs = 0;
     MPI_Reduce_scatter(snd_connectivity.data(), &num_rcvs, rcv_connectivity.data(), 
-                       MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
+                       MPI_LONG, MPI_SUM, ParallelDescriptor::Communicator());
 
     Vector<MPI_Status>  stats(num_rcvs);
     Vector<MPI_Request> rreqs(num_rcvs);
 
-    Vector<std::size_t> num_bytes_rcv(num_rcvs);
+    Vector<long> num_bytes_rcv(num_rcvs);
     for (int i = 0; i < num_rcvs; ++i)
-        MPI_Irecv( &num_bytes_rcv[i], 1, MPI_UNSIGNED_LONG, MPI_ANY_SOURCE,
-                   SeqNum, MPI_COMM_WORLD, &rreqs[i] );
-        
+    {
+        MPI_Irecv( &num_bytes_rcv[i], 1, MPI_LONG, MPI_ANY_SOURCE,
+                   SeqNum, ParallelDescriptor::Communicator(), &rreqs[i] );
+    }
     for (int i = 0; i < NProcs; ++i)
     {
         if (Snds[i] == 0) continue;
         const long Cnt = 1;
-        ParallelDescriptor::Send(&Snds[i], Cnt, i, SeqNum);
+        MPI_Send( &Snds[i], Cnt, MPI_LONG, i, SeqNum, ParallelDescriptor::Communicator());
     }
 
     MPI_Waitall(num_rcvs, rreqs.data(), stats.data());

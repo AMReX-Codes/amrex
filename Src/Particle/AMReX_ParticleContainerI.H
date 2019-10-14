@@ -1005,21 +1005,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::SortParticles
 #endif
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
-SortParticlesByBin (const ParIterBase<false,NStructReal,NStructInt,NArrayReal,NArrayInt>& pti, int ng, 
-		    Gpu::ManagedDeviceVector<int>& bin_start, 
-		    Gpu::ManagedDeviceVector<int>& bin_stop, 
-		    const IntVect& bin_size)
-{
-#ifdef AMREX_USE_CUDA
-  
-    BL_PROFILE("ParticleContainer::SortParticlesByBin()");
-  
-#endif
-}
-
 //
 // The GPU implementation of Redistribute
 //
@@ -1096,13 +1081,14 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             m_grids_r.resize(np);
             m_levs_r.resize(np);
             m_levs_tmp.resize(np);
-            
+
             auto grids_ptr = m_grids_tmp.dataPtr();
             auto levs_ptr = m_levs_tmp.dataPtr();
             ParticleType* p_ptr = &(aos[0]);
             amrex::ParallelFor(np, [=] AMREX_GPU_DEVICE (int i) noexcept
             {
                 auto& p = p_ptr[i];
+                
                 if (p.id() < 0) 
                 {    
                     grids_ptr[i] = -1;
@@ -1198,7 +1184,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
     auto& plan = redistribute_copy_plan;
     
-    plan.build(*this, op);
+    plan.build(*this, op, local);
 
     auto& snd_buffer = redistribute_snd_buffer;
     auto& rcv_buffer = redistribute_rcv_buffer;

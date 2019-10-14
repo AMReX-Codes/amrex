@@ -100,10 +100,12 @@ struct ParticleCopyPlan
     Gpu::HostVector<int> m_rcv_data;
 
     template <class PC>
-    void build (const PC& pc, const ParticleCopyOp& op)
+    void build (const PC& pc, const ParticleCopyOp& op, bool local)
     {
         BL_PROFILE("ParticleCopyPlan::build");
         
+        m_local = local;
+
         const int ngrow = 1;  // note - fix
 
         const int num_levels = pc.BufferMap().numLevels();
@@ -197,7 +199,7 @@ private:
     //
     void doHandShakeGlobal (const Vector<long>& Snds, Vector<long>& Rcvs) const;
 
-    bool m_local = true;
+    bool m_local;
 };
 
 template <class PC, class Buffer>
@@ -376,7 +378,7 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buff
         const auto Who    = RcvProc[i];
         const auto offset = rOffset[i];
         const auto Cnt    = plan.m_rcv_num_particles[Who]*sizeof(ParticleType);
-        
+
         BL_ASSERT(Cnt > 0);
         BL_ASSERT(Cnt < std::numeric_limits<int>::max());
         BL_ASSERT(Who >= 0 && Who < NProcs);
@@ -460,7 +462,7 @@ void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, co
             int dst_offset = offsets[uindex];
             int size = sizes[uindex];
             ++uindex;
-            
+
             AMREX_FOR_1D ( size, ip,
 	    {
                 int src_index = offset + ip;
