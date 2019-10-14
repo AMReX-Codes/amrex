@@ -4,6 +4,7 @@ OPENBC_HOME ?= ../../../openbc_poisson
 
 USE_MPI       = TRUE
 USE_PARTICLES = TRUE
+USE_RPATH     = TRUE
 
 ifeq ($(USE_GPU),TRUE)
   USE_OMP  = FALSE

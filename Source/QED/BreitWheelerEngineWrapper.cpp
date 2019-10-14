@@ -47,7 +47,7 @@ bool BreitWheelerEngine::write_lookup_tables (
         std::string file) const
 {
     if(!lookup_tables_initialized)
-        return false;    
+        return false;
 
     return true;
 }

@@ -16,11 +16,4 @@
 //An empty data type
 struct DummyStruct{};
 
-//An helper function used by the output routines
-template <class T>
-std::pair<char*, char*> get_begin_end_pointers (T val)
-{
-    return std::make_pair((char*)&val, ((char*)&val) + sizeof(val));
-};
-
 #endif //WARPX_amrex_qed_wrapper_commons_h_

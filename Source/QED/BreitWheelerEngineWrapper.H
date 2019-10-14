@@ -33,8 +33,10 @@ struct BreitWheelerEngineInnards
 // These functors provide the core elementary functions of the library
 // Can be included in GPU kernels
 
-/* \brief Functor to initialize the optical depth of photons for the
-*   Breit-Wheeler process */
+/**
+ * \brief Functor to initialize the optical depth of photons for the
+ * Breit-Wheeler process
+ */
 class BreitWheelerGetOpticalDepth
 {
 public:
@@ -97,13 +99,17 @@ private:
 
 // Factory class =============================
 
-/* \brief Wrapper for the Breit Wheeler engine of the PICSAR library */
+/**
+ * \brief Wrapper for the Breit Wheeler engine of the PICSAR library
+ */
 class BreitWheelerEngine
 {
 public:
     BreitWheelerEngine ();
 
-    /* \brief Builds the functor to initialize the optical depth */
+    /**
+     * \brief Builds the functor to initialize the optical depth
+     */
     BreitWheelerGetOpticalDepth build_optical_depth_functor ();
 
     /* \brief Builds the functor to evolve the optical depth */

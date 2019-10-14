@@ -1,10 +1,10 @@
-#include <limits>
-#include <algorithm>
-#include <string>
-
 #include <MultiParticleContainer.H>
 #include <WarpX_f.H>
 #include <WarpX.H>
+
+#include <limits>
+#include <algorithm>
+#include <string>
 
 using namespace amrex;
 
