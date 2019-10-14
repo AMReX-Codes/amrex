@@ -651,25 +651,54 @@ public:
     * \param other
     */
     void addParticles(const ParticleContainerType& other, bool local=false);
-    
+
+    /**
+    * \brief Write a contiguous chunk of real particle data to an ostream.
+    * 
+    * \param data A pointer to the start of the buffer to write
+    * \param size The number of elements to write
+    * \param os The ostream into which to write the data
+    * \param rd A RealDescriptor describing the type of the floating point data
+    */    
     void WriteParticleRealData (void* data, size_t size,
                                 std::ostream& os, const RealDescriptor& rd) const;
-
+    
+    /**
+    * \brief Read a contiguous chunk of real particle data from an istream.
+    * 
+    * \param data A pointer to the start of the buffer into which to read
+    * \param size The number of elements to read
+    * \param os The istream from which to read the data
+    * \param rd A RealDescriptor describing the type of the floating point data
+    */    
     void ReadParticleRealData (void* data, size_t size,
                                std::istream& is, const RealDescriptor& rd);
 
     /**
      * \brief Writes a particle checkpoint to file, suitable for restarting.
+     *
+     * \param dir The base directory into which to write (i.e. "plt00000")
+     * \param name The name of the sub-directory for this particle type (i.e. "Tracer")
      */
     void Checkpoint (const std::string& dir, const std::string& name) const;
 
     /**
-     * \brief Older form of checkpoint, for reverse compatability
+     * \brief Writes a particle checkpoint to file, suitable for restarting.
      */
     void Checkpoint (const std::string& dir, const std::string& name, bool is_checkpoint,
                      const Vector<std::string>& real_comp_names = Vector<std::string>(),
                      const Vector<std::string>& int_comp_names = Vector<std::string>()) const;
-    
+
+     /**
+      * \brief Writes particle data to disk in the AMReX native format. 
+      * 
+      * \param dir The base directory into which to write (i.e. "plt00000")
+      * \param name The name of the sub-directory for this particle type (i.e. "Tracer")
+      * \param write_real_comp for each real component, whether or not we include that component in the file
+      * \param write_int_comp for each integer component, whether or not we include that component in the file
+      * \param real_comp_names for each real component, a name to label the data with
+      * \param int_comp_names for each integer component, a name to label the data with      
+     */
     void WriteBinaryParticleData (const std::string& dir,
                                   const std::string& name,
                                   const Vector<int>& write_real_comp,
@@ -682,23 +711,37 @@ public:
     void CheckpointPost ();
 
     /**
-     *   Restart from checkpoint
+     *   \brief Restart from checkpoint
+     *
+     * \param dir The base directory into which to write (i.e. "plt00000")
+     * \param file The name of the sub-directory for this particle type (i.e. "Tracer")
      */
     void Restart (const std::string& dir, const std::string& file);
 
     /**
-     *   Older version, for backwards compatability
+     *   \brief Older version, for backwards compatability
+     *
+     * \param dir The base directory into which to write (i.e. "plt00000")
+     * \param file The name of the sub-directory for this particle type (i.e. "Tracer")
+     * \param is_checkpoint Whether the particle id and cpu are included in the file.
      */
     void Restart (const std::string& dir, const std::string& file, bool is_checkpoint);
     
     /**
-     *  This version of WritePlotFile writes all components and assigns component names
+     *  \brief This version of WritePlotFile writes all components and assigns component names
+     *
+     * \param dir The base directory into which to write (i.e. "plt00000")
+     * \param name The name of the sub-directory for this particle type (i.e. "Tracer")
      */
     void WritePlotFile (const std::string& dir, const std::string& name) const;
 
     /**
-     *  This version of WritePlotFile writes all components and allows the user to specify
-     *  the names of the components.
+     *  \brief This version of WritePlotFile writes all components and allows the user to specify the names of the components. 
+     *
+     * \param dir The base directory into which to write (i.e. "plt00000")
+     * \param file The name of the sub-directory for this particle type (i.e. "Tracer")
+     * \param real_comp_names for each real component, a name to label the data with
+     * \param int_comp_names for each integer component, a name to label the data with      
      */
     void WritePlotFile (const std::string& dir, const std::string& name,
                         const Vector<std::string>& real_comp_names,
@@ -707,6 +750,10 @@ public:
     /**
      *  This version of WritePlotFile writes all components and allows the user to specify
      *  the names of the components.
+     *
+     * \param dir The base directory into which to write (i.e. "plt00000")
+     * \param file The name of the sub-directory for this particle type (i.e. "Tracer")
+     * \param real_comp_names for each real component, a name to label the data with
      */
     void WritePlotFile (const std::string& dir, const std::string& name,
                         const Vector<std::string>& real_comp_names) const;
@@ -714,6 +761,11 @@ public:
     /**
      *  This version of WritePlotFile assigns component names, but allows the user to pass
      *  in a vector of ints that toggle on / off the writing of specfic components.
+     *
+     * \param dir The base directory into which to write (i.e. "plt00000")
+     * \param file The name of the sub-directory for this particle type (i.e. "Tracer")
+     * \param write_real_comp for each real component, whether to include that comp in the file
+     * \param write_int_comp for each integer component, whether to include that comp in the file
      */
     void WritePlotFile (const std::string& dir,
                         const std::string& name,
@@ -723,8 +775,15 @@ public:
     /**
      * \brief This is the most general version of WritePlotFile, which takes component 
      * names and flags for whether to write each variable as components. Note that 
-     * the user should pass in vectors containing names of all the componets, whether
+     * the user should pass in vectors containing names of all the components, whether
      * they are written or not.
+     *
+     * \param dir The base directory into which to write (i.e. "plt00000")
+     * \param file The name of the sub-directory for this particle type (i.e. "Tracer")
+     * \param write_real_comp for each real component, whether to include that comp in the file
+     * \param write_int_comp for each integer component, whether to include that comp in the file
+     * \param real_comp_names for each real component, a name to label the data with
+     * \param int_comp_names for each integer component, a name to label the data with
      */
     void WritePlotFile (const std::string& dir,
                         const std::string& name,
