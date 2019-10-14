@@ -853,7 +853,7 @@ Diagnostics and output
     ``slice.num_slice_snapshots_lab`` is non-zero. Particles are
     copied from the full back-transformed diagnostic to the reduced
     slice diagnostic if there are within the user-defined width from
-    the slice region defined by ``slice.dom_lo`` and ``slice.dom_hi``. 
+    the slice region defined by ``slice.dom_lo`` and ``slice.dom_hi``.
 
 Checkpoints and restart
 -----------------------

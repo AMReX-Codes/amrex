@@ -176,7 +176,7 @@ public:
                            int N_slice_snapshots, amrex::Real gamma_boost,
                            amrex::Real t_boost, amrex::Real dt_boost,
                            int boost_direction, const amrex::Geometry& geom,
-                           amrex::RealBox& slice_realbox, 
+                           amrex::RealBox& slice_realbox,
                            amrex::Real particle_slice_width_lab);
 
     /// Flush() is called at the end of the simulation when the buffers that contain

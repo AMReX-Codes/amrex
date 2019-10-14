@@ -1795,7 +1795,7 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
 
             for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
             {
-                int counter_for_ParticleCopy = 0; 
+                int counter_for_ParticleCopy = 0;
                 const Box& box = pti.validbox();
                 auto index = std::make_pair(pti.index(), pti.LocalTileIndex());
                 const RealBox tile_real_box(box, dx, plo);
@@ -1813,17 +1813,17 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
                 Real* const AMREX_RESTRICT uypnew = attribs[PIdx::uy].dataPtr();
                 Real* const AMREX_RESTRICT uzpnew = attribs[PIdx::uz].dataPtr();
 
-                Real* const AMREX_RESTRICT  
+                Real* const AMREX_RESTRICT
                   xpold = tmp_particle_data[lev][index][TmpIdx::xold].dataPtr();
                 Real* const AMREX_RESTRICT
                   ypold = tmp_particle_data[lev][index][TmpIdx::yold].dataPtr();
-                Real* const AMREX_RESTRICT 
+                Real* const AMREX_RESTRICT
                   zpold = tmp_particle_data[lev][index][TmpIdx::zold].dataPtr();
-                Real* const AMREX_RESTRICT 
+                Real* const AMREX_RESTRICT
                   uxpold = tmp_particle_data[lev][index][TmpIdx::uxold].dataPtr();
-                Real* const AMREX_RESTRICT 
+                Real* const AMREX_RESTRICT
                   uypold = tmp_particle_data[lev][index][TmpIdx::uyold].dataPtr();
-                Real* const AMREX_RESTRICT 
+                Real* const AMREX_RESTRICT
                   uzpold = tmp_particle_data[lev][index][TmpIdx::uzold].dataPtr();
 
                 const long np = pti.numParticles();
@@ -1831,17 +1831,17 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
                 Real uzfrm = -WarpX::gamma_boost*WarpX::beta_boost*PhysConst::c;
                 Real inv_c2 = 1.0/PhysConst::c/PhysConst::c;
 
-                // temporary arrays to store copy_flag and copy_index 
+                // temporary arrays to store copy_flag and copy_index
                 // for particles that cross the z-slice
                 amrex::Gpu::ManagedDeviceVector<int> FlagForPartCopy(np);
                 amrex::Gpu::ManagedDeviceVector<int> IndexForPartCopy(np);
 
-                int* const AMREX_RESTRICT Flag = FlagForPartCopy.dataPtr(); 
-                int* const AMREX_RESTRICT IndexLocation = IndexForPartCopy.dataPtr(); 
+                int* const AMREX_RESTRICT Flag = FlagForPartCopy.dataPtr();
+                int* const AMREX_RESTRICT IndexLocation = IndexForPartCopy.dataPtr();
 
                 //Flag particles that need to be copied if they cross the z_slice
-                amrex::ParallelFor(np, 
-                [=] AMREX_GPU_DEVICE(int i) 
+                amrex::ParallelFor(np,
+                [=] AMREX_GPU_DEVICE(int i)
                 {
                    Flag[i] = 0;
                    if ( (((zpnew[i] >= z_new) && (zpold[i] <= z_old)) ||
@@ -1854,7 +1854,7 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
                 // exclusive scan to obtain location indices using flag values
                 // These location indices are used to copy data from
                 // src to dst when the copy-flag is set to 1.
-                amrex::Gpu::exclusive_scan(Flag,Flag+np,IndexLocation); 
+                amrex::Gpu::exclusive_scan(Flag,Flag+np,IndexLocation);
 
                 int total_partdiag_size = IndexLocation[np-1] + Flag[np-1];
 
@@ -1865,19 +1865,19 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
                 amrex::Real betaboost = WarpX::beta_boost;
                 amrex::Real Phys_c = PhysConst::c;
 
-                Real* const AMREX_RESTRICT diag_wp = 
+                Real* const AMREX_RESTRICT diag_wp =
                 diagnostic_particles[lev][index].GetRealData(DiagIdx::w).data();
-                Real* const AMREX_RESTRICT diag_xp = 
+                Real* const AMREX_RESTRICT diag_xp =
                 diagnostic_particles[lev][index].GetRealData(DiagIdx::x).data();
-                Real* const AMREX_RESTRICT diag_yp = 
+                Real* const AMREX_RESTRICT diag_yp =
                 diagnostic_particles[lev][index].GetRealData(DiagIdx::y).data();
-                Real* const AMREX_RESTRICT diag_zp = 
+                Real* const AMREX_RESTRICT diag_zp =
                 diagnostic_particles[lev][index].GetRealData(DiagIdx::z).data();
-                Real* const AMREX_RESTRICT diag_uxp = 
+                Real* const AMREX_RESTRICT diag_uxp =
                 diagnostic_particles[lev][index].GetRealData(DiagIdx::ux).data();
-                Real* const AMREX_RESTRICT diag_uyp = 
+                Real* const AMREX_RESTRICT diag_uyp =
                 diagnostic_particles[lev][index].GetRealData(DiagIdx::uy).data();
-                Real* const AMREX_RESTRICT diag_uzp = 
+                Real* const AMREX_RESTRICT diag_uzp =
                 diagnostic_particles[lev][index].GetRealData(DiagIdx::uz).data();
 
                 // Copy particle data to diagnostic particle array on the GPU
@@ -1887,7 +1887,7 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
                 {
                     if (Flag[i] == 1)
                     {
-                         // Lorentz Transform particles to lab-frame 
+                         // Lorentz Transform particles to lab-frame
                          const Real gamma_new_p = std::sqrt(1.0 + inv_c2*
                                                   (uxpnew[i]*uxpnew[i]
                                                  + uypnew[i]*uypnew[i]
@@ -1927,8 +1927,8 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
                                         + uypnew[i]*weight_new;
                          const Real uzp = uz_old_p*weight_old
                                         + uz_new_p  *weight_new;
-                       
-                         int loc = IndexLocation[i]; 
+
+                         int loc = IndexLocation[i];
                          diag_wp[loc] = wpnew[i];
                          diag_xp[loc] = xp;
                          diag_yp[loc] = yp;

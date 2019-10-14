@@ -1378,38 +1378,38 @@ AddPartDataToParticleBuffer(
         auto np = tmp_particle_buffer[isp].GetRealData(DiagIdx::w).size();
         if (np == 0) return;
 
-        // allocate size of particle buffer array to np 
+        // allocate size of particle buffer array to np
         particles_buffer_[isp].resize(np);
 
         // Data pointers to particle attributes //
-        Real* const AMREX_RESTRICT wp_buff = 
+        Real* const AMREX_RESTRICT wp_buff =
               particles_buffer_[isp].GetRealData(DiagIdx::w).data();
-        Real* const AMREX_RESTRICT x_buff = 
+        Real* const AMREX_RESTRICT x_buff =
               particles_buffer_[isp].GetRealData(DiagIdx::x).data();
-        Real* const AMREX_RESTRICT y_buff = 
+        Real* const AMREX_RESTRICT y_buff =
               particles_buffer_[isp].GetRealData(DiagIdx::y).data();
-        Real* const AMREX_RESTRICT z_buff = 
+        Real* const AMREX_RESTRICT z_buff =
               particles_buffer_[isp].GetRealData(DiagIdx::z).data();
-        Real* const AMREX_RESTRICT ux_buff = 
+        Real* const AMREX_RESTRICT ux_buff =
               particles_buffer_[isp].GetRealData(DiagIdx::ux).data();
-        Real* const AMREX_RESTRICT uy_buff = 
+        Real* const AMREX_RESTRICT uy_buff =
               particles_buffer_[isp].GetRealData(DiagIdx::uy).data();
-        Real* const AMREX_RESTRICT uz_buff = 
+        Real* const AMREX_RESTRICT uz_buff =
               particles_buffer_[isp].GetRealData(DiagIdx::uz).data();
-        
-        Real* const AMREX_RESTRICT wp_temp = 
+
+        Real* const AMREX_RESTRICT wp_temp =
               tmp_particle_buffer[isp].GetRealData(DiagIdx::w).data();
-        Real* const AMREX_RESTRICT x_temp = 
+        Real* const AMREX_RESTRICT x_temp =
               tmp_particle_buffer[isp].GetRealData(DiagIdx::x).data();
-        Real* const AMREX_RESTRICT y_temp = 
+        Real* const AMREX_RESTRICT y_temp =
               tmp_particle_buffer[isp].GetRealData(DiagIdx::y).data();
-        Real* const AMREX_RESTRICT z_temp = 
+        Real* const AMREX_RESTRICT z_temp =
               tmp_particle_buffer[isp].GetRealData(DiagIdx::z).data();
-        Real* const AMREX_RESTRICT ux_temp = 
+        Real* const AMREX_RESTRICT ux_temp =
               tmp_particle_buffer[isp].GetRealData(DiagIdx::ux).data();
-        Real* const AMREX_RESTRICT uy_temp = 
+        Real* const AMREX_RESTRICT uy_temp =
               tmp_particle_buffer[isp].GetRealData(DiagIdx::uy).data();
-        Real* const AMREX_RESTRICT uz_temp = 
+        Real* const AMREX_RESTRICT uz_temp =
               tmp_particle_buffer[isp].GetRealData(DiagIdx::uz).data();
 
         // copy all the particles from tmp to buffer
@@ -1422,7 +1422,7 @@ AddPartDataToParticleBuffer(
             z_buff[i]  = z_temp[i];
             ux_buff[i] = ux_temp[i];
             uy_buff[i] = uy_temp[i];
-            uz_buff[i] = uz_temp[i]; 
+            uz_buff[i] = uz_temp[i];
         });
     }
 }
@@ -1438,23 +1438,23 @@ AddPartDataToParticleBuffer(
         auto np = tmp_particle_buffer[isp].GetRealData(DiagIdx::w).size();
 
         if (np == 0) return;
-   
-        Real* const AMREX_RESTRICT wp_temp = 
+
+        Real* const AMREX_RESTRICT wp_temp =
               tmp_particle_buffer[isp].GetRealData(DiagIdx::w).data();
-        Real* const AMREX_RESTRICT x_temp = 
+        Real* const AMREX_RESTRICT x_temp =
               tmp_particle_buffer[isp].GetRealData(DiagIdx::x).data();
-        Real* const AMREX_RESTRICT y_temp = 
+        Real* const AMREX_RESTRICT y_temp =
               tmp_particle_buffer[isp].GetRealData(DiagIdx::y).data();
-        Real* const AMREX_RESTRICT z_temp = 
+        Real* const AMREX_RESTRICT z_temp =
               tmp_particle_buffer[isp].GetRealData(DiagIdx::z).data();
-        Real* const AMREX_RESTRICT ux_temp = 
+        Real* const AMREX_RESTRICT ux_temp =
               tmp_particle_buffer[isp].GetRealData(DiagIdx::ux).data();
-        Real* const AMREX_RESTRICT uy_temp = 
+        Real* const AMREX_RESTRICT uy_temp =
               tmp_particle_buffer[isp].GetRealData(DiagIdx::uy).data();
-        Real* const AMREX_RESTRICT uz_temp = 
+        Real* const AMREX_RESTRICT uz_temp =
               tmp_particle_buffer[isp].GetRealData(DiagIdx::uz).data();
 
-        // temporary arrays to store copy_flag and copy_index 
+        // temporary arrays to store copy_flag and copy_index
         // for particles that cross the reduced domain for diagnostics.
         amrex::Gpu::ManagedDeviceVector<int> FlagForPartCopy(np);
         amrex::Gpu::ManagedDeviceVector<int> IndexForPartCopy(np);
@@ -1467,11 +1467,11 @@ AddPartDataToParticleBuffer(
         [=] AMREX_GPU_DEVICE(int i)
         {
             Flag[i] = 0;
-            if ( x_temp[i] >= (diag_domain_lab_.lo(0)-particle_slice_dx_lab_) && 
+            if ( x_temp[i] >= (diag_domain_lab_.lo(0)-particle_slice_dx_lab_) &&
                  x_temp[i] <= (diag_domain_lab_.hi(0)+particle_slice_dx_lab_) ) {
 #if (AMREX_SPACEDIM == 3)
                if (y_temp[i] >= (diag_domain_lab_.lo(1)-particle_slice_dx_lab_) &&
-                   y_temp[i] <= (diag_domain_lab_.hi(1)+particle_slice_dx_lab_) ) 
+                   y_temp[i] <= (diag_domain_lab_.hi(1)+particle_slice_dx_lab_) )
 #endif
                {
                    Flag[i] = 1;
@@ -1504,12 +1504,12 @@ AddPartDataToParticleBuffer(
         Real* const AMREX_RESTRICT uz_buff =
               particles_buffer_[isp].GetRealData(DiagIdx::uz).data();
 
-        // Copy particle data from tmp array to reduced buffer array 
+        // Copy particle data from tmp array to reduced buffer array
         // on the GPU using the flag value and index location.
         amrex::ParallelFor(np,
         [=] AMREX_GPU_DEVICE(int i)
         {
-            if (Flag[i] == 1) 
+            if (Flag[i] == 1)
             {
                int loc = IndexLocation[i];
                wp_buff[loc] = wp_temp[i];
