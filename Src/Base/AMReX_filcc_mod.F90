@@ -198,7 +198,17 @@ contains
                    end do
                 end do
              end do
-             
+
+          else if (bc(1,1,n) .eq. amrex_bc_hoextrapcc) then
+
+             do k = lo(3), hi(3)
+                do j = lo(2), hi(2)
+                   do i = imin, imax
+                      q(i,j,k,n) = 2*q(ilo,j,k,n) - q(ilo+1,j,k,n)
+                   end do
+                end do
+             end do   
+
           else if (bc(1,1,n) .eq. amrex_bc_reflect_even) then
 
              do k = lo(3), hi(3)
@@ -257,6 +267,16 @@ contains
                          end if
                       end if
 
+                   end do
+                end do
+             end do
+
+          else if (bc(1,2,n) .eq. amrex_bc_hoextrapcc) then
+
+             do k = lo(3), hi(3)
+                do j = lo(2), hi(2)
+                   do i = imin, imax
+                      q(i,j,k,n) = 2*q(ihi,j,k,n) - q(ihi-1,j,k,n)
                    end do
                 end do
              end do
@@ -325,6 +345,16 @@ contains
                 end do
              end do
 
+          else if (bc(2,1,n) .eq. amrex_bc_hoextrapcc) then
+
+             do k = lo(3), hi(3)
+                do j = jmin, jmax
+                   do i = lo(1), hi(1)
+                      q(i,j,k,n) = 2*q(i,jlo,k,n) - q(i,jlo+1,k,n)
+                   end do
+                end do
+             end do
+
           else if (bc(2,1,n) .eq. amrex_bc_reflect_even) then
 
              do k = lo(3), hi(3)
@@ -383,6 +413,16 @@ contains
                          end if
                       end if
                       
+                   end do
+                end do
+             end do
+
+          else if (bc(2,2,n) .eq. amrex_bc_hoextrapcc) then
+
+             do k = lo(3), hi(3)
+                do j = jmin, jmax
+                   do i = lo(1), hi(1)
+                      q(i,j,k,n) = 2*q(i,jhi,k,n) - q(i,jhi-1,k,n)                      
                    end do
                 end do
              end do
@@ -454,7 +494,17 @@ contains
                    end do
                 end do
              end do
+          
+          else if (bc(3,1,n) .eq. amrex_bc_hoextrapcc) then
              
+             do k = kmin, kmax
+                do j = lo(2), hi(2)
+                   do i = lo(1), hi(1)
+                      q(i,j,k,n) = 2*q(i,j,klo,n) - q(i,j,klo+1,n)
+                   end do
+                end do
+             end do
+
           else if (bc(3,1,n) .eq. amrex_bc_reflect_even) then
 
              do k = kmin, kmax
@@ -516,7 +566,17 @@ contains
                    end do
                 end do
              end do
+          
+          else if (bc(3,2,n) .eq. amrex_bc_hoextrapcc) then
              
+             do k = kmin, kmax
+                do j = lo(2), hi(2)
+                   do i = lo(1), hi(1)
+                      q(i,j,k,n) = 2*q(i,j,khi,n) - q(i,j,khi-1,n)
+                   end do
+                end do
+             end do
+
           else if (bc(3,2,n) .eq. amrex_bc_reflect_even) then
 
              do k = kmin, kmax
