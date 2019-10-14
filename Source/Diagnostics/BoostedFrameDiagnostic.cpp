@@ -1393,19 +1393,19 @@ AddPartDataToParticleBuffer(
               particles_buffer_[isp].GetRealData(DiagIdx::uz).data();
         
         Real* const AMREX_RESTRICT wp_temp = 
-              tmp_particle_buffer_[isp].GetRealData(DiagIdx::w).data();
+              tmp_particle_buffer[isp].GetRealData(DiagIdx::w).data();
         Real* const AMREX_RESTRICT x_temp = 
-              tmp_particle_buffer_[isp].GetRealData(DiagIdx::x).data();
+              tmp_particle_buffer[isp].GetRealData(DiagIdx::x).data();
         Real* const AMREX_RESTRICT y_temp = 
-              tmp_particle_buffer_[isp].GetRealData(DiagIdx::y).data();
+              tmp_particle_buffer[isp].GetRealData(DiagIdx::y).data();
         Real* const AMREX_RESTRICT z_temp = 
-              tmp_particle_buffer_[isp].GetRealData(DiagIdx::z).data();
+              tmp_particle_buffer[isp].GetRealData(DiagIdx::z).data();
         Real* const AMREX_RESTRICT ux_temp = 
-              tmp_particle_buffer_[isp].GetRealData(DiagIdx::ux).data();
+              tmp_particle_buffer[isp].GetRealData(DiagIdx::ux).data();
         Real* const AMREX_RESTRICT uy_temp = 
-              tmp_particle_buffer_[isp].GetRealData(DiagIdx::uy).data();
+              tmp_particle_buffer[isp].GetRealData(DiagIdx::uy).data();
         Real* const AMREX_RESTRICT uz_temp = 
-              tmp_particle_buffer_[isp].GetRealData(DiagIdx::uz).data();
+              tmp_particle_buffer[isp].GetRealData(DiagIdx::uz).data();
 
         // copy all the particles from tmp to buffer
         amrex::ParallelFor(np,
@@ -1419,40 +1419,6 @@ AddPartDataToParticleBuffer(
             uy_buff[i] = uy_temp[i];
             uz_buff[i] = uz_temp[i]; 
         });
-        //particles_buffer_[isp].GetRealData(DiagIdx::w).insert(
-        //                particles_buffer_[isp].GetRealData(DiagIdx::w).end(),
-        //                tmp_particle_buffer[isp].GetRealData(DiagIdx::w).begin(),
-        //                tmp_particle_buffer[isp].GetRealData(DiagIdx::w).end());
-
-        //particles_buffer_[isp].GetRealData(DiagIdx::x).insert(
-        //                particles_buffer_[isp].GetRealData(DiagIdx::x).end(),
-        //                tmp_particle_buffer[isp].GetRealData(DiagIdx::x).begin(),
-        //                tmp_particle_buffer[isp].GetRealData(DiagIdx::x).end());
-
-        //particles_buffer_[isp].GetRealData(DiagIdx::y).insert(
-        //                particles_buffer_[isp].GetRealData(DiagIdx::y).end(),
-        //                tmp_particle_buffer[isp].GetRealData(DiagIdx::y).begin(),
-        //                tmp_particle_buffer[isp].GetRealData(DiagIdx::y).end());
-
-        //particles_buffer_[isp].GetRealData(DiagIdx::z).insert(
-        //                particles_buffer_[isp].GetRealData(DiagIdx::z).end(),
-        //                tmp_particle_buffer[isp].GetRealData(DiagIdx::z).begin(),
-        //                tmp_particle_buffer[isp].GetRealData(DiagIdx::z).end());
-
-        //particles_buffer_[isp].GetRealData(DiagIdx::ux).insert(
-        //                particles_buffer_[isp].GetRealData(DiagIdx::ux).end(),
-        //                tmp_particle_buffer[isp].GetRealData(DiagIdx::ux).begin(),
-        //                tmp_particle_buffer[isp].GetRealData(DiagIdx::ux).end());
-
-        //particles_buffer_[isp].GetRealData(DiagIdx::uy).insert(
-        //                particles_buffer_[isp].GetRealData(DiagIdx::uy).end(),
-        //                tmp_particle_buffer[isp].GetRealData(DiagIdx::uy).begin(),
-        //                tmp_particle_buffer[isp].GetRealData(DiagIdx::uy).end());
-
-        //particles_buffer_[isp].GetRealData(DiagIdx::uz).insert(
-        //                particles_buffer_[isp].GetRealData(DiagIdx::uz).end(),
-        //                tmp_particle_buffer[isp].GetRealData(DiagIdx::uz).begin(),
-        //                tmp_particle_buffer[isp].GetRealData(DiagIdx::uz).end());
     }
 }
 
@@ -1469,26 +1435,26 @@ AddPartDataToParticleBuffer(
         if (np == 0) return;
    
         Real* const AMREX_RESTRICT wp_temp = 
-              tmp_particle_buffer_[isp].GetRealData(DiagIdx::w).data();
+              tmp_particle_buffer[isp].GetRealData(DiagIdx::w).data();
         Real* const AMREX_RESTRICT x_temp = 
-              tmp_particle_buffer_[isp].GetRealData(DiagIdx::x).data();
+              tmp_particle_buffer[isp].GetRealData(DiagIdx::x).data();
         Real* const AMREX_RESTRICT y_temp = 
-              tmp_particle_buffer_[isp].GetRealData(DiagIdx::y).data();
+              tmp_particle_buffer[isp].GetRealData(DiagIdx::y).data();
         Real* const AMREX_RESTRICT z_temp = 
-              tmp_particle_buffer_[isp].GetRealData(DiagIdx::z).data();
+              tmp_particle_buffer[isp].GetRealData(DiagIdx::z).data();
         Real* const AMREX_RESTRICT ux_temp = 
-              tmp_particle_buffer_[isp].GetRealData(DiagIdx::ux).data();
+              tmp_particle_buffer[isp].GetRealData(DiagIdx::ux).data();
         Real* const AMREX_RESTRICT uy_temp = 
-              tmp_particle_buffer_[isp].GetRealData(DiagIdx::uy).data();
+              tmp_particle_buffer[isp].GetRealData(DiagIdx::uy).data();
         Real* const AMREX_RESTRICT uz_temp = 
-              tmp_particle_buffer_[isp].GetRealData(DiagIdx::uz).data();
+              tmp_particle_buffer[isp].GetRealData(DiagIdx::uz).data();
 
         // temporary arrays to store copy_flag and copy_index 
         // for particles that cross the reduced domain for diagnostics.
-        amrex::Gpu::ManagedDeviceVector<int> FlagForPartCopy(np)
-        amrex::Gpu::ManagedDeviceVecotr<int> IndexForPartCopy(np);
+        amrex::Gpu::ManagedDeviceVector<int> FlagForPartCopy(np);
+        amrex::Gpu::ManagedDeviceVector<int> IndexForPartCopy(np);
 
-        int* const AMREX_RESTRICT Flag = FlagForPartCopy.dataPtr()
+        int* const AMREX_RESTRICT Flag = FlagForPartCopy.dataPtr();
         int* const AMREX_RESTRICT IndexLocation = IndexForPartCopy.dataPtr();
 
         //Flag particles that need to be copied if they cross the reduced slice //
@@ -1500,7 +1466,7 @@ AddPartDataToParticleBuffer(
                  x_temp[i] <= (diag_domain_lab_.hi(0)+dx_) ) {
 #if (AMREX_SPACEDIM == 3)
                if (y_temp[i] >= (diag_domain_lab_.lo(1)-dy_) && 
-                   y_temp[i] <= (diag_domain_lab_.hi(1)_dy_) ) 
+                   y_temp[i] <= (diag_domain_lab_.hi(1)+dy_) ) 
 #endif
                {
                    Flag[i] = 1;
@@ -1550,49 +1516,6 @@ AddPartDataToParticleBuffer(
                uz_buff[loc] - uz_temp[i];
             }
         });
-       
-
-//        auto const& wpc = tmp_particle_buffer[isp].GetRealData(DiagIdx::w);
-//        auto const& xpc = tmp_particle_buffer[isp].GetRealData(DiagIdx::x);
-//        auto const& ypc = tmp_particle_buffer[isp].GetRealData(DiagIdx::y);
-//        auto const& zpc = tmp_particle_buffer[isp].GetRealData(DiagIdx::z);
-//        auto const& uxpc = tmp_particle_buffer[isp].GetRealData(DiagIdx::ux);
-//        auto const& uypc = tmp_particle_buffer[isp].GetRealData(DiagIdx::uy);
-//        auto const& uzpc = tmp_particle_buffer[isp].GetRealData(DiagIdx::uz);
-//
-//        particles_buffer_[isp].resize(np);
-//        auto wpc_buff = particles_buffer_[isp].GetRealData(DiagIdx::w);
-//        auto xpc_buff = particles_buffer_[isp].GetRealData(DiagIdx::x);
-//        auto ypc_buff = particles_buffer_[isp].GetRealData(DiagIdx::y);
-//        auto zpc_buff = particles_buffer_[isp].GetRealData(DiagIdx::z);
-//        auto uxpc_buff = particles_buffer_[isp].GetRealData(DiagIdx::ux);
-//        auto uypc_buff = particles_buffer_[isp].GetRealData(DiagIdx::uy);
-//        auto uzpc_buff = particles_buffer_[isp].GetRealData(DiagIdx::uz);
-//
-//
-//        int partcounter = 0;
-//        for (int i = 0; i < np; ++i)
-//        {
-//           if( xpc[i] >= (diag_domain_lab_.lo(0)-dx_) &&
-//               xpc[i] <= (diag_domain_lab_.hi(0)+dx_) ) {
-// #if (AMREX_SPACEDIM == 3)
-//              if( ypc[i] >= (diag_domain_lab_.lo(1)-dy_) &&
-//                  ypc[i] <= (diag_domain_lab_.hi(1) + dy_))
-// #endif
-//              {
-//                 wpc_buff[partcounter] = wpc[i];
-//                 xpc_buff[partcounter] = xpc[i];
-//                 ypc_buff[partcounter] = ypc[i];
-//                 zpc_buff[partcounter] = zpc[i];
-//                 uxpc_buff[partcounter] = uxpc[i];
-//                 uypc_buff[partcounter] = uypc[i];
-//                 uzpc_buff[partcounter] = uzpc[i];
-//                 ++partcounter;
-//              }
-//           }
-//        }
-//
-//        particles_buffer_[isp].resize(partcounter);
 
     }
 }
