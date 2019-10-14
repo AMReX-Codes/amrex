@@ -69,6 +69,7 @@ bool WarpX::do_boosted_frame_particles = true;
 
 int  WarpX::num_slice_snapshots_lab = 0;
 Real WarpX::dt_slice_snapshots_lab;
+Real WarpX::particle_slice_width_lab;
 
 bool WarpX::do_dynamic_scheduling = true;
 
@@ -600,6 +601,7 @@ WarpX::ReadParameters ()
           pp.query("num_slice_snapshots_lab", num_slice_snapshots_lab);
           if (num_slice_snapshots_lab > 0) {
              pp.get("dt_slice_snapshots_lab", dt_slice_snapshots_lab );
+             pp.get("particle_slice_width_lab",particle_slice_width_lab);
           }
        }
 

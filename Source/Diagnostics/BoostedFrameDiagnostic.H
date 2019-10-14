@@ -50,6 +50,7 @@ class LabFrameDiag {
     amrex::Real dz_lab_;
     amrex::Real dx_;
     amrex::Real dy_;
+    amrex::Real particle_slice_dx_lab_;
 
     int ncomp_to_dump_;
     std::vector<std::string> mesh_field_names_;
@@ -140,7 +141,8 @@ class LabFrameSlice : public LabFrameDiag {
                      std::vector<std::string> mesh_field_names,
                      amrex::RealBox diag_domain_lab,
                      amrex::Box diag_box, int file_num_in,
-                     amrex::Real cell_dx, amrex::Real cell_dy);
+                     amrex::Real cell_dx, amrex::Real cell_dy,
+                     amrex::Real particle_slice_dx_lab);
     void AddDataToBuffer( amrex::MultiFab& tmp_slice_ptr, int i_lab,
                  amrex::Gpu::ManagedDeviceVector<int> map_actual_fields_to_dump);
     void AddPartDataToParticleBuffer(
@@ -174,7 +176,8 @@ public:
                            int N_slice_snapshots, amrex::Real gamma_boost,
                            amrex::Real t_boost, amrex::Real dt_boost,
                            int boost_direction, const amrex::Geometry& geom,
-                           amrex::RealBox& slice_realbox);
+                           amrex::RealBox& slice_realbox, 
+                           amrex::Real particle_slice_width_lab);
 
     /// Flush() is called at the end of the simulation when the buffers that contain
     /// back-transformed lab-frame data even if they are not full.
@@ -222,6 +225,7 @@ private:
     int boost_direction_;
     int N_slice_snapshots_;
     amrex::Real dt_slice_snapshots_lab_;
+    amrex::Real particle_slice_width_lab_;
 
     int num_buffer_ = 256;
     int max_box_size_ = 256;

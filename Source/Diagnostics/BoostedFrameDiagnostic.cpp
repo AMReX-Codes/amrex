@@ -520,14 +520,16 @@ BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
                        Real dt_slice_snapshots_lab, int N_slice_snapshots,
                        Real gamma_boost, Real t_boost, Real dt_boost,
                        int boost_direction, const Geometry& geom,
-                       amrex::RealBox& slice_realbox)
+                       amrex::RealBox& slice_realbox,
+                       amrex::Real particle_slice_width_lab)
     : gamma_boost_(gamma_boost),
       dt_snapshots_lab_(dt_snapshots_lab),
       dt_boost_(dt_boost),
       N_snapshots_(N_snapshots),
       boost_direction_(boost_direction),
       N_slice_snapshots_(N_slice_snapshots),
-      dt_slice_snapshots_lab_(dt_slice_snapshots_lab)
+      dt_slice_snapshots_lab_(dt_slice_snapshots_lab),
+      particle_slice_width_lab_(particle_slice_width_lab)
 {
 
 
@@ -671,7 +673,8 @@ BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
                                 inv_gamma_boost_, inv_beta_boost_, dz_lab_,
                                 prob_domain_lab, slice_ncells_lab,
                                 ncomp_to_dump, mesh_field_names, slice_dom_lab,
-                                slicediag_box, i, cell_dx, cell_dy));
+                                slicediag_box, i, cell_dx, cell_dy,
+                                particle_slice_width_lab_));
     }
     // sort diags based on their respective t_lab
     std::stable_sort(LabFrameDiags_.begin(), LabFrameDiags_.end(), compare_tlab_uptr);
@@ -1280,7 +1283,8 @@ LabFrameSlice(Real t_lab_in, Real t_boost, Real inv_gamma_boost_in,
                  IntVect prob_ncells_lab, int ncomp_to_dump,
                  std::vector<std::string> mesh_field_names,
                  RealBox diag_domain_lab, Box diag_box, int file_num_in,
-                 amrex::Real cell_dx, amrex::Real cell_dy)
+                 amrex::Real cell_dx, amrex::Real cell_dy,
+                 amrex::Real particle_slice_dx_lab)
 {
     t_lab = t_lab_in;
     prob_domain_lab_ = prob_domain_lab;
@@ -1300,6 +1304,7 @@ LabFrameSlice(Real t_lab_in, Real t_boost, Real inv_gamma_boost_in,
     buff_counter_ = 0;
     dx_ = cell_dx;
     dy_ = cell_dy;
+    particle_slice_dx_lab_ = particle_slice_dx_lab;
 
     if (WarpX::do_boosted_frame_fields) data_buffer_.reset(nullptr);
 }
@@ -1462,11 +1467,11 @@ AddPartDataToParticleBuffer(
         [=] AMREX_GPU_DEVICE(int i)
         {
             Flag[i] = 0;
-            if ( x_temp[i] >= (diag_domain_lab_.lo(0)-dx_) && 
-                 x_temp[i] <= (diag_domain_lab_.hi(0)+dx_) ) {
+            if ( x_temp[i] >= (diag_domain_lab_.lo(0)-particle_slice_dx_lab_) && 
+                 x_temp[i] <= (diag_domain_lab_.hi(0)+particle_slice_dx_lab_) ) {
 #if (AMREX_SPACEDIM == 3)
-               if (y_temp[i] >= (diag_domain_lab_.lo(1)-dy_) && 
-                   y_temp[i] <= (diag_domain_lab_.hi(1)+dy_) ) 
+               if (y_temp[i] >= (diag_domain_lab_.lo(1)-particle_slice_dx_lab_) &&
+                   y_temp[i] <= (diag_domain_lab_.hi(1)+particle_slice_dx_lab_) ) 
 #endif
                {
                    Flag[i] = 1;
