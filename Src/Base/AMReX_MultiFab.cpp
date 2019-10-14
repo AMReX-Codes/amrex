@@ -960,8 +960,8 @@ MultiFab::norm0 (int comp, int nghost, bool local, bool set_covered ) const
 #ifdef AMREX_USE_EB
     if ( this -> hasEBFabFactory() && set_covered )
     {
-        MultiFab tmp( this->boxArray(), this->DistributionMap(), nghost,
-                      1, MFInfo(), this->Factory() );
+        MultiFab tmp( this->boxArray(), this->DistributionMap(), 1,
+                      nghost, MFInfo(), this->Factory() );
 
         MultiFab::Copy( tmp, *this, comp, 0, 1, nghost );
         if (set_covered)

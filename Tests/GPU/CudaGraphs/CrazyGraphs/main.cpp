@@ -44,10 +44,10 @@ int main (int argc, char* argv[])
 //      Create P graph, instantiate and execute. 
 
         {
-#ifdef CRAZY 
-            cudaStreamBeginCapture(stream, cudaStreamCaptureModeGlobal);
-#else
+#if (__CUDACC_VER_MAJOR__ == 10) && (__CUDACC_VER_MINOR__ == 0)
             cudaStreamBeginCapture(stream);
+#else
+            cudaStreamBeginCapture(stream, cudaStreamCaptureModeGlobal);
 #endif
             func<<<1,1,0,stream>>>(p);
             cudaStreamEndCapture(stream, &(graphP));
@@ -62,11 +62,12 @@ int main (int argc, char* argv[])
 // ------------------------------------------------------------------------------- 
 //          Make Q graph
 
-#if CRAZY 
-            cudaStreamBeginCapture(stream, cudaStreamCaptureModeGlobal);
-#else
+#if (__CUDACC_VER_MAJOR__ == 10) && (__CUDACC_VER_MINOR__ == 0)
             cudaStreamBeginCapture(stream);
+#else
+            cudaStreamBeginCapture(stream, cudaStreamCaptureModeGlobal);
 #endif
+
             func<<<1,1,0,stream>>>(q);
             cudaStreamEndCapture(stream, &(graphQ));
 
@@ -88,7 +89,7 @@ int main (int argc, char* argv[])
 
             cudaKernelNodeParams knp;
             cudaGraphKernelNodeGetParams(nodesQ[0], &knp);
-#ifdef CRAZY
+#if (__CUDACC_VER_MAJOR__ == 10) && (__CUDACC_VER_MINOR__ == 0)
             cudaGraphExecKernelNodeSetParams(graphExec, nodesP[0], &knp);
 #endif
             cudaGraphLaunch(graphExec, stream);  
@@ -130,11 +131,12 @@ int main (int argc, char* argv[])
 //      Create P graph, instantiate and execute. 
 
         {
-#ifdef CRAZY 
-            cudaStreamBeginCapture(stream, cudaStreamCaptureModeGlobal);
-#else
+#if (__CUDACC_VER_MAJOR__ == 10) && (__CUDACC_VER_MINOR__ == 0)
             cudaStreamBeginCapture(stream);
+#else
+            cudaStreamBeginCapture(stream, cudaStreamCaptureModeGlobal);
 #endif
+
             lambda<<<1,1,0,stream>>>( [=] __device__ () { plus(p); } );
             cudaStreamEndCapture(stream, &(graphP));
 
@@ -148,11 +150,12 @@ int main (int argc, char* argv[])
 // ------------------------------------------------------------------------------- 
 //          Make Q graph
 
-#if CRAZY 
-            cudaStreamBeginCapture(stream, cudaStreamCaptureModeGlobal);
-#else
+#if (__CUDACC_VER_MAJOR__ == 10) && (__CUDACC_VER_MINOR__ == 0)
             cudaStreamBeginCapture(stream);
+#else
+            cudaStreamBeginCapture(stream, cudaStreamCaptureModeGlobal);
 #endif
+
             lambda<<<1,1,0,stream>>>( [=] __device__ () { minus(p); } );
             cudaStreamEndCapture(stream, &(graphQ));
 
@@ -175,7 +178,7 @@ int main (int argc, char* argv[])
             cudaKernelNodeParams knp, knpB;
             cudaGraphKernelNodeGetParams(nodesQ[0], &knp);
 
-#ifdef CRAZY
+#if (__CUDACC_VER_MAJOR__ == 10) && (__CUDACC_VER_MINOR__ == 0)
             cudaGraphExecKernelNodeSetParams(graphExec, nodesP[0], &knp);
 #endif
             cudaGraphLaunch(graphExec, stream);  
