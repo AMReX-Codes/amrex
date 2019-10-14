@@ -4,6 +4,7 @@ OPENBC_HOME ?= ../../../openbc_poisson
 
 USE_MPI       = TRUE
 USE_PARTICLES = TRUE
+USE_RPATH     = TRUE
 
 ifeq ($(USE_GPU),TRUE)
   USE_OMP  = FALSE
@@ -93,6 +94,7 @@ ifeq ($(QED),TRUE)
   FFLAGS   += -DWARPX_QED
   F90FLAGS += -DWARPX_QED
   include $(WARPX_HOME)/Source/QED/Make.package
+  USERSuffix := $(USERSuffix).QED
 endif
 
 
@@ -115,8 +117,8 @@ ifeq ($(USE_OPENPMD), TRUE)
    # try pkg-config query
    ifeq (0, $(shell pkg-config "openPMD >= 0.9.0"; echo $$?))
        CXXFLAGS += $(shell pkg-config --cflags openPMD)
-       LDFLAGS += $(shell pkg-config --libs openPMD)
-       LDFLAGS += -Xlinker -rpath -Xlinker $(shell pkg-config --variable=libdir openPMD)
+       LIBRARY_LOCATIONS += $(shell pkg-config --variable=libdir openPMD)
+       libraries += $(shell pkg-config --libs-only-l openPMD)
    # fallback to manual settings
    else
        OPENPMD_LIB_PATH ?= NOT_SET
