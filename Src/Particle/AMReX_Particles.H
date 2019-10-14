@@ -435,15 +435,14 @@ public:
     void InitFromBinaryMetaFile (const std::string& file, int extradata);
 
     /**
-    * \brief /
-    * / This initializes the particle container with icount randomly distributed
-    * / particles. If serialize is true, then the particles will all be generated
-    * / on the IO Process, and the particle positions will be broadcast to all
-    * / other process. If serialize is false, then the particle positions will be
-    * / randomly generated in parallel, which each process using the random seed
-    * / iseed + MyProc. The particles can be constrained to lie within the RealBox
-    * / bx, if so desired. The default is the full domain.
-    * /
+    * \brief 
+    * This initializes the particle container with icount randomly distributed
+    * particles. If serialize is true, then the particles will all be generated
+    * on the IO Process, and the particle positions will be broadcast to all
+    * other process. If serialize is false, then the particle positions will be
+    * randomly generated in parallel, which each process using the random seed
+    * iseed + MyProc. The particles can be constrained to lie within the RealBox
+    * bx, if so desired. The default is the full domain.
     *
     * \param icount
     * \param iseed
@@ -457,16 +456,15 @@ public:
 
 
     /**
-    * \brief /
-    * / This initializes the container with icount randomly distributed particles
-    * / per box, using the random seed iseed. All the particles have the same data
-    * / and attributes, which are passed using the pdata struct.
-    * /
-    * / This routine is used when we want to replicate a box for a scaling study --
-    * / within each box the distribution is random but the particle data is replicated
-    * / across all boxes in the container. The boxes are assumed to be those
-    * / on the coarsest level.
-    * /
+    * \brief
+    * This initializes the container with icount randomly distributed particles
+    * per box, using the random seed iseed. All the particles have the same data
+    * and attributes, which are passed using the pdata struct.
+    * 
+    * This routine is used when we want to replicate a box for a scaling study --
+    * within each box the distribution is random but the particle data is replicated
+    * across all boxes in the container. The boxes are assumed to be those
+    * on the coarsest level.
     *
     * \param icount
     * \param iseed
@@ -476,14 +474,13 @@ public:
 
 
     /**
-    * \brief /
-    * / This initializes the particle container with one particle per cell,
-    * / where the other particle data and attributes are all contant. The
-    * / coarsest level is used to generate the particle positions. The particle
-    * / variable values are passed in through the pdata struct. The parameters
-    * / x_off, y_off, and z_off represent offsets between 0 and 1 that show
-    * / where inside the cells to place the particles. 0.5 means cell centered.
-    * /
+    * \brief
+    * This initializes the particle container with one particle per cell,
+    * where the other particle data and attributes are all contant. The
+    * coarsest level is used to generate the particle positions. The particle
+    * variable values are passed in through the pdata struct. The parameters
+    * x_off, y_off, and z_off represent offsets between 0 and 1 that show
+    * where inside the cells to place the particles. 0.5 means cell centered.
     *
     * \param x_off
     * \param y_off
@@ -495,13 +492,12 @@ public:
 
 
     /**
-    * \brief /
-    * / This initializes the particle container with n_per_cell randomly
-    * / distributed particles per cell, where the other particle data and
-    * / and attributes are all constant. The cells on the coarsest level
-    * / are used to generate the particle positions. The particle variable
-    * / values are passed in through the pdata struct.
-    * /
+    * \brief
+    * This initializes the particle container with n_per_cell randomly
+    * distributed particles per cell, where the other particle data and
+    * and attributes are all constant. The cells on the coarsest level
+    * are used to generate the particle positions. The particle variable
+    * values are passed in through the pdata struct.
     *
     * \param n_per_cell
     * \param pdata
@@ -515,7 +511,6 @@ public:
     void Increment (MultiFab& mf, int level);
 
     long IncrementWithTotal (MultiFab& mf, int level, bool local = false);
-
 
     /**
     * \brief rho_index: rho index in rdata
