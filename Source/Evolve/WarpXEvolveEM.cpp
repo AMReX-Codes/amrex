@@ -597,13 +597,14 @@ WarpX::computeMaxStepBoostAccelerator(amrex::Geometry a_geom){
         WarpX::moving_window_dir == AMREX_SPACEDIM-1,
         "Can use zmax_plasma_to_compute_max_step only if " +
         "moving window along z. TODO: all directions.");
-
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-        (WarpX::boost_direction[0]-0)*(WarpX::boost_direction[0]-0) +
-        (WarpX::boost_direction[1]-0)*(WarpX::boost_direction[1]-0) +
-        (WarpX::boost_direction[2]-1)*(WarpX::boost_direction[2]-1) < 1.e-12,
-        "Can use zmax_plasma_to_compute_max_step only if " +
-        "warpx.boost_direction = z. TODO: all directions.");
+    if (gamma_boost > 1){
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+            (WarpX::boost_direction[0]-0)*(WarpX::boost_direction[0]-0) +
+            (WarpX::boost_direction[1]-0)*(WarpX::boost_direction[1]-0) +
+            (WarpX::boost_direction[2]-1)*(WarpX::boost_direction[2]-1) < 1.e-12,
+            "Can use zmax_plasma_to_compute_max_step in boosted frame only if " +
+            "warpx.boost_direction = z. TODO: all directions.");
+    }
 
     // Lower end of the simulation domain. All quantities are given in boosted
     // frame except zmax_plasma_to_compute_max_step.

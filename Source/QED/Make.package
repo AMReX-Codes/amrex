@@ -1,0 +1,8 @@
+CEXE_headers += QedWrapperCommons.H
+CEXE_headers += BreitWheelerEngineWrapper.H
+CEXE_headers += QuantumSyncsEngineWrapper.H
+CEXE_sources += BreitWheelerEngineWrapper.cpp
+CEXE_sources += QuantumSyncEngineWrapper.cpp
+
+INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/QED
+VPATH_LOCATIONS   += $(WARPX_HOME)/Source/QED

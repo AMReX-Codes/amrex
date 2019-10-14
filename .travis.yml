@@ -15,6 +15,13 @@ before_install:
     - bash Miniconda3-latest-Linux-x86_64.sh -b
     - export PATH=/home/travis/miniconda3/bin:$PATH
     - pip install --upgrade pip && pip install numpy scipy matplotlib yt mpi4py
+    # Install an up-to-date version of the Boost library (>= 1.67 should be ok)
+    - wget https://dl.bintray.com/boostorg/release/1.71.0/source/boost_1_71_0.tar.gz
+    - tar xf boost_1_71_0.tar.gz
+    - cd boost_1_71_0
+    - ./bootstrap.sh --with-libraries=math
+    - sudo ./b2 -d0 install
+    - cd ..
 
 script:
     - export FFTW_HOME=/usr/
