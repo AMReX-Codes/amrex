@@ -27,8 +27,8 @@
  * reduced back-transformed diagnostic for a sub-domain, respectively.
  * The approach here is to define an array of LabFrameDiag  which would include
  * both, full domain snapshots and reduced domain 'slices', sorted based on their
- * respective t_lab. This is done to re-use the backtransformed data stored in a
- * temporary slice multifab at (z_lab,t_lab)
+ * respective t_lab. This is done to re-use the backtransformed data stored in
+ * the slice multifab at (z_lab,t_lab)
  * for the full domain snapshot and sub-domain slices that have the same t_lab,
  * instead of re-generating the backtransformed slice data at z_lab for a given
  * t_lab for each diagnostic.
@@ -196,7 +196,7 @@ public:
      * 7. Finally, AddDataToBuffer is called where the data from temporary slice
      *    is simply copied from tmp_slice(i,j,k_boost) to
      *    LabFrameDiagSnapshot(i,j,k_lab) for full BT lab-frame diagnostic
-     *    OR selectivtely copy from tmp_slice(i,j,k_boost) to
+     *    OR from tmp_slice(i,j,k_boost) to
      *    LabFrameDiagSlice(i,j,k_lab) for the reduced slice diagnostic
      * 8. Similarly, particles that crossed the z_boost plane are selected
      *    and lorentz-transformed to the lab-frame and copied to the full

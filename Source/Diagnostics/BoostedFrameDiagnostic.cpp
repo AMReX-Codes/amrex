@@ -649,7 +649,6 @@ BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
            {
               slice_hi[i_dim] = slice_lo[i_dim] + 1;
            }
-
         }
         Box stmp(slice_lo,slice_hi);
         Box slicediag_box = stmp;
@@ -782,6 +781,7 @@ writeLabFrameData(const MultiFab* cell_centered_data,
     const std::vector<std::string> species_names = mypc.GetSpeciesNames();
     Real prev_t_lab = -dt;
     std::unique_ptr<amrex::MultiFab> tmp_slice_ptr;
+    std::unique_ptr<amrex::MultiFab> slice;
     amrex::Vector<WarpXParticleContainer::DiagnosticParticleData> tmp_particle_buffer;
 
     // Loop over snapshots
@@ -809,10 +809,10 @@ writeLabFrameData(const MultiFab* cell_centered_data,
         if ( LabFrameDiags_[i]->buff_counter_ == 0) {
             // ... reset fields buffer data_buffer_
             if (WarpX::do_boosted_frame_fields) {
-                //Box buff_box = geom.Domain();
                 LabFrameDiags_[i]->buff_box_.setSmall(boost_direction_,
                                              i_lab - num_buffer_ + 1);
                 LabFrameDiags_[i]->buff_box_.setBig(boost_direction_, i_lab);
+
                 BoxArray buff_ba(LabFrameDiags_[i]->buff_box_);
                 buff_ba.maxSize(max_box_size_);
                 DistributionMapping buff_dm(buff_ba);
@@ -829,45 +829,48 @@ writeLabFrameData(const MultiFab* cell_centered_data,
             const int ncomp = cell_centered_data->nComp();
             const int start_comp = 0;
             const bool interpolate = true;
-            // tmp_slice_ptr containing slice data is generated only if t_lab != prev_t_lab
+            // slice containing back-transformed data is generated only if t_lab != prev_t_lab and is re-used if multiple diags have the same z_lab,t_lab.
             if (LabFrameDiags_[i]->t_lab != prev_t_lab ) {
-               // Get slice in the boosted frame
-               if (tmp_slice_ptr)
+               if (slice)
                {
-                 tmp_slice_ptr.reset(new MultiFab());
-                 tmp_slice_ptr.reset(nullptr);
+                 slice.reset(new MultiFab);
+                 slice.reset(nullptr);
                }
-               std::unique_ptr<amrex::MultiFab> slice  = amrex::get_slice_data(
-                                                         boost_direction_,
-                                                         LabFrameDiags_[i]->current_z_boost,
-                                                         *cell_centered_data, geom,
-                                                         start_comp, ncomp,
-                                                         interpolate);
-
+               slice = amrex::get_slice_data(boost_direction_,
+                                             LabFrameDiags_[i]->current_z_boost,
+                                             *cell_centered_data, geom,
+                                             start_comp, ncomp,
+                                             interpolate);
                // Back-transform data to the lab-frame
                LorentzTransformZ(*slice, gamma_boost_, beta_boost_, ncomp);
-               // Create a 2D box for the slice in the boosted frame
-               Real dx = geom.CellSize(boost_direction_);
-               int i_boost = ( LabFrameDiags_[i]->current_z_boost -
-                               geom.ProbLo(boost_direction_))/dx;
-               Box slice_box = geom.Domain();
-               slice_box.setSmall(boost_direction_, i_boost);
-               slice_box.setBig(boost_direction_, i_boost);
-               // Make it a BoxArray slice_ba
-               BoxArray slice_ba(slice_box);
-               slice_ba.maxSize(max_box_size_);
-               // Create MultiFab tmp on slice_ba witih data from slice
-               // that can be potentially re-used.
-               tmp_slice_ptr = std::unique_ptr<MultiFab>(new MultiFab(slice_ba,
-                               LabFrameDiags_[i]->data_buffer_->DistributionMap(),
-                               ncomp, 0));
+             }
+             // Create a 2D box for the slice in the boosted frame
+             Real dx = geom.CellSize(boost_direction_);
+             int i_boost = ( LabFrameDiags_[i]->current_z_boost -
+                             geom.ProbLo(boost_direction_))/dx;
+             //Box slice_box = geom.Domain();
+             Box slice_box = LabFrameDiags_[i]->buff_box_;
+             slice_box.setSmall(boost_direction_, i_boost);
+             slice_box.setBig(boost_direction_, i_boost);
 
-               tmp_slice_ptr->copy(*slice, 0, 0, ncomp);
-            }
-            // tmp_slice_ptr is re-used if the t_lab of a diag is equal to
-            // that of the previous diag
-            LabFrameDiags_[i]->AddDataToBuffer(*tmp_slice_ptr, i_lab,
+             // Make it a BoxArray slice_ba
+             BoxArray slice_ba(slice_box);
+             slice_ba.maxSize(max_box_size_);
+             tmp_slice_ptr = std::unique_ptr<MultiFab>(new MultiFab(slice_ba,
+                             LabFrameDiags_[i]->data_buffer_->DistributionMap(),
+                             ncomp, 0));
+
+             // slice is re-used if the t_lab of a diag is equal to
+             // that of the previous diag.
+             // Back-transformed data is copied from slice
+             // which has the dmap of the domain to
+             // tmp_slice_ptr which has the dmap of the
+             // data_buffer that stores the back-transformed data.
+             tmp_slice_ptr->copy(*slice, 0, 0, ncomp);
+             LabFrameDiags_[i]->AddDataToBuffer(*tmp_slice_ptr, i_lab,
                                                map_actual_fields_to_dump);
+             tmp_slice_ptr.reset(new MultiFab);
+             tmp_slice_ptr.reset(nullptr);
         }
 
         if (WarpX::do_boosted_frame_particles) {
@@ -1311,7 +1314,7 @@ AddDataToBuffer( MultiFab& tmp, int k_lab,
     for (MFIter mfi(tmp, TilingIfNotGPU()); mfi.isValid(); ++mfi) {
          Array4<Real> tmp_arr = tmp[mfi].array();
          Array4<Real> buf_arr = buf[mfi].array();
-         // For 3D runs, rmp is a 2D (x,y) multifab that contains only
+         // For 3D runs, tmp is a 2D (x,y) multifab that contains only
          // slice to write to file
          const Box& bx = mfi.tilebox();
          const auto field_map_ptr = map_actual_fields_to_dump.dataPtr();
@@ -1337,29 +1340,25 @@ AddDataToBuffer( MultiFab& tmp, int k_lab,
 {
     const int ncomp_to_dump = map_actual_fields_to_dump.size();
     MultiFab& buf = *data_buffer_;
-
     for (MFIter mfi(tmp, TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
-       Array4<Real> tmp_arr = tmp[mfi].array();
-       Array4<Real> buf_arr = buf[mfi].array();
        Box& bx = buff_box_;
        const Box& bx_bf = mfi.tilebox();
        bx.setSmall(AMREX_SPACEDIM-1,bx_bf.smallEnd(AMREX_SPACEDIM-1));
        bx.setBig(AMREX_SPACEDIM-1,bx_bf.bigEnd(AMREX_SPACEDIM-1));
-       if (bx_bf.intersects(bx)) {
-          const auto field_map_ptr = map_actual_fields_to_dump.dataPtr();
-          ParallelFor(bx, ncomp_to_dump,
-              [=] AMREX_GPU_DEVICE(int i, int j, int k, int n)
-              {
-                 const int icomp = field_map_ptr[n];
+       Array4<Real> tmp_arr = tmp[mfi].array();
+       Array4<Real> buf_arr = buf[mfi].array();
+       const auto field_map_ptr = map_actual_fields_to_dump.dataPtr();
+       ParallelFor(bx, ncomp_to_dump,
+           [=] AMREX_GPU_DEVICE(int i, int j, int k, int n)
+           {
+              const int icomp = field_map_ptr[n];
 #if (AMREX_SPACEDIM == 3)
-                 buf_arr(i,j,k_lab,n) = tmp_arr(i,j,k,icomp);
+              buf_arr(i,j,k_lab,n) = tmp_arr(i,j,k,icomp);
 #else
-                 buf_arr(i,k_lab,k,n) = tmp_arr(i,j,k,icomp);
+              buf_arr(i,k_lab,k,n) = tmp_arr(i,j,k,icomp);
 #endif
-              }
-          );
-       }
+           });
     }
 
 }
