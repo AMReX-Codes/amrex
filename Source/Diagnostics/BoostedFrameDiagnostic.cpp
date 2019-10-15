@@ -1461,17 +1461,26 @@ AddPartDataToParticleBuffer(
 
         int* const AMREX_RESTRICT Flag = FlagForPartCopy.dataPtr();
         int* const AMREX_RESTRICT IndexLocation = IndexForPartCopy.dataPtr();
+     
+        Real const xmin = diag_domain_lab_.lo(0)-particle_slice_dx_lab_;
+        Real const xmax = diag_domain_lab_.hi(0)+particle_slice_dx_lab_;
+#if (AMREX_SPACEDIM == 3)
+        Real const ymin = diag_domain_lab_.lo(1)-particle_slice_dx_lab_;
+        Real const ymax = diag_domain_lab_.hi(1)+particle_slice_dx_lab_;
+#endif
 
         //Flag particles that need to be copied if they cross the reduced slice //
         amrex::ParallelFor(np,
         [=] AMREX_GPU_DEVICE(int i)
         {
             Flag[i] = 0;
-            if ( x_temp[i] >= (diag_domain_lab_.lo(0)-particle_slice_dx_lab_) &&
-                 x_temp[i] <= (diag_domain_lab_.hi(0)+particle_slice_dx_lab_) ) {
+            //if ( x_temp[i] >= (diag_domain_lab_.lo(0)-particle_slice_dx_lab_) &&
+            //     x_temp[i] <= (diag_domain_lab_.hi(0)+particle_slice_dx_lab_) ) {
+            if ( x_temp[i] >= (xmin) &&
+                 x_temp[i] <= (xmax) ) {
 #if (AMREX_SPACEDIM == 3)
-               if (y_temp[i] >= (diag_domain_lab_.lo(1)-particle_slice_dx_lab_) &&
-                   y_temp[i] <= (diag_domain_lab_.hi(1)+particle_slice_dx_lab_) )
+               if (y_temp[i] >= (ymin) &&
+                   y_temp[i] <= (ymax) )
 #endif
                {
                    Flag[i] = 1;
