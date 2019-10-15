@@ -1791,8 +1791,6 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
 #else
         int thread_num = 0;
 #endif
-            RealVector xp_new, yp_new, zp_new;
-
             for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
             {
                 int counter_for_ParticleCopy = 0;
