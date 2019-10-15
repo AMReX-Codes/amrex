@@ -6,8 +6,6 @@
 #include<AMReX_AmrCore.H>
 #include<AMReX_Gpu.H>
 
-#include<utility>
-
 //Sets the decorator for GPU
 #define PXRMP_GPU AMREX_GPU_DEVICE
 //Sets SI units in the library

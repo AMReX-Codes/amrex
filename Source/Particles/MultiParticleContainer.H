@@ -19,6 +19,8 @@
 #include <map>
 #include <string>
 #include <algorithm>
+#include <utility>
+#include <tuple>
 
 //
 // MultiParticleContainer holds multiple (nspecies or npsecies+1 when
@@ -229,6 +231,11 @@ protected:
 
     void InitQuantumSync ();
     void InitBreitWheeler ();
+
+    std::tuple<bool, std::string, WarpXQuantumSynchrotronWrapperCtrl>
+    ParseQuantumSyncParams ();
+    std::tuple<bool, std::string, WarpXBreitWheelerWrapperCtrl>
+    ParseBreitWheelerParams ();
 #endif
 
 private:
