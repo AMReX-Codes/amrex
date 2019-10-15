@@ -1379,7 +1379,7 @@ AddPartDataToParticleBuffer(
         if (np == 0) return;
 
         // allocate size of particle buffer array to np
-        // This is a growing array. Each time we add np elements 
+        // This is a growing array. Each time we add np elements
         // to the existing array which has size = init_size
         int init_size = particles_buffer_[isp].GetRealData(DiagIdx::w).size();
         int total_size = init_size + np;
@@ -1440,9 +1440,9 @@ AddPartDataToParticleBuffer(
 
     for (int isp = 0; isp < nSpeciesBoostedFrame; ++isp) {
         auto np = tmp_particle_buffer[isp].GetRealData(DiagIdx::w).size();
-        
-        if (np == 0) return;               
- 
+
+        if (np == 0) return;
+
         Real* const AMREX_RESTRICT wp_temp =
               tmp_particle_buffer[isp].GetRealData(DiagIdx::w).data();
         Real* const AMREX_RESTRICT x_temp =
