@@ -15,7 +15,7 @@ struct ParticlePusherAlgo {
     enum {
         Boris = 0,
         Vay = 1,
-        HigueraCary = 0
+        HigueraCary = 2
     };
 };
 
