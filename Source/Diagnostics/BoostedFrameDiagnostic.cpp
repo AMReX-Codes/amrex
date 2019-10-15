@@ -1379,7 +1379,11 @@ AddPartDataToParticleBuffer(
         if (np == 0) return;
 
         // allocate size of particle buffer array to np
-        particles_buffer_[isp].resize(np);
+        // This is a growing array. Each time we add np elements 
+        // to the existing array which has size = init_size
+        int init_size = particles_buffer_[isp].GetRealData(DiagIdx::w).size();
+        int total_size = init_size + np;
+        particles_buffer_[isp].resize(total_size);
 
         // Data pointers to particle attributes //
         Real* const AMREX_RESTRICT wp_buff =
@@ -1416,13 +1420,13 @@ AddPartDataToParticleBuffer(
         amrex::ParallelFor(np,
         [=] AMREX_GPU_DEVICE(int i)
         {
-            wp_buff[i] = wp_temp[i];
-            x_buff[i]  = x_temp[i];
-            y_buff[i]  = y_temp[i];
-            z_buff[i]  = z_temp[i];
-            ux_buff[i] = ux_temp[i];
-            uy_buff[i] = uy_temp[i];
-            uz_buff[i] = uz_temp[i];
+            wp_buff[init_size + i] = wp_temp[i];
+            x_buff[init_size + i]  = x_temp[i];
+            y_buff[init_size + i]  = y_temp[i];
+            z_buff[init_size + i]  = z_temp[i];
+            ux_buff[init_size + i] = ux_temp[i];
+            uy_buff[init_size + i] = uy_temp[i];
+            uz_buff[init_size + i] = uz_temp[i];
         });
     }
 }
@@ -1436,9 +1440,9 @@ AddPartDataToParticleBuffer(
 
     for (int isp = 0; isp < nSpeciesBoostedFrame; ++isp) {
         auto np = tmp_particle_buffer[isp].GetRealData(DiagIdx::w).size();
-
-        if (np == 0) return;
-
+        
+        if (np == 0) return;               
+ 
         Real* const AMREX_RESTRICT wp_temp =
               tmp_particle_buffer[isp].GetRealData(DiagIdx::w).data();
         Real* const AMREX_RESTRICT x_temp =
@@ -1492,7 +1496,9 @@ AddPartDataToParticleBuffer(
         // flag values. These location indices are used to copy data
         // from src to dst when the copy-flag is set to 1.
         amrex::Gpu::exclusive_scan(Flag,Flag+np,IndexLocation);
-        int total_reducedDiag_size = IndexLocation[np-1] + Flag[np-1];
+        int copy_size = IndexLocation[np-1] + Flag[np-1];
+        int init_size = particles_buffer_[isp].GetRealData(DiagIdx::w).size();
+        int total_reducedDiag_size = copy_size + init_size;
 
         // allocate array size for reduced diagnostic buffer array
         particles_buffer_[isp].resize(total_reducedDiag_size);
@@ -1520,14 +1526,14 @@ AddPartDataToParticleBuffer(
         {
             if (Flag[i] == 1)
             {
-               int loc = IndexLocation[i];
+               int loc = IndexLocation[i] + init_size;
                wp_buff[loc] = wp_temp[i];
                x_buff[loc]  = x_temp[i];
                y_buff[loc]  = y_temp[i];
                z_buff[loc]  = z_temp[i];
                ux_buff[loc] = ux_temp[i];
                uy_buff[loc] = uy_temp[i];
-               uz_buff[loc] - uz_temp[i];
+               uz_buff[loc] = uz_temp[i];
             }
         });
 

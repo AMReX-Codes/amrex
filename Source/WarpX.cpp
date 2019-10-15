@@ -69,7 +69,7 @@ bool WarpX::do_boosted_frame_particles = true;
 
 int  WarpX::num_slice_snapshots_lab = 0;
 Real WarpX::dt_slice_snapshots_lab;
-Real WarpX::particle_slice_width_lab;
+Real WarpX::particle_slice_width_lab = 0;
 
 bool WarpX::do_dynamic_scheduling = true;
 
