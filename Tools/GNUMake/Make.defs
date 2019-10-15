@@ -727,9 +727,8 @@ libraries	= $(LIBRARIES) $(XTRALIBS)
 
 ifeq ($(USE_RPATH),TRUE)
   LDFLAGS	+= -Xlinker -rpath -Xlinker . $(addprefix -Xlinker -rpath -Xlinker , $(LIBRARY_LOCATIONS))
-else
-  LDFLAGS	+= -L. $(addprefix -L, $(LIBRARY_LOCATIONS))
 endif
+LDFLAGS	+= -L. $(addprefix -L, $(LIBRARY_LOCATIONS))
 
 machineSuffix	= $(lowercase_comp)$(archSuffix)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(MProfSuffix)$(BTSuffix)$(MPISuffix)$(UPCXXSuffix)$(OMPSuffix)$(ACCSuffix)$(GPUSuffix)$(USERSuffix)
 
