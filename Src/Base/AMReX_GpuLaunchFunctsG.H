@@ -323,7 +323,7 @@ void ParallelFor (Box const& box1, T1 ncomp1, L1&& f1,
                   Box const& box2, T2 ncomp2, L2&& f2,
                   std::size_t shared_mem_bytes=0) noexcept
 {
-    For(box1,box2,ncomp1,ncomp2,std::forward<L1>(f1),std::forward<L2>(f2),shared_mem_bytes);
+    For(box1,ncomp1,std::forward<L1>(f1),box2,ncomp2,std::forward<L2>(f2),shared_mem_bytes);
 }
 
 template <typename T1, typename T2, typename T3, typename L1, typename L2, typename L3,
@@ -335,8 +335,9 @@ void ParallelFor (Box const& box1, T1 ncomp1, L1&& f1,
                   Box const& box3, T3 ncomp3, L3&& f3,
                   std::size_t shared_mem_bytes=0) noexcept
 {
-    For(box1,box2,box3,ncomp1,ncomp2,ncomp3,
-        std::forward<L1>(f1),std::forward<L2>(f2),std::forward<L3>(f3),shared_mem_bytes);
+    For(box1,ncomp1,std::forward<L1>(f1),
+        box2,ncomp2,std::forward<L2>(f2),
+        box3,ncomp3,std::forward<L2>(f3),shared_mem_bytes);
 }
 
 template <typename T, typename L1, typename L2>

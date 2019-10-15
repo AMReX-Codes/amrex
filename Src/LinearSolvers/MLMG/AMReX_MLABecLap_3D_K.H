@@ -195,19 +195,20 @@ void mlabeclap_flux_zface (Box const& box, Array4<Real> const& fz, Array4<Real c
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void abec_gsrb (Box const& box, Array4<Real> const& phi,
-                Array4<Real const> const& rhs, Real alpha,
-                Real dhx, Real dhy, Real dhz, Array4<Real const> const& a,
-                Array4<Real const> const& bX,
-                Array4<Real const> const& bY,
+void abec_gsrb (Box const& box, Array4<Real> const& phi, Array4<Real const> const& rhs,
+                Real alpha, Array4<Real const> const& a,
+                Real dhx, Real dhy, Real dhz,
+                Array4<Real const> const& bX, Array4<Real const> const& bY,
                 Array4<Real const> const& bZ,
-                Array4<Real const> const& f0, Array4<int const> const& m0,
-                Array4<Real const> const& f1, Array4<int const> const& m1,
-                Array4<Real const> const& f2, Array4<int const> const& m2,
-                Array4<Real const> const& f3, Array4<int const> const& m3,
-                Array4<Real const> const& f4, Array4<int const> const& m4,
-                Array4<Real const> const& f5, Array4<int const> const& m5,
-                Box const& vbox, int nc, int redblack) noexcept
+                Array4<int const> const& m0, Array4<int const> const& m2,
+                Array4<int const> const& m4,
+                Array4<int const> const& m1, Array4<int const> const& m3,
+                Array4<int const> const& m5,
+                Array4<Real const> const& f0, Array4<Real const> const& f2,
+                Array4<Real const> const& f4,
+                Array4<Real const> const& f1, Array4<Real const> const& f3,
+                Array4<Real const> const& f5,
+                Box const& vbox, int redblack, int nc) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);

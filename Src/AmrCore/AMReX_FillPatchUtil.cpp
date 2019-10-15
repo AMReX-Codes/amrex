@@ -92,7 +92,7 @@ namespace amrex
                 {
                     Real alpha = (t1-time)/(t1-t0);
                     Real beta = (time-t0)/(t1-t0);
-                    AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
                     {
                         dfab(i,j,k,n+destcomp) = alpha*sfab0(i,j,k,n+scomp)
                             +                     beta*sfab1(i,j,k,n+scomp);
@@ -100,7 +100,7 @@ namespace amrex
                 }
                 else
                 {
-                    AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
                     {
                         dfab(i,j,k,n+destcomp) = sfab0(i,j,k,n+scomp);
                     });

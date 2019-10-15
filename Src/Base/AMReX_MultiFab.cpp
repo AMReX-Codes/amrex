@@ -286,7 +286,7 @@ MultiFab::Saxpy (MultiFab&       dst,
         if (bx.ok()) {
             auto const sfab = src.array(mfi);
             auto       dfab = dst.array(mfi);
-            AMREX_HOST_DEVICE_FOR_4D ( bx, numcomp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, numcomp, i, j, k, n,
             {
                 dfab(i,j,k,dstcomp+n) += a * sfab(i,j,k,srccomp+n);
             });
@@ -318,7 +318,7 @@ MultiFab::Xpay (MultiFab&       dst,
         if (bx.ok()) {
             auto const sfab = src.array(mfi);
             auto       dfab = dst.array(mfi);
-            AMREX_HOST_DEVICE_FOR_4D ( bx, numcomp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, numcomp, i, j, k, n,
             {
                 dfab(i,j,k,n+dstcomp) = sfab(i,j,k,n+srccomp) + a * dfab(i,j,k,n+dstcomp);
             });
@@ -357,7 +357,7 @@ MultiFab::LinComb (MultiFab&       dst,
             auto const xfab =   x.array(mfi);
             auto const yfab =   y.array(mfi);
             auto       dfab = dst.array(mfi);
-            AMREX_HOST_DEVICE_FOR_4D ( bx, numcomp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, numcomp, i, j, k, n,
             {
                 dfab(i,j,k,dstcomp+n) = a*xfab(i,j,k,xcomp+n) + b*yfab(i,j,k,ycomp+n);
             });
@@ -393,7 +393,7 @@ MultiFab::AddProduct (MultiFab&       dst,
             auto const s1fab = src1.array(mfi);
             auto const s2fab = src2.array(mfi);
             auto        dfab =  dst.array(mfi);
-            AMREX_HOST_DEVICE_FOR_4D ( bx, numcomp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, numcomp, i, j, k, n,
             {
                 dfab(i,j,k,n+dstcomp) += s1fab(i,j,k,n+comp1) * s2fab(i,j,k,n+comp2);
             });
@@ -685,11 +685,31 @@ MultiFab::min (int comp,
 {
     BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
 
-    Real mn = amrex::ReduceMin(*this, nghost,
-    [=] AMREX_GPU_HOST_DEVICE (Box const& bx, FArrayBox const& fab) -> Real
+    Real mn;
+
+#ifdef AMREX_USE_EB
+    if ( this->hasEBFabFactory() )
     {
-        return fab.min(bx,comp);
-    });
+        MultiFab tmp(this->boxArray(), this->DistributionMap(), 1, nghost,
+                     MFInfo(), this->Factory());
+        MultiFab::Copy( tmp, *this, comp, 0, 1, nghost );
+        EB_set_covered( tmp, std::numeric_limits<Real>::max() );
+
+        mn = amrex::ReduceMin(tmp, nghost,
+        [=] AMREX_GPU_HOST_DEVICE (Box const& bx, FArrayBox const& fab) -> Real
+        {
+            return fab.min(bx,comp);
+        });
+    }
+    else
+#endif
+    {
+        mn = amrex::ReduceMin(*this, nghost,
+        [=] AMREX_GPU_HOST_DEVICE (Box const& bx, FArrayBox const& fab) -> Real
+        {
+            return fab.min(bx,comp);
+        });
+    }
 
     if (!local)
 	ParallelAllReduce::Min(mn, ParallelContext::CommunicatorSub());
@@ -736,11 +756,33 @@ MultiFab::max (int comp,
 {
     BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
 
-    Real mx = amrex::ReduceMax(*this, nghost,
-    [=] AMREX_GPU_HOST_DEVICE (Box const& bx, FArrayBox const& fab) -> Real
+    Real mx;
+
+#ifdef AMREX_USE_EB
+    if ( this->hasEBFabFactory() )
     {
-        return fab.max(bx,comp);
-    });
+        MultiFab tmp(this->boxArray(), this->DistributionMap(), 1, nghost,
+                     MFInfo(), this->Factory() );
+
+        MultiFab::Copy( tmp, *this, comp, 0, 1, nghost );
+        EB_set_covered( tmp, std::numeric_limits<Real>::min() );
+
+        mx = amrex::ReduceMax(tmp, nghost,
+        [=] AMREX_GPU_HOST_DEVICE (Box const& bx, FArrayBox const& fab) -> Real
+        {
+            return fab.max(bx,comp);
+        });
+
+    }
+    else
+#endif
+    {
+        mx = amrex::ReduceMax(*this, nghost,
+        [=] AMREX_GPU_HOST_DEVICE (Box const& bx, FArrayBox const& fab) -> Real
+        {
+            return fab.max(bx,comp);
+        });
+    }
 
     if (!local)
 	ParallelAllReduce::Max(mx, ParallelContext::CommunicatorSub());
@@ -911,14 +953,36 @@ MultiFab::norm0 (const iMultiFab& mask, int comp, int nghost, bool local) const
 }
 
 Real
-MultiFab::norm0 (int comp, int nghost, bool local) const
+MultiFab::norm0 (int comp, int nghost, bool local, bool set_covered ) const
 {
-    Real nm0 = amrex::ReduceMax(*this, nghost,
-    [=] AMREX_GPU_HOST_DEVICE (Box const& bx, FArrayBox const& fab) -> Real
-    {
-        return fab.norm(bx, 0, comp, 1);
-    });
+    Real nm0;
 
+#ifdef AMREX_USE_EB
+    if ( this -> hasEBFabFactory() && set_covered )
+    {
+        MultiFab tmp( this->boxArray(), this->DistributionMap(), 1,
+                      nghost, MFInfo(), this->Factory() );
+
+        MultiFab::Copy( tmp, *this, comp, 0, 1, nghost );
+        if (set_covered)
+            EB_set_covered( tmp, 0.0 );
+
+        nm0 = amrex::ReduceMax(tmp, nghost,
+        [=] AMREX_GPU_HOST_DEVICE (Box const& bx, FArrayBox const& fab) -> Real
+        {
+            return fab.norm(bx, 0, 0, 1);
+        });
+    }
+    else
+#endif
+    {
+        nm0 = amrex::ReduceMax(*this, nghost,
+        [=] AMREX_GPU_HOST_DEVICE (Box const& bx, FArrayBox const& fab) -> Real
+        {
+            return fab.norm(bx, 0, comp, 1);
+        });
+
+    }
     if (!local)
 	ParallelAllReduce::Max(nm0, ParallelContext::CommunicatorSub());
 
@@ -926,14 +990,14 @@ MultiFab::norm0 (int comp, int nghost, bool local) const
 }
 
 Vector<Real>
-MultiFab::norm0 (const Vector<int>& comps, int nghost, bool local) const
+MultiFab::norm0 (const Vector<int>& comps, int nghost, bool local, bool set_covered) const
 {
     int n = comps.size();
     Vector<Real> nm0;
     nm0.reserve(n);
 
     for (int comp : comps) {
-        nm0.push_back(this->norm0(comp, nghost, true));
+        nm0.push_back(this->norm0(comp, nghost, true, set_covered));
     }
 
     if (!local)
@@ -983,10 +1047,17 @@ MultiFab::norm2 (const Vector<int>& comps) const
 }
 
 Real
-MultiFab::norm1 (int comp, const Periodicity& period) const
+MultiFab::norm1 (int comp, const Periodicity& period, bool set_covered ) const
 {
-    MultiFab tmpmf(boxArray(), DistributionMap(), 1, 0, MFInfo(), Factory());
+    MultiFab tmpmf(this->boxArray(), this->DistributionMap(), 1, 0,
+                   MFInfo(), this->Factory());
+
     MultiFab::Copy(tmpmf, *this, comp, 0, 1, 0);
+
+#ifdef AMREX_USE_EB
+    if ( this -> hasEBFabFactory() && set_covered )
+        EB_set_covered( tmpmf, 0.0 );
+#endif
 
     auto mask = OverlapMask(period);
     MultiFab::Divide(tmpmf, *mask, 0, 0, 1, 0);
@@ -1229,7 +1300,7 @@ MultiFab::OverlapMask (const Periodicity& period) const
             const Box& bx = (*p)[mfi].box();
             auto arr = p->array(mfi); 
 
-            AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
             {
                 arr(i,j,k) = 0.0;
             });
@@ -1240,7 +1311,7 @@ MultiFab::OverlapMask (const Periodicity& period) const
                 for (const auto& is : isects)
                 {
                     Box ibx = is.second-iv;
-                    AMREX_HOST_DEVICE_FOR_3D(ibx, i, j, k,
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D(ibx, i, j, k,
                     {
                         arr(i,j,k) += 1.0;
                     });

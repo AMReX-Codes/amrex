@@ -42,7 +42,7 @@ EBFluxRegister::defineExtra (const BoxArray& fba, const DistributionMapping& fdm
     {
         const Box& ifabbox = mfi.fabbox();
         auto const& ifab = m_cfp_inside_mask.array(mfi);
-        AMREX_HOST_DEVICE_FOR_3D(ifabbox, i, j, k,
+        AMREX_HOST_DEVICE_PARALLEL_FOR_3D(ifabbox, i, j, k,
         {
             ifab(i,j,k) = 0;
         });
@@ -53,7 +53,7 @@ EBFluxRegister::defineExtra (const BoxArray& fba, const DistributionMapping& fdm
         {
             const Box& bx = amrex::grow(cfp->box(), 1);
             const Box& ibx = bx & ifabbox;
-            AMREX_HOST_DEVICE_FOR_3D(ibx, i, j, k,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_3D(ibx, i, j, k,
             {
                 ifab(i,j,k) = 1; // cells just inside crse/fine boundary
             });
@@ -236,7 +236,7 @@ EBFluxRegister::Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
             Array4<Real> const& cfa = m_cfpatch.array(mfi);
             Array4<Real const> const& m = m_cfp_mask.const_array(mfi);
             const Box& bx = mfi.fabbox();
-            AMREX_HOST_DEVICE_FOR_4D(bx,m_ncomp,i,j,k,n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D(bx,m_ncomp,i,j,k,n,
             {
                 cfa(i,j,k,n) *= m(i,j,k);
             });
@@ -274,7 +274,7 @@ EBFluxRegister::Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
                     if (ebflag.getType(bxg1) == FabType::regular)
                     {
                         // no re-reflux or re-re-redistribution
-                        AMREX_HOST_DEVICE_FOR_4D(bx, m_ncomp, i, j, k, n,
+                        AMREX_HOST_DEVICE_PARALLEL_FOR_4D(bx, m_ncomp, i, j, k, n,
                         {
                             dfab(i,j,k,n) += sfab(i,j,k,n);
                         });
