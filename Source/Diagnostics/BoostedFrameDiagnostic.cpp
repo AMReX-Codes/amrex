@@ -1461,7 +1461,7 @@ AddPartDataToParticleBuffer(
 
         int* const AMREX_RESTRICT Flag = FlagForPartCopy.dataPtr();
         int* const AMREX_RESTRICT IndexLocation = IndexForPartCopy.dataPtr();
-     
+
         Real const xmin = diag_domain_lab_.lo(0)-particle_slice_dx_lab_;
         Real const xmax = diag_domain_lab_.hi(0)+particle_slice_dx_lab_;
 #if (AMREX_SPACEDIM == 3)
