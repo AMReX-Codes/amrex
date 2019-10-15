@@ -601,7 +601,7 @@ WarpX::ReadParameters ()
           pp.query("num_slice_snapshots_lab", num_slice_snapshots_lab);
           if (num_slice_snapshots_lab > 0) {
              pp.get("dt_slice_snapshots_lab", dt_slice_snapshots_lab );
-             pp.get("particle_slice_width_lab",particle_slice_width_lab);
+             pp.query("particle_slice_width_lab",particle_slice_width_lab);
           }
        }
 
