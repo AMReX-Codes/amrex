@@ -120,7 +120,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                 nbytes += (*this)[cct.srcIndex].nBytes(cct.sbox,scomp,ncomp);
             }
             
-            BL_ASSERT(nbytes < std::numeric_limits<int>::max());
+            BL_ASSERT(nbytes < std::size_t(std::numeric_limits<int>::max()));
             
             total_volume += nbytes;
 
@@ -331,12 +331,12 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                 auto const sfab = src.array(fai);
                 auto       dfab = this->array(fai);
 		if (op == FabArrayBase::COPY) {
-                    AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
                     {
                         dfab(i,j,k,dcomp+n) = sfab(i,j,k,scomp+n);
                     });
 		} else {
-                    AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
                     {
                         dfab(i,j,k,dcomp+n) += sfab(i,j,k,scomp+n);
                     });
@@ -444,7 +444,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                     nbytes += src[cct.srcIndex].nBytes(cct.sbox,SC,NC);
                 }
 		
-		BL_ASSERT(nbytes < std::numeric_limits<int>::max());
+		BL_ASSERT(nbytes < std::size_t(std::numeric_limits<int>::max()));
 
                 total_volume += nbytes;
 
@@ -668,7 +668,7 @@ FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&  m_RcvTags,
             nbytes += (*this)[cct.dstIndex].nBytes(cct.dbox,icomp,ncomp);
         }
 
-        BL_ASSERT(nbytes < std::numeric_limits<int>::max());
+        BL_ASSERT(nbytes < std::size_t(std::numeric_limits<int>::max()));
 
         TotalRcvsVolume += nbytes;
 
@@ -732,7 +732,7 @@ FabArray<FAB>::Redistribute (const FabArray<FAB>& src,
             const Box& bx = fai.growntilebox(nghost);
             auto const sfab = src.array(fai);
             auto       dfab = this->array(fai);
-            AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
             {
                 dfab(i,j,k,n+dcomp) = sfab(i,j,k,n+scomp);
             });

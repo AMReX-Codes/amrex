@@ -606,7 +606,7 @@ OwnerMask (FabArrayBase const& mf, const Periodicity& period)
             auto arr = p->array(mfi);
             const int idx = mfi.index();
 
-            AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
             {
                 arr(i,j,k) = owner;
             });
@@ -620,7 +620,7 @@ OwnerMask (FabArrayBase const& mf, const Periodicity& period)
                     const Box& obx = is.second-iv;
                     if ((oi < idx) || (oi == idx && iv < IntVect::TheZeroVector())) 
                     {
-                        AMREX_HOST_DEVICE_FOR_3D(obx, i, j, k,
+                        AMREX_HOST_DEVICE_PARALLEL_FOR_3D(obx, i, j, k,
                         {
                             arr(i,j,k) = nonowner;
                         });

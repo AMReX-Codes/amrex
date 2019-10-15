@@ -34,7 +34,7 @@ FabSet::copyFrom (const FabSet& src, int scomp, int dcomp, int ncomp)
             const Box& bx = fsi.validbox();
             auto const srcfab =   src.array(fsi);
             auto       dstfab = this->array(fsi);
-            AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
             {
                 dstfab(i,j,k,n+dcomp) = srcfab(i,j,k,n+scomp);
             });
@@ -65,7 +65,7 @@ FabSet::plusFrom (const FabSet& src, int scomp, int dcomp, int ncomp)
             const Box& bx = fsi.validbox();
             auto const srcfab =   src.array(fsi);
             auto       dstfab = this->array(fsi);
-            AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
             {
                 dstfab(i,j,k,n+dcomp) += srcfab(i,j,k,n+scomp);
             });
@@ -111,7 +111,7 @@ FabSet::setVal (Real val)
     for (FabSetIter fsi(*this); fsi.isValid(); ++fsi) {
         const Box& bx = fsi.validbox();
         auto fab = this->array(fsi);
-        AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
         {
             fab(i,j,k,n) = val;
         });
@@ -127,7 +127,7 @@ FabSet::setVal (Real val, int comp, int num_comp)
     for (FabSetIter fsi(*this); fsi.isValid(); ++fsi) {
         const Box& bx = fsi.validbox();
         auto fab = this->array(fsi);
-        AMREX_HOST_DEVICE_FOR_4D ( bx, num_comp, i, j, k, n,
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, num_comp, i, j, k, n,
         {
             fab(i,j,k,n+comp) = val;
         });
@@ -149,7 +149,7 @@ FabSet::linComb (Real a, Real b, const FabSet& src, int scomp, int dcomp, int nc
         const Box& bx = fsi.validbox();
         auto const srcfab =   src.array(fsi);
         auto       dstfab = this->array(fsi);
-        AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
         {
             dstfab(i,j,k,n+dcomp) = a*dstfab(i,j,k,n+dcomp) + b*srcfab(i,j,k,n+scomp);
         });
@@ -181,7 +181,7 @@ FabSet::linComb (Real a, const MultiFab& mfa, int a_comp,
         const Box& bx = mfi.validbox();
         auto afab = bdrya.array(mfi);
         auto bfab = bdryb.array(mfi);
-        AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
         {
             afab(i,j,k,n) = 1.e200;
             bfab(i,j,k,n) = 1.e200;
@@ -200,7 +200,7 @@ FabSet::linComb (Real a, const MultiFab& mfa, int a_comp,
         auto const afab = bdrya.array(fsi);
         auto const bfab = bdryb.array(fsi);
         auto       dfab = this->array(fsi);
-        AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
         {
             dfab(i,j,k,n+dcomp) = a*afab(i,j,k,n) + b*bfab(i,j,k,n);
         });
@@ -237,7 +237,7 @@ FabSet::Copy (FabSet& dst, const FabSet& src)
         const Box& bx = fsi.validbox();
         auto const srcfab = src.array(fsi);
         auto       dstfab = dst.array(fsi);
-        AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
         {
             dstfab(i,j,k,n) = srcfab(i,j,k,n);
         });

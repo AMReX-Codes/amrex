@@ -16,7 +16,7 @@ if (ENABLE_MPI)
       MPI::MPI_C MPI::MPI_CXX
       PROPERTIES
       IMPORTED_GLOBAL True )
-   
+
    target_link_libraries(amrex PUBLIC MPI::MPI_C MPI::MPI_CXX)
 endif ()
 
@@ -43,6 +43,7 @@ target_sources( amrex
    AMReX_error_fi.cpp
    AMReX_Extension.H
    AMReX_IndexSequence.H
+   AMReX_PODVector.H
    AMReX_ParmParse.cpp
    AMReX_parmparse_fi.cpp
    AMReX_ParmParse.H
@@ -52,9 +53,12 @@ target_sources( amrex
    AMReX_Reduce.H
    AMReX_Scan.H
    AMReX_Partition.H
+   AMReX_Random.H
+   AMReX_Random.cpp
    AMReX_BLassert.H
    AMReX_ArrayLim.H
    AMReX_REAL.H
+   AMReX_INT.H
    AMReX_CONSTANTS.H
    AMReX_SPACE.H
    AMReX_DistributionMapping.H

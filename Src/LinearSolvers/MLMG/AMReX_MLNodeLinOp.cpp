@@ -1,6 +1,7 @@
 
 #include <AMReX_MLNodeLinOp.H>
 #include <AMReX_MLNodeLap_F.H>
+#include <AMReX_MLNodeLap_K.H>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -75,23 +76,28 @@ void
 MLNodeLinOp::solutionResidual (int amrlev, MultiFab& resid, MultiFab& x, const MultiFab& b,
                                const MultiFab* crse_bcdata)
 {
-    // todo: gpu
     const int mglev = 0;
     const int ncomp = b.nComp();
     apply(amrlev, mglev, resid, x, BCMode::Inhomogeneous, StateMode::Solution);
 
     const iMultiFab& dmsk = *m_dirichlet_mask[amrlev][0];
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(resid, true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(resid, TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
-	    const Box& bx = mfi.tilebox();
-	    amrex_mlndlap_solution_residual(BL_TO_FORTRAN_BOX(bx),
-					    BL_TO_FORTRAN_ANYD(resid[mfi]),
-					    BL_TO_FORTRAN_ANYD(b[mfi]),
-					    BL_TO_FORTRAN_ANYD(dmsk[mfi]),
-					    &ncomp);
+        const Box& bx = mfi.tilebox();
+        Array4<Real> const& res = resid.array(mfi);
+        Array4<Real const> const& bb = b.const_array(mfi);
+        Array4<int const> const& dd = dmsk.const_array(mfi);
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
+        {
+            if (dd(i,j,k)) {
+                res(i,j,k,n) = 0.0;
+            } else {
+                res(i,j,k,n) = bb(i,j,k,n) - res(i,j,k,n);
+            }
+        });
     }
 }
 

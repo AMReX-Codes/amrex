@@ -48,8 +48,6 @@ int main (int argc, char* argv[])
 
         Real obstacle_radius = 0.10;
 
-        amrex::Vector<int> ob_id;
-
         // read parameters
         {
             ParmParse pp;
@@ -58,10 +56,6 @@ int main (int argc, char* argv[])
             pp.query("n_cell", n_cell);
             pp.query("max_grid_size", max_grid_size);
             pp.query("use_hypre", use_hypre);
-
-            pp.queryarr("obstacles", ob_id);
-
-            pp.query("obstacle_radius", obstacle_radius);
         }
 
 #ifndef AMREX_USE_HYPRE
@@ -72,56 +66,19 @@ int main (int argc, char* argv[])
         if (n_cell%8 != 0)
            amrex::Abort("n_cell must be a multiple of 8");
 
-        int n_cell_x = 2*n_cell;
         int n_cell_y =   n_cell;
+        int n_cell_x = 2*n_cell;
         int n_cell_z =   n_cell/8;
-        int num_obstacles;
 
-        if (ob_id.empty())
-        {
-           amrex::Print() << " **************************************************** "     << std::endl;
-           amrex::Print() << " You didn't specify any obstacles -- please try again " << std::endl;
-           amrex::Print() << " ****************************************************\n "     << std::endl;
-           exit(0);
-
-        } else {
-
-           num_obstacles = ob_id.size();
-
-           if (num_obstacles > 9)
-           {
-              amrex::Print() << " **************************************************** "     << std::endl;
-              amrex::Print() << " We only have 9 possible obstacles " << std::endl;
-              amrex::Print() << " You specified too many -- please try again " << std::endl;
-              amrex::Print() << " ****************************************************\n "     << std::endl;
-              exit(0);
-           } 
-
-           for (int i = 0; i < num_obstacles; i++) 
-              if (ob_id[i] < 0 || ob_id[i] > 8)
-              {
-                 amrex::Print() << " **************************************************** "     << std::endl;
-                 amrex::Print() << " The obstacles must be identified using integers from 0 through 8 (inclusive) " << std::endl;
-                 amrex::Print() << " You specified an invalid obstacle -- please try again " << std::endl;
-                 amrex::Print() << " ****************************************************\n "     << std::endl;
-                 exit(0);
-              }
-
-           amrex::Print() << " \n********************************************************************" << std::endl; 
-           amrex::Print() << " You specified " << num_obstacles << " objects in the domain: ";
-              for (int i = 0; i < num_obstacles; i++) 
-                  amrex::Print() << ob_id[i] << " ";
-             amrex::Print() << std::endl;
-           amrex::Print() << " ********************************************************************" << std::endl; 
-        } 
-
-        Real zlen = 0.125;
+        Real ylen = 1.0;
+        Real xlen = 2.0 * ylen;
+        Real zlen = ylen / 8.0;
 
         Geometry geom;
         BoxArray grids;
         DistributionMapping dmap;
         {
-            RealBox rb({AMREX_D_DECL(0.,0.,0.)}, {AMREX_D_DECL(2.0,1.0,zlen)});
+            RealBox rb({AMREX_D_DECL(0.,0.,0.)}, {AMREX_D_DECL(xlen,ylen,zlen)});
 
             Array<int,AMREX_SPACEDIM> isp{AMREX_D_DECL(0,1,1)};
             Geometry::Setup(&rb, 0, isp.data());
@@ -160,106 +117,22 @@ int main (int argc, char* argv[])
         //     outside ("false") the object(s)
 
         Array<EB2::CylinderIF,9> obstacles{
-            EB2::CylinderIF(obstacle_radius, height, direction, obstacle_center[ 0], false),
-            EB2::CylinderIF(obstacle_radius, height, direction, obstacle_center[ 1], false),
-            EB2::CylinderIF(obstacle_radius, height, direction, obstacle_center[ 2], false),
+            EB2::CylinderIF(    obstacle_radius, height, direction, obstacle_center[ 0], false),
+            EB2::CylinderIF(    obstacle_radius, height, direction, obstacle_center[ 1], false),
+            EB2::CylinderIF(    obstacle_radius, height, direction, obstacle_center[ 2], false),
             EB2::CylinderIF(0.9*obstacle_radius, height, direction, obstacle_center[ 3], false),
             EB2::CylinderIF(0.9*obstacle_radius, height, direction, obstacle_center[ 4], false),
             EB2::CylinderIF(0.9*obstacle_radius, height, direction, obstacle_center[ 5], false),
-            EB2::CylinderIF(obstacle_radius, height, direction, obstacle_center[ 6], false),
-            EB2::CylinderIF(obstacle_radius, height, direction, obstacle_center[ 7], false),
-            EB2::CylinderIF(obstacle_radius, height, direction, obstacle_center[ 8], false)};
+            EB2::CylinderIF(    obstacle_radius, height, direction, obstacle_center[ 6], false),
+            EB2::CylinderIF(    obstacle_radius, height, direction, obstacle_center[ 7], false),
+            EB2::CylinderIF(    obstacle_radius, height, direction, obstacle_center[ 8], false)};
 
-        switch(num_obstacles) {
-
-           case 1:
-              {
-              auto gshop1 = EB2::makeShop(obstacles[ob_id[0]]);
-              EB2::Build(gshop1, geom, required_coarsening_level, max_coarsening_level);
-              break;
-              }
-
-           case 2:
-              {
-              amrex::Print() << "Objects " << ob_id[0] << " " << ob_id[1] << std::endl;
-              auto all2 = EB2::makeUnion(obstacles[ob_id[0]],obstacles[ob_id[1]]);
-              auto gshop2  = EB2::makeShop(all2);
-              EB2::Build(gshop2, geom, required_coarsening_level, max_coarsening_level);
-              break;
-              }
-
-           case 3:
-              {
-              auto all3 = EB2::makeUnion(obstacles[ob_id[0]],obstacles[ob_id[1]],obstacles[ob_id[2]]);
-              auto gshop3  = EB2::makeShop(all3);
-              EB2::Build(gshop3, geom, required_coarsening_level, max_coarsening_level);
-              break;
-              }
-
-           case 4:
-              {
-              auto group_1 = EB2::makeUnion(obstacles[ob_id[0]],obstacles[ob_id[1]],obstacles[ob_id[2]]);
-              auto all     = EB2::makeUnion(group_1,obstacles[ob_id[3]]);
-              auto gshop4  = EB2::makeShop(all);
-              EB2::Build(gshop4, geom, required_coarsening_level, max_coarsening_level);
-              break;
-              }
-
-           case 5:
-              {
-              auto group_1 = EB2::makeUnion(obstacles[ob_id[0]],obstacles[ob_id[1]],obstacles[ob_id[2]]);
-              auto group_2 = EB2::makeUnion(obstacles[ob_id[3]],obstacles[ob_id[4]]);
-              auto all     = EB2::makeUnion(group_1,group_2);
-              auto gshop5  = EB2::makeShop(all);
-              EB2::Build(gshop5, geom, required_coarsening_level, max_coarsening_level);
-              break;
-              }
-
-           case 6:
-              {
-              auto group_1 = EB2::makeUnion(obstacles[ob_id[0]],obstacles[ob_id[1]],obstacles[ob_id[2]]);
-              auto group_2 = EB2::makeUnion(obstacles[ob_id[3]],obstacles[ob_id[4]],obstacles[ob_id[5]]);
-              auto all     = EB2::makeUnion(group_1,group_2);
-              auto gshop6  = EB2::makeShop(all);
-              EB2::Build(gshop6, geom, required_coarsening_level, max_coarsening_level);
-              break;
-              }
-
-           case 7:
-              {
-              auto group_1 = EB2::makeUnion(obstacles[ob_id[0]],obstacles[ob_id[1]],obstacles[ob_id[2]]);
-              auto group_2 = EB2::makeUnion(obstacles[ob_id[3]],obstacles[ob_id[4]],obstacles[ob_id[5]]);
-              auto group_3 = obstacles[ob_id[6]];
-              auto all     = EB2::makeUnion(group_1,group_2,group_3);
-              auto gshop7  = EB2::makeShop(all);
-              EB2::Build(gshop7, geom, required_coarsening_level, max_coarsening_level);
-              break;
-              }
-
-           case 8:
-              {
-              auto group_1 = EB2::makeUnion(obstacles[ob_id[0]],obstacles[ob_id[1]],obstacles[ob_id[2]]);
-              auto group_2 = EB2::makeUnion(obstacles[ob_id[3]],obstacles[ob_id[4]],obstacles[ob_id[5]]);
-              auto group_3 = EB2::makeUnion(obstacles[ob_id[6]],obstacles[ob_id[7]]);
-              auto all     = EB2::makeUnion(group_1,group_2,group_3);
-              auto gshop8  = EB2::makeShop(all);
-              EB2::Build(gshop8, geom, required_coarsening_level, max_coarsening_level);
-              break;
-              }
-
-           case 9:
-              {
-              auto group_1 = EB2::makeUnion(obstacles[ob_id[0]],obstacles[ob_id[1]],obstacles[ob_id[2]]);
-              auto group_2 = EB2::makeUnion(obstacles[ob_id[3]],obstacles[ob_id[4]],obstacles[ob_id[5]]);
-              auto group_3 = EB2::makeUnion(obstacles[ob_id[6]],obstacles[ob_id[7]],obstacles[ob_id[8]]);
-              auto all     = EB2::makeUnion(group_1,group_2,group_3);
-              auto gshop9  = EB2::makeShop(all);
-              EB2::Build(gshop9, geom, required_coarsening_level, max_coarsening_level);
-              break;
-              }
-
-           default:;
-        }
+        auto group_1 = EB2::makeUnion(obstacles[0],obstacles[1],obstacles[2]);
+        auto group_2 = EB2::makeUnion(obstacles[3],obstacles[4],obstacles[5]);
+        auto group_3 = EB2::makeUnion(obstacles[6],obstacles[7],obstacles[8]);
+        auto all     = EB2::makeUnion(group_1,group_2,group_3);
+        auto gshop9  = EB2::makeShop(all);
+        EB2::Build(gshop9, geom, required_coarsening_level, max_coarsening_level);
    
         const EB2::IndexSpace& eb_is = EB2::IndexSpace::top();
         const EB2::Level& eb_level = eb_is.getLevel(geom);
@@ -344,11 +217,12 @@ int main (int argc, char* argv[])
         amrex::Print() << "******************************************************************** \n" << std::endl; 
 
 	// Solve for phi and subtract from the velocity to make it divergence-free
-        macproj.project(reltol,abstol);
+	// Note that the normal velocities are at face centers (not centroids)
+        macproj.project(reltol,abstol,MLMG::Location::FaceCenter);
 	
 	// If we want to use phi elsewhere, we can pass in an array in which to return the solution
 	// MultiFab phi_inout(grids, dmap, 1, 1, MFInfo(), factory);	
-	// macproj.project({&phi_inout},reltol,abstol);
+	// macproj.project_center_vels({&phi_inout},reltol,abstol,MLMG::Location::FaceCenter);
 
         amrex::Print() << " \n********************************************************************" << std::endl; 
         amrex::Print() << " Done!" << std::endl;

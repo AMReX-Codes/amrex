@@ -365,44 +365,17 @@ MLABecLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
 #endif
 #endif
 
-#if (AMREX_SPACEDIM == 1)
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
         {
-            abec_gsrb(thread_box, solnfab, rhsfab, alpha, dhx,
-                      afab, bxfab,
-                      f0fab, m0,
-                      f1fab, m1,
-                      vbx, nc, redblack);
+            abec_gsrb(thread_box, solnfab, rhsfab, alpha, afab,
+                      AMREX_D_DECL(dhx, dhy, dhz),
+                      AMREX_D_DECL(bxfab, byfab, bzfab),
+                      AMREX_D_DECL(m0,m2,m4),
+                      AMREX_D_DECL(m1,m3,m5),
+                      AMREX_D_DECL(f0fab,f2fab,f4fab),
+                      AMREX_D_DECL(f1fab,f3fab,f5fab),
+                      vbx, redblack, nc);
         });
-#endif
-
-#if (AMREX_SPACEDIM == 2)
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
-        {
-            abec_gsrb(thread_box, solnfab, rhsfab, alpha, dhx, dhy,
-                      afab, bxfab, byfab,
-                      f0fab, m0,
-                      f1fab, m1,
-                      f2fab, m2,
-                      f3fab, m3,
-                      vbx, nc, redblack);
-        });
-#endif
-
-#if (AMREX_SPACEDIM == 3)
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
-        {
-            abec_gsrb(thread_box, solnfab, rhsfab, alpha, dhx, dhy, dhz,
-                      afab, bxfab, byfab, bzfab,
-                      f0fab, m0,
-                      f1fab, m1,
-                      f2fab, m2,
-                      f3fab, m3,
-                      f4fab, m4,
-                      f5fab, m5,
-                      vbx, nc, redblack);
-        });
-#endif
     }
 }
 

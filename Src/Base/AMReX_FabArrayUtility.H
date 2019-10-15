@@ -11,20 +11,42 @@ namespace amrex {
 template <class FAB, class F,
           class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
 typename FAB::value_type
-ReduceSum (FabArray<FAB> const& fa, int nghost, F f) {
+ReduceSum (FabArray<FAB> const& fa, int nghost, F&& f) {
     return ReduceSum(fa, IntVect(nghost), std::move(f));
 }
 
+namespace detail {
 template <class FAB, class F,
           class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
 typename FAB::value_type
-ReduceSum (FabArray<FAB> const& fa, IntVect const& nghost, F f)
+ReduceSum_host (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 {
     using value_type = typename FAB::value_type;
     value_type sm = 0;
 
+#ifdef _OPENMP
+#pragma omp parallel if (!system::regtest_reduction) reduction(+:sm)
+#endif
+    for (MFIter mfi(fa,true); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.growntilebox(nghost);
+        sm += f(bx, fa[mfi]);
+    }
+
+    return sm;
+}
+}
+
 #ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion())
+namespace detail {
+template <class FAB, class F,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+typename FAB::value_type
+ReduceSum_device (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
+{
+    using value_type = typename FAB::value_type;
+    value_type sm = 0;
+
     {
         ReduceOps<ReduceOpSum> reduce_op;
         ReduceData<value_type> reduce_data(reduce_op);
@@ -45,41 +67,89 @@ ReduceSum (FabArray<FAB> const& fa, IntVect const& nghost, F f)
         ReduceTuple hv = reduce_data.value();
         sm = amrex::get<0>(hv);
     }
-    else
-#endif
-    {
-#ifdef _OPENMP
-#pragma omp parallel if (!system::regtest_reduction) reduction(+:sm)
-#endif
-        for (MFIter mfi(fa,true); mfi.isValid(); ++mfi)
-        {
-            const Box& bx = mfi.growntilebox(nghost);
-            sm += f(bx, fa[mfi]);
-        }
-    }
 
     return sm;
 }
 
-template <class FAB1, class FAB2, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
-typename FAB1::value_type
-ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
-           int nghost, F f) {
-    return ReduceSum(fa1, fa2, IntVect(nghost), std::move(f));
+template <class FAB, class F>
+amrex::EnableIf_t<!AMREX_IS_D_LAMBDA(F), typename FAB::value_type>
+ReduceSum_host_wrapper (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
+{
+    return ReduceSum_host(fa,nghost,std::move(f));
 }
+
+template <class FAB, class F>
+amrex::EnableIf_t< AMREX_IS_D_LAMBDA(F), typename FAB::value_type>
+ReduceSum_host_wrapper (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
+{
+    amrex::Abort("ReduceSum: Launch Region is off. Device lambda cannot be called by host.");
+    return 0;
+}
+}
+
+template <class FAB, class F,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+typename FAB::value_type
+ReduceSum (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
+{
+    if (Gpu::inLaunchRegion()) {
+        return detail::ReduceSum_device(fa, nghost, std::move(f));
+    } else {
+        return detail::ReduceSum_host_wrapper(fa, nghost, std::move(f));
+    }
+}
+#else
+template <class FAB, class F,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+typename FAB::value_type
+ReduceSum (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
+{
+    return detail::ReduceSum_host(fa, nghost, std::move(f));
+}
+#endif
 
 template <class FAB1, class FAB2, class F,
           class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
 typename FAB1::value_type
 ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
-           IntVect const& nghost, F f)
+           int nghost, F&& f) {
+    return ReduceSum(fa1, fa2, IntVect(nghost), std::move(f));
+}
+
+namespace detail {
+template <class FAB1, class FAB2, class F,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+typename FAB1::value_type
+ReduceSum_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
+                IntVect const& nghost, F&& f)
 {
     using value_type = typename FAB1::value_type;
     value_type sm = 0;
 
+#ifdef _OPENMP
+#pragma omp parallel if (!system::regtest_reduction) reduction(+:sm)
+#endif
+    for (MFIter mfi(fa1,true); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.growntilebox(nghost);
+        sm += f(bx, fa1[mfi], fa2[mfi]);
+    }
+
+    return sm;
+}
+}
+
 #ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion())
+namespace detail {
+template <class FAB1, class FAB2, class F,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+typename FAB1::value_type
+ReduceSum_device (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
+                  IntVect const& nghost, F&& f)
+{
+    using value_type = typename FAB1::value_type;
+    value_type sm = 0;
+
     {
         ReduceOps<ReduceOpSum> reduce_op;
         ReduceData<value_type> reduce_data(reduce_op);
@@ -102,41 +172,93 @@ ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
         ReduceTuple hv = reduce_data.value();
         sm = amrex::get<0>(hv);
     }
-    else
-#endif
-    {
-#ifdef _OPENMP
-#pragma omp parallel if (!system::regtest_reduction) reduction(+:sm)
-#endif
-        for (MFIter mfi(fa1,true); mfi.isValid(); ++mfi)
-        {
-            const Box& bx = mfi.growntilebox(nghost);
-            sm += f(bx, fa1[mfi], fa2[mfi]);
-        }
-    }
 
     return sm;
 }
 
-template <class FAB1, class FAB2, class FAB3, class F,
+template <class FAB1, class FAB2, class F>
+amrex::EnableIf_t<!AMREX_IS_D_LAMBDA(F), typename FAB1::value_type>
+ReduceSum_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
+                        IntVect const& nghost, F&& f)
+{
+    return ReduceSum_host(fa1,fa2,nghost,std::move(f));
+}
+
+template <class FAB1, class FAB2, class F>
+amrex::EnableIf_t< AMREX_IS_D_LAMBDA(F), typename FAB1::value_type>
+ReduceSum_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
+                        IntVect const& nghost, F&& f)
+{
+    amrex::Abort("ReduceSum: Launch Region is off. Device lambda cannot be called by host.");
+    return 0;
+}
+}
+
+template <class FAB1, class FAB2, class F,
           class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
 typename FAB1::value_type
-ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, FabArray<FAB3> const& fa3,
-           int nghost, F f) {
-  return ReduceSum(fa1, fa2, fa3, nghost, std::move(f));
+ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
+           IntVect const& nghost, F&& f)
+{
+    if (Gpu::inLaunchRegion()) {
+        return detail::ReduceSum_device(fa1,fa2,nghost,std::move(f));
+    } else {
+        return detail::ReduceSum_host_wrapper(fa1,fa2,nghost,std::move(f));
+    }
 }
+#else
+template <class FAB1, class FAB2, class F,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+typename FAB1::value_type
+ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
+           IntVect const& nghost, F&& f)
+{
+    return detail::ReduceSum_host(fa1,fa2,nghost,std::move(f));
+}
+#endif
 
 template <class FAB1, class FAB2, class FAB3, class F,
           class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
 typename FAB1::value_type
 ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, FabArray<FAB3> const& fa3,
-           IntVect const& nghost, F f)
+           int nghost, F&& f) {
+  return ReduceSum(fa1, fa2, fa3, nghost, std::move(f));
+}
+
+namespace detail {
+template <class FAB1, class FAB2, class FAB3, class F,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+typename FAB1::value_type
+ReduceSum_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
+                FabArray<FAB3> const& fa3, IntVect const& nghost, F&& f)
 {
     using value_type = typename FAB1::value_type;
     value_type sm = 0;
 
+#ifdef _OPENMP
+#pragma omp parallel if (!system::regtest_reduction) reduction(+:sm)
+#endif
+    for (MFIter mfi(fa1,true); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.growntilebox(nghost);
+        sm += f(bx, fa1[mfi], fa2[mfi], fa3[mfi]);
+    }
+
+    return sm;
+}
+}
+
 #ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion())
+namespace detail {
+template <class FAB1, class FAB2, class FAB3, class F,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+typename FAB1::value_type
+ReduceSum_device (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
+                  FabArray<FAB3> const& fa3, IntVect const& nghost, F&& f)
+{
+    using value_type = typename FAB1::value_type;
+    value_type sm = 0;
+
     {
         ReduceOps<ReduceOpSum> reduce_op;
         ReduceData<value_type> reduce_data(reduce_op);
@@ -161,40 +283,92 @@ ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, FabArray<FAB3> 
         ReduceTuple hv = reduce_data.value();
         sm = amrex::get<0>(hv);
     }
-    else
-#endif
-    {
-#ifdef _OPENMP
-#pragma omp parallel if (!system::regtest_reduction) reduction(+:sm)
-#endif
-        for (MFIter mfi(fa1,true); mfi.isValid(); ++mfi)
-        {
-            const Box& bx = mfi.growntilebox(nghost);
-            sm += f(bx, fa1[mfi], fa2[mfi], fa3[mfi]);
-        }
-    }
 
     return sm;
 }
 
-template <class FAB, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
-typename FAB::value_type
-ReduceMin (FabArray<FAB> const& fa, int nghost, F f) {
-    return ReduceMin(fa, IntVect(nghost), std::move(f));
+template <class FAB1, class FAB2, class FAB3, class F>
+amrex::EnableIf_t<!AMREX_IS_D_LAMBDA(F), typename FAB1::value_type>
+ReduceSum_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
+                        FabArray<FAB3> const& fa3, IntVect const& nghost, F&& f)
+{
+    return ReduceSum_host(fa1,fa2,fa3,nghost,std::move(f));
 }
+
+template <class FAB1, class FAB2, class FAB3, class F>
+amrex::EnableIf_t< AMREX_IS_D_LAMBDA(F), typename FAB1::value_type>
+ReduceSum_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
+                        FabArray<FAB3> const& fa3, IntVect const& nghost, F&& f)
+{
+    amrex::Abort("ReduceSum: Launch Region is off. Device lambda cannot be called by host.");
+    return 0;
+}
+}
+
+template <class FAB1, class FAB2, class FAB3, class F,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+typename FAB1::value_type
+ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
+           FabArray<FAB3> const& fa3, IntVect const& nghost, F&& f)
+{
+    if (Gpu::inLaunchRegion()) {
+        return detail::ReduceSum_device(fa1,fa2,fa3,nghost,std::move(f));
+    } else {
+        return detail::ReduceSum_host_wrapper(fa1,fa2,fa3,nghost,std::move(f));
+    }
+}
+#else
+template <class FAB1, class FAB2, class FAB3, class F,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+typename FAB1::value_type
+ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
+           FabArray<FAB3> const& fa3, IntVect const& nghost, F&& f)
+{
+    return detail::ReduceSum_host(fa1,fa2,fa3,nghost,std::move(f));
+}
+#endif
 
 template <class FAB, class F,
           class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
 typename FAB::value_type
-ReduceMin (FabArray<FAB> const& fa, IntVect const& nghost, F f)
+ReduceMin (FabArray<FAB> const& fa, int nghost, F&& f)
+{
+    return ReduceMin(fa, IntVect(nghost), std::move(f));
+}
+
+namespace detail {
+template <class FAB, class F,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+typename FAB::value_type
+ReduceMin_host (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 {
     using value_type = typename FAB::value_type;
     constexpr value_type value_max = std::numeric_limits<value_type>::max();
     value_type r = value_max;
 
+#ifdef _OPENMP
+#pragma omp parallel reduction(min:r)
+#endif
+    for (MFIter mfi(fa,true); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.growntilebox(nghost);
+        r = std::min(r, f(bx, fa[mfi]));
+    }
+    return r;
+}
+}
+
 #ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion())
+namespace detail {
+template <class FAB, class F,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+typename FAB::value_type
+ReduceMin_device (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
+{
+    using value_type = typename FAB::value_type;
+    constexpr value_type value_max = std::numeric_limits<value_type>::max();
+    value_type r = value_max;
+
     {
         ReduceOps<ReduceOpMin> reduce_op;
         ReduceData<value_type> reduce_data(reduce_op);
@@ -215,41 +389,91 @@ ReduceMin (FabArray<FAB> const& fa, IntVect const& nghost, F f)
         ReduceTuple hv = reduce_data.value();
         r = amrex::get<0>(hv);
     }
-    else
-#endif
-    {
-#ifdef _OPENMP
-#pragma omp parallel reduction(min:r)
-#endif
-        for (MFIter mfi(fa,true); mfi.isValid(); ++mfi)
-        {
-            const Box& bx = mfi.growntilebox(nghost);
-            r = std::min(r, f(bx, fa[mfi]));
-        }
-    }
 
     return r;
 }
 
+template <class FAB, class F>
+amrex::EnableIf_t<!AMREX_IS_D_LAMBDA(F), typename FAB::value_type>
+ReduceMin_host_wrapper (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
+{
+    return ReduceMin_host(fa,nghost,std::move(f));
+}
+
+template <class FAB, class F>
+amrex::EnableIf_t< AMREX_IS_D_LAMBDA(F), typename FAB::value_type>
+ReduceMin_host_wrapper (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
+{
+    amrex::Abort("ReduceMin: Launch Region is off. Device lambda cannot be called by host.");
+    return 0;
+}
+}
+
+template <class FAB, class F,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+typename FAB::value_type
+ReduceMin (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
+{
+    if (Gpu::inLaunchRegion()) {
+        return detail::ReduceMin_device(fa, nghost, std::move(f));
+    } else {
+        return detail::ReduceMin_host_wrapper(fa, nghost, std::move(f));
+    }
+}
+#else
+template <class FAB, class F,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+typename FAB::value_type
+ReduceMin (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
+{
+    return detail::ReduceMin_host(fa, nghost, std::move(f));
+}
+#endif
+
 template <class FAB1, class FAB2, class F,
           class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
 typename FAB1::value_type
-ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, int nghost, F f)
+ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, int nghost, F&& f)
 {
     return ReduceMin(fa1, fa2, IntVect(nghost), std::move(f));
 }
 
+namespace deail {
 template <class FAB1, class FAB2, class F,
           class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
 typename FAB1::value_type
-ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, IntVect const& nghost, F f)
+ReduceMin_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
+                IntVect const& nghost, F&& f)
 {
     using value_type = typename FAB1::value_type;
     constexpr value_type value_max = std::numeric_limits<value_type>::max();
     value_type r = value_max;
 
+#ifdef _OPENMP
+#pragma omp parallel reduction(min:r)
+#endif
+    for (MFIter mfi(fa1,true); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.growntilebox(nghost);
+        r = std::min(r, f(bx, fa1[mfi], fa2[mfi]));
+    }
+
+    return r;
+}
+}
+
 #ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion())
+namespace detail {
+template <class FAB1, class FAB2, class F,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+typename FAB1::value_type
+ReduceMin_device (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
+                  IntVect const& nghost, F&& f)
+{
+    using value_type = typename FAB1::value_type;
+    constexpr value_type value_max = std::numeric_limits<value_type>::max();
+    value_type r = value_max;
+
     {
         ReduceOps<ReduceOpMin> reduce_op;
         ReduceData<value_type> reduce_data(reduce_op);
@@ -272,41 +496,93 @@ ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, IntVect const& 
         ReduceTuple hv = reduce_data.value();
         r = amrex::get<0>(hv);
     }
-    else
-#endif
-    {
-#ifdef _OPENMP
-#pragma omp parallel reduction(min:r)
-#endif
-        for (MFIter mfi(fa1,true); mfi.isValid(); ++mfi)
-        {
-            const Box& bx = mfi.growntilebox(nghost);
-            r = std::min(r, f(bx, fa1[mfi], fa2[mfi]));
-        }
-    }
 
     return r;
 }
 
-template <class FAB, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
-typename FAB::value_type
-ReduceMax (FabArray<FAB> const& fa, int nghost, F f)
+template <class FAB1, class FAB2, class F>
+amrex::EnableIf_t<!AMREX_IS_D_LAMBDA(F), typename FAB1::value_type>
+ReduceMin_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
+                        IntVect const& nghost, F&& f)
 {
-    return ReduceMax(fa, IntVect(nghost), std::move(f));
+    return ReduceMin_host(fa1,fa2,nghost,std::move(f));
 }
+
+template <class FAB1, class FAB2, class F>
+amrex::EnableIf_t< AMREX_IS_D_LAMBDA(F), typename FAB1::value_type>
+ReduceMin_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
+                        IntVect const& nghost, F&& f)
+{
+    amrex::Abort("ReduceMin: Launch Region is off. Device lambda cannot be called by host.");
+    return 0;
+}
+}
+
+template <class FAB1, class FAB2, class F,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+typename FAB1::value_type
+ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
+           IntVect const& nghost, F&& f)
+{
+    if (Gpu::inLaunchRegion()) {
+        return ReduceMin_device(fa1,fa2,nghost,std::move(f));
+    } else {
+        return ReduceMin_host_wrapper(fa1,fa2,nghost,std::move(f));
+    }
+}
+#else
+template <class FAB1, class FAB2, class F,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+typename FAB1::value_type
+ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
+           IntVect const& nghost, F&& f)
+{
+    return ReduceMin_host(fa1,fa2,nghost,std::move(f));
+}
+#endif
 
 template <class FAB, class F,
           class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
 typename FAB::value_type
-ReduceMax (FabArray<FAB> const& fa, IntVect const& nghost, F f)
+ReduceMax (FabArray<FAB> const& fa, int nghost, F&& f)
+{
+    return ReduceMax(fa, IntVect(nghost), std::move(f));
+}
+
+namespace detail {
+template <class FAB, class F,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+typename FAB::value_type
+ReduceMax_host (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 {
     using value_type = typename FAB::value_type;
     constexpr value_type value_lowest = std::numeric_limits<value_type>::lowest();
     value_type r = value_lowest;
 
+#ifdef _OPENMP
+#pragma omp parallel reduction(max:r)
+#endif
+    for (MFIter mfi(fa,true); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.growntilebox(nghost);
+        r = std::max(r, f(bx, fa[mfi]));
+    }
+
+    return r;
+}
+}
+
 #ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion())
+namespace detail {
+template <class FAB, class F,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+typename FAB::value_type
+ReduceMax_device (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
+{
+    using value_type = typename FAB::value_type;
+    constexpr value_type value_lowest = std::numeric_limits<value_type>::lowest();
+    value_type r = value_lowest;
+
     {
         ReduceOps<ReduceOpMax> reduce_op;
         ReduceData<value_type> reduce_data(reduce_op);
@@ -327,41 +603,91 @@ ReduceMax (FabArray<FAB> const& fa, IntVect const& nghost, F f)
         ReduceTuple hv = reduce_data.value();
         r = amrex::get<0>(hv);
     }
-    else
-#endif
-    {
-#ifdef _OPENMP
-#pragma omp parallel reduction(max:r)
-#endif
-        for (MFIter mfi(fa,true); mfi.isValid(); ++mfi)
-        {
-            const Box& bx = mfi.growntilebox(nghost);
-            r = std::max(r, f(bx, fa[mfi]));
-        }
-    }
 
     return r;
 }
 
-template <class FAB1, class FAB2, class F,
-          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
-typename FAB1::value_type
-ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, int nghost, F f)
+template <class FAB, class F>
+amrex::EnableIf_t<!AMREX_IS_D_LAMBDA(F), typename FAB::value_type>
+ReduceMax_host_wrapper (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 {
-    return ReduceMax(fa1, fa2, IntVect(nghost), std::move(f));
+    return ReduceMax_host(fa,nghost,std::move(f));
 }
+
+template <class FAB, class F>
+amrex::EnableIf_t< AMREX_IS_D_LAMBDA(F), typename FAB::value_type>
+ReduceMax_host_wrapper (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
+{
+    amrex::Abort("ReduceMax: Launch Region is off. Device lambda cannot be called by host.");
+    return 0;
+}
+}
+
+template <class FAB, class F,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+typename FAB::value_type
+ReduceMax (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
+{
+    if (Gpu::inLaunchRegion()) {
+        return detail::ReduceMax_device(fa,nghost,std::move(f));
+    } else {
+        return detail::ReduceMax_host_wrapper(fa,nghost,std::move(f));
+    }
+}
+#else
+template <class FAB, class F,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+typename FAB::value_type
+ReduceMax (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
+{
+    return detail::ReduceMax_host(fa,nghost,std::move(f));
+}
+#endif
 
 template <class FAB1, class FAB2, class F,
           class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
 typename FAB1::value_type
-ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, IntVect const& nghost, F f)
+ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, int nghost, F&& f)
+{
+    return ReduceMax(fa1, fa2, IntVect(nghost), std::move(f));
+}
+
+namespace detail {
+template <class FAB1, class FAB2, class F,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+typename FAB1::value_type
+ReduceMax_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
+                IntVect const& nghost, F&& f)
 {
     using value_type = typename FAB1::value_type;
     constexpr value_type value_lowest = std::numeric_limits<value_type>::lowest();
     value_type r = value_lowest;
 
+#ifdef _OPENMP
+#pragma omp parallel reduction(max:r)
+#endif
+    for (MFIter mfi(fa1,true); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.growntilebox(nghost);
+        r = std::max(r, f(bx, fa1[mfi], fa2[mfi]));
+    }
+
+    return r;
+}
+}
+
 #ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion())
+namespace detail {
+template <class FAB1, class FAB2, class F,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+typename FAB1::value_type
+ReduceMax_device (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
+                  IntVect const& nghost, F&& f)
+{
+    using value_type = typename FAB1::value_type;
+    constexpr value_type value_lowest = std::numeric_limits<value_type>::lowest();
+    value_type r = value_lowest;
+
     {
         ReduceOps<ReduceOpMax> reduce_op;
         ReduceData<value_type> reduce_data(reduce_op);
@@ -384,39 +710,89 @@ ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, IntVect const& 
         ReduceTuple hv = reduce_data.value();
         r = amrex::get<0>(hv);
     }
-    else
-#endif
-    {
-#ifdef _OPENMP
-#pragma omp parallel reduction(max:r)
-#endif
-        for (MFIter mfi(fa1,true); mfi.isValid(); ++mfi)
-        {
-            const Box& bx = mfi.growntilebox(nghost);
-            r = std::max(r, f(bx, fa1[mfi], fa2[mfi]));
-        }
-    }
 
     return r;
 }
 
+template <class FAB1, class FAB2, class F>
+amrex::EnableIf_t<!AMREX_IS_D_LAMBDA(F), typename FAB1::value_type>
+ReduceMax_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
+                        IntVect const& nghost, F&& f)
+{
+    return ReduceMax_host(fa1,fa2,nghost,std::move(f));
+}
+
+template <class FAB1, class FAB2, class F>
+amrex::EnableIf_t< AMREX_IS_D_LAMBDA(F), typename FAB1::value_type>
+ReduceMax_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
+                        IntVect const& nghost, F&& f)
+{
+    amrex::Abort("ReduceMax: Launch Region is off. Device lambda cannot be called by host.");
+    return 0;
+}
+}
+
+template <class FAB1, class FAB2, class F,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+typename FAB1::value_type
+ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
+           IntVect const& nghost, F&& f)
+{
+    if (Gpu::inLaunchRegion()) {
+        return detail::ReduceMax_device(fa1,fa2,nghost,std::move(f));
+    } else {
+        return detail::ReduceMax_host_wrapper(fa1,fa2,nghost,std::move(f));
+    }
+}
+#else
+template <class FAB1, class FAB2, class F,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+typename FAB1::value_type
+ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
+           IntVect const& nghost, F&& f)
+{
+    return detail::ReduceMax_host(fa1,fa2,nghost,std::move(f));
+}
+#endif
+
 template <class FAB, class F,
           class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
 bool
-ReduceLogicalAnd (FabArray<FAB> const& fa, int nghost, F f)
+ReduceLogicalAnd (FabArray<FAB> const& fa, int nghost, F&& f)
 {
     return ReduceLogicalAnd(fa, IntVect(nghost), std::move(f));
 }
 
+namespace detail {
 template <class FAB, class F,
           class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
 bool
-ReduceLogicalAnd (FabArray<FAB> const& fa, IntVect const& nghost, F f)
+ReduceLogicalAnd_host (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 {
     int r = true;
 
+#ifdef _OPENMP
+#pragma omp parallel reduction(&&:r)
+#endif
+    for (MFIter mfi(fa,true); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.growntilebox(nghost);
+        r = r && f(bx, fa[mfi]);
+    }
+
+    return r;
+}
+}
+
 #ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion())
+namespace detail {
+template <class FAB, class F,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+bool
+ReduceLogicalAnd_device (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
+{
+    int r = true;
+
     {
         ReduceOps<ReduceOpLogicalAnd> reduce_op;
         ReduceData<int> reduce_data(reduce_op);
@@ -438,41 +814,88 @@ ReduceLogicalAnd (FabArray<FAB> const& fa, IntVect const& nghost, F f)
         ReduceTuple hv = reduce_data.value();
         r = amrex::get<0>(hv);
     }
-    else
-#endif
-    {
-#ifdef _OPENMP
-#pragma omp parallel reduction(&&:r)
-#endif
-        for (MFIter mfi(fa,true); mfi.isValid(); ++mfi)
-        {
-            const Box& bx = mfi.growntilebox(nghost);
-            r = r && f(bx, fa[mfi]);
-        }
-    }
 
     return r;
 }
 
+template <class FAB, class F>
+amrex::EnableIf_t<!AMREX_IS_D_LAMBDA(F), bool>
+ReduceLogicalAnd_host_wrapper (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
+{
+    return ReduceLogicalAnd_host(fa,nghost,std::move(f));
+}
+
+template <class FAB, class F>
+amrex::EnableIf_t< AMREX_IS_D_LAMBDA(F), bool>
+ReduceLogicalAnd_host_wrapper (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
+{
+    amrex::Abort("ReduceLogicalAnd: Launch Region is off. Device lambda cannot be called by host.");
+    return false;
+}
+}
+
+template <class FAB, class F,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+bool
+ReduceLogicalAnd (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
+{
+    if (Gpu::inLaunchRegion()) {
+        return detail::ReduceLogicalAnd_device(fa,nghost,std::move(f));
+    } else {
+        return detail::ReduceLogicalAnd_host_wrapper(fa,nghost,std::move(f));
+    }
+}
+#else
+template <class FAB, class F,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+bool
+ReduceLogicalAnd (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
+{
+    return detail::ReduceLogicalAnd_host(fa,nghost,std::move(f));
+}
+#endif
+
 template <class FAB1, class FAB2, class F,
           class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
 bool
 ReduceLogicalAnd (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
-                  int nghost, F f)
+                  int nghost, F&& f)
 {
     return ReduceLogicalAnd(fa1, fa2, IntVect(nghost), std::move(f));
 }
 
+namespace detail {
 template <class FAB1, class FAB2, class F,
           class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
 bool
-ReduceLogicalAnd (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
-                  IntVect const& nghost, F f)
+ReduceLogicalAnd_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
+                       IntVect const& nghost, F&& f)
 {
     int r = true;
 
+#ifdef _OPENMP
+#pragma omp parallel reduction(&&:r)
+#endif
+    for (MFIter mfi(fa1,true); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.growntilebox(nghost);
+        r = r && f(bx, fa1[mfi], fa2[mfi]);
+    }
+
+    return r;
+}
+}
+
 #ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion())
+namespace detail {
+template <class FAB1, class FAB2, class F,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+bool
+ReduceLogicalAnd_device (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
+                         IntVect const& nghost, F&& f)
+{
+    int r = true;
+
     {
         ReduceOps<ReduceOpLogicalAnd> reduce_op;
         ReduceData<int> reduce_data(reduce_op);
@@ -496,39 +919,89 @@ ReduceLogicalAnd (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
         ReduceTuple hv = reduce_data.value();
         r = amrex::get<0>(hv);
     }
-    else
-#endif
-    {
-#ifdef _OPENMP
-#pragma omp parallel reduction(&&:r)
-#endif
-        for (MFIter mfi(fa1,true); mfi.isValid(); ++mfi)
-        {
-            const Box& bx = mfi.growntilebox(nghost);
-            r = r && f(bx, fa1[mfi], fa2[mfi]);
-        }
-    }
 
     return r;
 }
 
+template <class FAB1, class FAB2, class F>
+amrex::EnableIf_t<!AMREX_IS_D_LAMBDA(F), bool>
+ReduceLogicalAnd_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
+                  IntVect const& nghost, F&& f)
+{
+    return ReduceLogicalAnd_host(fa1,fa2,nghost,std::move(f));
+}
+
+template <class FAB1, class FAB2, class F>
+amrex::EnableIf_t< AMREX_IS_D_LAMBDA(F), bool>
+ReduceLogicalAnd_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
+                               IntVect const& nghost, F&& f)
+{
+    amrex::Abort("ReduceLogicalAnd: Luanch Region is off. Device lambda cannot be called by host.");
+    return false;
+}
+}
+
+template <class FAB1, class FAB2, class F,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+bool
+ReduceLogicalAnd (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
+                  IntVect const& nghost, F&& f)
+{
+    if (Gpu::inLaunchRegion()) {
+        return detail::ReduceLogicalAnd_device(fa1,fa2,nghost,std::move(f));
+    } else {
+        return detail::ReduceLogicalAnd_host_wrapper(fa1,fa2,nghost,std::move(f));
+    }
+}
+#else
+template <class FAB1, class FAB2, class F,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+bool
+ReduceLogicalAnd (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
+                  IntVect const& nghost, F&& f)
+{
+    return detail::ReduceLogicalAnd_host(fa1,fa2,nghost,std::move(f));
+}
+#endif
+
 template <class FAB, class F,
           class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
 bool
-ReduceLogicalOr (FabArray<FAB> const& fa, int nghost, F f)
+ReduceLogicalOr (FabArray<FAB> const& fa, int nghost, F&& f)
 {
     return ReduceLogicalOr(fa, IntVect(nghost), std::move(f));
 }
 
+namespace detail {
 template <class FAB, class F,
           class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
 bool
-ReduceLogicalOr (FabArray<FAB> const& fa, IntVect const& nghost, F f)
+ReduceLogicalOr_host (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 {
     int r = false;
 
+#ifdef _OPENMP
+#pragma omp parallel reduction(||:r)
+#endif
+    for (MFIter mfi(fa,true); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.growntilebox(nghost);
+        r = r || f(bx, fa[mfi]);
+    }
+
+    return r;
+}
+}
+
 #ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion())
+namespace detail {
+template <class FAB, class F,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+bool
+ReduceLogicalOr_device (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
+{
+    int r = false;
+
     {
         ReduceOps<ReduceOpLogicalOr> reduce_op;
         ReduceData<int> reduce_data(reduce_op);
@@ -550,41 +1023,88 @@ ReduceLogicalOr (FabArray<FAB> const& fa, IntVect const& nghost, F f)
         ReduceTuple hv = reduce_data.value();
         r = amrex::get<0>(hv);
     }
-    else
-#endif
-    {
-#ifdef _OPENMP
-#pragma omp parallel reduction(||:r)
-#endif
-        for (MFIter mfi(fa,true); mfi.isValid(); ++mfi)
-        {
-            const Box& bx = mfi.growntilebox(nghost);
-            r = r || f(bx, fa[mfi]);
-        }
-    }
 
     return r;
 }
 
+template <class FAB, class F>
+amrex::EnableIf_t<!AMREX_IS_D_LAMBDA(F), bool>
+ReduceLogicalOr_host_wrapper (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
+{
+    return ReduceLogicalOr_host(fa,nghost,std::move(f));
+}
+
+template <class FAB, class F>
+amrex::EnableIf_t< AMREX_IS_D_LAMBDA(F), bool>
+ReduceLogicalOr_host (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
+{
+    amrex::Abort("ReduceLogicalOr: Launch Region is off. Device lambda cannot be called by host.");
+    return 0;
+}
+}
+
+template <class FAB, class F,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+bool
+ReduceLogicalOr (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
+{
+    if (Gpu::inLaunchRegion()) {
+        return detail::ReduceLogicalOr_device(fa,nghost,std::move(f));
+    } else {
+        return detail::ReduceLogicalOr_host_wrapper(fa,nghost,std::move(f));
+    }
+}
+#else
+template <class FAB, class F,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+bool
+ReduceLogicalOr (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
+{
+    return detail::ReduceLogicalOr_host(fa,nghost,std::move(f));
+}
+#endif
+
 template <class FAB1, class FAB2, class F,
           class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
 bool
 ReduceLogicalOr (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
-                 int nghost, F f)
+                 int nghost, F&& f)
 {
     return ReduceLogicalOr(fa1, fa2, IntVect(nghost), std::move(f));
 }
 
+namespace detail {
 template <class FAB1, class FAB2, class F,
           class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
 bool
-ReduceLogicalOr (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
-                 IntVect const& nghost, F f)
+ReduceLogicalOr_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
+                      IntVect const& nghost, F&& f)
 {
     int r = false;
 
+#ifdef _OPENMP
+#pragma omp parallel reduction(||:r)
+#endif
+    for (MFIter mfi(fa1,true); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.growntilebox(nghost);
+        r = r || f(bx, fa1[mfi], fa2[mfi]);
+    }
+
+    return r;
+}
+}
+
 #ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion())
+namespace detail {
+template <class FAB1, class FAB2, class F,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+bool
+ReduceLogicalOr_device (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
+                        IntVect const& nghost, F&& f)
+{
+    int r = false;
+
     {
         ReduceOps<ReduceOpLogicalOr> reduce_op;
         ReduceData<int> reduce_data(reduce_op);
@@ -607,21 +1127,50 @@ ReduceLogicalOr (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
         ReduceTuple hv = reduce_data.value();
         r = amrex::get<0>(hv);
     }
-    else
-#endif
-    {
-#ifdef _OPENMP
-#pragma omp parallel reduction(||:r)
-#endif
-        for (MFIter mfi(fa1,true); mfi.isValid(); ++mfi)
-        {
-            const Box& bx = mfi.growntilebox(nghost);
-            r = r || f(bx, fa1[mfi], fa2[mfi]);
-        }
-    }
 
     return r;
 }
+
+template <class FAB1, class FAB2, class F>
+amrex::EnableIf_t<!AMREX_IS_D_LAMBDA(F), bool>
+ReduceLogicalOr_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
+                 IntVect const& nghost, F&& f)
+{
+    detail::ReduceLogicalOr_host(fa1,fa2,nghost,std::move(f));
+}
+
+template <class FAB1, class FAB2, class F>
+amrex::EnableIf_t< AMREX_IS_D_LAMBDA(F), bool>
+ReduceLogicalOr_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
+                              IntVect const& nghost, F&& f)
+{
+    amrex::Abort("ReeuceLogicalOr: Launch Region is off. Device lambda cannot be called by host.");
+    return false;
+}
+}
+
+template <class FAB1, class FAB2, class F,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+bool
+ReduceLogicalOr (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
+                 IntVect const& nghost, F&& f)
+{
+    if (Gpu::inLaunchRegion()) {
+        return detail::ReduceLogicalOr_device(fa1,fa2,nghost,std::move(f));
+    } else {
+        return detail::ReduceLogicalOr_host_wrapper(fa1,fa2,nghost,std::move(f));
+    }
+}
+#else
+template <class FAB1, class FAB2, class F,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+bool
+ReduceLogicalOr (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
+                 IntVect const& nghost, F&& f)
+{
+    return detail::ReduceLogicalOr_host(fa1,fa2,nghost,std::move(f));
+}
+#endif
 
 template <class FAB, class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
 void
@@ -675,7 +1224,7 @@ Add (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int
         {
             auto const srcFab = src.array(mfi);
             auto       dstFab = dst.array(mfi);
-            AMREX_HOST_DEVICE_FOR_4D ( bx, numcomp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, numcomp, i, j, k, n,
             {
                 dstFab(i,j,k,n+dstcomp) += srcFab(i,j,k,n+srccomp);
             });
@@ -707,7 +1256,7 @@ Copy (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, in
         {
             auto const srcFab = src.array(mfi);
             auto       dstFab = dst.array(mfi);
-            AMREX_HOST_DEVICE_FOR_4D ( bx, numcomp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, numcomp, i, j, k, n,
             {
                 dstFab(i,j,k,dstcomp+n) = srcFab(i,j,k,srccomp+n);
             });
@@ -739,7 +1288,7 @@ Subtract (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp
         {
             auto const srcFab = src.array(mfi);
             auto       dstFab = dst.array(mfi);
-            AMREX_HOST_DEVICE_FOR_4D ( bx, numcomp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, numcomp, i, j, k, n,
             {
                 dstFab(i,j,k,n+dstcomp) -= srcFab(i,j,k,n+srccomp);
             });
@@ -771,7 +1320,7 @@ Multiply (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp
         {
             auto const srcFab = src.array(mfi);
             auto       dstFab = dst.array(mfi);
-            AMREX_HOST_DEVICE_FOR_4D ( bx, numcomp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, numcomp, i, j, k, n,
             {
                 dstFab(i,j,k,n+dstcomp) *= srcFab(i,j,k,n+srccomp);
             });
@@ -803,7 +1352,7 @@ Divide (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, 
         {
             auto const srcFab = src.array(mfi);
             auto       dstFab = dst.array(mfi);
-            AMREX_HOST_DEVICE_FOR_4D ( bx, numcomp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, numcomp, i, j, k, n,
             {
                 dstFab(i,j,k,n+dstcomp) /= srcFab(i,j,k,n+srccomp);
             });
@@ -834,7 +1383,7 @@ Abs (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int
         {
             auto const srcFab = src.array(mfi);
             auto       dstFab = dst.array(mfi);
-            AMREX_HOST_DEVICE_FOR_4D ( bx, numcomp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, numcomp, i, j, k, n,
             {
                 dstFab(i,j,k,n+dstcomp) /= srcFab(i,j,k,n+srccomp);
             });
@@ -883,7 +1432,7 @@ OverrideSync (FabArray<FAB> & fa, FabArray<IFAB> const& msk, const Periodicity& 
         const Box& bx = mfi.tilebox();
         auto fab = fa.array(mfi);
         auto const ifab = msk.array(mfi);
-        AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
         {
             if (!ifab(i,j,k)) fab(i,j,k,n) = 0;
         });

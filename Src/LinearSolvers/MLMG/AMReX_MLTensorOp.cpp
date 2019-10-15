@@ -195,6 +195,8 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
     const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
     const Box& domain = m_geom[amrlev][mglev].growPeriodicDomain(1);
 
+    // Domain boundaries are handled below.
+
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
 #ifdef _OPENMP
@@ -282,6 +284,7 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
 #endif
     }
 
+    vel.EnforcePeriodicity(0, AMREX_SPACEDIM, m_geom[amrlev][mglev].periodicity());
 #endif
 }
 
@@ -353,7 +356,7 @@ MLTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
 	        const Box& nbx = mfi.nodaltilebox(idim);
                 Array4<Real      > dst = fluxes[idim]->array(mfi);
 		Array4<Real const> src = fluxfab_tmp[idim].const_array();
-		AMREX_HOST_DEVICE_FOR_4D (nbx, ncomp, i, j, k, n,
+		AMREX_HOST_DEVICE_PARALLEL_FOR_4D (nbx, ncomp, i, j, k, n,
                 {
                     dst(i,j,k,n) += bscalar*src(i,j,k,n);
                 });

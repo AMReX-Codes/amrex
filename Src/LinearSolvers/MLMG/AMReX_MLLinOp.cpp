@@ -510,6 +510,8 @@ MLLinOp::setDomainBC (const Vector<Array<BCType,AMREX_SPACEDIM> >& a_lobc,
                                      "MLLinOp::setDomainBC: wrong size");
     m_lobc = a_lobc;
     m_hibc = a_hibc;
+    m_lo_inhomog_neumann.resize(ncomp);
+    m_hi_inhomog_neumann.resize(ncomp);
     for (int icomp = 0; icomp < ncomp; ++icomp) {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             if (m_geom[0][0].isPeriodic(idim)) {
@@ -519,6 +521,19 @@ MLLinOp::setDomainBC (const Vector<Array<BCType,AMREX_SPACEDIM> >& a_lobc,
             if (m_lobc[icomp][idim] == BCType::Periodic or
                 m_hibc[icomp][idim] == BCType::Periodic) {
                 AMREX_ALWAYS_ASSERT(m_geom[0][0].isPeriodic(idim));
+            }
+
+            if (m_lobc[icomp][idim] == LinOpBCType::inhomogNeumann) {
+                m_lobc[icomp][idim] = LinOpBCType::Neumann;
+                m_lo_inhomog_neumann[icomp][idim] = 1;
+            } else {
+                m_lo_inhomog_neumann[icomp][idim] = 0;
+            }
+            if (m_hibc[icomp][idim] == LinOpBCType::inhomogNeumann) {
+                m_hibc[icomp][idim] = LinOpBCType::Neumann;
+                m_hi_inhomog_neumann[icomp][idim] = 1;
+            } else {
+                m_hi_inhomog_neumann[icomp][idim] = 0;
             }
         }
     }

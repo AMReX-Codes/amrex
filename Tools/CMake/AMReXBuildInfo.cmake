@@ -135,22 +135,23 @@ macro (generate_buildinfo _target _git_dir)
       
       add_custom_command(
          COMMAND ${Python_EXECUTABLE} ${AMREX_C_SCRIPTS_DIR}/${AMREX_MAKEBUILD_SCRIPT}
-                 --amrex_home ${AMREX_TOP_DIR}    
+                 --amrex_home "\"${AMREX_TOP_DIR}\""    
                  #  CXX
-                 --COMP ${CMAKE_CXX_COMPILER_ID}
-                 --COMP_VERSION ${CMAKE_CXX_COMPILER_VERSION}
-                 --CXX_comp_name ${CMAKE_CXX_COMPILER}
-                 --CXX_flags "${_cxx_defines} ${_cxx_includes} ${_cxx_flags}"
+                 --COMP "\"${CMAKE_CXX_COMPILER_ID}\""
+                 --COMP_VERSION "\"${CMAKE_CXX_COMPILER_VERSION}\""
+                 --CXX_comp_name "\"${CMAKE_CXX_COMPILER}\""
+                 --CXX_flags "\"${_cxx_defines} ${_cxx_includes} ${_cxx_flags}\""
                  # Fortran
-                 --FCOMP ${CMAKE_Fortran_COMPILER_ID}
-                 --FCOMP_VERSION ${CMAKE_Fortran_COMPILER_VERSION}
-                 --F_comp_name ${CMAKE_Fortran_COMPILER}
-                 --F_flags "${_fortran_defines} ${_fortran_includes} ${_fortran_flags}"
+                 --FCOMP "\"${CMAKE_Fortran_COMPILER_ID}\""
+                 --FCOMP_VERSION "\"${CMAKE_Fortran_COMPILER_VERSION}\""
+                 --F_comp_name "\"${CMAKE_Fortran_COMPILER}\""
+                 --F_flags "\"${_fortran_defines} ${_fortran_includes} ${_fortran_flags}\""
                  #--link_flags
-                 --libraries "${_cxx_link_line}"
+                 --libraries "\"${_cxx_link_line}\""
                  # GIT
                  ${_git_cmd}                 
          OUTPUT AMReX_buildInfo.cpp
+         VERBATIM
          WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
          COMMENT "Generating AMReX_buildInfo.cpp" )
       

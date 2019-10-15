@@ -208,7 +208,7 @@ namespace amrex
                          Array4<Real> const& fyarr = fc[1]->array(mfi);,
                          Array4<Real> const& fzarr = fc[2]->array(mfi););
             Array4<Real const> const& ccarr = cc.const_array(mfi);
-            
+
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA (index_bounds, tbx,
             {
 #if (AMREX_SPACEDIM == 1)
@@ -689,7 +689,7 @@ namespace amrex
                 const Box& bx = mfi.validbox();
                 Array4<int> const& fab = mask.array(mfi);
 
-                AMREX_HOST_DEVICE_FOR_3D ( bx, i, j, k,
+                AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( bx, i, j, k,
                 {
                     fab(i,j,k) = crse_value;
                 });
@@ -698,7 +698,7 @@ namespace amrex
                 for (auto const& is : isects)
                 {
                     const Box ibx = is.second;
-                    AMREX_HOST_DEVICE_FOR_3D(ibx, i, j, k,
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D(ibx, i, j, k,
                     {
                         fab(i,j,k) = fine_value;
                     });
@@ -712,6 +712,10 @@ namespace amrex
     void computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPACEDIM>& umac,
                             const Geometry& geom)
     {
+        AMREX_ASSERT(divu.nComp()==umac[0]->nComp());
+        AMREX_ASSERT(divu.nComp()==umac[1]->nComp());
+        AMREX_ASSERT(divu.nComp()==umac[2]->nComp());
+
         const GpuArray<Real,AMREX_SPACEDIM> dxinv = geom.InvCellSizeArray();
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
