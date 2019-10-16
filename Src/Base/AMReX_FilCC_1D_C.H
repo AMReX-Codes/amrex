@@ -55,6 +55,11 @@ filcc_cell (const IntVect& iv, Array4<Real> const& q,
                 }
                 break;
             }
+            case (BCType::hoextrapcc):
+            {
+                q(i,0,0,n) = 2.*q(i+1,0,0,n) - q(i+2,0,0,n);
+                break;
+            }
             case (BCType::reflect_even):
             {
                 q(i,0,0,n) = q(2*ilo-i-1,0,0,n);
@@ -90,6 +95,11 @@ filcc_cell (const IntVect& iv, Array4<Real> const& q,
                 {
                     q(i,0,0,n) = 0.5*(3.*q(i-1,0,0,n) - q(i-2,0,0,n));
                 }
+                break;
+            }
+            case (BCType::hoextrapcc):
+            {
+                q(i,0,0,n) = 2.*q(i-1,0,0,n) - q(i-2,0,0,n);
                 break;
             }
             case (BCType::reflect_even):

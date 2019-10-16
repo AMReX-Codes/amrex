@@ -51,13 +51,27 @@ void enforcePeriodic (P& p,
                       amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& phi,
                       amrex::GpuArray<int,AMREX_SPACEDIM> const& is_per) noexcept
 {
+  // In rare cases, degenerate cases can be found, filter out with a tolerance
+#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
+  static constexpr Real eps = std::numeric_limits<Real>::epsilon();
+#else
+  static constexpr Real eps = DBL_EPSILON;
+#endif
+
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
         if (not is_per[idim]) continue;
-        if (p.pos(idim) > phi[idim]) { 
-            p.pos(idim) -= (phi[idim] - plo[idim]); 
+        if (p.pos(idim) >= phi[idim]) { 
+	  while (p.pos(idim) >= phi[idim]) { 
+            p.pos(idim) -= (phi[idim] - plo[idim]);
+	  }
+	  if (p.pos(idim) < plo[idim]) p.pos(idim) = plo[idim]; // clamp to avoid precision issues;
         } else if (p.pos(idim) < plo[idim]) {
-            p.pos(idim) += (phi[idim] - plo[idim]);
+	  while (p.pos(idim) < plo[idim]) {
+            p.pos(idim) += (phi[idim] - plo[idim]); 
+	  }
+	  if (p.pos(idim) == phi[idim]) p.pos(idim) = plo[idim]; // clamp to avoid precision issues;
+	  if (p.pos(idim) > phi[idim]) p.pos(idim) = phi[idim]-eps; // clamp to avoid precision issues;
         }
     }
 }
