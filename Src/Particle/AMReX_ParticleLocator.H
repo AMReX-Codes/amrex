@@ -14,15 +14,15 @@ struct AssignGrid
     const unsigned int* m_poffset;
     const unsigned int* m_pperm;
 
-    Box m_domain;
-    GpuArray<Real, AMREX_SPACEDIM> m_plo;
-    GpuArray<Real, AMREX_SPACEDIM> m_dxi;
-
     Dim3 m_lo;
     Dim3 m_hi;
     Dim3 m_bin_size;
     Dim3 m_num_bins;
 
+	Box m_domain;
+    GpuArray<Real, AMREX_SPACEDIM> m_plo;
+    GpuArray<Real, AMREX_SPACEDIM> m_dxi;
+	
     AMREX_GPU_HOST_DEVICE
     AssignGrid () {}
 

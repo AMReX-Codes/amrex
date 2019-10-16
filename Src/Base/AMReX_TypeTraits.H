@@ -13,6 +13,12 @@
 #define AMREX_IS_TRIVIALLY_DEFAULT_CONSTRUCTIBLE(T) std::is_trivially_default_constructible<T>::value
 #endif
 
+#if defined(AMREX_USE_GPU) && defined(AMREX_USE_CUDA)
+#define AMREX_IS_D_LAMBDA(x) __nv_is_extended_device_lambda_closure_type(x)
+#else
+#define AMREX_IS_D_LAMBDA(x) false
+#endif
+
 namespace amrex
 {
     template <class T> class BaseFab;
