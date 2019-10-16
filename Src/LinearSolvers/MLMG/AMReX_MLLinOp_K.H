@@ -118,17 +118,6 @@ void mllinop_apply_bc_y (int side, Box const& box, int blen,
         poly_interp_coeff(-0.5, x, NX, coef);
         for     (int k = lo.z; k <= hi.z; ++k) {
             for (int i = lo.x; i <= hi.x; ++i) {
-	          //fixme
-	      // if (j==48 && i==-1) {
-	      // 	Print()<<"mask("<<i<<","<<j<<"): "<<mask(i,j,0)<<"\n";
-	      // }
-	      if (j==-1 && i==-48) {
-	      	Print()<<"mask("<<i<<","<<j<<","<<icomp<<"): "<<mask(i,j,0)<<"\n";
-	      	if (inhomog)
-	      	  Print()<<"bcval "<<bcval(i,j,k,icomp)<<"\n";
-	      }
-	      //
-
                 if (mask(i,j,k) > 0) {
                     Real tmp = 0.0;
                     for (int m = 1; m < NX; ++m) {
