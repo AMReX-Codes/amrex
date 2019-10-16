@@ -316,10 +316,7 @@ int main (int argc, char* argv[])
 
             for (MFIter mfi(x); mfi.isValid(); ++mfi)
             {
-                if (mfi.LocalIndex() == 0)
-                {
-                    amrex::Gpu::Device::startGraphStreamRecording();
-                } 
+                amrex::Gpu::Device::startGraphRecording(mfi.LocalIndex()==0, NULL, NULL, 0);
 
                 const Box bx = mfi.validbox();
 
@@ -335,10 +332,7 @@ int main (int argc, char* argv[])
                                          lo, len, ncells,
                                          offset, &(src_fab_d[idx]), &(dst_fab_d[idx]), 0, 0, 1); 
 
-                if (mfi.LocalIndex() == (x.local_size() - 1) )
-                {
-                    graphExec = amrex::Gpu::Device::stopGraphStreamRecording(); 
-                }
+                graphExec = amrex::Gpu::Device::stopGraphRecording(mfi.LocalIndex() == (x.local_size() - 1)); 
             }
 
             BL_PROFILE_VAR_STOP(cgfc);
@@ -421,10 +415,7 @@ int main (int argc, char* argv[])
 
             for (MFIter mfi(x); mfi.isValid(); ++mfi)
             {
-                if (mfi.LocalIndex() == 0)
-                {
-                    amrex::Gpu::Device::startGraphStreamRecording();
-                } 
+                amrex::Gpu::Device::startGraphRecording(mfi.LocalIndex()==0, NULL, NULL, 0);
 
                 const Box bx = mfi.validbox();
                 int idx = mfi.LocalIndex();
@@ -437,10 +428,7 @@ int main (int argc, char* argv[])
                     (dst_arrs_d[idx])(i,j,k,dcomp+n) = (src_arrs_d[idx])(i+offset.x,j+offset.y,k+offset.z,scomp+n); 
                 });
 
-                if (mfi.LocalIndex() == (x.local_size() - 1) )
-                {
-                    graphExec = amrex::Gpu::Device::stopGraphStreamRecording(); 
-                }
+                graphExec = amrex::Gpu::Device::stopGraphRecording(mfi.LocalIndex() == (x.local_size() - 1)); 
             }
 
             BL_PROFILE_VAR_STOP(cgfc);
@@ -536,10 +524,7 @@ int main (int argc, char* argv[])
 
             for (MFIter mfi(x); mfi.isValid(); ++mfi)
             {
-                if (mfi.LocalIndex() == 0)
-                {
-                    amrex::Gpu::Device::startGraphStreamRecording();
-                } 
+                amrex::Gpu::Device::startGraphRecording(mfi.LocalIndex()==0, NULL, NULL, 0);
 
                 const Box bx = mfi.validbox();
                 int idx = mfi.LocalIndex();
@@ -559,12 +544,10 @@ int main (int argc, char* argv[])
                     }
                 });
 
-                if (mfi.LocalIndex() == (x.local_size() - 1) )
-                {
-                    // PASS MEMCPY_ASYNC GRAPH FROM CUDAGRAPH FUNCTION FOR "ROOT" PLACEMENT. 
-                    cgraph.setGraph(amrex::Gpu::Device::stopGraphStreamRecording());
-                }
+                graphExec = amrex::Gpu::Device::stopGraphRecording(mfi.LocalIndex() == (x.local_size() - 1));
             }
+
+            cgraph.setGraph(graphExec);
 
             BL_PROFILE_VAR_STOP(goc);
 
@@ -651,10 +634,7 @@ int main (int argc, char* argv[])
 
             for (MFIter mfi(x); mfi.isValid(); ++mfi)
             {
-                if (mfi.LocalIndex() == 0)
-                {
-                    amrex::Gpu::Device::startGraphStreamRecording();
-                } 
+                amrex::Gpu::Device::startGraphRecording(mfi.LocalIndex()==0, NULL, NULL, 0);
 
                 const Box bx = mfi.validbox();
                 int idx = mfi.LocalIndex();
@@ -677,11 +657,11 @@ int main (int argc, char* argv[])
                     }
                 });
 
-                if (mfi.LocalIndex() == (x.local_size() - 1) )
-                {
-                    cgraph.setGraph(amrex::Gpu::Device::stopGraphStreamRecording());
-                }
+
+                graphExec = amrex::Gpu::Device::stopGraphRecording(mfi.LocalIndex() == (x.local_size() - 1));
             }
+
+            cgraph.setGraph(graphExec);
 
             BL_PROFILE_VAR_STOP(goc);
 
@@ -981,121 +961,6 @@ int main (int argc, char* argv[])
             amrex::Print() << " x = " << x.sum() << "; y = " << y.sum() << std::endl;
 
         }
-
-
-
-// &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
-
-        amrex::Print() << "=============" << std::endl;
-        amrex::Print() << "Using Graph Object w/ Global Async Root Node" << std::endl;
-
-        {
-            x.setVal(253.37);
-            y.setVal(26877.2);
-
-            BL_PROFILE("Root Node");
-            BL_PROFILE_VAR("Root Node: create", goc);
-
-            // Creates appropriate device storage of graph parameters.
-            CudaGraph<CopyMemory> cgraph(x.local_size());
-
-            for (MFIter mfi(x); mfi.isValid(); ++mfi)
-            {
-                if (mfi.LocalIndex() == 0)
-                {
-                    amrex::Gpu::Device::startGraphStreamRecording();
-                } 
-
-                const Box bx = mfi.validbox();
-                int idx = mfi.LocalIndex();
-                Dim3 offset = {0,0,0};
-
-                CopyMemory* cgd = cgraph.getDevicePtr(idx); 
-                AMREX_HOST_DEVICE_FOR_3D (bx, i, j, k,
-                {
-                    // Build the Array4's.
-                    auto const dst = cgd->getDst<Real>();
-                    auto const src = cgd->getSrc<Real>();
-                    int scomp   = cgd->scomp;
-                    for (int n = 0; n < cgd->ncomp; ++n) {
-                        dst(i,j,k,scomp+n) = src(i+offset.x,j+offset.y,k+offset.z,scomp+n);
-                    }
-                });
-
-                if (mfi.LocalIndex() == (x.local_size() - 1) )
-                {
-                    cgraph.setGraph(amrex::Gpu::Device::stopGraphStreamRecording(cgraph.copyRootGraph()));
-                }
-            }
-
-            BL_PROFILE_VAR_STOP(goc);
-
-// --------- Launch the graph  ----------
-
-            BL_PROFILE_VAR("Root Node: launch", gol);
-
-            for (MFIter mfi(x); mfi.isValid(); ++mfi)
-            {
-                int idx = mfi.LocalIndex();
-                cgraph.setParams(idx, amrex::makeCopyMemory(x[mfi].array(),
-                                                            y[mfi].array(),
-                                                            0, 1));
-            }
-/*
-            cudaMemcpy(cgraph.getDevicePtr(0),
-                       cgraph.getHostPtr(0),
-                       std::size_t(sizeof(CopyMemory)*x.local_size()),
-                       cudaMemcpyHostToDevice);
-*/
-            cgraph.executeGraph();
-
-            BL_PROFILE_VAR_STOP(gol);
-
-            amrex::Print() << "Graphed = " << y.sum() << "; Expected value = " << x.sum() << std::endl;
-
-// --------- Relaunch the graph with a different result  ----------
-
-            x.setVal(55.555e-5);
-            y.setVal(0.0);
-
-            BL_PROFILE_VAR("Root Node: relaunch", cgfrl);
-
-            cgraph.executeGraph();
-
-            BL_PROFILE_VAR_STOP(cgfrl);
-
-            amrex::Print() << "Regraphed = " << y.sum() << "; Expected value = " << x.sum() << std::endl;
-
-// --------- Relaunch the graph on different MFIters  ----------
-
-            x.setVal(0.167852);
-            v.setVal(0.0);
-            w.setVal(0.15e-5);
-
-            for (MFIter mfi(x); mfi.isValid(); ++mfi)
-            {
-                int idx = mfi.LocalIndex();
-                cgraph.setParams(idx, amrex::makeCopyMemory(w[mfi].array(),
-                                                            v[mfi].array(),
-                                                            0, 1));
-            }
-
-            BL_PROFILE_VAR("Root Node: diff", cgfdiff);
-/*
-            cudaMemcpy(cgraph.getDevicePtr(0),
-                       cgraph.getHostPtr(0),
-                       std::size_t(sizeof(CopyMemory)*x.local_size()),
-                       cudaMemcpyHostToDevice);
-*/
-            cgraph.executeGraph();
-
-            BL_PROFILE_VAR_STOP(cgfdiff);
-
-            amrex::Print() << "Different MultiFab = " << v.sum() << "; Expected value = " << w.sum() << std::endl;
-            amrex::Print() << " x = " << x.sum() << "; y = " << y.sum() << std::endl;
-
-        }
-
 
         amrex::Print() << "Test Completed." << std::endl;
     }

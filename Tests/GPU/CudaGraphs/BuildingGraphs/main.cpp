@@ -130,7 +130,12 @@ int main (int argc, char* argv[])
 
             for (MFIter mfi(x); mfi.isValid(); ++mfi)
             {
+#if (__CUDACC_VER_MAJOR__ == 10) && (__CUDACC_VER_MINOR__ == 0)
                 AMREX_GPU_SAFE_CALL(cudaStreamBeginCapture(amrex::Gpu::Device::cudaStream()));
+#else
+                AMREX_GPU_SAFE_CALL(cudaStreamBeginCapture(amrex::Gpu::Device::cudaStream(),
+                                                           cudaStreamCaptureModeGlobal));
+#endif
 
                 const Box bx = mfi.validbox();
                 Array4<Real> a = x.array(mfi);
@@ -181,7 +186,12 @@ int main (int argc, char* argv[])
                     for (int i=0; i<amrex::Gpu::numGpuStreams(); ++i)
                     {
                         amrex::Gpu::Device::setStreamIndex(i);
-                        AMREX_GPU_SAFE_CALL(cudaStreamBeginCapture(amrex::Gpu::Device::cudaStream()));
+#if (__CUDACC_VER_MAJOR__ == 10) && (__CUDACC_VER_MINOR__ == 0)
+                       AMREX_GPU_SAFE_CALL(cudaStreamBeginCapture(amrex::Gpu::Device::cudaStream()));
+#else
+                       AMREX_GPU_SAFE_CALL(cudaStreamBeginCapture(amrex::Gpu::Device::cudaStream(),
+                                                                  cudaStreamCaptureModeGlobal));
+#endif
                     }
                     amrex::Gpu::Device::setStreamIndex(mfi.tileIndex());
                 } 
@@ -241,7 +251,12 @@ int main (int argc, char* argv[])
 
             for (MFIter mfi(x); mfi.isValid(); ++mfi)
             {
+#if (__CUDACC_VER_MAJOR__ == 10) && (__CUDACC_VER_MINOR__ == 0)
                 AMREX_GPU_SAFE_CALL(cudaStreamBeginCapture(amrex::Gpu::Device::cudaStream()));
+#else
+                AMREX_GPU_SAFE_CALL(cudaStreamBeginCapture(amrex::Gpu::Device::cudaStream(),
+                                                           cudaStreamCaptureModeGlobal));
+#endif
 
                 // ..................
                 const Box bx = mfi.validbox();
@@ -304,7 +319,12 @@ int main (int argc, char* argv[])
                     for (int i=0; i<amrex::Gpu::numGpuStreams(); ++i)
                     {
                         amrex::Gpu::Device::setStreamIndex(i);
+#if (__CUDACC_VER_MAJOR__ == 10) && (__CUDACC_VER_MINOR__ == 0)
                         AMREX_GPU_SAFE_CALL(cudaStreamBeginCapture(amrex::Gpu::Device::cudaStream()));
+#else
+                        AMREX_GPU_SAFE_CALL(cudaStreamBeginCapture(amrex::Gpu::Device::cudaStream(),
+                                                                   cudaStreamCaptureModeGlobal));
+#endif
                     }
                     amrex::Gpu::Device::setStreamIndex(mfi.tileIndex());
                 } 
@@ -346,7 +366,7 @@ int main (int argc, char* argv[])
 
             amrex::Gpu::Device::setStreamIndex(0); 
             AMREX_GPU_SAFE_CALL(cudaGraphLaunch(graphExec, amrex::Gpu::Device::cudaStream())); 
-            AMREX_GPU_SAFE_CALL(cudaGraphDestroy(&graphFull, 0));
+            AMREX_GPU_SAFE_CALL(cudaGraphDestroy(graphFull));
 
             amrex::Gpu::Device::synchronize();
             amrex::Gpu::Device::resetStreamIndex();
@@ -371,7 +391,12 @@ int main (int argc, char* argv[])
             for (MFIter mfi(x); mfi.isValid(); ++mfi)
             {
                 amrex::Gpu::Device::setStreamIndex(0);
+#if (__CUDACC_VER_MAJOR__ == 10) && (__CUDACC_VER_MINOR__ == 0)
                 AMREX_GPU_SAFE_CALL(cudaStreamBeginCapture(amrex::Gpu::Device::cudaStream()));
+#else
+                AMREX_GPU_SAFE_CALL(cudaStreamBeginCapture(amrex::Gpu::Device::cudaStream(),
+                                                           cudaStreamCaptureModeGlobal));
+#endif
 
                 // ..................
                 const Box bx = mfi.validbox();
@@ -438,7 +463,12 @@ int main (int argc, char* argv[])
                 amrex::Gpu::Device::setStreamIndex(0);
                 if (mfi.LocalIndex() == 0)
                 {
+#if (__CUDACC_VER_MAJOR__ == 10) && (__CUDACC_VER_MINOR__ == 0)
                     AMREX_GPU_SAFE_CALL(cudaStreamBeginCapture(amrex::Gpu::Device::cudaStream()));
+#else
+                    AMREX_GPU_SAFE_CALL(cudaStreamBeginCapture(amrex::Gpu::Device::cudaStream(),
+                                                               cudaStreamCaptureModeGlobal));
+#endif
                 } 
 
                 // ..................

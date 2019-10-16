@@ -120,7 +120,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                 nbytes += (*this)[cct.srcIndex].nBytes(cct.sbox,scomp,ncomp);
             }
             
-            BL_ASSERT(nbytes < std::numeric_limits<int>::max());
+            BL_ASSERT(nbytes < std::size_t(std::numeric_limits<int>::max()));
             
             total_volume += nbytes;
 
@@ -444,7 +444,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                     nbytes += src[cct.srcIndex].nBytes(cct.sbox,SC,NC);
                 }
 		
-		BL_ASSERT(nbytes < std::numeric_limits<int>::max());
+		BL_ASSERT(nbytes < std::size_t(std::numeric_limits<int>::max()));
 
                 total_volume += nbytes;
 
@@ -668,7 +668,7 @@ FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&  m_RcvTags,
             nbytes += (*this)[cct.dstIndex].nBytes(cct.dbox,icomp,ncomp);
         }
 
-        BL_ASSERT(nbytes < std::numeric_limits<int>::max());
+        BL_ASSERT(nbytes < std::size_t(std::numeric_limits<int>::max()));
 
         TotalRcvsVolume += nbytes;
 

@@ -86,13 +86,13 @@ int main (int argc, char* argv[])
         
         // compute and output divergence, then copy into plofile
         MultiFab divu(grids, dmap, 1, 0, MFInfo(), factory);
-        EB_computeDivergence(divu, amrex::GetArrOfConstPtrs(vel), geom);
+        EB_computeDivergence(divu, amrex::GetArrOfConstPtrs(vel), geom, false);
         amrex::Print() << "\nmax-norm of divu before projection is " << divu.norm0() << "\n" << std::endl;
         plotfile_mf.copy(divu,0,AMREX_SPACEDIM,1);
         
         MacProjector macproj({amrex::GetArrOfPtrs(vel)},       // mac velocity
                              {amrex::GetArrOfConstPtrs(beta)}, // beta 
-                             {geom});                          // Geometry
+                             {geom});                          // Geometry        
 
         macproj.setVerbose(verbose);
 
@@ -103,8 +103,13 @@ int main (int argc, char* argv[])
                                           LinOpBCType::Neumann,
                                           LinOpBCType::Neumann)});
 
+        // Define the relative tolerance
         Real reltol = 1.e-12;
-        macproj.project(reltol);
+
+        // Define the absolute tolerance; note that this argument is optional
+        Real abstol = 1.e-15;
+
+        macproj.project(reltol,abstol,MLMG::Location::FaceCenter);
 
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             vel[idim].FillBoundary(geom.periodicity());
@@ -114,7 +119,7 @@ int main (int argc, char* argv[])
         average_face_to_cellcenter(plotfile_mf,AMREX_SPACEDIM+1,amrex::GetArrOfConstPtrs(vel));
 
         // compute and output divergence, then copy into plofile
-        EB_computeDivergence(divu, amrex::GetArrOfConstPtrs(vel), geom);
+        EB_computeDivergence(divu, amrex::GetArrOfConstPtrs(vel), geom, false);
         amrex::Print() << "\nmax-norm of divu after projection is " << divu.norm0() << "\n" << std::endl;
         plotfile_mf.copy(divu,0,2*AMREX_SPACEDIM+1,1);
 

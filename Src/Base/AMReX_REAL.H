@@ -45,10 +45,51 @@ typedef float amrex_real;
 typedef double amrex_real;
 #endif
 
+#ifdef BL_SINGLE_PRECISION_PARTICLES
+typedef float amrex_particle_real;
+#else
+typedef double amrex_particle_real;
+#endif
+
 #ifdef __cplusplus
 namespace amrex {
     using Real = amrex_real;
-}
+    using ParticleReal = amrex_particle_real;
+
+    /** @{
+      C++ user literals ``_rt`` &  ``_prt`` for short-hand notations
+
+      Use this to properly add types to constant such as
+      ```C++
+      auto const mypi = 3.14_rt;
+      auto const sphere_volume = 4_rt / 3_rt * pow(r, 3) * mypi;
+      ```
+    */
+    constexpr Real
+    operator""_rt( long double x )
+    {
+        return Real( x );
+    }
+
+    constexpr Real
+    operator""_rt( unsigned long long int x )
+    {
+        return Real( x );
+    }
+
+    constexpr ParticleReal
+    operator""_prt( long double x )
+    {
+        return ParticleReal( x );
+    }
+
+    constexpr ParticleReal
+    operator""_prt( unsigned long long int x )
+    {
+        return ParticleReal( x );
+    }
+    /// @}
+} // namespace amrex
 #endif
 
 #else

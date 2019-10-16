@@ -18,7 +18,7 @@ AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void cic_interpolate (const P& p,
 		      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
 		      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
-		      const amrex::Array4<const double> &  uccarr,
+		      const amrex::Array4<amrex::Real const> &  uccarr,
 		      amrex::Real * val){
   
   BL_ASSERT(val != 0);
@@ -27,11 +27,11 @@ void cic_interpolate (const P& p,
   
     amrex::Real lx = (p.pos(0) - plo[0]) * dxi[0] - 0.5; //len
 
-    int i = std::floor(lx); //cell
+    int const i = std::floor(lx); //cell
 
     amrex::Real xint = lx - i; //frac
 
-    amrex::Real sx[] = {1.-xint, xint}; 
+    amrex::Real sx[] = {1._rt - xint, xint};
 
     for (int d=0; d < AMREX_SPACEDIM; ++d)
     {
@@ -47,14 +47,14 @@ void cic_interpolate (const P& p,
     amrex::Real lx = (p.pos(0) - plo[0]) * dxi[0] - 0.5; 
     amrex::Real ly = (p.pos(1) - plo[1]) * dxi[1] - 0.5;
 
-    int i = std::floor(lx); 
-    int j = std::floor(ly);
+    int const i = std::floor(lx);
+    int const j = std::floor(ly);
 
     amrex::Real xint = lx - i; 
     amrex::Real yint = ly - j;
 
-    amrex::Real sx[] = {1.-xint, xint};
-    amrex::Real sy[] = {1.-yint, yint};
+    amrex::Real sx[] = {1._rt - xint, xint};
+    amrex::Real sy[] = {1._rt - yint, yint};
 
     for (int d=0; d < AMREX_SPACEDIM; ++d)
       {
@@ -75,17 +75,17 @@ void cic_interpolate (const P& p,
     amrex::Real ly = (p.pos(1) - plo[1]) * dxi[1] - 0.5;
     amrex::Real lz = (p.pos(2) - plo[2]) * dxi[2] - 0.5;
 
-    int i = std::floor(lx);
-    int j = std::floor(ly);
-    int k = std::floor(lz);
+    int const i = std::floor(lx);
+    int const j = std::floor(ly);
+    int const k = std::floor(lz);
 
-    amrex::Real xint = lx - i;
-    amrex::Real yint = ly - j;
-    amrex::Real zint = lz - k;
+    amrex::Real const xint = lx - i;
+    amrex::Real const yint = ly - j;
+    amrex::Real const zint = lz - k;
 
-    amrex::Real sx[] = {1.-xint, xint};
-    amrex::Real sy[] = {1.-yint, yint};
-    amrex::Real sz[] = {1.-zint, zint};
+    amrex::Real sx[] = {1._rt - xint, xint};
+    amrex::Real sy[] = {1._rt - yint, yint};
+    amrex::Real sz[] = {1._rt - zint, zint};
 
     for (int d=0; d < AMREX_SPACEDIM; ++d)
     {
@@ -111,7 +111,7 @@ AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void mac_interpolate (const P& p,
 		      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
 		      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
-		      amrex::GpuArray<amrex::Array4<const double>,AMREX_SPACEDIM> const& p_uccarr,
+		      amrex::GpuArray<amrex::Array4<amrex::Real const>,AMREX_SPACEDIM> const& p_uccarr,
 		      amrex::Real * val)
 {
 
@@ -120,11 +120,11 @@ void mac_interpolate (const P& p,
     {
       amrex::Real lx = (p.m_rdata.pos[0]-plo[0])*dxi[0] - (d != 0)*0.5;
       
-      int i = std::floor(lx);
+      int const i = std::floor(lx);
       
-      amrex::Real xint = lx - i;
+      amrex::Real const xint = lx - i;
       
-      amrex::Real sx[] = {1.-xint, xint};
+      amrex::Real sx[] = {1._rt - xint, xint};
       
       val[d] = 0.0;
       for (int ii = 0; ii <= 1; ++ii)
@@ -140,14 +140,14 @@ void mac_interpolate (const P& p,
       amrex::Real lx = (p.m_rdata.pos[0]-plo[0])*dxi[0] - (d != 0)*0.5;
       amrex::Real ly = (p.m_rdata.pos[1]-plo[1])*dxi[1] - (d != 1)*0.5;
       
-      int i = std::floor(lx);
-      int j = std::floor(ly);
+      int const i = std::floor(lx);
+      int const j = std::floor(ly);
       
-      amrex::Real xint = lx - i;
-      amrex::Real yint = ly - j;
+      amrex::Real const xint = lx - i;
+      amrex::Real const yint = ly - j;
       
-      amrex::Real sx[] = {1.-xint, xint};
-      amrex::Real sy[] = {1.-yint, yint};
+      amrex::Real sx[] = {1._rt - xint, xint};
+      amrex::Real sy[] = {1._rt - yint, yint};
       
       val[d] = 0.0;
       for (int jj = 0; jj <= 1; ++jj)
@@ -168,17 +168,17 @@ void mac_interpolate (const P& p,
       amrex::Real ly = (p.m_rdata.pos[1]-plo[1])*dxi[1] - (d != 1)*0.5;
       amrex::Real lz = (p.m_rdata.pos[2]-plo[2])*dxi[2] - (d != 2)*0.5;
       
-      int i = std::floor(lx);
-      int j = std::floor(ly);
-      int k = std::floor(lz);
+      int const i = std::floor(lx);
+      int const j = std::floor(ly);
+      int const k = std::floor(lz);
       
-      amrex::Real xint = lx - i;
-      amrex::Real yint = ly - j;
-      amrex::Real zint = lz - k;
+      amrex::Real const xint = lx - i;
+      amrex::Real const yint = ly - j;
+      amrex::Real const zint = lz - k;
       
-      amrex::Real sx[] = {1.-xint, xint};
-      amrex::Real sy[] = {1.-yint, yint};
-      amrex::Real sz[] = {1.-zint, zint};
+      amrex::Real sx[] = {1._rt - xint, xint};
+      amrex::Real sy[] = {1._rt - yint, yint};
+      amrex::Real sz[] = {1._rt - zint, zint};
       
       val[d] = 0.0;
       for (int kk = 0; kk <=1; ++kk)

@@ -300,7 +300,7 @@ EB_average_down (const MultiFab& S_fine, MultiFab& S_crse, int scomp, int ncomp,
 
         BoxArray crse_S_fine_BA = S_fine.boxArray(); crse_S_fine_BA.coarsen(ratio);
 
-        if (crse_S_fine_BA == S_crse.boxArray() 
+        if (crse_S_fine_BA == S_crse.boxArray()
             and S_fine.DistributionMap() == S_crse.DistributionMap())
         {
 #ifdef _OPENMP
@@ -348,7 +348,7 @@ EB_average_down (const MultiFab& S_fine, MultiFab& S_crse, int scomp, int ncomp,
                 const Box& tbx = mfi.tilebox();
                 auto& crse_fab = crse_S_fine[mfi];
                 const auto& fine_fab = S_fine[mfi];
-                
+
                 const auto& flag_fab = amrex::getEBCellFlagFab(fine_fab);
                 FabType typ = flag_fab.getType(amrex::refine(tbx,ratio));
 
@@ -400,7 +400,7 @@ void EB_average_down_faces (const Array<const MultiFab*,AMREX_SPACEDIM>& fine,
     {
         amrex::average_down_faces(fine, crse, ratio, ngcrse);
     }
-    else 
+    else
     {
         Dim3 dratio = ratio.dim3();
 
@@ -422,7 +422,7 @@ void EB_average_down_faces (const Array<const MultiFab*,AMREX_SPACEDIM>& fine,
                     Array4<Real> const& ca = crse[n]->array(mfi);
                     Array4<Real const> const& fa = fine[n]->const_array(mfi);
 
-                    if(typ == FabType::regular || typ == FabType::covered) 
+                    if(typ == FabType::regular || typ == FabType::covered)
                     {
                         AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tbx, b,
                         {
@@ -530,13 +530,19 @@ void EB_average_down_boundaries (const MultiFab& fine, MultiFab& crse,
             EB_average_down_boundaries(fine, ctmp, ratio, ngcrse);
             crse.ParallelCopy(ctmp, 0, 0, ncomp, ngcrse, ngcrse);
         }
-    }    
+    }
 }
 
 
 void EB_computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPACEDIM>& umac,
-                           const Geometry& geom)
+                           const Geometry& geom, bool already_on_centroids)
 {
+    AMREX_ASSERT(divu.nComp()==umac[0]->nComp());
+    AMREX_ASSERT(divu.nComp()==umac[1]->nComp());
+#if (AMREX_SPACEDIM == 3)
+    AMREX_ASSERT(divu.nComp()==umac[2]->nComp());
+#endif
+    
     if (!divu.hasEBFabFactory())
     {
         amrex::computeDivergence(divu, umac, geom);
@@ -595,9 +601,9 @@ void EB_computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPA
 
             const auto fabtyp = flagfab.getType(bx);
             if (fabtyp == FabType::covered) {
-                AMREX_HOST_DEVICE_FOR_3D(bx,i,j,k,
+                AMREX_HOST_DEVICE_FOR_4D(bx,divu.nComp(),i,j,k,n,
                 {
-                    divuarr(i,j,k) = 0.0;
+                    divuarr(i,j,k,n) = 0.0;
                 });
             } else if (fabtyp == FabType::regular) {
                 AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, b,
@@ -614,11 +620,11 @@ void EB_computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPA
                              Array4<Real const> const& fcy = fcent[1]->const_array(mfi);,
                              Array4<Real const> const& fcz = fcent[2]->const_array(mfi););
                 Array4<EBCellFlag const> const& flagarr = flagfab.const_array();
-                AMREX_HOST_DEVICE_FOR_3D(bx,i,j,k,
+                AMREX_HOST_DEVICE_FOR_4D(bx,divu.nComp(),i,j,k,n,
                 {
-                    eb_compute_divergence(i,j,k,divuarr,AMREX_D_DECL(uarr,varr,warr),
+                    eb_compute_divergence(i,j,k,n,divuarr,AMREX_D_DECL(uarr,varr,warr),
                                           ccm, flagarr, vol, AMREX_D_DECL(apx,apy,apz),
-                                          AMREX_D_DECL(fcx,fcy,fcz), dxinv);
+                                          AMREX_D_DECL(fcx,fcy,fcz), dxinv, already_on_centroids);
                 });
             }
         }

@@ -1,3 +1,21 @@
+# 19.10
+
+  -- Add inhomogeneous Neumann BC to MLMG for convenience.
+
+  -- Fix a corner case of tensor solver.
+
+  -- Various fixes for single precision and particle real.
+
+  -- Add amrex::Long that has a size of 8.
+
+  -- Add int8_t support in typecheck.
+
+  -- C++ user literal _rt for amrex::Real and _prt for
+     amrex::ParticleReal.
+
+  -- EB MAC projector now requires the user to specify whether the
+     face velocities are defined on face centers or centroids.
+
 # 19.09
 
   -- First pass of Sr/EB on GPU.
