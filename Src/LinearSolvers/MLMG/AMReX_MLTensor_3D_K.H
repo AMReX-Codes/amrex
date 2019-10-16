@@ -436,23 +436,6 @@ void mltensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
             }
         }
     }
-    //fixme
-    IntVect mypt = {40,40,40};
-    if ( box.contains(mypt) ) {
-    	//int i=lo.x, j=lo.y, k=lo.z;
-    	int i=40,j=40,k=40;
-    	Print()<<" i,j,k : "<<i<< ","<<j<< ","<<k<<", "
-    	       <<"box " <<lo<<hi<<"\n";
-    	 Print()<<"vel(i, j, k) "<<vel(i,j,k,0)<<" "<<vel(i,j,k,1)<<" "<<vel(i,j,k,2)<<"\n";
-    	// Print()<<"vel(i+1,k-1) "<<vel(i+1,j,k-1,0)<<" "<<vel(i+1,j,k-1,2)<<"\n";
-	// Print()<<"vel(i+1,k  ) "<<vel(i+1,j,k,0)<<" "<<vel(i+1,j,k,2)<<"\n";
-    	// Print()<<"vel(i-1,k-1) "<<vel(i-1,j,k-1,0)<<" "<<vel(i-1,j,k-1,2)<<"\n";
-	Print()<<"vel(i-1,j-1) "<<vel(i-1,j-1,k,0)<<" "<<vel(i-1,j-1,k,1)<<" "<<vel(i-1,j-1,k,2)<<"\n";
-	Print()<<"vel(i-1,j,k) "<<vel(i-1,j,k,0)<<" "<<vel(i-1,j,k,1)<<" "<<vel(i-1,j,k,2)<<"\n";
-    	//Print()<<"vel(j+1,k-1) "<<vel(i,j+1,k-1,1)<<" "<<vel(i,j+1,k-1,2)<<"\n";
-	// Print()<<"vel(j,  k-1) "<<vel(i,j,k-1,0)<<" "<<vel(i,j,k-1,1)<<" "<<vel(i,j,k-1,2)<<"\n";
-    	Print()<<"vel(j-1,k-1) "<<vel(i,j-1,k-1,0)<<" "<<vel(i,j-1,k-1,1)<<" "<<vel(i,j-1,k-1,2)<<"\n";
-    }
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE

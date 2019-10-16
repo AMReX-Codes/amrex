@@ -13,7 +13,7 @@ namespace amrex {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
     int ic,jc,kc;
-    
+
     for     (int k = lo.z; k <= hi.z; ++k) {
       kc = ( (rr.z == 0) ? 0 : floor(double(k)/rr.z) );
       for   (int j = lo.y; j <= hi.y; ++j) {
@@ -25,7 +25,7 @@ namespace amrex {
 		bcval(i,j,k,n) = crsebcval(ic,jc,kc,n);
 	    }
 	    // else mask == 2
-	    // on physical domain and bcval already fully filled by setBndryValues()
+	    // on physical domain; handled in mltensor_fill
 	}
       }
     }

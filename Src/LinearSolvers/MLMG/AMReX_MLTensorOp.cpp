@@ -306,7 +306,6 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
 
     vel.EnforcePeriodicity(0, AMREX_SPACEDIM, m_geom[amrlev][mglev].periodicity());
 #endif
-    VisMF::Write(vel, "vel");
 }
 
 void
