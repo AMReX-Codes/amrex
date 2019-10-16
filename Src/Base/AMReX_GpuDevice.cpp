@@ -310,7 +310,7 @@ Device::Initialize ()
     if (amrex::Verbose()) {
 #if defined(AMREX_USE_MPI) && (AMREX_NVCC_MAJOR_VERSION >= 10)
         amrex::Print() << "CUDA initialized with 1 GPU per MPI rank; "
-                       << num_devices_used << " GPUs used in total\n";
+                       << num_devices_used << " GPU(s) used in total\n";
 #else
         amrex::Print() << "CUDA initialized with 1 GPU\n";
 #endif
