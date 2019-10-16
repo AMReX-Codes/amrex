@@ -560,20 +560,6 @@ MLCellLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
                                        maxorder, dxinv, flagbc, ncomp, cross);
             }
         }
-	//fixme
-	//	if (tensorop && (in[mfi].box()).contains({127,303}) ){
-	//if (tensorop && (in[mfi].box()).contains({-1,191}) ){
-	// if (tensorop && (in[mfi].box()).contains({0,0}) ){
-	//   Print()<<"cell -1 -1 \n";
-	//   amrex::print_state(in, {-1,-1}, 1, {1,1});
-	//   //amrex::print_state(in, {127,488}, 1, {1,1});
-	//   // static int count=0; count++;
-	//   // std::ofstream ofs ("fab"+std::to_string(count),
-	//   // 		     std::ofstream::out);
-	//   // in[mfi].writeOn(ofs);
-	//   //amrex::Abort("fab written");
-	// }
-
     }
 }
 
