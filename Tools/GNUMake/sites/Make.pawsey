@@ -1,0 +1,40 @@
+#
+# For PAWSEY machines: Magnus
+#
+
+ifneq ($(which_computer),$(filter $(which_computer),magnus))
+  $(error Unknown PAWSEY computer, $(which_computer))
+else
+  $(info Loading compiler settings for Magnus@PAWSEY)
+endif
+
+
+ifdef PE_ENV
+  lowercase_peenv := $(shell echo $(PE_ENV) | tr A-Z a-z)
+  ifneq ($(lowercase_peenv),$(lowercase_comp))
+    has_compiler_mismatch = COMP=$(COMP) does not match PrgEnv-$(lowercase_peenv)
+  endif
+endif
+
+CFLAGS   := $(subst -O2,-O3,$(CFLAGS))
+CXXFLAGS := $(subst -O2,-O3,$(CXXFLAGS))
+FFLAGS   := $(subst -O2,-O3,$(FFLAGS))
+F90FLAGS := $(subst -O2,-O3,$(F90FLAGS))
+
+CFLAGS   += -xHASWELL -fma
+CXXFLAGS += -xHASWELL -fma
+FFLAGS   += -xHASWELL -fma
+F90FLAGS += -xHASWELL -fma
+
+ifeq ($(USE_MPI),TRUE)
+  CC  = cc
+  CXX = CC
+  FC  = ftn
+  F90 = ftn
+  LIBRARIES += -lmpichf90
+endif
+
+ifeq ($(USE_SENSEI_INSITU),TRUE)
+  CXXFLAGS += -fPIC -dynamic
+  LIBRARIES += -ldl
+endif

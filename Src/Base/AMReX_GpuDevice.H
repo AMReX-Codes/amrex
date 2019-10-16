@@ -45,56 +45,21 @@ public:
 #endif
 
     static int deviceId () noexcept;
+    static int numDevicesUsed () noexcept;
 
     static void synchronize () noexcept;
     static void streamSynchronize () noexcept;
 
 #if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
     // Generic graph selection. These should be called by users. 
-    static void startGraphRecording(bool first_iter);
     static void startGraphRecording(bool first_iter, void* h_ptr, void* d_ptr, size_t sz);
     static cudaGraphExec_t stopGraphRecording(bool last_iter);
-
-    // Capture graphs per iteration
-    static void startGraphIterRecording();
-    static void stopGraphIterRecording();
-    static cudaGraphExec_t assembleGraphIter();
-
-    // Capture graphs along streams
-    static void startGraphStreamRecording();
-    static void startGraphStreamRecording(void* h_ptr, void* d_ptr, size_t sz);
-    static cudaGraphExec_t stopGraphStreamRecording();
-    static cudaGraphExec_t stopGraphStreamRecording(cudaGraph_t rootGraph);
-
-    // Likely a temporary function while testing.
-    // Get whether StreamRecord was performed with events and memcpy in the graph or not.
-    static int memcpyInGraph () noexcept { return use_events; }
 
     // Instantiate a created cudaGtaph
     static cudaGraphExec_t instantiateGraph(cudaGraph_t graph);
 
     // Execute an instantiated cudaGraphExec
     static void executeGraph(const cudaGraphExec_t &graphExec, bool synch = true);
-
-    // Set type of graph recording.
-    // Currently 2 options, so bool used. Change later if needed. 
-    static inline bool isGraphPerStream() { return graph_per_stream; }
-    static inline bool isNotGraphPerIter() { return graph_per_stream; }
-
-    static inline bool isGraphPerIter() { return !graph_per_stream; }
-    static inline bool isNotGraphPerStream() { return !graph_per_stream; }
-
-    static inline bool setGraphPerStream () {
-        bool r = graph_per_stream;
-        graph_per_stream = true;
-        return r;
-    }
-
-    static inline bool setGraphPerIter () {
-        bool r = graph_per_stream;
-        graph_per_stream = false;
-        return r;
-    }
 
 #endif
 
@@ -117,6 +82,7 @@ public:
     static int maxThreadsPerBlock () noexcept { return device_prop.maxThreadsPerBlock; }
     static int maxThreadsPerBlock (int dir) noexcept { return device_prop.maxThreadsDim[dir]; }
     static int maxBlocksPerGrid (int dir) noexcept { return device_prop.maxGridSize[dir]; }
+    static std::string deviceName () noexcept { return std::string(device_prop.name); }
 #endif
 
     static std::size_t freeMemAvailable ();
@@ -138,10 +104,11 @@ private:
     static void initialize_gpu ();
 
     static int device_id;
+    static int num_devices_used;
     static int verbose;
 
 #ifdef AMREX_USE_GPU
-    static constexpr int max_gpu_streams = 16;
+    static constexpr int max_gpu_streams = 4;
 #else
     // Equivalent to "single dependent stream". Fits best
     //  with math this is used in ("x/max_streams").
@@ -155,11 +122,6 @@ private:
     static std::array<gpuStream_t,max_gpu_streams> gpu_streams;
     static gpuStream_t gpu_stream;
     static gpuDeviceProp_t device_prop;
-#if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
-    static bool graph_per_stream;
-    static Vector<cudaGraph_t> cuda_graphs;
-    static bool use_events;
-#endif
     static int max_blocks_per_launch;
 #endif
 };

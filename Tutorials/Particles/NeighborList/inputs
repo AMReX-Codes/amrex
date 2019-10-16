@@ -1,7 +1,7 @@
-size = (256, 256, 256)
-max_grid_size = 128
+size = (64, 64, 64)
+max_grid_size = 32
 max_step = 10
-write_particles = 0
+write_particles = 1
 dt = 0.0005
 do_nl = 1
 nlevs = 1

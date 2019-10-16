@@ -17,6 +17,7 @@
 #include <AMReX_BLProfiler.H>
 #include <AMReX_BLFort.H>
 #include <AMReX_Utility.H>
+#include <AMReX_Random.H>
 #include <AMReX_Print.H>
 #include <AMReX_Arena.H>
 
@@ -129,7 +130,8 @@ amrex::write_to_stderr_without_buffering (const char* str)
     {
 	std::ostringstream procall;
 	procall << ParallelDescriptor::MyProc() << "::";
-	const char *cprocall = procall.str().c_str();
+        auto tmp = procall.str();
+	const char *cprocall = tmp.c_str();
         const char * const end = " !!!\n";
 	fwrite(cprocall, strlen(cprocall), 1, stderr);
         fwrite(str, strlen(str), 1, stderr);

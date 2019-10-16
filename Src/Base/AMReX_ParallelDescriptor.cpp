@@ -191,7 +191,7 @@ namespace
                         const char* call,
                         int         status)
     {
-	const int N = 512;
+	constexpr int N = 1024;
 	static char buf[N];
 	if ( status )
 	{

@@ -16,11 +16,11 @@ target_sources(amrex
 # or not
 find_package(Conduit REQUIRED)
 
-target_link_libraries(amrex PUBLIC conduit:conduit)
+target_link_libraries(amrex PUBLIC conduit::conduit)
 set_target_properties(conduit:conduit PROPERTIES IMPORTED_GLOBAL True )
 
 if (ENABLE_MPI)
-   target_link_libraries(amrex PUBLIC conduit:conduit_mpi)
+   target_link_libraries(amrex PUBLIC conduit::conduit_mpi)
    set_target_properties(conduit:conduit_mpi PROPERTIES IMPORTED_GLOBAL True )   
 endif ()
 

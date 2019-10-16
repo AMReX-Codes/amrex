@@ -14,6 +14,7 @@ module amrex_bc_types_module
   integer, parameter, public :: amrex_bc_foextrap     =  2
   integer, parameter, public :: amrex_bc_ext_dir      =  3
   integer, parameter, public :: amrex_bc_hoextrap     =  4
+  integer, parameter, public :: amrex_bc_hoextrapcc   =  5
 
   integer, parameter, public :: amrex_pbc_interior    = 0
   integer, parameter, public :: amrex_pbc_inflow      = 1
