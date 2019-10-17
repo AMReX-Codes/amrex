@@ -22,7 +22,7 @@ Pdirs := AmrCore
 Pdirs += Base 
 Pdirs += Boundary 
 Pdirs += EB
-Pdirs += LinearSolvers/MLMG
+Pdirs += LinearSolvers/MLMG LinearSolvers/Projections
 
 Ppack	+= $(foreach dir, $(Pdirs), $(AMREX_HOME)/Src/$(dir)/Make.package)
 

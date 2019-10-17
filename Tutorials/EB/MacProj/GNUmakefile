@@ -17,7 +17,7 @@ include ./Make.package
 
 Pdirs := Base Boundary AmrCore
 Pdirs += EB
-Pdirs += LinearSolvers/MLMG
+Pdirs += LinearSolvers/MLMG LinearSolvers/Projections
 
 Ppack	+= $(foreach dir, $(Pdirs), $(AMREX_HOME)/Src/$(dir)/Make.package)
 
