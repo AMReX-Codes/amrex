@@ -14,7 +14,7 @@ namespace amrex {
     const auto hi = amrex::ubound(box);
 
     for     (int k = lo.z; k <= hi.z; ++k) {
-      int kc = (rr.z == 0) ? amrex::coarsen(k, rr.z);
+      int kc = (rr.z == 0) ? 0 : amrex::coarsen(k, rr.z);
       for   (int j = lo.y; j <= hi.y; ++j) {
 	int jc = amrex::coarsen(j, rr.y);
 	for (int i = lo.x; i <= hi.x; i++) {
