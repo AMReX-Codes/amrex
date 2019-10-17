@@ -56,42 +56,46 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
 	    if (has_crsedata)
 		mltensor_interpbndry_o1(bx, icomp, vel, crsebcvalxlo, mxlo, rr);
 
-            if ( mxlo(vlo.x-1,vlo.y,vlo.z)==2 and mylo(vlo.x,vlo.y-1,vlo.z)==2 and
-		 mzlo(vlo.x,vlo.y,vlo.z-1)==2 ) {
+            if ( mxlo(vlo.x-1,vlo.y,vlo.z)==BndryData::outside_domain and
+                 mylo(vlo.x,vlo.y-1,vlo.z)==BndryData::outside_domain and
+		 mzlo(vlo.x,vlo.y,vlo.z-1)==BndryData::outside_domain ) {
 	        vel      (vlo.x-1,vlo.y-1,vlo.z-1,icomp)
                     = vel(vlo.x-1,vlo.y  ,vlo.z  ,icomp)
                     + vel(vlo.x  ,vlo.y-1,vlo.z  ,icomp)
                     + vel(vlo.x  ,vlo.y  ,vlo.z-1,icomp)
                     - vel(vlo.x  ,vlo.y  ,vlo.z  ,icomp) * 2.0;
-            } else if (mxlo(vlo.x-1,vlo.y,vlo.z)==2 and mylo(vlo.x,vlo.y-1,vlo.z)==2 and
+            } else if (mxlo(vlo.x-1,vlo.y,vlo.z)==BndryData::outside_domain and
+                       mylo(vlo.x,vlo.y-1,vlo.z)==BndryData::outside_domain and
 		       vlo.x == dlo.x and vlo.y == dlo.y) {
                 vel      (vlo.x-1,vlo.y-1,vlo.z-1,icomp)
                     = vel(vlo.x-1,vlo.y  ,vlo.z-1,icomp)
                     + vel(vlo.x  ,vlo.y-1,vlo.z-1,icomp)
                     - vel(vlo.x  ,vlo.y  ,vlo.z-1,icomp);
-            } else if (mxlo(vlo.x-1,vlo.y,vlo.z)==2 and mzlo(vlo.x,vlo.y,vlo.z-1)==2 and
+            } else if (mxlo(vlo.x-1,vlo.y,vlo.z)==BndryData::outside_domain and
+                       mzlo(vlo.x,vlo.y,vlo.z-1)==BndryData::outside_domain and
 		       vlo.x == dlo.x and vlo.z == dlo.z) {
                 vel      (vlo.x-1,vlo.y-1,vlo.z-1,icomp)
                     = vel(vlo.x-1,vlo.y-1,vlo.z  ,icomp)
                     + vel(vlo.x  ,vlo.y-1,vlo.z-1,icomp)
                     - vel(vlo.x  ,vlo.y-1,vlo.z  ,icomp);
-            } else if (mylo(vlo.x,vlo.y-1,vlo.z)==2 and mzlo(vlo.x-1,vlo.y,vlo.z-1)==2 and
+            } else if (mylo(vlo.x,vlo.y-1,vlo.z)==BndryData::outside_domain and
+                       mzlo(vlo.x-1,vlo.y,vlo.z-1)==BndryData::outside_domain and
 		       vlo.y == dlo.y and vlo.z == dlo.z) {
                 vel      (vlo.x-1,vlo.y-1,vlo.z-1,icomp)
                     = vel(vlo.x-1,vlo.y-1,vlo.z  ,icomp)
                     + vel(vlo.x-1,vlo.y  ,vlo.z-1,icomp)
                     - vel(vlo.x-1,vlo.y  ,vlo.z  ,icomp);
-            } else if (mxlo(vlo.x-1,vlo.y,vlo.z)==2 and vlo.x == dlo.x) {
+            } else if (mxlo(vlo.x-1,vlo.y,vlo.z)==BndryData::outside_domain and vlo.x == dlo.x) {
                 int offset = AMREX_SPACEDIM * oxlo;
                 mllinop_apply_bc_x(Orientation::low, bx, blen.x,
                                    vel, mxlo, bct[offset+icomp], bcl[offset+icomp],
                                    bcvalxlo, maxorder, dxinv[xdir], inhomog, icomp);
-            } else if (mylo(vlo.x,vlo.y-1,vlo.z)==2 and vlo.y == dlo.y) {
+            } else if (mylo(vlo.x,vlo.y-1,vlo.z)==BndryData::outside_domain and vlo.y == dlo.y) {
                 int offset = AMREX_SPACEDIM * oylo;
                 mllinop_apply_bc_y(Orientation::low, bx, blen.y,
                                    vel, mylo, bct[offset+icomp], bcl[offset+icomp],
                                    bcvalylo, maxorder, dxinv[ydir], inhomog, icomp);
-            } else if (mzlo(vlo.x,vlo.y,vlo.z-1)==2 and vlo.z == dlo.z) {
+            } else if (mzlo(vlo.x,vlo.y,vlo.z-1)==BndryData::outside_domain and vlo.z == dlo.z) {
                 int offset = AMREX_SPACEDIM * ozlo;
                 mllinop_apply_bc_z(Orientation::low, bx, blen.z,
                                    vel, mzlo, bct[offset+icomp], bcl[offset+icomp],
@@ -105,7 +109,8 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
 	    if (has_crsedata)
 	        mltensor_interpbndry_o1(bx, icomp, vel, crsebcvalylo, mylo, rr);
 
-            if ( mxhi(vhi.x+1,vlo.y,vlo.z)==2 and mylo(vlo.x,vlo.y-1,vlo.z)==2 and
+            if ( mxhi(vhi.x+1,vlo.y,vlo.z)==BndryData::outside_domain and
+                 mylo(vlo.x,vlo.y-1,vlo.z)==2 and
 		 mzlo(vlo.x,vlo.y,vlo.z-1)==2 ) {
                 vel      (vhi.x+1,vlo.y-1,vlo.z-1,icomp)
                     = vel(vhi.x+1,vlo.y  ,vlo.z  ,icomp)
