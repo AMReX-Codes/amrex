@@ -306,9 +306,7 @@ WarpX::OneStep_nosub (Real cur_time)
     // Push E and B from {n} to {n+1}
     // (And update guard cells immediately afterwards)
 #ifdef WARPX_USE_PSATD
-	if (do_qed) QED_Push();
     PushPSATD(dt[0]);
-    if (do_qed) QED_Push();
     if (do_pml) DampPML();
     FillBoundaryE();
     FillBoundaryB();
