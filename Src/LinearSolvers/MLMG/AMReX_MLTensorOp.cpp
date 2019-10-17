@@ -207,7 +207,6 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
     const auto& rr = ratio.dim3();
     const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
     const Box& domain = m_geom[amrlev][mglev].growPeriodicDomain(1);
-    Box testbox = domain;
 
     const int has_crsedata = crsebndry!=nullptr && inhomog;
     
@@ -221,10 +220,6 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
     for (MFIter mfi(vel, mfi_info); mfi.isValid(); ++mfi)
     {
         const Box& vbx = mfi.validbox();
-
-	if ( has_crsedata ){
-	  testbox = vbx;
-	}
 
         const auto& velfab = vel.array(mfi);
 
@@ -274,7 +269,7 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
                                   bvxlo, bvylo, bvxhi, bvyhi,
 				  cbvxlo, cbvylo, cbvxhi, cbvyhi,
                                   bct, bcl, inhomog, imaxorder, has_crsedata,
-                                  dxinv, rr, testbox);
+                                  dxinv, rr, domain);
         });
 #else
         const auto& mzlo = maskvals[Orientation(2,Orientation::low )].array(mfi);
@@ -298,7 +293,7 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
                                 bvxlo, bvylo, bvzlo, bvxhi, bvyhi, bvzhi,
 				cbvxlo, cbvylo, cbvzlo, cbvxhi, cbvyhi, cbvzhi,
                                 bct, bcl, inhomog, imaxorder, has_crsedata,
-				dxinv, rr, testbox);
+				dxinv, rr, domain);
         });
 
 #endif
