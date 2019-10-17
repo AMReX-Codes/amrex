@@ -76,6 +76,10 @@ public:
     // External fields
     static amrex::Vector<amrex::Real> B_external;
 
+    // Initial field on grid
+    static amrex::Vector<amrex::Real> E_external_grid;
+    static amrex::Vector<amrex::Real> B_external_grid;
+
     // Algorithms
     static long current_deposition_algo;
     static long charge_deposition_algo;
