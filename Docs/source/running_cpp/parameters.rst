@@ -577,8 +577,6 @@ Laser initialization
     ``mirror_z_width < dz/cell_size``, the upper bound of the mirror is increased
     so that it contains at least ``mirror_z_npoints``.
 
-
-
 Numerics and algorithms
 -----------------------
 
