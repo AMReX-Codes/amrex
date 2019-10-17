@@ -1,4 +1,5 @@
 #include <WarpXAlgorithmSelection.H>
+
 #include <map>
 #include <algorithm>
 #include <cstring>

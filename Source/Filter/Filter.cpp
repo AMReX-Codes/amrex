@@ -59,7 +59,7 @@ Filter::ApplyStencil (MultiFab& dstmf, const MultiFab& srcmf, int scomp, int dco
  * \param ncomp Number of components on which the filter is applied.
  */
 void
-Filter::ApplyStencil (FArrayBox& dstfab, const FArrayBox& srcfab, 
+Filter::ApplyStencil (FArrayBox& dstfab, const FArrayBox& srcfab,
                       const Box& tbx, int scomp, int dcomp, int ncomp)
 {
     BL_PROFILE("BilinearFilter::ApplyStencil(FArrayBox)");
@@ -106,11 +106,11 @@ void Filter::DoFilter (const Box& tbx,
         for         (int iz=0; iz < slen_local.z; ++iz){
             for     (int iy=0; iy < slen_local.y; ++iy){
                 for (int ix=0; ix < slen_local.x; ++ix){
-#if (AMREX_SPACEDIM == 3)        
+#if (AMREX_SPACEDIM == 3)
                     Real sss = sx[ix]*sy[iy]*sz[iz];
 #else
                     Real sss = sx[ix]*sz[iy];
-#endif                        
+#endif
 #if (AMREX_SPACEDIM == 3)
                     d += sss*( tmp(i-ix,j-iy,k-iz,scomp+n)
                               +tmp(i+ix,j-iy,k-iz,scomp+n)
@@ -179,7 +179,7 @@ Filter::ApplyStencil (MultiFab& dstmf, const MultiFab& srcmf, int scomp, int dco
  * \param ncomp Number of components on which the filter is applied.
  */
 void
-Filter::ApplyStencil (FArrayBox& dstfab, const FArrayBox& srcfab, 
+Filter::ApplyStencil (FArrayBox& dstfab, const FArrayBox& srcfab,
                       const Box& tbx, int scomp, int dcomp, int ncomp)
 {
     BL_PROFILE("BilinearFilter::ApplyStencil(FArrayBox)");
@@ -220,7 +220,7 @@ void Filter::DoFilter (const Box& tbx,
         for         (int iz=0; iz < slen.z; ++iz){
             for     (int iy=0; iy < slen.y; ++iy){
                 for (int ix=0; ix < slen.x; ++ix){
-#if (AMREX_SPACEDIM == 3)        
+#if (AMREX_SPACEDIM == 3)
                     Real sss = sx[ix]*sy[iy]*sz[iz];
 #else
                     Real sss = sx[ix]*sz[iy];

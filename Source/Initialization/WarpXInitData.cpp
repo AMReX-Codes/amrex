@@ -1,11 +1,11 @@
 
-#include <AMReX_ParallelDescriptor.H>
-#include <AMReX_ParmParse.H>
-
 #include <WarpX.H>
 #include <WarpX_f.H>
 #include <BilinearFilter.H>
 #include <NCIGodfreyFilter.H>
+
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_ParmParse.H>
 
 #ifdef BL_USE_SENSEI_INSITU
 #include <AMReX_AmrMeshInSituBridge.H>
@@ -25,11 +25,11 @@ WarpX::InitData ()
     }
     else
     {
-	InitFromCheckpoint();
+        InitFromCheckpoint();
         if (is_synchronized) {
             ComputeDt();
         }
-	PostRestart();
+        PostRestart();
     }
 
     ComputePMLFactors();
@@ -87,12 +87,12 @@ WarpX::InitDiagnostics () {
         const Real* current_hi = geom[0].ProbHi();
         Real dt_boost = dt[0];
 
-	// Find the positions of the lab-frame box that corresponds to the boosted-frame box at t=0
-	Real zmin_lab = current_lo[moving_window_dir]/( (1.+beta_boost)*gamma_boost );
-	Real zmax_lab = current_hi[moving_window_dir]/( (1.+beta_boost)*gamma_boost );
+        // Find the positions of the lab-frame box that corresponds to the boosted-frame box at t=0
+        Real zmin_lab = current_lo[moving_window_dir]/( (1.+beta_boost)*gamma_boost );
+        Real zmax_lab = current_hi[moving_window_dir]/( (1.+beta_boost)*gamma_boost );
 
         myBFD.reset(new BoostedFrameDiagnostic(zmin_lab,
-					       zmax_lab,
+                                               zmax_lab,
                                                moving_window_v, dt_snapshots_lab,
                                                num_snapshots_lab, gamma_boost,
                                                t_new[0], dt_boost,
@@ -197,9 +197,10 @@ WarpX::InitNCICorrector ()
 
             // Initialize Godfrey filters
             // Same filter for fields Ex, Ey and Bz
-            nci_godfrey_filter_exeybz[lev].reset( new NCIGodfreyFilter(godfrey_coeff_set::Ex_Ey_Bz, cdtodz, WarpX::l_lower_order_in_v) );
+            const bool nodal_gather = (l_lower_order_in_v == 0);
+            nci_godfrey_filter_exeybz[lev].reset( new NCIGodfreyFilter(godfrey_coeff_set::Ex_Ey_Bz, cdtodz, nodal_gather) );
             // Same filter for fields Bx, By and Ez
-            nci_godfrey_filter_bxbyez[lev].reset( new NCIGodfreyFilter(godfrey_coeff_set::Bx_By_Ez, cdtodz, WarpX::l_lower_order_in_v) );
+            nci_godfrey_filter_bxbyez[lev].reset( new NCIGodfreyFilter(godfrey_coeff_set::Bx_By_Ez, cdtodz, nodal_gather) );
             // Compute Godfrey filters stencils
             nci_godfrey_filter_exeybz[lev]->ComputeStencils();
             nci_godfrey_filter_bxbyez[lev]->ComputeStencils();
@@ -251,9 +252,9 @@ WarpX::InitOpenbc ()
     BoxList bl{IndexType::TheNodeType()};
     for (int i = 0; i < nprocs; ++i)
     {
-	bl.push_back(Box(IntVect(alllohi[6*i  ],alllohi[6*i+1],alllohi[6*i+2]),
-			 IntVect(alllohi[6*i+3],alllohi[6*i+4],alllohi[6*i+5]),
-			 IndexType::TheNodeType()));
+        bl.push_back(Box(IntVect(alllohi[6*i  ],alllohi[6*i+1],alllohi[6*i+2]),
+                         IntVect(alllohi[6*i+3],alllohi[6*i+4],alllohi[6*i+5]),
+                         IndexType::TheNodeType()));
     }
     BoxArray ba{bl};
 
@@ -286,13 +287,13 @@ WarpX::InitOpenbc ()
 #endif
     for (MFIter mfi(phi); mfi.isValid(); ++mfi)
     {
-	const Box& bx = mfi.validbox();
-	warpx_compute_E(bx.loVect(), bx.hiVect(),
-			BL_TO_FORTRAN_3D(phi[mfi]),
-			BL_TO_FORTRAN_3D((*Efield[lev][0])[mfi]),
-			BL_TO_FORTRAN_3D((*Efield[lev][1])[mfi]),
-			BL_TO_FORTRAN_3D((*Efield[lev][2])[mfi]),
-			dx);
+        const Box& bx = mfi.validbox();
+        warpx_compute_E(bx.loVect(), bx.hiVect(),
+                        BL_TO_FORTRAN_3D(phi[mfi]),
+                        BL_TO_FORTRAN_3D((*Efield[lev][0])[mfi]),
+                        BL_TO_FORTRAN_3D((*Efield[lev][1])[mfi]),
+                        BL_TO_FORTRAN_3D((*Efield[lev][2])[mfi]),
+                        dx);
     }
 }
 #endif
@@ -301,9 +302,9 @@ void
 WarpX::InitLevelData (int lev, Real time)
 {
     for (int i = 0; i < 3; ++i) {
-	current_fp[lev][i]->setVal(0.0);
-	Efield_fp[lev][i]->setVal(0.0);
-	Bfield_fp[lev][i]->setVal(0.0);
+        current_fp[lev][i]->setVal(0.0);
+        Efield_fp[lev][i]->setVal(0.0);
+        Bfield_fp[lev][i]->setVal(0.0);
     }
 
     if (lev > 0) {

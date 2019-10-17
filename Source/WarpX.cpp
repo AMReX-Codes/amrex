@@ -1,17 +1,3 @@
-
-#include <limits>
-#include <algorithm>
-#include <cctype>
-#include <cmath>
-#include <numeric>
-
-#ifdef _OPENMP
-#include <omp.h>
-#endif
-
-#include <AMReX_ParmParse.H>
-#include <AMReX_MultiFabUtil.H>
-
 #include <WarpX.H>
 #include <WarpX_f.H>
 #include <WarpXConst.H>
@@ -20,9 +6,21 @@
 #include <WarpXAlgorithmSelection.H>
 #include <WarpX_FDTD.H>
 
+#include <AMReX_ParmParse.H>
+#include <AMReX_MultiFabUtil.H>
 #ifdef BL_USE_SENSEI_INSITU
-#include <AMReX_AmrMeshInSituBridge.H>
+#   include <AMReX_AmrMeshInSituBridge.H>
 #endif
+
+#ifdef _OPENMP
+#   include <omp.h>
+#endif
+
+#include <limits>
+#include <algorithm>
+#include <cctype>
+#include <cmath>
+#include <numeric>
 
 using namespace amrex;
 
@@ -71,6 +69,8 @@ bool WarpX::do_boosted_frame_particles = true;
 
 bool WarpX::do_dynamic_scheduling = true;
 
+int WarpX::do_subcycling = 0;
+
 #if (AMREX_SPACEDIM == 3)
 IntVect WarpX::Bx_nodal_flag(1,0,0);
 IntVect WarpX::By_nodal_flag(0,1,0);
@@ -103,7 +103,7 @@ IntVect WarpX::jz_nodal_flag(1,0);  // z is the second dimension to 2D AMReX
 
 IntVect WarpX::filter_npass_each_dir(1);
 
-int WarpX::n_field_gather_buffer = 0;
+int WarpX::n_field_gather_buffer = -1;
 int WarpX::n_current_deposition_buffer = -1;
 
 int WarpX::do_nodal = false;
@@ -114,7 +114,7 @@ WarpX&
 WarpX::GetInstance ()
 {
     if (!m_instance) {
-	m_instance = new WarpX();
+        m_instance = new WarpX();
     }
     return *m_instance;
 }
@@ -137,20 +137,20 @@ WarpX::WarpX ()
     // No valid BoxArray and DistributionMapping have been defined.
     // But the arrays for them have been resized.
 
-    int nlevs_max = maxLevel() + 1;
+    const int nlevs_max = maxLevel() + 1;
 
     istep.resize(nlevs_max, 0);
     nsubsteps.resize(nlevs_max, 1);
 #if 0
     // no subcycling yet
-    for (int lev = 1; lev <= maxLevel(); ++lev) {
-	nsubsteps[lev] = MaxRefRatio(lev-1);
+    for (int lev = 1; lev < nlevs_max; ++lev) {
+        nsubsteps[lev] = MaxRefRatio(lev-1);
     }
 #endif
 
     t_new.resize(nlevs_max, 0.0);
-    t_old.resize(nlevs_max, -1.e100);
-    dt.resize(nlevs_max, 1.e100);
+    t_old.resize(nlevs_max, std::numeric_limits<Real>::lowest());
+    dt.resize(nlevs_max, std::numeric_limits<Real>::max());
 
     // Particle Container
     mypc = std::unique_ptr<MultiParticleContainer> (new MultiParticleContainer(this));
@@ -239,7 +239,7 @@ WarpX::WarpX ()
 
 WarpX::~WarpX ()
 {
-    int nlevs_max = maxLevel() +1;
+    const int nlevs_max = maxLevel() +1;
     for (int lev = 0; lev < nlevs_max; ++lev) {
         ClearLevel(lev);
     }
@@ -253,142 +253,142 @@ void
 WarpX::ReadParameters ()
 {
     {
-	ParmParse pp;  // Traditionally, max_step and stop_time do not have prefix.
-	pp.query("max_step", max_step);
-	pp.query("stop_time", stop_time);
+        ParmParse pp;  // Traditionally, max_step and stop_time do not have prefix.
+        pp.query("max_step", max_step);
+        pp.query("stop_time", stop_time);
     }
 
     {
-	ParmParse pp("amr"); // Traditionally, these have prefix, amr.
+        ParmParse pp("amr"); // Traditionally, these have prefix, amr.
 
-	pp.query("check_file", check_file);
-	pp.query("check_int", check_int);
+        pp.query("check_file", check_file);
+        pp.query("check_int", check_int);
 
-	pp.query("plot_file", plot_file);
-	pp.query("plot_int", plot_int);
+        pp.query("plot_file", plot_file);
+        pp.query("plot_int", plot_int);
 
-	pp.query("restart", restart_chkfile);
+        pp.query("restart", restart_chkfile);
     }
 
     {
-	ParmParse pp("warpx");
+        ParmParse pp("warpx");
 
-	pp.query("cfl", cfl);
-	pp.query("verbose", verbose);
-	pp.query("regrid_int", regrid_int);
+        pp.query("cfl", cfl);
+        pp.query("verbose", verbose);
+        pp.query("regrid_int", regrid_int);
         pp.query("do_subcycling", do_subcycling);
         pp.query("override_sync_int", override_sync_int);
 
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(do_subcycling != 1 || max_level <= 1,
-                                     "Subcycling method 1 only works for 2 levels.");
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(do_subcycling != 1 || max_level <= 1,
+                                         "Subcycling method 1 only works for 2 levels.");
 
-    ReadBoostedFrameParameters(gamma_boost, beta_boost, boost_direction);
+        ReadBoostedFrameParameters(gamma_boost, beta_boost, boost_direction);
 
-    // pp.query returns 1 if argument zmax_plasma_to_compute_max_step is
-    // specified by the user, 0 otherwise.
-    do_compute_max_step_from_zmax =
-        pp.query("zmax_plasma_to_compute_max_step",
-                  zmax_plasma_to_compute_max_step);
+        // pp.query returns 1 if argument zmax_plasma_to_compute_max_step is
+        // specified by the user, 0 otherwise.
+        do_compute_max_step_from_zmax =
+            pp.query("zmax_plasma_to_compute_max_step",
+                      zmax_plasma_to_compute_max_step);
 
-    pp.queryarr("B_external", B_external);
+        pp.queryarr("B_external", B_external);
 
-	pp.query("do_moving_window", do_moving_window);
-	if (do_moving_window)
-	{
-	    std::string s;
-	    pp.get("moving_window_dir", s);
-	    if (s == "x" || s == "X") {
-		moving_window_dir = 0;
-	    }
+        pp.query("do_moving_window", do_moving_window);
+        if (do_moving_window)
+        {
+            std::string s;
+            pp.get("moving_window_dir", s);
+            if (s == "x" || s == "X") {
+                moving_window_dir = 0;
+            }
 #if (AMREX_SPACEDIM == 3)
-	    else if (s == "y" || s == "Y") {
-		moving_window_dir = 1;
-	    }
+            else if (s == "y" || s == "Y") {
+                moving_window_dir = 1;
+            }
 #endif
-	    else if (s == "z" || s == "Z") {
-		moving_window_dir = AMREX_SPACEDIM-1;
-	    }
-	    else {
-		const std::string msg = "Unknown moving_window_dir: "+s;
-		amrex::Abort(msg.c_str());
-	    }
+            else if (s == "z" || s == "Z") {
+                moving_window_dir = AMREX_SPACEDIM-1;
+            }
+            else {
+                const std::string msg = "Unknown moving_window_dir: "+s;
+                amrex::Abort(msg.c_str());
+            }
 
-	    moving_window_x = geom[0].ProbLo(moving_window_dir);
+            moving_window_x = geom[0].ProbLo(moving_window_dir);
 
-	    pp.get("moving_window_v", moving_window_v);
-	    moving_window_v *= PhysConst::c;
-	}
-
-    pp.query("do_boosted_frame_diagnostic", do_boosted_frame_diagnostic);
-    if (do_boosted_frame_diagnostic) {
-
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(gamma_boost > 1.0,
-               "gamma_boost must be > 1 to use the boosted frame diagnostic.");
-
-        pp.query("lab_data_directory", lab_data_directory);
-
-        std::string s;
-        pp.get("boost_direction", s);
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE( (s == "z" || s == "Z"),
-               "The boosted frame diagnostic currently only works if the boost is in the z direction.");
-
-        pp.get("num_snapshots_lab", num_snapshots_lab);
-
-        // Read either dz_snapshots_lab or dt_snapshots_lab
-        bool snapshot_interval_is_specified = 0;
-        Real dz_snapshots_lab = 0;
-        snapshot_interval_is_specified += pp.query("dt_snapshots_lab", dt_snapshots_lab);
-        if ( pp.query("dz_snapshots_lab", dz_snapshots_lab) ){
-            dt_snapshots_lab = dz_snapshots_lab/PhysConst::c;
-            snapshot_interval_is_specified = 1;
+            pp.get("moving_window_v", moving_window_v);
+            moving_window_v *= PhysConst::c;
         }
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-            snapshot_interval_is_specified,
-            "When using back-transformed diagnostics, user should specify either dz_snapshots_lab or dt_snapshots_lab.");
 
-        pp.get("gamma_boost", gamma_boost);
+        pp.query("do_boosted_frame_diagnostic", do_boosted_frame_diagnostic);
+        if (do_boosted_frame_diagnostic) {
 
-        pp.query("do_boosted_frame_fields", do_boosted_frame_fields);
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(gamma_boost > 1.0,
+                   "gamma_boost must be > 1 to use the boosted frame diagnostic.");
 
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(do_moving_window,
-               "The moving window should be on if using the boosted frame diagnostic.");
+            pp.query("lab_data_directory", lab_data_directory);
 
-        pp.get("moving_window_dir", s);
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE( (s == "z" || s == "Z"),
-               "The boosted frame diagnostic currently only works if the moving window is in the z direction.");
-    }
+            std::string s;
+            pp.get("boost_direction", s);
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE( (s == "z" || s == "Z"),
+                   "The boosted frame diagnostic currently only works if the boost is in the z direction.");
 
-    pp.query("do_electrostatic", do_electrostatic);
-    pp.query("n_buffer", n_buffer);
-    pp.query("const_dt", const_dt);
+            pp.get("num_snapshots_lab", num_snapshots_lab);
 
-    // Read filter and fill IntVect filter_npass_each_dir with
-    // proper size for AMREX_SPACEDIM
-	pp.query("use_filter", use_filter);
-    Vector<int> parse_filter_npass_each_dir(AMREX_SPACEDIM,1);
-    pp.queryarr("filter_npass_each_dir", parse_filter_npass_each_dir);
-    filter_npass_each_dir[0] = parse_filter_npass_each_dir[0];
-    filter_npass_each_dir[1] = parse_filter_npass_each_dir[1];
+            // Read either dz_snapshots_lab or dt_snapshots_lab
+            bool snapshot_interval_is_specified = 0;
+            Real dz_snapshots_lab = 0;
+            snapshot_interval_is_specified += pp.query("dt_snapshots_lab", dt_snapshots_lab);
+            if ( pp.query("dz_snapshots_lab", dz_snapshots_lab) ){
+                dt_snapshots_lab = dz_snapshots_lab/PhysConst::c;
+                snapshot_interval_is_specified = 1;
+            }
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+                snapshot_interval_is_specified,
+                "When using back-transformed diagnostics, user should specify either dz_snapshots_lab or dt_snapshots_lab.");
+
+            pp.get("gamma_boost", gamma_boost);
+
+            pp.query("do_boosted_frame_fields", do_boosted_frame_fields);
+
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(do_moving_window,
+                   "The moving window should be on if using the boosted frame diagnostic.");
+
+            pp.get("moving_window_dir", s);
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE( (s == "z" || s == "Z"),
+                   "The boosted frame diagnostic currently only works if the moving window is in the z direction.");
+        }
+
+        pp.query("do_electrostatic", do_electrostatic);
+        pp.query("n_buffer", n_buffer);
+        pp.query("const_dt", const_dt);
+
+        // Read filter and fill IntVect filter_npass_each_dir with
+        // proper size for AMREX_SPACEDIM
+            pp.query("use_filter", use_filter);
+        Vector<int> parse_filter_npass_each_dir(AMREX_SPACEDIM,1);
+        pp.queryarr("filter_npass_each_dir", parse_filter_npass_each_dir);
+        filter_npass_each_dir[0] = parse_filter_npass_each_dir[0];
+        filter_npass_each_dir[1] = parse_filter_npass_each_dir[1];
 #if (AMREX_SPACEDIM == 3)
-    filter_npass_each_dir[2] = parse_filter_npass_each_dir[2];
+        filter_npass_each_dir[2] = parse_filter_npass_each_dir[2];
 #endif
 
-    pp.query("num_mirrors", num_mirrors);
-    if (num_mirrors>0){
-        mirror_z.resize(num_mirrors);
-        pp.getarr("mirror_z", mirror_z, 0, num_mirrors);
-        mirror_z_width.resize(num_mirrors);
-        pp.getarr("mirror_z_width", mirror_z_width, 0, num_mirrors);
-        mirror_z_npoints.resize(num_mirrors);
-        pp.getarr("mirror_z_npoints", mirror_z_npoints, 0, num_mirrors);
-    }
+        pp.query("num_mirrors", num_mirrors);
+        if (num_mirrors>0){
+            mirror_z.resize(num_mirrors);
+            pp.getarr("mirror_z", mirror_z, 0, num_mirrors);
+            mirror_z_width.resize(num_mirrors);
+            pp.getarr("mirror_z_width", mirror_z_width, 0, num_mirrors);
+            mirror_z_npoints.resize(num_mirrors);
+            pp.getarr("mirror_z_npoints", mirror_z_npoints, 0, num_mirrors);
+        }
 
-	pp.query("serialize_ics", serialize_ics);
-	pp.query("refine_plasma", refine_plasma);
+        pp.query("serialize_ics", serialize_ics);
+        pp.query("refine_plasma", refine_plasma);
         pp.query("do_dive_cleaning", do_dive_cleaning);
         pp.query("n_field_gather_buffer", n_field_gather_buffer);
         pp.query("n_current_deposition_buffer", n_current_deposition_buffer);
-	pp.query("sort_int", sort_int);
+        pp.query("sort_int", sort_int);
 
         pp.query("do_pml", do_pml);
         pp.query("pml_ncell", pml_ncell);
@@ -413,7 +413,7 @@ WarpX::ReadParameters ()
 #endif
 
         if ( (do_pml_j_damping==1)&&(do_pml_in_domain==0) ){
-          amrex::Abort("J-damping can only be done when PML are inside simulation domain (do_pml_in_domain=1)");
+            amrex::Abort("J-damping can only be done when PML are inside simulation domain (do_pml_in_domain=1)");
         }
 
         pp.query("dump_openpmd", dump_openpmd);
@@ -452,7 +452,8 @@ WarpX::ReadParameters ()
         }
 
         // Check that the coarsening_ratio can divide the blocking factor
-        for (int lev=0; lev<maxLevel(); lev++){
+        const int nlevs_max = maxLevel();
+        for (int lev=0; lev<nlevs_max; lev++){
           for (int comp=0; comp<AMREX_SPACEDIM; comp++){
             if ( blockingFactor(lev)[comp] % plot_coarsening_ratio != 0 ){
               amrex::Abort("plot_coarsening_ratio should be an integer "
@@ -519,16 +520,15 @@ WarpX::ReadParameters ()
 
         // Only needs to be set with WARPX_DIM_RZ, otherwise defaults to 1.
         pp.query("n_rz_azimuthal_modes", n_rz_azimuthal_modes);
-
     }
 
     {
-	ParmParse pp("interpolation");
-	pp.query("nox", nox);
-	pp.query("noy", noy);
-	pp.query("noz", noz);
+        ParmParse pp("interpolation");
+        pp.query("nox", nox);
+        pp.query("noy", noy);
+        pp.query("noz", noz);
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE( nox == noy and nox == noz ,
-	    "warpx.nox, noy and noz must be equal");
+            "warpx.nox, noy and noz must be equal");
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE( nox >= 1, "warpx.nox must >= 1");
     }
 
@@ -619,21 +619,21 @@ void
 WarpX::ClearLevel (int lev)
 {
     for (int i = 0; i < 3; ++i) {
-	Efield_aux[lev][i].reset();
-	Bfield_aux[lev][i].reset();
+        Efield_aux[lev][i].reset();
+        Bfield_aux[lev][i].reset();
 
-	current_fp[lev][i].reset();
-	Efield_fp [lev][i].reset();
-	Bfield_fp [lev][i].reset();
+        current_fp[lev][i].reset();
+        Efield_fp [lev][i].reset();
+        Bfield_fp [lev][i].reset();
 
         current_store[lev][i].reset();
 
-	current_cp[lev][i].reset();
-	Efield_cp [lev][i].reset();
-	Bfield_cp [lev][i].reset();
+        current_cp[lev][i].reset();
+        Efield_cp [lev][i].reset();
+        Bfield_cp [lev][i].reset();
 
-	Efield_cax[lev][i].reset();
-	Bfield_cax[lev][i].reset();
+        Efield_cax[lev][i].reset();
+        Bfield_cax[lev][i].reset();
         current_buf[lev][i].reset();
     }
 
@@ -694,7 +694,7 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
     int ngz_nonci = (ngz_tmp % 2) ? ngz_tmp+1 : ngz_tmp;  // Always even number
     int ngz;
     if (WarpX::use_fdtd_nci_corr) {
-        int ng = ngz_tmp + NCIGodfreyFilter::stencil_width;
+        int ng = ngz_tmp + NCIGodfreyFilter::m_stencil_width;
         ngz = (ng % 2) ? ng+1 : ng;
     } else {
         ngz = ngz_nonci;
@@ -731,10 +731,18 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
 
     if (mypc->nSpeciesDepositOnMainGrid() && n_current_deposition_buffer == 0) {
         n_current_deposition_buffer = 1;
+        // This forces the allocation of buffers and allows the code associated
+        // with buffers to run. But the buffer size of `1` is in fact not used,
+        // `deposit_on_main_grid` forces all particles (whether or not they
+        // are in buffers) to deposition on the main grid.
     }
 
     if (n_current_deposition_buffer < 0) {
         n_current_deposition_buffer = ngJ.max();
+    }
+    if (n_field_gather_buffer < 0) {
+        // Field gather buffer should be larger than current deposition buffers
+        n_field_gather_buffer = n_current_deposition_buffer + 1;
     }
 
     int ngF = (do_moving_window) ? 2 : 0;
@@ -919,12 +927,13 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
     //
     // Copy of the coarse aux
     //
-    if (lev > 0 && (n_field_gather_buffer > 0 || n_current_deposition_buffer > 0))
+    if (lev > 0 && (n_field_gather_buffer > 0 || n_current_deposition_buffer > 0 ||
+                    mypc->nSpeciesGatherFromMainGrid() > 0))
     {
         BoxArray cba = ba;
         cba.coarsen(refRatio(lev-1));
 
-        if (n_field_gather_buffer > 0) {
+        if (n_field_gather_buffer > 0 || mypc->nSpeciesGatherFromMainGrid() > 0) {
             // Create the MultiFabs for B
             Bfield_cax[lev][0].reset( new MultiFab(amrex::convert(cba,Bx_nodal_flag),dm,ncomps,ngE));
             Bfield_cax[lev][1].reset( new MultiFab(amrex::convert(cba,By_nodal_flag),dm,ncomps,ngE));
@@ -988,7 +997,7 @@ WarpX::LowerCorner(const Box& bx, int lev)
 #if (AMREX_SPACEDIM == 3)
     return { xyzmin[0], xyzmin[1], xyzmin[2] };
 #elif (AMREX_SPACEDIM == 2)
-    return { xyzmin[0], -1.e100, xyzmin[1] };
+    return { xyzmin[0], std::numeric_limits<Real>::lowest(), xyzmin[1] };
 #endif
 }
 
@@ -1000,7 +1009,7 @@ WarpX::UpperCorner(const Box& bx, int lev)
 #if (AMREX_SPACEDIM == 3)
     return { xyzmax[0], xyzmax[1], xyzmax[2] };
 #elif (AMREX_SPACEDIM == 2)
-    return { xyzmax[0], 1.e100, xyzmax[1] };
+    return { xyzmax[0], std::numeric_limits<Real>::max(), xyzmax[1] };
 #endif
 }
 

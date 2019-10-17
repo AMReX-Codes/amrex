@@ -149,7 +149,7 @@ SpectralKSpace::getSpectralShiftFactor( const DistributionMapping& dm,
 #else
             shift[i] = std::exp( I*sign*k[i]*0.5*dx[i_dim] );
 #endif
-        
+
         }
     }
     return shift_factor;

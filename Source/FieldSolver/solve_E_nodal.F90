@@ -8,7 +8,7 @@ module warpx_ES_solve_E_nodal
 contains
 
 ! This routine computes the node-centered electric field given a node-centered phi.
-! The gradient is computed using 2nd-order centered differences. It assumes the 
+! The gradient is computed using 2nd-order centered differences. It assumes the
 ! Boundary conditions have already been set and that you have two rows of ghost cells
 ! for phi and one row of ghost cells for Ex, Ey, and Ez.
 ! Note that this routine includes the minus sign in E = - grad phi.
@@ -35,7 +35,7 @@ contains
     do k = lo(3)-1, hi(3)+1
        do j = lo(2)-1, hi(2)+1
           do i = lo(1)-1, hi(1)+1
-             
+
              Ex(i,j,k) = fac(1) * (phi(i-1,j,k) - phi(i+1,j,k))
              Ey(i,j,k) = fac(2) * (phi(i,j-1,k) - phi(i,j+1,k))
              Ez(i,j,k) = fac(3) * (phi(i,j,k-1) - phi(i,j,k+1))
@@ -61,7 +61,7 @@ contains
 
     do j = lo(2)-1, hi(2)+1
        do i = lo(1)-1, hi(1)+1
-             
+
           Ex(i,j) = fac(1) * (phi(i-1,j) - phi(i+1,j))
           Ey(i,j) = fac(2) * (phi(i,j-1) - phi(i,j+1))
 

@@ -21,6 +21,7 @@ warpx.load_balance_int = 5
 interpolation.nox = 3
 interpolation.noy = 3
 interpolation.noz = 3
+warpx.do_pml = 0
 
 # CFL
 warpx.cfl = 1.0

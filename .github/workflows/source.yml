@@ -1,0 +1,15 @@
+name: source
+
+on: [push, pull_request]
+
+jobs:
+  style:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: TABs
+      run: .github/workflows/source/hasTabs
+    - name: End-of-Line whitespaces
+      run: .github/workflows/source/hasEOLwhiteSpace

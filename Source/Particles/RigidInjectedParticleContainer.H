@@ -40,14 +40,14 @@ public:
                          const amrex::MultiFab* cBy,
                          const amrex::MultiFab* cBz,
                          amrex::Real t,
-                         amrex::Real dt) override;
+                         amrex::Real dt,
+                         DtType a_dt_type=DtType::Full) override;
 
     virtual void PushPX(WarpXParIter& pti,
-                        amrex::Cuda::ManagedDeviceVector<amrex::Real>& xp,
-                        amrex::Cuda::ManagedDeviceVector<amrex::Real>& yp,
-                        amrex::Cuda::ManagedDeviceVector<amrex::Real>& zp,
-                        amrex::Cuda::ManagedDeviceVector<amrex::Real>& giv,
-                        amrex::Real dt) override;
+                        amrex::Cuda::ManagedDeviceVector<amrex::ParticleReal>& xp,
+                        amrex::Cuda::ManagedDeviceVector<amrex::ParticleReal>& yp,
+                        amrex::Cuda::ManagedDeviceVector<amrex::ParticleReal>& zp,
+                        amrex::Real dt, DtType a_dt_type=DtType::Full) override;
 
     virtual void PushP (int lev, amrex::Real dt,
                         const amrex::MultiFab& Ex,
@@ -60,7 +60,7 @@ public:
     virtual void ReadHeader (std::istream& is) override;
 
     virtual void WriteHeader (std::ostream& os) const override;
-    
+
 private:
 
     // User input quantities

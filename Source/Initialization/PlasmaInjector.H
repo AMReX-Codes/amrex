@@ -5,12 +5,14 @@
 #include <InjectorDensity.H>
 #include <InjectorMomentum.H>
 
-#include <array>
-#include <AMReX_Vector.H>
 #include <WarpXConst.H>
 #include <WarpXParser.H>
+
+#include <AMReX_Vector.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_Utility.H>
+
+#include <array>
 
 ///
 /// The PlasmaInjector class parses and stores information about the plasma
@@ -41,9 +43,9 @@ public:
     bool doInjection () const noexcept { return inj_pos != NULL;}
 
     bool add_single_particle = false;
-    amrex::Vector<amrex::Real> single_particle_pos;
-    amrex::Vector<amrex::Real> single_particle_vel;
-    amrex::Real single_particle_weight;
+    amrex::Vector<amrex::ParticleReal> single_particle_pos;
+    amrex::Vector<amrex::ParticleReal> single_particle_vel;
+    amrex::ParticleReal single_particle_weight;
 
     bool gaussian_beam = false;
     amrex::Real x_m;
@@ -94,9 +96,9 @@ protected:
     std::unique_ptr<InjectorPosition> inj_pos;
     std::unique_ptr<InjectorDensity > inj_rho;
     std::unique_ptr<InjectorMomentum> inj_mom;
-    
+
     void parseDensity (amrex::ParmParse& pp);
-    void parseMomentum (amrex::ParmParse& pp);    
+    void parseMomentum (amrex::ParmParse& pp);
 };
 
 #endif

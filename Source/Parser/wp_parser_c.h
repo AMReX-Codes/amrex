@@ -4,6 +4,7 @@
 #include "wp_parser_y.h"
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_Extension.H>
+#include <AMReX_REAL.H>
 
 #ifdef __cplusplus
 extern "C" {
@@ -21,15 +22,15 @@ extern "C" {
 #include <string>
 
 AMREX_GPU_HOST_DEVICE
-inline double
+inline amrex_real
 wp_ast_eval (struct wp_node* node)
 {
-    double result;
+    amrex_real result;
 
 #ifdef AMREX_DEVICE_COMPILE
-    extern __shared__ double extern_xyz[];
+    extern __shared__ amrex_real extern_xyz[];
     int tid = threadIdx.x + threadIdx.y*blockDim.x + threadIdx.z*(blockDim.x*blockDim.y);
-    double* x = extern_xyz + tid*3;
+    amrex_real* x = extern_xyz + tid*3;
 #endif
 
     switch (node->type)

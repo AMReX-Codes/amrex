@@ -7,5 +7,5 @@ void ReadBoostedFrameParameters(amrex::Real& gamma_boost, amrex::Real& beta_boos
 
 void ConvertLabParamsToBoost();
 
-void NullifyMF(amrex::MultiFab& mf, int lev, amrex::Real zmin, 
+void NullifyMF(amrex::MultiFab& mf, int lev, amrex::Real zmin,
                amrex::Real zmax);

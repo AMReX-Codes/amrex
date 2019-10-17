@@ -23,7 +23,6 @@ namespace
         int olo = overlap.smallEnd(idim);
         int ohi = overlap.bigEnd(idim);
         int slo = sigma.m_lo;
-        int shi = sigma.m_hi;
         int sslo = sigma_star.m_lo;
 
         for (int i = olo; i <= ohi+1; ++i)
@@ -51,7 +50,6 @@ namespace
         int olo = overlap.smallEnd(idim);
         int ohi = overlap.bigEnd(idim);
         int slo = sigma.m_lo;
-        int shi = sigma.m_hi;
         int sslo = sigma_star.m_lo;
         for (int i = olo; i <= ohi+1; ++i)
         {
@@ -806,16 +804,22 @@ PML::Exchange (MultiFab& pml, MultiFab& reg, const Geometry& geom,
             MultiFab::Copy(tmpregmf, reg, 0, 0, 1, ngr);
             tmpregmf.ParallelCopy(totpmlmf, 0, 0, 1, IntVect(0), ngr, period);
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
             for (MFIter mfi(reg); mfi.isValid(); ++mfi)
             {
                 const FArrayBox& src = tmpregmf[mfi];
                 FArrayBox& dst = reg[mfi];
+                const auto srcarr = src.array();
+                auto dstarr = dst.array();
                 const BoxList& bl = amrex::boxDiff(dst.box(), mfi.validbox());
                 // boxDiff avoids the outermost valid cell
                 for (const Box& bx : bl) {
-                    dst.copy(src, bx, 0, bx, 0, 1);
+                    amrex::ParallelFor(bx,
+                                       [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                                       {
+                                           dstarr(i,j,k,0) = srcarr(i,j,k,0);
+                                       });
                 }
             }
         }

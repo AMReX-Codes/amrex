@@ -1,11 +1,13 @@
+#include <WarpXComm_K.H>
 #include <WarpX.H>
 #include <WarpX_f.H>
 #include <WarpXSumGuardCells.H>
-
-#include <AMReX_FillPatchUtil_F.H>
+#include <Parallelization/InterpolateCurrentFineToCoarse.H>
+#include <Parallelization/InterpolateDensityFineToCoarse.H>
 
 #include <algorithm>
 #include <cstdlib>
+
 
 using namespace amrex;
 
@@ -52,8 +54,6 @@ WarpX::UpdateAuxilaryData ()
 {
     BL_PROFILE("UpdateAuxilaryData()");
 
-    const int use_limiter = 0;
-
     for (int lev = 1; lev <= finest_level; ++lev)
     {
         const auto& crse_period = Geom(lev-1).periodicity();
@@ -81,57 +81,37 @@ WarpX::UpdateAuxilaryData ()
             MultiFab::Subtract(dBy, *Bfield_cp[lev][1], 0, 0, Bfield_cp[lev][1]->nComp(), ng);
             MultiFab::Subtract(dBz, *Bfield_cp[lev][2], 0, 0, Bfield_cp[lev][2]->nComp(), ng);
 
-            const Real* dx = Geom(lev-1).CellSize();
             const int refinement_ratio = refRatio(lev-1)[0];
+            AMREX_ALWAYS_ASSERT(refinement_ratio == 2);
+
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
+            for (MFIter mfi(*Bfield_aux[lev][0]); mfi.isValid(); ++mfi)
             {
-                std::array<FArrayBox,3> bfab;
-                for (MFIter mfi(*Bfield_aux[lev][0]); mfi.isValid(); ++mfi)
+                Array4<Real> const& bx_aux = Bfield_aux[lev][0]->array(mfi);
+                Array4<Real> const& by_aux = Bfield_aux[lev][1]->array(mfi);
+                Array4<Real> const& bz_aux = Bfield_aux[lev][2]->array(mfi);
+                Array4<Real const> const& bx_fp = Bfield_fp[lev][0]->const_array(mfi);
+                Array4<Real const> const& by_fp = Bfield_fp[lev][1]->const_array(mfi);
+                Array4<Real const> const& bz_fp = Bfield_fp[lev][2]->const_array(mfi);
+                Array4<Real const> const& bx_c = dBx.const_array(mfi);
+                Array4<Real const> const& by_c = dBy.const_array(mfi);
+                Array4<Real const> const& bz_c = dBz.const_array(mfi);
+
+                amrex::ParallelFor(Box(bx_aux), Box(by_aux), Box(bz_aux),
+                [=] AMREX_GPU_DEVICE (int j, int k, int l) noexcept
                 {
-                    Box ccbx = mfi.fabbox();
-                    ccbx.enclosedCells();
-                    ccbx.coarsen(refinement_ratio).refine(refinement_ratio); // so that ccbx is coarsenable
-
-                    const FArrayBox& cxfab = dBx[mfi];
-                    const FArrayBox& cyfab = dBy[mfi];
-                    const FArrayBox& czfab = dBz[mfi];
-                    bfab[0].resize(amrex::convert(ccbx,Bx_nodal_flag));
-                    bfab[1].resize(amrex::convert(ccbx,By_nodal_flag));
-                    bfab[2].resize(amrex::convert(ccbx,Bz_nodal_flag));
-
-#if (AMREX_SPACEDIM == 3)
-                    amrex_interp_div_free_bfield(ccbx.loVect(), ccbx.hiVect(),
-                                                 BL_TO_FORTRAN_ANYD(bfab[0]),
-                                                 BL_TO_FORTRAN_ANYD(bfab[1]),
-                                                 BL_TO_FORTRAN_ANYD(bfab[2]),
-                                                 BL_TO_FORTRAN_ANYD(cxfab),
-                                                 BL_TO_FORTRAN_ANYD(cyfab),
-                                                 BL_TO_FORTRAN_ANYD(czfab),
-                                                 dx, &refinement_ratio,&use_limiter);
-#else
-                    amrex_interp_div_free_bfield(ccbx.loVect(), ccbx.hiVect(),
-                                                 BL_TO_FORTRAN_ANYD(bfab[0]),
-                                                 BL_TO_FORTRAN_ANYD(bfab[2]),
-                                                 BL_TO_FORTRAN_ANYD(cxfab),
-                                                 BL_TO_FORTRAN_ANYD(czfab),
-                                                 dx, &refinement_ratio,&use_limiter);
-                    amrex_interp_cc_bfield(ccbx.loVect(), ccbx.hiVect(),
-                                           BL_TO_FORTRAN_ANYD(bfab[1]),
-                                           BL_TO_FORTRAN_ANYD(cyfab),
-                                           &refinement_ratio,&use_limiter);
-#endif
-
-                    for (int idim = 0; idim < 3; ++idim)
-                    {
-                        FArrayBox& aux = (*Bfield_aux[lev][idim])[mfi];
-                        FArrayBox& fp  =  (*Bfield_fp[lev][idim])[mfi];
-                        const Box& bx = aux.box();
-                        aux.copy(fp, bx, 0, bx, 0, 1);
-                        aux.plus(bfab[idim], bx, bx, 0, 0, 1);
-                    }
-                }
+                    warpx_interp_bfield_x(j,k,l, bx_aux, bx_fp, bx_c);
+                },
+                [=] AMREX_GPU_DEVICE (int j, int k, int l) noexcept
+                {
+                    warpx_interp_bfield_y(j,k,l, by_aux, by_fp, by_c);
+                },
+                [=] AMREX_GPU_DEVICE (int j, int k, int l) noexcept
+                {
+                    warpx_interp_bfield_z(j,k,l, bz_aux, bz_fp, bz_c);
+                });
             }
         }
 
@@ -156,56 +136,34 @@ WarpX::UpdateAuxilaryData ()
             MultiFab::Subtract(dEy, *Efield_cp[lev][1], 0, 0, Efield_cp[lev][1]->nComp(), ng);
             MultiFab::Subtract(dEz, *Efield_cp[lev][2], 0, 0, Efield_cp[lev][2]->nComp(), ng);
 
-            const int refinement_ratio = refRatio(lev-1)[0];
 #ifdef _OPEMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
+            for (MFIter mfi(*Efield_aux[lev][0]); mfi.isValid(); ++mfi)
             {
-                std::array<FArrayBox,3> efab;
-                for (MFIter mfi(*Efield_aux[lev][0]); mfi.isValid(); ++mfi)
+                Array4<Real> const& ex_aux = Efield_aux[lev][0]->array(mfi);
+                Array4<Real> const& ey_aux = Efield_aux[lev][1]->array(mfi);
+                Array4<Real> const& ez_aux = Efield_aux[lev][2]->array(mfi);
+                Array4<Real const> const& ex_fp = Efield_fp[lev][0]->const_array(mfi);
+                Array4<Real const> const& ey_fp = Efield_fp[lev][1]->const_array(mfi);
+                Array4<Real const> const& ez_fp = Efield_fp[lev][2]->const_array(mfi);
+                Array4<Real const> const& ex_c = dEx.const_array(mfi);
+                Array4<Real const> const& ey_c = dEy.const_array(mfi);
+                Array4<Real const> const& ez_c = dEz.const_array(mfi);
+
+                amrex::ParallelFor(Box(ex_aux), Box(ey_aux), Box(ez_aux),
+                [=] AMREX_GPU_DEVICE (int j, int k, int l) noexcept
                 {
-                    Box ccbx = mfi.fabbox();
-                    ccbx.enclosedCells();
-                    ccbx.coarsen(refinement_ratio).refine(refinement_ratio); // so that ccbx is coarsenable
-
-                    const FArrayBox& cxfab = dEx[mfi];
-                    const FArrayBox& cyfab = dEy[mfi];
-                    const FArrayBox& czfab = dEz[mfi];
-                    efab[0].resize(amrex::convert(ccbx,Ex_nodal_flag));
-                    efab[1].resize(amrex::convert(ccbx,Ey_nodal_flag));
-                    efab[2].resize(amrex::convert(ccbx,Ez_nodal_flag));
-
-#if (AMREX_SPACEDIM == 3)
-                    amrex_interp_efield(ccbx.loVect(), ccbx.hiVect(),
-                                        BL_TO_FORTRAN_ANYD(efab[0]),
-                                        BL_TO_FORTRAN_ANYD(efab[1]),
-                                        BL_TO_FORTRAN_ANYD(efab[2]),
-                                        BL_TO_FORTRAN_ANYD(cxfab),
-                                        BL_TO_FORTRAN_ANYD(cyfab),
-                                        BL_TO_FORTRAN_ANYD(czfab),
-                                        &refinement_ratio,&use_limiter);
-#else
-                    amrex_interp_efield(ccbx.loVect(), ccbx.hiVect(),
-                                        BL_TO_FORTRAN_ANYD(efab[0]),
-                                        BL_TO_FORTRAN_ANYD(efab[2]),
-                                        BL_TO_FORTRAN_ANYD(cxfab),
-                                        BL_TO_FORTRAN_ANYD(czfab),
-                                        &refinement_ratio,&use_limiter);
-                    amrex_interp_nd_efield(ccbx.loVect(), ccbx.hiVect(),
-                                           BL_TO_FORTRAN_ANYD(efab[1]),
-                                           BL_TO_FORTRAN_ANYD(cyfab),
-                                           &refinement_ratio);
-#endif
-
-                    for (int idim = 0; idim < 3; ++idim)
-                    {
-                        FArrayBox& aux = (*Efield_aux[lev][idim])[mfi];
-                        FArrayBox& fp  =  (*Efield_fp[lev][idim])[mfi];
-                        const Box& bx = aux.box();
-                        aux.copy(fp, bx, 0, bx, 0, Efield_fp[lev][idim]->nComp());
-                        aux.plus(efab[idim], bx, bx, 0, 0, Efield_fp[lev][idim]->nComp());
-                    }
-                }
+                    warpx_interp_efield_x(j,k,l, ex_aux, ex_fp, ex_c);
+                },
+                [=] AMREX_GPU_DEVICE (int j, int k, int l) noexcept
+                {
+                    warpx_interp_efield_y(j,k,l, ey_aux, ey_fp, ey_c);
+                },
+                [=] AMREX_GPU_DEVICE (int j, int k, int l) noexcept
+                {
+                    warpx_interp_efield_z(j,k,l, ez_aux, ez_fp, ez_c);
+                });
             }
         }
     }
@@ -252,12 +210,12 @@ WarpX::FillBoundaryE (int lev, PatchType patch_type)
     {
         if (do_pml && pml[lev]->ok())
         {
-    	    pml[lev]->ExchangeE(patch_type,
+            pml[lev]->ExchangeE(patch_type,
                               { Efield_fp[lev][0].get(),
                                 Efield_fp[lev][1].get(),
                                 Efield_fp[lev][2].get() },
                                 do_pml_in_domain);
-    	    pml[lev]->FillBoundaryE(patch_type);
+            pml[lev]->FillBoundaryE(patch_type);
         }
 
         const auto& period = Geom(lev).periodicity();
@@ -296,7 +254,7 @@ WarpX::FillBoundaryB (int lev, PatchType patch_type)
     {
         if (do_pml && pml[lev]->ok())
         {
-	    pml[lev]->ExchangeB(patch_type,
+            pml[lev]->ExchangeB(patch_type,
                             { Bfield_fp[lev][0].get(),
                               Bfield_fp[lev][1].get(),
                               Bfield_fp[lev][2].get() },
@@ -381,7 +339,7 @@ WarpX::SyncCurrent ()
         std::array<      MultiFab*,3> crse { current_cp[lev][0].get(),
                                              current_cp[lev][1].get(),
                                              current_cp[lev][2].get() };
-        SyncCurrent(fine, crse, refinement_ratio[0]);
+        interpolateCurrentFineToCoarse(fine, crse, refinement_ratio[0]);
     }
 
     // For each level
@@ -393,36 +351,35 @@ WarpX::SyncCurrent ()
     }
 }
 
-/** \brief Fills the values of the current on the coarse patch by
- *  averaging the values of the current of the fine patch (on the same level).
- */
 void
-WarpX::SyncCurrent (const std::array<const amrex::MultiFab*,3>& fine,
-                    const std::array<      amrex::MultiFab*,3>& crse,
-                    int refinement_ratio)
+WarpX::interpolateCurrentFineToCoarse ( std::array< amrex::MultiFab const *, 3 > const & fine,
+                                        std::array< amrex::MultiFab       *, 3 > const & coarse,
+                                        int const refinement_ratio)
 {
+    BL_PROFILE("interpolateCurrentFineToCoarse()");
     BL_ASSERT(refinement_ratio == 2);
-    const IntVect& ng = (fine[0]->nGrowVect() + 1) /refinement_ratio;
+    const IntVect& ng = (fine[0]->nGrowVect() + 1) / refinement_ratio; // add equivalent no. of guards to coarse patch
 
 #ifdef _OPEMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
-        FArrayBox ffab;
-        for (int idim = 0; idim < 3; ++idim)
+        for (int idim = 0; idim < fine.size(); ++idim)  // j-field components
         {
-            for (MFIter mfi(*crse[idim],true); mfi.isValid(); ++mfi)
+            // OMP in-box decomposition of coarse into tilebox
+            for (MFIter mfi(*coarse[idim], TilingIfNotGPU()); mfi.isValid(); ++mfi)
             {
-                const Box& bx = mfi.growntilebox(ng);
-                Box fbx = amrex::grow(amrex::refine(bx,refinement_ratio),1);
-                ffab.resize(fbx);
-                fbx &= (*fine[idim])[mfi].box();
-                ffab.setVal(0.0);
-                ffab.copy((*fine[idim])[mfi], fbx, 0, fbx, 0, fine[idim]->nComp());
-                WRPX_SYNC_CURRENT(bx.loVect(), bx.hiVect(),
-                                   BL_TO_FORTRAN_ANYD((*crse[idim])[mfi]),
-                                   BL_TO_FORTRAN_ANYD(ffab),
-                                   &idim);
+                const Box& bx = mfi.growntilebox(ng); // only grow to outer directions of tileboxes for filling guards
+
+                auto const & arrFine = fine[idim]->const_array(mfi);
+                auto const & arrCoarse = coarse[idim]->array(mfi);
+
+                if( idim == 0 )
+                    amrex::ParallelFor( bx, InterpolateCurrentFineToCoarse<0>(arrFine, arrCoarse, refinement_ratio) );
+                else if( idim == 1 )
+                    amrex::ParallelFor( bx, InterpolateCurrentFineToCoarse<1>(arrFine, arrCoarse, refinement_ratio) );
+                else if( idim == 2 )
+                    amrex::ParallelFor( bx, InterpolateCurrentFineToCoarse<2>(arrFine, arrCoarse, refinement_ratio) );
             }
         }
     }
@@ -431,6 +388,8 @@ WarpX::SyncCurrent (const std::array<const amrex::MultiFab*,3>& fine,
 void
 WarpX::SyncRho ()
 {
+    BL_PROFILE("SyncRho()");
+
     if (!rho_fp[0]) return;
     const int ncomp = rho_fp[0]->nComp();
 
@@ -440,7 +399,7 @@ WarpX::SyncRho ()
     {
         rho_cp[lev]->setVal(0.0);
         const IntVect& refinement_ratio = refRatio(lev-1);
-        SyncRho(*rho_fp[lev], *rho_cp[lev], refinement_ratio[0]);
+        interpolateDensityFineToCoarse(*rho_fp[lev], *rho_cp[lev], refinement_ratio[0]);
     }
 
     // For each level
@@ -452,33 +411,27 @@ WarpX::SyncRho ()
     }
 }
 
-/** \brief Fills the values of the charge density on the coarse patch by
- *  averaging the values of the charge density of the fine patch (on the same level).
- */
 void
-WarpX::SyncRho (const MultiFab& fine, MultiFab& crse, int refinement_ratio)
+WarpX::interpolateDensityFineToCoarse (const MultiFab& fine, MultiFab& coarse, int const refinement_ratio)
 {
+    BL_PROFILE("interpolateDensityFineToCoarse()");
     BL_ASSERT(refinement_ratio == 2);
-    const IntVect& ng = (fine.nGrowVect()+1)/refinement_ratio;
+    const IntVect& ng = (fine.nGrowVect() + 1) / refinement_ratio;  // add equivalent no. of guards to coarse patch
     const int nc = fine.nComp();
 
 #ifdef _OPEMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
-        FArrayBox ffab;
-        for (MFIter mfi(crse,true); mfi.isValid(); ++mfi)
+        // OMP in-box decomposition of coarse into tilebox
+        for (MFIter mfi(coarse, TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
-            const Box& bx = mfi.growntilebox(ng);
-            Box fbx = amrex::grow(amrex::refine(bx,refinement_ratio),1);
-            ffab.resize(fbx, nc);
-            fbx &= fine[mfi].box();
-            ffab.setVal(0.0);
-            ffab.copy(fine[mfi], fbx, 0, fbx, 0, nc);
-            WRPX_SYNC_RHO(bx.loVect(), bx.hiVect(),
-                          BL_TO_FORTRAN_ANYD(crse[mfi]),
-                          BL_TO_FORTRAN_ANYD(ffab),
-                          &nc);
+            const Box& bx = mfi.growntilebox(ng); // only grow to outer directions of tileboxes for filling guards
+
+            amrex::ParallelFor(
+                bx,
+                InterpolateDensityFineToCoarse(fine.const_array(mfi), coarse.array(mfi), refinement_ratio, nc)
+            );
         }
     }
 }
@@ -501,7 +454,7 @@ WarpX::RestrictCurrentFromFineToCoarsePatch (int lev)
     std::array<      MultiFab*,3> crse { current_cp[lev][0].get(),
                                          current_cp[lev][1].get(),
                                          current_cp[lev][2].get() };
-    SyncCurrent(fine, crse, refinement_ratio[0]);
+    interpolateCurrentFineToCoarse(fine, crse, refinement_ratio[0]);
 }
 
 void
@@ -582,7 +535,7 @@ WarpX::AddCurrentFromFineLevelandSumBoundary (int lev)
             }
             else if (current_buf[lev+1][idim]) // but no filter
             {
-                MultiFab::Copy(*current_buf[lev+1][idim],
+                MultiFab::Add(*current_buf[lev+1][idim],
                                *current_cp [lev+1][idim], 0, 0, current_buf[lev+1][idim]->nComp(),
                                current_cp[lev+1][idim]->nGrow());
                 mf.ParallelAdd(*current_buf[lev+1][idim], 0, 0, current_buf[lev+1][idim]->nComp(),
@@ -610,7 +563,7 @@ WarpX::RestrictRhoFromFineToCoarsePatch (int lev)
     if (rho_fp[lev]) {
         rho_cp[lev]->setVal(0.0);
         const IntVect& refinement_ratio = refRatio(lev-1);
-        SyncRho(*rho_fp[lev], *rho_cp[lev], refinement_ratio[0]);
+        interpolateDensityFineToCoarse(*rho_fp[lev], *rho_cp[lev], refinement_ratio[0]);
     }
 }
 
@@ -688,7 +641,7 @@ WarpX::AddRhoFromFineLevelandSumBoundary(int lev, int icomp, int ncomp)
         }
         else if (charge_buf[lev+1]) // but no filter
         {
-            MultiFab::Copy(*charge_buf[lev+1],
+            MultiFab::Add(*charge_buf[lev+1],
                            *rho_cp[lev+1], icomp, icomp, ncomp,
                            rho_cp[lev+1]->nGrow());
             mf.ParallelAdd(*charge_buf[lev+1], icomp, 0,

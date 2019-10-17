@@ -138,7 +138,7 @@ union YYSTYPE
 #line 19 "wp_parser.y" /* yacc.c:352  */
 
     struct wp_node* n;
-    double d;
+    amrex_real d;
     struct wp_symbol* s;
     enum wp_f1_t f1;
     enum wp_f2_t f2;

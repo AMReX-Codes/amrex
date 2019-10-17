@@ -1,7 +1,7 @@
 #ifndef SHAPEFACTORS_H_
 #define SHAPEFACTORS_H_
 
-// Compute shape factor and return index of leftmost cell where 
+// Compute shape factor and return index of leftmost cell where
 // particle writes.
 // Specialized templates are defined below for orders 0 to 3.
 template <int depos_order>

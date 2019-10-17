@@ -3,8 +3,8 @@ import numpy as np
 class AMReXParticleHeader(object):
     '''
 
-    This class is designed to parse and store the information 
-    contained in an AMReX particle header file. 
+    This class is designed to parse and store the information
+    contained in an AMReX particle header file.
 
     Usage:
 
@@ -66,11 +66,11 @@ class AMReXParticleHeader(object):
                     entry = [int(val) for val in f.readline().strip().split()]
                     self.grids[level_num].append(tuple(entry))
 
-                    
+
 def read_particle_data(fn, ptype="particle0"):
     '''
 
-    This function returns the particle data stored in a particular 
+    This function returns the particle data stored in a particular
     plot file and particle type. It returns two numpy arrays, the
     first containing the particle integer data, and the second the
     particle real data. For example, if a dataset has 3000 particles,
@@ -79,22 +79,22 @@ def read_particle_data(fn, ptype="particle0"):
     with the shape (3000, 5).
 
     Usage:
-    
+
         idata, rdata = read_particle_data("plt00000", "particle0")
 
     '''
     base_fn = fn + "/" + ptype
     header = AMReXParticleHeader(base_fn + "/Header")
-    
-    idtype = "(%d,)i4" % header.num_int    
+
+    idtype = "(%d,)i4" % header.num_int
     if header.real_type == np.float64:
         fdtype = "(%d,)f8" % header.num_real
     elif header.real_type == np.float32:
         fdtype = "(%d,)f4" % header.num_real
-    
+
     idata = np.empty((header.num_particles, header.num_int ))
     rdata = np.empty((header.num_particles, header.num_real))
-    
+
     ip = 0
     for lvl, level_grids in enumerate(header.grids):
         for (which, count, where) in level_grids:
@@ -107,7 +107,7 @@ def read_particle_data(fn, ptype="particle0"):
                 floats = np.fromfile(f, dtype = fdtype, count=count)
 
             idata[ip:ip+count] = ints
-            rdata[ip:ip+count] = floats            
+            rdata[ip:ip+count] = floats
             ip += count
 
     return idata, rdata
@@ -121,10 +121,10 @@ if __name__ == "__main__":
     y0 = []
     x1 = []
     y1 = []
-    
+
     fn_list = glob.glob("plt?????")
     fn_list.sort()
-    
+
     for fn in fn_list:
         idata, rdata = read_particle_data(fn, ptype="particle0")
         x0.append(rdata[0][0])

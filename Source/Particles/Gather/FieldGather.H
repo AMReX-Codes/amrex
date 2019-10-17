@@ -19,12 +19,12 @@
  * \param n_rz_azimuthal_modes: Number of azimuthal modes when using RZ geometry
  */
 template <int depos_order, int lower_in_v>
-void doGatherShapeN(const amrex::Real * const xp,
-                    const amrex::Real * const yp,
-                    const amrex::Real * const zp,
-                    amrex::Real * const Exp, amrex::Real * const Eyp,
-                    amrex::Real * const Ezp, amrex::Real * const Bxp,
-                    amrex::Real * const Byp, amrex::Real * const Bzp,
+void doGatherShapeN(const amrex::ParticleReal * const xp,
+                    const amrex::ParticleReal * const yp,
+                    const amrex::ParticleReal * const zp,
+                    amrex::ParticleReal * const Exp, amrex::ParticleReal * const Eyp,
+                    amrex::ParticleReal * const Ezp, amrex::ParticleReal * const Bxp,
+                    amrex::ParticleReal * const Byp, amrex::ParticleReal * const Bzp,
                     const amrex::Array4<const amrex::Real>& ex_arr,
                     const amrex::Array4<const amrex::Real>& ey_arr,
                     const amrex::Array4<const amrex::Real>& ez_arr,
@@ -90,14 +90,7 @@ void doGatherShapeN(const amrex::Real * const xp,
             const int l0 = compute_shape_factor<depos_order - lower_in_v>(
                 sz0, z-stagger_shift);
 
-            // Set fields on particle to zero
-            Exp[ip] = 0;
-            Eyp[ip] = 0;
-            Ezp[ip] = 0;
-            Bxp[ip] = 0;
-            Byp[ip] = 0;
-            Bzp[ip] = 0;
-            // Each field is gathered in a separate block of 
+            // Each field is gathered in a separate block of
             // AMREX_SPACEDIM nested loops because the deposition
             // order can differ for each component of each field
             // when lower_in_v is set to 1

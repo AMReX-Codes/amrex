@@ -28,7 +28,7 @@ GpuParser::GpuParser (WarpXParser const& wp)
     wp_parser_regvar(&m_cpu_parser, "x", &(m_var.x));
     wp_parser_regvar(&m_cpu_parser, "y", &(m_var.y));
     wp_parser_regvar(&m_cpu_parser, "z", &(m_var.z));
-    
+
 #else // not defined AMREX_USE_GPU
 
 #ifdef _OPENMP

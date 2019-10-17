@@ -70,6 +70,16 @@ Setting up the field mesh
     This patch is rectangular, and thus its extent is given here by the coordinates
     of the lower corner (``warpx.fine_tag_lo``) and upper corner (``warpx.fine_tag_hi``).
 
+* ``warpx.n_current_deposition_buffer`` (`integer`)
+    When using mesh refinement: the particles that are located inside
+    a refinement patch, but within ``n_current_deposition_buffer`` cells of
+    the edge of this patch, will deposit their charge and current to the
+    lower refinement level, instead of depositing to the refinement patch
+    itself. See the section :doc:`../../theory/amr` for more details.
+    If this variable is not explicitly set in the input script,
+    ``n_current_deposition_buffer`` is automatically set so as to be large
+    enough to hold the particle shape, on the fine grid
+
 * ``warpx.n_field_gather_buffer`` (`integer`; 0 by default)
     When using mesh refinement: the particles that are located inside
     a refinement patch, but within ``n_field_gather_buffer`` cells of
@@ -77,18 +87,19 @@ Setting up the field mesh
     level, instead of gathering the fields from the refinement patch itself.
     This avoids some of the spurious effects that can occur inside the
     refinement patch, close to its edge. See the section
-    :doc:`../../theory/amr` for more details.
+    :doc:`../../theory/amr` for more details. If this variable is not
+    explicitly set in the input script, ``n_field_gather_buffer`` is
+    automatically set so that it is one cell larger than
+    ``n_current_deposition_buffer``, on the fine grid.
 
-* ``warpx.n_current_deposition_buffer`` (`integer`)
-    When using mesh refinement: the particles that are located inside
-    a refinement patch, but within ``n_field_gather_buffer`` cells of
-    the edge of this patch, will deposit their charge and current to the
-    lower refinement level, instead of depositing to the refinement patch
-    itself. See the section :doc:`../../theory/amr` for more details.
-
-* ``particles.deposit_on_main_grid`` (list of strings)
+* ``particles.deposit_on_main_grid`` (`list of strings`)
     When using mesh refinement: the particle species whose name are included
     in the list will deposit their charge/current directly on the main grid
+    (i.e. the coarsest level), even if they are inside a refinement patch.
+
+* ``particles.gather_from_main_grid`` (`list of strings`)
+    When using mesh refinement: the particle species whose name are included
+    in the list will gather their fields from the main grid
     (i.e. the coarsest level), even if they are inside a refinement patch.
 
 * ``warpx.n_rz_azimuthal_modes`` (`integer`; 1 by default)
@@ -280,8 +291,9 @@ Particle initialization
 * ``species_name.predefined_profile_name`` (`string`)
     Only read of ``<species_name>.electrons.profile`` is `predefined`.
 
-    * If ``parabolic_channel``, the plasma profile is a parabolic profile with linear ramps
-      at the beginning and the end of the profile. The density is given by
+    * If ``parabolic_channel``, the plasma profile is a parabolic profile with
+      cosine-like ramps at the beginning and the end of the profile.
+      The density is given by
 
       .. math::
 
@@ -294,9 +306,9 @@ Particle initialization
           n(x,y) = 1 + 4\frac{x^2+y^2}{k_p^2 R_c^4}
 
       where :math:`k_p` is the plasma wavenumber associated with density :math:`n_0`.
-      Here, :math:`n(z)` is a linear up-ramp from :math:`0` to :math:`L_{ramp,up}`,
+      Here, :math:`n(z)` is a cosine-like up-ramp from :math:`0` to :math:`L_{ramp,up}`,
       constant to :math:`1` from :math:`L_{ramp,up}` to :math:`L_{ramp,up} + L_{plateau}`
-      and a linear down-ramp from :math:`L_{ramp,up} + L_{plateau}` to
+      and a cosine-like down-ramp from :math:`L_{ramp,up} + L_{plateau}` to
       :math:`L_{ramp,up} + L_{plateau}+L_{ramp,down}`. All parameters are given
       in ``predefined_profile_params``.
 
@@ -360,6 +372,20 @@ Particle initialization
     Only read if `do_field_ionization = 1`. Initial ionization level of the
     species (must be smaller than the atomic number of chemical element given
     in `physical_element`).
+
+* ``<species>.do_qed`` (`int`) optional (default `0`)
+    If `<species>.do_qed = 0` all the QED effects are disabled for this species.
+    If `<species>.do_qed = 1` QED effects can be enabled for this species (see below)
+    **Implementation of this feature is in progress. It requires to compile with QED=TRUE**
+
+* ``<species>.do_qed_quantum_sync`` (`int`) optional (default `0`)
+    It only works if `<species>.do_qed = 1`. Enables Quantum synchrotron emission for this species.
+    **Implementation of this feature is in progress. It requires to compile with QED=TRUE**
+
+* ``<species>.do_qed_breit_wheeler`` (`int`) optional (default `0`)
+    It only works if `<species>.do_qed = 1`. Enables non-linear Breit-Wheeler process for this species.
+    **Implementation of this feature is in progress. It requires to compile with QED=TRUE**
+
 
 Laser initialization
 --------------------
@@ -498,7 +524,7 @@ Laser initialization
 
 * ``<laser_name>.stc_direction`` (`3 floats`) optional (default `1. 0. 0.`)
     Direction of laser spatio-temporal couplings.
-  	See definition in Akturk et al., Opt Express, vol 12, no 19 (2014).
+    See definition in Akturk et al., Opt Express, vol 12, no 19 (2014).
 
 * ``<laser_name>.zeta`` (`float`; in meters.seconds) optional (default `0.`)
     Spatial chirp at focus in direction ``<laser_name>.stc_direction``. See definition in
@@ -522,6 +548,11 @@ Laser initialization
     to be along `z`. If not running in a boosted frame, this requires the
     moving window and laser propagation directions to be the same (`x`, `y`
     or `z`)
+
+* ``<laser_name>.min_particles_per_mode`` (`int`) optional (default `4`)
+    When using the RZ version, this specifies the minimum number of particles
+    per angular mode. The laser particles are loaded into radial spokes, with
+    the number of spokes given by min_particles_per_mode*(warpx.n_rz_azimuthal_modes-1).
 
 * ``warpx.num_mirrors`` (`int`) optional (default `0`)
     Users can input perfect mirror condition inside the simulation domain.

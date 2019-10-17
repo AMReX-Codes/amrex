@@ -14,7 +14,7 @@ Inputs and outputs in a boosted frame simulation
    :alt: (top) Snapshot of a particle beam showing “frozen" (grey spheres) and “active" (colored spheres) macroparticles traversing the injection plane (red rectangle). (bottom) Snapshot of the beam macroparticles (colored spheres) passing through the background of electrons (dark brown streamlines) and the diagnostic stations (red rectangles). The electrons, the injection plane and the diagnostic stations are fixed in the laboratory plane, and are thus counter-propagating to the beam in a boosted frame.
    :width: 120mm
 
-   (top) Snapshot of a particle beam showing “frozen" (grey spheres) and “active" (colored spheres) macroparticles traversing the injection plane (red rectangle). (bottom) Snapshot of the beam macroparticles (colored spheres) passing through the background of electrons (dark brown streamlines) and the diagnostic stations (red rectangles). The electrons, the injection plane and the diagnostic stations are fixed in the laboratory plane, and are thus counter-propagating to the beam in a boosted frame. 
+   (top) Snapshot of a particle beam showing “frozen" (grey spheres) and “active" (colored spheres) macroparticles traversing the injection plane (red rectangle). (bottom) Snapshot of the beam macroparticles (colored spheres) passing through the background of electrons (dark brown streamlines) and the diagnostic stations (red rectangles). The electrons, the injection plane and the diagnostic stations are fixed in the laboratory plane, and are thus counter-propagating to the beam in a boosted frame.
 
 [Fig_inputoutput]
 
@@ -25,7 +25,7 @@ frame. This section describes the procedures that have been implemented in the P
 Input in a boosted frame simulation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Particles - 
+Particles -
 ^^^^^^^^^^^^
 
 Particles are launched through a plane using a technique that is generic and applies to Lorentz boosted frame simulations in general, including plasma acceleration, and is illustrated using the case of a positively charged particle beam propagating through a background of cold electrons in an assumed continuous transverse focusing system, leading to a well-known growing transverse “electron cloud” instability (Vay 2007). In the laboratory frame, the electron background is initially at rest and a moving window is used to follow the beam progression. Traditionally, the beam macroparticles are initialized all at once in the window, while background electron macroparticles are created continuously in front of the beam on a plane that is perpendicular to the beam velocity. In a frame moving at some fraction of the beam velocity in the laboratory frame, the beam initial conditions at a given time in the calculation frame are generally unknown and one must initialize the beam differently. However, it can be taken advantage of the fact that the beam initial conditions are often known for a given plane in the laboratory, either directly, or via simple calculation or projection from the conditions at a given time in the labortory frame. Given the position and velocity :math:`\{x,y,z,v_x,v_y,v_z\}` for each beam macroparticle at time :math:`t=0` for a beam moving at the average velocity :math:`v_b=\beta_b c` (where :math:`c` is the speed of light) in the laboratory, and using the standard synchronization (:math:`z=z'=0` at :math:`t=t'=0`) between the laboratory and the calculation frames, the procedure for transforming the beam quantities for injection in a boosted frame moving at velocity :math:`\beta c` in the laboratory is as follows (the superscript :math:`'` relates to quantities known in the boosted frame while the superscript :math:`^*` relates to quantities that are know at a given longitudinal position :math:`z^*` but different times of arrival):
@@ -68,7 +68,7 @@ Particles are launched through a plane using a technique that is generic and app
 
 Figure `[Fig_inputoutput] <#Fig_inputoutput>`__ (top) shows a snapshot of a beam that has passed partly through the injection plane. As the frozen beam macroparticles pass through the injection plane (which moves opposite to the beam in the boosted frame), they are converted to “active" macroparticles. The charge or current density is accumulated from the active and the frozen particles, thus ensuring that the fields at the plane of injection are consistent.
 
-Laser - 
+Laser -
 ^^^^^^^^
 
 Similarly to the particle beam, the laser is injected through a plane perpendicular to the axis of propagation of the laser (by default :math:`z`).

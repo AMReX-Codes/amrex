@@ -57,14 +57,35 @@ try:
 except OSError:
     raise Exception('libwarpx%s.so was not installed. It can be installed by running "make" in the Python directory of WarpX'%geometry_dim)
 
+# WarpX can be compiled using either double or float
+libwarpx.warpx_Real_size.restype = ctypes.c_int
+libwarpx.warpx_ParticleReal_size.restype = ctypes.c_int
+
+_Real_size = libwarpx.warpx_Real_size()
+_ParticleReal_size = libwarpx.warpx_ParticleReal_size()
+
+if _Real_size == 8:
+    c_real = ctypes.c_double
+    _numpy_real_dtype = 'f8'
+else:
+    c_real = ctypes.c_float
+    _numpy_real_dtype = 'f4'
+
+if _ParticleReal_size == 8:
+    c_particlereal = ctypes.c_double
+    _numpy_particlereal_dtype = 'f8'
+else:
+    c_particlereal = ctypes.c_float
+    _numpy_particlereal_dtype = 'f4'
+
 dim = libwarpx.warpx_SpaceDim()
 
-# our particle data type
-_p_struct = [(d, 'f8') for d in 'xyz'[:dim]] + [('id', 'i4'), ('cpu', 'i4')]
+# our particle data type, depends on _ParticleReal_size
+_p_struct = [(d, _numpy_particlereal_dtype) for d in 'xyz'[:dim]] + [('id', 'i4'), ('cpu', 'i4')]
 _p_dtype = np.dtype(_p_struct, align=True)
 
 _numpy_to_ctypes = {}
-_numpy_to_ctypes['f8'] = ctypes.c_double
+_numpy_to_ctypes[_numpy_particlereal_dtype] = c_particlereal
 _numpy_to_ctypes['i4'] = ctypes.c_int
 
 class Particle(ctypes.Structure):
@@ -75,8 +96,10 @@ class Particle(ctypes.Structure):
 _LP_particle_p = ctypes.POINTER(ctypes.POINTER(Particle))
 _LP_c_int = ctypes.POINTER(ctypes.c_int)
 _LP_c_void_p = ctypes.POINTER(ctypes.c_void_p)
-_LP_c_double = ctypes.POINTER(ctypes.c_double)
-_LP_LP_c_double = ctypes.POINTER(_LP_c_double)
+_LP_c_real = ctypes.POINTER(c_real)
+_LP_LP_c_real = ctypes.POINTER(_LP_c_real)
+_LP_c_particlereal = ctypes.POINTER(c_particlereal)
+_LP_LP_c_particlereal = ctypes.POINTER(_LP_c_particlereal)
 _LP_c_char = ctypes.POINTER(ctypes.c_char)
 _LP_LP_c_char = ctypes.POINTER(_LP_c_char)
 
@@ -100,63 +123,63 @@ def _array1d_from_pointer(pointer, dtype, size):
 # set the arg and return types of the wrapped functions
 libwarpx.amrex_init.argtypes = (ctypes.c_int, _LP_LP_c_char)
 libwarpx.warpx_getParticleStructs.restype = _LP_particle_p
-libwarpx.warpx_getParticleArrays.restype = _LP_LP_c_double
-libwarpx.warpx_getEfield.restype = _LP_LP_c_double
+libwarpx.warpx_getParticleArrays.restype = _LP_LP_c_particlereal
+libwarpx.warpx_getEfield.restype = _LP_LP_c_real
 libwarpx.warpx_getEfieldLoVects.restype = _LP_c_int
-libwarpx.warpx_getEfieldCP.restype = _LP_LP_c_double
+libwarpx.warpx_getEfieldCP.restype = _LP_LP_c_real
 libwarpx.warpx_getEfieldCPLoVects.restype = _LP_c_int
-libwarpx.warpx_getEfieldFP.restype = _LP_LP_c_double
+libwarpx.warpx_getEfieldFP.restype = _LP_LP_c_real
 libwarpx.warpx_getEfieldFPLoVects.restype = _LP_c_int
-libwarpx.warpx_getBfield.restype = _LP_LP_c_double
+libwarpx.warpx_getBfield.restype = _LP_LP_c_real
 libwarpx.warpx_getBfieldLoVects.restype = _LP_c_int
-libwarpx.warpx_getBfieldCP.restype = _LP_LP_c_double
+libwarpx.warpx_getBfieldCP.restype = _LP_LP_c_real
 libwarpx.warpx_getBfieldCPLoVects.restype = _LP_c_int
-libwarpx.warpx_getBfieldFP.restype = _LP_LP_c_double
+libwarpx.warpx_getBfieldFP.restype = _LP_LP_c_real
 libwarpx.warpx_getBfieldFPLoVects.restype = _LP_c_int
-libwarpx.warpx_getCurrentDensity.restype = _LP_LP_c_double
+libwarpx.warpx_getCurrentDensity.restype = _LP_LP_c_real
 libwarpx.warpx_getCurrentDensityLoVects.restype = _LP_c_int
-libwarpx.warpx_getCurrentDensityCP.restype = _LP_LP_c_double
+libwarpx.warpx_getCurrentDensityCP.restype = _LP_LP_c_real
 libwarpx.warpx_getCurrentDensityCPLoVects.restype = _LP_c_int
-libwarpx.warpx_getCurrentDensityFP.restype = _LP_LP_c_double
+libwarpx.warpx_getCurrentDensityFP.restype = _LP_LP_c_real
 libwarpx.warpx_getCurrentDensityFPLoVects.restype = _LP_c_int
 
-#libwarpx.warpx_getPMLSigma.restype = _LP_c_double
-#libwarpx.warpx_getPMLSigmaStar.restype = _LP_c_double
-#libwarpx.warpx_ComputePMLFactors.argtypes = (ctypes.c_int, ctypes.c_double)
+#libwarpx.warpx_getPMLSigma.restype = _LP_c_real
+#libwarpx.warpx_getPMLSigmaStar.restype = _LP_c_real
+#libwarpx.warpx_ComputePMLFactors.argtypes = (ctypes.c_int, c_real)
 
 libwarpx.warpx_addNParticles.argtypes = (ctypes.c_int, ctypes.c_int,
-                                         _ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),
-                                         _ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),
-                                         _ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),
-                                         _ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),
-                                         _ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),
-                                         _ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),
+                                         _ndpointer(c_particlereal, flags="C_CONTIGUOUS"),
+                                         _ndpointer(c_particlereal, flags="C_CONTIGUOUS"),
+                                         _ndpointer(c_particlereal, flags="C_CONTIGUOUS"),
+                                         _ndpointer(c_particlereal, flags="C_CONTIGUOUS"),
+                                         _ndpointer(c_particlereal, flags="C_CONTIGUOUS"),
+                                         _ndpointer(c_particlereal, flags="C_CONTIGUOUS"),
                                          ctypes.c_int,
-                                         _ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),
+                                         _ndpointer(c_particlereal, flags="C_CONTIGUOUS"),
                                          ctypes.c_int)
 
-libwarpx.warpx_getProbLo.restype = ctypes.c_double
-libwarpx.warpx_getProbHi.restype = ctypes.c_double
+libwarpx.warpx_getProbLo.restype = c_real
+libwarpx.warpx_getProbHi.restype = c_real
 libwarpx.warpx_getistep.restype = ctypes.c_int
-libwarpx.warpx_gett_new.restype = ctypes.c_double
-libwarpx.warpx_getdt.restype = ctypes.c_double
+libwarpx.warpx_gett_new.restype = c_real
+libwarpx.warpx_getdt.restype = c_real
 libwarpx.warpx_maxStep.restype = ctypes.c_int
-libwarpx.warpx_stopTime.restype = ctypes.c_double
+libwarpx.warpx_stopTime.restype = c_real
 libwarpx.warpx_checkInt.restype = ctypes.c_int
 libwarpx.warpx_plotInt.restype = ctypes.c_int
 libwarpx.warpx_finestLevel.restype = ctypes.c_int
 
-libwarpx.warpx_EvolveE.argtypes = [ctypes.c_double]
-libwarpx.warpx_EvolveB.argtypes = [ctypes.c_double]
+libwarpx.warpx_EvolveE.argtypes = [c_real]
+libwarpx.warpx_EvolveB.argtypes = [c_real]
 libwarpx.warpx_FillBoundaryE.argtypes = []
 libwarpx.warpx_FillBoundaryB.argtypes = []
 libwarpx.warpx_UpdateAuxilaryData.argtypes = []
 libwarpx.warpx_SyncCurrent.argtypes = []
-libwarpx.warpx_PushParticlesandDepose.argtypes = [ctypes.c_double]
+libwarpx.warpx_PushParticlesandDepose.argtypes = [c_real]
 libwarpx.warpx_getistep.argtypes = [ctypes.c_int]
 libwarpx.warpx_setistep.argtypes = [ctypes.c_int, ctypes.c_int]
 libwarpx.warpx_gett_new.argtypes = [ctypes.c_int]
-libwarpx.warpx_sett_new.argtypes = [ctypes.c_int, ctypes.c_double]
+libwarpx.warpx_sett_new.argtypes = [ctypes.c_int, c_real]
 libwarpx.warpx_getdt.argtypes = [ctypes.c_int]
 
 def get_nattr():

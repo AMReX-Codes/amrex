@@ -1,0 +1,170 @@
+#Automatically generated inputfile
+#Run check.py without arguments to regenerate
+#
+
+max_step = 50
+amr.n_cell = 64 64 64
+amr.max_level = 0
+amr.blocking_factor = 8
+amr.max_grid_size = 8
+amr.plot_int = 1
+geometry.coord_sys   = 0
+geometry.is_periodic = 1 1 1
+geometry.prob_lo = -0.5e-6 -0.5e-6 -0.5e-6
+geometry.prob_hi = 0.5e-6 0.5e-6 0.5e-6
+warpx.do_pml = 0
+algo.charge_deposition = standard
+algo.field_gathering = standard
+warpx.cfl = 1.0
+
+particles.nspecies = 16
+particles.species_names = p_xp_1 p_xn_1 p_yp_1 p_yn_1 p_zp_1 p_zn_1 p_dp_1 p_dn_1 p_xp_10 p_xn_10 p_yp_10 p_yn_10 p_zp_10 p_zn_10 p_dp_10 p_dn_10
+particles.photon_species = p_xp_1 p_xn_1 p_yp_1 p_yn_1 p_zp_1 p_zn_1 p_dp_1 p_dn_1 p_xp_10 p_xn_10 p_yp_10 p_yn_10 p_zp_10 p_zn_10 p_dp_10 p_dn_10
+
+amr.plot_int = 50
+
+p_xp_1.plot_species = 1
+p_xp_1.plot_vars  = ux uy uz
+p_xn_1.plot_species = 1
+p_xn_1.plot_vars  = ux uy uz
+p_yp_1.plot_species = 1
+p_yp_1.plot_vars  = ux uy uz
+p_yn_1.plot_species = 1
+p_yn_1.plot_vars  = ux uy uz
+p_zp_1.plot_species = 1
+p_zp_1.plot_vars  = ux uy uz
+p_zn_1.plot_species = 1
+p_zn_1.plot_vars  = ux uy uz
+p_dp_1.plot_species = 1
+p_dp_1.plot_vars  = ux uy uz
+p_dn_1.plot_species = 1
+p_dn_1.plot_vars  = ux uy uz
+p_xp_10.plot_species = 1
+p_xp_10.plot_vars  = ux uy uz
+p_xn_10.plot_species = 1
+p_xn_10.plot_vars  = ux uy uz
+p_yp_10.plot_species = 1
+p_yp_10.plot_vars  = ux uy uz
+p_yn_10.plot_species = 1
+p_yn_10.plot_vars  = ux uy uz
+p_zp_10.plot_species = 1
+p_zp_10.plot_vars  = ux uy uz
+p_zn_10.plot_species = 1
+p_zn_10.plot_vars  = ux uy uz
+p_dp_10.plot_species = 1
+p_dp_10.plot_vars  = ux uy uz
+p_dn_10.plot_species = 1
+p_dn_10.plot_vars  = ux uy uz
+
+p_xp_1.charge = -q_e
+p_xp_1.mass = m_e
+p_xp_1.injection_style = "SingleParticle"
+p_xp_1.single_particle_pos = 0.0 0.0 0.0
+p_xp_1.single_particle_vel = 1.0 0.0 0.0
+p_xp_1.single_particle_weight = 1.0
+
+p_xn_1.charge = -q_e
+p_xn_1.mass = m_e
+p_xn_1.injection_style = "SingleParticle"
+p_xn_1.single_particle_pos = 0.0 0.0 0.0
+p_xn_1.single_particle_vel = -1.0 0.0 0.0
+p_xn_1.single_particle_weight = 1.0
+
+p_yp_1.charge = -q_e
+p_yp_1.mass = m_e
+p_yp_1.injection_style = "SingleParticle"
+p_yp_1.single_particle_pos = 0.0 0.0 0.0
+p_yp_1.single_particle_vel = 0.0 1.0 0.0
+p_yp_1.single_particle_weight = 1.0
+
+p_yn_1.charge = -q_e
+p_yn_1.mass = m_e
+p_yn_1.injection_style = "SingleParticle"
+p_yn_1.single_particle_pos = 0.0 0.0 0.0
+p_yn_1.single_particle_vel = 0.0 -1.0 0.0
+p_yn_1.single_particle_weight = 1.0
+
+p_zp_1.charge = -q_e
+p_zp_1.mass = m_e
+p_zp_1.injection_style = "SingleParticle"
+p_zp_1.single_particle_pos = 0.0 0.0 0.0
+p_zp_1.single_particle_vel = 0.0 0.0 1.0
+p_zp_1.single_particle_weight = 1.0
+
+p_zn_1.charge = -q_e
+p_zn_1.mass = m_e
+p_zn_1.injection_style = "SingleParticle"
+p_zn_1.single_particle_pos = 0.0 0.0 0.0
+p_zn_1.single_particle_vel = 0.0 0.0 -1.0
+p_zn_1.single_particle_weight = 1.0
+
+p_dp_1.charge = -q_e
+p_dp_1.mass = m_e
+p_dp_1.injection_style = "SingleParticle"
+p_dp_1.single_particle_pos = 0.0 0.0 0.0
+p_dp_1.single_particle_vel = 1.0 1.0 1.0
+p_dp_1.single_particle_weight = 1.0
+
+p_dn_1.charge = -q_e
+p_dn_1.mass = m_e
+p_dn_1.injection_style = "SingleParticle"
+p_dn_1.single_particle_pos = 0.0 0.0 0.0
+p_dn_1.single_particle_vel = -1.0 -1.0 -1.0
+p_dn_1.single_particle_weight = 1.0
+
+p_xp_10.charge = -q_e
+p_xp_10.mass = m_e
+p_xp_10.injection_style = "SingleParticle"
+p_xp_10.single_particle_pos = 0.0 0.0 0.0
+p_xp_10.single_particle_vel = 10.0 0.0 0.0
+p_xp_10.single_particle_weight = 1.0
+
+p_xn_10.charge = -q_e
+p_xn_10.mass = m_e
+p_xn_10.injection_style = "SingleParticle"
+p_xn_10.single_particle_pos = 0.0 0.0 0.0
+p_xn_10.single_particle_vel = -10.0 0.0 0.0
+p_xn_10.single_particle_weight = 1.0
+
+p_yp_10.charge = -q_e
+p_yp_10.mass = m_e
+p_yp_10.injection_style = "SingleParticle"
+p_yp_10.single_particle_pos = 0.0 0.0 0.0
+p_yp_10.single_particle_vel = 0.0 10.0 0.0
+p_yp_10.single_particle_weight = 1.0
+
+p_yn_10.charge = -q_e
+p_yn_10.mass = m_e
+p_yn_10.injection_style = "SingleParticle"
+p_yn_10.single_particle_pos = 0.0 0.0 0.0
+p_yn_10.single_particle_vel = 0.0 -10.0 0.0
+p_yn_10.single_particle_weight = 1.0
+
+p_zp_10.charge = -q_e
+p_zp_10.mass = m_e
+p_zp_10.injection_style = "SingleParticle"
+p_zp_10.single_particle_pos = 0.0 0.0 0.0
+p_zp_10.single_particle_vel = 0.0 0.0 10.0
+p_zp_10.single_particle_weight = 1.0
+
+p_zn_10.charge = -q_e
+p_zn_10.mass = m_e
+p_zn_10.injection_style = "SingleParticle"
+p_zn_10.single_particle_pos = 0.0 0.0 0.0
+p_zn_10.single_particle_vel = 0.0 0.0 -10.0
+p_zn_10.single_particle_weight = 1.0
+
+p_dp_10.charge = -q_e
+p_dp_10.mass = m_e
+p_dp_10.injection_style = "SingleParticle"
+p_dp_10.single_particle_pos = 0.0 0.0 0.0
+p_dp_10.single_particle_vel = 10.0 10.0 10.0
+p_dp_10.single_particle_weight = 1.0
+
+p_dn_10.charge = -q_e
+p_dn_10.mass = m_e
+p_dn_10.injection_style = "SingleParticle"
+p_dn_10.single_particle_pos = 0.0 0.0 0.0
+p_dn_10.single_particle_vel = -10.0 -10.0 -10.0
+p_dn_10.single_particle_weight = 1.0
+

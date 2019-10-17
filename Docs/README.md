@@ -29,7 +29,7 @@ make clean
 ### Regenerating the theory documentation
 
 The theory is generated from Latex sources in PICSAR, and the resulting `.rst`
-files are stored in the current repo, in `source/latex_theory`. In order to 
+files are stored in the current repo, in `source/latex_theory`. In order to
 regenerate the theory documentation:
 ```
 make Latex-conversion

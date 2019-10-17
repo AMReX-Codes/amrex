@@ -19,9 +19,9 @@ Then, ``cd`` into the directory ``WarpX`` and use the following set of commands 
 
 ::
 
-    module load pgi
+    module load gcc
     module load cuda
-    make -j 4 USE_GPU=TRUE COMP=pgi
+    make -j 4 USE_GPU=TRUE
 
 See :doc:`../running_cpp/platforms` for more information on how to run
 WarpX on Summit.

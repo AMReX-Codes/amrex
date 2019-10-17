@@ -392,7 +392,7 @@ with
 
    \begin{aligned}
    D_x   =  \frac{1}{2\Delta t}\sum_i q_i
-     [\Gamma(x_i^{n+1},y_i^{n+1})-\Gamma(x_i^{n},y_i^{n+1}) \nonumber\\ 
+     [\Gamma(x_i^{n+1},y_i^{n+1})-\Gamma(x_i^{n},y_i^{n+1}) \nonumber\\
    +\Gamma(x_i^{n+1},y_i^{n})-\Gamma(x_i^{n},y_i^{n})],\\
    D_y   =  \frac{1}{2\Delta t}\sum_i q_i
      [\Gamma(x_i^{n+1},y_i^{n+1})-\Gamma(x_i^{n+1},y_i^{n}) \nonumber \\
@@ -464,7 +464,7 @@ with
 
    \begin{aligned}
    D_x   =  \frac{1}{2\Delta t}\sum_i q_i
-     [\Gamma(x_i^{n+1},y_i^{n+1})-\Gamma(x_i^{n},y_i^{n+1}) \nonumber\\ 
+     [\Gamma(x_i^{n+1},y_i^{n+1})-\Gamma(x_i^{n},y_i^{n+1}) \nonumber\\
    +\Gamma(x_i^{n+1},y_i^{n})-\Gamma(x_i^{n},y_i^{n})],\\
    D_y   =  \frac{1}{2\Delta t}\sum_i q_i
      [\Gamma(x_i^{n+1},y_i^{n+1})-\Gamma(x_i^{n+1},y_i^{n}) \nonumber \\

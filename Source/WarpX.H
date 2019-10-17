@@ -1,12 +1,18 @@
 #ifndef WARPX_H_
 #define WARPX_H_
 
-#include <iostream>
-#include <memory>
-#include <array>
+#include "WarpXDtType.H"
+#include <MultiParticleContainer.H>
+#include <PML.H>
+#include <BoostedFrameDiagnostic.H>
+#include <BilinearFilter.H>
+#include <NCIGodfreyFilter.H>
 
-#ifdef _OPENMP
-#include <omp.h>
+#ifdef WARPX_USE_PSATD
+#   include <SpectralSolver.H>
+#endif
+#ifdef WARPX_USE_PSATD_HYBRID
+#   include <PicsarHybridFFTData.H>
 #endif
 
 #include <AMReX_AmrCore.H>
@@ -19,31 +25,19 @@
 #include <AMReX_Interpolater.H>
 #include <AMReX_FillPatchUtil.H>
 
-#include <MultiParticleContainer.H>
-#include <PML.H>
-#include <BoostedFrameDiagnostic.H>
-#include <BilinearFilter.H>
-#include <NCIGodfreyFilter.H>
+#ifdef _OPENMP
+#   include <omp.h>
+#endif
 
-#ifdef WARPX_USE_PSATD
-#include <SpectralSolver.H>
-#endif
-#ifdef WARPX_USE_PSATD_HYBRID
-#include <PicsarHybridFFTData.H>
-#endif
+#include <iostream>
+#include <memory>
+#include <array>
 
 #if defined(BL_USE_SENSEI_INSITU)
 namespace amrex {
 class AmrMeshInSituBridge;
 }
 #endif
-
-enum struct DtType : int
-{
-    Full = 0,
-    FirstHalf,
-    SecondHalf
-};
 
 enum struct PatchType : int
 {
@@ -124,9 +118,11 @@ public:
 
     static int sort_int;
 
+    static int do_subcycling;
+
     // buffers
-    static int n_field_gather_buffer;
-    static int n_current_deposition_buffer;
+    static int n_field_gather_buffer;       //! in number of cells from the edge (identical for each dimension)
+    static int n_current_deposition_buffer; //! in number of cells from the edge (identical for each dimension)
 
     // do nodal
     static int do_nodal;
@@ -201,7 +197,7 @@ public:
 
     void CopyJPML ();
 
-    void PushParticlesandDepose (int lev, amrex::Real cur_time);
+    void PushParticlesandDepose (int lev, amrex::Real cur_time, DtType a_dt_type=DtType::Full);
     void PushParticlesandDepose (         amrex::Real cur_time);
 
     // This function does aux(lev) = fp(lev) + I(aux(lev-1)-cp(lev)).
@@ -300,20 +296,20 @@ protected:
     //! DistributionMapping.  Only used during initialization.  Called
     //! by AmrCoreInitFromScratch.
     virtual void MakeNewLevelFromScratch (int lev, amrex::Real time, const amrex::BoxArray& ba,
-					  const amrex::DistributionMapping& dm) final;
+                                          const amrex::DistributionMapping& dm) final;
 
     //! Make a new level using provided BoxArray and
     //! DistributionMapping and fill with interpolated coarse level
     //! data.  Called by AmrCore::regrid.
     virtual void MakeNewLevelFromCoarse (int lev, amrex::Real time, const amrex::BoxArray& ba,
-					 const amrex::DistributionMapping& dm) final
+                                         const amrex::DistributionMapping& dm) final
         { amrex::Abort("MakeNewLevelFromCoarse: To be implemented"); }
 
     //! Remake an existing level using provided BoxArray and
     //! DistributionMapping and fill with existing fine and coarse
     //! data.  Called by AmrCore::regrid.
     virtual void RemakeLevel (int lev, amrex::Real time, const amrex::BoxArray& ba,
-			      const amrex::DistributionMapping& dm) final;
+                              const amrex::DistributionMapping& dm) final;
 
     //! Delete level data.  Called by AmrCore::regrid.
     virtual void ClearLevel (int lev) final;
@@ -424,11 +420,28 @@ private:
 
     std::array<std::unique_ptr<amrex::MultiFab>, 3> getInterpolatedB(int lev) const;
 
-    void SyncCurrent (const std::array<const amrex::MultiFab*,3>& fine,
-                      const std::array<      amrex::MultiFab*,3>& crse,
-                      int ref_ratio);
+    /** \brief Fills the values of the current on the coarse patch by
+     *  averaging the values of the current of the fine patch (on the same level).
+     *  Also fills the guards of the coarse patch.
+     *
+     * \param[in]  fine             fine patches to interpolate from
+     * \param[out] coarse           coarse patches to interpolate to
+     * \param[in]  refinement_ratio integer ratio between the two
+     */
+    void interpolateCurrentFineToCoarse (std::array< amrex::MultiFab const *, 3 > const & fine,
+                                         std::array< amrex::MultiFab       *, 3 > const & coarse,
+                                         int const refinement_ratio);
 
-    void SyncRho (const amrex::MultiFab& fine, amrex::MultiFab& crse, int ref_ratio);
+    /** \brief Fills the values of the charge density on the coarse patch by
+     *  averaging the values of the charge density of the fine patch (on the same level).
+     *
+     * \param[in]  fine             fine patches to interpolate from
+     * \param[out] coarse           coarse patches to interpolate to
+     * \param[in]  refinement_ratio integer ratio between the two
+     */
+    void interpolateDensityFineToCoarse (const amrex::MultiFab& fine,
+                                               amrex::MultiFab& coarse,
+                                         int const refinement_ratio);
 
     void ExchangeWithPmlB (int lev);
     void ExchangeWithPmlE (int lev);
@@ -532,8 +545,6 @@ private:
 
     // Other runtime parameters
     int verbose = 1;
-
-    int do_subcycling = 0;
 
     int max_step   = std::numeric_limits<int>::max();
     amrex::Real stop_time = std::numeric_limits<amrex::Real>::max();

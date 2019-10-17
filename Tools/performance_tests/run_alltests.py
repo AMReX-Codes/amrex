@@ -8,11 +8,11 @@ import datetime
 # results in file performance_log.txt in warpx/performance_tests/
 
 # ---- User's manual ----
-# Before running performance tests, make sure you have the latest version 
+# Before running performance tests, make sure you have the latest version
 # of performance_log.txt
 # A typical execution reads:
 # > python run_alltests.py --no-recompile --compiler=gnu --architecture=cpu --mode=run --log_file='my_performance_log.txt'
-# These are default values, and will give the same result as 
+# These are default values, and will give the same result as
 # > python run_alltests.py
 # To add a new test item, extent the test_list with a line like
 # test_list.extend([['my_input_file', n_node, n_mpi, n_omp]]*3)
@@ -30,7 +30,7 @@ import datetime
 #     This last job runs once all others are completed
 # - 'read' mode: Get performance data from all test items
 #     create performance log file if does not exist
-#     loop over test_file 
+#     loop over test_file
 #         read initialization time and step time
 #         write data into the performance log file
 #         push file performance_log.txt on the repo
@@ -146,7 +146,7 @@ year = time.strftime('%Y')
 if args.mode == 'run':
 # Set default options for compilation and execution
     config_command = ''
-    config_command += 'module unload darshan;' 
+    config_command += 'module unload darshan;'
     config_command += 'module load craype-hugepages4M;'
     if args.architecture == 'knl':
         if args.compiler == 'intel':
@@ -168,7 +168,7 @@ if args.mode == 'run':
         config_command += 'module load craype-haswell;'
     # Create main result directory if does not exist
     if not os.path.exists(res_dir_base):
-        os.mkdir(res_dir_base)    
+        os.mkdir(res_dir_base)
 
 # Recompile if requested
 if args.recompile == True:
@@ -213,7 +213,7 @@ def process_analysis():
     os.system('chmod 700 ' + batch_file)
     os.system('sbatch  --dependency afterok:' + dependencies[0:-1] + ' ' + batch_file)
     return 0
- 
+
 # Loop over the tests and return run time + details
 # -------------------------------------------------
 if args.mode == 'run':
@@ -243,7 +243,7 @@ if args.mode == 'run':
     process_analysis()
 
 if args.mode == 'read':
-    # Create log_file for performance tests if does not exist                                                                                                                                                                                                                                                                
+    # Create log_file for performance tests if does not exist
     if not os.path.isfile(log_dir + log_file):
         log_line = '## year month day run_name compiler architecture n_node n_mpi ' +\
                    'n_omp time_initialization time_one_iteration Redistribute '+\
@@ -270,7 +270,7 @@ if args.mode == 'read':
         res_dir += '_'.join([run_name, args.compiler,\
                              args.architecture, str(n_node), str(n_mpi),\
                              str(n_omp), str(count)]) + '/'
-        # Read to store in text file 
+        # Read to store in text file
         # --------------------------
         output_filename = 'perf_output.txt'
         timing_list = read_run_perf(res_dir + output_filename, n_steps)
@@ -282,9 +282,9 @@ if args.mode == 'read':
 
         # Read data for all test to put in hdf5 a database
         # ------------------------------------------------
-        # This is an hdf5 file containing ALL the simulation parameters and results. Might be too large for a repo 
+        # This is an hdf5 file containing ALL the simulation parameters and results. Might be too large for a repo
         df_newline = extract_dataframe(res_dir + 'perf_output.txt', n_steps)
-        # Add all simulation parameters to the dataframe                                                                                                                                                                                                                                                                     
+        # Add all simulation parameters to the dataframe
         df_newline['run_name'] = run_name
         df_newline['n_node'] = n_node
         df_newline['n_mpi'] = n_mpi
@@ -303,7 +303,7 @@ if args.mode == 'read':
             updated_df = df_newline
         updated_df.to_hdf(perf_database_file, key='all_data', mode='w')
 
-    # Store test parameters for record if requested                                                                                                                                                                                                                                                                          
+    # Store test parameters for record if requested
     if store_test == True:
         dir_record_base = './perf_warpx_record/'
         if not os.path.exists(dir_record_base):
@@ -319,7 +319,7 @@ if args.mode == 'read':
             shutil.copy(current_run[0], dir_record)
 
     if do_rename == True:
-        # Rename files if requested                                                                                                                                                                                                                                                                                          
+        # Rename files if requested
         for count, current_run in enumerate(test_list):
             run_name = current_run[0]
             n_node   = current_run[1]
@@ -335,7 +335,7 @@ if args.mode == 'read':
                                       str(n_omp), str(count)]) + '/'
             os.rename(res_dir, res_dir_arch)
 
-    # Commit results to the Repo                                                                                                                                                                                                                                                                                             
+    # Commit results to the Repo
     if args.commit == True:
         os.system('git add ' + log_dir + log_file + ';'\
                   'git commit -m "performance tests";'\

@@ -35,72 +35,71 @@ WarpX::GotoNextLine (std::istream& is)
 void
 WarpX::WriteWarpXHeader(const std::string& name) const
 {
-   if (ParallelDescriptor::IOProcessor())
+    if (ParallelDescriptor::IOProcessor())
     {
-	VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
-	std::ofstream HeaderFile;
-	HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
-	std::string HeaderFileName(name + "/WarpXHeader");
+        VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+        std::ofstream HeaderFile;
+        HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
+        std::string HeaderFileName(name + "/WarpXHeader");
         HeaderFile.open(HeaderFileName.c_str(), std::ofstream::out   |
                                                 std::ofstream::trunc |
                                                 std::ofstream::binary);
-	if( ! HeaderFile.good()) {
-	    amrex::FileOpenFailed(HeaderFileName);
-	}
+        if( ! HeaderFile.good())
+            amrex::FileOpenFailed(HeaderFileName);
 
-	HeaderFile.precision(17);
+        HeaderFile.precision(17);
 
-	HeaderFile << "Checkpoint version: 1\n";
+        HeaderFile << "Checkpoint version: 1\n";
 
-	const int nlevels = finestLevel()+1;
-	HeaderFile << nlevels << "\n";
+        const int nlevels = finestLevel()+1;
+        HeaderFile << nlevels << "\n";
 
-	for (int i = 0; i < istep.size(); ++i) {
-	    HeaderFile << istep[i] << " ";
-	}
-	HeaderFile << "\n";
+        for (int i = 0; i < istep.size(); ++i) {
+            HeaderFile << istep[i] << " ";
+        }
+        HeaderFile << "\n";
 
-	for (int i = 0; i < nsubsteps.size(); ++i) {
-	    HeaderFile << nsubsteps[i] << " ";
-	}
-	HeaderFile << "\n";
+        for (int i = 0; i < nsubsteps.size(); ++i) {
+            HeaderFile << nsubsteps[i] << " ";
+        }
+        HeaderFile << "\n";
 
-	for (int i = 0; i < t_new.size(); ++i) {
-	    HeaderFile << t_new[i] << " ";
-	}
-	HeaderFile << "\n";
+        for (int i = 0; i < t_new.size(); ++i) {
+            HeaderFile << t_new[i] << " ";
+        }
+        HeaderFile << "\n";
 
-	for (int i = 0; i < t_old.size(); ++i) {
-	    HeaderFile << t_old[i] << " ";
-	}
-	HeaderFile << "\n";
+        for (int i = 0; i < t_old.size(); ++i) {
+            HeaderFile << t_old[i] << " ";
+        }
+        HeaderFile << "\n";
 
-	for (int i = 0; i < dt.size(); ++i) {
-	    HeaderFile << dt[i] << " ";
-	}
-	HeaderFile << "\n";
+        for (int i = 0; i < dt.size(); ++i) {
+            HeaderFile << dt[i] << " ";
+        }
+        HeaderFile << "\n";
 
-	HeaderFile << moving_window_x << "\n";
+        HeaderFile << moving_window_x << "\n";
 
         HeaderFile << is_synchronized << "\n";
 
-	// Geometry
-	for (int i = 0; i < AMREX_SPACEDIM; ++i) {
+        // Geometry
+        for (int i = 0; i < AMREX_SPACEDIM; ++i) {
             HeaderFile << Geom(0).ProbLo(i) << ' ';
-	}
+        }
         HeaderFile << '\n';
         for (int i = 0; i < AMREX_SPACEDIM; ++i) {
             HeaderFile << Geom(0).ProbHi(i) << ' ';
-	}
+        }
         HeaderFile << '\n';
 
-	// BoxArray
-	for (int lev = 0; lev < nlevels; ++lev) {
-	    boxArray(lev).writeOn(HeaderFile);
-	    HeaderFile << '\n';
-	}
+        // BoxArray
+        for (int lev = 0; lev < nlevels; ++lev) {
+            boxArray(lev).writeOn(HeaderFile);
+            HeaderFile << '\n';
+        }
 
-	mypc->WriteHeader(HeaderFile);
+        mypc->WriteHeader(HeaderFile);
     }
 }
 
@@ -125,18 +124,18 @@ WarpX::WriteCheckPointFile() const
 
     for (int lev = 0; lev < nlevels; ++lev)
     {
-	VisMF::Write(*Efield_fp[lev][0],
-		     amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Ex_fp"));
-	VisMF::Write(*Efield_fp[lev][1],
-		     amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Ey_fp"));
-	VisMF::Write(*Efield_fp[lev][2],
-		     amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Ez_fp"));
-	VisMF::Write(*Bfield_fp[lev][0],
-		     amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Bx_fp"));
-	VisMF::Write(*Bfield_fp[lev][1],
-		     amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "By_fp"));
-	VisMF::Write(*Bfield_fp[lev][2],
-		     amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Bz_fp"));
+        VisMF::Write(*Efield_fp[lev][0],
+                     amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Ex_fp"));
+        VisMF::Write(*Efield_fp[lev][1],
+                     amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Ey_fp"));
+        VisMF::Write(*Efield_fp[lev][2],
+                     amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Ez_fp"));
+        VisMF::Write(*Bfield_fp[lev][0],
+                     amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Bx_fp"));
+        VisMF::Write(*Bfield_fp[lev][1],
+                     amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "By_fp"));
+        VisMF::Write(*Bfield_fp[lev][2],
+                     amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Bz_fp"));
         if (is_synchronized) {
             // Need to save j if synchronized because after restart we need j to evolve E by dt/2.
             VisMF::Write(*current_fp[lev][0],
@@ -196,108 +195,108 @@ WarpX::InitFromCheckpoint ()
 
     // Header
     {
-	std::string File(restart_chkfile + "/WarpXHeader");
+        std::string File(restart_chkfile + "/WarpXHeader");
 
-	VisMF::IO_Buffer io_buffer(VisMF::GetIOBufferSize());
+        VisMF::IO_Buffer io_buffer(VisMF::GetIOBufferSize());
 
-	Vector<char> fileCharPtr;
-	ParallelDescriptor::ReadAndBcastFile(File, fileCharPtr);
-	std::string fileCharPtrString(fileCharPtr.dataPtr());
-	std::istringstream is(fileCharPtrString, std::istringstream::in);
+        Vector<char> fileCharPtr;
+        ParallelDescriptor::ReadAndBcastFile(File, fileCharPtr);
+        std::string fileCharPtrString(fileCharPtr.dataPtr());
+        std::istringstream is(fileCharPtrString, std::istringstream::in);
 
-	std::string line, word;
+        std::string line, word;
 
-	std::getline(is, line);
+        std::getline(is, line);
 
-	int nlevs;
-	is >> nlevs;
-	GotoNextLine(is);
-	finest_level = nlevs-1;
+        int nlevs;
+        is >> nlevs;
+        GotoNextLine(is);
+        finest_level = nlevs-1;
 
-	std::getline(is, line);
-	{
-	    std::istringstream lis(line);
-	    int i = 0;
-	    while (lis >> word) {
-		istep[i++] = std::stoi(word);
-	    }
-	}
+        std::getline(is, line);
+        {
+            std::istringstream lis(line);
+            int i = 0;
+            while (lis >> word) {
+                istep[i++] = std::stoi(word);
+            }
+        }
 
-	std::getline(is, line);
-	{
-	    std::istringstream lis(line);
-	    int i = 0;
-	    while (lis >> word) {
-		nsubsteps[i++] = std::stoi(word);
-	    }
-	}
+        std::getline(is, line);
+        {
+            std::istringstream lis(line);
+            int i = 0;
+            while (lis >> word) {
+                nsubsteps[i++] = std::stoi(word);
+            }
+        }
 
-	std::getline(is, line);
-	{
-	    std::istringstream lis(line);
-	    int i = 0;
-	    while (lis >> word) {
-		t_new[i++] = std::stod(word);
-	    }
-	}
+        std::getline(is, line);
+        {
+            std::istringstream lis(line);
+            int i = 0;
+            while (lis >> word) {
+                t_new[i++] = std::stod(word);
+            }
+        }
 
-	std::getline(is, line);
-	{
-	    std::istringstream lis(line);
-	    int i = 0;
-	    while (lis >> word) {
-		t_old[i++] = std::stod(word);
-	    }
-	}
+        std::getline(is, line);
+        {
+            std::istringstream lis(line);
+            int i = 0;
+            while (lis >> word) {
+                t_old[i++] = std::stod(word);
+            }
+        }
 
-	std::getline(is, line);
-	{
-	    std::istringstream lis(line);
-	    int i = 0;
-	    while (lis >> word) {
-		dt[i++] = std::stod(word);
-	    }
-	}
+        std::getline(is, line);
+        {
+            std::istringstream lis(line);
+            int i = 0;
+            while (lis >> word) {
+                dt[i++] = std::stod(word);
+            }
+        }
 
-	is >> moving_window_x;
-	GotoNextLine(is);
+        is >> moving_window_x;
+        GotoNextLine(is);
 
         is >> is_synchronized;
-	GotoNextLine(is);
+        GotoNextLine(is);
 
-	Real prob_lo[AMREX_SPACEDIM];
-	std::getline(is, line);
-	{
-	    std::istringstream lis(line);
-	    int i = 0;
-	    while (lis >> word) {
-		prob_lo[i++] = std::stod(word);
-	    }
-	}
+        Real prob_lo[AMREX_SPACEDIM];
+        std::getline(is, line);
+        {
+            std::istringstream lis(line);
+            int i = 0;
+            while (lis >> word) {
+                prob_lo[i++] = std::stod(word);
+            }
+        }
 
-	Real prob_hi[AMREX_SPACEDIM];
-	std::getline(is, line);
-	{
-	    std::istringstream lis(line);
-	    int i = 0;
-	    while (lis >> word) {
-		prob_hi[i++] = std::stod(word);
-	    }
-	}
+        Real prob_hi[AMREX_SPACEDIM];
+        std::getline(is, line);
+        {
+            std::istringstream lis(line);
+            int i = 0;
+            while (lis >> word) {
+                prob_hi[i++] = std::stod(word);
+            }
+        }
 
         ResetProbDomain(RealBox(prob_lo,prob_hi));
 
-	for (int lev = 0; lev < nlevs; ++lev) {
-	    BoxArray ba;
-	    ba.readFrom(is);
-	    GotoNextLine(is);
-	    DistributionMapping dm { ba, ParallelDescriptor::NProcs() };
+        for (int lev = 0; lev < nlevs; ++lev) {
+            BoxArray ba;
+            ba.readFrom(is);
+            GotoNextLine(is);
+            DistributionMapping dm { ba, ParallelDescriptor::NProcs() };
             SetBoxArray(lev, ba);
             SetDistributionMap(lev, dm);
-	    AllocLevelData(lev, ba, dm);
-	}
+            AllocLevelData(lev, ba, dm);
+        }
 
-	mypc->ReadHeader(is);
+        mypc->ReadHeader(is);
     }
 
     const int nlevs = finestLevel()+1;
@@ -633,43 +632,43 @@ WarpX::WriteJobInfo (const std::string& dir) const
 {
     if (ParallelDescriptor::IOProcessor())
     {
-	// job_info file with details about the run
-	std::ofstream jobInfoFile;
-	std::string FullPathJobInfoFile = dir;
+        // job_info file with details about the run
+        std::ofstream jobInfoFile;
+        std::string FullPathJobInfoFile = dir;
 
         std::string PrettyLine = std::string(78, '=') + "\n";
 //        std::string OtherLine = std::string(78, '-') + "\n";
 //        std::string SkipSpace = std::string(8, ' ') + "\n";
 
-	FullPathJobInfoFile += "/warpx_job_info";
-	jobInfoFile.open(FullPathJobInfoFile.c_str(), std::ios::out);
+        FullPathJobInfoFile += "/warpx_job_info";
+        jobInfoFile.open(FullPathJobInfoFile.c_str(), std::ios::out);
 
-	// job information
-	jobInfoFile << PrettyLine;
-	jobInfoFile << " WarpX Job Information\n";
-	jobInfoFile << PrettyLine;
+        // job information
+        jobInfoFile << PrettyLine;
+        jobInfoFile << " WarpX Job Information\n";
+        jobInfoFile << PrettyLine;
 
-	jobInfoFile << "number of MPI processes: " << ParallelDescriptor::NProcs() << "\n";
+        jobInfoFile << "number of MPI processes: " << ParallelDescriptor::NProcs() << "\n";
 #ifdef _OPENMP
-	jobInfoFile << "number of threads:       " << omp_get_max_threads() << "\n";
+        jobInfoFile << "number of threads:       " << omp_get_max_threads() << "\n";
 #endif
 
-	jobInfoFile << "\n\n";
+        jobInfoFile << "\n\n";
 
         // build information
-	jobInfoFile << PrettyLine;
-	jobInfoFile << " Build Information\n";
-	jobInfoFile << PrettyLine;
+        jobInfoFile << PrettyLine;
+        jobInfoFile << " Build Information\n";
+        jobInfoFile << PrettyLine;
 
-	jobInfoFile << "build date:    " << buildInfoGetBuildDate() << "\n";
-	jobInfoFile << "build machine: " << buildInfoGetBuildMachine() << "\n";
-	jobInfoFile << "build dir:     " << buildInfoGetBuildDir() << "\n";
-	jobInfoFile << "AMReX dir:     " << buildInfoGetAMReXDir() << "\n";
+        jobInfoFile << "build date:    " << buildInfoGetBuildDate() << "\n";
+        jobInfoFile << "build machine: " << buildInfoGetBuildMachine() << "\n";
+        jobInfoFile << "build dir:     " << buildInfoGetBuildDir() << "\n";
+        jobInfoFile << "AMReX dir:     " << buildInfoGetAMReXDir() << "\n";
 
-	jobInfoFile << "\n";
+        jobInfoFile << "\n";
 
-	jobInfoFile << "COMP:          " << buildInfoGetComp() << "\n";
-	jobInfoFile << "COMP version:  " << buildInfoGetCompVersion() << "\n";
+        jobInfoFile << "COMP:          " << buildInfoGetComp() << "\n";
+        jobInfoFile << "COMP version:  " << buildInfoGetCompVersion() << "\n";
 
         jobInfoFile << "\n";
 
@@ -686,71 +685,71 @@ WarpX::WriteJobInfo (const std::string& dir) const
         jobInfoFile << "Link flags:    " << buildInfoGetLinkFlags() << "\n";
         jobInfoFile << "Libraries:     " << buildInfoGetLibraries() << "\n";
 
-	jobInfoFile << "\n";
+        jobInfoFile << "\n";
 
-	const char* githash1 = buildInfoGetGitHash(1);
-	const char* githash2 = buildInfoGetGitHash(2);
-	const char* githash3 = buildInfoGetGitHash(3);
-	if (strlen(githash1) > 0) {
-	  jobInfoFile << "WarpX  git describe: " << githash1 << "\n";
-	}
-	if (strlen(githash2) > 0) {
-	  jobInfoFile << "AMReX  git describe: " << githash2 << "\n";
-	}
-	if (strlen(githash3) > 0) {
-	  jobInfoFile << "PICSAR git describe: " << githash3 << "\n";
-	}
+        const char* githash1 = buildInfoGetGitHash(1);
+        const char* githash2 = buildInfoGetGitHash(2);
+        const char* githash3 = buildInfoGetGitHash(3);
+        if (strlen(githash1) > 0) {
+            jobInfoFile << "WarpX  git describe: " << githash1 << "\n";
+        }
+        if (strlen(githash2) > 0) {
+            jobInfoFile << "AMReX  git describe: " << githash2 << "\n";
+        }
+        if (strlen(githash3) > 0) {
+            jobInfoFile << "PICSAR git describe: " << githash3 << "\n";
+        }
 
-	jobInfoFile << "\n\n";
+        jobInfoFile << "\n\n";
 
-	// grid information
+        // grid information
         jobInfoFile << PrettyLine;
         jobInfoFile << " Grid Information\n";
         jobInfoFile << PrettyLine;
 
         for (int i = 0; i <= finest_level; i++)
-	{
+        {
             jobInfoFile << " level: " << i << "\n";
             jobInfoFile << "   number of boxes = " << grids[i].size() << "\n";
             jobInfoFile << "   maximum zones   = ";
             for (int n = 0; n < AMREX_SPACEDIM; n++)
-	    {
+            {
                 jobInfoFile << geom[i].Domain().length(n) << " ";
-	    }
+            }
             jobInfoFile << "\n\n";
-	}
+        }
 
         jobInfoFile << " Boundary conditions\n";
 
         jobInfoFile << "   -x: " << "interior" << "\n";
         jobInfoFile << "   +x: " << "interior" << "\n";
         if (AMREX_SPACEDIM >= 2) {
-	    jobInfoFile << "   -y: " << "interior" << "\n";
-	    jobInfoFile << "   +y: " << "interior" << "\n";
+            jobInfoFile << "   -y: " << "interior" << "\n";
+            jobInfoFile << "   +y: " << "interior" << "\n";
         }
         if (AMREX_SPACEDIM == 3) {
-	    jobInfoFile << "   -z: " << "interior" << "\n";
-	    jobInfoFile << "   +z: " << "interior" << "\n";
+            jobInfoFile << "   -z: " << "interior" << "\n";
+            jobInfoFile << "   +z: " << "interior" << "\n";
         }
 
         jobInfoFile << "\n\n";
 
 
-	// runtime parameters
-	jobInfoFile << PrettyLine;
-	jobInfoFile << " Inputs File Parameters\n";
-	jobInfoFile << PrettyLine;
+        // runtime parameters
+        jobInfoFile << PrettyLine;
+        jobInfoFile << " Inputs File Parameters\n";
+        jobInfoFile << PrettyLine;
 
-	ParmParse::dumpTable(jobInfoFile, true);
+        ParmParse::dumpTable(jobInfoFile, true);
 
-	jobInfoFile.close();
+        jobInfoFile.close();
     }
 }
 
 
 /* \brief
  *  The raw slice data is written out in the plotfile format and can be visualized using yt.
- *  The slice data is written to diags/slice_plotfiles/pltXXXXX at the plotting interval.  
+ *  The slice data is written to diags/slice_plotfiles/pltXXXXX at the plotting interval.
  */
 void
 WarpX::WriteSlicePlotFile () const
@@ -763,36 +762,36 @@ WarpX::WriteSlicePlotFile () const
     VisMF::Header::Version current_version = VisMF::GetHeaderVersion();
     VisMF::SetHeaderVersion(slice_plotfile_headerversion);
     rfs.emplace_back("raw_fields");
-    
+
     const int nlevels = finestLevel() + 1;
-     
+
     // creating a temporary cell-centered dummy multifab //
     // to get around the issue of yt complaining about no field data //
     Vector< std::unique_ptr<MultiFab> > dummy_mf(nlevels);
     const DistributionMapping &dm2 = Efield_slice[0][0]->DistributionMap();
     Vector<std::string> varnames;
     IntVect cc(AMREX_D_DECL(0,0,0));
-    for (int lev = 0; lev < nlevels; ++lev) 
+    for (int lev = 0; lev < nlevels; ++lev)
     {
-       dummy_mf[lev].reset(new MultiFab( 
-                     amrex::convert(Efield_slice[lev][0]->boxArray(),cc), 
+       dummy_mf[lev].reset(new MultiFab(
+                     amrex::convert(Efield_slice[lev][0]->boxArray(),cc),
                      dm2, 1, 0 ));
        dummy_mf[lev]->setVal(0.0);
-    } 
+    }
     amrex::WriteMultiLevelPlotfile(slice_plotfilename, nlevels,
-                                   GetVecOfConstPtrs(dummy_mf), 
+                                   GetVecOfConstPtrs(dummy_mf),
                                    varnames, Geom(), t_new[0],
                                    istep, refRatio(),
-                                   "HyperCLaw-V1.1", 
+                                   "HyperCLaw-V1.1",
                                    "Level_", "Cell", rfs);
 
-    for (int lev = 0; lev < nlevels; ++lev) 
+    for (int lev = 0; lev < nlevels; ++lev)
     {
         const std::unique_ptr<MultiFab> empty_ptr;
         const std::string raw_spltname = slice_plotfilename + "/raw_fields";
         amrex::Print() << " raw spltname " << raw_spltname << "\n";
         const DistributionMapping &dm = Efield_slice[lev][0]->DistributionMap();
- 
+
         WriteRawField( *Efield_slice[lev][0], dm, raw_spltname, level_prefix, "Ex_slice", lev, 0);
         WriteRawField( *Efield_slice[lev][1], dm, raw_spltname, level_prefix, "Ey_slice", lev, 0);
         WriteRawField( *Efield_slice[lev][2], dm, raw_spltname, level_prefix, "Ez_slice", lev, 0);
@@ -807,8 +806,8 @@ WarpX::WriteSlicePlotFile () const
             MultiFab rho_new(*rho_slice[lev], amrex::make_alias, 1, 1);
             WriteRawField( rho_new, dm, raw_spltname, level_prefix, "rho_slice", lev, 0);
         }
-    } 
- 
+    }
+
     WriteJobInfo(slice_plotfilename);
 
     WriteWarpXHeader(slice_plotfilename);
@@ -817,7 +816,7 @@ WarpX::WriteSlicePlotFile () const
 }
 
 
-void 
+void
 WarpX::InitializeSliceMultiFabs ()
 {
 
@@ -828,12 +827,12 @@ WarpX::InitializeSliceMultiFabs ()
     current_slice.resize(nlevels);
     Efield_slice.resize(nlevels);
     Bfield_slice.resize(nlevels);
- 
+
 }
 
 
 // To generate slice that inherits index type of underlying data //
-void 
+void
 WarpX::SliceGenerationForDiagnostics ()
 {
 
@@ -841,20 +840,20 @@ WarpX::SliceGenerationForDiagnostics ()
     dom_geom = Geom();
 
     if (F_fp[0] ) {
-       F_slice[0] = CreateSlice( *F_fp[0].get(), dom_geom, slice_realbox, 
+       F_slice[0] = CreateSlice( *F_fp[0].get(), dom_geom, slice_realbox,
                                  slice_cr_ratio );
     }
     if (rho_fp[0]) {
-       rho_slice[0] = CreateSlice( *rho_fp[0].get(), dom_geom, slice_realbox, 
+       rho_slice[0] = CreateSlice( *rho_fp[0].get(), dom_geom, slice_realbox,
                                    slice_cr_ratio );
     }
 
     for (int idim = 0; idim < 3; ++idim) {
-       Efield_slice[0][idim] = CreateSlice( *Efield_fp[0][idim].get(), 
+       Efield_slice[0][idim] = CreateSlice( *Efield_fp[0][idim].get(),
                                 dom_geom, slice_realbox, slice_cr_ratio );
-       Bfield_slice[0][idim] = CreateSlice( *Bfield_fp[0][idim].get(), 
+       Bfield_slice[0][idim] = CreateSlice( *Bfield_fp[0][idim].get(),
                                dom_geom, slice_realbox, slice_cr_ratio );
-       current_slice[0][idim] = CreateSlice( *current_fp[0][idim].get(), 
+       current_slice[0][idim] = CreateSlice( *current_fp[0][idim].get(),
                                dom_geom, slice_realbox, slice_cr_ratio );
     }
 
@@ -862,7 +861,7 @@ WarpX::SliceGenerationForDiagnostics ()
 }
 
 
-void 
+void
 WarpX::ClearSliceMultiFabs ()
 {
 

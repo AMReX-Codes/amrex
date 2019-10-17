@@ -1,15 +1,17 @@
-#include <limits>
-#include <algorithm>
-#include <string>
-
 #include <MultiParticleContainer.H>
 #include <WarpX_f.H>
 #include <WarpX.H>
+
+#include <limits>
+#include <algorithm>
+#include <string>
+#include <memory>
 
 using namespace amrex;
 
 MultiParticleContainer::MultiParticleContainer (AmrCore* amr_core)
 {
+
     ReadParameters();
 
     allcontainers.resize(nspecies + nlasers);
@@ -20,11 +22,15 @@ MultiParticleContainer::MultiParticleContainer (AmrCore* amr_core)
         else if (species_types[i] == PCTypes::RigidInjected) {
             allcontainers[i].reset(new RigidInjectedParticleContainer(amr_core, i, species_names[i]));
         }
-        allcontainers[i]->deposit_on_main_grid = deposit_on_main_grid[i];
+        else if (species_types[i] == PCTypes::Photon) {
+            allcontainers[i].reset(new PhotonParticleContainer(amr_core, i, species_names[i]));
+        }
+        allcontainers[i]->m_deposit_on_main_grid = m_deposit_on_main_grid[i];
+        allcontainers[i]->m_gather_from_main_grid = m_gather_from_main_grid[i];
     }
-    
+
     for (int i = nspecies; i < nspecies+nlasers; ++i) {
-        allcontainers[i].reset(new LaserParticleContainer(amr_core,i, lasers_names[i-nspecies]));
+        allcontainers[i].reset(new LaserParticleContainer(amr_core, i, lasers_names[i-nspecies]));
     }
 
     pc_tmp.reset(new PhysicalParticleContainer(amr_core));
@@ -56,24 +62,36 @@ MultiParticleContainer::ReadParameters ()
         BL_ASSERT(nspecies >= 0);
 
         if (nspecies > 0) {
+            // Get species names
             pp.getarr("species_names", species_names);
             BL_ASSERT(species_names.size() == nspecies);
 
-            deposit_on_main_grid.resize(nspecies, 0);
+            // Get species to deposit on main grid
+            m_deposit_on_main_grid.resize(nspecies, false);
             std::vector<std::string> tmp;
             pp.queryarr("deposit_on_main_grid", tmp);
             for (auto const& name : tmp) {
                 auto it = std::find(species_names.begin(), species_names.end(), name);
                 AMREX_ALWAYS_ASSERT_WITH_MESSAGE(it != species_names.end(), "ERROR: species in particles.deposit_on_main_grid must be part of particles.species_names");
                 int i = std::distance(species_names.begin(), it);
-                deposit_on_main_grid[i] = 1;
+                m_deposit_on_main_grid[i] = true;
+            }
+
+            m_gather_from_main_grid.resize(nspecies, false);
+            std::vector<std::string> tmp_gather;
+            pp.queryarr("gather_from_main_grid", tmp_gather);
+            for (auto const& name : tmp_gather) {
+                auto it = std::find(species_names.begin(), species_names.end(), name);
+                AMREX_ALWAYS_ASSERT_WITH_MESSAGE(it != species_names.end(), "ERROR: species in particles.gather_from_main_grid must be part of particles.species_names");
+                int i = std::distance(species_names.begin(), it);
+                m_gather_from_main_grid.at(i) = true;
             }
 
             species_types.resize(nspecies, PCTypes::Physical);
 
+            // Get rigid-injected species
             std::vector<std::string> rigid_injected_species;
             pp.queryarr("rigid_injected_species", rigid_injected_species);
-
             if (!rigid_injected_species.empty()) {
                 for (auto const& name : rigid_injected_species) {
                     auto it = std::find(species_names.begin(), species_names.end(), name);
@@ -82,6 +100,20 @@ MultiParticleContainer::ReadParameters ()
                     species_types[i] = PCTypes::RigidInjected;
                 }
             }
+            // Get photon species
+            std::vector<std::string> photon_species;
+            pp.queryarr("photon_species", photon_species);
+            if (!photon_species.empty()) {
+                for (auto const& name : photon_species) {
+                    auto it = std::find(species_names.begin(), species_names.end(), name);
+                    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+                        it != species_names.end(),
+                        "ERROR: species in particles.rigid_injected_species must be part of particles.species_names");
+                    int i = std::distance(species_names.begin(), it);
+                    species_types[i] = PCTypes::Photon;
+                }
+            }
+
         }
 
         pp.query("use_fdtd_nci_corr", WarpX::use_fdtd_nci_corr);
@@ -118,6 +150,11 @@ MultiParticleContainer::InitData ()
     // For each species, get the ID of its product species.
     // This is used for ionization and pair creation processes.
     mapSpeciesProduct();
+
+#ifdef WARPX_QED
+    InitQED();
+#endif
+
 }
 
 
@@ -217,7 +254,7 @@ MultiParticleContainer::Evolve (int lev,
                                 MultiFab* rho, MultiFab* crho,
                                 const MultiFab* cEx, const MultiFab* cEy, const MultiFab* cEz,
                                 const MultiFab* cBx, const MultiFab* cBy, const MultiFab* cBz,
-                                Real t, Real dt)
+                                Real t, Real dt, DtType a_dt_type)
 {
     jx.setVal(0.0);
     jy.setVal(0.0);
@@ -228,8 +265,8 @@ MultiParticleContainer::Evolve (int lev,
     if (rho) rho->setVal(0.0);
     if (crho) crho->setVal(0.0);
     for (auto& pc : allcontainers) {
-	pc->Evolve(lev, Ex, Ey, Ez, Bx, By, Bz, jx, jy, jz, cjx, cjy, cjz,
-               rho, crho, cEx, cEy, cEz, cBx, cBy, cBz, t, dt);
+        pc->Evolve(lev, Ex, Ey, Ez, Bx, By, Bz, jx, jy, jz, cjx, cjy, cjz,
+                   rho, crho, cEx, cEy, cEz, cBx, cBy, cBz, t, dt, a_dt_type);
     }
 }
 
@@ -348,7 +385,7 @@ MultiParticleContainer
 {
 
     BL_PROFILE("MultiParticleContainer::GetLabFrameData");
-    
+
     // Loop over particle species
     for (int i = 0; i < nspecies_boosted_frame_diags; ++i){
         int isp = map_species_boosted_frame_diags[i];
@@ -357,41 +394,41 @@ MultiParticleContainer
         pc->GetParticleSlice(direction, z_old, z_new, t_boost, t_lab, dt, diagnostic_particles);
         // Here, diagnostic_particles[lev][index] is a WarpXParticleContainer::DiagnosticParticleData
         // where "lev" is the AMR level and "index" is a [grid index][tile index] pair.
-        
+
         // Loop over AMR levels
         for (int lev = 0; lev <= pc->finestLevel(); ++lev){
-            // Loop over [grid index][tile index] pairs 
-            // and Fills parts[species number i] with particle data from all grids and 
-            // tiles in diagnostic_particles. parts contains particles from all 
+            // Loop over [grid index][tile index] pairs
+            // and Fills parts[species number i] with particle data from all grids and
+            // tiles in diagnostic_particles. parts contains particles from all
             // AMR levels indistinctly.
             for (auto it = diagnostic_particles[lev].begin(); it != diagnostic_particles[lev].end(); ++it){
                 // it->first is the [grid index][tile index] key
-                // it->second is the corresponding 
+                // it->second is the corresponding
                 // WarpXParticleContainer::DiagnosticParticleData value
                 parts[i].GetRealData(DiagIdx::w).insert(  parts[i].GetRealData(DiagIdx::w  ).end(),
                                                           it->second.GetRealData(DiagIdx::w  ).begin(),
                                                           it->second.GetRealData(DiagIdx::w  ).end());
-                
+
                 parts[i].GetRealData(DiagIdx::x).insert(  parts[i].GetRealData(DiagIdx::x  ).end(),
                                                           it->second.GetRealData(DiagIdx::x  ).begin(),
                                                           it->second.GetRealData(DiagIdx::x  ).end());
-                
+
                 parts[i].GetRealData(DiagIdx::y).insert(  parts[i].GetRealData(DiagIdx::y  ).end(),
                                                           it->second.GetRealData(DiagIdx::y  ).begin(),
                                                           it->second.GetRealData(DiagIdx::y  ).end());
-                
+
                 parts[i].GetRealData(DiagIdx::z).insert(  parts[i].GetRealData(DiagIdx::z  ).end(),
                                                           it->second.GetRealData(DiagIdx::z  ).begin(),
                                                           it->second.GetRealData(DiagIdx::z  ).end());
-                
+
                 parts[i].GetRealData(DiagIdx::ux).insert(  parts[i].GetRealData(DiagIdx::ux).end(),
                                                            it->second.GetRealData(DiagIdx::ux).begin(),
                                                            it->second.GetRealData(DiagIdx::ux).end());
-                
+
                 parts[i].GetRealData(DiagIdx::uy).insert(  parts[i].GetRealData(DiagIdx::uy).end(),
                                                            it->second.GetRealData(DiagIdx::uy).begin(),
                                                            it->second.GetRealData(DiagIdx::uy).end());
-                
+
                 parts[i].GetRealData(DiagIdx::uz).insert(  parts[i].GetRealData(DiagIdx::uz).end(),
                                                            it->second.GetRealData(DiagIdx::uz).begin(),
                                                            it->second.GetRealData(DiagIdx::uz).end());
@@ -402,7 +439,7 @@ MultiParticleContainer
 
 /* \brief Continuous injection for particles initially outside of the domain.
  * \param injection_box: Domain where new particles should be injected.
- * Loop over all WarpXParticleContainer in MultiParticleContainer and 
+ * Loop over all WarpXParticleContainer in MultiParticleContainer and
  * calls virtual function ContinuousInjection.
  */
 void
@@ -418,7 +455,7 @@ MultiParticleContainer::ContinuousInjection(const RealBox& injection_box) const
 
 /* \brief Update position of continuous injection parameters.
  * \param dt: simulation time step (level 0)
- * All classes inherited from WarpXParticleContainer do not have 
+ * All classes inherited from WarpXParticleContainer do not have
  * a position to update (PhysicalParticleContainer does not do anything).
  */
 void
@@ -446,7 +483,7 @@ MultiParticleContainer::doContinuousInjection () const
 }
 
 /* \brief Get ID of product species of each species.
- * The users specifies the name of the product species, 
+ * The users specifies the name of the product species,
  * this routine get its ID.
  */
 void
@@ -454,8 +491,8 @@ MultiParticleContainer::mapSpeciesProduct ()
 {
     for (int i=0; i<nspecies; i++){
         auto& pc = allcontainers[i];
-        // If species pc has ionization on, find species with name 
-        // pc->ionization_product_name and store its ID into 
+        // If species pc has ionization on, find species with name
+        // pc->ionization_product_name and store its ID into
         // pc->ionization_product.
         if (pc->do_field_ionization){
             int i_product = getSpeciesID(pc->ionization_product_name);
@@ -514,12 +551,12 @@ namespace
         WarpXParticleContainer::ParticleType* particles_source = ptile_source.GetArrayOfStructs()().data();
         // --- source SoA particle data
         auto& soa_source = ptile_source.GetStructOfArrays();
-        GpuArray<Real*,PIdx::nattribs> attribs_source;
+        GpuArray<ParticleReal*,PIdx::nattribs> attribs_source;
         for (int ia = 0; ia < PIdx::nattribs; ++ia) {
             attribs_source[ia] = soa_source.GetRealData(ia).data();
         }
         // --- source runtime attribs
-        GpuArray<Real*,3> runtime_uold_source;
+        GpuArray<ParticleReal*,3> runtime_uold_source;
         // Prepare arrays for boosted frame diagnostics.
         runtime_uold_source[0] = soa_source.GetRealData(PIdx::ux).data();
         runtime_uold_source[1] = soa_source.GetRealData(PIdx::uy).data();
@@ -559,14 +596,14 @@ namespace
         WarpXParticleContainer::ParticleType* particles_product = ptile_product.GetArrayOfStructs()().data() + np_product_old;
         // --- product SoA particle data
         auto& soa_product = ptile_product.GetStructOfArrays();
-        GpuArray<Real*,PIdx::nattribs> attribs_product;
+        GpuArray<ParticleReal*,PIdx::nattribs> attribs_product;
         for (int ia = 0; ia < PIdx::nattribs; ++ia) {
             // First element is the first newly-created product particle
             attribs_product[ia] = soa_product.GetRealData(ia).data() + np_product_old;
         }
         // --- product runtime attribs
-        GpuArray<Real*,6> runtime_attribs_product;
-        bool do_boosted_product = WarpX::do_boosted_frame_diagnostic 
+        GpuArray<ParticleReal*,6> runtime_attribs_product;
+        bool do_boosted_product = WarpX::do_boosted_frame_diagnostic
             && pc_product->DoBoostedFrameDiags();
         if (do_boosted_product) {
             std::map<std::string, int> comps_product = pc_product->getParticleComps();
@@ -613,7 +650,7 @@ namespace
                         attribs_product[ia][ip] = attribs_source[ia][is];
                     }
                     // Update xold etc. if boosted frame diagnostics required
-                    // for product species. Fill runtime attribs with a copy of 
+                    // for product species. Fill runtime attribs with a copy of
                     // current properties (xold = x etc.).
                     if (do_boosted_product) {
                         runtime_attribs_product[0][ip] = p_source.pos(0);
@@ -636,7 +673,7 @@ MultiParticleContainer::doFieldIonization ()
     // Loop over all species.
     // Ionized particles in pc_source create particles in pc_product
     for (auto& pc_source : allcontainers){
-    
+
         // Skip if not ionizable
         if (!pc_source->do_field_ionization){ continue; }
 
@@ -650,7 +687,7 @@ MultiParticleContainer::doFieldIonization ()
             // they do not exist (or if they were defined by default, i.e.,
             // without runtime component).
 #ifdef _OPENMP
-            // Touch all tiles of source species in serial if runtime attribs 
+            // Touch all tiles of source species in serial if runtime attribs
             for (MFIter mfi = pc_source->MakeMFIter(lev); mfi.isValid(); ++mfi) {
                 const int grid_id = mfi.index();
                 const int tile_id = mfi.LocalTileIndex();
@@ -672,7 +709,7 @@ MultiParticleContainer::doFieldIonization ()
             MFItInfo info;
             if (pc_source->do_tiling && Gpu::notInLaunchRegion()) {
                 AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-                    pc_product->do_tiling, 
+                    pc_product->do_tiling,
                     "For ionization, either all or none of the "
                     "particle species must use tiling.");
                 info.EnableTiling(pc_source->tile_size);
@@ -695,3 +732,19 @@ MultiParticleContainer::doFieldIonization ()
         } // lev
     } // pc_source
 }
+
+#ifdef WARPX_QED
+void MultiParticleContainer::InitQED ()
+{
+    for (auto& pc : allcontainers) {
+        if(pc->has_quantum_sync()){
+            pc->set_quantum_sync_engine_ptr
+                (std::make_shared<QuantumSynchrotronEngine>(qs_engine));
+        }
+        if(pc->has_breit_wheeler()){
+            pc->set_breit_wheeler_engine_ptr
+                (std::make_shared<BreitWheelerEngine>(bw_engine));
+        }
+    }
+}
+#endif

@@ -1,12 +1,13 @@
 #include "PlasmaInjector.H"
 
-#include <sstream>
-#include <functional>
-
 #include <WarpXConst.H>
 #include <WarpX_f.H>
-#include <AMReX.H>
 #include <WarpX.H>
+
+#include <AMReX.H>
+
+#include <sstream>
+#include <functional>
 
 using namespace amrex;
 
@@ -45,7 +46,7 @@ namespace {
         } else if (name == "m_p"){
             return PhysConst::m_p;
         } else if (name == "inf"){
-	    return std::numeric_limits<double>::infinity();
+            return std::numeric_limits<double>::infinity();
         } else if (pp.query("mass", result)) {
             return result;
         } else {

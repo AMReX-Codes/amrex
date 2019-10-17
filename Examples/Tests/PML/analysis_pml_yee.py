@@ -30,5 +30,8 @@ energy_end = energyE + energyB
 Reflectivity = energy_end/energy_start
 Reflectivity_theory = 5.683000058954201e-07
 
+print("Reflectivity: %s" %Reflectivity)
+print("Reflectivity_theory: %s" %Reflectivity_theory)
+
 assert( abs(Reflectivity-Reflectivity_theory) < 5./100 * Reflectivity_theory )
-    
+

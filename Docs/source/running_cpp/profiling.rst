@@ -30,7 +30,7 @@ Follow these steps:
      export ADVIXE_EXPERIMENTAL=roofline
      srun -n <n_mpi> -c <n_logical_cores_per_mpi> --cpu_bind=cores advixe-cl -collect survey -project-dir advisor -trace-mpi -- <warpx_executable> inputs
      srun -n <n_mpi> -c <n_logical_cores_per_mpi> --cpu_bind=cores advixe-cl -collect tripcounts -flop -project-dir advisor -trace-mpi -- <warpx_executable> inputs
- 
+
   where ``<n_mpi>`` and ``<n_logical_cores_per_mpi>`` should be replaced by
   the proper values, and ``<warpx_executable>`` should be replaced by the
   name of the WarpX executable.
@@ -38,7 +38,7 @@ Follow these steps:
 - Launch the Intel Advisor GUI
 
   ::
-     
+
      module load advisor
      advixe-gui
 

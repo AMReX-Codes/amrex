@@ -1,16 +1,13 @@
 
-#include <AMReX.H>
-#include <AMReX_BLProfiler.H>
-
 #include <WarpXWrappers.h>
 #include <WarpXParticleContainer.H>
 #include <WarpX.H>
 #include <WarpXUtil.H>
 #include <WarpX_py.H>
 
-namespace 
+namespace
 {
-    double** getMultiFabPointers(const amrex::MultiFab& mf, int *num_boxes, int *ncomps, int *ngrow, int **shapes)
+    amrex::Real** getMultiFabPointers(const amrex::MultiFab& mf, int *num_boxes, int *ncomps, int *ngrow, int **shapes)
     {
         *ncomps = mf.nComp();
         *ngrow = mf.nGrow();
@@ -18,16 +15,16 @@ namespace
         int shapesize = AMREX_SPACEDIM;
         if (mf.nComp() > 1) shapesize += 1;
         *shapes = (int*) malloc(shapesize * (*num_boxes) * sizeof(int));
-        double** data = (double**) malloc((*num_boxes) * sizeof(double*));
-        
+        amrex::Real** data = (amrex::Real**) malloc((*num_boxes) * sizeof(amrex::Real*));
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
         for ( amrex::MFIter mfi(mf, false); mfi.isValid(); ++mfi ) {
             int i = mfi.LocalIndex();
-            data[i] = (double*) mf[mfi].dataPtr();
+            data[i] = (amrex::Real*) mf[mfi].dataPtr();
             for (int j = 0; j < AMREX_SPACEDIM; ++j) {
-                (*shapes)[shapesize*i+j] = mf[mfi].box().length(j); 
+                (*shapes)[shapesize*i+j] = mf[mfi].box().length(j);
             }
             if (mf.nComp() > 1) (*shapes)[shapesize*i+AMREX_SPACEDIM] = mf.nComp();
         }
@@ -53,60 +50,70 @@ namespace
 extern "C"
 {
 
+    int warpx_Real_size()
+    {
+        return (int)sizeof(amrex::Real);
+    }
+
+    int warpx_ParticleReal_size()
+    {
+        return (int)sizeof(amrex::ParticleReal);
+    }
+
     int warpx_nSpecies()
     {
-	auto & mypc = WarpX::GetInstance().GetPartContainer();
+        auto & mypc = WarpX::GetInstance().GetPartContainer();
         return mypc.nSpecies();
     }
 
     bool warpx_use_fdtd_nci_corr()
     {
-	return WarpX::use_fdtd_nci_corr;
+        return WarpX::use_fdtd_nci_corr;
     }
 
     int warpx_l_lower_order_in_v()
     {
-	return WarpX::l_lower_order_in_v;
+        return WarpX::l_lower_order_in_v;
     }
 
-    int warpx_nComps() 
+    int warpx_nComps()
     {
-        return PIdx::nattribs;        
+        return PIdx::nattribs;
     }
 
-    int warpx_SpaceDim() 
+    int warpx_SpaceDim()
     {
         return AMREX_SPACEDIM;
     }
 
     void amrex_init (int argc, char* argv[])
     {
-	amrex::Initialize(argc,argv);
+        amrex::Initialize(argc,argv);
     }
 
 #ifdef BL_USE_MPI
     void amrex_init_with_inited_mpi (int argc, char* argv[], MPI_Comm mpicomm)
     {
-	amrex::Initialize(argc,argv,true,mpicomm);	
+        amrex::Initialize(argc,argv,true,mpicomm);
     }
 #endif
 
     void amrex_finalize (int finalize_mpi)
     {
-	amrex::Finalize();
+        amrex::Finalize();
     }
 
     void warpx_init ()
     {
-	WarpX& warpx = WarpX::GetInstance();
-	warpx.InitData();
+        WarpX& warpx = WarpX::GetInstance();
+        warpx.InitData();
         if (warpx_py_afterinit) warpx_py_afterinit();
         if (warpx_py_particleloader) warpx_py_particleloader();
     }
 
     void warpx_finalize ()
     {
-	WarpX::ResetInstance();
+        WarpX::ResetInstance();
     }
 
     void warpx_set_callback_py_afterinit (WARPX_CALLBACK_PY_FUNC_0 callback)
@@ -160,19 +167,19 @@ extern "C"
 
     void warpx_evolve (int numsteps)
     {
-	WarpX& warpx = WarpX::GetInstance();
-	warpx.Evolve(numsteps);
+        WarpX& warpx = WarpX::GetInstance();
+        warpx.Evolve(numsteps);
     }
 
     void warpx_addNParticles(int speciesnumber, int lenx,
-                             double* x, double* y, double* z,
-                             double* vx, double* vy, double* vz,
-                             int nattr, double* attr, int uniqueparticles)
+                             amrex::ParticleReal* x, amrex::ParticleReal* y, amrex::ParticleReal* z,
+                             amrex::ParticleReal* vx, amrex::ParticleReal* vy, amrex::ParticleReal* vz,
+                             int nattr, amrex::ParticleReal* attr, int uniqueparticles)
     {
-	auto & mypc = WarpX::GetInstance().GetPartContainer();
-	auto & myspc = mypc.GetParticleContainer(speciesnumber);
+        auto & mypc = WarpX::GetInstance().GetPartContainer();
+        auto & myspc = mypc.GetParticleContainer(speciesnumber);
         const int lev = 0;
-	myspc.AddNParticles(lev, lenx, x, y, z, vx, vy, vz, nattr, attr, uniqueparticles);
+        myspc.AddNParticles(lev, lenx, x, y, z, vx, vy, vz, nattr, attr, uniqueparticles);
     }
 
     void warpx_ConvertLabParamsToBoost()
@@ -180,14 +187,14 @@ extern "C"
       ConvertLabParamsToBoost();
     }
 
-    double warpx_getProbLo(int dir)
+    amrex::Real warpx_getProbLo(int dir)
     {
       WarpX& warpx = WarpX::GetInstance();
       const amrex::Geometry& geom = warpx.Geom(0);
       return geom.ProbLo(dir);
     }
 
-    double warpx_getProbHi(int dir)
+    amrex::Real warpx_getProbHi(int dir)
     {
       WarpX& warpx = WarpX::GetInstance();
       const amrex::Geometry& geom = warpx.Geom(0);
@@ -200,7 +207,7 @@ extern "C"
         return myspc.TotalNumberOfParticles();
     }
 
-    double** warpx_getEfield(int lev, int direction,
+    amrex::Real** warpx_getEfield(int lev, int direction,
                              int *return_size, int *ncomps, int *ngrow, int **shapes) {
         auto & mf = WarpX::GetInstance().getEfield(lev, direction);
         return getMultiFabPointers(mf, return_size, ncomps, ngrow, shapes);
@@ -212,7 +219,7 @@ extern "C"
         return getMultiFabLoVects(mf, return_size, ngrow);
     }
 
-    double** warpx_getEfieldCP(int lev, int direction,
+    amrex::Real** warpx_getEfieldCP(int lev, int direction,
                                int *return_size, int *ncomps, int *ngrow, int **shapes) {
         auto & mf = WarpX::GetInstance().getEfield_cp(lev, direction);
         return getMultiFabPointers(mf, return_size, ncomps, ngrow, shapes);
@@ -224,7 +231,7 @@ extern "C"
         return getMultiFabLoVects(mf, return_size, ngrow);
     }
 
-    double** warpx_getEfieldFP(int lev, int direction,
+    amrex::Real** warpx_getEfieldFP(int lev, int direction,
                                int *return_size, int *ncomps, int *ngrow, int **shapes) {
         auto & mf = WarpX::GetInstance().getEfield_fp(lev, direction);
         return getMultiFabPointers(mf, return_size, ncomps, ngrow, shapes);
@@ -236,7 +243,7 @@ extern "C"
         return getMultiFabLoVects(mf, return_size, ngrow);
     }
 
-    double** warpx_getBfield(int lev, int direction,
+    amrex::Real** warpx_getBfield(int lev, int direction,
                              int *return_size, int *ncomps, int *ngrow, int **shapes) {
         auto & mf = WarpX::GetInstance().getBfield(lev, direction);
         return getMultiFabPointers(mf, return_size, ncomps, ngrow, shapes);
@@ -248,7 +255,7 @@ extern "C"
         return getMultiFabLoVects(mf, return_size, ngrow);
     }
 
-    double** warpx_getBfieldCP(int lev, int direction,
+    amrex::Real** warpx_getBfieldCP(int lev, int direction,
                                int *return_size, int *ncomps, int *ngrow, int **shapes) {
         auto & mf = WarpX::GetInstance().getBfield_cp(lev, direction);
         return getMultiFabPointers(mf, return_size, ncomps, ngrow, shapes);
@@ -260,7 +267,7 @@ extern "C"
         return getMultiFabLoVects(mf, return_size, ngrow);
     }
 
-    double** warpx_getBfieldFP(int lev, int direction,
+    amrex::Real** warpx_getBfieldFP(int lev, int direction,
                                int *return_size, int *ncomps, int *ngrow, int **shapes) {
         auto & mf = WarpX::GetInstance().getBfield_fp(lev, direction);
         return getMultiFabPointers(mf, return_size, ncomps, ngrow, shapes);
@@ -272,7 +279,7 @@ extern "C"
         return getMultiFabLoVects(mf, return_size, ngrow);
     }
 
-    double** warpx_getCurrentDensity(int lev, int direction,
+    amrex::Real** warpx_getCurrentDensity(int lev, int direction,
                                      int *return_size, int *ncomps, int *ngrow, int **shapes) {
         auto & mf = WarpX::GetInstance().getcurrent(lev, direction);
         return getMultiFabPointers(mf, return_size, ncomps, ngrow, shapes);
@@ -284,7 +291,7 @@ extern "C"
         return getMultiFabLoVects(mf, return_size, ngrow);
     }
 
-    double** warpx_getCurrentDensityCP(int lev, int direction,
+    amrex::Real** warpx_getCurrentDensityCP(int lev, int direction,
                                        int *return_size, int *ncomps, int *ngrow, int **shapes) {
         auto & mf = WarpX::GetInstance().getcurrent_cp(lev, direction);
         return getMultiFabPointers(mf, return_size, ncomps, ngrow, shapes);
@@ -296,7 +303,7 @@ extern "C"
         return getMultiFabLoVects(mf, return_size, ngrow);
     }
 
-    double** warpx_getCurrentDensityFP(int lev, int direction,
+    amrex::Real** warpx_getCurrentDensityFP(int lev, int direction,
                                        int *return_size, int *ncomps, int *ngrow, int **shapes) {
         auto & mf = WarpX::GetInstance().getcurrent_fp(lev, direction);
         return getMultiFabPointers(mf, return_size, ncomps, ngrow, shapes);
@@ -308,7 +315,7 @@ extern "C"
         return getMultiFabLoVects(mf, return_size, ngrow);
     }
 
-    double** warpx_getParticleStructs(int speciesnumber, int lev,
+    amrex::ParticleReal** warpx_getParticleStructs(int speciesnumber, int lev,
                                       int* num_tiles, int** particles_per_tile) {
         auto & mypc = WarpX::GetInstance().GetPartContainer();
         auto & myspc = mypc.GetParticleContainer(speciesnumber);
@@ -320,17 +327,17 @@ extern "C"
         *num_tiles = i;
         *particles_per_tile = (int*) malloc(*num_tiles*sizeof(int));
 
-        double** data = (double**) malloc(*num_tiles*sizeof(typename WarpXParticleContainer::ParticleType*));
+        amrex::ParticleReal** data = (amrex::ParticleReal**) malloc(*num_tiles*sizeof(typename WarpXParticleContainer::ParticleType*));
         i = 0;
         for (WarpXParIter pti(myspc, lev); pti.isValid(); ++pti, ++i) {
             auto& aos = pti.GetArrayOfStructs();
-            data[i] = (double*) aos.data();
+            data[i] = (amrex::ParticleReal*) aos.data();
             (*particles_per_tile)[i] = pti.numParticles();
         }
         return data;
     }
 
-    double** warpx_getParticleArrays(int speciesnumber, int comp, int lev,
+    amrex::ParticleReal** warpx_getParticleArrays(int speciesnumber, int comp, int lev,
                                      int* num_tiles, int** particles_per_tile) {
         auto & mypc = WarpX::GetInstance().GetPartContainer();
         auto & myspc = mypc.GetParticleContainer(speciesnumber);
@@ -342,11 +349,11 @@ extern "C"
         *num_tiles = i;
         *particles_per_tile = (int*) malloc(*num_tiles*sizeof(int));
 
-        double** data = (double**) malloc(*num_tiles*sizeof(double*));
+        amrex::ParticleReal** data = (amrex::ParticleReal**) malloc(*num_tiles*sizeof(amrex::ParticleReal*));
         i = 0;
         for (WarpXParIter pti(myspc, lev); pti.isValid(); ++pti, ++i) {
             auto& soa = pti.GetStructOfArrays();
-            data[i] = (double*) soa.GetRealData(comp).dataPtr();
+            data[i] = (amrex::ParticleReal*) soa.GetRealData(comp).dataPtr();
             (*particles_per_tile)[i] = pti.numParticles();
         }
         return data;
@@ -361,11 +368,11 @@ extern "C"
         warpx.MoveWindow (true);
     }
 
-    void warpx_EvolveE (double dt) {
+    void warpx_EvolveE (amrex::Real dt) {
         WarpX& warpx = WarpX::GetInstance();
         warpx.EvolveE (dt);
     }
-    void warpx_EvolveB (double dt) {
+    void warpx_EvolveB (amrex::Real dt) {
         WarpX& warpx = WarpX::GetInstance();
         warpx.EvolveB (dt);
     }
@@ -385,7 +392,7 @@ extern "C"
         WarpX& warpx = WarpX::GetInstance();
         warpx.UpdateAuxilaryData ();
     }
-    void warpx_PushParticlesandDepose (double cur_time) {
+    void warpx_PushParticlesandDepose (amrex::Real cur_time) {
         WarpX& warpx = WarpX::GetInstance();
         warpx.PushParticlesandDepose (cur_time);
     }
@@ -398,15 +405,15 @@ extern "C"
         WarpX& warpx = WarpX::GetInstance();
         warpx.setistep (lev, ii);
     }
-    double warpx_gett_new (int lev) {
+    amrex::Real warpx_gett_new (int lev) {
         WarpX& warpx = WarpX::GetInstance();
         return warpx.gett_new (lev);
     }
-    void warpx_sett_new (int lev, double time) {
+    void warpx_sett_new (int lev, amrex::Real time) {
         WarpX& warpx = WarpX::GetInstance();
         warpx.sett_new (lev, time);
     }
-    double warpx_getdt (int lev) {
+    amrex::Real warpx_getdt (int lev) {
         WarpX& warpx = WarpX::GetInstance();
         return warpx.getdt (lev);
     }
@@ -415,7 +422,7 @@ extern "C"
         WarpX& warpx = WarpX::GetInstance();
         return warpx.maxStep ();
     }
-    double warpx_stopTime () {
+    amrex::Real warpx_stopTime () {
         WarpX& warpx = WarpX::GetInstance();
         return warpx.stopTime ();
     }
@@ -444,7 +451,7 @@ extern "C"
     }
 
     void mypc_Redistribute () {
-	    auto & mypc = WarpX::GetInstance().GetPartContainer();
+        auto & mypc = WarpX::GetInstance().GetPartContainer();
         mypc.Redistribute();
     }
 

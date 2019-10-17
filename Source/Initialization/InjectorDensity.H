@@ -1,11 +1,12 @@
 #ifndef INJECTOR_DENSITY_H_
 #define INJECTOR_DENSITY_H_
 
-#include <AMReX_Gpu.H>
-#include <AMReX_Dim3.H>
 #include <GpuParser.H>
 #include <CustomDensityProb.H>
 #include <WarpXConst.H>
+
+#include <AMReX_Gpu.H>
+#include <AMReX_Dim3.H>
 
 // struct whose getDensity returns constant density.
 struct InjectorDensityConstant
@@ -67,18 +68,20 @@ struct InjectorDensityPredefined
             amrex::Real kp = PhysConst::q_e/PhysConst::c
                 *std::sqrt( n0/(PhysConst::m_e*PhysConst::ep0) );
 
+            // Longitudinal profile, normalized to 1
             if        ((z-z_start)>=0               and
                        (z-z_start)<ramp_up ) {
-                n = (z-z_start)/ramp_up;
+                n = 0.5*(1.-std::cos(MathConst::pi*(z-z_start)/ramp_up));
             } else if ((z-z_start)>=ramp_up         and
                        (z-z_start)< ramp_up+plateau ) {
                 n = 1.;
             } else if ((z-z_start)>=ramp_up+plateau and
                        (z-z_start)< ramp_up+plateau+ramp_down) {
-                n = 1.-((z-z_start)-ramp_up-plateau)/ramp_down;
+                n = 0.5*(1.+std::cos(MathConst::pi*((z-z_start)-ramp_up-plateau)/ramp_down));
             } else {
                 n = 0.;
             }
+            // Multiply by transverse profile, and physical density
             n *= n0*(1.+4.*(x*x+y*y)/(kp*kp*rc*rc*rc*rc));
             return n;
         }
@@ -94,9 +97,9 @@ private:
     amrex::Real* p;
 };
 
-// Base struct for density injector. 
-// InjectorDensity contains a union (called Object) that holds any one 
-// instance of: 
+// Base struct for density injector.
+// InjectorDensity contains a union (called Object) that holds any one
+// instance of:
 // - InjectorDensityConstant  : to generate constant density;
 // - InjectorDensityParser    : to generate density from parser;
 // - InjectorDensityCustom    : to generate density from custom profile;

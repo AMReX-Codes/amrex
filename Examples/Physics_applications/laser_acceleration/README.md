@@ -11,4 +11,3 @@ Examples are provided using the executable or Python-driven version of WarpX.
 ## Using the python-driven version:
   - laser_acceleration_PICMI.py
 
-  

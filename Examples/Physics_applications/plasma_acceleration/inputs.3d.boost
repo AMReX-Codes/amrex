@@ -10,8 +10,8 @@ amr.plot_file = "plotfiles/plt"
 amr.plot_int = 50
 geometry.coord_sys   = 0                  # 0: Cartesian
 geometry.is_periodic = 1 1 0     # Is periodic?
-geometry.prob_lo     = -0.00015 -0.00015 -0.00012 
-geometry.prob_hi     = 0.00015 0.00015 1.e-06 
+geometry.prob_lo     = -0.00015 -0.00015 -0.00012
+geometry.prob_hi     = 0.00015 0.00015 1.e-06
 
 #################################
 ############ NUMERICS ###########

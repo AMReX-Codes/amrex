@@ -30,8 +30,8 @@ energy_end = energyE + energyB
 Reflectivity = energy_end/energy_start
 Reflectivity_theory = 1.8015e-06
 
-print("Reflectivity", Reflectivity)
-print("Reflectivity_theory", Reflectivity_theory)
+print("Reflectivity: %s" %Reflectivity)
+print("Reflectivity_theory: %s" %Reflectivity_theory)
 
 assert( Reflectivity < 105./100 * Reflectivity_theory )
-    
+

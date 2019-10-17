@@ -8,7 +8,7 @@ class BilinearFilter : public Filter
 public:
 
     BilinearFilter() = default;
-    
+
     void ComputeStencils();
 
     amrex::IntVect npass_each_dir;

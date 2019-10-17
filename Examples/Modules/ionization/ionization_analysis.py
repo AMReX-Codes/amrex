@@ -4,12 +4,12 @@
 This script tests the result of the ionization module in WarpX.
 
 Input files inputs.rt and inputs.bf.rt are used to reproduce the test from
-Chen, JCP, 2013, figure 2 (in the lab frame and in a boosted frame, 
+Chen, JCP, 2013, figure 2 (in the lab frame and in a boosted frame,
 respectively): a plane-wave laser pulse propagates through a
 uniform N2+ neutral plasma and further ionizes the Nitrogen atoms. This test
 checks that, after the laser went through the plasma, ~32% of Nitrogen
 ions are N5+, in agreement with theory from Chen's article.
-""" 
+"""
 
 import sys
 import yt

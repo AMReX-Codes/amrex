@@ -23,7 +23,7 @@ filename = sys.argv[1]
 
 # WarpX headers include more data when rigid injection is used,
 # which gives an error with the last yt release.
-# To avoid this issue, the three last lines of WarpXHeader are removed if 
+# To avoid this issue, the three last lines of WarpXHeader are removed if
 # needed.
 def remove_rigid_lines(plotfile, nlines_if_rigid):
     header_name = plotfile + '/WarpXHeader'
@@ -32,7 +32,7 @@ def remove_rigid_lines(plotfile, nlines_if_rigid):
     nlines = len(file_lines)
     f.close()
     if nlines == nlines_if_rigid:
-        f = open(header_name, 'w')        
+        f = open(header_name, 'w')
         f.writelines(file_lines[:-3])
         f.close()
 

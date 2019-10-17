@@ -2,6 +2,8 @@ import numpy as np
 from pywarpx import picmi
 #from warp import picmi
 
+constants = picmi.constants
+
 ##########################
 # physics parameters
 ##########################
@@ -15,11 +17,11 @@ laser_duration        = 15e-15    # Duration of the laser (in seconds)
 laser_polarization    = np.pi/2.  # Polarization angle (in rad)
 laser_injection_loc   = 9.e-6     # Position of injection (in meters, along z)
 laser_focal_distance  = 100.e-6   # Focal distance from the injection (in meters)
-laser_t_peak          = 30.e-15   # The time at which the laser reaches its peak 
+laser_t_peak          = 30.e-15   # The time at which the laser reaches its peak
                                   #   at the antenna injection location (in seconds)
 # --- plasma
 
-plasma_density = 1.e24 
+plasma_density = 1.e24
 plasma_min     = [-20.e-6, -20.e-6,  0.0e-6]
 plasma_max     = [ 20.e-6,  20.e-6,  1.e-3]
 
@@ -45,7 +47,7 @@ ymax = 1.5*plasma_max[1]
 zmin = -56.e-6
 zmax = 12.e-6
 
-moving_window_velocity = [0., 0., picmi.c]
+moving_window_velocity = [0., 0., constants.c]
 
 number_per_cell_each_dim = [2, 2, 1]
 
@@ -55,14 +57,14 @@ number_per_cell_each_dim = [2, 2, 1]
 
 # --- laser
 
-laser = picmi.GaussianLaser(wavelength            = laser_wavelength,  
-                            waist                 = laser_waist,                    
-                            duration              = laser_duration,              
-                            focal_position        = [0., 0., laser_focal_distance + laser_injection_loc],  
-                            centroid_position     = [0., 0., laser_injection_loc - picmi.c*laser_t_peak], 
-                            polarization_angle    = laser_polarization,  
+laser = picmi.GaussianLaser(wavelength            = laser_wavelength,
+                            waist                 = laser_waist,
+                            duration              = laser_duration,
+                            focal_position        = [0., 0., laser_focal_distance + laser_injection_loc],
+                            centroid_position     = [0., 0., laser_injection_loc - constants.c*laser_t_peak],
+                            polarization_angle    = laser_polarization,
                             propagation_direction = [0,0,1],
-                            E0 = laser_a0*2.*np.pi*picmi.m_e*picmi.c**2/(picmi.q_e*laser_wavelength)) # Maximum amplitude of the laser field (in V/m)
+                            E0 = laser_a0*2.*np.pi*constants.m_e*constants.c**2/(constants.q_e*laser_wavelength)) # Maximum amplitude of the laser field (in V/m)
 
 laser_antenna = picmi.LaserAntenna(position = [0., 0., laser_injection_loc],  # This point is on the laser plane
                                    normal_vector = [0., 0., 1.])  # The plane normal direction
@@ -101,9 +103,7 @@ solver = picmi.ElectromagneticSolver(grid=grid, method='CKC', cfl=1.)
 field_diag1 = picmi.FieldDiagnostic(grid = grid,
                                     period = 100,
                                     warpx_plot_raw_fields = 1,
-                                    warpx_plot_raw_fields_guards = 1,
-                                    warpx_plot_finepatch = 1,
-                                    warpx_plot_crsepatch = 1)
+                                    warpx_plot_raw_fields_guards = 1)
 
 part_diag1 = picmi.ParticleDiagnostic(period = 100,
                                       species = [electrons])
@@ -116,10 +116,7 @@ sim = picmi.Simulation(solver = solver,
                        max_steps = max_steps,
                        verbose = 1,
                        cfl = 1.0,
-                       warpx_current_deposition_algo = 3,
-                       warpx_charge_deposition_algo = 0,
-                       warpx_field_gathering_algo = 0,
-                       warpx_particle_pusher_algo = 0)
+                       warpx_current_deposition_algo = 'esirkepov')
 
 sim.add_species(electrons, layout=picmi.GriddedLayout(grid=grid, n_macroparticle_per_cell=number_per_cell_each_dim))
 

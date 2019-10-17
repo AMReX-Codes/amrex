@@ -18,10 +18,10 @@
  * /param q            : species charge.
  */
 template <int depos_order>
-void doChargeDepositionShapeN(const amrex::Real * const xp, 
-                              const amrex::Real * const yp, 
-                              const amrex::Real * const zp,
-                              const amrex::Real * const wp,
+void doChargeDepositionShapeN(const amrex::ParticleReal * const xp,
+                              const amrex::ParticleReal * const yp,
+                              const amrex::ParticleReal * const zp,
+                              const amrex::ParticleReal * const wp,
                               const int * const ion_lev,
                               const amrex::Array4<amrex::Real>& rho_arr,
                               const long np_to_depose,
@@ -69,7 +69,7 @@ void doChargeDepositionShapeN(const amrex::Real * const xp,
             amrex::Real sx[depos_order + 1];
             // i: leftmost grid point (node-centered) that the particle touches
             const int i = compute_shape_factor<depos_order>(sx,  x);
-                     
+
 #if (defined WARPX_DIM_3D)
             // y direction
             const amrex::Real y = (yp[ip] - ymin)*dyi;
@@ -86,7 +86,7 @@ void doChargeDepositionShapeN(const amrex::Real * const xp,
             for (int iz=0; iz<=depos_order; iz++){
                 for (int ix=0; ix<=depos_order; ix++){
                     amrex::Gpu::Atomic::Add(
-                        &rho_arr(lo.x+i+ix, lo.y+k+iz, 0), 
+                        &rho_arr(lo.x+i+ix, lo.y+k+iz, 0),
                         sx[ix]*sz[iz]*wq);
                 }
             }

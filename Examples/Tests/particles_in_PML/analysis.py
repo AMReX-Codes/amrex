@@ -3,9 +3,9 @@
 This script tests the absorption of particles in the PML.
 
 The input file inputs_2d/inputs is used: it features a positive and a
-negative particle, going in opposite direction and eventually 
+negative particle, going in opposite direction and eventually
 leaving the box. This script tests that the field in the box
-is close to 0 once the particles have left. With regular 
+is close to 0 once the particles have left. With regular
 PML, this test fails, since the particles leave a spurious
 charge, with associated fields, behind them.
 """
@@ -24,7 +24,7 @@ Ex_array = ad0['Ex'].to_ndarray()
 Ey_array = ad0['Ey'].to_ndarray()
 Ez_array = ad0['Ez'].to_ndarray()
 max_Efield = max(Ex_array.max(), Ey_array.max(), Ez_array.max())
-print( max_Efield )
+print( "max_Efield = %s" %max_Efield )
 
 # The field associated with the particle does not have
 # the same amplitude in 2d and 3d
@@ -34,4 +34,4 @@ elif ds.dimensionality == 3:
     assert max_Efield < 10
 else:
     raise ValueError("Unknown dimensionality")
-        
+

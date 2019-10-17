@@ -10,8 +10,8 @@ amr.plot_file = "plotfiles/plt"
 amr.plot_int = 100
 geometry.coord_sys   = 0                  # 0: Cartesian
 geometry.is_periodic = 0 0      # Is periodic?
-geometry.prob_lo     = -125.e-6 -149.e-6 
-geometry.prob_hi     =  125.e-6    1.e-6 
+geometry.prob_lo     = -125.e-6 -149.e-6
+geometry.prob_hi     =  125.e-6    1.e-6
 warpx.fine_tag_lo    =  -12.e-6 -110.e-6
 warpx.fine_tag_hi    =   12.e-6 -100.e-6
 

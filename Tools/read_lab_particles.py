@@ -15,7 +15,7 @@ def get_particle_field(field):
         data = np.fromfile(f)
         all_data = np.concatenate((all_data, data))
     return all_data
-    
+
 x = get_particle_field('x')
 z = get_particle_field('z')
 
