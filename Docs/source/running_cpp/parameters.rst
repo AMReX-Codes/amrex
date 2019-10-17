@@ -386,6 +386,10 @@ Particle initialization
     It only works if `<species>.do_qed = 1`. Enables non-linear Breit-Wheeler process for this species.
     **Implementation of this feature is in progress. It requires to compile with QED=TRUE**
 
+* ``E_external & B_external`` (list of `float`) optional (default `0.0`)
+    Two seperate paramters which add a uniform E-field or B-field to each particle
+    which is then added to the field values gathered from the grid  in the
+    PIC cycle. 
 
 Laser initialization
 --------------------
@@ -572,6 +576,8 @@ Laser initialization
     parameter is the minimum number of points for the mirror. If
     ``mirror_z_width < dz/cell_size``, the upper bound of the mirror is increased
     so that it contains at least ``mirror_z_npoints``.
+
+ 
 
 Numerics and algorithms
 -----------------------
