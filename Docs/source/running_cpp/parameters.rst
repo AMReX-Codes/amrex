@@ -389,7 +389,7 @@ Particle initialization
 * ``E_external & B_external`` (list of `float`) optional (default `0.0`)
     Two seperate paramters which add a uniform E-field or B-field to each particle
     which is then added to the field values gathered from the grid  in the
-    PIC cycle. 
+    PIC cycle.
 
 Laser initialization
 --------------------
@@ -577,7 +577,7 @@ Laser initialization
     ``mirror_z_width < dz/cell_size``, the upper bound of the mirror is increased
     so that it contains at least ``mirror_z_npoints``.
 
- 
+
 
 Numerics and algorithms
 -----------------------
