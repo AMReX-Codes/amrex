@@ -49,15 +49,16 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
 	    if (has_crsedata)
 	        mltensor_interpbndry_o1(bx, icomp, vel, crsebcvalxlo, mxlo, rr);
 
-	    if ( mxlo(vlo.x-1,vlo.y,0)==2 and mylo(vlo.x,vlo.y-1,0)==2 ) {
+	    if ( mxlo(vlo.x-1,vlo.y,0)==BndryData::outside_domain and
+                 mylo(vlo.x,vlo.y-1,0)==BndryData::outside_domain ) {
 	        vel(vlo.x-1,vlo.y-1,0,icomp) = vel(vlo.x-1,vlo.y,0,icomp)
 		  + vel(vlo.x,vlo.y-1,0,icomp) - vel(vlo.x,vlo.y,0,icomp);
-	    } else if ( mxlo(vlo.x-1,vlo.y,0)==2 and vlo.x == dlo.x ) {
+	    } else if ( mxlo(vlo.x-1,vlo.y,0)==BndryData::outside_domain and vlo.x == dlo.x ) {
 	        int offset = AMREX_SPACEDIM * oxlo;
 		mllinop_apply_bc_x(Orientation::low, bx, blen.x,
 				   vel, mxlo, bct[offset+icomp], bcl[offset+icomp],
 				   bcvalxlo, maxorder, dxinv[xdir], inhomog, icomp);
-	    } else if ( mylo(vlo.x,vlo.y-1,0)==2 and vlo.y == dlo.y ) {
+	    } else if ( mylo(vlo.x,vlo.y-1,0)==BndryData::outside_domain and vlo.y == dlo.y ) {
 		int offset = AMREX_SPACEDIM * oylo;
 		mllinop_apply_bc_y(Orientation::low, bx, blen.y,
 				   vel, mylo, bct[offset+icomp], bcl[offset+icomp],
@@ -72,15 +73,16 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
 	    if (has_crsedata)
 	      mltensor_interpbndry_o1(bx, icomp, vel, crsebcvalxhi, mxhi, rr);
 
-	    if ( mxhi(vhi.x+1,vlo.y,0)==2 and mylo(vhi.x,vlo.y-1,0)==2 ) {
+	    if ( mxhi(vhi.x+1,vlo.y,0)==BndryData::outside_domain and
+                 mylo(vhi.x,vlo.y-1,0)==BndryData::outside_domain ) {
 	      vel(vhi.x+1,vlo.y-1,0,icomp) = vel(vhi.x+1,vlo.y,0,icomp)
 		+ vel(vhi.x,vlo.y-1,0,icomp) - vel(vhi.x,vlo.y,0,icomp);
-	    } else if ( mxhi(vhi.x+1,vlo.y,0)==2 and vhi.x == dhi.x ) {
+	    } else if ( mxhi(vhi.x+1,vlo.y,0)==BndryData::outside_domain and vhi.x == dhi.x ) {
 	      int offset = AMREX_SPACEDIM * oxhi;
 	      mllinop_apply_bc_x(Orientation::high, bx, blen.x,
 				 vel, mxhi, bct[offset+icomp], bcl[offset+icomp],
 				 bcvalxhi, maxorder, dxinv[xdir], inhomog, icomp);
-	    } else if ( mylo(vhi.x,vlo.y-1,0)==2 and vlo.y == dlo.y ) {
+	    } else if ( mylo(vhi.x,vlo.y-1,0)==BndryData::outside_domain and vlo.y == dlo.y ) {
 	      int offset = AMREX_SPACEDIM * oylo;
 	      mllinop_apply_bc_y(Orientation::low, bx, blen.y,
 				 vel, mylo, bct[offset+icomp], bcl[offset+icomp],
@@ -95,15 +97,16 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
 	    if (has_crsedata)
 	      mltensor_interpbndry_o1(bx, icomp, vel, crsebcvalxlo, mxlo, rr);
 
-	    if ( mxlo(vlo.x-1,vhi.y,0)==2 and myhi(vlo.x,vhi.y+1,0)==2 ) {
+	    if ( mxlo(vlo.x-1,vhi.y,0)==BndryData::outside_domain and
+                 myhi(vlo.x,vhi.y+1,0)==BndryData::outside_domain ) {
 	      vel(vlo.x-1,vhi.y+1,0,icomp) = vel(vlo.x-1,vhi.y,0,icomp)
 		+ vel(vlo.x,vhi.y+1,0,icomp) - vel(vlo.x,vhi.y,0,icomp);
-	    } else if ( mxlo(vlo.x-1,vhi.y,0)==2 and vlo.x == dlo.x ) {
+	    } else if ( mxlo(vlo.x-1,vhi.y,0)==BndryData::outside_domain and vlo.x == dlo.x ) {
 	      int offset = AMREX_SPACEDIM * oxlo;
 	      mllinop_apply_bc_x(Orientation::low, bx, blen.x,
 				 vel, mxlo, bct[offset+icomp], bcl[offset+icomp],
 				 bcvalxlo, maxorder, dxinv[xdir], inhomog, icomp);
-	    } else if ( myhi(vlo.x,vhi.y+1,0)==2 and vhi.y == dhi.y ) {
+	    } else if ( myhi(vlo.x,vhi.y+1,0)==BndryData::outside_domain and vhi.y == dhi.y ) {
 	      int offset = AMREX_SPACEDIM * oyhi;
 	      mllinop_apply_bc_y(Orientation::high, bx, blen.y,
 				 vel, myhi, bct[offset+icomp], bcl[offset+icomp],
@@ -118,15 +121,16 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
 	    if (has_crsedata)
 	      mltensor_interpbndry_o1(bx, icomp, vel, crsebcvalyhi, myhi, rr);
 
-            if ( mxhi(vhi.x+1,vhi.y,0)==2 and myhi(vhi.x,vhi.y+1,0)==2 ) {
+            if ( mxhi(vhi.x+1,vhi.y,0)==BndryData::outside_domain and
+                 myhi(vhi.x,vhi.y+1,0)==BndryData::outside_domain ) {
                 vel(vhi.x+1,vhi.y+1,0,icomp) = vel(vhi.x+1,vhi.y,0,icomp)
                     + vel(vhi.x,vhi.y+1,0,icomp) - vel(vhi.x,vhi.y,0,icomp);
-            } else if ( mxhi(vhi.x+1,vhi.y,0)==2 and vhi.x == dhi.x ) {
+            } else if ( mxhi(vhi.x+1,vhi.y,0)==BndryData::outside_domain and vhi.x == dhi.x ) {
                 int offset = AMREX_SPACEDIM * oxhi;
                 mllinop_apply_bc_x(Orientation::high, bx, blen.x,
                                    vel, mxhi, bct[offset+icomp], bcl[offset+icomp],
                                    bcvalxhi, maxorder, dxinv[xdir], inhomog, icomp);
-            } else if ( myhi(vhi.x,vhi.y+1,0)==2 and vhi.y == dhi.y ) {
+            } else if ( myhi(vhi.x,vhi.y+1,0)==BndryData::outside_domain and vhi.y == dhi.y ) {
                 int offset = AMREX_SPACEDIM * oyhi;
                 mllinop_apply_bc_y(Orientation::high, bx, blen.y,
                                    vel, myhi, bct[offset+icomp], bcl[offset+icomp],

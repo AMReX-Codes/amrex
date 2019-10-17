@@ -20,11 +20,11 @@ namespace amrex {
 	jc =  ( (rr.y == 0) ? 0 : floor(double(j)/rr.y) );
 	for (int i = lo.x; i <= hi.x; i++) {
 	    // if mask == 0, cell covered, do nothing
-	    if (mask(i,j,k) == 1) { 
+	    if (mask(i,j,k) == BndryData::not_covered) {
 	        ic = floor(double(i)/rr.x);
 		bcval(i,j,k,n) = crsebcval(ic,jc,kc,n);
 	    }
-	    // else mask == 2
+	    // else mask == BndryData::ourside_domain
 	    // on physical domain; handled in mltensor_fill
 	}
       }
