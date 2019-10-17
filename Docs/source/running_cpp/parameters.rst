@@ -386,6 +386,10 @@ Particle initialization
     It only works if `<species>.do_qed = 1`. Enables non-linear Breit-Wheeler process for this species.
     **Implementation of this feature is in progress. It requires to compile with QED=TRUE**
 
+* ``warpx.E_external`` & ``warpx.B_external`` (list of `float`) optional (default `0.0`)
+    Two separate parameters which add a uniform E-field or B-field to each particle
+    which is then added to the field values gathered from the grid in the
+    PIC cycle.
 
 Laser initialization
 --------------------
