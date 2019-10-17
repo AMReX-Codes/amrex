@@ -369,7 +369,7 @@ public:
     //! to track the AMR hierarchy of an AmrCore or AmrLevel object, that correspondence
     //! will be broken here.
     //!
-    //! \param lev The level on which to set the ba.
+    //! \param lev The level on which to set the BoxArray.
     //! \param new_ba The new BoxArray to use.
     //!
     void SetParticleBoxArray (int lev, const BoxArray& new_ba)
