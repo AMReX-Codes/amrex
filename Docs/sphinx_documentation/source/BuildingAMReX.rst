@@ -43,6 +43,8 @@ list of important variables.
    +------------+-------------------------------------+-------------+
    | USE_OMP    | TRUE or FALSE                       | FALSE       |
    +------------+-------------------------------------+-------------+
+   | USE_RPATH  | TRUE or FALSE                       | FALSE       |
+   +------------+-------------------------------------+-------------+
 
 .. raw:: latex
 
@@ -82,6 +84,12 @@ to TRUE, FALSE and FALSE, respectively.  The meaning of these variables should
 be obvious.  When ``DEBUG = TRUE``, aggressive compiler optimization flags are
 turned off and assertions in  source code are turned on. For production runs,
 ``DEBUG`` should be set to FALSE.
+
+The variable ``USE_RPATH`` controls the link mechanism to dependent libraries.
+If enabled, the library path at link time will be saved as a
+`rpath hint <https://en.wikipedia.org/wiki/Rpath>`_ in created binaries.
+When disabled, library paths must be provided via ``export LD_LIBRARY_PATH``
+hints at runtime.
 
 After defining these make variables, a number of files, ``Make.defs,
 Make.package`` and ``Make.rules``, are included in the GNUmakefile. AMReX-based

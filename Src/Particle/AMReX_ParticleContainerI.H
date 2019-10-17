@@ -1005,21 +1005,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::SortParticles
 #endif
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
-SortParticlesByBin (const ParIterBase<false,NStructReal,NStructInt,NArrayReal,NArrayInt>& pti, int ng, 
-		    Gpu::ManagedDeviceVector<int>& bin_start, 
-		    Gpu::ManagedDeviceVector<int>& bin_stop, 
-		    const IntVect& bin_size)
-{
-#ifdef AMREX_USE_CUDA
-  
-    BL_PROFILE("ParticleContainer::SortParticlesByBin()");
-  
-#endif
-}
-
 //
 // The GPU implementation of Redistribute
 //
@@ -1680,6 +1665,7 @@ BuildRedistributeMask (int lev, int nghost) const
         redistribute_mask_ptr->setVal(-1, nghost);
 
         auto tile_size = this->do_tiling ? this->tile_size : IntVect::TheZeroVector();            
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -2082,10 +2068,8 @@ AssignCellDensitySingleLevel (int rho_index,
     {
         amrex::Error("AssignCellDensitySingleLevel: problem must be periodic in no or all directions");
     }
-    
-    for (MFIter mfi(*mf_pointer); mfi.isValid(); ++mfi) {
-        (*mf_pointer)[mfi].setVal(0);
-    }
+
+    mf_pointer->setVal(0);
     
     using ParConstIter = ParConstIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
 

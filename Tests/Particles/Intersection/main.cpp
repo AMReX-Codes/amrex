@@ -68,7 +68,7 @@ void testIntersection()
 
     for (int lev = 0; lev < params.nlevs; ++lev)
     {
-        ploc[lev].build(ba[lev]);
+        ploc[lev].build(ba[lev], geom[lev]);
 
         auto assign_grid = ploc[lev].getGridAssignor();
 
