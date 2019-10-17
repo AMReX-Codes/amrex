@@ -1129,9 +1129,10 @@ PhysicalParticleContainer::Evolve (int lev,
                                exfab, eyfab, ezfab, bxfab, byfab, bzfab);
             }
 
-            Exp.assign(np,0.0);
-            Eyp.assign(np,0.0);
-            Ezp.assign(np,0.0);
+            Exp.assign(np,WarpX::E_external[0]);
+            Eyp.assign(np,WarpX::E_external[1]);
+            Ezp.assign(np,WarpX::E_external[2]);
+            
             Bxp.assign(np,WarpX::B_external[0]);
             Byp.assign(np,WarpX::B_external[1]);
             Bzp.assign(np,WarpX::B_external[2]);
@@ -1652,9 +1653,10 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
             const FArrayBox& byfab = By[pti];
             const FArrayBox& bzfab = Bz[pti];
 
-            Exp.assign(np,0.0);
-            Eyp.assign(np,0.0);
-            Ezp.assign(np,0.0);
+            Exp.assign(np,WarpX::E_external[0]);
+            Eyp.assign(np,WarpX::E_external[1]);
+            Ezp.assign(np,WarpX::E_external[2]);
+            
             Bxp.assign(np,WarpX::B_external[0]);
             Byp.assign(np,WarpX::B_external[1]);
             Bzp.assign(np,WarpX::B_external[2]);
