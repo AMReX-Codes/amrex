@@ -719,7 +719,7 @@ public:
     void Restart (const std::string& dir, const std::string& file);
 
     /**
-     *   \brief Older version, for backwards compatability
+     *   \brief Older version, for backwards compatibility
      *
      * \param dir The base directory into which to write (i.e. "plt00000")
      * \param file The name of the sub-directory for this particle type (i.e. "Tracer")
