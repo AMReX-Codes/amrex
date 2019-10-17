@@ -529,6 +529,16 @@ MLEBTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
 				dxinv, rr, testbox);
         });
 
+        AMREX_HOST_DEVICE_FOR_1D ( 8, icorner,
+        {
+            mltensor_fill_corners(icorner, vbx, velfab,
+                                  mxlo, mylo, mzlo, mxhi, myhi, mzhi,
+                                  bvxlo, bvylo, bvzlo, bvxhi, bvyhi, bvzhi,
+				  cbvxlo, cbvylo, cbvzlo, cbvxhi, cbvyhi, cbvzhi,
+                                  bct, bcl, inhomog, imaxorder, has_crsedata,
+                                  dxinv, rr, testbox);
+        });
+
 #endif
     }
 
