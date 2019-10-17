@@ -366,7 +366,7 @@ public:
     }
 
     //! \brief Set the particle BoxArray. If the container was previously set to
-    //! to track the AMR hierarchy of an AmrCore or AmrLevel object, that correspondance
+    //! to track the AMR hierarchy of an AmrCore or AmrLevel object, that correspondence
     //! will be broken here.
     //!
     //! \param lev The level on which to set the ba.
@@ -376,7 +376,7 @@ public:
 	{ m_gdb->SetParticleBoxArray(lev, new_ba); }
 
     //! \brief Set the particle DistributionMapping. If the container was previously set to
-    //! to track the AMR hierarchy of an AmrCore or AmrLevel object, that correspondance
+    //! to track the AMR hierarchy of an AmrCore or AmrLevel object, that correspondence
     //! will be broken here.
     //!
     //! \param lev The level on which to set the dm.
