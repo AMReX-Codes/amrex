@@ -33,3 +33,5 @@ then
     echo "must have an automated test."
     echo "Please add a test in Regression/WarpX-tests.ini"
 fi
+
+exit $ok

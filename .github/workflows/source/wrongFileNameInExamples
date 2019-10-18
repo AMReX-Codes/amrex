@@ -33,3 +33,5 @@ then
     echo ""
     echo "Please rename the file(s) to comply, or move to another folder"
 fi
+
+exit $ok
