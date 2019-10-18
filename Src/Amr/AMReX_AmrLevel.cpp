@@ -1679,23 +1679,24 @@ AmrLevel::derive (const std::string& name, Real time, int ngrow)
             const Real* xlo     = temp.lo();
             Real        dt      = parent->dtLevel(level);
 
-	    if (rec->derFunc() != static_cast<DeriveFunc>(0)){
-		rec->derFunc()(ddat,AMREX_ARLIM(dlo),AMREX_ARLIM(dhi),&n_der,
-			       cdat,AMREX_ARLIM(clo),AMREX_ARLIM(chi),&n_state,
-			       lo,hi,dom_lo,dom_hi,dx,xlo,&time,&dt,bcr,
-			       &level,&grid_no);
-	    } else if (rec->derFunc3D() != static_cast<DeriveFunc3D>(0)){
-		rec->derFunc3D()(ddat,AMREX_ARLIM_3D(dlo),AMREX_ARLIM_3D(dhi),&n_der,
-				 cdat,AMREX_ARLIM_3D(clo),AMREX_ARLIM_3D(chi),&n_state,
-				 AMREX_ARLIM_3D(lo),AMREX_ARLIM_3D(hi),
-				 AMREX_ARLIM_3D(dom_lo),AMREX_ARLIM_3D(dom_hi),
-				 AMREX_ZFILL(dx),AMREX_ZFILL(xlo),
-				 &time,&dt,
-				 AMREX_BCREC_3D(bcr),
-				 &level,&grid_no);
-	    } else {
-		amrex::Error("AmrLevel::derive: no function available");
-	    }
+            if (rec->derFunc() != static_cast<DeriveFunc>(0)){
+               rec->derFunc()(ddat,AMREX_ARLIM(dlo),AMREX_ARLIM(dhi),&n_der,
+                              cdat,AMREX_ARLIM(clo),AMREX_ARLIM(chi),&n_state,
+                              lo,hi,dom_lo,dom_hi,dx,xlo,&time,&dt,bcr,
+                              &level,&grid_no);
+            } else if (rec->derFunc3D() != static_cast<DeriveFunc3D>(0)){
+               const int *bc3D = rec->getBC3D();
+               rec->derFunc3D()(ddat,AMREX_ARLIM_3D(dlo),AMREX_ARLIM_3D(dhi),&n_der,
+                                cdat,AMREX_ARLIM_3D(clo),AMREX_ARLIM_3D(chi),&n_state,
+                                AMREX_ARLIM_3D(lo),AMREX_ARLIM_3D(hi),
+                                AMREX_ARLIM_3D(dom_lo),AMREX_ARLIM_3D(dom_hi),
+                                AMREX_ZFILL(dx),AMREX_ZFILL(xlo),
+                                &time,&dt,
+                                bc3D,
+                                &level,&grid_no);
+            } else {
+               amrex::Error("AmrLevel::derive: no function available");
+            }
         }
 #else
         for (MFIter mfi(srcMF); mfi.isValid(); ++mfi)
@@ -1717,23 +1718,24 @@ AmrLevel::derive (const std::string& name, Real time, int ngrow)
             const Real* xlo     = gridloc.lo();
             Real        dt      = parent->dtLevel(level);
 
-	    if (rec->derFunc() != static_cast<DeriveFunc>(0)){
-		rec->derFunc()(ddat,AMREX_ARLIM(dlo),AMREX_ARLIM(dhi),&n_der,
-			       cdat,AMREX_ARLIM(clo),AMREX_ARLIM(chi),&n_state,
-			       dlo,dhi,dom_lo,dom_hi,dx,xlo,&time,&dt,bcr,
-			       &level,&grid_no);
-	    } else if (rec->derFunc3D() != static_cast<DeriveFunc3D>(0)){
-		rec->derFunc3D()(ddat,AMREX_ARLIM_3D(dlo),AMREX_ARLIM_3D(dhi),&n_der,
-				 cdat,AMREX_ARLIM_3D(clo),AMREX_ARLIM_3D(chi),&n_state,
-				 AMREX_ARLIM_3D(dlo),AMREX_ARLIM_3D(dhi),
-				 AMREX_ARLIM_3D(dom_lo),AMREX_ARLIM_3D(dom_hi),
-				 AMREX_ZFILL(dx),AMREX_ZFILL(xlo),
-				 &time,&dt,
-				 AMREX_BCREC_3D(bcr),
-				 &level,&grid_no);
-	    } else {
-		amrex::Error("AmrLevel::derive: no function available");
-	    }
+            if (rec->derFunc() != static_cast<DeriveFunc>(0)){
+               rec->derFunc()(ddat,AMREX_ARLIM(dlo),AMREX_ARLIM(dhi),&n_der,
+               cdat,AMREX_ARLIM(clo),AMREX_ARLIM(chi),&n_state,
+               dlo,dhi,dom_lo,dom_hi,dx,xlo,&time,&dt,bcr,
+               &level,&grid_no);
+            } else if (rec->derFunc3D() != static_cast<DeriveFunc3D>(0)){
+               const int *bc3D = rec->getBC3D();
+               rec->derFunc3D()(ddat,AMREX_ARLIM_3D(dlo),AMREX_ARLIM_3D(dhi),&n_der,
+                                cdat,AMREX_ARLIM_3D(clo),AMREX_ARLIM_3D(chi),&n_state,
+                                AMREX_ARLIM_3D(dlo),AMREX_ARLIM_3D(dhi),
+                                AMREX_ARLIM_3D(dom_lo),AMREX_ARLIM_3D(dom_hi),
+                                AMREX_ZFILL(dx),AMREX_ZFILL(xlo),
+                                &time,&dt,
+                                bc3D,
+                                &level,&grid_no);
+            } else {
+               amrex::Error("AmrLevel::derive: no function available");
+            }
         }
 #endif
         }
