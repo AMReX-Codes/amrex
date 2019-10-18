@@ -573,6 +573,12 @@ Laser initialization
     ``mirror_z_width < dz/cell_size``, the upper bound of the mirror is increased
     so that it contains at least ``mirror_z_npoints``.
 
+* ``warpx.E_external_grid`` & ``warpx.B_external_grid`` (list of `int`) optional (default `0 0 0`)
+    External uniform and constant electrostatic and magnetostatic field added
+    to the grid at initialization. Use with caution as these fields are used for
+    the field solver. In particular, do not use any other boundary condition
+    as periodic.
+
 Numerics and algorithms
 -----------------------
 
