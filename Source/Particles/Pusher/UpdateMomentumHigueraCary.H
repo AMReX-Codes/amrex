@@ -1,12 +1,15 @@
 #ifndef WARPX_PARTICLES_PUSHER_UPDATEMOMENTUM_HIGUERACARY_H_
 #define WARPX_PARTICLES_PUSHER_UPDATEMOMENTUM_HIGUERACARY_H_
 
+#include "WarpXConst.H"
 #include <AMReX_FArrayBox.H>
-#include <WarpXConst.H>
 #include <AMReX_REAL.H>
 
-/* \brief Push the particle's positions over one timestep,
- *    given the value of its momenta `ux`, `uy`, `uz` */
+/**
+ * \brief Push the particle's positions over one timestep,
+ * given the value of its momenta `ux`, `uy`, `uz`
+ */
+
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void UpdateMomentumHigueraCary(
     amrex::ParticleReal& ux, amrex::ParticleReal& uy, amrex::ParticleReal& uz,

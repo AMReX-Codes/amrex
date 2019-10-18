@@ -22,7 +22,7 @@ warpx.do_pml = 0
 # Algorithms
 algo.charge_deposition = standard
 algo.field_gathering = standard
-algo.particle_pusher = "hc"
+algo.particle_pusher = "higuera"
 
 # CFL
 warpx.cfl = 1.0

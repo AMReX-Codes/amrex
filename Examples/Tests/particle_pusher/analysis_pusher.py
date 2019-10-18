@@ -1,3 +1,5 @@
+#! /usr/bin/env python
+
 # This script tests the particle pusher (HC)
 # using a force-free field,
 # in which position x should remain 0.
