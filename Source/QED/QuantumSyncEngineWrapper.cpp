@@ -140,7 +140,7 @@ void QuantumSynchrotronEngine::computes_lookup_tables (
 {
     //Lambda is not actually used if S.I. units are enabled
     WarpXQuantumSynchrotronWrapper qs_engine(
-        std::move(QedDummyStruct()), 1.0, ctrl);
+        std::move(QedUtils::DummyStruct()), 1.0, ctrl);
 
     qs_engine.compute_dN_dt_lookup_table();
     //qs_engine.compute_cumulative_pair_table();

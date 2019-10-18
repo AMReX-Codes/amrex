@@ -147,7 +147,7 @@ void BreitWheelerEngine::computes_lookup_tables (
 {
     //Lambda is not actually used if S.I. units are enabled
     WarpXBreitWheelerWrapper bw_engine(
-        std::move(QedDummyStruct()), 1.0, ctrl);
+        std::move(QedUtils::DummyStruct()), 1.0, ctrl);
 
     bw_engine.compute_dN_dt_lookup_table();
     //bw_engine.compute_cumulative_pair_table();

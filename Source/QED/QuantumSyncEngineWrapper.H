@@ -4,16 +4,19 @@
 #include "QedWrapperCommons.H"
 
 #include <AMReX_Array.H>
+#include <AMReX_Gpu.H>
 
-#include<string>
-#include<fstream>
+
+#include <string>
+#include <fstream>
 
 //QS ENGINE from PICSAR
+//Include only essential parts of the library in this file
 #define PXRMP_CORE_ONLY
-#include "quantum_sync_engine.hpp"
+#include <quantum_sync_engine.hpp>
 
-using WarpXQuantumSynchrotronWrapper =
-    picsar::multi_physics::quantum_synchrotron_engine<amrex::Real, DummyStruct>;
+using WarpXQuantumSynchrotronWrapper = picsar::multi_physics::
+    quantum_synchrotron_engine<amrex::Real, QedUtils::DummyStruct>;
 
 using WarpXQuantumSynchrotronWrapperCtrl =
     picsar::multi_physics::quantum_synchrotron_engine_ctrl<amrex::Real>;
@@ -66,8 +69,8 @@ class QuantumSynchrotronEvolveOpticalDepth
 {
 public:
     QuantumSynchrotronEvolveOpticalDepth(
-        QuantumSynchrotronEngineInnards* _innards):
-        innards{_innards}{};
+        QuantumSynchrotronEngineInnards* t_innards):
+        p_innards{t_innards}{};
 
     AMREX_GPU_DEVICE
     AMREX_FORCE_INLINE
@@ -83,9 +86,9 @@ public:
 
         const auto table = picsar::multi_physics
         ::lookup_1d<amrex::Real>(
-            innards->KKfunc_data.size(),
-            innards->KKfunc_coords.data(),
-            innards->KKfunc_data.data());
+            p_innards->KKfunc_data.size(),
+            p_innards->KKfunc_coords.data(),
+            p_innards->KKfunc_data.data());
 
         WarpXQuantumSynchrotronWrapper::
         internal_evolve_opt_depth_and_determine_event(
@@ -96,13 +99,13 @@ public:
             has_event_happend, unused_event_time,
             dummy_lambda,
             table,
-            innards->ctrl);
+            p_innards->ctrl);
 
         return has_event_happend;
     }
 
 private:
-    QuantumSynchrotronEngineInnards* innards;
+    QuantumSynchrotronEngineInnards* p_innards;
 };
 
 // Generates a photon via the Quantum Synchrotron process
@@ -111,8 +114,8 @@ class QuantumSynchrotronGeneratePhotonAndUpdateMomentum
 {
 public:
     QuantumSynchrotronGeneratePhotonAndUpdateMomentum(
-        QuantumSynchrotronEngineInnards* _innards):
-        innards{_innards}{};
+        QuantumSynchrotronEngineInnards* t_innards):
+        p_innards{t_innards}{};
 
     template <size_t sampling>
     AMREX_GPU_DEVICE
@@ -126,17 +129,17 @@ public:
     amrex::Real* g_weight) const
     {
         amrex::Real dummy_lambda{1.0};
-        picsar::multi_physics::picsar_array<amrex::Real, sampling>
+        amrex::GpuArray<amrex::Real, sampling>
             rand_zero_one_minus_epsi;
         for(auto& el : rand_zero_one_minus_epsi)
             el = amrex::Random();
 
         const auto table = picsar::multi_physics::lookup_2d<amrex::Real>
-            (innards->cum_distrib_coords_1.size(),
-            innards->cum_distrib_coords_1.data(),
-            innards->cum_distrib_coords_2.size(),
-            innards->cum_distrib_coords_2.data(),
-            innards->cum_distrib_data.data());
+            (p_innards->cum_distrib_coords_1.size(),
+            p_innards->cum_distrib_coords_1.data(),
+            p_innards->cum_distrib_coords_2.size(),
+            p_innards->cum_distrib_coords_2.data(),
+            p_innards->cum_distrib_data.data());
 
         bool stat = WarpXQuantumSynchrotronWrapper::
         internal_generate_photons_and_update_momentum(
@@ -148,14 +151,14 @@ public:
             *g_weight,
             dummy_lambda,
             table,
-            innards->ctrl,
+            p_innards->ctrl,
             rand_zero_one_minus_epsi.data());
 
         return stat;
     }
 
 private:
-    QuantumSynchrotronEngineInnards* innards;
+    QuantumSynchrotronEngineInnards* p_innards;
 };
 
 // Factory class =============================

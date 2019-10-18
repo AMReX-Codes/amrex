@@ -4,23 +4,22 @@
 #include "QedWrapperCommons.H"
 
 #include <AMReX_Array.H>
-#include<AMReX_AmrCore.H>
-#include<AMReX_Gpu.H>
+#include <AMReX_Gpu.H>
 
-#include<string>
-#include<fstream>
+#include <string>
+#include <fstream>
 
 //BW ENGINE from PICSAR
 //Include only essential parts of the library in this file
 #define PXRMP_CORE_ONLY
-#include "breit_wheeler_engine.hpp"
+#include <breit_wheeler_engine.hpp>
 
 #ifdef WARPX_QED_TABLE_GEN
     #include "BreitWheelerEngineTableBuilder.H"
 #endif
 
 using WarpXBreitWheelerWrapper = picsar::multi_physics::
-    breit_wheeler_engine<amrex::Real, QedDummyStruct>;
+    breit_wheeler_engine<amrex::Real, QedUtils::DummyStruct>;
 
 using WarpXBreitWheelerWrapperCtrl =
     picsar::multi_physics::breit_wheeler_engine_ctrl<amrex::Real>;

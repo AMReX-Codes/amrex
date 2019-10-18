@@ -10,6 +10,7 @@
 #ifdef WARPX_QED
     #include <QuantumSyncEngineWrapper.H>
     #include <BreitWheelerEngineWrapper.H>
+    #include <QedChiFunctions.H>
 #endif
 
 #include <map>

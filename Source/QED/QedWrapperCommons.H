@@ -3,6 +3,7 @@
 
 //Common definitions for the QED library wrappers and table builders
 
+#include <AMReX_AmrCore.H>
 #include <AMReX_GpuQualifiers.H>
 
 //Sets the decorator for GPU
@@ -10,7 +11,9 @@
 //Sets SI units in the library
 #define PXRMP_WITH_SI_UNITS
 
-//An empty data type
-struct QedDummyStruct{};
+namespace QedUtils{
+    //An empty data type
+    struct DummyStruct{};
+};
 
 #endif //WARPX_amrex_qed_wrapper_commons_h_
