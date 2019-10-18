@@ -6,23 +6,20 @@ ok=0
 
 for file in $(find Examples -type f)
 do
-    # without path
+    # Name of file without path
     filename=$(basename $file)
+    # If file is an input file
     if [[ ${filename:0:6 } =~ inputs       ]] ||
        [[ ${filename:0:12} =~ PICMI_inputs ]]
     then
+        # Search file name in test list
         string_match=$(grep -m1 "$file" Regression/WarpX-tests.ini)
+        # If match is empty, inputs examples is not tested
         if [[ -z $string_match ]]
         then
             echo "$file is not tested!"
             ok=1
-        else
-            echo "       $file is tested"
         fi
-
-        #files+=($file)
-        #echo "$file does not have a proper name!"
-        #ok=1
     fi
 done
 
@@ -34,6 +31,7 @@ then
     echo " - PICMI_inputs"
     echo "must have an automated test."
     echo "Please add a test in Regression/WarpX-tests.ini"
+    echo "for all files listed above."
 fi
 
 exit $ok
