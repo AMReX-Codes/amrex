@@ -74,11 +74,11 @@ public:
 
     static void GotoNextLine (std::istream& is);
 
-    // External fields
-    static amrex::Vector<amrex::Real> B_external;
-    static amrex::Vector<amrex::Real> E_external;
+    // External fields added to particle fields.
+    static amrex::Vector<amrex::Real> B_external_particle;
+    static amrex::Vector<amrex::Real> E_external_particle;
 
-    // Initial field on grid
+    // Initial field on the grid.
     static amrex::Vector<amrex::Real> E_external_grid;
     static amrex::Vector<amrex::Real> B_external_grid;
 

@@ -386,7 +386,7 @@ Particle initialization
     It only works if `<species>.do_qed = 1`. Enables non-linear Breit-Wheeler process for this species.
     **Implementation of this feature is in progress. It requires to compile with QED=TRUE**
 
-* ``warpx.E_external`` & ``warpx.B_external`` (list of `float`) optional (default `0.0`)
+* ``warpx.E_external_particle`` & ``warpx.B_external_particle`` (list of `float`) optional (default `0. 0. 0.`)
     Two separate parameters which add a uniform E-field or B-field to each particle
     which is then added to the field values gathered from the grid in the
     PIC cycle.
@@ -577,7 +577,7 @@ Laser initialization
     ``mirror_z_width < dz/cell_size``, the upper bound of the mirror is increased
     so that it contains at least ``mirror_z_npoints``.
 
-* ``warpx.E_external_grid`` & ``warpx.B_external_grid`` (list of `int`) optional (default `0 0 0`)
+* ``warpx.E_external_grid`` & ``warpx.B_external_grid`` (list of `int`) optional (default `0. 0. 0.`)
     External uniform and constant electrostatic and magnetostatic field added
     to the grid at initialization. Use with caution as these fields are used for
     the field solver. In particular, do not use any other boundary condition
