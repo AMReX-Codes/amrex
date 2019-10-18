@@ -53,8 +53,6 @@ interpolation.noz = 1
 
 # Moving window
 warpx.do_moving_window = 0
-warpx.moving_window_dir = z
-warpx.moving_window_v = 1.0 # in units of the speed of light
 
 # Laser
 lasers.nlasers      = 1
