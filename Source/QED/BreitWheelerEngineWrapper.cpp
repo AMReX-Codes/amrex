@@ -28,73 +28,9 @@ BreitWheelerGeneratePairs BreitWheelerEngine::build_pair_functor ()
     return BreitWheelerGeneratePairs(&innards);
 }
 
-//Initializes the Lookup tables using the default settings
-//provided by the library
-void BreitWheelerEngine::compute_lookup_tables_default ()
-{
-    //A control parameters structure
-    //with the default values provided by the library
-    WarpXBreitWheelerWrapperCtrl ctrl_default;
-
-    computes_lookup_tables(ctrl_default);
-
-    lookup_tables_initialized = true;
-}
-
-// Computes the Lookup tables using user-defined settings
-void BreitWheelerEngine::compute_custom_lookup_tables (
-    WarpXBreitWheelerWrapperCtrl ctrl)
-{
-    computes_lookup_tables(ctrl);
-
-    lookup_tables_initialized = true;
-}
-
 bool BreitWheelerEngine::are_lookup_tables_initialized () const
 {
     return lookup_tables_initialized;
-}
-
-/* \brief Writes lookup tables on disk in 'file'
- *  return false if it fails. */
-bool BreitWheelerEngine::write_lookup_tables (
-        std::string file) const
-{
-    if(!lookup_tables_initialized)
-        return false;
-
-    std::ofstream of(file, std::ios::out | std::ios::binary);
-
-    //Header (control parameters)
-    of.write(reinterpret_cast<const char*>(&innards.ctrl.chi_phot_min),
-        sizeof(innards.ctrl.chi_phot_min));
-    of.write(reinterpret_cast<const char*>(&innards.ctrl.chi_phot_tdndt_min),
-        sizeof(innards.ctrl.chi_phot_tdndt_min));
-    of.write(reinterpret_cast<const char*>(&innards.ctrl.chi_phot_tdndt_max),
-        sizeof(innards.ctrl.chi_phot_tdndt_max));
-    of.write(reinterpret_cast<const char*>(&innards.ctrl.chi_phot_tdndt_how_many),
-        sizeof(innards.ctrl.chi_phot_tdndt_how_many));
-    of.write(reinterpret_cast<const char*>(&innards.ctrl.chi_phot_tpair_min),
-        sizeof(innards.ctrl.chi_phot_tpair_min));
-    of.write(reinterpret_cast<const char*>(&innards.ctrl.chi_phot_tpair_max),
-        sizeof(innards.ctrl.chi_phot_tpair_max));
-    of.write(reinterpret_cast<const char*>(&innards.ctrl.chi_phot_tpair_how_many),
-        sizeof(innards.ctrl.chi_phot_tpair_how_many));
-    of.write(reinterpret_cast<const char*>(&innards.ctrl.chi_frac_tpair_how_many),
-        sizeof(innards.ctrl.chi_frac_tpair_how_many));
-    //_______
-
-    //Data
-    of.write(reinterpret_cast<const char*>(innards.TTfunc_coords.dataPtr()),
-        sizeof(amrex::Real)*innards.TTfunc_coords.size());
-    of.write(reinterpret_cast<const char*>(innards.TTfunc_data.dataPtr()),
-        sizeof(amrex::Real)*innards.TTfunc_data.size());
-    // TODO: add other table
-    //_______
-
-    of.close();
-
-    return true;
 }
 
 /* \brief Reads lookup tables from 'file' on disk */
@@ -138,12 +74,80 @@ void BreitWheelerEngine::read_lookup_tables (std::string file)
     lookup_tables_initialized = true;
 }
 
+
+#ifdef WARPX_QED_TABLE_GEN
+//Initializes the Lookup tables using the default settings
+//provided by the library
+void BreitWheelerEngine::compute_lookup_tables_default ()
+{
+    //A control parameters structure
+    //with the default values provided by the library
+    WarpXBreitWheelerWrapperCtrl ctrl_default;
+
+    computes_lookup_tables(ctrl_default);
+
+    lookup_tables_initialized = true;
+}
+
+// Computes the Lookup tables using user-defined settings
+void BreitWheelerEngine::compute_custom_lookup_tables (
+    WarpXBreitWheelerWrapperCtrl ctrl)
+{
+    computes_lookup_tables(ctrl);
+
+    lookup_tables_initialized = true;
+}
+
+
+/* \brief Writes lookup tables on disk in 'file'
+ *  return false if it fails. */
+bool BreitWheelerEngine::write_lookup_tables (
+        std::string file) const
+{
+    if(!lookup_tables_initialized)
+        return false;
+
+    std::ofstream of(file, std::ios::out | std::ios::binary);
+
+    //Header (control parameters)
+    of.write(reinterpret_cast<const char*>(&innards.ctrl.chi_phot_min),
+        sizeof(innards.ctrl.chi_phot_min));
+    of.write(reinterpret_cast<const char*>(&innards.ctrl.chi_phot_tdndt_min),
+        sizeof(innards.ctrl.chi_phot_tdndt_min));
+    of.write(reinterpret_cast<const char*>(&innards.ctrl.chi_phot_tdndt_max),
+        sizeof(innards.ctrl.chi_phot_tdndt_max));
+    of.write(reinterpret_cast<const char*>(&innards.ctrl.chi_phot_tdndt_how_many),
+        sizeof(innards.ctrl.chi_phot_tdndt_how_many));
+    of.write(reinterpret_cast<const char*>(&innards.ctrl.chi_phot_tpair_min),
+        sizeof(innards.ctrl.chi_phot_tpair_min));
+    of.write(reinterpret_cast<const char*>(&innards.ctrl.chi_phot_tpair_max),
+        sizeof(innards.ctrl.chi_phot_tpair_max));
+    of.write(reinterpret_cast<const char*>(&innards.ctrl.chi_phot_tpair_how_many),
+        sizeof(innards.ctrl.chi_phot_tpair_how_many));
+    of.write(reinterpret_cast<const char*>(&innards.ctrl.chi_frac_tpair_how_many),
+        sizeof(innards.ctrl.chi_frac_tpair_how_many));
+    //_______
+
+    //Data
+    of.write(reinterpret_cast<const char*>(innards.TTfunc_coords.dataPtr()),
+        sizeof(amrex::Real)*innards.TTfunc_coords.size());
+    of.write(reinterpret_cast<const char*>(innards.TTfunc_data.dataPtr()),
+        sizeof(amrex::Real)*innards.TTfunc_data.size());
+    // TODO: add other table
+    //_______
+
+    of.close();
+
+    return true;
+}
+
 //Private function which actually computes the lookup tables
 void BreitWheelerEngine::computes_lookup_tables (
     WarpXBreitWheelerWrapperCtrl ctrl)
 {
     //Lambda is not actually used if S.I. units are enabled
-    WarpXBreitWheelerWrapper bw_engine(std::move(DummyStruct()), 1.0, ctrl);
+    WarpXBreitWheelerWrapper bw_engine(
+        std::move(__DummyStruct()), 1.0, ctrl);
 
     bw_engine.compute_dN_dt_lookup_table();
     //bw_engine.compute_cumulative_pair_table();
@@ -160,5 +164,7 @@ void BreitWheelerEngine::computes_lookup_tables (
         bw_innards_picsar.TTfunc_table_data_how_many);
     //____
 }
+
+#endif
 
 //============================================

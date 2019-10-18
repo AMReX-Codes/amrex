@@ -763,11 +763,11 @@ void MultiParticleContainer::InitQuantumSync ()
     std::string filename;
     std::tie(is_custom, filename, ctrl) = ParseQuantumSyncParams();
 
-    if(ParallelDescriptor::IOProcessor()){
-        qs_engine.compute_lookup_tables_default();
-        qs_engine.write_lookup_tables("qed_qs_lookup.bin");
-    }
-    amrex::ParallelDescriptor::Barrier();
+   // if(ParallelDescriptor::IOProcessor()){
+   //     qs_engine.compute_lookup_tables_default();
+   //     qs_engine.write_lookup_tables("qed_qs_lookup.bin");
+   // }
+   // amrex::ParallelDescriptor::Barrier();
     qs_engine.read_lookup_tables("qed_qs_lookup.bin");
 }
 
@@ -778,11 +778,11 @@ void MultiParticleContainer::InitBreitWheeler ()
     std::string filename;
     std::tie(is_custom, filename, ctrl) = ParseBreitWheelerParams();
 
-    if(ParallelDescriptor::IOProcessor()){
-        bw_engine.compute_lookup_tables_default();
-        bw_engine.write_lookup_tables("qed_bw_lookup.bin");
-    }
-    amrex::ParallelDescriptor::Barrier();
+   // if(ParallelDescriptor::IOProcessor()){
+   //     bw_engine.compute_lookup_tables_default();
+   //     bw_engine.write_lookup_tables("qed_bw_lookup.bin");
+   // }
+   // amrex::ParallelDescriptor::Barrier();
     bw_engine.read_lookup_tables("qed_bw_lookup.bin");
 
 }

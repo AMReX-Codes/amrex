@@ -4,16 +4,23 @@
 #include "QedWrapperCommons.H"
 
 #include <AMReX_Array.H>
+#include<AMReX_AmrCore.H>
+#include<AMReX_Gpu.H>
 
 #include<string>
 #include<fstream>
 
 //BW ENGINE from PICSAR
+//Include only essential parts of the library in this file
 #define PXRMP_CORE_ONLY
 #include "breit_wheeler_engine.hpp"
 
-using WarpXBreitWheelerWrapper =
-    picsar::multi_physics::breit_wheeler_engine<amrex::Real, DummyStruct>;
+#ifdef WARPX_QED_TABLE_GEN
+    #include "BreitWheelerEngineTableBuilder.H"
+#endif
+
+using WarpXBreitWheelerWrapper = picsar::multi_physics::
+    breit_wheeler_engine<amrex::Real, __DummyStruct>;
 
 using WarpXBreitWheelerWrapperCtrl =
     picsar::multi_physics::breit_wheeler_engine_ctrl<amrex::Real>;
@@ -180,6 +187,19 @@ public:
     /* \brief Builds the functor to generate the pairs */
     BreitWheelerGeneratePairs build_pair_functor ();
 
+    /* \brief Reads lookup tables from 'file' on disk */
+    void read_lookup_tables (std::string file);
+
+    /* \brief Checks if lookup tables are properly initialized */
+    bool are_lookup_tables_initialized () const;
+
+private:
+    bool lookup_tables_initialized = false;
+
+    BreitWheelerEngineInnards innards;
+
+#ifdef WARPX_QED_TABLE_GEN
+public:
     /* \brief Computes the Lookup tables using the default settings
      *  provided by the PICSAR library */
     void compute_lookup_tables_default ();
@@ -187,24 +207,18 @@ public:
     /* \brief Computes the Lookup tables using user-defined settings */
     void compute_custom_lookup_tables (WarpXBreitWheelerWrapperCtrl ctrl);
 
-    /* \brief Checks if lookup tables are properly initialized */
-    bool are_lookup_tables_initialized () const;
-
     /* \brief Writes lookup tables on disk in 'file'
      *  return false if it fails. */
     bool write_lookup_tables (std::string file) const;
 
-    /* \brief Reads lookup tables from 'file' on disk */
-    void read_lookup_tables (std::string file);
 
 private:
-    bool lookup_tables_initialized = false;
-
-    BreitWheelerEngineInnards innards;
+    BreitWheelerEngineTableBuilder table_builder;
 
     //Private function which actually computes the lookup tables
     void computes_lookup_tables (
         WarpXBreitWheelerWrapperCtrl ctrl);
+#endif
 };
 
 //============================================

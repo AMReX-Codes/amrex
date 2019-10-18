@@ -1,0 +1,6 @@
+#ifndef WARPX_quantum_sync_engine_table_builder_h_
+#define WARPX_quantum_sync_engine_table_builder_h_
+
+class QuantumSynchrotronEngineTableBuilder{};
+
+#endif //WARPX_quantum_sync_engine_table_builder_h_
