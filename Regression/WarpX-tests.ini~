@@ -60,7 +60,7 @@ branch = master
 [pml_x_yee]
 buildDir = .
 inputFile = Examples/Tests/PML/inputs.2d
-runtime_params = warpx.do_dynamic_scheduling=0 algo.maxwell_fdtd_solver=yee amrex.abort_on_unused_inputs=1
+runtime_params = warpx.do_dynamic_scheduling=0 algo.maxwell_fdtd_solver=yee
 dim = 2
 addToCompileString =
 restartTest = 0
@@ -75,7 +75,7 @@ analysisRoutine = Examples/Tests/PML/analysis_pml_yee.py
 [pml_x_ckc]
 buildDir = .
 inputFile = Examples/Tests/PML/inputs.2d
-runtime_params = warpx.do_dynamic_scheduling=0 algo.maxwell_fdtd_solver=ckc amrex.abort_on_unused_inputs=1
+runtime_params = warpx.do_dynamic_scheduling=0 algo.maxwell_fdtd_solver=ckc
 dim = 2
 addToCompileString =
 restartTest = 0
@@ -90,7 +90,7 @@ analysisRoutine = Examples/Tests/PML/analysis_pml_ckc.py
 [pml_x_psatd]
 buildDir = .
 inputFile = Examples/Tests/PML/inputs.2d
-runtime_params = warpx.do_dynamic_scheduling=0 amrex.abort_on_unused_inputs=1
+runtime_params = warpx.do_dynamic_scheduling=0
 dim = 2
 addToCompileString = USE_PSATD=TRUE
 restartTest = 0
@@ -105,7 +105,6 @@ analysisRoutine = Examples/Tests/PML/analysis_pml_psatd.py
 [RigidInjection_lab]
 buildDir = .
 inputFile = Examples/Modules/RigidInjection/inputs.LabFrame
-runtime_params = amrex.abort_on_unused_inputs=1
 dim = 2
 addToCompileString =
 restartTest = 0
@@ -121,7 +120,6 @@ analysisRoutine = Examples/Modules/RigidInjection/analysis_rigid_injection_LabFr
 [RigidInjection_boost_backtransformed]
 buildDir = .
 inputFile = Examples/Modules/RigidInjection/inputs.BoostedFrame
-runtime_params = amrex.abort_on_unused_inputs=1
 dim = 2
 addToCompileString =
 restartTest = 0
@@ -139,7 +137,7 @@ analysisRoutine = Examples/Modules/RigidInjection/analysis_rigid_injection_Boost
 [nci_corrector]
 buildDir = .
 inputFile = Examples/Modules/nci_corrector/inputs.2d
-runtime_params = amr.max_level=0 particles.use_fdtd_nci_corr=1 amrex.abort_on_unused_inputs=1
+runtime_params = amr.max_level=0 particles.use_fdtd_nci_corr=1
 dim = 2
 addToCompileString =
 restartTest = 0
@@ -155,7 +153,7 @@ analysisRoutine = Examples/Modules/nci_corrector/analysis_ncicorr.py
 [nci_correctorMR]
 buildDir = .
 inputFile = Examples/Modules/nci_corrector/inputs.2d
-runtime_params = amr.max_level=1 particles.use_fdtd_nci_corr=1 amr.n_cell=64 64 amrex.abort_on_unused_inputs=1
+runtime_params = amr.max_level=1 particles.use_fdtd_nci_corr=1 amr.n_cell=64 64
 dim = 2
 addToCompileString =
 restartTest = 0
@@ -171,7 +169,6 @@ analysisRoutine = Examples/Modules/nci_corrector/analysis_ncicorr.py
 [ionization_lab]
 buildDir = .
 inputFile = Examples/Modules/ionization/inputs.rt
-runtime_params = amrex.abort_on_unused_inputs=1
 dim = 2
 addToCompileString =
 restartTest = 0
@@ -186,7 +183,6 @@ analysisRoutine = Examples/Modules/ionization/analysis_ionization.py
 [ionization_boost]
 buildDir = .
 inputFile = Examples/Modules/ionization/inputs.bf.rt
-runtime_params = amrex.abort_on_unused_inputs=1
 dim = 2
 addToCompileString =
 restartTest = 0
@@ -201,7 +197,7 @@ analysisRoutine = Examples/Modules/ionization/analysis_ionization.py
 [bilinear_filter]
 buildDir = .
 inputFile = Examples/Tests/SingleParticle/inputs
-runtime_params = warpx.use_filter=1 warpx.filter_npass_each_dir=1 5 amrex.abort_on_unused_inputs=1
+runtime_params = warpx.use_filter=1 warpx.filter_npass_each_dir=1 5
 dim = 2
 addToCompileString =
 restartTest = 0
@@ -216,7 +212,6 @@ analysisRoutine = Examples/Tests/SingleParticle/analysis_bilinear_filter.py
 [Langmuir_2d]
 buildDir = .
 inputFile = Examples/Tests/Langmuir/inputs.rt
-runtime_params = electrons.ux=0.01 electrons.xmax=0.e-6 warpx.fields_to_plot=Ex jx electrons.plot_vars=w ux Ex amrex.abort_on_unused_inputs=1
 dim = 2
 addToCompileString =
 restartTest = 0
@@ -228,13 +223,13 @@ compileTest = 0
 doVis = 0
 compareParticles = 1
 particleTypes = electrons
+runtime_params = electrons.ux=0.01 electrons.xmax=0.e-6 warpx.fields_to_plot=Ex jx electrons.plot_vars=w ux Ex
 analysisRoutine = Examples/Tests/Langmuir/analysis_langmuir2d.py
 analysisOutputImage = langmuir2d_analysis.png
 
 [Langmuir_2d_nompi]
 buildDir = .
 inputFile = Examples/Tests/Langmuir/inputs.rt
-runtime_params = electrons.ux=0.01 electrons.xmax=0.e-6 warpx.fields_to_plot=Ex jx electrons.plot_vars=w ux Ex amrex.abort_on_unused_inputs=1
 dim = 2
 addToCompileString =
 restartTest = 0
@@ -246,13 +241,13 @@ compileTest = 0
 doVis = 0
 compareParticles = 1
 particleTypes = electrons
+runtime_params = electrons.ux=0.01 electrons.xmax=0.e-6 warpx.fields_to_plot=Ex jx electrons.plot_vars=w ux Ex
 analysisRoutine = Examples/Tests/Langmuir/analysis_langmuir2d.py
 analysisOutputImage = langmuir2d_analysis.png
 
 [Langmuir_x]
 buildDir = .
 inputFile = Examples/Tests/Langmuir/inputs.rt
-runtime_params = electrons.ux=0.01 electrons.xmax=0.e-6 warpx.do_dynamic_scheduling=0 warpx.fields_to_plot = Ex jx electrons.plot_vars=w ux Ex amrex.abort_on_unused_inputs=1
 dim = 3
 addToCompileString =
 restartTest = 0
@@ -264,13 +259,13 @@ compileTest = 0
 doVis = 0
 compareParticles = 1
 particleTypes = electrons
+runtime_params = electrons.ux=0.01 electrons.xmax=0.e-6 warpx.do_dynamic_scheduling=0 warpx.fields_to_plot = Ex jx electrons.plot_vars=w ux Ex
 analysisRoutine = Examples/Tests/Langmuir/analysis_langmuir.py
 analysisOutputImage = langmuir_x_analysis.png
 
 [Langmuir_y]
 buildDir = .
 inputFile = Examples/Tests/Langmuir/inputs.rt
-runtime_params = electrons.uy=0.01 electrons.ymax=0.e-6 warpx.do_dynamic_scheduling=0 warpx.fields_to_plot = Ey jy electrons.plot_vars=w uy Ey amrex.abort_on_unused_inputs=1
 dim = 3
 addToCompileString =
 restartTest = 0
@@ -282,13 +277,13 @@ compileTest = 0
 doVis = 0
 compareParticles = 1
 particleTypes = electrons
+runtime_params = electrons.uy=0.01 electrons.ymax=0.e-6 warpx.do_dynamic_scheduling=0 warpx.fields_to_plot = Ey jy electrons.plot_vars=w uy Ey
 analysisRoutine = Examples/Tests/Langmuir/analysis_langmuir.py
 analysisOutputImage = langmuir_y_analysis.png
 
 [Langmuir_z]
 buildDir = .
 inputFile = Examples/Tests/Langmuir/inputs.rt
-runtime_params = electrons.uz=0.01 electrons.zmax=0.e-6 warpx.do_dynamic_scheduling=0  warpx.fields_to_plot = Ez jz electrons.plot_vars=w uz Ez amrex.abort_on_unused_inputs=1
 dim = 3
 addToCompileString =
 restartTest = 0
@@ -300,13 +295,13 @@ compileTest = 0
 doVis = 0
 compareParticles = 1
 particleTypes = electrons
+runtime_params = electrons.uz=0.01 electrons.zmax=0.e-6 warpx.do_dynamic_scheduling=0  warpx.fields_to_plot = Ez jz electrons.plot_vars=w uz Ez
 analysisRoutine = Examples/Tests/Langmuir/analysis_langmuir.py
 analysisOutputImage = langmuir_z_analysis.png
 
 [Langmuir_multi]
 buildDir = .
 inputFile = Examples/Tests/Langmuir/inputs.multi.rt
-runtime_params = warpx.do_dynamic_scheduling=0 amrex.abort_on_unused_inputs=1
 dim = 3
 addToCompileString =
 restartTest = 0
@@ -317,6 +312,7 @@ numthreads = 2
 compileTest = 0
 doVis = 0
 compareParticles = 1
+runtime_params = warpx.do_dynamic_scheduling=0
 particleTypes = electrons positrons
 analysisRoutine = Examples/Tests/Langmuir/analysis_langmuir_multi.py
 analysisOutputImage = langmuir_multi_analysis.png
@@ -324,7 +320,6 @@ analysisOutputImage = langmuir_multi_analysis.png
 [Langmuir_multi_nodal]
 buildDir = .
 inputFile = Examples/Tests/Langmuir/inputs.multi.rt
-runtime_params = warpx.do_dynamic_scheduling=0 warpx.do_nodal=1 amrex.abort_on_unused_inputs=1
 dim = 3
 addToCompileString =
 restartTest = 0
@@ -335,6 +330,7 @@ numthreads = 2
 compileTest = 0
 doVis = 0
 compareParticles = 1
+runtime_params = warpx.do_dynamic_scheduling=0 warpx.do_nodal=1
 particleTypes = electrons positrons
 analysisRoutine = Examples/Tests/Langmuir/analysis_langmuir_multi.py
 analysisOutputImage = langmuir_multi_analysis.png
@@ -342,7 +338,6 @@ analysisOutputImage = langmuir_multi_analysis.png
 [Langmuir_multi_psatd]
 buildDir = .
 inputFile = Examples/Tests/Langmuir/inputs.multi.rt
-runtime_params = psatd.fftw_plan_measure=0 amrex.abort_on_unused_inputs=1
 dim = 3
 addToCompileString = USE_PSATD=TRUE
 restartTest = 0
@@ -354,6 +349,7 @@ compileTest = 0
 doVis = 0
 compareParticles = 1
 tolerance = 5.e-11
+runtime_params = psatd.fftw_plan_measure=0
 particleTypes = electrons positrons
 analysisRoutine = Examples/Tests/Langmuir/analysis_langmuir_multi.py
 analysisOutputImage = langmuir_multi_analysis.png
@@ -361,7 +357,6 @@ analysisOutputImage = langmuir_multi_analysis.png
 [Langmuir_multi_psatd_nodal]
 buildDir = .
 inputFile = Examples/Tests/Langmuir/inputs.multi.rt
-runtime_params = psatd.fftw_plan_measure=0 warpx.do_dynamic_scheduling=0 warpx.do_nodal=1 amrex.abort_on_unused_inputs=1
 dim = 3
 addToCompileString = USE_PSATD=TRUE
 restartTest = 0
@@ -373,6 +368,7 @@ compileTest = 0
 doVis = 0
 compareParticles = 1
 tolerance = 5.e-11
+runtime_params = psatd.fftw_plan_measure=0 warpx.do_dynamic_scheduling=0 warpx.do_nodal=1
 particleTypes = electrons positrons
 analysisRoutine = Examples/Tests/Langmuir/analysis_langmuir_multi.py
 analysisOutputImage = langmuir_multi_analysis.png
@@ -380,7 +376,6 @@ analysisOutputImage = langmuir_multi_analysis.png
 [Langmuir_multi_2d_nodal]
 buildDir = .
 inputFile = Examples/Tests/Langmuir/inputs.multi.2d.rt
-runtime_params = warpx.do_nodal=1 algo.current_deposition=direct electrons.plot_vars=w ux uy uz Ex Ey Ez positrons.plot_vars=w ux uy uz Ex Ey Ez amrex.abort_on_unused_inputs=1
 dim = 2
 addToCompileString =
 restartTest = 0
@@ -391,6 +386,7 @@ numthreads = 1
 compileTest = 0
 doVis = 0
 compareParticles = 1
+runtime_params = warpx.do_nodal=1 algo.current_deposition=direct electrons.plot_vars=w ux uy uz Ex Ey Ez positrons.plot_vars=w ux uy uz Ex Ey Ez
 particleTypes = electrons positrons
 analysisRoutine = Examples/Tests/Langmuir/analysis_langmuir_multi_2d.py
 analysisOutputImage = langmuir_multi_2d_analysis.png
@@ -398,7 +394,6 @@ analysisOutputImage = langmuir_multi_2d_analysis.png
 [Langmuir_multi_2d_psatd]
 buildDir = .
 inputFile = Examples/Tests/Langmuir/inputs.multi.2d.rt
-runtime_params = psatd.fftw_plan_measure=0 electrons.plot_vars=w ux uy uz Ex Ey Ez positrons.plot_vars=w ux uy uz Ex Ey Ez warpx.fields_to_plot=Ex Ey Ez jx jy jz part_per_cell amrex.abort_on_unused_inputs=1
 dim = 2
 addToCompileString = USE_PSATD=TRUE
 restartTest = 0
@@ -409,6 +404,7 @@ numthreads = 1
 compileTest = 0
 doVis = 0
 compareParticles = 1
+runtime_params = psatd.fftw_plan_measure=0 electrons.plot_vars=w ux uy uz Ex Ey Ez positrons.plot_vars=w ux uy uz Ex Ey Ez warpx.fields_to_plot=Ex Ey Ez jx jy jz part_per_cell
 particleTypes = electrons positrons
 analysisRoutine = Examples/Tests/Langmuir/analysis_langmuir_multi_2d.py
 analysisOutputImage = langmuir_multi_2d_analysis.png
@@ -416,7 +412,6 @@ analysisOutputImage = langmuir_multi_2d_analysis.png
 [Langmuir_multi_2d_psatd_nodal]
 buildDir = .
 inputFile = Examples/Tests/Langmuir/inputs.multi.2d.rt
-runtime_params = psatd.fftw_plan_measure=0 warpx.do_nodal=1 algo.current_deposition=direct electrons.plot_vars=w ux uy uz Ex Ey Ez positrons.plot_vars=w ux uy uz Ex Ey Ez warpx.fields_to_plot=Ex Ey Ez jx jy jz part_per_cell amrex.abort_on_unused_inputs=1
 dim = 2
 addToCompileString = USE_PSATD=TRUE
 restartTest = 0
@@ -427,6 +422,7 @@ numthreads = 1
 compileTest = 0
 doVis = 0
 compareParticles = 1
+runtime_params =  psatd.fftw_plan_measure=0 warpx.do_nodal=1 algo.current_deposition=direct electrons.plot_vars=w ux uy uz Ex Ey Ez positrons.plot_vars=w ux uy uz Ex Ey Ez warpx.fields_to_plot=Ex Ey Ez jx jy jz part_per_cell
 particleTypes = electrons positrons
 analysisRoutine = Examples/Tests/Langmuir/analysis_langmuir_multi_2d.py
 analysisOutputImage = langmuir_multi_2d_analysis.png
@@ -434,7 +430,6 @@ analysisOutputImage = langmuir_multi_2d_analysis.png
 [Langmuir_multi_rz]
 buildDir = .
 inputFile = Examples/Tests/Langmuir/inputs.multi.rz.rt
-runtime_params = electrons.plot_vars=w ux uy uz Ex Ey Ez Bx By ions.plot_vars=w ux uy uz Ex Ey Ez Bx By amrex.abort_on_unused_inputs=1
 dim = 2
 addToCompileString = USE_RZ=TRUE
 restartTest = 0
@@ -444,6 +439,7 @@ useOMP = 1
 numthreads = 1
 compileTest = 0
 doVis = 0
+runtime_params = electrons.plot_vars=w ux uy uz Ex Ey Ez Bx By ions.plot_vars=w ux uy uz Ex Ey Ez Bx By
 compareParticles = 1
 particleTypes = electrons ions
 analysisRoutine = Examples/Tests/Langmuir/analysis_langmuir_multi_rz.py
@@ -452,7 +448,6 @@ analysisOutputImage = langmuir_multi_rz_analysis.png
 [Langmuir_rz_multimode]
 buildDir = .
 inputFile = Examples/Tests/Langmuir/PICMI_inputs_langmuir_rz_multimode_analyze.py
-runtime_params = amrex.abort_on_unused_inputs=1
 customRunCmd = python PICMI_inputs_langmuir_rz_multimode_analyze.py
 dim = 2
 addToCompileString = USE_PYTHON_MAIN=TRUE USE_RZ=TRUE
@@ -470,7 +465,6 @@ outputFile = diags/plotfiles/plt00040
 [LaserInjection]
 buildDir = .
 inputFile = Examples/Modules/laser_injection/inputs.rt
-runtime_params = amrex.abort_on_unused_inputs=1
 dim = 3
 addToCompileString =
 restartTest = 0
@@ -487,7 +481,6 @@ analysisOutputImage = laser_analysis.png
 [LaserInjection_2d]
 buildDir = .
 inputFile = Examples/Modules/laser_injection/inputs.2d.rt
-runtime_params = warpx.do_dynamic_scheduling=0 warpx.serialize_ics=1 amrex.abort_on_unused_inputs=1
 dim = 2
 addToCompileString =
 restartTest = 0
@@ -497,12 +490,13 @@ useOMP = 1
 numthreads = 2
 compileTest = 0
 doVis = 0
+runtime_params = warpx.do_dynamic_scheduling=0 warpx.serialize_ics=1
 compareParticles = 0
 
 [LaserAcceleration]
 buildDir = .
 inputFile = Examples/Physics_applications/laser_acceleration/inputs.3d
-runtime_params = warpx.do_dynamic_scheduling=0 amr.n_cell=32 32 256 max_step=100 electrons.zmin=0.e-6 warpx.serialize_ics=1 amrex.abort_on_unused_inputs=1
+runtime_params = warpx.do_dynamic_scheduling=0 amr.n_cell=32 32 256 max_step=100 electrons.zmin=0.e-6 warpx.serialize_ics=1
 dim = 3
 addToCompileString =
 restartTest = 0
@@ -518,7 +512,7 @@ particleTypes = electrons
 [subcyclingMR]
 buildDir = .
 inputFile = Examples/Tests/subcycling/inputs.2d
-runtime_params = warpx.serialize_ics=1 warpx.do_dynamic_scheduling=0 amrex.abort_on_unused_inputs=1
+runtime_params = warpx.serialize_ics=1 warpx.do_dynamic_scheduling=0
 dim = 2
 addToCompileString =
 restartTest = 0
@@ -534,7 +528,7 @@ compareParticles = 0
 [LaserAccelerationMR]
 buildDir = .
 inputFile = Examples/Physics_applications/laser_acceleration/inputs.2d
-runtime_params = amr.max_level=1 max_step=200 warpx.serialize_ics=1 amrex.abort_on_unused_inputs=1
+runtime_params = amr.max_level=1 max_step=200 warpx.serialize_ics=1
 dim = 2
 addToCompileString =
 restartTest = 0
@@ -550,7 +544,7 @@ particleTypes = electrons beam
 [PlasmaAccelerationMR]
 buildDir = .
 inputFile = Examples/Physics_applications/plasma_acceleration/inputs.2d
-runtime_params = amr.max_level=1 amr.n_cell=32 512 max_step=400 warpx.serialize_ics=1 warpx.do_dynamic_scheduling=0 amrex.abort_on_unused_inputs=1
+runtime_params = amr.max_level=1 amr.n_cell=32 512 max_step=400 warpx.serialize_ics=1 warpx.do_dynamic_scheduling=0
 dim = 2
 addToCompileString =
 restartTest = 0
@@ -566,7 +560,6 @@ particleTypes = beam driver plasma_e
 [Python_Langmuir]
 buildDir = .
 inputFile = Examples/Tests/Langmuir/PICMI_inputs_langmuir_rt.py
-runtime_params = amrex.abort_on_unused_inputs=1
 customRunCmd = python PICMI_inputs_langmuir_rt.py
 dim = 3
 addToCompileString = USE_PYTHON_MAIN=TRUE
@@ -584,7 +577,6 @@ outputFile = diags/plotfiles/plt00040
 [uniform_plasma_restart]
 buildDir = .
 inputFile = Examples/Physics_applications/uniform_plasma/inputs.3d
-runtime_params = amrex.abort_on_unused_inputs=1
 dim = 3
 addToCompileString =
 restartTest = 1
@@ -602,7 +594,6 @@ tolerance = 1.e-14
 [particles_in_pml_2d]
 buildDir = .
 inputFile = Examples/Tests/particles_in_PML/inputs.2d
-runtime_params = amrex.abort_on_unused_inputs=1
 dim = 2
 restartTest = 0
 useMPI = 1
@@ -617,7 +608,6 @@ analysisRoutine = Examples/Tests/particles_in_PML/analysis_particles_in_pml.py
 [particles_in_pml]
 buildDir = .
 inputFile = Examples/Tests/particles_in_PML/inputs
-runtime_params = amrex.abort_on_unused_inputs=1
 dim = 3
 restartTest = 0
 useMPI = 1
@@ -632,7 +622,6 @@ analysisRoutine = Examples/Tests/particles_in_PML/analysis_particles_in_pml.py
 [photon_pusher]
 buildDir = .
 inputFile = Examples/Tests/photon_pusher/inputs
-runtime_params = amrex.abort_on_unused_inputs=1
 dim = 3
 restartTest = 0
 useMPI = 1
@@ -647,7 +636,6 @@ analysisRoutine =  Examples/Tests/photon_pusher/analysis_photon_pusher.py
 [qed_breit_wheeler_tau_init]
 buildDir = .
 inputFile = Examples/Modules/qed/breit_wheeler/inputs.2d_test_tau_init
-runtime_params = amrex.abort_on_unused_inputs=1
 dim = 2
 addToCompileString = QED=TRUE
 restartTest = 0
@@ -663,7 +651,6 @@ analysisRoutine = Examples/Modules/qed/breit_wheeler/analysis_2d_tau_init.py
 [qed_quantum_sync_tau_init]
 buildDir = .
 inputFile = Examples/Modules/qed/quantum_synchrotron/inputs.2d_test_tau_init
-runtime_params = amrex.abort_on_unused_inputs=1
 dim = 2
 addToCompileString = QED=TRUE
 restartTest = 0
