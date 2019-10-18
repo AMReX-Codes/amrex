@@ -225,7 +225,7 @@ buildNeighborCopyOp ()
 	        {
 		  int index = p_offsets[i]+k;
 		  p_boxes[index] = p_code_array[j].grid_id;
-                  p_levs[i] = 0;
+                  p_levs[index] = 0;
 		  p_periodic_shift[index] = p_code_array[j].periodic_shift;
 		  p_src_indices[index] = i;
 		  ++k;
