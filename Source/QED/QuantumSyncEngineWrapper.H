@@ -15,10 +15,10 @@
 #define PXRMP_CORE_ONLY
 #include <quantum_sync_engine.hpp>
 
-using WarpXQuantumSynchrotronWrapper = picsar::multi_physics::
+using PicsarQuantumSynchrotronEngine = picsar::multi_physics::
     quantum_synchrotron_engine<amrex::Real, QedUtils::DummyStruct>;
 
-using WarpXQuantumSynchrotronWrapperCtrl =
+using PicsarQuantumSynchrotronCtrl =
     picsar::multi_physics::quantum_synchrotron_engine_ctrl<amrex::Real>;
 
 // Struct to hold engine data ================
@@ -26,7 +26,7 @@ using WarpXQuantumSynchrotronWrapperCtrl =
 struct QuantumSynchrotronEngineInnards
 {
     // Control parameters
-    WarpXQuantumSynchrotronWrapperCtrl ctrl;
+    PicsarQuantumSynchrotronCtrl ctrl;
 
     //Lookup table data
     amrex::Gpu::ManagedDeviceVector<amrex::Real> KKfunc_coords;
@@ -57,7 +57,7 @@ public:
     AMREX_FORCE_INLINE
     amrex::Real operator() () const
     {
-        return WarpXQuantumSynchrotronWrapper::
+        return PicsarQuantumSynchrotronEngine::
             internal_get_optical_depth(amrex::Random());
     }
 };
@@ -90,7 +90,7 @@ public:
             p_innards->KKfunc_coords.data(),
             p_innards->KKfunc_data.data());
 
-        WarpXQuantumSynchrotronWrapper::
+        PicsarQuantumSynchrotronEngine::
         internal_evolve_opt_depth_and_determine_event(
             px, py, pz,
             ex, ey, ez,
@@ -141,7 +141,7 @@ public:
             p_innards->cum_distrib_coords_2.data(),
             p_innards->cum_distrib_data.data());
 
-        bool stat = WarpXQuantumSynchrotronWrapper::
+        bool stat = PicsarQuantumSynchrotronEngine::
         internal_generate_photons_and_update_momentum(
             *px, *py, *pz,
             ex, ey, ez,

@@ -18,10 +18,10 @@
     #include "BreitWheelerEngineTableBuilder.H"
 #endif
 
-using WarpXBreitWheelerWrapper = picsar::multi_physics::
+using PicsarBreitWheelerEngine = picsar::multi_physics::
     breit_wheeler_engine<amrex::Real, QedUtils::DummyStruct>;
 
-using WarpXBreitWheelerWrapperCtrl =
+using PicsarBreitWheelerCtrl =
     picsar::multi_physics::breit_wheeler_engine_ctrl<amrex::Real>;
 
 // Struct to hold engine data ================
@@ -29,7 +29,7 @@ using WarpXBreitWheelerWrapperCtrl =
 struct BreitWheelerEngineInnards
 {
     // Control parameters
-    WarpXBreitWheelerWrapperCtrl ctrl;
+    PicsarBreitWheelerCtrl ctrl;
 
     //Lookup table data
     amrex::Gpu::ManagedVector<amrex::Real> TTfunc_coords;
@@ -60,7 +60,7 @@ public:
     AMREX_FORCE_INLINE
     amrex::Real operator() () const
     {
-        return WarpXBreitWheelerWrapper::
+        return PicsarBreitWheelerEngine::
             internal_get_optical_depth(amrex::Random());
     }
 };
@@ -92,7 +92,7 @@ public:
             p_innards->TTfunc_coords.data(),
             p_innards->TTfunc_data.data());
 
-        WarpXBreitWheelerWrapper::
+        PicsarBreitWheelerEngine::
         internal_evolve_opt_depth_and_determine_event(
             px, py, pz,
             ex, ey, ez,
@@ -144,7 +144,7 @@ public:
             p_innards->cum_distrib_coords_2.data(),
             p_innards->cum_distrib_data.data());
 
-        bool stat = WarpXBreitWheelerWrapper::
+        bool stat = PicsarBreitWheelerEngine::
         internal_generate_breit_wheeler_pairs(
             px, py, pz,
             ex, ey, ez,
