@@ -581,7 +581,7 @@ Laser initialization
     External uniform and constant electrostatic and magnetostatic field added
     to the grid at initialization. Use with caution as these fields are used for
     the field solver. In particular, do not use any other boundary condition
-    as periodic.
+    than periodic.
 
 Numerics and algorithms
 -----------------------
