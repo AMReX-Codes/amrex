@@ -9,6 +9,7 @@
 #include<fstream>
 
 //QS ENGINE from PICSAR
+#define PXRMP_CORE_ONLY
 #include "quantum_sync_engine.hpp"
 
 using WarpXQuantumSynchrotronWrapper =

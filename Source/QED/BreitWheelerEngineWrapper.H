@@ -9,6 +9,7 @@
 #include<fstream>
 
 //BW ENGINE from PICSAR
+#define PXRMP_CORE_ONLY
 #include "breit_wheeler_engine.hpp"
 
 using WarpXBreitWheelerWrapper =
