@@ -9,7 +9,7 @@ do
     # without path
     filename=$(basename $file)
     if [[ ${filename:0:6 } =~ inputs       ]] ||
-        [[ ${filename:0:12} =~ PICMI_inputs ]] 
+        [[ ${filename:0:12} =~ PICMI_inputs ]]
     then
         grep -q -m1 $file Regression/WarpX-tests.ini
         if [ $? -eq 0 ]
@@ -17,7 +17,7 @@ do
             echo "$file is not tested!"
             ok=1
         fi
-        
+
         #files+=($file)
         #echo "$file does not have a proper name!"
         #ok=1
