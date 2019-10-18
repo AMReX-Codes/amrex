@@ -75,6 +75,7 @@ public:
 
     // External fields
     static amrex::Vector<amrex::Real> B_external;
+    static amrex::Vector<amrex::Real> E_external;
 
     // Algorithms
     static long current_deposition_algo;
