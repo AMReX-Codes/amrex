@@ -3,6 +3,9 @@
 
 #include "QedWrapperCommons.H"
 
-class BreitWheelerEngineTableBuilder{};
+class BreitWheelerEngineTableBuilder{
+   public:
+
+};
 
 #endif //WARPX_breit_wheeler_engine_table_builder_h_

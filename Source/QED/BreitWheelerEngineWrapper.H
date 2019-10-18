@@ -186,11 +186,22 @@ public:
     /* \brief Builds the functor to generate the pairs */
     BreitWheelerGeneratePairs build_pair_functor ();
 
-    /* \brief Reads lookup tables from 'file' on disk */
-    void read_lookup_tables (std::string file);
-
     /* \brief Checks if lookup tables are properly initialized */
     bool are_lookup_tables_initialized () const;
+
+    /* \brief Reads lookup tables from 'file' on disk */
+    bool init_lookup_tables_from_raw_data (const std::vector<char>& raw_data);
+
+    /* \brief Writes lookup tables on disk in 'file'
+     *  return false if it fails. */
+    std::vector<char> export_lookup_tables_data () const;
+
+    /* \brief Computes the Lookup tables using the default settings
+     *  provided by the PICSAR library */
+    void compute_lookup_tables_default ();
+
+    /* \brief Computes the Lookup tables using user-defined settings */
+    void compute_custom_lookup_tables (PicsarBreitWheelerCtrl ctrl);
 
 private:
     bool lookup_tables_initialized = false;
@@ -198,25 +209,13 @@ private:
     BreitWheelerEngineInnards innards;
 
 #ifdef WARPX_QED_TABLE_GEN
-public:
-    /* \brief Computes the Lookup tables using the default settings
-     *  provided by the PICSAR library */
-    void compute_lookup_tables_default ();
 
-    /* \brief Computes the Lookup tables using user-defined settings */
-    void compute_custom_lookup_tables (WarpXBreitWheelerWrapperCtrl ctrl);
-
-    /* \brief Writes lookup tables on disk in 'file'
-     *  return false if it fails. */
-    bool write_lookup_tables (std::string file) const;
-
-
-private:
     BreitWheelerEngineTableBuilder table_builder;
 
     //Private function which actually computes the lookup tables
     void computes_lookup_tables (
-        WarpXBreitWheelerWrapperCtrl ctrl);
+        PicsarBreitWheelerCtrl ctrl);
+
 #endif
 };
 

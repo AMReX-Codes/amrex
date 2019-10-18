@@ -759,7 +759,7 @@ void MultiParticleContainer::InitQED ()
 void MultiParticleContainer::InitQuantumSync ()
 {
     bool is_custom;
-    WarpXQuantumSynchrotronWrapperCtrl ctrl;
+    PicsarQuantumSynchrotronCtrl ctrl;
     std::string filename;
     std::tie(is_custom, filename, ctrl) = ParseQuantumSyncParams();
 
@@ -768,13 +768,13 @@ void MultiParticleContainer::InitQuantumSync ()
    //     qs_engine.write_lookup_tables("qed_qs_lookup.bin");
    // }
    // amrex::ParallelDescriptor::Barrier();
-    qs_engine.read_lookup_tables("qed_qs_lookup.bin");
+   // qs_engine.read_lookup_tables("qed_qs_lookup.bin");
 }
 
 void MultiParticleContainer::InitBreitWheeler ()
 {
     bool is_custom;
-    WarpXBreitWheelerWrapperCtrl ctrl;
+    PicsarBreitWheelerCtrl ctrl;
     std::string filename;
     std::tie(is_custom, filename, ctrl) = ParseBreitWheelerParams();
 
@@ -783,23 +783,23 @@ void MultiParticleContainer::InitBreitWheeler ()
    //     bw_engine.write_lookup_tables("qed_bw_lookup.bin");
    // }
    // amrex::ParallelDescriptor::Barrier();
-    bw_engine.read_lookup_tables("qed_bw_lookup.bin");
+   // bw_engine.read_lookup_tables("qed_bw_lookup.bin");
 
 }
 
-std::tuple<bool,std::string,WarpXQuantumSynchrotronWrapperCtrl>
+std::tuple<bool,std::string,PicsarQuantumSynchrotronCtrl>
 MultiParticleContainer::ParseQuantumSyncParams ()
 {
-    WarpXQuantumSynchrotronWrapperCtrl ctrl;
+    PicsarQuantumSynchrotronCtrl ctrl;
     bool is_custom{false};
 
     return std::make_tuple(is_custom, std::string(""), ctrl);
 }
 
-std::tuple<bool,std::string,WarpXBreitWheelerWrapperCtrl>
+std::tuple<bool,std::string,PicsarBreitWheelerCtrl>
 MultiParticleContainer::ParseBreitWheelerParams ()
 {
-    WarpXBreitWheelerWrapperCtrl ctrl;
+    PicsarBreitWheelerCtrl ctrl;
     bool is_custom{false};
 
     return std::make_tuple(is_custom, std::string(""), ctrl);

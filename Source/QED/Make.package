@@ -1,5 +1,6 @@
 CEXE_headers += QedWrapperCommons.H
 CEXE_headers += QedChiFunctions.H
+CEXE_headers += QedTableParserHelperFunctions.H
 CEXE_headers += BreitWheelerEngineWrapper.H
 CEXE_headers += QuantumSyncsEngineWrapper.H
 CEXE_sources += BreitWheelerEngineWrapper.cpp

@@ -1,4 +1,13 @@
 #include "BreitWheelerEngineWrapper.H"
+
+#include "QedTableParserHelperFunctions.H"
+
+#include <utility>
+
+using namespace std;
+using namespace QedUtils;
+using namespace amrex;
+
 //This file provides a wrapper aroud the breit_wheeler engine
 //provided by the PICSAR library
 
@@ -7,13 +16,15 @@
 BreitWheelerEngine::BreitWheelerEngine (){}
 
 //Builds the functor to initialize the optical depth
-BreitWheelerGetOpticalDepth BreitWheelerEngine::build_optical_depth_functor ()
+BreitWheelerGetOpticalDepth
+BreitWheelerEngine::build_optical_depth_functor ()
 {
     return BreitWheelerGetOpticalDepth();
 }
 
 //Builds the functor to evolve the optical depth
-BreitWheelerEvolveOpticalDepth BreitWheelerEngine::build_evolve_functor ()
+BreitWheelerEvolveOpticalDepth
+BreitWheelerEngine::build_evolve_functor ()
 {
     AMREX_ALWAYS_ASSERT(lookup_tables_initialized);
 
@@ -21,7 +32,8 @@ BreitWheelerEvolveOpticalDepth BreitWheelerEngine::build_evolve_functor ()
 }
 
 //Builds the functor to generate the pairs
-BreitWheelerGeneratePairs BreitWheelerEngine::build_pair_functor ()
+BreitWheelerGeneratePairs
+BreitWheelerEngine::build_pair_functor ()
 {
     AMREX_ALWAYS_ASSERT(lookup_tables_initialized);
 
@@ -34,44 +46,102 @@ bool BreitWheelerEngine::are_lookup_tables_initialized () const
 }
 
 /* \brief Reads lookup tables from 'file' on disk */
-void BreitWheelerEngine::read_lookup_tables (std::string file)
+bool
+BreitWheelerEngine::init_lookup_tables_from_raw_data (
+    const vector<char>& raw_data)
 {
-    std::ifstream ifile(file, std::ios::in | std::ios::binary);
+    const char* p_data = raw_data.data();
+    const char* const p_last = &raw_data.back();
+    bool is_ok;
 
     //Header (control parameters)
-    ifile.read(reinterpret_cast<char*>(&innards.ctrl.chi_phot_min),
-        sizeof(innards.ctrl.chi_phot_min));
-    ifile.read(reinterpret_cast<char*>(&innards.ctrl.chi_phot_tdndt_min),
-        sizeof(innards.ctrl.chi_phot_tdndt_min));
-    ifile.read(reinterpret_cast<char*>(&innards.ctrl.chi_phot_tdndt_max),
-        sizeof(innards.ctrl.chi_phot_tdndt_max));
-    ifile.read(reinterpret_cast<char*>(&innards.ctrl.chi_phot_tdndt_how_many),
-        sizeof(innards.ctrl.chi_phot_tdndt_how_many));
-    ifile.read(reinterpret_cast<char*>(&innards.ctrl.chi_phot_tpair_min),
-        sizeof(innards.ctrl.chi_phot_tpair_min));
-    ifile.read(reinterpret_cast<char*>(&innards.ctrl.chi_phot_tpair_max),
-        sizeof(innards.ctrl.chi_phot_tpair_max));
-    ifile.read(reinterpret_cast<char*>(&innards.ctrl.chi_phot_tpair_how_many),
-        sizeof(innards.ctrl.chi_phot_tpair_how_many));
-    ifile.read(reinterpret_cast<char*>(&innards.ctrl.chi_frac_tpair_how_many),
-        sizeof(innards.ctrl.chi_frac_tpair_how_many));
-    //_______
+    tie(is_ok, innards.ctrl.chi_phot_min, p_data) =
+        parse_raw_data<decltype(innards.ctrl.chi_phot_min)>(
+            p_data, p_last);
+    if(!is_ok) return false;
+
+    tie(is_ok, innards.ctrl.chi_phot_tdndt_min, p_data) =
+        parse_raw_data<decltype(innards.ctrl.chi_phot_tdndt_min)>(
+            p_data, p_last);
+    if(!is_ok) return false;
+
+    tie(is_ok, innards.ctrl.chi_phot_tdndt_max, p_data) =
+        parse_raw_data<decltype(innards.ctrl.chi_phot_tdndt_max)>(
+            p_data, p_last);
+    if(!is_ok) return false;
+
+    tie(is_ok, innards.ctrl.chi_phot_tdndt_how_many, p_data) =
+        parse_raw_data<decltype(innards.ctrl.chi_phot_tdndt_how_many)>(
+            p_data, p_last);
+    if(!is_ok) return false;
+
+    tie(is_ok, innards.ctrl.chi_phot_tpair_min, p_data) =
+        parse_raw_data<decltype(innards.ctrl.chi_phot_tpair_min)>(
+            p_data, p_last);
+    if(!is_ok) return false;
+
+    tie(is_ok, innards.ctrl.chi_phot_tpair_max, p_data) =
+        parse_raw_data<decltype(innards.ctrl.chi_phot_tpair_max)>(
+            p_data, p_last);
+    if(!is_ok) return false;
+
+    tie(is_ok, innards.ctrl.chi_phot_tpair_how_many, p_data) =
+        parse_raw_data<decltype(innards.ctrl.chi_phot_tpair_how_many)>(
+            p_data, p_last);
+    if(!is_ok) return false;
+
+    tie(is_ok, innards.ctrl.chi_frac_tpair_how_many, p_data) =
+        parse_raw_data<decltype(innards.ctrl.chi_frac_tpair_how_many)>(
+            p_data, p_last);
+    if(!is_ok) return false;
+
+    //___________________________
 
     //Data
-    size_t size_buf = sizeof(amrex::Real)*innards.ctrl.chi_phot_tdndt_how_many;
-    char* data_buf = new char(size_buf);
-    ifile.read(data_buf, size_buf);
-    innards.TTfunc_coords.assign((amrex::Real*)data_buf,
-        (amrex::Real*)data_buf + size_buf);
-    ifile.read(data_buf, size_buf);
-    innards.TTfunc_data.assign((amrex::Real*)data_buf,
-        (amrex::Real*)data_buf + size_buf);
-    delete[] data_buf;
-    //_______
+    vector<Real> tndt_coords(innards.ctrl.chi_phot_tdndt_how_many);
+    vector<Real> tndt_data(innards.ctrl.chi_phot_tdndt_how_many);
+    vector<Real> cum_tab_coords1(innards.ctrl.chi_phot_tpair_how_many);
+    vector<Real> cum_tab_coords2(innards.ctrl.chi_frac_tpair_how_many);
+    vector<Real> cum_tab_data(innards.ctrl.chi_phot_tpair_how_many*
+        innards.ctrl.chi_frac_tpair_how_many);
 
-    ifile.close();
+    tie(is_ok, tndt_coords, p_data) =
+        parse_raw_data_vec<Real>(
+            p_data, tndt_coords.size(), p_last);
+    if(!is_ok) return false;
+    innards.TTfunc_coords.assign(tndt_coords.begin(), tndt_coords.end());
 
+    tie(is_ok, tndt_data, p_data) =
+        parse_raw_data_vec<Real>(
+            p_data, tndt_data.size(), p_last);
+    if(!is_ok) return false;
+    innards.TTfunc_data.assign(tndt_data.begin(), tndt_data.end());
+
+    tie(is_ok, cum_tab_coords1, p_data) =
+        parse_raw_data_vec<Real>(
+            p_data, cum_tab_coords1.size(), p_last);
+    if(!is_ok) return false;
+    innards.cum_distrib_coords_1.assign(
+        cum_tab_coords1.begin(), cum_tab_coords1.end());
+
+    tie(is_ok, cum_tab_coords2, p_data) =
+        parse_raw_data_vec<Real>(
+            p_data, cum_tab_coords2.size(), p_last);
+    if(!is_ok) return false;
+    innards.cum_distrib_coords_2.assign(
+        cum_tab_coords2.begin(), cum_tab_coords2.end());
+
+    tie(is_ok, cum_tab_data, p_data) =
+        parse_raw_data_vec<Real>(
+            p_data, cum_tab_data.size(), p_last);
+    if(!is_ok) return false;
+    innards.cum_distrib_data.assign(
+        cum_tab_data.begin(), cum_tab_data.end());
+
+    //___________________________
     lookup_tables_initialized = true;
+
+    return true;
 }
 
 
@@ -101,56 +171,25 @@ void BreitWheelerEngine::compute_custom_lookup_tables (
 
 /* \brief Writes lookup tables on disk in 'file'
  *  return false if it fails. */
-bool BreitWheelerEngine::write_lookup_tables (
-        std::string file) const
+std::vector<char> export_lookup_tables_data () const
 {
     if(!lookup_tables_initialized)
-        return false;
+        return std::vector<char>;
 
-    std::ofstream of(file, std::ios::out | std::ios::binary);
-
-    //Header (control parameters)
-    of.write(reinterpret_cast<const char*>(&innards.ctrl.chi_phot_min),
-        sizeof(innards.ctrl.chi_phot_min));
-    of.write(reinterpret_cast<const char*>(&innards.ctrl.chi_phot_tdndt_min),
-        sizeof(innards.ctrl.chi_phot_tdndt_min));
-    of.write(reinterpret_cast<const char*>(&innards.ctrl.chi_phot_tdndt_max),
-        sizeof(innards.ctrl.chi_phot_tdndt_max));
-    of.write(reinterpret_cast<const char*>(&innards.ctrl.chi_phot_tdndt_how_many),
-        sizeof(innards.ctrl.chi_phot_tdndt_how_many));
-    of.write(reinterpret_cast<const char*>(&innards.ctrl.chi_phot_tpair_min),
-        sizeof(innards.ctrl.chi_phot_tpair_min));
-    of.write(reinterpret_cast<const char*>(&innards.ctrl.chi_phot_tpair_max),
-        sizeof(innards.ctrl.chi_phot_tpair_max));
-    of.write(reinterpret_cast<const char*>(&innards.ctrl.chi_phot_tpair_how_many),
-        sizeof(innards.ctrl.chi_phot_tpair_how_many));
-    of.write(reinterpret_cast<const char*>(&innards.ctrl.chi_frac_tpair_how_many),
-        sizeof(innards.ctrl.chi_frac_tpair_how_many));
-    //_______
-
-    //Data
-    of.write(reinterpret_cast<const char*>(innards.TTfunc_coords.dataPtr()),
-        sizeof(amrex::Real)*innards.TTfunc_coords.size());
-    of.write(reinterpret_cast<const char*>(innards.TTfunc_data.dataPtr()),
-        sizeof(amrex::Real)*innards.TTfunc_data.size());
-    // TODO: add other table
-    //_______
-
-    of.close();
-
-    return true;
+    //TODO
+    return std::vector<char>;
 }
 
 //Private function which actually computes the lookup tables
 void BreitWheelerEngine::computes_lookup_tables (
-    WarpXBreitWheelerWrapperCtrl ctrl)
+    PicsarBreitWheelerCtrl ctrl)
 {
     //Lambda is not actually used if S.I. units are enabled
-    WarpXBreitWheelerWrapper bw_engine(
+    PicsarBreitWheelerEngine bw_engine(
         std::move(QedUtils::DummyStruct()), 1.0, ctrl);
 
     bw_engine.compute_dN_dt_lookup_table();
-    //bw_engine.compute_cumulative_pair_table();
+    bw_engine.compute_cumulative_pair_table();
 
     auto bw_innards_picsar = bw_engine.export_innards();
 

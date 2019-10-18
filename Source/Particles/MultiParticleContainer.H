@@ -232,9 +232,9 @@ protected:
     void InitQuantumSync ();
     void InitBreitWheeler ();
 
-    std::tuple<bool, std::string, WarpXQuantumSynchrotronWrapperCtrl>
+    std::tuple<bool, std::string, PicsarQuantumSynchrotronCtrl>
     ParseQuantumSyncParams ();
-    std::tuple<bool, std::string, WarpXBreitWheelerWrapperCtrl>
+    std::tuple<bool, std::string, PicsarBreitWheelerCtrl>
     ParseBreitWheelerParams ();
 #endif
 
