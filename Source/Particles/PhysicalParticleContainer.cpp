@@ -17,6 +17,7 @@
 #include <UpdatePosition.H>
 #include <UpdateMomentumBoris.H>
 #include <UpdateMomentumVay.H>
+#include <UpdateMomentumHigueraCary.H>
 
 using namespace amrex;
 
@@ -1605,6 +1606,19 @@ PhysicalParticleContainer::PushPX(WarpXParIter& pti,
                                 ux[i], uy[i], uz[i], dt );
             }
         );
+    } else if (WarpX::particle_pusher_algo == ParticlePusherAlgo::HigueraCary) {
+        amrex::ParallelFor(
+            pti.numParticles(),
+            [=] AMREX_GPU_DEVICE (long i) {
+                Real qp = q;
+                if (ion_lev){ qp *= ion_lev[i]; }
+                UpdateMomentumHigueraCary( ux[i], uy[i], uz[i],
+                                   Ex[i], Ey[i], Ez[i], Bx[i],
+                                   By[i], Bz[i], qp, m, dt);
+                UpdatePosition( x[i], y[i], z[i],
+                                ux[i], uy[i], uz[i], dt );
+            }
+        );
     } else {
       amrex::Abort("Unknown particle pusher");
     };
@@ -1698,6 +1712,13 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
                 amrex::ParallelFor( pti.numParticles(),
                     [=] AMREX_GPU_DEVICE (long i) {
                         UpdateMomentumVay( ux[i], uy[i], uz[i],
+                              Expp[i], Eypp[i], Ezpp[i], Bxpp[i], Bypp[i], Bzpp[i], q, m, dt);
+                    }
+                );
+            } else if (WarpX::particle_pusher_algo == ParticlePusherAlgo::HigueraCary) {
+                amrex::ParallelFor( pti.numParticles(),
+                    [=] AMREX_GPU_DEVICE (long i) {
+                        UpdateMomentumHigueraCary( ux[i], uy[i], uz[i],
                               Expp[i], Eypp[i], Ezpp[i], Bxpp[i], Bypp[i], Bzpp[i], q, m, dt);
                     }
                 );
