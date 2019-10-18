@@ -76,6 +76,7 @@ public:
 
     // External fields
     static amrex::Vector<amrex::Real> B_external;
+    static amrex::Vector<amrex::Real> E_external;
 
     // Initial field on grid
     static amrex::Vector<amrex::Real> E_external_grid;

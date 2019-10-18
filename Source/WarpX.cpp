@@ -25,6 +25,7 @@
 using namespace amrex;
 
 Vector<Real> WarpX::B_external(3, 0.0);
+Vector<Real> WarpX::E_external(3, 0.0);
 
 Vector<Real> WarpX::E_external_grid(3, 0.0);
 Vector<Real> WarpX::B_external_grid(3, 0.0);
@@ -294,6 +295,7 @@ WarpX::ReadParameters ()
                       zmax_plasma_to_compute_max_step);
 
         pp.queryarr("B_external", B_external);
+        pp.queryarr("E_external", E_external);
 
         pp.queryarr("E_external_grid", E_external_grid);
         pp.queryarr("B_external_grid", B_external_grid);
