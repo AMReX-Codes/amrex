@@ -9,8 +9,11 @@
 ok=0
 files=()
 
-for file in $(basename $(find Examples -type f))
+for pathtofile in $(find Examples -type f)
 do
+    echo $pathtofile
+    file=$(basename $pathtofile)
+    echo $file
     if [[ ${file:0:6 } != inputs       ]] &&
        [[ ${file:0:12} != PICMI_inputs ]] &&
        [[ ${file:0:8 } != analysis     ]] &&
