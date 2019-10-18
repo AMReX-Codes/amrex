@@ -54,15 +54,11 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                     mllinop_apply_bc_x(Orientation::low, bx, blen.x,
                                        vel, mxlo, bct[offset+icomp], bcl[offset+icomp],
                                        bcvalxlo, maxorder, dxinv[xdir], inhomog, icomp);
-                } else if (vlo.y == dlo.y or mxlo(vlo.x-1,vlo.y,0) == BndryData::covered) {
+                } else {
                     int offset = AMREX_SPACEDIM * oylo;
                     mllinop_apply_bc_y(Orientation::low, bx, blen.y,
                                        vel, mylo, bct[offset+icomp], bcl[offset+icomp],
                                        bcvalylo, maxorder, dxinv[ydir], inhomog, icomp);
-                } else if (has_crsedata) {
-                    int jc = amrex::coarsen(vlo.y-1, rr.y);
-                    int ic = amrex::coarsen(vlo.x-1, rr.x);
-                    vel(vlo.x-1,vlo.y-1,0,icomp) = crsebcvalxlo(ic,jc,0,icomp);
                 }
             }
             break;
@@ -79,15 +75,11 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                     mllinop_apply_bc_x(Orientation::high, bx, blen.x,
                                        vel, mxhi, bct[offset+icomp], bcl[offset+icomp],
                                        bcvalxhi, maxorder, dxinv[xdir], inhomog, icomp);
-                } else if (vlo.y == dlo.y or mxhi(vhi.x+1,vlo.y,0) == BndryData::covered) {
+                } else {
                     int offset = AMREX_SPACEDIM * oylo;
                     mllinop_apply_bc_y(Orientation::low, bx, blen.y,
                                        vel, mylo, bct[offset+icomp], bcl[offset+icomp],
                                        bcvalylo, maxorder, dxinv[ydir], inhomog, icomp);
-                } else if (has_crsedata) {
-                    int jc = amrex::coarsen(vlo.y-1, rr.y);
-                    int ic = amrex::coarsen(vhi.x+1, rr.x);
-                    vel(vhi.x+1,vlo.y-1,0,icomp) = crsebcvalxhi(ic,jc,0,icomp);
                 }
             }
             break;
@@ -104,15 +96,11 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                     mllinop_apply_bc_x(Orientation::low, bx, blen.x,
                                        vel, mxlo, bct[offset+icomp], bcl[offset+icomp],
                                        bcvalxlo, maxorder, dxinv[xdir], inhomog, icomp);
-                } else if (vhi.y == dhi.y or mxlo(vlo.x-1,vhi.y,0) == BndryData::covered) {
+                } else {
                     int offset = AMREX_SPACEDIM * oyhi;
                     mllinop_apply_bc_y(Orientation::high, bx, blen.y,
                                        vel, myhi, bct[offset+icomp], bcl[offset+icomp],
                                        bcvalyhi, maxorder, dxinv[ydir], inhomog, icomp);
-                } else if (has_crsedata) {
-                    int jc = amrex::coarsen(vhi.y+1, rr.y);
-                    int ic = amrex::coarsen(vlo.x-1, rr.x);
-                    vel(vlo.x-1,vhi.y+1,0,icomp) = crsebcvalxlo(ic,jc,0,icomp);
                 }
             }
             break;
@@ -129,15 +117,11 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                     mllinop_apply_bc_x(Orientation::high, bx, blen.x,
                                        vel, mxhi, bct[offset+icomp], bcl[offset+icomp],
                                        bcvalxhi, maxorder, dxinv[xdir], inhomog, icomp);
-                } else  if (vhi.y == dhi.y or mxhi(vhi.x+1,vhi.y,0) == BndryData::covered) {
+                } else {
                     int offset = AMREX_SPACEDIM * oyhi;
                     mllinop_apply_bc_y(Orientation::high, bx, blen.y,
                                        vel, myhi, bct[offset+icomp], bcl[offset+icomp],
                                        bcvalyhi, maxorder, dxinv[ydir], inhomog, icomp);
-                } else if (has_crsedata) {
-                    int jc = amrex::coarsen(vhi.y+1, rr.y);
-                    int ic = amrex::coarsen(vhi.x+1, rr.x);
-                    vel(vhi.x+1,vhi.y+1,0,icomp) = crsebcvalxhi(ic,jc,0,icomp);
                 }
             }
             break;
