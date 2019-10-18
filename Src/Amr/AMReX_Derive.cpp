@@ -134,6 +134,7 @@ DeriveRec::DeriveRec (const std::string& a_name,
 DeriveRec::~DeriveRec () 
 {
    delete [] bcr;
+   delete [] bcr3D;
    func     = nullptr;
    func_3d  = nullptr;
    func_fab = nullptr;
@@ -210,7 +211,15 @@ DeriveRec::numState () const noexcept
 const int*
 DeriveRec::getBC () const noexcept
 {
-    return bcr;
+      BL_ASSERT( bcr != nullptr );
+      return bcr;
+}
+
+const int*
+DeriveRec::getBC3D () const noexcept
+{
+      BL_ASSERT( bcr3D != nullptr );
+      return bcr3D;
 }
 
 void
@@ -243,6 +252,7 @@ DeriveRec::addRange (const DescriptorList& d_list,
     n_state += num_comp;
 
     buildBC(d_list);
+    buildBC3D(d_list);
 }
 
 void
@@ -281,6 +291,35 @@ DeriveRec::buildBC (const DescriptorList& d_list)
                 bci[j] = bc[j];
             }
             bci += 2*AMREX_SPACEDIM;
+        }
+    }
+}
+
+void
+DeriveRec::buildBC3D (const DescriptorList& d_list)
+{
+    BL_ASSERT(nsr > 0);
+    delete [] bcr3D;
+    bcr3D = new int[2*3*n_state]();
+    int* bci = bcr3D;
+    for (DeriveRec::StateRange* r = rng; r != 0; r = r->next)
+    {
+        const StateDescriptor& d = d_list[r->typ];
+
+        for (int k = 0; k < r->nc; k++)
+        {
+            const int* bc = d.getBC(r->sc + k).vect();
+
+            for (int j = 0; j < AMREX_SPACEDIM; j++)
+            {
+                bci[j] = bc[j];
+            }
+            bci += 3;
+            for (int j = 0; j < AMREX_SPACEDIM; j++)
+            {
+                bci[j] = bc[AMREX_SPACEDIM+j];
+            }
+            bci += 3;
         }
     }
 }
