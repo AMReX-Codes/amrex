@@ -11,6 +11,6 @@
 #define PXRMP_WITH_SI_UNITS
 
 //An empty data type
-struct __DummyStruct{};
+struct QedDummyStruct{};
 
 #endif //WARPX_amrex_qed_wrapper_commons_h_

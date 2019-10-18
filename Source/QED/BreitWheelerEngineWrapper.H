@@ -20,7 +20,7 @@
 #endif
 
 using WarpXBreitWheelerWrapper = picsar::multi_physics::
-    breit_wheeler_engine<amrex::Real, __DummyStruct>;
+    breit_wheeler_engine<amrex::Real, QedDummyStruct>;
 
 using WarpXBreitWheelerWrapperCtrl =
     picsar::multi_physics::breit_wheeler_engine_ctrl<amrex::Real>;
@@ -73,8 +73,8 @@ class BreitWheelerEvolveOpticalDepth
 {
 public:
     BreitWheelerEvolveOpticalDepth(
-        BreitWheelerEngineInnards* _innards):
-        innards{_innards}{};
+        BreitWheelerEngineInnards* t_innards):
+        p_innards{t_innards}{};
 
     AMREX_GPU_DEVICE
     AMREX_FORCE_INLINE
@@ -89,9 +89,9 @@ public:
         amrex::Real unused_event_time{0.0};
 
         const auto table = picsar::multi_physics::lookup_1d<amrex::Real>
-            (innards->TTfunc_data.size(),
-            innards->TTfunc_coords.data(),
-            innards->TTfunc_data.data());
+            (p_innards->TTfunc_data.size(),
+            p_innards->TTfunc_coords.data(),
+            p_innards->TTfunc_data.data());
 
         WarpXBreitWheelerWrapper::
         internal_evolve_opt_depth_and_determine_event(
@@ -102,13 +102,13 @@ public:
             has_event_happend, unused_event_time,
             dummy_lambda,
             table,
-            innards->ctrl);
+            p_innards->ctrl);
 
         return has_event_happend;
     }
 
 private:
-    BreitWheelerEngineInnards* innards;
+    BreitWheelerEngineInnards* p_innards;
 };
 
 // Generates an electron-positron pair via the Breit-Wheeler process
@@ -117,8 +117,8 @@ class BreitWheelerGeneratePairs
 {
 public:
     BreitWheelerGeneratePairs(
-        BreitWheelerEngineInnards* _innards):
-        innards{_innards}{};
+        BreitWheelerEngineInnards* t_innards):
+        p_innards{t_innards}{};
 
     template <size_t sampling>
     AMREX_GPU_DEVICE
@@ -139,11 +139,11 @@ public:
             el = amrex::Random();
 
         const auto table = picsar::multi_physics::lookup_2d<amrex::Real>
-            (innards->cum_distrib_coords_1.size(),
-            innards->cum_distrib_coords_1.data(),
-            innards->cum_distrib_coords_2.size(),
-            innards->cum_distrib_coords_2.data(),
-            innards->cum_distrib_data.data());
+            (p_innards->cum_distrib_coords_1.size(),
+            p_innards->cum_distrib_coords_1.data(),
+            p_innards->cum_distrib_coords_2.size(),
+            p_innards->cum_distrib_coords_2.data(),
+            p_innards->cum_distrib_data.data());
 
         bool stat = WarpXBreitWheelerWrapper::
         internal_generate_breit_wheeler_pairs(
@@ -156,14 +156,14 @@ public:
             e_weight, p_weight,
             dummy_lambda,
             table,
-            innards->ctrl,
+            p_innards->ctrl,
             rand_zero_one_minus_epsi.data());
 
         return stat;
     }
 
 private:
-    BreitWheelerEngineInnards* innards;
+    BreitWheelerEngineInnards* p_innards;
 };
 
 // Factory class =============================
