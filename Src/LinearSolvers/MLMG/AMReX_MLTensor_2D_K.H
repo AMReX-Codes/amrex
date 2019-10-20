@@ -17,16 +17,10 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                             Array4<Real const> const& bcvalylo,
                             Array4<Real const> const& bcvalxhi,
                             Array4<Real const> const& bcvalyhi,
-                            Array4<Real const> const& crsebcvalxlo,
-                            Array4<Real const> const& crsebcvalylo,
-                            Array4<Real const> const& crsebcvalxhi,
-                            Array4<Real const> const& crsebcvalyhi,
                             GpuArray<BoundCond,2*AMREX_SPACEDIM*AMREX_SPACEDIM> const& bct,
                             GpuArray<Real,2*AMREX_SPACEDIM*AMREX_SPACEDIM> const& bcl,
-                            int inhomog, int maxorder, int has_crsedata,
-                            GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
-			    Dim3 const& rr,
-                            Box const& domain) noexcept
+                            int inhomog, int maxorder,
+                            GpuArray<Real,AMREX_SPACEDIM> const& dxinv, Box const& domain) noexcept
 {
     constexpr int oxlo = 0;
     constexpr int oylo = 1;
