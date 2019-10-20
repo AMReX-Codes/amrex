@@ -31,12 +31,6 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
                   Array4<Real> const& barea, Array4<Real> const& bcent,
                   Array4<Real> const& bnorm, Real small_volfrac);
 
-void set_eb_data (const int i, const int j, Array4<EBCellFlag> const& cell,
-                  Array4<Real> const& apx, Array4<Real> const& apy,
-                  Array4<Real> const& vfrac, Array4<Real> const& vcent,
-                  Array4<Real> const& barea, Array4<Real> const& bcent,
-                  Array4<Real> const& bnorm);
-
 #elif (AMREX_SPACEDIM == 3)
 
 void build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
@@ -64,16 +58,6 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
                   Array4<Real> const& barea, Array4<Real> const& bcent,
                   Array4<Real> const& bnorm, Array4<EBCellFlag> const& ctmp,
                   Real small_volfrac);
-
-void set_eb_data (const int i, const int j, const int k,
-                  Array4<EBCellFlag> const& cell, Array4<Real> const& apx,
-                  Array4<Real> const& apy, Array4<Real> const& apz,
-                  Array4<Real const> const& fcx, Array4<Real const> const& fcy,
-                  Array4<Real const> const& fcz, Array4<Real const> const& m2x,
-                  Array4<Real const> const& m2y, Array4<Real const> const& m2z,
-                  Array4<Real> const& vfrac, Array4<Real> const& vcent,
-                  Array4<Real> const& barea, Array4<Real> const& bcent,
-                  Array4<Real> const& bnorm);
 
 #endif
 

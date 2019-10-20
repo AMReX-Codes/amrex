@@ -2,6 +2,111 @@
 
 namespace amrex { namespace EB2 {
 
+namespace {
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void set_eb_data (const int i, const int j, Array4<EBCellFlag> const& cell,
+                  Array4<Real> const& apx, Array4<Real> const& apy,
+                  Array4<Real> const& vfrac, Array4<Real> const& vcent,
+                  Array4<Real> const& barea, Array4<Real> const& bcent,
+                  Array4<Real> const& bnorm)
+{
+    constexpr Real almostone = 1.0-1.e-15;
+    constexpr Real small = 1.e-14;
+    constexpr Real tiny = 1.e-15;
+
+    const Real axm = apx(i  ,j  ,0);
+    const Real axp = apx(i+1,j  ,0);
+    const Real aym = apy(i  ,j  ,0);
+    const Real ayp = apy(i  ,j+1,0);
+    const Real apnorm = std::hypot(axm-axp,aym-ayp);
+    const Real nx = (axm-axp) * (1.0/apnorm);
+    const Real ny = (aym-ayp) * (1.0/apnorm);
+
+    const Real nxabs = std::abs(nx);
+    const Real nyabs = std::abs(ny);
+
+    Real x_ym;
+    Real x_yp;
+    Real signx;
+    Real y_xm;
+    Real y_xp;
+    Real signy;
+    if (nx > 0.0) {
+        x_ym = -0.5 + aym;
+        x_yp = -0.5 + ayp;
+        signx = 1.0;
+    } else {
+        x_ym = 0.5 - aym;
+        x_yp = 0.5 - ayp;
+        signx = -1.0;
+    }
+
+    if (ny > 0.0) {
+        y_xm = -0.5 + axm;
+        y_xp = -0.5 + axp;
+        signy = 1.0;
+    } else {
+        y_xm = 0.5 - axm;
+        y_xp = 0.5 - axp;
+        signy = -1.0;
+    }
+
+    barea(i,j,0) = nx*(axm-axp) + ny*(aym-ayp);
+    bcent(i,j,0,0) = 0.5*(x_ym+x_yp);
+    bcent(i,j,0,1) = 0.5*(y_xm+y_xp);
+    bnorm(i,j,0,0) = nx;
+    bnorm(i,j,0,1) = ny;
+
+    if (nxabs < tiny or nyabs > almostone) {
+        barea(i,j,0) = 1.0;
+        bcent(i,j,0,0) = 0.0;
+        bnorm(i,j,0,0) = 0.0;
+        bnorm(i,j,0,1) = signy;
+        vfrac(i,j,0) = 0.5*(axm+axp);
+        vcent(i,j,0,0) = 0.0;
+        vcent(i,j,0,1) = (0.125*(ayp-aym) + ny*0.5*bcent(i,j,0,1)*bcent(i,j,0,1)) / vfrac(i,j,0);
+    } else if (nyabs < tiny or nxabs > almostone) {
+        barea(i,j,0) = 1.0;
+        bcent(i,j,0,1) = 0.0;
+        bnorm(i,j,0,0) = signx;
+        bnorm(i,j,0,1) = 0.0;
+        vfrac(i,j,0) = 0.5*(aym+ayp);
+        vcent(i,j,0,0) = (0.125*(axp-axm) + nx*0.5*bcent(i,j,0,0)*bcent(i,j,0,0)) / vfrac(i,j,0);
+        vcent(i,j,0,1) = 0.0;
+    } else {
+        Real aa = nxabs/ny;
+        const Real dx = x_ym - x_yp;
+        const Real dx2 = dx * (x_ym + x_yp);
+        const Real dx3 = dx * (x_ym*x_ym + x_ym*x_yp + x_yp*x_yp);
+        const Real af1 = 0.5*(axm+axp) + aa*0.5*dx2;
+        vcent(i,j,0,0) = 0.125*(axp-axm) + aa*(1./6.)*dx3;
+
+        aa = nyabs/nx;
+        const Real dy = y_xm - y_xp;
+        const Real dy2 = dy * (y_xm + y_xp);
+        const Real dy3 = dy * (y_xm*y_xm + y_xm*y_xp + y_xp*y_xp);
+        const Real af2 = 0.5*(aym+ayp) + aa*0.5*dy2;
+        vcent(i,j,0,1) = 0.125*(ayp-aym) + aa*(1./6.)*dy3;
+
+        vfrac(i,j,0) = 0.5*(af1+af2);
+        if (vfrac(i,j,0) > 1.0-small) {
+            vfrac(i,j,0) = 1.0;
+            vcent(i,j,0,0) = 0.0;
+            vcent(i,j,0,1) = 0.0;
+        } else if (vfrac(i,j,0) < small) {
+            vfrac(i,j,0) = 0.0;
+            vcent(i,j,0,0) = 0.0;
+            vcent(i,j,0,1) = 0.0;
+        } else {
+            vcent(i,j,0,0) *= (1.0/vfrac(i,j,0));
+            vcent(i,j,0,1) *= (1.0/vfrac(i,j,0));
+            vcent(i,j,0,0) = amrex::min(amrex::max(vcent(i,j,0,0),-0.5),0.5);
+            vcent(i,j,0,1) = amrex::min(amrex::max(vcent(i,j,0,1),-0.5),0.5);
+        }
+    }
+}
+}
+
 void build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
                   Array4<Type_t> const& fx, Array4<Type_t> const& fy,
                   Array4<Real const> const& levset,
@@ -143,7 +248,7 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
             bnorm(i,j,0,1) = 0.0;
         } else {
 
-            set_eb_data (i,j,cell,apx,apy,vfrac,vcent,barea,bcent,bnorm);
+            set_eb_data(i,j,cell,apx,apy,vfrac,vcent,barea,bcent,bnorm);
 
             // remove small cells
             if (vfrac(i,j,0) < small_volfrac) {
@@ -174,12 +279,12 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
                 if (cell(i,j,0).isRegular())
                 {
                     cell(i,j,0).setSingleValued();
-                    set_eb_data (i,j,cell,apx,apy,vfrac,vcent,barea,bcent,bnorm);
+                    set_eb_data(i,j,cell,apx,apy,vfrac,vcent,barea,bcent,bnorm);
                 }
                 if (cell(i-1,j,0).isRegular())
                 {
                     cell(i-1,j,0).setSingleValued();
-                    set_eb_data (i-1,j,cell,apx,apy,vfrac,vcent,barea,bcent,bnorm);
+                    set_eb_data(i-1,j,cell,apx,apy,vfrac,vcent,barea,bcent,bnorm);
                 }
             }
         }}
@@ -195,12 +300,12 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
                 if (cell(i,j,0).isRegular())
                 {
                     cell(i,j,0).setSingleValued();
-                    set_eb_data (i,j,cell,apx,apy,vfrac,vcent,barea,bcent,bnorm);
+                    set_eb_data(i,j,cell,apx,apy,vfrac,vcent,barea,bcent,bnorm);
                 }
                 if (cell(i,j-1,0).isRegular())
                 {
                     cell(i,j-1,0).setSingleValued();
-                    set_eb_data (i-1,j,cell,apx,apy,vfrac,vcent,barea,bcent,bnorm);
+                    set_eb_data(i,j-1,cell,apx,apy,vfrac,vcent,barea,bcent,bnorm);
                 }
             }
         }}
@@ -242,108 +347,6 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
 
         cell(i,j,0) = flg;
     });
-}
-
-void set_eb_data (const int i, const int j, Array4<EBCellFlag> const& cell,
-                  Array4<Real> const& apx, Array4<Real> const& apy,
-                  Array4<Real> const& vfrac, Array4<Real> const& vcent,
-                  Array4<Real> const& barea, Array4<Real> const& bcent,
-                  Array4<Real> const& bnorm)
-{
-    constexpr Real almostone = 1.0-1.e-15;
-    constexpr Real small = 1.e-14;
-    constexpr Real tiny = 1.e-15;
-
-    const Real axm = apx(i  ,j  ,0);
-    const Real axp = apx(i+1,j  ,0);
-    const Real aym = apy(i  ,j  ,0);
-    const Real ayp = apy(i  ,j+1,0);
-    const Real apnorm = std::hypot(axm-axp,aym-ayp);
-    const Real nx = (axm-axp) * (1.0/apnorm);
-    const Real ny = (aym-ayp) * (1.0/apnorm);
-
-    const Real nxabs = std::abs(nx);
-    const Real nyabs = std::abs(ny);
-
-    Real x_ym;
-    Real x_yp;
-    Real signx;
-    Real y_xm;
-    Real y_xp;
-    Real signy;
-    if (nx > 0.0) {
-        x_ym = -0.5 + aym;
-        x_yp = -0.5 + ayp;
-        signx = 1.0;
-    } else {
-        x_ym = 0.5 - aym;
-        x_yp = 0.5 - ayp;
-        signx = -1.0;
-    }
-
-    if (ny > 0.0) {
-        y_xm = -0.5 + axm;
-        y_xp = -0.5 + axp;
-        signy = 1.0;
-    } else {
-        y_xm = 0.5 - axm;
-        y_xp = 0.5 - axp;
-        signy = -1.0;
-    }
-
-    barea(i,j,0) = nx*(axm-axp) + ny*(aym-ayp);
-    bcent(i,j,0,0) = 0.5*(x_ym+x_yp);
-    bcent(i,j,0,1) = 0.5*(y_xm+y_xp);
-    bnorm(i,j,0,0) = nx;
-    bnorm(i,j,0,1) = ny;
-
-    if (nxabs < tiny or nyabs > almostone) {
-        barea(i,j,0) = 1.0;
-        bcent(i,j,0,0) = 0.0;
-        bnorm(i,j,0,0) = 0.0;
-        bnorm(i,j,0,1) = signy;
-        vfrac(i,j,0) = 0.5*(axm+axp);
-        vcent(i,j,0,0) = 0.0;
-        vcent(i,j,0,1) = (0.125*(ayp-aym) + ny*0.5*bcent(i,j,0,1)*bcent(i,j,0,1)) / vfrac(i,j,0);
-    } else if (nyabs < tiny or nxabs > almostone) {
-        barea(i,j,0) = 1.0;
-        bcent(i,j,0,1) = 0.0;
-        bnorm(i,j,0,0) = signx;
-        bnorm(i,j,0,1) = 0.0;
-        vfrac(i,j,0) = 0.5*(aym+ayp);
-        vcent(i,j,0,0) = (0.125*(axp-axm) + nx*0.5*bcent(i,j,0,0)*bcent(i,j,0,0)) / vfrac(i,j,0);
-        vcent(i,j,0,1) = 0.0;
-    } else {
-        Real aa = nxabs/ny;
-        const Real dx = x_ym - x_yp;
-        const Real dx2 = dx * (x_ym + x_yp);
-        const Real dx3 = dx * (x_ym*x_ym + x_ym*x_yp + x_yp*x_yp);
-        const Real af1 = 0.5*(axm+axp) + aa*0.5*dx2;
-        vcent(i,j,0,0) = 0.125*(axp-axm) + aa*(1./6.)*dx3;
-
-        aa = nyabs/nx;
-        const Real dy = y_xm - y_xp;
-        const Real dy2 = dy * (y_xm + y_xp);
-        const Real dy3 = dy * (y_xm*y_xm + y_xm*y_xp + y_xp*y_xp);
-        const Real af2 = 0.5*(aym+ayp) + aa*0.5*dy2;
-        vcent(i,j,0,1) = 0.125*(ayp-aym) + aa*(1./6.)*dy3;
-
-        vfrac(i,j,0) = 0.5*(af1+af2);
-        if (vfrac(i,j,0) > 1.0-small) {
-            vfrac(i,j,0) = 1.0;
-            vcent(i,j,0,0) = 0.0;
-            vcent(i,j,0,1) = 0.0;
-        } else if (vfrac(i,j,0) < small) {
-            vfrac(i,j,0) = 0.0;
-            vcent(i,j,0,0) = 0.0;
-            vcent(i,j,0,1) = 0.0;
-        } else {
-            vcent(i,j,0,0) *= (1.0/vfrac(i,j,0));
-            vcent(i,j,0,1) *= (1.0/vfrac(i,j,0));
-            vcent(i,j,0,0) = amrex::min(amrex::max(vcent(i,j,0,0),-0.5),0.5);
-            vcent(i,j,0,1) = amrex::min(amrex::max(vcent(i,j,0,1),-0.5),0.5);
-        }
-    }
 }
 
 }}
