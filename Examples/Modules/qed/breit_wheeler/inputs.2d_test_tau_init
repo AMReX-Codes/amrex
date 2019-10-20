@@ -61,6 +61,6 @@ photons.uy_th = 100.
 photons.uz_th = 100.
 
 ##########QED####################
-# photons.do_qed = 1
-# photons.do_qed_breit_wheeler = 1
+photons.do_qed = 1
+photons.do_qed_breit_wheeler = 1
 #################################
