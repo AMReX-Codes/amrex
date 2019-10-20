@@ -34,7 +34,7 @@ if arch == 'GPU':
 print('Compiling for %s' %arch)
 
 # Use only 2 cores for compiling
-text = re.sub( 'numMakeJobs = \d+', 'numMakeJobs = 4', text )
+text = re.sub( 'numMakeJobs = \d+', 'numMakeJobs = 2', text )
 
 # Use only 1 MPI and 1 thread proc for tests
 text = re.sub( 'numprocs = \d+', 'numprocs = 1', text)
