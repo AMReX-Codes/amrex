@@ -1560,8 +1560,8 @@ void mlndlap_interpadd_rap (int i, int j, int k, Array4<Real> const& fine,
         if (ieven and jeven and keven) {
             fv = crse(ic,jc,kc);
         } else if (ieven and jeven) {
-            Real w1 = abs(sten(i,j,k-1,ist_00p));
-            Real w2 = abs(sten(i,j,k  ,ist_00p));
+            Real w1 = std::abs(sten(i,j,k-1,ist_00p));
+            Real w2 = std::abs(sten(i,j,k  ,ist_00p));
             if (w1 == 0.0 and w2 == 0.0) {
                 fv = 0.5*(crse(ic,jc,kc)+crse(ic,jc,kc+1));
             } else {

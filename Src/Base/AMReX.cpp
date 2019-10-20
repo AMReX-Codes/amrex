@@ -65,6 +65,7 @@ namespace system
     int call_addr2line;
     int throw_exception;
     int regtest_reduction;
+    int abort_on_unused_inputs = 0;
     std::ostream* osout = &std::cout;
     std::ostream* oserr = &std::cerr;
     ErrorHandler error_handler = nullptr;
@@ -428,6 +429,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         pp.query("signal_handling", system::signal_handling);
         pp.query("throw_exception", system::throw_exception);
         pp.query("call_addr2line", system::call_addr2line);
+        pp.query("abort_on_unused_inputs", system::abort_on_unused_inputs);
 
         if (system::signal_handling)
         {
