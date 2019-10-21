@@ -819,7 +819,7 @@ MultiParticleContainer::ParseQuantumSyncParams ()
         pp.query("tab_dndt_chi_min", ctrl.chi_part_tdndt_min);
         pp.query("tab_dndt_chi_max", ctrl.chi_part_tdndt_max);
         pp.query("tab_dndt_how_many", t_int);
-        ctrl.chi_part_tdndt_max = t_int;
+        ctrl.chi_part_tdndt_how_many= t_int;
         pp.query("tab_em_chi_min", ctrl.chi_part_tem_min);
         pp.query("tab_em_chi_max", ctrl.chi_part_tem_max);
         pp.query("tab_em_chi_how_many", t_int);
