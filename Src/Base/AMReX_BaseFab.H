@@ -1157,7 +1157,7 @@ public:
     * and stored in component comp of this FAB.
     * This FAB is returned as a reference for chaining.
     */
-    template <RunOn run_on>
+    template <RunOn run_on = RunOn::Cpu>
     AMREX_GPU_HOST_DEVICE
     BaseFab<T>& linComb (const BaseFab<T>& f1, const Box& b1, int comp1,
                          const BaseFab<T>& f2, const Box& b2, int comp2,
