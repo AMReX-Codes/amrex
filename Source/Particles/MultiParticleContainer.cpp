@@ -310,7 +310,7 @@ void
 MultiParticleContainer::Redistribute ()
 {
     for (auto& pc : allcontainers) {
-        pc->Redistribute();
+        pc->RedistributeCPU();
     }
 }
 
@@ -318,7 +318,7 @@ void
 MultiParticleContainer::RedistributeLocal (const int num_ghost)
 {
     for (auto& pc : allcontainers) {
-        pc->Redistribute(0, 0, 0, num_ghost);
+        pc->RedistributeCPU(0, 0, 0, num_ghost);
     }
 }
 
