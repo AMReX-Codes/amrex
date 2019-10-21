@@ -35,7 +35,8 @@ void interpbndrydata_x_o3 (int i, int j, int /*k*/, int n,
         x[NN] = -1.0;
         y[NN] = crse(ic,jc-1,0,n+nc);
         ++NN;
-    } else if (mask(i,j+2*r.y,0) == not_covered and crse.contains(ic,jc+2,0)) {
+    } else if (mask.contains(i,(jc+2)*r.y,0) and
+               mask         (i,(jc+2)*r.y,0) == not_covered and crse.contains(ic,jc+2,0)) {
         x[NN] = 2.0;
         y[NN] = crse(ic,jc+2,0,n+nc);
         ++NN;
@@ -45,7 +46,8 @@ void interpbndrydata_x_o3 (int i, int j, int /*k*/, int n,
         x[NN] = 1.0;
         y[NN] = crse(ic,jc+1,0,n+nc);
         ++NN;
-    } else if (mask(i,j-2*r.y,0) == not_covered and crse.contains(ic,jc-2,0)) {
+    } else if (mask.contains(i,jc*r.y-r.y-1,0) and
+               mask         (i,jc*r.y-r.y-1,0) == not_covered and crse.contains(ic,jc-2,0)) {
         x[NN] = -2.0;
         y[NN] = crse(ic,jc-2,0,n+nc);
         ++NN;
@@ -82,7 +84,8 @@ void interpbndrydata_y_o3 (int i, int j, int /*k*/, int n,
         x[NN] = -1.0;
         y[NN] = crse(ic-1,jc,0,n+nc);
         ++NN;
-    } else if (mask(i+2*r.x,j,0) == not_covered and crse.contains(ic+2,jc,0)) {
+    } else if (mask.contains((ic+2)*r.x,j,0) and
+               mask         ((ic+2)*r.x,j,0) == not_covered and crse.contains(ic+2,jc,0)) {
         x[NN] = 2.0;
         y[NN] = crse(ic+2,jc,0,n+nc);
         ++NN;
@@ -92,7 +95,8 @@ void interpbndrydata_y_o3 (int i, int j, int /*k*/, int n,
         x[NN] = 1.0;
         y[NN] = crse(ic+1,jc,0,n+nc);
         ++NN;
-    } else if (mask(i-2*r.x,j,0) == not_covered and crse.contains(ic-2,jc,0)) {
+    } else if (mask.contains(ic*r.x-r.x-1,j,0) and
+               mask         (ic*r.x-r.x-1,j,0) == not_covered and crse.contains(ic-2,jc,0)) {
         x[NN] = -2.0;
         y[NN] = crse(ic-2,jc,0,n+nc);
         ++NN;
