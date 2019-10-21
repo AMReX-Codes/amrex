@@ -2,12 +2,10 @@
 #define WARPX_breit_wheeler_engine_wrapper_h_
 
 #include "QedWrapperCommons.H"
+#include "BreitWheelerEngineInnards.H"
 
 #include <AMReX_Array.H>
 #include <AMReX_Gpu.H>
-
-#include <string>
-#include <fstream>
 
 //BW ENGINE from PICSAR
 //Include only essential parts of the library in this file
@@ -18,28 +16,14 @@
     #include "BreitWheelerEngineTableBuilder.H"
 #endif
 
+#include <string>
+#include <fstream>
+
 using PicsarBreitWheelerEngine = picsar::multi_physics::
     breit_wheeler_engine<amrex::Real, QedUtils::DummyStruct>;
 
 using PicsarBreitWheelerCtrl =
     picsar::multi_physics::breit_wheeler_engine_ctrl<amrex::Real>;
-
-// Struct to hold engine data ================
-
-struct BreitWheelerEngineInnards
-{
-    // Control parameters
-    PicsarBreitWheelerCtrl ctrl;
-
-    //Lookup table data
-    amrex::Gpu::ManagedVector<amrex::Real> TTfunc_coords;
-    amrex::Gpu::ManagedVector<amrex::Real> TTfunc_data;
-
-    amrex::Gpu::ManagedVector<amrex::Real> cum_distrib_coords_1;
-    amrex::Gpu::ManagedVector<amrex::Real> cum_distrib_coords_2;
-    amrex::Gpu::ManagedVector<amrex::Real> cum_distrib_data;
-    //______
-};
 
 // Functors ==================================
 
@@ -213,7 +197,7 @@ private:
     BreitWheelerEngineTableBuilder table_builder;
 
     //Private function which actually computes the lookup tables
-    void computes_lookup_tables (
+    BreitWheelerEngineInnards computes_lookup_tables (
         PicsarBreitWheelerCtrl ctrl);
 
 #endif
