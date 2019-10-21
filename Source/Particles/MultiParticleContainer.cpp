@@ -1,4 +1,7 @@
 #include <MultiParticleContainer.H>
+
+#include <AMReX_Vector.H>
+
 #include <WarpX_f.H>
 #include <WarpX.H>
 
@@ -7,6 +10,7 @@
 #include <string>
 
 using namespace amrex;
+using namespace std::literals;
 
 MultiParticleContainer::MultiParticleContainer (AmrCore* amr_core)
 {
@@ -758,50 +762,146 @@ void MultiParticleContainer::InitQED ()
 
 void MultiParticleContainer::InitQuantumSync ()
 {
-    bool is_custom;
+    bool generate_table;
     PicsarQuantumSynchrotronCtrl ctrl;
     std::string filename;
-    std::tie(is_custom, filename, ctrl) = ParseQuantumSyncParams();
+    std::tie(generate_table, filename, ctrl) = ParseQuantumSyncParams();
 
-   // if(ParallelDescriptor::IOProcessor()){
-   //     qs_engine.compute_lookup_tables_default();
-   //     qs_engine.write_lookup_tables("qed_qs_lookup.bin");
-   // }
-   // amrex::ParallelDescriptor::Barrier();
-   // qs_engine.read_lookup_tables("qed_qs_lookup.bin");
+    if(generate_table && ParallelDescriptor::IOProcessor()){
+        qs_engine.compute_lookup_tables(ctrl);
+        Vector<char> all_data = qs_engine.export_lookup_tables_data();
+        //TODO: WRITE
+   }
+    ParallelDescriptor::Barrier();
+
+    Vector<char> table_data;
+    ParallelDescriptor::ReadAndBcastFile(filename, table_data);
+    if(!qs_engine.init_lookup_tables_from_raw_data(table_data))
+        amrex::Error("Table initialization has failed!\n");
 }
 
 void MultiParticleContainer::InitBreitWheeler ()
 {
-    bool is_custom;
+    bool generate_table;
     PicsarBreitWheelerCtrl ctrl;
     std::string filename;
-    std::tie(is_custom, filename, ctrl) = ParseBreitWheelerParams();
+    std::tie(generate_table, filename, ctrl) = ParseBreitWheelerParams();
 
-   // if(ParallelDescriptor::IOProcessor()){
-   //     bw_engine.compute_lookup_tables_default();
-   //     bw_engine.write_lookup_tables("qed_bw_lookup.bin");
-   // }
-   // amrex::ParallelDescriptor::Barrier();
-   // bw_engine.read_lookup_tables("qed_bw_lookup.bin");
+    if(generate_table && ParallelDescriptor::IOProcessor()){
+        bw_engine.compute_lookup_tables(ctrl);
+        Vector<char> all_data = bw_engine.export_lookup_tables_data();
+        //TODO: WRITE
+   }
+    ParallelDescriptor::Barrier();
 
+    Vector<char> table_data;
+    ParallelDescriptor::ReadAndBcastFile(filename, table_data);
+    if(!bw_engine.init_lookup_tables_from_raw_data(table_data))
+        amrex::Error("Table initialization has failed!\n");
 }
 
 std::tuple<bool,std::string,PicsarQuantumSynchrotronCtrl>
 MultiParticleContainer::ParseQuantumSyncParams ()
 {
-    PicsarQuantumSynchrotronCtrl ctrl;
-    bool is_custom{false};
+    PicsarQuantumSynchrotronCtrl ctrl =
+        qs_engine.get_default_ctrl();
+    bool generate_table{false};
+    std::string table_name;
 
-    return std::make_tuple(is_custom, std::string(""), ctrl);
+    ParmParse pp("qed_qs");
+
+    pp.query("chi_min", ctrl.chi_part_min);
+
+    pp.query("generate_table", generate_table);
+    if(generate_table){
+        int t_int;
+        pp.query("tab_dndt_chi_min", ctrl.chi_part_tdndt_min);
+        pp.query("tab_dndt_chi_max", ctrl.chi_part_tdndt_max);
+        pp.query("tab_dndt_how_many", t_int);
+        ctrl.chi_part_tdndt_max = t_int;
+        pp.query("tab_em_chi_min", ctrl.chi_part_tem_min);
+        pp.query("tab_em_chi_max", ctrl.chi_part_tem_max);
+        pp.query("tab_em_chi_how_many", t_int);
+        ctrl.chi_part_tem_how_many = t_int;
+        pp.query("tab_em_prob_how_many", t_int);
+        ctrl.prob_tem_how_many = t_int;
+        pp.query("save_table_in", table_name);
+    }
+
+    std::string load_table_name;
+    pp.query("load_table_from", load_table_name);
+    if(load_table_name != ""s){
+       if(ParallelDescriptor::IOProcessor()){
+            amrex::Print() << "Warning, Quantum Synchrotron table will be loaded, not generated. \n";
+       }
+        table_name = load_table_name;
+        generate_table = false;
+    }
+
+#ifndef WARPX_QED_TABLE_GEN
+    if(generate_table){
+            amrex::Error("Error: use QED_TABLE_GEN=TRUE to enable table generation!\n");
+       }
+#endif
+
+    if(table_name==""s){
+        amrex::Error("Error: Quantum Synchrotron table has either to be generated or to be loaded.\n");
+    }
+
+    return std::make_tuple(generate_table, table_name, ctrl);
 }
 
 std::tuple<bool,std::string,PicsarBreitWheelerCtrl>
 MultiParticleContainer::ParseBreitWheelerParams ()
 {
-    PicsarBreitWheelerCtrl ctrl;
-    bool is_custom{false};
+    PicsarBreitWheelerCtrl ctrl =
+        bw_engine.get_default_ctrl();
+    bool generate_table{false};
+    std::string table_name;
 
-    return std::make_tuple(is_custom, std::string(""), ctrl);
+    ParmParse pp("qed_bw");
+
+    pp.query("chi_min", ctrl.chi_phot_min);
+
+    pp.query("generate_table", generate_table);
+    if(generate_table){
+        int t_int;
+        pp.query("tab_dndt_chi_min", ctrl.chi_phot_tdndt_min);
+        pp.query("tab_dndt_chi_max", ctrl.chi_phot_tdndt_max);
+        pp.query("tab_dndt_how_many", t_int);
+        ctrl.chi_phot_tdndt_how_many = t_int;
+        pp.query("tab_pair_chi_min", ctrl.chi_phot_tpair_min);
+        pp.query("tab_pair_chi_max", ctrl.chi_phot_tpair_max);
+        pp.query("tab_pair_chi_how_many", t_int);
+        ctrl.chi_phot_tpair_how_many = t_int;
+        pp.query("tab_pair_prob_how_many", t_int);
+        ctrl.chi_frac_tpair_how_many = t_int;
+        pp.query("save_table_in", table_name);
+    }
+
+    std::string load_table_name;
+    pp.query("load_table_from", load_table_name);
+    if(load_table_name != ""s){
+       if(ParallelDescriptor::IOProcessor()){
+            amrex::Print() << "Warning, Breit Wheeler table will be loaded, not generated. \n";
+       }
+        table_name = load_table_name;
+        generate_table = false;
+    }
+
+#ifndef WARPX_QED_TABLE_GEN
+    if(generate_table){
+        if(ParallelDescriptor::IOProcessor()){
+            amrex::Error("Error: use QED_TABLE_GEN=TRUE to enable table generation!\n");
+       }
+    }
+#endif
+
+    if(table_name==""s){
+        amrex::Error("Error: Breit Wheeler table has either to be generated or to be loaded.\n");
+    }
+
+
+    return std::make_tuple(generate_table, table_name, ctrl);
 }
 #endif

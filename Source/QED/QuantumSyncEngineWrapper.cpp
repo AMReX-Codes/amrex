@@ -2,10 +2,7 @@
 
 #include "QedTableParserHelperFunctions.H"
 
-#include <AMReX_Print.H>
-
 #include <utility>
-#include <vector>
 
 using namespace std;
 using namespace QedUtils;
@@ -41,7 +38,7 @@ bool QuantumSynchrotronEngine::are_lookup_tables_initialized () const
 /* \brief Reads lookup tables from 'file' on disk */
 bool
 QuantumSynchrotronEngine::init_lookup_tables_from_raw_data (
-    const vector<char>& raw_data)
+    const Vector<char>& raw_data)
 {
     const char* p_data = raw_data.data();
     const char* const p_last = &raw_data.back();
@@ -91,11 +88,11 @@ QuantumSynchrotronEngine::init_lookup_tables_from_raw_data (
     //___________________________
 
     //Data
-    vector<Real> tndt_coords(innards.ctrl.chi_part_tdndt_min);
-    vector<Real> tndt_data(innards.ctrl.chi_part_tdndt_min);
-    vector<Real> cum_tab_coords1(innards.ctrl.chi_part_tem_how_many);
-    vector<Real> cum_tab_coords2(innards.ctrl.prob_tem_how_many);
-    vector<Real> cum_tab_data(innards.ctrl.chi_part_tem_how_many*
+    Vector<Real> tndt_coords(innards.ctrl.chi_part_tdndt_min);
+    Vector<Real> tndt_data(innards.ctrl.chi_part_tdndt_min);
+    Vector<Real> cum_tab_coords1(innards.ctrl.chi_part_tem_how_many);
+    Vector<Real> cum_tab_coords2(innards.ctrl.prob_tem_how_many);
+    Vector<Real> cum_tab_data(innards.ctrl.chi_part_tem_how_many*
         innards.ctrl.prob_tem_how_many);
 
     tie(is_ok, tndt_coords, p_data) =
@@ -137,33 +134,11 @@ QuantumSynchrotronEngine::init_lookup_tables_from_raw_data (
     return true;
 }
 
-//Initializes the Lookup tables using the default settings
-//provided by the library
-void QuantumSynchrotronEngine::compute_lookup_tables_default ()
-{
-    //A control parameters structure
-    //with the default values provided by the library
-    PicsarQuantumSynchrotronCtrl ctrl_default;
-
-    compute_lookup_tables(ctrl_default);
-
-    lookup_tables_initialized = true;
-}
-
-// Computes the Lookup tables using user-defined settings
-void QuantumSynchrotronEngine::compute_custom_lookup_tables (
-    PicsarQuantumSynchrotronCtrl ctrl)
-{
-    compute_lookup_tables(ctrl);
-
-    lookup_tables_initialized = true;
-}
-
 /* \brief Writes lookup tables on disk in 'file'
  *  return false if it fails. */
-std::vector<char> QuantumSynchrotronEngine::export_lookup_tables_data () const
+Vector<char> QuantumSynchrotronEngine::export_lookup_tables_data () const
 {
-    std::vector<char> res{};
+    Vector<char> res{};
 
     if(!lookup_tables_initialized)
         return res;
@@ -181,6 +156,7 @@ std::vector<char> QuantumSynchrotronEngine::export_lookup_tables_data () const
     add_data_to_buf(innards.ctrl.chi_part_tdndt_how_many);
     add_data_to_buf(innards.ctrl.chi_part_tem_min);
     add_data_to_buf(innards.ctrl.chi_part_tem_max);
+    add_data_to_buf(innards.ctrl.chi_part_tem_how_many);
     add_data_to_buf(innards.ctrl.prob_tem_how_many);
 
     auto add_data_to_buf_vv = [&res](const auto* data, size_t how_many){
@@ -199,15 +175,18 @@ std::vector<char> QuantumSynchrotronEngine::export_lookup_tables_data () const
     return res;
 }
 
+PicsarQuantumSynchrotronCtrl
+QuantumSynchrotronEngine::get_default_ctrl() const
+{
+    return PicsarQuantumSynchrotronCtrl();
+}
+
 //Private function which actually computes the lookup tables
 void QuantumSynchrotronEngine::compute_lookup_tables (
     PicsarQuantumSynchrotronCtrl ctrl)
 {
 #ifdef WARPX_QED_TABLE_GEN
     table_builder.compute_table(ctrl, innards);
-#else
-    amrex::Print() <<
-        "Error: use QED_TABLE_GEN=TRUE to enable table generation!\n";
 #endif
 }
 

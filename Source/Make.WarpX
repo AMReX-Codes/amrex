@@ -101,6 +101,7 @@ ifeq ($(QED),TRUE)
     CFLAGS   += -DWARPX_QED_TABLE_GEN
     FFLAGS   += -DWARPX_QED_TABLE_GEN
     F90FLAGS += -DWARPX_QED_TABLE_GEN
+     USERSuffix := $(USERSuffix).GENTABLES
   endif
 endif
 

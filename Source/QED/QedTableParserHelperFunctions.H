@@ -4,15 +4,15 @@
 //This file contains helper functions to parse a char* array
 //into a lookup table
 
-#include <vector>
+#include <AMReX_Vector.H>
 #include <tuple>
 
 namespace QedUtils{
     template <class T>
-    std::tuple<bool, std::vector<T>, const char*>parse_raw_data_vec(
+    std::tuple<bool, amrex::Vector<T>, const char*>parse_raw_data_vec(
         const char* p_data, size_t how_many, const char* const p_last)
     {
-        std::vector<T> res;
+        amrex::Vector<T> res;
         if(p_data + sizeof(T)*how_many > p_last)
             return std::make_tuple(false, res, nullptr);
 

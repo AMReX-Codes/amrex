@@ -5,6 +5,7 @@
 #include "QuantumSyncEngineInnards.H"
 
 #include <AMReX_Array.H>
+#include <AMReX_Vector.H>
 #include <AMReX_Gpu.H>
 
 //QS ENGINE from PICSAR
@@ -17,7 +18,6 @@
 #endif
 
 #include <string>
-#include <fstream>
 
 using PicsarQuantumSynchrotronEngine = picsar::multi_physics::
     quantum_synchrotron_engine<amrex::Real, QedUtils::DummyStruct>;
@@ -171,19 +171,16 @@ public:
     bool are_lookup_tables_initialized () const;
 
       /* \brief Reads lookup tables from 'file' on disk */
-    bool init_lookup_tables_from_raw_data (const std::vector<char>& raw_data);
+    bool init_lookup_tables_from_raw_data (const amrex::Vector<char>& raw_data);
 
     /* \brief Writes lookup tables on disk in 'file'
      *  return false if it fails. */
-    std::vector<char> export_lookup_tables_data () const;
-
-    /* \brief Computes the Lookup tables using the default settings
-     *  provided by the PICSAR library */
-    void compute_lookup_tables_default ();
+    amrex::Vector<char> export_lookup_tables_data () const;
 
     /* \brief Computes the Lookup tables using user-defined settings */
-    void compute_custom_lookup_tables (PicsarQuantumSynchrotronCtrl ctrl);
+    void compute_lookup_tables (PicsarQuantumSynchrotronCtrl ctrl);
 
+    PicsarQuantumSynchrotronCtrl get_default_ctrl() const;
 
 private:
     bool lookup_tables_initialized = false;
@@ -193,9 +190,6 @@ private:
 #ifdef WARPX_QED_TABLE_GEN
     QuantumSynchrotronEngineTableBuilder table_builder;
 #endif
-
-    //Private function which actually computes the lookup tables
-    void compute_lookup_tables (PicsarQuantumSynchrotronCtrl ctrl);
 
 };
 

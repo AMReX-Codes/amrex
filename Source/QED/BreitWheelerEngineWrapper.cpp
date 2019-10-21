@@ -2,10 +2,7 @@
 
 #include "QedTableParserHelperFunctions.H"
 
-#include <AMReX_Print.H>
-
 #include <utility>
-#include <vector>
 
 using namespace std;
 using namespace QedUtils;
@@ -51,7 +48,7 @@ bool BreitWheelerEngine::are_lookup_tables_initialized () const
 /* \brief Reads lookup tables from 'file' on disk */
 bool
 BreitWheelerEngine::init_lookup_tables_from_raw_data (
-    const vector<char>& raw_data)
+    const Vector<char>& raw_data)
 {
     const char* p_data = raw_data.data();
     const char* const p_last = &raw_data.back();
@@ -101,11 +98,11 @@ BreitWheelerEngine::init_lookup_tables_from_raw_data (
     //___________________________
 
     //Data
-    vector<Real> tndt_coords(innards.ctrl.chi_phot_tdndt_how_many);
-    vector<Real> tndt_data(innards.ctrl.chi_phot_tdndt_how_many);
-    vector<Real> cum_tab_coords1(innards.ctrl.chi_phot_tpair_how_many);
-    vector<Real> cum_tab_coords2(innards.ctrl.chi_frac_tpair_how_many);
-    vector<Real> cum_tab_data(innards.ctrl.chi_phot_tpair_how_many*
+    Vector<Real> tndt_coords(innards.ctrl.chi_phot_tdndt_how_many);
+    Vector<Real> tndt_data(innards.ctrl.chi_phot_tdndt_how_many);
+    Vector<Real> cum_tab_coords1(innards.ctrl.chi_phot_tpair_how_many);
+    Vector<Real> cum_tab_coords2(innards.ctrl.chi_frac_tpair_how_many);
+    Vector<Real> cum_tab_data(innards.ctrl.chi_phot_tpair_how_many*
         innards.ctrl.chi_frac_tpair_how_many);
 
     tie(is_ok, tndt_coords, p_data) =
@@ -147,34 +144,17 @@ BreitWheelerEngine::init_lookup_tables_from_raw_data (
     return true;
 }
 
-//Initializes the Lookup tables using the default settings
-//provided by the library
-void BreitWheelerEngine::compute_lookup_tables_default ()
+PicsarBreitWheelerCtrl
+BreitWheelerEngine::get_default_ctrl() const
 {
-    //A control parameters structure
-    //with the default values provided by the library
-    PicsarBreitWheelerCtrl ctrl_default;
-
-    compute_lookup_tables(ctrl_default);
-
-    lookup_tables_initialized = true;
+    return PicsarBreitWheelerCtrl();
 }
-
-// Computes the Lookup tables using user-defined settings
-void BreitWheelerEngine::compute_custom_lookup_tables (
-    PicsarBreitWheelerCtrl ctrl)
-{
-    compute_lookup_tables(ctrl);
-
-    lookup_tables_initialized = true;
-}
-
 
 /* \brief Writes lookup tables on disk in 'file'
  *  return false if it fails. */
-std::vector<char> BreitWheelerEngine::export_lookup_tables_data () const
+Vector<char> BreitWheelerEngine::export_lookup_tables_data () const
 {
-    std::vector<char> res{};
+   Vector<char> res{};
 
     if(!lookup_tables_initialized)
         return res;
@@ -217,9 +197,6 @@ void BreitWheelerEngine::compute_lookup_tables (
 {
 #ifdef WARPX_QED_TABLE_GEN
     table_builder.compute_table(ctrl, innards);
-#else
-    amrex::Print() <<
-        "Error: use QED_TABLE_GEN=TRUE to enable table generation!\n";
 #endif
 }
 
