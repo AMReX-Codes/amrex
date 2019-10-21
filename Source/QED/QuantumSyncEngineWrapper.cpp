@@ -187,6 +187,7 @@ void QuantumSynchrotronEngine::compute_lookup_tables (
 {
 #ifdef WARPX_QED_TABLE_GEN
     table_builder.compute_table(ctrl, innards);
+    lookup_tables_initialized = true;
 #endif
 }
 
