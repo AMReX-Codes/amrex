@@ -4,6 +4,7 @@
 
 #include <WarpX_f.H>
 #include <WarpX.H>
+#include <WarpXUtil.H>
 
 #include <limits>
 #include <algorithm>
@@ -770,7 +771,7 @@ void MultiParticleContainer::InitQuantumSync ()
     if(generate_table && ParallelDescriptor::IOProcessor()){
         qs_engine.compute_lookup_tables(ctrl);
         Vector<char> all_data = qs_engine.export_lookup_tables_data();
-        //TODO: WRITE
+        WarpXUtilIO::WriteBinaryDataOnFile(filename, all_data);
    }
     ParallelDescriptor::Barrier();
 
@@ -790,7 +791,7 @@ void MultiParticleContainer::InitBreitWheeler ()
     if(generate_table && ParallelDescriptor::IOProcessor()){
         bw_engine.compute_lookup_tables(ctrl);
         Vector<char> all_data = bw_engine.export_lookup_tables_data();
-        //TODO: WRITE
+        WarpXUtilIO::WriteBinaryDataOnFile(filename, all_data);
    }
     ParallelDescriptor::Barrier();
 
