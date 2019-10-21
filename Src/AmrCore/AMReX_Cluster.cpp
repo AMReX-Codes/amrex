@@ -1,5 +1,6 @@
 
 #include <algorithm>
+#include <cmath>
 #include <AMReX_Cluster.H>
 #include <AMReX_BoxDomain.H>
 
@@ -179,7 +180,7 @@ FindCut (const int* hist,
         if (hist[i] == 0)
         {
             status = HoleCut;
-            if (abs(cutpoint-mid) > abs(i-mid))
+            if (std::abs(cutpoint-mid) > std::abs(i-mid))
             {
                 cutpoint = i;
                 if (i > mid)
@@ -202,7 +203,7 @@ FindCut (const int* hist,
     {
         int iprev  = dhist[i-1];
         int icur   = dhist[i];
-        int locdif = abs(iprev-icur);
+        int locdif = std::abs(iprev-icur);
         if (iprev*icur < 0 && locdif >= locmax)
         {
             if (locdif > locmax)
@@ -216,7 +217,7 @@ FindCut (const int* hist,
                 //
                 // Select location nearest center of range.
                 //
-                if (abs(i-mid) < abs(cutpoint-mid))
+                if (std::abs(i-mid) < std::abs(cutpoint-mid))
                     cutpoint = i;
             }
         }
