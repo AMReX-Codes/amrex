@@ -18,7 +18,7 @@ ifeq ($(USE_FORTRAN_INTERFACE),TRUE)
     Pdirs += F_Interfaces/Base F_Interfaces/Octree F_Interfaces/AmrCore
 endif
 ifeq ($(USE_LINEAR_SOLVERS),TRUE)
-   Pdirs += LinearSolvers/MLMG
+   Pdirs += LinearSolvers/MLMG LinearSolvers/Projections
    ifeq ($(USE_FORTRAN_INTERFACE),TRUE)
      Pdirs += F_Interfaces/LinearSolvers
    endif
