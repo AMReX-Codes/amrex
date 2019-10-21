@@ -2,6 +2,7 @@
 #define AMREX_MLTENSOR_K_H_
 
 #include <AMReX_FArrayBox.H>
+#include <AMReX_BndryData.H>
 
 #if (AMREX_SPACEDIM == 1)
 #include <AMReX_MLTensor_1D_K.H>

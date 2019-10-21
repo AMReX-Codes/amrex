@@ -172,6 +172,7 @@ InterpBndryData::BndryValuesDoIt (BndryRegister&  crse,
     // First interpolate from coarse to fine on bndry.
     //
     const Box& fine_domain = geom.Domain();
+
     //
     // Mask turned off if covered by fine grid.
     //
@@ -188,8 +189,7 @@ InterpBndryData::BndryValuesDoIt (BndryRegister&  crse,
         {
             BL_ASSERT(grids[mfi.index()] == mfi.validbox());
 
-            const Box&       fine_bx  = mfi.validbox();
-            const Box&       crse_bx  = amrex::coarsen(fine_bx,ratio);
+            const Box& fine_bx  = mfi.validbox();
 
             for (int i = 0; i < 2*AMREX_SPACEDIM; i++)
             {
@@ -202,149 +202,51 @@ InterpBndryData::BndryValuesDoIt (BndryRegister&  crse,
                 {
                     auto const crse_array = crse[face].array(mfi);
                     auto       bdry_array = bndry[face].array(mfi);
-                    const int dirside = dir*2 + side;
+                    Box const& b = bndry[face][mfi].box();
                     const auto rr = ratio.dim3();
                     //
                     // Internal or periodic edge, interpolate from crse data.
                     //
                     if (max_order == 1)
                     {
-                        switch (dirside) {
-                        case 0:
+                        AMREX_HOST_DEVICE_FOR_4D ( b, num_comp, it, jt, kt, n,
                         {
-                            const Box& b = amrex::adjCellLo(crse_bx, 0);
-                            AMREX_HOST_DEVICE_FOR_4D ( b, num_comp, ic, jc, kc, n,
-                            {
-                                interpbndrydata_x_o1(1,ic,jc,kc,n,bdry_array,bnd_start,
-                                                     crse_array,c_start,rr);
-                            });
-                            break;
-                        }
-                        case 1:
-                        {
-                            const Box& b = amrex::adjCellHi(crse_bx, 0);
-                            AMREX_HOST_DEVICE_FOR_4D ( b, num_comp, ic, jc, kc, n,
-                            {
-                                interpbndrydata_x_o1(0,ic,jc,kc,n,bdry_array,bnd_start,
-                                                     crse_array,c_start,rr);
-                            });
-                            break;
-                        }
-#if (AMREX_SPACEDIM >= 2)
-                        case 2:
-                        {
-                            const Box& b = amrex::adjCellLo(crse_bx, 1);
-                            AMREX_HOST_DEVICE_FOR_4D ( b, num_comp, ic, jc, kc, n,
-                            {
-                                interpbndrydata_y_o1(1,ic,jc,kc,n,bdry_array,bnd_start,
-                                                     crse_array,c_start,rr);
-                            });
-                            break;
-                        }
-                        case 3:
-                        {
-                            const Box& b = amrex::adjCellHi(crse_bx, 1);
-                            AMREX_HOST_DEVICE_FOR_4D ( b, num_comp, ic, jc, kc, n,
-                            {
-                                interpbndrydata_y_o1(0,ic,jc,kc,n,bdry_array,bnd_start,
-                                                     crse_array,c_start,rr);
-                            });
-                            break;
-                        }
-#if (AMREX_SPACEDIM == 3)
-                        case 4:
-                        {
-                            const Box& b = amrex::adjCellLo(crse_bx, 2);
-                            AMREX_HOST_DEVICE_FOR_4D ( b, num_comp, ic, jc, kc, n,
-                            {
-                                interpbndrydata_z_o1(1,ic,jc,kc,n,bdry_array,bnd_start,
-                                                     crse_array,c_start,rr);
-                            });
-                            break;
-                        }
-                        case 5:
-                        {
-                            const Box& b = amrex::adjCellHi(crse_bx, 2);
-                            AMREX_HOST_DEVICE_FOR_4D ( b, num_comp, ic, jc, kc, n,
-                            {
-                                interpbndrydata_z_o1(0,ic,jc,kc,n,bdry_array,bnd_start,
-                                                     crse_array,c_start,rr);
-                            });
-                            break;
-                        }
-#endif
-#endif
-                        default: {}
-                        }
+                            interpbndrydata_o1(it,jt,kt,n,bdry_array,bnd_start,
+                                               crse_array,c_start,rr);
+                        });
                     }
                     else
                     {
                         auto const mask_array = masks[face].array(mfi);
                         int is_not_covered = BndryData::not_covered;
-                        switch (dirside) {
+                        switch (dir) {
                         case 0:
                         {
-                            const Box& b = amrex::adjCellLo(crse_bx, 0);
-                            AMREX_HOST_DEVICE_FOR_4D ( b, num_comp, ic, jc, kc, n,
+                            AMREX_HOST_DEVICE_FOR_4D ( b, num_comp, it, jt, kt, n,
                             {
-                                interpbndrydata_x_o3(1,ic,jc,kc,n,bdry_array,bnd_start,
-                                                     crse_array,c_start,rr,
-                                                     mask_array, is_not_covered);
-                            });
-                            break;
-                        }
-                        case 1:
-                        {
-                            const Box& b = amrex::adjCellHi(crse_bx, 0);
-                            AMREX_HOST_DEVICE_FOR_4D ( b, num_comp, ic, jc, kc, n,
-                            {
-                                interpbndrydata_x_o3(0,ic,jc,kc,n,bdry_array,bnd_start,
+                                interpbndrydata_x_o3(it,jt,kt,n,bdry_array,bnd_start,
                                                      crse_array,c_start,rr,
                                                      mask_array, is_not_covered);
                             });
                             break;
                         }
 #if (AMREX_SPACEDIM >= 2)
-                        case 2:
+                        case 1:
                         {
-                            const Box& b = amrex::adjCellLo(crse_bx, 1);
-                            AMREX_HOST_DEVICE_FOR_4D ( b, num_comp, ic, jc, kc, n,
+                            AMREX_HOST_DEVICE_FOR_4D ( b, num_comp, it, jt, kt, n,
                             {
-                                interpbndrydata_y_o3(1,ic,jc,kc,n,bdry_array,bnd_start,
-                                                     crse_array,c_start,rr,
-                                                     mask_array, is_not_covered);
-                            });
-                            break;
-                        }
-                        case 3:
-                        {
-                            const Box& b = amrex::adjCellHi(crse_bx, 1);
-                            AMREX_HOST_DEVICE_FOR_4D ( b, num_comp, ic, jc, kc, n,
-                            {
-                                interpbndrydata_y_o3(0,ic,jc,kc,n,bdry_array,bnd_start,
+                                interpbndrydata_y_o3(it,jt,kt,n,bdry_array,bnd_start,
                                                      crse_array,c_start,rr,
                                                      mask_array, is_not_covered);
                             });
                             break;
                         }
 #if (AMREX_SPACEDIM == 3)
-                        case 4:
+                        case 2:
                         {
-                            const Box& b = amrex::adjCellLo(crse_bx, 2);
-                            AMREX_HOST_DEVICE_FOR_4D ( b, num_comp, ic, jc, kc, n,
+                            AMREX_HOST_DEVICE_FOR_4D ( b, num_comp, it, jt, kt, n,
                             {
-                                interpbndrydata_z_o3(1,ic,jc,kc,n,bdry_array,bnd_start,
-                                                     crse_array,c_start,rr,
-                                                     mask_array, is_not_covered);
-                            });
-                            break;
-                        }
-                        case 5:
-                        {
-                            const Box& b = amrex::adjCellHi(crse_bx, 2);
-                            AMREX_HOST_DEVICE_FOR_4D ( b, num_comp, ic, jc, kc, n,
-                            {
-                                interpbndrydata_z_o3(0,ic,jc,kc,n,bdry_array,bnd_start,
+                                interpbndrydata_z_o3(it,jt,kt,n,bdry_array,bnd_start,
                                                      crse_array,c_start,rr,
                                                      mask_array, is_not_covered);
                             });
