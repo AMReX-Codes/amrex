@@ -815,7 +815,7 @@ MultiParticleContainer::ParseQuantumSyncParams ()
 
     pp.query("generate_table", generate_table);
     if(generate_table){
-        int t_int;
+        int t_int = 0;
         pp.query("tab_dndt_chi_min", ctrl.chi_part_tdndt_min);
         pp.query("tab_dndt_chi_max", ctrl.chi_part_tdndt_max);
         pp.query("tab_dndt_how_many", t_int);

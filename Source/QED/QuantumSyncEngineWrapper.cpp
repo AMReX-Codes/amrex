@@ -191,5 +191,4 @@ void QuantumSynchrotronEngine::compute_lookup_tables (
 #endif
 }
 
-
 //============================================
