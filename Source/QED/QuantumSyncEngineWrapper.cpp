@@ -1,4 +1,16 @@
 #include "QuantumSyncEngineWrapper.H"
+
+#include "QedTableParserHelperFunctions.H"
+
+#include <AMReX_Print.H>
+
+#include <utility>
+#include <vector>
+
+using namespace std;
+using namespace QedUtils;
+using namespace amrex;
+
 //This file provides a wrapper aroud the quantum_sync engine
 //provided by the PICSAR library
 
@@ -27,47 +39,103 @@ bool QuantumSynchrotronEngine::are_lookup_tables_initialized () const
 }
 
 /* \brief Reads lookup tables from 'file' on disk */
-void QuantumSynchrotronEngine::read_lookup_tables (std::string file)
+bool
+QuantumSynchrotronEngine::init_lookup_tables_from_raw_data (
+    const vector<char>& raw_data)
 {
-    std::ifstream ifile(file, std::ios::in | std::ios::binary);
+    const char* p_data = raw_data.data();
+    const char* const p_last = &raw_data.back();
+    bool is_ok;
 
     //Header (control parameters)
-    ifile.read(reinterpret_cast<char*>(&innards.ctrl.chi_part_min),
-        sizeof(innards.ctrl.chi_part_min));
-    ifile.read(reinterpret_cast<char*>(&innards.ctrl.chi_part_tdndt_min),
-        sizeof(innards.ctrl.chi_part_tdndt_min));
-    ifile.read(reinterpret_cast<char*>(&innards.ctrl.chi_part_tdndt_max),
-        sizeof(innards.ctrl.chi_part_tdndt_max));
-    ifile.read(reinterpret_cast<char*>(&innards.ctrl.chi_part_tdndt_how_many),
-        sizeof(innards.ctrl.chi_part_tdndt_how_many));
-    ifile.read(reinterpret_cast<char*>(&innards.ctrl.chi_part_tem_min),
-        sizeof(innards.ctrl.chi_part_tem_min));
-    ifile.read(reinterpret_cast<char*>(&innards.ctrl.chi_part_tem_max),
-        sizeof(innards.ctrl.chi_part_tem_max));
-    ifile.read(reinterpret_cast<char*>(&innards.ctrl.chi_part_tem_how_many),
-        sizeof(innards.ctrl.chi_part_tem_how_many));
-    ifile.read(reinterpret_cast<char*>(&innards.ctrl.prob_tem_how_many),
-        sizeof(innards.ctrl.prob_tem_how_many));
-    //_______
+    tie(is_ok, innards.ctrl.chi_part_min, p_data) =
+        parse_raw_data<decltype(innards.ctrl.chi_part_min)>(
+            p_data, p_last);
+    if(!is_ok) return false;
+
+    tie(is_ok, innards.ctrl.chi_part_tdndt_min, p_data) =
+        parse_raw_data<decltype(innards.ctrl.chi_part_tdndt_min)>(
+            p_data, p_last);
+    if(!is_ok) return false;
+
+    tie(is_ok, innards.ctrl.chi_part_tdndt_max, p_data) =
+        parse_raw_data<decltype(innards.ctrl.chi_part_tdndt_max)>(
+            p_data, p_last);
+    if(!is_ok) return false;
+
+    tie(is_ok, innards.ctrl.chi_part_tdndt_how_many, p_data) =
+        parse_raw_data<decltype(innards.ctrl.chi_part_tdndt_how_many)>(
+            p_data, p_last);
+    if(!is_ok) return false;
+
+    tie(is_ok, innards.ctrl.chi_part_tem_min, p_data) =
+        parse_raw_data<decltype(innards.ctrl.chi_part_tem_min)>(
+            p_data, p_last);
+    if(!is_ok) return false;
+
+    tie(is_ok, innards.ctrl.chi_part_tem_max, p_data) =
+        parse_raw_data<decltype(innards.ctrl.chi_part_tem_max)>(
+            p_data, p_last);
+    if(!is_ok) return false;
+
+    tie(is_ok, innards.ctrl.chi_part_tem_how_many, p_data) =
+        parse_raw_data<decltype(innards.ctrl.chi_part_tem_how_many)>(
+            p_data, p_last);
+    if(!is_ok) return false;
+
+    tie(is_ok, innards.ctrl.prob_tem_how_many, p_data) =
+        parse_raw_data<decltype(innards.ctrl.prob_tem_how_many)>(
+            p_data, p_last);
+    if(!is_ok) return false;
+
+    //___________________________
 
     //Data
-    size_t size_buf = sizeof(amrex::Real)*innards.ctrl.chi_part_tdndt_how_many;
-    char* data_buf = new char(size_buf);
-    ifile.read(data_buf, size_buf);
-    innards.KKfunc_coords.assign((amrex::Real*)data_buf,
-        (amrex::Real*)data_buf + size_buf);
-    ifile.read(data_buf, size_buf);
-    innards.KKfunc_data.assign((amrex::Real*)data_buf,
-        (amrex::Real*)data_buf + size_buf);
-    delete[] data_buf;
-    //_______
+    vector<Real> tndt_coords(innards.ctrl.chi_part_tdndt_min);
+    vector<Real> tndt_data(innards.ctrl.chi_part_tdndt_min);
+    vector<Real> cum_tab_coords1(innards.ctrl.chi_part_tem_how_many);
+    vector<Real> cum_tab_coords2(innards.ctrl.prob_tem_how_many);
+    vector<Real> cum_tab_data(innards.ctrl.chi_part_tem_how_many*
+        innards.ctrl.prob_tem_how_many);
 
-    ifile.close();
+    tie(is_ok, tndt_coords, p_data) =
+        parse_raw_data_vec<Real>(
+            p_data, tndt_coords.size(), p_last);
+    if(!is_ok) return false;
+    innards.KKfunc_coords.assign(tndt_coords.begin(), tndt_coords.end());
 
+    tie(is_ok, tndt_data, p_data) =
+        parse_raw_data_vec<Real>(
+            p_data, tndt_data.size(), p_last);
+    if(!is_ok) return false;
+    innards.KKfunc_data.assign(tndt_data.begin(), tndt_data.end());
+
+    tie(is_ok, cum_tab_coords1, p_data) =
+        parse_raw_data_vec<Real>(
+            p_data, cum_tab_coords1.size(), p_last);
+    if(!is_ok) return false;
+    innards.cum_distrib_coords_1.assign(
+        cum_tab_coords1.begin(), cum_tab_coords1.end());
+
+    tie(is_ok, cum_tab_coords2, p_data) =
+        parse_raw_data_vec<Real>(
+            p_data, cum_tab_coords2.size(), p_last);
+    if(!is_ok) return false;
+    innards.cum_distrib_coords_2.assign(
+        cum_tab_coords2.begin(), cum_tab_coords2.end());
+
+    tie(is_ok, cum_tab_data, p_data) =
+        parse_raw_data_vec<Real>(
+            p_data, cum_tab_data.size(), p_last);
+    if(!is_ok) return false;
+    innards.cum_distrib_data.assign(
+        cum_tab_data.begin(), cum_tab_data.end());
+
+    //___________________________
     lookup_tables_initialized = true;
-}
 
-#ifdef WARPX_QED_TABLE_GEN
+    return true;
+}
 
 //Initializes the Lookup tables using the default settings
 //provided by the library
@@ -75,88 +143,44 @@ void QuantumSynchrotronEngine::compute_lookup_tables_default ()
 {
     //A control parameters structure
     //with the default values provided by the library
-    WarpXQuantumSynchrotronWrapperCtrl ctrl_default;
+    PicsarQuantumSynchrotronCtrl ctrl_default;
 
-    computes_lookup_tables(ctrl_default);
+    compute_lookup_tables(ctrl_default);
 
     lookup_tables_initialized = true;
 }
 
 // Computes the Lookup tables using user-defined settings
 void QuantumSynchrotronEngine::compute_custom_lookup_tables (
-    WarpXQuantumSynchrotronWrapperCtrl ctrl)
+    PicsarQuantumSynchrotronCtrl ctrl)
 {
-    computes_lookup_tables(ctrl);
+    compute_lookup_tables(ctrl);
 
     lookup_tables_initialized = true;
 }
 
-
 /* \brief Writes lookup tables on disk in 'file'
  *  return false if it fails. */
-bool QuantumSynchrotronEngine::write_lookup_tables (
-        std::string file) const
+std::vector<char> QuantumSynchrotronEngine::export_lookup_tables_data () const
 {
     if(!lookup_tables_initialized)
-        return false;
+        return std::vector<char>{};
 
-    std::ofstream of(file, std::ios::out | std::ios::binary);
-
-    //Header (control parameters)
-    of.write(reinterpret_cast<const char*>(&innards.ctrl.chi_part_min),
-        sizeof(innards.ctrl.chi_part_min));
-    of.write(reinterpret_cast<const char*>(&innards.ctrl.chi_part_tdndt_min),
-        sizeof(innards.ctrl.chi_part_tdndt_min));
-    of.write(reinterpret_cast<const char*>(&innards.ctrl.chi_part_tdndt_max),
-        sizeof(innards.ctrl.chi_part_tdndt_max));
-    of.write(reinterpret_cast<const char*>(&innards.ctrl.chi_part_tdndt_how_many),
-        sizeof(innards.ctrl.chi_part_tdndt_how_many));
-    of.write(reinterpret_cast<const char*>(&innards.ctrl.chi_part_tem_min),
-        sizeof(innards.ctrl.chi_part_tem_max));
-    of.write(reinterpret_cast<const char*>(&innards.ctrl.chi_part_tem_max),
-        sizeof(innards.ctrl.chi_part_tem_max));
-    of.write(reinterpret_cast<const char*>(&innards.ctrl.chi_part_tem_how_many),
-        sizeof(innards.ctrl.chi_part_tem_how_many));
-    of.write(reinterpret_cast<const char*>(&innards.ctrl.prob_tem_how_many),
-        sizeof(innards.ctrl.prob_tem_how_many));
-    //_______
-
-    //Data
-    of.write(reinterpret_cast<const char*>(innards.KKfunc_coords.dataPtr()),
-        sizeof(amrex::Real)*innards.KKfunc_coords.size());
-    of.write(reinterpret_cast<const char*>(innards.KKfunc_data.dataPtr()),
-        sizeof(amrex::Real)*innards.KKfunc_data.size());
-    // TODO: add other table
-    //_______
-
-    of.close();
-
-    return true;
+    //TODO
+    return std::vector<char>{};
 }
 
-    //Private function which actually computes the lookup tables
-void QuantumSynchrotronEngine::computes_lookup_tables (
-    WarpXQuantumSynchrotronWrapperCtrl ctrl)
+//Private function which actually computes the lookup tables
+void QuantumSynchrotronEngine::compute_lookup_tables (
+    PicsarQuantumSynchrotronCtrl ctrl)
 {
-    //Lambda is not actually used if S.I. units are enabled
-    WarpXQuantumSynchrotronWrapper qs_engine(
-        std::move(QedUtils::DummyStruct()), 1.0, ctrl);
-
-    qs_engine.compute_dN_dt_lookup_table();
-    //qs_engine.compute_cumulative_pair_table();
-
-    auto qs_innards_picsar = qs_engine.export_innards();
-
-    //Copy data in a GPU-friendly data-structure
-    innards.ctrl = qs_innards_picsar.qs_ctrl;
-    innards.KKfunc_coords.assign(qs_innards_picsar.KKfunc_table_coords_ptr,
-        qs_innards_picsar.KKfunc_table_coords_ptr +
-        qs_innards_picsar.KKfunc_table_coords_how_many);
-    innards.KKfunc_data.assign(qs_innards_picsar.KKfunc_table_data_ptr,
-        qs_innards_picsar.KKfunc_table_data_ptr +
-        qs_innards_picsar.KKfunc_table_data_how_many);
-    //____
-}
+#ifdef WARPX_QED_TABLE_GEN
+    table_builder.compute_table(ctrl, innards);
+#else
+    amrex::Print() <<
+        "Error: use QED_TABLE_GEN=TRUE to enable table generation!\n";
 #endif
+}
+
 
 //============================================

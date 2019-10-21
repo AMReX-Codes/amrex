@@ -9,9 +9,8 @@
 #ifdef __PICSAR_MULTIPHYSICS_BREIT_WHEELER_ENGINE__
     #warning breit_wheeler_engine.hpp should not have been included before reaching this point.
 #endif
-#include "breit_wheeler_engine.hpp"
+#include <breit_wheeler_engine.hpp>
 //_______________________________________________
-
 
 using PicsarBreitWheelerEngine = picsar::multi_physics::
     breit_wheeler_engine<amrex::Real, QedUtils::DummyStruct>;
@@ -41,5 +40,17 @@ BreitWheelerEngineTableBuilder::compute_table
     innards.TTfunc_data.assign(bw_innards_picsar.TTfunc_table_data_ptr,
         bw_innards_picsar.TTfunc_table_data_ptr +
         bw_innards_picsar.TTfunc_table_data_how_many);
+    innards.cum_distrib_coords_1.assign(
+        bw_innards_picsar.cum_distrib_table_coords_1_ptr,
+        bw_innards_picsar.cum_distrib_table_coords_1_ptr +
+        bw_innards_picsar.cum_distrib_table_coords_1_how_many);
+    innards.cum_distrib_coords_2.assign(
+        bw_innards_picsar.cum_distrib_table_coords_2_ptr,
+        bw_innards_picsar.cum_distrib_table_coords_2_ptr +
+        bw_innards_picsar.cum_distrib_table_coords_2_how_many);
+    innards.cum_distrib_data.assign(
+        bw_innards_picsar.cum_distrib_table_data_ptr,
+        bw_innards_picsar.cum_distrib_table_data_ptr +
+        bw_innards_picsar.cum_distrib_table_data_how_many);
     //____
 }

@@ -2,7 +2,10 @@
 
 #include "QedTableParserHelperFunctions.H"
 
+#include <AMReX_Print.H>
+
 #include <utility>
+#include <vector>
 
 using namespace std;
 using namespace QedUtils;
@@ -144,26 +147,24 @@ BreitWheelerEngine::init_lookup_tables_from_raw_data (
     return true;
 }
 
-
-#ifdef WARPX_QED_TABLE_GEN
 //Initializes the Lookup tables using the default settings
 //provided by the library
 void BreitWheelerEngine::compute_lookup_tables_default ()
 {
     //A control parameters structure
     //with the default values provided by the library
-    WarpXBreitWheelerWrapperCtrl ctrl_default;
+    PicsarBreitWheelerCtrl ctrl_default;
 
-    computes_lookup_tables(ctrl_default);
+    compute_lookup_tables(ctrl_default);
 
     lookup_tables_initialized = true;
 }
 
 // Computes the Lookup tables using user-defined settings
 void BreitWheelerEngine::compute_custom_lookup_tables (
-    WarpXBreitWheelerWrapperCtrl ctrl)
+    PicsarBreitWheelerCtrl ctrl)
 {
-    computes_lookup_tables(ctrl);
+    compute_lookup_tables(ctrl);
 
     lookup_tables_initialized = true;
 }
@@ -171,22 +172,27 @@ void BreitWheelerEngine::compute_custom_lookup_tables (
 
 /* \brief Writes lookup tables on disk in 'file'
  *  return false if it fails. */
-std::vector<char> export_lookup_tables_data () const
+std::vector<char> BreitWheelerEngine::export_lookup_tables_data () const
 {
     if(!lookup_tables_initialized)
-        return std::vector<char>;
+        return std::vector<char>{};
 
     //TODO
-    return std::vector<char>;
+    return std::vector<char>{};
 }
+
+
 
 //Private function which actually computes the lookup tables
-void BreitWheelerEngine::computes_lookup_tables (
+void BreitWheelerEngine::compute_lookup_tables (
     PicsarBreitWheelerCtrl ctrl)
 {
+#ifdef WARPX_QED_TABLE_GEN
     table_builder.compute_table(ctrl, innards);
-}
-
+#else
+    amrex::Print() <<
+        "Error: use QED_TABLE_GEN=TRUE to enable table generation!\n";
 #endif
+}
 
 //============================================

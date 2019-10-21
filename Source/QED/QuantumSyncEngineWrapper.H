@@ -2,18 +2,22 @@
 #define WARPX_quantum_sync_engine_wrapper_h_
 
 #include "QedWrapperCommons.H"
+#include "QuantumSyncEngineInnards.H"
 
 #include <AMReX_Array.H>
 #include <AMReX_Gpu.H>
-
-
-#include <string>
-#include <fstream>
 
 //QS ENGINE from PICSAR
 //Include only essential parts of the library in this file
 #define PXRMP_CORE_ONLY
 #include <quantum_sync_engine.hpp>
+
+#ifdef WARPX_QED_TABLE_GEN
+    #include "QuantumSyncEngineTableBuilder.H"
+#endif
+
+#include <string>
+#include <fstream>
 
 using PicsarQuantumSynchrotronEngine = picsar::multi_physics::
     quantum_synchrotron_engine<amrex::Real, QedUtils::DummyStruct>;
@@ -21,22 +25,6 @@ using PicsarQuantumSynchrotronEngine = picsar::multi_physics::
 using PicsarQuantumSynchrotronCtrl =
     picsar::multi_physics::quantum_synchrotron_engine_ctrl<amrex::Real>;
 
-// Struct to hold engine data ================
-
-struct QuantumSynchrotronEngineInnards
-{
-    // Control parameters
-    PicsarQuantumSynchrotronCtrl ctrl;
-
-    //Lookup table data
-    amrex::Gpu::ManagedDeviceVector<amrex::Real> KKfunc_coords;
-    amrex::Gpu::ManagedDeviceVector<amrex::Real> KKfunc_data;
-
-    amrex::Gpu::ManagedVector<amrex::Real> cum_distrib_coords_1;
-    amrex::Gpu::ManagedVector<amrex::Real> cum_distrib_coords_2;
-    amrex::Gpu::ManagedVector<amrex::Real> cum_distrib_data;
-    //______
-};
 
 // Functors ==================================
 
@@ -179,12 +167,23 @@ public:
     /* \brief Builds the functor to evolve the optical depth */
     QuantumSynchrotronEvolveOpticalDepth build_evolve_functor ();
 
-
     /* \brief Checks if lookup tables are properly initialized */
     bool are_lookup_tables_initialized () const;
 
-    /* \brief Reads lookup tables from 'file' on disk */
-    void read_lookup_tables (std::string file);
+      /* \brief Reads lookup tables from 'file' on disk */
+    bool init_lookup_tables_from_raw_data (const std::vector<char>& raw_data);
+
+    /* \brief Writes lookup tables on disk in 'file'
+     *  return false if it fails. */
+    std::vector<char> export_lookup_tables_data () const;
+
+    /* \brief Computes the Lookup tables using the default settings
+     *  provided by the PICSAR library */
+    void compute_lookup_tables_default ();
+
+    /* \brief Computes the Lookup tables using user-defined settings */
+    void compute_custom_lookup_tables (PicsarQuantumSynchrotronCtrl ctrl);
+
 
 private:
     bool lookup_tables_initialized = false;
@@ -192,23 +191,12 @@ private:
     QuantumSynchrotronEngineInnards innards;
 
 #ifdef WARPX_QED_TABLE_GEN
-public:
-    /* \brief Computes the Lookup tables using the default settings
-     *  provided by the PICSAR library */
-    void compute_lookup_tables_default ();
-
-    /* \brief Computes the Lookup tables using user-defined settings */
-    void compute_custom_lookup_tables (WarpXQuantumSynchrotronWrapperCtrl ctrl);
-        /* \brief Writes lookup tables on disk in 'file'
-     *  return false if it fails. */
-    bool write_lookup_tables (std::string file) const;
-
-private:
-    //Private function which actually computes the lookup tables
-    void computes_lookup_tables (
-        WarpXQuantumSynchrotronWrapperCtrl ctrl);
-
+    QuantumSynchrotronEngineTableBuilder table_builder;
 #endif
+
+    //Private function which actually computes the lookup tables
+    void compute_lookup_tables (PicsarQuantumSynchrotronCtrl ctrl);
+
 };
 
 //============================================

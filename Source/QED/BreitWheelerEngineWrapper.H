@@ -193,14 +193,12 @@ private:
     BreitWheelerEngineInnards innards;
 
 #ifdef WARPX_QED_TABLE_GEN
-
     BreitWheelerEngineTableBuilder table_builder;
+#endif
 
     //Private function which actually computes the lookup tables
-    BreitWheelerEngineInnards computes_lookup_tables (
-        PicsarBreitWheelerCtrl ctrl);
+    void compute_lookup_tables (PicsarBreitWheelerCtrl ctrl);
 
-#endif
 };
 
 //============================================
