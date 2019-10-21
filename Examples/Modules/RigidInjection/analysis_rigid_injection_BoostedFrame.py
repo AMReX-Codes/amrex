@@ -19,8 +19,8 @@ import read_raw_data
 yt.funcs.mylog.setLevel(0)
 
 # Read data from back-transformed diagnostics
-snapshot = './lab_frame_data/snapshot00001'
-header   = './lab_frame_data/Header'
+snapshot = './lab_frame_data/snapshots/snapshot00001'
+header   = './lab_frame_data/snapshots/Header'
 allrd, info = read_raw_data.read_lab_snapshot(snapshot, header)
 z = np.mean( read_raw_data.get_particle_field(snapshot, 'beam', 'z') )
 w = np.std ( read_raw_data.get_particle_field(snapshot, 'beam', 'x') )
