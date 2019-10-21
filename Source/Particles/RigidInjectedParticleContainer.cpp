@@ -13,6 +13,7 @@
 #include <WarpXAlgorithmSelection.H>
 #include <UpdateMomentumBoris.H>
 #include <UpdateMomentumVay.H>
+#include <UpdateMomentumHigueraCary.H>
 
 using namespace amrex;
 
@@ -390,9 +391,9 @@ RigidInjectedParticleContainer::PushP (int lev, Real dt,
             const FArrayBox& byfab = By[pti];
             const FArrayBox& bzfab = Bz[pti];
 
-            Exp.assign(np,0.0);
-            Eyp.assign(np,0.0);
-            Ezp.assign(np,0.0);
+            Exp.assign(np,WarpX::E_external[0]);
+            Eyp.assign(np,WarpX::E_external[1]);
+            Ezp.assign(np,WarpX::E_external[2]);
             Bxp.assign(np,WarpX::B_external[0]);
             Byp.assign(np,WarpX::B_external[1]);
             Bzp.assign(np,WarpX::B_external[2]);
@@ -440,6 +441,13 @@ RigidInjectedParticleContainer::PushP (int lev, Real dt,
                 amrex::ParallelFor( pti.numParticles(),
                     [=] AMREX_GPU_DEVICE (long i) {
                         UpdateMomentumVay( uxpp[i], uypp[i], uzpp[i],
+                              Expp[i], Eypp[i], Ezpp[i], Bxpp[i], Bypp[i], Bzpp[i], q, m, dt);
+                    }
+                );
+            } else if (WarpX::particle_pusher_algo == ParticlePusherAlgo::HigueraCary) {
+                amrex::ParallelFor( pti.numParticles(),
+                    [=] AMREX_GPU_DEVICE (long i) {
+                        UpdateMomentumHigueraCary( uxpp[i], uypp[i], uzpp[i],
                               Expp[i], Eypp[i], Ezpp[i], Bxpp[i], Bypp[i], Bzpp[i], q, m, dt);
                     }
                 );

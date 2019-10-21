@@ -373,6 +373,24 @@ Particle initialization
     species (must be smaller than the atomic number of chemical element given
     in `physical_element`).
 
+* ``<species>.do_qed`` (`int`) optional (default `0`)
+    If `<species>.do_qed = 0` all the QED effects are disabled for this species.
+    If `<species>.do_qed = 1` QED effects can be enabled for this species (see below)
+    **Implementation of this feature is in progress. It requires to compile with QED=TRUE**
+
+* ``<species>.do_qed_quantum_sync`` (`int`) optional (default `0`)
+    It only works if `<species>.do_qed = 1`. Enables Quantum synchrotron emission for this species.
+    **Implementation of this feature is in progress. It requires to compile with QED=TRUE**
+
+* ``<species>.do_qed_breit_wheeler`` (`int`) optional (default `0`)
+    It only works if `<species>.do_qed = 1`. Enables non-linear Breit-Wheeler process for this species.
+    **Implementation of this feature is in progress. It requires to compile with QED=TRUE**
+
+* ``warpx.E_external`` & ``warpx.B_external`` (list of `float`) optional (default `0.0`)
+    Two separate parameters which add a uniform E-field or B-field to each particle
+    which is then added to the field values gathered from the grid in the
+    PIC cycle.
+
 Laser initialization
 --------------------
 
@@ -603,6 +621,7 @@ Numerics and algorithms
 
      - ``boris``: Boris pusher.
      - ``vay``: Vay pusher (see `Vay, Phys. Plasmas (2008) <https://aip.scitation.org/doi/10.1063/1.2837054>`__)
+     - ``higuera``: Higuera-Cary pusher (see `Higuera and Cary, Phys. Plasmas (2017) <https://aip.scitation.org/doi/10.1063/1.4979989>`__)
 
      If ``algo.particle_pusher`` is not specified, ``boris`` is the default.
 

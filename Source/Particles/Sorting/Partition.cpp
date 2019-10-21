@@ -56,7 +56,7 @@ PhysicalParticleContainer::PartitionParticlesInBuffers(
         gather_masks : current_masks;
     // - For each particle, find whether it is in the larger buffer,
     //   by looking up the mask. Store the answer in `inexflag`.
-    amrex::ParallelFor( np, fillBufferFlag(pti, bmasks, inexflag, Geom(lev), 0) );
+    amrex::ParallelFor( np, fillBufferFlag(pti, bmasks, inexflag, Geom(lev)) );
     // - Find the indices that reorder particles so that the last particles
     //   are in the larger buffer
     fillWithConsecutiveIntegers( pid );
@@ -93,7 +93,7 @@ PhysicalParticleContainer::PartitionParticlesInBuffers(
             // - For each particle in the large buffer, find whether it is in
             // the smaller buffer, by looking up the mask. Store the answer in `inexflag`.
             amrex::ParallelFor( np - n_fine,
-               fillBufferFlag(pti, bmasks, inexflag, Geom(lev), n_fine) );
+               fillBufferFlagRemainingParticles(pti, bmasks, inexflag, Geom(lev), pid, n_fine) );
             auto const sep2 = stablePartition( sep, pid.end(), inexflag );
 
             if (bmasks == gather_masks) {
