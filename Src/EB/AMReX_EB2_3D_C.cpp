@@ -4,6 +4,126 @@ namespace amrex { namespace EB2 {
 
 namespace {
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void set_eb_data (const int i, const int j, const int k,
+                  Array4<EBCellFlag> const& cell, Array4<Real> const& apx,
+                  Array4<Real> const& apy, Array4<Real> const& apz,
+                  Array4<Real const> const& fcx, Array4<Real const> const& fcy,
+                  Array4<Real const> const& fcz, Array4<Real const> const& m2x,
+                  Array4<Real const> const& m2y, Array4<Real const> const& m2z,
+                  Array4<Real> const& vfrac, Array4<Real> const& vcent,
+                  Array4<Real> const& barea, Array4<Real> const& bcent,
+                  Array4<Real> const& bnorm)
+{
+    Real axm = apx(i,j,k);
+    Real axp = apx(i+1,j,k);
+    Real aym = apy(i,j,k);
+    Real ayp = apy(i,j+1,k);
+    Real azm = apz(i,j,k);
+    Real azp = apz(i,j,k+1);
+
+    // Check for multple cuts
+    // We know there are no multiple cuts on faces by now.
+    // So we only need to check the case that there are two cuts
+    // at the opposite corners.
+    bool multi_cuts = (axm >= 0.5 and axm < 1.0 and
+                       axp >= 0.5 and axp < 1.0 and
+                       aym >= 0.5 and aym < 1.0 and
+                       ayp >= 0.5 and ayp < 1.0 and
+                       azm >= 0.5 and azm < 1.0 and
+                       azp >= 0.5 and azp < 1.0);
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!multi_cuts,
+                                     "amrex::EB2::build_cells: multi-cuts not supported");
+
+    Real dapx = axm - axp;
+    Real dapy = aym - ayp;
+            Real dapz = azm - azp;
+    Real apnorm = std::sqrt(dapx*dapx+dapy*dapy+dapz*dapz);
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(apnorm != 0.0,
+                                     "amrex::EB2:build_cells: apnorm==0");
+    Real apnorminv = 1.0/apnorm;
+    Real nx = dapx * apnorminv;
+    Real ny = dapy * apnorminv;
+    Real nz = dapz * apnorminv;
+    bnorm(i,j,k,0) = nx;
+    bnorm(i,j,k,1) = ny;
+    bnorm(i,j,k,2) = nz;
+    barea(i,j,k) = nx*dapx + ny*dapy + nz*dapz;
+
+    Real aax = 0.5*(axm+axp);
+    Real aay = 0.5*(aym+ayp);
+    Real aaz = 0.5*(azm+azp);
+    Real B0 = aax + aay + aaz;
+    Real Bx = -nx*aax + ny*(aym*fcy(i,j,k,0)-ayp*fcy(i,j+1,k,0))
+                      + nz*(azm*fcz(i,j,k,0)-azp*fcz(i,j,k+1,0));
+    Real By = -ny*aay + nx*(axm*fcx(i,j,k,0)-axp*fcx(i+1,j,k,0))
+                      + nz*(azm*fcz(i,j,k,1)-azp*fcz(i,j,k+1,1));
+    Real Bz = -nz*aaz + nx*(axm*fcx(i,j,k,1)-axp*fcx(i+1,j,k,1))
+                      + ny*(aym*fcy(i,j,k,1)-ayp*fcy(i,j+1,k,1));
+
+    vfrac(i,j,k) = 0.5*(B0 + nx*Bx + ny*By + nz*Bz);
+
+    Real bainv = 1.0/barea(i,j,k);
+    bcent(i,j,k,0) = bainv * (Bx + nx*vfrac(i,j,k));
+    bcent(i,j,k,1) = bainv * (By + ny*vfrac(i,j,k));
+    bcent(i,j,k,2) = bainv * (Bz + nz*vfrac(i,j,k));
+
+    Real b1 = 0.5*(axp-axm) + 0.5*(ayp*fcy(i,j+1,k,0) + aym*fcy(i,j,k,0)) + 0.5*(azp*fcz(i,j,k+1,0) + azm*fcz(i,j,k,0));
+    Real b2 = 0.5*(axp*fcx(i+1,j,k,0) + axm*fcx(i,j,k,0)) + 0.5*(ayp-aym) + 0.5*(azp*fcz(i,j,k+1,1) + azm*fcz(i,j,k,1));
+    Real b3 = 0.5*(axp*fcx(i+1,j,k,1) + axm*fcx(i,j,k,1)) + 0.5*(ayp*fcy(i,j+1,k,1) + aym*fcy(i,j,k,1)) + 0.5*(azp-azm);
+    Real b4 = -nx*0.25*(axp-axm) - ny*(m2y(i,j+1,k,0) - m2y(i,j,k,0)) - nz*(m2z(i,j,k+1,0) - m2z(i,j,k,0));
+    Real b5 = -nx*(m2x(i+1,j,k,0) - m2x(i,j,k,0)) - ny*0.25*(ayp-aym) - nz*(m2z(i,j,k+1,1) - m2z(i,j,k,1));
+    Real b6 = -nx*(m2x(i+1,j,k,1) - m2x(i,j,k,1)) - ny*(m2y(i,j+1,k,1) - m2y(i,j,k,1)) - nz*0.25*(azp-azm);
+    Real b7 = -nx*0.5*(axp*fcx(i+1,j,k,0) + axm*fcx(i,j,k,0)) - ny*0.5*(ayp*fcy(i,j+1,k,0) + aym*fcy(i,j,k,0)) - nz*(m2z(i,j,k+1,2) - m2z(i,j,k,2));
+    Real b8 = -nx*0.5*(axp*fcx(i+1,j,k,1) + axm*fcx(i,j,k,1)) - ny*(m2y(i,j+1,k,2) - m2y(i,j,k,2)) - nz*0.5*(azp*fcz(i,j,k+1,0) + azm*fcz(i,j,k,0));
+    Real b9 = -nx*(m2x(i+1,j,k,2) - m2x(i,j,k,2)) - ny*0.5*(ayp*fcy(i,j+1,k,1) + aym*fcy(i,j,k,1)) - nz*0.5*(azp*fcz(i,j,k+1,1) + azm*fcz(i,j,k,1));
+
+    Real ny2 = ny*ny;
+    Real ny3 = ny2*ny;
+    Real ny4 = ny3*ny;
+    Real nz2 = nz*nz;
+    Real nz3 = nz2*nz;
+    Real nz4 = nz3*nz;
+    Real nz5 = nz4*nz;
+
+    Real Sx = (5.*(b1*(5. - 3.*ny2) + 2.*b4*nx*(5. - 3.*ny2) +
+                   ny*(nx*(b2 + 2.*b5*ny) + b7*(6. - 4.*ny2))) +
+               (2.*b8*(15. - 11.*ny2 + ny4) +
+                nx*(b3*(5. - 2.*ny2) - 2.*b9*ny*(-5. + ny2)))*nz +
+               (-22.*b7*ny - 2.*nx*(15.*b4 - 5.*b6 + b2*ny) +
+                ny2*((16.*b4 - 4.*(b5 + b6))*nx + 10.*b7*ny) +
+                b1*(-15. + 8.*ny2))*nz2 +
+               2.*(-(b9*nx*ny) + 5.*b8*(-2. + ny2))*nz3 +
+               2.*b7*ny*nz4);
+
+    Real Sy = (5.*(2.*b7*nx*(1. + 2.*ny2) + b2*(2. + 3.*ny2) +
+                   ny*(b1*nx - 2.*b4*(-1. + ny2) + b5*(4. + 6.*ny2))) +
+               (2.*b9*(5. + 9.*ny2 + ny4) +
+                ny*(2.*b8*nx*(4. + ny2) + b3*(3. + 2.*ny2)))*nz +
+               (2.*b7*nx*(4. - 5.*ny2) - 8.*b2*(-1. + ny2) +
+                2.*ny*(-7.*b4 + 8.*b5 + 3.*b6 - b1*nx +
+                       2.*(b4 - 4.*b5 + b6)*ny2))*nz2 +
+               2.*(b3*ny + b9*(4. - 3.*ny2))*nz3 +
+               (-8.*(b2 + b7*nx) + 4.*(b4 - 4.*b5 + b6)*ny)*nz4 -
+               8.*b9*nz5);
+
+    Real Sz = (-2.*(b3 + b8*nx + b9*ny)*(-5. - 4.*ny2 + 4.*ny4) +
+               (5.*(2.*b4 + 4.*b6 + b1*nx) + (3.*b2 + 8.*b7*nx)*ny -
+                2.*(7.*b4 - 3.*b5 - 8.*b6 + b1*nx)*ny2 +
+                2.*b2*ny3 + 4.*(b4 + b5 - 4.*b6)*ny4)*nz +
+               (b3*(15. - 8.*ny2) - 6.*b9*ny*(-3. + ny2) -
+                10.*b8*nx*(-2. + ny2))*nz2 +
+               2.*(-5.*b4 + 15.*b6 + (b2 + b7*nx)*ny +
+                   2.*(b4 + b5 - 4.*b6)*ny2)*nz3 + 2.*b9*ny*nz4);
+
+    Real den = 1. / (10.*(5. + 4.*nz2 - 4.*nz4 + 2.*ny4*(-2. + nz2) +
+                                  2.*ny2*(2. - 3.*nz2 + nz4)) * (vfrac(i,j,k)+1.e-50) );
+
+    vcent(i,j,k,0) = Sx * den;
+    vcent(i,j,k,1) = Sy * den;
+    vcent(i,j,k,2) = Sz * den;
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void cut_face_2d (Real& areafrac, Real& centx, Real& centy,
                   Real& Sx2, Real& Sy2, Real& Sxy,
                   Real axm, Real axp, Real aym, Real ayp,
@@ -519,113 +639,10 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
             bnorm(i,j,k,2) = 0.0;
             barea(i,j,k) = 0.0;            
         } else {
-            Real axm = apx(i,j,k);
-            Real axp = apx(i+1,j,k);
-            Real aym = apy(i,j,k);
-            Real ayp = apy(i,j+1,k);
-            Real azm = apz(i,j,k);
-            Real azp = apz(i,j,k+1);
 
-            // Check for multple cuts
-            // We know there are no multiple cuts on faces by now.
-            // So we only need to check the case that there are two cuts
-            // at the opposite corners.
-            bool multi_cuts = (axm >= 0.5 and axm < 1.0 and
-                               axp >= 0.5 and axp < 1.0 and
-                               aym >= 0.5 and aym < 1.0 and
-                               ayp >= 0.5 and ayp < 1.0 and
-                               azm >= 0.5 and azm < 1.0 and
-                               azp >= 0.5 and azp < 1.0);
-            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!multi_cuts,
-                                             "amrex::EB2::build_cells: multi-cuts not supported");
-
-            Real dapx = axm - axp;
-            Real dapy = aym - ayp;
-            Real dapz = azm - azp;
-            Real apnorm = std::sqrt(dapx*dapx+dapy*dapy+dapz*dapz);
-            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(apnorm != 0.0,
-                                             "amrex::EB2:build_cells: apnorm==0");
-            Real apnorminv = 1.0/apnorm;
-            Real nx = dapx * apnorminv;
-            Real ny = dapy * apnorminv;
-            Real nz = dapz * apnorminv;
-            bnorm(i,j,k,0) = nx;
-            bnorm(i,j,k,1) = ny;
-            bnorm(i,j,k,2) = nz;
-            barea(i,j,k) = nx*dapx + ny*dapy + nz*dapz;
-
-            Real aax = 0.5*(axm+axp);
-            Real aay = 0.5*(aym+ayp);
-            Real aaz = 0.5*(azm+azp);
-            Real B0 = aax + aay + aaz;
-            Real Bx = -nx*aax + ny*(aym*fcy(i,j,k,0)-ayp*fcy(i,j+1,k,0))
-                              + nz*(azm*fcz(i,j,k,0)-azp*fcz(i,j,k+1,0));
-            Real By = -ny*aay + nx*(axm*fcx(i,j,k,0)-axp*fcx(i+1,j,k,0))
-                              + nz*(azm*fcz(i,j,k,1)-azp*fcz(i,j,k+1,1));
-            Real Bz = -nz*aaz + nx*(axm*fcx(i,j,k,1)-axp*fcx(i+1,j,k,1))
-                              + ny*(aym*fcy(i,j,k,1)-ayp*fcy(i,j+1,k,1));
-
-            vfrac(i,j,k) = 0.5*(B0 + nx*Bx + ny*By + nz*Bz);
-
-            Real bainv = 1.0/barea(i,j,k);
-            bcent(i,j,k,0) = bainv * (Bx + nx*vfrac(i,j,k));
-            bcent(i,j,k,1) = bainv * (By + ny*vfrac(i,j,k));
-            bcent(i,j,k,2) = bainv * (Bz + nz*vfrac(i,j,k));
-
-            Real b1 = 0.5*(axp-axm) + 0.5*(ayp*fcy(i,j+1,k,0) + aym*fcy(i,j,k,0)) + 0.5*(azp*fcz(i,j,k+1,0) + azm*fcz(i,j,k,0));
-            Real b2 = 0.5*(axp*fcx(i+1,j,k,0) + axm*fcx(i,j,k,0)) + 0.5*(ayp-aym) + 0.5*(azp*fcz(i,j,k+1,1) + azm*fcz(i,j,k,1));
-            Real b3 = 0.5*(axp*fcx(i+1,j,k,1) + axm*fcx(i,j,k,1)) + 0.5*(ayp*fcy(i,j+1,k,1) + aym*fcy(i,j,k,1)) + 0.5*(azp-azm);
-            Real b4 = -nx*0.25*(axp-axm) - ny*(m2y(i,j+1,k,0) - m2y(i,j,k,0)) - nz*(m2z(i,j,k+1,0) - m2z(i,j,k,0));
-            Real b5 = -nx*(m2x(i+1,j,k,0) - m2x(i,j,k,0)) - ny*0.25*(ayp-aym) - nz*(m2z(i,j,k+1,1) - m2z(i,j,k,1));
-            Real b6 = -nx*(m2x(i+1,j,k,1) - m2x(i,j,k,1)) - ny*(m2y(i,j+1,k,1) - m2y(i,j,k,1)) - nz*0.25*(azp-azm);
-            Real b7 = -nx*0.5*(axp*fcx(i+1,j,k,0) + axm*fcx(i,j,k,0)) - ny*0.5*(ayp*fcy(i,j+1,k,0) + aym*fcy(i,j,k,0)) - nz*(m2z(i,j,k+1,2) - m2z(i,j,k,2));
-            Real b8 = -nx*0.5*(axp*fcx(i+1,j,k,1) + axm*fcx(i,j,k,1)) - ny*(m2y(i,j+1,k,2) - m2y(i,j,k,2)) - nz*0.5*(azp*fcz(i,j,k+1,0) + azm*fcz(i,j,k,0));
-            Real b9 = -nx*(m2x(i+1,j,k,2) - m2x(i,j,k,2)) - ny*0.5*(ayp*fcy(i,j+1,k,1) + aym*fcy(i,j,k,1)) - nz*0.5*(azp*fcz(i,j,k+1,1) + azm*fcz(i,j,k,1));
-
-            Real ny2 = ny*ny;
-            Real ny3 = ny2*ny;
-            Real ny4 = ny3*ny;
-            Real nz2 = nz*nz;
-            Real nz3 = nz2*nz;
-            Real nz4 = nz3*nz;
-            Real nz5 = nz4*nz;
-
-            Real Sx = (5.*(b1*(5. - 3.*ny2) + 2.*b4*nx*(5. - 3.*ny2) +
-                           ny*(nx*(b2 + 2.*b5*ny) + b7*(6. - 4.*ny2))) +
-                       (2.*b8*(15. - 11.*ny2 + ny4) +
-                        nx*(b3*(5. - 2.*ny2) - 2.*b9*ny*(-5. + ny2)))*nz +
-                       (-22.*b7*ny - 2.*nx*(15.*b4 - 5.*b6 + b2*ny) +
-                        ny2*((16.*b4 - 4.*(b5 + b6))*nx + 10.*b7*ny) +
-                        b1*(-15. + 8.*ny2))*nz2 +
-                       2.*(-(b9*nx*ny) + 5.*b8*(-2. + ny2))*nz3 +
-                       2.*b7*ny*nz4);
-
-            Real Sy = (5.*(2.*b7*nx*(1. + 2.*ny2) + b2*(2. + 3.*ny2) +
-                           ny*(b1*nx - 2.*b4*(-1. + ny2) + b5*(4. + 6.*ny2))) +
-                       (2.*b9*(5. + 9.*ny2 + ny4) +
-                        ny*(2.*b8*nx*(4. + ny2) + b3*(3. + 2.*ny2)))*nz +
-                       (2.*b7*nx*(4. - 5.*ny2) - 8.*b2*(-1. + ny2) +
-                        2.*ny*(-7.*b4 + 8.*b5 + 3.*b6 - b1*nx +
-                               2.*(b4 - 4.*b5 + b6)*ny2))*nz2 +
-                       2.*(b3*ny + b9*(4. - 3.*ny2))*nz3 +
-                       (-8.*(b2 + b7*nx) + 4.*(b4 - 4.*b5 + b6)*ny)*nz4 -
-                       8.*b9*nz5);
-
-            Real Sz = (-2.*(b3 + b8*nx + b9*ny)*(-5. - 4.*ny2 + 4.*ny4) +
-                       (5.*(2.*b4 + 4.*b6 + b1*nx) + (3.*b2 + 8.*b7*nx)*ny -
-                        2.*(7.*b4 - 3.*b5 - 8.*b6 + b1*nx)*ny2 +
-                        2.*b2*ny3 + 4.*(b4 + b5 - 4.*b6)*ny4)*nz +
-                       (b3*(15. - 8.*ny2) - 6.*b9*ny*(-3. + ny2) -
-                        10.*b8*nx*(-2. + ny2))*nz2 +
-                       2.*(-5.*b4 + 15.*b6 + (b2 + b7*nx)*ny +
-                           2.*(b4 + b5 - 4.*b6)*ny2)*nz3 + 2.*b9*ny*nz4);
-
-            Real den = 1. / (10.*(5. + 4.*nz2 - 4.*nz4 + 2.*ny4*(-2. + nz2) +
-                                  2.*ny2*(2. - 3.*nz2 + nz4)) * (vfrac(i,j,k)+1.e-50) );
-
-            vcent(i,j,k,0) = Sx * den;
-            vcent(i,j,k,1) = Sy * den;
-            vcent(i,j,k,2) = Sz * den;
+            set_eb_data(i,j,k,cell,apx,apy,apz,
+                        fcx,fcy,fcz,m2x,m2y,m2z,vfrac,vcent,
+                        barea,bcent,bnorm);
 
             // remove small cells
             if (vfrac(i,j,k) < small_volfrac) {
@@ -659,6 +676,20 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
             if (vfrac(i-1,j,k) < small_volfrac or vfrac(i,j,k) < small_volfrac) {
                 fx(i,j,k) = Type::covered;
                 apx(i,j,k) = 0.0;
+                if (cell(i  ,j,k).isRegular())
+                {
+                    cell(i  ,j,k).setSingleValued();
+                    set_eb_data(i,j,k,cell,apx,apy,apz,
+                                fcx,fcy,fcz,m2x,m2y,m2z,vfrac,vcent,
+                                barea,bcent,bnorm);
+                }
+                if (cell(i-1,j,k).isRegular())
+                {
+                    cell(i-1,j,k).setSingleValued();
+                    set_eb_data(i-1,j,k,cell,apx,apy,apz,
+                                fcx,fcy,fcz,m2x,m2y,m2z,vfrac,vcent,
+                                barea,bcent,bnorm);
+                }
             }
         }}}
 
@@ -671,6 +702,20 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
             if (vfrac(i,j-1,k) < small_volfrac or vfrac(i,j,k) < small_volfrac) {
                 fy(i,j,k) = Type::covered;
                 apy(i,j,k) = 0.0;
+                if (cell(i,j  ,k).isRegular())
+                {
+                    cell(i,j  ,k).setSingleValued();
+                    set_eb_data(i,j,k,cell,apx,apy,apz,
+                                fcx,fcy,fcz,m2x,m2y,m2z,vfrac,vcent,
+                                barea,bcent,bnorm);
+                }
+                if (cell(i,j-1,k).isRegular())
+                {
+                    cell(i,j-1,k).setSingleValued();
+                    set_eb_data(i,j-1,k,cell,apx,apy,apz,
+                                fcx,fcy,fcz,m2x,m2y,m2z,vfrac,vcent,
+                                barea,bcent,bnorm);
+                }
             }
         }}}
 
@@ -683,6 +728,21 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
             if (vfrac(i,j,k-1) < small_volfrac or vfrac(i,j,k) < small_volfrac) {
                 fz(i,j,k) = Type::covered;
                 apz(i,j,k) = 0.0;
+
+                if (cell(i,j,k  ).isRegular())
+                {
+                    cell(i,j,k  ).setSingleValued();
+                    set_eb_data(i,j,k,cell,apx,apy,apz,
+                                fcx,fcy,fcz,m2x,m2y,m2z,vfrac,vcent,
+                                barea,bcent,bnorm);
+                }
+                if (cell(i,j,k-1).isRegular())
+                {
+                    cell(i,j,k-1).setSingleValued();
+                    set_eb_data(i,j,k-1,cell,apx,apy,apz,
+                                fcx,fcy,fcz,m2x,m2y,m2z,vfrac,vcent,
+                                barea,bcent,bnorm);
+                }
             }
         }}}
     });

@@ -1,6 +1,7 @@
 
 #include <string>
 #include <iostream>
+#include <cmath>
 
 #include <ComputeAmrDataStat.H>
 #include <WritePlotFile.H>
@@ -1306,7 +1307,7 @@ VariogramUniformMFG (const MultiFab&      mf,
 		  }
 		}
 		else if (ivtype == 8)
-		  gam[i] = gam[i] + abs(vrt-vrh);
+		  gam[i] = gam[i] + std::abs(vrt-vrh);
  
 	      }
 	    }
