@@ -82,7 +82,8 @@ protected:
 public: // for cuda
 
     void applyBCTensor (int amrlev, int mglev, MultiFab& vel,
-                        BCMode bc_mode, const MLMGBndry* bndry) const;
+                        BCMode bc_mode, StateMode s_mode, const MLMGBndry* bndry
+			) const;
 };
 
 }
