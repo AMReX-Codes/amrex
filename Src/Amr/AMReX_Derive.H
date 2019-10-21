@@ -174,6 +174,7 @@ public:
     * \brief The boundary conditions.
     */
     const int* getBC () const noexcept;
+    const int* getBC3D () const noexcept;
 
     /**
     * \brief Sets state_indx, src_comp and num_comp for the kth
@@ -277,6 +278,7 @@ protected:
                    int                   num_comp);
 
     void buildBC (const DescriptorList& d_list);
+    void buildBC3D (const DescriptorList& d_list);
 
     //! An element of a linked list to point to state quantities in AmrLevels.
     struct StateRange
@@ -323,6 +325,7 @@ private:
 
     //! Array of bndry types.
     int* bcr = nullptr;
+    int* bcr3D = nullptr;
 };
 
 

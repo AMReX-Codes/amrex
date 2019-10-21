@@ -12,19 +12,18 @@ namespace amrex {
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
-    int ic,jc,kc;
 
     for     (int k = lo.z; k <= hi.z; ++k) {
-      kc = ( (rr.z == 0) ? 0 : floor(double(k)/rr.z) );
+      int kc = (rr.z == 0) ? 0 : amrex::coarsen(k, rr.z);
       for   (int j = lo.y; j <= hi.y; ++j) {
-	jc =  ( (rr.y == 0) ? 0 : floor(double(j)/rr.y) );
+	int jc = amrex::coarsen(j, rr.y);
 	for (int i = lo.x; i <= hi.x; i++) {
 	    // if mask == 0, cell covered, do nothing
-	    if (mask(i,j,k) == 1) { 
-	        ic = floor(double(i)/rr.x);
+	    if (mask(i,j,k) == BndryData::not_covered) {
+	        int ic = amrex::coarsen(i, rr.x);
 		bcval(i,j,k,n) = crsebcval(ic,jc,kc,n);
 	    }
-	    // else mask == 2
+	    // else mask == BndryData::ourside_domain
 	    // on physical domain; handled in mltensor_fill
 	}
       }
