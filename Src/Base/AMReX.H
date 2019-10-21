@@ -54,6 +54,7 @@ namespace amrex
         extern std::ostream* oserr;
         
         extern ErrorHandler error_handler;
+        extern int abort_on_unused_inputs;
     }
 
     std::string Version ();

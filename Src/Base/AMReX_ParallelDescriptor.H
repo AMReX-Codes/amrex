@@ -500,9 +500,6 @@ while ( false )
     void ReduceLongAnd (long* rvar, int cnt, int cpu);
     void ReduceLongAnd (Vector<std::reference_wrapper<long> >&& rvar, int cpu);
 
-    // There are no color versions of reducion to specified cpu, because it could
-    // be confusing what cpu means.  Is it in the global or colored communicator?
-
     //! Parallel gather.
     void Gather (Real* sendbuf,
                  int   sendcount,

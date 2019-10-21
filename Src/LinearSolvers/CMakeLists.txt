@@ -47,6 +47,7 @@ target_sources(amrex
    MLMG/AMReX_MLTensorOp.cpp
    MLMG/AMReX_MLTensor_K.H
    MLMG/AMReX_MLTensor_${DIM}D_K.H
+   MLMG/AMReX_MLTensor_nd_K.H
    Projections/AMReX_MacProjector.H
    Projections/AMReX_MacProjector.cpp
    )

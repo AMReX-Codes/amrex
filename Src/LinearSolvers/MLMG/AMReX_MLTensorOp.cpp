@@ -116,7 +116,7 @@ MLTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc
 
     if (mglev >= m_kappa[amrlev].size()) return;
 
-    applyBCTensor(amrlev, mglev, in, bc_mode, bndry);
+    applyBCTensor(amrlev, mglev, in, bc_mode, s_mode, bndry );
 
     const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
 
@@ -180,10 +180,10 @@ MLTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc
 
 void
 MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
-                           BCMode bc_mode, const MLMGBndry* bndry) const
+                           BCMode bc_mode, StateMode, const MLMGBndry* bndry) const
 {
 #if (AMREX_SPACEDIM > 1)
-
+ 
     const int inhomog = bc_mode == BCMode::Inhomogeneous;
     const int imaxorder = maxorder;
     const auto& bcondloc = *m_bcondloc[amrlev][mglev];
@@ -195,7 +195,7 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
     const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
     const Box& domain = m_geom[amrlev][mglev].growPeriodicDomain(1);
 
-    // Domain boundaries are handled below.
+    // Domain and coarse-fine boundaries are handled below.
 
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
@@ -222,20 +222,21 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
             }
         }
 
-#if (AMREX_SPACEDIM == 2)
         const auto& mxlo = maskvals[Orientation(0,Orientation::low )].array(mfi);
         const auto& mylo = maskvals[Orientation(1,Orientation::low )].array(mfi);
         const auto& mxhi = maskvals[Orientation(0,Orientation::high)].array(mfi);
         const auto& myhi = maskvals[Orientation(1,Orientation::high)].array(mfi);
 
         const auto& bvxlo = (bndry != nullptr) ?
-            bndry->bndryValues(Orientation(0,Orientation::low )).array(mfi) : foo;
+	  (*bndry)[Orientation(0,Orientation::low )].array(mfi) : foo;
         const auto& bvylo = (bndry != nullptr) ?
-            bndry->bndryValues(Orientation(1,Orientation::low )).array(mfi) : foo;
+	  (*bndry)[Orientation(1,Orientation::low )].array(mfi) : foo;
         const auto& bvxhi = (bndry != nullptr) ?
-            bndry->bndryValues(Orientation(0,Orientation::high)).array(mfi) : foo;
+	  (*bndry)[Orientation(0,Orientation::high)].array(mfi) : foo;
         const auto& bvyhi = (bndry != nullptr) ?
-            bndry->bndryValues(Orientation(1,Orientation::high)).array(mfi) : foo;
+	  (*bndry)[Orientation(1,Orientation::high)].array(mfi) : foo;
+
+#if (AMREX_SPACEDIM == 2)
 
         AMREX_HOST_DEVICE_FOR_1D ( 4, icorner,
         {
@@ -246,41 +247,24 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
                                   dxinv, domain);
         });
 #else
-        const auto& mxlo = maskvals[Orientation(0,Orientation::low )].array(mfi);
-        const auto& mylo = maskvals[Orientation(1,Orientation::low )].array(mfi);
         const auto& mzlo = maskvals[Orientation(2,Orientation::low )].array(mfi);
-        const auto& mxhi = maskvals[Orientation(0,Orientation::high)].array(mfi);
-        const auto& myhi = maskvals[Orientation(1,Orientation::high)].array(mfi);
         const auto& mzhi = maskvals[Orientation(2,Orientation::high)].array(mfi);
 
-        const auto& bvxlo = (bndry != nullptr) ?
-            bndry->bndryValues(Orientation(0,Orientation::low )).array(mfi) : foo;
-        const auto& bvylo = (bndry != nullptr) ?
-            bndry->bndryValues(Orientation(1,Orientation::low )).array(mfi) : foo;
         const auto& bvzlo = (bndry != nullptr) ?
-            bndry->bndryValues(Orientation(2,Orientation::low )).array(mfi) : foo;
-        const auto& bvxhi = (bndry != nullptr) ?
-            bndry->bndryValues(Orientation(0,Orientation::high)).array(mfi) : foo;
-        const auto& bvyhi = (bndry != nullptr) ?
-            bndry->bndryValues(Orientation(1,Orientation::high)).array(mfi) : foo;
+	  (*bndry)[Orientation(2,Orientation::low )].array(mfi) : foo;
         const auto& bvzhi = (bndry != nullptr) ?
-            bndry->bndryValues(Orientation(2,Orientation::high)).array(mfi) : foo;
+	  (*bndry)[Orientation(2,Orientation::high)].array(mfi) : foo;
 
+	// only edge vals used in 3D stencil
         AMREX_HOST_DEVICE_FOR_1D ( 12, iedge,
         {
             mltensor_fill_edges(iedge, vbx, velfab,
                                 mxlo, mylo, mzlo, mxhi, myhi, mzhi,
                                 bvxlo, bvylo, bvzlo, bvxhi, bvyhi, bvzhi,
-                                bct, bcl, inhomog, imaxorder, dxinv, domain);
+                                bct, bcl, inhomog, imaxorder,
+				dxinv, domain);
         });
 
-        AMREX_HOST_DEVICE_FOR_1D ( 8, icorner,
-        {
-            mltensor_fill_corners(icorner, vbx, velfab,
-                                  mxlo, mylo, mzlo, mxhi, myhi, mzhi,
-                                  bvxlo, bvylo, bvzlo, bvxhi, bvyhi, bvzhi,
-                                  bct, bcl, inhomog, imaxorder, dxinv, domain);
-        });
 #endif
     }
 
@@ -299,7 +283,7 @@ MLTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
     const int ncomp = getNComp();
     MLABecLaplacian::compFlux(amrlev, fluxes, sol, loc);
 
-    applyBCTensor(amrlev, mglev, sol, BCMode::Inhomogeneous, m_bndry_sol[amrlev].get());
+    applyBCTensor(amrlev, mglev, sol, BCMode::Inhomogeneous, StateMode::Solution, m_bndry_sol[amrlev].get());
 
     const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
 
