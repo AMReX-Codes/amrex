@@ -151,8 +151,7 @@ namespace amrex {
                         if( (ii != 0 or jj != 0 or kk != 0) and
                             (flags(i,j,k).isConnected({ii,jj,kk}) == 1))
                         {
-                            // wted_frac = vfrac(i+ii,j+jj,k+kk) * wt(i+ii,j+jj,k+kk) * mask(i+ii,j+jj,k+kk);
-                            wted_frac = vfrac(i+ii,j+jj,k+kk) * mask(i+ii,j+jj,k+kk);
+                            wted_frac = vfrac(i+ii,j+jj,k+kk) * wt(i+ii,j+jj,k+kk) * mask(i+ii,j+jj,k+kk);
                             vtot   += wted_frac;
                             divnc  += wted_frac * divc(i+ii,j+jj,k+kk,n);
                         }
@@ -186,8 +185,7 @@ namespace amrex {
                         if((ii != 0 or jj != 0 or kk != 0) and
                            (flags(i,j,k).isConnected({ii,jj,kk}) == 1))
                         {
-                            // wtot += wt(i+ii,j+jj,k+kk) * vfrac(i+ii,j+jj,k+kk) * mask(i+ii,j+jj,k+kk);
-                            wtot += vfrac(i+ii,j+jj,k+kk) * mask(i+ii,j+jj,k+kk);
+                            wtot += wt(i+ii,j+jj,k+kk) * vfrac(i+ii,j+jj,k+kk) * mask(i+ii,j+jj,k+kk);
                         }
 
 
@@ -203,8 +201,7 @@ namespace amrex {
                             Gpu::Atomic::Add(&optmp(i+ii,j+jj,k+kk,n),
                                              delm(i,j,k,n) * wtot * mask(i+ii,j+jj,k+kk) * wt(i+ii,j+jj,k+kk));
 #else
-                            // optmp(i+ii,j+jj,k+kk,n) += delm(i,j,k,n) * wtot * mask(i+ii,j+jj,k+kk) * wt(i+ii,j+jj,k+kk);
-                            optmp(i+ii,j+jj,k+kk,n) += delm(i,j,k,n) * wtot * mask(i+ii,j+jj,k+kk);
+                            optmp(i+ii,j+jj,k+kk,n) += delm(i,j,k,n) * wtot * mask(i+ii,j+jj,k+kk) * wt(i+ii,j+jj,k+kk);
 #endif
                         }
         }
