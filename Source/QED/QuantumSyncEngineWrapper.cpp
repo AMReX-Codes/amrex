@@ -163,11 +163,40 @@ void QuantumSynchrotronEngine::compute_custom_lookup_tables (
  *  return false if it fails. */
 std::vector<char> QuantumSynchrotronEngine::export_lookup_tables_data () const
 {
-    if(!lookup_tables_initialized)
-        return std::vector<char>{};
+    std::vector<char> res{};
 
-    //TODO
-    return std::vector<char>{};
+    if(!lookup_tables_initialized)
+        return res;
+
+    auto add_data_to_buf = [&res](auto data){
+        res.insert(res.end(),
+        reinterpret_cast<const char*>(&data),
+        reinterpret_cast<const char*>(&data) +
+        sizeof(data));
+    };
+
+    add_data_to_buf(innards.ctrl.chi_part_min);
+    add_data_to_buf(innards.ctrl.chi_part_tdndt_min);
+    add_data_to_buf(innards.ctrl.chi_part_tdndt_max);
+    add_data_to_buf(innards.ctrl.chi_part_tdndt_how_many);
+    add_data_to_buf(innards.ctrl.chi_part_tem_min);
+    add_data_to_buf(innards.ctrl.chi_part_tem_max);
+    add_data_to_buf(innards.ctrl.prob_tem_how_many);
+
+    auto add_data_to_buf_vv = [&res](const auto* data, size_t how_many){
+        res.insert(res.end(),
+        reinterpret_cast<const char*>(data),
+        reinterpret_cast<const char*>(data) +
+        sizeof(*data)*how_many);
+    };
+
+    add_data_to_buf_vv(innards.KKfunc_coords.data(), innards.KKfunc_coords.size());
+    add_data_to_buf_vv(innards.KKfunc_data.data(), innards.KKfunc_data.size());
+    add_data_to_buf_vv(innards.cum_distrib_coords_1.data(), innards.cum_distrib_coords_1.size());
+    add_data_to_buf_vv(innards.cum_distrib_coords_2.data(), innards.cum_distrib_coords_2.size());
+    add_data_to_buf_vv(innards.cum_distrib_data.data(), innards.cum_distrib_data.size());
+
+    return res;
 }
 
 //Private function which actually computes the lookup tables
