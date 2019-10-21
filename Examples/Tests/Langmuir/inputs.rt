@@ -26,6 +26,7 @@ warpx.verbose = 1
 
 # Algorithms
 algo.field_gathering = standard
+algo.particle_pusher = "higuera"
 
 # Interpolation
 interpolation.nox = 1
