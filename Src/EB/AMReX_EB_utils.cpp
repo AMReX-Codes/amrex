@@ -232,21 +232,6 @@ namespace amrex {
     {
         Box domain(geom[lev].Domain());
 
-        Real covered_val = 1.e40;
-
-        EB_set_covered(div_tmp_in, covered_val);
-
-        div_tmp_in.FillBoundary(geom[lev].periodicity());
-
-        // Here we take care of both the regular and covered cases ... all we do below is the cut cell cases
-        MultiFab::Copy(div_out, div_tmp_in, 0, 0, div_out.nComp(), div_out.nGrow());
-
-        // Get EB geometric info
-        const auto& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(div_out.Factory());
-        const MultiFab* volfrac   = &(ebfactory. getVolFrac());
-
-        int nghost = div_tmp_in.nGrow();
-
         const int cyclic_x = geom[0].isPeriodic(0) ? 1 : 0;
         const int cyclic_y = geom[0].isPeriodic(1) ? 1 : 0;
 #if (AMREX_SPACEDIM == 2)
@@ -254,6 +239,21 @@ namespace amrex {
 #elif (AMREX_SPACEDIM == 3)
         const int cyclic_z = geom[0].isPeriodic(2) ? 1 : 0;
 #endif
+
+        Real covered_val = 1.e40;
+
+        int nghost = div_tmp_in.nGrow();
+
+        EB_set_covered(div_tmp_in, div_comp, ncomp, nghost, covered_val);
+
+        div_tmp_in.FillBoundary(geom[lev].periodicity());
+
+        // Here we take care of both the regular and covered cases ... all we do below is the cut cell cases
+        MultiFab::Copy(div_out, div_tmp_in, 0, div_comp, ncomp, div_out.nGrow());
+
+        // Get EB geometric info
+        const auto& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(div_out.Factory());
+        const MultiFab* volfrac   = &(ebfactory. getVolFrac());
 
         for (MFIter mfi(div_out,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
