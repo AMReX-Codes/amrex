@@ -15,7 +15,8 @@ module amrex_multifab_module
 
   private
 
-  public :: amrex_multifab_build, amrex_multifab_swap, amrex_multifab_destroy
+  public :: amrex_multifab_destroy ! List first to avoid XL compiler bug
+  public :: amrex_multifab_build, amrex_multifab_swap
   public :: amrex_multifab_write, amrex_multifab_read
   public :: amrex_multifab_build_alias, amrex_imultifab_build_alias
   public :: amrex_imultifab_build_owner_mask
