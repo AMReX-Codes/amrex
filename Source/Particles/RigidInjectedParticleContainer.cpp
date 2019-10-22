@@ -13,6 +13,7 @@
 #include <WarpXAlgorithmSelection.H>
 #include <UpdateMomentumBoris.H>
 #include <UpdateMomentumVay.H>
+#include <UpdateMomentumBorisWithRadiationReaction.H>
 #include <UpdateMomentumHigueraCary.H>
 
 using namespace amrex;
@@ -430,18 +431,37 @@ RigidInjectedParticleContainer::PushP (int lev, Real dt,
             // Loop over the particles and update their momentum
             const Real q = this->charge;
             const Real m = this->mass;
-            if (WarpX::particle_pusher_algo == ParticlePusherAlgo::Boris){
+
+            //Assumes that all consistency checks have been done at initialization
+            if(do_classical_radiation_reaction){
+                amrex::ParallelFor(
+                    pti.numParticles(),
+                    [=] AMREX_GPU_DEVICE (long i) {
+                        UpdateMomentumBorisWithRadiationReaction(
+                        uxpp[i], uypp[i], uzpp[i],
+                        Expp[i], Eypp[i], Ezpp[i],
+                        Bxpp[i], Bypp[i], Bzpp[i],
+                        q, m, dt);
+                    }
+                );
+            } else if (WarpX::particle_pusher_algo == ParticlePusherAlgo::Boris){
                 amrex::ParallelFor( pti.numParticles(),
                     [=] AMREX_GPU_DEVICE (long i) {
-                        UpdateMomentumBoris( uxpp[i], uypp[i], uzpp[i],
-                              Expp[i], Eypp[i], Ezpp[i], Bxpp[i], Bypp[i], Bzpp[i], q, m, dt);
+                        UpdateMomentumBoris(
+                            uxpp[i], uypp[i], uzpp[i],
+                            Expp[i], Eypp[i], Ezpp[i],
+                            Bxpp[i], Bypp[i], Bzpp[i],
+                            q, m, dt);
                     }
                 );
             } else if (WarpX::particle_pusher_algo == ParticlePusherAlgo::Vay) {
                 amrex::ParallelFor( pti.numParticles(),
                     [=] AMREX_GPU_DEVICE (long i) {
-                        UpdateMomentumVay( uxpp[i], uypp[i], uzpp[i],
-                              Expp[i], Eypp[i], Ezpp[i], Bxpp[i], Bypp[i], Bzpp[i], q, m, dt);
+                        UpdateMomentumVay(
+                            uxpp[i], uypp[i], uzpp[i],
+                            Expp[i], Eypp[i], Ezpp[i],
+                            Bxpp[i], Bypp[i], Bzpp[i],
+                            q, m, dt);
                     }
                 );
             } else if (WarpX::particle_pusher_algo == ParticlePusherAlgo::HigueraCary) {
