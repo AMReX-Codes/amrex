@@ -594,7 +594,7 @@ MultiParticleContainer::doFieldIonization ()
                 // Create particles in pc_product
                 int do_boost = WarpX::do_boosted_frame_diagnostic
                     && pc_product->DoBoostedFrameDiags();
-                amrex::Vector<int> v_do_boosted_product;
+                amrex::Gpu::ManagedDeviceVector<int> v_do_boosted_product;
                 v_do_boosted_product.push_back(do_boost);
                 const amrex::Vector<WarpXParticleContainer*> v_pc_product {pc_product.get()};
                 // Copy source to product particles, and increase ionization
