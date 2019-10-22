@@ -220,11 +220,11 @@ public:
 
         // Loop over all source particles. If is_flagged, copy particle data
         // to corresponding product particle.
+        int nproducts = v_particles_product.size();
         amrex::For(
             np_source, [=] AMREX_GPU_DEVICE (int is) noexcept
             {
                 if(p_is_flagged[is]){
-                    int nproducts = v_particles_product.size();
                     // offset of 1 due to inclusive scan
                     int ip = p_i_product[is]-1;
                     WarpXParticleContainer::ParticleType& p_source  = particles_source[is];
