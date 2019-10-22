@@ -67,3 +67,7 @@ photons.uz_th = 100.
 photons.do_qed = 1
 photons.do_qed_breit_wheeler = 1
 #################################
+
+##########QED TABLES#############
+qed_bw.ignore_tables_for_test = 1
+#################################

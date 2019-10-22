@@ -779,6 +779,13 @@ void MultiParticleContainer::InitQuantumSync ()
    }
     ParallelDescriptor::Barrier();
 
+    //Only temporary for test purposes, will be removed
+    ParmParse pp("qed_qs");
+    bool ignore_tables = false;
+    pp.query("ignore_tables_for_test", ignore_tables);
+    if(ignore_tables) return;
+    //_________________________________________________
+
     Vector<char> table_data;
     ParallelDescriptor::ReadAndBcastFile(filename, table_data);
     if(!qs_engine.init_lookup_tables_from_raw_data(table_data))
@@ -799,6 +806,13 @@ void MultiParticleContainer::InitBreitWheeler ()
    }
     ParallelDescriptor::Barrier();
 
+    //Only temporary for test purposes, will be removed
+    ParmParse pp("qed_bw");
+    bool ignore_tables = false;
+    pp.query("ignore_tables_for_test", ignore_tables);
+    if(ignore_tables) return;
+    //_________________________________________________
+
     Vector<char> table_data;
     ParallelDescriptor::ReadAndBcastFile(filename, table_data);
     if(!bw_engine.init_lookup_tables_from_raw_data(table_data))
@@ -816,6 +830,13 @@ MultiParticleContainer::ParseQuantumSyncParams ()
     ParmParse pp("qed_qs");
 
     pp.query("chi_min", ctrl.chi_part_min);
+
+    //Only temporary for test purposes, will be removed
+    bool ignore_tables = false;
+    pp.query("ignore_tables_for_test", ignore_tables);
+    if(ignore_tables)
+        return std::make_tuple(false, "__DUMMY__", ctrl);
+    //_________________________________________________
 
     pp.query("generate_table", generate_table);
     if(generate_table){
@@ -867,6 +888,13 @@ MultiParticleContainer::ParseBreitWheelerParams ()
     ParmParse pp("qed_bw");
 
     pp.query("chi_min", ctrl.chi_phot_min);
+
+    //Only temporary for test purposes, will be removed
+    bool ignore_tables = false;
+    pp.query("ignore_tables_for_test", ignore_tables);
+    if(ignore_tables)
+        return std::make_tuple(false, "__DUMMY__", ctrl);
+    //_________________________________________________
 
     pp.query("generate_table", generate_table);
     if(generate_table){
