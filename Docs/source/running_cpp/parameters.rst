@@ -392,6 +392,10 @@ Particle initialization
     It only works if `<species>.do_qed = 1`. Enables non-linear Breit-Wheeler process for this species.
     **Implementation of this feature is in progress. It requires to compile with QED=TRUE**
 
+* ``warpx.E_external`` & ``warpx.B_external`` (list of `float`) optional (default `0.0`)
+    Two separate parameters which add a uniform E-field or B-field to each particle
+    which is then added to the field values gathered from the grid in the
+    PIC cycle.
 
 Laser initialization
 --------------------
@@ -623,6 +627,7 @@ Numerics and algorithms
 
      - ``boris``: Boris pusher.
      - ``vay``: Vay pusher (see `Vay, Phys. Plasmas (2008) <https://aip.scitation.org/doi/10.1063/1.2837054>`__)
+     - ``higuera``: Higuera-Cary pusher (see `Higuera and Cary, Phys. Plasmas (2017) <https://aip.scitation.org/doi/10.1063/1.4979989>`__)
 
      If ``algo.particle_pusher`` is not specified, ``boris`` is the default.
 
@@ -823,15 +828,36 @@ Diagnostics and output
     ``warpx.fields_to_plot = Ex Ey Ez Bx By Bz jx jy jz part_per_cell``.
 
 * ``slice.dom_lo`` and ``slice.dom_hi`` (`2 floats in 2D`, `3 floats in 3D`; in meters similar to the units of the simulation box.)
-    The extent of the slice are defined by the co-ordinates of the lower corner (``slice.dom_lo``) and upper corner (``slice.dom_hi``). The slice could be 1D, 2D, or 3D, aligned with the co-ordinate axes and the first axis of the coordinates is x. For example: if for a 3D simulation, an x-z slice is to be extracted at y = 0.0, then the y-value of slice.dom_lo and slice.dom_hi must be equal to 0.0
+    The extent of the slice are defined by the co-ordinates of the lower
+    corner (``slice.dom_lo``) and upper corner (``slice.dom_hi``).
+    The slice could be 1D, 2D, or 3D, aligned with the co-ordinate axes
+    and the first axis of the coordinates is x. For example: if for a
+    3D simulation, an x-z slice is to be extracted at y = 0.0,
+    then the y-value of slice.dom_lo and slice.dom_hi must be equal to 0.0
 
 * ``slice.coarsening_ratio`` (`2 integers in 2D`, `3 integers in 3D`; default `1`)
     The coarsening ratio input must be greater than 0. Default is 1 in all directions.
-    In the directions that is reduced, i.e., for an x-z slice in 3D, the reduced y-dimension has a default coarsening ratio equal to 1.
+    In the directions that is reduced, i.e., for an x-z slice in 3D,
+    the reduced y-dimension has a default coarsening ratio equal to 1.
 
 * ``slice.plot_int`` (`integer`)
     The number of PIC cycles inbetween two consecutive data dumps for the slice. Use a
     negative number to disable slice generation and slice data dumping.
+
+* ``slice.num_slice_snapshots_lab`` (`integer`)
+    Only used when ``warpx.do_boosted_frame_diagnostic`` is ``1``.
+    The number of back-transformed field and particle data that
+    will be written for the reduced domain defined by ``slice.dom_lo``
+    and ``slice.dom_hi``. Note that the 'slice' is a reduced
+    diagnostic which could be 1D, 2D, or 3D, aligned with the co-ordinate axes.
+    These slices can be visualized using read_raw_data.py and the HDF5 format can
+    be visualized using the h5py library. Please see the documentation on visualization
+    for further details.
+
+* ``slice.dt_slice_snapshots_lab`` (`float`, in seconds)
+    Only used when ``warpx.do_boosted_frame_diagnostic`` is ``1``.
+    The time interval between the back-transformed reduced diagnostics (where this
+    time interval is expressed in the laboratory frame).
 
 Checkpoints and restart
 -----------------------

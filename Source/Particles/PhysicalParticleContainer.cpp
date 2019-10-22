@@ -18,6 +18,7 @@
 #include <UpdateMomentumBoris.H>
 #include <UpdateMomentumVay.H>
 #include <UpdateMomentumBorisWithRadiationReaction.H>
+#include <UpdateMomentumHigueraCary.H>
 
 using namespace amrex;
 
@@ -1011,12 +1012,12 @@ PhysicalParticleContainer::FieldGather (int lev,
             const FArrayBox& byfab = By[pti];
             const FArrayBox& bzfab = Bz[pti];
 
-            Exp.assign(np,0.0);
-            Eyp.assign(np,0.0);
-            Ezp.assign(np,0.0);
-            Bxp.assign(np,0.0);
-            Byp.assign(np,0.0);
-            Bzp.assign(np,0.0);
+            Exp.assign(np,WarpX::E_external[0]);
+            Eyp.assign(np,WarpX::E_external[1]);
+            Ezp.assign(np,WarpX::E_external[2]);
+            Bxp.assign(np,WarpX::B_external[0]);
+            Byp.assign(np,WarpX::B_external[1]);
+            Bzp.assign(np,WarpX::B_external[2]);
 
             //
             // copy data from particle container to temp arrays
@@ -1147,9 +1148,10 @@ PhysicalParticleContainer::Evolve (int lev,
                                exfab, eyfab, ezfab, bxfab, byfab, bzfab);
             }
 
-            Exp.assign(np,0.0);
-            Eyp.assign(np,0.0);
-            Ezp.assign(np,0.0);
+            Exp.assign(np,WarpX::E_external[0]);
+            Eyp.assign(np,WarpX::E_external[1]);
+            Ezp.assign(np,WarpX::E_external[2]);
+
             Bxp.assign(np,WarpX::B_external[0]);
             Byp.assign(np,WarpX::B_external[1]);
             Bzp.assign(np,WarpX::B_external[2]);
@@ -1638,6 +1640,19 @@ PhysicalParticleContainer::PushPX(WarpXParIter& pti,
                                 ux[i], uy[i], uz[i], dt );
             }
         );
+    } else if (WarpX::particle_pusher_algo == ParticlePusherAlgo::HigueraCary) {
+        amrex::ParallelFor(
+            pti.numParticles(),
+            [=] AMREX_GPU_DEVICE (long i) {
+                Real qp = q;
+                if (ion_lev){ qp *= ion_lev[i]; }
+                UpdateMomentumHigueraCary( ux[i], uy[i], uz[i],
+                                   Ex[i], Ey[i], Ez[i], Bx[i],
+                                   By[i], Bz[i], qp, m, dt);
+                UpdatePosition( x[i], y[i], z[i],
+                                ux[i], uy[i], uz[i], dt );
+            }
+        );
     } else {
       amrex::Abort("Unknown particle pusher");
     };
@@ -1686,9 +1701,10 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
             const FArrayBox& byfab = By[pti];
             const FArrayBox& bzfab = Bz[pti];
 
-            Exp.assign(np,0.0);
-            Eyp.assign(np,0.0);
-            Ezp.assign(np,0.0);
+            Exp.assign(np,WarpX::E_external[0]);
+            Eyp.assign(np,WarpX::E_external[1]);
+            Ezp.assign(np,WarpX::E_external[2]);
+
             Bxp.assign(np,WarpX::B_external[0]);
             Byp.assign(np,WarpX::B_external[1]);
             Bzp.assign(np,WarpX::B_external[2]);
@@ -1762,6 +1778,13 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
                             Expp[i], Eypp[i], Ezpp[i],
                             Bxpp[i], Bypp[i], Bzpp[i],
                             qp, m, dt);
+                    }
+                );
+            } else if (WarpX::particle_pusher_algo == ParticlePusherAlgo::HigueraCary) {
+                amrex::ParallelFor( pti.numParticles(),
+                    [=] AMREX_GPU_DEVICE (long i) {
+                        UpdateMomentumHigueraCary( ux[i], uy[i], uz[i],
+                              Expp[i], Eypp[i], Ezpp[i], Bxpp[i], Bypp[i], Bzpp[i], q, m, dt);
                     }
                 );
             } else {
