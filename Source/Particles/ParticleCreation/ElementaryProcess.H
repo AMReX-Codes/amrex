@@ -97,7 +97,7 @@ public:
         amrex::GpuArray<int*,1> runtime_iattribs_source;
         std::map<std::string, int> icomps_source = pc_source->getParticleiComps();
         runtime_iattribs_source[0] = soa_source.GetIntData(icomps_source["ionization_level"]).data();
-        
+
         int nproducts = v_pc_product.size();
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
             v_do_boosted_product.size() == nproducts,
@@ -159,7 +159,7 @@ public:
                 runtime_attribs_product[4] = soa_product.GetRealData(comps_product["uyold"]).data() + np_product_old;
                 runtime_attribs_product[5] = soa_product.GetRealData(comps_product["uzold"]).data() + np_product_old;
             }
-             
+
             // --- product runtime integer attribs
             int pid_product;
 #pragma omp critical (doFieldIonization_nextid)
@@ -179,7 +179,7 @@ public:
                                           attribs_product,
                                           runtime_attribs_product) );
             v_pid_product[iproduct] = pid_product;
-             
+
         }
         // Loop over source particles and create product particles
         copyAndTransformParticles(is_flagged, i_product, np_source, v_pid_product,
