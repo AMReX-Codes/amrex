@@ -57,6 +57,7 @@ namespace amrex {
         normals.FillBoundary(geom.periodicity());
     }
 
+#if (AMREX_SPACEDIM > 1)
     // 
     // Do small cell redistribution on one FAB
     // 
@@ -80,10 +81,15 @@ namespace amrex {
         //
         const Real tolerance = std::numeric_limits<Real>::epsilon();
 
-        if((std::abs(dx[0] - dx[1]) > tolerance) or
-           (std::abs(dx[0] - dx[2]) > tolerance) or
-           (std::abs(dx[1] - dx[2]) > tolerance))
-            amrex::Abort("Compute divop(): grid spacing must be uniform");
+#if (AMREX_SPACEDIM == 2)
+        if (std::abs(dx[0] - dx[1]) > tolerance) 
+            amrex::Abort("apply_eb_redistribution(): grid spacing must be uniform");
+#elif (AMREX_SPACEDIM == 3)
+        if( (std::abs(dx[0] - dx[1]) > tolerance) or
+            (std::abs(dx[0] - dx[2]) > tolerance) or
+            (std::abs(dx[1] - dx[2]) > tolerance) )
+            amrex::Abort("apply_eb_redistribution(): grid spacing must be uniform");
+#endif
 
         const amrex::Dim3 dom_low  = amrex::lbound(domain);
         const amrex::Dim3 dom_high = amrex::ubound(domain);
@@ -112,8 +118,8 @@ namespace amrex {
         Array4<Real> const& delm  = delm_fab.array();
 
         //
-        // Array "mask" is used to sever the link to ghost cells when the BCs are not
-        // periodic
+        // Array "mask" is used to sever the link to ghost cells when the BCs 
+        // are not periodic
         // It is set to 1 when a cell can be used in computations, 0 otherwise
         //
         AMREX_FOR_3D(grown2_bx, i, j, k,
@@ -149,7 +155,7 @@ namespace amrex {
                 for(int jj(-1); jj <= 1; jj++)
                     for(int kk(-1); kk <= 1; kk++)
                         if( (ii != 0 or jj != 0 or kk != 0) and
-                            (flags(i,j,k).isConnected({ii,jj,kk}) == 1))
+                            (flags(i,j,k).isConnected({AMREX_D_DECL(ii,jj,kk)}) == 1))
                         {
                             wted_frac = vfrac(i+ii,j+jj,k+kk) * wt(i+ii,j+jj,k+kk) * mask(i+ii,j+jj,k+kk);
                             vtot   += wted_frac;
@@ -183,7 +189,7 @@ namespace amrex {
                 for(int jj(-1); jj <= 1; jj++)
                     for(int kk(-1); kk <= 1; kk++)
                         if((ii != 0 or jj != 0 or kk != 0) and
-                           (flags(i,j,k).isConnected({ii,jj,kk}) == 1))
+                            (flags(i,j,k).isConnected({AMREX_D_DECL(ii,jj,kk)}) == 1))
                         {
                             wtot += wt(i+ii,j+jj,k+kk) * vfrac(i+ii,j+jj,k+kk) * mask(i+ii,j+jj,k+kk);
                         }
@@ -195,7 +201,7 @@ namespace amrex {
                 for(int jj(-1); jj <= 1; jj++)
                     for(int kk(-1); kk <= 1; kk++)
                         if((ii != 0 or jj != 0 or kk != 0) and
-                           (flags(i,j,k).isConnected({ii,jj,kk}) == 1))
+                            (flags(i,j,k).isConnected({AMREX_D_DECL(ii,jj,kk)}) == 1))
                         {
 #ifdef AMREX_USE_CUDA
                             Gpu::Atomic::Add(&optmp(i+ii,j+jj,k+kk,n),
@@ -241,6 +247,14 @@ namespace amrex {
 
         int nghost = div_tmp_in.nGrow();
 
+        const int cyclic_x = geom[0].isPeriodic(0) ? 1 : 0;
+        const int cyclic_y = geom[0].isPeriodic(1) ? 1 : 0;
+#if (AMREX_SPACEDIM == 2)
+        const int cyclic_z = 0;
+#elif (AMREX_SPACEDIM == 3)
+        const int cyclic_z = geom[0].isPeriodic(2) ? 1 : 0;
+#endif
+
         for (MFIter mfi(div_out,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             // Tilebox
@@ -253,10 +267,6 @@ namespace amrex {
             if ( !(flags.getType(amrex::grow(bx,     0)) == FabType::covered) &&
                  !(flags.getType(amrex::grow(bx,nghost)) == FabType::regular) )
             {
-                const int cyclic_x = geom[0].isPeriodic(0) ? 1 : 0;
-                const int cyclic_y = geom[0].isPeriodic(1) ? 1 : 0;
-                const int cyclic_z = geom[0].isPeriodic(2) ? 1 : 0;
-    
                 // Compute div(tau) with EB algorithm
                 apply_eb_redistribution(bx, div_out, div_tmp_in, weights, &mfi,
                                                div_comp, ncomp, flags, volfrac, domain,
@@ -279,5 +289,6 @@ namespace amrex {
 
         single_level_weighted_redistribute ( lev, div_tmp_in, div_out, weights, div_comp, ncomp, geom);
     }
+#endif
 
 } // end namespace
