@@ -243,7 +243,8 @@ public:
                     transformProductParticle<ProcessT>(ip, p_particles_product);
                 }
             }
-            );
+        );
+        amrex::Gpu::streamSynchronize();
     }
 };
 
