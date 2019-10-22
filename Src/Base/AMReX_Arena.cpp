@@ -50,7 +50,7 @@ Arena::allocate_system (std::size_t nbytes)
     if (arena_info.device_use_hostalloc)
     {
         AMREX_HIP_OR_CUDA(
-            AMREX_HIP_SAFE_CALL ( hipHostAlloc(&p, nbytes, hipHostMallocMapped));,
+            AMREX_HIP_SAFE_CALL (hipHostMalloc(&p, nbytes, hipHostMallocMapped));,
             AMREX_CUDA_SAFE_CALL(cudaHostAlloc(&p, nbytes, cudaHostAllocMapped)););
     }
     else
@@ -101,7 +101,7 @@ Arena::deallocate_system (void* p, std::size_t nbytes)
 #ifdef AMREX_USE_GPU
     if (arena_info.device_use_hostalloc)
     {
-        AMREX_HIP_OR_CUDA(AMREX_HIP_SAFE_CALL ( hipFreeHost(p));,
+        AMREX_HIP_OR_CUDA(AMREX_HIP_SAFE_CALL ( hipHostFree(p));,
                           AMREX_CUDA_SAFE_CALL(cudaFreeHost(p)););
     }
     else
