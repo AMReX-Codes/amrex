@@ -1,13 +1,28 @@
 #ifndef WARPX_amrex_qed_table_parser_helper_functions_h_
 #define WARPX_amrex_qed_table_parser_helper_functions_h_
 
-//This file contains helper functions to parse a char* array
-//into a lookup table
+/**
+ * This header contains helper functions to safely extract data
+ * (e.g. integers, floating point numbers) from raw binary data
+ * (i.e. a char*).
+ */
 
 #include <AMReX_Vector.H>
 #include <tuple>
 
 namespace QedUtils{
+    /**
+    * This function safely extracts an amrex::Vector<T> from raw binary data.
+    * T must be a simple datatype (e.g. an int, a float, a double...).
+    *
+    * @param[in] p_char a pointer to the binary stream
+    * @param[in] how_many how many T should be read from stream
+    * @param[in] p_last a pointer to the last element of the char* array
+    * @return {a tuple containing
+    * 1) flag (which is false if p_last is exceeded)
+    * 2) a Vector of T
+    * 3) a pointer to a new location of the binary data (after having read how_many T)}
+    */
     template <class T>
     std::tuple<bool, amrex::Vector<T>, const char*>parse_raw_data_vec(
         const char* p_data, size_t how_many, const char* const p_last)
@@ -24,6 +39,17 @@ namespace QedUtils{
         return std::make_tuple(true, res, p_data);
     }
 
+    /**
+    * This function safely extracts a T from raw binary data.
+    * T must be a simple datatype (e.g. an int, a float, a double...).
+    *
+    * @param[in] p_char a pointer to the binary stream
+    * @param[in] p_last a pointer to the last element of the char* array
+    * @return {a tuple containing
+    * 1) flag (which is false if p_last is exceeded)
+    * 2) a T
+    * 3) a pointer to a new location of the binary data (after having read 1 T)}
+    */
     template <class T>
     std::tuple<bool, T, const char*> parse_raw_data(
         const char* p_data, const char* const p_last)

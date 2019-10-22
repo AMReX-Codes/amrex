@@ -1,7 +1,8 @@
 #include "QuantumSyncEngineTableBuilder.H"
 
-//Include the full QS engine with table generation support
-//(after some consistency tests)
+//Include the full Quantum Synchrotron engine with table generation support
+//(after some consistency tests). This requires to have a recent version
+// of the Boost library.
 #ifdef PXRMP_CORE_ONLY
     #error The Table Builder is incompatible with PXRMP_CORE_ONLY
 #endif
@@ -12,13 +13,15 @@
 #include <quantum_sync_engine.hpp>
 //_______________________________________________
 
+//Some handy aliases
 using PicsarQuantumSynchrotronEngine = picsar::multi_physics::
     quantum_synchrotron_engine<amrex::Real, QedUtils::DummyStruct>;
 
 using PicsarQuantumSynchrotronCtrl =
     picsar::multi_physics::quantum_synchrotron_engine_ctrl<amrex::Real>;
+//_______________________________________________
 
-    void
+void
 QuantumSynchrotronEngineTableBuilder::compute_table
     (PicsarQuantumSynchrotronCtrl ctrl,
      QuantumSynchrotronEngineInnards& innards) const

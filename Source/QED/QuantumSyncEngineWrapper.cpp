@@ -15,19 +15,25 @@ using namespace amrex;
 
 QuantumSynchrotronEngine::QuantumSynchrotronEngine (){}
 
-//Builds the functor to evolve the optical depth
 QuantumSynchrotronGetOpticalDepth
 QuantumSynchrotronEngine::build_optical_depth_functor ()
 {
     return QuantumSynchrotronGetOpticalDepth();
 }
 
-//Builds the functor to evolve the optical depth
 QuantumSynchrotronEvolveOpticalDepth QuantumSynchrotronEngine::build_evolve_functor ()
 {
     AMREX_ALWAYS_ASSERT(lookup_tables_initialized);
 
-    return QuantumSynchrotronEvolveOpticalDepth(&innards);
+    return QuantumSynchrotronEvolveOpticalDepth(innards);
+}
+
+QuantumSynchrotronGeneratePhotonAndUpdateMomentum QuantumSynchrotronEngine::build_phot_em_functor ()
+{
+    AMREX_ALWAYS_ASSERT(lookup_tables_initialized);
+
+    return QuantumSynchrotronGeneratePhotonAndUpdateMomentum(innards);
+
 }
 
 bool QuantumSynchrotronEngine::are_lookup_tables_initialized () const
@@ -35,7 +41,6 @@ bool QuantumSynchrotronEngine::are_lookup_tables_initialized () const
     return lookup_tables_initialized;
 }
 
-/* \brief Reads lookup tables from 'file' on disk */
 bool
 QuantumSynchrotronEngine::init_lookup_tables_from_raw_data (
     const Vector<char>& raw_data)
@@ -134,8 +139,6 @@ QuantumSynchrotronEngine::init_lookup_tables_from_raw_data (
     return true;
 }
 
-/* \brief Writes lookup tables on disk in 'file'
- *  return false if it fails. */
 Vector<char> QuantumSynchrotronEngine::export_lookup_tables_data () const
 {
     Vector<char> res{};
@@ -166,11 +169,16 @@ Vector<char> QuantumSynchrotronEngine::export_lookup_tables_data () const
         sizeof(*data)*how_many);
     };
 
-    add_data_to_buf_vv(innards.KKfunc_coords.data(), innards.KKfunc_coords.size());
-    add_data_to_buf_vv(innards.KKfunc_data.data(), innards.KKfunc_data.size());
-    add_data_to_buf_vv(innards.cum_distrib_coords_1.data(), innards.cum_distrib_coords_1.size());
-    add_data_to_buf_vv(innards.cum_distrib_coords_2.data(), innards.cum_distrib_coords_2.size());
-    add_data_to_buf_vv(innards.cum_distrib_data.data(), innards.cum_distrib_data.size());
+    add_data_to_buf_vv(innards.KKfunc_coords.data(),
+        innards.KKfunc_coords.size());
+    add_data_to_buf_vv(innards.KKfunc_data.data(),
+        innards.KKfunc_data.size());
+    add_data_to_buf_vv(innards.cum_distrib_coords_1.data(),
+        innards.cum_distrib_coords_1.size());
+    add_data_to_buf_vv(innards.cum_distrib_coords_2.data(),
+        innards.cum_distrib_coords_2.size());
+    add_data_to_buf_vv(innards.cum_distrib_data.data(),
+        innards.cum_distrib_data.size());
 
     return res;
 }
@@ -181,7 +189,6 @@ QuantumSynchrotronEngine::get_default_ctrl() const
     return PicsarQuantumSynchrotronCtrl();
 }
 
-//Private function which actually computes the lookup tables
 void QuantumSynchrotronEngine::compute_lookup_tables (
     PicsarQuantumSynchrotronCtrl ctrl)
 {

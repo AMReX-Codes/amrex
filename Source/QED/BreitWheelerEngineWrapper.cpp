@@ -15,29 +15,26 @@ using namespace amrex;
 
 BreitWheelerEngine::BreitWheelerEngine (){}
 
-//Builds the functor to initialize the optical depth
 BreitWheelerGetOpticalDepth
 BreitWheelerEngine::build_optical_depth_functor ()
 {
     return BreitWheelerGetOpticalDepth();
 }
 
-//Builds the functor to evolve the optical depth
 BreitWheelerEvolveOpticalDepth
 BreitWheelerEngine::build_evolve_functor ()
 {
     AMREX_ALWAYS_ASSERT(lookup_tables_initialized);
 
-    return BreitWheelerEvolveOpticalDepth(&innards);
+    return BreitWheelerEvolveOpticalDepth(innards);
 }
 
-//Builds the functor to generate the pairs
 BreitWheelerGeneratePairs
 BreitWheelerEngine::build_pair_functor ()
 {
     AMREX_ALWAYS_ASSERT(lookup_tables_initialized);
 
-    return BreitWheelerGeneratePairs(&innards);
+    return BreitWheelerGeneratePairs(innards);
 }
 
 bool BreitWheelerEngine::are_lookup_tables_initialized () const
@@ -45,7 +42,6 @@ bool BreitWheelerEngine::are_lookup_tables_initialized () const
     return lookup_tables_initialized;
 }
 
-/* \brief Reads lookup tables from 'file' on disk */
 bool
 BreitWheelerEngine::init_lookup_tables_from_raw_data (
     const Vector<char>& raw_data)
@@ -144,14 +140,6 @@ BreitWheelerEngine::init_lookup_tables_from_raw_data (
     return true;
 }
 
-PicsarBreitWheelerCtrl
-BreitWheelerEngine::get_default_ctrl() const
-{
-    return PicsarBreitWheelerCtrl();
-}
-
-/* \brief Writes lookup tables on disk in 'file'
- *  return false if it fails. */
 Vector<char> BreitWheelerEngine::export_lookup_tables_data () const
 {
    Vector<char> res{};
@@ -182,16 +170,26 @@ Vector<char> BreitWheelerEngine::export_lookup_tables_data () const
         sizeof(*data)*how_many);
     };
 
-    add_data_to_buf_vv(innards.TTfunc_coords.data(), innards.TTfunc_coords.size());
-    add_data_to_buf_vv(innards.TTfunc_data.data(), innards.TTfunc_data.size());
-    add_data_to_buf_vv(innards.cum_distrib_coords_1.data(), innards.cum_distrib_coords_1.size());
-    add_data_to_buf_vv(innards.cum_distrib_coords_2.data(), innards.cum_distrib_coords_2.size());
-    add_data_to_buf_vv(innards.cum_distrib_data.data(), innards.cum_distrib_data.size());
+    add_data_to_buf_vv(innards.TTfunc_coords.data(),
+        innards.TTfunc_coords.size());
+    add_data_to_buf_vv(innards.TTfunc_data.data(),
+        innards.TTfunc_data.size());
+    add_data_to_buf_vv(innards.cum_distrib_coords_1.data(),
+        innards.cum_distrib_coords_1.size());
+    add_data_to_buf_vv(innards.cum_distrib_coords_2.data(),
+        innards.cum_distrib_coords_2.size());
+    add_data_to_buf_vv(innards.cum_distrib_data.data(),
+        innards.cum_distrib_data.size());
 
     return res;
 }
 
-//Private function which actually computes the lookup tables
+PicsarBreitWheelerCtrl
+BreitWheelerEngine::get_default_ctrl() const
+{
+    return PicsarBreitWheelerCtrl();
+}
+
 void BreitWheelerEngine::compute_lookup_tables (
     PicsarBreitWheelerCtrl ctrl)
 {

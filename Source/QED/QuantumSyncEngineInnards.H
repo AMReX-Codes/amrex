@@ -5,16 +5,21 @@
 
 #include <AMReX_Gpu.H>
 
+//This includes only the definition of a simple datastructure
+//used to control the Quantum Synchrotron engine.
 #include <quantum_sync_engine_ctrl.h>
 
-// Struct to hold Quantum Synchrotron engine data ================
-
+/**
+ * This structure holds all the parameters required to use the
+ * Quantum Synchrotron engine: a POD control structure and lookup
+ * tables data.
+ */
 struct QuantumSynchrotronEngineInnards
 {
-    // Control parameters
+    // Control parameters (a POD struct)
     picsar::multi_physics::quantum_synchrotron_engine_ctrl<amrex::Real> ctrl;
 
-    //Lookup table data
+    //Lookup table data (should stay on GPU)
     amrex::Gpu::ManagedDeviceVector<amrex::Real> KKfunc_coords;
     amrex::Gpu::ManagedDeviceVector<amrex::Real> KKfunc_data;
 
@@ -23,6 +28,6 @@ struct QuantumSynchrotronEngineInnards
     amrex::Gpu::ManagedVector<amrex::Real> cum_distrib_data;
     //______
 };
-
+//==========================================================
 
 #endif //WARPX_quantum_sync_engine_innards_h_

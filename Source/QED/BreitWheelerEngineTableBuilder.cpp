@@ -1,7 +1,8 @@
 #include "BreitWheelerEngineTableBuilder.H"
 
-//Include the full BW engine with table generation support
-//(after some consistency tests)
+//Include the full Breit Wheeler engine with table generation support
+//(after some consistency tests). This requires to have a recent version
+// of the Boost library.
 #ifdef PXRMP_CORE_ONLY
     #error The Table Builder is incompatible with PXRMP_CORE_ONLY
 #endif
@@ -12,12 +13,13 @@
 #include <breit_wheeler_engine.hpp>
 //_______________________________________________
 
+//Some handy aliases
 using PicsarBreitWheelerEngine = picsar::multi_physics::
     breit_wheeler_engine<amrex::Real, QedUtils::DummyStruct>;
 
 using PicsarBreitWheelerCtrl =
     picsar::multi_physics::breit_wheeler_engine_ctrl<amrex::Real>;
-
+//_______________________________________________
 
 void
 BreitWheelerEngineTableBuilder::compute_table
