@@ -63,6 +63,9 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
     //_____________________________
 
 #ifdef AMREX_USE_GPU
+    Print()<<"\n-----------------------------------------------------\n";
+    Print()<<"WARNING: field ionization on GPU uses RedistributeCPU\n";
+    Print()<<"-----------------------------------------------------\n\n";
     //AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
         //do_field_ionization == 0,
         //"Field ionization does not work on GPU so far, because the current "
