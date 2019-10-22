@@ -222,18 +222,42 @@ protected:
     QuantumSynchrotronEngine qs_engine;
     //_______________________________
 
-    //Initialize QED engines and provides smart pointers
-    //to species who need QED processes
+    /**
+     * Initialize QED engines and provides smart pointers
+     * to species who need QED processes
+     */
     void InitQED ();
 
+    //Flags to store if at least one species needs a QED process
     bool someone_has_quantum_sync = false;
     bool someone_has_breit_wheeler = false;
+    //________
 
+    /**
+     * Initializes the Quantum Synchrotron engine
+     */
     void InitQuantumSync ();
+
+    /**
+     * Initializes the Quantum Synchrotron engine
+     */
     void InitBreitWheeler ();
 
+    /**
+     * Parses inputfile parameters for Quantum Synchrotron engine
+     * @return {a tuple containing a flag which is true if tables
+     * have to be generate, a filename (where tables should be stored
+     * or read from) and control parameters.}
+     */
     std::tuple<bool, std::string, PicsarQuantumSynchrotronCtrl>
     ParseQuantumSyncParams ();
+
+    /**
+     * Parses inputfile parameters for Breit Wheeler engine
+     * @return {a tuple containing a flag which is true if tables
+     * have to be generate, a filename (where tables should be stored
+     * or read from) and control parameters.}
+     */
     std::tuple<bool, std::string, PicsarBreitWheelerCtrl>
     ParseBreitWheelerParams ();
 #endif

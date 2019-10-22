@@ -4,6 +4,8 @@
 
 #include <WarpX_f.H>
 #include <WarpX.H>
+
+//This is now needed for writing a binary file on disk.
 #include <WarpXUtil.H>
 
 #include <limits>
@@ -11,6 +13,8 @@
 #include <string>
 
 using namespace amrex;
+
+//literals allow to write "aa"s, which means that "aa" is an std::string (C++14)
 using namespace std::literals;
 
 MultiParticleContainer::MultiParticleContainer (AmrCore* amr_core)
