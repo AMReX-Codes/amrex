@@ -228,13 +228,11 @@ public:
                     // offset of 1 due to inclusive scan
                     int ip = p_i_product[is]-1;
                     WarpXParticleContainer::ParticleType& p_source  = particles_source[is];
-                    // WarpXParticleContainer::ParticleType& p_product  = particles_product[ip];
                     for (int iproduct=0; iproduct<nproducts; iproduct++){
                         // is: index of ionized particle in source species
                         // ip: index of corresponding new particle in product species
                         WarpXParticleContainer::ParticleType* particles_product = p_particles_product[iproduct];
                         WarpXParticleContainer::ParticleType& p_product = particles_product[ip];
-                        // WarpXParticleContainer::ParticleType& p_product = p_particles_product[iproduct][ip];
                         p_copy_functor[iproduct](is, ip, p_pid_product[iproduct], p_source, p_product);
                     }
                     // Transform source particle
