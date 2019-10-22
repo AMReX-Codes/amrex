@@ -238,7 +238,7 @@ public:
 
     /**
      * Init lookup tables from raw binary data.
-     * @param raw_data a Vector of char
+     * @param[in] raw_data a Vector of char
      * @return true if it succeeds, false if it cannot parse raw_data
      */
     bool init_lookup_tables_from_raw_data (const amrex::Vector<char>& raw_data);
@@ -252,7 +252,7 @@ public:
 
     /**
      * Computes the lookup tables. It does nothing unless WarpX is compiled with QED_TABLE_GEN=TRUE
-     * @param ctrl control params to generate the tables
+     * @param[in] ctrl control params to generate the tables
      */
     void compute_lookup_tables (PicsarQuantumSynchrotronCtrl ctrl);
 

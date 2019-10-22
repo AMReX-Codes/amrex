@@ -154,7 +154,6 @@ void NullifyMF(amrex::MultiFab& mf, int lev, amrex::Real zmin, amrex::Real zmax)
     }
 }
 
-
 namespace WarpXUtilIO{
     bool WriteBinaryDataOnFile(std::string filename, const amrex::Vector<char>& data)
     {

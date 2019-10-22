@@ -13,5 +13,11 @@ void NullifyMF(amrex::MultiFab& mf, int lev, amrex::Real zmin,
                amrex::Real zmax);
 
 namespace WarpXUtilIO{
+    /**
+     * A helper function to write binary data on disk.
+     * @param[in] filename where to write
+     * @param[in] data Vector containing binary data to write on disk
+     * return true if it succeeds, false otherwise
+     */
     bool WriteBinaryDataOnFile(std::string filename, const amrex::Vector<char>& data);
 }
