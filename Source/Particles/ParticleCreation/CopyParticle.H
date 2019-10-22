@@ -47,19 +47,6 @@ public:
         m_attribs_product(attribs_product),
         m_runtime_attribs_product(runtime_attribs_product){}
 
-    // Copy constructor.
-/*
-    AMREX_GPU_HOST_DEVICE
-    copyParticle(const copyParticle& in){
-        m_cpuid = in.m_cpuid;
-        m_do_boosted_product = in.m_do_boosted_product;
-        m_runtime_uold_source = in.m_runtime_uold_source;
-        m_attribs_source = in.m_attribs_source;
-        m_attribs_product = in.m_attribs_product;
-        m_runtime_attribs_product = in.m_runtime_attribs_product;
-    }
-*/
-
     /**
      * \brief Overload operator () to do the copy of 1 particle
      *
@@ -89,7 +76,6 @@ public:
         // Update xold etc. if boosted frame diagnostics required
         // for product species. Fill runtime attribs with a copy of
         // current properties (xold = x etc.).
-        /*
         if (m_do_boosted_product) {
             m_runtime_attribs_product[0][ip] = p_source.pos(0);
             m_runtime_attribs_product[1][ip] = p_source.pos(1);
@@ -98,7 +84,6 @@ public:
             m_runtime_attribs_product[4][ip] = m_runtime_uold_source[1][ip];
             m_runtime_attribs_product[5][ip] = m_runtime_uold_source[2][ip];
         }
-        */
     }
 };
 

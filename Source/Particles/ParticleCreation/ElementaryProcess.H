@@ -150,53 +150,41 @@ public:
             // --- product runtime attribs
             amrex::GpuArray<amrex::ParticleReal*,6> runtime_attribs_product;
             const int do_boost = v_do_boosted_product[iproduct];
-             if (do_boost) {
-                 std::map<std::string, int> comps_product = pc_product->getParticleComps();
-                 runtime_attribs_product[0] = soa_product.GetRealData(comps_product[ "xold"]).data() + np_product_old;
-                 runtime_attribs_product[1] = soa_product.GetRealData(comps_product[ "yold"]).data() + np_product_old;
-                 runtime_attribs_product[2] = soa_product.GetRealData(comps_product[ "zold"]).data() + np_product_old;
-                 runtime_attribs_product[3] = soa_product.GetRealData(comps_product["uxold"]).data() + np_product_old;
-                 runtime_attribs_product[4] = soa_product.GetRealData(comps_product["uyold"]).data() + np_product_old;
-                 runtime_attribs_product[5] = soa_product.GetRealData(comps_product["uzold"]).data() + np_product_old;
-             }
+            if (do_boost) {
+                std::map<std::string, int> comps_product = pc_product->getParticleComps();
+                runtime_attribs_product[0] = soa_product.GetRealData(comps_product[ "xold"]).data() + np_product_old;
+                runtime_attribs_product[1] = soa_product.GetRealData(comps_product[ "yold"]).data() + np_product_old;
+                runtime_attribs_product[2] = soa_product.GetRealData(comps_product[ "zold"]).data() + np_product_old;
+                runtime_attribs_product[3] = soa_product.GetRealData(comps_product["uxold"]).data() + np_product_old;
+                runtime_attribs_product[4] = soa_product.GetRealData(comps_product["uyold"]).data() + np_product_old;
+                runtime_attribs_product[5] = soa_product.GetRealData(comps_product["uzold"]).data() + np_product_old;
+            }
              
-             // --- product runtime integer attribs
-             int pid_product;
+            // --- product runtime integer attribs
+            int pid_product;
 #pragma omp critical (doFieldIonization_nextid)
-             {
-                 // ID of first newly-created product particle
-                 pid_product = pc_product->NextID();
-                 // Update NextID to include particles created in this function
-                 pc_product->setNextID(pid_product+np_ionized);
-             }
-             const int cpuid = amrex::ParallelDescriptor::MyProc();
+            {
+                // ID of first newly-created product particle
+                pid_product = pc_product->NextID();
+                // Update NextID to include particles created in this function
+                pc_product->setNextID(pid_product+np_ionized);
+            }
+            const int cpuid = amrex::ParallelDescriptor::MyProc();
 
-             // Create instance of copy functor
-/*
-             const copyParticle copy_functor = initialize_copy(
-                 cpuid, do_boosted_product,
-                 runtime_uold_source,
-                 attribs_source,
-                 attribs_product,
-                 runtime_attribs_product);
-*/
-             v_copy_functor.push_back (initialize_copy(
-                                           cpuid, v_do_boosted_product[iproduct],
-                                           runtime_uold_source,
-                                           attribs_source,
-                                           attribs_product,
-                                           runtime_attribs_product) );
-             v_pid_product[iproduct] = pid_product;
+            // Create instance of copy functor
+            v_copy_functor.push_back (initialize_copy(
+                                          cpuid, v_do_boosted_product[iproduct],
+                                          runtime_uold_source,
+                                          attribs_source,
+                                          attribs_product,
+                                          runtime_attribs_product) );
+            v_pid_product[iproduct] = pid_product;
              
         }
         // Loop over source particles and create product particles
         copyAndTransformParticles(is_flagged, i_product, np_source, v_pid_product,
                                   v_particles_product, particles_source, v_copy_functor,
                                   runtime_iattribs_source);
-
-        //copyAndTransformParticles(is_flagged, i_product, np_source, pid_product,
-        //                          particles_product, particles_source, copy_functor,
-        //                          runtime_iattribs_source);
     }
 
     /**
@@ -224,10 +212,6 @@ public:
         const amrex::Gpu::ManagedDeviceVector<copyParticle>& v_copy_functor,
         amrex::GpuArray<int*,1> runtime_iattribs_source)
     {
-
-        // WarpXParticleContainer::ParticleType* particles_product,
-        // const copyParticle& copy_functor,
-
         int const * const AMREX_RESTRICT p_is_flagged = is_flagged.dataPtr();
         int const * const AMREX_RESTRICT p_i_product = i_product.dataPtr();
         copyParticle const * const p_copy_functor = v_copy_functor.data();
