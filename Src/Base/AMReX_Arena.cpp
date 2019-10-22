@@ -57,8 +57,8 @@ Arena::allocate_system (std::size_t nbytes)
     else if (arena_info.device_use_hostalloc)
     {
         AMREX_HIP_OR_CUDA(
-            AMREX_HIP_SAFE_CALL ( hipHostMalloc(&p, nbytes, hipHostMallocMapped));,
-            AMREX_CUDA_SAFE_CALL( cudaHostAlloc(&p, nbytes, cudaHostAllocMapped)););
+            AMREX_HIP_SAFE_CALL (hipHostMalloc(&p, nbytes, hipHostMallocMapped));,
+            AMREX_CUDA_SAFE_CALL(cudaHostAlloc(&p, nbytes, cudaHostAllocMapped)););
     }
     else
     {
