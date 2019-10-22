@@ -553,7 +553,7 @@ ifeq ($(USE_HIP),TRUE)
     DEFINES += -DAMREX_USE_HIP
 
     ifeq ($(HIP_PLATFORM),nvcc)
-        DEFINES += -DAMREX_USE_CUDA
+        DEFINES += -DAMREX_USE_CUDA -DAMREX_HIP_PLATFORM_NVCC
     endif
 
     GPUSuffix := .HIP
@@ -861,7 +861,7 @@ endif
 
 ifeq ($(USE_HIP),TRUE)
 
-    HIP_PATH = /opt/rocm/hip
+    HIP_PATH ?= /opt/rocm/hip
     INCLUDE_LOCATIONS += $(HIP_PATH)/include
 
     LINKFLAGS = $(HIPCC_FLAGS)
