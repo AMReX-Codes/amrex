@@ -46,7 +46,7 @@ Coord read_df_node_coord (const std::string & name)
         group = cabx / 2 + caby * 6; // 2 cabinets per group, 6 groups per row
     } else {
         amrex::Print() << "Could not determine group!";
-// HIP FIX HERE
+// HIP FIX HERE - std::abort
 #ifdef AMREX_USE_HIP
         abort();
 #else
