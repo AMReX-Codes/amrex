@@ -8,18 +8,18 @@
 /**
  * \brief Base class for particle creation processes
  *
- * Particles in a source particle container are copied to a product particle
- * container if they are flagged. Both source and product particles can be
+ * Particles in a source particle container are copied to product particle
+ * containers if they are flagged. Both source and product particles can be
  * modified.
  *
- * initialize_copy initializes a general copy functor
- * createParticles formats the data to prepare for the copy, then
- *      calls copyAndTransformParticles
- * copyAndTransformParticles loops over particles, performs the copy and
- * transform source and product particles if needed.
+ * - initialize_copy initializes a general copy functor
+ * - createParticles formats the data to prepare for the copy, then
+ *       calls copyAndTransformParticles
+ * - copyAndTransformParticles loops over particles, performs the copy and
+ *       transform source and product particles if needed.
  *
  * The class is templated on the process type. This gives flexibility
- * on source and product particle transformation.
+ * on source and product particle transformations.
  */
 template<elementaryProcessType ProcessT>
 class elementaryProcess
@@ -52,7 +52,7 @@ public:
      * \brief create particles in product particle containers
      *
      * For particle i in mfi, if is_flagged[i]=1, copy particle
-     * particle i from container pc_source into pc_product
+     * particle i from container pc_source into each container in v_pc_product
      *
      * \param lev MR level
      * \param mfi MFIter where source particles are located

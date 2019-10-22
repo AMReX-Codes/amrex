@@ -322,19 +322,20 @@ MultiParticleContainer::Redistribute ()
             pc->Redistribute();
         }
     }
+}
 
-    void
-        MultiParticleContainer::RedistributeLocal (const int num_ghost)
-    {
-        for (auto& pc : allcontainers) {
-            if ( (pc->NumRuntimeRealComps()>0) || (pc->NumRuntimeIntComps()>0) ) {
-                pc->RedistributeCPU(0, 0, 0, num_ghost);
-            } else {
-                pc->Redistribute(0, 0, 0, num_ghost);
-            }
+void
+MultiParticleContainer::RedistributeLocal (const int num_ghost)
+{
+    for (auto& pc : allcontainers) {
+        if ( (pc->NumRuntimeRealComps()>0) || (pc->NumRuntimeIntComps()>0) ) {
+            pc->RedistributeCPU(0, 0, 0, num_ghost);
+        } else {
+            pc->Redistribute(0, 0, 0, num_ghost);
         }
     }
 }
+
 Vector<long>
 MultiParticleContainer::NumberOfParticlesInGrid (int lev) const
 {
