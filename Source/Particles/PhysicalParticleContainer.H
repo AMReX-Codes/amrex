@@ -210,6 +210,14 @@ protected:
     // Inject particles during the whole simulation
     void ContinuousInjection (const amrex::RealBox& injection_box) override;
 
+    //This function return true if the PhysicalParticleContainer contains electrons
+    //or positrons, false otherwise
+    virtual bool AmIALepton ();
+
+    //When true PhysicalParticleContainer tries to use a pusher including
+    //radiation reaction
+    bool do_classical_radiation_reaction = false;
+
 #ifdef WARPX_QED
     // A flag to enable quantum_synchrotron process for leptons
     bool do_qed_quantum_sync = false;

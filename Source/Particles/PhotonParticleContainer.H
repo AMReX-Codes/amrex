@@ -73,6 +73,12 @@ public:
                                 int lev,
                                 int depos_lev,
                                 amrex::Real dt) override {};
+    //Photons are not leptons
+    virtual bool AmIALepton () override
+    {
+        return false;
+    };
+
 };
 
 #endif // #ifndef WARPX_PhotonParticleContainer_H_
