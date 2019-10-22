@@ -214,8 +214,9 @@ ifeq ($(USE_HIP),TRUE)
     CUDA_MAX_THREADS ?= 256
     CUDA_MAXREGCOUNT ?= 255
   else ifeq ($(HIP_PLATFORM),hcc)
+# do nothing special for now, but also don't abort
   else
-    $(error HIP_PLATFORM must be nvcc)
+    $(error HIP_PLATFORM must be nvcc or hcc)
   endif
 endif
 
@@ -561,7 +562,10 @@ ifeq ($(USE_HIP),TRUE)
 
     ifeq ($(HIP_PLATFORM),nvcc)
         DEFINES += -DAMREX_USE_CUDA -DAMREX_HIP_PLATFORM_NVCC
+    elif ($(HIP_PLATFORM),hcc)
+        DEFINES += -DAMREX_HIP_HCC -DAMREX_HIP_PLATFORM_HCC
     endif
+   
 
     GPUSuffix := .HIP
 
@@ -867,9 +871,6 @@ ifneq ("$(wildcard $(AMREX_HOME)/Tools/GNUMake/Make.local)","")
 endif
 
 ifeq ($(USE_HIP),TRUE)
-
-    HIP_PATH ?= /opt/rocm/hip
-    INCLUDE_LOCATIONS += $(HIP_PATH)/include
 
     LINKFLAGS = $(HIPCC_FLAGS)
     AMREX_LINKER = hipcc

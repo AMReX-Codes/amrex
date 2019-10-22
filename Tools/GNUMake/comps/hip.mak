@@ -40,7 +40,8 @@ ifeq ($(HIP_PLATFORM),hcc)
   CXXFLAGS_FROM_HOST := 
   CFLAGS_FROM_HOST := 
   HIPCC_FLAGS = -m64
-  HIP_PATH=/opt/rocm/hip
+  ROC_PATH=/opt/rocm
+  HIP_PATH=$(shell hipconfig --path)
 
   ifeq ($(DEBUG),TRUE)
     HIPCC_FLAGS += -g
@@ -49,12 +50,16 @@ ifeq ($(HIP_PLATFORM),hcc)
     FFLAGS   += -g -O0 -ggdb -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan -finit-integer=2147483647 -ftrapv
     F90FLAGS += -g -O0 -ggdb -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan -finit-integer=2147483647 -ftrapv
 
-else
-#    HIPCC_FLAGS += -lineinfo
+  else  # DEBUG=FALSE flags
   endif
 
-  # for future reference. 
-  HIP_POSSIBLE_FLAGS := -fgpd-rdc
+  # Generic HIP
+  INCLUDE_LOCATIONS += $(HIP_PATH)/include
+
+  # HIP rand
+  INCLUDE_LOCATIONS += $(ROC_PATH)/rocrand/include $(ROC_PATH)/hiprand/include
+  LIBRARY_LOCATIONS += -Wl,rpath,$(ROC_PATH)/rocrand/lib -Wl,rpath,$(ROC_PATH)/hiprand/lib
+  LIBRARIES += -lhiprand -lrocrand 
 
   FC = gfortran
   F90 = gfortran

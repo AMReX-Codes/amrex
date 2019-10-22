@@ -1,10 +1,6 @@
 #ifndef AMREX_GPU_QUALIFIERS_H_
 #define AMREX_GPU_QUALIFIERS_H_
 
-#if defined(AMREX_USE_HIP)
-#include <hip/hip_runtime.h>
-#endif
-
 #if defined(AMREX_USE_GPU)
 
 #if defined(AMREX_USE_HIP)
