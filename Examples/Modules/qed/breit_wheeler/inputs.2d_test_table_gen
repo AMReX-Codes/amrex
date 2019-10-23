@@ -81,4 +81,5 @@ qed_bw.tab_pair_chi_max = 100
 qed_bw.tab_pair_chi_how_many = 30
 qed_bw.tab_pair_prob_how_many = 30
 qed_bw.save_table_in = "bw_table"
+#qed_bw.load_table_from = "bw_table"
 #################################
