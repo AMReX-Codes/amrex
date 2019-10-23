@@ -35,6 +35,11 @@ T blockReduce (T x, WARPREDUCE && warp_reduce, T x0)
     int lane = threadIdx.x % warpSize;
     int wid = threadIdx.x / warpSize;
     x = warp_reduce(x);
+    // __syncthreads() prior to writing to shared memory is necessary
+    // if this reduction call is occurring multiple times in a kernel,
+    // and since we don't know how many times the user is calling it,
+    // we do it always to be safe.
+    __syncthreads();
     if (lane == 0) shared[wid] = x;
     __syncthreads();
     bool b = (threadIdx.x < blockDim.x / warpSize);

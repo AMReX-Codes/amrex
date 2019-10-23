@@ -182,6 +182,13 @@ contains
     y = x
     y = warpReduceSum(y)
 
+    ! syncthreads() prior to writing to shared memory is necessary
+    ! if this reduction call is occurring multiple times in a kernel,
+    ! and since we don't know how many times the user is calling it,
+    ! we do it always to be safe.
+
+    call syncthreads()
+
     if (lane == 0) then
        s(wid) = y
     end if
