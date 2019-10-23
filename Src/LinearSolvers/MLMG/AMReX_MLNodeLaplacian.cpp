@@ -1139,9 +1139,6 @@ MLNodeLaplacian::buildMasks ()
             nddomain.grow(1000); // hack to avoid masks being modified at Neuman boundary
         }
 
-        const auto lobc = m_lobc[0];
-        const auto hibc = m_hibc[0];
-
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -1494,8 +1491,6 @@ MLNodeLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine, const Mu
         cmf = &cfine;
     }
 
-    const Box& nd_domain = amrex::surroundingNodes(m_geom[amrlev][fmglev].Domain());
-
     const iMultiFab& dmsk = *m_dirichlet_mask[amrlev][fmglev];
 
 #ifdef _OPENMP
@@ -1669,13 +1664,11 @@ MLNodeLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& i
 
     const auto& sigma = m_sigma[amrlev][mglev];
     const auto& stencil = m_stencil[amrlev][mglev];
-    const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
     const auto dxinvarr = m_geom[amrlev][mglev].InvCellSizeArray();
 #if (AMREX_SPACEDIM == 2)
     bool is_rz = m_is_rz;
 #endif
 
-    const Box& domain_box = amrex::surroundingNodes(m_geom[amrlev][mglev].Domain());
     const iMultiFab& dmsk = *m_dirichlet_mask[amrlev][mglev];
 
 #ifdef _OPENMP
@@ -1684,8 +1677,6 @@ MLNodeLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& i
     for (MFIter mfi(out,true); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
-        const FArrayBox& xfab = in[mfi];
-        FArrayBox& yfab = out[mfi];
         Array4<Real const> const& xarr = in.const_array(mfi);
         Array4<Real> const& yarr = out.array(mfi);
         Array4<int const> const& dmskarr = dmsk.const_array(mfi);
@@ -1738,9 +1729,7 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
 
     const auto& sigma = m_sigma[amrlev][mglev];
     const auto& stencil = m_stencil[amrlev][mglev];
-    const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
     const auto dxinvarr = m_geom[amrlev][mglev].InvCellSizeArray();
-    const Box& domain_box = amrex::surroundingNodes(m_geom[amrlev][mglev].Domain());
 #if (AMREX_SPACEDIM == 2)
     bool is_rz = m_is_rz;
 #endif
@@ -2035,7 +2024,6 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
         }
     }
 
-    const Real* dxinv = geom.InvCellSize();
     const auto dxinvarr = geom.InvCellSizeArray();
 
 #if (AMREX_SPACEDIM == 2)
@@ -2164,9 +2152,6 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
 
     const Geometry& geom = m_geom[0][0];
     const Box& ccdom = geom.Domain();
-    const auto& nddom = amrex::surroundingNodes(ccdom);
-
-    const Real* dxinv = geom.InvCellSize();
     const auto dxinvarr = geom.InvCellSizeArray();
 #if (AMREX_SPACEDIM == 2)
     bool is_rz = m_is_rz;
@@ -2240,7 +2225,6 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
                 rhs2.resize(bx);
                 Array4<Real> const& rhs2arr = rhs2.array();
                 Array4<Real const> const& rhcc_fab_a = rhcc_fab->const_array();
-                Array4<int const> const& tmpmaskarr = tmpmask.const_array();
                 AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
                 {
                     mlndlap_rhcc(i,j,k,rhs2arr,rhcc_fab_a,tmpmaskarr);
