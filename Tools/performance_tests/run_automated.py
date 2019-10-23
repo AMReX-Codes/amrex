@@ -121,7 +121,7 @@ perf_logs_repo = source_dir_base + 'perf_logs/'
 compiler_name = {'intel': 'intel', 'gnu': 'gcc', 'pgi':'pgi'}
 module_Cname = {'cpu': 'haswell', 'knl': 'knl,quad,cache', 'gpu':''}
 csv_file = {'cori':'cori_knl.csv', 'summit':'summit.csv'}
-cwd = os.getcwd() + '/'
+# cwd = os.getcwd() + '/'
 cwd = warpx_dir + 'Tools/performance_tests/'
 print('cwd = ' + cwd)
 bin_dir = cwd + 'Bin/'
@@ -266,8 +266,6 @@ if update_perf_log_repo:
     if push_on_perf_log_repo:
         git_repo.git.stash('save')
         git_repo.git.pull()
-    # move csv file to perf_logs repon and commit the new version
-    # shutil.copyfile( perf_database_file, perf_logs_repo + '/logs_hdf5/' + perf_database_file )
     os.chdir( perf_logs_repo )
     sys.path.append('./')
     import generate_index_html
