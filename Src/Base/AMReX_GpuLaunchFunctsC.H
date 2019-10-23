@@ -175,7 +175,6 @@ void FabReduce (Box const& box, N ncomp, T const& init_val,
     for (N n = 0; n < ncomp; ++n) {
         for (int k = lo.z; k <= hi.z; ++k) {
         for (int j = lo.y; j <= hi.y; ++j) {
-        AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
             f1(i,j,k,n,&r);
         }}}
@@ -192,7 +191,6 @@ void FabReduce (Box const& box, T const& init_val,
     const auto hi = amrex::ubound(box);
     for (int k = lo.z; k <= hi.z; ++k) {
     for (int j = lo.y; j <= hi.y; ++j) {
-    AMREX_PRAGMA_SIMD
     for (int i = lo.x; i <= hi.x; ++i) {
         f1(i,j,k,&r);
     }}}
@@ -205,7 +203,6 @@ void VecReduce (N n, T const& init_val,
                 L1&& f1, L2&& f2, std::size_t shared_mem_bytes=0) noexcept
 {
     auto r = init_val;
-    AMREX_PRAGMA_SIMD
     for (N i = 0; i < n; ++i) {
         f1(i,&r);
     }
