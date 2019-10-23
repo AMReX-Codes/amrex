@@ -97,7 +97,7 @@ if args.automated == True:
     pull_3_repos = True
     recompile = True
     if machine == 'summit':
-        compiler = 'pgi'
+        compiler = 'gnu'
         architecture = 'gpu'
 
 # List of tests to perform
@@ -121,12 +121,13 @@ perf_logs_repo = source_dir_base + 'perf_logs/'
 compiler_name = {'intel': 'intel', 'gnu': 'gcc', 'pgi':'pgi'}
 module_Cname = {'cpu': 'haswell', 'knl': 'knl,quad,cache', 'gpu':''}
 csv_file = {'cori':'cori_knl.csv', 'summit':'summit.csv'}
-cwd = os.getcwd() + '/'
+# cwd = os.getcwd() + '/'
+cwd = warpx_dir + 'Tools/performance_tests/'
+print('cwd = ' + cwd)
 bin_dir = cwd + 'Bin/'
 bin_name = executable_name(compiler, architecture)
 
 log_dir  = cwd
-perf_database_file = cwd + perf_database_file
 day = time.strftime('%d')
 month = time.strftime('%m')
 year = time.strftime('%Y')
@@ -247,15 +248,14 @@ for n_node in n_node_list:
                 df_newline['inputs_content'] = get_file_content( filename=cwd+current_run.input_file )
             # Load file perf_database_file if exists, and
             # append with results from this scan
-            if os.path.exists(perf_database_file):
-                # df_base = pd.read_hdf(perf_database_file, 'all_data', format='table')
-                df_base = pd.read_hdf(perf_database_file, 'all_data')
+            if os.path.exists(perf_logs_repo + '/logs_hdf5/' + perf_database_file):
+                df_base = pd.read_hdf(perf_logs_repo + '/logs_hdf5/' + perf_database_file, 'all_data')
                 updated_df = df_base.append(df_newline, ignore_index=True)
             else:
                 updated_df = df_newline
             # Write dataframe to file perf_database_file
             # (overwrite if file exists)
-            updated_df.to_hdf(perf_database_file, key='all_data', mode='w')
+            updated_df.to_hdf(perf_logs_repo + '/logs_hdf5/' + perf_database_file, key='all_data', mode='w', format='table')
 
 # Extract sub-set of pandas data frame, write it to
 # csv file and copy this file to perf_logs repo
@@ -266,8 +266,6 @@ if update_perf_log_repo:
     if push_on_perf_log_repo:
         git_repo.git.stash('save')
         git_repo.git.pull()
-    # move csv file to perf_logs repon and commit the new version
-    shutil.move( perf_database_file, perf_logs_repo + '/logs_hdf5/' + perf_database_file )
     os.chdir( perf_logs_repo )
     sys.path.append('./')
     import generate_index_html
