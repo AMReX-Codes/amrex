@@ -123,7 +123,6 @@ EBFluxRegister::FineAdd (const MFIter& mfi,
     const Box& tbx = mfi.tilebox();
     BL_ASSERT(tbx.cellCentered());
     const Box& cbx = amrex::coarsen(tbx, m_ratio);
-    const Box& fbx = amrex::refine(cbx, m_ratio);
 
     AMREX_D_TERM(Array4<Real const> const& fx = a_flux[0]->const_array();,
                  Array4<Real const> const& fy = a_flux[1]->const_array();,

@@ -20,11 +20,11 @@ namespace amrex {
 
 LSFactory::LSFactory(int lev, int ls_ref, int eb_ref, int ls_pad, int eb_pad,
                      const BoxArray & ba, const Geometry & geom, const DistributionMapping & dm,
-                     int eb_tile_size)
+                     int a_eb_tile_size)
     : amr_lev(lev),
       ls_grid_ref(ls_ref), eb_grid_ref(eb_ref),
       ls_grid_pad(ls_pad), eb_grid_pad(eb_pad),
-      eb_tile_size(eb_tile_size),
+      eb_tile_size(a_eb_tile_size),
       dx_vect(AMREX_D_DECL(geom.CellSize()[0]/ls_ref,
                            geom.CellSize()[1]/ls_ref,
                            geom.CellSize()[2]/ls_ref)),
