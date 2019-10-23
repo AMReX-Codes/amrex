@@ -788,6 +788,7 @@ void MultiParticleContainer::InitQuantumSync ()
 
     Vector<char> table_data;
     ParallelDescriptor::ReadAndBcastFile(filename, table_data);
+    ParallelDescriptor::Barrier();
     if(!qs_engine.init_lookup_tables_from_raw_data(table_data))
         amrex::Error("Table initialization has failed!\n");
 }
@@ -815,6 +816,7 @@ void MultiParticleContainer::InitBreitWheeler ()
 
     Vector<char> table_data;
     ParallelDescriptor::ReadAndBcastFile(filename, table_data);
+    ParallelDescriptor::Barrier();
     if(!bw_engine.init_lookup_tables_from_raw_data(table_data))
         amrex::Error("Table initialization has failed!\n");
 }
