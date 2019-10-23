@@ -248,23 +248,15 @@ Mask::And (const Mask& src,
            int         destcomp,
            int         numcomp) noexcept
 {
-    const auto len = amrex::length(destbox);
+    auto const& d = this->array();
+    auto const& s = src.const_array();
     const auto dlo = amrex::lbound(destbox);
     const auto slo = amrex::lbound(srcbox);
-    const auto dp  =     view(dlo, destcomp);
-    const auto sp  = src.view(slo, srccomp);
-
-    for (int n = 0; n < numcomp; ++n) {
-        for         (int k = 0; k < len.z; ++k) {
-            for     (int j = 0; j < len.y; ++j) {
-                AMREX_PRAGMA_SIMD
-                for (int i = 0; i < len.x; ++i) {
-                    dp(i,j,k,n) = dp(i,j,k,n) ? sp(i,j,k,n) : 0;
-                }
-            }
-        }
-    }
-
+    const Dim3 offset{slo.x-dlo.x,slo.y-dlo.y,slo.z-dlo.z};
+    amrex::LoopConcurrent(destbox, numcomp, [=] (int i, int j, int k, int n) noexcept
+    {
+        d(i,j,k,n+destcomp) = d(i,j,k,n+destcomp) ? s(i+offset.x,j+offset.y,k+offset.z,n+srccomp) : 0;
+    });
     return *this;
 }
 
@@ -305,23 +297,15 @@ Mask::Or (const Mask& src,
           int         destcomp,
           int         numcomp) noexcept
 {
-    const auto len = amrex::length(destbox);
+    auto const& d = this->array();
+    auto const& s = src.const_array();
     const auto dlo = amrex::lbound(destbox);
     const auto slo = amrex::lbound(srcbox);
-    const auto dp  =     view(dlo, destcomp);
-    const auto sp  = src.view(slo, srccomp);
-
-    for (int n = 0; n < numcomp; ++n) {
-        for         (int k = 0; k < len.z; ++k) {
-            for     (int j = 0; j < len.y; ++j) {
-                AMREX_PRAGMA_SIMD
-                for (int i = 0; i < len.x; ++i) {
-                    dp(i,j,k,n) = dp(i,j,k,n) ? 1: sp(i,j,k,n);
-                }
-            }
-        }
-    }
-
+    const Dim3 offset{slo.x-dlo.x,slo.y-dlo.y,slo.z-dlo.z};
+    amrex::LoopConcurrent(destbox, numcomp, [=] (int i, int j, int k, int n) noexcept
+    {
+        d(i,j,k,n+destcomp) = d(i,j,k,n+destcomp) ? 1: s(i+offset.x,j+offset.y,k+offset.z,n+srccomp);
+    });
     return *this;
 }
 
