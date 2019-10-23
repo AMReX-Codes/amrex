@@ -19,8 +19,6 @@ ifeq ($(lowercase_hipcc_host_comp),$(filter $(lowercase_hipcc_host_comp),gcc gnu
   endif
 endif
 
-#ifeq ($(lowercase_hipcc_host_comp),gnu)
-#  ifeq ($(gcc_major_version),4)
 #    CXXFLAGS_FROM_HOST := -ccbin=g++ -Xcompiler='$(CXXFLAGS) --std=c++11' --std=c++11
 #  else
 #    CXXFLAGS_FROM_HOST := -ccbin=g++ -Xcompiler='$(CXXFLAGS) --std=c++14' --std=c++14
@@ -58,8 +56,8 @@ ifeq ($(HIP_PLATFORM),hcc)
 
   # HIP rand
   INCLUDE_LOCATIONS += $(ROC_PATH)/rocrand/include $(ROC_PATH)/hiprand/include
-  LIBRARY_LOCATIONS += -Wl,rpath,$(ROC_PATH)/rocrand/lib -Wl,rpath,$(ROC_PATH)/hiprand/lib
-  LIBRARIES += -lhiprand -lrocrand 
+  LIBRARY_LOCATIONS += $(ROC_PATH)/rocrand/lib $(ROC_PATH)/hiprand/lib
+  LIBRARIES += -Wl,--rpath=$(ROC_PATH)/rocrand/lib -Wl,--rpath=$(ROC_PATH)/hiprand/lib -lhiprand -lrocrand 
 
   FC = gfortran
   F90 = gfortran

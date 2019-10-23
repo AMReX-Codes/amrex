@@ -546,13 +546,15 @@ endif
 ifeq ($(USE_HIP),TRUE)
 
     USE_GPU := TRUE
+    AMREX_FCOMP ?= gnu 
+    AMREX_CCOMP ?= hip
 
     ifneq ($(lowercase_comp),gnu)
     else ifneq ($(lowercase_comp),hip)
         $(error HIP can only be used with COMP=gnu)
     endif
 
-    include $(AMREX_HOME)/Tools/GNUMake/comps/hip.mak
+#    include $(AMREX_HOME)/Tools/GNUMake/comps/hip.mak
 
     ifeq ($(USE_MPI),TRUE)
       $(error MPI is not supported with HIP)
@@ -562,8 +564,8 @@ ifeq ($(USE_HIP),TRUE)
 
     ifeq ($(HIP_PLATFORM),nvcc)
         DEFINES += -DAMREX_USE_CUDA -DAMREX_HIP_PLATFORM_NVCC
-    elif ($(HIP_PLATFORM),hcc)
-        DEFINES += -DAMREX_HIP_HCC -DAMREX_HIP_PLATFORM_HCC
+    else ifeq ($(HIP_PLATFORM),hcc)
+        DEFINES += -DAMREX_HIP_PLATFORM_HCC
     endif
    
 
