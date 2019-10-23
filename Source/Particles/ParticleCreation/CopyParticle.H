@@ -6,7 +6,7 @@
 /**
  * \brief Functor to copy one particle
  *
- * This is meant to be a very small class stored in managed memory,
+ * This is meant to be a very small class captured by value in kernel launches,
  * that can be initialized on the host and copied to the device at each
  * iteration. It should be general enough to be used by all processes.
  *

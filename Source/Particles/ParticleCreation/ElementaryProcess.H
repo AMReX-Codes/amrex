@@ -171,7 +171,7 @@ public:
             }
             const int cpuid = amrex::ParallelDescriptor::MyProc();
 
-            // Create instance of copy functor
+            // Create instance of copy functor, and add it to the vector
             v_copy_functor.push_back (initialize_copy(
                                           cpuid, v_do_boosted_product[iproduct],
                                           runtime_uold_source,
@@ -199,7 +199,7 @@ public:
      * \param v_particles_product for each product particle container: pointer
      *        to the AoS particle data
      * \param particles_source pointter to the AoS source particle data
-     * \param v_copy_functor for each product particle container: copy functor
+     * \param v_copy_functor vector of copy functors, one for each product particle container
      * \param runtime_iattribs_source pointer to source runtime integer attribs
      */
     void copyAndTransformParticles(
