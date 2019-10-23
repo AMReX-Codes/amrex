@@ -1897,9 +1897,18 @@ BaseFab<T>::copy (const BaseFab<T>& src, const Box& srcbox, int srccomp,
     Array4<T const> const& s = src.const_array();
     const auto dlo = amrex::lbound(destbox);
     const auto slo = amrex::lbound(srcbox);
+// HIP FIX HERE - Dim3
+#ifdef AMREX_USE_HIP
+    Dim3 offset;
+    offset.x = slo.x-dlo.x;
+    offset.y = slo.y-dlo.y;
+    offset.z = slo.z-dlo.z; 
+#else
     const Dim3 offset{slo.x-dlo.x,slo.y-dlo.y,slo.z-dlo.z};
+#endif
+
 #ifdef AMREX_DEVICE_COMPILE
-    amrex::LoopConcurrent(destbox, numcomp, [=] (int i, int j, int k, int n) noexcept
+    amrex::LoopConcurrent(destbox, numcomp, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT 
 #else
     AMREX_HOST_DEVICE_FOR_4D_FLAG(run_on == RunOn::Gpu and Gpu::inLaunchRegion(),
                                   destbox, numcomp, i, j, k, n,
@@ -2191,7 +2200,7 @@ BaseFab<T>::copyToMem (const Box& srcbox,
         Array4<T> d(static_cast<T*>(dst),amrex::begin(srcbox),amrex::end(srcbox),numcomp);
         Array4<T const> const& s = this->const_array();
 #ifdef AMREX_DEVICE_COMPILE
-        amrex::LoopConcurrent(srcbox, numcomp, [=] (int i, int j, int k, int n) noexcept
+        amrex::LoopConcurrent(srcbox, numcomp, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT 
 #else
         AMREX_HOST_DEVICE_FOR_4D_FLAG(run_on == RunOn::Gpu and Gpu::inLaunchRegion(),
                                       srcbox, numcomp, i, j, k, n,
@@ -2224,7 +2233,7 @@ BaseFab<T>::copyFromMem (const Box&  dstbox,
                           amrex::end(dstbox), numcomp);
         Array4<T> const& d = this->array();
 #ifdef AMREX_DEVICE_COMPILE
-        amrex::LoopConcurrent(dstbox, numcomp, [=] (int i, int j, int k, int n) noexcept
+        amrex::LoopConcurrent(dstbox, numcomp, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT 
 #else
         AMREX_HOST_DEVICE_FOR_4D_FLAG(run_on == RunOn::Gpu and Gpu::inLaunchRegion(),
                                       dstbox, numcomp, i, j, k, n,
@@ -2257,7 +2266,7 @@ BaseFab<T>::addFromMem (const Box&  dstbox,
                           amrex::end(dstbox), numcomp);
         Array4<T> const& d = this->array();
 #ifdef AMREX_DEVICE_COMPILE
-        amrex::LoopConcurrent(dstbox, numcomp, [=] (int i, int j, int k, int n) noexcept
+        amrex::LoopConcurrent(dstbox, numcomp, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT 
 #else
         AMREX_HOST_DEVICE_FOR_4D_FLAG(run_on == RunOn::Gpu and Gpu::inLaunchRegion(),
                                       dstbox, numcomp, i, j, k, n,
@@ -2303,7 +2312,7 @@ BaseFab<T>::abs (const Box& subbox, int comp, int numcomp) noexcept
 {
     Array4<T> const& a = this->array();
 #ifdef AMREX_DEVICE_COMPILE
-    amrex::LoopConcurrent(subbox, numcomp, [=] (int i, int j, int k, int n) noexcept
+    amrex::LoopConcurrent(subbox, numcomp, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT 
 #else
     AMREX_HOST_DEVICE_FOR_4D_FLAG(run_on == RunOn::Gpu and Gpu::inLaunchRegion(),
                                   subbox, numcomp, i, j, k, n,
@@ -2325,7 +2334,7 @@ BaseFab<T>::norminfmask (const Box& subbox, const BaseFab<int>& mask,
     Array4<T const> const& a = this->const_array();
     Array4<int const> const& m = mask.const_array();
     Real r = 0.0;
-    amrex::Loop(subbox, ncomp, [=,&r] (int i, int j, int k, int n) noexcept
+    amrex::Loop(subbox, ncomp, [=,&r] (int i, int j, int k, int n) AMREX_NOEXCEPT 
     {
         if (m(i,j,k)) {
             Real t = static_cast<Real>(std::abs(a(i,j,k,n+scomp)));
@@ -2354,18 +2363,18 @@ BaseFab<T>::norm (const Box& subbox, int p, int comp, int numcomp) const noexcep
     Array4<T const> const& a = this->const_array();
     Real nrm = 0.;
     if (p == 0) {
-        amrex::Loop(subbox, numcomp, [=,&nrm] (int i, int j, int k, int n) noexcept
+        amrex::Loop(subbox, numcomp, [=,&nrm] (int i, int j, int k, int n) AMREX_NOEXCEPT 
         {
             Real t = static_cast<Real>(std::abs(a(i,j,k,n+comp)));
             nrm = amrex::max(nrm,t);
         });
     } else if (p == 1) {
-        amrex::Loop(subbox, numcomp, [=,&nrm] (int i, int j, int k, int n) noexcept
+        amrex::Loop(subbox, numcomp, [=,&nrm] (int i, int j, int k, int n) AMREX_NOEXCEPT 
         {
             nrm += std::abs(a(i,j,k,n+comp));
         });
     } else if (p == 2) {
-        amrex::Loop(subbox, numcomp, [=,&nrm] (int i, int j, int k, int n) noexcept
+        amrex::Loop(subbox, numcomp, [=,&nrm] (int i, int j, int k, int n) AMREX_NOEXCEPT
         {
             nrm += a(i,j,k,n+comp)*a(i,j,k,n+comp);
         });
@@ -2396,7 +2405,7 @@ BaseFab<T>::min (const Box& subbox, int comp) const noexcept
     const auto lo = amrex::lbound(subbox);
     T r = a(lo.x,lo.y,lo.z,comp);
 #endif
-    amrex::Loop(subbox, [=,&r] (int i, int j, int k) noexcept
+    amrex::Loop(subbox, [=,&r] (int i, int j, int k) AMREX_NOEXCEPT
     {
         r = amrex::min(r, a(i,j,k,comp));
     });
@@ -2424,7 +2433,7 @@ BaseFab<T>::max (const Box& subbox, int comp) const noexcept
     const auto lo = amrex::lbound(subbox);
     T r = a(lo.x,lo.y,lo.z,comp);
 #endif
-    amrex::Loop(subbox, [=,&r] (int i, int j, int k) noexcept
+    amrex::Loop(subbox, [=,&r] (int i, int j, int k) AMREX_NOEXCEPT
     {
         r = amrex::max(r, a(i,j,k,comp));
     });
@@ -2447,7 +2456,7 @@ BaseFab<T>::maxabs (const Box& subbox, int comp) const noexcept
 {
     Array4<T const> const& a = this->const_array();
     T r = 0;
-    amrex::Loop(subbox, [=,&r] (int i, int j, int k) noexcept
+    amrex::Loop(subbox, [=,&r] (int i, int j, int k) AMREX_NOEXCEPT
     {
         r = amrex::max(r, std::abs(a(i,j,k,comp)));
     });
@@ -2479,7 +2488,7 @@ BaseFab<T>::minIndex (const Box& subbox, int comp) const noexcept
     T min_val = a(lo.x,lo.y,lo.z,comp);
 #endif
     amrex::Loop(subbox,[=,AMREX_D_DECL(&imin,&jmin,&kmin),&min_val]
-                (int i, int j, int k) noexcept
+                (int i, int j, int k) AMREX_NOEXCEPT
     {
         if (a(i,j,k,comp) < min_val) {
             min_val = a(i,j,k,comp);
@@ -2504,7 +2513,7 @@ BaseFab<T>::indexFromValue (Real value, const Box& subbox, int comp) const noexc
 #endif
     Array4<T const> const& a = this->const_array();
     amrex::Loop(subbox, [=,AMREX_D_DECL(&imin,&jmin,&kmin)]
-                (int i, int j, int k) noexcept
+                (int i, int j, int k) AMREX_NOEXCEPT
     {
         if (a(i,j,k,comp) == value) {
             AMREX_D_TERM(imin = i;,  jmin = j;,  kmin = k;);
@@ -2520,7 +2529,7 @@ void
 BaseFab<T>::minIndex (const Box& subbox, Real& min_val, IntVect& min_idx, int comp) const noexcept
 {
     Array4<T const> const& a = this->const_array();
-    amrex::Loop(subbox, [=,&min_val,&min_idx] (int i, int j, int k) noexcept
+    amrex::Loop(subbox, [=,&min_val,&min_idx] (int i, int j, int k) AMREX_NOEXCEPT 
     {
         if (a(i,j,k,comp) < min_val) {
             min_val = a(i,j,k,comp);
@@ -2551,7 +2560,7 @@ BaseFab<T>::maxIndex (const Box& subbox, int comp) const noexcept
     AMREX_D_DECL(int imax=lo.x, jmax=lo.y, kmax=lo.z);
     T max_val = a(lo.x,lo.y,lo.z,comp);
 #endif
-    amrex::Loop(subbox, [=,AMREX_D_DECL(&imax,&jmax,&kmax),&max_val] (int i, int j, int k) noexcept
+    amrex::Loop(subbox, [=,AMREX_D_DECL(&imax,&jmax,&kmax),&max_val] (int i, int j, int k) AMREX_NOEXCEPT
     {
         if (a(i,j,k,comp) > max_val) {
             max_val = a(i,j,k,comp);
@@ -2568,7 +2577,7 @@ void
 BaseFab<T>::maxIndex (const Box& subbox, Real& max_val, IntVect& max_idx, int comp) const noexcept
 {
     Array4<T const> const& a = this->const_array();
-    amrex::Loop(subbox,[=,&max_val,&max_idx] (int i, int j, int k) noexcept
+    amrex::Loop(subbox,[=,&max_val,&max_idx] (int i, int j, int k) AMREX_NOEXCEPT 
     {
         if (a(i,j,k,comp) > max_val) {
             max_val = a(i,j,k,comp);
@@ -2698,7 +2707,7 @@ BaseFab<T>::saxpy (T a, const BaseFab<T>& x, const Box& srcbox, const Box& destb
     const auto slo = amrex::lbound(srcbox);
     const Dim3 offset{slo.x-dlo.x,slo.y-dlo.y,slo.z-dlo.z};
 #ifdef AMREX_DEVICE_COMPILE
-    amrex::LoopConcurrent(destbox, numcomp, [=] (int i, int j, int k, int n) noexcept
+    amrex::LoopConcurrent(destbox, numcomp, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT 
 #else
     AMREX_HOST_DEVICE_FOR_4D_FLAG(run_on == RunOn::Gpu and Gpu::inLaunchRegion(),
                                   destbox, numcomp, i, j, k, n,
@@ -2741,7 +2750,7 @@ BaseFab<T>::xpay (T a, const BaseFab<T>& x,
     const auto slo = amrex::lbound(srcbox);
     const Dim3 offset{slo.x-dlo.x,slo.y-dlo.y,slo.z-dlo.z};
 #ifdef AMREX_DEVICE_COMPILE
-    amrex::LoopConcurrent(destbox, numcomp, [=] (int i, int j, int k, int n) noexcept
+    amrex::LoopConcurrent(destbox, numcomp, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT 
 #else
     AMREX_HOST_DEVICE_FOR_4D_FLAG(run_on == RunOn::Gpu and Gpu::inLaunchRegion(),
                                   destbox, numcomp, i, j, k, n,
@@ -2770,7 +2779,7 @@ BaseFab<T>::addproduct (const Box& destbox, int destcomp, int numcomp,
     Array4<T const> const& s1 = src1.const_array();
     Array4<T const> const& s2 = src2.const_array();
 #ifdef AMREX_DEVICE_COMPILE
-    armex::LoopConcurrent(destbox, numcomp, [=] (int i, int j, int k, int n) noexcept
+    amrex::LoopConcurrent(destbox, numcomp, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT 
 #else
     AMREX_HOST_DEVICE_FOR_4D_FLAG(run_on == RunOn::Gpu and Gpu::inLaunchRegion(),
                                   destbox, numcomp, i, j, k, n,
@@ -2808,10 +2817,23 @@ BaseFab<T>::linComb (const BaseFab<T>& f1, const Box& b1, int comp1,
     const auto dlo = amrex::lbound(b);
     const auto slo1 = amrex::lbound(b1);
     const auto slo2 = amrex::lbound(b2);
+// HIP FIX HERE - Dim3
+#ifdef AMREX_USE_HIP 
+    Dim3 off1;
+    off1.x = slo1.x-dlo.x;
+    off1.y = slo1.y-dlo.y;
+    off1.z = slo1.z-dlo.z;
+    Dim3 off2;
+    off2.x = slo2.x-dlo.x;
+    off2.y = slo2.y-dlo.y;
+    off2.z = slo2.z-dlo.z;
+#else
     const Dim3 off1{slo1.x-dlo.x,slo1.y-dlo.y,slo1.z-dlo.z};
     const Dim3 off2{slo2.x-dlo.x,slo2.y-dlo.y,slo2.z-dlo.z};    
+#endif
+
 #ifdef AMREX_DEVICE_COMPILE
-    amrex::LoopConcurrent(b, numcomp, [=] (int i, int j, int k, int n) noexcept
+    amrex::LoopConcurrent(b, numcomp, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT 
 #else
     AMREX_HOST_DEVICE_FOR_4D_FLAG(run_on == RunOn::Gpu and Gpu::inLaunchRegion(),
                                   b, numcomp, i, j, k, n,
@@ -2841,12 +2863,19 @@ BaseFab<T>::dot (const Box& xbx, int xcomp,
 
     const auto xlo = amrex::lbound(xbx);
     const auto ylo = amrex::lbound(ybx);
+// HIP FIX HERE - Dim3 
+#ifdef AMREX_USE_HIP
+    Dim3 offset;
+    offset.x = ylo.x-xlo.x;
+    offset.y = ylo.y-xlo.y;
+    offset.z = ylo.z-xlo.z;
+#else
     const Dim3 offset{ylo.x-xlo.x,ylo.y-xlo.y,ylo.z-xlo.z};
-
+#endif
     Array4<T const> const& xa = this->const_array();
     Array4<T const> const& ya = y.const_array();
 
-    amrex::Loop(xbx, numcomp, [=,&r] (int i, int j, int k, int n) noexcept
+    amrex::Loop(xbx, numcomp, [=,&r] (int i, int j, int k, int n) AMREX_NOEXCEPT 
     {
         r += xa(i,j,k,n+xcomp) * ya(i+offset.x,j+offset.y,k+offset.z,n+ycomp);
     });
@@ -2878,7 +2907,7 @@ BaseFab<T>::dotmask (const BaseFab<int>& mask, const Box& xbx, int xcomp,
     Array4<T const> const& ya = y.const_array();
     Array4<int const> const& ma = mask.const_array();
 
-    amrex::Loop(xbx, numcomp, [=,&r] (int i, int j, int k, int n) noexcept
+    amrex::Loop(xbx, numcomp, [=,&r] (int i, int j, int k, int n) AMREX_NOEXCEPT 
     {
         int m = static_cast<int>(static_cast<bool>(ma(i,j,k)));
         r += xa(i,j,k,n+xcomp) * ya(i+offset.x,j+offset.y,k+offset.z,n+ycomp) * m;
@@ -3007,9 +3036,17 @@ BaseFab<T>::plus (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
     Array4<T const> const& s = src.const_array();
     const auto dlo = amrex::lbound(destbox);
     const auto slo = amrex::lbound(srcbox);
+// HIP FIX HERE - Dim3
+#ifdef AMREX_USE_HIP
+    Dim3 offset;
+    offset.x = slo.x-dlo.x;
+    offset.y = slo.y-dlo.y;
+    offset.z = slo.z-dlo.z;
+#else
     const Dim3 offset{slo.x-dlo.x,slo.y-dlo.y,slo.z-dlo.z};
+#endif
 #ifdef AMREX_DEVICE_COMPILE
-    amrex::LoopConcurrent(destbox, numcomp, [=] (int i, int j, int k, int n) noexcept
+    amrex::LoopConcurrent(destbox, numcomp, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT 
 #else
     AMREX_HOST_DEVICE_FOR_4D_FLAG(run_on == RunOn::Gpu and Gpu::inLaunchRegion(),
                                   destbox, numcomp, i, j, k, n,
@@ -3040,7 +3077,7 @@ BaseFab<T>::atomicAdd (const BaseFab<T>& src, const Box& srcbox, const Box& dest
     const auto slo = amrex::lbound(srcbox);
     const Dim3 offset{slo.x-dlo.x,slo.y-dlo.y,slo.z-dlo.z};
 #ifdef AMREX_DEVICE_COMPILE
-    amrex::Loop(destbox, numcomp, [=] (int i, int j, int k, int n) noexcept
+    amrex::Loop(destbox, numcomp, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT 
 #else
     AMREX_HOST_DEVICE_FOR_4D_FLAG(run_on == RunOn::Gpu and Gpu::inLaunchRegion(),
                                   destbox, numcomp, i, j, k, n,
@@ -3095,7 +3132,7 @@ BaseFab<T>::minus (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
     const auto slo = amrex::lbound(srcbox);
     const Dim3 offset{slo.x-dlo.x,slo.y-dlo.y,slo.z-dlo.z};
 #ifdef AMREX_DEVICE_COMPILE
-    amrex::LoopConcurrent(destbox, numcomp, [=] (int i, int j, int k, int n) noexcept
+    amrex::LoopConcurrent(destbox, numcomp, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT 
 #else
     AMREX_HOST_DEVICE_FOR_4D_FLAG(run_on == RunOn::Gpu and Gpu::inLaunchRegion(),
                                   destbox, numcomp, i, j, k, n,
@@ -3158,7 +3195,7 @@ BaseFab<T>::mult (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
     const auto slo = amrex::lbound(srcbox);
     const Dim3 offset{slo.x-dlo.x,slo.y-dlo.y,slo.z-dlo.z};
 #ifdef AMREX_DEVICE_COMPILE
-    amrex::LoopConcurrent(destbox, numcomp, [=] (int i, int j, int k, int n) noexcept
+    amrex::LoopConcurrent(destbox, numcomp, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT 
 #else
     AMREX_HOST_DEVICE_FOR_4D_FLAG(run_on == RunOn::Gpu and Gpu::inLaunchRegion(),
                                   destbox, numcomp, i, j, k, n,
@@ -3221,7 +3258,7 @@ BaseFab<T>::divide (const BaseFab<T>& src, const Box& srcbox, const Box& destbox
     const auto slo = amrex::lbound(srcbox);
     const Dim3 offset{slo.x-dlo.x,slo.y-dlo.y,slo.z-dlo.z};
 #ifdef AMREX_DEVICE_COMPILE
-    amrex::LoopConcurrent(destbox, numcomp, [=] (int i, int j, int k, int n) noexcept
+    amrex::LoopConcurrent(destbox, numcomp, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT 
 #else
     AMREX_HOST_DEVICE_FOR_4D_FLAG(run_on == RunOn::Gpu and Gpu::inLaunchRegion(),
                                   destbox, numcomp, i, j, k, n,
@@ -3284,7 +3321,7 @@ BaseFab<T>::protected_divide (const BaseFab<T>& src, const Box& srcbox, const Bo
     const auto slo = amrex::lbound(srcbox);
     const Dim3 offset{slo.x-dlo.x,slo.y-dlo.y,slo.z-dlo.z};
 #ifdef AMREX_DEVICE_COMPILE
-    amrex::LoopConcurrent(destbox, numcomp, [=] (int i, int j, int k, int n) noexcept
+    amrex::LoopConcurrent(destbox, numcomp, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT 
 #else
     AMREX_HOST_DEVICE_FOR_4D_FLAG(run_on == RunOn::Gpu and Gpu::inLaunchRegion(),
                                   destbox, numcomp, i, j, k, n,
@@ -3366,7 +3403,7 @@ BaseFab<T>::setVal (T x, Box const& bx, DestComp dcomp, NumComps ncomp) noexcept
 
     Array4<T> const& a = this->array();
 #ifdef AMREX_DEVICE_COMPILE
-    amrex::LoopConcurrent(bx, ncomp.n, [=] (int i, int j, int k, int n) noexcept
+    amrex::LoopConcurrent(bx, ncomp.n, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT 
 #else
     AMREX_HOST_DEVICE_FOR_4D_FLAG(run_on == RunOn::Gpu and Gpu::inLaunchRegion(),
                                   bx, ncomp.n, i, j, k, n,
@@ -3394,7 +3431,7 @@ BaseFab<T>::setValIf (T val, Box const& bx, const BaseFab<int>& mask, DestComp d
     Array4<T> const& a = this->array();
     Array4<int const> const& m = mask.const_array();
 #ifdef AMREX_DEVICE_COMPILE
-    amrex::LoopConcurrent(bx, ncomp.n, [=] (int i, int j, int k, int n) noexcept
+    amrex::LoopConcurrent(bx, ncomp.n, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT
 #else
     AMREX_HOST_DEVICE_FOR_4D_FLAG(run_on == RunOn::Gpu and Gpu::inLaunchRegion(),
                                   bx, ncomp.n, i, j, k, n,
@@ -3422,7 +3459,7 @@ BaseFab<T>::setValIfNot (T val, Box const& bx, const BaseFab<int>& mask, DestCom
     Array4<T> const& a = this->array();
     Array4<int const> const& m = mask.const_array();
 #ifdef AMREX_DEVICE_COMPILE
-    amrex::LoopConcurrent(bx, ncomp.n, [=] (int i, int j, int k, int n) noexcept
+    amrex::LoopConcurrent(bx, ncomp.n, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT 
 #else
     AMREX_HOST_DEVICE_FOR_4D_FLAG(run_on == RunOn::Gpu and Gpu::inLaunchRegion(),
                                   bx, ncomp.n, i, j, k, n,
@@ -3466,7 +3503,7 @@ BaseFab<T>::copy (const BaseFab<T>& src, Box bx,
     Array4<T> const& d = this->array();
     Array4<T const> const& s = src.const_array();
 #ifdef AMREX_DEVICE_COMPILE
-    amrex::LoopConcurrent(bx, ncomp.n, [=] (int i, int j, int k, int n) noexcept
+    amrex::LoopConcurrent(bx, ncomp.n, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT 
 #else
     AMREX_HOST_DEVICE_FOR_4D_FLAG(run_on == RunOn::Gpu and Gpu::inLaunchRegion(),
                                   bx, ncomp.n, i, j, k, n,
@@ -3503,7 +3540,7 @@ BaseFab<T>::plus (T val, Box const& bx, DestComp dcomp, NumComps ncomp) noexcept
 
     Array4<T> const& a = this->array();
 #ifdef AMREX_DEVICE_COMPILE
-    amrex::LoopConcurrent(bx, ncomp.n, [=] (int i, int j, int k, int n) noexcept
+    amrex::LoopConcurrent(bx, ncomp.n, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT 
 #else
     AMREX_HOST_DEVICE_FOR_4D_FLAG(run_on == RunOn::Gpu and Gpu::inLaunchRegion(),
                                   bx, ncomp.n, i, j, k, n,
@@ -3546,7 +3583,7 @@ BaseFab<T>::plus (const BaseFab<T>& src, Box bx,
     Array4<T> const& d = this->array();
     Array4<T const> const& s = src.const_array();
 #ifdef AMREX_DEVICE_COMPILE
-    amrex::LoopConcurrent(bx, ncomp.n, [=] (int i, int j, int k, int n) noexcept
+    amrex::LoopConcurrent(bx, ncomp.n, [=] (int i, int j, int k, int n) AMRED_NOEXCEPT 
 #else
     AMREX_HOST_DEVICE_FOR_4D_FLAG(run_on == RunOn::Gpu and Gpu::inLaunchRegion(),
                                   bx, ncomp.n, i, j, k, n,
@@ -3583,7 +3620,7 @@ BaseFab<T>::minus (T val, Box const& bx, DestComp dcomp, NumComps ncomp) noexcep
 
     Array4<T> const& a = this->array();
 #ifdef AMREX_DEVICE_COMPILE
-    amrex::LoopConcurrent(bx, ncomp.n, [=] (int i, int j, int k, int n) noexcept
+    amrex::LoopConcurrent(bx, ncomp.n, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT 
 #else
     AMREX_HOST_DEVICE_FOR_4D_FLAG(run_on == RunOn::Gpu and Gpu::inLaunchRegion(),
                                   bx, ncomp.n, i, j, k, n,
@@ -3626,7 +3663,7 @@ BaseFab<T>::minus (const BaseFab<T>& src, Box bx,
     Array4<T> const& d = this->array();
     Array4<T const> const& s = src.const_array();
 #ifdef AMREX_DEVICE_COMPILE
-    amrex::LoopConcurrent(bx, ncomp.n, [=] (int i, int j, int k, int n) noexcept
+    amrex::LoopConcurrent(bx, ncomp.n, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT 
 #else
     AMREX_HOST_DEVICE_FOR_4D_FLAG(run_on == RunOn::Gpu and Gpu::inLaunchRegion(),
                                   bx, ncomp.n, i, j, k, n,
@@ -3663,7 +3700,7 @@ BaseFab<T>::mult (T val, Box const& bx, DestComp dcomp, NumComps ncomp) noexcept
 
     Array4<T> const& a = this->array();
 #ifdef AMREX_DEVICE_COMPILE
-    amrex::LoopConcurrent(bx, ncomp.n, [=] (int i, int j, int k, int n) noexcept
+    amrex::LoopConcurrent(bx, ncomp.n, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT 
 #else
     AMREX_HOST_DEVICE_FOR_4D_FLAG(run_on == RunOn::Gpu and Gpu::inLaunchRegion(),
                                   bx, ncomp.n, i, j, k, n,
@@ -3706,7 +3743,7 @@ BaseFab<T>::mult (const BaseFab<T>& src, Box bx,
     Array4<T> const& d = this->array();
     Array4<T const> const& s = src.const_array();
 #ifdef AMREX_DEVICE_COMPILE
-    amrex::LoopConcurrent(bx, ncomp.n, [=] (int i, int j, int k, int n) noexcept
+    amrex::LoopConcurrent(bx, ncomp.n, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT 
 #else
     AMREX_HOST_DEVICE_FOR_4D_FLAG(run_on == RunOn::Gpu and Gpu::inLaunchRegion(),
                                   bx, ncomp.n, i, j, k, n,
@@ -3743,7 +3780,7 @@ BaseFab<T>::divide (T val, Box const& bx, DestComp dcomp, NumComps ncomp) noexce
 
     Array4<T> const& a = this->array();
 #ifdef AMREX_DEVICE_COMPILE
-    amrex::LoopConcurrent(bx, ncomp.n, [=] (int i, int j, int k, int n) noexcept
+    amrex::LoopConcurrent(bx, ncomp.n, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT 
 #else
     AMREX_HOST_DEVICE_FOR_4D_FLAG(run_on == RunOn::Gpu and Gpu::inLaunchRegion(),
                                   bx, ncomp.n, i, j, k, n,
@@ -3786,7 +3823,7 @@ BaseFab<T>::divide (const BaseFab<T>& src, Box bx,
     Array4<T> const& d = this->array();
     Array4<T const> const& s = src.const_array();
 #ifdef AMREX_DEVICE_COMPILE
-    amrex::LoopConcurrent(bx, ncomp.n, [=] (int i, int j, int k, int n) noexcept
+    amrex::LoopConcurrent(bx, ncomp.n, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT 
 #else
     AMREX_HOST_DEVICE_FOR_4D_FLAG(run_on == RunOn::Gpu and Gpu::inLaunchRegion(),
                                   bx, ncomp.n, i, j, k, n,
@@ -3815,7 +3852,7 @@ BaseFab<T>::negate (const Box& bx, DestComp dcomp, NumComps ncomp) noexcept
 
     Array4<T> const& a = this->array();
 #ifdef AMREX_DEVICE_COMPILE
-    amrex::LoopConcurrent(bx, ncomp.n, [=] (int i, int j, int k, int n) noexcept
+    amrex::LoopConcurrent(bx, ncomp.n, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT 
 #else
     AMREX_HOST_DEVICE_FOR_4D_FLAG(run_on == RunOn::Gpu and Gpu::inLaunchRegion(),
                                   bx, ncomp.n, i, j, k, n,
@@ -3844,7 +3881,7 @@ BaseFab<T>::invert (T r, const Box& bx, DestComp dcomp, NumComps ncomp) noexcept
 
     Array4<T> const& a = this->array();
 #ifdef AMREX_DEVICE_COMPILE
-    amrex::LoopConcurrent(bx, ncomp.n, [=] (int i, int j, int k, int n) noexcept
+    amrex::LoopConcurrent(bx, ncomp.n, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT 
 #else
     AMREX_HOST_DEVICE_FOR_4D_FLAG(run_on == RunOn::Gpu and Gpu::inLaunchRegion(),
                                   bx, ncomp.n, i, j, k, n,
@@ -3865,7 +3902,7 @@ BaseFab<T>::sum (const Box& bx, DestComp dcomp, NumComps ncomp) const noexcept
 
     T r = 0;
     Array4<T const> const& a = this->const_array();
-    amrex::Loop(bx, ncomp.n, [=,&r] (int i, int j, int k, int n) noexcept
+    amrex::Loop(bx, ncomp.n, [=,&r] (int i, int j, int k, int n) AMREX_NOEXCEPT 
     {
         r += a(i,j,k,n+dcomp.i);
     });
@@ -3885,7 +3922,7 @@ BaseFab<T>::dot (const BaseFab<T>& src, const Box& bx, SrcComp scomp, DestComp d
     T r = 0;
     Array4<T const> const& d = this->const_array();
     Array4<T const> const& s = src.const_array();
-    amrex::Loop(bx, ncomp.n, [=,&r] (int i, int j, int k, int n) noexcept
+    amrex::Loop(bx, ncomp.n, [=,&r] (int i, int j, int k, int n) AMREX_NOEXCEPT 
     {
         r += s(i,j,k,n+dcomp.i) * s(i,j,k,n+scomp.i);
     });
@@ -3911,7 +3948,7 @@ BaseFab<T>::dot (const Box& bx, DestComp dcomp, NumComps ncomp) const noexcept
 
     T r = 0;
     Array4<T const> const& a = this->const_array();
-    amrex::Loop(bx, ncomp.n, [=,&r] (int i, int j, int k, int n) noexcept
+    amrex::Loop(bx, ncomp.n, [=,&r] (int i, int j, int k, int n) AMREX_NOEXCEPT 
     {
         r += a(i,j,k,n+dcomp.i)*a(i,j,k,n+dcomp.i);
     });
@@ -3934,7 +3971,7 @@ BaseFab<T>::dotmask (const BaseFab<T>& src, const Box& bx, const BaseFab<int>& m
     Array4<T const> const& d = this->const_array();
     Array4<T const> const& s = src.const_array();
     Array4<int const> const& m = mask.const_array();
-    amrex::Loop(bx, ncomp.n, [=,&r] (int i, int j, int k, int n) noexcept
+    amrex::Loop(bx, ncomp.n, [=,&r] (int i, int j, int k, int n) AMREX_NOEXCEPT 
     {
         int mi = static_cast<int>(static_cast<bool>(m(i,j,k)));
         r += s(i,j,k,n+dcomp.i) * s(i,j,k,n+scomp.i) * mi;
