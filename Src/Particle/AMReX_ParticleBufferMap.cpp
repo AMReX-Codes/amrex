@@ -94,6 +94,9 @@ void ParticleBufferMap::define (const ParGDBBase* a_gdb)
     for (auto count : m_proc_box_counts)
         m_proc_box_offsets.push_back(m_proc_box_offsets.back() + count);
 
+    d_bucket_to_pid.resize(0);
+    d_bucket_to_pid.resize(num_buckets);    
+    
     d_lev_gid_to_bucket.resize(0);
     d_lev_gid_to_bucket.resize(num_buckets);    
 
@@ -102,6 +105,7 @@ void ParticleBufferMap::define (const ParGDBBase* a_gdb)
 
     Gpu::thrust_copy(m_lev_gid_to_bucket.begin(),m_lev_gid_to_bucket.end(),d_lev_gid_to_bucket.begin());
     Gpu::thrust_copy(m_lev_offsets.begin(),m_lev_offsets.end(),d_lev_offsets.begin());
+    Gpu::thrust_copy(m_bucket_to_pid.begin(),m_bucket_to_pid.end(),d_bucket_to_pid.begin());
 }
 
 bool ParticleBufferMap::isValid (const ParGDBBase* a_gdb) const
