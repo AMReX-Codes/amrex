@@ -772,13 +772,6 @@ void MultiParticleContainer::InitQuantumSync ()
     std::string filename;
     std::tie(generate_table, filename, ctrl) = ParseQuantumSyncParams();
 
-    if(generate_table && ParallelDescriptor::IOProcessor()){
-        qs_engine.compute_lookup_tables(ctrl);
-        Vector<char> all_data = qs_engine.export_lookup_tables_data();
-        WarpXUtilIO::WriteBinaryDataOnFile(filename, all_data);
-   }
-    ParallelDescriptor::Barrier();
-
     //Only temporary for test purposes, will be removed
     ParmParse pp("qed_qs");
     bool ignore_tables = false;
@@ -786,10 +779,25 @@ void MultiParticleContainer::InitQuantumSync ()
     if(ignore_tables) return;
     //_________________________________________________
 
+
+    if(generate_table && ParallelDescriptor::IOProcessor()){
+        qs_engine.compute_lookup_tables(ctrl);
+        Vector<char> all_data = qs_engine.export_lookup_tables_data();
+        WarpXUtilIO::WriteBinaryDataOnFile(filename, all_data);
+   }
+    ParallelDescriptor::Barrier();
+
     Vector<char> table_data;
     ParallelDescriptor::ReadAndBcastFile(filename, table_data);
     ParallelDescriptor::Barrier();
-    if(!qs_engine.init_lookup_tables_from_raw_data(table_data))
+
+    //No need to initialize from raw data for the processor that
+    //has just generated the table
+    if(!generate_table || !ParallelDescriptor::IOProcessor()){
+        qs_engine.init_lookup_tables_from_raw_data(table_data);
+    }
+
+    if(!qs_engine.are_lookup_tables_initialized())
         amrex::Error("Table initialization has failed!\n");
 }
 
@@ -800,13 +808,6 @@ void MultiParticleContainer::InitBreitWheeler ()
     std::string filename;
     std::tie(generate_table, filename, ctrl) = ParseBreitWheelerParams();
 
-    if(generate_table && ParallelDescriptor::IOProcessor()){
-        bw_engine.compute_lookup_tables(ctrl);
-        Vector<char> all_data = bw_engine.export_lookup_tables_data();
-        WarpXUtilIO::WriteBinaryDataOnFile(filename, all_data);
-   }
-    ParallelDescriptor::Barrier();
-
     //Only temporary for test purposes, will be removed
     ParmParse pp("qed_bw");
     bool ignore_tables = false;
@@ -814,10 +815,24 @@ void MultiParticleContainer::InitBreitWheeler ()
     if(ignore_tables) return;
     //_________________________________________________
 
+    if(generate_table && ParallelDescriptor::IOProcessor()){
+        bw_engine.compute_lookup_tables(ctrl);
+        Vector<char> all_data = bw_engine.export_lookup_tables_data();
+        WarpXUtilIO::WriteBinaryDataOnFile(filename, all_data);
+    }
+    ParallelDescriptor::Barrier();
+
     Vector<char> table_data;
     ParallelDescriptor::ReadAndBcastFile(filename, table_data);
     ParallelDescriptor::Barrier();
-    if(!bw_engine.init_lookup_tables_from_raw_data(table_data))
+
+    //No need to initialize from raw data for the processor that
+    //has just generated the table
+    if(!generate_table || !ParallelDescriptor::IOProcessor()){
+        bw_engine.init_lookup_tables_from_raw_data(table_data);
+    }
+
+    if(!bw_engine.are_lookup_tables_initialized())
         amrex::Error("Table initialization has failed!\n");
 }
 
