@@ -788,6 +788,7 @@ void MultiParticleContainer::InitQuantumSync ()
 
     Vector<char> table_data;
     ParallelDescriptor::ReadAndBcastFile(filename, table_data);
+    ParallelDescriptor::Barrier();
     if(!qs_engine.init_lookup_tables_from_raw_data(table_data))
         amrex::Error("Table initialization has failed!\n");
 }
@@ -815,6 +816,7 @@ void MultiParticleContainer::InitBreitWheeler ()
 
     Vector<char> table_data;
     ParallelDescriptor::ReadAndBcastFile(filename, table_data);
+    ParallelDescriptor::Barrier();
     if(!bw_engine.init_lookup_tables_from_raw_data(table_data))
         amrex::Error("Table initialization has failed!\n");
 }
@@ -857,7 +859,7 @@ MultiParticleContainer::ParseQuantumSyncParams ()
     std::string load_table_name;
     pp.query("load_table_from", load_table_name);
     if(load_table_name != ""s){
-       if(ParallelDescriptor::IOProcessor()){
+       if(generate_table && ParallelDescriptor::IOProcessor()){
             amrex::Print() << "Warning, Quantum Synchrotron table will be loaded, not generated. \n";
        }
         table_name = load_table_name;
@@ -915,7 +917,7 @@ MultiParticleContainer::ParseBreitWheelerParams ()
     std::string load_table_name;
     pp.query("load_table_from", load_table_name);
     if(load_table_name != ""s){
-       if(ParallelDescriptor::IOProcessor()){
+       if(generate_table && ParallelDescriptor::IOProcessor()){
             amrex::Print() << "Warning, Breit Wheeler table will be loaded, not generated. \n";
        }
         table_name = load_table_name;
@@ -933,7 +935,6 @@ MultiParticleContainer::ParseBreitWheelerParams ()
     if(table_name==""s){
         amrex::Error("Error: Breit Wheeler table has either to be generated or to be loaded.\n");
     }
-
 
     return std::make_tuple(generate_table, table_name, ctrl);
 }
