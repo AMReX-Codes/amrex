@@ -859,7 +859,7 @@ MultiParticleContainer::ParseQuantumSyncParams ()
     std::string load_table_name;
     pp.query("load_table_from", load_table_name);
     if(load_table_name != ""s){
-       if(ParallelDescriptor::IOProcessor()){
+       if(generate_table && ParallelDescriptor::IOProcessor()){
             amrex::Print() << "Warning, Quantum Synchrotron table will be loaded, not generated. \n";
        }
         table_name = load_table_name;
@@ -917,7 +917,7 @@ MultiParticleContainer::ParseBreitWheelerParams ()
     std::string load_table_name;
     pp.query("load_table_from", load_table_name);
     if(load_table_name != ""s){
-       if(ParallelDescriptor::IOProcessor()){
+       if(generate_table && ParallelDescriptor::IOProcessor()){
             amrex::Print() << "Warning, Breit Wheeler table will be loaded, not generated. \n";
        }
         table_name = load_table_name;
@@ -935,7 +935,6 @@ MultiParticleContainer::ParseBreitWheelerParams ()
     if(table_name==""s){
         amrex::Error("Error: Breit Wheeler table has either to be generated or to be loaded.\n");
     }
-
 
     return std::make_tuple(generate_table, table_name, ctrl);
 }
