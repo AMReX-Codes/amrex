@@ -95,8 +95,7 @@ if args.automated == True:
     update_perf_log_repo = True
     push_on_perf_log_repo = False
     pull_3_repos = True
-    # recompile = True
-    recompile = False
+    recompile = True
     if machine == 'summit':
         compiler = 'gnu'
         architecture = 'gpu'
@@ -151,8 +150,8 @@ if args.mode == 'run':
             git_repo.pull()
             git_repo = git.cmd.Git( amrex_dir  )
             git_repo.pull()
-            # git_repo = git.cmd.Git( warpx_dir  )
-            # git_repo.pull()
+            git_repo = git.cmd.Git( warpx_dir  )
+            git_repo.pull()
 
         # Copy WarpX/GNUmakefile to current directory and recompile
         # with specific options for automated performance tests.
