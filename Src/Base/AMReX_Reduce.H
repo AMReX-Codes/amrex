@@ -449,7 +449,6 @@ private:
         const auto hi = amrex::ubound(box);
         for (int k = lo.z; k <= hi.z; ++k) {
         for (int j = lo.y; j <= hi.y; ++j) {
-        AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
             auto pr = f(i,j,k);
             Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r, pr);
@@ -489,7 +488,6 @@ public:
         for (N n = 0; n < ncomp; ++n) {
         for (int k = lo.z; k <= hi.z; ++k) {
         for (int j = lo.y; j <= hi.y; ++j) {
-        AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
             auto pr = f(i,j,k,n);
             Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r, pr);
@@ -505,7 +503,6 @@ public:
         ReduceTuple r;
         Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(r);
         ReduceTuple& rr = reduce_data.reference();
-        AMREX_PRAGMA_SIMD
         for (N i = 0; i < n; ++i) {
             auto pr = f(i);
             Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r, pr);
