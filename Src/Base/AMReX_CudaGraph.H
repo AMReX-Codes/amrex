@@ -77,7 +77,7 @@ struct CudaGraph
 
         if (graph_is_ready)
         {
-            AMREX_GPU_SAFE_CALL(cudaGraphExecDestroy(m_graph));
+            AMREX_CUDA_SAFE_CALL(cudaGraphExecDestroy(m_graph));
         }
     }
 

@@ -8,7 +8,8 @@ module amrex_fluxregister_module
 
   private
 
-  public :: amrex_fluxregister_build, amrex_fluxregister_destroy
+  public :: amrex_fluxregister_destroy ! List first to avoid XL compiler bug
+  public :: amrex_fluxregister_build
 
   type, public :: amrex_fluxregister
      logical     :: owner = .false.
