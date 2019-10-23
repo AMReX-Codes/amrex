@@ -767,6 +767,13 @@ void MultiParticleContainer::InitQED ()
 
 void MultiParticleContainer::InitQuantumSync ()
 {
+    //Only temporary for test purposes, will be removed
+    ParmParse pp("qed_qs");
+    bool ignore_tables = false;
+    pp.query("ignore_tables_for_test", ignore_tables);
+    if(ignore_tables) return;
+    //_________________________________________________
+
     bool generate_table;
     PicsarQuantumSynchrotronCtrl ctrl;
     std::string filename;
@@ -779,13 +786,6 @@ void MultiParticleContainer::InitQuantumSync ()
    }
     ParallelDescriptor::Barrier();
 
-    //Only temporary for test purposes, will be removed
-    ParmParse pp("qed_qs");
-    bool ignore_tables = false;
-    pp.query("ignore_tables_for_test", ignore_tables);
-    if(ignore_tables) return;
-    //_________________________________________________
-
     Vector<char> table_data;
     ParallelDescriptor::ReadAndBcastFile(filename, table_data);
     if(!qs_engine.init_lookup_tables_from_raw_data(table_data))
@@ -794,6 +794,14 @@ void MultiParticleContainer::InitQuantumSync ()
 
 void MultiParticleContainer::InitBreitWheeler ()
 {
+
+    //Only temporary for test purposes, will be removed
+    ParmParse pp("qed_bw");
+    bool ignore_tables = false;
+    pp.query("ignore_tables_for_test", ignore_tables);
+    if(ignore_tables) return;
+    //_________________________________________________
+
     bool generate_table;
     PicsarBreitWheelerCtrl ctrl;
     std::string filename;
@@ -805,13 +813,6 @@ void MultiParticleContainer::InitBreitWheeler ()
         WarpXUtilIO::WriteBinaryDataOnFile(filename, all_data);
    }
     ParallelDescriptor::Barrier();
-
-    //Only temporary for test purposes, will be removed
-    ParmParse pp("qed_bw");
-    bool ignore_tables = false;
-    pp.query("ignore_tables_for_test", ignore_tables);
-    if(ignore_tables) return;
-    //_________________________________________________
 
     Vector<char> table_data;
     ParallelDescriptor::ReadAndBcastFile(filename, table_data);
