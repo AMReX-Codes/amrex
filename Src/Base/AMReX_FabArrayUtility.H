@@ -1136,7 +1136,7 @@ amrex::EnableIf_t<!AMREX_IS_D_LAMBDA(F), bool>
 ReduceLogicalOr_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                  IntVect const& nghost, F&& f)
 {
-    detail::ReduceLogicalOr_host(fa1,fa2,nghost,std::move(f));
+    return detail::ReduceLogicalOr_host(fa1,fa2,nghost,std::move(f));
 }
 
 template <class FAB1, class FAB2, class F>
