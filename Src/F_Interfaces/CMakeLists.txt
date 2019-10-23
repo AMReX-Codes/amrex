@@ -10,8 +10,8 @@ target_compile_definitions( amrex PUBLIC $<BUILD_INTERFACE:AMREX_USE_F_INTERFACE
 if (ENABLE_MPI)
    find_package(MPI REQUIRED Fortran)
    target_link_libraries(amrex PUBLIC MPI::MPI_Fortran)
-   set_target_properties(MPI::MPI_Frotran  PROPERTIES IMPORTED_GLOBAL True )
-endif ()  
+   set_target_properties(MPI::MPI_Fortran  PROPERTIES IMPORTED_GLOBAL True )
+endif ()
 
 #
 # BASE subdir
@@ -79,7 +79,7 @@ target_sources( amrex PRIVATE Octree/AMReX_octree_mod.F90  Octree/AMReX_octree_f
 #
 if (ENABLE_LINEAR_SOLVERS)
    target_include_directories(amrex PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/LinearSolvers>)
-   
+
    target_sources( amrex PRIVATE
       LinearSolvers/AMReX_abeclaplacian_fi.cpp
       LinearSolvers/AMReX_abeclaplacian_mod.F90
@@ -90,7 +90,7 @@ if (ENABLE_LINEAR_SOLVERS)
       LinearSolvers/AMReX_poisson_mod.F90
       LinearSolvers/AMReX_linop_fi.cpp
       LinearSolvers/AMReX_poisson_fi.cpp
-      )    
+      )
 endif ()
 
 #
