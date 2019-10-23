@@ -223,12 +223,12 @@ namespace Gpu {
 #define AMREX_HOST_DEVICE_FOR_4D_FLAG(flag,box,nc,i,j,k,n,block) \
     if (flag) \
     { \
-        amrex::ParallelFor(box, nc, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept \
+        amrex::ParallelFor(box, nc, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) AMREX_NOEXCEPT \
             block \
         ); \
     } \
     else { \
-        amrex::LoopOnCpu(box, nc, [=] (int i, int j, int k, int n) noexcept \
+        amrex::LoopOnCpu(box, nc, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT \
             block \
         ); \
     }
