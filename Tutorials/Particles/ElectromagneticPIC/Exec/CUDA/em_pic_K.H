@@ -308,18 +308,11 @@ check_langmuir_solution (amrex::Box const& bx, amrex::Box const& test_box,
     amrex::Real error = 0.0;
 
     const amrex::Box b = bx & test_box;
-    const auto lo  = amrex::lbound(b);
-    const auto len = amrex::length(b);
-    const auto jx = jxfab.view(lo);
-
-    for         (int l = 0; l < len.z; ++l) {
-        for     (int k = 0; k < len.y; ++k) {
-            for (int j = 0; j < len.x; ++j) {
-                error = amrex::max(error, std::abs((jx(j,k,l) - j_exact) / j_exact));
-            }
-        }
-    }
-
+    const auto jx = jxfab.const_array();
+    amrex::Loop(bx, [=,&error] (int j, int k, int l) noexcept
+    {
+        error = amrex::max(error, std::abs((jx(j,k,l) - j_exact) / j_exact));
+    });
     return error;
 }
 
