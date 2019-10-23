@@ -268,7 +268,7 @@ public:
             });
             ReduceTuple hv = reduce_data.value();
             int nbody = amrex::get<0>(hv);
-            int nzero = amrex::get<1>(hv);
+            // int nzero = amrex::get<1>(hv);
             int nfluid = amrex::get<2>(hv);
 
             if (nbody == 0) {

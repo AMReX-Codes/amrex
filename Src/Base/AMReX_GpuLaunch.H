@@ -237,16 +237,19 @@ namespace Gpu {
 #else
 
 #define AMREX_HOST_DEVICE_FOR_3D_FLAG(flag,box,i,j,k,block) \
+    amrex::ignore_unused(flag); \
     amrex::LoopOnCpu(box, [=] (int i, int j, int k) noexcept \
         block \
     );
 
 #define AMREX_HOST_DEVICE_FOR_4D_FLAG(flag,box,nc,i,j,k,n,block) \
+    amrex::ignore_unused(flag); \
     amrex::LoopOnCpu(box, nc, [=] (int i, int j, int k, int n) noexcept \
         block \
     );
 
 #define AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG(flag,box,tbox,block) \
+    amrex::ignore_unused(flag); \
     { \
         auto tbox = box; \
         block; \
