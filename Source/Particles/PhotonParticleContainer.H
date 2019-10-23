@@ -46,7 +46,6 @@ public:
                         amrex::Cuda::ManagedDeviceVector<amrex::ParticleReal>& zp,
                         amrex::Real dt, DtType a_dt_type=DtType::Full) override;
 
-    // Don't push momenta for photons
     virtual void PushP (int lev,
                         amrex::Real dt,
                         const amrex::MultiFab& Ex,
@@ -54,7 +53,7 @@ public:
                         const amrex::MultiFab& Ez,
                         const amrex::MultiFab& Bx,
                         const amrex::MultiFab& By,
-                        const amrex::MultiFab& Bz) override {};
+                        const amrex::MultiFab& Bz) override;
 
 
     // DepositCurrent should do nothing for photons
@@ -78,6 +77,23 @@ public:
     {
         return false;
     };
+
+#ifdef WARPX_QED
+protected:
+    //To be called by PushP
+    void DoBreitWheeler(int lev,
+                        amrex::Real dt,
+                        const amrex::MultiFab& Ex,
+                        const amrex::MultiFab& Ey,
+                        const amrex::MultiFab& Ez,
+                        const amrex::MultiFab& Bx,
+                        const amrex::MultiFab& By,
+                        const amrex::MultiFab& Bz);
+
+    //To be called by PushPX
+    void DoBreitWheelerPti(WarpXParIter& pti,
+                           amrex::Real dt);
+#endif
 
 };
 
