@@ -1,6 +1,5 @@
 
 #include <WarpX.H>
-#include <WarpXAlgorithmSelection.H>
 #include <AMReX_BLProfiler.H>
 
 using namespace amrex;

@@ -876,7 +876,8 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
     //
     if (aux_is_nodal and !do_nodal)
     {
-        BoxArray const nba = amrex::convert(ba,IntVect::TheUnitVector());
+        // Create aux multifabs on Nodal Box Array
+        BoxArray const nba = amrex::convert(ba,IntVect::TheNodeVector());
         Bfield_aux[lev][0].reset( new MultiFab(nba,dm,ncomps,ngE));
         Bfield_aux[lev][1].reset( new MultiFab(nba,dm,ncomps,ngE));
         Bfield_aux[lev][2].reset( new MultiFab(nba,dm,ncomps,ngE));
@@ -967,7 +968,7 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
 
         if (n_field_gather_buffer > 0 || mypc->nSpeciesGatherFromMainGrid() > 0) {
             if (aux_is_nodal) {
-                BoxArray const& cnba = amrex::convert(cba,IntVect::TheUnitVector());
+                BoxArray const& cnba = amrex::convert(cba,IntVect::TheNodeVector());
                 Bfield_cax[lev][0].reset( new MultiFab(cnba,dm,ncomps,ngE));
                 Bfield_cax[lev][1].reset( new MultiFab(cnba,dm,ncomps,ngE));
                 Bfield_cax[lev][2].reset( new MultiFab(cnba,dm,ncomps,ngE));
