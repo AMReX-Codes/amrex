@@ -26,7 +26,7 @@ warpx.serialize_ics = 1
 warpx.verbose = 1
 
 # Algorithms
-algo.field_gathering = standard
+algo.field_gathering = energy-conserving
 algo.current_deposition = esirkepov
 
 # Interpolation

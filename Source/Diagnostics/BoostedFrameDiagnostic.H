@@ -90,8 +90,8 @@ class LabFrameDiag {
     /// tmp_particle_buffer to particles_buffer.
     /// For the full diagnostic, all the particles are copied,
     /// while for the reduced diagnostic, particles are selectively
-    /// copied if their trajectory crosses the user-defined
-    /// sub-domain for the reduced slice diagnostic.
+    /// copied if their position in within the user-defined
+    /// sub-domain +/- 1 cell size width for the reduced slice diagnostic.
     virtual void AddPartDataToParticleBuffer(
                  amrex::Vector<WarpXParticleContainer::DiagnosticParticleData> tmp_particle_buffer,
                  int nSpeciesBoostedFrame) {};
@@ -116,10 +116,10 @@ class LabFrameSnapShot : public LabFrameDiag {
                      amrex::RealBox diag_domain_lab,
                      amrex::Box diag_box, int file_num_in);
     void AddDataToBuffer( amrex::MultiFab& tmp_slice, int k_lab,
-                 amrex::Gpu::ManagedDeviceVector<int> map_actual_fields_to_dump);
+         amrex::Gpu::ManagedDeviceVector<int> map_actual_fields_to_dump) override;
     void AddPartDataToParticleBuffer(
          amrex::Vector<WarpXParticleContainer::DiagnosticParticleData> tmp_particle_buffer,
-         int nSpeciesBoostedFrame);
+         int nSpeciesBoostedFrame) override;
 };
 
 
@@ -144,10 +144,10 @@ class LabFrameSlice : public LabFrameDiag {
                      amrex::Real cell_dx, amrex::Real cell_dy,
                      amrex::Real particle_slice_dx_lab);
     void AddDataToBuffer( amrex::MultiFab& tmp_slice_ptr, int i_lab,
-                 amrex::Gpu::ManagedDeviceVector<int> map_actual_fields_to_dump);
+         amrex::Gpu::ManagedDeviceVector<int> map_actual_fields_to_dump) override;
     void AddPartDataToParticleBuffer(
          amrex::Vector<WarpXParticleContainer::DiagnosticParticleData> tmp_particle_buffer,
-         int nSpeciesBoostedFrame);
+         int nSpeciesBoostedFrame) override;
 };
 
 /** \brief

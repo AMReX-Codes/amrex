@@ -25,6 +25,7 @@
 using namespace amrex;
 
 Vector<Real> WarpX::B_external(3, 0.0);
+Vector<Real> WarpX::E_external(3, 0.0);
 
 int WarpX::do_moving_window = 0;
 int WarpX::moving_window_dir = -1;
@@ -295,6 +296,7 @@ WarpX::ReadParameters ()
                       zmax_plasma_to_compute_max_step);
 
         pp.queryarr("B_external", B_external);
+        pp.queryarr("E_external", E_external);
 
         pp.query("do_moving_window", do_moving_window);
         if (do_moving_window)
@@ -540,9 +542,13 @@ WarpX::ReadParameters ()
         ParmParse pp("algo");
         current_deposition_algo = GetAlgorithmInteger(pp, "current_deposition");
         charge_deposition_algo = GetAlgorithmInteger(pp, "charge_deposition");
-        field_gathering_algo = GetAlgorithmInteger(pp, "field_gathering");
         particle_pusher_algo = GetAlgorithmInteger(pp, "particle_pusher");
         maxwell_fdtd_solver_id = GetAlgorithmInteger(pp, "maxwell_fdtd_solver");
+        field_gathering_algo = GetAlgorithmInteger(pp, "field_gathering");
+        if (field_gathering_algo == GatheringAlgo::MomentumConserving) {
+            // Use same shape factors in all directions, for gathering
+            l_lower_order_in_v = false;
+        }
     }
 
 #ifdef WARPX_USE_PSATD
@@ -811,16 +817,19 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
     ncomps = n_rz_azimuthal_modes*2 - 1;
 #endif
 
+    bool aux_is_nodal = (field_gathering_algo == GatheringAlgo::MomentumConserving);
+    IntVect ngextra(static_cast<int>(aux_is_nodal and !do_nodal));
+
     //
     // The fine patch
     //
-    Bfield_fp[lev][0].reset( new MultiFab(amrex::convert(ba,Bx_nodal_flag),dm,ncomps,ngE));
-    Bfield_fp[lev][1].reset( new MultiFab(amrex::convert(ba,By_nodal_flag),dm,ncomps,ngE));
-    Bfield_fp[lev][2].reset( new MultiFab(amrex::convert(ba,Bz_nodal_flag),dm,ncomps,ngE));
+    Bfield_fp[lev][0].reset( new MultiFab(amrex::convert(ba,Bx_nodal_flag),dm,ncomps,ngE+ngextra));
+    Bfield_fp[lev][1].reset( new MultiFab(amrex::convert(ba,By_nodal_flag),dm,ncomps,ngE+ngextra));
+    Bfield_fp[lev][2].reset( new MultiFab(amrex::convert(ba,Bz_nodal_flag),dm,ncomps,ngE+ngextra));
 
-    Efield_fp[lev][0].reset( new MultiFab(amrex::convert(ba,Ex_nodal_flag),dm,ncomps,ngE));
-    Efield_fp[lev][1].reset( new MultiFab(amrex::convert(ba,Ey_nodal_flag),dm,ncomps,ngE));
-    Efield_fp[lev][2].reset( new MultiFab(amrex::convert(ba,Ez_nodal_flag),dm,ncomps,ngE));
+    Efield_fp[lev][0].reset( new MultiFab(amrex::convert(ba,Ex_nodal_flag),dm,ncomps,ngE+ngextra));
+    Efield_fp[lev][1].reset( new MultiFab(amrex::convert(ba,Ey_nodal_flag),dm,ncomps,ngE+ngextra));
+    Efield_fp[lev][2].reset( new MultiFab(amrex::convert(ba,Ez_nodal_flag),dm,ncomps,ngE+ngextra));
 
     current_fp[lev][0].reset( new MultiFab(amrex::convert(ba,jx_nodal_flag),dm,ncomps,ngJ));
     current_fp[lev][1].reset( new MultiFab(amrex::convert(ba,jy_nodal_flag),dm,ncomps,ngJ));
@@ -867,7 +876,19 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
     //
     // The Aux patch (i.e., the full solution)
     //
-    if (lev == 0)
+    if (aux_is_nodal and !do_nodal)
+    {
+        // Create aux multifabs on Nodal Box Array
+        BoxArray const nba = amrex::convert(ba,IntVect::TheNodeVector());
+        Bfield_aux[lev][0].reset( new MultiFab(nba,dm,ncomps,ngE));
+        Bfield_aux[lev][1].reset( new MultiFab(nba,dm,ncomps,ngE));
+        Bfield_aux[lev][2].reset( new MultiFab(nba,dm,ncomps,ngE));
+
+        Efield_aux[lev][0].reset( new MultiFab(nba,dm,ncomps,ngE));
+        Efield_aux[lev][1].reset( new MultiFab(nba,dm,ncomps,ngE));
+        Efield_aux[lev][2].reset( new MultiFab(nba,dm,ncomps,ngE));
+    }
+    else if (lev == 0)
     {
         for (int idir = 0; idir < 3; ++idir) {
             Efield_aux[lev][idir].reset(new MultiFab(*Efield_fp[lev][idir], amrex::make_alias, 0, ncomps));
@@ -948,15 +969,25 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
         cba.coarsen(refRatio(lev-1));
 
         if (n_field_gather_buffer > 0 || mypc->nSpeciesGatherFromMainGrid() > 0) {
-            // Create the MultiFabs for B
-            Bfield_cax[lev][0].reset( new MultiFab(amrex::convert(cba,Bx_nodal_flag),dm,ncomps,ngE));
-            Bfield_cax[lev][1].reset( new MultiFab(amrex::convert(cba,By_nodal_flag),dm,ncomps,ngE));
-            Bfield_cax[lev][2].reset( new MultiFab(amrex::convert(cba,Bz_nodal_flag),dm,ncomps,ngE));
+            if (aux_is_nodal) {
+                BoxArray const& cnba = amrex::convert(cba,IntVect::TheNodeVector());
+                Bfield_cax[lev][0].reset( new MultiFab(cnba,dm,ncomps,ngE));
+                Bfield_cax[lev][1].reset( new MultiFab(cnba,dm,ncomps,ngE));
+                Bfield_cax[lev][2].reset( new MultiFab(cnba,dm,ncomps,ngE));
+                Efield_cax[lev][0].reset( new MultiFab(cnba,dm,ncomps,ngE));
+                Efield_cax[lev][1].reset( new MultiFab(cnba,dm,ncomps,ngE));
+                Efield_cax[lev][2].reset( new MultiFab(cnba,dm,ncomps,ngE));
+            } else {
+                // Create the MultiFabs for B
+                Bfield_cax[lev][0].reset( new MultiFab(amrex::convert(cba,Bx_nodal_flag),dm,ncomps,ngE));
+                Bfield_cax[lev][1].reset( new MultiFab(amrex::convert(cba,By_nodal_flag),dm,ncomps,ngE));
+                Bfield_cax[lev][2].reset( new MultiFab(amrex::convert(cba,Bz_nodal_flag),dm,ncomps,ngE));
 
-            // Create the MultiFabs for E
-            Efield_cax[lev][0].reset( new MultiFab(amrex::convert(cba,Ex_nodal_flag),dm,ncomps,ngE));
-            Efield_cax[lev][1].reset( new MultiFab(amrex::convert(cba,Ey_nodal_flag),dm,ncomps,ngE));
-            Efield_cax[lev][2].reset( new MultiFab(amrex::convert(cba,Ez_nodal_flag),dm,ncomps,ngE));
+                // Create the MultiFabs for E
+                Efield_cax[lev][0].reset( new MultiFab(amrex::convert(cba,Ex_nodal_flag),dm,ncomps,ngE));
+                Efield_cax[lev][1].reset( new MultiFab(amrex::convert(cba,Ey_nodal_flag),dm,ncomps,ngE));
+                Efield_cax[lev][2].reset( new MultiFab(amrex::convert(cba,Ez_nodal_flag),dm,ncomps,ngE));
+            }
 
             gather_buffer_masks[lev].reset( new iMultiFab(ba, dm, ncomps, 1) );
             // Gather buffer masks have 1 ghost cell, because of the fact

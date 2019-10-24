@@ -112,7 +112,7 @@ def generate():
         f.write("geometry.prob_hi = 0.5e-6 0.5e-6 0.5e-6\n")
         f.write("warpx.do_pml = 0\n")
         f.write("algo.charge_deposition = standard\n")
-        f.write("algo.field_gathering = standard\n")
+        f.write("algo.field_gathering = energy-conserving\n")
         f.write("warpx.cfl = 1.0\n")
 
         f.write("\nparticles.nspecies = {}\n".format(len(spec_names)))

@@ -13,7 +13,7 @@ geometry.prob_hi     =  128.e-6  128.e-6   0.96e-6
 
 algo.current_deposition = esirkepov
 algo.charge_deposition = standard
-algo.field_gathering = standard
+algo.field_gathering = energy-conserving
 algo.particle_pusher = vay
 algo.maxwell_fdtd_solver = ckc
 interpolation.nox = 3

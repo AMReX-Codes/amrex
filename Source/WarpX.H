@@ -75,6 +75,7 @@ public:
 
     // External fields
     static amrex::Vector<amrex::Real> B_external;
+    static amrex::Vector<amrex::Real> E_external;
 
     // Algorithms
     static long current_deposition_algo;
@@ -203,6 +204,8 @@ public:
     // This function does aux(lev) = fp(lev) + I(aux(lev-1)-cp(lev)).
     // Caller must make sure fp and cp have ghost cells filled.
     void UpdateAuxilaryData ();
+    void UpdateAuxilaryDataStagToNodal ();
+    void UpdateAuxilaryDataSameType ();
 
     // Fill boundary cells including coarse/fine boundaries
     void FillBoundaryB ();

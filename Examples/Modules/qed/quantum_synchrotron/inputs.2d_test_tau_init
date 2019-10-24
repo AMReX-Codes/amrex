@@ -19,7 +19,7 @@ warpx.fine_tag_hi =  5.e-6   -25.e-6
 #################################
 algo.current_deposition = esirkepov
 algo.charge_deposition = standard
-algo.field_gathering = standard
+algo.field_gathering = energy-conserving
 algo.particle_pusher = boris
 interpolation.nox = 3 # Particle interpolation order. Must be the same in x, y, and z
 interpolation.noy = 3

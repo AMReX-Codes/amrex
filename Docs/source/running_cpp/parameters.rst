@@ -344,6 +344,7 @@ Particle initialization
     * ``ux`` ``uy`` ``uz`` for the particle momentum,
     * ``Ex`` ``Ey`` ``Ez`` for the electric field on particles,
     * ``Bx`` ``By`` ``Bz`` for the magnetic field on particles.
+
     The particle positions are always included. Use
     ``<species>.plot_vars = none`` to plot no particle data, except
     particle position.
@@ -373,6 +374,11 @@ Particle initialization
     species (must be smaller than the atomic number of chemical element given
     in `physical_element`).
 
+* ``<species>.do_classical_radiation_reaction`` (`int`) optional (default `0`)
+    Enables Radiation Reaction (or Radiation Friction) for the species. Species
+    must be either electrons or positrons. Boris pusher must be used for the
+    simulation
+
 * ``<species>.do_qed`` (`int`) optional (default `0`)
     If `<species>.do_qed = 0` all the QED effects are disabled for this species.
     If `<species>.do_qed = 1` QED effects can be enabled for this species (see below)
@@ -386,6 +392,10 @@ Particle initialization
     It only works if `<species>.do_qed = 1`. Enables non-linear Breit-Wheeler process for this species.
     **Implementation of this feature is in progress. It requires to compile with QED=TRUE**
 
+* ``warpx.E_external`` & ``warpx.B_external`` (list of `float`) optional (default `0.0`)
+    Two separate parameters which add a uniform E-field or B-field to each particle
+    which is then added to the field values gathered from the grid in the
+    PIC cycle.
 
 Laser initialization
 --------------------
@@ -598,8 +608,6 @@ Numerics and algorithms
      - ``direct``: simpler current deposition algorithm, described in
        the section :doc:`../theory/picsar_theory`. Note that this algorithm is not strictly charge-conserving.
 
-    If ``algo.current_deposition`` is not specified, the default is ``esirkepov``.
-
 * ``algo.charge_deposition`` (`string`, optional)
     The algorithm for the charge density deposition. Available options are:
 
@@ -609,14 +617,22 @@ Numerics and algorithms
 * ``algo.field_gathering`` (`string`, optional)
     The algorithm for field gathering. Available options are:
 
-     - ``standard``: gathers directly from the grid points (either staggered
+     - ``energy-conserving``: gathers directly from the grid points (either staggered
        or nodal gridpoints depending on ``warpx.do_nodal``).
+     - ``momentum-conserving``: first average the fields from the grid points to
+       the nodes, and then gather from the nodes.
+
+     If ``algo.field_gathering`` is not specified, the default is ``energy-conserving``.
+     If ``warpx.do_nodal`` is ``true``, then ``energy-conserving`` and ``momentum-conserving``
+     are equivalent.
+
 
 * ``algo.particle_pusher`` (`string`, optional)
     The algorithm for the particle pusher. Available options are:
 
      - ``boris``: Boris pusher.
      - ``vay``: Vay pusher (see `Vay, Phys. Plasmas (2008) <https://aip.scitation.org/doi/10.1063/1.2837054>`__)
+     - ``higuera``: Higuera-Cary pusher (see `Higuera and Cary, Phys. Plasmas (2017) <https://aip.scitation.org/doi/10.1063/1.4979989>`__)
 
      If ``algo.particle_pusher`` is not specified, ``boris`` is the default.
 
