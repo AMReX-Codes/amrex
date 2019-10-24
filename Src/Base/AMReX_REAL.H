@@ -2,7 +2,6 @@
 #define AMREX_REAL_H_
 
 #include <AMReX_Extension.H>
-#include <cfloat>
 
 #ifdef BL_USE_FLOAT
 #  undef BL_USE_DOUBLE
@@ -27,6 +26,11 @@
 #endif
 
 #if !defined(BL_LANG_FORT)
+#ifdef __cplusplus
+#include <cfloat>
+#else
+#include <float.h>
+#endif
 
 /* 
   Real is a typedef specifying the precision of the floating-point
