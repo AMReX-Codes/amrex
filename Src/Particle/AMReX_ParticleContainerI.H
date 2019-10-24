@@ -1024,6 +1024,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     BL_PROFILE("ParticleContainer::RedistributeGPU()");
     BL_PROFILE_VAR_NS("Redistribute_partition", blp_partition);
 
+    resizeData();
+
     if (lev_max < 0)
         lev_max = GetParGDB()->finestLevel();
     
