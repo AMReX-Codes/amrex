@@ -260,7 +260,7 @@ for n_node in n_node_list:
 # Extract sub-set of pandas data frame, write it to
 # csv file and copy this file to perf_logs repo
 # -------------------------------------------------
-if update_perf_log_repo:
+if args.mode=='read' and update_perf_log_repo:
     # get perf_logs repo
     git_repo = git.Repo( perf_logs_repo )
     if push_on_perf_log_repo:
