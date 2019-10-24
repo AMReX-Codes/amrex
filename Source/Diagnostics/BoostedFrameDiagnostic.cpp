@@ -1466,7 +1466,7 @@ AddPartDataToParticleBuffer(
         Real const ymax = diag_domain_lab_.hi(1)+particle_slice_dx_lab_;
 #endif
 
-        //Flag particles that need to be copied if they are 
+        //Flag particles that need to be copied if they are
         // within the reduced slice +/- user-defined physical width
         amrex::ParallelFor(np,
         [=] AMREX_GPU_DEVICE(int i)
@@ -1511,7 +1511,7 @@ AddPartDataToParticleBuffer(
         Real* const AMREX_RESTRICT uz_buff =
               particles_buffer_[isp].GetRealData(DiagIdx::uz).data();
 
-        // Selective copy of particle data from tmp array to reduced buffer 
+        // Selective copy of particle data from tmp array to reduced buffer
         // array on the GPU using the flag value and index location.
         amrex::ParallelFor(np,
         [=] AMREX_GPU_DEVICE(int i)
