@@ -18,6 +18,7 @@ const std::map<std::string, int> maxwell_solver_algo_to_int = {
 const std::map<std::string, int> particle_pusher_algo_to_int = {
     {"boris",   ParticlePusherAlgo::Boris },
     {"vay",     ParticlePusherAlgo::Vay },
+    {"higuera",     ParticlePusherAlgo::HigueraCary },
     {"default", ParticlePusherAlgo::Boris }
 };
 

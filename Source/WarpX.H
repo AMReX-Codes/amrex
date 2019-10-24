@@ -75,6 +75,7 @@ public:
 
     // External fields
     static amrex::Vector<amrex::Real> B_external;
+    static amrex::Vector<amrex::Real> E_external;
 
     // Algorithms
     static long current_deposition_algo;
@@ -271,6 +272,9 @@ public:
     void SliceGenerationForDiagnostics ();
     void WriteSlicePlotFile () const;
     void ClearSliceMultiFabs ();
+    static int num_slice_snapshots_lab;
+    static amrex::Real dt_slice_snapshots_lab;
+    amrex::RealBox getSliceRealBox() const {return slice_realbox;}
 
     // these should be private, but can't due to Cuda limitations
     static void ComputeDivB (amrex::MultiFab& divB, int dcomp,

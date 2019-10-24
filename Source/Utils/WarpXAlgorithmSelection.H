@@ -14,7 +14,8 @@ struct MaxwellSolverAlgo {
 struct ParticlePusherAlgo {
     enum {
         Boris = 0,
-        Vay = 1
+        Vay = 1,
+        HigueraCary = 2
     };
 };
 
