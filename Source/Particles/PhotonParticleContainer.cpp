@@ -89,7 +89,7 @@ PhotonParticleContainer::PushPX(WarpXParIter& pti,
     );
 
 #ifdef WARPX_QED
-    DoBreitWheelerPti(pti, dt);
+     if(has_breit_wheeler()) DoBreitWheelerPti(pti, dt);
 #endif
 
 }
