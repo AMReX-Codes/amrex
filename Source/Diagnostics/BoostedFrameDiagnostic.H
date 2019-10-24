@@ -48,8 +48,6 @@ class LabFrameDiag {
     amrex::Real inv_gamma_boost_;
     amrex::Real inv_beta_boost_;
     amrex::Real dz_lab_;
-    amrex::Real dx_;
-    amrex::Real dy_;
     amrex::Real particle_slice_dx_lab_;
 
     int ncomp_to_dump_;
@@ -141,7 +139,6 @@ class LabFrameSlice : public LabFrameDiag {
                      std::vector<std::string> mesh_field_names,
                      amrex::RealBox diag_domain_lab,
                      amrex::Box diag_box, int file_num_in,
-                     amrex::Real cell_dx, amrex::Real cell_dy,
                      amrex::Real particle_slice_dx_lab);
     void AddDataToBuffer( amrex::MultiFab& tmp_slice_ptr, int i_lab,
          amrex::Gpu::ManagedDeviceVector<int> map_actual_fields_to_dump) override;

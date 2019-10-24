@@ -599,8 +599,6 @@ BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
 
     for (int i = 0; i < N_slice_snapshots; ++i) {
 
-        amrex::Real cell_dx = 0;
-        amrex::Real cell_dy = 0;
         IntVect slice_ncells_lab ;
 
         // To construct LabFrameSlice(), the location of lo() and hi() of the
@@ -624,7 +622,6 @@ BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
         // if the x-dimension is reduced, increase total_cells by 1
         // to be consistent with the number of cells created for the output.
         if (Nx_lab != Nx_slice_lab) Nx_slice_lab++;
-        cell_dx = geom.CellSize(0);
 #if (AMREX_SPACEDIM == 3)
         int Ny_slice_lab = ( current_slice_hi[1] - current_slice_lo[1]) /
                              geom.CellSize(1);
@@ -633,7 +630,6 @@ BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
         // to be consistent with the number of cells created for the output.
         if (Ny_lab != Ny_slice_lab) Ny_slice_lab++;
         slice_ncells_lab = {Nx_slice_lab, Ny_slice_lab, Nz_slice_lab};
-        cell_dy = geom.CellSize(1);
 #else
         slice_ncells_lab = {Nx_slice_lab, Nz_slice_lab};
 #endif
@@ -673,8 +669,7 @@ BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
                                 inv_gamma_boost_, inv_beta_boost_, dz_lab_,
                                 prob_domain_lab, slice_ncells_lab,
                                 ncomp_to_dump, mesh_field_names, slice_dom_lab,
-                                slicediag_box, i, cell_dx, cell_dy,
-                                particle_slice_width_lab_));
+                                slicediag_box, i, particle_slice_width_lab_));
     }
     // sort diags based on their respective t_lab
     std::stable_sort(LabFrameDiags_.begin(), LabFrameDiags_.end(), compare_tlab_uptr);
@@ -1283,7 +1278,6 @@ LabFrameSlice(Real t_lab_in, Real t_boost, Real inv_gamma_boost_in,
                  IntVect prob_ncells_lab, int ncomp_to_dump,
                  std::vector<std::string> mesh_field_names,
                  RealBox diag_domain_lab, Box diag_box, int file_num_in,
-                 amrex::Real cell_dx, amrex::Real cell_dy,
                  amrex::Real particle_slice_dx_lab)
 {
     t_lab = t_lab_in;
@@ -1302,8 +1296,6 @@ LabFrameSlice(Real t_lab_in, Real t_boost, Real inv_gamma_boost_in,
     file_name = Concatenate(WarpX::lab_data_directory+"/slices/slice",file_num,5);
     createLabFrameDirectories();
     buff_counter_ = 0;
-    dx_ = cell_dx;
-    dy_ = cell_dy;
     particle_slice_dx_lab_ = particle_slice_dx_lab;
 
     if (WarpX::do_boosted_frame_fields) data_buffer_.reset(nullptr);
@@ -1466,6 +1458,7 @@ AddPartDataToParticleBuffer(
         int* const AMREX_RESTRICT Flag = FlagForPartCopy.dataPtr();
         int* const AMREX_RESTRICT IndexLocation = IndexForPartCopy.dataPtr();
 
+        // Compute extent of the reduced domain +/- user-defined physical width
         Real const xmin = diag_domain_lab_.lo(0)-particle_slice_dx_lab_;
         Real const xmax = diag_domain_lab_.hi(0)+particle_slice_dx_lab_;
 #if (AMREX_SPACEDIM == 3)
@@ -1473,13 +1466,12 @@ AddPartDataToParticleBuffer(
         Real const ymax = diag_domain_lab_.hi(1)+particle_slice_dx_lab_;
 #endif
 
-        //Flag particles that need to be copied if they cross the reduced slice //
+        //Flag particles that need to be copied if they are 
+        // within the reduced slice +/- user-defined physical width
         amrex::ParallelFor(np,
         [=] AMREX_GPU_DEVICE(int i)
         {
             Flag[i] = 0;
-            //if ( x_temp[i] >= (diag_domain_lab_.lo(0)-particle_slice_dx_lab_) &&
-            //     x_temp[i] <= (diag_domain_lab_.hi(0)+particle_slice_dx_lab_) ) {
             if ( x_temp[i] >= (xmin) &&
                  x_temp[i] <= (xmax) ) {
 #if (AMREX_SPACEDIM == 3)
@@ -1519,8 +1511,8 @@ AddPartDataToParticleBuffer(
         Real* const AMREX_RESTRICT uz_buff =
               particles_buffer_[isp].GetRealData(DiagIdx::uz).data();
 
-        // Copy particle data from tmp array to reduced buffer array
-        // on the GPU using the flag value and index location.
+        // Selective copy of particle data from tmp array to reduced buffer 
+        // array on the GPU using the flag value and index location.
         amrex::ParallelFor(np,
         [=] AMREX_GPU_DEVICE(int i)
         {
