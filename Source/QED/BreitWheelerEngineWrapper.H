@@ -72,18 +72,18 @@ class BreitWheelerEvolveOpticalDepth
 {
 public:
     /**
-     * Constructor acquires a reference to control parameters and
-     * lookup tables data.
-     * lookup_table uses non-owning vectors under the hood. So no new data
-     * allocations should be triggered on GPU
+     * TO ADD!
      */
     BreitWheelerEvolveOpticalDepth(
-        BreitWheelerEngineInnards& r_innards):
-        ctrl{r_innards.ctrl},
+        const PicsarBreitWheelerCtrl t_ctrl,
+        size_t TTfunc_size,
+        amrex::Real* TTfunc_coords,
+        amrex::Real* TTfunc_data):
+        ctrl{t_ctrl},
         lookup_table{
-            r_innards.TTfunc_data.size(),
-            r_innards.TTfunc_coords.data(),
-            r_innards.TTfunc_data.data()
+            TTfunc_size,
+            TTfunc_coords,
+            TTfunc_data
         }{};
 
     /**
