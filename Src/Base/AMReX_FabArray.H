@@ -1493,9 +1493,9 @@ FabArray<FAB>::setDomainBndry (value_type val,
 template <class FAB>
 void
 FabArray<FAB>::copyTo (FAB& dest,
-		       int  nghsot) const
+		       int  nghost) const
 {
-    copyTo(dest, dest.box(), 0, 0, dest.nComp(), nghsot);
+    copyTo(dest, dest.box(), 0, 0, dest.nComp(), nghost);
 }
 
 template <class FAB>
