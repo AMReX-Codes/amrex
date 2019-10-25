@@ -45,9 +45,8 @@ void PhotonParticleContainer::InitData()
 {
     AddParticles(0); // Note - add on level 0
 
-    if (maxLevel() > 0) {
-        Redistribute();  // We then redistribute
-    }
+    Redistribute();  // We then redistribute
+
 }
 
 void

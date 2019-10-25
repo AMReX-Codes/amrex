@@ -215,8 +215,8 @@ protected:
 
 #ifdef WARPX_QED
     // The QED engines
-    BreitWheelerEngine bw_engine;
-    QuantumSynchrotronEngine qs_engine;
+    std::shared_ptr<BreitWheelerEngine> shr_p_bw_engine;
+    std::shared_ptr<QuantumSynchrotronEngine> shr_p_qs_engine;
     //_______________________________
 
     //Initialize QED engines and provides smart pointers
