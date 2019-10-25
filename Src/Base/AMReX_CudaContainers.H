@@ -14,7 +14,7 @@ namespace Cuda {
 #ifdef AMREX_USE_GPU
 
     template <class T>
-    using DeviceVector = PODVector<T, DeviceArenaAllocator<T> >;
+    using DeviceVector = PODVector<T, ArenaAllocator<T> >;
 	
     template <class T>
     using HostVector = PODVector<T>;
