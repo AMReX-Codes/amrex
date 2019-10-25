@@ -751,10 +751,12 @@ void MultiParticleContainer::InitQED ()
         if(pc->has_quantum_sync()){
             pc->set_quantum_sync_engine_ptr
                 (shr_p_qs_engine);
+            someone_has_quantum_sync = true;
         }
         if(pc->has_breit_wheeler()){
             pc->set_breit_wheeler_engine_ptr
                 (shr_p_bw_engine);
+            someone_has_breit_wheeler = true;
         }
     }
 
