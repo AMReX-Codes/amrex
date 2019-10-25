@@ -15,19 +15,36 @@ public:
 
     NodalProjector () {};
 
-    NodalProjector ( const amrex::Vector<amrex::Geometry>&              a_geom,
-                      const amrex::Vector<amrex::BoxArray>&             a_grids,
-                      const amrex::Vector<amrex::DistributionMapping>&  a_dmap,
-                      std::array<amrex::LinOpBCType,AMREX_SPACEDIM>     a_bc_lo,
-                      std::array<amrex::LinOpBCType,AMREX_SPACEDIM>     a_bc_hi,
-                      amrex::Vector<amrex::EBFArrayBoxFactory const *>  a_ebfactory );
+    NodalProjector ( const amrex::Vector<amrex::Geometry>&             a_geom,
+                     const amrex::Vector<amrex::BoxArray>&             a_grids,
+                     const amrex::Vector<amrex::DistributionMapping>&  a_dmap,
+                     std::array<amrex::LinOpBCType,AMREX_SPACEDIM>     a_bc_lo,
+                     std::array<amrex::LinOpBCType,AMREX_SPACEDIM>     a_bc_hi );
+#ifdef AMREX_USE_EB
+    NodalProjector ( const amrex::Vector<amrex::Geometry>&             a_geom,
+                     const amrex::Vector<amrex::BoxArray>&             a_grids,
+                     const amrex::Vector<amrex::DistributionMapping>&  a_dmap,
+                     std::array<amrex::LinOpBCType,AMREX_SPACEDIM>     a_bc_lo,
+                     std::array<amrex::LinOpBCType,AMREX_SPACEDIM>     a_bc_hi,
+                     amrex::Vector<amrex::EBFArrayBoxFactory const *>  a_ebfactory );
+#endif
 
+    void define ( const amrex::Vector<amrex::Geometry>&             a_geom,
+                  const amrex::Vector<amrex::BoxArray>&             a_grids,
+                  const amrex::Vector<amrex::DistributionMapping>&  a_dmap,
+                  std::array<amrex::LinOpBCType,AMREX_SPACEDIM>     a_bc_lo,
+                  std::array<amrex::LinOpBCType,AMREX_SPACEDIM>     a_bc_hi );
+
+
+#ifdef AMREX_USE_EB
     void define ( const amrex::Vector<amrex::Geometry>&             a_geom,
                   const amrex::Vector<amrex::BoxArray>&             a_grids,
                   const amrex::Vector<amrex::DistributionMapping>&  a_dmap,
                   std::array<amrex::LinOpBCType,AMREX_SPACEDIM>     a_bc_lo,
                   std::array<amrex::LinOpBCType,AMREX_SPACEDIM>     a_bc_hi,
                   amrex::Vector<amrex::EBFArrayBoxFactory const *>  a_ebfactory );
+#endif
+
 
     void project ( amrex::Vector< std::unique_ptr< amrex::MultiFab > >& a_vel,
                    const amrex::Vector< std::unique_ptr< amrex::MultiFab > >& a_sigma,
@@ -70,8 +87,9 @@ private:
     amrex::Vector<amrex::Geometry>                    m_geom;
     amrex::Vector<amrex::BoxArray>                    m_grids;
     amrex::Vector<amrex::DistributionMapping>         m_dmap;
+#ifdef AMREX_USE_EB
     amrex::Vector<amrex::EBFArrayBoxFactory const *>  m_ebfactory;
-
+#endif
 
     // Boundary conditions
     std::array<amrex::LinOpBCType,AMREX_SPACEDIM>  m_bc_lo;
