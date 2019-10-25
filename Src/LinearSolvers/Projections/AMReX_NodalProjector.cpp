@@ -378,8 +378,8 @@ NodalProjector::computeRHS (  amrex::Vector< std::unique_ptr< amrex::MultiFab > 
     AMREX_ALWAYS_ASSERT(m_ok);
     BL_PROFILE("NodalProjector::computeRHS");
 
-    m_matrix -> compRHS( GetVecOfPtrs(a_rhs),  GetVecOfPtrs(a_vel), GetVecOfConstPtrs(a_S_cc),
-                         GetVecOfPtrs(a_S_nd) );
+    m_matrix -> compRHS( GetVecOfPtrs(a_rhs),  GetVecOfPtrs(a_vel), GetVecOfConstPtrs(a_S_nd),
+                         GetVecOfPtrs(a_S_cc) );
 }
 
 
