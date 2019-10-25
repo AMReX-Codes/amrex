@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+
+# Search inside Examples/ and check that file names start with
+# inputs
+# PICMI_inputs
+# analysis
+# README
+
+ok=0
+files=()
+
+for pathtofile in $(find Examples -type f)
+do
+    file=$(basename $pathtofile)
+    if [[ ${file:0:6 } != inputs       ]] &&
+       [[ ${file:0:12} != PICMI_inputs ]] &&
+       [[ ${file:0:8 } != analysis     ]] &&
+       [[ ${file:0:6 } != README       ]]
+    then
+        files+=($file)
+        echo "$pathtofile does not have a proper name!"
+        ok=1
+    fi
+done
+
+if [ $ok -ne 0 ]
+then
+    echo ""
+    echo "Files in Examples/ must start with one of:"
+    echo " - inputs       : for WarpX input files"
+    echo " - PICMI_inputs : for PICMI-compliant input scripts"
+    echo " - analysis     : for scripts testing the accuracy of a test"
+    echo " - README       : for readme files"
+    echo ""
+    echo "Please rename the file(s) to comply, or move to another folder"
+fi
+
+exit $ok

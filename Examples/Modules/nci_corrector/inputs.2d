@@ -14,8 +14,6 @@ amr.blocking_factor = 8
 
 # Maximum level in hierarchy (for now must be 0, i.e., one level in total)
 amr.max_level = 0
-warpx.fine_tag_lo = -20.e-6 -20.e-6
-warpx.fine_tag_hi =  20.e-6  20.e-6
 
 # Geometry
 geometry.coord_sys   = 0                  # 0: Cartesian
