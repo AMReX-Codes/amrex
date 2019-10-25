@@ -26,7 +26,10 @@ BreitWheelerEngine::build_evolve_functor ()
 {
     AMREX_ALWAYS_ASSERT(lookup_tables_initialized);
 
-    return BreitWheelerEvolveOpticalDepth(innards);
+    return BreitWheelerEvolveOpticalDepth(innards.ctrl,
+        innards.TTfunc_coords.size(),
+        innards.TTfunc_coords.dataPtr(),
+        innards.TTfunc_data.dataPtr());
 }
 
 BreitWheelerGeneratePairs
