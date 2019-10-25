@@ -49,6 +49,8 @@ target_sources(amrex
    MLMG/AMReX_MLTensor_${DIM}D_K.H
    Projections/AMReX_MacProjector.H
    Projections/AMReX_MacProjector.cpp
+   Projections/AMReX_NodalProjector.H
+   Projections/AMReX_NodalProjector.cpp
    )
 
 if (ENABLE_EB)
