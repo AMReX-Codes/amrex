@@ -21,7 +21,7 @@ warpx.do_pml = 0
 
 # Algorithms
 algo.charge_deposition = standard
-algo.field_gathering = standard
+algo.field_gathering = energy-conserving
 algo.particle_pusher = "higuera"
 
 # CFL
