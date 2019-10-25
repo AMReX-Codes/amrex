@@ -368,15 +368,36 @@ NodalProjector::setup ()
 //
 // Compute RHS: div(u) + S_nd + S_cc
 //
-
 void
 NodalProjector::computeRHS (  amrex::Vector< std::unique_ptr< amrex::MultiFab > >& a_rhs,
-                               const amrex::Vector< std::unique_ptr< amrex::MultiFab > >& a_vel,
-                               const amrex::Vector< std::unique_ptr< amrex::MultiFab > >& a_S_cc,
-                               const amrex::Vector< std::unique_ptr< amrex::MultiFab > >& a_S_nd )
+                              const amrex::Vector< std::unique_ptr< amrex::MultiFab > >& a_vel,
+                              const amrex::Vector< std::unique_ptr< amrex::MultiFab > >& a_S_cc,
+                              const amrex::Vector< std::unique_ptr< amrex::MultiFab > >& a_S_nd )
 {
     AMREX_ALWAYS_ASSERT(m_ok);
+    AMREX_ALWAYS_ASSERT(a_rhs.size()==m_phi.size());
+    AMREX_ALWAYS_ASSERT(a_vel.size()==m_phi.size());
+    AMREX_ALWAYS_ASSERT((a_S_cc.size()==0) || (a_S_cc.size()==m_phi.size()) );
+    AMREX_ALWAYS_ASSERT((a_S_nd.size()==0) || (a_S_nd.size()==m_phi.size()) );
+
     BL_PROFILE("NodalProjector::computeRHS");
+
+    bool has_S_cc(!a_S_cc.empty());
+    bool has_S_nd(!a_S_nd.empty());
+
+
+    // Check the type of grids used
+    for (int lev(0); lev < m_phi.size(); ++lev)
+    {
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(a_rhs[lev]->ixType().nodeCentered(), "a_rhs is not node centered");
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(a_vel[lev]->ixType().cellCentered(), "a_vel is not cell centered");
+
+        if (has_S_cc)
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(a_S_cc[lev]->ixType().cellCentered(),"a_S_cc is not cell centered");
+
+        if (has_S_nd)
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(a_S_nd[lev]->ixType().nodeCentered(),"a_S_nd is not node centered");
+    }
 
     m_matrix -> compRHS( GetVecOfPtrs(a_rhs),  GetVecOfPtrs(a_vel), GetVecOfConstPtrs(a_S_nd),
                          GetVecOfPtrs(a_S_cc) );
