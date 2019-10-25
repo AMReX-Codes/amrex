@@ -38,14 +38,14 @@ MultiParticleContainer::MultiParticleContainer (AmrCore* amr_core)
     // Compute the number of species for which lab-frame data is dumped
     // nspecies_lab_frame_diags, and map their ID to MultiParticleContainer
     // particle IDs in map_species_lab_diags.
-    map_species_boosted_frame_diags.resize(nspecies);
-    nspecies_boosted_frame_diags = 0;
+    map_species_back_transformed_diagnostics.resize(nspecies);
+    nspecies_back_transformed_diagnostics = 0;
     for (int i=0; i<nspecies; i++){
         auto& pc = allcontainers[i];
-        if (pc->do_boosted_frame_diags){
-            map_species_boosted_frame_diags[nspecies_boosted_frame_diags] = i;
-            do_boosted_frame_diags = 1;
-            nspecies_boosted_frame_diags += 1;
+        if (pc->do_back_transformed_diagnostics){
+            map_species_back_transformed_diagnostics[nspecies_back_transformed_diagnostics] = i;
+            do_back_transformed_diagnostics = 1;
+            nspecies_back_transformed_diagnostics += 1;
         }
     }
 }
@@ -387,8 +387,8 @@ MultiParticleContainer
     BL_PROFILE("MultiParticleContainer::GetLabFrameData");
 
     // Loop over particle species
-    for (int i = 0; i < nspecies_boosted_frame_diags; ++i){
-        int isp = map_species_boosted_frame_diags[i];
+    for (int i = 0; i < nspecies_back_transformed_diagnostics; ++i){
+        int isp = map_species_back_transformed_diagnostics[i];
         WarpXParticleContainer* pc = allcontainers[isp].get();
         WarpXParticleContainer::DiagnosticParticles diagnostic_particles;
         pc->GetParticleSlice(direction, z_old, z_new, t_boost, t_lab, dt, diagnostic_particles);
@@ -603,9 +603,9 @@ namespace
         }
         // --- product runtime attribs
         GpuArray<ParticleReal*,6> runtime_attribs_product;
-        bool do_boosted_product = WarpX::do_boosted_frame_diagnostic
-            && pc_product->DoBoostedFrameDiags();
-        if (do_boosted_product) {
+        bool do_back_transformed_product = WarpX::do_back_transformed_diagnostics
+            && pc_product->doBackTransformedDiagnostics();
+        if (do_back_transformed_product) {
             std::map<std::string, int> comps_product = pc_product->getParticleComps();
             runtime_attribs_product[0] = soa_product.GetRealData(comps_product[ "xold"]).data() + np_product_old;
             runtime_attribs_product[1] = soa_product.GetRealData(comps_product[ "yold"]).data() + np_product_old;
@@ -652,7 +652,7 @@ namespace
                     // Update xold etc. if boosted frame diagnostics required
                     // for product species. Fill runtime attribs with a copy of
                     // current properties (xold = x etc.).
-                    if (do_boosted_product) {
+                    if (do_back_transformed_product) {
                         runtime_attribs_product[0][ip] = p_source.pos(0);
                         runtime_attribs_product[1][ip] = p_source.pos(1);
                         runtime_attribs_product[2][ip] = p_source.pos(2);

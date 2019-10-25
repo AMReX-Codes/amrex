@@ -43,7 +43,7 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
     pp.query("do_continuous_injection", do_continuous_injection);
     // Whether to plot back-transformed (lab-frame) diagnostics
     // for this species.
-    pp.query("do_boosted_frame_diags", do_boosted_frame_diags);
+    pp.query("do_back_transformed_diagnostics", do_back_transformed_diagnostics);
 
     pp.query("do_field_ionization", do_field_ionization);
 
@@ -86,7 +86,7 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
 
     //variable to set plot_flags size
     int plot_flag_size = PIdx::nattribs;
-    if(WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
+    if(WarpX::do_back_transformed_diagnostics && do_back_transformed_diagnostics)
         plot_flag_size += 6;
 
 #ifdef WARPX_QED
@@ -1078,7 +1078,7 @@ PhysicalParticleContainer::Evolve (int lev,
 
     bool has_buffer = cEx || cjx;
 
-    if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
+    if (WarpX::do_back_transformed_diagnostics && do_back_transformed_diagnostics)
     {
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
         {
@@ -1585,7 +1585,7 @@ PhysicalParticleContainer::PushPX(WarpXParIter& pti,
     const ParticleReal* const AMREX_RESTRICT By = attribs[PIdx::By].dataPtr();
     const ParticleReal* const AMREX_RESTRICT Bz = attribs[PIdx::Bz].dataPtr();
 
-    if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags && (a_dt_type!=DtType::SecondHalf))
+    if (WarpX::do_back_transformed_diagnostics && do_back_transformed_diagnostics && (a_dt_type!=DtType::SecondHalf))
     {
         copy_attribs(pti, x, y, z);
     }
@@ -1842,7 +1842,7 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
     // Note the the slice should always move in the negative boost direction.
     AMREX_ALWAYS_ASSERT(z_new < z_old);
 
-    AMREX_ALWAYS_ASSERT(do_boosted_frame_diags == 1);
+    AMREX_ALWAYS_ASSERT(do_back_transformed_diagnostics == 1);
 
     const int nlevs = std::max(0, finestLevel()+1);
 
