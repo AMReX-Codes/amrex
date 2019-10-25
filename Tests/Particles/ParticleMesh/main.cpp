@@ -135,7 +135,7 @@ void testParticleMesh(TestParams& parms)
               for (int kk = 0; kk <= 1; ++kk) { 
                   for (int jj = 0; jj <= 1; ++jj) { 
                       for (int ii = 0; ii <= 1; ++ii) {
-                          p.rdata(4+comp) += sx[ii]*sy[jj]*sz[kk]*acc(i+ii,j+jj,k+kk,comp);
+                          p.rdata(4+comp) += sx[ii]*sy[jj]*sz[kk]*acc(i+ii-1,j+jj-1,k+kk-1,comp);
                       }
                   }
               }

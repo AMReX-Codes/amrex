@@ -97,7 +97,7 @@ void amrex_avg_cc_to_fc (Box const& ndbx, Box const& xbx, Box const& ybx, Box co
                 fx(i,j,k) = 0.5*(cc(i-1,j,k) + cc(i,j,k));
             }
         }
-    }    
+    }
 
     for         (int k = ylo.z; k <= yhi.z; ++k) {
         for     (int j = ylo.y; j <= yhi.y; ++j) {
@@ -106,7 +106,7 @@ void amrex_avg_cc_to_fc (Box const& ndbx, Box const& xbx, Box const& ybx, Box co
                 fy(i,j,k) = 0.5*(cc(i,j-1,k) + cc(i,j,k));
             }
         }
-    }    
+    }
 
     for         (int k = zlo.z; k <= zhi.z; ++k) {
         for     (int j = zlo.y; j <= zhi.y; ++j) {
@@ -115,7 +115,7 @@ void amrex_avg_cc_to_fc (Box const& ndbx, Box const& xbx, Box const& ybx, Box co
                 fz(i,j,k) = 0.5*(cc(i,j,k-1) + cc(i,j,k));
             }
         }
-    }        
+    }
 }
 
 AMREX_GPU_HOST_DEVICE
@@ -376,13 +376,15 @@ void amrex_compute_divergence (Box const& bx, Array4<Real> const& divu,
     const Real dyi = dxinv[1];
     const Real dzi = dxinv[2];
 
-    for         (int k = lo.z; k <= hi.z; ++k) {
-        for     (int j = lo.y; j <= hi.y; ++j) {
-            AMREX_PRAGMA_SIMD
-            for (int i = lo.x; i <= hi.x; ++i) {
-                divu(i,j,k) = dxi * (u(i+1,j,k)-u(i,j,k))
-                    +         dyi * (v(i,j+1,k)-v(i,j,k))
-                    +         dzi * (w(i,j,k+1)-w(i,j,k));
+    for             (int n = 0; n <  divu.ncomp; ++n) {
+        for         (int k = lo.z; k <= hi.z; ++k) {
+            for     (int j = lo.y; j <= hi.y; ++j) {
+                AMREX_PRAGMA_SIMD
+                    for (int i = lo.x; i <= hi.x; ++i) {
+                        divu(i,j,k,n) = dxi * (u(i+1,j,k,n)-u(i,j,k,n))
+                            +           dyi * (v(i,j+1,k,n)-v(i,j,k,n))
+                            +           dzi * (w(i,j,k+1,n)-w(i,j,k,n));
+                    }
             }
         }
     }

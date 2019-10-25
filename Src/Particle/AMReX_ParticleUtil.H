@@ -6,6 +6,7 @@
 #include <AMReX_Gpu.H>
 #include <AMReX_Print.H>
 #include <AMReX_MFIter.H>
+#include <AMReX_ParGDB.H>
 
 #include <limits>
 
@@ -50,13 +51,27 @@ void enforcePeriodic (P& p,
                       amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& phi,
                       amrex::GpuArray<int,AMREX_SPACEDIM> const& is_per) noexcept
 {
+  // In rare cases, degenerate cases can be found, filter out with a tolerance
+#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
+  static constexpr Real eps = std::numeric_limits<Real>::epsilon();
+#else
+  static constexpr Real eps = DBL_EPSILON;
+#endif
+
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
         if (not is_per[idim]) continue;
-        if (p.pos(idim) > phi[idim]) { 
-            p.pos(idim) -= (phi[idim] - plo[idim]); 
+        if (p.pos(idim) >= phi[idim]) { 
+	  while (p.pos(idim) >= phi[idim]) { 
+            p.pos(idim) -= (phi[idim] - plo[idim]);
+	  }
+	  if (p.pos(idim) < plo[idim]) p.pos(idim) = plo[idim]; // clamp to avoid precision issues;
         } else if (p.pos(idim) < plo[idim]) {
-            p.pos(idim) += (phi[idim] - plo[idim]);
+	  while (p.pos(idim) < plo[idim]) {
+            p.pos(idim) += (phi[idim] - plo[idim]); 
+	  }
+	  if (p.pos(idim) == phi[idim]) p.pos(idim) = plo[idim]; // clamp to avoid precision issues;
+	  if (p.pos(idim) > phi[idim]) p.pos(idim) = phi[idim]-eps; // clamp to avoid precision issues;
         }
     }
 }
@@ -103,6 +118,7 @@ numParticlesOutOfRange (PC const& pc, int lev_min, int lev_max, int nGrow)
             [=] AMREX_GPU_DEVICE (int i) -> ReduceTuple
             {
                 const ParticleType& p = pstruct[i];
+                if ((p.id() < 0)) return false;
                 IntVect iv = IntVect(
                         AMREX_D_DECL(floor((p.pos(0)-plo[0])*dxi[0]),
                                      floor((p.pos(1)-plo[1])*dxi[1]),
@@ -118,6 +134,10 @@ numParticlesOutOfRange (PC const& pc, int lev_min, int lev_max, int nGrow)
 
     return num_wrong;
 }
+
+IntVect computeRefFac (const ParGDBBase* a_gdb, int src_lev, int lev);
+
+Vector<int> computeNeighborProcs (const ParGDBBase* a_gdb, int ngrow);
 
 }
 

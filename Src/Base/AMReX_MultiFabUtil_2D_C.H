@@ -287,11 +287,13 @@ void amrex_compute_divergence (Box const& bx, Array4<Real> const& divu,
     const Real dxi = dxinv[0];
     const Real dyi = dxinv[1];
 
-    for     (int j = lo.y; j <= hi.y; ++j) {
-        AMREX_PRAGMA_SIMD
-        for (int i = lo.x; i <= hi.x; ++i) {
-            divu(i,j,0) = dxi * (u(i+1,j,0)-u(i,j,0))
-                +         dyi * (v(i,j+1,0)-v(i,j,0));
+    for     (int n = 0; n < divu.ncomp; ++n) {
+        for     (int j = lo.y; j <= hi.y; ++j) {
+            AMREX_PRAGMA_SIMD
+                for (int i = lo.x; i <= hi.x; ++i) {
+                    divu(i,j,0,n) = dxi * (u(i+1,j,0,n)-u(i,j,0,n))
+                        +           dyi * (v(i,j+1,0,n)-v(i,j,0,n));
+                }
         }
     }
 }

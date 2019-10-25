@@ -2,6 +2,7 @@
 #define AMREX_GPU_LAUNCH_MACROS_G_H_
 
 #define AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_BOXIV(BX,IV,block) \
+    if (BX.ok()) { \
     if (amrex::Gpu::inLaunchRegion()) \
     { \
         long amrex_i_npts = BX.numPts(); \
@@ -21,9 +22,10 @@
             const auto IV = BX.atOffset(amrex_i_i); \
             block \
         } \
-    }
+    }}
 
 #define AMREX_GPU_LAUNCH_DEVICE_LAMBDA_BOXIV(BX,IV,block) \
+    if (BX.ok()) { \
     if (amrex::Gpu::inLaunchRegion()) \
     { \
         long amrex_i_npts = BX.numPts(); \
@@ -39,9 +41,10 @@
     } \
     else { \
         amrex::Abort("AMREX_GPU_LAUNCH_DEVICE_LAMBDA_BOXIV: cannot call device function from host"); \
-    }
+    }}
 
 #define AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE(TN,TI,block) \
+    if (!amrex::isEmpty(TN)) { \
     if (amrex::Gpu::inLaunchRegion()) \
     { \
         const auto amrex_i_ec = amrex::Gpu::ExecutionConfig(TN);             \
@@ -57,10 +60,11 @@
         for (auto const TI : amrex::Gpu::Range(TN)) { \
             block \
         } \
-    }
+    }}
 
 // two fused launches
 #define AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_2(TN1,TI1,block1,TN2,TI2,block2) \
+    if (!amrex::isEmpty(TN1) or !amrex::isEmpty(TN2)) { \
     if (amrex::Gpu::inLaunchRegion()) \
     { \
         const auto amrex_i_ec1 = amrex::Gpu::ExecutionConfig(TN1); \
@@ -89,10 +93,11 @@
         for (auto const TI2 : amrex::Gpu::Range(TN2)) { \
             block2 \
         } \
-    }
+    }}
 
 // three fused launches
 #define AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_3(TN1,TI1,block1,TN2,TI2,block2,TN3,TI3,block3) \
+    if (!amrex::isEmpty(TN1) or !amrex::isEmpty(TN2) or !amrex::isEmpty(TN3)) { \
     if (amrex::Gpu::inLaunchRegion()) \
     { \
         const auto amrex_i_ec1 = amrex::Gpu::ExecutionConfig(TN1); \
@@ -130,9 +135,10 @@
         for (auto const TI3 : amrex::Gpu::Range(TN3)) { \
             block3 \
         } \
-    }
+    }}
 
 #define AMREX_GPU_LAUNCH_DEVICE_LAMBDA_RANGE(TN,TI,block) \
+    if (!amrex::isEmpty(TN)) { \
     if (amrex::Gpu::inLaunchRegion()) \
     { \
         auto amrex_i_ec = amrex::Gpu::ExecutionConfig(TN); \
@@ -146,10 +152,11 @@
     } \
     else { \
         amrex::Abort("AMREX_GPU_LAUNCH_DEVICE_LAMBDA_RANGE: cannot call device function from host"); \
-    }
+    }}
 
 // two fused launches
 #define AMREX_GPU_LAUNCH_DEVICE_LAMBDA_RANGE_2(TN1,TI1,block1,TN2,TI2,block2) \
+    if (!amrex::isEmpty(TN1) or !amrex::isEmpty(TN2)) { \
     if (amrex::Gpu::inLaunchRegion()) \
     { \
         const auto amrex_i_ec1 = amrex::Gpu::ExecutionConfig(TN1); \
@@ -173,10 +180,11 @@
     } \
     else { \
         amrex::Abort("AMREX_GPU_LAUNCH_DEVICE_LAMBDA_RANGE_2: cannot call device function from host"); \
-    }
+    }}
 
 // three fused launches
 #define AMREX_GPU_LAUNCH_DEVICE_LAMBDA_RANGE_3(TN1,TI1,block1,TN2,TI2,block2,TN3,TI3,block3) \
+    if (!amrex::isEmpty(TN1) or !amrex::isEmpty(TN2) or !amrex::isEmpty(TN3)) { \
     if (amrex::Gpu::inLaunchRegion()) \
     { \
         const auto amrex_i_ec1 = amrex::Gpu::ExecutionConfig(TN1); \
@@ -205,9 +213,10 @@
     } \
     else { \
         amrex::Abort("AMREX_GPU_LAUNCH_DEVICE_LAMBDA_RANGE_2: cannot call device function from host"); \
-    }
+    }}
 
 #define AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_BOX(bbb,tbb,block) \
+    if (bbb.ok()) { \
     if (amrex::Gpu::inLaunchRegion()) \
     { \
         const auto amrex_i_ec = amrex::Gpu::ExecutionConfig(bbb); \
@@ -229,9 +238,10 @@
     else { \
         const amrex::Box& tbb = bbb; \
         block \
-    }
+    }}
 
 #define AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_ASYNC(bbb,tbb,sync_var,block) \
+    if (bbb.ok()) { \
     if (amrex::Gpu::inLaunchRegion()) \
     { \
         auto amrex_i_ec = amrex::Gpu::ExecutionConfig(bbb); \
@@ -255,9 +265,10 @@
     else { \
         const amrex::Box& tbb = bbb; \
         block \
-    }  
+    }}
 
 #define AMREX_GPU_LAUNCH_DEVICE_LAMBDA_BOX(bbb,tbb,block) \
+    if (bbb.ok()) { \
     if (amrex::Gpu::inLaunchRegion()) \
     { \
         const auto amrex_i_ec = amrex::Gpu::ExecutionConfig(bbb); \
@@ -278,9 +289,10 @@
     } \
     else { \
         amrex::Abort("AMREX_GPU_LAUNCH_DEVICE_LAMBDA: cannot call device function from host"); \
-    }
+    }}
 
 #define AMREX_GPU_LAUNCH_HOST_DEVICE_XYZ(bbx,bby,bbz,tbx,tby,tbz,blockx,blocky,blockz) \
+    if (bbx.ok() or bby.ok() or bbz.ok()) { \
     if (amrex::Gpu::inLaunchRegion()) \
     { \
         long max_pts = std::max(bbx.numPts(), std::max(bby.numPts(), bbz.numPts())); \
@@ -319,9 +331,10 @@
         blocky \
         const amrex::Box& tbz = bbz; \
         blockz \
-    }
+    }}
 
 #define AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_NOBOX(bbb,tbb,block) \
+    if (bbb.ok()) { \
     if (amrex::Gpu::inLaunchRegion()) \
     { \
         const auto amrex_i_ec = amrex::Gpu::ExecutionConfig(); \
@@ -343,7 +356,7 @@
     else { \
         const amrex::Box& tbb = bbb; \
         block \
-    }
+    }}
 
 #define AMREX_GPU_LAUNCH_HOST_DEVICE(strategy, ...) \
     { \
@@ -384,6 +397,7 @@
 // FOR_1D
 
 #define AMREX_GPU_HOST_DEVICE_FOR_1D(n,i,block) \
+    if (!amrex::isEmpty(n)) { \
     if (amrex::Gpu::inLaunchRegion()) \
     { \
         const auto amrex_i_ec = amrex::Gpu::ExecutionConfig(n); \
@@ -399,9 +413,10 @@
     else { \
         AMREX_PRAGMA_SIMD \
         for (auto i = decltype(n){0}; i < n; ++i) block     \
-    }
+    }}
 
 #define AMREX_GPU_DEVICE_FOR_1D(n,i,block) \
+    if (!amrex::isEmpty(n)) { \
     { \
         const auto amrex_i_ec = amrex::Gpu::ExecutionConfig(n); \
         amrex::launch_global<<<amrex_i_ec.numBlocks, amrex_i_ec.numThreads, amrex_i_ec.sharedMem, amrex::Gpu::gpuStream()>>>( \
@@ -412,13 +427,14 @@
             } \
         }); \
         AMREX_GPU_ERROR_CHECK(); \
-    }
+    }}
 
 #define AMREX_GPU_DEVICE_PARALLEL_FOR_1D(...) AMREX_GPU_DEVICE_FOR_1D(__VA_ARGS__)
 
 // FOR_3D
 
 #define AMREX_GPU_HOST_DEVICE_FOR_3D(box,i,j,k,block) \
+    if (!amrex::isEmpty(box)) { \
     if (amrex::Gpu::inLaunchRegion()) \
     { \
         int amrex_i_ncells = box.numPts();          \
@@ -449,10 +465,10 @@
         for (int i = amrex_i_lo.x; i <= amrex_i_hi.x; ++i) { \
             block \
         }}} \
-    }
+    }}
 
 #define AMREX_GPU_DEVICE_FOR_3D(box,i,j,k,block) \
-    { \
+    if (!amrex::isEmpty(box)) { \
         int amrex_i_ncells = box.numPts(); \
         const auto amrex_i_lo  = amrex::lbound(box); \
         const auto amrex_i_len = amrex::length(box); \
@@ -478,6 +494,7 @@
 // FOR_4D
 
 #define AMREX_GPU_HOST_DEVICE_FOR_4D(box,ancomp,i,j,k,n,block) \
+    if (!amrex::isEmpty(box)) { \
     if (amrex::Gpu::inLaunchRegion()) \
     { \
         int amrex_i_nc = ancomp; \
@@ -510,10 +527,10 @@
         for (int i = amrex_i_lo.x; i <= amrex_i_hi.x; ++i) { \
             block \
         }}}} \
-    }
+    }}
 
 #define AMREX_GPU_DEVICE_FOR_4D(box,ancomp,i,j,k,n,block) \
-    { \
+    if (!amrex::isEmpty(box)) { \
         int amrex_i_nc = ancomp; \
         int amrex_i_ncells = box.numPts(); \
         const auto amrex_i_lo  = amrex::lbound(box); \

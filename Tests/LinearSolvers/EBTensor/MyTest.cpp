@@ -178,13 +178,13 @@ MyTest::initData ()
                     Real x = (i+0.5)*dx[0] + problo[0];
                     Real y = (j+0.5)*dx[1] + problo[1];
                     Real z = (k+0.5)*dx[2] + problo[2];
-                    Real u,v,w,urhs,vrhs,wrhs,eta;
+                    Real u,v,w,urhs,vrhs,wrhs,seta;
                     if (cylinder_direction == 2) {
-                        init(x,y,z,R2,u,v,w,urhs,vrhs,wrhs,eta);
+                        init(x,y,z,R2,u,v,w,urhs,vrhs,wrhs,seta);
                     } else if (cylinder_direction == 0) {
-                        init(y,z,x,R2,v,w,u,vrhs,wrhs,urhs,eta);
+                        init(y,z,x,R2,v,w,u,vrhs,wrhs,urhs,seta);
                     } else {
-                        init(z,x,y,R2,w,u,v,wrhs,urhs,vrhs,eta);
+                        init(z,x,y,R2,w,u,v,wrhs,urhs,vrhs,seta);
                     }
                     velfab(i,j,k,0) = u;
                     velfab(i,j,k,1) = v;
@@ -192,7 +192,7 @@ MyTest::initData ()
                     rhsfab(i,j,k,0) = urhs;
                     rhsfab(i,j,k,1) = vrhs;
                     rhsfab(i,j,k,2) = wrhs;
-                    etafab(i,j,k) = eta;
+                    etafab(i,j,k) = seta;
                     if (x < -1.0 or x > 1.0 or
                         y < -1.0 or y > 1.0 or
                         z < -1.0 or z > 1.0)
@@ -201,11 +201,11 @@ MyTest::initData ()
                         y = std::max(-1.0,std::min(1.0,y));
                         z = std::max(-1.0,std::min(1.0,z));
                         if (cylinder_direction == 2) {
-                            init(x,y,z,R2,u,v,w,urhs,vrhs,wrhs,eta);
+                            init(x,y,z,R2,u,v,w,urhs,vrhs,wrhs,seta);
                         } else if (cylinder_direction == 0) {
-                            init(y,z,x,R2,v,w,u,vrhs,wrhs,urhs,eta);
+                            init(y,z,x,R2,v,w,u,vrhs,wrhs,urhs,seta);
                         } else {
-                            init(z,x,y,R2,w,u,v,wrhs,urhs,vrhs,eta);
+                            init(z,x,y,R2,w,u,v,wrhs,urhs,vrhs,seta);
                         }
                         velfab(i,j,k,0) = u;
                         velfab(i,j,k,1) = v;

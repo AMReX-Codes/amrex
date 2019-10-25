@@ -12,13 +12,13 @@ namespace {
     getIndexBox(const RealBox& real_box, const Geometry& geom) {
         IntVect slice_lo, slice_hi;
 
-        AMREX_D_TERM(slice_lo[0]=floor((real_box.lo(0) - geom.ProbLo(0))/geom.CellSize(0));,
-                     slice_lo[1]=floor((real_box.lo(1) - geom.ProbLo(1))/geom.CellSize(1));,
-                     slice_lo[2]=floor((real_box.lo(2) - geom.ProbLo(2))/geom.CellSize(2)););
+        AMREX_D_TERM(slice_lo[0]=std::floor((real_box.lo(0) - geom.ProbLo(0))/geom.CellSize(0));,
+                     slice_lo[1]=std::floor((real_box.lo(1) - geom.ProbLo(1))/geom.CellSize(1));,
+                     slice_lo[2]=std::floor((real_box.lo(2) - geom.ProbLo(2))/geom.CellSize(2)););
 
-        AMREX_D_TERM(slice_hi[0]=floor((real_box.hi(0) - geom.ProbLo(0))/geom.CellSize(0));,
-                     slice_hi[1]=floor((real_box.hi(1) - geom.ProbLo(1))/geom.CellSize(1));,
-                     slice_hi[2]=floor((real_box.hi(2) - geom.ProbLo(2))/geom.CellSize(2)););
+        AMREX_D_TERM(slice_hi[0]=std::floor((real_box.hi(0) - geom.ProbLo(0))/geom.CellSize(0));,
+                     slice_hi[1]=std::floor((real_box.hi(1) - geom.ProbLo(1))/geom.CellSize(1));,
+                     slice_hi[2]=std::floor((real_box.hi(2) - geom.ProbLo(2))/geom.CellSize(2)););
 
         return Box(slice_lo, slice_hi) & geom.Domain();
     }
@@ -208,7 +208,7 @@ namespace amrex
                          Array4<Real> const& fyarr = fc[1]->array(mfi);,
                          Array4<Real> const& fzarr = fc[2]->array(mfi););
             Array4<Real const> const& ccarr = cc.const_array(mfi);
-            
+
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA (index_bounds, tbx,
             {
 #if (AMREX_SPACEDIM == 1)
@@ -712,6 +712,10 @@ namespace amrex
     void computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPACEDIM>& umac,
                             const Geometry& geom)
     {
+        AMREX_ASSERT(divu.nComp()==umac[0]->nComp());
+        AMREX_ASSERT(divu.nComp()==umac[1]->nComp());
+        AMREX_ASSERT(divu.nComp()==umac[2]->nComp());
+
         const GpuArray<Real,AMREX_SPACEDIM> dxinv = geom.InvCellSizeArray();
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())

@@ -41,6 +41,14 @@ namespace amrex {
         inline const T* data() const noexcept { return arr; };
         AMREX_GPU_HOST_DEVICE
         inline std::size_t size() const noexcept { return N; };
+        AMREX_GPU_HOST_DEVICE
+        inline const T* begin() const noexcept { return arr; };
+        AMREX_GPU_HOST_DEVICE
+        inline const T* end() const noexcept { return arr + N; };
+        AMREX_GPU_HOST_DEVICE
+        inline T* begin() noexcept { return arr; };
+        AMREX_GPU_HOST_DEVICE
+        inline T* end() noexcept { return arr + N; };
 
         T arr[N];
     };

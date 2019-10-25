@@ -28,6 +28,14 @@ else
   PRECISION := DOUBLE
 endif
 
+ifdef USE_RPATH
+  USE_RPATH := $(strip $(USE_RPATH))
+else
+  # the syntax we use below works for all compilers but CCE "classic"
+  # we plan to enable this feature by default in the future
+  USE_RPATH := FALSE
+endif
+
 ifdef DEBUG
   DEBUG := $(strip $(DEBUG))
 else
@@ -188,6 +196,9 @@ ifeq ($(USE_CUDA),TRUE)
 
   # Limit the maximum number of registers available.
   CUDA_MAXREGCOUNT ?= 255
+
+  # Enable verbosity in the CUDA compilation.
+  CUDA_VERBOSE ?= TRUE
 endif
 
 ifdef USE_HIP
@@ -295,6 +306,31 @@ else ifeq ($(USE_CUDA),TRUE)
     AMREX_CCOMP = $(NVCC_HOST_COMP)
   else
     AMREX_CCOMP = gnu
+  endif
+endif
+
+ifdef AMREX_CCOMP
+  lowercase_amrex_ccomp = $(shell echo $(AMREX_CCOMP) | tr A-Z a-z)
+  ifeq ($(lowercase_amrex_comp),$(filter $(lowercase_amrex_comp),gcc gnu g++))
+    AMREX_CCOMP = gnu
+  else ifeq ($(lowercase_amrex_comp),intel)
+    AMREX_CCOMP = intel
+  else ifeq ($(lowercase_amrex_comp),cray)
+    AMREX_CCOMP = cray
+  else ifeq ($(lowercase_amrex_comp),pgi)
+    AMREX_CCOMP = pgi
+  else ifeq ($(lowercase_amrex_comp),ibm)
+    AMREX_CCOMP = ibm
+  else ifeq ($(lowercase_amrex_comp),$(filter $(lowercase_amrex_comp),llvm clang clang++))
+    AMREX_CCOMP = clang
+  else ifeq ($(lowercase_amrex_comp),$(filter $(lowercase_amrex_comp),llvm-flang flang))
+    AMREX_CCOMP = clang
+  else ifeq ($(lowercase_amrex_comp),nag)
+    AMREX_CCOMP = gnu
+  else ifeq ($(lowercase_amrex_comp),nec)
+    AMREX_CCOMP = nec
+  else
+    $(error Unknown compiler $(AMREX_CCOMP). Supported compilers are gnu, intel, cray, pgi, ibm, llvm, nag, and nec)
   endif
 endif
 
@@ -517,7 +553,7 @@ ifeq ($(USE_HIP),TRUE)
     DEFINES += -DAMREX_USE_HIP
 
     ifeq ($(HIP_PLATFORM),nvcc)
-        DEFINES += -DAMREX_USE_CUDA
+        DEFINES += -DAMREX_USE_CUDA -DAMREX_HIP_PLATFORM_NVCC
     endif
 
     GPUSuffix := .HIP
@@ -689,7 +725,10 @@ CPPFLAGS	+= $(DEFINES)
 
 libraries	= $(LIBRARIES) $(XTRALIBS)
 
-LDFLAGS		+= -L. $(addprefix -L, $(LIBRARY_LOCATIONS))
+ifeq ($(USE_RPATH),TRUE)
+  LDFLAGS	+= -Xlinker -rpath -Xlinker $(abspath .) $(addprefix -Xlinker -rpath -Xlinker , $(abspath $(LIBRARY_LOCATIONS)))
+endif
+LDFLAGS	+= -L. $(addprefix -L, $(LIBRARY_LOCATIONS))
 
 machineSuffix	= $(lowercase_comp)$(archSuffix)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(MProfSuffix)$(BTSuffix)$(MPISuffix)$(UPCXXSuffix)$(OMPSuffix)$(ACCSuffix)$(GPUSuffix)$(USERSuffix)
 
@@ -822,7 +861,7 @@ endif
 
 ifeq ($(USE_HIP),TRUE)
 
-    HIP_PATH = /opt/rocm/hip
+    HIP_PATH ?= /opt/rocm/hip
     INCLUDE_LOCATIONS += $(HIP_PATH)/include
 
     LINKFLAGS = $(HIPCC_FLAGS)
