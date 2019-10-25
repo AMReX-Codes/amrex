@@ -744,16 +744,17 @@ MultiParticleContainer::doFieldIonization ()
 #ifdef WARPX_QED
 void MultiParticleContainer::InitQED ()
 {
+    shr_p_qs_engine = std::make_shared<QuantumSynchrotronEngine>();
+    shr_p_bw_engine = std::make_shared<BreitWheelerEngine>();
+
     for (auto& pc : allcontainers) {
         if(pc->has_quantum_sync()){
             pc->set_quantum_sync_engine_ptr
-                (std::make_shared<QuantumSynchrotronEngine>(qs_engine));
-            someone_has_quantum_sync = true;
+                (shr_p_qs_engine);
         }
         if(pc->has_breit_wheeler()){
             pc->set_breit_wheeler_engine_ptr
-                (std::make_shared<BreitWheelerEngine>(bw_engine));
-            someone_has_breit_wheeler = true;
+                (shr_p_bw_engine);
         }
     }
 
@@ -781,8 +782,8 @@ void MultiParticleContainer::InitQuantumSync ()
 
 
     if(generate_table && ParallelDescriptor::IOProcessor()){
-        qs_engine.compute_lookup_tables(ctrl);
-        Vector<char> all_data = qs_engine.export_lookup_tables_data();
+        shr_p_qs_engine->compute_lookup_tables(ctrl);
+        Vector<char> all_data = shr_p_qs_engine->export_lookup_tables_data();
         WarpXUtilIO::WriteBinaryDataOnFile(filename, all_data);
    }
     ParallelDescriptor::Barrier();
@@ -794,10 +795,10 @@ void MultiParticleContainer::InitQuantumSync ()
     //No need to initialize from raw data for the processor that
     //has just generated the table
     if(!generate_table || !ParallelDescriptor::IOProcessor()){
-        qs_engine.init_lookup_tables_from_raw_data(table_data);
+        shr_p_qs_engine->init_lookup_tables_from_raw_data(table_data);
     }
 
-    if(!qs_engine.are_lookup_tables_initialized())
+    if(!shr_p_qs_engine->are_lookup_tables_initialized())
         amrex::Error("Table initialization has failed!\n");
 }
 
@@ -816,8 +817,8 @@ void MultiParticleContainer::InitBreitWheeler ()
     //_________________________________________________
 
     if(generate_table && ParallelDescriptor::IOProcessor()){
-        bw_engine.compute_lookup_tables(ctrl);
-        Vector<char> all_data = bw_engine.export_lookup_tables_data();
+        shr_p_bw_engine->compute_lookup_tables(ctrl);
+        Vector<char> all_data =shr_p_bw_engine->export_lookup_tables_data();
         WarpXUtilIO::WriteBinaryDataOnFile(filename, all_data);
     }
     ParallelDescriptor::Barrier();
@@ -829,10 +830,10 @@ void MultiParticleContainer::InitBreitWheeler ()
     //No need to initialize from raw data for the processor that
     //has just generated the table
     if(!generate_table || !ParallelDescriptor::IOProcessor()){
-        bw_engine.init_lookup_tables_from_raw_data(table_data);
+        shr_p_bw_engine->init_lookup_tables_from_raw_data(table_data);
     }
 
-    if(!bw_engine.are_lookup_tables_initialized())
+    if(!shr_p_bw_engine->are_lookup_tables_initialized())
         amrex::Error("Table initialization has failed!\n");
 }
 
@@ -840,7 +841,7 @@ std::tuple<bool,std::string,PicsarQuantumSynchrotronCtrl>
 MultiParticleContainer::ParseQuantumSyncParams ()
 {
     PicsarQuantumSynchrotronCtrl ctrl =
-        qs_engine.get_default_ctrl();
+        shr_p_qs_engine->get_default_ctrl();
     bool generate_table{false};
     std::string table_name;
 
@@ -898,7 +899,7 @@ std::tuple<bool,std::string,PicsarBreitWheelerCtrl>
 MultiParticleContainer::ParseBreitWheelerParams ()
 {
     PicsarBreitWheelerCtrl ctrl =
-        bw_engine.get_default_ctrl();
+        shr_p_bw_engine->get_default_ctrl();
     bool generate_table{false};
     std::string table_name;
 
