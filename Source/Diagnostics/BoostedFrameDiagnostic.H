@@ -36,38 +36,38 @@
 
 class LabFrameDiag {
     public:
-    std::string file_name;
-    amrex::Real t_lab;
-    amrex::RealBox prob_domain_lab_;
-    amrex::IntVect prob_ncells_lab_;
-    amrex::RealBox diag_domain_lab_;
-    amrex::Box buff_box_;
+    std::string m_file_name;
+    amrex::Real m_t_lab;
+    amrex::RealBox m_prob_domain_lab_;
+    amrex::IntVect m_prob_ncells_lab_;
+    amrex::RealBox m_diag_domain_lab_;
+    amrex::Box m_buff_box_;
 
-    amrex::Real current_z_lab;
-    amrex::Real current_z_boost;
-    amrex::Real inv_gamma_boost_;
-    amrex::Real inv_beta_boost_;
-    amrex::Real dz_lab_;
-    amrex::Real particle_slice_dx_lab_;
+    amrex::Real m_current_z_lab;
+    amrex::Real m_current_z_boost;
+    amrex::Real m_inv_gamma_boost_;
+    amrex::Real m_inv_beta_boost_;
+    amrex::Real m_dz_lab_;
+    amrex::Real m_particle_slice_dx_lab_;
 
-    int ncomp_to_dump_;
-    std::vector<std::string> mesh_field_names_;
+    int m_ncomp_to_dump_;
+    std::vector<std::string> m_mesh_field_names_;
 
-    int file_num;
-    int initial_i;
+    int m_file_num;
+    int m_initial_i;
 
     // For back-transformed diagnostics of grid fields, data_buffer_
     // stores a buffer of the fields in the lab frame (in a MultiFab, i.e.
     // with all box data etc.). When the buffer if full, dump to file.
-    std::unique_ptr<amrex::MultiFab> data_buffer_;
+    std::unique_ptr<amrex::MultiFab> m_data_buffer_;
     // particles_buffer_ is currently blind to refinement level.
     // particles_buffer_[j] is a WarpXParticleContainer::DiagnosticParticleData
     //  where - j is the species number for the current diag
-    amrex::Vector<WarpXParticleContainer::DiagnosticParticleData> particles_buffer_;
+    amrex::Vector<WarpXParticleContainer::DiagnosticParticleData> m_particles_buffer_;
     // buff_counter_ is the number of z slices in data_buffer_
-    int buff_counter_;
-    int num_buffer_ = 256;
-    int max_box_size = 256;
+    int m_buff_counter_;
+    int m_num_buffer_ = 256;
+    int m_max_box_size = 256;
     void updateCurrentZPositions(amrex::Real t_boost, amrex::Real inv_gamma,
                                  amrex::Real inv_beta);
 
@@ -210,24 +210,24 @@ public:
     void writeMetaData();
 
 private:
-    amrex::Real gamma_boost_;
-    amrex::Real inv_gamma_boost_;
-    amrex::Real beta_boost_;
-    amrex::Real inv_beta_boost_;
-    amrex::Real dz_lab_;
-    amrex::Real inv_dz_lab_;
-    amrex::Real dt_snapshots_lab_;
-    amrex::Real dt_boost_;
-    int N_snapshots_;
-    int boost_direction_;
-    int N_slice_snapshots_;
-    amrex::Real dt_slice_snapshots_lab_;
-    amrex::Real particle_slice_width_lab_;
+    amrex::Real m_gamma_boost_;
+    amrex::Real m_inv_gamma_boost_;
+    amrex::Real m_beta_boost_;
+    amrex::Real m_inv_beta_boost_;
+    amrex::Real m_dz_lab_;
+    amrex::Real m_inv_dz_lab_;
+    amrex::Real m_dt_snapshots_lab_;
+    amrex::Real m_dt_boost_;
+    int m_N_snapshots_;
+    int m_boost_direction_;
+    int m_N_slice_snapshots_;
+    amrex::Real m_dt_slice_snapshots_lab_;
+    amrex::Real m_particle_slice_width_lab_;
 
-    int num_buffer_ = 256;
-    int max_box_size_ = 256;
+    int m_num_buffer_ = 256;
+    int m_max_box_size_ = 256;
 
-    std::vector<std::unique_ptr<LabFrameDiag> > LabFrameDiags_;
+    std::vector<std::unique_ptr<LabFrameDiag> > m_LabFrameDiags_;
 
     void writeParticleData(
          const WarpXParticleContainer::DiagnosticParticleData& pdata,
@@ -239,7 +239,7 @@ private:
          const std::string& name, const std::string& species_name);
 #endif
     // Map field names and component number in cell_centered_data
-    std::map<std::string, int> possible_fields_to_dump = {
+    std::map<std::string, int> m_possible_fields_to_dump = {
         {"Ex" , 0},
         {"Ey" , 1},
         {"Ez" , 2},
@@ -257,10 +257,10 @@ private:
     amrex::Gpu::ManagedDeviceVector<int> map_actual_fields_to_dump;
     // Name of fields to dump. By default, all fields in cell_centered_data.
     // Needed for file headers only.
-    std::vector<std::string> mesh_field_names = {"Ex", "Ey", "Ez",
+    std::vector<std::string> m_mesh_field_names = {"Ex", "Ey", "Ez",
                                                  "Bx", "By", "Bz",
                                                  "jx", "jy", "jz", "rho"};
-    int ncomp_to_dump = 10;
+    int m_ncomp_to_dump = 10;
 
 
 };
