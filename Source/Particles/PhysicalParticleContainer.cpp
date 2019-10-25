@@ -1599,9 +1599,25 @@ PhysicalParticleContainer::PushPX(WarpXParIter& pti,
     const Real q = this->charge;
     const Real m = this-> mass;
 
+#ifdef WARPX_QED
+    if(do_qed_quantum_sync){
+        amrex::Real* AMREX_RESTRICT p_tau =
+        pti.GetAttribs(particle_comps["tau"]).dataPtr();
+
+        PushPX_QedQuantumSynchrotron(x, y, z, ux, uy, uz,
+        Ex, Ey, Ez, Bx, By, Bz,
+        q, m, p_tau, dt, pti.numParticles());
+    }
+    else {
+        PushPX_classical(x, y, z, ux, uy, uz,
+        Ex, Ey, Ez, Bx, By, Bz,
+        q, m, ion_lev, dt, pti.numParticles());
+    }
+#else
     PushPX_classical(x, y, z, ux, uy, uz,
         Ex, Ey, Ez, Bx, By, Bz,
         q, m, ion_lev, dt, pti.numParticles());
+#endif
 }
 
 void PhysicalParticleContainer::PushPX_classical(
@@ -1678,6 +1694,122 @@ void PhysicalParticleContainer::PushPX_classical(
       amrex::Abort("Unknown particle pusher");
     }
 }
+
+#ifdef WARPX_QED
+void PhysicalParticleContainer::PushPX_QedQuantumSynchrotron(
+        amrex::ParticleReal* const AMREX_RESTRICT x,
+        amrex::ParticleReal* const AMREX_RESTRICT y,
+        amrex::ParticleReal* const AMREX_RESTRICT z,
+        amrex::ParticleReal* const AMREX_RESTRICT ux,
+        amrex::ParticleReal* const AMREX_RESTRICT uy,
+        amrex::ParticleReal* const AMREX_RESTRICT uz,
+        const amrex::ParticleReal* const AMREX_RESTRICT Ex,
+        const amrex::ParticleReal* const AMREX_RESTRICT Ey,
+        const amrex::ParticleReal* const AMREX_RESTRICT Ez,
+        const amrex::ParticleReal* const AMREX_RESTRICT Bx,
+        const amrex::ParticleReal* const AMREX_RESTRICT By,
+        const amrex::ParticleReal* const AMREX_RESTRICT Bz,
+        amrex::Real q, amrex::Real m,
+        amrex::ParticleReal* const AMREX_RESTRICT tau,
+        amrex::Real dt, long num_particles
+)
+{
+    QuantumSynchrotronEvolveOpticalDepth evolve_opt =
+        shr_ptr_qs_engine->build_evolve_functor();
+
+    //Assumes that all consistency checks have been done at initialization
+    if(do_classical_radiation_reaction){
+        amrex::Abort("QED + Classical Radiation Reaction has still to be implemented!");
+    } else if (WarpX::particle_pusher_algo == ParticlePusherAlgo::Boris){
+        amrex::ParallelFor(
+            num_particles,
+            [=] AMREX_GPU_DEVICE (long i) {
+                const amrex::ParticleReal ux_old = ux[i];
+                const amrex::ParticleReal uy_old = uy[i];
+                const amrex::ParticleReal uz_old = uz[i];
+
+                UpdateMomentumBoris( ux[i], uy[i], uz[i],
+                                     Ex[i], Ey[i], Ez[i], Bx[i],
+                                     By[i], Bz[i], q, m, dt);
+
+                const amrex::ParticleReal half_mass = 0.5*m;
+
+                const amrex::ParticleReal px_n = half_mass * (ux[i]+ux_old);
+                const amrex::ParticleReal py_n = half_mass * (uy[i]+uy_old);
+                const amrex::ParticleReal pz_n = half_mass * (uz[i]+uz_old);
+
+                bool has_event_happened = evolve_opt(
+                    px_n, py_n, pz_n,
+                    Ex[i], Ey[i], Ez[i],
+                    Bx[i], By[i], Bz[i],
+                    dt, tau[i]);
+
+                UpdatePosition( x[i], y[i], z[i],
+                      ux[i], uy[i], uz[i], dt );
+            }
+        );
+    } else if (WarpX::particle_pusher_algo == ParticlePusherAlgo::Vay) {
+        amrex::ParallelFor(
+            num_particles,
+            [=] AMREX_GPU_DEVICE (long i) {
+                const amrex::ParticleReal ux_old = ux[i];
+                const amrex::ParticleReal uy_old = uy[i];
+                const amrex::ParticleReal uz_old = uz[i];
+
+                UpdateMomentumVay( ux[i], uy[i], uz[i],
+                                   Ex[i], Ey[i], Ez[i], Bx[i],
+                                   By[i], Bz[i], q, m, dt);
+
+                const amrex::ParticleReal half_mass = 0.5*m;
+
+                const amrex::ParticleReal px_n = half_mass * (ux[i]+ux_old);
+                const amrex::ParticleReal py_n = half_mass * (uy[i]+uy_old);
+                const amrex::ParticleReal pz_n = half_mass * (uz[i]+uz_old);
+
+                bool has_event_happened = evolve_opt(
+                    px_n, py_n, pz_n,
+                    Ex[i], Ey[i], Ez[i],
+                    Bx[i], By[i], Bz[i],
+                    dt, tau[i]);
+
+                UpdatePosition( x[i], y[i], z[i],
+                                ux[i], uy[i], uz[i], dt );
+            }
+        );
+    } else if (WarpX::particle_pusher_algo == ParticlePusherAlgo::HigueraCary) {
+        amrex::ParallelFor(
+            num_particles,
+            [=] AMREX_GPU_DEVICE (long i) {
+
+                const amrex::ParticleReal ux_old = ux[i];
+                const amrex::ParticleReal uy_old = uy[i];
+                const amrex::ParticleReal uz_old = uz[i];
+
+                UpdateMomentumHigueraCary( ux[i], uy[i], uz[i],
+                                   Ex[i], Ey[i], Ez[i], Bx[i],
+                                   By[i], Bz[i], q, m, dt);
+
+                const amrex::ParticleReal half_mass = 0.5*m;
+
+                const amrex::ParticleReal px_n = half_mass * (ux[i]+ux_old);
+                const amrex::ParticleReal py_n = half_mass * (uy[i]+uy_old);
+                const amrex::ParticleReal pz_n = half_mass * (uz[i]+uz_old);
+
+                bool has_event_happened = evolve_opt(
+                    px_n, py_n, pz_n,
+                    Ex[i], Ey[i], Ez[i],
+                    Bx[i], By[i], Bz[i],
+                    dt, tau[i]);
+
+                UpdatePosition( x[i], y[i], z[i],
+                                ux[i], uy[i], uz[i], dt );
+            }
+        );
+    } else {
+      amrex::Abort("Unknown particle pusher");
+    }
+}
+#endif
 
 void
 PhysicalParticleContainer::PushP (int lev, Real dt,
