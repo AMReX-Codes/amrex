@@ -506,7 +506,10 @@ void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlebtensor_flux (Box const& box, Array4<Real> const& Ax,
+void mlebtensor_flux (Box const& box,
+		      Array4<Real> const& Ax,
+		      Array4<Real> const& Ay,
+		      Array4<Real> const& Az,
 		      Array4<Real const> const& fx,
 		      Array4<Real const> const& fy,
 		      Array4<Real const> const& fz,
@@ -530,150 +533,17 @@ void mlebtensor_flux (Box const& box, Array4<Real> const& Ax,
             for (int i = lo.x; i <= hi.x; ++i) {
                 if (flag(i,j,k).isRegular())
                 {
-                    Ax(i,j,k,0) += bscalar*(dxi*(fx(i+1,j  ,k  ,0) - fx(i,j,k,0))
-                                          + dyi*(fy(i  ,j+1,k  ,0) - fy(i,j,k,0))
-                                          + dzi*(fz(i  ,j  ,k+1,0) - fz(i,j,k,0)));
-                    Ax(i,j,k,1) += bscalar*(dxi*(fx(i+1,j  ,k  ,1) - fx(i,j,k,1))
-                                          + dyi*(fy(i  ,j+1,k  ,1) - fy(i,j,k,1))
-                                          + dzi*(fz(i  ,j  ,k+1,1) - fz(i,j,k,1)));
-                    Ax(i,j,k,2) += bscalar*(dxi*(fx(i+1,j  ,k  ,2) - fx(i,j,k,2))
-                                          + dyi*(fy(i  ,j+1,k  ,2) - fy(i,j,k,2))
-                                          + dzi*(fz(i  ,j  ,k+1,2) - fz(i,j,k,2)));
+		  Ax(i,j,k,0) += bscalar*fx(i,j,k,0);
+		  Ay(i,j,k,1) += bscalar*fy(i,j,k,1);
+		  Az(i,j,k,2) += bscalar*fz(i,j,k,2);
                 }
                 else if (flag(i,j,k).isSingleValued())
                 {
-                    Real fxm_0 = fx(i,j,k,0);
-                    Real fxm_1 = fx(i,j,k,1);
-                    Real fxm_2 = fx(i,j,k,2);
-                    if (apx(i,j,k) > 0.0 and apx(i,j,k) < 1.0) {
-                        int jj = j + (fcx(i,j,k,0) >= 0.0 ? 1 : -1);
-                        int kk = k + (fcx(i,j,k,1) >= 0.0 ? 1 : -1);
-                        Real fracy = (ccm(i-1,jj,k) or ccm(i,jj,k)) ? std::abs(fcx(i,j,k,0)) : 0.0;
-                        Real fracz = (ccm(i-1,j,kk) or ccm(i,j,kk)) ? std::abs(fcx(i,j,k,1)) : 0.0;
-                        fxm_0 = (1.0-fracy)*(1.0-fracz) *fxm_0
-                            + fracy*(1.0-fracz) * fx(i,jj,k ,0)
-                            + fracz*(1.0-fracy) * fx(i,j ,kk,0)
-                            + fracy*     fracz  * fx(i,jj,kk,0);
-                        fxm_1 = (1.0-fracy)*(1.0-fracz) *fxm_1
-                            + fracy*(1.0-fracz) * fx(i,jj,k ,1)
-                            + fracz*(1.0-fracy) * fx(i,j ,kk,1)
-                            + fracy*     fracz  * fx(i,jj,kk,1);
-                        fxm_2 = (1.0-fracy)*(1.0-fracz) *fxm_2
-                            + fracy*(1.0-fracz) * fx(i,jj,k ,2)
-                            + fracz*(1.0-fracy) * fx(i,j ,kk,2)
-                            + fracy*     fracz  * fx(i,jj,kk,2);
-                    }
-
-                    Real fxp_0 = fx(i+1,j,k,0);
-                    Real fxp_1 = fx(i+1,j,k,1);
-                    Real fxp_2 = fx(i+1,j,k,2);
-                    if (apx(i+1,j,k) > 0.0 and apx(i+1,j,k) < 1.0) {
-                        int jj = j + (fcx(i+1,j,k,0) >= 0.0 ? 1 : -1);
-                        int kk = k + (fcx(i+1,j,k,1) >= 0.0 ? 1 : -1);
-                        Real fracy = (ccm(i,jj,k) or ccm(i+1,jj,k)) ? std::abs(fcx(i+1,j,k,0)) : 0.0;
-                        Real fracz = (ccm(i,j,kk) or ccm(i+1,j,kk)) ? std::abs(fcx(i+1,j,k,1)) : 0.0;
-                        fxp_0 = (1.0-fracy)*(1.0-fracz) *  fxp_0
-                            + fracy*(1.0-fracz) * fx(i+1,jj,k ,0)
-                            + fracz*(1.0-fracy) * fx(i+1,j ,kk,0)
-                            + fracy*     fracz  * fx(i+1,jj,kk,0);
-                        fxp_1 = (1.0-fracy)*(1.0-fracz) *fxp_1
-                            + fracy*(1.0-fracz) * fx(i+1,jj,k ,1)
-                            + fracz*(1.0-fracy) * fx(i+1,j ,kk,1)
-                            + fracy*     fracz  * fx(i+1,jj,kk,1);
-                        fxp_2 = (1.0-fracy)*(1.0-fracz) *fxp_2
-                            + fracy*(1.0-fracz) * fx(i+1,jj,k ,2)
-                            + fracz*(1.0-fracy) * fx(i+1,j ,kk,2)
-                            + fracy*     fracz  * fx(i+1,jj,kk,2);
-                    }
-
-                    Real fym_0 = fy(i,j,k,0);
-                    Real fym_1 = fy(i,j,k,1);
-                    Real fym_2 = fy(i,j,k,2);
-                    if (apy(i,j,k) > 0.0 and apy(i,j,k) < 1.0) {
-                        int ii = i + (fcy(i,j,k,0) >= 0.0 ? 1 : -1);
-                        int kk = k + (fcy(i,j,k,1) >= 0.0 ? 1 : -1);
-                        Real fracx = (ccm(ii,j-1,k) or ccm(ii,j,k)) ? std::abs(fcy(i,j,k,0)) : 0.0;
-                        Real fracz = (ccm(i,j-1,kk) or ccm(i,j,kk)) ? std::abs(fcy(i,j,k,1)) : 0.0;
-                        fym_0 = (1.0-fracx)*(1.0-fracz) *fym_0
-                            + fracx*(1.0-fracz) * fy(ii,j,k ,0)
-                            + fracz*(1.0-fracx) * fy(i ,j,kk,0)
-                            + fracx*     fracz  * fy(ii,j,kk,0);
-                        fym_1 = (1.0-fracx)*(1.0-fracz) *fym_1
-                            + fracx*(1.0-fracz) * fy(ii,j,k ,1)
-                            + fracz*(1.0-fracx) * fy(i ,j,kk,1)
-                            + fracx*     fracz  * fy(ii,j,kk,1);
-                        fym_2 = (1.0-fracx)*(1.0-fracz) *fym_2
-                            + fracx*(1.0-fracz) * fy(ii,j,k ,2)
-                            + fracz*(1.0-fracx) * fy(i ,j,kk,2)
-                            + fracx*     fracz  * fy(ii,j,kk,2);
-                    }
-
-                    Real fyp_0 = fy(i,j+1,k,0);
-                    Real fyp_1 = fy(i,j+1,k,1);
-                    Real fyp_2 = fy(i,j+1,k,2);
-                    if (apy(i,j+1,k) > 0.0 and apy(i,j+1,k) < 1.0) {
-                        int ii = i + (fcy(i,j+1,k,0) >= 0.0 ? 1 : -1);
-                        int kk = k + (fcy(i,j+1,k,1) >= 0.0 ? 1 : -1);
-                        Real fracx = (ccm(ii,j,k) or ccm(ii,j+1,k)) ? std::abs(fcy(i,j+1,k,0)) : 0.0;
-                        Real fracz = (ccm(i,j,kk) or ccm(i,j+1,kk)) ? std::abs(fcy(i,j+1,k,1)) : 0.0;
-                        fyp_0 = (1.0-fracx)*(1.0-fracz) *  fyp_0
-                            + fracx*(1.0-fracz) * fy(ii,j+1,k ,0)
-                            + fracz*(1.0-fracx) * fy(i ,j+1,kk,0)
-                            + fracx*     fracz  * fy(ii,j+1,kk,0);
-                        fyp_1 = (1.0-fracx)*(1.0-fracz) *fyp_1
-                            + fracx*(1.0-fracz) * fy(ii,j+1,k ,1)
-                            + fracz*(1.0-fracx) * fy(i ,j+1,kk,1)
-                            + fracx*     fracz  * fy(ii,j+1,kk,1);
-                        fyp_2 = (1.0-fracx)*(1.0-fracz) *fyp_2
-                            + fracx*(1.0-fracz) * fy(ii,j+1,k ,2)
-                            + fracz*(1.0-fracx) * fy(i ,j+1,kk,2)
-                            + fracx*     fracz  * fy(ii,j+1,kk,2);
-                    }
-
-                    Real fzm_0 = fz(i,j,k,0);
-                    Real fzm_1 = fz(i,j,k,1);
-                    Real fzm_2 = fz(i,j,k,2);
-                    if (apz(i,j,k) > 0.0 and apz(i,j,k) < 1.0) {
-                        int ii = i + (fcz(i,j,k,0) >= 0.0 ? 1 : -1);
-                        int jj = j + (fcz(i,j,k,1) >= 0.0 ? 1 : -1);
-                        Real fracx = (ccm(ii,j,k-1) or ccm(ii,j,k)) ? std::abs(fcz(i,j,k,0)) : 0.0;
-                        Real fracy = (ccm(i,jj,k-1) or ccm(i,jj,k)) ? std::abs(fcz(i,j,k,1)) : 0.0;
-                        fzm_0 = (1.0-fracx)*(1.0-fracy) *fzm_0
-                            + fracx*(1.0-fracy) * fz(ii,j ,k,0)
-                            + fracy*(1.0-fracx) * fz(i ,jj,k,0)
-                            + fracx*     fracy  * fz(ii,jj,k,0);
-                        fzm_1 = (1.0-fracx)*(1.0-fracy) *fzm_1
-                            + fracx*(1.0-fracy) * fz(ii,j ,k,1)
-                            + fracy*(1.0-fracx) * fz(i ,jj,k,1)
-                            + fracx*     fracy  * fz(ii,jj,k,1);
-                        fzm_2 = (1.0-fracx)*(1.0-fracy) *fzm_2
-                            + fracx*(1.0-fracy) * fz(ii,j ,k,2)
-                            + fracy*(1.0-fracx) * fz(i ,jj,k,2)
-                            + fracx*     fracy  * fz(ii,jj,k,2);
-                    }
-
-                    Real fzp_0 = fz(i,j,k+1,0);
-                    Real fzp_1 = fz(i,j,k+1,1);
-                    Real fzp_2 = fz(i,j,k+1,2);
-                    if (apz(i,j,k+1) > 0.0 and apz(i,j,k+1) < 1.0) {
-                        int ii = i + (fcz(i,j,k+1,0) >= 0.0 ? 1 : -1);
-                        int jj = j + (fcz(i,j,k+1,1) >= 0.0 ? 1 : -1);
-                        Real fracx = (ccm(ii,j,k) or ccm(ii,j,k)) ? std::abs(fcz(i,j,k+1,0)) : 0.0;
-                        Real fracy = (ccm(i,jj,k) or ccm(i,jj,k)) ? std::abs(fcz(i,j,k+1,1)) : 0.0;
-                        fzp_0 = (1.0-fracx)*(1.0-fracy) *  fzp_0
-                            + fracx*(1.0-fracy) * fz(ii,j ,k+1,0)
-                            + fracy*(1.0-fracx) * fz(i ,jj,k+1,0)
-                            + fracx*     fracy  * fz(ii,jj,k+1,0);
-                        fzp_1 = (1.0-fracx)*(1.0-fracy) *fzp_1
-                            + fracx*(1.0-fracy) * fz(ii,j ,k+1,1)
-                            + fracy*(1.0-fracx) * fz(i ,jj,k+1,1)
-                            + fracx*     fracy  * fz(ii,jj,k+1,1);
-                        fzp_2 = (1.0-fracx)*(1.0-fracy) *fzp_2
-                            + fracx*(1.0-fracy) * fz(ii,j ,k+1,2)
-                            + fracy*(1.0-fracx) * fz(i ,jj,k+1,2)
-                            + fracx*     fracy  * fz(ii,jj,k+1,2);
-                    }
-
+		  // FIXME - set to ridiculous num so we ensure we don't use these
+		  // not sure how to appropriately compute these cut cell fluxes...
+		  Ax(i,j,k,0) = 1.2345e20;
+		  Ay(i,j,k,1) = 1.2345e20;
+		  Az(i,j,k,2) = 1.2345e20;
 		}
 	    }
 	}
