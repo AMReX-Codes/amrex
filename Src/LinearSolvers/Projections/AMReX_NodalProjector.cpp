@@ -7,7 +7,18 @@
 
 using namespace amrex;
 
-NodalProjector::NodalProjector ( const amrex::Vector<amrex::Geometry>&             a_geom,
+
+NodalProjector::NodalProjector ( const amrex::Vector<amrex::Geometry>&               a_geom,
+                                   const amrex::Vector<amrex::BoxArray>&             a_grids,
+                                   const amrex::Vector<amrex::DistributionMapping>&  a_dmap,
+                                   std::array<amrex::LinOpBCType,AMREX_SPACEDIM>     a_bc_lo,
+                                   std::array<amrex::LinOpBCType,AMREX_SPACEDIM>     a_bc_hi )
+{
+    define(a_geom, a_grids, a_dmap, a_bc_lo, a_bc_hi);
+}
+
+#ifdef AMREX_USE_EB
+NodalProjector::NodalProjector ( const amrex::Vector<amrex::Geometry>&               a_geom,
                                    const amrex::Vector<amrex::BoxArray>&             a_grids,
                                    const amrex::Vector<amrex::DistributionMapping>&  a_dmap,
                                    std::array<amrex::LinOpBCType,AMREX_SPACEDIM>     a_bc_lo,
@@ -16,15 +27,62 @@ NodalProjector::NodalProjector ( const amrex::Vector<amrex::Geometry>&          
 {
     define(a_geom, a_grids, a_dmap, a_bc_lo, a_bc_hi, a_ebfactory);
 }
-
+#endif
 
 void
+NodalProjector::define ( const  amrex::Vector<amrex::Geometry>&              a_geom,
+                         const  amrex::Vector<amrex::BoxArray>&              a_grids,
+                         const  amrex::Vector<amrex::DistributionMapping>&   a_dmap,
+                         std::array<amrex::LinOpBCType,AMREX_SPACEDIM>       a_bc_lo,
+                         std::array<amrex::LinOpBCType,AMREX_SPACEDIM>       a_bc_hi)
+{
+
+    m_geom      = a_geom;
+    m_grids     = a_grids;
+    m_dmap      = a_dmap;
+    m_bc_lo     = a_bc_lo;
+    m_bc_hi     = a_bc_hi;
+
+    int nlev( m_grids.size() );
+
+    // Resize member data
+    m_phi.resize(nlev);
+    m_fluxes.resize(nlev);
+    m_rhs.resize(nlev);
+
+    // Allocate member data
+    int ng(1);      // We use 1 ghost node only -- it should be enough
+
+    for (int lev(0); lev < nlev; ++lev )
+    {
+        // Cell-centered data
+        m_fluxes[lev].reset(new MultiFab(m_grids[lev], m_dmap[lev], 3, ng));
+
+        // Node-centered data
+        const auto& ba_nd = amrex::convert(m_grids[lev], IntVect{1,1,1});
+        m_phi[lev].reset(new MultiFab(ba_nd, m_dmap[lev], 1, ng));
+        m_rhs[lev].reset(new MultiFab(ba_nd, m_dmap[lev], 1, ng));
+    }
+
+    // Get inputs from ParmParse
+    readParameters();
+
+    // object is ready
+    m_ok = true;
+
+    // First setup
+    setup();
+}
+
+
+#ifdef AMREX_USE_EB
+void
 NodalProjector::define ( const  amrex::Vector<amrex::Geometry>&                    a_geom,
-                          const  amrex::Vector<amrex::BoxArray>&                    a_grids,
-                          const  amrex::Vector<amrex::DistributionMapping>&         a_dmap,
-                          std::array<amrex::LinOpBCType,AMREX_SPACEDIM>             a_bc_lo,
-                          std::array<amrex::LinOpBCType,AMREX_SPACEDIM>             a_bc_hi,
-                          amrex::Vector<amrex::EBFArrayBoxFactory const *>          a_ebfactory )
+                          const  amrex::Vector<amrex::BoxArray>&                   a_grids,
+                          const  amrex::Vector<amrex::DistributionMapping>&        a_dmap,
+                          std::array<amrex::LinOpBCType,AMREX_SPACEDIM>            a_bc_lo,
+                          std::array<amrex::LinOpBCType,AMREX_SPACEDIM>            a_bc_hi,
+                          amrex::Vector<amrex::EBFArrayBoxFactory const *>         a_ebfactory )
 {
 
     m_geom      = a_geom;
@@ -64,7 +122,7 @@ NodalProjector::define ( const  amrex::Vector<amrex::Geometry>&                 
     // First setup
     setup();
 }
-
+#endif
 
 //
 // Perform projection:
@@ -81,7 +139,7 @@ NodalProjector::define ( const  amrex::Vector<amrex::Geometry>&                 
 //  grad(phi) is node-centered.
 //
 void
-NodalProjector::project (      Vector< std::unique_ptr< amrex::MultiFab > >& a_vel,
+NodalProjector::project (       Vector< std::unique_ptr< amrex::MultiFab > >& a_vel,
                           const Vector< std::unique_ptr< amrex::MultiFab > >& a_sigma,
                           const Vector< std::unique_ptr< amrex::MultiFab > >& a_S_cc,
                           const Vector< std::unique_ptr< amrex::MultiFab > >& a_S_nd )
@@ -174,7 +232,11 @@ NodalProjector::project2 (  Vector< std::unique_ptr< amrex::MultiFab > >&       
     Vector< std::unique_ptr<MultiFab> > sigma(m_phi.size());
     for (int lev(0); lev < sigma.size(); ++lev)
     {
+#ifdef AMREX_USE_EB
         sigma[lev].reset(new MultiFab( m_grids[lev], m_dmap[lev], 3, 1 , MFInfo(), *m_ebfactory[lev] ) );
+#else
+        sigma[lev].reset(new MultiFab( m_grids[lev], m_dmap[lev], 3, 1 ) );
+#endif
         MultiFab::Copy(*sigma[lev],*a_alpha[lev],0,0,1,0);
         MultiFab::Divide(*sigma[lev],*a_beta[lev],0,0,1,0);
 
@@ -251,7 +313,11 @@ NodalProjector::setup ()
     //
     LPInfo                       info;
     info.setMaxCoarseningLevel(m_mg_max_coarsening_level);
+#ifdef AMREX_USE_EB
     m_matrix.reset(new MLNodeLaplacian(m_geom, m_grids, m_dmap, info, m_ebfactory));
+#else
+    m_matrix.reset(new MLNodeLaplacian(m_geom, m_grids, m_dmap, info));
+#endif
 
     m_matrix->setGaussSeidel(true);
     m_matrix->setHarmonicAverage(false);
