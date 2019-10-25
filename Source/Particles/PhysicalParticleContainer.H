@@ -232,7 +232,8 @@ protected:
     std::shared_ptr<BreitWheelerEngine> shr_ptr_bw_engine;
 #endif
 
-private:
+// Must be public to be compatible with CUDA
+public:
     //PushPX classical
     void PushPX_classical(
         amrex::ParticleReal* const AMREX_RESTRICT x,

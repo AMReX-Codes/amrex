@@ -79,7 +79,6 @@ public:
     };
 
 #ifdef WARPX_QED
-protected:
     //To be called by PushP
     void DoBreitWheeler(int lev,
                         amrex::Real dt,
