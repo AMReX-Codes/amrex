@@ -509,7 +509,7 @@ MLEBTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
 
 //
 // WARNING
-// not sure EB wall flux computed properly.
+// EB wall flux not computed properly.
 // 9/20/2019 - current use only for coarse-fine sync, so only box-face fluxes used
 //             just ensure application doesn't have EB crossing coarse-fine boundary
 //
@@ -521,11 +521,13 @@ MLEBTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxe
 
     const int mglev = 0;
     const int ncomp = getNComp();
+    // fixme??? switch next 2 lines?
+    // unclear why we'd want to partially compute fluxes before return...
     MLEBABecLap::compFlux(amrlev, fluxes, sol, loc);
 
     if (mglev >= m_kappa[amrlev].size()) return;
 
-    applyBCTensor(amrlev, mglev, sol, BCMode::Inhomogeneous, m_bndry_sol[amrlev].get());
+    applyBCTensor(amrlev, mglev, sol, BCMode::Inhomogeneous, StateMode::Solution, m_bndry_sol[amrlev].get());
 
     // todo: gpu
     Gpu::LaunchSafeGuard lg(false);
@@ -546,8 +548,6 @@ MLEBTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxe
 
     Array<MultiFab,AMREX_SPACEDIM> const& etamf = m_b_coeffs[amrlev][mglev];
     Array<MultiFab,AMREX_SPACEDIM> const& kapmf = m_kappa[amrlev][mglev];
-    // FIXME - if there's problems
-    // consider not using saved fluxes yet because this fn is still under development
     Array<MultiFab,AMREX_SPACEDIM>& fluxmf = m_tauflux[amrlev][mglev];
     iMultiFab const& mask = m_cc_mask[amrlev][mglev];
     MultiFab const& etaebmf = *m_eb_b_coeffs[amrlev][mglev];

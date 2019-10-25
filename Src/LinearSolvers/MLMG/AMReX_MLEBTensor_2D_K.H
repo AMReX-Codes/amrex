@@ -46,9 +46,7 @@ void mlebtensor_cross_terms_fx (Box const& box, Array4<Real> const& fx,
                                         +(vel(i-1,jlop,0,0)-vel(i-1,jlom,0,0))*wlo);
                 Real dvdy = (0.5*dyi) * ((vel(i  ,jhip,0,1)-vel(i  ,jhim,0,1))*whi
                                         +(vel(i-1,jlop,0,1)-vel(i-1,jlom,0,1))*wlo);
-		//fixme
-                Real divu = 0.;
-		//Real divu = dvdy;
+		Real divu = dvdy;
                 Real xif = kapx(i,j,0);
                 Real mun = 0.75*(etax(i,j,0,0)-xif);  // restore the original eta
                 Real mut =       etax(i,j,0,1);
@@ -94,9 +92,7 @@ void mlebtensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
                 Real dvdx = (0.5*dxi) * ((vel(ihip,j  ,0,1)-vel(ihim,j  ,0,1))*whi
                                         +(vel(ilop,j-1,0,1)-vel(ilom,j-1,0,1))*wlo);
 
-		//fixme
-                Real divu = 0.;
-		//Real divu = dudx;
+		Real divu = dudx;
                 Real xif = kapy(i,j,0);
                 Real mun = 0.75*(etay(i,j,0,1)-xif);  // restore the original eta
                 Real mut =       etay(i,j,0,0);
@@ -286,48 +282,12 @@ void mlebtensor_flux (Box const& box,
             }
             else if (flag(i,j,0).isSingleValued())
             {
-                Real fxm_0 = fx(i,j,0,0);
-                Real fxm_1 = fx(i,j,0,1);
-                if (apx(i,j,0) > 0.0 and apx(i,j,0) < 1.0) {
-                    int jj = j + (fcx(i,j,0,0) >= 0.0 ? 1 : -1);
-                    Real fracy = (ccm(i-1,jj,0) or ccm(i,jj,0)) ? std::abs(fcx(i,j,0,0)) : 0.0;
-                    fxm_0 = (1.0-fracy)*fxm_0 + fracy*fx(i,jj,0,0);
-                    fxm_1 = (1.0-fracy)*fxm_1 + fracy*fx(i,jj,0,1);
-                }
-
-                Real fxp_0 = fx(i+1,j,0,0);
-                Real fxp_1 = fx(i+1,j,0,1);
-                if (apx(i+1,j,0) > 0.0 and apx(i+1,j,0) < 1.0) {
-                    int jj = j + (fcx(i+1,j,0,0) >= 0.0 ? 1 : -1);
-                    Real fracy = (ccm(i,jj,0) or ccm(i+1,jj,0)) ? std::abs(fcx(i+1,j,0,0)) : 0.0;
-                    fxp_0 = (1.0-fracy)*fxp_0 + fracy*fx(i+1,jj,0,0);
-                    fxp_1 = (1.0-fracy)*fxp_1 + fracy*fx(i+1,jj,0,1);
-                }
-
-                Real fym_0 = fy(i,j,0,0);
-                Real fym_1 = fy(i,j,0,1);
-                if (apy(i,j,0) > 0.0 and apy(i,j,0) < 1.0) {
-                    int ii = i + (fcy(i,j,0,0) >= 0.0 ? 1 : -1);
-                    Real fracx = (ccm(ii,j-1,0) or ccm(ii,j,0)) ? std::abs(fcy(i,j,0,0)) : 0.0;
-                    fym_0 = (1.0-fracx)*fym_0 + fracx*fy(ii,j,0,0);
-                    fym_1 = (1.0-fracx)*fym_1 + fracx*fy(ii,j,0,1);
-                }
-
-                Real fyp_0 = fy(i,j+1,0,0);
-                Real fyp_1 = fy(i,j+1,0,1);
-                if (apy(i,j+1,0) > 0.0 and apy(i,j+1,0) < 1.0) {
-                    int ii = i + (fcy(i,j+1,0,0) >= 0.0 ? 1 : -1);
-                    Real fracx = (ccm(ii,j,0) or ccm(ii,j+1,0)) ? std::abs(fcy(i,j+1,0,0)) : 0.0;
-                    fyp_0 = (1.0-fracx)*fyp_0 + fracx*fy(ii,j+1,0,0);
-                    fyp_1 = (1.0-fracx)*fyp_1 + fracx*fy(ii,j+1,0,1);
-                }
+	        // 
+	        // FIXME - set to ridiculous num so we ensure we don't use these
+	        // not sure how to appropriately compute these cut cell fluxes...
+	      Ax(i,j,0,0) = 1.2345e20;
+	      Ay(i,j,0,1) = 1.2345e20;
 	    }
-
-	    // 
-	    // FIXME - set to ridiculous num so we ensure we don't use these
-	    // not sure how to appropriately compute these cut cell fluxes...
-	    Ax(i,j,0,0) = 1.2345e20;
-	    Ay(i,j,0,1) = 1.2345e20;
 	}
     }
 }
