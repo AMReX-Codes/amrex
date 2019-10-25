@@ -20,7 +20,7 @@
 
 namespace amrex {
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
   
     template<typename T>
     class ArenaAllocator
@@ -150,6 +150,7 @@ namespace amrex {
         return !(x == y);
     }
 
+#ifdef AMREX_USE_CUDA
     template<class T>
     class ThrustManagedAllocator : public thrust::device_malloc_allocator<T>
     {
@@ -175,6 +176,7 @@ namespace amrex {
     {
         ThrustManagedAllocator<char>& The_ThrustCachedAllocator ();
     }
+#endif
 
 // When not using CUDA, replace with standard allocator.
 // Prevents need to wrap applications in lots of ifdefs.

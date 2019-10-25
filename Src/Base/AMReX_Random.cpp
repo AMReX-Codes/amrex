@@ -34,9 +34,8 @@ namespace
     // This seems to be a good default value on NVIDIA V100 GPUs
     constexpr int gpu_nstates_default = 1e5;
 
-    AMREX_GPU_DEVICE int* gpu_nstates_d;
-    int* gpu_nstates_h = nullptr;
-    int gpu_nstates = -1;
+    AMREX_GPU_DEVICE int gpu_nstates_d;
+    int gpu_nstates_h = -1;
 
     AMREX_GPU_DEVICE randState_t* states_d_ptr;
     randState_t* states_h_ptr = nullptr;
@@ -85,7 +84,7 @@ int amrex::get_state(int tid)
 {
   // block size must evenly divide # of RNG states so we cut off the excess states
   int bsize = blockDim.x * blockDim.y * blockDim.z;
-  int nstates = (*gpu_nstates_d) - ((*gpu_nstates_d) % bsize);
+  int nstates = (gpu_nstates_d) - ((gpu_nstates_d) % bsize);
   int i = tid % nstates;
   if (tid % bsize == 0)
     {
@@ -102,7 +101,7 @@ AMREX_GPU_DEVICE
 void amrex::free_state(int tid)
 {
   int bsize = blockDim.x * blockDim.y * blockDim.z;
-  int nstates = (*gpu_nstates_d) - ((*gpu_nstates_d) % bsize);
+  int nstates = (gpu_nstates_d) - ((gpu_nstates_d) % bsize);
   int i = tid % nstates;
   if (tid % bsize == 0)  // we only locked the master thread state. 
   {
@@ -151,8 +150,9 @@ amrex::RandomNormal (amrex::Real mean, amrex::Real stddev)
 AMREX_GPU_HOST_DEVICE amrex::Real
 amrex::Random ()
 {
-    amrex::Real rand;
+    amrex::Real rand = 0.0;
 #ifdef AMREX_DEVICE_COMPILE 
+
     int blockId = blockIdx.x + blockIdx.y * gridDim.x + gridDim.x * gridDim.y * blockIdx.z;
 
     int tid = blockId * (blockDim.x * blockDim.y * blockDim.z)
@@ -288,20 +288,19 @@ amrex::ResizeRandomSeed (int N)
 
 #ifdef AMREX_USE_GPU
 
-    if (N <= gpu_nstates) return;
+    if (N <= gpu_nstates_h) return;
 
-    int PrevSize = gpu_nstates > 0 ? gpu_nstates : 0;
+    int PrevSize = gpu_nstates_h > 0 ? gpu_nstates_h : 0;
     int SizeDiff = N - PrevSize;
 
-    if (gpu_nstates == -1)  // Only allocate the device int when not already allocated.
+    if (gpu_nstates_h == -1)  // Only allocate the device int when not already allocated.
     {
-        gpu_nstates_h = (int*) The_Device_Arena()->alloc(sizeof(int));
+	int foo = gpu_nstates_h;
 
-
-        AMREX_GPU_LAUNCH_HOST_DEVICE(Gpu::ExecutionConfig(1, 1, 0),
-        [=] AMREX_GPU_HOST_DEVICE
+        AMREX_GPU_LAUNCH_DEVICE(Gpu::ExecutionConfig(1, 1, 0),
+        [=] AMREX_GPU_DEVICE
         {
-            gpu_nstates_d = gpu_nstates_h;
+            gpu_nstates_d = foo;
         });
 /*
         AMREX_HIP_OR_CUDA(AMREX_HIP_SAFE_CALL (hipMemcpyToSymbol (gpu_nstates_d,
@@ -319,6 +318,7 @@ amrex::ResizeRandomSeed (int N)
     new_data  = (randState_t*) The_Device_Arena()->alloc(N*sizeof(randState_t));
     new_mutex = (int*)         The_Device_Arena()->alloc(N*sizeof(int));
 
+
     if (states_h_ptr != nullptr) {
 
         AMREX_ASSERT(locks_h_ptr != nullptr);
@@ -333,13 +333,16 @@ amrex::ResizeRandomSeed (int N)
 
     states_h_ptr = new_data;
     locks_h_ptr = new_mutex;
-    gpu_nstates = N;
+    gpu_nstates_h = N;
 
-    AMREX_GPU_LAUNCH_HOST_DEVICE(Gpu::ExecutionConfig(1, 1, 0),
-    [=] AMREX_GPU_HOST_DEVICE
+    randState_t* foo = states_h_ptr;
+    int* bar = locks_h_ptr;
+
+    AMREX_GPU_LAUNCH_DEVICE(Gpu::ExecutionConfig(1, 1, 0),
+    [=] AMREX_GPU_DEVICE
     {
-        states_d_ptr = states_h_ptr;
-        locks_d_ptr = locks_h_ptr;
+        states_d_ptr = foo;
+        locks_d_ptr = bar;
     });
 /*
     AMREX_HIP_OR_CUDA(AMREX_HIP_SAFE_CALL (hipMemcpyToSymbol (states_d_ptr,
@@ -367,7 +370,7 @@ amrex::ResizeRandomSeed (int N)
                             curand_init(seed, seqstart, 0, &states_d_ptr[loc]); );
     }); 
 
-    amrex::Gpu::htod_memcpy(gpu_nstates_h, &gpu_nstates, sizeof(int));
+    amrex::Gpu::htod_memcpy(&gpu_nstates_d, &gpu_nstates_h, sizeof(int));
 
 #endif
 }
@@ -388,14 +391,10 @@ amrex::DeallocateRandomSeedDevArray()
         locks_h_ptr = nullptr;
     }
 
-    if (gpu_nstates_h != nullptr)
-    {
-        The_Device_Arena()->free(gpu_nstates_h);
-        gpu_nstates = -1;
-    }
+    gpu_nstates_h = -1;
 #endif
-}
 
+}
 
 
 void

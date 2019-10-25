@@ -31,7 +31,7 @@ void RandomNumGen ()
     pp.get("num_states", Nstates);
     pp.get("num_draw", Ndraw);    
 
-#ifdef AMREX_USE_CUDA    
+#ifdef AMREX_USE_GPU
     //    amrex::InitRandSeedOnDevice(Nstates);  // This will set the number of RNGs
 
     amrex::Print() << "Generating random numbers using GPU ";
@@ -41,32 +41,40 @@ void RandomNumGen ()
     amrex::InitRandom(1024UL,1);
 #endif
 
-    Gpu::DeviceVector<Real> x(Ndraw);
-    Gpu::DeviceVector<Real> y(Ndraw);
-    Gpu::DeviceVector<Real> z(Ndraw);
+    Gpu::HostVector<Real> x_h(Ndraw);
+    Gpu::HostVector<Real> y_h(Ndraw);
+    Gpu::HostVector<Real> z_h(Ndraw);
+
+    Gpu::DeviceVector<Real> x_d(Ndraw);
+    Gpu::DeviceVector<Real> y_d(Ndraw);
+    Gpu::DeviceVector<Real> z_d(Ndraw);
 
     {
 
-    BL_PROFILE_REGION("Draw");
+        BL_PROFILE_REGION("Draw");
 
-    auto x_ptr = x.dataPtr();
-    auto y_ptr = y.dataPtr();
-    auto z_ptr = z.dataPtr(); 
-    AMREX_PARALLEL_FOR_1D (Ndraw, idx,
-    {
-        x_ptr[idx] = amrex::Random();
-        y_ptr[idx] = amrex::Random();
-        z_ptr[idx] = amrex::Random();
-    });
+        auto x_d_ptr = x_d.dataPtr();
+        auto y_d_ptr = y_d.dataPtr();
+        auto z_d_ptr = z_d.dataPtr(); 
+        AMREX_PARALLEL_FOR_1D (Ndraw, idx,
+        {
+            x_d_ptr[idx] = amrex::Random();
+            y_d_ptr[idx] = amrex::Random();
+            z_d_ptr[idx] = amrex::Random();
+        });
    
-    Gpu::Device::synchronize();
+        Gpu::Device::synchronize();
 
     }
+
+    Gpu::dtoh_memcpy(x_d.dataPtr(), x_h.dataPtr(), sizeof(Real)*Ndraw);
+    Gpu::dtoh_memcpy(y_d.dataPtr(), y_h.dataPtr(), sizeof(Real)*Ndraw);
+    Gpu::dtoh_memcpy(z_d.dataPtr(), z_h.dataPtr(), sizeof(Real)*Ndraw);
  
-    // for (int i = 0; i < Ndraw; i++ )
-    // {
-    //     amrex::Print() << i << " " << x[i]  << " " << y[i] << " " << z[i]<< "\n";
-    // }
+    for (int i = 0; i < Ndraw; i++ )
+    {
+        amrex::Print() << i << " " << x_h[i]  << " " << y_h[i] << " " << z_h[i] << "\n";
+    }
 }
 
 
