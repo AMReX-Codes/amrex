@@ -17,7 +17,7 @@ amr.max_level = 0 # Maximum level in hierarchy (1 might be unstable, >1 is not s
 #################################
 algo.current_deposition = esirkepov
 algo.charge_deposition = standard
-algo.field_gathering = standard
+algo.field_gathering = energy-conserving
 algo.particle_pusher = boris
 interpolation.nox = 3 # Particle interpolation order. Must be the same in x, y, and z
 interpolation.noy = 3

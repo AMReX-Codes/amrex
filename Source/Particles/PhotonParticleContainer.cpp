@@ -31,7 +31,7 @@ PhotonParticleContainer::PhotonParticleContainer (AmrCore* amr_core, int ispecie
             pp.query("do_qed_breit_wheeler", do_qed_breit_wheeler);
 
         //Check for processes which do not make sense for photons
-        bool test_quantum_sync;
+        bool test_quantum_sync = false;
         pp.query("do_qed_quantum_sync", test_quantum_sync);
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
         test_quantum_sync == 0,
@@ -45,9 +45,8 @@ void PhotonParticleContainer::InitData()
 {
     AddParticles(0); // Note - add on level 0
 
-    if (maxLevel() > 0) {
-        Redistribute();  // We then redistribute
-    }
+    Redistribute();  // We then redistribute
+
 }
 
 void

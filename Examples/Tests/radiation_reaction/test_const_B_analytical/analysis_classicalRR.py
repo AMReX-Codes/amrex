@@ -149,7 +149,7 @@ def generate():
         f.write("geometry.prob_hi = {} {} {}\n".format(sim_size, sim_size, sim_size))
         f.write("warpx.do_pml = 0\n")
         f.write("algo.charge_deposition = standard\n")
-        f.write("algo.field_gathering = standard\n")
+        f.write("algo.field_gathering = energy-conserving\n")
         f.write("warpx.cfl = 1.0\n")
         f.write("warpx.serialize_ics = 1\n")
 
