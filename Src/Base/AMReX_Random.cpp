@@ -296,12 +296,21 @@ amrex::ResizeRandomSeed (int N)
     if (gpu_nstates == -1)  // Only allocate the device int when not already allocated.
     {
         gpu_nstates_h = (int*) The_Device_Arena()->alloc(sizeof(int));
+
+
+        AMREX_GPU_LAUNCH_HOST_DEVICE(Gpu::ExecutionConfig(1, 1, 0),
+        [=] AMREX_GPU_HOST_DEVICE
+        {
+            gpu_nstates_d = gpu_nstates_h;
+        });
+/*
         AMREX_HIP_OR_CUDA(AMREX_HIP_SAFE_CALL (hipMemcpyToSymbol (gpu_nstates_d,
                                                                   &gpu_nstates_h,
                                                                   sizeof(int *))), 
                           AMREX_CUDA_SAFE_CALL(cudaMemcpyToSymbol(gpu_nstates_d,
                                                                   &gpu_nstates_h,
                                                                   sizeof(int *)) ); );
+*/
     }
 
     randState_t* new_data;
@@ -326,6 +335,13 @@ amrex::ResizeRandomSeed (int N)
     locks_h_ptr = new_mutex;
     gpu_nstates = N;
 
+    AMREX_GPU_LAUNCH_HOST_DEVICE(Gpu::ExecutionConfig(1, 1, 0),
+    [=] AMREX_GPU_HOST_DEVICE
+    {
+        states_d_ptr = states_h_ptr;
+        locks_d_ptr = locks_h_ptr;
+    });
+/*
     AMREX_HIP_OR_CUDA(AMREX_HIP_SAFE_CALL (hipMemcpyToSymbol (states_d_ptr,
                                                               &states_h_ptr,
                                                               sizeof(randState_t *)) );,
@@ -339,7 +355,7 @@ amrex::ResizeRandomSeed (int N)
                       AMREX_CUDA_SAFE_CALL(cudaMemcpyToSymbol(locks_d_ptr,
                                                               &locks_h_ptr,
                                                               sizeof(randState_t *)) ); );
-
+*/
     const int MyProc = amrex::ParallelDescriptor::MyProc();
     AMREX_PARALLEL_FOR_1D(SizeDiff, idx,
     {
