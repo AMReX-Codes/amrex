@@ -1,6 +1,7 @@
 #ifndef AMREX_BLFORT_H_
 #define AMREX_BLFORT_H_
 
+#include <AMReX_INT.H>
 #include <AMReX_ArrayLim.H>
 #include <AMReX_REAL.H>
 #include <AMReX_SPACE.H>

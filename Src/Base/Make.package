@@ -13,11 +13,16 @@ C$(AMREX_BASE)_headers += AMReX_Extension.H
 
 C$(AMREX_BASE)_headers += AMReX_IndexSequence.H
 
+C$(AMREX_BASE)_headers += AMReX_PODVector.H
+
 C$(AMREX_BASE)_sources += AMReX_ParmParse.cpp AMReX_parmparse_fi.cpp AMReX_Utility.cpp
 C$(AMREX_BASE)_headers += AMReX_ParmParse.H AMReX_Utility.H AMReX_BLassert.H AMReX_ArrayLim.H
 C$(AMREX_BASE)_headers += AMReX_Functional.H AMReX_Reduce.H AMReX_Scan.H AMReX_Partition.H
 
-C$(AMREX_BASE)_headers += AMReX_REAL.H AMReX_CONSTANTS.H AMReX_SPACE.H
+C$(AMREX_BASE)_headers += AMReX_Random.H
+C$(AMREX_BASE)_sources += AMReX_Random.cpp
+
+C$(AMREX_BASE)_headers += AMReX_REAL.H AMReX_INT.H AMReX_CONSTANTS.H AMReX_SPACE.H
 
 C$(AMREX_BASE)_sources += AMReX_DistributionMapping.cpp AMReX_ParallelDescriptor.cpp
 C$(AMREX_BASE)_headers += AMReX_DistributionMapping.H AMReX_ParallelDescriptor.H

@@ -198,11 +198,12 @@ buildNeighborCopyOp ()
 	int num_copies;
         Gpu::dtoh_memcpy(&num_copies, thrust::raw_pointer_cast(offsets.data())+np, sizeof(int));
 
-	neighbor_copy_op.resize(gid, num_copies);
+	neighbor_copy_op.resize(gid, lev, num_copies);
 
-	auto p_boxes = neighbor_copy_op.m_boxes[gid].dataPtr();
-	auto p_src_indices = neighbor_copy_op.m_src_indices[gid].dataPtr();
-	auto p_periodic_shift = neighbor_copy_op.m_periodic_shift[gid].dataPtr();
+	auto p_boxes = neighbor_copy_op.m_boxes[lev][gid].dataPtr();
+        auto p_levs = neighbor_copy_op.m_levels[lev][gid].dataPtr();
+	auto p_src_indices = neighbor_copy_op.m_src_indices[lev][gid].dataPtr();
+	auto p_periodic_shift = neighbor_copy_op.m_periodic_shift[lev][gid].dataPtr();
 
 	AMREX_FOR_1D ( np, i,
         {
@@ -224,6 +225,7 @@ buildNeighborCopyOp ()
 	        {
 		  int index = p_offsets[i]+k;
 		  p_boxes[index] = p_code_array[j].grid_id;
+                  p_levs[index] = 0;
 		  p_periodic_shift[index] = p_code_array[j].periodic_shift;
 		  p_src_indices[index] = i;
 		  ++k;
@@ -248,8 +250,7 @@ fillNeighborsGPU ()
     neighbor_copy_op.clear();
     neighbor_copy_plan.clear();
     buildNeighborCopyOp();
-    this->m_need_handshake = true;
-    neighbor_copy_plan.build(*this, neighbor_copy_op, this->m_need_handshake);
+    neighbor_copy_plan.build(*this, neighbor_copy_op, true);
     updateNeighborsGPU();
 }
 

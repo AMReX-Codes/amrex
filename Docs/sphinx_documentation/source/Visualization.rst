@@ -143,7 +143,7 @@ for making a simple plot:
    :math:`\rightarrow` “phi”, and then select “Draw”.
 
 -  To view the grid structure (not particularly interesting yet, but when we
-   add AMR it will be), select “ :math:`\rightarrow` “subset”
+   add AMR it will be), select “Add” :math:`\rightarrow` “Subset”
    :math:`\rightarrow` “levels”. Then double-click the text “Subset - levels”,
    enable the “Wireframe” option, select “Apply”, select “Dismiss”, and then
    select “Draw”.
@@ -228,20 +228,26 @@ and print the value for "Cycle".  (It will still read and display the data itsel
 ParaView
 ========
 
-The open source visualization package ParaView v5.5 can be used to view 3D
-plotfiles, and particle data. Download the package at
+The open source visualization package ParaView v5.7 and later can be used to view 2D and 3D
+plotfiles, as well as particles data. Download the package at
 https://www.paraview.org/.
 
-To open a single plotfile (for example, you could run the
+To open a plotfile (for example, you could run the
 ``HeatEquation_EX1_C`` in 3D):
 
-#. Run ParaView v5.5, then select “File” :math:`\rightarrow` “Open”.
+#. Run ParaView v5.7, then select “File” :math:`\rightarrow` “Open”.
 
-#. Navigate **into** the plotfile directory, and **manually** type in “Header”.
-   ParaView will ask you about the file type – choose “Boxlib 3D Files”
+#. Navigate to your run directory, and select the fluid or particle plotfile.
+   Note that you can either open single/multiple plotfile(s) at once by selecting
+   them one by one or select an ensemble of file, labelled as ``plt..`` and indicated
+   as a Group in the "Type" column of the file explorer (see :numref:`fig:ParaView_filegroup`).
+   In the later case, Paraview will load the plotfiles as a time series.
+   ParaView will ask you about the file type – choose “AMReX/BoxLib Grid Reader" or
+   "AMReX/BoxLib Particles Reader”.
 
 #. Under the “Cell Arrays” field, select a variable (e.g., “phi”) and click
-   “Apply”.
+   “Apply”. Note that the default number of refinement levels loaded and vizualized is 1.
+   Change to the required number of AMR level before clicking “Apply”.
 
 #. Under “Representation” select “Surface”.
 
@@ -269,10 +275,25 @@ To open a single plotfile (for example, you could run the
 
    \end{center}
 
+Note that Paraview is not able to generate iso-surfaces from cell centered data. To build an iso-surface (or iso-line in 2D):
+
+#. Perform a cell to node interpolation: “Filters” :math:`\rightarrow` “Alphabetical” :math:`\rightarrow` "Cell Data to Point Data".
+
+#. Use the "Contour" icon (next to the calculator) to select the data from which to build the contour ("Contour by"), enters the iso-surfaces
+   values and click "Apply".
+
+Once you have loaded an AMReX plotfile time series, you can generate a movie following these instructions:
+
+#. "File" :math:`\rightarrow` "Save Animation...".
+
+#. Enter a file name, select ".avi" as the Type of File and click "OK".
+
+#. Adjust the resolution, compression and framerate, and click "OK"
+
 To visualize particle data within plofile directories (for example, you could
 run the ``ShortRangeParticles`` example):
 
-#. Run ParaView v5.5, and select  then  “File” :math:`\rightarrow` “Open”. You
+#. Run ParaView v5.7, and select  then  “File” :math:`\rightarrow` “Open”. You
    will see a combined “plt..” group. Click on “+” to expand the group, if you
    want inspect the files in the group. You can select an individual plotfile
    directory or select a group of directories to read them a time series, as

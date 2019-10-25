@@ -7,8 +7,8 @@ using namespace amrex;
 
 static constexpr int NSR = 4;
 static constexpr int NSI = 3;
-static constexpr int NAR = 0;
-static constexpr int NAI = 0;
+static constexpr int NAR = 2;
+static constexpr int NAI = 1;
 
 void get_position_unit_cell(Real* r, const IntVect& nppc, int i_part)
 {
@@ -175,36 +175,45 @@ void testReduce ()
 
     pc.InitParticles(nppc);
 
-    using PType = typename TestParticleContainer::ParticleType;
-    
-    auto sm = amrex::ReduceSum(pc, [=] AMREX_GPU_DEVICE (const PType& p) -> Real { return -p.rdata(1); });
-    AMREX_ALWAYS_ASSERT(sm == -pc.TotalNumberOfParticles());
+    using PType = typename TestParticleContainer::SuperParticleType;
 
-    auto mn = amrex::ReduceMin(pc, [=] AMREX_GPU_DEVICE (const PType& p) -> Real { return p.rdata(1); });
+    auto sm = amrex::ReduceSum(pc, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real { return p.rdata(1); });
+    AMREX_ALWAYS_ASSERT(sm == pc.TotalNumberOfParticles());
+	
+    auto sm2 = amrex::ReduceSum(pc, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real { return -p.rdata(NSR+1); });
+    AMREX_ALWAYS_ASSERT(sm2 == -pc.TotalNumberOfParticles());
+
+    auto mn = amrex::ReduceMin(pc, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real { return p.rdata(1); });
     AMREX_ALWAYS_ASSERT(mn == 1);
 
-    auto mx = amrex::ReduceMax(pc, [=] AMREX_GPU_DEVICE (const PType& p) -> Real { return p.rdata(1); });
+    auto mn2 = amrex::ReduceMin(pc, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real { return p.rdata(NSR+1); });
+    AMREX_ALWAYS_ASSERT(mn2 == 1);
+	
+    auto mx = amrex::ReduceMax(pc, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real { return p.rdata(1); });
     AMREX_ALWAYS_ASSERT(mx == 1);
 
+    auto mx2 = amrex::ReduceMax(pc, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> int { return p.idata(NSI); });
+    AMREX_ALWAYS_ASSERT(mx2 == 0);
+	
     {
-        auto r = amrex::ReduceLogicalOr(pc, [=] AMREX_GPU_DEVICE (const PType& p) -> int { return p.id() == 1; });
+        auto r = amrex::ReduceLogicalOr(pc, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> int { return p.id() == 1; });
         AMREX_ALWAYS_ASSERT(r == 1);
     }
 
     {
-        auto r = amrex::ReduceLogicalOr(pc, [=] AMREX_GPU_DEVICE (const PType& p) -> int { return p.id() == -1; });
+        auto r = amrex::ReduceLogicalOr(pc, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> int { return p.id() == -1; });
         AMREX_ALWAYS_ASSERT(r == 0);
     }
 
     {
-        auto r = amrex::ReduceLogicalAnd(pc, [=] AMREX_GPU_DEVICE (const PType& p) -> int { return p.id() == p.id(); });
+        auto r = amrex::ReduceLogicalAnd(pc, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> int { return p.id() == p.id(); });
         AMREX_ALWAYS_ASSERT(r == 1);
     }
 
     {
-        auto r = amrex::ReduceLogicalAnd(pc, [=] AMREX_GPU_DEVICE (const PType& p) -> int { return p.id() == 1; });
+        auto r = amrex::ReduceLogicalAnd(pc, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> int { return p.id() == 1; });
         AMREX_ALWAYS_ASSERT(r == 0);
     }
 
-    amrex::Print() << "Passed! \n";
+    amrex::Print() << "pass \n";
 }

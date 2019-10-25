@@ -1,0 +1,8 @@
+CEXE_headers += AMReX_MacProjector.H
+CEXE_headers += AMReX_NodalProjector.H
+
+CEXE_sources += AMReX_MacProjector.cpp
+CEXE_sources += AMReX_NodalProjector.cpp
+
+VPATH_LOCATIONS += $(AMREX_HOME)/Src/LinearSolvers/Projections
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/LinearSolvers/Projections

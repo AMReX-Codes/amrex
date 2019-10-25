@@ -144,7 +144,7 @@ std::ostream& operator<< (std::ostream&, const RealBox&);
 std::istream& operator>> (std::istream&, RealBox&);
 
 //! Check for equality of real boxes within a certain tolerance
-//! Can use std::numeric_precision::epsilon() * abs(x + y) * ulps for inexact comparison
+//! Can use std::numeric_precision::epsilon() * std::abs(x + y) * ulps for inexact comparison
 //! See https://en.cppreference.com/w/cpp/types/numeric_limits/epsilon
 bool AlmostEqual (const RealBox& box1,
                   const RealBox& box2,

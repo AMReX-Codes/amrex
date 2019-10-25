@@ -26,6 +26,11 @@
 #endif
 
 #if !defined(BL_LANG_FORT)
+#ifdef __cplusplus
+#include <cfloat>
+#else
+#include <float.h>
+#endif
 
 /* 
   Real is a typedef specifying the precision of the floating-point
@@ -41,14 +46,63 @@
 
 #ifdef BL_USE_FLOAT
 typedef float amrex_real;
+// We need to define these to get around a CUDA 9.2 bug that breaks std::numeric_limits
+#define AMREX_REAL_MIN     FLT_MIN
+#define AMREX_REAL_MAX     FLT_MAX
+#define AMREX_REAL_LOWEST -FLT_MAX
+#define
 #else
 typedef double amrex_real;
+#define AMREX_REAL_MIN     DBL_MIN
+#define AMREX_REAL_MAX     DBL_MAX
+#define AMREX_REAL_LOWEST -DBL_MAX
+#endif
+
+#ifdef BL_SINGLE_PRECISION_PARTICLES
+typedef float amrex_particle_real;
+#else
+typedef double amrex_particle_real;
 #endif
 
 #ifdef __cplusplus
 namespace amrex {
     using Real = amrex_real;
-}
+    using ParticleReal = amrex_particle_real;
+
+    /** @{
+      C++ user literals ``_rt`` &  ``_prt`` for short-hand notations
+
+      Use this to properly add types to constant such as
+      ```C++
+      auto const mypi = 3.14_rt;
+      auto const sphere_volume = 4_rt / 3_rt * pow(r, 3) * mypi;
+      ```
+    */
+    constexpr Real
+    operator""_rt( long double x )
+    {
+        return Real( x );
+    }
+
+    constexpr Real
+    operator""_rt( unsigned long long int x )
+    {
+        return Real( x );
+    }
+
+    constexpr ParticleReal
+    operator""_prt( long double x )
+    {
+        return ParticleReal( x );
+    }
+
+    constexpr ParticleReal
+    operator""_prt( unsigned long long int x )
+    {
+        return ParticleReal( x );
+    }
+    /// @}
+} // namespace amrex
 #endif
 
 #else

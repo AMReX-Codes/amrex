@@ -17,6 +17,7 @@
 #include <AMReX_BLProfiler.H>
 #include <AMReX_BLFort.H>
 #include <AMReX_Utility.H>
+#include <AMReX_Random.H>
 #include <AMReX_Print.H>
 #include <AMReX_Arena.H>
 
@@ -64,6 +65,7 @@ namespace system
     int call_addr2line;
     int throw_exception;
     int regtest_reduction;
+    int abort_on_unused_inputs = 0;
     std::ostream* osout = &std::cout;
     std::ostream* oserr = &std::cerr;
     ErrorHandler error_handler = nullptr;
@@ -129,7 +131,8 @@ amrex::write_to_stderr_without_buffering (const char* str)
     {
 	std::ostringstream procall;
 	procall << ParallelDescriptor::MyProc() << "::";
-	const char *cprocall = procall.str().c_str();
+        auto tmp = procall.str();
+	const char *cprocall = tmp.c_str();
         const char * const end = " !!!\n";
 	fwrite(cprocall, strlen(cprocall), 1, stderr);
         fwrite(str, strlen(str), 1, stderr);
@@ -426,6 +429,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         pp.query("signal_handling", system::signal_handling);
         pp.query("throw_exception", system::throw_exception);
         pp.query("call_addr2line", system::call_addr2line);
+        pp.query("abort_on_unused_inputs", system::abort_on_unused_inputs);
 
         if (system::signal_handling)
         {

@@ -268,7 +268,7 @@ public:
             });
             ReduceTuple hv = reduce_data.value();
             int nbody = amrex::get<0>(hv);
-            int nzero = amrex::get<1>(hv);
+            // int nzero = amrex::get<1>(hv);
             int nfluid = amrex::get<2>(hv);
 
             if (nbody == 0) {
@@ -317,24 +317,16 @@ public:
     template <class U=F, typename std::enable_if<!IsGPUable<U>::value>::type* BAR = nullptr >
     void fillFab (BaseFab<Real>& levelset, const Geometry& geom, RunOn) const noexcept
     {
-        const Real* AMREX_RESTRICT problo = geom.ProbLo();
-        const Real* AMREX_RESTRICT dx = geom.CellSize();
-
+        const auto problo = geom.ProbLoArray();
+        const auto dx = geom.CellSizeArray();
         const Box& bx = levelset.box();
-        const auto len = amrex::length(bx);
-        const auto lo  = amrex::lbound(bx);
-        const auto dp  = levelset.view(lo);
-        
-        for         (int k = 0; k < len.z; ++k) {
-            for     (int j = 0; j < len.y; ++j) {
-                for (int i = 0; i < len.x; ++i) {
-                    RealArray xyz {AMREX_D_DECL(problo[0]+(i+lo.x)*dx[0],
-                                                problo[1]+(j+lo.y)*dx[1],
-                                                problo[2]+(k+lo.z)*dx[2])};
-                    dp(i,j,k,0) = m_f(xyz);
-                }
-            }
-        }
+        const auto& a = levelset.array();
+        amrex::Loop(bx, [=] (int i, int j, int k) noexcept
+        {
+            a(i,j,k) = m_f(RealArray{AMREX_D_DECL(problo[0]+i*dx[0],
+                                                  problo[1]+j*dx[1],
+                                                  problo[2]+k*dx[2])});
+        });
     }
 
     template <class U=F, typename std::enable_if<IsGPUable<U>::value>::type* FOO = nullptr >

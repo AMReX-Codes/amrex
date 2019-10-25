@@ -3,6 +3,10 @@
 
 #if defined(AMREX_USE_GPU)
 
+#if defined(AMREX_USE_HIP)
+#include <hip/hip_runtime.h>
+#endif
+
 #define AMREX_GPU_HOST __host__
 #define AMREX_GPU_DEVICE __device__
 #define AMREX_GPU_GLOBAL __global__

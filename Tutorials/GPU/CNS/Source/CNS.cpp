@@ -394,7 +394,7 @@ CNS::estTimeStep ()
     const MultiFab& S = get_new_data(State_Type);
 
     Real estdt = amrex::ReduceMin(S, 0,
-    [=] AMREX_GPU_HOST_DEVICE (Box const& bx, FArrayBox const& fab) noexcept -> Real
+    [=] AMREX_GPU_DEVICE (Box const& bx, FArrayBox const& fab) noexcept -> Real
     {
         return cns_estdt(bx, fab, dx);
     });

@@ -8,6 +8,12 @@
 #include <AMReX_TypeTraits.H>
 
 namespace amrex {
+
+template <typename T, typename = amrex::EnableIf_t<std::is_integral<T>::value> >
+bool isEmpty (T n) noexcept { return n <= 0; }
+
+AMREX_FORCE_INLINE bool isEmpty (Box const& b) noexcept { return b.isEmpty(); }
+
 namespace Gpu {
 
 namespace range_detail {

@@ -1,14 +1,7 @@
+#ifndef AMREX_INTVECT_H_
+#define AMREX_INTVECT_H_
 
-#ifndef BL_INTVECT_H
-#define BL_INTVECT_H
-
-#include <iosfwd>
-#include <cstdlib>
-#include <cmath>
-#include <limits>
-#include <climits>
-#include <algorithm>
-
+#include <AMReX_INT.H>
 #include <AMReX_ccse-mpi.H>
 #include <AMReX_SPACE.H>
 #include <AMReX_Array.H>
@@ -17,6 +10,13 @@
 #include <AMReX_BLassert.H>
 #include <AMReX_Extension.H>
 #include <AMReX_GpuQualifiers.H>
+
+#include <iosfwd>
+#include <cstdlib>
+#include <cmath>
+#include <limits>
+#include <climits>
+#include <algorithm>
 
 namespace amrex {
 
@@ -800,4 +800,4 @@ Dim3 coarsen (Dim3 const& fine, IntVect const& ratio) noexcept
 
 }
 
-#endif /*BL_INTVECT_H*/
+#endif /*AMREX_INTVECT_H*/
