@@ -1599,11 +1599,32 @@ PhysicalParticleContainer::PushPX(WarpXParIter& pti,
     const Real q = this->charge;
     const Real m = this-> mass;
 
+    PushPX_classical(x, y, z, ux, uy, uz,
+        Ex, Ey, Ez, Bx, By, Bz,
+        q, m, ion_lev, dt, pti.numParticles());
+}
 
+void PhysicalParticleContainer::PushPX_classical(
+    ParticleReal* const AMREX_RESTRICT x,
+    ParticleReal* const AMREX_RESTRICT y,
+    ParticleReal* const AMREX_RESTRICT z,
+    ParticleReal* const AMREX_RESTRICT ux,
+    ParticleReal* const AMREX_RESTRICT uy,
+    ParticleReal* const AMREX_RESTRICT uz,
+    const ParticleReal* const AMREX_RESTRICT Ex,
+    const ParticleReal* const AMREX_RESTRICT Ey,
+    const ParticleReal* const AMREX_RESTRICT Ez,
+    const ParticleReal* const AMREX_RESTRICT Bx,
+    const ParticleReal* const AMREX_RESTRICT By,
+    const ParticleReal* const AMREX_RESTRICT Bz,
+    Real q, Real m, int* AMREX_RESTRICT ion_lev,
+    amrex::Real dt, long num_particles
+)
+{
     //Assumes that all consistency checks have been done at initialization
     if(do_classical_radiation_reaction){
         amrex::ParallelFor(
-            pti.numParticles(),
+            num_particles,
             [=] AMREX_GPU_DEVICE (long i) {
                 Real qp = q;
                 if (ion_lev){ qp *= ion_lev[i]; }
@@ -1616,7 +1637,7 @@ PhysicalParticleContainer::PushPX(WarpXParIter& pti,
         );
     } else if (WarpX::particle_pusher_algo == ParticlePusherAlgo::Boris){
         amrex::ParallelFor(
-            pti.numParticles(),
+            num_particles,
             [=] AMREX_GPU_DEVICE (long i) {
                 Real qp = q;
                 if (ion_lev){ qp *= ion_lev[i]; }
@@ -1629,7 +1650,7 @@ PhysicalParticleContainer::PushPX(WarpXParIter& pti,
         );
     } else if (WarpX::particle_pusher_algo == ParticlePusherAlgo::Vay) {
         amrex::ParallelFor(
-            pti.numParticles(),
+            num_particles,
             [=] AMREX_GPU_DEVICE (long i) {
                 Real qp = q;
                 if (ion_lev){ qp *= ion_lev[i]; }
@@ -1642,7 +1663,7 @@ PhysicalParticleContainer::PushPX(WarpXParIter& pti,
         );
     } else if (WarpX::particle_pusher_algo == ParticlePusherAlgo::HigueraCary) {
         amrex::ParallelFor(
-            pti.numParticles(),
+            num_particles,
             [=] AMREX_GPU_DEVICE (long i) {
                 Real qp = q;
                 if (ion_lev){ qp *= ion_lev[i]; }
@@ -1655,7 +1676,7 @@ PhysicalParticleContainer::PushPX(WarpXParIter& pti,
         );
     } else {
       amrex::Abort("Unknown particle pusher");
-    };
+    }
 }
 
 void

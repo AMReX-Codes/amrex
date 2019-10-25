@@ -232,6 +232,26 @@ protected:
     std::shared_ptr<BreitWheelerEngine> shr_ptr_bw_engine;
 #endif
 
+private:
+    //PushPX classical
+    void PushPX_classical(
+        amrex::ParticleReal* const AMREX_RESTRICT x,
+        amrex::ParticleReal* const AMREX_RESTRICT y,
+        amrex::ParticleReal* const AMREX_RESTRICT z,
+        amrex::ParticleReal* const AMREX_RESTRICT ux,
+        amrex::ParticleReal* const AMREX_RESTRICT uy,
+        amrex::ParticleReal* const AMREX_RESTRICT uz,
+        const amrex::ParticleReal* const AMREX_RESTRICT Ex,
+        const amrex::ParticleReal* const AMREX_RESTRICT Ey,
+        const amrex::ParticleReal* const AMREX_RESTRICT Ez,
+        const amrex::ParticleReal* const AMREX_RESTRICT Bx,
+        const amrex::ParticleReal* const AMREX_RESTRICT By,
+        const amrex::ParticleReal* const AMREX_RESTRICT Bz,
+        amrex::Real q, amrex::Real m, int* AMREX_RESTRICT ion_lev,
+        amrex::Real dt, long num_particles
+    );
+    //________________________
+
 };
 
 #endif
