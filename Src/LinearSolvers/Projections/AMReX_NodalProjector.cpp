@@ -5,8 +5,7 @@
 #include <AMReX_NodalProjector.H>
 #include <AMReX_ParmParse.H>
 
-using namespace amrex;
-
+namespace amrex {
 
 NodalProjector::NodalProjector ( const amrex::Vector<amrex::Geometry>&               a_geom,
                                    const amrex::Vector<amrex::BoxArray>&             a_grids,
@@ -414,4 +413,6 @@ NodalProjector::printInfo ()
                        << m_rhs[lev]->norm0(0,0,false,true)
                        << std::endl;
     }
+}
+
 }

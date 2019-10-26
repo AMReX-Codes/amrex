@@ -7,6 +7,8 @@
 #include <AMReX_MLNodeLaplacian.H>
 #include <AMReX_MLMG.H>
 
+namespace amrex {
+
 class NodalProjector
 {
 
@@ -15,54 +17,54 @@ public:
 
     NodalProjector () {};
 
-    NodalProjector ( const amrex::Vector<amrex::Geometry>&             a_geom,
-                     const amrex::Vector<amrex::BoxArray>&             a_grids,
-                     const amrex::Vector<amrex::DistributionMapping>&  a_dmap,
-                     std::array<amrex::LinOpBCType,AMREX_SPACEDIM>     a_bc_lo,
-                     std::array<amrex::LinOpBCType,AMREX_SPACEDIM>     a_bc_hi );
+    NodalProjector ( const Vector<Geometry>&             a_geom,
+                     const Vector<BoxArray>&             a_grids,
+                     const Vector<DistributionMapping>&  a_dmap,
+                     std::array<LinOpBCType,AMREX_SPACEDIM>     a_bc_lo,
+                     std::array<LinOpBCType,AMREX_SPACEDIM>     a_bc_hi );
 #ifdef AMREX_USE_EB
-    NodalProjector ( const amrex::Vector<amrex::Geometry>&             a_geom,
-                     const amrex::Vector<amrex::BoxArray>&             a_grids,
-                     const amrex::Vector<amrex::DistributionMapping>&  a_dmap,
-                     std::array<amrex::LinOpBCType,AMREX_SPACEDIM>     a_bc_lo,
-                     std::array<amrex::LinOpBCType,AMREX_SPACEDIM>     a_bc_hi,
-                     amrex::Vector<amrex::EBFArrayBoxFactory const *>  a_ebfactory );
+    NodalProjector ( const Vector<Geometry>&             a_geom,
+                     const Vector<BoxArray>&             a_grids,
+                     const Vector<DistributionMapping>&  a_dmap,
+                     std::array<LinOpBCType,AMREX_SPACEDIM>     a_bc_lo,
+                     std::array<LinOpBCType,AMREX_SPACEDIM>     a_bc_hi,
+                     Vector<EBFArrayBoxFactory const *>  a_ebfactory );
 #endif
 
-    void define ( const amrex::Vector<amrex::Geometry>&             a_geom,
-                  const amrex::Vector<amrex::BoxArray>&             a_grids,
-                  const amrex::Vector<amrex::DistributionMapping>&  a_dmap,
-                  std::array<amrex::LinOpBCType,AMREX_SPACEDIM>     a_bc_lo,
-                  std::array<amrex::LinOpBCType,AMREX_SPACEDIM>     a_bc_hi );
+    void define ( const Vector<Geometry>&             a_geom,
+                  const Vector<BoxArray>&             a_grids,
+                  const Vector<DistributionMapping>&  a_dmap,
+                  std::array<LinOpBCType,AMREX_SPACEDIM>     a_bc_lo,
+                  std::array<LinOpBCType,AMREX_SPACEDIM>     a_bc_hi );
 
 
 #ifdef AMREX_USE_EB
-    void define ( const amrex::Vector<amrex::Geometry>&             a_geom,
-                  const amrex::Vector<amrex::BoxArray>&             a_grids,
-                  const amrex::Vector<amrex::DistributionMapping>&  a_dmap,
-                  std::array<amrex::LinOpBCType,AMREX_SPACEDIM>     a_bc_lo,
-                  std::array<amrex::LinOpBCType,AMREX_SPACEDIM>     a_bc_hi,
-                  amrex::Vector<amrex::EBFArrayBoxFactory const *>  a_ebfactory );
+    void define ( const Vector<Geometry>&             a_geom,
+                  const Vector<BoxArray>&             a_grids,
+                  const Vector<DistributionMapping>&  a_dmap,
+                  std::array<LinOpBCType,AMREX_SPACEDIM>     a_bc_lo,
+                  std::array<LinOpBCType,AMREX_SPACEDIM>     a_bc_hi,
+                  Vector<EBFArrayBoxFactory const *>  a_ebfactory );
 #endif
 
 
-    void project ( amrex::Vector< std::unique_ptr< amrex::MultiFab > >& a_vel,
-                   const amrex::Vector< std::unique_ptr< amrex::MultiFab > >& a_sigma,
-                   const amrex::Vector< std::unique_ptr< amrex::MultiFab > >& a_S_cc = {},
-                   const amrex::Vector< std::unique_ptr< amrex::MultiFab > >& a_S_nd = {} );
+    void project ( Vector< std::unique_ptr< MultiFab > >& a_vel,
+                   const Vector< std::unique_ptr< MultiFab > >& a_sigma,
+                   const Vector< std::unique_ptr< MultiFab > >& a_S_cc = {},
+                   const Vector< std::unique_ptr< MultiFab > >& a_S_nd = {} );
 
-    void project2 (  amrex::Vector< std::unique_ptr< amrex::MultiFab > >&       a_vel,
-                     const amrex::Vector< std::unique_ptr< amrex::MultiFab > >& a_alpha,
-                     const amrex::Vector< std::unique_ptr< amrex::MultiFab > >& a_beta,
-                     const amrex::Vector< std::unique_ptr< amrex::MultiFab > >& a_rhs );
+    void project2 (  Vector< std::unique_ptr< MultiFab > >&       a_vel,
+                     const Vector< std::unique_ptr< MultiFab > >& a_alpha,
+                     const Vector< std::unique_ptr< MultiFab > >& a_beta,
+                     const Vector< std::unique_ptr< MultiFab > >& a_rhs );
 
-    amrex::Vector< const amrex::MultiFab* > getPhi ()     const {return GetVecOfConstPtrs(m_phi);};
-    amrex::Vector< const amrex::MultiFab* > getGradPhi () const {return GetVecOfConstPtrs(m_fluxes);};
+    Vector< const MultiFab* > getPhi ()     const {return GetVecOfConstPtrs(m_phi);};
+    Vector< const MultiFab* > getGradPhi () const {return GetVecOfConstPtrs(m_fluxes);};
 
-    void computeRHS (  amrex::Vector< std::unique_ptr< amrex::MultiFab > >& a_rhs,
-                       const amrex::Vector< std::unique_ptr< amrex::MultiFab > >& a_vel,
-                       const amrex::Vector< std::unique_ptr< amrex::MultiFab > >& a_S_cc = {},
-                       const amrex::Vector< std::unique_ptr< amrex::MultiFab > >& a_S_nd = {} );
+    void computeRHS (  Vector< std::unique_ptr< MultiFab > >& a_rhs,
+                       const Vector< std::unique_ptr< MultiFab > >& a_vel,
+                       const Vector< std::unique_ptr< MultiFab > >& a_S_cc = {},
+                       const Vector< std::unique_ptr< MultiFab > >& a_S_nd = {} );
 
 private:
 
@@ -76,37 +78,37 @@ private:
     // Control MLMG behavior
     int  m_mg_maxiter = 100;
     int  m_mg_cg_maxiter = 100;
-    amrex::Real m_mg_rtol = 1.0e-11;
-    amrex::Real m_mg_atol = 1.0e-14;
+    Real m_mg_rtol = 1.0e-11;
+    Real m_mg_atol = 1.0e-14;
     std::string m_bottom_solver_type = "bicgcg";
 
     // Max coarsening level
     int  m_mg_max_coarsening_level = 100;
 
 
-    amrex::Vector<amrex::Geometry>                    m_geom;
-    amrex::Vector<amrex::BoxArray>                    m_grids;
-    amrex::Vector<amrex::DistributionMapping>         m_dmap;
+    Vector<Geometry>                    m_geom;
+    Vector<BoxArray>                    m_grids;
+    Vector<DistributionMapping>         m_dmap;
 #ifdef AMREX_USE_EB
-    amrex::Vector<amrex::EBFArrayBoxFactory const *>  m_ebfactory;
+    Vector<EBFArrayBoxFactory const *>  m_ebfactory;
 #endif
 
     // Boundary conditions
-    std::array<amrex::LinOpBCType,AMREX_SPACEDIM>  m_bc_lo;
-    std::array<amrex::LinOpBCType,AMREX_SPACEDIM>  m_bc_hi;
+    std::array<LinOpBCType,AMREX_SPACEDIM>  m_bc_lo;
+    std::array<LinOpBCType,AMREX_SPACEDIM>  m_bc_hi;
 
     // Cell-centered data
-    amrex::Vector< std::unique_ptr< amrex::MultiFab > >  m_fluxes;
+    Vector< std::unique_ptr< MultiFab > >  m_fluxes;
 
     // Node-centered data
-    amrex::Vector< std::unique_ptr< amrex::MultiFab > >  m_phi;
-    amrex::Vector< std::unique_ptr< amrex::MultiFab > >  m_rhs;
+    Vector< std::unique_ptr< MultiFab > >  m_phi;
+    Vector< std::unique_ptr< MultiFab > >  m_rhs;
 
     // Linear operator
-    std::unique_ptr< amrex::MLNodeLaplacian > m_matrix;
+    std::unique_ptr< MLNodeLaplacian > m_matrix;
 
     // Solver
-    std::unique_ptr< amrex::MLMG > m_solver;
+    std::unique_ptr< MLMG > m_solver;
 
     void readParameters ();
 
@@ -116,5 +118,6 @@ private:
 
 };
 
+}
 
 #endif
