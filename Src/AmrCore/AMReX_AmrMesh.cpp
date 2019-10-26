@@ -405,6 +405,16 @@ AmrMesh::SetGeometry (int lev, const Geometry& geom_in) noexcept
     geom[lev] = geom_in;
 }
 
+int
+AmrMesh::GetLevel (Box const& domain) noexcept
+{
+    Box ccdomain = amrex::enclosedCells(domain);
+    for (int lev = 0; lev < geom.size(); ++lev) {
+        if (geom[lev].Domain() == ccdomain) return lev;
+    }
+    return -1;
+}
+
 void
 AmrMesh::ClearDistributionMap (int lev) noexcept
 {
