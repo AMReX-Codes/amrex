@@ -943,6 +943,22 @@ AmrMesh::checkInput ()
     }
 
     //
+    // Check that blocking_factor is a power of 2.
+    //
+    for (int i = 0; i <= max_level; i++)
+    {
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+        {
+            int k = blocking_factor[i][idim];
+            std::cout << "BLOCKING FACTOR " << k << std::endl;
+            while ( k > 0 && (k%2 == 0) )
+                k /= 2;
+            if (k != 1)
+                amrex::Error("Amr::checkInput: blocking_factor not power of 2");
+        }
+    }
+
+    //
     // Check that max_grid_size is a multiple of blocking_factor at every level.
     //   (only check if blocking_factor <= max_grid_size)
     //
