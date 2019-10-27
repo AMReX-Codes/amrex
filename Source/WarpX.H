@@ -25,6 +25,8 @@
 #include <AMReX_Interpolater.H>
 #include <AMReX_FillPatchUtil.H>
 
+#include "GuardCellManager.H"
+
 #ifdef _OPENMP
 #   include <omp.h>
 #endif
@@ -465,7 +467,8 @@ private:
 
     void AllocLevelMFs (int lev, const amrex::BoxArray& ba, const amrex::DistributionMapping& dm,
                         const amrex::IntVect& ngE, const amrex::IntVect& ngJ,
-                        const amrex::IntVect& ngRho, int ngF);
+                        const amrex::IntVect& ngRho, int ngF, const amrex::IntVect& ngextra,
+                        const bool aux_is_nodal);
 
     amrex::Vector<int> istep;      // which step?
     amrex::Vector<int> nsubsteps;  // how many substeps on each level?
@@ -598,6 +601,8 @@ private:
 
     bool is_synchronized = true;
 
+    guardCellManager guard_cells;
+
     //Slice Parameters
     int slice_max_grid_size;
     int slice_plot_int = -1;
@@ -623,18 +628,19 @@ private:
     amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho_cp_fft;
 #endif
 
+    bool fft_hybrid_mpi_decomposition = false;
+    int nox_fft = 16;
+    int noy_fft = 16;
+    int noz_fft = 16;
+
 #ifdef WARPX_USE_PSATD
 private:
     void EvolvePSATD (int numsteps);
     void PushPSATD (amrex::Real dt);
     void PushPSATD_localFFT (int lev, amrex::Real dt);
 
-    bool fft_hybrid_mpi_decomposition = false;
     int ngroups_fft = 4;
     int fftw_plan_measure = 1;
-    int nox_fft = 16;
-    int noy_fft = 16;
-    int noz_fft = 16;
 
     amrex::Vector<std::unique_ptr<SpectralSolver>> spectral_solver_fp;
     amrex::Vector<std::unique_ptr<SpectralSolver>> spectral_solver_cp;
