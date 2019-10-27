@@ -714,13 +714,13 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
     IntVect ngE = guard_cells.ngE;
     IntVect ngJ = guard_cells.ngJ;
     IntVect ngRho = guard_cells.ngRho;
-    int ngF = guard_cells.ngF;
+    int ngF_int = guard_cells.ngF_int;
     IntVect ngextra = guard_cells.ngExtra;
 
     Print()<<"ngE "<<ngE<<'\n';
     Print()<<"ngJ "<<ngJ<<'\n';
     Print()<<"ngRho "<<ngRho<<'\n';
-    Print()<<"ngF "<<ngF<<'\n';
+    Print()<<"ngF_int "<<ngF_int<<'\n';
     Print()<<"ngextra "<<ngextra<<'\n';
 
     if (mypc->nSpeciesDepositOnMainGrid() && n_current_deposition_buffer == 0) {
@@ -739,7 +739,7 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
         n_field_gather_buffer = n_current_deposition_buffer + 1;
     }
 
-    AllocLevelMFs(lev, ba, dm, ngE, ngJ, ngRho, ngF, ngextra, aux_is_nodal);
+    AllocLevelMFs(lev, ba, dm, ngE, ngJ, ngRho, ngF_int, ngextra, aux_is_nodal);
 }
 
 void

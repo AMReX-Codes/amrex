@@ -83,9 +83,10 @@ guardCellManager::Init(
 
     ngRho = ngJ+1; //One extra ghost cell, so that it's safe to deposit charge density
     // after pushing particle.
-    ngF = (do_moving_window) ? 2 : 0;
+    ngF_int = (do_moving_window) ? 2 : 0;
     // CKC solver requires one additional guard cell
-    if (maxwell_fdtd_solver_id == 1) ngF = std::max( ngF, 1 );
+    if (maxwell_fdtd_solver_id == 1) ngF_int = std::max( ngF_int, 1 );
+    ngF = IntVect(AMREX_D_DECL(ngF_int, ngF_int, ngF_int));
 
 #ifdef WARPX_USE_PSATD
     if (do_fft_mpi_dec == false){
@@ -108,12 +109,13 @@ guardCellManager::Init(
             ng_required = std::max( ng_required, ngE[i_dim] );
             ng_required = std::max( ng_required, ngJ[i_dim] );
             ng_required = std::max( ng_required, ngRho[i_dim] );
-            ng_required = std::max( ng_required, ngF );
+            ng_required = std::max( ng_required, ngF[i_dim] );
             // Set the guard cells to this max
             ngE[i_dim] = ng_required;
             ngJ[i_dim] = ng_required;
+            ngF[i_dim] = ng_required;
             ngRho[i_dim] = ng_required;
-            ngF = ng_required;
+            ngF_int = ng_required;
         }
     }
 #endif        

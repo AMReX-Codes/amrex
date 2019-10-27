@@ -26,7 +26,8 @@ public:
     amrex::IntVect ngE;
     amrex::IntVect ngJ;
     amrex::IntVect ngRho;
-    int ngF;
+    amrex::IntVect ngF;
+    int ngF_int;
 
     // Guard cells to exchange data
     amrex::IntVect ngB_FieldSolver;

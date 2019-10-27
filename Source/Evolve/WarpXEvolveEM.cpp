@@ -75,8 +75,8 @@ WarpX::EvolveEM (int numsteps)
         // Particles have p^{n} and x^{n}.
         // is_synchronized is true.
         if (is_synchronized) {
-            FillBoundaryE();
-            FillBoundaryB();
+            FillBoundaryE(guard_cells.ngE);
+            FillBoundaryB(guard_cells.ngE);
             UpdateAuxilaryData();
             // on first step, push p by -0.5*dt
             for (int lev = 0; lev <= finest_level; ++lev) {
@@ -89,8 +89,8 @@ WarpX::EvolveEM (int numsteps)
         } else {
             // Beyond one step, we have E^{n} and B^{n}.
             // Particles have p^{n-1/2} and x^{n}.
-            FillBoundaryE();
-            FillBoundaryB();
+            FillBoundaryE(guard_cells.ngE);
+            FillBoundaryB(guard_cells.ngE);
             UpdateAuxilaryData();
 
         }
@@ -185,8 +185,8 @@ WarpX::EvolveEM (int numsteps)
         // slice gen //
         if (to_make_plot || do_insitu || to_make_slice_plot)
         {
-            FillBoundaryE();
-            FillBoundaryB();
+            FillBoundaryE(guard_cells.ngE);
+            FillBoundaryB(guard_cells.ngE);
             UpdateAuxilaryData();
 
             for (int lev = 0; lev <= finest_level; ++lev) {
@@ -237,8 +237,8 @@ WarpX::EvolveEM (int numsteps)
 
     if (write_plot_file || do_insitu)
     {
-        FillBoundaryE();
-        FillBoundaryB();
+        FillBoundaryE(guard_cells.ngE);
+        FillBoundaryB(guard_cells.ngE);
         UpdateAuxilaryData();
 
         for (int lev = 0; lev <= finest_level; ++lev) {
@@ -308,23 +308,23 @@ WarpX::OneStep_nosub (Real cur_time)
 #ifdef WARPX_USE_PSATD
     PushPSATD(dt[0]);
     if (do_pml) DampPML();
-    FillBoundaryE();
-    FillBoundaryB();
+    FillBoundaryE(guard_cells.ngE);
+    FillBoundaryB(guard_cells.ngE);
 #else
     EvolveF(0.5*dt[0], DtType::FirstHalf);
-    FillBoundaryF();
+    FillBoundaryF(guard_cells.ngF);
     EvolveB(0.5*dt[0]); // We now have B^{n+1/2}
-    FillBoundaryB();
+    FillBoundaryB(guard_cells.ngE);
 
     EvolveE(dt[0]); // We now have E^{n+1}
-    FillBoundaryE();
+    FillBoundaryE(guard_cells.ngE);
     EvolveF(0.5*dt[0], DtType::SecondHalf);
     EvolveB(0.5*dt[0]); // We now have B^{n+1}
     if (do_pml) {
         DampPML();
-        FillBoundaryE();
+        FillBoundaryE(guard_cells.ngE);
     }
-    FillBoundaryB();
+    FillBoundaryB(guard_cells.ngE);
 
 #endif
 }
@@ -368,21 +368,21 @@ WarpX::OneStep_sub1 (Real curtime)
 
     EvolveB(fine_lev, PatchType::fine, 0.5*dt[fine_lev]);
     EvolveF(fine_lev, PatchType::fine, 0.5*dt[fine_lev], DtType::FirstHalf);
-    FillBoundaryB(fine_lev, PatchType::fine);
-    FillBoundaryF(fine_lev, PatchType::fine);
+    FillBoundaryB(fine_lev, PatchType::fine, guard_cells.ngE);
+    FillBoundaryF(fine_lev, PatchType::fine, guard_cells.ngF);
 
     EvolveE(fine_lev, PatchType::fine, dt[fine_lev]);
-    FillBoundaryE(fine_lev, PatchType::fine);
+    FillBoundaryE(fine_lev, PatchType::fine, guard_cells.ngE);
 
     EvolveB(fine_lev, PatchType::fine, 0.5*dt[fine_lev]);
     EvolveF(fine_lev, PatchType::fine, 0.5*dt[fine_lev], DtType::SecondHalf);
 
     if (do_pml) {
         DampPML(fine_lev, PatchType::fine);
-        FillBoundaryE(fine_lev, PatchType::fine);
+        FillBoundaryE(fine_lev, PatchType::fine, guard_cells.ngE);
     }
 
-    FillBoundaryB(fine_lev, PatchType::fine);
+    FillBoundaryB(fine_lev, PatchType::fine, guard_cells.ngE);
 
     // ii) Push particles on the coarse patch and mother grid.
     // Push the fields on the coarse patch and mother grid
@@ -394,19 +394,19 @@ WarpX::OneStep_sub1 (Real curtime)
 
     EvolveB(fine_lev, PatchType::coarse, dt[fine_lev]);
     EvolveF(fine_lev, PatchType::coarse, dt[fine_lev], DtType::FirstHalf);
-    FillBoundaryB(fine_lev, PatchType::coarse);
-    FillBoundaryF(fine_lev, PatchType::coarse);
+    FillBoundaryB(fine_lev, PatchType::coarse, guard_cells.ngE);
+    FillBoundaryF(fine_lev, PatchType::coarse, guard_cells.ngF);
 
     EvolveE(fine_lev, PatchType::coarse, dt[fine_lev]);
-    FillBoundaryE(fine_lev, PatchType::coarse);
+    FillBoundaryE(fine_lev, PatchType::coarse, guard_cells.ngE);
 
     EvolveB(coarse_lev, PatchType::fine, 0.5*dt[coarse_lev]);
     EvolveF(coarse_lev, PatchType::fine, 0.5*dt[coarse_lev], DtType::FirstHalf);
-    FillBoundaryB(coarse_lev, PatchType::fine);
-    FillBoundaryF(coarse_lev, PatchType::fine);
+    FillBoundaryB(coarse_lev, PatchType::fine, guard_cells.ngE);
+    FillBoundaryF(coarse_lev, PatchType::fine, guard_cells.ngF);
 
     EvolveE(coarse_lev, PatchType::fine, 0.5*dt[coarse_lev]);
-    FillBoundaryE(coarse_lev, PatchType::fine);
+    FillBoundaryE(coarse_lev, PatchType::fine, guard_cells.ngE);
 
     // iii) Get auxiliary fields on the fine grid, at dt[fine_lev]
     UpdateAuxilaryData();
@@ -422,22 +422,22 @@ WarpX::OneStep_sub1 (Real curtime)
 
     EvolveB(fine_lev, PatchType::fine, 0.5*dt[fine_lev]);
     EvolveF(fine_lev, PatchType::fine, 0.5*dt[fine_lev], DtType::FirstHalf);
-    FillBoundaryB(fine_lev, PatchType::fine);
-    FillBoundaryF(fine_lev, PatchType::fine);
+    FillBoundaryB(fine_lev, PatchType::fine, guard_cells.ngE);
+    FillBoundaryF(fine_lev, PatchType::fine, guard_cells.ngF);
 
     EvolveE(fine_lev, PatchType::fine, dt[fine_lev]);
-    FillBoundaryE(fine_lev, PatchType::fine);
+    FillBoundaryE(fine_lev, PatchType::fine, guard_cells.ngE);
 
     EvolveB(fine_lev, PatchType::fine, 0.5*dt[fine_lev]);
     EvolveF(fine_lev, PatchType::fine, 0.5*dt[fine_lev], DtType::SecondHalf);
 
     if (do_pml) {
         DampPML(fine_lev, PatchType::fine);
-        FillBoundaryE(fine_lev, PatchType::fine);
+        FillBoundaryE(fine_lev, PatchType::fine, guard_cells.ngE);
     }
 
-    FillBoundaryB(fine_lev, PatchType::fine);
-    FillBoundaryF(fine_lev, PatchType::fine);
+    FillBoundaryB(fine_lev, PatchType::fine, guard_cells.ngE);
+    FillBoundaryF(fine_lev, PatchType::fine, guard_cells.ngF);
 
     // v) Push the fields on the coarse patch and mother grid
     // by only half a coarse step (second half)
@@ -446,7 +446,7 @@ WarpX::OneStep_sub1 (Real curtime)
     AddRhoFromFineLevelandSumBoundary(coarse_lev, ncomps, ncomps);
 
     EvolveE(fine_lev, PatchType::coarse, dt[fine_lev]);
-    FillBoundaryE(fine_lev, PatchType::coarse);
+    FillBoundaryE(fine_lev, PatchType::coarse, guard_cells.ngE);
 
     EvolveB(fine_lev, PatchType::coarse, dt[fine_lev]);
     EvolveF(fine_lev, PatchType::coarse, dt[fine_lev], DtType::SecondHalf);
@@ -454,24 +454,24 @@ WarpX::OneStep_sub1 (Real curtime)
     if (do_pml) {
         DampPML(fine_lev, PatchType::coarse); // do it twice
         DampPML(fine_lev, PatchType::coarse);
-        FillBoundaryE(fine_lev, PatchType::coarse);
+        FillBoundaryE(fine_lev, PatchType::coarse, guard_cells.ngE);
     }
 
-    FillBoundaryB(fine_lev, PatchType::coarse);
-    FillBoundaryF(fine_lev, PatchType::coarse);
+    FillBoundaryB(fine_lev, PatchType::coarse, guard_cells.ngE);
+    FillBoundaryF(fine_lev, PatchType::coarse, guard_cells.ngF);
 
     EvolveE(coarse_lev, PatchType::fine, 0.5*dt[coarse_lev]);
-    FillBoundaryE(coarse_lev, PatchType::fine);
+    FillBoundaryE(coarse_lev, PatchType::fine, guard_cells.ngE);
 
     EvolveB(coarse_lev, PatchType::fine, 0.5*dt[coarse_lev]);
     EvolveF(coarse_lev, PatchType::fine, 0.5*dt[coarse_lev], DtType::SecondHalf);
 
     if (do_pml) {
         DampPML(coarse_lev, PatchType::fine);
-        FillBoundaryE(coarse_lev, PatchType::fine);
+        FillBoundaryE(coarse_lev, PatchType::fine, guard_cells.ngE);
     }
 
-    FillBoundaryB(coarse_lev, PatchType::fine);
+    FillBoundaryB(coarse_lev, PatchType::fine, guard_cells.ngE);
 }
 
 void

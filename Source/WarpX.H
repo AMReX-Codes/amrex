@@ -210,12 +210,12 @@ public:
     void UpdateAuxilaryDataSameType ();
 
     // Fill boundary cells including coarse/fine boundaries
-    void FillBoundaryB ();
-    void FillBoundaryE ();
-    void FillBoundaryF ();
-    void FillBoundaryE (int lev);
-    void FillBoundaryB (int lev);
-    void FillBoundaryF (int lev);
+    void FillBoundaryB (amrex::IntVect ng);
+    void FillBoundaryE (amrex::IntVect ng);
+    void FillBoundaryF (amrex::IntVect ng);
+    void FillBoundaryE (int lev, amrex::IntVect ng);
+    void FillBoundaryB (int lev, amrex::IntVect ng);
+    void FillBoundaryF (int lev, amrex::IntVect ng);
 
     void SyncCurrent ();
     void SyncRho ();
@@ -295,6 +295,9 @@ public:
                              const std::array<const amrex::MultiFab*, 3>& B,
                              const std::array<amrex::Real,3>& dx, int ngrow);
 
+    const amrex::IntVect getngE() const { return guard_cells.ngE; };
+    const amrex::IntVect getngF() const { return guard_cells.ngF; };
+
 protected:
 
     //! Tagging cells for refinement
@@ -332,9 +335,9 @@ private:
     ///
     void EvolveEM(int numsteps);
 
-    void FillBoundaryB (int lev, PatchType patch_type);
-    void FillBoundaryE (int lev, PatchType patch_type);
-    void FillBoundaryF (int lev, PatchType patch_type);
+    void FillBoundaryB (int lev, PatchType patch_type, amrex::IntVect ng);
+    void FillBoundaryE (int lev, PatchType patch_type, amrex::IntVect ng);
+    void FillBoundaryF (int lev, PatchType patch_type, amrex::IntVect ng);
 
     void OneStep_nosub (amrex::Real t);
     void OneStep_sub1 (amrex::Real t);
