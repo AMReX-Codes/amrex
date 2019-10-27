@@ -699,7 +699,7 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
 
     guard_cells.Init(
         do_subcycling,
-        use_fdtd_nci_corr,
+        WarpX::use_fdtd_nci_corr,
         do_nodal,
         do_moving_window,
         fft_hybrid_mpi_decomposition,
@@ -707,7 +707,7 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
         moving_window_dir,
         WarpX::nox,
         nox_fft, noy_fft, noz_fft,
-        WarpX::use_fdtd_nci_corr,
+        NCIGodfreyFilter::m_stencil_width,
         maxwell_fdtd_solver_id,
         maxLevel());
 
