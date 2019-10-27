@@ -59,6 +59,7 @@ guardCellManager::Init(
         ngJz = std::max(ngJz,2);
     }
 
+/*
 #if (AMREX_SPACEDIM == 3)
     IntVect ngE(ngx,ngy,ngz);
     IntVect ngJ(ngJx,ngJy,ngJz);
@@ -70,6 +71,19 @@ guardCellManager::Init(
     IntVect ngRho = ngJ+1; //One extra ghost cell, so that it's safe to deposit charge density
     // after pushing particle.
     int ngF = (do_moving_window) ? 2 : 0;
+*/
+
+#if (AMREX_SPACEDIM == 3)
+    ngE = IntVect(ngx,ngy,ngz);
+    ngJ = IntVect(ngJx,ngJy,ngJz);
+#elif (AMREX_SPACEDIM == 2)
+    ngE = IntVect(ngx,ngz);
+    ngJ = IntVect(ngJx,ngJz);
+#endif
+
+    ngRho = ngJ+1; //One extra ghost cell, so that it's safe to deposit charge density
+    // after pushing particle.
+    ngF = (do_moving_window) ? 2 : 0;
     // CKC solver requires one additional guard cell
     if (maxwell_fdtd_solver_id == 1) ngF = std::max( ngF, 1 );
 

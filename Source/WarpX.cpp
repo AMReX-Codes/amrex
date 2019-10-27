@@ -717,6 +717,12 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
     int ngF = guard_cells.ngF;
     IntVect ngextra = guard_cells.ngExtra;
 
+    Print()<<"ngE "<<ngE<<'\n';
+    Print()<<"ngJ "<<ngJ<<'\n';
+    Print()<<"ngRho "<<ngRho<<'\n';
+    Print()<<"ngF "<<ngF<<'\n';
+    Print()<<"ngextra "<<ngextra<<'\n';
+
     if (mypc->nSpeciesDepositOnMainGrid() && n_current_deposition_buffer == 0) {
         n_current_deposition_buffer = 1;
         // This forces the allocation of buffers and allows the code associated
