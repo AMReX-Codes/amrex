@@ -70,7 +70,7 @@ public:
         amrex::Gpu::ManagedDeviceVector<int> v_do_boosted_product)
     {
 
-        BL_PROFILE("createIonizedParticles");
+        BL_PROFILE("createParticles");
         const int grid_id = mfi.index();
         const int tile_id = mfi.LocalTileIndex();
 
@@ -103,13 +103,13 @@ public:
             v_do_boosted_product.size() == nproducts,
             "v_pc_product and v_do_boosted_product must have the same size.");
 
-        // Indices of product particle for each ionized source particle.
+        // Indices of product particle for each source particle.
         // i_product[i]-1 is the location in product tile of product particle
         // from source particle i.
         amrex::Gpu::ManagedDeviceVector<int> i_product;
         i_product.resize(np_source);
         // 0<i<np_source
-        // 0<i_product<np_ionized
+        // 0<i_product<np_flagged
         // Strictly speaking, i_product should be an exclusive_scan of
         // is_flagged. However, for indices where is_flagged is 1, the
         // inclusive scan gives the same result with an offset of 1.
@@ -120,8 +120,8 @@ public:
         // with the CPU, so that the next line (executed by the CPU) has the
         // updated values of i_product
         amrex::Gpu::inclusive_scan(is_flagged.begin(), is_flagged.end(), i_product.begin());
-        int np_ionized = i_product[np_source-1];
-        if (np_ionized == 0) return;
+        int np_flagged = i_product[np_source-1];
+        if (np_flagged == 0) return;
 
         amrex::Vector<copyParticle> v_copy_functor;
         amrex::Gpu::ManagedDeviceVector<int> v_pid_product(nproducts);
@@ -130,11 +130,11 @@ public:
             WarpXParticleContainer*& pc_product = v_pc_product[iproduct];
             // Get product particle data
             auto& ptile_product = pc_product->GetParticles(lev)[std::make_pair(grid_id,tile_id)];
-            // old and new (i.e., including ionized particles) number of particles
+            // old and new (i.e., including flagged particles) number of particles
             // for product species
             const int np_product_old = ptile_product.GetArrayOfStructs().size();
-            const int np_product_new = np_product_old + np_ionized;
-            // Allocate extra space in product species for ionized particles.
+            const int np_product_new = np_product_old + np_flagged;
+            // Allocate extra space in product species for flagged particles.
             ptile_product.resize(np_product_new);
             // --- product AoS particle data
             // WarpXParticleContainer::ParticleType* particles_product = ptile_product.GetArrayOfStructs()().data() + np_product_old;
@@ -162,12 +162,12 @@ public:
 
             // --- product runtime integer attribs
             int pid_product;
-#pragma omp critical (doFieldIonization_nextid)
+#pragma omp critical (doParticleCreation_nextid)
             {
                 // ID of first newly-created product particle
                 pid_product = pc_product->NextID();
                 // Update NextID to include particles created in this function
-                pc_product->setNextID(pid_product+np_ionized);
+                pc_product->setNextID(pid_product+np_flagged);
             }
             const int cpuid = amrex::ParallelDescriptor::MyProc();
 
@@ -229,7 +229,7 @@ public:
                     int ip = p_i_product[is]-1;
                     WarpXParticleContainer::ParticleType& p_source  = particles_source[is];
                     for (int iproduct=0; iproduct<nproducts; iproduct++){
-                        // is: index of ionized particle in source species
+                        // is: index of flagged particle in source species
                         // ip: index of corresponding new particle in product species
                         WarpXParticleContainer::ParticleType* particles_product = p_particles_product[iproduct];
                         WarpXParticleContainer::ParticleType& p_product = particles_product[ip];
