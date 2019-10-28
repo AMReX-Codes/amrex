@@ -45,9 +45,9 @@ electrons = picmi.Species(particle_type='electron', name='electrons', initial_di
 protons = picmi.Species(particle_type='proton', name='protons', initial_distribution=proton_beam)
 
 sim = picmi.Simulation(solver = solver,
-                       max_steps = 1000,
+                       max_steps = 10,
                        verbose = 1,
-                       warpx_plot_int = 8,
+                       warpx_plot_int = 10,
                        warpx_current_deposition_algo = 'direct')
 
 sim.add_species(electrons, layout=picmi.PseudoRandomLayout(n_macroparticles=number_sim_particles))

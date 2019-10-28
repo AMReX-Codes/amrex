@@ -4,7 +4,7 @@
 #include "WarpXDtType.H"
 #include <MultiParticleContainer.H>
 #include <PML.H>
-#include <BoostedFrameDiagnostic.H>
+#include <BackTransformedDiagnostic.H>
 #include <BilinearFilter.H>
 #include <NCIGodfreyFilter.H>
 
@@ -105,12 +105,12 @@ public:
     static bool serialize_ics;
 
     // Back transformation diagnostic
-    static bool do_boosted_frame_diagnostic;
+    static bool do_back_transformed_diagnostics;
     static std::string lab_data_directory;
     static int  num_snapshots_lab;
     static amrex::Real dt_snapshots_lab;
-    static bool do_boosted_frame_fields;
-    static bool do_boosted_frame_particles;
+    static bool do_back_transformed_fields;
+    static bool do_back_transformed_particles;
 
     // Boosted frame parameters
     static amrex::Real gamma_boost;
@@ -209,6 +209,8 @@ public:
     // This function does aux(lev) = fp(lev) + I(aux(lev-1)-cp(lev)).
     // Caller must make sure fp and cp have ghost cells filled.
     void UpdateAuxilaryData ();
+    void UpdateAuxilaryDataStagToNodal ();
+    void UpdateAuxilaryDataSameType ();
 
     // Fill boundary cells including coarse/fine boundaries
     void FillBoundaryB ();
@@ -275,6 +277,9 @@ public:
     void SliceGenerationForDiagnostics ();
     void WriteSlicePlotFile () const;
     void ClearSliceMultiFabs ();
+    static int num_slice_snapshots_lab;
+    static amrex::Real dt_slice_snapshots_lab;
+    amrex::RealBox getSliceRealBox() const {return slice_realbox;}
 
     // these should be private, but can't due to Cuda limitations
     static void ComputeDivB (amrex::MultiFab& divB, int dcomp,
@@ -478,7 +483,7 @@ private:
     std::unique_ptr<MultiParticleContainer> mypc;
 
     // Boosted Frame Diagnostics
-    std::unique_ptr<BoostedFrameDiagnostic> myBFD;
+    std::unique_ptr<BackTransformedDiagnostic> myBFD;
 
     //
     // Fields: First array for level, second for direction
