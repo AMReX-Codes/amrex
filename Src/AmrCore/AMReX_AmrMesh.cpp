@@ -964,7 +964,7 @@ AmrMesh::checkInput ()
             while ( k > 0 && (k%2 == 0) )
                 k /= 2;
             if (k != 1)
-                amrex::Error("Amr::checkInput: blocking_factor not power of 2");
+                amrex::Error("Amr::checkInput: blocking_factor not power of 2. You can bypass this by setting ParmParse runtime parameter amr.check_input=0, although we do not recommend it.");
         }
     }
 
