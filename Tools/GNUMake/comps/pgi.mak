@@ -141,15 +141,20 @@ endif
 
 ifeq ($(USE_CUDA),TRUE)
 
-  F90FLAGS += -Mcuda=cc$(CUDA_ARCH),ptxinfo,fastmath,charstring
-  FFLAGS   += -Mcuda=cc$(CUDA_ARCH),ptxinfo,fastmath,charstring
+  F90FLAGS += -Mcuda=cc$(CUDA_ARCH),fastmath,charstring
+  FFLAGS   += -Mcuda=cc$(CUDA_ARCH),fastmath,charstring
 
   ifeq ($(DEBUG),TRUE)
     F90FLAGS += -Mcuda=debug
-    FFLAGSS  += -Mcuda=debug
+    FFLAGS   += -Mcuda=debug
   else
     F90FLAGS += -Mcuda=lineinfo
     FFLAGS   += -Mcuda=lineinfo
+  endif
+
+  ifeq ($(CUDA_VERBOSE),TRUE)
+    F90FLAGS += -Mcuda=ptxinfo
+    FFLAGS   += -Mcuda=ptxinfo
   endif
 
   F90FLAGS += CUDA_HOME=$(COMPILE_CUDA_PATH)
