@@ -29,21 +29,25 @@ struct InjectorPositionRegular
     // is a_ppc*(ref_fac**AMREX_SPACEDIM).
     AMREX_GPU_HOST_DEVICE
     amrex::XDim3
-    getPositionUnitBox (int i_part, int ref_fac=1) const noexcept
+    getPositionUnitBox (int const i_part, int const ref_fac=1) const noexcept
     {
-        int nx = ref_fac*ppc.x;
-        int ny = ref_fac*ppc.y;
+        using namespace amrex;
+
+        int const nx = ref_fac*ppc.x;
+        int const ny = ref_fac*ppc.y;
 #if (defined WARPX_DIM_3D) || (defined WARPX_DIM_RZ)
-        int nz = ref_fac*ppc.z;
+        int const nz = ref_fac*ppc.z;
 #else
-        int nz = 1;
+        int const nz = 1;
 #endif
-        int ix_part = i_part/(ny*nz);  // written this way backward compatibility
-        int iz_part = (i_part-ix_part*(ny*nz)) / ny;
-        int iy_part = (i_part-ix_part*(ny*nz)) - ny*iz_part;
-        return amrex::XDim3{(amrex::Real(0.5)+ix_part)/nx,
-                            (amrex::Real(0.5)+iy_part)/ny,
-                            (amrex::Real(0.5)+iz_part) / nz};
+        int const ix_part = i_part / (ny*nz);  // written this way backward compatibility
+        int const iz_part = (i_part-ix_part*(ny*nz)) / ny;
+        int const iy_part = (i_part-ix_part*(ny*nz)) - ny*iz_part;
+        return XDim3{
+            (0.5_rt + ix_part) / nx,
+            (0.5_rt + iy_part) / ny,
+            (0.5_rt + iz_part) / nz
+        };
     }
 private:
     amrex::Dim3 ppc;
@@ -100,7 +104,7 @@ struct InjectorPosition
     // (the union is called Object, and the instance is called object).
     AMREX_GPU_HOST_DEVICE
     amrex::XDim3
-    getPositionUnitBox (int i_part, int ref_fac=1) const noexcept
+    getPositionUnitBox (int const i_part, int const ref_fac=1) const noexcept
     {
         switch (type)
         {
