@@ -17,7 +17,7 @@
  * PXRMP_WITH_SI_UNITS sets the library to use International
  * System units.
  */
-#define PXRMP_GPU AMREX_GPU_DEVICE
+#define PXRMP_GPU AMREX_GPU_HOST_DEVICE
 #define PXRMP_WITH_SI_UNITS
 //_________________________
 
