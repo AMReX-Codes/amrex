@@ -82,14 +82,14 @@ WarpX::InitData ()
 
 void
 WarpX::InitDiagnostics () {
-    if (do_boosted_frame_diagnostic) {
+    if (do_back_transformed_diagnostics) {
         const Real* current_lo = geom[0].ProbLo();
         const Real* current_hi = geom[0].ProbHi();
         Real dt_boost = dt[0];
         // Find the positions of the lab-frame box that corresponds to the boosted-frame box at t=0
         Real zmin_lab = current_lo[moving_window_dir]/( (1.+beta_boost)*gamma_boost );
         Real zmax_lab = current_hi[moving_window_dir]/( (1.+beta_boost)*gamma_boost );
-        myBFD.reset(new BoostedFrameDiagnostic(zmin_lab,
+        myBFD.reset(new BackTransformedDiagnostic(zmin_lab,
                                                zmax_lab,
                                                moving_window_v, dt_snapshots_lab,
                                                num_snapshots_lab,

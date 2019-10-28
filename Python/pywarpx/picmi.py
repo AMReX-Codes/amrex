@@ -671,10 +671,10 @@ class LabFrameFieldDiagnostic(picmistandard.PICMI_LabFrameFieldDiagnostic):
         pywarpx.warpx.check_consistency('dt_snapshots_lab', self.dt_snapshots, 'The time between snapshots must be the same in all lab frame diagnostics')
         pywarpx.warpx.check_consistency('lab_data_directory', self.write_dir, 'The write directory must be the same in all lab frame diagnostics')
 
-        pywarpx.warpx.do_boosted_frame_diagnostic = 1
+        pywarpx.warpx.do_back_transformed_diagnostics = 1
         pywarpx.warpx.num_snapshots_lab = self.num_snapshots
         pywarpx.warpx.dt_snapshots_lab = self.dt_snapshots
-        pywarpx.warpx.do_boosted_frame_fields = 1
+        pywarpx.warpx.do_back_transformed_fields = 1
         pywarpx.warpx.lab_data_directory = self.write_dir
 
 
@@ -685,8 +685,8 @@ class LabFrameParticleDiagnostic(picmistandard.PICMI_LabFrameParticleDiagnostic)
         pywarpx.warpx.check_consistency('dt_snapshots_lab', self.dt_snapshots, 'The time between snapshots must be the same in all lab frame diagnostics')
         pywarpx.warpx.check_consistency('lab_data_directory', self.write_dir, 'The write directory must be the same in all lab frame diagnostics')
 
-        pywarpx.warpx.do_boosted_frame_diagnostic = 1
+        pywarpx.warpx.do_back_transformed_diagnostics = 1
         pywarpx.warpx.num_snapshots_lab = self.num_snapshots
         pywarpx.warpx.dt_snapshots_lab = self.dt_snapshots
-        pywarpx.warpx.do_boosted_frame_particles = 1
+        pywarpx.warpx.do_back_transformed_particles = 1
         pywarpx.warpx.lab_data_directory = self.write_dir

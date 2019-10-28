@@ -61,12 +61,12 @@ int WarpX::num_mirrors = 0;
 
 int  WarpX::sort_int = -1;
 
-bool WarpX::do_boosted_frame_diagnostic = false;
+bool WarpX::do_back_transformed_diagnostics = false;
 std::string WarpX::lab_data_directory = "lab_frame_data";
 int  WarpX::num_snapshots_lab = std::numeric_limits<int>::lowest();
 Real WarpX::dt_snapshots_lab  = std::numeric_limits<Real>::lowest();
-bool WarpX::do_boosted_frame_fields = true;
-bool WarpX::do_boosted_frame_particles = true;
+bool WarpX::do_back_transformed_fields = true;
+bool WarpX::do_back_transformed_particles = true;
 
 int  WarpX::num_slice_snapshots_lab = 0;
 Real WarpX::dt_slice_snapshots_lab;
@@ -168,7 +168,7 @@ WarpX::WarpX ()
             current_injection_position = geom[0].ProbLo(moving_window_dir);
         }
     }
-    do_boosted_frame_particles = mypc->doBoostedFrameDiags();
+    do_back_transformed_particles = mypc->doBackTransformedDiagnostics();
 
     Efield_aux.resize(nlevs_max);
     Bfield_aux.resize(nlevs_max);
@@ -324,8 +324,8 @@ WarpX::ReadParameters ()
             moving_window_v *= PhysConst::c;
         }
 
-        pp.query("do_boosted_frame_diagnostic", do_boosted_frame_diagnostic);
-        if (do_boosted_frame_diagnostic) {
+        pp.query("do_back_transformed_diagnostics", do_back_transformed_diagnostics);
+        if (do_back_transformed_diagnostics) {
 
             AMREX_ALWAYS_ASSERT_WITH_MESSAGE(gamma_boost > 1.0,
                    "gamma_boost must be > 1 to use the boosted frame diagnostic.");
@@ -353,7 +353,7 @@ WarpX::ReadParameters ()
 
             pp.get("gamma_boost", gamma_boost);
 
-            pp.query("do_boosted_frame_fields", do_boosted_frame_fields);
+            pp.query("do_back_transformed_fields", do_back_transformed_fields);
 
             AMREX_ALWAYS_ASSERT_WITH_MESSAGE(do_moving_window,
                    "The moving window should be on if using the boosted frame diagnostic.");
@@ -600,7 +600,7 @@ WarpX::ReadParameters ()
           }
        }
 
-       if (do_boosted_frame_diagnostic) {
+       if (do_back_transformed_diagnostics) {
           AMREX_ALWAYS_ASSERT_WITH_MESSAGE(gamma_boost > 1.0,
                  "gamma_boost must be > 1 to use the boost frame diagnostic");
           pp.query("num_slice_snapshots_lab", num_slice_snapshots_lab);

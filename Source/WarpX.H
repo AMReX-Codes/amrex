@@ -4,7 +4,7 @@
 #include "WarpXDtType.H"
 #include <MultiParticleContainer.H>
 #include <PML.H>
-#include <BoostedFrameDiagnostic.H>
+#include <BackTransformedDiagnostic.H>
 #include <BilinearFilter.H>
 #include <NCIGodfreyFilter.H>
 
@@ -100,12 +100,12 @@ public:
     static bool serialize_ics;
 
     // Back transformation diagnostic
-    static bool do_boosted_frame_diagnostic;
+    static bool do_back_transformed_diagnostics;
     static std::string lab_data_directory;
     static int  num_snapshots_lab;
     static amrex::Real dt_snapshots_lab;
-    static bool do_boosted_frame_fields;
-    static bool do_boosted_frame_particles;
+    static bool do_back_transformed_fields;
+    static bool do_back_transformed_particles;
 
     // Boosted frame parameters
     static amrex::Real gamma_boost;
@@ -478,7 +478,7 @@ private:
     std::unique_ptr<MultiParticleContainer> mypc;
 
     // Boosted Frame Diagnostics
-    std::unique_ptr<BoostedFrameDiagnostic> myBFD;
+    std::unique_ptr<BackTransformedDiagnostic> myBFD;
 
     //
     // Fields: First array for level, second for direction

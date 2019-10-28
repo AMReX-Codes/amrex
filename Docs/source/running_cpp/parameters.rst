@@ -349,8 +349,8 @@ Particle initialization
     ``<species>.plot_vars = none`` to plot no particle data, except
     particle position.
 
-* ``<species>.do_boosted_frame_diags`` (`0` or `1` optional, default `1`)
-    Only used when ``warpx.do_boosted_frame_diagnostic=1``. When running in a
+* ``<species>.do_back_transformed_diagnostics`` (`0` or `1` optional, default `1`)
+    Only used when ``warpx.do_back_transformed_diagnostics=1``. When running in a
     boosted frame, whether or not to plot back-transformed diagnostics for
     this species.
 
@@ -765,7 +765,7 @@ Diagnostics and output
     When WarpX is compiled with openPMD support, this is ``h5`` by default.
     ``json`` only works with serial/single-rank jobs.
 
-* ``warpx.do_boosted_frame_diagnostic`` (`0` or `1`)
+* ``warpx.do_back_transformed_diagnostics`` (`0` or `1`)
     Whether to use the **back-transformed diagnostics** (i.e. diagnostics that
     perform on-the-fly conversion to the laboratory frame, when running
     boosted-frame simulations)
@@ -776,22 +776,22 @@ Diagnostics and output
     is `lab_frame_data`.
 
 * ``warpx.num_snapshots_lab`` (`integer`)
-    Only used when ``warpx.do_boosted_frame_diagnostic`` is ``1``.
+    Only used when ``warpx.do_back_transformed_diagnostics`` is ``1``.
     The number of lab-frame snapshots that will be written.
 
 * ``warpx.dt_snapshots_lab`` (`float`, in seconds)
-    Only used when ``warpx.do_boosted_frame_diagnostic`` is ``1``.
+    Only used when ``warpx.do_back_transformed_diagnostics`` is ``1``.
     The time interval inbetween the lab-frame snapshots (where this
     time interval is expressed in the laboratory frame).
 
 * ``warpx.dz_snapshots_lab`` (`float`, in meters)
-    Only used when ``warpx.do_boosted_frame_diagnostic`` is ``1``.
+    Only used when ``warpx.do_back_transformed_diagnostics`` is ``1``.
     Distance between the lab-frame snapshots (expressed in the laboratory
     frame). ``dt_snapshots_lab`` is then computed by
     ``dt_snapshots_lab = dz_snapshots_lab/c``. Either `dt_snapshots_lab`
     or `dz_snapshot_lab` is required.
 
-* ``warpx.do_boosted_frame_fields`` (`0 or 1`)
+* ``warpx.do_back_transformed_fields`` (`0 or 1`)
     Whether to use the **back-transformed diagnostics** for the fields.
 
 * ``warpx.boosted_frame_diag_fields`` (space-separated list of `string`)
@@ -850,7 +850,7 @@ Diagnostics and output
     negative number to disable slice generation and slice data dumping.
 
 * ``slice.num_slice_snapshots_lab`` (`integer`)
-    Only used when ``warpx.do_boosted_frame_diagnostic`` is ``1``.
+    Only used when ``warpx.do_back_transformed_diagnostics`` is ``1``.
     The number of back-transformed field and particle data that
     will be written for the reduced domain defined by ``slice.dom_lo``
     and ``slice.dom_hi``. Note that the 'slice' is a reduced
@@ -860,7 +860,7 @@ Diagnostics and output
     for further details.
 
 * ``slice.dt_slice_snapshots_lab`` (`float`, in seconds)
-    Only used when ``warpx.do_boosted_frame_diagnostic`` is ``1``.
+    Only used when ``warpx.do_back_transformed_diagnostics`` is ``1``.
     The time interval between the back-transformed reduced diagnostics (where this
     time interval is expressed in the laboratory frame).
 
