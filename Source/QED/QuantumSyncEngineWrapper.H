@@ -78,12 +78,15 @@ public:
      * allocations should be triggered on GPU
      */
     QuantumSynchrotronEvolveOpticalDepth(
-        QuantumSynchrotronEngineInnards& r_innards):
-        ctrl{r_innards.ctrl},
+        const PicsarQuantumSynchrotronCtrl t_ctrl,
+        size_t KKfunc_size,
+        amrex::Real* p_KKfunc_coords,
+        amrex::Real* p_KKfunc_data):
+        ctrl{t_ctrl},
         lookup_table{
-            r_innards.KKfunc_data.size(),
-            r_innards.KKfunc_coords.data(),
-            r_innards.KKfunc_data.data()
+            KKfunc_size,
+            p_KKfunc_coords,
+            p_KKfunc_data
         }{};
 
     /**
@@ -145,14 +148,19 @@ public:
      * allocations should be triggered on GPU
      */
     QuantumSynchrotronGeneratePhotonAndUpdateMomentum(
-        QuantumSynchrotronEngineInnards& r_innards):
-        ctrl{r_innards.ctrl},
+        const PicsarQuantumSynchrotronCtrl t_ctrl,
+        size_t cum_distrib_coords_1_size,
+        size_t cum_distrib_coords_2_size,
+        amrex::Real* p_cum_distrib_coords_1,
+        amrex::Real* p_cum_distrib_coords_2,
+        amrex::Real* p_cum_distrib_data):
+        ctrl{t_ctrl},
         lookup_table{
-            r_innards.cum_distrib_coords_1.size(),
-            r_innards.cum_distrib_coords_1.data(),
-            r_innards.cum_distrib_coords_2.size(),
-            r_innards.cum_distrib_coords_2.data(),
-            r_innards.cum_distrib_data.data()
+            cum_distrib_coords_1_size,
+            p_cum_distrib_coords_1,
+            cum_distrib_coords_2_size,
+            p_cum_distrib_coords_2,
+            p_cum_distrib_data
         }{};
 
     /**

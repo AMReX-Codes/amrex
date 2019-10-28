@@ -26,10 +26,11 @@ BreitWheelerEngine::build_evolve_functor ()
 {
     AMREX_ALWAYS_ASSERT(lookup_tables_initialized);
 
-    return BreitWheelerEvolveOpticalDepth(innards.ctrl,
+    return BreitWheelerEvolveOpticalDepth(
+        innards.ctrl,
         innards.TTfunc_coords.size(),
-        innards.TTfunc_coords.dataPtr(),
-        innards.TTfunc_data.dataPtr() );
+        innards.TTfunc_coords.data(),
+        innards.TTfunc_data.data());
 }
 
 BreitWheelerGeneratePairs
@@ -37,7 +38,13 @@ BreitWheelerEngine::build_pair_functor ()
 {
     AMREX_ALWAYS_ASSERT(lookup_tables_initialized);
 
-    return BreitWheelerGeneratePairs(innards);
+    return BreitWheelerGeneratePairs(
+        innards.ctrl,
+        innards.cum_distrib_coords_1.size(),
+        innards.cum_distrib_coords_2.size(),
+        innards.cum_distrib_coords_1.data(),
+        innards.cum_distrib_coords_2.data(),
+        innards.cum_distrib_data.data());
 }
 
 bool BreitWheelerEngine::are_lookup_tables_initialized () const

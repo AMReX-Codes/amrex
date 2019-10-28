@@ -145,15 +145,20 @@ public:
      * allocations should be triggered on GPU
      */
     BreitWheelerGeneratePairs(
-        BreitWheelerEngineInnards& r_innards):
-        ctrl{r_innards.ctrl},
+        const PicsarBreitWheelerCtrl t_ctrl,
+        size_t cum_distrib_coords_1_size,
+        size_t cum_distrib_coords_2_size,
+        amrex::Real* p_cum_distrib_coords_1,
+        amrex::Real* p_cum_distrib_coords_2,
+        amrex::Real* p_cum_distrib_data):
+        ctrl{t_ctrl},
         lookup_table{
-            r_innards.cum_distrib_coords_1.size(),
-            r_innards.cum_distrib_coords_1.data(),
-            r_innards.cum_distrib_coords_2.size(),
-            r_innards.cum_distrib_coords_2.data(),
-            r_innards.cum_distrib_data.data()
-        }{};
+            cum_distrib_coords_1_size,
+            p_cum_distrib_coords_1,
+            cum_distrib_coords_2_size,
+            p_cum_distrib_coords_2,
+            p_cum_distrib_data}
+        {};
 
     /**
      * Generates sampling (template parameter) pairs according to Breit Wheeler process.

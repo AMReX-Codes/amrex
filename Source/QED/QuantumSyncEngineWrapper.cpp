@@ -25,14 +25,25 @@ QuantumSynchrotronEvolveOpticalDepth QuantumSynchrotronEngine::build_evolve_func
 {
     AMREX_ALWAYS_ASSERT(lookup_tables_initialized);
 
-    return QuantumSynchrotronEvolveOpticalDepth(innards);
+    return QuantumSynchrotronEvolveOpticalDepth(
+        innards.ctrl,
+        innards.KKfunc_coords.size(),
+        innards.KKfunc_coords.data(),
+        innards.KKfunc_data.data());
 }
 
 QuantumSynchrotronGeneratePhotonAndUpdateMomentum QuantumSynchrotronEngine::build_phot_em_functor ()
 {
     AMREX_ALWAYS_ASSERT(lookup_tables_initialized);
 
-    return QuantumSynchrotronGeneratePhotonAndUpdateMomentum(innards);
+    return QuantumSynchrotronGeneratePhotonAndUpdateMomentum(
+        innards.ctrl,
+        innards.cum_distrib_coords_1.size(),
+        innards.cum_distrib_coords_2.size(),
+        innards.cum_distrib_coords_1.data(),
+        innards.cum_distrib_coords_2.data(),
+        innards.cum_distrib_data.data()
+    );
 
 }
 
