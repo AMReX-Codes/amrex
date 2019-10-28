@@ -55,10 +55,10 @@ NodalProjector::define ( const  amrex::Vector<amrex::Geometry>&              a_g
     for (int lev(0); lev < nlev; ++lev )
     {
         // Cell-centered data
-        m_fluxes[lev].reset(new MultiFab(m_grids[lev], m_dmap[lev], 3, ng));
+        m_fluxes[lev].reset(new MultiFab(m_grids[lev], m_dmap[lev], AMREX_SPACEDIM, ng));
 
         // Node-centered data
-        const auto& ba_nd = amrex::convert(m_grids[lev], IntVect{1,1,1});
+	const auto& ba_nd = m_grids[lev].surroundingNodes();
         m_phi[lev].reset(new MultiFab(ba_nd, m_dmap[lev], 1, ng));
         m_rhs[lev].reset(new MultiFab(ba_nd, m_dmap[lev], 1, ng));
     }
@@ -104,10 +104,10 @@ NodalProjector::define ( const  amrex::Vector<amrex::Geometry>&                 
     for (int lev(0); lev < nlev; ++lev )
     {
         // Cell-centered data
-        m_fluxes[lev].reset(new MultiFab(m_grids[lev], m_dmap[lev], 3, ng, MFInfo(), *m_ebfactory[lev]));
+        m_fluxes[lev].reset(new MultiFab(m_grids[lev], m_dmap[lev], AMREX_SPACEDIM, ng, MFInfo(), *m_ebfactory[lev]));
 
         // Node-centered data
-        const auto& ba_nd = amrex::convert(m_grids[lev], IntVect{1,1,1});
+	const auto& ba_nd = m_grids[lev].surroundingNodes();
         m_phi[lev].reset(new MultiFab(ba_nd, m_dmap[lev], 1, ng, MFInfo(), *m_ebfactory[lev]));
         m_rhs[lev].reset(new MultiFab(ba_nd, m_dmap[lev], 1, ng, MFInfo(), *m_ebfactory[lev]));
     }
