@@ -99,8 +99,8 @@ WarpX::MoveWindow (bool move_j)
         for (int dim = 0; dim < 3; ++dim) {
 
             // Fine grid
-            shiftMF(*Bfield_fp[lev][dim], geom[lev], num_shift, dir);
-            shiftMF(*Efield_fp[lev][dim], geom[lev], num_shift, dir);
+            shiftMF(*Bfield_fp[lev][dim], geom[lev], num_shift, dir, B_external_grid[dim]);
+            shiftMF(*Efield_fp[lev][dim], geom[lev], num_shift, dir, E_external_grid[dim]);
             if (move_j) {
                 shiftMF(*current_fp[lev][dim], geom[lev], num_shift, dir);
             }
@@ -113,8 +113,8 @@ WarpX::MoveWindow (bool move_j)
 
             if (lev > 0) {
                 // Coarse grid
-                shiftMF(*Bfield_cp[lev][dim], geom[lev-1], num_shift_crse, dir);
-                shiftMF(*Efield_cp[lev][dim], geom[lev-1], num_shift_crse, dir);
+                shiftMF(*Bfield_cp[lev][dim], geom[lev-1], num_shift_crse, dir, B_external_grid[dim]);
+                shiftMF(*Efield_cp[lev][dim], geom[lev-1], num_shift_crse, dir, E_external_grid[dim]);
                 shiftMF(*Bfield_aux[lev][dim], geom[lev], num_shift, dir);
                 shiftMF(*Efield_aux[lev][dim], geom[lev], num_shift, dir);
                 if (move_j) {
@@ -203,7 +203,8 @@ WarpX::MoveWindow (bool move_j)
 }
 
 void
-WarpX::shiftMF (MultiFab& mf, const Geometry& geom, int num_shift, int dir)
+WarpX::shiftMF (MultiFab& mf, const Geometry& geom, int num_shift, int dir,
+                amrex::Real external_field)
 {
     BL_PROFILE("WarpX::shiftMF()");
     const BoxArray& ba = mf.boxArray();
@@ -257,7 +258,7 @@ WarpX::shiftMF (MultiFab& mf, const Geometry& geom, int num_shift, int dir)
         if (outbox.ok()) {
             AMREX_PARALLEL_FOR_4D ( outbox, nc, i, j, k, n,
             {
-                srcfab(i,j,k,n) = 0.0;
+                srcfab(i,j,k,n) = external_field;
             });
         }
 

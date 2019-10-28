@@ -1,8 +1,8 @@
 #################################
 ######### BOX PARAMETERS ########
 #################################
-# max_step = 2700
-stop_time = 1.9e-12
+max_step = 2700
+# stop_time = 1.9e-12
 amr.n_cell =  128 1024
 amr.max_grid_size = 64
 amr.blocking_factor = 32
@@ -21,7 +21,7 @@ warpx.verbose = 1
 amrex.v = 1
 algo.current_deposition = esirkepov
 algo.charge_deposition = standard
-algo.field_gathering = standard
+algo.field_gathering = energy-conserving
 algo.particle_pusher = vay
 algo.maxwell_fdtd_solver = ckc
 interpolation.nox = 3
@@ -41,7 +41,7 @@ warpx.serialize_ics = 1
 #################################
 warpx.gamma_boost = 10.
 warpx.boost_direction = z
-warpx.do_boosted_frame_diagnostic = 1
+warpx.do_back_transformed_diagnostics = 1
 warpx.num_snapshots_lab = 7
 warpx.dt_snapshots_lab = 1.6678204759907604e-12
 
@@ -94,8 +94,6 @@ beam.y_m = 0.
 beam.z_m = -20.e-6
 beam.npart = 1000
 beam.q_tot = -1.e-14
-beam.profile = "constant"
-beam.density = 8.e23                   # number of particles per m^3
 beam.momentum_distribution_type = "gaussian"
 beam.ux_m = 0.0
 beam.uy_m = 0.0

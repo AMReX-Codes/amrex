@@ -43,7 +43,7 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
     pp.query("do_continuous_injection", do_continuous_injection);
     // Whether to plot back-transformed (lab-frame) diagnostics
     // for this species.
-    pp.query("do_boosted_frame_diags", do_boosted_frame_diags);
+    pp.query("do_back_transformed_diagnostics", do_back_transformed_diagnostics);
 
     pp.query("do_field_ionization", do_field_ionization);
 
@@ -87,7 +87,7 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
 
     //variable to set plot_flags size
     int plot_flag_size = PIdx::nattribs;
-    if(WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
+    if(WarpX::do_back_transformed_diagnostics && do_back_transformed_diagnostics)
         plot_flag_size += 6;
 
 #ifdef WARPX_QED
@@ -442,13 +442,13 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
         for (int dir=0; dir<AMREX_SPACEDIM; dir++) {
             if ( tile_realbox.lo(dir) <= part_realbox.hi(dir) ) {
                 Real ncells_adjust = std::floor( (tile_realbox.lo(dir) - part_realbox.lo(dir))/dx[dir] );
-                overlap_realbox.setLo( dir, part_realbox.lo(dir) + std::max(ncells_adjust, Real(0.)) * dx[dir]);
+                overlap_realbox.setLo( dir, part_realbox.lo(dir) + std::max(ncells_adjust, 0._rt) * dx[dir]);
             } else {
                 no_overlap = true; break;
             }
             if ( tile_realbox.hi(dir) >= part_realbox.lo(dir) ) {
                 Real ncells_adjust = std::floor( (part_realbox.hi(dir) - tile_realbox.hi(dir))/dx[dir] );
-                overlap_realbox.setHi( dir, part_realbox.hi(dir) - std::max(ncells_adjust, Real(0.)) * dx[dir]);
+                overlap_realbox.setHi( dir, part_realbox.hi(dir) - std::max(ncells_adjust, 0._rt) * dx[dir]);
             } else {
                 no_overlap = true; break;
             }
@@ -1013,12 +1013,12 @@ PhysicalParticleContainer::FieldGather (int lev,
             const FArrayBox& byfab = By[pti];
             const FArrayBox& bzfab = Bz[pti];
 
-            Exp.assign(np,WarpX::E_external[0]);
-            Eyp.assign(np,WarpX::E_external[1]);
-            Ezp.assign(np,WarpX::E_external[2]);
-            Bxp.assign(np,WarpX::B_external[0]);
-            Byp.assign(np,WarpX::B_external[1]);
-            Bzp.assign(np,WarpX::B_external[2]);
+            Exp.assign(np,WarpX::E_external_particle[0]);
+            Eyp.assign(np,WarpX::E_external_particle[1]);
+            Ezp.assign(np,WarpX::E_external_particle[2]);
+            Bxp.assign(np,WarpX::B_external_particle[0]);
+            Byp.assign(np,WarpX::B_external_particle[1]);
+            Bzp.assign(np,WarpX::B_external_particle[2]);
 
             //
             // copy data from particle container to temp arrays
@@ -1079,7 +1079,7 @@ PhysicalParticleContainer::Evolve (int lev,
 
     bool has_buffer = cEx || cjx;
 
-    if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
+    if (WarpX::do_back_transformed_diagnostics && do_back_transformed_diagnostics)
     {
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
         {
@@ -1149,13 +1149,13 @@ PhysicalParticleContainer::Evolve (int lev,
                                exfab, eyfab, ezfab, bxfab, byfab, bzfab);
             }
 
-            Exp.assign(np,WarpX::E_external[0]);
-            Eyp.assign(np,WarpX::E_external[1]);
-            Ezp.assign(np,WarpX::E_external[2]);
+            Exp.assign(np,WarpX::E_external_particle[0]);
+            Eyp.assign(np,WarpX::E_external_particle[1]);
+            Ezp.assign(np,WarpX::E_external_particle[2]);
 
-            Bxp.assign(np,WarpX::B_external[0]);
-            Byp.assign(np,WarpX::B_external[1]);
-            Bzp.assign(np,WarpX::B_external[2]);
+            Bxp.assign(np,WarpX::B_external_particle[0]);
+            Byp.assign(np,WarpX::B_external_particle[1]);
+            Bzp.assign(np,WarpX::B_external_particle[2]);
 
             // Determine which particles deposit/gather in the buffer, and
             // which particles deposit/gather in the fine patch
@@ -1428,9 +1428,9 @@ PhysicalParticleContainer::SplitParticles(int lev)
         // before splitting results in a uniform distribution after splitting
         const amrex::Vector<int> ppc_nd = plasma_injector->num_particles_per_cell_each_dim;
         const std::array<Real,3>& dx = WarpX::CellSize(lev);
-        amrex::Vector<amrex::Real> split_offset = {dx[0]/2./ppc_nd[0],
-                                                   dx[1]/2./ppc_nd[1],
-                                                   dx[2]/2./ppc_nd[2]};
+        amrex::Vector<Real> split_offset = {dx[0]/2._rt/ppc_nd[0],
+                                            dx[1]/2._rt/ppc_nd[1],
+                                            dx[2]/2._rt/ppc_nd[2]};
 
         // particle Array Of Structs data
         auto& particles = pti.GetArrayOfStructs();
@@ -1586,7 +1586,7 @@ PhysicalParticleContainer::PushPX(WarpXParIter& pti,
     const ParticleReal* const AMREX_RESTRICT By = attribs[PIdx::By].dataPtr();
     const ParticleReal* const AMREX_RESTRICT Bz = attribs[PIdx::Bz].dataPtr();
 
-    if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags && (a_dt_type!=DtType::SecondHalf))
+    if (WarpX::do_back_transformed_diagnostics && do_back_transformed_diagnostics && (a_dt_type!=DtType::SecondHalf))
     {
         copy_attribs(pti, x, y, z);
     }
@@ -1702,13 +1702,13 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
             const FArrayBox& byfab = By[pti];
             const FArrayBox& bzfab = Bz[pti];
 
-            Exp.assign(np,WarpX::E_external[0]);
-            Eyp.assign(np,WarpX::E_external[1]);
-            Ezp.assign(np,WarpX::E_external[2]);
+            Exp.assign(np,WarpX::E_external_particle[0]);
+            Eyp.assign(np,WarpX::E_external_particle[1]);
+            Ezp.assign(np,WarpX::E_external_particle[2]);
 
-            Bxp.assign(np,WarpX::B_external[0]);
-            Byp.assign(np,WarpX::B_external[1]);
-            Bzp.assign(np,WarpX::B_external[2]);
+            Bxp.assign(np,WarpX::B_external_particle[0]);
+            Byp.assign(np,WarpX::B_external_particle[1]);
+            Bzp.assign(np,WarpX::B_external_particle[2]);
 
             //
             // copy data from particle container to temp arrays
@@ -1843,7 +1843,7 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
     // Note the the slice should always move in the negative boost direction.
     AMREX_ALWAYS_ASSERT(z_new < z_old);
 
-    AMREX_ALWAYS_ASSERT(do_boosted_frame_diags == 1);
+    AMREX_ALWAYS_ASSERT(do_back_transformed_diagnostics == 1);
 
     const int nlevs = std::max(0, finestLevel()+1);
 

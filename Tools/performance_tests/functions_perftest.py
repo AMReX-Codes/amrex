@@ -174,6 +174,7 @@ def get_nsteps(run_name):
 def extract_dataframe(filename, n_steps):
     # Get init time and total time through Inclusive time
     partition_limit_start = 'NCalls  Incl. Min  Incl. Avg  Incl. Max   Max %'
+    print(filename)
     with open(filename) as file_handler:
         output_text = file_handler.read()
     # get total simulation time

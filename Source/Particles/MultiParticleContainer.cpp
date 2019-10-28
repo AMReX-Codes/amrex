@@ -38,14 +38,14 @@ MultiParticleContainer::MultiParticleContainer (AmrCore* amr_core)
     // Compute the number of species for which lab-frame data is dumped
     // nspecies_lab_frame_diags, and map their ID to MultiParticleContainer
     // particle IDs in map_species_lab_diags.
-    map_species_boosted_frame_diags.resize(nspecies);
-    nspecies_boosted_frame_diags = 0;
+    map_species_back_transformed_diagnostics.resize(nspecies);
+    nspecies_back_transformed_diagnostics = 0;
     for (int i=0; i<nspecies; i++){
         auto& pc = allcontainers[i];
-        if (pc->do_boosted_frame_diags){
-            map_species_boosted_frame_diags[nspecies_boosted_frame_diags] = i;
-            do_boosted_frame_diags = 1;
-            nspecies_boosted_frame_diags += 1;
+        if (pc->do_back_transformed_diagnostics){
+            map_species_back_transformed_diagnostics[nspecies_back_transformed_diagnostics] = i;
+            do_back_transformed_diagnostics = 1;
+            nspecies_back_transformed_diagnostics += 1;
         }
     }
     ionization_process = IonizationProcess();
@@ -396,8 +396,8 @@ MultiParticleContainer
     BL_PROFILE("MultiParticleContainer::GetLabFrameData");
 
     // Loop over particle species
-    for (int i = 0; i < nspecies_boosted_frame_diags; ++i){
-        int isp = map_species_boosted_frame_diags[i];
+    for (int i = 0; i < nspecies_back_transformed_diagnostics; ++i){
+        int isp = map_species_back_transformed_diagnostics[i];
         WarpXParticleContainer* pc = allcontainers[isp].get();
         WarpXParticleContainer::DiagnosticParticles diagnostic_particles;
         pc->GetParticleSlice(direction, z_old, z_new, t_boost, t_lab, dt, diagnostic_particles);
@@ -535,10 +535,6 @@ MultiParticleContainer::getSpeciesID (std::string product_str)
     return i_product;
 }
 
-namespace
-{
-}
-
 void
 MultiParticleContainer::doFieldIonization ()
 {
@@ -616,14 +612,17 @@ MultiParticleContainer::doFieldIonization ()
 #ifdef WARPX_QED
 void MultiParticleContainer::InitQED ()
 {
+    shr_p_qs_engine = std::make_shared<QuantumSynchrotronEngine>();
+    shr_p_bw_engine = std::make_shared<BreitWheelerEngine>();
+
     for (auto& pc : allcontainers) {
         if(pc->has_quantum_sync()){
             pc->set_quantum_sync_engine_ptr
-                (std::make_shared<QuantumSynchrotronEngine>(qs_engine));
+                (shr_p_qs_engine);
         }
         if(pc->has_breit_wheeler()){
             pc->set_breit_wheeler_engine_ptr
-                (std::make_shared<BreitWheelerEngine>(bw_engine));
+                (shr_p_bw_engine);
         }
     }
 }

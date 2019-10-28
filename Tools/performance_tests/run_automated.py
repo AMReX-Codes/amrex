@@ -67,7 +67,7 @@ parser.add_argument('--architecture',
                     default='knl',
                     help='which architecture to cross-compile for NERSC machines')
 parser.add_argument('--mode',
-                    choices=['run', 'read', 'browse_output_files', 'write_csv'],
+                    choices=['run', 'read', 'browse_output_files'],
                     default='run',
                     help='whether to run perftests or read their perf output. run calls read')
 args = parser.parse_args()
@@ -79,20 +79,17 @@ architecture = args.architecture
 
 # Set behavior variables
 ########################
-write_csv = False
+update_perf_log_repo = False
 browse_output_files = False
-if args.mode == 'write_csv':
-    write_csv = True
 if args.mode == 'browse_output_files':
     browse_output_file = True
 if args.mode == 'read':
-    write_csv = True
     browse_output_files = True
 recompile = args.recompile
 perf_database_file = 'my_tests_database.h5'
 if args.automated == True:
     run_name = 'automated_tests'
-    perf_database_file = 'automated_tests_database.h5'
+    perf_database_file = machine + '_results.h5'
     rename_archive = True
     store_full_input = False
     update_perf_log_repo = True
@@ -100,7 +97,7 @@ if args.automated == True:
     pull_3_repos = True
     recompile = True
     if machine == 'summit':
-        compiler = 'pgi'
+        compiler = 'gnu'
         architecture = 'gpu'
 
 # List of tests to perform
@@ -124,12 +121,13 @@ perf_logs_repo = source_dir_base + 'perf_logs/'
 compiler_name = {'intel': 'intel', 'gnu': 'gcc', 'pgi':'pgi'}
 module_Cname = {'cpu': 'haswell', 'knl': 'knl,quad,cache', 'gpu':''}
 csv_file = {'cori':'cori_knl.csv', 'summit':'summit.csv'}
-cwd = os.getcwd() + '/'
+# cwd = os.getcwd() + '/'
+cwd = warpx_dir + 'Tools/performance_tests/'
+print('cwd = ' + cwd)
 bin_dir = cwd + 'Bin/'
 bin_name = executable_name(compiler, architecture)
 
 log_dir  = cwd
-perf_database_file = cwd + perf_database_file
 day = time.strftime('%d')
 month = time.strftime('%m')
 year = time.strftime('%Y')
@@ -250,49 +248,32 @@ for n_node in n_node_list:
                 df_newline['inputs_content'] = get_file_content( filename=cwd+current_run.input_file )
             # Load file perf_database_file if exists, and
             # append with results from this scan
-            if os.path.exists(perf_database_file):
-                # df_base = pd.read_hdf(perf_database_file, 'all_data', format='table')
-                df_base = pd.read_hdf(perf_database_file, 'all_data')
+            if os.path.exists(perf_logs_repo + '/logs_hdf5/' + perf_database_file):
+                df_base = pd.read_hdf(perf_logs_repo + '/logs_hdf5/' + perf_database_file, 'all_data')
                 updated_df = df_base.append(df_newline, ignore_index=True)
             else:
                 updated_df = df_newline
             # Write dataframe to file perf_database_file
             # (overwrite if file exists)
-            updated_df.to_hdf(perf_database_file, key='all_data', mode='w')
+            updated_df.to_hdf(perf_logs_repo + '/logs_hdf5/' + perf_database_file, key='all_data', mode='w', format='table')
 
 # Extract sub-set of pandas data frame, write it to
 # csv file and copy this file to perf_logs repo
 # -------------------------------------------------
-if write_csv:
-    # Extract small data from data frame and write them to
-    # First, generate csv files
-    df = pd.read_hdf( perf_database_file )
-    # One large file
-    df.loc[:,'step_time'] = pd.Series(df['time_running']/df['n_steps'], index=df.index)
-    # Make smaller dataframe with only data to be written to csv file
-    df_small = df.copy()
-    df_small.loc[ df_small['input_file']=='automated_test_6_output_2ppc', 'step_time'] = \
-        df_small[ df_small['input_file']=='automated_test_6_output_2ppc' ]['time_WritePlotFile']
-    df_small = df_small.loc[:, ['date', 'input_file', 'git_hashes', 'n_node', 'n_mpi_per_node', 'n_omp', 'rep', 'start_date', 'time_initialization', 'step_time'] ]
-    # Write to csv
-    df_small.to_csv( csv_file[machine] )
-    # Errors may occur depending on the version of pandas. I had errors with v0.21.0 solved with 0.23.0
-    # Second, move files to perf_logs repo
-    if update_perf_log_repo:
-        # get perf_logs repo
-        git_repo = git.Repo( perf_logs_repo )
-        if push_on_perf_log_repo:
-            git_repo.git.stash('save')
-            git_repo.git.pull()
-        # move csv file to perf_logs repon and commit the new version
-        shutil.move( csv_file[machine], perf_logs_repo + '/logs_csv/' + csv_file[machine] )
-        os.chdir( perf_logs_repo )
-        sys.path.append('./')
-        import generate_index_html
-        git_repo.git.add('./index.html')
-        git_repo.git.add('./logs_csv/' + csv_file[machine])
-        index = git_repo.index
-        index.commit("automated tests")
+if args.mode=='read' and update_perf_log_repo:
+    # get perf_logs repo
+    git_repo = git.Repo( perf_logs_repo )
+    if push_on_perf_log_repo:
+        git_repo.git.stash('save')
+        git_repo.git.pull()
+    os.chdir( perf_logs_repo )
+    sys.path.append('./')
+    import generate_index_html
+    git_repo.git.add('./index.html')
+    git_repo.git.add('./logs_csv/' + csv_file[machine])
+    git_repo.git.add('./logs_hdf5/' + perf_database_file)
+    index = git_repo.index
+    index.commit("automated tests")
 
 # Rename all result directories for archiving purposes:
 # include date in the name, and a counter to avoid over-writing

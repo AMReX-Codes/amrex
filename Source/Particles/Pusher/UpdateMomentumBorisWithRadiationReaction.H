@@ -23,8 +23,7 @@ void UpdateMomentumBorisWithRadiationReaction(
     const amrex::Real uy_old = uy;
     const amrex::Real uz_old = uz;
 
-    //Useful constants
-    const amrex::Real inv_dt = 1.0/dt;
+    //Useful constant
     constexpr amrex::Real inv_c2 = 1./(PhysConst::c*PhysConst::c);
 
     //Call to regular Boris pusher
