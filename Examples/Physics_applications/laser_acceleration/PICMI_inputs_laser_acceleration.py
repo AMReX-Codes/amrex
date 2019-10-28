@@ -32,7 +32,7 @@ plasma_max     = [ 20.e-6,  20.e-6,  1.e-3]
 
 # --- Nb time steps
 
-max_steps = 1000
+max_steps = 10
 
 # --- grid
 
