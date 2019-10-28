@@ -304,18 +304,18 @@ WarpX::InitLevelData (int lev, Real time)
 {
     for (int i = 0; i < 3; ++i) {
         current_fp[lev][i]->setVal(0.0);
-        Efield_fp[lev][i]->setVal(0.0);
-        Bfield_fp[lev][i]->setVal(0.0);
+        Efield_fp[lev][i]->setVal(E_external_grid[i]);
+        Bfield_fp[lev][i]->setVal(B_external_grid[i]);
     }
 
     if (lev > 0) {
         for (int i = 0; i < 3; ++i) {
-            Efield_aux[lev][i]->setVal(0.0);
-            Bfield_aux[lev][i]->setVal(0.0);
+            Efield_aux[lev][i]->setVal(E_external_grid[i]);
+            Bfield_aux[lev][i]->setVal(B_external_grid[i]);
 
             current_cp[lev][i]->setVal(0.0);
-            Efield_cp[lev][i]->setVal(0.0);
-            Bfield_cp[lev][i]->setVal(0.0);
+            Efield_cp[lev][i]->setVal(E_external_grid[i]);
+            Bfield_cp[lev][i]->setVal(B_external_grid[i]);
         }
     }
 
