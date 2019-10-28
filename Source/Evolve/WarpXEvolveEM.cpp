@@ -75,8 +75,8 @@ WarpX::EvolveEM (int numsteps)
         // Particles have p^{n} and x^{n}.
         // is_synchronized is true.
         if (is_synchronized) {
-            FillBoundaryE(guard_cells.ngE);
-            FillBoundaryB(guard_cells.ngE);
+            FillBoundaryE(guard_cells.ng_FieldGather);
+            FillBoundaryB(guard_cells.ng_FieldGather);
             UpdateAuxilaryData();
             // on first step, push p by -0.5*dt
             for (int lev = 0; lev <= finest_level; ++lev) {
@@ -89,7 +89,9 @@ WarpX::EvolveEM (int numsteps)
         } else {
             // Beyond one step, we have E^{n} and B^{n}.
             // Particles have p^{n-1/2} and x^{n}.
+            // This is probably overkill
             FillBoundaryE(guard_cells.ngE);
+            // This is probably overkill
             FillBoundaryB(guard_cells.ngE);
             UpdateAuxilaryData();
 
@@ -185,7 +187,9 @@ WarpX::EvolveEM (int numsteps)
         // slice gen //
         if (to_make_plot || do_insitu || to_make_slice_plot)
         {
+            // This is probably overkill
             FillBoundaryE(guard_cells.ngE);
+            // This is probably overkill
             FillBoundaryB(guard_cells.ngE);
             UpdateAuxilaryData();
 
@@ -237,7 +241,9 @@ WarpX::EvolveEM (int numsteps)
 
     if (write_plot_file || do_insitu)
     {
+        // This is probably overkill
         FillBoundaryE(guard_cells.ngE);
+        // This is probably overkill
         FillBoundaryB(guard_cells.ngE);
         UpdateAuxilaryData();
 
@@ -314,17 +320,15 @@ WarpX::OneStep_nosub (Real cur_time)
     EvolveF(0.5*dt[0], DtType::FirstHalf);
     FillBoundaryF(guard_cells.ngF);
     EvolveB(0.5*dt[0]); // We now have B^{n+1/2}
-    FillBoundaryB(guard_cells.ngE);
+    FillBoundaryB(guard_cells.ngE_FieldSolver);
 
     EvolveE(dt[0]); // We now have E^{n+1}
-    FillBoundaryE(guard_cells.ngE);
+    FillBoundaryE(guard_cells.ngE_FieldSolver);
     EvolveF(0.5*dt[0], DtType::SecondHalf);
     EvolveB(0.5*dt[0]); // We now have B^{n+1}
     if (do_pml) {
         DampPML();
-        FillBoundaryE(guard_cells.ngE);
     }
-    FillBoundaryB(guard_cells.ngE);
 
 #endif
 }

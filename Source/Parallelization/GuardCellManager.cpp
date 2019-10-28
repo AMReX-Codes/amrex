@@ -118,6 +118,7 @@ guardCellManager::Init(
             ngF_int = ng_required;
         }
     }
+    ngF = IntVect(AMREX_D_DECL(ngF_int, ngF_int, ngF_int));
 #endif        
 
     ngExtra = IntVect(static_cast<int>(aux_is_nodal and !do_nodal));
