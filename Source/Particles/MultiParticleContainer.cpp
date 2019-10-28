@@ -596,14 +596,14 @@ MultiParticleContainer::doFieldIonization ()
                 amrex::Gpu::ManagedDeviceVector<int> is_ionized;
                 pc_source->buildIonizationMask(mfi, lev, is_ionized);
                 // Create particles in pc_product
-                int do_boost = WarpX::do_boosted_frame_diagnostic
-                    && pc_product->DoBoostedFrameDiags();
-                amrex::Gpu::ManagedDeviceVector<int> v_do_boosted_product{do_boost};
+                int do_boost = WarpX::do_back_transformed_diagnostics
+                    && pc_product->doBackTransformedDiagnostics();
+                amrex::Gpu::ManagedDeviceVector<int> v_do_back_transformed_product{do_boost};
                 const amrex::Vector<WarpXParticleContainer*> v_pc_product {pc_product.get()};
                 // Copy source to product particles, and increase ionization
                 // level of source particle
                 ionization_process.createParticles(lev, mfi, pc_source, v_pc_product,
-                                                   is_ionized, v_do_boosted_product);
+                                                   is_ionized, v_do_back_transformed_product);
             }
         } // lev
     } // pc_source

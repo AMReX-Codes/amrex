@@ -30,21 +30,21 @@ public:
      * \brief initialize and return functor for particle copy
      *
      * \param cpuid id of MPI rank
-     * \param do_boosted_product whether to copy old attribs
+     * \param do_back_transformed_product whether to copy old attribs
      * \param runtime_uold_source momentum of source particles
      * \param attribs_source attribs of source particles
      * \param attribs_product attribs of product particles
      * \param runtime_attribs_product runtime attribs for product, to store old attribs
      */
     copyParticle initialize_copy(
-        const int cpuid, const int do_boosted_product,
+        const int cpuid, const int do_back_transformed_product,
         const amrex::GpuArray<amrex::ParticleReal*,3> runtime_uold_source,
         const amrex::GpuArray<amrex::ParticleReal*,PIdx::nattribs> attribs_source,
         const amrex::GpuArray<amrex::ParticleReal*,PIdx::nattribs> attribs_product,
         const amrex::GpuArray<amrex::ParticleReal*,6> runtime_attribs_product) const noexcept
     {
         return copyParticle (
-            cpuid, do_boosted_product, runtime_uold_source,
+            cpuid, do_back_transformed_product, runtime_uold_source,
             attribs_source, attribs_product, runtime_attribs_product);
     };
 
@@ -59,7 +59,7 @@ public:
      * \param pc_source source particle container
      * \param v_pc_product vector of product particle containers
      * \param is_flagged particles for which is_flagged is 1 are copied
-     * \param v_do_boosted_product vector: whether to copy old attribs for
+     * \param v_do_back_transformed_product vector: whether to copy old attribs for
      *        each product container
      */
     void createParticles (
@@ -67,7 +67,7 @@ public:
         std::unique_ptr< WarpXParticleContainer>& pc_source,
         amrex::Vector<WarpXParticleContainer*> v_pc_product,
         amrex::Gpu::ManagedDeviceVector<int>& is_flagged,
-        amrex::Gpu::ManagedDeviceVector<int> v_do_boosted_product)
+        amrex::Gpu::ManagedDeviceVector<int> v_do_back_transformed_product)
     {
 
         BL_PROFILE("createParticles");
@@ -100,8 +100,8 @@ public:
 
         int nproducts = v_pc_product.size();
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-            v_do_boosted_product.size() == nproducts,
-            "v_pc_product and v_do_boosted_product must have the same size.");
+            v_do_back_transformed_product.size() == nproducts,
+            "v_pc_product and v_do_back_transformed_product must have the same size.");
 
         // Indices of product particle for each source particle.
         // i_product[i]-1 is the location in product tile of product particle
@@ -149,7 +149,7 @@ public:
             }
             // --- product runtime attribs
             amrex::GpuArray<amrex::ParticleReal*,6> runtime_attribs_product;
-            const int do_boost = v_do_boosted_product[iproduct];
+            const int do_boost = v_do_back_transformed_product[iproduct];
             if (do_boost) {
                 std::map<std::string, int> comps_product = pc_product->getParticleComps();
                 runtime_attribs_product[0] = soa_product.GetRealData(comps_product[ "xold"]).data() + np_product_old;
@@ -173,7 +173,7 @@ public:
 
             // Create instance of copy functor, and add it to the vector
             v_copy_functor.push_back (initialize_copy(
-                                          cpuid, v_do_boosted_product[iproduct],
+                                          cpuid, v_do_back_transformed_product[iproduct],
                                           runtime_uold_source,
                                           attribs_source,
                                           attribs_product,

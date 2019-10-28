@@ -21,7 +21,7 @@ public:
     // ID of MPI rank
     int m_cpuid;
     // If true, will copy old attribs for back-transforme diagnostics
-    bool m_do_boosted_product;
+    bool m_do_back_transformed_product;
     // Source old (runtime) attribs for back-transformed diagnostics
     amrex::GpuArray<amrex::ParticleReal*,3> m_runtime_uold_source;
     // Source attribs
@@ -34,14 +34,14 @@ public:
     // Simple constructor
     AMREX_GPU_HOST_DEVICE
     copyParticle(
-        const int cpuid, const int do_boosted_product,
+        const int cpuid, const int do_back_transformed_product,
         const amrex::GpuArray<amrex::ParticleReal*,3> runtime_uold_source,
         const amrex::GpuArray<amrex::ParticleReal*,PIdx::nattribs> attribs_source,
         const amrex::GpuArray<amrex::ParticleReal*,PIdx::nattribs> attribs_product,
         const amrex::GpuArray<amrex::ParticleReal*,6> runtime_attribs_product)
         :
         m_cpuid(cpuid),
-        m_do_boosted_product(do_boosted_product),
+        m_do_back_transformed_product(do_back_transformed_product),
         m_runtime_uold_source(runtime_uold_source),
         m_attribs_source(attribs_source),
         m_attribs_product(attribs_product),
@@ -76,7 +76,7 @@ public:
         // Update xold etc. if boosted frame diagnostics required
         // for product species. Fill runtime attribs with a copy of
         // current properties (xold = x etc.).
-        if (m_do_boosted_product) {
+        if (m_do_back_transformed_product) {
             m_runtime_attribs_product[0][ip] = p_source.pos(0);
             m_runtime_attribs_product[1][ip] = p_source.pos(1);
             m_runtime_attribs_product[2][ip] = p_source.pos(2);
