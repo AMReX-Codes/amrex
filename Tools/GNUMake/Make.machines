@@ -47,6 +47,11 @@ ifeq ($(findstring ascent, $(host_name)), ascent)
   which_computer := ascent
 endif
 
+ifeq ($(findstring peak, $(host_name)), peak)
+  which_site := olcf
+  which_computer := peak
+endif
+
 ifeq ($(findstring sierra, $(host_name)), sierra)
   which_site := llnl
   which_computer := sierra
