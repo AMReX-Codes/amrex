@@ -37,7 +37,6 @@ public:
                   std::array<LinOpBCType,AMREX_SPACEDIM>     a_bc_lo,
                   std::array<LinOpBCType,AMREX_SPACEDIM>     a_bc_hi );
 
-
 #ifdef AMREX_USE_EB
     void define ( const Vector<Geometry>&             a_geom,
                   const Vector<BoxArray>&             a_grids,
@@ -47,24 +46,23 @@ public:
                   Vector<EBFArrayBoxFactory const *>  a_ebfactory );
 #endif
 
+    void project ( const amrex::Vector<amrex::MultiFab*>&       a_vel,
+                   const amrex::Vector<const amrex::MultiFab*>& a_sigma,
+                   const amrex::Vector<amrex::MultiFab*>        a_S_cc = {},
+                   const amrex::Vector<const amrex::MultiFab*>& a_S_nd = {} );
 
-    void project ( Vector< std::unique_ptr< MultiFab > >& a_vel,
-                   const Vector< std::unique_ptr< MultiFab > >& a_sigma,
-                   const Vector< std::unique_ptr< MultiFab > >& a_S_cc = {},
-                   const Vector< std::unique_ptr< MultiFab > >& a_S_nd = {} );
-
-    void project2 (  Vector< std::unique_ptr< MultiFab > >&       a_vel,
-                     const Vector< std::unique_ptr< MultiFab > >& a_alpha,
-                     const Vector< std::unique_ptr< MultiFab > >& a_beta,
-                     const Vector< std::unique_ptr< MultiFab > >& a_rhs );
+    void project2 ( const amrex::Vector<amrex::MultiFab*>&       a_vel,
+                    const amrex::Vector<const amrex::MultiFab*>& a_alpha,
+                    const amrex::Vector<const amrex::MultiFab*>& a_beta,
+                    const amrex::Vector<const amrex::MultiFab*>& a_rhs );
 
     Vector< const MultiFab* > getPhi ()     const {return GetVecOfConstPtrs(m_phi);};
     Vector< const MultiFab* > getGradPhi () const {return GetVecOfConstPtrs(m_fluxes);};
 
-    void computeRHS (  Vector< std::unique_ptr< MultiFab > >& a_rhs,
-                       const Vector< std::unique_ptr< MultiFab > >& a_vel,
-                       const Vector< std::unique_ptr< MultiFab > >& a_S_cc = {},
-                       const Vector< std::unique_ptr< MultiFab > >& a_S_nd = {} );
+    void computeRHS ( const amrex::Vector<amrex::MultiFab*>&       a_rhs,
+                      const amrex::Vector<amrex::MultiFab*>&       a_vel,
+                      const amrex::Vector<amrex::MultiFab*>&       a_S_cc = {},
+                      const amrex::Vector<const amrex::MultiFab*>& a_S_nd = {} );
 
 private:
 

@@ -76,12 +76,12 @@ NodalProjector::define ( const  amrex::Vector<amrex::Geometry>&              a_g
 
 #ifdef AMREX_USE_EB
 void
-NodalProjector::define ( const  amrex::Vector<amrex::Geometry>&                    a_geom,
-                          const  amrex::Vector<amrex::BoxArray>&                   a_grids,
-                          const  amrex::Vector<amrex::DistributionMapping>&        a_dmap,
-                          std::array<amrex::LinOpBCType,AMREX_SPACEDIM>            a_bc_lo,
-                          std::array<amrex::LinOpBCType,AMREX_SPACEDIM>            a_bc_hi,
-                          amrex::Vector<amrex::EBFArrayBoxFactory const *>         a_ebfactory )
+NodalProjector::define ( const  amrex::Vector<amrex::Geometry>&                   a_geom,
+                         const  amrex::Vector<amrex::BoxArray>&                   a_grids,
+                         const  amrex::Vector<amrex::DistributionMapping>&        a_dmap,
+                         std::array<amrex::LinOpBCType,AMREX_SPACEDIM>            a_bc_lo,
+                         std::array<amrex::LinOpBCType,AMREX_SPACEDIM>            a_bc_hi,
+                         amrex::Vector<amrex::EBFArrayBoxFactory const *>         a_ebfactory )
 {
 
     m_geom      = a_geom;
@@ -138,10 +138,10 @@ NodalProjector::define ( const  amrex::Vector<amrex::Geometry>&                 
 //  grad(phi) is node-centered.
 //
 void
-NodalProjector::project (       Vector< std::unique_ptr< amrex::MultiFab > >& a_vel,
-                          const Vector< std::unique_ptr< amrex::MultiFab > >& a_sigma,
-                          const Vector< std::unique_ptr< amrex::MultiFab > >& a_S_cc,
-                          const Vector< std::unique_ptr< amrex::MultiFab > >& a_S_nd )
+NodalProjector::project ( const amrex::Vector<amrex::MultiFab*>&       a_vel,
+                          const amrex::Vector<const amrex::MultiFab*>& a_sigma,
+                          const amrex::Vector<amrex::MultiFab*>        a_S_cc,
+                          const amrex::Vector<const amrex::MultiFab*>& a_S_nd )
 
 {
     AMREX_ALWAYS_ASSERT(m_ok);
@@ -153,7 +153,7 @@ NodalProjector::project (       Vector< std::unique_ptr< amrex::MultiFab > >& a_
     setup();
 
     // Compute RHS
-    computeRHS( m_rhs, a_vel, a_S_cc, a_S_nd );
+    computeRHS( GetVecOfPtrs(m_rhs), a_vel, a_S_cc, a_S_nd );
 
     // Print diagnostics
     amrex::Print() << " >> Before projection:" << std::endl;
@@ -186,7 +186,7 @@ NodalProjector::project (       Vector< std::unique_ptr< amrex::MultiFab > >& a_
     }
 
     // Compute RHS -- this is only needed to print out post projection values
-    computeRHS( m_rhs, a_vel, a_S_cc, a_S_nd );
+    computeRHS( GetVecOfPtrs(m_rhs), a_vel, a_S_cc, a_S_nd );
 
     // Print diagnostics
     amrex::Print() << " >> After projection:" << std::endl;
@@ -209,10 +209,10 @@ NodalProjector::project (       Vector< std::unique_ptr< amrex::MultiFab > >& a_
 //  grad(phi) is node-centered.
 //
 void
-NodalProjector::project2 (  Vector< std::unique_ptr< amrex::MultiFab > >&       a_vel,
-                            const Vector< std::unique_ptr< amrex::MultiFab > >& a_alpha,
-                            const Vector< std::unique_ptr< amrex::MultiFab > >& a_beta,
-                            const Vector< std::unique_ptr< amrex::MultiFab > >& a_rhs )
+NodalProjector::project2 ( const amrex::Vector<amrex::MultiFab*>&       a_vel,
+                           const amrex::Vector<const amrex::MultiFab*>& a_alpha,
+                           const amrex::Vector<const amrex::MultiFab*>& a_beta,
+                           const amrex::Vector<const amrex::MultiFab*>& a_rhs )
 
 {
     AMREX_ALWAYS_ASSERT(m_ok);
@@ -368,10 +368,10 @@ NodalProjector::setup ()
 // Compute RHS: div(u) + S_nd + S_cc
 //
 void
-NodalProjector::computeRHS (  amrex::Vector< std::unique_ptr< amrex::MultiFab > >& a_rhs,
-                              const amrex::Vector< std::unique_ptr< amrex::MultiFab > >& a_vel,
-                              const amrex::Vector< std::unique_ptr< amrex::MultiFab > >& a_S_cc,
-                              const amrex::Vector< std::unique_ptr< amrex::MultiFab > >& a_S_nd )
+NodalProjector::computeRHS (  const amrex::Vector<amrex::MultiFab*>&       a_rhs,
+                              const amrex::Vector<amrex::MultiFab*>&       a_vel,
+                              const amrex::Vector<amrex::MultiFab*>&       a_S_cc,
+                              const amrex::Vector<const amrex::MultiFab*>& a_S_nd )
 {
     AMREX_ALWAYS_ASSERT(m_ok);
     AMREX_ALWAYS_ASSERT(a_rhs.size()==m_phi.size());
@@ -383,7 +383,6 @@ NodalProjector::computeRHS (  amrex::Vector< std::unique_ptr< amrex::MultiFab > 
 
     bool has_S_cc(!a_S_cc.empty());
     bool has_S_nd(!a_S_nd.empty());
-
 
     // Check the type of grids used
     for (int lev(0); lev < m_phi.size(); ++lev)
@@ -398,8 +397,7 @@ NodalProjector::computeRHS (  amrex::Vector< std::unique_ptr< amrex::MultiFab > 
             AMREX_ALWAYS_ASSERT_WITH_MESSAGE(a_S_nd[lev]->ixType().nodeCentered(),"a_S_nd is not node centered");
     }
 
-    m_matrix -> compRHS( GetVecOfPtrs(a_rhs),  GetVecOfPtrs(a_vel), GetVecOfConstPtrs(a_S_nd),
-                         GetVecOfPtrs(a_S_cc) );
+    m_matrix -> compRHS( a_rhs, a_vel, a_S_nd, a_S_cc );
 }
 
 
