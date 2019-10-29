@@ -224,8 +224,13 @@ PhotonParticleContainer::DoBreitWheeler(int lev,
             amrex::ParallelFor(
                 pti.numParticles(),
                 [=] AMREX_GPU_DEVICE (long i) {
+
+                    const ParticleReal px = me * ux[i];
+                    const ParticleReal py = me * uy[i];
+                    const ParticleReal pz = me * uz[i];
+
                     evolve_opt(
-                        me*ux[i], me*uy[i], me*uz[i],
+                        px, py, pz,
                         Expp[i], Eypp[i], Ezpp[i],
                         Bxpp[i], Bypp[i], Bzpp[i],
                         dt, p_tau[i]);
@@ -261,8 +266,12 @@ PhotonParticleContainer::DoBreitWheelerPti(WarpXParIter& pti,
     amrex::ParallelFor(
         pti.numParticles(),
         [=] AMREX_GPU_DEVICE (long i) {
-            evolve_opt(
-                me*ux[i], me*uy[i], me*uz[i],
+            const ParticleReal px = me * ux[i];
+            const ParticleReal py = me * uy[i];
+            const ParticleReal pz = me * uz[i];
+
+            bool has_event_happened = evolve_opt(
+                px, py, pz,
                 Ex[i], Ey[i], Ez[i],
                 Bx[i], By[i], Bz[i],
                 dt, p_tau[i]);

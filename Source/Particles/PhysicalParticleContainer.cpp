@@ -1724,25 +1724,19 @@ void PhysicalParticleContainer::PushPX_QedQuantumSynchrotron(
         amrex::ParallelFor(
             num_particles,
             [=] AMREX_GPU_DEVICE (long i) {
-                const ParticleReal ux_old = ux[i];
-                const ParticleReal uy_old = uy[i];
-                const ParticleReal uz_old = uz[i];
+                const ParticleReal px = m * ux[i];
+                const ParticleReal py = m * uy[i];
+                const ParticleReal pz = m * uz[i];
+
+                bool has_event_happened = evolve_opt(
+                    px, py, pz,
+                    Ex[i], Ey[i], Ez[i],
+                    Bx[i], By[i], Bz[i],
+                    dt, tau[i]);
 
                 UpdateMomentumBoris( ux[i], uy[i], uz[i],
                                      Ex[i], Ey[i], Ez[i], Bx[i],
                                      By[i], Bz[i], q, m, dt);
-
-                const ParticleReal half_mass = 0.5*m;
-
-                const ParticleReal px_n = half_mass * (ux[i]+ux_old);
-                const ParticleReal py_n = half_mass * (uy[i]+uy_old);
-                const ParticleReal pz_n = half_mass * (uz[i]+uz_old);
-
-                bool has_event_happened = evolve_opt(
-                    px_n, py_n, pz_n,
-                    Ex[i], Ey[i], Ez[i],
-                    Bx[i], By[i], Bz[i],
-                    dt, tau[i]);
 
                 UpdatePosition( x[i], y[i], z[i],
                       ux[i], uy[i], uz[i], dt );
@@ -1752,25 +1746,19 @@ void PhysicalParticleContainer::PushPX_QedQuantumSynchrotron(
         amrex::ParallelFor(
             num_particles,
             [=] AMREX_GPU_DEVICE (long i) {
-                const ParticleReal ux_old = ux[i];
-                const ParticleReal uy_old = uy[i];
-                const ParticleReal uz_old = uz[i];
+                const ParticleReal px = m * ux[i];
+                const ParticleReal py = m * uy[i];
+                const ParticleReal pz = m * uz[i];
+
+                bool has_event_happened = evolve_opt(
+                    px, py, pz,
+                    Ex[i], Ey[i], Ez[i],
+                    Bx[i], By[i], Bz[i],
+                    dt, tau[i]);
 
                 UpdateMomentumVay( ux[i], uy[i], uz[i],
                                    Ex[i], Ey[i], Ez[i], Bx[i],
                                    By[i], Bz[i], q, m, dt);
-
-                const ParticleReal half_mass = 0.5*m;
-
-                const ParticleReal px_n = half_mass * (ux[i]+ux_old);
-                const ParticleReal py_n = half_mass * (uy[i]+uy_old);
-                const ParticleReal pz_n = half_mass * (uz[i]+uz_old);
-
-                bool has_event_happened = evolve_opt(
-                    px_n, py_n, pz_n,
-                    Ex[i], Ey[i], Ez[i],
-                    Bx[i], By[i], Bz[i],
-                    dt, tau[i]);
 
                 UpdatePosition( x[i], y[i], z[i],
                                 ux[i], uy[i], uz[i], dt );
@@ -1780,26 +1768,19 @@ void PhysicalParticleContainer::PushPX_QedQuantumSynchrotron(
         amrex::ParallelFor(
             num_particles,
             [=] AMREX_GPU_DEVICE (long i) {
+                const ParticleReal px = m * ux[i];
+                const ParticleReal py = m * uy[i];
+                const ParticleReal pz = m * uz[i];
 
-                const ParticleReal ux_old = ux[i];
-                const ParticleReal uy_old = uy[i];
-                const ParticleReal uz_old = uz[i];
+                bool has_event_happened = evolve_opt(
+                    px, py, pz,
+                    Ex[i], Ey[i], Ez[i],
+                    Bx[i], By[i], Bz[i],
+                    dt, tau[i]);
 
                 UpdateMomentumHigueraCary( ux[i], uy[i], uz[i],
                                    Ex[i], Ey[i], Ez[i], Bx[i],
                                    By[i], Bz[i], q, m, dt);
-
-                const ParticleReal half_mass = 0.5*m;
-
-                const ParticleReal px_n = half_mass * (ux[i]+ux_old);
-                const ParticleReal py_n = half_mass * (uy[i]+uy_old);
-                const ParticleReal pz_n = half_mass * (uz[i]+uz_old);
-
-                bool has_event_happened = evolve_opt(
-                    px_n, py_n, pz_n,
-                    Ex[i], Ey[i], Ez[i],
-                    Bx[i], By[i], Bz[i],
-                    dt, tau[i]);
 
                 UpdatePosition( x[i], y[i], z[i],
                                 ux[i], uy[i], uz[i], dt );
@@ -2006,33 +1987,36 @@ void PhysicalParticleContainer::PushP_QedQuantumSynchrotron(
     } else if (WarpX::particle_pusher_algo == ParticlePusherAlgo::Boris){
         amrex::ParallelFor(num_particles,
             [=] AMREX_GPU_DEVICE (long i) {
-                const ParticleReal ux_old = ux[i];
-                const ParticleReal uy_old = uy[i];
-                const ParticleReal uz_old = uz[i];
+                const ParticleReal px = m * ux[i];
+                const ParticleReal py = m * uy[i];
+                const ParticleReal pz = m * uz[i];
+
+                bool has_event_happened = evolve_opt(
+                    px, py, pz,
+                    Expp[i], Eypp[i], Ezpp[i],
+                    Bxpp[i], Bypp[i], Bzpp[i],
+                    dt, tau[i]);
 
                 UpdateMomentumBoris(
                     ux[i], uy[i], uz[i],
                     Expp[i], Eypp[i], Ezpp[i],
                     Bxpp[i], Bypp[i], Bzpp[i],
                     q, m, dt);
-
-                const ParticleReal half_mass = 0.5*m;
-
-                const ParticleReal px_n = half_mass * (ux[i]+ux_old);
-                const ParticleReal py_n = half_mass * (uy[i]+uy_old);
-                const ParticleReal pz_n = half_mass * (uz[i]+uz_old);
-
-                bool has_event_happened = evolve_opt(
-                    px_n, py_n, pz_n,
-                    Expp[i], Eypp[i], Ezpp[i],
-                    Bxpp[i], Bypp[i], Bzpp[i],
-                    dt, tau[i]);
-
                 }
             );
     } else if (WarpX::particle_pusher_algo == ParticlePusherAlgo::Vay){
         amrex::ParallelFor(num_particles,
             [=] AMREX_GPU_DEVICE (long i) {
+                const ParticleReal px = m * ux[i];
+                const ParticleReal py = m * uy[i];
+                const ParticleReal pz = m * uz[i];
+
+                bool has_event_happened = evolve_opt(
+                    px, py, pz,
+                    Expp[i], Eypp[i], Ezpp[i],
+                    Bxpp[i], Bypp[i], Bzpp[i],
+                    dt, tau[i]);
+
                 UpdateMomentumVay(
                     ux[i], uy[i], uz[i],
                     Expp[i], Eypp[i], Ezpp[i],
@@ -2043,6 +2027,16 @@ void PhysicalParticleContainer::PushP_QedQuantumSynchrotron(
     } else if (WarpX::particle_pusher_algo == ParticlePusherAlgo::HigueraCary){
         amrex::ParallelFor(num_particles,
             [=] AMREX_GPU_DEVICE (long i) {
+                const ParticleReal px = m * ux[i];
+                const ParticleReal py = m * uy[i];
+                const ParticleReal pz = m * uz[i];
+
+                bool has_event_happened = evolve_opt(
+                    px, py, pz,
+                    Expp[i], Eypp[i], Ezpp[i],
+                    Bxpp[i], Bypp[i], Bzpp[i],
+                    dt, tau[i]);
+
                 UpdateMomentumHigueraCary( ux[i], uy[i], uz[i],
                     Expp[i], Eypp[i], Ezpp[i], Bxpp[i], Bypp[i], Bzpp[i], q, m, dt);
                 }
