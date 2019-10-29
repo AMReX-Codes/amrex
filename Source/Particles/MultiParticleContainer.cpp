@@ -604,6 +604,7 @@ MultiParticleContainer::doFieldIonization ()
                 // level of source particle
                 ionization_process.createParticles(lev, mfi, pc_source, v_pc_product,
                                                    is_ionized, v_do_back_transformed_product);
+                Gpu::streamSynchronize();
             }
         } // lev
     } // pc_source

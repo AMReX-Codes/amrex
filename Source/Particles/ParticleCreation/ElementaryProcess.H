@@ -185,6 +185,7 @@ public:
         copyAndTransformParticles(is_flagged, i_product, np_source, v_pid_product,
                                   v_particles_product, particles_source, v_copy_functor,
                                   runtime_iattribs_source);
+        amrex::Gpu::streamSynchronize();
     }
 
     /**
@@ -244,7 +245,7 @@ public:
                 }
             }
         );
-        amrex::Gpu::streamSynchronize();
+        
     }
 };
 
