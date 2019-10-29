@@ -147,7 +147,8 @@ NodalProjector::project ( const amrex::Vector<amrex::MultiFab*>&       a_vel,
     AMREX_ALWAYS_ASSERT(m_ok);
     BL_PROFILE("NodalProjector::project");
 
-    amrex::Print() << "Nodal Projection:" << std::endl;
+    if (m_verbose > 0)
+        amrex::Print() << "Nodal Projection:" << std::endl;
 
     // Setup solver -- ALWAYS do this because matrix may change
     setup();
@@ -156,8 +157,11 @@ NodalProjector::project ( const amrex::Vector<amrex::MultiFab*>&       a_vel,
     computeRHS( GetVecOfPtrs(m_rhs), a_vel, a_S_cc, a_S_nd );
 
     // Print diagnostics
-    amrex::Print() << " >> Before projection:" << std::endl;
-    printInfo();
+    if (m_verbose > 0)
+    {
+        amrex::Print() << " >> Before projection:" << std::endl;
+        printInfo();
+    }
 
     // Set matrix coefficients
     for (int lev(0); lev < a_sigma.size(); ++lev)
@@ -185,12 +189,14 @@ NodalProjector::project ( const amrex::Vector<amrex::MultiFab*>&       a_vel,
 
     }
 
-    // Compute RHS -- this is only needed to print out post projection values
-    computeRHS( GetVecOfPtrs(m_rhs), a_vel, a_S_cc, a_S_nd );
-
     // Print diagnostics
-    amrex::Print() << " >> After projection:" << std::endl;
-    printInfo();
+    if (m_verbose > 0)
+    {
+        computeRHS( GetVecOfPtrs(m_rhs), a_vel, a_S_cc, a_S_nd );
+
+        amrex::Print() << " >> After projection:" << std::endl;
+        printInfo();
+    }
 }
 
 
@@ -218,14 +224,18 @@ NodalProjector::project2 ( const amrex::Vector<amrex::MultiFab*>&       a_vel,
     AMREX_ALWAYS_ASSERT(m_ok);
     BL_PROFILE("NodalProjector::project");
 
-    amrex::Print() << "Nodal Projection:" << std::endl;
+    if (m_verbose > 0)
+        amrex::Print() << "Nodal Projection:" << std::endl;
 
     // Setup solver -- ALWAYS do this because matrix may change
     setup();
 
     // Print diagnostics
-    amrex::Print() << " >> Before projection:" << std::endl;
-    printInfo();
+    if (m_verbose > 0)
+    {
+        amrex::Print() << " >> Before projection:" << std::endl;
+        printInfo();
+    }
 
     // Set matrix coefficients
     Vector< std::unique_ptr<MultiFab> > sigma(m_phi.size());
