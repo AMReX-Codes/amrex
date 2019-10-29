@@ -200,6 +200,12 @@ QuantumSynchrotronEngine::get_default_ctrl() const
     return PicsarQuantumSynchrotronCtrl();
 }
 
+const PicsarQuantumSynchrotronCtrl&
+QuantumSynchrotronEngine::get_ref_ctrl() const
+{
+    return innards.ctrl;
+}
+
 void QuantumSynchrotronEngine::compute_lookup_tables (
     PicsarQuantumSynchrotronCtrl ctrl)
 {

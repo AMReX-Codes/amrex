@@ -200,6 +200,12 @@ BreitWheelerEngine::get_default_ctrl() const
     return PicsarBreitWheelerCtrl();
 }
 
+const PicsarBreitWheelerCtrl&
+BreitWheelerEngine::get_ref_ctrl() const
+{
+    return innards.ctrl;
+}
+
 void BreitWheelerEngine::compute_lookup_tables (
     PicsarBreitWheelerCtrl ctrl)
 {

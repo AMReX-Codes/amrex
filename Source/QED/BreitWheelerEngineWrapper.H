@@ -270,6 +270,12 @@ public:
      */
     PicsarBreitWheelerCtrl get_default_ctrl() const;
 
+    /**
+     * returns a constant reference to the control parameters
+     * @return const reference to control parameters
+     */
+    const PicsarBreitWheelerCtrl& get_ref_ctrl() const;
+
 private:
     bool lookup_tables_initialized = false;
 

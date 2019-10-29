@@ -1717,12 +1717,54 @@ void PhysicalParticleContainer::PushPX_QedQuantumSynchrotron(
     QuantumSynchrotronEvolveOpticalDepth evolve_opt =
         shr_ptr_qs_engine->build_evolve_functor();
 
+    const auto chi_min = shr_ptr_qs_engine->get_ref_ctrl().chi_part_min;
+
     //Assumes that all consistency checks have been done at initialization
     if(do_classical_radiation_reaction){
-        amrex::Abort("QED + Classical Radiation Reaction has still to be implemented!");
+        amrex::ParallelFor(num_particles,
+            [=] AMREX_GPU_DEVICE (long i) {
+                const ParticleReal px = m * ux[i];
+                const ParticleReal py = m * uy[i];
+                const ParticleReal pz = m * uz[i];
+
+                const ParticleReal chi = QedUtils::chi_lepton(px, py, pz,
+                    Ex[i], Ey[i], Ez[i],
+                    Bx[i], By[i], Bz[i]);
+
+                std::cout << chi << " " << chi_min << " ";
+
+                if(chi < chi_min){
+                    UpdateMomentumBorisWithRadiationReaction(
+                    ux[i], uy[i], uz[i],
+                    Ex[i], Ey[i], Ez[i],
+                    Bx[i], By[i], Bz[i],
+                    q, m, dt);
+
+                    std::cout << "CRR \n";
+                }
+                else
+                {
+                    bool has_event_happened = evolve_opt(
+                    px, py, pz,
+                    Ex[i], Ey[i], Ez[i],
+                    Bx[i], By[i], Bz[i],
+                    dt, tau[i]);
+
+                UpdateMomentumBoris(
+                    ux[i], uy[i], uz[i],
+                    Ex[i], Ey[i], Ez[i],
+                    Bx[i], By[i], Bz[i],
+                    q, m, dt);
+
+                    std::cout << "QRR \n";
+                }
+
+                UpdatePosition( x[i], y[i], z[i],
+                      ux[i], uy[i], uz[i], dt );
+            }
+        );
     } else if (WarpX::particle_pusher_algo == ParticlePusherAlgo::Boris){
-        amrex::ParallelFor(
-            num_particles,
+        amrex::ParallelFor(num_particles,
             [=] AMREX_GPU_DEVICE (long i) {
                 const ParticleReal px = m * ux[i];
                 const ParticleReal py = m * uy[i];
@@ -1743,8 +1785,7 @@ void PhysicalParticleContainer::PushPX_QedQuantumSynchrotron(
             }
         );
     } else if (WarpX::particle_pusher_algo == ParticlePusherAlgo::Vay) {
-        amrex::ParallelFor(
-            num_particles,
+        amrex::ParallelFor(num_particles,
             [=] AMREX_GPU_DEVICE (long i) {
                 const ParticleReal px = m * ux[i];
                 const ParticleReal py = m * uy[i];
@@ -1875,11 +1916,7 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
                 ion_lev = pti.GetiAttribs(particle_icomps["ionization_level"]).dataPtr();
             }
 
-#ifndef WARPX_QED
-            PushP_classical(
-                ux, uy, uz, Expp, Eypp, Ezpp, Bxpp, Bypp, Bzpp,
-                q, m, ion_lev, dt, pti.numParticles());
-#else
+#ifdef WARPX_QED
             if(has_quantum_sync()){
                 Real* AMREX_RESTRICT p_tau =
                 pti.GetAttribs(particle_comps["tau"]).dataPtr();
@@ -1892,6 +1929,10 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
                     ux, uy, uz, Expp, Eypp, Ezpp, Bxpp, Bypp, Bzpp,
                     q, m, ion_lev, dt, pti.numParticles());
             }
+#else
+            PushP_classical(
+                ux, uy, uz, Expp, Eypp, Ezpp, Bxpp, Bypp, Bzpp,
+                q, m, ion_lev, dt, pti.numParticles());
 #endif
 
 
@@ -1962,6 +2003,8 @@ void PhysicalParticleContainer::PushP_classical(
     }
 }
 
+#ifdef WARPX_QED
+
 void PhysicalParticleContainer::PushP_QedQuantumSynchrotron(
         ParticleReal* const AMREX_RESTRICT ux,
         ParticleReal* const AMREX_RESTRICT uy,
@@ -1980,10 +2023,43 @@ void PhysicalParticleContainer::PushP_QedQuantumSynchrotron(
     QuantumSynchrotronEvolveOpticalDepth evolve_opt =
         shr_ptr_qs_engine->build_evolve_functor();
 
+    const auto chi_min = shr_ptr_qs_engine->get_ref_ctrl().chi_part_min;
 
     //Assumes that all consistency checks have been done at initialization
     if(do_classical_radiation_reaction){
-        amrex::Abort("QED + Classical Radiation Reaction has still to be implemented!");
+        amrex::ParallelFor(num_particles,
+            [=] AMREX_GPU_DEVICE (long i) {
+                const ParticleReal px = m * ux[i];
+                const ParticleReal py = m * uy[i];
+                const ParticleReal pz = m * uz[i];
+
+                const ParticleReal chi = QedUtils::chi_lepton(px, py, pz,
+                    Expp[i], Eypp[i], Ezpp[i],
+                    Bxpp[i], Bypp[i], Bzpp[i]);
+
+                if(chi < chi_min){
+                    UpdateMomentumBorisWithRadiationReaction(
+                    ux[i], uy[i], uz[i],
+                    Expp[i], Eypp[i], Ezpp[i],
+                    Bxpp[i], Bypp[i], Bzpp[i],
+                    q, m, dt);
+                }
+                else
+                {
+                    bool has_event_happened = evolve_opt(
+                    px, py, pz,
+                    Expp[i], Eypp[i], Ezpp[i],
+                    Bxpp[i], Bypp[i], Bzpp[i],
+                    dt, tau[i]);
+
+                UpdateMomentumBoris(
+                    ux[i], uy[i], uz[i],
+                    Expp[i], Eypp[i], Ezpp[i],
+                    Bxpp[i], Bypp[i], Bzpp[i],
+                    q, m, dt);
+                }
+            }
+        );
     } else if (WarpX::particle_pusher_algo == ParticlePusherAlgo::Boris){
         amrex::ParallelFor(num_particles,
             [=] AMREX_GPU_DEVICE (long i) {
@@ -2002,8 +2078,8 @@ void PhysicalParticleContainer::PushP_QedQuantumSynchrotron(
                     Expp[i], Eypp[i], Ezpp[i],
                     Bxpp[i], Bypp[i], Bzpp[i],
                     q, m, dt);
-                }
-            );
+            }
+        );
     } else if (WarpX::particle_pusher_algo == ParticlePusherAlgo::Vay){
         amrex::ParallelFor(num_particles,
             [=] AMREX_GPU_DEVICE (long i) {
@@ -2022,8 +2098,8 @@ void PhysicalParticleContainer::PushP_QedQuantumSynchrotron(
                     Expp[i], Eypp[i], Ezpp[i],
                     Bxpp[i], Bypp[i], Bzpp[i],
                     q, m, dt);
-                }
-            );
+            }
+        );
     } else if (WarpX::particle_pusher_algo == ParticlePusherAlgo::HigueraCary){
         amrex::ParallelFor(num_particles,
             [=] AMREX_GPU_DEVICE (long i) {
@@ -2039,12 +2115,14 @@ void PhysicalParticleContainer::PushP_QedQuantumSynchrotron(
 
                 UpdateMomentumHigueraCary( ux[i], uy[i], uz[i],
                     Expp[i], Eypp[i], Ezpp[i], Bxpp[i], Bypp[i], Bzpp[i], q, m, dt);
-                }
+            }
         );
     } else {
               amrex::Abort("Unknown particle pusher");
     }
 }
+
+#endif
 
 void PhysicalParticleContainer::copy_attribs(WarpXParIter& pti,const ParticleReal* xp,
                                              const ParticleReal* yp, const ParticleReal* zp)
