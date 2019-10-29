@@ -187,13 +187,38 @@ public:
         amrex::FArrayBox const * & byfab, amrex::FArrayBox const * & bzfab);
 
 #ifdef WARPX_QED
+    //Functions decleared in WarpXParticleContainer.H
+    //containers for which QED processes could be relevant
+    //are expected to override these functions
+
+    /**
+     * Tells if this PhysicalParticleContainer has Quantum
+     * Synchrotron process enabled
+     * @return true if process is enabled
+     */
     bool has_quantum_sync() override;
+
+    /**
+     * Tells if this PhysicalParticleContainer has Breit
+     * Wheeler process enabled
+     * @return true if process is enabled
+     */
     bool has_breit_wheeler() override;
 
+    /**
+     * Acquires a shared smart pointer to a BreitWheelerEngine
+     * @param[in] ptr the pointer
+     */
     void set_breit_wheeler_engine_ptr
-        (std::shared_ptr<BreitWheelerEngine>) override;
+        (std::shared_ptr<BreitWheelerEngine> ptr) override;
+
+    /**
+     * Acquires a shared smart pointer to a QuantumSynchrotronEngine
+     * @param[in] ptr the pointer
+     */
     void set_quantum_sync_engine_ptr
-        (std::shared_ptr<QuantumSynchrotronEngine>) override;
+        (std::shared_ptr<QuantumSynchrotronEngine> ptr) override;
+    //__________
 #endif
 
 protected:
@@ -222,7 +247,7 @@ protected:
     // A flag to enable quantum_synchrotron process for leptons
     bool do_qed_quantum_sync = false;
 
-    // A flag to enable breit_wheeler process [photons only!!]
+    // A flag to enable breit_wheeler process for photons
     bool do_qed_breit_wheeler = false;
 
     // A smart pointer to an instance of a Quantum Synchrotron engine
@@ -232,9 +257,24 @@ protected:
     std::shared_ptr<BreitWheelerEngine> shr_ptr_bw_engine;
 #endif
 
-// Must be public to be compatible with CUDA
+// PushPX and PushP has been split into two methods (classical and QED versions)
+// these methods must be public to be compatible with CUDA)
 public:
-    //PushPX classical
+    //Classical versions
+
+    /**
+     * This function actually pushes momenta and positions when QED effects
+     * are disabled.
+     * @param[in,out] x,y,z positions
+     * @param[in,out] ux,uy,uz momenta
+     * @param[in] Ex,Ey,Ez electric fields
+     * @param[in] Bx,By,Bz magnetic fields
+     * @param[in] q charge
+     * @param[in] m mass
+     * @param[in,out] ion_lev ionization level
+     * @param[in] dt temporal step
+     * @param[in] num_particles number of particles
+     */
     void PushPX_classical(
         amrex::ParticleReal* const AMREX_RESTRICT x,
         amrex::ParticleReal* const AMREX_RESTRICT y,
@@ -252,6 +292,19 @@ public:
         amrex::Real dt, long num_particles
     );
 
+    /**
+     * This function actually pushes momenta when QED effects
+     * are disabled.
+     * @param[in,out] x,y,z positions
+     * @param[in,out] ux,uy,uz momenta
+     * @param[in] Expp,Eypp,Ezpp electric fields
+     * @param[in] Bxpp,Bypp,Bzpp magnetic fields
+     * @param[in] q charge
+     * @param[in] m mass
+     * @param[in,out] ion_lev ionization level
+     * @param[in] dt temporal step
+     * @param[in] num_particles number of particles
+     */
     void PushP_classical(
         amrex::ParticleReal* const AMREX_RESTRICT ux,
         amrex::ParticleReal* const AMREX_RESTRICT uy,
@@ -265,11 +318,24 @@ public:
         amrex::Real q, amrex::Real m, int* AMREX_RESTRICT ion_lev,
         amrex::Real dt, long num_particles
     );
-
     //________________________
 
+    //QED versions
 #ifdef WARPX_QED
-    //PushPX + QED (Quantum Synchrotron)
+
+    /**
+     * This function actually pushes momenta and positions when QED effects
+     * are enabled.
+     * @param[in,out] x,y,z positions
+     * @param[in,out] ux,uy,uz momenta
+     * @param[in] Ex,Ey,Ez electric fields
+     * @param[in] Bx,By,Bz magnetic fields
+     * @param[in] q charge
+     * @param[in] m mass
+     * @param[in,out] tau optical depth
+     * @param[in] dt temporal step
+     * @param[in] num_particles number of particles
+     */
     void PushPX_QedQuantumSynchrotron(
         amrex::ParticleReal* const AMREX_RESTRICT x,
         amrex::ParticleReal* const AMREX_RESTRICT y,
@@ -288,6 +354,19 @@ public:
         amrex::Real dt, long num_particles
     );
 
+    /**
+     * This function actually pushes momenta when QED effects
+     * are enabled.
+     * @param[in,out] x,y,z positions
+     * @param[in,out] ux,uy,uz momenta
+     * @param[in] Expp,Eypp,Ezpp electric fields
+     * @param[in] Bxpp,Bypp,Bzpp magnetic fields
+     * @param[in] q charge
+     * @param[in] m mass
+     * @param[in,out] tau optical depth
+     * @param[in] dt temporal step
+     * @param[in] num_particles number of particles
+     */
     void PushP_QedQuantumSynchrotron(
         amrex::ParticleReal* const AMREX_RESTRICT ux,
         amrex::ParticleReal* const AMREX_RESTRICT uy,

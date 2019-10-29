@@ -72,7 +72,7 @@ class QuantumSynchrotronEvolveOpticalDepth
 {
 public:
     /**
-     * Constructor acquires a reference to control parameters and
+     * Constructor acquires pointers to control parameters and
      * lookup tables data.
      * lookup_table uses non-owning vectors under the hood. So no new data
      * allocations should be triggered on GPU
@@ -142,7 +142,7 @@ class QuantumSynchrotronGeneratePhotonAndUpdateMomentum
 {
 public:
     /**
-     * Constructor acquires a reference to control parameters and
+     * Constructor acquires pointers to control parameters and
      * lookup tables data.
      * lookup_table uses non-owning vectors under the hood. So no new data
      * allocations should be triggered on GPU

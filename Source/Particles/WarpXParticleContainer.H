@@ -319,11 +319,15 @@ protected:
     int do_back_transformed_diagnostics = 1;
 
 #ifdef WARPX_QED
+    //A flag to know if QED effects have to be considered for this species
     bool do_qed = false;
 
+    //Species for which QED effects are relevant should override these methods
     virtual bool has_quantum_sync(){return false;};
     virtual bool has_breit_wheeler(){return false;};
 
+    //Species can receive a shared pointer to a QED engine (species for
+    //which this is relevant should override these functions)
     virtual void
     set_breit_wheeler_engine_ptr(std::shared_ptr<BreitWheelerEngine>){};
     virtual void

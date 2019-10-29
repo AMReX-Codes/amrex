@@ -72,7 +72,10 @@ class BreitWheelerEvolveOpticalDepth
 {
 public:
     /**
-     * TO ADD!
+     * Constructor acquires pointers to control parameters and
+     * lookup tables data.
+     * lookup_table uses non-owning vectors under the hood. So no new data
+     * allocations should be triggered on GPU
      */
     BreitWheelerEvolveOpticalDepth(
         const PicsarBreitWheelerCtrl t_ctrl,
@@ -139,7 +142,7 @@ class BreitWheelerGeneratePairs
 {
 public:
     /**
-     * Constructor acquires a reference to control parameters and
+     * Constructor acquires pointers to control parameters and
      * lookup tables data.
      * lookup_table uses non-owning vectors under the hood. So no new data
      * allocations should be triggered on GPU

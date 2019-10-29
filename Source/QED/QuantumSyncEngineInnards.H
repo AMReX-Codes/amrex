@@ -20,8 +20,8 @@ struct QuantumSynchrotronEngineInnards
     picsar::multi_physics::quantum_synchrotron_engine_ctrl<amrex::Real> ctrl;
 
     //Lookup table data (should stay on GPU)
-    amrex::Gpu::ManagedDeviceVector<amrex::Real> KKfunc_coords;
-    amrex::Gpu::ManagedDeviceVector<amrex::Real> KKfunc_data;
+    amrex::Gpu::ManagedVector<amrex::Real> KKfunc_coords;
+    amrex::Gpu::ManagedVector<amrex::Real> KKfunc_data;
 
     amrex::Gpu::ManagedVector<amrex::Real> cum_distrib_coords_1;
     amrex::Gpu::ManagedVector<amrex::Real> cum_distrib_coords_2;
