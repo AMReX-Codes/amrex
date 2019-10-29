@@ -26,7 +26,7 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies,
 {
     charge = 1.0;
     mass = std::numeric_limits<Real>::max();
-    do_boosted_frame_diags = 0;
+    do_back_transformed_diagnostics = 0;
 
     ParmParse pp(laser_name);
 
@@ -100,7 +100,7 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies,
     }
 
     // Plane normal
-    Real s = 1.0/std::sqrt(nvec[0]*nvec[0] + nvec[1]*nvec[1] + nvec[2]*nvec[2]);
+    Real s = 1.0_rt / std::sqrt(nvec[0]*nvec[0] + nvec[1]*nvec[1] + nvec[2]*nvec[2]);
     nvec = { nvec[0]*s, nvec[1]*s, nvec[2]*s };
 
     if (WarpX::gamma_boost > 1.) {
@@ -119,19 +119,19 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies,
     }
 
     // The first polarization vector
-    s = 1.0/std::sqrt(p_X[0]*p_X[0] + p_X[1]*p_X[1] + p_X[2]*p_X[2]);
+    s = 1.0_rt / std::sqrt(p_X[0]*p_X[0] + p_X[1]*p_X[1] + p_X[2]*p_X[2]);
     p_X = { p_X[0]*s, p_X[1]*s, p_X[2]*s };
 
-    Real dp = std::inner_product(nvec.begin(), nvec.end(), p_X.begin(), 0.0);
+    Real const dp = std::inner_product(nvec.begin(), nvec.end(), p_X.begin(), 0.0);
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(std::abs(dp) < 1.0e-14,
         "Laser plane vector is not perpendicular to the main polarization vector");
 
     p_Y = CrossProduct(nvec, p_X);   // The second polarization vector
 
-    s = 1.0/std::sqrt(stc_direction[0]*stc_direction[0] + stc_direction[1]*stc_direction[1] + stc_direction[2]*stc_direction[2]);
+    s = 1.0_rt / std::sqrt(stc_direction[0]*stc_direction[0] + stc_direction[1]*stc_direction[1] + stc_direction[2]*stc_direction[2]);
     stc_direction = { stc_direction[0]*s, stc_direction[1]*s, stc_direction[2]*s };
-    dp = std::inner_product(nvec.begin(), nvec.end(), stc_direction.begin(), 0.0);
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(std::abs(dp) < 1.0e-14,
+    Real const dp2 = std::inner_product(nvec.begin(), nvec.end(), stc_direction.begin(), 0.0);
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(std::abs(dp2) < 1.0e-14,
         "stc_direction is not perpendicular to the laser plane vector");
 
     // Get angle between p_X and stc_direction
@@ -266,20 +266,20 @@ LaserParticleContainer::InitData (int lev)
         position = updated_position;
     }
 
-    auto Transform = [&](int i, int j) -> Vector<Real>{
+    auto Transform = [&](int const i, int const j) -> Vector<Real>{
 #if (AMREX_SPACEDIM == 3)
-        return { position[0] + (S_X*(i+0.5))*u_X[0] + (S_Y*(j+0.5))*u_Y[0],
-                 position[1] + (S_X*(i+0.5))*u_X[1] + (S_Y*(j+0.5))*u_Y[1],
-                 position[2] + (S_X*(i+0.5))*u_X[2] + (S_Y*(j+0.5))*u_Y[2] };
+        return { position[0] + (S_X*(Real(i)+0.5_rt))*u_X[0] + (S_Y*(Real(j)+0.5_rt))*u_Y[0],
+                 position[1] + (S_X*(Real(i)+0.5_rt))*u_X[1] + (S_Y*(Real(j)+0.5_rt))*u_Y[1],
+                 position[2] + (S_X*(Real(i)+0.5_rt))*u_X[2] + (S_Y*(Real(j)+0.5_rt))*u_Y[2] };
 #else
 #   if (defined WARPX_DIM_RZ)
-        return { position[0] + (S_X*(i+0.5)),
+        return { position[0] + (S_X*(Real(i)+0.5)),
                  0.0,
                  position[2]};
 #   else
-        return { position[0] + (S_X*(i+0.5))*u_X[0],
+        return { position[0] + (S_X*(Real(i)+0.5))*u_X[0],
                  0.0,
-                 position[2] + (S_X*(i+0.5))*u_X[2] };
+                 position[2] + (S_X*(Real(i)+0.5))*u_X[2] };
 #   endif
 #endif
     };
@@ -449,9 +449,9 @@ LaserParticleContainer::Evolve (int lev,
 #endif
     {
 #ifdef _OPENMP
-        int thread_num = omp_get_thread_num();
+        int const thread_num = omp_get_thread_num();
 #else
-        int thread_num = 0;
+        int const thread_num = 0;
 #endif
 
         Cuda::ManagedDeviceVector<Real> plane_Xp, plane_Yp, amplitude_E;
@@ -610,7 +610,7 @@ void
 LaserParticleContainer::ComputeWeightMobility (Real Sx, Real Sy)
 {
     constexpr Real eps = 0.01;
-    constexpr Real fac = 1.0/(2.0*MathConst::pi*PhysConst::mu0*PhysConst::c*PhysConst::c*eps);
+    constexpr Real fac = 1.0_rt / (2.0_rt * MathConst::pi * PhysConst::mu0 * PhysConst::c * PhysConst::c * eps);
     weight = fac * wavelength * Sx * Sy / std::min(Sx,Sy) * e_max;
 
     // The mobility is the constant of proportionality between the field to

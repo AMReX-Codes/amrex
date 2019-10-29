@@ -30,7 +30,7 @@ warpx.serialize_ics = 1
 
 warpx.gamma_boost = 10.
 warpx.boost_direction = z
-warpx.do_boosted_frame_diagnostic = 1
+warpx.do_back_transformed_diagnostics = 1
 warpx.num_snapshots_lab = 4
 warpx.dz_snapshots_lab = 0.001
 warpx.boosted_frame_diag_fields= Ex Ey Ez By rho
@@ -53,7 +53,7 @@ electrons.zmax = .003
 electrons.profile = constant
 electrons.density = 3.5e24
 electrons.do_continuous_injection = 1
-electrons.do_boosted_frame_diags = 1
+electrons.do_back_transformed_diagnostics = 1
 
 ions.charge = q_e
 ions.mass = m_p
@@ -69,7 +69,7 @@ ions.zmax = .003
 ions.profile = constant
 ions.density = 3.5e24
 ions.do_continuous_injection = 1
-ions.do_boosted_frame_diags = 1
+ions.do_back_transformed_diagnostics = 1
 
 beam.charge = -q_e
 beam.mass = m_e

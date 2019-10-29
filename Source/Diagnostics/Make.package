@@ -1,9 +1,9 @@
 CEXE_sources += WarpXIO.cpp
-CEXE_sources += BoostedFrameDiagnostic.cpp
+CEXE_sources += BackTransformedDiagnostic.cpp
 CEXE_sources += ParticleIO.cpp
 CEXE_sources += FieldIO.cpp
 CEXE_headers += FieldIO.H
-CEXE_headers += BoostedFrameDiagnostic.H
+CEXE_headers += BackTransformedDiagnostic.H
 CEXE_headers += ElectrostaticIO.cpp
 CEXE_headers += SliceDiagnostic.H
 CEXE_sources += SliceDiagnostic.cpp
