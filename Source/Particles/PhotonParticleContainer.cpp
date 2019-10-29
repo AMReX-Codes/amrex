@@ -73,7 +73,7 @@ PhotonParticleContainer::PushPX(WarpXParIter& pti,
     const ParticleReal* const AMREX_RESTRICT By = attribs[PIdx::By].dataPtr();
     const ParticleReal* const AMREX_RESTRICT Bz = attribs[PIdx::Bz].dataPtr();
 
-    if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
+    if (WarpX::do_back_transformed_diagnostics && do_back_transformed_diagnostics)
     {
         copy_attribs(pti, x, y, z);
     }

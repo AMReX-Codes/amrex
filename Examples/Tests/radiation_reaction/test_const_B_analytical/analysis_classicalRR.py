@@ -175,8 +175,7 @@ def generate():
             f.write("{}.do_classical_radiation_reaction = 1\n".format(cc.name))
             f.write("\n")
 
-        f.write("warpx.B_external = {} {} {}\n".format(*B))
-
+        f.write("warpx.B_external_particle = {} {} {}\n".format(*B))
 
 def main():
     if (len(sys.argv) < 2):

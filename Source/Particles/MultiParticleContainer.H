@@ -165,9 +165,9 @@ public:
 
     int nSpecies() const {return nspecies;}
 
-    int nSpeciesBoostedFrameDiags() const {return nspecies_boosted_frame_diags;}
-    int mapSpeciesBoostedFrameDiags(int i) const {return map_species_boosted_frame_diags[i];}
-    int doBoostedFrameDiags() const {return do_boosted_frame_diags;}
+    int nSpeciesBackTransformedDiagnostics() const {return nspecies_back_transformed_diagnostics;}
+    int mapSpeciesBackTransformedDiagnostics(int i) const {return map_species_back_transformed_diagnostics[i];}
+    int doBackTransformedDiagnostics() const {return do_back_transformed_diagnostics;}
 
     int nSpeciesDepositOnMainGrid () const {
         bool const onMainGrid = true;
@@ -274,12 +274,12 @@ private:
     void mapSpeciesProduct ();
     int getSpeciesID (std::string product_str);
 
-    // Number of species dumped in BoostedFrameDiagnostics
-    int nspecies_boosted_frame_diags = 0;
-    // map_species_boosted_frame_diags[i] is the species ID in
-    // MultiParticleContainer for 0<i<nspecies_boosted_frame_diags
-    std::vector<int> map_species_boosted_frame_diags;
-    int do_boosted_frame_diags = 0;
+    // Number of species dumped in BackTransformedDiagnostics
+    int nspecies_back_transformed_diagnostics = 0;
+    // map_species_back_transformed_diagnostics[i] is the species ID in
+    // MultiParticleContainer for 0<i<nspecies_back_transformed_diagnostics
+    std::vector<int> map_species_back_transformed_diagnostics;
+    int do_back_transformed_diagnostics = 0;
 
     // runtime parameters
     int nlasers = 0;
