@@ -93,8 +93,8 @@ QuantumSynchrotronEngine::init_lookup_tables_from_raw_data (
     //___________________________
 
     //Data
-    Vector<Real> tndt_coords(innards.ctrl.chi_part_tdndt_min);
-    Vector<Real> tndt_data(innards.ctrl.chi_part_tdndt_min);
+    Vector<Real> tndt_coords(innards.ctrl.chi_part_tdndt_how_many);
+    Vector<Real> tndt_data(innards.ctrl.chi_part_tdndt_how_many);
     Vector<Real> cum_tab_coords1(innards.ctrl.chi_part_tem_how_many);
     Vector<Real> cum_tab_coords2(innards.ctrl.prob_tem_how_many);
     Vector<Real> cum_tab_data(innards.ctrl.chi_part_tem_how_many*
