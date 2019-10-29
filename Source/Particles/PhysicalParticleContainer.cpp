@@ -1731,16 +1731,12 @@ void PhysicalParticleContainer::PushPX_QedQuantumSynchrotron(
                     Ex[i], Ey[i], Ez[i],
                     Bx[i], By[i], Bz[i]);
 
-                std::cout << chi << " " << chi_min << " ";
-
                 if(chi < chi_min){
                     UpdateMomentumBorisWithRadiationReaction(
                     ux[i], uy[i], uz[i],
                     Ex[i], Ey[i], Ez[i],
                     Bx[i], By[i], Bz[i],
                     q, m, dt);
-
-                    std::cout << "CRR \n";
                 }
                 else
                 {
@@ -1755,8 +1751,6 @@ void PhysicalParticleContainer::PushPX_QedQuantumSynchrotron(
                     Ex[i], Ey[i], Ez[i],
                     Bx[i], By[i], Bz[i],
                     q, m, dt);
-
-                    std::cout << "QRR \n";
                 }
 
                 UpdatePosition( x[i], y[i], z[i],
