@@ -251,6 +251,21 @@ public:
         amrex::Real q, amrex::Real m, int* AMREX_RESTRICT ion_lev,
         amrex::Real dt, long num_particles
     );
+
+    void PushP_classical(
+        amrex::ParticleReal* const AMREX_RESTRICT ux,
+        amrex::ParticleReal* const AMREX_RESTRICT uy,
+        amrex::ParticleReal* const AMREX_RESTRICT uz,
+        const amrex::ParticleReal* const AMREX_RESTRICT Expp,
+        const amrex::ParticleReal* const AMREX_RESTRICT Eypp,
+        const amrex::ParticleReal* const AMREX_RESTRICT Ezpp,
+        const amrex::ParticleReal* const AMREX_RESTRICT Bxpp,
+        const amrex::ParticleReal* const AMREX_RESTRICT Bypp,
+        const amrex::ParticleReal* const AMREX_RESTRICT Bzpp,
+        amrex::Real q, amrex::Real m, int* AMREX_RESTRICT ion_lev,
+        amrex::Real dt, long num_particles
+    );
+
     //________________________
 
 #ifdef WARPX_QED
@@ -268,6 +283,21 @@ public:
         const amrex::ParticleReal* const AMREX_RESTRICT Bx,
         const amrex::ParticleReal* const AMREX_RESTRICT By,
         const amrex::ParticleReal* const AMREX_RESTRICT Bz,
+        amrex::Real q, amrex::Real m,
+        amrex::ParticleReal* const AMREX_RESTRICT tau,
+        amrex::Real dt, long num_particles
+    );
+
+    void PushP_QedQuantumSynchrotron(
+        amrex::ParticleReal* const AMREX_RESTRICT ux,
+        amrex::ParticleReal* const AMREX_RESTRICT uy,
+        amrex::ParticleReal* const AMREX_RESTRICT uz,
+        const amrex::ParticleReal* const AMREX_RESTRICT Expp,
+        const amrex::ParticleReal* const AMREX_RESTRICT Eypp,
+        const amrex::ParticleReal* const AMREX_RESTRICT Ezpp,
+        const amrex::ParticleReal* const AMREX_RESTRICT Bxpp,
+        const amrex::ParticleReal* const AMREX_RESTRICT Bypp,
+        const amrex::ParticleReal* const AMREX_RESTRICT Bzpp,
         amrex::Real q, amrex::Real m,
         amrex::ParticleReal* const AMREX_RESTRICT tau,
         amrex::Real dt, long num_particles
