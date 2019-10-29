@@ -79,7 +79,10 @@ public:
     };
 
 #ifdef WARPX_QED
-    //To be called by PushP
+    /**
+     * This functions (called by PushP) evolves optical depths
+     * of the photons according to the Breit Wheeler process
+     */
     void DoBreitWheeler(int lev,
                         amrex::Real dt,
                         const amrex::MultiFab& Ex,
@@ -89,7 +92,10 @@ public:
                         const amrex::MultiFab& By,
                         const amrex::MultiFab& Bz);
 
-    //To be called by PushPX
+    /**
+     * This functions (called by PushPX) evolves optical depths
+     * of the photons according to the Breit Wheeler process
+     */
     void DoBreitWheelerPti(WarpXParIter& pti,
                            amrex::Real dt);
 #endif
