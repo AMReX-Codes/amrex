@@ -1814,7 +1814,6 @@ FabArray<FAB>::FillBoundary (const IntVect& nghost, const Periodicity& period, b
     BL_PROFILE("FabArray::FillBoundary()");
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(nghost.allLE(nGrowVect()),
                                      "FillBoundary: asked to fill more ghost cells than we have");
-    BL_PROFILE("FabArray::FillBoundary()");
     if ( nghost.max() > 0 ) {
 	FillBoundary_nowait(0, nComp(), nghost, period, cross);
 	FillBoundary_finish();
