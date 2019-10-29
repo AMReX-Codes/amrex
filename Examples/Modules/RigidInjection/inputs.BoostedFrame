@@ -3,7 +3,7 @@
 warpx.zmax_plasma_to_compute_max_step = 50.e-6
 warpx.gamma_boost = 5.
 warpx.boost_direction = z
-warpx.do_boosted_frame_diagnostic = 1
+warpx.do_back_transformed_diagnostics = 1
 warpx.num_snapshots_lab = 2
 warpx.dt_snapshots_lab = 1.8679589331096515e-13
 

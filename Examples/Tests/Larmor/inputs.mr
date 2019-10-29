@@ -34,7 +34,7 @@ geometry.prob_hi     =  2.0   2.0
 warpx.do_pml = 1
 warpx.pml_ncell = 10
 
-warpx.B_external = 0.0  0.00078110417851950768  0.0
+warpx.B_external_particle = 0.0  0.00078110417851950768  0.0
 
 # Verbosity
 warpx.verbose = 1

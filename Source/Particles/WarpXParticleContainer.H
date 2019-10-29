@@ -273,13 +273,14 @@ public:
         AddIntComp(comm);
     }
 
-    int DoBoostedFrameDiags () const { return do_boosted_frame_diags; }
+    int doBackTransformedDiagnostics () const { return do_back_transformed_diagnostics; }
 
     virtual void buildIonizationMask (const amrex::MFIter& mfi, const int lev,
                                       amrex::Gpu::ManagedDeviceVector<int>& ionization_mask)
     {};
 
     std::map<std::string, int> getParticleComps () { return particle_comps;}
+    std::map<std::string, int> getParticleiComps () { return particle_icomps;}
 
 protected:
 
@@ -316,7 +317,7 @@ protected:
     amrex::Gpu::ManagedVector<amrex::Real> adk_exp_prefactor;
     std::string physical_element;
 
-    int do_boosted_frame_diags = 1;
+    int do_back_transformed_diagnostics = 1;
 
 #ifdef WARPX_QED
     bool do_qed = false;

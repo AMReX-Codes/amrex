@@ -41,7 +41,7 @@ warpx.serialize_ics = 1
 #################################
 warpx.gamma_boost = 10.
 warpx.boost_direction = z
-warpx.do_boosted_frame_diagnostic = 1
+warpx.do_back_transformed_diagnostics = 1
 warpx.num_snapshots_lab = 7
 warpx.dt_snapshots_lab = 1.6678204759907604e-12
 
