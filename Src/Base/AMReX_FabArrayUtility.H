@@ -341,7 +341,7 @@ template <class FAB1, class FAB2, class FAB3, class F,
 typename FAB1::value_type
 ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, FabArray<FAB3> const& fa3,
            int nghost, F&& f) {
-  return ReduceSum(fa1, fa2, fa3, nghost, std::move(f));
+  return ReduceSum(fa1, fa2, fa3, IntVect(nghost), std::move(f));
 }
 
 namespace fudetail {
