@@ -50,7 +50,6 @@ typedef float amrex_real;
 #define AMREX_REAL_MIN     FLT_MIN
 #define AMREX_REAL_MAX     FLT_MAX
 #define AMREX_REAL_LOWEST -FLT_MAX
-#define
 #else
 typedef double amrex_real;
 #define AMREX_REAL_MIN     DBL_MIN
