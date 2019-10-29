@@ -19,7 +19,7 @@ struct BreitWheelerEngineInnards
     // Control parameters (a POD struct)
     picsar::multi_physics::breit_wheeler_engine_ctrl<amrex::Real> ctrl;
 
-    //Lookup table data (should stay on GPU)
+    //Lookup table data
     amrex::Gpu::ManagedVector<amrex::Real> TTfunc_coords;
     amrex::Gpu::ManagedVector<amrex::Real> TTfunc_data;
 
