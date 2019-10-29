@@ -185,6 +185,8 @@ public:
         copyAndTransformParticles(is_flagged, i_product, np_source, v_pid_product,
                                   v_particles_product, particles_source, v_copy_functor,
                                   runtime_iattribs_source);
+        // Synchronize to prevent the destruction of temporary arrays (at the
+        // end of the function call) before the kernel executes.
         amrex::Gpu::streamSynchronize();
     }
 
@@ -245,7 +247,6 @@ public:
                 }
             }
         );
-        
     }
 };
 

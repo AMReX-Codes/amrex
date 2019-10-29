@@ -604,6 +604,8 @@ MultiParticleContainer::doFieldIonization ()
                 // level of source particle
                 ionization_process.createParticles(lev, mfi, pc_source, v_pc_product,
                                                    is_ionized, v_do_back_transformed_product);
+                // Synchronize to prevent the destruction of temporary arrays (at the
+                // end of the function call) before the kernel executes.
                 Gpu::streamSynchronize();
             }
         } // lev
