@@ -1,14 +1,15 @@
-
 #ifndef WARPX_ParticleContainer_H_
 #define WARPX_ParticleContainer_H_
 
-#include <AMReX_Particles.H>
+#include "ElementaryProcess.H"
+
 #include <WarpXParticleContainer.H>
 #include <PhysicalParticleContainer.H>
 #include <RigidInjectedParticleContainer.H>
 #include <PhotonParticleContainer.H>
 #include <LaserParticleContainer.H>
 
+#include <AMReX_Particles.H>
 #ifdef WARPX_QED
     #include <BreitWheelerEngineWrapper.H>
     #include <QuantumSyncEngineWrapper.H>
@@ -195,6 +196,8 @@ public:
     std::vector<std::string> GetSpeciesNames() const { return species_names; }
 
     PhysicalParticleContainer& GetPCtmp () { return *pc_tmp; }
+
+    IonizationProcess ionization_process;
 
 protected:
 

@@ -62,14 +62,15 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
         "Radiation reaction can be enabled only if Boris pusher is used");
     //_____________________________
 
-
 #ifdef AMREX_USE_GPU
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-        do_field_ionization == 0,
-        "Field ionization does not work on GPU so far, because the current "
-        "version of Redistribute in AMReX does not work with runtime parameters");
+    Print()<<"\n-----------------------------------------------------\n";
+    Print()<<"WARNING: field ionization on GPU uses RedistributeCPU\n";
+    Print()<<"-----------------------------------------------------\n\n";
+    //AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+        //do_field_ionization == 0,
+        //"Field ionization does not work on GPU so far, because the current "
+        //"version of Redistribute in AMReX does not work with runtime parameters");
 #endif
-
 
 #ifdef WARPX_QED
     //Add real component if QED is enabled
@@ -2218,8 +2219,6 @@ PhysicalParticleContainer::buildIonizationMask (const amrex::MFIter& mfi, const 
                 Real p = 1. - std::exp( - w_dtau );
 
                 if (random_draw < p){
-                    // increment particle's ionization level
-                    ion_lev[i] += 1;
                     // update mask
                     p_ionization_mask[i] = 1;
                 }
