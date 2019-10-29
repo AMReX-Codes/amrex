@@ -200,7 +200,7 @@ public:
                 m_p_distrib_coords_1,
                 m_cum_distrib_coords_2_size,
                 m_p_distrib_coords_2,
-                m_p_cum_distrib_data
+                m_p_cum_distrib_data},
             ctrl,
             rand_zero_one_minus_epsi.data());
     }
