@@ -768,7 +768,7 @@ MultiParticleContainer::ParseQuantumSyncParams ()
 
 #ifndef WARPX_QED_TABLE_GEN
     if(generate_table){
-            amrex::Error("Error: use QED_TABLE_GEN=TRUE to enable table generation!\n");
+            amrex::Error("Error: Compile with QED_TABLE_GEN=TRUE to enable table generation!\n");
        }
 #endif
 
@@ -827,7 +827,7 @@ MultiParticleContainer::ParseBreitWheelerParams ()
 #ifndef WARPX_QED_TABLE_GEN
     if(generate_table){
         if(ParallelDescriptor::IOProcessor()){
-            amrex::Error("Error: use QED_TABLE_GEN=TRUE to enable table generation!\n");
+            amrex::Error("Error: Compile with QED_TABLE_GEN=TRUE to enable table generation!\n");
        }
     }
 #endif
