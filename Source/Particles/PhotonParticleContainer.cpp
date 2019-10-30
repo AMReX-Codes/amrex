@@ -26,9 +26,9 @@ PhotonParticleContainer::PhotonParticleContainer (AmrCore* amr_core, int ispecie
     ParmParse pp(species_name);
 
 #ifdef WARPX_QED
-        //IF do_qed is enabled, find out if Breit Wheeler process is enabled
-        if(do_qed)
-            pp.query("do_qed_breit_wheeler", do_qed_breit_wheeler);
+        //IF m_do_qed is enabled, find out if Breit Wheeler process is enabled
+        if(m_do_qed)
+            pp.query("do_qed_breit_wheeler", m_do_qed_breit_wheeler);
 
         //Check for processes which do not make sense for photons
         bool test_quantum_sync = false;

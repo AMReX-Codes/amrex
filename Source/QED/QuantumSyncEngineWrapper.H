@@ -22,6 +22,13 @@
 #include <string>
 
 //Some handy aliases
+
+// The engine has two templated arguments: the numerical type
+// and a random number generator. However, random numbers are not
+// used to generate the lookup tables and the static member
+// functions which are called in the functors do not use
+// random numbers as well. Therefore, an empty "DummyStruct"
+// can be passed as a template parameter.
 using PicsarQuantumSynchrotronEngine = picsar::multi_physics::
     quantum_synchrotron_engine<amrex::Real, QedUtils::DummyStruct>;
 
@@ -55,7 +62,7 @@ public:
      */
     AMREX_GPU_DEVICE
     AMREX_FORCE_INLINE
-    amrex::Real operator() () const
+    amrex::Real operator() () const noexcept
     {
         //A random number in [0,1) should be provided as an argument.
         return PicsarQuantumSynchrotronEngine::
@@ -79,7 +86,7 @@ public:
      */
     QuantumSynchrotronEvolveOpticalDepth(
         QuantumSynchrotronEngineInnards& r_innards):
-        ctrl{r_innards.ctrl},
+        m_ctrl{r_innards.ctrl},
         m_KKfunc_size{r_innards.KKfunc_coords.size()},
         m_p_KKfunc_coords{r_innards.KKfunc_coords.dataPtr()},
         m_p_KKfunc_data{r_innards.KKfunc_data.dataPtr()}
@@ -92,17 +99,17 @@ public:
      * @param[in] bx,by,bz magnetic field components (SI units)
      * @param[in] dt timestep (SI units)
      * @param[in,out] opt_depth optical depth of the lepton. It is modified by the method.
-     * @return a flag which is true if optical depth becomes negative (i.e. a photon has to be generated).
+     * @return a flag which is 1 if optical depth becomes negative (i.e. a photon has to be generated).
      */
     AMREX_GPU_DEVICE
     AMREX_FORCE_INLINE
-    bool operator()(
+    int operator()(
         amrex::Real px, amrex::Real py, amrex::Real pz,
         amrex::Real ex, amrex::Real ey, amrex::Real ez,
         amrex::Real bx, amrex::Real by, amrex::Real bz,
-        amrex::Real dt, amrex::Real& opt_depth) const
+        amrex::Real dt, amrex::Real& opt_depth) const noexcept
     {
-        bool has_event_happend{false};
+        bool has_event_happened{false};
 
         //the library provides the time (< dt) at which the event occurs, but this
         //feature won't be used in WarpX for now.
@@ -114,22 +121,22 @@ public:
             ex, ey, ez,
             bx, by, bz,
             dt, opt_depth,
-            has_event_happend, unused_event_time,
-            dummy_lambda,
+            has_event_happened, unused_event_time,
+            m_dummy_lambda,
             picsar::multi_physics::lookup_1d<amrex::Real>{
                 m_KKfunc_size,
                 m_p_KKfunc_coords,
                 m_p_KKfunc_data},
-            ctrl);
+            m_ctrl);
 
-        return has_event_happend;
+        return has_event_happened;
     }
 
 private:
     //laser wavelenght is not used with SI units
-    const amrex::Real dummy_lambda{1.0};
+    const amrex::Real m_dummy_lambda{1.0};
 
-    const PicsarQuantumSynchrotronCtrl ctrl;
+    const PicsarQuantumSynchrotronCtrl m_ctrl;
 
     //lookup table data
     size_t m_KKfunc_size;
@@ -152,7 +159,7 @@ public:
      */
     QuantumSynchrotronGeneratePhotonAndUpdateMomentum(
         QuantumSynchrotronEngineInnards& r_innards):
-        ctrl{r_innards.ctrl},
+        m_ctrl{r_innards.ctrl},
         m_cum_distrib_coords_1_size{r_innards.cum_distrib_coords_1.size()},
         m_cum_distrib_coords_2_size{r_innards.cum_distrib_coords_2.size()},
         m_p_distrib_coords_1{r_innards.cum_distrib_coords_1.data()},
@@ -179,7 +186,7 @@ public:
     amrex::Real bx, amrex::Real by, amrex::Real bz,
     amrex::Real weight,
     amrex::Real* g_px, amrex::Real* g_py, amrex::Real* g_pz,
-    amrex::Real* g_weight) const
+    amrex::Real* g_weight) const noexcept
     {
         //[sampling] random numbers are needed
         amrex::GpuArray<amrex::Real, sampling>
@@ -194,22 +201,22 @@ public:
             weight, sampling,
             g_px, g_py, g_pz,
             g_weight,
-            dummy_lambda,
+            m_dummy_lambda,
             picsar::multi_physics::lookup_2d<amrex::Real>{
                 m_cum_distrib_coords_1_size,
                 m_p_distrib_coords_1,
                 m_cum_distrib_coords_2_size,
                 m_p_distrib_coords_2,
                 m_p_cum_distrib_data},
-            ctrl,
+            m_ctrl,
             rand_zero_one_minus_epsi.data());
     }
 
 private:
     //laser wavelenght is not used with SI units
-    const amrex::Real dummy_lambda{1.0};
+    const amrex::Real m_dummy_lambda{1.0};
 
-    const PicsarQuantumSynchrotronCtrl ctrl;
+    const PicsarQuantumSynchrotronCtrl m_ctrl;
 
     //lookup table data
     size_t m_cum_distrib_coords_1_size;
@@ -285,13 +292,13 @@ public:
     const PicsarQuantumSynchrotronCtrl& get_ref_ctrl() const;
 
 private:
-    bool lookup_tables_initialized = false;
+    bool m_lookup_tables_initialized = false;
 
-    QuantumSynchrotronEngineInnards innards;
+    QuantumSynchrotronEngineInnards m_innards;
 
 //Table builing is available only if the libray is compiled with QED_TABLE_GEN=TRUE
 #ifdef WARPX_QED_TABLE_GEN
-    QuantumSynchrotronEngineTableBuilder table_builder;
+    QuantumSynchrotronEngineTableBuilder m_table_builder;
 #endif
 
 };

@@ -62,24 +62,25 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
         "Radiation reaction can be enabled only if Boris pusher is used");
     //_____________________________
 
-
 #ifdef AMREX_USE_GPU
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-        do_field_ionization == 0,
-        "Field ionization does not work on GPU so far, because the current "
-        "version of Redistribute in AMReX does not work with runtime parameters");
+    Print()<<"\n-----------------------------------------------------\n";
+    Print()<<"WARNING: field ionization on GPU uses RedistributeCPU\n";
+    Print()<<"-----------------------------------------------------\n\n";
+    //AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+        //do_field_ionization == 0,
+        //"Field ionization does not work on GPU so far, because the current "
+        //"version of Redistribute in AMReX does not work with runtime parameters");
 #endif
-
 
 #ifdef WARPX_QED
     //Add real component if QED is enabled
-    pp.query("do_qed", do_qed);
-    if(do_qed)
+    pp.query("do_qed", m_do_qed);
+    if(m_do_qed)
         AddRealComp("tau");
 
     //IF do_qed is enabled, find out if Quantum Synchrotron process is enabled
-    if(do_qed)
-        pp.query("do_qed_quantum_sync", do_qed_quantum_sync);
+    if(m_do_qed)
+        pp.query("do_qed_quantum_sync", m_do_qed_quantum_sync);
 
     //TODO: SHOULD CHECK IF SPECIES IS EITHER ELECTRONS OR POSITRONS!!
 #endif
@@ -90,7 +91,7 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
         plot_flag_size += 6;
 
 #ifdef WARPX_QED
-    if(do_qed){
+    if(m_do_qed){
         // plot_flag will have an entry for the optical depth
         plot_flag_size++;
     }
@@ -122,7 +123,7 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
     }
 
     #ifdef WARPX_QED
-        if(do_qed){
+        if(m_do_qed){
             //Optical depths is always plotted if QED is on
             plot_flags[plot_flag_size-1] = 1;
         }
@@ -543,11 +544,11 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
         BreitWheelerGetOpticalDepth breit_wheeler_get_opt;
         if(loc_has_quantum_sync){
             quantum_sync_get_opt =
-                shr_ptr_qs_engine->build_optical_depth_functor();
+                m_shr_p_qs_engine->build_optical_depth_functor();
         }
         if(loc_has_breit_wheeler){
             breit_wheeler_get_opt =
-                shr_ptr_bw_engine->build_optical_depth_functor();
+                m_shr_p_bw_engine->build_optical_depth_functor();
         }
 #endif
 
@@ -2542,8 +2543,6 @@ PhysicalParticleContainer::buildIonizationMask (const amrex::MFIter& mfi, const 
                 Real p = 1. - std::exp( - w_dtau );
 
                 if (random_draw < p){
-                    // increment particle's ionization level
-                    ion_lev[i] += 1;
                     // update mask
                     p_ionization_mask[i] = 1;
                 }
@@ -2563,25 +2562,25 @@ PhysicalParticleContainer::AmIALepton(){
 
 bool PhysicalParticleContainer::has_quantum_sync()
 {
-    return do_qed_quantum_sync;
+    return m_do_qed_quantum_sync;
 }
 
 bool PhysicalParticleContainer::has_breit_wheeler()
 {
-    return do_qed_breit_wheeler;
+    return m_do_qed_breit_wheeler;
 }
 
 void
 PhysicalParticleContainer::
 set_breit_wheeler_engine_ptr(std::shared_ptr<BreitWheelerEngine> ptr)
 {
-    shr_ptr_bw_engine = ptr;
+    m_shr_p_bw_engine = ptr;
 }
 
 void
 PhysicalParticleContainer::
 set_quantum_sync_engine_ptr(std::shared_ptr<QuantumSynchrotronEngine> ptr)
 {
-    shr_ptr_qs_engine = ptr;
+    m_shr_p_qs_engine = ptr;
 }
 #endif

@@ -22,6 +22,13 @@
 #include <string>
 
 //Some handy aliases
+
+// The engine has two templated arguments: the numerical type
+// and a random number generator. However, random numbers are not
+// used to generate the lookup tables and the static member
+// functions which are called in the functors do not use
+// random numbers as well. Therefore, an empty "DummyStruct"
+// can be passed as a template parameter.
 using PicsarBreitWheelerEngine = picsar::multi_physics::
     breit_wheeler_engine<amrex::Real, QedUtils::DummyStruct>;
 
@@ -55,7 +62,7 @@ public:
      */
     AMREX_GPU_DEVICE
     AMREX_FORCE_INLINE
-    amrex::Real operator() () const
+    amrex::Real operator() () const noexcept
     {
         //A random number in [0,1) should be provided as an argument.
         return PicsarBreitWheelerEngine::
@@ -78,7 +85,7 @@ public:
      * allocations should be triggered on GPU
      */
     BreitWheelerEvolveOpticalDepth(BreitWheelerEngineInnards& r_innards):
-        ctrl{r_innards.ctrl},
+        m_ctrl{r_innards.ctrl},
         m_TTfunc_size{r_innards.TTfunc_coords.size()},
         m_p_TTfunc_coords{r_innards.TTfunc_coords.dataPtr()},
         m_p_TTfunc_data{r_innards.TTfunc_data.dataPtr()}
@@ -91,17 +98,17 @@ public:
      * @param[in] bx,by,bz magnetic field components (SI units)
      * @param[in] dt timestep (SI units)
      * @param[in,out] opt_depth optical depth of the photon. It is modified by the method.
-     * @return a flag which is true if optical depth becomes negative (i.e. a pair has to be generated).
+     * @return a flag which is 1 if optical depth becomes negative (i.e. a pair has to be generated).
      */
     AMREX_GPU_DEVICE
     AMREX_FORCE_INLINE
-    bool operator()(
+    int operator()(
     amrex::Real px, amrex::Real py, amrex::Real pz,
     amrex::Real ex, amrex::Real ey, amrex::Real ez,
     amrex::Real bx, amrex::Real by, amrex::Real bz,
-    amrex::Real dt, amrex::Real& opt_depth) const
+    amrex::Real dt, amrex::Real& opt_depth) const noexcept
     {
-        bool has_event_happend{false};
+        bool has_event_happened{false};
 
         //the library provides the time (< dt) at which the event occurs, but this
         //feature won't be used in WarpX for now.
@@ -113,22 +120,22 @@ public:
             ex, ey, ez,
             bx, by, bz,
             dt, opt_depth,
-            has_event_happend, unused_event_time,
-            dummy_lambda,
+            has_event_happened, unused_event_time,
+            m_dummy_lambda,
             picsar::multi_physics::lookup_1d<amrex::Real>{
                 m_TTfunc_size,
                 m_p_TTfunc_coords,
                 m_p_TTfunc_data},
-            ctrl);
+            m_ctrl);
 
-        return has_event_happend;
+        return has_event_happened;
     }
 
 private:
     //laser wavelenght is not used with SI units
-    const amrex::Real dummy_lambda{1.0};
+    const amrex::Real m_dummy_lambda{1.0};
 
-    const PicsarBreitWheelerCtrl ctrl;
+    const PicsarBreitWheelerCtrl m_ctrl;
 
     //lookup table data
     size_t m_TTfunc_size;
@@ -151,7 +158,7 @@ public:
      */
     BreitWheelerGeneratePairs(
         BreitWheelerEngineInnards& r_innards):
-        ctrl{r_innards.ctrl},
+        m_ctrl{r_innards.ctrl},
         m_cum_distrib_coords_1_size{r_innards.cum_distrib_coords_1.size()},
         m_cum_distrib_coords_2_size{r_innards.cum_distrib_coords_2.size()},
         m_p_distrib_coords_1{r_innards.cum_distrib_coords_1.data()},
@@ -180,7 +187,7 @@ public:
     amrex::Real weight,
     amrex::Real* e_px, amrex::Real* e_py, amrex::Real* e_pz,
     amrex::Real* p_px, amrex::Real* p_py, amrex::Real* p_pz,
-    amrex::Real* e_weight, amrex::Real* p_weight) const
+    amrex::Real* e_weight, amrex::Real* p_weight) const noexcept
     {
         //[sampling] random numbers are needed
         picsar::multi_physics::picsar_array<amrex::Real, sampling>
@@ -196,7 +203,7 @@ public:
             e_px, e_py, e_pz,
             p_px, p_py, p_pz,
             e_weight, p_weight,
-            dummy_lambda,
+            m_dummy_lambda,
             picsar::multi_physics::lookup_2d<amrex::Real>{
                 m_cum_distrib_coords_1_size,
                 m_p_distrib_coords_1,
@@ -204,15 +211,15 @@ public:
                 m_p_distrib_coords_2,
                 m_p_cum_distrib_data
             },
-            ctrl,
+            m_ctrl,
             rand_zero_one_minus_epsi.data());
     }
 
 private:
     //laser wavelenght is not used with SI units
-    const amrex::Real dummy_lambda{1.0};
+    const amrex::Real m_dummy_lambda{1.0};
 
-    const PicsarBreitWheelerCtrl ctrl;
+    const PicsarBreitWheelerCtrl m_ctrl;
 
     //lookup table data
     size_t m_cum_distrib_coords_1_size;
@@ -288,13 +295,13 @@ public:
     const PicsarBreitWheelerCtrl& get_ref_ctrl() const;
 
 private:
-    bool lookup_tables_initialized = false;
+    bool m_lookup_tables_initialized = false;
 
-    BreitWheelerEngineInnards innards;
+    BreitWheelerEngineInnards m_innards;
 
 //Table builing is available only if WarpX is compiled with QED_TABLE_GEN=TRUE
 #ifdef WARPX_QED_TABLE_GEN
-    BreitWheelerEngineTableBuilder table_builder;
+    BreitWheelerEngineTableBuilder m_table_builder;
 #endif
 
 };

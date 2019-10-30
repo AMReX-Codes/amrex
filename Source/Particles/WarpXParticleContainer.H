@@ -280,6 +280,7 @@ public:
     {};
 
     std::map<std::string, int> getParticleComps () { return particle_comps;}
+    std::map<std::string, int> getParticleiComps () { return particle_icomps;}
 
 protected:
 
@@ -319,8 +320,7 @@ protected:
     int do_back_transformed_diagnostics = 1;
 
 #ifdef WARPX_QED
-    //A flag to know if QED effects have to be considered for this species
-    bool do_qed = false;
+    bool m_do_qed = false;
 
     //Species for which QED effects are relevant should override these methods
     virtual bool has_quantum_sync(){return false;};

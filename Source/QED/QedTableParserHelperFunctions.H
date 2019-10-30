@@ -4,7 +4,7 @@
 /**
  * This header contains helper functions to safely extract data
  * (e.g. integers, floating point numbers) from raw binary data
- * (i.e. a char*).
+ * (i.e. a char*) and to convert arrays into raw binary data.
  */
 
 #include <AMReX_Vector.H>
@@ -64,6 +64,26 @@ namespace QedUtils{
 
         p_data += sizeof(T);
         return std::make_tuple(true, res, p_data);
+    }
+
+    /**
+    * This function converts a C-style array of T into
+    * a Vector<char> (i.e. raw binary data) and adds it
+    * to an existing Vector<char> passed by reference
+    * @param[in] p_data a pointer to the beginning of the array
+    * @param[in] how_many number of elements of type T in the array
+    * @param[in,out] raw_data data will be appended to this vector
+    */
+    template <class T>
+    void add_data_to_vector_char (
+        const T* p_data, size_t how_many, amrex::Vector<char>& raw_data)
+    {
+        raw_data.insert(
+            raw_data.end(),
+            reinterpret_cast<const char*>(p_data),
+            reinterpret_cast<const char*>(p_data) +
+            sizeof(T)*how_many
+        );
     }
 };
 

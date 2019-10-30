@@ -245,16 +245,16 @@ protected:
 
 #ifdef WARPX_QED
     // A flag to enable quantum_synchrotron process for leptons
-    bool do_qed_quantum_sync = false;
+    bool m_do_qed_quantum_sync = false;
 
-    // A flag to enable breit_wheeler process for photons
-    bool do_qed_breit_wheeler = false;
+    // A flag to enable breit_wheeler process [photons only!!]
+    bool m_do_qed_breit_wheeler = false;
 
     // A smart pointer to an instance of a Quantum Synchrotron engine
-    std::shared_ptr<QuantumSynchrotronEngine> shr_ptr_qs_engine;
+    std::shared_ptr<QuantumSynchrotronEngine> m_shr_p_qs_engine;
 
     // A smart pointer to an instance of a Breit Wheeler engine [photons only!]
-    std::shared_ptr<BreitWheelerEngine> shr_ptr_bw_engine;
+    std::shared_ptr<BreitWheelerEngine> m_shr_p_bw_engine;
 #endif
 
 // PushPX and PushP has been split into two methods (classical and QED versions)

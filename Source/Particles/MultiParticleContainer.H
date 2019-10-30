@@ -1,15 +1,15 @@
-
 #ifndef WARPX_ParticleContainer_H_
 #define WARPX_ParticleContainer_H_
 
-#include <AMReX_Particles.H>
-#include <AMReX_ParallelDescriptor.H>
+#include "ElementaryProcess.H"
+
 #include <WarpXParticleContainer.H>
 #include <PhysicalParticleContainer.H>
 #include <RigidInjectedParticleContainer.H>
 #include <PhotonParticleContainer.H>
 #include <LaserParticleContainer.H>
 
+#include <AMReX_Particles.H>
 #ifdef WARPX_QED
     #include <BreitWheelerEngineWrapper.H>
     #include <QuantumSyncEngineWrapper.H>
@@ -199,6 +199,8 @@ public:
 
     PhysicalParticleContainer& GetPCtmp () { return *pc_tmp; }
 
+    IonizationProcess ionization_process;
+
 protected:
 
     // Particle container types
@@ -218,8 +220,8 @@ protected:
 
 #ifdef WARPX_QED
     // The QED engines
-    std::shared_ptr<BreitWheelerEngine> shr_p_bw_engine;
-    std::shared_ptr<QuantumSynchrotronEngine> shr_p_qs_engine;
+    std::shared_ptr<BreitWheelerEngine> m_shr_p_bw_engine;
+    std::shared_ptr<QuantumSynchrotronEngine> m_shr_p_qs_engine;
     //_______________________________
 
     /**
@@ -228,10 +230,20 @@ protected:
      */
     void InitQED ();
 
-    //Flags to store if at least one species needs a QED process
-    bool someone_has_quantum_sync = false;
-    bool someone_has_breit_wheeler = false;
+    //Variables to store how many species need a QED process
+    int m_nspecies_quantum_sync = 0;
+    int m_nspecies_breit_wheeler = 0;
     //________
+
+    /**
+     * Returns the number of species having Quantum Synchrotron process enabled
+     */
+    int NSpeciesQuantumSync() const { return  m_nspecies_quantum_sync;}
+
+    /**
+     * Returns the number of species having Breit Wheeler process enabled
+     */
+    int NSpeciesBreitWheeler() const { return m_nspecies_breit_wheeler;}
 
     /**
      * Initializes the Quantum Synchrotron engine
