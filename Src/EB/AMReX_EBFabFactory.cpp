@@ -57,6 +57,12 @@ EBFArrayBoxFactory::clone () const
     return new EBFArrayBoxFactory(*this);
 }
 
+bool
+EBFArrayBoxFactory::isAllRegular () const noexcept
+{
+    return m_parent->isAllRegular();
+}
+
 EB2::IndexSpace const*
 EBFArrayBoxFactory::getEBIndexSpace () const noexcept
 {
