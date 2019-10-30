@@ -103,11 +103,11 @@ public:
      * @param[in] bx,by,bz magnetic field components (SI units)
      * @param[in] dt timestep (SI units)
      * @param[in,out] opt_depth optical depth of the photon. It is modified by the method.
-     * @return a flag which is true if optical depth becomes negative (i.e. a pair has to be generated).
+     * @return a flag which is 1 if optical depth becomes negative (i.e. a pair has to be generated).
      */
     AMREX_GPU_DEVICE
     AMREX_FORCE_INLINE
-    bool operator()(
+    int operator()(
     amrex::Real px, amrex::Real py, amrex::Real pz,
     amrex::Real ex, amrex::Real ey, amrex::Real ez,
     amrex::Real bx, amrex::Real by, amrex::Real bz,
