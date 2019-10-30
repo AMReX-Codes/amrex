@@ -1716,9 +1716,9 @@ void PhysicalParticleContainer::PushPX_QedQuantumSynchrotron(
 )
 {
     QuantumSynchrotronEvolveOpticalDepth evolve_opt =
-        shr_ptr_qs_engine->build_evolve_functor();
+        m_shr_p_qs_engine->build_evolve_functor();
 
-    const auto chi_min = shr_ptr_qs_engine->get_ref_ctrl().chi_part_min;
+    const auto chi_min = m_shr_p_qs_engine->get_ref_ctrl().chi_part_min;
 
     //Assumes that all consistency checks have been done at initialization
     if(do_classical_radiation_reaction){
@@ -2016,9 +2016,9 @@ void PhysicalParticleContainer::PushP_QedQuantumSynchrotron(
 )
 {
     QuantumSynchrotronEvolveOpticalDepth evolve_opt =
-        shr_ptr_qs_engine->build_evolve_functor();
+        m_shr_p_qs_engine->build_evolve_functor();
 
-    const auto chi_min = shr_ptr_qs_engine->get_ref_ctrl().chi_part_min;
+    const auto chi_min = m_shr_p_qs_engine->get_ref_ctrl().chi_part_min;
 
     //Assumes that all consistency checks have been done at initialization
     if(do_classical_radiation_reaction){

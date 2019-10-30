@@ -213,7 +213,7 @@ PhotonParticleContainer::DoBreitWheeler(int lev,
             const ParticleReal* const AMREX_RESTRICT Bzpp = Bzp.dataPtr();
 
             BreitWheelerEvolveOpticalDepth evolve_opt =
-                shr_ptr_bw_engine->build_evolve_functor();
+                m_shr_p_bw_engine->build_evolve_functor();
 
             amrex::Real* AMREX_RESTRICT p_tau =
                 pti.GetAttribs(particle_comps["tau"]).dataPtr();
@@ -256,7 +256,7 @@ PhotonParticleContainer::DoBreitWheelerPti(WarpXParIter& pti,
     const ParticleReal* const AMREX_RESTRICT Bz = attribs[PIdx::Bz].dataPtr();
 
     BreitWheelerEvolveOpticalDepth evolve_opt =
-        shr_ptr_bw_engine->build_evolve_functor();
+        m_shr_p_bw_engine->build_evolve_functor();
 
     amrex::Real* AMREX_RESTRICT p_tau =
         pti.GetAttribs(particle_comps["tau"]).dataPtr();

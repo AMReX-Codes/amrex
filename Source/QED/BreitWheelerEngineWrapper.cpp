@@ -179,7 +179,7 @@ BreitWheelerEngine::get_default_ctrl() const
 const PicsarBreitWheelerCtrl&
 BreitWheelerEngine::get_ref_ctrl() const
 {
-    return innards.ctrl;
+    return m_innards.ctrl;
 }
 
 void BreitWheelerEngine::compute_lookup_tables (

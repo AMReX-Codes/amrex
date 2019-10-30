@@ -178,7 +178,7 @@ QuantumSynchrotronEngine::get_default_ctrl() const
 const PicsarQuantumSynchrotronCtrl&
 QuantumSynchrotronEngine::get_ref_ctrl() const
 {
-    return innards.ctrl;
+    return m_innards.ctrl;
 }
 
 void QuantumSynchrotronEngine::compute_lookup_tables (
