@@ -341,7 +341,7 @@ template <class FAB1, class FAB2, class FAB3, class F,
 typename FAB1::value_type
 ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, FabArray<FAB3> const& fa3,
            int nghost, F&& f) {
-  return ReduceSum(fa1, fa2, fa3, nghost, std::move(f));
+  return ReduceSum(fa1, fa2, fa3, IntVect(nghost), std::move(f));
 }
 
 namespace fudetail {
@@ -388,7 +388,7 @@ ReduceSum_device (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
             const Box& bx = amrex::grow(mfi.validbox(),nghost);
             const auto& arr1 = fa1.array(mfi);
             const auto& arr2 = fa2.array(mfi);
-            const auto& arr3 = fa2.array(mfi);
+            const auto& arr3 = fa3.array(mfi);
             reduce_op.eval(bx, reduce_data,
             [=] AMREX_GPU_DEVICE (Box const& b) -> ReduceTuple
             {
