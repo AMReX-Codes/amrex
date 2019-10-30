@@ -82,21 +82,22 @@ WarpX::InitData ()
 
 void
 WarpX::InitDiagnostics () {
-    if (do_boosted_frame_diagnostic) {
+    if (do_back_transformed_diagnostics) {
         const Real* current_lo = geom[0].ProbLo();
         const Real* current_hi = geom[0].ProbHi();
         Real dt_boost = dt[0];
-
         // Find the positions of the lab-frame box that corresponds to the boosted-frame box at t=0
         Real zmin_lab = current_lo[moving_window_dir]/( (1.+beta_boost)*gamma_boost );
         Real zmax_lab = current_hi[moving_window_dir]/( (1.+beta_boost)*gamma_boost );
-
-        myBFD.reset(new BoostedFrameDiagnostic(zmin_lab,
+        myBFD.reset(new BackTransformedDiagnostic(zmin_lab,
                                                zmax_lab,
                                                moving_window_v, dt_snapshots_lab,
-                                               num_snapshots_lab, gamma_boost,
-                                               t_new[0], dt_boost,
-                                               moving_window_dir, geom[0]));
+                                               num_snapshots_lab,
+                                               dt_slice_snapshots_lab,
+                                               num_slice_snapshots_lab,
+                                               gamma_boost, t_new[0], dt_boost,
+                                               moving_window_dir, geom[0],
+                                               slice_realbox));
     }
 }
 
@@ -303,18 +304,18 @@ WarpX::InitLevelData (int lev, Real time)
 {
     for (int i = 0; i < 3; ++i) {
         current_fp[lev][i]->setVal(0.0);
-        Efield_fp[lev][i]->setVal(0.0);
-        Bfield_fp[lev][i]->setVal(0.0);
+        Efield_fp[lev][i]->setVal(E_external_grid[i]);
+        Bfield_fp[lev][i]->setVal(B_external_grid[i]);
     }
 
     if (lev > 0) {
         for (int i = 0; i < 3; ++i) {
-            Efield_aux[lev][i]->setVal(0.0);
-            Bfield_aux[lev][i]->setVal(0.0);
+            Efield_aux[lev][i]->setVal(E_external_grid[i]);
+            Bfield_aux[lev][i]->setVal(B_external_grid[i]);
 
             current_cp[lev][i]->setVal(0.0);
-            Efield_cp[lev][i]->setVal(0.0);
-            Bfield_cp[lev][i]->setVal(0.0);
+            Efield_cp[lev][i]->setVal(E_external_grid[i]);
+            Bfield_cp[lev][i]->setVal(B_external_grid[i]);
         }
     }
 

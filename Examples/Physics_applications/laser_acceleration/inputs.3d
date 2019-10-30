@@ -11,8 +11,8 @@ geometry.is_periodic = 1     1     0      # Is periodic?
 geometry.prob_lo     = -30.e-6   -30.e-6   -56.e-6    # physical domain
 geometry.prob_hi     =  30.e-6    30.e-6    12.e-6
 amr.max_level = 0 # Maximum level in hierarchy (1 might be unstable, >1 is not supported)
-warpx.fine_tag_lo = -5.e-6   -5.e-6   -50.e-6
-warpx.fine_tag_hi =  5.e-6    5.e-6   -30.e-6
+# warpx.fine_tag_lo = -5.e-6   -5.e-6   -50.e-6
+# warpx.fine_tag_hi =  5.e-6    5.e-6   -30.e-6
 
 #################################
 ############ NUMERICS ###########
@@ -24,8 +24,8 @@ warpx.verbose = 1
 warpx.do_dive_cleaning = 0
 warpx.plot_raw_fields = 1
 warpx.plot_raw_fields_guards = 1
-warpx.plot_finepatch = 1
-warpx.plot_crsepatch = 1
+# warpx.plot_finepatch = 1
+# warpx.plot_crsepatch = 1
 warpx.use_filter = 1
 warpx.cfl = 1. # if 1., the time step is set to its CFL limit
 warpx.do_pml = 0 # use Perfectly Matched Layer as boundary condition

@@ -11,15 +11,13 @@ geometry.is_periodic = 0     0      # Is periodic?
 geometry.prob_lo     =  -32.e-6   -32.e-6    # physical domain
 geometry.prob_hi     =  32.e-6   32.e-6
 amr.max_level = 0 # Maximum level in hierarchy (1 might be unstable, >1 is not supported)
-warpx.fine_tag_lo = -5.e-6   -35.e-6
-warpx.fine_tag_hi =  5.e-6   -25.e-6
 
 #################################
 ############ NUMERICS ###########
 #################################
 algo.current_deposition = esirkepov
 algo.charge_deposition = standard
-algo.field_gathering = standard
+algo.field_gathering = energy-conserving
 algo.particle_pusher = boris
 interpolation.nox = 3 # Particle interpolation order. Must be the same in x, y, and z
 interpolation.noy = 3
@@ -28,8 +26,6 @@ warpx.verbose = 1
 warpx.do_dive_cleaning = 0
 warpx.plot_raw_fields = 0
 warpx.plot_raw_fields_guards = 0
-warpx.plot_finepatch = 0
-warpx.plot_crsepatch = 0
 warpx.use_filter = 1
 warpx.cfl = 1. # if 1., the time step is set to its CFL limit
 warpx.do_pml = 1 # use Perfectly Matched Layer as boundary condition

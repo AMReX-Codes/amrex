@@ -31,7 +31,7 @@ PhotonParticleContainer::PhotonParticleContainer (AmrCore* amr_core, int ispecie
             pp.query("do_qed_breit_wheeler", do_qed_breit_wheeler);
 
         //Check for processes which do not make sense for photons
-        bool test_quantum_sync;
+        bool test_quantum_sync = false;
         pp.query("do_qed_quantum_sync", test_quantum_sync);
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
         test_quantum_sync == 0,
@@ -45,9 +45,8 @@ void PhotonParticleContainer::InitData()
 {
     AddParticles(0); // Note - add on level 0
 
-    if (maxLevel() > 0) {
-        Redistribute();  // We then redistribute
-    }
+    Redistribute();  // We then redistribute
+
 }
 
 void
@@ -74,7 +73,7 @@ PhotonParticleContainer::PushPX(WarpXParIter& pti,
     const ParticleReal* const AMREX_RESTRICT By = attribs[PIdx::By].dataPtr();
     const ParticleReal* const AMREX_RESTRICT Bz = attribs[PIdx::Bz].dataPtr();
 
-    if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
+    if (WarpX::do_back_transformed_diagnostics && do_back_transformed_diagnostics)
     {
         copy_attribs(pti, x, y, z);
     }

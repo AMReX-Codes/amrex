@@ -79,7 +79,7 @@ sim = picmi.Simulation(solver = solver,
                        verbose = 1,
                        warpx_plot_int = 40,
                        warpx_current_deposition_algo = 'esirkepov',
-                       warpx_field_gathering_algo = 'standard',
+                       warpx_field_gathering_algo = 'energy-conserving',
                        warpx_particle_pusher_algo = 'boris')
 
 sim.add_species(electrons, layout=picmi.GriddedLayout(n_macroparticle_per_cell=[2,16,2], grid=grid))

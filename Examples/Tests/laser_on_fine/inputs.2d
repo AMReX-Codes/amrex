@@ -2,7 +2,7 @@
 max_step = 500
 
 # number of grid points
-amr.n_cell =   64  64  64
+amr.n_cell =   64  64
 
 # The lo and hi ends of grids are multipliers of blocking factor
 amr.blocking_factor = 32
@@ -40,7 +40,7 @@ warpx.verbose = 1
 # Algorithms
 algo.current_deposition = esirkepov
 algo.charge_deposition = standard
-algo.field_gathering = standard
+algo.field_gathering = energy-conserving
 
 # CFL
 warpx.cfl = 1.0
@@ -53,8 +53,6 @@ interpolation.noz = 1
 
 # Moving window
 warpx.do_moving_window = 0
-warpx.moving_window_dir = z
-warpx.moving_window_v = 1.0 # in units of the speed of light
 
 # Laser
 lasers.nlasers      = 1
