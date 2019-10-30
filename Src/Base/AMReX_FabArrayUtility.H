@@ -388,7 +388,7 @@ ReduceSum_device (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
             const Box& bx = amrex::grow(mfi.validbox(),nghost);
             const auto& arr1 = fa1.array(mfi);
             const auto& arr2 = fa2.array(mfi);
-            const auto& arr3 = fa2.array(mfi);
+            const auto& arr3 = fa3.array(mfi);
             reduce_op.eval(bx, reduce_data,
             [=] AMREX_GPU_DEVICE (Box const& b) -> ReduceTuple
             {
