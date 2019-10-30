@@ -613,6 +613,7 @@ public:
     void FillBoundary (bool cross = false);
 
     void FillBoundary (const Periodicity& period, bool cross = false);
+    void FillBoundary (const IntVect& nghost, const Periodicity& period, bool cross = false);
 
     //! Same as FillBoundary(), but only copies ncomp components starting at scomp.
     void FillBoundary (int scomp, int ncomp, bool cross = false);
@@ -1802,6 +1803,19 @@ FabArray<FAB>::FillBoundary (const Periodicity& period, bool cross)
     BL_PROFILE("FabArray::FillBoundary()");
     if ( n_grow.max() > 0 ) {
 	FillBoundary_nowait(0, nComp(), n_grow, period, cross);
+	FillBoundary_finish();
+    }
+}
+
+template <class FAB>
+void
+FabArray<FAB>::FillBoundary (const IntVect& nghost, const Periodicity& period, bool cross)
+{
+    BL_PROFILE("FabArray::FillBoundary()");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(nghost.allLE(nGrowVect()),
+                                     "FillBoundary: asked to fill more ghost cells than we have");
+    if ( nghost.max() > 0 ) {
+	FillBoundary_nowait(0, nComp(), nghost, period, cross);
 	FillBoundary_finish();
     }
 }
