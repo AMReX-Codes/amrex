@@ -62,7 +62,7 @@ public:
      */
     AMREX_GPU_DEVICE
     AMREX_FORCE_INLINE
-    amrex::Real operator() () const
+    amrex::Real operator() () const noexcept
     {
         //A random number in [0,1) should be provided as an argument.
         return PicsarBreitWheelerEngine::
@@ -111,7 +111,7 @@ public:
     amrex::Real px, amrex::Real py, amrex::Real pz,
     amrex::Real ex, amrex::Real ey, amrex::Real ez,
     amrex::Real bx, amrex::Real by, amrex::Real bz,
-    amrex::Real dt, amrex::Real& opt_depth) const
+    amrex::Real dt, amrex::Real& opt_depth) const noexcept
     {
         bool has_event_happened{false};
 
@@ -186,7 +186,7 @@ public:
     amrex::Real weight,
     amrex::Real* e_px, amrex::Real* e_py, amrex::Real* e_pz,
     amrex::Real* p_px, amrex::Real* p_py, amrex::Real* p_pz,
-    amrex::Real* e_weight, amrex::Real* p_weight) const
+    amrex::Real* e_weight, amrex::Real* p_weight) const noexcept
     {
         //[sampling] random numbers are needed
         picsar::multi_physics::picsar_array<amrex::Real, sampling>

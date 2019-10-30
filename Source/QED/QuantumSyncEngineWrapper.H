@@ -62,7 +62,7 @@ public:
      */
     AMREX_GPU_DEVICE
     AMREX_FORCE_INLINE
-    amrex::Real operator() () const
+    amrex::Real operator() () const noexcept
     {
         //A random number in [0,1) should be provided as an argument.
         return PicsarQuantumSynchrotronEngine::
@@ -108,7 +108,7 @@ public:
         amrex::Real px, amrex::Real py, amrex::Real pz,
         amrex::Real ex, amrex::Real ey, amrex::Real ez,
         amrex::Real bx, amrex::Real by, amrex::Real bz,
-        amrex::Real dt, amrex::Real& opt_depth) const
+        amrex::Real dt, amrex::Real& opt_depth) const noexcept
     {
         bool has_event_happened{false};
 
@@ -181,7 +181,7 @@ public:
     amrex::Real bx, amrex::Real by, amrex::Real bz,
     amrex::Real weight,
     amrex::Real* g_px, amrex::Real* g_py, amrex::Real* g_pz,
-    amrex::Real* g_weight) const
+    amrex::Real* g_weight) const noexcept
     {
         //[sampling] random numbers are needed
         amrex::GpuArray<amrex::Real, sampling>
