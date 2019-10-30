@@ -626,23 +626,26 @@ void MultiParticleContainer::InitQED ()
     shr_p_qs_engine = std::make_shared<QuantumSynchrotronEngine>();
     shr_p_bw_engine = std::make_shared<BreitWheelerEngine>();
 
+    nspecies_quantum_sync = 0;
+    nspecies_breit_wheeler = 0;
+
     for (auto& pc : allcontainers) {
         if(pc->has_quantum_sync()){
             pc->set_quantum_sync_engine_ptr
                 (shr_p_qs_engine);
-            someone_has_quantum_sync = true;
+            nspecies_quantum_sync++;
         }
         if(pc->has_breit_wheeler()){
             pc->set_breit_wheeler_engine_ptr
                 (shr_p_bw_engine);
-            someone_has_breit_wheeler = true;
+            nspecies_breit_wheeler++;
         }
     }
 
-    if(someone_has_quantum_sync)
+    if(nspecies_quantum_sync != 0)
         InitQuantumSync();
 
-    if(someone_has_breit_wheeler)
+    if(nspecies_breit_wheeler !=0)
         InitBreitWheeler();
 
 }

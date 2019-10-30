@@ -1,13 +1,8 @@
 #ifndef WARPX_ParticleContainer_H_
 #define WARPX_ParticleContainer_H_
 
-<<<<<<< HEAD
-#include <AMReX_Particles.H>
-#include <AMReX_ParallelDescriptor.H>
-=======
 #include "ElementaryProcess.H"
 
->>>>>>> upstream/dev
 #include <WarpXParticleContainer.H>
 #include <PhysicalParticleContainer.H>
 #include <RigidInjectedParticleContainer.H>
@@ -235,10 +230,20 @@ protected:
      */
     void InitQED ();
 
-    //Flags to store if at least one species needs a QED process
-    bool someone_has_quantum_sync = false;
-    bool someone_has_breit_wheeler = false;
+    //Variables to store how many species need a QED process
+    int nspecies_quantum_sync = 0;
+    int nspecies_breit_wheeler = 0;
     //________
+
+    /**
+     * Returns the number of species having Quantum Synchrotron process enabled
+     */
+    int NSpeciesQuantumSync() const { return  nspecies_quantum_sync;}
+
+    /**
+     * Returns the number of species having Breit Wheeler process enabled
+     */
+    int NSpeciesBreitWheeler() const { return nspecies_breit_wheeler;}
 
     /**
      * Initializes the Quantum Synchrotron engine
