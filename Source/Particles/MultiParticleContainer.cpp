@@ -14,9 +14,6 @@
 
 using namespace amrex;
 
-//literals allow to write "aa"s, which means that "aa" is an std::string (C++14)
-using namespace std::literals;
-
 MultiParticleContainer::MultiParticleContainer (AmrCore* amr_core)
 {
 
@@ -642,10 +639,10 @@ void MultiParticleContainer::InitQED ()
         }
     }
 
-    if(nspecies_quantum_sync != 0)
+    if(m_nspecies_quantum_sync != 0)
         InitQuantumSync();
 
-    if(nspecies_breit_wheeler !=0)
+    if(m_nspecies_breit_wheeler !=0)
         InitBreitWheeler();
 
 }
@@ -758,7 +755,7 @@ MultiParticleContainer::ParseQuantumSyncParams ()
 
     std::string load_table_name;
     pp.query("load_table_from", load_table_name);
-    if(load_table_name != ""s){
+    if(!load_table_name.empty()){
        if(generate_table && ParallelDescriptor::IOProcessor()){
             amrex::Print() << "Warning, Quantum Synchrotron table will be loaded, not generated. \n";
        }
@@ -772,7 +769,7 @@ MultiParticleContainer::ParseQuantumSyncParams ()
        }
 #endif
 
-    if(table_name==""s){
+    if(table_name.empty()){
         amrex::Error("Error: Quantum Synchrotron table has either to be generated or to be loaded.\n");
     }
 
@@ -816,7 +813,7 @@ MultiParticleContainer::ParseBreitWheelerParams ()
 
     std::string load_table_name;
     pp.query("load_table_from", load_table_name);
-    if(load_table_name != ""s){
+    if(!load_table_name.empty()){
        if(generate_table && ParallelDescriptor::IOProcessor()){
             amrex::Print() << "Warning, Breit Wheeler table will be loaded, not generated. \n";
        }
@@ -832,7 +829,7 @@ MultiParticleContainer::ParseBreitWheelerParams ()
     }
 #endif
 
-    if(table_name==""s){
+    if(table_name.empty()){
         amrex::Error("Error: Breit Wheeler table has either to be generated or to be loaded.\n");
     }
 
