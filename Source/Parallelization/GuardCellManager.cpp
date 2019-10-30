@@ -1,4 +1,5 @@
 #include "GuardCellManager.H"
+#include <AMReX_Print.H>
 
 using namespace amrex;
 
@@ -121,11 +122,15 @@ guardCellManager::Init(
     ngF = IntVect(AMREX_D_DECL(ngF_int, ngF_int, ngF_int));
 #endif        
 
+    Print()<<"rrr ngE  : "<<ngE  <<'\n';
+    Print()<<"rrr ngJ  : "<<ngJ  <<'\n';
+    Print()<<"rrr ngRho: "<<ngRho<<'\n';
+    Print()<<"rrr ngF  : "<<ngF  <<'\n';
+
     ngExtra = IntVect(static_cast<int>(aux_is_nodal and !do_nodal));
 
     // Guard cells for field solver
-    ngB_FieldSolver = IntVect(AMREX_D_DECL(1,1,1));
-    ngE_FieldSolver = IntVect(AMREX_D_DECL(1,1,1));
+    ng_FieldSolver = IntVect(AMREX_D_DECL(1,1,1));
     ng_MovingWindow = IntVect(AMREX_D_DECL(0,0,0)); // Multiplied by number of cells moved at each timestep
     ng_MovingWindow[moving_window_dir] = 1;
     int FGcell[4] = {0,1,1,2}; // Index is nox

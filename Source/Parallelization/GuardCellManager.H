@@ -30,8 +30,7 @@ public:
     int ngF_int = 0;
 
     // Guard cells to exchange data
-    amrex::IntVect ngB_FieldSolver = amrex::IntVect::TheZeroVector();
-    amrex::IntVect ngE_FieldSolver = amrex::IntVect::TheZeroVector();
+    amrex::IntVect ng_FieldSolver = amrex::IntVect::TheZeroVector();
     amrex::IntVect ng_FieldGather = amrex::IntVect::TheZeroVector();
     amrex::IntVect ngJ_CurrentDepo = amrex::IntVect::TheZeroVector();
     amrex::IntVect ng_MovingWindow = amrex::IntVect::TheZeroVector();

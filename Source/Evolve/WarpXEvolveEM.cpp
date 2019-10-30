@@ -93,10 +93,9 @@ WarpX::EvolveEM (int numsteps)
             // FillBoundaryE(guard_cells.ngE);
             // This is probably overkill
             // FillBoundaryB(guard_cells.ngE);
-            IntVect my_nc;
-            my_nc = guard_cells.ng_FieldGather+guard_cells.ng_NCIFilter;
-            FillBoundaryE(my_nc);
-            FillBoundaryB(my_nc);
+            IntVect ng_gather = guard_cells.ng_FieldGather+guard_cells.ng_NCIFilter;
+            FillBoundaryE(ng_gather);
+            FillBoundaryB(ng_gather);
             FillBoundaryAux(guard_cells.ng_Aux);
             UpdateAuxilaryData();
         }
@@ -328,12 +327,12 @@ WarpX::OneStep_nosub (Real cur_time)
     FillBoundaryB(guard_cells.ngE);
 #else
     EvolveF(0.5*dt[0], DtType::FirstHalf);
-    FillBoundaryF(guard_cells.ngF);
+    FillBoundaryF(guard_cells.ng_FieldSolver);
     EvolveB(0.5*dt[0]); // We now have B^{n+1/2}
-    FillBoundaryB(guard_cells.ngE_FieldSolver);
+    FillBoundaryB(guard_cells.ng_FieldSolver);
 
     EvolveE(dt[0]); // We now have E^{n+1}
-    FillBoundaryE(guard_cells.ngE_FieldSolver);
+    FillBoundaryE(guard_cells.ng_FieldSolver);
     EvolveF(0.5*dt[0], DtType::SecondHalf);
     FillBoundaryF(guard_cells.ngF);
     EvolveB(0.5*dt[0]); // We now have B^{n+1}
