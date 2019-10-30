@@ -22,6 +22,13 @@
 #include <string>
 
 //Some handy aliases
+
+// The engine has two templated arguments: the numerical type
+// and a random number generator. However, random numbers are not
+// used to generate the lookup tables and the static member
+// functions which are called in the functors do not use
+// random numbers as well. Therefore, an empty "DummyStruct"
+// can be passed as a template parameter.
 using PicsarQuantumSynchrotronEngine = picsar::multi_physics::
     quantum_synchrotron_engine<amrex::Real, QedUtils::DummyStruct>;
 
