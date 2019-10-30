@@ -484,6 +484,27 @@ WarpX::FillBoundaryF (int lev, PatchType patch_type, IntVect ng)
 }
 
 void
+WarpX::FillBoundaryAux (IntVect ng)
+{
+    for (int lev = 0; lev <= finest_level-1; ++lev)
+    {
+        FillBoundaryAux(lev, ng);
+    }
+}
+
+void
+WarpX::FillBoundaryAux (int lev, IntVect ng)
+{
+    const auto& period = Geom(lev).periodicity();
+    Efield_aux[lev][0]->FillBoundary(0, Efield_aux[lev][0]->nComp(), ng, period);
+    Efield_aux[lev][1]->FillBoundary(0, Efield_aux[lev][1]->nComp(), ng, period);
+    Efield_aux[lev][2]->FillBoundary(0, Efield_aux[lev][2]->nComp(), ng, period);
+    Bfield_aux[lev][0]->FillBoundary(0, Bfield_aux[lev][0]->nComp(), ng, period);
+    Bfield_aux[lev][1]->FillBoundary(0, Bfield_aux[lev][1]->nComp(), ng, period);
+    Bfield_aux[lev][2]->FillBoundary(0, Bfield_aux[lev][2]->nComp(), ng, period);
+}
+
+void
 WarpX::SyncCurrent ()
 {
     BL_PROFILE("SyncCurrent()");

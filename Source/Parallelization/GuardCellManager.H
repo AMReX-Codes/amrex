@@ -22,20 +22,21 @@ public:
         const int max_level);
 
     // Guard cells to initialize multifabs
-    amrex::IntVect ngExtra;
-    amrex::IntVect ngE;
-    amrex::IntVect ngJ;
-    amrex::IntVect ngRho;
-    amrex::IntVect ngF;
-    int ngF_int;
+    amrex::IntVect ngExtra = amrex::IntVect::TheZeroVector();
+    amrex::IntVect ngE = amrex::IntVect::TheZeroVector();
+    amrex::IntVect ngJ = amrex::IntVect::TheZeroVector();
+    amrex::IntVect ngRho = amrex::IntVect::TheZeroVector();
+    amrex::IntVect ngF = amrex::IntVect::TheZeroVector();
+    int ngF_int = 0;
 
     // Guard cells to exchange data
-    amrex::IntVect ngB_FieldSolver;
-    amrex::IntVect ngE_FieldSolver;
-    amrex::IntVect ng_FieldGather;
-    amrex::IntVect ngJ_CurrentDepo;
-    amrex::IntVect ng_MovingWindow;
-    amrex::IntVect ng_NCIFilter;
+    amrex::IntVect ngB_FieldSolver = amrex::IntVect::TheZeroVector();
+    amrex::IntVect ngE_FieldSolver = amrex::IntVect::TheZeroVector();
+    amrex::IntVect ng_FieldGather = amrex::IntVect::TheZeroVector();
+    amrex::IntVect ngJ_CurrentDepo = amrex::IntVect::TheZeroVector();
+    amrex::IntVect ng_MovingWindow = amrex::IntVect::TheZeroVector();
+    amrex::IntVect ng_NCIFilter = amrex::IntVect::TheZeroVector();
+    amrex::IntVect ng_Aux = amrex::IntVect::TheZeroVector();
 };
 
 #endif // GUARDCELLMANAGER_H_

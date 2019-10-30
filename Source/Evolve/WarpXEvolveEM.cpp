@@ -90,15 +90,22 @@ WarpX::EvolveEM (int numsteps)
             // Beyond one step, we have E^{n} and B^{n}.
             // Particles have p^{n-1/2} and x^{n}.
             // This is probably overkill
-            FillBoundaryE(guard_cells.ngE);
+            // FillBoundaryE(guard_cells.ngE);
             // This is probably overkill
-            FillBoundaryB(guard_cells.ngE);
+            // FillBoundaryB(guard_cells.ngE);
+            IntVect my_nc;
+            my_nc = guard_cells.ng_FieldGather+guard_cells.ng_NCIFilter;
+            FillBoundaryE(my_nc);
+            FillBoundaryB(my_nc);
+            FillBoundaryAux(guard_cells.ng_Aux);
             UpdateAuxilaryData();
-
         }
 
         if (do_subcycling == 0 || finest_level == 0) {
             OneStep_nosub(cur_time);
+            // E : guard cells are up-to-date
+            // B : guard cells are NOT up-to-date
+            // F : guard cells are NOT up-to-date
         } else if (do_subcycling == 1 && finest_level == 1) {
             OneStep_sub1(cur_time);
         } else {
@@ -108,6 +115,7 @@ WarpX::EvolveEM (int numsteps)
 
         if (num_mirrors>0){
             applyMirrors(cur_time);
+            // E : guard cells are NOT up-to-date
         }
 
 #ifdef WARPX_USE_PY
@@ -191,6 +199,7 @@ WarpX::EvolveEM (int numsteps)
             FillBoundaryE(guard_cells.ngE);
             // This is probably overkill
             FillBoundaryB(guard_cells.ngE);
+            FillBoundaryAux(guard_cells.ng_Aux);
             UpdateAuxilaryData();
 
             for (int lev = 0; lev <= finest_level; ++lev) {
@@ -245,6 +254,7 @@ WarpX::EvolveEM (int numsteps)
         FillBoundaryE(guard_cells.ngE);
         // This is probably overkill
         FillBoundaryB(guard_cells.ngE);
+        FillBoundaryAux(guard_cells.ng_Aux);
         UpdateAuxilaryData();
 
         for (int lev = 0; lev <= finest_level; ++lev) {
@@ -325,6 +335,7 @@ WarpX::OneStep_nosub (Real cur_time)
     EvolveE(dt[0]); // We now have E^{n+1}
     FillBoundaryE(guard_cells.ngE_FieldSolver);
     EvolveF(0.5*dt[0], DtType::SecondHalf);
+    FillBoundaryF(guard_cells.ngF);
     EvolveB(0.5*dt[0]); // We now have B^{n+1}
     if (do_pml) {
         DampPML();

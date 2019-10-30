@@ -131,5 +131,10 @@ guardCellManager::Init(
     int FGcell[4] = {0,1,1,2}; // Index is nox
     ng_FieldGather = IntVect(AMREX_D_DECL(FGcell[nox],FGcell[nox],FGcell[nox]));
     ngJ_CurrentDepo = ng_FieldGather;
-    ng_NCIFilter = IntVect(AMREX_D_DECL(0,0,4));
+    if (do_fdtd_nci_corr){
+        ng_NCIFilter = IntVect::TheZeroVector();
+        ng_NCIFilter[AMREX_SPACEDIM-1] = 4;
+    }
+    ng_Aux = 2*ng_FieldGather+ng_NCIFilter;
+    ng_Aux = ng_Aux.min(ngE);
 }

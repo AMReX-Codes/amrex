@@ -99,32 +99,34 @@ WarpX::MoveWindow (bool move_j)
         for (int dim = 0; dim < 3; ++dim) {
 
             // Fine grid
-            shiftMF(*Bfield_fp[lev][dim], geom[lev], num_shift, dir, B_external_grid[dim]);
-            shiftMF(*Efield_fp[lev][dim], geom[lev], num_shift, dir, E_external_grid[dim]);
+            shiftMF(*Bfield_fp[lev][dim], geom[lev], num_shift, dir, guard_cells.ngE, B_external_grid[dim]);
+            shiftMF(*Efield_fp[lev][dim], geom[lev], num_shift, dir, guard_cells.ngE, E_external_grid[dim]);
             if (move_j) {
-                shiftMF(*current_fp[lev][dim], geom[lev], num_shift, dir);
+                shiftMF(*current_fp[lev][dim], geom[lev], num_shift, dir, guard_cells.ngJ);
             }
             if (do_pml && pml[lev]->ok()) {
                 const std::array<MultiFab*, 3>& pml_B = pml[lev]->GetB_fp();
                 const std::array<MultiFab*, 3>& pml_E = pml[lev]->GetE_fp();
-                shiftMF(*pml_B[dim], geom[lev], num_shift, dir);
-                shiftMF(*pml_E[dim], geom[lev], num_shift, dir);
+                IntVect ng_exchange = pml_B[dim]->nGrowVect();
+                shiftMF(*pml_B[dim], geom[lev], num_shift, dir, ng_exchange);
+                shiftMF(*pml_E[dim], geom[lev], num_shift, dir, ng_exchange);
             }
 
             if (lev > 0) {
                 // Coarse grid
-                shiftMF(*Bfield_cp[lev][dim], geom[lev-1], num_shift_crse, dir, B_external_grid[dim]);
-                shiftMF(*Efield_cp[lev][dim], geom[lev-1], num_shift_crse, dir, E_external_grid[dim]);
-                shiftMF(*Bfield_aux[lev][dim], geom[lev], num_shift, dir);
-                shiftMF(*Efield_aux[lev][dim], geom[lev], num_shift, dir);
+                shiftMF(*Bfield_cp[lev][dim], geom[lev-1], num_shift_crse, dir, guard_cells.ngE, B_external_grid[dim]);
+                shiftMF(*Efield_cp[lev][dim], geom[lev-1], num_shift_crse, dir, guard_cells.ngE, E_external_grid[dim]);
+                shiftMF(*Bfield_aux[lev][dim], geom[lev], num_shift, dir, guard_cells.ngE);
+                shiftMF(*Efield_aux[lev][dim], geom[lev], num_shift, dir, guard_cells.ngE);
                 if (move_j) {
-                    shiftMF(*current_cp[lev][dim], geom[lev-1], num_shift_crse, dir);
+                    shiftMF(*current_cp[lev][dim], geom[lev-1], num_shift_crse, dir, guard_cells.ngJ);
                 }
                 if (do_pml && pml[lev]->ok()) {
                     const std::array<MultiFab*, 3>& pml_B = pml[lev]->GetB_cp();
                     const std::array<MultiFab*, 3>& pml_E = pml[lev]->GetE_cp();
-                    shiftMF(*pml_B[dim], geom[lev-1], num_shift_crse, dir);
-                    shiftMF(*pml_E[dim], geom[lev-1], num_shift_crse, dir);
+                    IntVect ng_exchange = pml_B[dim]->nGrowVect();
+                    shiftMF(*pml_B[dim], geom[lev-1], num_shift_crse, dir, ng_exchange);
+                    shiftMF(*pml_E[dim], geom[lev-1], num_shift_crse, dir, ng_exchange);
                 }
             }
         }
@@ -132,19 +134,21 @@ WarpX::MoveWindow (bool move_j)
         // Shift scalar component F for dive cleaning
         if (do_dive_cleaning) {
             // Fine grid
-            shiftMF(*F_fp[lev],   geom[lev], num_shift, dir);
+            shiftMF(*F_fp[lev],   geom[lev], num_shift, dir, guard_cells.ngF);
             if (do_pml && pml[lev]->ok()) {
                 MultiFab* pml_F = pml[lev]->GetF_fp();
-                shiftMF(*pml_F, geom[lev], num_shift, dir);
+                IntVect ng_exchange = pml_F->nGrowVect();
+                shiftMF(*pml_F, geom[lev], num_shift, dir, ng_exchange);
             }
             if (lev > 0) {
                 // Coarse grid
-                shiftMF(*F_cp[lev], geom[lev-1], num_shift_crse, dir);
+                shiftMF(*F_cp[lev], geom[lev-1], num_shift_crse, dir, guard_cells.ngF);
                 if (do_pml && pml[lev]->ok()) {
                     MultiFab* pml_F = pml[lev]->GetF_cp();
-                    shiftMF(*pml_F, geom[lev-1], num_shift_crse, dir);
+                    IntVect ng_exchange = pml_F->nGrowVect();
+                    shiftMF(*pml_F, geom[lev-1], num_shift_crse, dir, ng_exchange);
                 }
-                shiftMF(*rho_cp[lev], geom[lev-1], num_shift_crse, dir);
+                shiftMF(*rho_cp[lev], geom[lev-1], num_shift_crse, dir, guard_cells.ngRho);
             }
         }
 
@@ -152,10 +156,10 @@ WarpX::MoveWindow (bool move_j)
         if (move_j) {
             if (rho_fp[lev]){
                 // Fine grid
-                shiftMF(*rho_fp[lev],   geom[lev], num_shift, dir);
+                shiftMF(*rho_fp[lev],   geom[lev], num_shift, dir, guard_cells.ngRho);
                 if (lev > 0){
                     // Coarse grid
-                    shiftMF(*rho_cp[lev], geom[lev-1], num_shift_crse, dir);
+                    shiftMF(*rho_cp[lev], geom[lev-1], num_shift_crse, dir, guard_cells.ngRho);
                 }
             }
         }
@@ -204,7 +208,7 @@ WarpX::MoveWindow (bool move_j)
 
 void
 WarpX::shiftMF (MultiFab& mf, const Geometry& geom, int num_shift, int dir,
-                amrex::Real external_field)
+                IntVect ng_exchange, amrex::Real external_field)
 {
     BL_PROFILE("WarpX::shiftMF()");
     const BoxArray& ba = mf.boxArray();
@@ -216,7 +220,15 @@ WarpX::shiftMF (MultiFab& mf, const Geometry& geom, int num_shift, int dir,
 
     MultiFab tmpmf(ba, dm, nc, ng);
     MultiFab::Copy(tmpmf, mf, 0, 0, nc, ng);
-    tmpmf.FillBoundary(geom.periodicity());
+
+    // Not sure why this is needed, but it is...
+    ng_exchange[0] = 1;
+    ng_exchange[1] = num_shift; // 2
+    Print()<<"ng_exchange "<<ng_exchange<<'\n';
+
+    tmpmf.FillBoundary(0, tmpmf.nComp(), ng_exchange, geom.periodicity());
+
+
 
     // Make a box that covers the region that the window moved into
     const IndexType& typ = ba.ixType();
