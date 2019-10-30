@@ -960,7 +960,6 @@ AmrMesh::checkInput ()
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
         {
             int k = blocking_factor[i][idim];
-            std::cout << "BLOCKING FACTOR " << k << std::endl;
             while ( k > 0 && (k%2 == 0) )
                 k /= 2;
             if (k != 1)
