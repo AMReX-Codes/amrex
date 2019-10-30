@@ -84,17 +84,12 @@ public:
      * lookup_table uses non-owning vectors under the hood. So no new data
      * allocations should be triggered on GPU
      */
-    BreitWheelerEvolveOpticalDepth(
-        const PicsarBreitWheelerCtrl t_ctrl,
-        size_t TTfunc_size,
-        amrex::Real* TTfunc_coords,
-        amrex::Real* TTfunc_data):
-        m_ctrl{t_ctrl},
-        m_lookup_table{
-            TTfunc_size,
-            TTfunc_coords,
-            TTfunc_data
-        }{};
+    BreitWheelerEvolveOpticalDepth(BreitWheelerEngineInnards& r_innards):
+        m_ctrl{r_innards.ctrl},
+        m_TTfunc_size{r_innards.TTfunc_coords.size()},
+        m_p_TTfunc_coords{r_innards.TTfunc_coords.dataPtr()},
+        m_p_TTfunc_data{r_innards.TTfunc_data.dataPtr()}
+        {};
 
     /**
      * Evolves the optical depth. It can be used on GPU.
@@ -127,7 +122,10 @@ public:
             dt, opt_depth,
             has_event_happened, unused_event_time,
             m_dummy_lambda,
-            m_lookup_table,
+            picsar::multi_physics::lookup_1d<amrex::Real>{
+                m_TTfunc_size,
+                m_p_TTfunc_coords,
+                m_p_TTfunc_data},
             m_ctrl);
 
         return has_event_happened;
@@ -138,7 +136,11 @@ private:
     const amrex::Real m_dummy_lambda{1.0};
 
     const PicsarBreitWheelerCtrl m_ctrl;
-    const picsar::multi_physics::lookup_1d<amrex::Real> m_lookup_table;
+
+    //lookup table data
+    size_t m_TTfunc_size;
+    amrex::Real* m_p_TTfunc_coords;
+    amrex::Real* m_p_TTfunc_data;
 };
 
 /**
@@ -157,12 +159,11 @@ public:
     BreitWheelerGeneratePairs(
         BreitWheelerEngineInnards& r_innards):
         m_ctrl{r_innards.ctrl},
-        m_lookup_table{
-            r_innards.cum_distrib_coords_1.size(),
-            r_innards.cum_distrib_coords_1.data(),
-            r_innards.cum_distrib_coords_2.size(),
-            r_innards.cum_distrib_coords_2.data(),
-            r_innards.cum_distrib_data.data()
+        m_cum_distrib_coords_1_size{r_innards.cum_distrib_coords_1.size()},
+        m_cum_distrib_coords_2_size{r_innards.cum_distrib_coords_2.size()},
+        m_p_distrib_coords_1{r_innards.cum_distrib_coords_1.data()},
+        m_p_distrib_coords_2{r_innards.cum_distrib_coords_2.data()},
+        m_p_cum_distrib_data{r_innards.cum_distrib_data.data()
         }{};
 
     /**
@@ -203,7 +204,13 @@ public:
             p_px, p_py, p_pz,
             e_weight, p_weight,
             m_dummy_lambda,
-            m_lookup_table,
+            picsar::multi_physics::lookup_2d<amrex::Real>{
+                m_cum_distrib_coords_1_size,
+                m_p_distrib_coords_1,
+                m_cum_distrib_coords_2_size,
+                m_p_distrib_coords_2,
+                m_p_cum_distrib_data
+            },
             m_ctrl,
             rand_zero_one_minus_epsi.data());
     }
@@ -213,7 +220,13 @@ private:
     const amrex::Real m_dummy_lambda{1.0};
 
     const PicsarBreitWheelerCtrl m_ctrl;
-    const picsar::multi_physics::lookup_2d<amrex::Real> m_lookup_table;
+
+    //lookup table data
+    size_t m_cum_distrib_coords_1_size;
+    size_t m_cum_distrib_coords_2_size;
+    amrex::Real* m_p_distrib_coords_1;
+    amrex::Real* m_p_distrib_coords_2;
+    amrex::Real* m_p_cum_distrib_data;
 };
 
 // Factory class =============================

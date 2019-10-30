@@ -87,11 +87,10 @@ public:
     QuantumSynchrotronEvolveOpticalDepth(
         QuantumSynchrotronEngineInnards& r_innards):
         m_ctrl{r_innards.ctrl},
-        m_lookup_table{
-            r_innards.KKfunc_data.size(),
-            r_innards.KKfunc_coords.data(),
-            r_innards.KKfunc_data.data()
-        }{};
+        m_KKfunc_size{r_innards.KKfunc_coords.size()},
+        m_p_KKfunc_coords{r_innards.KKfunc_coords.dataPtr()},
+        m_p_KKfunc_data{r_innards.KKfunc_data.dataPtr()}
+        {};
 
     /**
      * Evolves the optical depth. It can be used on GPU.
@@ -124,7 +123,10 @@ public:
             dt, opt_depth,
             has_event_happened, unused_event_time,
             m_dummy_lambda,
-            m_lookup_table,
+            picsar::multi_physics::lookup_1d<amrex::Real>{
+                m_KKfunc_size,
+                m_p_KKfunc_coords,
+                m_p_KKfunc_data},
             m_ctrl);
 
         return has_event_happened;
@@ -135,7 +137,11 @@ private:
     const amrex::Real m_dummy_lambda{1.0};
 
     const PicsarQuantumSynchrotronCtrl m_ctrl;
-    const picsar::multi_physics::lookup_1d<amrex::Real> m_lookup_table;
+
+    //lookup table data
+    size_t m_KKfunc_size;
+    amrex::Real* m_p_KKfunc_coords;
+    amrex::Real* m_p_KKfunc_data;
 };
 
 /**
@@ -154,13 +160,12 @@ public:
     QuantumSynchrotronGeneratePhotonAndUpdateMomentum(
         QuantumSynchrotronEngineInnards& r_innards):
         m_ctrl{r_innards.ctrl},
-        m_lookup_table{
-            r_innards.cum_distrib_coords_1.size(),
-            r_innards.cum_distrib_coords_1.data(),
-            r_innards.cum_distrib_coords_2.size(),
-            r_innards.cum_distrib_coords_2.data(),
-            r_innards.cum_distrib_data.data()
-        }{};
+        m_cum_distrib_coords_1_size{r_innards.cum_distrib_coords_1.size()},
+        m_cum_distrib_coords_2_size{r_innards.cum_distrib_coords_2.size()},
+        m_p_distrib_coords_1{r_innards.cum_distrib_coords_1.data()},
+        m_p_distrib_coords_2{r_innards.cum_distrib_coords_2.data()},
+        m_p_cum_distrib_data{r_innards.cum_distrib_data.data()}
+        {};
 
     /**
      * Generates sampling (template parameter) photons according to Quantum Synchrotron process.
@@ -197,7 +202,12 @@ public:
             g_px, g_py, g_pz,
             g_weight,
             m_dummy_lambda,
-            m_lookup_table,
+            picsar::multi_physics::lookup_2d<amrex::Real>{
+                m_cum_distrib_coords_1_size,
+                m_p_distrib_coords_1,
+                m_cum_distrib_coords_2_size,
+                m_p_distrib_coords_2,
+                m_p_cum_distrib_data},
             m_ctrl,
             rand_zero_one_minus_epsi.data());
     }
@@ -207,7 +217,13 @@ private:
     const amrex::Real m_dummy_lambda{1.0};
 
     const PicsarQuantumSynchrotronCtrl m_ctrl;
-    const picsar::multi_physics::lookup_2d<amrex::Real> m_lookup_table;
+
+    //lookup table data
+    size_t m_cum_distrib_coords_1_size;
+    size_t m_cum_distrib_coords_2_size;
+    amrex::Real* m_p_distrib_coords_1;
+    amrex::Real* m_p_distrib_coords_2;
+    amrex::Real* m_p_cum_distrib_data;
 };
 
 // Factory class =============================

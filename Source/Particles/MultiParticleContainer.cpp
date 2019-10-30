@@ -728,6 +728,9 @@ MultiParticleContainer::ParseQuantumSyncParams ()
 
     ParmParse pp("qed_qs");
 
+    // Engine paramenter: chi_part_min is the minium chi parameter to be
+    // considered by the engine. If a lepton has chi < chi_part_min,
+    // the optical depth is not evolved and photon generation is ignored
     pp.query("chi_min", ctrl.chi_part_min);
 
     //Only temporary for test purposes, will be removed
@@ -740,17 +743,52 @@ MultiParticleContainer::ParseQuantumSyncParams ()
     pp.query("generate_table", generate_table);
     if(generate_table){
         int t_int = 0;
+
+        //==Table parameters==
+
+        //--- sub-table 1 (1D)
+        //These parameters are used to pre-compute a function
+        //which appears in the evolution of the optical depth
+
+        //Minimun chi for the table. If a lepton has chi < chi_part_tdndt_min,
+        ///chi is considered as it were equal to chi_part_tdndt_min
         pp.query("tab_dndt_chi_min", ctrl.chi_part_tdndt_min);
+
+        //Maximum chi for the table. If a lepton has chi > chi_part_tdndt_max,
+        ///chi is considered as it were equal to chi_part_tdndt_max
         pp.query("tab_dndt_chi_max", ctrl.chi_part_tdndt_max);
+
+        //How many points should be used for chi in the table
         pp.query("tab_dndt_how_many", t_int);
         ctrl.chi_part_tdndt_how_many= t_int;
+        //------
+
+        //--- sub-table 2 (2D)
+        //These parameters are used to pre-compute a function
+        //which is used to extract the properties of the generated
+        //photons.
+
+        //Minimun chi for the table. If a lepton has chi < chi_part_tem_min,
+        ///chi is considered as it were equal to chi_part_tem_min
         pp.query("tab_em_chi_min", ctrl.chi_part_tem_min);
+
+        //Maximum chi for the table. If a lepton has chi > chi_part_tem_max,
+        ///chi is considered as it were equal to chi_part_tem_max
         pp.query("tab_em_chi_max", ctrl.chi_part_tem_max);
+
+        //How many points should be used for chi in the table
         pp.query("tab_em_chi_how_many", t_int);
         ctrl.chi_part_tem_how_many = t_int;
+
+        //The other axis of the table is a cumulative probability distribution
+        //(corresponding to different energies of the generated particles)
+        //This parameter is the number of different points to consider
         pp.query("tab_em_prob_how_many", t_int);
         ctrl.prob_tem_how_many = t_int;
+        //====================
+
         pp.query("save_table_in", table_name);
+
     }
 
     std::string load_table_name;
@@ -786,6 +824,9 @@ MultiParticleContainer::ParseBreitWheelerParams ()
 
     ParmParse pp("qed_bw");
 
+    // Engine paramenter: chi_phot_min is the minium chi parameter to be
+    // considered by the engine. If a photon has chi < chi_phot_min,
+    // the optical depth is not evolved and pair generation is ignored
     pp.query("chi_min", ctrl.chi_phot_min);
 
     //Only temporary for test purposes, will be removed
@@ -797,17 +838,52 @@ MultiParticleContainer::ParseBreitWheelerParams ()
 
     pp.query("generate_table", generate_table);
     if(generate_table){
+
         int t_int;
+
+        //==Table parameters==
+
+        //--- sub-table 1 (1D)
+        //These parameters are used to pre-compute a function
+        //which appears in the evolution of the optical depth
+
+        //Minimun chi for the table. If a photon has chi < chi_phot_tdndt_min,
+        //an analytical approximation is used.
         pp.query("tab_dndt_chi_min", ctrl.chi_phot_tdndt_min);
+
+        //Maximum chi for the table. If a photon has chi > chi_phot_tdndt_min,
+        //an analytical approximation is used.
         pp.query("tab_dndt_chi_max", ctrl.chi_phot_tdndt_max);
+
+        //How many points should be used for chi in the table
         pp.query("tab_dndt_how_many", t_int);
         ctrl.chi_phot_tdndt_how_many = t_int;
+        //------
+
+        //--- sub-table 2 (2D)
+        //These parameters are used to pre-compute a function
+        //which is used to extract the properties of the generated
+        //particles.
+
+        //Minimun chi for the table. If a photon has chi < chi_phot_tpair_min
+        //chi is considered as it were equal to chi_phot_tpair_min
         pp.query("tab_pair_chi_min", ctrl.chi_phot_tpair_min);
+
+        //Maximum chi for the table. If a photon has chi > chi_phot_tpair_max
+        //chi is considered as it were equal to chi_phot_tpair_max
         pp.query("tab_pair_chi_max", ctrl.chi_phot_tpair_max);
+
+        //How many points should be used for chi in the table
         pp.query("tab_pair_chi_how_many", t_int);
         ctrl.chi_phot_tpair_how_many = t_int;
-        pp.query("tab_pair_prob_how_many", t_int);
+
+        //The other axis of the table is the fraction of the initial energy
+        //'taken away' by the most energetic particle of the pair.
+        //This parameter is the number of different fractions to consider
+        pp.query("tab_pair_frac_how_many", t_int);
         ctrl.chi_frac_tpair_how_many = t_int;
+        //====================
+
         pp.query("save_table_in", table_name);
     }
 
