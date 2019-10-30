@@ -79,8 +79,8 @@ public:
      */
     QuantumSynchrotronEvolveOpticalDepth(
         QuantumSynchrotronEngineInnards& r_innards):
-        ctrl{r_innards.ctrl},
-        lookup_table{
+        m_ctrl{r_innards.ctrl},
+        m_lookup_table{
             r_innards.KKfunc_data.size(),
             r_innards.KKfunc_coords.data(),
             r_innards.KKfunc_data.data()
@@ -103,7 +103,7 @@ public:
         amrex::Real bx, amrex::Real by, amrex::Real bz,
         amrex::Real dt, amrex::Real& opt_depth) const
     {
-        bool has_event_happend{false};
+        bool has_event_happened{false};
 
         //the library provides the time (< dt) at which the event occurs, but this
         //feature won't be used in WarpX for now.
@@ -115,20 +115,20 @@ public:
             ex, ey, ez,
             bx, by, bz,
             dt, opt_depth,
-            has_event_happend, unused_event_time,
-            dummy_lambda,
-            lookup_table,
-            ctrl);
+            has_event_happened, unused_event_time,
+            m_dummy_lambda,
+            m_lookup_table,
+            m_ctrl);
 
-        return has_event_happend;
+        return has_event_happened;
     }
 
 private:
     //laser wavelenght is not used with SI units
-    const amrex::Real dummy_lambda{1.0};
+    const amrex::Real m_dummy_lambda{1.0};
 
-    const PicsarQuantumSynchrotronCtrl ctrl;
-    const picsar::multi_physics::lookup_1d<amrex::Real> lookup_table;
+    const PicsarQuantumSynchrotronCtrl m_ctrl;
+    const picsar::multi_physics::lookup_1d<amrex::Real> m_lookup_table;
 };
 
 /**
@@ -146,8 +146,8 @@ public:
      */
     QuantumSynchrotronGeneratePhotonAndUpdateMomentum(
         QuantumSynchrotronEngineInnards& r_innards):
-        ctrl{r_innards.ctrl},
-        lookup_table{
+        m_ctrl{r_innards.ctrl},
+        m_lookup_table{
             r_innards.cum_distrib_coords_1.size(),
             r_innards.cum_distrib_coords_1.data(),
             r_innards.cum_distrib_coords_2.size(),
@@ -189,18 +189,18 @@ public:
             weight, sampling,
             g_px, g_py, g_pz,
             g_weight,
-            dummy_lambda,
-            lookup_table,
-            ctrl,
+            m_dummy_lambda,
+            m_lookup_table,
+            m_ctrl,
             rand_zero_one_minus_epsi.data());
     }
 
 private:
     //laser wavelenght is not used with SI units
-    const amrex::Real dummy_lambda{1.0};
+    const amrex::Real m_dummy_lambda{1.0};
 
-    const PicsarQuantumSynchrotronCtrl ctrl;
-    const picsar::multi_physics::lookup_2d<amrex::Real> lookup_table;
+    const PicsarQuantumSynchrotronCtrl m_ctrl;
+    const picsar::multi_physics::lookup_2d<amrex::Real> m_lookup_table;
 };
 
 // Factory class =============================
@@ -263,13 +263,13 @@ public:
     PicsarQuantumSynchrotronCtrl get_default_ctrl() const;
 
 private:
-    bool lookup_tables_initialized = false;
+    bool m_lookup_tables_initialized = false;
 
-    QuantumSynchrotronEngineInnards innards;
+    QuantumSynchrotronEngineInnards m_innards;
 
 //Table builing is available only if the libray is compiled with QED_TABLE_GEN=TRUE
 #ifdef WARPX_QED_TABLE_GEN
-    QuantumSynchrotronEngineTableBuilder table_builder;
+    QuantumSynchrotronEngineTableBuilder m_table_builder;
 #endif
 
 };

@@ -320,7 +320,7 @@ protected:
     int do_back_transformed_diagnostics = 1;
 
 #ifdef WARPX_QED
-    bool do_qed = false;
+    bool m_do_qed = false;
 
     virtual bool has_quantum_sync(){return false;};
     virtual bool has_breit_wheeler(){return false;};

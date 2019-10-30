@@ -220,8 +220,8 @@ protected:
 
 #ifdef WARPX_QED
     // The QED engines
-    std::shared_ptr<BreitWheelerEngine> shr_p_bw_engine;
-    std::shared_ptr<QuantumSynchrotronEngine> shr_p_qs_engine;
+    std::shared_ptr<BreitWheelerEngine> m_shr_p_bw_engine;
+    std::shared_ptr<QuantumSynchrotronEngine> m_shr_p_qs_engine;
     //_______________________________
 
     /**
@@ -231,19 +231,19 @@ protected:
     void InitQED ();
 
     //Variables to store how many species need a QED process
-    int nspecies_quantum_sync = 0;
-    int nspecies_breit_wheeler = 0;
+    int m_nspecies_quantum_sync = 0;
+    int m_nspecies_breit_wheeler = 0;
     //________
 
     /**
      * Returns the number of species having Quantum Synchrotron process enabled
      */
-    int NSpeciesQuantumSync() const { return  nspecies_quantum_sync;}
+    int NSpeciesQuantumSync() const { return  m_nspecies_quantum_sync;}
 
     /**
      * Returns the number of species having Breit Wheeler process enabled
      */
-    int NSpeciesBreitWheeler() const { return nspecies_breit_wheeler;}
+    int NSpeciesBreitWheeler() const { return m_nspecies_breit_wheeler;}
 
     /**
      * Initializes the Quantum Synchrotron engine
