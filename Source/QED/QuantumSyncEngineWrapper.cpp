@@ -146,39 +146,25 @@ Vector<char> QuantumSynchrotronEngine::export_lookup_tables_data () const
     if(!m_lookup_tables_initialized)
         return res;
 
-    auto add_data_to_buf = [&res](auto data){
-        res.insert(res.end(),
-        reinterpret_cast<const char*>(&data),
-        reinterpret_cast<const char*>(&data) +
-        sizeof(data));
-    };
+    add_data_to_vector_char(&m_innards.ctrl.chi_part_min, 1, res);
+    add_data_to_vector_char(&m_innards.ctrl.chi_part_tdndt_min, 1, res);
+    add_data_to_vector_char(&m_innards.ctrl.chi_part_tdndt_max, 1, res);
+    add_data_to_vector_char(&m_innards.ctrl.chi_part_tdndt_how_many, 1, res);
+    add_data_to_vector_char(&m_innards.ctrl.chi_part_tem_min, 1, res);
+    add_data_to_vector_char(&m_innards.ctrl.chi_part_tem_max, 1, res);
+    add_data_to_vector_char(&m_innards.ctrl.chi_part_tem_how_many, 1, res);
+    add_data_to_vector_char(&m_innards.ctrl.prob_tem_how_many, 1, res);
 
-    add_data_to_buf(m_innards.ctrl.chi_part_min);
-    add_data_to_buf(m_innards.ctrl.chi_part_tdndt_min);
-    add_data_to_buf(m_innards.ctrl.chi_part_tdndt_max);
-    add_data_to_buf(m_innards.ctrl.chi_part_tdndt_how_many);
-    add_data_to_buf(m_innards.ctrl.chi_part_tem_min);
-    add_data_to_buf(m_innards.ctrl.chi_part_tem_max);
-    add_data_to_buf(m_innards.ctrl.chi_part_tem_how_many);
-    add_data_to_buf(m_innards.ctrl.prob_tem_how_many);
-
-    auto add_data_to_buf_vv = [&res](const auto* data, size_t how_many){
-        res.insert(res.end(),
-        reinterpret_cast<const char*>(data),
-        reinterpret_cast<const char*>(data) +
-        sizeof(*data)*how_many);
-    };
-
-    add_data_to_buf_vv(m_innards.KKfunc_coords.data(),
-        m_innards.KKfunc_coords.size());
-    add_data_to_buf_vv(m_innards.KKfunc_data.data(),
-        m_innards.KKfunc_data.size());
-    add_data_to_buf_vv(m_innards.cum_distrib_coords_1.data(),
-        m_innards.cum_distrib_coords_1.size());
-    add_data_to_buf_vv(m_innards.cum_distrib_coords_2.data(),
-        m_innards.cum_distrib_coords_2.size());
-    add_data_to_buf_vv(m_innards.cum_distrib_data.data(),
-        m_innards.cum_distrib_data.size());
+    add_data_to_vector_char(m_innards.KKfunc_coords.data(),
+        m_innards.KKfunc_coords.size(), res);
+    add_data_to_vector_char(m_innards.KKfunc_data.data(),
+        m_innards.KKfunc_data.size(), res);
+    add_data_to_vector_char(m_innards.cum_distrib_coords_1.data(),
+        m_innards.cum_distrib_coords_1.size(), res);
+    add_data_to_vector_char(m_innards.cum_distrib_coords_2.data(),
+        m_innards.cum_distrib_coords_2.size(), res);
+    add_data_to_vector_char(m_innards.cum_distrib_data.data(),
+        m_innards.cum_distrib_data.size(), res);
 
     return res;
 }
