@@ -18,9 +18,12 @@
 #endif
 
 #ifdef AMREX_USE_ACC
+#include <openacc.h>
+
 extern "C" {
     void amrex_initialize_acc (int);
     void amrex_finalize_acc ();
+    void amrex_set_acc_stream (int);
 }
 #endif
 
@@ -388,6 +391,9 @@ Device::initialize_gpu ()
 
     for (int i = 0; i < max_gpu_streams; ++i) {
         AMREX_CUDA_SAFE_CALL(cudaStreamCreate(&gpu_streams[i]));
+#ifdef AMREX_USE_ACC
+        acc_set_cuda_stream(i, gpu_streams[i]);
+#endif
     }
 
 #endif
@@ -457,8 +463,16 @@ Device::setStreamIndex (const int idx) noexcept
 #ifdef AMREX_USE_GPU
     if (idx < 0) {
         gpu_stream = 0;
+
+#ifdef AMREX_USE_ACC
+        amrex_set_acc_stream(acc_async_sync);
+#endif
     } else {
         gpu_stream = gpu_streams[idx % max_gpu_streams];
+
+#ifdef AMREX_USE_ACC
+        amrex_set_acc_stream(idx % max_gpu_streams);
+#endif
     }
 #endif
 }
