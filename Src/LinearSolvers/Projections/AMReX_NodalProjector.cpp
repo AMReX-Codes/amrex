@@ -107,7 +107,8 @@ NodalProjector::define ( const  amrex::Vector<amrex::Geometry>&                 
         m_fluxes[lev].reset(new MultiFab(m_grids[lev], m_dmap[lev], AMREX_SPACEDIM, ng, MFInfo(), *m_ebfactory[lev]));
 
         // Node-centered data
-	const auto& ba_nd = m_grids[lev].surroundingNodes();
+        BoxArray tmp = m_grids[lev];
+	const auto& ba_nd = tmp.surroundingNodes();
         m_phi[lev].reset(new MultiFab(ba_nd, m_dmap[lev], 1, ng, MFInfo(), *m_ebfactory[lev]));
         m_rhs[lev].reset(new MultiFab(ba_nd, m_dmap[lev], 1, ng, MFInfo(), *m_ebfactory[lev]));
     }
