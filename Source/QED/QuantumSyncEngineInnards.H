@@ -17,12 +17,25 @@
 struct QuantumSynchrotronEngineInnards
 {
     // Control parameters (a POD struct)
+    // ctrl contains several parameters:
+    // - chi_part_min : the minium chi parameter to be
+    //   considered by the engine
+    // - chi_part_tdndt_min : minimun chi for sub-table 1 (1D)
+    // - chi_part_tdndt_max : maximum chi for sub-table 1 (1D)
+    // - chi_part_tdndt_how_many : how many points to use for sub-table 1 (1D)
+    // - chi_part_tem_min : minimun chi for sub-table 2 (1D)
+    // - chi_part_tem_max : maximum chi for sub-table 2 (1D)
+    // - chi_part_tem_how_many : how many points to use for chi for sub-table 2 (2D)
+    // - prob_tem_how_many : how many points to use for the second axis of sub-table 2 (2D)
     picsar::multi_physics::quantum_synchrotron_engine_ctrl<amrex::Real> ctrl;
 
-    //Lookup table data (should stay on GPU)
+    //Lookup table data
+    //---sub-table 1 (1D)
     amrex::Gpu::ManagedDeviceVector<amrex::Real> KKfunc_coords;
     amrex::Gpu::ManagedDeviceVector<amrex::Real> KKfunc_data;
+    //---
 
+    //---sub-table 2 (2D)
     amrex::Gpu::ManagedVector<amrex::Real> cum_distrib_coords_1;
     amrex::Gpu::ManagedVector<amrex::Real> cum_distrib_coords_2;
     amrex::Gpu::ManagedVector<amrex::Real> cum_distrib_data;
