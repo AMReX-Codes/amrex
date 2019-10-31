@@ -75,8 +75,10 @@ WarpX::EvolveEM (int numsteps)
         // Particles have p^{n} and x^{n}.
         // is_synchronized is true.
         if (is_synchronized) {
-            FillBoundaryE(guard_cells.ng_FieldGather);
-            FillBoundaryB(guard_cells.ng_FieldGather);
+            // FillBoundaryE(guard_cells.ng_FieldGather, guard_cells.ngExtra);
+            // FillBoundaryB(guard_cells.ng_FieldGather, guard_cells.ngExtra);
+            FillBoundaryE(guard_cells.ngE, guard_cells.ngExtra);
+            FillBoundaryB(guard_cells.ngE, guard_cells.ngExtra);
             UpdateAuxilaryData();
             // on first step, push p by -0.5*dt
             for (int lev = 0; lev <= finest_level; ++lev) {
@@ -90,12 +92,14 @@ WarpX::EvolveEM (int numsteps)
             // Beyond one step, we have E^{n} and B^{n}.
             // Particles have p^{n-1/2} and x^{n}.
             // This is probably overkill
-            // FillBoundaryE(guard_cells.ngE);
             // This is probably overkill
-            // FillBoundaryB(guard_cells.ngE);
-            IntVect ng_gather = guard_cells.ng_FieldGather+guard_cells.ng_NCIFilter;
-            FillBoundaryE(ng_gather);
-            FillBoundaryB(ng_gather);
+            // IntVect ng_gather = guard_cells.ng_FieldGather+guard_cells.ng_NCIFilter;
+            // FillBoundaryE(guard_cells.ngE, guard_cells.ngExtra);
+            // FillBoundaryB(guard_cells.ngE, guard_cells.ngExtra);
+            // FillBoundaryE(ng_gather, guard_cells.ngExtra);
+            // FillBoundaryB(ng_gather, guard_cells.ngExtra);
+            FillBoundaryE(guard_cells.ng_FieldGatherAndNCIFilter, guard_cells.ngExtra);
+            FillBoundaryB(guard_cells.ng_FieldGatherAndNCIFilter, guard_cells.ngExtra);
             FillBoundaryAux(guard_cells.ng_Aux);
             UpdateAuxilaryData();
         }
@@ -195,9 +199,9 @@ WarpX::EvolveEM (int numsteps)
         if (to_make_plot || do_insitu || to_make_slice_plot)
         {
             // This is probably overkill
-            FillBoundaryE(guard_cells.ngE);
+            FillBoundaryE(guard_cells.ngE, guard_cells.ngExtra);
             // This is probably overkill
-            FillBoundaryB(guard_cells.ngE);
+            FillBoundaryB(guard_cells.ngE, guard_cells.ngExtra);
             FillBoundaryAux(guard_cells.ng_Aux);
             UpdateAuxilaryData();
 
@@ -250,9 +254,9 @@ WarpX::EvolveEM (int numsteps)
     if (write_plot_file || do_insitu)
     {
         // This is probably overkill
-        FillBoundaryE(guard_cells.ngE);
+        FillBoundaryE(guard_cells.ngE, guard_cells.ngExtra);
         // This is probably overkill
-        FillBoundaryB(guard_cells.ngE);
+        FillBoundaryB(guard_cells.ngE, guard_cells.ngExtra);
         FillBoundaryAux(guard_cells.ng_Aux);
         UpdateAuxilaryData();
 
@@ -323,23 +327,24 @@ WarpX::OneStep_nosub (Real cur_time)
 #ifdef WARPX_USE_PSATD
     PushPSATD(dt[0]);
     if (do_pml) DampPML();
-    FillBoundaryE(guard_cells.ngE);
-    FillBoundaryB(guard_cells.ngE);
+    FillBoundaryE(guard_cells.ngE, guard_cells.ngExtra);
+    FillBoundaryB(guard_cells.ngE, guard_cells.ngExtra);
 #else
+    Print()<<"Push fields\n";
     EvolveF(0.5*dt[0], DtType::FirstHalf);
     FillBoundaryF(guard_cells.ng_FieldSolver);
     EvolveB(0.5*dt[0]); // We now have B^{n+1/2}
-    FillBoundaryB(guard_cells.ng_FieldSolver);
-
+    // FillBoundaryB(guard_cells.ng_FieldSolver, guard_cells.ngExtra);
+    FillBoundaryB(guard_cells.ng_FieldSolver, IntVect::TheZeroVector());
     EvolveE(dt[0]); // We now have E^{n+1}
-    FillBoundaryE(guard_cells.ng_FieldSolver);
+    // FillBoundaryE(guard_cells.ng_FieldSolver, guard_cells.ngExtra);
+    FillBoundaryE(guard_cells.ng_FieldSolver, IntVect::TheZeroVector());
     EvolveF(0.5*dt[0], DtType::SecondHalf);
     FillBoundaryF(guard_cells.ngF);
     EvolveB(0.5*dt[0]); // We now have B^{n+1}
     if (do_pml) {
         DampPML();
     }
-
 #endif
 }
 

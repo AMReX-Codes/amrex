@@ -72,7 +72,7 @@ public:
     MultiParticleContainer& GetPartContainer () { return *mypc; }
 
     static void shiftMF(amrex::MultiFab& mf, const amrex::Geometry& geom, int num_shift, int dir,
-                        amrex::Real external_field = 0.);
+                        amrex::IntVect ng_extra, amrex::Real external_field = 0.);
 
     static void GotoNextLine (std::istream& is);
 
@@ -215,12 +215,12 @@ public:
     void UpdateAuxilaryDataSameType ();
 
     // Fill boundary cells including coarse/fine boundaries
-    void FillBoundaryB   (amrex::IntVect ng);
-    void FillBoundaryE   (amrex::IntVect ng);
+    void FillBoundaryB   (amrex::IntVect ng, amrex::IntVect ng_extra_fine=amrex::IntVect::TheZeroVector());
+    void FillBoundaryE   (amrex::IntVect ng, amrex::IntVect ng_extra_fine=amrex::IntVect::TheZeroVector());
     void FillBoundaryF   (amrex::IntVect ng);
     void FillBoundaryAux (amrex::IntVect ng);
-    void FillBoundaryE   (int lev, amrex::IntVect ng);
-    void FillBoundaryB   (int lev, amrex::IntVect ng);
+    void FillBoundaryE   (int lev, amrex::IntVect ng, amrex::IntVect ng_extra_fine=amrex::IntVect::TheZeroVector());
+    void FillBoundaryB   (int lev, amrex::IntVect ng, amrex::IntVect ng_extra_fine=amrex::IntVect::TheZeroVector());
     void FillBoundaryF   (int lev, amrex::IntVect ng);
     void FillBoundaryAux (int lev, amrex::IntVect ng);
 
