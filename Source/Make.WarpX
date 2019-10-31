@@ -83,11 +83,6 @@ ifeq ($(USE_SENSEI_INSITU),TRUE)
 endif
 
 ifeq ($(QED),TRUE)
-  BOOST_ROOT ?= NOT_SET
-  ifneq ($(BOOST_ROOT),NOT_SET)
-    VPATH_LOCATIONS += $(BOOST_ROOT)
-    INCLUDE_LOCATIONS += $(BOOST_ROOT)
-  endif
   INCLUDE_LOCATIONS += $(PICSAR_HOME)/src/multi_physics/QED/src
   CXXFLAGS += -DWARPX_QED
   CFLAGS   += -DWARPX_QED
@@ -95,8 +90,20 @@ ifeq ($(QED),TRUE)
   F90FLAGS += -DWARPX_QED
   include $(WARPX_HOME)/Source/QED/Make.package
   USERSuffix := $(USERSuffix).QED
-endif
 
+  ifeq ($(QED_TABLE_GEN),TRUE)
+    BOOST_ROOT ?= NOT_SET
+    ifneq ($(BOOST_ROOT),NOT_SET)
+      VPATH_LOCATIONS += $(BOOST_ROOT)
+      INCLUDE_LOCATIONS += $(BOOST_ROOT)
+    endif
+    CXXFLAGS += -DWARPX_QED_TABLE_GEN
+    CFLAGS   += -DWARPX_QED_TABLE_GEN
+    FFLAGS   += -DWARPX_QED_TABLE_GEN
+    F90FLAGS += -DWARPX_QED_TABLE_GEN
+     USERSuffix := $(USERSuffix).GENTABLES
+  endif
+endif
 
 include $(PICSAR_HOME)/src/Make.package
 
