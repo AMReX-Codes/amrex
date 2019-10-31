@@ -37,6 +37,7 @@ void RandomNumGen ()
     amrex::Print() << "Generating random numbers using GPU ";
     amrex::Print() << amrex::Gpu::Device::deviceId() << " on rank ";
     amrex::Print() << amrex::ParallelDescriptor::MyProc() << "\n";
+
 #else
     amrex::InitRandom(1024UL,1);
 #endif
@@ -67,10 +68,10 @@ void RandomNumGen ()
 
     }
 
-    Gpu::dtoh_memcpy(x_d.dataPtr(), x_h.dataPtr(), sizeof(Real)*Ndraw);
-    Gpu::dtoh_memcpy(y_d.dataPtr(), y_h.dataPtr(), sizeof(Real)*Ndraw);
-    Gpu::dtoh_memcpy(z_d.dataPtr(), z_h.dataPtr(), sizeof(Real)*Ndraw);
- 
+    Gpu::dtoh_memcpy(x_h.dataPtr(), x_d.dataPtr(), sizeof(Real)*Ndraw);
+    Gpu::dtoh_memcpy(y_h.dataPtr(), y_d.dataPtr(), sizeof(Real)*Ndraw);
+    Gpu::dtoh_memcpy(z_h.dataPtr(), z_d.dataPtr(), sizeof(Real)*Ndraw);
+
     for (int i = 0; i < Ndraw; i++ )
     {
         amrex::Print() << i << " " << x_h[i]  << " " << y_h[i] << " " << z_h[i] << "\n";

@@ -250,8 +250,8 @@ amrex::Assert (const char* EX,
 {
 #ifdef AMREX_DEVICE_COMPILE
 // HIP FIX HERE - printf & assert
-#ifdef AMREX_USE_CUDA
 
+#ifdef AMREX_USE_CUDA
 #if !defined(__APPLE__)
     if (msg) {
         printf("Assertion `%s' failed, file \"%s\", line %d, Msg: %s",
@@ -260,10 +260,11 @@ amrex::Assert (const char* EX,
         printf("Assertion `%s' failed, file \"%s\", line %d",
                EX, file, line);
     }
-#endif
-    assert(0);
 
+    assert(0);
 #endif
+#endif
+
 #else
     const int N = 512;
 
