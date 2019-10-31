@@ -405,6 +405,16 @@ AmrMesh::SetGeometry (int lev, const Geometry& geom_in) noexcept
     geom[lev] = geom_in;
 }
 
+int
+AmrMesh::GetLevel (Box const& domain) noexcept
+{
+    Box ccdomain = amrex::enclosedCells(domain);
+    for (int lev = 0; lev < geom.size(); ++lev) {
+        if (geom[lev].Domain() == ccdomain) return lev;
+    }
+    return -1;
+}
+
 void
 AmrMesh::ClearDistributionMap (int lev) noexcept
 {
@@ -940,6 +950,21 @@ AmrMesh::checkInput ()
               amrex::Print() << "blocking_factor is " << blocking_factor[0][idim] << std::endl;
               amrex::Error("domain size not divisible by blocking_factor");
            }
+    }
+
+    //
+    // Check that blocking_factor is a power of 2.
+    //
+    for (int i = 0; i <= max_level; i++)
+    {
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+        {
+            int k = blocking_factor[i][idim];
+            while ( k > 0 && (k%2 == 0) )
+                k /= 2;
+            if (k != 1)
+                amrex::Error("Amr::checkInput: blocking_factor not power of 2. You can bypass this by setting ParmParse runtime parameter amr.check_input=0, although we do not recommend it.");
+        }
     }
 
     //

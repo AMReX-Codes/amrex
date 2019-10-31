@@ -704,6 +704,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinar
         }
         
         Redistribute();
+
+        Gpu::Device::synchronize();
         //
         // Move particles in m_particles into tmp_particles so that
         // we don't keep trying to redistribute particles that have

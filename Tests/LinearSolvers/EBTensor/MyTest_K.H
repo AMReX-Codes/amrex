@@ -51,7 +51,7 @@ inline void init (amrex::Real x, amrex::Real y, amrex::Real z, amrex::Real R2,
 
     amrex::Real df3dx2 = -std::sin(3.*pi*r2R2) * (36.*pi*pi)/R4 * x2
         + std::cos(3.*pi*r2R2) * (6.*pi)/R2;
-    amrex::Real df3dxdy = -std::sin(3.*pi*r2R2) * (36.*pi*pi)/R4 * x * y;
+//    amrex::Real df3dxdy = -std::sin(3.*pi*r2R2) * (36.*pi*pi)/R4 * x * y;
     amrex::Real df3dy2 = -std::sin(3.*pi*r2R2) * (36.*pi*pi)/R4 * y2
         + std::cos(3.*pi*r2R2) * (6.*pi)/R2;
 

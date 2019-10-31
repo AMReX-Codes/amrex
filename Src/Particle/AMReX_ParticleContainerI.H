@@ -1024,6 +1024,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     BL_PROFILE("ParticleContainer::RedistributeGPU()");
     BL_PROFILE_VAR_NS("Redistribute_partition", blp_partition);
 
+    resizeData();
+
     if (lev_max < 0)
         lev_max = GetParGDB()->finestLevel();
     
@@ -1050,6 +1052,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     auto& op = redistribute_copy_op;
     redistribute_copy_op.setNumLevels(num_levels);
     Vector<std::map<int, int> > new_sizes(num_levels);    
+    int pid = ParallelDescriptor::MyProc();
     for (int lev = lev_min; lev <= lev_max; ++lev)
     {
         const Geometry& geom = Geom(lev);
@@ -1105,9 +1108,14 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
             int num_stay;
             {
+                auto p_lev_offsets = BufferMap().levelOffsetsPtr();
+                auto p_box_perm = BufferMap().levGridToBucketPtr();
+                auto p_pids = BufferMap().bucketToPIDPtr();
+
                 auto particle_stays = [=] AMREX_GPU_DEVICE (int i) -> int
                 {
-                    return ((grids_ptr[i] == gid) && (levs_ptr[i] == lev));
+                    return ((grids_ptr[i] == gid) && (levs_ptr[i] == lev)
+                            && (p_pids[p_box_perm[p_lev_offsets[lev]+gid]] == pid));
                 };
             
                 const auto src_data = src_tile.getConstParticleTileData();

@@ -2,7 +2,6 @@
 #define AMREX_MLTENSOR_3D_K_H_
 
 #include <AMReX_MLLinOp_K.H>
-#include <AMReX_MLTensor_nd_K.H>
 
 namespace amrex {
 

@@ -25,6 +25,7 @@ class ParticleBufferMap {
     Vector<int> m_proc_box_counts;
     Vector<int> m_proc_box_offsets;
 
+    Gpu::DeviceVector<int> d_bucket_to_pid;
     Gpu::DeviceVector<int> d_lev_gid_to_bucket;    
     Gpu::DeviceVector<int> d_lev_offsets;
     
@@ -126,6 +127,13 @@ public:
     { 
         AMREX_ASSERT(m_defined);
         return m_dm[lev][gid]; 
+    }
+
+    AMREX_INLINE
+    const int* bucketToPIDPtr () const
+    {
+        AMREX_ASSERT(m_defined);
+        return d_bucket_to_pid.dataPtr();
     }
 };
 

@@ -26,6 +26,11 @@
 #endif
 
 #if !defined(BL_LANG_FORT)
+#ifdef __cplusplus
+#include <cfloat>
+#else
+#include <float.h>
+#endif
 
 /* 
   Real is a typedef specifying the precision of the floating-point
@@ -41,8 +46,15 @@
 
 #ifdef BL_USE_FLOAT
 typedef float amrex_real;
+// We need to define these to get around a CUDA 9.2 bug that breaks std::numeric_limits
+#define AMREX_REAL_MIN     FLT_MIN
+#define AMREX_REAL_MAX     FLT_MAX
+#define AMREX_REAL_LOWEST -FLT_MAX
 #else
 typedef double amrex_real;
+#define AMREX_REAL_MIN     DBL_MIN
+#define AMREX_REAL_MAX     DBL_MAX
+#define AMREX_REAL_LOWEST -DBL_MAX
 #endif
 
 #ifdef BL_SINGLE_PRECISION_PARTICLES

@@ -126,9 +126,9 @@ void LSCore<F>::MakeNewLevelFromScratch (int lev, Real time, const BoxArray & ba
         //_______________________________________________________________________
         // Compute level 0 using LSFactory
 
-        int eb_pad = ls_factory[lev]->get_eb_pad();
+        int ieb_pad = ls_factory[lev]->get_eb_pad();
         EBFArrayBoxFactory eb_factory(* eb_levels[lev], geom[lev], ba, dm,
-                                      {eb_pad, eb_pad, eb_pad}, EBSupport::full);
+                                      {ieb_pad, ieb_pad, ieb_pad}, EBSupport::full);
 
         int ng = ls_factory[lev]->get_ls_pad();
 
