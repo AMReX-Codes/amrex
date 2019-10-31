@@ -207,10 +207,14 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
 {
     BL_PROFILE("amrex::packBuffer");
 
+    using ParticleType = typename PC::SuperParticleType;
+
+    long psize = pc.superParticleSize();
+
     int num_levels = pc.BufferMap().numLevels();
     int num_buckets = pc.BufferMap().numBuckets();
     if (num_buckets == 1 and (not pc.Geom(0).isAnyPeriodic()) ) return;
-    int total_buffer_size = plan.m_box_offsets[num_buckets];
+    long total_buffer_size = plan.m_box_offsets[num_buckets]*psize;
     snd_buffer.resize(total_buffer_size);
 
     for (int lev = 0; lev < num_levels; ++lev)
@@ -252,17 +256,17 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
                 int box_offset = p_box_offsets[p_box_perm[p_lev_offsets[dst_lev]+dst_box]];
                 int dst_index = box_offset + p_dst_indices[i];
                 int src_index = p_src_indices[i];
-                p_snd_buffer[dst_index] = ptd.getSuperParticle(src_index);
+                ptd.packParticleData(p_snd_buffer, src_index, dst_index);
             
-                auto& p = p_snd_buffer[dst_index];
+                typename PC::ParticleType* p = (typename PC::ParticleType*) &p_snd_buffer[dst_index*ptd.m_psize];
                 const IntVect& pshift = p_periodic_shift[i];
                 for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
                 {
                     if (not is_per[idim]) continue;
                     if (pshift[idim] > 0) 
-                        p.pos(idim) += phi[idim] - plo[idim]; 
+                        p->pos(idim) += phi[idim] - plo[idim]; 
                     else if (pshift[idim] < 0)
-                        p.pos(idim) -= phi[idim] - plo[idim];
+                        p->pos(idim) -= phi[idim] - plo[idim];
                 }
             });
         }
@@ -310,6 +314,7 @@ void unpackBuffer (PC& pc, const ParticleCopyPlan& plan, const Buffer& snd_buffe
         auto& plev  = pc.GetParticles(lev);
         for(MFIter mfi = pc.MakeMFIter(lev); mfi.isValid(); ++mfi)
         {
+            Gpu::Device::setStream(0);
             int gid = mfi.index();
             int tid = mfi.LocalTileIndex();
             auto index = std::make_pair(gid, tid);
@@ -332,7 +337,7 @@ void unpackBuffer (PC& pc, const ParticleCopyPlan& plan, const Buffer& snd_buffe
                 int box_offset = p_box_offsets[p_box_perm[p_lev_offsets[lev]+gid]];
                 int src_index = box_offset + i;
                 int dst_index = offset + i;
-                ptd.setSuperParticle(p_snd_buffer[src_index], dst_index);
+                ptd.unpackParticleData(p_snd_buffer, src_index, dst_index);
             });
         }
     }
@@ -344,6 +349,8 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buff
     BL_PROFILE("amrex::communicateParticlesStart");
     
     using ParticleType = typename PC::SuperParticleType;
+
+    long psize = pc.superParticleSize();
 
 #ifdef BL_USE_MPI
     const int NProcs = ParallelDescriptor::NProcs();
@@ -361,7 +368,7 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buff
             TotRcvParticles += plan.m_rcv_num_particles[i];
         }
     }
-    rcv_buffer.resize(TotRcvParticles);
+    rcv_buffer.resize(TotRcvParticles*psize);
 
     plan.m_nrcvs = RcvProc.size();
 
@@ -376,8 +383,8 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buff
     // Post receives.
     for (int i = 0; i < plan.m_nrcvs; ++i) {
         const auto Who    = RcvProc[i];
-        const auto offset = rOffset[i];
-        const auto Cnt    = plan.m_rcv_num_particles[Who]*sizeof(ParticleType);
+        const auto offset = rOffset[i]*psize;
+        const auto Cnt    = plan.m_rcv_num_particles[Who]*psize;
 
         BL_ASSERT(Cnt > 0);
         BL_ASSERT(Cnt < std::numeric_limits<int>::max());
@@ -392,14 +399,14 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buff
     {
         if (i == MyProc) continue;
         const auto Who = i;
-        const auto Cnt = plan.m_snd_num_particles[i]*sizeof(ParticleType);
+        const auto Cnt = plan.m_snd_num_particles[i]*psize;
         if (Cnt == 0) continue;
 
         BL_ASSERT(Who >= 0 && Who < NProcs);
         BL_ASSERT(Cnt < std::numeric_limits<int>::max());
         
         int bucket = pc.BufferMap().firstBucketOnProc(i);
-        const auto snd_offset = plan.m_box_offsets[bucket];
+        const auto snd_offset = plan.m_box_offsets[bucket]*psize;
 
         ParallelDescriptor::Asend( (char*) (snd_buffer.dataPtr() + snd_offset), Cnt, Who, SeqNum);
     }
@@ -463,11 +470,13 @@ void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, co
             int size = sizes[uindex];
             ++uindex;
 
+            long psize = pc.superParticleSize();
+
             AMREX_FOR_1D ( size, ip,
 	    {
                 int src_index = offset + ip;
                 int dst_index = dst_offset + ip;
-                ptd.setSuperParticle(p_rcv_buffer[src_index], dst_index);
+                ptd.unpackParticleData(p_rcv_buffer, src_index, dst_index);
             });
 	}
     }    

@@ -25,7 +25,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> :: SetParticle
 
     particle_size = sizeof(ParticleType);
     superparticle_size = particle_size + 
-        num_real_comm_comps*sizeof(Real) + num_int_comm_comps*sizeof(int);    
+        num_real_comm_comps*sizeof(ParticleReal) + num_int_comm_comps*sizeof(int);    
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
@@ -1241,14 +1241,14 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     else
     {
         pinned_snd_buffer.resize(snd_buffer.size());
-        cudaMemcpyAsync(pinned_snd_buffer.dataPtr(), snd_buffer.dataPtr(), snd_buffer.size()*sizeof(SuperParticleType), cudaMemcpyDeviceToHost);    
+        cudaMemcpyAsync(pinned_snd_buffer.dataPtr(), snd_buffer.dataPtr(), snd_buffer.size(), cudaMemcpyDeviceToHost);    
         plan.buildMPIFinish(BufferMap());
         Gpu::Device::synchronize();
         communicateParticlesStart(*this, plan, pinned_snd_buffer, pinned_rcv_buffer);
         rcv_buffer.resize(pinned_rcv_buffer.size());   
         unpackBuffer(*this, plan, snd_buffer, RedistributeUnpackPolicy());
         communicateParticlesFinish(plan);        
-        cudaMemcpyAsync(rcv_buffer.dataPtr(), pinned_rcv_buffer.dataPtr(), pinned_rcv_buffer.size()*sizeof(SuperParticleType), cudaMemcpyHostToDevice);    
+        cudaMemcpyAsync(rcv_buffer.dataPtr(), pinned_rcv_buffer.dataPtr(), pinned_rcv_buffer.size(), cudaMemcpyHostToDevice);    
         unpackRemotes(*this, plan, rcv_buffer, RedistributeUnpackPolicy());
     }
 
