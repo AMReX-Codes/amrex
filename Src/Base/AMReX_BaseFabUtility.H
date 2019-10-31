@@ -9,11 +9,11 @@ template <class Tto, class Tfrom>
 AMREX_GPU_HOST_DEVICE
 void
 cast (BaseFab<Tto>& tofab, BaseFab<Tfrom> const& fromfab,
-      Box const& bx, SrcComp scomp, DestComp dcomp, NumComps ncomp) noexcept
+      Box const& bx, SrcComp scomp, DestComp dcomp, NumComps ncomp) AMREX_NOEXCEPT 
 {
     auto const& tdata = tofab.array();
     auto const& fdata = fromfab.const_array();
-    amrex::LoopConcurrent(bx, ncomp.n, [=] (int i, int j, int k, int n) noexcept
+    amrex::LoopConcurrent(bx, ncomp.n, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT
     {
         tdata(i,j,k,n+dcomp.i) = static_cast<Tto>(fdata(i,j,k,n+scomp.i));
     });
