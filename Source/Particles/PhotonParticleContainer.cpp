@@ -88,7 +88,11 @@ PhotonParticleContainer::PushPX(WarpXParIter& pti,
     );
 
 #ifdef WARPX_QED
-     if(has_breit_wheeler()) DoBreitWheeler(pti, dt);
+    //m_shr_p_bw_engine->are_lookup_tables_initialized() is necessary here if we want
+    //to perform just initialization tests of the optical depth without actually
+    //enabling QED effects (this requires lookup tables).
+     if(has_breit_wheeler() &&  m_shr_p_bw_engine->are_lookup_tables_initialized())
+        DoBreitWheeler(pti, dt);
 #endif
 
 }

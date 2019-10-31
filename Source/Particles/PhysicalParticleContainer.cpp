@@ -1601,7 +1601,10 @@ PhysicalParticleContainer::PushPX(WarpXParIter& pti,
     const Real m = this-> mass;
 
 #ifdef WARPX_QED
-    if(has_quantum_sync()){
+    //m_shr_p_qs_engine->are_lookup_tables_initialized() is necessary here if we want
+    //to perform just initialization tests of the optical depth without actually
+    //enabling QED effects (this requires lookup tables).
+    if(has_quantum_sync()&& m_shr_p_qs_engine->are_lookup_tables_initialized()){
         Real* AMREX_RESTRICT p_tau =
         pti.GetAttribs(particle_comps["tau"]).dataPtr();
 
