@@ -352,10 +352,8 @@ private:
 
     bool m_defined;
 
-#ifdef AMREX_USE_CUDA
     Gpu::DeviceVector<ParticleReal*> m_runtime_r_ptrs;
-    Gpu::DeviceVector<int*> m_runtime_i_ptrs;    
-#endif
+    Gpu::DeviceVector<int*> m_runtime_i_ptrs;
 };
 
 } // namespace amrex;
