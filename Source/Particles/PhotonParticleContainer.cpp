@@ -88,27 +88,9 @@ PhotonParticleContainer::PushPX(WarpXParIter& pti,
     );
 
 #ifdef WARPX_QED
-     if(has_breit_wheeler()) DoBreitWheelerPti(pti, dt);
+     if(has_breit_wheeler()) DoBreitWheeler(pti, dt);
 #endif
 
-}
-
-void
-PhotonParticleContainer::PushP (int lev,
-                                amrex::Real dt,
-                                const amrex::MultiFab& Ex,
-                                const amrex::MultiFab& Ey,
-                                const amrex::MultiFab& Ez,
-                                const amrex::MultiFab& Bx,
-                                const amrex::MultiFab& By,
-                                const amrex::MultiFab& Bz)
-{
-    BL_PROFILE("PhotonParticleContainer::PushP");
-    if (do_not_push) return;
-
-#ifdef WARPX_QED
-    if(has_breit_wheeler()) DoBreitWheeler(lev,dt, Ex,Ey,Ez,Bx,By,Bz);
-#endif
 }
 
 void
@@ -139,109 +121,7 @@ PhotonParticleContainer::Evolve (int lev,
 
 #ifdef WARPX_QED
 void
-PhotonParticleContainer::DoBreitWheeler(int lev,
-                                        amrex::Real dt,
-                                        const amrex::MultiFab& Ex,
-                                        const amrex::MultiFab& Ey,
-                                        const amrex::MultiFab& Ez,
-                                        const amrex::MultiFab& Bx,
-                                        const amrex::MultiFab& By,
-                                        const amrex::MultiFab& Bz)
-{
-#ifdef _OPENMP
-    #pragma omp parallel
-#endif
-    {
-#ifdef _OPENMP
-        int thread_num = omp_get_thread_num();
-#else
-        int thread_num = 0;
-#endif
-
-        for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
-        {
-            const Box& box = pti.validbox();
-
-            auto& attribs = pti.GetAttribs();
-
-            auto& Exp = attribs[PIdx::Ex];
-            auto& Eyp = attribs[PIdx::Ey];
-            auto& Ezp = attribs[PIdx::Ez];
-            auto& Bxp = attribs[PIdx::Bx];
-            auto& Byp = attribs[PIdx::By];
-            auto& Bzp = attribs[PIdx::Bz];
-
-            const long np = pti.numParticles();
-
-            // Data on the grid
-            const FArrayBox& exfab = Ex[pti];
-            const FArrayBox& eyfab = Ey[pti];
-            const FArrayBox& ezfab = Ez[pti];
-            const FArrayBox& bxfab = Bx[pti];
-            const FArrayBox& byfab = By[pti];
-            const FArrayBox& bzfab = Bz[pti];
-
-            Exp.assign(np,WarpX::E_external_particle[0]);
-            Eyp.assign(np,WarpX::E_external_particle[1]);
-            Ezp.assign(np,WarpX::E_external_particle[2]);
-
-            Bxp.assign(np,WarpX::B_external_particle[0]);
-            Byp.assign(np,WarpX::B_external_particle[1]);
-            Bzp.assign(np,WarpX::B_external_particle[2]);
-
-            //
-            // copy data from particle container to temp arrays
-            //
-            pti.GetPosition(m_xp[thread_num], m_yp[thread_num], m_zp[thread_num]);
-
-            int e_is_nodal = Ex.is_nodal() and Ey.is_nodal() and Ez.is_nodal();
-            FieldGather(pti, Exp, Eyp, Ezp, Bxp, Byp, Bzp,
-                        &exfab, &eyfab, &ezfab, &bxfab, &byfab, &bzfab,
-                        Ex.nGrow(), e_is_nodal,
-                        0, np, thread_num, lev, lev);
-
-            // This wraps the momentum advance so that inheritors can modify the call.
-            // Extract pointers to the different particle quantities
-            ParticleReal* const AMREX_RESTRICT ux = attribs[PIdx::ux].dataPtr();
-            ParticleReal* const AMREX_RESTRICT uy = attribs[PIdx::uy].dataPtr();
-            ParticleReal* const AMREX_RESTRICT uz = attribs[PIdx::uz].dataPtr();
-            const ParticleReal* const AMREX_RESTRICT Expp = Exp.dataPtr();
-            const ParticleReal* const AMREX_RESTRICT Eypp = Eyp.dataPtr();
-            const ParticleReal* const AMREX_RESTRICT Ezpp = Ezp.dataPtr();
-            const ParticleReal* const AMREX_RESTRICT Bxpp = Bxp.dataPtr();
-            const ParticleReal* const AMREX_RESTRICT Bypp = Byp.dataPtr();
-            const ParticleReal* const AMREX_RESTRICT Bzpp = Bzp.dataPtr();
-
-            BreitWheelerEvolveOpticalDepth evolve_opt =
-                m_shr_p_bw_engine->build_evolve_functor();
-
-            amrex::Real* AMREX_RESTRICT p_tau =
-                pti.GetAttribs(particle_comps["tau"]).dataPtr();
-
-            const auto me = PhysConst::m_e;
-
-            // Loop over the particles and update their optical_depth
-            amrex::ParallelFor(
-                pti.numParticles(),
-                [=] AMREX_GPU_DEVICE (long i) {
-
-                    const ParticleReal px = me * ux[i];
-                    const ParticleReal py = me * uy[i];
-                    const ParticleReal pz = me * uz[i];
-
-                    evolve_opt(
-                        px, py, pz,
-                        Expp[i], Eypp[i], Ezpp[i],
-                        Bxpp[i], Bypp[i], Bzpp[i],
-                        dt, p_tau[i]);
-                }
-            );
-        }
-    }
-}
-
-void
-PhotonParticleContainer::DoBreitWheelerPti(WarpXParIter& pti,
+PhotonParticleContainer::DoBreitWheeler(WarpXParIter& pti,
                   amrex::Real dt)
 {
     auto& attribs = pti.GetAttribs();

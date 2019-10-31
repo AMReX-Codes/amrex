@@ -257,7 +257,7 @@ protected:
     std::shared_ptr<BreitWheelerEngine> m_shr_p_bw_engine;
 #endif
 
-// PushPX and PushP has been split into two methods (classical and QED versions)
+// PushPX has been split into two methods (classical and QED versions)
 // these methods must be public to be compatible with CUDA)
 public:
     //Classical versions
@@ -288,33 +288,6 @@ public:
         const amrex::ParticleReal* const AMREX_RESTRICT Bx,
         const amrex::ParticleReal* const AMREX_RESTRICT By,
         const amrex::ParticleReal* const AMREX_RESTRICT Bz,
-        amrex::Real q, amrex::Real m, int* AMREX_RESTRICT ion_lev,
-        amrex::Real dt, long num_particles
-    );
-
-    /**
-     * This function actually pushes momenta when QED effects
-     * are disabled.
-     * @param[in,out] x,y,z positions
-     * @param[in,out] ux,uy,uz momenta
-     * @param[in] Expp,Eypp,Ezpp electric fields
-     * @param[in] Bxpp,Bypp,Bzpp magnetic fields
-     * @param[in] q charge
-     * @param[in] m mass
-     * @param[in,out] ion_lev ionization level
-     * @param[in] dt temporal step
-     * @param[in] num_particles number of particles
-     */
-    void PushP_classical(
-        amrex::ParticleReal* const AMREX_RESTRICT ux,
-        amrex::ParticleReal* const AMREX_RESTRICT uy,
-        amrex::ParticleReal* const AMREX_RESTRICT uz,
-        const amrex::ParticleReal* const AMREX_RESTRICT Expp,
-        const amrex::ParticleReal* const AMREX_RESTRICT Eypp,
-        const amrex::ParticleReal* const AMREX_RESTRICT Ezpp,
-        const amrex::ParticleReal* const AMREX_RESTRICT Bxpp,
-        const amrex::ParticleReal* const AMREX_RESTRICT Bypp,
-        const amrex::ParticleReal* const AMREX_RESTRICT Bzpp,
         amrex::Real q, amrex::Real m, int* AMREX_RESTRICT ion_lev,
         amrex::Real dt, long num_particles
     );
@@ -349,34 +322,6 @@ public:
         const amrex::ParticleReal* const AMREX_RESTRICT Bx,
         const amrex::ParticleReal* const AMREX_RESTRICT By,
         const amrex::ParticleReal* const AMREX_RESTRICT Bz,
-        amrex::Real q, amrex::Real m,
-        amrex::ParticleReal* const AMREX_RESTRICT tau,
-        amrex::Real dt, long num_particles
-    );
-
-    /**
-     * This function actually pushes momenta when QED effects
-     * are enabled.
-     * @param[in,out] x,y,z positions
-     * @param[in,out] ux,uy,uz momenta
-     * @param[in] Expp,Eypp,Ezpp electric fields
-     * @param[in] Bxpp,Bypp,Bzpp magnetic fields
-     * @param[in] q charge
-     * @param[in] m mass
-     * @param[in,out] tau optical depth
-     * @param[in] dt temporal step
-     * @param[in] num_particles number of particles
-     */
-    void PushP_QedQuantumSynchrotron(
-        amrex::ParticleReal* const AMREX_RESTRICT ux,
-        amrex::ParticleReal* const AMREX_RESTRICT uy,
-        amrex::ParticleReal* const AMREX_RESTRICT uz,
-        const amrex::ParticleReal* const AMREX_RESTRICT Expp,
-        const amrex::ParticleReal* const AMREX_RESTRICT Eypp,
-        const amrex::ParticleReal* const AMREX_RESTRICT Ezpp,
-        const amrex::ParticleReal* const AMREX_RESTRICT Bxpp,
-        const amrex::ParticleReal* const AMREX_RESTRICT Bypp,
-        const amrex::ParticleReal* const AMREX_RESTRICT Bzpp,
         amrex::Real q, amrex::Real m,
         amrex::ParticleReal* const AMREX_RESTRICT tau,
         amrex::Real dt, long num_particles

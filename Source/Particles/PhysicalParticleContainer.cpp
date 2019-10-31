@@ -1911,213 +1911,59 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
                 ion_lev = pti.GetiAttribs(particle_icomps["ionization_level"]).dataPtr();
             }
 
-#ifdef WARPX_QED
-            if(has_quantum_sync()){
-                Real* AMREX_RESTRICT p_tau =
-                pti.GetAttribs(particle_comps["tau"]).dataPtr();
-                PushP_QedQuantumSynchrotron(
-                    ux, uy, uz, Expp, Eypp, Ezpp, Bxpp, Bypp, Bzpp,
-                    q, m, p_tau, dt, pti.numParticles());
+            //Assumes that all consistency checks have been done at initialization
+            if(do_classical_radiation_reaction){
+                 amrex::ParallelFor(pti.numParticles(),
+                    [=] AMREX_GPU_DEVICE (long i){
+                        Real qp = q;
+                        if (ion_lev){ qp *= ion_lev[i]; }
+                        UpdateMomentumBorisWithRadiationReaction(
+                            ux[i], uy[i], uz[i],
+                            Expp[i], Eypp[i], Ezpp[i],
+                            Bxpp[i], Bypp[i], Bzpp[i],
+                            qp, m, dt);
+                    }
+                );
+            } else if (WarpX::particle_pusher_algo == ParticlePusherAlgo::Boris){
+                amrex::ParallelFor(pti.numParticles(),
+                    [=] AMREX_GPU_DEVICE (long i) {
+                        Real qp = q;
+                        if (ion_lev){ qp *= ion_lev[i]; }
+                        UpdateMomentumBoris(
+                            ux[i], uy[i], uz[i],
+                            Expp[i], Eypp[i], Ezpp[i],
+                            Bxpp[i], Bypp[i], Bzpp[i],
+                            qp, m, dt);
+                    }
+                );
+            } else if (WarpX::particle_pusher_algo == ParticlePusherAlgo::Vay){
+                amrex::ParallelFor(pti.numParticles(),
+                    [=] AMREX_GPU_DEVICE (long i) {
+                        Real qp = q;
+                        if (ion_lev){ qp *= ion_lev[i]; }
+                        UpdateMomentumVay(
+                            ux[i], uy[i], uz[i],
+                            Expp[i], Eypp[i], Ezpp[i],
+                            Bxpp[i], Bypp[i], Bzpp[i],
+                            qp, m, dt);
+                    }
+                );
+            } else if (WarpX::particle_pusher_algo == ParticlePusherAlgo::HigueraCary){
+                amrex::ParallelFor(pti.numParticles(),
+                    [=] AMREX_GPU_DEVICE (long i) {
+                        UpdateMomentumHigueraCary( ux[i], uy[i], uz[i],
+                            Expp[i], Eypp[i], Ezpp[i],
+                            Bxpp[i], Bypp[i], Bzpp[i],
+                            q, m, dt);
+                    }
+                );
+            } else {
+              amrex::Abort("Unknown particle pusher");
             }
-            else{
-                PushP_classical(
-                    ux, uy, uz, Expp, Eypp, Ezpp, Bxpp, Bypp, Bzpp,
-                    q, m, ion_lev, dt, pti.numParticles());
-            }
-#else
-            PushP_classical(
-                ux, uy, uz, Expp, Eypp, Ezpp, Bxpp, Bypp, Bzpp,
-                q, m, ion_lev, dt, pti.numParticles());
-#endif
-
 
         }
     }
 }
-
-void PhysicalParticleContainer::PushP_classical(
-        ParticleReal* const AMREX_RESTRICT ux,
-        ParticleReal* const AMREX_RESTRICT uy,
-        ParticleReal* const AMREX_RESTRICT uz,
-        const ParticleReal* const AMREX_RESTRICT Expp,
-        const ParticleReal* const AMREX_RESTRICT Eypp,
-        const ParticleReal* const AMREX_RESTRICT Ezpp,
-        const ParticleReal* const AMREX_RESTRICT Bxpp,
-        const ParticleReal* const AMREX_RESTRICT Bypp,
-        const ParticleReal* const AMREX_RESTRICT Bzpp,
-        Real q, Real m, int* AMREX_RESTRICT ion_lev,
-        Real dt, long num_particles
-)
-{
-    //Assumes that all consistency checks have been done at initialization
-    if(do_classical_radiation_reaction){
-        amrex::ParallelFor(num_particles,
-            [=] AMREX_GPU_DEVICE (long i){
-                Real qp = q;
-                if (ion_lev){ qp *= ion_lev[i]; }
-                UpdateMomentumBorisWithRadiationReaction(
-                    ux[i], uy[i], uz[i],
-                    Expp[i], Eypp[i], Ezpp[i],
-                    Bxpp[i], Bypp[i], Bzpp[i],
-                    qp, m, dt);
-                }
-        );
-    } else if (WarpX::particle_pusher_algo == ParticlePusherAlgo::Boris){
-        amrex::ParallelFor(num_particles,
-            [=] AMREX_GPU_DEVICE (long i) {
-                Real qp = q;
-                if (ion_lev){ qp *= ion_lev[i]; }
-                UpdateMomentumBoris(
-                    ux[i], uy[i], uz[i],
-                    Expp[i], Eypp[i], Ezpp[i],
-                    Bxpp[i], Bypp[i], Bzpp[i],
-                    qp, m, dt);
-                }
-            );
-    } else if (WarpX::particle_pusher_algo == ParticlePusherAlgo::Vay){
-        amrex::ParallelFor(num_particles,
-            [=] AMREX_GPU_DEVICE (long i) {
-                Real qp = q;
-                if (ion_lev){ qp *= ion_lev[i]; }
-                UpdateMomentumVay(
-                    ux[i], uy[i], uz[i],
-                    Expp[i], Eypp[i], Ezpp[i],
-                    Bxpp[i], Bypp[i], Bzpp[i],
-                    qp, m, dt);
-                }
-            );
-    } else if (WarpX::particle_pusher_algo == ParticlePusherAlgo::HigueraCary){
-        amrex::ParallelFor(num_particles,
-            [=] AMREX_GPU_DEVICE (long i) {
-                UpdateMomentumHigueraCary( ux[i], uy[i], uz[i],
-                    Expp[i], Eypp[i], Ezpp[i], Bxpp[i], Bypp[i], Bzpp[i], q, m, dt);
-                }
-        );
-    } else {
-              amrex::Abort("Unknown particle pusher");
-    }
-}
-
-#ifdef WARPX_QED
-
-void PhysicalParticleContainer::PushP_QedQuantumSynchrotron(
-        ParticleReal* const AMREX_RESTRICT ux,
-        ParticleReal* const AMREX_RESTRICT uy,
-       ParticleReal* const AMREX_RESTRICT uz,
-        const ParticleReal* const AMREX_RESTRICT Expp,
-        const ParticleReal* const AMREX_RESTRICT Eypp,
-        const ParticleReal* const AMREX_RESTRICT Ezpp,
-        const ParticleReal* const AMREX_RESTRICT Bxpp,
-        const ParticleReal* const AMREX_RESTRICT Bypp,
-        const ParticleReal* const AMREX_RESTRICT Bzpp,
-        Real q, Real m,
-        ParticleReal* const AMREX_RESTRICT tau,
-        Real dt, long num_particles
-)
-{
-    QuantumSynchrotronEvolveOpticalDepth evolve_opt =
-        m_shr_p_qs_engine->build_evolve_functor();
-
-    const auto chi_min = m_shr_p_qs_engine->get_ref_ctrl().chi_part_min;
-
-    //Assumes that all consistency checks have been done at initialization
-    if(do_classical_radiation_reaction){
-        amrex::ParallelFor(num_particles,
-            [=] AMREX_GPU_DEVICE (long i) {
-                const ParticleReal px = m * ux[i];
-                const ParticleReal py = m * uy[i];
-                const ParticleReal pz = m * uz[i];
-
-                const ParticleReal chi = QedUtils::chi_lepton(px, py, pz,
-                    Expp[i], Eypp[i], Ezpp[i],
-                    Bxpp[i], Bypp[i], Bzpp[i]);
-
-                if(chi < chi_min){
-                    UpdateMomentumBorisWithRadiationReaction(
-                    ux[i], uy[i], uz[i],
-                    Expp[i], Eypp[i], Ezpp[i],
-                    Bxpp[i], Bypp[i], Bzpp[i],
-                    q, m, dt);
-                }
-                else
-                {
-                    bool has_event_happened = evolve_opt(
-                    px, py, pz,
-                    Expp[i], Eypp[i], Ezpp[i],
-                    Bxpp[i], Bypp[i], Bzpp[i],
-                    dt, tau[i]);
-
-                UpdateMomentumBoris(
-                    ux[i], uy[i], uz[i],
-                    Expp[i], Eypp[i], Ezpp[i],
-                    Bxpp[i], Bypp[i], Bzpp[i],
-                    q, m, dt);
-                }
-            }
-        );
-    } else if (WarpX::particle_pusher_algo == ParticlePusherAlgo::Boris){
-        amrex::ParallelFor(num_particles,
-            [=] AMREX_GPU_DEVICE (long i) {
-                const ParticleReal px = m * ux[i];
-                const ParticleReal py = m * uy[i];
-                const ParticleReal pz = m * uz[i];
-
-                bool has_event_happened = evolve_opt(
-                    px, py, pz,
-                    Expp[i], Eypp[i], Ezpp[i],
-                    Bxpp[i], Bypp[i], Bzpp[i],
-                    dt, tau[i]);
-
-                UpdateMomentumBoris(
-                    ux[i], uy[i], uz[i],
-                    Expp[i], Eypp[i], Ezpp[i],
-                    Bxpp[i], Bypp[i], Bzpp[i],
-                    q, m, dt);
-            }
-        );
-    } else if (WarpX::particle_pusher_algo == ParticlePusherAlgo::Vay){
-        amrex::ParallelFor(num_particles,
-            [=] AMREX_GPU_DEVICE (long i) {
-                const ParticleReal px = m * ux[i];
-                const ParticleReal py = m * uy[i];
-                const ParticleReal pz = m * uz[i];
-
-                bool has_event_happened = evolve_opt(
-                    px, py, pz,
-                    Expp[i], Eypp[i], Ezpp[i],
-                    Bxpp[i], Bypp[i], Bzpp[i],
-                    dt, tau[i]);
-
-                UpdateMomentumVay(
-                    ux[i], uy[i], uz[i],
-                    Expp[i], Eypp[i], Ezpp[i],
-                    Bxpp[i], Bypp[i], Bzpp[i],
-                    q, m, dt);
-            }
-        );
-    } else if (WarpX::particle_pusher_algo == ParticlePusherAlgo::HigueraCary){
-        amrex::ParallelFor(num_particles,
-            [=] AMREX_GPU_DEVICE (long i) {
-                const ParticleReal px = m * ux[i];
-                const ParticleReal py = m * uy[i];
-                const ParticleReal pz = m * uz[i];
-
-                bool has_event_happened = evolve_opt(
-                    px, py, pz,
-                    Expp[i], Eypp[i], Ezpp[i],
-                    Bxpp[i], Bypp[i], Bzpp[i],
-                    dt, tau[i]);
-
-                UpdateMomentumHigueraCary( ux[i], uy[i], uz[i],
-                    Expp[i], Eypp[i], Ezpp[i], Bxpp[i], Bypp[i], Bzpp[i], q, m, dt);
-            }
-        );
-    } else {
-              amrex::Abort("Unknown particle pusher");
-    }
-}
-
-#endif
 
 void PhysicalParticleContainer::copy_attribs(WarpXParIter& pti,const ParticleReal* xp,
                                              const ParticleReal* yp, const ParticleReal* zp)
