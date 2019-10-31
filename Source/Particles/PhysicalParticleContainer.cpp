@@ -1943,7 +1943,7 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
                 // src to dst when the copy-flag is set to 1.
                 amrex::Gpu::exclusive_scan(Flag,Flag+np,IndexLocation);
 
-                int total_partdiag_size = IndexLocation[np-1] + Flag[np-1];
+                const int total_partdiag_size = IndexLocation[np-1] + Flag[np-1];
 
                 // allocate array size for diagnostic particle array
                 diagnostic_particles[lev][index].resize(total_partdiag_size);
@@ -2015,7 +2015,7 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
                          const Real uzp = uz_old_p*weight_old
                                         + uz_new_p  *weight_new;
 
-                         int loc = IndexLocation[i];
+                         const int loc = IndexLocation[i];
                          diag_wp[loc] = wpnew[i];
                          diag_xp[loc] = xp;
                          diag_yp[loc] = yp;
