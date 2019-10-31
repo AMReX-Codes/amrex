@@ -86,15 +86,6 @@ PhotonParticleContainer::PushPX(WarpXParIter& pti,
                             ux[i], uy[i], uz[i], dt );
         }
     );
-
-#ifdef WARPX_QED
-    //m_shr_p_bw_engine->are_lookup_tables_initialized() is necessary here if we want
-    //to perform just initialization tests of the optical depth without actually
-    //enabling QED effects (this requires lookup tables).
-     if(has_breit_wheeler() &&  m_shr_p_bw_engine->are_lookup_tables_initialized())
-        DoBreitWheeler(pti, dt);
-#endif
-
 }
 
 void
@@ -124,10 +115,17 @@ PhotonParticleContainer::Evolve (int lev,
 }
 
 #ifdef WARPX_QED
+
 void
-PhotonParticleContainer::DoBreitWheeler(WarpXParIter& pti,
-                  amrex::Real dt)
+PhotonParticleContainer::EvolveOpticalDepth(
+    WarpXParIter& pti,amrex::Real dt)
 {
+    //m_shr_p_bw_engine->are_lookup_tables_initialized() is necessary here if we want
+    //to perform just initialization tests of the optical depth without actually
+    //enabling QED effects (this requires lookup tables).
+     if(!has_breit_wheeler() ||  !m_shr_p_bw_engine->are_lookup_tables_initialized())
+        return;
+
     auto& attribs = pti.GetAttribs();
     ParticleReal* const AMREX_RESTRICT ux = attribs[PIdx::ux].dataPtr();
     ParticleReal* const AMREX_RESTRICT uy = attribs[PIdx::uy].dataPtr();

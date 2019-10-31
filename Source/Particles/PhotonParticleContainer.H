@@ -81,11 +81,14 @@ public:
 
 #ifdef WARPX_QED
     /**
-     * This functions (called by PushPX) evolves optical depths
-     * of the photons according to the Breit Wheeler process
+     * This function evolves the optical depth of the photons if QED effects
+     * are enabled.
+     * @param[in,out] pti particle iterator (optical depth will be modified)
+     * @param[in] dt temporal step
      */
-    void DoBreitWheeler(WarpXParIter& pti,
-                           amrex::Real dt);
+    virtual void EvolveOpticalDepth(WarpXParIter& pti,
+        amrex::Real dt) override;
+
 #endif
 
 };
