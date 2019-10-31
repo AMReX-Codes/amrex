@@ -105,6 +105,9 @@ public:
     void SetBoxArray (int lev, const BoxArray& ba_in) noexcept;
     void SetGeometry (int lev, const Geometry& geom_in) noexcept;
 
+    //! Given domain box, return AMR level.  Return -1 if there is no match.
+    int GetLevel (Box const& domain) noexcept;
+
     void ClearDistributionMap (int lev) noexcept;
     void ClearBoxArray (int lev) noexcept;
 

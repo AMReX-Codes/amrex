@@ -49,7 +49,7 @@ F90EXE_sources += AMReX_MLNodeLap_$(DIM)d.F90
 
 CEXE_headers   += AMReX_MLTensorOp.H
 CEXE_sources   += AMReX_MLTensorOp.cpp
-CEXE_headers   += AMReX_MLTensor_K.H AMReX_MLTensor_$(DIM)D_K.H AMReX_MLTensor_nd_K.H
+CEXE_headers   += AMReX_MLTensor_K.H AMReX_MLTensor_$(DIM)D_K.H
 
 ifeq ($(USE_EB),TRUE)
 CEXE_headers   += AMReX_MLEBABecLap.H

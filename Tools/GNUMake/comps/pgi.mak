@@ -92,6 +92,18 @@ CFLAGS   += -c99
 CXXFLAGS += $(GENERIC_PGI_FLAGS)
 CFLAGS   += $(GENERIC_PGI_FLAGS)
 
+else # AMREX_CCOMP == pgi
+
+# If we're using OpenACC but also CUDA, then nvcc will be the C++ compiler. If
+# we want to call the OpenACC API from C++ then we need to make sure we have
+# the includes for it, because PGI may not be the host compiler for nvcc.
+
+ifeq ($(USE_ACC),TRUE)
+  PGI_BIN_LOCATION := $(shell pgc++ -show 2>&1 | grep CPPCOMPDIR | awk '{print $$7}' | cut -c2-)
+  PGI_LOCATION := $(shell dirname $(PGI_BIN_LOCATION))
+  INCLUDE_LOCATIONS += $(PGI_LOCATION)/etc/include_acc
+endif
+
 endif # AMREX_CCOMP == pgi
 
 ########################################################################
@@ -141,15 +153,20 @@ endif
 
 ifeq ($(USE_CUDA),TRUE)
 
-  F90FLAGS += -Mcuda=cc$(CUDA_ARCH),ptxinfo,fastmath,charstring
-  FFLAGS   += -Mcuda=cc$(CUDA_ARCH),ptxinfo,fastmath,charstring
+  F90FLAGS += -Mcuda=cc$(CUDA_ARCH),fastmath,charstring
+  FFLAGS   += -Mcuda=cc$(CUDA_ARCH),fastmath,charstring
 
   ifeq ($(DEBUG),TRUE)
     F90FLAGS += -Mcuda=debug
-    FFLAGSS  += -Mcuda=debug
+    FFLAGS   += -Mcuda=debug
   else
     F90FLAGS += -Mcuda=lineinfo
     FFLAGS   += -Mcuda=lineinfo
+  endif
+
+  ifeq ($(CUDA_VERBOSE),TRUE)
+    F90FLAGS += -Mcuda=ptxinfo
+    FFLAGS   += -Mcuda=ptxinfo
   endif
 
   F90FLAGS += CUDA_HOME=$(COMPILE_CUDA_PATH)

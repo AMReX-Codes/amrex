@@ -38,10 +38,11 @@
 
 namespace amrex
 {
-    extern long private_total_bytes_allocated_in_fabs;     //!< total bytes at any given time
-    extern long private_total_bytes_allocated_in_fabs_hwm; //!< high-water-mark over a given interval
-    extern long private_total_cells_allocated_in_fabs;     //!< total cells at any given time
-    extern long private_total_cells_allocated_in_fabs_hwm; //!< high-water-mark over a given interval
+
+extern long private_total_bytes_allocated_in_fabs;     //!< total bytes at any given time
+extern long private_total_bytes_allocated_in_fabs_hwm; //!< high-water-mark over a given interval
+extern long private_total_cells_allocated_in_fabs;     //!< total cells at any given time
+extern long private_total_cells_allocated_in_fabs_hwm; //!< high-water-mark over a given interval
 #ifdef _OPENMP
 #pragma omp threadprivate(private_total_bytes_allocated_in_fabs)
 #pragma omp threadprivate(private_total_bytes_allocated_in_fabs_hwm)
@@ -49,50 +50,15 @@ namespace amrex
 #pragma omp threadprivate(private_total_cells_allocated_in_fabs_hwm)
 #endif
 
-    long TotalBytesAllocatedInFabs () noexcept;
-    long TotalBytesAllocatedInFabsHWM () noexcept;
-    long TotalCellsAllocatedInFabs () noexcept;
-    long TotalCellsAllocatedInFabsHWM () noexcept;
-    void ResetTotalBytesAllocatedInFabsHWM () noexcept;
-    void update_fab_stats (long n, long s, std::size_t szt) noexcept;
+long TotalBytesAllocatedInFabs () noexcept;
+long TotalBytesAllocatedInFabsHWM () noexcept;
+long TotalCellsAllocatedInFabs () noexcept;
+long TotalCellsAllocatedInFabsHWM () noexcept;
+void ResetTotalBytesAllocatedInFabsHWM () noexcept;
+void update_fab_stats (long n, long s, std::size_t szt) noexcept;
 
-    void BaseFab_Initialize ();
-    void BaseFab_Finalize ();
-
-template <typename T>
-struct FabView
-{
-
-// HIP FIX HERE - Initialization List
-#ifdef AMREX_USE_HIP
-#ifdef AMREX_DEBUG
-    AMREX_GPU_HOST_DEVICE
-    FabView(T* ptr, int j, int k, long n, int ie, int je, int ke, int ne)
-    : p(ptr), jstride(j), kstride(k), nstride(n), iend(ie), jend(je), kend(ke), nend(ne)
-    { }
-#else
-    AMREX_GPU_HOST_DEVICE
-    FabView(T* ptr, int j, int k, long n)
-    : p(ptr), jstride(j), kstride(k), nstride(n)
-    { }
-#endif
-#endif
-
-    T* AMREX_RESTRICT p;
-    int jstride;
-    int kstride;
-    long nstride;
-#ifdef AMREX_DEBUG
-    int iend, jend, kend, nend;
-#endif
-    AMREX_GPU_HOST_DEVICE
-    AMREX_FORCE_INLINE T& operator() (int i, int j, int k, int n=0) const noexcept {
-#ifdef AMREX_DEBUG
-        AMREX_ASSERT(i<iend && j<jend && k<kend && n<nend);
-#endif
-        return *(p + (i+j*jstride+k*kstride+n*nstride));
-    }
-};
+void BaseFab_Initialize ();
+void BaseFab_Finalize ();
 
 struct SrcComp {
     AMREX_GPU_HOST_DEVICE
@@ -442,206 +408,6 @@ public:
     Array4<T const> const_array () const noexcept
     {
         return makeArray4<T const>(this->dptr, this->domain, this->nvar);
-    }
-
-    AMREX_GPU_HOST_DEVICE
-    AMREX_FORCE_INLINE
-    FabView<T const> view (int n = 0) const noexcept
-    {
-        return view(this->domain.loVect3d(),n);
-    }
-
-    AMREX_GPU_HOST_DEVICE
-    AMREX_FORCE_INLINE
-    FabView<T> view (int n = 0) noexcept
-    {
-        return view(this->domain.loVect3d(),n);
-    }
-
-// HIP FIX HERE - Initialization List: {{
-    AMREX_GPU_HOST_DEVICE
-    AMREX_FORCE_INLINE
-    FabView<T const> view (const IntVect& iv, int n = 0) const noexcept
-    {
-#if (AMREX_SPACEDIM == 1)
-        return view(GpuArray<int,3>{{iv[0],    0,    0}}, n);
-#elif (AMREX_SPACEDIM == 2)
-        return view(GpuArray<int,3>{{iv[0],iv[1],    0}}, n);
-#else
-        return view(GpuArray<int,3>{{iv[0],iv[1],iv[2]}}, n);
-#endif
-    }
-
-// HIP FIX HERE - Initialization List: {{
-    AMREX_GPU_HOST_DEVICE
-    AMREX_FORCE_INLINE
-    FabView<T> view (const IntVect& iv, int n = 0) noexcept
-    {
-#if (AMREX_SPACEDIM == 1)
-        return view(GpuArray<int,3>{{iv[0],    0,    0}}, n);
-#elif (AMREX_SPACEDIM == 2)
-        return view(GpuArray<int,3>{{iv[0],iv[1],    0}}, n);
-#else
-        return view(GpuArray<int,3>{{iv[0],iv[1],iv[2]}}, n);
-#endif
-    }
-
-    AMREX_GPU_HOST_DEVICE
-    AMREX_FORCE_INLINE
-    FabView<T const> view (const Box& subbox, int n = 0) const noexcept
-    {
-        return view(subbox.loVect3d(),n);
-    }
-
-    AMREX_GPU_HOST_DEVICE
-    AMREX_FORCE_INLINE
-    FabView<T> view (const Box& subbox, int n = 0) noexcept
-    {
-        return view(subbox.loVect3d(),n);
-    }
-
-    AMREX_GPU_HOST_DEVICE
-    AMREX_FORCE_INLINE
-    FabView<T const> view (const GpuArray<int,3>& slo, int n = 0) const noexcept
-    {
-#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
-        AMREX_ASSERT(this->domain.numPts() < static_cast<long>(std::numeric_limits<int>::max()));
-#else
-        AMREX_ASSERT(this->domain.numPts() < static_cast<long>(INT_MAX));
-#endif
-        const auto& len = this->domain.length3d();
-        int jstride = len[0];
-        int kstride = jstride*len[1];
-        long nstride = kstride*len[2];
-        const auto& dlo = this->domain.loVect3d();
-        T const* p = this->dptr + ((slo[0]-dlo[0])
-                                +  (slo[1]-dlo[1])*jstride
-                                +  (slo[2]-dlo[2])*kstride
-                                +                n*nstride);
-#ifdef AMREX_DEBUG
-        return FabView<T const>{p, jstride, kstride, nstride,
-                len[0]-(slo[0]-dlo[0]),
-                len[1]-(slo[1]-dlo[1]),
-                len[2]-(slo[2]-dlo[2]),
-                this->nvar-n};
-#else
-        return FabView<T const>{p, jstride, kstride, nstride};
-#endif
-    }
-
-    AMREX_GPU_HOST_DEVICE
-    AMREX_FORCE_INLINE
-    FabView<T> view (const GpuArray<int,3>& slo, int n = 0) noexcept
-    {
-#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
-        AMREX_ASSERT(this->domain.numPts() < static_cast<long>(std::numeric_limits<int>::max()));
-#else
-        AMREX_ASSERT(this->domain.numPts() < static_cast<long>(INT_MAX));
-#endif
-        const auto& len = this->domain.length3d();
-        int jstride = len[0];
-        int kstride = jstride*len[1];
-        long nstride = kstride*len[2];
-        const auto& dlo = this->domain.loVect3d();
-        T* p = this->dptr + ((slo[0]-dlo[0])
-                          +  (slo[1]-dlo[1])*jstride
-                          +  (slo[2]-dlo[2])*kstride
-                          +                n*nstride);
-#ifdef AMREX_DEBUG
-        return FabView<T>{p, jstride, kstride, nstride,
-                len[0]-(slo[0]-dlo[0]),
-                len[1]-(slo[1]-dlo[1]),
-                len[2]-(slo[2]-dlo[2]),
-                this->nvar-n};
-#else
-        return FabView<T>{p, jstride, kstride, nstride};
-#endif
-    }
-
-    AMREX_GPU_HOST_DEVICE
-    AMREX_FORCE_INLINE
-    FabView<T const> view (const Dim3& slo, int n = 0) const noexcept
-    {
-#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
-        AMREX_ASSERT(this->domain.numPts() < static_cast<long>(std::numeric_limits<int>::max()));
-#else
-        AMREX_ASSERT(this->domain.numPts() < static_cast<long>(INT_MAX));
-#endif
-        const auto len = amrex::length(this->domain);
-        const auto dlo = amrex::lbound(this->domain);
-        int jstride = len.x;
-        int kstride = jstride*len.y;
-        long nstride = kstride*len.z;
-        T const* p = this->dptr + ((slo.x-dlo.x)
-                                +  (slo.y-dlo.y)*jstride
-                                +  (slo.z-dlo.z)*kstride
-                                +              n*nstride);
-
-// HIP FIX HERE - Initialization List
-#ifdef AMREX_DEBUG
-    #ifdef AMREX_USE_HIP
-        return FabView<T const> (p, jstride, kstride, nstride,
-                                 len.x-(slo.x-dlo.x),
-                                 len.y-(slo.y-dlo.y),
-                                 len.z-(slo.z-dlo.z),
-                                 this->nvar-n);
-    #else
-        return FabView<T const>{p, jstride, kstride, nstride,
-                                len.x-(slo.x-dlo.x),
-                                len.y-(slo.y-dlo.y),
-                                len.z-(slo.z-dlo.z),
-                                this->nvar-n};
-    #endif
-#else
-    #ifdef AMREX_USE_HIP
-        return FabView<T const> (p, jstride, kstride, nstride);
-    #else
-        return FabView<T const>{p, jstride, kstride, nstride};
-    #endif
-#endif
-    }
-
-    AMREX_GPU_HOST_DEVICE
-    AMREX_FORCE_INLINE
-    FabView<T> view (const Dim3& slo, int n = 0) noexcept
-    {
-#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
-        AMREX_ASSERT(this->domain.numPts() < static_cast<long>(std::numeric_limits<int>::max()));
-#else
-        AMREX_ASSERT(this->domain.numPts() < static_cast<long>(INT_MAX));
-#endif
-        const auto len = amrex::length(this->domain);
-        const auto dlo = amrex::lbound(this->domain);
-        int jstride = len.x;
-        int kstride = jstride*len.y;
-        long nstride = kstride*len.z;
-        T* p = this->dptr + ((slo.x-dlo.x)
-                          +  (slo.y-dlo.y)*jstride
-                          +  (slo.z-dlo.z)*kstride
-                          +              n*nstride);
-
-// HIP FIX HERE - Initialization List
-#ifdef AMREX_DEBUG
-    #ifdef AMREX_USE_HIP
-        return FabView<T>(p, jstride, kstride, nstride,
-                          len.x-(slo.x-dlo.x),
-                          len.y-(slo.y-dlo.y),
-                          len.z-(slo.z-dlo.z),
-                          this->nvar-n);
-    #else
-        return FabView<T>{p, jstride, kstride, nstride,
-                len.x-(slo.x-dlo.x),
-                len.y-(slo.y-dlo.y),
-                len.z-(slo.z-dlo.z),
-                this->nvar-n};
-    #endif
-#else
-    #ifdef AMREX_USE_HIP
-        return FabView<T>(p, jstride, kstride, nstride);
-    #else
-        return FabView<T>{p, jstride, kstride, nstride};
-    #endif
-#endif
     }
 
     //! Returns true if the data for the FAB has been allocated.

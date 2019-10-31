@@ -2,7 +2,7 @@
 # For titan at OLCF
 #
 
-OLCF_MACHINES := titan summitdev summit ascent
+OLCF_MACHINES := titan summitdev summit ascent peak
 
 ifneq ($(which_computer), $(findstring $(which_computer), $(OLCF_MACHINES)))
   $(error Unknown OLCF computer, $(which_computer))
@@ -133,7 +133,7 @@ endif
 endif
 
 
-ifeq ($(which_computer),$(filter $(which_computer),ascent))
+ifeq ($(which_computer),$(filter $(which_computer),ascent peak))
 
   ifeq ($(USE_MPI),TRUE)
 
