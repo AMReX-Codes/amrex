@@ -15,6 +15,7 @@ ifeq ($(lowercase_hipcc_host_comp),$(filter $(lowercase_hipcc_host_comp),gcc gnu
   lowercase_hipcc_host_comp = gnu
   AMREX_CCOMP = gnu
   ifndef GNU_DOT_MAK_INCLUDED
+    $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/gnu.mak...)
     include $(AMREX_HOME)/Tools/GNUMake/comps/gnu.mak
   endif
 endif
@@ -34,11 +35,11 @@ endif
 
 # =============================================================================================
 
+# This is dogora for now.
 ifeq ($(HIP_PLATFORM),hcc)
   CXXFLAGS_FROM_HOST := 
   CFLAGS_FROM_HOST := 
   HIPCC_FLAGS = -m64
-  ROC_PATH=/opt/rocm
   HIP_PATH=$(shell hipconfig --path)
 
   ifeq ($(DEBUG),TRUE)
@@ -54,7 +55,7 @@ ifeq ($(HIP_PLATFORM),hcc)
   # Generic HIP
   INCLUDE_LOCATIONS += $(HIP_PATH)/include
 
-  # HIP rand
+  ROC_PATH=/opt/rocm
   INCLUDE_LOCATIONS += $(ROC_PATH)/rocrand/include $(ROC_PATH)/hiprand/include
   LIBRARY_LOCATIONS += $(ROC_PATH)/rocrand/lib $(ROC_PATH)/hiprand/lib
   LIBRARIES += -Wl,--rpath=$(ROC_PATH)/rocrand/lib -Wl,--rpath=$(ROC_PATH)/hiprand/lib -lhiprand -lrocrand 
@@ -67,6 +68,7 @@ ifeq ($(HIP_PLATFORM),hcc)
 
 # =============================================================================================
 
+# This is primarily summit
 else ifeq ($(HIP_PLATFORM),nvcc)
 
   CXXFLAGS_FROM_HOST := -ccbin=$(CXX) --std=c++14
@@ -118,5 +120,5 @@ endif
 override XTRALIBS += -lgfortran -lquadmath
 
 
-CXX = /opt/rocm/hip/bin/hipcc
-CC  = /opt/rocm/hip/bin/hipcc
+CXX = $(HIP_PATH)/bin/hipcc
+CC  = $(HIP_PATH)/bin/hipcc
