@@ -101,9 +101,6 @@ private:
     Real m_mg_atol = 1.0e-14;
     std::string m_bottom_solver_type = "bicgcg";
 
-    // Max coarsening level
-    int  m_mg_max_coarsening_level = 100;
-
 
     Vector<Geometry>                    m_geom;
     Vector<BoxArray>                    m_grids;
