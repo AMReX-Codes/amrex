@@ -1491,9 +1491,9 @@ AddPartDataToParticleBuffer(
         // flag values. These location indices are used to copy data
         // from src to dst when the copy-flag is set to 1.
         amrex::Gpu::exclusive_scan(Flag,Flag+np,IndexLocation);
-        int copy_size = IndexLocation[np-1] + Flag[np-1];
-        int init_size = m_particles_buffer_[isp].GetRealData(DiagIdx::w).size();
-        int total_reducedDiag_size = copy_size + init_size;
+        const int copy_size = IndexLocation[np-1] + Flag[np-1];
+        const int init_size = m_particles_buffer_[isp].GetRealData(DiagIdx::w).size();
+        const int total_reducedDiag_size = copy_size + init_size;
 
         // allocate array size for reduced diagnostic buffer array
         m_particles_buffer_[isp].resize(total_reducedDiag_size);
@@ -1521,7 +1521,7 @@ AddPartDataToParticleBuffer(
         {
             if (Flag[i] == 1)
             {
-               int loc = IndexLocation[i] + init_size;
+               const int loc = IndexLocation[i] + init_size;
                wp_buff[loc] = wp_temp[i];
                x_buff[loc]  = x_temp[i];
                y_buff[loc]  = y_temp[i];
