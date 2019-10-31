@@ -111,5 +111,5 @@ qed_qs.save_table_in = "qs_table"
 #################################
 
 ### EXTERNAL FIELD ###
-warpx.B_external_particle = 917978.2333474257 1376967.350021139 2753934.700042278
+warpx.B_external_particle = 0 0 1.0e7
 ####
