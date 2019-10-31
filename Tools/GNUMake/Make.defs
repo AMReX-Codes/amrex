@@ -815,18 +815,16 @@ ifeq ($(USE_UPCXX),TRUE)
 endif
 
 ifeq ($(USE_SUNDIALS),TRUE)
-  SUNDIALS_VERSION ?= "5"
-  ifeq ("$(SUNDIALS_VERSION)","5")
-    $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.sundials...)
-    include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.sundials
-  endif
-  ifeq ("$(SUNDIALS_VERSION)","4")
-    $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.sundials4...)
-    include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.sundials4
-  else
-    $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.sundials3...)
-    include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.sundials3
-  endif
+  # SUNDIALS_VERSION ?= "5"
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.sundials...)
+  include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.sundials
+  # ifeq ("$(SUNDIALS_VERSION)","4")
+  #   $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.sundials4...)
+  #   include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.sundials4
+  # else
+  #   $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.sundials3...)
+  #   include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.sundials3
+  # endif
 endif
 
 ifeq ($(USE_CVODE),TRUE)
