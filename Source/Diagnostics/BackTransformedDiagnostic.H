@@ -1,5 +1,5 @@
-#ifndef WARPX_BoostedFrameDiagnostic_H_
-#define WARPX_BoostedFrameDiagnostic_H_
+#ifndef WARPX_BackTransformedDiagnostic_H_
+#define WARPX_BackTransformedDiagnostic_H_
 
 #include <vector>
 #include <map>
@@ -148,7 +148,7 @@ class LabFrameSlice : public LabFrameDiag {
 };
 
 /** \brief
- * BoostedFrameDiagnostic class handles the back-transformation of data when
+ * BackTransformedDiagnostic class handles the back-transformation of data when
  * running simulations in a boosted frame of reference to the lab-frame.
  * Because of the relativity of simultaneity, events that are synchronized
  * in the simulation boosted frame are not
@@ -161,13 +161,13 @@ class LabFrameSlice : public LabFrameDiag {
  * to the output directory. The functions Flush() and writeLabFrameData()
  * are called at the end of the simulation and when the
  * the buffer for data storage is full, respectively. The particle data
- * is collected and written only if particle.do_boosted_frame_diagnostic = 1.
+ * is collected and written only if particle.do_back_transformed_diagnostics = 1.
  */
-class BoostedFrameDiagnostic {
+class BackTransformedDiagnostic {
 
 public:
 
-    BoostedFrameDiagnostic(amrex::Real zmin_lab, amrex::Real zmax_lab,
+    BackTransformedDiagnostic(amrex::Real zmin_lab, amrex::Real zmax_lab,
                            amrex::Real v_window_lab, amrex::Real dt_snapshots_lab,
                            int N_snapshots, amrex::Real dt_slice_snapshots_lab,
                            int N_slice_snapshots, amrex::Real gamma_boost,

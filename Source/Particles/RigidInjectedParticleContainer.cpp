@@ -392,12 +392,12 @@ RigidInjectedParticleContainer::PushP (int lev, Real dt,
             const FArrayBox& byfab = By[pti];
             const FArrayBox& bzfab = Bz[pti];
 
-            Exp.assign(np,WarpX::E_external[0]);
-            Eyp.assign(np,WarpX::E_external[1]);
-            Ezp.assign(np,WarpX::E_external[2]);
-            Bxp.assign(np,WarpX::B_external[0]);
-            Byp.assign(np,WarpX::B_external[1]);
-            Bzp.assign(np,WarpX::B_external[2]);
+            Exp.assign(np,WarpX::E_external_particle[0]);
+            Eyp.assign(np,WarpX::E_external_particle[1]);
+            Ezp.assign(np,WarpX::E_external_particle[2]);
+            Bxp.assign(np,WarpX::B_external_particle[0]);
+            Byp.assign(np,WarpX::B_external_particle[1]);
+            Bzp.assign(np,WarpX::B_external_particle[2]);
 
             //
             // copy data from particle container to temp arrays

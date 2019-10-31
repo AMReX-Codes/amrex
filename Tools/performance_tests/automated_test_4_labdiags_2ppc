@@ -35,7 +35,7 @@ warpx.gamma_boost = 15.
 warpx.boost_direction = z
 
 # Diagnostics
-warpx.do_boosted_frame_diagnostic = 1
+warpx.do_back_transformed_diagnostics = 1
 warpx.num_snapshots_lab = 20
 warpx.dt_snapshots_lab = 7.0e-14
 

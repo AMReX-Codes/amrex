@@ -41,7 +41,7 @@ else
 fi
 
 # Clone the AMReX regression test utility
-git clone https://github.com/RemiLehe/regression_testing.git
+git clone https://github.com/ECP-WarpX/regression_testing.git
 
 # Prepare regression tests
 mkdir -p rt-WarpX/WarpX-benchmarks

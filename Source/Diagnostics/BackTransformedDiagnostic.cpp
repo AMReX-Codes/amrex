@@ -1,7 +1,7 @@
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_MultiFabUtil_C.H>
 
-#include "BoostedFrameDiagnostic.H"
+#include "BackTransformedDiagnostic.H"
 #include "SliceDiagnostic.H"
 #include "WarpX_f.H"
 #include "WarpX.H"
@@ -468,7 +468,7 @@ void
 LorentzTransformZ(MultiFab& data, Real gamma_boost, Real beta_boost, int ncomp)
 {
     // Loop over tiles/boxes and in-place convert each slice from boosted
-    // frame to lab frame.
+    // frame to back-transformed lab frame.
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -514,8 +514,8 @@ LorentzTransformZ(MultiFab& data, Real gamma_boost, Real beta_boost, int ncomp)
 }
 }
 
-BoostedFrameDiagnostic::
-BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
+BackTransformedDiagnostic::
+BackTransformedDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
                        Real dt_snapshots_lab, int N_snapshots,
                        Real dt_slice_snapshots_lab, int N_slice_snapshots,
                        Real gamma_boost, Real t_boost, Real dt_boost,
@@ -533,10 +533,10 @@ BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
 {
 
 
-    BL_PROFILE("BoostedFrameDiagnostic::BoostedFrameDiagnostic");
+    BL_PROFILE("BackTransformedDiagnostic::BackTransformedDiagnostic");
 
-    AMREX_ALWAYS_ASSERT(WarpX::do_boosted_frame_fields or
-                        WarpX::do_boosted_frame_particles);
+    AMREX_ALWAYS_ASSERT(WarpX::do_back_transformed_fields or
+                        WarpX::do_back_transformed_particles);
 
     m_inv_gamma_boost_ = 1.0 / m_gamma_boost_;
     m_beta_boost_ = std::sqrt(1.0 - m_inv_gamma_boost_*m_inv_gamma_boost_);
@@ -585,7 +585,7 @@ BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
         // Get simulation domain physical coordinates (in boosted frame).
         RealBox prob_domain_lab = geom.ProbDomain();
         // Replace z bounds by lab-frame coordinates
-        // x and y bounds are the same for lab frame and boosted frame
+        // x and y bounds are the same for back-transformed lab frame and boosted frame
         prob_domain_lab.setLo(AMREX_SPACEDIM-1, zmin_lab + v_window_lab * t_lab);
         prob_domain_lab.setHi(AMREX_SPACEDIM-1, zmax_lab + v_window_lab * t_lab);
         Box diag_box = geom.Domain();
@@ -677,9 +677,9 @@ BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
     AMREX_ALWAYS_ASSERT(m_max_box_size_ >= m_num_buffer_);
 }
 
-void BoostedFrameDiagnostic::Flush(const Geometry& geom)
+void BackTransformedDiagnostic::Flush(const Geometry& geom)
 {
-    BL_PROFILE("BoostedFrameDiagnostic::Flush");
+    BL_PROFILE("BackTransformedDiagnostic::Flush");
 
     VisMF::Header::Version current_version = VisMF::GetHeaderVersion();
     VisMF::SetHeaderVersion(amrex::VisMF::Header::NoFabHeader_v1);
@@ -694,7 +694,7 @@ void BoostedFrameDiagnostic::Flush(const Geometry& geom)
         int i_lab = (m_LabFrameDiags_[i]->m_current_z_lab - zmin_lab) / m_dz_lab_;
 
         if (m_LabFrameDiags_[i]->m_buff_counter_ != 0) {
-            if (WarpX::do_boosted_frame_fields) {
+            if (WarpX::do_back_transformed_fields) {
                 const BoxArray& ba = m_LabFrameDiags_[i]->m_data_buffer_->boxArray();
                 const int hi = ba[0].bigEnd(m_boost_direction_);
                 const int lo = hi - m_LabFrameDiags_[i]->m_buff_counter_ + 1;
@@ -729,12 +729,12 @@ void BoostedFrameDiagnostic::Flush(const Geometry& geom)
 #endif
             }
 
-            if (WarpX::do_boosted_frame_particles) {
+            if (WarpX::do_back_transformed_particles) {
                 // Loop over species to be dumped to BFD
-                for (int j = 0; j < mypc.nSpeciesBoostedFrameDiags(); ++j) {
+                for (int j = 0; j < mypc.nSpeciesBackTransformedDiagnostics(); ++j) {
                     // Get species name
                     std::string species_name =
-                        species_names[mypc.mapSpeciesBoostedFrameDiags(j)];
+                        species_names[mypc.mapSpeciesBackTransformedDiagnostics(j)];
 #ifdef WARPX_USE_HDF5
                     // Dump species data
                     writeParticleDataHDF5(m_LabFrameDiags_[i]->m_particles_buffer_[j],
@@ -763,12 +763,12 @@ void BoostedFrameDiagnostic::Flush(const Geometry& geom)
 
 
 void
-BoostedFrameDiagnostic::
+BackTransformedDiagnostic::
 writeLabFrameData(const MultiFab* cell_centered_data,
                   const MultiParticleContainer& mypc,
                   const Geometry& geom, const Real t_boost, const Real dt) {
 
-    BL_PROFILE("BoostedFrameDiagnostic::writeLabFrameData");
+    BL_PROFILE("BackTransformedDiagnostic::writeLabFrameData");
     VisMF::Header::Version current_version = VisMF::GetHeaderVersion();
     VisMF::SetHeaderVersion(amrex::VisMF::Header::NoFabHeader_v1);
 
@@ -806,7 +806,7 @@ writeLabFrameData(const MultiFab* cell_centered_data,
         // If buffer of snapshot i is empty...
         if ( m_LabFrameDiags_[i]->m_buff_counter_ == 0) {
             // ... reset fields buffer data_buffer_
-            if (WarpX::do_boosted_frame_fields) {
+            if (WarpX::do_back_transformed_fields) {
                 m_LabFrameDiags_[i]->m_buff_box_.setSmall(m_boost_direction_,
                                              i_lab - m_num_buffer_ + 1);
                 m_LabFrameDiags_[i]->m_buff_box_.setBig(m_boost_direction_, i_lab);
@@ -818,12 +818,12 @@ writeLabFrameData(const MultiFab* cell_centered_data,
                                                 buff_dm, m_ncomp_to_dump, 0) );
             }
             // ... reset particle buffer particles_buffer_[i]
-            if (WarpX::do_boosted_frame_particles)
+            if (WarpX::do_back_transformed_particles)
                 m_LabFrameDiags_[i]->m_particles_buffer_.resize(
-                                   mypc.nSpeciesBoostedFrameDiags());
+                                   mypc.nSpeciesBackTransformedDiagnostics());
         }
 
-        if (WarpX::do_boosted_frame_fields) {
+        if (WarpX::do_back_transformed_fields) {
             const int ncomp = cell_centered_data->nComp();
             const int start_comp = 0;
             const bool interpolate = true;
@@ -871,7 +871,7 @@ writeLabFrameData(const MultiFab* cell_centered_data,
              tmp_slice_ptr.reset(nullptr);
         }
 
-        if (WarpX::do_boosted_frame_particles) {
+        if (WarpX::do_back_transformed_particles) {
 
             if (m_LabFrameDiags_[i]->m_t_lab != prev_t_lab ) {
                if (tmp_particle_buffer.size()>0)
@@ -879,7 +879,7 @@ writeLabFrameData(const MultiFab* cell_centered_data,
                   tmp_particle_buffer.clear();
                   tmp_particle_buffer.shrink_to_fit();
                }
-               tmp_particle_buffer.resize(mypc.nSpeciesBoostedFrameDiags());
+               tmp_particle_buffer.resize(mypc.nSpeciesBackTransformedDiagnostics());
                mypc.GetLabFrameData(m_LabFrameDiags_[i]->m_file_name, i_lab,
                                     m_boost_direction_, old_z_boost,
                                     m_LabFrameDiags_[i]->m_current_z_boost,
@@ -887,7 +887,7 @@ writeLabFrameData(const MultiFab* cell_centered_data,
                                     tmp_particle_buffer);
             }
             m_LabFrameDiags_[i]->AddPartDataToParticleBuffer(tmp_particle_buffer,
-                               mypc.nSpeciesBoostedFrameDiags());
+                               mypc.nSpeciesBackTransformedDiagnostics());
         }
 
         ++m_LabFrameDiags_[i]->m_buff_counter_;
@@ -895,7 +895,7 @@ writeLabFrameData(const MultiFab* cell_centered_data,
         // If buffer full, write to disk.
         if (m_LabFrameDiags_[i]->m_buff_counter_ == m_num_buffer_) {
 
-            if (WarpX::do_boosted_frame_fields) {
+            if (WarpX::do_back_transformed_fields) {
 #ifdef WARPX_USE_HDF5
 
                 Box buff_box = m_LabFrameDiags_[i]->m_buff_box_;
@@ -913,12 +913,12 @@ writeLabFrameData(const MultiFab* cell_centered_data,
 #endif
             }
 
-            if (WarpX::do_boosted_frame_particles) {
+            if (WarpX::do_back_transformed_particles) {
                 // Loop over species to be dumped to BFD
-                for (int j = 0; j < mypc.nSpeciesBoostedFrameDiags(); ++j) {
+                for (int j = 0; j < mypc.nSpeciesBackTransformedDiagnostics(); ++j) {
                     // Get species name
                     const std::string species_name = species_names[
-                                      mypc.mapSpeciesBoostedFrameDiags(j)];
+                                      mypc.mapSpeciesBackTransformedDiagnostics(j)];
 #ifdef WARPX_USE_HDF5
                     // Write data to disk (HDF5)
                     writeParticleDataHDF5(m_LabFrameDiags_[i]->m_particles_buffer_[j],
@@ -946,7 +946,7 @@ writeLabFrameData(const MultiFab* cell_centered_data,
 
 #ifdef WARPX_USE_HDF5
 void
-BoostedFrameDiagnostic::
+BackTransformedDiagnostic::
 writeParticleDataHDF5(const WarpXParticleContainer::DiagnosticParticleData& pdata,
                       const std::string& name, const std::string& species_name)
 {
@@ -994,11 +994,11 @@ writeParticleDataHDF5(const WarpXParticleContainer::DiagnosticParticleData& pdat
 #endif
 
 void
-BoostedFrameDiagnostic::
+BackTransformedDiagnostic::
 writeParticleData(const WarpXParticleContainer::DiagnosticParticleData& pdata,
                   const std::string& name, const int i_lab)
 {
-    BL_PROFILE("BoostedFrameDiagnostic::writeParticleData");
+    BL_PROFILE("BackTransformedDiagnostic::writeParticleData");
 
     std::string field_name;
     std::ofstream ofs;
@@ -1044,10 +1044,10 @@ writeParticleData(const WarpXParticleContainer::DiagnosticParticleData& pdata,
 }
 
 void
-BoostedFrameDiagnostic::
+BackTransformedDiagnostic::
 writeMetaData ()
 {
-    BL_PROFILE("BoostedFrameDiagnostic::writeMetaData");
+    BL_PROFILE("BackTransformedDiagnostic::writeMetaData");
 
     if (ParallelDescriptor::IOProcessor()) {
         const std::string fullpath = WarpX::lab_data_directory + "/snapshots";
@@ -1131,7 +1131,7 @@ LabFrameSnapShot(Real t_lab_in, Real t_boost, Real inv_gamma_boost_in,
                            m_file_num, 5);
    createLabFrameDirectories();
    m_buff_counter_ = 0;
-   if (WarpX::do_boosted_frame_fields) m_data_buffer_.reset(nullptr);
+   if (WarpX::do_back_transformed_fields) m_data_buffer_.reset(nullptr);
 }
 
 void
@@ -1155,7 +1155,7 @@ createLabFrameDirectories() {
 
     if (ParallelDescriptor::IOProcessor())
     {
-        if (WarpX::do_boosted_frame_fields)
+        if (WarpX::do_back_transformed_fields)
         {
             const auto lo = lbound(m_buff_box_);
             for (int comp = 0; comp < m_ncomp_to_dump_; ++comp) {
@@ -1173,15 +1173,15 @@ createLabFrameDirectories() {
 
     ParallelDescriptor::Barrier();
 
-    if (WarpX::do_boosted_frame_particles){
+    if (WarpX::do_back_transformed_particles){
         auto & mypc = WarpX::GetInstance().GetPartContainer();
         const std::vector<std::string> species_names = mypc.GetSpeciesNames();
         // Loop over species to be dumped to BFD
-        for (int j = 0; j < mypc.nSpeciesBoostedFrameDiags(); ++j)
+        for (int j = 0; j < mypc.nSpeciesBackTransformedDiagnostics(); ++j)
         {
             // Loop over species to be dumped to BFD
             std::string species_name =
-                species_names[mypc.mapSpeciesBoostedFrameDiags(j)];
+                species_names[mypc.mapSpeciesBackTransformedDiagnostics(j)];
             output_create_species_group(m_file_name, species_name);
             for (int k = 0; k < static_cast<int>(particle_field_names.size()); ++k)
             {
@@ -1208,10 +1208,10 @@ createLabFrameDirectories() {
 
         const std::string particles_prefix = "particle";
         // Loop over species to be dumped to BFD
-        for(int i = 0; i < mypc.nSpeciesBoostedFrameDiags(); ++i) {
+        for(int i = 0; i < mypc.nSpeciesBackTransformedDiagnostics(); ++i) {
             // Get species name
             std::string species_name =
-                species_names[mypc.mapSpeciesBoostedFrameDiags(i)];
+                species_names[mypc.mapSpeciesBackTransformedDiagnostics(i)];
             const std::string fullpath = m_file_name + "/" + species_name;
             if (!UtilCreateDirectory(fullpath, 0755))
                 CreateDirectoryFailed(fullpath);
@@ -1301,7 +1301,7 @@ LabFrameSlice(Real t_lab_in, Real t_boost, Real inv_gamma_boost_in,
     m_buff_counter_ = 0;
     m_particle_slice_dx_lab_ = particle_slice_dx_lab;
 
-    if (WarpX::do_boosted_frame_fields) m_data_buffer_.reset(nullptr);
+    if (WarpX::do_back_transformed_fields) m_data_buffer_.reset(nullptr);
 }
 
 void
@@ -1430,10 +1430,10 @@ void
 LabFrameSlice::
 AddPartDataToParticleBuffer(
     Vector<WarpXParticleContainer::DiagnosticParticleData> tmp_particle_buffer,
-    int nSpeciesBoostedFrame) {
+    int nSpeciesBackTransformedDiagnostics) {
 
 
-    for (int isp = 0; isp < nSpeciesBoostedFrame; ++isp) {
+    for (int isp = 0; isp < nSpeciesBackTransformedDiagnostics; ++isp) {
         auto np = tmp_particle_buffer[isp].GetRealData(DiagIdx::w).size();
 
         if (np == 0) return;

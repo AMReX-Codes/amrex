@@ -1,14 +1,15 @@
-
 #ifndef WARPX_ParticleContainer_H_
 #define WARPX_ParticleContainer_H_
 
-#include <AMReX_Particles.H>
+#include "ElementaryProcess.H"
+
 #include <WarpXParticleContainer.H>
 #include <PhysicalParticleContainer.H>
 #include <RigidInjectedParticleContainer.H>
 #include <PhotonParticleContainer.H>
 #include <LaserParticleContainer.H>
 
+#include <AMReX_Particles.H>
 #ifdef WARPX_QED
     #include <BreitWheelerEngineWrapper.H>
     #include <QuantumSyncEngineWrapper.H>
@@ -18,6 +19,8 @@
 #include <map>
 #include <string>
 #include <algorithm>
+#include <utility>
+#include <tuple>
 
 //
 // MultiParticleContainer holds multiple (nspecies or npsecies+1 when
@@ -162,9 +165,9 @@ public:
 
     int nSpecies() const {return nspecies;}
 
-    int nSpeciesBoostedFrameDiags() const {return nspecies_boosted_frame_diags;}
-    int mapSpeciesBoostedFrameDiags(int i) const {return map_species_boosted_frame_diags[i];}
-    int doBoostedFrameDiags() const {return do_boosted_frame_diags;}
+    int nSpeciesBackTransformedDiagnostics() const {return nspecies_back_transformed_diagnostics;}
+    int mapSpeciesBackTransformedDiagnostics(int i) const {return map_species_back_transformed_diagnostics[i];}
+    int doBackTransformedDiagnostics() const {return do_back_transformed_diagnostics;}
 
     int nSpeciesDepositOnMainGrid () const {
         bool const onMainGrid = true;
@@ -196,6 +199,8 @@ public:
 
     PhysicalParticleContainer& GetPCtmp () { return *pc_tmp; }
 
+    IonizationProcess ionization_process;
+
 protected:
 
     // Particle container types
@@ -215,13 +220,58 @@ protected:
 
 #ifdef WARPX_QED
     // The QED engines
-    BreitWheelerEngine bw_engine;
-    QuantumSynchrotronEngine qs_engine;
+    std::shared_ptr<BreitWheelerEngine> m_shr_p_bw_engine;
+    std::shared_ptr<QuantumSynchrotronEngine> m_shr_p_qs_engine;
     //_______________________________
 
-    //Initialize QED engines and provides smart pointers
-    //to species who need QED processes
+    /**
+     * Initialize QED engines and provides smart pointers
+     * to species who need QED processes
+     */
     void InitQED ();
+
+    //Variables to store how many species need a QED process
+    int m_nspecies_quantum_sync = 0;
+    int m_nspecies_breit_wheeler = 0;
+    //________
+
+    /**
+     * Returns the number of species having Quantum Synchrotron process enabled
+     */
+    int NSpeciesQuantumSync() const { return  m_nspecies_quantum_sync;}
+
+    /**
+     * Returns the number of species having Breit Wheeler process enabled
+     */
+    int NSpeciesBreitWheeler() const { return m_nspecies_breit_wheeler;}
+
+    /**
+     * Initializes the Quantum Synchrotron engine
+     */
+    void InitQuantumSync ();
+
+    /**
+     * Initializes the Quantum Synchrotron engine
+     */
+    void InitBreitWheeler ();
+
+    /**
+     * Parses inputfile parameters for Quantum Synchrotron engine
+     * @return {a tuple containing a flag which is true if tables
+     * have to be generate, a filename (where tables should be stored
+     * or read from) and control parameters.}
+     */
+    std::tuple<bool, std::string, PicsarQuantumSynchrotronCtrl>
+    ParseQuantumSyncParams ();
+
+    /**
+     * Parses inputfile parameters for Breit Wheeler engine
+     * @return {a tuple containing a flag which is true if tables
+     * have to be generate, a filename (where tables should be stored
+     * or read from) and control parameters.}
+     */
+    std::tuple<bool, std::string, PicsarBreitWheelerCtrl>
+    ParseBreitWheelerParams ();
 #endif
 
 private:
@@ -236,12 +286,12 @@ private:
     void mapSpeciesProduct ();
     int getSpeciesID (std::string product_str);
 
-    // Number of species dumped in BoostedFrameDiagnostics
-    int nspecies_boosted_frame_diags = 0;
-    // map_species_boosted_frame_diags[i] is the species ID in
-    // MultiParticleContainer for 0<i<nspecies_boosted_frame_diags
-    std::vector<int> map_species_boosted_frame_diags;
-    int do_boosted_frame_diags = 0;
+    // Number of species dumped in BackTransformedDiagnostics
+    int nspecies_back_transformed_diagnostics = 0;
+    // map_species_back_transformed_diagnostics[i] is the species ID in
+    // MultiParticleContainer for 0<i<nspecies_back_transformed_diagnostics
+    std::vector<int> map_species_back_transformed_diagnostics;
+    int do_back_transformed_diagnostics = 0;
 
     // runtime parameters
     int nlasers = 0;
