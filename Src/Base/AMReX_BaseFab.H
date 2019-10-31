@@ -2667,7 +2667,15 @@ BaseFab<T>::dotmask (const BaseFab<int>& mask, const Box& xbx, int xcomp,
 
     const auto xlo = amrex::lbound(xbx);
     const auto ylo = amrex::lbound(ybx);
-    const Dim3 offset{ylo.x-xlo.x,ylo.y-xlo.y,ylo.z-xlo.z};
+    // HIP FIX HERE - Initialization List: simple amrex::Dim3
+#ifdef AMREX_USE_HIP
+    Dim3 offset;
+    offset.x = ylo.x-xlo.x;
+    offset.y = ylo.y-xlo.y;
+    offset.z = ylo.z-xlo.z;
+#else
+    const Dim3 offset{ylo.x-xlo.x,ylo.y-xlo.y,ylo.z-xlo.z}};
+#endif
 
     Array4<T const> const& xa = this->const_array();
     Array4<T const> const& ya = y.const_array();
