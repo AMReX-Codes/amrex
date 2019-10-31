@@ -113,7 +113,7 @@ MultiParticleContainer::WritePlotFile (const std::string& dir) const
             }
 
 #ifdef WARPX_QED
-                if(pc->do_qed){
+                if(pc->m_do_qed){
                         real_names.push_back("tau");
                 }
 #endif

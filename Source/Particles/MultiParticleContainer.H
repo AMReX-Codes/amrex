@@ -19,6 +19,8 @@
 #include <map>
 #include <string>
 #include <algorithm>
+#include <utility>
+#include <tuple>
 
 //
 // MultiParticleContainer holds multiple (nspecies or npsecies+1 when
@@ -218,13 +220,58 @@ protected:
 
 #ifdef WARPX_QED
     // The QED engines
-    std::shared_ptr<BreitWheelerEngine> shr_p_bw_engine;
-    std::shared_ptr<QuantumSynchrotronEngine> shr_p_qs_engine;
+    std::shared_ptr<BreitWheelerEngine> m_shr_p_bw_engine;
+    std::shared_ptr<QuantumSynchrotronEngine> m_shr_p_qs_engine;
     //_______________________________
 
-    //Initialize QED engines and provides smart pointers
-    //to species who need QED processes
+    /**
+     * Initialize QED engines and provides smart pointers
+     * to species who need QED processes
+     */
     void InitQED ();
+
+    //Variables to store how many species need a QED process
+    int m_nspecies_quantum_sync = 0;
+    int m_nspecies_breit_wheeler = 0;
+    //________
+
+    /**
+     * Returns the number of species having Quantum Synchrotron process enabled
+     */
+    int NSpeciesQuantumSync() const { return  m_nspecies_quantum_sync;}
+
+    /**
+     * Returns the number of species having Breit Wheeler process enabled
+     */
+    int NSpeciesBreitWheeler() const { return m_nspecies_breit_wheeler;}
+
+    /**
+     * Initializes the Quantum Synchrotron engine
+     */
+    void InitQuantumSync ();
+
+    /**
+     * Initializes the Quantum Synchrotron engine
+     */
+    void InitBreitWheeler ();
+
+    /**
+     * Parses inputfile parameters for Quantum Synchrotron engine
+     * @return {a tuple containing a flag which is true if tables
+     * have to be generate, a filename (where tables should be stored
+     * or read from) and control parameters.}
+     */
+    std::tuple<bool, std::string, PicsarQuantumSynchrotronCtrl>
+    ParseQuantumSyncParams ();
+
+    /**
+     * Parses inputfile parameters for Breit Wheeler engine
+     * @return {a tuple containing a flag which is true if tables
+     * have to be generate, a filename (where tables should be stored
+     * or read from) and control parameters.}
+     */
+    std::tuple<bool, std::string, PicsarBreitWheelerCtrl>
+    ParseBreitWheelerParams ();
 #endif
 
 private:
