@@ -1,8 +1,11 @@
 #include <set>
 #include <random>
+#include <AMReX_Arena.H>
 #include <AMReX_BLFort.H>
 #include <AMReX_Print.H>
 #include <AMReX_Random.H>
+#include <AMReX_GpuLaunch.H>
+#include <AMReX_GpuDevice.H>
 
 #ifdef AMREX_USE_HIP
 #include <hiprand.hpp>
@@ -41,9 +44,6 @@ namespace
 #endif
 
 }
-
-// HIP FIX HERE - REWRITE RANDOM FOR HIP AS WELL (hiprand)
-// https://github.com/ROCm-Developer-Tools/HIP/blob/master/docs/markdown/CURAND_API_supported_by_HIP.md
 
 void
 amrex::InitRandom (unsigned long seed, int nprocs)
@@ -308,6 +308,7 @@ amrex::ResizeRandomSeed (int N)
     locks_h_ptr = new_mutex;
     gpu_nstates_h = N;
 
+    // HIP FIX HERE - hipMemcpyToSymbol doesn't work with pointers. 
     AMREX_GPU_LAUNCH_DEVICE(Gpu::ExecutionConfig(1, 1, 0),
     [=] AMREX_GPU_DEVICE
     {
