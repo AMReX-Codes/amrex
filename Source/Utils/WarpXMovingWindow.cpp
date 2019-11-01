@@ -29,7 +29,7 @@ WarpX::MoveWindow (bool move_j)
 {
     if (do_moving_window == 0) return 0;
 
-    IntVect ng_extra = guard_cells.ngExtra;
+    IntVect ng_extra = guard_cells.ng_Extra;
     IntVect ng_zero  = IntVect::TheZeroVector();
 
     // Update the continuous position of the moving window,

@@ -717,18 +717,6 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
         maxwell_fdtd_solver_id,
         maxLevel());
 
-    IntVect ngE = guard_cells.ngE;
-    IntVect ngJ = guard_cells.ngJ;
-    IntVect ngRho = guard_cells.ngRho;
-    int ngF_int = guard_cells.ngF_int;
-    IntVect ngextra = guard_cells.ngExtra;
-
-    Print()<<"ngE "<<ngE<<'\n';
-    Print()<<"ngJ "<<ngJ<<'\n';
-    Print()<<"ngRho "<<ngRho<<'\n';
-    Print()<<"ngF_int "<<ngF_int<<'\n';
-    Print()<<"ngextra "<<ngextra<<'\n';
-
     if (mypc->nSpeciesDepositOnMainGrid() && n_current_deposition_buffer == 0) {
         n_current_deposition_buffer = 1;
         // This forces the allocation of buffers and allows the code associated
@@ -738,14 +726,22 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
     }
 
     if (n_current_deposition_buffer < 0) {
-        n_current_deposition_buffer = ngJ.max();
+        n_current_deposition_buffer = guard_cells.ng_alloc_J.max();
     }
     if (n_field_gather_buffer < 0) {
         // Field gather buffer should be larger than current deposition buffers
         n_field_gather_buffer = n_current_deposition_buffer + 1;
     }
 
-    AllocLevelMFs(lev, ba, dm, ngE, ngJ, ngRho, ngF_int, ngextra, aux_is_nodal);
+    //IntVect ngE = guard_cells.ng_alloc_EB;
+    //IntVect ngJ = guard_cells.ng_alloc_J;
+    //IntVect ngRho = guard_cells.ng_alloc_Rho;
+    //int ngF_int = guard_cells.ng_alloc_F_int;
+    //IntVect ngextra = guard_cells.ngExtra;
+
+    AllocLevelMFs(lev, ba, dm, guard_cells.ng_alloc_EB, guard_cells.ng_alloc_J,
+                  guard_cells.ng_alloc_Rho, guard_cells.ng_alloc_F_int,
+                  guard_cells.ng_Extra, aux_is_nodal);
 }
 
 void

@@ -62,19 +62,19 @@ guardCellManager::Init(
     }
 
 #if (AMREX_SPACEDIM == 3)
-    ngE = IntVect(ngx,ngy,ngz);
-    ngJ = IntVect(ngJx,ngJy,ngJz);
+    ng_alloc_EB = IntVect(ngx,ngy,ngz);
+    ng_alloc_J = IntVect(ngJx,ngJy,ngJz);
 #elif (AMREX_SPACEDIM == 2)
-    ngE = IntVect(ngx,ngz);
-    ngJ = IntVect(ngJx,ngJz);
+    ng_alloc_EB = IntVect(ngx,ngz);
+    ng_alloc_J = IntVect(ngJx,ngJz);
 #endif
 
-    ngRho = ngJ+1; //One extra ghost cell, so that it's safe to deposit charge density
+    ng_alloc_Rho = ng_alloc_J+1; //One extra ghost cell, so that it's safe to deposit charge density
     // after pushing particle.
-    ngF_int = (do_moving_window) ? 2 : 0;
+    ng_alloc_F_int = (do_moving_window) ? 2 : 0;
     // CKC solver requires one additional guard cell
-    if (maxwell_fdtd_solver_id == 1) ngF_int = std::max( ngF_int, 1 );
-    ngF = IntVect(AMREX_D_DECL(ngF_int, ngF_int, ngF_int));
+    if (maxwell_fdtd_solver_id == 1) ng_alloc_F_int = std::max( ng_alloc_F_int, 1 );
+    ng_alloc_F = IntVect(AMREX_D_DECL(ng_alloc_F_int, ng_alloc_F_int, ng_alloc_F_int));
 
 #ifdef WARPX_USE_PSATD
     if (do_fft_mpi_dec == false){
@@ -94,22 +94,22 @@ guardCellManager::Init(
         for (int i_dim=0; i_dim<AMREX_SPACEDIM; i_dim++ ){
             int ng_required = ngFFT[i_dim];
             // Get the max
-            ng_required = std::max( ng_required, ngE[i_dim] );
-            ng_required = std::max( ng_required, ngJ[i_dim] );
-            ng_required = std::max( ng_required, ngRho[i_dim] );
-            ng_required = std::max( ng_required, ngF[i_dim] );
+            ng_required = std::max( ng_required, ng_alloc_EB[i_dim] );
+            ng_required = std::max( ng_required, ng_alloc_J[i_dim] );
+            ng_required = std::max( ng_required, ng_alloc_Rho[i_dim] );
+            ng_required = std::max( ng_required, ng_alloc_F[i_dim] );
             // Set the guard cells to this max
-            ngE[i_dim] = ng_required;
-            ngJ[i_dim] = ng_required;
-            ngF[i_dim] = ng_required;
-            ngRho[i_dim] = ng_required;
-            ngF_int = ng_required;
+            ng_alloc_EB[i_dim] = ng_required;
+            ng_alloc_J[i_dim] = ng_required;
+            ng_alloc_F[i_dim] = ng_required;
+            ng_alloc_Rho[i_dim] = ng_required;
+            ng_alloc_F_int = ng_required;
         }
     }
-    ngF = IntVect(AMREX_D_DECL(ngF_int, ngF_int, ngF_int));
+    ng_alloc_F = IntVect(AMREX_D_DECL(ng_alloc_F_int, ng_alloc_F_int, ng_alloc_F_int));
 #endif        
 
-    ngExtra = IntVect(static_cast<int>(aux_is_nodal and !do_nodal));
+    ng_Extra = IntVect(static_cast<int>(aux_is_nodal and !do_nodal));
 
     // Compute number of cells required for Field Solver
     ng_FieldSolver = IntVect(AMREX_D_DECL(1,1,1));
@@ -118,10 +118,10 @@ guardCellManager::Init(
     int FGcell[4] = {0,1,1,2}; // Index is nox
     IntVect ng_FieldGather_noNCI = IntVect(AMREX_D_DECL(FGcell[nox],FGcell[nox],FGcell[nox]));
     // Add one cell if momentum_conserving gather in a staggered-field simulation
-    ng_FieldGather_noNCI += ngExtra;
+    ng_FieldGather_noNCI += ng_Extra;
     // Not sure why, but need one extra guard cell when using MR
-    if (max_level >= 1) ng_FieldGather_noNCI += ngExtra;
-    ng_FieldGather_noNCI = ng_FieldGather_noNCI.min(ngE);
+    if (max_level >= 1) ng_FieldGather_noNCI += ng_Extra;
+    ng_FieldGather_noNCI = ng_FieldGather_noNCI.min(ng_alloc_EB);
     // If NCI filter, add guard cells in the z direction
     IntVect ng_NCIFilter = IntVect::TheZeroVector();
     if (do_fdtd_nci_corr)
@@ -131,20 +131,9 @@ guardCellManager::Init(
     ng_FieldGather = ng_FieldGather_noNCI + ng_NCIFilter;
 
     // Guard cells for auxiliary grid
-    ng_Aux = 2*ng_FieldGather_noNCI + ng_NCIFilter;
+    ng_UpdateAux = 2*ng_FieldGather_noNCI + ng_NCIFilter;
 
     // Make sure we do not exchange more guard cells than allocated.
-    ng_FieldGather = ng_FieldGather.min(ngE);
-    ng_Aux = ng_Aux.min(ngE);
-
-    Print()<<"rrr ngE   : "<<ngE   <<'\n';
-    Print()<<"rrr ngJ   : "<<ngJ   <<'\n';
-    Print()<<"rrr ngRho : "<<ngRho <<'\n';
-    Print()<<"rrr ngF   : "<<ngF   <<'\n';
-    Print()<<"rrr ng_Aux: "<<ng_Aux<<'\n';
-    Print()<<"rrr ngExtra         "<< ngExtra <<'\n';
-
-    Print()<<"ttt ng_FieldSolver  "<< ng_FieldSolver <<'\n';
-    Print()<<"ttt ng_FieldGather  "<< ng_FieldGather <<'\n';
-    // Print()<<"ttt ngJ_CurrentDepo "<< ngJ_CurrentDepo <<'\n';
+    ng_FieldGather = ng_FieldGather.min(ng_alloc_EB);
+    ng_UpdateAux = ng_UpdateAux.min(ng_alloc_EB);
 }
