@@ -140,7 +140,11 @@ module_Cname = {'cpu': 'haswell', 'knl': 'knl,quad,cache', 'gpu':''}
 csv_file = {'cori':'cori_knl.csv', 'summit':'summit.csv'}
 # cwd = os.getcwd() + '/'
 cwd = warpx_dir + 'Tools/performance_tests/'
-print('cwd = ' + cwd)
+
+path_hdf5 = cwd
+if args.automated:
+    path_hdf5 = perf_logs_repo + '/logs_hdf5/'
+
 bin_dir = cwd + 'Bin/'
 bin_name = executable_name(compiler, architecture)
 
@@ -266,14 +270,14 @@ for n_node in n_node_list:
                 df_newline['inputs_content'] = get_file_content( filename=cwd+current_run.input_file )
             # Load file perf_database_file if exists, and
             # append with results from this scan
-            if os.path.exists(perf_logs_repo + '/logs_hdf5/' + perf_database_file):
-                df_base = pd.read_hdf(perf_logs_repo + '/logs_hdf5/' + perf_database_file, 'all_data')
+            if os.path.exists(path_hdf5 + perf_database_file):
+                df_base = pd.read_hdf(path_hdf5 + perf_database_file, 'all_data')
                 updated_df = df_base.append(df_newline, ignore_index=True)
             else:
                 updated_df = df_newline
             # Write dataframe to file perf_database_file
             # (overwrite if file exists)
-            updated_df.to_hdf(perf_logs_repo + '/logs_hdf5/' + perf_database_file, key='all_data', mode='w', format='table')
+            updated_df.to_hdf(path_hdf5 + perf_database_file, key='all_data', mode='w', format='table')
 
 # Extract sub-set of pandas data frame, write it to
 # csv file and copy this file to perf_logs repo
