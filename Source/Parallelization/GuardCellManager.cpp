@@ -1,4 +1,5 @@
 #include "GuardCellManager.H"
+#include "NCIGodfreyFilter.H"
 #include <AMReX_Print.H>
 
 using namespace amrex;
@@ -60,20 +61,6 @@ guardCellManager::Init(
         ngJz = std::max(ngJz,2);
     }
 
-/*
-#if (AMREX_SPACEDIM == 3)
-    IntVect ngE(ngx,ngy,ngz);
-    IntVect ngJ(ngJx,ngJy,ngJz);
-#elif (AMREX_SPACEDIM == 2)
-    IntVect ngE(ngx,ngz);
-    IntVect ngJ(ngJx,ngJz);
-#endif
-
-    IntVect ngRho = ngJ+1; //One extra ghost cell, so that it's safe to deposit charge density
-    // after pushing particle.
-    int ngF = (do_moving_window) ? 2 : 0;
-*/
-
 #if (AMREX_SPACEDIM == 3)
     ngE = IntVect(ngx,ngy,ngz);
     ngJ = IntVect(ngJx,ngJy,ngJz);
@@ -110,7 +97,7 @@ guardCellManager::Init(
             ng_required = std::max( ng_required, ngE[i_dim] );
             ng_required = std::max( ng_required, ngJ[i_dim] );
             ng_required = std::max( ng_required, ngRho[i_dim] );
-v            ng_required = std::max( ng_required, ngF[i_dim] );
+            ng_required = std::max( ng_required, ngF[i_dim] );
             // Set the guard cells to this max
             ngE[i_dim] = ng_required;
             ngJ[i_dim] = ng_required;
@@ -124,23 +111,30 @@ v            ng_required = std::max( ng_required, ngF[i_dim] );
 
     ngExtra = IntVect(static_cast<int>(aux_is_nodal and !do_nodal));
 
-    // Guard cells for field solver
+    // Compute number of cells required for Field Solver
     ng_FieldSolver = IntVect(AMREX_D_DECL(1,1,1));
-    ng_MovingWindow = IntVect(AMREX_D_DECL(0,0,0)); // Multiplied by number of cells moved at each timestep
-    ng_MovingWindow[moving_window_dir] = 1;
+
+    // Compute number of cells required for Field Gather
     int FGcell[4] = {0,1,1,2}; // Index is nox
-    ng_FieldGather = IntVect(AMREX_D_DECL(FGcell[nox],FGcell[nox],FGcell[nox])) + 2*ngExtra;
+    IntVect ng_FieldGather_noNCI = IntVect(AMREX_D_DECL(FGcell[nox],FGcell[nox],FGcell[nox]));
+    // Add one cell if momentum_conserving gather in a staggered-field simulation
+    ng_FieldGather_noNCI += ngExtra;
+    // Not sure why, but need one extra guard cell when using MR
+    if (max_level >= 1) ng_FieldGather_noNCI += ngExtra;
+    ng_FieldGather_noNCI = ng_FieldGather_noNCI.min(ngE);
+    // If NCI filter, add guard cells in the z direction
+    IntVect ng_NCIFilter = IntVect::TheZeroVector();
+    if (do_fdtd_nci_corr)
+        ng_NCIFilter[AMREX_SPACEDIM-1] = NCIGodfreyFilter::m_stencil_width;
+    // Note: communications of guard cells for bilinear filter are handled
+    // separately.
+    ng_FieldGather = ng_FieldGather_noNCI + ng_NCIFilter;
 
+    // Guard cells for auxiliary grid
+    ng_Aux = 2*ng_FieldGather_noNCI + ng_NCIFilter;
+
+    // Make sure we do not exchange more guard cells than allocated.
     ng_FieldGather = ng_FieldGather.min(ngE);
-    if (do_fdtd_nci_corr){
-        ng_NCIFilter = IntVect::TheZeroVector();
-        ng_NCIFilter[AMREX_SPACEDIM-1] = 4;
-    }
-
-    ng_FieldGatherAndNCIFilter = ng_FieldGather + ng_NCIFilter;
-    ng_FieldGatherAndNCIFilter = ng_FieldGatherAndNCIFilter.min(ngE);
-
-    ng_Aux = 2*ng_FieldGather+ng_NCIFilter;
     ng_Aux = ng_Aux.min(ngE);
 
     Print()<<"rrr ngE   : "<<ngE   <<'\n';
@@ -148,9 +142,9 @@ v            ng_required = std::max( ng_required, ngF[i_dim] );
     Print()<<"rrr ngRho : "<<ngRho <<'\n';
     Print()<<"rrr ngF   : "<<ngF   <<'\n';
     Print()<<"rrr ng_Aux: "<<ng_Aux<<'\n';
+    Print()<<"rrr ngExtra         "<< ngExtra <<'\n';
 
     Print()<<"ttt ng_FieldSolver  "<< ng_FieldSolver <<'\n';
     Print()<<"ttt ng_FieldGather  "<< ng_FieldGather <<'\n';
-    Print()<<"ttt ngJ_CurrentDepo "<< ngJ_CurrentDepo <<'\n';
-    Print()<<"ttt ngExtra         "<< ngExtra <<'\n';
+    // Print()<<"ttt ngJ_CurrentDepo "<< ngJ_CurrentDepo <<'\n';
 }

@@ -75,8 +75,7 @@ WarpX::EvolveEM (int numsteps)
         // Particles have p^{n} and x^{n}.
         // is_synchronized is true.
         if (is_synchronized) {
-            // FillBoundaryE(guard_cells.ng_FieldGather, guard_cells.ngExtra);
-            // FillBoundaryB(guard_cells.ng_FieldGather, guard_cells.ngExtra);
+            // Not called at each iteration, so exchange all guard cells
             FillBoundaryE(guard_cells.ngE, guard_cells.ngExtra);
             FillBoundaryB(guard_cells.ngE, guard_cells.ngExtra);
             UpdateAuxilaryData();
@@ -91,15 +90,11 @@ WarpX::EvolveEM (int numsteps)
         } else {
             // Beyond one step, we have E^{n} and B^{n}.
             // Particles have p^{n-1/2} and x^{n}.
-            // This is probably overkill
-            // This is probably overkill
-            // IntVect ng_gather = guard_cells.ng_FieldGather+guard_cells.ng_NCIFilter;
-            // FillBoundaryE(guard_cells.ngE, guard_cells.ngExtra);
-            // FillBoundaryB(guard_cells.ngE, guard_cells.ngExtra);
-            // FillBoundaryE(ng_gather, guard_cells.ngExtra);
-            // FillBoundaryB(ng_gather, guard_cells.ngExtra);
-            FillBoundaryE(guard_cells.ng_FieldGatherAndNCIFilter, guard_cells.ngExtra);
-            FillBoundaryB(guard_cells.ng_FieldGatherAndNCIFilter, guard_cells.ngExtra);
+
+            // E and B are up-to-date inside the domain only
+            FillBoundaryE(guard_cells.ng_FieldGather, guard_cells.ngExtra);
+            FillBoundaryB(guard_cells.ng_FieldGather, guard_cells.ngExtra);
+            // E and B are up-to-date inside the domain only
             FillBoundaryAux(guard_cells.ng_Aux);
             UpdateAuxilaryData();
         }
