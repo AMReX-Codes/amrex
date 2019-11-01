@@ -16,8 +16,6 @@ class MLNodeLaplacian
 {
 public :
 
-    enum struct CoarseningStrategy : int { Sigma, RAP };
-
     MLNodeLaplacian () noexcept {}
     MLNodeLaplacian (const Vector<Geometry>& a_geom,
                      const Vector<BoxArray>& a_grids,
@@ -95,9 +93,6 @@ public :
                          MultiFab& fine_res, MultiFab& fine_sol, const MultiFab& fine_rhs) const final override;
 
     virtual void prepareForSolve () final override;
-    virtual bool isSingular (int amrlev) const final override
-        { return (amrlev == 0) ? m_is_bottom_singular : false; }
-    virtual bool isBottomSingular () const final override { return m_is_bottom_singular; }
     virtual void applyBC (int amrlev, int mglev, MultiFab& phi, BCMode bc_mode, StateMode s_mode,
                           bool skip_fillboundary=false) const final override;
     virtual void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const final override;
@@ -122,8 +117,6 @@ public :
 
     void FillBoundaryCoeff (MultiFab& sigma, const Geometry& geom);
 
-    void buildMasks ();
-
     void buildStencil ();
 
 #ifdef AMREX_USE_EB
@@ -143,12 +136,6 @@ private:
 
     int m_is_rz = 0;
 
-#ifdef AMREX_USE_EB
-    CoarseningStrategy m_coarsening_strategy = CoarseningStrategy::RAP;
-#else
-    CoarseningStrategy m_coarsening_strategy = CoarseningStrategy::Sigma;
-#endif
-
     Vector<Vector<Array<std::unique_ptr<MultiFab>,AMREX_SPACEDIM> > > m_sigma;
     Vector<Vector<std::unique_ptr<MultiFab> > > m_stencil;
     Vector<Vector<Real> > m_s0_norm0;
@@ -163,9 +150,6 @@ private:
 
     bool m_use_gauss_seidel = true;
     bool m_use_harmonic_average = false;
-
-    bool m_is_bottom_singular = false;
-    bool m_masks_built = false;
 
     virtual void checkPoint (std::string const& file_name) const final;
 };
