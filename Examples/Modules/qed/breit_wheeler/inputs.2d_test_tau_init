@@ -59,8 +59,22 @@ photons.uz_m = 0.0
 photons.ux_th = 100.
 photons.uy_th = 100.
 photons.uz_th = 100.
-
 ##########QED####################
 photons.do_qed = 1
 photons.do_qed_breit_wheeler = 1
+#################################
+
+#######QED ENGINE PARAMETERS#####
+qed_bw.chi_min = 0.01
+qed_bw.ignore_tables_for_test = 1
+#qed_bw.generate_table = 1
+#qed_bw.tab_dndt_chi_min = 0.01
+#qed_bw.tab_dndt_chi_max = 100
+#qed_bw.tab_dndt_how_many = 200
+#qed_bw.tab_pair_chi_min = 0.01
+#qed_bw.tab_pair_chi_max = 100
+#qed_bw.tab_pair_chi_how_many = 30
+#qed_bw.tab_pair_frac_how_many = 30
+#qed_bw.save_table_in = "bw_table"
+#qed_bw.load_table_from = "bw_table"
 #################################
