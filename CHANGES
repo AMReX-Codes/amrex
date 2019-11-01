@@ -1,3 +1,29 @@
+# 19.11
+
+  -- AmrCore::regrid will now simply return instead of abort if the
+     base level is already the maximal level.
+
+  -- Add NodalProjector that wraps MLMG for convenience.
+
+  -- Enforce in AmrCore that blocking factor must be a power of 2.
+
+  -- Add support to write plotfile in HDF4 format.
+
+  -- FabArray's Reduce functions can now take lambda working on Array4
+     in addition of FAB.
+
+  -- Add AMREX_REAL_MIN, AMREX_REAL_MAX and AMREX_REAL_LOWEST for
+     convenience.
+
+  -- GPU launch functions and macros are now safe with empty boxes.
+
+  -- Remove FabView from BaseFab.
+
+  -- Avoid race conditions in GPU reduction code called multiple
+     times.
+
+  -- MLMG tensor solver is fixed for AMR.
+
 # 19.10
 
   -- Add inhomogeneous Neumann BC to MLMG for convenience.
