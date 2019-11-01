@@ -733,12 +733,6 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
         n_field_gather_buffer = n_current_deposition_buffer + 1;
     }
 
-    //IntVect ngE = guard_cells.ng_alloc_EB;
-    //IntVect ngJ = guard_cells.ng_alloc_J;
-    //IntVect ngRho = guard_cells.ng_alloc_Rho;
-    //int ngF_int = guard_cells.ng_alloc_F_int;
-    //IntVect ngextra = guard_cells.ngExtra;
-
     AllocLevelMFs(lev, ba, dm, guard_cells.ng_alloc_EB, guard_cells.ng_alloc_J,
                   guard_cells.ng_alloc_Rho, guard_cells.ng_alloc_F_int,
                   guard_cells.ng_Extra, aux_is_nodal);

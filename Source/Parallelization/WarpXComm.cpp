@@ -351,8 +351,6 @@ WarpX::FillBoundaryF (IntVect ng)
 void
 WarpX::FillBoundaryE(int lev, IntVect ng, IntVect ng_extra_fine)
 {
-    Print()<<"FillBoundaryE ng_extra_fine "<< ng_extra_fine <<'\n';
-    Print()<<"FillBoundaryE exchanges "<< ng+ng_extra_fine <<'\n';
     FillBoundaryE(lev, PatchType::fine, ng+ng_extra_fine);
     if (lev > 0) FillBoundaryE(lev, PatchType::coarse, ng);
 }
@@ -376,6 +374,7 @@ WarpX::FillBoundaryE (int lev, PatchType patch_type, IntVect ng)
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
             ng <= Efield_fp[lev][0]->nGrowVect(),
             "Error: in FillBoundaryE, requested more guard cells than allocated");
+        Print()<<"FillBoundaryE exchanges "<< Efield_fp[lev][0]->nGrowVect() <<'\n';
         Efield_fp[lev][0]->FillBoundary(0, Efield_fp[lev][0]->nComp(), ng, period);
         Efield_fp[lev][1]->FillBoundary(0, Efield_fp[lev][1]->nComp(), ng, period);
         Efield_fp[lev][2]->FillBoundary(0, Efield_fp[lev][2]->nComp(), ng, period);
@@ -396,6 +395,7 @@ WarpX::FillBoundaryE (int lev, PatchType patch_type, IntVect ng)
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
             ng <= Efield_cp[lev][0]->nGrowVect(),
             "Error: in FillBoundaryE, requested more guard cells than allocated");
+        Print()<<"FillBoundaryE exchanges "<< Efield_cp[lev][0]->nGrowVect() <<'\n';
         Efield_cp[lev][0]->FillBoundary(0, Efield_cp[lev][0]->nComp(), ng, cperiod);
         Efield_cp[lev][1]->FillBoundary(0, Efield_cp[lev][1]->nComp(), ng, cperiod);
         Efield_cp[lev][2]->FillBoundary(0, Efield_cp[lev][2]->nComp(), ng, cperiod);
@@ -405,8 +405,6 @@ WarpX::FillBoundaryE (int lev, PatchType patch_type, IntVect ng)
 void
 WarpX::FillBoundaryB (int lev, IntVect ng, IntVect ng_extra_fine)
 {
-    Print()<<"FillBoundaryB ng_extra_fine "<< ng_extra_fine <<'\n';
-    Print()<<"FillBoundaryB exchanges "<< ng+ng_extra_fine <<'\n';
     FillBoundaryB(lev, PatchType::fine, ng + ng_extra_fine);
     if (lev > 0) FillBoundaryB(lev, PatchType::coarse, ng);
 }
@@ -429,6 +427,7 @@ WarpX::FillBoundaryB (int lev, PatchType patch_type, IntVect ng)
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
             ng <= Bfield_fp[lev][0]->nGrowVect(),
             "Error: in FillBoundaryB, requested more guard cells than allocated");
+        Print()<<"FillBoundaryB exchanges "<< Bfield_fp[lev][0]->nGrowVect() <<'\n';
         Bfield_fp[lev][0]->FillBoundary(0, Bfield_fp[lev][0]->nComp(), ng, period);
         Bfield_fp[lev][1]->FillBoundary(0, Bfield_fp[lev][1]->nComp(), ng, period);
         Bfield_fp[lev][2]->FillBoundary(0, Bfield_fp[lev][2]->nComp(), ng, period);
@@ -448,6 +447,7 @@ WarpX::FillBoundaryB (int lev, PatchType patch_type, IntVect ng)
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
             ng <= Bfield_cp[lev][0]->nGrowVect(),
             "Error: in FillBoundaryB, requested more guard cells than allocated");
+        Print()<<"FillBoundaryB exchanges "<< Bfield_cp[lev][0]->nGrowVect() <<'\n';
         Bfield_cp[lev][0]->FillBoundary(0, Bfield_cp[lev][0]->nComp(), ng, cperiod);
         Bfield_cp[lev][1]->FillBoundary(0, Bfield_cp[lev][1]->nComp(), ng, cperiod);
         Bfield_cp[lev][2]->FillBoundary(0, Bfield_cp[lev][2]->nComp(), ng, cperiod);
