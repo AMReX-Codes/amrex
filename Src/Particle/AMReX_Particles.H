@@ -1078,9 +1078,7 @@ protected:
     Gpu::PinnedDeviceVector<char> pinned_snd_buffer;
     Gpu::PinnedDeviceVector<char> pinned_rcv_buffer;
 
-public:
     mutable AmrParticleLocator m_particle_locator;
-protected:
 #endif
 
     int NumRuntimeRealComps () const { return m_num_runtime_real; }
