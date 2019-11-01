@@ -314,7 +314,6 @@ void unpackBuffer (PC& pc, const ParticleCopyPlan& plan, const Buffer& snd_buffe
         auto& plev  = pc.GetParticles(lev);
         for(MFIter mfi = pc.MakeMFIter(lev); mfi.isValid(); ++mfi)
         {
-            Gpu::Device::setStream(0);
             int gid = mfi.index();
             int tid = mfi.LocalTileIndex();
             auto index = std::make_pair(gid, tid);
