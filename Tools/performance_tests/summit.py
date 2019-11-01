@@ -16,7 +16,7 @@ def get_config_command(compiler, architecture):
 # This function runs a batch script with
 # dependencies to perform the analysis
 # after all performance tests are done.
-def process_analysis(automated, cwd, compiler, architecture, n_node_list, start_date):
+def process_analysis(automated, cwd, compiler, architecture, n_node_list, start_date, path_source, path_results):
 
     batch_string = '''#!/bin/bash
 #BSUB -P APH114
@@ -35,7 +35,9 @@ def process_analysis(automated, cwd, compiler, architecture, n_node_list, start_
         compiler + ' --architecture=' + architecture + \
         ' --mode=read' + \
         ' --n_node_list=' + '"' + n_node_list + '"' + \
-        ' --start_date=' + start_date
+        ' --start_date=' + start_date + \
+        ' --path_source=' + path_source + \
+        ' --path_results=' + path_results
     if automated == True:
         batch_string += ' --automated'
     batch_string += '\n'
@@ -44,7 +46,6 @@ def process_analysis(automated, cwd, compiler, architecture, n_node_list, start_
     f_exe.write(batch_string)
     f_exe.close()
     os.system('chmod 700 ' + batch_file)
-
     print( 'process_analysis line:  ' + 'bsub ' + batch_file)
     os.system('bsub ' + batch_file)
 

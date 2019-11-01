@@ -232,7 +232,8 @@ if args.mode == 'run':
         os.remove( 'read_error.txt' )
     if os.path.exists( 'read_output.txt' ):
         os.remove( 'read_output.txt' )
-    process_analysis(args.automated, cwd, compiler, architecture, args.n_node_list, start_date)
+    process_analysis(args.automated, cwd, compiler, architecture,
+                     args.n_node_list, start_date, source_dir_base, res_dir_base)
 
 # read the output file from each test and store timers in
 # hdf5 file with pandas format
