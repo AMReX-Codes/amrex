@@ -70,23 +70,40 @@ parser.add_argument('--mode',
                     choices=['run', 'read', 'browse_output_files'],
                     default='run',
                     help='whether to run perftests or read their perf output. run calls read')
+parser.add_argument('--path_source',
+                    default=None,
+                    help='path to parent folder containing amrex, picsar and warpx folders')
+parser.add_argument('--path_results',
+                    default=None,
+                    help='path to result directory, where simulations run')
+
 args = parser.parse_args()
 n_node_list_string   = args.n_node_list.split(',')
 n_node_list = [int(i) for i in n_node_list_string]
 start_date = args.start_date
-compiler = args.compiler
-architecture = args.architecture
 
 # Set behavior variables
 ########################
+run_name = 'custom_perftest'
+perf_database_file = 'my_tests_database.h5'
+rename_archive = False
+store_full_input = False
 update_perf_log_repo = False
+push_on_perf_log_repo = False
+recompile = args.recompile
+pull_3_repos = False
+recompile = True
+compiler = args.compiler
+architecture = args.architecture
+source_dir_base = args.path_source
+res_dir_base = args.path_results
+
 browse_output_files = False
 if args.mode == 'browse_output_files':
     browse_output_file = True
 if args.mode == 'read':
     browse_output_files = True
-recompile = args.recompile
-perf_database_file = 'my_tests_database.h5'
+
 if args.automated == True:
     run_name = 'automated_tests'
     perf_database_file = machine + '_results.h5'
@@ -96,6 +113,8 @@ if args.automated == True:
     push_on_perf_log_repo = False
     pull_3_repos = True
     recompile = True
+    source_dir_base = os.environ['AUTOMATED_PERF_TESTS']
+    res_dir_base = os.environ['SCRATCH'] + '/performance_warpx/'
     if machine == 'summit':
         compiler = 'gnu'
         architecture = 'gpu'
@@ -109,11 +128,9 @@ test_list = get_test_list(n_repeat)
 
 # Define directories
 # ------------------
-source_dir_base = os.environ['AUTOMATED_PERF_TESTS']
 warpx_dir = source_dir_base + '/warpx/'
 picsar_dir = source_dir_base + '/picsar/'
 amrex_dir = source_dir_base + '/amrex/'
-res_dir_base = os.environ['SCRATCH'] + '/performance_warpx/'
 perf_logs_repo = source_dir_base + 'perf_logs/'
 
 # Define dictionaries
@@ -208,7 +225,7 @@ if args.mode == 'run':
 
         submit_job_command = get_submit_job_command()
         # Run the simulations.
-        run_batch_nnode(test_list_n_node, res_dir, bin_name, config_command, batch_string, submit_job_command)
+        run_batch_nnode(test_list_n_node, res_dir, cwd, bin_name, config_command, batch_string, submit_job_command)
     os.chdir(cwd)
     # submit batch for analysis
     if os.path.exists( 'read_error.txt' ):
