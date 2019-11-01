@@ -81,9 +81,24 @@ void main_main ()
     MultiFab phi_psum(ba, dm, Ncomp, Nghost);
 
     // init
-    phi = 1.0;
+    for (MFIter mfi(phi); mfi.isValid(); ++mfi)
+    {
+        const Box& box = mfi.validbox();
+        const auto lo = amrex::lbound(box);
+        const auto hi = amrex::ubound(box);
+        auto phi_fab = phi.array(mfi);
+
+        for (int k = lo.z; k <= hi.z; ++k) {
+        for (int j = lo.y; j <= hi.y; ++j) {
+        for (int i = lo.x; i <= hi.x; ++i) {
+            phi_fab(i, j, k) = i;
+        }}}
+    }
+
     phi_psum = 0.0;
     Real time = 0.0;
+
+    // Parallel reduce sum the partial sums on each grid
 
     // Write a plotfile of the prefix sum initial data
     {
@@ -170,7 +185,7 @@ void main_main ()
     //   This gets us the quantity we need to add to the partial sums of each grid.
     //   It is exclusive because it does not include the partial sum of its corresponding grid.
     for (long i = 1; i < num_grids; ++i) {
-        grids[i].exclusive_sum = grids[i-1].exclusive_sum + prefix_sums[grid_inv[i-1]];
+        grids[i].exclusive_sum = grids[i-1].exclusive_sum + prefix_sums[grids[i-1].gid];
     }
 
     // Add the exclusive sums to the data on our corresponding local grids
