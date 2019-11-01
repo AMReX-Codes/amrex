@@ -37,7 +37,7 @@ print('Compiling for %s' %arch)
 text = re.sub( 'numMakeJobs = \d+', 'numMakeJobs = 2', text )
 
 # Use only 1 MPI and 1 thread proc for tests
-text = re.sub( 'numprocs = \d+', 'numprocs = 1', text)
+text = re.sub( 'numprocs = \d+', 'numprocs = 2', text)
 text = re.sub( 'numthreads = \d+', 'numthreads = 1', text)
 
 # Remove Python test (does not compile)
