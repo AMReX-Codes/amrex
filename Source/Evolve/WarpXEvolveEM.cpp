@@ -194,10 +194,11 @@ WarpX::EvolveEM (int numsteps)
         // slice gen //
         if (to_make_plot || do_insitu || to_make_slice_plot)
         {
-            // This is probably overkill
+            // This is probably overkill, but it's not called often
             FillBoundaryE(guard_cells.ng_alloc_EB, guard_cells.ng_Extra);
-            // This is probably overkill
+            // This is probably overkill, but it's not called often
             FillBoundaryB(guard_cells.ng_alloc_EB, guard_cells.ng_Extra);
+            // This is probably overkill, but it's not called often
             FillBoundaryAux(guard_cells.ng_UpdateAux);
             UpdateAuxilaryData();
 
@@ -249,10 +250,11 @@ WarpX::EvolveEM (int numsteps)
 
     if (write_plot_file || do_insitu)
     {
-        // This is probably overkill
+        // This is probably overkill, but it's not called often
         FillBoundaryE(guard_cells.ng_alloc_EB, guard_cells.ng_Extra);
-        // This is probably overkill
+        // This is probably overkill, but it's not called often
         FillBoundaryB(guard_cells.ng_alloc_EB, guard_cells.ng_Extra);
+        // This is probably overkill
         FillBoundaryAux(guard_cells.ng_UpdateAux);
         UpdateAuxilaryData();
 
@@ -314,6 +316,10 @@ WarpX::OneStep_nosub (Real cur_time)
 
     SyncRho();
 
+    // At this point, J is up-to-date inside the domain, and E and B are
+    // up-to-date including enough guard cells for first step of the field
+    // solve.
+
     // For extended PML: copy J from regular grid to PML, and damp J in PML
     if (do_pml && pml_has_particles) CopyJPML();
     if (do_pml && do_pml_j_damping) DampJPML();
@@ -326,14 +332,13 @@ WarpX::OneStep_nosub (Real cur_time)
     FillBoundaryE(guard_cells.ng_alloc_EB, guard_cells.ng_Extra);
     FillBoundaryB(guard_cells.ng_alloc_EB, guard_cells.ng_Extra);
 #else
-    Print()<<"Push fields\n";
     EvolveF(0.5*dt[0], DtType::FirstHalf);
     FillBoundaryF(guard_cells.ng_FieldSolver);
     EvolveB(0.5*dt[0]); // We now have B^{n+1/2}
-    // FillBoundaryB(guard_cells.ng_FieldSolver, guard_cells.ngExtra);
+
     FillBoundaryB(guard_cells.ng_FieldSolver, IntVect::TheZeroVector());
     EvolveE(dt[0]); // We now have E^{n+1}
-    // FillBoundaryE(guard_cells.ng_FieldSolver, guard_cells.ngExtra);
+
     FillBoundaryE(guard_cells.ng_FieldSolver, IntVect::TheZeroVector());
     EvolveF(0.5*dt[0], DtType::SecondHalf);
     FillBoundaryF(guard_cells.ng_alloc_F);
@@ -341,6 +346,8 @@ WarpX::OneStep_nosub (Real cur_time)
     if (do_pml) {
         DampPML();
     }
+    // E and B are up-to-date in the domain, but all guard cells are
+    // outdated.
 #endif
 }
 
