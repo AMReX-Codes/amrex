@@ -144,4 +144,15 @@ guardCellManager::Init(
     // field solves. So ng_FieldGather must have enough cells
     // for the field solve too.
     ng_FieldGather = ng_FieldGather.max(ng_FieldSolver);
+
+    Print()<<"ng_alloc_EB    "<<ng_alloc_EB <<'\n';
+    Print()<<"ng_alloc_J     "<< ng_alloc_J<<'\n';
+    Print()<<"ng_alloc_Rho   "<<ng_alloc_Rho <<'\n';
+    Print()<<"ng_alloc_F     "<<ng_alloc_F <<'\n';
+    Print()<<"ng_alloc_F_int "<<ng_alloc_F_int <<'\n';
+    Print()<<"ng_FieldSolver "<<ng_FieldSolver <<'\n';
+    Print()<<"ng_FieldGather "<<ng_FieldGather<<'\n';
+    Print()<<"ng_UpdateAux   "<<ng_UpdateAux <<'\n';
+    Print()<<"ng_Extra       "<<ng_Extra <<'\n';
+
 }

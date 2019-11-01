@@ -96,7 +96,9 @@ WarpX::EvolveEM (int numsteps)
             FillBoundaryB(guard_cells.ng_FieldGather, guard_cells.ng_Extra);
             // E and B: enough guard cells to update Aux or call Field Gather in fp and cp
             // Need to update Aux on lower levels, to interpolate to higher levels.
+#ifndef WARPX_USE_PSATD
             FillBoundaryAux(guard_cells.ng_UpdateAux);
+#endif
             UpdateAuxilaryData();
         }
 
@@ -199,7 +201,9 @@ WarpX::EvolveEM (int numsteps)
             // This is probably overkill, but it's not called often
             FillBoundaryB(guard_cells.ng_alloc_EB, guard_cells.ng_Extra);
             // This is probably overkill, but it's not called often
+#ifndef WARPX_USE_PSATD
             FillBoundaryAux(guard_cells.ng_UpdateAux);
+#endif
             UpdateAuxilaryData();
 
             for (int lev = 0; lev <= finest_level; ++lev) {
@@ -255,7 +259,9 @@ WarpX::EvolveEM (int numsteps)
         // This is probably overkill, but it's not called often
         FillBoundaryB(guard_cells.ng_alloc_EB, guard_cells.ng_Extra);
         // This is probably overkill
+#ifndef WARPX_USE_PSATD
         FillBoundaryAux(guard_cells.ng_UpdateAux);
+#endif
         UpdateAuxilaryData();
 
         for (int lev = 0; lev <= finest_level; ++lev) {
