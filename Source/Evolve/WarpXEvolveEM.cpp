@@ -339,7 +339,8 @@ WarpX::OneStep_nosub (Real cur_time)
     FillBoundaryB(guard_cells.ng_alloc_EB, guard_cells.ng_Extra);
 #else
     EvolveF(0.5*dt[0], DtType::FirstHalf);
-    FillBoundaryF(guard_cells.ng_FieldSolver);
+    // FillBoundaryF(guard_cells.ng_FieldSolver);
+    FillBoundaryF(guard_cells.ng_alloc_F);
     EvolveB(0.5*dt[0]); // We now have B^{n+1/2}
 
     FillBoundaryB(guard_cells.ng_FieldSolver, IntVect::TheZeroVector());
