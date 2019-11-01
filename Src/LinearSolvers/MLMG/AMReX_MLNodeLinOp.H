@@ -14,6 +14,8 @@ public:
     friend class MLMG;
     friend class MLCGSolver;
 
+    enum struct CoarseningStrategy : int { Sigma, RAP };
+
     MLNodeLinOp ();
     virtual ~MLNodeLinOp ();
 
@@ -60,6 +62,10 @@ public:
 
     virtual void prepareForSolve () override {}
 
+    virtual bool isSingular (int amrlev) const override
+        { return (amrlev == 0) ? m_is_bottom_singular : false; }
+    virtual bool isBottomSingular () const override { return m_is_bottom_singular; }
+
     virtual Real xdoty (int amrlev, int mglev, const MultiFab& x, const MultiFab& y, bool local) const final override;
 
     virtual void applyBC (int amrlev, int mglev, MultiFab& phi, BCMode bc_mode, StateMode s_mode,
@@ -78,6 +84,8 @@ public:
                                                      const DistributionMapping& dm,
                                                      const Geometry& geom);
 
+    void buildMasks ();
+
 protected:
 
     Vector<Vector<std::unique_ptr<iMultiFab> > > m_owner_mask;      // ownership of nodes
@@ -87,6 +95,15 @@ protected:
     Vector<std::unique_ptr<LayoutData<int> > > m_has_fine_bndry; // does this fab contain c/f boundary?
     MultiFab m_bottom_dot_mask;
     MultiFab m_coarse_dot_mask;
+
+#ifdef AMREX_USE_EB
+    CoarseningStrategy m_coarsening_strategy = CoarseningStrategy::RAP;
+#else
+    CoarseningStrategy m_coarsening_strategy = CoarseningStrategy::Sigma;
+#endif
+
+    bool m_is_bottom_singular = false;
+    bool m_masks_built = false;
 };
 
 }

@@ -5,10 +5,22 @@
 
 namespace amrex {
 
+// del dot (sigma grad phi) = rhs
+// where phi and rhs are nodal multifab, and sigma is a tensor constant.
+// It is assumed that tensor is symmetric tensor of rank AMREX_SPACEDIM.
+// The user can set the tensor by calling setSigma or setBeta.
+// For the case of setBeta, sigma = I - beta beta^T.
+
 class MLNodeTensorLaplacian
     : public MLNodeLinOp
 {
 public:
+
+#if (AMREX_SPACEDIM == 2)
+    static constexpr int nelems = 3;  // number of unique elements in sigma
+#else
+    static constexpr int nelems = 6;
+#endif
 
     MLNodeTensorLaplacian () noexcept {}
     MLNodeTensorLaplacian (const Vector<Geometry>& a_geom,
@@ -39,9 +51,6 @@ public:
                          MultiFab& fine_res, MultiFab& fine_sol, const MultiFab& fine_rhs) const final override;
 
     virtual void prepareForSolve () final override;
-    virtual bool isSingular (int amrlev) const final override
-        { return (amrlev == 0) ? m_is_bottom_singular : false; }
-    virtual bool isBottomSingular () const final override { return m_is_bottom_singular; }
     virtual void applyBC (int amrlev, int mglev, MultiFab& phi, BCMode bc_mode, StateMode s_mode,
                           bool skip_fillboundary=false) const final override;
     virtual void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const final override;
@@ -49,11 +58,6 @@ public:
     virtual void normalize (int amrlev, int mglev, MultiFab& mf) const final override;
 
     virtual void fixUpResidualMask (int amrlev, iMultiFab& resmsk) final override;
-
-private:
-
-    bool m_is_bottom_singular = false;
-
 };
 
 }
