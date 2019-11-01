@@ -1051,6 +1051,8 @@ protected:
     ParticleVector m_aos_r;
     std::array<RealVector, NArrayReal> m_rdata_r;
     std::array<IntVector, NArrayInt>  m_idata_r;
+    Vector<RealVector> m_runtime_rdata_r;
+    Vector<IntVector>  m_runtime_idata_r;
     Gpu::ManagedDeviceVector<int> m_grids_r;
     Gpu::ManagedDeviceVector<int> m_levs_r;
 
