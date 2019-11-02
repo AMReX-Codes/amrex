@@ -98,8 +98,8 @@ it can be convenient to run the tests on your local machine with
 ./run_tests.sh
 ```
 from WarpX root folder. The tests can be influenced by environment variables:
-- `export WARPX_TEST_DIM=3` or `export WARPX_TEST_DIM=2` in order to select
-only the tests that correspond to this dimension
+- `export WARPX_TEST_DIM=3`, `export WARPX_TEST_DIM=2` or `export WARPX_TEST_DIM=RZ` 
+in order to select only the tests that correspond to this dimensionality
 - `export WARPX_TEST_ARCH=CPU` or `export WARPX_TEST_ARCH=GPU` in order to
 run the tests on CPU or GPU respectively.
 - `export WARPX_TEST_COMMIT=...` in order to test a specific commit.
