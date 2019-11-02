@@ -34,7 +34,7 @@ def get_config_command(compiler, architecture):
 # This function runs a batch script with
 # dependencies to perform the analysis
 # after all performance tests are done.
-def process_analysis(automated, cwd, compiler, architecture, n_node_list, start_date):
+def process_analysis(automated, cwd, compiler, architecture, n_node_list, start_date, path_source, path_results):
     dependencies = ''
     f_log = open(cwd + 'log_jobids_tmp.txt' ,'r')
     for line in f_log.readlines():
@@ -57,7 +57,9 @@ module load h5py-parallel
         compiler + ' --architecture=' + architecture + \
         ' --mode=read' + \
         ' --n_node_list=' + '"' + n_node_list + '"' + \
-        ' --start_date=' + start_date
+        ' --start_date=' + start_date + \
+        ' --path_source=' + path_source + \
+        ' --path_results=' + path_results
     if automated == True:
         batch_string += ' --automated'
     batch_string += '\n'

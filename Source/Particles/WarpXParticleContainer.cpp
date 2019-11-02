@@ -135,45 +135,6 @@ WarpXParticleContainer::AllocData ()
 }
 
 void
-WarpXParticleContainer::AddOneParticle (int lev, int grid, int tile,
-                                        ParticleReal x, ParticleReal y, ParticleReal z,
-                                        std::array<ParticleReal,PIdx::nattribs>& attribs)
-{
-    auto& particle_tile = DefineAndReturnParticleTile(lev, grid, tile);
-    AddOneParticle(particle_tile, x, y, z, attribs);
-}
-
-void
-WarpXParticleContainer::AddOneParticle (ParticleTileType& particle_tile,
-                                        ParticleReal x, ParticleReal y, ParticleReal z,
-                                        std::array<ParticleReal,PIdx::nattribs>& attribs)
-{
-    ParticleType p;
-    p.id()  = ParticleType::NextID();
-    p.cpu() = ParallelDescriptor::MyProc();
-#if (AMREX_SPACEDIM == 3)
-    p.pos(0) = x;
-    p.pos(1) = y;
-    p.pos(2) = z;
-#elif (AMREX_SPACEDIM == 2)
-#ifdef WARPX_DIM_RZ
-    attribs[PIdx::theta] = std::atan2(y, x);
-    x = std::sqrt(x*x + y*y);
-#endif
-    p.pos(0) = x;
-    p.pos(1) = z;
-#endif
-
-    particle_tile.push_back(p);
-    particle_tile.push_back_real(attribs);
-
-    for (int i = PIdx::nattribs; i < NumRealComps(); ++i)
-    {
-        particle_tile.push_back_real(i, 0.0);
-    }
-}
-
-void
 WarpXParticleContainer::AddNParticles (int lev,
                                        int n, const ParticleReal* x, const ParticleReal* y, const ParticleReal* z,
                                        const ParticleReal* vx, const ParticleReal* vy, const ParticleReal* vz,

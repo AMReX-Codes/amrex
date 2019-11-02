@@ -1,9 +1,10 @@
-#include <cmath>
-
 #include <WarpXUtil.H>
 #include <WarpXConst.H>
 #include <AMReX_ParmParse.H>
 #include <WarpX.H>
+
+#include <cmath>
+#include <fstream>
 
 using namespace amrex;
 
@@ -152,3 +153,14 @@ void NullifyMF(amrex::MultiFab& mf, int lev, amrex::Real zmin, amrex::Real zmax)
         }
     }
 }
+
+namespace WarpXUtilIO{
+    bool WriteBinaryDataOnFile(std::string filename, const amrex::Vector<char>& data)
+    {
+        std::ofstream of{filename, std::ios::binary};
+        of.write(data.data(), data.size());
+        of.close();
+        return  of.good();
+    }
+}
+

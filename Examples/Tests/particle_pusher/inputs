@@ -1,0 +1,44 @@
+# Maximum number of time steps
+max_step = 10000
+
+# number of grid points
+amr.n_cell = 8 8 8
+
+# Maximum level in hierarchy (disable mesh refinement)
+amr.max_level = 0
+
+# How often to write plotfiles.  "<= 0" means no plotfiles.
+amr.plot_int = 10000
+
+# Geometry
+geometry.coord_sys   = 0 # Cartesian
+geometry.is_periodic = 1 1 1 # yes
+geometry.prob_lo = -2.077023075927835e+07 -2.077023075927835e+07 -2.077023075927835e+07
+geometry.prob_hi =  2.077023075927835e+07  2.077023075927835e+07  2.077023075927835e+07
+
+# PML
+warpx.do_pml = 0
+
+# Algorithms
+algo.charge_deposition = standard
+algo.field_gathering = energy-conserving
+algo.particle_pusher = "higuera"
+
+# CFL
+warpx.cfl = 1.0
+
+# particles
+particles.nspecies = 1
+particles.species_names = positron
+positron.charge = 1.0
+positron.mass = 1.0
+positron.injection_style = "SingleParticle"
+positron.single_particle_pos = 0.0  0.0  0.0
+positron.single_particle_vel = 0.0  19.974984355438178  0.0
+positron.single_particle_weight = 0.0
+warpx.plot_raw_fields = 0
+
+# External fields
+# Ex is set to be Ex = -vy*Bz
+warpx.B_external_particle =  0.0  0.0  1.0
+warpx.E_external_particle =  -2.994174829214179e+08  0.0  0.0

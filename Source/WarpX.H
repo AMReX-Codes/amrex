@@ -4,7 +4,7 @@
 #include "WarpXDtType.H"
 #include <MultiParticleContainer.H>
 #include <PML.H>
-#include <BoostedFrameDiagnostic.H>
+#include <BackTransformedDiagnostic.H>
 #include <BilinearFilter.H>
 #include <NCIGodfreyFilter.H>
 
@@ -69,12 +69,18 @@ public:
 
     MultiParticleContainer& GetPartContainer () { return *mypc; }
 
-    static void shiftMF(amrex::MultiFab& mf, const amrex::Geometry& geom, int num_shift, int dir);
+    static void shiftMF(amrex::MultiFab& mf, const amrex::Geometry& geom, int num_shift, int dir,
+                        amrex::Real external_field = 0.);
 
     static void GotoNextLine (std::istream& is);
 
-    // External fields
-    static amrex::Vector<amrex::Real> B_external;
+    // External fields added to particle fields.
+    static amrex::Vector<amrex::Real> B_external_particle;
+    static amrex::Vector<amrex::Real> E_external_particle;
+
+    // Initial field on the grid.
+    static amrex::Vector<amrex::Real> E_external_grid;
+    static amrex::Vector<amrex::Real> B_external_grid;
 
     // Algorithms
     static long current_deposition_algo;
@@ -99,12 +105,12 @@ public:
     static bool serialize_ics;
 
     // Back transformation diagnostic
-    static bool do_boosted_frame_diagnostic;
+    static bool do_back_transformed_diagnostics;
     static std::string lab_data_directory;
     static int  num_snapshots_lab;
     static amrex::Real dt_snapshots_lab;
-    static bool do_boosted_frame_fields;
-    static bool do_boosted_frame_particles;
+    static bool do_back_transformed_fields;
+    static bool do_back_transformed_particles;
 
     // Boosted frame parameters
     static amrex::Real gamma_boost;
@@ -203,6 +209,8 @@ public:
     // This function does aux(lev) = fp(lev) + I(aux(lev-1)-cp(lev)).
     // Caller must make sure fp and cp have ghost cells filled.
     void UpdateAuxilaryData ();
+    void UpdateAuxilaryDataStagToNodal ();
+    void UpdateAuxilaryDataSameType ();
 
     // Fill boundary cells including coarse/fine boundaries
     void FillBoundaryB ();
@@ -272,6 +280,9 @@ public:
     void SliceGenerationForDiagnostics ();
     void WriteSlicePlotFile () const;
     void ClearSliceMultiFabs ();
+    static int num_slice_snapshots_lab;
+    static amrex::Real dt_slice_snapshots_lab;
+    amrex::RealBox getSliceRealBox() const {return slice_realbox;}
 
     // these should be private, but can't due to Cuda limitations
     static void ComputeDivB (amrex::MultiFab& divB, int dcomp,
@@ -423,11 +434,28 @@ private:
 
     std::array<std::unique_ptr<amrex::MultiFab>, 3> getInterpolatedB(int lev) const;
 
-    void SyncCurrent (const std::array<const amrex::MultiFab*,3>& fine,
-                      const std::array<      amrex::MultiFab*,3>& crse,
-                      int ref_ratio);
+    /** \brief Fills the values of the current on the coarse patch by
+     *  averaging the values of the current of the fine patch (on the same level).
+     *  Also fills the guards of the coarse patch.
+     *
+     * \param[in]  fine             fine patches to interpolate from
+     * \param[out] coarse           coarse patches to interpolate to
+     * \param[in]  refinement_ratio integer ratio between the two
+     */
+    void interpolateCurrentFineToCoarse (std::array< amrex::MultiFab const *, 3 > const & fine,
+                                         std::array< amrex::MultiFab       *, 3 > const & coarse,
+                                         int const refinement_ratio);
 
-    void SyncRho (const amrex::MultiFab& fine, amrex::MultiFab& crse, int ref_ratio);
+    /** \brief Fills the values of the charge density on the coarse patch by
+     *  averaging the values of the charge density of the fine patch (on the same level).
+     *
+     * \param[in]  fine             fine patches to interpolate from
+     * \param[out] coarse           coarse patches to interpolate to
+     * \param[in]  refinement_ratio integer ratio between the two
+     */
+    void interpolateDensityFineToCoarse (const amrex::MultiFab& fine,
+                                               amrex::MultiFab& coarse,
+                                         int const refinement_ratio);
 
     void ExchangeWithPmlB (int lev);
     void ExchangeWithPmlE (int lev);
@@ -458,7 +486,7 @@ private:
     std::unique_ptr<MultiParticleContainer> mypc;
 
     // Boosted Frame Diagnostics
-    std::unique_ptr<BoostedFrameDiagnostic> myBFD;
+    std::unique_ptr<BackTransformedDiagnostic> myBFD;
 
     //
     // Fields: First array for level, second for direction

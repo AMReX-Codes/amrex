@@ -2,6 +2,7 @@ CEXE_headers += GetAndSetPosition.H
 CEXE_headers += UpdatePosition.H
 CEXE_headers += UpdateMomentumBoris.H
 CEXE_headers += UpdateMomentumVay.H
+CEXE_headers += UpdateMomentumHigueraCary.H
 CEXE_headers += UpdatePositionPhoton.H
 INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/Particles/Pusher
 VPATH_LOCATIONS   += $(WARPX_HOME)/Source/Particles/Pusher

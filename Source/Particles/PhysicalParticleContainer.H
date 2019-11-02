@@ -7,6 +7,12 @@
 
 #include <AMReX_IArrayBox.H>
 
+#ifdef WARPX_QED
+    #include <QuantumSyncEngineWrapper.H>
+    #include <BreitWheelerEngineWrapper.H>
+    #include <QedChiFunctions.H>
+#endif
+
 #include <map>
 
 class PhysicalParticleContainer
@@ -136,7 +142,15 @@ public:
                          amrex::Real q_tot, long npart, int do_symmetrize);
 
     void CheckAndAddParticle(amrex::Real x, amrex::Real y, amrex::Real z,
-                             std::array<amrex::Real, 3> u, amrex::Real weight);
+                             std::array<amrex::Real, 3> u,
+                             amrex::Real weight,
+                             amrex::Gpu::HostVector<amrex::ParticleReal>& particle_x,
+                             amrex::Gpu::HostVector<amrex::ParticleReal>& particle_y,
+                             amrex::Gpu::HostVector<amrex::ParticleReal>& particle_z,
+                             amrex::Gpu::HostVector<amrex::ParticleReal>& particle_ux,
+                             amrex::Gpu::HostVector<amrex::ParticleReal>& particle_uy,
+                             amrex::Gpu::HostVector<amrex::ParticleReal>& particle_uz,
+                             amrex::Gpu::HostVector<amrex::ParticleReal>& particle_w);
 
     virtual void GetParticleSlice(const int direction, const amrex::Real z_old,
                                   const amrex::Real z_new, const amrex::Real t_boost,
@@ -172,6 +186,16 @@ public:
         amrex::FArrayBox const * & ezfab, amrex::FArrayBox const * & bxfab,
         amrex::FArrayBox const * & byfab, amrex::FArrayBox const * & bzfab);
 
+#ifdef WARPX_QED
+    bool has_quantum_sync() override;
+    bool has_breit_wheeler() override;
+
+    void set_breit_wheeler_engine_ptr
+        (std::shared_ptr<BreitWheelerEngine>) override;
+    void set_quantum_sync_engine_ptr
+        (std::shared_ptr<QuantumSynchrotronEngine>) override;
+#endif
+
 protected:
 
     std::string species_name;
@@ -185,6 +209,28 @@ protected:
 
     // Inject particles during the whole simulation
     void ContinuousInjection (const amrex::RealBox& injection_box) override;
+
+    //This function return true if the PhysicalParticleContainer contains electrons
+    //or positrons, false otherwise
+    virtual bool AmIALepton ();
+
+    //When true PhysicalParticleContainer tries to use a pusher including
+    //radiation reaction
+    bool do_classical_radiation_reaction = false;
+
+#ifdef WARPX_QED
+    // A flag to enable quantum_synchrotron process for leptons
+    bool m_do_qed_quantum_sync = false;
+
+    // A flag to enable breit_wheeler process [photons only!!]
+    bool m_do_qed_breit_wheeler = false;
+
+    // A smart pointer to an instance of a Quantum Synchrotron engine
+    std::shared_ptr<QuantumSynchrotronEngine> m_shr_p_qs_engine;
+
+    // A smart pointer to an instance of a Breit Wheeler engine [photons only!]
+    std::shared_ptr<BreitWheelerEngine> m_shr_p_bw_engine;
+#endif
 
 };
 

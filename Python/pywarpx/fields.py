@@ -127,7 +127,7 @@ class _MultiFABWrapper(object):
         sss = (max(0, ixstop - ixstart),
                max(0, iystop - iystart),
                max(0, izstop - izstart))
-        resultglobal = np.zeros(sss)
+        resultglobal = np.zeros(sss, dtype=_libwarpx._numpy_real_dtype)
 
         datalist = []
         for i in range(len(fields)):
@@ -222,7 +222,7 @@ class _MultiFABWrapper(object):
                max(0, izstop - izstart))
         if ncomps > 1 and ic is None:
             sss = tuple(list(sss) + [ncomps])
-        resultglobal = np.zeros(sss)
+        resultglobal = np.zeros(sss, dtype=_libwarpx._numpy_real_dtype)
 
         datalist = []
         for i in range(len(fields)):

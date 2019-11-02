@@ -2,9 +2,12 @@
 #include <WarpX.H>
 #include <WarpX_f.H>
 #include <WarpXSumGuardCells.H>
+#include <Parallelization/InterpolateCurrentFineToCoarse.H>
+#include <Parallelization/InterpolateDensityFineToCoarse.H>
 
 #include <algorithm>
 #include <cstdlib>
+
 
 using namespace amrex;
 
@@ -51,6 +54,157 @@ WarpX::UpdateAuxilaryData ()
 {
     BL_PROFILE("UpdateAuxilaryData()");
 
+    if (Bfield_aux[0][0]->ixType() == Bfield_fp[0][0]->ixType()) {
+        UpdateAuxilaryDataSameType();
+    } else {
+        UpdateAuxilaryDataStagToNodal();
+    }
+}
+
+void
+WarpX::UpdateAuxilaryDataStagToNodal ()
+{
+    // For level 0, we only need to do the average.
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(*Bfield_aux[0][0]); mfi.isValid(); ++mfi)
+    {
+        Array4<Real> const& bx_aux = Bfield_aux[0][0]->array(mfi);
+        Array4<Real> const& by_aux = Bfield_aux[0][1]->array(mfi);
+        Array4<Real> const& bz_aux = Bfield_aux[0][2]->array(mfi);
+        Array4<Real const> const& bx_fp = Bfield_fp[0][0]->const_array(mfi);
+        Array4<Real const> const& by_fp = Bfield_fp[0][1]->const_array(mfi);
+        Array4<Real const> const& bz_fp = Bfield_fp[0][2]->const_array(mfi);
+
+        Array4<Real> const& ex_aux = Efield_aux[0][0]->array(mfi);
+        Array4<Real> const& ey_aux = Efield_aux[0][1]->array(mfi);
+        Array4<Real> const& ez_aux = Efield_aux[0][2]->array(mfi);
+        Array4<Real const> const& ex_fp = Efield_fp[0][0]->const_array(mfi);
+        Array4<Real const> const& ey_fp = Efield_fp[0][1]->const_array(mfi);
+        Array4<Real const> const& ez_fp = Efield_fp[0][2]->const_array(mfi);
+
+        const Box& bx = mfi.fabbox();
+        amrex::ParallelFor(bx,
+        [=] AMREX_GPU_DEVICE (int j, int k, int l) noexcept
+        {
+            warpx_interp_nd_bfield_x(j,k,l, bx_aux, bx_fp);
+            warpx_interp_nd_bfield_y(j,k,l, by_aux, by_fp);
+            warpx_interp_nd_bfield_z(j,k,l, bz_aux, bz_fp);
+            warpx_interp_nd_efield_x(j,k,l, ex_aux, ex_fp);
+            warpx_interp_nd_efield_y(j,k,l, ey_aux, ey_fp);
+            warpx_interp_nd_efield_z(j,k,l, ez_aux, ez_fp);
+        });
+    }
+
+    for (int lev = 1; lev <= finest_level; ++lev)
+    {
+        BoxArray const& nba = Bfield_aux[lev][0]->boxArray();
+        BoxArray const& cnba = amrex::coarsen(nba,2);
+        DistributionMapping const& dm = Bfield_aux[lev][0]->DistributionMap();
+        auto const& cperiod = Geom(lev-1).periodicity();
+
+        // Bfield
+        {
+            Array<std::unique_ptr<MultiFab>,3> Btmp;
+            if (Bfield_cax[lev][0]) {
+                for (int i = 0; i < 3; ++i) {
+                    Btmp[i].reset(new MultiFab(*Bfield_cax[lev][i], amrex::make_alias, 0, 1));
+                }
+            } else {
+                IntVect ngtmp = Bfield_aux[lev-1][0]->nGrowVect();
+                for (int i = 0; i < 3; ++i) {
+                    Btmp[i].reset(new MultiFab(cnba, dm, 1, ngtmp));
+                }
+            }
+            // ParallelCopy from coarse level
+            for (int i = 0; i < 3; ++i) {
+                IntVect ng = Btmp[i]->nGrowVect();
+                Btmp[i]->ParallelCopy(*Bfield_aux[lev-1][i], 0, 0, 1, ng, ng, cperiod);
+            }
+
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+            for (MFIter mfi(*Bfield_aux[lev][0]); mfi.isValid(); ++mfi)
+            {
+                Array4<Real> const& bx_aux = Bfield_aux[lev][0]->array(mfi);
+                Array4<Real> const& by_aux = Bfield_aux[lev][1]->array(mfi);
+                Array4<Real> const& bz_aux = Bfield_aux[lev][2]->array(mfi);
+                Array4<Real const> const& bx_fp = Bfield_fp[lev][0]->const_array(mfi);
+                Array4<Real const> const& by_fp = Bfield_fp[lev][1]->const_array(mfi);
+                Array4<Real const> const& bz_fp = Bfield_fp[lev][2]->const_array(mfi);
+                Array4<Real const> const& bx_cp = Bfield_cp[lev][0]->const_array(mfi);
+                Array4<Real const> const& by_cp = Bfield_cp[lev][1]->const_array(mfi);
+                Array4<Real const> const& bz_cp = Bfield_cp[lev][2]->const_array(mfi);
+                Array4<Real const> const& bx_c = Btmp[0]->const_array(mfi);
+                Array4<Real const> const& by_c = Btmp[1]->const_array(mfi);
+                Array4<Real const> const& bz_c = Btmp[2]->const_array(mfi);
+
+                const Box& bx = mfi.fabbox();
+                amrex::ParallelFor(bx,
+                [=] AMREX_GPU_DEVICE (int j, int k, int l) noexcept
+                {
+                    warpx_interp_nd_bfield_x(j,k,l, bx_aux, bx_fp, bx_cp, bx_c);
+                    warpx_interp_nd_bfield_y(j,k,l, by_aux, by_fp, by_cp, by_c);
+                    warpx_interp_nd_bfield_z(j,k,l, bz_aux, bz_fp, bz_cp, bz_c);
+                });
+            }
+        }
+
+        // Efield
+        {
+            Array<std::unique_ptr<MultiFab>,3> Etmp;
+            if (Efield_cax[lev][0]) {
+                for (int i = 0; i < 3; ++i) {
+                    Etmp[i].reset(new MultiFab(*Efield_cax[lev][i], amrex::make_alias, 0, 1));
+                }
+            } else {
+                IntVect ngtmp = Efield_aux[lev-1][0]->nGrowVect();
+                for (int i = 0; i < 3; ++i) {
+                    Etmp[i].reset(new MultiFab(cnba, dm, 1, ngtmp));
+                }
+            }
+            // ParallelCopy from coarse level
+            for (int i = 0; i < 3; ++i) {
+                IntVect ng = Etmp[i]->nGrowVect();
+                Etmp[i]->ParallelCopy(*Efield_aux[lev-1][i], 0, 0, 1, ng, ng, cperiod);
+            }
+
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+            for (MFIter mfi(*Efield_aux[lev][0]); mfi.isValid(); ++mfi)
+            {
+                Array4<Real> const& ex_aux = Efield_aux[lev][0]->array(mfi);
+                Array4<Real> const& ey_aux = Efield_aux[lev][1]->array(mfi);
+                Array4<Real> const& ez_aux = Efield_aux[lev][2]->array(mfi);
+                Array4<Real const> const& ex_fp = Efield_fp[lev][0]->const_array(mfi);
+                Array4<Real const> const& ey_fp = Efield_fp[lev][1]->const_array(mfi);
+                Array4<Real const> const& ez_fp = Efield_fp[lev][2]->const_array(mfi);
+                Array4<Real const> const& ex_cp = Efield_cp[lev][0]->const_array(mfi);
+                Array4<Real const> const& ey_cp = Efield_cp[lev][1]->const_array(mfi);
+                Array4<Real const> const& ez_cp = Efield_cp[lev][2]->const_array(mfi);
+                Array4<Real const> const& ex_c = Etmp[0]->const_array(mfi);
+                Array4<Real const> const& ey_c = Etmp[1]->const_array(mfi);
+                Array4<Real const> const& ez_c = Etmp[2]->const_array(mfi);
+
+                const Box& bx = mfi.fabbox();
+                amrex::ParallelFor(bx,
+                [=] AMREX_GPU_DEVICE (int j, int k, int l) noexcept
+                {
+                    warpx_interp_nd_efield_x(j,k,l, ex_aux, ex_fp, ex_cp, ex_c);
+                    warpx_interp_nd_efield_y(j,k,l, ey_aux, ey_fp, ey_cp, ey_c);
+                    warpx_interp_nd_efield_z(j,k,l, ez_aux, ez_fp, ez_cp, ez_c);
+                });
+            }
+        }
+    }
+}
+
+void
+WarpX::UpdateAuxilaryDataSameType ()
+{
     for (int lev = 1; lev <= finest_level; ++lev)
     {
         const auto& crse_period = Geom(lev-1).periodicity();
@@ -336,7 +490,7 @@ WarpX::SyncCurrent ()
         std::array<      MultiFab*,3> crse { current_cp[lev][0].get(),
                                              current_cp[lev][1].get(),
                                              current_cp[lev][2].get() };
-        SyncCurrent(fine, crse, refinement_ratio[0]);
+        interpolateCurrentFineToCoarse(fine, crse, refinement_ratio[0]);
     }
 
     // For each level
@@ -348,36 +502,35 @@ WarpX::SyncCurrent ()
     }
 }
 
-/** \brief Fills the values of the current on the coarse patch by
- *  averaging the values of the current of the fine patch (on the same level).
- */
 void
-WarpX::SyncCurrent (const std::array<const amrex::MultiFab*,3>& fine,
-                    const std::array<      amrex::MultiFab*,3>& crse,
-                    int refinement_ratio)
+WarpX::interpolateCurrentFineToCoarse ( std::array< amrex::MultiFab const *, 3 > const & fine,
+                                        std::array< amrex::MultiFab       *, 3 > const & coarse,
+                                        int const refinement_ratio)
 {
+    BL_PROFILE("interpolateCurrentFineToCoarse()");
     BL_ASSERT(refinement_ratio == 2);
-    const IntVect& ng = (fine[0]->nGrowVect() + 1) /refinement_ratio;
+    const IntVect& ng = (fine[0]->nGrowVect() + 1) / refinement_ratio; // add equivalent no. of guards to coarse patch
 
 #ifdef _OPEMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
-        FArrayBox ffab;
-        for (int idim = 0; idim < 3; ++idim)
+        for (int idim = 0; idim < fine.size(); ++idim)  // j-field components
         {
-            for (MFIter mfi(*crse[idim],true); mfi.isValid(); ++mfi)
+            // OMP in-box decomposition of coarse into tilebox
+            for (MFIter mfi(*coarse[idim], TilingIfNotGPU()); mfi.isValid(); ++mfi)
             {
-                const Box& bx = mfi.growntilebox(ng);
-                Box fbx = amrex::grow(amrex::refine(bx,refinement_ratio),1);
-                ffab.resize(fbx);
-                fbx &= (*fine[idim])[mfi].box();
-                ffab.setVal(0.0);
-                ffab.copy((*fine[idim])[mfi], fbx, 0, fbx, 0, fine[idim]->nComp());
-                WRPX_SYNC_CURRENT(bx.loVect(), bx.hiVect(),
-                                   BL_TO_FORTRAN_ANYD((*crse[idim])[mfi]),
-                                   BL_TO_FORTRAN_ANYD(ffab),
-                                   &idim);
+                const Box& bx = mfi.growntilebox(ng); // only grow to outer directions of tileboxes for filling guards
+
+                auto const & arrFine = fine[idim]->const_array(mfi);
+                auto const & arrCoarse = coarse[idim]->array(mfi);
+
+                if( idim == 0 )
+                    amrex::ParallelFor( bx, InterpolateCurrentFineToCoarse<0>(arrFine, arrCoarse, refinement_ratio) );
+                else if( idim == 1 )
+                    amrex::ParallelFor( bx, InterpolateCurrentFineToCoarse<1>(arrFine, arrCoarse, refinement_ratio) );
+                else if( idim == 2 )
+                    amrex::ParallelFor( bx, InterpolateCurrentFineToCoarse<2>(arrFine, arrCoarse, refinement_ratio) );
             }
         }
     }
@@ -386,6 +539,8 @@ WarpX::SyncCurrent (const std::array<const amrex::MultiFab*,3>& fine,
 void
 WarpX::SyncRho ()
 {
+    BL_PROFILE("SyncRho()");
+
     if (!rho_fp[0]) return;
     const int ncomp = rho_fp[0]->nComp();
 
@@ -395,7 +550,7 @@ WarpX::SyncRho ()
     {
         rho_cp[lev]->setVal(0.0);
         const IntVect& refinement_ratio = refRatio(lev-1);
-        SyncRho(*rho_fp[lev], *rho_cp[lev], refinement_ratio[0]);
+        interpolateDensityFineToCoarse(*rho_fp[lev], *rho_cp[lev], refinement_ratio[0]);
     }
 
     // For each level
@@ -407,33 +562,27 @@ WarpX::SyncRho ()
     }
 }
 
-/** \brief Fills the values of the charge density on the coarse patch by
- *  averaging the values of the charge density of the fine patch (on the same level).
- */
 void
-WarpX::SyncRho (const MultiFab& fine, MultiFab& crse, int refinement_ratio)
+WarpX::interpolateDensityFineToCoarse (const MultiFab& fine, MultiFab& coarse, int const refinement_ratio)
 {
+    BL_PROFILE("interpolateDensityFineToCoarse()");
     BL_ASSERT(refinement_ratio == 2);
-    const IntVect& ng = (fine.nGrowVect()+1)/refinement_ratio;
+    const IntVect& ng = (fine.nGrowVect() + 1) / refinement_ratio;  // add equivalent no. of guards to coarse patch
     const int nc = fine.nComp();
 
 #ifdef _OPEMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
-        FArrayBox ffab;
-        for (MFIter mfi(crse,true); mfi.isValid(); ++mfi)
+        // OMP in-box decomposition of coarse into tilebox
+        for (MFIter mfi(coarse, TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
-            const Box& bx = mfi.growntilebox(ng);
-            Box fbx = amrex::grow(amrex::refine(bx,refinement_ratio),1);
-            ffab.resize(fbx, nc);
-            fbx &= fine[mfi].box();
-            ffab.setVal(0.0);
-            ffab.copy(fine[mfi], fbx, 0, fbx, 0, nc);
-            WRPX_SYNC_RHO(bx.loVect(), bx.hiVect(),
-                          BL_TO_FORTRAN_ANYD(crse[mfi]),
-                          BL_TO_FORTRAN_ANYD(ffab),
-                          &nc);
+            const Box& bx = mfi.growntilebox(ng); // only grow to outer directions of tileboxes for filling guards
+
+            amrex::ParallelFor(
+                bx,
+                InterpolateDensityFineToCoarse(fine.const_array(mfi), coarse.array(mfi), refinement_ratio, nc)
+            );
         }
     }
 }
@@ -456,7 +605,7 @@ WarpX::RestrictCurrentFromFineToCoarsePatch (int lev)
     std::array<      MultiFab*,3> crse { current_cp[lev][0].get(),
                                          current_cp[lev][1].get(),
                                          current_cp[lev][2].get() };
-    SyncCurrent(fine, crse, refinement_ratio[0]);
+    interpolateCurrentFineToCoarse(fine, crse, refinement_ratio[0]);
 }
 
 void
@@ -565,7 +714,7 @@ WarpX::RestrictRhoFromFineToCoarsePatch (int lev)
     if (rho_fp[lev]) {
         rho_cp[lev]->setVal(0.0);
         const IntVect& refinement_ratio = refRatio(lev-1);
-        SyncRho(*rho_fp[lev], *rho_cp[lev], refinement_ratio[0]);
+        interpolateDensityFineToCoarse(*rho_fp[lev], *rho_cp[lev], refinement_ratio[0]);
     }
 }
 

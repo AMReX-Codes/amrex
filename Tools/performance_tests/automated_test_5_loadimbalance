@@ -17,7 +17,7 @@ geometry.prob_lo     = -20.e-6   -20.e-6   -20.e-6    # physical domain
 geometry.prob_hi     =  20.e-6    20.e-6    20.e-6
 
 warpx.verbose = 1
-warpx.load_balance_int = 5
+warpx.load_balance_int = -5
 interpolation.nox = 3
 interpolation.noy = 3
 interpolation.noz = 3

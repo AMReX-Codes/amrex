@@ -14,7 +14,8 @@ struct MaxwellSolverAlgo {
 struct ParticlePusherAlgo {
     enum {
         Boris = 0,
-        Vay = 1
+        Vay = 1,
+        HigueraCary = 2
     };
 };
 
@@ -33,9 +34,9 @@ struct ChargeDepositionAlgo {
 };
 
 struct GatheringAlgo {
-    // Only the Standard algorithm is implemented
     enum {
-         Standard = 0
+         EnergyConserving = 0,
+         MomentumConserving
     };
 };
 

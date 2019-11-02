@@ -344,12 +344,13 @@ Particle initialization
     * ``ux`` ``uy`` ``uz`` for the particle momentum,
     * ``Ex`` ``Ey`` ``Ez`` for the electric field on particles,
     * ``Bx`` ``By`` ``Bz`` for the magnetic field on particles.
+
     The particle positions are always included. Use
     ``<species>.plot_vars = none`` to plot no particle data, except
     particle position.
 
-* ``<species>.do_boosted_frame_diags`` (`0` or `1` optional, default `1`)
-    Only used when ``warpx.do_boosted_frame_diagnostic=1``. When running in a
+* ``<species>.do_back_transformed_diagnostics`` (`0` or `1` optional, default `1`)
+    Only used when ``warpx.do_back_transformed_diagnostics=1``. When running in a
     boosted frame, whether or not to plot back-transformed diagnostics for
     this species.
 
@@ -357,7 +358,8 @@ Particle initialization
     Whether or not to use OpenMP threading for particle initialization.
 
 * ``<species>.do_field_ionization`` (`0` or `1`) optional (default `0`)
-    Do field ionization for this species (using the ADK theory).
+    Do field ionization for this species (using the ADK theory). Currently,
+    this is slow on GPU.
 
 * ``<species>.physical_element`` (`string`)
     Only read if `do_field_ionization = 1`. Symbol of chemical element for
@@ -372,6 +374,29 @@ Particle initialization
     Only read if `do_field_ionization = 1`. Initial ionization level of the
     species (must be smaller than the atomic number of chemical element given
     in `physical_element`).
+
+* ``<species>.do_classical_radiation_reaction`` (`int`) optional (default `0`)
+    Enables Radiation Reaction (or Radiation Friction) for the species. Species
+    must be either electrons or positrons. Boris pusher must be used for the
+    simulation
+
+* ``<species>.do_qed`` (`int`) optional (default `0`)
+    If `<species>.do_qed = 0` all the QED effects are disabled for this species.
+    If `<species>.do_qed = 1` QED effects can be enabled for this species (see below)
+    **Implementation of this feature is in progress. It requires to compile with QED=TRUE**
+
+* ``<species>.do_qed_quantum_sync`` (`int`) optional (default `0`)
+    It only works if `<species>.do_qed = 1`. Enables Quantum synchrotron emission for this species.
+    **Implementation of this feature is in progress. It requires to compile with QED=TRUE**
+
+* ``<species>.do_qed_breit_wheeler`` (`int`) optional (default `0`)
+    It only works if `<species>.do_qed = 1`. Enables non-linear Breit-Wheeler process for this species.
+    **Implementation of this feature is in progress. It requires to compile with QED=TRUE**
+
+* ``warpx.E_external_particle`` & ``warpx.B_external_particle`` (list of `float`) optional (default `0. 0. 0.`)
+    Two separate parameters which add a uniform E-field or B-field to each particle
+    which is then added to the field values gathered from the grid in the
+    PIC cycle.
 
 Laser initialization
 --------------------
@@ -559,6 +584,12 @@ Laser initialization
     ``mirror_z_width < dz/cell_size``, the upper bound of the mirror is increased
     so that it contains at least ``mirror_z_npoints``.
 
+* ``warpx.E_external_grid`` & ``warpx.B_external_grid`` (list of `int`) optional (default `0. 0. 0.`)
+    External uniform and constant electrostatic and magnetostatic field added
+    to the grid at initialization. Use with caution as these fields are used for
+    the field solver. In particular, do not use any other boundary condition
+    than periodic.
+
 Numerics and algorithms
 -----------------------
 
@@ -584,8 +615,6 @@ Numerics and algorithms
      - ``direct``: simpler current deposition algorithm, described in
        the section :doc:`../theory/picsar_theory`. Note that this algorithm is not strictly charge-conserving.
 
-    If ``algo.current_deposition`` is not specified, the default is ``esirkepov``.
-
 * ``algo.charge_deposition`` (`string`, optional)
     The algorithm for the charge density deposition. Available options are:
 
@@ -595,14 +624,22 @@ Numerics and algorithms
 * ``algo.field_gathering`` (`string`, optional)
     The algorithm for field gathering. Available options are:
 
-     - ``standard``: gathers directly from the grid points (either staggered
+     - ``energy-conserving``: gathers directly from the grid points (either staggered
        or nodal gridpoints depending on ``warpx.do_nodal``).
+     - ``momentum-conserving``: first average the fields from the grid points to
+       the nodes, and then gather from the nodes.
+
+     If ``algo.field_gathering`` is not specified, the default is ``energy-conserving``.
+     If ``warpx.do_nodal`` is ``true``, then ``energy-conserving`` and ``momentum-conserving``
+     are equivalent.
+
 
 * ``algo.particle_pusher`` (`string`, optional)
     The algorithm for the particle pusher. Available options are:
 
      - ``boris``: Boris pusher.
      - ``vay``: Vay pusher (see `Vay, Phys. Plasmas (2008) <https://aip.scitation.org/doi/10.1063/1.2837054>`__)
+     - ``higuera``: Higuera-Cary pusher (see `Higuera and Cary, Phys. Plasmas (2017) <https://aip.scitation.org/doi/10.1063/1.4979989>`__)
 
      If ``algo.particle_pusher`` is not specified, ``boris`` is the default.
 
@@ -735,7 +772,7 @@ Diagnostics and output
     When WarpX is compiled with openPMD support, this is ``h5`` by default.
     ``json`` only works with serial/single-rank jobs.
 
-* ``warpx.do_boosted_frame_diagnostic`` (`0` or `1`)
+* ``warpx.do_back_transformed_diagnostics`` (`0` or `1`)
     Whether to use the **back-transformed diagnostics** (i.e. diagnostics that
     perform on-the-fly conversion to the laboratory frame, when running
     boosted-frame simulations)
@@ -746,22 +783,22 @@ Diagnostics and output
     is `lab_frame_data`.
 
 * ``warpx.num_snapshots_lab`` (`integer`)
-    Only used when ``warpx.do_boosted_frame_diagnostic`` is ``1``.
+    Only used when ``warpx.do_back_transformed_diagnostics`` is ``1``.
     The number of lab-frame snapshots that will be written.
 
 * ``warpx.dt_snapshots_lab`` (`float`, in seconds)
-    Only used when ``warpx.do_boosted_frame_diagnostic`` is ``1``.
+    Only used when ``warpx.do_back_transformed_diagnostics`` is ``1``.
     The time interval inbetween the lab-frame snapshots (where this
     time interval is expressed in the laboratory frame).
 
 * ``warpx.dz_snapshots_lab`` (`float`, in meters)
-    Only used when ``warpx.do_boosted_frame_diagnostic`` is ``1``.
+    Only used when ``warpx.do_back_transformed_diagnostics`` is ``1``.
     Distance between the lab-frame snapshots (expressed in the laboratory
     frame). ``dt_snapshots_lab`` is then computed by
     ``dt_snapshots_lab = dz_snapshots_lab/c``. Either `dt_snapshots_lab`
     or `dz_snapshot_lab` is required.
 
-* ``warpx.do_boosted_frame_fields`` (`0 or 1`)
+* ``warpx.do_back_transformed_fields`` (`0 or 1`)
     Whether to use the **back-transformed diagnostics** for the fields.
 
 * ``warpx.boosted_frame_diag_fields`` (space-separated list of `string`)
@@ -803,15 +840,36 @@ Diagnostics and output
     ``warpx.fields_to_plot = Ex Ey Ez Bx By Bz jx jy jz part_per_cell``.
 
 * ``slice.dom_lo`` and ``slice.dom_hi`` (`2 floats in 2D`, `3 floats in 3D`; in meters similar to the units of the simulation box.)
-    The extent of the slice are defined by the co-ordinates of the lower corner (``slice.dom_lo``) and upper corner (``slice.dom_hi``). The slice could be 1D, 2D, or 3D, aligned with the co-ordinate axes and the first axis of the coordinates is x. For example: if for a 3D simulation, an x-z slice is to be extracted at y = 0.0, then the y-value of slice.dom_lo and slice.dom_hi must be equal to 0.0
+    The extent of the slice are defined by the co-ordinates of the lower
+    corner (``slice.dom_lo``) and upper corner (``slice.dom_hi``).
+    The slice could be 1D, 2D, or 3D, aligned with the co-ordinate axes
+    and the first axis of the coordinates is x. For example: if for a
+    3D simulation, an x-z slice is to be extracted at y = 0.0,
+    then the y-value of slice.dom_lo and slice.dom_hi must be equal to 0.0
 
 * ``slice.coarsening_ratio`` (`2 integers in 2D`, `3 integers in 3D`; default `1`)
     The coarsening ratio input must be greater than 0. Default is 1 in all directions.
-    In the directions that is reduced, i.e., for an x-z slice in 3D, the reduced y-dimension has a default coarsening ratio equal to 1.
+    In the directions that is reduced, i.e., for an x-z slice in 3D,
+    the reduced y-dimension has a default coarsening ratio equal to 1.
 
 * ``slice.plot_int`` (`integer`)
     The number of PIC cycles inbetween two consecutive data dumps for the slice. Use a
     negative number to disable slice generation and slice data dumping.
+
+* ``slice.num_slice_snapshots_lab`` (`integer`)
+    Only used when ``warpx.do_back_transformed_diagnostics`` is ``1``.
+    The number of back-transformed field and particle data that
+    will be written for the reduced domain defined by ``slice.dom_lo``
+    and ``slice.dom_hi``. Note that the 'slice' is a reduced
+    diagnostic which could be 1D, 2D, or 3D, aligned with the co-ordinate axes.
+    These slices can be visualized using read_raw_data.py and the HDF5 format can
+    be visualized using the h5py library. Please see the documentation on visualization
+    for further details.
+
+* ``slice.dt_slice_snapshots_lab`` (`float`, in seconds)
+    Only used when ``warpx.do_back_transformed_diagnostics`` is ``1``.
+    The time interval between the back-transformed reduced diagnostics (where this
+    time interval is expressed in the laboratory frame).
 
 Checkpoints and restart
 -----------------------
