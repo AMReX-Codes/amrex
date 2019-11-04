@@ -61,6 +61,8 @@ public:
         return m_ebdc->getFaceCent();
     }
 
+    bool isAllRegular () const noexcept;
+
     EB2::Level const* getEBLevel () const noexcept { return m_parent; }
     EB2::IndexSpace const* getEBIndexSpace () const noexcept;
     int maxCoarseningLevel () const noexcept;
