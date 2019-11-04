@@ -37,7 +37,7 @@ struct ParticleTileData
     int** m_runtime_i_data;
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    void packParticleData(char* buffer, int src_index, int dst_index) const noexcept
+    void packParticleData (char* buffer, int src_index, int dst_index) const noexcept
     {
         AMREX_ASSERT(src_index < m_size);
         auto dst = buffer + dst_index*m_psize;
@@ -66,7 +66,7 @@ struct ParticleTileData
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    void unpackParticleData(const char* buffer, int src_index, int dst_index) const noexcept
+    void unpackParticleData (const char* buffer, int src_index, int dst_index) const noexcept
     {
         AMREX_ASSERT(dst_index < m_size);
         auto src = buffer + src_index*m_psize;
@@ -109,8 +109,8 @@ struct ConstParticleTileData
     long m_psize;
     int m_num_runtime_real;
     int m_num_runtime_int;
-    ParticleReal* const* m_runtime_r_data;
-    int* const* m_runtime_i_data;
+    const ParticleReal** m_runtime_r_data;
+    const int** m_runtime_i_data;
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void packParticleData(char* buffer, int src_index, int dst_index) const noexcept
@@ -167,10 +167,8 @@ struct ParticleTile
         GetStructOfArrays().define(a_num_runtime_real, a_num_runtime_int);
         m_runtime_r_ptrs.resize(a_num_runtime_real);
         m_runtime_i_ptrs.resize(a_num_runtime_int);
-        for (int i = 0; i < a_num_runtime_real; ++i) 
-            m_runtime_r_ptrs[i] = m_soa_tile.GetRealData(NArrayReal + i).dataPtr();
-        for (int i = 0; i < a_num_runtime_int; ++i) 
-            m_runtime_i_ptrs[i] = m_soa_tile.GetIntData(NArrayInt + i).dataPtr();
+        m_runtime_r_cptrs.resize(a_num_runtime_real);
+        m_runtime_i_cptrs.resize(a_num_runtime_int);
     }
     
     AoS&       GetArrayOfStructs ()       { return m_aos_tile; }
@@ -224,7 +222,7 @@ struct ParticleTile
         return m_aos_tile.getNumNeighbors();
     }
 
-    void resize(std::size_t count)
+    void resize (std::size_t count)
     {
         m_aos_tile.resize(count);
         m_soa_tile.resize(count);
@@ -309,6 +307,12 @@ struct ParticleTile
 
     ParticleTileDataType getParticleTileData ()
     {
+        for (int i = 0; i < m_runtime_r_ptrs.size(); ++i) {
+            m_runtime_r_ptrs[i] = m_soa_tile.GetRealData(NArrayReal + i).dataPtr();
+        }
+        for (int i = 0; i < m_runtime_i_ptrs.size(); ++i) 
+            m_runtime_i_ptrs[i] = m_soa_tile.GetIntData(NArrayInt + i).dataPtr();
+
         ParticleTileDataType ptd;
         ptd.m_aos = m_aos_tile().dataPtr();
         for (int i = 0; i < NArrayReal; ++i)
@@ -328,6 +332,12 @@ struct ParticleTile
 
     ConstParticleTileDataType getConstParticleTileData () const
     {
+        for (int i = 0; i < m_runtime_r_ptrs.size(); ++i) {
+            m_runtime_r_cptrs[i] = m_soa_tile.GetRealData(NArrayReal + i).dataPtr();
+        }
+        for (int i = 0; i < m_runtime_i_ptrs.size(); ++i) 
+            m_runtime_i_cptrs[i] = m_soa_tile.GetIntData(NArrayInt + i).dataPtr();
+
         ConstParticleTileDataType ptd;
         ptd.m_aos = m_aos_tile().dataPtr();
         for (int i = 0; i < NArrayReal; ++i)
@@ -335,10 +345,10 @@ struct ParticleTile
         for (int i = 0; i < NArrayInt; ++i)
             ptd.m_idata[i] = m_soa_tile.GetIntData(i).dataPtr();
         ptd.m_size = numParticles();
-        ptd.m_num_runtime_real = m_runtime_r_ptrs.size();
-        ptd.m_num_runtime_int = m_runtime_i_ptrs.size();
-        ptd.m_runtime_r_data = m_runtime_r_ptrs.dataPtr();
-        ptd.m_runtime_i_data = m_runtime_i_ptrs.dataPtr();
+        ptd.m_num_runtime_real = m_runtime_r_cptrs.size();
+        ptd.m_num_runtime_int = m_runtime_i_cptrs.size();
+        ptd.m_runtime_r_data = m_runtime_r_cptrs.dataPtr();
+        ptd.m_runtime_i_data = m_runtime_i_cptrs.dataPtr();
         ptd.m_psize = sizeof(ParticleType)
             + (NArrayReal + ptd.m_num_runtime_real)*sizeof(ParticleReal) 
             + (NArrayInt  + ptd.m_num_runtime_int)*sizeof(int);
@@ -354,6 +364,9 @@ private:
 
     Gpu::DeviceVector<ParticleReal*> m_runtime_r_ptrs;
     Gpu::DeviceVector<int*> m_runtime_i_ptrs;
+
+    mutable Gpu::DeviceVector<const ParticleReal*> m_runtime_r_cptrs;
+    mutable Gpu::DeviceVector<const int*> m_runtime_i_cptrs;
 };
 
 } // namespace amrex;
