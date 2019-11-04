@@ -72,9 +72,9 @@ if dim is not None:
 if qed is not None:
     print('Selecting tests with QED = %s' %qed)
     if (qed == "FALSE"):
-        test_blocks = [ block for block in test_blocks if not block.startswith('[qed') ]
+        test_blocks = [ block for block in test_blocks if not 'QED=TRUE' in block ]
     else:
-        test_blocks = [ block for block in test_blocks if block.startswith('[qed') ]
+        test_blocks = [ block for block in test_blocks if 'QED=TRUE' in block ]
 
 # - Add the selected test blocks to the text
 text = text + '\n' + '\n'.join(test_blocks)
