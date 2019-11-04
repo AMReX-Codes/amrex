@@ -441,8 +441,7 @@ void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, co
             int lev = plan.m_rcv_box_levs[i];
             int gid = plan.m_rcv_box_ids[i];
             int tid = 0;
-            auto index = std::make_pair(gid, tid);         
-            auto& tile = pc.GetParticles(lev)[index];
+            auto& tile = pc.DefineAndReturnParticleTile(lev, gid, tid);
             sizes.push_back(copy_size);
             tiles.push_back(&tile);
         }
@@ -458,9 +457,7 @@ void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, co
             int tid = 0;
             int offset = plan.m_rcv_box_offsets[i];
 
-            auto index = std::make_pair(gid, tid);
-	  
-            auto& tile = pc.GetParticles(lev)[index];
+            auto& tile = pc.DefineAndReturnParticleTile(lev, gid, tid);
             auto ptd = tile.getParticleTileData();
 
             AMREX_ASSERT(MyProc == pc.ParticleDistributionMap(lev)[gid]);
@@ -475,7 +472,7 @@ void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, co
 	    {
                 int src_index = offset + ip;
                 int dst_index = dst_offset + ip;
-                ptd.unpackParticleData(p_rcv_buffer, src_index, dst_index);
+                ptd.unpackParticleData(p_rcv_buffer, src_index, dst_index);                
             });
 	}
     }    
