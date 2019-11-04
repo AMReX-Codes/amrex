@@ -74,6 +74,35 @@ void mlndtslap_adotx (Box const& b, Array4<Real> const& y, Array4<Real const> co
     });
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndtslap_gauss_seidel (Box const& b, Array4<Real> const& sol,
+                             Array4<Real const> const& rhs, Array4<int const> const& msk,
+                             GpuArray<Real,3> const& s,
+                             GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+{
+    const Real h00 = dxinv[0]*dxinv[0];
+    const Real h01 = dxinv[0]*dxinv[1];
+    const Real h11 = dxinv[1]*dxinv[1];
+    amrex::Loop(b, [=] (int i, int j, int k) noexcept
+    {
+        if (msk(i,j,k)) {
+            sol(i,j,k) = 0.0;
+        } else {
+            Real s0 = ((-4./3.)*h00*s[0] + (-4./3.)*h11*s[2]);
+            Real Ax = sol(i-1,j-1,0) * ((1./6.)*h00*s[0] + 0.5*h01*s[1] + (1./6.)*h11*s[2])
+                +     sol(i-1,j  ,0) * ((2./3.)*h00*s[0] - (1./3.)*h11*s[2])
+                +     sol(i-1,j+1,0) * ((1./6.)*h00*s[0] - 0.5*h01*s[1] + (1./6.)*h11*s[2])
+                +     sol(i  ,j-1,0) * ((-1./3.)*h00*s[0] + (2./3.)*h11*s[2])
+                +     sol(i  ,j  ,0) * s0
+                +     sol(i  ,j+1,0) * ((-1./3.)*h00*s[0] + (2./3.)*h11*s[2])
+                +     sol(i+1,j-1,0) * ((1./6.)*h00*s[0] - 0.5*h01*s[1] + (1./6.)*h11*s[2])
+                +     sol(i+1,j  ,0) * ((2./3.)*h00*s[0] - (1./3.)*h11*s[2])
+                +     sol(i+1,j+1,0) * ((1./6.)*h00*s[0] + 0.5*h01*s[1] + (1./6.)*h11*s[2]);
+            sol(i,j,k) += (rhs(i,j,k) - Ax) / s0;
+        }
+    });
+}
+
 }
 
 #endif

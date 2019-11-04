@@ -164,6 +164,29 @@ MLNodeTensorLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const Multi
 void
 MLNodeTensorLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs) const
 {
+    BL_PROFILE("MLNodeTensorLaplacian::Fsmooth()");
+
+    const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
+    const iMultiFab& dmsk = *m_dirichlet_mask[amrlev][mglev];
+    const auto s = m_sigma;
+
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(sol); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.validbox();
+        Array4<Real> const& solarr = sol.array(mfi);
+        Array4<Real const> const& rhsarr = rhs.const_array(mfi);
+        Array4<int const> const& dmskarr = dmsk.const_array(mfi);
+
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+        {
+            mlndtslap_gauss_seidel(tbx, solarr, rhsarr, dmskarr, s, dxinv);
+        });
+    }
+
+    nodalSync(amrlev, mglev, sol);
 }
 
 void

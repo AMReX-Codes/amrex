@@ -14,6 +14,13 @@ void mlndtslap_adotx (Box const& b, Array4<Real> const& y, Array4<Real const> co
                       GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
 {}
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndtslap_gauss_seidel (Box const& b, Array4<Real> const& sol,
+                             Array4<Real const> const& rhs, Array4<int const> const& msk,
+                             GpuArray<Real,6> const& s,
+                             GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+{}
+
 }
 
 #endif
