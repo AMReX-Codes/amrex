@@ -52,6 +52,28 @@ void mlndtslap_interpadd (int i, int j, int, Array4<Real> const& fine,
     }
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndtslap_adotx (Box const& b, Array4<Real> const& y, Array4<Real const> const& x,
+                      Array4<int const> const& msk, GpuArray<Real,3> const& s,
+                      GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+{
+    const Real h00 = dxinv[0]*dxinv[0];
+    const Real h01 = dxinv[0]*dxinv[1];
+    const Real h11 = dxinv[1]*dxinv[1];
+    amrex::LoopConcurrent(b, [=] (int i, int j, int k) noexcept
+    {
+        y(i,j,k) = x(i-1,j-1,0) * ((1./6.)*h00*s[0] + 0.5*h01*s[1] + (1./6.)*h11*s[2])
+            +      x(i-1,j  ,0) * ((2./3.)*h00*s[0] - (1./3.)*h11*s[2])
+            +      x(i-1,j+1,0) * ((1./6.)*h00*s[0] - 0.5*h01*s[1] + (1./6.)*h11*s[2])
+            +      x(i  ,j-1,0) * ((-1./3.)*h00*s[0] + (2./3.)*h11*s[2])
+            +      x(i  ,j  ,0) * ((-4./3.)*h00*s[0] + (-4./3.)*h11*s[2])
+            +      x(i  ,j+1,0) * ((-1./3.)*h00*s[0] + (2./3.)*h11*s[2])
+            +      x(i+1,j-1,0) * ((1./6.)*h00*s[0] - 0.5*h01*s[1] + (1./6.)*h11*s[2])
+            +      x(i+1,j  ,0) * ((2./3.)*h00*s[0] - (1./3.)*h11*s[2])
+            +      x(i+1,j+1,0) * ((1./6.)*h00*s[0] + 0.5*h01*s[1] + (1./6.)*h11*s[2]);
+    });
+}
+
 }
 
 #endif
