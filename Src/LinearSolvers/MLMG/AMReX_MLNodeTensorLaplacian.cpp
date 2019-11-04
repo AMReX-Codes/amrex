@@ -136,14 +136,29 @@ MLNodeTensorLaplacian::prepareForSolve ()
 }
 
 void
-MLNodeTensorLaplacian::applyBC (int amrlev, int mglev, MultiFab& phi, BCMode bc_mode, StateMode s_mode,
-                                bool skip_fillboundary) const
-{
-}
-
-void
 MLNodeTensorLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const
 {
+    BL_PROFILE("MLNodeTensorLaplacian::Fapply()");
+
+    const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
+    const iMultiFab& dmsk = *m_dirichlet_mask[amrlev][mglev];
+    const auto s = m_sigma;
+
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(out,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        Array4<Real const> const& xarr = in.const_array(mfi);
+        Array4<Real> const& yarr = out.array(mfi);
+        Array4<int const> const& dmskarr = dmsk.const_array(mfi);
+
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+        {
+            mlndtslap_adotx(tbx,yarr,xarr,dmskarr,s,dxinv);
+        });
+    }
 }
 
 void

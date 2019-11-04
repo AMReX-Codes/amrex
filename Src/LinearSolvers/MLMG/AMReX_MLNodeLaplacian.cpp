@@ -1433,7 +1433,7 @@ MLNodeLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& i
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(out,true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(out,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
         Array4<Real const> const& xarr = in.const_array(mfi);
