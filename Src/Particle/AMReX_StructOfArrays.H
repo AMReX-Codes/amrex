@@ -120,7 +120,7 @@ struct StructOfArrays {
 
     int getNumNeighbors () { return m_num_neighbor_particles; }
 
-    void resize(size_t count)
+    void resize (size_t count)
     {
         for (int i = 0; i < NReal; ++i) m_rdata[i].resize(count);
         for (int i = 0; i < NInt;  ++i) m_idata[i].resize(count); 
