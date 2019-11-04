@@ -8,4 +8,7 @@ redistribute.nsteps = 500
 redistribute.nlevs = 1
 redistribute.do_regrid = 1
 
+redistribute.num_runtime_real = 1
+redistribute.num_runtime_int = 1
+
 amrex.use_gpu_aware_mpi = 0

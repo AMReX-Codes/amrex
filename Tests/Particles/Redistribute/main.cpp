@@ -10,8 +10,8 @@ static constexpr int NSI = 3;
 static constexpr int NAR = 2;
 static constexpr int NAI = 1;
 
-static constexpr int num_runtime_real = 2;
-static constexpr int num_runtime_int = 3;
+int num_runtime_real = 0;
+int num_runtime_int = 0;
 
 void get_position_unit_cell(Real* r, const IntVect& nppc, int i_part)
 {
@@ -316,6 +316,8 @@ void get_test_params(TestParams& params, const std::string& prefix)
     pp.get("nsteps", params.nsteps);
     pp.get("nlevs", params.nlevs);
     pp.get("do_regrid", params.do_regrid);
+    pp.get("num_runtime_real", num_runtime_real);
+    pp.get("num_runtime_int", num_runtime_int);
 }
 
 void testRedistribute ()
