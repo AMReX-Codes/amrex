@@ -1078,12 +1078,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             auto& src_tile = plev[index];
             auto& aos = src_tile.GetArrayOfStructs();
             const size_t np = aos.numParticles();
-            
-            m_aos_r.resize(np);
-            for (int i = 0; i < NArrayReal; ++i) m_rdata_r[i].resize(np);
-            for (int i = 0; i < NArrayInt;  ++i) m_idata_r[i].resize(np);
-            for (int i = 0; i < m_num_runtime_real; ++i) m_runtime_rdata_r[i].resize(np);
-            for (int i = 0; i < m_num_runtime_int;  ++i) m_runtime_idata_r[i].resize(np);
+
+            ParticleTileType ptile_r;
+            ptile_r.define(m_num_runtime_real, m_num_runtime_int);
+            ptile_r.resize(np);
             
             m_grids_tmp.resize(np);
             m_grids_r.resize(np);
@@ -1124,19 +1122,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                 };
             
                 const auto src_data = src_tile.getConstParticleTileData();
-                typename ParticleTileType::ParticleTileDataType dst_data;
-                dst_data.m_aos = m_aos_r.dataPtr();
-                for (int i = 0; i < NArrayReal; ++i)
-                    dst_data.m_rdata[i] = m_rdata_r[i].dataPtr();
-                for (int i = 0; i < NArrayInt; ++i)
-                    dst_data.m_idata[i] = m_idata_r[i].dataPtr();
-                dst_data.m_num_runtime_real = src_data.m_num_runtime_real;
-                dst_data.m_num_runtime_int  = src_data.m_num_runtime_int;
-                for (int i = 0; i < m_num_runtime_real; ++i)
-                    dst_data.m_runtime_r_data[i] = m_runtime_rdata_r[i].dataPtr();
-                for (int i = 0; i < m_num_runtime_int; ++i)
-                    dst_data.m_runtime_i_data[i] = m_runtime_idata_r[i].dataPtr();
-                                
+                auto dst_data = ptile_r.getParticleTileData();
+
                 auto dst_grids_ptr = m_grids_r.dataPtr();
                 auto dst_levs_ptr = m_levs_r.dataPtr();
                 
@@ -1155,11 +1142,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                             for (int j = 0; j < NArrayReal; ++j)
                                 dst_data.m_rdata[j][s] = src_data.m_rdata[j][i];
                             for (int j = 0; j < NArrayInt; ++j)
-                                dst_data.m_idata[j][s] = src_data.m_idata[j][i];                                             
+                                dst_data.m_idata[j][s] = src_data.m_idata[j][i];
                             for (int j = 0; j < num_rr; ++j)
                                 dst_data.m_runtime_r_data[j][s] = src_data.m_runtime_r_data[j][i];
                             for (int j = 0; j < num_ri; ++j)
-                                dst_data.m_runtime_i_data[j][s] = src_data.m_runtime_i_data[j][i];                        
+                                dst_data.m_runtime_i_data[j][s] = src_data.m_runtime_i_data[j][i];
                             dst_grids_ptr[s] = grids_ptr[i];
                             dst_levs_ptr[s] = levs_ptr[i];
                         } else {
@@ -1178,26 +1165,16 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                     }, 
                     Scan::Type::exclusive);
 
-                aos().swap(m_aos_r);
-                for (int i = 0; i < NArrayReal; ++i)
+                aos().swap(ptile_r.GetArrayOfStructs()());
+                for (int i = 0; i < NumRealComps(); ++i)
                 {
-                    auto& rdata = src_tile.GetStructOfArrays().GetRealData(i);
-                    rdata.swap(m_rdata_r[i]);
+                    auto& data = src_tile.GetStructOfArrays().GetRealData(i);
+                    data.swap(ptile_r.GetStructOfArrays().GetRealData(i));
                 }
-                for (int i = 0; i < NArrayInt; ++i)
+                for (int i = 0; i < NumIntComps(); ++i)
                 {
-                    auto& idata = src_tile.GetStructOfArrays().GetIntData(i);
-                    idata.swap(m_idata_r[i]);
-                }
-                for (int i = 0; i < m_num_runtime_real; ++i)
-                {
-                    auto& rdata = src_tile.GetStructOfArrays().GetRealData(NArrayReal+i);
-                    rdata.swap(m_runtime_rdata_r[i]);
-                }
-                for (int i = 0; i < m_num_runtime_int; ++i)
-                {
-                    auto& idata = src_tile.GetStructOfArrays().GetIntData(NArrayInt+i);
-                    idata.swap(m_runtime_idata_r[i]);
+                    auto& data = src_tile.GetStructOfArrays().GetIntData(i);
+                    data.swap(ptile_r.GetStructOfArrays().GetIntData(i));
                 }
             }
 
