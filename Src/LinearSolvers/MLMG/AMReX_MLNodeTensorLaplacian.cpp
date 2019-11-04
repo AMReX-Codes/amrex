@@ -192,6 +192,26 @@ MLNodeTensorLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const Mult
 void
 MLNodeTensorLaplacian::normalize (int amrlev, int mglev, MultiFab& mf) const
 {
+    BL_PROFILE("MLNodeTensorLaplacian::normalize()");
+
+    const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
+    const iMultiFab& dmsk = *m_dirichlet_mask[amrlev][mglev];
+    const auto s = m_sigma;
+
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        Array4<Real> const& arr = mf.array(mfi);
+        Array4<int const> const& dmskarr = dmsk.const_array(mfi);
+
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+        {
+            mlndtslap_normalize(tbx, arr, dmskarr, s, dxinv);
+        });
+    }
 }
 
 void

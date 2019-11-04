@@ -21,6 +21,12 @@ void mlndtslap_gauss_seidel (Box const& b, Array4<Real> const& sol,
                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
 {}
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndtslap_normalize (Box const& b, Array4<Real> const& phi,
+                          Array4<int const> const& msk, GpuArray<Real,6> const& s,
+                          GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+{}
+
 }
 
 #endif

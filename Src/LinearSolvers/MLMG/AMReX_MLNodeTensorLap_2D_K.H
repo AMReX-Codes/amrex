@@ -103,6 +103,22 @@ void mlndtslap_gauss_seidel (Box const& b, Array4<Real> const& sol,
     });
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndtslap_normalize (Box const& b, Array4<Real> const& phi,
+                          Array4<int const> const& msk, GpuArray<Real,3> const& s,
+                          GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+{
+    const Real h00 = dxinv[0]*dxinv[0];
+    const Real h11 = dxinv[1]*dxinv[1];
+    amrex::Loop(b, [=] (int i, int j, int k) noexcept
+    {
+        if (!msk(i,j,k)) {
+            Real s0 = ((-4./3.)*h00*s[0] + (-4./3.)*h11*s[2]);
+            phi(i,j,k) /= s0;
+        }
+    });
+}
+
 }
 
 #endif
