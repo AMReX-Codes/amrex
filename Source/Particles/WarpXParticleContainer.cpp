@@ -298,6 +298,9 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
 #ifdef AMREX_USE_GPU
     // No tiling on GPU: jx_ptr points to the full
     // jx array (same for jy_ptr and jz_ptr).
+    auto & jx_fab = jx[pti];
+    auto & jy_fab = jy[pti];
+    auto & jz_fab = jz[pti];
     Array4<Real> const& jx_arr = jx->array(pti);
     Array4<Real> const& jy_arr = jy->array(pti);
     Array4<Real> const& jz_arr = jz->array(pti);
@@ -317,6 +320,9 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
     local_jy[thread_num].setVal(0.0);
     local_jz[thread_num].setVal(0.0);
 
+    auto & jx_fab = local_jx[thread_num];
+    auto & jy_fab = local_jy[thread_num];
+    auto & jz_fab = local_jz[thread_num];
     Array4<Real> const& jx_arr = local_jx[thread_num].array();
     Array4<Real> const& jy_arr = local_jy[thread_num].array();
     Array4<Real> const& jz_arr = local_jz[thread_num].array();
@@ -329,13 +335,13 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
     ParticleReal* AMREX_RESTRICT zp = m_zp[thread_num].dataPtr() + offset;
     ParticleReal* AMREX_RESTRICT yp = m_yp[thread_num].dataPtr() + offset;
 
+    // Lower corner of tile box physical domain
+    // Note that this includes guard cells since it is after tilebox.ngrow
     const Dim3 lo = lbound(tilebox);
+    const std::array<Real, 3>& xyzmin = WarpX::LowerCorner(tilebox, depos_lev);
 
     BL_PROFILE_VAR_START(blp_deposit);
     if (WarpX::current_deposition_algo == CurrentDepositionAlgo::Esirkepov) {
-        // Lower corner of tile box physical domain
-        // Note that this includes guard cells since it is after tilebox.ngrow
-        const std::array<Real, 3>& xyzmin = WarpX::LowerCorner(tilebox, depos_lev);
         if        (WarpX::nox == 1){
             doEsirkepovDepositionShapeN<1>(
                 xp, yp, zp, wp.dataPtr() + offset, uxp.dataPtr() + offset,
@@ -360,20 +366,20 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
             doDepositionShapeN<1>(
                 xp, yp, zp, wp.dataPtr() + offset, uxp.dataPtr() + offset,
                 uyp.dataPtr() + offset, uzp.dataPtr() + offset, ion_lev,
-                jx_arr, jy_arr, jz_arr, np_to_depose, dt, dx,
-                tbx, tby, tbz, depos_lev, lo, q);
+                jx_fab, jy_fab, jz_fab, np_to_depose, dt, dx,
+                xyzmin, lo, q);
         } else if (WarpX::nox == 2){
             doDepositionShapeN<2>(
                 xp, yp, zp, wp.dataPtr() + offset, uxp.dataPtr() + offset,
                 uyp.dataPtr() + offset, uzp.dataPtr() + offset, ion_lev,
-                jx_arr, jy_arr, jz_arr, np_to_depose, dt, dx,
-                tbx, tby, tbz, depos_lev, lo, q);
+                jx_fab, jy_fab, jz_fab, np_to_depose, dt, dx,
+                xyzmin, lo, q);
         } else if (WarpX::nox == 3){
             doDepositionShapeN<3>(
                 xp, yp, zp, wp.dataPtr() + offset, uxp.dataPtr() + offset,
                 uyp.dataPtr() + offset, uzp.dataPtr() + offset, ion_lev,
-                jx_arr, jy_arr, jz_arr, np_to_depose, dt, dx,
-                tbx, tby, tbz, depos_lev, lo, q);
+                jx_fab, jy_fab, jz_fab, np_to_depose, dt, dx,
+                xyzmin, lo, q);
         }
     }
     BL_PROFILE_VAR_STOP(blp_deposit);
