@@ -56,7 +56,7 @@ test_blocks =  [ match[0] for match in re.findall(select_test_regex, text) ]
 # - Remove the test blocks from `text` (only the selected ones will be added back)
 text = re.sub( select_test_regex, '', text )
 
-# Keep tests that do not have the right dimension
+# Keep tests that have the right dimension
 if dim is not None:
     print('Selecting tests with dim = %s' %dim)
     # Cartesian tests
