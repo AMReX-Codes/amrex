@@ -639,7 +639,10 @@ WriteGenericPlotfileHeaderHDF5 (hid_t fid,
             continue;
         }
 
-        int ratio = ref_ratio[level][0];
+        int ratio = 1;
+        if (ref_ratio.size() > 0) 
+            ratio = ref_ratio[level][0];
+        
         if (level == finest_level) {
             ratio = 1;
         }
