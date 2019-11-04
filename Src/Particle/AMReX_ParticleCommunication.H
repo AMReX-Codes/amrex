@@ -289,13 +289,11 @@ void unpackBuffer (PC& pc, const ParticleCopyPlan& plan, const Buffer& snd_buffe
     std::vector<PTile*> tiles;
     for (int lev = 0; lev < num_levels; ++lev)
     {       
-        auto& plev  = pc.GetParticles(lev);
         for(MFIter mfi = pc.MakeMFIter(lev); mfi.isValid(); ++mfi)
         {
             int gid = mfi.index();
             int tid = mfi.LocalTileIndex();
-            auto index = std::make_pair(gid, tid);
-            auto& tile = plev[index];
+            auto& tile = pc.DefineAndReturnParticleTile(lev, gid, tid);
             int num_copies = plan.m_box_counts[pc.BufferMap().gridAndLevToBucket(gid, lev)];
             sizes.push_back(num_copies);
             tiles.push_back(&tile);
