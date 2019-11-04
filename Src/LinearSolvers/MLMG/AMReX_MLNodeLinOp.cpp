@@ -379,5 +379,33 @@ MLNodeLinOp::buildMasks ()
     }
 }
 
+void
+MLNodeLinOp::applyBC (int amrlev, int mglev, MultiFab& phi, BCMode/* bc_mode*/, StateMode,
+                      bool skip_fillboundary) const
+{
+    Gpu::LaunchSafeGuard lsg(false); // todo: gpu
+
+    BL_PROFILE("MLNodeLinOp::applyBC()");
+
+    const Geometry& geom = m_geom[amrlev][mglev];
+    const Box& nd_domain = amrex::surroundingNodes(geom.Domain());
+
+    if (!skip_fillboundary) {
+        phi.FillBoundary(geom.periodicity());
+    }
+
+    if (m_coarsening_strategy == CoarseningStrategy::Sigma)
+    {
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for (MFIter mfi(phi); mfi.isValid(); ++mfi)
+        {
+            Array4<Real> const& fab = phi.array(mfi);
+            mlndlap_applybc(mfi.validbox(),fab,nd_domain,m_lobc[0],m_hibc[0]);
+        }
+    }
+}
+
 }
 
