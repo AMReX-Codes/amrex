@@ -8,8 +8,6 @@ namespace amrex {
 // del dot (sigma grad phi) = rhs
 // where phi and rhs are nodal multifab, and sigma is a tensor constant.
 // It is assumed that tensor is symmetric tensor of rank AMREX_SPACEDIM.
-// The user can set the tensor by calling setSigma or setBeta.
-// For the case of setBeta, sigma = I - beta beta^T.
 
 class MLNodeTensorLaplacian
     : public MLNodeLinOp
@@ -33,6 +31,13 @@ public:
     MLNodeTensorLaplacian (MLNodeTensorLaplacian&&) = delete;
     MLNodeTensorLaplacian& operator= (const MLNodeTensorLaplacian&) = delete;
     MLNodeTensorLaplacian& operator= (MLNodeTensorLaplacian&&) = delete;
+
+    // The user can set the tensor by calling either setSigma or setBeta.
+    // For 2d, a_sigma contains components xx, xy, and yy.
+    // For 3d, a_sigma contains components xx, xy, xz, yy, yz, and zz.
+    void setSigma (Array<Real,nelems> const& a_sigma) noexcept;
+    // sigma = I - beta beta^T.
+    void setBeta (Array<Real,AMREX_SPACEDIM> const& a_beta) noexcept;
 
     void define (const Vector<Geometry>& a_geom,
                  const Vector<BoxArray>& a_grids,
