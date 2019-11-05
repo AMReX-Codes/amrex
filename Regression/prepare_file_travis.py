@@ -34,9 +34,9 @@ if arch == 'GPU':
 print('Compiling for %s' %arch)
 
 # Add runtime option: crash for unused variables
-test = re.sub('runtime_params =',
+text = re.sub('runtime_params =',
               'runtime_params = amrex.abort_on_unused_inputs=1 ',
-              test)
+              text)
 
 # Use only 2 cores for compiling
 text = re.sub( 'numMakeJobs = \d+', 'numMakeJobs = 2', text )
