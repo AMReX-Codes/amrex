@@ -3,6 +3,7 @@
 
 #include <AMReX_Particles.H>
 #include <AMReX_CudaContainers.H>
+#include <AMReX_DenseBins.H>
 
 #include <thrust/reduce.h>
 
@@ -98,61 +99,26 @@ public:
         
         const auto dxi = geom.InvCellSizeArray();
         const auto plo = geom.ProbLoArray();
-                
-        const auto lo = amrex::lbound(bx);
-        const auto hi = amrex::ubound(bx);
-
+        
         const size_t np = vec.size();
         const ParticleType* pstruct_ptr = vec.dataPtr();
-        
-        m_cells.resize(np);
 
-        m_counts.resize(0);
-        m_counts.resize(bx.numPts(), 0);
-
-        m_offsets.resize(0);
-        m_offsets.resize(bx.numPts()+1, np);
-
-        m_permutation.resize(np);
+        const auto lo = lbound(bx);
+        const auto hi = ubound(bx);
+        m_bins.build(np, pstruct_ptr, bx,
+                     [=] AMREX_GPU_HOST_DEVICE (const ParticleType& p) noexcept -> IntVect
+                     {
+                         return IntVect((p.pos(0)-plo[0])*dxi[0] - lo.x,
+                                        (p.pos(1)-plo[1])*dxi[1] - lo.y,
+                                        (p.pos(2)-plo[2])*dxi[2] - lo.z);
+                     });
         m_nbor_counts.resize(np);
-
-        unsigned int* pcell = m_cells.dataPtr();
-        unsigned int* pcount = m_counts.dataPtr();
-        unsigned int* poffset = m_offsets.dataPtr();
-        unsigned int* pperm = m_permutation.dataPtr();
-
-        // First we build the cell list data structure
-        AMREX_FOR_1D ( np, i,
-        {
-            int ix = (pstruct_ptr[i].pos(0)-plo[0])*dxi[0] - lo.x;
-            int iy = (pstruct_ptr[i].pos(1)-plo[1])*dxi[1] - lo.y;
-            int iz = (pstruct_ptr[i].pos(2)-plo[2])*dxi[2] - lo.z;
-            int nx = hi.x-lo.x+1;
-            int ny = hi.y-lo.y+1;
-            int nz = hi.z-lo.z+1;            
-            unsigned int uix = amrex::min(nx-1,amrex::max(0,ix));
-            unsigned int uiy = amrex::min(ny-1,amrex::max(0,iy));
-            unsigned int uiz = amrex::min(nz-1,amrex::max(0,iz));
-            pcell[i] = (uix * ny + uiy) * nz + uiz;
-            Gpu::Atomic::Add(&pcount[pcell[i]], 1u);
-        });
-
-        Gpu::exclusive_scan(m_counts.begin(), m_counts.end(), m_offsets.begin());
         
-        thrust::copy(m_offsets.begin(), m_offsets.end()-1, m_counts.begin());
+        auto pnbor_counts = m_nbor_counts.dataPtr();
+        auto pperm = m_bins.permutationPtr();
+        auto poffset = m_bins.offsetsPtr();
 
-        constexpr unsigned int max_unsigned_int = std::numeric_limits<unsigned int>::max();
-        
-        AMREX_FOR_1D ( np, i,
-        {
-            unsigned int index = Gpu::Atomic::Inc(&pcount[pcell[i]], max_unsigned_int);
-            pperm[index] = i;
-        });
-    
-        // Now count the number of neighbors for each particle
-        
-        unsigned int* pnbor_counts = m_nbor_counts.dataPtr();
-        
+        // first pass - count the number of neighbors for each particle
         AMREX_FOR_1D ( np, i,
         {
             int ix = (pstruct_ptr[i].pos(0)-plo[0])*dxi[0] - lo.x;
@@ -193,7 +159,6 @@ public:
         
         m_nbor_list.resize(total_nbors);
         unsigned int* pm_nbor_list = m_nbor_list.dataPtr();
-        
         AMREX_FOR_1D ( np, i,
         {
             int ix = (pstruct_ptr[i].pos(0)-plo[0])*dxi[0] - lo.x;
@@ -260,12 +225,9 @@ protected:
     // This is the neighbor list data structure
     Gpu::ManagedDeviceVector<unsigned int> m_nbor_offsets;
     Gpu::ManagedDeviceVector<unsigned int> m_nbor_list;
-
-    Gpu::ManagedDeviceVector<unsigned int> m_cells;    
-    Gpu::ManagedDeviceVector<unsigned int> m_counts;    
-    Gpu::ManagedDeviceVector<unsigned int> m_offsets;    
-    Gpu::ManagedDeviceVector<unsigned int> m_permutation;
     Gpu::ManagedDeviceVector<unsigned int> m_nbor_counts;
+    
+    DenseBins<ParticleType> m_bins;
 };
 
 }
