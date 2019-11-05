@@ -26,15 +26,18 @@ using namespace amrex;
 void
 WarpX::Hybrid_QED_Push (Real a_dt)
 {
-    if (not do_nodal) {
-        try {
-            throw do_nodal;
+    Print()<<"First function call.\n";
+    
+    if (WarpX::do_nodal == 0) {
+        Print()<<"The do_nodal flag is tripped.\n";
+        try{
+            throw "Error: The Hybrid QED method is currently only compatible with the nodal scheme.\n";
         }
-        catch (bool do_nodal) {
-            std::cout << "Error: As of right now the hyrbrid QED algorithm is only compatiable with the nodel lattice scheme.";
+        catch (const char* msg) {
+            std::cerr << msg << std::endl;
+            exit(0);
         }
     }
-
     for (int lev = 0; lev <= finest_level; ++lev) {
         Hybrid_QED_Push(lev, a_dt);
     }
@@ -43,6 +46,7 @@ WarpX::Hybrid_QED_Push (Real a_dt)
 void
 WarpX::Hybrid_QED_Push (int lev, Real a_dt)
 {
+    Print()<<"Second function call.\n";
     BL_PROFILE("WarpX::Hybrid_QED_Push()");
     Hybrid_QED_Push(lev, PatchType::fine, a_dt);
     if (lev > 0)
@@ -54,6 +58,7 @@ WarpX::Hybrid_QED_Push (int lev, Real a_dt)
 void
 WarpX::Hybrid_QED_Push (int lev, PatchType patch_type, Real a_dt)
 {
+    Print()<<"Third function call.\n";
     const int patch_level = (patch_type == PatchType::fine) ? lev : lev-1;
     const std::array<Real,3>& dx = WarpX::CellSize(patch_level);
     const Real dtsdx = a_dt/dx[0], dtsdy = a_dt/dx[1], dtsdz = a_dt/dx[2];
@@ -108,22 +113,46 @@ WarpX::Hybrid_QED_Push (int lev, PatchType patch_type, Real a_dt)
         auto const& Exfab = Ex->array(mfi);
         auto const& Eyfab = Ey->array(mfi);
         auto const& Ezfab = Ez->array(mfi);
+        
+        const Box& gex = amrex::grow(tex,1);
+        const Box& gey = amrex::grow(tey,1);
+        const Box& gez = amrex::grow(tez,1);
+        
+        FArrayBox tmpEx_fab(gex,1);
+        //Elixir tmp_eli = tmp_fab.elixir();
+        auto const& tmpEx = tmpEx_fab.array();
+        
+        FArrayBox tmpEy_fab(gey,1);
+        //Elixir tmp_eli = tmp_fab.elixir();
+        auto const& tmpEy = tmpEy_fab.array();
+        
+        FArrayBox tmpEz_fab(gez,1);
+        //Elixir tmp_eli = tmp_fab.elixir();
+        auto const& tmpEz = tmpEz_fab.array();
+        
+//        const Box& iex = gex & Ex[mfi].box();
+//        const Box& iey = gey & Ey[mfi].box();
+//        const Box& iez = gez & Ez[mfi].box();
+        
+        AMREX_PARALLEL_FOR_4D (gex, 1, i, j, k, n,
+        {
+            tmpEx(i,j,k,n) = Exfab(i,j,k,n);
+        });
+        
+        AMREX_PARALLEL_FOR_4D (gey, 1, i, j, k, n,
+        {
+                tmpEy(i,j,k,n) = Eyfab(i,j,k,n);
+        });
+        
+        AMREX_PARALLEL_FOR_4D (gez, 1, i, j, k, n,
+        {
+                tmpEz(i,j,k,n) = Ezfab(i,j,k,n);
+        });
 
-        amrex::ParallelFor(tbx, tby, tbz,
+        amrex::ParallelFor(tbx,
         [=] AMREX_GPU_DEVICE (int j, int k, int l)
         {
-            std::string direction = "x";
-            warpx_hybrid_QED_push(j,k,l, Exfab, Eyfab, Ezfab, Bxfab, Byfab, Bzfab, dtsdx, dtsdy, dtsdz, direction);
-        },
-        [=] AMREX_GPU_DEVICE (int j, int k, int l)
-        {
-            std::string direction = "y";
-            warpx_hybrid_QED_push(j,k,l, Exfab, Eyfab, Ezfab, Bxfab, Byfab, Bzfab, dtsdx, dtsdy, dtsdz, direction);
-        },
-        [=] AMREX_GPU_DEVICE (int j, int k, int l)
-        {
-            std::string direction = "z";
-            warpx_hybrid_QED_push(j,k,l, Exfab, Eyfab, Ezfab, Bxfab, Byfab, Bzfab, dtsdx, dtsdy, dtsdz, direction);
+            warpx_hybrid_QED_push(j,k,l, Exfab, Eyfab, Ezfab, Bxfab, Byfab, Bzfab, tmpEx, tmpEy, tmpEz, dtsdx, dtsdy, dtsdz);
         });
 
         if (cost) {
@@ -139,7 +168,7 @@ WarpX::Hybrid_QED_Push (int lev, PatchType patch_type, Real a_dt)
         }
     }
 
-
+/*
     if (do_pml && pml[lev]->ok())
     {
         const auto& pml_B = (patch_type == PatchType::fine) ? pml[lev]->GetB_fp() : pml[lev]->GetB_cp();
@@ -205,4 +234,5 @@ WarpX::Hybrid_QED_Push (int lev, PatchType patch_type, Real a_dt)
             }
         }
     }
+*/
 }

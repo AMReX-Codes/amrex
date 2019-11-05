@@ -308,14 +308,27 @@ WarpX::OneStep_nosub (Real cur_time)
     // Push E and B from {n} to {n+1}
     // (And update guard cells immediately afterwards)
 #ifdef WARPX_USE_PSATD
-    if (use_hybrid_QED) Hybrid_QED_Push(0.5*dt[0]);
-    FillBoundaryE();
+    if (use_hybrid_QED)
+    {
+        Print()<<"Begining first itteration of QED function.\n";
+        WarpX::Hybrid_QED_Push(0.5*dt[0]);
+        FillBoundaryE();
+    }
+    Print()<<"Standard PSATD push. \n";
     PushPSATD(dt[0]);
+
+    if (use_hybrid_QED)
+    {
+        Print()<<"Begining second itteration of QED function.\n";
+        FillBoundaryE();
+        FillBoundaryB();
+        WarpX::Hybrid_QED_Push(0.5*dt[0]);
+        FillBoundaryE();
+        
+    }
+    if (do_pml) DampPML();
     FillBoundaryE();
     FillBoundaryB();
-    if (use_hybrid_QED) Hybrid_QED_Push(0.5*dt[0]);
-    FillBoundaryE();
-    if (do_pml) DampPML();
 
 #else
     EvolveF(0.5*dt[0], DtType::FirstHalf);
