@@ -298,9 +298,9 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
 #ifdef AMREX_USE_GPU
     // No tiling on GPU: jx_ptr points to the full
     // jx array (same for jy_ptr and jz_ptr).
-    auto & jx_fab = jx[pti];
-    auto & jy_fab = jy[pti];
-    auto & jz_fab = jz[pti];
+    auto & jx_fab = jx->get(pti);
+    auto & jy_fab = jy->get(pti);
+    auto & jz_fab = jz->get(pti);
     Array4<Real> const& jx_arr = jx->array(pti);
     Array4<Real> const& jy_arr = jy->array(pti);
     Array4<Real> const& jz_arr = jz->array(pti);
