@@ -47,34 +47,51 @@ public:
      * \param f a function object that maps items to bins 
      */        
     template <typename N, typename F>
-    void build (N nitems, T const* v, const Box& bx, F f)
+    void build (N nitems, T const* v, const Box& bx, F f,
+                const bin_type& bin_size = bin_type{ AMREX_D_DECL(1, 1, 1) })
     {
         BL_PROFILE("DenseBins<T>::build");
 
         m_cells.resize(nitems);
         m_perm.resize(nitems);
         
-        auto nbins = bx.numPts();
         m_counts.resize(0);
-        m_counts.resize(nbins, 0);
+        m_counts.resize(bx.numPts(), 0);
 
         m_offsets.resize(0);
-        m_offsets.resize(nbins+1);
+        m_offsets.resize(bx.numPts()+1);
 
         const auto lo = lbound(bx);
         const auto hi = ubound(bx);
+        IntVect num_bins = (bx.bigEnd() - bx.smallEnd() + bin_size) / bin_size;
+        auto nbins = num_bins.dim3();
+        auto bsize = bin_size.dim3();
+
+        // clamp to 1 for AMREX_SPACEDIM < 3
+        nbins.x = amrex::max(nbins.x, 1);
+        nbins.y = amrex::max(nbins.y, 1);
+        nbins.z = amrex::max(nbins.z, 1);
+
+        bsize.x = amrex::max(nbins.x, 1);
+        bsize.y = amrex::max(nbins.y, 1);
+        bsize.z = amrex::max(nbins.z, 1);
+            
         index_type* pcell   = m_cells.dataPtr();
         index_type* pcount  = m_counts.dataPtr();
         index_type* poffset = m_offsets.dataPtr();
         AMREX_FOR_1D ( nitems, i,
         {
             bin_type iv = f(v[i]);
-            int nx = hi.x-lo.x+1;
-            int ny = hi.y-lo.y+1;
-            int nz = hi.z-lo.z+1;
-            index_type uix = min(nx-1,max(0,iv[0]));
-            index_type uiy = min(ny-1,max(0,iv[1]));
-            index_type uiz = min(nz-1,max(0,iv[2]));
+            auto ind = iv.dim3();
+            int ix = ind.x / bsize.x;
+            int iy = ind.y / bsize.y;
+            int iz = ind.z / bsize.z;            
+            int nx = nbins.x;
+            int ny = nbins.y;
+            int nz = nbins.z;
+            index_type uix = min(nx-1,max(0,ix));
+            index_type uiy = min(ny-1,max(0,iy));
+            index_type uiz = min(nz-1,max(0,iz));
             pcell[i] = (uix * ny + uiy) * nz + uiz;
             Gpu::Atomic::Add(&pcount[pcell[i]], index_type{ 1 });
         });
@@ -103,6 +120,13 @@ public:
 
     //! \brief returns the pointer to the offsets array
     index_type* offsetsPtr() noexcept { return m_offsets.dataPtr(); }
+
+    //! \brief returns const pointer to the permutation array 
+    const index_type* permutationPtr() const noexcept { return m_perm.dataPtr(); }
+
+    //! \brief returns const pointer to the offsets array
+    const index_type* offsetsPtr() const noexcept { return m_offsets.dataPtr(); }
+
     
 private:
 
