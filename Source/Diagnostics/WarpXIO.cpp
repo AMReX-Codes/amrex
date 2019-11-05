@@ -18,6 +18,11 @@
 #include <AMReX_Conduit_Blueprint.H>
 #endif
 
+#ifdef WARPX_USE_OPENPMD 
+#include "WarpXOpenPMD.H"
+#endif
+
+
 using namespace amrex;
 
 namespace
@@ -533,7 +538,7 @@ WarpX::WritePlotFile () const
     }
 #endif
 
-    if (dump_plotfiles){
+    if (dump_plotfiles ||  dump_openpmd){
 
     // Write the fields contained in `mf_avg`, and corresponding to the
     // names `varnames`, into a plotfile.
@@ -616,7 +621,19 @@ WarpX::WritePlotFile () const
         }
     }
 
+#ifdef WARPX_USE_OPENPMD            
+    // Write openPMD format: only for level 0
+    std::string filename = std::string("diags/");
+    filename.append(openpmd_backend);
+    filename += amrex::Concatenate("/particle", istep[0]);
+    filename += std::string(".") + openpmd_backend;
+    
+    //mypc->WritePlotFile(filename);        
+    WarpXOpenPMDParticle openPMDWriter(filename);
+    openPMDWriter.SaveContainerPlots(mypc);
+#else
     mypc->WritePlotFile(plotfilename);
+#endif
 
     WriteJobInfo(plotfilename);
 
