@@ -24,18 +24,18 @@ void UpdateMomentumPerezElastic(
     constexpr amrex::Real inv_c2 = 1./(PhysConst::c * PhysConst::c);
 
     // Compute Lorentz factor gamma
-    const amrex::Real g1 = 1./std::sqrt(1.+(v1x*v1x+v1y*v1y+v1z*v1z)*inv_c2);
-    const amrex::Real g2 = 1./std::sqrt(1.+(v2x*v2x+v2y*v2y+v2z*v2z)*inv_c2);
+    amrex::Real g1 = 1./std::sqrt(1.+(v1x*v1x+v1y*v1y+v1z*v1z)*inv_c2);
+    amrex::Real g2 = 1./std::sqrt(1.+(v2x*v2x+v2y*v2y+v2z*v2z)*inv_c2);
 
     // Compute momenta
     buf1 = m1 * g1;
-    const amrex::Real p1x = v1x * buf1;
-    const amrex::Real p1y = v1y * buf1;
-    const amrex::Real p1z = v1z * buf1;
+    amrex::Real p1x = v1x * buf1;
+    amrex::Real p1y = v1y * buf1;
+    amrex::Real p1z = v1z * buf1;
     buf2 = m2 * g2;
-    const amrex::Real p2x = v2x * buf2;
-    const amrex::Real p2y = v2y * buf2;
-    const amrex::Real p2z = v2z * buf2;
+    amrex::Real p2x = v2x * buf2;
+    amrex::Real p2y = v2y * buf2;
+    amrex::Real p2z = v2z * buf2;
 
     // Compute center-of-mass (COM) velocity and gamma
     const amrex::Real vcx = (p1x+p2x)/(buf1+buf2);
