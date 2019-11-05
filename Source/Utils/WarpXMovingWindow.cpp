@@ -230,7 +230,7 @@ WarpX::shiftMF (MultiFab& mf, const Geometry& geom, int num_shift, int dir,
     // Make sure we don't exceed number of guard cells allocated
     ng_mw = ng_mw.min(ng);
     // Fill guard cells.
-    tmpmf.FillBoundary(0, tmpmf.nComp(), ng_mw, geom.periodicity());
+    tmpmf.FillBoundary(ng_mw, geom.periodicity());
 
     // Make a box that covers the region that the window moved into
     const IndexType& typ = ba.ixType();
