@@ -93,6 +93,35 @@ struct ParticleTileData
             src += sizeof(int);
         }
     }
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    SuperParticleType getSuperParticle (int index) const noexcept
+    {
+        AMREX_ASSERT(index < m_size);
+        SuperParticleType sp;
+        for (int i = 0; i < NStructReal+AMREX_SPACEDIM; ++i)
+            sp.m_rdata.arr[i] = m_aos[index].m_rdata.arr[i];
+        for (int i = 0; i < NArrayReal; ++i)
+            sp.m_rdata.arr[NStructReal+AMREX_SPACEDIM+i] = m_rdata[i][index];
+        for (int i = 0; i < NStructInt+2; ++i)
+            sp.m_idata.arr[i] = m_aos[index].m_idata.arr[i];
+        for (int i = 0; i < NArrayInt; ++i)
+            sp.m_idata.arr[NStructInt+2+i] = m_idata[i][index];
+        return sp;
+    }
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    void setSuperParticle (const SuperParticleType& sp, int index) const noexcept
+    {
+        for (int i = 0; i < NStructReal+AMREX_SPACEDIM; ++i)
+            m_aos[index].m_rdata.arr[i] = sp.m_rdata.arr[i];
+        for (int i = 0; i < NArrayReal; ++i)
+            m_rdata[i][index] = sp.m_rdata.arr[NStructReal+AMREX_SPACEDIM+i];
+        for (int i = 0; i < NStructInt+2; ++i)
+            m_aos[index].m_idata.arr[i] = sp.m_idata.arr[i];
+        for (int i = 0; i < NArrayInt; ++i)
+            m_idata[i][index] = sp.m_idata.arr[NStructInt+2+i];
+    }
 };
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
@@ -139,6 +168,22 @@ struct ConstParticleTileData
             memcpy(dst, m_runtime_i_data[i] + src_index, sizeof(int));
             dst += sizeof(int);
         }        
+    }
+
+    AMREX_GPU_HOST_DEVICE
+    SuperParticleType getSuperParticle (int index) const
+    {
+        AMREX_ASSERT(index < m_size);
+        SuperParticleType sp;
+        for (int i = 0; i < NStructReal+AMREX_SPACEDIM; ++i)
+            sp.m_rdata.arr[i] = m_aos[index].m_rdata.arr[i];
+        for (int i = 0; i < NArrayReal; ++i)
+            sp.m_rdata.arr[NStructReal+AMREX_SPACEDIM+i] = m_rdata[i][index];
+        for (int i = 0; i < NStructInt+2; ++i)
+            sp.m_idata.arr[i] = m_aos[index].m_idata.arr[i];
+        for (int i = 0; i < NArrayInt; ++i)
+            sp.m_idata.arr[NStructInt+2+i] = m_idata[i][index];
+        return sp;
     }
 };
 
