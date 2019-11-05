@@ -4,7 +4,6 @@
 #include <AMReX_Particles.H>
 #include <AMReX_CudaContainers.H>
 #include <AMReX_Tuple.H>
-#include <AMReX_DenseBins.H>
 
 namespace amrex
 {
@@ -19,8 +18,8 @@ struct AssignGrid
     Dim3 m_hi;
     Dim3 m_bin_size;
     Dim3 m_num_bins;
-    
-    Box m_domain;
+
+	Box m_domain;
     GpuArray<Real, AMREX_SPACEDIM> m_plo;
     GpuArray<Real, AMREX_SPACEDIM> m_dxi;
 	
@@ -65,7 +64,7 @@ struct AssignGrid
         int nx = m_num_bins.x;
         int ny = m_num_bins.y;
         int nz = m_num_bins.z;
-        
+
         for (int ii = amrex::max(ix-1, 0); ii <= amrex::min(ix, nx-1); ++ii) {
             for (int jj = amrex::max(iy-1, 0); jj <= amrex::min(iy, ny-1); ++jj) {
                 for (int kk = amrex::max(iz-1, 0); kk <= amrex::min(iz, nz-1); ++kk) {
@@ -136,12 +135,59 @@ public:
 
         m_num_bins = (m_bins_hi - m_bins_lo + m_bin_size) / m_bin_size; 
                
-        m_bins.build(num_boxes, boxes_ptr, Box(IntVect::TheZeroVector(), m_num_bins),
-                     [=] AMREX_GPU_HOST_DEVICE (const Box& box) noexcept -> IntVect
-                     {
-                         return box.smallEnd();
-                     },
-                     m_bin_size);
+        int num_bins_total = AMREX_D_TERM(m_num_bins[0],*m_num_bins[1],*m_num_bins[2]);
+
+        m_cells.resize(num_boxes);
+
+        m_counts.resize(0);
+        m_counts.resize(num_bins_total, 0);
+
+        m_offsets.resize(0);
+        m_offsets.resize(num_bins_total+1, num_boxes);
+
+        m_permutation.resize(num_boxes);
+
+        const auto lo       = m_bins_lo.dim3();
+        const auto hi       = m_bins_hi.dim3();
+        const auto bin_size = m_bin_size.dim3();
+
+        auto nbins    = m_num_bins.dim3();
+        nbins.x = amrex::max(nbins.x, 1);
+        nbins.y = amrex::max(nbins.y, 1);
+        nbins.z = amrex::max(nbins.z, 1);
+        
+        unsigned int* pcell = m_cells.dataPtr();
+        unsigned int* pcount = m_counts.dataPtr();
+        unsigned int* pperm = m_permutation.dataPtr();
+
+        amrex::ParallelFor(num_boxes, [=] AMREX_GPU_DEVICE (int i) noexcept
+        {
+            const Box& box = boxes_ptr[i];
+            const auto blo = amrex::lbound(box);
+            int ix = (blo.x - lo.x) / bin_size.x;
+            int iy = (blo.y - lo.y) / bin_size.y;
+            int iz = (blo.z - lo.z) / bin_size.z;
+            int nx = nbins.x;
+            int ny = nbins.y;
+            int nz = nbins.z;
+            unsigned int uix = amrex::min(nx-1,amrex::max(0,ix));
+            unsigned int uiy = amrex::min(ny-1,amrex::max(0,iy));
+            unsigned int uiz = amrex::min(nz-1,amrex::max(0,iz));
+            pcell[i] = (uix * ny + uiy) * nz + uiz;
+            Gpu::Atomic::Add(&pcount[pcell[i]], 1u);
+        });
+
+        Gpu::exclusive_scan(m_counts.begin(), m_counts.end(), m_offsets.begin());
+
+        Gpu::thrust_copy(m_offsets.begin(), m_offsets.end()-1, m_counts.begin());
+
+        constexpr unsigned int max_unsigned_int = std::numeric_limits<unsigned int>::max();
+
+        AMREX_FOR_1D(num_boxes, i,
+        {
+            unsigned int index = Gpu::Atomic::Inc(&pcount[pcell[i]], max_unsigned_int);
+            pperm[index] = i;
+        });
     }
 
     void setGeometry (const Geometry& a_geom) noexcept
@@ -153,7 +199,7 @@ public:
     AssignGrid getGridAssignor () const noexcept 
     {
         AMREX_ASSERT(m_defined);
-        return AssignGrid(m_device_boxes.dataPtr(), m_bins.offsetsPtr(), m_bins.permutationPtr(),
+        return AssignGrid(m_device_boxes.dataPtr(), m_offsets.dataPtr(), m_permutation.dataPtr(),
                           m_bins_lo, m_bins_hi, m_bin_size, m_num_bins, m_geom);
     }
 
@@ -166,11 +212,10 @@ public:
 protected:
 
     bool m_defined;
-
+    
     BoxArray m_ba;
     Geometry m_geom;
 
-    DenseBins<Box> m_bins;
     IntVect m_bins_lo;
     IntVect m_bins_hi;
     IntVect m_bin_size;
@@ -178,6 +223,11 @@ protected:
 
     Gpu::HostVector<Box> m_host_boxes;
     Gpu::DeviceVector<Box> m_device_boxes;
+
+    Gpu::ManagedDeviceVector<unsigned int> m_counts;
+    Gpu::ManagedDeviceVector<unsigned int> m_cells;
+    Gpu::ManagedDeviceVector<unsigned int> m_offsets;
+    Gpu::ManagedDeviceVector<unsigned int> m_permutation;
 };
 
 struct AmrAssignGrid
