@@ -1610,7 +1610,45 @@ PhysicalParticleContainer::PushPX(WarpXParIter& pti,
     const Real q = this->charge;
     const Real m = this-> mass;
 
-    //Assumes that all consistency checks have been done at initialization
+#ifdef WARPX_QED
+
+    auto t_chi_max = m_shr_p_qs_engine->get_ref_ctrl().chi_part_min;
+
+    if(do_classical_radiation_reaction){
+        if(m_do_qed_quantum_sync){
+            amrex::ParallelFor(
+                pti.numParticles(),
+                [=] AMREX_GPU_DEVICE (long i) {
+                    auto chi = QedUtils::chi_lepton(m*ux[i], m*uy[i], m*uz[i],
+                         Ex[i], Ey[i], Ez[i],
+                         Bx[i], By[i], Bz[i]);
+                    if(chi < t_chi_max){
+                        UpdateMomentumBorisWithRadiationReaction( ux[i], uy[i], uz[i],
+                                           Ex[i], Ey[i], Ez[i], Bx[i],
+                                           By[i], Bz[i], q, m, dt);
+                    }
+                    else{
+                        UpdateMomentumBoris( ux[i], uy[i], uz[i],
+                                           Ex[i], Ey[i], Ez[i], Bx[i],
+                                           By[i], Bz[i], q, m, dt);
+                    }
+                    UpdatePosition( x[i], y[i], z[i],
+                                    ux[i], uy[i], uz[i], dt );
+                }
+            );
+        }else{
+            amrex::ParallelFor(
+                pti.numParticles(),
+                [=] AMREX_GPU_DEVICE (long i) {
+                    UpdateMomentumBorisWithRadiationReaction( ux[i], uy[i], uz[i],
+                                       Ex[i], Ey[i], Ez[i], Bx[i],
+                                       By[i], Bz[i], q, m, dt);
+                    UpdatePosition( x[i], y[i], z[i],
+                                    ux[i], uy[i], uz[i], dt );
+                }
+            );
+        }
+#else
     if(do_classical_radiation_reaction){
         amrex::ParallelFor(
             pti.numParticles(),
@@ -1624,6 +1662,7 @@ PhysicalParticleContainer::PushPX(WarpXParIter& pti,
                                 ux[i], uy[i], uz[i], dt );
             }
         );
+#endif
     } else if (WarpX::particle_pusher_algo == ParticlePusherAlgo::Boris){
         amrex::ParallelFor(
             pti.numParticles(),

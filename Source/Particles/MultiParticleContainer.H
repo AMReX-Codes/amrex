@@ -11,6 +11,7 @@
 
 #include <AMReX_Particles.H>
 #ifdef WARPX_QED
+    #include <QedChiFunctions.H>
     #include <BreitWheelerEngineWrapper.H>
     #include <QuantumSyncEngineWrapper.H>
 #endif
