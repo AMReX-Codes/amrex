@@ -917,7 +917,7 @@ MLEBABecLap::normalize (int amrlev, int mglev, MultiFab& mf) const
                      Array4<Real const> const& bzfab = bzcoef.const_array(mfi););
 
         auto fabtyp = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
-t
+ 
         if (fabtyp == FabType::regular)
         {
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
