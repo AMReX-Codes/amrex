@@ -407,5 +407,28 @@ MLNodeLinOp::applyBC (int amrlev, int mglev, MultiFab& phi, BCMode/* bc_mode*/, 
     }
 }
 
+#ifdef AMREX_USE_HYPRE
+std::unique_ptr<HypreNodeLap>
+MLNodeLinOp::makeHypreNodeLap (int bottom_verbose) const
+{
+    const BoxArray& ba = m_grids[0].back();
+    const DistributionMapping& dm = m_dmap[0].back();
+    const Geometry& geom = m_geom[0].back();
+    const auto& factory = *(m_factory[0].back());
+    const auto& owner_mask = *(m_owner_mask[0].back());
+    const auto& dirichlet_mask = *(m_dirichlet_mask[0].back());
+    MPI_Comm comm = BottomCommunicator();
+
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(NMGLevels(0) == 1,
+                                     "MLNodeLaplacian: To use hypre, max_coarsening_level must be 0");
+
+    std::unique_ptr<HypreNodeLap> hypre_solver
+        (new amrex::HypreNodeLap(ba, dm, geom, factory, owner_mask, dirichlet_mask,
+                                 comm, this, bottom_verbose));
+
+    return hypre_solver;
+}
+#endif
+
 }
 

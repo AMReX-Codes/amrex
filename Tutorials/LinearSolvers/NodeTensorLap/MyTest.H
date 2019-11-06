@@ -32,6 +32,7 @@ private:
     int max_iter = 500;
     int max_fmg_iter = 0;
     int max_coarsening_level = 30;
+    int use_hypre = 0;
     amrex::Real reltol = 1.e-11;
 
     amrex::Vector<amrex::Geometry> geom;
