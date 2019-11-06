@@ -16,38 +16,43 @@ MyTest::MyTest ()
 void
 MyTest::solve ()
 {
-        MLNodeTensorLaplacian linop(geom, grids, dmap,
-                                    LPInfo().setMaxCoarseningLevel(max_coarsening_level));
+    MLNodeTensorLaplacian linop(geom, grids, dmap,
+                                LPInfo().setMaxCoarseningLevel(max_coarsening_level));
 
-        linop.setDomainBC({AMREX_D_DECL(LinOpBCType::Dirichlet,
-                                        LinOpBCType::Dirichlet,
-                                        LinOpBCType::Dirichlet)},
-                          {AMREX_D_DECL(LinOpBCType::Dirichlet,
-                                        LinOpBCType::Dirichlet,
-                                        LinOpBCType::Dirichlet)});
+    linop.setDomainBC({AMREX_D_DECL(LinOpBCType::Dirichlet,
+                                    LinOpBCType::Dirichlet,
+                                    LinOpBCType::Dirichlet)},
+                      {AMREX_D_DECL(LinOpBCType::Dirichlet,
+                                    LinOpBCType::Dirichlet,
+                                    LinOpBCType::Dirichlet)});
 
-        linop.setBeta(beta);
+    linop.setBeta(beta);
 
-        MLMG mlmg(linop);
-        mlmg.setMaxIter(max_iter);
-        mlmg.setMaxFmgIter(max_fmg_iter);
-        mlmg.setVerbose(verbose);
-        mlmg.setBottomVerbose(bottom_verbose);
+    MLMG mlmg(linop);
+    mlmg.setMaxIter(max_iter);
+    mlmg.setMaxFmgIter(max_fmg_iter);
+    mlmg.setVerbose(verbose);
+    mlmg.setBottomVerbose(bottom_verbose);
+#ifdef AMREX_USE_HYPRE
+    if (use_hypre) {
+        mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
+    }
+#endif
 
-        // solution is passed to MLMG::solve to provide an initial guess.
-        // Additionally it also provides boundary conditions for Dirichlet
-        // boundaries if there are any.
-        for (int ilev = 0; ilev <= max_level; ++ilev) {
-            MultiFab::Copy(solution[ilev], exact_solution[ilev], 0, 0, 1, 0);
-            const Box& interior = amrex::surroundingNodes(
-                amrex::grow(geom[ilev].Domain(), -1));
-            // Usually we want the best initial guess.  For testing here,
-            // we set the domain boundaries to exact solution and zero out
-            // the interior.
-            solution[ilev].setVal(0.0, interior, 0, 1, 0);
-        }
+    // solution is passed to MLMG::solve to provide an initial guess.
+    // Additionally it also provides boundary conditions for Dirichlet
+    // boundaries if there are any.
+    for (int ilev = 0; ilev <= max_level; ++ilev) {
+        MultiFab::Copy(solution[ilev], exact_solution[ilev], 0, 0, 1, 0);
+        const Box& interior = amrex::surroundingNodes(
+            amrex::grow(geom[ilev].Domain(), -1));
+        // Usually we want the best initial guess.  For testing here,
+        // we set the domain boundaries to exact solution and zero out
+        // the interior.
+        solution[ilev].setVal(0.0, interior, 0, 1, 0);
+    }
 
-        mlmg.solve(GetVecOfPtrs(solution), GetVecOfConstPtrs(rhs), reltol, 0.0);
+    mlmg.solve(GetVecOfPtrs(solution), GetVecOfConstPtrs(rhs), reltol, 0.0);
 }
 
 void
@@ -76,6 +81,11 @@ MyTest::readParameters ()
     pp.query("ref_ratio", ref_ratio);
     pp.query("n_cell", n_cell);
     pp.query("max_grid_size", max_grid_size);
+
+#ifdef AMREX_USE_HYPRE
+    pp.query("use_hypre", use_hypre);
+    if (use_hypre) max_coarsening_level = 0;
+#endif
 
     pp.query("verbose", verbose);
     pp.query("bottom_verbose", bottom_verbose);

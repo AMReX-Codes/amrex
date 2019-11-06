@@ -243,4 +243,20 @@ MLNodeTensorLaplacian::fixUpResidualMask (int amrlev, iMultiFab& resmsk)
     amrex::Abort("MLNodeTensorLaplacian::fixUpResidualMask: TODO");
 }
 
+#ifdef AMREX_USE_HYPRE
+void
+MLNodeTensorLaplacian::fillIJMatrix (MFIter const& mfi, Array4<HypreNodeLap::Int const> const& nid,
+                                     Array4<int const> const& owner,
+                                     Vector<HypreNodeLap::Int>& ncols, Vector<HypreNodeLap::Int>& rows,
+                                     Vector<HypreNodeLap::Int>& cols, Vector<Real>& mat) const
+{
+    const int amrlev = 0;
+    const int mglev = NMGLevels(amrlev)-1;
+    const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
+    Array4<int const> const& dmsk = m_dirichlet_mask[amrlev][mglev]->const_array(mfi);
+    const auto s = m_sigma;
+    mlndtslap_fill_ijmatrix(mfi.validbox(),nid,owner,ncols,rows,cols,mat,dmsk,s,dxinv);
+}
+#endif
+
 }

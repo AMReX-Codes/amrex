@@ -119,6 +119,87 @@ void mlndtslap_normalize (Box const& b, Array4<Real> const& phi,
     });
 }
 
+#ifdef AMREX_USE_HYPRE
+
+AMREX_FORCE_INLINE
+void mlndtslap_fill_ijmatrix (Box const& ndbx, Array4<HypreNodeLap::Int const> const& nid,
+                              Array4<int const> const& owner,
+                              Vector<HypreNodeLap::Int>& ncols, Vector<HypreNodeLap::Int>& rows,
+                              Vector<HypreNodeLap::Int>& cols, Vector<Real>& mat,
+                              Array4<int const> const& msk, GpuArray<Real,3> const& s,
+                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+{
+    const Real h00 = dxinv[0]*dxinv[0];
+    const Real h01 = dxinv[0]*dxinv[1];
+    const Real h11 = dxinv[1]*dxinv[1];
+
+    const auto lo = amrex::lbound(ndbx);
+    const auto hi = amrex::ubound(ndbx);
+    for (int k = lo.z; k <= hi.z; ++k) {
+    for (int j = lo.y; j <= hi.y; ++j) {
+    for (int i = lo.x; i <= hi.x; ++i) {
+        if (nid(i,j,k) >= 0 and owner(i,j,k))
+        {
+            rows.push_back(nid(i,j,k));
+            cols.push_back(nid(i,j,k));
+            mat.push_back((-4./3.)*h00*s[0] + (-4./3.)*h11*s[2]);
+            HypreNodeLap::Int nc = 1;
+
+            if                (nid(i-1,j-1,k) >= 0) {
+                cols.push_back(nid(i-1,j-1,k));
+                mat.push_back((1./6.)*h00*s[0] + 0.5*h01*s[1] + (1./6.)*h11*s[2]);
+                ++nc;
+            }
+
+            if                (nid(i-1,j,k) >= 0) {
+                cols.push_back(nid(i-1,j,k));
+                mat.push_back((2./3.)*h00*s[0] - (1./3.)*h11*s[2]);
+                ++nc;
+            }
+
+            if                (nid(i-1,j+1,k) >= 0) {
+                cols.push_back(nid(i-1,j+1,k));
+                mat.push_back((1./6.)*h00*s[0] - 0.5*h01*s[1] + (1./6.)*h11*s[2]);
+                ++nc;
+            }
+
+            if                (nid(i,j-1,k) >= 0) {
+                cols.push_back(nid(i,j-1,k));
+                mat.push_back((-1./3.)*h00*s[0] + (2./3.)*h11*s[2]);
+                ++nc;
+            }
+
+            if                (nid(i,j+1,k) >= 0) {
+                cols.push_back(nid(i,j+1,k));
+                mat.push_back((-1./3.)*h00*s[0] + (2./3.)*h11*s[2]);
+                ++nc;
+            }
+
+            if                (nid(i+1,j-1,k) >= 0) {
+                cols.push_back(nid(i+1,j-1,k));
+                mat.push_back((1./6.)*h00*s[0] - 0.5*h01*s[1] + (1./6.)*h11*s[2]);
+                ++nc;
+            }
+
+            if                (nid(i+1,j,k) >= 0) {
+                cols.push_back(nid(i+1,j,k));
+                mat.push_back((2./3.)*h00*s[0] - (1./3.)*h11*s[2]);
+                ++nc;
+            }
+
+            if                (nid(i+1,j+1,k) >= 0) {
+                cols.push_back(nid(i+1,j+1,k));
+                mat.push_back((1./6.)*h00*s[0] + 0.5*h01*s[1] + (1./6.)*h11*s[2]);
+                ++nc;
+            }
+
+            ncols.push_back(nc);
+        }
+    }}}
+}
+
+#endif
+
 }
 
 #endif

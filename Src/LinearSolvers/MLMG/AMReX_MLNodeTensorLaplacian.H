@@ -62,6 +62,13 @@ public:
 
     virtual void fixUpResidualMask (int amrlev, iMultiFab& resmsk) final override;
 
+#ifdef AMREX_USE_HYPRE
+    virtual void fillIJMatrix (MFIter const& mfi, Array4<HypreNodeLap::Int const> const& nid,
+                               Array4<int const> const& owner,
+                               Vector<HypreNodeLap::Int>& ncols, Vector<HypreNodeLap::Int>& rows,
+                               Vector<HypreNodeLap::Int>& cols, Vector<Real>& mat) const override;
+#endif
+
 private:
 
     GpuArray<Real,nelems> m_sigma;
