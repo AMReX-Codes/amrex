@@ -108,9 +108,9 @@ public:
         m_bins.build(np, pstruct_ptr, bx,
                      [=] AMREX_GPU_HOST_DEVICE (const ParticleType& p) noexcept -> IntVect
                      {
-                         return IntVect((p.pos(0)-plo[0])*dxi[0] - lo.x,
-                                        (p.pos(1)-plo[1])*dxi[1] - lo.y,
-                                        (p.pos(2)-plo[2])*dxi[2] - lo.z);
+                         return IntVect(AMREX_D_DECL((p.pos(0)-plo[0])*dxi[0] - lo.x,
+                                                     (p.pos(1)-plo[1])*dxi[1] - lo.y,
+                                                     (p.pos(2)-plo[2])*dxi[2] - lo.z));
                      });
         m_nbor_counts.resize(np);
         
