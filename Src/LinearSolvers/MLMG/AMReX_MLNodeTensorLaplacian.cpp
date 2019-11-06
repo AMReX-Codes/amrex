@@ -215,6 +215,9 @@ MLNodeTensorLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const Mult
 void
 MLNodeTensorLaplacian::normalize (int amrlev, int mglev, MultiFab& mf) const
 {
+    return;
+
+#if 0
     BL_PROFILE("MLNodeTensorLaplacian::normalize()");
 
     const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
@@ -235,6 +238,7 @@ MLNodeTensorLaplacian::normalize (int amrlev, int mglev, MultiFab& mf) const
             mlndtslap_normalize(tbx, arr, dmskarr, s, dxinv);
         });
     }
+#endif
 }
 
 void
