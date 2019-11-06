@@ -25,10 +25,10 @@ namespace amrex
 template <typename T>
 class DenseBins
 {
+public:
+
     using bin_type = IntVect;
     using index_type = unsigned int;
-    
-public:
 
     /**
      * \brief Populate the bins with a set of items.
