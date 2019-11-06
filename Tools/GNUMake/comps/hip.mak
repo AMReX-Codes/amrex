@@ -53,12 +53,20 @@ ifeq ($(HIP_PLATFORM),hcc)
   endif
 
   # Generic HIP
+  ROC_PATH=/opt/rocm
   INCLUDE_LOCATIONS += $(HIP_PATH)/include
 
-  ROC_PATH=/opt/rocm
+  # rocRand
   INCLUDE_LOCATIONS += $(ROC_PATH)/rocrand/include $(ROC_PATH)/hiprand/include
   LIBRARY_LOCATIONS += $(ROC_PATH)/rocrand/lib $(ROC_PATH)/hiprand/lib
   LIBRARIES += -Wl,--rpath=$(ROC_PATH)/rocrand/lib -Wl,--rpath=$(ROC_PATH)/hiprand/lib -lhiprand -lrocrand 
+
+  # rocPrim - Header only
+  INCLUDE_LOCATIONS += $(ROC_PATH)/rocprim/include
+
+  # rocThrust - Header only
+  INCLUDE_LOCATIONS += $(ROC_PATH)/rocthrust/include
+
 
   FC = gfortran
   F90 = gfortran
@@ -68,7 +76,7 @@ ifeq ($(HIP_PLATFORM),hcc)
 
 # =============================================================================================
 
-# This is primarily summit
+# This is Summit. Likely broken.
 else ifeq ($(HIP_PLATFORM),nvcc)
 
   CXXFLAGS_FROM_HOST := -ccbin=$(CXX) --std=c++14
