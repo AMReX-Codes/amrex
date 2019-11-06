@@ -70,23 +70,40 @@ parser.add_argument('--mode',
                     choices=['run', 'read', 'browse_output_files'],
                     default='run',
                     help='whether to run perftests or read their perf output. run calls read')
+parser.add_argument('--path_source',
+                    default=None,
+                    help='path to parent folder containing amrex, picsar and warpx folders')
+parser.add_argument('--path_results',
+                    default=None,
+                    help='path to result directory, where simulations run')
+
 args = parser.parse_args()
 n_node_list_string   = args.n_node_list.split(',')
 n_node_list = [int(i) for i in n_node_list_string]
 start_date = args.start_date
-compiler = args.compiler
-architecture = args.architecture
 
 # Set behavior variables
 ########################
+run_name = 'custom_perftest'
+perf_database_file = 'my_tests_database.h5'
+rename_archive = False
+store_full_input = False
 update_perf_log_repo = False
+push_on_perf_log_repo = False
+recompile = args.recompile
+pull_3_repos = False
+recompile = True
+compiler = args.compiler
+architecture = args.architecture
+source_dir_base = args.path_source
+res_dir_base = args.path_results
+
 browse_output_files = False
 if args.mode == 'browse_output_files':
     browse_output_file = True
 if args.mode == 'read':
     browse_output_files = True
-recompile = args.recompile
-perf_database_file = 'my_tests_database.h5'
+
 if args.automated == True:
     run_name = 'automated_tests'
     perf_database_file = machine + '_results.h5'
@@ -96,6 +113,8 @@ if args.automated == True:
     push_on_perf_log_repo = False
     pull_3_repos = True
     recompile = True
+    source_dir_base = os.environ['AUTOMATED_PERF_TESTS']
+    res_dir_base = os.environ['SCRATCH'] + '/performance_warpx/'
     if machine == 'summit':
         compiler = 'gnu'
         architecture = 'gpu'
@@ -109,11 +128,9 @@ test_list = get_test_list(n_repeat)
 
 # Define directories
 # ------------------
-source_dir_base = os.environ['AUTOMATED_PERF_TESTS']
 warpx_dir = source_dir_base + '/warpx/'
 picsar_dir = source_dir_base + '/picsar/'
 amrex_dir = source_dir_base + '/amrex/'
-res_dir_base = os.environ['SCRATCH'] + '/performance_warpx/'
 perf_logs_repo = source_dir_base + 'perf_logs/'
 
 # Define dictionaries
@@ -123,7 +140,11 @@ module_Cname = {'cpu': 'haswell', 'knl': 'knl,quad,cache', 'gpu':''}
 csv_file = {'cori':'cori_knl.csv', 'summit':'summit.csv'}
 # cwd = os.getcwd() + '/'
 cwd = warpx_dir + 'Tools/performance_tests/'
-print('cwd = ' + cwd)
+
+path_hdf5 = cwd
+if args.automated:
+    path_hdf5 = perf_logs_repo + '/logs_hdf5/'
+
 bin_dir = cwd + 'Bin/'
 bin_name = executable_name(compiler, architecture)
 
@@ -208,14 +229,15 @@ if args.mode == 'run':
 
         submit_job_command = get_submit_job_command()
         # Run the simulations.
-        run_batch_nnode(test_list_n_node, res_dir, bin_name, config_command, batch_string, submit_job_command)
+        run_batch_nnode(test_list_n_node, res_dir, cwd, bin_name, config_command, batch_string, submit_job_command)
     os.chdir(cwd)
     # submit batch for analysis
     if os.path.exists( 'read_error.txt' ):
         os.remove( 'read_error.txt' )
     if os.path.exists( 'read_output.txt' ):
         os.remove( 'read_output.txt' )
-    process_analysis(args.automated, cwd, compiler, architecture, args.n_node_list, start_date)
+    process_analysis(args.automated, cwd, compiler, architecture,
+                     args.n_node_list, start_date, source_dir_base, res_dir_base)
 
 # read the output file from each test and store timers in
 # hdf5 file with pandas format
@@ -248,14 +270,14 @@ for n_node in n_node_list:
                 df_newline['inputs_content'] = get_file_content( filename=cwd+current_run.input_file )
             # Load file perf_database_file if exists, and
             # append with results from this scan
-            if os.path.exists(perf_logs_repo + '/logs_hdf5/' + perf_database_file):
-                df_base = pd.read_hdf(perf_logs_repo + '/logs_hdf5/' + perf_database_file, 'all_data')
+            if os.path.exists(path_hdf5 + perf_database_file):
+                df_base = pd.read_hdf(path_hdf5 + perf_database_file, 'all_data')
                 updated_df = df_base.append(df_newline, ignore_index=True)
             else:
                 updated_df = df_newline
             # Write dataframe to file perf_database_file
             # (overwrite if file exists)
-            updated_df.to_hdf(perf_logs_repo + '/logs_hdf5/' + perf_database_file, key='all_data', mode='w', format='table')
+            updated_df.to_hdf(path_hdf5 + perf_database_file, key='all_data', mode='w', format='table')
 
 # Extract sub-set of pandas data frame, write it to
 # csv file and copy this file to perf_logs repo
