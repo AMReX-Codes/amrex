@@ -739,7 +739,7 @@ CPPFLAGS	+= $(DEFINES)
 libraries	= $(LIBRARIES) $(XTRALIBS)
 
 ifeq ($(USE_RPATH),TRUE)
-  LDFLAGS	+= -Xlinker -rpath -Xlinker $(abspath .) $(addprefix -Xlinker -rpath -Xlinker , $(abspath $(LIBRARY_LOCATIONS)))
+  LDFLAGS	+= -Xlinker -rpath -Xlinker '$(abspath .)' $(addprefix -Xlinker -rpath -Xlinker , $(abspath $(LIBRARY_LOCATIONS)))
 endif
 LDFLAGS	+= -L. $(addprefix -L, $(LIBRARY_LOCATIONS))
 
