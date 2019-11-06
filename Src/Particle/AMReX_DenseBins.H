@@ -12,7 +12,7 @@ namespace amrex
  * 
  * The underlying data structure is an array of size nitems defining a
  * permutation of the items in the container that puts them in bin-sorted order,
- * plus an array of size nbins that stores the offsets into the permutation
+ * plus an array of size nbins+1 that stores the offsets into the permutation
  * array where each bin starts.
  *
  * The storage for the bins is "dense" in the sense that users pass in
