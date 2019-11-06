@@ -1734,13 +1734,13 @@ void PhysicalParticleContainer::EvolveOpticalDepth(
     ParticleReal* const AMREX_RESTRICT p_tau =
         pti.GetAttribs(particle_comps["tau"]).dataPtr();
 
-    const ParticleReal m = this->mass;
+    const auto mc = PhysConst::c * this->mass;
 
     amrex::ParallelFor(pti.numParticles(),
             [=] AMREX_GPU_DEVICE (long i) {
-                const ParticleReal px = m * ux[i];
-                const ParticleReal py = m * uy[i];
-                const ParticleReal pz = m * uz[i];
+                const ParticleReal px = mc * ux[i];
+                const ParticleReal py = mc * uy[i];
+                const ParticleReal pz = mc * uz[i];
 
                 bool has_event_happened = evolve_opt(
                     px, py, pz,
