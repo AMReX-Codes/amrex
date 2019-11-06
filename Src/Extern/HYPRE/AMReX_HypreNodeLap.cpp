@@ -18,7 +18,7 @@ namespace amrex {
 HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& dmap_,
                             const Geometry& geom_, const FabFactory<FArrayBox>& factory_,
                             const iMultiFab& owner_mask_, const iMultiFab& dirichlet_mask_,
-                            MPI_Comm comm_, MLNodeLaplacian const* linop_, int verbose_)
+                            MPI_Comm comm_, MLNodeLinOp const* linop_, int verbose_)
     : grids(grids_), dmap(dmap_), geom(geom_), factory(&factory_),
       owner_mask(&owner_mask_), dirichlet_mask(&dirichlet_mask_),
       comm(comm_), linop(linop_), verbose(verbose_)
@@ -308,8 +308,8 @@ HypreNodeLap::solve (MultiFab& soln, const MultiFab& rhs,
         Real bnorm = hypre_ParVectorInnerProd(par_b, par_b);
         bnorm = std::sqrt(bnorm);
 
-        const BoxArray& grids = rhs.boxArray();
-        Real volume = grids.numPts();
+        const BoxArray& grd = rhs.boxArray();
+        Real volume = grd.numPts();
         Real rel_tol_new = (bnorm > 0.0) ? (abs_tol / bnorm * std::sqrt(volume)) : rel_tol;
 
         if (rel_tol_new > rel_tol) {
