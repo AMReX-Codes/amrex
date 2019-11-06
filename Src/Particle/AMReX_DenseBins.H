@@ -91,6 +91,8 @@ public:
             index_type index = Gpu::Atomic::Inc(&pcount[pcell[i]], max_index);
             pperm[index] = i;
         });
+
+        Gpu::Device::streamSynchronize();
     }
 
     //! \brief the number of items in the container
