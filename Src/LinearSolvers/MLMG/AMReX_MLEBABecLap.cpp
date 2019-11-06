@@ -917,12 +917,12 @@ MLEBABecLap::normalize (int amrlev, int mglev, MultiFab& mf) const
                      Array4<Real const> const& bzfab = bzcoef.const_array(mfi););
 
         auto fabtyp = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
-
+ 
         if (fabtyp == FabType::regular)
         {
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
             {
-                mlabeclap_normalize(bx, fab, afab, AMREX_D_DECL(bxfab, byfab, bzfab),
+                mlabeclap_normalize(tbx, fab, afab, AMREX_D_DECL(bxfab, byfab, bzfab),
                                     dxinvarray, ascalar, bscalar, ncomp);
             });
         }
@@ -944,7 +944,7 @@ MLEBABecLap::normalize (int amrlev, int mglev, MultiFab& mf) const
 
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
             {
-                mlebabeclap_normalize(bx, fab, ascalar, afab,
+                mlebabeclap_normalize(tbx, fab, ascalar, afab,
                                       AMREX_D_DECL(dhx, dhy, dhz),
                                       AMREX_D_DECL(bxfab, byfab, bzfab),
                                       ccmfab, flagfab, vfracfab,
