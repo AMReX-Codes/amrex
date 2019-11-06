@@ -311,7 +311,11 @@ public:
 
 #endif
 
-    void setEnableInverse (bool flag) { enable_inverse = flag; }
+    void setEnableInverse (bool flag)
+    {
+        enable_inverse = flag;
+        calcCommSize();
+    }
 
     bool enableInverse () { return enable_inverse; }
 

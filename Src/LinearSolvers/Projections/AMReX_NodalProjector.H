@@ -17,33 +17,54 @@ public:
 
     NodalProjector () {};
 
-    NodalProjector ( const Vector<Geometry>&             a_geom,
-                     const Vector<BoxArray>&             a_grids,
-                     const Vector<DistributionMapping>&  a_dmap,
-                     std::array<LinOpBCType,AMREX_SPACEDIM>     a_bc_lo,
-                     std::array<LinOpBCType,AMREX_SPACEDIM>     a_bc_hi );
+    NodalProjector ( const Vector<Geometry>&                a_geom,
+                     const Vector<BoxArray>&                a_grids,
+                     const Vector<DistributionMapping>&     a_dmap,
+                     std::array<LinOpBCType,AMREX_SPACEDIM> a_bc_lo,
+                     std::array<LinOpBCType,AMREX_SPACEDIM> a_bc_hi,
+                     const LPInfo&                          a_lpinfo );
+
+    NodalProjector ( const Vector<Geometry>&                a_geom,
+                     const Vector<BoxArray>&                a_grids,
+                     const Vector<DistributionMapping>&     a_dmap,
+                     std::array<LinOpBCType,AMREX_SPACEDIM> a_bc_lo,
+                     std::array<LinOpBCType,AMREX_SPACEDIM> a_bc_hi )
+        : NodalProjector(a_geom, a_grids, a_dmap, a_bc_lo, a_bc_hi, LPInfo()) {};
+
 #ifdef AMREX_USE_EB
-    NodalProjector ( const Vector<Geometry>&             a_geom,
-                     const Vector<BoxArray>&             a_grids,
-                     const Vector<DistributionMapping>&  a_dmap,
-                     std::array<LinOpBCType,AMREX_SPACEDIM>     a_bc_lo,
-                     std::array<LinOpBCType,AMREX_SPACEDIM>     a_bc_hi,
-                     Vector<EBFArrayBoxFactory const *>  a_ebfactory );
+    NodalProjector ( const Vector<Geometry>&                a_geom,
+                     const Vector<BoxArray>&                a_grids,
+                     const Vector<DistributionMapping>&     a_dmap,
+                     std::array<LinOpBCType,AMREX_SPACEDIM> a_bc_lo,
+                     std::array<LinOpBCType,AMREX_SPACEDIM> a_bc_hi,
+                     Vector<EBFArrayBoxFactory const *>     a_ebfactory,
+                     const LPInfo&                          a_lpinfo );
+
+    NodalProjector ( const Vector<Geometry>&                a_geom,
+                     const Vector<BoxArray>&                a_grids,
+                     const Vector<DistributionMapping>&     a_dmap,
+                     std::array<LinOpBCType,AMREX_SPACEDIM> a_bc_lo,
+                     std::array<LinOpBCType,AMREX_SPACEDIM> a_bc_hi,
+                     Vector<EBFArrayBoxFactory const *>     a_ebfactory)
+        : NodalProjector(a_geom, a_grids, a_dmap, a_bc_lo, a_bc_hi, a_ebfactory, LPInfo()) {};
 #endif
 
-    void define ( const Vector<Geometry>&             a_geom,
-                  const Vector<BoxArray>&             a_grids,
-                  const Vector<DistributionMapping>&  a_dmap,
-                  std::array<LinOpBCType,AMREX_SPACEDIM>     a_bc_lo,
-                  std::array<LinOpBCType,AMREX_SPACEDIM>     a_bc_hi );
+
+    void define ( const Vector<Geometry>&                a_geom,
+                  const Vector<BoxArray>&                a_grids,
+                  const Vector<DistributionMapping>&     a_dmap,
+                  std::array<LinOpBCType,AMREX_SPACEDIM> a_bc_lo,
+                  std::array<LinOpBCType,AMREX_SPACEDIM> a_bc_hi,
+                  const LPInfo&                          a_lpinfo);
 
 #ifdef AMREX_USE_EB
-    void define ( const Vector<Geometry>&             a_geom,
-                  const Vector<BoxArray>&             a_grids,
-                  const Vector<DistributionMapping>&  a_dmap,
-                  std::array<LinOpBCType,AMREX_SPACEDIM>     a_bc_lo,
-                  std::array<LinOpBCType,AMREX_SPACEDIM>     a_bc_hi,
-                  Vector<EBFArrayBoxFactory const *>  a_ebfactory );
+    void define ( const Vector<Geometry>&                a_geom,
+                  const Vector<BoxArray>&                a_grids,
+                  const Vector<DistributionMapping>&     a_dmap,
+                  std::array<LinOpBCType,AMREX_SPACEDIM> a_bc_lo,
+                  std::array<LinOpBCType,AMREX_SPACEDIM> a_bc_hi,
+                  Vector<EBFArrayBoxFactory const *>     a_ebfactory,
+                  const LPInfo&                          a_lpinfo );
 #endif
 
     void project ( const amrex::Vector<amrex::MultiFab*>&       a_vel,
@@ -80,13 +101,12 @@ private:
     Real m_mg_atol = 1.0e-14;
     std::string m_bottom_solver_type = "bicgcg";
 
-    // Max coarsening level
-    int  m_mg_max_coarsening_level = 100;
-
 
     Vector<Geometry>                    m_geom;
     Vector<BoxArray>                    m_grids;
     Vector<DistributionMapping>         m_dmap;
+    LPInfo                              m_lpinfo;
+
 #ifdef AMREX_USE_EB
     Vector<EBFArrayBoxFactory const *>  m_ebfactory;
 #endif

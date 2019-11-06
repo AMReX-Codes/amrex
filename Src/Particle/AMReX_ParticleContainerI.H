@@ -1240,6 +1240,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     }
     else
     {
+        Gpu::Device::synchronize();
         pinned_snd_buffer.resize(snd_buffer.size());
         cudaMemcpyAsync(pinned_snd_buffer.dataPtr(), snd_buffer.dataPtr(), snd_buffer.size()*sizeof(SuperParticleType), cudaMemcpyDeviceToHost);    
         plan.buildMPIFinish(BufferMap());
