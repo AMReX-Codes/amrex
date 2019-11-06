@@ -1051,7 +1051,7 @@ namespace {
         Real w1 = sig(i-1,j-1,k-1) + sig(i-1,j,k-1) + sig(i-1,j-1,k) + sig(i-1,j,k);
         Real w2 = sig(i  ,j-1,k-1) + sig(i  ,j,k-1) + sig(i  ,j-1,k) + sig(i  ,j,k);
         return (w1*crse(ic,jc,kc)+w2*crse(ic+1,jc,kc))/(w1+w2);
-    };
+    }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real aa_interp_line_y (Array4<Real const> const& crse, Array4<Real const> const& sig,
@@ -1060,7 +1060,7 @@ namespace {
         Real w1 = sig(i-1,j-1,k-1) + sig(i,j-1,k-1) + sig(i-1,j-1,k) + sig(i,j-1,k);
         Real w2 = sig(i-1,j  ,k-1) + sig(i,j  ,k-1) + sig(i-1,j  ,k) + sig(i,j  ,k);
         return (w1*crse(ic,jc,kc)+w2*crse(ic,jc+1,kc))/(w1+w2);
-    };
+    }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real aa_interp_line_z (Array4<Real const> const& crse, Array4<Real const> const& sig,
@@ -1069,7 +1069,7 @@ namespace {
         Real w1 = sig(i-1,j-1,k-1) + sig(i,j-1,k-1) + sig(i-1,j,k-1) + sig(i,j,k-1);
         Real w2 = sig(i-1,j-1,k  ) + sig(i,j-1,k  ) + sig(i-1,j,k  ) + sig(i,j,k  );
         return (w1*crse(ic,jc,kc)+w2*crse(ic,jc,kc+1))/(w1+w2);
-    };
+    }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real aa_interp_face_xy (Array4<Real const> const& crse, Array4<Real const> const& sig,
@@ -1097,7 +1097,7 @@ namespace {
                 w2 * aa_interp_line_z(crse,sig,i+1,j,k  ,ic+1,jc,kc  ) +
                 w3 * aa_interp_line_x(crse,sig,i  ,j,k-1,ic  ,jc,kc  ) +
                 w4 * aa_interp_line_x(crse,sig,i  ,j,k+1,ic  ,jc,kc+1)) / (w1+w2+w3+w4);
-    };
+    }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real aa_interp_face_yz (Array4<Real const> const& crse, Array4<Real const> const& sig,
@@ -1111,7 +1111,7 @@ namespace {
                 w2 * aa_interp_line_z(crse,sig,i,j+1,k  ,ic,jc+1,kc  ) +
                 w3 * aa_interp_line_y(crse,sig,i,j  ,k-1,ic,jc  ,kc  ) +
                 w4 * aa_interp_line_y(crse,sig,i,j  ,k+1,ic,jc  ,kc+1)) / (w1+w2+w3+w4);
-    };
+    }
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -1196,7 +1196,7 @@ namespace {
                 w2 * aa_interp_line_z(crse,sigz,i+1,j,k  ,ic+1,jc,kc  ) +
                 w3 * aa_interp_line_x(crse,sigx,i  ,j,k-1,ic  ,jc,kc  ) +
                 w4 * aa_interp_line_x(crse,sigx,i  ,j,k+1,ic  ,jc,kc+1)) / (w1+w2+w3+w4);
-    };
+    }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real ha_interp_face_yz (Array4<Real const> const& crse,
@@ -1211,7 +1211,7 @@ namespace {
                 w2 * aa_interp_line_z(crse,sigz,i,j+1,k  ,ic,jc+1,kc  ) +
                 w3 * aa_interp_line_y(crse,sigy,i,j  ,k-1,ic,jc  ,kc  ) +
                 w4 * aa_interp_line_y(crse,sigy,i,j  ,k+1,ic,jc  ,kc+1)) / (w1+w2+w3+w4);
-    };
+    }
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE

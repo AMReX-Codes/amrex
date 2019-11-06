@@ -530,7 +530,7 @@ namespace {
         Real w1 = sig(i-1,j-1,0) + sig(i-1,j,0);
         Real w2 = sig(i  ,j-1,0) + sig(i  ,j,0);
         return (w1*crse(ic,jc,0)+w2*crse(ic+1,jc,0))/(w1+w2);
-    };
+    }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real aa_interp_line_y (Array4<Real const> const& crse, Array4<Real const> const& sig,
@@ -539,7 +539,7 @@ namespace {
         Real w1 = sig(i-1,j-1,0) + sig(i,j-1,0);
         Real w2 = sig(i-1,j  ,0) + sig(i,j  ,0);
         return (w1*crse(ic,jc,0)+w2*crse(ic,jc+1,0))/(w1+w2);
-    };
+    }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real aa_interp_face_xy (Array4<Real const> const& crse, Array4<Real const> const& sig,
