@@ -4,6 +4,10 @@
 #include <AMReX_MLLinOp.H>
 #include <AMReX_iMultiFab.H>
 
+#ifdef AMREX_USE_HYPRE
+#include <AMReX_HypreNodeLap.H>
+#endif
+
 namespace amrex {
 
 class MLNodeLinOp
@@ -13,6 +17,8 @@ public:
 
     friend class MLMG;
     friend class MLCGSolver;
+
+    enum struct CoarseningStrategy : int { Sigma, RAP };
 
     MLNodeLinOp ();
     virtual ~MLNodeLinOp ();
@@ -60,10 +66,15 @@ public:
 
     virtual void prepareForSolve () override {}
 
+    virtual bool isSingular (int amrlev) const override
+        { return (amrlev == 0) ? m_is_bottom_singular : false; }
+    virtual bool isBottomSingular () const override { return m_is_bottom_singular; }
+
     virtual Real xdoty (int amrlev, int mglev, const MultiFab& x, const MultiFab& y, bool local) const final override;
 
     virtual void applyBC (int amrlev, int mglev, MultiFab& phi, BCMode bc_mode, StateMode s_mode,
-                          bool skip_fillboundary=false) const = 0;
+                          bool skip_fillboundary=false) const;
+
     virtual void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const = 0;
     virtual void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rsh) const = 0;
 
@@ -78,6 +89,20 @@ public:
                                                      const DistributionMapping& dm,
                                                      const Geometry& geom);
 
+    void buildMasks ();
+
+#ifdef AMREX_USE_HYPRE
+    virtual std::unique_ptr<HypreNodeLap> makeHypreNodeLap (int bottom_verbose) const override;
+
+    virtual void fillIJMatrix (MFIter const& mfi, Array4<HypreNodeLap::Int const> const& nid,
+                               Array4<int const> const& owner,
+                               Vector<HypreNodeLap::Int>& ncols, Vector<HypreNodeLap::Int>& rows,
+                               Vector<HypreNodeLap::Int>& cols, Vector<Real>& mat) const
+    {
+        amrex::Abort("MLNodeLinOp: how did we get here?");
+    }
+#endif
+
 protected:
 
     Vector<Vector<std::unique_ptr<iMultiFab> > > m_owner_mask;      // ownership of nodes
@@ -87,6 +112,15 @@ protected:
     Vector<std::unique_ptr<LayoutData<int> > > m_has_fine_bndry; // does this fab contain c/f boundary?
     MultiFab m_bottom_dot_mask;
     MultiFab m_coarse_dot_mask;
+
+#ifdef AMREX_USE_EB
+    CoarseningStrategy m_coarsening_strategy = CoarseningStrategy::RAP;
+#else
+    CoarseningStrategy m_coarsening_strategy = CoarseningStrategy::Sigma;
+#endif
+
+    bool m_is_bottom_singular = false;
+    bool m_masks_built = false;
 };
 
 }
