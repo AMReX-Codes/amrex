@@ -316,7 +316,17 @@ void warpx_hybrid_QED_push (int j, int k, int l, Array4<Real> const& Ex, Array4<
         
     const amrex::Real dEz = (-1/detA)*(invAz[0]*Omega[0] +
         invAz[1]*Omega[1] + invAz[2]*Omega[2]);
-
+    
+    if (j == 10 && k == 1024) {
+    Print() << "---------------------------------- \n";
+    Print() << "---------------------------------- \n";
+    Print() << "dEx = " << dEx << "\n";
+    Print() << "dEy = " << dEy << "\n";
+    Print() << "dEy = " << dEz << "\n";
+    Print() << "---------------------------------- \n";
+    Print() << "---------------------------------- \n";
+    }
+    
     Ex(j,k,0) = Ex(j,k,0) + 0.5*dEx;
     
     Ey(j,k,0) = Ey(j,k,0) + 0.5*dEy;
