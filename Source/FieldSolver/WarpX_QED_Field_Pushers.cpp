@@ -149,6 +149,10 @@ WarpX::Hybrid_QED_Push (int lev, PatchType patch_type, Real a_dt)
                 tmpEz(i,j,k,n) = Ezfab(i,j,k,n);
         });
 
+        amrex::Print() << "tbx = " << tbx << "\n";
+        amrex::Print() << "tby = " << tby << "\n";
+        amrex::Print() << "tbz = " << tbz << "\n";
+
         amrex::ParallelFor(tbx,
         [=] AMREX_GPU_DEVICE (int j, int k, int l)
         {
