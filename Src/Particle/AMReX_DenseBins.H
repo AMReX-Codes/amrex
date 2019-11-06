@@ -3,6 +3,7 @@
 
 #include <AMReX_Gpu.H>
 #include <AMReX_IntVect.H>
+#include <AMReX_BLProfiler.H>
 
 namespace amrex
 {
