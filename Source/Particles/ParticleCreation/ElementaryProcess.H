@@ -123,7 +123,7 @@ public:
         int np_flagged = i_product[np_source-1];
         if (np_flagged == 0) return;
 
-        amrex::Vector<copyParticle> v_copy_functor;
+        amrex::Gpu::ManagedDeviceVector<copyParticle> v_copy_functor;
         amrex::Gpu::ManagedDeviceVector<int> v_pid_product(nproducts);
         amrex::Gpu::ManagedDeviceVector<WarpXParticleContainer::ParticleType*> v_particles_product(nproducts);
         for (int iproduct=0; iproduct<nproducts; iproduct++){
@@ -212,12 +212,12 @@ public:
         amrex::Gpu::ManagedDeviceVector<int> v_pid_product,
         amrex::Gpu::ManagedDeviceVector<WarpXParticleContainer::ParticleType*> v_particles_product,
         WarpXParticleContainer::ParticleType* particles_source,
-        const amrex::Vector<copyParticle>& v_copy_functor,
+        const amrex::Gpu::ManagedDeviceVector<copyParticle>& v_copy_functor,
         amrex::GpuArray<int*,1> runtime_iattribs_source)
     {
         int const * const AMREX_RESTRICT p_is_flagged = is_flagged.dataPtr();
         int const * const AMREX_RESTRICT p_i_product = i_product.dataPtr();
-        copyParticle const * const p_copy_functor = v_copy_functor.data();
+        copyParticle const * const AMREX_RESTRICT p_copy_functor = v_copy_functor.dataPtr();
         WarpXParticleContainer::ParticleType * * p_particles_product = v_particles_product.data();
         int const * const p_pid_product = v_pid_product.data();
 
