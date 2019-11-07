@@ -352,6 +352,8 @@ WarpX::OneStep_nosub (Real cur_time)
     EvolveB(0.5*dt[0]); // We now have B^{n+1}
     if (do_pml) {
         DampPML();
+FillBoundaryE(guard_cells.ng_MovingWindow, IntVect::TheZeroVector());
+FillBoundaryB(guard_cells.ng_MovingWindow, IntVect::TheZeroVector());
     }
     // E and B are up-to-date in the domain, but all guard cells are
     // outdated.

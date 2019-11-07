@@ -145,6 +145,9 @@ guardCellManager::Init(
     // for the field solve too.
     ng_FieldGather = ng_FieldGather.max(ng_FieldSolver);
 
+    ng_MovingWindow = IntVect::TheZeroVector();
+    ng_MovingWindow[moving_window_dir] = 1;
+
     Print()<<"ng_alloc_EB    "<<ng_alloc_EB <<'\n';
     Print()<<"ng_alloc_J     "<< ng_alloc_J<<'\n';
     Print()<<"ng_alloc_Rho   "<<ng_alloc_Rho <<'\n';
@@ -153,6 +156,7 @@ guardCellManager::Init(
     Print()<<"ng_FieldSolver "<<ng_FieldSolver <<'\n';
     Print()<<"ng_FieldGather "<<ng_FieldGather<<'\n';
     Print()<<"ng_UpdateAux   "<<ng_UpdateAux <<'\n';
+    Print()<<"ng_MovingWindow"<<ng_MovingWindow <<'\n';
     Print()<<"ng_Extra       "<<ng_Extra <<'\n';
 
 }

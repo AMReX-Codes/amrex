@@ -31,6 +31,7 @@ public:
     amrex::IntVect ng_FieldSolver = amrex::IntVect::TheZeroVector();
     amrex::IntVect ng_FieldGather = amrex::IntVect::TheZeroVector();
     amrex::IntVect ng_UpdateAux = amrex::IntVect::TheZeroVector();
+    amrex::IntVect ng_MovingWindow = amrex::IntVect::TheZeroVector();
 
     // Extra guard cells for fine level of E and B
     amrex::IntVect ng_Extra = amrex::IntVect::TheZeroVector();
