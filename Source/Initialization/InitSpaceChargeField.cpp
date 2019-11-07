@@ -58,7 +58,8 @@ WarpX::InitSpaceChargeField (WarpXParticleContainer& pc)
 
     // Solve the Poisson equation
     MLMG mlmg(linop);
-    const Real reltol = 1.e-3;
+    mlmg.setVerbose(1);
+    const Real reltol = 1.e-11;
     mlmg.solve( GetVecOfPtrs(phi), GetVecOfConstPtrs(rho), reltol, 0.0);
 
     // Compute the electric field from the phi potential
