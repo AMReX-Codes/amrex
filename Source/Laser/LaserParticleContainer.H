@@ -44,14 +44,6 @@ public:
 
     virtual void PostRestart () final;
 
-    void gaussian_laser_profile (const int np, amrex::Real const * AMREX_RESTRICT const Xp,
-                                 amrex::Real const * AMREX_RESTRICT const Yp, amrex::Real t,
-                                 amrex::Real * AMREX_RESTRICT const amplitude);
-
-    void harris_laser_profile (const int np, amrex::Real const * AMREX_RESTRICT const Xp,
-                               amrex::Real const * AMREX_RESTRICT const Yp, amrex::Real t,
-                               amrex::Real * AMREX_RESTRICT const amplitude);
-
     void calculate_laser_plane_coordinates (const int np, const int thread_num,
                                             amrex::Real * AMREX_RESTRICT const pplane_Xp,
                                             amrex::Real * AMREX_RESTRICT const pplane_Yp);
