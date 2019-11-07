@@ -1,4 +1,3 @@
-
 #include <limits>
 #include <cmath>
 #include <algorithm>
@@ -35,49 +34,26 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies,
     pp.get("profile", laser_type_s);
     std::transform(laser_type_s.begin(), laser_type_s.end(), laser_type_s.begin(), ::tolower);
 
-    if()
-
-    m_up_laser_profile = laser_profiles_dictionary["profile"]();
-
-    if (laser_type_s == "gaussian") {
-        profile = laser_t::Gaussian;
-    } else if(laser_type_s == "harris") {
-        profile = laser_t::Harris;
-    } else if(laser_type_s == "parse_field_function") {
-        profile = laser_t::parse_field_function;
-    } else {
-        amrex::Abort("Unknown laser type");
-    }
-
     // Parse the properties of the antenna
-    pp.getarr("position", position);
-    pp.getarr("direction", nvec);
-    pp.getarr("polarization", p_X);
+    pp.getarr("position", m_antenna_params.position);
+    pp.getarr("direction", m_antenna_params.nvec);
+    pp.getarr("polarization", m_antenna_params.p_X);
+
+
     pp.query("pusher_algo", pusher_algo);
     pp.get("wavelength", wavelength);
     pp.get("e_max", e_max);
     pp.query("do_continuous_injection", do_continuous_injection);
     pp.query("min_particles_per_mode", min_particles_per_mode);
 
-    if ( profile == laser_t::Gaussian ) {
-        // Parse the properties of the Gaussian profile
-        pp.get("profile_waist", profile_waist);
-        pp.get("profile_duration", profile_duration);
-        pp.get("profile_t_peak", profile_t_peak);
-        pp.get("profile_focal_distance", profile_focal_distance);
-        stc_direction = p_X;
-        pp.queryarr("stc_direction", stc_direction);
-        pp.query("zeta", zeta);
-        pp.query("beta", beta);
-        pp.query("phi2", phi2);
+    //Select laser profile
+    if(laser_profiles_dictionary.count(laser_type_s) == 0){
+        amrex::Abort("Unknown laser type");
     }
+    m_up_laser_profile = laser_profiles_dictionary[laser_type_s]();
+    //__________
 
-    if ( profile == laser_t::Harris ) {
-        // Parse the properties of the Harris profile
-        pp.get("profile_waist", profile_waist);
-        pp.get("profile_duration", profile_duration);
-        pp.get("profile_focal_distance", profile_focal_distance);
-    }
+    m_up_laser_profile->init(pp);
 
     if ( profile == laser_t::parse_field_function ) {
         // Parse the properties of the parse_field_function profile

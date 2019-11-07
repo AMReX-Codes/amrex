@@ -49,7 +49,7 @@ public:
         amrex::Real * AMREX_RESTRICT const amplitude) override final;
 
 private:
-    struct m_params{
+    struct {
         amrex::Real waist          = std::numeric_limits<amrex::Real>::quiet_NaN();
         amrex::Real duration       = std::numeric_limits<amrex::Real>::quiet_NaN();
         amrex::Real t_peak         = std::numeric_limits<amrex::Real>::quiet_NaN();
@@ -58,7 +58,7 @@ private:
         amrex::Real beta           = 0;
         amrex::Real phi2           = 0;
         amrex::Vector<amrex::Real> stc_direction; //What should I do?
-    };
+    } m_params;
 };
 
 class HarrisLaserProfile : public ILaserProfile
@@ -76,11 +76,11 @@ public:
         amrex::Real * AMREX_RESTRICT const amplitude) override final;
 
 private:
-    struct m_params{
+    struct {
         amrex::Real waist;
         amrex::Real duration;
         amrex::Real focal_distance;
-    };
+    } m_params;
 };
 
 class FieldFunctionLaserProfile : public ILaserProfile
@@ -98,9 +98,9 @@ public:
         amrex::Real * AMREX_RESTRICT const amplitude) override final;
 
 private:
-    struct m_params{
+    struct{
         std::string field_function;
-    };
+    } m_params;
 
      WarpXParser m_parser;
 };
@@ -109,16 +109,13 @@ private:
 
 std::map<
 std::string,
-std::function<std::unique_ptr<ILaserProfile>(const amrex::ParmParse&)>
+std::function<std::unique_ptr<ILaserProfile>()>
 >
 laser_profiles_dictionary =
 {
-    {"gaussian", [] (const amrex::ParmParse& pp) {
-        return std::make_unique<GaussianLaserProfile>(pp);} },
-    {"harris", [] (const amrex::ParmParse& pp) {
-        return std::make_unique<HarrisLaserProfile>(pp);} },
-    {"parse_field_function", [] (const amrex::ParmParse& pp) {
-        return std::make_unique<FieldFunctionLaserProfile>(pp);} }
+    {"gaussian", [] () {return std::make_unique<GaussianLaserProfile>();} },
+    {"harris", [] () {return std::make_unique<HarrisLaserProfile>();} },
+    {"parse_field_function", [] () {return std::make_unique<FieldFunctionLaserProfile>();} }
 };
 
 #endif //WARPX_LaserProfiles_H_

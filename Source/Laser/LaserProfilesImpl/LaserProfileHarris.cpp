@@ -2,6 +2,15 @@
 
 #include <WarpX_Complex.H>
 
+void
+HarrisLaserProfile::init (const amrex::ParmParse& pp)
+{
+    // Parse the properties of the Harris profile
+    pp.get("profile_waist", profile_waist);
+    pp.get("profile_duration", profile_duration);
+    pp.get("profile_focal_distance", profile_focal_distance);
+}
+
 /* \brief compute field amplitude for a Harris laser function, at particles' position
  *
  * Both Xp and Yp are given in laser plane coordinate.

@@ -1,11 +1,11 @@
 #ifndef WARPX_LaserParticleContainer_H_
 #define WARPX_LaserParticleContainer_H_
 
+#include <LaserProfiles.H>
+
 #include <WarpXParticleContainer.H>
 #include <WarpXConst.H>
 #include <WarpXParser.H>
-
-#include <LaserProfiles.H>
 
 #include <memory>
 
@@ -62,15 +62,17 @@ protected:
 private:
 
     // runtime paramters
-    laser_t                   profile     = laser_t::Null;
-    amrex::Vector<amrex::Real> position;
-    amrex::Vector<amrex::Real> nvec;
-    amrex::Vector<amrex::Real> p_X;
-    amrex::Vector<amrex::Real> stc_direction;
+    struct m_antenna_params
+    {
+        amrex::Vector<amrex::Real> position;
+        amrex::Vector<amrex::Real> nvec;
+        amrex::Vector<amrex::Real> p_X;
+    };
 
     long                      pusher_algo = -1;
     amrex::Real               e_max       = std::numeric_limits<amrex::Real>::quiet_NaN();
     amrex::Real               wavelength  = std::numeric_limits<amrex::Real>::quiet_NaN();
+
     amrex::Real               Z0_lab = 0; // Position of the antenna in the lab frame
 
     long min_particles_per_mode = 4;
