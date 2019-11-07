@@ -183,12 +183,12 @@ void UpdateMomentumPerezElastic(
 
 /* \brief Prepare information for and call
  *        UpdateMomentumPerezElastic().
- *        I1 and I2 are the index arraies with lengths NI1 and NI2.
- *        v1 and v2 are the velocity arraies,
+ *        I1 and I2 are the index arrays with lengths NI1 and NI2.
+ *        v1 and v2 are the velocity arrays,
  *        they could be either different or the same,
  *        their lengths are not needed,
  *        I1 and I2 determine all elements that will be used.
- *        w1 and w2 are arraies of weights.
+ *        w1 and w2 are arrays of weights.
  *        q1 and q2 are charges. m1 and m2 are masses.
  *        T1 and T2 are temperatures (Joule) and will be used if greater than zero,
  *        otherwise will be computed.
