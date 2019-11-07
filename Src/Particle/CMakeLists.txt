@@ -42,4 +42,5 @@ target_sources( amrex
    AMReX_ParticleMesh.H
    AMReX_ParticleLocator.H
    AMReX_ParticleIO.H
+   AMReX_DenseBins.H
    )
