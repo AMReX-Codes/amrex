@@ -2,7 +2,8 @@
 #define WARPX_LaserProfiles_H_
 
 #include <AMReX_REAL.H>
-#include <AMReX_ParamParse.H>
+#include <WarpXParser.H>
+#include <AMReX_ParmParse.H>
 #include <AMReX_Vector.H>
 
 #include <WarpXParser.H>
@@ -13,13 +14,27 @@
 #include <functional>
 #include <limits>
 
+namespace WarpXLaserProfiles {
+
+//_________________________________________Laser parameters shared among classes
+struct CommonLaserParameters
+{
+    amrex::Real wavelength;
+    amrex::Real e_max;
+    amrex::Real theta_stc;
+};
+
+
 //_________________________________________Abstract interface for laser profile classes
 
 class ILaserProfile
 {
 public:
     virtual void
-    init (const amrex::ParmParse& pp) = 0;
+    init (
+        const amrex::ParmParse& ppl,
+        const amrex::ParmParse& ppc,
+        CommonLaserParameters params) = 0;
 
     virtual void
     fill_amplitude (
@@ -38,7 +53,11 @@ class GaussianLaserProfile : public ILaserProfile
 {
 
 public:
-    void init (const amrex::ParmParse& pp) override final;
+    void
+    init (
+        const amrex::ParmParse& ppl,
+        const amrex::ParmParse& ppc,
+        CommonLaserParameters params) override final;
 
     void
     fill_amplitude (
@@ -57,15 +76,20 @@ private:
         amrex::Real zeta           = 0;
         amrex::Real beta           = 0;
         amrex::Real phi2           = 0;
-        amrex::Vector<amrex::Real> stc_direction; //What should I do?
     } m_params;
+
+    CommonLaserParameters m_common_params;
 };
 
 class HarrisLaserProfile : public ILaserProfile
 {
 
 public:
-    void init (const amrex::ParmParse& pp) override final;
+    void
+    init (
+        const amrex::ParmParse& ppl,
+        const amrex::ParmParse& ppc,
+        CommonLaserParameters params) override final;
 
     void
     fill_amplitude (
@@ -77,17 +101,23 @@ public:
 
 private:
     struct {
-        amrex::Real waist;
-        amrex::Real duration;
-        amrex::Real focal_distance;
+        amrex::Real waist          = std::numeric_limits<amrex::Real>::quiet_NaN();
+        amrex::Real duration       = std::numeric_limits<amrex::Real>::quiet_NaN();
+        amrex::Real focal_distance = std::numeric_limits<amrex::Real>::quiet_NaN();
     } m_params;
+
+    CommonLaserParameters m_common_params;
 };
 
 class FieldFunctionLaserProfile : public ILaserProfile
 {
 
 public:
-    void init (const amrex::ParmParse& pp) override final;
+    void
+    init (
+        const amrex::ParmParse& ppl,
+        const amrex::ParmParse& ppc,
+        CommonLaserParameters params) override final;
 
     void
     fill_amplitude (
@@ -106,16 +136,21 @@ private:
 };
 
 //_________________________________________Map of laser profile names --> laser profile classes
-
+const
 std::map<
 std::string,
 std::function<std::unique_ptr<ILaserProfile>()>
 >
 laser_profiles_dictionary =
 {
-    {"gaussian", [] () {return std::make_unique<GaussianLaserProfile>();} },
-    {"harris", [] () {return std::make_unique<HarrisLaserProfile>();} },
-    {"parse_field_function", [] () {return std::make_unique<FieldFunctionLaserProfile>();} }
+    {"gaussian",
+        [] () {return std::make_unique<GaussianLaserProfile>();} },
+    {"harris",
+        [] () {return std::make_unique<HarrisLaserProfile>();} },
+    {"parse_field_function",
+        [] () {return std::make_unique<FieldFunctionLaserProfile>();} }
 };
+
+} //WarpXLaserProfiles
 
 #endif //WARPX_LaserProfiles_H_

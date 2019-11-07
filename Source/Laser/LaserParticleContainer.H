@@ -60,14 +60,12 @@ protected:
     std::string laser_name;
 
 private:
-
     // runtime paramters
-    struct m_antenna_params
-    {
-        amrex::Vector<amrex::Real> position;
-        amrex::Vector<amrex::Real> nvec;
-        amrex::Vector<amrex::Real> p_X;
-    };
+    amrex::Vector<amrex::Real> position;
+    amrex::Vector<amrex::Real> nvec;
+    amrex::Vector<amrex::Real> p_X;
+    amrex::Vector<amrex::Real> stc_direction;
+    amrex::Real theta_stc;
 
     long                      pusher_algo = -1;
     amrex::Real               e_max       = std::numeric_limits<amrex::Real>::quiet_NaN();
@@ -100,7 +98,7 @@ private:
     void UpdateContinuousInjectionPosition(amrex::Real dt) override;
 
     //Unique (smart) pointer to the laser profile
-    const std::unique_ptr<ILaserProfile> m_up_laser_profile;
+    std::unique_ptr<WarpXLaserProfiles::ILaserProfile> m_up_laser_profile;
 
 };
 

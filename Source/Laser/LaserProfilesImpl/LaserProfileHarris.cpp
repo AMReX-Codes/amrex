@@ -1,14 +1,23 @@
 #include <LaserProfiles.H>
 
 #include <WarpX_Complex.H>
+#include <WarpXConst.H>
+
+using namespace amrex;
+using namespace WarpXLaserProfiles;
 
 void
-HarrisLaserProfile::init (const amrex::ParmParse& pp)
+HarrisLaserProfile::init (
+    const amrex::ParmParse& ppl,
+    const amrex::ParmParse& ppc,
+    CommonLaserParameters params)
 {
     // Parse the properties of the Harris profile
-    pp.get("profile_waist", profile_waist);
-    pp.get("profile_duration", profile_duration);
-    pp.get("profile_focal_distance", profile_focal_distance);
+    ppl.get("profile_waist", m_params.waist);
+    ppl.get("profile_duration", m_params.duration);
+    ppl.get("profile_focal_distance", m_params.focal_distance);
+    //Copy common params
+    m_common_params = params;
 }
 
 /* \brief compute field amplitude for a Harris laser function, at particles' position
@@ -29,29 +38,31 @@ HarrisLaserProfile::fill_amplitude (
     Real t, Real * AMREX_RESTRICT const amplitude)
 {
     // This function uses the Harris function as the temporal profile of the pulse
-    const Real omega0 = 2.*MathConst::pi*PhysConst::c/wavelength;
-    const Real zR = MathConst::pi * profile_waist*profile_waist / wavelength;
-    const Real wz = profile_waist *
-        std::sqrt(1. + profile_focal_distance*profile_focal_distance/zR*zR);
+    const Real omega0 =
+        2._rt*MathConst::pi*PhysConst::c/m_common_params.wavelength;
+    const Real zR = MathConst::pi * m_params.waist*m_params.waist
+        / m_common_params.wavelength;
+    const Real wz = m_params.waist *
+        std::sqrt(1._rt + m_params.focal_distance*m_params.focal_distance/zR*zR);
     const Real inv_wz_2 = 1./(wz*wz);
     Real inv_Rz;
-    if (profile_focal_distance == 0.){
+    if (m_params.focal_distance == 0.){
         inv_Rz = 0.;
     } else {
-        inv_Rz = -profile_focal_distance /
-            ( profile_focal_distance*profile_focal_distance + zR*zR );
+        inv_Rz = -m_params.focal_distance /
+            ( m_params.focal_distance*m_params.focal_distance + zR*zR );
     }
-    const Real arg_env = 2.*MathConst::pi*t/profile_duration;
+    const Real arg_env = 2.*MathConst::pi*t/m_params.duration;
 
     // time envelope is given by the Harris function
     Real time_envelope = 0.;
-    if (t < profile_duration)
+    if (t < m_params.duration)
         time_envelope = 1./32. * (10. - 15.*std::cos(arg_env) +
                                   6.*std::cos(2.*arg_env) -
                                   std::cos(3.*arg_env));
 
     // Copy member variables to tmp copies for GPU runs.
-    Real tmp_e_max = e_max;
+    Real tmp_e_max = m_common_params.e_max;
     // Loop through the macroparticle to calculate the proper amplitude
     amrex::ParallelFor(
         np,

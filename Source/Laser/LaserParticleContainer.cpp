@@ -10,6 +10,7 @@
 #include <MultiParticleContainer.H>
 
 using namespace amrex;
+using namespace WarpXLaserProfiles;
 
 namespace
 {
@@ -35,9 +36,11 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies,
     std::transform(laser_type_s.begin(), laser_type_s.end(), laser_type_s.begin(), ::tolower);
 
     // Parse the properties of the antenna
-    pp.getarr("position", m_antenna_params.position);
-    pp.getarr("direction", m_antenna_params.nvec);
-    pp.getarr("polarization", m_antenna_params.p_X);
+    pp.getarr("position", position);
+    pp.getarr("direction", nvec);
+    pp.getarr("polarization", p_X);
+    stc_direction = p_X;
+    pp.queryarr("stc_direction", stc_direction);
 
 
     pp.query("pusher_algo", pusher_algo);
@@ -50,35 +53,8 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies,
     if(laser_profiles_dictionary.count(laser_type_s) == 0){
         amrex::Abort("Unknown laser type");
     }
-    m_up_laser_profile = laser_profiles_dictionary[laser_type_s]();
+    m_up_laser_profile = laser_profiles_dictionary.at(laser_type_s)();
     //__________
-
-    m_up_laser_profile->init(pp);
-
-    if ( profile == laser_t::parse_field_function ) {
-        // Parse the properties of the parse_field_function profile
-        pp.get("field_function(X,Y,t)", field_function);
-        parser.define(field_function);
-        parser.registerVariables({"X","Y","t"});
-
-        ParmParse ppc("my_constants");
-        std::set<std::string> symbols = parser.symbols();
-        symbols.erase("X");
-        symbols.erase("Y");
-        symbols.erase("t"); // after removing variables, we are left with constants
-        for (auto it = symbols.begin(); it != symbols.end(); ) {
-            Real v;
-            if (ppc.query(it->c_str(), v)) {
-                parser.setConstant(*it, v);
-                it = symbols.erase(it);
-            } else {
-                ++it;
-            }
-        }
-        for (auto const& s : symbols) { // make sure there no unknown symbols
-            amrex::Abort("Laser Profile: Unknown symbol "+s);
-        }
-    }
 
     // Plane normal
     Real s = 1.0_rt / std::sqrt(nvec[0]*nvec[0] + nvec[1]*nvec[1] + nvec[2]*nvec[2]);
@@ -170,6 +146,13 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies,
                 "warpx.boost_direction = z. TODO: all directions.");
         }
     }
+
+    //Init laser profile
+    CommonLaserParameters common_params;
+    common_params.wavelength = wavelength;
+    common_params.e_max = e_max;
+    common_params.theta_stc = theta_stc;
+    m_up_laser_profile->init(pp, ParmParse{"my_constants"}, common_params);
 }
 
 /* \brief Check if laser particles enter the box, and inject if necessary.
@@ -484,21 +467,9 @@ LaserParticleContainer::Evolve (int lev,
 
             // Calculate the laser amplitude to be emitted,
             // at the position of the emission plane
-            if (profile == laser_t::Gaussian) {
-                gaussian_laser_profile(np, plane_Xp.dataPtr(), plane_Yp.dataPtr(),
-                                       t_lab, amplitude_E.dataPtr());
-            }
-
-            if (profile == laser_t::Harris) {
-                harris_laser_profile(np, plane_Xp.dataPtr(), plane_Yp.dataPtr(),
-                                     t_lab, amplitude_E.dataPtr());
-            }
-
-            if (profile == laser_t::parse_field_function) {
-                for (int i = 0; i < np; ++i) {
-                    amplitude_E[i] = parser.eval(plane_Xp[i], plane_Yp[i], t);
-                }
-            }
+            m_up_laser_profile->fill_amplitude(
+                np, plane_Xp.dataPtr(), plane_Yp.dataPtr(),
+                t_lab, amplitude_E.dataPtr());
 
             // Calculate the corresponding momentum and position for the particles
             update_laser_particle(np, uxp.dataPtr(), uyp.dataPtr(),

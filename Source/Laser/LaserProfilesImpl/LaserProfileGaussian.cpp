@@ -1,22 +1,27 @@
 #include <LaserProfiles.H>
 
 #include <WarpX_Complex.H>
+#include <WarpXConst.H>
 
 using namespace amrex;
+using namespace WarpXLaserProfiles;
 
 void
-GaussianLaserProfile::init (const amrex::ParmParse& pp)
+GaussianLaserProfile::init (
+    const amrex::ParmParse& ppl,
+    const amrex::ParmParse& ppc,
+    CommonLaserParameters params)
 {
     // Parse the properties of the Gaussian profile
-    pp.get("profile_waist", m_params.profile_waist);
-    pp.get("profile_duration", m_params.profile_duration);
-    pp.get("profile_t_peak", m_params.profile_t_peak);
-    pp.get("profile_focal_distance", m_params.profile_focal_distance);
-    //stc_direction = p_X; //TO HANDLE!
-    pp.queryarr("stc_direction", m_params.stc_direction);
-    pp.query("zeta", m_params.zeta);
-    pp.query("beta", m_params.beta);
-    pp.query("phi2", m_params.phi2);
+    ppl.get("profile_waist", m_params.waist);
+    ppl.get("profile_duration", m_params.duration);
+    ppl.get("profile_t_peak", m_params.t_peak);
+    ppl.get("profile_focal_distance", m_params.focal_distance);
+    ppl.query("zeta", m_params.zeta);
+    ppl.query("beta", m_params.beta);
+    ppl.query("phi2", m_params.phi2);
+    //Copy common params
+    m_common_params = params;
 }
 
 /* \brief compute field amplitude for a Gaussian laser, at particles' position
@@ -38,24 +43,28 @@ GaussianLaserProfile::fill_amplitude (
 {
     Complex I(0,1);
     // Calculate a few factors which are independent of the macroparticle
-    const Real k0 = 2.*MathConst::pi/wavelength;
-    const Real inv_tau2 = 1. / (profile_duration * profile_duration);
-    const Real oscillation_phase = k0 * PhysConst::c * ( t - profile_t_peak );
+    const Real k0 = 2.*MathConst::pi/m_common_params.wavelength;
+    const Real inv_tau2 = 1. /(m_params.duration * m_params.duration);
+    const Real oscillation_phase = k0 * PhysConst::c * ( t - m_params.t_peak );
     // The coefficients below contain info about Gouy phase,
     // laser diffraction, and phase front curvature
-    const Complex diffract_factor = 1._rt + I * profile_focal_distance
-        * 2._rt/( k0 * profile_waist * profile_waist );
-    const Complex inv_complex_waist_2 = 1._rt / ( profile_waist*profile_waist * diffract_factor );
+    const Complex diffract_factor =
+        1._rt + I * m_params.focal_distance * 2._rt/
+        ( k0 * m_params.waist * m_params.waist );
+    const Complex inv_complex_waist_2 =
+        1._rt /(m_params.waist*m_params.waist * diffract_factor );
 
     // Time stretching due to STCs and phi2 complex envelope
     // (1 if zeta=0, beta=0, phi2=0)
     const Complex stretch_factor = 1._rt + 4._rt *
-        (zeta+beta*profile_focal_distance) * (zeta+beta*profile_focal_distance)
-        * (inv_tau2*inv_complex_waist_2) +
-        2._rt *I*(phi2 - beta*beta*k0*profile_focal_distance) * inv_tau2;
+        (m_params.zeta+m_params.beta*m_params.focal_distance)
+        * (m_params.zeta+m_params.beta*m_params.focal_distance)
+        * (inv_tau2*inv_complex_waist_2) + 2._rt *I * (m_params.phi2
+        - m_params.beta*m_params.beta*k0*m_params.focal_distance) * inv_tau2;
 
     // Amplitude and monochromatic oscillations
-    Complex prefactor = e_max * MathFunc::exp( I * oscillation_phase );
+    Complex prefactor =
+        m_common_params.e_max * MathFunc::exp( I * oscillation_phase );
 
     // Because diffract_factor is a complex, the code below takes into
     // account the impact of the dimensionality on both the Gouy phase
@@ -67,11 +76,11 @@ GaussianLaserProfile::fill_amplitude (
 #endif
 
     // Copy member variables to tmp copies for GPU runs.
-    Real tmp_profile_t_peak = profile_t_peak;
-    Real tmp_beta = beta;
-    Real tmp_zeta = zeta;
-    Real tmp_theta_stc = theta_stc;
-    Real tmp_profile_focal_distance = profile_focal_distance;
+    auto tmp_profile_t_peak = m_params.t_peak;
+    auto tmp_beta = m_params.beta;
+    auto tmp_zeta = m_params.zeta;
+    auto tmp_theta_stc = m_common_params.theta_stc;
+    auto tmp_profile_focal_distance = m_params.focal_distance;
     // Loop through the macroparticle to calculate the proper amplitude
     amrex::ParallelFor(
         np,
