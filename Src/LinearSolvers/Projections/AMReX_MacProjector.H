@@ -17,7 +17,7 @@ public:
     MacProjector (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_umac,
                   const Vector<Array<MultiFab const*,AMREX_SPACEDIM> >& a_beta,
                   const Vector<Geometry>& a_geom,
-                  const LPInfo& a_lpinfo,  
+                  const LPInfo& a_lpinfo,
                   const Vector<MultiFab const*>& a_divu = {});
 
     MacProjector (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_umac,
@@ -28,6 +28,8 @@ public:
 
     void setDomainBC (const Array<LinOpBCType,AMREX_SPACEDIM>& lobc,
                       const Array<LinOpBCType,AMREX_SPACEDIM>& hibc);
+
+    void setLevelBC  (int amrlev, const MultiFab* levelbcdata);
 
 #ifndef AMREX_USE_EB
     void project (const Vector<MultiFab*>& phi_in, Real reltol, Real atol)
@@ -78,6 +80,8 @@ private:
 
     Real m_bottom_reltol = 1.e-4;
     Real m_bottom_abstol = -1.0;
+
+    bool m_needs_domain_bcs = true;
 
     MLMG::BottomSolver bottom_solver_type = MLMG::BottomSolver::bicgstab;
 };
