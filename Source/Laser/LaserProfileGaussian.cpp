@@ -1,9 +1,23 @@
 #include <LaserProfiles.H>
 
 #include <WarpX_Complex.H>
-//#include <LaserParticleContainer.H>
 
 using namespace amrex;
+
+void
+GaussianLaserProfile::init (const amrex::ParmParse& pp)
+{
+    // Parse the properties of the Gaussian profile
+    pp.get("profile_waist", m_params.profile_waist);
+    pp.get("profile_duration", m_params.profile_duration);
+    pp.get("profile_t_peak", m_params.profile_t_peak);
+    pp.get("profile_focal_distance", m_params.profile_focal_distance);
+    //stc_direction = p_X; //TO HANDLE!
+    pp.queryarr("stc_direction", m_params.stc_direction);
+    pp.query("zeta", m_params.zeta);
+    pp.query("beta", m_params.beta);
+    pp.query("phi2", m_params.phi2);
+}
 
 /* \brief compute field amplitude for a Gaussian laser, at particles' position
  *
