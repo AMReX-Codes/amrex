@@ -3,6 +3,7 @@
 
 #include <AMReX_REAL.H>
 #include <AMReX_ParamParse.H>
+#include <AMReX_Vector.H>
 
 #include <WarpXParser.H>
 
@@ -10,6 +11,7 @@
 #include <string>
 #include <memory>
 #include <functional>
+#include <limits>
 
 //_________________________________________Abstract interface for laser profile classes
 
@@ -47,15 +49,15 @@ public:
         amrex::Real * AMREX_RESTRICT const amplitude) override final;
 
 private:
-    struct params{
-        amrex::Real waist;
-        amrex::Real duration;
-        amrex::Real t_peak;
-        amrex::Real focal_distance;
-        amrex::Real stc_direction;
-        amrex::Real zeta;
-        amrex::Real beta;
-        amrex::Real phi2;
+    struct m_params{
+        amrex::Real waist          = std::numeric_limits<amrex::Real>::quiet_NaN();
+        amrex::Real duration       = std::numeric_limits<amrex::Real>::quiet_NaN();
+        amrex::Real t_peak         = std::numeric_limits<amrex::Real>::quiet_NaN();
+        amrex::Real focal_distance = std::numeric_limits<amrex::Real>::quiet_NaN();
+        amrex::Real zeta           = 0;
+        amrex::Real beta           = 0;
+        amrex::Real phi2           = 0;
+        amrex::Vector<amrex::Real> stc_direction; //What should I do?
     };
 };
 
@@ -74,7 +76,7 @@ public:
         amrex::Real * AMREX_RESTRICT const amplitude) override final;
 
 private:
-    struct params{
+    struct m_params{
         amrex::Real waist;
         amrex::Real duration;
         amrex::Real focal_distance;
@@ -96,11 +98,11 @@ public:
         amrex::Real * AMREX_RESTRICT const amplitude) override final;
 
 private:
-    struct params{
+    struct m_params{
         std::string field_function;
     };
 
-     WarpXParser parser;
+     WarpXParser m_parser;
 };
 
 //_________________________________________Map of laser profile names --> laser profile classes
