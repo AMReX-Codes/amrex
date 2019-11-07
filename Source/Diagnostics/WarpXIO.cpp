@@ -18,7 +18,7 @@
 #include <AMReX_Conduit_Blueprint.H>
 #endif
 
-#ifdef WARPX_USE_OPENPMD 
+#ifdef WARPX_USE_OPENPMD
 #include "WarpXOpenPMD.H"
 #endif
 
@@ -529,7 +529,7 @@ WarpX::WritePlotFile () const
 #ifdef WARPX_USE_OPENPMD
     m_OpenPMDPlotWriter->SetStep(istep[0]);
     if (dump_openpmd)
-      m_OpenPMDPlotWriter->WriteOpenPMDFields(varnames, 
+      m_OpenPMDPlotWriter->WriteOpenPMDFields(varnames,
                           *output_mf[0], output_geom[0], istep[0], t_new[0] );
     /*
     if (dump_openpmd){
@@ -627,7 +627,7 @@ WarpX::WritePlotFile () const
         }
     }
 
-#ifdef WARPX_USE_OPENPMD            
+#ifdef WARPX_USE_OPENPMD
     // Write openPMD format: only for level 0
 
     /*
@@ -635,12 +635,12 @@ WarpX::WritePlotFile () const
     filename.append(openpmd_backend);
     filename += amrex::Concatenate("/particle", istep[0]);
     filename += std::string(".") + openpmd_backend;
-    
+
 
     WarpXOpenPMDParticle  openPMDWriter(filename, openpmd_backend);
     openPMDWriter.SaveContainerPlots(mypc);
     */
-    
+
  //m_OpenPMDPlotWriter->SetStep(istep[0]);
     m_OpenPMDPlotWriter->SaveContainerPlots(mypc);
 #else

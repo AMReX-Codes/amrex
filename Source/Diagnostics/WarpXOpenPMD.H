@@ -8,7 +8,7 @@
 
 class WarpXOpenPMDParticle
 {
-public: 
+public:
   WarpXOpenPMDParticle(bool, const std::string& filetype);
   //WarpXOpenPMDParticle(const std::string& dir, const std::string& fileType);
   ~WarpXOpenPMDParticle();
@@ -20,34 +20,34 @@ public:
 
   void WriteOpenPMDFields(//const std::string& filename,
               const std::vector<std::string>& varnames,
-              const amrex::MultiFab& mf, 
+              const amrex::MultiFab& mf,
               const amrex::Geometry& geom,
               const int iteration, const double time ) const;
-  
+
 
 private:
-  void Init(const std::string& filename, 
+  void Init(const std::string& filename,
         openPMD::AccessType accessType);
 
   // get the offset in the overall particle id collection
-  void GetParticleOffsetOfProcessor(const long& numParticles, 
-                    unsigned long& offset, 
+  void GetParticleOffsetOfProcessor(const long& numParticles,
+                    unsigned long& offset,
                     unsigned long long& sum)  const ;
 
-  void SetupPos(openPMD::ParticleSpecies& currSpecies, 
+  void SetupPos(openPMD::ParticleSpecies& currSpecies,
         const unsigned long long& np) const ;
 
-  void SetupRealProperties(openPMD::ParticleSpecies& currSpecies, 
+  void SetupRealProperties(openPMD::ParticleSpecies& currSpecies,
                const amrex::Vector<int>& write_real_comp,
                const amrex::Vector<std::string>& real_comp_names,
                unsigned long long np) const;
 
   void SaveRealProperty(WarpXParIter& pti, //int, int,
-            openPMD::ParticleSpecies& currSpecies, 
+            openPMD::ParticleSpecies& currSpecies,
             unsigned long offset,
             unsigned long long numParticles,
             const amrex::Vector<int>& write_real_comp,
-            const amrex::Vector<std::string>& real_comp_names) const;                      
+            const amrex::Vector<std::string>& real_comp_names) const;
 
 
   void SavePlotFile(const std::unique_ptr<WarpXParticleContainer>& pc,
@@ -66,10 +66,10 @@ private:
   int m_MPIRank = 0;
   int m_MPISize = 1;
 
-  int m_NumSoARealAttributes = PIdx::nattribs; 
+  int m_NumSoARealAttributes = PIdx::nattribs;
   int m_NumAoSRealAttributes = 0; // WarpX definition
 
-  bool m_OneFilePerTS = true; 
+  bool m_OneFilePerTS = true;
   std::string m_OpenPMDFileType = "bp";
   int m_CurrentStep  = -1;
 };

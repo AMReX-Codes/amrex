@@ -103,7 +103,7 @@ class WarpXParticleContainer
 {
 public:
     friend MultiParticleContainer;
-#ifdef WARPX_USE_OPENPMD  
+#ifdef WARPX_USE_OPENPMD
   friend class WarpXOpenPMDParticle;
 #endif
 
