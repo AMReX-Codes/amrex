@@ -17,10 +17,10 @@ class ILaserProfile
 {
 public:
     virtual void
-    init(const amrex::ParmParse& pp) = 0;
+    init (const amrex::ParmParse& pp) = 0;
 
     virtual void
-    fill_amplitude(
+    fill_amplitude (
         const int np,
         amrex::Real const * AMREX_RESTRICT const Xp,
         amrex::Real const * AMREX_RESTRICT const Yp,
@@ -36,10 +36,10 @@ class GaussianLaserProfile : public ILaserProfile
 {
 
 public:
-    void init(const amrex::ParmParse& pp) override final;
+    void init (const amrex::ParmParse& pp) override final;
 
     void
-    fill_amplitude(
+    fill_amplitude (
         const int np,
         amrex::Real const * AMREX_RESTRICT const Xp,
         amrex::Real const * AMREX_RESTRICT const Yp,
@@ -63,10 +63,10 @@ class HarrisLaserProfile : public ILaserProfile
 {
 
 public:
-    void init(const amrex::ParmParse& pp) override final;
+    void init (const amrex::ParmParse& pp) override final;
 
     void
-    fill_amplitude(
+    fill_amplitude (
         const int np,
         amrex::Real const * AMREX_RESTRICT const Xp,
         amrex::Real const * AMREX_RESTRICT const Yp,
@@ -85,10 +85,10 @@ class FieldFunctionLaserProfile : public ILaserProfile
 {
 
 public:
-    void init(const amrex::ParmParse& pp) override final;
+    void init (const amrex::ParmParse& pp) override final;
 
     void
-    fill_amplitude(
+    fill_amplitude (
         const int np,
         amrex::Real const * AMREX_RESTRICT const Xp,
         amrex::Real const * AMREX_RESTRICT const Yp,
