@@ -1123,17 +1123,20 @@ MLNodeLaplacian::buildStencil ()
             MultiFab* pcrse = (need_parallel_copy) ? &cfine : &crse;
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-            for (MFIter mfi(*pcrse, true); mfi.isValid(); ++mfi)
+            for (MFIter mfi(*pcrse, TilingIfNotGPU()); mfi.isValid(); ++mfi)
             {
                 Box vbx = mfi.validbox();
                 AMREX_D_TERM(vbx.growLo(0,1);, vbx.growLo(1,1);, vbx.growLo(2,1));
                 Box bx = mfi.growntilebox(1);
                 bx &= vbx;
-                amrex_mlndlap_stencil_rap(BL_TO_FORTRAN_BOX(bx),
-                                          BL_TO_FORTRAN_ANYD((*pcrse)[mfi]),
-                                          BL_TO_FORTRAN_ANYD(fine[mfi]));
+                Array4<Real> const& csten = pcrse->array(mfi);
+                Array4<Real const> const& fsten = fine.const_array(mfi);
+                AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
+                {
+                    mlndlap_stencil_rap(i,j,k,csten,fsten);
+                });
             }
 
 #ifdef _OPENMP
