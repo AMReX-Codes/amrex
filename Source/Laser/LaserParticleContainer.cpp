@@ -34,6 +34,11 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies,
     std::string laser_type_s;
     pp.get("profile", laser_type_s);
     std::transform(laser_type_s.begin(), laser_type_s.end(), laser_type_s.begin(), ::tolower);
+
+    if()
+
+    m_up_laser_profile = laser_profiles_dictionary["profile"]();
+
     if (laser_type_s == "gaussian") {
         profile = laser_t::Gaussian;
     } else if(laser_type_s == "harris") {

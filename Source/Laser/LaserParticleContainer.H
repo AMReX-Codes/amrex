@@ -1,13 +1,13 @@
 #ifndef WARPX_LaserParticleContainer_H_
 #define WARPX_LaserParticleContainer_H_
 
-#include <limits>
-
 #include <WarpXParticleContainer.H>
 #include <WarpXConst.H>
 #include <WarpXParser.H>
 
-enum class laser_t { Null, Gaussian, Harris, parse_field_function };
+#include <LaserProfiles.H>
+
+#include <memory>
 
 class LaserParticleContainer
     : public WarpXParticleContainer
@@ -82,20 +82,6 @@ private:
     amrex::Real weight   = std::numeric_limits<amrex::Real>::quiet_NaN();
     amrex::Real mobility = std::numeric_limits<amrex::Real>::quiet_NaN();
 
-    // Gaussian profile
-    amrex::Real profile_waist          = std::numeric_limits<amrex::Real>::quiet_NaN();
-    amrex::Real profile_duration       = std::numeric_limits<amrex::Real>::quiet_NaN();
-    amrex::Real profile_t_peak         = std::numeric_limits<amrex::Real>::quiet_NaN();
-    amrex::Real profile_focal_distance = std::numeric_limits<amrex::Real>::quiet_NaN();
-    amrex::Real zeta = 0.;
-    amrex::Real beta = 0.;
-    amrex::Real phi2 = 0.;
-    amrex::Real theta_stc = 0.;
-
-    // parse_field_function profile
-    WarpXParser parser;
-    std::string field_function;
-
     // laser particle domain
     amrex::RealBox laser_injection_box;
     // Theoretical position of the antenna. Used if do_continuous_injection=1.
@@ -110,6 +96,10 @@ private:
     void ContinuousInjection(const amrex::RealBox& injection_box) override;
     // Update position of the antenna
     void UpdateContinuousInjectionPosition(amrex::Real dt) override;
+
+    //Unique (smart) pointer to the laser profile
+    const std::unique_ptr<ILaserProfile> m_up_laser_profile;
+
 };
 
 #endif

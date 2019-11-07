@@ -107,18 +107,18 @@ private:
 
 //_________________________________________Map of laser profile names --> laser profile classes
 
-const std::map<
+std::map<
 std::string,
-std::function<std::unique_ptr<ILaserProfile>>(const amrex::ParmParse&)
+std::function<std::unique_ptr<ILaserProfile>(const amrex::ParmParse&)>
 >
 laser_profiles_dictionary =
 {
     {"gaussian", [] (const amrex::ParmParse& pp) {
-        return std::make_unique<GaussianLaserProfile>(pp)} },
+        return std::make_unique<GaussianLaserProfile>(pp);} },
     {"harris", [] (const amrex::ParmParse& pp) {
-        return std::make_unique<HarrisLaserProfile>(pp)} },
+        return std::make_unique<HarrisLaserProfile>(pp);} },
     {"parse_field_function", [] (const amrex::ParmParse& pp) {
-        return std::make_unique<FieldFunctionLaserProfile>(pp)} }
+        return std::make_unique<FieldFunctionLaserProfile>(pp);} }
 };
 
 #endif //WARPX_LaserProfiles_H_
