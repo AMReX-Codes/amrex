@@ -185,7 +185,7 @@ public:
                         const amrex::MultiFab& Bz) = 0;
 
     void DepositCharge(amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
-                       bool local = false);
+                       bool local = false, bool reset = true);
     std::unique_ptr<amrex::MultiFab> GetChargeDensity(int lev, bool local = false);
 
     virtual void DepositCharge(WarpXParIter& pti,
@@ -254,6 +254,7 @@ public:
     void setNextID(int next_id) { ParticleType::NextID(next_id); }
 
     bool do_splitting = false;
+    bool initialize_self_fields = false;
 
     // split along diagonals (0) or axes (1)
     int split_type = 0;

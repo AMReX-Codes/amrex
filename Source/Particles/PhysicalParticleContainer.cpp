@@ -41,6 +41,7 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
     pp.query("split_type", split_type);
 
     pp.query("do_continuous_injection", do_continuous_injection);
+    pp.query("initialize_self_fields", initialize_self_fields);
     // Whether to plot back-transformed (lab-frame) diagnostics
     // for this species.
     pp.query("do_back_transformed_diagnostics", do_back_transformed_diagnostics);

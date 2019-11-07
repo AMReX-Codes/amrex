@@ -224,6 +224,10 @@ Particle initialization
     initialization. This can be required whith a moving window and/or when
     running in a boosted frame.
 
+* ``<species_name>.initialize_self_fields`` (`0` or `1`)
+    Whether to calculate the space-charge fields associated with this species
+    at the beginning of the simulation.
+
 * ``<species_name>.profile`` (`string`)
     Density profile for this species. The options are:
 

@@ -1,0 +1,116 @@
+
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_MLMG.H>
+#include <AMReX_MLNodeLaplacian.H>
+
+#include <WarpX.H>
+
+using namespace amrex;
+
+void
+WarpX::InitSpaceChargeField (WarpXParticleContainer& pc)
+{
+    // Allocate fields for charge and potential
+    const int num_levels = max_level + 1;
+    Vector<std::unique_ptr<MultiFab> > rho(num_levels);
+    Vector<std::unique_ptr<MultiFab> > phi(num_levels);
+    const int ng = WarpX::nox;
+    for (int lev = 0; lev <= max_level; lev++) {
+        BoxArray nba = boxArray(lev);
+        nba.surroundingNodes();
+        rho[lev].reset(new MultiFab(nba, dmap[lev], 1, ng)); // Make ng big enough/use rho from sim
+        phi[lev].reset(new MultiFab(nba, dmap[lev], 1, 0));
+        phi[lev]->setVal(0.);
+    }
+
+    // Deposit particle charge density (source of Poisson solver)
+    bool local = false;
+    bool reset = true;
+    pc.DepositCharge(rho, local, reset);
+
+    // Call amrex's multigrid solver
+    // -----------------------------
+
+    // Define the boundary conditions
+    Array<LinOpBCType,AMREX_SPACEDIM> lobc, hibc;
+    for (int idim=0; idim<AMREX_SPACEDIM; idim++){
+        if ( Geom(0).isPeriodic(idim) ) {
+            lobc[idim] = LinOpBCType::Periodic;
+            hibc[idim] = LinOpBCType::Periodic;
+        } else {
+            // Use Dirichlet boundary condition by default.
+            // Ideally, we would often want open boundary conditions here.
+            lobc[idim] = LinOpBCType::Dirichlet;
+            hibc[idim] = LinOpBCType::Dirichlet;
+        }
+    }
+
+    // Define the linear operator (Poisson operator)
+    MLNodeLaplacian linop( Geom(), boxArray(), DistributionMap() );
+    linop.setDomainBC( lobc, hibc );
+    for (int lev = 0; lev <= max_level; lev++) {
+        BoxArray cba = boxArray(lev);
+        cba.enclosedCells();
+        MultiFab sigma(cba, DistributionMap(lev), 1, 0);
+        sigma.setVal(PhysConst::ep0);
+        linop.setSigma(lev, sigma);
+    }
+
+    // Solve the Poisson equation
+    MLMG mlmg(linop);
+    const Real reltol = 1.e-3;
+    mlmg.solve( GetVecOfPtrs(phi), GetVecOfConstPtrs(rho), reltol, 0.0);
+
+    // Compute the electric field from the phi potential
+    // -------------------------------------------------
+
+    for (int lev = 0; lev <= max_level; lev++) {
+
+        const Real* dx = Geom(lev).CellSize();
+
+#ifdef _OPENMP
+        #pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for ( MFIter mfi(*phi[lev], TilingIfNotGPU()); mfi.isValid(); ++mfi )
+        {
+            const Real inv_dx = 1./dx[0];
+#if (AMREX_SPACEDIM == 3)
+            const Real inv_dy = 1./dx[1];
+            const Real inv_dz = 1./dx[2];
+#else
+            const Real inv_dz = 1./dx[1];
+#endif
+            const Box& tbx  = mfi.tilebox(Ex_nodal_flag);
+            const Box& tby  = mfi.tilebox(Ey_nodal_flag);
+            const Box& tbz  = mfi.tilebox(Ez_nodal_flag);
+
+            const auto& phi_arr = phi[0]->array(mfi);
+            const auto& Ex_arr = (*Efield_fp[lev][0])[mfi].array();
+            const auto& Ey_arr = (*Efield_fp[lev][1])[mfi].array();
+            const auto& Ez_arr = (*Efield_fp[lev][2])[mfi].array();
+
+#if (AMREX_SPACEDIM == 3)
+            amrex::ParallelFor( tbx, tby, tbz,
+                [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                    Ex_arr(i,j,k) += inv_dx*( phi_arr(i+1,j,k) - phi_arr(i,j,k) );
+                },
+                [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                    Ey_arr(i,j,k) += inv_dy*( phi_arr(i,j+1,k) - phi_arr(i,j,k) );
+                },
+                [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                    Ez_arr(i,j,k) += inv_dz*( phi_arr(i,j,k+1) - phi_arr(i,j,k) );
+                }
+            );
+#else
+            amrex::ParallelFor( tbx, tbz,
+                [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                    Ex_arr(i,j,k) += inv_dx*( phi_arr(i+1,j,k) - phi_arr(i,j,k) );
+                },
+                [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                    Ez_arr(i,j,k) += inv_dz*( phi_arr(i,j+1,k) - phi_arr(i,j,k) );
+                }
+            );
+#endif
+        }
+    }
+}

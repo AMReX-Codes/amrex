@@ -360,22 +360,6 @@ private:
     ///
     void EvolveES(int numsteps);
 
-    ///
-    /// Compute the gravitational potential from rho by solving Poisson's equation.
-    /// Both rho and phi are assumed to be node-centered. This method is only used
-    /// in electrostatic mode.
-    ///
-    void computePhi(const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
-                          amrex::Vector<std::unique_ptr<amrex::MultiFab> >& phi) const;
-
-    ///
-    /// Compute the electric field in each direction by computing the gradient
-    /// the potential phi using 2nd order centered differences. Both rho and phi
-    /// are assumed to be node-centered. This method is only used in electrostatic mode.
-    ///
-    void computeE(amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
-                  const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& phi) const;
-
     //
     // This stuff is needed by the nodal multigrid solver when running in
     // electrostatic mode.
@@ -411,7 +395,11 @@ private:
     void InitFromCheckpoint ();
     void PostRestart ();
 
-    void InitOpenbc ();
+    void InitSpaceChargeField (WarpXParticleContainer& pc);
+    void computePhi(const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
+                          amrex::Vector<std::unique_ptr<amrex::MultiFab> >& phi) const;
+    void computeE(amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
+                  const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& phi) const;
 
     void InitPML ();
     void ComputePMLFactors ();
