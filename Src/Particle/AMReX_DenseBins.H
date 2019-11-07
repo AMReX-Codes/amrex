@@ -56,8 +56,8 @@ public:
         m_perm.resize(nitems);
         
         auto nbins = bx.numPts();
-        m_counts.resize(0);
-        m_counts.resize(nbins, 0);
+        m_counts.resize(0);        
+        m_counts.resize(nbins+1, 0);
 
         m_offsets.resize(0);
         m_offsets.resize(nbins+1);
@@ -80,9 +80,9 @@ public:
             Gpu::Atomic::Add(&pcount[pcell[i]], index_type{ 1 });
         });
 
-        Gpu::exclusive_scan(m_counts.begin(), m_counts.end()+1, m_offsets.begin());
+        Gpu::exclusive_scan(m_counts.begin(), m_counts.end(), m_offsets.begin());
         
-        Gpu::thrust_copy(m_offsets.begin(), m_offsets.end()-1, m_counts.begin());
+        Gpu::thrust_copy(m_offsets.begin(), m_offsets.end(), m_counts.begin());
 
         index_type* pperm = m_perm.dataPtr();
         constexpr index_type max_index = std::numeric_limits<index_type>::max();
