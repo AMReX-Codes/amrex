@@ -1,28 +1,99 @@
 #include "WarpXOpenPMD.H"
+#include "FieldIO.H"  // for getReversedVec
 
-WarpXOpenPMDParticle::WarpXOpenPMDParticle(const std::string& filename)
-  :m_Series(nullptr)
+WarpXOpenPMDParticle::WarpXOpenPMDParticle(bool oneFilePerTS,
+					   const std::string& openPMDFileType)
+  :m_Series(nullptr),
+   m_OneFilePerTS(oneFilePerTS),
+   m_OpenPMDFileType(openPMDFileType)
+{}
+
+/*
+WarpXOpenPMDParticle::WarpXOpenPMDParticle(const std::string& filename,
+					   const std::string& openPMDFileType)
+  :m_Series(nullptr),
+   m_OneFilePerTS(true),
+   m_OpenPMDFileType(openPMDFileType)
 {
+  Init(filename, openPMD::AccessType::CREATE);
+}
+*/
+
+WarpXOpenPMDParticle::~WarpXOpenPMDParticle()
+{
+  if (nullptr != m_Series) {
+    m_Series->flush();  
+    delete m_Series;
+  }
+}
+
+
+//
+//
+//
+void WarpXOpenPMDParticle::GetFileName(std::string& filename, int ts)
+{
+  std::string dir = "diags/"; 
+  std::string prefix="/plot";   
+
+  // Write openPMD format: only for level 0                                                                         
+  filename = std::string(dir);
+  filename.append(m_OpenPMDFileType);
+
+  if (m_OneFilePerTS)
+    filename += amrex::Concatenate(prefix, ts);
+  else
+    filename.append(prefix);
+
+  filename += std::string(".") + m_OpenPMDFileType;
+}
+
+
+void WarpXOpenPMDParticle::SetOpenPMDType(const std::string& type)
+{
+  m_OpenPMDFileType = type;
+}
+
+void WarpXOpenPMDParticle::SetStep(int ts)
+{
+  if (ts < 0)
+    return;
+
+  m_CurrentStep =  ts;
+
+  std::string filename;
+  if (m_OneFilePerTS) {
+    GetFileName(filename, ts);
+    Init(filename, openPMD::AccessType::CREATE);
+  } else { // one file
+    if (nullptr == m_Series) {
+      GetFileName(filename, -1);
+      Init(filename, openPMD::AccessType::CREATE);
+    }
+  }
+}
+
+void
+WarpXOpenPMDParticle::Init(const std::string& filename, 
+			   openPMD::AccessType accessType)
+{
+  if (m_Series != nullptr) {
+    m_Series->flush();  
+    delete m_Series;
+    m_Series = nullptr;
+  }
+
   if (amrex::ParallelDescriptor::NProcs() > 1) {
     m_Series = new openPMD::Series(filename,                                 
-				   openPMD::AccessType::CREATE, 
+				   accessType,
 				   amrex::ParallelDescriptor::Communicator());  
     m_MPISize = amrex::ParallelDescriptor::NProcs();
     m_MPIRank = amrex::ParallelDescriptor::MyProc();
   }
   else
-    m_Series = new openPMD::Series(filename,               
-				   openPMD::AccessType::CREATE);		
+    m_Series = new openPMD::Series(filename, accessType);
 }
 
-
-
-WarpXOpenPMDParticle::~WarpXOpenPMDParticle()
-{
-  m_Series->flush();
-  
-  delete m_Series;
-}
 
 void 
 WarpXOpenPMDParticle::SaveContainerPlots(const std::unique_ptr<MultiParticleContainer>& mpc)
@@ -80,7 +151,7 @@ WarpXOpenPMDParticle::SaveContainerPlots(const std::unique_ptr<MultiParticleCont
       //std::unique_ptr<WarpXParticleContainer> upc (&pc);
       SavePlotFile(pc,
 		   species_names[i],
-		   -1, // use -1 so levels will be iterations                                         
+		   m_CurrentStep, //-1, // use -1 so levels will be iterations                                         
 		   pc->plot_flags, // this is protected and accessible by MultiParticleContainer.     
 		   // so kept as is                                                   
 		   int_flags,
@@ -102,7 +173,11 @@ WarpXOpenPMDParticle::SavePlotFile (const std::unique_ptr<WarpXParticleContainer
 				    const amrex::Vector<std::string>& real_comp_names,
 				    const amrex::Vector<std::string>&  int_comp_names) const
 {
-  m_Series->setParticlesPath("TestingWarpXParticles_one_level");
+  if ( nullptr == m_Series)
+    return;
+
+  if (0 == m_CurrentStep ) // can only define once
+    m_Series->setParticlesPath("TestingWarpXParticles_one_level");
 
   int numLevels = pc->finestLevel();
 
@@ -110,15 +185,12 @@ WarpXOpenPMDParticle::SavePlotFile (const std::unique_ptr<WarpXParticleContainer
     {
       //openPMD::Iteration& currIteration = m_Series->iterations[currentLevel];
       std::ostringstream s;       s << name; 
-      int iter = iteration;
-      if (iteration < 0) {
-	// no time concept, then  store level info: 
-	iter = currentLevel;
-      }  else  {
-	s <<":amrLevel="<<currentLevel;
-      }
+      //int iter = iteration;
+      s <<":amrLevel="<<currentLevel;
 
-      openPMD::Iteration& currIteration = m_Series->iterations[iter];
+
+      //openPMD::Iteration& currIteration = m_Series->iterations[iter];
+      openPMD::Iteration& currIteration = m_Series->iterations[iteration];
       //openPMD::ParticleSpecies& currSpecies = currIteration.particles[name];
 
       std::string leveledName(s.str());
@@ -302,3 +374,113 @@ WarpXOpenPMDParticle::GetParticleOffsetOfProcessor(const long& numParticles,
 }
 
 
+
+
+//
+// this is originally copied from FieldIO.cpp
+//
+void
+WarpXOpenPMDParticle::WriteOpenPMDFields( //const std::string& filename,
+					  const std::vector<std::string>& varnames,
+					  const amrex::MultiFab& mf, 
+					  const amrex::Geometry& geom,
+					  const int iteration, 
+					  const double time ) const
+{
+  BL_PROFILE("WriteOpenPMDFields()");
+
+  if ( nullptr == m_Series)
+    return;
+
+  const int ncomp = mf.nComp();
+
+  // Create a few vectors that store info on the global domain
+  // Swap the indices for each of them, since AMReX data is Fortran order
+  // and since the openPMD API assumes contiguous C order
+  // - Size of the box, in integer number of cells
+  const amrex::Box& global_box = geom.Domain();
+  auto global_size = getReversedVec(global_box.size());
+  // - Grid spacing
+  std::vector<double> grid_spacing = getReversedVec(geom.CellSize());
+  // - Global offset
+  std::vector<double> global_offset = getReversedVec(geom.ProbLo());
+  // - AxisLabels
+#if AMREX_SPACEDIM==3
+  std::vector<std::string> axis_labels{"x", "y", "z"};
+#else
+  std::vector<std::string> axis_labels{"x", "z"};
+#endif
+
+  // Prepare the type of dataset that will be written
+  openPMD::Datatype datatype = openPMD::determineDatatype<amrex::Real>();
+  auto dataset = openPMD::Dataset(datatype, global_size);
+
+  // Create new file and store the time/iteration info
+  /*
+  auto series = [filename](){
+      if( ParallelDescriptor::NProcs() > 1 )
+          return openPMD::Series( filename,
+                                  openPMD::AccessType::CREATE,
+                                  ParallelDescriptor::Communicator() );
+      else
+          return openPMD::Series( filename,
+                                  openPMD::AccessType::CREATE );
+  }();
+  */
+  auto series_iteration = m_Series->iterations[iteration];
+  series_iteration.setTime( time );
+
+  // Loop through the different components, i.e. different fields stored in mf
+  for (int icomp=0; icomp<ncomp; icomp++){
+
+    // Check if this field is a vector or a scalar, and extract the field name
+    const std::string& varname = varnames[icomp];
+    std::string field_name = varname;
+    std::string comp_name = openPMD::MeshRecordComponent::SCALAR;
+    bool is_vector = false;
+    for (const char* vector_field: {"E", "B", "j"}){
+        for (const char* comp: {"x", "y", "z"}){
+            if (varname[0] == *vector_field && varname[1] == *comp ){
+                is_vector = true;
+                field_name = varname[0] + varname.substr(2); // Strip component
+                comp_name = varname[1];
+            }
+        }
+    }
+
+    // Setup the mesh record accordingly
+    auto mesh = series_iteration.meshes[field_name];
+    mesh.setDataOrder(openPMD::Mesh::DataOrder::F); // MultiFab: Fortran order
+    mesh.setAxisLabels( axis_labels );
+    mesh.setGridSpacing( grid_spacing );
+    mesh.setGridGlobalOffset( global_offset );
+    setOpenPMDUnit( mesh, field_name );
+
+    // Create a new mesh record component, and store the associated metadata
+    auto mesh_comp = mesh[comp_name];
+    mesh_comp.resetDataset( dataset );
+    // Cell-centered data: position is at 0.5 of a cell size.
+    mesh_comp.setPosition(std::vector<double>{AMREX_D_DECL(0.5, 0.5, 0.5)});
+
+    // Loop through the multifab, and store each box as a chunk,
+    // in the openPMD file.
+    for (amrex::MFIter mfi(mf); mfi.isValid(); ++mfi) {
+
+      const amrex::FArrayBox& fab = mf[mfi];
+      const amrex::Box& local_box = fab.box();
+
+      // Determine the offset and size of this chunk
+      amrex::IntVect box_offset = local_box.smallEnd() - global_box.smallEnd();
+      auto chunk_offset = getReversedVec(box_offset);
+      auto chunk_size = getReversedVec(local_box.size());
+
+      // Write local data
+      const double* local_data = fab.dataPtr(icomp);
+      mesh_comp.storeChunk(openPMD::shareRaw(local_data),
+                           chunk_offset, chunk_size);
+    }
+  }
+  // Flush data to disk after looping over all components
+  //std::cout<<" this is optional "<<std::endl;
+  m_Series->flush();
+}
