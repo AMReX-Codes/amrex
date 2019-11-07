@@ -128,6 +128,9 @@ WarpX::ResetInstance ()
 
 WarpX::WarpX ()
 {
+#ifdef WARPX_USE_OPENPMD            
+      m_OpenPMDPlotWriter = new WarpXOpenPMDParticle(openpmd_tspf, openpmd_backend);
+#endif
     m_instance = this;
 
     ReadParameters();
@@ -246,6 +249,10 @@ WarpX::~WarpX ()
 
 #ifdef BL_USE_SENSEI_INSITU
     delete insitu_bridge;
+#endif
+
+#ifdef WARPX_USE_OPENPMD            
+    delete m_OpenPMDPlotWriter;
 #endif
 }
 
