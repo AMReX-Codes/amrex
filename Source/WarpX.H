@@ -29,6 +29,10 @@
 #   include <omp.h>
 #endif
 
+#ifdef WARPX_USE_OPENPMD
+#include <WarpXOpenPMD.H>
+#endif
+
 #include <iostream>
 #include <memory>
 #include <array>
@@ -565,6 +569,10 @@ private:
 #ifdef WARPX_USE_OPENPMD
     bool dump_plotfiles = false;
     bool dump_openpmd = true;
+  //bool openpmd_tspf = true; // one file per timestep
+    bool openpmd_tspf = false; // one file per timestep
+    WarpXOpenPMDParticle* m_OpenPMDPlotWriter = nullptr;
+
 #else
     bool dump_plotfiles = true;
     bool dump_openpmd = false;
