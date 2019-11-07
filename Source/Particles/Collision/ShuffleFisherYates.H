@@ -13,7 +13,7 @@ void ShuffleFisherYates(int *array, const int n)
         // get random number 0 <= j <= i
         while ( true ) {
             j = (int) floor( amrex::Random() * (i+1) );
-	    if ( j >= 0 && j <= i ) { break; }
+            if ( j >= 0 && j <= i ) { break; }
         }
         buf = array[i];
         array[i] = array[j];
