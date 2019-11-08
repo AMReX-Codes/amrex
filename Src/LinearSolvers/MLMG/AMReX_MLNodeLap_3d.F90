@@ -102,8 +102,7 @@ module amrex_mlnodelap_3d_module
   ! RAP
 
 #ifdef AMREX_USE_EB
-  public:: amrex_mlndlap_set_stencil_eb, &
-       amrex_mlndlap_divu_eb, amrex_mlndlap_mknewu_eb, amrex_mlndlap_rhcc_eb
+  public:: amrex_mlndlap_divu_eb, amrex_mlndlap_mknewu_eb, amrex_mlndlap_rhcc_eb
 #endif
 
 contains
@@ -792,69 +791,6 @@ contains
 
 
 #ifdef AMREX_USE_EB
-
-  subroutine amrex_mlndlap_set_stencil_eb (lo, hi, sten, tlo, thi, sig, glo, ghi, &
-       conn, clo, chi, dxinv) bind(c,name='amrex_mlndlap_set_stencil_eb')
-    integer, dimension(3), intent(in) :: lo, hi, tlo, thi, glo, ghi, clo, chi
-    real(amrex_real), intent(inout) :: sten(tlo(1):thi(1),tlo(2):thi(2),tlo(3):thi(3),n_sten)
-    real(amrex_real), intent(in   ) ::  sig(glo(1):ghi(1),glo(2):ghi(2),glo(3):ghi(3))
-    real(amrex_real), intent(in   ) :: conn(clo(1):chi(1),clo(2):chi(2),clo(3):chi(3),n_conn)
-    real(amrex_real), intent(in) :: dxinv(3)
-
-    integer :: i,j,k
-    real(amrex_real) :: facx, facy, facz
-    
-    facx = (1.d0/36.d0)*dxinv(1)*dxinv(1)
-    facy = (1.d0/36.d0)*dxinv(2)*dxinv(2)
-    facz = (1.d0/36.d0)*dxinv(3)*dxinv(3)
-
-    do       k = lo(3), hi(3)
-       do    j = lo(2), hi(2)
-          do i = lo(1), hi(1)
-
-             ! i+1,j,k
-             sten(i,j,k,ist_p00) = ( &
-                  sig(i,j  ,k  )*(4.d0*facx*conn(i,j  ,k  ,i_c_ymzm) - 2.d0*facy*conn(i,j  ,k  ,i_c_xbzm) - 2.d0*facz*conn(i,j  ,k  ,i_c_xbym) ) + &
-                  sig(i,j-1,k  )*(4.d0*facx*conn(i,j-1,k  ,i_c_ypzm) - 2.d0*facy*conn(i,j-1,k  ,i_c_xbzm) - 2.d0*facz*conn(i,j-1,k  ,i_c_xbyp) ) + &
-                  sig(i,j  ,k-1)*(4.d0*facx*conn(i,j  ,k-1,i_c_ymzp) - 2.d0*facy*conn(i,j  ,k-1,i_c_xbzp) - 2.d0*facz*conn(i,j  ,k-1,i_c_xbym) ) + &
-                  sig(i,j-1,k-1)*(4.d0*facx*conn(i,j-1,k-1,i_c_ypzp) - 2.d0*facy*conn(i,j-1,k-1,i_c_xbzp) - 2.d0*facz*conn(i,j-1,k-1,i_c_xbyp) ) )
-
-             ! i,j+1,k
-             sten(i,j,k,ist_0p0) = ( &
-                  sig(i  ,j,k  )*(-2.d0*facx*conn(i  ,j,k  ,i_c_ybzm) + 4.d0*facy*conn(i  ,j,k  ,i_c_xmzm) - 2.d0*facz*conn(i  ,j,k  ,i_c_xmyb) ) + &
-                  sig(i-1,j,k  )*(-2.d0*facx*conn(i-1,j,k  ,i_c_ybzm) + 4.d0*facy*conn(i-1,j,k  ,i_c_xpzm) - 2.d0*facz*conn(i-1,j,k  ,i_c_xpyb) ) + &
-                  sig(i  ,j,k-1)*(-2.d0*facx*conn(i  ,j,k-1,i_c_ybzp) + 4.d0*facy*conn(i  ,j,k-1,i_c_xmzp) - 2.d0*facz*conn(i  ,j,k-1,i_c_xmyb) ) + &
-                  sig(i-1,j,k-1)*(-2.d0*facx*conn(i-1,j,k-1,i_c_ybzp) + 4.d0*facy*conn(i-1,j,k-1,i_c_xpzp) - 2.d0*facz*conn(i-1,j,k-1,i_c_xpyb) ) )
-
-             ! i,j,k+1
-             sten(i,j,k,ist_00p) = ( &
-                  sig(i  ,j  ,k)*(-2.d0*facx*conn(i  ,j  ,k,i_c_ymzb) - 2.d0*facy*conn(i  ,j  ,k,i_c_xmzb) + 4.d0*facz*conn(i  ,j  ,k,i_c_xmym) ) + &
-                  sig(i-1,j  ,k)*(-2.d0*facx*conn(i-1,j  ,k,i_c_ymzb) - 2.d0*facy*conn(i-1,j  ,k,i_c_xpzb) + 4.d0*facz*conn(i-1,j  ,k,i_c_xpym) ) + &
-                  sig(i  ,j-1,k)*(-2.d0*facx*conn(i  ,j-1,k,i_c_ypzb) - 2.d0*facy*conn(i  ,j-1,k,i_c_xmzb) + 4.d0*facz*conn(i  ,j-1,k,i_c_xmyp) ) + &
-                  sig(i-1,j-1,k)*(-2.d0*facx*conn(i-1,j-1,k,i_c_ypzb) - 2.d0*facy*conn(i-1,j-1,k,i_c_xpzb) + 4.d0*facz*conn(i-1,j-1,k,i_c_xpyp) ) )
-
-             ! i+1,j+1,k
-             sten(i,j,k,ist_pp0) = ( &
-                  sig(i,j,k  )*(2.d0*facx*conn(i,j,k  ,i_c_ybzm) + 2.d0*facy*conn(i,j,k  ,i_c_xbzm) - facz*conn(i,j,k  ,i_c_xbyb) ) + &
-                  sig(i,j,k-1)*(2.d0*facx*conn(i,j,k-1,i_c_ybzp) + 2.d0*facy*conn(i,j,k-1,i_c_xbzp) - facz*conn(i,j,k-1,i_c_xbyb) ) )
-             
-             ! i+1,j,k+1
-             sten(i,j,k,ist_p0p) = ( &
-                  sig(i,j,k  )*(2.d0*facx*conn(i,j,k  ,i_c_ymzb) - facy*conn(i,j,k  ,i_c_xbzb) + 2.d0*facz*conn(i,j,k  ,i_c_xbym) ) + &
-                  sig(i,j-1,k)*(2.d0*facx*conn(i,j-1,k,i_c_ypzb) - facy*conn(i,j-1,k,i_c_xbzb) + 2.d0*facz*conn(i,j-1,k,i_c_xbyp) ) )
-
-             ! i,j+1,k+1
-             sten(i,j,k,ist_0pp) = ( &
-                  sig(i  ,j,k)*(-facx*conn(i  ,j,k,i_c_ybzb) + 2.d0*facy*conn(i  ,j,k,i_c_xmzb) + 2.d0*facz*conn(i  ,j,k,i_c_xmyb) ) + &
-                  sig(i-1,j,k)*(-facx*conn(i-1,j,k,i_c_ybzb) + 2.d0*facy*conn(i-1,j,k,i_c_xpzb) + 2.d0*facz*conn(i-1,j,k,i_c_xpyb) ) )
-
-             ! i+1,j+1,k+1
-             sten(i,j,k,ist_ppp) = sig(i,j,k) * (facx*conn(i,j,k,i_c_ybzb) + facy*conn(i,j,k,i_c_xbzb) + facz*conn(i,j,k,i_c_xbyb) ) 
-          end do
-       end do
-    end do
-
-  end subroutine amrex_mlndlap_set_stencil_eb
 
   subroutine amrex_mlndlap_divu_eb (lo, hi, rhs, rlo, rhi, vel, vlo, vhi, vfrac, flo, fhi, &
        intg, glo, ghi, msk, mlo, mhi, dxinv) &
