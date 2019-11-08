@@ -57,7 +57,7 @@ HarrisLaserProfile::fill_amplitude (
     // time envelope is given by the Harris function
     Real time_envelope = 0.;
     if (t < m_params.duration)
-        time_envelope = 1./32. * (10. - 15.*std::cos(arg_env) +
+        time_envelope = 1._rt/32._rt * (10._rt - 15._rt*std::cos(arg_env) +
                                   6.*std::cos(2.*arg_env) -
                                   std::cos(3.*arg_env));
 
