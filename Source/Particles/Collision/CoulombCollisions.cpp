@@ -118,8 +118,8 @@ doCoulombCollisionsWithinTile ( int lev, MFIter const& mfi,
             j = 0;
             for (int i=cell_start_2; i<cell_stop_2; ++i)
             { I2[j] = indices_2[i]; ++j; }
-            const int I1s = cell_start_1; const int I1e = cell_stop_1;
-            const int I2s = cell_start_2; const int I2e = cell_stop_2;
+            const int I1s = 0; const int I1e = np_1;
+            const int I2s = 0; const int I2e = np_2;
 
             ElasticCollisionPerez(
                 I1s, I1e, I2s, I2e, I1, I2,
