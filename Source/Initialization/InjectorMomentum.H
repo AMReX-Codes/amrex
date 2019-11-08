@@ -54,10 +54,10 @@ struct InjectorMomentumJuttner
     InjectorMomentumJuttner(amrex::Real theta, amrex::Real beta, int dir) noexcept
 	: t(theta), b(beta), G(1/std::sqrt(1-pow(beta,2))), d(dir)
 	{}
-    
+
     AMREX_GPU_HOST_DEVICE
     amrex::XDim3
-    getMomentum (amrex::Real, amrex::Real, amrex::Real) const noexcept
+    getMomentum (amrex::Real x, amrex::Real y, amrex::Real z) const noexcept
     {
 	amrex::Real x1, x2;
 	amrex::Real g, ux;
@@ -65,7 +65,7 @@ struct InjectorMomentumJuttner
 	x1 = 0.;
 	g = 0.;
 	u[d] = 0.;
-	while( u[d]-g <= x1)
+	while(u[d]-g <= x1)
 	{
 	    u[d] = -t*std::log(amrex::Random()*amrex::Random()*amrex::Random());
 	    g = std::sqrt(1+std::pow(u[d],2));
@@ -80,7 +80,7 @@ struct InjectorMomentumJuttner
 	}
 	ux = G*(ux+g*b);
 	x2 = amrex::Random();
-	u[(d+1)%3] = 2*u[d]*std::sqrt(x1*(1-x1))*std::cos(2*M_PI*x2);
+	u[(d+1)%3] = 2*u[d]*std::sqrt(x1*(1-x1))*std::sin(2*M_PI*x2);
 	u[(d+2)%3] = 2*u[d]*std::sqrt(x1*(1-x1))*std::cos(2*M_PI*x2);
 	u[d] = ux;
 	return amrex::XDim3 {u[0],u[1],u[2]};

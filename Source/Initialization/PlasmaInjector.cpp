@@ -277,15 +277,15 @@ void PlasmaInjector::parseMomentum (ParmParse& pp)
 	pp.query("beta", beta);
 	pp.query("theta", theta);
 	pp.query("direction", direction);
-	if(direction == "x"){
+	if(direction == "x" || direction == "X"){
 	    dir = 0;
-	}else if(direction == "y"){
+	} else if (direction == "y" || direction == "Y"){
 	    dir = 1;
-	}else if(direction == "z"){
+	} else if (direction == "z" || direction == "Z"){
 	    dir = 2;
-	}else{
+	} else{
 	    std::stringstream stringstream;
-	    stringstream<<"Direction "<< direction <<" is not recognzied. Please enter x, y, or z.";
+	    stringstream << "Direction " << direction << " is not recognzied. Please enter x, y, or z.";
 	    direction = stringstream.str();
 	    amrex::Abort(direction.c_str());
 	}
