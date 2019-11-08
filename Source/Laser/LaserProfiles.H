@@ -30,8 +30,13 @@ struct CommonLaserParameters
 
 /** Abstract interface for laser profile classes
  *
- * more details here. can be long.
- * yo.
+ * Each new laser profile should inherit this interface and implement two
+ * methods: init and fill_amplitude (described below).
+ *
+ * The declaration of a LaserProfile class should be placed in this file,
+ * while the implementation of the methods should be in a dedicated file in
+ * LaserProfilesImpl folder. LaserProfile classes should appear in
+ * laser_profiles_dictionary to be used by LaserParticleContainer.
  */
 class ILaserProfile
 {
