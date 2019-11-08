@@ -18,7 +18,7 @@
 
 namespace amrex {
 
-class MLNodeLaplacian;
+class MLNodeLinOp;
 
 class HypreNodeLap
 {
@@ -26,7 +26,7 @@ public:
     HypreNodeLap (const BoxArray& grids_, const DistributionMapping& dmap_,
                   const Geometry& geom_, const FabFactory<FArrayBox>& factory_,
                   const iMultiFab& owner_mask_, const iMultiFab& dirichlet_mask_,
-                  MPI_Comm comm_, MLNodeLaplacian const* linop_, int verbose_);
+                  MPI_Comm comm_, MLNodeLinOp const* linop_, int verbose_);
     ~HypreNodeLap ();
 
     void solve (MultiFab& soln, const MultiFab& rhs,
@@ -43,7 +43,7 @@ private:
     iMultiFab const* owner_mask = nullptr;
     iMultiFab const* dirichlet_mask = nullptr;
     MPI_Comm comm = MPI_COMM_NULL;
-    MLNodeLaplacian const* linop = nullptr;
+    MLNodeLinOp const* linop = nullptr;
     int verbose = 0;
 
     HYPRE_IJMatrix A = NULL;

@@ -86,10 +86,6 @@ extern "C" {
                                           const int* ccmsk, const int* ccmlo, const int* ccmhi);
 
     // stencils
-    
-    void amrex_mlndlap_stencil_rap (const int* lo, const int* hi,
-                                    amrex_real* csten, const int* clo, const int* chi,
-                                    const amrex_real* fsten, const int* flo, const int* fhi);
 
 #ifdef AMREX_USE_EB
 

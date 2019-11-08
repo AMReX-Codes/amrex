@@ -47,6 +47,10 @@ CEXE_headers   += AMReX_MLNodeLap_K.H AMReX_MLNodeLap_$(DIM)D_K.H
 CEXE_headers   += AMReX_MLNodeLap_F.H
 F90EXE_sources += AMReX_MLNodeLap_$(DIM)d.F90
 
+CEXE_headers   += AMReX_MLNodeTensorLaplacian.H
+CEXE_sources   += AMReX_MLNodeTensorLaplacian.cpp
+CEXE_headers   += AMReX_MLNodeTensorLap_K.H AMReX_MLNodeTensorLap_$(DIM)D_K.H
+
 CEXE_headers   += AMReX_MLTensorOp.H
 CEXE_sources   += AMReX_MLTensorOp.cpp
 CEXE_headers   += AMReX_MLTensor_K.H AMReX_MLTensor_$(DIM)D_K.H
