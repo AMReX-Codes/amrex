@@ -297,7 +297,7 @@ void main_main ()
 #ifdef AMREX_USE_CUDA // Make GPU once testing Thrust
     {
         BL_PROFILE("ThrustReduceSum");
-        Real r = thrust::reduce(vec.begin(), vec.end(), 0.0, thrust::plus<Real>());
+        Real r = thrust::reduce(thrust::device, vec.begin(), vec.end(), 0.0, thrust::plus<Real>());
         amrex::Print().SetPrecision(17) << "thrust::reduce sum " << r << "\n";
     }
 #endif
