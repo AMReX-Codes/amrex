@@ -278,7 +278,7 @@ void mlebtensor_flux_0 (Box const& box,
 	      // FIXME - set to ridiculous num so we ensure we don't use these
 	      //  cut cell fluxes...
 	      for (int n=0; n<AMREX_SPACEDIM; n++) 
-		Ax(i,j,0,n) = 0. ;//1.2345e20;
+		Ax(i,j,0,n) = 1.2345e20;
 	    }
 	}
     }
