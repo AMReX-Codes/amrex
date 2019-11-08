@@ -58,7 +58,7 @@ HarrisLaserProfile::fill_amplitude (
     Real time_envelope = 0.;
     if (t < m_params.duration)
         time_envelope = 1._rt/32._rt * (10._rt - 15._rt*std::cos(arg_env) +
-                                  6.*std::cos(2.*arg_env) -
+                                  6._rt*std::cos(2._rt*arg_env) -
                                   std::cos(3._rt*arg_env));
 
     // Copy member variables to tmp copies for GPU runs.
