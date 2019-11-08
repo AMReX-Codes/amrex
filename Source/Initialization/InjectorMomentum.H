@@ -47,6 +47,51 @@ private:
     amrex::Real m_ux_th, m_uy_th, m_uz_th;
 };
 
+// struct whose getMomentum returns momentum for 1 particle with relativistc drift velocity beta,
+// from the Maxwell-Juttner distribution.
+struct InjectorMomentumJuttner
+{
+    InjectorMomentumJuttner(amrex::Real theta, amrex::Real beta, int dir) noexcept
+	: t(theta), b(beta), G(1/std::sqrt(1-pow(beta,2))), d(dir)
+	{}
+    
+    AMREX_GPU_HOST_DEVICE
+    amrex::XDim3
+    getMomentum (amrex::Real, amrex::Real, amrex::Real) const noexcept
+    {
+	amrex::Real x1, x2;
+	amrex::Real g, ux;
+	amrex::Real u [3];
+	x1 = 0.;
+	g = 0.;
+	u[d] = 0.;
+	while( u[d]-g <= x1)
+	{
+	    u[d] = -t*std::log(amrex::Random()*amrex::Random()*amrex::Random());
+	    g = std::sqrt(1+std::pow(u[d],2));
+	    x1 = t*std::log(amrex::Random());
+	}
+	x1 = amrex::Random();
+	x2 = amrex::Random();
+	ux = u[d]*(2*x1-1);
+	if(-b*ux/g>x2)
+	{
+	    ux = -ux;
+	}
+	ux = G*(ux+g*b);
+	x2 = amrex::Random();
+	u[(d+1)%3] = 2*u[d]*std::sqrt(x1*(1-x1))*std::cos(2*M_PI*x2);
+	u[(d+2)%3] = 2*u[d]*std::sqrt(x1*(1-x1))*std::cos(2*M_PI*x2);
+	u[d] = ux;
+	return amrex::XDim3 {u[0],u[1],u[2]};
+    }
+
+private:
+    int d;
+    amrex::Real b, t, G;
+};
+
+
 // struct whose getMomentum returns momentum for 1 particle, for
 // radial expansion
 struct InjectorMomentumRadialExpansion
@@ -124,6 +169,13 @@ struct InjectorMomentum
           object(t,a_ux_m,a_uy_m,a_uz_m,a_ux_th,a_uy_th,a_uz_th)
     { }
 
+     // This constructor stores a InjectorMomentumJuttner in union object.
+     InjectorMomentum (InjectorMomentumJuttner* t,
+		       amrex::Real theta, amrex::Real beta, int dir)
+	 : type(Type::juttner),
+	   object(t, theta, beta, dir)
+    { }
+
     // This constructor stores a InjectorMomentumCustom in union object.
     InjectorMomentum (InjectorMomentumCustom* t,
                       std::string const& a_species_name)
@@ -165,6 +217,10 @@ struct InjectorMomentum
         {
             return object.gaussian.getMomentum(x,y,z);
         }
+	case Type::juttner:
+        {
+            return object.juttner.getMomentum(x,y,z);
+        }
         case Type::constant:
         {
             return object.constant.getMomentum(x,y,z);
@@ -186,7 +242,7 @@ struct InjectorMomentum
     }
 
 private:
-    enum struct Type { constant, custom, gaussian, radial_expansion, parser };
+    enum struct Type { constant, custom, gaussian, juttner, radial_expansion, parser};
     Type type;
 
     // An instance of union Object constructs and stores any one of
@@ -204,6 +260,9 @@ private:
                 amrex::Real a_uz_m, amrex::Real a_ux_th,
                 amrex::Real a_uy_th, amrex::Real a_uz_th) noexcept
             : gaussian(a_ux_m,a_uy_m,a_uz_m,a_ux_th,a_uy_th,a_uz_th) {}
+	Object (InjectorMomentumJuttner*,
+		amrex::Real t, amrex::Real b, int dir) noexcept
+            : juttner(t,b,dir) {}
         Object (InjectorMomentumRadialExpansion*,
                 amrex::Real u_over_r) noexcept
             : radial_expansion(u_over_r) {}
@@ -215,6 +274,7 @@ private:
         InjectorMomentumConstant constant;
         InjectorMomentumCustom   custom;
         InjectorMomentumGaussian gaussian;
+	InjectorMomentumJuttner juttner;
         InjectorMomentumRadialExpansion radial_expansion;
         InjectorMomentumParser   parser;
     };
