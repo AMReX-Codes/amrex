@@ -667,10 +667,11 @@ void mlndlap_rhcc (int i, int j, int k, Array4<Real> const& rhs, Array4<Real con
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_mknewu (int i, int j, int k, Array4<Real> const& u, Array4<Real const> const& p,
-                     Array4<Real const> const& sig, Real dxi, Real dyi, bool is_rz) noexcept
+                     Array4<Real const> const& sig,  GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                     bool is_rz) noexcept
 {
-    Real facx = 0.5*dxi;
-    Real facy = 0.5*dyi;
+    Real facx = 0.5*dxinv[0];
+    Real facy = 0.5*dxinv[1];
     u(i,j,k,0) -= sig(i,j,k)*facx*(-p(i,j,k)+p(i+1,j,k)-p(i,j+1,k)+p(i+1,j+1,k));
     u(i,j,k,1) -= sig(i,j,k)*facy*(-p(i,j,k)-p(i+1,j,k)+p(i,j+1,k)+p(i+1,j+1,k));
     if (is_rz) {
@@ -1166,6 +1167,24 @@ void mlndlap_divu_eb (int i, int j, int, Array4<Real> const& rhs, Array4<Real co
                            +vel(i  ,j  ,0,1)*(vfrac(i  ,j  ,0)-2._rt*intg(i  ,j  ,0,0)));
     } else {
         rhs(i,j,0) = 0._rt;
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_mknewu_eb (int i, int j, int, Array4<Real> const& u, Array4<Real const> const& p,
+                        Array4<Real const> const& sig, Array4<Real const> const& vfrac,
+                        Array4<Real const> const& intg, GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+{
+    Real facx = 0.5_rt*dxinv[0];
+    Real facy = 0.5_rt*dxinv[1];
+    if (vfrac(i,j,0) == 0._rt) {
+        u(i,j,0,0) = u(i,j,0,1) = 0._rt;
+    } else {
+        Real dpdx = facx*(-p(i,j,0)+p(i+1,j,0)-p(i,j+1,0)+p(i+1,j+1,0));
+        Real dpdy = facy*(-p(i,j,0)-p(i+1,j,0)+p(i,j+1,0)+p(i+1,j+1,0));
+        Real dpp = (p(i,j,0)+p(i+1,j+1,0)-p(i+1,j,0)-p(i,j+1,0))/vfrac(i,j,0);
+        u(i,j,0,0) -= sig(i,j,0)*(dpdx + dxinv[0]*intg(i,j,0,1)*dpp);
+        u(i,j,0,1) -= sig(i,j,0)*(dpdy + dxinv[1]*intg(i,j,0,0)*dpp);
     }
 }
 

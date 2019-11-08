@@ -675,10 +675,7 @@ MLNodeLaplacian::updateVelocity (const Vector<MultiFab*>& vel, const Vector<Mult
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
         const auto& sigma = *m_sigma[amrlev][0][0];
-        const Real* dxinv = m_geom[amrlev][0].InvCellSize();
-        AMREX_D_TERM(Real dxi = m_geom[amrlev][0].InvCellSize(0);,
-                     Real dyi = m_geom[amrlev][0].InvCellSize(1);,
-                     Real dzi = m_geom[amrlev][0].InvCellSize(2););
+        const auto dxinv = m_geom[amrlev][0].InvCellSizeArray();
 #ifdef AMREX_USE_EB
         auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
         const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
@@ -697,19 +694,18 @@ MLNodeLaplacian::updateVelocity (const Vector<MultiFab*>& vel, const Vector<Mult
             if (factory)
             {
                 auto type = (*flags)[mfi].getType(bx);
+                Array4<Real const> const& vfracarr = vfrac->const_array(mfi);
+                Array4<Real const> const& intgarr = intg->const_array(mfi);
                 if (type == FabType::covered)
                 {
                     vfab.setVal(0.0, bx, 0, AMREX_SPACEDIM);
                 }
                 else if (type == FabType::singlevalued)
                 {
-                    amrex_mlndlap_mknewu_eb(BL_TO_FORTRAN_BOX(bx),
-                                            BL_TO_FORTRAN_ANYD(vfab),
-                                            BL_TO_FORTRAN_ANYD((*sol[amrlev])[mfi]),
-                                            BL_TO_FORTRAN_ANYD(sigma[mfi]),
-                                            BL_TO_FORTRAN_ANYD((*vfrac)[mfi]),
-                                            BL_TO_FORTRAN_ANYD((*intg)[mfi]),
-                                            dxinv);
+                    AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
+                    {
+                        mlndlap_mknewu_eb(i,j,k, varr, solarr, sigmaarr, vfracarr, intgarr, dxinv);
+                    });
                 }
                 else
                 {
@@ -722,9 +718,9 @@ MLNodeLaplacian::updateVelocity (const Vector<MultiFab*>& vel, const Vector<Mult
                 AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
                 {
 #if (AMREX_SPACEDIM == 2)
-                    mlndlap_mknewu(i,j,k,varr,solarr,sigmaarr,dxi,dyi,is_rz);
+                    mlndlap_mknewu(i,j,k,varr,solarr,sigmaarr,dxinv,is_rz);
 #else
-                    mlndlap_mknewu(i,j,k,varr,solarr,sigmaarr,AMREX_D_DECL(dxi,dyi,dzi));
+                    mlndlap_mknewu(i,j,k,varr,solarr,sigmaarr,dxinv);
 #endif
                 });
             }
@@ -751,10 +747,7 @@ MLNodeLaplacian::getFluxes (const Vector<MultiFab*> & a_flux, const Vector<Multi
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
         const auto& sigma = *m_sigma[amrlev][0][0];
-        const Real* dxinv = m_geom[amrlev][0].InvCellSize();
-        AMREX_D_TERM(Real dxi = m_geom[amrlev][0].InvCellSize(0);,
-                     Real dyi = m_geom[amrlev][0].InvCellSize(1);,
-                     Real dzi = m_geom[amrlev][0].InvCellSize(2););
+        const auto dxinv = m_geom[amrlev][0].InvCellSizeArray();
 #ifdef AMREX_USE_EB
         auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
         const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
@@ -782,17 +775,16 @@ MLNodeLaplacian::getFluxes (const Vector<MultiFab*> & a_flux, const Vector<Multi
             if (factory)
             {
                 auto type = (*flags)[mfi].getType(bx);
+                Array4<Real const> const& vfracarr = vfrac->const_array(mfi);
+                Array4<Real const> const& intgarr = intg->const_array(mfi);
                 if (type == FabType::covered) 
                 { }
                 else if (type == FabType::singlevalued)
                 {
-                    amrex_mlndlap_mknewu_eb(BL_TO_FORTRAN_BOX(bx),
-                                            BL_TO_FORTRAN_ANYD(ffab),
-                                            BL_TO_FORTRAN_ANYD((*a_sol[amrlev])[mfi]),
-                                            BL_TO_FORTRAN_ANYD(sigma[mfi]),
-                                            BL_TO_FORTRAN_ANYD((*vfrac)[mfi]),
-                                            BL_TO_FORTRAN_ANYD((*intg)[mfi]),
-                                            dxinv);
+                    AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
+                    {
+                        mlndlap_mknewu_eb(i,j,k, farr, solarr, sigmaarr, vfracarr, intgarr, dxinv);
+                    });
                 }
                 else
                 {
@@ -805,9 +797,9 @@ MLNodeLaplacian::getFluxes (const Vector<MultiFab*> & a_flux, const Vector<Multi
                 AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
                 {
 #if (AMREX_SPACEDIM == 2)
-                    mlndlap_mknewu(i,j,k,farr,solarr,sigmaarr,dxi,dyi,is_rz);
+                    mlndlap_mknewu(i,j,k,farr,solarr,sigmaarr,dxinv,is_rz);
 #else
-                    mlndlap_mknewu(i,j,k,farr,solarr,sigmaarr,AMREX_D_DECL(dxi,dyi,dzi));
+                    mlndlap_mknewu(i,j,k,farr,solarr,sigmaarr,dxinv);
 #endif
                 });
             }
