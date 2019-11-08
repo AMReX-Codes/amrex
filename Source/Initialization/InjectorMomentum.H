@@ -52,36 +52,36 @@ private:
 struct InjectorMomentumJuttner
 {
     InjectorMomentumJuttner(amrex::Real theta, amrex::Real beta, int dir) noexcept
-	: t(theta), b(beta), d(dir)
-	{}
+        : t(theta), b(beta), d(dir)
+        {}
 
     AMREX_GPU_HOST_DEVICE
     amrex::XDim3
     getMomentum (amrex::Real x, amrex::Real y, amrex::Real z) const noexcept
     {
-	amrex::Real x1, x2, g;
-	amrex::Real u [3];
-	x1 = 0.;
-	g = 0.;
-	u[d] = 0.;
-	while(u[d]-g <= x1)
-	{
-	    u[d] = -t*std::log(amrex::Random()*amrex::Random()*amrex::Random());
-	    g = std::sqrt(1+std::pow(u[d],2));
-	    x1 = t*std::log(amrex::Random());
-	}
-	x1 = amrex::Random();
-	x2 = amrex::Random();
-	u[(d+1)%3] = 2*u[d]*std::sqrt(x1*(1-x1))*std::sin(2*M_PI*x2);
-	u[(d+2)%3] = 2*u[d]*std::sqrt(x1*(1-x1))*std::cos(2*M_PI*x2);
-	u[d] = u[d]*(2*x1-1);
-	x1 = amrex::Random();
-	if(-b*u[d]/g>x1)
-	{
-	    u[d] = -u[d];
-	}
-	u[d] = 1/std::sqrt(1-pow(b,2))*(u[d]+g*b);
-	return amrex::XDim3 {u[0],u[1],u[2]};
+        amrex::Real x1, x2, g;
+        amrex::Real u [3];
+        x1 = 0.;
+        g = 0.;
+        u[d] = 0.;
+        while(u[d]-g <= x1)
+        {
+            u[d] = -t*std::log(amrex::Random()*amrex::Random()*amrex::Random());
+            g = std::sqrt(1+std::pow(u[d],2));
+            x1 = t*std::log(amrex::Random());
+        }
+        x1 = amrex::Random();
+        x2 = amrex::Random();
+        u[(d+1)%3] = 2*u[d]*std::sqrt(x1*(1-x1))*std::sin(2*M_PI*x2);
+        u[(d+2)%3] = 2*u[d]*std::sqrt(x1*(1-x1))*std::cos(2*M_PI*x2);
+        u[d] = u[d]*(2*x1-1);
+        x1 = amrex::Random();
+        if(-b*u[d]/g>x1)
+        {
+            u[d] = -u[d];
+        }
+        u[d] = 1/std::sqrt(1-pow(b,2))*(u[d]+g*b);
+        return amrex::XDim3 {u[0],u[1],u[2]};
     }
 
 private:
@@ -169,9 +169,9 @@ struct InjectorMomentum
 
      // This constructor stores a InjectorMomentumJuttner in union object.
      InjectorMomentum (InjectorMomentumJuttner* t,
-		       amrex::Real theta, amrex::Real beta, int dir)
-	 : type(Type::juttner),
-	   object(t, theta, beta, dir)
+                       amrex::Real theta, amrex::Real beta, int dir)
+         : type(Type::juttner),
+           object(t, theta, beta, dir)
     { }
 
     // This constructor stores a InjectorMomentumCustom in union object.
@@ -215,7 +215,7 @@ struct InjectorMomentum
         {
             return object.gaussian.getMomentum(x,y,z);
         }
-	case Type::juttner:
+        case Type::juttner:
         {
             return object.juttner.getMomentum(x,y,z);
         }
@@ -258,8 +258,8 @@ private:
                 amrex::Real a_uz_m, amrex::Real a_ux_th,
                 amrex::Real a_uy_th, amrex::Real a_uz_th) noexcept
             : gaussian(a_ux_m,a_uy_m,a_uz_m,a_ux_th,a_uy_th,a_uz_th) {}
-	Object (InjectorMomentumJuttner*,
-		amrex::Real t, amrex::Real b, int dir) noexcept
+        Object (InjectorMomentumJuttner*,
+                amrex::Real t, amrex::Real b, int dir) noexcept
             : juttner(t,b,dir) {}
         Object (InjectorMomentumRadialExpansion*,
                 amrex::Real u_over_r) noexcept
@@ -272,7 +272,7 @@ private:
         InjectorMomentumConstant constant;
         InjectorMomentumCustom   custom;
         InjectorMomentumGaussian gaussian;
-	InjectorMomentumJuttner juttner;
+        InjectorMomentumJuttner juttner;
         InjectorMomentumRadialExpansion radial_expansion;
         InjectorMomentumParser   parser;
     };
