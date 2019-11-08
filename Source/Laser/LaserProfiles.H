@@ -16,7 +16,10 @@
 
 namespace WarpXLaserProfiles {
 
-//_________________________________________Laser parameters shared among classes
+/** Common laser profile parameters
+ *
+ * Parameters for each laser profile as shared among all laser profile classes.
+ */
 struct CommonLaserParameters
 {
     amrex::Real wavelength;
