@@ -24,7 +24,7 @@ struct CommonLaserParameters
 {
     amrex::Real wavelength; //! central wavelength
     amrex::Real e_max;  //! maximum electric field at peak
-    amrex::Real theta_stc;
+    amrex::Real theta_stc; //! Angle between polarization (p_X) and direction of spatiotemporal coupling (stc_direction)
 };
 
 
