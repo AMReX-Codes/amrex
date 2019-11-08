@@ -39,9 +39,7 @@ module amrex_mlnodelap_1d_module
   ! RAP
 
 #ifdef AMREX_USE_EB
-  public:: amrex_mlndlap_set_integral, amrex_mlndlap_set_integral_eb, &
-       amrex_mlndlap_set_stencil_eb, &
-       amrex_mlndlap_divu_eb, amrex_mlndlap_mknewu_eb
+  public:: amrex_mlndlap_mknewu_eb
 #endif
 
 contains
@@ -178,48 +176,6 @@ contains
 
 
 #ifdef AMREX_USE_EB
-
-  subroutine amrex_mlndlap_set_integral (lo, hi, intg, glo, ghi) &
-       bind(c,name='amrex_mlndlap_set_integral')
-    integer, dimension(1) :: lo, hi, glo, ghi
-    real(amrex_real), intent(inout) :: intg( glo(1): ghi(1),1)
-  end subroutine amrex_mlndlap_set_integral
-
-  subroutine amrex_mlndlap_set_integral_eb (lo, hi, intg, glo, ghi, flag, flo, fhi, &
-       vol, vlo, vhi, ax, axlo, axhi, bcen, blo, bhi) &
-       bind(c,name='amrex_mlndlap_set_integral_eb')
-    use amrex_ebcellflag_module, only : is_single_valued_cell, is_regular_cell, is_covered_cell
-    integer, dimension(1) :: lo, hi, glo, ghi, flo, fhi, axlo, vlo, vhi, axhi, blo, bhi
-    real(amrex_real), intent(inout) :: intg( glo(1): ghi(1),1)
-    real(amrex_real), intent(in   ) :: vol ( vlo(1): vhi(1))
-    real(amrex_real), intent(in   ) :: ax  (axlo(1):axhi(1))
-    real(amrex_real), intent(in   ) :: bcen( blo(1): bhi(1))
-    integer         , intent(in   ) :: flag( flo(1): fhi(1))
-  end subroutine amrex_mlndlap_set_integral_eb
-
-
-  subroutine amrex_mlndlap_set_stencil_eb (lo, hi, sten, tlo, thi, sigma, glo, ghi, &
-       conn, clo, chi, dxinv) bind(c,name='amrex_mlndlap_set_stencil_eb')
-    integer, dimension(1), intent(in) :: lo, hi, tlo, thi, glo, ghi, clo, chi
-    real(amrex_real), intent(inout) ::  sten(tlo(1):thi(1),3)
-    real(amrex_real), intent(in   ) :: sigma(glo(1):ghi(1))
-    real(amrex_real), intent(in   ) ::  conn(clo(1):chi(1),2)
-    real(amrex_real), intent(in) :: dxinv(1)
-  end subroutine amrex_mlndlap_set_stencil_eb
-
-
-  subroutine amrex_mlndlap_divu_eb (lo, hi, rhs, rlo, rhi, vel, vlo, vhi, vfrac, flo, fhi, &
-       intg, glo, ghi, msk, mlo, mhi, dxinv) &
-       bind(c,name='amrex_mlndlap_divu_eb')
-    integer, dimension(1), intent(in) :: lo, hi, rlo, rhi, vlo, vhi, flo, fhi, glo, ghi, mlo, mhi
-    real(amrex_real), intent(in) :: dxinv(1)
-    real(amrex_real), intent(inout) :: rhs(rlo(1):rhi(1))
-    real(amrex_real), intent(in   ) :: vel(vlo(1):vhi(1))
-    real(amrex_real), intent(in   ) :: vfrac(flo(1):fhi(1))
-    real(amrex_real), intent(in   ) :: intg(glo(1):ghi(1))
-    integer, intent(in) :: msk(mlo(1):mhi(1))
-  end subroutine amrex_mlndlap_divu_eb
-
 
   subroutine amrex_mlndlap_mknewu_eb (lo, hi, u, ulo, uhi, p, plo, phi, sig, slo, shi, &
        vfrac, vlo, vhi, intg, glo, ghi, dxinv) bind(c,name='amrex_mlndlap_mknewu_eb')

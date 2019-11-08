@@ -1147,6 +1147,28 @@ void mlndlap_set_stencil_eb (int i, int j, int, Array4<Real> const& sten,
     sten(i,j,0,3) = (facx*conn(i,j,0,1)+facy*conn(i,j,0,4))*sig(i,j,0);
 }
 
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_divu_eb (int i, int j, int, Array4<Real> const& rhs, Array4<Real const> const& vel,
+                      Array4<Real const> const& vfrac, Array4<Real const> const& intg,
+                      Array4<int const> const& msk, GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+{
+    Real facx = 0.5_rt*dxinv[0];
+    Real facy = 0.5_rt*dxinv[1];
+    if (msk(i,j,0)) {
+        rhs(i,j,0) = facx*(-vel(i-1,j-1,0,0)*(vfrac(i-1,j-1,0)+2._rt*intg(i-1,j-1,0,1))
+                           +vel(i  ,j-1,0,0)*(vfrac(i  ,j-1,0)+2._rt*intg(i  ,j-1,0,1))
+                           -vel(i-1,j  ,0,0)*(vfrac(i-1,j  ,0)-2._rt*intg(i-1,j  ,0,1))
+                           +vel(i  ,j  ,0,0)*(vfrac(i  ,j  ,0)-2._rt*intg(i  ,j  ,0,1)))
+                   + facy*(-vel(i-1,j-1,0,1)*(vfrac(i-1,j-1,0)+2._rt*intg(i-1,j-1,0,0))
+                           -vel(i  ,j-1,0,1)*(vfrac(i  ,j-1,0)-2._rt*intg(i  ,j-1,0,0))
+                           +vel(i-1,j  ,0,1)*(vfrac(i-1,j  ,0)+2._rt*intg(i-1,j  ,0,0))
+                           +vel(i  ,j  ,0,1)*(vfrac(i  ,j  ,0)-2._rt*intg(i  ,j  ,0,0)));
+    } else {
+        rhs(i,j,0) = 0._rt;
+    }
+}
+
 #endif
 
 }
