@@ -56,7 +56,7 @@ namespace Cuda {
     OutIter thrust_copy (InIter begin, InIter end, OutIter result)
     {
 #ifdef AMREX_USE_CUDA
-        return thrust::copy(begin, end, result);
+        return thrust::copy(thrust::device, begin, end, result);
 #else
         return std::copy(begin, end, result);
 #endif
