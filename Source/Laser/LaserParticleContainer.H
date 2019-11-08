@@ -98,7 +98,7 @@ private:
     // Update position of the antenna
     void UpdateContinuousInjectionPosition(amrex::Real dt) override;
 
-    //Unique (smart) pointer to the laser profile
+    // Unique (smart) pointer to the laser profile
     std::unique_ptr<WarpXLaserProfiles::ILaserProfile> m_up_laser_profile;
 
 };
