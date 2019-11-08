@@ -51,7 +51,7 @@ module amrex_mlnodelap_2d_module
 
 #ifdef AMREX_USE_EB
   public:: amrex_mlndlap_set_integral, amrex_mlndlap_set_integral_eb, &
-       amrex_mlndlap_divu_eb, amrex_mlndlap_mknewu_eb, amrex_mlndlap_rhcc_eb
+       amrex_mlndlap_mknewu_eb, amrex_mlndlap_rhcc_eb
 #endif
 
 contains
@@ -659,43 +659,6 @@ contains
        end do
     end do
   end subroutine amrex_mlndlap_set_integral_eb
-
-
-  subroutine amrex_mlndlap_divu_eb (lo, hi, rhs, rlo, rhi, vel, vlo, vhi, vfrac, flo, fhi, &
-       intg, glo, ghi, msk, mlo, mhi, dxinv) &
-       bind(c,name='amrex_mlndlap_divu_eb')
-    integer, dimension(2), intent(in) :: lo, hi, rlo, rhi, vlo, vhi, flo, fhi, glo, ghi, mlo, mhi
-    real(amrex_real), intent(in) :: dxinv(2)
-    real(amrex_real), intent(inout) :: rhs(rlo(1):rhi(1),rlo(2):rhi(2))
-    real(amrex_real), intent(in   ) :: vel(vlo(1):vhi(1),vlo(2):vhi(2),2)
-    real(amrex_real), intent(in   ) :: vfrac(flo(1):fhi(1),flo(2):fhi(2))
-    real(amrex_real), intent(in   ) :: intg(glo(1):ghi(1),glo(2):ghi(2),n_Sintg)
-    integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2))
-
-    integer :: i,j
-    real(amrex_real) :: facx, facy
-
-    facx = half*dxinv(1)
-    facy = half*dxinv(2)
-
-    do    j = lo(2), hi(2)
-       do i = lo(1), hi(1)
-          if (msk(i,j) .ne. dirichlet) then
-             rhs(i,j) = facx*(-vel(i-1,j-1,1)*(vfrac(i-1,j-1)+2.d0*intg(i-1,j-1,2)) &
-                  &           +vel(i  ,j-1,1)*(vfrac(i  ,j-1)+2.d0*intg(i  ,j-1,2)) &
-                  &           -vel(i-1,j  ,1)*(vfrac(i-1,j  )-2.d0*intg(i-1,j  ,2)) &
-                  &           +vel(i  ,j  ,1)*(vfrac(i  ,j  )-2.d0*intg(i  ,j  ,2))) &
-                  &   + facy*(-vel(i-1,j-1,2)*(vfrac(i-1,j-1)+2.d0*intg(i-1,j-1,1)) &
-                  &           -vel(i  ,j-1,2)*(vfrac(i  ,j-1)-2.d0*intg(i  ,j-1,1)) &
-                  &           +vel(i-1,j  ,2)*(vfrac(i-1,j  )+2.d0*intg(i-1,j  ,1)) &
-                  &           +vel(i  ,j  ,2)*(vfrac(i  ,j  )-2.d0*intg(i  ,j  ,1)))
-          else
-             rhs(i,j) = zero
-          end if
-       end do
-    end do
-
-  end subroutine amrex_mlndlap_divu_eb
 
 
   subroutine amrex_mlndlap_mknewu_eb (lo, hi, u, ulo, uhi, p, plo, phi, sig, slo, shi, &

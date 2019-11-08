@@ -186,13 +186,12 @@ MLNodeLaplacian::compDivergence (const Vector<MultiFab*>& rhs, const Vector<Mult
                 }
                 else if (typ == FabType::singlevalued)
                 {
-                    amrex_mlndlap_divu_eb(BL_TO_FORTRAN_BOX(bx),
-                                          BL_TO_FORTRAN_ANYD((*rhs[ilev])[mfi]),
-                                          BL_TO_FORTRAN_ANYD((*vel[ilev])[mfi]),
-                                          BL_TO_FORTRAN_ANYD((*vfrac)[mfi]),
-                                          BL_TO_FORTRAN_ANYD((*intg)[mfi]),
-                                          BL_TO_FORTRAN_ANYD(dmsk[mfi]),
-                                          dxinv);
+                    Array4<Real const> const& vfracarr = vfrac->const_array(mfi);
+                    Array4<Real const> const& intgarr = intg->const_array(mfi);
+                    AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
+                    {
+                        mlndlap_divu_eb(i,j,k,rhsarr,velarr,vfracarr,intgarr,dmskarr,dxinvarr);
+                    });
                 }
                 else
                 {
@@ -446,13 +445,12 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
                 }
                 else if (typ == FabType::singlevalued)
                 {
-                    amrex_mlndlap_divu_eb(BL_TO_FORTRAN_BOX(bx),
-                                          BL_TO_FORTRAN_ANYD((*rhs[ilev])[mfi]),
-                                          BL_TO_FORTRAN_ANYD((*vel[ilev])[mfi]),
-                                          BL_TO_FORTRAN_ANYD((*vfrac)[mfi]),
-                                          BL_TO_FORTRAN_ANYD((*intg)[mfi]),
-                                          BL_TO_FORTRAN_ANYD(dmsk[mfi]),
-                                          dxinv);
+                    Array4<Real const> const& vfracarr = vfrac->const_array(mfi);
+                    Array4<Real const> const& intgarr = intg->const_array(mfi);
+                    AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
+                    {
+                        mlndlap_divu_eb(i,j,k,rhsarr,velarr,vfracarr,intgarr,dmskarr,dxinvarr);
+                    });
                 }
                 else
                 {

@@ -5255,6 +5255,120 @@ void mlndlap_set_stencil_eb (int i, int j, int k, Array4<Real> const& sten,
     sten(i,j,k,ist_ppp) = sig(i,j,k) * (facx*conn(i,j,k,i_c_ybzb) + facy*conn(i,j,k,i_c_xbzb) + facz*conn(i,j,k,i_c_xbyb) );
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_divu_eb (int i, int j, int k, Array4<Real> const& rhs, Array4<Real const> const& vel,
+                      Array4<Real const> const& vfrac, Array4<Real const> const& intg,
+                      Array4<int const> const& msk, GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+{
+    Real facx = 0.25_rt*dxinv[0];
+    Real facy = 0.25_rt*dxinv[1];
+    Real facz = 0.25_rt*dxinv[2];
+
+    if (msk(i,j,k)) {
+        rhs(i,j,k) = facx*(
+            vel(i-1,j-1,k  ,1)*(    -vfrac(i-1,j-1,k  )
+                               -2._rt*intg(i-1,j-1,k  ,i_S_y)
+                               +2._rt*intg(i-1,j-1,k  ,i_S_z)
+                               +4._rt*intg(i-1,j-1,k  ,i_S_y_z))
+           +vel(i  ,j-1,k  ,1)*(     vfrac(i  ,j-1,k  )
+                               +2._rt*intg(i  ,j-1,k  ,i_S_y)
+                               -2._rt*intg(i  ,j-1,k  ,i_S_z)
+                               -4._rt*intg(i  ,j-1,k  ,i_S_y_z))
+           +vel(i-1,j  ,k  ,1)*(    -vfrac(i-1,j  ,k  )
+                               +2._rt*intg(i-1,j  ,k  ,i_S_y)
+                               +2._rt*intg(i-1,j  ,k  ,i_S_z)
+                               -4._rt*intg(i-1,j  ,k  ,i_S_y_z))
+           +vel(i  ,j  ,k  ,1)*(     vfrac(i  ,j  ,k  )
+                               -2._rt*intg(i  ,j  ,k  ,i_S_y)
+                               -2._rt*intg(i  ,j  ,k  ,i_S_z)
+                               +4._rt*intg(i  ,j  ,k  ,i_S_y_z))
+           +vel(i-1,j-1,k-1,1)*(    -vfrac(i-1,j-1,k-1)
+                               -2._rt*intg(i-1,j-1,k-1,i_S_y)
+                               -2._rt*intg(i-1,j-1,k-1,i_S_z)
+                               -4._rt*intg(i-1,j-1,k-1,i_S_y_z))
+           +vel(i  ,j-1,k-1,1)*(     vfrac(i  ,j-1,k-1)
+                               +2._rt*intg(i  ,j-1,k-1,i_S_y)
+                               +2._rt*intg(i  ,j-1,k-1,i_S_z)
+                               +4._rt*intg(i  ,j-1,k-1,i_S_y_z))
+           +vel(i-1,j  ,k-1,1)*(    -vfrac(i-1,j  ,k-1)
+                               +2._rt*intg(i-1,j  ,k-1,i_S_y)
+                               -2._rt*intg(i-1,j  ,k-1,i_S_z)
+                               +4._rt*intg(i-1,j  ,k-1,i_S_y_z))
+           +vel(i  ,j  ,k-1,1)*(     vfrac(i  ,j  ,k-1)
+                               -2._rt*intg(i  ,j  ,k-1,i_S_y)
+                               +2._rt*intg(i  ,j  ,k-1,i_S_z)
+                               -4._rt*intg(i  ,j  ,k-1,i_S_y_z)) )
+            + facy*(
+            vel(i-1,j-1,k  ,2)*(    -vfrac(i-1,j-1,k  )
+                               -2._rt*intg(i-1,j-1,k  ,i_S_x)
+                               +2._rt*intg(i-1,j-1,k  ,i_S_z)
+                               +4._rt*intg(i-1,j-1,k  ,i_S_x_z))
+           +vel(i  ,j-1,k  ,2)*(    -vfrac(i  ,j-1,k  )
+                               +2._rt*intg(i  ,j-1,k  ,i_S_x)
+                               +2._rt*intg(i  ,j-1,k  ,i_S_z)
+                               -4._rt*intg(i  ,j-1,k  ,i_S_x_z))
+           +vel(i-1,j  ,k  ,2)*(     vfrac(i-1,j  ,k  )
+                               +2._rt*intg(i-1,j  ,k  ,i_S_x)
+                               -2._rt*intg(i-1,j  ,k  ,i_S_z)
+                               -4._rt*intg(i-1,j  ,k  ,i_S_x_z))
+           +vel(i  ,j  ,k  ,2)*(     vfrac(i  ,j  ,k  )
+                               -2._rt*intg(i  ,j  ,k  ,i_S_x)
+                               -2._rt*intg(i  ,j  ,k  ,i_S_z)
+                               +4._rt*intg(i  ,j  ,k  ,i_S_x_z))
+           +vel(i-1,j-1,k-1,2)*(    -vfrac(i-1,j-1,k-1)
+                               -2._rt*intg(i-1,j-1,k-1,i_S_x)
+                               -2._rt*intg(i-1,j-1,k-1,i_S_z)
+                               -4._rt*intg(i-1,j-1,k-1,i_S_x_z))
+           +vel(i  ,j-1,k-1,2)*(    -vfrac(i  ,j-1,k-1)
+                               +2._rt*intg(i  ,j-1,k-1,i_S_x)
+                               -2._rt*intg(i  ,j-1,k-1,i_S_z)
+                               +4._rt*intg(i  ,j-1,k-1,i_S_x_z))
+           +vel(i-1,j  ,k-1,2)*(     vfrac(i-1,j  ,k-1)
+                               +2._rt*intg(i-1,j  ,k-1,i_S_x)
+                               +2._rt*intg(i-1,j  ,k-1,i_S_z)
+                               +4._rt*intg(i-1,j  ,k-1,i_S_x_z))
+           +vel(i  ,j  ,k-1,2)*(     vfrac(i  ,j  ,k-1)
+                               -2._rt*intg(i  ,j  ,k-1,i_S_x)
+                               +2._rt*intg(i  ,j  ,k-1,i_S_z)
+                               -4._rt*intg(i  ,j  ,k-1,i_S_x_z)) )
+            + facz*(
+            vel(i-1,j-1,k  ,3)*(     vfrac(i-1,j-1,k  )
+                               +2._rt*intg(i-1,j-1,k  ,i_S_x)
+                               +2._rt*intg(i-1,j-1,k  ,i_S_y)
+                               +4._rt*intg(i-1,j-1,k  ,i_S_x_y))
+           +vel(i  ,j-1,k  ,3)*(     vfrac(i  ,j-1,k  )
+                               -2._rt*intg(i  ,j-1,k  ,i_S_x)
+                               +2._rt*intg(i  ,j-1,k  ,i_S_y)
+                               -4._rt*intg(i  ,j-1,k  ,i_S_x_y))
+           +vel(i-1,j  ,k  ,3)*(     vfrac(i-1,j  ,k  )
+                               +2._rt*intg(i-1,j  ,k  ,i_S_x)
+                               -2._rt*intg(i-1,j  ,k  ,i_S_y)
+                               -4._rt*intg(i-1,j  ,k  ,i_S_x_y))
+           +vel(i  ,j  ,k  ,3)*(     vfrac(i  ,j  ,k  )
+                               -2._rt*intg(i  ,j  ,k  ,i_S_x)
+                               -2._rt*intg(i  ,j  ,k  ,i_S_y)
+                               +4._rt*intg(i  ,j  ,k  ,i_S_x_y))
+           +vel(i-1,j-1,k-1,3)*(    -vfrac(i-1,j-1,k-1)
+                               -2._rt*intg(i-1,j-1,k-1,i_S_x)
+                               -2._rt*intg(i-1,j-1,k-1,i_S_y)
+                               -4._rt*intg(i-1,j-1,k-1,i_S_x_y))
+           +vel(i  ,j-1,k-1,3)*(    -vfrac(i  ,j-1,k-1)
+                               +2._rt*intg(i  ,j-1,k-1,i_S_x)
+                               -2._rt*intg(i  ,j-1,k-1,i_S_y)
+                               +4._rt*intg(i  ,j-1,k-1,i_S_x_y))
+           +vel(i-1,j  ,k-1,3)*(    -vfrac(i-1,j  ,k-1)
+                               -2._rt*intg(i-1,j  ,k-1,i_S_x)
+                               +2._rt*intg(i-1,j  ,k-1,i_S_y)
+                               +4._rt*intg(i-1,j  ,k-1,i_S_x_y))
+           +vel(i  ,j  ,k-1,3)*(    -vfrac(i  ,j  ,k-1)
+                               +2._rt*intg(i  ,j  ,k-1,i_S_x)
+                               +2._rt*intg(i  ,j  ,k-1,i_S_y)
+                               -4._rt*intg(i  ,j  ,k-1,i_S_x_y)) );
+    } else {
+        rhs(i,j,k) = 0._rt;
+    }
+}
+
 #endif
 
 }

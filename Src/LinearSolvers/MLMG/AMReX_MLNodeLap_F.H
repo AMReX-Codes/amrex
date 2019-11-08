@@ -105,14 +105,6 @@ extern "C" {
 #endif
                                         const amrex_real* bcent, const int* blo, const int* bhi);
 
-    void amrex_mlndlap_divu_eb (const int* lo, const int* hi,
-                                amrex_real* rhs, const int* rlo, const int* rhi,
-                                const amrex_real* vel, const int* vlo, const int* vhi,
-                                const amrex_real* vfrac, const int* flo, const int* fhi,
-                                const amrex_real* intg, const int* glo, const int* ghi,
-                                const int* dmsk, const int* dmlo, const int* dmhi,
-                                const amrex_real* dxinv);
-
     void amrex_mlndlap_mknewu_eb (const int* lo, const int* hi,
                                   amrex_real* u, const int* ulo, const int* uhi,
                                   const amrex_real* p, const int* plo, const int* phi,

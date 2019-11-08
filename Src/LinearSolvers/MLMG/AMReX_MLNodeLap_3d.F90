@@ -102,7 +102,7 @@ module amrex_mlnodelap_3d_module
   ! RAP
 
 #ifdef AMREX_USE_EB
-  public:: amrex_mlndlap_divu_eb, amrex_mlndlap_mknewu_eb, amrex_mlndlap_rhcc_eb
+  public:: amrex_mlndlap_mknewu_eb, amrex_mlndlap_rhcc_eb
 #endif
 
 contains
@@ -791,136 +791,6 @@ contains
 
 
 #ifdef AMREX_USE_EB
-
-  subroutine amrex_mlndlap_divu_eb (lo, hi, rhs, rlo, rhi, vel, vlo, vhi, vfrac, flo, fhi, &
-       intg, glo, ghi, msk, mlo, mhi, dxinv) &
-       bind(c,name='amrex_mlndlap_divu_eb')
-    integer, dimension(3), intent(in) :: lo, hi, rlo, rhi, vlo, vhi, flo, fhi, glo, ghi, mlo, mhi
-    real(amrex_real), intent(in) :: dxinv(3)
-    real(amrex_real), intent(inout) :: rhs(rlo(1):rhi(1),rlo(2):rhi(2),rlo(3):rhi(3))
-    real(amrex_real), intent(in   ) :: vel(vlo(1):vhi(1),vlo(2):vhi(2),vlo(3):vhi(3),3)
-    real(amrex_real), intent(in   ) :: vfrac(flo(1):fhi(1),flo(2):fhi(2),flo(3):fhi(3))
-    real(amrex_real), intent(in   ) :: intg(glo(1):ghi(1),glo(2):ghi(2),glo(3):ghi(3),n_Sintg)
-    integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3))
-    integer :: i,j,k
-    real(amrex_real) :: facx, facy, facz
-
-    facx = 0.25d0*dxinv(1)
-    facy = 0.25d0*dxinv(2)
-    facz = 0.25d0*dxinv(3)
-
-    do    k = lo(3), hi(3)
-    do    j = lo(2), hi(2)
-       do i = lo(1), hi(1)
-          if (msk(i,j,k) .ne. dirichlet) then
-
-             rhs(i,j,k) = facx*( &
-                  &              vel(i-1,j-1,k  ,1)*(    -vfrac(i-1,j-1,k  ) &
-                  &                                  -2.d0*intg(i-1,j-1,k  ,i_S_y) &
-                  &                                  +2.d0*intg(i-1,j-1,k  ,i_S_z) &
-                  &                                  +4.d0*intg(i-1,j-1,k  ,i_S_y_z)) &
-                  &             +vel(i  ,j-1,k  ,1)*(     vfrac(i  ,j-1,k  ) &
-                  &                                  +2.d0*intg(i  ,j-1,k  ,i_S_y) &
-                  &                                  -2.d0*intg(i  ,j-1,k  ,i_S_z) &
-                  &                                  -4.d0*intg(i  ,j-1,k  ,i_S_y_z)) &
-                  &             +vel(i-1,j  ,k  ,1)*(    -vfrac(i-1,j  ,k  ) &
-                  &                                  +2.d0*intg(i-1,j  ,k  ,i_S_y) &
-                  &                                  +2.d0*intg(i-1,j  ,k  ,i_S_z) &
-                  &                                  -4.d0*intg(i-1,j  ,k  ,i_S_y_z)) &
-                  &             +vel(i  ,j  ,k  ,1)*(     vfrac(i  ,j  ,k  ) &
-                  &                                  -2.d0*intg(i  ,j  ,k  ,i_S_y) &
-                  &                                  -2.d0*intg(i  ,j  ,k  ,i_S_z) &
-                  &                                  +4.d0*intg(i  ,j  ,k  ,i_S_y_z)) &
-                  &             +vel(i-1,j-1,k-1,1)*(    -vfrac(i-1,j-1,k-1) &
-                  &                                  -2.d0*intg(i-1,j-1,k-1,i_S_y) &
-                  &                                  -2.d0*intg(i-1,j-1,k-1,i_S_z) &
-                  &                                  -4.d0*intg(i-1,j-1,k-1,i_S_y_z)) &
-                  &             +vel(i  ,j-1,k-1,1)*(     vfrac(i  ,j-1,k-1) &
-                  &                                  +2.d0*intg(i  ,j-1,k-1,i_S_y) &
-                  &                                  +2.d0*intg(i  ,j-1,k-1,i_S_z) &
-                  &                                  +4.d0*intg(i  ,j-1,k-1,i_S_y_z)) &
-                  &             +vel(i-1,j  ,k-1,1)*(    -vfrac(i-1,j  ,k-1) &
-                  &                                  +2.d0*intg(i-1,j  ,k-1,i_S_y) &
-                  &                                  -2.d0*intg(i-1,j  ,k-1,i_S_z) &
-                  &                                  +4.d0*intg(i-1,j  ,k-1,i_S_y_z)) &
-                  &             +vel(i  ,j  ,k-1,1)*(     vfrac(i  ,j  ,k-1) &
-                  &                                  -2.d0*intg(i  ,j  ,k-1,i_S_y) &
-                  &                                  +2.d0*intg(i  ,j  ,k-1,i_S_z) &
-                  &                                  -4.d0*intg(i  ,j  ,k-1,i_S_y_z)) ) &
-                  &     + facy*( &
-                  &              vel(i-1,j-1,k  ,2)*(    -vfrac(i-1,j-1,k  ) &
-                  &                                  -2.d0*intg(i-1,j-1,k  ,i_S_x) &
-                  &                                  +2.d0*intg(i-1,j-1,k  ,i_S_z) &
-                  &                                  +4.d0*intg(i-1,j-1,k  ,i_S_x_z)) &
-                  &             +vel(i  ,j-1,k  ,2)*(    -vfrac(i  ,j-1,k  ) &
-                  &                                  +2.d0*intg(i  ,j-1,k  ,i_S_x) &
-                  &                                  +2.d0*intg(i  ,j-1,k  ,i_S_z) &
-                  &                                  -4.d0*intg(i  ,j-1,k  ,i_S_x_z)) &
-                  &             +vel(i-1,j  ,k  ,2)*(     vfrac(i-1,j  ,k  ) &
-                  &                                  +2.d0*intg(i-1,j  ,k  ,i_S_x) &
-                  &                                  -2.d0*intg(i-1,j  ,k  ,i_S_z) &
-                  &                                  -4.d0*intg(i-1,j  ,k  ,i_S_x_z)) &
-                  &             +vel(i  ,j  ,k  ,2)*(     vfrac(i  ,j  ,k  ) &
-                  &                                  -2.d0*intg(i  ,j  ,k  ,i_S_x) &
-                  &                                  -2.d0*intg(i  ,j  ,k  ,i_S_z) &
-                  &                                  +4.d0*intg(i  ,j  ,k  ,i_S_x_z)) &
-                  &             +vel(i-1,j-1,k-1,2)*(    -vfrac(i-1,j-1,k-1) &
-                  &                                  -2.d0*intg(i-1,j-1,k-1,i_S_x) &
-                  &                                  -2.d0*intg(i-1,j-1,k-1,i_S_z) &
-                  &                                  -4.d0*intg(i-1,j-1,k-1,i_S_x_z)) &
-                  &             +vel(i  ,j-1,k-1,2)*(    -vfrac(i  ,j-1,k-1) &
-                  &                                  +2.d0*intg(i  ,j-1,k-1,i_S_x) &
-                  &                                  -2.d0*intg(i  ,j-1,k-1,i_S_z) &
-                  &                                  +4.d0*intg(i  ,j-1,k-1,i_S_x_z)) &
-                  &             +vel(i-1,j  ,k-1,2)*(     vfrac(i-1,j  ,k-1) &
-                  &                                  +2.d0*intg(i-1,j  ,k-1,i_S_x) &
-                  &                                  +2.d0*intg(i-1,j  ,k-1,i_S_z) &
-                  &                                  +4.d0*intg(i-1,j  ,k-1,i_S_x_z)) &
-                  &             +vel(i  ,j  ,k-1,2)*(     vfrac(i  ,j  ,k-1) &
-                  &                                  -2.d0*intg(i  ,j  ,k-1,i_S_x) &
-                  &                                  +2.d0*intg(i  ,j  ,k-1,i_S_z) &
-                  &                                  -4.d0*intg(i  ,j  ,k-1,i_S_x_z)) ) &
-                  &     + facz*( &
-                  &              vel(i-1,j-1,k  ,3)*(     vfrac(i-1,j-1,k  ) &
-                  &                                  +2.d0*intg(i-1,j-1,k  ,i_S_x) &
-                  &                                  +2.d0*intg(i-1,j-1,k  ,i_S_y) &
-                  &                                  +4.d0*intg(i-1,j-1,k  ,i_S_x_y)) &
-                  &             +vel(i  ,j-1,k  ,3)*(     vfrac(i  ,j-1,k  ) &
-                  &                                  -2.d0*intg(i  ,j-1,k  ,i_S_x) &
-                  &                                  +2.d0*intg(i  ,j-1,k  ,i_S_y) &
-                  &                                  -4.d0*intg(i  ,j-1,k  ,i_S_x_y)) &
-                  &             +vel(i-1,j  ,k  ,3)*(     vfrac(i-1,j  ,k  ) &
-                  &                                  +2.d0*intg(i-1,j  ,k  ,i_S_x) &
-                  &                                  -2.d0*intg(i-1,j  ,k  ,i_S_y) &
-                  &                                  -4.d0*intg(i-1,j  ,k  ,i_S_x_y)) &
-                  &             +vel(i  ,j  ,k  ,3)*(     vfrac(i  ,j  ,k  ) &
-                  &                                  -2.d0*intg(i  ,j  ,k  ,i_S_x) &
-                  &                                  -2.d0*intg(i  ,j  ,k  ,i_S_y) &
-                  &                                  +4.d0*intg(i  ,j  ,k  ,i_S_x_y)) &
-                  &             +vel(i-1,j-1,k-1,3)*(    -vfrac(i-1,j-1,k-1) &
-                  &                                  -2.d0*intg(i-1,j-1,k-1,i_S_x) &
-                  &                                  -2.d0*intg(i-1,j-1,k-1,i_S_y) &
-                  &                                  -4.d0*intg(i-1,j-1,k-1,i_S_x_y)) &
-                  &             +vel(i  ,j-1,k-1,3)*(    -vfrac(i  ,j-1,k-1) &
-                  &                                  +2.d0*intg(i  ,j-1,k-1,i_S_x) &
-                  &                                  -2.d0*intg(i  ,j-1,k-1,i_S_y) &
-                  &                                  +4.d0*intg(i  ,j-1,k-1,i_S_x_y)) &
-                  &             +vel(i-1,j  ,k-1,3)*(    -vfrac(i-1,j  ,k-1) &
-                  &                                  -2.d0*intg(i-1,j  ,k-1,i_S_x) &
-                  &                                  +2.d0*intg(i-1,j  ,k-1,i_S_y) &
-                  &                                  +4.d0*intg(i-1,j  ,k-1,i_S_x_y)) &
-                  &             +vel(i  ,j  ,k-1,3)*(    -vfrac(i  ,j  ,k-1) &
-                  &                                  +2.d0*intg(i  ,j  ,k-1,i_S_x) &
-                  &                                  +2.d0*intg(i  ,j  ,k-1,i_S_y) &
-                  &                                  -4.d0*intg(i  ,j  ,k-1,i_S_x_y)) )
-          else
-             rhs(i,j,k) = 0.d0
-          end if
-       end do
-    end do
-    end do
-
-  end subroutine amrex_mlndlap_divu_eb
 
   subroutine amrex_mlndlap_mknewu_eb (lo, hi, u, ulo, uhi, p, plo, phi, sig, slo, shi, &
        vfrac, vlo, vhi, intg, glo, ghi, dxinv) bind(c,name='amrex_mlndlap_mknewu_eb')
