@@ -36,8 +36,13 @@ MyTest::solve ()
 #ifdef AMREX_USE_HYPRE
     if (use_hypre) {
         mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
-    }
+    } else
 #endif
+    {
+        mlmg.setBottomSolver(MLMG::BottomSolver::cg);
+    }
+
+    mlmg.setBottomMaxIter(1000);
 
     // solution is passed to MLMG::solve to provide an initial guess.
     // Additionally it also provides boundary conditions for Dirichlet
