@@ -13,9 +13,15 @@
 #include <AMReX_Utility.H>
 #include <AMReX_Print.H>
 
+#ifdef AMREX_USE_CUPTI
+#include <AMReX_CuptiTrace.H>
+#include <cupti.h>
+#endif // AMREX_USE_CUPTI
+
 #ifdef _OPENMP
 #include <omp.h>
 #endif
+
 
 namespace amrex {
 
@@ -30,25 +36,25 @@ namespace {
 }
 
 TinyProfiler::TinyProfiler (std::string funcname) noexcept
-    : fname(std::move(funcname))
+    : fname(std::move(funcname)), uCUPTI(false)
 {
     start();
 }
 
-TinyProfiler::TinyProfiler (std::string funcname, bool start_) noexcept
-    : fname(std::move(funcname))
+TinyProfiler::TinyProfiler (std::string funcname, bool start_, bool useCUPTI) noexcept
+    : fname(std::move(funcname)), uCUPTI(useCUPTI)
 {
     if (start_) start();
 }
 
 TinyProfiler::TinyProfiler (const char* funcname) noexcept
-    : fname(funcname)
+    : fname(funcname), uCUPTI(false)
 {
     start();
 }
 
-TinyProfiler::TinyProfiler (const char* funcname, bool start_) noexcept
-    : fname(funcname)
+TinyProfiler::TinyProfiler (const char* funcname, bool start_, bool useCUPTI) noexcept
+    : fname(funcname), uCUPTI(useCUPTI)
 {
     if (start_) start();
 }
@@ -66,8 +72,18 @@ TinyProfiler::start () noexcept
 #endif
     if (stats.empty() && !regionstack.empty())
     {
-	double t = amrex::second();
-
+        double t;
+	if (!uCUPTI) {
+	  t = amrex::second();
+	} else {
+#ifdef AMREX_USE_CUPTI
+	  cudaDeviceSynchronize();
+	  cuptiActivityFlushAll(0);
+	  activityRecordUserdata.clear();
+	  t = amrex::second();
+#endif // AMREX_USE_CUPTI
+	}
+	  
 	ttstack.emplace_back(std::make_tuple(t, 0.0, &fname));
 	global_depth = ttstack.size();
 
@@ -92,8 +108,19 @@ TinyProfiler::stop () noexcept
 #endif
     if (!stats.empty()) 
     {
-	double t = amrex::second();
-
+        double t;
+	int nKernelCalls = 0;
+	if (!uCUPTI) {
+	  t = amrex::second();
+	} else {
+#ifdef AMREX_USE_CUPTI
+	  cudaDeviceSynchronize();
+	  cuptiActivityFlushAll(0);
+	  t = computeElapsedTimeUserdata(activityRecordUserdata);
+	  nKernelCalls = activityRecordUserdata.size();
+#endif // AMREX_USE_CUPTI
+	}
+	
 	while (static_cast<int>(ttstack.size()) > global_depth) {
 	    ttstack.pop_back();
 	};
@@ -104,19 +131,29 @@ TinyProfiler::stop () noexcept
 	    
 	    // first: wall time when the pair is pushed into the stack
 	    // second: accumulated dt of children
-	    
-	    double dtin = t - std::get<0>(tt); // elapsed time since start() is called.
-	    double dtex = dtin - std::get<1>(tt);
-
+	    double dtin;
+	    double dtex;
+	    if (!uCUPTI) {
+	      dtin = t - std::get<0>(tt); // elapsed time since start() is called.
+	      dtex = dtin - std::get<1>(tt);
+	    } else {
+	      dtin = t;
+	      dtex = dtin - std::get<1>(tt); 
+	    }
+	      
             for (Stats* st : stats)
             {
                 --(st->depth);
                 ++(st->n);
                 if (st->depth == 0) {
-                    st->dtin += dtin;
+                  st->dtin += dtin;
                 }
                 st->dtex += dtex;
-            }
+                st->usesCUPTI = uCUPTI;
+		if (uCUPTI) {
+		  st->nk += nKernelCalls;
+		}
+	    }
                 
 	    ttstack.pop_back();
 	    if (!ttstack.empty()) {
@@ -135,6 +172,71 @@ TinyProfiler::stop () noexcept
     }
 }
 
+#ifdef AMREX_USE_CUPTI
+void
+TinyProfiler::stop (unsigned boxUintID) noexcept
+{
+#ifdef _OPENMP
+#pragma omp master
+#endif
+    if (!stats.empty()) 
+    {
+      double t;
+      cudaDeviceSynchronize();
+      cuptiActivityFlushAll(0);
+      t = computeElapsedTimeUserdata(activityRecordUserdata);
+      int nKernelCalls = activityRecordUserdata.size();
+      
+      for (auto record : activityRecordUserdata) {
+	record->setUintID(boxUintID);
+      }
+      
+      while (static_cast<int>(ttstack.size()) > global_depth) {
+	ttstack.pop_back();
+      };
+
+      if (static_cast<int>(ttstack.size()) == global_depth)
+	{
+	  const std::tuple<double,double,std::string*>& tt = ttstack.back();
+	    
+	  // first: wall time when the pair is pushed into the stack
+	  // second: accumulated dt of children
+	  double dtin;
+	  double dtex;
+	  
+	  dtin = t;
+	  dtex = dtin - std::get<1>(tt); 
+	  
+	  for (Stats* st : stats)
+            {
+	      --(st->depth);
+	      ++(st->n);
+	      if (st->depth == 0) {
+		st->dtin += dtin;
+	      }
+	      st->dtex += dtex;
+	      st->usesCUPTI = uCUPTI;
+	      st->nk += nKernelCalls;		
+            }
+	  
+	  ttstack.pop_back();
+	  if (!ttstack.empty()) {
+	    std::tuple<double,double,std::string*>& parent = ttstack.back();
+	    std::get<1>(parent) += dtin;
+	  }
+
+#ifdef AMREX_USE_CUDA
+	  nvtxRangeEnd(nvtx_id);
+#endif
+	} else {
+	improperly_nested_timers.insert(fname);
+      } 
+      
+      stats.clear();
+    }
+}
+#endif // AMREX_USE_CUPTI
+ 
 void
 TinyProfiler::Initialize () noexcept
 {
@@ -297,7 +399,9 @@ TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, double dt_max)
 	    pst.dtinavg /= nprocs;
 	    pst.dtexavg /= nprocs;
 	    pst.fname = it->first;
-	    
+#ifdef AMREX_USE_CUPTI
+            pst.usesCUPTI = it->second.usesCUPTI;
+#endif // AMREX_USE_CUPTI
 	    allprocstats.push_back(pst);
 	    maxfnamelen = std::max(maxfnamelen, int(pst.fname.size()));
 	    maxncalls = std::max(maxncalls, pst.nmax);
@@ -316,7 +420,9 @@ TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, double dt_max)
 	wp  = std::max(wp,  int(std::string("Max %").size()));
 
 	const std::string hline(maxfnamelen+wnc+2+(wt+2)*3+wp+2,'-');
-
+#ifdef AMREX_USE_CUPTI
+	const std::string hlinehlf((maxfnamelen+wnc+2+(wt+2)*3+wp+2)/2-12,'-');
+#endif // AMREX_USE_CUPTI
 	// Exclusive time
 	std::sort(allprocstats.begin(), allprocstats.end(), ProcStats::compex);
 	amrex::OutStream() << "\n" << hline << "\n";
@@ -331,6 +437,12 @@ TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, double dt_max)
 		  << "\n" << hline << "\n";
 	for (auto it = allprocstats.cbegin(); it != allprocstats.cend(); ++it)
 	{
+#ifdef AMREX_USE_CUPTI
+            if (it->usesCUPTI) {
+              amrex::OutStream() << hlinehlf << "START CUPTI Trace Stats-"
+                                 << hlinehlf << "\n";
+            }
+#endif // AMREX_USE_CUPTI
 	    amrex::OutStream() << std::setprecision(4) << std::left
 		      << std::setw(maxfnamelen) << it->fname
 		      << std::right
@@ -341,7 +453,23 @@ TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, double dt_max)
 		      << std::setprecision(2) << std::setw(wp+1) << std::fixed 
 		      << it->dtexmax*(100.0/dt_max) << "%";
 	    amrex::OutStream().unsetf(std::ios_base::fixed);
-	    amrex::OutStream() << "\n";
+	    amrex::OutStream() << "\n";	    
+#ifdef AMREX_USE_CUPTI	    
+            if (it->usesCUPTI) {
+              amrex::OutStream() << std::setprecision(4) << std::left
+                                 << std::setw(maxfnamelen) //<< it->fname
+                                 << std::right
+                                 << std::setw(wnc+2) //<< it->navg
+                                 << std::setw(wt+2) //<< it->dtexmin
+                                 << std::setw(wt+2) //<< it->dtexavg
+                                 << std::setw(wt+2) //<< it->dtexmax
+                                 << std::setprecision(2) << std::setw(wp+1) << std::fixed; //<< it->dtexmax*(100.0/dt_max)
+              amrex::OutStream().unsetf(std::ios_base::fixed);
+              amrex::OutStream();
+              amrex::OutStream() << hlinehlf << "--END CUPTI Trace Stats-"
+                                 << hlinehlf << "\n";
+	  }
+#endif // AMREX_USE_CUPTI
 	}
 	amrex::OutStream() << hline << "\n";
 
@@ -359,6 +487,12 @@ TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, double dt_max)
 		  << "\n" << hline << "\n";
 	for (auto it = allprocstats.cbegin(); it != allprocstats.cend(); ++it)
 	{
+#ifdef AMREX_USE_CUPTI
+          if (it->usesCUPTI) {
+            amrex::OutStream() << hlinehlf << "START CUPTI Trace Stats-"
+                               << hlinehlf << "\n";
+          }
+#endif // AMREX_USE_CUPTI
 	    amrex::OutStream() << std::setprecision(4) << std::left
 		      << std::setw(maxfnamelen) << it->fname
 		      << std::right
@@ -370,6 +504,22 @@ TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, double dt_max)
 		      << it->dtinmax*(100.0/dt_max) << "%";
 	    amrex::OutStream().unsetf(std::ios_base::fixed);
 	    amrex::OutStream() << "\n";
+#ifdef AMREX_USE_CUPTI
+          if (it->usesCUPTI) {
+            amrex::OutStream() << std::setprecision(4) << std::left
+                               << std::setw(maxfnamelen) //<< it->fname
+                               << std::right
+                               << std::setw(wnc+2) //<< it->navg
+                               << std::setw(wt+2) //<< it->dtexmin
+                               << std::setw(wt+2) //<< it->dtexavg
+                               << std::setw(wt+2) //<< it->dtexmax
+                               << std::setprecision(2) << std::setw(wp+1) << std::fixed; //<< it->dtexmax*(100.0/dt_max)
+            amrex::OutStream().unsetf(std::ios_base::fixed);
+            amrex::OutStream();
+            amrex::OutStream() << hlinehlf << "--END CUPTI Trace Stats-"
+                               << hlinehlf << "\n";
+          }
+#endif // AMREX_USE_CUPTI
 	}
 	amrex::OutStream() << hline << "\n";
 
@@ -395,7 +545,7 @@ TinyProfiler::StopRegion (const std::string& regname) noexcept
 
 TinyProfileRegion::TinyProfileRegion (std::string a_regname) noexcept
     : regname(std::move(a_regname)),
-      tprof(std::string("REG::")+regname, false)
+      tprof(std::string("REG::")+regname, false, false)
 {
     TinyProfiler::StartRegion(regname);
     tprof.start();
@@ -403,7 +553,7 @@ TinyProfileRegion::TinyProfileRegion (std::string a_regname) noexcept
 
 TinyProfileRegion::TinyProfileRegion (const char* a_regname) noexcept
     : regname(a_regname),
-      tprof(std::string("REG::")+std::string(a_regname), false)
+      tprof(std::string("REG::")+std::string(a_regname), false, false)
 {
     TinyProfiler::StartRegion(a_regname);
     tprof.start();

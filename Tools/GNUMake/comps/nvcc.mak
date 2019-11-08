@@ -112,6 +112,12 @@ ifeq ($(CUDA_VERBOSE),TRUE)
   NVCC_FLAGS += --ptxas-options=-v
 endif
 
+ifeq ($(USE_CUPTI),TRUE)
+  INCLUDE_LOCATIONS += $(CUDAPATH)/extras/CUPTI/include
+  LIBRARY_LOCATIONS += ${CUDAPATH}/extras/CUPTI/lib64 
+  LIBRARIES += -Wl,-rpath,${CUDAPATH}/extras/CUPTI/lib64 -lcupti
+endif
+
 ifneq ($(USE_CUDA_FAST_MATH),FALSE)
   NVCC_FLAGS += --use_fast_math
 endif
