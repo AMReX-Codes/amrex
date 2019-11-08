@@ -25,7 +25,6 @@ struct CommonLaserParameters
 };
 
 
-//_________________________________________Abstract interface for laser profile classes
 
 class ILaserProfile
 {
