@@ -93,13 +93,12 @@ def run_batch(run_name, res_dir, bin_name, config_command, architecture='knl',\
     os.system(config_command + 'sbatch ' + batch_file + ' >> ' + cwd + 'log_jobids_tmp.txt')
     return 0
 
-def run_batch_nnode(test_list, res_dir, bin_name, config_command, batch_string, submit_job_command):
+def run_batch_nnode(test_list, res_dir, cwd, bin_name, config_command, batch_string, submit_job_command):
     # Clean res_dir
     if os.path.exists(res_dir):
          shutil.rmtree(res_dir, ignore_errors=True)
     os.makedirs(res_dir)
     # Copy files to res_dir
-    cwd = os.environ['AUTOMATED_PERF_TESTS'] + '/warpx/Tools/performance_tests/'
     bin_dir = cwd + 'Bin/'
     shutil.copy(bin_dir + bin_name, res_dir)
     os.chdir(res_dir)
