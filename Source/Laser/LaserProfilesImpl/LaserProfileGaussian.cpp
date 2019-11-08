@@ -44,7 +44,7 @@ GaussianLaserProfile::fill_amplitude (
     Complex I(0,1);
     // Calculate a few factors which are independent of the macroparticle
     const Real k0 = 2.*MathConst::pi/m_common_params.wavelength;
-    const Real inv_tau2 = 1. /(m_params.duration * m_params.duration);
+    const Real inv_tau2 = 1._rt /(m_params.duration * m_params.duration);
     const Real oscillation_phase = k0 * PhysConst::c * ( t - m_params.t_peak );
     // The coefficients below contain info about Gouy phase,
     // laser diffraction, and phase front curvature
