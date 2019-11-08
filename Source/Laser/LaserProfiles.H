@@ -28,7 +28,11 @@ struct CommonLaserParameters
 };
 
 
-
+/** Abstract interface for laser profile classes
+ *
+ * more details here. can be long.
+ * yo.
+ */
 class ILaserProfile
 {
 public:
