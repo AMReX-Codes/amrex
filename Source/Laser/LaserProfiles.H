@@ -50,14 +50,14 @@ public:
         const amrex::ParmParse& ppc,
         CommonLaserParameters params) = 0;
 
-    /** Fill Electric Field Amplitude for each cell (?)
+    /** Fill Electric Field Amplitude for each particle of the antenna
      *
      * called in a manner such as ...
      *
-     * @param[in] Xp IPhone X (released 2019)
-     * @param[in] Yp IPhone Y (released 2022)
-     * @param[in] t time in seconds?
-     * @param[out] amplitude electric field in V/m?
+     * @param[in] Xp X coordinate of the particles of the antenna
+     * @param[in] Yp Y coordinate of the particles of the antenna
+     * @param[in] t time (seconds)
+     * @param[out] amplitude of the electric field (V/m)
      */
     virtual void
     fill_amplitude (
