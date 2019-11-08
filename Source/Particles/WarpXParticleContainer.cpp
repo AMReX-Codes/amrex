@@ -510,7 +510,7 @@ WarpXParticleContainer::DepositCharge (Vector<std::unique_ptr<MultiFab> >& rho,
         // Reset the `rho` array if `reset` is True
         if (reset) rho[lev]->setVal(0.0, rho[lev]->nGrow());
 
-        // Loop over particle tiles and deposit charge
+        // Loop over particle tiles and deposit charge on each level
 #ifdef _OPENMP
         #pragma omp parallel
         {
@@ -542,10 +542,23 @@ WarpXParticleContainer::DepositCharge (Vector<std::unique_ptr<MultiFab> >& rho,
         WarpX::GetInstance().ApplyInverseVolumeScalingToChargeDensity(rho[lev].get(), lev);
 #endif
 
-        if (!local) {
-            const auto& gm = m_gdb->Geom(lev);
-            rho[lev]->SumBoundary(gm.periodicity());
-        }
+        // Exchange guard cells
+        if (!local) rho[lev]->SumBoundary( m_gdb->Geom(lev).periodicity() );
+    }
+
+    // Now that the charge has been deposited at each level,
+    // we average down from fine to crse
+    for (int lev = finest_level - 1; lev >= 0; --lev) {
+        const DistributionMapping& fine_dm = rho[lev+1]->DistributionMap();
+        BoxArray coarsened_fine_BA = rho[lev+1]->boxArray();
+        coarsened_fine_BA.coarsen(m_gdb->refRatio(lev));
+        MultiFab coarsened_fine_data(coarsened_fine_BA, fine_dm, rho[lev+1]->nComp(), 0);
+        coarsened_fine_data.setVal(0.0);
+
+        int const refinement_ratio = 2;
+
+        interpolateDensityFineToCoarse( rho[lev+1], coarsened_fine_data, refinement_ratio );
+        rho[lev].ParallelAdd( coarsened_fine_data, m_gdb->Geom(lev).periodicity() );
     }
 }
 
