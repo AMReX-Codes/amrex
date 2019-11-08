@@ -5408,6 +5408,97 @@ void mlndlap_mknewu_eb (int i, int j, int k, Array4<Real> const& u, Array4<Real 
     }
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_rhcc_eb (int i, int j, int k, Array4<Real> const& rhs, Array4<Real const> const& rhcc,
+                      Array4<Real const> const& vfrac, Array4<Real const> const& intg,
+                      Array4<int const> const& msk) noexcept
+{
+    if (!msk(i,j,k)) {
+        rhs(i,j,k) =
+                          rhcc(i  ,j  ,k  ) *
+            ( 0.125_rt * vfrac(i  ,j  ,k  )
+            + 0.25_rt * (-intg(i  ,j  ,k  ,i_S_x)
+                         -intg(i  ,j  ,k  ,i_S_y)
+                         -intg(i  ,j  ,k  ,i_S_z))
+            + 0.5_rt * (  intg(i  ,j  ,k  ,i_S_x_y)
+                         +intg(i  ,j  ,k  ,i_S_x_z)
+                         +intg(i  ,j  ,k  ,i_S_y_z))
+            +          ( -intg(i  ,j  ,k  ,i_S_xyz)))
+            //
+            +             rhcc(i-1,j  ,k  ) *
+            ( 0.125_rt * vfrac(i-1,j  ,k  )
+            + 0.25_rt * ( intg(i-1,j  ,k  ,i_S_x)
+                         -intg(i-1,j  ,k  ,i_S_y)
+                         -intg(i-1,j  ,k  ,i_S_z))
+            + 0.5_rt * ( -intg(i-1,j  ,k  ,i_S_x_y)
+                         -intg(i-1,j  ,k  ,i_S_x_z)
+                         +intg(i-1,j  ,k  ,i_S_y_z))
+            +          (  intg(i-1,j  ,k  ,i_S_xyz)))
+            //
+            +             rhcc(i  ,j-1,k  ) *
+            ( 0.125_rt * vfrac(i  ,j-1,k  )
+            + 0.25_rt * (-intg(i  ,j-1,k  ,i_S_x)
+                         +intg(i  ,j-1,k  ,i_S_y)
+                         -intg(i  ,j-1,k  ,i_S_z))
+            + 0.5_rt * ( -intg(i  ,j-1,k  ,i_S_x_y)
+                         +intg(i  ,j-1,k  ,i_S_x_z)
+                         -intg(i  ,j-1,k  ,i_S_y_z))
+            +          (  intg(i  ,j-1,k  ,i_S_xyz)))
+            //
+            +             rhcc(i-1,j-1,k  ) *
+            ( 0.125_rt * vfrac(i-1,j-1,k  )
+            + 0.25_rt * ( intg(i-1,j-1,k  ,i_S_x)
+                         +intg(i-1,j-1,k  ,i_S_y)
+                         -intg(i-1,j-1,k  ,i_S_z))
+            + 0.5_rt * (  intg(i-1,j-1,k  ,i_S_x_y)
+                         -intg(i-1,j-1,k  ,i_S_x_z)
+                         -intg(i-1,j-1,k  ,i_S_y_z))
+            +          ( -intg(i-1,j-1,k  ,i_S_xyz)))
+            //
+            +             rhcc(i  ,j  ,k-1) *
+            ( 0.125_rt * vfrac(i  ,j  ,k-1)
+            + 0.25_rt * (-intg(i  ,j  ,k-1,i_S_x)
+                         -intg(i  ,j  ,k-1,i_S_y)
+                         +intg(i  ,j  ,k-1,i_S_z))
+            + 0.5_rt * (  intg(i  ,j  ,k-1,i_S_x_y)
+                         -intg(i  ,j  ,k-1,i_S_x_z)
+                         -intg(i  ,j  ,k-1,i_S_y_z))
+            +          (  intg(i  ,j  ,k-1,i_S_xyz)))
+            //
+            +             rhcc(i-1,j  ,k-1) *
+            ( 0.125_rt * vfrac(i-1,j  ,k-1)
+            + 0.25_rt * ( intg(i-1,j  ,k-1,i_S_x)
+                         -intg(i-1,j  ,k-1,i_S_y)
+                         +intg(i-1,j  ,k-1,i_S_z))
+            + 0.5_rt * ( -intg(i-1,j  ,k-1,i_S_x_y)
+                         +intg(i-1,j  ,k-1,i_S_x_z)
+                         -intg(i-1,j  ,k-1,i_S_y_z))
+            +          ( -intg(i-1,j  ,k-1,i_S_xyz)))
+            //
+            +             rhcc(i  ,j-1,k-1) *
+            ( 0.125_rt * vfrac(i  ,j-1,k-1)
+            + 0.25_rt * (-intg(i  ,j-1,k-1,i_S_x)
+                         +intg(i  ,j-1,k-1,i_S_y)
+                         +intg(i  ,j-1,k-1,i_S_z))
+            + 0.5_rt * ( -intg(i  ,j-1,k-1,i_S_x_y)
+                         -intg(i  ,j-1,k-1,i_S_x_z)
+                         +intg(i  ,j-1,k-1,i_S_y_z))
+            +          ( -intg(i  ,j-1,k-1,i_S_xyz)))
+            //
+            +             rhcc(i-1,j-1,k-1) *
+            ( 0.125_rt * vfrac(i-1,j-1,k-1)
+            + 0.25_rt * ( intg(i-1,j-1,k-1,i_S_x)
+                         +intg(i-1,j-1,k-1,i_S_y)
+                         +intg(i-1,j-1,k-1,i_S_z))
+            + 0.5_rt * (  intg(i-1,j-1,k-1,i_S_x_y)
+                         +intg(i-1,j-1,k-1,i_S_x_z)
+                         +intg(i-1,j-1,k-1,i_S_y_z))
+             +         (  intg(i-1,j-1,k-1,i_S_xyz)));
+    } else {
+        rhs(i,j,k) = 0._rt;
+    }
+}
+
 #endif
 
 }

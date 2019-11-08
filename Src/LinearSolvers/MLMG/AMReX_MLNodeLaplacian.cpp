@@ -482,12 +482,12 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
 #ifdef AMREX_USE_EB
                 if (typ == FabType::singlevalued)
                 {
-                    amrex_mlndlap_rhcc_eb(BL_TO_FORTRAN_BOX(bx),
-                                          BL_TO_FORTRAN_ANYD((*rhs_cc[ilev])[mfi]),
-                                          BL_TO_FORTRAN_ANYD((*rhcc[ilev])[mfi]),
-                                          BL_TO_FORTRAN_ANYD((*vfrac)[mfi]),
-                                          BL_TO_FORTRAN_ANYD((*intg)[mfi]),
-                                          BL_TO_FORTRAN_ANYD(dmsk[mfi]));
+                    Array4<Real const> const& vfracarr = vfrac->const_array(mfi);
+                    Array4<Real const> const& intgarr = intg->const_array(mfi);
+                    AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
+                    {
+                        mlndlap_rhcc_eb(i,j,k,rhs_cc_a,rhccarr,vfracarr,intgarr,dmskarr);
+                    });
                 }
                 else if (typ == FabType::regular)
 #endif

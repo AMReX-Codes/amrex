@@ -1188,6 +1188,22 @@ void mlndlap_mknewu_eb (int i, int j, int, Array4<Real> const& u, Array4<Real co
     }
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_rhcc_eb (int i, int j, int, Array4<Real> const& rhs, Array4<Real const> const& rhcc,
+                      Array4<Real const> const& vfrac, Array4<Real const> const& intg,
+                      Array4<int const> const& msk) noexcept
+{
+    if (!msk(i,j,0)) {
+        rhs(i,j,0) =
+            rhcc(i  ,j  ,0)*(0.25_rt*vfrac(i  ,j  ,0)-intg(i  ,j  ,0,i_S_x)-intg(i  ,j  ,0,i_S_y)+intg(i  ,j  ,0,i_S_xy)) +
+            rhcc(i-1,j  ,0)*(0.25_rt*vfrac(i-1,j  ,0)+intg(i-1,j  ,0,i_S_x)-intg(i-1,j  ,0,i_S_y)-intg(i-1,j  ,0,i_S_xy)) +
+            rhcc(i-1,j-1,0)*(0.25_rt*vfrac(i-1,j-1,0)+intg(i-1,j-1,0,i_S_x)+intg(i-1,j-1,0,i_S_y)+intg(i-1,j-1,0,i_S_xy)) +
+            rhcc(i  ,j-1,0)*(0.25_rt*vfrac(i  ,j-1,0)-intg(i  ,j-1,0,i_S_x)+intg(i  ,j-1,0,i_S_y)-intg(i  ,j-1,0,i_S_xy));
+    } else {
+        rhs(i,j,0) = 0._rt;
+    }
+}
+
 #endif
 
 }
