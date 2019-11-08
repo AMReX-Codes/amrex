@@ -30,67 +30,92 @@ struct ParticleTileData
     GpuArray<ParticleReal* AMREX_RESTRICT, NArrayReal> m_rdata;
     GpuArray<int* AMREX_RESTRICT, NArrayInt> m_idata;    
 
-    long m_psize;
     int m_num_runtime_real;
     int m_num_runtime_int;
     ParticleReal** m_runtime_r_data;
     int** m_runtime_i_data;
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    void packParticleData (char* buffer, int src_index, int dst_index) const noexcept
+    void packParticleData (char* buffer, int src_index, int dst_index,
+                           const int* comm_real, const int * comm_int, long psize) const noexcept
     {
         AMREX_ASSERT(src_index < m_size);
-        auto dst = buffer + dst_index*m_psize;
+        auto dst = buffer + dst_index*psize;
         memcpy(dst, m_aos + src_index, sizeof(ParticleType));
         dst += sizeof(ParticleType);
         for (int i = 0; i < NArrayReal; ++i)
         {
-            memcpy(dst, m_rdata[i] + src_index, sizeof(ParticleReal));
-            dst += sizeof(ParticleReal);
+            if (comm_real[i])
+            {
+                memcpy(dst, m_rdata[i] + src_index, sizeof(ParticleReal));
+                dst += sizeof(ParticleReal);
+            }
         }
         for (int i = 0; i < m_num_runtime_real; ++i)
         {
-            memcpy(dst, m_runtime_r_data[i] + src_index, sizeof(ParticleReal));
-            dst += sizeof(ParticleReal);
+            if (comm_real[NArrayReal+i])
+            {
+                memcpy(dst, m_runtime_r_data[i] + src_index, sizeof(ParticleReal));
+                dst += sizeof(ParticleReal);
+            }
         }
         for (int i = 0; i < NArrayInt; ++i)
         {
-            memcpy(dst, m_idata[i] + src_index, sizeof(int));
-            dst += sizeof(int);
+            if (comm_int[i])
+            {
+                memcpy(dst, m_idata[i] + src_index, sizeof(int));
+                dst += sizeof(int);
+            }
         }
         for (int i = 0; i < m_num_runtime_int; ++i)
         {
-            memcpy(dst, m_runtime_i_data[i] + src_index, sizeof(int));
-            dst += sizeof(int);
+            if (comm_int[NArrayInt+i])
+            {
+                memcpy(dst, m_runtime_i_data[i] + src_index, sizeof(int));
+                dst += sizeof(int);
+            }
         }        
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    void unpackParticleData (const char* buffer, int src_index, int dst_index) const noexcept
+    void unpackParticleData (const char* buffer, int src_index, int dst_index,
+                             const int* comm_real, const int * comm_int, long psize) const noexcept
     {
         AMREX_ASSERT(dst_index < m_size);
-        auto src = buffer + src_index*m_psize;
+        auto src = buffer + src_index*psize;
         memcpy(m_aos + dst_index, src, sizeof(ParticleType));
         src += sizeof(ParticleType);
         for (int i = 0; i < NArrayReal; ++i)
         {
-            memcpy(m_rdata[i] + dst_index, src, sizeof(ParticleReal));
-            src += sizeof(ParticleReal);
+            if (comm_real[i])
+            {
+                memcpy(m_rdata[i] + dst_index, src, sizeof(ParticleReal));
+                src += sizeof(ParticleReal);
+            }
         }
         for (int i = 0; i < m_num_runtime_real; ++i)
         {
-            memcpy(m_runtime_r_data[i] + dst_index, src, sizeof(ParticleReal));
-            src += sizeof(ParticleReal);
+            if (comm_real[NArrayReal+i])
+            {
+                memcpy(m_runtime_r_data[i] + dst_index, src, sizeof(ParticleReal));
+                src += sizeof(ParticleReal);
+            }
         }
         for (int i = 0; i < NArrayInt; ++i)
         {
-            memcpy(m_idata[i] + dst_index, src, sizeof(int));
-            src += sizeof(int);
+            if (comm_int[i])
+            {
+                memcpy(m_idata[i] + dst_index, src, sizeof(int));
+                src += sizeof(int);
+            }
         }
         for (int i = 0; i < m_num_runtime_int; ++i)
         {
-            memcpy(m_runtime_i_data[i] + dst_index, src, sizeof(int));
-            src += sizeof(int);
+            if (comm_int[NArrayInt+i])
+            {
+                memcpy(m_runtime_i_data[i] + dst_index, src, sizeof(int));
+                src += sizeof(int);
+            }
         }
     }
 
@@ -135,38 +160,50 @@ struct ConstParticleTileData
     GpuArray<const ParticleReal* AMREX_RESTRICT, NArrayReal> m_rdata;
     GpuArray<const int* AMREX_RESTRICT, NArrayInt > m_idata;    
 
-    long m_psize;
     int m_num_runtime_real;
     int m_num_runtime_int;
     const ParticleReal** m_runtime_r_data;
     const int** m_runtime_i_data;
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    void packParticleData(char* buffer, int src_index, int dst_index) const noexcept
+    void packParticleData(char* buffer, int src_index, int dst_index,
+                          const int* comm_real, const int * comm_int, long psize) const noexcept
     {
         AMREX_ASSERT(src_index < m_size);
-        auto dst = buffer + dst_index*m_psize;
+        auto dst = buffer + dst_index*psize;
         memcpy(dst, m_aos + src_index, sizeof(ParticleType));
         dst += sizeof(ParticleType);
         for (int i = 0; i < NArrayReal; ++i)
         {
-            memcpy(dst, m_rdata[i] + src_index, sizeof(ParticleReal));
-            dst += sizeof(ParticleReal);
+            if (comm_real[i])
+            {
+                memcpy(dst, m_rdata[i] + src_index, sizeof(ParticleReal));
+                dst += sizeof(ParticleReal);
+            }
         }
         for (int i = 0; i < m_num_runtime_real; ++i)
         {
-            memcpy(dst, m_runtime_r_data[i] + src_index, sizeof(ParticleReal));
-            dst += sizeof(ParticleReal);
+            if (comm_real[NArrayReal+i])
+            {
+                memcpy(dst, m_runtime_r_data[i] + src_index, sizeof(ParticleReal));
+                dst += sizeof(ParticleReal);
+            }
         }
         for (int i = 0; i < NArrayInt; ++i)
         {
-            memcpy(dst, m_idata[i] + src_index, sizeof(int));
-            dst += sizeof(int);
+            if (comm_int[i])
+            {
+                memcpy(dst, m_idata[i] + src_index, sizeof(int));
+                dst += sizeof(int);
+            }
         }
         for (int i = 0; i < m_num_runtime_int; ++i)
         {
-            memcpy(dst, m_runtime_i_data[i] + src_index, sizeof(int));
-            dst += sizeof(int);
+            if (comm_int[NArrayInt+i])
+            {
+                memcpy(dst, m_runtime_i_data[i] + src_index, sizeof(int));
+                dst += sizeof(int);
+            }
         }        
     }
 
@@ -369,9 +406,6 @@ struct ParticleTile
         ptd.m_num_runtime_int = m_runtime_i_ptrs.size();
         ptd.m_runtime_r_data = m_runtime_r_ptrs.dataPtr();
         ptd.m_runtime_i_data = m_runtime_i_ptrs.dataPtr();
-        ptd.m_psize = sizeof(ParticleType)
-            + (NArrayReal + ptd.m_num_runtime_real)*sizeof(ParticleReal) 
-            + (NArrayInt + ptd.m_num_runtime_int)*sizeof(int);
         return ptd;
     }
 
@@ -394,9 +428,6 @@ struct ParticleTile
         ptd.m_num_runtime_int = m_runtime_i_cptrs.size();
         ptd.m_runtime_r_data = m_runtime_r_cptrs.dataPtr();
         ptd.m_runtime_i_data = m_runtime_i_cptrs.dataPtr();
-        ptd.m_psize = sizeof(ParticleType)
-            + (NArrayReal + ptd.m_num_runtime_real)*sizeof(ParticleReal) 
-            + (NArrayInt  + ptd.m_num_runtime_int)*sizeof(int);
         return ptd;
     }
 
