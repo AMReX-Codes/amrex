@@ -5206,6 +5206,55 @@ void mlndlap_set_connection (int i, int j, int k, Array4<Real> const& conn,
     }
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_set_stencil_eb (int i, int j, int k, Array4<Real> const& sten,
+                             Array4<Real const> const& sig, Array4<Real const> const& conn,
+                             GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+{
+    Real facx = (1._rt/36._rt)*dxinv[0]*dxinv[0];
+    Real facy = (1._rt/36._rt)*dxinv[1]*dxinv[1];
+    Real facz = (1._rt/36._rt)*dxinv[2]*dxinv[2];
+
+    // i+1,j,k
+    sten(i,j,k,ist_p00) = (
+        sig(i,j  ,k  )*(4._rt*facx*conn(i,j  ,k  ,i_c_ymzm) - 2._rt*facy*conn(i,j  ,k  ,i_c_xbzm) - 2._rt*facz*conn(i,j  ,k  ,i_c_xbym) ) +
+        sig(i,j-1,k  )*(4._rt*facx*conn(i,j-1,k  ,i_c_ypzm) - 2._rt*facy*conn(i,j-1,k  ,i_c_xbzm) - 2._rt*facz*conn(i,j-1,k  ,i_c_xbyp) ) +
+        sig(i,j  ,k-1)*(4._rt*facx*conn(i,j  ,k-1,i_c_ymzp) - 2._rt*facy*conn(i,j  ,k-1,i_c_xbzp) - 2._rt*facz*conn(i,j  ,k-1,i_c_xbym) ) +
+        sig(i,j-1,k-1)*(4._rt*facx*conn(i,j-1,k-1,i_c_ypzp) - 2._rt*facy*conn(i,j-1,k-1,i_c_xbzp) - 2._rt*facz*conn(i,j-1,k-1,i_c_xbyp) ) );
+
+    // i,j+1,k
+    sten(i,j,k,ist_0p0) = (
+        sig(i  ,j,k  )*(-2._rt*facx*conn(i  ,j,k  ,i_c_ybzm) + 4._rt*facy*conn(i  ,j,k  ,i_c_xmzm) - 2._rt*facz*conn(i  ,j,k  ,i_c_xmyb) ) +
+        sig(i-1,j,k  )*(-2._rt*facx*conn(i-1,j,k  ,i_c_ybzm) + 4._rt*facy*conn(i-1,j,k  ,i_c_xpzm) - 2._rt*facz*conn(i-1,j,k  ,i_c_xpyb) ) +
+        sig(i  ,j,k-1)*(-2._rt*facx*conn(i  ,j,k-1,i_c_ybzp) + 4._rt*facy*conn(i  ,j,k-1,i_c_xmzp) - 2._rt*facz*conn(i  ,j,k-1,i_c_xmyb) ) +
+        sig(i-1,j,k-1)*(-2._rt*facx*conn(i-1,j,k-1,i_c_ybzp) + 4._rt*facy*conn(i-1,j,k-1,i_c_xpzp) - 2._rt*facz*conn(i-1,j,k-1,i_c_xpyb) ) );
+
+    // i,j,k+1
+    sten(i,j,k,ist_00p) = (
+        sig(i  ,j  ,k)*(-2._rt*facx*conn(i  ,j  ,k,i_c_ymzb) - 2._rt*facy*conn(i  ,j  ,k,i_c_xmzb) + 4._rt*facz*conn(i  ,j  ,k,i_c_xmym) ) +
+        sig(i-1,j  ,k)*(-2._rt*facx*conn(i-1,j  ,k,i_c_ymzb) - 2._rt*facy*conn(i-1,j  ,k,i_c_xpzb) + 4._rt*facz*conn(i-1,j  ,k,i_c_xpym) ) +
+        sig(i  ,j-1,k)*(-2._rt*facx*conn(i  ,j-1,k,i_c_ypzb) - 2._rt*facy*conn(i  ,j-1,k,i_c_xmzb) + 4._rt*facz*conn(i  ,j-1,k,i_c_xmyp) ) +
+        sig(i-1,j-1,k)*(-2._rt*facx*conn(i-1,j-1,k,i_c_ypzb) - 2._rt*facy*conn(i-1,j-1,k,i_c_xpzb) + 4._rt*facz*conn(i-1,j-1,k,i_c_xpyp) ) );
+
+    // i+1,j+1,k
+    sten(i,j,k,ist_pp0) = (
+        sig(i,j,k  )*(2._rt*facx*conn(i,j,k  ,i_c_ybzm) + 2._rt*facy*conn(i,j,k  ,i_c_xbzm) - facz*conn(i,j,k  ,i_c_xbyb) ) +
+        sig(i,j,k-1)*(2._rt*facx*conn(i,j,k-1,i_c_ybzp) + 2._rt*facy*conn(i,j,k-1,i_c_xbzp) - facz*conn(i,j,k-1,i_c_xbyb) ) );
+
+    // i+1,j,k+1
+    sten(i,j,k,ist_p0p) = (
+        sig(i,j,k  )*(2._rt*facx*conn(i,j,k  ,i_c_ymzb) - facy*conn(i,j,k  ,i_c_xbzb) + 2._rt*facz*conn(i,j,k  ,i_c_xbym) ) +
+        sig(i,j-1,k)*(2._rt*facx*conn(i,j-1,k,i_c_ypzb) - facy*conn(i,j-1,k,i_c_xbzb) + 2._rt*facz*conn(i,j-1,k,i_c_xbyp) ) );
+
+    // i,j+1,k+1
+    sten(i,j,k,ist_0pp) = (
+        sig(i  ,j,k)*(-facx*conn(i  ,j,k,i_c_ybzb) + 2._rt*facy*conn(i  ,j,k,i_c_xmzb) + 2._rt*facz*conn(i  ,j,k,i_c_xmyb) ) +
+        sig(i-1,j,k)*(-facx*conn(i-1,j,k,i_c_ybzb) + 2._rt*facy*conn(i-1,j,k,i_c_xpzb) + 2._rt*facz*conn(i-1,j,k,i_c_xpyb) ) );
+
+    // i+1,j+1,k+1
+    sten(i,j,k,ist_ppp) = sig(i,j,k) * (facx*conn(i,j,k,i_c_ybzb) + facy*conn(i,j,k,i_c_xbzb) + facz*conn(i,j,k,i_c_xbyb) );
+}
+
 #endif
 
 }

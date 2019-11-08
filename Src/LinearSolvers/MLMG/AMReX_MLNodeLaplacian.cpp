@@ -1033,6 +1033,7 @@ MLNodeLaplacian::buildStencil ()
                     FArrayBox& stfab = (*m_stencil[amrlev][0])[mfi];
                     const FArrayBox& sgfab_orig = (*m_sigma[amrlev][0][0])[mfi];
 
+                    Array4<Real> const& starr = m_stencil[amrlev][0]->array(mfi);
                     Array4<Real const> const& intgarr = intg->const_array(mfi);
 
 #ifdef AMREX_USE_EB
@@ -1064,13 +1065,12 @@ MLNodeLaplacian::buildStencil ()
                             sgfab.resize(ccbxg1);
                             sgfab.setVal(0.0);
                             sgfab.copy(sgfab_orig, btmp, 0, btmp, 0, 1);
+                            Array4<Real const> const& sgarr = sgfab.const_array();
 
-
-                            amrex_mlndlap_set_stencil_eb(BL_TO_FORTRAN_BOX(bx),
-                                                         BL_TO_FORTRAN_ANYD(stfab),
-                                                         BL_TO_FORTRAN_ANYD(sgfab),
-                                                         BL_TO_FORTRAN_ANYD(cnfab),
-                                                         dxinv);
+                            AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
+                            {
+                                mlndlap_set_stencil_eb(i, j, k, starr, sgarr, cnarr, dxinvarr);
+                            });
                         }
                         else
                         {
@@ -1085,9 +1085,8 @@ MLNodeLaplacian::buildStencil ()
                         sgfab.setVal(0.0);
                         bx2 &= sgfab_orig.box();
                         sgfab.copy(sgfab_orig, bx2, 0, bx2, 0, 1);
-
-                        Array4<Real> const& starr = stfab.array();
                         Array4<Real const> const& sgarr = sgfab.const_array();
+
                         AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
                         {
                             mlndlap_set_stencil(tbx,starr,sgarr,dxinvarr);

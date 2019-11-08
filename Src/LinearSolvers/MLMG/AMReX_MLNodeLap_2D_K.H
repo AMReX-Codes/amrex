@@ -1132,6 +1132,21 @@ void mlndlap_set_connection (int i, int j, int, Array4<Real> const& conn,
     }
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_set_stencil_eb (int i, int j, int, Array4<Real> const& sten,
+                             Array4<Real const> const& sig, Array4<Real const> const& conn,
+                             GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+{
+    Real facx = (1._rt/6._rt)*dxinv[0]*dxinv[0];
+    Real facy = (1._rt/6._rt)*dxinv[1]*dxinv[1];
+
+    sten(i,j,0,1) = 2._rt*facx*(sig(i,j-1,0)*conn(i,j-1,0,2)+sig(i,j,0)*conn(i,j,0,0))
+                         -facy*(sig(i,j-1,0)*conn(i,j-1,0,4)+sig(i,j,0)*conn(i,j,0,4));
+    sten(i,j,0,2) = 2._rt*facy*(sig(i-1,j,0)*conn(i-1,j,0,5)+sig(i,j,0)*conn(i,j,0,3))
+                         -facx*(sig(i-1,j,0)*conn(i-1,j,0,1)+sig(i,j,0)*conn(i,j,0,1));
+    sten(i,j,0,3) = (facx*conn(i,j,0,1)+facy*conn(i,j,0,4))*sig(i,j,0);
+}
+
 #endif
 
 }

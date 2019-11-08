@@ -51,7 +51,6 @@ module amrex_mlnodelap_2d_module
 
 #ifdef AMREX_USE_EB
   public:: amrex_mlndlap_set_integral, amrex_mlndlap_set_integral_eb, &
-       amrex_mlndlap_set_stencil_eb, &
        amrex_mlndlap_divu_eb, amrex_mlndlap_mknewu_eb, amrex_mlndlap_rhcc_eb
 #endif
 
@@ -660,33 +659,6 @@ contains
        end do
     end do
   end subroutine amrex_mlndlap_set_integral_eb
-
-
-  subroutine amrex_mlndlap_set_stencil_eb (lo, hi, sten, tlo, thi, sigma, glo, ghi, &
-       conn, clo, chi, dxinv) bind(c,name='amrex_mlndlap_set_stencil_eb')
-    integer, dimension(2), intent(in) :: lo, hi, tlo, thi, glo, ghi, clo, chi
-    real(amrex_real), intent(inout) ::  sten(tlo(1):thi(1),tlo(2):thi(2),5)
-    real(amrex_real), intent(in   ) :: sigma(glo(1):ghi(1),glo(2):ghi(2))
-    real(amrex_real), intent(in   ) ::  conn(clo(1):chi(1),clo(2):chi(2),6)
-    real(amrex_real), intent(in) :: dxinv(2)
-
-    integer :: i, j
-    real(amrex_real) :: facx, facy
-
-    facx = (1.d0/6.d0)*dxinv(1)*dxinv(1)
-    facy = (1.d0/6.d0)*dxinv(2)*dxinv(2)
-
-    do    j = lo(2), hi(2)
-       do i = lo(1), hi(1)
-          sten(i,j,2) = 2.d0*facx*(sigma(i,j-1)*conn(i,j-1,3)+sigma(i,j)*conn(i,j,1)) &
-               &            -facy*(sigma(i,j-1)*conn(i,j-1,5)+sigma(i,j)*conn(i,j,5))
-          sten(i,j,3) = 2.d0*facy*(sigma(i-1,j)*conn(i-1,j,6)+sigma(i,j)*conn(i,j,4)) &
-               &            -facx*(sigma(i-1,j)*conn(i-1,j,2)+sigma(i,j)*conn(i,j,2))
-          sten(i,j,4) = (facx*conn(i,j,2)+facy*conn(i,j,5))*sigma(i,j)
-       end do
-    end do
-
-  end subroutine amrex_mlndlap_set_stencil_eb
 
 
   subroutine amrex_mlndlap_divu_eb (lo, hi, rhs, rlo, rhi, vel, vlo, vhi, vfrac, flo, fhi, &
