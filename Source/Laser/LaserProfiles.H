@@ -81,6 +81,9 @@ public:
 
 //_________________________________________Declaration of laser profile classes
 
+/**
+ * Gaussian laser profile
+ */
 class GaussianLaserProfile : public ILaserProfile
 {
 
@@ -113,6 +116,9 @@ private:
     CommonLaserParameters m_common_params;
 };
 
+/**
+ * Harris laser profile
+ */
 class HarrisLaserProfile : public ILaserProfile
 {
 
@@ -141,6 +147,9 @@ private:
     CommonLaserParameters m_common_params;
 };
 
+/**
+ * Laser profile defined by the used with an analytical expression
+ */
 class FieldFunctionLaserProfile : public ILaserProfile
 {
 
@@ -167,7 +176,10 @@ private:
      WarpXParser m_parser;
 };
 
-//_________________________________________Map of laser profile names --> laser profile classes
+/**
+ * Maps laser profile names to lambdas returing unique pointers
+ * to the corresponding laser profile objects.
+ */
 const
 std::map<
 std::string,
