@@ -22,7 +22,7 @@ namespace WarpXLaserProfiles {
  */
 struct CommonLaserParameters
 {
-    amrex::Real wavelength;
+    amrex::Real wavelength; //! central wavelength
     amrex::Real e_max;
     amrex::Real theta_stc;
 };
