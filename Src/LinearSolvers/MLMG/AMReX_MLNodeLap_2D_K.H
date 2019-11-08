@@ -724,6 +724,227 @@ void mlndlap_set_stencil_s0 (int i, int j, int k, Array4<Real> const& sten) noex
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_stencil_rap (int i, int j, int, Array4<Real> const& csten,
+                          Array4<Real const> const& fsten) noexcept
+{
+    constexpr int k = 0;
+
+    auto interp_from_mm_to = [&fsten] (int i_, int j_) -> Real {
+        Real wxm = std::abs(fsten(i_-1,j_  ,0,1))/(std::abs(fsten(i_-1,j_-1,0,3))+std::abs(fsten(i_-1,j_  ,0,3))+eps);
+        Real wym = std::abs(fsten(i_  ,j_-1,0,2))/(std::abs(fsten(i_-1,j_-1,0,3))+std::abs(fsten(i_  ,j_-1,0,3))+eps);
+        Real wmm = std::abs(fsten(i_-1,j_-1,0,3)) * (1._rt + wxm + wym);
+        return wmm * fsten(i_,j_,0,4);
+    };
+
+    auto interp_from_mp_to = [&fsten] (int i_, int j_) -> Real {
+        Real wxm = std::abs(fsten(i_-1,j_  ,0,1))/(std::abs(fsten(i_-1,j_-1,0,3))+std::abs(fsten(i_-1,j_  ,0,3))+eps);
+        Real wyp = std::abs(fsten(i_  ,j_  ,0,2))/(std::abs(fsten(i_-1,j_  ,0,3))+std::abs(fsten(i_  ,j_  ,0,3))+eps);
+        Real wmp = std::abs(fsten(i_-1,j_  ,0,3)) *(1._rt + wxm + wyp);
+        return wmp * fsten(i_,j_,0,4);
+    };
+
+    auto interp_from_pm_to = [&fsten] (int i_, int j_) -> Real {
+        Real wxp = std::abs(fsten(i_  ,j_  ,0,1))/(std::abs(fsten(i_  ,j_-1,0,3))+std::abs(fsten(i_  ,j_  ,0,3))+eps);
+        Real wym = std::abs(fsten(i_  ,j_-1,0,2))/(std::abs(fsten(i_-1,j_-1,0,3))+std::abs(fsten(i_  ,j_-1,0,3))+eps);
+        Real wpm = std::abs(fsten(i_  ,j_-1,0,3)) * (1._rt + wxp + wym);
+        return wpm * fsten(i_,j_,0,4);
+    };
+
+    auto interp_from_pp_to = [&fsten] (int i_, int j_) -> Real {
+        Real wxp = std::abs(fsten(i_  ,j_  ,0,1))/(std::abs(fsten(i_  ,j_-1,0,3))+std::abs(fsten(i_  ,j_  ,0,3))+eps);
+        Real wyp = std::abs(fsten(i_  ,j_  ,0,2))/(std::abs(fsten(i_-1,j_  ,0,3))+std::abs(fsten(i_  ,j_  ,0,3))+eps);
+        Real wpp = std::abs(fsten(i_  ,j_  ,0,3)) * (1._rt + wxp + wyp);
+        return wpp * fsten(i_,j_,0,4);
+    };
+
+    auto interp_from_m0_to = [&fsten] (int i_, int j_) -> Real {
+        return std::abs(fsten(i_-1,j_,0,1))/(std::abs(fsten(i_-1,j_,0,1))+std::abs(fsten(i_,j_,0,1))+eps);
+    };
+
+    auto interp_from_p0_to = [&fsten] (int i_, int j_) -> Real {
+        return std::abs(fsten(i_,j_,0,1))/(std::abs(fsten(i_-1,j_,0,1))+std::abs(fsten(i_,j_,0,1))+eps);
+    };
+
+    auto interp_from_0m_to = [&fsten] (int i_, int j_) -> Real {
+        return std::abs(fsten(i_,j_-1,0,2))/(std::abs(fsten(i_,j_-1,0,2))+std::abs(fsten(i_,j_,0,2))+eps);
+    };
+
+    auto interp_from_0p_to = [&fsten] (int i_, int j_) -> Real {
+        return std::abs(fsten(i_,j_,0,2))/(std::abs(fsten(i_,j_-1,0,2))+std::abs(fsten(i_,j_,0,2))+eps);
+    };
+
+    auto Amm = [&fsten] (int i_, int j_) -> Real {
+        return fsten(i_-1,j_-1,0,3);
+    };
+
+    auto A0m = [&fsten] (int i_, int j_) -> Real {
+        return fsten(i_,j_-1,0,2);
+    };
+
+    auto Apm = [&fsten] (int i_, int j_) -> Real {
+        return fsten(i_,j_-1,0,3);
+    };
+
+    auto Am0 = [&fsten] (int i_, int j_) -> Real {
+        return fsten(i_-1,j_,0,1);
+    };
+
+    auto A00 = [&fsten] (int i_, int j_) -> Real {
+        return fsten(i_,j_,0,0);
+    };
+
+    auto Ap0 = [&fsten] (int i_, int j_) -> Real {
+        return fsten(i_,j_,0,1);
+    };
+
+    auto Amp = [&fsten] (int i_, int j_) -> Real {
+        return fsten(i_-1,j_,0,3);
+    };
+
+    auto A0p = [&fsten] (int i_, int j_) -> Real {
+        return fsten(i_,j_,0,2);
+    };
+
+    auto App = [&fsten] (int i_, int j_) -> Real {
+        return fsten(i_,j_,0,3);
+    };
+
+    auto restrict_from_mm_to = [&fsten] (int ii_, int jj_) -> Real {
+        Real wxp = std::abs(fsten(ii_-1,jj_-1,0,1))/(std::abs(fsten(ii_-1,jj_-2,0,3))+std::abs(fsten(ii_-1,jj_-1,0,3))+eps);
+        Real wyp = std::abs(fsten(ii_-1,jj_-1,0,2))/(std::abs(fsten(ii_-2,jj_-1,0,3))+std::abs(fsten(ii_-1,jj_-1,0,3))+eps);
+        Real wpp = std::abs(fsten(ii_-1,jj_-1,0,3))*(1._rt+wxp+wyp);
+        return wpp * fsten(ii_-1,jj_-1,0,4);
+    };
+
+    auto restrict_from_0m_to = [&fsten] (int ii_, int jj_) -> Real {
+        return std::abs(fsten(ii_,jj_-1,0,2))/(std::abs(fsten(ii_,jj_-2,0,2))+std::abs(fsten(ii_,jj_-1,0,2))+eps);
+    };
+
+    auto restrict_from_pm_to = [&fsten] (int ii_, int jj_) -> Real {
+        Real wxm = std::abs(fsten(ii_  ,jj_-1,0,1))/(std::abs(fsten(ii_,jj_-2,0,3))+std::abs(fsten(ii_  ,jj_-1,0,3))+eps);
+        Real wyp = std::abs(fsten(ii_+1,jj_-1,0,2))/(std::abs(fsten(ii_,jj_-1,0,3))+std::abs(fsten(ii_+1,jj_-1,0,3))+eps);
+        Real wmp = std::abs(fsten(ii_  ,jj_-1,0,3)) *(1._rt + wxm + wyp);
+        return wmp * fsten(ii_+1,jj_-1,0,4);
+    };
+
+    auto restrict_from_m0_to = [&fsten] (int ii_, int jj_) -> Real {
+        return std::abs(fsten(ii_-1,jj_,0,1))/(std::abs(fsten(ii_-2,jj_,0,1))+std::abs(fsten(ii_-1,jj_,0,1))+eps);
+    };
+
+    auto restrict_from_p0_to = [&fsten] (int ii_, int jj_) -> Real {
+        return std::abs(fsten(ii_,jj_,0,1))/(std::abs(fsten(ii_,jj_,0,1))+std::abs(fsten(ii_+1,jj_,0,1))+eps);
+    };
+
+    auto restrict_from_mp_to = [&fsten] (int ii_, int jj_) -> Real {
+        Real wxp = std::abs(fsten(ii_-1,jj_+1,0,1))/(std::abs(fsten(ii_-1,jj_,0,3))+std::abs(fsten(ii_-1,jj_+1,0,3))+eps);
+        Real wym = std::abs(fsten(ii_-1,jj_  ,0,2))/(std::abs(fsten(ii_-2,jj_,0,3))+std::abs(fsten(ii_-1,jj_  ,0,3))+eps);
+        Real wpm = std::abs(fsten(ii_-1,jj_  ,0,3)) * (1._rt + wxp + wym);
+        return wpm * fsten(ii_-1,jj_+1,0,4);
+    };
+
+    auto restrict_from_0p_to = [&fsten] (int ii_, int jj_) -> Real {
+        return std::abs(fsten(ii_,jj_,0,2))/(std::abs(fsten(ii_,jj_,0,2))+std::abs(fsten(ii_,jj_+1,0,2))+eps);
+    };
+
+    auto restrict_from_pp_to = [&fsten] (int ii_, int jj_) -> Real {
+        Real wxm = std::abs(fsten(ii_  ,jj_+1,0,1))/(std::abs(fsten(ii_  ,jj_  ,0,3))+std::abs(fsten(ii_  ,jj_+1,0,3))+eps);
+        Real wym = std::abs(fsten(ii_+1,jj_  ,0,2))/(std::abs(fsten(ii_  ,jj_  ,0,3))+std::abs(fsten(ii_+1,jj_  ,0,3))+eps);
+        Real wmm = std::abs(fsten(ii_  ,jj_  ,0,3)) * (1._rt + wxm + wym);
+        return wmm * fsten(ii_+1,jj_+1,0,4);
+    };
+
+    int ii = 2*i;
+    int jj = 2*j;
+    Array2D<Real,-1,1,-1,1> ap, p;
+
+    // csten(i,j,k,1)
+    p(-1,-1) = interp_from_pp_to(ii+1,jj-1);
+    p( 0,-1) = interp_from_0p_to(ii+2,jj-1);
+    p(-1, 0) = interp_from_p0_to(ii+1,jj  );
+    p( 0, 0) = 1._rt;
+    p(-1, 1) = interp_from_pm_to(ii+1,jj+1);
+    p( 0, 1) = interp_from_0m_to(ii+2,jj+1);
+
+    ap(0,-1) = Ap0(ii,jj-1)*p(-1,-1) + App(ii,jj-1)*p(-1,0);
+    ap(1,-1) = A00(ii+1,jj-1)*p(-1,-1) + Ap0(ii+1,jj-1)*p(0,-1)
+        +      A0p(ii+1,jj-1)*p(-1,0) + App(ii+1,jj-1)*p(0,0);
+    ap(0,0) = Apm(ii,jj)*p(-1,-1) + Ap0(ii,jj)*p(-1,0) + App(ii,jj)*p(-1,1);
+    ap(1,0) = A0m(ii+1,jj)*p(-1,-1) + Apm(ii+1,jj)*p(0,-1)
+        +     A00(ii+1,jj)*p(-1,0) + Ap0(ii+1,jj)*p(0,0)
+        +     A0p(ii+1,jj)*p(-1,1) + App(ii+1,jj)*p(0,1);
+    ap(0,1) = Apm(ii,jj+1)*p(-1,0) + Ap0(ii,jj+1)*p(-1,1);
+    ap(1,1) = A0m(ii+1,jj+1)*p(-1,0) + Apm(ii+1,jj+1)*p(0,0)
+        +     A00(ii+1,jj+1)*p(-1,1) + Ap0(ii+1,jj+1)*p(0,1);
+
+    csten(i,j,k,1) = 0.25_rt*(restrict_from_0m_to(ii,jj)*ap(0,-1)
+                            + restrict_from_pm_to(ii,jj)*ap(1,-1)
+                            + ap(0,0)
+                            + restrict_from_p0_to(ii,jj)*ap(1,0)
+                            + restrict_from_0p_to(ii,jj)*ap(0,1)
+                            + restrict_from_pp_to(ii,jj)*ap(1,1));
+
+    // csten(i,j,k,2)
+    p(-1,-1) = interp_from_pp_to(ii-1,jj+1);
+    p( 0,-1) = interp_from_0p_to(ii  ,jj+1);
+    p( 1,-1) = interp_from_mp_to(ii+1,jj+1);
+    p(-1, 0) = interp_from_p0_to(ii-1,jj+2);
+    p( 0, 0) = 1._rt;
+    p( 1, 0) = interp_from_m0_to(ii+1,jj+2);
+
+    ap(-1,0) = A0p(ii-1,jj)*p(-1,-1) + App(ii-1,jj)*p(0,-1);
+    ap(0,0) = Amp(ii,jj)*p(-1,-1) + A0p(ii,jj)*p(0,-1) + App(ii,jj)*p(1,-1);
+    ap(1,0) = Amp(ii+1,jj)*p(0,-1) + A0p(ii+1,jj)*p(1,-1);
+    ap(-1,1) = A00(ii-1,jj+1)*p(-1,-1) + Ap0(ii-1,jj+1)*p(0,-1)
+        +      A0p(ii-1,jj+1)*p(-1,0) + App(ii-1,jj+1)*p(0,0);
+    ap(0,1) = Am0(ii,jj+1)*p(-1,-1) + A00(ii,jj+1)*p(0,-1) + Ap0(ii,jj+1)*p(1,-1)
+        +     Amp(ii,jj+1)*p(-1,0) + A0p(ii,jj+1)*p(0,0) + App(ii,jj+1)*p(1,0);
+    ap(1,1) = Am0(ii+1,jj+1)*p(0,-1) + A00(ii+1,jj+1)*p(1,-1)
+        +     Amp(ii+1,jj+1)*p(0,0) + A0p(ii+1,jj+1)*p(1,0);
+
+    csten(i,j,k,2) = 0.25_rt*(restrict_from_m0_to(ii,jj)*ap(-1,0)
+                            + ap(0,0)
+                            + restrict_from_p0_to(ii,jj)*ap(1,0)
+                            + restrict_from_mp_to(ii,jj)*ap(-1,1)
+                            + restrict_from_0p_to(ii,jj)*ap(0,1)
+                            + restrict_from_pp_to(ii,jj)*ap(1,1));
+
+    // csten(i,j,k,3)
+    p(-1,-1) = interp_from_pp_to(ii+1,jj+1);
+    p( 0,-1) = interp_from_0p_to(ii+2,jj+1);
+    p(-1, 0) = interp_from_p0_to(ii+1,jj+2);
+    p( 0, 0) = 1._rt;
+
+    ap(0,0) = App(ii,jj)*p(-1,-1);
+    ap(1,0) = A0p(ii+1,jj)*p(-1,-1) + App(ii+1,jj)*p(0,-1);
+    ap(0,1) = Ap0(ii,jj+1)*p(-1,-1) + App(ii,jj+1)*p(-1,0);
+    ap(1,1) = A00(ii+1,jj+1)*p(-1,-1) + Ap0(ii+1,jj+1)*p(0,-1)
+        +     A0p(ii+1,jj+1)*p(-1,0) + App(ii+1,jj+1)*p(0,0);
+
+    Real cross1 = 0.25_rt*(ap(0,0)
+                           + restrict_from_p0_to(ii,jj)*ap(1,0)
+                           + restrict_from_0p_to(ii,jj)*ap(0,1)
+                           + restrict_from_pp_to(ii,jj)*ap(1,1));
+
+    p(0,-1) = interp_from_0p_to(ii,jj+1);
+    p(1,-1) = interp_from_mp_to(ii+1,jj+1);
+    p(0, 0) = 1._rt;
+    p(1, 0) = interp_from_m0_to(ii+1,jj+2);
+
+    ap(-1,0) = Amp(ii+1,jj)*p(0,-1) + A0p(ii+1,jj)*p(1,-1);
+    ap( 0,0) = Amp(ii+2,jj)*p(1,-1);
+    ap(-1,1) = Am0(ii+1,jj+1)*p(0,-1) + A00(ii+1,jj+1)*p(1,-1) + Amp(ii+1,jj+1)*p(0,0)
+        + A0p(ii+1,jj+1)*p(1,0);
+    ap( 0,1) = Am0(ii+2,jj+1)*p(1,-1) + Amp(ii+2,jj+1)*p(1,0);
+
+    Real cross2 = 0.25_rt*(ap(0,0)
+                           + restrict_from_m0_to(ii+2,jj)*ap(-1,0)
+                           + restrict_from_mp_to(ii+2,jj)*ap(-1,1)
+                           + restrict_from_0p_to(ii+2,jj)*ap( 0,1));
+
+    csten(i,j,k,3) = 0.5_rt*(cross1+cross2);
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_adotx_sten (Box const& bx, Array4<Real> const& y, Array4<Real const> const& x,
                          Array4<Real const> const& sten, Array4<int const> const& msk) noexcept
 {
