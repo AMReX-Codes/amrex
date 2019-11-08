@@ -72,10 +72,10 @@ void RandomNumGen ()
     Gpu::dtoh_memcpy(y_h.dataPtr(), y_d.dataPtr(), sizeof(Real)*Ndraw);
     Gpu::dtoh_memcpy(z_h.dataPtr(), z_d.dataPtr(), sizeof(Real)*Ndraw);
 
-    for (int i = 0; i < Ndraw; i++ )
-    {
-        amrex::Print() << i << " " << x_h[i]  << " " << y_h[i] << " " << z_h[i] << "\n";
-    }
+    // for (int i = 0; i < Ndraw; i++ )
+    // {
+    //     amrex::Print() << i << " " << x_h[i]  << " " << y_h[i] << " " << z_h[i] << "\n";
+    // }
 }
 
 
