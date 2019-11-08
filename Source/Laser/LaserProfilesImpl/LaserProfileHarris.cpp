@@ -70,7 +70,7 @@ HarrisLaserProfile::fill_amplitude (
             const Real space_envelope =
                 std::exp(- ( Xp[i]*Xp[i] + Yp[i]*Yp[i] ) * inv_wz_2);
             const Real arg_osc = omega0*t - omega0/PhysConst::c*
-                (Xp[i]*Xp[i] + Yp[i]*Yp[i]) * inv_Rz / 2.;
+                (Xp[i]*Xp[i] + Yp[i]*Yp[i]) * inv_Rz / 2._rt;
             const Real oscillations = std::cos(arg_osc);
             amplitude[i] = tmp_e_max * time_envelope *
                 space_envelope * oscillations;
