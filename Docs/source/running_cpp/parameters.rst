@@ -274,7 +274,7 @@ Particle initialization
       direction. The MJ distribution will be initialized in the moving frame using the Sobol method,
       and then the distribution will be transformed to the simulation frame using the flipping method.
       Both the Sobol and the flipping method can be found in Zenitani 2015 (Phys. Plasmas 22, 042116).
-      
+
     * ``radial_expansion``: momentum depends on the radial coordinate linearly. This
       requires additional parameter ``u_over_r`` which is the slope.
 
