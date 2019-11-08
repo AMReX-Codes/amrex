@@ -52,7 +52,7 @@ HarrisLaserProfile::fill_amplitude (
         inv_Rz = -m_params.focal_distance /
             ( m_params.focal_distance*m_params.focal_distance + zR*zR );
     }
-    const Real arg_env = 2.*MathConst::pi*t/m_params.duration;
+    const Real arg_env = 2._rt*MathConst::pi*t/m_params.duration;
 
     // time envelope is given by the Harris function
     Real time_envelope = 0.;
