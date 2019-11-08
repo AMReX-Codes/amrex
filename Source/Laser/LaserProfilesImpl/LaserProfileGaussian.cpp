@@ -76,20 +76,20 @@ GaussianLaserProfile::fill_amplitude (
 #endif
 
     // Copy member variables to tmp copies for GPU runs.
-    auto tmp_profile_t_peak = m_params.t_peak;
-    auto tmp_beta = m_params.beta;
-    auto tmp_zeta = m_params.zeta;
-    auto tmp_theta_stc = m_common_params.theta_stc;
-    auto tmp_profile_focal_distance = m_params.focal_distance;
+    auto const tmp_profile_t_peak = m_params.t_peak;
+    auto const tmp_beta = m_params.beta;
+    auto const tmp_zeta = m_params.zeta;
+    auto const tmp_theta_stc = m_common_params.theta_stc;
+    auto const tmp_profile_focal_distance = m_params.focal_distance;
     // Loop through the macroparticle to calculate the proper amplitude
     amrex::ParallelFor(
         np,
         [=] AMREX_GPU_DEVICE (int i) {
             const Complex stc_exponent = 1._rt / stretch_factor * inv_tau2 *
                 MathFunc::pow((t - tmp_profile_t_peak -
-                               tmp_beta*k0*(Xp[i]*std::cos(tmp_theta_stc) + Yp[i]*std::sin(tmp_theta_stc)) -
-                               2._rt *I*(Xp[i]*std::cos(tmp_theta_stc) + Yp[i]*std::sin(tmp_theta_stc))
-                               *( tmp_zeta - tmp_beta*tmp_profile_focal_distance ) * inv_complex_waist_2),2);
+                    tmp_beta*k0*(Xp[i]*std::cos(tmp_theta_stc) + Yp[i]*std::sin(tmp_theta_stc)) -
+                    2._rt *I*(Xp[i]*std::cos(tmp_theta_stc) + Yp[i]*std::sin(tmp_theta_stc))
+                    *( tmp_zeta - tmp_beta*tmp_profile_focal_distance ) * inv_complex_waist_2),2);
             // stcfactor = everything but complex transverse envelope
             const Complex stcfactor = prefactor * MathFunc::exp( - stc_exponent );
             // Exp argument for transverse envelope
