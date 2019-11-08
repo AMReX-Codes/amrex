@@ -154,7 +154,6 @@ namespace amrex {
         return !(x == y);
     }
 
-#ifdef AMREX_USE_GPU
     template<class T>
     class ThrustManagedAllocator : public thrust::device_malloc_allocator<T>
     {
@@ -180,9 +179,8 @@ namespace amrex {
     {
         ThrustManagedAllocator<char>& The_ThrustCachedAllocator ();
     }
-#endif
 
-#endif // AMREX_USE_CUDA
+#endif // AMREX_USE_GPU
 
 } // namespace amrex
 
