@@ -2,7 +2,8 @@
 #define WARPX_PARTICLES_COLLISION_ELASTIC_COLLISION_PEREZ_H_
 
 #include <AMReX_REAL.H>
-#include <ShuffleFisherYates.H>
+#include <AMReX_DenseBins.H>
+#include "ShuffleFisherYates.H"
 
 /* \brief Update particle velocities according to
  *        F. Perez et al., Phys. Plasmas 19, 083104 (2012).
@@ -11,8 +12,8 @@
  *        otherwise L will be calculated based on the algorithm.*/
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void UpdateMomentumPerezElastic(
-    amrex::ParticleReal& v1x, amrex::ParticleReal& v1y, amrex::ParticleReal& v1z,
-    amrex::ParticleReal& v2x, amrex::ParticleReal& v2y, amrex::ParticleReal& v2z,
+    amrex::Real u1x, amrex::Real u1y, amrex::Real u1z,
+    amrex::Real u2x, amrex::Real u2y, amrex::Real u2z,
     const amrex::Real n1, const amrex::Real n2, const amrex::Real n12,
     const amrex::Real q1, const amrex::Real m1, const amrex::Real w1,
     const amrex::Real q2, const amrex::Real m2, const amrex::Real w2,
@@ -25,29 +26,29 @@ void UpdateMomentumPerezElastic(
     constexpr amrex::Real inv_c2 = 1./(PhysConst::c * PhysConst::c);
 
     // Compute Lorentz factor gamma
-    amrex::Real g1 = 1./std::sqrt(1.+(v1x*v1x+v1y*v1y+v1z*v1z)*inv_c2);
-    amrex::Real g2 = 1./std::sqrt(1.+(v2x*v2x+v2y*v2y+v2z*v2z)*inv_c2);
+    amrex::Real g1 = std::sqrt(1.+(u1x*u1x+u1y*u1y+u1z*u1z)*inv_c2);
+    amrex::Real g2 = std::sqrt(1.+(u2x*u2x+u2y*u2y+u2z*u2z)*inv_c2);
 
     // Compute momenta
-    buf1 = m1 * g1;
-    amrex::Real p1x = v1x * buf1;
-    amrex::Real p1y = v1y * buf1;
-    amrex::Real p1z = v1z * buf1;
-    buf2 = m2 * g2;
-    amrex::Real p2x = v2x * buf2;
-    amrex::Real p2y = v2y * buf2;
-    amrex::Real p2z = v2z * buf2;
+    amrex::Real p1x = u1x * m1;
+    amrex::Real p1y = u1y * m1;
+    amrex::Real p1z = u1z * m1;
+    amrex::Real p2x = u2x * m2;
+    amrex::Real p2y = u2y * m2;
+    amrex::Real p2z = u2z * m2;
 
     // Compute center-of-mass (COM) velocity and gamma
+    buf1 = m1 * g1;
+    buf2 = m2 * g2;
     const amrex::Real vcx = (p1x+p2x) / (buf1+buf2);
     const amrex::Real vcy = (p1y+p2y) / (buf1+buf2);
     const amrex::Real vcz = (p1z+p2z) / (buf1+buf2);
     const amrex::Real vcm = std::sqrt(vcx*vcx+vcy*vcy+vcz*vcz);
-    const amrex::Real gc  = 1./std::sqrt(1.+vcm*vcm*inv_c2);
+    const amrex::Real gc  = 1./std::sqrt(1.-vcm*vcm*inv_c2);
 
     // Compute vc dot v1 and v2
-    const amrex::Real vcDv1 = vcx*v1x + vcy*v1y + vcz*v1z;
-    const amrex::Real vcDv2 = vcx*v2x + vcy*v2y + vcz*v2z;
+    const amrex::Real vcDv1 = (vcx*u1x + vcy*u1y + vcz*u1z)/g1;
+    const amrex::Real vcDv2 = (vcx*u2x + vcy*u2y + vcz*u2z)/g2;
 
     // Compute p1 star
     buf2 = ( (gc-1.)/vcm/vcm*vcDv1 - gc )*buf1;
@@ -99,9 +100,9 @@ void UpdateMomentumPerezElastic(
     // Compute scattering angle
     amrex::Real cosXs;
     amrex::Real sinXs;
-    if ( s <= 0.01 )
+    if ( s <= 0.1 )
     { cosXs = 1. + s * std::log(buf1); }
-    else if ( s > 0.01 && s <= 3. )
+    else if ( s > 0.1 && s <= 3. )
     {
         // buf2 is A inverse
         buf2 = 0.0056958 + 0.9560202*s - 0.508139*s*s +
@@ -156,35 +157,29 @@ void UpdateMomentumPerezElastic(
     p2y  = p2y + vcy * buf2;
     p2z  = p2z + vcz * buf2;
 
-    // Compute new gamma
-    buf1 = std::sqrt(p1x*p1x+p1y*p1y+p1z*p1z);
-    buf2 = std::sqrt(p2x*p2x+p2y*p2y+p2z*p2z);
-    g1   = std::sqrt(1.+std::pow(buf1/m1/PhysConst::c,2));
-    g2   = std::sqrt(1.+std::pow(buf2/m2/PhysConst::c,2));
-
     // Rejection method
     buf1 = amrex::Random();
     if ( w2/amrex::max(w1,w2) > buf1 )
     {
-      buf1 = 1./m1/g1;
-      v1x  = p1x * buf1;
-      v1y  = p1y * buf1;
-      v1z  = p1z * buf1;
+      u1x  = p1x / m1;
+      u1y  = p1y / m1;
+      u1z  = p1z / m1;
     }
     buf2 = amrex::Random();
     if ( w1/amrex::max(w1,w2) > buf2 )
     {
-      buf2 = 1./m2/g2;
-      v2x  = p2x * buf2;
-      v2y  = p2y * buf2;
-      v2z  = p2z * buf2;
+      u2x  = p2x / m2;
+      u2y  = p2y / m2;
+      u2z  = p2z / m2;
     }
 }
 
 /* \brief Prepare information for and call
  *        UpdateMomentumPerezElastic().
- *        I1 and I2 are the index arrays with lengths NI1 and NI2.
- *        v1 and v2 are the velocity arrays,
+ *        i1s,i2s is the start index for I1,I2 (inclusive).
+ *        i1e,i2e is the start index for I1,I2 (exclusive).
+ *        I1 and I2 are the index arrays.
+ *        u1 and u2 are the velocity arrays (u=v*gamma),
  *        they could be either different or the same,
  *        their lengths are not needed,
  *        I1 and I2 determine all elements that will be used.
@@ -198,9 +193,14 @@ void UpdateMomentumPerezElastic(
  *        V is the volume of the corresponding cell.*/
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void ElasticCollisionPerez(
-    const int NI1, const int NI2, int *I1, int *I2,
-    amrex::Real* v1x, amrex::Real* v1y, amrex::Real* v1z,
-    amrex::Real* v2x, amrex::Real* v2y, amrex::Real* v2z,
+    int const I1s,
+    int const I1e,
+    int const I2s,
+    int const I2e,
+    int *I1,
+    int *I2,
+    amrex::Real* u1x, amrex::Real* u1y, amrex::Real* u1z,
+    amrex::Real* u2x, amrex::Real* u2y, amrex::Real* u2z,
     const amrex::Real* w1, const amrex::Real* w2,
     const amrex::Real  q1, const amrex::Real  q2,
     const amrex::Real  m1, const amrex::Real  m2,
@@ -208,9 +208,13 @@ void ElasticCollisionPerez(
     const amrex::Real  dt, const amrex::Real   L, const amrex::Real V)
 {
 
+    constexpr amrex::Real inv_c2 = 1./(PhysConst::c*PhysConst::c);
+    int NI1 = I1e - I1s;
+    int NI2 = I2e - I2s;
+
     // shuffle I1 and I2
-    ShuffleFisherYates(I1, NI1);
-    ShuffleFisherYates(I2, NI2);
+    ShuffleFisherYates(I1, I1s, I1e);
+    ShuffleFisherYates(I2, I2s, I2e);
 
     // get local T1t and T2t
     amrex::Real T1t; amrex::Real T2t;
@@ -218,14 +222,17 @@ void ElasticCollisionPerez(
     {
         amrex::Real vx = 0.; amrex::Real vy = 0.;
         amrex::Real vz = 0.; amrex::Real vs = 0.;
-        for (int i1 = 0; i1 < NI1; ++i1)
+	amrex::Real gm = 0.; amrex::Real us = 0.;
+        for (int i1 = I1s; i1 < I1e; ++i1)
         {
-          vx += v1x[ I1[i1] ];
-	  vy += v1y[ I1[i1] ];
-	  vz += v1z[ I1[i1] ];
-          vs += ( v1x[ I1[i1] ] * v1x[ I1[i1] ] +
-                  v1y[ I1[i1] ] * v1y[ I1[i1] ] +
-                  v1z[ I1[i1] ] * v1z[ I1[i1] ] );
+          us = ( u1x[ I1[i1] ] * u1x[ I1[i1] ] +
+                 u1y[ I1[i1] ] * u1y[ I1[i1] ] +
+                 u1z[ I1[i1] ] * u1z[ I1[i1] ] );
+          gm = std::sqrt(1.+us*inv_c2);
+          vx += u1x[ I1[i1] ] / gm;
+	  vy += u1y[ I1[i1] ] / gm;
+	  vz += u1z[ I1[i1] ] / gm;
+          vs += us / gm / gm;
         }
         vx = vx / NI1; vy = vy / NI1;
 	vz = vz / NI1; vs = vs / NI1;
@@ -236,14 +243,17 @@ void ElasticCollisionPerez(
     {
         amrex::Real vx = 0.; amrex::Real vy = 0.;
         amrex::Real vz = 0.; amrex::Real vs = 0.;
-        for (int i2 = 0; i2 < NI2; ++i2)
+	amrex::Real gm = 0.; amrex::Real us = 0.;
+        for (int i2 = I2s; i2 < I2e; ++i2)
         {
-          vx += v2x[ I2[i2] ];
-	  vy += v2y[ I2[i2] ];
-	  vz += v2z[ I2[i2] ];
-          vs += ( v2x[ I2[i2] ] * v2x[ I2[i2] ] +
-                  v2y[ I2[i2] ] * v2y[ I2[i2] ] +
-                  v2z[ I2[i2] ] * v2z[ I2[i2] ] );
+          us = ( u2x[ I2[i2] ] * u2x[ I2[i2] ] +
+                 u2y[ I2[i2] ] * u2y[ I2[i2] ] +
+                 u2z[ I2[i2] ] * u2z[ I2[i2] ] );
+          gm = std::sqrt(1.+us*inv_c2);
+          vx += u2x[ I2[i2] ] / gm;
+	  vy += u2y[ I2[i2] ] / gm;
+	  vz += u2z[ I2[i2] ] / gm;
+          vs += us / gm / gm;
         }
         vx = vx / NI2; vy = vy / NI2;
 	vz = vz / NI2; vs = vs / NI2;
@@ -255,16 +265,16 @@ void ElasticCollisionPerez(
     amrex::Real n1  = 0.;
     amrex::Real n2  = 0.;
     amrex::Real n12 = 0.;
-    for (int i1=0; i1<NI1; ++i1) { n1 += w1[ I1[i1] ]; }
-    for (int i2=0; i2<NI2; ++i2) { n2 += w2[ I2[i2] ]; }
+    for (int i1=I1s; i1<I1e; ++i1) { n1 += w1[ I1[i1] ]; }
+    for (int i2=I2s; i2<I2e; ++i2) { n2 += w2[ I2[i2] ]; }
     n1 = n1 / V; n2 = n2 / V;
     {
-      int i1 = 0; int i2 = 0;
+      int i1 = I1s; int i2 = I2s;
       for (int k = 0; k < amrex::max(NI1,NI2); ++k)
       {
         n12 += amrex::min( w1[ I1[i1] ], w2[ I2[i2] ] );
-        ++i1; if ( i1 == NI1 ) { i1 = 0; }
-        ++i2; if ( i2 == NI2 ) { i2 = 0; }
+        ++i1; if ( i1 == I1e ) { i1 = I1s; }
+        ++i2; if ( i2 == I2e ) { i2 = I2s; }
       }
       n12 = n12 / V;
     }
@@ -279,17 +289,17 @@ void ElasticCollisionPerez(
 
     // call UpdateMomentumPerezElastic()
     {
-      int i1 = 0; int i2 = 0;
+      int i1 = I1s; int i2 = I2s;
       for (int k = 0; k < amrex::max(NI1,NI2); ++k)
       {
           UpdateMomentumPerezElastic(
-              v1x[ I1[i1] ], v1y[ I1[i1] ], v1z[ I1[i1] ],
-              v2x[ I2[i2] ], v2y[ I2[i2] ], v2z[ I2[i2] ],
+              u1x[ I1[i1] ], u1y[ I1[i1] ], u1z[ I1[i1] ],
+              u2x[ I2[i2] ], u2y[ I2[i2] ], u2z[ I2[i2] ],
               n1, n2, n12,
               q1, m1, w1[ I1[i1] ], q2, m2, w2[ I2[i2] ],
               dt, L, lmdD);
-          ++i1; if ( i1 == NI1 ) { i1 = 0; }
-          ++i2; if ( i2 == NI2 ) { i2 = 0; }
+          ++i1; if ( i1 == I1e ) { i1 = I1s; }
+          ++i2; if ( i2 == I2e ) { i2 = I2s; }
       }
     }
 

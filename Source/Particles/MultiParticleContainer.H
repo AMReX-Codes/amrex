@@ -2,6 +2,7 @@
 #define WARPX_ParticleContainer_H_
 
 #include "ElementaryProcess.H"
+#include "CoulombCollisions.H"
 
 #include <WarpXParticleContainer.H>
 #include <PhysicalParticleContainer.H>
@@ -137,6 +138,7 @@ public:
     std::unique_ptr<amrex::MultiFab> GetChargeDensity(int lev, bool local = false);
 
     void doFieldIonization ();
+    void doCoulombCollisions ();
 
     void Checkpoint (const std::string& dir) const;
 
