@@ -16,71 +16,6 @@ module amrex_mlnodelap_3d_module
   integer, parameter :: crse_fine_node = 1
   integer, parameter :: fine_node = 2
 
-  real(amrex_real), private, parameter :: eps = 1.d-100
-
-  integer, private, parameter :: ist_000 = 1
-  integer, private, parameter :: ist_p00 = 2
-  integer, private, parameter :: ist_0p0 = 3
-  integer, private, parameter :: ist_00p = 4
-  integer, private, parameter :: ist_pp0 = 5
-  integer, private, parameter :: ist_p0p = 6
-  integer, private, parameter :: ist_0pp = 7
-  integer, private, parameter :: ist_ppp = 8
-  integer, private, parameter :: ist_inv = 9
-  integer, private, parameter :: n_sten = 9
-
-#ifdef AMREX_USE_EB
-  integer, private, parameter :: i_S_x     = 1
-  integer, private, parameter :: i_S_y     = 2
-  integer, private, parameter :: i_S_z     = 3
-  integer, private, parameter :: i_S_x2    = 4
-  integer, private, parameter :: i_S_y2    = 5
-  integer, private, parameter :: i_S_z2    = 6
-  integer, private, parameter :: i_S_x_y   = 7
-  integer, private, parameter :: i_S_x_z   = 8
-  integer, private, parameter :: i_S_y_z   = 9
-  integer, private, parameter :: i_S_x2_y  = 10
-  integer, private, parameter :: i_S_x2_z  = 11
-  integer, private, parameter :: i_S_x_y2  = 12
-  integer, private, parameter :: i_S_y2_z  = 13
-  integer, private, parameter :: i_S_x_z2  = 14
-  integer, private, parameter :: i_S_y_z2  = 15
-  integer, private, parameter :: i_S_x2_y2 = 16
-  integer, private, parameter :: i_S_x2_z2 = 17
-  integer, private, parameter :: i_S_y2_z2 = 18
-  integer, private, parameter :: i_S_xyz   = 19
-  integer, private, parameter :: n_Sintg   = 19
-
-  integer, private, parameter :: i_c_xmym = 1
-  integer, private, parameter :: i_c_xmyb = 2
-  integer, private, parameter :: i_c_xmyp = 3
-  integer, private, parameter :: i_c_xbym = 4
-  integer, private, parameter :: i_c_xbyb = 5
-  integer, private, parameter :: i_c_xbyp = 6
-  integer, private, parameter :: i_c_xpym = 7
-  integer, private, parameter :: i_c_xpyb = 8
-  integer, private, parameter :: i_c_xpyp = 9
-  integer, private, parameter :: i_c_xmzm = 10
-  integer, private, parameter :: i_c_xmzb = 11
-  integer, private, parameter :: i_c_xmzp = 12
-  integer, private, parameter :: i_c_xbzm = 13
-  integer, private, parameter :: i_c_xbzb = 14
-  integer, private, parameter :: i_c_xbzp = 15
-  integer, private, parameter :: i_c_xpzm = 16
-  integer, private, parameter :: i_c_xpzb = 17
-  integer, private, parameter :: i_c_xpzp = 18
-  integer, private, parameter :: i_c_ymzm = 19
-  integer, private, parameter :: i_c_ymzb = 20
-  integer, private, parameter :: i_c_ymzp = 21
-  integer, private, parameter :: i_c_ybzm = 22
-  integer, private, parameter :: i_c_ybzb = 23
-  integer, private, parameter :: i_c_ybzp = 24
-  integer, private, parameter :: i_c_ypzm = 25
-  integer, private, parameter :: i_c_ypzb = 26
-  integer, private, parameter :: i_c_ypzp = 27
-  integer, private, parameter :: n_conn = 27
-#endif
-
   private
   public :: &
        ! masks
@@ -100,10 +35,6 @@ module amrex_mlnodelap_3d_module
        amrex_mlndlap_zero_fine
 
   ! RAP
-
-#ifdef AMREX_USE_EB
-  public:: amrex_mlndlap_rhcc_eb
-#endif
 
 contains
 
@@ -788,114 +719,5 @@ contains
        end do
     end do
   end subroutine amrex_mlndlap_zero_fine
-
-
-#ifdef AMREX_USE_EB
-
-  subroutine amrex_mlndlap_rhcc_eb (lo, hi, rhs, rlo, rhi, rhcc, clo, chi, &
-       vfrac, flo, fhi, intg, glo, ghi, msk, mlo, mhi) &
-       bind(c,name='amrex_mlndlap_rhcc_eb')
-    integer, dimension(3) :: lo, hi, rlo, rhi, clo, chi, flo, fhi, glo, ghi, mlo, mhi
-    real(amrex_real), intent(inout) :: rhs (rlo(1):rhi(1),rlo(2):rhi(2),rlo(3):rhi(3))
-    real(amrex_real), intent(in   ) :: rhcc(clo(1):chi(1),clo(2):chi(2),clo(3):chi(3))
-    real(amrex_real), intent(in   ) :: vfrac(flo(1):fhi(1),flo(2):fhi(2),flo(3):fhi(3))
-    real(amrex_real), intent(in   ) :: intg(glo(1):ghi(1),glo(2):ghi(2),glo(3):ghi(3),n_Sintg)
-    integer,          intent(in   ) :: msk (mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3))
-
-    integer :: i,j,k
-
-    do       k = lo(3), hi(3)
-       do    j = lo(2), hi(2)
-          do i = lo(1), hi(1)
-             if (msk(i,j,k) .ne. dirichlet) then
-                rhs(i,j,k) = &
-                     &            rhcc(i  ,j  ,k  ) * &
-                     ( 0.125d0 * vfrac(i  ,j  ,k  ) &
-                     + 0.25d0 * (-intg(i  ,j  ,k  ,i_S_x) &
-                     &           -intg(i  ,j  ,k  ,i_S_y) &
-                     &           -intg(i  ,j  ,k  ,i_S_z)) &
-                     + 0.5d0 * (  intg(i  ,j  ,k  ,i_S_x_y) &
-                     &           +intg(i  ,j  ,k  ,i_S_x_z) &
-                     &           +intg(i  ,j  ,k  ,i_S_y_z)) &
-                     +         ( -intg(i  ,j  ,k  ,i_S_xyz))) &
-                     !
-                     +            rhcc(i-1,j  ,k  ) * &
-                     ( 0.125d0 * vfrac(i-1,j  ,k  ) &
-                     + 0.25d0 * ( intg(i-1,j  ,k  ,i_S_x) &
-                     &           -intg(i-1,j  ,k  ,i_S_y) &
-                     &           -intg(i-1,j  ,k  ,i_S_z)) &
-                     + 0.5d0 * ( -intg(i-1,j  ,k  ,i_S_x_y) &
-                     &           -intg(i-1,j  ,k  ,i_S_x_z) &
-                     &           +intg(i-1,j  ,k  ,i_S_y_z)) &
-                     +         (  intg(i-1,j  ,k  ,i_S_xyz))) &
-                     !
-                     +            rhcc(i  ,j-1,k  ) * &
-                     ( 0.125d0 * vfrac(i  ,j-1,k  ) &
-                     + 0.25d0 * (-intg(i  ,j-1,k  ,i_S_x) &
-                     &           +intg(i  ,j-1,k  ,i_S_y) &
-                     &           -intg(i  ,j-1,k  ,i_S_z)) &
-                     + 0.5d0 * ( -intg(i  ,j-1,k  ,i_S_x_y) &
-                     &           +intg(i  ,j-1,k  ,i_S_x_z) &
-                     &           -intg(i  ,j-1,k  ,i_S_y_z)) &
-                     +         (  intg(i  ,j-1,k  ,i_S_xyz))) &
-                     !
-                     +            rhcc(i-1,j-1,k  ) * &
-                     ( 0.125d0 * vfrac(i-1,j-1,k  ) &
-                     + 0.25d0 * ( intg(i-1,j-1,k  ,i_S_x) &
-                     &           +intg(i-1,j-1,k  ,i_S_y) &
-                     &           -intg(i-1,j-1,k  ,i_S_z)) &
-                     + 0.5d0 * (  intg(i-1,j-1,k  ,i_S_x_y) &
-                     &           -intg(i-1,j-1,k  ,i_S_x_z) &
-                     &           -intg(i-1,j-1,k  ,i_S_y_z)) &
-                     +         ( -intg(i-1,j-1,k  ,i_S_xyz))) &
-                     !
-                     +            rhcc(i  ,j  ,k-1) * &
-                     ( 0.125d0 * vfrac(i  ,j  ,k-1) &
-                     + 0.25d0 * (-intg(i  ,j  ,k-1,i_S_x) &
-                     &           -intg(i  ,j  ,k-1,i_S_y) &
-                     &           +intg(i  ,j  ,k-1,i_S_z)) &
-                     + 0.5d0 * (  intg(i  ,j  ,k-1,i_S_x_y) &
-                     &           -intg(i  ,j  ,k-1,i_S_x_z) &
-                     &           -intg(i  ,j  ,k-1,i_S_y_z)) &
-                     +         (  intg(i  ,j  ,k-1,i_S_xyz))) &
-                     !
-                     +            rhcc(i-1,j  ,k-1) * &
-                     ( 0.125d0 * vfrac(i-1,j  ,k-1) &
-                     + 0.25d0 * ( intg(i-1,j  ,k-1,i_S_x) &
-                     &           -intg(i-1,j  ,k-1,i_S_y) &
-                     &           +intg(i-1,j  ,k-1,i_S_z)) &
-                     + 0.5d0 * ( -intg(i-1,j  ,k-1,i_S_x_y) &
-                     &           +intg(i-1,j  ,k-1,i_S_x_z) &
-                     &           -intg(i-1,j  ,k-1,i_S_y_z)) &
-                     +         ( -intg(i-1,j  ,k-1,i_S_xyz))) &
-                     !
-                     +            rhcc(i  ,j-1,k-1) * &
-                     ( 0.125d0 * vfrac(i  ,j-1,k-1) &
-                     + 0.25d0 * (-intg(i  ,j-1,k-1,i_S_x) &
-                     &           +intg(i  ,j-1,k-1,i_S_y) &
-                     &           +intg(i  ,j-1,k-1,i_S_z)) &
-                     + 0.5d0 * ( -intg(i  ,j-1,k-1,i_S_x_y) &
-                     &           -intg(i  ,j-1,k-1,i_S_x_z) &
-                     &           +intg(i  ,j-1,k-1,i_S_y_z)) &
-                     +         ( -intg(i  ,j-1,k-1,i_S_xyz))) &
-                     !
-                     +            rhcc(i-1,j-1,k-1) * &
-                     ( 0.125d0 * vfrac(i-1,j-1,k-1) &
-                     + 0.25d0 * ( intg(i-1,j-1,k-1,i_S_x) &
-                     &           +intg(i-1,j-1,k-1,i_S_y) &
-                     &           +intg(i-1,j-1,k-1,i_S_z)) &
-                     + 0.5d0 * (  intg(i-1,j-1,k-1,i_S_x_y) &
-                     &           +intg(i-1,j-1,k-1,i_S_x_z) &
-                     &           +intg(i-1,j-1,k-1,i_S_y_z)) &
-                     +         (  intg(i-1,j-1,k-1,i_S_xyz)))
-             else
-                rhs(i,j,k) = 0.d0
-             end if
-          end do
-       end do
-    end do
-  end subroutine amrex_mlndlap_rhcc_eb
-
-#endif
 
 end module amrex_mlnodelap_3d_module
