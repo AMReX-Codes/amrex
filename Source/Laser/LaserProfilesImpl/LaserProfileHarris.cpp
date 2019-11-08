@@ -62,7 +62,7 @@ HarrisLaserProfile::fill_amplitude (
                                   std::cos(3._rt*arg_env));
 
     // Copy member variables to tmp copies for GPU runs.
-    Real tmp_e_max = m_common_params.e_max;
+    const auto tmp_e_max = m_common_params.e_max;
     // Loop through the macroparticle to calculate the proper amplitude
     amrex::ParallelFor(
         np,
