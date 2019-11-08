@@ -51,7 +51,7 @@ module amrex_mlnodelap_2d_module
 
 #ifdef AMREX_USE_EB
   public:: amrex_mlndlap_set_integral, amrex_mlndlap_set_integral_eb, &
-       amrex_mlndlap_set_connection, amrex_mlndlap_set_stencil_eb, &
+       amrex_mlndlap_set_stencil_eb, &
        amrex_mlndlap_divu_eb, amrex_mlndlap_mknewu_eb, amrex_mlndlap_rhcc_eb
 #endif
 
@@ -660,46 +660,6 @@ contains
        end do
     end do
   end subroutine amrex_mlndlap_set_integral_eb
-
-
-  subroutine amrex_mlndlap_set_connection (lo, hi, conn, clo, chi, intg, glo, ghi, flag, flo, fhi, &
-       vol, vlo, vhi) bind(c,name='amrex_mlndlap_set_connection')
-    use amrex_ebcellflag_module, only : is_single_valued_cell, is_regular_cell, is_covered_cell
-    integer, dimension(2), intent(in) :: lo, hi, clo, chi, glo, ghi, flo, fhi, vlo, vhi
-    real(amrex_real), intent(inout) :: conn( clo(1): chi(1), clo(2): chi(2),6)
-    real(amrex_real), intent(in   ) :: intg( glo(1): ghi(1), glo(2): ghi(2),n_Sintg)
-    real(amrex_real), intent(in   ) :: vol ( vlo(1): vhi(1), vlo(2): vhi(2))
-    integer         , intent(in   ) :: flag( flo(1): fhi(1), flo(2): fhi(2))
-
-    integer :: i,j
-    real(amrex_real), parameter :: almostone = 1.d0 - 1.d2*epsilon(1._amrex_real)
-
-    do    j = lo(2), hi(2)
-       do i = lo(1), hi(1)
-          if (is_covered_cell(flag(i,j))) then
-
-             conn(i,j,:) = zero
-
-          else if (is_regular_cell(flag(i,j)) .or. vol(i,j).ge.almostone) then
-
-             conn(i,j,:) = 1.d0
-
-          else
-
-             ! Note that these are normalized so that they equal 1 in the case of a regular cell
-
-             conn(i,j,1) = 3.d0*(.25d0*vol(i,j) + intg(i,j,i_S_y2) - intg(i,j,i_S_y))
-             conn(i,j,2) = 6.d0*(.25d0*vol(i,j) - intg(i,j,i_S_y2))
-             conn(i,j,3) = 3.d0*(.25d0*vol(i,j) + intg(i,j,i_S_y2) + intg(i,j,i_S_y))
-
-             conn(i,j,4) = 3.d0*(.25d0*vol(i,j) + intg(i,j,i_S_x2) - intg(i,j,i_S_x))
-             conn(i,j,5) = 6.d0*(.25d0*vol(i,j) - intg(i,j,i_S_x2))
-             conn(i,j,6) = 3.d0*(.25d0*vol(i,j) + intg(i,j,i_S_x2) + intg(i,j,i_S_x))
-
-          end if
-       end do
-    end do
-  end subroutine amrex_mlndlap_set_connection
 
 
   subroutine amrex_mlndlap_set_stencil_eb (lo, hi, sten, tlo, thi, sigma, glo, ghi, &

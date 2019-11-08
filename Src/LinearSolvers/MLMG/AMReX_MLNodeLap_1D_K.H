@@ -151,6 +151,14 @@ void mlndlap_restriction_rap (int i, int j, int k, Array4<Real> const& crse,
                               Array4<int const> const& msk) noexcept
 {}
 
+#ifdef AMREX_USE_EB
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_set_connection (int i, int j, int k, Array4<Real> const& conn,
+                             Array4<Real const> const& intg, Array4<Real const> const& vol,
+                             Array4<EBCellFlag const> const& flag) noexcept
+{}
+#endif
+
 }
 
 #endif

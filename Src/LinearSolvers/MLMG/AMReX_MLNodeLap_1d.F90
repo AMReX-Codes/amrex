@@ -40,7 +40,7 @@ module amrex_mlnodelap_1d_module
 
 #ifdef AMREX_USE_EB
   public:: amrex_mlndlap_set_integral, amrex_mlndlap_set_integral_eb, &
-       amrex_mlndlap_set_connection, amrex_mlndlap_set_stencil_eb, &
+       amrex_mlndlap_set_stencil_eb, &
        amrex_mlndlap_divu_eb, amrex_mlndlap_mknewu_eb
 #endif
 
@@ -196,16 +196,6 @@ contains
     real(amrex_real), intent(in   ) :: bcen( blo(1): bhi(1))
     integer         , intent(in   ) :: flag( flo(1): fhi(1))
   end subroutine amrex_mlndlap_set_integral_eb
-
-  subroutine amrex_mlndlap_set_connection (lo, hi, conn, clo, chi, intg, glo, ghi, flag, flo, fhi, &
-       vol, vlo, vhi) bind(c,name='amrex_mlndlap_set_connection')
-    use amrex_ebcellflag_module, only : is_single_valued_cell, is_regular_cell, is_covered_cell
-    integer, dimension(1) :: lo, hi, clo, chi, glo, ghi, flo, fhi, axlo, vlo, vhi
-    real(amrex_real), intent(inout) :: conn( clo(1): chi(1),2)
-    real(amrex_real), intent(inout) :: intg( glo(1): ghi(1),1)
-    real(amrex_real), intent(in   ) :: vol ( vlo(1): vhi(1))
-    integer         , intent(in   ) :: flag( flo(1): fhi(1))
-  end subroutine amrex_mlndlap_set_connection
 
 
   subroutine amrex_mlndlap_set_stencil_eb (lo, hi, sten, tlo, thi, sigma, glo, ghi, &
