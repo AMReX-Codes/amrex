@@ -11,8 +11,10 @@ using namespace amrex;
 void warpx_hybrid_QED_push (int j, int k, int l, Array4<Real> const& Ex, Array4<Real>
     const& Ey, Array4<Real> const& Ez, Array4<Real> const& Bx, Array4<Real> const& By,
     Array4<Real const> const& Bz, Array4<Real> const& tmpEx, Array4<Real>
-    const& tmpEy, Array4<Real> const& tmpEz, Real dtsdx, Real dtsdy, Real dtsdz)
+    const& tmpEy, Array4<Real> const& tmpEz, Real dx, Real dy, Real dz, Real dt)
 {
+//if (j== 0) {std::cout <<"(j,k) = (" << j << "," << k << ") \n";}
+
 #if (AMREX_SPACEDIM == 3)
 
     // Picking out points for stencil to be used in curl function
@@ -86,19 +88,19 @@ void warpx_hybrid_QED_push (int j, int k, int l, Array4<Real> const& Ex, Array4<
 
     // Calculating necessary curls
     const amrex::Real VxM[3] = {
-        0.5*(dtsdy*(Mpz[2]-Mnz[2]) - dtsdz*( Mpy[1]-Mny[1] ) ),
-        0.5*( dtsdz*(Mpx[0]-Mnx[0]) - dtsdx*( Mpz[2]-Mnz[2] ) ),
-        0.5*( dtsdx*(Mpy[1]-Mny[1]) - dtsdy*( Mpx[0]-Mnx[0] ) )};
+        0.5*((Mpy[2]-Mny[2])/dy -( Mpz[1]-Mnz[1] )/dz ),
+        0.5*((Mpz[0]-Mnz[0])/dz - ( Mpx[2]-Mnx[2] )/dx ),
+        0.5*((Mpx[1]-Mnx[1])/dx - ( Mpy[0]-Mny[0])/dy )};
 
     const amrex::Real VxE[3] = {
-        0.5*(dtsdy*(tmpEz(j,k+1,l)-tmpEz(j,k-1,l)) - dtsdz*(tmpEy(j,k,l+1)-tmpEy(j,k,l-1))),
-        0.5*(dtsdz*(tmpEx(j,k,l+1)-tmpEx(j,k,l-1)) - dtsdx*(tmpEz(j+1,k,l)-tmpEz(j-1,k,l))),
-        0.5*(dtsdx*(tmpEy(j+1,k,l)-tmpEy(j-1,k,l)) - dtsdy*(tmpEx(j,k+1,l)-tmpEx(j,k-1,l)))};
+        0.5*((tmpEz(j,k+1,l)-tmpEz(j,k-1,l))/dy - (tmpEy(j,k,l+1)-tmpEy(j,k,l-1))/dz),
+        0.5*((tmpEx(j,k,l+1)-tmpEx(j,k,l-1))/dz - (tmpEz(j+1,k,l)-tmpEz(j-1,k,l))/dx),
+        0.5*((tmpEy(j+1,k,l)-tmpEy(j-1,k,l))/dx -(tmpEx(j,k+1,l)-tmpEx(j,k-1,l))/dy)};
 
     const amrex::Real VxB[3] = {
-        0.5*(dtsdy*(Bz(j,k+1,l)-Bz(j,k-1,l)) - dtsdz*(By(j,k,l+1)-By(j,k,l-1))),
-        0.5*(dtsdz*(Bx(j,k,l+1)-Bx(j,k,l-1)) - dtsdx*(Bz(j+1,k,l)-Bz(j-1,k,l))),
-        0.5*(dtsdx*(By(j+1,k,l)-By(j-1,k,l)) - dtsdy*(Bx(j,k+1,l)-Bx(j,k-1,l)))};
+        0.5*((Bz(j,k+1,l)-Bz(j,k-1,l)/dy) - (By(j,k,l+1)-By(j,k,l-1))/dz),
+        0.5*((Bx(j,k,l+1)-Bx(j,k,l-1))/dz - (Bz(j+1,k,l)-Bz(j-1,k,l))/dx),
+        0.5*((By(j+1,k,l)-By(j-1,k,l))/dx - (Bx(j,k+1,l)-Bx(j,k-1,l))/dy)};
 
     // Defining comapct values for QED corrections
     const amrex::Real beta = 4*(PhysConst::xi/PhysConst::ep0)*(pow(tmpEx(j,k,l),2)+pow(tmpEy(j,k,l),2)+pow(tmpEz(j,k,l),2) -
@@ -168,13 +170,13 @@ void warpx_hybrid_QED_push (int j, int k, int l, Array4<Real> const& Ex, Array4<
     const amrex::Real invAz[3] = {a12*a01-a02*a11, a02*a01-a12*a00, a11*a00-pow(a01,2)};
     
     // Performing push
-    Ex(j,k,l) = Ex(j,k,l) - (invAx[0]*Omega[0]+
+    Ex(j,k,l) = Ex(j,k,l) - 0.5*dt*(invAx[0]*Omega[0]+
         invAx[1]*Omega[1]+invAx[2]*Omega[2])/detA;
     
-    Ey(j,k,l) = Ey(j,k,l) - (invAy[0]*Omega[0]+
+    Ey(j,k,l) = Ey(j,k,l) - 0.5*dt*(invAy[0]*Omega[0]+
         invAy[1]*Omega[1]+invAy[2]*Omega[2])/detA;
         
-    Ez(j,k,l) = Ez(j,k,l) - (invAz[0]*Omega[0]+
+    Ez(j,k,l) = Ez(j,k,l) - 0.5*dt*(invAz[0]*Omega[0]+
         invAz[1]*Omega[1]+invAz[2]*Omega[2])/detA;
 
 
@@ -233,19 +235,19 @@ void warpx_hybrid_QED_push (int j, int k, int l, Array4<Real> const& Ex, Array4<
         -7*(tmpEx(j,k-1,0)*Bx(j,k-1,0)+tmpEy(j,k-1,0)*By(j,k-1,0)+tmpEz(j,k-1,0)*Bz(j,k-1,0))*tmpEz(j,k-1,0))};
 
     const amrex::Real VxM[3] = {
-        -0.5*dtsdz*( Mpz[1]-Mnz[1] ),
-        0.5*( dtsdz*(Mpz[0]-Mnz[0]) - dtsdx*(Mpx[2]-Mnx[2]) ),
-        0.5*dtsdx*(Mpx[1]-Mnx[1]) };
+        -0.5*(Mpz[1]-Mnz[1])/dz,
+        0.5*((Mpz[0]-Mnz[0])/dz - (Mpx[2]-Mnx[2])/dx ),
+        0.5*(Mpx[1]-Mnx[1])/dx };
 
     const amrex::Real VxE[3] = {
-        -0.5*dtsdz*(tmpEy(j,k+1,0)-tmpEy(j,k-1,0)),
-        0.5*(dtsdz*(tmpEx(j,k+1,0)-tmpEx(j,k-1,0)) - dtsdx*(tmpEz(j+1,k,0)-tmpEz(j-1,k,0))),
-        0.5*dtsdx*(tmpEy(j+1,k,0)-tmpEy(j-1,k,0))};
+        -0.5*(tmpEy(j,k+1,0)-tmpEy(j,k-1,0))/dz,
+        0.5*((tmpEx(j,k+1,0)-tmpEx(j,k-1,0))/dz - (tmpEz(j+1,k,0)-tmpEz(j-1,k,0))/dx),
+        0.5*(tmpEy(j+1,k,0)-tmpEy(j-1,k,0))/dx};
 
     const amrex::Real VxB[3] = {
-        -0.5*dtsdz*(By(j,k+1,0)-By(j,k-1,0)),
-        0.5*(dtsdz*(Bx(j,k+1,0)-Bx(j,k-1,0)) - dtsdx*(Bz(j+1,k,0)-Bz(j-1,k,0))),
-        0.5*dtsdx*(By(j+1,k,0)-By(j-1,k,0))};
+        -0.5*(By(j,k+1,0)-By(j,k-1,0))/dz,
+        0.5*((Bx(j,k+1,0)-Bx(j,k-1,0))/dz - (Bz(j+1,k,0)-Bz(j-1,k,0))/dx),
+        0.5*(By(j+1,k,0)-By(j-1,k,0))/dx};
 
     const amrex::Real beta =
         4*(PhysConst::xi/PhysConst::ep0)*(pow(tmpEx(j,k,0),2)+pow(tmpEy(j,k,0),2)+pow(tmpEz(j,k,0),2)-
@@ -316,22 +318,100 @@ void warpx_hybrid_QED_push (int j, int k, int l, Array4<Real> const& Ex, Array4<
         
     const amrex::Real dEz = (-1/detA)*(invAz[0]*Omega[0] +
         invAz[1]*Omega[1] + invAz[2]*Omega[2]);
-    
-    if (j == 10 && k == 1024) {
-    Print() << "---------------------------------- \n";
-    Print() << "---------------------------------- \n";
-    Print() << "dEx = " << dEx << "\n";
-    Print() << "dEy = " << dEy << "\n";
-    Print() << "dEy = " << dEz << "\n";
-    Print() << "---------------------------------- \n";
-    Print() << "---------------------------------- \n";
-    }
-    
-    Ex(j,k,0) = Ex(j,k,0) + 0.5*dEx;
-    
-    Ey(j,k,0) = Ey(j,k,0) + 0.5*dEy;
         
-    Ez(j,k,0) = Ez(j,k,0) + 0.5*dEz;
+    
+    Ex(j,k,0) = Ex(j,k,0) + 0.5*dt*dEx;
+       
+    Ey(j,k,0) = Ey(j,k,0) + 0.5*dt*dEy;
+            
+    Ez(j,k,0) = Ez(j,k,0) + 0.5*dt*dEz;
+    
+    if (j == 63 && k == 1050) {
+    std::cout << "---------------------------------- \n";
+    std::cout << "---------------------------------- \n";
+    std::cout << "Ex(63,1050,0) = " << Ex(j,k,0) << "\n";
+    std::cout << "Ey(63,1050,0) = " << Ey(j,k,0) << "\n";
+    std::cout << "Ey(63,1050,0) = " << Ez(j,k,0) << "\n";
+    std::cout << "---------------------------------- \n";
+    std::cout << "---------------------------------- \n";
+    std::cout << "tmpEx(63,1050,0) = " << tmpEx(j,k,0) << "\n";
+    std::cout << "tmpEy(63,1050,0) = " << tmpEy(j,k,0) << "\n";
+    std::cout << "tmpEy(63,1050,0) = " << tmpEz(j,k,0) << "\n";
+    std::cout << "---------------------------------- \n";
+    std::cout << "---------------------------------- \n";
+    std::cout << "VxEx = " << VxE[0] << "\n";
+    std::cout << "VxEy = " << VxE[1] << "\n";
+    std::cout << "VxEz = " << VxE[2] << "\n";
+    std::cout << "---------------------------------- \n";
+    std::cout << "---------------------------------- \n";
+    std::cout << "VxBx = " << VxB[0] << "\n";
+    std::cout << "VxBy = " << VxB[1] << "\n";
+    std::cout << "VxBz = " << VxB[2] << "\n";
+    std::cout << "---------------------------------- \n";
+    std::cout << "---------------------------------- \n";
+    std::cout << "VxMx = " << VxM[0] << "\n";
+    std::cout << "VxMy = " << VxM[1] << "\n";
+    std::cout << "VxMz = " << VxM[2] << "\n";
+    std::cout << "---------------------------------- \n";
+    std::cout << "---------------------------------- \n";
+    std::cout << "beta = " << beta << "\n";
+    std::cout << "---------------------------------- \n";
+    std::cout << "---------------------------------- \n";
+    std::cout << "alpha_x = " << Alpha[0] << "\n";
+    std::cout << "alpha_y = " << Alpha[1] << "\n";
+    std::cout << "alpha_z = " << Alpha[2] << "\n";
+    std::cout << "---------------------------------- \n";
+    std::cout << "---------------------------------- \n";
+    std::cout << "Omega_x = " << Omega[0] << "\n";
+    std::cout << "Omgea_y = " << Omega[1] << "\n";
+    std::cout << "Omega_z = " << Omega[2] << "\n";
+    std::cout << "---------------------------------- \n";
+    std::cout << "---------------------------------- \n";
+    std::cout << "a00 = " << a00 << "\n";
+    std::cout << "a11 = " << a11 << "\n";
+    std::cout << "a22 = " << a22 << "\n";
+    std::cout << "---------------------------------- \n";
+    std::cout << "---------------------------------- \n";
+    std::cout << "a01 = " << a01 << "\n";
+    std::cout << "a02 = " << a02 << "\n";
+    std::cout << "a12 = " << a12 << "\n";
+    std::cout << "---------------------------------- \n";
+    std::cout << "---------------------------------- \n";
+    std::cout<< "Det A = " << detA << "\n";
+    std::cout << "---------------------------------- \n";
+    std::cout << "---------------------------------- \n";
+    std::cout << "inv Ax_x = " << invAx[0] << "\n";
+    std::cout << "inv Ax_y = " << invAx[1] << "\n";
+    std::cout << "inv Ax_z = " << invAy[2] << "\n";
+    std::cout << "---------------------------------- \n";
+    std::cout << "---------------------------------- \n";
+    std::cout << "inv Ay_x = " << invAy[0] << "\n";
+    std::cout << "inv Ay_y = " << invAy[1] << "\n";
+    std::cout << "inv Ay_z = " << invAy[2] << "\n";
+    std::cout << "---------------------------------- \n";
+    std::cout << "---------------------------------- \n";
+    std::cout << "inv Az_x = " << invAz[0] << "\n";
+    std::cout << "inv Az_y = " << invAz[1] << "\n";
+    std::cout << "inv Az_z = " << invAz[2] << "\n";
+    std::cout << "---------------------------------- \n";
+    std::cout << "---------------------------------- \n";
+    std::cout << "dEx = " << dEx << "\n";
+    std::cout << "dEy = " << dEy << "\n";
+    std::cout << "dEy = " << dEz << "\n";
+    std::cout << "---------------------------------- \n";
+    std::cout << "---------------------------------- \n";
+    std::cout << "add Ex = " << 0.5*dt*dEx << "\n";
+    std::cout << "add Ey = " << 0.5*dt*dEy << "\n";
+    std::cout << "add Ey = " << 0.5*dt*dEz << "\n";
+    std::cout << "---------------------------------- \n";
+    std::cout << "---------------------------------- \n";
+    std::cout << "Change in Ex = " << tmpEx(j,k,0) - Ex(j,k,0) << "\n";
+    std::cout << "Change in Ey = " << tmpEy(j,k,0) - Ey(j,k,0) << "\n";
+    std::cout << "Change in Ez = " << tmpEz(j,k,0) - Ez(j,k,0) << "\n";
+    std::cout << "---------------------------------- \n";
+    std::cout << "---------------------------------- \n";
+    }
+
 
 #endif
 

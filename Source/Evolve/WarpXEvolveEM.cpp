@@ -311,7 +311,7 @@ WarpX::OneStep_nosub (Real cur_time)
     if (use_hybrid_QED)
     {
         Print()<<"Begining first itteration of QED function.\n";
-        WarpX::Hybrid_QED_Push(0.5*dt[0]);
+        WarpX::Hybrid_QED_Push(dt[0]);
         FillBoundaryE();
     }
     Print()<<"Standard PSATD push. \n";
@@ -322,7 +322,7 @@ WarpX::OneStep_nosub (Real cur_time)
         Print()<<"Begining second itteration of QED function.\n";
         FillBoundaryE();
         FillBoundaryB();
-        WarpX::Hybrid_QED_Push(0.5*dt[0]);
+        WarpX::Hybrid_QED_Push(dt[0]);
         FillBoundaryE();
         
     }

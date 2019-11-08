@@ -60,9 +60,10 @@ WarpX::Hybrid_QED_Push (int lev, PatchType patch_type, Real a_dt)
 {
     Print()<<"Third function call.\n";
     const int patch_level = (patch_type == PatchType::fine) ? lev : lev-1;
-    const std::array<Real,3>& dx = WarpX::CellSize(patch_level);
-    const Real dtsdx = a_dt/dx[0], dtsdy = a_dt/dx[1], dtsdz = a_dt/dx[2];
-    const Real dxinv = 1./dx[0];
+    const std::array<Real,3>& dx_vec= WarpX::CellSize(patch_level);
+    const Real dx = dx_vec[0];
+    const Real dy = dx_vec[1];
+    const Real dz = dx_vec[2];
 
     MultiFab *Ex, *Ey, *Ez, *Bx, *By, *Bz;
     if (patch_type == PatchType::fine)
@@ -149,14 +150,24 @@ WarpX::Hybrid_QED_Push (int lev, PatchType patch_type, Real a_dt)
                 tmpEz(i,j,k,n) = Ezfab(i,j,k,n);
         });
 
+
         amrex::Print() << "tbx = " << tbx << "\n";
-        amrex::Print() << "tby = " << tby << "\n";
+/*        amrex::Print() << "tby = " << tby << "\n";
         amrex::Print() << "tbz = " << tbz << "\n";
+        amrex::Print() << "tex = " << tex << "\n";
+        amrex::Print() << "tey = " << tey << "\n";
+        amrex::Print() << "tez = " << tez << "\n";
+        amrex::Print() << "\n";
+        amrex::Print() << "gex = " << gex << "\n";
+        amrex::Print() << "gey = " << gey << "\n";
+        amrex::Print() << "gez = " << gez << "\n";
+        amrex::Print() << "\n";
+*/
 
         amrex::ParallelFor(tbx,
         [=] AMREX_GPU_DEVICE (int j, int k, int l)
         {
-            warpx_hybrid_QED_push(j,k,l, Exfab, Eyfab, Ezfab, Bxfab, Byfab, Bzfab, tmpEx, tmpEy, tmpEz, dtsdx, dtsdy, dtsdz);
+            warpx_hybrid_QED_push(j,k,l, Exfab, Eyfab, Ezfab, Bxfab, Byfab, Bzfab, tmpEx, tmpEy, tmpEz, dx, dy, dz, a_dt);
         });
 
         if (cost) {
