@@ -1156,7 +1156,7 @@ void mlndlap_divu_eb (int i, int j, int, Array4<Real> const& rhs, Array4<Real co
 {
     Real facx = 0.5_rt*dxinv[0];
     Real facy = 0.5_rt*dxinv[1];
-    if (msk(i,j,0)) {
+    if (!msk(i,j,0)) {
         rhs(i,j,0) = facx*(-vel(i-1,j-1,0,0)*(vfrac(i-1,j-1,0)+2._rt*intg(i-1,j-1,0,1))
                            +vel(i  ,j-1,0,0)*(vfrac(i  ,j-1,0)+2._rt*intg(i  ,j-1,0,1))
                            -vel(i-1,j  ,0,0)*(vfrac(i-1,j  ,0)-2._rt*intg(i-1,j  ,0,1))
