@@ -187,6 +187,12 @@ else
   USE_CUDA_FAST_MATH := TRUE
 endif
 
+ifdef USE_CUPTI
+  USE_CUPTI := $(strip $(USE_CUPTI))
+else
+  USE_CUPTI := FALSE
+endif
+
 ifeq ($(USE_CUDA),TRUE)
   # Set the default CUDA architecture version.
   CUDA_ARCH ?= 60
@@ -534,6 +540,14 @@ ifeq ($(USE_ACC),TRUE)
   ACCSuffix := .ACC
   DEFINES += -DAMREX_USE_ACC
 
+endif
+
+ifeq ($(USE_CUPTI),TRUE)
+  ifeq ($(USE_CUDA),TRUE)
+
+  DEFINES += -DAMREX_USE_CUPTI
+
+  endif
 endif
 
 ifeq ($(USE_HIP),TRUE)
