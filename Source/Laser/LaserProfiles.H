@@ -32,6 +32,14 @@ struct CommonLaserParameters
 class ILaserProfile
 {
 public:
+    /** Initialize Laser Profile
+     *
+     * does what....? :)
+     *
+     * @param[in] ppl power to the people
+     * @param[in] ppc power to the cells
+     * @param[in] params common laser profile parameters
+     */
     virtual void
     init (
         const amrex::ParmParse& ppl,
