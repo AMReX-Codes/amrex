@@ -43,7 +43,7 @@ HarrisLaserProfile::fill_amplitude (
     const Real zR = MathConst::pi * m_params.waist*m_params.waist
         / m_common_params.wavelength;
     const Real wz = m_params.waist *
-        std::sqrt(1._rt + m_params.focal_distance*m_params.focal_distance/zR*zR);
+        std::sqrt(1._rt + m_params.focal_distance*m_params.focal_distance/(zR*zR));
     const Real inv_wz_2 = 1._rt/(wz*wz);
     Real inv_Rz;
     if (m_params.focal_distance == 0.){
