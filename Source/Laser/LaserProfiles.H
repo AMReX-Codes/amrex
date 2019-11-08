@@ -34,10 +34,14 @@ class ILaserProfile
 public:
     /** Initialize Laser Profile
      *
-     * does what....? :)
+     * Reads the section of the inputfile relative to the laser beam
+     * (e.g. <laser_name>.profile_t_peak, <laser_name>.profile_duration...)
+     * and the "my_constants" section. It also receives some common
+     * laser profile parameters. It uses these data to initialize the
+     * member variables of the laser profile class.
      *
-     * @param[in] ppl power to the people
-     * @param[in] ppc power to the cells
+     * @param[in] ppl should be amrex::ParmParse(laser_name)
+     * @param[in] ppc should be amrex::ParmParse("my_constants")
      * @param[in] params common laser profile parameters
      */
     virtual void
