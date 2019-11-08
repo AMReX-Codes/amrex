@@ -1051,7 +1051,7 @@ namespace {
         Real w1 = sig(i-1,j-1,k-1) + sig(i-1,j,k-1) + sig(i-1,j-1,k) + sig(i-1,j,k);
         Real w2 = sig(i  ,j-1,k-1) + sig(i  ,j,k-1) + sig(i  ,j-1,k) + sig(i  ,j,k);
         return (w1*crse(ic,jc,kc)+w2*crse(ic+1,jc,kc))/(w1+w2);
-    };
+    }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real aa_interp_line_y (Array4<Real const> const& crse, Array4<Real const> const& sig,
@@ -1060,7 +1060,7 @@ namespace {
         Real w1 = sig(i-1,j-1,k-1) + sig(i,j-1,k-1) + sig(i-1,j-1,k) + sig(i,j-1,k);
         Real w2 = sig(i-1,j  ,k-1) + sig(i,j  ,k-1) + sig(i-1,j  ,k) + sig(i,j  ,k);
         return (w1*crse(ic,jc,kc)+w2*crse(ic,jc+1,kc))/(w1+w2);
-    };
+    }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real aa_interp_line_z (Array4<Real const> const& crse, Array4<Real const> const& sig,
@@ -1069,7 +1069,7 @@ namespace {
         Real w1 = sig(i-1,j-1,k-1) + sig(i,j-1,k-1) + sig(i-1,j,k-1) + sig(i,j,k-1);
         Real w2 = sig(i-1,j-1,k  ) + sig(i,j-1,k  ) + sig(i-1,j,k  ) + sig(i,j,k  );
         return (w1*crse(ic,jc,kc)+w2*crse(ic,jc,kc+1))/(w1+w2);
-    };
+    }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real aa_interp_face_xy (Array4<Real const> const& crse, Array4<Real const> const& sig,
@@ -1097,7 +1097,7 @@ namespace {
                 w2 * aa_interp_line_z(crse,sig,i+1,j,k  ,ic+1,jc,kc  ) +
                 w3 * aa_interp_line_x(crse,sig,i  ,j,k-1,ic  ,jc,kc  ) +
                 w4 * aa_interp_line_x(crse,sig,i  ,j,k+1,ic  ,jc,kc+1)) / (w1+w2+w3+w4);
-    };
+    }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real aa_interp_face_yz (Array4<Real const> const& crse, Array4<Real const> const& sig,
@@ -1111,7 +1111,7 @@ namespace {
                 w2 * aa_interp_line_z(crse,sig,i,j+1,k  ,ic,jc+1,kc  ) +
                 w3 * aa_interp_line_y(crse,sig,i,j  ,k-1,ic,jc  ,kc  ) +
                 w4 * aa_interp_line_y(crse,sig,i,j  ,k+1,ic,jc  ,kc+1)) / (w1+w2+w3+w4);
-    };
+    }
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -1196,7 +1196,7 @@ namespace {
                 w2 * aa_interp_line_z(crse,sigz,i+1,j,k  ,ic+1,jc,kc  ) +
                 w3 * aa_interp_line_x(crse,sigx,i  ,j,k-1,ic  ,jc,kc  ) +
                 w4 * aa_interp_line_x(crse,sigx,i  ,j,k+1,ic  ,jc,kc+1)) / (w1+w2+w3+w4);
-    };
+    }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real ha_interp_face_yz (Array4<Real const> const& crse,
@@ -1211,7 +1211,7 @@ namespace {
                 w2 * aa_interp_line_z(crse,sigz,i,j+1,k  ,ic,jc+1,kc  ) +
                 w3 * aa_interp_line_y(crse,sigy,i,j  ,k-1,ic,jc  ,kc  ) +
                 w4 * aa_interp_line_y(crse,sigy,i,j  ,k+1,ic,jc  ,kc+1)) / (w1+w2+w3+w4);
-    };
+    }
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -1444,6 +1444,2602 @@ void mlndlap_set_stencil_s0 (int i, int j, int k, Array4<Real> const& sten) noex
          + std::abs(sten(i-1,j,k-1,ist_ppp)) + std::abs(sten(i,j,k-1,ist_ppp))
          + std::abs(sten(i-1,j-1,k,ist_ppp)) + std::abs(sten(i,j-1,k,ist_ppp))
          + std::abs(sten(i-1,j,k,ist_ppp)) + std::abs(sten(i,j,k,ist_ppp)) + eps);
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_stencil_rap (int i, int j, int k, Array4<Real> const& csten,
+                          Array4<Real const> const& fsten) noexcept
+{
+    auto interp_from_mmm_to = [&fsten] (int i_, int j_, int k_) -> Real {
+        Real p = 1._rt;
+        p += std::abs(fsten(i_-1,j_  ,k_  ,ist_p00)) /
+           ( std::abs(fsten(i_-1,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_-1,j_  ,k_-1,ist_ppp))
+           + std::abs(fsten(i_-1,j_-1,k_  ,ist_ppp))
+           + std::abs(fsten(i_-1,j_  ,k_  ,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_-1,k_  ,ist_0p0)) /
+           ( std::abs(fsten(i_-1,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_-1,j_-1,k_  ,ist_ppp))
+           + std::abs(fsten(i_  ,j_-1,k_  ,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_  ,k_-1,ist_00p)) /
+           ( std::abs(fsten(i_-1,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_-1,j_  ,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_-1,ist_ppp)) + eps);
+        p += std::abs(fsten(i_-1,j_-1,k_  ,ist_pp0)) /
+           ( std::abs(fsten(i_-1,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_-1,j_-1,k_  ,ist_ppp)) + eps);
+        p += std::abs(fsten(i_-1,j_  ,k_-1,ist_p0p)) /
+           ( std::abs(fsten(i_-1,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_-1,j_  ,k_-1,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_-1,k_-1,ist_0pp)) /
+           ( std::abs(fsten(i_-1,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_-1,k_-1,ist_ppp)) + eps);
+        p *= std::abs(fsten(i_-1,j_-1,k_-1,ist_ppp)) * fsten(i_,j_,k_,ist_inv);
+        return p;
+    };
+
+    auto interp_from_pmm_to = [&fsten] (int i_, int j_, int k_) -> Real {
+        Real p = 1._rt;
+        p += std::abs(fsten(i_  ,j_  ,k_  ,ist_p00)) /
+           ( std::abs(fsten(i_  ,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_-1,k_  ,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_  ,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_-1,k_  ,ist_0p0)) /
+           ( std::abs(fsten(i_-1,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_-1,j_-1,k_  ,ist_ppp))
+           + std::abs(fsten(i_  ,j_-1,k_  ,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_  ,k_-1,ist_00p)) /
+           ( std::abs(fsten(i_-1,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_-1,j_  ,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_-1,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_-1,k_  ,ist_pp0)) /
+           ( std::abs(fsten(i_  ,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_-1,k_  ,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_  ,k_-1,ist_p0p)) /
+           ( std::abs(fsten(i_  ,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_-1,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_-1,k_-1,ist_0pp)) /
+           ( std::abs(fsten(i_-1,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_-1,k_-1,ist_ppp)) + eps);
+        p *= std::abs(fsten(i_  ,j_-1,k_-1,ist_ppp)) * fsten(i_,j_,k_,ist_inv);
+        return p;
+    };
+
+    auto interp_from_mpm_to = [&fsten] (int i_, int j_, int k_) -> Real {
+        Real p = 1._rt;
+        p += std::abs(fsten(i_-1,j_  ,k_  ,ist_p00)) /
+           ( std::abs(fsten(i_-1,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_-1,j_  ,k_-1,ist_ppp))
+           + std::abs(fsten(i_-1,j_-1,k_  ,ist_ppp))
+           + std::abs(fsten(i_-1,j_  ,k_  ,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_  ,k_  ,ist_0p0)) /
+           ( std::abs(fsten(i_-1,j_  ,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_-1,ist_ppp))
+           + std::abs(fsten(i_-1,j_  ,k_  ,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_  ,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_  ,k_-1,ist_00p)) /
+           ( std::abs(fsten(i_-1,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_-1,j_  ,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_-1,ist_ppp)) + eps);
+        p += std::abs(fsten(i_-1,j_  ,k_  ,ist_pp0)) /
+           ( std::abs(fsten(i_-1,j_  ,k_-1,ist_ppp))
+           + std::abs(fsten(i_-1,j_  ,k_  ,ist_ppp)) + eps);
+        p += std::abs(fsten(i_-1,j_  ,k_-1,ist_p0p)) /
+           ( std::abs(fsten(i_-1,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_-1,j_  ,k_-1,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_  ,k_-1,ist_0pp)) /
+           ( std::abs(fsten(i_-1,j_  ,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_-1,ist_ppp)) + eps);
+        p *= std::abs(fsten(i_-1,j_  ,k_-1,ist_ppp)) * fsten(i_,j_,k_,ist_inv);
+        return p;
+    };
+
+    auto interp_from_ppm_to = [&fsten] (int i_, int j_, int k_) -> Real {
+        Real p = 1._rt;
+        p += std::abs(fsten(i_  ,j_  ,k_  ,ist_p00)) /
+           ( std::abs(fsten(i_  ,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_-1,k_  ,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_  ,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_  ,k_  ,ist_0p0)) /
+           ( std::abs(fsten(i_-1,j_  ,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_-1,ist_ppp))
+           + std::abs(fsten(i_-1,j_  ,k_  ,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_  ,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_  ,k_-1,ist_00p)) /
+           ( std::abs(fsten(i_-1,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_-1,j_  ,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_-1,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_  ,k_  ,ist_pp0)) /
+           ( std::abs(fsten(i_  ,j_  ,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_  ,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_  ,k_-1,ist_p0p)) /
+           ( std::abs(fsten(i_  ,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_-1,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_  ,k_-1,ist_0pp)) /
+           ( std::abs(fsten(i_-1,j_  ,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_-1,ist_ppp)) + eps);
+        p *= std::abs(fsten(i_  ,j_  ,k_-1,ist_ppp)) * fsten(i_,j_,k_,ist_inv);
+        return p;
+    };
+
+    auto interp_from_mmp_to = [&fsten] (int i_, int j_, int k_) -> Real {
+        Real p = 1._rt;
+        p += std::abs(fsten(i_-1,j_  ,k_  ,ist_p00)) /
+           ( std::abs(fsten(i_-1,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_-1,j_  ,k_-1,ist_ppp))
+           + std::abs(fsten(i_-1,j_-1,k_  ,ist_ppp))
+           + std::abs(fsten(i_-1,j_  ,k_  ,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_-1,k_  ,ist_0p0)) /
+           ( std::abs(fsten(i_-1,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_-1,j_-1,k_  ,ist_ppp))
+           + std::abs(fsten(i_  ,j_-1,k_  ,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_  ,k_  ,ist_00p)) /
+           ( std::abs(fsten(i_-1,j_-1,k_,ist_ppp))
+           + std::abs(fsten(i_  ,j_-1,k_,ist_ppp))
+           + std::abs(fsten(i_-1,j_  ,k_,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_,ist_ppp)) + eps);
+        p += std::abs(fsten(i_-1,j_-1,k_,ist_pp0)) /
+           ( std::abs(fsten(i_-1,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_-1,j_-1,k_  ,ist_ppp)) + eps);
+        p += std::abs(fsten(i_-1,j_  ,k_,ist_p0p)) /
+           ( std::abs(fsten(i_-1,j_-1,k_,ist_ppp))
+           + std::abs(fsten(i_-1,j_  ,k_,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_-1,k_,ist_0pp)) /
+           ( std::abs(fsten(i_-1,j_-1,k_,ist_ppp))
+           + std::abs(fsten(i_  ,j_-1,k_,ist_ppp)) + eps);
+        p *= std::abs(fsten(i_-1,j_-1,k_  ,ist_ppp)) * fsten(i_,j_,k_,ist_inv);
+        return p;
+    };
+
+    auto interp_from_pmp_to = [&fsten] (int i_, int j_, int k_) -> Real {
+        Real p = 1._rt;
+        p += std::abs(fsten(i_  ,j_  ,k_,ist_p00)) /
+           ( std::abs(fsten(i_  ,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_-1,k_  ,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_  ,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_-1,k_,ist_0p0)) /
+           ( std::abs(fsten(i_-1,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_-1,j_-1,k_  ,ist_ppp))
+           + std::abs(fsten(i_  ,j_-1,k_  ,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_  ,k_,ist_00p)) /
+           ( std::abs(fsten(i_-1,j_-1,k_,ist_ppp))
+           + std::abs(fsten(i_  ,j_-1,k_,ist_ppp))
+           + std::abs(fsten(i_-1,j_  ,k_,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_-1,k_,ist_pp0)) /
+           ( std::abs(fsten(i_  ,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_-1,k_  ,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_  ,k_,ist_p0p)) /
+           ( std::abs(fsten(i_  ,j_-1,k_,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_-1,k_,ist_0pp)) /
+           ( std::abs(fsten(i_-1,j_-1,k_,ist_ppp))
+           + std::abs(fsten(i_  ,j_-1,k_,ist_ppp)) + eps);
+        p *= std::abs(fsten(i_  ,j_-1,k_  ,ist_ppp)) * fsten(i_,j_  ,k_,ist_inv);
+        return p;
+    };
+
+    auto interp_from_mpp_to = [&fsten] (int i_, int j_, int k_) -> Real {
+        Real p = 1._rt;
+        p += std::abs(fsten(i_-1,j_  ,k_  ,ist_p00)) /
+           ( std::abs(fsten(i_-1,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_-1,j_  ,k_-1,ist_ppp))
+           + std::abs(fsten(i_-1,j_-1,k_  ,ist_ppp))
+           + std::abs(fsten(i_-1,j_  ,k_  ,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_  ,k_  ,ist_0p0)) /
+           ( std::abs(fsten(i_-1,j_  ,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_-1,ist_ppp))
+           + std::abs(fsten(i_-1,j_  ,k_  ,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_  ,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_  ,k_  ,ist_00p)) /
+           ( std::abs(fsten(i_-1,j_-1,k_  ,ist_ppp))
+           + std::abs(fsten(i_  ,j_-1,k_  ,ist_ppp))
+           + std::abs(fsten(i_-1,j_  ,k_  ,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_  ,ist_ppp)) + eps);
+        p += std::abs(fsten(i_-1,j_  ,k_  ,ist_pp0)) /
+           ( std::abs(fsten(i_-1,j_  ,k_-1,ist_ppp))
+           + std::abs(fsten(i_-1,j_  ,k_  ,ist_ppp)) + eps);
+        p += std::abs(fsten(i_-1,j_  ,k_  ,ist_p0p)) /
+           ( std::abs(fsten(i_-1,j_-1,k_  ,ist_ppp))
+           + std::abs(fsten(i_-1,j_  ,k_  ,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_  ,k_  ,ist_0pp)) /
+           ( std::abs(fsten(i_-1,j_  ,k_  ,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_  ,ist_ppp)) + eps);
+        p *= std::abs(fsten(i_-1,j_  ,k_  ,ist_ppp)) * fsten(i_,j_,k_,ist_inv);
+        return p;
+    };
+
+    auto interp_from_ppp_to = [&fsten] (int i_, int j_, int k_) -> Real {
+        Real p = 1._rt;
+        p += std::abs(fsten(i_  ,j_  ,k_  ,ist_p00)) /
+           ( std::abs(fsten(i_  ,j_-1,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_-1,k_  ,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_  ,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_  ,k_  ,ist_0p0)) /
+           ( std::abs(fsten(i_-1,j_  ,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_-1,ist_ppp))
+           + std::abs(fsten(i_-1,j_  ,k_  ,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_  ,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_  ,k_  ,ist_00p)) /
+           ( std::abs(fsten(i_-1,j_-1,k_  ,ist_ppp))
+           + std::abs(fsten(i_  ,j_-1,k_  ,ist_ppp))
+           + std::abs(fsten(i_-1,j_  ,k_  ,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_  ,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_  ,k_  ,ist_pp0)) /
+           ( std::abs(fsten(i_  ,j_  ,k_-1,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_  ,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_  ,k_  ,ist_p0p)) /
+           ( std::abs(fsten(i_  ,j_-1,k_  ,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_  ,ist_ppp)) + eps);
+        p += std::abs(fsten(i_  ,j_  ,k_  ,ist_0pp)) /
+           ( std::abs(fsten(i_-1,j_  ,k_  ,ist_ppp))
+           + std::abs(fsten(i_  ,j_  ,k_  ,ist_ppp)) + eps);
+        p *= std::abs(fsten(i_  ,j_  ,k_,ist_ppp)) * fsten(i_,j_,k_,ist_inv);
+        return p;
+    };
+
+    auto interp_from_0mm_to = [&fsten] (int i_, int j_, int k_) -> Real {
+        Real w1m = std::abs(fsten(i_  ,j_-1,k_  ,ist_0p0)) / (std::abs(fsten(i_  ,j_-1,k_-1,ist_0pp))
+                                                             +std::abs(fsten(i_  ,j_-1,k_  ,ist_0pp)) + eps);
+        Real w1p = std::abs(fsten(i_  ,j_  ,k_  ,ist_0p0)) / (std::abs(fsten(i_  ,j_  ,k_-1,ist_0pp))
+                                                             +std::abs(fsten(i_  ,j_  ,k_  ,ist_0pp)) + eps);
+        Real w2m = std::abs(fsten(i_  ,j_  ,k_-1,ist_00p)) / (std::abs(fsten(i_  ,j_-1,k_-1,ist_0pp))
+                                                             +std::abs(fsten(i_  ,j_  ,k_-1,ist_0pp)) + eps);
+        Real w2p = std::abs(fsten(i_  ,j_  ,k_  ,ist_00p)) / (std::abs(fsten(i_  ,j_-1,k_  ,ist_0pp))
+                                                             +std::abs(fsten(i_  ,j_  ,k_  ,ist_0pp)) + eps);
+        Real wmm = std::abs(fsten(i_  ,j_-1,k_-1,ist_0pp)) * (1._rt + w1m + w2m);
+        Real wpm = std::abs(fsten(i_  ,j_  ,k_-1,ist_0pp)) * (1._rt + w1p + w2m);
+        Real wmp = std::abs(fsten(i_  ,j_-1,k_  ,ist_0pp)) * (1._rt + w1m + w2p);
+        Real wpp = std::abs(fsten(i_  ,j_  ,k_  ,ist_0pp)) * (1._rt + w1p + w2p);
+        return wmm / (wmm+wpm+wmp+wpp+eps);
+    };
+
+    auto interp_from_0mp_to = [&fsten] (int i_, int j_, int k_) -> Real {
+        Real w1m = std::abs(fsten(i_  ,j_-1,k_  ,ist_0p0)) / (std::abs(fsten(i_  ,j_-1,k_-1,ist_0pp))
+                                                             +std::abs(fsten(i_  ,j_-1,k_  ,ist_0pp)) + eps);
+        Real w1p = std::abs(fsten(i_  ,j_  ,k_  ,ist_0p0)) / (std::abs(fsten(i_  ,j_  ,k_-1,ist_0pp))
+                                                             +std::abs(fsten(i_  ,j_  ,k_  ,ist_0pp)) + eps);
+        Real w2m = std::abs(fsten(i_  ,j_  ,k_-1,ist_00p)) / (std::abs(fsten(i_  ,j_-1,k_-1,ist_0pp))
+                                                             +std::abs(fsten(i_  ,j_  ,k_-1,ist_0pp)) + eps);
+        Real w2p = std::abs(fsten(i_  ,j_  ,k_  ,ist_00p)) / (std::abs(fsten(i_  ,j_-1,k_  ,ist_0pp))
+                                                             +std::abs(fsten(i_  ,j_  ,k_  ,ist_0pp)) + eps);
+        Real wmm = std::abs(fsten(i_  ,j_-1,k_-1,ist_0pp)) * (1._rt + w1m + w2m);
+        Real wpm = std::abs(fsten(i_  ,j_  ,k_-1,ist_0pp)) * (1._rt + w1p + w2m);
+        Real wmp = std::abs(fsten(i_  ,j_-1,k_  ,ist_0pp)) * (1._rt + w1m + w2p);
+        Real wpp = std::abs(fsten(i_  ,j_  ,k_  ,ist_0pp)) * (1._rt + w1p + w2p);
+        return wmp / (wmm+wpm+wmp+wpp+eps);
+    };
+
+    auto interp_from_0pm_to = [&fsten] (int i_, int j_, int k_) -> Real {
+        Real w1m = std::abs(fsten(i_  ,j_-1,k_  ,ist_0p0)) / (std::abs(fsten(i_  ,j_-1,k_-1,ist_0pp))
+                                                             +std::abs(fsten(i_  ,j_-1,k_  ,ist_0pp)) + eps);
+        Real w1p = std::abs(fsten(i_  ,j_  ,k_  ,ist_0p0)) / (std::abs(fsten(i_  ,j_  ,k_-1,ist_0pp))
+                                                             +std::abs(fsten(i_  ,j_  ,k_  ,ist_0pp)) + eps);
+        Real w2m = std::abs(fsten(i_  ,j_  ,k_-1,ist_00p)) / (std::abs(fsten(i_  ,j_-1,k_-1,ist_0pp))
+                                                             +std::abs(fsten(i_  ,j_  ,k_-1,ist_0pp)) + eps);
+        Real w2p = std::abs(fsten(i_  ,j_  ,k_  ,ist_00p)) / (std::abs(fsten(i_  ,j_-1,k_  ,ist_0pp))
+                                                             +std::abs(fsten(i_  ,j_  ,k_  ,ist_0pp)) + eps);
+        Real wmm = std::abs(fsten(i_  ,j_-1,k_-1,ist_0pp)) * (1._rt + w1m + w2m);
+        Real wpm = std::abs(fsten(i_  ,j_  ,k_-1,ist_0pp)) * (1._rt + w1p + w2m);
+        Real wmp = std::abs(fsten(i_  ,j_-1,k_  ,ist_0pp)) * (1._rt + w1m + w2p);
+        Real wpp = std::abs(fsten(i_  ,j_  ,k_  ,ist_0pp)) * (1._rt + w1p + w2p);
+        return wpm / (wmm+wpm+wmp+wpp+eps);
+    };
+
+    auto interp_from_0pp_to = [&fsten] (int i_, int j_, int k_) -> Real {
+        Real w1m = std::abs(fsten(i_  ,j_-1,k_  ,ist_0p0)) / (std::abs(fsten(i_  ,j_-1,k_-1,ist_0pp))
+                                                             +std::abs(fsten(i_  ,j_-1,k_  ,ist_0pp)) + eps);
+        Real w1p = std::abs(fsten(i_  ,j_  ,k_  ,ist_0p0)) / (std::abs(fsten(i_  ,j_  ,k_-1,ist_0pp))
+                                                             +std::abs(fsten(i_  ,j_  ,k_  ,ist_0pp)) + eps);
+        Real w2m = std::abs(fsten(i_  ,j_  ,k_-1,ist_00p)) / (std::abs(fsten(i_  ,j_-1,k_-1,ist_0pp))
+                                                             +std::abs(fsten(i_  ,j_  ,k_-1,ist_0pp)) + eps);
+        Real w2p = std::abs(fsten(i_  ,j_  ,k_  ,ist_00p)) / (std::abs(fsten(i_  ,j_-1,k_  ,ist_0pp))
+                                                             +std::abs(fsten(i_  ,j_  ,k_  ,ist_0pp)) + eps);
+        Real wmm = std::abs(fsten(i_  ,j_-1,k_-1,ist_0pp)) * (1._rt + w1m + w2m);
+        Real wpm = std::abs(fsten(i_  ,j_  ,k_-1,ist_0pp)) * (1._rt + w1p + w2m);
+        Real wmp = std::abs(fsten(i_  ,j_-1,k_  ,ist_0pp)) * (1._rt + w1m + w2p);
+        Real wpp = std::abs(fsten(i_  ,j_  ,k_  ,ist_0pp)) * (1._rt + w1p + w2p);
+        return wpp / (wmm+wpm+wmp+wpp+eps);
+    };
+
+    auto interp_from_m0m_to = [&fsten] (int i_, int j_, int k_) -> Real {
+        Real w1m = std::abs(fsten(i_-1,j_  ,k_  ,ist_p00)) / (std::abs(fsten(i_-1,j_  ,k_-1,ist_p0p))
+                                                             +std::abs(fsten(i_-1,j_  ,k_  ,ist_p0p)) + eps);
+        Real w1p = std::abs(fsten(i_  ,j_  ,k_  ,ist_p00)) / (std::abs(fsten(i_  ,j_  ,k_-1,ist_p0p))
+                                                             +std::abs(fsten(i_  ,j_  ,k_  ,ist_p0p)) + eps);
+        Real w2m = std::abs(fsten(i_  ,j_  ,k_-1,ist_00p)) / (std::abs(fsten(i_-1,j_  ,k_-1,ist_p0p))
+                                                             +std::abs(fsten(i_  ,j_  ,k_-1,ist_p0p)) + eps);
+        Real w2p = std::abs(fsten(i_  ,j_  ,k_  ,ist_00p)) / (std::abs(fsten(i_-1,j_  ,k_  ,ist_p0p))
+                                                             +std::abs(fsten(i_  ,j_  ,k_  ,ist_p0p)) + eps);
+        Real wmm = std::abs(fsten(i_-1,j_  ,k_-1,ist_p0p)) * (1._rt + w1m + w2m);
+        Real wpm = std::abs(fsten(i_  ,j_  ,k_-1,ist_p0p)) * (1._rt + w1p + w2m);
+        Real wmp = std::abs(fsten(i_-1,j_  ,k_  ,ist_p0p)) * (1._rt + w1m + w2p);
+        Real wpp = std::abs(fsten(i_  ,j_  ,k_  ,ist_p0p)) * (1._rt + w1p + w2p);
+        return wmm / (wmm+wpm+wmp+wpp+eps);
+    };
+
+    auto interp_from_p0m_to = [&fsten] (int i_, int j_, int k_) -> Real {
+        Real w1m = std::abs(fsten(i_-1,j_  ,k_  ,ist_p00)) / (std::abs(fsten(i_-1,j_  ,k_-1,ist_p0p))
+                                                             +std::abs(fsten(i_-1,j_  ,k_  ,ist_p0p)) + eps);
+        Real w1p = std::abs(fsten(i_  ,j_  ,k_  ,ist_p00)) / (std::abs(fsten(i_  ,j_  ,k_-1,ist_p0p))
+                                                             +std::abs(fsten(i_  ,j_  ,k_  ,ist_p0p)) + eps);
+        Real w2m = std::abs(fsten(i_  ,j_  ,k_-1,ist_00p)) / (std::abs(fsten(i_-1,j_  ,k_-1,ist_p0p))
+                                                             +std::abs(fsten(i_  ,j_  ,k_-1,ist_p0p)) + eps);
+        Real w2p = std::abs(fsten(i_  ,j_  ,k_  ,ist_00p)) / (std::abs(fsten(i_-1,j_  ,k_  ,ist_p0p))
+                                                             +std::abs(fsten(i_  ,j_  ,k_  ,ist_p0p)) + eps);
+        Real wmm = std::abs(fsten(i_-1,j_  ,k_-1,ist_p0p)) * (1._rt + w1m + w2m);
+        Real wpm = std::abs(fsten(i_  ,j_  ,k_-1,ist_p0p)) * (1._rt + w1p + w2m);
+        Real wmp = std::abs(fsten(i_-1,j_  ,k_  ,ist_p0p)) * (1._rt + w1m + w2p);
+        Real wpp = std::abs(fsten(i_  ,j_  ,k_  ,ist_p0p)) * (1._rt + w1p + w2p);
+        return wpm / (wmm+wpm+wmp+wpp+eps);
+    };
+
+    auto interp_from_m0p_to = [&fsten] (int i_, int j_, int k_) -> Real {
+        Real w1m = std::abs(fsten(i_-1,j_  ,k_  ,ist_p00)) / (std::abs(fsten(i_-1,j_  ,k_-1,ist_p0p))
+                                                             +std::abs(fsten(i_-1,j_  ,k_  ,ist_p0p)) + eps);
+        Real w1p = std::abs(fsten(i_  ,j_  ,k_  ,ist_p00)) / (std::abs(fsten(i_  ,j_  ,k_-1,ist_p0p))
+                                                             +std::abs(fsten(i_  ,j_  ,k_  ,ist_p0p)) + eps);
+        Real w2m = std::abs(fsten(i_  ,j_  ,k_-1,ist_00p)) / (std::abs(fsten(i_-1,j_  ,k_-1,ist_p0p))
+                                                             +std::abs(fsten(i_  ,j_  ,k_-1,ist_p0p)) + eps);
+        Real w2p = std::abs(fsten(i_  ,j_  ,k_  ,ist_00p)) / (std::abs(fsten(i_-1,j_  ,k_  ,ist_p0p))
+                                                             +std::abs(fsten(i_  ,j_  ,k_  ,ist_p0p)) + eps);
+        Real wmm = std::abs(fsten(i_-1,j_  ,k_-1,ist_p0p)) * (1._rt + w1m + w2m);
+        Real wpm = std::abs(fsten(i_  ,j_  ,k_-1,ist_p0p)) * (1._rt + w1p + w2m);
+        Real wmp = std::abs(fsten(i_-1,j_  ,k_  ,ist_p0p)) * (1._rt + w1m + w2p);
+        Real wpp = std::abs(fsten(i_  ,j_  ,k_  ,ist_p0p)) * (1._rt + w1p + w2p);
+        return wmp / (wmm+wpm+wmp+wpp+eps);
+    };
+
+    auto interp_from_p0p_to = [&fsten] (int i_, int j_, int k_) -> Real {
+        Real w1m = std::abs(fsten(i_-1,j_  ,k_  ,ist_p00)) / (std::abs(fsten(i_-1,j_  ,k_-1,ist_p0p))
+                                                             +std::abs(fsten(i_-1,j_  ,k_  ,ist_p0p)) + eps);
+        Real w1p = std::abs(fsten(i_  ,j_  ,k_  ,ist_p00)) / (std::abs(fsten(i_  ,j_  ,k_-1,ist_p0p))
+                                                             +std::abs(fsten(i_  ,j_  ,k_  ,ist_p0p)) + eps);
+        Real w2m = std::abs(fsten(i_  ,j_  ,k_-1,ist_00p)) / (std::abs(fsten(i_-1,j_  ,k_-1,ist_p0p))
+                                                             +std::abs(fsten(i_  ,j_  ,k_-1,ist_p0p)) + eps);
+        Real w2p = std::abs(fsten(i_  ,j_  ,k_  ,ist_00p)) / (std::abs(fsten(i_-1,j_  ,k_  ,ist_p0p))
+                                                             +std::abs(fsten(i_  ,j_  ,k_  ,ist_p0p)) + eps);
+        Real wmm = std::abs(fsten(i_-1,j_  ,k_-1,ist_p0p)) * (1._rt + w1m + w2m);
+        Real wpm = std::abs(fsten(i_  ,j_  ,k_-1,ist_p0p)) * (1._rt + w1p + w2m);
+        Real wmp = std::abs(fsten(i_-1,j_  ,k_  ,ist_p0p)) * (1._rt + w1m + w2p);
+        Real wpp = std::abs(fsten(i_  ,j_  ,k_  ,ist_p0p)) * (1._rt + w1p + w2p);
+        return wpp / (wmm+wpm+wmp+wpp+eps);
+    };
+
+    auto interp_from_mm0_to = [&fsten] (int i_, int j_, int k_) -> Real {
+        Real w1m = std::abs(fsten(i_-1,j_  ,k_  ,ist_p00)) / (std::abs(fsten(i_-1,j_-1,k_  ,ist_pp0))
+                                                             +std::abs(fsten(i_-1,j_  ,k_  ,ist_pp0)) + eps);
+        Real w1p = std::abs(fsten(i_  ,j_  ,k_  ,ist_p00)) / (std::abs(fsten(i_  ,j_-1,k_  ,ist_pp0))
+                                                             +std::abs(fsten(i_  ,j_  ,k_  ,ist_pp0)) + eps);
+        Real w2m = std::abs(fsten(i_  ,j_-1,k_  ,ist_0p0)) / (std::abs(fsten(i_-1,j_-1,k_  ,ist_pp0))
+                                                             +std::abs(fsten(i_  ,j_-1,k_  ,ist_pp0)) + eps);
+      Real w2p = std::abs(fsten(i_  ,j_  ,k_  ,ist_0p0)) / (std::abs(fsten(i_-1,j_  ,k_  ,ist_pp0))
+                                                            +std::abs(fsten(i_  ,j_  ,k_  ,ist_pp0)) + eps);
+        Real wmm = std::abs(fsten(i_-1,j_-1,k_  ,ist_pp0)) * (1._rt + w1m + w2m);
+        Real wpm = std::abs(fsten(i_  ,j_-1,k_  ,ist_pp0)) * (1._rt + w1p + w2m);
+        Real wmp = std::abs(fsten(i_-1,j_  ,k_  ,ist_pp0)) * (1._rt + w1m + w2p);
+        Real wpp = std::abs(fsten(i_  ,j_  ,k_  ,ist_pp0)) * (1._rt + w1p + w2p);
+        return wmm / (wmm+wpm+wmp+wpp+eps);
+    };
+
+    auto interp_from_mp0_to = [&fsten] (int i_, int j_, int k_) -> Real {
+        Real w1m = std::abs(fsten(i_-1,j_  ,k_  ,ist_p00)) / (std::abs(fsten(i_-1,j_-1,k_  ,ist_pp0))
+                                                             +std::abs(fsten(i_-1,j_  ,k_  ,ist_pp0)) + eps);
+        Real w1p = std::abs(fsten(i_  ,j_  ,k_  ,ist_p00)) / (std::abs(fsten(i_  ,j_-1,k_  ,ist_pp0))
+                                                             +std::abs(fsten(i_  ,j_  ,k_  ,ist_pp0)) + eps);
+        Real w2m = std::abs(fsten(i_  ,j_-1,k_  ,ist_0p0)) / (std::abs(fsten(i_-1,j_-1,k_  ,ist_pp0))
+                                                             +std::abs(fsten(i_  ,j_-1,k_  ,ist_pp0)) + eps);
+        Real w2p = std::abs(fsten(i_  ,j_  ,k_  ,ist_0p0)) / (std::abs(fsten(i_-1,j_  ,k_  ,ist_pp0))
+                                                             +std::abs(fsten(i_  ,j_  ,k_  ,ist_pp0)) + eps);
+        Real wmm = std::abs(fsten(i_-1,j_-1,k_  ,ist_pp0)) * (1._rt + w1m + w2m);
+        Real wpm = std::abs(fsten(i_  ,j_-1,k_  ,ist_pp0)) * (1._rt + w1p + w2m);
+        Real wmp = std::abs(fsten(i_-1,j_  ,k_  ,ist_pp0)) * (1._rt + w1m + w2p);
+        Real wpp = std::abs(fsten(i_  ,j_  ,k_  ,ist_pp0)) * (1._rt + w1p + w2p);
+        return wmp / (wmm+wpm+wmp+wpp+eps);
+    };
+
+    auto interp_from_pm0_to = [&fsten] (int i_, int j_, int k_) -> Real {
+        Real w1m = std::abs(fsten(i_-1,j_  ,k_  ,ist_p00)) / (std::abs(fsten(i_-1,j_-1,k_  ,ist_pp0))
+                                                             +std::abs(fsten(i_-1,j_  ,k_  ,ist_pp0)) + eps);
+        Real w1p = std::abs(fsten(i_  ,j_  ,k_  ,ist_p00)) / (std::abs(fsten(i_  ,j_-1,k_  ,ist_pp0))
+                                                             +std::abs(fsten(i_  ,j_  ,k_  ,ist_pp0)) + eps);
+        Real w2m = std::abs(fsten(i_  ,j_-1,k_  ,ist_0p0)) / (std::abs(fsten(i_-1,j_-1,k_  ,ist_pp0))
+                                                             +std::abs(fsten(i_  ,j_-1,k_  ,ist_pp0)) + eps);
+        Real w2p = std::abs(fsten(i_  ,j_  ,k_  ,ist_0p0)) / (std::abs(fsten(i_-1,j_  ,k_  ,ist_pp0))
+                                                             +std::abs(fsten(i_  ,j_  ,k_  ,ist_pp0)) + eps);
+        Real wmm = std::abs(fsten(i_-1,j_-1,k_  ,ist_pp0)) * (1._rt + w1m + w2m);
+        Real wpm = std::abs(fsten(i_  ,j_-1,k_  ,ist_pp0)) * (1._rt + w1p + w2m);
+        Real wmp = std::abs(fsten(i_-1,j_  ,k_  ,ist_pp0)) * (1._rt + w1m + w2p);
+        Real wpp = std::abs(fsten(i_  ,j_  ,k_  ,ist_pp0)) * (1._rt + w1p + w2p);
+        return wpm / (wmm+wpm+wmp+wpp+eps);
+    };
+
+    auto interp_from_pp0_to = [&fsten] (int i_, int j_, int k_) -> Real {
+        Real w1m = std::abs(fsten(i_-1,j_  ,k_  ,ist_p00)) / (std::abs(fsten(i_-1,j_-1,k_  ,ist_pp0))
+                                                             +std::abs(fsten(i_-1,j_  ,k_  ,ist_pp0)) + eps);
+        Real w1p = std::abs(fsten(i_  ,j_  ,k_  ,ist_p00)) / (std::abs(fsten(i_  ,j_-1,k_  ,ist_pp0))
+                                                             +std::abs(fsten(i_  ,j_  ,k_  ,ist_pp0)) + eps);
+        Real w2m = std::abs(fsten(i_  ,j_-1,k_  ,ist_0p0)) / (std::abs(fsten(i_-1,j_-1,k_  ,ist_pp0))
+                                                             +std::abs(fsten(i_  ,j_-1,k_  ,ist_pp0)) + eps);
+        Real w2p = std::abs(fsten(i_  ,j_  ,k_  ,ist_0p0)) / (std::abs(fsten(i_-1,j_  ,k_  ,ist_pp0))
+                                                             +std::abs(fsten(i_  ,j_  ,k_  ,ist_pp0)) + eps);
+        Real wmm = std::abs(fsten(i_-1,j_-1,k_  ,ist_pp0)) * (1._rt + w1m + w2m);
+        Real wpm = std::abs(fsten(i_  ,j_-1,k_  ,ist_pp0)) * (1._rt + w1p + w2m);
+        Real wmp = std::abs(fsten(i_-1,j_  ,k_  ,ist_pp0)) * (1._rt + w1m + w2p);
+        Real wpp = std::abs(fsten(i_  ,j_  ,k_  ,ist_pp0)) * (1._rt + w1p + w2p);
+        return wpp / (wmm+wpm+wmp+wpp+eps);
+    };
+
+    auto interp_from_00m_to = [&fsten] (int i_, int j_, int k_) -> Real {
+        Real w1 = std::abs(fsten(i_  ,j_  ,k_-1,ist_00p));
+        Real w2 = std::abs(fsten(i_  ,j_  ,k_  ,ist_00p));
+        if (w1 == 0._rt and w2 == 0._rt) {
+            return 0.5_rt;
+        } else {
+            return w1 / (w1+w2);
+        }
+    };
+
+    auto interp_from_00p_to = [&fsten] (int i_, int j_, int k_) -> Real {
+        Real w1 = std::abs(fsten(i_  ,j_  ,k_-1,ist_00p));
+        Real w2 = std::abs(fsten(i_  ,j_  ,k_  ,ist_00p));
+        if (w1 == 0._rt and w2 == 0._rt) {
+            return 0.5_rt;
+        } else {
+            return w2 / (w1+w2);
+        }
+    };
+
+    auto interp_from_0m0_to = [&fsten] (int i_, int j_, int k_) -> Real {
+        Real w1 = std::abs(fsten(i_  ,j_-1,k_  ,ist_0p0));
+        Real w2 = std::abs(fsten(i_  ,j_  ,k_  ,ist_0p0));
+        if (w1 == 0._rt and w2 == 0._rt) {
+            return 0.5_rt;
+        } else {
+            return w1 / (w1+w2);
+        }
+    };
+
+    auto interp_from_0p0_to = [&fsten] (int i_, int j_, int k_) -> Real {
+        Real w1 = std::abs(fsten(i_  ,j_-1,k_  ,ist_0p0));
+        Real w2 = std::abs(fsten(i_  ,j_  ,k_  ,ist_0p0));
+        if (w1 == 0._rt and w2 == 0._rt) {
+            return 0.5_rt;
+        } else {
+            return w2 / (w1+w2);
+        }
+    };
+
+    auto interp_from_m00_to = [&fsten] (int i_, int j_, int k_) -> Real {
+        Real w1 = std::abs(fsten(i_-1,j_  ,k_  ,ist_p00));
+        Real w2 = std::abs(fsten(i_  ,j_  ,k_  ,ist_p00));
+        if (w1 == 0._rt and w2 == 0._rt) {
+            return 0.5_rt;
+        } else {
+            return w1 / (w1+w2);
+        }
+    };
+
+    auto interp_from_p00_to = [&fsten] (int i_, int j_, int k_) -> Real {
+        Real w1 = std::abs(fsten(i_-1,j_  ,k_  ,ist_p00));
+        Real w2 = std::abs(fsten(i_  ,j_  ,k_  ,ist_p00));
+        if (w1 == 0._rt and w2 == 0._rt) {
+            return 0.5_rt;
+        } else {
+            return w2 / (w1+w2);
+        }
+    };
+
+    auto Ammm = [&fsten] (int i_, int j_, int k_) -> Real {
+        return fsten(i_-1,j_-1,k_-1,ist_ppp);
+    };
+
+    auto A0mm = [&fsten] (int i_, int j_, int k_) -> Real {
+        return fsten(i_  ,j_-1,k_-1,ist_0pp);
+    };
+
+    auto Apmm = [&fsten] (int i_, int j_, int k_) -> Real {
+        return fsten(i_  ,j_-1,k_-1,ist_ppp);
+    };
+
+    auto Am0m = [&fsten] (int i_, int j_, int k_) -> Real {
+        return fsten(i_-1,j_  ,k_-1,ist_p0p);
+    };
+
+    auto A00m = [&fsten] (int i_, int j_, int k_) -> Real {
+        return fsten(i_  ,j_  ,k_-1,ist_00p);
+    };
+
+    auto Ap0m = [&fsten] (int i_, int j_, int k_) -> Real {
+        return fsten(i_  ,j_  ,k_-1,ist_p0p);
+    };
+
+    auto Ampm = [&fsten] (int i_, int j_, int k_) -> Real {
+        return fsten(i_-1,j_  ,k_-1,ist_ppp);
+    };
+
+    auto A0pm = [&fsten] (int i_, int j_, int k_) -> Real {
+        return fsten(i_  ,j_  ,k_-1,ist_0pp);
+    };
+
+    auto Appm = [&fsten] (int i_, int j_, int k_) -> Real {
+        return fsten(i_  ,j_  ,k_-1,ist_ppp);
+    };
+
+    auto Amm0 = [&fsten] (int i_, int j_, int k_) -> Real {
+        return fsten(i_-1,j_-1,k_  ,ist_pp0);
+    };
+
+    auto A0m0 = [&fsten] (int i_, int j_, int k_) -> Real {
+        return fsten(i_  ,j_-1,k_  ,ist_0p0);
+    };
+
+    auto Apm0 = [&fsten] (int i_, int j_, int k_) -> Real {
+        return fsten(i_  ,j_-1,k_  ,ist_pp0);
+    };
+
+    auto Am00 = [&fsten] (int i_, int j_, int k_) -> Real {
+        return fsten(i_-1,j_  ,k_  ,ist_p00);
+    };
+
+    auto A000 = [&fsten] (int i_, int j_, int k_) -> Real {
+        return fsten(i_  ,j_  ,k_  ,ist_000);
+    };
+
+    auto Ap00 = [&fsten] (int i_, int j_, int k_) -> Real {
+        return fsten(i_  ,j_  ,k_  ,ist_p00);
+    };
+
+    auto Amp0 = [&fsten] (int i_, int j_, int k_) -> Real {
+        return fsten(i_-1,j_  ,k_  ,ist_pp0);
+    };
+
+    auto A0p0 = [&fsten] (int i_, int j_, int k_) -> Real {
+        return fsten(i_  ,j_  ,k_  ,ist_0p0);
+    };
+
+    auto App0 = [&fsten] (int i_, int j_, int k_) -> Real {
+        return fsten(i_  ,j_  ,k_  ,ist_pp0);
+    };
+
+    auto Ammp = [&fsten] (int i_, int j_, int k_) -> Real {
+        return fsten(i_-1,j_-1,k_  ,ist_ppp);
+    };
+
+    auto A0mp = [&fsten] (int i_, int j_, int k_) -> Real {
+        return fsten(i_  ,j_-1,k_  ,ist_0pp);
+    };
+
+    auto Apmp = [&fsten] (int i_, int j_, int k_) -> Real {
+        return fsten(i_  ,j_-1,k_  ,ist_ppp);
+    };
+
+    auto Am0p = [&fsten] (int i_, int j_, int k_) -> Real {
+        return fsten(i_-1,j_  ,k_  ,ist_p0p);
+    };
+
+    auto A00p = [&fsten] (int i_, int j_, int k_) -> Real {
+        return fsten(i_  ,j_  ,k_  ,ist_00p);
+    };
+
+    auto Ap0p = [&fsten] (int i_, int j_, int k_) -> Real {
+        return fsten(i_  ,j_  ,k_  ,ist_p0p);
+    };
+
+    auto Ampp = [&fsten] (int i_, int j_, int k_) -> Real {
+        return fsten(i_-1,j_  ,k_  ,ist_ppp);
+    };
+
+    auto A0pp = [&fsten] (int i_, int j_, int k_) -> Real {
+        return fsten(i_  ,j_  ,k_  ,ist_0pp);
+    };
+
+    auto Appp = [&fsten] (int i_, int j_, int k_) -> Real {
+        return fsten(i_  ,j_  ,k_  ,ist_ppp);
+    };
+
+    auto restrict_from_mmm_to = [&fsten] (int ii_, int jj_, int kk_) -> Real {
+        Real r = 1._rt;
+        r += std::abs(fsten(ii_-1,jj_-1,kk_-1,ist_p00)) /
+           ( std::abs(fsten(ii_-1,jj_-2,kk_-2,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_-1,kk_-2,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_-2,kk_-1,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_-1,kk_-1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_-1,jj_-1,kk_-1,ist_0p0)) /
+           ( std::abs(fsten(ii_-2,jj_-1,kk_-2,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_-1,kk_-2,ist_ppp))
+           + std::abs(fsten(ii_-2,jj_-1,kk_-1,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_-1,kk_-1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_-1,jj_-1,kk_-1,ist_00p)) /
+           ( std::abs(fsten(ii_-2,jj_-2,kk_-1,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_-2,kk_-1,ist_ppp))
+           + std::abs(fsten(ii_-2,jj_-1,kk_-1,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_-1,kk_-1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_-1,jj_-1,kk_-1,ist_pp0)) /
+           ( std::abs(fsten(ii_-1,jj_-1,kk_-2,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_-1,kk_-1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_-1,jj_-1,kk_-1,ist_p0p)) /
+           ( std::abs(fsten(ii_-1,jj_-2,kk_-1,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_-1,kk_-1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_-1,jj_-1,kk_-1,ist_0pp)) /
+           ( std::abs(fsten(ii_-2,jj_-1,kk_-1,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_-1,kk_-1,ist_ppp)) + eps);
+        r *= std::abs(fsten(ii_-1,jj_-1,kk_-1,ist_ppp)) * fsten(ii_-1,jj_-1,kk_-1,ist_inv);
+        return r;
+    };
+
+    auto restrict_from_0mm_to = [&fsten] (int ii_, int jj_, int kk_) -> Real {
+        Real w1m = std::abs(fsten(ii_,jj_-2,kk_-1,ist_0p0)) / (std::abs(fsten(ii_,jj_-2,kk_-2,ist_0pp))
+                                                              +std::abs(fsten(ii_,jj_-2,kk_-1,ist_0pp)) + eps);
+        Real w1p = std::abs(fsten(ii_,jj_-1,kk_-1,ist_0p0)) / (std::abs(fsten(ii_,jj_-1,kk_-2,ist_0pp))
+                                                              +std::abs(fsten(ii_,jj_-1,kk_-1,ist_0pp)) + eps);
+        Real w2m = std::abs(fsten(ii_,jj_-1,kk_-2,ist_00p)) / (std::abs(fsten(ii_,jj_-2,kk_-2,ist_0pp))
+                                                              +std::abs(fsten(ii_,jj_-1,kk_-2,ist_0pp)) + eps);
+        Real w2p = std::abs(fsten(ii_,jj_-1,kk_-1,ist_00p)) / (std::abs(fsten(ii_,jj_-2,kk_-1,ist_0pp))
+                                                              +std::abs(fsten(ii_,jj_-1,kk_-1,ist_0pp)) + eps);
+        Real wmm = std::abs(fsten(ii_,jj_-2,kk_-2,ist_0pp)) * (1._rt + w1m + w2m);
+        Real wpm = std::abs(fsten(ii_,jj_-1,kk_-2,ist_0pp)) * (1._rt + w1p + w2m);
+        Real wmp = std::abs(fsten(ii_,jj_-2,kk_-1,ist_0pp)) * (1._rt + w1m + w2p);
+        Real wpp = std::abs(fsten(ii_,jj_-1,kk_-1,ist_0pp)) * (1._rt + w1p + w2p);
+        return wpp / (wmm+wpm+wmp+wpp+eps);
+    };
+
+    auto restrict_from_pmm_to = [&fsten] (int ii_, int jj_, int kk_) -> Real {
+        Real r = 1._rt;
+        r += std::abs(fsten(ii_  ,jj_-1,kk_-1,ist_p00)) /
+           ( std::abs(fsten(ii_  ,jj_-2,kk_-2,ist_ppp))
+           + std::abs(fsten(ii_  ,jj_-1,kk_-2,ist_ppp))
+           + std::abs(fsten(ii_  ,jj_-2,kk_-1,ist_ppp))
+           + std::abs(fsten(ii_  ,jj_-1,kk_-1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_+1,jj_-1,kk_-1,ist_0p0)) /
+           ( std::abs(fsten(ii_  ,jj_-1,kk_-2,ist_ppp))
+           + std::abs(fsten(ii_+1,jj_-1,kk_-2,ist_ppp))
+           + std::abs(fsten(ii_  ,jj_-1,kk_-1,ist_ppp))
+           + std::abs(fsten(ii_+1,jj_-1,kk_-1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_+1,jj_-1,kk_-1,ist_00p)) /
+           ( std::abs(fsten(ii_  ,jj_-2,kk_-1,ist_ppp))
+           + std::abs(fsten(ii_+1,jj_-2,kk_-1,ist_ppp))
+           + std::abs(fsten(ii_  ,jj_-1,kk_-1,ist_ppp))
+           + std::abs(fsten(ii_+1,jj_-1,kk_-1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_  ,jj_-1,kk_-1,ist_pp0)) /
+           ( std::abs(fsten(ii_  ,jj_-1,kk_-2,ist_ppp))
+           + std::abs(fsten(ii_  ,jj_-1,kk_-1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_  ,jj_-1,kk_-1,ist_p0p)) /
+           ( std::abs(fsten(ii_  ,jj_-2,kk_-1,ist_ppp))
+           + std::abs(fsten(ii_  ,jj_-1,kk_-1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_+1,jj_-1,kk_-1,ist_0pp)) /
+           ( std::abs(fsten(ii_  ,jj_-1,kk_-1,ist_ppp))
+           + std::abs(fsten(ii_+1,jj_-1,kk_-1,ist_ppp)) + eps);
+        r *= std::abs(fsten(ii_  ,jj_-1,kk_-1,ist_ppp)) * fsten(ii_+1,jj_-1,kk_-1,ist_inv);
+        return r;
+    };
+
+    auto restrict_from_m0m_to = [&fsten] (int ii_, int jj_, int kk_) -> Real {
+        Real w1m = std::abs(fsten(ii_-2,jj_,kk_-1,ist_p00)) / (std::abs(fsten(ii_-2,jj_,kk_-2,ist_p0p))
+                                                              +std::abs(fsten(ii_-2,jj_,kk_-1,ist_p0p)) + eps);
+        Real w1p = std::abs(fsten(ii_-1,jj_,kk_-1,ist_p00)) / (std::abs(fsten(ii_-1,jj_,kk_-2,ist_p0p))
+                                                              +std::abs(fsten(ii_-1,jj_,kk_-1,ist_p0p)) + eps);
+        Real w2m = std::abs(fsten(ii_-1,jj_,kk_-2,ist_00p)) / (std::abs(fsten(ii_-2,jj_,kk_-2,ist_p0p))
+                                                              +std::abs(fsten(ii_-1,jj_,kk_-2,ist_p0p)) + eps);
+        Real w2p = std::abs(fsten(ii_-1,jj_,kk_-1,ist_00p)) / (std::abs(fsten(ii_-2,jj_,kk_-1,ist_p0p))
+                                                              +std::abs(fsten(ii_-1,jj_,kk_-1,ist_p0p)) + eps);
+        Real wmm = std::abs(fsten(ii_-2,jj_,kk_-2,ist_p0p)) * (1._rt + w1m + w2m);
+        Real wpm = std::abs(fsten(ii_-1,jj_,kk_-2,ist_p0p)) * (1._rt + w1p + w2m);
+        Real wmp = std::abs(fsten(ii_-2,jj_,kk_-1,ist_p0p)) * (1._rt + w1m + w2p);
+        Real wpp = std::abs(fsten(ii_-1,jj_,kk_-1,ist_p0p)) * (1._rt + w1p + w2p);
+        return wpp / (wmm+wpm+wmp+wpp+eps);
+    };
+
+    auto restrict_from_00m_to = [&fsten] (int ii_, int jj_, int kk_) -> Real {
+        Real w1 = std::abs(fsten(ii_,jj_,kk_-2,ist_00p));
+        Real w2 = std::abs(fsten(ii_,jj_,kk_-1,ist_00p));
+        if (w1 == 0._rt and w2 == 0._rt) {
+            return 0.5_rt;
+        } else {
+            return w2 / (w1+w2);
+        }
+    };
+
+    auto restrict_from_p0m_to = [&fsten] (int ii_, int jj_, int kk_) -> Real {
+        Real w1m = std::abs(fsten(ii_  ,jj_,kk_-1,ist_p00)) / (std::abs(fsten(ii_  ,jj_,kk_-2,ist_p0p))
+                                                              +std::abs(fsten(ii_  ,jj_,kk_-1,ist_p0p)) + eps);
+        Real w1p = std::abs(fsten(ii_+1,jj_,kk_-1,ist_p00)) / (std::abs(fsten(ii_+1,jj_,kk_-2,ist_p0p))
+                                                              +std::abs(fsten(ii_+1,jj_,kk_-1,ist_p0p)) + eps);
+        Real w2m = std::abs(fsten(ii_+1,jj_,kk_-2,ist_00p)) / (std::abs(fsten(ii_  ,jj_,kk_-2,ist_p0p))
+                                                              +std::abs(fsten(ii_+1,jj_,kk_-2,ist_p0p)) + eps);
+        Real w2p = std::abs(fsten(ii_+1,jj_,kk_-1,ist_00p)) / (std::abs(fsten(ii_  ,jj_,kk_-1,ist_p0p))
+                                                              +std::abs(fsten(ii_+1,jj_,kk_-1,ist_p0p)) + eps);
+        Real wmm = std::abs(fsten(ii_  ,jj_,kk_-2,ist_p0p)) * (1._rt + w1m + w2m);
+        Real wpm = std::abs(fsten(ii_+1,jj_,kk_-2,ist_p0p)) * (1._rt + w1p + w2m);
+        Real wmp = std::abs(fsten(ii_  ,jj_,kk_-1,ist_p0p)) * (1._rt + w1m + w2p);
+        Real wpp = std::abs(fsten(ii_+1,jj_,kk_-1,ist_p0p)) * (1._rt + w1p + w2p);
+        return wmp / (wmm+wpm+wmp+wpp+eps);
+    };
+
+    auto restrict_from_mpm_to = [&fsten] (int ii_, int jj_, int kk_) -> Real {
+        Real r = 1._rt;
+        r += std::abs(fsten(ii_-1,jj_+1,kk_-1,ist_p00)) /
+           ( std::abs(fsten(ii_-1,jj_  ,kk_-2,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_+1,kk_-2,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_  ,kk_-1,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_+1,kk_-1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_-1,jj_  ,kk_-1,ist_0p0)) /
+           ( std::abs(fsten(ii_-2,jj_  ,kk_-2,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_  ,kk_-2,ist_ppp))
+           + std::abs(fsten(ii_-2,jj_  ,kk_-1,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_  ,kk_-1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_-1,jj_+1,kk_-1,ist_00p)) /
+           ( std::abs(fsten(ii_-2,jj_  ,kk_-1,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_  ,kk_-1,ist_ppp))
+           + std::abs(fsten(ii_-2,jj_+1,kk_-1,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_+1,kk_-1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_-1,jj_  ,kk_-1,ist_pp0)) /
+           ( std::abs(fsten(ii_-1,jj_  ,kk_-2,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_  ,kk_-1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_-1,jj_+1,kk_-1,ist_p0p)) /
+           ( std::abs(fsten(ii_-1,jj_  ,kk_-1,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_+1,kk_-1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_-1,jj_  ,kk_-1,ist_0pp)) /
+           ( std::abs(fsten(ii_-2,jj_  ,kk_-1,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_  ,kk_-1,ist_ppp)) + eps);
+        r *= std::abs(fsten(ii_-1,jj_  ,kk_-1,ist_ppp)) * fsten(ii_-1,jj_+1,kk_-1,ist_inv);
+        return r;
+    };
+
+    auto restrict_from_0pm_to = [&fsten] (int ii_, int jj_, int kk_) -> Real {
+        Real w1m = std::abs(fsten(ii_,jj_  ,kk_-1,ist_0p0)) / (std::abs(fsten(ii_,jj_  ,kk_-2,ist_0pp))
+                                                              +std::abs(fsten(ii_,jj_  ,kk_-1,ist_0pp)) + eps);
+        Real w1p = std::abs(fsten(ii_,jj_+1,kk_-1,ist_0p0)) / (std::abs(fsten(ii_,jj_+1,kk_-2,ist_0pp))
+                                                              +std::abs(fsten(ii_,jj_+1,kk_-1,ist_0pp)) + eps);
+        Real w2m = std::abs(fsten(ii_,jj_+1,kk_-2,ist_00p)) / (std::abs(fsten(ii_,jj_  ,kk_-2,ist_0pp))
+                                                              +std::abs(fsten(ii_,jj_+1,kk_-2,ist_0pp)) + eps);
+        Real w2p = std::abs(fsten(ii_,jj_+1,kk_-1,ist_00p)) / (std::abs(fsten(ii_,jj_  ,kk_-1,ist_0pp))
+                                                              +std::abs(fsten(ii_,jj_+1,kk_-1,ist_0pp)) + eps);
+        Real wmm = std::abs(fsten(ii_,jj_  ,kk_-2,ist_0pp)) * (1._rt + w1m + w2m);
+        Real wpm = std::abs(fsten(ii_,jj_+1,kk_-2,ist_0pp)) * (1._rt + w1p + w2m);
+        Real wmp = std::abs(fsten(ii_,jj_  ,kk_-1,ist_0pp)) * (1._rt + w1m + w2p);
+        Real wpp = std::abs(fsten(ii_,jj_+1,kk_-1,ist_0pp)) * (1._rt + w1p + w2p);
+        return wmp / (wmm+wpm+wmp+wpp+eps);
+    };
+
+    auto restrict_from_ppm_to = [&fsten] (int ii_, int jj_, int kk_) -> Real {
+        Real r = 1._rt;
+        r += std::abs(fsten(ii_  ,jj_+1,kk_-1,ist_p00)) /
+           ( std::abs(fsten(ii_  ,jj_  ,kk_-2,ist_ppp))
+           + std::abs(fsten(ii_  ,jj_+1,kk_-2,ist_ppp))
+           + std::abs(fsten(ii_  ,jj_  ,kk_-1,ist_ppp))
+           + std::abs(fsten(ii_  ,jj_+1,kk_-1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_+1,jj_  ,kk_-1,ist_0p0)) /
+           ( std::abs(fsten(ii_  ,jj_  ,kk_-2,ist_ppp))
+           + std::abs(fsten(ii_+1,jj_  ,kk_-2,ist_ppp))
+           + std::abs(fsten(ii_  ,jj_  ,kk_-1,ist_ppp))
+           + std::abs(fsten(ii_+1,jj_  ,kk_-1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_+1,jj_+1,kk_-1,ist_00p)) /
+           ( std::abs(fsten(ii_  ,jj_  ,kk_-1,ist_ppp))
+           + std::abs(fsten(ii_+1,jj_  ,kk_-1,ist_ppp))
+           + std::abs(fsten(ii_  ,jj_+1,kk_-1,ist_ppp))
+           + std::abs(fsten(ii_+1,jj_+1,kk_-1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_  ,jj_  ,kk_-1,ist_pp0)) /
+           ( std::abs(fsten(ii_  ,jj_  ,kk_-2,ist_ppp))
+           + std::abs(fsten(ii_  ,jj_  ,kk_-1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_  ,jj_+1,kk_-1,ist_p0p)) /
+           ( std::abs(fsten(ii_  ,jj_  ,kk_-1,ist_ppp))
+           + std::abs(fsten(ii_  ,jj_+1,kk_-1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_+1,jj_  ,kk_-1,ist_0pp)) /
+           ( std::abs(fsten(ii_  ,jj_  ,kk_-1,ist_ppp))
+           + std::abs(fsten(ii_+1,jj_  ,kk_-1,ist_ppp)) + eps);
+        r *= std::abs(fsten(ii_  ,jj_  ,kk_-1,ist_ppp)) * fsten(ii_+1,jj_+1,kk_-1,ist_inv);
+        return r;
+    };
+
+    auto restrict_from_mm0_to = [&fsten] (int ii_, int jj_, int kk_) -> Real {
+        Real w1m = std::abs(fsten(ii_-2,jj_-1,kk_,ist_p00)) / (std::abs(fsten(ii_-2,jj_-2,kk_,ist_pp0))
+                                                              +std::abs(fsten(ii_-2,jj_-1,kk_,ist_pp0)) + eps);
+        Real w1p = std::abs(fsten(ii_-1,jj_-1,kk_,ist_p00)) / (std::abs(fsten(ii_-1,jj_-2,kk_,ist_pp0))
+                                                              +std::abs(fsten(ii_-1,jj_-1,kk_,ist_pp0)) + eps);
+        Real w2m = std::abs(fsten(ii_-1,jj_-2,kk_,ist_0p0)) / (std::abs(fsten(ii_-2,jj_-2,kk_,ist_pp0))
+                                                              +std::abs(fsten(ii_-1,jj_-2,kk_,ist_pp0)) + eps);
+        Real w2p = std::abs(fsten(ii_-1,jj_-1,kk_,ist_0p0)) / (std::abs(fsten(ii_-2,jj_-1,kk_,ist_pp0))
+                                                              +std::abs(fsten(ii_-1,jj_-1,kk_,ist_pp0)) + eps);
+        Real wmm = std::abs(fsten(ii_-2,jj_-2,kk_,ist_pp0)) * (1._rt + w1m + w2m);
+        Real wpm = std::abs(fsten(ii_-1,jj_-2,kk_,ist_pp0)) * (1._rt + w1p + w2m);
+        Real wmp = std::abs(fsten(ii_-2,jj_-1,kk_,ist_pp0)) * (1._rt + w1m + w2p);
+        Real wpp = std::abs(fsten(ii_-1,jj_-1,kk_,ist_pp0)) * (1._rt + w1p + w2p);
+        return wpp / (wmm+wpm+wmp+wpp+eps);
+    };
+
+    auto restrict_from_0m0_to = [&fsten] (int ii_, int jj_, int kk_) -> Real {
+        Real w1 = std::abs(fsten(ii_,jj_-2,kk_,ist_0p0));
+        Real w2 = std::abs(fsten(ii_,jj_-1,kk_,ist_0p0));
+        if (w1 == 0._rt and w2 == 0._rt) {
+            return 0.5_rt;
+        } else {
+            return w2 / (w1+w2);
+        }
+    };
+
+    auto restrict_from_pm0_to = [&fsten] (int ii_, int jj_, int kk_) -> Real {
+        Real w1m = std::abs(fsten(ii_  ,jj_-1,kk_,ist_p00)) / (std::abs(fsten(ii_  ,jj_-2,kk_,ist_pp0))
+                                                              +std::abs(fsten(ii_  ,jj_-1,kk_,ist_pp0)) + eps);
+        Real w1p = std::abs(fsten(ii_+1,jj_-1,kk_,ist_p00)) / (std::abs(fsten(ii_+1,jj_-2,kk_,ist_pp0))
+                                                              +std::abs(fsten(ii_+1,jj_-1,kk_,ist_pp0)) + eps);
+        Real w2m = std::abs(fsten(ii_+1,jj_-2,kk_,ist_0p0)) / (std::abs(fsten(ii_  ,jj_-2,kk_,ist_pp0))
+                                                              +std::abs(fsten(ii_+1,jj_-2,kk_,ist_pp0)) + eps);
+        Real w2p = std::abs(fsten(ii_+1,jj_-1,kk_,ist_0p0)) / (std::abs(fsten(ii_  ,jj_-1,kk_,ist_pp0))
+                                                              +std::abs(fsten(ii_+1,jj_-1,kk_,ist_pp0)) + eps);
+        Real wmm = std::abs(fsten(ii_  ,jj_-2,kk_,ist_pp0)) * (1._rt + w1m + w2m);
+        Real wpm = std::abs(fsten(ii_+1,jj_-2,kk_,ist_pp0)) * (1._rt + w1p + w2m);
+        Real wmp = std::abs(fsten(ii_  ,jj_-1,kk_,ist_pp0)) * (1._rt + w1m + w2p);
+        Real wpp = std::abs(fsten(ii_+1,jj_-1,kk_,ist_pp0)) * (1._rt + w1p + w2p);
+        return wmp / (wmm+wpm+wmp+wpp+eps);
+    };
+
+    auto restrict_from_m00_to = [&fsten] (int ii_, int jj_, int kk_) -> Real {
+        Real w1 = std::abs(fsten(ii_-2,jj_,kk_,ist_p00));
+        Real w2 = std::abs(fsten(ii_-1,jj_,kk_,ist_p00));
+        if (w1 == 0._rt and w2 == 0._rt) {
+            return 0.5_rt;
+        } else {
+            return w2 / (w1+w2);
+        }
+    };
+
+    auto restrict_from_000_to = [&fsten] (int ii_, int jj_, int kk_) -> Real {
+        return 1._rt;
+    };
+
+    auto restrict_from_p00_to = [&fsten] (int ii_, int jj_, int kk_) -> Real {
+        Real w1 = std::abs(fsten(ii_  ,jj_,kk_,ist_p00));
+        Real w2 = std::abs(fsten(ii_+1,jj_,kk_,ist_p00));
+        if (w1 == 0._rt and w2 == 0._rt) {
+            return 0.5_rt;
+        } else {
+            return w1 / (w1+w2);
+        }
+    };
+
+    auto restrict_from_mp0_to = [&fsten] (int ii_, int jj_, int kk_) -> Real {
+        Real w1m = std::abs(fsten(ii_-2,jj_+1,kk_,ist_p00)) / (std::abs(fsten(ii_-2,jj_  ,kk_,ist_pp0))
+                                                              +std::abs(fsten(ii_-2,jj_+1,kk_,ist_pp0)) + eps);
+        Real w1p = std::abs(fsten(ii_-1,jj_+1,kk_,ist_p00)) / (std::abs(fsten(ii_-1,jj_  ,kk_,ist_pp0))
+                                                              +std::abs(fsten(ii_-1,jj_+1,kk_,ist_pp0)) + eps);
+        Real w2m = std::abs(fsten(ii_-1,jj_  ,kk_,ist_0p0)) / (std::abs(fsten(ii_-2,jj_  ,kk_,ist_pp0))
+                                                              +std::abs(fsten(ii_-1,jj_  ,kk_,ist_pp0)) + eps);
+        Real w2p = std::abs(fsten(ii_-1,jj_+1,kk_,ist_0p0)) / (std::abs(fsten(ii_-2,jj_+1,kk_,ist_pp0))
+                                                              +std::abs(fsten(ii_-1,jj_+1,kk_,ist_pp0)) + eps);
+        Real wmm = std::abs(fsten(ii_-2,jj_  ,kk_,ist_pp0)) * (1._rt + w1m + w2m);
+        Real wpm = std::abs(fsten(ii_-1,jj_  ,kk_,ist_pp0)) * (1._rt + w1p + w2m);
+        Real wmp = std::abs(fsten(ii_-2,jj_+1,kk_,ist_pp0)) * (1._rt + w1m + w2p);
+        Real wpp = std::abs(fsten(ii_-1,jj_+1,kk_,ist_pp0)) * (1._rt + w1p + w2p);
+        return wpm / (wmm+wpm+wmp+wpp+eps);
+    };
+
+    auto restrict_from_0p0_to = [&fsten] (int ii_, int jj_, int kk_) -> Real {
+        Real w1 = std::abs(fsten(ii_,jj_  ,kk_,ist_0p0));
+        Real w2 = std::abs(fsten(ii_,jj_+1,kk_,ist_0p0));
+        if (w1 == 0._rt and w2 == 0._rt) {
+            return 0.5_rt;
+        } else {
+            return w1 / (w1+w2);
+        }
+    };
+
+    auto restrict_from_pp0_to = [&fsten] (int ii_, int jj_, int kk_) -> Real {
+        Real w1m = std::abs(fsten(ii_  ,jj_+1,kk_,ist_p00)) / (std::abs(fsten(ii_  ,jj_  ,kk_,ist_pp0))
+                                                              +std::abs(fsten(ii_  ,jj_+1,kk_,ist_pp0)) + eps);
+        Real w1p = std::abs(fsten(ii_+1,jj_+1,kk_,ist_p00)) / (std::abs(fsten(ii_+1,jj_  ,kk_,ist_pp0))
+                                                              +std::abs(fsten(ii_+1,jj_+1,kk_,ist_pp0)) + eps);
+        Real w2m = std::abs(fsten(ii_+1,jj_  ,kk_,ist_0p0)) / (std::abs(fsten(ii_  ,jj_  ,kk_,ist_pp0))
+                                                              +std::abs(fsten(ii_+1,jj_  ,kk_,ist_pp0)) + eps);
+        Real w2p = std::abs(fsten(ii_+1,jj_+1,kk_,ist_0p0)) / (std::abs(fsten(ii_  ,jj_+1,kk_,ist_pp0))
+                                                              +std::abs(fsten(ii_+1,jj_+1,kk_,ist_pp0)) + eps);
+        Real wmm = std::abs(fsten(ii_  ,jj_  ,kk_,ist_pp0)) * (1._rt + w1m + w2m);
+        Real wpm = std::abs(fsten(ii_+1,jj_  ,kk_,ist_pp0)) * (1._rt + w1p + w2m);
+        Real wmp = std::abs(fsten(ii_  ,jj_+1,kk_,ist_pp0)) * (1._rt + w1m + w2p);
+        Real wpp = std::abs(fsten(ii_+1,jj_+1,kk_,ist_pp0)) * (1._rt + w1p + w2p);
+        return wmm / (wmm+wpm+wmp+wpp+eps);
+    };
+
+    auto restrict_from_mmp_to = [&fsten] (int ii_, int jj_, int kk_) -> Real {
+        Real r = 1._rt;
+        r += std::abs(fsten(ii_-1,jj_-1,kk_+1,ist_p00)) /
+           ( std::abs(fsten(ii_-1,jj_-2,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_-1,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_-2,kk_+1,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_-1,kk_+1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_-1,jj_-1,kk_+1,ist_0p0)) /
+           ( std::abs(fsten(ii_-2,jj_-1,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_-1,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_-2,jj_-1,kk_+1,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_-1,kk_+1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_-1,jj_-1,kk_  ,ist_00p)) /
+           ( std::abs(fsten(ii_-2,jj_-2,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_-2,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_-2,jj_-1,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_-1,kk_  ,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_-1,jj_-1,kk_+1,ist_pp0)) /
+           ( std::abs(fsten(ii_-1,jj_-1,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_-1,kk_+1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_-1,jj_-1,kk_  ,ist_p0p)) /
+           ( std::abs(fsten(ii_-1,jj_-2,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_-1,kk_  ,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_-1,jj_-1,kk_  ,ist_0pp)) /
+           ( std::abs(fsten(ii_-2,jj_-1,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_-1,kk_  ,ist_ppp)) + eps);
+        r *= std::abs(fsten(ii_-1,jj_-1,kk_  ,ist_ppp)) * fsten(ii_-1,jj_-1,kk_+1,ist_inv);
+        return r;
+    };
+
+    auto restrict_from_0mp_to = [&fsten] (int ii_, int jj_, int kk_) -> Real {
+        Real w1m = std::abs(fsten(ii_,jj_-2,kk_+1,ist_0p0)) / (std::abs(fsten(ii_,jj_-2,kk_  ,ist_0pp))
+                                                              +std::abs(fsten(ii_,jj_-2,kk_+1,ist_0pp)) + eps);
+        Real w1p = std::abs(fsten(ii_,jj_-1,kk_+1,ist_0p0)) / (std::abs(fsten(ii_,jj_-1,kk_  ,ist_0pp))
+                                                              +std::abs(fsten(ii_,jj_-1,kk_+1,ist_0pp)) + eps);
+        Real w2m = std::abs(fsten(ii_,jj_-1,kk_  ,ist_00p)) / (std::abs(fsten(ii_,jj_-2,kk_  ,ist_0pp))
+                                                              +std::abs(fsten(ii_,jj_-1,kk_  ,ist_0pp)) + eps);
+        Real w2p = std::abs(fsten(ii_,jj_-1,kk_+1,ist_00p)) / (std::abs(fsten(ii_,jj_-2,kk_+1,ist_0pp))
+                                                              +std::abs(fsten(ii_,jj_-1,kk_+1,ist_0pp)) + eps);
+        Real wmm = std::abs(fsten(ii_,jj_-2,kk_  ,ist_0pp)) * (1._rt + w1m + w2m);
+        Real wpm = std::abs(fsten(ii_,jj_-1,kk_  ,ist_0pp)) * (1._rt + w1p + w2m);
+        Real wmp = std::abs(fsten(ii_,jj_-2,kk_+1,ist_0pp)) * (1._rt + w1m + w2p);
+        Real wpp = std::abs(fsten(ii_,jj_-1,kk_+1,ist_0pp)) * (1._rt + w1p + w2p);
+        return wpm / (wmm+wpm+wmp+wpp+eps);
+    };
+
+    auto restrict_from_pmp_to = [&fsten] (int ii_, int jj_, int kk_) -> Real {
+        Real r = 1._rt;
+        r += std::abs(fsten(ii_  ,jj_-1,kk_+1,ist_p00)) /
+           ( std::abs(fsten(ii_  ,jj_-2,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_  ,jj_-1,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_  ,jj_-2,kk_+1,ist_ppp))
+           + std::abs(fsten(ii_  ,jj_-1,kk_+1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_+1,jj_-1,kk_+1,ist_0p0)) /
+           ( std::abs(fsten(ii_  ,jj_-1,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_+1,jj_-1,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_  ,jj_-1,kk_+1,ist_ppp))
+           + std::abs(fsten(ii_+1,jj_-1,kk_+1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_+1,jj_-1,kk_  ,ist_00p)) /
+           ( std::abs(fsten(ii_  ,jj_-2,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_+1,jj_-2,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_  ,jj_-1,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_+1,jj_-1,kk_  ,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_  ,jj_-1,kk_+1,ist_pp0)) /
+           ( std::abs(fsten(ii_  ,jj_-1,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_  ,jj_-1,kk_+1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_  ,jj_-1,kk_  ,ist_p0p)) /
+           ( std::abs(fsten(ii_  ,jj_-2,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_  ,jj_-1,kk_  ,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_+1,jj_-1,kk_  ,ist_0pp)) /
+           ( std::abs(fsten(ii_  ,jj_-1,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_+1,jj_-1,kk_  ,ist_ppp)) + eps);
+        r *= std::abs(fsten(ii_  ,jj_-1,kk_  ,ist_ppp)) * fsten(ii_+1,jj_-1,kk_+1,ist_inv);
+        return r;
+    };
+
+    auto restrict_from_m0p_to = [&fsten] (int ii_, int jj_, int kk_) -> Real {
+        Real w1m = std::abs(fsten(ii_-2,jj_,kk_+1,ist_p00)) / (std::abs(fsten(ii_-2,jj_,kk_  ,ist_p0p))
+                                                              +std::abs(fsten(ii_-2,jj_,kk_+1,ist_p0p)) + eps);
+        Real w1p = std::abs(fsten(ii_-1,jj_,kk_+1,ist_p00)) / (std::abs(fsten(ii_-1,jj_,kk_  ,ist_p0p))
+                                                              +std::abs(fsten(ii_-1,jj_,kk_+1,ist_p0p)) + eps);
+        Real w2m = std::abs(fsten(ii_-1,jj_,kk_  ,ist_00p)) / (std::abs(fsten(ii_-2,jj_,kk_  ,ist_p0p))
+                                                              +std::abs(fsten(ii_-1,jj_,kk_  ,ist_p0p)) + eps);
+        Real w2p = std::abs(fsten(ii_-1,jj_,kk_+1,ist_00p)) / (std::abs(fsten(ii_-2,jj_,kk_+1,ist_p0p))
+                                                              +std::abs(fsten(ii_-1,jj_,kk_+1,ist_p0p)) + eps);
+        Real wmm = std::abs(fsten(ii_-2,jj_,kk_  ,ist_p0p)) * (1._rt + w1m + w2m);
+        Real wpm = std::abs(fsten(ii_-1,jj_,kk_  ,ist_p0p)) * (1._rt + w1p + w2m);
+        Real wmp = std::abs(fsten(ii_-2,jj_,kk_+1,ist_p0p)) * (1._rt + w1m + w2p);
+        Real wpp = std::abs(fsten(ii_-1,jj_,kk_+1,ist_p0p)) * (1._rt + w1p + w2p);
+        return wpm / (wmm+wpm+wmp+wpp+eps);
+    };
+
+    auto restrict_from_00p_to = [&fsten] (int ii_, int jj_, int kk_) -> Real {
+        Real w1 = std::abs(fsten(ii_,jj_,kk_  ,ist_00p));
+        Real w2 = std::abs(fsten(ii_,jj_,kk_+1,ist_00p));
+        if (w1 == 0._rt and w2 == 0._rt) {
+            return 0.5_rt;
+        } else {
+            return w1 / (w1+w2);
+        }
+    };
+
+    auto restrict_from_p0p_to = [&fsten] (int ii_, int jj_, int kk_) -> Real {
+        Real w1m = std::abs(fsten(ii_  ,jj_,kk_+1,ist_p00)) / (std::abs(fsten(ii_  ,jj_,kk_  ,ist_p0p))
+                                                              +std::abs(fsten(ii_  ,jj_,kk_+1,ist_p0p)) + eps);
+        Real w1p = std::abs(fsten(ii_+1,jj_,kk_+1,ist_p00)) / (std::abs(fsten(ii_+1,jj_,kk_  ,ist_p0p))
+                                                              +std::abs(fsten(ii_+1,jj_,kk_+1,ist_p0p)) + eps);
+        Real w2m = std::abs(fsten(ii_+1,jj_,kk_  ,ist_00p)) / (std::abs(fsten(ii_  ,jj_,kk_  ,ist_p0p))
+                                                              +std::abs(fsten(ii_+1,jj_,kk_  ,ist_p0p)) + eps);
+        Real w2p = std::abs(fsten(ii_+1,jj_,kk_+1,ist_00p)) / (std::abs(fsten(ii_  ,jj_,kk_+1,ist_p0p))
+                                                              +std::abs(fsten(ii_+1,jj_,kk_+1,ist_p0p)) + eps);
+        Real wmm = std::abs(fsten(ii_  ,jj_,kk_  ,ist_p0p)) * (1._rt + w1m + w2m);
+        Real wpm = std::abs(fsten(ii_+1,jj_,kk_  ,ist_p0p)) * (1._rt + w1p + w2m);
+        Real wmp = std::abs(fsten(ii_  ,jj_,kk_+1,ist_p0p)) * (1._rt + w1m + w2p);
+        Real wpp = std::abs(fsten(ii_+1,jj_,kk_+1,ist_p0p)) * (1._rt + w1p + w2p);
+        return wmm / (wmm+wpm+wmp+wpp+eps);
+    };
+
+    auto restrict_from_mpp_to = [&fsten] (int ii_, int jj_, int kk_) -> Real {
+        Real r = 1._rt;
+        r += std::abs(fsten(ii_-1,jj_+1,kk_+1,ist_p00)) /
+           ( std::abs(fsten(ii_-1,jj_  ,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_+1,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_  ,kk_+1,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_+1,kk_+1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_-1,jj_  ,kk_+1,ist_0p0)) /
+           ( std::abs(fsten(ii_-2,jj_  ,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_  ,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_-2,jj_  ,kk_+1,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_  ,kk_+1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_-1,jj_+1,kk_  ,ist_00p)) /
+           ( std::abs(fsten(ii_-2,jj_  ,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_  ,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_-2,jj_+1,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_+1,kk_  ,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_-1,jj_  ,kk_+1,ist_pp0)) /
+           ( std::abs(fsten(ii_-1,jj_  ,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_  ,kk_+1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_-1,jj_+1,kk_  ,ist_p0p)) /
+           ( std::abs(fsten(ii_-1,jj_  ,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_+1,kk_  ,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_-1,jj_  ,kk_  ,ist_0pp)) /
+           ( std::abs(fsten(ii_-2,jj_  ,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_-1,jj_  ,kk_  ,ist_ppp)) + eps);
+        r *= std::abs(fsten(ii_-1,jj_  ,kk_  ,ist_ppp)) * fsten(ii_-1,jj_+1,kk_+1,ist_inv);
+        return r;
+    };
+
+    auto restrict_from_0pp_to = [&fsten] (int ii_, int jj_, int kk_) -> Real {
+        Real w1m = std::abs(fsten(ii_,jj_  ,kk_+1,ist_0p0)) / (std::abs(fsten(ii_,jj_  ,kk_  ,ist_0pp))
+                                                              +std::abs(fsten(ii_,jj_  ,kk_+1,ist_0pp)) + eps);
+        Real w1p = std::abs(fsten(ii_,jj_+1,kk_+1,ist_0p0)) / (std::abs(fsten(ii_,jj_+1,kk_  ,ist_0pp))
+                                                              +std::abs(fsten(ii_,jj_+1,kk_+1,ist_0pp)) + eps);
+        Real w2m = std::abs(fsten(ii_,jj_+1,kk_  ,ist_00p)) / (std::abs(fsten(ii_,jj_  ,kk_  ,ist_0pp))
+                                                              +std::abs(fsten(ii_,jj_+1,kk_  ,ist_0pp)) + eps);
+        Real w2p = std::abs(fsten(ii_,jj_+1,kk_+1,ist_00p)) / (std::abs(fsten(ii_,jj_  ,kk_+1,ist_0pp))
+                                                              +std::abs(fsten(ii_,jj_+1,kk_+1,ist_0pp)) + eps);
+        Real wmm = std::abs(fsten(ii_,jj_  ,kk_  ,ist_0pp)) * (1._rt + w1m + w2m);
+        Real wpm = std::abs(fsten(ii_,jj_+1,kk_  ,ist_0pp)) * (1._rt + w1p + w2m);
+        Real wmp = std::abs(fsten(ii_,jj_  ,kk_+1,ist_0pp)) * (1._rt + w1m + w2p);
+        Real wpp = std::abs(fsten(ii_,jj_+1,kk_+1,ist_0pp)) * (1._rt + w1p + w2p);
+        return wmm / (wmm+wpm+wmp+wpp+eps);
+    };
+
+    auto restrict_from_ppp_to = [&fsten] (int ii_, int jj_, int kk_) -> Real {
+        Real r = 1._rt;
+        r += std::abs(fsten(ii_  ,jj_+1,kk_+1,ist_p00)) /
+           ( std::abs(fsten(ii_  ,jj_  ,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_  ,jj_+1,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_  ,jj_  ,kk_+1,ist_ppp))
+           + std::abs(fsten(ii_  ,jj_+1,kk_+1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_+1,jj_  ,kk_+1,ist_0p0)) /
+           ( std::abs(fsten(ii_  ,jj_  ,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_+1,jj_  ,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_  ,jj_  ,kk_+1,ist_ppp))
+           + std::abs(fsten(ii_+1,jj_  ,kk_+1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_+1,jj_+1,kk_  ,ist_00p)) /
+           ( std::abs(fsten(ii_  ,jj_  ,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_+1,jj_  ,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_  ,jj_+1,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_+1,jj_+1,kk_  ,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_  ,jj_  ,kk_+1,ist_pp0)) /
+           ( std::abs(fsten(ii_  ,jj_  ,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_  ,jj_  ,kk_+1,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_  ,jj_+1,kk_  ,ist_p0p)) /
+           ( std::abs(fsten(ii_  ,jj_  ,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_  ,jj_+1,kk_  ,ist_ppp)) + eps);
+        r += std::abs(fsten(ii_+1,jj_  ,kk_  ,ist_0pp)) /
+           ( std::abs(fsten(ii_  ,jj_  ,kk_  ,ist_ppp))
+           + std::abs(fsten(ii_+1,jj_  ,kk_  ,ist_ppp)) + eps);
+        r *= std::abs(fsten(ii_  ,jj_  ,kk_  ,ist_ppp)) * fsten(ii_+1,jj_+1,kk_+1,ist_inv);
+        return r;
+    };
+
+    int ii = 2*i;
+    int jj = 2*j;
+    int kk = 2*k;
+    Array3D<Real,-1,1,-1,1,-1,1> p;
+    Array3D<Real,-1,1,-1,1,-1,1> ap;
+    Real cs1, cs2, cs3, cs4;
+
+    // csten(i,j,k,ist_p00)
+    int iii = ii;
+    int jjj = jj;
+    int kkk = kk;;
+    p(-1,-1,-1) = interp_from_ppp_to(iii+1,jjj-1,kkk-1);
+    p( 0,-1,-1) = interp_from_0pp_to(iii+2,jjj-1,kkk-1);
+    p(-1, 0,-1) = interp_from_p0p_to(iii+1,jjj  ,kkk-1);
+    p( 0, 0,-1) = interp_from_00p_to(iii+2,jjj  ,kkk-1);
+    p(-1,+1,-1) = interp_from_pmp_to(iii+1,jjj+1,kkk-1);
+    p( 0,+1,-1) = interp_from_0mp_to(iii+2,jjj+1,kkk-1);
+    p(-1,-1, 0) = interp_from_pp0_to(iii+1,jjj-1,kkk  );
+    p( 0,-1, 0) = interp_from_0p0_to(iii+2,jjj-1,kkk  );
+    p(-1, 0, 0) = interp_from_p00_to(iii+1,jjj  ,kkk  );
+    p( 0, 0, 0) = 1._rt;
+    p(-1,+1, 0) = interp_from_pm0_to(iii+1,jjj+1,kkk  );
+    p( 0,+1, 0) = interp_from_0m0_to(iii+2,jjj+1,kkk  );
+    p(-1,-1,+1) = interp_from_ppm_to(iii+1,jjj-1,kkk+1);
+    p( 0,-1,+1) = interp_from_0pm_to(iii+2,jjj-1,kkk+1);
+    p(-1, 0,+1) = interp_from_p0m_to(iii+1,jjj  ,kkk+1);
+    p( 0, 0,+1) = interp_from_00m_to(iii+2,jjj  ,kkk+1);
+    p(-1,+1,+1) = interp_from_pmm_to(iii+1,jjj+1,kkk+1);
+    p( 0,+1,+1) = interp_from_0mm_to(iii+2,jjj+1,kkk+1);
+    ap(0,-1,-1) =
+                     Ap00(iii,jjj-1,kkk-1) * p(-1,-1,-1)
+      +              App0(iii,jjj-1,kkk-1) * p(-1, 0,-1)
+      +              Ap0p(iii,jjj-1,kkk-1) * p(-1,-1, 0)
+      +              Appp(iii,jjj-1,kkk-1) * p(-1, 0, 0);
+    ap(1,-1,-1) =
+                     A000(iii+1,jjj-1,kkk-1) * p(-1,-1,-1)
+      +              Ap00(iii+1,jjj-1,kkk-1) * p( 0,-1,-1)
+      +              A0p0(iii+1,jjj-1,kkk-1) * p(-1, 0,-1)
+      +              App0(iii+1,jjj-1,kkk-1) * p( 0, 0,-1)
+      +              A00p(iii+1,jjj-1,kkk-1) * p(-1,-1, 0)
+      +              Ap0p(iii+1,jjj-1,kkk-1) * p( 0,-1, 0)
+      +              A0pp(iii+1,jjj-1,kkk-1) * p(-1, 0, 0)
+      +              Appp(iii+1,jjj-1,kkk-1) * p( 0, 0, 0);
+    ap(0,0,-1) =
+                     Apm0(iii,jjj,kkk-1) * p(-1,-1,-1)
+      +              Ap00(iii,jjj,kkk-1) * p(-1, 0,-1)
+      +              App0(iii,jjj,kkk-1) * p(-1,+1,-1)
+      +              Apmp(iii,jjj,kkk-1) * p(-1,-1, 0)
+      +              Ap0p(iii,jjj,kkk-1) * p(-1, 0, 0)
+      +              Appp(iii,jjj,kkk-1) * p(-1,+1, 0);
+    ap(1,0,-1) =
+                     A0m0(iii+1,jjj,kkk-1) * p(-1,-1,-1)
+      +              Apm0(iii+1,jjj,kkk-1) * p( 0,-1,-1)
+      +              A000(iii+1,jjj,kkk-1) * p(-1, 0,-1)
+      +              Ap00(iii+1,jjj,kkk-1) * p( 0, 0,-1)
+      +              A0p0(iii+1,jjj,kkk-1) * p(-1,+1,-1)
+      +              App0(iii+1,jjj,kkk-1) * p( 0,+1,-1)
+      +              A0mp(iii+1,jjj,kkk-1) * p(-1,-1, 0)
+      +              Apmp(iii+1,jjj,kkk-1) * p( 0,-1, 0)
+      +              A00p(iii+1,jjj,kkk-1) * p(-1, 0, 0)
+      +              Ap0p(iii+1,jjj,kkk-1) * p( 0, 0, 0)
+      +              A0pp(iii+1,jjj,kkk-1) * p(-1,+1, 0)
+      +              Appp(iii+1,jjj,kkk-1) * p( 0,+1, 0);
+    ap(0,1,-1) =
+                     Apm0(iii,jjj+1,kkk-1) * p(-1, 0,-1)
+      +              Ap00(iii,jjj+1,kkk-1) * p(-1,+1,-1)
+      +              Apmp(iii,jjj+1,kkk-1) * p(-1, 0, 0)
+      +              Ap0p(iii,jjj+1,kkk-1) * p(-1,+1, 0);
+    ap(1,1,-1) =
+                     A0m0(iii+1,jjj+1,kkk-1) * p(-1, 0,-1)
+      +              Apm0(iii+1,jjj+1,kkk-1) * p( 0, 0,-1)
+      +              A000(iii+1,jjj+1,kkk-1) * p(-1,+1,-1)
+      +              Ap00(iii+1,jjj+1,kkk-1) * p( 0,+1,-1)
+      +              A0mp(iii+1,jjj+1,kkk-1) * p(-1, 0, 0)
+      +              Apmp(iii+1,jjj+1,kkk-1) * p( 0, 0, 0)
+      +              A00p(iii+1,jjj+1,kkk-1) * p(-1,+1, 0)
+      +              Ap0p(iii+1,jjj+1,kkk-1) * p( 0,+1, 0);
+    ap(0,-1,0) =
+                     Ap0m(iii,jjj-1,kkk) * p(-1,-1,-1)
+      +              Appm(iii,jjj-1,kkk) * p(-1, 0,-1)
+      +              Ap00(iii,jjj-1,kkk) * p(-1,-1, 0)
+      +              App0(iii,jjj-1,kkk) * p(-1, 0, 0)
+      +              Ap0p(iii,jjj-1,kkk) * p(-1,-1,+1)
+      +              Appp(iii,jjj-1,kkk) * p(-1, 0,+1);
+    ap(1,-1,0) =
+                     A00m(iii+1,jjj-1,kkk) * p(-1,-1,-1)
+      +              Ap0m(iii+1,jjj-1,kkk) * p( 0,-1,-1)
+      +              A0pm(iii+1,jjj-1,kkk) * p(-1, 0,-1)
+      +              Appm(iii+1,jjj-1,kkk) * p( 0, 0,-1)
+      +              A000(iii+1,jjj-1,kkk) * p(-1,-1, 0)
+      +              Ap00(iii+1,jjj-1,kkk) * p( 0,-1, 0)
+      +              A0p0(iii+1,jjj-1,kkk) * p(-1, 0, 0)
+      +              App0(iii+1,jjj-1,kkk) * p( 0, 0, 0)
+      +              A00p(iii+1,jjj-1,kkk) * p(-1,-1,+1)
+      +              Ap0p(iii+1,jjj-1,kkk) * p( 0,-1,+1)
+      +              A0pp(iii+1,jjj-1,kkk) * p(-1, 0,+1)
+      +              Appp(iii+1,jjj-1,kkk) * p( 0, 0,+1);
+    ap(0,0,0) =
+                     Apmm(iii,jjj,kkk) * p(-1,-1,-1)
+      +              Ap0m(iii,jjj,kkk) * p(-1, 0,-1)
+      +              Appm(iii,jjj,kkk) * p(-1,+1,-1)
+      +              Apm0(iii,jjj,kkk) * p(-1,-1, 0)
+      +              Ap00(iii,jjj,kkk) * p(-1, 0, 0)
+      +              App0(iii,jjj,kkk) * p(-1,+1, 0)
+      +              Apmp(iii,jjj,kkk) * p(-1,-1,+1)
+      +              Ap0p(iii,jjj,kkk) * p(-1, 0,+1)
+      +              Appp(iii,jjj,kkk) * p(-1,+1,+1);
+    ap(1,0,0) =
+                     A0mm(iii+1,jjj,kkk) * p(-1,-1,-1)
+      +              Apmm(iii+1,jjj,kkk) * p( 0,-1,-1)
+      +              A00m(iii+1,jjj,kkk) * p(-1, 0,-1)
+      +              Ap0m(iii+1,jjj,kkk) * p( 0, 0,-1)
+      +              A0pm(iii+1,jjj,kkk) * p(-1,+1,-1)
+      +              Appm(iii+1,jjj,kkk) * p( 0,+1,-1)
+      +              A0m0(iii+1,jjj,kkk) * p(-1,-1, 0)
+      +              Apm0(iii+1,jjj,kkk) * p( 0,-1, 0)
+      +              A000(iii+1,jjj,kkk) * p(-1, 0, 0)
+      +              Ap00(iii+1,jjj,kkk) * p( 0, 0, 0)
+      +              A0p0(iii+1,jjj,kkk) * p(-1,+1, 0)
+      +              App0(iii+1,jjj,kkk) * p( 0,+1, 0)
+      +              A0mp(iii+1,jjj,kkk) * p(-1,-1,+1)
+      +              Apmp(iii+1,jjj,kkk) * p( 0,-1,+1)
+      +              A00p(iii+1,jjj,kkk) * p(-1, 0,+1)
+      +              Ap0p(iii+1,jjj,kkk) * p( 0, 0,+1)
+      +              A0pp(iii+1,jjj,kkk) * p(-1,+1,+1)
+      +              Appp(iii+1,jjj,kkk) * p( 0,+1,+1);
+    ap(0,1,0) =
+                     Apmm(iii,jjj+1,kkk) * p(-1, 0,-1)
+      +              Ap0m(iii,jjj+1,kkk) * p(-1,+1,-1)
+      +              Apm0(iii,jjj+1,kkk) * p(-1, 0, 0)
+      +              Ap00(iii,jjj+1,kkk) * p(-1,+1, 0)
+      +              Apmp(iii,jjj+1,kkk) * p(-1, 0,+1)
+      +              Ap0p(iii,jjj+1,kkk) * p(-1,+1,+1);
+    ap(1,1,0) =
+                     A0mm(iii+1,jjj+1,kkk) * p(-1, 0,-1)
+      +              Apmm(iii+1,jjj+1,kkk) * p( 0, 0,-1)
+      +              A00m(iii+1,jjj+1,kkk) * p(-1,+1,-1)
+      +              Ap0m(iii+1,jjj+1,kkk) * p( 0,+1,-1)
+      +              A0m0(iii+1,jjj+1,kkk) * p(-1, 0, 0)
+      +              Apm0(iii+1,jjj+1,kkk) * p( 0, 0, 0)
+      +              A000(iii+1,jjj+1,kkk) * p(-1,+1, 0)
+      +              Ap00(iii+1,jjj+1,kkk) * p( 0,+1, 0)
+      +              A0mp(iii+1,jjj+1,kkk) * p(-1, 0,+1)
+      +              Apmp(iii+1,jjj+1,kkk) * p( 0, 0,+1)
+      +              A00p(iii+1,jjj+1,kkk) * p(-1,+1,+1)
+      +              Ap0p(iii+1,jjj+1,kkk) * p( 0,+1,+1);
+    ap(0,-1,1) =
+                     Ap0m(iii,jjj-1,kkk+1) * p(-1,-1, 0)
+      +              Appm(iii,jjj-1,kkk+1) * p(-1, 0, 0)
+      +              Ap00(iii,jjj-1,kkk+1) * p(-1,-1,+1)
+      +              App0(iii,jjj-1,kkk+1) * p(-1, 0,+1);
+    ap(1,-1,1) =
+                     A00m(iii+1,jjj-1,kkk+1) * p(-1,-1, 0)
+      +              Ap0m(iii+1,jjj-1,kkk+1) * p( 0,-1, 0)
+      +              A0pm(iii+1,jjj-1,kkk+1) * p(-1, 0, 0)
+      +              Appm(iii+1,jjj-1,kkk+1) * p( 0, 0, 0)
+      +              A000(iii+1,jjj-1,kkk+1) * p(-1,-1,+1)
+      +              Ap00(iii+1,jjj-1,kkk+1) * p( 0,-1,+1)
+      +              A0p0(iii+1,jjj-1,kkk+1) * p(-1, 0,+1)
+      +              App0(iii+1,jjj-1,kkk+1) * p( 0, 0,+1);
+    ap(0,0,1) =
+                     Apmm(iii,jjj,kkk+1) * p(-1,-1, 0)
+      +              Ap0m(iii,jjj,kkk+1) * p(-1, 0, 0)
+      +              Appm(iii,jjj,kkk+1) * p(-1,+1, 0)
+      +              Apm0(iii,jjj,kkk+1) * p(-1,-1,+1)
+      +              Ap00(iii,jjj,kkk+1) * p(-1, 0,+1)
+      +              App0(iii,jjj,kkk+1) * p(-1,+1,+1);
+    ap(1,0,1) =
+                     A0mm(iii+1,jjj,kkk+1) * p(-1,-1, 0)
+      +              Apmm(iii+1,jjj,kkk+1) * p( 0,-1, 0)
+      +              A00m(iii+1,jjj,kkk+1) * p(-1, 0, 0)
+      +              Ap0m(iii+1,jjj,kkk+1) * p( 0, 0, 0)
+      +              A0pm(iii+1,jjj,kkk+1) * p(-1,+1, 0)
+      +              Appm(iii+1,jjj,kkk+1) * p( 0,+1, 0)
+      +              A0m0(iii+1,jjj,kkk+1) * p(-1,-1,+1)
+      +              Apm0(iii+1,jjj,kkk+1) * p( 0,-1,+1)
+      +              A000(iii+1,jjj,kkk+1) * p(-1, 0,+1)
+      +              Ap00(iii+1,jjj,kkk+1) * p( 0, 0,+1)
+      +              A0p0(iii+1,jjj,kkk+1) * p(-1,+1,+1)
+      +              App0(iii+1,jjj,kkk+1) * p( 0,+1,+1);
+    ap(0,1,1) =
+                     Apmm(iii,jjj+1,kkk+1) * p(-1, 0, 0)
+      +              Ap0m(iii,jjj+1,kkk+1) * p(-1,+1, 0)
+      +              Apm0(iii,jjj+1,kkk+1) * p(-1, 0,+1)
+      +              Ap00(iii,jjj+1,kkk+1) * p(-1,+1,+1);
+    ap(1,1,1) =
+                     A0mm(iii+1,jjj+1,kkk+1) * p(-1, 0, 0)
+      +              Apmm(iii+1,jjj+1,kkk+1) * p( 0, 0, 0)
+      +              A00m(iii+1,jjj+1,kkk+1) * p(-1,+1, 0)
+      +              Ap0m(iii+1,jjj+1,kkk+1) * p( 0,+1, 0)
+      +              A0m0(iii+1,jjj+1,kkk+1) * p(-1, 0,+1)
+      +              Apm0(iii+1,jjj+1,kkk+1) * p( 0, 0,+1)
+      +              A000(iii+1,jjj+1,kkk+1) * p(-1,+1,+1)
+      +              Ap00(iii+1,jjj+1,kkk+1) * p( 0,+1,+1);
+    csten(i,j,k,ist_p00) = 0.125_rt *
+      ( restrict_from_0mm_to(iii,jjj,kkk) * ap( 0,-1,-1)
+      + restrict_from_pmm_to(iii,jjj,kkk) * ap(+1,-1,-1)
+      + restrict_from_00m_to(iii,jjj,kkk) * ap( 0, 0,-1)
+      + restrict_from_p0m_to(iii,jjj,kkk) * ap(+1, 0,-1)
+      + restrict_from_0pm_to(iii,jjj,kkk) * ap( 0,+1,-1)
+      + restrict_from_ppm_to(iii,jjj,kkk) * ap(+1,+1,-1)
+      + restrict_from_0m0_to(iii,jjj,kkk) * ap( 0,-1, 0)
+      + restrict_from_pm0_to(iii,jjj,kkk) * ap(+1,-1, 0)
+      + restrict_from_000_to(iii,jjj,kkk) * ap( 0, 0, 0)
+      + restrict_from_p00_to(iii,jjj,kkk) * ap(+1, 0, 0)
+      + restrict_from_0p0_to(iii,jjj,kkk) * ap( 0,+1, 0)
+      + restrict_from_pp0_to(iii,jjj,kkk) * ap(+1,+1, 0)
+      + restrict_from_0mp_to(iii,jjj,kkk) * ap( 0,-1,+1)
+      + restrict_from_pmp_to(iii,jjj,kkk) * ap(+1,-1,+1)
+      + restrict_from_00p_to(iii,jjj,kkk) * ap( 0, 0,+1)
+      + restrict_from_p0p_to(iii,jjj,kkk) * ap(+1, 0,+1)
+      + restrict_from_0pp_to(iii,jjj,kkk) * ap( 0,+1,+1)
+      + restrict_from_ppp_to(iii,jjj,kkk) * ap(+1,+1,+1));
+
+    // csten(i,j,k,ist_0p0)
+    iii = ii;
+    jjj = jj;
+    kkk = kk;
+    p(-1,-1,-1) = interp_from_ppp_to(iii-1,jjj+1,kkk-1);
+    p( 0,-1,-1) = interp_from_0pp_to(iii  ,jjj+1,kkk-1);
+    p(+1,-1,-1) = interp_from_mpp_to(iii+1,jjj+1,kkk-1);
+    p(-1, 0,-1) = interp_from_p0p_to(iii-1,jjj+2,kkk-1);
+    p( 0, 0,-1) = interp_from_00p_to(iii  ,jjj+2,kkk-1);
+    p(+1, 0,-1) = interp_from_m0p_to(iii+1,jjj+2,kkk-1);
+    p(-1,-1, 0) = interp_from_pp0_to(iii-1,jjj+1,kkk  );
+    p( 0,-1, 0) = interp_from_0p0_to(iii  ,jjj+1,kkk  );
+    p(+1,-1, 0) = interp_from_mp0_to(iii+1,jjj+1,kkk  );
+    p(-1, 0, 0) = interp_from_p00_to(iii-1,jjj+2,kkk  );
+    p( 0, 0, 0) = 1._rt;
+    p(+1, 0, 0) = interp_from_m00_to(iii+1,jjj+2,kkk  );
+    p(-1,-1,+1) = interp_from_ppm_to(iii-1,jjj+1,kkk+1);
+    p( 0,-1,+1) = interp_from_0pm_to(iii  ,jjj+1,kkk+1);
+    p(+1,-1,+1) = interp_from_mpm_to(iii+1,jjj+1,kkk+1);
+    p(-1, 0,+1) = interp_from_p0m_to(iii-1,jjj+2,kkk+1);
+    p( 0, 0,+1) = interp_from_00m_to(iii  ,jjj+2,kkk+1);
+    p(+1, 0,+1) = interp_from_m0m_to(iii+1,jjj+2,kkk+1);
+    ap(-1,0,-1) =
+                     A0p0(iii-1,jjj,kkk-1) * p(-1,-1,-1)
+      +              App0(iii-1,jjj,kkk-1) * p( 0,-1,-1)
+      +              A0pp(iii-1,jjj,kkk-1) * p(-1,-1, 0)
+      +              Appp(iii-1,jjj,kkk-1) * p( 0,-1, 0);
+    ap(0,0,-1) =
+                     Amp0(iii,jjj,kkk-1) * p(-1,-1,-1)
+      +              A0p0(iii,jjj,kkk-1) * p( 0,-1,-1)
+      +              App0(iii,jjj,kkk-1) * p(+1,-1,-1)
+      +              Ampp(iii,jjj,kkk-1) * p(-1,-1, 0)
+      +              A0pp(iii,jjj,kkk-1) * p( 0,-1, 0)
+      +              Appp(iii,jjj,kkk-1) * p(+1,-1, 0);
+    ap(1,0,-1) =
+                     Amp0(iii+1,jjj,kkk-1) * p( 0,-1,-1)
+      +              A0p0(iii+1,jjj,kkk-1) * p(+1,-1,-1)
+      +              Ampp(iii+1,jjj,kkk-1) * p( 0,-1, 0)
+      +              A0pp(iii+1,jjj,kkk-1) * p(+1,-1, 0);
+    ap(-1,1,-1) =
+                     A000(iii-1,jjj+1,kkk-1) * p(-1,-1,-1)
+      +              Ap00(iii-1,jjj+1,kkk-1) * p( 0,-1,-1)
+      +              A0p0(iii-1,jjj+1,kkk-1) * p(-1, 0,-1)
+      +              App0(iii-1,jjj+1,kkk-1) * p( 0, 0,-1)
+      +              A00p(iii-1,jjj+1,kkk-1) * p(-1,-1, 0)
+      +              Ap0p(iii-1,jjj+1,kkk-1) * p( 0,-1, 0)
+      +              A0pp(iii-1,jjj+1,kkk-1) * p(-1, 0, 0)
+      +              Appp(iii-1,jjj+1,kkk-1) * p( 0, 0, 0);
+    ap(0,1,-1) =
+                     Am00(iii,jjj+1,kkk-1) * p(-1,-1,-1)
+      +              A000(iii,jjj+1,kkk-1) * p( 0,-1,-1)
+      +              Ap00(iii,jjj+1,kkk-1) * p(+1,-1,-1)
+      +              Amp0(iii,jjj+1,kkk-1) * p(-1, 0,-1)
+      +              A0p0(iii,jjj+1,kkk-1) * p( 0, 0,-1)
+      +              App0(iii,jjj+1,kkk-1) * p(+1, 0,-1)
+      +              Am0p(iii,jjj+1,kkk-1) * p(-1,-1, 0)
+      +              A00p(iii,jjj+1,kkk-1) * p( 0,-1, 0)
+      +              Ap0p(iii,jjj+1,kkk-1) * p(+1,-1, 0)
+      +              Ampp(iii,jjj+1,kkk-1) * p(-1, 0, 0)
+      +              A0pp(iii,jjj+1,kkk-1) * p( 0, 0, 0)
+      +              Appp(iii,jjj+1,kkk-1) * p(+1, 0, 0);
+    ap(1,1,-1) =
+                     Am00(iii+1,jjj+1,kkk-1) * p( 0,-1,-1)
+      +              A000(iii+1,jjj+1,kkk-1) * p(+1,-1,-1)
+      +              Amp0(iii+1,jjj+1,kkk-1) * p( 0, 0,-1)
+      +              A0p0(iii+1,jjj+1,kkk-1) * p(+1, 0,-1)
+      +              Am0p(iii+1,jjj+1,kkk-1) * p( 0,-1, 0)
+      +              A00p(iii+1,jjj+1,kkk-1) * p(+1,-1, 0)
+      +              Ampp(iii+1,jjj+1,kkk-1) * p( 0, 0, 0)
+      +              A0pp(iii+1,jjj+1,kkk-1) * p(+1, 0, 0);
+    ap(-1,0,0) =
+                     A0pm(iii-1,jjj,kkk) * p(-1,-1,-1)
+      +              Appm(iii-1,jjj,kkk) * p( 0,-1,-1)
+      +              A0p0(iii-1,jjj,kkk) * p(-1,-1, 0)
+      +              App0(iii-1,jjj,kkk) * p( 0,-1, 0)
+      +              A0pp(iii-1,jjj,kkk) * p(-1,-1,+1)
+      +              Appp(iii-1,jjj,kkk) * p( 0,-1,+1);
+    ap(0,0,0) =
+                     Ampm(iii,jjj,kkk) * p(-1,-1,-1)
+      +              A0pm(iii,jjj,kkk) * p( 0,-1,-1)
+      +              Appm(iii,jjj,kkk) * p(+1,-1,-1)
+      +              Amp0(iii,jjj,kkk) * p(-1,-1, 0)
+      +              A0p0(iii,jjj,kkk) * p( 0,-1, 0)
+      +              App0(iii,jjj,kkk) * p(+1,-1, 0)
+      +              Ampp(iii,jjj,kkk) * p(-1,-1,+1)
+      +              A0pp(iii,jjj,kkk) * p( 0,-1,+1)
+      +              Appp(iii,jjj,kkk) * p(+1,-1,+1);
+    ap(1,0,0) =
+                     Ampm(iii+1,jjj,kkk) * p( 0,-1,-1)
+      +              A0pm(iii+1,jjj,kkk) * p(+1,-1,-1)
+      +              Amp0(iii+1,jjj,kkk) * p( 0,-1, 0)
+      +              A0p0(iii+1,jjj,kkk) * p(+1,-1, 0)
+      +              Ampp(iii+1,jjj,kkk) * p( 0,-1,+1)
+      +              A0pp(iii+1,jjj,kkk) * p(+1,-1,+1);
+    ap(-1,1,0) =
+                     A00m(iii-1,jjj+1,kkk) * p(-1,-1,-1)
+      +              Ap0m(iii-1,jjj+1,kkk) * p( 0,-1,-1)
+      +              A0pm(iii-1,jjj+1,kkk) * p(-1, 0,-1)
+      +              Appm(iii-1,jjj+1,kkk) * p( 0, 0,-1)
+      +              A000(iii-1,jjj+1,kkk) * p(-1,-1, 0)
+      +              Ap00(iii-1,jjj+1,kkk) * p( 0,-1, 0)
+      +              A0p0(iii-1,jjj+1,kkk) * p(-1, 0, 0)
+      +              App0(iii-1,jjj+1,kkk) * p( 0, 0, 0)
+      +              A00p(iii-1,jjj+1,kkk) * p(-1,-1,+1)
+      +              Ap0p(iii-1,jjj+1,kkk) * p( 0,-1,+1)
+      +              A0pp(iii-1,jjj+1,kkk) * p(-1, 0,+1)
+      +              Appp(iii-1,jjj+1,kkk) * p( 0, 0,+1);
+    ap(0,1,0) =
+                     Am0m(iii,jjj+1,kkk) * p(-1,-1,-1)
+      +              A00m(iii,jjj+1,kkk) * p( 0,-1,-1)
+      +              Ap0m(iii,jjj+1,kkk) * p(+1,-1,-1)
+      +              Ampm(iii,jjj+1,kkk) * p(-1, 0,-1)
+      +              A0pm(iii,jjj+1,kkk) * p( 0, 0,-1)
+      +              Appm(iii,jjj+1,kkk) * p(+1, 0,-1)
+      +              Am00(iii,jjj+1,kkk) * p(-1,-1, 0)
+      +              A000(iii,jjj+1,kkk) * p( 0,-1, 0)
+      +              Ap00(iii,jjj+1,kkk) * p(+1,-1, 0)
+      +              Amp0(iii,jjj+1,kkk) * p(-1, 0, 0)
+      +              A0p0(iii,jjj+1,kkk) * p( 0, 0, 0)
+      +              App0(iii,jjj+1,kkk) * p(+1, 0, 0)
+      +              Am0p(iii,jjj+1,kkk) * p(-1,-1,+1)
+      +              A00p(iii,jjj+1,kkk) * p( 0,-1,+1)
+      +              Ap0p(iii,jjj+1,kkk) * p(+1,-1,+1)
+      +              Ampp(iii,jjj+1,kkk) * p(-1, 0,+1)
+      +              A0pp(iii,jjj+1,kkk) * p( 0, 0,+1)
+      +              Appp(iii,jjj+1,kkk) * p(+1, 0,+1);
+    ap(1,1,0) =
+                     Am0m(iii+1,jjj+1,kkk) * p( 0,-1,-1)
+      +              A00m(iii+1,jjj+1,kkk) * p(+1,-1,-1)
+      +              Ampm(iii+1,jjj+1,kkk) * p( 0, 0,-1)
+      +              A0pm(iii+1,jjj+1,kkk) * p(+1, 0,-1)
+      +              Am00(iii+1,jjj+1,kkk) * p( 0,-1, 0)
+      +              A000(iii+1,jjj+1,kkk) * p(+1,-1, 0)
+      +              Amp0(iii+1,jjj+1,kkk) * p( 0, 0, 0)
+      +              A0p0(iii+1,jjj+1,kkk) * p(+1, 0, 0)
+      +              Am0p(iii+1,jjj+1,kkk) * p( 0,-1,+1)
+      +              A00p(iii+1,jjj+1,kkk) * p(+1,-1,+1)
+      +              Ampp(iii+1,jjj+1,kkk) * p( 0, 0,+1)
+      +              A0pp(iii+1,jjj+1,kkk) * p(+1, 0,+1);
+    ap(-1,0,1) =
+                     A0pm(iii-1,jjj,kkk+1) * p(-1,-1, 0)
+      +              Appm(iii-1,jjj,kkk+1) * p( 0,-1, 0)
+      +              A0p0(iii-1,jjj,kkk+1) * p(-1,-1,+1)
+      +              App0(iii-1,jjj,kkk+1) * p( 0,-1,+1);
+    ap(0,0,1) =
+                     Ampm(iii,jjj,kkk+1) * p(-1,-1, 0)
+      +              A0pm(iii,jjj,kkk+1) * p( 0,-1, 0)
+      +              Appm(iii,jjj,kkk+1) * p(+1,-1, 0)
+      +              Amp0(iii,jjj,kkk+1) * p(-1,-1,+1)
+      +              A0p0(iii,jjj,kkk+1) * p( 0,-1,+1)
+      +              App0(iii,jjj,kkk+1) * p(+1,-1,+1);
+    ap(1,0,1) =
+                     Ampm(iii+1,jjj,kkk+1) * p( 0,-1, 0)
+      +              A0pm(iii+1,jjj,kkk+1) * p(+1,-1, 0)
+      +              Amp0(iii+1,jjj,kkk+1) * p( 0,-1,+1)
+      +              A0p0(iii+1,jjj,kkk+1) * p(+1,-1,+1);
+    ap(-1,1,1) =
+                     A00m(iii-1,jjj+1,kkk+1) * p(-1,-1, 0)
+      +              Ap0m(iii-1,jjj+1,kkk+1) * p( 0,-1, 0)
+      +              A0pm(iii-1,jjj+1,kkk+1) * p(-1, 0, 0)
+      +              Appm(iii-1,jjj+1,kkk+1) * p( 0, 0, 0)
+      +              A000(iii-1,jjj+1,kkk+1) * p(-1,-1,+1)
+      +              Ap00(iii-1,jjj+1,kkk+1) * p( 0,-1,+1)
+      +              A0p0(iii-1,jjj+1,kkk+1) * p(-1, 0,+1)
+      +              App0(iii-1,jjj+1,kkk+1) * p( 0, 0,+1);
+    ap(0,1,1) =
+                     Am0m(iii,jjj+1,kkk+1) * p(-1,-1, 0)
+      +              A00m(iii,jjj+1,kkk+1) * p( 0,-1, 0)
+      +              Ap0m(iii,jjj+1,kkk+1) * p(+1,-1, 0)
+      +              Ampm(iii,jjj+1,kkk+1) * p(-1, 0, 0)
+      +              A0pm(iii,jjj+1,kkk+1) * p( 0, 0, 0)
+      +              Appm(iii,jjj+1,kkk+1) * p(+1, 0, 0)
+      +              Am00(iii,jjj+1,kkk+1) * p(-1,-1,+1)
+      +              A000(iii,jjj+1,kkk+1) * p( 0,-1,+1)
+      +              Ap00(iii,jjj+1,kkk+1) * p(+1,-1,+1)
+      +              Amp0(iii,jjj+1,kkk+1) * p(-1, 0,+1)
+      +              A0p0(iii,jjj+1,kkk+1) * p( 0, 0,+1)
+      +              App0(iii,jjj+1,kkk+1) * p(+1, 0,+1);
+    ap(1,1,1) =
+                     Am0m(iii+1,jjj+1,kkk+1) * p( 0,-1, 0)
+      +              A00m(iii+1,jjj+1,kkk+1) * p(+1,-1, 0)
+      +              Ampm(iii+1,jjj+1,kkk+1) * p( 0, 0, 0)
+      +              A0pm(iii+1,jjj+1,kkk+1) * p(+1, 0, 0)
+      +              Am00(iii+1,jjj+1,kkk+1) * p( 0,-1,+1)
+      +              A000(iii+1,jjj+1,kkk+1) * p(+1,-1,+1)
+      +              Amp0(iii+1,jjj+1,kkk+1) * p( 0, 0,+1)
+      +              A0p0(iii+1,jjj+1,kkk+1) * p(+1, 0,+1);
+    csten(i,j,k,ist_0p0) = 0.125_rt *
+      ( restrict_from_m0m_to(iii,jjj,kkk) * ap(-1, 0,-1)
+      + restrict_from_00m_to(iii,jjj,kkk) * ap( 0, 0,-1)
+      + restrict_from_p0m_to(iii,jjj,kkk) * ap(+1, 0,-1)
+      + restrict_from_mpm_to(iii,jjj,kkk) * ap(-1,+1,-1)
+      + restrict_from_0pm_to(iii,jjj,kkk) * ap( 0,+1,-1)
+      + restrict_from_ppm_to(iii,jjj,kkk) * ap(+1,+1,-1)
+      + restrict_from_m00_to(iii,jjj,kkk) * ap(-1, 0, 0)
+      + restrict_from_000_to(iii,jjj,kkk) * ap( 0, 0, 0)
+      + restrict_from_p00_to(iii,jjj,kkk) * ap(+1, 0, 0)
+      + restrict_from_mp0_to(iii,jjj,kkk) * ap(-1,+1, 0)
+      + restrict_from_0p0_to(iii,jjj,kkk) * ap( 0,+1, 0)
+      + restrict_from_pp0_to(iii,jjj,kkk) * ap(+1,+1, 0)
+      + restrict_from_m0p_to(iii,jjj,kkk) * ap(-1, 0,+1)
+      + restrict_from_00p_to(iii,jjj,kkk) * ap( 0, 0,+1)
+      + restrict_from_p0p_to(iii,jjj,kkk) * ap(+1, 0,+1)
+      + restrict_from_mpp_to(iii,jjj,kkk) * ap(-1,+1,+1)
+      + restrict_from_0pp_to(iii,jjj,kkk) * ap( 0,+1,+1)
+      + restrict_from_ppp_to(iii,jjj,kkk) * ap(+1,+1,+1));
+
+    // csten(i,j,k,ist_00p)
+    iii = ii;
+    jjj = jj;
+    kkk = kk;
+    p(-1,-1,-1) = interp_from_ppp_to(iii-1,jjj-1,kkk+1);
+    p( 0,-1,-1) = interp_from_0pp_to(iii  ,jjj-1,kkk+1);
+    p(+1,-1,-1) = interp_from_mpp_to(iii+1,jjj-1,kkk+1);
+    p(-1, 0,-1) = interp_from_p0p_to(iii-1,jjj  ,kkk+1);
+    p( 0, 0,-1) = interp_from_00p_to(iii  ,jjj  ,kkk+1);
+    p(+1, 0,-1) = interp_from_m0p_to(iii+1,jjj  ,kkk+1);
+    p(-1,+1,-1) = interp_from_pmp_to(iii-1,jjj+1,kkk+1);
+    p( 0,+1,-1) = interp_from_0mp_to(iii  ,jjj+1,kkk+1);
+    p(+1,+1,-1) = interp_from_mmp_to(iii+1,jjj+1,kkk+1);
+    p(-1,-1, 0) = interp_from_pp0_to(iii-1,jjj-1,kkk+2);
+    p( 0,-1, 0) = interp_from_0p0_to(iii  ,jjj-1,kkk+2);
+    p(+1,-1, 0) = interp_from_mp0_to(iii+1,jjj-1,kkk+2);
+    p(-1, 0, 0) = interp_from_p00_to(iii-1,jjj  ,kkk+2);
+    p( 0, 0, 0) = 1._rt;
+    p(+1, 0, 0) = interp_from_m00_to(iii+1,jjj  ,kkk+2);
+    p(-1,+1, 0) = interp_from_pm0_to(iii-1,jjj+1,kkk+2);
+    p( 0,+1, 0) = interp_from_0m0_to(iii  ,jjj+1,kkk+2);
+    p(+1,+1, 0) = interp_from_mm0_to(iii+1,jjj+1,kkk+2);
+    ap(-1,-1,0) =
+                     A00p(iii-1,jjj-1,kkk) * p(-1,-1,-1)
+      +              Ap0p(iii-1,jjj-1,kkk) * p( 0,-1,-1)
+      +              A0pp(iii-1,jjj-1,kkk) * p(-1, 0,-1)
+      +              Appp(iii-1,jjj-1,kkk) * p( 0, 0,-1);
+    ap(0,-1,0) =
+                     Am0p(iii,jjj-1,kkk) * p(-1,-1,-1)
+      +              A00p(iii,jjj-1,kkk) * p( 0,-1,-1)
+      +              Ap0p(iii,jjj-1,kkk) * p(+1,-1,-1)
+      +              Ampp(iii,jjj-1,kkk) * p(-1, 0,-1)
+      +              A0pp(iii,jjj-1,kkk) * p( 0, 0,-1)
+      +              Appp(iii,jjj-1,kkk) * p(+1, 0,-1);
+    ap(1,-1,0) =
+                     Am0p(iii+1,jjj-1,kkk) * p( 0,-1,-1)
+      +              A00p(iii+1,jjj-1,kkk) * p(+1,-1,-1)
+      +              Ampp(iii+1,jjj-1,kkk) * p( 0, 0,-1)
+      +              A0pp(iii+1,jjj-1,kkk) * p(+1, 0,-1);
+    ap(-1,0,0) =
+                     A0mp(iii-1,jjj,kkk) * p(-1,-1,-1)
+      +              Apmp(iii-1,jjj,kkk) * p( 0,-1,-1)
+      +              A00p(iii-1,jjj,kkk) * p(-1, 0,-1)
+      +              Ap0p(iii-1,jjj,kkk) * p( 0, 0,-1)
+      +              A0pp(iii-1,jjj,kkk) * p(-1,+1,-1)
+      +              Appp(iii-1,jjj,kkk) * p( 0,+1,-1);
+    ap(0,0,0) =
+                     Ammp(iii,jjj,kkk) * p(-1,-1,-1)
+      +              A0mp(iii,jjj,kkk) * p( 0,-1,-1)
+      +              Apmp(iii,jjj,kkk) * p(+1,-1,-1)
+      +              Am0p(iii,jjj,kkk) * p(-1, 0,-1)
+      +              A00p(iii,jjj,kkk) * p( 0, 0,-1)
+      +              Ap0p(iii,jjj,kkk) * p(+1, 0,-1)
+      +              Ampp(iii,jjj,kkk) * p(-1,+1,-1)
+      +              A0pp(iii,jjj,kkk) * p( 0,+1,-1)
+      +              Appp(iii,jjj,kkk) * p(+1,+1,-1);
+    ap(1,0,0) =
+                     Ammp(iii+1,jjj,kkk) * p( 0,-1,-1)
+      +              A0mp(iii+1,jjj,kkk) * p(+1,-1,-1)
+      +              Am0p(iii+1,jjj,kkk) * p( 0, 0,-1)
+      +              A00p(iii+1,jjj,kkk) * p(+1, 0,-1)
+      +              Ampp(iii+1,jjj,kkk) * p( 0,+1,-1)
+      +              A0pp(iii+1,jjj,kkk) * p(+1,+1,-1);
+    ap(-1,1,0) =
+                     A0mp(iii-1,jjj+1,kkk) * p(-1, 0,-1)
+      +              Apmp(iii-1,jjj+1,kkk) * p( 0, 0,-1)
+      +              A00p(iii-1,jjj+1,kkk) * p(-1,+1,-1)
+      +              Ap0p(iii-1,jjj+1,kkk) * p( 0,+1,-1);
+    ap(0,1,0) =
+                     Ammp(iii,jjj+1,kkk) * p(-1, 0,-1)
+      +              A0mp(iii,jjj+1,kkk) * p( 0, 0,-1)
+      +              Apmp(iii,jjj+1,kkk) * p(+1, 0,-1)
+      +              Am0p(iii,jjj+1,kkk) * p(-1,+1,-1)
+      +              A00p(iii,jjj+1,kkk) * p( 0,+1,-1)
+      +              Ap0p(iii,jjj+1,kkk) * p(+1,+1,-1);
+    ap(1,1,0) =
+                     Ammp(iii+1,jjj+1,kkk) * p( 0, 0,-1)
+      +              A0mp(iii+1,jjj+1,kkk) * p(+1, 0,-1)
+      +              Am0p(iii+1,jjj+1,kkk) * p( 0,+1,-1)
+      +              A00p(iii+1,jjj+1,kkk) * p(+1,+1,-1);
+    ap(-1,-1,1) =
+                     A000(iii-1,jjj-1,kkk+1) * p(-1,-1,-1)
+      +              Ap00(iii-1,jjj-1,kkk+1) * p( 0,-1,-1)
+      +              A0p0(iii-1,jjj-1,kkk+1) * p(-1, 0,-1)
+      +              App0(iii-1,jjj-1,kkk+1) * p( 0, 0,-1)
+      +              A00p(iii-1,jjj-1,kkk+1) * p(-1,-1, 0)
+      +              Ap0p(iii-1,jjj-1,kkk+1) * p( 0,-1, 0)
+      +              A0pp(iii-1,jjj-1,kkk+1) * p(-1, 0, 0)
+      +              Appp(iii-1,jjj-1,kkk+1) * p( 0, 0, 0);
+    ap(0,-1,1) =
+                     Am00(iii,jjj-1,kkk+1) * p(-1,-1,-1)
+      +              A000(iii,jjj-1,kkk+1) * p( 0,-1,-1)
+      +              Ap00(iii,jjj-1,kkk+1) * p(+1,-1,-1)
+      +              Amp0(iii,jjj-1,kkk+1) * p(-1, 0,-1)
+      +              A0p0(iii,jjj-1,kkk+1) * p( 0, 0,-1)
+      +              App0(iii,jjj-1,kkk+1) * p(+1, 0,-1)
+      +              Am0p(iii,jjj-1,kkk+1) * p(-1,-1, 0)
+      +              A00p(iii,jjj-1,kkk+1) * p( 0,-1, 0)
+      +              Ap0p(iii,jjj-1,kkk+1) * p(+1,-1, 0)
+      +              Ampp(iii,jjj-1,kkk+1) * p(-1, 0, 0)
+      +              A0pp(iii,jjj-1,kkk+1) * p( 0, 0, 0)
+      +              Appp(iii,jjj-1,kkk+1) * p(+1, 0, 0);
+    ap(1,-1,1) =
+                     Am00(iii+1,jjj-1,kkk+1) * p( 0,-1,-1)
+      +              A000(iii+1,jjj-1,kkk+1) * p(+1,-1,-1)
+      +              Amp0(iii+1,jjj-1,kkk+1) * p( 0, 0,-1)
+      +              A0p0(iii+1,jjj-1,kkk+1) * p(+1, 0,-1)
+      +              Am0p(iii+1,jjj-1,kkk+1) * p( 0,-1, 0)
+      +              A00p(iii+1,jjj-1,kkk+1) * p(+1,-1, 0)
+      +              Ampp(iii+1,jjj-1,kkk+1) * p( 0, 0, 0)
+      +              A0pp(iii+1,jjj-1,kkk+1) * p(+1, 0, 0);
+    ap(-1,0,1) =
+                     A0m0(iii-1,jjj,kkk+1) * p(-1,-1,-1)
+      +              Apm0(iii-1,jjj,kkk+1) * p( 0,-1,-1)
+      +              A000(iii-1,jjj,kkk+1) * p(-1, 0,-1)
+      +              Ap00(iii-1,jjj,kkk+1) * p( 0, 0,-1)
+      +              A0p0(iii-1,jjj,kkk+1) * p(-1,+1,-1)
+      +              App0(iii-1,jjj,kkk+1) * p( 0,+1,-1)
+      +              A0mp(iii-1,jjj,kkk+1) * p(-1,-1, 0)
+      +              Apmp(iii-1,jjj,kkk+1) * p( 0,-1, 0)
+      +              A00p(iii-1,jjj,kkk+1) * p(-1, 0, 0)
+      +              Ap0p(iii-1,jjj,kkk+1) * p( 0, 0, 0)
+      +              A0pp(iii-1,jjj,kkk+1) * p(-1,+1, 0)
+      +              Appp(iii-1,jjj,kkk+1) * p( 0,+1, 0);
+    ap(0,0,1) =
+                     Amm0(iii,jjj,kkk+1) * p(-1,-1,-1)
+      +              A0m0(iii,jjj,kkk+1) * p( 0,-1,-1)
+      +              Apm0(iii,jjj,kkk+1) * p(+1,-1,-1)
+      +              Am00(iii,jjj,kkk+1) * p(-1, 0,-1)
+      +              A000(iii,jjj,kkk+1) * p( 0, 0,-1)
+      +              Ap00(iii,jjj,kkk+1) * p(+1, 0,-1)
+      +              Amp0(iii,jjj,kkk+1) * p(-1,+1,-1)
+      +              A0p0(iii,jjj,kkk+1) * p( 0,+1,-1)
+      +              App0(iii,jjj,kkk+1) * p(+1,+1,-1)
+      +              Ammp(iii,jjj,kkk+1) * p(-1,-1, 0)
+      +              A0mp(iii,jjj,kkk+1) * p( 0,-1, 0)
+      +              Apmp(iii,jjj,kkk+1) * p(+1,-1, 0)
+      +              Am0p(iii,jjj,kkk+1) * p(-1, 0, 0)
+      +              A00p(iii,jjj,kkk+1) * p( 0, 0, 0)
+      +              Ap0p(iii,jjj,kkk+1) * p(+1, 0, 0)
+      +              Ampp(iii,jjj,kkk+1) * p(-1,+1, 0)
+      +              A0pp(iii,jjj,kkk+1) * p( 0,+1, 0)
+      +              Appp(iii,jjj,kkk+1) * p(+1,+1, 0);
+    ap(1,0,1) =
+                     Amm0(iii+1,jjj,kkk+1) * p( 0,-1,-1)
+      +              A0m0(iii+1,jjj,kkk+1) * p(+1,-1,-1)
+      +              Am00(iii+1,jjj,kkk+1) * p( 0, 0,-1)
+      +              A000(iii+1,jjj,kkk+1) * p(+1, 0,-1)
+      +              Amp0(iii+1,jjj,kkk+1) * p( 0,+1,-1)
+      +              A0p0(iii+1,jjj,kkk+1) * p(+1,+1,-1)
+      +              Ammp(iii+1,jjj,kkk+1) * p( 0,-1, 0)
+      +              A0mp(iii+1,jjj,kkk+1) * p(+1,-1, 0)
+      +              Am0p(iii+1,jjj,kkk+1) * p( 0, 0, 0)
+      +              A00p(iii+1,jjj,kkk+1) * p(+1, 0, 0)
+      +              Ampp(iii+1,jjj,kkk+1) * p( 0,+1, 0)
+      +              A0pp(iii+1,jjj,kkk+1) * p(+1,+1, 0);
+    ap(-1,1,1) =
+                     A0m0(iii-1,jjj+1,kkk+1) * p(-1, 0,-1)
+      +              Apm0(iii-1,jjj+1,kkk+1) * p( 0, 0,-1)
+      +              A000(iii-1,jjj+1,kkk+1) * p(-1,+1,-1)
+      +              Ap00(iii-1,jjj+1,kkk+1) * p( 0,+1,-1)
+      +              A0mp(iii-1,jjj+1,kkk+1) * p(-1, 0, 0)
+      +              Apmp(iii-1,jjj+1,kkk+1) * p( 0, 0, 0)
+      +              A00p(iii-1,jjj+1,kkk+1) * p(-1,+1, 0)
+      +              Ap0p(iii-1,jjj+1,kkk+1) * p( 0,+1, 0);
+    ap(0,1,1) =
+                     Amm0(iii,jjj+1,kkk+1) * p(-1, 0,-1)
+      +              A0m0(iii,jjj+1,kkk+1) * p( 0, 0,-1)
+      +              Apm0(iii,jjj+1,kkk+1) * p(+1, 0,-1)
+      +              Am00(iii,jjj+1,kkk+1) * p(-1,+1,-1)
+      +              A000(iii,jjj+1,kkk+1) * p( 0,+1,-1)
+      +              Ap00(iii,jjj+1,kkk+1) * p(+1,+1,-1)
+      +              Ammp(iii,jjj+1,kkk+1) * p(-1, 0, 0)
+      +              A0mp(iii,jjj+1,kkk+1) * p( 0, 0, 0)
+      +              Apmp(iii,jjj+1,kkk+1) * p(+1, 0, 0)
+      +              Am0p(iii,jjj+1,kkk+1) * p(-1,+1, 0)
+      +              A00p(iii,jjj+1,kkk+1) * p( 0,+1, 0)
+      +              Ap0p(iii,jjj+1,kkk+1) * p(+1,+1, 0);
+    ap(1,1,1) =
+                     Amm0(iii+1,jjj+1,kkk+1) * p( 0, 0,-1)
+      +              A0m0(iii+1,jjj+1,kkk+1) * p(+1, 0,-1)
+      +              Am00(iii+1,jjj+1,kkk+1) * p( 0,+1,-1)
+      +              A000(iii+1,jjj+1,kkk+1) * p(+1,+1,-1)
+      +              Ammp(iii+1,jjj+1,kkk+1) * p( 0, 0, 0)
+      +              A0mp(iii+1,jjj+1,kkk+1) * p(+1, 0, 0)
+      +              Am0p(iii+1,jjj+1,kkk+1) * p( 0,+1, 0)
+      +              A00p(iii+1,jjj+1,kkk+1) * p(+1,+1, 0);
+    csten(i,j,k,ist_00p) = 0.125_rt *
+      ( restrict_from_mm0_to(iii,jjj,kkk) * ap(-1,-1, 0)
+      + restrict_from_0m0_to(iii,jjj,kkk) * ap( 0,-1, 0)
+      + restrict_from_pm0_to(iii,jjj,kkk) * ap(+1,-1, 0)
+      + restrict_from_m00_to(iii,jjj,kkk) * ap(-1, 0, 0)
+      + restrict_from_000_to(iii,jjj,kkk) * ap( 0, 0, 0)
+      + restrict_from_p00_to(iii,jjj,kkk) * ap(+1, 0, 0)
+      + restrict_from_mp0_to(iii,jjj,kkk) * ap(-1,+1, 0)
+      + restrict_from_0p0_to(iii,jjj,kkk) * ap( 0,+1, 0)
+      + restrict_from_pp0_to(iii,jjj,kkk) * ap(+1,+1, 0)
+      + restrict_from_mmp_to(iii,jjj,kkk) * ap(-1,-1,+1)
+      + restrict_from_0mp_to(iii,jjj,kkk) * ap( 0,-1,+1)
+      + restrict_from_pmp_to(iii,jjj,kkk) * ap(+1,-1,+1)
+      + restrict_from_m0p_to(iii,jjj,kkk) * ap(-1, 0,+1)
+      + restrict_from_00p_to(iii,jjj,kkk) * ap( 0, 0,+1)
+      + restrict_from_p0p_to(iii,jjj,kkk) * ap(+1, 0,+1)
+      + restrict_from_mpp_to(iii,jjj,kkk) * ap(-1,+1,+1)
+      + restrict_from_0pp_to(iii,jjj,kkk) * ap( 0,+1,+1)
+      + restrict_from_ppp_to(iii,jjj,kkk) * ap(+1,+1,+1));
+
+    // csten(i,j,k,ist_pp0)
+    iii = ii;
+    jjj = jj;
+    kkk = kk;
+    p(-1,-1,-1) = interp_from_ppp_to(iii+1,jjj+1,kkk-1);
+    p( 0,-1,-1) = interp_from_0pp_to(iii+2,jjj+1,kkk-1);
+    p(-1, 0,-1) = interp_from_p0p_to(iii+1,jjj+2,kkk-1);
+    p( 0, 0,-1) = interp_from_00p_to(iii+2,jjj+2,kkk-1);
+    p(-1,-1, 0) = interp_from_pp0_to(iii+1,jjj+1,kkk  );
+    p( 0,-1, 0) = interp_from_0p0_to(iii+2,jjj+1,kkk  );
+    p(-1, 0, 0) = interp_from_p00_to(iii+1,jjj+2,kkk  );
+    p( 0, 0, 0) = 1._rt;
+    p(-1,-1,+1) = interp_from_ppm_to(iii+1,jjj+1,kkk+1);
+    p( 0,-1,+1) = interp_from_0pm_to(iii+2,jjj+1,kkk+1);
+    p(-1, 0,+1) = interp_from_p0m_to(iii+1,jjj+2,kkk+1);
+    p( 0, 0,+1) = interp_from_00m_to(iii+2,jjj+2,kkk+1);
+    ap(0,0,-1) =
+                     App0(iii,jjj,kkk-1) * p(-1,-1,-1)
+      +              Appp(iii,jjj,kkk-1) * p(-1,-1, 0);
+    ap(1,0,-1) =
+                     A0p0(iii+1,jjj,kkk-1) * p(-1,-1,-1)
+      +              App0(iii+1,jjj,kkk-1) * p( 0,-1,-1)
+      +              A0pp(iii+1,jjj,kkk-1) * p(-1,-1, 0)
+      +              Appp(iii+1,jjj,kkk-1) * p( 0,-1, 0);
+    ap(0,1,-1) =
+                     Ap00(iii,jjj+1,kkk-1) * p(-1,-1,-1)
+      +              App0(iii,jjj+1,kkk-1) * p(-1, 0,-1)
+      +              Ap0p(iii,jjj+1,kkk-1) * p(-1,-1, 0)
+      +              Appp(iii,jjj+1,kkk-1) * p(-1, 0, 0);
+    ap(1,1,-1) =
+                     A000(iii+1,jjj+1,kkk-1) * p(-1,-1,-1)
+      +              Ap00(iii+1,jjj+1,kkk-1) * p( 0,-1,-1)
+      +              A0p0(iii+1,jjj+1,kkk-1) * p(-1, 0,-1)
+      +              App0(iii+1,jjj+1,kkk-1) * p( 0, 0,-1)
+      +              A00p(iii+1,jjj+1,kkk-1) * p(-1,-1, 0)
+      +              Ap0p(iii+1,jjj+1,kkk-1) * p( 0,-1, 0)
+      +              A0pp(iii+1,jjj+1,kkk-1) * p(-1, 0, 0)
+      +              Appp(iii+1,jjj+1,kkk-1) * p( 0, 0, 0);
+    ap(0,0,0) =
+                     Appm(iii,jjj,kkk) * p(-1,-1,-1)
+      +              App0(iii,jjj,kkk) * p(-1,-1, 0)
+      +              Appp(iii,jjj,kkk) * p(-1,-1,+1);
+    ap(1,0,0) =
+                     A0pm(iii+1,jjj,kkk) * p(-1,-1,-1)
+      +              Appm(iii+1,jjj,kkk) * p( 0,-1,-1)
+      +              A0p0(iii+1,jjj,kkk) * p(-1,-1, 0)
+      +              App0(iii+1,jjj,kkk) * p( 0,-1, 0)
+      +              A0pp(iii+1,jjj,kkk) * p(-1,-1,+1)
+      +              Appp(iii+1,jjj,kkk) * p( 0,-1,+1);
+    ap(0,1,0) =
+                     Ap0m(iii,jjj+1,kkk) * p(-1,-1,-1)
+      +              Appm(iii,jjj+1,kkk) * p(-1, 0,-1)
+      +              Ap00(iii,jjj+1,kkk) * p(-1,-1, 0)
+      +              App0(iii,jjj+1,kkk) * p(-1, 0, 0)
+      +              Ap0p(iii,jjj+1,kkk) * p(-1,-1,+1)
+      +              Appp(iii,jjj+1,kkk) * p(-1, 0,+1);
+    ap(1,1,0) =
+                     A00m(iii+1,jjj+1,kkk) * p(-1,-1,-1)
+      +              Ap0m(iii+1,jjj+1,kkk) * p( 0,-1,-1)
+      +              A0pm(iii+1,jjj+1,kkk) * p(-1, 0,-1)
+      +              Appm(iii+1,jjj+1,kkk) * p( 0, 0,-1)
+      +              A000(iii+1,jjj+1,kkk) * p(-1,-1, 0)
+      +              Ap00(iii+1,jjj+1,kkk) * p( 0,-1, 0)
+      +              A0p0(iii+1,jjj+1,kkk) * p(-1, 0, 0)
+      +              App0(iii+1,jjj+1,kkk) * p( 0, 0, 0)
+      +              A00p(iii+1,jjj+1,kkk) * p(-1,-1,+1)
+      +              Ap0p(iii+1,jjj+1,kkk) * p( 0,-1,+1)
+      +              A0pp(iii+1,jjj+1,kkk) * p(-1, 0,+1)
+      +              Appp(iii+1,jjj+1,kkk) * p( 0, 0,+1);
+    ap(0,0,1) =
+                     Appm(iii,jjj,kkk+1) * p(-1,-1, 0)
+      +              App0(iii,jjj,kkk+1) * p(-1,-1,+1);
+    ap(1,0,1) =
+                     A0pm(iii+1,jjj,kkk+1) * p(-1,-1, 0)
+      +              Appm(iii+1,jjj,kkk+1) * p( 0,-1, 0)
+      +              A0p0(iii+1,jjj,kkk+1) * p(-1,-1,+1)
+      +              App0(iii+1,jjj,kkk+1) * p( 0,-1,+1);
+    ap(0,1,1) =
+                     Ap0m(iii,jjj+1,kkk+1) * p(-1,-1, 0)
+      +              Appm(iii,jjj+1,kkk+1) * p(-1, 0, 0)
+      +              Ap00(iii,jjj+1,kkk+1) * p(-1,-1,+1)
+      +              App0(iii,jjj+1,kkk+1) * p(-1, 0,+1);
+    ap(1,1,1) =
+                     A00m(iii+1,jjj+1,kkk+1) * p(-1,-1, 0)
+      +              Ap0m(iii+1,jjj+1,kkk+1) * p( 0,-1, 0)
+      +              A0pm(iii+1,jjj+1,kkk+1) * p(-1, 0, 0)
+      +              Appm(iii+1,jjj+1,kkk+1) * p( 0, 0, 0)
+      +              A000(iii+1,jjj+1,kkk+1) * p(-1,-1,+1)
+      +              Ap00(iii+1,jjj+1,kkk+1) * p( 0,-1,+1)
+      +              A0p0(iii+1,jjj+1,kkk+1) * p(-1, 0,+1)
+      +              App0(iii+1,jjj+1,kkk+1) * p( 0, 0,+1);
+    cs1 = 0.125_rt *
+      ( restrict_from_00m_to(iii,jjj,kkk) * ap( 0, 0,-1)
+      + restrict_from_p0m_to(iii,jjj,kkk) * ap(+1, 0,-1)
+      + restrict_from_0pm_to(iii,jjj,kkk) * ap( 0,+1,-1)
+      + restrict_from_ppm_to(iii,jjj,kkk) * ap(+1,+1,-1)
+      + restrict_from_000_to(iii,jjj,kkk) * ap( 0, 0, 0)
+      + restrict_from_p00_to(iii,jjj,kkk) * ap(+1, 0, 0)
+      + restrict_from_0p0_to(iii,jjj,kkk) * ap( 0,+1, 0)
+      + restrict_from_pp0_to(iii,jjj,kkk) * ap(+1,+1, 0)
+      + restrict_from_00p_to(iii,jjj,kkk) * ap( 0, 0,+1)
+      + restrict_from_p0p_to(iii,jjj,kkk) * ap(+1, 0,+1)
+      + restrict_from_0pp_to(iii,jjj,kkk) * ap( 0,+1,+1)
+      + restrict_from_ppp_to(iii,jjj,kkk) * ap(+1,+1,+1));
+
+    // alternative: csten(i+1,j,k,ist_mp0)
+    iii = ii+2;
+    jjj = jj;
+    kkk = kk;
+    p( 0,-1,-1) = interp_from_0pp_to(iii-2,jjj+1,kkk-1);
+    p(+1,-1,-1) = interp_from_mpp_to(iii-1,jjj+1,kkk-1);
+    p( 0, 0,-1) = interp_from_00p_to(iii-2,jjj+2,kkk-1);
+    p(+1, 0,-1) = interp_from_m0p_to(iii-1,jjj+2,kkk-1);
+    p( 0,-1, 0) = interp_from_0p0_to(iii-2,jjj+1,kkk  );
+    p(+1,-1, 0) = interp_from_mp0_to(iii-1,jjj+1,kkk  );
+    p( 0, 0, 0) = 1._rt;
+    p(+1, 0, 0) = interp_from_m00_to(iii-1,jjj+2,kkk  );
+    p( 0,-1,+1) = interp_from_0pm_to(iii-2,jjj+1,kkk+1);
+    p(+1,-1,+1) = interp_from_mpm_to(iii-1,jjj+1,kkk+1);
+    p( 0, 0,+1) = interp_from_00m_to(iii-2,jjj+2,kkk+1);
+    p(+1, 0,+1) = interp_from_m0m_to(iii-1,jjj+2,kkk+1);
+    ap(-1,0,-1) =
+                     Amp0(iii-1,jjj,kkk-1) * p( 0,-1,-1)
+      +              A0p0(iii-1,jjj,kkk-1) * p(+1,-1,-1)
+      +              Ampp(iii-1,jjj,kkk-1) * p( 0,-1, 0)
+      +              A0pp(iii-1,jjj,kkk-1) * p(+1,-1, 0);
+    ap(0,0,-1) =
+                     Amp0(iii,jjj,kkk-1) * p(+1,-1,-1)
+      +              Ampp(iii,jjj,kkk-1) * p(+1,-1, 0);
+    ap(-1,1,-1) =
+                     Am00(iii-1,jjj+1,kkk-1) * p( 0,-1,-1)
+      +              A000(iii-1,jjj+1,kkk-1) * p(+1,-1,-1)
+      +              Amp0(iii-1,jjj+1,kkk-1) * p( 0, 0,-1)
+      +              A0p0(iii-1,jjj+1,kkk-1) * p(+1, 0,-1)
+      +              Am0p(iii-1,jjj+1,kkk-1) * p( 0,-1, 0)
+      +              A00p(iii-1,jjj+1,kkk-1) * p(+1,-1, 0)
+      +              Ampp(iii-1,jjj+1,kkk-1) * p( 0, 0, 0)
+      +              A0pp(iii-1,jjj+1,kkk-1) * p(+1, 0, 0);
+    ap(0,1,-1) =
+                     Am00(iii,jjj+1,kkk-1) * p(+1,-1,-1)
+      +              Amp0(iii,jjj+1,kkk-1) * p(+1, 0,-1)
+      +              Am0p(iii,jjj+1,kkk-1) * p(+1,-1, 0)
+      +              Ampp(iii,jjj+1,kkk-1) * p(+1, 0, 0);
+    ap(-1,0,0) =
+                     Ampm(iii-1,jjj,kkk) * p( 0,-1,-1)
+      +              A0pm(iii-1,jjj,kkk) * p(+1,-1,-1)
+      +              Amp0(iii-1,jjj,kkk) * p( 0,-1, 0)
+      +              A0p0(iii-1,jjj,kkk) * p(+1,-1, 0)
+      +              Ampp(iii-1,jjj,kkk) * p( 0,-1,+1)
+      +              A0pp(iii-1,jjj,kkk) * p(+1,-1,+1);
+    ap(0,0,0) =
+                     Ampm(iii,jjj,kkk) * p(+1,-1,-1)
+      +              Amp0(iii,jjj,kkk) * p(+1,-1, 0)
+      +              Ampp(iii,jjj,kkk) * p(+1,-1,+1);
+    ap(-1,1,0) =
+                     Am0m(iii-1,jjj+1,kkk) * p( 0,-1,-1)
+      +              A00m(iii-1,jjj+1,kkk) * p(+1,-1,-1)
+      +              Ampm(iii-1,jjj+1,kkk) * p( 0, 0,-1)
+      +              A0pm(iii-1,jjj+1,kkk) * p(+1, 0,-1)
+      +              Am00(iii-1,jjj+1,kkk) * p( 0,-1, 0)
+      +              A000(iii-1,jjj+1,kkk) * p(+1,-1, 0)
+      +              Amp0(iii-1,jjj+1,kkk) * p( 0, 0, 0)
+      +              A0p0(iii-1,jjj+1,kkk) * p(+1, 0, 0)
+      +              Am0p(iii-1,jjj+1,kkk) * p( 0,-1,+1)
+      +              A00p(iii-1,jjj+1,kkk) * p(+1,-1,+1)
+      +              Ampp(iii-1,jjj+1,kkk) * p( 0, 0,+1)
+      +              A0pp(iii-1,jjj+1,kkk) * p(+1, 0,+1);
+    ap(0,1,0) =
+                     Am0m(iii,jjj+1,kkk) * p(+1,-1,-1)
+      +              Ampm(iii,jjj+1,kkk) * p(+1, 0,-1)
+      +              Am00(iii,jjj+1,kkk) * p(+1,-1, 0)
+      +              Amp0(iii,jjj+1,kkk) * p(+1, 0, 0)
+      +              Am0p(iii,jjj+1,kkk) * p(+1,-1,+1)
+      +              Ampp(iii,jjj+1,kkk) * p(+1, 0,+1);
+    ap(-1,0,1) =
+                     Ampm(iii-1,jjj,kkk+1) * p( 0,-1, 0)
+      +              A0pm(iii-1,jjj,kkk+1) * p(+1,-1, 0)
+      +              Amp0(iii-1,jjj,kkk+1) * p( 0,-1,+1)
+      +              A0p0(iii-1,jjj,kkk+1) * p(+1,-1,+1);
+    ap(0,0,1) =
+                     Ampm(iii,jjj,kkk+1) * p(+1,-1, 0)
+      +              Amp0(iii,jjj,kkk+1) * p(+1,-1,+1);
+    ap(-1,1,1) =
+                     Am0m(iii-1,jjj+1,kkk+1) * p( 0,-1, 0)
+      +              A00m(iii-1,jjj+1,kkk+1) * p(+1,-1, 0)
+      +              Ampm(iii-1,jjj+1,kkk+1) * p( 0, 0, 0)
+      +              A0pm(iii-1,jjj+1,kkk+1) * p(+1, 0, 0)
+      +              Am00(iii-1,jjj+1,kkk+1) * p( 0,-1,+1)
+      +              A000(iii-1,jjj+1,kkk+1) * p(+1,-1,+1)
+      +              Amp0(iii-1,jjj+1,kkk+1) * p( 0, 0,+1)
+      +              A0p0(iii-1,jjj+1,kkk+1) * p(+1, 0,+1);
+    ap(0,1,1) =
+                     Am0m(iii,jjj+1,kkk+1) * p(+1,-1, 0)
+      +              Ampm(iii,jjj+1,kkk+1) * p(+1, 0, 0)
+      +              Am00(iii,jjj+1,kkk+1) * p(+1,-1,+1)
+      +              Amp0(iii,jjj+1,kkk+1) * p(+1, 0,+1);
+    cs2 = 0.125_rt *
+      ( restrict_from_m0m_to(iii,jjj,kkk) * ap(-1, 0,-1)
+      + restrict_from_00m_to(iii,jjj,kkk) * ap( 0, 0,-1)
+      + restrict_from_mpm_to(iii,jjj,kkk) * ap(-1,+1,-1)
+      + restrict_from_0pm_to(iii,jjj,kkk) * ap( 0,+1,-1)
+      + restrict_from_m00_to(iii,jjj,kkk) * ap(-1, 0, 0)
+      + restrict_from_000_to(iii,jjj,kkk) * ap( 0, 0, 0)
+      + restrict_from_mp0_to(iii,jjj,kkk) * ap(-1,+1, 0)
+      + restrict_from_0p0_to(iii,jjj,kkk) * ap( 0,+1, 0)
+      + restrict_from_m0p_to(iii,jjj,kkk) * ap(-1, 0,+1)
+      + restrict_from_00p_to(iii,jjj,kkk) * ap( 0, 0,+1)
+      + restrict_from_mpp_to(iii,jjj,kkk) * ap(-1,+1,+1)
+      + restrict_from_0pp_to(iii,jjj,kkk) * ap( 0,+1,+1));
+
+    csten(i,j,k,ist_pp0) = 0.5_rt*(cs1 + cs2);
+
+    // csten(i,j,k,ist_p0p)
+    iii = ii;
+    jjj = jj;
+    kkk = kk;
+    p(-1,-1,-1) = interp_from_ppp_to(iii+1,jjj-1,kkk+1);
+    p( 0,-1,-1) = interp_from_0pp_to(iii+2,jjj-1,kkk+1);
+    p(-1, 0,-1) = interp_from_p0p_to(iii+1,jjj  ,kkk+1);
+    p( 0, 0,-1) = interp_from_00p_to(iii+2,jjj  ,kkk+1);
+    p(-1,+1,-1) = interp_from_pmp_to(iii+1,jjj+1,kkk+1);
+    p( 0,+1,-1) = interp_from_0mp_to(iii+2,jjj+1,kkk+1);
+    p(-1,-1, 0) = interp_from_pp0_to(iii+1,jjj-1,kkk+2);
+    p( 0,-1, 0) = interp_from_0p0_to(iii+2,jjj-1,kkk+2);
+    p(-1, 0, 0) = interp_from_p00_to(iii+1,jjj  ,kkk+2);
+    p( 0, 0, 0) = 1._rt;
+    p(-1,+1, 0) = interp_from_pm0_to(iii+1,jjj+1,kkk+2);
+    p( 0,+1, 0) = interp_from_0m0_to(iii+2,jjj+1,kkk+2);
+    ap(0,-1,0) =
+                     Ap0p(iii,jjj-1,kkk) * p(-1,-1,-1)
+      +              Appp(iii,jjj-1,kkk) * p(-1, 0,-1);
+    ap(1,-1,0) =
+                     A00p(iii+1,jjj-1,kkk) * p(-1,-1,-1)
+      +              Ap0p(iii+1,jjj-1,kkk) * p( 0,-1,-1)
+      +              A0pp(iii+1,jjj-1,kkk) * p(-1, 0,-1)
+      +              Appp(iii+1,jjj-1,kkk) * p( 0, 0,-1);
+    ap(0,0,0) =
+                     Apmp(iii,jjj,kkk) * p(-1,-1,-1)
+      +              Ap0p(iii,jjj,kkk) * p(-1, 0,-1)
+      +              Appp(iii,jjj,kkk) * p(-1,+1,-1);
+    ap(1,0,0) =
+                     A0mp(iii+1,jjj,kkk) * p(-1,-1,-1)
+      +              Apmp(iii+1,jjj,kkk) * p( 0,-1,-1)
+      +              A00p(iii+1,jjj,kkk) * p(-1, 0,-1)
+      +              Ap0p(iii+1,jjj,kkk) * p( 0, 0,-1)
+      +              A0pp(iii+1,jjj,kkk) * p(-1,+1,-1)
+      +              Appp(iii+1,jjj,kkk) * p( 0,+1,-1);
+    ap(0,1,0) =
+                     Apmp(iii,jjj+1,kkk) * p(-1, 0,-1)
+      +              Ap0p(iii,jjj+1,kkk) * p(-1,+1,-1);
+    ap(1,1,0) =
+                     A0mp(iii+1,jjj+1,kkk) * p(-1, 0,-1)
+      +              Apmp(iii+1,jjj+1,kkk) * p( 0, 0,-1)
+      +              A00p(iii+1,jjj+1,kkk) * p(-1,+1,-1)
+      +              Ap0p(iii+1,jjj+1,kkk) * p( 0,+1,-1);
+    ap(0,-1,1) =
+                     Ap00(iii,jjj-1,kkk+1) * p(-1,-1,-1)
+      +              App0(iii,jjj-1,kkk+1) * p(-1, 0,-1)
+      +              Ap0p(iii,jjj-1,kkk+1) * p(-1,-1, 0)
+      +              Appp(iii,jjj-1,kkk+1) * p(-1, 0, 0);
+    ap(1,-1,1) =
+                     A000(iii+1,jjj-1,kkk+1) * p(-1,-1,-1)
+      +              Ap00(iii+1,jjj-1,kkk+1) * p( 0,-1,-1)
+      +              A0p0(iii+1,jjj-1,kkk+1) * p(-1, 0,-1)
+      +              App0(iii+1,jjj-1,kkk+1) * p( 0, 0,-1)
+      +              A00p(iii+1,jjj-1,kkk+1) * p(-1,-1, 0)
+      +              Ap0p(iii+1,jjj-1,kkk+1) * p( 0,-1, 0)
+      +              A0pp(iii+1,jjj-1,kkk+1) * p(-1, 0, 0)
+      +              Appp(iii+1,jjj-1,kkk+1) * p( 0, 0, 0);
+    ap(0,0,1) =
+                     Apm0(iii,jjj,kkk+1) * p(-1,-1,-1)
+      +              Ap00(iii,jjj,kkk+1) * p(-1, 0,-1)
+      +              App0(iii,jjj,kkk+1) * p(-1,+1,-1)
+      +              Apmp(iii,jjj,kkk+1) * p(-1,-1, 0)
+      +              Ap0p(iii,jjj,kkk+1) * p(-1, 0, 0)
+      +              Appp(iii,jjj,kkk+1) * p(-1,+1, 0);
+    ap(1,0,1) =
+                     A0m0(iii+1,jjj,kkk+1) * p(-1,-1,-1)
+      +              Apm0(iii+1,jjj,kkk+1) * p( 0,-1,-1)
+      +              A000(iii+1,jjj,kkk+1) * p(-1, 0,-1)
+      +              Ap00(iii+1,jjj,kkk+1) * p( 0, 0,-1)
+      +              A0p0(iii+1,jjj,kkk+1) * p(-1,+1,-1)
+      +              App0(iii+1,jjj,kkk+1) * p( 0,+1,-1)
+      +              A0mp(iii+1,jjj,kkk+1) * p(-1,-1, 0)
+      +              Apmp(iii+1,jjj,kkk+1) * p( 0,-1, 0)
+      +              A00p(iii+1,jjj,kkk+1) * p(-1, 0, 0)
+      +              Ap0p(iii+1,jjj,kkk+1) * p( 0, 0, 0)
+      +              A0pp(iii+1,jjj,kkk+1) * p(-1,+1, 0)
+      +              Appp(iii+1,jjj,kkk+1) * p( 0,+1, 0);
+    ap(0,1,1) =
+                     Apm0(iii,jjj+1,kkk+1) * p(-1, 0,-1)
+      +              Ap00(iii,jjj+1,kkk+1) * p(-1,+1,-1)
+      +              Apmp(iii,jjj+1,kkk+1) * p(-1, 0, 0)
+      +              Ap0p(iii,jjj+1,kkk+1) * p(-1,+1, 0);
+    ap(1,1,1) =
+                     A0m0(iii+1,jjj+1,kkk+1) * p(-1, 0,-1)
+      +              Apm0(iii+1,jjj+1,kkk+1) * p( 0, 0,-1)
+      +              A000(iii+1,jjj+1,kkk+1) * p(-1,+1,-1)
+      +              Ap00(iii+1,jjj+1,kkk+1) * p( 0,+1,-1)
+      +              A0mp(iii+1,jjj+1,kkk+1) * p(-1, 0, 0)
+      +              Apmp(iii+1,jjj+1,kkk+1) * p( 0, 0, 0)
+      +              A00p(iii+1,jjj+1,kkk+1) * p(-1,+1, 0)
+      +              Ap0p(iii+1,jjj+1,kkk+1) * p( 0,+1, 0);
+    cs1 = 0.125_rt *
+      ( restrict_from_0m0_to(iii,jjj,kkk) * ap( 0,-1, 0)
+      + restrict_from_pm0_to(iii,jjj,kkk) * ap(+1,-1, 0)
+      + restrict_from_000_to(iii,jjj,kkk) * ap( 0, 0, 0)
+      + restrict_from_p00_to(iii,jjj,kkk) * ap(+1, 0, 0)
+      + restrict_from_0p0_to(iii,jjj,kkk) * ap( 0,+1, 0)
+      + restrict_from_pp0_to(iii,jjj,kkk) * ap(+1,+1, 0)
+      + restrict_from_0mp_to(iii,jjj,kkk) * ap( 0,-1,+1)
+      + restrict_from_pmp_to(iii,jjj,kkk) * ap(+1,-1,+1)
+      + restrict_from_00p_to(iii,jjj,kkk) * ap( 0, 0,+1)
+      + restrict_from_p0p_to(iii,jjj,kkk) * ap(+1, 0,+1)
+      + restrict_from_0pp_to(iii,jjj,kkk) * ap( 0,+1,+1)
+      + restrict_from_ppp_to(iii,jjj,kkk) * ap(+1,+1,+1));
+
+    // alternative: csten(i+1,j,k,ist_m0p)
+    iii = ii+2;
+    jjj = jj;
+    kkk = kk;
+    p( 0,-1,-1) = interp_from_0pp_to(iii-2,jjj-1,kkk+1);
+    p(+1,-1,-1) = interp_from_mpp_to(iii-1,jjj-1,kkk+1);
+    p( 0, 0,-1) = interp_from_00p_to(iii-2,jjj  ,kkk+1);
+    p(+1, 0,-1) = interp_from_m0p_to(iii-1,jjj  ,kkk+1);
+    p( 0,+1,-1) = interp_from_0mp_to(iii-2,jjj+1,kkk+1);
+    p(+1,+1,-1) = interp_from_mmp_to(iii-1,jjj+1,kkk+1);
+    p( 0,-1, 0) = interp_from_0p0_to(iii-2,jjj-1,kkk+2);
+    p(+1,-1, 0) = interp_from_mp0_to(iii-1,jjj-1,kkk+2);
+    p( 0, 0, 0) = 1._rt;
+    p(+1, 0, 0) = interp_from_m00_to(iii-1,jjj  ,kkk+2);
+    p( 0,+1, 0) = interp_from_0m0_to(iii-2,jjj+1,kkk+2);
+    p(+1,+1, 0) = interp_from_mm0_to(iii-1,jjj+1,kkk+2);
+
+    ap(-1,-1,0) =
+                     Am0p(iii-1,jjj-1,kkk) * p( 0,-1,-1)
+      +              A00p(iii-1,jjj-1,kkk) * p(+1,-1,-1)
+      +              Ampp(iii-1,jjj-1,kkk) * p( 0, 0,-1)
+      +              A0pp(iii-1,jjj-1,kkk) * p(+1, 0,-1);
+    ap(0,-1,0) =
+                     Am0p(iii,jjj-1,kkk) * p(+1,-1,-1)
+      +              Ampp(iii,jjj-1,kkk) * p(+1, 0,-1);
+    ap(-1,0,0) =
+                     Ammp(iii-1,jjj,kkk) * p( 0,-1,-1)
+      +              A0mp(iii-1,jjj,kkk) * p(+1,-1,-1)
+      +              Am0p(iii-1,jjj,kkk) * p( 0, 0,-1)
+      +              A00p(iii-1,jjj,kkk) * p(+1, 0,-1)
+      +              Ampp(iii-1,jjj,kkk) * p( 0,+1,-1)
+      +              A0pp(iii-1,jjj,kkk) * p(+1,+1,-1);
+    ap(0,0,0) =
+                     Ammp(iii,jjj,kkk) * p(+1,-1,-1)
+      +              Am0p(iii,jjj,kkk) * p(+1, 0,-1)
+      +              Ampp(iii,jjj,kkk) * p(+1,+1,-1);
+    ap(-1,1,0) =
+                     Ammp(iii-1,jjj+1,kkk) * p( 0, 0,-1)
+      +              A0mp(iii-1,jjj+1,kkk) * p(+1, 0,-1)
+      +              Am0p(iii-1,jjj+1,kkk) * p( 0,+1,-1)
+      +              A00p(iii-1,jjj+1,kkk) * p(+1,+1,-1);
+    ap(0,1,0) =
+                     Ammp(iii,jjj+1,kkk) * p(+1, 0,-1)
+      +              Am0p(iii,jjj+1,kkk) * p(+1,+1,-1);
+    ap(-1,-1,1) =
+                     Am00(iii-1,jjj-1,kkk+1) * p( 0,-1,-1)
+      +              A000(iii-1,jjj-1,kkk+1) * p(+1,-1,-1)
+      +              Amp0(iii-1,jjj-1,kkk+1) * p( 0, 0,-1)
+      +              A0p0(iii-1,jjj-1,kkk+1) * p(+1, 0,-1)
+      +              Am0p(iii-1,jjj-1,kkk+1) * p( 0,-1, 0)
+      +              A00p(iii-1,jjj-1,kkk+1) * p(+1,-1, 0)
+      +              Ampp(iii-1,jjj-1,kkk+1) * p( 0, 0, 0)
+      +              A0pp(iii-1,jjj-1,kkk+1) * p(+1, 0, 0);
+    ap(0,-1,1) =
+                     Am00(iii,jjj-1,kkk+1) * p(+1,-1,-1)
+      +              Amp0(iii,jjj-1,kkk+1) * p(+1, 0,-1)
+      +              Am0p(iii,jjj-1,kkk+1) * p(+1,-1, 0)
+      +              Ampp(iii,jjj-1,kkk+1) * p(+1, 0, 0);
+    ap(-1,0,1) =
+                     Amm0(iii-1,jjj,kkk+1) * p( 0,-1,-1)
+      +              A0m0(iii-1,jjj,kkk+1) * p(+1,-1,-1)
+      +              Am00(iii-1,jjj,kkk+1) * p( 0, 0,-1)
+      +              A000(iii-1,jjj,kkk+1) * p(+1, 0,-1)
+      +              Amp0(iii-1,jjj,kkk+1) * p( 0,+1,-1)
+      +              A0p0(iii-1,jjj,kkk+1) * p(+1,+1,-1)
+      +              Ammp(iii-1,jjj,kkk+1) * p( 0,-1, 0)
+      +              A0mp(iii-1,jjj,kkk+1) * p(+1,-1, 0)
+      +              Am0p(iii-1,jjj,kkk+1) * p( 0, 0, 0)
+      +              A00p(iii-1,jjj,kkk+1) * p(+1, 0, 0)
+      +              Ampp(iii-1,jjj,kkk+1) * p( 0,+1, 0)
+      +              A0pp(iii-1,jjj,kkk+1) * p(+1,+1, 0);
+    ap(0,0,1) =
+                     Amm0(iii,jjj,kkk+1) * p(+1,-1,-1)
+      +              Am00(iii,jjj,kkk+1) * p(+1, 0,-1)
+      +              Amp0(iii,jjj,kkk+1) * p(+1,+1,-1)
+      +              Ammp(iii,jjj,kkk+1) * p(+1,-1, 0)
+      +              Am0p(iii,jjj,kkk+1) * p(+1, 0, 0)
+      +              Ampp(iii,jjj,kkk+1) * p(+1,+1, 0);
+    ap(-1,1,1) =
+                     Amm0(iii-1,jjj+1,kkk+1) * p( 0, 0,-1)
+      +              A0m0(iii-1,jjj+1,kkk+1) * p(+1, 0,-1)
+      +              Am00(iii-1,jjj+1,kkk+1) * p( 0,+1,-1)
+      +              A000(iii-1,jjj+1,kkk+1) * p(+1,+1,-1)
+      +              Ammp(iii-1,jjj+1,kkk+1) * p( 0, 0, 0)
+      +              A0mp(iii-1,jjj+1,kkk+1) * p(+1, 0, 0)
+      +              Am0p(iii-1,jjj+1,kkk+1) * p( 0,+1, 0)
+      +              A00p(iii-1,jjj+1,kkk+1) * p(+1,+1, 0);
+    ap(0,1,1) =
+                     Amm0(iii,jjj+1,kkk+1) * p(+1, 0,-1)
+      +              Am00(iii,jjj+1,kkk+1) * p(+1,+1,-1)
+      +              Ammp(iii,jjj+1,kkk+1) * p(+1, 0, 0)
+      +              Am0p(iii,jjj+1,kkk+1) * p(+1,+1, 0);
+    cs2 = 0.125_rt *
+      ( restrict_from_mm0_to(iii,jjj,kkk) * ap(-1,-1, 0)
+      + restrict_from_0m0_to(iii,jjj,kkk) * ap( 0,-1, 0)
+      + restrict_from_m00_to(iii,jjj,kkk) * ap(-1, 0, 0)
+      + restrict_from_000_to(iii,jjj,kkk) * ap( 0, 0, 0)
+      + restrict_from_mp0_to(iii,jjj,kkk) * ap(-1,+1, 0)
+      + restrict_from_0p0_to(iii,jjj,kkk) * ap( 0,+1, 0)
+      + restrict_from_mmp_to(iii,jjj,kkk) * ap(-1,-1,+1)
+      + restrict_from_0mp_to(iii,jjj,kkk) * ap( 0,-1,+1)
+      + restrict_from_m0p_to(iii,jjj,kkk) * ap(-1, 0,+1)
+      + restrict_from_00p_to(iii,jjj,kkk) * ap( 0, 0,+1)
+      + restrict_from_mpp_to(iii,jjj,kkk) * ap(-1,+1,+1)
+      + restrict_from_0pp_to(iii,jjj,kkk) * ap( 0,+1,+1));
+
+    csten(i,j,k,ist_p0p) = 0.5_rt*(cs1+cs2);
+
+    // csten(i,j,k,ist_0pp)
+    iii = ii;
+    jjj = jj;
+    kkk = kk;
+    p(-1,-1,-1) = interp_from_ppp_to(iii-1,jjj+1,kkk+1);
+    p( 0,-1,-1) = interp_from_0pp_to(iii  ,jjj+1,kkk+1);
+    p(+1,-1,-1) = interp_from_mpp_to(iii+1,jjj+1,kkk+1);
+    p(-1, 0,-1) = interp_from_p0p_to(iii-1,jjj+2,kkk+1);
+    p( 0, 0,-1) = interp_from_00p_to(iii  ,jjj+2,kkk+1);
+    p(+1, 0,-1) = interp_from_m0p_to(iii+1,jjj+2,kkk+1);
+    p(-1,-1, 0) = interp_from_pp0_to(iii-1,jjj+1,kkk+2);
+    p( 0,-1, 0) = interp_from_0p0_to(iii  ,jjj+1,kkk+2);
+    p(+1,-1, 0) = interp_from_mp0_to(iii+1,jjj+1,kkk+2);
+    p(-1, 0, 0) = interp_from_p00_to(iii-1,jjj+2,kkk+2);
+    p( 0, 0, 0) = 1._rt;
+    p(+1, 0, 0) = interp_from_m00_to(iii+1,jjj+2,kkk+2);
+    ap(-1,0,0) =
+                     A0pp(iii-1,jjj,kkk) * p(-1,-1,-1)
+      +              Appp(iii-1,jjj,kkk) * p( 0,-1,-1);
+    ap(0,0,0) =
+                     Ampp(iii,jjj,kkk) * p(-1,-1,-1)
+      +              A0pp(iii,jjj,kkk) * p( 0,-1,-1)
+      +              Appp(iii,jjj,kkk) * p(+1,-1,-1);
+    ap(1,0,0) =
+                     Ampp(iii+1,jjj,kkk) * p( 0,-1,-1)
+      +              A0pp(iii+1,jjj,kkk) * p(+1,-1,-1);
+    ap(-1,1,0) =
+                     A00p(iii-1,jjj+1,kkk) * p(-1,-1,-1)
+      +              Ap0p(iii-1,jjj+1,kkk) * p( 0,-1,-1)
+      +              A0pp(iii-1,jjj+1,kkk) * p(-1, 0,-1)
+      +              Appp(iii-1,jjj+1,kkk) * p( 0, 0,-1);
+    ap(0,1,0) =
+                     Am0p(iii,jjj+1,kkk) * p(-1,-1,-1)
+      +              A00p(iii,jjj+1,kkk) * p( 0,-1,-1)
+      +              Ap0p(iii,jjj+1,kkk) * p(+1,-1,-1)
+      +              Ampp(iii,jjj+1,kkk) * p(-1, 0,-1)
+      +              A0pp(iii,jjj+1,kkk) * p( 0, 0,-1)
+      +              Appp(iii,jjj+1,kkk) * p(+1, 0,-1);
+    ap(1,1,0) =
+                     Am0p(iii+1,jjj+1,kkk) * p( 0,-1,-1)
+      +              A00p(iii+1,jjj+1,kkk) * p(+1,-1,-1)
+      +              Ampp(iii+1,jjj+1,kkk) * p( 0, 0,-1)
+      +              A0pp(iii+1,jjj+1,kkk) * p(+1, 0,-1);
+    ap(-1,0,1) =
+                     A0p0(iii-1,jjj,kkk+1) * p(-1,-1,-1)
+      +              App0(iii-1,jjj,kkk+1) * p( 0,-1,-1)
+      +              A0pp(iii-1,jjj,kkk+1) * p(-1,-1, 0)
+      +              Appp(iii-1,jjj,kkk+1) * p( 0,-1, 0);
+    ap(0,0,1) =
+                     Amp0(iii,jjj,kkk+1) * p(-1,-1,-1)
+      +              A0p0(iii,jjj,kkk+1) * p( 0,-1,-1)
+      +              App0(iii,jjj,kkk+1) * p(+1,-1,-1)
+      +              Ampp(iii,jjj,kkk+1) * p(-1,-1, 0)
+      +              A0pp(iii,jjj,kkk+1) * p( 0,-1, 0)
+      +              Appp(iii,jjj,kkk+1) * p(+1,-1, 0);
+    ap(1,0,1) =
+                     Amp0(iii+1,jjj,kkk+1) * p( 0,-1,-1)
+      +              A0p0(iii+1,jjj,kkk+1) * p(+1,-1,-1)
+      +              Ampp(iii+1,jjj,kkk+1) * p( 0,-1, 0)
+      +              A0pp(iii+1,jjj,kkk+1) * p(+1,-1, 0);
+    ap(-1,1,1) =
+                     A000(iii-1,jjj+1,kkk+1) * p(-1,-1,-1)
+      +              Ap00(iii-1,jjj+1,kkk+1) * p( 0,-1,-1)
+      +              A0p0(iii-1,jjj+1,kkk+1) * p(-1, 0,-1)
+      +              App0(iii-1,jjj+1,kkk+1) * p( 0, 0,-1)
+      +              A00p(iii-1,jjj+1,kkk+1) * p(-1,-1, 0)
+      +              Ap0p(iii-1,jjj+1,kkk+1) * p( 0,-1, 0)
+      +              A0pp(iii-1,jjj+1,kkk+1) * p(-1, 0, 0)
+      +              Appp(iii-1,jjj+1,kkk+1) * p( 0, 0, 0);
+    ap(0,1,1) =
+                     Am00(iii,jjj+1,kkk+1) * p(-1,-1,-1)
+      +              A000(iii,jjj+1,kkk+1) * p( 0,-1,-1)
+      +              Ap00(iii,jjj+1,kkk+1) * p(+1,-1,-1)
+      +              Amp0(iii,jjj+1,kkk+1) * p(-1, 0,-1)
+      +              A0p0(iii,jjj+1,kkk+1) * p( 0, 0,-1)
+      +              App0(iii,jjj+1,kkk+1) * p(+1, 0,-1)
+      +              Am0p(iii,jjj+1,kkk+1) * p(-1,-1, 0)
+      +              A00p(iii,jjj+1,kkk+1) * p( 0,-1, 0)
+      +              Ap0p(iii,jjj+1,kkk+1) * p(+1,-1, 0)
+      +              Ampp(iii,jjj+1,kkk+1) * p(-1, 0, 0)
+      +              A0pp(iii,jjj+1,kkk+1) * p( 0, 0, 0)
+      +              Appp(iii,jjj+1,kkk+1) * p(+1, 0, 0);
+    ap(1,1,1) =
+                     Am00(iii+1,jjj+1,kkk+1) * p( 0,-1,-1)
+      +              A000(iii+1,jjj+1,kkk+1) * p(+1,-1,-1)
+      +              Amp0(iii+1,jjj+1,kkk+1) * p( 0, 0,-1)
+      +              A0p0(iii+1,jjj+1,kkk+1) * p(+1, 0,-1)
+      +              Am0p(iii+1,jjj+1,kkk+1) * p( 0,-1, 0)
+      +              A00p(iii+1,jjj+1,kkk+1) * p(+1,-1, 0)
+      +              Ampp(iii+1,jjj+1,kkk+1) * p( 0, 0, 0)
+      +              A0pp(iii+1,jjj+1,kkk+1) * p(+1, 0, 0);
+    cs1 = 0.125_rt *
+      ( restrict_from_m00_to(iii,jjj,kkk) * ap(-1, 0, 0)
+      + restrict_from_000_to(iii,jjj,kkk) * ap( 0, 0, 0)
+      + restrict_from_p00_to(iii,jjj,kkk) * ap(+1, 0, 0)
+      + restrict_from_mp0_to(iii,jjj,kkk) * ap(-1,+1, 0)
+      + restrict_from_0p0_to(iii,jjj,kkk) * ap( 0,+1, 0)
+      + restrict_from_pp0_to(iii,jjj,kkk) * ap(+1,+1, 0)
+      + restrict_from_m0p_to(iii,jjj,kkk) * ap(-1, 0,+1)
+      + restrict_from_00p_to(iii,jjj,kkk) * ap( 0, 0,+1)
+      + restrict_from_p0p_to(iii,jjj,kkk) * ap(+1, 0,+1)
+      + restrict_from_mpp_to(iii,jjj,kkk) * ap(-1,+1,+1)
+      + restrict_from_0pp_to(iii,jjj,kkk) * ap( 0,+1,+1)
+      + restrict_from_ppp_to(iii,jjj,kkk) * ap(+1,+1,+1));
+
+    // alternative: csten(i,j+1,k,ist_0mp)
+    iii = ii;
+    jjj = jj+2;
+    kkk = kk;
+    p(-1, 0,-1) = interp_from_p0p_to(iii-1,jjj-2,kkk+1);
+    p( 0, 0,-1) = interp_from_00p_to(iii  ,jjj-2,kkk+1);
+    p(+1, 0,-1) = interp_from_m0p_to(iii+1,jjj-2,kkk+1);
+    p(-1,+1,-1) = interp_from_pmp_to(iii-1,jjj-1,kkk+1);
+    p( 0,+1,-1) = interp_from_0mp_to(iii  ,jjj-1,kkk+1);
+    p(+1,+1,-1) = interp_from_mmp_to(iii+1,jjj-1,kkk+1);
+    p(-1, 0, 0) = interp_from_p00_to(iii-1,jjj-2,kkk+2);
+    p( 0, 0, 0) = 1._rt;
+    p(+1, 0, 0) = interp_from_m00_to(iii+1,jjj-2,kkk+2);
+    p(-1,+1, 0) = interp_from_pm0_to(iii-1,jjj-1,kkk+2);
+    p( 0,+1, 0) = interp_from_0m0_to(iii  ,jjj-1,kkk+2);
+    p(+1,+1, 0) = interp_from_mm0_to(iii+1,jjj-1,kkk+2);
+    ap(-1,-1,0) =
+                     A0mp(iii-1,jjj-1,kkk) * p(-1, 0,-1)
+      +              Apmp(iii-1,jjj-1,kkk) * p( 0, 0,-1)
+      +              A00p(iii-1,jjj-1,kkk) * p(-1,+1,-1)
+      +              Ap0p(iii-1,jjj-1,kkk) * p( 0,+1,-1);
+    ap(0,-1,0) =
+                     Ammp(iii,jjj-1,kkk) * p(-1, 0,-1)
+      +              A0mp(iii,jjj-1,kkk) * p( 0, 0,-1)
+      +              Apmp(iii,jjj-1,kkk) * p(+1, 0,-1)
+      +              Am0p(iii,jjj-1,kkk) * p(-1,+1,-1)
+      +              A00p(iii,jjj-1,kkk) * p( 0,+1,-1)
+      +              Ap0p(iii,jjj-1,kkk) * p(+1,+1,-1);
+    ap(1,-1,0) =
+                     Ammp(iii+1,jjj-1,kkk) * p( 0, 0,-1)
+      +              A0mp(iii+1,jjj-1,kkk) * p(+1, 0,-1)
+      +              Am0p(iii+1,jjj-1,kkk) * p( 0,+1,-1)
+      +              A00p(iii+1,jjj-1,kkk) * p(+1,+1,-1);
+    ap(-1,0,0) =
+                     A0mp(iii-1,jjj,kkk) * p(-1,+1,-1)
+      +              Apmp(iii-1,jjj,kkk) * p( 0,+1,-1);
+    ap(0,0,0) =
+                     Ammp(iii,jjj,kkk) * p(-1,+1,-1)
+      +              A0mp(iii,jjj,kkk) * p( 0,+1,-1)
+      +              Apmp(iii,jjj,kkk) * p(+1,+1,-1);
+    ap(1,0,0) =
+                     Ammp(iii+1,jjj,kkk) * p( 0,+1,-1)
+      +              A0mp(iii+1,jjj,kkk) * p(+1,+1,-1);
+    ap(-1,-1,1) =
+                     A0m0(iii-1,jjj-1,kkk+1) * p(-1, 0,-1)
+      +              Apm0(iii-1,jjj-1,kkk+1) * p( 0, 0,-1)
+      +              A000(iii-1,jjj-1,kkk+1) * p(-1,+1,-1)
+      +              Ap00(iii-1,jjj-1,kkk+1) * p( 0,+1,-1)
+      +              A0mp(iii-1,jjj-1,kkk+1) * p(-1, 0, 0)
+      +              Apmp(iii-1,jjj-1,kkk+1) * p( 0, 0, 0)
+      +              A00p(iii-1,jjj-1,kkk+1) * p(-1,+1, 0)
+      +              Ap0p(iii-1,jjj-1,kkk+1) * p( 0,+1, 0);
+    ap(0,-1,1) =
+                     Amm0(iii,jjj-1,kkk+1) * p(-1, 0,-1)
+      +              A0m0(iii,jjj-1,kkk+1) * p( 0, 0,-1)
+      +              Apm0(iii,jjj-1,kkk+1) * p(+1, 0,-1)
+      +              Am00(iii,jjj-1,kkk+1) * p(-1,+1,-1)
+      +              A000(iii,jjj-1,kkk+1) * p( 0,+1,-1)
+      +              Ap00(iii,jjj-1,kkk+1) * p(+1,+1,-1)
+      +              Ammp(iii,jjj-1,kkk+1) * p(-1, 0, 0)
+      +              A0mp(iii,jjj-1,kkk+1) * p( 0, 0, 0)
+      +              Apmp(iii,jjj-1,kkk+1) * p(+1, 0, 0)
+      +              Am0p(iii,jjj-1,kkk+1) * p(-1,+1, 0)
+      +              A00p(iii,jjj-1,kkk+1) * p( 0,+1, 0)
+      +              Ap0p(iii,jjj-1,kkk+1) * p(+1,+1, 0);
+    ap(1,-1,1) =
+                     Amm0(iii+1,jjj-1,kkk+1) * p( 0, 0,-1)
+      +              A0m0(iii+1,jjj-1,kkk+1) * p(+1, 0,-1)
+      +              Am00(iii+1,jjj-1,kkk+1) * p( 0,+1,-1)
+      +              A000(iii+1,jjj-1,kkk+1) * p(+1,+1,-1)
+      +              Ammp(iii+1,jjj-1,kkk+1) * p( 0, 0, 0)
+      +              A0mp(iii+1,jjj-1,kkk+1) * p(+1, 0, 0)
+      +              Am0p(iii+1,jjj-1,kkk+1) * p( 0,+1, 0)
+      +              A00p(iii+1,jjj-1,kkk+1) * p(+1,+1, 0);
+    ap(-1,0,1) =
+                     A0m0(iii-1,jjj,kkk+1) * p(-1,+1,-1)
+      +              Apm0(iii-1,jjj,kkk+1) * p( 0,+1,-1)
+      +              A0mp(iii-1,jjj,kkk+1) * p(-1,+1, 0)
+      +              Apmp(iii-1,jjj,kkk+1) * p( 0,+1, 0);
+    ap(0,0,1) =
+                     Amm0(iii,jjj,kkk+1) * p(-1,+1,-1)
+      +              A0m0(iii,jjj,kkk+1) * p( 0,+1,-1)
+      +              Apm0(iii,jjj,kkk+1) * p(+1,+1,-1)
+      +              Ammp(iii,jjj,kkk+1) * p(-1,+1, 0)
+      +              A0mp(iii,jjj,kkk+1) * p( 0,+1, 0)
+      +              Apmp(iii,jjj,kkk+1) * p(+1,+1, 0);
+    ap(1,0,1) =
+                     Amm0(iii+1,jjj,kkk+1) * p( 0,+1,-1)
+      +              A0m0(iii+1,jjj,kkk+1) * p(+1,+1,-1)
+      +              Ammp(iii+1,jjj,kkk+1) * p( 0,+1, 0)
+      +              A0mp(iii+1,jjj,kkk+1) * p(+1,+1, 0);
+    cs2 = 0.125_rt *
+      ( restrict_from_mm0_to(iii,jjj,kkk) * ap(-1,-1, 0)
+      + restrict_from_0m0_to(iii,jjj,kkk) * ap( 0,-1, 0)
+      + restrict_from_pm0_to(iii,jjj,kkk) * ap(+1,-1, 0)
+      + restrict_from_m00_to(iii,jjj,kkk) * ap(-1, 0, 0)
+      + restrict_from_000_to(iii,jjj,kkk) * ap( 0, 0, 0)
+      + restrict_from_p00_to(iii,jjj,kkk) * ap(+1, 0, 0)
+      + restrict_from_mmp_to(iii,jjj,kkk) * ap(-1,-1,+1)
+      + restrict_from_0mp_to(iii,jjj,kkk) * ap( 0,-1,+1)
+      + restrict_from_pmp_to(iii,jjj,kkk) * ap(+1,-1,+1)
+      + restrict_from_m0p_to(iii,jjj,kkk) * ap(-1, 0,+1)
+      + restrict_from_00p_to(iii,jjj,kkk) * ap( 0, 0,+1)
+      + restrict_from_p0p_to(iii,jjj,kkk) * ap(+1, 0,+1));
+
+    csten(i,j,k,ist_0pp) = 0.5_rt*(cs1+cs2);
+
+    // csten(i,j,k,ist_ppp)
+    iii = ii;
+    jjj = jj;
+    kkk = kk;
+    p(-1,-1,-1) = interp_from_ppp_to(iii+1,jjj+1,kkk+1);
+    p( 0,-1,-1) = interp_from_0pp_to(iii+2,jjj+1,kkk+1);
+    p(-1, 0,-1) = interp_from_p0p_to(iii+1,jjj+2,kkk+1);
+    p( 0, 0,-1) = interp_from_00p_to(iii+2,jjj+2,kkk+1);
+    p(-1,-1, 0) = interp_from_pp0_to(iii+1,jjj+1,kkk+2);
+    p( 0,-1, 0) = interp_from_0p0_to(iii+2,jjj+1,kkk+2);
+    p(-1, 0, 0) = interp_from_p00_to(iii+1,jjj+2,kkk+2);
+    p( 0, 0, 0) = 1._rt;
+    ap(0,0,0) =
+                     Appp(iii,jjj,kkk) * p(-1,-1,-1);
+    ap(1,0,0) =
+                     A0pp(iii+1,jjj,kkk) * p(-1,-1,-1)
+      +              Appp(iii+1,jjj,kkk) * p( 0,-1,-1);
+    ap(0,1,0) =
+                     Ap0p(iii,jjj+1,kkk) * p(-1,-1,-1)
+      +              Appp(iii,jjj+1,kkk) * p(-1, 0,-1);
+    ap(1,1,0) =
+                     A00p(iii+1,jjj+1,kkk) * p(-1,-1,-1)
+      +              Ap0p(iii+1,jjj+1,kkk) * p( 0,-1,-1)
+      +              A0pp(iii+1,jjj+1,kkk) * p(-1, 0,-1)
+      +              Appp(iii+1,jjj+1,kkk) * p( 0, 0,-1);
+    ap(0,0,1) =
+                     App0(iii,jjj,kkk+1) * p(-1,-1,-1)
+      +              Appp(iii,jjj,kkk+1) * p(-1,-1, 0);
+    ap(1,0,1) =
+                     A0p0(iii+1,jjj,kkk+1) * p(-1,-1,-1)
+      +              App0(iii+1,jjj,kkk+1) * p( 0,-1,-1)
+      +              A0pp(iii+1,jjj,kkk+1) * p(-1,-1, 0)
+      +              Appp(iii+1,jjj,kkk+1) * p( 0,-1, 0);
+    ap(0,1,1) =
+                     Ap00(iii,jjj+1,kkk+1) * p(-1,-1,-1)
+      +              App0(iii,jjj+1,kkk+1) * p(-1, 0,-1)
+      +              Ap0p(iii,jjj+1,kkk+1) * p(-1,-1, 0)
+      +              Appp(iii,jjj+1,kkk+1) * p(-1, 0, 0);
+    ap(1,1,1) =
+                     A000(iii+1,jjj+1,kkk+1) * p(-1,-1,-1)
+      +              Ap00(iii+1,jjj+1,kkk+1) * p( 0,-1,-1)
+      +              A0p0(iii+1,jjj+1,kkk+1) * p(-1, 0,-1)
+      +              App0(iii+1,jjj+1,kkk+1) * p( 0, 0,-1)
+      +              A00p(iii+1,jjj+1,kkk+1) * p(-1,-1, 0)
+      +              Ap0p(iii+1,jjj+1,kkk+1) * p( 0,-1, 0)
+      +              A0pp(iii+1,jjj+1,kkk+1) * p(-1, 0, 0)
+      +              Appp(iii+1,jjj+1,kkk+1) * p( 0, 0, 0);
+    cs1 = 0.125_rt *
+      ( restrict_from_000_to(iii,jjj,kkk) * ap( 0, 0, 0)
+      + restrict_from_p00_to(iii,jjj,kkk) * ap(+1, 0, 0)
+      + restrict_from_0p0_to(iii,jjj,kkk) * ap( 0,+1, 0)
+      + restrict_from_pp0_to(iii,jjj,kkk) * ap(+1,+1, 0)
+      + restrict_from_00p_to(iii,jjj,kkk) * ap( 0, 0,+1)
+      + restrict_from_p0p_to(iii,jjj,kkk) * ap(+1, 0,+1)
+      + restrict_from_0pp_to(iii,jjj,kkk) * ap( 0,+1,+1)
+      + restrict_from_ppp_to(iii,jjj,kkk) * ap(+1,+1,+1));
+
+    // alternative: csten(i+1,j,k,ist_mpp)
+    iii = ii+2;
+    jjj = jj;
+    kkk = kk;
+    p( 0,-1,-1) = interp_from_0pp_to(iii-2,jjj+1,kkk+1);
+    p(+1,-1,-1) = interp_from_mpp_to(iii-1,jjj+1,kkk+1);
+    p( 0, 0,-1) = interp_from_00p_to(iii-2,jjj+2,kkk+1);
+    p(+1, 0,-1) = interp_from_m0p_to(iii-1,jjj+2,kkk+1);
+    p( 0,-1, 0) = interp_from_0p0_to(iii-2,jjj+1,kkk+2);
+    p(+1,-1, 0) = interp_from_mp0_to(iii-1,jjj+1,kkk+2);
+    p( 0, 0, 0) = 1._rt;
+    p(+1, 0, 0) = interp_from_m00_to(iii-1,jjj+2,kkk+2);
+    ap(-1,0,0) =
+                     Ampp(iii-1,jjj,kkk) * p( 0,-1,-1)
+      +              A0pp(iii-1,jjj,kkk) * p(+1,-1,-1);
+    ap(0,0,0) =
+                     Ampp(iii,jjj,kkk) * p(+1,-1,-1);
+    ap(-1,1,0) =
+                     Am0p(iii-1,jjj+1,kkk) * p( 0,-1,-1)
+      +              A00p(iii-1,jjj+1,kkk) * p(+1,-1,-1)
+      +              Ampp(iii-1,jjj+1,kkk) * p( 0, 0,-1)
+      +              A0pp(iii-1,jjj+1,kkk) * p(+1, 0,-1);
+    ap(0,1,0) =
+                     Am0p(iii,jjj+1,kkk) * p(+1,-1,-1)
+      +              Ampp(iii,jjj+1,kkk) * p(+1, 0,-1);
+    ap(-1,0,1) =
+                     Amp0(iii-1,jjj,kkk+1) * p( 0,-1,-1)
+      +              A0p0(iii-1,jjj,kkk+1) * p(+1,-1,-1)
+      +              Ampp(iii-1,jjj,kkk+1) * p( 0,-1, 0)
+      +              A0pp(iii-1,jjj,kkk+1) * p(+1,-1, 0);
+    ap(0,0,1) =
+                     Amp0(iii,jjj,kkk+1) * p(+1,-1,-1)
+      +              Ampp(iii,jjj,kkk+1) * p(+1,-1, 0);
+    ap(-1,1,1) =
+                     Am00(iii-1,jjj+1,kkk+1) * p( 0,-1,-1)
+      +              A000(iii-1,jjj+1,kkk+1) * p(+1,-1,-1)
+      +              Amp0(iii-1,jjj+1,kkk+1) * p( 0, 0,-1)
+      +              A0p0(iii-1,jjj+1,kkk+1) * p(+1, 0,-1)
+      +              Am0p(iii-1,jjj+1,kkk+1) * p( 0,-1, 0)
+      +              A00p(iii-1,jjj+1,kkk+1) * p(+1,-1, 0)
+      +              Ampp(iii-1,jjj+1,kkk+1) * p( 0, 0, 0)
+      +              A0pp(iii-1,jjj+1,kkk+1) * p(+1, 0, 0);
+    ap(0,1,1) =
+                     Am00(iii,jjj+1,kkk+1) * p(+1,-1,-1)
+      +              Amp0(iii,jjj+1,kkk+1) * p(+1, 0,-1)
+      +              Am0p(iii,jjj+1,kkk+1) * p(+1,-1, 0)
+      +              Ampp(iii,jjj+1,kkk+1) * p(+1, 0, 0);
+    cs2 = 0.125_rt *
+      ( restrict_from_m00_to(iii,jjj,kkk) * ap(-1, 0, 0)
+      + restrict_from_000_to(iii,jjj,kkk) * ap( 0, 0, 0)
+      + restrict_from_mp0_to(iii,jjj,kkk) * ap(-1,+1, 0)
+      + restrict_from_0p0_to(iii,jjj,kkk) * ap( 0,+1, 0)
+      + restrict_from_m0p_to(iii,jjj,kkk) * ap(-1, 0,+1)
+      + restrict_from_00p_to(iii,jjj,kkk) * ap( 0, 0,+1)
+      + restrict_from_mpp_to(iii,jjj,kkk) * ap(-1,+1,+1)
+      + restrict_from_0pp_to(iii,jjj,kkk) * ap( 0,+1,+1));
+
+    // alternative: csten(i,j+1,k,ist_pmp)
+    iii = ii;
+    jjj = jj+2;
+    kkk = kk;
+    p(-1, 0,-1) = interp_from_p0p_to(iii+1,jjj-2,kkk+1);
+    p( 0, 0,-1) = interp_from_00p_to(iii+2,jjj-2,kkk+1);
+    p(-1,+1,-1) = interp_from_pmp_to(iii+1,jjj-1,kkk+1);
+    p( 0,+1,-1) = interp_from_0mp_to(iii+2,jjj-1,kkk+1);
+    p(-1, 0, 0) = interp_from_p00_to(iii+1,jjj-2,kkk+2);
+    p( 0, 0, 0) = 1._rt;
+    p(-1,+1, 0) = interp_from_pm0_to(iii+1,jjj-1,kkk+2);
+    p( 0,+1, 0) = interp_from_0m0_to(iii+2,jjj-1,kkk+2);
+    ap(0,-1,0) =
+                     Apmp(iii,jjj-1,kkk) * p(-1, 0,-1)
+      +              Ap0p(iii,jjj-1,kkk) * p(-1,+1,-1);
+    ap(1,-1,0) =
+                     A0mp(iii+1,jjj-1,kkk) * p(-1, 0,-1)
+      +              Apmp(iii+1,jjj-1,kkk) * p( 0, 0,-1)
+      +              A00p(iii+1,jjj-1,kkk) * p(-1,+1,-1)
+      +              Ap0p(iii+1,jjj-1,kkk) * p( 0,+1,-1);
+    ap(0,0,0) =
+                     Apmp(iii,jjj,kkk) * p(-1,+1,-1);
+    ap(1,0,0) =
+                     A0mp(iii+1,jjj,kkk) * p(-1,+1,-1)
+      +              Apmp(iii+1,jjj,kkk) * p( 0,+1,-1);
+    ap(0,-1,1) =
+                     Apm0(iii,jjj-1,kkk+1) * p(-1, 0,-1)
+      +              Ap00(iii,jjj-1,kkk+1) * p(-1,+1,-1)
+      +              Apmp(iii,jjj-1,kkk+1) * p(-1, 0, 0)
+      +              Ap0p(iii,jjj-1,kkk+1) * p(-1,+1, 0);
+    ap(1,-1,1) =
+                     A0m0(iii+1,jjj-1,kkk+1) * p(-1, 0,-1)
+      +              Apm0(iii+1,jjj-1,kkk+1) * p( 0, 0,-1)
+      +              A000(iii+1,jjj-1,kkk+1) * p(-1,+1,-1)
+      +              Ap00(iii+1,jjj-1,kkk+1) * p( 0,+1,-1)
+      +              A0mp(iii+1,jjj-1,kkk+1) * p(-1, 0, 0)
+      +              Apmp(iii+1,jjj-1,kkk+1) * p( 0, 0, 0)
+      +              A00p(iii+1,jjj-1,kkk+1) * p(-1,+1, 0)
+      +              Ap0p(iii+1,jjj-1,kkk+1) * p( 0,+1, 0);
+    ap(0,0,1) =
+                     Apm0(iii,jjj,kkk+1) * p(-1,+1,-1)
+      +              Apmp(iii,jjj,kkk+1) * p(-1,+1, 0);
+    ap(1,0,1) =
+                     A0m0(iii+1,jjj,kkk+1) * p(-1,+1,-1)
+      +              Apm0(iii+1,jjj,kkk+1) * p( 0,+1,-1)
+      +              A0mp(iii+1,jjj,kkk+1) * p(-1,+1, 0)
+      +              Apmp(iii+1,jjj,kkk+1) * p( 0,+1, 0);
+    cs3 = 0.125_rt *
+      ( restrict_from_0m0_to(iii,jjj,kkk) * ap( 0,-1, 0)
+      + restrict_from_pm0_to(iii,jjj,kkk) * ap(+1,-1, 0)
+      + restrict_from_000_to(iii,jjj,kkk) * ap( 0, 0, 0)
+      + restrict_from_p00_to(iii,jjj,kkk) * ap(+1, 0, 0)
+      + restrict_from_0mp_to(iii,jjj,kkk) * ap( 0,-1,+1)
+      + restrict_from_pmp_to(iii,jjj,kkk) * ap(+1,-1,+1)
+      + restrict_from_00p_to(iii,jjj,kkk) * ap( 0, 0,+1)
+      + restrict_from_p0p_to(iii,jjj,kkk) * ap(+1, 0,+1));
+
+    // alternative: csten(i+1,j+1,k,ist_mmp)
+    iii = ii+2;
+    jjj = jj+2;
+    kkk = kk;
+    p( 0, 0,-1) = interp_from_00p_to(iii-2,jjj-2,kkk+1);
+    p(+1, 0,-1) = interp_from_m0p_to(iii-1,jjj-2,kkk+1);
+    p( 0,+1,-1) = interp_from_0mp_to(iii-2,jjj-1,kkk+1);
+    p(+1,+1,-1) = interp_from_mmp_to(iii-1,jjj-1,kkk+1);
+    p( 0, 0, 0) = 1._rt;
+    p(+1, 0, 0) = interp_from_m00_to(iii-1,jjj-2,kkk+2);
+    p( 0,+1, 0) = interp_from_0m0_to(iii-2,jjj-1,kkk+2);
+    p(+1,+1, 0) = interp_from_mm0_to(iii-1,jjj-1,kkk+2);
+    ap(-1,-1,0) =
+                     Ammp(iii-1,jjj-1,kkk) * p( 0, 0,-1)
+      +              A0mp(iii-1,jjj-1,kkk) * p(+1, 0,-1)
+      +              Am0p(iii-1,jjj-1,kkk) * p( 0,+1,-1)
+      +              A00p(iii-1,jjj-1,kkk) * p(+1,+1,-1);
+    ap(0,-1,0) =
+                     Ammp(iii,jjj-1,kkk) * p(+1, 0,-1)
+      +              Am0p(iii,jjj-1,kkk) * p(+1,+1,-1);
+    ap(-1,0,0) =
+                     Ammp(iii-1,jjj,kkk) * p( 0,+1,-1)
+      +              A0mp(iii-1,jjj,kkk) * p(+1,+1,-1);
+    ap(0,0,0) =
+                     Ammp(iii,jjj,kkk) * p(+1,+1,-1);
+    ap(-1,-1,1) =
+                     Amm0(iii-1,jjj-1,kkk+1) * p( 0, 0,-1)
+      +              A0m0(iii-1,jjj-1,kkk+1) * p(+1, 0,-1)
+      +              Am00(iii-1,jjj-1,kkk+1) * p( 0,+1,-1)
+      +              A000(iii-1,jjj-1,kkk+1) * p(+1,+1,-1)
+      +              Ammp(iii-1,jjj-1,kkk+1) * p( 0, 0, 0)
+      +              A0mp(iii-1,jjj-1,kkk+1) * p(+1, 0, 0)
+      +              Am0p(iii-1,jjj-1,kkk+1) * p( 0,+1, 0)
+      +              A00p(iii-1,jjj-1,kkk+1) * p(+1,+1, 0);
+    ap(0,-1,1) =
+                     Amm0(iii,jjj-1,kkk+1) * p(+1, 0,-1)
+      +              Am00(iii,jjj-1,kkk+1) * p(+1,+1,-1)
+      +              Ammp(iii,jjj-1,kkk+1) * p(+1, 0, 0)
+      +              Am0p(iii,jjj-1,kkk+1) * p(+1,+1, 0);
+    ap(-1,0,1) =
+                     Amm0(iii-1,jjj,kkk+1) * p( 0,+1,-1)
+      +              A0m0(iii-1,jjj,kkk+1) * p(+1,+1,-1)
+      +              Ammp(iii-1,jjj,kkk+1) * p( 0,+1, 0)
+      +              A0mp(iii-1,jjj,kkk+1) * p(+1,+1, 0);
+    ap(0,0,1) =
+                     Amm0(iii,jjj,kkk+1) * p(+1,+1,-1)
+      +              Ammp(iii,jjj,kkk+1) * p(+1,+1, 0);
+    cs4 = 0.125_rt *
+      ( restrict_from_mm0_to(iii,jjj,kkk) * ap(-1,-1, 0)
+      + restrict_from_0m0_to(iii,jjj,kkk) * ap( 0,-1, 0)
+      + restrict_from_m00_to(iii,jjj,kkk) * ap(-1, 0, 0)
+      + restrict_from_000_to(iii,jjj,kkk) * ap( 0, 0, 0)
+      + restrict_from_mmp_to(iii,jjj,kkk) * ap(-1,-1,+1)
+      + restrict_from_0mp_to(iii,jjj,kkk) * ap( 0,-1,+1)
+      + restrict_from_m0p_to(iii,jjj,kkk) * ap(-1, 0,+1)
+      + restrict_from_00p_to(iii,jjj,kkk) * ap( 0, 0,+1));
+
+    csten(i,j,k,ist_ppp) = 0.25_rt*(cs1+cs2+cs3+cs4);
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
