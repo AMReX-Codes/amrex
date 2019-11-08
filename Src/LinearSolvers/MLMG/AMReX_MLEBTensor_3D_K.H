@@ -506,22 +506,10 @@ void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlebtensor_flux (Box const& box,
+void mlebtensor_flux_0 (Box const& box,
 		      Array4<Real> const& Ax,
-		      Array4<Real> const& Ay,
-		      Array4<Real> const& Az,
 		      Array4<Real const> const& fx,
-		      Array4<Real const> const& fy,
-		      Array4<Real const> const& fz,
-		      Array4<Real const> const& vel,
-		      Array4<int const> const& ccm,
 		      Array4<EBCellFlag const> const& flag,
-		      Array4<Real const> const& apx,
-		      Array4<Real const> const& apy,
-		      Array4<Real const> const& apz,
-		      Array4<Real const> const& fcx,
-		      Array4<Real const> const& fcy,
-		      Array4<Real const> const& fcz,
 		      Real bscalar) noexcept
   {
     const auto lo = amrex::lbound(box);
@@ -533,17 +521,15 @@ void mlebtensor_flux (Box const& box,
             for (int i = lo.x; i <= hi.x; ++i) {
                 if (flag(i,j,k).isRegular())
                 {
-		  Ax(i,j,k,0) += bscalar*fx(i,j,k,0);
-		  Ay(i,j,k,1) += bscalar*fy(i,j,k,1);
-		  Az(i,j,k,2) += bscalar*fz(i,j,k,2);
+		  for (int n=0; n<AMREX_SPACEDIM; n++) 
+		    Ax(i,j,k,n) += bscalar*fx(i,j,k,n);
                 }
                 else if (flag(i,j,k).isSingleValued())
                 {
 		  // FIXME - set to ridiculous num so we ensure we don't use these
 		  // not sure how to appropriately compute these cut cell fluxes...
-		  Ax(i,j,k,0) = 1.2345e20;
-		  Ay(i,j,k,1) = 1.2345e20;
-		  Az(i,j,k,2) = 1.2345e20;
+		  for (int n=0; n<AMREX_SPACEDIM; n++)
+		    Ax(i,j,k,n) = 1.2345e20;
 		}
 	    }
 	}
