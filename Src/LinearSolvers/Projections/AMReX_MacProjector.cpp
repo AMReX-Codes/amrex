@@ -94,6 +94,17 @@ MacProjector::setDomainBC (const Array<LinOpBCType,AMREX_SPACEDIM>& lobc,
     for (int ilev = 0, N = m_umac.size(); ilev < N; ++ilev) {
         m_linop->setLevelBC(ilev, nullptr);
     }
+
+    m_needs_domain_bcs = false;
+}
+
+
+void
+MacProjector::setLevelBC (int amrlev, const MultiFab* levelbcdata)
+{
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!m_needs_domain_bcs,
+                                     "setDomainBC must be called before setLevelBC");
+    m_linop->setLevelBC(amrlev, levelbcdata);
 }
 
 void
@@ -138,7 +149,7 @@ MacProjector::project (Real reltol, Real atol, MLMG::Location loc)
     m_mlmg->solve(amrex::GetVecOfPtrs(m_phi), amrex::GetVecOfConstPtrs(m_rhs), reltol, atol);
 
     m_mlmg->getFluxes(amrex::GetVecOfArrOfPtrs(m_fluxes), loc);
-    
+
     for (int ilev = 0; ilev < nlevs; ++ilev) {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             MultiFab::Add(*m_umac[ilev][idim], m_fluxes[ilev][idim], 0, 0, 1, 0);
@@ -192,7 +203,7 @@ MacProjector::project (const Vector<MultiFab*>& phi_inout, Real reltol, Real ato
 
     m_mlmg->getFluxes(amrex::GetVecOfArrOfPtrs(m_fluxes), loc);
 
-    
+
     for (int ilev = 0; ilev < nlevs; ++ilev) {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             MultiFab::Add(*m_umac[ilev][idim], m_fluxes[ilev][idim], 0, 0, 1, 0);
