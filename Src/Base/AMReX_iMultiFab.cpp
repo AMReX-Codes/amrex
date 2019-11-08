@@ -322,7 +322,9 @@ iMultiFab::sum (int comp, int nghost, bool local) const
 // HIP FIX HERE - __shfl_down type mismatch.
 // HIP __shfl_down does not have a long version.
 // (has int, unsigned int, float, double)
-// ast long into double and back?
+// cast long into double and back?
+
+// Completely wrong, but jury-rigging to get HIP running for now.
 
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())

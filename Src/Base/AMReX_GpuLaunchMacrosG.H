@@ -396,7 +396,7 @@
         AMREX_GPU_ERROR_CHECK(); \
     }
 
-#else
+#elif defined(AMREX_USE_CUDA)
 
 #define AMREX_GPU_LAUNCH_GLOBAL(strategy, function, ...) \
     { \
