@@ -16,7 +16,11 @@
 #include <cuda_runtime.h>
 #include <thrust/system/cuda/vector.h>
 #include <thrust/device_malloc_allocator.h>
-#endif // AMREX_USE_CUDA
+#elif defined (AMREX_USE_HIP)
+#include <thrust/memory.h>
+#include <thrust/system/hip/vector.h>
+#include <thrust/device_malloc_allocator.h>
+#endif
 
 namespace amrex {
 
@@ -150,7 +154,7 @@ namespace amrex {
         return !(x == y);
     }
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
     template<class T>
     class ThrustManagedAllocator : public thrust::device_malloc_allocator<T>
     {
@@ -185,7 +189,7 @@ namespace amrex {
     template <typename T>
     using CudaManagedAllocator = std::allocator<T>;
 
-#endif // AMREX_USE_CUDA
+#endif // AMREX_USE_GPU
 
 } // namespace amrex
 
