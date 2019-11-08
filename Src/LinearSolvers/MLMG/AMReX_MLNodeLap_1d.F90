@@ -29,7 +29,7 @@ module amrex_mlnodelap_1d_module
        ! rhs & u
        amrex_mlndlap_divu_fine_contrib, amrex_mlndlap_divu_cf_contrib, &
        amrex_mlndlap_rhcc_fine_contrib, amrex_mlndlap_rhcc_crse_contrib, &
-       amrex_mlndlap_vel_cc_to_ct, amrex_mlndlap_mknewu_eb, &
+       amrex_mlndlap_vel_cc_to_ct, &
        ! residual
        amrex_mlndlap_crse_resid, &
        amrex_mlndlap_res_fine_contrib, amrex_mlndlap_res_cf_contrib, &
@@ -37,10 +37,6 @@ module amrex_mlnodelap_1d_module
        amrex_mlndlap_zero_fine
 
   ! RAP
-
-#ifdef AMREX_USE_EB
-  public:: amrex_mlndlap_mknewu_eb
-#endif
 
 contains
 
@@ -62,17 +58,6 @@ contains
     real(amrex_real), intent(in   ) ::  cent(clo(1):chi(1))
     integer         , intent(in   ) ::  flag(glo(1):ghi(1))
   end subroutine amrex_mlndlap_vel_cc_to_ct
-
-
-  subroutine amrex_mlndlap_mknewu_eb (lo, hi, u, ulo, uhi, p, plo, phi, sig, slo, shi, &
-       vfrac, vlo, vhi, dxinv) bind(c,name='amrex_mlndlap_mknewu_eb')
-    integer, dimension(1), intent(in) :: lo, hi, ulo, uhi, plo, phi, slo, shi, vlo, vhi
-    real(amrex_real), intent(in) :: dxinv(1)
-    real(amrex_real), intent(inout) ::   u(ulo(1):uhi(1))
-    real(amrex_real), intent(in   ) ::   p(plo(1):phi(1))
-    real(amrex_real), intent(in   ) :: sig(slo(1):shi(1))
-    real(amrex_real), intent(in   ) :: vfrac(vlo(1):vhi(1))
-  end subroutine amrex_mlndlap_mknewu_eb
 
 
   subroutine amrex_mlndlap_divu_fine_contrib (clo, chi, cglo, cghi, rhs, rlo, rhi, &
@@ -173,21 +158,5 @@ contains
     integer         , intent(in   ) :: msk(mlo(1):mhi(1))
     integer, intent(in) :: fine_flag
   end subroutine amrex_mlndlap_zero_fine
-
-
-#ifdef AMREX_USE_EB
-
-  subroutine amrex_mlndlap_mknewu_eb (lo, hi, u, ulo, uhi, p, plo, phi, sig, slo, shi, &
-       vfrac, vlo, vhi, intg, glo, ghi, dxinv) bind(c,name='amrex_mlndlap_mknewu_eb')
-    integer, dimension(1), intent(in) :: lo, hi, ulo, uhi, plo, phi, slo, shi, vlo, vhi, glo, ghi
-    real(amrex_real), intent(in) :: dxinv(1)
-    real(amrex_real), intent(inout) ::   u(ulo(1):uhi(1))
-    real(amrex_real), intent(in   ) ::   p(plo(1):phi(1))
-    real(amrex_real), intent(in   ) :: sig(slo(1):shi(1))
-    real(amrex_real), intent(in   )::vfrac(vlo(1):vhi(1))
-    real(amrex_real), intent(in   ) ::intg(glo(1):ghi(1))
-  end subroutine amrex_mlndlap_mknewu_eb
-
-#endif
 
 end module amrex_mlnodelap_1d_module

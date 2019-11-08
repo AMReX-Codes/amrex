@@ -51,7 +51,7 @@ module amrex_mlnodelap_2d_module
 
 #ifdef AMREX_USE_EB
   public:: amrex_mlndlap_set_integral, amrex_mlndlap_set_integral_eb, &
-       amrex_mlndlap_mknewu_eb, amrex_mlndlap_rhcc_eb
+       amrex_mlndlap_rhcc_eb
 #endif
 
 contains
@@ -660,38 +660,6 @@ contains
     end do
   end subroutine amrex_mlndlap_set_integral_eb
 
-
-  subroutine amrex_mlndlap_mknewu_eb (lo, hi, u, ulo, uhi, p, plo, phi, sig, slo, shi, &
-       vfrac, vlo, vhi, intg, glo, ghi, dxinv) bind(c,name='amrex_mlndlap_mknewu_eb')
-    integer, dimension(2), intent(in) :: lo, hi, ulo, uhi, plo, phi, slo, shi, vlo, vhi, glo, ghi
-    real(amrex_real), intent(in) :: dxinv(2)
-    real(amrex_real), intent(inout) ::   u(ulo(1):uhi(1),ulo(2):uhi(2),2)
-    real(amrex_real), intent(in   ) ::   p(plo(1):phi(1),plo(2):phi(2))
-    real(amrex_real), intent(in   ) :: sig(slo(1):shi(1),slo(2):shi(2))
-    real(amrex_real), intent(in   )::vfrac(vlo(1):vhi(1),vlo(2):vhi(2))
-    real(amrex_real), intent(in   ) ::intg(glo(1):ghi(1),glo(2):ghi(2),n_Sintg)
-
-    integer :: i, j
-    real(amrex_real) :: dpdx, dpdy, facx, facy, dpp
-
-    facx = half*dxinv(1)
-    facy = half*dxinv(2)
-
-    do    j = lo(2), hi(2)
-       do i = lo(1), hi(1)
-          if (vfrac(i,j) .eq. zero) then
-             u(i,j,1) = zero
-             u(i,j,2) = zero
-          else
-             dpdx = facx*(-p(i,j)+p(i+1,j)-p(i,j+1)+p(i+1,j+1))
-             dpdy = facy*(-p(i,j)-p(i+1,j)+p(i,j+1)+p(i+1,j+1))
-             dpp = (p(i,j)+p(i+1,j+1)-p(i+1,j)-p(i,j+1))/vfrac(i,j)
-             u(i,j,1) = u(i,j,1) - sig(i,j)*(dpdx + dxinv(1)*intg(i,j,2)*dpp)
-             u(i,j,2) = u(i,j,2) - sig(i,j)*(dpdy + dxinv(2)*intg(i,j,1)*dpp)
-          end if
-       end do
-    end do
-  end subroutine amrex_mlndlap_mknewu_eb
 
   subroutine amrex_mlndlap_rhcc_eb (lo, hi, rhs, rlo, rhi, rhcc, clo, chi, vfrac, flo,fhi,&
        intg, glo, ghi, msk, mlo, mhi) &
