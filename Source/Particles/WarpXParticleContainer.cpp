@@ -504,21 +504,16 @@ void
 WarpXParticleContainer::DepositCharge (Vector<std::unique_ptr<MultiFab> >& rho,
                                         bool local, bool reset)
 {
+    // Loop over the refinement levels
+    for (int lev = 0; lev < max_level; ++lev) {
 
-    int num_levels = rho.size();
-    int finest_level = num_levels - 1;
+        // Reset the `rho` array if `reset` is True
+        if (reset) rho[lev]->setVal(0.0, rho[lev]->nGrow());
 
-    // each level deposits its own particles
-    const int ng = rho[0]->nGrow();
-    for (int lev = 0; lev < num_levels; ++lev) {
-
-        if (reset) rho[lev]->setVal(0.0, ng);
-
+        // Loop over particle tiles and deposit charge
 #ifdef _OPENMP
-#pragma omp parallel
+        #pragma omp parallel
         {
-#endif
-#ifdef _OPENMP
         int thread_num = omp_get_thread_num();
 #else
         int thread_num = 0;
