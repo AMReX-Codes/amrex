@@ -509,7 +509,7 @@ MLEBTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
 
 //
 // WARNING
-// EB wall flux not computed properly.
+// EB cut cell fluxes not computed properly.
 // 9/20/2019 - current use only for coarse-fine sync, so only box-face fluxes used
 //             just ensure application doesn't have EB crossing coarse-fine boundary
 //
@@ -521,8 +521,6 @@ MLEBTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxe
 
     const int mglev = 0;
     const int ncomp = getNComp();
-    // fixme??? switch next 2 lines?
-    // unclear why we'd want to partially compute fluxes before return...
     MLEBABecLap::compFlux(amrlev, fluxes, sol, loc);
 
     if (mglev >= m_kappa[amrlev].size()) return;
@@ -534,14 +532,13 @@ MLEBTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxe
 
     auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
-    const MultiFab* vfrac = (factory) ? &(factory->getVolFrac()) : nullptr;
     auto area = (factory) ? factory->getAreaFrac()
         : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
-    auto fcent = (factory) ? factory->getFaceCent()
-        : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
-    const MultiCutFab* bcent = (factory) ? &(factory->getBndryCent()) : nullptr;
-
-//    const int is_eb_dirichlet = true;
+    // would be needed for computing cut cell fluxes
+    // const MultiFab* vfrac = (factory) ? &(factory->getVolFrac()) : nullptr;
+    // auto fcent = (factory) ? factory->getFaceCent()
+    //     : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
+    // const MultiCutFab* bcent = (factory) ? &(factory->getBndryCent()) : nullptr;
 
     const Geometry& geom = m_geom[amrlev][mglev];
     const auto dxinv = geom.InvCellSizeArray();
@@ -549,9 +546,9 @@ MLEBTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxe
     Array<MultiFab,AMREX_SPACEDIM> const& etamf = m_b_coeffs[amrlev][mglev];
     Array<MultiFab,AMREX_SPACEDIM> const& kapmf = m_kappa[amrlev][mglev];
     Array<MultiFab,AMREX_SPACEDIM>& fluxmf = m_tauflux[amrlev][mglev];
-    iMultiFab const& mask = m_cc_mask[amrlev][mglev];
-    MultiFab const& etaebmf = *m_eb_b_coeffs[amrlev][mglev];
-    MultiFab const& kapebmf = m_eb_kappa[amrlev][mglev];
+    // iMultiFab const& mask = m_cc_mask[amrlev][mglev];
+    // MultiFab const& etaebmf = *m_eb_b_coeffs[amrlev][mglev];
+    // MultiFab const& kapebmf = m_eb_kappa[amrlev][mglev];
     Real bscalar = m_b_scalar;
 
     if (Gpu::inLaunchRegion())
@@ -741,39 +738,21 @@ MLEBTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxe
         }
         else
         {
-	    AMREX_D_TERM(Array4<Real> const fxfab = fluxmf[0].array(mfi);,
-			 Array4<Real> const fyfab = fluxmf[1].array(mfi);,
-			 Array4<Real> const fzfab = fluxmf[2].array(mfi););
-	    AMREX_D_TERM(Array4<Real> const axfab = fluxes[0]->array(mfi);,
-			 Array4<Real> const ayfab = fluxes[1]->array(mfi);,
-			 Array4<Real> const azfab = fluxes[2]->array(mfi););
-            Array4<Real const> const& vfab = sol.array(mfi);
-            Array4<Real const> const& etab = etaebmf.array(mfi);
-            Array4<Real const> const& kapb = kapebmf.array(mfi);
-            Array4<int const> const& ccm = mask.array(mfi);
-            Array4<EBCellFlag const> const& flag = flags->array(mfi);
-            Array4<Real const> const& vol = vfrac->array(mfi);
-            AMREX_D_TERM(Array4<Real const> const& apx = area[0]->array(mfi);,
-                         Array4<Real const> const& apy = area[1]->array(mfi);,
-                         Array4<Real const> const& apz = area[2]->array(mfi););
-            AMREX_D_TERM(Array4<Real const> const& fcx = fcent[0]->array(mfi);,
-                         Array4<Real const> const& fcy = fcent[1]->array(mfi);,
-                         Array4<Real const> const& fcz = fcent[2]->array(mfi););
-            Array4<Real const> const& bc = bcent->array(mfi);
 	    //fixme -
-	    // this fills regular cells appropriately and
+	    // this fills regular cells in the usual way
 	    // sets fluxes in cut cells to riduculous val so we know if they're used
 	    // should not be using cut cell fluxes yet...
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
-            {
-	        mlebtensor_flux(tbx,
-				AMREX_D_DECL(axfab,ayfab,azfab),
-				AMREX_D_DECL(fxfab,fyfab,fzfab),
-				vfab, ccm, flag,
-				AMREX_D_DECL(apx,apy,apz),
-				AMREX_D_DECL(fcx,fcy,fcz),
-				bscalar);
-            });
+            Array4<EBCellFlag const> const& flag = flags->array(mfi);
+	    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+	      const Box& nbx = mfi.nodaltilebox(idim);
+	      Array4<Real      > dst = fluxes[idim]->array(mfi);
+	      Array4<Real const> src = fluxmf[idim].array(mfi);
+	      
+	      AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( nbx, tbx,
+	      {
+	        mlebtensor_flux_0(tbx, dst, src, flag, bscalar);
+	      });
+	    }
         }
     }
 }
