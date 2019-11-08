@@ -59,8 +59,8 @@ doCoulombCollisionsWithinTile ( int lev, MFIter const& mfi,
     ParticleTileType& ptile_2 = species_2->ParticlesAt(lev, mfi);
 
     // Find the particles that are in each cell of this tile
-    ParticleBins const bins_1 = findParticlesInEachCell( lev, mfi, ptile_1 );
-    ParticleBins const bins_2 = findParticlesInEachCell( lev, mfi, ptile_2 );
+    ParticleBins bins_1 = findParticlesInEachCell( lev, mfi, ptile_1 );
+    ParticleBins bins_2 = findParticlesInEachCell( lev, mfi, ptile_2 );
 
     // Loop over cells, and collide the particles in each cell
 
@@ -72,7 +72,7 @@ doCoulombCollisionsWithinTile ( int lev, MFIter const& mfi,
     Real* uy_1 = soa_1.GetRealData(PIdx::ux).data();
     Real* uz_1 = soa_1.GetRealData(PIdx::ux).data();
     Real* w_1 = soa_1.GetRealData(PIdx::w).data();
-    index_type const* indices_1 = bins_1.permutationPtr();
+    index_type* indices_1 = bins_1.permutationPtr();
     index_type const* cell_offsets_1 = bins_1.offsetsPtr();
     Real q1 = species_1->getCharge();
     Real m1 = species_1->getMass();
@@ -82,7 +82,7 @@ doCoulombCollisionsWithinTile ( int lev, MFIter const& mfi,
     Real* uy_2 = soa_2.GetRealData(PIdx::ux).data();
     Real* uz_2 = soa_2.GetRealData(PIdx::ux).data();
     Real* w_2 = soa_2.GetRealData(PIdx::w).data();
-    index_type const* indices_2 = bins_2.permutationPtr();
+    index_type* indices_2 = bins_2.permutationPtr();
     index_type const* cell_offsets_2 = bins_2.offsetsPtr();
     Real q2 = species_2->getCharge();
     Real m2 = species_2->getMass();
