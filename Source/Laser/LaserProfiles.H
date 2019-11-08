@@ -79,8 +79,6 @@ public:
     virtual ~ILaserProfile(){};
 };
 
-//_________________________________________Declaration of laser profile classes
-
 /**
  * Gaussian laser profile
  */
