@@ -4979,5 +4979,234 @@ void mlndlap_restriction_rap (int i, int j, int k, Array4<Real> const& crse,
     }
 }
 
+#ifdef AMREX_USE_EB
+
+namespace {
+
+    constexpr int i_S_x     = 0;
+    constexpr int i_S_y     = 1;
+    constexpr int i_S_z     = 2;
+    constexpr int i_S_x2    = 3;
+    constexpr int i_S_y2    = 4;
+    constexpr int i_S_z2    = 5;
+    constexpr int i_S_x_y   = 6;
+    constexpr int i_S_x_z   = 7;
+    constexpr int i_S_y_z   = 8;
+    constexpr int i_S_x2_y  = 9;
+    constexpr int i_S_x2_z  = 10;
+    constexpr int i_S_x_y2  = 11;
+    constexpr int i_S_y2_z  = 12;
+    constexpr int i_S_x_z2  = 13;
+    constexpr int i_S_y_z2  = 14;
+    constexpr int i_S_x2_y2 = 15;
+    constexpr int i_S_x2_z2 = 16;
+    constexpr int i_S_y2_z2 = 17;
+    constexpr int i_S_xyz   = 18;
+    constexpr int n_Sintg   = 19;
+
+    constexpr int i_c_xmym = 0;
+    constexpr int i_c_xmyb = 1;
+    constexpr int i_c_xmyp = 2;
+    constexpr int i_c_xbym = 3;
+    constexpr int i_c_xbyb = 4;
+    constexpr int i_c_xbyp = 5;
+    constexpr int i_c_xpym = 6;
+    constexpr int i_c_xpyb = 7;
+    constexpr int i_c_xpyp = 8;
+    constexpr int i_c_xmzm = 9;
+    constexpr int i_c_xmzb = 10;
+    constexpr int i_c_xmzp = 11;
+    constexpr int i_c_xbzm = 12;
+    constexpr int i_c_xbzb = 13;
+    constexpr int i_c_xbzp = 14;
+    constexpr int i_c_xpzm = 15;
+    constexpr int i_c_xpzb = 16;
+    constexpr int i_c_xpzp = 17;
+    constexpr int i_c_ymzm = 18;
+    constexpr int i_c_ymzb = 19;
+    constexpr int i_c_ymzp = 20;
+    constexpr int i_c_ybzm = 21;
+    constexpr int i_c_ybzb = 22;
+    constexpr int i_c_ybzp = 23;
+    constexpr int i_c_ypzm = 24;
+    constexpr int i_c_ypzb = 25;
+    constexpr int i_c_ypzp = 26;
+    constexpr int n_conn = 27;
+
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_set_connection (int i, int j, int k, Array4<Real> const& conn,
+                             Array4<Real const> const& intg, Array4<Real const> const& vol,
+                             Array4<EBCellFlag const> const& flag) noexcept
+{
+    if (flag(i,j,k).isCovered()) {
+        for (int n = 0; n < n_conn; ++n) conn(i,j,k,n) = 0._rt;
+    } else if (flag(i,j,k).isRegular() or vol(i,j,k) >= almostone) {
+        for (int n = 0; n < n_conn; ++n) conn(i,j,k,n) = 1._rt;
+    } else {
+        // Scaled by 9
+        conn(i,j,k,i_c_xmym) = 0.5625_rt*vol(i,j,k)
+            + 2.25_rt*(-intg(i,j,k,i_S_x ) - intg(i,j,k,i_S_y)
+                       +intg(i,j,k,i_S_x2) + intg(i,j,k,i_S_y2))
+            + 9._rt*( intg(i,j,k,i_S_x_y ) - intg(i,j,k,i_S_x2_y)
+                     -intg(i,j,k,i_S_x_y2) + intg(i,j,k,i_S_x2_y2));
+
+        // Scaled by 18
+        conn(i,j,k,i_c_xmyb) = 1.125_rt*vol(i,j,k)
+            + 4.5_rt*(-intg(i,j,k,i_S_x) + intg(i,j,k,i_S_x2) - intg(i,j,k,i_S_y2))
+            + 18._rt*( intg(i,j,k,i_S_x_y2) - intg(i,j,k,i_S_x2_y2));
+
+        // Scaled by 9
+        conn(i,j,k,i_c_xmyp) =  0.5625_rt*vol(i,j,k)
+            + 2.25_rt*(-intg(i,j,k,i_S_x ) + intg(i,j,k,i_S_y)
+                       +intg(i,j,k,i_S_x2) + intg(i,j,k,i_S_y2))
+            + 9._rt*(-intg(i,j,k,i_S_x_y ) + intg(i,j,k,i_S_x2_y)
+                     -intg(i,j,k,i_S_x_y2) + intg(i,j,k,i_S_x2_y2));
+
+        // Scaled by 18
+        conn(i,j,k,i_c_xbym) = 1.125_rt*vol(i,j,k)
+            + 4.5_rt*(-intg(i,j,k,i_S_y) - intg(i,j,k,i_S_x2) + intg(i,j,k,i_S_y2))
+            + 18._rt*(intg(i,j,k,i_S_x2_y) - intg(i,j,k,i_S_x2_y2));
+
+        // Scaled by 36
+        conn(i,j,k,i_c_xbyb) = 2.25_rt*vol(i,j,k)
+            + 9._rt*(-intg(i,j,k,i_S_x2) - intg(i,j,k,i_S_y2))
+            + 36._rt*intg(i,j,k,i_S_x2_y2);
+
+        // Scaled by 18
+        conn(i,j,k,i_c_xbyp) =  1.125_rt*vol(i,j,k)
+            + 4.5_rt*( intg(i,j,k,i_S_y) - intg(i,j,k,i_S_x2) + intg(i,j,k,i_S_y2))
+            + 18._rt*(-intg(i,j,k,i_S_x2_y) - intg(i,j,k,i_S_x2_y2));
+
+        // Scaled by 9
+        conn(i,j,k,i_c_xpym) = 0.5625_rt*vol(i,j,k)
+            + 2.25_rt*( intg(i,j,k,i_S_x ) - intg(i,j,k,i_S_y)
+                        +intg(i,j,k,i_S_x2) + intg(i,j,k,i_S_y2))
+            + 9._rt*(-intg(i,j,k,i_S_x_y ) - intg(i,j,k,i_S_x2_y)
+                     +intg(i,j,k,i_S_x_y2) + intg(i,j,k,i_S_x2_y2));
+
+        // Scaled by 18
+        conn(i,j,k,i_c_xpyb) = 1.125_rt*vol(i,j,k)
+            + 4.5_rt*( intg(i,j,k,i_S_x) + intg(i,j,k,i_S_x2) - intg(i,j,k,i_S_y2))
+            + 18._rt*(-intg(i,j,k,i_S_x_y2) - intg(i,j,k,i_S_x2_y2));
+
+        // Scaled by 9
+        conn(i,j,k,i_c_xpyp) =  0.5625_rt*vol(i,j,k)
+            + 2.25_rt*( intg(i,j,k,i_S_x ) + intg(i,j,k,i_S_y)
+                        +intg(i,j,k,i_S_x2) + intg(i,j,k,i_S_y2))
+            + 9._rt*( intg(i,j,k,i_S_x_y ) + intg(i,j,k,i_S_x2_y)
+                      +intg(i,j,k,i_S_x_y2) + intg(i,j,k,i_S_x2_y2));
+
+        // Scaled by 9
+        conn(i,j,k,i_c_xmzm) = 0.5625_rt*vol(i,j,k)
+            + 2.25_rt*(-intg(i,j,k,i_S_x) - intg(i,j,k,i_S_z)
+                       +intg(i,j,k,i_S_x2) + intg(i,j,k,i_S_z2))
+            + 9._rt*(intg(i,j,k,i_S_x_z) - intg(i,j,k,i_S_x2_z)
+                     -intg(i,j,k,i_S_x_z2) + intg(i,j,k,i_S_x2_z2));
+
+        // Scaled by 18
+        conn(i,j,k,i_c_xmzb) = 1.125_rt*vol(i,j,k)
+            + 4.5_rt*(-intg(i,j,k,i_S_x) + intg(i,j,k,i_S_x2) - intg(i,j,k,i_S_z2))
+            + 18._rt*(intg(i,j,k,i_S_x_z2) - intg(i,j,k,i_S_x2_z2));
+
+        // Scaled by 9
+        conn(i,j,k,i_c_xmzp) = 0.5625_rt*vol(i,j,k)
+            + 2.25_rt*(-intg(i,j,k,i_S_x  ) + intg(i,j,k,i_S_z)
+                       +intg(i,j,k,i_S_x2) + intg(i,j,k,i_S_z2))
+            + 9._rt*(-intg(i,j,k,i_S_x_z  ) + intg(i,j,k,i_S_x2_z)
+                     -intg(i,j,k,i_S_x_z2) + intg(i,j,k,i_S_x2_z2));
+
+        // Scaled by 18
+        conn(i,j,k,i_c_xbzm) = 1.125_rt*vol(i,j,k)
+            + 4.5_rt*(-intg(i,j,k,i_S_z) - intg(i,j,k,i_S_x2) + intg(i,j,k,i_S_z2))
+            + 18._rt*(intg(i,j,k,i_S_x2_z) - intg(i,j,k,i_S_x2_z2));
+
+        // Scaled by 18
+        conn(i,j,k,i_c_xbzb) = 2.25_rt*vol(i,j,k)
+            + 9._rt*(-intg(i,j,k,i_S_x2) - intg(i,j,k,i_S_z2))
+            + 36._rt*intg(i,j,k,i_S_x2_z2);
+
+        // Scaled by 18
+        conn(i,j,k,i_c_xbzp) = 1.125_rt*vol(i,j,k)
+            + 4.5_rt*( intg(i,j,k,i_S_z) - intg(i,j,k,i_S_x2) + intg(i,j,k,i_S_z2))
+            + 18._rt*(-intg(i,j,k,i_S_x2_z) - intg(i,j,k,i_S_x2_z2));
+
+        // Scaled by 9
+        conn(i,j,k,i_c_xpzm) = 0.5625_rt*vol(i,j,k)
+            + 2.25_rt*( intg(i,j,k,i_S_x ) - intg(i,j,k,i_S_z)
+                        +intg(i,j,k,i_S_x2) + intg(i,j,k,i_S_z2))
+            + 9._rt*(-intg(i,j,k,i_S_x_z ) - intg(i,j,k,i_S_x2_z)
+                     +intg(i,j,k,i_S_x_z2) + intg(i,j,k,i_S_x2_z2));
+
+        // Scaled by 18
+        conn(i,j,k,i_c_xpzb) = 1.125_rt*vol(i,j,k)
+            + 4.5_rt*( intg(i,j,k,i_S_x   ) + intg(i,j,k,i_S_x2   ) - intg(i,j,k,i_S_z2))
+            + 18._rt*(-intg(i,j,k,i_S_x_z2) - intg(i,j,k,i_S_x2_z2));
+
+        // Scaled by 9
+        conn(i,j,k,i_c_xpzp) = 0.5625_rt*vol(i,j,k)
+            + 2.25_rt*( intg(i,j,k,i_S_x ) + intg(i,j,k,i_S_z)
+                        +intg(i,j,k,i_S_x2) + intg(i,j,k,i_S_z2))
+            + 9._rt*( intg(i,j,k,i_S_x_z ) + intg(i,j,k,i_S_x2_z)
+                      +intg(i,j,k,i_S_x_z2) + intg(i,j,k,i_S_x2_z2));
+
+        // Scaled by 9
+        conn(i,j,k,i_c_ymzm) = 0.5625_rt*vol(i,j,k)
+            + 2.25_rt*(-intg(i,j,k,i_S_y) - intg(i,j,k,i_S_z)
+                       +intg(i,j,k,i_S_y2) + intg(i,j,k,i_S_z2))
+            + 9._rt*(intg(i,j,k,i_S_y_z) - intg(i,j,k,i_S_y2_z)
+                     -intg(i,j,k,i_S_y_z2) + intg(i,j,k,i_S_y2_z2));
+
+        // Scaled by 18
+        conn(i,j,k,i_c_ymzb) = 1.125_rt*vol(i,j,k)
+            + 4.5_rt*(-intg(i,j,k,i_S_y) + intg(i,j,k,i_S_y2) - intg(i,j,k,i_S_z2))
+            + 18._rt*(intg(i,j,k,i_S_y_z2) - intg(i,j,k,i_S_y2_z2));
+
+        // Scaled by 9
+        conn(i,j,k,i_c_ymzp) = 0.5625_rt*vol(i,j,k)
+            + 2.25_rt*(-intg(i,j,k,i_S_y ) + intg(i,j,k,i_S_z)
+                       +intg(i,j,k,i_S_y2) + intg(i,j,k,i_S_z2))
+            + 9._rt*(-intg(i,j,k,i_S_y_z ) + intg(i,j,k,i_S_y2_z)
+                     -intg(i,j,k,i_S_y_z2) + intg(i,j,k,i_S_y2_z2));
+
+        // Scaled by 18
+        conn(i,j,k,i_c_ybzm) = 1.125_rt*vol(i,j,k)
+            + 4.5_rt*(-intg(i,j,k,i_S_z) - intg(i,j,k,i_S_y2) + intg(i,j,k,i_S_z2))
+            + 18._rt*(intg(i,j,k,i_S_y2_z) - intg(i,j,k,i_S_y2_z2));
+
+        // Scaled by 36
+        conn(i,j,k,i_c_ybzb) = 2.25_rt*vol(i,j,k)
+            + 9._rt*(-intg(i,j,k,i_S_y2) - intg(i,j,k,i_S_z2))
+                     + 36._rt*intg(i,j,k,i_S_y2_z2);
+
+        // Scaled by 18
+        conn(i,j,k,i_c_ybzp) = 1.125_rt*vol(i,j,k)
+            + 4.5_rt*( intg(i,j,k,i_S_z) - intg(i,j,k,i_S_y2) + intg(i,j,k,i_S_z2))
+            + 18._rt*(-intg(i,j,k,i_S_y2_z) - intg(i,j,k,i_S_y2_z2));
+
+        // Scaled by 9
+        conn(i,j,k,i_c_ypzm) = 0.5625_rt*vol(i,j,k)
+            + 2.25_rt*( intg(i,j,k,i_S_y ) - intg(i,j,k,i_S_z)
+                        +intg(i,j,k,i_S_y2) + intg(i,j,k,i_S_z2))
+            + 9._rt*(-intg(i,j,k,i_S_y_z ) - intg(i,j,k,i_S_y2_z)
+                     +intg(i,j,k,i_S_y_z2) + intg(i,j,k,i_S_y2_z2));
+
+        // Scaled by 18
+        conn(i,j,k,i_c_ypzb) = 1.125_rt*vol(i,j,k)
+            + 4.5_rt*( intg(i,j,k,i_S_y   ) + intg(i,j,k,i_S_y2) - intg(i,j,k,i_S_z2))
+            + 18._rt*(-intg(i,j,k,i_S_y_z2) - intg(i,j,k,i_S_y2_z2));
+
+        // Scaled by 9
+        conn(i,j,k,i_c_ypzp) = 0.5625_rt*vol(i,j,k)
+            + 2.25_rt*( intg(i,j,k,i_S_y ) + intg(i,j,k,i_S_z)
+                        +intg(i,j,k,i_S_y2) + intg(i,j,k,i_S_z2))
+            + 9._rt*( intg(i,j,k,i_S_y_z ) + intg(i,j,k,i_S_y2_z)
+                      +intg(i,j,k,i_S_y_z2) + intg(i,j,k,i_S_y2_z2));
+    }
+}
+
+#endif
+
 }
 #endif

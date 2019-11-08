@@ -20,6 +20,7 @@ namespace {
 #else
     constexpr double eps = 1.e-100;
 #endif
+    constexpr Real almostone = 1._rt - 100._rt*std::numeric_limits<Real>::epsilon();
 
 }
 

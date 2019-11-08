@@ -1099,5 +1099,40 @@ void mlndlap_restriction_rap (int i, int j, int k, Array4<Real> const& crse,
     }
 }
 
+#ifdef AMREX_USE_EB
+
+namespace {
+    constexpr int i_S_x     = 0;
+    constexpr int i_S_y     = 1;
+    constexpr int i_S_x2    = 2;
+    constexpr int i_S_y2    = 3;
+    constexpr int i_S_xy    = 4;
+    constexpr int n_Sintg   = 5;
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_set_connection (int i, int j, int, Array4<Real> const& conn,
+                             Array4<Real const> const& intg, Array4<Real const> const& vol,
+                             Array4<EBCellFlag const> const& flag) noexcept
+{
+    if (flag(i,j,0).isCovered()) {
+        for (int n = 0; n < 6; ++n) conn(i,j,0,n) = 0._rt;
+    } else if (flag(i,j,0).isRegular() or vol(i,j,0) >= almostone) {
+        for (int n = 0; n < 6; ++n) conn(i,j,0,n) = 1._rt;
+    } else {
+        // Note that these are normalized so that they equal 1 in the case of a regular cell
+
+        conn(i,j,0,0) = 3._rt*(.25_rt*vol(i,j,0) + intg(i,j,0,i_S_y2) - intg(i,j,0,i_S_y));
+        conn(i,j,0,1) = 6._rt*(.25_rt*vol(i,j,0) - intg(i,j,0,i_S_y2));
+        conn(i,j,0,2) = 3._rt*(.25_rt*vol(i,j,0) + intg(i,j,0,i_S_y2) + intg(i,j,0,i_S_y));
+
+        conn(i,j,0,3) = 3._rt*(.25_rt*vol(i,j,0) + intg(i,j,0,i_S_x2) - intg(i,j,0,i_S_x));
+        conn(i,j,0,4) = 6._rt*(.25_rt*vol(i,j,0) - intg(i,j,0,i_S_x2));
+        conn(i,j,0,5) = 3._rt*(.25_rt*vol(i,j,0) + intg(i,j,0,i_S_x2) + intg(i,j,0,i_S_x));
+    }
+}
+
+#endif
+
 }
 #endif

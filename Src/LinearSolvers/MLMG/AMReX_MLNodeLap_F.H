@@ -111,12 +111,6 @@ extern "C" {
 #endif
                                         const amrex_real* bcent, const int* blo, const int* bhi);
 
-    void amrex_mlndlap_set_connection (const int* lo, const int* hi,
-                                       amrex_real* conn, const int* clo, const int* chi,
-                                       const amrex_real* intg, const int* glo, const int* ghi,
-                                       const void* flag, const int* flo, const int* fhi,
-                                       const void* vol, const int* vlo, const int* vhi);
-
     void amrex_mlndlap_divu_eb (const int* lo, const int* hi,
                                 amrex_real* rhs, const int* rlo, const int* rhi,
                                 const amrex_real* vel, const int* vlo, const int* vhi,

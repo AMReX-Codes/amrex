@@ -1032,12 +1032,16 @@ MLNodeLaplacian::buildStencil ()
                     const Box& ccbx = amrex::enclosedCells(bx);
                     FArrayBox& stfab = (*m_stencil[amrlev][0])[mfi];
                     const FArrayBox& sgfab_orig = (*m_sigma[amrlev][0][0])[mfi];
-                    
+
+                    Array4<Real const> const& intgarr = intg->const_array(mfi);
+
 #ifdef AMREX_USE_EB
                     const int ncomp_c = (AMREX_SPACEDIM == 2) ? 6 : 27;
                     bool regular = !factory;
                     if (factory)
                     {
+                        Array4<EBCellFlag const> const& flagarr = flags->const_array(mfi);
+                        Array4<Real const> const& vfracarr = vfrac->const_array(mfi);
                         const auto& flag = (*flags)[mfi];
                         const auto& ccbxg1 = amrex::grow(ccbx,1);
                         const auto& typ = flag.getType(ccbxg1);
@@ -1051,11 +1055,11 @@ MLNodeLaplacian::buildStencil ()
 
                             cnfab.resize(ccbxg1, ncomp_c);
                             cnfab.setVal(0.0);
-                            amrex_mlndlap_set_connection(BL_TO_FORTRAN_BOX(btmp),
-                                                         BL_TO_FORTRAN_ANYD(cnfab),
-                                                         BL_TO_FORTRAN_ANYD((*intg)[mfi]),
-                                                         BL_TO_FORTRAN_ANYD(flag),
-                                                         BL_TO_FORTRAN_ANYD((*vfrac)[mfi]));
+                            Array4<Real> const& cnarr = cnfab.array();
+                            AMREX_HOST_DEVICE_FOR_3D(btmp, i, j, k,
+                            {
+                                mlndlap_set_connection(i,j,k,cnarr,intgarr,vfracarr,flagarr);
+                            });
 
                             sgfab.resize(ccbxg1);
                             sgfab.setVal(0.0);
