@@ -37,8 +37,6 @@ module amrex_mlnodelap_1d_module
        amrex_mlndlap_zero_fine
 
   ! RAP
-  public:: &
-       amrex_mlndlap_stencil_rap
 
 #ifdef AMREX_USE_EB
   public:: amrex_mlndlap_set_integral, amrex_mlndlap_set_integral_eb, &
@@ -177,14 +175,6 @@ contains
     integer         , intent(in   ) :: msk(mlo(1):mhi(1))
     integer, intent(in) :: fine_flag
   end subroutine amrex_mlndlap_zero_fine
-
-
-  subroutine amrex_mlndlap_stencil_rap (lo, hi, csten, clo, chi, fsten, flo, fhi) &
-       bind(c,name='amrex_mlndlap_stencil_rap')
-    integer, dimension(1), intent(in) :: lo, hi, clo, chi, flo, fhi
-    real(amrex_real), intent(inout) :: csten(clo(1):chi(1),3)
-    real(amrex_real), intent(in   ) :: fsten(flo(1):fhi(1),3)
-  end subroutine amrex_mlndlap_stencil_rap
 
 
 #ifdef AMREX_USE_EB
