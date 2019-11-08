@@ -899,8 +899,8 @@ public:
 
 
     //! struct-of-array stuff
-    std::vector<bool> communicate_real_comp;
-    std::vector<bool> communicate_int_comp;
+    Gpu::ManagedVector<int> communicate_real_comp;
+    Gpu::ManagedVector<int> communicate_int_comp;
 
     static bool do_tiling;
     static IntVect tile_size;
@@ -1086,7 +1086,6 @@ protected:
     
     int NumRealComps () const { return NArrayReal + NumRuntimeRealComps(); }
     int NumIntComps  () const { return NArrayInt  + NumRuntimeIntComps() ; } 
-
     
 private:
 

@@ -207,7 +207,7 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
 {
     BL_PROFILE("amrex::packBuffer");
 
-    using ParticleType = typename PC::SuperParticleType;
+    using ParticleType = typename PC::ParticleType;
 
     long psize = pc.superParticleSize();
 
@@ -216,6 +216,9 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
     if (num_buckets == 1 and (not pc.Geom(0).isAnyPeriodic()) ) return;
     long total_buffer_size = plan.m_box_offsets[num_buckets]*psize;
     snd_buffer.resize(total_buffer_size);
+
+    auto p_comm_real = pc.communicate_real_comp.dataPtr();
+    auto p_comm_int  = pc.communicate_int_comp.dataPtr();
 
     for (int lev = 0; lev < num_levels; ++lev)
     {       
@@ -256,9 +259,9 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
                 int box_offset = p_box_offsets[p_box_perm[p_lev_offsets[dst_lev]+dst_box]];
                 int dst_index = box_offset + p_dst_indices[i];
                 int src_index = p_src_indices[i];
-                ptd.packParticleData(p_snd_buffer, src_index, dst_index);
-            
-                typename PC::ParticleType* p = (typename PC::ParticleType*) &p_snd_buffer[dst_index*ptd.m_psize];
+                ptd.packParticleData(p_snd_buffer, src_index, dst_index, p_comm_real, p_comm_int, psize);
+                
+                typename PC::ParticleType* p = (typename PC::ParticleType*) &p_snd_buffer[dst_index*psize];
                 const IntVect& pshift = p_periodic_shift[i];
                 for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
                 {
@@ -284,6 +287,8 @@ void unpackBuffer (PC& pc, const ParticleCopyPlan& plan, const Buffer& snd_buffe
     int num_buckets = pc.BufferMap().numBuckets();
     if (num_buckets == 1 and (not pc.Geom(0).isAnyPeriodic()) ) return;
 
+    long psize = pc.superParticleSize();
+
     // count how many particles we have to add to each tile
     std::vector<int> sizes;
     std::vector<PTile*> tiles;
@@ -303,6 +308,9 @@ void unpackBuffer (PC& pc, const ParticleCopyPlan& plan, const Buffer& snd_buffe
     // resize the tiles and compute offsets
     std::vector<int> offsets;
     policy.resizeTiles(tiles, sizes, offsets);
+
+    auto p_comm_real = pc.communicate_real_comp.dataPtr();
+    auto p_comm_int  = pc.communicate_int_comp.dataPtr();
 
     // local unpack
     int uindex = 0;
@@ -334,7 +342,7 @@ void unpackBuffer (PC& pc, const ParticleCopyPlan& plan, const Buffer& snd_buffe
                 int box_offset = p_box_offsets[p_box_perm[p_lev_offsets[lev]+gid]];
                 int src_index = box_offset + i;
                 int dst_index = offset + i;
-                ptd.unpackParticleData(p_snd_buffer, src_index, dst_index);
+                ptd.unpackParticleData(p_snd_buffer, src_index, dst_index, p_comm_real, p_comm_int, psize);
             });
         }
     }
@@ -426,6 +434,9 @@ void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, co
 
     if (plan.m_nrcvs > 0)
     {
+        auto p_comm_real = pc.communicate_real_comp.dataPtr();
+        auto p_comm_int  = pc.communicate_int_comp.dataPtr();
+
 	auto p_rcv_box_counts = plan.m_rcv_box_counts.dataPtr();
 	auto p_rcv_box_offsets = plan.m_rcv_box_offsets.dataPtr();
 	auto p_rcv_box_ids = plan.m_rcv_box_ids.dataPtr();
@@ -470,7 +481,8 @@ void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, co
 	    {
                 int src_index = offset + ip;
                 int dst_index = dst_offset + ip;
-                ptd.unpackParticleData(p_rcv_buffer, src_index, dst_index);                
+                ptd.unpackParticleData(p_rcv_buffer, src_index, dst_index,
+                                       p_comm_real, p_comm_int, psize);
             });
 	}
     }    
