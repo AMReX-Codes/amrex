@@ -8,6 +8,7 @@
 #include <WarpXParser.H>
 
 #include <memory>
+#include <limits>
 
 class LaserParticleContainer
     : public WarpXParticleContainer
