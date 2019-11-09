@@ -189,7 +189,7 @@ endif
 
 ifeq ($(USE_CUDA),TRUE)
   # Set the default CUDA architecture version.
-  CUDA_ARCH ?= 60
+  CUDA_ARCH ?= 70
 
   # Maximum number of CUDA threads per block.
   CUDA_MAX_THREADS ?= 256
