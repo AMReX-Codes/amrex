@@ -1024,9 +1024,9 @@ MLNodeLaplacian::buildStencil ()
                     const FArrayBox& sgfab_orig = (*m_sigma[amrlev][0][0])[mfi];
 
                     Array4<Real> const& starr = m_stencil[amrlev][0]->array(mfi);
+#ifdef AMREX_USE_EB
                     Array4<Real const> const& intgarr = intg->const_array(mfi);
 
-#ifdef AMREX_USE_EB
                     const int ncomp_c = (AMREX_SPACEDIM == 2) ? 6 : 27;
                     bool regular = !factory;
                     if (factory)
@@ -2178,24 +2178,28 @@ MLNodeLaplacian::buildIntegral ()
             for (MFIter mfi(*intg, MFItInfo().EnableTiling().SetDynamic(true)); mfi.isValid(); ++mfi)
             {
                 const Box& bx = mfi.growntilebox();
-                auto& gfab = (*intg)[mfi];                    
+                auto& gfab = (*intg)[mfi];
+                Array4<Real> const& garr = intg->array(mfi);
                 const auto& flag = flags[mfi];
                 auto typ = flag.getType(bx);
                 
                 if (typ == FabType::covered) {
                     gfab.setVal(0.0, bx, 0, ncomp);
                 } else if (typ == FabType::regular) {
-                    amrex_mlndlap_set_integral(BL_TO_FORTRAN_BOX(bx),
-                                               BL_TO_FORTRAN_ANYD(gfab));
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+                    {
+                        mlndlap_set_integral(i,j,k,garr);
+                    });
                 } else {
-                    amrex_mlndlap_set_integral_eb(BL_TO_FORTRAN_BOX(bx),
-                                                  BL_TO_FORTRAN_ANYD(gfab),
-                                                  BL_TO_FORTRAN_ANYD(flag),
-                                                  BL_TO_FORTRAN_ANYD(vfrac[mfi]),
-                                                  AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*area[0])[mfi]),
-                                                               BL_TO_FORTRAN_ANYD((*area[1])[mfi]),
-                                                               BL_TO_FORTRAN_ANYD((*area[2])[mfi])),
-                                                  BL_TO_FORTRAN_ANYD(bcent[mfi]));
+                    Array4<EBCellFlag const> const& flagarr = flags.const_array(mfi);
+                    Array4<Real const> const& vfracarr = vfrac.const_array(mfi);
+                    Array4<Real const> const& axarr = area[0]->const_array(mfi);
+                    Array4<Real const> const& ayarr = area[1]->const_array(mfi);
+                    Array4<Real const> const& bcarr = bcent.const_array(mfi);
+                    AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
+                    {
+                        mlndlap_set_integral_eb(i,j,k,garr,flagarr,vfracarr,axarr,ayarr,bcarr);
+                    });
                 }
             }
         }
