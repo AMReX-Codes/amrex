@@ -176,13 +176,6 @@ namespace amrex {
         ThrustManagedAllocator<char>& The_ThrustCachedAllocator ();
     }
 
-// When not using CUDA, replace with standard allocator.
-// Prevents need to wrap applications in lots of ifdefs.
-#else
-
-    template <typename T>
-    using CudaManagedAllocator = std::allocator<T>;
-
 #endif // AMREX_USE_CUDA
 
 } // namespace amrex
