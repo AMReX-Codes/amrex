@@ -196,7 +196,7 @@ buildNeighborCopyOp ()
         amrex::Gpu::exclusive_scan(counts.begin(), counts.end() + 1, offsets.begin());
 
 	int num_copies;
-        Gpu::dtoh_memcpy(&num_copies, thrust::raw_pointer_cast(offsets.data())+np, sizeof(int));
+        Gpu::dtoh_memcpy(&num_copies, offsets.data()+np, sizeof(int));
 
 	neighbor_copy_op.resize(gid, lev, num_copies);
 
