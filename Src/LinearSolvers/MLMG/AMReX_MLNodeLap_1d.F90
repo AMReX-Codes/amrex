@@ -3,19 +3,8 @@ module amrex_mlnodelap_1d_module
   use amrex_error_module
   use amrex_fort_module, only : amrex_real
   use amrex_constants_module
-  use amrex_lo_bctypes_module, only : amrex_lo_dirichlet, amrex_lo_neumann, amrex_lo_inflow, amrex_lo_periodic
+
   implicit none
-
-  ! external dirichlet at physical boundary or internal dirichlet at crse/fine boundary
-  integer, parameter :: dirichlet = 1
-
-  integer, parameter :: crse_cell = 0
-  integer, parameter :: fine_cell = 1
-  integer, parameter :: crse_node = 0
-  integer, parameter :: crse_fine_node = 1
-  integer, parameter :: fine_node = 2
-
-  real(amrex_real), private, parameter :: eps = 1.d-100
 
   private
   public :: &

@@ -15,15 +15,6 @@ module amrex_mlnodelap_2d_module
   integer, parameter :: crse_fine_node = 1
   integer, parameter :: fine_node = 2
 
-#ifdef AMREX_USE_EB
-  integer, private, parameter :: i_S_x     = 1
-  integer, private, parameter :: i_S_y     = 2
-  integer, private, parameter :: i_S_x2    = 3
-  integer, private, parameter :: i_S_y2    = 4
-  integer, private, parameter :: i_S_xy    = 5
-  integer, private, parameter :: n_Sintg   = 5
-#endif
-
   logical, private, save :: is_rz = .false.
 
   private
@@ -44,12 +35,6 @@ module amrex_mlnodelap_2d_module
        amrex_mlndlap_res_fine_contrib, amrex_mlndlap_res_cf_contrib, &
        ! sync residual
        amrex_mlndlap_zero_fine
-
-  ! RAP
-
-#ifdef AMREX_USE_EB
-  public:: amrex_mlndlap_set_integral, amrex_mlndlap_set_integral_eb
-#endif
 
 contains
 
@@ -530,134 +515,5 @@ contains
        end do
     end do
   end subroutine amrex_mlndlap_zero_fine
-
-
-#ifdef AMREX_USE_EB
-
-  subroutine amrex_mlndlap_set_integral (lo, hi, intg, glo, ghi) &
-       bind(c,name='amrex_mlndlap_set_integral')
-    integer, dimension(2) :: lo, hi, glo, ghi
-    real(amrex_real), intent(inout) :: intg(glo(1):ghi(1),glo(2):ghi(2),n_Sintg)
-    integer :: i,j
-    do    j = lo(2), hi(2)
-       do i = lo(1), hi(1)
-          intg(i,j,i_S_x ) = zero
-          intg(i,j,i_S_y ) = zero
-          intg(i,j,i_S_x2) = twelfth
-          intg(i,j,i_S_y2) = twelfth
-          intg(i,j,i_S_xy) = zero
-       end do
-    end do
-  end subroutine amrex_mlndlap_set_integral
-
-  subroutine amrex_mlndlap_set_integral_eb (lo, hi, intg, glo, ghi, flag, flo, fhi, &
-       vol, vlo, vhi, ax, axlo, axhi, ay, aylo, ayhi, bcen, blo, bhi) &
-       bind(c,name='amrex_mlndlap_set_integral_eb')
-    use amrex_ebcellflag_module, only : is_single_valued_cell, is_regular_cell, is_covered_cell
-    integer, dimension(2) :: lo, hi, glo, ghi, flo, fhi, axlo, vlo, vhi, axhi, aylo, ayhi, blo, bhi
-    real(amrex_real), intent(inout) :: intg( glo(1): ghi(1), glo(2): ghi(2),n_Sintg)
-    real(amrex_real), intent(in   ) :: vol ( vlo(1): vhi(1), vlo(2): vhi(2))
-    real(amrex_real), intent(in   ) :: ax  (axlo(1):axhi(1),axlo(2):axhi(2))
-    real(amrex_real), intent(in   ) :: ay  (aylo(1):ayhi(1),aylo(2):ayhi(2))
-    real(amrex_real), intent(in   ) :: bcen( blo(1): bhi(1), blo(2): bhi(2),2)
-    integer         , intent(in   ) :: flag( flo(1): fhi(1), flo(2): fhi(2))
-
-    integer :: i,j
-    real(amrex_real) :: Sx, Sx2, Sy, Sy2, Sxy ! integral of x, x2, y, y2 and xy
-    real(amrex_real) :: axm, axp, aym, ayp, apnorm, apnorminv, anrmx, anrmy, bcx, bcy, kk, bb
-    real(amrex_real) :: xmin, xmax, ymin, ymax
-    real(amrex_real), parameter :: almostone = 1.d0 - 1.d2*epsilon(1._amrex_real)
-    real(amrex_real), parameter :: sixteenth = 1.d0/16.d0, twentyfourth = 1.d0/24.d0
-
-    do    j = lo(2), hi(2)
-       do i = lo(1), hi(1)
-          if (is_covered_cell(flag(i,j))) then
-
-             intg(i,j,:) = zero
-
-          else if (is_regular_cell(flag(i,j)) .or. vol(i,j).ge.almostone) then
-
-             intg(i,j,i_S_x ) = zero
-             intg(i,j,i_S_y ) = zero
-             intg(i,j,i_S_x2) = twelfth
-             intg(i,j,i_S_y2) = twelfth
-             intg(i,j,i_S_xy) = zero
-
-          else
-
-             axm = ax(i,j)
-             axp = ax(i+1,j)
-             aym = ay(i,j)
-             ayp = ay(i,j+1)
-
-             apnorm = sqrt((axm-axp)**2 + (aym-ayp)**2)
-             if (apnorm .eq. zero) then
-                call amrex_abort("amrex_mlndlap_set_integral: we are in trouble")
-             end if
-
-             apnorminv = 1.d0/apnorm
-             anrmx = (axm-axp) * apnorminv  ! pointing to the wall
-             anrmy = (aym-ayp) * apnorminv
-
-             bcx = bcen(i,j,1)
-             bcy = bcen(i,j,2)
-
-             if (anrmx .eq. zero) then
-                Sx = zero
-                Sx2 = twentyfourth*(axm+axp)
-                Sxy = zero
-             else if (anrmy .eq. zero) then
-                Sx  = eighth     *(axp-axm) + anrmx*half*bcx**2
-                Sx2 = twentyfourth*(axp+axm) + anrmx*third*bcx**3
-                Sxy = zero
-             else
-                if (anrmx .gt. zero) then
-                   xmin = -half + min(aym,ayp)
-                   xmax = -half + max(aym,ayp)
-                else
-                   xmin = half - max(aym,ayp)
-                   xmax = half - min(aym,ayp)
-                end if
-                Sx  = eighth     *(axp-axm) + (anrmx/abs(anrmy))*sixth  *(xmax**3-xmin**3)
-                Sx2 = twentyfourth*(axp+axm) + (anrmx/abs(anrmy))*twelfth*(xmax**4-xmin**4)
-
-                kk = -anrmx/anrmy
-                bb = bcy-kk*bcx
-                Sxy = eighth*kk*kk*(xmax**4-xmin**4) + third*kk*bb*(xmax**3-xmin**3) &
-                     + (fourth*bb*bb-sixteenth)*(xmax**2-xmin**2)
-                sxy = sxy * sign(one,anrmy)
-             end if
-
-             if (anrmy .eq. zero) then
-                Sy = zero
-                Sy2 = twentyfourth*(aym+ayp)
-             else if (anrmx .eq. zero) then
-                Sy  = eighth     *(ayp-aym) + anrmy*half*bcy**2
-                Sy2 = twentyfourth*(ayp+aym) + anrmy*third*bcy**3
-             else
-                if (anrmy .gt. zero) then
-                   ymin = -half + min(axm,axp)
-                   ymax = -half + max(axm,axp)
-                else
-                   ymin = half - max(axm,axp)
-                   ymax = half - min(axm,axp)
-                end if
-                Sy  = eighth     *(ayp-aym) + (anrmy/abs(anrmx))*sixth  *(ymax**3-ymin**3)
-                Sy2 = twentyfourth*(ayp+aym) + (anrmy/abs(anrmx))*twelfth*(ymax**4-ymin**4)
-             end if
-
-             intg(i,j,i_S_x ) = Sx
-             intg(i,j,i_S_y ) = Sy
-             intg(i,j,i_S_x2) = Sx2
-             intg(i,j,i_S_y2) = Sy2
-             intg(i,j,i_S_xy) = Sxy
-
-          end if
-       end do
-    end do
-  end subroutine amrex_mlndlap_set_integral_eb
-
-
-#endif
 
 end module amrex_mlnodelap_2d_module

@@ -85,29 +85,6 @@ extern "C" {
                                           const int* ndmsk, const int* ndmlo, const int* ndmhi,
                                           const int* ccmsk, const int* ccmlo, const int* ccmhi);
 
-    // stencils
-
-#ifdef AMREX_USE_EB
-
-    void amrex_mlndlap_set_integral (const int* lo, const int* hi,
-                                     amrex_real* intg, const int* glo, const int* ghi);
-
-    void amrex_mlndlap_set_integral_eb (const int* lo, const int* hi,
-                                        amrex_real* intg, const int* glo, const int* ghi,
-                                        const void* flag, const int* flo, const int* fhi,
-                                        const void* vol, const int* vlo, const int* vhi,
-                                        const amrex_real* ax, const int* axlo, const int* axhi,
-#if (AMREX_SPACEDIM >= 2)
-                                        const amrex_real* ay, const int* aylo, const int* ayhi,
-#endif
-#if (AMREX_SPACEDIM == 3)
-                                        const amrex_real* az, const int* azlo, const int* azhi,
-#endif
-                                        const amrex_real* bcent, const int* blo, const int* bhi);
-
-#endif // AMREX_USE_EB
-
-
 #ifdef __cplusplus
 }
 #endif

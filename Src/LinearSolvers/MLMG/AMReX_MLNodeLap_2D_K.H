@@ -1204,6 +1204,115 @@ void mlndlap_rhcc_eb (int i, int j, int, Array4<Real> const& rhs, Array4<Real co
     }
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_set_integral (int i, int j, int, Array4<Real> const& intg) noexcept
+{
+    intg(i,j,0,i_S_x ) = 0._rt;
+    intg(i,j,0,i_S_y ) = 0._rt;
+    intg(i,j,0,i_S_x2) = (1._rt/12._rt);
+    intg(i,j,0,i_S_y2) = (1._rt/12._rt);
+    intg(i,j,0,i_S_xy) = 0._rt;
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_set_integral_eb (int i, int j, int, Array4<Real> const& intg,
+                              Array4<EBCellFlag const> const& flag, Array4<Real const> const& vol,
+                              Array4<Real const> const& ax, Array4<Real const> const& ay,
+                              Array4<Real const> const& bcen) noexcept
+{
+    if (flag(i,j,0).isCovered()) {
+        intg(i,j,0,i_S_x ) = 0._rt;
+        intg(i,j,0,i_S_y ) = 0._rt;
+        intg(i,j,0,i_S_x2) = 0._rt;
+        intg(i,j,0,i_S_y2) = 0._rt;
+        intg(i,j,0,i_S_xy) = 0._rt;
+    } else if (flag(i,j,0).isRegular() or vol(i,j,0) >= almostone) {
+        intg(i,j,0,i_S_x ) = 0._rt;
+        intg(i,j,0,i_S_y ) = 0._rt;
+        intg(i,j,0,i_S_x2) = (1._rt/12._rt);
+        intg(i,j,0,i_S_y2) = (1._rt/12._rt);
+        intg(i,j,0,i_S_xy) = 0._rt;
+    } else {
+        Real axm = ax(i,j,0);
+        Real axp = ax(i+1,j,0);
+        Real aym = ay(i,j,0);
+        Real ayp = ay(i,j+1,0);
+
+        Real apnorm = std::sqrt((axm-axp)*(axm-axp) + (aym-ayp)*(aym-ayp));
+        if (apnorm == 0._rt) {
+            amrex::Abort("amrex_mlndlap_set_integral: we are in trouble");
+        }
+
+        Real apnorminv = 1._rt/apnorm;
+        Real anrmx = (axm-axp) * apnorminv;  // pointing to the wall
+        Real anrmy = (aym-ayp) * apnorminv;
+
+        Real bcx = bcen(i,j,0,0);
+        Real bcy = bcen(i,j,0,1);
+
+        Real Sx, Sy, Sx2, Sy2, Sxy;
+        if (anrmx == 0._rt) {
+            Sx = 0._rt;
+            Sx2 = (1._rt/24._rt)*(axm+axp);
+            Sxy = 0._rt;
+        } else if (anrmy == 0._rt) {
+            Sx  = (1._rt/8._rt) *(axp-axm) + anrmx*0.5_rt*(bcx*bcx);
+            Sx2 = (1._rt/24._rt)*(axp+axm) + anrmx*(1._rt/3._rt)*(bcx*bcx*bcx);
+            Sxy = 0._rt;
+        } else {
+            Real xmin, xmax;
+            if (anrmx > 0._rt) {
+                xmin = -0.5_rt + amrex::min(aym,ayp);
+                xmax = -0.5_rt + amrex::max(aym,ayp);
+            } else {
+                xmin = 0.5_rt - amrex::max(aym,ayp);
+                xmax = 0.5_rt - amrex::min(aym,ayp);
+            }
+            Real xmin3 = xmin*xmin*xmin;
+            Real xmin4 = xmin3*xmin;
+            Real xmax3 = xmax*xmax*xmax;
+            Real xmax4 = xmax3*xmax;
+            Sx  = (1._rt/8._rt) *(axp-axm) + (anrmx/std::abs(anrmy))*(1._rt/6._rt) *(xmax3-xmin3);
+            Sx2 = (1._rt/24._rt)*(axp+axm) + (anrmx/std::abs(anrmy))*(1._rt/12._rt)*(xmax4-xmin4);
+
+            Real kk = -anrmx/anrmy;
+            Real bb = bcy-kk*bcx;
+            Sxy = (1._rt/8._rt)*kk*kk*(xmax4-xmin4) + (1._rt/3._rt)*kk*bb*(xmax3-xmin3)
+                + (0.25_rt*bb*bb-(1._rt/16._rt))*(xmax*xmax-xmin*xmin);
+            Sxy = std::copysign(Sxy, anrmy);
+        }
+
+        if (anrmy == 0._rt) {
+            Sy = 0._rt;
+            Sy2 = (1._rt/24._rt)*(aym+ayp);
+        } else if (anrmx == 0._rt) {
+            Sy  = (1._rt/8._rt) *(ayp-aym) + anrmy*0.5_rt*(bcy*bcy);
+            Sy2 = (1._rt/24._rt)*(ayp+aym) + anrmy*(1._rt/3._rt)*(bcy*bcy*bcy);
+        } else {
+            Real ymin, ymax;
+            if (anrmy > 0._rt) {
+                ymin = -0.5_rt + amrex::min(axm,axp);
+                ymax = -0.5_rt + amrex::max(axm,axp);
+            } else {
+                ymin = 0.5_rt - amrex::max(axm,axp);
+                ymax = 0.5_rt - amrex::min(axm,axp);
+            }
+            Real ymin3 = ymin*ymin*ymin;
+            Real ymin4 = ymin3*ymin;
+            Real ymax3 = ymax*ymax*ymax;
+            Real ymax4 = ymax3*ymax;
+            Sy  = (1._rt/8._rt) *(ayp-aym) + (anrmy/std::abs(anrmx))*(1._rt/6._rt) *(ymax3-ymin3);
+            Sy2 = (1._rt/24._rt)*(ayp+aym) + (anrmy/std::abs(anrmx))*(1._rt/12._rt)*(ymax4-ymin4);
+        }
+
+        intg(i,j,0,i_S_x ) = Sx;
+        intg(i,j,0,i_S_y ) = Sy;
+        intg(i,j,0,i_S_x2) = Sx2;
+        intg(i,j,0,i_S_y2) = Sy2;
+        intg(i,j,0,i_S_xy) = Sxy;
+    }
+}
+
 #endif
 
 }
