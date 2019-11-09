@@ -140,7 +140,6 @@ MLNodeLaplacian::compDivergence (const Vector<MultiFab*>& rhs, const Vector<Mult
         AMREX_ASSERT(vel[ilev]->nGrow() >= 1);
         vel[ilev]->FillBoundary(0, AMREX_SPACEDIM, geom.periodicity());
 
-        const Real* dxinv = geom.InvCellSize();
         const auto dxinvarr = geom.InvCellSizeArray();
         const Box& nddom = amrex::surroundingNodes(geom.Domain());
 
@@ -404,7 +403,6 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
                                             rhs[ilev]->DistributionMap(), 1, 0));
         }
 
-        const Real* dxinv = geom.InvCellSize();
         const auto dxinvarr = geom.InvCellSizeArray();
         const Box& nddom = amrex::surroundingNodes(geom.Domain());
 
@@ -685,11 +683,11 @@ MLNodeLaplacian::updateVelocity (const Vector<MultiFab*>& vel, const Vector<Mult
         for (MFIter mfi(*vel[amrlev], TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.tilebox();
-            auto& vfab = (*vel[amrlev])[mfi];
             Array4<Real> const& varr = vel[amrlev]->array(mfi);
             Array4<Real const> const& solarr = sol[amrlev]->const_array(mfi);
             Array4<Real const> const& sigmaarr = sigma.const_array(mfi);
 #ifdef AMREX_USE_EB
+            auto& vfab = (*vel[amrlev])[mfi];
             bool regular = !factory;
             if (factory)
             {
@@ -760,7 +758,6 @@ MLNodeLaplacian::getFluxes (const Vector<MultiFab*> & a_flux, const Vector<Multi
         for (MFIter mfi(sigma, TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.tilebox();
-            auto& ffab = (*a_flux[amrlev])[mfi];
             Array4<Real> const& farr = a_flux[amrlev]->array(mfi);
             Array4<Real const> const& solarr = a_sol[amrlev]->const_array(mfi);
             Array4<Real const> const& sigmaarr = sigma.array(mfi);
@@ -996,7 +993,6 @@ MLNodeLaplacian::buildStencil ()
 
         {
             const Geometry& geom = m_geom[amrlev][0];
-            const Real* dxinv = geom.InvCellSize();
             const auto dxinvarr = geom.InvCellSizeArray();
 
 #ifdef AMREX_USE_EB
@@ -1020,12 +1016,12 @@ MLNodeLaplacian::buildStencil ()
                     Box bx = mfi.growntilebox(1);
                     bx &= vbx;
                     const Box& ccbx = amrex::enclosedCells(bx);
-                    FArrayBox& stfab = (*m_stencil[amrlev][0])[mfi];
                     const FArrayBox& sgfab_orig = (*m_sigma[amrlev][0][0])[mfi];
 
                     Array4<Real> const& starr = m_stencil[amrlev][0]->array(mfi);
 #ifdef AMREX_USE_EB
                     Array4<Real const> const& intgarr = intg->const_array(mfi);
+                    FArrayBox& stfab = (*m_stencil[amrlev][0])[mfi];
 
                     const int ncomp_c = (AMREX_SPACEDIM == 2) ? 6 : 27;
                     bool regular = !factory;
