@@ -32,8 +32,8 @@ struct ParticleTileData
 
     int m_num_runtime_real;
     int m_num_runtime_int;
-    ParticleReal** m_runtime_r_data;
-    int** m_runtime_i_data;
+    ParticleReal* AMREX_RESTRICT * AMREX_RESTRICT m_runtime_r_data;
+    int* AMREX_RESTRICT * AMREX_RESTRICT m_runtime_i_data;
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void packParticleData (char* buffer, int src_index, int dst_index,
@@ -162,8 +162,8 @@ struct ConstParticleTileData
 
     int m_num_runtime_real;
     int m_num_runtime_int;
-    const ParticleReal** m_runtime_r_data;
-    const int** m_runtime_i_data;
+    const ParticleReal* AMREX_RESTRICT * AMREX_RESTRICT m_runtime_r_data;
+    const int* AMREX_RESTRICT * AMREX_RESTRICT m_runtime_i_data;
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void packParticleData(char* buffer, int src_index, int dst_index,
