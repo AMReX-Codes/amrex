@@ -228,9 +228,16 @@ void
 MultiFab::Saxpy (MultiFab& dst, Real a, const MultiFab& src,
 		 int srccomp, int dstcomp, int numcomp, int nghost)
 {
+    Saxpy(dst,a,src,srccomp,dstcomp,numcomp,IntVect(nghost));
+}
+
+void
+MultiFab::Saxpy (MultiFab& dst, Real a, const MultiFab& src,
+		 int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
+{
     BL_ASSERT(dst.boxArray() == src.boxArray());
     BL_ASSERT(dst.distributionMap == src.distributionMap);
-    BL_ASSERT(dst.nGrow() >= nghost and src.nGrow() >= nghost);
+    BL_ASSERT(dst.nGrowVect().allGE(nghost) and src.nGrowVect().allGE(nghost));
 
     BL_PROFILE("MultiFab::Saxpy()");
 
@@ -256,9 +263,16 @@ void
 MultiFab::Xpay (MultiFab& dst, Real a, const MultiFab& src,
 		int srccomp, int dstcomp, int numcomp, int nghost)
 {
+    Xpay(dst,a,src,srccomp,dstcomp,numcomp,IntVect(nghost));
+}
+
+void
+MultiFab::Xpay (MultiFab& dst, Real a, const MultiFab& src,
+		int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
+{
     BL_ASSERT(dst.boxArray() == src.boxArray());
     BL_ASSERT(dst.distributionMap == src.distributionMap);
-    BL_ASSERT(dst.nGrow() >= nghost and src.nGrow() >= nghost);
+    BL_ASSERT(dst.nGrowVect().allGE(nghost) and src.nGrowVect().allGE(nghost));
 
     BL_PROFILE("MultiFab::Xpay()");
 
@@ -285,11 +299,20 @@ MultiFab::LinComb (MultiFab& dst,
                    Real b, const MultiFab& y, int ycomp,
                    int dstcomp, int numcomp, int nghost)
 {
+    LinComb(dst,a,x,xcomp,b,y,ycomp,dstcomp,numcomp,IntVect(nghost));
+}
+
+void
+MultiFab::LinComb (MultiFab& dst,
+                   Real a, const MultiFab& x, int xcomp,
+                   Real b, const MultiFab& y, int ycomp,
+                   int dstcomp, int numcomp, const IntVect& nghost)
+{
     BL_ASSERT(dst.boxArray() == x.boxArray());
     BL_ASSERT(dst.distributionMap == x.distributionMap);
     BL_ASSERT(dst.boxArray() == y.boxArray());
     BL_ASSERT(dst.distributionMap == y.distributionMap);
-    BL_ASSERT(dst.nGrow() >= nghost and x.nGrow() >= nghost and y.nGrow() >= nghost);
+    BL_ASSERT(dst.nGrowVect().allGE(nghost) and x.nGrowVect().allGE(nghost) and y.nGrowVect().allGE(nghost));
 
     BL_PROFILE("MultiFab::LinComb()");
 
@@ -318,11 +341,20 @@ MultiFab::AddProduct (MultiFab& dst,
                       const MultiFab& src2, int comp2,
                       int dstcomp, int numcomp, int nghost)
 {
+    AddProduct(dst,src1,comp1,src2,comp2,dstcomp,numcomp,IntVect(nghost));
+}
+
+void
+MultiFab::AddProduct (MultiFab& dst,
+                      const MultiFab& src1, int comp1,
+                      const MultiFab& src2, int comp2,
+                      int dstcomp, int numcomp, const IntVect& nghost)
+{
     BL_ASSERT(dst.boxArray() == src1.boxArray());
     BL_ASSERT(dst.distributionMap == src1.distributionMap);
     BL_ASSERT(dst.boxArray() == src2.boxArray());
     BL_ASSERT(dst.distributionMap == src2.distributionMap);
-    BL_ASSERT(dst.nGrow() >= nghost and src1.nGrow() >= nghost and src2.nGrow() >= nghost);
+    BL_ASSERT(dst.nGrowVect().allGE(nghost) and src1.nGrowVect().allGE(nghost) and src2.nGrowVect().allGE(nghost));
 
     BL_PROFILE("MultiFab::AddProduct()");
 
