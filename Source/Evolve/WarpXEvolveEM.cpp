@@ -348,9 +348,9 @@ WarpX::OneStep_nosub (Real cur_time)
 
     FillBoundaryE(guard_cells.ng_FieldSolver, IntVect::TheZeroVector());
     EvolveF(0.5*dt[0], DtType::SecondHalf);
-    FillBoundaryF(guard_cells.ng_alloc_F);
     EvolveB(0.5*dt[0]); // We now have B^{n+1}
     if (do_pml) {
+        FillBoundaryF(guard_cells.ng_alloc_F);
         DampPML();
         FillBoundaryE(guard_cells.ng_MovingWindow, IntVect::TheZeroVector());
         FillBoundaryB(guard_cells.ng_MovingWindow, IntVect::TheZeroVector());
