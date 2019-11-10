@@ -13,7 +13,7 @@
  * Pointers to SoA data are saved when constructor is called.
  * AoS data is passed as argument of operator ().
  */
-class copyParticle
+class CopyParticle
 {
 
 public:
@@ -33,7 +33,7 @@ public:
 
     // Simple constructor
     AMREX_GPU_HOST_DEVICE
-    copyParticle(
+    CopyParticle(
         const int cpuid, const int do_back_transformed_product,
         const amrex::GpuArray<amrex::ParticleReal*,3> runtime_uold_source,
         const amrex::GpuArray<amrex::ParticleReal*,PIdx::nattribs> attribs_source,
@@ -54,7 +54,7 @@ public:
      * \param ip index of product particle
      * \param pid_product ID of first product particle
      * \param p_source Struct with data for 1 source particle (position etc.)
-     * \param p_source Struct with data for 1 product particle (position etc.)
+     * \param p_product Struct with data for 1 product particle (position etc.)
      */
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void operator () (int is, int ip, int pid_product,

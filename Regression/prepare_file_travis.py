@@ -29,9 +29,14 @@ text = re.sub( '\[(?P<name>.*)\]\nbuildDir = ',
 # Change compile options when running on GPU
 if arch == 'GPU':
     text = re.sub( 'addToCompileString =',
-                    'addToCompileString = USE_GPU=TRUE USE_OMP=FALSE USE_ACC=TRUE', text)
+                    'addToCompileString = USE_GPU=TRUE USE_OMP=FALSE USE_ACC=TRUE ', text)
     text = re.sub( 'COMP\s*=.*', 'COMP = pgi', text )
 print('Compiling for %s' %arch)
+
+# Add runtime option: crash for unused variables
+text = re.sub('runtime_params =',
+              'runtime_params = amrex.abort_on_unused_inputs=1 ',
+              text)
 
 # Use only 2 cores for compiling
 text = re.sub( 'numMakeJobs = \d+', 'numMakeJobs = 2', text )
