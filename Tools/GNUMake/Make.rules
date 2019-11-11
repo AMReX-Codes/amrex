@@ -202,7 +202,7 @@ $(objEXETempDir)/%.o: %.f
 ifeq ($(USE_GPU_PRAGMA),TRUE)
 	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
 	@$(SHELL) -ec 'cp $< $(srcTempDir)'
-	$(AMREX_HOME)/Tools/F_scripts/gpu_fortran.py --fortran "$(srcTempDir)/$(<F)"
+	$(AMREX_HOME)/Tools/F_scripts/gpu_fortran.py --fortran "$(srcTempDir)/$(<F)" --device_suffix "$(GPU_PRAGMA_DEVICE_SUFFIX)" $(GPU_PRAGMA_NO_HOST_VERSION_ARG)
 	$(SILENT) $(F90CACHE) $(FC) $(FFLAGS) $(FMODULES) $(fincludes) -c $(srcTempDir)/$(<F) $(FORT_EXE_OUTPUT_OPTION)
 else
 	$(SILENT) $(F90CACHE) $(FC) $(FFLAGS) $(FMODULES) $(fincludes) -c $< $(FORT_EXE_OUTPUT_OPTION)
@@ -215,7 +215,7 @@ $(objEXETempDir)/%.o: %.F
 ifeq ($(USE_GPU_PRAGMA),TRUE)
 	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
 	@$(SHELL) -ec 'cp $< $(srcTempDir)'
-	$(AMREX_HOME)/Tools/F_scripts/gpu_fortran.py --fortran "$(srcTempDir)/$(<F)"
+	$(AMREX_HOME)/Tools/F_scripts/gpu_fortran.py --fortran "$(srcTempDir)/$(<F)" --device_suffix "$(GPU_PRAGMA_DEVICE_SUFFIX)" $(GPU_PRAGMA_NO_HOST_VERSION_ARG)
 	$(SILENT) $(FORT_CPP) -DBL_LANG_FORT -DAMREX_LANG_FORT $(CPPFLAGS) $(fincludes) $(srcTempdir)/$(<F) | $(FORTPREP) > $(srcTempDir)/$*.f
 	$(SILENT) $(F90CACHE) $(FC) $(FFLAGS) $(FMODULES) $(fincludes) -c $(srcTempDir)/$*.f $(FORT_EXE_OUTPUT_OPTION)
 else
@@ -229,7 +229,7 @@ $(objEXETempDir)/%.o: %.f90
 ifeq ($(USE_GPU_PRAGMA),TRUE)
 	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
 	@$(SHELL) -ec 'cp $< $(srcTempDir)'
-	$(AMREX_HOME)/Tools/F_scripts/gpu_fortran.py --fortran "$(srcTempDir)/$(<F)"
+	$(AMREX_HOME)/Tools/F_scripts/gpu_fortran.py --fortran "$(srcTempDir)/$(<F)" --device_suffix "$(GPU_PRAGMA_DEVICE_SUFFIX)" $(GPU_PRAGMA_NO_HOST_VERSION_ARG)
 	$(SILENT) $(F90CACHE) $(F90) $(F90FLAGS) $(FMODULES) $(fincludes) -c $(srcTempDir)/$(<F) $(FORT_EXE_OUTPUT_OPTION)
 else
 	$(SILENT) $(F90CACHE) $(F90) $(F90FLAGS) $(FMODULES) $(fincludes) -c $< $(FORT_EXE_OUTPUT_OPTION)
@@ -241,7 +241,7 @@ $(objEXETempDir)/%.o: %.F90
 ifeq ($(USE_GPU_PRAGMA),TRUE)
 	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
 	@$(SHELL) -ec 'cp $< $(srcTempDir)'
-	$(AMREX_HOME)/Tools/F_scripts/gpu_fortran.py --fortran "$(srcTempDir)/$(<F)"
+	$(AMREX_HOME)/Tools/F_scripts/gpu_fortran.py --fortran "$(srcTempDir)/$(<F)" --device_suffix "$(GPU_PRAGMA_DEVICE_SUFFIX)" $(GPU_PRAGMA_NO_HOST_VERSION_ARG)
 	$(SILENT) $(F90CACHE) $(F90) $(F90FLAGS) $(FMODULES) -DBL_LANG_FORT -DAMREX_LANG_FORT $(FCPPFLAGS) $(fincludes) -c $(srcTempDir)/$(<F) $(FORT_EXE_OUTPUT_OPTION)
 else
 	$(SILENT) $(F90CACHE) $(F90) $(F90FLAGS) $(FMODULES) -DBL_LANG_FORT -DAMREX_LANG_FORT $(FCPPFLAGS) $(fincludes) -c $< $(FORT_EXE_OUTPUT_OPTION)
@@ -269,7 +269,7 @@ $(objEXETempDir)/AMReX_filcc_mod.o: AMReX_filcc_mod.F90
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
 	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
 	@$(SHELL) -ec 'cp $< $(srcTempDir)'
-	$(AMREX_HOME)/Tools/F_scripts/gpu_fortran.py --fortran "$(srcTempDir)/$(<F)"
+	$(AMREX_HOME)/Tools/F_scripts/gpu_fortran.py --fortran "$(srcTempDir)/$(<F)" --device_suffix "$(GPU_PRAGMA_DEVICE_SUFFIX)" $(GPU_PRAGMA_NO_HOST_VERSION_ARG)
 ifeq ($(cap_registers),1)
 	$(SILENT) $(F90CACHE) $(F90) $(patsubst $(cap_register_flag)$(CUDA_MAXREGCOUNT), $(cap_register_flag)128, $(F90FLAGS) $(FMODULES)) -DBL_LANG_FORT -DAMREX_LANG_FORT $(FCPPFLAGS) $(fincludes) -c $(srcTempDir)/$(<F) -o $(objEXETempDir)/AMReX_filcc_mod.o
 else
@@ -378,7 +378,8 @@ $(TmpBuildDir)/$(optionsSuffix)_cuda_done: $(CEXE_sources)
              --defines "$(CPPFLAGS) $(includes)" \
              --exclude_defines "-DAMREX_USE_MPI -DBL_USE_MPI" \
 	     --num_workers "16" \
-             --device_suffix "$(GPU_PRAGMA_DEVICE_SUFFIX)"
+             --device_suffix "$(GPU_PRAGMA_DEVICE_SUFFIX)" \
+             $(GPU_PRAGMA_NO_HOST_VERSION_ARG)
 endif
 
 #
