@@ -48,6 +48,41 @@ private:
 };
 
 // struct whose getMomentum returns momentum for 1 particle with relativistc drift velocity beta,
+// from the Maxwell-Boltzmann distribution.
+struct InjectorMomentumBoltzmann
+{
+    InjectorMomentumBoltzmann(amrex::Real theta, amrex::Real beta, int dir) noexcept
+        : t(theta), b(beta), d(dir)
+        {}
+
+    AMREX_GPU_HOST_DEVICE
+    amrex::XDim3
+    getMomentum (amrex::Real x, amrex::Real y, amrex::Real z) const noexcept
+    {
+        amrex::Real x1, x2, gamma, v;
+        amrex::Real u[3];
+        v = std::sqrt(2*t);
+        x1 = amrex::Random();
+        x2 = amrex::Random();
+        u[(d+1)%3] = v*std::sqrt(-std::log(x1)*std::sin(2*M_PI*x2));
+        u[(d+1)%2] = v*std::sqrt(-std::log(x1)*std::cos(2*M_PI*x2));
+        u[d] = v*std::sqrt(-std::log(amrex::Random())*std::sin(2*M_PI*amrex::Random()));
+        gamma = std::sqrt(std::pow(u[0],2)+std::pow(u[1],2)+std::pow(u[2],2));
+        x1 = amrex::Random();
+        if(-b*u[d]/gamma > x1)
+        {
+            u[d] = -u[d];
+        }
+        u[d] = 1/std::sqrt(1-pow(b,2))*(u[d]+gamma*b);
+        return amrex::XDim3 {u[0],u[1],u[2]};
+    }
+
+private:
+    int d;
+    amrex::Real b, t;
+};
+
+// struct whose getMomentum returns momentum for 1 particle with relativistc drift velocity beta,
 // from the Maxwell-Juttner distribution.
 struct InjectorMomentumJuttner
 {
@@ -166,6 +201,12 @@ struct InjectorMomentum
         : type(Type::gaussian),
           object(t,a_ux_m,a_uy_m,a_uz_m,a_ux_th,a_uy_th,a_uz_th)
     { }
+    
+    InjectorMomentum (InjectorMomentumBoltzmann* t,
+                       amrex::Real theta, amrex::Real beta, int dir)
+         : type(Type::boltzmann),
+           object(t, theta, beta, dir)
+    { }
 
      // This constructor stores a InjectorMomentumJuttner in union object.
      InjectorMomentum (InjectorMomentumJuttner* t,
@@ -240,7 +281,7 @@ struct InjectorMomentum
     }
 
 private:
-    enum struct Type { constant, custom, gaussian, juttner, radial_expansion, parser};
+    enum struct Type { constant, custom, gaussian, boltzmann, juttner, radial_expansion, parser};
     Type type;
 
     // An instance of union Object constructs and stores any one of
@@ -258,6 +299,9 @@ private:
                 amrex::Real a_uz_m, amrex::Real a_ux_th,
                 amrex::Real a_uy_th, amrex::Real a_uz_th) noexcept
             : gaussian(a_ux_m,a_uy_m,a_uz_m,a_ux_th,a_uy_th,a_uz_th) {}
+        Object (InjectorMomentumBoltzmann*,
+                amrex::Real t, amrex::Real b, int dir) noexcept
+            : boltzmann(t,b,dir) {}
         Object (InjectorMomentumJuttner*,
                 amrex::Real t, amrex::Real b, int dir) noexcept
             : juttner(t,b,dir) {}
@@ -272,6 +316,7 @@ private:
         InjectorMomentumConstant constant;
         InjectorMomentumCustom   custom;
         InjectorMomentumGaussian gaussian;
+        InjectorMomentumBoltzmann boltzmann;
         InjectorMomentumJuttner juttner;
         InjectorMomentumRadialExpansion radial_expansion;
         InjectorMomentumParser   parser;
