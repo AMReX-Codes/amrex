@@ -1,7 +1,7 @@
 
 module amrex_filcc_module
 
-  use amrex_fort_module, only : amrex_real, amrex_spacedim, amrex_get_loop_bounds
+  use amrex_fort_module, only : amrex_real, amrex_spacedim
   use amrex_bc_types_module
   use amrex_constants_module
 
@@ -99,7 +99,8 @@ contains
 
     integer :: lo(3), hi(3)
 
-    call amrex_get_loop_bounds(lo, hi, qlo, qhi)
+    lo = qlo
+    hi = qhi
 
     call amrex_filccn(lo, hi, q, qlo, qhi, nq, domlo, domhi, dx, xlo, bc)
 
