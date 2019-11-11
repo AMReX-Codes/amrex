@@ -598,6 +598,13 @@ else ifeq ($(USE_CUDA),TRUE)
     ifeq ($(USE_GPU_PRAGMA),TRUE)
         DEFINES += -DAMREX_USE_GPU_PRAGMA
         GPU_PRAGMA_DEVICE_SUFFIX ?= _device
+        GPU_PRAGMA_NO_HOST_VERSION ?= FALSE
+
+        ifeq ($(GPU_PRAGMA_NO_HOST_VERSION),FALSE)
+          GPU_PRAGMA_NO_HOST_VERSION_ARG :=
+        else
+          GPU_PRAGMA_NO_HOST_VERSION_ARG := --no_host_version
+        endif
     endif
 
     GPUSuffix := .CUDA
