@@ -19,6 +19,9 @@ module amrex_filcc_module
   public :: amrex_filcc, amrex_fab_filcc, amrex_hoextraptocc
 #endif
   public :: amrex_filccn
+#if (defined(AMREX_USE_CUDA) && defined(AMREX_USE_GPU_PRAGMA) && !defined(AMREX_GPU_PRAGMA_NO_HOST))
+  public :: amrex_filccn_device
+#endif
 #if (AMREX_SPACEDIM == 3)
   public :: amrex_hoextraptocc_3d
 #endif
@@ -1141,9 +1144,16 @@ contains
 
   end subroutine amrex_filccn
 
-#else
+#endif
 
+#if (defined(AMREX_USE_CUDA) && defined(AMREX_USE_GPU_PRAGMA))
+
+  ! Select function name based on whether we're appending _device using the GPU pragma script.
+#ifdef AMREX_GPU_PRAGMA_NO_HOST
   attributes(device) subroutine amrex_filccn(lo, hi, q, q_lo, q_hi, ncomp, domlo, domhi, dx, xlo, bc)
+#else
+  attributes(device) subroutine amrex_filccn_device(lo, hi, q, q_lo, q_hi, ncomp, domlo, domhi, dx, xlo, bc)
+#endif
 
     implicit none
 
@@ -2103,7 +2113,11 @@ contains
 
     end do
 
+#ifdef AMREX_GPU_PRAGMA_NO_HOST
   end subroutine amrex_filccn
+#else
+  end subroutine amrex_filccn_device
+#endif
 
 #endif
 
