@@ -112,13 +112,16 @@ public:
                                                      (p.pos(1)-plo[1])*dxi[1] - lo.y,
                                                      (p.pos(2)-plo[2])*dxi[2] - lo.z));
                      });
-        m_nbor_counts.resize(np);
-        
+
+        // first pass - count the number of neighbors for each particle
+        m_nbor_counts.resize(np+1);        
+        m_nbor_offsets.resize(np+1);
+
         auto pnbor_counts = m_nbor_counts.dataPtr();
         auto pperm = m_bins.permutationPtr();
         auto poffset = m_bins.offsetsPtr();
+        auto pnbor_offset = m_nbor_offsets.dataPtr();
 
-        // first pass - count the number of neighbors for each particle
         AMREX_FOR_1D ( np, i,
         {
             int ix = (pstruct_ptr[i].pos(0)-plo[0])*dxi[0] - lo.x;
@@ -147,18 +150,15 @@ public:
             pnbor_counts[i] = count;
         });
     
-        // Now we can allocate and build our neighbor list
-        
-        const size_t total_nbors = thrust::reduce(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
-                                                  m_nbor_counts.begin(), m_nbor_counts.end());
-        m_nbor_offsets.resize(0);
-        m_nbor_offsets.resize(np + 1, total_nbors);
-        unsigned int* pnbor_offset = m_nbor_offsets.dataPtr();
-
         Gpu::exclusive_scan(m_nbor_counts.begin(), m_nbor_counts.end(), m_nbor_offsets.begin());
-        
+
+        // Now we can allocate and build our neighbor list
+        unsigned int total_nbors;
+        Gpu::dtoh_memcpy(&total_nbors, m_nbor_offsets.dataPtr() + np, sizeof(unsigned int));
         m_nbor_list.resize(total_nbors);
-        unsigned int* pm_nbor_list = m_nbor_list.dataPtr();
+
+        auto pm_nbor_list = m_nbor_list.dataPtr();
+
         AMREX_FOR_1D ( np, i,
         {
             int ix = (pstruct_ptr[i].pos(0)-plo[0])*dxi[0] - lo.x;
