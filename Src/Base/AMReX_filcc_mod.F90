@@ -7,28 +7,34 @@ module amrex_filcc_module
 
   implicit none
 
+#if !(defined(AMREX_USE_CUDA) && defined(AMREX_USE_GPU_PRAGMA) && defined(AMREX_GPU_PRAGMA_NO_HOST))
   interface amrex_filcc
      module procedure amrex_filcc_1
      module procedure amrex_filcc_n
   end interface amrex_filcc
+#endif
 
   private
-  public :: amrex_filcc, amrex_fab_filcc, amrex_filccn, amrex_hoextraptocc
+#if !(defined(AMREX_USE_CUDA) && defined(AMREX_USE_GPU_PRAGMA) && defined(AMREX_GPU_PRAGMA_NO_HOST))
+  public :: amrex_filcc, amrex_fab_filcc, amrex_hoextraptocc
+#endif
+  public :: amrex_filccn
 #if (AMREX_SPACEDIM == 3)
   public :: amrex_hoextraptocc_3d
 #endif
 #if (AMREX_SPACEDIM == 2)
   public :: amrex_hoextraptocc_2d
 #endif
-#if defined(AMREX_USE_CUDA) && defined(AMREX_USE_GPU_PRAGMA)
-  public :: amrex_filccn_device
-#endif
 
+#if !(defined(AMREX_USE_CUDA) && defined(AMREX_USE_GPU_PRAGMA) && defined(AMREX_GPU_PRAGMA_NO_HOST))
 #ifndef AMREX_XSDK
   public :: filccn
 #endif
+#endif
 
 contains
+
+#if !(defined(AMREX_USE_CUDA) && defined(AMREX_USE_GPU_PRAGMA) && defined(AMREX_GPU_PRAGMA_NO_HOST))
 
   subroutine amrex_filcc_n(q,qlo,qhi,domlo,domhi,dx,xlo,bclo,bchi)
     integer, intent(in) :: qlo(4), qhi(4)
@@ -1135,8 +1141,9 @@ contains
 
   end subroutine amrex_filccn
 
-#if defined(AMREX_USE_CUDA) && defined(AMREX_USE_GPU_PRAGMA)
-  attributes(device) subroutine amrex_filccn_device(lo, hi, q, q_lo, q_hi, ncomp, domlo, domhi, dx, xlo, bc)
+#else
+
+  attributes(device) subroutine amrex_filccn(lo, hi, q, q_lo, q_hi, ncomp, domlo, domhi, dx, xlo, bc)
 
     implicit none
 
@@ -2096,7 +2103,8 @@ contains
 
     end do
 
-  end subroutine amrex_filccn_device
+  end subroutine amrex_filccn
+
 #endif
 
   subroutine amrex_hoextraptocc (q, qlo, qhi, domlo, domhi, dx, xlo) &

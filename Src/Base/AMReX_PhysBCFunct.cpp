@@ -45,6 +45,7 @@ BndryFuncArray::operator () (Box const& /*bx*/, FArrayBox& dest,
     }
 }
 
+#if !(defined(AMREX_USE_CUDA) && defined(AMREX_USE_GPU_PRAGMA) && defined(AMREX_GPU_PRAGMA_NO_HOST))
 void
 CpuBndryFuncFab::operator() (Box const& bx, FArrayBox& dest,
                              const int dcomp, const int numcomp,
@@ -72,5 +73,6 @@ CpuBndryFuncFab::operator() (Box const& bx, FArrayBox& dest,
                &(bcr[bcomp]), 0, orig_comp);
     }
 }
+#endif
 
 }
