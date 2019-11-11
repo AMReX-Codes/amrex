@@ -930,75 +930,70 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::SortParticles
 
     BL_PROFILE("ParticleContainer::SortParticlesByCell()");
 
-    BuildRedistributeMask(0, 1);
-
-    const int lev = 0;
-    const Geometry& geom = Geom(lev);
-    const BoxArray& ba   = ParticleBoxArray(lev);
-    const DistributionMapping& dmap = ParticleDistributionMap(lev);
-    auto& plev  = m_particles[lev];
-
-    // temporaries
-    Gpu::ManagedDeviceVector<amrex::IntVect> cells_tmp;
-    Gpu::ManagedDeviceVector<int> index_sequence_tmp;
-    ParticleVector aos_r;
-    RealVector rdata_r;
-    IntVector  idata_r;
-
-    for(MFIter mfi(*redistribute_mask_ptr, false); mfi.isValid(); ++mfi)
+    for (int lev = 0; lev < numLevels(); ++lev)
     {
-        int gid = mfi.index();
-        int tid = mfi.LocalTileIndex();        
-        auto& ptile = plev[std::make_pair(gid, tid)];
-        auto& aos   = ptile.GetArrayOfStructs();
-        auto& soa   = ptile.GetStructOfArrays();
-        const size_t np = aos.numParticles();
+        const Geometry& geom = Geom(lev);
 
-        cells_tmp.resize(np);
-        index_sequence_tmp.resize(np);
+        // temporaries
+        Gpu::ManagedDeviceVector<amrex::IntVect> cells_tmp;
+        Gpu::ManagedDeviceVector<int> index_sequence_tmp;
+        ParticleVector aos_r;
+        RealVector rdata_r;
+        IntVector  idata_r;
 
-        thrust::sequence(thrust::device, index_sequence_tmp.begin(), index_sequence_tmp.end());
-
-        thrust::transform(thrust::device, 
-			  aos().begin(), aos().end(), cells_tmp.begin(),
-                          functors::assignParticleCell(geom.data()));
-
-        thrust::sort_by_key(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
-                            cells_tmp.begin(),
-                            cells_tmp.end(),
-                            index_sequence_tmp.begin());
-
-        //
-        // Reorder the particle data 
-        //
+        for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
         {
-	    // reorder structs
-	    aos_r.resize(np);
-            thrust::gather(thrust::device,
-                           index_sequence_tmp.begin(), index_sequence_tmp.end(),
-                           aos().begin(), aos_r.begin());
-            aos().swap(aos_r);
+            auto& ptile = ParticlesAt(lev, mfi);
+            auto& aos   = ptile.GetArrayOfStructs();
+            auto& soa   = ptile.GetStructOfArrays();
+            const size_t np = aos.numParticles();
 
-            // reorder real arrays
-	    rdata_r.resize(np);
-            for (int j = 0; j < NumRealComps(); ++j)
+            cells_tmp.resize(np);
+            index_sequence_tmp.resize(np);
+            
+            thrust::sequence(thrust::device, index_sequence_tmp.begin(), index_sequence_tmp.end());
+            
+            thrust::transform(thrust::device, 
+                              aos().begin(), aos().end(), cells_tmp.begin(),
+                              functors::assignParticleCell(geom.data()));
+            
+            thrust::sort_by_key(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
+                                cells_tmp.begin(),
+                                cells_tmp.end(),
+                                index_sequence_tmp.begin());
+
+            //
+            // Reorder the particle data 
+            //
             {
-                auto& rdata = ptile.GetStructOfArrays().GetRealData(j);
+                // reorder structs
+                aos_r.resize(np);
                 thrust::gather(thrust::device,
                                index_sequence_tmp.begin(), index_sequence_tmp.end(),
-                               rdata.begin(), rdata_r.begin());
-                rdata.swap(rdata_r);
-            }
+                               aos().begin(), aos_r.begin());
+                aos().swap(aos_r);
+                
+                // reorder real arrays
+                rdata_r.resize(np);
+                for (int j = 0; j < NumRealComps(); ++j)
+                {
+                    auto& rdata = ptile.GetStructOfArrays().GetRealData(j);
+                    thrust::gather(thrust::device,
+                                   index_sequence_tmp.begin(), index_sequence_tmp.end(),
+                                   rdata.begin(), rdata_r.begin());
+                    rdata.swap(rdata_r);
+                }
 
-            // reorder int arrays
-	    idata_r.resize(np);
-            for (int j = 0; j < NumIntComps(); ++j)
-            {
-                auto& idata = ptile.GetStructOfArrays().GetIntData(j);
-                thrust::gather(thrust::device,
-                               index_sequence_tmp.begin(), index_sequence_tmp.end(),
-                               idata.begin(), idata_r.begin());
-                idata.swap(idata_r);
+                // reorder int arrays
+                idata_r.resize(np);
+                for (int j = 0; j < NumIntComps(); ++j)
+                {
+                    auto& idata = ptile.GetStructOfArrays().GetIntData(j);
+                    thrust::gather(thrust::device,
+                                   index_sequence_tmp.begin(), index_sequence_tmp.end(),
+                                   idata.begin(), idata_r.begin());
+                    idata.swap(idata_r);
+                }
             }
         }
     }
