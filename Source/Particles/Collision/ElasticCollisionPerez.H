@@ -1,6 +1,8 @@
 #ifndef WARPX_PARTICLES_COLLISION_ELASTIC_COLLISION_PEREZ_H_
 #define WARPX_PARTICLES_COLLISION_ELASTIC_COLLISION_PEREZ_H_
 
+#include "WarpXParticleContainer.H"
+#include <WarpX.H>
 #include <AMReX_REAL.H>
 #include <AMReX_DenseBins.H>
 #include "ShuffleFisherYates.H"
@@ -193,12 +195,12 @@ void UpdateMomentumPerezElastic(
  *        V is the volume of the corresponding cell.*/
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void ElasticCollisionPerez(
-    int const I1s,
-    int const I1e,
-    int const I2s,
-    int const I2e,
-    int *I1,
-    int *I2,
+    amrex::DenseBins<WarpXParticleContainer::ParticleType>::index_type const I1s,
+    amrex::DenseBins<WarpXParticleContainer::ParticleType>::index_type const I1e,
+    amrex::DenseBins<WarpXParticleContainer::ParticleType>::index_type const I2s,
+    amrex::DenseBins<WarpXParticleContainer::ParticleType>::index_type const I2e,
+    amrex::DenseBins<WarpXParticleContainer::ParticleType>::index_type *I1,
+    amrex::DenseBins<WarpXParticleContainer::ParticleType>::index_type *I2,
     amrex::Real* u1x, amrex::Real* u1y, amrex::Real* u1z,
     amrex::Real* u2x, amrex::Real* u2y, amrex::Real* u2z,
     const amrex::Real* w1, const amrex::Real* w2,

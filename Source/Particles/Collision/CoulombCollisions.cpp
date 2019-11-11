@@ -111,18 +111,9 @@ doCoulombCollisionsWithinTile ( int lev, MFIter const& mfi,
 
             // Call the function in order to perform collisions
 
-            int I1[np_1]; int I2[np_2]; int j;
-            j = 0;
-            for (int i=cell_start_1; i<cell_stop_1; ++i)
-            { I1[j] = indices_1[i]; ++j; }
-            j = 0;
-            for (int i=cell_start_2; i<cell_stop_2; ++i)
-            { I2[j] = indices_2[i]; ++j; }
-            const int I1s = 0; const int I1e = np_1;
-            const int I2s = 0; const int I2e = np_2;
-
             ElasticCollisionPerez(
-                I1s, I1e, I2s, I2e, I1, I2,
+                cell_start_1, cell_stop_1, cell_start_2, cell_stop_2,
+                indices_1, indices_2,
                 ux_1, uy_1, uz_1, ux_2, uy_2, uz_2, w_1, w_2,
                 q1, q2, m1, m2, -1.0, -1.0, dt, -1.0, dV);
 
