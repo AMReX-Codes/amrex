@@ -428,7 +428,7 @@ FluxRegister::FineSetVal (int              dir,
                           Real             val,
                           RunOn            runon) noexcept
 {
-    // xxxxx gpu todo
+    Gpu::LaunchSafeGuard lsg(false); // xxxxx gpu todo
 
     // This routine used by FLASH does NOT run on gpu for safety.
 
@@ -547,7 +547,7 @@ FluxRegister::Reflux (MultiFab& mf, const MultiFab& volume, Orientation face,
 void
 FluxRegister::ClearInternalBorders (const Geometry& geom)
 {
-    // xxxxx gpu todo
+    Gpu::LaunchSafeGuard lsg(false); // xxxxx gpu todo
 
     int nc = this->nComp();
     const Box& domain = geom.Domain();
@@ -610,7 +610,7 @@ FluxRegister::OverwriteFlux (Array<MultiFab*,AMREX_SPACEDIM> const& crse_fluxes,
                              Real scale, int srccomp, int destcomp, int numcomp,
                              const Geometry& crse_geom)
 {
-    // xxxxx gpu todo
+    Gpu::LaunchSafeGuard lsg(false); // xxxxx gpu todo
 
     BL_PROFILE("FluxRegister::OverwriteFlux()");
 
