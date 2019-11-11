@@ -1392,7 +1392,7 @@ FabArrayBase::Finalize ()
 	m_CFinfo_stats.print();
     }
 
-    if (amrex::system::verbose > 10) { // xxxxx will lower this to 1 after it's done
+    if (amrex::system::verbose > 1) {
         printMemUsage();
     }
     m_region_tag.clear();
