@@ -82,46 +82,78 @@ private:
     amrex::Real b, t;
 };
 
-// struct whose getMomentum returns momentum for 1 particle with relativistc drift velocity beta,
-// from the Maxwell-Juttner distribution.
+// struct whose getMomentum returns momentum for 1 particle with relativistc
+// drift velocity beta, from the Maxwell-Juttner distribution. Method is from
+// Zenitani 2015 (Phys. Plasmas 22, 042116).
 struct InjectorMomentumJuttner
 {
-    InjectorMomentumJuttner(amrex::Real theta, amrex::Real beta, int dir) noexcept
-        : t(theta), b(beta), d(dir)
+    // Constructor whose inputs are:
+    // the temperature parameter theta,
+    // boost velocity/c beta,
+    // and boost direction dir respectively.
+    InjectorMomentumJuttner(amrex::Real t, amrex::Real b, int d) noexcept
+        : theta(t), beta(b), dir(d)
         {}
 
     AMREX_GPU_HOST_DEVICE
     amrex::XDim3
     getMomentum (amrex::Real x, amrex::Real y, amrex::Real z) const noexcept
     {
-        amrex::Real x1, x2, g;
+        // Sobol method for sampling MJ Speeds,
+        // from Zenitani 2015 (Phys. Plasmas 22, 042116).
+        amrex::Real x1, x2, gamma;
         amrex::Real u [3];
         x1 = 0.;
-        g = 0.;
-        u[d] = 0.;
-        while(u[d]-g <= x1)
+        gamma = 0.;
+        u[dir] = 0.;
+        // This condition is equation 10 in Zenitani,
+        // though x1 is defined differently.
+        while(u[dir]-gamma <= x1)
         {
-            u[d] = -t*std::log(amrex::Random()*amrex::Random()*amrex::Random());
-            g = std::sqrt(1+std::pow(u[d],2));
-            x1 = t*std::log(amrex::Random());
+            u[dir] = -theta*
+                std::log(amrex::Random()*amrex::Random()*amrex::Random());
+            gamma = std::sqrt(1+std::pow(u[dir],2));
+            x1 = theta*std::log(amrex::Random());
         }
+        // The following code samples a random unit vector
+        // and multiplies the result by speed u[dir].
         x1 = amrex::Random();
         x2 = amrex::Random();
-        u[(d+1)%3] = 2*u[d]*std::sqrt(x1*(1-x1))*std::sin(2*M_PI*x2);
-        u[(d+2)%3] = 2*u[d]*std::sqrt(x1*(1-x1))*std::cos(2*M_PI*x2);
-        u[d] = u[d]*(2*x1-1);
+        // Direction dir is an input parameter that sets the boost direction:
+        // 'x' -> d = 0, 'y' -> d = 1, 'z' -> d = 2.
+        u[(dir+1)%3] = 2*u[dir]*std::sqrt(x1*(1-x1))*std::sin(2*M_PI*x2);
+        u[(dir+2)%3] = 2*u[dir]*std::sqrt(x1*(1-x1))*std::cos(2*M_PI*x2);
+        // The value of dir is the boost direction to be transformed.
+        u[dir] = u[dir]*(2*x1-1);
         x1 = amrex::Random();
-        if(-b*u[d]/g>x1)
+        // The following condition is equtaion 32 in Zenitani, called
+        // The flipping method. It transforms the intergral: d3x' -> d3x
+        // where d3x' is the volume element for positions in the boosted frame.
+        // The particle positions and densities can be initialized in the
+        // simulation frame with this method.
+        // The flipping method can similarly transform any
+        // symmetric distribution from one reference frame to another moving at
+        // a relative velocity of beta.
+        // An equivalent alternative to this method native to WarpX
+        // would be to initialize the particle positions and densities in the
+        // frame moving at speed beta, and then perform a Lorentz transform
+        // on their positions and MJ sampled velocities to the simulation frame.
+        if(-beta*u[dir]/gamma>x1)
         {
-            u[d] = -u[d];
+            u[dir] = -u[dir];
         }
-        u[d] = 1/std::sqrt(1-pow(b,2))*(u[d]+g*b);
+        // This Lorentz transform is equation 17 in Zenitani.
+        // It transforms the integral d3u' -> d3u
+        // where d3u' is the volume element for momentum in the boosted frame.
+        u[dir] = 1/std::sqrt(1-pow(beta,2))*(u[dir]+gamma*beta);
+        // Note that if beta = 0 then the flipping method and Lorentz transform
+        // have no effect on the u[dir] direction.
         return amrex::XDim3 {u[0],u[1],u[2]};
     }
 
 private:
-    int d;
-    amrex::Real b, t;
+    int dir;
+    amrex::Real beta, theta;
 };
 
 
