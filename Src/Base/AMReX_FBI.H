@@ -27,6 +27,7 @@ struct Array4BoxTag {
     Box       dbox;
 };
 
+#ifdef AMREX_USE_GPU
 template <class T, class F>
 void
 ParallelFor (Vector<Array4BoxTag<T> > const& tags, int ncomp, F && f)
@@ -107,6 +108,7 @@ ParallelFor (Vector<Array4BoxTag<T> > const& tags, int ncomp, F && f)
     The_Device_Arena()->free(d_nwarps);
     The_Device_Arena()->free(d_tags);
 }
+#endif
 
 namespace detail {
 
