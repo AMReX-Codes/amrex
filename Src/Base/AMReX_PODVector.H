@@ -373,7 +373,17 @@ namespace amrex
 			size_type old_size = size();
 			resize(a_new_size);
 			if(old_size < a_new_size)
-				std::uninitialized_fill<T*,size_type>(m_data + old_size, m_data + size(), a_val);
+                        {
+#ifdef AMREX_USE_GPU
+                            auto data = m_data;
+                            auto count = size() - old_size;
+                            AMREX_FOR_1D(count, i, data[i+old_size] = a_val;);
+#else
+
+                            std::uninitialized_fill<T*,size_type>(m_data + old_size, 
+                                                                  m_data + size(), a_val);
+#endif
+                        }
 		}
 
 		void reserve (size_type a_capacity) noexcept 
