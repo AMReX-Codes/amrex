@@ -41,9 +41,9 @@ public:
                          DtType a_dt_type=DtType::Full) override;
 
     virtual void PushPX(WarpXParIter& pti,
-                        amrex::Cuda::ManagedDeviceVector<amrex::ParticleReal>& xp,
-                        amrex::Cuda::ManagedDeviceVector<amrex::ParticleReal>& yp,
-                        amrex::Cuda::ManagedDeviceVector<amrex::ParticleReal>& zp,
+                        amrex::Gpu::ManagedDeviceVector<amrex::ParticleReal>& xp,
+                        amrex::Gpu::ManagedDeviceVector<amrex::ParticleReal>& yp,
+                        amrex::Gpu::ManagedDeviceVector<amrex::ParticleReal>& zp,
                         amrex::Real dt, DtType a_dt_type=DtType::Full) override;
 
     // Don't push momenta for photons

@@ -1396,7 +1396,7 @@ PhysicalParticleContainer::SplitParticles(int lev)
 {
     auto& mypc = WarpX::GetInstance().GetPartContainer();
     auto& pctmp_split = mypc.GetPCtmp();
-    Cuda::ManagedDeviceVector<ParticleReal> xp, yp, zp;
+    Gpu::ManagedDeviceVector<ParticleReal> xp, yp, zp;
     RealVector psplit_x, psplit_y, psplit_z, psplit_w;
     RealVector psplit_ux, psplit_uy, psplit_uz;
     long np_split_to_add = 0;
@@ -1554,9 +1554,9 @@ PhysicalParticleContainer::SplitParticles(int lev)
 
 void
 PhysicalParticleContainer::PushPX(WarpXParIter& pti,
-                                  Cuda::ManagedDeviceVector<ParticleReal>& xp,
-                                  Cuda::ManagedDeviceVector<ParticleReal>& yp,
-                                  Cuda::ManagedDeviceVector<ParticleReal>& zp,
+                                  Gpu::ManagedDeviceVector<ParticleReal>& xp,
+                                  Gpu::ManagedDeviceVector<ParticleReal>& yp,
+                                  Gpu::ManagedDeviceVector<ParticleReal>& zp,
                                   Real dt, DtType a_dt_type)
 {
 
