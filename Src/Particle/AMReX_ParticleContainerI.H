@@ -955,21 +955,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::SortParticles
                        });
           
             auto inds = m_bins.permutationPtr();
-
             gatherParticles(m_ptile_r, ptile, np, m_bins.permutationPtr());
-
-            aos().swap(m_ptile_r.GetArrayOfStructs()());               
-            for (int j = 0; j < NumRealComps(); ++j)
-            {
-                    auto& rdata = ptile.GetStructOfArrays().GetRealData(j);
-                    rdata.swap(m_ptile_r.GetStructOfArrays().GetRealData(j));
-            }
-
-            for (int j = 0; j < NumIntComps(); ++j)
-            {
-                    auto& idata = ptile.GetStructOfArrays().GetIntData(j);
-                    idata.swap(m_ptile_r.GetStructOfArrays().GetIntData(j));
-            }        
+            ptile.swap(m_ptile_r);
         }
     }
 #endif
