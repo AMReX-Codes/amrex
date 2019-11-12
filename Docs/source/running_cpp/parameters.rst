@@ -266,6 +266,15 @@ Particle initialization
       well as standard deviations along each direction ``<species_name>.ux_th``,
       ``<species_name>.uy_th`` and ``<species_name>.uz_th``.
 
+    * ``maxwell_juttner``: Maxwell-Juttner distribution for high temperature plasma. This mode
+      requires a dimensionless temperature parameter ``<species_name>.theta``, where theta is equal
+      to kb*T/(m*c^2), where kb is the Boltzmann constant, and m is the mass of the species. It also
+      includes the optional parameter ``<species_name>.beta`` where beta is equal to v/c. The plasma
+      will be initialized to move at velocity beta*c in the ``<species_name>.direction = 'x', 'y', 'z'``,
+      direction. The MJ distribution will be initialized in the moving frame using the Sobol method,
+      and then the distribution will be transformed to the simulation frame using the flipping method.
+      Both the Sobol and the flipping method can be found in Zenitani 2015 (Phys. Plasmas 22, 042116).
+
     * ``radial_expansion``: momentum depends on the radial coordinate linearly. This
       requires additional parameter ``u_over_r`` which is the slope.
 
