@@ -1312,11 +1312,11 @@ void mlndlap_rhcc (int i, int j, int k, Array4<Real> const& rhs, Array4<Real con
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_mknewu (int i, int j, int k, Array4<Real> const& u, Array4<Real const> const& p,
-                     Array4<Real const> const& sig, Real dxi, Real dyi, Real dzi) noexcept
+                     Array4<Real const> const& sig, GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
 {
-    Real facx = 0.25*dxi;
-    Real facy = 0.25*dyi;
-    Real facz = 0.25*dzi;
+    Real facx = 0.25*dxinv[0];
+    Real facy = 0.25*dxinv[1];
+    Real facz = 0.25*dxinv[2];
     u(i,j,k,0) -= sig(i,j,k)*facx
         * (-p(i,j,k  )+p(i+1,j,k  )-p(i,j+1,k  )+p(i+1,j+1,k  )
            -p(i,j,k+1)+p(i+1,j,k+1)-p(i,j+1,k+1)+p(i+1,j+1,k+1));
@@ -4978,6 +4978,528 @@ void mlndlap_restriction_rap (int i, int j, int k, Array4<Real> const& crse,
         crse(i,j,k) = cv * 0.125;
     }
 }
+
+#ifdef AMREX_USE_EB
+
+namespace {
+
+    constexpr int i_S_x     = 0;
+    constexpr int i_S_y     = 1;
+    constexpr int i_S_z     = 2;
+    constexpr int i_S_x2    = 3;
+    constexpr int i_S_y2    = 4;
+    constexpr int i_S_z2    = 5;
+    constexpr int i_S_x_y   = 6;
+    constexpr int i_S_x_z   = 7;
+    constexpr int i_S_y_z   = 8;
+    constexpr int i_S_x2_y  = 9;
+    constexpr int i_S_x2_z  = 10;
+    constexpr int i_S_x_y2  = 11;
+    constexpr int i_S_y2_z  = 12;
+    constexpr int i_S_x_z2  = 13;
+    constexpr int i_S_y_z2  = 14;
+    constexpr int i_S_x2_y2 = 15;
+    constexpr int i_S_x2_z2 = 16;
+    constexpr int i_S_y2_z2 = 17;
+    constexpr int i_S_xyz   = 18;
+    constexpr int n_Sintg   = 19;
+
+    constexpr int i_c_xmym = 0;
+    constexpr int i_c_xmyb = 1;
+    constexpr int i_c_xmyp = 2;
+    constexpr int i_c_xbym = 3;
+    constexpr int i_c_xbyb = 4;
+    constexpr int i_c_xbyp = 5;
+    constexpr int i_c_xpym = 6;
+    constexpr int i_c_xpyb = 7;
+    constexpr int i_c_xpyp = 8;
+    constexpr int i_c_xmzm = 9;
+    constexpr int i_c_xmzb = 10;
+    constexpr int i_c_xmzp = 11;
+    constexpr int i_c_xbzm = 12;
+    constexpr int i_c_xbzb = 13;
+    constexpr int i_c_xbzp = 14;
+    constexpr int i_c_xpzm = 15;
+    constexpr int i_c_xpzb = 16;
+    constexpr int i_c_xpzp = 17;
+    constexpr int i_c_ymzm = 18;
+    constexpr int i_c_ymzb = 19;
+    constexpr int i_c_ymzp = 20;
+    constexpr int i_c_ybzm = 21;
+    constexpr int i_c_ybzb = 22;
+    constexpr int i_c_ybzp = 23;
+    constexpr int i_c_ypzm = 24;
+    constexpr int i_c_ypzb = 25;
+    constexpr int i_c_ypzp = 26;
+    constexpr int n_conn = 27;
+
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_set_connection (int i, int j, int k, Array4<Real> const& conn,
+                             Array4<Real const> const& intg, Array4<Real const> const& vol,
+                             Array4<EBCellFlag const> const& flag) noexcept
+{
+    if (flag(i,j,k).isCovered()) {
+        for (int n = 0; n < n_conn; ++n) conn(i,j,k,n) = 0._rt;
+    } else if (flag(i,j,k).isRegular() or vol(i,j,k) >= almostone) {
+        for (int n = 0; n < n_conn; ++n) conn(i,j,k,n) = 1._rt;
+    } else {
+        // Scaled by 9
+        conn(i,j,k,i_c_xmym) = 0.5625_rt*vol(i,j,k)
+            + 2.25_rt*(-intg(i,j,k,i_S_x ) - intg(i,j,k,i_S_y)
+                       +intg(i,j,k,i_S_x2) + intg(i,j,k,i_S_y2))
+            + 9._rt*( intg(i,j,k,i_S_x_y ) - intg(i,j,k,i_S_x2_y)
+                     -intg(i,j,k,i_S_x_y2) + intg(i,j,k,i_S_x2_y2));
+
+        // Scaled by 18
+        conn(i,j,k,i_c_xmyb) = 1.125_rt*vol(i,j,k)
+            + 4.5_rt*(-intg(i,j,k,i_S_x) + intg(i,j,k,i_S_x2) - intg(i,j,k,i_S_y2))
+            + 18._rt*( intg(i,j,k,i_S_x_y2) - intg(i,j,k,i_S_x2_y2));
+
+        // Scaled by 9
+        conn(i,j,k,i_c_xmyp) =  0.5625_rt*vol(i,j,k)
+            + 2.25_rt*(-intg(i,j,k,i_S_x ) + intg(i,j,k,i_S_y)
+                       +intg(i,j,k,i_S_x2) + intg(i,j,k,i_S_y2))
+            + 9._rt*(-intg(i,j,k,i_S_x_y ) + intg(i,j,k,i_S_x2_y)
+                     -intg(i,j,k,i_S_x_y2) + intg(i,j,k,i_S_x2_y2));
+
+        // Scaled by 18
+        conn(i,j,k,i_c_xbym) = 1.125_rt*vol(i,j,k)
+            + 4.5_rt*(-intg(i,j,k,i_S_y) - intg(i,j,k,i_S_x2) + intg(i,j,k,i_S_y2))
+            + 18._rt*(intg(i,j,k,i_S_x2_y) - intg(i,j,k,i_S_x2_y2));
+
+        // Scaled by 36
+        conn(i,j,k,i_c_xbyb) = 2.25_rt*vol(i,j,k)
+            + 9._rt*(-intg(i,j,k,i_S_x2) - intg(i,j,k,i_S_y2))
+            + 36._rt*intg(i,j,k,i_S_x2_y2);
+
+        // Scaled by 18
+        conn(i,j,k,i_c_xbyp) =  1.125_rt*vol(i,j,k)
+            + 4.5_rt*( intg(i,j,k,i_S_y) - intg(i,j,k,i_S_x2) + intg(i,j,k,i_S_y2))
+            + 18._rt*(-intg(i,j,k,i_S_x2_y) - intg(i,j,k,i_S_x2_y2));
+
+        // Scaled by 9
+        conn(i,j,k,i_c_xpym) = 0.5625_rt*vol(i,j,k)
+            + 2.25_rt*( intg(i,j,k,i_S_x ) - intg(i,j,k,i_S_y)
+                        +intg(i,j,k,i_S_x2) + intg(i,j,k,i_S_y2))
+            + 9._rt*(-intg(i,j,k,i_S_x_y ) - intg(i,j,k,i_S_x2_y)
+                     +intg(i,j,k,i_S_x_y2) + intg(i,j,k,i_S_x2_y2));
+
+        // Scaled by 18
+        conn(i,j,k,i_c_xpyb) = 1.125_rt*vol(i,j,k)
+            + 4.5_rt*( intg(i,j,k,i_S_x) + intg(i,j,k,i_S_x2) - intg(i,j,k,i_S_y2))
+            + 18._rt*(-intg(i,j,k,i_S_x_y2) - intg(i,j,k,i_S_x2_y2));
+
+        // Scaled by 9
+        conn(i,j,k,i_c_xpyp) =  0.5625_rt*vol(i,j,k)
+            + 2.25_rt*( intg(i,j,k,i_S_x ) + intg(i,j,k,i_S_y)
+                        +intg(i,j,k,i_S_x2) + intg(i,j,k,i_S_y2))
+            + 9._rt*( intg(i,j,k,i_S_x_y ) + intg(i,j,k,i_S_x2_y)
+                      +intg(i,j,k,i_S_x_y2) + intg(i,j,k,i_S_x2_y2));
+
+        // Scaled by 9
+        conn(i,j,k,i_c_xmzm) = 0.5625_rt*vol(i,j,k)
+            + 2.25_rt*(-intg(i,j,k,i_S_x) - intg(i,j,k,i_S_z)
+                       +intg(i,j,k,i_S_x2) + intg(i,j,k,i_S_z2))
+            + 9._rt*(intg(i,j,k,i_S_x_z) - intg(i,j,k,i_S_x2_z)
+                     -intg(i,j,k,i_S_x_z2) + intg(i,j,k,i_S_x2_z2));
+
+        // Scaled by 18
+        conn(i,j,k,i_c_xmzb) = 1.125_rt*vol(i,j,k)
+            + 4.5_rt*(-intg(i,j,k,i_S_x) + intg(i,j,k,i_S_x2) - intg(i,j,k,i_S_z2))
+            + 18._rt*(intg(i,j,k,i_S_x_z2) - intg(i,j,k,i_S_x2_z2));
+
+        // Scaled by 9
+        conn(i,j,k,i_c_xmzp) = 0.5625_rt*vol(i,j,k)
+            + 2.25_rt*(-intg(i,j,k,i_S_x  ) + intg(i,j,k,i_S_z)
+                       +intg(i,j,k,i_S_x2) + intg(i,j,k,i_S_z2))
+            + 9._rt*(-intg(i,j,k,i_S_x_z  ) + intg(i,j,k,i_S_x2_z)
+                     -intg(i,j,k,i_S_x_z2) + intg(i,j,k,i_S_x2_z2));
+
+        // Scaled by 18
+        conn(i,j,k,i_c_xbzm) = 1.125_rt*vol(i,j,k)
+            + 4.5_rt*(-intg(i,j,k,i_S_z) - intg(i,j,k,i_S_x2) + intg(i,j,k,i_S_z2))
+            + 18._rt*(intg(i,j,k,i_S_x2_z) - intg(i,j,k,i_S_x2_z2));
+
+        // Scaled by 18
+        conn(i,j,k,i_c_xbzb) = 2.25_rt*vol(i,j,k)
+            + 9._rt*(-intg(i,j,k,i_S_x2) - intg(i,j,k,i_S_z2))
+            + 36._rt*intg(i,j,k,i_S_x2_z2);
+
+        // Scaled by 18
+        conn(i,j,k,i_c_xbzp) = 1.125_rt*vol(i,j,k)
+            + 4.5_rt*( intg(i,j,k,i_S_z) - intg(i,j,k,i_S_x2) + intg(i,j,k,i_S_z2))
+            + 18._rt*(-intg(i,j,k,i_S_x2_z) - intg(i,j,k,i_S_x2_z2));
+
+        // Scaled by 9
+        conn(i,j,k,i_c_xpzm) = 0.5625_rt*vol(i,j,k)
+            + 2.25_rt*( intg(i,j,k,i_S_x ) - intg(i,j,k,i_S_z)
+                        +intg(i,j,k,i_S_x2) + intg(i,j,k,i_S_z2))
+            + 9._rt*(-intg(i,j,k,i_S_x_z ) - intg(i,j,k,i_S_x2_z)
+                     +intg(i,j,k,i_S_x_z2) + intg(i,j,k,i_S_x2_z2));
+
+        // Scaled by 18
+        conn(i,j,k,i_c_xpzb) = 1.125_rt*vol(i,j,k)
+            + 4.5_rt*( intg(i,j,k,i_S_x   ) + intg(i,j,k,i_S_x2   ) - intg(i,j,k,i_S_z2))
+            + 18._rt*(-intg(i,j,k,i_S_x_z2) - intg(i,j,k,i_S_x2_z2));
+
+        // Scaled by 9
+        conn(i,j,k,i_c_xpzp) = 0.5625_rt*vol(i,j,k)
+            + 2.25_rt*( intg(i,j,k,i_S_x ) + intg(i,j,k,i_S_z)
+                        +intg(i,j,k,i_S_x2) + intg(i,j,k,i_S_z2))
+            + 9._rt*( intg(i,j,k,i_S_x_z ) + intg(i,j,k,i_S_x2_z)
+                      +intg(i,j,k,i_S_x_z2) + intg(i,j,k,i_S_x2_z2));
+
+        // Scaled by 9
+        conn(i,j,k,i_c_ymzm) = 0.5625_rt*vol(i,j,k)
+            + 2.25_rt*(-intg(i,j,k,i_S_y) - intg(i,j,k,i_S_z)
+                       +intg(i,j,k,i_S_y2) + intg(i,j,k,i_S_z2))
+            + 9._rt*(intg(i,j,k,i_S_y_z) - intg(i,j,k,i_S_y2_z)
+                     -intg(i,j,k,i_S_y_z2) + intg(i,j,k,i_S_y2_z2));
+
+        // Scaled by 18
+        conn(i,j,k,i_c_ymzb) = 1.125_rt*vol(i,j,k)
+            + 4.5_rt*(-intg(i,j,k,i_S_y) + intg(i,j,k,i_S_y2) - intg(i,j,k,i_S_z2))
+            + 18._rt*(intg(i,j,k,i_S_y_z2) - intg(i,j,k,i_S_y2_z2));
+
+        // Scaled by 9
+        conn(i,j,k,i_c_ymzp) = 0.5625_rt*vol(i,j,k)
+            + 2.25_rt*(-intg(i,j,k,i_S_y ) + intg(i,j,k,i_S_z)
+                       +intg(i,j,k,i_S_y2) + intg(i,j,k,i_S_z2))
+            + 9._rt*(-intg(i,j,k,i_S_y_z ) + intg(i,j,k,i_S_y2_z)
+                     -intg(i,j,k,i_S_y_z2) + intg(i,j,k,i_S_y2_z2));
+
+        // Scaled by 18
+        conn(i,j,k,i_c_ybzm) = 1.125_rt*vol(i,j,k)
+            + 4.5_rt*(-intg(i,j,k,i_S_z) - intg(i,j,k,i_S_y2) + intg(i,j,k,i_S_z2))
+            + 18._rt*(intg(i,j,k,i_S_y2_z) - intg(i,j,k,i_S_y2_z2));
+
+        // Scaled by 36
+        conn(i,j,k,i_c_ybzb) = 2.25_rt*vol(i,j,k)
+            + 9._rt*(-intg(i,j,k,i_S_y2) - intg(i,j,k,i_S_z2))
+                     + 36._rt*intg(i,j,k,i_S_y2_z2);
+
+        // Scaled by 18
+        conn(i,j,k,i_c_ybzp) = 1.125_rt*vol(i,j,k)
+            + 4.5_rt*( intg(i,j,k,i_S_z) - intg(i,j,k,i_S_y2) + intg(i,j,k,i_S_z2))
+            + 18._rt*(-intg(i,j,k,i_S_y2_z) - intg(i,j,k,i_S_y2_z2));
+
+        // Scaled by 9
+        conn(i,j,k,i_c_ypzm) = 0.5625_rt*vol(i,j,k)
+            + 2.25_rt*( intg(i,j,k,i_S_y ) - intg(i,j,k,i_S_z)
+                        +intg(i,j,k,i_S_y2) + intg(i,j,k,i_S_z2))
+            + 9._rt*(-intg(i,j,k,i_S_y_z ) - intg(i,j,k,i_S_y2_z)
+                     +intg(i,j,k,i_S_y_z2) + intg(i,j,k,i_S_y2_z2));
+
+        // Scaled by 18
+        conn(i,j,k,i_c_ypzb) = 1.125_rt*vol(i,j,k)
+            + 4.5_rt*( intg(i,j,k,i_S_y   ) + intg(i,j,k,i_S_y2) - intg(i,j,k,i_S_z2))
+            + 18._rt*(-intg(i,j,k,i_S_y_z2) - intg(i,j,k,i_S_y2_z2));
+
+        // Scaled by 9
+        conn(i,j,k,i_c_ypzp) = 0.5625_rt*vol(i,j,k)
+            + 2.25_rt*( intg(i,j,k,i_S_y ) + intg(i,j,k,i_S_z)
+                        +intg(i,j,k,i_S_y2) + intg(i,j,k,i_S_z2))
+            + 9._rt*( intg(i,j,k,i_S_y_z ) + intg(i,j,k,i_S_y2_z)
+                      +intg(i,j,k,i_S_y_z2) + intg(i,j,k,i_S_y2_z2));
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_set_stencil_eb (int i, int j, int k, Array4<Real> const& sten,
+                             Array4<Real const> const& sig, Array4<Real const> const& conn,
+                             GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+{
+    Real facx = (1._rt/36._rt)*dxinv[0]*dxinv[0];
+    Real facy = (1._rt/36._rt)*dxinv[1]*dxinv[1];
+    Real facz = (1._rt/36._rt)*dxinv[2]*dxinv[2];
+
+    // i+1,j,k
+    sten(i,j,k,ist_p00) = (
+        sig(i,j  ,k  )*(4._rt*facx*conn(i,j  ,k  ,i_c_ymzm) - 2._rt*facy*conn(i,j  ,k  ,i_c_xbzm) - 2._rt*facz*conn(i,j  ,k  ,i_c_xbym) ) +
+        sig(i,j-1,k  )*(4._rt*facx*conn(i,j-1,k  ,i_c_ypzm) - 2._rt*facy*conn(i,j-1,k  ,i_c_xbzm) - 2._rt*facz*conn(i,j-1,k  ,i_c_xbyp) ) +
+        sig(i,j  ,k-1)*(4._rt*facx*conn(i,j  ,k-1,i_c_ymzp) - 2._rt*facy*conn(i,j  ,k-1,i_c_xbzp) - 2._rt*facz*conn(i,j  ,k-1,i_c_xbym) ) +
+        sig(i,j-1,k-1)*(4._rt*facx*conn(i,j-1,k-1,i_c_ypzp) - 2._rt*facy*conn(i,j-1,k-1,i_c_xbzp) - 2._rt*facz*conn(i,j-1,k-1,i_c_xbyp) ) );
+
+    // i,j+1,k
+    sten(i,j,k,ist_0p0) = (
+        sig(i  ,j,k  )*(-2._rt*facx*conn(i  ,j,k  ,i_c_ybzm) + 4._rt*facy*conn(i  ,j,k  ,i_c_xmzm) - 2._rt*facz*conn(i  ,j,k  ,i_c_xmyb) ) +
+        sig(i-1,j,k  )*(-2._rt*facx*conn(i-1,j,k  ,i_c_ybzm) + 4._rt*facy*conn(i-1,j,k  ,i_c_xpzm) - 2._rt*facz*conn(i-1,j,k  ,i_c_xpyb) ) +
+        sig(i  ,j,k-1)*(-2._rt*facx*conn(i  ,j,k-1,i_c_ybzp) + 4._rt*facy*conn(i  ,j,k-1,i_c_xmzp) - 2._rt*facz*conn(i  ,j,k-1,i_c_xmyb) ) +
+        sig(i-1,j,k-1)*(-2._rt*facx*conn(i-1,j,k-1,i_c_ybzp) + 4._rt*facy*conn(i-1,j,k-1,i_c_xpzp) - 2._rt*facz*conn(i-1,j,k-1,i_c_xpyb) ) );
+
+    // i,j,k+1
+    sten(i,j,k,ist_00p) = (
+        sig(i  ,j  ,k)*(-2._rt*facx*conn(i  ,j  ,k,i_c_ymzb) - 2._rt*facy*conn(i  ,j  ,k,i_c_xmzb) + 4._rt*facz*conn(i  ,j  ,k,i_c_xmym) ) +
+        sig(i-1,j  ,k)*(-2._rt*facx*conn(i-1,j  ,k,i_c_ymzb) - 2._rt*facy*conn(i-1,j  ,k,i_c_xpzb) + 4._rt*facz*conn(i-1,j  ,k,i_c_xpym) ) +
+        sig(i  ,j-1,k)*(-2._rt*facx*conn(i  ,j-1,k,i_c_ypzb) - 2._rt*facy*conn(i  ,j-1,k,i_c_xmzb) + 4._rt*facz*conn(i  ,j-1,k,i_c_xmyp) ) +
+        sig(i-1,j-1,k)*(-2._rt*facx*conn(i-1,j-1,k,i_c_ypzb) - 2._rt*facy*conn(i-1,j-1,k,i_c_xpzb) + 4._rt*facz*conn(i-1,j-1,k,i_c_xpyp) ) );
+
+    // i+1,j+1,k
+    sten(i,j,k,ist_pp0) = (
+        sig(i,j,k  )*(2._rt*facx*conn(i,j,k  ,i_c_ybzm) + 2._rt*facy*conn(i,j,k  ,i_c_xbzm) - facz*conn(i,j,k  ,i_c_xbyb) ) +
+        sig(i,j,k-1)*(2._rt*facx*conn(i,j,k-1,i_c_ybzp) + 2._rt*facy*conn(i,j,k-1,i_c_xbzp) - facz*conn(i,j,k-1,i_c_xbyb) ) );
+
+    // i+1,j,k+1
+    sten(i,j,k,ist_p0p) = (
+        sig(i,j,k  )*(2._rt*facx*conn(i,j,k  ,i_c_ymzb) - facy*conn(i,j,k  ,i_c_xbzb) + 2._rt*facz*conn(i,j,k  ,i_c_xbym) ) +
+        sig(i,j-1,k)*(2._rt*facx*conn(i,j-1,k,i_c_ypzb) - facy*conn(i,j-1,k,i_c_xbzb) + 2._rt*facz*conn(i,j-1,k,i_c_xbyp) ) );
+
+    // i,j+1,k+1
+    sten(i,j,k,ist_0pp) = (
+        sig(i  ,j,k)*(-facx*conn(i  ,j,k,i_c_ybzb) + 2._rt*facy*conn(i  ,j,k,i_c_xmzb) + 2._rt*facz*conn(i  ,j,k,i_c_xmyb) ) +
+        sig(i-1,j,k)*(-facx*conn(i-1,j,k,i_c_ybzb) + 2._rt*facy*conn(i-1,j,k,i_c_xpzb) + 2._rt*facz*conn(i-1,j,k,i_c_xpyb) ) );
+
+    // i+1,j+1,k+1
+    sten(i,j,k,ist_ppp) = sig(i,j,k) * (facx*conn(i,j,k,i_c_ybzb) + facy*conn(i,j,k,i_c_xbzb) + facz*conn(i,j,k,i_c_xbyb) );
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_divu_eb (int i, int j, int k, Array4<Real> const& rhs, Array4<Real const> const& vel,
+                      Array4<Real const> const& vfrac, Array4<Real const> const& intg,
+                      Array4<int const> const& msk, GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+{
+    Real facx = 0.25_rt*dxinv[0];
+    Real facy = 0.25_rt*dxinv[1];
+    Real facz = 0.25_rt*dxinv[2];
+
+    if (!msk(i,j,k)) {
+        rhs(i,j,k) = facx*(
+            vel(i-1,j-1,k  ,0)*(    -vfrac(i-1,j-1,k  )
+                               -2._rt*intg(i-1,j-1,k  ,i_S_y)
+                               +2._rt*intg(i-1,j-1,k  ,i_S_z)
+                               +4._rt*intg(i-1,j-1,k  ,i_S_y_z))
+           +vel(i  ,j-1,k  ,0)*(     vfrac(i  ,j-1,k  )
+                               +2._rt*intg(i  ,j-1,k  ,i_S_y)
+                               -2._rt*intg(i  ,j-1,k  ,i_S_z)
+                               -4._rt*intg(i  ,j-1,k  ,i_S_y_z))
+           +vel(i-1,j  ,k  ,0)*(    -vfrac(i-1,j  ,k  )
+                               +2._rt*intg(i-1,j  ,k  ,i_S_y)
+                               +2._rt*intg(i-1,j  ,k  ,i_S_z)
+                               -4._rt*intg(i-1,j  ,k  ,i_S_y_z))
+           +vel(i  ,j  ,k  ,0)*(     vfrac(i  ,j  ,k  )
+                               -2._rt*intg(i  ,j  ,k  ,i_S_y)
+                               -2._rt*intg(i  ,j  ,k  ,i_S_z)
+                               +4._rt*intg(i  ,j  ,k  ,i_S_y_z))
+           +vel(i-1,j-1,k-1,0)*(    -vfrac(i-1,j-1,k-1)
+                               -2._rt*intg(i-1,j-1,k-1,i_S_y)
+                               -2._rt*intg(i-1,j-1,k-1,i_S_z)
+                               -4._rt*intg(i-1,j-1,k-1,i_S_y_z))
+           +vel(i  ,j-1,k-1,0)*(     vfrac(i  ,j-1,k-1)
+                               +2._rt*intg(i  ,j-1,k-1,i_S_y)
+                               +2._rt*intg(i  ,j-1,k-1,i_S_z)
+                               +4._rt*intg(i  ,j-1,k-1,i_S_y_z))
+           +vel(i-1,j  ,k-1,0)*(    -vfrac(i-1,j  ,k-1)
+                               +2._rt*intg(i-1,j  ,k-1,i_S_y)
+                               -2._rt*intg(i-1,j  ,k-1,i_S_z)
+                               +4._rt*intg(i-1,j  ,k-1,i_S_y_z))
+           +vel(i  ,j  ,k-1,0)*(     vfrac(i  ,j  ,k-1)
+                               -2._rt*intg(i  ,j  ,k-1,i_S_y)
+                               +2._rt*intg(i  ,j  ,k-1,i_S_z)
+                               -4._rt*intg(i  ,j  ,k-1,i_S_y_z)) )
+            + facy*(
+            vel(i-1,j-1,k  ,1)*(    -vfrac(i-1,j-1,k  )
+                               -2._rt*intg(i-1,j-1,k  ,i_S_x)
+                               +2._rt*intg(i-1,j-1,k  ,i_S_z)
+                               +4._rt*intg(i-1,j-1,k  ,i_S_x_z))
+           +vel(i  ,j-1,k  ,1)*(    -vfrac(i  ,j-1,k  )
+                               +2._rt*intg(i  ,j-1,k  ,i_S_x)
+                               +2._rt*intg(i  ,j-1,k  ,i_S_z)
+                               -4._rt*intg(i  ,j-1,k  ,i_S_x_z))
+           +vel(i-1,j  ,k  ,1)*(     vfrac(i-1,j  ,k  )
+                               +2._rt*intg(i-1,j  ,k  ,i_S_x)
+                               -2._rt*intg(i-1,j  ,k  ,i_S_z)
+                               -4._rt*intg(i-1,j  ,k  ,i_S_x_z))
+           +vel(i  ,j  ,k  ,1)*(     vfrac(i  ,j  ,k  )
+                               -2._rt*intg(i  ,j  ,k  ,i_S_x)
+                               -2._rt*intg(i  ,j  ,k  ,i_S_z)
+                               +4._rt*intg(i  ,j  ,k  ,i_S_x_z))
+           +vel(i-1,j-1,k-1,1)*(    -vfrac(i-1,j-1,k-1)
+                               -2._rt*intg(i-1,j-1,k-1,i_S_x)
+                               -2._rt*intg(i-1,j-1,k-1,i_S_z)
+                               -4._rt*intg(i-1,j-1,k-1,i_S_x_z))
+           +vel(i  ,j-1,k-1,1)*(    -vfrac(i  ,j-1,k-1)
+                               +2._rt*intg(i  ,j-1,k-1,i_S_x)
+                               -2._rt*intg(i  ,j-1,k-1,i_S_z)
+                               +4._rt*intg(i  ,j-1,k-1,i_S_x_z))
+           +vel(i-1,j  ,k-1,1)*(     vfrac(i-1,j  ,k-1)
+                               +2._rt*intg(i-1,j  ,k-1,i_S_x)
+                               +2._rt*intg(i-1,j  ,k-1,i_S_z)
+                               +4._rt*intg(i-1,j  ,k-1,i_S_x_z))
+           +vel(i  ,j  ,k-1,1)*(     vfrac(i  ,j  ,k-1)
+                               -2._rt*intg(i  ,j  ,k-1,i_S_x)
+                               +2._rt*intg(i  ,j  ,k-1,i_S_z)
+                               -4._rt*intg(i  ,j  ,k-1,i_S_x_z)) )
+            + facz*(
+            vel(i-1,j-1,k  ,2)*(     vfrac(i-1,j-1,k  )
+                               +2._rt*intg(i-1,j-1,k  ,i_S_x)
+                               +2._rt*intg(i-1,j-1,k  ,i_S_y)
+                               +4._rt*intg(i-1,j-1,k  ,i_S_x_y))
+           +vel(i  ,j-1,k  ,2)*(     vfrac(i  ,j-1,k  )
+                               -2._rt*intg(i  ,j-1,k  ,i_S_x)
+                               +2._rt*intg(i  ,j-1,k  ,i_S_y)
+                               -4._rt*intg(i  ,j-1,k  ,i_S_x_y))
+           +vel(i-1,j  ,k  ,2)*(     vfrac(i-1,j  ,k  )
+                               +2._rt*intg(i-1,j  ,k  ,i_S_x)
+                               -2._rt*intg(i-1,j  ,k  ,i_S_y)
+                               -4._rt*intg(i-1,j  ,k  ,i_S_x_y))
+           +vel(i  ,j  ,k  ,2)*(     vfrac(i  ,j  ,k  )
+                               -2._rt*intg(i  ,j  ,k  ,i_S_x)
+                               -2._rt*intg(i  ,j  ,k  ,i_S_y)
+                               +4._rt*intg(i  ,j  ,k  ,i_S_x_y))
+           +vel(i-1,j-1,k-1,2)*(    -vfrac(i-1,j-1,k-1)
+                               -2._rt*intg(i-1,j-1,k-1,i_S_x)
+                               -2._rt*intg(i-1,j-1,k-1,i_S_y)
+                               -4._rt*intg(i-1,j-1,k-1,i_S_x_y))
+           +vel(i  ,j-1,k-1,2)*(    -vfrac(i  ,j-1,k-1)
+                               +2._rt*intg(i  ,j-1,k-1,i_S_x)
+                               -2._rt*intg(i  ,j-1,k-1,i_S_y)
+                               +4._rt*intg(i  ,j-1,k-1,i_S_x_y))
+           +vel(i-1,j  ,k-1,2)*(    -vfrac(i-1,j  ,k-1)
+                               -2._rt*intg(i-1,j  ,k-1,i_S_x)
+                               +2._rt*intg(i-1,j  ,k-1,i_S_y)
+                               +4._rt*intg(i-1,j  ,k-1,i_S_x_y))
+           +vel(i  ,j  ,k-1,2)*(    -vfrac(i  ,j  ,k-1)
+                               +2._rt*intg(i  ,j  ,k-1,i_S_x)
+                               +2._rt*intg(i  ,j  ,k-1,i_S_y)
+                               -4._rt*intg(i  ,j  ,k-1,i_S_x_y)) );
+    } else {
+        rhs(i,j,k) = 0._rt;
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_mknewu_eb (int i, int j, int k, Array4<Real> const& u, Array4<Real const> const& p,
+                        Array4<Real const> const& sig, Array4<Real const> const& vfrac,
+                        Array4<Real const> const& intg, GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+{
+    if (vfrac(i,j,k) == 0._rt) {
+        u(i,j,k,0) = u(i,j,k,1) = u(i,j,k,2) = 0._rt;
+    } else {
+        Real dpdx = 0.25_rt*(-p(i,j,k  )+p(i+1,j,k  )-p(i,j+1,k  )+p(i+1,j+1,k  )
+                             -p(i,j,k+1)+p(i+1,j,k+1)-p(i,j+1,k+1)+p(i+1,j+1,k+1));
+        Real dpdy = 0.25_rt*(-p(i,j,k  )-p(i+1,j,k  )+p(i,j+1,k  )+p(i+1,j+1,k  )
+                             -p(i,j,k+1)-p(i+1,j,k+1)+p(i,j+1,k+1)+p(i+1,j+1,k+1));
+        Real dpdz = 0.25_rt*(-p(i,j,k  )-p(i+1,j,k  )-p(i,j+1,k  )-p(i+1,j+1,k  )
+                             +p(i,j,k+1)+p(i+1,j,k+1)+p(i,j+1,k+1)+p(i+1,j+1,k+1));
+
+        Real dpp_xy = (p(i+1,j+1,k+1) - p(i,j+1,k+1) - p(i+1,j,k+1) + p(i,j,k+1)
+                      +p(i+1,j+1,k  ) - p(i,j+1,k  ) - p(i+1,j,k  ) + p(i,j,k  ) ) / vfrac(i,j,k);
+
+        Real dpp_xz = (p(i+1,j+1,k+1) - p(i,j+1,k+1) + p(i+1,j,k+1) - p(i,j,k+1)
+                      -p(i+1,j+1,k  ) + p(i,j+1,k  ) - p(i+1,j,k  ) + p(i,j,k  ) ) / vfrac(i,j,k);
+
+        Real dpp_yz = (p(i+1,j+1,k+1) + p(i,j+1,k+1) - p(i+1,j,k+1) - p(i,j,k+1)
+                      -p(i+1,j+1,k  ) - p(i,j+1,k  ) + p(i+1,j,k  ) + p(i,j,k  ) ) / vfrac(i,j,k);
+
+        Real dpp_xyz = (p(i+1,j+1,k+1) - p(i,j+1,k+1) - p(i+1,j,k+1) + p(i,j,k+1)
+                       -p(i+1,j+1,k  ) + p(i,j+1,k  ) + p(i+1,j,k  ) - p(i,j,k  ) ) / vfrac(i,j,k);
+
+        u(i,j,k,0) -= sig(i,j,k)*dxinv[0]*(dpdx + .5_rt*intg(i,j,k,i_S_y  )*dpp_xy +
+                                                  .5_rt*intg(i,j,k,i_S_z  )*dpp_xz +
+                                                        intg(i,j,k,i_S_y_z)*dpp_xyz );
+        u(i,j,k,1) -= sig(i,j,k)*dxinv[1]*(dpdy + .5_rt*intg(i,j,k,i_S_x  )*dpp_xy +
+                                                  .5_rt*intg(i,j,k,i_S_z  )*dpp_yz +
+                                                        intg(i,j,k,i_S_x_z)*dpp_xyz );
+        u(i,j,k,2) -= sig(i,j,k)*dxinv[2]*(dpdz + .5_rt*intg(i,j,k,i_S_x  )*dpp_xz +
+                                                  .5_rt*intg(i,j,k,i_S_y  )*dpp_yz +
+                                                        intg(i,j,k,i_S_x_y)*dpp_xyz );
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_rhcc_eb (int i, int j, int k, Array4<Real> const& rhs, Array4<Real const> const& rhcc,
+                      Array4<Real const> const& vfrac, Array4<Real const> const& intg,
+                      Array4<int const> const& msk) noexcept
+{
+    if (!msk(i,j,k)) {
+        rhs(i,j,k) =
+                          rhcc(i  ,j  ,k  ) *
+            ( 0.125_rt * vfrac(i  ,j  ,k  )
+            + 0.25_rt * (-intg(i  ,j  ,k  ,i_S_x)
+                         -intg(i  ,j  ,k  ,i_S_y)
+                         -intg(i  ,j  ,k  ,i_S_z))
+            + 0.5_rt * (  intg(i  ,j  ,k  ,i_S_x_y)
+                         +intg(i  ,j  ,k  ,i_S_x_z)
+                         +intg(i  ,j  ,k  ,i_S_y_z))
+            +          ( -intg(i  ,j  ,k  ,i_S_xyz)))
+            //
+            +             rhcc(i-1,j  ,k  ) *
+            ( 0.125_rt * vfrac(i-1,j  ,k  )
+            + 0.25_rt * ( intg(i-1,j  ,k  ,i_S_x)
+                         -intg(i-1,j  ,k  ,i_S_y)
+                         -intg(i-1,j  ,k  ,i_S_z))
+            + 0.5_rt * ( -intg(i-1,j  ,k  ,i_S_x_y)
+                         -intg(i-1,j  ,k  ,i_S_x_z)
+                         +intg(i-1,j  ,k  ,i_S_y_z))
+            +          (  intg(i-1,j  ,k  ,i_S_xyz)))
+            //
+            +             rhcc(i  ,j-1,k  ) *
+            ( 0.125_rt * vfrac(i  ,j-1,k  )
+            + 0.25_rt * (-intg(i  ,j-1,k  ,i_S_x)
+                         +intg(i  ,j-1,k  ,i_S_y)
+                         -intg(i  ,j-1,k  ,i_S_z))
+            + 0.5_rt * ( -intg(i  ,j-1,k  ,i_S_x_y)
+                         +intg(i  ,j-1,k  ,i_S_x_z)
+                         -intg(i  ,j-1,k  ,i_S_y_z))
+            +          (  intg(i  ,j-1,k  ,i_S_xyz)))
+            //
+            +             rhcc(i-1,j-1,k  ) *
+            ( 0.125_rt * vfrac(i-1,j-1,k  )
+            + 0.25_rt * ( intg(i-1,j-1,k  ,i_S_x)
+                         +intg(i-1,j-1,k  ,i_S_y)
+                         -intg(i-1,j-1,k  ,i_S_z))
+            + 0.5_rt * (  intg(i-1,j-1,k  ,i_S_x_y)
+                         -intg(i-1,j-1,k  ,i_S_x_z)
+                         -intg(i-1,j-1,k  ,i_S_y_z))
+            +          ( -intg(i-1,j-1,k  ,i_S_xyz)))
+            //
+            +             rhcc(i  ,j  ,k-1) *
+            ( 0.125_rt * vfrac(i  ,j  ,k-1)
+            + 0.25_rt * (-intg(i  ,j  ,k-1,i_S_x)
+                         -intg(i  ,j  ,k-1,i_S_y)
+                         +intg(i  ,j  ,k-1,i_S_z))
+            + 0.5_rt * (  intg(i  ,j  ,k-1,i_S_x_y)
+                         -intg(i  ,j  ,k-1,i_S_x_z)
+                         -intg(i  ,j  ,k-1,i_S_y_z))
+            +          (  intg(i  ,j  ,k-1,i_S_xyz)))
+            //
+            +             rhcc(i-1,j  ,k-1) *
+            ( 0.125_rt * vfrac(i-1,j  ,k-1)
+            + 0.25_rt * ( intg(i-1,j  ,k-1,i_S_x)
+                         -intg(i-1,j  ,k-1,i_S_y)
+                         +intg(i-1,j  ,k-1,i_S_z))
+            + 0.5_rt * ( -intg(i-1,j  ,k-1,i_S_x_y)
+                         +intg(i-1,j  ,k-1,i_S_x_z)
+                         -intg(i-1,j  ,k-1,i_S_y_z))
+            +          ( -intg(i-1,j  ,k-1,i_S_xyz)))
+            //
+            +             rhcc(i  ,j-1,k-1) *
+            ( 0.125_rt * vfrac(i  ,j-1,k-1)
+            + 0.25_rt * (-intg(i  ,j-1,k-1,i_S_x)
+                         +intg(i  ,j-1,k-1,i_S_y)
+                         +intg(i  ,j-1,k-1,i_S_z))
+            + 0.5_rt * ( -intg(i  ,j-1,k-1,i_S_x_y)
+                         -intg(i  ,j-1,k-1,i_S_x_z)
+                         +intg(i  ,j-1,k-1,i_S_y_z))
+            +          ( -intg(i  ,j-1,k-1,i_S_xyz)))
+            //
+            +             rhcc(i-1,j-1,k-1) *
+            ( 0.125_rt * vfrac(i-1,j-1,k-1)
+            + 0.25_rt * ( intg(i-1,j-1,k-1,i_S_x)
+                         +intg(i-1,j-1,k-1,i_S_y)
+                         +intg(i-1,j-1,k-1,i_S_z))
+            + 0.5_rt * (  intg(i-1,j-1,k-1,i_S_x_y)
+                         +intg(i-1,j-1,k-1,i_S_x_z)
+                         +intg(i-1,j-1,k-1,i_S_y_z))
+             +         (  intg(i-1,j-1,k-1,i_S_xyz)));
+    } else {
+        rhs(i,j,k) = 0._rt;
+    }
+}
+
+#endif
 
 }
 #endif

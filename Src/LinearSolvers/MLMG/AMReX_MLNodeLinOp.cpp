@@ -169,8 +169,6 @@ MLNodeLinOp::applyInhomogNeumannTerm (int amrlev, MultiFab& rhs) const
 void
 MLNodeLinOp::buildMasks ()
 {
-    Gpu::LaunchSafeGuard lsg(false); // todo: gpu
-
     if (m_masks_built) return;
 
     BL_PROFILE("MLNodeLinOp::buildMasks()");
@@ -227,20 +225,37 @@ MLNodeLinOp::buildMasks ()
 
                         ccfab.resize(ccbxg1);
                         Elixir cceli = ccfab.elixir();
-                        ccfab.setVal(1);
-                        ccfab.setComplement(2,ccdomain_p,0,1);
+                        Array4<int> const& ccarr = ccfab.array();
+
+                        if (ccdomain_p.contains(ccarr)) {
+                            AMREX_HOST_DEVICE_PARALLEL_FOR_3D(ccbxg1, i, j, k,
+                            {
+                                ccarr(i,j,k) = 1;
+                            });
+                        } else {
+                            AMREX_HOST_DEVICE_FOR_3D(ccbxg1, i, j, k,
+                            {
+                                if (ccdomain_p.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
+                                    ccarr(i,j,k) = 1;
+                                } else {
+                                    ccarr(i,j,k) = 2;
+                                }
+                            });
+                        }
 
                         for (const auto& iv : pshifts)
                         {
                             ccba.intersections(ccbxg1+iv, isects);
                             for (const auto& is : isects)
                             {
-                                ccfab.setVal(0, is.second-iv, 0, 1);
+                                Box b = is.second-iv;
+                                AMREX_HOST_DEVICE_PARALLEL_FOR_3D(b, i, j, k,
+                                {
+                                    ccarr(i,j,k) = 0;
+                                });
                             }
                         }
 
-                        // todo: gpu.  Need to rethinking this.
-                        Array4<int const> const& ccarr = ccfab.const_array();
                         AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( ndbx, tbx,
                         {
                             mlndlap_set_dirichlet_mask(tbx, mskarr, ccarr, nddomain,
@@ -383,8 +398,6 @@ void
 MLNodeLinOp::applyBC (int amrlev, int mglev, MultiFab& phi, BCMode/* bc_mode*/, StateMode,
                       bool skip_fillboundary) const
 {
-    Gpu::LaunchSafeGuard lsg(false); // todo: gpu
-
     BL_PROFILE("MLNodeLinOp::applyBC()");
 
     const Geometry& geom = m_geom[amrlev][mglev];

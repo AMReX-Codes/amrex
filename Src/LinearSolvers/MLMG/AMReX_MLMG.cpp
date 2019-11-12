@@ -521,8 +521,11 @@ MLMG::mgFcycle ()
 
     for (int mglev = 1; mglev <= mg_bottom_lev; ++mglev)
     {
-        // TODO: for EB cell-centered, we need to use EB_average_down
+#ifdef AMREX_USE_EB
+        amrex::EB_average_down(res[amrlev][mglev-1], res[amrlev][mglev], 0, ncomp, ratio);
+#else
         amrex::average_down(res[amrlev][mglev-1], res[amrlev][mglev], 0, ncomp, ratio);
+#endif
     }
 
     bottomSolve();
