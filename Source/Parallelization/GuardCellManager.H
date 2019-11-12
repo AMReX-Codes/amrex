@@ -19,7 +19,9 @@ public:
         const int nox_fft, const int noy_fft, const int noz_fft,
         const int nci_corr_stencil,
         const int maxwell_fdtd_solver_id,
-        const int max_level);
+        const int max_level,
+        const int extra_guard_cells_alloc,
+        const int extra_guard_cells_exchange);
 
     amrex::IntVect ng_alloc_EB = amrex::IntVect::TheZeroVector();
     amrex::IntVect ng_alloc_J = amrex::IntVect::TheZeroVector();
