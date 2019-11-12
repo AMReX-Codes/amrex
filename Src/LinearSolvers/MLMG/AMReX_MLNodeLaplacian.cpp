@@ -965,8 +965,6 @@ MLNodeLaplacian::FillBoundaryCoeff (MultiFab& sigma, const Geometry& geom)
 void
 MLNodeLaplacian::buildStencil ()
 {
-    Gpu::LaunchSafeGuard lsg(false); // todo: gpu
-
     m_stencil.resize(m_num_amr_levels);
     m_s0_norm0.resize(m_num_amr_levels);
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
@@ -1006,26 +1004,29 @@ MLNodeLaplacian::buildStencil ()
             const MultiFab* vfrac = (factory) ? &(factory->getVolFrac()) : nullptr;
 #endif
 
+            MFItInfo mfi_info;
+            if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
             {
                 FArrayBox sgfab;
                 FArrayBox cnfab;
-                for (MFIter mfi(*m_stencil[amrlev][0], MFItInfo().EnableTiling().SetDynamic(true));
-                     mfi.isValid(); ++mfi)
+
+                for (MFIter mfi(*m_stencil[amrlev][0],mfi_info); mfi.isValid(); ++mfi)
                 {
                     Box vbx = mfi.validbox();
                     AMREX_D_TERM(vbx.growLo(0,1);, vbx.growLo(1,1);, vbx.growLo(2,1));
                     Box bx = mfi.growntilebox(1);
                     bx &= vbx;
                     const Box& ccbx = amrex::enclosedCells(bx);
+                    const Box& ccbxg1 = amrex::grow(ccbx,1);
                     const FArrayBox& sgfab_orig = (*m_sigma[amrlev][0][0])[mfi];
+                    Array4<Real const> const& sgarr_orig = sgfab_orig.const_array();
 
                     Array4<Real> const& starr = m_stencil[amrlev][0]->array(mfi);
 #ifdef AMREX_USE_EB
                     Array4<Real const> const& intgarr = intg->const_array(mfi);
-                    FArrayBox& stfab = (*m_stencil[amrlev][0])[mfi];
 
                     const int ncomp_c = (AMREX_SPACEDIM == 2) ? 6 : 27;
                     bool regular = !factory;
@@ -1034,28 +1035,38 @@ MLNodeLaplacian::buildStencil ()
                         Array4<EBCellFlag const> const& flagarr = flags->const_array(mfi);
                         Array4<Real const> const& vfracarr = vfrac->const_array(mfi);
                         const auto& flag = (*flags)[mfi];
-                        const auto& ccbxg1 = amrex::grow(ccbx,1);
                         const auto& typ = flag.getType(ccbxg1);
                         if (typ == FabType::covered)
                         {
-                            stfab.setVal(0.0, bx, 0, ncomp_s); // xxxxx
+                            AMREX_HOST_DEVICE_PARALLEL_FOR_4D(bx,ncomp_s,i,j,k,n,
+                            {
+                                starr(i,j,k,n) = 0.0;
+                            });
                         }
                         else if (typ == FabType::singlevalued)
                         {
                             const Box& btmp = ccbxg1 & sgfab_orig.box();
 
                             cnfab.resize(ccbxg1, ncomp_c);
-                            cnfab.setVal(0.0);
+                            Elixir cneli = cnfab.elixir();
                             Array4<Real> const& cnarr = cnfab.array();
-                            AMREX_HOST_DEVICE_FOR_3D(btmp, i, j, k,
-                            {
-                                mlndlap_set_connection(i,j,k,cnarr,intgarr,vfracarr,flagarr);
-                            });
 
                             sgfab.resize(ccbxg1);
-                            sgfab.setVal(0.0);
-                            sgfab.copy(sgfab_orig, btmp, 0, btmp, 0, 1);
-                            Array4<Real const> const& sgarr = sgfab.const_array();
+                            Elixir sgeli = sgfab.elixir();
+                            Array4<Real> const& sgarr = sgfab.array();
+
+                            AMREX_HOST_DEVICE_FOR_3D(ccbxg1, i, j, k,
+                            {
+                                if (btmp.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
+                                    mlndlap_set_connection(i,j,k,cnarr,intgarr,vfracarr,flagarr);
+                                    sgarr(i,j,k) = sgarr_orig(i,j,k);
+                                } else {
+                                    for (int n = 0; n < ncomp_c; ++n) {
+                                        cnarr(i,j,k,n) = 0.0;
+                                    }
+                                    sgarr(i,j,k) = 0.0;
+                                }
+                            });
 
                             AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
                             {
@@ -1070,12 +1081,20 @@ MLNodeLaplacian::buildStencil ()
                     if (regular)
 #endif
                     {
-                        Box bx2 = amrex::grow(ccbx,1);
-                        sgfab.resize(bx2);
-                        sgfab.setVal(0.0);
-                        bx2 &= sgfab_orig.box();
-                        sgfab.copy(sgfab_orig, bx2, 0, bx2, 0, 1);
-                        Array4<Real const> const& sgarr = sgfab.const_array();
+                        const Box& btmp = ccbxg1 & sgfab_orig.box();
+
+                        sgfab.resize(ccbxg1);
+                        Elixir sgeli = sgfab.elixir();
+                        Array4<Real> const& sgarr = sgfab.array();
+
+                        AMREX_HOST_DEVICE_FOR_3D(ccbxg1, i, j, k,
+                        {
+                            if (btmp.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
+                                sgarr(i,j,k) = sgarr_orig(i,j,k);
+                            } else {
+                                sgarr(i,j,k) = 0.0;
+                            }
+                        });
 
                         AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
                         {
@@ -1085,6 +1104,8 @@ MLNodeLaplacian::buildStencil ()
                 }
             }
 
+            // set_stencil_s0 has to be in a separate MFIter from set_stencil
+            // because it uses other cells' data.
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
