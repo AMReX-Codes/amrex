@@ -737,10 +737,6 @@ MLNodeLaplacian::updateVelocity (const Vector<MultiFab*>& vel, const Vector<Mult
 void
 MLNodeLaplacian::getFluxes (const Vector<MultiFab*> & a_flux, const Vector<MultiFab*>& a_sol) const
 {
-#ifdef AMREX_USE_EB
-    Gpu::LaunchSafeGuard lsg(false); // todo: gpu
-#endif
-
 #if (AMREX_SPACEDIM == 2)
     bool is_rz = m_is_rz;
 #endif
@@ -1042,7 +1038,7 @@ MLNodeLaplacian::buildStencil ()
                         const auto& typ = flag.getType(ccbxg1);
                         if (typ == FabType::covered)
                         {
-                            stfab.setVal(0.0, bx, 0, ncomp_s);
+                            stfab.setVal(0.0, bx, 0, ncomp_s); // xxxxx
                         }
                         else if (typ == FabType::singlevalued)
                         {
@@ -1209,8 +1205,6 @@ MLNodeLaplacian::prepareForSolve ()
 void
 MLNodeLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& fine) const
 {
-    Gpu::LaunchSafeGuard lsg(false); // todo: gpu
-
     BL_PROFILE("MLNodeLaplacian::restriction()");
 
     applyBC(amrlev, cmglev-1, fine, BCMode::Homogeneous, StateMode::Solution);
@@ -1261,8 +1255,6 @@ MLNodeLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& 
 void
 MLNodeLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiFab& crse) const
 {
-    Gpu::LaunchSafeGuard lsg(false); // todo: gpu
-
     BL_PROFILE("MLNodeLaplacian::interpolation()");
 
     const auto& sigma = m_sigma[amrlev][fmglev];
@@ -1336,8 +1328,6 @@ MLNodeLaplacian::averageDownSolutionRHS (int camrlev, MultiFab& crse_sol, MultiF
 void
 MLNodeLaplacian::restrictInteriorNodes (int camrlev, MultiFab& crhs, MultiFab& a_frhs) const
 {
-    Gpu::LaunchSafeGuard lsg(false); // todo: gpu
-
     const BoxArray& fba = a_frhs.boxArray();
     const DistributionMapping& fdm = a_frhs.DistributionMap();
 
@@ -1417,8 +1407,6 @@ MLNodeLaplacian::restrictInteriorNodes (int camrlev, MultiFab& crhs, MultiFab& a
 void
 MLNodeLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const
 {
-    Gpu::LaunchSafeGuard lsg(false); // todo: gpu
-
     BL_PROFILE("MLNodeLaplacian::Fapply()");
 
     const auto& sigma = m_sigma[amrlev][mglev];
@@ -1645,8 +1633,6 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
 void
 MLNodeLaplacian::normalize (int amrlev, int mglev, MultiFab& mf) const
 {
-    Gpu::LaunchSafeGuard lsg(false); // todo: gpu
-
     BL_PROFILE("MLNodeLaplacian::normalize()");
 
     const auto& sigma = m_sigma[amrlev][mglev];
@@ -1699,7 +1685,7 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
                                          const MultiFab& vold, const MultiFab* rhcc,
                                          const BoxArray& fine_grids, const IntVect& ref_ratio)
 {
-    Gpu::LaunchSafeGuard lsg(false); // todo: gpu
+    Gpu::LaunchSafeGuard lsg(false); // xxxxx todo: gpu
 
     BL_PROFILE("MLNodeLaplacian::SyncResCrse()");
 
@@ -1899,7 +1885,7 @@ void
 MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi, const MultiFab& vold,
                                        const MultiFab* rhcc)
 {
-    Gpu::LaunchSafeGuard lsg(false); // todo: gpu
+    Gpu::LaunchSafeGuard lsg(false); // xxxxx todo: gpu
 
     BL_PROFILE("MLNodeLaplacian::SyncResFine()");
 
@@ -2023,7 +2009,7 @@ MLNodeLaplacian::reflux (int crse_amrlev,
                          MultiFab& res, const MultiFab& crse_sol, const MultiFab& crse_rhs,
                          MultiFab& fine_res, MultiFab& fine_sol, const MultiFab& fine_rhs) const
 {
-    Gpu::LaunchSafeGuard lsg(false); // todo: gpu
+    Gpu::LaunchSafeGuard lsg(false); // xxxxx todo: gpu
 
     BL_PROFILE("MLNodeLaplacian::reflux()");
 
@@ -2155,8 +2141,6 @@ MLNodeLaplacian::reflux (int crse_amrlev,
 void
 MLNodeLaplacian::buildIntegral ()
 {
-    Gpu::LaunchSafeGuard lsg(false); // todo: gpu
-
     if (m_integral_built) return;
 
     BL_PROFILE("MLNodeLaplacian::buildIntegral()");
@@ -2176,19 +2160,24 @@ MLNodeLaplacian::buildIntegral ()
             const auto& vfrac = factory->getVolFrac();
             const auto& area = factory->getAreaFrac();
             const auto& bcent = factory->getBndryCent();
+
+            MFItInfo mfi_info;
+            if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion());
 #endif
-            for (MFIter mfi(*intg, MFItInfo().EnableTiling().SetDynamic(true)); mfi.isValid(); ++mfi)
+            for (MFIter mfi(*intg,mfi_info); mfi.isValid(); ++mfi)
             {
                 const Box& bx = mfi.growntilebox();
-                auto& gfab = (*intg)[mfi];
                 Array4<Real> const& garr = intg->array(mfi);
                 const auto& flag = flags[mfi];
                 auto typ = flag.getType(bx);
                 
                 if (typ == FabType::covered) {
-                    gfab.setVal(0.0, bx, 0, ncomp);
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_4D(bx, ncomp, i, j, k, n,
+                    {
+                        garr(i,j,k,n) = 0.0;
+                    });
                 } else if (typ == FabType::regular) {
                     AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
                     {
