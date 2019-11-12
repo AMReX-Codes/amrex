@@ -156,14 +156,10 @@ MLNodeLaplacian::compDivergence (const Vector<MultiFab*>& rhs, const Vector<Mult
         const MultiFab* intg = m_integral[ilev].get();
 #endif
 
-//#ifdef AMREX_USE_EB
-        Gpu::LaunchSafeGuard lsg(false); // todo: gpu
-//#endif
-
         MFItInfo mfi_info;
         if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter mfi(*rhs[ilev],mfi_info); mfi.isValid(); ++mfi)
         {
@@ -181,7 +177,10 @@ MLNodeLaplacian::compDivergence (const Vector<MultiFab*>& rhs, const Vector<Mult
                 const auto& typ = flag.getType(ccbx);
                 if (typ == FabType::covered)
                 {
-                    (*rhs[ilev])[mfi].setVal(0.0, bx);
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+                    {
+                        rhsarr(i,j,k) = 0.0;
+                    });
                 }
                 else if (typ == FabType::singlevalued)
                 {
@@ -220,6 +219,8 @@ MLNodeLaplacian::compDivergence (const Vector<MultiFab*>& rhs, const Vector<Mult
 
     for (int ilev = 0; ilev < m_num_amr_levels-1; ++ilev)
     {
+        Gpu::LaunchSafeGuard lsg(false); // xxxxx todo: gpu
+
         const Geometry& cgeom = m_geom[ilev  ][0];
         const Geometry& fgeom = m_geom[ilev+1][0];
 
@@ -310,6 +311,8 @@ MLNodeLaplacian::compDivergence (const Vector<MultiFab*>& rhs, const Vector<Mult
 
     for (int ilev = m_num_amr_levels-2; ilev >= 0; --ilev)
     {
+        Gpu::LaunchSafeGuard lsg(false); // xxxxx todo: gpu
+
         const Geometry& cgeom = m_geom[ilev][0];
 
         MultiFab crhs(rhs[ilev]->boxArray(), rhs[ilev]->DistributionMap(), 1, 0);
@@ -373,8 +376,6 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
 {
     BL_PROFILE("MLNodeLaplacian::compRHS()");
 
-    Gpu::LaunchSafeGuard lsg(false); // todo: gpu
-
     if (!m_masks_built) buildMasks();
 
 #ifdef AMREX_USE_EB
@@ -419,10 +420,12 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
         const MultiFab* intg = m_integral[ilev].get();
 #endif
 
+        MFItInfo mfi_info;
+        if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        for (MFIter mfi(*rhs[ilev], MFItInfo().EnableTiling().SetDynamic(true)); mfi.isValid(); ++mfi)
+        for (MFIter mfi(*rhs[ilev],mfi_info); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.tilebox();
             Array4<Real> const& rhsarr = rhs[ilev]->array(mfi);
@@ -439,7 +442,10 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
                 typ = flag.getType(ccbx);
                 if (typ == FabType::covered)
                 {
-                    (*rhs[ilev])[mfi].setVal(0.0, bx);
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+                    {
+                        rhsarr(i,j,k) = 0.0;
+                    });
                 }
                 else if (typ == FabType::singlevalued)
                 {
@@ -507,6 +513,8 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
 
     for (int ilev = 0; ilev < m_num_amr_levels-1; ++ilev)
     {
+        Gpu::LaunchSafeGuard lsg(false); // xxxxx todo: gpu
+
         const Geometry& cgeom = m_geom[ilev  ][0];
         const Geometry& fgeom = m_geom[ilev+1][0];
 
@@ -597,6 +605,8 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
 
     for (int ilev = m_num_amr_levels-2; ilev >= 0; --ilev)
     {
+        Gpu::LaunchSafeGuard lsg(false); // xxxxx todo: gpu
+
         const Geometry& cgeom = m_geom[ilev][0];
 
         MultiFab crhs(rhs[ilev]->boxArray(), rhs[ilev]->DistributionMap(), 1, 0);
@@ -659,10 +669,6 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
 void
 MLNodeLaplacian::updateVelocity (const Vector<MultiFab*>& vel, const Vector<MultiFab const*>& sol) const
 {
-#ifdef AMREX_USE_EB
-    Gpu::LaunchSafeGuard lsg(false); // todo: gpu
-#endif
-
 #if (AMREX_SPACEDIM == 2)
     bool is_rz = m_is_rz;
 #endif
@@ -687,7 +693,6 @@ MLNodeLaplacian::updateVelocity (const Vector<MultiFab*>& vel, const Vector<Mult
             Array4<Real const> const& solarr = sol[amrlev]->const_array(mfi);
             Array4<Real const> const& sigmaarr = sigma.const_array(mfi);
 #ifdef AMREX_USE_EB
-            auto& vfab = (*vel[amrlev])[mfi];
             bool regular = !factory;
             if (factory)
             {
@@ -696,7 +701,10 @@ MLNodeLaplacian::updateVelocity (const Vector<MultiFab*>& vel, const Vector<Mult
                 Array4<Real const> const& intgarr = intg->const_array(mfi);
                 if (type == FabType::covered)
                 {
-                    vfab.setVal(0.0, bx, 0, AMREX_SPACEDIM);
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_4D(bx, AMREX_SPACEDIM, i, j, k, n,
+                    {
+                        varr(i,j,k,n) = 0.0;
+                    });
                 }
                 else if (type == FabType::singlevalued)
                 {
