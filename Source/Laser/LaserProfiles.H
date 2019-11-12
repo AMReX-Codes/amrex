@@ -24,7 +24,7 @@ struct CommonLaserParameters
 {
     amrex::Real wavelength; //! central wavelength
     amrex::Real e_max;  //! maximum electric field at peak
-    amrex::Vector<amrex::Real> p_X;// ! Polarization 
+    amrex::Vector<amrex::Real> p_X;// ! Polarization
 };
 
 
@@ -109,6 +109,9 @@ private:
         amrex::Real zeta           = 0;
         amrex::Real beta           = 0;
         amrex::Real phi2           = 0;
+
+        amrex::Vector<amrex::Real> stc_direction; //! Direction of the spatio-temporal couplings
+        amrex::Real theta_stc; //! Angle between polarization (p_X) and direction of spatiotemporal coupling (stc_direction)
     } m_params;
 
     CommonLaserParameters m_common_params;
@@ -140,8 +143,6 @@ private:
         amrex::Real waist          = std::numeric_limits<amrex::Real>::quiet_NaN();
         amrex::Real duration       = std::numeric_limits<amrex::Real>::quiet_NaN();
         amrex::Real focal_distance = std::numeric_limits<amrex::Real>::quiet_NaN();
-        amrex::Vector<amrex::Real> stc_direction; //! Direction of the spatio-temporal couplings
-        amrex::Real theta_stc; //! Angle between polarization (p_X) and direction of spatiotemporal coupling (stc_direction)
     } m_params;
 
     CommonLaserParameters m_common_params;
