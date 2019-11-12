@@ -2695,7 +2695,7 @@ BaseFab<T>::dotmask (const BaseFab<int>& mask, const Box& xbx, int xcomp,
     offset.y = ylo.y-xlo.y;
     offset.z = ylo.z-xlo.z;
 #else
-    const Dim3 offset{ylo.x-xlo.x,ylo.y-xlo.y,ylo.z-xlo.z}};
+    const Dim3 offset{ylo.x-xlo.x,ylo.y-xlo.y,ylo.z-xlo.z};
 #endif
 
     Array4<T const> const& xa = this->const_array();

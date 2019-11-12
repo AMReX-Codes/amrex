@@ -15,8 +15,11 @@
 #include <omp.h>
 #endif
 
-AMREX_HIP_OR_CUDA( using randState_t = hiprandState_t;,
-                   using randState_t =  curandState_t; );
+#ifdef AMREX_USE_HIP
+using randState_t = hiprandState_t;,
+#elif defined(AMREX_USE_CUDA)
+using randState_t =  curandState_t; 
+#endif
 
 namespace
 {

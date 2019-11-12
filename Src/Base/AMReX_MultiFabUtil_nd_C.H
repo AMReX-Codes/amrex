@@ -24,8 +24,11 @@ void amrex_fill_slice_interp (Box const& bx, Array4<Real> slice,
 
     Real weight = (coord - gd.ProbLo(dir)) / gd.CellSize(dir);
     // HIP FIX HERE - floor
-    AMREX_HIP_OR_CUDA( int dirhi =      floor(weight + 0.5);,
-                       int dirhi = std::floor(weight + 0.5); );
+#ifdef AMREX_USE_HIP
+    int dirhi =      floor(weight + 0.5);
+#else
+    int dirhi = std::floor(weight + 0.5);
+#endif
     int dirlo = dirhi-1;
     weight -= dirlo+0.5;
 
