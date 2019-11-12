@@ -547,8 +547,11 @@ IntVect::coarsen (const IntVect& p) noexcept
         {
             const int s = p.vect[i];
             // HIP FIX HERE - abs
-            AMREX_HIP_OR_CUDA( vect[i] = ((vect[i]<0) ? -abs(vect[i]+1)/s-1 : vect[i]/s);,
-                               vect[i] = ((vect[i]<0) ? -std::abs(vect[i]+1)/s-1 : vect[i]/s); );
+#ifdef AMREX_USE_HIP
+            vect[i] = ((vect[i]<0) ? -abs(vect[i]+1)/s-1 : vect[i]/s);
+#else
+            vect[i] = ((vect[i]<0) ? -std::abs(vect[i]+1)/s-1 : vect[i]/s); 
+#endif
         }
     }
     return *this;
@@ -566,8 +569,11 @@ IntVect::maxDir(bool a_doAbsValue) const noexcept
         for(int idir = 1; idir < SpaceDim; idir++)
         {
             // HIP FIX HERE - abs
-            AMREX_HIP_OR_CUDA( int curval = abs((*this)[idir]);,
-                               int curval = std::abs((*this)[idir]); );
+#ifdef AMREX_USE_HIP
+            int curval = abs((*this)[idir]);,
+#else
+            int curval = std::abs((*this)[idir]);
+#endif
             if(curval > maxval)
             {
                 maxval = curval;
@@ -789,8 +795,11 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int coarsen (int i, int ratio) noexcept
 {
     // HIP FIX HERE - abs
-    AMREX_HIP_OR_CUDA( return (i<0) ? -abs(i+1)/ratio-1 : i/ratio;,
-                       return (i<0) ? -std::abs(i+1)/ratio-1 : i/ratio; );
+#ifdef AMREX_USE_HIP
+    return (i<0) ? -abs(i+1)/ratio-1 : i/ratio;,
+#else
+    return (i<0) ? -std::abs(i+1)/ratio-1 : i/ratio;
+#endif
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE

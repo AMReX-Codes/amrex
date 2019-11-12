@@ -17,6 +17,7 @@
 #endif
 
 
+#ifdef AMREX_USE_GPU
 // HIP FIX HERE - hand made long __shfl_down through double casting.
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 long __shfl_down(long var, unsigned int offset, int warpSize = amrex::Gpu::Device::warp_size)
@@ -24,6 +25,7 @@ long __shfl_down(long var, unsigned int offset, int warpSize = amrex::Gpu::Devic
     double d = __shfl_down(*((double*)(&var)), offset, warpSize);
     return *((long*)(&d));
 }
+#endif
 
 namespace amrex {
 namespace Gpu {

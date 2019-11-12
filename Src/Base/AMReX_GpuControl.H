@@ -21,8 +21,11 @@ namespace amrex {
 
 namespace amrex {
 
-AMREX_HIP_OR_CUDA( using gpuStream_t = hipStream_t;,
-                   using gpuStream_t = cudaStream_t; );
+#ifdef AMREX_USE_HIP
+using gpuStream_t = hipStream_t;
+#elif defined(AMREX_USE_CUDA)
+using gpuStream_t = cudaStream_t;
+#endif
 
 namespace Gpu {
 

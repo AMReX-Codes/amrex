@@ -11,8 +11,11 @@
 
 namespace amrex {
 
-AMREX_HIP_OR_CUDA( using gpuDeviceProp_t = hipDeviceProp_t;,
-                   using gpuDeviceProp_t = cudaDeviceProp; );
+#ifdef AMREX_USE_HIP
+using gpuDeviceProp_t = hipDeviceProp_t;
+#elif defined(AMREX_USE_CUDA)
+using gpuDeviceProp_t = cudaDeviceProp;
+#endif
 
 namespace Gpu {
 
