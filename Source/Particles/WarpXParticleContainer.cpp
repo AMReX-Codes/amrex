@@ -7,7 +7,7 @@
 #include <WarpX_f.H>
 #include <WarpX.H>
 #include <WarpXAlgorithmSelection.H>
-
+#include <WarpXComm.H>
 // Import low-level single-particle kernels
 #include <GetAndSetPosition.H>
 #include <UpdatePosition.H>
@@ -505,7 +505,8 @@ WarpXParticleContainer::DepositCharge (Vector<std::unique_ptr<MultiFab> >& rho,
                                         bool local, bool reset)
 {
     // Loop over the refinement levels
-    for (int lev = 0; lev < max_level; ++lev) {
+    int const finest_level = rho.size() - 1;
+    for (int lev = 0; lev < finest_level; ++lev) {
 
         // Reset the `rho` array if `reset` is True
         if (reset) rho[lev]->setVal(0.0, rho[lev]->nGrow());
@@ -557,8 +558,8 @@ WarpXParticleContainer::DepositCharge (Vector<std::unique_ptr<MultiFab> >& rho,
 
         int const refinement_ratio = 2;
 
-        interpolateDensityFineToCoarse( rho[lev+1], coarsened_fine_data, refinement_ratio );
-        rho[lev].ParallelAdd( coarsened_fine_data, m_gdb->Geom(lev).periodicity() );
+        interpolateDensityFineToCoarse( *rho[lev+1], coarsened_fine_data, refinement_ratio );
+        rho[lev]->ParallelAdd( coarsened_fine_data, m_gdb->Geom(lev).periodicity() );
     }
 }
 
