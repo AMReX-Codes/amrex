@@ -1062,6 +1062,21 @@ WarpX::UpperCorner(const Box& bx, int lev)
 #endif
 }
 
+std::array<Real,3>
+WarpX::LowerCornerWithCentering(const Box& bx, int lev)
+{
+    std::array<Real,3> corner = LowerCorner(bx, lev);
+    std::array<Real,3> dx = CellSize(lev);
+    if (!bx.type(0)) corner[0] += 0.5*dx[0];
+#if (AMREX_SPACEDIM == 3)
+    if (!bx.type(1)) corner[1] += 0.5*dx[1];
+    if (!bx.type(2)) corner[2] += 0.5*dx[2];
+#else
+    if (!bx.type(1)) corner[2] += 0.5*dx[2];
+#endif
+    return corner;
+}
+
 IntVect
 WarpX::RefRatio (int lev)
 {
