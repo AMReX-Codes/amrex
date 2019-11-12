@@ -1,17 +1,17 @@
-#ifndef AMREX_CUDA_CONTAINERS_H_
-#define AMREX_CUDA_CONTAINERS_H_
+#ifndef AMREX_GPU_CONTAINERS_H_
+#define AMREX_GPU_CONTAINERS_H_
 
 #include <numeric>
 
 #include <AMReX_Vector.H>
 #include <AMReX_PODVector.H>
-#include <AMReX_CudaAllocators.H>
+#include <AMReX_GpuAllocators.H>
 
 namespace amrex {
 
-namespace Cuda {
+namespace Gpu {
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
 
     template <class T>
     using DeviceVector = PODVector<T, ArenaAllocator<T> >;
@@ -55,7 +55,7 @@ namespace Cuda {
     template<class InIter, class OutIter>
     OutIter thrust_copy (InIter begin, InIter end, OutIter result)
     {
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
         return thrust::copy(begin, end, result);
 #else
         return std::copy(begin, end, result);
@@ -65,8 +65,8 @@ namespace Cuda {
     template<class InIter, class OutIter>
     OutIter inclusive_scan (InIter begin, InIter end, OutIter result)
     {
-#ifdef AMREX_USE_CUDA
-        return thrust::inclusive_scan(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
+#ifdef AMREX_USE_GPU
+        return thrust::inclusive_scan(Gpu::The_ThrustCachedPolicy(),
                                       begin, end, result);
 #else
         return std::partial_sum(begin, end, result);
@@ -76,8 +76,8 @@ namespace Cuda {
     template<class InIter, class OutIter>
     OutIter exclusive_scan(InIter begin, InIter end, OutIter result)
     {
-#ifdef AMREX_USE_CUDA
-        return thrust::exclusive_scan(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
+#ifdef AMREX_USE_GPU
+        return thrust::exclusive_scan(Gpu::The_ThrustCachedPolicy(),
                                       begin, end, result);
 #else
         if (begin == end) return result;

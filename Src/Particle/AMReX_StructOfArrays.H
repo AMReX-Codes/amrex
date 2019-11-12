@@ -5,7 +5,7 @@
 
 #include <AMReX_REAL.H>
 #include <AMReX_Vector.H>
-#include <AMReX_CudaContainers.H>
+#include <AMReX_GpuContainers.H>
 
 namespace amrex {
 

@@ -695,7 +695,7 @@ printNeighborListCPU (const std::string& prefix)
             for (MyParIter pti(*this, lev, MFItInfo().SetDynamic(true)); pti.isValid(); ++pti) {
                 PairIndex index(pti.index(), pti.LocalTileIndex());
 #ifdef AMREX_USE_CUDA
-                Cuda::HostVector<int> nl;
+                Gpu::HostVector<int> nl;
 #else
                 IntVector& nl = neighbor_list[lev][index];
 #endif

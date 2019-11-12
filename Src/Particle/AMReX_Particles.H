@@ -38,7 +38,7 @@
 #include <AMReX_Particle.H>
 #include <AMReX_ParticleTile.H>
 #include <AMReX_TypeTraits.H>
-#include <AMReX_CudaContainers.H>
+#include <AMReX_GpuContainers.H>
 #include <AMReX_Functors.H>
 #include <AMReX_ParticleUtil.H>
 #include <AMReX_ParticleReduce.H>
