@@ -47,39 +47,60 @@ private:
     amrex::Real m_ux_th, m_uy_th, m_uz_th;
 };
 
-// struct whose getMomentum returns momentum for 1 particle with relativistc drift velocity beta,
-// from the Maxwell-Boltzmann distribution.
+// struct whose getMomentum returns momentum for 1 particle with relativistic
+// drift velocity beta, from the Maxwell-Boltzmann distribution.
 struct InjectorMomentumBoltzmann
 {
-    InjectorMomentumBoltzmann(amrex::Real theta, amrex::Real beta, int dir) noexcept
-        : t(theta), b(beta), d(dir)
+    InjectorMomentumBoltzmann(amrex::Real t, amrex::Real b, int d) noexcept
+        : vave(std::sqrt(2*t)), beta(b), dir(d)
         {}
 
     AMREX_GPU_HOST_DEVICE
     amrex::XDim3
     getMomentum (amrex::Real x, amrex::Real y, amrex::Real z) const noexcept
     {
-        amrex::Real x1, x2, gamma, v;
+        amrex::Real x1, x2, gamma;
         amrex::Real u[3];
-        v = std::sqrt(2*t);
+        vave = std::sqrt(2*t);
         x1 = amrex::Random();
         x2 = amrex::Random();
-        u[(d+1)%3] = v*std::sqrt(-std::log(x1)*std::sin(2*M_PI*x2));
-        u[(d+1)%2] = v*std::sqrt(-std::log(x1)*std::cos(2*M_PI*x2));
-        u[d] = v*std::sqrt(-std::log(amrex::Random())*std::sin(2*M_PI*amrex::Random()));
+        // Each value of sqrt(-log(x1))*sin(2*pi*x2) is a sample from a Gaussian
+        // distribution with sigma = vave.
+        u[(dir+1)%3] = vave* std::sqrt(-std::log(x1)) *std::sin(2*M_PI*x2);
+        u[(dir+2)%3] = vave* std::sqrt(-std::log(x1)) *std::cos(2*M_PI*x2);
+        u[dir] = vave*std::sqrt(-std::log(amrex::Random()))*
+            std::sin(2*M_PI*amrex::Random());
         gamma = std::sqrt(std::pow(u[0],2)+std::pow(u[1],2)+std::pow(u[2],2));
+        gamma = np.sqrt(1+gamma**2);
+        // The following condition is equtaion 32 in Zenitani, called
+        // The flipping method. It transforms the intergral: d3x' -> d3x
+        // where d3x' is the volume element for positions in the boosted frame.
+        // The particle positions and densities can be initialized in the
+        // simulation frame with this method.
+        // The flipping method can similarly transform any
+        // symmetric distribution from one reference frame to another moving at
+        // a relative velocity of beta.
+        // An equivalent alternative to this method native to WarpX
+        // would be to initialize the particle positions and densities in the
+        // frame moving at speed beta, and then perform a Lorentz transform
+        // on their positions and MJ sampled velocities to the simulation frame.
         x1 = amrex::Random();
-        if(-b*u[d]/gamma > x1)
+        if(-beta*u[dir]/gamma > x1)
         {
-            u[d] = -u[d];
+          u[dir] = -u[dir];
         }
-        u[d] = 1/std::sqrt(1-pow(b,2))*(u[d]+gamma*b);
+        // This Lorentz transform is equation 17 in Zenitani.
+        // It transforms the integral d3u' -> d3u
+        // where d3u' is the volume element for momentum in the boosted frame.
+        u[dir] = 1/std::sqrt(1-pow(beta,2))*(u[dir]+gamma*beta);
+        // Note that if beta = 0 then the flipping method and Lorentz transform
+        // have no effect on the u[dir] direction.
         return amrex::XDim3 {u[0],u[1],u[2]};
     }
 
 private:
-    int d;
-    amrex::Real b, t;
+    int dir;
+    amrex::Real beta, vave;
 };
 
 // struct whose getMomentum returns momentum for 1 particle with relativistc
@@ -287,6 +308,10 @@ struct InjectorMomentum
         case Type::gaussian:
         {
             return object.gaussian.getMomentum(x,y,z);
+        }
+        case Type::boltzmann:
+        {
+            return object.boltzmann.getMomentum(x,y,z);
         }
         case Type::juttner:
         {

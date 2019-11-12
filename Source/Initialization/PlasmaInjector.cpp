@@ -312,7 +312,7 @@ void PlasmaInjector::parseMomentum (ParmParse& pp)
             amrex::Abort(direction.c_str());
         }
         // Construct InjectorMomentum with InjectorMomentumJuttner.
-        inj_mom.reset(new InjectorMomentum((InjectorMomentumBoltzmann*)nullptr, theta, beta, dir));
+        inj_mom.reset(new InjectorMomentum((InjectorMomentumJuttner*)nullptr, theta, beta, dir));
     } else if (mom_dist_s == "radial_expansion") {
         Real u_over_r = 0.;
         pp.query("u_over_r", u_over_r);
