@@ -955,38 +955,21 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::SortParticles
                        });
           
             auto inds = m_bins.permutationPtr();
-            //
-            // Reorder the particle data 
-            //
-            {
-                // reorder structs
-                thrust::gather(thrust::device,
-                               inds, inds+np,
-                               aos().begin(), m_ptile_r.GetArrayOfStructs()().dataPtr());
-                aos().swap(m_ptile_r.GetArrayOfStructs()());
-                
-                // reorder real arrays
-                for (int j = 0; j < NumRealComps(); ++j)
-                {
-                    auto& rdata = ptile.GetStructOfArrays().GetRealData(j);
-                    thrust::gather(thrust::device,
-                                   inds, inds+np,
-                                   rdata.begin(), 
-                                   m_ptile_r.GetStructOfArrays().GetRealData(j).dataPtr());
-                    rdata.swap(m_ptile_r.GetStructOfArrays().GetRealData(j));
-                }
 
-                // reorder int arrays
-                for (int j = 0; j < NumIntComps(); ++j)
-                {
-                    auto& idata = ptile.GetStructOfArrays().GetIntData(j);
-                    thrust::gather(thrust::device,
-                                   inds, inds+np,
-                                   idata.begin(), 
-                                   m_ptile_r.GetStructOfArrays().GetIntData(j).dataPtr());
-                    idata.swap(m_ptile_r.GetStructOfArrays().GetIntData(j));
-                }
+            gatherParticles(m_ptile_r, ptile, np, m_bins.permutationPtr());
+
+            aos().swap(m_ptile_r.GetArrayOfStructs()());               
+            for (int j = 0; j < NumRealComps(); ++j)
+            {
+                    auto& rdata = ptile.GetStructOfArrays().GetRealData(j);
+                    rdata.swap(m_ptile_r.GetStructOfArrays().GetRealData(j));
             }
+
+            for (int j = 0; j < NumIntComps(); ++j)
+            {
+                    auto& idata = ptile.GetStructOfArrays().GetIntData(j);
+                    idata.swap(m_ptile_r.GetStructOfArrays().GetIntData(j));
+            }        
         }
     }
 #endif
@@ -1127,9 +1110,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                             for (int j = 0; j < NArrayInt; ++j)
                                 dst_data.m_idata[j][s] = src_data.m_idata[j][i];
                             for (int j = 0; j < num_rr; ++j)
-                                dst_data.m_runtime_r_data[j][s] = src_data.m_runtime_r_data[j][i];
+                                dst_data.m_runtime_rdata[j][s] = src_data.m_runtime_rdata[j][i];
                             for (int j = 0; j < num_ri; ++j)
-                                dst_data.m_runtime_i_data[j][s] = src_data.m_runtime_i_data[j][i];
+                                dst_data.m_runtime_idata[j][s] = src_data.m_runtime_idata[j][i];
                             dst_grids_ptr[s] = grids_ptr[i];
                             dst_levs_ptr[s] = levs_ptr[i];
                         } else {
@@ -1139,9 +1122,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                             for (int j = 0; j < NArrayInt; ++j)
                                 dst_data.m_idata[j][np-1-(i-s)] = src_data.m_idata[j][i];
                             for (int j = 0; j < num_rr; ++j)
-                                dst_data.m_runtime_r_data[j][np-1-(i-s)] = src_data.m_runtime_r_data[j][i];
+                                dst_data.m_runtime_rdata[j][np-1-(i-s)] = src_data.m_runtime_rdata[j][i];
                             for (int j = 0; j < num_ri; ++j)
-                                dst_data.m_runtime_i_data[j][np-1-(i-s)] = src_data.m_runtime_i_data[j][i];
+                                dst_data.m_runtime_idata[j][np-1-(i-s)] = src_data.m_runtime_idata[j][i];
                             dst_grids_ptr[np-1-(i-s)] = grids_ptr[i];
                             dst_levs_ptr[np-1-(i-s)] = levs_ptr[i];
                         }
