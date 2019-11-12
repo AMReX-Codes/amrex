@@ -937,11 +937,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::SortParticles
         const auto plo = geom.ProbLoArray();
         const auto domain = geom.Domain();
 
-        // temporaries
-        ParticleVector aos_r;
-        RealVector rdata_r;
-        IntVector  idata_r;
-
         for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
         {
             auto& ptile = ParticlesAt(lev, mfi);
