@@ -1491,8 +1491,6 @@ MLNodeLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& i
 void
 MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs) const
 {
-    Gpu::LaunchSafeGuard lsg(false); // todo: gpu
-
     BL_PROFILE("MLNodeLaplacian::Fsmooth()");
 
     const auto& sigma = m_sigma[amrlev][mglev];
@@ -1519,10 +1517,12 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                 Array4<Real const> const& starr = stencil->const_array(mfi);
                 Array4<int const> const& dmskarr = dmsk.const_array(mfi);
 
-                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
-                {
-                    mlndlap_gauss_seidel_sten(tbx,solarr,rhsarr,starr,dmskarr);
-                });
+                for (int ns = 0; ns < 2; ++ns) {
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+                    {
+                        mlndlap_gauss_seidel_sten(tbx,solarr,rhsarr,starr,dmskarr);
+                    });
+                }
             }
         }
         else if (m_use_harmonic_average && mglev > 0)
@@ -1540,16 +1540,18 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                 Array4<Real const> const& rhsarr = rhs.const_array(mfi);
                 Array4<int const> const& dmskarr = dmsk.const_array(mfi);
 
-                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
-                {
-                    mlndlap_gauss_seidel_ha(tbx, solarr, rhsarr,
-                                            AMREX_D_DECL(sxarr,syarr,szarr),
-                                            dmskarr, dxinvarr
+                for (int ns = 0; ns < 2; ++ns) {
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+                    {
+                        mlndlap_gauss_seidel_ha(tbx, solarr, rhsarr,
+                                                AMREX_D_DECL(sxarr,syarr,szarr),
+                                                dmskarr, dxinvarr
 #if (AMREX_SPACEDIM == 2)
-                                            ,is_rz
+                                                ,is_rz
 #endif
-                        );
-                });
+                            );
+                    });
+                }
             }
         }
         else
@@ -1565,15 +1567,17 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                 Array4<Real const> const& rhsarr = rhs.const_array(mfi);
                 Array4<int const> const& dmskarr = dmsk.const_array(mfi);
 
-                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
-                {
-                    mlndlap_gauss_seidel_aa(tbx, solarr, rhsarr,
-                                            sarr, dmskarr, dxinvarr
+                for (int ns = 0; ns < 2; ++ns) {
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+                    {
+                        mlndlap_gauss_seidel_aa(tbx, solarr, rhsarr,
+                                                sarr, dmskarr, dxinvarr
 #if (AMREX_SPACEDIM == 2)
-                                            ,is_rz
+                                                ,is_rz
 #endif
-                        );
-                });
+                            );
+                    });
+                }
             }
         }
 
