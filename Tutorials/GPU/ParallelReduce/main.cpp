@@ -72,7 +72,6 @@ void main_main ()
         amrex::Print() << "isum: " << imf.sum(0) << "\n";
     }
 
-#ifndef AMREX_USE_HIP
     {
         BL_PROFILE("FabReduceTuple");
 
@@ -128,7 +127,7 @@ void main_main ()
                 Real rmax = -1.e30; // we should use numeric_limits.
                 long lsum = 0;
                 amrex::Loop(bx,
-                [=,&rsum,&rmin,&rmax,&lsum] (int i, int j, int k) noexcept {
+                [=,&rsum,&rmin,&rmax,&lsum] (int i, int j, int k) AMREX_NOEXCEPT {
                     Real x =  fab(i,j,k);
                     long ix = static_cast<long>(ifab(i,j,k));
                     rsum += x;
@@ -151,7 +150,6 @@ void main_main ()
                                         << "max: "  << get<2>(hv) << "\n"
                                         << "isum: " << get<3>(hv) << "\n";
     }
-#endif
 
     {
         BL_PROFILE("FabReduce-sum");
@@ -225,7 +223,6 @@ void main_main ()
         amrex::Print().SetPrecision(17) << "max: " << hv << "\n";
     }
 
-#ifndef AMREX_USE_HIP
     {
         BL_PROFILE("FabReduce-isum");
 
@@ -249,8 +246,6 @@ void main_main ()
         ParallelDescriptor::ReduceLongSum(hv);
         amrex::Print() << "isum: " << hv << "\n";
     }
-#endif
-
 
     int N = 1000000;
     Gpu::DeviceVector<Real> vec(N);
