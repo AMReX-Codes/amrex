@@ -51,9 +51,9 @@ void PhotonParticleContainer::InitData()
 
 void
 PhotonParticleContainer::PushPX(WarpXParIter& pti,
-                                Cuda::ManagedDeviceVector<ParticleReal>& xp,
-                                Cuda::ManagedDeviceVector<ParticleReal>& yp,
-                                Cuda::ManagedDeviceVector<ParticleReal>& zp,
+                                Gpu::ManagedDeviceVector<ParticleReal>& xp,
+                                Gpu::ManagedDeviceVector<ParticleReal>& yp,
+                                Gpu::ManagedDeviceVector<ParticleReal>& zp,
                                 Real dt, DtType a_dt_type)
 {
 

@@ -73,12 +73,12 @@ public:
     WarpXParIter (ContainerType& pc, int level);
 
 #if (AMREX_SPACEDIM == 2)
-    void GetPosition (amrex::Cuda::ManagedDeviceVector<amrex::ParticleReal>& x,
-                      amrex::Cuda::ManagedDeviceVector<amrex::ParticleReal>& y,
-                      amrex::Cuda::ManagedDeviceVector<amrex::ParticleReal>& z) const;
-    void SetPosition (const amrex::Cuda::ManagedDeviceVector<amrex::ParticleReal>& x,
-                      const amrex::Cuda::ManagedDeviceVector<amrex::ParticleReal>& y,
-                      const amrex::Cuda::ManagedDeviceVector<amrex::ParticleReal>& z);
+    void GetPosition (amrex::Gpu::ManagedDeviceVector<amrex::ParticleReal>& x,
+                      amrex::Gpu::ManagedDeviceVector<amrex::ParticleReal>& y,
+                      amrex::Gpu::ManagedDeviceVector<amrex::ParticleReal>& z) const;
+    void SetPosition (const amrex::Gpu::ManagedDeviceVector<amrex::ParticleReal>& x,
+                      const amrex::Gpu::ManagedDeviceVector<amrex::ParticleReal>& y,
+                      const amrex::Gpu::ManagedDeviceVector<amrex::ParticleReal>& z);
 #endif
     const std::array<RealVector, PIdx::nattribs>& GetAttribs () const {
         return GetStructOfArrays().GetRealData();

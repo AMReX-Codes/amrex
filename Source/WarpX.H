@@ -250,6 +250,9 @@ public:
     static amrex::RealBox getRealBox(const amrex::Box& bx, int lev);
     static std::array<amrex::Real,3> LowerCorner (const amrex::Box& bx, int lev);
     static std::array<amrex::Real,3> UpperCorner (const amrex::Box& bx, int lev);
+    // Returns the locations of the lower corner of the box, shifted up
+    // a half cell if cell centered.
+    static std::array<amrex::Real,3> LowerCornerWithCentering (const amrex::Box& bx, int lev);
 
     static amrex::IntVect RefRatio (int lev);
 
@@ -366,9 +369,6 @@ private:
     //
     void zeroOutBoundary(amrex::MultiFab& input_data, amrex::MultiFab& bndry_data,
                          const amrex::FabArray<amrex::BaseFab<int> >& mask) const;
-
-    void sumFineToCrseNodal(const amrex::MultiFab& fine, amrex::MultiFab& crse,
-                            const amrex::Geometry& cgeom, const amrex::IntVect& ratio);
 
     void fixRHSForSolve(amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhs,
                         const amrex::Vector<std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > >& masks) const ;

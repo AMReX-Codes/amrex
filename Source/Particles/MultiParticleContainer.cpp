@@ -321,11 +321,7 @@ void
 MultiParticleContainer::Redistribute ()
 {
     for (auto& pc : allcontainers) {
-        if ( (pc->NumRuntimeRealComps()>0) || (pc->NumRuntimeIntComps()>0) ) {
-            pc->RedistributeCPU();
-        } else {
-            pc->Redistribute();
-        }
+        pc->Redistribute();
     }
 }
 
@@ -333,11 +329,7 @@ void
 MultiParticleContainer::RedistributeLocal (const int num_ghost)
 {
     for (auto& pc : allcontainers) {
-        if ( (pc->NumRuntimeRealComps()>0) || (pc->NumRuntimeIntComps()>0) ) {
-            pc->RedistributeCPU(0, 0, 0, num_ghost);
-        } else {
-            pc->Redistribute(0, 0, 0, num_ghost);
-        }
+        pc->Redistribute(0, 0, 0, num_ghost);
     }
 }
 

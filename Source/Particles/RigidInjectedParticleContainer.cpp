@@ -78,7 +78,7 @@ RigidInjectedParticleContainer::RemapParticles()
                 // Note that the particles are already in the boosted frame.
                 // This value is saved to advance the particles not injected yet
 
-                Cuda::ManagedDeviceVector<ParticleReal> xp, yp, zp;
+                Gpu::ManagedDeviceVector<ParticleReal> xp, yp, zp;
 
                 for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
                 {
@@ -138,7 +138,7 @@ RigidInjectedParticleContainer::BoostandRemapParticles()
 #pragma omp parallel
 #endif
     {
-        Cuda::ManagedDeviceVector<ParticleReal> xp, yp, zp;
+        Gpu::ManagedDeviceVector<ParticleReal> xp, yp, zp;
 
         for (WarpXParIter pti(*this, 0); pti.isValid(); ++pti)
         {
@@ -209,9 +209,9 @@ RigidInjectedParticleContainer::BoostandRemapParticles()
 
 void
 RigidInjectedParticleContainer::PushPX(WarpXParIter& pti,
-                                       Cuda::ManagedDeviceVector<ParticleReal>& xp,
-                                       Cuda::ManagedDeviceVector<ParticleReal>& yp,
-                                       Cuda::ManagedDeviceVector<ParticleReal>& zp,
+                                       Gpu::ManagedDeviceVector<ParticleReal>& xp,
+                                       Gpu::ManagedDeviceVector<ParticleReal>& yp,
+                                       Gpu::ManagedDeviceVector<ParticleReal>& zp,
                                        Real dt, DtType a_dt_type)
 {
 
@@ -222,7 +222,7 @@ RigidInjectedParticleContainer::PushPX(WarpXParIter& pti,
     auto& uzp = attribs[PIdx::uz];
 
     // Save the position and momenta, making copies
-    Cuda::ManagedDeviceVector<ParticleReal> xp_save, yp_save, zp_save;
+    Gpu::ManagedDeviceVector<ParticleReal> xp_save, yp_save, zp_save;
     RealVector uxp_save, uyp_save, uzp_save;
 
     ParticleReal* const AMREX_RESTRICT x = xp.dataPtr();
