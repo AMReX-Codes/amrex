@@ -62,16 +62,6 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
         "Radiation reaction can be enabled only if Boris pusher is used");
     //_____________________________
 
-#ifdef AMREX_USE_GPU
-    Print()<<"\n-----------------------------------------------------\n";
-    Print()<<"WARNING: field ionization on GPU uses RedistributeCPU\n";
-    Print()<<"-----------------------------------------------------\n\n";
-    //AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-        //do_field_ionization == 0,
-        //"Field ionization does not work on GPU so far, because the current "
-        //"version of Redistribute in AMReX does not work with runtime parameters");
-#endif
-
 #ifdef WARPX_QED
     //Add real component if QED is enabled
     pp.query("do_qed", m_do_qed);
