@@ -963,7 +963,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::SortParticles
 			  aos().begin(), aos().end(), cells_tmp.begin(),
                           functors::assignParticleCell(geom.data()));
 
-        thrust::sort_by_key(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
+        thrust::sort_by_key(Gpu::The_ThrustCachedPolicy(),
                             cells_tmp.begin(),
                             cells_tmp.end(),
                             index_sequence_tmp.begin());
