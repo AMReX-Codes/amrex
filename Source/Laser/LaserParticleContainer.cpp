@@ -454,7 +454,7 @@ LaserParticleContainer::Evolve (int lev,
         int const thread_num = 0;
 #endif
 
-        Cuda::ManagedDeviceVector<Real> plane_Xp, plane_Yp, amplitude_E;
+        Gpu::ManagedDeviceVector<Real> plane_Xp, plane_Yp, amplitude_E;
 
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
         {

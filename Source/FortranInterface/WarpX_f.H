@@ -16,11 +16,9 @@
 
 #if (AMREX_SPACEDIM == 3)
 
-#define WRPX_SUM_FINE_TO_CRSE_NODAL      warpx_sum_fine_to_crse_nodal_3d
 #define WRPX_ZERO_OUT_BNDRY              warpx_zero_out_bndry_3d
 #define WRPX_BUILD_MASK                  warpx_build_mask_3d
 #define WRPX_COMPUTE_E_NODAL             warpx_compute_E_nodal_3d
-#define WRPX_DEPOSIT_CIC                 warpx_deposit_cic_3d
 #define WRPX_INTERPOLATE_CIC             warpx_interpolate_cic_3d
 #define WRPX_INTERPOLATE_CIC_TWO_LEVELS  warpx_interpolate_cic_two_levels_3d
 #define WRPX_PUSH_LEAPFROG               warpx_push_leapfrog_3d
@@ -28,11 +26,9 @@
 
 #elif (AMREX_SPACEDIM == 2)
 
-#define WRPX_SUM_FINE_TO_CRSE_NODAL      warpx_sum_fine_to_crse_nodal_2d
 #define WRPX_ZERO_OUT_BNDRY              warpx_zero_out_bndry_2d
 #define WRPX_BUILD_MASK                  warpx_build_mask_2d
 #define WRPX_COMPUTE_E_NODAL             warpx_compute_E_nodal_2d
-#define WRPX_DEPOSIT_CIC                 warpx_deposit_cic_2d
 #define WRPX_INTERPOLATE_CIC             warpx_interpolate_cic_2d
 #define WRPX_INTERPOLATE_CIC_TWO_LEVELS  warpx_interpolate_cic_two_levels_2d
 #define WRPX_PUSH_LEAPFROG               warpx_push_leapfrog_2d
