@@ -135,6 +135,40 @@ numParticlesOutOfRange (PC const& pc, int lev_min, int lev_max, int nGrow)
     return num_wrong;
 }
 
+    template <typename PTile, typename N, typename IndexType>
+    void gatherParticles (PTile& dst, const PTile& src, N np, const IndexType* inds)
+    {
+        const auto src_data = src.getConstParticleTileData();
+              auto dst_data = dst.getParticleTileData();
+              
+        int num_rr = dst_data.m_num_runtime_real;
+        int num_ri = dst_data.m_num_runtime_int;
+
+        AMREX_ASSERT(num_rr == src_data.m_num_runtime_real);
+        AMREX_ASSERT(num_ri == src_data.m_num_runtime_int );              
+
+        AMREX_FOR_1D( np, i, 
+        {
+            dst_data.m_aos[i] = src_data.m_aos[inds[i]];
+            for (int j = 0; j < PTile::NAR; ++j)
+            {
+                dst_data.m_rdata[j][i] = src_data.m_rdata[j][inds[i]];
+            }
+            for (int j = 0; j < num_rr; ++j)
+            {
+                dst_data.m_runtime_rdata[j][i] = src_data.m_runtime_rdata[j][inds[i]];
+            }
+            for (int j = 0; j < PTile::NAI; ++j)
+            {
+                dst_data.m_idata[j][i] = src_data.m_idata[j][inds[i]];
+            }
+            for (int j = 0; j < num_ri; ++j)
+            {
+                dst_data.m_runtime_idata[j][i] = src_data.m_runtime_idata[j][inds[i]];
+            }
+        });
+    }
+
 IntVect computeRefFac (const ParGDBBase* a_gdb, int src_lev, int lev);
 
 Vector<int> computeNeighborProcs (const ParGDBBase* a_gdb, int ngrow);
