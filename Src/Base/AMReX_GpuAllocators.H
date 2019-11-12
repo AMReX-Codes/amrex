@@ -179,9 +179,15 @@ namespace amrex {
     {
         ThrustManagedAllocator<char>& The_ThrustCachedAllocator ();
 
-        AMREX_FORCE_INLINE auto The_ThrustCachedPolicy() -> decltype (thrust::cuda::par(Gpu::The_ThrustCachedAllocator()))
+        AMREX_FORCE_INLINE
+#ifdef AMREX_USE_CUDA
+        auto The_ThrustCachedPolicy() -> decltype (thrust::cuda::par(Gpu::The_ThrustCachedAllocator()))
+#elif defined(AMREX_USE_HIP)
+        auto The_ThrustCachedPolicy() -> decltype (thrust::hip::par(Gpu::The_ThrustCachedAllocator()))
+#endif
         {
-            return thrust::cuda::par(Gpu::The_ThrustCachedAllocator());
+            AMREX_HIP_OR_CUDA(return thrust::hip::par (Gpu::The_ThrustCachedAllocator());,
+                              return thrust::cuda::par(Gpu::The_ThrustCachedAllocator()); );
         };
     }
 
