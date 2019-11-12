@@ -389,6 +389,26 @@ struct ParticleTile
         m_soa_tile.GetIntData(comp).resize(new_size, v);
     }
 
+    int NumRealComps () const noexcept { return m_soa_tile.NumRealComps(); }
+
+    int NumIntComps () const noexcept { return m_soa_tile.NumIntComps(); }
+
+    void swap (ParticleTile<NStructReal, NStructInt, NArrayReal, NArrayInt>& other)
+    {
+        m_aos_tile().swap(other.GetArrayOfStructs()());
+        for (int j = 0; j < NumRealComps(); ++j)
+        {
+            auto& rdata = GetStructOfArrays().GetRealData(j);
+            rdata.swap(other.GetStructOfArrays().GetRealData(j));
+        }
+        
+        for (int j = 0; j < NumIntComps(); ++j)
+        {
+            auto& idata = GetStructOfArrays().GetIntData(j);
+            idata.swap(other.GetStructOfArrays().GetIntData(j));
+        }
+    }
+
     ParticleTileDataType getParticleTileData ()
     {
         for (int i = 0; i < m_runtime_r_ptrs.size(); ++i) {
