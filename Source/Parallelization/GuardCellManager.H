@@ -21,13 +21,14 @@ public:
         const int maxwell_fdtd_solver_id,
         const int max_level);
 
+    // Guard cells allocated for each multifab
     amrex::IntVect ng_alloc_EB = amrex::IntVect::TheZeroVector();
     amrex::IntVect ng_alloc_J = amrex::IntVect::TheZeroVector();
     amrex::IntVect ng_alloc_Rho = amrex::IntVect::TheZeroVector();
     amrex::IntVect ng_alloc_F = amrex::IntVect::TheZeroVector();
     int ng_alloc_F_int = 0;
 
-    // Guard cells to exchange data
+    // Guard cells exchanged for specific in the PIC loop
     amrex::IntVect ng_FieldSolver = amrex::IntVect::TheZeroVector();
     amrex::IntVect ng_FieldGather = amrex::IntVect::TheZeroVector();
     amrex::IntVect ng_UpdateAux = amrex::IntVect::TheZeroVector();

@@ -117,6 +117,7 @@ WarpX::EvolveEM (int numsteps)
         if (num_mirrors>0){
             applyMirrors(cur_time);
             // E : guard cells are NOT up-to-date
+            // B : guard cells are NOT up-to-date
         }
 
 #ifdef WARPX_USE_PY

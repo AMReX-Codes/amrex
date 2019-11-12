@@ -119,6 +119,7 @@ guardCellManager::Init(
 #else
     ng_FieldSolver = IntVect(AMREX_D_DECL(1,1,1));
 #endif
+    ng_FieldSolver = ng_FieldSolver.min(ng_alloc_EB);
 
     // Compute number of cells required for Field Gather
     int FGcell[4] = {0,1,1,2}; // Index is nox
@@ -136,7 +137,8 @@ guardCellManager::Init(
     // separately.
     ng_FieldGather = ng_FieldGather_noNCI + ng_NCIFilter;
 
-    // Guard cells for auxiliary grid
+    // Guard cells for auxiliary grid.
+    // Not sure why there is a 2* here...
     ng_UpdateAux = 2*ng_FieldGather_noNCI + ng_NCIFilter;
 
     // Make sure we do not exchange more guard cells than allocated.
