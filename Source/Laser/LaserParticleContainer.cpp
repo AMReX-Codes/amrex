@@ -39,9 +39,6 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies,
     pp.getarr("position", position);
     pp.getarr("direction", nvec);
     pp.getarr("polarization", p_X);
-    stc_direction = p_X;
-    pp.queryarr("stc_direction", stc_direction);
-
 
     pp.query("pusher_algo", pusher_algo);
     pp.get("wavelength", wavelength);
@@ -84,22 +81,6 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies,
         "Laser plane vector is not perpendicular to the main polarization vector");
 
     p_Y = CrossProduct(nvec, p_X);   // The second polarization vector
-
-    s = 1.0_rt / std::sqrt(stc_direction[0]*stc_direction[0] + stc_direction[1]*stc_direction[1] + stc_direction[2]*stc_direction[2]);
-    stc_direction = { stc_direction[0]*s, stc_direction[1]*s, stc_direction[2]*s };
-    Real const dp2 = std::inner_product(nvec.begin(), nvec.end(), stc_direction.begin(), 0.0);
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(std::abs(dp2) < 1.0e-14,
-        "stc_direction is not perpendicular to the laser plane vector");
-
-    // Get angle between p_X and stc_direction
-    // in 2d, stcs are in the simulation plane
-#if AMREX_SPACEDIM == 3
-    theta_stc = acos(stc_direction[0]*p_X[0] +
-                     stc_direction[1]*p_X[1] +
-                     stc_direction[2]*p_X[2]);
-#else
-    theta_stc = 0.;
-#endif
 
 #if (defined WARPX_DIM_3D) || (defined WARPX_DIM_RZ)
     u_X = p_X;
@@ -151,7 +132,7 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies,
     CommonLaserParameters common_params;
     common_params.wavelength = wavelength;
     common_params.e_max = e_max;
-    common_params.theta_stc = theta_stc;
+    common_params.p_X = p_X;
     m_up_laser_profile->init(pp, ParmParse{"my_constants"}, common_params);
 }
 

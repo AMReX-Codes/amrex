@@ -65,7 +65,6 @@ private:
     amrex::Vector<amrex::Real> position; //! Coordinates of one of the point of the antenna
     amrex::Vector<amrex::Real> nvec; //! Normal of the plane of the antenna
     amrex::Vector<amrex::Real> p_X;// ! Polarization
-    amrex::Vector<amrex::Real> stc_direction; //! Direction of the spatio-temporal couplings
 
     long                      pusher_algo = -1;
     amrex::Real               e_max       = std::numeric_limits<amrex::Real>::quiet_NaN();
@@ -81,7 +80,6 @@ private:
     amrex::Vector<amrex::Real> u_Y;
     amrex::Real weight   = std::numeric_limits<amrex::Real>::quiet_NaN();
     amrex::Real mobility = std::numeric_limits<amrex::Real>::quiet_NaN();
-    amrex::Real theta_stc; //! Angle between p_X and stc_direction
 
 
     // laser particle domain

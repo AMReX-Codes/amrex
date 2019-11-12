@@ -3,6 +3,8 @@
 #include <WarpX_Complex.H>
 #include <WarpXConst.H>
 
+#include <cmath>
+
 using namespace amrex;
 using namespace WarpXLaserProfiles;
 
@@ -12,6 +14,9 @@ GaussianLaserProfile::init (
     const amrex::ParmParse& /* ppc */,
     CommonLaserParameters params)
 {
+    //Copy common params
+    m_common_params = params;
+
     // Parse the properties of the Gaussian profile
     ppl.get("profile_waist", m_params.waist);
     ppl.get("profile_duration", m_params.duration);
@@ -20,8 +25,34 @@ GaussianLaserProfile::init (
     ppl.query("zeta", m_params.zeta);
     ppl.query("beta", m_params.beta);
     ppl.query("phi2", m_params.phi2);
-    //Copy common params
-    m_common_params = params;
+
+    m_params.stc_direction = m_common_params.p_X;
+    pp.queryarr("stc_direction", stc_direction);
+    auto const s = 1.0_rt / std::sqrt(
+        stc_direction[0]*stc_direction[0] +
+        stc_direction[1]*stc_direction[1] +
+        stc_direction[2]*stc_direction[2]);
+    m_params.stc_direction = {
+        m_params.stc_direction[0]*s,
+        m_params.stc_direction[1]*s,
+        m_params.stc_direction[2]*s };
+    auto const dp2 =
+        std::inner_product(nvec.begin(), nvec.end(),
+            m_params.stc_direction.begin(), 0.0);
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(std::abs(dp2) < 1.0e-14,
+        "stc_direction is not perpendicular to the laser plane vector");
+
+    // Get angle between p_X and stc_direction
+    // in 2d, stcs are in the simulation plane
+#if AMREX_SPACEDIM == 3
+    m_params.theta_stc = acos(
+        m_params.stc_direction[0]*m_common_params.p_X[0] +
+        m_params.stc_direction[1]*m_common_params.p_X[1] +
+        m_params.stc_direction[2]*m_common_params.p_X[2]);
+#else
+    m_params.theta_stc = 0.;
+#endif
+
 }
 
 /* \brief compute field amplitude for a Gaussian laser, at particles' position
