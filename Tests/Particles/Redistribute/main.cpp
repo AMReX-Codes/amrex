@@ -267,11 +267,11 @@ public:
                     }
                     for (int j = 0; j < num_rr; ++j)
                     {
-                        AMREX_ALWAYS_ASSERT(ptd.m_runtime_r_data[j][i] == ptd.m_aos[i].id());
+                        AMREX_ALWAYS_ASSERT(ptd.m_runtime_rdata[j][i] == ptd.m_aos[i].id());
                     }
                     for (int j = 0; j < num_ii; ++j)
                     {
-                        AMREX_ALWAYS_ASSERT(ptd.m_runtime_i_data[j][i] == ptd.m_aos[i].id());
+                        AMREX_ALWAYS_ASSERT(ptd.m_runtime_idata[j][i] == ptd.m_aos[i].id());
                     }
                 });
             }
