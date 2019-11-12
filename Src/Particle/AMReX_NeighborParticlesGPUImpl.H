@@ -334,7 +334,7 @@ buildNeighborListGPU(CheckPair check_pair)
         Box bx = mfi.tilebox();
         bx.grow(m_num_neighbor_cells);
 
-        AMREX_ASSERT(this->numParticlesOutOfRange(*this, m_num_neighbor_cells) == 0);
+        AMREX_ASSERT(numParticlesOutOfRange(*this, m_num_neighbor_cells) == 0);
         
         m_neighbor_list[index].build(aos(), bx, geom, check_pair);
     }
