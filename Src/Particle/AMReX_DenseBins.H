@@ -37,7 +37,7 @@ public:
      * The algorithm is similar to a counting sort. First, we count the number
      * of items in each bin. Then, we perform a prefix sum on the resulting counts.
      * Finally, the set of partial sums is incremented in parallel using atomicInc,
-     * which results in a permutationa array that places the items in bin-sorted order.
+     * which results in a permutation array that places the items in bin-sorted order.
      * 
      * \tparam N the 'size' type that can enumerate all the items
      * \tparam F a function that maps items to IntVect bins
@@ -82,7 +82,8 @@ public:
 
         Gpu::exclusive_scan(m_counts.begin(), m_counts.end(), m_offsets.begin());
         
-        Gpu::thrust_copy(m_offsets.begin(), m_offsets.end(), m_counts.begin());
+        Gpu::dtod_memcpy(m_counts.dataPtr(), m_offsets.dataPtr(), 
+                         m_offsets.size()*sizeof(index_type));
 
         index_type* pperm = m_perm.dataPtr();
         constexpr index_type max_index = std::numeric_limits<index_type>::max();
