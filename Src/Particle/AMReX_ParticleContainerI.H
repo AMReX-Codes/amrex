@@ -933,10 +933,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::SortParticles
     for (int lev = 0; lev < numLevels(); ++lev)
     {
         const Geometry& geom = Geom(lev);
+        const auto dxi = geom.InvCellSizeArray();
+        const auto plo = geom.ProbLoArray();
+        const auto domain = geom.Domain();
 
         // temporaries
-        Gpu::ManagedDeviceVector<amrex::IntVect> cells_tmp;
-        Gpu::ManagedDeviceVector<int> index_sequence_tmp;
         ParticleVector aos_r;
         RealVector rdata_r;
         IntVector  idata_r;
@@ -947,21 +948,15 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::SortParticles
             auto& aos   = ptile.GetArrayOfStructs();
             auto& soa   = ptile.GetStructOfArrays();
             const size_t np = aos.numParticles();
+            auto pstruct_ptr = aos().dataPtr();
 
-            cells_tmp.resize(np);
-            index_sequence_tmp.resize(np);
-            
-            thrust::sequence(thrust::device, index_sequence_tmp.begin(), index_sequence_tmp.end());
-            
-            thrust::transform(thrust::device, 
-                              aos().begin(), aos().end(), cells_tmp.begin(),
-                              functors::assignParticleCell(geom.data()));
-            
-            thrust::sort_by_key(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
-                                cells_tmp.begin(),
-                                cells_tmp.end(),
-                                index_sequence_tmp.begin());
-
+            m_bins.build(np, pstruct_ptr, mfi.tilebox(), 
+                       [=] AMREX_GPU_HOST_DEVICE (const ParticleType& p) noexcept -> IntVect
+                       {
+                           return getParticleCell(p, plo, dxi, domain);
+                       });
+          
+            auto inds = m_bins.permutationPtr();
             //
             // Reorder the particle data 
             //
@@ -969,7 +964,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::SortParticles
                 // reorder structs
                 aos_r.resize(np);
                 thrust::gather(thrust::device,
-                               index_sequence_tmp.begin(), index_sequence_tmp.end(),
+                               inds, inds+np,
                                aos().begin(), aos_r.begin());
                 aos().swap(aos_r);
                 
@@ -979,7 +974,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::SortParticles
                 {
                     auto& rdata = ptile.GetStructOfArrays().GetRealData(j);
                     thrust::gather(thrust::device,
-                                   index_sequence_tmp.begin(), index_sequence_tmp.end(),
+                                   inds, inds+np,
                                    rdata.begin(), rdata_r.begin());
                     rdata.swap(rdata_r);
                 }
@@ -990,7 +985,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::SortParticles
                 {
                     auto& idata = ptile.GetStructOfArrays().GetIntData(j);
                     thrust::gather(thrust::device,
-                                   index_sequence_tmp.begin(), index_sequence_tmp.end(),
+                                   inds, inds+np,
                                    idata.begin(), idata_r.begin());
                     idata.swap(idata_r);
                 }
@@ -1042,9 +1037,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     if (not m_particle_locator.isValid(GetParGDB())) m_particle_locator.build(GetParGDB());
     m_particle_locator.setGeometry(GetParGDB());
     auto assign_grid = m_particle_locator.getGridAssignor();
-
-    m_runtime_rdata_r.resize(m_num_runtime_real);
-    m_runtime_idata_r.resize(m_num_runtime_int);
 
     BL_PROFILE_VAR_START(blp_partition);
     auto& op = redistribute_copy_op;
