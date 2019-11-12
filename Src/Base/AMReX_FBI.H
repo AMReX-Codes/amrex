@@ -59,7 +59,7 @@ ParallelFor (Vector<Array4BoxTag<T> > const& tags, int ncomp, F && f)
     constexpr int nthreads = 128;
     constexpr int nwarps_per_block = nthreads/Gpu::Device::warp_size;
     int nblocks = (ntotwarps + nwarps_per_block-1) / nwarps_per_block;
-    amrex::launch_global<<<nblocks,nthreads>>>(
+    AMREX_LAUNCH_KERNEL(nblocks, nthreads, 0, 0,
     [=] AMREX_GPU_DEVICE () noexcept
     {
         int g_tid = blockDim.x*blockIdx.x + threadIdx.x;
