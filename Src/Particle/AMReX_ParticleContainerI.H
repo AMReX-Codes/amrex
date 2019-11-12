@@ -963,7 +963,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::SortParticles
 			  aos().begin(), aos().end(), cells_tmp.begin(),
                           functors::assignParticleCell(geom.data()));
 
-        thrust::sort_by_key(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
+        thrust::sort_by_key(Gpu::The_ThrustCachedPolicy(),
                             cells_tmp.begin(),
                             cells_tmp.end(),
                             index_sequence_tmp.begin());
@@ -1900,12 +1900,12 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
 	host_particles.resize(finestLevel()+1);
 
 	Vector<std::map<std::pair<int, int>,
-			std::vector<Cuda::HostVector<Real> > > > host_real_attribs;
+			std::vector<Gpu::HostVector<Real> > > > host_real_attribs;
 	host_real_attribs.reserve(15);
 	host_real_attribs.resize(finestLevel()+1);
 
 	Vector<std::map<std::pair<int, int>,
-			std::vector<Cuda::HostVector<int> > > > host_int_attribs;
+			std::vector<Gpu::HostVector<int> > > > host_int_attribs;
 	host_int_attribs.reserve(15);
 	host_int_attribs.resize(finestLevel()+1);
 
@@ -1966,20 +1966,20 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
 	      auto new_size = old_size + src_tile.size();
 	      dst_tile.resize(new_size);
 	      
-	      Cuda::thrust_copy(src_tile.begin(),
-				src_tile.end(),
-				dst_tile.GetArrayOfStructs().begin() + old_size);
+	      Gpu::thrust_copy(src_tile.begin(),
+                               src_tile.end(),
+                               dst_tile.GetArrayOfStructs().begin() + old_size);
 	      
 	      for (int i = 0; i < NumRealComps(); ++i) {
-		Cuda::thrust_copy(host_real_attribs[host_lev][std::make_pair(grid,tile)][i].begin(),
-				  host_real_attribs[host_lev][std::make_pair(grid,tile)][i].end(),
-				  dst_tile.GetStructOfArrays().GetRealData(i).begin() + old_size);
+		Gpu::thrust_copy(host_real_attribs[host_lev][std::make_pair(grid,tile)][i].begin(),
+				 host_real_attribs[host_lev][std::make_pair(grid,tile)][i].end(),
+				 dst_tile.GetStructOfArrays().GetRealData(i).begin() + old_size);
 	      }
 	      
 	      for (int i = 0; i < NumIntComps(); ++i) {
-		Cuda::thrust_copy(host_int_attribs[host_lev][std::make_pair(grid,tile)][i].begin(),
-				  host_int_attribs[host_lev][std::make_pair(grid,tile)][i].end(),
-				  dst_tile.GetStructOfArrays().GetIntData(i).begin() + old_size);
+		Gpu::thrust_copy(host_int_attribs[host_lev][std::make_pair(grid,tile)][i].begin(),
+		                 host_int_attribs[host_lev][std::make_pair(grid,tile)][i].end(),
+				 dst_tile.GetStructOfArrays().GetIntData(i).begin() + old_size);
 	      }
 	    }
 	  }

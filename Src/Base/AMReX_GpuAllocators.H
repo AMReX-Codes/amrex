@@ -1,5 +1,5 @@
-#ifndef AMREX_CUDAALLOCATORS_H_
-#define AMREX_CUDAALLOCATORS_H_
+#ifndef AMREX_GPUALLOCATORS_H_
+#define AMREX_GPUALLOCATORS_H_
 
 #include <map>
 #include <memory>
@@ -175,13 +175,18 @@ namespace amrex {
     };
 
     
-    namespace Cuda
+    namespace Gpu
     {
         ThrustManagedAllocator<char>& The_ThrustCachedAllocator ();
+
+        AMREX_FORCE_INLINE auto The_ThrustCachedPolicy() -> decltype (thrust::cuda::par(Gpu::The_ThrustCachedAllocator()))
+        {
+            return thrust::cuda::par(Gpu::The_ThrustCachedAllocator());
+        };
     }
 
 #endif // AMREX_USE_GPU
 
 } // namespace amrex
 
-#endif // AMREX_CUDAALLOCATORS_H_
+#endif // AMREX_GPUALLOCATORS_H_

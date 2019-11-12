@@ -2,7 +2,7 @@
 #define NEIGHBOR_LIST_H_
 
 #include <AMReX_Particles.H>
-#include <AMReX_CudaContainers.H>
+#include <AMReX_GpuContainers.H>
 #include <AMReX_DenseBins.H>
 
 #include <thrust/reduce.h>
@@ -201,13 +201,13 @@ public:
         Gpu::HostVector<unsigned int> host_nbor_offsets(m_nbor_offsets.size());
         Gpu::HostVector<unsigned int> host_nbor_list(m_nbor_list.size());
         
-        Cuda::thrust_copy(m_nbor_offsets.begin(),
-                          m_nbor_offsets.end(),
-                          host_nbor_offsets.begin());
+        Gpu::thrust_copy(m_nbor_offsets.begin(),
+                         m_nbor_offsets.end(),
+                         host_nbor_offsets.begin());
         
-        Cuda::thrust_copy(m_nbor_list.begin(),
-                          m_nbor_list.end(),
-                          host_nbor_list.begin());
+        Gpu::thrust_copy(m_nbor_list.begin(),
+                         m_nbor_list.end(),
+                         host_nbor_list.begin());
         
         for (int i = 0; i < numParticles(); ++i) {
             amrex::Print() << "Particle " << i << " could collide with: ";
