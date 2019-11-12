@@ -1285,9 +1285,9 @@ to GPUs using OpenACC, please see :cpp:`Tutorials/Particles/ElectromagneticPIC`.
 
 For portability, we have provided a set of Vector classes that wrap around the Thrust and
 STL vectors. When ``USE_CUDA = FALSE``, these classes reduce to the normal :cpp:`amrex::Vector`.
-When ``USE_CUDA = TRUE``, they have different meanings. :cpp:`Cuda::HostVector` is a wrapper
-around :cpp:`thrust::host_vector`. :cpp:`Cuda::DeviceVector` is a wrapper around :cpp:`thrust::device_vector`,
-while :cpp:`Cuda::ManagedDeviceVector` is a :cpp:`thrust::device_vector` that lives in managed memory.
+When ``USE_CUDA = TRUE``, they have different meanings. :cpp:`Gpu::HostVector` is a wrapper
+around :cpp:`thrust::host_vector`. :cpp:`Gpu::DeviceVector` is a wrapper around :cpp:`thrust::device_vector`,
+while :cpp:`Gpu::ManagedDeviceVector` is a :cpp:`thrust::device_vector` that lives in managed memory.
 These classes are useful when there are certain stages of an algorithm that will always
 execute on either the host or the device. For example, the following code generates particles on
 the CPU and copies them over to the GPU in one batch per tile:
@@ -1299,7 +1299,7 @@ the CPU and copies them over to the GPU in one batch per tile:
        for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
        {
            const Box& tile_box  = mfi.tilebox();
-           Cuda::HostVector<ParticleType> host_particles;
+           Gpu::HostVector<ParticleType> host_particles;
 
            for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv))
            {
@@ -1312,12 +1312,12 @@ the CPU and copies them over to the GPU in one batch per tile:
            auto new_size = old_size + host_particles.size();
            particle_tile.resize(new_size);
 
-           Cuda::thrust_copy(host_particles.begin(),
+           Gpu::thrust_copy(host_particles.begin(),
                              host_particles.end(),
                              particle_tile.GetArrayOfStructs().begin() + old_size);
         }
 
-The following example shows how to use :cpp:`Cuda::DeviceVector`. Specifically, this code creates
+The following example shows how to use :cpp:`Gpu::DeviceVector`. Specifically, this code creates
 temporary device vectors for the particle x, y, and z positions, and then copies from an Array-of-Structs
 to a Struct-of-Arrays representation, all without copying any particle data off the GPU:
 
@@ -1325,7 +1325,7 @@ to a Struct-of-Arrays representation, all without copying any particle data off 
 
 ::
 
-   Cuda::DeviceVector<Real> xp, yp, zp;
+   Gpu::DeviceVector<Real> xp, yp, zp;
 
    for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
    {
