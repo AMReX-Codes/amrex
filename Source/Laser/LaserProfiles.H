@@ -61,8 +61,6 @@ public:
 
     /** Fill Electric Field Amplitude for each particle of the antenna
      *
-     * called in a manner such as ...
-     *
      * @param[in] Xp X coordinate of the particles of the antenna
      * @param[in] Yp Y coordinate of the particles of the antenna
      * @param[in] t time (seconds)
