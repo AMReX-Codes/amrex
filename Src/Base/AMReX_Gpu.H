@@ -29,8 +29,9 @@ namespace amrex {
     namespace Gpu {
 #ifdef AMREX_USE_HIP
         using namespace Hip;
-#endif
+#elif defined(AMREX_USE_CUDA)
         using namespace Cuda;
+#endif
     }
 }
 

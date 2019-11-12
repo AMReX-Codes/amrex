@@ -318,6 +318,24 @@ public:
     template <class F=FAB, class = typename std::enable_if<IsBaseFab<F>::value>::type >
     Array4<typename FabArray<FAB>::value_type const> const_array (int K) const noexcept;
 
+    template <class F=FAB, class = typename std::enable_if<IsBaseFab<F>::value>::type >
+    Array4<typename FabArray<FAB>::value_type const> array (const MFIter& mfi, int start_comp) const noexcept;
+    //
+    template <class F=FAB, class = typename std::enable_if<IsBaseFab<F>::value>::type >
+    Array4<typename FabArray<FAB>::value_type> array (const MFIter& mfi, int start_comp) noexcept;
+    //
+    template <class F=FAB, class = typename std::enable_if<IsBaseFab<F>::value>::type >
+    Array4<typename FabArray<FAB>::value_type const> array (int K, int start_comp) const noexcept;
+    //
+    template <class F=FAB, class = typename std::enable_if<IsBaseFab<F>::value>::type >
+    Array4<typename FabArray<FAB>::value_type> array (int K, int start_comp) noexcept;
+
+    template <class F=FAB, class = typename std::enable_if<IsBaseFab<F>::value>::type >
+    Array4<typename FabArray<FAB>::value_type const> const_array (const MFIter& mfi, int start_comp) const noexcept;
+    //
+    template <class F=FAB, class = typename std::enable_if<IsBaseFab<F>::value>::type >
+    Array4<typename FabArray<FAB>::value_type const> const_array (int K, int start_comp) const noexcept;
+
     //! Explicitly set the Kth FAB in the FabArray to point to elem.
     void setFab (int K, FAB* elem);
 
@@ -966,6 +984,54 @@ Array4<typename FabArray<FAB>::value_type const>
 FabArray<FAB>::const_array (int K) const noexcept
 {
     return fabPtr(K)->const_array();
+}
+
+template <class FAB>
+template <class,class>
+Array4<typename FabArray<FAB>::value_type const>
+FabArray<FAB>::array (const MFIter& mfi, int start_comp) const noexcept
+{
+    return fabPtr(mfi)->const_array(start_comp);
+}
+
+template <class FAB>
+template <class,class>
+Array4<typename FabArray<FAB>::value_type>
+FabArray<FAB>::array (const MFIter& mfi, int start_comp) noexcept
+{
+    return fabPtr(mfi)->array(start_comp);
+}
+
+template <class FAB>
+template <class,class>
+Array4<typename FabArray<FAB>::value_type const>
+FabArray<FAB>::array (int K, int start_comp) const noexcept
+{
+    return fabPtr(K)->const_array(start_comp);
+}
+
+template <class FAB>
+template <class,class>
+Array4<typename FabArray<FAB>::value_type>
+FabArray<FAB>::array (int K, int start_comp) noexcept
+{
+    return fabPtr(K)->array(start_comp);
+}
+
+template <class FAB>
+template <class,class>
+Array4<typename FabArray<FAB>::value_type const>
+FabArray<FAB>::const_array (const MFIter& mfi, int start_comp) const noexcept
+{
+    return fabPtr(mfi)->const_array(start_comp);
+}
+
+template <class FAB>
+template <class,class>
+Array4<typename FabArray<FAB>::value_type const>
+FabArray<FAB>::const_array (int K, int start_comp) const noexcept
+{
+    return fabPtr(K)->const_array(start_comp);
 }
 
 template <class FAB>
