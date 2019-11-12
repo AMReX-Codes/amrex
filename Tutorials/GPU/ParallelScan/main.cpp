@@ -42,9 +42,9 @@ void main_main ()
     Scan::InclusiveSum(N, d_in, d_out);
     Scan::ExclusiveSum(N, d_in, d_out);
     Gpu::synchronize();
-    thrust::inclusive_scan(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
+    thrust::inclusive_scan(Gpu::The_ThrustCachedPolicy(),
                            d_in, d_in+N, d_out);
-    thrust::exclusive_scan(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
+    thrust::exclusive_scan(Gpu::The_ThrustCachedPolicy(),
                            d_in, d_in+N, d_out);
 
     {
@@ -63,7 +63,7 @@ void main_main ()
 
     {
         BL_PROFILE("thrust::inclusive_scan");
-        thrust::inclusive_scan(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
+        thrust::inclusive_scan(Gpu::The_ThrustCachedPolicy(),
                                d_in, d_in+N, d_out);
         Gpu::synchronize();
     }
@@ -71,7 +71,7 @@ void main_main ()
 
     {
         BL_PROFILE("thrust::exclusive_scan");
-        thrust::exclusive_scan(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
+        thrust::exclusive_scan(Gpu::The_ThrustCachedPolicy(),
                                d_in, d_in+N, d_out);
         Gpu::synchronize();
     }

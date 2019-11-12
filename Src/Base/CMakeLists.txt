@@ -223,11 +223,10 @@ target_sources( amrex
    AMReX_GpuMemory.H
    AMReX_GpuRange.H
    AMReX_GpuReduce.H
+   AMReX_GpuAllocators.H
+   AMReX_GpuAllocators.cpp
+   AMReX_GpuContainers.H
    # CUDA --------------------------------------------------------------------
-   AMReX_CudaAllocators.H
-   AMReX_CudaAllocators.cpp
-   AMReX_CudaAllocators.H
-   AMReX_CudaContainers.H
    AMReX_CudaGraph.H
    # Machine model -----------------------------------------------------------
    AMReX_Machine.H
