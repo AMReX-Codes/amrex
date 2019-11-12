@@ -17,9 +17,7 @@ guardCellManager::Init(
     const int nox_fft, const int noy_fft, const int noz_fft,
     const int nci_corr_stencil,
     const int maxwell_fdtd_solver_id,
-    const int max_level,
-    const int extra_guard_cells_alloc,
-    const int extra_guard_cells_exchange)
+    const int max_level)
 {
     // When using subcycling, the particles on the fine level perform two pushes
     // before being redistributed ; therefore, we need one extra guard cell
@@ -150,17 +148,6 @@ guardCellManager::Init(
     if (do_moving_window){
         ng_MovingWindow[moving_window_dir] = 1;
     }
-
-    ng_alloc_EB    += extra_guard_cells_alloc;
-    ng_alloc_J     += extra_guard_cells_alloc;
-    ng_alloc_Rho   += extra_guard_cells_alloc;
-    ng_alloc_F     += extra_guard_cells_alloc;
-    ng_alloc_F_int += extra_guard_cells_alloc;
-
-    ng_FieldSolver  += extra_guard_cells_exchange;
-    ng_FieldGather  += extra_guard_cells_exchange;
-    ng_UpdateAux    += extra_guard_cells_exchange;
-    ng_MovingWindow += extra_guard_cells_exchange;
 
     Print()<<"ng_alloc_EB    "<<ng_alloc_EB <<'\n';
     Print()<<"ng_alloc_J     "<< ng_alloc_J<<'\n';

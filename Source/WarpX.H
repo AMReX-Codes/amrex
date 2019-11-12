@@ -279,9 +279,6 @@ public:
     static int moving_window_dir;
     static amrex::Real moving_window_v;
 
-    static int extra_guard_cells_alloc;
-    static int extra_guard_cells_exchange;
-
     // slice generation //
     void InitializeSliceMultiFabs ();
     void SliceGenerationForDiagnostics ();

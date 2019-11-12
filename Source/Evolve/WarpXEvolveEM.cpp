@@ -471,6 +471,7 @@ WarpX::OneStep_sub1 (Real curtime)
     }
 
     FillBoundaryB(fine_lev, PatchType::fine, guard_cells.ng_FieldSolver);
+    FillBoundaryF(fine_lev, PatchType::fine, guard_cells.ng_FieldSolver);
 
     // v) Push the fields on the coarse patch and mother grid
     // by only half a coarse step (second half)
@@ -485,7 +486,6 @@ WarpX::OneStep_sub1 (Real curtime)
     EvolveF(fine_lev, PatchType::coarse, dt[fine_lev], DtType::SecondHalf);
 
     if (do_pml) {
-        FillBoundaryF(fine_lev, PatchType::fine, guard_cells.ng_FieldSolver);
         DampPML(fine_lev, PatchType::coarse); // do it twice
         DampPML(fine_lev, PatchType::coarse);
         FillBoundaryE(fine_lev, PatchType::coarse, guard_cells.ng_alloc_EB);

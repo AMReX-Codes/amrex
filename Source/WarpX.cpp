@@ -53,9 +53,6 @@ long WarpX::nox = 1;
 long WarpX::noy = 1;
 long WarpX::noz = 1;
 
-int WarpX::extra_guard_cells_alloc;
-int WarpX::extra_guard_cells_exchange;
-
 bool WarpX::use_fdtd_nci_corr = false;
 int  WarpX::l_lower_order_in_v = true;
 
@@ -305,13 +302,6 @@ WarpX::ReadParameters ()
 
         pp.queryarr("E_external_grid", E_external_grid);
         pp.queryarr("B_external_grid", B_external_grid);
-
-        pp.query("extra_guard_cells_alloc", extra_guard_cells_alloc);
-        pp.query("extra_guard_cells_exchange", extra_guard_cells_exchange);
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-            extra_guard_cells_exchange <= extra_guard_cells_alloc,
-            "ERROR: warpx.extra_guard_cells_exchange must be smaller than warpx.extra_guard_cells_alloc"
-            );
 
         pp.query("do_moving_window", do_moving_window);
         if (do_moving_window)
@@ -725,9 +715,7 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
         nox_fft, noy_fft, noz_fft,
         NCIGodfreyFilter::m_stencil_width,
         maxwell_fdtd_solver_id,
-        maxLevel(),
-        extra_guard_cells_alloc,
-        extra_guard_cells_exchange);
+        maxLevel());
 
     if (mypc->nSpeciesDepositOnMainGrid() && n_current_deposition_buffer == 0) {
         n_current_deposition_buffer = 1;
