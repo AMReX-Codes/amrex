@@ -899,8 +899,8 @@ public:
 
 
     //! struct-of-array stuff
-    std::vector<bool> communicate_real_comp;
-    std::vector<bool> communicate_int_comp;
+    Gpu::ManagedVector<int> communicate_real_comp;
+    Gpu::ManagedVector<int> communicate_int_comp;
 
     static bool do_tiling;
     static IntVect tile_size;
@@ -931,6 +931,8 @@ public:
     bool OKCPU (int lev_min = 0, int lev_max = -1, int nGrow = 0) const;
 
     bool OKGPU (int lev_min = 0, int lev_max = -1, int nGrow = 0) const;
+
+    long superParticleSize() const { return superparticle_size; }
 
 #ifdef AMREX_USE_CUDA    
     void EnforcePeriodicGPU ();
@@ -1049,6 +1051,8 @@ protected:
     ParticleVector m_aos_r;
     std::array<RealVector, NArrayReal> m_rdata_r;
     std::array<IntVector, NArrayInt>  m_idata_r;
+    Vector<RealVector> m_runtime_rdata_r;
+    Vector<IntVector>  m_runtime_idata_r;
     Gpu::ManagedDeviceVector<int> m_grids_r;
     Gpu::ManagedDeviceVector<int> m_levs_r;
 
@@ -1068,14 +1072,13 @@ protected:
 
     ParticleCopyOp redistribute_copy_op;
     ParticleCopyPlan redistribute_copy_plan;
-    Gpu::DeviceVector<SuperParticleType> redistribute_snd_buffer;
-    Gpu::DeviceVector<SuperParticleType> redistribute_rcv_buffer;
 
-    Gpu::PinnedDeviceVector<SuperParticleType> pinned_snd_buffer;
-    Gpu::PinnedDeviceVector<SuperParticleType> pinned_rcv_buffer;
+    Gpu::DeviceVector<char> redistribute_snd_buffer;
+    Gpu::DeviceVector<char> redistribute_rcv_buffer;
+    Gpu::PinnedDeviceVector<char> pinned_snd_buffer;
+    Gpu::PinnedDeviceVector<char> pinned_rcv_buffer;
 
     mutable AmrParticleLocator m_particle_locator;
-    
 #endif
 
     int NumRuntimeRealComps () const { return m_num_runtime_real; }
@@ -1083,7 +1086,6 @@ protected:
     
     int NumRealComps () const { return NArrayReal + NumRuntimeRealComps(); }
     int NumIntComps  () const { return NArrayInt  + NumRuntimeIntComps() ; } 
-
     
 private:
 

@@ -168,6 +168,15 @@ extern "C" {
         dstmf->ParallelCopy(*srcmf,srccomp,dstcomp,nc,srcng,dstng,geom->periodicity());
     }
 
+    void amrex_fi_multifab_parallelcopy_gv (MultiFab* dstmf, const MultiFab* srcmf,
+                                            int srccomp, int dstcomp, int nc,
+                                            const int* srcng, const int* dstng, const Geometry* geom)
+    {
+        IntVect sg(AMREX_D_DECL(srcng[0],srcng[1],srcng[2]));
+        IntVect dg(AMREX_D_DECL(dstng[0],dstng[1],dstng[2]));
+        dstmf->ParallelCopy(*srcmf,srccomp,dstcomp,nc,sg,dg,geom->periodicity());
+    }
+
     void amrex_fi_multifab_fill_boundary (MultiFab* mf, const Geometry* geom, 
 					  int c, int nc, int cross)
     {
