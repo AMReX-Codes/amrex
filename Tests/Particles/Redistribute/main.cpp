@@ -290,6 +290,7 @@ struct TestParams
     int nsteps;
     int nlevs;
     int do_regrid;
+    int sort;
 };
 
 void testRedistribute();
@@ -318,6 +319,9 @@ void get_test_params(TestParams& params, const std::string& prefix)
     pp.get("do_regrid", params.do_regrid);
     pp.get("num_runtime_real", num_runtime_real);
     pp.get("num_runtime_int", num_runtime_int);
+
+    params.sort = 0;
+    pp.query("sort", params.sort);
 }
 
 void testRedistribute ()
@@ -383,6 +387,7 @@ void testRedistribute ()
     {
         pc.moveParticles(params.move_dir, params.do_random);
         pc.RedistributeLocal();
+        if (params.sort) pc.SortParticlesByCell();
         pc.checkAnswer();
     }
 
