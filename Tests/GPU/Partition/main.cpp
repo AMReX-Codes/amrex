@@ -1,7 +1,7 @@
 #include <AMReX.H>
 #include <AMReX_Gpu.H>
 #include <AMReX_Utility.H>
-#include <AMReX_CudaContainers.H>
+#include <AMReX_GpuContainers.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_Partition.H>
 
