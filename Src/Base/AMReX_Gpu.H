@@ -21,16 +21,17 @@ namespace amrex { namespace Cuda {} }
 #include <AMReX_GpuRange.H>
 #include <AMReX_GpuReduce.H>
 
-#include <AMReX_CudaAllocators.H>
-#include <AMReX_CudaContainers.H>
+#include <AMReX_GpuAllocators.H>
+#include <AMReX_GpuContainers.H>
 #include <AMReX_CudaGraph.H>
 
 namespace amrex {
     namespace Gpu {
 #ifdef AMREX_USE_HIP
         using namespace Hip;
-#endif
+#elif defined(AMREX_USE_CUDA)
         using namespace Cuda;
+#endif
     }
 }
 

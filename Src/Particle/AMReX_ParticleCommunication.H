@@ -2,7 +2,7 @@
 #define AMREX_PARTICLECOMMUNICATION_H_
 
 #include <AMReX_Gpu.H>
-#include <AMReX_CudaContainers.H>
+#include <AMReX_GpuContainers.H>
 #include <AMReX_IntVect.H>
 #include <AMReX_ParticleBufferMap.H>
 #include <AMReX_MFIter.H>

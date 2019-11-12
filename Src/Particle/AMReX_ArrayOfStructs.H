@@ -2,7 +2,7 @@
 #define AMREX_ARRAYOFSTRUCTS_H_
 
 #include <AMReX_Particle.H>
-#include <AMReX_CudaContainers.H>
+#include <AMReX_GpuContainers.H>
 #include <AMReX_Vector.H>
 
 namespace amrex {
