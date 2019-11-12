@@ -181,6 +181,7 @@ FabArrayBase::define (const BoxArray&            bxs,
     ownership.clear();
     n_grow = ngrow;
     n_comp = nvar;
+    n_filled = IntVect(0);
     
     boxarray = bxs;
     
