@@ -59,7 +59,9 @@ public:
         const amrex::ParmParse& ppc,
         CommonLaserParameters params) = 0;
 
-    /** Fill Electric Field Amplitude for each particle of the antenna
+    /** Fill Electric Field Amplitude for each particle of the antenna.
+     *
+     * Xp, Yp and amplitude must be arrays with the same length
      *
      * @param[in] Xp X coordinate of the particles of the antenna
      * @param[in] Yp Y coordinate of the particles of the antenna
