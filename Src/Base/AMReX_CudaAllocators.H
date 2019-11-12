@@ -20,7 +20,7 @@
 
 namespace amrex {
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
   
     template<typename T>
     class ArenaAllocator
@@ -171,12 +171,17 @@ namespace amrex {
     };
 
     
-    namespace Cuda
+    namespace Gpu
     {
         ThrustManagedAllocator<char>& The_ThrustCachedAllocator ();
+
+        AMREX_FORCE_INLINE auto The_ThrustCachedPolicy() -> decltype (thrust::cuda::par(Gpu::The_ThrustCachedAllocator()))
+        {
+            return thrust::cuda::par(Gpu::The_ThrustCachedAllocator());
+        };
     }
 
-#endif // AMREX_USE_CUDA
+#endif // AMREX_USE_GPU
 
 } // namespace amrex
 
