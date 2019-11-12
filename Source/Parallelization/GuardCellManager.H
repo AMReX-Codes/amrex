@@ -7,7 +7,7 @@ class guardCellManager{
 
 public:
 
-    void Init(
+    int Init(
         const bool do_subcycling,
         const bool do_fdtd_nci_corr,
         const bool do_nodal,

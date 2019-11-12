@@ -2,7 +2,6 @@
 #include <WarpX.H>
 #include <WarpX_f.H>
 #include <WarpXSumGuardCells.H>
-#include "WarpXAlgorithmSelection.H"
 #include <Parallelization/InterpolateCurrentFineToCoarse.H>
 #include <Parallelization/InterpolateDensityFineToCoarse.H>
 

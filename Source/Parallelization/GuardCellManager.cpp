@@ -4,7 +4,7 @@
 
 using namespace amrex;
 
-void
+int
 guardCellManager::Init(
     const bool do_subcycling,
     const bool do_fdtd_nci_corr,
@@ -68,6 +68,8 @@ guardCellManager::Init(
     ng_alloc_EB = IntVect(ngx,ngz);
     ng_alloc_J = IntVect(ngJx,ngJz);
 #endif
+
+    int nJ_buffer = ng_alloc_J.max(); // guard cells for J required for deposition only.
 
     ng_alloc_Rho = ng_alloc_J+1; //One extra ghost cell, so that it's safe to deposit charge density
     // after pushing particle.
@@ -149,15 +151,5 @@ guardCellManager::Init(
         ng_MovingWindow[moving_window_dir] = 1;
     }
 
-    Print()<<"ng_alloc_EB    "<<ng_alloc_EB <<'\n';
-    Print()<<"ng_alloc_J     "<< ng_alloc_J<<'\n';
-    Print()<<"ng_alloc_Rho   "<<ng_alloc_Rho <<'\n';
-    Print()<<"ng_alloc_F     "<<ng_alloc_F <<'\n';
-    Print()<<"ng_alloc_F_int "<<ng_alloc_F_int <<'\n';
-    Print()<<"ng_FieldSolver "<<ng_FieldSolver <<'\n';
-    Print()<<"ng_FieldGather "<<ng_FieldGather<<'\n';
-    Print()<<"ng_UpdateAux   "<<ng_UpdateAux <<'\n';
-    Print()<<"ng_MovingWindow"<<ng_MovingWindow <<'\n';
-    Print()<<"ng_Extra       "<<ng_Extra <<'\n';
-
+    return nJ_buffer;
 }

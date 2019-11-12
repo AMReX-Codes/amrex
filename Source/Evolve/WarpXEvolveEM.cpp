@@ -339,8 +339,7 @@ WarpX::OneStep_nosub (Real cur_time)
     FillBoundaryB(guard_cells.ng_alloc_EB, guard_cells.ng_Extra);
 #else
     EvolveF(0.5*dt[0], DtType::FirstHalf);
-    // FillBoundaryF(guard_cells.ng_FieldSolver);
-    FillBoundaryF(guard_cells.ng_alloc_F);
+    FillBoundaryF(guard_cells.ng_FieldSolver);
     EvolveB(0.5*dt[0]); // We now have B^{n+1/2}
 
     FillBoundaryB(guard_cells.ng_FieldSolver, IntVect::TheZeroVector());
@@ -441,7 +440,6 @@ WarpX::OneStep_sub1 (Real curtime)
     FillBoundaryE(coarse_lev, PatchType::fine, guard_cells.ng_FieldGather + guard_cells.ng_Extra);
 
     FillBoundaryAux(guard_cells.ng_UpdateAux);
-
     // iii) Get auxiliary fields on the fine grid, at dt[fine_lev]
     UpdateAuxilaryData();
 

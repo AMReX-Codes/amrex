@@ -703,7 +703,7 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
 
     bool aux_is_nodal = (field_gathering_algo == GatheringAlgo::MomentumConserving);
 
-    guard_cells.Init(
+    int nJ_buffer = guard_cells.Init(
         do_subcycling,
         WarpX::use_fdtd_nci_corr,
         do_nodal,
@@ -726,7 +726,7 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
     }
 
     if (n_current_deposition_buffer < 0) {
-        n_current_deposition_buffer = guard_cells.ng_alloc_J.max();
+        n_current_deposition_buffer = nJ_buffer;
     }
     if (n_field_gather_buffer < 0) {
         // Field gather buffer should be larger than current deposition buffers
