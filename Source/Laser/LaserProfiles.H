@@ -25,6 +25,7 @@ struct CommonLaserParameters
     amrex::Real wavelength; //! central wavelength
     amrex::Real e_max;  //! maximum electric field at peak
     amrex::Vector<amrex::Real> p_X;// ! Polarization
+    amrex::Vector<amrex::Real> nvec; //! Normal of the plane of the antenna
 };
 
 

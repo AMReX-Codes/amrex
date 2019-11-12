@@ -27,17 +27,19 @@ GaussianLaserProfile::init (
     ppl.query("phi2", m_params.phi2);
 
     m_params.stc_direction = m_common_params.p_X;
-    pp.queryarr("stc_direction", stc_direction);
+    ppl.queryarr("stc_direction", m_params.stc_direction);
     auto const s = 1.0_rt / std::sqrt(
-        stc_direction[0]*stc_direction[0] +
-        stc_direction[1]*stc_direction[1] +
-        stc_direction[2]*stc_direction[2]);
+        m_params.stc_direction[0]*m_params.stc_direction[0] +
+        m_params.stc_direction[1]*m_params.stc_direction[1] +
+        m_params.stc_direction[2]*m_params.stc_direction[2]);
     m_params.stc_direction = {
         m_params.stc_direction[0]*s,
         m_params.stc_direction[1]*s,
         m_params.stc_direction[2]*s };
     auto const dp2 =
-        std::inner_product(nvec.begin(), nvec.end(),
+        std::inner_product(
+            m_common_params.nvec.begin(),
+            m_common_params.nvec.end(),
             m_params.stc_direction.begin(), 0.0);
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(std::abs(dp2) < 1.0e-14,
         "stc_direction is not perpendicular to the laser plane vector");
@@ -110,7 +112,7 @@ GaussianLaserProfile::fill_amplitude (
     auto const tmp_profile_t_peak = m_params.t_peak;
     auto const tmp_beta = m_params.beta;
     auto const tmp_zeta = m_params.zeta;
-    auto const tmp_theta_stc = m_common_params.theta_stc;
+    auto const tmp_theta_stc = m_params.theta_stc;
     auto const tmp_profile_focal_distance = m_params.focal_distance;
     // Loop through the macroparticle to calculate the proper amplitude
     amrex::ParallelFor(

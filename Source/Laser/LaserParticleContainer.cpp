@@ -133,6 +133,7 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies,
     common_params.wavelength = wavelength;
     common_params.e_max = e_max;
     common_params.p_X = p_X;
+    common_params.nvec = nvec;
     m_up_laser_profile->init(pp, ParmParse{"my_constants"}, common_params);
 }
 
