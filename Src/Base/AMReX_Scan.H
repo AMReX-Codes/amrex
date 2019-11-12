@@ -159,7 +159,7 @@ T PrefixSum (int n, FIN && fin, FOUT && fout, Type type)
         }
     });
 
-    amrex::launch_global<<<nblocks, nthreads, sm, stream>>>(
+    AMREX_LAUNCH_KERNEL(nblocks, nthreads, sm, stream, 
     [=] AMREX_GPU_DEVICE () noexcept
     {
         int lane = threadIdx.x % Gpu::Device::warp_size;
