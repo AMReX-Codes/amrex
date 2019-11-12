@@ -71,10 +71,10 @@ C$(AMREX_BASE)_sources += AMReX_GpuElixir.cpp
 
 C$(AMREX_BASE)_headers += AMReX_GpuReduce.H
 
-C$(AMREX_BASE)_headers += AMReX_CudaGraph.H AMReX_CudaContainers.H
+C$(AMREX_BASE)_headers += AMReX_CudaGraph.H AMReX_GpuContainers.H
 
-C$(AMREX_BASE)_sources += AMReX_CudaAllocators.cpp
-C$(AMREX_BASE)_headers += AMReX_CudaAllocators.H
+C$(AMREX_BASE)_sources += AMReX_GpuAllocators.cpp
+C$(AMREX_BASE)_headers += AMReX_GpuAllocators.H
 
 #
 # I/O stuff.

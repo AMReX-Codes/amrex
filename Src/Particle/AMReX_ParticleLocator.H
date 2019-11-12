@@ -2,7 +2,7 @@
 #define AMREX_PARTICLE_LOCATOR_H_
 
 #include <AMReX_Particles.H>
-#include <AMReX_CudaContainers.H>
+#include <AMReX_GpuContainers.H>
 #include <AMReX_Tuple.H>
 
 namespace amrex
