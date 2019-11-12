@@ -319,19 +319,13 @@ iMultiFab::sum (int comp, int nghost, bool local) const
 
     long sm = 0;
 
-// HIP FIX HERE - __shfl_down type mismatch.
-// HIP __shfl_down does not have a long version.
-// (has int, unsigned int, float, double)
-// cast long into double and back?
-
-// Completely wrong, but jury-rigging to get HIP running for now.
+// HIP FIX HERE - __shfl_down long used 
 
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
     {
         ReduceOps<ReduceOpSum> reduce_op;
-        AMREX_HIP_OR_CUDA( ReduceData<double> reduce_data(reduce_op);,
-                           ReduceData<long> reduce_data(reduce_op); );
+        ReduceData<long> reduce_data(reduce_op);
         using ReduceTuple = typename decltype(reduce_data)::Type;
 
         for (MFIter mfi(*this); mfi.isValid(); ++mfi)
@@ -341,14 +335,11 @@ iMultiFab::sum (int comp, int nghost, bool local) const
             reduce_op.eval(bx, reduce_data,
             [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
             {
-                AMREX_HIP_OR_CUDA( return{ static_cast<double>(arr(i,j,k,comp)) };,
-                                   return{ static_cast<long>(arr(i,j,k,comp)) }; );
+                return{ static_cast<long>(arr(i,j,k,comp)) };
             });
         }
 
         ReduceTuple hv = reduce_data.value();
-        // Cast for HIP.
-        sm = static_cast<long> (amrex::get<0>(hv));
     }
     else
 #endif
