@@ -1,5 +1,5 @@
-#ifndef AMREX_CUDAALLOCATORS_H_
-#define AMREX_CUDAALLOCATORS_H_
+#ifndef AMREX_GPUALLOCATORS_H_
+#define AMREX_GPUALLOCATORS_H_
 
 #include <map>
 #include <memory>
@@ -185,4 +185,4 @@ namespace amrex {
 
 } // namespace amrex
 
-#endif // AMREX_CUDAALLOCATORS_H_
+#endif // AMREX_GPUALLOCATORS_H_

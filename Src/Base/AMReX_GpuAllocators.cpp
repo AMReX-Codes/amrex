@@ -1,4 +1,4 @@
-#include <AMReX_CudaAllocators.H>
+#include <AMReX_GpuAllocators.H>
 
 #ifdef AMREX_USE_GPU
 namespace amrex

@@ -1,11 +1,11 @@
-#ifndef AMREX_CUDA_CONTAINERS_H_
-#define AMREX_CUDA_CONTAINERS_H_
+#ifndef AMREX_GPU_CONTAINERS_H_
+#define AMREX_GPU_CONTAINERS_H_
 
 #include <numeric>
 
 #include <AMReX_Vector.H>
 #include <AMReX_PODVector.H>
-#include <AMReX_CudaAllocators.H>
+#include <AMReX_GpuAllocators.H>
 
 namespace amrex {
 
