@@ -4,6 +4,7 @@
 #include <MultiParticleContainer.H>
 #include <WarpXParticleContainer.H>
 #include <AMReX_AmrParGDB.H>
+#include <WarpXComm.H>
 #include <WarpX_f.H>
 #include <WarpX.H>
 #include <WarpXAlgorithmSelection.H>
@@ -502,66 +503,54 @@ WarpXParticleContainer::DepositCharge (WarpXParIter& pti, RealVector& wp,
 void
 WarpXParticleContainer::DepositCharge (Vector<std::unique_ptr<MultiFab> >& rho, bool local)
 {
+    // Loop over the refinement levels
+    int const finest_level = rho.size() - 1;
+    for (int lev = 0; lev < finest_level; ++lev) {
 
-    int num_levels = rho.size();
-    int finest_level = num_levels - 1;
-
-    // each level deposits it's own particles
-    const int ng = rho[0]->nGrow();
-    for (int lev = 0; lev < num_levels; ++lev) {
-
-        rho[lev]->setVal(0.0, ng);
-
-        const auto& gm = m_gdb->Geom(lev);
-        const auto& ba = m_gdb->ParticleBoxArray(lev);
-
-        const Real* dx  = gm.CellSize();
-        const Real* plo = gm.ProbLo();
-        BoxArray nba = ba;
-        nba.surroundingNodes();
-
-        for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti) {
-            const Box& box = nba[pti];
-
+        // Loop over particle tiles and deposit charge on each level
+#ifdef _OPENMP
+        #pragma omp parallel
+        {
+        int thread_num = omp_get_thread_num();
+#else
+        int thread_num = 0;
+#endif
+        for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
+        {
+            const long np = pti.numParticles();
             auto& wp = pti.GetAttribs(PIdx::w);
-            const auto& particles = pti.GetArrayOfStructs();
-            int nstride = particles.dataShape().first;
-            const long np  = pti.numParticles();
 
-            FArrayBox& rhofab = (*rho[lev])[pti];
+            pti.GetPosition(m_xp[thread_num], m_yp[thread_num], m_zp[thread_num]);
 
-            WRPX_DEPOSIT_CIC(particles.dataPtr(), nstride, np,
-                             wp.dataPtr(), &this->charge,
-                             rhofab.dataPtr(), box.loVect(), box.hiVect(),
-                             plo, dx, &ng);
+            int* AMREX_RESTRICT ion_lev;
+            if (do_field_ionization){
+                ion_lev = pti.GetiAttribs(particle_icomps["ionization_level"]).dataPtr();
+            } else {
+                ion_lev = nullptr;
+            }
+
+            DepositCharge(pti, wp, ion_lev, rho[lev].get(), 0, 0, np, thread_num, lev, lev);
         }
-
-        if (!local) rho[lev]->SumBoundary(gm.periodicity());
+#ifdef _OPENMP
+        }
+#endif
+        // Exchange guard cells
+        if (!local) rho[lev]->SumBoundary( m_gdb->Geom(lev).periodicity() );
     }
 
-    // now we average down fine to crse
-    std::unique_ptr<MultiFab> crse;
+    // Now that the charge has been deposited at each level,
+    // we average down from fine to crse
     for (int lev = finest_level - 1; lev >= 0; --lev) {
-        const BoxArray& fine_BA = rho[lev+1]->boxArray();
         const DistributionMapping& fine_dm = rho[lev+1]->DistributionMap();
-        BoxArray coarsened_fine_BA = fine_BA;
+        BoxArray coarsened_fine_BA = rho[lev+1]->boxArray();
         coarsened_fine_BA.coarsen(m_gdb->refRatio(lev));
-
         MultiFab coarsened_fine_data(coarsened_fine_BA, fine_dm, rho[lev+1]->nComp(), 0);
         coarsened_fine_data.setVal(0.0);
 
-        IntVect ratio(AMREX_D_DECL(2, 2, 2));  // FIXME
+        int const refinement_ratio = 2;
 
-        for (MFIter mfi(coarsened_fine_data); mfi.isValid(); ++mfi) {
-            const Box& bx = mfi.validbox();
-            const Box& crse_box = coarsened_fine_data[mfi].box();
-            const Box& fine_box = (*rho[lev+1])[mfi].box();
-            WRPX_SUM_FINE_TO_CRSE_NODAL(bx.loVect(), bx.hiVect(), ratio.getVect(),
-                                        coarsened_fine_data[mfi].dataPtr(), crse_box.loVect(), crse_box.hiVect(),
-                                        (*rho[lev+1])[mfi].dataPtr(), fine_box.loVect(), fine_box.hiVect());
-        }
-
-        rho[lev]->copy(coarsened_fine_data, m_gdb->Geom(lev).periodicity(), FabArrayBase::ADD);
+        interpolateDensityFineToCoarse( *rho[lev+1], coarsened_fine_data, refinement_ratio );
+        rho[lev]->ParallelAdd( coarsened_fine_data, m_gdb->Geom(lev).periodicity() );
     }
 }
 
@@ -840,5 +829,3 @@ WarpXParticleContainer::particlePostLocate(ParticleType& p,
     if (pld.m_lev == lev-1){
     }
 }
-
-
