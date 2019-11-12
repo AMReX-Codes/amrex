@@ -950,6 +950,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::SortParticles
             const size_t np = aos.numParticles();
             auto pstruct_ptr = aos().dataPtr();
 
+            m_ptile_r.define(m_num_runtime_real, m_num_runtime_int);
+            m_ptile_r.resize(np);
+
             m_bins.build(np, pstruct_ptr, mfi.tilebox(), 
                        [=] AMREX_GPU_HOST_DEVICE (const ParticleType& p) noexcept -> IntVect
                        {
@@ -962,32 +965,31 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::SortParticles
             //
             {
                 // reorder structs
-                aos_r.resize(np);
                 thrust::gather(thrust::device,
                                inds, inds+np,
-                               aos().begin(), aos_r.begin());
-                aos().swap(aos_r);
+                               aos().begin(), m_ptile_r.GetArrayOfStructs()().dataPtr());
+                aos().swap(m_ptile_r.GetArrayOfStructs()());
                 
                 // reorder real arrays
-                rdata_r.resize(np);
                 for (int j = 0; j < NumRealComps(); ++j)
                 {
                     auto& rdata = ptile.GetStructOfArrays().GetRealData(j);
                     thrust::gather(thrust::device,
                                    inds, inds+np,
-                                   rdata.begin(), rdata_r.begin());
-                    rdata.swap(rdata_r);
+                                   rdata.begin(), 
+                                   m_ptile_r.GetStructOfArrays().GetRealData(j).dataPtr());
+                    rdata.swap(m_ptile_r.GetStructOfArrays().GetRealData(j));
                 }
 
                 // reorder int arrays
-                idata_r.resize(np);
                 for (int j = 0; j < NumIntComps(); ++j)
                 {
                     auto& idata = ptile.GetStructOfArrays().GetIntData(j);
                     thrust::gather(thrust::device,
                                    inds, inds+np,
-                                   idata.begin(), idata_r.begin());
-                    idata.swap(idata_r);
+                                   idata.begin(), 
+                                   m_ptile_r.GetStructOfArrays().GetIntData(j).dataPtr());
+                    idata.swap(m_ptile_r.GetStructOfArrays().GetIntData(j));
                 }
             }
         }
@@ -1066,9 +1068,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             auto& aos = src_tile.GetArrayOfStructs();
             const size_t np = aos.numParticles();
 
-            ParticleTileType ptile_r;
-            ptile_r.define(m_num_runtime_real, m_num_runtime_int);
-            ptile_r.resize(np);
+            m_ptile_r.define(m_num_runtime_real, m_num_runtime_int);
+            m_ptile_r.resize(np);
             
             m_grids_tmp.resize(np);
             m_grids_r.resize(np);
@@ -1109,7 +1110,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                 };
             
                 const auto src_data = src_tile.getConstParticleTileData();
-                auto dst_data = ptile_r.getParticleTileData();
+                auto dst_data = m_ptile_r.getParticleTileData();
 
                 auto dst_grids_ptr = m_grids_r.dataPtr();
                 auto dst_levs_ptr = m_levs_r.dataPtr();
@@ -1152,16 +1153,16 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                     }, 
                     Scan::Type::exclusive);
 
-                aos().swap(ptile_r.GetArrayOfStructs()());
+                aos().swap(m_ptile_r.GetArrayOfStructs()());
                 for (int i = 0; i < NumRealComps(); ++i)
                 {
                     auto& data = src_tile.GetStructOfArrays().GetRealData(i);
-                    data.swap(ptile_r.GetStructOfArrays().GetRealData(i));
+                    data.swap(m_ptile_r.GetStructOfArrays().GetRealData(i));
                 }
                 for (int i = 0; i < NumIntComps(); ++i)
                 {
                     auto& data = src_tile.GetStructOfArrays().GetIntData(i);
-                    data.swap(ptile_r.GetStructOfArrays().GetIntData(i));
+                    data.swap(m_ptile_r.GetStructOfArrays().GetIntData(i));
                 }
             }
 
