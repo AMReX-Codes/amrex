@@ -1,14 +1,7 @@
 #include "CollisionType.H"
 #include "UpdateMomentumPerezElastic.H"
 
-#include "WarpXParticleContainer.H"
-#include <WarpX.H>
-#include <AMReX_REAL.H>
-#include <AMReX_DenseBins.H>
-
-#include <AMReX_Particles.H>
-
-void CollisionType::CollisionType(
+CollisionType::CollisionType(
     const std::vector<std::string>& species_names,
     const std::vector<std::string>  collision_name)
 {
@@ -45,6 +38,7 @@ void CollisionType::CollisionType(
  *        L is the Coulomb log and will be used if greater than zero,
  *        otherwise will be computed.
  *        V is the volume of the corresponding cell.*/
+
 void CollisionType::ElasticCollisionPerez(
     amrex::DenseBins<WarpXParticleContainer::ParticleType>::index_type const I1s,
     amrex::DenseBins<WarpXParticleContainer::ParticleType>::index_type const I1e,
@@ -66,8 +60,8 @@ void CollisionType::ElasticCollisionPerez(
     int NI2 = I2e - I2s;
 
     // shuffle I1 and I2
-    ShuffleFisherYates(I1, I1s, I1e);
-    ShuffleFisherYates(I2, I2s, I2e);
+    CollisionType::ShuffleFisherYates(I1, I1s, I1e);
+    CollisionType::ShuffleFisherYates(I2, I2s, I2e);
 
     // get local T1t and T2t
     amrex::Real T1t; amrex::Real T2t;
@@ -160,6 +154,7 @@ void CollisionType::ElasticCollisionPerez(
 
 /* \brief Shuffle array according to Fisher-Yates algorithm.
  *        Only shuffle the part between is <= i < ie, n = ie-is.*/
+
 void CollisionType::ShuffleFisherYates(
     amrex::DenseBins<WarpXParticleContainer::ParticleType>::index_type *array,
     amrex::DenseBins<WarpXParticleContainer::ParticleType>::index_type const is,

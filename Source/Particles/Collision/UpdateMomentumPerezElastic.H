@@ -5,13 +5,13 @@
 #include <WarpX.H>
 #include <AMReX_REAL.H>
 #include <AMReX_DenseBins.H>
-#include "ShuffleFisherYates.H"
 
 /* \brief Update particle velocities according to
  *        F. Perez et al., Phys. Plasmas 19, 083104 (2012).
  *        LmdD is max(Debye length, minimal interparticle distance).
  *        L is the Coulomb log. A fixed L will be used if L > 0,
  *        otherwise L will be calculated based on the algorithm.*/
+
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void UpdateMomentumPerezElastic(
     amrex::Real u1x, amrex::Real u1y, amrex::Real u1z,

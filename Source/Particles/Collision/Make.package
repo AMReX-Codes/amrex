@@ -1,6 +1,6 @@
 CEXE_headers += CollisionType.H
 CEXE_headers += CoulombCollisions.H
-CEXE_headers += ShuffleFisherYates.H
+CEXE_headers += UpdateMomentumPerezElastic.H
 
 CEXE_sources += CollisionType.cpp
 CEXE_sources += CoulombCollisions.cpp

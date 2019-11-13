@@ -1,13 +1,18 @@
 #ifndef WARPX_PARTICLES_COLLISION_COLLISIONTYPE_H_
 #define WARPX_PARTICLES_COLLISION_COLLISIONTYPE_H_
 
+#include "WarpXParticleContainer.H"
+#include <WarpX.H>
+#include <AMReX_REAL.H>
+#include <AMReX_DenseBins.H>
+
 class CollisionType
 {
 public:
     int m_species1;
     int m_species2;
 
-    void CollisionType(
+    CollisionType(
         const std::vector<std::string>& species_names,
         const std::vector<std::string>  collision_name);
 

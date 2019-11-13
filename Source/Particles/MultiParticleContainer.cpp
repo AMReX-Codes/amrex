@@ -126,7 +126,7 @@ MultiParticleContainer::ReadParameters ()
                 }
             }
 
-            // collisions
+            // collision
             ParmParse pc("collisions");
             pc.query("ncollisions", ncollisions);
             BL_ASSERT(ncollisions >= 0);

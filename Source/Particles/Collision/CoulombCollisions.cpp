@@ -111,7 +111,7 @@ doCoulombCollisionsWithinTile ( int lev, MFIter const& mfi,
 
             // Call the function in order to perform collisions
 
-            ElasticCollisionPerez(
+	    CollisionType::ElasticCollisionPerez(
                 cell_start_1, cell_stop_1, cell_start_2, cell_stop_2,
                 indices_1, indices_2,
                 ux_1, uy_1, uz_1, ux_2, uy_2, uz_2, w_1, w_2,
