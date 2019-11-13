@@ -643,8 +643,8 @@ MultiParticleContainer::doCoulombCollisions ()
         //       two types of species that will be collided
         // auto& species1 = allcontainers[0];
         // auto& species2 = allcontainers[1];
-        auto& species1 = allcollisions[i].m_species1;
-        auto& species2 = allcollisions[i].m_species2;
+        auto& species1 = allcontainers[ allcollisions[i].m_species1 ];
+        auto& species2 = allcontainers[ allcollisions[i].m_species2 ];
     
         // Enable tiling
         MFItInfo info;
