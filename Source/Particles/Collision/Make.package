@@ -1,6 +1,8 @@
-CEXE_headers += ElasticCollisionPerez.H
-CEXE_headers += ShuffleFisherYates.H
+CEXE_headers += CollisionType.H
 CEXE_headers += CoulombCollisions.H
+CEXE_headers += ShuffleFisherYates.H
+
+CEXE_sources += CollisionType.cpp
 CEXE_sources += CoulombCollisions.cpp
 
 INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/Particles/Collision

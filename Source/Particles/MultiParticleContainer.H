@@ -3,6 +3,7 @@
 
 #include "ElementaryProcess.H"
 #include "CoulombCollisions.H"
+#include "CollisionType.H"
 
 #include <WarpXParticleContainer.H>
 #include <PhysicalParticleContainer.H>
@@ -138,6 +139,7 @@ public:
     std::unique_ptr<amrex::MultiFab> GetChargeDensity(int lev, bool local = false);
 
     void doFieldIonization ();
+
     void doCoulombCollisions ();
 
     void Checkpoint (const std::string& dir) const;
@@ -211,6 +213,10 @@ protected:
     std::vector<std::string> species_names;
 
     std::vector<std::string> lasers_names;
+
+    std::vector<std::string> collision_names;
+
+    std::vector<CollisionType> allcollisions;
 
     //! instead of depositing (current, charge) on the finest patch level, deposit to the coarsest grid
     std::vector<bool> m_deposit_on_main_grid;
@@ -298,5 +304,6 @@ private:
     // runtime parameters
     int nlasers = 0;
     int nspecies = 1;   // physical particles only. nspecies+nlasers == allcontainers.size().
+    int ncollisions = 0;
 };
 #endif /*WARPX_ParticleContainer_H_*/

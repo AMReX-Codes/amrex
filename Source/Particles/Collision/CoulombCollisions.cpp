@@ -1,7 +1,7 @@
 #include "WarpXParticleContainer.H"
 #include <WarpX.H>
 #include <AMReX_DenseBins.H>
-#include "ElasticCollisionPerez.H"
+#include "CollisionType.H"
 
 using namespace amrex;
 // Define shortcuts for frequently-used type names
