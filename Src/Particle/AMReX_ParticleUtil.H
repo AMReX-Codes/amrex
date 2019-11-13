@@ -44,7 +44,7 @@ void copyParticle(const      ParticleTileData<NSR, NSI, NAR, NAI>& dst,
         dst.m_runtime_rdata[j][dst_i] = src.m_runtime_rdata[j][src_i];
     for (int j = 0; j < NAI; ++j)
         dst.m_idata[j][dst_i] = src.m_idata[j][src_i];
-    for (int j = 0; j < dst.m_num_runtime_real; ++j)
+    for (int j = 0; j < dst.m_num_runtime_int; ++j)
         dst.m_runtime_idata[j][dst_i] = src.m_runtime_idata[j][src_i];
 }
 
