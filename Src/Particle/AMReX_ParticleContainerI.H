@@ -1118,17 +1118,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                     }, 
                     Scan::Type::exclusive);
 
-                aos().swap(m_ptile_r.GetArrayOfStructs()());
-                for (int i = 0; i < NumRealComps(); ++i)
-                {
-                    auto& data = src_tile.GetStructOfArrays().GetRealData(i);
-                    data.swap(m_ptile_r.GetStructOfArrays().GetRealData(i));
-                }
-                for (int i = 0; i < NumIntComps(); ++i)
-                {
-                    auto& data = src_tile.GetStructOfArrays().GetIntData(i);
-                    data.swap(m_ptile_r.GetStructOfArrays().GetIntData(i));
-                }
+                src_tile.swap(m_ptile_r);
             }
 
             int num_move = np - num_stay;
