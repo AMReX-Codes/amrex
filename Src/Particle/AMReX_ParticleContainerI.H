@@ -926,8 +926,6 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::SortParticlesByCell ()
 {
-#ifdef AMREX_USE_CUDA
-
     BL_PROFILE("ParticleContainer::SortParticlesByCell()");
 
     for (int lev = 0; lev < numLevels(); ++lev)
@@ -959,7 +957,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::SortParticles
             ptile.swap(m_ptile_r);
         }
     }
-#endif
 }
 
 //
