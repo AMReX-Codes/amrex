@@ -130,8 +130,10 @@ MultiParticleContainer::ReadParameters ()
             ParmParse pc("collisions");
             pc.query("ncollisions", ncollisions);
             BL_ASSERT(ncollisions >= 0);
-            pc.getarr("collision_names", collision_names);
-            BL_ASSERT(collision_names.size() == ncollisions);
+	    if (ncollisions > 0) {
+                pc.getarr("collision_names", collision_names);
+                BL_ASSERT(collision_names.size() == ncollisions);
+            }
 
         }
 
