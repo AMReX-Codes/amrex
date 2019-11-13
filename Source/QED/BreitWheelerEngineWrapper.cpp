@@ -1,6 +1,7 @@
 #include "BreitWheelerEngineWrapper.H"
 
 #include "QedTableParserHelperFunctions.H"
+#include "BreitWheelerDummyTable.H"
 
 #include <utility>
 
@@ -138,6 +139,12 @@ BreitWheelerEngine::init_lookup_tables_from_raw_data (
     m_lookup_tables_initialized = true;
 
     return true;
+}
+
+void BreitWheelerEngine::init_dummy_tables()
+{
+    m_innards = QedUtils::BreitWheelerEngineInnardsDummy;
+    m_lookup_tables_initialized = true;
 }
 
 Vector<char> BreitWheelerEngine::export_lookup_tables_data () const
