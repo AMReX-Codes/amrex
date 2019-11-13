@@ -12,7 +12,7 @@ WarpX::InitSpaceChargeField (WarpXParticleContainer& pc)
 {
 
 #ifdef WARPX_DIM_RZ
-    amrex::Abort();
+    amrex::Abort("The initialization of space-charge field has not yet been implemented in RZ geometry.");
 #endif
 
     // Allocate fields for charge and potential

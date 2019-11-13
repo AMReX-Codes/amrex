@@ -301,6 +301,13 @@ public:
                              const std::array<const amrex::MultiFab*, 3>& B,
                              const std::array<amrex::Real,3>& dx, int ngrow);
 
+
+    void InitSpaceChargeField (WarpXParticleContainer& pc);
+    void computePhi(const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
+                       amrex::Vector<std::unique_ptr<amrex::MultiFab> >& phi) const;
+    void computeE(amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
+               const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& phi) const;
+
 protected:
 
     //! Tagging cells for refinement
@@ -394,12 +401,6 @@ private:
 
     void InitFromCheckpoint ();
     void PostRestart ();
-
-    void InitSpaceChargeField (WarpXParticleContainer& pc);
-    void computePhi(const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
-                          amrex::Vector<std::unique_ptr<amrex::MultiFab> >& phi) const;
-    void computeE(amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
-                  const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& phi) const;
 
     void InitPML ();
     void ComputePMLFactors ();
