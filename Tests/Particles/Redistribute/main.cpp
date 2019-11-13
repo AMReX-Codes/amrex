@@ -97,7 +97,7 @@ public:
             std::array<Gpu::HostVector<int>, NAI> host_int;
 
             std::vector<Gpu::HostVector<Real> > host_runtime_real(NumRuntimeRealComps());
-            std::vector<Gpu::HostVector<Real> > host_runtime_int(NumRuntimeIntComps());
+            std::vector<Gpu::HostVector<int> > host_runtime_int(NumRuntimeIntComps());
 
             for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv))
             {
