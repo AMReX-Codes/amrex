@@ -39,7 +39,7 @@ CollisionType::CollisionType(
  *        otherwise will be computed.
  *        V is the volume of the corresponding cell.*/
 
-void CollisionType::ElasticCollisionPerez(
+static void CollisionType::ElasticCollisionPerez(
     amrex::DenseBins<WarpXParticleContainer::ParticleType>::index_type const I1s,
     amrex::DenseBins<WarpXParticleContainer::ParticleType>::index_type const I1e,
     amrex::DenseBins<WarpXParticleContainer::ParticleType>::index_type const I2s,
@@ -155,7 +155,7 @@ void CollisionType::ElasticCollisionPerez(
 /* \brief Shuffle array according to Fisher-Yates algorithm.
  *        Only shuffle the part between is <= i < ie, n = ie-is.*/
 
-void CollisionType::ShuffleFisherYates(
+static void CollisionType::ShuffleFisherYates(
     amrex::DenseBins<WarpXParticleContainer::ParticleType>::index_type *array,
     amrex::DenseBins<WarpXParticleContainer::ParticleType>::index_type const is,
     amrex::DenseBins<WarpXParticleContainer::ParticleType>::index_type const ie)

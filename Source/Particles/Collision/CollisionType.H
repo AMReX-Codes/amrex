@@ -16,7 +16,7 @@ public:
         const std::vector<std::string>& species_names,
         const std::vector<std::string>  collision_name);
 
-    void ElasticCollisionPerez(
+    static void ElasticCollisionPerez(
         amrex::DenseBins<WarpXParticleContainer::ParticleType>::index_type const I1s,
         amrex::DenseBins<WarpXParticleContainer::ParticleType>::index_type const I1e,
         amrex::DenseBins<WarpXParticleContainer::ParticleType>::index_type const I2s,
@@ -31,7 +31,7 @@ public:
         const amrex::Real  T1, const amrex::Real  T2,
         const amrex::Real  dt, const amrex::Real   L, const amrex::Real V);
 
-    void ShuffleFisherYates(
+    static void ShuffleFisherYates(
         amrex::DenseBins<WarpXParticleContainer::ParticleType>::index_type *array,
         amrex::DenseBins<WarpXParticleContainer::ParticleType>::index_type const is,
         amrex::DenseBins<WarpXParticleContainer::ParticleType>::index_type const ie);
