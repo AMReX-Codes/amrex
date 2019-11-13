@@ -22,6 +22,8 @@ namespace amrex {
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 struct ParticleTileData
 {
+    static constexpr int NAR = NArrayReal;
+    static constexpr int NAI = NArrayInt;    
     using ParticleType = Particle<NStructReal, NStructInt>;
     using SuperParticleType = Particle<NStructReal+NArrayReal, NStructInt+NArrayInt>;
 
@@ -32,8 +34,8 @@ struct ParticleTileData
 
     int m_num_runtime_real;
     int m_num_runtime_int;
-    ParticleReal* AMREX_RESTRICT * AMREX_RESTRICT m_runtime_r_data;
-    int* AMREX_RESTRICT * AMREX_RESTRICT m_runtime_i_data;
+    ParticleReal* AMREX_RESTRICT * AMREX_RESTRICT m_runtime_rdata;
+    int* AMREX_RESTRICT * AMREX_RESTRICT m_runtime_idata;
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void packParticleData (char* buffer, int src_index, int dst_index,
@@ -55,7 +57,7 @@ struct ParticleTileData
         {
             if (comm_real[NArrayReal+i])
             {
-                memcpy(dst, m_runtime_r_data[i] + src_index, sizeof(ParticleReal));
+                memcpy(dst, m_runtime_rdata[i] + src_index, sizeof(ParticleReal));
                 dst += sizeof(ParticleReal);
             }
         }
@@ -71,7 +73,7 @@ struct ParticleTileData
         {
             if (comm_int[NArrayInt+i])
             {
-                memcpy(dst, m_runtime_i_data[i] + src_index, sizeof(int));
+                memcpy(dst, m_runtime_idata[i] + src_index, sizeof(int));
                 dst += sizeof(int);
             }
         }        
@@ -97,7 +99,7 @@ struct ParticleTileData
         {
             if (comm_real[NArrayReal+i])
             {
-                memcpy(m_runtime_r_data[i] + dst_index, src, sizeof(ParticleReal));
+                memcpy(m_runtime_rdata[i] + dst_index, src, sizeof(ParticleReal));
                 src += sizeof(ParticleReal);
             }
         }
@@ -113,7 +115,7 @@ struct ParticleTileData
         {
             if (comm_int[NArrayInt+i])
             {
-                memcpy(m_runtime_i_data[i] + dst_index, src, sizeof(int));
+                memcpy(m_runtime_idata[i] + dst_index, src, sizeof(int));
                 src += sizeof(int);
             }
         }
@@ -152,6 +154,8 @@ struct ParticleTileData
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 struct ConstParticleTileData
 {
+    static constexpr int NAR = NArrayReal;
+    static constexpr int NAI = NArrayInt;
     using ParticleType = Particle<NStructReal, NStructInt>;
     using SuperParticleType = Particle<NStructReal+NArrayReal, NStructInt+NArrayInt>;
 
@@ -162,8 +166,8 @@ struct ConstParticleTileData
 
     int m_num_runtime_real;
     int m_num_runtime_int;
-    const ParticleReal* AMREX_RESTRICT * AMREX_RESTRICT m_runtime_r_data;
-    const int* AMREX_RESTRICT * AMREX_RESTRICT m_runtime_i_data;
+    const ParticleReal* AMREX_RESTRICT * AMREX_RESTRICT m_runtime_rdata;
+    const int* AMREX_RESTRICT * AMREX_RESTRICT m_runtime_idata;
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void packParticleData(char* buffer, int src_index, int dst_index,
@@ -185,7 +189,7 @@ struct ConstParticleTileData
         {
             if (comm_real[NArrayReal+i])
             {
-                memcpy(dst, m_runtime_r_data[i] + src_index, sizeof(ParticleReal));
+                memcpy(dst, m_runtime_rdata[i] + src_index, sizeof(ParticleReal));
                 dst += sizeof(ParticleReal);
             }
         }
@@ -201,7 +205,7 @@ struct ConstParticleTileData
         {
             if (comm_int[NArrayInt+i])
             {
-                memcpy(dst, m_runtime_i_data[i] + src_index, sizeof(int));
+                memcpy(dst, m_runtime_idata[i] + src_index, sizeof(int));
                 dst += sizeof(int);
             }
         }        
@@ -228,6 +232,8 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 struct ParticleTile
 {
     using ParticleType = Particle<NStructReal, NStructInt>;
+    static constexpr int NAR = NArrayReal;
+    static constexpr int NAI = NArrayInt;
 
     using AoS = ArrayOfStructs<NStructReal, NStructInt>;
     using ParticleVector = typename AoS::ParticleVector;
@@ -387,6 +393,26 @@ struct ParticleTile
         m_soa_tile.GetIntData(comp).resize(new_size, v);
     }
 
+    int NumRealComps () const noexcept { return m_soa_tile.NumRealComps(); }
+
+    int NumIntComps () const noexcept { return m_soa_tile.NumIntComps(); }
+
+    void swap (ParticleTile<NStructReal, NStructInt, NArrayReal, NArrayInt>& other)
+    {
+        m_aos_tile().swap(other.GetArrayOfStructs()());
+        for (int j = 0; j < NumRealComps(); ++j)
+        {
+            auto& rdata = GetStructOfArrays().GetRealData(j);
+            rdata.swap(other.GetStructOfArrays().GetRealData(j));
+        }
+        
+        for (int j = 0; j < NumIntComps(); ++j)
+        {
+            auto& idata = GetStructOfArrays().GetIntData(j);
+            idata.swap(other.GetStructOfArrays().GetIntData(j));
+        }
+    }
+
     ParticleTileDataType getParticleTileData ()
     {
         for (int i = 0; i < m_runtime_r_ptrs.size(); ++i) {
@@ -404,8 +430,8 @@ struct ParticleTile
         ptd.m_size = size();
         ptd.m_num_runtime_real = m_runtime_r_ptrs.size();
         ptd.m_num_runtime_int = m_runtime_i_ptrs.size();
-        ptd.m_runtime_r_data = m_runtime_r_ptrs.dataPtr();
-        ptd.m_runtime_i_data = m_runtime_i_ptrs.dataPtr();
+        ptd.m_runtime_rdata = m_runtime_r_ptrs.dataPtr();
+        ptd.m_runtime_idata = m_runtime_i_ptrs.dataPtr();
         return ptd;
     }
 
@@ -426,8 +452,8 @@ struct ParticleTile
         ptd.m_size = size();
         ptd.m_num_runtime_real = m_runtime_r_cptrs.size();
         ptd.m_num_runtime_int = m_runtime_i_cptrs.size();
-        ptd.m_runtime_r_data = m_runtime_r_cptrs.dataPtr();
-        ptd.m_runtime_i_data = m_runtime_i_cptrs.dataPtr();
+        ptd.m_runtime_rdata = m_runtime_r_cptrs.dataPtr();
+        ptd.m_runtime_idata = m_runtime_i_cptrs.dataPtr();
         return ptd;
     }
 

@@ -7,6 +7,7 @@
 #include <AMReX_Print.H>
 #include <AMReX_MFIter.H>
 #include <AMReX_ParGDB.H>
+#include <AMReX_ParticleTile.H>
 
 #include <limits>
 
@@ -51,27 +52,28 @@ void enforcePeriodic (P& p,
                       amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& phi,
                       amrex::GpuArray<int,AMREX_SPACEDIM> const& is_per) noexcept
 {
-  // In rare cases, degenerate cases can be found, filter out with a tolerance
+    // In rare cases, degenerate cases can be found, filter out with a tolerance
 #if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
-  static constexpr Real eps = std::numeric_limits<Real>::epsilon();
+    static constexpr Real eps = std::numeric_limits<Real>::epsilon();
 #else
-  static constexpr Real eps = DBL_EPSILON;
+    static constexpr Real eps = DBL_EPSILON;
 #endif
 
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
         if (not is_per[idim]) continue;
         if (p.pos(idim) >= phi[idim]) { 
-	  while (p.pos(idim) >= phi[idim]) { 
-            p.pos(idim) -= (phi[idim] - plo[idim]);
-	  }
-	  if (p.pos(idim) < plo[idim]) p.pos(idim) = plo[idim]; // clamp to avoid precision issues;
-        } else if (p.pos(idim) < plo[idim]) {
-	  while (p.pos(idim) < plo[idim]) {
-            p.pos(idim) += (phi[idim] - plo[idim]); 
-	  }
-	  if (p.pos(idim) == phi[idim]) p.pos(idim) = plo[idim]; // clamp to avoid precision issues;
-	  if (p.pos(idim) > phi[idim]) p.pos(idim) = phi[idim]-eps; // clamp to avoid precision issues;
+            while (p.pos(idim) >= phi[idim]) { 
+                p.pos(idim) -= (phi[idim] - plo[idim]);
+            }
+            if (p.pos(idim) < plo[idim]) p.pos(idim) = plo[idim]; // clamp to avoid precision issues;
+        } 
+        else if (p.pos(idim) < plo[idim]) {
+            while (p.pos(idim) < plo[idim]) {
+                p.pos(idim) += (phi[idim] - plo[idim]); 
+            }
+            if (p.pos(idim) == phi[idim]) p.pos(idim) = plo[idim]; // clamp to avoid precision issues;
+            if (p.pos(idim) > phi[idim]) p.pos(idim) = phi[idim]-eps; // clamp to avoid precision issues;
         }
     }
 }
@@ -133,6 +135,44 @@ numParticlesOutOfRange (PC const& pc, int lev_min, int lev_max, int nGrow)
     ParallelDescriptor::ReduceIntSum(num_wrong);
 
     return num_wrong;
+}
+
+template <int NSR, int NSI, int NAR, int NAI>
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+void copyParticle(const      ParticleTileData<NSR, NSI, NAR, NAI>& dst, 
+                  const ConstParticleTileData<NSR, NSI, NAR, NAI>& src, 
+                  int src_i, int dst_i) noexcept
+{
+    AMREX_ASSERT(dst.m_num_runtime_real == src.m_num_runtime_real);
+    AMREX_ASSERT(dst.m_num_runtime_int  == src.m_num_runtime_int );
+
+    dst.m_aos[dst_i] = src.m_aos[src_i];
+    for (int j = 0; j < NAR; ++j)
+        dst.m_rdata[j][dst_i] = src.m_rdata[j][src_i];
+    for (int j = 0; j < dst.m_num_runtime_real; ++j)
+        dst.m_runtime_rdata[j][dst_i] = src.m_runtime_rdata[j][src_i];
+    for (int j = 0; j < NAI; ++j)
+        dst.m_idata[j][dst_i] = src.m_idata[j][src_i];
+    for (int j = 0; j < dst.m_num_runtime_real; ++j)
+        dst.m_runtime_idata[j][dst_i] = src.m_runtime_idata[j][src_i];
+}
+
+template <typename PTile, typename N, typename IndexType>
+void gatherParticles (PTile& dst, const PTile& src, N np, const IndexType* inds)
+{
+    const auto src_data = src.getConstParticleTileData();
+          auto dst_data = dst.getParticleTileData();
+          
+          AMREX_FOR_1D( np, i, { copyParticle(dst_data, src_data, inds[i], i); });
+}
+
+template <typename PTile, typename N, typename IndexType>
+void scatterParticles (PTile& dst, const PTile& src, N np, const IndexType* inds)
+{
+    const auto src_data = src.getConstParticleTileData();
+          auto dst_data = dst.getParticleTileData();
+          
+          AMREX_FOR_1D( np, i, { copyParticle(dst_data, src_data, i, inds[i]); });
 }
 
 IntVect computeRefFac (const ParGDBBase* a_gdb, int src_lev, int lev);
