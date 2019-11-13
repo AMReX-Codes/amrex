@@ -28,9 +28,18 @@ WarpX::InitSpaceChargeField (WarpXParticleContainer& pc)
     bool reset = true;
     pc.DepositCharge(rho, local, reset);
 
-    // Call amrex's multigrid solver
-    // -----------------------------
+    // Compute the potential phi, by solving the Poisson equation
+    computePhi( rho, phi );
 
+    // Compute the corresponding electric field, from the potential phi
+    computeE( Efield_fp, phi );
+
+}
+
+void
+WarpX::computePhi(const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
+                  amrex::Vector<std::unique_ptr<amrex::MultiFab> >& phi) const
+{
     // Define the boundary conditions
     Array<LinOpBCType,AMREX_SPACEDIM> lobc, hibc;
     for (int idim=0; idim<AMREX_SPACEDIM; idim++){
@@ -62,9 +71,12 @@ WarpX::InitSpaceChargeField (WarpXParticleContainer& pc)
     const Real reltol = 1.e-11;
     mlmg.solve( GetVecOfPtrs(phi), GetVecOfConstPtrs(rho), reltol, 0.0);
 
-    // Compute the electric field from the phi potential
-    // -------------------------------------------------
+}
 
+void
+WarpX::computeE(amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
+          const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& phi) const
+{
     for (int lev = 0; lev <= max_level; lev++) {
 
         const Real* dx = Geom(lev).CellSize();
@@ -86,9 +98,9 @@ WarpX::InitSpaceChargeField (WarpXParticleContainer& pc)
             const Box& tbz  = mfi.tilebox(Ez_nodal_flag);
 
             const auto& phi_arr = phi[0]->array(mfi);
-            const auto& Ex_arr = (*Efield_fp[lev][0])[mfi].array();
-            const auto& Ey_arr = (*Efield_fp[lev][1])[mfi].array();
-            const auto& Ez_arr = (*Efield_fp[lev][2])[mfi].array();
+            const auto& Ex_arr = (*E[lev][0])[mfi].array();
+            const auto& Ey_arr = (*E[lev][1])[mfi].array();
+            const auto& Ez_arr = (*E[lev][2])[mfi].array();
 
 #if (AMREX_SPACEDIM == 3)
             amrex::ParallelFor( tbx, tby, tbz,
