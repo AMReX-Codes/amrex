@@ -78,8 +78,12 @@ plt.colorbar()
 plt.savefig('Comparison.png')
 
 # Automatically check the results
-print( 'Relative error in Ex: %.3f'%(abs(Ex_array-Ex_th).max()/Ex_th.max()))
-assert np.allclose( Ex_array, Ex_th, atol=0.15*Ex_th.max() )
-assert np.allclose( Ey_array, Ey_th, atol=0.15*Ey_th.max() )
+def check(E, E_th, label):
+    print( 'Relative error in %s: %.3f'%(
+            label, abs(E-E_th).max()/E_th.max()))
+    assert np.allclose( E, E_th, atol=0.15*E_th.max() )
+
+check( Ex_array, Ex_th, 'Ex' )
+check( Ey_array, Ey_th, 'Ey' )
 if ds.dimensionality == 3:
-    assert np.allclose( Ez_array, Ez_th, atol=0.15*Ez_th.max() )
+    check( Ez_array, Ez_th, 'Ez' )
