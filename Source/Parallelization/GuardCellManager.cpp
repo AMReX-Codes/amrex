@@ -116,8 +116,10 @@ guardCellManager::Init(
     // Compute number of cells required for Field Solver
 #ifdef WARPX_USE_PSATD
     ng_FieldSolver = ng_alloc_EB;
+    ng_FieldSolverF = ng_alloc_EB;
 #else
     ng_FieldSolver = IntVect(AMREX_D_DECL(1,1,1));
+    ng_FieldSolverF = IntVect(AMREX_D_DECL(1,1,1));
 #endif
     ng_FieldSolver = ng_FieldSolver.min(ng_alloc_EB);
 
@@ -144,6 +146,7 @@ guardCellManager::Init(
     // Make sure we do not exchange more guard cells than allocated.
     ng_FieldGather = ng_FieldGather.min(ng_alloc_EB);
     ng_UpdateAux = ng_UpdateAux.min(ng_alloc_EB);
+    ng_FieldSolverF = ng_FieldSolverF.min(ng_alloc_F);
     // Only FillBoundary(ng_FieldGather) is called between consecutive
     // field solves. So ng_FieldGather must have enough cells
     // for the field solve too.

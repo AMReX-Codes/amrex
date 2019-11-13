@@ -30,6 +30,7 @@ public:
 
     // Guard cells exchanged for specific in the PIC loop
     amrex::IntVect ng_FieldSolver = amrex::IntVect::TheZeroVector();
+    amrex::IntVect ng_FieldSolverF = amrex::IntVect::TheZeroVector();
     amrex::IntVect ng_FieldGather = amrex::IntVect::TheZeroVector();
     amrex::IntVect ng_UpdateAux = amrex::IntVect::TheZeroVector();
     amrex::IntVect ng_MovingWindow = amrex::IntVect::TheZeroVector();

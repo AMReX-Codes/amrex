@@ -373,7 +373,6 @@ WarpX::FillBoundaryE (int lev, PatchType patch_type, IntVect ng)
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
             ng <= Efield_fp[lev][0]->nGrowVect(),
             "Error: in FillBoundaryE, requested more guard cells than allocated");
-        Print()<<"FillBoundaryE exchanges "<< Efield_fp[lev][0]->nGrowVect() <<'\n';
         Efield_fp[lev][0]->FillBoundary(ng, period);
         Efield_fp[lev][1]->FillBoundary(ng, period);
         Efield_fp[lev][2]->FillBoundary(ng, period);
@@ -394,7 +393,6 @@ WarpX::FillBoundaryE (int lev, PatchType patch_type, IntVect ng)
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
             ng <= Efield_cp[lev][0]->nGrowVect(),
             "Error: in FillBoundaryE, requested more guard cells than allocated");
-        Print()<<"FillBoundaryE exchanges "<< Efield_cp[lev][0]->nGrowVect() <<'\n';
         Efield_cp[lev][0]->FillBoundary(ng, cperiod);
         Efield_cp[lev][1]->FillBoundary(ng, cperiod);
         Efield_cp[lev][2]->FillBoundary(ng, cperiod);
@@ -426,7 +424,6 @@ WarpX::FillBoundaryB (int lev, PatchType patch_type, IntVect ng)
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
             ng <= Bfield_fp[lev][0]->nGrowVect(),
             "Error: in FillBoundaryB, requested more guard cells than allocated");
-        Print()<<"FillBoundaryB exchanges "<< Bfield_fp[lev][0]->nGrowVect() <<'\n';
         Bfield_fp[lev][0]->FillBoundary(ng, period);
         Bfield_fp[lev][1]->FillBoundary(ng, period);
         Bfield_fp[lev][2]->FillBoundary(ng, period);
@@ -446,7 +443,6 @@ WarpX::FillBoundaryB (int lev, PatchType patch_type, IntVect ng)
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
             ng <= Bfield_cp[lev][0]->nGrowVect(),
             "Error: in FillBoundaryB, requested more guard cells than allocated");
-        Print()<<"FillBoundaryB exchanges "<< Bfield_cp[lev][0]->nGrowVect() <<'\n';
         Bfield_cp[lev][0]->FillBoundary(ng, cperiod);
         Bfield_cp[lev][1]->FillBoundary(ng, cperiod);
         Bfield_cp[lev][2]->FillBoundary(ng, cperiod);
