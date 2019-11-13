@@ -10,6 +10,11 @@ using namespace amrex;
 void
 WarpX::InitSpaceChargeField (WarpXParticleContainer& pc)
 {
+
+#ifdef WARPX_DIM_RZ
+    amrex::Abort();
+#endif
+
     // Allocate fields for charge and potential
     const int num_levels = max_level + 1;
     Vector<std::unique_ptr<MultiFab> > rho(num_levels);
@@ -36,6 +41,12 @@ WarpX::InitSpaceChargeField (WarpXParticleContainer& pc)
 
 }
 
+/* Compute the potential `phi` by solving the Poisson equation with `rho` as
+   a source. This uses the amrex solver.
+
+   \param[in] rho The charge density a given species
+   \param[out] phi The potential to be computed by this function
+*/
 void
 WarpX::computePhi(const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
                   amrex::Vector<std::unique_ptr<amrex::MultiFab> >& phi) const
@@ -61,7 +72,7 @@ WarpX::computePhi(const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
         BoxArray cba = boxArray(lev);
         cba.enclosedCells();
         MultiFab sigma(cba, DistributionMap(lev), 1, 0);
-        sigma.setVal(PhysConst::ep0);
+        sigma.setVal(-PhysConst::ep0);
         linop.setSigma(lev, sigma);
     }
 
@@ -73,6 +84,12 @@ WarpX::computePhi(const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
 
 }
 
+/* \bried Compute the electric field that corresponds to `phi`, and
+          add it to the set of MultiFab `E`.
+
+   \param[inout] E Electric field on the grid
+   \param[in] phi The potential from which to compute the electric field
+*/
 void
 WarpX::computeE(amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
           const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& phi) const
@@ -105,22 +122,22 @@ WarpX::computeE(amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >&
 #if (AMREX_SPACEDIM == 3)
             amrex::ParallelFor( tbx, tby, tbz,
                 [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                    Ex_arr(i,j,k) += inv_dx*( phi_arr(i+1,j,k) - phi_arr(i,j,k) );
+                    Ex_arr(i,j,k) += -inv_dx*( phi_arr(i+1,j,k) - phi_arr(i,j,k) );
                 },
                 [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                    Ey_arr(i,j,k) += inv_dy*( phi_arr(i,j+1,k) - phi_arr(i,j,k) );
+                    Ey_arr(i,j,k) += -inv_dy*( phi_arr(i,j+1,k) - phi_arr(i,j,k) );
                 },
                 [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                    Ez_arr(i,j,k) += inv_dz*( phi_arr(i,j,k+1) - phi_arr(i,j,k) );
+                    Ez_arr(i,j,k) += -inv_dz*( phi_arr(i,j,k+1) - phi_arr(i,j,k) );
                 }
             );
 #else
             amrex::ParallelFor( tbx, tbz,
                 [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                    Ex_arr(i,j,k) += inv_dx*( phi_arr(i+1,j,k) - phi_arr(i,j,k) );
+                    Ex_arr(i,j,k) += -inv_dx*( phi_arr(i+1,j,k) - phi_arr(i,j,k) );
                 },
                 [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                    Ez_arr(i,j,k) += inv_dz*( phi_arr(i,j+1,k) - phi_arr(i,j,k) );
+                    Ez_arr(i,j,k) += -inv_dz*( phi_arr(i,j+1,k) - phi_arr(i,j,k) );
                 }
             );
 #endif
