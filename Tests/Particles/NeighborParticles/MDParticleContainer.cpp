@@ -98,9 +98,9 @@ InitParticles(const IntVect& a_num_particles_per_cell,
         auto new_size = old_size + host_particles.size();
         particle_tile.resize(new_size);
         
-        ::thrust_copy(host_particles.begin(),
-                          host_particles.end(),
-                          particle_tile.GetArrayOfStructs().begin() + old_size);        
+        Gpu::thrust_copy(host_particles.begin(),
+                         host_particles.end(),
+                         particle_tile.GetArrayOfStructs().begin() + old_size);        
     }
     
     amrex::PrintToFile("neighbor_test") << " Number of particles is " << this->TotalNumberOfParticles()<< " \n";
