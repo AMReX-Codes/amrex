@@ -1,6 +1,9 @@
-CEXE_sources += LaserParticleContainer.cpp
-CEXE_sources += LaserProfiles.cpp
 CEXE_headers += LaserParticleContainer.H
+CEXE_sources += LaserParticleContainer.cpp
+CEXE_headers += LaserProfiles.H
+CEXE_headers += LaserAntennaParams.H
+
+include $(WARPX_HOME)/Source/Laser/LaserProfilesImpl/Make.package
 
 INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/Laser
 VPATH_LOCATIONS   += $(WARPX_HOME)/Source/Laser

@@ -179,30 +179,6 @@ void WarpX::zeroOutBoundary(amrex::MultiFab& input_data,
     bndry_data.FillBoundary();
 }
 
-void WarpX::sumFineToCrseNodal(const amrex::MultiFab& fine,
-                               amrex::MultiFab& crse,
-                               const amrex::Geometry& cgeom,
-                               const amrex::IntVect& ratio) {
-    const BoxArray& fine_BA = fine.boxArray();
-    const DistributionMapping& fine_dm = fine.DistributionMap();
-    BoxArray coarsened_fine_BA = fine_BA;
-    coarsened_fine_BA.coarsen(ratio);
-
-    MultiFab coarsened_fine_data(coarsened_fine_BA, fine_dm, 1, 0);
-    coarsened_fine_data.setVal(0.0);
-
-    for (MFIter mfi(coarsened_fine_data); mfi.isValid(); ++mfi) {
-        const Box& bx = mfi.validbox();
-        const Box& crse_box = coarsened_fine_data[mfi].box();
-        const Box& fine_box = fine[mfi].box();
-        WRPX_SUM_FINE_TO_CRSE_NODAL(bx.loVect(), bx.hiVect(), ratio.getVect(),
-                                    coarsened_fine_data[mfi].dataPtr(), crse_box.loVect(), crse_box.hiVect(),
-                                    fine[mfi].dataPtr(), fine_box.loVect(), fine_box.hiVect());
-    }
-
-    crse.copy(coarsened_fine_data, cgeom.periodicity(), FabArrayBase::ADD);
-}
-
 void
 WarpX::fixRHSForSolve(Vector<std::unique_ptr<MultiFab> >& rhs,
                       const Vector<std::unique_ptr<FabArray<BaseFab<int> > > >& masks) const {
