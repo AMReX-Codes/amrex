@@ -703,7 +703,7 @@ public:
 
 #ifdef AMREX_USE_MPI
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
 #if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
 
     void FB_pack_send_buffer_cuda_graph (const FB& TheFB, int scomp, int ncomp,

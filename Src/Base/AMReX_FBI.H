@@ -917,6 +917,9 @@ FabArray<FAB>::pack_send_buffer_gpu (FabArray<FAB> const& src, int scomp, int nc
 
     typedef Array4CopyTag<value_type> TagType;
     Vector<TagType> snd_copy_tags;
+    // FIX HIP HERE -- Dim3
+    Dim3 zero;
+    zero.x = 0; zero.y = 0; zero.z = 0;
     for (int j = 0; j < N_snds; ++j)
     {
         char* dptr = send_data[j];
@@ -927,7 +930,7 @@ FabArray<FAB>::pack_send_buffer_gpu (FabArray<FAB> const& src, int scomp, int nc
             {
                 snd_copy_tags.push_back
                     ({amrex::makeArray4((value_type*)(dptr),tag.sbox,ncomp),
-                      src.array(tag.srcIndex), tag.sbox, Dim3{0,0,0}});
+                      src.array(tag.srcIndex), tag.sbox, zero});
                 dptr += (tag.sbox.numPts() * ncomp * sizeof(value_type));
             }
             BL_ASSERT(dptr == send_data[j] + send_size[j]); 
@@ -948,6 +951,10 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
 {
     const int N_rcvs = recv_cctc.size();
     if (N_rcvs == 0) return;
+
+    // HIP FIX HERE
+    Dim3 zero;
+    zero.x = 0; zero.y = 0; zero.z = 0;
 
     typedef Array4CopyTag<value_type> TagType;
     Vector<TagType> recv_copy_tags;
@@ -975,7 +982,7 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
                 recv_copy_tags.push_back
                     ({dst.atLocalIdx(li).array(),
                       amrex::makeArray4((value_type*)(dptr),tag.dbox,ncomp),
-                      tag.dbox, Dim3{0,0,0}});
+                      tag.dbox, zero});
                 dptr += tag.dbox.numPts() * ncomp * sizeof(value_type);
 
                 if (maskfabs.size() > 0) {
