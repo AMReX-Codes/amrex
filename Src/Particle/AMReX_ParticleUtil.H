@@ -144,7 +144,7 @@ void copyParticle(const      ParticleTileData<NSR, NSI, NAR, NAI>& dst,
                   int src_i, int dst_i) noexcept
 {
     AMREX_ASSERT(dst.m_num_runtime_real == src.m_num_runtime_real);
-    AMREX_ASSERT(dst_m_num_runtime_int  == src.m_num_runtime_int );
+    AMREX_ASSERT(dst.m_num_runtime_int  == src.m_num_runtime_int );
 
     dst.m_aos[dst_i] = src.m_aos[src_i];
     for (int j = 0; j < NAR; ++j)
