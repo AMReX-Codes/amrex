@@ -144,6 +144,7 @@ p4.do_qed_breit_wheeler = 1
 #################################
 
 ##########QED TABLES####################
+qed_bw.use_dummy_builtin_tables = 1
 qed_bw.generate_table = 0
 #qed_bw.chi_min = 0.001
 #qed_bw.tab_dndt_chi_min = 0.1
@@ -154,10 +155,9 @@ qed_bw.generate_table = 0
 #qed_bw.tab_pair_chi_how_many = 2
 #qed_bw.tab_pair_prob_how_many = 2
 #qed_bw.save_table_in = "bw_micro_table"
-qed_bw.load_table_from = "bw_micro_table"
+#qed_bw.load_table_from = "bw_micro_table"
 #################################
 
 ### EXTERNAL FIELD ### (1e7 * [0.28571429 0.42857143 0.85714286] )
 warpx.B_external_particle = 2857142.85714286 4285714.28571428 8571428.57142857
 ####
-

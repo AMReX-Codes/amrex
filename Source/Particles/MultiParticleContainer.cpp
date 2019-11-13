@@ -682,11 +682,14 @@ void MultiParticleContainer::InitBreitWheeler ()
     std::string filename;
     std::tie(generate_table, filename, ctrl) = ParseBreitWheelerParams();
 
-    //Only temporary for test purposes, will be removed
+    //Use dummy tables for test purposes if required
     ParmParse pp("qed_bw");
-    bool ignore_tables = false;
-    pp.query("ignore_tables_for_test", ignore_tables);
-    if(ignore_tables) return;
+    bool use_dummy_builtin_tables = false;
+    pp.query("use_dummy_builtin_tables", use_dummy_builtin_tables);
+    if(use_dummy_builtin_tables)
+    {
+        m_shr_p_bw_engine->init_dummy_tables();
+    }
     //_________________________________________________
 
     if(generate_table && ParallelDescriptor::IOProcessor()){
@@ -820,13 +823,6 @@ MultiParticleContainer::ParseBreitWheelerParams ()
     // considered by the engine. If a photon has chi < chi_phot_min,
     // the optical depth is not evolved and pair generation is ignored
     pp.query("chi_min", ctrl.chi_phot_min);
-
-    //Only temporary for test purposes, will be removed
-    bool ignore_tables = false;
-    pp.query("ignore_tables_for_test", ignore_tables);
-    if(ignore_tables)
-        return std::make_tuple(false, "__DUMMY__", ctrl);
-    //_________________________________________________
 
     pp.query("generate_table", generate_table);
     if(generate_table){

@@ -66,7 +66,7 @@ photons.do_qed_breit_wheeler = 1
 
 #######QED ENGINE PARAMETERS#####
 qed_bw.chi_min = 0.01
-qed_bw.ignore_tables_for_test = 1
+qed_bw.use_dummy_builtin_tables = 1
 #qed_bw.generate_table = 1
 #qed_bw.tab_dndt_chi_min = 0.01
 #qed_bw.tab_dndt_chi_max = 100
