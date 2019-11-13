@@ -8,9 +8,9 @@
 
 namespace amrex {
 
-    // 
+    //
     // Fill EB normals
-    // 
+    //
     void FillEBNormals(MultiFab & normals, const EBFArrayBoxFactory & eb_factory,
                        const Geometry & geom) {
 
@@ -58,9 +58,9 @@ namespace amrex {
     }
 
 #if (AMREX_SPACEDIM > 1)
-    // 
+    //
     // Do small cell redistribution on one FAB
-    // 
+    //
     void apply_eb_redistribution ( Box& bx,
                                    MultiFab& div_mf,
                                    MultiFab& divc_mf,
@@ -82,7 +82,7 @@ namespace amrex {
         const Real tolerance = std::numeric_limits<Real>::epsilon();
 
 #if (AMREX_SPACEDIM == 2)
-        if (std::abs(dx[0] - dx[1]) > tolerance) 
+        if (std::abs(dx[0] - dx[1]) > tolerance)
             amrex::Abort("apply_eb_redistribution(): grid spacing must be uniform");
 #elif (AMREX_SPACEDIM == 3)
         if( (std::abs(dx[0] - dx[1]) > tolerance) or
@@ -118,7 +118,7 @@ namespace amrex {
         Array4<Real> const& delm  = delm_fab.array();
 
         //
-        // Array "mask" is used to sever the link to ghost cells when the BCs 
+        // Array "mask" is used to sever the link to ghost cells when the BCs
         // are not periodic
         // It is set to 1 when a cell can be used in computations, 0 otherwise
         //
@@ -224,9 +224,9 @@ namespace amrex {
         Gpu::synchronize();
     }
 
-    // 
+    //
     // Do small cell redistribution on a MultiFab -- with a weighting function
-    // 
+    //
     void single_level_weighted_redistribute ( int lev, MultiFab& div_tmp_in, MultiFab& div_out, const MultiFab& weights,
                                               int div_comp, int ncomp, const Vector<Geometry>& geom)
     {
@@ -244,7 +244,7 @@ namespace amrex {
 
         int nghost = div_tmp_in.nGrow();
 
-        EB_set_covered(div_tmp_in, div_comp, ncomp, nghost, covered_val);
+        EB_set_covered(div_tmp_in, 0, ncomp, nghost, covered_val);
 
         div_tmp_in.FillBoundary(geom[lev].periodicity());
 
@@ -259,11 +259,11 @@ namespace amrex {
         {
             // Tilebox
             Box bx = mfi.tilebox ();
-    
+
             // this is to check efficiently if this tile contains any eb stuff
             const EBFArrayBox&  div_fab = static_cast<EBFArrayBox const&>(div_out[mfi]);
             const EBCellFlagFab&  flags = div_fab.getEBCellFlagFab();
-    
+
             if ( !(flags.getType(amrex::grow(bx,     0)) == FabType::covered) &&
                  !(flags.getType(amrex::grow(bx,nghost)) == FabType::regular) )
             {
@@ -277,9 +277,9 @@ namespace amrex {
         }
     }
 
-    // 
+    //
     // Do small cell redistribution on a MultiFab -- without a weighting function
-    // 
+    //
     void single_level_redistribute ( int lev, MultiFab& div_tmp_in, MultiFab& div_out,
                                      int div_comp, int ncomp, const Vector<Geometry>& geom)
     {
