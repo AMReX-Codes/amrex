@@ -1047,8 +1047,9 @@ protected:
     mutable std::string HdrFileNamePrePost;
     mutable Vector<std::string> filePrefixPrePost;
 
-#ifdef AMREX_USE_GPU
     ParticleTileType m_ptile_r;
+
+#ifdef AMREX_USE_GPU
     Gpu::ManagedDeviceVector<int> m_grids_r;
     Gpu::ManagedDeviceVector<int> m_levs_r;
     Gpu::ManagedDeviceVector<int> m_grids_tmp;
