@@ -689,6 +689,7 @@ void MultiParticleContainer::InitBreitWheeler ()
     if(use_dummy_builtin_tables)
     {
         m_shr_p_bw_engine->init_dummy_tables();
+        return;
     }
     //_________________________________________________
 
