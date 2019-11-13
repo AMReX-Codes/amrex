@@ -133,7 +133,7 @@ struct ParticleCopyPlan
         }
 
         m_box_counts.resize(0);
-        m_box_counts.resize(num_buckets, 0);
+        m_box_counts.resize(num_buckets+1, 0);
         m_box_offsets.resize(num_buckets+1);
         auto p_dst_box_counts = m_box_counts.dataPtr();
         auto p_lev_offsets = pc.BufferMap().levelOffsetsPtr();
@@ -166,8 +166,8 @@ struct ParticleCopyPlan
             }
         }
 
-        amrex::Gpu::exclusive_scan(m_box_counts.begin(), m_box_counts.end()+1, m_box_offsets.begin());
-
+        amrex::Gpu::exclusive_scan(m_box_counts.begin(), m_box_counts.end(), m_box_offsets.begin());
+        
         buildMPIStart(pc.BufferMap());
     }
 
