@@ -559,7 +559,18 @@ ifeq ($(USE_HIP),TRUE)
 #    include $(AMREX_HOME)/Tools/GNUMake/comps/hip.mak
 
     ifeq ($(USE_MPI),TRUE)
-      $(error MPI is not supported with HIP)
+#      $(error MPI is not supported with HIP)
+
+      export OMPI_CC := hipcc 
+      export OMPI_CXX := hipcc
+      export OMPI_F77 := $(FC)
+      export OMPI_FC  := $(F90)
+
+      export MPICH_CC  := hipcc
+      export MPICH_CXX := hipcc
+      export MPICH_F77 := $(FC)
+      export MPICH_FC  := $(F90)
+
     endif
 
     DEFINES += -DAMREX_USE_HIP
