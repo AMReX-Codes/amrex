@@ -21,8 +21,8 @@
  * The class is templated on the process type. This gives flexibility
  * on source and product particle transformations.
  */
-template<elementaryProcessType ProcessT>
-class elementaryProcess
+template<ElementaryProcessType ProcessT>
+class ElementaryProcess
 {
 public:
 
@@ -36,16 +36,17 @@ public:
      * \param attribs_product attribs of product particles
      * \param runtime_attribs_product runtime attribs for product, to store old attribs
      */
-    copyParticle initialize_copy(
+    CopyParticle initialize_copy(
         const int cpuid, const int do_back_transformed_product,
         const amrex::GpuArray<amrex::ParticleReal*,3> runtime_uold_source,
         const amrex::GpuArray<amrex::ParticleReal*,PIdx::nattribs> attribs_source,
         const amrex::GpuArray<amrex::ParticleReal*,PIdx::nattribs> attribs_product,
         const amrex::GpuArray<amrex::ParticleReal*,6> runtime_attribs_product) const noexcept
     {
-        return copyParticle (
+        return CopyParticle(
             cpuid, do_back_transformed_product, runtime_uold_source,
-            attribs_source, attribs_product, runtime_attribs_product);
+            attribs_source, attribs_product, runtime_attribs_product
+        );
     };
 
     /**
@@ -123,7 +124,8 @@ public:
         int np_flagged = i_product[np_source-1];
         if (np_flagged == 0) return;
 
-        amrex::Vector<copyParticle> v_copy_functor;
+        amrex::Gpu::ManagedDeviceVector<CopyParticle> v_copy_functor;
+        v_copy_functor.reserve(nproducts);
         amrex::Gpu::ManagedDeviceVector<int> v_pid_product(nproducts);
         amrex::Gpu::ManagedDeviceVector<WarpXParticleContainer::ParticleType*> v_particles_product(nproducts);
         for (int iproduct=0; iproduct<nproducts; iproduct++){
@@ -172,12 +174,13 @@ public:
             const int cpuid = amrex::ParallelDescriptor::MyProc();
 
             // Create instance of copy functor, and add it to the vector
-            v_copy_functor.push_back (initialize_copy(
-                                          cpuid, v_do_back_transformed_product[iproduct],
-                                          runtime_uold_source,
-                                          attribs_source,
-                                          attribs_product,
-                                          runtime_attribs_product) );
+            v_copy_functor.push_back( initialize_copy(
+                cpuid, v_do_back_transformed_product[iproduct],
+                runtime_uold_source,
+                attribs_source,
+                attribs_product,
+                runtime_attribs_product
+            ) );
             v_pid_product[iproduct] = pid_product;
 
         }
@@ -212,12 +215,12 @@ public:
         amrex::Gpu::ManagedDeviceVector<int> v_pid_product,
         amrex::Gpu::ManagedDeviceVector<WarpXParticleContainer::ParticleType*> v_particles_product,
         WarpXParticleContainer::ParticleType* particles_source,
-        const amrex::Vector<copyParticle>& v_copy_functor,
+        const amrex::Gpu::ManagedDeviceVector<CopyParticle>& v_copy_functor,
         amrex::GpuArray<int*,1> runtime_iattribs_source)
     {
         int const * const AMREX_RESTRICT p_is_flagged = is_flagged.dataPtr();
         int const * const AMREX_RESTRICT p_i_product = i_product.dataPtr();
-        copyParticle const * const p_copy_functor = v_copy_functor.data();
+        CopyParticle const * const AMREX_RESTRICT p_copy_functor = v_copy_functor.dataPtr();
         WarpXParticleContainer::ParticleType * * p_particles_product = v_particles_product.data();
         int const * const p_pid_product = v_pid_product.data();
 
@@ -251,7 +254,7 @@ public:
 };
 
 // Derived class for ionization process
-class IonizationProcess: public elementaryProcess<elementaryProcessType::Ionization>
+class IonizationProcess: public ElementaryProcess<ElementaryProcessType::Ionization>
 {};
 
 #endif // ELEMENTARYPROCESS_H_
