@@ -46,6 +46,7 @@
 #include <AMReX_ParticleCommunication.H>
 #include <AMReX_ParticleLocator.H>
 #include <AMReX_Scan.H>
+#include <AMReX_DenseBins.H>
 
 #ifdef BL_LAZY
 #include <AMReX_Lazy.H>
@@ -1032,7 +1033,6 @@ protected:
     ParGDBBase* m_gdb;
     ParGDB      m_gdb_object;
 
-
     //! ---- variables for i/o optimization saved for pre and post checkpoint
     bool         levelDirectoriesCreated;
     bool         usePrePost;
@@ -1047,28 +1047,12 @@ protected:
     mutable std::string HdrFileNamePrePost;
     mutable Vector<std::string> filePrefixPrePost;
 
-#ifdef AMREX_USE_CUDA
-    ParticleVector m_aos_r;
-    std::array<RealVector, NArrayReal> m_rdata_r;
-    std::array<IntVector, NArrayInt>  m_idata_r;
-    Vector<RealVector> m_runtime_rdata_r;
-    Vector<IntVector>  m_runtime_idata_r;
+#ifdef AMREX_USE_GPU
+    ParticleTileType m_ptile_r;
     Gpu::ManagedDeviceVector<int> m_grids_r;
     Gpu::ManagedDeviceVector<int> m_levs_r;
-
-    Gpu::ManagedDeviceVector<int> m_lo;
-    Gpu::ManagedDeviceVector<int> m_hi;
-    Gpu::ManagedDeviceVector<int> m_output;
-
     Gpu::ManagedDeviceVector<int> m_grids_tmp;
     Gpu::ManagedDeviceVector<int> m_levs_tmp;
-
-    ParticleVector m_aos_to_redistribute;
-    std::vector<RealVector> m_real_arrays_to_redistribute;
-    std::vector<IntVector > m_int_arrays_to_redistribute;
-    Gpu::ManagedDeviceVector<int> m_grids_to_redistribute;
-
-    std::map<int, SendBuffer> m_not_ours;
 
     ParticleCopyOp redistribute_copy_op;
     ParticleCopyPlan redistribute_copy_plan;
@@ -1079,6 +1063,8 @@ protected:
     Gpu::PinnedDeviceVector<char> pinned_rcv_buffer;
 
     mutable AmrParticleLocator m_particle_locator;
+
+    DenseBins<ParticleType> m_bins;
 #endif
 
     int NumRuntimeRealComps () const { return m_num_runtime_real; }
