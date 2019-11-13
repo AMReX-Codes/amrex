@@ -79,7 +79,31 @@ namespace Gpu {
         auto size = std::distance(begin, end);
         dtod_memcpy(&(*result), &(*begin), size*sizeof(value_type));
     }
-                
+
+    template<class InIter, class OutIter>
+    void copyAsync (HostToDevice, InIter begin, InIter end, OutIter result) noexcept
+    {
+        using value_type = typename std::iterator_traits<InIter>::value_type;
+        auto size = std::distance(begin, end);
+        htod_memcpy_async(&(*result), &(*begin), size*sizeof(value_type));
+    }
+
+    template<class InIter, class OutIter>
+    void copyAsync (DeviceToHost, InIter begin, InIter end, OutIter result) noexcept
+    {
+        using value_type = typename std::iterator_traits<InIter>::value_type;
+        auto size = std::distance(begin, end);
+        dtoh_memcpy_async(&(*result), &(*begin), size*sizeof(value_type));
+    }
+
+    template<class InIter, class OutIter>
+    void copyAsync (DeviceToDevice, InIter begin, InIter end, OutIter result) noexcept
+    {
+        using value_type = typename std::iterator_traits<InIter>::value_type;
+        auto size = std::distance(begin, end);
+        dtod_memcpy_async(&(*result), &(*begin), size*sizeof(value_type));
+    }
+    
     template<class InIter, class OutIter>
     OutIter inclusive_scan (InIter begin, InIter end, OutIter result)
     {
