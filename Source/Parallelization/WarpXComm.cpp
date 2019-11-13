@@ -1,3 +1,4 @@
+#include <WarpXComm.H>
 #include <WarpXComm_K.H>
 #include <WarpX.H>
 #include <WarpX_f.H>
@@ -546,9 +547,9 @@ WarpX::SyncCurrent ()
 }
 
 void
-WarpX::interpolateCurrentFineToCoarse ( std::array< amrex::MultiFab const *, 3 > const & fine,
-                                        std::array< amrex::MultiFab       *, 3 > const & coarse,
-                                        int const refinement_ratio)
+interpolateCurrentFineToCoarse ( std::array< amrex::MultiFab const *, 3 > const & fine,
+                                 std::array< amrex::MultiFab       *, 3 > const & coarse,
+                                 int const refinement_ratio)
 {
     BL_PROFILE("interpolateCurrentFineToCoarse()");
     BL_ASSERT(refinement_ratio == 2);
@@ -606,7 +607,7 @@ WarpX::SyncRho ()
 }
 
 void
-WarpX::interpolateDensityFineToCoarse (const MultiFab& fine, MultiFab& coarse, int const refinement_ratio)
+interpolateDensityFineToCoarse (const MultiFab& fine, MultiFab& coarse, int const refinement_ratio)
 {
     BL_PROFILE("interpolateDensityFineToCoarse()");
     BL_ASSERT(refinement_ratio == 2);

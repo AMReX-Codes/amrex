@@ -47,6 +47,81 @@ private:
     amrex::Real m_ux_th, m_uy_th, m_uz_th;
 };
 
+// struct whose getMomentum returns momentum for 1 particle with relativistc
+// drift velocity beta, from the Maxwell-Juttner distribution. Method is from
+// Zenitani 2015 (Phys. Plasmas 22, 042116).
+struct InjectorMomentumJuttner
+{
+    // Constructor whose inputs are:
+    // the temperature parameter theta,
+    // boost velocity/c beta,
+    // and boost direction dir respectively.
+    InjectorMomentumJuttner(amrex::Real t, amrex::Real b, int d) noexcept
+        : theta(t), beta(b), dir(d)
+        {}
+
+    AMREX_GPU_HOST_DEVICE
+    amrex::XDim3
+    getMomentum (amrex::Real x, amrex::Real y, amrex::Real z) const noexcept
+    {
+        // Sobol method for sampling MJ Speeds,
+        // from Zenitani 2015 (Phys. Plasmas 22, 042116).
+        amrex::Real x1, x2, gamma;
+        amrex::Real u [3];
+        x1 = 0.;
+        gamma = 0.;
+        u[dir] = 0.;
+        // This condition is equation 10 in Zenitani,
+        // though x1 is defined differently.
+        while(u[dir]-gamma <= x1)
+        {
+            u[dir] = -theta*
+                std::log(amrex::Random()*amrex::Random()*amrex::Random());
+            gamma = std::sqrt(1+std::pow(u[dir],2));
+            x1 = theta*std::log(amrex::Random());
+        }
+        // The following code samples a random unit vector
+        // and multiplies the result by speed u[dir].
+        x1 = amrex::Random();
+        x2 = amrex::Random();
+        // Direction dir is an input parameter that sets the boost direction:
+        // 'x' -> d = 0, 'y' -> d = 1, 'z' -> d = 2.
+        u[(dir+1)%3] = 2*u[dir]*std::sqrt(x1*(1-x1))*std::sin(2*M_PI*x2);
+        u[(dir+2)%3] = 2*u[dir]*std::sqrt(x1*(1-x1))*std::cos(2*M_PI*x2);
+        // The value of dir is the boost direction to be transformed.
+        u[dir] = u[dir]*(2*x1-1);
+        x1 = amrex::Random();
+        // The following condition is equtaion 32 in Zenitani, called
+        // The flipping method. It transforms the intergral: d3x' -> d3x
+        // where d3x' is the volume element for positions in the boosted frame.
+        // The particle positions and densities can be initialized in the
+        // simulation frame with this method.
+        // The flipping method can similarly transform any
+        // symmetric distribution from one reference frame to another moving at
+        // a relative velocity of beta.
+        // An equivalent alternative to this method native to WarpX
+        // would be to initialize the particle positions and densities in the
+        // frame moving at speed beta, and then perform a Lorentz transform
+        // on their positions and MJ sampled velocities to the simulation frame.
+        if(-beta*u[dir]/gamma>x1)
+        {
+            u[dir] = -u[dir];
+        }
+        // This Lorentz transform is equation 17 in Zenitani.
+        // It transforms the integral d3u' -> d3u
+        // where d3u' is the volume element for momentum in the boosted frame.
+        u[dir] = 1/std::sqrt(1-pow(beta,2))*(u[dir]+gamma*beta);
+        // Note that if beta = 0 then the flipping method and Lorentz transform
+        // have no effect on the u[dir] direction.
+        return amrex::XDim3 {u[0],u[1],u[2]};
+    }
+
+private:
+    int dir;
+    amrex::Real beta, theta;
+};
+
+
 // struct whose getMomentum returns momentum for 1 particle, for
 // radial expansion
 struct InjectorMomentumRadialExpansion
@@ -124,6 +199,13 @@ struct InjectorMomentum
           object(t,a_ux_m,a_uy_m,a_uz_m,a_ux_th,a_uy_th,a_uz_th)
     { }
 
+     // This constructor stores a InjectorMomentumJuttner in union object.
+     InjectorMomentum (InjectorMomentumJuttner* t,
+                       amrex::Real theta, amrex::Real beta, int dir)
+         : type(Type::juttner),
+           object(t, theta, beta, dir)
+    { }
+
     // This constructor stores a InjectorMomentumCustom in union object.
     InjectorMomentum (InjectorMomentumCustom* t,
                       std::string const& a_species_name)
@@ -165,6 +247,10 @@ struct InjectorMomentum
         {
             return object.gaussian.getMomentum(x,y,z);
         }
+        case Type::juttner:
+        {
+            return object.juttner.getMomentum(x,y,z);
+        }
         case Type::constant:
         {
             return object.constant.getMomentum(x,y,z);
@@ -186,7 +272,7 @@ struct InjectorMomentum
     }
 
 private:
-    enum struct Type { constant, custom, gaussian, radial_expansion, parser };
+    enum struct Type { constant, custom, gaussian, juttner, radial_expansion, parser};
     Type type;
 
     // An instance of union Object constructs and stores any one of
@@ -204,6 +290,9 @@ private:
                 amrex::Real a_uz_m, amrex::Real a_ux_th,
                 amrex::Real a_uy_th, amrex::Real a_uz_th) noexcept
             : gaussian(a_ux_m,a_uy_m,a_uz_m,a_ux_th,a_uy_th,a_uz_th) {}
+        Object (InjectorMomentumJuttner*,
+                amrex::Real t, amrex::Real b, int dir) noexcept
+            : juttner(t,b,dir) {}
         Object (InjectorMomentumRadialExpansion*,
                 amrex::Real u_over_r) noexcept
             : radial_expansion(u_over_r) {}
@@ -215,6 +304,7 @@ private:
         InjectorMomentumConstant constant;
         InjectorMomentumCustom   custom;
         InjectorMomentumGaussian gaussian;
+        InjectorMomentumJuttner juttner;
         InjectorMomentumRadialExpansion radial_expansion;
         InjectorMomentumParser   parser;
     };

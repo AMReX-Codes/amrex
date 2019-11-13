@@ -1,13 +1,14 @@
 #ifndef WARPX_LaserParticleContainer_H_
 #define WARPX_LaserParticleContainer_H_
 
-#include <limits>
+#include <LaserProfiles.H>
 
 #include <WarpXParticleContainer.H>
 #include <WarpXConst.H>
 #include <WarpXParser.H>
 
-enum class laser_t { Null, Gaussian, Harris, parse_field_function };
+#include <memory>
+#include <limits>
 
 class LaserParticleContainer
     : public WarpXParticleContainer
@@ -44,14 +45,6 @@ public:
 
     virtual void PostRestart () final;
 
-    void gaussian_laser_profile (const int np, amrex::Real const * AMREX_RESTRICT const Xp,
-                                 amrex::Real const * AMREX_RESTRICT const Yp, amrex::Real t,
-                                 amrex::Real * AMREX_RESTRICT const amplitude);
-
-    void harris_laser_profile (const int np, amrex::Real const * AMREX_RESTRICT const Xp,
-                               amrex::Real const * AMREX_RESTRICT const Yp, amrex::Real t,
-                               amrex::Real * AMREX_RESTRICT const amplitude);
-
     void calculate_laser_plane_coordinates (const int np, const int thread_num,
                                             amrex::Real * AMREX_RESTRICT const pplane_Xp,
                                             amrex::Real * AMREX_RESTRICT const pplane_Yp);
@@ -68,17 +61,15 @@ protected:
     std::string laser_name;
 
 private:
-
     // runtime paramters
-    laser_t                   profile     = laser_t::Null;
-    amrex::Vector<amrex::Real> position;
-    amrex::Vector<amrex::Real> nvec;
-    amrex::Vector<amrex::Real> p_X;
-    amrex::Vector<amrex::Real> stc_direction;
+    amrex::Vector<amrex::Real> position; //! Coordinates of one of the point of the antenna
+    amrex::Vector<amrex::Real> nvec; //! Normal of the plane of the antenna
+    amrex::Vector<amrex::Real> p_X;// ! Polarization
 
     long                      pusher_algo = -1;
     amrex::Real               e_max       = std::numeric_limits<amrex::Real>::quiet_NaN();
     amrex::Real               wavelength  = std::numeric_limits<amrex::Real>::quiet_NaN();
+
     amrex::Real               Z0_lab = 0; // Position of the antenna in the lab frame
 
     long min_particles_per_mode = 4;
@@ -90,19 +81,6 @@ private:
     amrex::Real weight   = std::numeric_limits<amrex::Real>::quiet_NaN();
     amrex::Real mobility = std::numeric_limits<amrex::Real>::quiet_NaN();
 
-    // Gaussian profile
-    amrex::Real profile_waist          = std::numeric_limits<amrex::Real>::quiet_NaN();
-    amrex::Real profile_duration       = std::numeric_limits<amrex::Real>::quiet_NaN();
-    amrex::Real profile_t_peak         = std::numeric_limits<amrex::Real>::quiet_NaN();
-    amrex::Real profile_focal_distance = std::numeric_limits<amrex::Real>::quiet_NaN();
-    amrex::Real zeta = 0.;
-    amrex::Real beta = 0.;
-    amrex::Real phi2 = 0.;
-    amrex::Real theta_stc = 0.;
-
-    // parse_field_function profile
-    WarpXParser parser;
-    std::string field_function;
 
     // laser particle domain
     amrex::RealBox laser_injection_box;
@@ -118,6 +96,10 @@ private:
     void ContinuousInjection(const amrex::RealBox& injection_box) override;
     // Update position of the antenna
     void UpdateContinuousInjectionPosition(amrex::Real dt) override;
+
+    // Unique (smart) pointer to the laser profile
+    std::unique_ptr<WarpXLaserProfiles::ILaserProfile> m_up_laser_profile;
+
 };
 
 #endif
