@@ -506,7 +506,7 @@ WarpXParticleContainer::DepositCharge (Vector<std::unique_ptr<MultiFab> >& rho,
 {
     // Loop over the refinement levels
     int const finest_level = rho.size() - 1;
-    for (int lev = 0; lev < finest_level; ++lev) {
+    for (int lev = 0; lev <= finest_level; ++lev) {
 
         // Reset the `rho` array if `reset` is True
         if (reset) rho[lev]->setVal(0.0, rho[lev]->nGrow());
