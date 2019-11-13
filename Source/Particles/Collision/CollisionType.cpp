@@ -1,14 +1,16 @@
 #include "CollisionType.H"
 #include "UpdateMomentumPerezElastic.H"
 
+#include <AMReX_ParmParse.H>
+
 CollisionType::CollisionType(
     const std::vector<std::string>& species_names,
-    const std::vector<std::string>  collision_name)
+    std::string collision_name)
 {
 
     std::vector<std::string> collision_species;
 
-    ParmParse pp(collision_name);
+    amrex::ParmParse pp(collision_name);
     pp.getarr("species", collision_species);
 
     for (int i=0; i<species_names.size(); i++)
@@ -39,7 +41,7 @@ CollisionType::CollisionType(
  *        otherwise will be computed.
  *        V is the volume of the corresponding cell.*/
 
-static void CollisionType::ElasticCollisionPerez(
+void CollisionType::ElasticCollisionPerez(
     amrex::DenseBins<WarpXParticleContainer::ParticleType>::index_type const I1s,
     amrex::DenseBins<WarpXParticleContainer::ParticleType>::index_type const I1e,
     amrex::DenseBins<WarpXParticleContainer::ParticleType>::index_type const I2s,
@@ -155,7 +157,7 @@ static void CollisionType::ElasticCollisionPerez(
 /* \brief Shuffle array according to Fisher-Yates algorithm.
  *        Only shuffle the part between is <= i < ie, n = ie-is.*/
 
-static void CollisionType::ShuffleFisherYates(
+void CollisionType::ShuffleFisherYates(
     amrex::DenseBins<WarpXParticleContainer::ParticleType>::index_type *array,
     amrex::DenseBins<WarpXParticleContainer::ParticleType>::index_type const is,
     amrex::DenseBins<WarpXParticleContainer::ParticleType>::index_type const ie)

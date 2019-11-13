@@ -2,7 +2,7 @@
 #define WARPX_PARTICLES_COLLISION_COLLISIONTYPE_H_
 
 #include "WarpXParticleContainer.H"
-#include <WarpX.H>
+//#include <WarpX.H>
 #include <AMReX_REAL.H>
 #include <AMReX_DenseBins.H>
 
@@ -14,7 +14,7 @@ public:
 
     CollisionType(
         const std::vector<std::string>& species_names,
-        const std::vector<std::string>  collision_name);
+        std::string collision_name);
 
     static void ElasticCollisionPerez(
         amrex::DenseBins<WarpXParticleContainer::ParticleType>::index_type const I1s,

@@ -216,7 +216,7 @@ protected:
 
     std::vector<std::string> collision_names;
 
-    std::vector<CollisionType> allcollisions;
+    amrex::Vector<std::unique_ptr<CollisionType> > allcollisions;
 
     //! instead of depositing (current, charge) on the finest patch level, deposit to the coarsest grid
     std::vector<bool> m_deposit_on_main_grid;
