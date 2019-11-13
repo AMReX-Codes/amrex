@@ -570,7 +570,7 @@ IntVect::maxDir(bool a_doAbsValue) const noexcept
         {
             // HIP FIX HERE - abs
 #ifdef AMREX_USE_HIP
-            int curval = abs((*this)[idir]);,
+            int curval = abs((*this)[idir]);
 #else
             int curval = std::abs((*this)[idir]);
 #endif
@@ -796,7 +796,7 @@ int coarsen (int i, int ratio) noexcept
 {
     // HIP FIX HERE - abs
 #ifdef AMREX_USE_HIP
-    return (i<0) ? -abs(i+1)/ratio-1 : i/ratio;,
+    return (i<0) ? -abs(i+1)/ratio-1 : i/ratio;
 #else
     return (i<0) ? -std::abs(i+1)/ratio-1 : i/ratio;
 #endif
