@@ -477,9 +477,6 @@ data on the GPU.
 It has proven useful to have a version of Thrust's :cpp:`device_vector`
 that uses CUDA managed memory. This is provided by :cpp:`Gpu::ManagedDeviceVector`.
 
-:cpp:`thrust::copy` is also commonly used in AMReX applications. It can be
-implemented portably using :cpp:`Gpu::thrust_copy`.
-
 :cpp:`Gpu::DeviceVector` and :cpp:`Gpu::ManagedDeviceVector` are configured to
 use the memory Arenas provided by AMReX (see :ref:`sec:gpu:memory`). This
 means that you can create temporary versions of these containers on-the-fly
@@ -1312,9 +1309,8 @@ the CPU and copies them over to the GPU in one batch per tile:
            auto new_size = old_size + host_particles.size();
            particle_tile.resize(new_size);
 
-           Gpu::thrust_copy(host_particles.begin(),
-                             host_particles.end(),
-                             particle_tile.GetArrayOfStructs().begin() + old_size);
+           Gpu::copy(Gpu::hostToDevice, host_particles.begin(), host_particles.end(),
+                     particle_tile.GetArrayOfStructs().begin() + old_size);
         }
 
 The following example shows how to use :cpp:`Gpu::DeviceVector`. Specifically, this code creates

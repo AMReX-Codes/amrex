@@ -52,16 +52,34 @@ namespace Gpu {
     using PolymorphicDeviceVector = PODVector<T>;
 #endif
 
+    static struct HostToDevice {} hostToDevice;
+    static struct DeviceToHost {} deviceToHost;
+    static struct DeviceToDevice {} deviceToDevice;
+    
     template<class InIter, class OutIter>
-    OutIter thrust_copy (InIter begin, InIter end, OutIter result)
+    void copy (HostToDevice, InIter begin, InIter end, OutIter result) noexcept
     {
-#ifdef AMREX_USE_GPU
-        return thrust::copy(begin, end, result);
-#else
-        return std::copy(begin, end, result);
-#endif
+        using value_type = typename std::iterator_traits<InIter>::value_type;
+        auto size = std::distance(begin, end);
+        htod_memcpy(&(*result), &(*begin), size*sizeof(value_type));
     }
 
+    template<class InIter, class OutIter>
+    void copy (DeviceToHost, InIter begin, InIter end, OutIter result) noexcept
+    {
+        using value_type = typename std::iterator_traits<InIter>::value_type;
+        auto size = std::distance(begin, end);
+        dtoh_memcpy(&(*result), &(*begin), size*sizeof(value_type));
+    }
+
+    template<class InIter, class OutIter>
+    void copy (DeviceToDevice, InIter begin, InIter end, OutIter result) noexcept
+    {
+        using value_type = typename std::iterator_traits<InIter>::value_type;
+        auto size = std::distance(begin, end);
+        dtod_memcpy(&(*result), &(*begin), size*sizeof(value_type));
+    }
+                
     template<class InIter, class OutIter>
     OutIter inclusive_scan (InIter begin, InIter end, OutIter result)
     {
