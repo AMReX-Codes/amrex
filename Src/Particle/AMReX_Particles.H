@@ -1048,7 +1048,8 @@ protected:
     mutable Vector<std::string> filePrefixPrePost;
 
     ParticleTileType m_ptile_r;
-
+    DenseBins<ParticleType> m_bins;
+    
 #ifdef AMREX_USE_GPU
     Gpu::ManagedDeviceVector<int> m_grids_r;
     Gpu::ManagedDeviceVector<int> m_levs_r;
@@ -1064,8 +1065,6 @@ protected:
     Gpu::PinnedDeviceVector<char> pinned_rcv_buffer;
 
     mutable AmrParticleLocator m_particle_locator;
-
-    DenseBins<ParticleType> m_bins;
 #endif
 
     int NumRuntimeRealComps () const { return m_num_runtime_real; }
