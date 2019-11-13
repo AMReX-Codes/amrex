@@ -1500,12 +1500,21 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
     bool is_rz = m_is_rz;
 #endif
 
+    constexpr int nsweeps = 2;
+
     const iMultiFab& dmsk = *m_dirichlet_mask[amrlev][mglev];
 
     if (m_use_gauss_seidel)
     {
         if (m_coarsening_strategy == CoarseningStrategy::RAP)
         {
+#ifdef AMREX_USE_EB
+            MultiFab Ax;
+            if (Gpu::inLaunchRegion()) {
+                Ax.define(sol.boxArray(), sol.DistributionMap(), 1, 0);
+            }
+#endif
+
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -1517,7 +1526,21 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                 Array4<Real const> const& starr = stencil->const_array(mfi);
                 Array4<int const> const& dmskarr = dmsk.const_array(mfi);
 
-                for (int ns = 0; ns < 2; ++ns) {
+#ifdef AMREX_USE_EB
+                if (Gpu::inLaunchRegion()) {
+                    Array4<Real> const& Axarr = Ax.array(mfi);
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+                    {
+                        mlndlap_adotx_sten(tbx,Axarr,solarr,starr,dmskarr);
+                    });
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+                    {
+                        mlndlap_jacobi_sten(tbx,solarr,Axarr,rhsarr,starr,dmskarr);
+                    });
+                }
+#endif
+
+                for (int ns = 0; ns < nsweeps; ++ns) {
                     AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
                     {
                         mlndlap_gauss_seidel_sten(tbx,solarr,rhsarr,starr,dmskarr);
@@ -1540,7 +1563,7 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                 Array4<Real const> const& rhsarr = rhs.const_array(mfi);
                 Array4<int const> const& dmskarr = dmsk.const_array(mfi);
 
-                for (int ns = 0; ns < 2; ++ns) {
+                for (int ns = 0; ns < nsweeps; ++ns) {
                     AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
                     {
                         mlndlap_gauss_seidel_ha(tbx, solarr, rhsarr,
@@ -1567,7 +1590,7 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                 Array4<Real const> const& rhsarr = rhs.const_array(mfi);
                 Array4<int const> const& dmskarr = dmsk.const_array(mfi);
 
-                for (int ns = 0; ns < 2; ++ns) {
+                for (int ns = 0; ns < nsweeps; ++ns) {
                     AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
                     {
                         mlndlap_gauss_seidel_aa(tbx, solarr, rhsarr,
