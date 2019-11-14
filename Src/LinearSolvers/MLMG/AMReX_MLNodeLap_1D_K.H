@@ -113,6 +113,24 @@ void mlndlap_mknewu (int i, int j, int k, Array4<Real> const& u, Array4<Real con
 {}
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_divu_compute_fine_contrib (int i, int j, int k, Box const& fvbx,
+                                        Array4<Real> const& frh, Array4<Real const> const& vel,
+                                        GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+{}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_divu_add_fine_contrib (int i, int j, int k, Box const& fvbx,
+                                    Array4<Real> const& rhs, Array4<Real const> const& frh,
+                                    Array4<int const> const& msk) noexcept
+{}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_rhcc_fine_contrib (int i, int j, int k, Box const& fvbx,
+                                Array4<Real> const& rhs, Array4<Real const> const& cc,
+                                Array4<int const> const& msk) noexcept
+{}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_set_stencil (Box const& bx, Array4<Real> const& sten,
                           Array4<Real const> const& sig,
                           GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept

@@ -28,8 +28,8 @@ module amrex_mlnodelap_2d_module
        ! restriction
        ! interpolation
        ! rhs & u
-       amrex_mlndlap_divu_fine_contrib, amrex_mlndlap_divu_cf_contrib, &
-       amrex_mlndlap_rhcc_fine_contrib, amrex_mlndlap_rhcc_crse_contrib, &
+       amrex_mlndlap_divu_cf_contrib, &
+       amrex_mlndlap_rhcc_crse_contrib, &
        ! residual
        amrex_mlndlap_crse_resid, &
        amrex_mlndlap_res_fine_contrib, amrex_mlndlap_res_cf_contrib, &
@@ -63,77 +63,6 @@ contains
        end do
     end do
   end function amrex_mlndlap_any_fine_sync_cells
-
-
-  subroutine amrex_mlndlap_divu_fine_contrib (clo, chi, cglo, cghi, rhs, rlo, rhi, &
-       vel, vlo, vhi, frh, flo, fhi, msk, mlo, mhi, dxinv) &
-       bind(c,name='amrex_mlndlap_divu_fine_contrib')
-    integer, dimension(2), intent(in) :: clo, chi, cglo, cghi, rlo, rhi, vlo, vhi, &
-         flo, fhi, mlo, mhi
-    real(amrex_real), intent(in) :: dxinv(2)
-    real(amrex_real), intent(inout) :: rhs(rlo(1):rhi(1),rlo(2):rhi(2))
-    real(amrex_real), intent(in   ) :: vel(vlo(1):vhi(1),vlo(2):vhi(2),2)
-    real(amrex_real), intent(inout) :: frh(flo(1):fhi(1),flo(2):fhi(2))
-    integer         , intent(in   ) :: msk(mlo(1):mhi(1),mlo(2):mhi(2))
-
-    integer, dimension(2) :: lo, hi, glo, ghi, gtlo, gthi
-    integer :: i, j, ii, jj, step
-    real(amrex_real) :: facx, facy, fm, fp
-    real(amrex_real), parameter :: rfd = 0.25d0
-    real(amrex_real), parameter :: chip = 0.5d0
-    real(amrex_real), parameter :: chip2 = 0.25d0
-
-    ! note that dxinv is fine dxinv
-    facx = 0.5d0*dxinv(1)
-    facy = 0.5d0*dxinv(2)
-
-    lo = 2*clo
-    hi = 2*chi
-    glo = 2*cglo
-    ghi = 2*cghi
-
-    gtlo = max(lo-1,glo)
-    gthi = min(hi+1,ghi)
-
-    do jj = gtlo(2), gthi(2)
-       if (jj .eq. glo(2) .or. jj .eq. ghi(2)) then
-          step = 1
-       else
-          step = gthi(1)-gtlo(1)
-       end if
-       do ii = gtlo(1), gthi(1), step
-          if (ii.eq.glo(1) .or. ii.eq.ghi(1) .or. step .eq. 1) then
-             frh(ii,jj) = facx*(-vel(ii-1,jj-1,1)+vel(ii,jj-1,1)-vel(ii-1,jj,1)+vel(ii,jj,1)) &
-                    &   + facy*(-vel(ii-1,jj-1,2)-vel(ii,jj-1,2)+vel(ii-1,jj,2)+vel(ii,jj,2))
-
-             if (is_rz) then
-                fm = facy / (6*ii-3)
-                fp = facy / (6*ii+3)
-                frh(ii,jj) = frh(ii,jj) + fm*(vel(ii-1,jj,2)-vel(ii-1,jj-1,2)) &
-                     &                  - fp*(vel(ii  ,jj,2)-vel(ii  ,jj-1,2))
-             end if
-          end if
-       end do
-    end do
-
-    do j = clo(2), chi(2)
-       jj = 2*j
-       if (j .eq. cglo(2) .or. j .eq. cghi(2)) then
-          step = 1
-       else
-          step = chi(1)-clo(1)
-       end if
-       do i = clo(1), chi(1), step
-          ii = 2*i
-          if (msk(ii,jj) .eq. dirichlet) then
-             rhs(i,j) = rhs(i,j) + rfd*(frh(ii,jj) &
-                  + chip*(frh(ii-1,jj)+frh(ii+1,jj)+frh(ii,jj-1)+frh(ii,jj+1)) &
-                  + chip2*(frh(ii-1,jj-1)+frh(ii+1,jj-1)+frh(ii-1,jj+1)+frh(ii+1,jj+1)))
-          end if
-       end do
-    end do
-
-  end subroutine amrex_mlndlap_divu_fine_contrib
 
 
   subroutine amrex_mlndlap_divu_cf_contrib (lo, hi,  rhs, rlo, rhi, vel, vlo, vhi, dmsk, mlo, mhi, &
@@ -199,46 +128,6 @@ contains
     end do
 
   end subroutine amrex_mlndlap_divu_cf_contrib
-
-
-  subroutine amrex_mlndlap_rhcc_fine_contrib (clo, chi, cglo, cghi, rhs, rlo, rhi, &
-       cc, cclo, cchi, msk, mlo, mhi) bind(c,name='amrex_mlndlap_rhcc_fine_contrib')
-    integer, dimension(2), intent(in) :: clo, chi, cglo, cghi, rlo, rhi, cclo, cchi, mlo, mhi
-    real(amrex_real), intent(inout) :: rhs( rlo(1): rhi(1), rlo(2): rhi(2))
-    real(amrex_real), intent(in   ) :: cc (cclo(1):cchi(1),cclo(2):cchi(2))
-    integer         , intent(in   ) :: msk( mlo(1): mhi(1), mlo(2): mhi(2))
-
-    integer, dimension(2) :: lo, hi, glo, ghi
-    integer :: i, j, ii, jj, step
-    real(amrex_real), parameter :: w1 = 9.d0/64.d0
-    real(amrex_real), parameter :: w2 = 3.d0/64.d0
-    real(amrex_real), parameter :: w3 = 1.d0/64.d0
-
-    lo = 2*clo
-    hi = 2*chi
-    glo = 2*cglo
-    ghi = 2*cghi
-
-    do j = clo(2), chi(2)
-       jj = 2*j
-       if (j .eq. cglo(2) .or. j .eq. cghi(2)) then
-          step = 1
-       else
-          step = chi(1)-clo(1)
-       end if
-       do i = clo(1), chi(1), step
-          ii = 2*i
-          if (msk(ii,jj) .eq. dirichlet) then
-             rhs(i,j) = rhs(i,j) &
-                  + w1*(cc(ii-1,jj-1)+cc(ii  ,jj-1)+cc(ii-1,jj  )+cc(ii  ,jj  )) &
-                  + w2*(cc(ii-2,jj-1)+cc(ii+1,jj-1)+cc(ii-2,jj  )+cc(ii+1,jj  ) &
-                  &    +cc(ii-1,jj-2)+cc(ii  ,jj-2)+cc(ii-1,jj+1)+cc(ii  ,jj+1)) &
-                  + w3*(cc(ii-2,jj-2)+cc(ii+1,jj-2)+cc(ii-2,jj+1)+cc(ii+1,jj+1))
-          end if
-       end do
-    end do
-
-  end subroutine amrex_mlndlap_rhcc_fine_contrib
 
 
   subroutine amrex_mlndlap_rhcc_crse_contrib (lo, hi, crhs, rlo, rhi, rhcc, clo, chi, &
