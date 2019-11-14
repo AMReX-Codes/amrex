@@ -97,7 +97,7 @@ public:
         for (int i = 0; i < num_boxes; ++i) m_host_boxes.push_back(ba[i]);
 
         m_device_boxes.resize(num_boxes);
-        Gpu::thrust_copy(m_host_boxes.begin(), m_host_boxes.end(), m_device_boxes.begin());
+        Gpu::copy(Gpu::hostToDevice, m_host_boxes.begin(), m_host_boxes.end(), m_device_boxes.begin());
 
         // compute the lo, hi and the max box size in each direction
         ReduceOps<AMREX_D_DECL(ReduceOpMin, ReduceOpMin, ReduceOpMin),
@@ -179,7 +179,7 @@ public:
 
         Gpu::exclusive_scan(m_counts.begin(), m_counts.end(), m_offsets.begin());
 
-        Gpu::thrust_copy(m_offsets.begin(), m_offsets.end()-1, m_counts.begin());
+        Gpu::copy(Gpu::deviceToDevice, m_offsets.begin(), m_offsets.end()-1, m_counts.begin());
 
         constexpr unsigned int max_unsigned_int = std::numeric_limits<unsigned int>::max();
 
