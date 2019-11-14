@@ -100,7 +100,7 @@ public:
     long numItems () const noexcept { return m_perm.size(); }
 
     //! \brief the number of bins in the container
-    long numBins () const noexcept { return m_offsets.size(); }
+    long numBins () const noexcept { return m_offsets.size()-1; }
     
     //! \brief returns the pointer to the permutation array 
     index_type* permutationPtr() noexcept { return m_perm.dataPtr(); }

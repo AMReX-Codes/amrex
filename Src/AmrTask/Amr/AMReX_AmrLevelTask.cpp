@@ -923,7 +923,7 @@ FillPatchIterator::Initialize (int  boxGrow,
 			}
 			std::cout << "WARNING: Grids are not properly nested.  We might have to use\n"
 				  << "         two coarse levels to do fillpatch.  Consider using\n";
-			if (new_blocking_factor < IntVect{D_DECL(128,128,128)}) {
+			if (new_blocking_factor < IntVect{AMREX_D_DECL(128,128,128)}) {
 			    std::cout << "         amr.blocking_factor=" << new_blocking_factor;
 			} else {
 			    std::cout << "         larger amr.blocking_factor. ";

@@ -1,0 +1,14 @@
+redistribute.size = (32, 64, 64)
+redistribute.max_grid_size = 32
+redistribute.is_periodic = 1
+redistribute.num_ppc = 1
+redistribute.move_dir = (1, 1, 1)
+redistribute.do_random = 1
+redistribute.nsteps = 100
+redistribute.nlevs = 1
+redistribute.do_regrid = 1
+
+redistribute.sort = 1
+
+redistribute.num_runtime_real = 2
+redistribute.num_runtime_int = 3
