@@ -81,9 +81,8 @@ public:
         });
 
         Gpu::exclusive_scan(m_counts.begin(), m_counts.end(), m_offsets.begin());
-        
-        Gpu::dtod_memcpy(m_counts.dataPtr(), m_offsets.dataPtr(), 
-                         m_offsets.size()*sizeof(index_type));
+
+        Gpu::copy(Gpu::deviceToDevice, m_offsets.begin(), m_offsets.end(), m_counts.begin());
 
         index_type* pperm = m_perm.dataPtr();
         constexpr index_type max_index = std::numeric_limits<index_type>::max();
