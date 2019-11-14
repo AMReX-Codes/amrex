@@ -52,16 +52,187 @@ namespace Gpu {
     using PolymorphicDeviceVector = PODVector<T>;
 #endif
 
+    static struct HostToDevice {} hostToDevice;
+    static struct DeviceToHost {} deviceToHost;
+    static struct DeviceToDevice {} deviceToDevice;
+
+    /**
+     * \brief A host-to-device copy routine. Note this is just a wrapper around
+     * memcpy, so it assumes contiguous storage. The amrex-provided containers
+     * like Gpu::HostVector, Gpu::DeviceVector, etc. meet this requirement.
+     *
+     * This version is blocking - CPU execution will halt until the copy is finished.
+     *
+     * \tparam InIter  The input iterator type
+     * \tparam OutIter The output iterator type
+     * \param HostToDevice A tag indicating that the copy is from the host to the device
+     * \param begin Where in the input to start reading
+     * \param end Where in the input to stop reading
+     * \param result Where in the output to start writing
+     *
+     * Example usage:
+     *     
+     *    Gpu::copy(Gpu::hostToDevice, a.begin(), a.end(), b.begin());
+     */
     template<class InIter, class OutIter>
-    OutIter thrust_copy (InIter begin, InIter end, OutIter result)
+    void copy (HostToDevice, InIter begin, InIter end, OutIter result) noexcept
     {
-#ifdef AMREX_USE_GPU
-        return thrust::copy(begin, end, result);
-#else
-        return std::copy(begin, end, result);
-#endif
+        using value_type = typename std::iterator_traits<InIter>::value_type;
+        static_assert(AMREX_IS_TRIVIALLY_COPYABLE(value_type)
+                      || detail::is_thrust_complex<value_type>::value,
+                      "Can only copy trivially copyable types");
+        auto size = std::distance(begin, end);
+        htod_memcpy(&(*result), &(*begin), size*sizeof(value_type));
     }
 
+    /**
+     * \brief A device-to-host copy routine. Note this is just a wrapper around
+     * memcpy, so it assumes contiguous storage. The amrex-provided containers
+     * like Gpu::HostVector, Gpu::DeviceVector, etc. meet this requirement.
+     *
+     * This version is blocking - CPU execution will halt until the copy is finished.
+     *
+     * \tparam InIter  The input iterator type
+     * \tparam OutIter The output iterator type
+     * \param DeviceToHost A tag indicating that the copy is from the device to the host
+     * \param begin Where in the input to start reading
+     * \param end Where in the input to stop reading
+     * \param result Where in the output to start writing
+     *
+     * Example usage:
+     *     
+     *    Gpu::copy(Gpu::deviceToHost, a.begin(), a.end(), b.begin());
+     */
+    template<class InIter, class OutIter>
+    void copy (DeviceToHost, InIter begin, InIter end, OutIter result) noexcept
+    {
+        using value_type = typename std::iterator_traits<InIter>::value_type;
+        static_assert(AMREX_IS_TRIVIALLY_COPYABLE(value_type)
+                      || detail::is_thrust_complex<value_type>::value,
+                      "Can only copy trivially copyable types");
+        auto size = std::distance(begin, end);
+        dtoh_memcpy(&(*result), &(*begin), size*sizeof(value_type));
+    }
+
+    /**
+     * \brief A device-to-device copy routine. Note this is just a wrapper around
+     * memcpy, so it assumes contiguous storage. The amrex-provided containers
+     * like Gpu::HostVector, Gpu::DeviceVector, etc. meet this requirement.
+     *
+     * This version is blocking - CPU execution will halt until the copy is finished.
+     *
+     * \tparam InIter  The input iterator type
+     * \tparam OutIter The output iterator type
+     * \param DeviceToDevice A tag indicating that the copy is from the device to the device
+     * \param begin Where in the input to start reading
+     * \param end Where in the input to stop reading
+     * \param result Where in the output to start writing
+     *
+     * Example usage:
+     *     
+     *    Gpu::copy(Gpu::deviceToDevice, a.begin(), a.end(), b.begin());
+     */
+    template<class InIter, class OutIter>
+    void copy (DeviceToDevice, InIter begin, InIter end, OutIter result) noexcept
+    {
+        using value_type = typename std::iterator_traits<InIter>::value_type;
+        static_assert(AMREX_IS_TRIVIALLY_COPYABLE(value_type)
+                      || detail::is_thrust_complex<value_type>::value,
+                      "Can only copy trivially copyable types");
+        auto size = std::distance(begin, end);
+        dtod_memcpy(&(*result), &(*begin), size*sizeof(value_type));
+    }
+
+    /**
+     * \brief A host-to-device copy routine. Note this is just a wrapper around
+     * memcpy, so it assumes contiguous storage. The amrex-provided containers
+     * like Gpu::HostVector, Gpu::DeviceVector, etc. meet this requirement.
+     *
+     * This version is asynchronous - CPU execution will continue, whether or not the 
+     * copy is finished.
+     *
+     * \tparam InIter  The input iterator type
+     * \tparam OutIter The output iterator type
+     * \param HostToDevice A tag indicating that the copy is from the host to the device
+     * \param begin Where in the input to start reading
+     * \param end Where in the input to stop reading
+     * \param result Where in the output to start writing
+     *
+     * Example usage:
+     *     
+     *    Gpu::copy(Gpu::hostToDevice, a.begin(), a.end(), b.begin());
+     */    
+    template<class InIter, class OutIter>
+    void copyAsync (HostToDevice, InIter begin, InIter end, OutIter result) noexcept
+    {
+        using value_type = typename std::iterator_traits<InIter>::value_type;
+        static_assert(AMREX_IS_TRIVIALLY_COPYABLE(value_type)
+                      || detail::is_thrust_complex<value_type>::value,
+                      "Can only copy trivially copyable types");
+        auto size = std::distance(begin, end);
+        htod_memcpy_async(&(*result), &(*begin), size*sizeof(value_type));
+    }
+
+    /**
+     * \brief A device-to-host copy routine. Note this is just a wrapper around
+     * memcpy, so it assumes contiguous storage. The amrex-provided containers
+     * like Gpu::HostVector, Gpu::DeviceVector, etc. meet this requirement.
+     *
+     * This version is asynchronous - CPU execution will continue, whether or not the 
+     * copy is finished.
+     *
+     * \tparam InIter  The input iterator type
+     * \tparam OutIter The output iterator type
+     * \param DeviceToHost A tag indicating that the copy is from the device to the host
+     * \param begin Where in the input to start reading
+     * \param end Where in the input to stop reading
+     * \param result Where in the output to start writing
+     *
+     * Example usage:
+     *     
+     *    Gpu::copy(Gpu::deviceToHost, a.begin(), a.end(), b.begin());
+     */
+    template<class InIter, class OutIter>
+    void copyAsync (DeviceToHost, InIter begin, InIter end, OutIter result) noexcept
+    {
+        using value_type = typename std::iterator_traits<InIter>::value_type;
+        static_assert(AMREX_IS_TRIVIALLY_COPYABLE(value_type)
+                      || detail::is_thrust_complex<value_type>::value,
+                      "Can only copy trivially copyable types");
+        auto size = std::distance(begin, end);
+        dtoh_memcpy_async(&(*result), &(*begin), size*sizeof(value_type));
+    }
+
+    /**
+     * \brief A device-to-device copy routine. Note this is just a wrapper around
+     * memcpy, so it assumes contiguous storage. The amrex-provided containers
+     * like Gpu::HostVector, Gpu::DeviceVector, etc. meet this requirement.
+     *
+     * This version is asynchronous - CPU execution will continue, whether or not the 
+     * copy is finished.
+     *
+     * \tparam InIter  The input iterator type
+     * \tparam OutIter The output iterator type
+     * \param DeviceToDevice A tag indicating that the copy is from the device to the device
+     * \param begin Where in the input to start reading
+     * \param end Where in the input to stop reading
+     * \param result Where in the output to start writing
+     *
+     * Example usage:
+     *     
+     *    Gpu::copy(Gpu::deviceToDevice, a.begin(), a.end(), b.begin());
+     */
+    template<class InIter, class OutIter>
+    void copyAsync (DeviceToDevice, InIter begin, InIter end, OutIter result) noexcept
+    {
+        using value_type = typename std::iterator_traits<InIter>::value_type;
+        static_assert(AMREX_IS_TRIVIALLY_COPYABLE(value_type)
+                      || detail::is_thrust_complex<value_type>::value,
+                      "Can only copy trivially copyable types");
+        auto size = std::distance(begin, end);
+        dtod_memcpy_async(&(*result), &(*begin), size*sizeof(value_type));
+    }
+    
     template<class InIter, class OutIter>
     OutIter inclusive_scan (InIter begin, InIter end, OutIter result)
     {

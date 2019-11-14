@@ -672,7 +672,7 @@ buildNeighborListCPU (CheckPair check_pair, bool sort) {
             }
 #ifdef AMREX_USE_CUDA
             neighbor_list[lev][index].resize(nl.size());
-            Gpu::thrust_copy(nl.begin(), nl.end(), neighbor_list[lev][index].begin());
+            Gpu::copy(Gpu::hostToDevice, nl.begin(), nl.end(), neighbor_list[lev][index].begin());
 #endif
         }
         }
