@@ -8,7 +8,12 @@ import scipy.special as spe
 import scipy.integrate as integ
 
 # This script checks if the optical depth of photons undergoing the
-# Breit Wheeler process behaves as expected
+# Breit Wheeler process behaves as expected. Four populations of photons
+# are initialized with different momenta in a background EM field. The decrease
+# of the optical depth (averaged for each population) is used to estimate the
+# Breit Wheeler cross section, which is then compared with the theoretical
+# formula. Relative discrepancy should be smaller than 5% (it is actually
+# much smaller, except for the lowest energy population).
 #
 # References:
 # 1) R. Duclous et al 2011 Plasma Phys. Control. Fusion 53 015009
@@ -19,7 +24,7 @@ import scipy.integrate as integ
 
 
 # Tolerance
-tol = 1e-1
+tol = 5e-2
 
 # EM fields
 E_f = np.array([-2433321316961438, 973328526784575, 1459992790176863])
