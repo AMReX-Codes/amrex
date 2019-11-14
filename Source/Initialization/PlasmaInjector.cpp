@@ -275,17 +275,26 @@ void PlasmaInjector::parseMomentum (ParmParse& pp)
         int dir = 0;
         std::string direction = "x";
         pp.query("beta", beta);
+        if(beta < 0){
+            amrex::Abort("Please enter a positive beta value. Drift direction is set with <s_name>.bulk_vel_dir = 'x' or '+x', '-x', 'y' or '+y', etc.");
+        }
         pp.query("theta", theta);
-        pp.query("direction", direction);
-        if(direction == "x" || direction == "X"){
+        pp.query("bulk_vel_dir", direction);
+        if(direction[0] == '-'){
+            beta = -beta;
+        }
+        if((direction == "x" || direction[1] == 'x') ||
+           (direction == "X" || direction[1] == 'X')){
             dir = 0;
-        } else if (direction == "y" || direction == "Y"){
+        } else if ((direction == "y" || direction[1] == 'y') ||
+                   (direction == "Y" || direction[1] == 'Y')){
             dir = 1;
-        } else if (direction == "z" || direction == "Z"){
+        } else if ((direction == "z" || direction[1] == 'z') ||
+                   (direction == "Z" || direction[1] == 'Z')){
             dir = 2;
         } else{
             std::stringstream stringstream;
-            stringstream << "Direction " << direction << " is not recognzied. Please enter x, y, or z.";
+            stringstream << "Cannot interpret <s_name>.bulk_vel_dir input '" << direction << "'. Please enter +/- x, y, or z with no whitespace between the sign and other character.";
             direction = stringstream.str();
             amrex::Abort(direction.c_str());
         }
@@ -297,17 +306,26 @@ void PlasmaInjector::parseMomentum (ParmParse& pp)
         int dir = 0;
         std::string direction = "x";
         pp.query("beta", beta);
+        if(beta < 0){
+            amrex::Abort("Please enter a positive beta value. Drift direction is set with <s_name>.bulk_vel_dir = 'x' or '+x', '-x', 'y' or '+y', etc.");
+        }
         pp.query("theta", theta);
-        pp.query("direction", direction);
-        if(direction == "x" || direction == "X"){
+        pp.query("bulk_vel_dir", direction);
+        if(direction[0] == '-'){
+            beta = -beta;
+        }
+        if((direction == "x" || direction[1] == 'x') ||
+           (direction == "X" || direction[1] == 'X')){
             dir = 0;
-        } else if (direction == "y" || direction == "Y"){
+        } else if ((direction == "y" || direction[1] == 'y') ||
+                   (direction == "Y" || direction[1] == 'Y')){
             dir = 1;
-        } else if (direction == "z" || direction == "Z"){
+        } else if ((direction == "z" || direction[1] == 'z') ||
+                   (direction == "Z" || direction[1] == 'Z')){
             dir = 2;
         } else{
             std::stringstream stringstream;
-            stringstream << "Direction " << direction << " is not recognzied. Please enter x, y, or z.";
+            stringstream << "Cannot interpret <s_name>.bulk_vel_dir input '" << direction << "'. Please enter +/- x, y, or z with no whitespace between the sign and other character.";
             direction = stringstream.str();
             amrex::Abort(direction.c_str());
         }
