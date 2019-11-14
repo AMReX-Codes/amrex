@@ -16,8 +16,6 @@ module amrex_mlnodelap_1d_module
        ! restriction
        ! interpolation
        ! rhs & u
-       amrex_mlndlap_divu_cf_contrib, &
-       amrex_mlndlap_rhcc_crse_contrib, &
        ! residual
        amrex_mlndlap_crse_resid, &
        amrex_mlndlap_res_fine_contrib, amrex_mlndlap_res_cf_contrib, &
@@ -35,34 +33,6 @@ contains
     integer, intent(in   ) :: msk  ( mlo(1): mhi(1))
     integer, intent(in) :: fine_flag
   end function amrex_mlndlap_any_fine_sync_cells
-
-
-  subroutine amrex_mlndlap_divu_cf_contrib (lo, hi,  rhs, rlo, rhi, vel, vlo, vhi, dmsk, mlo, mhi, &
-       ndmsk, nmlo, nmhi, ccmsk, cmlo, cmhi, fc, clo, chi, dxinv, ndlo, ndhi, bclo, bchi) &
-       bind(c,name='amrex_mlndlap_divu_cf_contrib')
-    integer, dimension(1), intent(in) :: lo, hi, rlo, rhi, vlo, vhi, mlo, mhi, &
-         nmlo, nmhi, cmlo, cmhi, clo, chi, ndlo, ndhi, bclo, bchi
-    real(amrex_real), intent(in) :: dxinv(1)
-    real(amrex_real), intent(inout) :: rhs(rlo(1):rhi(1))
-    real(amrex_real), intent(in   ) :: vel(vlo(1):vhi(1))
-    real(amrex_real), intent(in   ) :: fc (clo(1):chi(1))
-    integer, intent(in) :: dmsk(mlo(1):mhi(1))
-    integer, intent(in) :: ndmsk(nmlo(1):nmhi(1))
-    integer, intent(in) :: ccmsk(cmlo(1):cmhi(1))
-  end subroutine amrex_mlndlap_divu_cf_contrib
-
-
-  subroutine amrex_mlndlap_rhcc_crse_contrib (lo, hi, crhs, rlo, rhi, rhcc, clo, chi, &
-       dmsk, mlo, mhi, ndmsk, nmlo, nmhi, ccmsk, cmlo, cmhi) &
-       bind(c,name='amrex_mlndlap_rhcc_crse_contrib')
-    integer, dimension(2), intent(in) :: lo, hi, rlo, rhi, clo, chi, mlo, mhi, &
-         nmlo, nmhi, cmlo, cmhi
-    real(amrex_real), intent(inout) ::  crhs(rlo(1):rhi(1),rlo(2):rhi(2))
-    real(amrex_real), intent(in   ) ::  rhcc(clo(1):chi(1),clo(2):chi(2))
-    integer         , intent(in   ) ::  dmsk( mlo(1): mhi(1), mlo(2): mhi(2))
-    integer         , intent(in   ) :: ndmsk(nmlo(1):nmhi(1),nmlo(2):nmhi(2))
-    integer         , intent(in   ) :: ccmsk(cmlo(1):cmhi(1),cmlo(2):cmhi(2))
-  end subroutine amrex_mlndlap_rhcc_crse_contrib
 
 
   subroutine amrex_mlndlap_crse_resid (lo, hi, resid, rslo, rshi, rhs, rhlo, rhhi, msk, mlo, mhi, &

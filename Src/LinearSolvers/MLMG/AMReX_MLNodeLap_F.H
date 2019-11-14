@@ -15,16 +15,6 @@ extern "C" {
                                            const int* msk, const int* mlo, const int* mhi,
                                            const int* fine_flag);
 
-    void amrex_mlndlap_divu_cf_contrib (const int* lo, const int* hi,
-                                        amrex_real* rhs, const int* rlo, const int* rhi,
-                                        const amrex_real* vel, const int* vlo, const int* vhi,
-                                        const int* dmsk, const int* dmlo, const int* dmhi,
-                                        const int* ndmsk, const int* ndmlo, const int* ndmhi,
-                                        const int* ccmsk, const int* ccmlo, const int* ccmhi,
-                                        const amrex_real* cc, const int* clo, const int* chi,
-                                        const amrex_real* dxinv, const int* ndlo, const int* ndhi,
-                                        const void* bclo, const void* bchi);
-
     void amrex_mlndlap_crse_resid (const int* lo, const int* hi,
                                    amrex_real* resid, const int* rslo, const int* rshi,
                                    const amrex_real* rhs, const int* rhlo, const int* rhhi,
@@ -57,13 +47,6 @@ extern "C" {
                                   amrex_real* phi, const int* philo, const int* phihi,
                                   const int* msk, const int* mlo, const int* mhi,
                                   const int* fine_flag);
-
-    void amrex_mlndlap_rhcc_crse_contrib (const int* lo, const int* hi,
-                                          amrex_real* crhs, const int* rlo, const int* rhi,
-                                          const amrex_real* cc, const int* cclo, const int* cchi,
-                                          const int* dmsk, const int* dmlo, const int* dmhi,
-                                          const int* ndmsk, const int* ndmlo, const int* ndmhi,
-                                          const int* ccmsk, const int* ccmlo, const int* ccmhi);
 
 #ifdef __cplusplus
 }

@@ -11,15 +11,15 @@ void mlndlap_set_nodal_mask (int i, int j, int k, Array4<int> const& nmsk,
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_set_dirichlet_mask (Box const& bx, Array4<int> const& dmsk,
                                  Array4<int const> const& omsk, Box const& dom,
-                                 Array<LinOpBCType, AMREX_SPACEDIM> const& bclo,
-                                 Array<LinOpBCType, AMREX_SPACEDIM> const& bchi) noexcept
+                                 GpuArray<LinOpBCType, AMREX_SPACEDIM> const& bclo,
+                                 GpuArray<LinOpBCType, AMREX_SPACEDIM> const& bchi) noexcept
 {}
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_set_dot_mask (Box const& bx, Array4<Real> const& dmsk,
                            Array4<int const> const& omsk, Box const& dom,
-                           Array<LinOpBCType, AMREX_SPACEDIM> const& bclo,
-                           Array<LinOpBCType, AMREX_SPACEDIM> const& bchi) noexcept
+                           GpuArray<LinOpBCType, AMREX_SPACEDIM> const& bclo,
+                           GpuArray<LinOpBCType, AMREX_SPACEDIM> const& bchi) noexcept
 {}
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -128,6 +128,16 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_rhcc_fine_contrib (int i, int j, int k, Box const& fvbx,
                                 Array4<Real> const& rhs, Array4<Real const> const& cc,
                                 Array4<int const> const& msk) noexcept
+{}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_divu_cf_contrib (int i, int j, int, Array4<Real> const& rhs,
+                              Array4<Real const> const& vel, Array4<Real const> const& fc,
+                              Array4<Real const> const& rhcc, Array4<int const> const& dmsk,
+                              Array4<int const> const& ndmsk, Array4<int const> const& ccmsk,
+                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                              Box const& nddom, GpuArray<LinOpBCType,AMREX_SPACEDIM> const& lobc,
+                              GpuArray<LinOpBCType,AMREX_SPACEDIM> const& hibc) noexcept
 {}
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
