@@ -82,7 +82,11 @@ namespace Gpu {
                       || detail::is_thrust_complex<value_type>::value,
                       "Can only copy trivially copyable types");
         auto size = std::distance(begin, end);
+#ifdef AMREX_USE_GPU
         htod_memcpy(&(*result), &(*begin), size*sizeof(value_type));
+#else
+        std::memcpy(&(*result), &(*begin), size*sizeof(value_type));
+#endif
     }
 
     /**
@@ -111,7 +115,11 @@ namespace Gpu {
                       || detail::is_thrust_complex<value_type>::value,
                       "Can only copy trivially copyable types");
         auto size = std::distance(begin, end);
+#ifdef AMREX_USE_GPU        
         dtoh_memcpy(&(*result), &(*begin), size*sizeof(value_type));
+#else
+        std::memcpy(&(*result), &(*begin), size*sizeof(value_type));
+#endif
     }
 
     /**
@@ -140,7 +148,11 @@ namespace Gpu {
                       || detail::is_thrust_complex<value_type>::value,
                       "Can only copy trivially copyable types");
         auto size = std::distance(begin, end);
+#ifdef AMREX_USE_GPU
         dtod_memcpy(&(*result), &(*begin), size*sizeof(value_type));
+#else
+        std::memcpy(&(*result), &(*begin), size*sizeof(value_type));
+#endif
     }
 
     /**
@@ -170,7 +182,11 @@ namespace Gpu {
                       || detail::is_thrust_complex<value_type>::value,
                       "Can only copy trivially copyable types");
         auto size = std::distance(begin, end);
+#ifdef AMREX_USE_GPU
         htod_memcpy_async(&(*result), &(*begin), size*sizeof(value_type));
+#else
+        std::memcpy(&(*result), &(*begin), size*sizeof(value_type));
+#endif        
     }
 
     /**
@@ -200,7 +216,11 @@ namespace Gpu {
                       || detail::is_thrust_complex<value_type>::value,
                       "Can only copy trivially copyable types");
         auto size = std::distance(begin, end);
+#ifdef AMREX_USE_GPU        
         dtoh_memcpy_async(&(*result), &(*begin), size*sizeof(value_type));
+#else
+        std::memcpy(&(*result), &(*begin), size*sizeof(value_type));
+#endif        
     }
 
     /**
@@ -230,7 +250,11 @@ namespace Gpu {
                       || detail::is_thrust_complex<value_type>::value,
                       "Can only copy trivially copyable types");
         auto size = std::distance(begin, end);
+#ifdef AMREX_USE_GPU
         dtod_memcpy_async(&(*result), &(*begin), size*sizeof(value_type));
+#else
+        std::memcpy(&(*result), &(*begin), size*sizeof(value_type));
+#endif        
     }
     
     template<class InIter, class OutIter>
