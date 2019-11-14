@@ -63,8 +63,8 @@ namespace Gpu {
      *
      * This version is blocking - CPU execution will halt until the copy is finished.
      *
-     * \tparam InIter  The number of extra Real components in the particle struct
-     * \tparam OutIter The number of extra integer components in the particle struct
+     * \tparam InIter  The input iterator type
+     * \tparam OutIter The output iterator type
      * \param HostToDevice A tag indicating that the copy is from the host to the device
      * \param begin Where in the input to start reading
      * \param end Where in the input to stop reading
@@ -89,8 +89,8 @@ namespace Gpu {
      *
      * This version is blocking - CPU execution will halt until the copy is finished.
      *
-     * \tparam InIter  The number of extra Real components in the particle struct
-     * \tparam OutIter The number of extra integer components in the particle struct
+     * \tparam InIter  The input iterator type
+     * \tparam OutIter The output iterator type
      * \param DeviceToHost A tag indicating that the copy is from the device to the host
      * \param begin Where in the input to start reading
      * \param end Where in the input to stop reading
@@ -115,8 +115,8 @@ namespace Gpu {
      *
      * This version is blocking - CPU execution will halt until the copy is finished.
      *
-     * \tparam InIter  The number of extra Real components in the particle struct
-     * \tparam OutIter The number of extra integer components in the particle struct
+     * \tparam InIter  The input iterator type
+     * \tparam OutIter The output iterator type
      * \param DeviceToDevice A tag indicating that the copy is from the device to the device
      * \param begin Where in the input to start reading
      * \param end Where in the input to stop reading
@@ -142,8 +142,8 @@ namespace Gpu {
      * This version is asynchronous - CPU execution will continue, whether or not the 
      * copy is finished.
      *
-     * \tparam InIter  The number of extra Real components in the particle struct
-     * \tparam OutIter The number of extra integer components in the particle struct
+     * \tparam InIter  The input iterator type
+     * \tparam OutIter The output iterator type
      * \param HostToDevice A tag indicating that the copy is from the host to the device
      * \param begin Where in the input to start reading
      * \param end Where in the input to stop reading
@@ -169,8 +169,8 @@ namespace Gpu {
      * This version is asynchronous - CPU execution will continue, whether or not the 
      * copy is finished.
      *
-     * \tparam InIter  The number of extra Real components in the particle struct
-     * \tparam OutIter The number of extra integer components in the particle struct
+     * \tparam InIter  The input iterator type
+     * \tparam OutIter The output iterator type
      * \param DeviceToHost A tag indicating that the copy is from the device to the host
      * \param begin Where in the input to start reading
      * \param end Where in the input to stop reading
@@ -196,8 +196,8 @@ namespace Gpu {
      * This version is asynchronous - CPU execution will continue, whether or not the 
      * copy is finished.
      *
-     * \tparam InIter  The number of extra Real components in the particle struct
-     * \tparam OutIter The number of extra integer components in the particle struct
+     * \tparam InIter  The input iterator type
+     * \tparam OutIter The output iterator type
      * \param DeviceToDevice A tag indicating that the copy is from the device to the device
      * \param begin Where in the input to start reading
      * \param end Where in the input to stop reading
