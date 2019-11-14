@@ -183,8 +183,8 @@ MLNodeLinOp::buildMasks ()
         m_is_bottom_singular = m_domain_covered[0];
     }
 
-    const auto lobc = m_lobc[0];
-    const auto hibc = m_hibc[0];
+    const auto lobc = LoBC();
+    const auto hibc = HiBC();
 
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -308,7 +308,7 @@ MLNodeLinOp::buildMasks ()
                     if (!isects.empty()) has_cf[mfi] = 1;
                 }
 
-                mlndlap_fillbc_cc<int>(mfi.validbox(),fab,ccdom,m_lobc[0],m_hibc[0]);
+                mlndlap_fillbc_cc<int>(mfi.validbox(),fab,ccdom,lobc,hibc);
             }
         }
 
@@ -409,13 +409,15 @@ MLNodeLinOp::applyBC (int amrlev, int mglev, MultiFab& phi, BCMode/* bc_mode*/, 
 
     if (m_coarsening_strategy == CoarseningStrategy::Sigma)
     {
+        const auto lobc = LoBC();
+        const auto hibc = HiBC();
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
         for (MFIter mfi(phi); mfi.isValid(); ++mfi)
         {
             Array4<Real> const& fab = phi.array(mfi);
-            mlndlap_applybc(mfi.validbox(),fab,nd_domain,m_lobc[0],m_hibc[0]);
+            mlndlap_applybc(mfi.validbox(),fab,nd_domain,lobc,hibc);
         }
     }
 }

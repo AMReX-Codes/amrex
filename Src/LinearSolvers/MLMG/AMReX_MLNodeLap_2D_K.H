@@ -26,8 +26,8 @@ void mlndlap_set_nodal_mask (int i, int j, int k, Array4<int> const& nmsk,
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_set_dirichlet_mask (Box const& bx, Array4<int> const& dmsk,
                                  Array4<int const> const& omsk, Box const& dom,
-                                 Array<LinOpBCType, AMREX_SPACEDIM> const& bclo,
-                                 Array<LinOpBCType, AMREX_SPACEDIM> const& bchi) noexcept
+                                 GpuArray<LinOpBCType, AMREX_SPACEDIM> const& bclo,
+                                 GpuArray<LinOpBCType, AMREX_SPACEDIM> const& bchi) noexcept
 {
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
@@ -71,8 +71,8 @@ void mlndlap_set_dirichlet_mask (Box const& bx, Array4<int> const& dmsk,
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_set_dot_mask (Box const& bx, Array4<Real> const& dmsk,
                            Array4<int const> const& omsk, Box const& dom,
-                           Array<LinOpBCType, AMREX_SPACEDIM> const& bclo,
-                           Array<LinOpBCType, AMREX_SPACEDIM> const& bchi) noexcept
+                           GpuArray<LinOpBCType, AMREX_SPACEDIM> const& bclo,
+                           GpuArray<LinOpBCType, AMREX_SPACEDIM> const& bchi) noexcept
 {
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
@@ -677,6 +677,124 @@ void mlndlap_mknewu (int i, int j, int k, Array4<Real> const& u, Array4<Real con
     if (is_rz) {
         Real frz = sig(i,j,k)*facy / (6*i+3);
         u(i,j,k,1) += frz*(p(i,j,k)-p(i+1,j,k)-p(i,j+1,k)+p(i+1,j+1,k));
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_divu_compute_fine_contrib (int i, int j, int, Box const& fvbx,
+                                        Array4<Real> const& frh, Array4<Real const> const& vel,
+                                        bool is_rz, GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+{
+    IntVect iv(i,j);
+    if (fvbx.contains(iv) and !fvbx.strictly_contains(iv))
+    {
+        Real facx = 0.5_rt*dxinv[0];
+        Real facy = 0.5_rt*dxinv[1];
+        frh(i,j,0) = facx*(-vel(i-1,j-1,0,0)+vel(i,j-1,0,0)-vel(i-1,j,0,0)+vel(i,j,0,0))
+            +        facy*(-vel(i-1,j-1,0,1)-vel(i,j-1,0,1)+vel(i-1,j,0,1)+vel(i,j,0,1));
+
+        if (is_rz) {
+            Real fm = facy / (6*i-3);
+            Real fp = facy / (6*i+3);
+            frh(i,j,0) += fm*(vel(i-1,j,0,1)-vel(i-1,j-1,0,1))
+                        - fp*(vel(i  ,j,0,1)-vel(i  ,j-1,0,1));
+        }
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_divu_add_fine_contrib (int i, int j, int k, Box const& fvbx,
+                                    Array4<Real> const& rhs, Array4<Real const> const& frh,
+                                    Array4<int const> const& msk) noexcept
+{
+    constexpr Real rfd = 0.25_rt;
+    constexpr Real chip = 0.5_rt;
+    constexpr Real chip2 = 0.25_rt;
+
+    int ii = 2*i;
+    int jj = 2*j;
+    IntVect iv(ii,jj);
+    if (fvbx.contains(iv) and !fvbx.strictly_contains(iv) and msk(ii,jj,0))
+    {
+        rhs(i,j,0) +=
+            rfd*(frh(ii,jj,0)
+                 + chip*(frh(ii-1,jj,0)+frh(ii+1,jj,0)+frh(ii,jj-1,0)+frh(ii,jj+1,0))
+                 + chip2*(frh(ii-1,jj-1,0)+frh(ii+1,jj-1,0)+frh(ii-1,jj+1,0)+frh(ii+1,jj+1,0)));
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_rhcc_fine_contrib (int i, int j, int, Box const& fvbx,
+                                Array4<Real> const& rhs, Array4<Real const> const& cc,
+                                Array4<int const> const& msk) noexcept
+{
+    constexpr Real w1 = 9._rt/64._rt;
+    constexpr Real w2 = 3._rt/64._rt;
+    constexpr Real w3 = 1._rt/64._rt;
+
+    int ii = 2*i;
+    int jj = 2*j;
+    IntVect iv(ii,jj);
+    if (fvbx.contains(iv) and !fvbx.strictly_contains(iv) and msk(ii,jj,0))
+    {
+        rhs(i,j,0) += w1*(cc(ii-1,jj-1,0)+cc(ii  ,jj-1,0)+cc(ii-1,jj  ,0)+cc(ii  ,jj  ,0))
+                    + w2*(cc(ii-2,jj-1,0)+cc(ii+1,jj-1,0)+cc(ii-2,jj  ,0)+cc(ii+1,jj  ,0)
+                         +cc(ii-1,jj-2,0)+cc(ii  ,jj-2,0)+cc(ii-1,jj+1,0)+cc(ii  ,jj+1,0))
+                    + w3*(cc(ii-2,jj-2,0)+cc(ii+1,jj-2,0)+cc(ii-2,jj+1,0)+cc(ii+1,jj+1,0));
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_divu_cf_contrib (int i, int j, int, Array4<Real> const& rhs,
+                              Array4<Real const> const& vel, Array4<Real const> const& fc,
+                              Array4<Real const> const& rhcc, Array4<int const> const& dmsk,
+                              Array4<int const> const& ndmsk, Array4<int const> const& ccmsk,
+                              bool is_rz, GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                              Box const& nddom, GpuArray<LinOpBCType,AMREX_SPACEDIM> const& bclo,
+                              GpuArray<LinOpBCType,AMREX_SPACEDIM> const& bchi) noexcept
+{
+    if (!dmsk(i,j,0) and ndmsk(i,j,0) == crse_fine_node) {
+        Real facx = 0.5_rt * dxinv[0];
+        Real facy = 0.5_rt * dxinv[1];
+        const auto ndlo = amrex::lbound(nddom);
+        const auto ndhi = amrex::ubound(nddom);
+        Real r = fc(i,j,0);
+        if (rhcc) {
+            r += 0.25_rt*( (1._rt-ccmsk(i-1,j-1,0)) * rhcc(i-1,j-1,0)
+                         + (1._rt-ccmsk(i  ,j-1,0)) * rhcc(i  ,j-1,0)
+                         + (1._rt-ccmsk(i-1,j  ,0)) * rhcc(i-1,j  ,0)
+                         + (1._rt-ccmsk(i  ,j  ,0)) * rhcc(i  ,j  ,0));
+        }
+        r += (1._rt-ccmsk(i-1,j-1,0)) * (-facx*vel(i-1,j-1,0,0) - facy*vel(i-1,j-1,0,1))
+           + (1._rt-ccmsk(i  ,j-1,0)) * ( facx*vel(i  ,j-1,0,0) - facy*vel(i  ,j-1,0,1))
+           + (1._rt-ccmsk(i-1,j  ,0)) * (-facx*vel(i-1,j  ,0,0) + facy*vel(i-1,j  ,0,1))
+           + (1._rt-ccmsk(i  ,j  ,0)) * ( facx*vel(i  ,j  ,0,0) + facy*vel(i  ,j  ,0,1));
+        if (is_rz) {
+            Real fm = facy / (6*i-3);
+            Real fp = facy / (6*i+3);
+            r += fm*((1._rt-ccmsk(i-1,j  ,0))*vel(i-1,j  ,0,1)
+                    -(1._rt-ccmsk(i-1,j-1,0))*vel(i-1,j-1,0,1))
+               - fp*((1._rt-ccmsk(i  ,j  ,0))*vel(i  ,j  ,0,1)
+                    -(1._rt-ccmsk(i  ,j-1,0))*vel(i  ,j-1,0,1));
+        }
+
+        if (i == ndlo.x and ( bclo[0] == LinOpBCType::Neumann or
+                              bclo[0] == LinOpBCType::inflow)) {
+            r *= 2._rt;
+        } else if (i== ndhi.x and ( bchi[0] == LinOpBCType::Neumann or
+                                    bchi[0] == LinOpBCType::inflow)) {
+            r *= 2._rt;
+        }
+
+        if (j == ndlo.y and ( bclo[1] == LinOpBCType::Neumann or
+                              bclo[1] == LinOpBCType::inflow)) {
+            r *= 2._rt;
+        } else if (j == ndhi.y and ( bchi[1] == LinOpBCType::Neumann or
+                                     bchi[1] == LinOpBCType::inflow)) {
+            r *= 2._rt;
+        }
+
+        rhs(i,j,0) = r;
     }
 }
 
