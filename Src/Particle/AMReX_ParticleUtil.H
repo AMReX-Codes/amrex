@@ -49,6 +49,165 @@ void copyParticle(const      ParticleTileData<NSR, NSI, NAR, NAI>& dst,
 }
 
 /**
+ * /brief Apply the function f to all the particles in src, writing the
+ * result to dst. This version does all the particles in src.
+ * 
+ * \tparam PTile the particle tile type
+ * \tparam F a function object
+ *
+ * \param dst the destination tile
+ * \param src the source tile
+ * \param f the function that will be applied to each particle
+ *
+ */    
+template <typename PTile, typename F>
+void transformParticles(PTile& dst, const PTile& src, F f) noexcept
+{
+    auto np = src.numParticles();
+    transformParticles(dst, src, 0, 0, np, f);
+}
+
+/**
+ * /brief Apply the function f to particles in src, writing the
+ * result to dst. This version applies the function to n particles
+ * starting at index src_start, writing the result starting at src_start.
+ * 
+ * \tparam PTile the particle tile type
+ * \tparam IndexType the index type, e.g. unsigned int
+ * \tparam N the size type, e.g. long
+ * \tparam F a function object
+ *
+ * \param dst the destination tile
+ * \param src the source tile
+ * \param src_start the offset at which to start reading particles from src
+ * \param dst_start the offset at which to start writing particles to dst
+ * \param f the function that will be applied to each particle
+ *
+ */
+template <typename PTile, typename IndexType, typename N, typename F>
+void transformParticles(PTile& dst, const PTile& src, IndexType src_start, IndexType dst_start, N n, F f) noexcept
+{
+    const auto src_data = src.getConstParticleTileData();
+          auto dst_data = dst.getParticleTileData();
+
+    AMREX_FOR_1D( n, i, { f(dst_data, src_data, src_start+i, dst_start+i); });
+}
+
+/**
+ * /brief Conditionally copy particles from src to dst based on the value of mask.
+ * 
+ * \tparam PTile the particle tile type
+ * \tparam IndexType the index type, e.g. unsigned int
+ *
+ * \param dst the destination tile
+ * \param src the source tile
+ * \param mask pointer to the mask - 1 means copy, 0 means don't copy
+ *
+ */
+template <typename PTile, typename IndexType>
+void filterParticles(PTile& dst, const PTile& src, const IndexType* mask) noexcept
+{
+    auto np = src.numParticles();
+    Gpu::DeviceVector<IndexType> offsets(np);
+    Gpu::exclusive_scan(mask, mask+np, offsets);
+    auto p_offsets = offsets.dataPtr();
+    
+    const auto src_data = src.getConstParticleTileData();
+          auto dst_data = dst.getParticleTileData();
+
+    AMREX_FOR_1D( np, i,
+    {
+        if (mask[i]) copyParticle(dst_data, src_data, i, p_offsets[i]);
+    });
+}
+
+/**
+ * /brief Conditionally copy particles from src to dst based on a predicate.
+ * 
+ * \tparam PTile the particle tile type
+ * \tparam IndexType the index type, e.g. unsigned int
+ * \tparam Pred a function object
+ *
+ * \param dst the destination tile
+ * \param src the source tile
+ * \param p predicate function - particles will be copied if p returns true
+ *
+ */    
+template <typename PTile, typename IndexType, typename Pred>
+void filterParticles(PTile& dst, const PTile& src, Pred p) noexcept
+{
+    auto np = src.numParticles();
+    Gpu::DeviceVector<IndexType> mask(np);
+
+    auto p_mask = mask.dataPtr();
+    const auto src_data = src.getConstParticleTileData();
+    
+    AMREX_FOR_1D(np, i, {p_mask[i] = p(src_data, i); });
+
+    filterPartcles(dst, src, mask.dataPtr());
+}
+
+/**
+ * /brief Conditionally copy particles from src to dst based on the value of mask.
+ * A transformation will also be applied to the particles on copy.
+ * 
+ * \tparam PTile the particle tile type
+ * \tparam IndexType the index type, e.g. unsigned int
+ * \tparam F the transform function type
+ *
+ * \param dst the destination tile
+ * \param src the source tile
+ * \param mask pointer to the mask - 1 means copy, 0 means don't copy
+ * \param f defines the transformation that will be applied to the particles on copy
+ *
+ */
+template <typename PTile, typename IndexType, typename F>
+void filterAndTransformParticles(PTile& dst, const PTile& src, const IndexType* mask, F f) noexcept
+{
+    auto np = src.numParticles();
+    Gpu::DeviceVector<IndexType> offsets(np);
+    Gpu::exclusive_scan(mask, mask+np, offsets);
+    auto p_offsets = offsets.dataPtr();
+    
+    const auto src_data = src.getConstParticleTileData();
+          auto dst_data = dst.getParticleTileData();
+
+    AMREX_FOR_1D( np, i,
+    {
+        if (mask[i]) f(dst_data, src_data, i, p_offsets[i]);
+    });
+}
+
+/**
+ * /brief Conditionally copy particles from src to dst based on a predicate.
+ * A transformation will also be applied to the particles on copy.
+ * 
+ * \tparam PTile the particle tile type
+ * \tparam IndexType the index type, e.g. unsigned int
+ * \tparam Pred a function object
+ * \tparam F the transform function type
+ *
+ * \param dst the destination tile
+ * \param src the source tile
+ * \param p predicate function - particles will be copied if p returns true
+ * \param f defines the transformation that will be applied to the particles on copy
+ *
+ */    
+template <typename PTile, typename IndexType, typename Pred, typename F>
+void filterAndTransformParticles(PTile& dst, const PTile& src, Pred p, F f) noexcept
+{
+    auto np = src.numParticles();
+    Gpu::DeviceVector<IndexType> mask(np);
+
+    auto p_mask = mask.dataPtr();
+    const auto src_data = src.getConstParticleTileData();
+    
+    AMREX_FOR_1D(np, i, {p_mask[i] = p(src_data, i); });
+
+    filterAndTransformPartcles(dst, src, mask.dataPtr(), f);
+}
+    
+/**
  * /brief Gather particles copies particles into contiguous order from an 
  * arbitrary order. Specifically, the particle at the index inds[i] in src
  * will be copied to the index i in dst.
