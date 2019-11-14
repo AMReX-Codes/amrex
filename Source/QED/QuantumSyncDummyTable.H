@@ -14,17 +14,17 @@ namespace QedUtils{
 const QuantumSynchrotronEngineInnards
 QuantumSyncEngineInnardsDummy
 {
-    .ctrl{//_____________________________ctrl
-        .chi_part_min = 0.001,
-        .chi_part_tdndt_min = 0.001,
-        .chi_part_tdndt_max = 200,
-        .chi_part_tdndt_how_many = 64,
-        .chi_part_tem_min = 0.001,
-        .chi_part_tem_max = 200,
-        .chi_part_tem_how_many = 2,
-        .prob_tem_how_many = 2
+    {//_____________________________ctrl
+        0.001, //chi_part_min
+        0.001, //chi_part_tdndt_min
+        200, //chi_part_tdndt_max
+        64, //chi_part_tdndt_how_many
+        0.001, //chi_part_tem_min
+        200, //chi_part_tem_max
+        2, //chi_part_tem_how_many
+        2 //prob_tem_how_many
     },//_________________________________
-    .KKfunc_coords{//_____________________________KKfunc_coords
+    {//_____________________________KKfunc_coords
         -6.907755279, -6.714008094, -6.520260909, -6.326513724,
         -6.13276654, -5.939019355, -5.74527217, -5.551524985,
         -5.3577778, -5.164030615, -4.97028343, -4.776536246,
@@ -42,7 +42,7 @@ QuantumSyncEngineInnardsDummy
         3.942087073, 4.135834257, 4.329581442, 4.523328627,
         4.717075812, 4.910822997, 5.104570182, 5.298317367
     },
-    .KKfunc_data{//_____________________________KKfunc_data
+    {//_____________________________KKfunc_data
         -7.968431811, -7.639082211, -7.326295546, -7.02752527,
         -6.740710773, -6.464172009, -6.196529608, -5.93664402
         -5.683568899, -5.436515162, -5.194823127, -4.957940775,
@@ -60,13 +60,13 @@ QuantumSyncEngineInnardsDummy
         2.874829832, 3.008817314, 3.142273988, 3.27525366,
         3.407805563, 3.539975021, 3.671803889, 3.803330346
     },//_____________________________
-    .cum_distrib_coords_1{//_____________________________Tcum_distrib_coords_1
+    {//_____________________________Tcum_distrib_coords_1
         -6.907755279, 5.298317367
     },//_____________________________
-    .cum_distrib_coords_2{//_____________________________Tcum_distrib_coords_2
+    {//_____________________________Tcum_distrib_coords_2
         0, 0.5
     },//_____________________________
-    .cum_distrib_data{//_____________________________cum_distrib_data
+    {//_____________________________cum_distrib_data
         -std::numeric_limits<amrex::Real>::infinity(),
         -0.6931471806,
         -std::numeric_limits<amrex::Real>::infinity(),
