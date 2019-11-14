@@ -680,6 +680,70 @@ void mlndlap_mknewu (int i, int j, int k, Array4<Real> const& u, Array4<Real con
     }
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_divu_compute_fine_contrib (int i, int j, int, Box const& fvbx,
+                                        Array4<Real> const& frh, Array4<Real const> const& vel,
+                                        bool is_rz, GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+{
+    IntVect iv(i,j);
+    if (fvbx.contains(iv) and !fvbx.strictly_contains(iv))
+    {
+        Real facx = 0.5_rt*dxinv[0];
+        Real facy = 0.5_rt*dxinv[1];
+        frh(i,j,0) = facx*(-vel(i-1,j-1,0,0)+vel(i,j-1,0,0)-vel(i-1,j,0,0)+vel(i,j,0,0))
+            +        facy*(-vel(i-1,j-1,0,1)-vel(i,j-1,0,1)+vel(i-1,j,0,1)+vel(i,j,0,1));
+
+        if (is_rz) {
+            Real fm = facy / (6*i-3);
+            Real fp = facy / (6*i+3);
+            frh(i,j,0) += fm*(vel(i-1,j,0,1)-vel(i-1,j-1,0,1))
+                        - fp*(vel(i  ,j,0,1)-vel(i  ,j-1,0,1));
+        }
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_divu_add_fine_contrib (int i, int j, int k, Box const& fvbx,
+                                    Array4<Real> const& rhs, Array4<Real const> const& frh,
+                                    Array4<int const> const& msk) noexcept
+{
+    constexpr Real rfd = 0.25_rt;
+    constexpr Real chip = 0.5_rt;
+    constexpr Real chip2 = 0.25_rt;
+
+    int ii = 2*i;
+    int jj = 2*j;
+    IntVect iv(ii,jj);
+    if (fvbx.contains(iv) and !fvbx.strictly_contains(iv) and msk(ii,jj,0))
+    {
+        rhs(i,j,0) +=
+            rfd*(frh(ii,jj,0)
+                 + chip*(frh(ii-1,jj,0)+frh(ii+1,jj,0)+frh(ii,jj-1,0)+frh(ii,jj+1,0))
+                 + chip2*(frh(ii-1,jj-1,0)+frh(ii+1,jj-1,0)+frh(ii-1,jj+1,0)+frh(ii+1,jj+1,0)));
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_rhcc_fine_contrib (int i, int j, int, Box const& fvbx,
+                                Array4<Real> const& rhs, Array4<Real const> const& cc,
+                                Array4<int const> const& msk) noexcept
+{
+    constexpr Real w1 = 9._rt/64._rt;
+    constexpr Real w2 = 3._rt/64._rt;
+    constexpr Real w3 = 1._rt/64._rt;
+
+    int ii = 2*i;
+    int jj = 2*j;
+    IntVect iv(ii,jj);
+    if (fvbx.contains(iv) and !fvbx.strictly_contains(iv) and msk(ii,jj,0))
+    {
+        rhs(i,j,0) += w1*(cc(ii-1,jj-1,0)+cc(ii  ,jj-1,0)+cc(ii-1,jj  ,0)+cc(ii  ,jj  ,0))
+                    + w2*(cc(ii-2,jj-1,0)+cc(ii+1,jj-1,0)+cc(ii-2,jj  ,0)+cc(ii+1,jj  ,0)
+                         +cc(ii-1,jj-2,0)+cc(ii  ,jj-2,0)+cc(ii-1,jj+1,0)+cc(ii  ,jj+1,0))
+                    + w3*(cc(ii-2,jj-2,0)+cc(ii+1,jj-2,0)+cc(ii-2,jj+1,0)+cc(ii+1,jj+1,0));
+    }
+}
+
 //
 // residual
 //

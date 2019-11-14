@@ -1328,6 +1328,82 @@ void mlndlap_mknewu (int i, int j, int k, Array4<Real> const& u, Array4<Real con
            +p(i,j,k+1)+p(i+1,j,k+1)+p(i,j+1,k+1)+p(i+1,j+1,k+1));
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_divu_compute_fine_contrib (int i, int j, int k, Box const& fvbx,
+                                        Array4<Real> const& frh, Array4<Real const> const& vel,
+                                        GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+{
+    IntVect iv(i,j,k);
+    if (fvbx.contains(iv) and !fvbx.strictly_contains(iv))
+    {
+        frh(i,j,k) = 0.25*dxinv[0]*(-vel(i-1,j-1,k-1,0)+vel(i,j-1,k-1,0)
+                                    -vel(i-1,j  ,k-1,0)+vel(i,j  ,k-1,0)
+                                    -vel(i-1,j-1,k  ,0)+vel(i,j-1,k  ,0)
+                                    -vel(i-1,j  ,k  ,0)+vel(i,j  ,k  ,0))
+                   + 0.25*dxinv[1]*(-vel(i-1,j-1,k-1,1)-vel(i,j-1,k-1,1)
+                                    +vel(i-1,j  ,k-1,1)+vel(i,j  ,k-1,1)
+                                    -vel(i-1,j-1,k  ,1)-vel(i,j-1,k  ,1)
+                                    +vel(i-1,j  ,k  ,1)+vel(i,j  ,k  ,1))
+                   + 0.25*dxinv[2]*(-vel(i-1,j-1,k-1,2)-vel(i,j-1,k-1,2)
+                                    -vel(i-1,j  ,k-1,2)-vel(i,j  ,k-1,2)
+                                    +vel(i-1,j-1,k  ,2)+vel(i,j-1,k  ,2)
+                                    +vel(i-1,j  ,k  ,2)+vel(i,j  ,k  ,2));
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_divu_add_fine_contrib (int i, int j, int k, Box const& fvbx,
+                                    Array4<Real> const& rhs, Array4<Real const> const& frh,
+                                    Array4<int const> const& msk) noexcept
+{
+    constexpr Real rfd = 0.125_rt;
+    constexpr Real chip = 0.5_rt;
+    constexpr Real chip2 = 0.25_rt;
+    constexpr Real chip3 = 0.125_rt;
+
+    int ii = 2*i;
+    int jj = 2*j;
+    int kk = 2*k;
+    IntVect iv(ii,jj,kk);
+    if (fvbx.contains(iv) and !fvbx.strictly_contains(iv) and msk(ii,jj,kk))
+    {
+        rhs(i,j,k) +=
+            rfd*(frh(ii,jj,kk)
+                 + chip*(frh(ii,jj,kk-1)+frh(ii,jj,kk+1)
+                         +frh(ii,jj-1,kk)+frh(ii,jj+1,kk)
+                         +frh(ii-1,jj,kk)+frh(ii+1,jj,kk))
+                 + chip2*(frh(ii,jj-1,kk-1)+frh(ii,jj+1,kk-1)+frh(ii,jj-1,kk+1)+frh(ii,jj+1,kk+1)
+                          +frh(ii-1,jj,kk-1)+frh(ii+1,jj,kk-1)+frh(ii-1,jj,kk+1)+frh(ii+1,jj,kk+1)
+                          +frh(ii-1,jj-1,kk)+frh(ii+1,jj-1,kk)+frh(ii-1,jj+1,kk)+frh(ii+1,jj+1,kk))
+                 + chip3*(frh(ii-1,jj-1,kk-1)+frh(ii+1,jj-1,kk-1)
+                          +frh(ii-1,jj+1,kk-1)+frh(ii+1,jj+1,kk-1)
+                          +frh(ii-1,jj-1,kk+1)+frh(ii+1,jj-1,kk+1)
+                          +frh(ii-1,jj+1,kk+1)+frh(ii+1,jj+1,kk+1)));
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_rhcc_fine_contrib (int i, int j, int k, Box const& fvbx,
+                                Array4<Real> const& rhs, Array4<Real const> const& cc,
+                                Array4<int const> const& msk) noexcept
+{
+    constexpr Real fac[] = {0.125_rt, 0.375_rt, 0.375_rt, 0.125_rt};
+    int ii = 2*i;
+    int jj = 2*j;
+    int kk = 2*k;
+    IntVect iv(ii,jj,kk);
+    if (fvbx.contains(iv) and !fvbx.strictly_contains(iv) and msk(ii,jj,kk))
+    {
+        Real r = 0.0;
+        for (int koff = -2; koff <= 1; ++koff) {
+        for (int joff = -2; joff <= 1; ++joff) {
+        for (int ioff = -2; ioff <= 1; ++ioff) {
+            r += cc(ii+ioff,jj+joff,kk+koff) * fac[ioff+2]*fac[joff+2]*fac[koff+2];
+        }}}
+        rhs(i,j,k) += r;
+    }
+}
+
 //
 // residual
 //

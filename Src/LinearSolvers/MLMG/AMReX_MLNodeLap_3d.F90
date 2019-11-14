@@ -26,8 +26,8 @@ module amrex_mlnodelap_3d_module
        ! restriction
        ! interpolation
        ! rhs & u
-       amrex_mlndlap_divu_fine_contrib, amrex_mlndlap_divu_cf_contrib, &
-       amrex_mlndlap_rhcc_fine_contrib, amrex_mlndlap_rhcc_crse_contrib, &
+       amrex_mlndlap_divu_cf_contrib, &
+       amrex_mlndlap_rhcc_crse_contrib, &
        ! residual
        amrex_mlndlap_crse_resid, &
        amrex_mlndlap_res_fine_contrib, amrex_mlndlap_res_cf_contrib, &
@@ -62,94 +62,6 @@ contains
 100 continue
   end function amrex_mlndlap_any_fine_sync_cells
 
-
-  subroutine amrex_mlndlap_divu_fine_contrib (clo, chi, cglo, cghi, rhs, rlo, rhi, &
-       vel, vlo, vhi, frh, flo, fhi, msk, mlo, mhi, dxinv) &
-       bind(c,name='amrex_mlndlap_divu_fine_contrib')
-    integer, dimension(3), intent(in) :: clo, chi, cglo, cghi, rlo, rhi, vlo, vhi, &
-         flo, fhi, mlo, mhi
-    real(amrex_real), intent(in) :: dxinv(3)
-    real(amrex_real), intent(inout) :: rhs(rlo(1):rhi(1),rlo(2):rhi(2),rlo(3):rhi(3))
-    real(amrex_real), intent(in   ) :: vel(vlo(1):vhi(1),vlo(2):vhi(2),vlo(3):vhi(3),3)
-    real(amrex_real), intent(inout) :: frh(flo(1):fhi(1),flo(2):fhi(2),flo(3):fhi(3))
-    integer         , intent(in   ) :: msk(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3))
-
-    integer, dimension(3) :: lo, hi, glo, ghi, gtlo, gthi
-    integer :: i, j, k, ii, jj, kk, step
-    real(amrex_real) :: facx, facy, facz
-    real(amrex_real), parameter :: rfd = 0.125d0
-    real(amrex_real), parameter :: chip = 0.5d0
-    real(amrex_real), parameter :: chip2 = 0.25d0
-    real(amrex_real), parameter :: chip3 = 0.125d0
-
-    ! note that dxinv is fine dxinv
-    facx = 0.25d0*dxinv(1)
-    facy = 0.25d0*dxinv(2)
-    facz = 0.25d0*dxinv(3)
-
-    lo = 2*clo
-    hi = 2*chi
-    glo = 2*cglo
-    ghi = 2*cghi
-
-    gtlo = max(lo-1,glo)
-    gthi = min(hi+1,ghi)
-
-    do    kk = gtlo(3), gthi(3)
-       do jj = gtlo(2), gthi(2)
-          if (jj.eq.glo(2) .or. jj.eq.ghi(2) .or. kk.eq.glo(3) .or. kk.eq.ghi(3)) then
-             step = 1
-          else
-             step = gthi(1)-gtlo(1)
-          end if
-          do ii = gtlo(1), gthi(1), step
-             if (ii.eq.glo(1) .or. ii.eq.ghi(1) .or. step.eq.1) then
-                frh(ii,jj,kk) = facx*(-vel(ii-1,jj-1,kk-1,1)+vel(ii,jj-1,kk-1,1) &
-                     &                -vel(ii-1,jj  ,kk-1,1)+vel(ii,jj  ,kk-1,1) &
-                     &                -vel(ii-1,jj-1,kk  ,1)+vel(ii,jj-1,kk  ,1) &
-                     &                -vel(ii-1,jj  ,kk  ,1)+vel(ii,jj  ,kk  ,1)) &
-                     &        + facy*(-vel(ii-1,jj-1,kk-1,2)-vel(ii,jj-1,kk-1,2) &
-                     &                +vel(ii-1,jj  ,kk-1,2)+vel(ii,jj  ,kk-1,2) &
-                     &                -vel(ii-1,jj-1,kk  ,2)-vel(ii,jj-1,kk  ,2) &
-                     &                +vel(ii-1,jj  ,kk  ,2)+vel(ii,jj  ,kk  ,2)) &
-                     &        + facz*(-vel(ii-1,jj-1,kk-1,3)-vel(ii,jj-1,kk-1,3) &
-                     &                -vel(ii-1,jj  ,kk-1,3)-vel(ii,jj  ,kk-1,3) &
-                     &                +vel(ii-1,jj-1,kk  ,3)+vel(ii,jj-1,kk  ,3) &
-                     &                +vel(ii-1,jj  ,kk  ,3)+vel(ii,jj  ,kk  ,3))
-             end if
-          end do
-       end do
-    end do
-
-    do k = clo(3), chi(3)
-       kk = 2*k
-       do j = clo(2), chi(2)
-          jj = 2*j
-          if (jj.eq.glo(2) .or. jj.eq.ghi(2) .or. kk.eq.glo(3) .or. kk.eq.ghi(3)) then
-             step = 1
-          else
-             step = chi(1)-clo(1)
-          end if
-          do i = clo(1), chi(1), step
-             ii = 2*i
-             if (msk(ii,jj,kk) .eq. dirichlet) then
-                rhs(i,j,k) = rhs(i,j,k) + rfd*(frh(ii,jj,kk) &
-                     + chip*(frh(ii,jj,kk-1)+frh(ii,jj,kk+1) &
-                     &      +frh(ii,jj-1,kk)+frh(ii,jj+1,kk) &
-                     &      +frh(ii-1,jj,kk)+frh(ii+1,jj,kk)) &
-                     + chip2*(frh(ii,jj-1,kk-1)+frh(ii,jj+1,kk-1)+frh(ii,jj-1,kk+1)+frh(ii,jj+1,kk+1) &
-                     &       +frh(ii-1,jj,kk-1)+frh(ii+1,jj,kk-1)+frh(ii-1,jj,kk+1)+frh(ii+1,jj,kk+1) &
-                     &       +frh(ii-1,jj-1,kk)+frh(ii+1,jj-1,kk)+frh(ii-1,jj+1,kk)+frh(ii+1,jj+1,kk)) &
-                     + chip3*(frh(ii-1,jj-1,kk-1)+frh(ii+1,jj-1,kk-1) &
-                     &       +frh(ii-1,jj+1,kk-1)+frh(ii+1,jj+1,kk-1) &
-                     &       +frh(ii-1,jj-1,kk+1)+frh(ii+1,jj-1,kk+1) &
-                     &       +frh(ii-1,jj+1,kk+1)+frh(ii+1,jj+1,kk+1)))
-             end if
-          end do
-       end do
-    end do
-
-  end subroutine amrex_mlndlap_divu_fine_contrib
 
   subroutine amrex_mlndlap_divu_cf_contrib (lo, hi,  rhs, rlo, rhi, vel, vlo, vhi, dmsk, mlo, mhi, &
        ndmsk, nmlo, nmhi, ccmsk, cmlo, cmhi, fc, clo, chi, dxinv, ndlo, ndhi, bclo, bchi) &
@@ -255,50 +167,6 @@ contains
     end do
 
   end subroutine amrex_mlndlap_divu_cf_contrib
-
-
-  subroutine amrex_mlndlap_rhcc_fine_contrib (clo, chi, cglo, cghi, rhs, rlo, rhi, &
-       cc, cclo, cchi, msk, mlo, mhi) bind(c,name='amrex_mlndlap_rhcc_fine_contrib')
-    integer, dimension(3), intent(in) :: clo, chi, cglo, cghi, rlo, rhi, cclo, cchi, mlo, mhi
-    real(amrex_real), intent(inout) :: rhs( rlo(1): rhi(1), rlo(2): rhi(2), rlo(3): rhi(3))
-    real(amrex_real), intent(in   ) :: cc (cclo(1):cchi(1),cclo(2):cchi(2),cclo(3):cchi(3))
-    integer         , intent(in   ) :: msk( mlo(1): mhi(1), mlo(2): mhi(2), mlo(3): mhi(3))
-
-    integer, dimension(3) :: lo, hi, glo, ghi
-    integer :: i, j, k, ii, jj, kk, step, ioff, joff, koff
-    real(amrex_real), parameter :: fac(-2:1) = [1.d0/8.d0, 3.d0/8.d0, 3.d0/8.d0, 1.d0/8.d0]
-
-    lo = 2*clo
-    hi = 2*chi
-    glo = 2*cglo
-    ghi = 2*cghi
-
-    do k = clo(3), chi(3)
-       kk = 2*k
-       do j = clo(2), chi(2)
-          jj = 2*j
-          if (jj.eq.glo(2) .or. jj.eq.ghi(2) .or. kk.eq.glo(3) .or. kk.eq.ghi(3)) then
-             step = 1
-          else
-             step = chi(1)-clo(1)
-          end if
-          do i = clo(1), chi(1), step
-             ii = 2*i
-             if (msk(ii,jj,kk) .eq. dirichlet) then
-                do koff = -2, 1
-                   do joff = -2, 1
-                      do ioff = -2, 1
-                         rhs(i,j,k) = rhs(i,j,k) + cc(ii+ioff,jj+joff,kk+koff) &
-                              * fac(ioff)*fac(joff)*fac(koff)
-                      end do
-                   end do
-                end do
-             end if
-          end do
-       end do
-    end do
-
-  end subroutine amrex_mlndlap_rhcc_fine_contrib
 
 
   subroutine amrex_mlndlap_rhcc_crse_contrib (lo, hi, crhs, rlo, rhi, rhcc, clo, chi, &

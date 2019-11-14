@@ -16,9 +16,8 @@ module amrex_mlnodelap_1d_module
        ! restriction
        ! interpolation
        ! rhs & u
-       amrex_mlndlap_divu_fine_contrib, amrex_mlndlap_divu_cf_contrib, &
-       amrex_mlndlap_rhcc_fine_contrib, amrex_mlndlap_rhcc_crse_contrib, &
-       amrex_mlndlap_vel_cc_to_ct, &
+       amrex_mlndlap_divu_cf_contrib, &
+       amrex_mlndlap_rhcc_crse_contrib, &
        ! residual
        amrex_mlndlap_crse_resid, &
        amrex_mlndlap_res_fine_contrib, amrex_mlndlap_res_cf_contrib, &
@@ -38,30 +37,6 @@ contains
   end function amrex_mlndlap_any_fine_sync_cells
 
 
-  subroutine amrex_mlndlap_vel_cc_to_ct (lo, hi, vel, vlo, vhi, ovel, olo, ohi, vfrac, flo, fhi, &
-       cent, clo, chi, flag, glo, ghi) bind(c,name='amrex_mlndlap_vel_cc_to_ct')
-    integer, dimension(1), intent(in) :: lo, hi, vlo, vhi, olo, ohi, flo, fhi, clo, chi, glo, ghi
-    real(amrex_real), intent(inout) ::   vel(vlo(1):vhi(1))
-    real(amrex_real), intent(in   ) ::  ovel(olo(1):ohi(1))
-    real(amrex_real), intent(in   ) :: vfrac(flo(1):fhi(1))
-    real(amrex_real), intent(in   ) ::  cent(clo(1):chi(1))
-    integer         , intent(in   ) ::  flag(glo(1):ghi(1))
-  end subroutine amrex_mlndlap_vel_cc_to_ct
-
-
-  subroutine amrex_mlndlap_divu_fine_contrib (clo, chi, cglo, cghi, rhs, rlo, rhi, &
-       vel, vlo, vhi, frh, flo, fhi, msk, mlo, mhi, dxinv) &
-       bind(c,name='amrex_mlndlap_divu_fine_contrib')
-    integer, dimension(1), intent(in) :: clo, chi, cglo, cghi, rlo, rhi, vlo, vhi, &
-         flo, fhi, mlo, mhi
-    real(amrex_real), intent(in) :: dxinv(1)
-    real(amrex_real), intent(inout) :: rhs(rlo(1):rhi(1))
-    real(amrex_real), intent(in   ) :: vel(vlo(1):vhi(1))
-    real(amrex_real), intent(inout) :: frh(flo(1):fhi(1))
-    integer         , intent(in   ) :: msk(mlo(1):mhi(1))
-  end subroutine amrex_mlndlap_divu_fine_contrib
-
-
   subroutine amrex_mlndlap_divu_cf_contrib (lo, hi,  rhs, rlo, rhi, vel, vlo, vhi, dmsk, mlo, mhi, &
        ndmsk, nmlo, nmhi, ccmsk, cmlo, cmhi, fc, clo, chi, dxinv, ndlo, ndhi, bclo, bchi) &
        bind(c,name='amrex_mlndlap_divu_cf_contrib')
@@ -75,15 +50,6 @@ contains
     integer, intent(in) :: ndmsk(nmlo(1):nmhi(1))
     integer, intent(in) :: ccmsk(cmlo(1):cmhi(1))
   end subroutine amrex_mlndlap_divu_cf_contrib
-
-
-  subroutine amrex_mlndlap_rhcc_fine_contrib (clo, chi, cglo, cghi, rhs, rlo, rhi, &
-       cc, cclo, cchi, msk, mlo, mhi) bind(c,name='amrex_mlndlap_rhcc_fine_contrib')
-    integer, dimension(2), intent(in) :: clo, chi, cglo, cghi, rlo, rhi, cclo, cchi, mlo, mhi
-    real(amrex_real), intent(inout) :: rhs( rlo(1): rhi(1), rlo(2): rhi(2))
-    real(amrex_real), intent(in   ) :: cc (cclo(1):cchi(1),cclo(2):cchi(2))
-    integer         , intent(in   ) :: msk( mlo(1): mhi(1), mlo(2): mhi(2))
-  end subroutine amrex_mlndlap_rhcc_fine_contrib
 
 
   subroutine amrex_mlndlap_rhcc_crse_contrib (lo, hi, crhs, rlo, rhi, rhcc, clo, chi, &
