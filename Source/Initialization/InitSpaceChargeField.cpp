@@ -1,7 +1,7 @@
 
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_MLMG.H>
-#include <AMReX_MLNodeLaplacian.H>
+#include <AMReX_MLNodeTensorLaplacian.H>
 
 #include <WarpX.H>
 
@@ -39,7 +39,7 @@ WarpX::InitSpaceChargeField (WarpXParticleContainer& pc)
     for (Real& beta_comp : beta) beta_comp /= PhysConst::c; // Normalize
 
     // Compute the potential phi, by solving the Poisson equation
-    computePhi( rho, phi );
+    computePhi( rho, phi, beta );
 
     // Compute the corresponding electric field, from the potential phi
     computeE( Efield_fp, phi );
@@ -54,7 +54,8 @@ WarpX::InitSpaceChargeField (WarpXParticleContainer& pc)
 */
 void
 WarpX::computePhi(const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
-                  amrex::Vector<std::unique_ptr<amrex::MultiFab> >& phi) const
+                  amrex::Vector<std::unique_ptr<amrex::MultiFab> >& phi,
+                  std::array<Real, 3> beta) const
 {
     // Define the boundary conditions
     Array<LinOpBCType,AMREX_SPACEDIM> lobc, hibc;
@@ -71,15 +72,16 @@ WarpX::computePhi(const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
     }
 
     // Define the linear operator (Poisson operator)
-    MLNodeLaplacian linop( Geom(), boxArray(), DistributionMap() );
+    MLNodeTensorLaplacian linop( Geom(), boxArray(), DistributionMap() );
     linop.setDomainBC( lobc, hibc );
-    for (int lev = 0; lev <= max_level; lev++) {
-        BoxArray cba = boxArray(lev);
-        cba.enclosedCells();
-        MultiFab sigma(cba, DistributionMap(lev), 1, 0);
-        sigma.setVal(-PhysConst::ep0);
-        linop.setSigma(lev, sigma);
-    }
+    // Set the value of beta
+    amrex::Array<amrex::Real,AMREX_SPACEDIM> beta_solver =
+#if (AMREX_SPACEDIM==2)
+        {{ beta[0], beta[2] }};  // beta_x and beta_z
+#else
+        {{ beta[0], beta[1], beta[2] }};
+#endif
+    linop.setBeta( beta_solver );
 
     // Solve the Poisson equation
     MLMG mlmg(linop);
@@ -87,6 +89,10 @@ WarpX::computePhi(const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
     const Real reltol = 1.e-11;
     mlmg.solve( GetVecOfPtrs(phi), GetVecOfConstPtrs(rho), reltol, 0.0);
 
+    // Normalize by the correct physical constant
+    for (int lev=0; lev < rho.size(); lev++){
+        phi[lev]->mult(-1./PhysConst::ep0);
+    }
 }
 
 /* \bried Compute the electric field that corresponds to `phi`, and
