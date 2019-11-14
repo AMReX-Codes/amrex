@@ -27,17 +27,9 @@ struct StructOfArrays {
         m_runtime_idata.resize(a_num_runtime_int );
     }
     
-    int NumRealComps () const noexcept 
-    {
-        AMREX_ASSERT(m_defined);
-        return NReal + m_runtime_rdata.size();
-    }
+    int NumRealComps () const noexcept { return NReal + m_runtime_rdata.size(); }
 
-    int NumIntComps () const noexcept 
-    {
-        AMREX_ASSERT(m_defined);
-        return NInt + m_runtime_idata.size();
-    }
+    int NumIntComps () const noexcept { return NInt + m_runtime_idata.size(); }
 
     std::array<RealVector, NReal>& GetRealData () { return m_rdata; }
     std::array< IntVector,  NInt>& GetIntData  () { return m_idata; }
