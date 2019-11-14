@@ -267,6 +267,12 @@ public:
     bool init_lookup_tables_from_raw_data (const amrex::Vector<char>& raw_data);
 
     /**
+     * Init lookup tables using built-in dummy tables
+     * for test purposes.
+     */
+    void init_dummy_tables();
+
+    /**
      * Export lookup tables data into a raw binary Vector
      * @return the data in binary format. The Vector is empty if tables were
      * not previously initialized.
@@ -275,7 +281,7 @@ public:
 
     /**
      * Computes the lookup tables. It does nothing unless WarpX is compiled with QED_TABLE_GEN=TRUE
-     * @param[in] ctrl control params to generate the tables
+     * @param[in] ctrl control params to geneQuantumSyncEngineInnardsDummyrate the tables
      */
     void compute_lookup_tables (PicsarQuantumSynchrotronCtrl ctrl);
 

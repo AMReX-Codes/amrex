@@ -2,7 +2,7 @@
 #define WARPX_breit_wheeler_dummy_tables_h_
 
 #include "BreitWheelerEngineInnards.H"
-#include <breit_wheeler_engine_ctrl.h>
+
 #include <AMReX_REAL.H>
 #include <AMReX_Gpu.H>
 

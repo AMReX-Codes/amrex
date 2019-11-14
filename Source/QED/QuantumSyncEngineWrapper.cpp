@@ -1,6 +1,7 @@
 #include "QuantumSyncEngineWrapper.H"
 
 #include "QedTableParserHelperFunctions.H"
+#include "QuantumSyncDummyTable.H"
 
 #include <utility>
 
@@ -137,6 +138,12 @@ QuantumSynchrotronEngine::init_lookup_tables_from_raw_data (
     m_lookup_tables_initialized = true;
 
     return true;
+}
+
+void QuantumSynchrotronEngine::init_dummy_tables()
+{
+    m_innards = QedUtils::QuantumSyncEngineInnardsDummy;
+    m_lookup_tables_initialized = true;
 }
 
 Vector<char> QuantumSynchrotronEngine::export_lookup_tables_data () const
