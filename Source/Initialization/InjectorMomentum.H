@@ -51,6 +51,10 @@ private:
 // drift velocity beta, from the Maxwell-Boltzmann distribution.
 struct InjectorMomentumBoltzmann
 {
+    // Constructor whose inputs are:
+    // the temperature parameter theta,
+    // boost velocity/c beta,
+    // and boost direction dir respectively.
     InjectorMomentumBoltzmann(amrex::Real t, amrex::Real b, int d) noexcept
         : vave(std::sqrt(2*t)), beta(b), dir(d)
         {}
@@ -64,13 +68,14 @@ struct InjectorMomentumBoltzmann
         x1 = amrex::Random();
         x2 = amrex::Random();
         // Each value of sqrt(-log(x1))*sin(2*pi*x2) is a sample from a Gaussian
-        // distribution with sigma = average velocity / c.
+        // distribution with sigma = average velocity / c
+        // using the Box-Mueller Method.
         u[(dir+1)%3] = vave*std::sqrt(-std::log(x1)) *std::sin(2*M_PI*x2);
         u[(dir+2)%3] = vave*std::sqrt(-std::log(x1)) *std::cos(2*M_PI*x2);
         u[dir] = vave*std::sqrt(-std::log(amrex::Random()))*
             std::sin(2*M_PI*amrex::Random());
-        gamma = std::sqrt(std::pow(u[0],2)+std::pow(u[1],2)+std::pow(u[2],2));
-        gamma = std::sqrt(1+std::pow(gamma,2));
+        gamma = std::pow(u[0],2)+std::pow(u[1],2)+std::pow(u[2],2);
+        gamma = std::sqrt(1+gamma);
         // The following condition is equtaion 32 in Zenitani 2015
         // (Phys. Plasmas 22, 042116) , called the flipping method. It
         // transforms the intergral: d3x' -> d3x  where d3x' is the volume
@@ -81,7 +86,7 @@ struct InjectorMomentumBoltzmann
         // An equivalent alternative to this method native to WarpX would be to
         // initialize the particle positions and densities in the frame moving
         // at speed beta, and then perform a Lorentz transform on the positions
-        // and MJ sampled velocities to the simulation frame.
+        // and MB sampled velocities to the simulation frame.
         x1 = amrex::Random();
         if(-beta*u[dir]/gamma > x1)
         {
