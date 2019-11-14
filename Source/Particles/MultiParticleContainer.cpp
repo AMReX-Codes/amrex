@@ -644,9 +644,8 @@ void MultiParticleContainer::InitQuantumSync ()
     bool generate_table;
     PicsarQuantumSynchrotronCtrl ctrl;
     std::string filename;
-    std::tie(generate_table, filename, ctrl) = ParseQuantumSyncParams();
 
-    //Only temporary for test purposes, will be removed
+    //Use dummy tables for test purposes if required
     ParmParse pp("qed_qs");
     bool use_dummy_builtin_tables = false;
     pp.query("use_dummy_builtin_tables", use_dummy_builtin_tables);
@@ -656,6 +655,7 @@ void MultiParticleContainer::InitQuantumSync ()
     }
     //_________________________________________________
 
+    std::tie(generate_table, filename, ctrl) = ParseQuantumSyncParams();
 
     if(generate_table && ParallelDescriptor::IOProcessor()){
         m_shr_p_qs_engine->compute_lookup_tables(ctrl);
@@ -683,7 +683,6 @@ void MultiParticleContainer::InitBreitWheeler ()
     bool generate_table;
     PicsarBreitWheelerCtrl ctrl;
     std::string filename;
-    std::tie(generate_table, filename, ctrl) = ParseBreitWheelerParams();
 
     //Use dummy tables for test purposes if required
     ParmParse pp("qed_bw");
@@ -695,6 +694,8 @@ void MultiParticleContainer::InitBreitWheeler ()
         return;
     }
     //_________________________________________________
+
+    std::tie(generate_table, filename, ctrl) = ParseBreitWheelerParams();
 
     if(generate_table && ParallelDescriptor::IOProcessor()){
         m_shr_p_bw_engine->compute_lookup_tables(ctrl);
@@ -731,13 +732,6 @@ MultiParticleContainer::ParseQuantumSyncParams ()
     // considered by the engine. If a lepton has chi < chi_part_min,
     // the optical depth is not evolved and photon generation is ignored
     pp.query("chi_min", ctrl.chi_part_min);
-
-    //Only temporary for test purposes, will be removed
-    bool ignore_tables = false;
-    pp.query("ignore_tables_for_test", ignore_tables);
-    if(ignore_tables)
-        return std::make_tuple(false, "__DUMMY__", ctrl);
-    //_________________________________________________
 
     pp.query("generate_table", generate_table);
     if(generate_table){
