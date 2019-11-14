@@ -1906,20 +1906,22 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
 	      auto new_size = old_size + src_tile.size();
 	      dst_tile.resize(new_size);
 	      
-	      Gpu::thrust_copy(src_tile.begin(),
-                               src_tile.end(),
-                               dst_tile.GetArrayOfStructs().begin() + old_size);
+	      Gpu::copy(Gpu::hostToDevice,
+                        src_tile.begin(), src_tile.end(),
+                        dst_tile.GetArrayOfStructs().begin() + old_size);
 	      
 	      for (int i = 0; i < NumRealComps(); ++i) {
-		Gpu::thrust_copy(host_real_attribs[host_lev][std::make_pair(grid,tile)][i].begin(),
-				 host_real_attribs[host_lev][std::make_pair(grid,tile)][i].end(),
-				 dst_tile.GetStructOfArrays().GetRealData(i).begin() + old_size);
+                  Gpu::copy(Gpu::hostToDevice,
+                            host_real_attribs[host_lev][std::make_pair(grid,tile)][i].begin(),
+                            host_real_attribs[host_lev][std::make_pair(grid,tile)][i].end(),
+                            dst_tile.GetStructOfArrays().GetRealData(i).begin() + old_size);
 	      }
 	      
 	      for (int i = 0; i < NumIntComps(); ++i) {
-		Gpu::thrust_copy(host_int_attribs[host_lev][std::make_pair(grid,tile)][i].begin(),
-		                 host_int_attribs[host_lev][std::make_pair(grid,tile)][i].end(),
-				 dst_tile.GetStructOfArrays().GetIntData(i).begin() + old_size);
+                  Gpu::copy(Gpu::hostToDevice,
+                            host_int_attribs[host_lev][std::make_pair(grid,tile)][i].begin(),
+                            host_int_attribs[host_lev][std::make_pair(grid,tile)][i].end(),
+                            dst_tile.GetStructOfArrays().GetIntData(i).begin() + old_size);
 	      }
 	    }
 	  }

@@ -1175,20 +1175,21 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 	  auto new_size = old_size + src_tile.size();
 	  dst_tile.resize(new_size);
                 
-	  Gpu::thrust_copy(src_tile.begin(),
-			   src_tile.end(),
-			   dst_tile.GetArrayOfStructs().begin() + old_size);
+	  Gpu::copy(Gpu::hostToDevice, src_tile.begin(), src_tile.end(),
+                    dst_tile.GetArrayOfStructs().begin() + old_size);
 	  
 	  for (int i = 0; i < NumRealComps(); ++i) {
-              Gpu::thrust_copy(host_real_attribs[host_lev][std::make_pair(grid,tile)][i].begin(),
-                               host_real_attribs[host_lev][std::make_pair(grid,tile)][i].end(),
-                               dst_tile.GetStructOfArrays().GetRealData(i).begin() + old_size);
+              Gpu::copy(Gpu::hostToDevice,
+                        host_real_attribs[host_lev][std::make_pair(grid,tile)][i].begin(),
+                        host_real_attribs[host_lev][std::make_pair(grid,tile)][i].end(),
+                        dst_tile.GetStructOfArrays().GetRealData(i).begin() + old_size);
 	  }
 	  
 	  for (int i = 0; i < NumIntComps(); ++i) {
-              Gpu::thrust_copy(host_int_attribs[host_lev][std::make_pair(grid,tile)][i].begin(),
-                               host_int_attribs[host_lev][std::make_pair(grid,tile)][i].end(),
-                               dst_tile.GetStructOfArrays().GetIntData(i).begin() + old_size);
+              Gpu::copy(Gpu::hostToDevice,
+                        host_int_attribs[host_lev][std::make_pair(grid,tile)][i].begin(),
+                        host_int_attribs[host_lev][std::make_pair(grid,tile)][i].end(),
+                        dst_tile.GetStructOfArrays().GetIntData(i).begin() + old_size);
 	  }
 	}
       }
@@ -1215,7 +1216,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteAsciiFil
             const auto& aos = kv.second.GetArrayOfStructs();
 	    auto np = aos.numParticles();
 	    Gpu::HostVector<ParticleType> host_aos(np);
-	    Gpu::thrust_copy(aos.begin(), aos.end(), host_aos.begin());
+	    Gpu::copy(Gpu::deviceToHost, aos.begin(), aos.end(), host_aos.begin());
 	    for (int k = 0; k < np; ++k) {
 	        const ParticleType& p = host_aos[k];
                 if (p.m_idata.id > 0)
@@ -1290,7 +1291,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteAsciiFil
 
 		auto np = aos.numParticles();
 		Gpu::HostVector<ParticleType> host_aos(np);
-		Gpu::thrust_copy(aos.begin(), aos.end(), host_aos.begin());
+		Gpu::copy(Gpu::deviceToHost, aos.begin(), aos.end(), host_aos.begin());
 
 		for (int index = 0; index < np; ++index) {
 		    const ParticleType* it = &host_aos[index];

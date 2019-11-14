@@ -201,13 +201,8 @@ public:
         Gpu::HostVector<unsigned int> host_nbor_offsets(m_nbor_offsets.size());
         Gpu::HostVector<unsigned int> host_nbor_list(m_nbor_list.size());
         
-        Gpu::thrust_copy(m_nbor_offsets.begin(),
-                         m_nbor_offsets.end(),
-                         host_nbor_offsets.begin());
-        
-        Gpu::thrust_copy(m_nbor_list.begin(),
-                         m_nbor_list.end(),
-                         host_nbor_list.begin());
+        Gpu::copy(Gpu::deviceToHost, m_nbor_offsets.begin(), m_nbor_offsets.end(), host_nbor_offsets.begin());        
+        Gpu::copy(Gpu::deviceToHost, m_nbor_list.begin(), m_nbor_list.end(), host_nbor_list.begin());
         
         for (int i = 0; i < numParticles(); ++i) {
             amrex::Print() << "Particle " << i << " could collide with: ";
