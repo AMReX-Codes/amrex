@@ -45,99 +45,99 @@ void ElasticCollisionPerez(
 {
 
     constexpr amrex::Real inv_c2 = 1./(PhysConst::c*PhysConst::c);
-    int NI1 = I1e - I1s;
-    int NI2 = I2e - I2s;
+    int NI1 = (int) I1e - I1s;
+    int NI2 = (int) I2e - I2s;
 
     // shuffle I1 and I2
     ShuffleFisherYates(I1, I1s, I1e);
     ShuffleFisherYates(I2, I2s, I2e);
 
-    // get local T1t and T2t
-    amrex::Real T1t; amrex::Real T2t;
-    if ( T1 <= 0. )
-    {
-        amrex::Real vx = 0.; amrex::Real vy = 0.;
-        amrex::Real vz = 0.; amrex::Real vs = 0.;
-	amrex::Real gm = 0.; amrex::Real us = 0.;
-        for (int i1 = I1s; i1 < I1e; ++i1)
-        {
-          us = ( u1x[ I1[i1] ] * u1x[ I1[i1] ] +
-                 u1y[ I1[i1] ] * u1y[ I1[i1] ] +
-                 u1z[ I1[i1] ] * u1z[ I1[i1] ] );
-          gm = std::sqrt(1.+us*inv_c2);
-          vx += u1x[ I1[i1] ] / gm;
-	  vy += u1y[ I1[i1] ] / gm;
-	  vz += u1z[ I1[i1] ] / gm;
-          vs += us / gm / gm;
-        }
-        vx = vx / NI1; vy = vy / NI1;
-	vz = vz / NI1; vs = vs / NI1;
-        T1t = m1/3.*(vs-(vx*vx+vy*vy+vz*vz));
-    }
-    else { T1t = T1; }
-    if ( T2 <= 0. )
-    {
-        amrex::Real vx = 0.; amrex::Real vy = 0.;
-        amrex::Real vz = 0.; amrex::Real vs = 0.;
-	amrex::Real gm = 0.; amrex::Real us = 0.;
-        for (int i2 = I2s; i2 < I2e; ++i2)
-        {
-          us = ( u2x[ I2[i2] ] * u2x[ I2[i2] ] +
-                 u2y[ I2[i2] ] * u2y[ I2[i2] ] +
-                 u2z[ I2[i2] ] * u2z[ I2[i2] ] );
-          gm = std::sqrt(1.+us*inv_c2);
-          vx += u2x[ I2[i2] ] / gm;
-	  vy += u2y[ I2[i2] ] / gm;
-	  vz += u2z[ I2[i2] ] / gm;
-          vs += us / gm / gm;
-        }
-        vx = vx / NI2; vy = vy / NI2;
-	vz = vz / NI2; vs = vs / NI2;
-        T2t = m2/3.*(vs-(vx*vx+vy*vy+vz*vz));
-    }
-    else { T2t = T2; }
-
-    // local density
-    amrex::Real n1  = 0.;
-    amrex::Real n2  = 0.;
-    amrex::Real n12 = 0.;
-    for (int i1=I1s; i1<I1e; ++i1) { n1 += w1[ I1[i1] ]; }
-    for (int i2=I2s; i2<I2e; ++i2) { n2 += w2[ I2[i2] ]; }
-    n1 = n1 / V; n2 = n2 / V;
-    {
-      int i1 = I1s; int i2 = I2s;
-      for (int k = 0; k < amrex::max(NI1,NI2); ++k)
-      {
-        n12 += amrex::min( w1[ I1[i1] ], w2[ I2[i2] ] );
-        ++i1; if ( i1 == I1e ) { i1 = I1s; }
-        ++i2; if ( i2 == I2e ) { i2 = I2s; }
-      }
-      n12 = n12 / V;
-    }
-
-    // compute Debye length lmdD
-    amrex::Real lmdD;
-    lmdD = 1./std::sqrt( n1*q1*q1/(T1t*PhysConst::ep0) +
-                         n2*q2*q2/(T2t*PhysConst::ep0) );
-    amrex::Real rmin =
-        std::pow(4.*MathConst::pi/3.*amrex::max(n1,n2),-1./3.);
-    lmdD = amrex::max(lmdD, rmin);
-
-    // call UpdateMomentumPerezElastic()
-    {
-      int i1 = I1s; int i2 = I2s;
-      for (int k = 0; k < amrex::max(NI1,NI2); ++k)
-      {
-          UpdateMomentumPerezElastic(
-              u1x[ I1[i1] ], u1y[ I1[i1] ], u1z[ I1[i1] ],
-              u2x[ I2[i2] ], u2y[ I2[i2] ], u2z[ I2[i2] ],
-              n1, n2, n12,
-              q1, m1, w1[ I1[i1] ], q2, m2, w2[ I2[i2] ],
-              dt, L, lmdD);
-          ++i1; if ( i1 == I1e ) { i1 = I1s; }
-          ++i2; if ( i2 == I2e ) { i2 = I2s; }
-      }
-    }
+//    // get local T1t and T2t
+//    amrex::Real T1t; amrex::Real T2t;
+//    if ( T1 <= 0. )
+//    {
+//        amrex::Real vx = 0.; amrex::Real vy = 0.;
+//        amrex::Real vz = 0.; amrex::Real vs = 0.;
+//	amrex::Real gm = 0.; amrex::Real us = 0.;
+//        for (int i1 = I1s; i1 < I1e; ++i1)
+//        {
+//          us = ( u1x[ I1[i1] ] * u1x[ I1[i1] ] +
+//                 u1y[ I1[i1] ] * u1y[ I1[i1] ] +
+//                 u1z[ I1[i1] ] * u1z[ I1[i1] ] );
+//          gm = std::sqrt(1.+us*inv_c2);
+//          vx += u1x[ I1[i1] ] / gm;
+//	  vy += u1y[ I1[i1] ] / gm;
+//	  vz += u1z[ I1[i1] ] / gm;
+//          vs += us / gm / gm;
+//        }
+//        vx = vx / NI1; vy = vy / NI1;
+//	vz = vz / NI1; vs = vs / NI1;
+//        T1t = m1/3.*(vs-(vx*vx+vy*vy+vz*vz));
+//    }
+//    else { T1t = T1; }
+//    if ( T2 <= 0. )
+//    {
+//        amrex::Real vx = 0.; amrex::Real vy = 0.;
+//        amrex::Real vz = 0.; amrex::Real vs = 0.;
+//	amrex::Real gm = 0.; amrex::Real us = 0.;
+//        for (int i2 = I2s; i2 < I2e; ++i2)
+//        {
+//          us = ( u2x[ I2[i2] ] * u2x[ I2[i2] ] +
+//                 u2y[ I2[i2] ] * u2y[ I2[i2] ] +
+//                 u2z[ I2[i2] ] * u2z[ I2[i2] ] );
+//          gm = std::sqrt(1.+us*inv_c2);
+//          vx += u2x[ I2[i2] ] / gm;
+//	  vy += u2y[ I2[i2] ] / gm;
+//	  vz += u2z[ I2[i2] ] / gm;
+//          vs += us / gm / gm;
+//        }
+//        vx = vx / NI2; vy = vy / NI2;
+//	vz = vz / NI2; vs = vs / NI2;
+//        T2t = m2/3.*(vs-(vx*vx+vy*vy+vz*vz));
+//    }
+//    else { T2t = T2; }
+//
+//    // local density
+//    amrex::Real n1  = 0.;
+//    amrex::Real n2  = 0.;
+//    amrex::Real n12 = 0.;
+//    for (int i1=I1s; i1<I1e; ++i1) { n1 += w1[ I1[i1] ]; }
+//    for (int i2=I2s; i2<I2e; ++i2) { n2 += w2[ I2[i2] ]; }
+//    n1 = n1 / V; n2 = n2 / V;
+//    {
+//      int i1 = I1s; int i2 = I2s;
+//      for (int k = 0; k < amrex::max(NI1,NI2); ++k)
+//      {
+//        n12 += amrex::min( w1[ I1[i1] ], w2[ I2[i2] ] );
+//        ++i1; if ( i1 == I1e ) { i1 = I1s; }
+//        ++i2; if ( i2 == I2e ) { i2 = I2s; }
+//      }
+//      n12 = n12 / V;
+//    }
+//
+//    // compute Debye length lmdD
+//    amrex::Real lmdD;
+//    lmdD = 1./std::sqrt( n1*q1*q1/(T1t*PhysConst::ep0) +
+//                         n2*q2*q2/(T2t*PhysConst::ep0) );
+//    amrex::Real rmin =
+//        std::pow(4.*MathConst::pi/3.*amrex::max(n1,n2),-1./3.);
+//    lmdD = amrex::max(lmdD, rmin);
+//
+//    // call UpdateMomentumPerezElastic()
+//    {
+//      int i1 = I1s; int i2 = I2s;
+//      for (int k = 0; k < amrex::max(NI1,NI2); ++k)
+//      {
+//          UpdateMomentumPerezElastic(
+//              u1x[ I1[i1] ], u1y[ I1[i1] ], u1z[ I1[i1] ],
+//              u2x[ I2[i2] ], u2y[ I2[i2] ], u2z[ I2[i2] ],
+//              n1, n2, n12,
+//              q1, m1, w1[ I1[i1] ], q2, m2, w2[ I2[i2] ],
+//              dt, L, lmdD);
+//          ++i1; if ( i1 == I1e ) { i1 = I1s; }
+//          ++i2; if ( i2 == I2e ) { i2 = I2s; }
+//      }
+//    }
 
 }
 

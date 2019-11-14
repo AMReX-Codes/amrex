@@ -97,10 +97,10 @@ void CollisionType::doCoulombCollisionsWithinTile
             // The particles from species1 that are in the cell `i_cell` are
             // given by the `indices_1[cell_start_1:cell_stop_1]`
             index_type const cell_start_1 = cell_offsets_1[i_cell];
-            index_type const cell_stop_1 = cell_offsets_1[i_cell+1];
+            index_type const cell_stop_1  = cell_offsets_1[i_cell+1];
             // Same for species 2
             index_type const cell_start_2 = cell_offsets_2[i_cell];
-            index_type const cell_stop_2 = cell_offsets_2[i_cell+1];
+            index_type const cell_stop_2  = cell_offsets_2[i_cell+1];
 
             // ux from species1 can be accessed like this:
             // ux_1[ indices_1[i] ], where i is between
@@ -108,6 +108,8 @@ void CollisionType::doCoulombCollisionsWithinTile
 
             // Call the function in order to perform collisions
 
+std::cerr << "1: " << cell_start_1 << " " << cell_stop_1 << std::endl;
+std::cerr << "2: " << cell_start_2 << " " << cell_stop_2 << std::endl;
             ElasticCollisionPerez(
                 cell_start_1, cell_stop_1, cell_start_2, cell_stop_2,
                 indices_1, indices_2,
