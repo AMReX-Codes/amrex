@@ -648,9 +648,12 @@ void MultiParticleContainer::InitQuantumSync ()
 
     //Only temporary for test purposes, will be removed
     ParmParse pp("qed_qs");
-    bool ignore_tables = false;
-    pp.query("ignore_tables_for_test", ignore_tables);
-    if(ignore_tables) return;
+    bool use_dummy_builtin_tables = false;
+    pp.query("use_dummy_builtin_tables", use_dummy_builtin_tables);
+    if(use_dummy_builtin_tables){
+            m_shr_p_qs_engine->init_dummy_tables();
+            return;
+    }
     //_________________________________________________
 
 

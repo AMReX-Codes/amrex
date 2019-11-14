@@ -91,7 +91,7 @@ positrons.do_qed_quantum_sync = 1
 
 #######QED ENGINE PARAMETERS#####
 qed_qs.chi_min = 0.001
-qed_qs.ignore_tables_for_test = 1
+qed_bw.use_dummy_builtin_tables = 1
 #qed_qs.generate_table = 1
 #qed_qs.tab_dndt_chi_min = 0.001
 #qed_qs.tab_dndt_chi_max = 100
