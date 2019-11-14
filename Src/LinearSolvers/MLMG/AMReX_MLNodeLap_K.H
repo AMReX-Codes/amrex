@@ -127,6 +127,19 @@ void mlndlap_jacobi_sten (Box const& bx, Array4<Real> const& sol,
     });
 }
 
+AMREX_FORCE_INLINE
+bool mlndlap_any_fine_sync_cells (Box const& bx, Array4<int const> const& msk, int fine_flag) noexcept
+{
+    const auto lo = amrex::lbound(bx);
+    const auto hi = amrex::ubound(bx);
+    for (int k = lo.z; k <= hi.z; ++k) {
+    for (int j = lo.y; j <= hi.y; ++j) {
+    for (int i = lo.x; i <= hi.x; ++i) {
+        if (msk(i,j,k) == fine_flag) return true;
+    }}}
+    return false;
+}
+
 }
 
 #endif

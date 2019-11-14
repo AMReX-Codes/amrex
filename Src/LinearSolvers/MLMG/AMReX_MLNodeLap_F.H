@@ -11,17 +11,6 @@ extern "C" {
     void amrex_mlndlap_set_rz (const int* rz);
 #endif
 
-    int amrex_mlndlap_any_fine_sync_cells (const int* lo, const int* hi,
-                                           const int* msk, const int* mlo, const int* mhi,
-                                           const int* fine_flag);
-
-    void amrex_mlndlap_crse_resid (const int* lo, const int* hi,
-                                   amrex_real* resid, const int* rslo, const int* rshi,
-                                   const amrex_real* rhs, const int* rhlo, const int* rhhi,
-                                   const int* msk, const int* mlo, const int* mhi,
-                                   const int* ndlo, const int* ndhi,
-                                   const void* bclo, const void* bchi);
-
     void amrex_mlndlap_res_fine_contrib (const int* clo, const int* chi,
                                          const int* cgrid_lo, const int* cgrid_hi,
                                          amrex_real* fc, const int* flo, const int* fhi,
@@ -42,11 +31,6 @@ extern "C" {
                                        const amrex_real* cc, const int* clo, const int* chi,
                                        const amrex_real* dxinv, const int* ndlo, const int* ndhi,
                                        const void* bclo, const void* bchi);
-
-    void amrex_mlndlap_zero_fine (const int* lo, const int* hi,
-                                  amrex_real* phi, const int* philo, const int* phihi,
-                                  const int* msk, const int* mlo, const int* mhi,
-                                  const int* fine_flag);
 
 #ifdef __cplusplus
 }

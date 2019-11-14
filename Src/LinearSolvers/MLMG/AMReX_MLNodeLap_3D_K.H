@@ -170,6 +170,25 @@ void mlndlap_set_dot_mask (Box const& bx, Array4<Real> const& dmsk,
     }
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_zero_fine (int i, int j, int k, Array4<Real> const& phi,
+                        Array4<int const> const& msk, int fine_flag) noexcept
+{
+    // Testing if the node is covered by a fine level in computing
+    // coarse sync residual
+    if (msk(i-1,j-1,k-1) == fine_flag and
+        msk(i  ,j-1,k-1) == fine_flag and
+        msk(i-1,j  ,k-1) == fine_flag and
+        msk(i  ,j  ,k-1) == fine_flag and
+        msk(i-1,j-1,k  ) == fine_flag and
+        msk(i  ,j-1,k  ) == fine_flag and
+        msk(i-1,j  ,k  ) == fine_flag and
+        msk(i  ,j  ,k  ) == fine_flag)
+    {
+        phi(i,j,k) = 0.0;
+    }
+}
+
 //
 // coeffs
 //
@@ -1299,15 +1318,17 @@ void mlndlap_divu (int i, int j, int k, Array4<Real> const& rhs, Array4<Real con
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlndlap_rhcc (int i, int j, int k, Array4<Real> const& rhs, Array4<Real const> const& rhcc,
+Real mlndlap_rhcc (int i, int j, int k, Array4<Real const> const& rhcc,
                    Array4<int const> const& msk) noexcept
 {
+    Real r;
     if (msk(i,j,k)) {
-        rhs(i,j,k) = 0.0;
+        r = 0.0;
     } else {
-        rhs(i,j,k) = 0.125 * (rhcc(i-1,j-1,k-1)+rhcc(i,j-1,k-1)+rhcc(i-1,j,k-1)+rhcc(i,j,k-1) +
-                              rhcc(i-1,j-1,k  )+rhcc(i,j-1,k  )+rhcc(i-1,j,k  )+rhcc(i,j,k  ));
+        r = 0.125 * (rhcc(i-1,j-1,k-1)+rhcc(i,j-1,k-1)+rhcc(i-1,j,k-1)+rhcc(i,j,k-1) +
+                     rhcc(i-1,j-1,k  )+rhcc(i,j-1,k  )+rhcc(i-1,j,k  )+rhcc(i,j,k  ));
     }
+    return r;
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -1502,6 +1523,62 @@ void mlndlap_divu_cf_contrib (int i, int j, int k, Array4<Real> const& rhs,
 //
 // residual
 //
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_crse_resid (Box const& bx, Array4<Real> const& resid,
+                         Array4<Real const> const& rhs, Array4<int const> const& msk,
+                         Box const& nddom, GpuArray<LinOpBCType,AMREX_SPACEDIM> const& bclo,
+                         GpuArray<LinOpBCType,AMREX_SPACEDIM> const& bchi) noexcept
+{
+    const auto ndlo = amrex::lbound(nddom);
+    const auto ndhi = amrex::ubound(nddom);
+    amrex::Loop(bx, [=] (int i, int j, int k) noexcept
+    {
+        if ((msk(i-1,j-1,k-1) == 0 or
+             msk(i  ,j-1,k-1) == 0 or
+             msk(i-1,j  ,k-1) == 0 or
+             msk(i  ,j  ,k-1) == 0 or
+             msk(i-1,j-1,k  ) == 0 or
+             msk(i  ,j-1,k  ) == 0 or
+             msk(i-1,j  ,k  ) == 0 or
+             msk(i  ,j  ,k  ) == 0) and
+            (msk(i-1,j-1,k-1) == 0 or
+             msk(i  ,j-1,k-1) == 0 or
+             msk(i-1,j  ,k-1) == 0 or
+             msk(i  ,j  ,k-1) == 0 or
+             msk(i-1,j-1,k  ) == 0 or
+             msk(i  ,j-1,k  ) == 0 or
+             msk(i-1,j  ,k  ) == 0 or
+             msk(i  ,j  ,k  ) == 0))
+        {
+            Real fac = 1.0_rt;
+            if (i == ndlo.x and ( bclo[0] == LinOpBCType::Neumann or
+                                  bclo[0] == LinOpBCType::inflow)) {
+                fac *= 2._rt;
+            } else if (i== ndhi.x and ( bchi[0] == LinOpBCType::Neumann or
+                                        bchi[0] == LinOpBCType::inflow)) {
+                fac *= 2._rt;
+            }
+            if (j == ndlo.y and ( bclo[1] == LinOpBCType::Neumann or
+                                  bclo[1] == LinOpBCType::inflow)) {
+                fac *= 2._rt;
+            } else if (j == ndhi.y and ( bchi[1] == LinOpBCType::Neumann or
+                                         bchi[1] == LinOpBCType::inflow)) {
+                fac *= 2._rt;
+            }
+            if (k == ndlo.z and ( bclo[2] == LinOpBCType::Neumann or
+                                  bclo[2] == LinOpBCType::inflow)) {
+                fac *= 2._rt;
+            } else if (k == ndhi.z and ( bchi[2] == LinOpBCType::Neumann or
+                                         bchi[2] == LinOpBCType::inflow)) {
+                fac *= 2._rt;
+            }
+            resid(i,j,k) = (rhs(i,j,k) - resid(i,j,k)) * fac;
+        } else {
+            resid(i,j,k) = 0._rt;
+        }
+    });
+}
 
 //
 // sync residual
