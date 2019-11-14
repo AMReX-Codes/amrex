@@ -26,8 +26,8 @@ namespace {
 
 inline void
 mlndlap_impose_neumann_bc (Box const& bx, Array4<Real> const& rhs, Box const& nddom,
-                           Array<LinOpBCType,AMREX_SPACEDIM> const& lobc,
-                           Array<LinOpBCType,AMREX_SPACEDIM> const& hibc) noexcept
+                           GpuArray<LinOpBCType,AMREX_SPACEDIM> const& lobc,
+                           GpuArray<LinOpBCType,AMREX_SPACEDIM> const& hibc) noexcept
 {
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         if (lobc[idim] == LinOpBCType::Neumann or lobc[idim] == LinOpBCType::inflow) {
@@ -65,8 +65,8 @@ namespace amrex {
 
 template <typename T>
 void mlndlap_fillbc_cc (Box const& vbx, Array4<T> const& sigma, Box const& domain,
-                        Array<LinOpBCType, AMREX_SPACEDIM> bclo,
-                        Array<LinOpBCType, AMREX_SPACEDIM> bchi) noexcept
+                        GpuArray<LinOpBCType, AMREX_SPACEDIM> bclo,
+                        GpuArray<LinOpBCType, AMREX_SPACEDIM> bchi) noexcept
 {
     GpuArray<bool,AMREX_SPACEDIM> bflo{AMREX_D_DECL(bclo[0] != LinOpBCType::Periodic,
                                                     bclo[1] != LinOpBCType::Periodic,
@@ -79,8 +79,8 @@ void mlndlap_fillbc_cc (Box const& vbx, Array4<T> const& sigma, Box const& domai
 
 template <typename T>
 void mlndlap_applybc (Box const& vbx, Array4<T> const& phi, Box const& domain,
-                      Array<LinOpBCType, AMREX_SPACEDIM> bclo,
-                      Array<LinOpBCType, AMREX_SPACEDIM> bchi) noexcept
+                      GpuArray<LinOpBCType, AMREX_SPACEDIM> bclo,
+                      GpuArray<LinOpBCType, AMREX_SPACEDIM> bchi) noexcept
 {
     GpuArray<bool,AMREX_SPACEDIM> bflo{AMREX_D_DECL(bclo[0] == LinOpBCType::Neumann or
                                                     bclo[0] == LinOpBCType::inflow,
