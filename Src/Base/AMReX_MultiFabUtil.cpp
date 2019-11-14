@@ -668,43 +668,71 @@ namespace amrex
     iMultiFab makeFineMask (const MultiFab& cmf, const BoxArray& fba, const IntVect& ratio,
                             int crse_value, int fine_value)
     {
-        return makeFineMask(cmf.boxArray(), cmf.DistributionMap(), fba, ratio, crse_value, fine_value);
+        return makeFineMask(cmf.boxArray(), cmf.DistributionMap(), cmf.nGrowVect(),
+                            fba, ratio, Periodicity::NonPeriodic(), crse_value, fine_value);
     }
 
     iMultiFab makeFineMask (const BoxArray& cba, const DistributionMapping& cdm,
                             const BoxArray& fba, const IntVect& ratio,
                             int crse_value, int fine_value)
     {
-        iMultiFab mask(cba, cdm, 1, 0);
-        const BoxArray& cfba = amrex::coarsen(fba,ratio);
+        return makeFineMask(cba, cdm, IntVect{0}, fba, ratio, Periodicity::NonPeriodic(),
+                            crse_value, fine_value);
+    }
 
+    iMultiFab makeFineMask (const MultiFab& cmf, const BoxArray& fba, const IntVect& ratio,
+                            Periodicity const& period, int crse_value, int fine_value)
+    {
+        return makeFineMask(cmf.boxArray(), cmf.DistributionMap(), cmf.nGrowVect(),
+                            fba, ratio, period, crse_value, fine_value);
+    }
+
+    iMultiFab makeFineMask (const BoxArray& cba, const DistributionMapping& cdm,
+                            const IntVect& cnghost, const BoxArray& fba, const IntVect& ratio,
+                            Periodicity const& period, int crse_value, int fine_value)
+    {
+        iMultiFab mask(cba, cdm, 1, cnghost);
+        mask.setVal(crse_value);
+
+        Vector<Array4BoxTag<int> > tags;
+
+        bool run_on_gpu = Gpu::inLaunchRegion();
+
+        const BoxArray& cfba = amrex::coarsen(fba,ratio);
+        const std::vector<IntVect>& pshifts = period.shiftIntVect();
 #ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
+#pragma omp parallel if (!run_on_gpu)
 #endif
         {
-            std::vector< std::pair<int,Box> > isects;
-
+            std::vector <std::pair<int,Box> > isects;
             for (MFIter mfi(mask); mfi.isValid(); ++mfi)
             {
-                const Box& bx = mfi.validbox();
+                const Box& bx = mfi.fabbox();
                 Array4<int> const& fab = mask.array(mfi);
-
-                AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( bx, i, j, k,
-                {
-                    fab(i,j,k) = crse_value;
-                });
-
-                cfba.intersections(bx, isects);
-                for (auto const& is : isects)
-                {
-                    const Box ibx = is.second;
-                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D(ibx, i, j, k,
-                    {
-                        fab(i,j,k) = fine_value;
-                    });
+                for (const auto& iv : pshifts) {
+                    cfba.intersections(bx+iv, isects);
+                    for (const auto is : isects) {
+                        Box const& b = is.second-iv;
+                        if (run_on_gpu) {
+                            tags.push_back({fab,is.second-iv});
+                        } else {
+                            amrex::LoopConcurrent(b, [=] (int i, int j, int k) noexcept
+                            {
+                                fab(i,j,k) = fine_value;
+                            });
+                        }
+                    }
                 }
             }
         }
+
+#ifdef AMREX_USE_GPU
+        amrex::ParallelFor(tags, 1,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k, int n, Array4<int> const& a) noexcept
+        {
+            a(i,j,k,n) = fine_value;
+        });
+#endif
 
         return mask;
     }
