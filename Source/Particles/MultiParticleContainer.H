@@ -2,8 +2,6 @@
 #define WARPX_ParticleContainer_H_
 
 #include "ElementaryProcess.H"
-#include "CoulombCollisions.H"
-#include "CollisionType.H"
 
 #include <WarpXParticleContainer.H>
 #include <PhysicalParticleContainer.H>
@@ -16,6 +14,8 @@
     #include <BreitWheelerEngineWrapper.H>
     #include <QuantumSyncEngineWrapper.H>
 #endif
+
+#include "CollisionType.H"
 
 #include <memory>
 #include <map>

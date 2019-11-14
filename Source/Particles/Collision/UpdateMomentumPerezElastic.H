@@ -2,9 +2,9 @@
 #define WARPX_PARTICLES_COLLISION_UPDATE_MOMENTUM_PEREZ_ELASTIC_H_
 
 #include "WarpXParticleContainer.H"
-#include <WarpX.H>
 #include <AMReX_REAL.H>
 #include <AMReX_DenseBins.H>
+#include <WarpXConst.H>
 
 /* \brief Update particle velocities according to
  *        F. Perez et al., Phys. Plasmas 19, 083104 (2012).

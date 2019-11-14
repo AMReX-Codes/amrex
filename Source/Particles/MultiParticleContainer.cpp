@@ -56,6 +56,7 @@ MultiParticleContainer::MultiParticleContainer (AmrCore* amr_core)
     ionization_process = IonizationProcess();
 
     // collision
+    allcollisions.resize(ncollisions);
     for (int i = 0; i < ncollisions; ++i) {
         allcollisions[i].reset(new CollisionType(species_names, collision_names[i]));
     }
@@ -662,7 +663,8 @@ MultiParticleContainer::doCoulombCollisions ()
 #endif
             for (MFIter mfi = species1->MakeMFIter(lev, info); mfi.isValid(); ++mfi){
     
-                doCoulombCollisionsWithinTile( lev, mfi, species1, species2 );
+                CollisionType::doCoulombCollisionsWithinTile
+                    ( lev, mfi, species1, species2 );
     
             }
         }
