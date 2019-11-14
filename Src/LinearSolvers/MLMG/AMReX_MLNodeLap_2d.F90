@@ -28,8 +28,6 @@ module amrex_mlnodelap_2d_module
        ! restriction
        ! interpolation
        ! rhs & u
-       amrex_mlndlap_divu_cf_contrib, &
-       amrex_mlndlap_rhcc_crse_contrib, &
        ! residual
        amrex_mlndlap_crse_resid, &
        amrex_mlndlap_res_fine_contrib, amrex_mlndlap_res_cf_contrib, &
@@ -63,101 +61,6 @@ contains
        end do
     end do
   end function amrex_mlndlap_any_fine_sync_cells
-
-
-  subroutine amrex_mlndlap_divu_cf_contrib (lo, hi,  rhs, rlo, rhi, vel, vlo, vhi, dmsk, mlo, mhi, &
-       ndmsk, nmlo, nmhi, ccmsk, cmlo, cmhi, fc, clo, chi, dxinv, ndlo, ndhi, bclo, bchi) &
-       bind(c,name='amrex_mlndlap_divu_cf_contrib')
-    integer, dimension(2), intent(in) :: lo, hi, rlo, rhi, vlo, vhi, mlo, mhi, &
-         nmlo, nmhi, cmlo, cmhi, clo, chi, ndlo, ndhi, bclo, bchi
-    real(amrex_real), intent(in) :: dxinv(2)
-    real(amrex_real), intent(inout) :: rhs(rlo(1):rhi(1),rlo(2):rhi(2))
-    real(amrex_real), intent(in   ) :: vel(vlo(1):vhi(1),vlo(2):vhi(2),2)
-    real(amrex_real), intent(in   ) :: fc (clo(1):chi(1),clo(2):chi(2))
-    integer, intent(in) :: dmsk(mlo(1):mhi(1),mlo(2):mhi(2))
-    integer, intent(in) :: ndmsk(nmlo(1):nmhi(1),nmlo(2):nmhi(2))
-    integer, intent(in) :: ccmsk(cmlo(1):cmhi(1),cmlo(2):cmhi(2))
-
-    integer :: i,j
-    real(amrex_real) :: facx, facy, fm, fp
-
-    facx = 0.5d0*dxinv(1)
-    facy = 0.5d0*dxinv(2)
-
-    do    j = lo(2), hi(2)
-       do i = lo(1), hi(1)
-          if (dmsk(i,j) .ne. dirichlet) then
-             if (ndmsk(i,j) .eq. crse_fine_node) then
-                rhs(i,j) = fc(i,j) &
-                     + (1.d0-ccmsk(i-1,j-1)) * (-facx*vel(i-1,j-1,1) - facy*vel(i-1,j-1,2)) &
-                     + (1.d0-ccmsk(i  ,j-1)) * ( facx*vel(i  ,j-1,1) - facy*vel(i  ,j-1,2)) &
-                     + (1.d0-ccmsk(i-1,j  )) * (-facx*vel(i-1,j  ,1) + facy*vel(i-1,j  ,2)) &
-                     + (1.d0-ccmsk(i  ,j  )) * ( facx*vel(i  ,j  ,1) + facy*vel(i  ,j  ,2))
-
-                if (is_rz) then
-                   fm = facy / (6*i-3)
-                   fp = facy / (6*i+3)
-                   rhs(i,j) = rhs(i,j) + fm*((1.d0-ccmsk(i-1,j  ))*vel(i-1,j  ,2) &
-                        &                   -(1.d0-ccmsk(i-1,j-1))*vel(i-1,j-1,2)) &
-                        &              - fp*((1.d0-ccmsk(i  ,j  ))*vel(i  ,j  ,2) &
-                        &                   -(1.d0-ccmsk(i  ,j-1))*vel(i  ,j-1,2))
-                end if
-
-                if (i .eq. ndlo(1) .and. &
-                     (    bclo(1) .eq. amrex_lo_neumann &
-                     .or. bclo(1) .eq. amrex_lo_inflow)) then
-                   rhs(i,j) = 2.d0*rhs(i,j)
-                else if (i.eq. ndhi(1) .and. &
-                     (    bchi(1) .eq. amrex_lo_neumann &
-                     .or. bchi(1) .eq. amrex_lo_inflow)) then
-                   rhs(i,j) = 2.d0*rhs(i,j)
-                end if
-
-                if (j .eq. ndlo(2) .and. &
-                     (    bclo(2) .eq. amrex_lo_neumann &
-                     .or. bclo(2) .eq. amrex_lo_inflow)) then
-                   rhs(i,j) = 2.d0*rhs(i,j)                   
-                else if (j .eq. ndhi(2) .and. &
-                     (    bchi(2) .eq. amrex_lo_neumann &
-                     .or. bchi(2) .eq. amrex_lo_inflow)) then
-                   rhs(i,j) = 2.d0*rhs(i,j)
-                end if
-             end if
-          end if
-       end do
-    end do
-
-  end subroutine amrex_mlndlap_divu_cf_contrib
-
-
-  subroutine amrex_mlndlap_rhcc_crse_contrib (lo, hi, crhs, rlo, rhi, rhcc, clo, chi, &
-       dmsk, mlo, mhi, ndmsk, nmlo, nmhi, ccmsk, cmlo, cmhi) &
-       bind(c,name='amrex_mlndlap_rhcc_crse_contrib')
-    integer, dimension(2), intent(in) :: lo, hi, rlo, rhi, clo, chi, mlo, mhi, &
-         nmlo, nmhi, cmlo, cmhi
-    real(amrex_real), intent(inout) ::  crhs( rlo(1): rhi(1), rlo(2): rhi(2))
-    real(amrex_real), intent(in   ) ::  rhcc( clo(1): chi(1), clo(2): chi(2))
-    integer         , intent(in   ) ::  dmsk( mlo(1): mhi(1), mlo(2): mhi(2))
-    integer         , intent(in   ) :: ndmsk(nmlo(1):nmhi(1),nmlo(2):nmhi(2))
-    integer         , intent(in   ) :: ccmsk(cmlo(1):cmhi(1),cmlo(2):cmhi(2))
-
-    integer :: i,j
-
-    do    j = lo(2), hi(2)
-       do i = lo(1), hi(1)
-          if (dmsk(i,j) .ne. dirichlet) then
-             if (ndmsk(i,j) .eq. crse_fine_node) then
-                crhs(i,j) = crhs(i,j) + 0.25d0 * &
-                     ( (1.d0-ccmsk(i-1,j-1)) * rhcc(i-1,j-1) &
-                     + (1.d0-ccmsk(i  ,j-1)) * rhcc(i  ,j-1) &
-                     + (1.d0-ccmsk(i-1,j  )) * rhcc(i-1,j  ) &
-                     + (1.d0-ccmsk(i  ,j  )) * rhcc(i  ,j  ))
-             end if
-          end if
-       end do
-    end do
-
-  end subroutine amrex_mlndlap_rhcc_crse_contrib
 
 
   subroutine amrex_mlndlap_crse_resid (lo, hi, resid, rslo, rshi, rhs, rhlo, rhhi, msk, mlo, mhi, &
