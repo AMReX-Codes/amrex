@@ -78,6 +78,9 @@ namespace Gpu {
     void copy (HostToDevice, InIter begin, InIter end, OutIter result) noexcept
     {
         using value_type = typename std::iterator_traits<InIter>::value_type;
+        static_assert(AMREX_IS_TRIVIALLY_COPYABLE(value_type)
+                      || detail::is_thrust_complex<value_type>::value,
+                      "Can only copy trivially copyable types");
         auto size = std::distance(begin, end);
         htod_memcpy(&(*result), &(*begin), size*sizeof(value_type));
     }
@@ -104,6 +107,9 @@ namespace Gpu {
     void copy (DeviceToHost, InIter begin, InIter end, OutIter result) noexcept
     {
         using value_type = typename std::iterator_traits<InIter>::value_type;
+        static_assert(AMREX_IS_TRIVIALLY_COPYABLE(value_type)
+                      || detail::is_thrust_complex<value_type>::value,
+                      "Can only copy trivially copyable types");
         auto size = std::distance(begin, end);
         dtoh_memcpy(&(*result), &(*begin), size*sizeof(value_type));
     }
@@ -130,6 +136,9 @@ namespace Gpu {
     void copy (DeviceToDevice, InIter begin, InIter end, OutIter result) noexcept
     {
         using value_type = typename std::iterator_traits<InIter>::value_type;
+        static_assert(AMREX_IS_TRIVIALLY_COPYABLE(value_type)
+                      || detail::is_thrust_complex<value_type>::value,
+                      "Can only copy trivially copyable types");
         auto size = std::distance(begin, end);
         dtod_memcpy(&(*result), &(*begin), size*sizeof(value_type));
     }
@@ -157,6 +166,9 @@ namespace Gpu {
     void copyAsync (HostToDevice, InIter begin, InIter end, OutIter result) noexcept
     {
         using value_type = typename std::iterator_traits<InIter>::value_type;
+        static_assert(AMREX_IS_TRIVIALLY_COPYABLE(value_type)
+                      || detail::is_thrust_complex<value_type>::value,
+                      "Can only copy trivially copyable types");
         auto size = std::distance(begin, end);
         htod_memcpy_async(&(*result), &(*begin), size*sizeof(value_type));
     }
@@ -184,6 +196,9 @@ namespace Gpu {
     void copyAsync (DeviceToHost, InIter begin, InIter end, OutIter result) noexcept
     {
         using value_type = typename std::iterator_traits<InIter>::value_type;
+        static_assert(AMREX_IS_TRIVIALLY_COPYABLE(value_type)
+                      || detail::is_thrust_complex<value_type>::value,
+                      "Can only copy trivially copyable types");
         auto size = std::distance(begin, end);
         dtoh_memcpy_async(&(*result), &(*begin), size*sizeof(value_type));
     }
@@ -211,6 +226,9 @@ namespace Gpu {
     void copyAsync (DeviceToDevice, InIter begin, InIter end, OutIter result) noexcept
     {
         using value_type = typename std::iterator_traits<InIter>::value_type;
+        static_assert(AMREX_IS_TRIVIALLY_COPYABLE(value_type)
+                      || detail::is_thrust_complex<value_type>::value,
+                      "Can only copy trivially copyable types");
         auto size = std::distance(begin, end);
         dtod_memcpy_async(&(*result), &(*begin), size*sizeof(value_type));
     }
