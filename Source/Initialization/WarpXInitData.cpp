@@ -97,7 +97,8 @@ WarpX::InitDiagnostics () {
                                                num_slice_snapshots_lab,
                                                gamma_boost, t_new[0], dt_boost,
                                                moving_window_dir, geom[0],
-                                               slice_realbox));
+                                               slice_realbox,
+                                               particle_slice_width_lab));
     }
 }
 
