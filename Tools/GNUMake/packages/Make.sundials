@@ -33,6 +33,7 @@ endif
 
 ifeq (${USE_FORT_ODE},TRUE)
   include $(AMREX_HOME)/Src/Extern/SUNDIALS/Make.package
+  VPATH_LOCATIONS += $(SUNDIALS_DIR)/include $(SUNDIALS_DIR)/fortran
   INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Extern/SUNDIALS
   INCLUDE_LOCATIONS += $(SUNDIALS_DIR)/include $(SUNDIALS_DIR)/fortran
 
