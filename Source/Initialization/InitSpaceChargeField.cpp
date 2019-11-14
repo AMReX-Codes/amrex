@@ -42,7 +42,7 @@ WarpX::InitSpaceChargeField (WarpXParticleContainer& pc)
     computePhi( rho, phi, beta );
 
     // Compute the corresponding electric field, from the potential phi
-    computeE( Efield_fp, phi );
+    computeE( Efield_fp, phi, beta );
 
 }
 
@@ -85,7 +85,7 @@ WarpX::computePhi(const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
 
     // Solve the Poisson equation
     MLMG mlmg(linop);
-    mlmg.setVerbose(1);
+    mlmg.setVerbose(2);
     const Real reltol = 1.e-11;
     mlmg.solve( GetVecOfPtrs(phi), GetVecOfConstPtrs(rho), reltol, 0.0);
 
@@ -103,7 +103,8 @@ WarpX::computePhi(const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
 */
 void
 WarpX::computeE(amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
-          const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& phi) const
+          const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& phi,
+          std::array<amrex::Real, 3> beta ) const
 {
     for (int lev = 0; lev <= max_level; lev++) {
 
@@ -130,16 +131,29 @@ WarpX::computeE(amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >&
             const auto& Ey_arr = (*E[lev][1])[mfi].array();
             const auto& Ez_arr = (*E[lev][2])[mfi].array();
 
+            Real beta_x = beta[0];
+            Real beta_y = beta[1];
+            Real beta_z = beta[2];
+
 #if (AMREX_SPACEDIM == 3)
             amrex::ParallelFor( tbx, tby, tbz,
                 [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                    Ex_arr(i,j,k) += -inv_dx*( phi_arr(i+1,j,k) - phi_arr(i,j,k) );
+                    Ex_arr(i,j,k) +=
+                        +(beta_x*beta_x-1)*inv_dx*( phi_arr(i+1,j,k)-phi_arr(i,j,k) )
+                        +beta_x*beta_y*0.5*inv_dy*( phi_arr(i,j+1,k)-phi_arr(i,j-1,k) )
+                        +beta_x*beta_z*0.5*inv_dz*( phi_arr(i,j,k+1)-phi_arr(i,j,k-1) );
                 },
                 [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                    Ey_arr(i,j,k) += -inv_dy*( phi_arr(i,j+1,k) - phi_arr(i,j,k) );
+                    Ey_arr(i,j,k) +=
+                        +beta_y*beta_x*0.5*inv_dx*( phi_arr(i+1,j,k)-phi_arr(i-1,j,k) )
+                        +(beta_y*beta_y-1)*inv_dy*( phi_arr(i,j+1,k)-phi_arr(i,j,k) )
+                        +beta_y*beta_z*0.5*inv_dz*( phi_arr(i,j,k+1)-phi_arr(i,j,k-1) );
                 },
                 [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                    Ez_arr(i,j,k) += -inv_dz*( phi_arr(i,j,k+1) - phi_arr(i,j,k) );
+                    Ez_arr(i,j,k) +=
+                        +beta_z*beta_x*0.5*inv_dx*( phi_arr(i+1,j,k)-phi_arr(i-1,j,k) )
+                        +beta_z*beta_y*0.5*inv_dy*( phi_arr(i,j+1,k)-phi_arr(i,j-1,k) )
+                        +(beta_y*beta_z-1)*inv_dz*( phi_arr(i,j,k+1)-phi_arr(i,j,k) );
                 }
             );
 #else

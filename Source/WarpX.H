@@ -400,7 +400,8 @@ private:
                           amrex::Vector<std::unique_ptr<amrex::MultiFab> >& phi,
                           std::array<amrex::Real, 3> beta = {{0,0,0}} ) const;
     void computeE(amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
-                  const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& phi) const;
+                  const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& phi,
+                  std::array<amrex::Real, 3> beta = {{0,0,0}} ) const;
 
     void InitPML ();
     void ComputePMLFactors ();
