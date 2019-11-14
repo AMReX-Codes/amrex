@@ -47,15 +47,22 @@ WarpX::InitSpaceChargeField (WarpXParticleContainer& pc)
 }
 
 /* Compute the potential `phi` by solving the Poisson equation with `rho` as
-   a source. This uses the amrex solver.
+   a source, assuming that the source moves at a constant speed \f$\vec{\beta}\f$.
+   This uses the amrex solver.
+
+   More specifically, this solves the equation
+   \f[
+       \vec{\nabla}^2\phi - (\vec{\beta}\cdot\vec{\nabla})^2\phi = -\frac{\rho}{\epsilon_0}
+   \f]
 
    \param[in] rho The charge density a given species
    \param[out] phi The potential to be computed by this function
+   \param[in] beta Represents the velocity of the source of `phi`
 */
 void
 WarpX::computePhi(const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
                   amrex::Vector<std::unique_ptr<amrex::MultiFab> >& phi,
-                  std::array<Real, 3> beta) const
+                  std::array<Real, 3> const beta) const
 {
     // Define the boundary conditions
     Array<LinOpBCType,AMREX_SPACEDIM> lobc, hibc;
@@ -98,13 +105,22 @@ WarpX::computePhi(const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
 /* \bried Compute the electric field that corresponds to `phi`, and
           add it to the set of MultiFab `E`.
 
+   The electric field is calculated by assuming that the source that
+   produces the `phi` potential is moving with a constant speed \f$\vec{\beta}\f$:
+   \f[
+    \vec{E} = -\vec{\nabla}\phi + (\vec{\beta}\cdot\vec{\beta})\phi \vec{\beta}
+   \f]
+   (where the second term represent the term \f$\partial_t \vec{A}\f$, in
+    the case of a moving source)
+
    \param[inout] E Electric field on the grid
    \param[in] phi The potential from which to compute the electric field
+   \param[in] beta Represents the velocity of the source of `phi`
 */
 void
 WarpX::computeE(amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
           const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& phi,
-          std::array<amrex::Real, 3> beta ) const
+          std::array<amrex::Real, 3> const beta ) const
 {
     for (int lev = 0; lev <= max_level; lev++) {
 
@@ -135,6 +151,8 @@ WarpX::computeE(amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >&
             Real beta_y = beta[1];
             Real beta_z = beta[2];
 
+            // Calculate the electric field
+            // Use discretized derivative that matches the staggering of the grid.
 #if (AMREX_SPACEDIM == 3)
             amrex::ParallelFor( tbx, tby, tbz,
                 [=] AMREX_GPU_DEVICE (int i, int j, int k) {
@@ -159,10 +177,15 @@ WarpX::computeE(amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >&
 #else
             amrex::ParallelFor( tbx, tbz,
                 [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                    Ex_arr(i,j,k) += -inv_dx*( phi_arr(i+1,j,k) - phi_arr(i,j,k) );
+                    Ex_arr(i,j,k) +=
+                        +(beta_x*beta_x-1)*inv_dx*( phi_arr(i+1,j,k)-phi_arr(i,j,k) )
+                        +beta_x*beta_z*0.5*inv_dz*( phi_arr(i,j+1,k)-phi_arr(i,j-1,k) );
                 },
                 [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                    Ez_arr(i,j,k) += -inv_dz*( phi_arr(i,j+1,k) - phi_arr(i,j,k) );
+                    Ez_arr(i,j,k) +=
+                        +beta_z*beta_x*0.5*inv_dx*( phi_arr(i+1,j,k)-phi_arr(i-1,j,k) )
+                        +beta_z*beta_y*0.5*inv_dy*( phi_arr(i,j+1,k)-phi_arr(i,j-1,k) )
+                        +(beta_y*beta_z-1)*inv_dz*( phi_arr(i,j,k+1)-phi_arr(i,j,k) );
                 }
             );
 #endif
