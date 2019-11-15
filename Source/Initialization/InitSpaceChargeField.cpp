@@ -243,41 +243,42 @@ WarpX::computeB (amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >
             Real beta_y = beta[1];
             Real beta_z = beta[2];
 
+            constexpr Real inv_c = 1./PhysConst::c;
+
             // Calculate the magnetic field
             // Use discretized derivative that matches the staggering of the grid.
 #if (AMREX_SPACEDIM == 3)
             amrex::ParallelFor( tbx, tby, tbz,
                 [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                    Bx_arr(i,j,k) -=
-                        +(beta_x*beta_x-1)*inv_dx*( phi_arr(i+1,j,k)-phi_arr(i,j,k) )
-                        +beta_x*beta_y*0.5*inv_dy*( phi_arr(i,j+1,k)-phi_arr(i,j-1,k) )
-                        +beta_x*beta_z*0.5*inv_dz*( phi_arr(i,j,k+1)-phi_arr(i,j,k-1) );
+                    Bx_arr(i,j,k) += inv_c * (
+                        -beta_y*inv_dz*( phi_arr(i,j,k+1)-phi_arr(i,j,k) )
+                        +beta_z*inv_dy*( phi_arr(i,j+1,k)-phi_arr(i,j,k) ));
                 },
                 [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                    By_arr(i,j,k) -=
-                        +beta_y*beta_x*0.5*inv_dx*( phi_arr(i+1,j,k)-phi_arr(i-1,j,k) )
-                        +(beta_y*beta_y-1)*inv_dy*( phi_arr(i,j+1,k)-phi_arr(i,j,k) )
-                        +beta_y*beta_z*0.5*inv_dz*( phi_arr(i,j,k+1)-phi_arr(i,j,k-1) );
+                    By_arr(i,j,k) += inv_c * (
+                        -beta_z*inv_dx*( phi_arr(i+1,j,k)-phi_arr(i,j,k) )
+                        +beta_x*inv_dz*( phi_arr(i,j,k+1)-phi_arr(i,j,k) ));
                 },
                 [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                    Bz_arr(i,j,k) -=
-                        +beta_z*beta_x*0.5*inv_dx*( phi_arr(i+1,j,k)-phi_arr(i-1,j,k) )
-                        +beta_z*beta_y*0.5*inv_dy*( phi_arr(i,j+1,k)-phi_arr(i,j-1,k) )
-                        +(beta_y*beta_z-1)*inv_dz*( phi_arr(i,j,k+1)-phi_arr(i,j,k) );
+                    Bz_arr(i,j,k) += inv_c * (
+                        -beta_x*inv_dy*( phi_arr(i,j+1,k)-phi_arr(i,j,k) )
+                        +beta_y*inv_dx*( phi_arr(i+1,j,k)-phi_arr(i,j,k) ));
                 }
             );
 #else
-            amrex::ParallelFor( tbx, tbz,
+            amrex::ParallelFor( tbx, tby, tbz,
                 [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                    Bx_arr(i,j,k) +=
-                        +(beta_x*beta_x-1)*inv_dx*( phi_arr(i+1,j,k)-phi_arr(i,j,k) )
-                        +beta_x*beta_z*0.5*inv_dz*( phi_arr(i,j+1,k)-phi_arr(i,j-1,k) );
+                    Bx_arr(i,j,k) += inv_c * (
+                        -beta_y*inv_dz*( phi_arr(i,j+1,k)-phi_arr(i,j,k) ));
                 },
                 [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                    Bz_arr(i,j,k) +=
-                        +beta_z*beta_x*0.5*inv_dx*( phi_arr(i+1,j,k)-phi_arr(i-1,j,k) )
-                        +beta_z*beta_y*0.5*inv_dy*( phi_arr(i,j+1,k)-phi_arr(i,j-1,k) )
-                        +(beta_y*beta_z-1)*inv_dz*( phi_arr(i,j,k+1)-phi_arr(i,j,k) );
+                    By_arr(i,j,k) += inv_c * (
+                        -beta_z*inv_dx*( phi_arr(i+1,j,k)-phi_arr(i,j,k) )
+                        +beta_x*inv_dz*( phi_arr(i,j+1,k)-phi_arr(i,j,k) ));
+                },
+                [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                    Bz_arr(i,j,k) += inv_c * (
+                        +beta_y*inv_dx*( phi_arr(i+1,j,k)-phi_arr(i,j,k) ));
                 }
             );
 #endif
