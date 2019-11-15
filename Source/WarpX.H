@@ -282,6 +282,7 @@ public:
     void ClearSliceMultiFabs ();
     static int num_slice_snapshots_lab;
     static amrex::Real dt_slice_snapshots_lab;
+    static amrex::Real particle_slice_width_lab;
     amrex::RealBox getSliceRealBox() const {return slice_realbox;}
 
     // these should be private, but can't due to Cuda limitations

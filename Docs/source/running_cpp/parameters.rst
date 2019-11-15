@@ -266,14 +266,36 @@ Particle initialization
       well as standard deviations along each direction ``<species_name>.ux_th``,
       ``<species_name>.uy_th`` and ``<species_name>.uz_th``.
 
+    * ``maxwell_boltzmann``: Maxwell-Boltzmann distribution that takes a dimensionless
+      temperature parameter ``<species_name>.theta`` as an input, where theta is kb*T/(m*c^2),
+      kb is the Boltzmann constant, c is the speed of light, and m is the mass of the species.
+      It also includes the optional parameter ``<species_name>.beta`` where beta is equal to v/c.
+      The plasma will be initialized to move at drift velocity beta*c in the positive
+      ``<species_name>.direction = 'x', 'y', 'z'`` direction. The MB distribution is initialized
+      in the drifting frame by sampling three Gaussian distributions in each dimension using,
+      the Box Mueller method, and then the distribution is transformed to the simulation frame
+      using the flipping method. The flipping method can be found in Zenitani 2015
+      section III. B. (Phys. Plasmas 22, 042116).
+
+      Note that though the particles may move at relativistic speeds in the simulation frame,
+      they are not relativistic in the drift frame. This is as opposed to the Maxwell Juttner
+      setting, which initializes particles with relativistc momentums in their drifting frame.
+
     * ``maxwell_juttner``: Maxwell-Juttner distribution for high temperature plasma. This mode
       requires a dimensionless temperature parameter ``<species_name>.theta``, where theta is equal
       to kb*T/(m*c^2), where kb is the Boltzmann constant, and m is the mass of the species. It also
       includes the optional parameter ``<species_name>.beta`` where beta is equal to v/c. The plasma
-      will be initialized to move at velocity beta*c in the ``<species_name>.direction = 'x', 'y', 'z'``,
-      direction. The MJ distribution will be initialized in the moving frame using the Sobol method,
-      and then the distribution will be transformed to the simulation frame using the flipping method.
-      Both the Sobol and the flipping method can be found in Zenitani 2015 (Phys. Plasmas 22, 042116).
+      will be initialized to move at velocity beta*c in the positive
+      ``<species_name>.direction = 'x', 'y', 'z'`` direction. The MJ distribution will be initialized
+      in the moving frame using the Sobol method, and then the distribution will be transformed to the
+      simulation frame using the flipping method. Both the Sobol and the flipping method can be found
+      in Zenitani 2015 (Phys. Plasmas 22, 042116).
+
+      Please take notice that particles initialized with this setting can be relativistic in two ways.
+      In the simulation frame, they can drift with a relativistic speed beta. Then, in the drifting
+      frame they are still moving with relativistic speeds due to high temperature. This is as opposed
+      to the Maxwell Boltzmann setting, which initializes non-relativistic plasma in their relativistic
+      drifting frame.
 
     * ``radial_expansion``: momentum depends on the radial coordinate linearly. This
       requires additional parameter ``u_over_r`` which is the slope.
@@ -879,6 +901,13 @@ Diagnostics and output
     Only used when ``warpx.do_back_transformed_diagnostics`` is ``1``.
     The time interval between the back-transformed reduced diagnostics (where this
     time interval is expressed in the laboratory frame).
+
+* ``slice.particle_slice_width_lab`` (`float`, in meters)
+    Only used when ``warpx.do_boosted_frame_diagnostic`` is ``1`` and
+    ``slice.num_slice_snapshots_lab`` is non-zero. Particles are
+    copied from the full back-transformed diagnostic to the reduced
+    slice diagnostic if there are within the user-defined width from
+    the slice region defined by ``slice.dom_lo`` and ``slice.dom_hi``.
 
 Checkpoints and restart
 -----------------------
