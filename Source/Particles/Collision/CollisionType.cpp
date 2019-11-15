@@ -68,8 +68,8 @@ void CollisionType::doCoulombCollisionsWithinTile
     // - Species 1
     auto& soa_1= ptile_1.GetStructOfArrays();
     Real* ux_1 = soa_1.GetRealData(PIdx::ux).data();
-    Real* uy_1 = soa_1.GetRealData(PIdx::ux).data();
-    Real* uz_1 = soa_1.GetRealData(PIdx::ux).data();
+    Real* uy_1 = soa_1.GetRealData(PIdx::uy).data();
+    Real* uz_1 = soa_1.GetRealData(PIdx::uz).data();
     Real* w_1 = soa_1.GetRealData(PIdx::w).data();
     index_type* indices_1 = bins_1.permutationPtr();
     index_type const* cell_offsets_1 = bins_1.offsetsPtr();
@@ -78,8 +78,8 @@ void CollisionType::doCoulombCollisionsWithinTile
     // - Species 2
     auto& soa_2= ptile_2.GetStructOfArrays();
     Real* ux_2 = soa_2.GetRealData(PIdx::ux).data();
-    Real* uy_2 = soa_2.GetRealData(PIdx::ux).data();
-    Real* uz_2 = soa_2.GetRealData(PIdx::ux).data();
+    Real* uy_2 = soa_2.GetRealData(PIdx::uy).data();
+    Real* uz_2 = soa_2.GetRealData(PIdx::uz).data();
     Real* w_2 = soa_2.GetRealData(PIdx::w).data();
     index_type* indices_2 = bins_2.permutationPtr();
     index_type const* cell_offsets_2 = bins_2.offsetsPtr();
@@ -108,13 +108,11 @@ void CollisionType::doCoulombCollisionsWithinTile
 
             // Call the function in order to perform collisions
 
-std::cerr << "1: " << cell_start_1 << " " << cell_stop_1 << std::endl;
-std::cerr << "2: " << cell_start_2 << " " << cell_stop_2 << std::endl;
             ElasticCollisionPerez(
                 cell_start_1, cell_stop_1, cell_start_2, cell_stop_2,
                 indices_1, indices_2,
                 ux_1, uy_1, uz_1, ux_2, uy_2, uz_2, w_1, w_2,
-                q1, q2, m1, m2, -1.0, -1.0, dt, -1.0, dV);
+                q1, q2, m1, m2, 50.0, 50.0, dt, 2.0, dV);
 
         }
     );

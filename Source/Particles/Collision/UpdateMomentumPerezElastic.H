@@ -14,8 +14,8 @@
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void UpdateMomentumPerezElastic(
-    amrex::Real u1x, amrex::Real u1y, amrex::Real u1z,
-    amrex::Real u2x, amrex::Real u2y, amrex::Real u2z,
+    amrex::Real& u1x, amrex::Real& u1y, amrex::Real& u1z,
+    amrex::Real& u2x, amrex::Real& u2y, amrex::Real& u2z,
     const amrex::Real n1, const amrex::Real n2, const amrex::Real n12,
     const amrex::Real q1, const amrex::Real m1, const amrex::Real w1,
     const amrex::Real q2, const amrex::Real m2, const amrex::Real w2,
@@ -130,7 +130,7 @@ void UpdateMomentumPerezElastic(
     // buf2 is the p1s perpendicular
     // p1 is now p1f star
     buf2 = std::sqrt(p1sx*p1sx + p1sy*p1sy);
-    p1x  = ( p1sx*p1sx/buf2) * sinXs*std::cos(buf1) +
+    p1x  = ( p1sx*p1sz/buf2) * sinXs*std::cos(buf1) +
            (-p1sy*p1sm/buf2) * sinXs*std::sin(buf1) +
            ( p1sx          ) * cosXs;
     p1y  = ( p1sy*p1sz/buf2) * sinXs*std::cos(buf1) +
