@@ -41,8 +41,9 @@ WarpX::InitSpaceChargeField (WarpXParticleContainer& pc)
     // Compute the potential phi, by solving the Poisson equation
     computePhi( rho, phi, beta );
 
-    // Compute the corresponding electric field, from the potential phi
+    // Compute the corresponding electric and magnetic field, from the potential phi
     computeE( Efield_fp, phi, beta );
+    computeB( Bfield_fp, phi, beta );
 
 }
 
@@ -60,9 +61,9 @@ WarpX::InitSpaceChargeField (WarpXParticleContainer& pc)
    \param[in] beta Represents the velocity of the source of `phi`
 */
 void
-WarpX::computePhi(const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
-                  amrex::Vector<std::unique_ptr<amrex::MultiFab> >& phi,
-                  std::array<Real, 3> const beta) const
+WarpX::computePhi (const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
+                   amrex::Vector<std::unique_ptr<amrex::MultiFab> >& phi,
+                   std::array<Real, 3> const beta) const
 {
     // Define the boundary conditions
     Array<LinOpBCType,AMREX_SPACEDIM> lobc, hibc;
@@ -118,9 +119,9 @@ WarpX::computePhi(const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
    \param[in] beta Represents the velocity of the source of `phi`
 */
 void
-WarpX::computeE(amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
-          const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& phi,
-          std::array<amrex::Real, 3> const beta ) const
+WarpX::computeE (amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
+                 const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& phi,
+                 std::array<amrex::Real, 3> const beta ) const
 {
     for (int lev = 0; lev <= max_level; lev++) {
 
@@ -183,6 +184,97 @@ WarpX::computeE(amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >&
                 },
                 [=] AMREX_GPU_DEVICE (int i, int j, int k) {
                     Ez_arr(i,j,k) +=
+                        +beta_z*beta_x*0.5*inv_dx*( phi_arr(i+1,j,k)-phi_arr(i-1,j,k) )
+                        +beta_z*beta_y*0.5*inv_dy*( phi_arr(i,j+1,k)-phi_arr(i,j-1,k) )
+                        +(beta_y*beta_z-1)*inv_dz*( phi_arr(i,j,k+1)-phi_arr(i,j,k) );
+                }
+            );
+#endif
+        }
+    }
+}
+
+
+/* \bried Compute the magnetic field that corresponds to `phi`, and
+          add it to the set of MultiFab `B`.
+
+   The magnetic field is calculated by assuming that the source that
+   produces the `phi` potential is moving with a constant speed \f$\vec{\beta}\f$:
+   \f[
+    \vec{B} = -\frac{1}{c}\vec{\beta}\times\vec{\nabla}\phi
+   \f]
+   (this represents the term \f$\vec{\nabla} \times \vec{A}\f$, in the case of a moving source)
+
+   \param[inout] E Electric field on the grid
+   \param[in] phi The potential from which to compute the electric field
+   \param[in] beta Represents the velocity of the source of `phi`
+*/
+void
+WarpX::computeB (amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& B,
+                 const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& phi,
+                 std::array<amrex::Real, 3> const beta ) const
+{
+    for (int lev = 0; lev <= max_level; lev++) {
+
+        const Real* dx = Geom(lev).CellSize();
+
+#ifdef _OPENMP
+        #pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for ( MFIter mfi(*phi[lev], TilingIfNotGPU()); mfi.isValid(); ++mfi )
+        {
+            const Real inv_dx = 1./dx[0];
+#if (AMREX_SPACEDIM == 3)
+            const Real inv_dy = 1./dx[1];
+            const Real inv_dz = 1./dx[2];
+#else
+            const Real inv_dz = 1./dx[1];
+#endif
+            const Box& tbx  = mfi.tilebox(Bx_nodal_flag);
+            const Box& tby  = mfi.tilebox(By_nodal_flag);
+            const Box& tbz  = mfi.tilebox(Bz_nodal_flag);
+
+            const auto& phi_arr = phi[0]->array(mfi);
+            const auto& Bx_arr = (*B[lev][0])[mfi].array();
+            const auto& By_arr = (*B[lev][1])[mfi].array();
+            const auto& Bz_arr = (*B[lev][2])[mfi].array();
+
+            Real beta_x = beta[0];
+            Real beta_y = beta[1];
+            Real beta_z = beta[2];
+
+            // Calculate the magnetic field
+            // Use discretized derivative that matches the staggering of the grid.
+#if (AMREX_SPACEDIM == 3)
+            amrex::ParallelFor( tbx, tby, tbz,
+                [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                    Bx_arr(i,j,k) -=
+                        +(beta_x*beta_x-1)*inv_dx*( phi_arr(i+1,j,k)-phi_arr(i,j,k) )
+                        +beta_x*beta_y*0.5*inv_dy*( phi_arr(i,j+1,k)-phi_arr(i,j-1,k) )
+                        +beta_x*beta_z*0.5*inv_dz*( phi_arr(i,j,k+1)-phi_arr(i,j,k-1) );
+                },
+                [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                    By_arr(i,j,k) -=
+                        +beta_y*beta_x*0.5*inv_dx*( phi_arr(i+1,j,k)-phi_arr(i-1,j,k) )
+                        +(beta_y*beta_y-1)*inv_dy*( phi_arr(i,j+1,k)-phi_arr(i,j,k) )
+                        +beta_y*beta_z*0.5*inv_dz*( phi_arr(i,j,k+1)-phi_arr(i,j,k-1) );
+                },
+                [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                    Bz_arr(i,j,k) -=
+                        +beta_z*beta_x*0.5*inv_dx*( phi_arr(i+1,j,k)-phi_arr(i-1,j,k) )
+                        +beta_z*beta_y*0.5*inv_dy*( phi_arr(i,j+1,k)-phi_arr(i,j-1,k) )
+                        +(beta_y*beta_z-1)*inv_dz*( phi_arr(i,j,k+1)-phi_arr(i,j,k) );
+                }
+            );
+#else
+            amrex::ParallelFor( tbx, tbz,
+                [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                    Bx_arr(i,j,k) +=
+                        +(beta_x*beta_x-1)*inv_dx*( phi_arr(i+1,j,k)-phi_arr(i,j,k) )
+                        +beta_x*beta_z*0.5*inv_dz*( phi_arr(i,j+1,k)-phi_arr(i,j-1,k) );
+                },
+                [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                    Bz_arr(i,j,k) +=
                         +beta_z*beta_x*0.5*inv_dx*( phi_arr(i+1,j,k)-phi_arr(i-1,j,k) )
                         +beta_z*beta_y*0.5*inv_dy*( phi_arr(i,j+1,k)-phi_arr(i,j-1,k) )
                         +(beta_y*beta_z-1)*inv_dz*( phi_arr(i,j,k+1)-phi_arr(i,j,k) );
