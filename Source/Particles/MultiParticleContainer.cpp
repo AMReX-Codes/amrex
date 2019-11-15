@@ -641,260 +641,253 @@ void MultiParticleContainer::InitQED ()
 
 void MultiParticleContainer::InitQuantumSync ()
 {
-    bool generate_table;
-    PicsarQuantumSynchrotronCtrl ctrl;
-    std::string filename;
-
-    //Use dummy tables for test purposes if required
+    std::string lookup_table_mode;
     ParmParse pp("qed_qs");
-    bool use_dummy_builtin_tables = false;
-    pp.query("use_dummy_builtin_tables", use_dummy_builtin_tables);
-    if(use_dummy_builtin_tables){
-            m_shr_p_qs_engine->init_dummy_tables();
-            return;
+    pp.query("lookup_table_mode", lookup_table_mode);
+    if(lookup_table_mode.empty()){
+        amrex::Abort("Quantum Synchrotron table mode should be provided");
     }
-    //_________________________________________________
 
-    std::tie(generate_table, filename, ctrl) = ParseQuantumSyncParams();
-
-    if(generate_table && ParallelDescriptor::IOProcessor()){
-        m_shr_p_qs_engine->compute_lookup_tables(ctrl);
-        Vector<char> all_data = m_shr_p_qs_engine->export_lookup_tables_data();
-        WarpXUtilIO::WriteBinaryDataOnFile(filename, all_data);
-   }
-    ParallelDescriptor::Barrier();
-
-    Vector<char> table_data;
-    ParallelDescriptor::ReadAndBcastFile(filename, table_data);
-    ParallelDescriptor::Barrier();
-
-    //No need to initialize from raw data for the processor that
-    //has just generated the table
-    if(!generate_table || !ParallelDescriptor::IOProcessor()){
+    if(lookup_table_mode == "generate"){
+#ifndef WARPX_QED_TABLE_GEN
+        amrex::Error("Error: Compile with QED_TABLE_GEN=TRUE to enable table generation!\n");
+#else
+        QuantumSyncGenerateTable();
+#endif
+    }
+    else if(lookup_table_mode == "load"){
+        std::string load_table_name;
+        pp.query("load_table_from", load_table_name);
+        if(load_table_name.empty()){
+            amrex::Abort("Quantum Synchrotron table name should be provided");
+        }
+        Vector<char> table_data;
+        ParallelDescriptor::ReadAndBcastFile(load_table_name, table_data);
+        ParallelDescriptor::Barrier();
         m_shr_p_qs_engine->init_lookup_tables_from_raw_data(table_data);
     }
+    else if(lookup_table_mode == "dummy_builtin"){
+         m_shr_p_qs_engine->init_dummy_tables();
+    }
+    else{
+        amrex::Abort("Unknown Quantum Synchrotron table mode");
+    }
 
-    if(!m_shr_p_qs_engine->are_lookup_tables_initialized())
-        amrex::Error("Table initialization has failed!\n");
+    if(!m_shr_p_qs_engine->are_lookup_tables_initialized()){
+        amrex::Abort("Table initialization has failed!");
+    }
 }
 
 void MultiParticleContainer::InitBreitWheeler ()
 {
-    bool generate_table;
-    PicsarBreitWheelerCtrl ctrl;
-    std::string filename;
-
-    //Use dummy tables for test purposes if required
+    std::string lookup_table_mode;
     ParmParse pp("qed_bw");
-    bool use_dummy_builtin_tables = false;
-    pp.query("use_dummy_builtin_tables", use_dummy_builtin_tables);
-    if(use_dummy_builtin_tables)
-    {
-        m_shr_p_bw_engine->init_dummy_tables();
-        return;
+    pp.query("lookup_table_mode", lookup_table_mode);
+    if(lookup_table_mode.empty()){
+        amrex::Abort("Breit Wheeler table mode should be provided");
     }
-    //_________________________________________________
 
-    std::tie(generate_table, filename, ctrl) = ParseBreitWheelerParams();
-
-    if(generate_table && ParallelDescriptor::IOProcessor()){
-        m_shr_p_bw_engine->compute_lookup_tables(ctrl);
-        Vector<char> all_data = m_shr_p_bw_engine->export_lookup_tables_data();
-        WarpXUtilIO::WriteBinaryDataOnFile(filename, all_data);
+    if(lookup_table_mode == "generate"){
+#ifndef WARPX_QED_TABLE_GEN
+        amrex::Error("Error: Compile with QED_TABLE_GEN=TRUE to enable table generation!\n");
+#else
+        BreitWheelerGenerateTable();
+#endif
     }
-    ParallelDescriptor::Barrier();
-
-    Vector<char> table_data;
-    ParallelDescriptor::ReadAndBcastFile(filename, table_data);
-    ParallelDescriptor::Barrier();
-
-    //No need to initialize from raw data for the processor that
-    //has just generated the table
-    if(!generate_table || !ParallelDescriptor::IOProcessor()){
+    else if(lookup_table_mode == "load"){
+        std::string load_table_name;
+        pp.query("load_table_from", load_table_name);
+        if(load_table_name.empty()){
+            amrex::Abort("Breit Wheeler table name should be provided");
+        }
+        Vector<char> table_data;
+        ParallelDescriptor::ReadAndBcastFile(load_table_name, table_data);
+        ParallelDescriptor::Barrier();
         m_shr_p_bw_engine->init_lookup_tables_from_raw_data(table_data);
     }
+    else if(lookup_table_mode == "dummy_builtin"){
+         m_shr_p_bw_engine->init_dummy_tables();
+    }
+    else{
+        amrex::Abort("Unknown Breit Wheeler table mode");
+    }
 
-    if(!m_shr_p_bw_engine->are_lookup_tables_initialized())
-        amrex::Error("Table initialization has failed!\n");
+    if(!m_shr_p_bw_engine->are_lookup_tables_initialized()){
+        amrex::Abort("Table initialization has failed!");
+    }
 }
 
-std::tuple<bool,std::string,PicsarQuantumSynchrotronCtrl>
-MultiParticleContainer::ParseQuantumSyncParams ()
+void
+MultiParticleContainer::QuantumSyncGenerateTable ()
 {
-    PicsarQuantumSynchrotronCtrl ctrl =
-        m_shr_p_qs_engine->get_default_ctrl();
-    bool generate_table{false};
-    std::string table_name;
-
     ParmParse pp("qed_qs");
+
+    PicsarQuantumSynchrotronCtrl ctrl;
+    int t_int;
 
     // Engine paramenter: chi_part_min is the minium chi parameter to be
     // considered by the engine. If a lepton has chi < chi_part_min,
     // the optical depth is not evolved and photon generation is ignored
-    pp.query("chi_min", ctrl.chi_part_min);
+    if(!pp.query("chi_min", ctrl.chi_part_min))
+        amrex::Abort("qed_qs.chi_min should be provided!");
 
-    pp.query("generate_table", generate_table);
-    if(generate_table){
-        int t_int = 0;
+    //==Table parameters==
 
-        //==Table parameters==
+    //--- sub-table 1 (1D)
+    //These parameters are used to pre-compute a function
+    //which appears in the evolution of the optical depth
 
-        //--- sub-table 1 (1D)
-        //These parameters are used to pre-compute a function
-        //which appears in the evolution of the optical depth
+    //Minimun chi for the table. If a lepton has chi < chi_part_tdndt_min,
+    //chi is considered as it were equal to chi_part_tdndt_min
+    if(!pp.query("tab_dndt_chi_min", ctrl.chi_part_tdndt_min))
+         amrex::Abort("qed_qs.tab_dndt_chi_min should be provided!");
 
-        //Minimun chi for the table. If a lepton has chi < chi_part_tdndt_min,
-        ///chi is considered as it were equal to chi_part_tdndt_min
-        pp.query("tab_dndt_chi_min", ctrl.chi_part_tdndt_min);
+    //Maximum chi for the table. If a lepton has chi > chi_part_tdndt_max,
+    //chi is considered as it were equal to chi_part_tdndt_max
+    if(!pp.query("tab_dndt_chi_max", ctrl.chi_part_tdndt_max))
+        amrex::Abort("qed_qs.tab_dndt_chi_max should be provided!");
 
-        //Maximum chi for the table. If a lepton has chi > chi_part_tdndt_max,
-        ///chi is considered as it were equal to chi_part_tdndt_max
-        pp.query("tab_dndt_chi_max", ctrl.chi_part_tdndt_max);
+    //How many points should be used for chi in the table
+    if(!pp.query("tab_dndt_how_many", t_int))
+        amrex::Abort("qed_qs.tab_dndt_how_many should be provided!");
+    ctrl.chi_part_tdndt_how_many = t_int;
+    //------
 
-        //How many points should be used for chi in the table
-        pp.query("tab_dndt_how_many", t_int);
-        ctrl.chi_part_tdndt_how_many= t_int;
-        //------
+    //--- sub-table 2 (2D)
+    //These parameters are used to pre-compute a function
+    //which is used to extract the properties of the generated
+    //photons.
 
-        //--- sub-table 2 (2D)
-        //These parameters are used to pre-compute a function
-        //which is used to extract the properties of the generated
-        //photons.
+    //Minimun chi for the table. If a lepton has chi < chi_part_tem_min,
+    //chi is considered as it were equal to chi_part_tem_min
+    if(!pp.query("tab_em_chi_min", ctrl.chi_part_tem_min))
+        amrex::Abort("qed_qs.tab_em_chi_min should be provided!");
 
-        //Minimun chi for the table. If a lepton has chi < chi_part_tem_min,
-        ///chi is considered as it were equal to chi_part_tem_min
-        pp.query("tab_em_chi_min", ctrl.chi_part_tem_min);
+    //Maximum chi for the table. If a lepton has chi > chi_part_tem_max,
+    //chi is considered as it were equal to chi_part_tem_max
+    if(!pp.query("tab_em_chi_max", ctrl.chi_part_tem_max))
+        amrex::Abort("qed_qs.tab_em_chi_max should be provided!");
 
-        //Maximum chi for the table. If a lepton has chi > chi_part_tem_max,
-        ///chi is considered as it were equal to chi_part_tem_max
-        pp.query("tab_em_chi_max", ctrl.chi_part_tem_max);
+    //How many points should be used for chi in the table
+    if(!pp.query("tab_em_chi_how_many", t_int))
+        amrex::Abort("qed_qs.tab_em_chi_how_many should be provided!");
+    ctrl.chi_part_tem_how_many = t_int;
 
-        //How many points should be used for chi in the table
-        pp.query("tab_em_chi_how_many", t_int);
-        ctrl.chi_part_tem_how_many = t_int;
+    //The other axis of the table is a cumulative probability distribution
+    //(corresponding to different energies of the generated particles)
+    //This parameter is the number of different points to consider
+    if(!pp.query("tab_em_prob_how_many", t_int))
+        amrex::Abort("qed_qs.tab_em_prob_how_many should be provided!");
+    ctrl.prob_tem_how_many = t_int;
+    //====================
 
-        //The other axis of the table is a cumulative probability distribution
-        //(corresponding to different energies of the generated particles)
-        //This parameter is the number of different points to consider
-        pp.query("tab_em_prob_how_many", t_int);
-        ctrl.prob_tem_how_many = t_int;
-        //====================
+    std::string table_name;
+    pp.query("save_table_in", table_name);
+    if(table_name.empty())
+         amrex::Abort("qed_qs.save_table_in should be provided!");
 
-        pp.query("save_table_in", table_name);
-
+    if(ParallelDescriptor::IOProcessor()){
+        m_shr_p_qs_engine->compute_lookup_tables(ctrl);
+        WarpXUtilIO::WriteBinaryDataOnFile(table_name,
+            m_shr_p_qs_engine->export_lookup_tables_data());
     }
+    ParallelDescriptor::Barrier();
 
-    std::string load_table_name;
-    pp.query("load_table_from", load_table_name);
-    if(!load_table_name.empty()){
-       if(generate_table && ParallelDescriptor::IOProcessor()){
-            amrex::Print() << "Warning, Quantum Synchrotron table will be loaded, not generated. \n";
-       }
-        table_name = load_table_name;
-        generate_table = false;
+    Vector<char> table_data;
+    ParallelDescriptor::ReadAndBcastFile(table_name, table_data);
+    ParallelDescriptor::Barrier();
+
+    //No need to initialize from raw data for the processor that
+    //has just generated the table
+    if(!ParallelDescriptor::IOProcessor()){
+        m_shr_p_qs_engine->init_lookup_tables_from_raw_data(table_data);
     }
-
-#ifndef WARPX_QED_TABLE_GEN
-    if(generate_table){
-            amrex::Error("Error: Compile with QED_TABLE_GEN=TRUE to enable table generation!\n");
-       }
-#endif
-
-    if(table_name.empty()){
-        amrex::Error("Error: Quantum Synchrotron table has either to be generated or to be loaded.\n");
-    }
-
-    return std::make_tuple(generate_table, table_name, ctrl);
 }
 
-std::tuple<bool,std::string,PicsarBreitWheelerCtrl>
-MultiParticleContainer::ParseBreitWheelerParams ()
+void
+MultiParticleContainer::BreitWheelerGenerateTable ()
 {
-    PicsarBreitWheelerCtrl ctrl =
-        m_shr_p_bw_engine->get_default_ctrl();
-    bool generate_table{false};
-    std::string table_name;
-
     ParmParse pp("qed_bw");
+
+    PicsarBreitWheelerCtrl ctrl;
+    int t_int;
 
     // Engine paramenter: chi_phot_min is the minium chi parameter to be
     // considered by the engine. If a photon has chi < chi_phot_min,
     // the optical depth is not evolved and pair generation is ignored
-    pp.query("chi_min", ctrl.chi_phot_min);
+    if(!pp.query("chi_min", ctrl.chi_phot_min))
+        amrex::Abort("qed_bw.chi_min should be provided!");
 
-    pp.query("generate_table", generate_table);
-    if(generate_table){
+    //==Table parameters==
 
-        int t_int;
+    //--- sub-table 1 (1D)
+    //These parameters are used to pre-compute a function
+    //which appears in the evolution of the optical depth
 
-        //==Table parameters==
+    //Minimun chi for the table. If a photon has chi < chi_phot_tdndt_min,
+    //an analytical approximation is used.
+    if(!pp.query("tab_dndt_chi_min", ctrl.chi_phot_tdndt_min))
+         amrex::Abort("qed_bw.tab_dndt_chi_min should be provided!");
 
-        //--- sub-table 1 (1D)
-        //These parameters are used to pre-compute a function
-        //which appears in the evolution of the optical depth
+    //Maximum chi for the table. If a photon has chi > chi_phot_tdndt_min,
+    //an analytical approximation is used.
+    if(!pp.query("tab_dndt_chi_max", ctrl.chi_phot_tdndt_max))
+        amrex::Abort("qed_bw.tab_dndt_chi_max should be provided!");
 
-        //Minimun chi for the table. If a photon has chi < chi_phot_tdndt_min,
-        //an analytical approximation is used.
-        pp.query("tab_dndt_chi_min", ctrl.chi_phot_tdndt_min);
+    //How many points should be used for chi in the table
+    if(!pp.query("tab_dndt_how_many", t_int))
+        amrex::Abort("qed_bw.tab_dndt_how_many should be provided!");
+    ctrl.chi_phot_tdndt_how_many = t_int;
+    //------
 
-        //Maximum chi for the table. If a photon has chi > chi_phot_tdndt_min,
-        //an analytical approximation is used.
-        pp.query("tab_dndt_chi_max", ctrl.chi_phot_tdndt_max);
+    //--- sub-table 2 (2D)
+    //These parameters are used to pre-compute a function
+    //which is used to extract the properties of the generated
+    //particles.
 
-        //How many points should be used for chi in the table
-        pp.query("tab_dndt_how_many", t_int);
-        ctrl.chi_phot_tdndt_how_many = t_int;
-        //------
+    //Minimun chi for the table. If a photon has chi < chi_phot_tpair_min
+    //chi is considered as it were equal to chi_phot_tpair_min
+    if(!pp.query("tab_pair_chi_min", ctrl.chi_phot_tpair_min))
+        amrex::Abort("qed_bw.tab_pair_chi_min should be provided!");
 
-        //--- sub-table 2 (2D)
-        //These parameters are used to pre-compute a function
-        //which is used to extract the properties of the generated
-        //particles.
+    //Maximum chi for the table. If a photon has chi > chi_phot_tpair_max
+    //chi is considered as it were equal to chi_phot_tpair_max
+    if(!pp.query("tab_pair_chi_max", ctrl.chi_phot_tpair_max))
+        amrex::Abort("qed_bw.tab_pair_chi_max should be provided!");
 
-        //Minimun chi for the table. If a photon has chi < chi_phot_tpair_min
-        //chi is considered as it were equal to chi_phot_tpair_min
-        pp.query("tab_pair_chi_min", ctrl.chi_phot_tpair_min);
+    //How many points should be used for chi in the table
+    if(!pp.query("tab_pair_chi_how_many", t_int))
+        amrex::Abort("qed_bw.tab_pair_chi_how_many should be provided!");
+    ctrl.chi_phot_tpair_how_many = t_int;
 
-        //Maximum chi for the table. If a photon has chi > chi_phot_tpair_max
-        //chi is considered as it were equal to chi_phot_tpair_max
-        pp.query("tab_pair_chi_max", ctrl.chi_phot_tpair_max);
+    //The other axis of the table is the fraction of the initial energy
+    //'taken away' by the most energetic particle of the pair.
+    //This parameter is the number of different fractions to consider
+    if(!pp.query("tab_pair_frac_how_many", t_int))
+        amrex::Abort("qed_bw.tab_pair_frac_how_many should be provided!");
+    ctrl.chi_frac_tpair_how_many = t_int;
+    //====================
 
-        //How many points should be used for chi in the table
-        pp.query("tab_pair_chi_how_many", t_int);
-        ctrl.chi_phot_tpair_how_many = t_int;
+    std::string table_name;
+    pp.query("save_table_in", table_name);
+    if(table_name.empty())
+         amrex::Abort("qed_bw.save_table_in should be provided!");
 
-        //The other axis of the table is the fraction of the initial energy
-        //'taken away' by the most energetic particle of the pair.
-        //This parameter is the number of different fractions to consider
-        pp.query("tab_pair_frac_how_many", t_int);
-        ctrl.chi_frac_tpair_how_many = t_int;
-        //====================
-
-        pp.query("save_table_in", table_name);
+    if(ParallelDescriptor::IOProcessor()){
+        m_shr_p_bw_engine->compute_lookup_tables(ctrl);
+        WarpXUtilIO::WriteBinaryDataOnFile(table_name,
+            m_shr_p_bw_engine->export_lookup_tables_data());
     }
+    ParallelDescriptor::Barrier();
 
-    std::string load_table_name;
-    pp.query("load_table_from", load_table_name);
-    if(!load_table_name.empty()){
-       if(generate_table && ParallelDescriptor::IOProcessor()){
-            amrex::Print() << "Warning, Breit Wheeler table will be loaded, not generated. \n";
-       }
-        table_name = load_table_name;
-        generate_table = false;
+    Vector<char> table_data;
+    ParallelDescriptor::ReadAndBcastFile(table_name, table_data);
+    ParallelDescriptor::Barrier();
+
+    //No need to initialize from raw data for the processor that
+    //has just generated the table
+    if(!ParallelDescriptor::IOProcessor()){
+        m_shr_p_bw_engine->init_lookup_tables_from_raw_data(table_data);
     }
-
-#ifndef WARPX_QED_TABLE_GEN
-    if(generate_table){
-        if(ParallelDescriptor::IOProcessor()){
-            amrex::Error("Error: Compile with QED_TABLE_GEN=TRUE to enable table generation!\n");
-       }
-    }
-#endif
-
-    if(table_name.empty()){
-        amrex::Error("Error: Breit Wheeler table has either to be generated or to be loaded.\n");
-    }
-
-    return std::make_tuple(generate_table, table_name, ctrl);
 }
 #endif

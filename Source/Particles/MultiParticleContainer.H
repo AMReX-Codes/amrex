@@ -20,8 +20,6 @@
 #include <map>
 #include <string>
 #include <algorithm>
-#include <utility>
-#include <tuple>
 
 //
 // MultiParticleContainer holds multiple (nspecies or npsecies+1 when
@@ -257,22 +255,17 @@ protected:
     void InitBreitWheeler ();
 
     /**
-     * Parses inputfile parameters for Quantum Synchrotron engine
-     * @return {a tuple containing a flag which is true if tables
-     * have to be generate, a filename (where tables should be stored
-     * or read from) and control parameters.}
+     * Called by InitQuantumSync if a new table has
+     * to be generated.
      */
-    std::tuple<bool, std::string, PicsarQuantumSynchrotronCtrl>
-    ParseQuantumSyncParams ();
+    void QuantumSyncGenerateTable();
 
     /**
-     * Parses inputfile parameters for Breit Wheeler engine
-     * @return {a tuple containing a flag which is true if tables
-     * have to be generate, a filename (where tables should be stored
-     * or read from) and control parameters.}
+     * Called by InitBreitWheeler if a new table has
+     * to be generated.
      */
-    std::tuple<bool, std::string, PicsarBreitWheelerCtrl>
-    ParseBreitWheelerParams ();
+    void BreitWheelerGenerateTable();
+
 #endif
 
 private:
