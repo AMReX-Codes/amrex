@@ -90,7 +90,10 @@ void transformParticles(PTile& dst, const PTile& src, IndexType src_start, Index
     const auto src_data = src.getConstParticleTileData();
           auto dst_data = dst.getParticleTileData();
 
-    AMREX_FOR_1D( n, i, { f(dst_data, src_data, src_start+i, dst_start+i); });
+    AMREX_HOST_DEVICE_FOR_1D( n, i,
+    {
+        f(dst_data, src_data, src_start+i, dst_start+i);
+    });
 }
 
 /**
@@ -115,7 +118,7 @@ void filterParticles(PTile& dst, const PTile& src, const IndexType* mask) noexce
     const auto src_data = src.getConstParticleTileData();
           auto dst_data = dst.getParticleTileData();
 
-    AMREX_FOR_1D( np, i,
+    AMREX_HOST_DEVICE_FOR_1D( np, i,
     {
         if (mask[i]) copyParticle(dst_data, src_data, i, p_offsets[i]);
     });
@@ -142,7 +145,10 @@ void filterParticles(PTile& dst, const PTile& src, Pred&& p) noexcept
     auto p_mask = mask.dataPtr();
     const auto src_data = src.getConstParticleTileData();
     
-    AMREX_FOR_1D(np, i, {p_mask[i] = p(src_data, i); });
+    AMREX_HOST_DEVICE_FOR_1D(np, i,
+    {
+        p_mask[i] = p(src_data, i);
+    });
 
     filterPartcles(dst, src, mask.dataPtr());
 }
@@ -172,7 +178,7 @@ void filterAndTransformParticles(PTile& dst, const PTile& src, const IndexType* 
     const auto src_data = src.getConstParticleTileData();
           auto dst_data = dst.getParticleTileData();
 
-    AMREX_FOR_1D( np, i,
+    AMREX_HOST_DEVICE_FOR_1D( np, i,
     {
         if (mask[i]) f(dst_data, src_data, i, p_offsets[i]);
     });
@@ -202,7 +208,10 @@ void filterAndTransformParticles(PTile& dst, const PTile& src, Pred&& p, F&& f) 
     auto p_mask = mask.dataPtr();
     const auto src_data = src.getConstParticleTileData();
     
-    AMREX_FOR_1D(np, i, {p_mask[i] = p(src_data, i); });
+    AMREX_HOST_DEVICE_FOR_1D(np, i,
+    {
+        p_mask[i] = p(src_data, i);
+    });
 
     filterAndTransformPartcles(dst, src, mask.dataPtr(), f);
 }
@@ -228,7 +237,10 @@ void gatherParticles (PTile& dst, const PTile& src, N np, const IndexType* inds)
     const auto src_data = src.getConstParticleTileData();
           auto dst_data = dst.getParticleTileData();
           
-          AMREX_FOR_1D( np, i, { copyParticle(dst_data, src_data, inds[i], i); });
+    AMREX_HOST_DEVICE_FOR_1D( np, i,
+    {
+        copyParticle(dst_data, src_data, inds[i], i);
+    });
 }
 
 /**
@@ -252,7 +264,10 @@ void scatterParticles (PTile& dst, const PTile& src, N np, const IndexType* inds
     const auto src_data = src.getConstParticleTileData();
           auto dst_data = dst.getParticleTileData();
           
-          AMREX_FOR_1D( np, i, { copyParticle(dst_data, src_data, i, inds[i]); });
+    AMREX_HOST_DEVICE_FOR_1D( np, i,
+    {
+        copyParticle(dst_data, src_data, i, inds[i]);
+    });
 }
     
 AMREX_GPU_HOST_DEVICE
