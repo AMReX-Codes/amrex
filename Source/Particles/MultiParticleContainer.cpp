@@ -727,78 +727,77 @@ void
 MultiParticleContainer::QuantumSyncGenerateTable ()
 {
     ParmParse pp("qed_qs");
-
-    PicsarQuantumSynchrotronCtrl ctrl;
-    int t_int;
-
-    // Engine paramenter: chi_part_min is the minium chi parameter to be
-    // considered by the engine. If a lepton has chi < chi_part_min,
-    // the optical depth is not evolved and photon generation is ignored
-    if(!pp.query("chi_min", ctrl.chi_part_min))
-        amrex::Abort("qed_qs.chi_min should be provided!");
-
-    //==Table parameters==
-
-    //--- sub-table 1 (1D)
-    //These parameters are used to pre-compute a function
-    //which appears in the evolution of the optical depth
-
-    //Minimun chi for the table. If a lepton has chi < chi_part_tdndt_min,
-    //chi is considered as it were equal to chi_part_tdndt_min
-    if(!pp.query("tab_dndt_chi_min", ctrl.chi_part_tdndt_min))
-         amrex::Abort("qed_qs.tab_dndt_chi_min should be provided!");
-
-    //Maximum chi for the table. If a lepton has chi > chi_part_tdndt_max,
-    //chi is considered as it were equal to chi_part_tdndt_max
-    if(!pp.query("tab_dndt_chi_max", ctrl.chi_part_tdndt_max))
-        amrex::Abort("qed_qs.tab_dndt_chi_max should be provided!");
-
-    //How many points should be used for chi in the table
-    if(!pp.query("tab_dndt_how_many", t_int))
-        amrex::Abort("qed_qs.tab_dndt_how_many should be provided!");
-    ctrl.chi_part_tdndt_how_many = t_int;
-    //------
-
-    //--- sub-table 2 (2D)
-    //These parameters are used to pre-compute a function
-    //which is used to extract the properties of the generated
-    //photons.
-
-    //Minimun chi for the table. If a lepton has chi < chi_part_tem_min,
-    //chi is considered as it were equal to chi_part_tem_min
-    if(!pp.query("tab_em_chi_min", ctrl.chi_part_tem_min))
-        amrex::Abort("qed_qs.tab_em_chi_min should be provided!");
-
-    //Maximum chi for the table. If a lepton has chi > chi_part_tem_max,
-    //chi is considered as it were equal to chi_part_tem_max
-    if(!pp.query("tab_em_chi_max", ctrl.chi_part_tem_max))
-        amrex::Abort("qed_qs.tab_em_chi_max should be provided!");
-
-    //How many points should be used for chi in the table
-    if(!pp.query("tab_em_chi_how_many", t_int))
-        amrex::Abort("qed_qs.tab_em_chi_how_many should be provided!");
-    ctrl.chi_part_tem_how_many = t_int;
-
-    //The other axis of the table is a cumulative probability distribution
-    //(corresponding to different energies of the generated particles)
-    //This parameter is the number of different points to consider
-    if(!pp.query("tab_em_prob_how_many", t_int))
-        amrex::Abort("qed_qs.tab_em_prob_how_many should be provided!");
-    ctrl.prob_tem_how_many = t_int;
-    //====================
-
     std::string table_name;
     pp.query("save_table_in", table_name);
     if(table_name.empty())
-         amrex::Abort("qed_qs.save_table_in should be provided!");
+        amrex::Abort("qed_qs.save_table_in should be provided!");
 
     if(ParallelDescriptor::IOProcessor()){
+        PicsarQuantumSynchrotronCtrl ctrl;
+        int t_int;
+
+        // Engine paramenter: chi_part_min is the minium chi parameter to be
+        // considered by the engine. If a lepton has chi < chi_part_min,
+        // the optical depth is not evolved and photon generation is ignored
+        if(!pp.query("chi_min", ctrl.chi_part_min))
+            amrex::Abort("qed_qs.chi_min should be provided!");
+
+        //==Table parameters==
+
+        //--- sub-table 1 (1D)
+        //These parameters are used to pre-compute a function
+        //which appears in the evolution of the optical depth
+
+        //Minimun chi for the table. If a lepton has chi < chi_part_tdndt_min,
+        //chi is considered as it were equal to chi_part_tdndt_min
+        if(!pp.query("tab_dndt_chi_min", ctrl.chi_part_tdndt_min))
+            amrex::Abort("qed_qs.tab_dndt_chi_min should be provided!");
+
+        //Maximum chi for the table. If a lepton has chi > chi_part_tdndt_max,
+        //chi is considered as it were equal to chi_part_tdndt_max
+        if(!pp.query("tab_dndt_chi_max", ctrl.chi_part_tdndt_max))
+            amrex::Abort("qed_qs.tab_dndt_chi_max should be provided!");
+
+        //How many points should be used for chi in the table
+        if(!pp.query("tab_dndt_how_many", t_int))
+            amrex::Abort("qed_qs.tab_dndt_how_many should be provided!");
+        ctrl.chi_part_tdndt_how_many = t_int;
+        //------
+
+        //--- sub-table 2 (2D)
+        //These parameters are used to pre-compute a function
+        //which is used to extract the properties of the generated
+        //photons.
+
+        //Minimun chi for the table. If a lepton has chi < chi_part_tem_min,
+        //chi is considered as it were equal to chi_part_tem_min
+        if(!pp.query("tab_em_chi_min", ctrl.chi_part_tem_min))
+            amrex::Abort("qed_qs.tab_em_chi_min should be provided!");
+
+        //Maximum chi for the table. If a lepton has chi > chi_part_tem_max,
+        //chi is considered as it were equal to chi_part_tem_max
+        if(!pp.query("tab_em_chi_max", ctrl.chi_part_tem_max))
+            amrex::Abort("qed_qs.tab_em_chi_max should be provided!");
+
+        //How many points should be used for chi in the table
+        if(!pp.query("tab_em_chi_how_many", t_int))
+            amrex::Abort("qed_qs.tab_em_chi_how_many should be provided!");
+        ctrl.chi_part_tem_how_many = t_int;
+
+        //The other axis of the table is a cumulative probability distribution
+        //(corresponding to different energies of the generated particles)
+        //This parameter is the number of different points to consider
+        if(!pp.query("tab_em_prob_how_many", t_int))
+            amrex::Abort("qed_qs.tab_em_prob_how_many should be provided!");
+        ctrl.prob_tem_how_many = t_int;
+        //====================
+
         m_shr_p_qs_engine->compute_lookup_tables(ctrl);
         WarpXUtilIO::WriteBinaryDataOnFile(table_name,
             m_shr_p_qs_engine->export_lookup_tables_data());
     }
-    ParallelDescriptor::Barrier();
 
+    ParallelDescriptor::Barrier();
     Vector<char> table_data;
     ParallelDescriptor::ReadAndBcastFile(table_name, table_data);
     ParallelDescriptor::Barrier();
@@ -814,78 +813,77 @@ void
 MultiParticleContainer::BreitWheelerGenerateTable ()
 {
     ParmParse pp("qed_bw");
-
-    PicsarBreitWheelerCtrl ctrl;
-    int t_int;
-
-    // Engine paramenter: chi_phot_min is the minium chi parameter to be
-    // considered by the engine. If a photon has chi < chi_phot_min,
-    // the optical depth is not evolved and pair generation is ignored
-    if(!pp.query("chi_min", ctrl.chi_phot_min))
-        amrex::Abort("qed_bw.chi_min should be provided!");
-
-    //==Table parameters==
-
-    //--- sub-table 1 (1D)
-    //These parameters are used to pre-compute a function
-    //which appears in the evolution of the optical depth
-
-    //Minimun chi for the table. If a photon has chi < chi_phot_tdndt_min,
-    //an analytical approximation is used.
-    if(!pp.query("tab_dndt_chi_min", ctrl.chi_phot_tdndt_min))
-         amrex::Abort("qed_bw.tab_dndt_chi_min should be provided!");
-
-    //Maximum chi for the table. If a photon has chi > chi_phot_tdndt_min,
-    //an analytical approximation is used.
-    if(!pp.query("tab_dndt_chi_max", ctrl.chi_phot_tdndt_max))
-        amrex::Abort("qed_bw.tab_dndt_chi_max should be provided!");
-
-    //How many points should be used for chi in the table
-    if(!pp.query("tab_dndt_how_many", t_int))
-        amrex::Abort("qed_bw.tab_dndt_how_many should be provided!");
-    ctrl.chi_phot_tdndt_how_many = t_int;
-    //------
-
-    //--- sub-table 2 (2D)
-    //These parameters are used to pre-compute a function
-    //which is used to extract the properties of the generated
-    //particles.
-
-    //Minimun chi for the table. If a photon has chi < chi_phot_tpair_min
-    //chi is considered as it were equal to chi_phot_tpair_min
-    if(!pp.query("tab_pair_chi_min", ctrl.chi_phot_tpair_min))
-        amrex::Abort("qed_bw.tab_pair_chi_min should be provided!");
-
-    //Maximum chi for the table. If a photon has chi > chi_phot_tpair_max
-    //chi is considered as it were equal to chi_phot_tpair_max
-    if(!pp.query("tab_pair_chi_max", ctrl.chi_phot_tpair_max))
-        amrex::Abort("qed_bw.tab_pair_chi_max should be provided!");
-
-    //How many points should be used for chi in the table
-    if(!pp.query("tab_pair_chi_how_many", t_int))
-        amrex::Abort("qed_bw.tab_pair_chi_how_many should be provided!");
-    ctrl.chi_phot_tpair_how_many = t_int;
-
-    //The other axis of the table is the fraction of the initial energy
-    //'taken away' by the most energetic particle of the pair.
-    //This parameter is the number of different fractions to consider
-    if(!pp.query("tab_pair_frac_how_many", t_int))
-        amrex::Abort("qed_bw.tab_pair_frac_how_many should be provided!");
-    ctrl.chi_frac_tpair_how_many = t_int;
-    //====================
-
     std::string table_name;
     pp.query("save_table_in", table_name);
     if(table_name.empty())
-         amrex::Abort("qed_bw.save_table_in should be provided!");
+        amrex::Abort("qed_bw.save_table_in should be provided!");
 
     if(ParallelDescriptor::IOProcessor()){
+        PicsarBreitWheelerCtrl ctrl;
+        int t_int;
+
+        // Engine paramenter: chi_phot_min is the minium chi parameter to be
+        // considered by the engine. If a photon has chi < chi_phot_min,
+        // the optical depth is not evolved and pair generation is ignored
+        if(!pp.query("chi_min", ctrl.chi_phot_min))
+            amrex::Abort("qed_bw.chi_min should be provided!");
+
+        //==Table parameters==
+
+        //--- sub-table 1 (1D)
+        //These parameters are used to pre-compute a function
+        //which appears in the evolution of the optical depth
+
+        //Minimun chi for the table. If a photon has chi < chi_phot_tdndt_min,
+        //an analytical approximation is used.
+        if(!pp.query("tab_dndt_chi_min", ctrl.chi_phot_tdndt_min))
+            amrex::Abort("qed_bw.tab_dndt_chi_min should be provided!");
+
+        //Maximum chi for the table. If a photon has chi > chi_phot_tdndt_min,
+        //an analytical approximation is used.
+        if(!pp.query("tab_dndt_chi_max", ctrl.chi_phot_tdndt_max))
+            amrex::Abort("qed_bw.tab_dndt_chi_max should be provided!");
+
+        //How many points should be used for chi in the table
+        if(!pp.query("tab_dndt_how_many", t_int))
+            amrex::Abort("qed_bw.tab_dndt_how_many should be provided!");
+        ctrl.chi_phot_tdndt_how_many = t_int;
+        //------
+
+        //--- sub-table 2 (2D)
+        //These parameters are used to pre-compute a function
+        //which is used to extract the properties of the generated
+        //particles.
+
+        //Minimun chi for the table. If a photon has chi < chi_phot_tpair_min
+        //chi is considered as it were equal to chi_phot_tpair_min
+        if(!pp.query("tab_pair_chi_min", ctrl.chi_phot_tpair_min))
+            amrex::Abort("qed_bw.tab_pair_chi_min should be provided!");
+
+        //Maximum chi for the table. If a photon has chi > chi_phot_tpair_max
+        //chi is considered as it were equal to chi_phot_tpair_max
+        if(!pp.query("tab_pair_chi_max", ctrl.chi_phot_tpair_max))
+            amrex::Abort("qed_bw.tab_pair_chi_max should be provided!");
+
+        //How many points should be used for chi in the table
+        if(!pp.query("tab_pair_chi_how_many", t_int))
+            amrex::Abort("qed_bw.tab_pair_chi_how_many should be provided!");
+        ctrl.chi_phot_tpair_how_many = t_int;
+
+        //The other axis of the table is the fraction of the initial energy
+        //'taken away' by the most energetic particle of the pair.
+        //This parameter is the number of different fractions to consider
+        if(!pp.query("tab_pair_frac_how_many", t_int))
+            amrex::Abort("qed_bw.tab_pair_frac_how_many should be provided!");
+        ctrl.chi_frac_tpair_how_many = t_int;
+        //====================
+
         m_shr_p_bw_engine->compute_lookup_tables(ctrl);
         WarpXUtilIO::WriteBinaryDataOnFile(table_name,
             m_shr_p_bw_engine->export_lookup_tables_data());
     }
-    ParallelDescriptor::Barrier();
 
+    ParallelDescriptor::Barrier();
     Vector<char> table_data;
     ParallelDescriptor::ReadAndBcastFile(table_name, table_data);
     ParallelDescriptor::Barrier();
