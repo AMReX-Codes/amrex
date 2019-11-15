@@ -716,7 +716,7 @@ namespace amrex
                         if (run_on_gpu) {
                             tags.push_back({fab,is.second-iv});
                         } else {
-                            amrex::LoopConcurrent(b, [=] (int i, int j, int k) noexcept
+                            amrex::LoopConcurrentOnCpu(b, [=] (int i, int j, int k) noexcept
                             {
                                 fab(i,j,k) = fine_value;
                             });
