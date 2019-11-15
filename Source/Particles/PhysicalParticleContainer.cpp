@@ -1701,10 +1701,7 @@ PhysicalParticleContainer::PushPX(WarpXParIter& pti,
 void PhysicalParticleContainer::EvolveOpticalDepth(
     WarpXParIter& pti, amrex::Real dt)
 {
-    //m_shr_p_qs_engine->are_lookup_tables_initialized() is necessary here if we want
-    //to perform just initialization tests of the optical depth without actually
-    //enabling QED effects (this requires lookup tables).
-    if(!has_quantum_sync() || !m_shr_p_qs_engine->are_lookup_tables_initialized())
+    if(!has_quantum_sync())
         return;
 
     QuantumSynchrotronEvolveOpticalDepth evolve_opt =
