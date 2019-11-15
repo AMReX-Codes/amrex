@@ -1543,7 +1543,7 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
     const DistributionMapping& dmap = m_dmap[0][0];
     const BoxArray& ccba = m_grids[0][0];
     const BoxArray& ndba = amrex::convert(ccba, IntVect::TheNodeVector());
-    const BoxArray& ccfba = amrex::convert(fine_grids, IntVect::TheNodeVector());
+    const BoxArray& ccfba = amrex::convert(fine_grids, IntVect::TheZeroVector());
     const auto lobc = LoBC();
     const auto hibc = HiBC();
 
