@@ -137,6 +137,8 @@ MyTest::readParameters ()
     pp.query("max_iter", max_iter);
     pp.query("max_fmg_iter", max_fmg_iter);
     pp.query("reltol", reltol);
+
+    pp.query("gpu_regtest", gpu_regtest);
 }
 
 void
