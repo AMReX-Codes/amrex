@@ -70,7 +70,7 @@ void transformParticles(PTile& dst, const PTile& src, F f) noexcept
 /**
  * /brief Apply the function f to particles in src, writing the
  * result to dst. This version applies the function to n particles
- * starting at index src_start, writing the result starting at src_start.
+ * starting at index src_start, writing the result starting at dst_start.
  * 
  * \tparam PTile the particle tile type
  * \tparam IndexType the index type, e.g. unsigned int
