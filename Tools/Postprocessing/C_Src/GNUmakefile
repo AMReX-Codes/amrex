@@ -34,6 +34,7 @@ ifeq ($(EBASE), particle_compare)
 endif
 
 include ./Make.package
+include $(AMREX_HOME)/Src/Base/Make.package
 
 vpath %.c   : . $(vpathdir)
 vpath %.h   : . $(vpathdir)
