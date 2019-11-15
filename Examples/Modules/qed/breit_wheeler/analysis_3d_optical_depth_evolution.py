@@ -1,4 +1,6 @@
 #! /usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import yt
 import numpy as np
 import scipy.stats as st
