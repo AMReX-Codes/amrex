@@ -211,15 +211,13 @@ void testReduce ()
     
     using PType = typename TestParticleContainer::SuperParticleType;
 
-    auto mx = amrex::ReduceMax(pc, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> int { return p.idata(NSI+1); });
-
-    amrex::Print() << mx << "\n";
+    auto mx1 = amrex::ReduceMax(pc, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> int { return p.idata(NSI+1); });
 
     pc.transformParticles(Transformer());
     
-    mx = amrex::ReduceMax(pc, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> int { return p.idata(NSI+1); });
+    auto mx2 = amrex::ReduceMax(pc, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> int { return p.idata(NSI+1); });
 
-    amrex::Print() << mx << "\n";
+    AMREX_ALWAYS_ASSERT(2*mx1 == mx2);    
     
     amrex::Print() << "pass \n";
 }
