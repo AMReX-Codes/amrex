@@ -12,8 +12,7 @@ import scipy.integrate as integ
 # are initialized with different momenta in a background EM field. The decrease
 # of the optical depth (averaged for each population) is used to estimate the
 # Breit Wheeler cross section, which is then compared with the theoretical
-# formula. Relative discrepancy should be smaller than 5% (it is actually
-# much smaller, except for the lowest energy population).
+# formula. Relative discrepancy should be smaller than 2%
 #
 # References:
 # 1) R. Duclous et al 2011 Plasma Phys. Control. Fusion 53 015009
@@ -24,7 +23,7 @@ import scipy.integrate as integ
 
 
 # Tolerance
-tol = 5e-2
+tol = 2e-2
 
 # EM fields
 E_f = np.array([-2433321316961438, 973328526784575, 1459992790176863])
@@ -42,6 +41,19 @@ lambda_ref = 1.0e-6
 field_reference = 2.0 * np.pi * electron_mass*speed_of_light * speed_of_light / (elementary_charge*lambda_ref)
 schwinger_field_SI = electron_mass**2 * speed_of_light**3/(reduced_plank*elementary_charge)
 schwinger_field_norm = electron_mass*speed_of_light*lambda_ref/(2.0*reduced_plank*m.pi)
+#______________
+
+# Initial parameters
+spec_names = ["p1", "p2", "p3", "p4"]
+ #Assumes average = 1 at t = 0 (ok for a large number of particles)
+tau_begin_avg = np.array([1.0, 1.0, 1.0, 1.0])
+mec = electron_mass*speed_of_light
+p_begin = [
+    np.array([2000.0,0,0])*mec,
+    np.array([0.0,5000.0,0.0])*mec,
+    np.array([0.0,0.0,10000.0])*mec,
+    np.array([57735.02691896, 57735.02691896, 57735.02691896])*mec
+]
 #______________
 
 def calc_chi_gamma(p, E, B):
@@ -77,31 +89,15 @@ def dNBW_dt(chi_phot, energy_phot):
 
 def check():
     filename_end = sys.argv[1]
-    filename_begin = filename_end[:-6] + "00000"
-    data_set_begin = yt.load(filename_begin)
     data_set_end = yt.load(filename_end)
 
     sim_time = data_set_end.current_time.to_value()
 
-    all_data_begin = data_set_begin.all_data()
     all_data_end = data_set_end.all_data()
 
-    spec_names = ["p1", "p2", "p3", "p4"]
-
-    tau_begin_avg = np.array([
-       np.average(all_data_begin[name, 'particle_tau'])
-       for name in spec_names])
     tau_end_avg = np.array([
        np.average(all_data_end[name, 'particle_tau'])
        for name in spec_names])
-
-     # Momenta are equal for all the particles of a given species
-    p_begin = [
-        np.array([
-            all_data_begin[name, 'particle_momentum_x'].v[0],
-            all_data_begin[name, 'particle_momentum_y'].v[0],
-            all_data_begin[name, 'particle_momentum_z'].v[0]
-        ]) for name in spec_names]
 
     dNBW_dt_sim = (tau_begin_avg - tau_end_avg)/sim_time
 
