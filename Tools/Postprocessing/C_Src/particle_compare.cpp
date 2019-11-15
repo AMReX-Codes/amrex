@@ -276,6 +276,30 @@ void getDataBuffer(std::vector<char>& buffer, const std::string& file,
     is.close();
 }
 
+/**
+   This sorts particles in ascending order, first by cpu, then by id.
+ **/
+int sort_particles_ascending(const void *p, const void *q)
+{
+    const char* iptr1 = (const char *)p;
+    const char* iptr2 = (const char *)q;
+
+    int id1, id2;
+    std::memcpy(&id1, iptr1, sizeof(int));
+    std::memcpy(&id2, iptr2, sizeof(int));
+    
+    iptr1 += sizeof(int);
+    iptr2 += sizeof(int);
+
+    int cpu1, cpu2;
+    std::memcpy(&cpu1, iptr1, sizeof(int));
+    std::memcpy(&cpu2, iptr2, sizeof(int));
+
+    if (cpu1 != cpu2) return (cpu1 - cpu2);
+    if (id1  != id2 ) return (id1  - id2 );
+    return 0;
+} 
+
 void compare_particle_chunk(const ParticleHeader& header1,
                             const ParticleHeader& header2,
                             std::vector<double>&  norms,
@@ -291,12 +315,38 @@ void compare_particle_chunk(const ParticleHeader& header1,
     int pdata_size = rdata_size + idata_size;    
     size_t buffer_size = pdata_size * np;
 
+    std::vector<char> read_data1(buffer_size);
+    getDataBuffer(read_data1, read_file1, buffer_size, offset);
+
+    std::vector<char> read_data2(buffer_size);
+    getDataBuffer(read_data2, read_file2, buffer_size, offset);
+
+    // data is stored with all the ints for all the particles first, then all the reals
+    // we convert this to array-of-structs for sorting.
     std::vector<char> data1(buffer_size);
-    getDataBuffer(data1, read_file1, buffer_size, offset);
-
     std::vector<char> data2(buffer_size);
-    getDataBuffer(data2, read_file2, buffer_size, offset);
-
+    {
+        char* src1 = read_data1.data();
+        char* src2 = read_data2.data();
+        char* dst1 = data1.data();
+        char* dst2 = data2.data();
+        for (int i = 0; i < np; ++i)
+        {
+            src1 = read_data1.data() + idata_size*i;
+            src2 = read_data2.data() + idata_size*i;
+            std::memcpy(dst1, src1, idata_size); dst1 += idata_size;
+            std::memcpy(dst2, src2, idata_size); dst2 += idata_size;
+            
+            src1 = read_data1.data() + idata_size*np + rdata_size*i;
+            src2 = read_data2.data() + idata_size*np + rdata_size*i;
+            std::memcpy(dst1, src1, rdata_size); dst1 += rdata_size;
+            std::memcpy(dst2, src2, rdata_size); dst2 += rdata_size;
+        }
+    }
+    
+    qsort(data1.data(), np, pdata_size, sort_particles_ascending);    
+    qsort(data2.data(), np, pdata_size, sort_particles_ascending);
+    
     char* tmp1 = data1.data();
     char* tmp2 = data2.data();
     for (int i = 0; i < np; ++i) {
@@ -316,9 +366,7 @@ void compare_particle_chunk(const ParticleHeader& header1,
             tmp1 += sizeof(int);
             tmp2 += sizeof(int);
         }
-    }
-    
-    for (int i = 0; i < np; i++) {
+
         for (int j = 0; j < header1.num_real; ++j) {
             double val1, val2;
             std::memcpy(&val1, tmp1, sizeof(double));
