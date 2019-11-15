@@ -61,7 +61,7 @@ void copyParticle(const      ParticleTileData<NSR, NSI, NAR, NAI>& dst,
  *
  */    
 template <typename PTile, typename F>
-void transformParticles(PTile& dst, const PTile& src, F f) noexcept
+void transformParticles(PTile& dst, const PTile& src, F&& f) noexcept
 {
     auto np = src.numParticles();
     transformParticles(dst, src, 0, 0, np, f);
@@ -85,7 +85,7 @@ void transformParticles(PTile& dst, const PTile& src, F f) noexcept
  *
  */
 template <typename PTile, typename IndexType, typename N, typename F>
-void transformParticles(PTile& dst, const PTile& src, IndexType src_start, IndexType dst_start, N n, F f) noexcept
+void transformParticles(PTile& dst, const PTile& src, IndexType src_start, IndexType dst_start, N n, F&& f) noexcept
 {
     const auto src_data = src.getConstParticleTileData();
           auto dst_data = dst.getParticleTileData();
@@ -134,7 +134,7 @@ void filterParticles(PTile& dst, const PTile& src, const IndexType* mask) noexce
  *
  */    
 template <typename PTile, typename IndexType, typename Pred>
-void filterParticles(PTile& dst, const PTile& src, Pred p) noexcept
+void filterParticles(PTile& dst, const PTile& src, Pred&& p) noexcept
 {
     auto np = src.numParticles();
     Gpu::DeviceVector<IndexType> mask(np);
@@ -162,7 +162,7 @@ void filterParticles(PTile& dst, const PTile& src, Pred p) noexcept
  *
  */
 template <typename PTile, typename IndexType, typename F>
-void filterAndTransformParticles(PTile& dst, const PTile& src, const IndexType* mask, F f) noexcept
+void filterAndTransformParticles(PTile& dst, const PTile& src, const IndexType* mask, F&& f) noexcept
 {
     auto np = src.numParticles();
     Gpu::DeviceVector<IndexType> offsets(np);
@@ -194,7 +194,7 @@ void filterAndTransformParticles(PTile& dst, const PTile& src, const IndexType* 
  *
  */    
 template <typename PTile, typename IndexType, typename Pred, typename F>
-void filterAndTransformParticles(PTile& dst, const PTile& src, Pred p, F f) noexcept
+void filterAndTransformParticles(PTile& dst, const PTile& src, Pred&& p, F&& f) noexcept
 {
     auto np = src.numParticles();
     Gpu::DeviceVector<IndexType> mask(np);
