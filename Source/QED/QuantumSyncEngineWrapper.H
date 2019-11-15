@@ -281,7 +281,7 @@ public:
 
     /**
      * Computes the lookup tables. It does nothing unless WarpX is compiled with QED_TABLE_GEN=TRUE
-     * @param[in] ctrl control params to geneQuantumSyncEngineInnardsDummyrate the tables
+     * @param[in] ctrl control params to generate the tables
      */
     void compute_lookup_tables (PicsarQuantumSynchrotronCtrl ctrl);
 
