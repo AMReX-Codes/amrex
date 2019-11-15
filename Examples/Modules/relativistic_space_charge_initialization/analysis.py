@@ -22,8 +22,7 @@ ds = yt.load( filename )
 # Extract data
 ad0 = ds.covering_grid(level=0, left_edge=ds.domain_left_edge, dims=ds.domain_dimensions)
 Ex_array = ad0['Ex'].to_ndarray().squeeze()
-Ey_array = ad0['Ey'].to_ndarray()
-Ez_array = ad0['Ez'].to_ndarray()
+By_array = ad0['By'].to_ndarray()
 
 # Extract grid coordinates
 Nx, Ny, Nz =  ds.domain_dimensions
@@ -36,8 +35,8 @@ z = zmin + Lz/Nz*(0.5+np.arange(Nz))
 # Compute theoretical field
 x_2d, y_2d, z_2d = np.meshgrid(x, y, z, indexing='ij')
 r2 = x_2d**2 + y_2d**2
-factor = (Qtot/r0)/(2*np.pi*scc.epsilon_0*r2) * (1-np.exp(-r2/(2*r0**2)))
-factor_z = 1./(2*np.pi*r0)**.5 * np.exp(-z_2d**2/(2*r0**2))
+factor = Qtot/scc.epsilon_0/(2*np.pi*r2) * (1-np.exp(-r2/(2*r0**2)))
+factor_z = 1./(2*np.pi)**.5/r0 * np.exp(-z_2d**2/(2*r0**2))
 Ex_th = factor*factor_z*x_2d
 Ey_th = factor*factor_z*y_2d
 
@@ -57,11 +56,12 @@ plt.title('Ex: Simulation')
 plt.imshow(make_2d(Ex_array))
 plt.colorbar()
 plt.subplot(223)
-plt.title('Ey: Simulation')
-plt.imshow(make_2d(Ey_array))
+plt.title('By: Theory')
+plt.imshow(make_2d(Ex_th/scc.c))
+plt.colorbar()
 plt.subplot(224)
-plt.title('Ez: Simulation')
-plt.imshow(make_2d(Ez_array))
+plt.title('Bz: Simulation')
+plt.imshow(make_2d(By_array))
 plt.colorbar()
 
 plt.savefig('Comparison.png')

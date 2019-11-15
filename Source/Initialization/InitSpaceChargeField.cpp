@@ -24,7 +24,7 @@ WarpX::InitSpaceChargeField (WarpXParticleContainer& pc)
         BoxArray nba = boxArray(lev);
         nba.surroundingNodes();
         rho[lev].reset(new MultiFab(nba, dmap[lev], 1, ng)); // Make ng big enough/use rho from sim
-        phi[lev].reset(new MultiFab(nba, dmap[lev], 1, 0));
+        phi[lev].reset(new MultiFab(nba, dmap[lev], 1, 1));
         phi[lev]->setVal(0.);
     }
 
