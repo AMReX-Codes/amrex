@@ -28,8 +28,8 @@ namespace amrex
 
 #ifdef AMREX_USE_CUDA
     // Locking mechanism functions for locking and unlocking
-    AMREX_GPU_DEVICE int get_state(int tid);
-    AMREX_GPU_DEVICE void free_state(int tid);
+    AMREX_GPU_DEVICE int get_state (int tid);
+    AMREX_GPU_DEVICE void free_state (int tid);
 #endif
 
 
@@ -42,10 +42,10 @@ namespace amrex
     */
 #ifdef __CUDA_ARCH__    
     AMREX_GPU_DEVICE
-    unsigned int Random_int(unsigned int n); // [0,n-1]
+    unsigned int Random_int (unsigned int n); // [0,n-1]
 #else
     AMREX_GPU_HOST
-    unsigned long Random_int(unsigned long n); // [0,n-1]    
+    unsigned long Random_int (unsigned long n); // [0,n-1]
 #endif
 
     /** \brief Set the seed of the random number generator.
@@ -65,8 +65,8 @@ namespace amrex
     /**
     * \brief Resize seed array and copy address to global symbol
     */
-    void ResizeRandomSeed(int N);
-    void ResetRandomSeed(unsigned long seed);
+    void ResizeRandomSeed (int N);
+    void ResetRandomSeed (unsigned long seed);
 
     /**
     * \brief Set the seeds of the random number generator for each CUDA thread .
@@ -80,9 +80,9 @@ namespace amrex
     * \brief Save and restore random state.
     *
     */
-    void SaveRandomState(std::ostream& os);
+    void SaveRandomState (std::ostream& os);
 
-    void RestoreRandomState(std::istream& is, int nthreads_old, int nstep_old);
+    void RestoreRandomState (std::istream& is, int nthreads_old, int nstep_old);
 
     /**
     * \brief Create a unique subset of random numbers from a pool
