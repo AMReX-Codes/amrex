@@ -4,17 +4,16 @@
 #include "BreitWheelerEngineInnards.H"
 
 #include <AMReX_REAL.H>
-#include <AMReX_Gpu.H>
 
 #include <limits>
+#include <vector>
 
 namespace QedUtils{
 
 //A default mini-table used for test purposes
-const BreitWheelerEngineInnards
-BreitWheelerEngineInnardsDummy
+const struct //BreitWheelerEngineInnardsDummy
 {
-    {//_____________________________ctrl
+    picsar::multi_physics::breit_wheeler_engine_ctrl<amrex::Real> ctrl{
         0.001, //chi_phot_min
         0.1, //chi_phot_tdndt_min
         200, //chi_phot_tdndt_max
@@ -23,8 +22,8 @@ BreitWheelerEngineInnardsDummy
         200, //chi_phot_tpair_max
         2, //chi_phot_tpair_how_many
         2, //chi_frac_tpair_how_many
-    },//_________________________________
-    {//_____________________________TTfunc_coords
+    };
+    std::vector<amrex::Real> TTfunc_coords{
         -2.302585093, -2.181935848, -2.061286602, -1.940637357,
         -1.819988111, -1.699338866, -1.578689621, -1.458040375,
         -1.33739113, -1.216741884,  -1.096092639, -0.9754433937,
@@ -41,8 +40,8 @@ BreitWheelerEngineInnardsDummy
         3.971175667, 4.091824913, 4.212474158, 4.333123403,
         4.453772649, 4.574421894, 4.69507114, 4.815720385,
         4.93636963, 5.057018876, 5.177668121, 5.298317367
-    },//_____________________________
-    {//_____________________________TTfunc_data
+    };
+    std::vector<amrex::Real> TTfunc_data{
         -32.75941722, -29.48929687, -26.5638705, -23.94401054,
         -21.59504068, -19.48623016, -17.59034545, -15.88325289,
         -14.34356639, -12.95233518, -11.69276696, -10.54998244,
@@ -59,20 +58,20 @@ BreitWheelerEngineInnardsDummy
         5.511434783, 5.724086013, 5.935728862, 6.146459973,
         6.356367276, 6.565529804, 6.774017335, 6.981890203,
         7.189199547, 7.395988084, 7.602291337, 7.808139168
-    },//_____________________________
-    {//_____________________________cum_distrib_coords_1
+    };
+    std::vector<amrex::Real> cum_distrib_coords_1{
         -4.605170186, 5.298317367
-    },//_____________________________
-    {//_____________________________cum_distrib_coords_2
+    };//_____________________________
+    std::vector<amrex::Real> cum_distrib_coords_2{
         0, 0.5
-    },//_____________________________
-    {//_____________________________cum_distrib_data
+    };//_____________________________
+    std::vector<amrex::Real> cum_distrib_data{
         -std::numeric_limits<amrex::Real>::infinity(),
         -0.6931471806,
         -std::numeric_limits<amrex::Real>::infinity(),
         -0.6931471806
-    }//_____________________________
-};
+    };//_____________________________
+} BreitWheelerEngineInnardsDummy;
 
 };
 
