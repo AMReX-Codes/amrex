@@ -649,6 +649,7 @@ void MultiParticleContainer::InitQuantumSync ()
     }
 
     if(lookup_table_mode == "generate"){
+        amrex::Print() << "Quantum Synchrotron table will be generated. \n" ;
 #ifndef WARPX_QED_TABLE_GEN
         amrex::Error("Error: Compile with QED_TABLE_GEN=TRUE to enable table generation!\n");
 #else
@@ -656,6 +657,7 @@ void MultiParticleContainer::InitQuantumSync ()
 #endif
     }
     else if(lookup_table_mode == "load"){
+        amrex::Print() << "Quantum Synchrotron table will be read from file. \n" ;
         std::string load_table_name;
         pp.query("load_table_from", load_table_name);
         if(load_table_name.empty()){
@@ -667,7 +669,8 @@ void MultiParticleContainer::InitQuantumSync ()
         m_shr_p_qs_engine->init_lookup_tables_from_raw_data(table_data);
     }
     else if(lookup_table_mode == "dummy_builtin"){
-         m_shr_p_qs_engine->init_dummy_tables();
+        amrex::Print() << "Built-in Quantum Synchrotron dummy table will be used. \n" ;
+        m_shr_p_qs_engine->init_dummy_tables();
     }
     else{
         amrex::Abort("Unknown Quantum Synchrotron table mode");
@@ -688,6 +691,7 @@ void MultiParticleContainer::InitBreitWheeler ()
     }
 
     if(lookup_table_mode == "generate"){
+        amrex::Print() << "Breit Wheeler table will be generated. \n" ;
 #ifndef WARPX_QED_TABLE_GEN
         amrex::Error("Error: Compile with QED_TABLE_GEN=TRUE to enable table generation!\n");
 #else
@@ -695,6 +699,7 @@ void MultiParticleContainer::InitBreitWheeler ()
 #endif
     }
     else if(lookup_table_mode == "load"){
+        amrex::Print() << "Breit Wheeler table will be read from file. \n" ;
         std::string load_table_name;
         pp.query("load_table_from", load_table_name);
         if(load_table_name.empty()){
@@ -706,7 +711,8 @@ void MultiParticleContainer::InitBreitWheeler ()
         m_shr_p_bw_engine->init_lookup_tables_from_raw_data(table_data);
     }
     else if(lookup_table_mode == "dummy_builtin"){
-         m_shr_p_bw_engine->init_dummy_tables();
+        amrex::Print() << "Built-in Breit Wheeler dummy table will be used. \n" ;
+        m_shr_p_bw_engine->init_dummy_tables();
     }
     else{
         amrex::Abort("Unknown Breit Wheeler table mode");
