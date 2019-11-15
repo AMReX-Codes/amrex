@@ -16,6 +16,10 @@
 
  */
 
+#include <AMReX.H>
+#include <AMReX_Print.H>
+#include <AMReX_Utility.H>
+
 #include <iostream>
 #include <fstream> 
 #include <string>
@@ -30,6 +34,8 @@
 #ifdef BL_USE_MPI
 #include <mpi.h>
 #endif
+
+using namespace amrex;
 
 ///
 /// This stores the metadata associated with an AMReX particle header file.
@@ -383,39 +389,74 @@ void compare_particle_chunk(const ParticleHeader& header1,
     }
 }
 
+int main_main();
+
 int main(int argc, char* argv[])
 {
+    amrex::SetVerbose(0);
+    amrex::Initialize(argc, argv, false);
+    int r = main_main();
+    amrex::ignore_unused(r);
+    amrex::Finalize();
+#ifndef BL_USE_MPI
+    return r;
+#endif    
+}
 
-#ifdef BL_USE_MPI
-    MPI_Init(NULL, NULL);
+int main_main()
+{
+    int nprocs = ParallelDescriptor::NProcs();
+    int myproc = ParallelDescriptor::MyProc();
 
-    int nprocs, myproc;
-    MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
-    MPI_Comm_rank(MPI_COMM_WORLD, &myproc);
-#else
-    int nprocs = 1;
-    int myproc = 0;
-#endif
+    const int narg = amrex::command_argument_count();
 
-    if (argc < 4) {
-        if (myproc == 0)
-            std::cerr << "Usage: " << argv[0] << " file1 file2 ptype" << std::endl;
-#ifdef BL_USE_MPI
-        MPI_Finalize();
-#endif
-        return 1;
+    std::string fn1;
+    std::string fn2;
+    std::string pt;
+    Real rtol = 0.0;
+    
+    int farg=1;
+    while (farg <= narg) {
+        const std::string fname = amrex::get_command_argument(farg);
+        if (fname == "-r" or fname == "--rel_tol") {
+            rtol = std::stod(amrex::get_command_argument(++farg));
+        } else {
+            break;
+        }
+        ++farg;
+    };
+
+    if (fn1.empty()) {
+        fn1 = amrex::get_command_argument(farg++);
+    }
+    if (fn2.empty()) {
+        fn2 = amrex::get_command_argument(farg++);
+    }
+    if (pt.empty()) {
+        pt = amrex::get_command_argument(farg++);
     }
 
-    std::string fn1 = argv[1];
-    std::string fn2 = argv[2];
-    std::string pt  = argv[3];
+    if (fn1.empty() or fn2.empty() or pt.empty()) {
+        amrex::Print()
+            << "\n"
+            << " Compare the particles in two plotfiles, grid by grid,\n"
+            << " and report the maximum absolute and relative errors for each\n"
+            << " variable.\n"
+            << "\n"
+            << " usage:\n"
+            << "    ./particle_compare.exe [-r|--rel_tol] file1 file2 particle_type \n"
+            << "\n"
+            << " optional arguments:\n"
+            << "    -r|--rel_tol rtol     : relative tolerance (default is 0)\n"
+            << std::endl;
+        return 0;
+    }
     
     ParticleHeader header1(fn1, pt);
     ParticleHeader header2(fn2, pt);
     
     if (header1 != header2) {
-        if (myproc == 0) 
-            std::cout << "FAIL - Particle data headers do not agree." << std::endl;
+        amrex::Print() << "FAIL - Particle data headers do not agree. \n";
     }
 
     // for each grid, store the corresponding information about where to look up the 
@@ -487,14 +528,21 @@ int main(int argc, char* argv[])
        std::cout << std::endl;
     }
 
-#ifdef BL_USE_MPI
-    MPI_Finalize();
-#endif
-
     int exit_code = 0;
-    for (unsigned i = 0; i < global_norms.size(); ++i) {
-        if (global_norms[i] > 0.0) exit_code = 1;
+    for (unsigned i = 0; i < header1.num_comp; ++i) {
+        amrex::Print() << global_norms[i+header1.num_comp] << " " << rtol << " " <<
+            (global_norms[i+header1.num_comp] > rtol) << "\n";
+        if (global_norms[i+header1.num_comp] > rtol) exit_code = 1;
     }
 
+    if (exit_code == 0)
+    {
+        amrex::Print() << " PARTICLES AGREE to relative tolerance " << rtol << "\n";
+    }
+    else
+    {
+        amrex::Print() << " PARTICLES DISAGREE to relative tolerance " << rtol << "\n";
+    }
+    
     return exit_code;
 }
