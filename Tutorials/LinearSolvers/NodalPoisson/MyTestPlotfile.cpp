@@ -8,13 +8,13 @@ using namespace amrex;
 void
 MyTest::writePlotfile () const
 {
-    const int ncomp = 4;
     Vector<std::string> varname;
     if (gpu_regtest) {
         varname = Vector<std::string>{"solution", "rhs", "exact_solution"};
     } else {
         varname = Vector<std::string>{"solution", "rhs", "exact_solution", "error"};
     }
+    int ncomp = varname.size();
 
     const int nlevels = max_level+1;
 
