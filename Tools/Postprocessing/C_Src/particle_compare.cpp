@@ -530,8 +530,6 @@ int main_main()
 
     int exit_code = 0;
     for (unsigned i = 0; i < header1.num_comp; ++i) {
-        amrex::Print() << global_norms[i+header1.num_comp] << " " << rtol << " " <<
-            (global_norms[i+header1.num_comp] > rtol) << "\n";
         if (global_norms[i+header1.num_comp] > rtol) exit_code = 1;
     }
 
