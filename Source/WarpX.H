@@ -305,7 +305,8 @@ public:
     void InitSpaceChargeField (WarpXParticleContainer& pc);
     void computePhi (const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
                      amrex::Vector<std::unique_ptr<amrex::MultiFab> >& phi,
-                     std::array<amrex::Real, 3> const beta = {{0,0,0}} ) const;
+                     std::array<amrex::Real, 3> const beta = {{0,0,0}},
+                     amrex::Real const required_precision=1.e-11 ) const;
     void computeE (amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
                    const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& phi,
                    std::array<amrex::Real, 3> const beta = {{0,0,0}} ) const;

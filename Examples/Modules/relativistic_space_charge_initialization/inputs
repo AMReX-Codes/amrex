@@ -15,6 +15,7 @@ beam.charge = -q_e
 beam.mass = m_e
 beam.injection_style = "gaussian_beam"
 beam.initialize_self_fields = 1
+beam.self_fields_required_precision = 1.e-4
 beam.x_rms = 2.e-6
 beam.y_rms = 2.e-6
 beam.z_rms = 2.e-6
