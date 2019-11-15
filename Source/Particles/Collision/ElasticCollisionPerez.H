@@ -67,15 +67,15 @@ void ElasticCollisionPerez(
                    u1z[ index ] * u1z[ index ] );
             gm = std::sqrt(1.+us*inv_c2);
             vx += u1x[ index ] / gm;
-	    vy += u1y[ index ] / gm;
-	    vz += u1z[ index ] / gm;
+            vy += u1y[ index ] / gm;
+            vz += u1z[ index ] / gm;
             vs += us / gm / gm;
         }
         if ( NI1 == 0 ) { T1t = 0.; }
         else
         {
             vx = vx / NI1; vy = vy / NI1;
-	    vz = vz / NI1; vs = vs / NI1;
+            vz = vz / NI1; vs = vs / NI1;
             T1t = m1/3.*(vs-(vx*vx+vy*vy+vz*vz));
         }
     }

@@ -15,12 +15,12 @@ void ShuffleFisherYates(T_index *array, T_index const is, T_index const ie)
 {
     int j;
     T_index buf;
-    for (int i = (int) ie-1; i >= (int) is+1; --i)
+    for (int i = ie-1; i >= is+1; --i)
     {
         // get random number is <= j <= i
         while ( true ) {
             j = (int) floor(amrex::Random()*(i-is+1)) + is;
-            if ( j >= (int) is && j <= (int) i ) { break; }
+            if ( j >= is && j <= i ) { break; }
         }
         buf = array[i];
         array[i] = array[j];
