@@ -35,8 +35,8 @@ WarpX::InitSpaceChargeField (WarpXParticleContainer& pc)
     pc.DepositCharge(rho, local, reset, do_rz_volume_scaling);
 
     // Get the particle beta vector
-    local = false; // Average across all MPI ranks
-    std::array<Real, 3> beta = pc.meanParticleVelocity(local);
+    bool const local_average = false; // Average across all MPI ranks
+    std::array<Real, 3> beta = pc.meanParticleVelocity(local_average);
     for (Real& beta_comp : beta) beta_comp /= PhysConst::c; // Normalize
 
     // Compute the potential phi, by solving the Poisson equation
