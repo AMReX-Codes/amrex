@@ -16,15 +16,14 @@ module rhs_mod
            result(ierr) bind(C,name='RhsFn')
 
       use, intrinsic :: iso_c_binding
-      use fnvector_serial
       use cvode_interface
+      use fsundials_nvector_mod
       use ode_params
 
       implicit none
 
       real(c_double), value :: tn
-      type(c_ptr), value    :: sunvec_y
-      type(c_ptr), value    :: sunvec_f
+      type(N_Vector)        :: sunvec_f, sunvec_y
       type(c_ptr), value    :: user_data
 
       ! pointers to data in SUNDAILS vectors
@@ -32,8 +31,8 @@ module rhs_mod
       real(c_double), pointer :: fvec(:)
 
       ! get data arrays from SUNDIALS vectors
-      call N_VGetData_Serial(sunvec_f, neq, fvec)
-      call N_VGetData_Serial(sunvec_y, neq, yvec)
+      fvec => FN_VGetArrayPointer(sunvec_f)
+      yvec => FN_VGetArrayPointer(sunvec_y)
 
       fvec(1) = -0.04D0 * yvec(1) + 1.0D4 * yvec(2) * yvec(3)
       fvec(3) = 3.0D7 * yvec(2) * yvec(2)
@@ -51,7 +50,7 @@ module jac_mod
 
   contains
 
-    integer(c_int) function JacFn(N, tn, sunvec_y, sunvec_f, sunDlsMat_J, &
+    integer(c_int) function JacFn(N, tn, sunvec_y, sunvec_f, sunmat_J, &
            user_data, tmp1, tmp2, tmp3) result(ierr) bind(C,name='JacFn')
         ! ----------------------------------------------------------------
         ! Description: JacFn provides the Jacobian function J(t,y) = df/dy
@@ -76,8 +75,9 @@ module jac_mod
     
         !======= Inclusions ===========
         use, intrinsic :: iso_c_binding
-        use fnvector_serial
-        use sundials_fdlsmat
+        use fsundials_matrix_mod
+        use fsundials_nvector_mod
+        use fsunmatrix_dense_mod
         use ode_params
     
         !======= Declarations =========
@@ -86,14 +86,14 @@ module jac_mod
         ! calling variables
         integer(c_long), value :: N
         real(c_double),  value :: tn
-        type(c_ptr),     value :: sunvec_y
-        type(c_ptr),     value :: sunvec_f
-        type(sundlsmat)        :: sundlsmat_J
+        type(N_Vector)         :: sunvec_f, sunvec_y
+        type(SUNMatrix)        :: sunmat_J
         type(c_ptr),     value :: user_data
         type(c_ptr),     value :: tmp1, tmp2, tmp3
     
         ! pointers to data in SUNDAILS vector and matrix
         real(c_double), pointer :: yvec(:)
+        real(c_double), pointer :: Jdat(:)
         real(c_double), pointer :: Jmat(:,:)
     
         real(c_double) :: y1, y2, y3
@@ -101,21 +101,21 @@ module jac_mod
         !======= Internals ============
         
         ! get data array from SUNDIALS vector
-        call N_VGetData_Serial(sunvec_y, neq, yvec)
+        yvec => FN_VGetArrayPointer(sunvec_y)
     
         ! get data array from SUNDIALS matrix
-        call sundlsmat_GetData_Dense(sundlsmat_J, Jmat)
+        Jdat => FSUNDenseMatrix_Data(sunmat_J)
     
           y1 = yvec(1)
           y2 = yvec(2)
           y3 = yvec(3)
-          jmat(1,1) = -0.04d0
-          jmat(1,2) = 1.0d4 * y3
-          jmat(1,3) = 1.0d4 * y2
-          jmat(2,1) =  0.04d0
-          jmat(2,2) = -1.0d4 * y3 - 6.0d7 * y2
-          jmat(2,3) = -1.0d4 * y2
-          jmat(3,2) = 6.0d7 * y2
+          Jmat(1,1) = -0.04d0
+          Jmat(1,2) = 1.0d4 * y3
+          Jmat(1,3) = 1.0d4 * y2
+          Jmat(2,1) =  0.04d0
+          Jmat(2,2) = -1.0d4 * y3 - 6.0d7 * y2
+          Jmat(2,3) = -1.0d4 * y2
+          Jmat(3,2) = 6.0d7 * y2
     
           ierr = 0
           return

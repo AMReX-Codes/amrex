@@ -16,23 +16,22 @@ module rhs_mod
            result(ierr) bind(C,name='RhsFn')
 
       use, intrinsic :: iso_c_binding
-      use fnvector_serial
       use cvode_interface
+      use fsundials_nvector_mod
+      use fnvector_serial_mod
       use ode_params
 
       implicit none
 
       real(c_double), value :: tn
-      type(c_ptr), value    :: sunvec_y
-      type(c_ptr), value    :: sunvec_f
+      type(N_Vector)        :: sunvec_f, sunvec_y
       type(c_ptr), value    :: user_data
 
       ! pointers to data in SUNDAILS vectors
-      real(c_double), pointer :: yvec(:)
       real(c_double), pointer :: fvec(:)
 
-      ! get data arrays from SUNDIALS vectors
-      call N_VGetData_Serial(sunvec_f, neq, fvec)
+      ! get data array from SUNDIALS vectors
+      fvec => FN_VGetArrayPointer(sunvec_f)
 
       fvec(1) = 2.0*tn
 

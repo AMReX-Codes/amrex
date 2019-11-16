@@ -3,7 +3,7 @@ subroutine integrate_ode(mf, lo, hi, cvode_meth, cvode_itmeth) bind(C, name="int
   use amrex_error_module
   use rhs_mod
   use ode_params
-  use fnvector_serial
+  use fnvector_serial_mod
   use cvode_interface
   use, intrinsic :: iso_c_binding
 
@@ -19,19 +19,19 @@ subroutine integrate_ode(mf, lo, hi, cvode_meth, cvode_itmeth) bind(C, name="int
 
   integer(c_int) :: ierr ! CVODE return status
   real(c_double) :: atol, rtol
-  real(c_double) :: t0, t1
+  real(c_double) :: t0(1), t1
   real(c_double), pointer :: yvec(:)
-  type(c_ptr) :: sunvec_y
+  type(N_Vector), pointer :: sunvec_y
   type(c_ptr) :: CVmem
 
   allocate(yvec(neq))
 
   ! Allocate a CVODE C struct from the array of variables to be integrated. The resulting C struct points to the same memory as the
   ! Fortran pointer array.
-  sunvec_y = N_VMake_Serial(neq, yvec)
-  if (.not. c_associated(sunvec_y)) call amrex_abort("integrate_ode: failed in N_VMake_Serial()")
+  sunvec_y = FN_VMake_Serial(neq, yvec)
+  if (.not. associated(sunvec_y)) call amrex_abort("integrate_ode: failed in FN_VMake_Serial()")
 
-  CVmem = FCVodeCreate(CV_BDF, CV_NEWTON)
+  CVmem = FCVodeCreate(CV_BDF)
   if (.not. c_associated(CVmem)) call amrex_abort("integrate_ode: failed in FCVodeCreate()")
 
   t0 = 0.0d0 ! initial time for integration
@@ -42,7 +42,7 @@ subroutine integrate_ode(mf, lo, hi, cvode_meth, cvode_itmeth) bind(C, name="int
   ! will be slow (and unnecessary). So instead, we allocate the solver stuff once outside the (i,j,k) loop, and then within the
   ! (i,j,k) loop we just "re-initialize" the solver, which does not allocate any new data, but rather just sets up new initial
   ! conditions.
-  ierr = FCVodeInit(CVmem, c_funloc(RhsFn), t0, sunvec_y)
+  ierr = FCVodeInit(CVmem, c_funloc(RhsFn), t0(1), sunvec_y)
   if (ierr /= 0) call amrex_abort("integrate_ode: failed in FCVodeInit()")
 
   ! Set error tolerances tolerances
@@ -63,7 +63,7 @@ subroutine integrate_ode(mf, lo, hi, cvode_meth, cvode_itmeth) bind(C, name="int
            yvec(1) = real(i+j+k, c_double)
 
            t0 = 0.0d0 ! initial time for integration
-           ierr = FCVodeReInit(cvmem, t0, sunvec_y)
+           ierr = FCVodeReInit(cvmem, t0(1), sunvec_y)
            if (ierr /= 0) call amrex_abort("integrate_ode: failed in FCVodeReInit()")
 
            ierr = FCVode(CVmem, t1, sunvec_y, t0, CV_NORMAL)
@@ -77,7 +77,7 @@ subroutine integrate_ode(mf, lo, hi, cvode_meth, cvode_itmeth) bind(C, name="int
   end do
 
   ! Free memory
-  call N_VDestroy_Serial(sunvec_y)
+  call FN_VDestroy_Serial(sunvec_y)
   call FCVodeFree(cvmem)
 
   deallocate(yvec)
