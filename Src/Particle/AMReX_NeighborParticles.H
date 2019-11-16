@@ -4,6 +4,7 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_Particles.H>
+#include <AMReX_ParticleUtil.H>
 
 #ifdef AMREX_USE_CUDA
 #include <AMReX_NeighborList.H>
