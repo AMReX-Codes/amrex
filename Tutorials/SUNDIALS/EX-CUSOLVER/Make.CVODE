@@ -1,7 +1,7 @@
 AMREX_HOME ?= /path/to/amrex
-SUNDIALS_DIR ?= /path/to/CVODE
+SUNDIALS_ROOT ?= /path/to/CVODE
 
-TOP := $(SUNDIALS_DIR)
+TOP := $(SUNDIALS_ROOT)
 
 EBASE ?= main
 
@@ -30,16 +30,16 @@ ifeq ($(USE_CUDA_CVODE), TRUE)
   endif
 endif
 
-INCLUDE_LOCATIONS += $(SUNDIALS_DIR)/include
+INCLUDE_LOCATIONS += $(SUNDIALS_ROOT)/include
 
-LIBRARY_LOCATIONS += $(SUNDIALS_DIR)/lib
+LIBRARY_LOCATIONS += $(SUNDIALS_ROOT)/lib
 LIBRARIES += -lsundials_cvode -lsundials_sunlinsolband -lsundials_sunlinsolspbcgs -lsundials_sunlinsolsptfqmr -lsundials_sunmatrixsparse -lsundials_nveccuda -lsundials_sunlinsoldense -lsundials_sunlinsolspfgmr -lsundials_sunmatrixband -lsundials_sunnonlinsolfixedpoint -lsundials_nvecserial -lsundials_sunlinsolpcg -lsundials_sunlinsolspgmr -lsundials_sunmatrixdense -lsundials_sunnonlinsolnewton
 
 ifeq ($(COMP), PGI)
-  LIBRARIES += -rpath=$(SUNDIALS_DIR)/lib
+  LIBRARIES += -rpath=$(SUNDIALS_ROOT)/lib
 endif
 ifeq ($(COMP), GNU)
-  LIBRARIES += -Wl,-rpath=$(SUNDIALS_DIR)/lib
+  LIBRARIES += -Wl,-rpath=$(SUNDIALS_ROOT)/lib
 endif
 
 ifeq ($(USE_CUDA_CVODE), TRUE)

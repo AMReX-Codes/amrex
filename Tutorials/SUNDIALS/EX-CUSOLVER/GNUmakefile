@@ -27,7 +27,7 @@ EBASE = main
 EXTERN_SEARCH += .
 
 AMREX_HOME ?= ../../../..
-SUNDIALS_DIR ?= ../CVODE
+SUNDIALS_ROOT ?= ../CVODE
 CUDA_HOME  ?= /usr/local/cuda-9.2
 
 Bpack   := ./Make.package

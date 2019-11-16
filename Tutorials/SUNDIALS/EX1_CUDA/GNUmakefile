@@ -11,8 +11,7 @@ DIM              = 3
 PRECISION        = DOUBLE
 EBASE            = main
 
-CVODE_LIB_DIR ?= ${CVODE_LIB}
-USE_SUNDIALS_3x4x = TRUE
+USE_SUNDIALS = TRUE
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
