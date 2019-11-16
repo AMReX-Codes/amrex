@@ -29,9 +29,10 @@ WarpX::InitSpaceChargeField (WarpXParticleContainer& pc)
     }
 
     // Deposit particle charge density (source of Poisson solver)
-    bool local = false;
-    bool reset = true;
-    pc.DepositCharge(rho, local, reset);
+    bool const local = false;
+    bool const reset = true;
+    bool const do_rz_volume_scaling = true;
+    pc.DepositCharge(rho, local, reset, do_rz_volume_scaling);
 
     // Get the particle beta vector
     local = false; // Average across all MPI ranks
@@ -143,7 +144,7 @@ WarpX::computeE (amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >
             const Box& tby  = mfi.tilebox(Ey_nodal_flag);
             const Box& tbz  = mfi.tilebox(Ez_nodal_flag);
 
-            const auto& phi_arr = phi[0]->array(mfi);
+            const auto& phi_arr = phi[lev]->array(mfi);
             const auto& Ex_arr = (*E[lev][0])[mfi].array();
             const auto& Ey_arr = (*E[lev][1])[mfi].array();
             const auto& Ez_arr = (*E[lev][2])[mfi].array();
