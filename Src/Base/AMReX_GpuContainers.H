@@ -52,9 +52,12 @@ namespace Gpu {
     using PolymorphicDeviceVector = PODVector<T>;
 #endif
 
-    static struct HostToDevice {} hostToDevice;
-    static struct DeviceToHost {} deviceToHost;
-    static struct DeviceToDevice {} deviceToDevice;
+    struct HostToDevice {};
+    struct DeviceToHost {};
+    struct DeviceToDevice {};
+    static constexpr HostToDevice   hostToDevice;
+    static constexpr DeviceToHost   deviceToHost;
+    static constexpr DeviceToDevice deviceToDevice;
 
     /**
      * \brief A host-to-device copy routine. Note this is just a wrapper around
