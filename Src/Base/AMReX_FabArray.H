@@ -243,6 +243,9 @@ public:
 
     const FabFactory<FAB>& Factory () const noexcept { return *m_factory; }
 
+    // Provides access to the Arena this FabArray was build with.
+    const Arena* myArena () const noexcept { return m_dallocator.arena(); }
+
     bool hasEBFabFactory () const noexcept {
 #ifdef AMREX_USE_EB
         const auto f = dynamic_cast<EBFArrayBoxFactory const*>(m_factory.get());
@@ -748,6 +751,7 @@ public:
 protected:
 
     std::unique_ptr<FabFactory<FAB> > m_factory;
+    DataAllocator m_dallocator;
 
     bool define_function_called = false;
 
@@ -1051,6 +1055,7 @@ FabArray<FAB>::clear ()
     }
     m_fabs_v.clear();
     m_factory.reset();
+    m_dallocator.m_arena = nullptr;
     // no need to clear the non-blocking fillboundary stuff
 
     if (nbytes > 0) {
@@ -1157,6 +1162,7 @@ template <class FAB>
 FabArray<FAB>::FabArray (FabArray<FAB>&& rhs) noexcept
     : FabArrayBase (std::move(rhs))
     , m_factory    (std::move(rhs.m_factory))
+    , m_dallocator (std::move(rhs.m_dallocator))
     , define_function_called(rhs.define_function_called)
     , m_fabs_v     (std::move(rhs.m_fabs_v))
     , m_tags       (std::move(rhs.m_tags))
@@ -1179,6 +1185,7 @@ FabArray<FAB>::operator= (FabArray<FAB>&& rhs) noexcept
 
         FabArrayBase::operator=(std::move(rhs));
         m_factory = std::move(rhs.m_factory);
+        m_dallocator = std::move(rhs.m_dallocator);
         define_function_called = rhs.define_function_called;
         std::swap(m_fabs_v, rhs.m_fabs_v);
         std::swap(m_tags, rhs.m_tags);
@@ -1251,6 +1258,7 @@ FabArray<FAB>::define (const BoxArray&            bxs,
     clear();
 
     m_factory = std::move(factory);
+    m_dallocator.m_arena = info.arena;
 
     define_function_called = true;
 
