@@ -66,7 +66,7 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map)
     m_rcv_num_particles.resize(NProcs, 0);
 
     Gpu::HostVector<int> box_counts(m_box_counts.size());
-    Gpu::thrust_copy(m_box_counts.begin(), m_box_counts.end(), box_counts.begin());
+    Gpu::copy(Gpu::deviceToHost, m_box_counts.begin(), m_box_counts.end(), box_counts.begin());
     std::map<int, Vector<int> > snd_data;
 
     m_NumSnds = 0;
@@ -197,16 +197,16 @@ void ParticleCopyPlan::buildMPIFinish (const ParticleBufferMap& map)
         }
         
         m_rcv_box_counts.resize(rcv_box_counts.size());
-        Gpu::thrust_copy(rcv_box_counts.begin(), rcv_box_counts.end(), m_rcv_box_counts.begin());
+        Gpu::copy(Gpu::hostToDevice, rcv_box_counts.begin(), rcv_box_counts.end(), m_rcv_box_counts.begin());
         
         m_rcv_box_offsets.resize(rcv_box_offsets.size());
-        Gpu::thrust_copy(rcv_box_offsets.begin(), rcv_box_offsets.end(), m_rcv_box_offsets.begin());
+        Gpu::copy(Gpu::hostToDevice, rcv_box_offsets.begin(), rcv_box_offsets.end(), m_rcv_box_offsets.begin());
         
         m_rcv_box_ids.resize(rcv_box_ids.size());
-        Gpu::thrust_copy(rcv_box_ids.begin(), rcv_box_ids.end(), m_rcv_box_ids.begin());
+        Gpu::copy(Gpu::hostToDevice, rcv_box_ids.begin(), rcv_box_ids.end(), m_rcv_box_ids.begin());
 
         m_rcv_box_levs.resize(rcv_box_levs.size());
-        Gpu::thrust_copy(rcv_box_levs.begin(), rcv_box_levs.end(), m_rcv_box_levs.begin());
+        Gpu::copy(Gpu::hostToDevice, rcv_box_levs.begin(), rcv_box_levs.end(), m_rcv_box_levs.begin());
     }
     
     for (int j = 0; j < m_nrcvs; ++j)

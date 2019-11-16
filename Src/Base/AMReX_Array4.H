@@ -57,6 +57,9 @@ namespace amrex {
               ncomp(rhs.ncomp-start_comp)
         {}
 
+        AMREX_GPU_HOST_DEVICE
+        explicit operator bool() const noexcept { return p != nullptr; }
+
         template <class U=T, class = typename std::enable_if<!std::is_void<U>::value>::type >
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         U& operator() (int i, int j, int k) const noexcept {

@@ -97,7 +97,7 @@ public:
             std::array<Gpu::HostVector<int>, NAI> host_int;
 
             std::vector<Gpu::HostVector<Real> > host_runtime_real(NumRuntimeRealComps());
-            std::vector<Gpu::HostVector<Real> > host_runtime_int(NumRuntimeIntComps());
+            std::vector<Gpu::HostVector<int> > host_runtime_int(NumRuntimeIntComps());
 
             for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv))
             {
@@ -136,36 +136,41 @@ public:
             auto new_size = old_size + host_particles.size();
             particle_tile.resize(new_size);
             
-            Gpu::thrust_copy(host_particles.begin(),
-                             host_particles.end(),
-                             particle_tile.GetArrayOfStructs().begin() + old_size);        
+            Gpu::copy(Gpu::hostToDevice,
+                      host_particles.begin(),
+                      host_particles.end(),
+                      particle_tile.GetArrayOfStructs().begin() + old_size);        
 
             auto& soa = particle_tile.GetStructOfArrays();
             for (int i = 0; i < NAR; ++i)
             {
-                Gpu::thrust_copy(host_real[i].begin(),
-                                 host_real[i].end(),
-                                 soa.GetRealData(i).begin() + old_size);
+                Gpu::copy(Gpu::hostToDevice,
+                          host_real[i].begin(),
+                          host_real[i].end(),
+                          soa.GetRealData(i).begin() + old_size);
             }
 
             for (int i = 0; i < NAI; ++i)
             {
-                Gpu::thrust_copy(host_int[i].begin(),
-                                 host_int[i].end(),
-                                 soa.GetIntData(i).begin() + old_size);
+                Gpu::copy(Gpu::hostToDevice,
+                          host_int[i].begin(),
+                          host_int[i].end(),
+                          soa.GetIntData(i).begin() + old_size);
             }
             for (int i = 0; i < NumRuntimeRealComps(); ++i)
             {
-                Gpu::thrust_copy(host_runtime_real[i].begin(),
-                                 host_runtime_real[i].end(),
-                                 soa.GetRealData(NAR+i).begin() + old_size);
+                Gpu::copy(Gpu::hostToDevice,
+                          host_runtime_real[i].begin(),
+                          host_runtime_real[i].end(),
+                          soa.GetRealData(NAR+i).begin() + old_size);
             }
 
             for (int i = 0; i < NumRuntimeIntComps(); ++i)
             {
-                Gpu::thrust_copy(host_runtime_int[i].begin(),
-                                 host_runtime_int[i].end(),
-                                 soa.GetIntData(NAI+i).begin() + old_size);
+                Gpu::copy(Gpu::hostToDevice,
+                          host_runtime_int[i].begin(),
+                          host_runtime_int[i].end(),
+                          soa.GetIntData(NAI+i).begin() + old_size);
             }
         }
 
@@ -267,11 +272,11 @@ public:
                     }
                     for (int j = 0; j < num_rr; ++j)
                     {
-                        AMREX_ALWAYS_ASSERT(ptd.m_runtime_r_data[j][i] == ptd.m_aos[i].id());
+                        AMREX_ALWAYS_ASSERT(ptd.m_runtime_rdata[j][i] == ptd.m_aos[i].id());
                     }
                     for (int j = 0; j < num_ii; ++j)
                     {
-                        AMREX_ALWAYS_ASSERT(ptd.m_runtime_i_data[j][i] == ptd.m_aos[i].id());
+                        AMREX_ALWAYS_ASSERT(ptd.m_runtime_idata[j][i] == ptd.m_aos[i].id());
                     }
                 });
             }
@@ -290,6 +295,7 @@ struct TestParams
     int nsteps;
     int nlevs;
     int do_regrid;
+    int sort;
 };
 
 void testRedistribute();
@@ -318,6 +324,9 @@ void get_test_params(TestParams& params, const std::string& prefix)
     pp.get("do_regrid", params.do_regrid);
     pp.get("num_runtime_real", num_runtime_real);
     pp.get("num_runtime_int", num_runtime_int);
+
+    params.sort = 0;
+    pp.query("sort", params.sort);
 }
 
 void testRedistribute ()
@@ -383,6 +392,7 @@ void testRedistribute ()
     {
         pc.moveParticles(params.move_dir, params.do_random);
         pc.RedistributeLocal();
+        if (params.sort) pc.SortParticlesByCell();
         pc.checkAnswer();
     }
 

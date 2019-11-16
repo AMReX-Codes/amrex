@@ -7,12 +7,95 @@
 #include <AMReX_Print.H>
 #include <AMReX_MFIter.H>
 #include <AMReX_ParGDB.H>
+#include <AMReX_ParticleTile.H>
 
 #include <limits>
 
 namespace amrex
 {
 
+/**
+ * /brief A general single particle copying routine that can run on the GPU. 
+ *
+ * \tparam NSR number of extra reals in the particle struct
+ * \tparam NSI number of extra ints in the particle struct
+ * \tparam NAR number of reals in the struct-of-arrays
+ * \tparam NAI number of ints in the struct-of-arrays
+ *
+ * \param dst the destination tile
+ * \param src the source tile
+ * \param src_i the index in the source to read from
+ * \param dst_i the index in the destination to write to
+ *
+ */
+template <int NSR, int NSI, int NAR, int NAI>
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+void copyParticle(const      ParticleTileData<NSR, NSI, NAR, NAI>& dst, 
+                  const ConstParticleTileData<NSR, NSI, NAR, NAI>& src, 
+                  int src_i, int dst_i) noexcept
+{
+    AMREX_ASSERT(dst.m_num_runtime_real == src.m_num_runtime_real);
+    AMREX_ASSERT(dst.m_num_runtime_int  == src.m_num_runtime_int );
+
+    dst.m_aos[dst_i] = src.m_aos[src_i];
+    for (int j = 0; j < NAR; ++j)
+        dst.m_rdata[j][dst_i] = src.m_rdata[j][src_i];
+    for (int j = 0; j < dst.m_num_runtime_real; ++j)
+        dst.m_runtime_rdata[j][dst_i] = src.m_runtime_rdata[j][src_i];
+    for (int j = 0; j < NAI; ++j)
+        dst.m_idata[j][dst_i] = src.m_idata[j][src_i];
+    for (int j = 0; j < dst.m_num_runtime_int; ++j)
+        dst.m_runtime_idata[j][dst_i] = src.m_runtime_idata[j][src_i];
+}
+
+/**
+ * /brief Gather particles copies particles into contiguous order from an 
+ * arbitrary order. Specifically, the particle at the index inds[i] in src
+ * will be copied to the index i in dst.
+ * 
+ * \tparam PTile the particle tile type
+ * \tparam N the size type, e.g. long
+ * \tparam IndexType the index type, e.g. unsigned int
+ *
+ * \param dst the destination tile
+ * \param src the source tile
+ * \param np the number of particles
+ * \param inds pointer to the permutation array
+ *
+ */
+template <typename PTile, typename N, typename IndexType>
+void gatherParticles (PTile& dst, const PTile& src, N np, const IndexType* inds)
+{
+    const auto src_data = src.getConstParticleTileData();
+          auto dst_data = dst.getParticleTileData();
+          
+          AMREX_FOR_1D( np, i, { copyParticle(dst_data, src_data, inds[i], i); });
+}
+
+/**
+ * /brief Scatter particles copies particles from contiguous order into an
+ * arbitrary order. Specifically, the particle at the index i in src
+ * will be copied to the index inds[i] in dst.
+ * 
+ * \tparam PTile the particle tile type
+ * \tparam N the size type, e.g. long
+ * \tparam IndexType the index type, e.g. unsigned int
+ *
+ * \param dst the destination tile
+ * \param src the source tile
+ * \param np the number of particles
+ * \param inds pointer to the permutation array
+ *
+ */
+template <typename PTile, typename N, typename IndexType>
+void scatterParticles (PTile& dst, const PTile& src, N np, const IndexType* inds)
+{
+    const auto src_data = src.getConstParticleTileData();
+          auto dst_data = dst.getParticleTileData();
+          
+          AMREX_FOR_1D( np, i, { copyParticle(dst_data, src_data, i, inds[i]); });
+}
+    
 AMREX_GPU_HOST_DEVICE
 int getTileIndex (const IntVect& iv, const Box& box, const bool a_do_tiling, 
                   const IntVect& a_tile_size, Box& tbx);
@@ -51,27 +134,28 @@ void enforcePeriodic (P& p,
                       amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& phi,
                       amrex::GpuArray<int,AMREX_SPACEDIM> const& is_per) noexcept
 {
-  // In rare cases, degenerate cases can be found, filter out with a tolerance
+    // In rare cases, degenerate cases can be found, filter out with a tolerance
 #if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
-  static constexpr Real eps = std::numeric_limits<Real>::epsilon();
+    static constexpr Real eps = std::numeric_limits<Real>::epsilon();
 #else
-  static constexpr Real eps = DBL_EPSILON;
+    static constexpr Real eps = DBL_EPSILON;
 #endif
 
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
         if (not is_per[idim]) continue;
         if (p.pos(idim) >= phi[idim]) { 
-	  while (p.pos(idim) >= phi[idim]) { 
-            p.pos(idim) -= (phi[idim] - plo[idim]);
-	  }
-	  if (p.pos(idim) < plo[idim]) p.pos(idim) = plo[idim]; // clamp to avoid precision issues;
-        } else if (p.pos(idim) < plo[idim]) {
-	  while (p.pos(idim) < plo[idim]) {
-            p.pos(idim) += (phi[idim] - plo[idim]); 
-	  }
-	  if (p.pos(idim) == phi[idim]) p.pos(idim) = plo[idim]; // clamp to avoid precision issues;
-	  if (p.pos(idim) > phi[idim]) p.pos(idim) = phi[idim]-eps; // clamp to avoid precision issues;
+            while (p.pos(idim) >= phi[idim]) { 
+                p.pos(idim) -= (phi[idim] - plo[idim]);
+            }
+            if (p.pos(idim) < plo[idim]) p.pos(idim) = plo[idim]; // clamp to avoid precision issues;
+        } 
+        else if (p.pos(idim) < plo[idim]) {
+            while (p.pos(idim) < plo[idim]) {
+                p.pos(idim) += (phi[idim] - plo[idim]); 
+            }
+            if (p.pos(idim) == phi[idim]) p.pos(idim) = plo[idim]; // clamp to avoid precision issues;
+            if (p.pos(idim) > phi[idim]) p.pos(idim) = phi[idim]-eps; // clamp to avoid precision issues;
         }
     }
 }

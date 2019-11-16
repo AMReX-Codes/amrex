@@ -26,8 +26,8 @@ namespace {
 
 inline void
 mlndlap_impose_neumann_bc (Box const& bx, Array4<Real> const& rhs, Box const& nddom,
-                           Array<LinOpBCType,AMREX_SPACEDIM> const& lobc,
-                           Array<LinOpBCType,AMREX_SPACEDIM> const& hibc) noexcept
+                           GpuArray<LinOpBCType,AMREX_SPACEDIM> const& lobc,
+                           GpuArray<LinOpBCType,AMREX_SPACEDIM> const& hibc) noexcept
 {
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         if (lobc[idim] == LinOpBCType::Neumann or lobc[idim] == LinOpBCType::inflow) {
@@ -65,8 +65,8 @@ namespace amrex {
 
 template <typename T>
 void mlndlap_fillbc_cc (Box const& vbx, Array4<T> const& sigma, Box const& domain,
-                        Array<LinOpBCType, AMREX_SPACEDIM> bclo,
-                        Array<LinOpBCType, AMREX_SPACEDIM> bchi) noexcept
+                        GpuArray<LinOpBCType, AMREX_SPACEDIM> bclo,
+                        GpuArray<LinOpBCType, AMREX_SPACEDIM> bchi) noexcept
 {
     GpuArray<bool,AMREX_SPACEDIM> bflo{AMREX_D_DECL(bclo[0] != LinOpBCType::Periodic,
                                                     bclo[1] != LinOpBCType::Periodic,
@@ -79,8 +79,8 @@ void mlndlap_fillbc_cc (Box const& vbx, Array4<T> const& sigma, Box const& domai
 
 template <typename T>
 void mlndlap_applybc (Box const& vbx, Array4<T> const& phi, Box const& domain,
-                      Array<LinOpBCType, AMREX_SPACEDIM> bclo,
-                      Array<LinOpBCType, AMREX_SPACEDIM> bchi) noexcept
+                      GpuArray<LinOpBCType, AMREX_SPACEDIM> bclo,
+                      GpuArray<LinOpBCType, AMREX_SPACEDIM> bchi) noexcept
 {
     GpuArray<bool,AMREX_SPACEDIM> bflo{AMREX_D_DECL(bclo[0] == LinOpBCType::Neumann or
                                                     bclo[0] == LinOpBCType::inflow,
@@ -125,6 +125,19 @@ void mlndlap_jacobi_sten (Box const& bx, Array4<Real> const& sol,
             sol(i,j,k) += (2./3.) * (rhs(i,j,k) - Ax(i,j,k)) / sten(i,j,k,0);
         }
     });
+}
+
+AMREX_FORCE_INLINE
+bool mlndlap_any_fine_sync_cells (Box const& bx, Array4<int const> const& msk, int fine_flag) noexcept
+{
+    const auto lo = amrex::lbound(bx);
+    const auto hi = amrex::ubound(bx);
+    for (int k = lo.z; k <= hi.z; ++k) {
+    for (int j = lo.y; j <= hi.y; ++j) {
+    for (int i = lo.x; i <= hi.x; ++i) {
+        if (msk(i,j,k) == fine_flag) return true;
+    }}}
+    return false;
 }
 
 }
