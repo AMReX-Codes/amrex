@@ -530,7 +530,7 @@ WarpX::WritePlotFile () const
     m_OpenPMDPlotWriter->SetStep(istep[0]);
     if (dump_openpmd)
       m_OpenPMDPlotWriter->WriteOpenPMDFields(varnames,
-					      *output_mf[0], output_geom[0], istep[0], t_new[0] );
+                          *output_mf[0], output_geom[0], istep[0], t_new[0] );
 #endif
 
     if (dump_plotfiles ||  dump_openpmd) {

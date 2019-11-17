@@ -34,8 +34,8 @@ public:
 private:
   // get the offset in the overall particle id collection
   void GetParticleOffsetOfProcessor(const long& numParticles,
-				    unsigned long long& offset,
-				    unsigned long long& sum)  const ;
+                    unsigned long long& offset,
+                    unsigned long long& sum)  const ;
 
 
   int m_MPIRank = 0;
@@ -71,21 +71,21 @@ public:
 
 private:
   void Init(const std::string& filename,
-	    openPMD::AccessType accessType);
+        openPMD::AccessType accessType);
 
   /*
   // get the offset in the overall particle id collection
   void GetParticleOffsetOfProcessor(const long& numParticles,
-				    unsigned long long& offset,
-				    unsigned long long& sum)  const ;
+                    unsigned long long& offset,
+                    unsigned long long& sum)  const ;
   */
   void SetupPos(openPMD::ParticleSpecies& currSpecies,
         const unsigned long long& np) const ;
 
   void SetupRealProperties(openPMD::ParticleSpecies& currSpecies,
-			   const amrex::Vector<int>& write_real_comp,
-			   const amrex::Vector<std::string>& real_comp_names,
-			   unsigned long long np) const;
+               const amrex::Vector<int>& write_real_comp,
+               const amrex::Vector<std::string>& real_comp_names,
+               unsigned long long np) const;
 
   void SaveRealProperty(WarpXParIter& pti, //int, int,
             openPMD::ParticleSpecies& currSpecies,
