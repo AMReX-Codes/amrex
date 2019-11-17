@@ -16,7 +16,7 @@ public:
   ~Timer() {m_End = amrex::second(); amrex::Print()<<m_Tag<<" took:"<<m_End - m_Start<<" seconds\n";}
 private:
   amrex::Real m_Start;
-  amrex::Real m_End;  
+  amrex::Real m_End;
   std::string m_Tag;
 };
 
@@ -26,7 +26,7 @@ private:
 class WarpXParticleCounter
 {
 public:
-  WarpXParticleCounter(const std::unique_ptr<WarpXParticleContainer>& pc);  
+  WarpXParticleCounter(const std::unique_ptr<WarpXParticleContainer>& pc);
   unsigned long GetTotalNumParticles() {return m_Total;}
 
   std::vector<unsigned long long> m_ParticleOffsetAtRank;;
@@ -39,8 +39,8 @@ private:
 
 
   int m_MPIRank = 0;
-  int m_MPISize = 1;  
-  
+  int m_MPISize = 1;
+
   unsigned long long m_Total = 0;
 
   std::vector<unsigned long long> m_ParticleCounterByLevel;
@@ -72,7 +72,7 @@ public:
 private:
   void Init(const std::string& filename,
 	    openPMD::AccessType accessType);
-  
+
   /*
   // get the offset in the overall particle id collection
   void GetParticleOffsetOfProcessor(const long& numParticles,

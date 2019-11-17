@@ -130,19 +130,19 @@ WarpXOpenPMDPlot::WriteOpenPMDParticles(const std::unique_ptr<MultiParticleConta
       // real_names contains a list of all real particle attributes.
       // pc->plot_flags is 1 or 0, whether quantity is dumped or not.
 
-      { 
+      {
 	Timer t("openPMD plot");
         //
         SavePlotFile(pc,
            species_names[i],
-           m_CurrentStep, 
+           m_CurrentStep,
            pc->plot_flags, // this is protected and accessible by MultiParticleContainer.
            // so kept as is
            int_flags,
            real_names, int_names);
       }
       auto endTime = amrex::second();
-	
+
       // Convert momentum back to WarpX units
       pc->ConvertUnits(ConvertDirection::SI_to_WarpX);
     }
@@ -168,17 +168,17 @@ WarpXOpenPMDPlot::SavePlotFile (const std::unique_ptr<WarpXParticleContainer>& p
 
   WarpXParticleCounter counter(pc);
 
-  openPMD::Iteration currIteration = m_Series->iterations[iteration];    
+  openPMD::Iteration currIteration = m_Series->iterations[iteration];
   openPMD::ParticleSpecies currSpecies = currIteration.particles[name];
   //
   // define positions & offsets
   //
   SetupPos(currSpecies, counter.GetTotalNumParticles());
   SetupRealProperties(currSpecies, write_real_comp, real_comp_names, counter.GetTotalNumParticles());
-  
+
   for (auto currentLevel = 0; currentLevel <= pc->finestLevel(); currentLevel++)
     {
-#ifdef NEVER      
+#ifdef NEVER
       long numParticles = 0;
 
       for (WarpXParIter pti(*pc, currentLevel); pti.isValid(); ++pti) {
@@ -213,7 +213,7 @@ WarpXOpenPMDPlot::SavePlotFile (const std::unique_ptr<WarpXParticleContainer>& p
 	  // this code is tested  with laser 3d,  not tested with 2D examples...
 	  std::vector<std::string> axisNames={"x", "y", "z"};
 	  for (auto currDim = 0; currDim < AMREX_SPACEDIM; currDim++) {
-	    std::vector<amrex::ParticleReal> curr(numParticleOnTile, 0);    
+	    std::vector<amrex::ParticleReal> curr(numParticleOnTile, 0);
 	    for (auto i=0; i<numParticleOnTile; i++) {
 	      curr[i] = aos[i].m_rdata.pos[currDim];
 	    }
@@ -281,15 +281,15 @@ WarpXOpenPMDPlot::SaveRealProperty(WarpXParIter& pti,
 	auto& currVar = currSpecies[real_comp_names[idx]][openPMD::RecordComponent::SCALAR];
 	typename amrex::ParticleReal *d =
 	  static_cast<typename amrex::ParticleReal*> (malloc(sizeof(typename amrex::ParticleReal) *  numParticleOnTile));
-	
+
 	for (auto kk=0; kk<numParticleOnTile; kk++)
 	  d[kk] = aos[kk].m_rdata.arr[AMREX_SPACEDIM+idx];
-	
+
 	std::shared_ptr <typename amrex::ParticleReal> data(d, free);
 	currVar.storeChunk(data,
 			   {offset}, {static_cast<unsigned long long>(numParticleOnTile)});
 	m_Series->flush();
-	
+
       }
     }
   }
@@ -486,7 +486,7 @@ WarpXParticleCounter::WarpXParticleCounter(const std::unique_ptr<WarpXParticleCo
   for (auto currentLevel = 0; currentLevel <= pc->finestLevel(); currentLevel++)
     {
       long numParticles = 0; // numParticles in this processor
-      
+
       for (WarpXParIter pti(*pc, currentLevel); pti.isValid(); ++pti) {
 	auto numParticleOnTile = pti.numParticles();
 	numParticles += numParticleOnTile;
@@ -497,13 +497,13 @@ WarpXParticleCounter::WarpXParticleCounter(const std::unique_ptr<WarpXParticleCo
 
       GetParticleOffsetOfProcessor(numParticles, offset,  sum);
 
-      m_ParticleCounterByLevel[currentLevel] = sum;      
-      m_ParticleOffsetAtRank[currentLevel] = offset;      
+      m_ParticleCounterByLevel[currentLevel] = sum;
+      m_ParticleOffsetAtRank[currentLevel] = offset;
       m_ParticleSizeAtRank[currentLevel] = numParticles;
 
       // adjust offset, it should be numbered after particles from previous levels
       for (auto lv=0; lv<currentLevel; lv++)
-	m_ParticleOffsetAtRank[currentLevel] += m_ParticleCounterByLevel[lv]; 
+	m_ParticleOffsetAtRank[currentLevel] += m_ParticleCounterByLevel[lv];
 
       m_Total += sum;
     }
@@ -520,15 +520,15 @@ WarpXParticleCounter::WarpXParticleCounter(const std::unique_ptr<WarpXParticleCo
 //
 
 void
-WarpXParticleCounter::GetParticleOffsetOfProcessor(const long& numParticles,							
+WarpXParticleCounter::GetParticleOffsetOfProcessor(const long& numParticles,
 						   unsigned long long& offset,
-						   unsigned long long& sum)  const 
+						   unsigned long long& sum)  const
 
 
 {
       std::vector<long> result(m_MPISize,  0);
       amrex::ParallelGather::Gather (numParticles, result.data(), -1, amrex::ParallelDescriptor::Communicator());
-      
+
       sum = 0;
       offset = 0;
       for (int i=0;  i<result.size();  i++) {

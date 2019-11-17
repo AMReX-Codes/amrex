@@ -622,7 +622,7 @@ WarpX::WritePlotFile () const
 #endif
     // leaving the option of binary output through AMREx around
     // regardless of openPMD. This can be adjusted later
-    { 
+    {
       Timer t("amrex plot");
       mypc->WritePlotFile(plotfilename);
     }
