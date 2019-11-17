@@ -256,7 +256,7 @@ public:
 
     bool do_splitting = false;
     bool initialize_self_fields = false;
-    bool self_fields_required_precision = 1.e-11;
+    amrex::Real self_fields_required_precision = 1.e-11;
 
     // split along diagonals (0) or axes (1)
     int split_type = 0;
