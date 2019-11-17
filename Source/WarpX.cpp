@@ -129,7 +129,7 @@ WarpX::ResetInstance ()
 WarpX::WarpX ()
 {
 #ifdef WARPX_USE_OPENPMD
-      m_OpenPMDPlotWriter = new WarpXOpenPMDParticle(openpmd_tspf, openpmd_backend);
+      m_OpenPMDPlotWriter = new WarpXOpenPMDPlot(openpmd_tspf, openpmd_backend);
 #endif
     m_instance = this;
 

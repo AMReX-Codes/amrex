@@ -530,18 +530,7 @@ WarpX::WritePlotFile () const
     m_OpenPMDPlotWriter->SetStep(istep[0]);
     if (dump_openpmd)
       m_OpenPMDPlotWriter->WriteOpenPMDFields(varnames,
-                          *output_mf[0], output_geom[0], istep[0], t_new[0] );
-    /*
-    if (dump_openpmd){
-        // Write openPMD format: only for level 0
-        std::string filename = std::string("diags/");
-        filename.append(openpmd_backend);
-        filename += amrex::Concatenate("/data", istep[0]);
-        filename += std::string(".") + openpmd_backend;
-        WriteOpenPMDFields( filename, varnames,
-                        *output_mf[0], output_geom[0], istep[0], t_new[0] );
-    }
-    */
+					      *output_mf[0], output_geom[0], istep[0], t_new[0] );
 #endif
 
     if (dump_plotfiles ||  dump_openpmd) {
@@ -629,23 +618,14 @@ WarpX::WritePlotFile () const
 
 #ifdef WARPX_USE_OPENPMD
     // Write openPMD format: only for level 0
-
-    /*
-    std::string filename = std::string("diags/");
-    filename.append(openpmd_backend);
-    filename += amrex::Concatenate("/particle", istep[0]);
-    filename += std::string(".") + openpmd_backend;
-
-
-    WarpXOpenPMDParticle  openPMDWriter(filename, openpmd_backend);
-    openPMDWriter.SaveContainerPlots(mypc);
-    */
-
- //m_OpenPMDPlotWriter->SetStep(istep[0]);
-    m_OpenPMDPlotWriter->SaveContainerPlots(mypc);
-#else
-    mypc->WritePlotFile(plotfilename);
+    m_OpenPMDPlotWriter->WriteOpenPMDParticles(mypc);
 #endif
+    // leaving the option of binary output through AMREx around
+    // regardless of openPMD. This can be adjusted later
+    { 
+      Timer t("amrex plot");
+      mypc->WritePlotFile(plotfilename);
+    }
 
     WriteJobInfo(plotfilename);
 
