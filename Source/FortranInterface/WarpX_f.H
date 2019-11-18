@@ -49,13 +49,6 @@ extern "C"
     void WRPX_BUILD_MASK(const int* lo, const int* hi,
                          const int* tmp_mask, int* mask, const int* ncells);
 
-    void WRPX_DEPOSIT_CIC(const amrex::ParticleReal* particles, int ns, int np,
-                          const amrex::ParticleReal* weights,
-                          const amrex::Real* charge,
-                          amrex::Real* rho, const int* lo, const int* hi,
-                          const amrex::Real* plo, const amrex::Real* dx,
-                          const int* ng);
-
     void WRPX_INTERPOLATE_CIC_TWO_LEVELS(const amrex::ParticleReal* particles, int ns, int np,
                                          amrex::Real* Ex_p, amrex::Real* Ey_p,
 #if (AMREX_SPACEDIM == 3)
