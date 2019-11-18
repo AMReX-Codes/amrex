@@ -201,7 +201,7 @@ WarpXOpenPMDPlot::SavePlotFile (const std::unique_ptr<WarpXParticleContainer>& p
                 std::vector<amrex::ParticleReal> curr(numParticleOnTile, 0);
             for (auto i=0; i<numParticleOnTile; i++) {
                      curr[i] = aos[i].m_rdata.pos[currDim];
-                } 
+                }
                 currSpecies["position"][axisNames[currDim]].storeChunk(curr, {offset}, {static_cast<unsigned long long>(numParticleOnTile)});
                 m_Series->flush();
            }
