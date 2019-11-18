@@ -211,6 +211,16 @@ struct KeepOddFilter
     }
 };
 
+struct KeepEvenFilter
+{    
+    template <typename SrcData>
+    AMREX_GPU_HOST_DEVICE
+    int operator() (const SrcData& src, int i) const noexcept
+    {
+        return (src.m_aos[i].id() % 2 == 0);
+    }
+};
+
 template <typename PC>
 void testFilter(const PC& pc)
 {
@@ -225,7 +235,28 @@ void testFilter(const PC& pc)
 
     auto np_new = pc2.TotalNumberOfParticles();
 
-    AMREX_ALWAYS_ASSERT(2*np_new == np_old);    
+    AMREX_ALWAYS_ASSERT(2*np_new == np_old);
+
+    auto all_odd = amrex::ReduceLogicalAnd(pc2, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> int { return p.id() % 2 == 1; });
+
+    AMREX_ALWAYS_ASSERT(all_odd);
+
+    pc2.clearParticles();
+    pc2.copyParticles(pc);
+    filterParticles(pc2, KeepEvenFilter());
+
+    np_new = pc2.TotalNumberOfParticles();
+    AMREX_ALWAYS_ASSERT(2*np_new == np_old);
+
+    auto all_even = amrex::ReduceLogicalAnd(pc2, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> int { return p.id() % 2 == 0; });
+
+    AMREX_ALWAYS_ASSERT(all_even);
+
+    filterParticles(pc2, KeepOddFilter());
+
+    np_new = pc2.TotalNumberOfParticles();
+
+    AMREX_ALWAYS_ASSERT(np_new == 0);
 }
 
 struct TestParams
