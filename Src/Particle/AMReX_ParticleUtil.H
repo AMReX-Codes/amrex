@@ -182,7 +182,7 @@ typename std::remove_const<IndexType>::type filterAndTransformParticles(PTile& d
     using Ind = typename std::remove_const<IndexType>::type;
     auto np = src.numParticles();
     Gpu::DeviceVector<IndexType> offsets(np);
-    Gpu::exclusive_scan(mask, mask+np, offsets);
+    Gpu::exclusive_scan(mask, mask+np, offsets.begin());
 
     Ind last_mask, last_offset;
     Gpu::copyAsync(Gpu::deviceToHost, mask+np-1, mask + np, &last_mask);
@@ -217,11 +217,11 @@ typename std::remove_const<IndexType>::type filterAndTransformParticles(PTile& d
  * \param f defines the transformation that will be applied to the particles on copy
  *
  */    
-template <typename PTile, typename IndexType, typename Pred, typename F>
-IndexType filterAndTransformParticles(PTile& dst, const PTile& src, Pred&& p, F&& f) noexcept
+template <typename PTile, typename Pred, typename F>
+int filterAndTransformParticles(PTile& dst, const PTile& src, Pred&& p, F&& f) noexcept
 {
     auto np = src.numParticles();
-    Gpu::DeviceVector<IndexType> mask(np);
+    Gpu::DeviceVector<int> mask(np);
 
     auto p_mask = mask.dataPtr();
     const auto src_data = src.getConstParticleTileData();
@@ -231,7 +231,7 @@ IndexType filterAndTransformParticles(PTile& dst, const PTile& src, Pred&& p, F&
         p_mask[i] = p(src_data, i);
     });
 
-    return filterAndTransformPartcles(dst, src, mask.dataPtr(), f);
+    return filterAndTransformParticles(dst, src, mask.dataPtr(), f);
 }
     
 /**
