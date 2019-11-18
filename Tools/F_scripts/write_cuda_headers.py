@@ -230,6 +230,7 @@ def convert_headers(inputs):
     macro_list    = inputs[3]
     cpp           = inputs[4]
     device_suffix = inputs[5]
+    no_host_version = inputs[6]
 
     print('looking for targets: {}'.format(list(targets)))
     print('looking in header file: {}'.format(header_file))
@@ -344,12 +345,14 @@ def convert_headers(inputs):
                     break
 
         if found is not None:
-            hout.write(line)
+            if not no_host_version:
+                hout.write(line)
             launch_sig = "" + line
             sig_end = False
             while not sig_end:
                 line = hin.readline()
-                hout.write(line)
+                if not no_host_version:
+                    hout.write(line)
                 launch_sig += line
                 if line.strip().endswith(";"):
                     sig_end = True
@@ -551,6 +554,7 @@ def convert_cxx(inputs):
     cpp           = inputs[2]
     defines       = inputs[3]
     device_suffix = inputs[4]
+    no_host_version = inputs[5]
 
     print('looking in C++ file: {}'.format(cxx_file))
 
@@ -601,7 +605,7 @@ def convert_cxx(inputs):
 
             do_host_version = True
             for entry in split_line:
-                if "nohost" in entry:
+                if "nohost" in entry or no_host_version == True:
                     do_host_version = False
 
             # we don't need to reproduce the pragma line in the
@@ -632,6 +636,7 @@ def convert_cxx(inputs):
             # debugging at this time, but could be used later
             # for dividing the work between the host and device.
 
+            hout.write("{\n")
             hout.write("#if defined(__CUDA_ARCH__)\n")
 
             # For the device launch, we need to replace certain macros.
@@ -676,6 +681,7 @@ def convert_cxx(inputs):
                 hout.write("}\n")
 
             hout.write("#endif\n")
+            hout.write("}\n")
 
 
         else:
@@ -717,6 +723,11 @@ if __name__ == "__main__":
     parser.add_argument("--device_suffix",
                         help="suffix to add to device function names",
                         default="_device")
+    parser.add_argument("--no_host_version",
+                        help="should we implement a host version?",
+                        dest='no_host_version',
+                        action='store_true')
+    parser.set_defaults(no_host_version=False)
 
 
     args = parser.parse_args()
@@ -755,11 +766,11 @@ if __name__ == "__main__":
 
     # copy the headers to the output directory, replacing the
     # signatures of the target Fortran routines with the CUDA pair
-    inputs = [[header, args.output_dir, targets, macro_list, cpp_pass, args.device_suffix] for header in headers]
+    inputs = [[header, args.output_dir, targets, macro_list, cpp_pass, args.device_suffix, args.no_host_version] for header in headers]
     pool.map(convert_headers, inputs)
 
     # part II: for each C++ file, we need to expand the `#pragma gpu`
-    inputs = [[cxx_file, args.output_dir, cpp_pass, defines, args.device_suffix] for cxx_file in cxx]
+    inputs = [[cxx_file, args.output_dir, cpp_pass, defines, args.device_suffix, args.no_host_version] for cxx_file in cxx]
     pool.map(convert_cxx, inputs)
 
     pool.close()

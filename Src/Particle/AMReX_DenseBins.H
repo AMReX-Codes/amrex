@@ -37,7 +37,7 @@ public:
      * The algorithm is similar to a counting sort. First, we count the number
      * of items in each bin. Then, we perform a prefix sum on the resulting counts.
      * Finally, the set of partial sums is incremented in parallel using atomicInc,
-     * which results in a permutationa array that places the items in bin-sorted order.
+     * which results in a permutation array that places the items in bin-sorted order.
      * 
      * \tparam N the 'size' type that can enumerate all the items
      * \tparam F a function that maps items to IntVect bins
@@ -70,6 +70,7 @@ public:
         AMREX_FOR_1D ( nitems, i,
         {
             bin_type iv = f(v[i]);
+            AMREX_ASSERT(bx.contains(iv));
             int nx = hi.x-lo.x+1;
             int ny = hi.y-lo.y+1;
             int nz = hi.z-lo.z+1;
@@ -81,8 +82,8 @@ public:
         });
 
         Gpu::exclusive_scan(m_counts.begin(), m_counts.end(), m_offsets.begin());
-        
-        Gpu::thrust_copy(m_offsets.begin(), m_offsets.end(), m_counts.begin());
+
+        Gpu::copy(Gpu::deviceToDevice, m_offsets.begin(), m_offsets.end(), m_counts.begin());
 
         index_type* pperm = m_perm.dataPtr();
         constexpr index_type max_index = std::numeric_limits<index_type>::max();
@@ -99,7 +100,7 @@ public:
     long numItems () const noexcept { return m_perm.size(); }
 
     //! \brief the number of bins in the container
-    long numBins () const noexcept { return m_offsets.size(); }
+    long numBins () const noexcept { return m_offsets.size()-1; }
     
     //! \brief returns the pointer to the permutation array 
     index_type* permutationPtr() noexcept { return m_perm.dataPtr(); }

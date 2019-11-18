@@ -243,6 +243,9 @@ public:
 
     const FabFactory<FAB>& Factory () const noexcept { return *m_factory; }
 
+    // Provides access to the Arena this FabArray was build with.
+    const Arena* myArena () const noexcept { return m_dallocator.arena(); }
+
     bool hasEBFabFactory () const noexcept {
 #ifdef AMREX_USE_EB
         const auto f = dynamic_cast<EBFArrayBoxFactory const*>(m_factory.get());
@@ -317,6 +320,24 @@ public:
     //
     template <class F=FAB, class = typename std::enable_if<IsBaseFab<F>::value>::type >
     Array4<typename FabArray<FAB>::value_type const> const_array (int K) const noexcept;
+
+    template <class F=FAB, class = typename std::enable_if<IsBaseFab<F>::value>::type >
+    Array4<typename FabArray<FAB>::value_type const> array (const MFIter& mfi, int start_comp) const noexcept;
+    //
+    template <class F=FAB, class = typename std::enable_if<IsBaseFab<F>::value>::type >
+    Array4<typename FabArray<FAB>::value_type> array (const MFIter& mfi, int start_comp) noexcept;
+    //
+    template <class F=FAB, class = typename std::enable_if<IsBaseFab<F>::value>::type >
+    Array4<typename FabArray<FAB>::value_type const> array (int K, int start_comp) const noexcept;
+    //
+    template <class F=FAB, class = typename std::enable_if<IsBaseFab<F>::value>::type >
+    Array4<typename FabArray<FAB>::value_type> array (int K, int start_comp) noexcept;
+
+    template <class F=FAB, class = typename std::enable_if<IsBaseFab<F>::value>::type >
+    Array4<typename FabArray<FAB>::value_type const> const_array (const MFIter& mfi, int start_comp) const noexcept;
+    //
+    template <class F=FAB, class = typename std::enable_if<IsBaseFab<F>::value>::type >
+    Array4<typename FabArray<FAB>::value_type const> const_array (int K, int start_comp) const noexcept;
 
     //! Explicitly set the Kth FAB in the FabArray to point to elem.
     void setFab (int K, FAB* elem);
@@ -667,6 +688,11 @@ public:
     void PC_local_gpu (const CPC& thecpc, FabArray<FAB> const& src,
                        int scomp, int dcomp, int ncomp, CpOp op);
 
+    void FB_local_setVal_gpu (typename FabArray<FAB>::value_type x,
+                              const FB& TheFB, int scomp, int ncomp);
+    void FB_remote_setVal_gpu (typename FabArray<FAB>::value_type x,
+                               const FB& TheFB, int scomp, int ncomp);
+
 #if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10))
 
     void FB_local_copy_cuda_graph_1 (const FB& TheFB, int scomp, int ncomp);
@@ -725,6 +751,7 @@ public:
 protected:
 
     std::unique_ptr<FabFactory<FAB> > m_factory;
+    DataAllocator m_dallocator;
 
     bool define_function_called = false;
 
@@ -964,6 +991,54 @@ FabArray<FAB>::const_array (int K) const noexcept
 }
 
 template <class FAB>
+template <class,class>
+Array4<typename FabArray<FAB>::value_type const>
+FabArray<FAB>::array (const MFIter& mfi, int start_comp) const noexcept
+{
+    return fabPtr(mfi)->const_array(start_comp);
+}
+
+template <class FAB>
+template <class,class>
+Array4<typename FabArray<FAB>::value_type>
+FabArray<FAB>::array (const MFIter& mfi, int start_comp) noexcept
+{
+    return fabPtr(mfi)->array(start_comp);
+}
+
+template <class FAB>
+template <class,class>
+Array4<typename FabArray<FAB>::value_type const>
+FabArray<FAB>::array (int K, int start_comp) const noexcept
+{
+    return fabPtr(K)->const_array(start_comp);
+}
+
+template <class FAB>
+template <class,class>
+Array4<typename FabArray<FAB>::value_type>
+FabArray<FAB>::array (int K, int start_comp) noexcept
+{
+    return fabPtr(K)->array(start_comp);
+}
+
+template <class FAB>
+template <class,class>
+Array4<typename FabArray<FAB>::value_type const>
+FabArray<FAB>::const_array (const MFIter& mfi, int start_comp) const noexcept
+{
+    return fabPtr(mfi)->const_array(start_comp);
+}
+
+template <class FAB>
+template <class,class>
+Array4<typename FabArray<FAB>::value_type const>
+FabArray<FAB>::const_array (int K, int start_comp) const noexcept
+{
+    return fabPtr(K)->const_array(start_comp);
+}
+
+template <class FAB>
 void
 FabArray<FAB>::clear ()
 {
@@ -980,6 +1055,7 @@ FabArray<FAB>::clear ()
     }
     m_fabs_v.clear();
     m_factory.reset();
+    m_dallocator.m_arena = nullptr;
     // no need to clear the non-blocking fillboundary stuff
 
     if (nbytes > 0) {
@@ -1086,6 +1162,7 @@ template <class FAB>
 FabArray<FAB>::FabArray (FabArray<FAB>&& rhs) noexcept
     : FabArrayBase (std::move(rhs))
     , m_factory    (std::move(rhs.m_factory))
+    , m_dallocator (std::move(rhs.m_dallocator))
     , define_function_called(rhs.define_function_called)
     , m_fabs_v     (std::move(rhs.m_fabs_v))
     , m_tags       (std::move(rhs.m_tags))
@@ -1108,6 +1185,7 @@ FabArray<FAB>::operator= (FabArray<FAB>&& rhs) noexcept
 
         FabArrayBase::operator=(std::move(rhs));
         m_factory = std::move(rhs.m_factory);
+        m_dallocator = std::move(rhs.m_dallocator);
         define_function_called = rhs.define_function_called;
         std::swap(m_fabs_v, rhs.m_fabs_v);
         std::swap(m_tags, rhs.m_tags);
@@ -1180,6 +1258,7 @@ FabArray<FAB>::define (const BoxArray&            bxs,
     clear();
 
     m_factory = std::move(factory);
+    m_dallocator.m_arena = info.arena;
 
     define_function_called = true;
 
@@ -1929,14 +2008,12 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, const IntVect& nghost,
 }
 
 template <class FAB>
-template <class,class>
+template <class F, class B>
 void
 FabArray<FAB>::BuildMask (const Box& phys_domain, const Periodicity& period,
 			  value_type covered, value_type notcovered,
 			  value_type physbnd, value_type interior)
 {
-    // TODO gpu
-
     int ncomp = this->nComp();
     const IntVect& ngrow = this->nGrowVect();
 
@@ -1953,40 +2030,56 @@ FabArray<FAB>::BuildMask (const Box& phys_domain, const Periodicity& period,
     }
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(*this, true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
-	FAB& fab = (*this)[mfi];
-
-	Box gbx = mfi.growntilebox();
-	fab.setVal(physbnd, gbx, 0, ncomp);
-
-	gbx &= domain;
-	fab.setVal(notcovered, gbx, 0, ncomp);
-
-	const Box& tbx = mfi.tilebox();
-	fab.setVal(interior, tbx, 0, ncomp);
+        auto const& fab = this->array(mfi);
+        Box const& fbx = mfi.growntilebox();
+        Box const& gbx = fbx & domain;
+        Box const& vbx = mfi.validbox();
+        AMREX_HOST_DEVICE_FOR_4D(fbx, ncomp, i, j, k, n,
+        {
+            IntVect iv(AMREX_D_DECL(i,j,k));
+            if (vbx.contains(iv)) {
+                fab(i,j,k,n) = interior;
+            } else if (gbx.contains(iv)) {
+                fab(i,j,k,n) = notcovered;
+            } else {
+                fab(i,j,k,n) = physbnd;
+            }
+        });
     }
 
     int N_locs = LocTags.size();
+
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion())
+    {
+        FB_local_setVal_gpu(covered, TheFB, 0, ncomp);
+        FB_remote_setVal_gpu(covered, TheFB, 0, ncomp);
+    }
+    else
+#endif
+    {
 #ifdef _OPENMP
 #pragma omp parallel for if (TheFB.m_threadsafe_loc)
 #endif
-    for (int i = 0; i < N_locs; ++i) {
-	const CopyComTag& tag = LocTags[i];
-	(*this)[tag.dstIndex].setVal(covered, tag.dbox, 0, ncomp);
-    }
+        for (int i = 0; i < N_locs; ++i) {
+            const CopyComTag& tag = LocTags[i];
+            (*this)[tag.dstIndex].setVal(covered, tag.dbox, 0, ncomp);
+        }
 
-    for (MapOfCopyComTagContainers::const_iterator it = RcvTags.begin(); it != RcvTags.end(); ++it) {
-	int N = it->second.size();
+        for (MapOfCopyComTagContainers::const_iterator it = RcvTags.begin(); it != RcvTags.end(); ++it) {
+            int N = it->second.size();
 #ifdef _OPENMP
 #pragma omp parallel for if (TheFB.m_threadsafe_rcv)
 #endif
-	for (int i = 0; i < N; ++i) {
-	    const CopyComTag& tag = it->second[i];
-	    (*this)[tag.dstIndex].setVal(covered, tag.dbox, 0, ncomp);
-	}
+            for (int i = 0; i < N; ++i) {
+                const CopyComTag& tag = it->second[i];
+                (*this)[tag.dstIndex].setVal(covered, tag.dbox, 0, ncomp);
+            }
+        }
     }
 }
 

@@ -3,7 +3,7 @@
 #include <AMReX_Gpu.H>
 #include <AMReX_Utility.H>
 #include <AMReX_Array.H>
-#include <AMReX_CudaContainers.H>
+#include <AMReX_GpuContainers.H>
 #include <AMReX_ParmParse.H>
 
 using namespace amrex;

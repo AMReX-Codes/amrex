@@ -375,8 +375,8 @@ amrex::Real LineDistFcnElement2d::cpside(amrex::RealVect pt,
     if (dist < mindist) {
       mindist = dist;
       cpmin = cp;
-      l0 = amrex::RealVect(D_DECL(control_points_x[i-1], control_points_y[i-1],0.0));
-      l1 = amrex::RealVect(D_DECL(control_points_x[i], control_points_y[i],0.0));
+      l0 = amrex::RealVect(AMREX_D_DECL(control_points_x[i-1], control_points_y[i-1],0.0));
+      l1 = amrex::RealVect(AMREX_D_DECL(control_points_x[i], control_points_y[i],0.0));
     }
   }
 
@@ -424,18 +424,18 @@ void LineDistFcnElement2d::single_seg_cpdist(amrex::RealVect pt,
                                              amrex::Real y0, amrex::Real y1,
                                              amrex::RealVect& cp,
                                              amrex::Real& dist) const {
-  amrex::RealVect A(D_DECL(pt[0]-x0, pt[1]-y0,0.0));
-  amrex::RealVect B(D_DECL(x1-x0, y1-y0,0.0));
+  amrex::RealVect A(AMREX_D_DECL(pt[0]-x0, pt[1]-y0,0.0));
+  amrex::RealVect B(AMREX_D_DECL(x1-x0, y1-y0,0.0));
 
   amrex::Real magBsq = B[0]*B[0] + B[1]*B[1];
   amrex::Real t =  (A[0]*B[0] + A[1]*B[1])/magBsq;
 
   if (t < 0) {
-    cp = amrex::RealVect(D_DECL(x0,y0,0.0));
+    cp = amrex::RealVect(AMREX_D_DECL(x0,y0,0.0));
   } else if (t > 1.0) {
-    cp = amrex::RealVect(D_DECL(x1,y1,0.0));
+    cp = amrex::RealVect(AMREX_D_DECL(x1,y1,0.0));
   } else {
-    cp  = amrex::RealVect(D_DECL(x0,y0,0.0)) + t*B;
+    cp  = amrex::RealVect(AMREX_D_DECL(x0,y0,0.0)) + t*B;
   }
 
   amrex::RealVect delta = pt - cp;

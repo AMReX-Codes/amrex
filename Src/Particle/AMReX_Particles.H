@@ -38,7 +38,7 @@
 #include <AMReX_Particle.H>
 #include <AMReX_ParticleTile.H>
 #include <AMReX_TypeTraits.H>
-#include <AMReX_CudaContainers.H>
+#include <AMReX_GpuContainers.H>
 #include <AMReX_Functors.H>
 #include <AMReX_ParticleUtil.H>
 #include <AMReX_ParticleReduce.H>
@@ -46,6 +46,7 @@
 #include <AMReX_ParticleCommunication.H>
 #include <AMReX_ParticleLocator.H>
 #include <AMReX_Scan.H>
+#include <AMReX_DenseBins.H>
 
 #ifdef BL_LAZY
 #include <AMReX_Lazy.H>
@@ -899,8 +900,8 @@ public:
 
 
     //! struct-of-array stuff
-    std::vector<bool> communicate_real_comp;
-    std::vector<bool> communicate_int_comp;
+    Gpu::ManagedVector<int> communicate_real_comp;
+    Gpu::ManagedVector<int> communicate_int_comp;
 
     static bool do_tiling;
     static IntVect tile_size;
@@ -931,6 +932,8 @@ public:
     bool OKCPU (int lev_min = 0, int lev_max = -1, int nGrow = 0) const;
 
     bool OKGPU (int lev_min = 0, int lev_max = -1, int nGrow = 0) const;
+
+    long superParticleSize() const { return superparticle_size; }
 
 #ifdef AMREX_USE_CUDA    
     void EnforcePeriodicGPU ();
@@ -1030,7 +1033,6 @@ protected:
     ParGDBBase* m_gdb;
     ParGDB      m_gdb_object;
 
-
     //! ---- variables for i/o optimization saved for pre and post checkpoint
     bool         levelDirectoriesCreated;
     bool         usePrePost;
@@ -1045,37 +1047,24 @@ protected:
     mutable std::string HdrFileNamePrePost;
     mutable Vector<std::string> filePrefixPrePost;
 
-#ifdef AMREX_USE_CUDA
-    ParticleVector m_aos_r;
-    std::array<RealVector, NArrayReal> m_rdata_r;
-    std::array<IntVector, NArrayInt>  m_idata_r;
+    ParticleTileType m_ptile_r;
+    DenseBins<ParticleType> m_bins;
+    
+#ifdef AMREX_USE_GPU
     Gpu::ManagedDeviceVector<int> m_grids_r;
     Gpu::ManagedDeviceVector<int> m_levs_r;
-
-    Gpu::ManagedDeviceVector<int> m_lo;
-    Gpu::ManagedDeviceVector<int> m_hi;
-    Gpu::ManagedDeviceVector<int> m_output;
-
     Gpu::ManagedDeviceVector<int> m_grids_tmp;
     Gpu::ManagedDeviceVector<int> m_levs_tmp;
 
-    ParticleVector m_aos_to_redistribute;
-    std::vector<RealVector> m_real_arrays_to_redistribute;
-    std::vector<IntVector > m_int_arrays_to_redistribute;
-    Gpu::ManagedDeviceVector<int> m_grids_to_redistribute;
-
-    std::map<int, SendBuffer> m_not_ours;
-
     ParticleCopyOp redistribute_copy_op;
     ParticleCopyPlan redistribute_copy_plan;
-    Gpu::DeviceVector<SuperParticleType> redistribute_snd_buffer;
-    Gpu::DeviceVector<SuperParticleType> redistribute_rcv_buffer;
 
-    Gpu::PinnedDeviceVector<SuperParticleType> pinned_snd_buffer;
-    Gpu::PinnedDeviceVector<SuperParticleType> pinned_rcv_buffer;
+    Gpu::DeviceVector<char> redistribute_snd_buffer;
+    Gpu::DeviceVector<char> redistribute_rcv_buffer;
+    Gpu::PinnedDeviceVector<char> pinned_snd_buffer;
+    Gpu::PinnedDeviceVector<char> pinned_rcv_buffer;
 
     mutable AmrParticleLocator m_particle_locator;
-    
 #endif
 
     int NumRuntimeRealComps () const { return m_num_runtime_real; }
@@ -1083,7 +1072,6 @@ protected:
     
     int NumRealComps () const { return NArrayReal + NumRuntimeRealComps(); }
     int NumIntComps  () const { return NArrayInt  + NumRuntimeIntComps() ; } 
-
     
 private:
 

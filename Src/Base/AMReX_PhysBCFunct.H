@@ -72,6 +72,7 @@ protected:
     F m_user_f;
 };
 
+#if !(defined(AMREX_USE_CUDA) && defined(AMREX_USE_GPU_PRAGMA) && defined(AMREX_GPU_PRAGMA_NO_HOST))
 //! This cpu version calls function working on FArrayBox
 class CpuBndryFuncFab
 {
@@ -88,6 +89,7 @@ public:
 protected:
     UserFillBox f_user = nullptr;
 };
+#endif
 
 class PhysBCFunctBase {
 public:
@@ -101,13 +103,13 @@ public:
 inline PhysBCFunctBase::~PhysBCFunctBase () {}
 
 
-class PhysBCFunctNoOp
+class PhysBCFunctNoOp final
     : public PhysBCFunctBase
 {
 public:
     virtual void FillBoundary (MultiFab& mf, int dcomp, int ncomp, Real time, int bccomp)
-        override final {}
-    virtual ~PhysBCFunctNoOp () override final {}
+        override {}
+    virtual ~PhysBCFunctNoOp () override {}
 };
 
 

@@ -1,6 +1,5 @@
 
 #include <AMReX_MLNodeLinOp.H>
-#include <AMReX_MLNodeLap_F.H>
 #include <AMReX_MLNodeLap_K.H>
 
 #ifdef _OPENMP
@@ -169,8 +168,6 @@ MLNodeLinOp::applyInhomogNeumannTerm (int amrlev, MultiFab& rhs) const
 void
 MLNodeLinOp::buildMasks ()
 {
-    Gpu::LaunchSafeGuard lsg(false); // todo: gpu
-
     if (m_masks_built) return;
 
     BL_PROFILE("MLNodeLinOp::buildMasks()");
@@ -185,8 +182,8 @@ MLNodeLinOp::buildMasks ()
         m_is_bottom_singular = m_domain_covered[0];
     }
 
-    const auto lobc = m_lobc[0];
-    const auto hibc = m_hibc[0];
+    const auto lobc = LoBC();
+    const auto hibc = HiBC();
 
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -227,20 +224,37 @@ MLNodeLinOp::buildMasks ()
 
                         ccfab.resize(ccbxg1);
                         Elixir cceli = ccfab.elixir();
-                        ccfab.setVal(1);
-                        ccfab.setComplement(2,ccdomain_p,0,1);
+                        Array4<int> const& ccarr = ccfab.array();
+
+                        if (ccdomain_p.contains(ccarr)) {
+                            AMREX_HOST_DEVICE_PARALLEL_FOR_3D(ccbxg1, i, j, k,
+                            {
+                                ccarr(i,j,k) = 1;
+                            });
+                        } else {
+                            AMREX_HOST_DEVICE_FOR_3D(ccbxg1, i, j, k,
+                            {
+                                if (ccdomain_p.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
+                                    ccarr(i,j,k) = 1;
+                                } else {
+                                    ccarr(i,j,k) = 2;
+                                }
+                            });
+                        }
 
                         for (const auto& iv : pshifts)
                         {
                             ccba.intersections(ccbxg1+iv, isects);
                             for (const auto& is : isects)
                             {
-                                ccfab.setVal(0, is.second-iv, 0, 1);
+                                Box b = is.second-iv;
+                                AMREX_HOST_DEVICE_PARALLEL_FOR_3D(b, i, j, k,
+                                {
+                                    ccarr(i,j,k) = 0;
+                                });
                             }
                         }
 
-                        // todo: gpu.  Need to rethinking this.
-                        Array4<int const> const& ccarr = ccfab.const_array();
                         AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( ndbx, tbx,
                         {
                             mlndlap_set_dirichlet_mask(tbx, mskarr, ccarr, nddomain,
@@ -293,7 +307,7 @@ MLNodeLinOp::buildMasks ()
                     if (!isects.empty()) has_cf[mfi] = 1;
                 }
 
-                mlndlap_fillbc_cc<int>(mfi.validbox(),fab,ccdom,m_lobc[0],m_hibc[0]);
+                mlndlap_fillbc_cc<int>(mfi.validbox(),fab,ccdom,lobc,hibc);
             }
         }
 
@@ -383,8 +397,6 @@ void
 MLNodeLinOp::applyBC (int amrlev, int mglev, MultiFab& phi, BCMode/* bc_mode*/, StateMode,
                       bool skip_fillboundary) const
 {
-    Gpu::LaunchSafeGuard lsg(false); // todo: gpu
-
     BL_PROFILE("MLNodeLinOp::applyBC()");
 
     const Geometry& geom = m_geom[amrlev][mglev];
@@ -396,13 +408,15 @@ MLNodeLinOp::applyBC (int amrlev, int mglev, MultiFab& phi, BCMode/* bc_mode*/, 
 
     if (m_coarsening_strategy == CoarseningStrategy::Sigma)
     {
+        const auto lobc = LoBC();
+        const auto hibc = HiBC();
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
         for (MFIter mfi(phi); mfi.isValid(); ++mfi)
         {
             Array4<Real> const& fab = phi.array(mfi);
-            mlndlap_applybc(mfi.validbox(),fab,nd_domain,m_lobc[0],m_hibc[0]);
+            mlndlap_applybc(mfi.validbox(),fab,nd_domain,lobc,hibc);
         }
     }
 }

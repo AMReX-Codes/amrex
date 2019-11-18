@@ -120,6 +120,12 @@ public:
     //! Return constant reference to associated DistributionMapping.
     const DistributionMapping& DistributionMap () const noexcept { return distributionMap; }
 
+    // These are provided for convenience to keep track of how many
+    // ghost cells are up to date.  The number of filled ghost cells
+    // is updated by FillBoundary and ParallelCopy.
+    IntVect nGrowFilled () const noexcept { return n_filled; }
+    void setNGrowFilled (IntVect const& ng) noexcept { n_filled = ng; }
+
     //
     struct CacheStats
     {
@@ -435,6 +441,7 @@ protected:
     IntVect             n_grow;
     int                 n_comp;
     mutable BDKey       m_bdkey;
+    IntVect             n_filled;  // Note that IntVect is zero by default.
 
     //
     // Tiling

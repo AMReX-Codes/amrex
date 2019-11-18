@@ -25,7 +25,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> :: SetParticle
 
     particle_size = sizeof(ParticleType);
     superparticle_size = particle_size + 
-        num_real_comm_comps*sizeof(Real) + num_int_comm_comps*sizeof(int);    
+        num_real_comm_comps*sizeof(ParticleReal) + num_int_comm_comps*sizeof(int);    
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
@@ -926,83 +926,37 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::SortParticlesByCell ()
 {
-#ifdef AMREX_USE_CUDA
-
     BL_PROFILE("ParticleContainer::SortParticlesByCell()");
 
-    BuildRedistributeMask(0, 1);
-
-    const int lev = 0;
-    const Geometry& geom = Geom(lev);
-    const BoxArray& ba   = ParticleBoxArray(lev);
-    const DistributionMapping& dmap = ParticleDistributionMap(lev);
-    auto& plev  = m_particles[lev];
-
-    // temporaries
-    Gpu::ManagedDeviceVector<amrex::IntVect> cells_tmp;
-    Gpu::ManagedDeviceVector<int> index_sequence_tmp;
-    ParticleVector aos_r;
-    RealVector rdata_r;
-    IntVector  idata_r;
-
-    for(MFIter mfi(*redistribute_mask_ptr, false); mfi.isValid(); ++mfi)
+    for (int lev = 0; lev < numLevels(); ++lev)
     {
-        int gid = mfi.index();
-        int tid = mfi.LocalTileIndex();        
-        auto& ptile = plev[std::make_pair(gid, tid)];
-        auto& aos   = ptile.GetArrayOfStructs();
-        auto& soa   = ptile.GetStructOfArrays();
-        const size_t np = aos.numParticles();
+        const Geometry& geom = Geom(lev);
+        const auto dxi = geom.InvCellSizeArray();
+        const auto plo = geom.ProbLoArray();
+        const auto domain = geom.Domain();
 
-        cells_tmp.resize(np);
-        index_sequence_tmp.resize(np);
-
-        thrust::sequence(thrust::device, index_sequence_tmp.begin(), index_sequence_tmp.end());
-
-        thrust::transform(thrust::device, 
-			  aos().begin(), aos().end(), cells_tmp.begin(),
-                          functors::assignParticleCell(geom.data()));
-
-        thrust::sort_by_key(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
-                            cells_tmp.begin(),
-                            cells_tmp.end(),
-                            index_sequence_tmp.begin());
-
-        //
-        // Reorder the particle data 
-        //
+        for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
         {
-	    // reorder structs
-	    aos_r.resize(np);
-            thrust::gather(thrust::device,
-                           index_sequence_tmp.begin(), index_sequence_tmp.end(),
-                           aos().begin(), aos_r.begin());
-            aos().swap(aos_r);
+            auto& ptile = ParticlesAt(lev, mfi);
+            auto& aos   = ptile.GetArrayOfStructs();
+            auto& soa   = ptile.GetStructOfArrays();
+            const size_t np = aos.numParticles();
+            auto pstruct_ptr = aos().dataPtr();
 
-            // reorder real arrays
-	    rdata_r.resize(np);
-            for (int j = 0; j < NumRealComps(); ++j)
-            {
-                auto& rdata = ptile.GetStructOfArrays().GetRealData(j);
-                thrust::gather(thrust::device,
-                               index_sequence_tmp.begin(), index_sequence_tmp.end(),
-                               rdata.begin(), rdata_r.begin());
-                rdata.swap(rdata_r);
-            }
+            m_ptile_r.define(m_num_runtime_real, m_num_runtime_int);
+            m_ptile_r.resize(np);
 
-            // reorder int arrays
-	    idata_r.resize(np);
-            for (int j = 0; j < NumIntComps(); ++j)
-            {
-                auto& idata = ptile.GetStructOfArrays().GetIntData(j);
-                thrust::gather(thrust::device,
-                               index_sequence_tmp.begin(), index_sequence_tmp.end(),
-                               idata.begin(), idata_r.begin());
-                idata.swap(idata_r);
-            }
+            m_bins.build(np, pstruct_ptr, mfi.tilebox(), 
+                       [=] AMREX_GPU_HOST_DEVICE (const ParticleType& p) noexcept -> IntVect
+                       {
+                           return getParticleCell(p, plo, dxi, domain);
+                       });
+          
+            auto inds = m_bins.permutationPtr();
+            gatherParticles(m_ptile_r, ptile, np, m_bins.permutationPtr());
+            ptile.swap(m_ptile_r);
         }
     }
-#endif
 }
 
 //
@@ -1075,10 +1029,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             auto& src_tile = plev[index];
             auto& aos = src_tile.GetArrayOfStructs();
             const size_t np = aos.numParticles();
-            
-            m_aos_r.resize(np);
-            for (int i = 0; i < NArrayReal; ++i) m_rdata_r[i].resize(np);
-            for (int i = 0; i < NArrayInt;  ++i) m_idata_r[i].resize(np);
+
+            m_ptile_r.define(m_num_runtime_real, m_num_runtime_int);
+            m_ptile_r.resize(np);
             
             m_grids_tmp.resize(np);
             m_grids_r.resize(np);
@@ -1119,15 +1072,14 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                 };
             
                 const auto src_data = src_tile.getConstParticleTileData();
-                typename ParticleTileType::ParticleTileDataType dst_data;
-                dst_data.m_aos = m_aos_r.dataPtr();
-                for (int i = 0; i < NArrayReal; ++i)
-                    dst_data.m_rdata[i] = m_rdata_r[i].dataPtr();
-                for (int i = 0; i < NArrayInt; ++i)
-                    dst_data.m_idata[i] = m_idata_r[i].dataPtr();
+                auto dst_data = m_ptile_r.getParticleTileData();
+
                 auto dst_grids_ptr = m_grids_r.dataPtr();
                 auto dst_levs_ptr = m_levs_r.dataPtr();
                 
+                int num_rr = m_num_runtime_real;
+                int num_ri = m_num_runtime_int;
+
                 num_stay = Scan::PrefixSum<int> (np, 
                     [=] AMREX_GPU_DEVICE (int i) -> int 
                     {
@@ -1140,7 +1092,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                             for (int j = 0; j < NArrayReal; ++j)
                                 dst_data.m_rdata[j][s] = src_data.m_rdata[j][i];
                             for (int j = 0; j < NArrayInt; ++j)
-                                dst_data.m_idata[j][s] = src_data.m_idata[j][i];                        
+                                dst_data.m_idata[j][s] = src_data.m_idata[j][i];
+                            for (int j = 0; j < num_rr; ++j)
+                                dst_data.m_runtime_rdata[j][s] = src_data.m_runtime_rdata[j][i];
+                            for (int j = 0; j < num_ri; ++j)
+                                dst_data.m_runtime_idata[j][s] = src_data.m_runtime_idata[j][i];
                             dst_grids_ptr[s] = grids_ptr[i];
                             dst_levs_ptr[s] = levs_ptr[i];
                         } else {
@@ -1149,23 +1105,17 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                                 dst_data.m_rdata[j][np-1-(i-s)] = src_data.m_rdata[j][i];
                             for (int j = 0; j < NArrayInt; ++j)
                                 dst_data.m_idata[j][np-1-(i-s)] = src_data.m_idata[j][i];
+                            for (int j = 0; j < num_rr; ++j)
+                                dst_data.m_runtime_rdata[j][np-1-(i-s)] = src_data.m_runtime_rdata[j][i];
+                            for (int j = 0; j < num_ri; ++j)
+                                dst_data.m_runtime_idata[j][np-1-(i-s)] = src_data.m_runtime_idata[j][i];
                             dst_grids_ptr[np-1-(i-s)] = grids_ptr[i];
                             dst_levs_ptr[np-1-(i-s)] = levs_ptr[i];
                         }
                     }, 
                     Scan::Type::exclusive);
 
-                aos().swap(m_aos_r);
-                for (int i = 0; i < NArrayReal; ++i)
-                {
-                    auto& rdata = src_tile.GetStructOfArrays().GetRealData(i);
-                    rdata.swap(m_rdata_r[i]);
-                }
-                for (int i = 0; i < NArrayInt; ++i)
-                {
-                    auto& idata = src_tile.GetStructOfArrays().GetIntData(i);
-                    idata.swap(m_idata_r[i]);
-                }
+                src_tile.swap(m_ptile_r);
             }
 
             int num_move = np - num_stay;
@@ -1242,14 +1192,14 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     {
         Gpu::Device::synchronize();
         pinned_snd_buffer.resize(snd_buffer.size());
-        cudaMemcpyAsync(pinned_snd_buffer.dataPtr(), snd_buffer.dataPtr(), snd_buffer.size()*sizeof(SuperParticleType), cudaMemcpyDeviceToHost);    
+        cudaMemcpyAsync(pinned_snd_buffer.dataPtr(), snd_buffer.dataPtr(), snd_buffer.size(), cudaMemcpyDeviceToHost);    
         plan.buildMPIFinish(BufferMap());
         Gpu::Device::synchronize();
         communicateParticlesStart(*this, plan, pinned_snd_buffer, pinned_rcv_buffer);
         rcv_buffer.resize(pinned_rcv_buffer.size());   
         unpackBuffer(*this, plan, snd_buffer, RedistributeUnpackPolicy());
         communicateParticlesFinish(plan);        
-        cudaMemcpyAsync(rcv_buffer.dataPtr(), pinned_rcv_buffer.dataPtr(), pinned_rcv_buffer.size()*sizeof(SuperParticleType), cudaMemcpyHostToDevice);    
+        cudaMemcpyAsync(rcv_buffer.dataPtr(), pinned_rcv_buffer.dataPtr(), pinned_rcv_buffer.size(), cudaMemcpyHostToDevice);    
         unpackRemotes(*this, plan, rcv_buffer, RedistributeUnpackPolicy());
     }
 
@@ -1890,12 +1840,12 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
 	host_particles.resize(finestLevel()+1);
 
 	Vector<std::map<std::pair<int, int>,
-			std::vector<Cuda::HostVector<Real> > > > host_real_attribs;
+			std::vector<Gpu::HostVector<Real> > > > host_real_attribs;
 	host_real_attribs.reserve(15);
 	host_real_attribs.resize(finestLevel()+1);
 
 	Vector<std::map<std::pair<int, int>,
-			std::vector<Cuda::HostVector<int> > > > host_int_attribs;
+			std::vector<Gpu::HostVector<int> > > > host_int_attribs;
 	host_int_attribs.reserve(15);
 	host_int_attribs.resize(finestLevel()+1);
 
@@ -1956,20 +1906,22 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
 	      auto new_size = old_size + src_tile.size();
 	      dst_tile.resize(new_size);
 	      
-	      Cuda::thrust_copy(src_tile.begin(),
-				src_tile.end(),
-				dst_tile.GetArrayOfStructs().begin() + old_size);
+	      Gpu::copy(Gpu::hostToDevice,
+                        src_tile.begin(), src_tile.end(),
+                        dst_tile.GetArrayOfStructs().begin() + old_size);
 	      
 	      for (int i = 0; i < NumRealComps(); ++i) {
-		Cuda::thrust_copy(host_real_attribs[host_lev][std::make_pair(grid,tile)][i].begin(),
-				  host_real_attribs[host_lev][std::make_pair(grid,tile)][i].end(),
-				  dst_tile.GetStructOfArrays().GetRealData(i).begin() + old_size);
+                  Gpu::copy(Gpu::hostToDevice,
+                            host_real_attribs[host_lev][std::make_pair(grid,tile)][i].begin(),
+                            host_real_attribs[host_lev][std::make_pair(grid,tile)][i].end(),
+                            dst_tile.GetStructOfArrays().GetRealData(i).begin() + old_size);
 	      }
 	      
 	      for (int i = 0; i < NumIntComps(); ++i) {
-		Cuda::thrust_copy(host_int_attribs[host_lev][std::make_pair(grid,tile)][i].begin(),
-				  host_int_attribs[host_lev][std::make_pair(grid,tile)][i].end(),
-				  dst_tile.GetStructOfArrays().GetIntData(i).begin() + old_size);
+                  Gpu::copy(Gpu::hostToDevice,
+                            host_int_attribs[host_lev][std::make_pair(grid,tile)][i].begin(),
+                            host_int_attribs[host_lev][std::make_pair(grid,tile)][i].end(),
+                            dst_tile.GetStructOfArrays().GetIntData(i).begin() + old_size);
 	      }
 	    }
 	  }
