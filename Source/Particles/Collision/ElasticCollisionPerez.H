@@ -1,13 +1,13 @@
 #ifndef WARPX_PARTICLES_COLLISION_ELASTIC_COLLISION_PEREZ_H_
 #define WARPX_PARTICLES_COLLISION_ELASTIC_COLLISION_PEREZ_H_
 
-#include "WarpXParticleContainer.H"
-//#include <WarpX.H>
-#include <AMReX_DenseBins.H>
-#include <AMReX_REAL.H>
+//#include "WarpXParticleContainer.H"
+//#include <AMReX_DenseBins.H>
+//#include <AMReX_REAL.H>
 
-#include "ShuffleFisherYates.H"
 #include "UpdateMomentumPerezElastic.H"
+#include <WarpXConst.H>
+#include <AMReX_Random.H>
 
 /* \brief Prepare information for and call
  *        UpdateMomentumPerezElastic().
@@ -20,55 +20,50 @@
  *        I1 and I2 determine all elements that will be used.
  *        w1 and w2 are arrays of weights.
  *        q1 and q2 are charges. m1 and m2 are masses.
- *        T1 and T2 are temperatures (Joule) and will be used if greater than zero,
+ *        T1 and T2 are temperatures (Joule)
+ *        and will be used if greater than zero,
  *        otherwise will be computed.
  *        dt is the time step length between two collision calls.
  *        L is the Coulomb log and will be used if greater than zero,
  *        otherwise will be computed.
- *        V is the volume of the corresponding cell.*/
+ *        V is the volume of the corresponding cell.
+*/
 
+template <typename T_index, typename T_R>
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void ElasticCollisionPerez(
-    amrex::DenseBins<WarpXParticleContainer::ParticleType>::index_type const I1s,
-    amrex::DenseBins<WarpXParticleContainer::ParticleType>::index_type const I1e,
-    amrex::DenseBins<WarpXParticleContainer::ParticleType>::index_type const I2s,
-    amrex::DenseBins<WarpXParticleContainer::ParticleType>::index_type const I2e,
-    amrex::DenseBins<WarpXParticleContainer::ParticleType>::index_type *I1,
-    amrex::DenseBins<WarpXParticleContainer::ParticleType>::index_type *I2,
-    amrex::Real* u1x, amrex::Real* u1y, amrex::Real* u1z,
-    amrex::Real* u2x, amrex::Real* u2y, amrex::Real* u2z,
-    const amrex::Real* w1, const amrex::Real* w2,
-    const amrex::Real  q1, const amrex::Real  q2,
-    const amrex::Real  m1, const amrex::Real  m2,
-    const amrex::Real  T1, const amrex::Real  T2,
-    const amrex::Real  dt, const amrex::Real   L, const amrex::Real V)
+void ElasticCollisionPerez (
+    T_index const I1s, T_index const I1e,
+    T_index const I2s, T_index const I2e,
+    T_index *I1,       T_index *I2,
+    T_R *u1x, T_R *u1y, T_R *u1z,
+    T_R *u2x, T_R *u2y, T_R *u2z,
+    T_R const *w1, T_R const *w2,
+    T_R const  q1, T_R const  q2,
+    T_R const  m1, T_R const  m2,
+    T_R const  T1, T_R const  T2,
+    T_R const  dt, T_R const   L, T_R const V)
 {
 
-    constexpr amrex::Real inv_c2 = 1./(PhysConst::c*PhysConst::c);
-    int NI1 = (int) I1e - I1s;
-    int NI2 = (int) I2e - I2s;
-
-    // shuffle I1 and I2
-    ShuffleFisherYates(I1, I1s, I1e);
-    ShuffleFisherYates(I2, I2s, I2e);
+    T_R constexpr inv_c2 = 1./(PhysConst::c*PhysConst::c);
+    int NI1 = I1e - I1s;
+    int NI2 = I2e - I2s;
 
     // get local T1t and T2t
-    amrex::Real T1t; amrex::Real T2t;
+    T_R T1t; T_R T2t;
     if ( T1 <= 0. )
     {
-        amrex::Real vx = 0.; amrex::Real vy = 0.;
-        amrex::Real vz = 0.; amrex::Real vs = 0.;
-	amrex::Real gm = 0.; amrex::Real us = 0.;
-        for (int i1 = (int) I1s; i1 < (int) I1e; ++i1)
+        T_R vx = 0.; T_R vy = 0.;
+        T_R vz = 0.; T_R vs = 0.;
+        T_R gm = 0.; T_R us = 0.;
+        for (int i1 = I1s; i1 < I1e; ++i1)
         {
-            int index = (int) I1[i1];
-            us = ( u1x[ index ] * u1x[ index ] +
-                   u1y[ index ] * u1y[ index ] +
-                   u1z[ index ] * u1z[ index ] );
+            us = ( u1x[ I1[i1] ] * u1x[ I1[i1] ] +
+                   u1y[ I1[i1] ] * u1y[ I1[i1] ] +
+                   u1z[ I1[i1] ] * u1z[ I1[i1] ] );
             gm = std::sqrt(1.+us*inv_c2);
-            vx += u1x[ index ] / gm;
-            vy += u1y[ index ] / gm;
-            vz += u1z[ index ] / gm;
+            vx += u1x[ I1[i1] ] / gm;
+            vy += u1y[ I1[i1] ] / gm;
+            vz += u1z[ I1[i1] ] / gm;
             vs += us / gm / gm;
         }
         if ( NI1 == 0 ) { T1t = 0.; }
@@ -82,19 +77,18 @@ void ElasticCollisionPerez(
     else { T1t = T1; }
     if ( T2 <= 0. )
     {
-        amrex::Real vx = 0.; amrex::Real vy = 0.;
-        amrex::Real vz = 0.; amrex::Real vs = 0.;
-        amrex::Real gm = 0.; amrex::Real us = 0.;
-        for (int i2 = (int) I2s; i2 < (int) I2e; ++i2)
+        T_R vx = 0.; T_R vy = 0.;
+        T_R vz = 0.; T_R vs = 0.;
+        T_R gm = 0.; T_R us = 0.;
+        for (int i2 = I2s; i2 < I2e; ++i2)
         {
-          int index = (int) I2[i2];
-          us = ( u2x[ index ] * u2x[ index ] +
-                 u2y[ index ] * u2y[ index ] +
-                 u2z[ index ] * u2z[ index ] );
+          us = ( u2x[ I2[i2] ] * u2x[ I2[i2] ] +
+                 u2y[ I2[i2] ] * u2y[ I2[i2] ] +
+                 u2z[ I2[i2] ] * u2z[ I2[i2] ] );
           gm = std::sqrt(1.+us*inv_c2);
-          vx += u2x[ index ] / gm;
-          vy += u2y[ index ] / gm;
-          vz += u2z[ index ] / gm;
+          vx += u2x[ I2[i2] ] / gm;
+          vy += u2y[ I2[i2] ] / gm;
+          vz += u2z[ I2[i2] ] / gm;
           vs += us / gm / gm;
         }
         if ( NI2 == 0 ) { T2t = 0.; }
@@ -108,9 +102,9 @@ void ElasticCollisionPerez(
     else { T2t = T2; }
 
     // local density
-    amrex::Real n1  = 0.;
-    amrex::Real n2  = 0.;
-    amrex::Real n12 = 0.;
+    T_R n1  = 0.;
+    T_R n2  = 0.;
+    T_R n12 = 0.;
     for (int i1=I1s; i1<I1e; ++i1) { n1 += w1[ I1[i1] ]; }
     for (int i2=I2s; i2<I2e; ++i2) { n2 += w2[ I2[i2] ]; }
     n1 = n1 / V; n2 = n2 / V;
@@ -126,10 +120,10 @@ void ElasticCollisionPerez(
     }
 
     // compute Debye length lmdD
-    amrex::Real lmdD;
+    T_R lmdD;
     lmdD = 1./std::sqrt( n1*q1*q1/(T1t*PhysConst::ep0) +
                          n2*q2*q2/(T2t*PhysConst::ep0) );
-    amrex::Real rmin =
+    T_R rmin =
         std::pow(4.*MathConst::pi/3.*amrex::max(n1,n2),-1./3.);
     lmdD = amrex::max(lmdD, rmin);
 
