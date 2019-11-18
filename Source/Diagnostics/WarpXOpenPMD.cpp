@@ -207,7 +207,7 @@ WarpXOpenPMDPlot::SavePlotFile (const std::unique_ptr<WarpXParticleContainer>& p
          //  save properties
          SaveRealProperty(pti,
              currSpecies,
-             offset, 
+             offset,
              write_real_comp, real_comp_names);
 
          offset += numParticleOnTile;
