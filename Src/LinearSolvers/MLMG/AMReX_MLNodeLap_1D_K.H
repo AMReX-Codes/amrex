@@ -153,6 +153,28 @@ void mlndlap_crse_resid (Box const& bx, Array4<Real> const& resid,
 {}
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_res_fine_Ax (int i, int j, int k, Box const& fvbx, Array4<Real> const& Ax,
+                          Array4<Real const> const& x, Array4<Real const> const& sig,
+                          GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+{}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_res_fine_contrib (int i, int j, int k, Array4<Real> const& f,
+                               Array4<Real const> const& Ax, Array4<int const> const& msk) noexcept
+{}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_res_cf_contrib (int i, int j, int k, Array4<Real> const& res,
+                             Array4<Real const> const& phi, Array4<Real const> const& rhs,
+                             Array4<Real const> const& sig, Array4<int const> const& dmsk,
+                             Array4<int const> const& ndmsk, Array4<int const> const& ccmsk,
+                             Array4<Real const> const& fc,
+                             GpuArray<Real,AMREX_SPACEDIM> const& dxinv, Box const& nddom,
+                             GpuArray<LinOpBCType, AMREX_SPACEDIM> const& lobc,
+                             GpuArray<LinOpBCType, AMREX_SPACEDIM> const& hibc) noexcept
+{}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_set_stencil (Box const& bx, Array4<Real> const& sten,
                           Array4<Real const> const& sig,
                           GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept

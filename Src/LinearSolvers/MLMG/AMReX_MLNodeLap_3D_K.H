@@ -1584,6 +1584,246 @@ void mlndlap_crse_resid (Box const& bx, Array4<Real> const& resid,
 // sync residual
 //
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_res_fine_Ax (int i, int j, int k, Box const& fvbx, Array4<Real> const& Ax,
+                          Array4<Real const> const& x, Array4<Real const> const& sig,
+                          GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+{
+    IntVect iv(i,j,k);
+    if (fvbx.contains(iv) and !fvbx.strictly_contains(iv)) {
+        Real facx = (1._rt/36._rt)*dxinv[0]*dxinv[0];
+        Real facy = (1._rt/36._rt)*dxinv[1]*dxinv[1];
+        Real facz = (1._rt/36._rt)*dxinv[2]*dxinv[2];
+        Real fxyz = facx + facy + facz;
+        Real fmx2y2z = -facx + 2._rt*facy + 2._rt*facz;
+        Real f2xmy2z = 2._rt*facx - facy + 2._rt*facz;
+        Real f2x2ymz = 2._rt*facx + 2._rt*facy - facz;
+        Real f4xm2ym2z = 4._rt*facx - 2._rt*facy - 2._rt*facz;
+        Real fm2x4ym2z = -2._rt*facx + 4._rt*facy - 2._rt*facz;
+        Real fm2xm2y4z = -2._rt*facx - 2._rt*facy + 4._rt*facz;
+        Ax(i,j,k) = x(i,j,k)*(-4._rt)*fxyz*
+            (sig(i-1,j-1,k-1)+sig(i,j-1,k-1)+sig(i-1,j,k-1)+sig(i,j,k-1)
+            +sig(i-1,j-1,k  )+sig(i,j-1,k  )+sig(i-1,j,k  )+sig(i,j,k  ))
+            //
+            + fxyz*(x(i-1,j-1,k-1)*sig(i-1,j-1,k-1)
+                  + x(i+1,j-1,k-1)*sig(i  ,j-1,k-1)
+                  + x(i-1,j+1,k-1)*sig(i-1,j  ,k-1)
+                  + x(i+1,j+1,k-1)*sig(i  ,j  ,k-1)
+                  + x(i-1,j-1,k+1)*sig(i-1,j-1,k  )
+                  + x(i+1,j-1,k+1)*sig(i  ,j-1,k  )
+                  + x(i-1,j+1,k+1)*sig(i-1,j  ,k  )
+                  + x(i+1,j+1,k+1)*sig(i  ,j  ,k  ))
+            + fmx2y2z*(x(i  ,j-1,k-1)*(sig(i-1,j-1,k-1)+sig(i,j-1,k-1))
+                     + x(i  ,j+1,k-1)*(sig(i-1,j  ,k-1)+sig(i,j  ,k-1))
+                     + x(i  ,j-1,k+1)*(sig(i-1,j-1,k  )+sig(i,j-1,k  ))
+                     + x(i  ,j+1,k+1)*(sig(i-1,j  ,k  )+sig(i,j  ,k  )))
+            + f2xmy2z*(x(i-1,j  ,k-1)*(sig(i-1,j-1,k-1)+sig(i-1,j,k-1))
+                     + x(i+1,j  ,k-1)*(sig(i  ,j-1,k-1)+sig(i  ,j,k-1))
+                     + x(i-1,j  ,k+1)*(sig(i-1,j-1,k  )+sig(i-1,j,k  ))
+                     + x(i+1,j  ,k+1)*(sig(i  ,j-1,k  )+sig(i  ,j,k  )))
+            + f2x2ymz*(x(i-1,j-1,k  )*(sig(i-1,j-1,k-1)+sig(i-1,j-1,k))
+                     + x(i+1,j-1,k  )*(sig(i  ,j-1,k-1)+sig(i  ,j-1,k))
+                     + x(i-1,j+1,k  )*(sig(i-1,j  ,k-1)+sig(i-1,j  ,k))
+                     + x(i+1,j+1,k  )*(sig(i  ,j  ,k-1)+sig(i  ,j  ,k)))
+            + f4xm2ym2z*(x(i-1,j,k)*(sig(i-1,j-1,k-1)+sig(i-1,j,k-1)+sig(i-1,j-1,k)+sig(i-1,j,k))
+                       + x(i+1,j,k)*(sig(i  ,j-1,k-1)+sig(i  ,j,k-1)+sig(i  ,j-1,k)+sig(i  ,j,k)))
+            + fm2x4ym2z*(x(i,j-1,k)*(sig(i-1,j-1,k-1)+sig(i,j-1,k-1)+sig(i-1,j-1,k)+sig(i,j-1,k))
+                       + x(i,j+1,k)*(sig(i-1,j  ,k-1)+sig(i,j  ,k-1)+sig(i-1,j  ,k)+sig(i,j  ,k)))
+            + fm2xm2y4z*(x(i,j,k-1)*(sig(i-1,j-1,k-1)+sig(i,j-1,k-1)+sig(i-1,j,k-1)+sig(i,j,k-1))
+                       + x(i,j,k+1)*(sig(i-1,j-1,k  )+sig(i,j-1,k  )+sig(i-1,j,k  )+sig(i,j,k  )));
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_res_fine_contrib (int i, int j, int k, Array4<Real> const& f,
+                               Array4<Real const> const& Ax, Array4<int const> const& msk) noexcept
+{
+    constexpr Real rfd = 0.125_rt;
+    constexpr Real chip = 0.5_rt;
+    constexpr Real chip2 = 0.25_rt;
+    constexpr Real chip3 = 0.125_rt;
+
+    int ii = 2*i;
+    int jj = 2*j;
+    int kk = 2*k;
+    if (msk(ii,jj,kk)) {
+        f(i,j,k) += rfd*
+            (Ax(ii,jj,kk)
+             + chip*(Ax(ii,jj,kk-1)+Ax(ii,jj,kk+1)
+                     +Ax(ii,jj-1,kk)+Ax(ii,jj+1,kk)
+                     +Ax(ii-1,jj,kk)+Ax(ii+1,jj,kk))
+             + chip2*(Ax(ii,jj-1,kk-1)+Ax(ii,jj+1,kk-1)+Ax(ii,jj-1,kk+1)+Ax(ii,jj+1,kk+1)
+                      +Ax(ii-1,jj,kk-1)+Ax(ii+1,jj,kk-1)+Ax(ii-1,jj,kk+1)+Ax(ii+1,jj,kk+1)
+                      +Ax(ii-1,jj-1,kk)+Ax(ii+1,jj-1,kk)+Ax(ii-1,jj+1,kk)+Ax(ii+1,jj+1,kk))
+             + chip3*(Ax(ii-1,jj-1,kk-1)+Ax(ii+1,jj-1,kk-1)
+                      +Ax(ii-1,jj+1,kk-1)+Ax(ii+1,jj+1,kk-1)
+                      +Ax(ii-1,jj-1,kk+1)+Ax(ii+1,jj-1,kk+1)
+                      +Ax(ii-1,jj+1,kk+1)+Ax(ii+1,jj+1,kk+1)));
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_res_cf_contrib (int i, int j, int k, Array4<Real> const& res,
+                             Array4<Real const> const& phi, Array4<Real const> const& rhs,
+                             Array4<Real const> const& sig, Array4<int const> const& dmsk,
+                             Array4<int const> const& ndmsk, Array4<int const> const& ccmsk,
+                             Array4<Real const> const& fc,
+                             GpuArray<Real,AMREX_SPACEDIM> const& dxinv, Box const& nddom,
+                             GpuArray<LinOpBCType, AMREX_SPACEDIM> const& bclo,
+                             GpuArray<LinOpBCType, AMREX_SPACEDIM> const& bchi) noexcept
+{
+    if (!dmsk(i,j,k) and ndmsk(i,j,k) == crse_fine_node) {
+
+        Real facx = (1._rt/36._rt)*dxinv[0]*dxinv[0];
+        Real facy = (1._rt/36._rt)*dxinv[1]*dxinv[1];
+        Real facz = (1._rt/36._rt)*dxinv[2]*dxinv[2];
+
+        Real Ax = 0._rt;
+        if (ccmsk(i-1,j-1,k-1) == crse_cell) {
+            Ax += sig(i-1,j-1,k-1)*(facx*(4._rt*(phi(i-1,j  ,k  )-phi(i  ,j  ,k  ))
+                                         +2._rt*(phi(i-1,j-1,k  )-phi(i  ,j-1,k  ))
+                                         +2._rt*(phi(i-1,j  ,k-1)-phi(i  ,j  ,k-1))
+                                          +     (phi(i-1,j-1,k-1)-phi(i  ,j-1,k-1)))
+                                  + facy*(4._rt*(phi(i  ,j-1,k  )-phi(i  ,j  ,k  ))
+                                         +2._rt*(phi(i-1,j-1,k  )-phi(i-1,j  ,k  ))
+                                         +2._rt*(phi(i  ,j-1,k-1)-phi(i  ,j  ,k-1))
+                                          +     (phi(i-1,j-1,k-1)-phi(i-1,j  ,k-1)))
+                                  + facz*(4._rt*(phi(i  ,j  ,k-1)-phi(i  ,j  ,k  ))
+                                         +2._rt*(phi(i-1,j  ,k-1)-phi(i-1,j  ,k  ))
+                                         +2._rt*(phi(i  ,j-1,k-1)-phi(i  ,j-1,k  ))
+                                          +     (phi(i-1,j-1,k-1)-phi(i-1,j-1,k  ))));
+        }
+        if (ccmsk(i,j-1,k-1) == crse_cell) {
+            Ax += sig(i,j-1,k-1)*(facx*(4._rt*(phi(i+1,j  ,k  )-phi(i  ,j  ,k  ))
+                                       +2._rt*(phi(i+1,j-1,k  )-phi(i  ,j-1,k  ))
+                                       +2._rt*(phi(i+1,j  ,k-1)-phi(i  ,j  ,k-1))
+                                        +     (phi(i+1,j-1,k-1)-phi(i  ,j-1,k-1)))
+                                + facy*(4._rt*(phi(i  ,j-1,k  )-phi(i  ,j  ,k  ))
+                                       +2._rt*(phi(i+1,j-1,k  )-phi(i+1,j  ,k  ))
+                                       +2._rt*(phi(i  ,j-1,k-1)-phi(i  ,j  ,k-1))
+                                        +     (phi(i+1,j-1,k-1)-phi(i+1,j  ,k-1)))
+                                + facz*(4._rt*(phi(i  ,j  ,k-1)-phi(i  ,j  ,k  ))
+                                       +2._rt*(phi(i+1,j  ,k-1)-phi(i+1,j  ,k  ))
+                                       +2._rt*(phi(i  ,j-1,k-1)-phi(i  ,j-1,k  ))
+                                        +     (phi(i+1,j-1,k-1)-phi(i+1,j-1,k  ))));
+        }
+        if (ccmsk(i-1,j,k-1) == crse_cell) {
+            Ax += sig(i-1,j,k-1)*(facx*(4._rt*(phi(i-1,j  ,k  )-phi(i  ,j  ,k  ))
+                                       +2._rt*(phi(i-1,j+1,k  )-phi(i  ,j+1,k  ))
+                                       +2._rt*(phi(i-1,j  ,k-1)-phi(i  ,j  ,k-1))
+                                        +     (phi(i-1,j+1,k-1)-phi(i  ,j+1,k-1)))
+                                 + facy*(4._rt*(phi(i  ,j+1,k  )-phi(i  ,j  ,k  ))
+                                        +2._rt*(phi(i-1,j+1,k  )-phi(i-1,j  ,k  ))
+                                        +2._rt*(phi(i  ,j+1,k-1)-phi(i  ,j  ,k-1))
+                                         +     (phi(i-1,j+1,k-1)-phi(i-1,j  ,k-1)))
+                                 + facz*(4._rt*(phi(i  ,j  ,k-1)-phi(i  ,j  ,k  ))
+                                        +2._rt*(phi(i-1,j  ,k-1)-phi(i-1,j  ,k  ))
+                                        +2._rt*(phi(i  ,j+1,k-1)-phi(i  ,j+1,k  ))
+                                         +     (phi(i-1,j+1,k-1)-phi(i-1,j+1,k  ))));
+        }
+        if (ccmsk(i,j,k-1) == crse_cell) {
+            Ax += sig(i,j,k-1)*(facx*(4._rt*(phi(i+1,j  ,k  )-phi(i  ,j  ,k  ))
+                                     +2._rt*(phi(i+1,j+1,k  )-phi(i  ,j+1,k  ))
+                                     +2._rt*(phi(i+1,j  ,k-1)-phi(i  ,j  ,k-1))
+                                      +     (phi(i+1,j+1,k-1)-phi(i  ,j+1,k-1)))
+                              + facy*(4._rt*(phi(i  ,j+1,k  )-phi(i  ,j  ,k  ))
+                                     +2._rt*(phi(i+1,j+1,k  )-phi(i+1,j  ,k  ))
+                                     +2._rt*(phi(i  ,j+1,k-1)-phi(i  ,j  ,k-1))
+                                      +     (phi(i+1,j+1,k-1)-phi(i+1,j  ,k-1)))
+                              + facz*(4._rt*(phi(i  ,j  ,k-1)-phi(i  ,j  ,k  ))
+                                     +2._rt*(phi(i+1,j  ,k-1)-phi(i+1,j  ,k  ))
+                                     +2._rt*(phi(i  ,j+1,k-1)-phi(i  ,j+1,k  ))
+                                      +     (phi(i+1,j+1,k-1)-phi(i+1,j+1,k  ))));
+        }
+        if (ccmsk(i-1,j-1,k) == crse_cell) {
+            Ax += sig(i-1,j-1,k)*(facx*(4._rt*(phi(i-1,j  ,k  )-phi(i  ,j  ,k  ))
+                                       +2._rt*(phi(i-1,j-1,k  )-phi(i  ,j-1,k  ))
+                                       +2._rt*(phi(i-1,j  ,k+1)-phi(i  ,j  ,k+1))
+                                        +     (phi(i-1,j-1,k+1)-phi(i  ,j-1,k+1)))
+                                + facy*(4._rt*(phi(i  ,j-1,k  )-phi(i  ,j  ,k  ))
+                                       +2._rt*(phi(i-1,j-1,k  )-phi(i-1,j  ,k  ))
+                                       +2._rt*(phi(i  ,j-1,k+1)-phi(i  ,j  ,k+1))
+                                        +     (phi(i-1,j-1,k+1)-phi(i-1,j  ,k+1)))
+                                + facz*(4._rt*(phi(i  ,j  ,k+1)-phi(i  ,j  ,k  ))
+                                       +2._rt*(phi(i-1,j  ,k+1)-phi(i-1,j  ,k  ))
+                                       +2._rt*(phi(i  ,j-1,k+1)-phi(i  ,j-1,k  ))
+                                        +     (phi(i-1,j-1,k+1)-phi(i-1,j-1,k  ))));
+        }
+        if (ccmsk(i,j-1,k) == crse_cell) {
+            Ax += sig(i,j-1,k)*(facx*(4._rt*(phi(i+1,j  ,k  )-phi(i  ,j  ,k  ))
+                                     +2._rt*(phi(i+1,j-1,k  )-phi(i  ,j-1,k  ))
+                                     +2._rt*(phi(i+1,j  ,k+1)-phi(i  ,j  ,k+1))
+                                      +     (phi(i+1,j-1,k+1)-phi(i  ,j-1,k+1)))
+                              + facy*(4._rt*(phi(i  ,j-1,k  )-phi(i  ,j  ,k  ))
+                                     +2._rt*(phi(i+1,j-1,k  )-phi(i+1,j  ,k  ))
+                                     +2._rt*(phi(i  ,j-1,k+1)-phi(i  ,j  ,k+1))
+                                      +     (phi(i+1,j-1,k+1)-phi(i+1,j  ,k+1)))
+                              + facz*(4._rt*(phi(i  ,j  ,k+1)-phi(i  ,j  ,k  ))
+                                     +2._rt*(phi(i+1,j  ,k+1)-phi(i+1,j  ,k  ))
+                                     +2._rt*(phi(i  ,j-1,k+1)-phi(i  ,j-1,k  ))
+                                      +     (phi(i+1,j-1,k+1)-phi(i+1,j-1,k  ))));
+        }
+        if (ccmsk(i-1,j,k) == crse_cell) {
+            Ax += sig(i-1,j,k)*(facx*(4._rt*(phi(i-1,j  ,k  )-phi(i  ,j  ,k  ))
+                                     +2._rt*(phi(i-1,j+1,k  )-phi(i  ,j+1,k  ))
+                                     +2._rt*(phi(i-1,j  ,k+1)-phi(i  ,j  ,k+1))
+                                      +     (phi(i-1,j+1,k+1)-phi(i  ,j+1,k+1)))
+                              + facy*(4._rt*(phi(i  ,j+1,k  )-phi(i  ,j  ,k  ))
+                                     +2._rt*(phi(i-1,j+1,k  )-phi(i-1,j  ,k  ))
+                                     +2._rt*(phi(i  ,j+1,k+1)-phi(i  ,j  ,k+1))
+                                      +     (phi(i-1,j+1,k+1)-phi(i-1,j  ,k+1)))
+                              + facz*(4._rt*(phi(i  ,j  ,k+1)-phi(i  ,j  ,k  ))
+                                     +2._rt*(phi(i-1,j  ,k+1)-phi(i-1,j  ,k  ))
+                                     +2._rt*(phi(i  ,j+1,k+1)-phi(i  ,j+1,k  ))
+                                      +     (phi(i-1,j+1,k+1)-phi(i-1,j+1,k  ))));
+        }
+        if (ccmsk(i,j,k) == crse_cell) {
+            Ax += sig(i,j,k)*(facx*(4._rt*(phi(i+1,j  ,k  )-phi(i  ,j  ,k  ))
+                                   +2._rt*(phi(i+1,j+1,k  )-phi(i  ,j+1,k  ))
+                                   +2._rt*(phi(i+1,j  ,k+1)-phi(i  ,j  ,k+1))
+                                    +     (phi(i+1,j+1,k+1)-phi(i  ,j+1,k+1)))
+                            + facy*(4._rt*(phi(i  ,j+1,k  )-phi(i  ,j  ,k  ))
+                                   +2._rt*(phi(i+1,j+1,k  )-phi(i+1,j  ,k  ))
+                                   +2._rt*(phi(i  ,j+1,k+1)-phi(i  ,j  ,k+1))
+                                    +     (phi(i+1,j+1,k+1)-phi(i+1,j  ,k+1)))
+                            + facz*(4._rt*(phi(i  ,j  ,k+1)-phi(i  ,j  ,k  ))
+                                   +2._rt*(phi(i+1,j  ,k+1)-phi(i+1,j  ,k  ))
+                                   +2._rt*(phi(i  ,j+1,k+1)-phi(i  ,j+1,k  ))
+                                    +     (phi(i+1,j+1,k+1)-phi(i+1,j+1,k  ))));
+        }
+
+        Real Axf = fc(i,j,k);
+        const auto ndlo = amrex::lbound(nddom);
+        const auto ndhi = amrex::ubound(nddom);
+
+        if (i == ndlo.x and (bclo[0] == LinOpBCType::Neumann or
+                             bclo[0] == LinOpBCType::inflow)) {
+            Axf *= 2._rt;
+        } else if (i== ndhi.x and (bchi[0] == LinOpBCType::Neumann or
+                                   bchi[0] == LinOpBCType::inflow)) {
+            Axf *= 2._rt;
+        }
+
+        if (j == ndlo.y and ( bclo[1] == LinOpBCType::Neumann or
+                              bclo[1] == LinOpBCType::inflow)) {
+            Axf *= 2._rt;
+        } else if (j == ndhi.y and (bchi[1] == LinOpBCType::Neumann or
+                                    bchi[1] == LinOpBCType::inflow)) {
+            Axf *= 2._rt;
+        }
+
+        if (k == ndlo.z and (bclo[2] == LinOpBCType::Neumann or
+                             bclo[2] == LinOpBCType::inflow)) {
+            Axf *= 2._rt;
+        } else if (k == ndhi.z and (bchi[2] == LinOpBCType::Neumann or
+                                    bchi[2] == LinOpBCType::inflow)) {
+            Axf *= 2._rt;
+        }
+
+        res(i,j,k) = rhs(i,j,k) - (Ax + Axf);
+    }
+}
+
 //
 // RAP
 //
