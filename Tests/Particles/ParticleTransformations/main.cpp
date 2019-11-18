@@ -233,14 +233,14 @@ struct TestParams
     int num_ppc;
 };
 
-void testReduce();
+void testTransformations();
 
 int main (int argc, char* argv[])
 {
     amrex::Initialize(argc,argv);
 
     amrex::Print() << "Running particle reduction test \n";
-    testReduce();
+    testTransformations();
 
     amrex::Finalize();
 }
@@ -253,9 +253,9 @@ void get_test_params(TestParams& params, const std::string& prefix)
     pp.get("num_ppc", params.num_ppc);
 }
 
-void testReduce ()
+void testTransformations ()
 {
-    BL_PROFILE("testReduce");
+    BL_PROFILE("testTransformations");
     TestParams params;
     get_test_params(params, "reduce");
 
