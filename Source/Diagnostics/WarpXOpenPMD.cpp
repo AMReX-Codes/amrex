@@ -90,8 +90,6 @@ WarpXOpenPMDPlot::WriteOpenPMDParticles(const std::unique_ptr<MultiParticleConta
   std::vector<std::string> species_names = mpc->GetSpeciesNames();
 
   for (unsigned i = 0, n = species_names.size(); i < n; ++i) {
-    //auto& pc = allcontainers[i];
-    //auto& pc =  mpc->GetParticleContainer(i);
     auto& pc  = mpc->GetUniqueContainer(i);
     if (pc->plot_species) {
 
@@ -117,12 +115,12 @@ WarpXOpenPMDPlot::WriteOpenPMDParticles(const std::unique_ptr<MultiParticleConta
       real_names.push_back("theta");
 #endif
       if(pc->do_field_ionization){
-    int_names.push_back("ionization_level");
-    // int_flags specifies, for each integer attribs, whether it is
-    // dumped to plotfiles. So far, ionization_level is the only
-    // integer attribs, and it is automatically dumped to plotfiles
-    // when ionization is on.
-    int_flags.resize(1, 1);
+         int_names.push_back("ionization_level");
+         // int_flags specifies, for each integer attribs, whether it is
+         // dumped to plotfiles. So far, ionization_level is the only
+         // integer attribs, and it is automatically dumped to plotfiles
+         // when ionization is on.
+         int_flags.resize(1, 1);
       }
 
       // Convert momentum to SI
@@ -313,34 +311,6 @@ WarpXOpenPMDPlot::SetupPos(openPMD::ParticleSpecies& currSpecies,
 }
 
 
-/*
-//
-// input: num of particles  of from each   processor
-//
-// output:
-//     offset within <all> the particles in the comm
-//     sum of all particles in the comm
-//
-
-void
-WarpXOpenPMDPlot::GetParticleOffsetOfProcessor(const long& numParticles,
-                           unsigned long long& offset,
-                           unsigned long long& sum) const
-{
-  std::vector<long> result(m_MPISize,  0);
-  amrex::ParallelGather::Gather (numParticles, result.data(), -1, amrex::ParallelDescriptor::Communicator());
-
-  sum = 0;
-  offset = 0;
-  for (int i=0;  i<result.size();  i++) {
-    sum +=  result[i];
-    if (i<m_MPIRank)
-      offset +=  result[i];
-  }
-  //std::cout <<"    rank: "<<m_MPIRank<<"  offset:  "<<offset<<", sum="<<sum<<std::endl;
-}
-*/
-
 
 
 //
@@ -382,18 +352,6 @@ WarpXOpenPMDPlot::WriteOpenPMDFields( //const std::string& filename,
   openPMD::Datatype datatype = openPMD::determineDatatype<amrex::Real>();
   auto dataset = openPMD::Dataset(datatype, global_size);
 
-  // Create new file and store the time/iteration info
-  /*
-  auto series = [filename](){
-      if( ParallelDescriptor::NProcs() > 1 )
-          return openPMD::Series( filename,
-                                  openPMD::AccessType::CREATE,
-                                  ParallelDescriptor::Communicator() );
-      else
-          return openPMD::Series( filename,
-                                  openPMD::AccessType::CREATE );
-  }();
-  */
   auto series_iteration = m_Series->iterations[iteration];
   series_iteration.setTime( time );
 
