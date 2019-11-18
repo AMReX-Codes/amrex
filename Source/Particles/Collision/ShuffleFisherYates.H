@@ -11,7 +11,7 @@
 
 template <typename T_index>
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void ShuffleFisherYates(T_index *array, T_index const is, T_index const ie)
+void ShuffleFisherYates (T_index *array, T_index const is, T_index const ie)
 {
     int     j;
     T_index buf;

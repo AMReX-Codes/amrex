@@ -1,10 +1,8 @@
 #ifndef WARPX_PARTICLES_COLLISION_UPDATE_MOMENTUM_PEREZ_ELASTIC_H_
 #define WARPX_PARTICLES_COLLISION_UPDATE_MOMENTUM_PEREZ_ELASTIC_H_
 
-#include "WarpXParticleContainer.H"
-#include <AMReX_REAL.H>
-#include <AMReX_DenseBins.H>
 #include <WarpXConst.H>
+#include <AMReX_Random.H>
 
 /* \brief Update particle velocities according to
  *        F. Perez et al., Phys. Plasmas 19, 083104 (2012).
@@ -12,59 +10,58 @@
  *        L is the Coulomb log. A fixed L will be used if L > 0,
  *        otherwise L will be calculated based on the algorithm.*/
 
+template <typename T_R>
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void UpdateMomentumPerezElastic(
-    amrex::Real& u1x, amrex::Real& u1y, amrex::Real& u1z,
-    amrex::Real& u2x, amrex::Real& u2y, amrex::Real& u2z,
-    const amrex::Real n1, const amrex::Real n2, const amrex::Real n12,
-    const amrex::Real q1, const amrex::Real m1, const amrex::Real w1,
-    const amrex::Real q2, const amrex::Real m2, const amrex::Real w2,
-    const amrex::Real dt, const amrex::Real L,  const amrex::Real lmdD)
+void UpdateMomentumPerezElastic (
+    T_R& u1x, T_R& u1y, T_R& u1z, T_R& u2x, T_R& u2y, T_R& u2z,
+    T_R const n1, T_R const n2, T_R const n12,
+    T_R const q1, T_R const m1, T_R const w1,
+    T_R const q2, T_R const m2, T_R const w2,
+    T_R const dt, T_R const L,  T_R const lmdD)
 {
     // Temporary variabls
-    amrex::Real buf1;
-    amrex::Real buf2;
+    T_R buf1; T_R buf2;
 
-    constexpr amrex::Real inv_c2 = 1./(PhysConst::c * PhysConst::c);
+    T_R constexpr inv_c2 = 1./(PhysConst::c * PhysConst::c);
 
     // Compute Lorentz factor gamma
-    amrex::Real g1 = std::sqrt(1.+(u1x*u1x+u1y*u1y+u1z*u1z)*inv_c2);
-    amrex::Real g2 = std::sqrt(1.+(u2x*u2x+u2y*u2y+u2z*u2z)*inv_c2);
+    T_R g1 = std::sqrt(1.+(u1x*u1x+u1y*u1y+u1z*u1z)*inv_c2);
+    T_R g2 = std::sqrt(1.+(u2x*u2x+u2y*u2y+u2z*u2z)*inv_c2);
 
     // Compute momenta
-    amrex::Real p1x = u1x * m1;
-    amrex::Real p1y = u1y * m1;
-    amrex::Real p1z = u1z * m1;
-    amrex::Real p2x = u2x * m2;
-    amrex::Real p2y = u2y * m2;
-    amrex::Real p2z = u2z * m2;
+    T_R p1x = u1x * m1;
+    T_R p1y = u1y * m1;
+    T_R p1z = u1z * m1;
+    T_R p2x = u2x * m2;
+    T_R p2y = u2y * m2;
+    T_R p2z = u2z * m2;
 
     // Compute center-of-mass (COM) velocity and gamma
     buf1 = m1 * g1;
-    buf2 = m2 * g2;
-    const amrex::Real vcx = (p1x+p2x) / (buf1+buf2);
-    const amrex::Real vcy = (p1y+p2y) / (buf1+buf2);
-    const amrex::Real vcz = (p1z+p2z) / (buf1+buf2);
-    const amrex::Real vcm = std::sqrt(vcx*vcx+vcy*vcy+vcz*vcz);
-    const amrex::Real gc  = 1./std::sqrt(1.-vcm*vcm*inv_c2);
+    buf2 = m2 * g2 + buf1;
+    T_R const vcx = (p1x+p2x) / buf2;
+    T_R const vcy = (p1y+p2y) / buf2;
+    T_R const vcz = (p1z+p2z) / buf2;
+    T_R const vcm = std::sqrt(vcx*vcx+vcy*vcy+vcz*vcz);
+    T_R const gc  = 1./std::sqrt(1.-vcm*vcm*inv_c2);
 
     // Compute vc dot v1 and v2
-    const amrex::Real vcDv1 = (vcx*u1x + vcy*u1y + vcz*u1z)/g1;
-    const amrex::Real vcDv2 = (vcx*u2x + vcy*u2y + vcz*u2z)/g2;
+    T_R const vcDv1 = (vcx*u1x + vcy*u1y + vcz*u1z)/g1;
+    T_R const vcDv2 = (vcx*u2x + vcy*u2y + vcz*u2z)/g2;
 
     // Compute p1 star
     buf2 = ( (gc-1.)/vcm/vcm*vcDv1 - gc )*buf1;
-    const amrex::Real p1sx = p1x + buf2*vcx;
-    const amrex::Real p1sy = p1y + buf2*vcy;
-    const amrex::Real p1sz = p1z + buf2*vcz;
-    const amrex::Real p1sm = std::sqrt(p1sx*p1sx+p1sy*p1sy+p1sz*p1sz);
+    T_R const p1sx = p1x + buf2*vcx;
+    T_R const p1sy = p1y + buf2*vcy;
+    T_R const p1sz = p1z + buf2*vcz;
+    T_R const p1sm = std::sqrt(p1sx*p1sx+p1sy*p1sy+p1sz*p1sz);
 
     // Compute gamma star
-    const amrex::Real g1s = (1.-vcDv1*inv_c2)*gc*g1;
-    const amrex::Real g2s = (1.-vcDv2*inv_c2)*gc*g2;
+    T_R const g1s = (1.-vcDv1*inv_c2)*gc*g1;
+    T_R const g2s = (1.-vcDv2*inv_c2)*gc*g2;
 
     // Compute the Coulomb log lnLmd
-    amrex::Real lnLmd;
+    T_R lnLmd;
     if ( L > 0. )
     { lnLmd = L; }
     else
@@ -82,14 +79,14 @@ void UpdateMomentumPerezElastic(
     }
 
     // Compute s
-    amrex::Real s = n1*n2/n12 * dt*lnLmd*q1*q1*q2*q2 /
+    T_R s = n1*n2/n12 * dt*lnLmd*q1*q1*q2*q2 /
           ( 4. * MathConst::pi * PhysConst::ep0 * PhysConst::ep0 *
             m1*g1*m2*g2/inv_c2/inv_c2 ) * gc*p1sm/(m1*g1+m2*g2) *
             std::pow(m1*g1s*m2*g2s/inv_c2/p1sm/p1sm + 1., 2);
 
     // Compute s'
     buf1 = (m1*g1+m2*g2)*p1sm/(m1*g1s*m2*g2s*gc); // vrel
-    const amrex::Real sp = std::pow(4.*MathConst::pi/3.,1./3.) *
+    T_R const sp = std::pow(4.*MathConst::pi/3.,1./3.) *
           n1*n2/n12 * dt * buf1 * (m1+m2) /
           amrex::max(m1*std::pow(n1,2./3.),m2*std::pow(n2,2./3.));
 
@@ -100,8 +97,8 @@ void UpdateMomentumPerezElastic(
     buf1 = amrex::Random();
 
     // Compute scattering angle
-    amrex::Real cosXs;
-    amrex::Real sinXs;
+    T_R cosXs;
+    T_R sinXs;
     if ( s <= 0.1 )
     { cosXs = 1. + s * std::log(buf1); }
     else if ( s > 0.1 && s <= 3. )
@@ -163,16 +160,16 @@ void UpdateMomentumPerezElastic(
     buf1 = amrex::Random();
     if ( w2/amrex::max(w1,w2) > buf1 )
     {
-      u1x  = p1x / m1;
-      u1y  = p1y / m1;
-      u1z  = p1z / m1;
+        u1x  = p1x / m1;
+        u1y  = p1y / m1;
+        u1z  = p1z / m1;
     }
     buf2 = amrex::Random();
     if ( w1/amrex::max(w1,w2) > buf2 )
     {
-      u2x  = p2x / m2;
-      u2y  = p2y / m2;
-      u2z  = p2z / m2;
+        u2x  = p2x / m2;
+        u2y  = p2y / m2;
+        u2z  = p2z / m2;
     }
 }
 
