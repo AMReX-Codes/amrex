@@ -633,7 +633,7 @@ public:
     /**
     * \brief Clear all the particles in this container. This does not free memory.
     */
-    void clearParticles();
+    void clearParticles ();
 
 
     /**
@@ -643,7 +643,7 @@ public:
     *
     * \param other
     */
-    void copyParticles(const ParticleContainerType& other, bool local=false);
+    void copyParticles (const ParticleContainerType& other, bool local=false);
 
     /**
     * \brief Add particles from other to this ParticleContainer. local controls 
@@ -651,7 +651,7 @@ public:
     *
     * \param other
     */
-    void addParticles(const ParticleContainerType& other, bool local=false);
+    void addParticles (const ParticleContainerType& other, bool local=false);
 
     /**
     * \brief Write a contiguous chunk of real particle data to an ostream.
