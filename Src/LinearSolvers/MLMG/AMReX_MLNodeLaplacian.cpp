@@ -3,7 +3,6 @@
 #include <AMReX_MLMG.H>
 #include <AMReX_MLNodeLaplacian.H>
 #include <AMReX_MLNodeLap_K.H>
-#include <AMReX_MLNodeLap_F.H>
 #include <AMReX_MultiFabUtil.H>
 
 #ifdef AMREX_USE_EB
@@ -257,7 +256,7 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
                 {
                     AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
                     {
-                        mlndlap_rhcc(i, j, k, rhs_cc_a, rhccarr, dmskarr);
+                        rhs_cc_a(i,j,k) = mlndlap_rhcc(i, j, k, rhccarr, dmskarr);
                     });
                 }
 
@@ -1011,10 +1010,6 @@ MLNodeLaplacian::prepareForSolve ()
 
     averageDownCoeffs();
 
-#if (AMREX_SPACEDIM == 2)
-    amrex_mlndlap_set_rz(&m_is_rz);
-#endif
-
 #ifdef AMREX_USE_EB
     buildIntegral();
 #endif
@@ -1532,8 +1527,6 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
                                          const MultiFab& vold, const MultiFab* rhcc,
                                          const BoxArray& fine_grids, const IntVect& ref_ratio)
 {
-    Gpu::LaunchSafeGuard lsg(false); // xxxxx todo: gpu
-
     BL_PROFILE("MLNodeLaplacian::SyncResCrse()");
 
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_coarsening_strategy != CoarseningStrategy::RAP,
@@ -1545,63 +1538,46 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
     const DistributionMapping& dmap = m_dmap[0][0];
     const BoxArray& ccba = m_grids[0][0];
     const BoxArray& ndba = amrex::convert(ccba, IntVect::TheNodeVector());
-    const BoxArray& cc_fba = amrex::coarsen(fine_grids, ref_ratio);
+    const BoxArray& ccfba = amrex::convert(fine_grids, IntVect::TheZeroVector());
     const auto lobc = LoBC();
     const auto hibc = HiBC();
 
-    iMultiFab crse_cc_mask(ccba, dmap, 1, 1); // cell-center, 1: coarse; 0: covered by fine
-
+    // cell-center, 1: coarse; 0: covered by fine
     const int owner = 1;
     const int nonowner = 0;
-
-    crse_cc_mask.setVal(owner);
+    iMultiFab crse_cc_mask = amrex::makeFineMask(ccba, dmap, IntVect(1), ccfba, ref_ratio,
+                                                 geom.periodicity(), owner, nonowner);
 
     const Box& ccdom = geom.Domain();
-
-    const std::vector<IntVect>& pshifts = geom.periodicity().shiftIntVect();
-
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
+    for (MFIter mfi(crse_cc_mask); mfi.isValid(); ++mfi)
     {
-        std::vector< std::pair<int,Box> > isects;
-        
-        for (MFIter mfi(crse_cc_mask); mfi.isValid(); ++mfi)
-        {
-            const Box& bx = mfi.fabbox();
-            Array4<int> const& fab = crse_cc_mask.array(mfi);
-            for (const auto& iv: pshifts)
-            {
-                cc_fba.intersections(bx+iv, isects);
-                for (const auto& is : isects)
-                {
-                    Box const& b = is.second-iv;
-                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D(b,i,j,k,
-                    {
-                        fab(i,j,k) = nonowner;
-                    });
-                }
-            }
-
-            mlndlap_fillbc_cc<int>(mfi.validbox(),fab,ccdom,lobc,hibc);
-        }
+        Array4<int> const& fab = crse_cc_mask.array(mfi);
+        mlndlap_fillbc_cc<int>(mfi.validbox(),fab,ccdom,lobc,hibc);
     }
 
     MultiFab phi(ndba, dmap, 1, 1);
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(phi, true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(phi,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
         const Box& gbx = mfi.growntilebox();
-        FArrayBox& fab = phi[mfi];
-        fab.setVal(0.0, gbx);
-        fab.copy(a_phi[mfi], bx, 0, bx, 0, 1);
-        amrex_mlndlap_zero_fine(BL_TO_FORTRAN_BOX(bx),
-                                BL_TO_FORTRAN_ANYD(fab),
-                                BL_TO_FORTRAN_ANYD(crse_cc_mask[mfi]),
-                                &nonowner);
+        Array4<Real> const& fab = phi.array(mfi);
+        Array4<Real const> const& a_fab = a_phi.const_array(mfi);
+        Array4<int const> const& msk = crse_cc_mask.const_array(mfi);
+        AMREX_HOST_DEVICE_FOR_3D(gbx, i, j, k,
+        {
+            if (bx.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
+                fab(i,j,k) = a_fab(i,j,k);
+                mlndlap_zero_fine(i,j,k,fab,msk,nonowner);
+            } else {
+                fab(i,j,k) = 0.0;
+            }
+        });
     }
 
     const auto& nddom = amrex::surroundingNodes(ccdom);
@@ -1618,7 +1594,7 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
         }
     }
 
-    const auto dxinvarr = geom.InvCellSizeArray();
+    const auto dxinv = geom.InvCellSizeArray();
 
 #if (AMREX_SPACEDIM == 2)
     bool is_rz = m_is_rz;
@@ -1627,25 +1603,36 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
     const MultiFab& sigma_orig = *m_sigma[0][0][0];
     const iMultiFab& dmsk = *m_dirichlet_mask[0][0];
 
+    MFItInfo mfi_info;
+    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
-        FArrayBox rhs, rhs2;
-        FArrayBox u, sigma;
-        for (MFIter mfi(sync_resid, MFItInfo().EnableTiling().SetDynamic(true)); mfi.isValid(); ++mfi)
+        FArrayBox rhs, u;
+        for (MFIter mfi(sync_resid,mfi_info); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.tilebox();
             const Box& bxg1 = amrex::grow(bx,1);
             const Box& ccbxg1 = amrex::enclosedCells(bxg1);
-            if (amrex_mlndlap_any_fine_sync_cells(BL_TO_FORTRAN_BOX(ccbxg1),
-                                                  BL_TO_FORTRAN_ANYD(crse_cc_mask[mfi]),
-                                                  &nonowner))
+            Array4<int const> const& cccmsk = crse_cc_mask.const_array(mfi);
+
+            bool has_fine;
+            if (Gpu::inLaunchRegion()) {
+                AMREX_ASSERT(ccbxg1 == crse_cc_mask[mfi].box());
+                has_fine = (nonowner == Reduce::Min(ccbxg1.numPts(), crse_cc_mask[mfi].dataPtr()));
+            } else {
+                has_fine = mlndlap_any_fine_sync_cells(ccbxg1,cccmsk,nonowner);
+            }
+
+            if (has_fine)
             {
                 const Box& ccvbx = amrex::enclosedCells(mfi.validbox());
 
                 u.resize(ccbxg1, AMREX_SPACEDIM);
-                u.setVal(0.0);
+                Elixir ueli = u.elixir();
+                Array4<Real> const& uarr = u.array();
+
                 Box b = ccbxg1 & ccvbx;
                 for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
                 {
@@ -1662,69 +1649,80 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
                         }
                     }
                 }
-                u.copy(vold[mfi], b, 0, b, 0, AMREX_SPACEDIM);
 
-                u.setValIfNot(0.0, ccbxg1, crse_cc_mask[mfi], 0, AMREX_SPACEDIM);
+                Array4<Real const> const& voarr = vold.const_array(mfi);
+                AMREX_HOST_DEVICE_FOR_3D(ccbxg1, i, j, k,
+                {
+                    if (cccmsk(i,j,k) == owner and b.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
+                        AMREX_D_TERM(uarr(i,j,k,0) = voarr(i,j,k,0);,
+                                     uarr(i,j,k,1) = voarr(i,j,k,1);,
+                                     uarr(i,j,k,2) = voarr(i,j,k,2););
+                    } else {
+                        AMREX_D_TERM(uarr(i,j,k,0) = 0.0;,
+                                     uarr(i,j,k,1) = 0.0;,
+                                     uarr(i,j,k,2) = 0.0;);
+
+                    }
+                });
 
                 rhs.resize(bx);
-
+                Elixir rhseli = rhs.elixir();
                 Array4<Real> const& rhsarr = rhs.array();
-                Array4<Real const> const& uarr = u.const_array();
                 Array4<int const> const& dmskarr = dmsk.const_array(mfi);
 
                 AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
                 {
 #if (AMREX_SPACEDIM == 2)
-                    mlndlap_divu(i,j,k,rhsarr,uarr,dmskarr,dxinvarr,is_rz);
+                    mlndlap_divu(i,j,k,rhsarr,uarr,dmskarr,dxinv,is_rz);
 #else
-                    mlndlap_divu(i,j,k,rhsarr,uarr,dmskarr,dxinvarr);
+                    mlndlap_divu(i,j,k,rhsarr,uarr,dmskarr,dxinv);
 #endif
                 });
 
                 if (rhcc)
                 {
-                    FArrayBox* rhcc_fab = &u;
-                    rhcc_fab->resize(ccbxg1);
-                    rhcc_fab->setVal(0.0);
+                    Array4<Real> rhccarr = uarr;
+                    Array4<Real const> const& rhccarr_orig = rhcc->const_array(mfi);
                     const Box& b2 = ccbxg1 & ccvbx;
-                    rhcc_fab->copy((*rhcc)[mfi], b2, 0, b2, 0, 1);
-
-                    rhcc_fab->setValIfNot(0.0, ccbxg1, crse_cc_mask[mfi], 0, 1);
-
-                    rhs2.resize(bx);
-                    Array4<Real> const& rhs2arr = rhs2.array();
-                    Array4<Real const> const& rhcc_fab_a = rhcc_fab->const_array();
-                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
+                    AMREX_HOST_DEVICE_FOR_3D(ccbxg1, i, j, k,
                     {
-                        mlndlap_rhcc(i,j,k,rhs2arr,rhcc_fab_a, dmskarr);
+                        if (cccmsk(i,j,k) == owner and b2.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
+                            rhccarr(i,j,k) = rhccarr_orig(i,j,k);
+                        } else {
+                            rhccarr(i,j,k) = 0.0;
+                        }
                     });
-                    rhs.plus(rhs2);
+
+                    AMREX_HOST_DEVICE_FOR_3D (bx, i, j, k,
+                    {
+                        Real rhs2 = mlndlap_rhcc(i,j,k,rhccarr,dmskarr);
+                        rhsarr(i,j,k) += rhs2;
+                    });
                 }
 
-                sigma.resize(ccbxg1);
-                sigma.setVal(0, ccbxg1, 0, 1);
+                Array4<Real> sigmaarr = uarr;
+                Array4<Real const> sigmaarr_orig = sigma_orig.const_array(mfi);
                 const Box& ibx = ccbxg1 & amrex::enclosedCells(mfi.validbox());
-                sigma.copy(sigma_orig[mfi], ibx, 0, ibx, 0, 1);
-                sigma.setValIfNot(0.0, ccbxg1, crse_cc_mask[mfi], 0, 1);
+                AMREX_HOST_DEVICE_FOR_3D(ccbxg1, i, j, k,
+                {
+                    if (cccmsk(i,j,k) == owner and ibx.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
+                        sigmaarr(i,j,k) = sigmaarr_orig(i,j,k);
+                    } else {
+                        sigmaarr(i,j,k) = 0.0;
+                    }
+                });
 
                 Array4<Real> const& sync_resid_a = sync_resid.array(mfi);
                 Array4<Real const> const& phiarr = phi.const_array(mfi);
-                Array4<Real const> const& sigmaarr = sigma.const_array();
                 AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
                 {
                     mlndlap_adotx_aa(tbx, sync_resid_a, phiarr, sigmaarr, dmskarr,
 #if (AMREX_SPACEDIM == 2)
                                      is_rz,
 #endif
-                                     dxinvarr);
+                                     dxinv);
+                    mlndlap_crse_resid(tbx, sync_resid_a, rhsarr, cccmsk, nddom, lobc, hibc);
                 });
-
-                amrex_mlndlap_crse_resid(BL_TO_FORTRAN_BOX(bx),
-                                         BL_TO_FORTRAN_ANYD(sync_resid[mfi]),
-                                         BL_TO_FORTRAN_ANYD(rhs),
-                                         BL_TO_FORTRAN_ANYD(crse_cc_mask[mfi]),
-                                         BL_TO_FORTRAN_BOX(nddom),
-                                         lobc.data(), hibc.data());
             }
         }
     }
@@ -1734,8 +1732,6 @@ void
 MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi, const MultiFab& vold,
                                        const MultiFab* rhcc)
 {
-    Gpu::LaunchSafeGuard lsg(false); // xxxxx todo: gpu
-
     BL_PROFILE("MLNodeLaplacian::SyncResFine()");
 
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_coarsening_strategy != CoarseningStrategy::RAP,
@@ -1746,20 +1742,21 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
 
     const Geometry& geom = m_geom[0][0];
     const Box& ccdom = geom.Domain();
-    const auto dxinvarr = geom.InvCellSizeArray();
+    const auto dxinv = geom.InvCellSizeArray();
 #if (AMREX_SPACEDIM == 2)
     bool is_rz = m_is_rz;
 #endif
 
+    MFItInfo mfi_info;
+    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
-        FArrayBox rhs, rhs2;
-        FArrayBox u;
+        FArrayBox rhs, u;
         IArrayBox tmpmask;
 
-        for (MFIter mfi(sync_resid, MFItInfo().EnableTiling().SetDynamic(true)); mfi.isValid(); ++mfi)
+        for (MFIter mfi(sync_resid,mfi_info); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.tilebox();
             const Box& gbx = mfi.growntilebox();
@@ -1769,7 +1766,9 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
             const Box& ccbxg1 = amrex::enclosedCells(bxg1);
 
             u.resize(ccbxg1, AMREX_SPACEDIM);
-            u.setVal(0.0, ccbxg1, 0, AMREX_SPACEDIM);
+            Elixir ueli = u.elixir();
+            Array4<Real> const& uarr = u.array();
+
             Box ovlp = ccvbx & ccbxg1;
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
             {
@@ -1786,67 +1785,104 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
                     }
                 }
             }
-            u.copy(vold[mfi], ovlp, 0, ovlp, 0, AMREX_SPACEDIM);
+
+            Array4<Real const> const& voarr = vold.const_array(mfi);
+            AMREX_HOST_DEVICE_FOR_3D(ccbxg1, i, j, k,
+            {
+                if (ovlp.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
+                    AMREX_D_TERM(uarr(i,j,k,0) = voarr(i,j,k,0);,
+                                 uarr(i,j,k,1) = voarr(i,j,k,1);,
+                                 uarr(i,j,k,2) = voarr(i,j,k,2););
+                } else {
+                    AMREX_D_TERM(uarr(i,j,k,0) = 0.0;,
+                                 uarr(i,j,k,1) = 0.0;,
+                                 uarr(i,j,k,2) = 0.0;);
+                }
+            });
 
             tmpmask.resize(bx);
-            tmpmask.copy(dmsk[mfi], bx, 0, bx, 0, 1);
-            tmpmask -= 1;
-            tmpmask *= -1;  //  0 in dmsk --> 1 in tmpmask, and 1 in dmsk --> 0 in tmpmask
+            Elixir tmeli = tmpmask.elixir();
+            Array4<int> const& tmpmaskarr = tmpmask.array();
+            Array4<int const> const& dmskarr = dmsk.const_array(mfi);
+            AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
+            {
+                tmpmaskarr(i,j,k) = 1-dmskarr(i,j,k);
+            });
 
             rhs.resize(bx);
-
+            Elixir rhseli = rhs.elixir();
             Array4<Real> const& rhsarr = rhs.array();
-            Array4<Real const> const& uarr = u.const_array();
-            Array4<int const> const& tmpmaskarr = tmpmask.const_array();
 
             AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
             {
 #if (AMREX_SPACEDIM == 2)
-                mlndlap_divu(i,j,k,rhsarr,uarr,tmpmaskarr,dxinvarr,is_rz);
+                mlndlap_divu(i,j,k,rhsarr,uarr,tmpmaskarr,dxinv,is_rz);
 #else
-                mlndlap_divu(i,j,k,rhsarr,uarr,tmpmaskarr,dxinvarr);
+                mlndlap_divu(i,j,k,rhsarr,uarr,tmpmaskarr,dxinv);
 #endif
             });
 
             if (rhcc)
             {
-                FArrayBox* rhcc_fab = &u;
-                rhcc_fab->resize(ccbxg1);
-                rhcc_fab->setVal(0.0);
+                Array4<Real> rhccarr = uarr;
+                Array4<Real const> const& rhccarr_orig = rhcc->const_array(mfi);
                 const Box& ovlp3 = ccvbx & ccbxg1;
-                rhcc_fab->copy((*rhcc)[mfi], ovlp3, 0, ovlp3, 0, 1);
-
-                rhs2.resize(bx);
-                Array4<Real> const& rhs2arr = rhs2.array();
-                Array4<Real const> const& rhcc_fab_a = rhcc_fab->const_array();
-                AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
+                AMREX_HOST_DEVICE_FOR_3D(ccbxg1, i, j, k,
                 {
-                    mlndlap_rhcc(i,j,k,rhs2arr,rhcc_fab_a,tmpmaskarr);
+                    if (ovlp3.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
+                        rhccarr(i,j,k) = rhccarr_orig(i,j,k);
+                    } else {
+                        rhccarr(i,j,k) = 0.0;
+                    }
                 });
-                rhs.plus(rhs2);
+
+                AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
+                {
+                    Real rhs2 = mlndlap_rhcc(i,j,k,rhccarr,tmpmaskarr);
+                    rhsarr(i,j,k) += rhs2;
+                });
             }
 
-            FArrayBox* sigma = &u;
-            sigma->resize(ccbxg1);
-            sigma->setVal(0.0, ccbxg1, 0, 1);
+            Array4<Real> sigmaarr = uarr;
+            Array4<Real const> const& sigmaarr_orig = sigma_orig.const_array(mfi);
             const Box& ovlp2 = ccvbx & ccbxg1;
-            sigma->copy(sigma_orig[mfi], ovlp2, 0, ovlp2, 0, 1);
-
-            sync_resid[mfi].setVal(0.0, gbx, 0, 1);
+            AMREX_HOST_DEVICE_FOR_3D(ccbxg1, i, j, k,
+            {
+                if (ovlp2.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
+                    sigmaarr(i,j,k) = sigmaarr_orig(i,j,k);
+                } else {
+                    sigmaarr(i,j,k) = 0.0;
+                }
+            });
 
             Array4<Real> const& sync_resid_a = sync_resid.array(mfi);
             Array4<Real const> const& phiarr = phi.const_array(mfi);
-            Array4<Real const> const& sigmaarr = sigma->const_array();
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
-            {
-                mlndlap_adotx_aa(tbx, sync_resid_a, phiarr, sigmaarr, tmpmaskarr,
+
+            if (Gpu::inLaunchRegion()) {
+                amrex::ParallelFor(gbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    IntVect iv(AMREX_D_DECL(i,j,k));
+                    if (bx.contains(iv)) {
+                        mlndlap_adotx_aa(Box(iv,iv,IntVect::TheNodeVector()), sync_resid_a,
+                                         phiarr, sigmaarr, tmpmaskarr,
+#if (AMREX_SPACEDIM == 2)
+                                         is_rz,
+#endif
+                                         dxinv);
+                        sync_resid_a(i,j,k) = rhsarr(i,j,k) - sync_resid_a(i,j,k);
+                    } else {
+                        sync_resid_a(i,j,k) = 0.0;
+                    }
+                });
+            } else {
+                sync_resid[mfi].setVal(0.0, gbx, 0, 1);
+                mlndlap_adotx_aa(bx, sync_resid_a, phiarr, sigmaarr, tmpmaskarr,
 #if (AMREX_SPACEDIM == 2)
                                  is_rz,
 #endif
-                                 dxinvarr);
-            });
-
-            sync_resid[mfi].xpay(-1.0, rhs, bx, bx, 0, 0, 1);
+                                 dxinv);
+                sync_resid[mfi].xpay(-1.0, rhs, bx, bx, 0, 0, 1);
+            }
 
             // Do not impose neumann bc here because how SyncRegister works.
         }
@@ -1858,16 +1894,17 @@ MLNodeLaplacian::reflux (int crse_amrlev,
                          MultiFab& res, const MultiFab& crse_sol, const MultiFab& crse_rhs,
                          MultiFab& fine_res, MultiFab& fine_sol, const MultiFab& fine_rhs) const
 {
-    Gpu::LaunchSafeGuard lsg(false); // xxxxx todo: gpu
-
     BL_PROFILE("MLNodeLaplacian::reflux()");
 
     const Geometry& cgeom = m_geom[crse_amrlev  ][0];
     const Geometry& fgeom = m_geom[crse_amrlev+1][0];
-    const Real* cdxinv = cgeom.InvCellSize();
-    const Real* fdxinv = fgeom.InvCellSize();
+    const auto cdxinv = cgeom.InvCellSizeArray();
+    const auto fdxinv = fgeom.InvCellSizeArray();
     const Box& c_cc_domain = cgeom.Domain();
     const Box& c_nd_domain = amrex::surroundingNodes(c_cc_domain);
+#if (AMREX_SPACEDIM == 2)
+    bool is_rz = m_is_rz;
+#endif
 
     const BoxArray& fba = fine_sol.boxArray();
     const DistributionMapping& fdm = fine_sol.DistributionMap();
@@ -1908,14 +1945,15 @@ MLNodeLaplacian::reflux (int crse_amrlev,
 
     const auto& fsigma = *m_sigma[crse_amrlev+1][0][0];
 
+    MFItInfo mfi_info;
+    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
         FArrayBox sigfab;
         FArrayBox Axfab;
-        for (MFIter mfi(fine_contrib, MFItInfo().EnableTiling().SetDynamic(true));
-             mfi.isValid(); ++mfi)
+        for (MFIter mfi(fine_contrib,mfi_info); mfi.isValid(); ++mfi)
         {
             const Box& cvbx = mfi.validbox();
             const Box& fvbx = amrex::refine(cvbx,2);
@@ -1926,25 +1964,48 @@ MLNodeLaplacian::reflux (int crse_amrlev,
             const Box& cc_fvbx = amrex::enclosedCells(fvbx);
             const Box& bx_sig = amrex::grow(cc_fbx,2) & amrex::grow(cc_fvbx,1);
             const Box& b = bx_sig & cc_fvbx;
+
             sigfab.resize(bx_sig, 1);
-            sigfab.setVal(0.0);
-            sigfab.copy(fsigma[mfi], b, 0, b, 0, 1);
+            Elixir sigeli = sigfab.elixir();
+            Array4<Real> const& sigarr = sigfab.array();
+            Array4<Real const> const& sigarr_orig = fsigma.const_array(mfi);
+            AMREX_HOST_DEVICE_FOR_3D(bx_sig, i, j, k,
+            {
+                if (b.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
+                    sigarr(i,j,k) = sigarr_orig(i,j,k);
+                } else {
+                    sigarr(i,j,k) = 0.0;
+                }
+            });
 
             const Box& bx_Ax = amrex::grow(fbx,1);
             const Box& b2 = bx_Ax & amrex::grow(fvbx,-1);
             Axfab.resize(bx_Ax);
-            Axfab.setVal(0.0);
-            Axfab.copy(fine_rhs[mfi], b2, 0, b2, 0, 1);
-            Axfab.minus(fine_res[mfi], b2, 0, 0, 1);
+            Elixir Axeli = Axfab.elixir();
+            Array4<Real> const& Axarr = Axfab.array();
+            Array4<Real const> const& rhsarr = fine_rhs.const_array(mfi);
+            Array4<Real const> const& resarr = fine_res.const_array(mfi);
+            Array4<Real const> const& solarr = fine_sol.const_array(mfi);
+            AMREX_HOST_DEVICE_FOR_3D(bx_Ax, i, j, k,
+            {
+                if (b2.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
+                    Axarr(i,j,k) = rhsarr(i,j,k) - resarr(i,j,k);
+                } else {
+                    Axarr(i,j,k) = 0.0;
+                }
+                mlndlap_res_fine_Ax(i,j,k, fvbx, Axarr, solarr, sigarr,
+#if (AMREX_SPACEDIM == 2)
+                                    is_rz,
+#endif
+                                    fdxinv);
+            });
 
-            amrex_mlndlap_res_fine_contrib(BL_TO_FORTRAN_BOX(cbx),
-                                           BL_TO_FORTRAN_BOX(cvbx),
-                                           BL_TO_FORTRAN_ANYD(fine_contrib[mfi]),
-                                           BL_TO_FORTRAN_ANYD(fine_sol[mfi]),
-                                           BL_TO_FORTRAN_ANYD(sigfab),
-                                           BL_TO_FORTRAN_ANYD(Axfab),
-                                           BL_TO_FORTRAN_ANYD(fdmsk[mfi]),
-                                           fdxinv);
+            Array4<Real> const& farr = fine_contrib.array(mfi);
+            Array4<int const> const& marr = fdmsk.const_array(mfi);
+            AMREX_HOST_DEVICE_FOR_3D(cbx, i, j, k,
+            {
+                mlndlap_res_fine_contrib(i,j,k,farr,Axarr,marr);
+            });
         }
     }
 
@@ -1965,22 +2026,30 @@ MLNodeLaplacian::reflux (int crse_amrlev,
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(res, MFItInfo().EnableTiling().SetDynamic(true)); mfi.isValid(); ++mfi)
+    for (MFIter mfi(res,mfi_info); mfi.isValid(); ++mfi)
     {
         if ((*has_fine_bndry)[mfi])
         {
             const Box& bx = mfi.tilebox();
-            amrex_mlndlap_res_cf_contrib(BL_TO_FORTRAN_BOX(bx),
-                                         BL_TO_FORTRAN_ANYD(res[mfi]),
-                                         BL_TO_FORTRAN_ANYD(crse_sol[mfi]),
-                                         BL_TO_FORTRAN_ANYD(crse_rhs[mfi]),
-                                         BL_TO_FORTRAN_ANYD(csigma[mfi]),
-                                         BL_TO_FORTRAN_ANYD(cdmsk[mfi]),
-                                         BL_TO_FORTRAN_ANYD((*nd_mask)[mfi]),
-                                         BL_TO_FORTRAN_ANYD((*cc_mask)[mfi]),
-                                         BL_TO_FORTRAN_ANYD(fine_contrib_on_crse[mfi]),
-                                         cdxinv, BL_TO_FORTRAN_BOX(c_nd_domain),
-                                         lobc.data(), hibc.data());
+            Array4<Real> const& resarr = res.array(mfi);
+            Array4<Real const> const& csolarr = crse_sol.const_array(mfi);
+            Array4<Real const> const& crhsarr = crse_rhs.const_array(mfi);
+            Array4<Real const> const& csigarr = csigma.const_array(mfi);
+            Array4<int const> const& cdmskarr = cdmsk.const_array(mfi);
+            Array4<int const> const& ndmskarr = nd_mask->const_array(mfi);
+            Array4<int const> const& ccmskarr = cc_mask->const_array(mfi);
+            Array4<Real const> const& fcocarr = fine_contrib_on_crse.const_array(mfi);
+
+            AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
+            {
+                mlndlap_res_cf_contrib(i,j,k,resarr,csolarr,crhsarr,csigarr,
+                                       cdmskarr,ndmskarr,ccmskarr,fcocarr,
+                                       cdxinv,c_nd_domain,
+#if (AMREX_SPACEDIM == 2)
+                                       is_rz,
+#endif
+                                       lobc,hibc);
+            });
         }
     }
 #ifdef AMREX_USE_EB
