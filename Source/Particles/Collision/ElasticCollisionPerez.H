@@ -1,10 +1,6 @@
 #ifndef WARPX_PARTICLES_COLLISION_ELASTIC_COLLISION_PEREZ_H_
 #define WARPX_PARTICLES_COLLISION_ELASTIC_COLLISION_PEREZ_H_
 
-//#include "WarpXParticleContainer.H"
-//#include <AMReX_DenseBins.H>
-//#include <AMReX_REAL.H>
-
 #include "UpdateMomentumPerezElastic.H"
 #include <WarpXConst.H>
 #include <AMReX_Random.H>
