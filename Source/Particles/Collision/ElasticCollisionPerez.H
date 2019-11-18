@@ -11,8 +11,8 @@
 
 /* \brief Prepare information for and call
  *        UpdateMomentumPerezElastic().
- *        i1s,i2s is the start index for I1,I2 (inclusive).
- *        i1e,i2e is the start index for I1,I2 (exclusive).
+ *        I1s,I2s is the start index for I1,I2 (inclusive).
+ *        I1e,I2e is the start index for I1,I2 (exclusive).
  *        I1 and I2 are the index arrays.
  *        u1 and u2 are the velocity arrays (u=v*gamma),
  *        they could be either different or the same,

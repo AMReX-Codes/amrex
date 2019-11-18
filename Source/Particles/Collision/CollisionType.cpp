@@ -3,6 +3,31 @@
 #include "ElasticCollisionPerez.H"
 #include <WarpX.H>
 
+CollisionType::CollisionType(
+    const std::vector<std::string>& species_names,
+    std::string collision_name)
+{
+
+    std::vector<std::string> collision_species;
+
+    amrex::ParmParse pp(collision_name);
+    pp.getarr("species", collision_species);
+
+    for (int i=0; i<species_names.size(); i++)
+    {
+        if (species_names[i] == collision_species[0])
+    { m_species1_index = i; }
+        if (species_names[i] == collision_species[1])
+    { m_species2_index = i; }
+    }
+
+    if (collision_species[0] == collision_species[1])
+    { m_isSameSpecies = true; }
+    else
+    { m_isSameSpecies = false; }
+
+}
+
 using namespace amrex;
 // Define shortcuts for frequently-used type names
 using ParticleType = WarpXParticleContainer::ParticleType;
@@ -90,18 +115,23 @@ void CollisionType::doCoulombCollisionsWithinTile
                 // given by the `indices_1[cell_start_1:cell_stop_1]`
                 index_type const cell_start_1 = cell_offsets_1[i_cell];
                 index_type const cell_stop_1  = cell_offsets_1[i_cell+1];
+                index_type const cell_half_1 = (cell_start_1+cell_stop_1)/2;
 
-                // shuffle
-                ShuffleFisherYates(
-                    indices_1, cell_start_1, (cell_start_1+cell_stop_1)/2+1 );
+                // Do not collide if there is only one particle in the cell
+                if ( cell_stop_1 - cell_start_1 >= 2 )
+                {
+                    // shuffle
+                    ShuffleFisherYates(
+                        indices_1, cell_start_1, cell_half_1 );
 
-                // Call the function in order to perform collisions
-                ElasticCollisionPerez(
-                    cell_start_1, (cell_start_1+cell_stop_1)/2,
-                    (cell_start_1+cell_stop_1)/2, cell_stop_1,
-                    indices_1, indices_1,
-                    ux_1, uy_1, uz_1, ux_1, uy_1, uz_1, w_1, w_1,
-                    q1, q1, m1, m1, -1.0, -1.0, dt, 2.0, dV);
+                    // Call the function in order to perform collisions
+                    ElasticCollisionPerez(
+                        cell_start_1, cell_half_1,
+                        cell_half_1, cell_stop_1,
+                        indices_1, indices_1,
+                        ux_1, uy_1, uz_1, ux_1, uy_1, uz_1, w_1, w_1,
+                        q1, q1, m1, m1, -1.0, -1.0, dt, 2.0, dV);
+                }
             }
         );
     }
@@ -160,45 +190,23 @@ void CollisionType::doCoulombCollisionsWithinTile
                 // ux_1[ indices_1[i] ], where i is between
                 // cell_start_1 (inclusive) and cell_start_2 (exclusive)
 
-                // shuffle
-                ShuffleFisherYates(indices_1, cell_start_1, cell_stop_1);
-                ShuffleFisherYates(indices_2, cell_start_2, cell_stop_2);
+                // Do not collide if one species is missing in the cell
+                if ( cell_stop_1 - cell_start_1 >= 1 &&
+                     cell_stop_2 - cell_start_2 >= 1 )
+                {
+                    // shuffle
+                    ShuffleFisherYates(indices_1, cell_start_1, cell_stop_1);
+                    ShuffleFisherYates(indices_2, cell_start_2, cell_stop_2);
 
-                // Call the function in order to perform collisions
-                ElasticCollisionPerez(
-                    cell_start_1, cell_stop_1, cell_start_2, cell_stop_2,
-                    indices_1, indices_2,
-                    ux_1, uy_1, uz_1, ux_2, uy_2, uz_2, w_1, w_2,
-                    q1, q2, m1, m2, -1.0, -1.0, dt, 2.0, dV);
+                    // Call the function in order to perform collisions
+                    ElasticCollisionPerez(
+                        cell_start_1, cell_stop_1, cell_start_2, cell_stop_2,
+                        indices_1, indices_2,
+                        ux_1, uy_1, uz_1, ux_2, uy_2, uz_2, w_1, w_2,
+                        q1, q2, m1, m2, -1.0, -1.0, dt, 2.0, dV);
+                }
             }
         );
     } // end if ( isSameSpecies)
 
 }
-
-CollisionType::CollisionType(
-    const std::vector<std::string>& species_names,
-    std::string collision_name)
-{
-
-    std::vector<std::string> collision_species;
-
-    amrex::ParmParse pp(collision_name);
-    pp.getarr("species", collision_species);
-
-    for (int i=0; i<species_names.size(); i++)
-    {
-        if (species_names[i] == collision_species[0])
-	{ m_species1_index = i; }
-        if (species_names[i] == collision_species[1])
-	{ m_species2_index = i; }
-    }
-
-    if (collision_species[0] == collision_species[1])
-    { m_isSameSpecies = true; }
-    else
-    { m_isSameSpecies = false; }
-
-}
-
-
