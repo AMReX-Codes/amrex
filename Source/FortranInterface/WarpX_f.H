@@ -18,7 +18,6 @@
 
 #define WRPX_ZERO_OUT_BNDRY              warpx_zero_out_bndry_3d
 #define WRPX_BUILD_MASK                  warpx_build_mask_3d
-#define WRPX_COMPUTE_E_NODAL             warpx_compute_E_nodal_3d
 #define WRPX_INTERPOLATE_CIC             warpx_interpolate_cic_3d
 #define WRPX_INTERPOLATE_CIC_TWO_LEVELS  warpx_interpolate_cic_two_levels_3d
 #define WRPX_PUSH_LEAPFROG               warpx_push_leapfrog_3d
@@ -28,7 +27,6 @@
 
 #define WRPX_ZERO_OUT_BNDRY              warpx_zero_out_bndry_2d
 #define WRPX_BUILD_MASK                  warpx_build_mask_2d
-#define WRPX_COMPUTE_E_NODAL             warpx_compute_E_nodal_2d
 #define WRPX_INTERPOLATE_CIC             warpx_interpolate_cic_2d
 #define WRPX_INTERPOLATE_CIC_TWO_LEVELS  warpx_interpolate_cic_two_levels_2d
 #define WRPX_PUSH_LEAPFROG               warpx_push_leapfrog_2d
@@ -41,47 +39,15 @@ extern "C"
 {
 #endif
 
-#ifdef USE_OPENBC_POISSON
-    void warpx_openbc_potential (amrex::Real* rho, amrex::Real* phi, const amrex::Real* dx);
-    void warpx_openbc_decompose (const int*, const int*, int*, int*);
-#endif
-
-    void warpx_compute_E (const int* lo, const int* hi,
-                          const BL_FORT_FAB_ARG_3D(phi),
-                          BL_FORT_FAB_ARG_3D(Ex),
-                          BL_FORT_FAB_ARG_3D(Ey),
-                          BL_FORT_FAB_ARG_3D(Ez),
-                          const amrex::Real* dx);
-
 ///
 /// These functions are used in electrostatic mode.
 ///
-
-    void WRPX_SUM_FINE_TO_CRSE_NODAL(const int* lo, const int* hi, const int* lrat,
-                                     amrex::Real* crse, const int* clo, const int* chi,
-                                     const amrex::Real* fine, const int* flo, const int* fhi);
-
     void WRPX_ZERO_OUT_BNDRY(const int* lo, const int* hi,
                              amrex::Real* input_data, amrex::Real* bndry_data,
                              const int* mask);
 
     void WRPX_BUILD_MASK(const int* lo, const int* hi,
                          const int* tmp_mask, int* mask, const int* ncells);
-
-    void WRPX_COMPUTE_E_NODAL(const int* lo, const int* hi,
-                              const amrex::Real* phi,
-                              amrex::Real* Ex, amrex::Real* Ey,
-#if (AMREX_SPACEDIM == 3)
-                          amrex::Real* Ez,
-#endif
-                          const amrex::Real* dx);
-
-    void WRPX_DEPOSIT_CIC(const amrex::ParticleReal* particles, int ns, int np,
-                          const amrex::ParticleReal* weights,
-                          const amrex::Real* charge,
-                          amrex::Real* rho, const int* lo, const int* hi,
-                          const amrex::Real* plo, const amrex::Real* dx,
-                          const int* ng);
 
     void WRPX_INTERPOLATE_CIC_TWO_LEVELS(const amrex::ParticleReal* particles, int ns, int np,
                                          amrex::Real* Ex_p, amrex::Real* Ey_p,
@@ -133,93 +99,6 @@ extern "C"
 #endif
                                       const amrex::Real* dt, const amrex::Real* prob_lo,
                                       const amrex::Real* prob_hi);
-
-//  These functions are used to evolve E and B in the PML
-
-    void WRPX_PUSH_PML_BVEC(const int* xlo, const int* xhi,
-                            const int* ylo, const int* yhi,
-                            const int* zlo, const int* zhi,
-                            const BL_FORT_FAB_ARG_3D(ex),
-                            const BL_FORT_FAB_ARG_3D(ey),
-                            const BL_FORT_FAB_ARG_3D(ez),
-                            BL_FORT_FAB_ARG_3D(bx),
-                            BL_FORT_FAB_ARG_3D(by),
-                            BL_FORT_FAB_ARG_3D(bz),
-                            const amrex::Real* dtsdx,
-                            const amrex::Real* dtsdy,
-                            const amrex::Real* dtsdz,
-                            const int* maxwell_fdtd_solver_id);
-
-
-    void WRPX_PUSH_PML_EVEC(const int* xlo, const int* xhi,
-                            const int* ylo, const int* yhi,
-                            const int* zlo, const int* zhi,
-                            BL_FORT_FAB_ARG_3D(ex),
-                            BL_FORT_FAB_ARG_3D(ey),
-                            BL_FORT_FAB_ARG_3D(ez),
-                            const BL_FORT_FAB_ARG_3D(bx),
-                            const BL_FORT_FAB_ARG_3D(by),
-                            const BL_FORT_FAB_ARG_3D(bz),
-                            const amrex::Real* dtsdx,
-                            const amrex::Real* dtsdy,
-                            const amrex::Real* dtsdz);
-
-    void WRPX_PUSH_PML_EVEC_F(const int* xlo, const int* xhi,
-                              const int* ylo, const int* yhi,
-                              const int* zlo, const int* zhi,
-                              BL_FORT_FAB_ARG_3D(ex),
-                              BL_FORT_FAB_ARG_3D(ey),
-                              BL_FORT_FAB_ARG_3D(ez),
-                              const BL_FORT_FAB_ARG_3D(f),
-                              const amrex::Real* dtsdx,
-                              const amrex::Real* dtsdy,
-                              const amrex::Real* dtsdz,
-                              const int* maxwell_fdtd_solver_id);
-
-    void WRPX_PUSH_PML_F(const int* lo, const int* hi,
-                         BL_FORT_FAB_ARG_3D(f),
-                         const BL_FORT_FAB_ARG_3D(ex),
-                         const BL_FORT_FAB_ARG_3D(ey),
-                         const BL_FORT_FAB_ARG_3D(ez),
-                         const amrex::Real* dtsdx,
-                         const amrex::Real* dtsdy,
-                         const amrex::Real* dtsdz);
-
-    void WRPX_DAMP_PML (const int* texlo, const int* texhi,
-                        const int* teylo, const int* teyhi,
-                        const int* tezlo, const int* tezhi,
-                        const int* tbxlo, const int* tbxhi,
-                        const int* tbylo, const int* tbyhi,
-                        const int* tbzlo, const int* tbzhi,
-                        amrex::Real* ex, const int* exlo, const int* exhi,
-                        amrex::Real* ey, const int* eylo, const int* eyhi,
-                        amrex::Real* ez, const int* ezlo, const int* ezhi,
-                        amrex::Real* bx, const int* bxlo, const int* bxhi,
-                        amrex::Real* by, const int* bylo, const int* byhi,
-                        amrex::Real* bz, const int* bzlo, const int* bzhi,
-                        const amrex::Real* sigex, int sigex_lo, int sigex_hi,
-#if (AMREX_SPACEDIM == 3)
-                        const amrex::Real* sigey, int sigey_lo, int sigey_hi,
-#endif
-                        const amrex::Real* sigez, int sigez_lo, int sigez_hi,
-                        const amrex::Real* sigbx, int sigbx_lo, int sigbx_hi,
-#if (AMREX_SPACEDIM == 3)
-                        const amrex::Real* sigby, int sigby_lo, int sigby_hi,
-#endif
-                        const amrex::Real* sigbz, int sigbz_lo, int sigbz_hi);
-
-    void WRPX_DAMP_PML_F (const int* tndlo, const int* tndhi,
-                          amrex::Real* F,  const int* flo, const int* fhi,
-                          const amrex::Real* sigex, int sigex_lo, int sigex_hi,
-#if (AMREX_SPACEDIM == 3)
-                          const amrex::Real* sigey, int sigey_lo, int sigey_hi,
-#endif
-                          const amrex::Real* sigez, int sigez_lo, int sigez_hi,
-                          const amrex::Real* sigbx, int sigbx_lo, int sigbx_hi,
-#if (AMREX_SPACEDIM == 3)
-                          const amrex::Real* sigby, int sigby_lo, int sigby_hi,
-#endif
-                          const amrex::Real* sigbz, int sigbz_lo, int sigbz_hi);
 
 #ifdef WARPX_USE_PSATD
     void warpx_fft_mpi_init (int fcomm);
