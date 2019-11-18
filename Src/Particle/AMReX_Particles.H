@@ -47,6 +47,7 @@
 #include <AMReX_ParticleLocator.H>
 #include <AMReX_Scan.H>
 #include <AMReX_DenseBins.H>
+#include <AMReX_ParticleTransformation.H>
 
 #ifdef BL_LAZY
 #include <AMReX_Lazy.H>
