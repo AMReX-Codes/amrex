@@ -1,6 +1,5 @@
 
 #include <AMReX_MLNodeLinOp.H>
-#include <AMReX_MLNodeLap_F.H>
 #include <AMReX_MLNodeLap_K.H>
 
 #ifdef _OPENMP

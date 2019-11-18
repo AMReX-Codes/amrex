@@ -103,13 +103,13 @@ public:
 inline PhysBCFunctBase::~PhysBCFunctBase () {}
 
 
-class PhysBCFunctNoOp
+class PhysBCFunctNoOp final
     : public PhysBCFunctBase
 {
 public:
     virtual void FillBoundary (MultiFab& mf, int dcomp, int ncomp, Real time, int bccomp)
-        override final {}
-    virtual ~PhysBCFunctNoOp () override final {}
+        override {}
+    virtual ~PhysBCFunctNoOp () override {}
 };
 
 

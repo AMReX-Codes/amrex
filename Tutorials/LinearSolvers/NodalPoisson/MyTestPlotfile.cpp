@@ -8,8 +8,13 @@ using namespace amrex;
 void
 MyTest::writePlotfile () const
 {
-    const int ncomp = 4;
-    Vector<std::string> varname = {"solution", "rhs", "exact_solution", "error"};
+    Vector<std::string> varname;
+    if (gpu_regtest) {
+        varname = Vector<std::string>{"solution", "rhs", "exact_solution"};
+    } else {
+        varname = Vector<std::string>{"solution", "rhs", "exact_solution", "error"};
+    }
+    int ncomp = varname.size();
 
     const int nlevels = max_level+1;
 
@@ -21,10 +26,12 @@ MyTest::writePlotfile () const
         amrex::average_node_to_cellcenter(plotmf[ilev], 1, rhs           [ilev], 0, 1);
         amrex::average_node_to_cellcenter(plotmf[ilev], 2, exact_solution[ilev], 0, 1);
 
-        MultiFab error(rhs[ilev].boxArray(), rhs[ilev].DistributionMap(), 1, 0);
-        MultiFab::Copy(error, solution[ilev], 0, 0, 1, 0);
-        MultiFab::Subtract(error, exact_solution[ilev], 0, 0, 1, 0); // error = soln - exact
-        amrex::average_node_to_cellcenter(plotmf[ilev], 3, error, 0, 1);
+        if (!gpu_regtest) {
+            MultiFab error(rhs[ilev].boxArray(), rhs[ilev].DistributionMap(), 1, 0);
+            MultiFab::Copy(error, solution[ilev], 0, 0, 1, 0);
+            MultiFab::Subtract(error, exact_solution[ilev], 0, 0, 1, 0); // error = soln - exact
+            amrex::average_node_to_cellcenter(plotmf[ilev], 3, error, 0, 1);
+        }
     }
 
     WriteMultiLevelPlotfile("plot", nlevels, amrex::GetVecOfConstPtrs(plotmf),

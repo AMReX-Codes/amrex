@@ -53,7 +53,7 @@ int main_main()
             plot_names[0] = diffvar;
         } else if (fname == "-a" or fname == "--allow_diff_grids") {
             allow_diff_grids = true;
-        } else if (fname == "-r" or fname == "--rel_tol rtol") {
+        } else if (fname == "-r" or fname == "--rel_tol") {
             rtol = std::stod(amrex::get_command_argument(++farg));
         } else {
             break;
@@ -76,7 +76,7 @@ int main_main()
             << " variable.\n"
             << "\n"
             << " usage:\n"
-            << "    fcompare [-g|--ghost] [-n|--norm num] [-d|--diffvar var] [-z|--zone_info var] [-a|--allow_diff_grids] file1 file2\n"
+            << "    fcompare [-g|--ghost] [-n|--norm num] [-d|--diffvar var] [-z|--zone_info var] [-a|--allow_diff_grids] [-r|rel_tol] file1 file2\n"
             << "\n"
             << " optional arguments:\n"
             << "    -g|--ghost            : compare the ghost cells too (if stored)\n"

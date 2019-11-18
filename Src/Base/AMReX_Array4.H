@@ -57,6 +57,7 @@ namespace amrex {
               ncomp(rhs.ncomp-start_comp)
         {}
 
+        AMREX_GPU_HOST_DEVICE
         explicit operator bool() const noexcept { return p != nullptr; }
 
         template <class U=T, class = typename std::enable_if<!std::is_void<U>::value>::type >
