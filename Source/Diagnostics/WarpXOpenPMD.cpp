@@ -140,7 +140,6 @@ WarpXOpenPMDPlot::WriteOpenPMDParticles(const std::unique_ptr<MultiParticleConta
            int_flags,
            real_names, int_names);
       }
-      auto endTime = amrex::second();
 
       // Convert momentum back to WarpX units
       pc->ConvertUnits(ConvertDirection::SI_to_WarpX);
@@ -197,16 +196,16 @@ WarpXOpenPMDPlot::SavePlotFile (const std::unique_ptr<WarpXParticleContainer>& p
          { // :: Save Postions, 1D-3D::
            // this code is tested  with laser 3d,  not tested with 2D examples...
            std::vector<std::string> axisNames={"x", "y", "z"};
+
            for (auto currDim = 0; currDim < AMREX_SPACEDIM; currDim++) {
                 std::vector<amrex::ParticleReal> curr(numParticleOnTile, 0);
-            for (auto i=0; i<numParticleOnTile; i++) {
+                for (auto i=0; i<numParticleOnTile; i++) {
                      curr[i] = aos[i].m_rdata.pos[currDim];
                 }
                 currSpecies["position"][axisNames[currDim]].storeChunk(curr, {offset}, {static_cast<unsigned long long>(numParticleOnTile)});
                 m_Series->flush();
            }
-     }
-
+        }
          //  save properties
          SaveRealProperty(pti,
              currSpecies,
@@ -283,12 +282,12 @@ WarpXOpenPMDPlot::SaveRealProperty(WarpXParIter& pti,
     for (auto idx=0; idx<m_NumSoARealAttributes; idx++) {
       auto ii = m_NumAoSRealAttributes + idx;
       if (write_real_comp[ii]) {
-    auto& currVar = currSpecies[real_comp_names[ii]][openPMD::RecordComponent::SCALAR];
-    currVar.storeChunk(openPMD::shareRaw(soa.GetRealData(idx)),
-               {offset}, {static_cast<unsigned long long>(numParticleOnTile)});
-    m_Series->flush();
+          auto& currVar = currSpecies[real_comp_names[ii]][openPMD::RecordComponent::SCALAR];
+          currVar.storeChunk(openPMD::shareRaw(soa.GetRealData(idx)),
+                             {offset}, {static_cast<unsigned long long>(numParticleOnTile)});
       }
     }
+    m_Series->flush();
   }
 }
 
