@@ -21,3 +21,9 @@ namespace WarpXUtilIO{
      */
     bool WriteBinaryDataOnFile(std::string filename, const amrex::Vector<char>& data);
 }
+
+namespace WarpXUtilAlgo{
+    template<typename T> AMREX_GPU_DEVICE
+    const T* upper_bound(const T* first, const T* last, const T& val);
+
+}

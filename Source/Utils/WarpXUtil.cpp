@@ -164,3 +164,26 @@ namespace WarpXUtilIO{
     }
 }
 
+namespace WarpXUtilAlgo{
+    template<typename T>
+    AMREX_GPU_DEVICE
+    const T* upper_bound(const T* first, const T* last, const T& val)
+    {
+        const T* it;
+        size_t count, step;
+        count = last-first;
+        while(count>0){
+            it = first;
+            step = count/2;
+            it += step;
+            if (!(val<*it)){
+                first = ++it;
+                count -= step + 1;
+            }
+            else{
+                count = step;
+            }
+        }
+        return first;
+    }
+}

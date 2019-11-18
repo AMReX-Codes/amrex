@@ -5,6 +5,7 @@
 #include <WarpXParser.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_Vector.H>
+#include <AMReX_Gpu.H>
 
 #include <WarpXParser.H>
 
@@ -13,6 +14,7 @@
 #include <memory>
 #include <functional>
 #include <limits>
+#include <tuple>
 
 namespace WarpXLaserProfiles {
 
@@ -179,6 +181,49 @@ private:
 };
 
 /**
+ * Laser profile read from an 'TXYE' file
+ * The binary file must contain:
+ * - 3 unsigned integers (4 bytes): nt (points along t), nx (points along x) and ny (points along y)
+ * - nt*nx*ny doubles (8 bytes) in row major order : field amplitude
+ */
+class FromTXYEFileLaserProfile : public ILaserProfile
+{
+
+public:
+    void
+    init (
+        const amrex::ParmParse& ppl,
+        const amrex::ParmParse& ppc,
+        CommonLaserParameters params) override final;
+
+    void
+    fill_amplitude (
+        const int np,
+        amrex::Real const * AMREX_RESTRICT const Xp,
+        amrex::Real const * AMREX_RESTRICT const Yp,
+        amrex::Real t,
+        amrex::Real * AMREX_RESTRICT const amplitude) override final;
+
+private:
+    void parse_txye_file(std::string txye_file_name);
+    void read_data_t_chuck(size_t t_begin, size_t t_end);
+
+    struct{
+        std::string txye_file_name;
+        amrex::Gpu::ManagedVector<amrex::Real> t_coords;
+        amrex::Gpu::ManagedVector<amrex::Real> x_coords;
+        amrex::Gpu::ManagedVector<amrex::Real> y_coords;
+        size_t first_time_index;
+        size_t last_time_index;
+        size_t time_chunk_size;
+        amrex::Gpu::ManagedVector<amrex::Real> E_data;
+    } m_params;
+
+    CommonLaserParameters m_common_params;
+
+};
+
+/**
  * Maps laser profile names to lambdas returing unique pointers
  * to the corresponding laser profile objects.
  */
@@ -194,7 +239,9 @@ laser_profiles_dictionary =
     {"harris",
         [] () {return std::make_unique<HarrisLaserProfile>();} },
     {"parse_field_function",
-        [] () {return std::make_unique<FieldFunctionLaserProfile>();} }
+        [] () {return std::make_unique<FieldFunctionLaserProfile>();} },
+    {"from_txye_file",
+        [] () {return std::make_unique<FromTXYEFileLaserProfile>();} }
 };
 
 } //WarpXLaserProfiles
