@@ -177,6 +177,53 @@ void testTransform(const PC& pc)
     AMREX_ALWAYS_ASSERT(mx3 == 3*mx1);    
 }
 
+template <typename PC, typename F>
+void filterParticles (PC& pc, F&& f)
+{
+    BL_PROFILE("filterParticles");
+
+    using ParIter = typename PC::ParIterType;
+    using ParticleTileType = typename PC::ParticleTileType;
+    
+    for (int lev = 0; lev <= pc.finestLevel(); ++lev)
+    {
+        for(ParIter pti(pc, lev); pti.isValid(); ++pti)
+        {
+            auto& ptile = pc.ParticlesAt(lev, pti);
+            
+            ParticleTileType ptile_tmp;
+            ptile_tmp.resize(ptile.size());
+            
+            auto num_output = amrex::filterParticles(ptile_tmp, ptile, f);
+            ptile.swap(ptile_tmp);
+            ptile.resize(num_output);
+        }
+    }
+}
+
+struct KeepOddFilter
+{    
+    template <typename SrcData>
+    AMREX_GPU_HOST_DEVICE
+    int operator() (const SrcData& src, int i) const noexcept
+    {
+        return src.m_aos[i].id() % 2;
+    }
+};
+
+template <typename PC>
+void testFilter(const PC& pc)
+{
+    using PType = typename PC::SuperParticleType;
+
+    PC pc2(pc.Geom(0), pc.ParticleDistributionMap(0), pc.ParticleBoxArray(0));
+    pc2.copyParticles(pc);
+
+    filterParticles(pc2, KeepOddFilter());
+
+    amrex::Print() << "Total number of particles \n";
+}
+
 struct TestParams
 {
     IntVect size;
@@ -242,6 +289,8 @@ void testReduce ()
     pc.InitParticles(nppc);
 
     testTransform(pc);
-        
+
+    testFilter(pc);
+    
     amrex::Print() << "pass \n";
 }

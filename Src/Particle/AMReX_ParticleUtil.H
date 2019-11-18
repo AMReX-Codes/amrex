@@ -108,11 +108,17 @@ void transformParticles(PTile& dst, const PTile& src, IndexType src_start, Index
  *
  */
 template <typename PTile, typename IndexType>
-void filterParticles(PTile& dst, const PTile& src, const IndexType* mask) noexcept
+typename std::remove_const<IndexType>::type filterParticles(PTile& dst, const PTile& src, IndexType* mask) noexcept
 {
+    using Ind = typename std::remove_const<IndexType>::type;
     auto np = src.numParticles();
-    Gpu::DeviceVector<IndexType> offsets(np);
-    Gpu::exclusive_scan(mask, mask+np, offsets);
+    Gpu::DeviceVector<Ind> offsets(np);
+    Gpu::exclusive_scan(mask, mask+np, offsets.begin());
+
+    I last_mask, last_offset;
+    Gpu::dtoh_memcpy_async(&last_mask, &mask[np-1], sizeof(IndexType));
+    Gpu::dtoh_memcpy_async(&last_offset, &offsets[np-1], sizeof(IndexType));
+                               
     auto p_offsets = offsets.dataPtr();
     
     const auto src_data = src.getConstParticleTileData();
@@ -122,6 +128,9 @@ void filterParticles(PTile& dst, const PTile& src, const IndexType* mask) noexce
     {
         if (mask[i]) copyParticle(dst_data, src_data, i, p_offsets[i]);
     });
+
+    Gpu::streamSynchronize();
+    return last_mask + last_offset;
 }
 
 /**
@@ -136,11 +145,11 @@ void filterParticles(PTile& dst, const PTile& src, const IndexType* mask) noexce
  * \param p predicate function - particles will be copied if p returns true
  *
  */    
-template <typename PTile, typename IndexType, typename Pred>
-void filterParticles(PTile& dst, const PTile& src, Pred&& p) noexcept
+template <typename PTile, typename Pred>
+int filterParticles(PTile& dst, const PTile& src, Pred&& p) noexcept
 {
     auto np = src.numParticles();
-    Gpu::DeviceVector<IndexType> mask(np);
+    Gpu::DeviceVector<int> mask(np);
 
     auto p_mask = mask.dataPtr();
     const auto src_data = src.getConstParticleTileData();
@@ -150,7 +159,7 @@ void filterParticles(PTile& dst, const PTile& src, Pred&& p) noexcept
         p_mask[i] = p(src_data, i);
     });
 
-    filterPartcles(dst, src, mask.dataPtr());
+    return filterParticles(dst, src, mask.dataPtr());
 }
 
 /**
@@ -168,11 +177,16 @@ void filterParticles(PTile& dst, const PTile& src, Pred&& p) noexcept
  *
  */
 template <typename PTile, typename IndexType, typename F>
-void filterAndTransformParticles(PTile& dst, const PTile& src, const IndexType* mask, F&& f) noexcept
+IndexType filterAndTransformParticles(PTile& dst, const PTile& src, const IndexType* mask, F&& f) noexcept
 {
     auto np = src.numParticles();
     Gpu::DeviceVector<IndexType> offsets(np);
     Gpu::exclusive_scan(mask, mask+np, offsets);
+
+    IndexType last_mask, last_offset;
+    Gpu::dtoh_memcpy_async(&last_mask, &mask[np-1], sizeof(IndexType));
+    Gpu::dtoh_memcpy_async(&last_offset, &offsets[np-1], sizeof(IndexType));
+
     auto p_offsets = offsets.dataPtr();
     
     const auto src_data = src.getConstParticleTileData();
@@ -182,6 +196,9 @@ void filterAndTransformParticles(PTile& dst, const PTile& src, const IndexType* 
     {
         if (mask[i]) f(dst_data, src_data, i, p_offsets[i]);
     });
+
+    Gpu::streamSynchronize();
+    return last_mask + last_offset;
 }
 
 /**
@@ -200,7 +217,7 @@ void filterAndTransformParticles(PTile& dst, const PTile& src, const IndexType* 
  *
  */    
 template <typename PTile, typename IndexType, typename Pred, typename F>
-void filterAndTransformParticles(PTile& dst, const PTile& src, Pred&& p, F&& f) noexcept
+IndexType filterAndTransformParticles(PTile& dst, const PTile& src, Pred&& p, F&& f) noexcept
 {
     auto np = src.numParticles();
     Gpu::DeviceVector<IndexType> mask(np);
@@ -213,7 +230,7 @@ void filterAndTransformParticles(PTile& dst, const PTile& src, Pred&& p, F&& f) 
         p_mask[i] = p(src_data, i);
     });
 
-    filterAndTransformPartcles(dst, src, mask.dataPtr(), f);
+    return filterAndTransformPartcles(dst, src, mask.dataPtr(), f);
 }
     
 /**
