@@ -177,22 +177,9 @@ WarpXOpenPMDPlot::SavePlotFile (const std::unique_ptr<WarpXParticleContainer>& p
 
   for (auto currentLevel = 0; currentLevel <= pc->finestLevel(); currentLevel++)
     {
-#ifdef NEVER
-      long numParticles = 0;
-
-      for (WarpXParIter pti(*pc, currentLevel); pti.isValid(); ++pti) {
-    auto numParticleOnTile = pti.numParticles();
-    numParticles += numParticleOnTile;
-      }
-
-      unsigned long long offset=0;
-      unsigned long long sum=0;
-
-      GetParticleOffsetOfProcessor(numParticles, offset,  sum);
-#else
       long numParticles = counter.m_ParticleSizeAtRank[currentLevel];
       unsigned long long offset = counter.m_ParticleOffsetAtRank[currentLevel];
-#endif
+
       //if return after this, all is fine (although nothing useful is written)
 
       if (0 == numParticles)
@@ -203,31 +190,30 @@ WarpXOpenPMDPlot::SavePlotFile (const std::unique_ptr<WarpXParticleContainer>& p
       // soa num real attributes = PIdx::nattribs, and num int in soa is 0
 
       for (WarpXParIter pti(*pc, currentLevel); pti.isValid(); ++pti) {
-    auto numParticleOnTile = pti.numParticles();
+         auto numParticleOnTile = pti.numParticles();
 
-    // get position from aos
-    const auto& aos = pti.GetArrayOfStructs();  // size =  numParticlesOnTile
+         // get position from aos
+         const auto& aos = pti.GetArrayOfStructs();  // size =  numParticlesOnTile
+         { // :: Save Postions, 1D-3D::
+           // this code is tested  with laser 3d,  not tested with 2D examples...
+           std::vector<std::string> axisNames={"x", "y", "z"};
+           for (auto currDim = 0; currDim < AMREX_SPACEDIM; currDim++) {
+                std::vector<amrex::ParticleReal> curr(numParticleOnTile, 0);
+	        for (auto i=0; i<numParticleOnTile; i++) {
+                     curr[i] = aos[i].m_rdata.pos[currDim];
+                } 
+                currSpecies["position"][axisNames[currDim]].storeChunk(curr, {offset}, {static_cast<unsigned long long>(numParticleOnTile)});
+                m_Series->flush();
+           }
+	 }
 
-    { // :: Save Postions, 1D-3D::
-      // this code is tested  with laser 3d,  not tested with 2D examples...
-      std::vector<std::string> axisNames={"x", "y", "z"};
-      for (auto currDim = 0; currDim < AMREX_SPACEDIM; currDim++) {
-        std::vector<amrex::ParticleReal> curr(numParticleOnTile, 0);
-        for (auto i=0; i<numParticleOnTile; i++) {
-          curr[i] = aos[i].m_rdata.pos[currDim];
-        }
-        currSpecies["position"][axisNames[currDim]].storeChunk(curr, {offset}, {static_cast<unsigned long long>(numParticleOnTile)});
-        m_Series->flush();
-      }
-    }
-
-    //  save properties
-    SaveRealProperty(pti,
+         //  save properties
+         SaveRealProperty(pti,
              currSpecies,
              offset, numParticles,
              write_real_comp, real_comp_names);
 
-    offset += numParticleOnTile;
+         offset += numParticleOnTile;
       }
     }
 }
