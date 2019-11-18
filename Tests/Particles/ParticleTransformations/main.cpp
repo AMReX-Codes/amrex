@@ -219,11 +219,13 @@ void testFilter(const PC& pc)
     PC pc2(pc.Geom(0), pc.ParticleDistributionMap(0), pc.ParticleBoxArray(0));
     pc2.copyParticles(pc);
 
-    amrex::Print() << "Total number of particles before filter: " << pc2.TotalNumberOfParticles() << "\n";
+    auto np_old = pc2.TotalNumberOfParticles();
     
     filterParticles(pc2, KeepOddFilter());
 
-    amrex::Print() << "Total number of particles after filter: " << pc2.TotalNumberOfParticles() << "\n";
+    auto np_new = pc2.TotalNumberOfParticles();
+
+    AMREX_ALWAYS_ASSERT(2*np_new == np_old);    
 }
 
 struct TestParams
