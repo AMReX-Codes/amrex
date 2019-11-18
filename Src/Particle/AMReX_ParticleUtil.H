@@ -115,9 +115,9 @@ typename std::remove_const<IndexType>::type filterParticles(PTile& dst, const PT
     Gpu::DeviceVector<Ind> offsets(np);
     Gpu::exclusive_scan(mask, mask+np, offsets.begin());
 
-    I last_mask, last_offset;
-    Gpu::dtoh_memcpy_async(&last_mask, &mask[np-1], sizeof(IndexType));
-    Gpu::dtoh_memcpy_async(&last_offset, &offsets[np-1], sizeof(IndexType));
+    Ind last_mask, last_offset;
+    Gpu::copyAsync(Gpu::deviceToHost, mask+np-1, mask + np, &last_mask);
+    Gpu::copyAsync(Gpu::deviceToHost, offsets.data()+np-1, offsets.data()+np, &last_offset);    
                                
     auto p_offsets = offsets.dataPtr();
     
@@ -177,15 +177,16 @@ int filterParticles(PTile& dst, const PTile& src, Pred&& p) noexcept
  *
  */
 template <typename PTile, typename IndexType, typename F>
-IndexType filterAndTransformParticles(PTile& dst, const PTile& src, const IndexType* mask, F&& f) noexcept
+typename std::remove_const<IndexType>::type filterAndTransformParticles(PTile& dst, const PTile& src, IndexType* mask, F&& f) noexcept
 {
+    using Ind = typename std::remove_const<IndexType>::type;
     auto np = src.numParticles();
     Gpu::DeviceVector<IndexType> offsets(np);
     Gpu::exclusive_scan(mask, mask+np, offsets);
 
-    IndexType last_mask, last_offset;
-    Gpu::dtoh_memcpy_async(&last_mask, &mask[np-1], sizeof(IndexType));
-    Gpu::dtoh_memcpy_async(&last_offset, &offsets[np-1], sizeof(IndexType));
+    Ind last_mask, last_offset;
+    Gpu::copyAsync(Gpu::deviceToHost, mask+np-1, mask + np, &last_mask);
+    Gpu::copyAsync(Gpu::deviceToHost, offsets.data()+np-1, offsets.data()+np, &last_offset);    
 
     auto p_offsets = offsets.dataPtr();
     

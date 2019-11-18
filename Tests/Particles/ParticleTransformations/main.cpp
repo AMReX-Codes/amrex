@@ -207,7 +207,7 @@ struct KeepOddFilter
     AMREX_GPU_HOST_DEVICE
     int operator() (const SrcData& src, int i) const noexcept
     {
-        return src.m_aos[i].id() % 2;
+        return (src.m_aos[i].id() % 2 == 1);
     }
 };
 
@@ -219,9 +219,11 @@ void testFilter(const PC& pc)
     PC pc2(pc.Geom(0), pc.ParticleDistributionMap(0), pc.ParticleBoxArray(0));
     pc2.copyParticles(pc);
 
+    amrex::Print() << "Total number of particles before filter: " << pc2.TotalNumberOfParticles() << "\n";
+    
     filterParticles(pc2, KeepOddFilter());
 
-    amrex::Print() << "Total number of particles \n";
+    amrex::Print() << "Total number of particles after filter: " << pc2.TotalNumberOfParticles() << "\n";
 }
 
 struct TestParams
