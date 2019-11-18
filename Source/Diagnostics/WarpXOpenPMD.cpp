@@ -207,7 +207,7 @@ WarpXOpenPMDPlot::SavePlotFile (const std::unique_ptr<WarpXParticleContainer>& p
          //  save properties
          SaveRealProperty(pti,
              currSpecies,
-             offset, numParticles,
+             offset, 
              write_real_comp, real_comp_names);
 
          offset += numParticleOnTile;
@@ -240,7 +240,6 @@ void
 WarpXOpenPMDPlot::SaveRealProperty(WarpXParIter& pti,
                        openPMD::ParticleSpecies& currSpecies,
                        unsigned long long offset,
-                       unsigned long long numParticles,
                        const amrex::Vector<int>& write_real_comp,
                        const amrex::Vector<std::string>& real_comp_names) const
 
@@ -260,18 +259,17 @@ WarpXOpenPMDPlot::SaveRealProperty(WarpXParIter& pti,
   {
     for (auto idx=0; idx<m_NumAoSRealAttributes; idx++) {
       if (write_real_comp[idx]) {
-    auto& currVar = currSpecies[real_comp_names[idx]][openPMD::RecordComponent::SCALAR];
-    typename amrex::ParticleReal *d =
-      static_cast<typename amrex::ParticleReal*> (malloc(sizeof(typename amrex::ParticleReal) *  numParticleOnTile));
+          auto& currVar = currSpecies[real_comp_names[idx]][openPMD::RecordComponent::SCALAR];
+          typename amrex::ParticleReal *d =
+                 static_cast<typename amrex::ParticleReal*> (malloc(sizeof(typename amrex::ParticleReal) *  numParticleOnTile));
 
-    for (auto kk=0; kk<numParticleOnTile; kk++)
-      d[kk] = aos[kk].m_rdata.arr[AMREX_SPACEDIM+idx];
+          for (auto kk=0; kk<numParticleOnTile; kk++)
+               d[kk] = aos[kk].m_rdata.arr[AMREX_SPACEDIM+idx];
 
-    std::shared_ptr <typename amrex::ParticleReal> data(d, free);
-    currVar.storeChunk(data,
+          std::shared_ptr <typename amrex::ParticleReal> data(d, free);
+          currVar.storeChunk(data,
                {offset}, {static_cast<unsigned long long>(numParticleOnTile)});
-    m_Series->flush();
-
+          m_Series->flush();
       }
     }
   }
