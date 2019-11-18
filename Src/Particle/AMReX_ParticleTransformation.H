@@ -60,7 +60,7 @@ template <typename PTile, typename F>
 void transformParticles(PTile& dst, const PTile& src, F&& f) noexcept
 {
     auto np = src.numParticles();
-    transformParticles(dst, src, 0, 0, np, f);
+    transformParticles(dst, src, 0, 0, np, std::forward<F>(f));
 }
 
 /**
@@ -227,7 +227,7 @@ int filterAndTransformParticles(PTile& dst, const PTile& src, Pred&& p, F&& f) n
         p_mask[i] = p(src_data, i);
     });
 
-    return filterAndTransformParticles(dst, src, mask.dataPtr(), f);
+    return filterAndTransformParticles(dst, src, mask.dataPtr(), std::forward<F>(f));
 }
     
 /**

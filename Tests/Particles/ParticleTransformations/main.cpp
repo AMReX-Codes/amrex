@@ -177,7 +177,7 @@ void transformParticles (PC& pc, F&& f)
             ParticleTileType ptile_tmp;
             ptile_tmp.resize(ptile.size());
             
-            amrex::transformParticles(ptile_tmp, ptile, f);
+            amrex::transformParticles(ptile_tmp, ptile, std::forward<F>(f));
             ptile.swap(ptile_tmp);
         }
     }
@@ -200,7 +200,7 @@ void filterParticles (PC& pc, F&& f)
             ParticleTileType ptile_tmp;
             ptile_tmp.resize(ptile.size());
             
-            auto num_output = amrex::filterParticles(ptile_tmp, ptile, f);
+            auto num_output = amrex::filterParticles(ptile_tmp, ptile, std::forward<F>(f));
             ptile.swap(ptile_tmp);
             ptile.resize(num_output);
         }
@@ -224,7 +224,7 @@ void filterAndTransformParticles (PC& pc, Pred&& p, F&& f)
             ParticleTileType ptile_tmp;
             ptile_tmp.resize(ptile.size());
             
-            auto num_output = amrex::filterAndTransformParticles(ptile_tmp, ptile, p, f);
+            auto num_output = amrex::filterAndTransformParticles(ptile_tmp, ptile, std::forward<Pred>(p), std::forward<F>(f));
             ptile.swap(ptile_tmp);
             ptile.resize(num_output);
         }
