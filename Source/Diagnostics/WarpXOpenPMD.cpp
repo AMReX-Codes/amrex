@@ -131,7 +131,6 @@ WarpXOpenPMDPlot::WriteOpenPMDParticles(const std::unique_ptr<MultiParticleConta
       // pc->plot_flags is 1 or 0, whether quantity is dumped or not.
 
       {
-    Timer t("openPMD plot");
         //
         SavePlotFile(pc,
            species_names[i],
