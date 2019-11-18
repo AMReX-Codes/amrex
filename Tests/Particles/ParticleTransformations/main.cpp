@@ -134,14 +134,21 @@ public:
 };
 
 struct Transformer
-{
+{    
+
+    int m_factor;
+
+    Transformer(int a_factor)
+        : m_factor(a_factor)
+    {}
+
     template <typename DstData, typename SrcData>
     AMREX_GPU_HOST_DEVICE
     void operator() (const DstData& dst, const SrcData& src,
                      int src_i, int dst_i) const noexcept
     {
         for (int j = 0; j < DstData::NAI; ++j)
-            dst.m_idata[j][dst_i] = 2*src.m_idata[j][src_i];
+            dst.m_idata[j][dst_i] = m_factor*src.m_idata[j][src_i];
     }
 };
 
@@ -208,16 +215,27 @@ void testReduce ()
         amrex::Print() << "About to initialize particles \n";
 
     pc.InitParticles(nppc);
+
+    TestParticleContainer pc2(geom, dm, ba);
+    pc2.copyParticles(pc);
     
     using PType = typename TestParticleContainer::SuperParticleType;
 
     auto mx1 = amrex::ReduceMax(pc, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> int { return p.idata(NSI+1); });
 
-    pc.transformParticles(Transformer());
+    pc2.transformParticles(Transformer(2));
     
-    auto mx2 = amrex::ReduceMax(pc, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> int { return p.idata(NSI+1); });
+    auto mx2 = amrex::ReduceMax(pc2, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> int { return p.idata(NSI+1); });
 
-    AMREX_ALWAYS_ASSERT(2*mx1 == mx2);    
+    AMREX_ALWAYS_ASSERT(2*mx1 == mx2);
+
+    pc2.clearParticles();
+    pc2.copyParticles(pc);
+    pc2.transformParticles(Transformer(3));
+    
+    auto mx3 = amrex::ReduceMax(pc2, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> int { return p.idata(NSI+1); });
+
+    AMREX_ALWAYS_ASSERT(mx3 == 3*mx1);
     
     amrex::Print() << "pass \n";
 }
