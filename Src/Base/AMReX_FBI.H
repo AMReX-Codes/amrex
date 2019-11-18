@@ -21,6 +21,95 @@ struct VoidCopyTag {
     Box dbox;
 };
 
+template <class T>
+struct Array4BoxTag {
+    Array4<T> dfab;
+    Box       dbox;
+};
+
+#ifdef AMREX_USE_GPU
+template <class T, class F>
+void
+ParallelFor (Vector<Array4BoxTag<T> > const& tags, int ncomp, F && f)
+{
+    typedef Array4BoxTag<T> TagType;
+
+    const int ntags = tags.size();
+    if (ntags == 0) return;
+
+    int ntotwarps = 0;
+    Vector<int> nwarps;
+    nwarps.reserve(ntags+1);
+    for (int i = 0; i < ntags; ++i)
+    {
+        auto& tag = tags[i];
+        nwarps.push_back(ntotwarps);
+        ntotwarps += static_cast<int>(tag.dbox.numPts()+Gpu::Device::warp_size-1)/Gpu::Device::warp_size;
+    }
+    nwarps.push_back(ntotwarps);
+
+    std::size_t nbytes = ntags*sizeof(TagType);
+    auto d_tags = static_cast<TagType*>(The_Device_Arena()->alloc(nbytes));
+    Gpu::htod_memcpy(d_tags, tags.data(), nbytes);
+
+    nbytes = (ntags+1)*sizeof(int);
+    auto d_nwarps = static_cast<int*>(The_Device_Arena()->alloc(nbytes));
+    Gpu::htod_memcpy(d_nwarps, nwarps.data(), nbytes);
+
+    constexpr int nthreads = 128;
+    constexpr int nwarps_per_block = nthreads/Gpu::Device::warp_size;
+    int nblocks = (ntotwarps + nwarps_per_block-1) / nwarps_per_block;
+    amrex::launch_global<<<nblocks,nthreads>>>(
+    [=] AMREX_GPU_DEVICE () noexcept
+    {
+        int g_tid = blockDim.x*blockIdx.x + threadIdx.x;
+        int g_wid = g_tid / Gpu::Device::warp_size;
+        if (g_wid >= ntotwarps) return;
+
+        int tag_id;
+        {
+            int lo = 0;
+            int hi = ntags;
+            while (lo <= hi)
+            {
+                int mid = (lo+hi)/2;
+                if (g_wid >= d_nwarps[mid] and g_wid < d_nwarps[mid+1]) {
+                    tag_id = mid;
+                    break;
+                } else if (g_wid < d_nwarps[mid]) {
+                    hi = mid-1;
+                } else {
+                    lo = mid+1;
+                }
+            };
+        }
+
+        auto tag = d_tags[tag_id];
+        int ncells = tag.dbox.numPts();
+        int b_wid = g_wid - d_nwarps[tag_id]; // b_wid'th warp on this box
+        int lane = threadIdx.x % Gpu::Device::warp_size;
+        int icell = b_wid*Gpu::Device::warp_size + lane;
+        if (icell < ncells) {
+            const auto len = amrex::length(tag.dbox);
+            const auto lo  = amrex::lbound(tag.dbox);
+            int k =  icell /   (len.x*len.y);
+            int j = (icell - k*(len.x*len.y)) /   len.x;
+            int i = (icell - k*(len.x*len.y)) - j*len.x;
+            i += lo.x;
+            j += lo.y;
+            k += lo.z;
+            for (int n = 0; n < ncomp; ++n) {
+                f(i,j,k,n,tag.dfab);
+            }
+        }
+    });
+
+    Gpu::synchronize();
+    The_Device_Arena()->free(d_nwarps);
+    The_Device_Arena()->free(d_tags);
+}
+#endif
+
 namespace detail {
 
 #ifdef AMREX_USE_GPU
@@ -409,6 +498,65 @@ FabArray<FAB>::FB_local_copy_gpu (const FB& TheFB, int scomp, int ncomp)
     } else {
         detail::fab_to_fab_atomic_cpy<value_type>(loc_copy_tags, scomp, scomp, ncomp, masks);
     }
+}
+
+template <class FAB>
+void
+FabArray<FAB>::FB_local_setVal_gpu (typename FabArray<FAB>::value_type x,
+                                    const FB& TheFB, int scomp, int ncomp)
+{
+    auto const& LocTags = *(TheFB.m_LocTags);
+    int N_locs = LocTags.size();
+    if (N_locs == 0) return;
+    bool is_thread_safe = TheFB.m_threadsafe_loc;
+
+    typedef Array4BoxTag<value_type> TagType;
+    Vector<TagType> loc_setval_tags;
+    loc_setval_tags.reserve(N_locs);
+
+    AMREX_ALWAYS_ASSERT(amrex::IsStoreAtomic<value_type>::value or is_thread_safe);
+
+    for (int i = 0; i < N_locs; ++i)
+    {
+        const CopyComTag& tag = LocTags[i];
+        BL_ASSERT(distributionMap[tag.dstIndex] == ParallelDescriptor::MyProc());
+        BL_ASSERT(distributionMap[tag.srcIndex] == ParallelDescriptor::MyProc());
+        loc_setval_tags.push_back({this->array(tag.dstIndex), tag.dbox});
+    }
+
+    amrex::ParallelFor(loc_setval_tags, ncomp,
+    [x,scomp] AMREX_GPU_DEVICE (int i, int j, int k, int n, Array4<value_type> const& a) noexcept
+    {
+        a(i,j,k,n+scomp) = x;
+    });
+}
+
+template <class FAB>
+void
+FabArray<FAB>::FB_remote_setVal_gpu (typename FabArray<FAB>::value_type x,
+                                    const FB& TheFB, int scomp, int ncomp)
+{
+    auto const& RcvTags = *(TheFB.m_RcvTags);
+    bool is_thread_safe = TheFB.m_threadsafe_rcv;
+
+    typedef Array4BoxTag<value_type> TagType;
+    Vector<TagType> rcv_setval_tags;
+
+    for (auto it = RcvTags.begin(); it != RcvTags.end(); ++it) {
+        for (auto const& tag: it->second) {
+            rcv_setval_tags.push_back({this->array(tag.dstIndex), tag.dbox});
+        }
+    }
+
+    if (rcv_setval_tags.empty()) return;
+
+    AMREX_ALWAYS_ASSERT(amrex::IsStoreAtomic<value_type>::value or is_thread_safe);
+
+    amrex::ParallelFor(rcv_setval_tags, ncomp,
+    [x,scomp] AMREX_GPU_DEVICE (int i, int j, int k, int n, Array4<value_type> const& a) noexcept
+    {
+        a(i,j,k,n+scomp) = x;
+    });
 }
 
 #if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10))

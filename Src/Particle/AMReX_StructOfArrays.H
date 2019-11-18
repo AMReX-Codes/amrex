@@ -5,7 +5,7 @@
 
 #include <AMReX_REAL.H>
 #include <AMReX_Vector.H>
-#include <AMReX_CudaContainers.H>
+#include <AMReX_GpuContainers.H>
 
 namespace amrex {
 
@@ -27,6 +27,10 @@ struct StructOfArrays {
         m_runtime_idata.resize(a_num_runtime_int );
     }
     
+    int NumRealComps () const noexcept { return NReal + m_runtime_rdata.size(); }
+
+    int NumIntComps () const noexcept { return NInt + m_runtime_idata.size(); }
+
     std::array<RealVector, NReal>& GetRealData () { return m_rdata; }
     std::array< IntVector,  NInt>& GetIntData  () { return m_idata; }
 
@@ -120,7 +124,7 @@ struct StructOfArrays {
 
     int getNumNeighbors () { return m_num_neighbor_particles; }
 
-    void resize(size_t count)
+    void resize (size_t count)
     {
         for (int i = 0; i < NReal; ++i) m_rdata[i].resize(count);
         for (int i = 0; i < NInt;  ++i) m_idata[i].resize(count); 

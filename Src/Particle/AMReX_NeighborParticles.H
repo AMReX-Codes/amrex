@@ -4,6 +4,7 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_Particles.H>
+#include <AMReX_ParticleUtil.H>
 
 #ifdef AMREX_USE_CUDA
 #include <AMReX_NeighborList.H>
@@ -432,11 +433,11 @@ protected:
     ParticleCopyOp neighbor_copy_op;
     ParticleCopyPlan neighbor_copy_plan;
 
-    amrex::Gpu::DeviceVector<ParticleType> snd_buffer;
-    amrex::Gpu::DeviceVector<ParticleType> rcv_buffer;
+    amrex::Gpu::DeviceVector<char> snd_buffer;
+    amrex::Gpu::DeviceVector<char> rcv_buffer;
 
-    Gpu::PinnedDeviceVector<ParticleType> pinned_snd_buffer;
-    Gpu::PinnedDeviceVector<ParticleType> pinned_rcv_buffer;
+    Gpu::PinnedDeviceVector<char> pinned_snd_buffer;
+    Gpu::PinnedDeviceVector<char> pinned_rcv_buffer;
 
     std::map<std::pair<int, int>, amrex::NeighborList<ParticleType> > m_neighbor_list;
 #endif

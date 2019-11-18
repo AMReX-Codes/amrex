@@ -25,7 +25,9 @@ For each one, generate a device copy by prepending attributes(device) prior to t
 
   end subroutine sub_device
 
-The host copy is retained with the same name.
+The host copy is retained with the same name, unless no_host_version = True. The suffix can be modified
+using the argument device_suffix. Combining these options (no_host_version = True, device_suffix = "")
+can be used to implement a device-only implementation.
 
 Limitations:
 
@@ -59,7 +61,7 @@ import re
 re_detect_fun = re.compile('! *function\s')
 re_detect_endcomment = re.compile('!')
 
-def case_insensitive_replace(s, old, new, count=-1, on_condition=None):
+def case_insensitive_replace(s, old, new, device_suffix, count=-1, on_condition=None):
     # Does a case-insensitive replacement of string old
     # by string new in the string s.
     # Does count number of replacements.
@@ -86,8 +88,8 @@ def case_insensitive_replace(s, old, new, count=-1, on_condition=None):
                 break
             else:
                 iend = istart + len(old)
-        if new.lower() == old.lower() + '_device':
-            actual_new = s[istart:iend] + '_device'
+        if new.lower() == old.lower() + device_suffix:
+            actual_new = s[istart:iend] + device_suffix
         else:
             actual_new = new
         s = s[:istart] + actual_new + s[iend:]
@@ -124,7 +126,7 @@ def get_procedure_name(procedure):
 
 
 
-def append_device_to_line(line, subs):
+def append_device_to_line(line, subs, device_suffix):
 
     new_line = line
 
@@ -149,7 +151,7 @@ def append_device_to_line(line, subs):
             found_sub = False
             for sub_name in subs:
                 if sub_name.lower() == var.strip().lower():
-                    new_line += var.strip().lower() + '_device'
+                    new_line += var.strip().lower() + device_suffix
                     found_sub = True
                     break
 
@@ -165,25 +167,25 @@ def append_device_to_line(line, subs):
 
         for sub_name in subs:
             re_subroutine_call = re.compile('(call ' + sub_name.lower() + '\s|\()')
-            re_subroutine_device_call = re.compile('call ' + sub_name.lower() + '_device\s|\(')
+            re_subroutine_device_call = re.compile('call ' + sub_name.lower() + device_suffix + '\s|\(')
             m_subroutine_call = re_subroutine_call.search(new_line.lower())
             m_subroutine_device_call = re_subroutine_device_call.search(new_line.lower())
             if m_subroutine_call and not m_subroutine_device_call:
                 actual_new_line = new_line[:m_subroutine_call.start()]
-                actual_new_line = actual_new_line + m_subroutine_call.group(1).replace(sub_name.lower(), sub_name + '_device')
+                actual_new_line = actual_new_line + m_subroutine_call.group(1).replace(sub_name.lower(), sub_name + device_suffix)
                 actual_new_line = actual_new_line + new_line[m_subroutine_call.end():]
                 new_line = actual_new_line
                 break
 
-            if sub_name.lower() in line.lower().split() and sub_name.lower() + '_device' not in line.lower().split():
-                new_line = case_insensitive_replace(new_line, sub_name, sub_name + '_device', 
+            if sub_name.lower() in line.lower().split() and sub_name.lower() + device_suffix not in line.lower().split():
+                new_line = case_insensitive_replace(new_line, sub_name, sub_name + device_suffix, device_suffix,
                                                     on_condition=lambda x: get_replace_procedure(x, sub_name.lower()))
 
-            elif sub_name.lower() in line.lower() and sub_name.lower() + '_device' not in line.lower():
+            elif sub_name.lower() in line.lower() and sub_name.lower() + device_suffix not in line.lower():
                 # Catch function calls here.
                 # Make sure "bar(" is not any of "foobar(" or "foo % bar(" or "foo_bar("
                 old_fun = sub_name.lower() + '('
-                new_fun = sub_name.lower() + '_device' + '('
+                new_fun = sub_name.lower() + device_suffix + '('
                 re_old_fun = re.compile(sub_name.lower() + " *\(")
                 re_not_fun = re.compile("((\w)|(% *))" + sub_name.lower() + " *\(")
                 actual_new_line = ''
@@ -197,7 +199,7 @@ def append_device_to_line(line, subs):
                             new_line = new_line[m_not_fun.end():]
                         else:
                             # do the replacement, it's a function call
-                            substring = case_insensitive_replace(new_line[:m_old_fun.end()], old_fun, new_fun)
+                            substring = case_insensitive_replace(new_line[:m_old_fun.end()], old_fun, new_fun, device_suffix)
                             actual_new_line = actual_new_line + substring
                             new_line = new_line[m_old_fun.end():]
                     else:
@@ -211,7 +213,7 @@ def append_device_to_line(line, subs):
     return new_line
 
 
-def get_function_uses(line):
+def get_function_uses(line, device_suffix):
     # Device functions in another module will
     # be detected expecting that the 'use/only' line contains
     # nothing but functions and ends with "! function"
@@ -223,19 +225,19 @@ def get_function_uses(line):
         line = line[:mfun.start()]
         sline = line.split(':')
         for var in sline[1].split(','):
-            if not '_device' in var.strip().lower() and not var.strip().lower() in imported_functions:
+            if not device_suffix in var.strip().lower() and not var.strip().lower() in imported_functions:
                 imported_functions.append(var.strip())
 
     return imported_functions
 
 
-def append_device(procedure):
+def append_device(procedure, device_suffix):
 
     new_procedure = procedure
     
     called_subs = []
     for line in procedure.split('\n'):
-        called_subs = called_subs + get_function_uses(line)
+        called_subs = called_subs + get_function_uses(line, device_suffix)
         if "call " in line.lower():
             try:
                 ex_index = line.index('!')
@@ -248,10 +250,10 @@ def append_device(procedure):
                     continue
             sub_name = line.lower().split('call ')[1].split('(')[0].strip()
             if sub_name != "syncthreads":
-                if not "_device" in sub_name and not sub_name.lower() in lowerlist(called_subs):
+                if not device_suffix in sub_name and not sub_name.lower() in lowerlist(called_subs):
                     called_subs.append(sub_name)
 
-    new_procedure = [append_device_to_line(line, called_subs) for line in procedure.split('\n')]
+    new_procedure = [append_device_to_line(line, called_subs, device_suffix) for line in procedure.split('\n')]
     new_procedure = '\n'.join(new_procedure)
 
     return new_procedure
@@ -274,7 +276,7 @@ def get_replace_procedure(line, pname):
     return istart, iend, found
 
 
-def create_device_version(procedure):
+def create_device_version(procedure, device_suffix):
 
     procedure_name = get_procedure_name(procedure).lower()
 
@@ -291,7 +293,7 @@ def create_device_version(procedure):
     for line in procedure.split('\n'):
         m_subroutine_dec = re_subroutine_dec.search(line.lower())
         if (m_subroutine_dec or "bind" in line.lower()) and not line.strip().startswith('!'):
-            new_line = case_insensitive_replace(line, procedure_name, procedure_name + '_device', on_condition=lambda x: get_replace_procedure(x, procedure_name))
+            new_line = case_insensitive_replace(line, procedure_name, procedure_name + device_suffix, device_suffix, on_condition=lambda x: get_replace_procedure(x, procedure_name))
         else:
             new_line = line
         device_procedure.append(new_line)
@@ -303,18 +305,18 @@ def create_device_version(procedure):
     # already has _device appended to it, or is being generated through this
     # script. We'll guard against known CUDA intrinsics.
 
-    device_procedure = append_device(device_procedure)
+    device_procedure = append_device(device_procedure, device_suffix)
 
     return device_procedure
 
 
 
-def create_host_version(device_procedure):
+def create_host_version(device_procedure, device_suffix):
 
     # Create a host version of the procedure as well.
 
-    host_procedure = device_procedure.replace("_device","").replace("attributes(device)", "attributes(host)")
-    assert(host_procedure.count('_device') == 0)
+    host_procedure = device_procedure.replace(device_suffix,"").replace("attributes(device)", "attributes(host)")
+    assert(host_procedure.count(device_suffix) == 0)
 
     # Some functions will have device code that is wrapped in #ifdef AMREX_USE_GPU_PRAGMA or
     # #if defined(AMREX_USE_GPU_PRAGMA), and host code otherwise. To deal with this, we'll undefine
@@ -326,12 +328,11 @@ def create_host_version(device_procedure):
 
 
 
-def update_fortran_procedures(ffile):
+def update_fortran_procedures(ffile, device_suffix, no_host_version):
     """For procedures marked up with !$gpu, generate a copy marked
     with attributes(device), and create a host copy as well, to
     avoid the CUF restriction on attributes(host, device) In order
-    to avoid name collisions, we'll name one with a _device suffix
-    and the other with a _host suffix."""
+    to avoid name collisions, we'll name one with a _device suffix."""
 
     gpu_targets = []
 
@@ -387,9 +388,9 @@ def update_fortran_procedures(ffile):
                     procedure = procedure.replace("AMREX_DEVICE", "attributes(device)", 1)
                 else:
                     if get_procedure_type(procedure) == "subroutine":
-                        procedure = case_insensitive_replace(procedure, "subroutine", "attributes(device) subroutine", 1)
+                        procedure = case_insensitive_replace(procedure, "subroutine", "attributes(device) subroutine", device_suffix, 1)
                     elif get_procedure_type(procedure) == "function":
-                        procedure = case_insensitive_replace(procedure, "function", "attributes(device) function", 1)
+                        procedure = case_insensitive_replace(procedure, "function", "attributes(device) function", device_suffix, 1)
                     else:
                         sys.exit("Error - Procedure is not a subroutine or function!")
 
@@ -405,8 +406,9 @@ def update_fortran_procedures(ffile):
                         gpu_targets.append(procedure_name)
 
                     # Create device and host versions of the procedure.
-                    device_procedure = create_device_version(procedure)
-                    host_procedure = create_host_version(device_procedure)
+                    device_procedure = create_device_version(procedure, device_suffix)
+                    if not no_host_version:
+                        host_procedure = create_host_version(device_procedure, device_suffix)
 
                     # Blank out the original procedure; there is nothing left to do with it.
 
@@ -421,7 +423,7 @@ def update_fortran_procedures(ffile):
                 # inside to append_device, but no other processing
                 # needs to be done.
 
-                procedure = append_device(procedure)
+                procedure = append_device(procedure, device_suffix)
 
 
 
@@ -469,7 +471,7 @@ def update_fortran_procedures(ffile):
 
         if in_device_subroutine:
             # Detect any used functions from other modules
-            subroutine_imported_functions = subroutine_imported_functions + get_function_uses(line)
+            subroutine_imported_functions = subroutine_imported_functions + get_function_uses(line, device_suffix)
 
         # If there are any calls inside a device procedure to
         # a known device procedure but it is missing the _device
@@ -478,17 +480,17 @@ def update_fortran_procedures(ffile):
         # processing to know what is a function (versus a variable).
 
         for target in gpu_targets:
-            if "end function " + target.lower() + "_device" in line.lower() or "end subroutine " + target.lower() + "_device" in line.lower():
+            if "end function " + target.lower() + device_suffix in line.lower() or "end subroutine " + target.lower() + device_suffix in line.lower():
                 in_device_subroutine = False
                 subroutine_imported_functions = []
                 break
 
-            elif "function " + target.lower() + "_device" in line.lower() or "subroutine " + target.lower() + "_device" in line.lower():
+            elif "function " + target.lower() + device_suffix in line.lower() or "subroutine " + target.lower() + device_suffix in line.lower():
                 in_device_subroutine = True
                 break
 
         if in_device_subroutine:
-            line = append_device_to_line(line, set(gpu_targets + subroutine_imported_functions))
+            line = append_device_to_line(line, set(gpu_targets + subroutine_imported_functions), device_suffix)
 
         fout.write(line)
 
@@ -503,6 +505,16 @@ if __name__ == "__main__":
     parser.add_argument("--fortran",
                         help="the name of the Fortran file to update")
 
+    parser.add_argument("--device_suffix",
+                        help="suffix to add to device function names",
+                        default="_device")
+
+    parser.add_argument("--no_host_version",
+                        help="should we implement a host version?",
+                        dest='no_host_version',
+                        action='store_true')
+    parser.set_defaults(no_host_version=False)
+
     args = parser.parse_args()
 
-    update_fortran_procedures(args.fortran)
+    update_fortran_procedures(args.fortran, args.device_suffix, args.no_host_version)

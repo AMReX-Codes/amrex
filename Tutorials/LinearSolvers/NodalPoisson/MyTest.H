@@ -35,6 +35,8 @@ private:
     int max_fmg_iter = 0;
     amrex::Real reltol = 1.e-11;
 
+    int gpu_regtest = 0;
+
     amrex::Vector<amrex::Geometry> geom;
     amrex::Vector<amrex::BoxArray> grids;
     amrex::Vector<amrex::DistributionMapping> dmap;

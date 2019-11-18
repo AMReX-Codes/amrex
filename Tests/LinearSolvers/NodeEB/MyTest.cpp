@@ -110,7 +110,27 @@ MyTest::solve ()
 void
 MyTest::writePlotfile ()
 {
-    amrex::WriteSingleLevelPlotfile("plot", vel[0], {AMREX_D_DECL("xvel","yvel","zvel")}, geom[0], 0.0, 0);
+#if (AMREX_SPACEDIM == 3)
+    if (gpu_regtest)
+    {
+        MultiFab veltmp(vel[0].boxArray(), vel[0].DistributionMap(), AMREX_SPACEDIM-1,0);
+        int icomp = 0;
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            if (idim != cylinder_direction) {
+                MultiFab::Copy(veltmp,vel[0],idim,icomp,1,0);
+                ++icomp;
+            }
+        }
+        Vector<std::string> vnames;
+        if (cylinder_direction != 0) vnames.push_back("xvel");
+        if (cylinder_direction != 1) vnames.push_back("yvel");
+        if (cylinder_direction != 2) vnames.push_back("zvel");
+        amrex::WriteSingleLevelPlotfile("plot", veltmp, vnames, geom[0], 0.0, 0);
+    } else
+#endif
+    {
+        amrex::WriteSingleLevelPlotfile("plot", vel[0], {AMREX_D_DECL("xvel","yvel","zvel")}, geom[0], 0.0, 0);
+    }
 }
 
 void
@@ -133,6 +153,8 @@ MyTest::readParameters ()
 #endif
 
     pp.query("sigma", sigma);
+
+    pp.query("gpu_regtest", gpu_regtest);
 
 #if (AMREX_SPACEDIM == 3)
     ParmParse pp_eb("eb2");

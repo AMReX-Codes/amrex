@@ -215,7 +215,7 @@ WriteMultiLevelPlotfile (const std::string& plotfilename, int nlevels,
         if (mf[level]->nGrow() > 0) {
             mf_tmp.reset(new MultiFab(mf[level]->boxArray(),
                                       mf[level]->DistributionMap(),
-                                      mf[level]->nComp(), 0, MFInfo(),
+                                      mf[level]->nComp(), 0, MFInfo().SetArena(The_Pinned_Arena()),
                                       mf[level]->Factory()));
             MultiFab::Copy(*mf_tmp, *mf[level], 0, 0, mf[level]->nComp(), 0);
             data = mf_tmp.get();
