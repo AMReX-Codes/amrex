@@ -109,33 +109,10 @@ public:
             }
         }
     }
-
-    template <typename F>
-    void transformParticles (F&& f)
-    {
-        BL_PROFILE("transformParticles");
-
-        for (int lev = 0; lev <= finestLevel(); ++lev)
-        {
-            for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
-            {
-                int gid = mfi.index();
-                int tid = mfi.LocalTileIndex();
-                auto& ptile = ParticlesAt(lev, mfi);
-
-                ParticleTileType ptile_tmp;
-                ptile_tmp.resize(ptile.size());
-
-                amrex::transformParticles(ptile_tmp, ptile, f);
-                ptile.swap(ptile_tmp);
-            }
-        }
-    }
 };
 
 struct Transformer
 {    
-
     int m_factor;
 
     Transformer(int a_factor)
@@ -151,6 +128,54 @@ struct Transformer
             dst.m_idata[j][dst_i] = m_factor*src.m_idata[j][src_i];
     }
 };
+
+template <typename PC, typename F>
+void transformParticles (PC& pc, F&& f)
+{
+    BL_PROFILE("transformParticles");
+
+    using ParIter = typename PC::ParConstIterType;
+    using ParticleTileType = typename PC::ParticleTileType;
+    
+    for (int lev = 0; lev <= pc.finestLevel(); ++lev)
+    {
+        for(ParIter pti(pc, lev); pti.isValid(); ++pti)
+        {
+            auto& ptile = pc.ParticlesAt(lev, pti);
+            
+            ParticleTileType ptile_tmp;
+            ptile_tmp.resize(ptile.size());
+            
+            amrex::transformParticles(ptile_tmp, ptile, f);
+            ptile.swap(ptile_tmp);
+        }
+    }
+}
+
+template <typename PC>
+void testTransform(const PC& pc)
+{
+    using PType = typename PC::SuperParticleType;
+
+    PC pc2(pc.Geom(0), pc.ParticleDistributionMap(0), pc.ParticleBoxArray(0));
+    pc2.copyParticles(pc);
+
+    auto mx1 = amrex::ReduceMax(pc2, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> int { return p.idata(NSI+1); });
+
+    transformParticles(pc2, Transformer(2));
+    
+    auto mx2 = amrex::ReduceMax(pc2, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> int { return p.idata(NSI+1); });
+
+    AMREX_ALWAYS_ASSERT(2*mx1 == mx2);
+
+    pc2.clearParticles();
+    pc2.copyParticles(pc);
+    transformParticles(pc2, Transformer(3));
+    
+    auto mx3 = amrex::ReduceMax(pc2, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> int { return p.idata(NSI+1); });
+
+    AMREX_ALWAYS_ASSERT(mx3 == 3*mx1);    
+}
 
 struct TestParams
 {
@@ -216,26 +241,7 @@ void testReduce ()
 
     pc.InitParticles(nppc);
 
-    TestParticleContainer pc2(geom, dm, ba);
-    pc2.copyParticles(pc);
-    
-    using PType = typename TestParticleContainer::SuperParticleType;
-
-    auto mx1 = amrex::ReduceMax(pc, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> int { return p.idata(NSI+1); });
-
-    pc2.transformParticles(Transformer(2));
-    
-    auto mx2 = amrex::ReduceMax(pc2, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> int { return p.idata(NSI+1); });
-
-    AMREX_ALWAYS_ASSERT(2*mx1 == mx2);
-
-    pc2.clearParticles();
-    pc2.copyParticles(pc);
-    pc2.transformParticles(Transformer(3));
-    
-    auto mx3 = amrex::ReduceMax(pc2, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> int { return p.idata(NSI+1); });
-
-    AMREX_ALWAYS_ASSERT(mx3 == 3*mx1);
-    
+    testTransform(pc);
+        
     amrex::Print() << "pass \n";
 }
