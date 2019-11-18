@@ -115,7 +115,11 @@ struct Transformer
 {    
     int m_factor;
 
-    Transformer(int a_factor)
+    /**
+       \brief This copies the particle but multiplies all the idata by m_factor
+       *
+     **/
+    Transformer (int a_factor)
         : m_factor(a_factor)
     {}
 
@@ -124,8 +128,35 @@ struct Transformer
     void operator() (const DstData& dst, const SrcData& src,
                      int src_i, int dst_i) const noexcept
     {
+        dst.m_aos[dst_i] = src.m_aos[src_i];
+        for (int j = 0; j < DstData::NAR; ++j)
+            dst.m_rdata[j][dst_i] = src.m_rdata[j][src_i];
+        for (int j = 0; j < dst.m_num_runtime_real; ++j)
+            dst.m_runtime_rdata[j][dst_i] = src.m_runtime_rdata[j][src_i];
         for (int j = 0; j < DstData::NAI; ++j)
             dst.m_idata[j][dst_i] = m_factor*src.m_idata[j][src_i];
+        for (int j = 0; j < dst.m_num_runtime_int; ++j)
+            dst.m_runtime_idata[j][dst_i] = src.m_runtime_idata[j][src_i];
+    }
+};
+
+struct KeepOddFilter
+{    
+    template <typename SrcData>
+    AMREX_GPU_HOST_DEVICE
+    int operator() (const SrcData& src, int i) const noexcept
+    {
+        return (src.m_aos[i].id() % 2 == 1);
+    }
+};
+
+struct KeepEvenFilter
+{    
+    template <typename SrcData>
+    AMREX_GPU_HOST_DEVICE
+    int operator() (const SrcData& src, int i) const noexcept
+    {
+        return (src.m_aos[i].id() % 2 == 0);
     }
 };
 
@@ -152,31 +183,6 @@ void transformParticles (PC& pc, F&& f)
     }
 }
 
-template <typename PC>
-void testTransform(const PC& pc)
-{
-    using PType = typename PC::SuperParticleType;
-
-    PC pc2(pc.Geom(0), pc.ParticleDistributionMap(0), pc.ParticleBoxArray(0));
-    pc2.copyParticles(pc);
-
-    auto mx1 = amrex::ReduceMax(pc2, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> int { return p.idata(NSI+1); });
-
-    transformParticles(pc2, Transformer(2));
-    
-    auto mx2 = amrex::ReduceMax(pc2, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> int { return p.idata(NSI+1); });
-
-    AMREX_ALWAYS_ASSERT(2*mx1 == mx2);
-
-    pc2.clearParticles();
-    pc2.copyParticles(pc);
-    transformParticles(pc2, Transformer(3));
-    
-    auto mx3 = amrex::ReduceMax(pc2, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> int { return p.idata(NSI+1); });
-
-    AMREX_ALWAYS_ASSERT(mx3 == 3*mx1);    
-}
-
 template <typename PC, typename F>
 void filterParticles (PC& pc, F&& f)
 {
@@ -201,28 +207,63 @@ void filterParticles (PC& pc, F&& f)
     }
 }
 
-struct KeepOddFilter
-{    
-    template <typename SrcData>
-    AMREX_GPU_HOST_DEVICE
-    int operator() (const SrcData& src, int i) const noexcept
-    {
-        return (src.m_aos[i].id() % 2 == 1);
-    }
-};
+template <typename PC, typename Pred, typename F>
+void filterAndTransformParticles (PC& pc, Pred&& p, F&& f)
+{
+    BL_PROFILE("filterAndTransformParticles");
 
-struct KeepEvenFilter
-{    
-    template <typename SrcData>
-    AMREX_GPU_HOST_DEVICE
-    int operator() (const SrcData& src, int i) const noexcept
+    using ParIter = typename PC::ParIterType;
+    using ParticleTileType = typename PC::ParticleTileType;
+    
+    for (int lev = 0; lev <= pc.finestLevel(); ++lev)
     {
-        return (src.m_aos[i].id() % 2 == 0);
+        for(ParIter pti(pc, lev); pti.isValid(); ++pti)
+        {
+            auto& ptile = pc.ParticlesAt(lev, pti);
+            
+            ParticleTileType ptile_tmp;
+            ptile_tmp.resize(ptile.size());
+            
+            auto num_output = amrex::filterAndTransformParticles(ptile_tmp, ptile, p, f);
+            ptile.swap(ptile_tmp);
+            ptile.resize(num_output);
+        }
     }
-};
+}
 
 template <typename PC>
-void testFilter(const PC& pc)
+void testTransform (const PC& pc)
+{
+    using PType = typename PC::SuperParticleType;
+
+    PC pc2(pc.Geom(0), pc.ParticleDistributionMap(0), pc.ParticleBoxArray(0));
+    pc2.copyParticles(pc);
+
+    auto np_old = pc2.TotalNumberOfParticles();
+    
+    auto mx1 = amrex::ReduceMax(pc2, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> int { return p.idata(NSI+1); });
+
+    transformParticles(pc2, Transformer(2));
+    
+    auto mx2 = amrex::ReduceMax(pc2, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> int { return p.idata(NSI+1); });
+
+    AMREX_ALWAYS_ASSERT(2*mx1 == mx2);
+
+    auto np_new = pc2.TotalNumberOfParticles();
+
+    AMREX_ALWAYS_ASSERT(np_old == np_new);
+    
+    pc2.clearParticles();
+    pc2.copyParticles(pc);
+    transformParticles(pc2, Transformer(3));
+    
+    auto mx3 = amrex::ReduceMax(pc2, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> int { return p.idata(NSI+1); });
+
+    AMREX_ALWAYS_ASSERT(mx3 == 3*mx1);    
+}
+
+template <typename PC>
+void testFilter (const PC& pc)
 {
     using PType = typename PC::SuperParticleType;
 
@@ -259,6 +300,28 @@ void testFilter(const PC& pc)
     AMREX_ALWAYS_ASSERT(np_new == 0);
 }
 
+template <typename PC>
+void testFilterAndTransform (const PC& pc)
+{
+    using PType = typename PC::SuperParticleType;
+
+    PC pc2(pc.Geom(0), pc.ParticleDistributionMap(0), pc.ParticleBoxArray(0));
+    pc2.copyParticles(pc);
+
+    auto mx1 = amrex::ReduceMax(pc2, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> int { return p.idata(NSI+1); });
+
+    auto np_old = pc2.TotalNumberOfParticles();
+    
+    filterAndTransformParticles(pc2, KeepOddFilter(), Transformer(3));
+
+    auto mx2 = amrex::ReduceMax(pc2, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> int { return p.idata(NSI+1); });
+    
+    auto np_new = pc2.TotalNumberOfParticles();
+    
+    AMREX_ALWAYS_ASSERT(2*np_new == np_old);
+    AMREX_ALWAYS_ASSERT(mx2 == 3*mx1);
+}
+
 struct TestParams
 {
     IntVect size;
@@ -266,7 +329,7 @@ struct TestParams
     int num_ppc;
 };
 
-void testTransformations();
+void testTransformations ();
 
 int main (int argc, char* argv[])
 {
@@ -278,7 +341,7 @@ int main (int argc, char* argv[])
     amrex::Finalize();
 }
 
-void get_test_params(TestParams& params, const std::string& prefix)
+void get_test_params (TestParams& params, const std::string& prefix)
 {
     ParmParse pp(prefix);
     pp.get("size", params.size);
@@ -326,6 +389,8 @@ void testTransformations ()
     testTransform(pc);
 
     testFilter(pc);
+
+    testFilterAndTransform(pc);
     
     amrex::Print() << "pass \n";
 }
