@@ -13,23 +13,53 @@ namespace Gpu {
 
 #ifdef AMREX_USE_GPU
 
+    /**
+     * \brief A PODVector that uses the standard memory Arena.
+     * Note that, on NVIDIA architectures, this Arena is actually
+     * managed.
+     *
+     */
     template <class T>
     using DeviceVector = PODVector<T, ArenaAllocator<T> >;
-	
+
+    /**
+     * \brief A PODVector that uses host memory. No Arena is used.
+     *
+     */
     template <class T>
     using HostVector = PODVector<T>;
-    
-    template <class T>
-    using ManagedDeviceVector = PODVector<T, ManagedArenaAllocator<T> >;
-    
+
+    /**
+     * \brief A PODVector that uses the managed memory arena.
+     *
+     */
     template <class T>
     using ManagedVector = PODVector<T, ManagedArenaAllocator<T> >;
 
+    /**
+     * \brief A PODVector that uses the pinned memory arena.
+     *
+     */
     template <class T>
     using PinnedVector = PODVector<T, PinnedArenaAllocator<T> >;
 
+    /**
+     * \brief The behavior of PolymorphicVector changes depending on
+     * the amrex.use_gpu_aware_mpi runtime flag. If the flag is true,
+     * this vector will use device memory. If it is false, this Vector
+     * will use pinned memory.
+     *
+     */
     template <class T>
     using PolymorphicVector = PODVector<T, PolymorphicAllocator<T> >;
+
+    /**
+     * \brief This is identical to ManagedVector<T>. The ManagedDeviceVector 
+     * form is deprecated and will be removed in a future release.
+     *
+     */
+    template <class T>
+    using ManagedDeviceVector = PODVector<T, ManagedArenaAllocator<T> >;
     
 #else
     //! When Cuda is off, all these containers revert to amrex::Vector. 
