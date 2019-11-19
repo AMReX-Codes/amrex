@@ -1077,9 +1077,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                 auto dst_grids_ptr = m_grids_r.dataPtr();
                 auto dst_levs_ptr = m_levs_r.dataPtr();
                 
-                int num_rr = m_num_runtime_real;
-                int num_ri = m_num_runtime_int;
-
                 num_stay = Scan::PrefixSum<int> (np, 
                     [=] AMREX_GPU_DEVICE (int i) -> int 
                     {
@@ -1087,28 +1084,15 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                     },
                     [=] AMREX_GPU_DEVICE (int i, int const& s)
                     {
-                        if (particle_stays(i)) {
-                            dst_data.m_aos[s] = src_data.m_aos[i];
-                            for (int j = 0; j < NArrayReal; ++j)
-                                dst_data.m_rdata[j][s] = src_data.m_rdata[j][i];
-                            for (int j = 0; j < NArrayInt; ++j)
-                                dst_data.m_idata[j][s] = src_data.m_idata[j][i];
-                            for (int j = 0; j < num_rr; ++j)
-                                dst_data.m_runtime_rdata[j][s] = src_data.m_runtime_rdata[j][i];
-                            for (int j = 0; j < num_ri; ++j)
-                                dst_data.m_runtime_idata[j][s] = src_data.m_runtime_idata[j][i];
+                        if ( particle_stays(i) )
+                        {
+                            copyParticle(dst_data, src_data, i, s);
                             dst_grids_ptr[s] = grids_ptr[i];
                             dst_levs_ptr[s] = levs_ptr[i];
-                        } else {
-                            dst_data.m_aos[np-1-(i-s)] = src_data.m_aos[i];
-                            for (int j = 0; j < NArrayReal; ++j)
-                                dst_data.m_rdata[j][np-1-(i-s)] = src_data.m_rdata[j][i];
-                            for (int j = 0; j < NArrayInt; ++j)
-                                dst_data.m_idata[j][np-1-(i-s)] = src_data.m_idata[j][i];
-                            for (int j = 0; j < num_rr; ++j)
-                                dst_data.m_runtime_rdata[j][np-1-(i-s)] = src_data.m_runtime_rdata[j][i];
-                            for (int j = 0; j < num_ri; ++j)
-                                dst_data.m_runtime_idata[j][np-1-(i-s)] = src_data.m_runtime_idata[j][i];
+                        }
+                        else
+                        {
+                            copyParticle(dst_data, src_data, i, np-1-(i-s));
                             dst_grids_ptr[np-1-(i-s)] = grids_ptr[i];
                             dst_levs_ptr[np-1-(i-s)] = levs_ptr[i];
                         }
