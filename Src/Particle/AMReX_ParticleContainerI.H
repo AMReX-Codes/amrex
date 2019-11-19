@@ -1191,7 +1191,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 #endif    
 }
 
-#ifdef AMREX_USE_CUDA
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
@@ -1220,7 +1219,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         });
     }
 }
-#endif //AMREX_USE_CUDA
 
 //
 // The CPU implementation of Redistribute
