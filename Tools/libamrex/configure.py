@@ -93,7 +93,7 @@ def configure(argv):
                         default="no")   
     parser.add_argument("--cuda-arch",
                         help="Specify CUDA architecture [default=70]",
-                        default=70)   
+                        default="70")   
     args = parser.parse_args()
 
     f = open("GNUmakefile","w")
