@@ -303,20 +303,56 @@ WarpX::InitOpenbc ()
 void
 WarpX::InitLevelData (int lev, Real time)
 {
+
+    ParmParse pp("warpx");
+
+    std::string B_ext_grid_s;
+    // default is constant so that the default values of 
+    // E_external_grid[i] and B_external_grid[i] can 
+    // be used for setting the value of the E & B fields.
+    B_ext_grid_s = "constant";
+    pp.query("B_ext_grid_init_style", B_ext_grid_s);
+    std::transform(B_ext_grid_s.begin(),
+                   B_ext_grid_s.end(),
+                   B_ext_grid_s.begin(),
+                   ::tolower);
+
+    std::string E_ext_grid_s;
+    pp.query("E_ext_grid_init_style", E_ext_grid_s);
+    std::transform(E_ext_grid_s.begin(),
+                   E_ext_grid_s.end(),
+                   E_ext_grid_s.begin(),
+                   ::tolower);
+
+    if (B_ext_grid_s == "constant") {
+        pp.getarr("B_external_grid", B_external_particle);     
+    }
+
+    if (E_ext_grid_s == "constant") {
+        pp.getarr("E_external_grid", E_external_particle);     
+    }
+
     for (int i = 0; i < 3; ++i) {
         current_fp[lev][i]->setVal(0.0);
-        Efield_fp[lev][i]->setVal(E_external_grid[i]);
-        Bfield_fp[lev][i]->setVal(B_external_grid[i]);
+        if (B_ext_grid_s == "constant") {
+           Bfield_fp[lev][i]->setVal(B_external_grid[i]);
+        }
+        if (E_ext_grid_s == "constant") {
+           Efield_fp[lev][i]->setVal(E_external_grid[i]);
+        }
     }
 
     if (lev > 0) {
         for (int i = 0; i < 3; ++i) {
-            Efield_aux[lev][i]->setVal(E_external_grid[i]);
-            Bfield_aux[lev][i]->setVal(B_external_grid[i]);
-
             current_cp[lev][i]->setVal(0.0);
-            Efield_cp[lev][i]->setVal(E_external_grid[i]);
-            Bfield_cp[lev][i]->setVal(B_external_grid[i]);
+            if (B_ext_grid_s == "constant") {
+               Bfield_aux[lev][i]->setVal(B_external_grid[i]);
+               Bfield_cp[lev][i]->setVal(B_external_grid[i]);
+            }
+            if (E_ext_grid_s == "constant") {
+               Efield_aux[lev][i]->setVal(E_external_grid[i]);
+               Efield_cp[lev][i]->setVal(E_external_grid[i]);
+            }
         }
     }
 
