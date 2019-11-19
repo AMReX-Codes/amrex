@@ -244,7 +244,7 @@ public:
     const FabFactory<FAB>& Factory () const noexcept { return *m_factory; }
 
     // Provides access to the Arena this FabArray was build with.
-    const Arena* myArena () const noexcept { return m_dallocator.arena(); }
+    const Arena* arena () const noexcept { return m_dallocator.arena(); }
 
     bool hasEBFabFactory () const noexcept {
 #ifdef AMREX_USE_EB
