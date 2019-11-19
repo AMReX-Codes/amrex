@@ -10,14 +10,6 @@
 #include <AMReX_TypeTraits.H>
 #endif
 
-#ifdef AMREX_USE_CUDA
-#include <thrust/device_vector.h>
-#include <thrust/binary_search.h>
-#include <thrust/iterator/zip_iterator.h>
-#include <thrust/device_ptr.h>
-#include <thrust/tuple.h>
-#endif
-
 namespace amrex {
 /**
 * \brief This class is a thin wrapper around std::vector.  Unlike vector,

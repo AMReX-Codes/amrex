@@ -224,10 +224,10 @@ protected:
     Gpu::HostVector<Box> m_host_boxes;
     Gpu::DeviceVector<Box> m_device_boxes;
 
-    Gpu::ManagedDeviceVector<unsigned int> m_counts;
-    Gpu::ManagedDeviceVector<unsigned int> m_cells;
-    Gpu::ManagedDeviceVector<unsigned int> m_offsets;
-    Gpu::ManagedDeviceVector<unsigned int> m_permutation;
+    Gpu::ManagedVector<unsigned int> m_counts;
+    Gpu::ManagedVector<unsigned int> m_cells;
+    Gpu::ManagedVector<unsigned int> m_offsets;
+    Gpu::ManagedVector<unsigned int> m_permutation;
 };
 
 struct AmrAssignGrid
@@ -255,7 +255,7 @@ struct AmrAssignGrid
 class AmrParticleLocator
 {
     Vector<ParticleLocator> m_locators;
-    Gpu::ManagedDeviceVector<AssignGrid> m_grid_assignors;
+    Gpu::ManagedVector<AssignGrid> m_grid_assignors;
     bool m_defined = false;
 
 public:
