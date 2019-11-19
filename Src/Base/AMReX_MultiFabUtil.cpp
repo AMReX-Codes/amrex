@@ -714,7 +714,7 @@ namespace amrex
                     for (const auto is : isects) {
                         Box const& b = is.second-iv;
                         if (run_on_gpu) {
-                            tags.push_back({fab,is.second-iv});
+                            tags.push_back({fab,b});
                         } else {
                             amrex::LoopConcurrentOnCpu(b, [=] (int i, int j, int k) noexcept
                             {
