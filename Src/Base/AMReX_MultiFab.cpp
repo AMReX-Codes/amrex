@@ -541,7 +541,7 @@ MultiFab::initVal ()
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(*this, TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
     {
         FArrayBox& fab = (*this)[mfi];
 	fab.initVal();

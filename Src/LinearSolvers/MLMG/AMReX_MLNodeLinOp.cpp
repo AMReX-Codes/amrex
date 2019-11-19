@@ -411,7 +411,7 @@ MLNodeLinOp::applyBC (int amrlev, int mglev, MultiFab& phi, BCMode/* bc_mode*/, 
         const auto lobc = LoBC();
         const auto hibc = HiBC();
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel (Gpu::notInLaunchRegion())
 #endif
         for (MFIter mfi(phi); mfi.isValid(); ++mfi)
         {

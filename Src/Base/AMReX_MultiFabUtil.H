@@ -169,7 +169,7 @@ namespace amrex
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        for (MFIter mfi(mf_in,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        for (MFIter mfi(mf_in); mfi.isValid(); ++mfi)
         {
             const long n = mfi.fabbox().numPts() * mf_in.nComp();
             auto pdst = mf_out[mfi].dataPtr();
