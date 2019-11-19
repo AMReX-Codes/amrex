@@ -23,8 +23,8 @@ public:
     ArrayOfStructs() 
         : m_num_neighbor_particles(0) {}
 
-    const ParticleVector& operator()() const { return m_data; }
-    ParticleVector& operator()()       { return m_data; }
+    const ParticleVector& operator() () const { return m_data; }
+    ParticleVector& operator() ()       { return m_data; }
 
     /**
     * \brief Returns the total number of particles (real and neighbor)

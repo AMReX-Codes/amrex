@@ -6,7 +6,7 @@ namespace amrex
 
 template <class PC, class MF, class F>
 void
-ParticleToMesh(PC const& pc, MF& mf, int lev, F f)
+ParticleToMesh (PC const& pc, MF& mf, int lev, F&& f)
 {
     BL_PROFILE("amrex::ParticleToMesh");
     
@@ -81,7 +81,7 @@ ParticleToMesh(PC const& pc, MF& mf, int lev, F f)
 
 template <class PC, class MF, class F>
 void
-MeshToParticle(PC& pc, MF const& mf, int lev, F f)
+MeshToParticle (PC& pc, MF const& mf, int lev, F&& f)
 {
     BL_PROFILE("amrex::MeshToParticle");
 
