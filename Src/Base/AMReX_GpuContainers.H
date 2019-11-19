@@ -76,10 +76,10 @@ namespace Gpu {
     using ManagedDeviceVector = PODVector<T>;
 
     template <class T>
-    using PinnedDeviceVector = PODVector<T>;
+    using PinnedVector = PODVector<T>;
 
     template <class T>
-    using PolymorphicDeviceVector = PODVector<T>;
+    using PolymorphicVector = PODVector<T>;
 #endif
 
     struct HostToDevice {};
