@@ -45,6 +45,52 @@ void copyParticle(const      ParticleTileData<NSR, NSI, NAR, NAI>& dst,
 }
 
 /**
+ * /brief Copy particles from src to dst. This version copies all the 
+ * particles, writing them to the beginning of dst.
+ * 
+ * \tparam PTile the particle tile type
+ *
+ * \param dst the destination tile
+ * \param src the source tile
+ * \param f the function that will be applied to each particle
+ *
+ */    
+template <typename PTile>
+void copyParticles(PTile& dst, const PTile& src) noexcept
+{
+    auto np = src.numParticles();
+    copyParticles(dst, src, 0, 0, np);
+}
+
+/**
+ * /brief Copy particles from src to dst. This version copies n particles
+ * starting at index src_start, writing the result starting at dst_start.
+ * 
+ * \tparam PTile the particle tile type
+ * \tparam IndexType the index type, e.g. unsigned int
+ * \tparam N the size type, e.g. long
+ *
+ * \param dst the destination tile
+ * \param src the source tile
+ * \param src_start the offset at which to start reading particles from src
+ * \param dst_start the offset at which to start writing particles to dst
+ *
+ */
+template <typename PTile, typename IndexType, typename N,
+          amrex::EnableIf_t<std::is_integral<IndexType>::value, int> foo = 0>
+void copyParticles(PTile& dst, const PTile& src,
+                   IndexType src_start, IndexType dst_start, N n) noexcept
+{
+    const auto src_data = src.getConstParticleTileData();
+          auto dst_data = dst.getParticleTileData();
+
+    AMREX_HOST_DEVICE_FOR_1D( n, i,
+    {
+        copyParticle(dst_data, src_data, src_start+i, dst_start+i);
+    });
+}
+    
+/**
  * /brief Apply the function f to all the particles in src, writing the
  * result to dst. This version does all the particles in src.
  * 
