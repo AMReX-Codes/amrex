@@ -1,11 +1,11 @@
 #ifndef AMREX_STRUCTOFARRAYS_H_
 #define AMREX_STRUCTOFARRAYS_H_
 
-#include <array>
-
 #include <AMReX_REAL.H>
 #include <AMReX_Vector.H>
 #include <AMReX_GpuContainers.H>
+
+#include <array>
 
 namespace amrex {
 
