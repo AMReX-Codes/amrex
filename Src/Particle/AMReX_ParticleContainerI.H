@@ -827,7 +827,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
-clearParticles()
+clearParticles ()
 {
     BL_PROFILE("ParticleContainer::clearParticles()");
     
@@ -843,7 +843,7 @@ clearParticles()
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
-copyParticles(const ParticleContainerType& other, bool local)
+copyParticles (const ParticleContainerType& other, bool local)
 {
     BL_PROFILE("ParticleContainer::copyParticles");
     clearParticles();   
@@ -853,7 +853,7 @@ copyParticles(const ParticleContainerType& other, bool local)
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
-addParticles(const ParticleContainerType& other, bool local)
+addParticles (const ParticleContainerType& other, bool local)
 {
     BL_PROFILE("ParticleContainer::addParticles");
 
@@ -992,7 +992,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         const auto& geom = Geom(0);
         if ((ba.size() == 1) and geom.isAllPeriodic())
         {
-            EnforcePeriodicGPU();
+            EnforcePeriodic();
             AMREX_ASSERT(OK());
             return;
         }
@@ -1195,9 +1195,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
-::EnforcePeriodicGPU ()
+::EnforcePeriodic ()
 {
-    BL_PROFILE("ParticleContainer::EnforcePeriodicGPU()");
+    BL_PROFILE("ParticleContainer::EnforcePeriodic()");
     const int lev = 0;
     const Geometry& geom = Geom(lev);
     auto& plev = m_particles[lev];
