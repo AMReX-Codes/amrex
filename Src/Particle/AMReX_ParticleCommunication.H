@@ -14,7 +14,7 @@ namespace amrex {
 struct NeighborUnpackPolicy
 {
     template <class PTile> 
-    void resizeTiles(std::vector<PTile*>& tiles, const std::vector<int>& sizes, std::vector<int>& offsets) const
+    void resizeTiles (std::vector<PTile*>& tiles, const std::vector<int>& sizes, std::vector<int>& offsets) const
     {
         for(int i = 0; i < static_cast<int>(sizes.size()); ++i)
         {
@@ -29,7 +29,7 @@ struct NeighborUnpackPolicy
 struct RedistributeUnpackPolicy
 {
     template <class PTile> 
-    void resizeTiles(std::vector<PTile*>& tiles, const std::vector<int>& sizes, std::vector<int>& offsets) const
+    void resizeTiles (std::vector<PTile*>& tiles, const std::vector<int>& sizes, std::vector<int>& offsets) const
     {        
         int N = static_cast<int>(sizes.size());
 
@@ -50,14 +50,14 @@ struct RedistributeUnpackPolicy
 
 struct ParticleCopyOp 
 {
-    Vector<std::map<int, Gpu::ManagedDeviceVector<int> > > m_boxes;
-    Vector<std::map<int, Gpu::ManagedDeviceVector<int> > > m_levels;
-    Vector<std::map<int, Gpu::ManagedDeviceVector<int> > > m_src_indices;
-    Vector<std::map<int, Gpu::ManagedDeviceVector<IntVect> > > m_periodic_shift;
+    Vector<std::map<int, Gpu::ManagedVector<int> > > m_boxes;
+    Vector<std::map<int, Gpu::ManagedVector<int> > > m_levels;
+    Vector<std::map<int, Gpu::ManagedVector<int> > > m_src_indices;
+    Vector<std::map<int, Gpu::ManagedVector<IntVect> > > m_periodic_shift;
 
     void clear ();
 
-    void setNumLevels(const int num_levels);
+    void setNumLevels (const int num_levels);
 
     void resize (const int gid, const int lev, const int size);
 
@@ -70,15 +70,15 @@ struct ParticleCopyOp
 
 struct ParticleCopyPlan 
 {
-    Vector<std::map<int, Gpu::ManagedDeviceVector<int> > > m_dst_indices;
+    Vector<std::map<int, Gpu::ManagedVector<int> > > m_dst_indices;
     
-    Gpu::ManagedDeviceVector<unsigned int> m_box_counts;
-    Gpu::ManagedDeviceVector<unsigned int> m_box_offsets;
+    Gpu::ManagedVector<unsigned int> m_box_counts;
+    Gpu::ManagedVector<unsigned int> m_box_offsets;
 
-    Gpu::ManagedDeviceVector<int> m_rcv_box_counts;
-    Gpu::ManagedDeviceVector<int> m_rcv_box_offsets;
-    Gpu::ManagedDeviceVector<int> m_rcv_box_ids;
-    Gpu::ManagedDeviceVector<int> m_rcv_box_levs;
+    Gpu::ManagedVector<int> m_rcv_box_counts;
+    Gpu::ManagedVector<int> m_rcv_box_offsets;
+    Gpu::ManagedVector<int> m_rcv_box_ids;
+    Gpu::ManagedVector<int> m_rcv_box_levs;
 
     long m_NumSnds;
     int m_nrcvs;
@@ -171,7 +171,7 @@ struct ParticleCopyPlan
         buildMPIStart(pc.BufferMap());
     }
 
-    void clear();
+    void clear ();
 
     void buildMPIFinish (const ParticleBufferMap& map);
 

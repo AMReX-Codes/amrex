@@ -56,16 +56,6 @@
 #include <omp.h>
 #endif
 
-#ifdef AMREX_USE_CUDA
-#include <thrust/device_vector.h>
-#include <thrust/binary_search.h>
-#include <thrust/iterator/zip_iterator.h>
-#include <thrust/iterator/retag.h>
-#include <thrust/device_ptr.h>
-#include <thrust/tuple.h>
-#include <thrust/gather.h>
-#endif
-
 namespace amrex {
 
 /**
@@ -172,8 +162,8 @@ public:
     using RealVector       = typename SoA::RealVector;
     using IntVector        = typename SoA::IntVector;
     using ParticleVector   = typename AoS::ParticleVector;
-    using CharVector       = Gpu::ManagedDeviceVector<char>;
-    using SendBuffer       = Gpu::PolymorphicDeviceVector<char>;
+    using CharVector       = Gpu::ManagedVector<char>;
+    using SendBuffer       = Gpu::PolymorphicVector<char>;
     using ParIterType      = ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
     using ParConstIterType = ParConstIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
 
@@ -933,9 +923,7 @@ public:
 
     long superParticleSize() const { return superparticle_size; }
 
-#ifdef AMREX_USE_CUDA    
-    void EnforcePeriodicGPU ();
-#endif
+    void EnforcePeriodic ();
 
     template <typename T,
               typename std::enable_if<std::is_same<T,bool>::value,int>::type=0>
@@ -1049,18 +1037,18 @@ protected:
     DenseBins<ParticleType> m_bins;
     
 #ifdef AMREX_USE_GPU
-    Gpu::ManagedDeviceVector<int> m_grids_r;
-    Gpu::ManagedDeviceVector<int> m_levs_r;
-    Gpu::ManagedDeviceVector<int> m_grids_tmp;
-    Gpu::ManagedDeviceVector<int> m_levs_tmp;
+    Gpu::ManagedVector<int> m_grids_r;
+    Gpu::ManagedVector<int> m_levs_r;
+    Gpu::ManagedVector<int> m_grids_tmp;
+    Gpu::ManagedVector<int> m_levs_tmp;
 
     ParticleCopyOp redistribute_copy_op;
     ParticleCopyPlan redistribute_copy_plan;
 
     Gpu::DeviceVector<char> redistribute_snd_buffer;
     Gpu::DeviceVector<char> redistribute_rcv_buffer;
-    Gpu::PinnedDeviceVector<char> pinned_snd_buffer;
-    Gpu::PinnedDeviceVector<char> pinned_rcv_buffer;
+    Gpu::PinnedVector<char> pinned_snd_buffer;
+    Gpu::PinnedVector<char> pinned_rcv_buffer;
 
     mutable AmrParticleLocator m_particle_locator;
 #endif

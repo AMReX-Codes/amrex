@@ -5,17 +5,8 @@
 #include <AMReX_ArrayOfStructs.H>
 #include <AMReX_StructOfArrays.H>
 #include <AMReX_Vector.H>
-#include <AMReX_IndexSequence.H>
 
-#include <tuple>
 #include <array>
-#include <cassert>
-
-#ifdef AMREX_USE_CUDA
-#include <thrust/tuple.h>
-#include <thrust/iterator/zip_iterator.h>
-#include <thrust/device_ptr.h>
-#endif
 
 namespace amrex {
 
