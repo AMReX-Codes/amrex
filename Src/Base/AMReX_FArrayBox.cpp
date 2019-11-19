@@ -199,18 +199,19 @@ FArrayBox::initVal () noexcept
 #ifdef BL_USE_DOUBLE
 #if defined(AMREX_USE_GPU)
 
-//         double * p = dataPtr();
-//         AMREX_LAUNCH_HOST_DEVICE_LAMBDA (truesize, i,
-//         {
-// #ifdef UINT64_MAX
-//             const uint64_t snan = UINT64_C(0x7ff0000080000001);
-// #else
-//             static_assert(sizeof(double) == sizeof(long long), "sizeof double != sizeof long long");
-//             const long long snan = 0x7ff0000080000001LL;
-// #endif
-//             double* pi = p + i;
-//             std::memcpy(pi, &snan, sizeof(double));
-//         });
+        double * p = dataPtr();
+        AMREX_HOST_DEVICE_FOR_1D (truesize, i,
+        {
+#ifdef UINT64_MAX
+            static_assert(sizeof(double) == sizeof(uint64_t), "sizeof double != sizeof uint64_t");
+            constexpr uint64_t snan = UINT64_C(0x7ff0000080000001);
+#else
+            static_assert(sizeof(double) == sizeof(long long), "sizeof double != sizeof long long");
+            constexpr long long snan = 0x7ff0000080000001LL;
+#endif
+            double* pi = p + i;
+            std::memcpy(pi, &snan, sizeof(double));
+        });
 
 #else
 	amrex_array_init_snan(dataPtr(), truesize);
