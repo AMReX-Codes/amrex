@@ -923,9 +923,7 @@ public:
 
     long superParticleSize() const { return superparticle_size; }
 
-#ifdef AMREX_USE_CUDA    
-    void EnforcePeriodicGPU ();
-#endif
+    void EnforcePeriodic ();
 
     template <typename T,
               typename std::enable_if<std::is_same<T,bool>::value,int>::type=0>
