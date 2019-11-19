@@ -7,12 +7,6 @@ ifeq ($(USE_PSATD),TRUE)
     include $(WARPX_HOME)/Source/FieldSolver/PicsarHybridSpectralSolver/Make.package
   endif
 endif
-ifeq ($(USE_OPENBC_POISSON),TRUE)
-  F90EXE_sources += openbc_poisson_solver.F90
-endif
-ifeq ($DO_ELECTROSTATIC,TRUE)
-  F90EXE_sources += solve_E_nodal.F90
-endif
 
 INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/FieldSolver
 VPATH_LOCATIONS   += $(WARPX_HOME)/Source/FieldSolver

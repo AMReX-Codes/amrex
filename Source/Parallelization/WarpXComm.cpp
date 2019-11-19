@@ -3,12 +3,11 @@
 #include <WarpX.H>
 #include <WarpX_f.H>
 #include <WarpXSumGuardCells.H>
-#include <Parallelization/InterpolateCurrentFineToCoarse.H>
-#include <Parallelization/InterpolateDensityFineToCoarse.H>
+#include <InterpolateCurrentFineToCoarse.H>
+#include <InterpolateDensityFineToCoarse.H>
 
 #include <algorithm>
 #include <cstdlib>
-
 
 using namespace amrex;
 

@@ -286,6 +286,7 @@ public:
     void ClearSliceMultiFabs ();
     static int num_slice_snapshots_lab;
     static amrex::Real dt_slice_snapshots_lab;
+    static amrex::Real particle_slice_width_lab;
     amrex::RealBox getSliceRealBox() const {return slice_realbox;}
 
     // these should be private, but can't due to Cuda limitations
@@ -307,6 +308,12 @@ public:
 
     const amrex::IntVect getngE() const { return guard_cells.ng_alloc_EB; };
     const amrex::IntVect getngF() const { return guard_cells.ng_alloc_F; };
+
+    void InitSpaceChargeField (WarpXParticleContainer& pc);
+    void computePhi(const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
+                       amrex::Vector<std::unique_ptr<amrex::MultiFab> >& phi) const;
+    void computeE(amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
+               const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& phi) const;
 
 protected:
 
@@ -370,22 +377,6 @@ private:
     ///
     void EvolveES(int numsteps);
 
-    ///
-    /// Compute the gravitational potential from rho by solving Poisson's equation.
-    /// Both rho and phi are assumed to be node-centered. This method is only used
-    /// in electrostatic mode.
-    ///
-    void computePhi(const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
-                          amrex::Vector<std::unique_ptr<amrex::MultiFab> >& phi) const;
-
-    ///
-    /// Compute the electric field in each direction by computing the gradient
-    /// the potential phi using 2nd order centered differences. Both rho and phi
-    /// are assumed to be node-centered. This method is only used in electrostatic mode.
-    ///
-    void computeE(amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
-                  const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& phi) const;
-
     //
     // This stuff is needed by the nodal multigrid solver when running in
     // electrostatic mode.
@@ -417,8 +408,6 @@ private:
 
     void InitFromCheckpoint ();
     void PostRestart ();
-
-    void InitOpenbc ();
 
     void InitPML ();
     void ComputePMLFactors ();
