@@ -162,7 +162,7 @@ public:
     using RealVector       = typename SoA::RealVector;
     using IntVector        = typename SoA::IntVector;
     using ParticleVector   = typename AoS::ParticleVector;
-    using CharVector       = Gpu::ManagedDeviceVector<char>;
+    using CharVector       = Gpu::ManagedVector<char>;
     using SendBuffer       = Gpu::PolymorphicVector<char>;
     using ParIterType      = ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
     using ParConstIterType = ParConstIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
@@ -1039,10 +1039,10 @@ protected:
     DenseBins<ParticleType> m_bins;
     
 #ifdef AMREX_USE_GPU
-    Gpu::ManagedDeviceVector<int> m_grids_r;
-    Gpu::ManagedDeviceVector<int> m_levs_r;
-    Gpu::ManagedDeviceVector<int> m_grids_tmp;
-    Gpu::ManagedDeviceVector<int> m_levs_tmp;
+    Gpu::ManagedVector<int> m_grids_r;
+    Gpu::ManagedVector<int> m_levs_r;
+    Gpu::ManagedVector<int> m_grids_tmp;
+    Gpu::ManagedVector<int> m_levs_tmp;
 
     ParticleCopyOp redistribute_copy_op;
     ParticleCopyPlan redistribute_copy_plan;
