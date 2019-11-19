@@ -104,14 +104,14 @@ public:
     }
 
     AMREX_INLINE
-    int numBoxesOnProc(int pid) const
+    int numBoxesOnProc (int pid) const
     {
         AMREX_ASSERT(m_defined);
         return m_proc_box_counts[pid];
     }
 
     AMREX_INLINE
-    Vector<int> allBucketsOnProc(int pid) const
+    Vector<int> allBucketsOnProc (int pid) const
     {
         AMREX_ASSERT(m_defined);
         Vector<int> buckets;        
@@ -123,7 +123,7 @@ public:
     }
 
     AMREX_INLINE
-    int procID(int gid, int lev) const 
+    int procID (int gid, int lev) const 
     { 
         AMREX_ASSERT(m_defined);
         return m_dm[lev][gid]; 
