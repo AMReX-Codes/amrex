@@ -23,14 +23,22 @@ namespace
     constexpr int NoSplitParticleID  = std::numeric_limits<int>::max()-4;
 }
 
-//
-//! The struct used to store particles.
-template<int NReal, int NInt=0>
+/** \brief The struct used to store particles.
+ *
+ * \tparam T_NReal The number of extra Real components
+ * \tparam T_NInt The number of extra integer components
+ */
+template<int T_NReal, int T_NInt=0>
 struct Particle
 {
+    //! \brief number of extra Real components in the particle struct
+    static constexpr int NReal = T_NReal;
+    //! \brief number of extra integer components in the particle struct
+    static constexpr int NInt = T_NInt;
+
     //
     //! The floating point type used for the particles.
-    typedef ParticleReal RealType;
+    using RealType = ParticleReal;
 
     /**
     * The real data. We always have SPACEDIM position coordinates,
