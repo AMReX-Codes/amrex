@@ -80,8 +80,10 @@ void transformParticles(PTile& dst, const PTile& src, F&& f) noexcept
  * \param f the function that will be applied to each particle
  *
  */
-template <typename PTile, typename IndexType, typename N, typename F>
-void transformParticles(PTile& dst, const PTile& src, IndexType src_start, IndexType dst_start, N n, F&& f) noexcept
+template <typename PTile, typename IndexType, typename N, typename F,
+          amrex::EnableIf_t<std::is_integral<IndexType>::value, int> foo = 0>
+void transformParticles(PTile& dst, const PTile& src,
+                        IndexType src_start, IndexType dst_start, N n, F&& f) noexcept
 {
     const auto src_data = src.getConstParticleTileData();
           auto dst_data = dst.getParticleTileData();
@@ -103,15 +105,15 @@ void transformParticles(PTile& dst, const PTile& src, IndexType src_start, Index
  * \param mask pointer to the mask - 1 means copy, 0 means don't copy
  *
  */
-template <typename PTile, typename IndexType>
-typename std::remove_const<IndexType>::type filterParticles(PTile& dst, const PTile& src, IndexType* mask) noexcept
+template <typename PTile, typename IndexType,
+          amrex::EnableIf_t<std::is_integral<IndexType>::value, int> foo = 0>
+IndexType filterParticles(PTile& dst, const PTile& src, const IndexType* mask) noexcept
 {
-    using Ind = typename std::remove_const<IndexType>::type;
     auto np = src.numParticles();
-    Gpu::DeviceVector<Ind> offsets(np);
+    Gpu::DeviceVector<IndexType> offsets(np);
     Gpu::exclusive_scan(mask, mask+np, offsets.begin());
 
-    Ind last_mask, last_offset;
+    IndexType last_mask, last_offset;
     Gpu::copyAsync(Gpu::deviceToHost, mask+np-1, mask + np, &last_mask);
     Gpu::copyAsync(Gpu::deviceToHost, offsets.data()+np-1, offsets.data()+np, &last_offset);    
                                
@@ -142,10 +144,12 @@ typename std::remove_const<IndexType>::type filterParticles(PTile& dst, const PT
  *
  */    
 template <typename PTile, typename Pred>
-int filterParticles(PTile& dst, const PTile& src, Pred&& p) noexcept
+auto filterParticles(PTile& dst, const PTile& src, Pred&& p) noexcept
+    -> decltype(p(typename PTile::ConstParticleTileDataType(), 0))
 {
+    using IndexType = decltype(p(typename PTile::ConstParticleTileDataType(), 0));
     auto np = src.numParticles();
-    Gpu::DeviceVector<int> mask(np);
+    Gpu::DeviceVector<IndexType> mask(np);
 
     auto p_mask = mask.dataPtr();
     const auto src_data = src.getConstParticleTileData();
@@ -172,15 +176,15 @@ int filterParticles(PTile& dst, const PTile& src, Pred&& p) noexcept
  * \param f defines the transformation that will be applied to the particles on copy
  *
  */
-template <typename PTile, typename IndexType, typename F>
-typename std::remove_const<IndexType>::type filterAndTransformParticles(PTile& dst, const PTile& src, IndexType* mask, F&& f) noexcept
+template <typename PTile, typename IndexType, typename F,
+          amrex::EnableIf_t<std::is_integral<IndexType>::value, int> foo = 0>
+IndexType filterAndTransformParticles(PTile& dst, const PTile& src, IndexType* mask, F&& f) noexcept
 {
-    using Ind = typename std::remove_const<IndexType>::type;
     auto np = src.numParticles();
     Gpu::DeviceVector<IndexType> offsets(np);
     Gpu::exclusive_scan(mask, mask+np, offsets.begin());
 
-    Ind last_mask, last_offset;
+    IndexType last_mask, last_offset;
     Gpu::copyAsync(Gpu::deviceToHost, mask+np-1, mask + np, &last_mask);
     Gpu::copyAsync(Gpu::deviceToHost, offsets.data()+np-1, offsets.data()+np, &last_offset);    
 
@@ -214,10 +218,12 @@ typename std::remove_const<IndexType>::type filterAndTransformParticles(PTile& d
  *
  */    
 template <typename PTile, typename Pred, typename F>
-int filterAndTransformParticles(PTile& dst, const PTile& src, Pred&& p, F&& f) noexcept
+auto filterAndTransformParticles(PTile& dst, const PTile& src, Pred&& p, F&& f) noexcept
+    -> decltype(p(typename PTile::ConstParticleTileDataType(), 0))
 {
+    using IndexType = decltype(p(typename PTile::ConstParticleTileDataType(), 0));
     auto np = src.numParticles();
-    Gpu::DeviceVector<int> mask(np);
+    Gpu::DeviceVector<IndexType> mask(np);
 
     auto p_mask = mask.dataPtr();
     const auto src_data = src.getConstParticleTileData();
@@ -245,7 +251,8 @@ int filterAndTransformParticles(PTile& dst, const PTile& src, Pred&& p, F&& f) n
  * \param inds pointer to the permutation array
  *
  */
-template <typename PTile, typename N, typename IndexType>
+template <typename PTile, typename N, typename IndexType,
+          amrex::EnableIf_t<std::is_integral<IndexType>::value, int> foo = 0>
 void gatherParticles (PTile& dst, const PTile& src, N np, const IndexType* inds)
 {
     const auto src_data = src.getConstParticleTileData();
@@ -272,7 +279,8 @@ void gatherParticles (PTile& dst, const PTile& src, N np, const IndexType* inds)
  * \param inds pointer to the permutation array
  *
  */
-template <typename PTile, typename N, typename IndexType>
+template <typename PTile, typename N, typename IndexType,
+          amrex::EnableIf_t<std::is_integral<IndexType>::value, int> foo = 0>
 void scatterParticles (PTile& dst, const PTile& src, N np, const IndexType* inds)
 {
     const auto src_data = src.getConstParticleTileData();
