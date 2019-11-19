@@ -13,7 +13,11 @@ class Timer
 {
 public:
   Timer(const char* tag) {m_Tag = tag; m_Start = amrex::second();}
-  ~Timer() {m_End = amrex::second(); amrex::Print()<<m_Tag<<" took:"<<m_End - m_Start<<" seconds\n";}
+  ~Timer() {
+      m_End = amrex::second(); 
+      amrex::ParallelDescriptor::ReduceRealMax(m_End, amrex::ParallelDescriptor::IOProcessorNumber());
+      amrex::Print()<<m_Tag<<" took:"<<m_End - m_Start<<" seconds\n";
+  }
 private:
   amrex::Real m_Start;
   amrex::Real m_End;
@@ -90,7 +94,6 @@ private:
   void SaveRealProperty(WarpXParIter& pti, //int, int,
             openPMD::ParticleSpecies& currSpecies,
             unsigned long long offset,
-            unsigned long long numParticles,
             const amrex::Vector<int>& write_real_comp,
             const amrex::Vector<std::string>& real_comp_names) const;
 
