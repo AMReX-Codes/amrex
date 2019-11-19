@@ -14,7 +14,7 @@ namespace amrex {
 struct NeighborUnpackPolicy
 {
     template <class PTile> 
-    void resizeTiles(std::vector<PTile*>& tiles, const std::vector<int>& sizes, std::vector<int>& offsets) const
+    void resizeTiles (std::vector<PTile*>& tiles, const std::vector<int>& sizes, std::vector<int>& offsets) const
     {
         for(int i = 0; i < static_cast<int>(sizes.size()); ++i)
         {
@@ -29,7 +29,7 @@ struct NeighborUnpackPolicy
 struct RedistributeUnpackPolicy
 {
     template <class PTile> 
-    void resizeTiles(std::vector<PTile*>& tiles, const std::vector<int>& sizes, std::vector<int>& offsets) const
+    void resizeTiles (std::vector<PTile*>& tiles, const std::vector<int>& sizes, std::vector<int>& offsets) const
     {        
         int N = static_cast<int>(sizes.size());
 
@@ -57,7 +57,7 @@ struct ParticleCopyOp
 
     void clear ();
 
-    void setNumLevels(const int num_levels);
+    void setNumLevels (const int num_levels);
 
     void resize (const int gid, const int lev, const int size);
 
@@ -171,7 +171,7 @@ struct ParticleCopyPlan
         buildMPIStart(pc.BufferMap());
     }
 
-    void clear();
+    void clear ();
 
     void buildMPIFinish (const ParticleBufferMap& map);
 
