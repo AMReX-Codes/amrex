@@ -436,8 +436,8 @@ protected:
     amrex::Gpu::DeviceVector<char> snd_buffer;
     amrex::Gpu::DeviceVector<char> rcv_buffer;
 
-    Gpu::PinnedDeviceVector<char> pinned_snd_buffer;
-    Gpu::PinnedDeviceVector<char> pinned_rcv_buffer;
+    Gpu::PinnedVector<char> pinned_snd_buffer;
+    Gpu::PinnedVector<char> pinned_rcv_buffer;
 
     std::map<std::pair<int, int>, amrex::NeighborList<ParticleType> > m_neighbor_list;
 #endif

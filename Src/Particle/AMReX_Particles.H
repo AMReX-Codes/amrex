@@ -163,7 +163,7 @@ public:
     using IntVector        = typename SoA::IntVector;
     using ParticleVector   = typename AoS::ParticleVector;
     using CharVector       = Gpu::ManagedDeviceVector<char>;
-    using SendBuffer       = Gpu::PolymorphicDeviceVector<char>;
+    using SendBuffer       = Gpu::PolymorphicVector<char>;
     using ParIterType      = ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
     using ParConstIterType = ParConstIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
 
@@ -1049,8 +1049,8 @@ protected:
 
     Gpu::DeviceVector<char> redistribute_snd_buffer;
     Gpu::DeviceVector<char> redistribute_rcv_buffer;
-    Gpu::PinnedDeviceVector<char> pinned_snd_buffer;
-    Gpu::PinnedDeviceVector<char> pinned_rcv_buffer;
+    Gpu::PinnedVector<char> pinned_snd_buffer;
+    Gpu::PinnedVector<char> pinned_rcv_buffer;
 
     mutable AmrParticleLocator m_particle_locator;
 #endif
