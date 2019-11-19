@@ -863,37 +863,18 @@ addParticles (const ParticleContainerType& other, bool local)
         auto& plevel = GetParticles(lev);
         for(MFIter mfi = other.MakeMFIter(lev); mfi.isValid(); ++mfi)
         {
-            auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());
-            
+            auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());            
             if(plevel_other.find(index) == plevel_other.end()) continue;
-            
-            const auto& tile_other = plevel_other.at(index);
-            
-            if (tile_other.numParticles() == 0) continue;
-            
-            const auto& aos_other = tile_other.GetArrayOfStructs();
-            for (const auto& particle_struct : aos_other)
-            {
-                plevel[index].push_back(particle_struct);
-            }
 
-            const auto& soa_other = tile_other.GetStructOfArrays();
-            for (int j = 0; j < NumRealComps(); ++j)
-            {
-                auto& rdata = soa_other.GetRealData(j);
-                for(const auto& real_attrib : rdata)
-                {
-                    plevel[index].push_back_real(j, real_attrib);
-                }                
-            }
-            for (int j = 0; j < NumIntComps(); ++j)
-            {
-                auto& idata = soa_other.GetIntData(j);
-                for(const auto& int_attrib : idata)
-                {
-                    plevel[index].push_back_int(j, int_attrib);
-                }
-            }
+            auto& ptile = plevel[index];
+            const auto& ptile_other = plevel_other.at(index);
+            auto np = ptile_other.numParticles();
+            if (np == 0) continue;
+
+            auto dst_index = ptile.numParticles();
+            ptile.resize(dst_index + np);
+
+            amrex::copyParticles(ptile, ptile_other, 0, dst_index, np);            
         }
     }
     
