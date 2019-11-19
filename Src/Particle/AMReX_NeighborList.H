@@ -5,8 +5,6 @@
 #include <AMReX_GpuContainers.H>
 #include <AMReX_DenseBins.H>
 
-#include <thrust/reduce.h>
-
 namespace amrex
 {
 
