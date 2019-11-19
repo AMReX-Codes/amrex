@@ -66,8 +66,8 @@ private:
 template <class ParticleType>
 struct NeighborData
 {
-    NeighborData (const Gpu::ManagedDeviceVector<unsigned int>& offsets, 
-                  const Gpu::ManagedDeviceVector<unsigned int>& list,
+    NeighborData (const Gpu::ManagedVector<unsigned int>& offsets, 
+                  const Gpu::ManagedVector<unsigned int>& list,
                   const ParticleType* pstruct)
         : m_nbor_offsets_ptr(offsets.dataPtr()),
           m_nbor_list_ptr(list.dataPtr()),
@@ -89,7 +89,7 @@ class NeighborList
 public:
 
     template <class CheckPair>
-    void build (const Gpu::ManagedDeviceVector<ParticleType>& vec,
+    void build (const Gpu::ManagedVector<ParticleType>& vec,
                 const amrex::Box& bx, const amrex::Geometry& geom,
                 CheckPair check_pair)
     {
@@ -216,9 +216,9 @@ protected:
     const ParticleType* m_pstruct;
 
     // This is the neighbor list data structure
-    Gpu::ManagedDeviceVector<unsigned int> m_nbor_offsets;
-    Gpu::ManagedDeviceVector<unsigned int> m_nbor_list;
-    Gpu::ManagedDeviceVector<unsigned int> m_nbor_counts;
+    Gpu::ManagedVector<unsigned int> m_nbor_offsets;
+    Gpu::ManagedVector<unsigned int> m_nbor_list;
+    Gpu::ManagedVector<unsigned int> m_nbor_counts;
     
     DenseBins<ParticleType> m_bins;
 };

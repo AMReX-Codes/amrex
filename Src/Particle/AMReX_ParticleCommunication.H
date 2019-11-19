@@ -50,10 +50,10 @@ struct RedistributeUnpackPolicy
 
 struct ParticleCopyOp 
 {
-    Vector<std::map<int, Gpu::ManagedDeviceVector<int> > > m_boxes;
-    Vector<std::map<int, Gpu::ManagedDeviceVector<int> > > m_levels;
-    Vector<std::map<int, Gpu::ManagedDeviceVector<int> > > m_src_indices;
-    Vector<std::map<int, Gpu::ManagedDeviceVector<IntVect> > > m_periodic_shift;
+    Vector<std::map<int, Gpu::ManagedVector<int> > > m_boxes;
+    Vector<std::map<int, Gpu::ManagedVector<int> > > m_levels;
+    Vector<std::map<int, Gpu::ManagedVector<int> > > m_src_indices;
+    Vector<std::map<int, Gpu::ManagedVector<IntVect> > > m_periodic_shift;
 
     void clear ();
 
@@ -70,15 +70,15 @@ struct ParticleCopyOp
 
 struct ParticleCopyPlan 
 {
-    Vector<std::map<int, Gpu::ManagedDeviceVector<int> > > m_dst_indices;
+    Vector<std::map<int, Gpu::ManagedVector<int> > > m_dst_indices;
     
-    Gpu::ManagedDeviceVector<unsigned int> m_box_counts;
-    Gpu::ManagedDeviceVector<unsigned int> m_box_offsets;
+    Gpu::ManagedVector<unsigned int> m_box_counts;
+    Gpu::ManagedVector<unsigned int> m_box_offsets;
 
-    Gpu::ManagedDeviceVector<int> m_rcv_box_counts;
-    Gpu::ManagedDeviceVector<int> m_rcv_box_offsets;
-    Gpu::ManagedDeviceVector<int> m_rcv_box_ids;
-    Gpu::ManagedDeviceVector<int> m_rcv_box_levs;
+    Gpu::ManagedVector<int> m_rcv_box_counts;
+    Gpu::ManagedVector<int> m_rcv_box_offsets;
+    Gpu::ManagedVector<int> m_rcv_box_ids;
+    Gpu::ManagedVector<int> m_rcv_box_levs;
 
     long m_NumSnds;
     int m_nrcvs;
