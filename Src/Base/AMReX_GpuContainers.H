@@ -26,10 +26,10 @@ namespace Gpu {
     using ManagedVector = PODVector<T, ManagedArenaAllocator<T> >;
 
     template <class T>
-    using PinnedDeviceVector = PODVector<T, PinnedArenaAllocator<T> >;
+    using PinnedVector = PODVector<T, PinnedArenaAllocator<T> >;
 
     template <class T>
-    using PolymorphicDeviceVector = PODVector<T, PolymorphicAllocator<T> >;
+    using PolymorphicVector = PODVector<T, PolymorphicAllocator<T> >;
     
 #else
     //! When Cuda is off, all these containers revert to amrex::Vector. 
