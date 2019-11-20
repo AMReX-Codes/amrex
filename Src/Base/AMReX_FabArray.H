@@ -397,12 +397,10 @@ public:
     * FabArray to val, including nghost boundary cells.
     */
     template <class F=FAB, class = typename std::enable_if<IsBaseFab<F>::value>::type >
-    void setVal (value_type val,
-                 int        nghost);
+    void setVal (value_type val, int nghost);
 
     template <class F=FAB, class = typename std::enable_if<IsBaseFab<F>::value>::type >
-    void setVal (value_type val,
-                 const IntVect& nghost);
+    void setVal (value_type val, const IntVect& nghost);
 
     /**
     * \brief Set all components in the valid region of each FAB in the
@@ -410,14 +408,10 @@ public:
     * intersect the Box region.
     */
     template <class F=FAB, class = typename std::enable_if<IsBaseFab<F>::value>::type >
-    void setVal (value_type val,
-                 const Box& region,
-                 int        nghost);
+    void setVal (value_type val, const Box& region, int nghost);
 
     template <class F=FAB, class = typename std::enable_if<IsBaseFab<F>::value>::type >
-    void setVal (value_type val,
-                 const Box& region,
-                 const IntVect& nghost);
+    void setVal (value_type val, const Box& region, const IntVect& nghost);
 
     template <class F=FAB, class = typename std::enable_if<IsBaseFab<F>::value>::type >
     void abs (int comp, int num_comp, int nghost = 0);
@@ -682,16 +676,17 @@ public:
     void PC_local_cpu (const CPC& thecpc, FabArray<FAB> const& src,
                        int scomp, int dcomp, int ncomp, CpOp op);
 
+    template <class F=FAB, class = typename std::enable_if<IsBaseFab<F>::value>::type >
+    void setVal (value_type x, const CommMetaData& thecmd, int scomp, int ncomp);
+
 #ifdef AMREX_USE_GPU
 
     void FB_local_copy_gpu (const FB& TheFB, int scomp, int ncomp);
     void PC_local_gpu (const CPC& thecpc, FabArray<FAB> const& src,
                        int scomp, int dcomp, int ncomp, CpOp op);
 
-    void FB_local_setVal_gpu (typename FabArray<FAB>::value_type x,
-                              const FB& TheFB, int scomp, int ncomp);
-    void FB_remote_setVal_gpu (typename FabArray<FAB>::value_type x,
-                               const FB& TheFB, int scomp, int ncomp);
+    void CMD_local_setVal_gpu (value_type x, const CommMetaData& thecmd, int scomp, int ncomp);
+    void CMD_remote_setVal_gpu (value_type x, const CommMetaData& thecmd, int scomp, int ncomp);
 
 #if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10))
 
@@ -1071,8 +1066,7 @@ FabArray<FAB>::clear ()
 template <class FAB>
 template <class,class>
 void
-FabArray<FAB>::setVal (value_type val,
-                       int        nghost)
+FabArray<FAB>::setVal (value_type val, int nghost)
 {
     setVal(val,0,n_comp,IntVect(nghost));
 }
@@ -1080,8 +1074,7 @@ FabArray<FAB>::setVal (value_type val,
 template <class FAB>
 template <class,class>
 void
-FabArray<FAB>::setVal (value_type val,
-                       const IntVect& nghost)
+FabArray<FAB>::setVal (value_type val, const IntVect& nghost)
 {
     setVal(val,0,n_comp,nghost);
 }
@@ -1089,9 +1082,7 @@ FabArray<FAB>::setVal (value_type val,
 template <class FAB>
 template <class,class>
 void
-FabArray<FAB>::setVal (value_type val,
-                       const Box& region,
-                       int        nghost)
+FabArray<FAB>::setVal (value_type val, const Box& region, int nghost)
 {
     setVal(val,region,0,n_comp,IntVect(nghost));
 }
@@ -1099,9 +1090,7 @@ FabArray<FAB>::setVal (value_type val,
 template <class FAB>
 template <class,class>
 void
-FabArray<FAB>::setVal (value_type   val,
-                       const Box& region,
-                       const IntVect& nghost)
+FabArray<FAB>::setVal (value_type val, const Box& region, const IntVect& nghost)
 {
     setVal(val,region,0,n_comp,nghost);
 }
@@ -2017,11 +2006,6 @@ FabArray<FAB>::BuildMask (const Box& phys_domain, const Periodicity& period,
     int ncomp = this->nComp();
     const IntVect& ngrow = this->nGrowVect();
 
-    const FabArrayBase::FB& TheFB = this->getFB(ngrow,period);
-
-    const CopyComTagsContainer&      LocTags = *(TheFB.m_LocTags);
-    const MapOfCopyComTagContainers& RcvTags = *(TheFB.m_RcvTags);
-
     Box domain = amrex::convert(phys_domain, boxArray().ixType());
     for (int i = 0; i < AMREX_SPACEDIM; ++i) {
 	if (period.isPeriodic(i)) {
@@ -2051,33 +2035,43 @@ FabArray<FAB>::BuildMask (const Box& phys_domain, const Periodicity& period,
         });
     }
 
-    int N_locs = LocTags.size();
+    const FabArrayBase::FB& TheFB = this->getFB(ngrow,period);
+    setVal(covered, TheFB, 0, ncomp);
+}
 
+template <class FAB>
+template <class F, class B>
+void
+FabArray<FAB>::setVal (value_type val, const CommMetaData& thecmd, int scomp, int ncomp)
+{
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
     {
-        FB_local_setVal_gpu(covered, TheFB, 0, ncomp);
-        FB_remote_setVal_gpu(covered, TheFB, 0, ncomp);
+        CMD_local_setVal_gpu(val, thecmd, 0, ncomp);
+        CMD_remote_setVal_gpu(val, thecmd, 0, ncomp);
     }
     else
 #endif
     {
+        const CopyComTagsContainer&      LocTags = *(thecmd.m_LocTags);
+        const MapOfCopyComTagContainers& RcvTags = *(thecmd.m_RcvTags);
+        int N_locs = LocTags.size();
 #ifdef _OPENMP
-#pragma omp parallel for if (TheFB.m_threadsafe_loc)
+#pragma omp parallel for if (thecmd.m_threadsafe_loc)
 #endif
         for (int i = 0; i < N_locs; ++i) {
             const CopyComTag& tag = LocTags[i];
-            (*this)[tag.dstIndex].setVal(covered, tag.dbox, 0, ncomp);
+            (*this)[tag.dstIndex].setVal(val, tag.dbox, 0, ncomp);
         }
 
-        for (MapOfCopyComTagContainers::const_iterator it = RcvTags.begin(); it != RcvTags.end(); ++it) {
+        for (auto it = RcvTags.begin(); it != RcvTags.end(); ++it) {
             int N = it->second.size();
 #ifdef _OPENMP
-#pragma omp parallel for if (TheFB.m_threadsafe_rcv)
+#pragma omp parallel for if (thecmd.m_threadsafe_rcv)
 #endif
             for (int i = 0; i < N; ++i) {
                 const CopyComTag& tag = it->second[i];
-                (*this)[tag.dstIndex].setVal(covered, tag.dbox, 0, ncomp);
+                (*this)[tag.dstIndex].setVal(val, tag.dbox, 0, ncomp);
             }
         }
     }
