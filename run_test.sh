@@ -12,21 +12,36 @@
 # Use `export WARPX_TEST_ARCH=CPU` or `export WARPX_TEST_ARCH=GPU` in order
 # to run the tests on CPU or GPU respectively.
 
-# Create test directory
-rm -rf test_dir
-mkdir test_dir
-cd test_dir
+# Remove contents and link to a previous test directory (intentionally two arguments)
+rm -rf test_dir/* test_dir
+# Create a temporary test directory
+tmp_dir=$(mktemp --help >/dev/null 2>&1 && mktemp -d -t ci-XXXXXXXXXX || mktemp -d "${TMPDIR:-/tmp}"/ci-XXXXXXXXXX)
+if [ $? -ne 0 ]; then
+    echo "Cannot create temporary directory"
+    exit 1
+fi
 
 # Copy WarpX into current test directory
-mkdir warpx
-cp -r ../* warpx
+mkdir ${tmp_dir}/warpx
+cp -r ./* ${tmp_dir}/warpx
+
+# Link the test directory
+ln -s ${tmp_dir} test_dir
+
+# Switch to the test directory
+cd test_dir
 
 # Clone PICSAR and AMReX
 git clone --branch development https://github.com/AMReX-Codes/amrex.git
-git clone --branch master https://bitbucket.org/berkeleylab/picsar.git
+# Use QED brach for QED tests
+if [ ${HAS_QED} = "TRUE" ]; then
+    git clone --branch QED https://bitbucket.org/berkeleylab/picsar.git
+else
+    git clone --branch master https://bitbucket.org/berkeleylab/picsar.git
+fi
 
 # Clone the AMReX regression test utility
-git clone https://github.com/RemiLehe/regression_testing.git
+git clone https://github.com/ECP-WarpX/regression_testing.git
 
 # Prepare regression tests
 mkdir -p rt-WarpX/WarpX-benchmarks
@@ -36,4 +51,4 @@ cp travis-tests.ini ../../rt-WarpX
 
 # Run the tests
 cd ../../regression_testing/
-python regtest.py ../rt-WarpX/travis-tests.ini --no_update all --source_git_hash=$WARPX_TEST_COMMIT
+python regtest.py ../rt-WarpX/travis-tests.ini --no_update all --source_git_hash=${WARPX_TEST_COMMIT}

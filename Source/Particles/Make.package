@@ -1,4 +1,3 @@
-F90EXE_sources += deposit_cic.F90
 F90EXE_sources += interpolate_cic.F90
 F90EXE_sources += push_particles_ES.F90
 
@@ -19,6 +18,7 @@ include $(WARPX_HOME)/Source/Particles/Pusher/Make.package
 include $(WARPX_HOME)/Source/Particles/Deposition/Make.package
 include $(WARPX_HOME)/Source/Particles/Gather/Make.package
 include $(WARPX_HOME)/Source/Particles/Sorting/Make.package
+include $(WARPX_HOME)/Source/Particles/ParticleCreation/Make.package
 
 INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/Particles
 VPATH_LOCATIONS   += $(WARPX_HOME)/Source/Particles

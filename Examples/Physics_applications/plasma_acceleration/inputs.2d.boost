@@ -1,8 +1,8 @@
 #################################
 ####### GENERAL PARAMETERS ######
 #################################
-stop_time = 4.03658656286e-11
-amr.n_cell = 64 1280
+max_step = 2500
+amr.n_cell = 64 640
 amr.max_grid_size = 128
 amr.blocking_factor = 32
 amr.max_level = 0
@@ -39,7 +39,7 @@ interpolation.noz = 3
 #################################
 warpx.gamma_boost = 10.0
 warpx.boost_direction = z
-warpx.do_boosted_frame_diagnostic = 1
+warpx.do_back_transformed_diagnostics = 1
 warpx.num_snapshots_lab = 22
 warpx.dt_snapshots_lab = 3.335640951981521e-11
 

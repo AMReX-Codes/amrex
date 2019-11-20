@@ -7,6 +7,7 @@ import re
 import os
 # Get relevant environment variables
 dim = os.environ.get('WARPX_TEST_DIM', None)
+qed = os.environ.get('HAS_QED', None)
 arch = os.environ.get('WARPX_TEST_ARCH', 'CPU')
 
 # Find the directory in which the tests should be run
@@ -28,16 +29,22 @@ text = re.sub( '\[(?P<name>.*)\]\nbuildDir = ',
 # Change compile options when running on GPU
 if arch == 'GPU':
     text = re.sub( 'addToCompileString =',
-                    'addToCompileString = USE_GPU=TRUE USE_OMP=FALSE USE_ACC=TRUE', text)
+                    'addToCompileString = USE_GPU=TRUE USE_OMP=FALSE USE_ACC=TRUE ', text)
     text = re.sub( 'COMP\s*=.*', 'COMP = pgi', text )
 print('Compiling for %s' %arch)
 
+# Add runtime option: crash for unused variables
+text = re.sub('runtime_params =',
+              'runtime_params = amrex.abort_on_unused_inputs=1 ',
+              text)
+
 # Use only 2 cores for compiling
 text = re.sub( 'numMakeJobs = \d+', 'numMakeJobs = 2', text )
-
 # Use only 1 MPI and 1 thread proc for tests
 text = re.sub( 'numprocs = \d+', 'numprocs = 1', text)
 text = re.sub( 'numthreads = \d+', 'numthreads = 1', text)
+# Prevent emails from being sent
+text = re.sub( 'sendEmailWhenFail = 1', 'sendEmailWhenFail = 0', text )
 
 # Remove Python test (does not compile)
 text = re.sub( '\[Python_Langmuir\]\n(.+\n)*', '', text)
@@ -45,13 +52,37 @@ text = re.sub( '\[Python_Langmuir\]\n(.+\n)*', '', text)
 # Remove Langmuir_x/y/z test (too long; not that useful)
 text = re.sub( '\[Langmuir_[xyz]\]\n(.+\n)*', '', text)
 
-# Remove tests that do not have the right dimension
+# Select the tests to be run
+# --------------------------
+
+# - Extract test blocks (they are identified by the fact that they contain "inputFile")
+select_test_regex = r'(\[(.+\n)*inputFile(.+\n)*)'
+test_blocks =  [ match[0] for match in re.findall(select_test_regex, text) ]
+# - Remove the test blocks from `text` (only the selected ones will be added back)
+text = re.sub( select_test_regex, '', text )
+
+# Keep tests that have the right dimension
 if dim is not None:
     print('Selecting tests with dim = %s' %dim)
-    text = re.sub('\[.+\n(.+\n)*dim = [^%s]\n(.+\n)*' %dim, '', text)
+    # Cartesian tests
+    if dim in ['2', '3']:
+        test_blocks = [ block for block in test_blocks \
+             if ('dim = %s'%dim in block) and not ('USE_RZ' in block) ]
+    elif dim == 'RZ':
+        test_blocks = [ block for block in test_blocks if 'USE_RZ' in block ]
+    else:
+        raise ValueError('Unkown dimension: %s' %dim)
 
-# Prevent emails from being sent
-text = re.sub( 'sendEmailWhenFail = 1', 'sendEmailWhenFail = 0', text )
+# Remove or keep QED tests according to 'qed' variable
+if qed is not None:
+    print('Selecting tests with QED = %s' %qed)
+    if (qed == "FALSE"):
+        test_blocks = [ block for block in test_blocks if not 'QED=TRUE' in block ]
+    else:
+        test_blocks = [ block for block in test_blocks if 'QED=TRUE' in block ]
+
+# - Add the selected test blocks to the text
+text = text + '\n' + '\n'.join(test_blocks)
 
 with open('travis-tests.ini', 'w') as f:
     f.write(text)

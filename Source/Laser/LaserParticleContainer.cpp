@@ -1,4 +1,3 @@
-
 #include <limits>
 #include <cmath>
 #include <algorithm>
@@ -11,6 +10,7 @@
 #include <MultiParticleContainer.H>
 
 using namespace amrex;
+using namespace WarpXLaserProfiles;
 
 namespace
 {
@@ -26,7 +26,7 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies,
 {
     charge = 1.0;
     mass = std::numeric_limits<Real>::max();
-    do_boosted_frame_diags = 0;
+    do_back_transformed_diagnostics = 0;
 
     ParmParse pp(laser_name);
 
@@ -34,73 +34,27 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies,
     std::string laser_type_s;
     pp.get("profile", laser_type_s);
     std::transform(laser_type_s.begin(), laser_type_s.end(), laser_type_s.begin(), ::tolower);
-    if (laser_type_s == "gaussian") {
-        profile = laser_t::Gaussian;
-    } else if(laser_type_s == "harris") {
-        profile = laser_t::Harris;
-    } else if(laser_type_s == "parse_field_function") {
-        profile = laser_t::parse_field_function;
-    } else {
-        amrex::Abort("Unknown laser type");
-    }
 
     // Parse the properties of the antenna
     pp.getarr("position", position);
     pp.getarr("direction", nvec);
     pp.getarr("polarization", p_X);
+
     pp.query("pusher_algo", pusher_algo);
     pp.get("wavelength", wavelength);
     pp.get("e_max", e_max);
     pp.query("do_continuous_injection", do_continuous_injection);
     pp.query("min_particles_per_mode", min_particles_per_mode);
 
-    if ( profile == laser_t::Gaussian ) {
-        // Parse the properties of the Gaussian profile
-        pp.get("profile_waist", profile_waist);
-        pp.get("profile_duration", profile_duration);
-        pp.get("profile_t_peak", profile_t_peak);
-        pp.get("profile_focal_distance", profile_focal_distance);
-        stc_direction = p_X;
-        pp.queryarr("stc_direction", stc_direction);
-        pp.query("zeta", zeta);
-        pp.query("beta", beta);
-        pp.query("phi2", phi2);
+    //Select laser profile
+    if(laser_profiles_dictionary.count(laser_type_s) == 0){
+        amrex::Abort(std::string("Unknown laser type: ").append(laser_type_s));
     }
-
-    if ( profile == laser_t::Harris ) {
-        // Parse the properties of the Harris profile
-        pp.get("profile_waist", profile_waist);
-        pp.get("profile_duration", profile_duration);
-        pp.get("profile_focal_distance", profile_focal_distance);
-    }
-
-    if ( profile == laser_t::parse_field_function ) {
-        // Parse the properties of the parse_field_function profile
-        pp.get("field_function(X,Y,t)", field_function);
-        parser.define(field_function);
-        parser.registerVariables({"X","Y","t"});
-
-        ParmParse ppc("my_constants");
-        std::set<std::string> symbols = parser.symbols();
-        symbols.erase("X");
-        symbols.erase("Y");
-        symbols.erase("t"); // after removing variables, we are left with constants
-        for (auto it = symbols.begin(); it != symbols.end(); ) {
-            Real v;
-            if (ppc.query(it->c_str(), v)) {
-                parser.setConstant(*it, v);
-                it = symbols.erase(it);
-            } else {
-                ++it;
-            }
-        }
-        for (auto const& s : symbols) { // make sure there no unknown symbols
-            amrex::Abort("Laser Profile: Unknown symbol "+s);
-        }
-    }
+    m_up_laser_profile = laser_profiles_dictionary.at(laser_type_s)();
+    //__________
 
     // Plane normal
-    Real s = 1.0/std::sqrt(nvec[0]*nvec[0] + nvec[1]*nvec[1] + nvec[2]*nvec[2]);
+    Real s = 1.0_rt / std::sqrt(nvec[0]*nvec[0] + nvec[1]*nvec[1] + nvec[2]*nvec[2]);
     nvec = { nvec[0]*s, nvec[1]*s, nvec[2]*s };
 
     if (WarpX::gamma_boost > 1.) {
@@ -119,30 +73,14 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies,
     }
 
     // The first polarization vector
-    s = 1.0/std::sqrt(p_X[0]*p_X[0] + p_X[1]*p_X[1] + p_X[2]*p_X[2]);
+    s = 1.0_rt / std::sqrt(p_X[0]*p_X[0] + p_X[1]*p_X[1] + p_X[2]*p_X[2]);
     p_X = { p_X[0]*s, p_X[1]*s, p_X[2]*s };
 
-    Real dp = std::inner_product(nvec.begin(), nvec.end(), p_X.begin(), 0.0);
+    Real const dp = std::inner_product(nvec.begin(), nvec.end(), p_X.begin(), 0.0);
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(std::abs(dp) < 1.0e-14,
         "Laser plane vector is not perpendicular to the main polarization vector");
 
     p_Y = CrossProduct(nvec, p_X);   // The second polarization vector
-
-    s = 1.0/std::sqrt(stc_direction[0]*stc_direction[0] + stc_direction[1]*stc_direction[1] + stc_direction[2]*stc_direction[2]);
-    stc_direction = { stc_direction[0]*s, stc_direction[1]*s, stc_direction[2]*s };
-    dp = std::inner_product(nvec.begin(), nvec.end(), stc_direction.begin(), 0.0);
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(std::abs(dp) < 1.0e-14,
-        "stc_direction is not perpendicular to the laser plane vector");
-
-    // Get angle between p_X and stc_direction
-    // in 2d, stcs are in the simulation plane
-#if AMREX_SPACEDIM == 3
-    theta_stc = acos(stc_direction[0]*p_X[0] +
-                     stc_direction[1]*p_X[1] +
-                     stc_direction[2]*p_X[2]);
-#else
-    theta_stc = 0.;
-#endif
 
 #if (defined WARPX_DIM_3D) || (defined WARPX_DIM_RZ)
     u_X = p_X;
@@ -189,6 +127,14 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies,
                 "warpx.boost_direction = z. TODO: all directions.");
         }
     }
+
+    //Init laser profile
+    CommonLaserParameters common_params;
+    common_params.wavelength = wavelength;
+    common_params.e_max = e_max;
+    common_params.p_X = p_X;
+    common_params.nvec = nvec;
+    m_up_laser_profile->init(pp, ParmParse{"my_constants"}, common_params);
 }
 
 /* \brief Check if laser particles enter the box, and inject if necessary.
@@ -266,20 +212,20 @@ LaserParticleContainer::InitData (int lev)
         position = updated_position;
     }
 
-    auto Transform = [&](int i, int j) -> Vector<Real>{
+    auto Transform = [&](int const i, int const j) -> Vector<Real>{
 #if (AMREX_SPACEDIM == 3)
-        return { position[0] + (S_X*(i+0.5))*u_X[0] + (S_Y*(j+0.5))*u_Y[0],
-                 position[1] + (S_X*(i+0.5))*u_X[1] + (S_Y*(j+0.5))*u_Y[1],
-                 position[2] + (S_X*(i+0.5))*u_X[2] + (S_Y*(j+0.5))*u_Y[2] };
+        return { position[0] + (S_X*(Real(i)+0.5_rt))*u_X[0] + (S_Y*(Real(j)+0.5_rt))*u_Y[0],
+                 position[1] + (S_X*(Real(i)+0.5_rt))*u_X[1] + (S_Y*(Real(j)+0.5_rt))*u_Y[1],
+                 position[2] + (S_X*(Real(i)+0.5_rt))*u_X[2] + (S_Y*(Real(j)+0.5_rt))*u_Y[2] };
 #else
 #   if (defined WARPX_DIM_RZ)
-        return { position[0] + (S_X*(i+0.5)),
+        return { position[0] + (S_X*(Real(i)+0.5)),
                  0.0,
                  position[2]};
 #   else
-        return { position[0] + (S_X*(i+0.5))*u_X[0],
+        return { position[0] + (S_X*(Real(i)+0.5))*u_X[0],
                  0.0,
-                 position[2] + (S_X*(i+0.5))*u_X[2] };
+                 position[2] + (S_X*(Real(i)+0.5))*u_X[2] };
 #   endif
 #endif
     };
@@ -449,12 +395,12 @@ LaserParticleContainer::Evolve (int lev,
 #endif
     {
 #ifdef _OPENMP
-        int thread_num = omp_get_thread_num();
+        int const thread_num = omp_get_thread_num();
 #else
-        int thread_num = 0;
+        int const thread_num = 0;
 #endif
 
-        Cuda::ManagedDeviceVector<Real> plane_Xp, plane_Yp, amplitude_E;
+        Gpu::ManagedDeviceVector<Real> plane_Xp, plane_Yp, amplitude_E;
 
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
         {
@@ -503,21 +449,9 @@ LaserParticleContainer::Evolve (int lev,
 
             // Calculate the laser amplitude to be emitted,
             // at the position of the emission plane
-            if (profile == laser_t::Gaussian) {
-                gaussian_laser_profile(np, plane_Xp.dataPtr(), plane_Yp.dataPtr(),
-                                       t_lab, amplitude_E.dataPtr());
-            }
-
-            if (profile == laser_t::Harris) {
-                harris_laser_profile(np, plane_Xp.dataPtr(), plane_Yp.dataPtr(),
-                                     t_lab, amplitude_E.dataPtr());
-            }
-
-            if (profile == laser_t::parse_field_function) {
-                for (int i = 0; i < np; ++i) {
-                    amplitude_E[i] = parser.eval(plane_Xp[i], plane_Yp[i], t);
-                }
-            }
+            m_up_laser_profile->fill_amplitude(
+                np, plane_Xp.dataPtr(), plane_Yp.dataPtr(),
+                t_lab, amplitude_E.dataPtr());
 
             // Calculate the corresponding momentum and position for the particles
             update_laser_particle(np, uxp.dataPtr(), uyp.dataPtr(),
@@ -610,7 +544,7 @@ void
 LaserParticleContainer::ComputeWeightMobility (Real Sx, Real Sy)
 {
     constexpr Real eps = 0.01;
-    constexpr Real fac = 1.0/(2.0*MathConst::pi*PhysConst::mu0*PhysConst::c*PhysConst::c*eps);
+    constexpr Real fac = 1.0_rt / (2.0_rt * MathConst::pi * PhysConst::mu0 * PhysConst::c * PhysConst::c * eps);
     weight = fac * wavelength * Sx * Sy / std::min(Sx,Sy) * e_max;
 
     // The mobility is the constant of proportionality between the field to

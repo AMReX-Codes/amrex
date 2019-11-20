@@ -41,11 +41,20 @@ public:
                          DtType a_dt_type=DtType::Full) override;
 
     virtual void PushPX(WarpXParIter& pti,
-                        amrex::Cuda::ManagedDeviceVector<amrex::ParticleReal>& xp,
-                        amrex::Cuda::ManagedDeviceVector<amrex::ParticleReal>& yp,
-                        amrex::Cuda::ManagedDeviceVector<amrex::ParticleReal>& zp,
+                        amrex::Gpu::ManagedDeviceVector<amrex::ParticleReal>& xp,
+                        amrex::Gpu::ManagedDeviceVector<amrex::ParticleReal>& yp,
+                        amrex::Gpu::ManagedDeviceVector<amrex::ParticleReal>& zp,
                         amrex::Real dt, DtType a_dt_type=DtType::Full) override;
 
+    // Don't push momenta for photons
+    virtual void PushP (int lev,
+                        amrex::Real dt,
+                        const amrex::MultiFab& Ex,
+                        const amrex::MultiFab& Ey,
+                        const amrex::MultiFab& Ez,
+                        const amrex::MultiFab& Bx,
+                        const amrex::MultiFab& By,
+                        const amrex::MultiFab& Bz) override {};
 
 
     // DepositCurrent should do nothing for photons
@@ -63,7 +72,12 @@ public:
                                 int thread_num,
                                 int lev,
                                 int depos_lev,
-                                amrex::Real dt)  {};
+                                amrex::Real dt) override {};
+    //Photons are not leptons
+    virtual bool AmIALepton () override
+    {
+        return false;
+    };
 
 };
 

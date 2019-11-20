@@ -21,22 +21,39 @@ using namespace amrex;
 PhotonParticleContainer::PhotonParticleContainer (AmrCore* amr_core, int ispecies,
                                                   const std::string& name)
     : PhysicalParticleContainer(amr_core, ispecies, name)
-{}
+{
+
+    ParmParse pp(species_name);
+
+#ifdef WARPX_QED
+        //IF m_do_qed is enabled, find out if Breit Wheeler process is enabled
+        if(m_do_qed)
+            pp.query("do_qed_breit_wheeler", m_do_qed_breit_wheeler);
+
+        //Check for processes which do not make sense for photons
+        bool test_quantum_sync = false;
+        pp.query("do_qed_quantum_sync", test_quantum_sync);
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+        test_quantum_sync == 0,
+        "ERROR: do_qed_quantum_sync can be 1 for species NOT listed in particles.photon_species only!");
+        //_________________________________________________________
+#endif
+
+}
 
 void PhotonParticleContainer::InitData()
 {
     AddParticles(0); // Note - add on level 0
 
-    if (maxLevel() > 0) {
-        Redistribute();  // We then redistribute
-    }
+    Redistribute();  // We then redistribute
+
 }
 
 void
 PhotonParticleContainer::PushPX(WarpXParIter& pti,
-                                Cuda::ManagedDeviceVector<ParticleReal>& xp,
-                                Cuda::ManagedDeviceVector<ParticleReal>& yp,
-                                Cuda::ManagedDeviceVector<ParticleReal>& zp,
+                                Gpu::ManagedDeviceVector<ParticleReal>& xp,
+                                Gpu::ManagedDeviceVector<ParticleReal>& yp,
+                                Gpu::ManagedDeviceVector<ParticleReal>& zp,
                                 Real dt, DtType a_dt_type)
 {
 
@@ -56,7 +73,7 @@ PhotonParticleContainer::PushPX(WarpXParIter& pti,
     const ParticleReal* const AMREX_RESTRICT By = attribs[PIdx::By].dataPtr();
     const ParticleReal* const AMREX_RESTRICT Bz = attribs[PIdx::Bz].dataPtr();
 
-    if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
+    if (WarpX::do_back_transformed_diagnostics && do_back_transformed_diagnostics)
     {
         copy_attribs(pti, x, y, z);
     }

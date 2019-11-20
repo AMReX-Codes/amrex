@@ -2,7 +2,6 @@
 #define WARPX_PARTICLES_SORTING_SORTINGUTILS_H_
 
 #include <WarpXParticleContainer.H>
-#include <AMReX_CudaContainers.H>
 #include <AMReX_Gpu.H>
 #ifdef AMREX_USE_GPU
     #include <thrust/partition.h>
@@ -43,7 +42,7 @@ ForwardIterator stablePartition(ForwardIterator const index_begin,
     // On GPU: Use thrust
     int const* AMREX_RESTRICT predicate_ptr = predicate.dataPtr();
     ForwardIterator const sep = thrust::stable_partition(
-        thrust::cuda::par(amrex::Cuda::The_ThrustCachedAllocator()),
+        thrust::cuda::par(amrex::Gpu::The_ThrustCachedAllocator()),
         index_begin, index_end,
         [predicate_ptr] AMREX_GPU_DEVICE (long i) { return predicate_ptr[i]; }
     );
@@ -78,22 +77,19 @@ int iteratorDistance(ForwardIterator const first,
 /* \brief Functor that fills the elements of the particle array `inexflag`
  *  with the value of the spatial array `bmasks`, at the corresponding particle position.
  *
- * This is done only for the elements from `start_index` to the end of `inexflag`
- *
  * \param[in] pti Contains information on the particle positions
  * \param[in] bmasks Spatial array, that contains a flag indicating
  *         whether each cell is part of the gathering/deposition buffers
  * \param[out] inexflag Vector to be filled with the value of `bmasks`
  * \param[in] geom Geometry object, necessary to locate particles within the array `bmasks`
- * \param[in] start_index Index that which elements start to be modified
+ *
  */
 class fillBufferFlag
 {
     public:
         fillBufferFlag( WarpXParIter const& pti, amrex::iMultiFab const* bmasks,
                         amrex::Gpu::DeviceVector<int>& inexflag,
-                        amrex::Geometry const& geom, long const start_index=0 ) :
-                        m_start_index(start_index) {
+                        amrex::Geometry const& geom ) {
 
             // Extract simple structure that can be used directly on the GPU
             m_particles = &(pti.GetArrayOfStructs()[0]);
@@ -110,13 +106,73 @@ class fillBufferFlag
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         void operator()( const long i ) const {
             // Select a particle
-            auto const& p = m_particles[i+m_start_index];
+            auto const& p = m_particles[i];
             // Find the index of the cell where this particle is located
             amrex::IntVect const iv = amrex::getParticleCell( p,
                                 m_prob_lo, m_inv_cell_size, m_domain );
             // Find the value of the buffer flag in this cell and
             // store it at the corresponding particle position in the array `inexflag`
-            m_inexflag_ptr[i+m_start_index] = m_buffer_mask(iv);
+            m_inexflag_ptr[i] = m_buffer_mask(iv);
+        };
+
+    private:
+        amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> m_prob_lo;
+        amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> m_inv_cell_size;
+        amrex::Box m_domain;
+        int* m_inexflag_ptr;
+        WarpXParticleContainer::ParticleType const* m_particles;
+        amrex::Array4<int const> m_buffer_mask;
+};
+
+/* \brief Functor that fills the elements of the particle array `inexflag`
+ *  with the value of the spatial array `bmasks`, at the corresponding particle position.
+ *
+ * Contrary to `fillBufferFlag`, here this is done only for the particles that
+ * the last elements of `particle_indices` point to (from the element at
+ * index `start_index` in `particle_indices`, to the last element of `particle_indices`)
+ *
+ * \param[in] pti Contains information on the particle positions
+ * \param[in] bmasks Spatial array, that contains a flag indicating
+ *         whether each cell is part of the gathering/deposition buffers
+ * \param[out] inexflag Vector to be filled with the value of `bmasks`
+ * \param[in] geom Geometry object, necessary to locate particles within the array `bmasks`
+ * \param[in] start_index Index that which elements start to be modified
+ */
+class fillBufferFlagRemainingParticles
+{
+    public:
+        fillBufferFlagRemainingParticles(
+                        WarpXParIter const& pti,
+                        amrex::iMultiFab const* bmasks,
+                        amrex::Gpu::DeviceVector<int>& inexflag,
+                        amrex::Geometry const& geom,
+                        amrex::Gpu::DeviceVector<long> const& particle_indices,
+                        long const start_index ) :
+                        m_start_index(start_index) {
+
+            // Extract simple structure that can be used directly on the GPU
+            m_particles = &(pti.GetArrayOfStructs()[0]);
+            m_buffer_mask = (*bmasks)[pti].array();
+            m_inexflag_ptr = inexflag.dataPtr();
+            m_indices_ptr = particle_indices.dataPtr();
+            m_domain = geom.Domain();
+            for (int idim=0; idim<AMREX_SPACEDIM; idim++) {
+                m_prob_lo[idim] = geom.ProbLo(idim);
+                m_inv_cell_size[idim] = geom.InvCellSize(idim);
+            }
+        };
+
+
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        void operator()( const long i ) const {
+            // Select a particle
+            auto const& p = m_particles[m_indices_ptr[i+m_start_index]];
+            // Find the index of the cell where this particle is located
+            amrex::IntVect const iv = amrex::getParticleCell( p,
+                                m_prob_lo, m_inv_cell_size, m_domain );
+            // Find the value of the buffer flag in this cell and
+            // store it at the corresponding particle position in the array `inexflag`
+            m_inexflag_ptr[m_indices_ptr[i+m_start_index]] = m_buffer_mask(iv);
         };
 
     private:
@@ -127,6 +183,7 @@ class fillBufferFlag
         WarpXParticleContainer::ParticleType const* m_particles;
         amrex::Array4<int const> m_buffer_mask;
         long const m_start_index;
+        long const* m_indices_ptr;
 };
 
 /* \brief Functor that copies the elements of `src` into `dst`,
