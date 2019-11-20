@@ -952,7 +952,7 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
     const int N_rcvs = recv_cctc.size();
     if (N_rcvs == 0) return;
 
-    // HIP FIX HERE
+    // HIP FIX HERE - Dim3
     Dim3 zero;
     zero.x = 0; zero.y = 0; zero.z = 0;
 

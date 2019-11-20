@@ -3,8 +3,7 @@
 
 #if !defined(BL_LANG_FORT)
 
-// HIP FIX HERE
-// noexcept
+// HIP FIX HERE - noexcept
 
 #ifdef AMREX_HIP_PLATFORM_HCC
 #define AMREX_NOEXCEPT
