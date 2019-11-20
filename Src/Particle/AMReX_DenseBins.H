@@ -70,7 +70,6 @@ public:
         AMREX_FOR_1D ( nitems, i,
         {
             bin_type iv = f(v[i]);
-            AMREX_ASSERT(bx.contains(iv));
             int nx = hi.x-lo.x+1;
             int ny = hi.y-lo.y+1;
             int nz = hi.z-lo.z+1;
