@@ -123,15 +123,26 @@ class ParConstIter;
  * The data layout on a single tile is determined by the value of the following
  * template parameters:
  *
- * \tparam NStructReal The number of extra Real components in the particle struct
- * \tparam NStructInt The number of extra integer components in the particle struct
- * \tparam NArrayReal The number of extra Real components stored in struct-of-array form
- * \tparam NArrayInt The number of extra integer components stored in struct-of-array form
+ * \tparam T_NStructReal The number of extra Real components in the particle struct
+ * \tparam T_NStructInt The number of extra integer components in the particle struct
+ * \tparam T_NArrayReal The number of extra Real components stored in struct-of-array form
+ * \tparam T_NArrayInt The number of extra integer components stored in struct-of-array form
  *
  */
-template <int NStructReal, int NStructInt=0, int NArrayReal=0, int NArrayInt=0>
+template <int T_NStructReal, int T_NStructInt=0, int T_NArrayReal=0, int T_NArrayInt=0>
 class ParticleContainer
 {
+public:
+    //! \brief number of extra Real components in the particle struct
+    static constexpr int NStructReal = T_NStructReal;
+    //! \brief number of extra integer components in the particle struct
+    static constexpr int NStructInt = T_NStructInt;
+    //! \brief number of extra Real components stored in struct-of-array form
+    static constexpr int NArrayReal = T_NArrayReal;
+    //! \brief number of extra integer components stored in struct-of-array form
+    static constexpr int NArrayInt = T_NArrayInt;
+
+private:
     friend class ParIterBase<true,NStructReal, NStructInt, NArrayReal, NArrayInt>;
     friend class ParIterBase<false,NStructReal, NStructInt, NArrayReal, NArrayInt>;
 
