@@ -2036,7 +2036,7 @@ FabArray<FAB>::BuildMask (const Box& phys_domain, const Periodicity& period,
     }
 
     const FabArrayBase::FB& TheFB = this->getFB(ngrow,period);
-    FB_setVal(covered, TheFB, 0, ncomp);
+    setVal(covered, TheFB, 0, ncomp);
 }
 
 template <class FAB>
