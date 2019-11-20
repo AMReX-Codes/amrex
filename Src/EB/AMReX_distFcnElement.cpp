@@ -6,17 +6,11 @@
 
 namespace amrex {
 
-int distFcnElement2d::solve_thomas(std::vector<amrex::Real> ain,
-                                   std::vector<amrex::Real> bin,
-                                   std::vector<amrex::Real> cin,
-                                   std::vector<amrex::Real> din,
+int distFcnElement2d::solve_thomas(const std::vector<amrex::Real> &a,
+                                   std::vector<amrex::Real> b,
+                                   const std::vector<amrex::Real> &c,
+                                   std::vector<amrex::Real> d,
                                    std::vector<amrex::Real> &x) {
-  std::vector<amrex::Real> a, b, c, d;
-  a = ain;  // off diagonal on low side
-  b = bin;  // diagonal
-  c = cin;  // off diagonal on high side
-  d = din;  // rhs
-
   unsigned n;
   n = d.size();
   x.resize(n);
