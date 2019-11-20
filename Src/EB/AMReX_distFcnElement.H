@@ -18,9 +18,9 @@ class distFcnElement2d {
 
   virtual  amrex::Real cpdist(amrex::RealVect pt, amrex::RealVect& cp) const = 0;
   virtual  amrex::Real cpside(amrex::RealVect pt, amrex::RealVect& cp) const = 0;
-  int solve_thomas(std::vector<amrex::Real> diagminus,
+  int solve_thomas(const std::vector<amrex::Real> &diagminus,
                    std::vector<amrex::Real> diag,
-                   std::vector<amrex::Real> diagplus,
+                   const std::vector<amrex::Real> &diagplus,
                    std::vector<amrex::Real> rhs,
                    std::vector<amrex::Real> &X);
 };
