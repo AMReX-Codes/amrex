@@ -18,11 +18,11 @@ class distFcnElement2d {
 
   virtual  amrex::Real cpdist(amrex::RealVect pt, amrex::RealVect& cp) const = 0;
   virtual  amrex::Real cpside(amrex::RealVect pt, amrex::RealVect& cp) const = 0;
-  int solve_thomas(std::vector<amrex::Real> diagminus,
+  int solve_thomas(const std::vector<amrex::Real> &diagminus,
                    std::vector<amrex::Real> diag,
-                   std::vector<amrex::Real> diagplus,
+                   const std::vector<amrex::Real> &diagplus,
                    std::vector<amrex::Real> rhs,
-                   std::vector<amrex::Real>& X);
+                   std::vector<amrex::Real> &X);
 };
 
 
@@ -69,7 +69,7 @@ class SplineDistFcnElement2d: public distFcnElement2d {
   void print_control_points() const;
   void print_spline() const;
 
-  void calc_D(bool clamped_bc = true);
+  void calc_D(bool clamped_bc = false);
 
   virtual  amrex::Real cpdist(amrex::RealVect pt, amrex::RealVect& cp) const override;
   virtual  amrex::Real cpside(amrex::RealVect pt, amrex::RealVect& cp) const override;
