@@ -301,7 +301,7 @@ protected:
     bool m_gather_from_main_grid = false;
 
     static int do_not_push;
-    static int do_not_deposit_current;
+    static int do_not_deposit;
 
     // Whether to allow particles outside of the simulation domain to be
     // initialized when they enter the domain.
