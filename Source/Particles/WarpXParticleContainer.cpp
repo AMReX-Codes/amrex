@@ -17,6 +17,7 @@
 using namespace amrex;
 
 int WarpXParticleContainer::do_not_push = 0;
+int WarpXParticleContainer::do_not_deposit_current = 0;
 
 WarpXParIter::WarpXParIter (ContainerType& pc, int level)
     : ParIter(pc, level, MFItInfo().SetDynamic(WarpX::do_dynamic_scheduling))
@@ -120,6 +121,7 @@ WarpXParticleContainer::ReadParameters ()
 #endif
         pp.query("do_tiling",  do_tiling);
         pp.query("do_not_push", do_not_push);
+        pp.query("do_not_deposit_current", do_not_deposit_current);
 
         initialized = true;
     }
@@ -308,6 +310,9 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
                                      "Deposition buffers only work for lev-1");
     // If no particles, do not do anything
     if (np_to_depose == 0) return;
+
+    // If user decides not to deposit current
+    if (do_not_deposit_current) return;
 
     const long ngJ = jx->nGrow();
     const std::array<Real,3>& dx = WarpX::CellSize(std::max(depos_lev,0));
