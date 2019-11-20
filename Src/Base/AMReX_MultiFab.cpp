@@ -1161,15 +1161,10 @@ MultiFab::SumBoundary (int scomp, int ncomp, IntVect const& nghost, const Period
 
     if ( n_grow == IntVect::TheZeroVector() and boxArray().ixType().cellCentered()) return;
 
-    if (boxArray().ixType().cellCentered()) {
-	// Self copy is safe only for cell-centered MultiFab
-	this->copy(*this,scomp,scomp,ncomp,n_grow,nghost,period,FabArrayBase::ADD);
-    } else {
-	MultiFab tmp(boxArray(), DistributionMap(), ncomp, n_grow, MFInfo(), Factory());
-	MultiFab::Copy(tmp, *this, scomp, 0, ncomp, n_grow);
-	this->setVal(0.0, scomp, ncomp, nghost);
-	this->copy(tmp,0,scomp,ncomp,n_grow,nghost,period,FabArrayBase::ADD);
-    }
+    MultiFab tmp(boxArray(), DistributionMap(), ncomp, n_grow, MFInfo(), Factory());
+    MultiFab::Copy(tmp, *this, scomp, 0, ncomp, n_grow);
+    this->setVal(0.0, scomp, ncomp, nghost);
+    this->copy(tmp,0,scomp,ncomp,n_grow,nghost,period,FabArrayBase::ADD);
 }
 
 void
