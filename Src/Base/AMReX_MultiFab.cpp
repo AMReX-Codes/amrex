@@ -1196,8 +1196,11 @@ MultiFab::OverlapMask (const Periodicity& period) const
 
     const std::vector<IntVect>& pshifts = period.shiftIntVect();
 
+    Vector<Array4BoxTag<Real> > tags;
+
+    bool run_on_gpu = Gpu::inLaunchRegion();
 #ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
+#pragma omp parallel if (!run_on_gpu)
 #endif
     {
         std::vector< std::pair<int,Box> > isects;
@@ -1205,7 +1208,7 @@ MultiFab::OverlapMask (const Periodicity& period) const
         for (MFIter mfi(*p); mfi.isValid(); ++mfi)
         {
             const Box& bx = (*p)[mfi].box();
-            auto arr = p->array(mfi); 
+            Array4<Real> const& arr = p->array(mfi);
 
             AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
             {
@@ -1217,19 +1220,31 @@ MultiFab::OverlapMask (const Periodicity& period) const
                 ba.intersections(bx+iv, isects);
                 for (const auto& is : isects)
                 {
-                    Box ibx = is.second-iv;
-                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D(ibx, i, j, k,
-                    {
-                        arr(i,j,k) += 1.0;
-                    });
+                    Box const& b = is.second-iv;
+                    if (run_on_gpu) {
+                        tags.push_back({arr,b});
+                    } else {
+                        amrex::LoopConcurrentOnCpu(b, [=] (int i, int j, int k) noexcept
+                        {
+                            arr(i,j,k) += 1.0;
+                        });
+                    }
                 }
             }
         }
     }
-    
+
+#ifdef AMREX_USE_GPU
+    amrex::ParallelFor(tags, 1,
+    [=] AMREX_GPU_DEVICE (int i, int j, int k, int n, Array4<Real> const& a) noexcept
+    {
+        Real* p = a.ptr(i,j,k,n);
+        Gpu::Atomic::Add(p, 1.0);
+    });
+#endif
+
     return p;
 }
-
 
 std::unique_ptr<iMultiFab>
 MultiFab::OwnerMask (const Periodicity& period) const

@@ -502,13 +502,13 @@ FabArray<FAB>::FB_local_copy_gpu (const FB& TheFB, int scomp, int ncomp)
 
 template <class FAB>
 void
-FabArray<FAB>::FB_local_setVal_gpu (typename FabArray<FAB>::value_type x,
-                                    const FB& TheFB, int scomp, int ncomp)
+FabArray<FAB>::CMD_local_setVal_gpu (typename FabArray<FAB>::value_type x,
+                                    const CommMetaData& thecmd, int scomp, int ncomp)
 {
-    auto const& LocTags = *(TheFB.m_LocTags);
+    auto const& LocTags = *(thecmd.m_LocTags);
     int N_locs = LocTags.size();
     if (N_locs == 0) return;
-    bool is_thread_safe = TheFB.m_threadsafe_loc;
+    bool is_thread_safe = thecmd.m_threadsafe_loc;
 
     typedef Array4BoxTag<value_type> TagType;
     Vector<TagType> loc_setval_tags;
@@ -533,11 +533,11 @@ FabArray<FAB>::FB_local_setVal_gpu (typename FabArray<FAB>::value_type x,
 
 template <class FAB>
 void
-FabArray<FAB>::FB_remote_setVal_gpu (typename FabArray<FAB>::value_type x,
-                                    const FB& TheFB, int scomp, int ncomp)
+FabArray<FAB>::CMD_remote_setVal_gpu (typename FabArray<FAB>::value_type x,
+                                    const CommMetaData& thecmd, int scomp, int ncomp)
 {
-    auto const& RcvTags = *(TheFB.m_RcvTags);
-    bool is_thread_safe = TheFB.m_threadsafe_rcv;
+    auto const& RcvTags = *(thecmd.m_RcvTags);
+    bool is_thread_safe = thecmd.m_threadsafe_rcv;
 
     typedef Array4BoxTag<value_type> TagType;
     Vector<TagType> rcv_setval_tags;
