@@ -805,6 +805,11 @@ MLNodeLaplacian::buildStencil ()
             m_stencil[amrlev][mglev]->setVal(0.0);
         }
 
+        if (amrlev == 0 and m_prep_sync) {
+            m_grid_stencil.reset(new MultiFab(amrex::convert(m_grids[0][0],IntVect::TheNodeVector()),
+                                              m_dmap[0][0], ncomp_s, 1));
+        }
+
         {
             const Geometry& geom = m_geom[amrlev][0];
             const auto dxinvarr = geom.InvCellSizeArray();
@@ -828,6 +833,7 @@ MLNodeLaplacian::buildStencil ()
                 for (MFIter mfi(*m_stencil[amrlev][0],mfi_info); mfi.isValid(); ++mfi)
                 {
                     Box vbx = mfi.validbox();
+                    Box const& ccvbx = amrex::enclosedCells(vbx);
                     AMREX_D_TERM(vbx.growLo(0,1);, vbx.growLo(1,1);, vbx.growLo(2,1));
                     Box bx = mfi.growntilebox(1);
                     bx &= vbx;
@@ -837,6 +843,8 @@ MLNodeLaplacian::buildStencil ()
                     Array4<Real const> const& sgarr_orig = sgfab_orig.const_array();
 
                     Array4<Real> const& starr = m_stencil[amrlev][0]->array(mfi);
+                    Array4<Real> gstarr;
+                    if (amrlev == 0 and m_grid_stencil) gstarr = m_grid_stencil->array(mfi);
 #ifdef AMREX_USE_EB
                     Array4<Real const> const& intgarr = intg->const_array(mfi);
 
@@ -853,6 +861,7 @@ MLNodeLaplacian::buildStencil ()
                             AMREX_HOST_DEVICE_PARALLEL_FOR_4D(bx,ncomp_s,i,j,k,n,
                             {
                                 starr(i,j,k,n) = 0.0;
+                                if (gstarr) gstarr(i,j,k,n) = 0.0;
                             });
                         }
                         else if (typ == FabType::singlevalued)
@@ -863,13 +872,17 @@ MLNodeLaplacian::buildStencil ()
                             Elixir cneli = cnfab.elixir();
                             Array4<Real> const& cnarr = cnfab.array();
 
-                            sgfab.resize(ccbxg1);
+                            int const nsg = (gstarr) ? 2 : 1;
+                            sgfab.resize(ccbxg1,nsg);
                             Elixir sgeli = sgfab.elixir();
                             Array4<Real> const& sgarr = sgfab.array();
+                            Array4<Real> gsgarr;
+                            if (gstarr) gsgarr = sgfab.array(1);
 
                             AMREX_HOST_DEVICE_FOR_3D(ccbxg1, i, j, k,
                             {
-                                if (btmp.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
+                                IntVect const iv(AMREX_D_DECL(i,j,k));
+                                if (btmp.contains(iv)) {
                                     mlndlap_set_connection(i,j,k,cnarr,intgarr,vfracarr,flagarr);
                                     sgarr(i,j,k) = sgarr_orig(i,j,k);
                                 } else {
@@ -878,11 +891,21 @@ MLNodeLaplacian::buildStencil ()
                                     }
                                     sgarr(i,j,k) = 0.0;
                                 }
+                                if (gsgarr) {
+                                    if (ccvbx.contains(iv)) {
+                                        gsgarr(i,j,k) = sgarr(i,j,k);
+                                    } else {
+                                        gsgarr(i,j,k) = 0.0;
+                                    }
+                                }
                             });
 
                             AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
                             {
                                 mlndlap_set_stencil_eb(i, j, k, starr, sgarr, cnarr, dxinvarr);
+                                if (gstarr) {
+                                    mlndlap_set_stencil_eb(i, j, k, gstarr, gsgarr, cnarr, dxinvarr);
+                                }
                             });
                         }
                         else
@@ -895,22 +918,36 @@ MLNodeLaplacian::buildStencil ()
                     {
                         const Box& btmp = ccbxg1 & sgfab_orig.box();
 
-                        sgfab.resize(ccbxg1);
+                        int const nsg = (gstarr) ? 2 : 1;
+                        sgfab.resize(ccbxg1,nsg);
                         Elixir sgeli = sgfab.elixir();
                         Array4<Real> const& sgarr = sgfab.array();
+                        Array4<Real> gsgarr;
+                        if (gstarr) gsgarr = sgfab.array(1);
 
                         AMREX_HOST_DEVICE_FOR_3D(ccbxg1, i, j, k,
                         {
-                            if (btmp.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
+                            IntVect const iv(AMREX_D_DECL(i,j,k));
+                            if (btmp.contains(iv)) {
                                 sgarr(i,j,k) = sgarr_orig(i,j,k);
                             } else {
                                 sgarr(i,j,k) = 0.0;
+                            }
+                            if (gsgarr) {
+                                if (ccvbx.contains(iv)) {
+                                    gsgarr(i,j,k) = sgarr(i,j,k);
+                                } else {
+                                    gsgarr(i,j,k) = 0.0;
+                                }
                             }
                         });
 
                         AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
                         {
                             mlndlap_set_stencil(tbx,starr,sgarr,dxinvarr);
+                            if (gstarr) {
+                                mlndlap_set_stencil(tbx,gstarr,gsgarr,dxinvarr);
+                            }
                         });
                     }
                 }
@@ -925,9 +962,14 @@ MLNodeLaplacian::buildStencil ()
             {
                 const Box& bx = mfi.tilebox();
                 Array4<Real> const& starr = m_stencil[amrlev][0]->array(mfi);
+                Array4<Real> gstarr;
+                if (amrlev == 0 and m_grid_stencil) gstarr = m_grid_stencil->array(mfi);
                 AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
                 {
                     mlndlap_set_stencil_s0(i,j,k,starr);
+                    if (gstarr) {
+                        mlndlap_set_stencil_s0(i,j,k,gstarr);
+                    }
                 });
             }
 
