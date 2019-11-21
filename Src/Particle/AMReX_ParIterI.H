@@ -5,7 +5,8 @@ ParIterBase<is_const, NStructReal, NStructInt, NArrayReal, NArrayInt>::ParIterBa
     : 
       MFIter(*pc.m_dummy_mf[level], pc.do_tiling ? info.EnableTiling(pc.tile_size) : info),
       m_level(level),
-      m_pariter_index(0)
+      m_pariter_index(0),
+      m_pc(pc)
 {
     auto& particles = pc.GetParticles(level);
 
@@ -55,7 +56,8 @@ ParIterBase<is_const, NStructReal, NStructInt, NArrayReal, NArrayInt>::ParIterBa
     MFIter(*pc.m_dummy_mf[level],
            pc.do_tiling ? pc.tile_size : IntVect::TheZeroVector()),
     m_level(level),
-    m_pariter_index(0)
+    m_pariter_index(0),
+    m_pc(pc)
 {
     auto& particles = pc.GetParticles(level);
     
