@@ -15,7 +15,7 @@ namespace amrex
 {
 
 /**
- * /brief Returns the number of particles that are more than nGrow cells
+ * \brief Returns the number of particles that are more than nGrow cells
  * from their assigned box.
  *
  * This version tests over all levels.
@@ -34,7 +34,7 @@ numParticlesOutOfRange (PC const& pc, int nGrow)
 }
 
 /**
- * /brief Returns the number of particles that are more than nGrow cells
+ * \brief Returns the number of particles that are more than nGrow cells
  * from their assigned box.
  *
  * This version goes over only the specified levels

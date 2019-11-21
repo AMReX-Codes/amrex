@@ -11,7 +11,7 @@ namespace amrex
 {
 
 /**
- * /brief A general single particle copying routine that can run on the GPU. 
+ * \brief A general single particle copying routine that can run on the GPU. 
  *
  * \tparam NSR number of extra reals in the particle struct
  * \tparam NSI number of extra ints in the particle struct
@@ -45,7 +45,7 @@ void copyParticle(const      ParticleTileData<NSR, NSI, NAR, NAI>& dst,
 }
 
 /**
- * /brief Copy particles from src to dst. This version copies all the 
+ * \brief Copy particles from src to dst. This version copies all the 
  * particles, writing them to the beginning of dst.
  * 
  * \tparam PTile the particle tile type
@@ -63,7 +63,7 @@ void copyParticles(PTile& dst, const PTile& src) noexcept
 }
 
 /**
- * /brief Copy particles from src to dst. This version copies n particles
+ * \brief Copy particles from src to dst. This version copies n particles
  * starting at index src_start, writing the result starting at dst_start.
  * 
  * \tparam PTile the particle tile type
@@ -91,7 +91,7 @@ void copyParticles(PTile& dst, const PTile& src,
 }
     
 /**
- * /brief Apply the function f to all the particles in src, writing the
+ * \brief Apply the function f to all the particles in src, writing the
  * result to dst. This version does all the particles in src.
  * 
  * \tparam PTile the particle tile type
@@ -110,7 +110,7 @@ void transformParticles(PTile& dst, const PTile& src, F&& f) noexcept
 }
 
 /**
- * /brief Apply the function f to particles in src, writing the
+ * \brief Apply the function f to particles in src, writing the
  * result to dst. This version applies the function to n particles
  * starting at index src_start, writing the result starting at dst_start.
  * 
@@ -141,7 +141,7 @@ void transformParticles(PTile& dst, const PTile& src,
 }
 
 /**
- * /brief Conditionally copy particles from src to dst based on the value of mask.
+ * \brief Conditionally copy particles from src to dst based on the value of mask.
  * 
  * \tparam PTile the particle tile type
  * \tparam IndexType the index type, e.g. unsigned int
@@ -178,7 +178,7 @@ IndexType filterParticles(PTile& dst, const PTile& src, const IndexType* mask) n
 }
 
 /**
- * /brief Conditionally copy particles from src to dst based on a predicate.
+ * \brief Conditionally copy particles from src to dst based on a predicate.
  * 
  * \tparam PTile the particle tile type
  * \tparam IndexType the index type, e.g. unsigned int
@@ -209,7 +209,7 @@ auto filterParticles(PTile& dst, const PTile& src, Pred&& p) noexcept
 }
 
 /**
- * /brief Conditionally copy particles from src to dst based on the value of mask.
+ * \brief Conditionally copy particles from src to dst based on the value of mask.
  * A transformation will also be applied to the particles on copy.
  * 
  * \tparam PTile the particle tile type
@@ -249,7 +249,7 @@ IndexType filterAndTransformParticles(PTile& dst, const PTile& src, IndexType* m
 }
 
 /**
- * /brief Conditionally copy particles from src to dst based on a predicate.
+ * \brief Conditionally copy particles from src to dst based on a predicate.
  * A transformation will also be applied to the particles on copy.
  * 
  * \tparam PTile the particle tile type
@@ -283,7 +283,7 @@ auto filterAndTransformParticles(PTile& dst, const PTile& src, Pred&& p, F&& f) 
 }
     
 /**
- * /brief Gather particles copies particles into contiguous order from an 
+ * \brief Gather particles copies particles into contiguous order from an 
  * arbitrary order. Specifically, the particle at the index inds[i] in src
  * will be copied to the index i in dst.
  * 
@@ -311,7 +311,7 @@ void gatherParticles (PTile& dst, const PTile& src, N np, const IndexType* inds)
 }
 
 /**
- * /brief Scatter particles copies particles from contiguous order into an
+ * \brief Scatter particles copies particles from contiguous order into an
  * arbitrary order. Specifically, the particle at the index i in src
  * will be copied to the index inds[i] in dst.
  * 
