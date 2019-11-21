@@ -51,9 +51,6 @@ public :
 
     void setRZCorrection (bool rz) noexcept { m_is_rz = rz; }
 
-    // Call this iff compSyncResidualCoarse or compSyncResidualCoarse will be called.
-    void setPrepareForSync (bool b) noexcept { m_prep_sync = b; }
-
     void setNormalizationThreshold (Real t) noexcept { m_normalization_threshold = t; }
 
     void setSigma (int amrlev, const MultiFab& a_sigma);
@@ -137,9 +134,6 @@ private:
     Vector<Vector<Array<std::unique_ptr<MultiFab>,AMREX_SPACEDIM> > > m_sigma;
     Vector<Vector<std::unique_ptr<MultiFab> > > m_stencil;
     Vector<Vector<Real> > m_s0_norm0;
-
-    int m_prep_sync = 0;
-    std::unique_ptr<MultiFab> m_grid_stencil; // for sync
 
     Real m_normalization_threshold = 1.e-10;
 
