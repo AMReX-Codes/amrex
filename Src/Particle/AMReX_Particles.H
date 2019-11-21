@@ -86,7 +86,7 @@ struct ParticleLocData
 };
 
 /**
-* /brief A struct used to pass initial data into the various Init methods.
+* \brief A struct used to pass initial data into the various Init methods.
 * This struct is used to pass initial data into the various Init methods
 * of the particle container. That data should be initialized in the order
 * real struct data, int struct data, real array data, int array data.
