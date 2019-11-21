@@ -1,10 +1,14 @@
 #ifndef AMREX_PARTICLEMESH_H_
 #define AMREX_PARTICLEMESH_H_
 
+#include <AMReX_TypeTraits.H>
+#include <AMReX_MultiFab.H>
+
 namespace amrex
 {
 
-template <class PC, class MF, class F>
+template <class PC, class MF, class F,
+          EnableIf_t<amrex::IsParticleContainer<PC>::value, int> foo = 0>
 void
 ParticleToMesh (PC const& pc, MF& mf, int lev, F&& f)
 {
@@ -79,7 +83,8 @@ ParticleToMesh (PC const& pc, MF& mf, int lev, F&& f)
     }
 }
 
-template <class PC, class MF, class F>
+template <class PC, class MF, class F,
+          EnableIf_t<amrex::IsParticleContainer<PC>::value, int> foo = 0>
 void
 MeshToParticle (PC& pc, MF const& mf, int lev, F&& f)
 {
