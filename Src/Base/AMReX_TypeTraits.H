@@ -57,6 +57,33 @@ namespace amrex
     template <> struct HasAtomicAdd<float> : std::true_type {};
     template <> struct HasAtomicAdd<double> : std::true_type {};
 
+#ifdef AMREX_PARTICLES
+    template <bool is_const, int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+    class ParIterBase;
+
+    template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+    class ParIter;
+
+    template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+    class ParConstIter;
+
+    template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+    class ParticleContainer;
+    
+    template <typename T> struct is_particle_iterator : public std::false_type {};
+
+    template <int NSR, int NSI, int NAR, int NAI>
+    struct is_particle_iterator<ParIter<NSR, NSI, NAR, NAI> > : public std::true_type {};
+
+    template <int NSR, int NSI, int NAR, int NAI>
+    struct is_particle_iterator<ParConstIter<NSR, NSI, NAR, NAI> > : public std::true_type {};
+
+    template <typename T> struct is_particle_container : public std::false_type {};
+
+    template <int NSR, int NSI, int NAR, int NAI>
+    struct is_particle_container<ParticleContainer<NSR, NSI, NAR, NAI> > : public std::true_type {};    
+#endif
+    
 #if defined(AMREX_USE_GPU)
     template <class T, class Enable = void>
     struct IsDeviceLambda : std::false_type {};
