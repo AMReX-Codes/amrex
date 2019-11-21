@@ -113,6 +113,28 @@ MLNodeLaplacian::define (const Vector<Geometry>& a_geom,
 #endif
 
 void
+MLNodeLaplacian::unimposeNeumannBC (int amrlev, MultiFab& rhs) const
+{
+    if (m_coarsening_strategy == CoarseningStrategy::RAP) {
+        const Box& nddom = amrex::surroundingNodes(Geom(amrlev).Domain());
+        const auto lobc = LoBC();
+        const auto hibc = HiBC();
+
+        MFItInfo mfi_info;
+        if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for (MFIter mfi(rhs,mfi_info); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.tilebox();
+            Array4<Real> const& rhsarr = rhs.array(mfi);
+            mlndlap_unimpose_neumann_bc(bx, rhsarr, nddom, lobc, hibc);
+        }
+    }
+}
+
+void
 MLNodeLaplacian::setSigma (int amrlev, const MultiFab& a_sigma)
 {
     MultiFab::Copy(*m_sigma[amrlev][0][0], a_sigma, 0, 0, 1, 0);
@@ -233,9 +255,7 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
                 });
             }
 
-            if (m_coarsening_strategy == CoarseningStrategy::Sigma) {
-                mlndlap_impose_neumann_bc(bx, rhsarr, nddom, lobc, hibc);
-            }
+            mlndlap_impose_neumann_bc(bx, rhsarr, nddom, lobc, hibc);
 
             if (rhcc[ilev])
             {
@@ -260,9 +280,7 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
                     });
                 }
 
-                if (m_coarsening_strategy == CoarseningStrategy::Sigma) {
-                    mlndlap_impose_neumann_bc(bx, rhs_cc_a, nddom, lobc, hibc);
-                }
+                mlndlap_impose_neumann_bc(bx, rhs_cc_a, nddom, lobc, hibc);
             }
         }
     }
@@ -447,10 +465,6 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
     for (int ilev = 0; ilev < m_num_amr_levels; ++ilev)
     {
         if (ilev < rhnd.size() && rhnd[ilev]) {
-            if (m_coarsening_strategy == CoarseningStrategy::RAP) {
-                AMREX_ALWAYS_ASSERT_WITH_MESSAGE(rhnd[ilev]->norm0() == 0.0,
-                                                 "MLNodeLaplacian::compRHS RAP TODO");
-            }
             MultiFab::Add(*rhs[ilev], *rhnd[ilev], 0, 0, 1, 0);
         }
     }
@@ -1529,9 +1543,6 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
 {
     BL_PROFILE("MLNodeLaplacian::SyncResCrse()");
 
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_coarsening_strategy != CoarseningStrategy::RAP,
-                                     "MLNodeLaplacian::compSyncResidualCoarse RAP TODO");
-
     sync_resid.setVal(0.0);
 
     const Geometry& geom = m_geom[0][0];
@@ -1581,18 +1592,6 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
     }
 
     const auto& nddom = amrex::surroundingNodes(ccdom);
-
-    if (m_coarsening_strategy == CoarseningStrategy::Sigma)
-    {
-#ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-        for (MFIter mfi(phi); mfi.isValid(); ++mfi)
-        {
-            Array4<Real> const& fab = phi.array(mfi);
-            mlndlap_applybc(mfi.validbox(),fab,nddom,lobc,hibc);
-        }
-    }
 
     const auto dxinv = geom.InvCellSizeArray();
 
@@ -1661,7 +1660,6 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
                         AMREX_D_TERM(uarr(i,j,k,0) = 0.0;,
                                      uarr(i,j,k,1) = 0.0;,
                                      uarr(i,j,k,2) = 0.0;);
-
                     }
                 });
 
@@ -1700,29 +1698,47 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
                     });
                 }
 
-                Array4<Real> sigmaarr = uarr;
-                Array4<Real const> sigmaarr_orig = sigma_orig.const_array(mfi);
-                const Box& ibx = ccbxg1 & amrex::enclosedCells(mfi.validbox());
-                AMREX_HOST_DEVICE_FOR_3D(ccbxg1, i, j, k,
-                {
-                    if (cccmsk(i,j,k) == owner and ibx.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
-                        sigmaarr(i,j,k) = sigmaarr_orig(i,j,k);
-                    } else {
-                        sigmaarr(i,j,k) = 0.0;
-                    }
-                });
-
                 Array4<Real> const& sync_resid_a = sync_resid.array(mfi);
                 Array4<Real const> const& phiarr = phi.const_array(mfi);
-                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+                if (m_coarsening_strategy == CoarseningStrategy::RAP)
                 {
-                    mlndlap_adotx_aa(tbx, sync_resid_a, phiarr, sigmaarr, dmskarr,
+                    amrex::Abort("TODO: compSyncResidualCoarse");
+#if 0
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+                    {
+                        mlndlap_adotx_sten(tbx, sync_resid_a, phiarr, stenarr, dmskarr,
 #if (AMREX_SPACEDIM == 2)
-                                     is_rz,
+                                         is_rz,
 #endif
-                                     dxinv);
-                    mlndlap_crse_resid(tbx, sync_resid_a, rhsarr, cccmsk, nddom, lobc, hibc);
-                });
+                                         dxinv);
+                        mlndlap_crse_resid(tbx, sync_resid_a, rhsarr, cccmsk, nddom, lobc, hibc);
+                    });
+#endif
+                }
+                else
+                {
+                    Array4<Real> sigmaarr = uarr;
+                    Array4<Real const> sigmaarr_orig = sigma_orig.const_array(mfi);
+                    const Box& ibx = ccbxg1 & amrex::enclosedCells(mfi.validbox());
+                    AMREX_HOST_DEVICE_FOR_3D(ccbxg1, i, j, k,
+                    {
+                        if (cccmsk(i,j,k) == owner and ibx.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
+                            sigmaarr(i,j,k) = sigmaarr_orig(i,j,k);
+                        } else {
+                            sigmaarr(i,j,k) = 0.0;
+                        }
+                    });
+
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+                    {
+                        mlndlap_adotx_aa(tbx, sync_resid_a, phiarr, sigmaarr, dmskarr,
+#if (AMREX_SPACEDIM == 2)
+                                         is_rz,
+#endif
+                                         dxinv);
+                        mlndlap_crse_resid(tbx, sync_resid_a, rhsarr, cccmsk, nddom, lobc, hibc);
+                    });
+                }
             }
         }
     }
