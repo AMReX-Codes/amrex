@@ -1,4 +1,6 @@
 
+DEFINES += -DAMREX_PARTICLES
+
 AMREX_PARTICLE=EXE
 
 C$(AMREX_PARTICLE)_sources += AMReX_TracerParticles.cpp AMReX_LoadBalanceKD.cpp AMReX_ParticleMPIUtil.cpp AMReX_ParticleUtil.cpp AMReX_ParticleBufferMap.cpp AMReX_ParticleCommunication.cpp
