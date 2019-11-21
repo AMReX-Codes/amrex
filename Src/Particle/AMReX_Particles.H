@@ -106,7 +106,7 @@ struct ParticleInitType
     std::array<double, NArrayReal > real_array_data;
     std::array<int,    NArrayInt  > int_array_data;
 };
-
+    
 template <bool is_const, int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 class ParIterBase;
 
@@ -115,7 +115,7 @@ class ParIter;
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 class ParConstIter;
-    
+
 /**
  * \brief A distributed container for Particles sorted onto the levels, grids,
  * and tiles of a block-structured AMR hierarachy.
@@ -1130,8 +1130,8 @@ public:
     ParIterBase (ContainerRef pc, int level, MFItInfo& info);
 
 #ifdef _OPENMP
-    void operator++ () {
-
+    void operator++ ()
+    {
         if (dynamic) {
 #pragma omp atomic capture
             m_pariter_index = nextDynamicIndex++;
@@ -1141,7 +1141,8 @@ public:
         currentIndex = m_valid_index[m_pariter_index];
     }
 #else
-    void operator++ () {
+    void operator++ ()
+    {
         ++m_pariter_index;
         currentIndex = m_valid_index[m_pariter_index];
 #ifdef AMREX_USE_GPU
@@ -1158,7 +1159,6 @@ public:
     SoARef GetStructOfArrays () const { return GetParticleTile().GetStructOfArrays(); }
 
     template <typename Container>
-
     void GetPosition (AMREX_D_DECL(Container& x,
                                    Container& y,
                                    Container& z)) const;
@@ -1168,6 +1168,8 @@ public:
     int GetLevel () const { return m_level; }
 
     std::pair<int, int> GetPairIndex () const { return std::make_pair(this->index(), this->LocalTileIndex()); }
+
+    const Geometry& Geom (int lev) const { return m_pc.Geom(lev); } 
     
 protected:
     
@@ -1175,6 +1177,7 @@ protected:
     int m_pariter_index;
     Vector<int> m_valid_index;
     Vector<ParticleTilePtr> m_particle_tiles;
+    ContainerRef m_pc;
 };
 
 
