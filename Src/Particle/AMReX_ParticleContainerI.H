@@ -108,7 +108,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
               if (pld.m_grown_gridbox.contains(iv)) {
                   pld.m_cell = iv;
                   if (!pld.m_tilebox.contains(iv)) {
-		    pld.m_tile = getTileIndex(iv, pld.m_gridbox, do_tiling, tile_size, pld.m_tilebox);
+                      pld.m_tile = getTileIndex(iv, pld.m_gridbox, do_tiling, tile_size, pld.m_tilebox);
                   }
                   return true;
               }
