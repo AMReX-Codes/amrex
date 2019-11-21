@@ -82,6 +82,15 @@ public:
     static amrex::Vector<amrex::Real> E_external_grid;
     static amrex::Vector<amrex::Real> B_external_grid;
 
+    // Parser for B_external on the grid
+    static std::string str_Bx_ext_grid_function;
+    static std::string str_By_ext_grid_function;
+    static std::string str_Bz_ext_grid_function;
+    // Parser for E_external on the grid
+    static std::string str_Ex_ext_grid_function;
+    static std::string str_Ey_ext_grid_function;
+    static std::string str_Ez_ext_grid_function;
+
     // Algorithms
     static long current_deposition_algo;
     static long charge_deposition_algo;
@@ -309,6 +318,9 @@ public:
     void computeE(amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
                const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& phi) const;
 
+    // Making this function public to allow the use of GPU launch
+    // to initialize E and B fields using parser. 
+    void InitLevelData (int lev, amrex::Real time);
 protected:
 
     //! Tagging cells for refinement
@@ -398,7 +410,6 @@ private:
 
     void AllocLevelData (int lev, const amrex::BoxArray& new_grids,
                          const amrex::DistributionMapping& new_dmap);
-    void InitLevelData (int lev, amrex::Real time);
 
     void InitFromCheckpoint ();
     void PostRestart ();
@@ -646,6 +657,27 @@ private:
     int insitu_start;
     std::string insitu_config;
     int insitu_pin_mesh;
+};
+
+struct ParserWrapper
+    : public amrex::Gpu::Managed
+{
+    ParserWrapper (WarpXParser const& a_parser) noexcept
+       : m_parser(a_parser) {}    
+
+    AMREX_GPU_HOST_DEVICE
+    amrex::Real
+    getField (amrex::Real x, amrex::Real y, amrex::Real z) const noexcept
+    {
+       return m_parser(x,y,z);
+    }
+
+    GpuParser m_parser;
+
+    ~ParserWrapper() {
+       m_parser.clear();
+    }
+    
 };
 
 #endif
