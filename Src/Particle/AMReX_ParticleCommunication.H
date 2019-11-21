@@ -6,6 +6,7 @@
 #include <AMReX_IntVect.H>
 #include <AMReX_ParticleBufferMap.H>
 #include <AMReX_MFIter.H>
+#include <AMReX_TypeTraits.H>
 
 #include <map>
 
@@ -99,7 +100,7 @@ struct ParticleCopyPlan
     Vector<std::size_t> m_rOffset;
     Gpu::HostVector<int> m_rcv_data;
 
-    template <class PC>
+    template <class PC, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
     void build (const PC& pc, const ParticleCopyOp& op, bool local)
     {
         BL_PROFILE("ParticleCopyPlan::build");
@@ -202,7 +203,7 @@ private:
     bool m_local;
 };
 
-template <class PC, class Buffer>
+template <class PC, class Buffer, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
 void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan& plan, Buffer& snd_buffer)
 {
     BL_PROFILE("amrex::packBuffer");
@@ -276,7 +277,8 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
     }
 }
 
-template <class PC, class Buffer, class UnpackPolicy>
+template <class PC, class Buffer, class UnpackPolicy,
+          EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
 void unpackBuffer (PC& pc, const ParticleCopyPlan& plan, const Buffer& snd_buffer, const UnpackPolicy policy)
 {
     BL_PROFILE("amrex::unpackBuffer");
@@ -348,7 +350,8 @@ void unpackBuffer (PC& pc, const ParticleCopyPlan& plan, const Buffer& snd_buffe
     }
 }
 
-template <class PC, class Buffer>
+template <class PC, class Buffer,
+          EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
 void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buffer& snd_buffer, Buffer& rcv_buffer)
 {
     BL_PROFILE("amrex::communicateParticlesStart");
@@ -420,7 +423,8 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buff
 
 void communicateParticlesFinish (const ParticleCopyPlan& plan);
 
-template <class PC, class Buffer, class UnpackPolicy>
+template <class PC, class Buffer, class UnpackPolicy,
+          EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
 void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, const UnpackPolicy& policy)
 {
     BL_PROFILE("amrex::unpackRemotes");

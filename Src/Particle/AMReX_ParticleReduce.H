@@ -6,27 +6,28 @@
 #include <AMReX_Gpu.H>
 #include <AMReX_Print.H>
 #include <AMReX_GpuUtility.H>
+#include <AMReX_TypeTraits.H>
 
 #include <limits>
 
 namespace amrex
 {
 
-template <class PC, class F>
+template <class PC, class F, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
 auto
 ReduceSum (PC const& pc, F&& f) -> decltype(f(typename PC::SuperParticleType()))
 {
     return ReduceSum(pc, 0, pc.finestLevel(), std::forward<F>(f));
 }
     
-template <class PC, class F>
+template <class PC, class F, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
 auto
 ReduceSum (PC const& pc, int lev, F&& f) -> decltype(f(typename PC::SuperParticleType()))
 {
     return ReduceSum(pc, lev, lev, std::forward<F>(f));
 }
 
-template <class PC, class F>
+template <class PC, class F, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
 auto
 ReduceSum (PC const& pc, int lev_min, int lev_max, F&& f) -> decltype(f(typename PC::SuperParticleType()))
 {
@@ -78,21 +79,21 @@ ReduceSum (PC const& pc, int lev_min, int lev_max, F&& f) -> decltype(f(typename
     return sm;
 }
 
-template <class PC, class F>
+template <class PC, class F, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
 auto
 ReduceMax (PC const& pc, F&& f) -> decltype(f(typename PC::SuperParticleType()))
 {
     return ReduceMax(pc, 0, pc.finestLevel(), std::forward<F>(f));
 }
     
-template <class PC, class F>
+template <class PC, class F, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
 auto
 ReduceMax (PC const& pc, int lev, F&& f) -> decltype(f(typename PC::SuperParticleType()))
 {
     return ReduceMax(pc, lev, lev, std::forward<F>(f));
 }
 
-template <class PC, class F>
+template <class PC, class F, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
 auto
 ReduceMax (PC const& pc, int lev_min, int lev_max, F&& f) -> decltype(f(typename PC::SuperParticleType()))
 {
@@ -145,21 +146,21 @@ ReduceMax (PC const& pc, int lev_min, int lev_max, F&& f) -> decltype(f(typename
     return r;
 }
 
-template <class PC, class F>
+template <class PC, class F, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
 auto
 ReduceMin (PC const& pc, F&& f) -> decltype(f(typename PC::SuperParticleType()))
 {
     return ReduceMin(pc, 0, pc.finestLevel(), std::forward<F>(f));
 }
 
-template <class PC, class F>
+template <class PC, class F, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
 auto
 ReduceMin (PC const& pc, int lev, F&& f) -> decltype(f(typename PC::SuperParticleType()))
 {
     return ReduceMin(pc, lev, lev, std::forward<F>(f));
 }
 
-template <class PC, class F>
+template <class PC, class F, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
 auto
 ReduceMin (PC const& pc, int lev_min, int lev_max, F&& f) -> decltype(f(typename PC::SuperParticleType()))
 {
@@ -212,21 +213,21 @@ ReduceMin (PC const& pc, int lev_min, int lev_max, F&& f) -> decltype(f(typename
     return r;
 }
 
-template <class PC, class F>
+template <class PC, class F, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
 bool
 ReduceLogicalAnd (PC const& pc, F&& f)
 {
     return ReduceLogicalAnd(pc, 0, pc.finestLevel(), std::forward<F>(f));
 }
 
-template <class PC, class F>
+template <class PC, class F, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
 bool
 ReduceLogicalAnd (PC const& pc, int lev, F&& f)
 {
     return ReduceLogicalAnd(pc, lev, lev, std::forward<F>(f));
 }
 
-template <class PC, class F>
+template <class PC, class F, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
 bool
 ReduceLogicalAnd (PC const& pc, int lev_min, int lev_max, F&& f)
 {
@@ -277,21 +278,21 @@ ReduceLogicalAnd (PC const& pc, int lev_min, int lev_max, F&& f)
     return r;
 }
 
-template <class PC, class F>
+template <class PC, class F, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
 bool
 ReduceLogicalOr (PC const& pc, F&& f)
 {
     return ReduceLogicalOr(pc, 0, pc.finestLevel(), std::forward<F>(f));
 }
 
-template <class PC, class F>
+template <class PC, class F, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
 bool
 ReduceLogicalOr (PC const& pc, int lev, F&& f)
 {
     return ReduceLogicalOr(pc, lev, lev, std::forward<F>(f));
 }
 
-template <class PC, class F>
+template <class PC, class F, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
 bool
 ReduceLogicalOr (PC const& pc, int lev_min, int lev_max, F&& f)
 {

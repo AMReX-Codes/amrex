@@ -116,6 +116,10 @@ class ParIter;
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 class ParConstIter;
 
+class ParticleContainerBase
+{
+};
+    
 /**
  * \brief A distributed container for Particles sorted onto the levels, grids,
  * and tiles of a block-structured AMR hierarachy.
@@ -130,7 +134,7 @@ class ParConstIter;
  *
  */
 template <int T_NStructReal, int T_NStructInt=0, int T_NArrayReal=0, int T_NArrayInt=0>
-class ParticleContainer
+class ParticleContainer : ParticleContainerBase
 {
 public:
     //! \brief number of extra Real components in the particle struct
@@ -1095,7 +1099,6 @@ private:
     Vector<ParticleLevel> m_particles;
     Vector<std::unique_ptr<MultiFab> > m_dummy_mf;
 };
-
 
 template <bool is_const, int NStructReal, int NStructInt=0, int NArrayReal=0, int NArrayInt=0>
 class ParIterBase

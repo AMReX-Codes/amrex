@@ -67,21 +67,14 @@ namespace amrex
     template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
     class ParConstIter;
 
-    template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-    class ParticleContainer;
-    
-    template <typename T> struct is_particle_iterator : public std::false_type {};
+    class MFIter;
+    class ParticleContainerBase;
 
-    template <int NSR, int NSI, int NAR, int NAI>
-    struct is_particle_iterator<ParIter<NSR, NSI, NAR, NAI> > : public std::true_type {};
+    template <typename T>
+    struct IsParticleIterator : public std::is_base_of<MFIter, T>::type {};
 
-    template <int NSR, int NSI, int NAR, int NAI>
-    struct is_particle_iterator<ParConstIter<NSR, NSI, NAR, NAI> > : public std::true_type {};
-
-    template <typename T> struct is_particle_container : public std::false_type {};
-
-    template <int NSR, int NSI, int NAR, int NAI>
-    struct is_particle_container<ParticleContainer<NSR, NSI, NAR, NAI> > : public std::true_type {};    
+    template <typename T>
+    struct IsParticleContainer : public std::is_base_of<ParticleContainerBase, T>::type {};
 #endif
     
 #if defined(AMREX_USE_GPU)
