@@ -190,12 +190,12 @@ FromTXYEFileLaserProfile::parse_txye_file(std::string txye_file_name)
         inp.read(reinterpret_cast<char*>(buf_x.dataPtr()), nx*sizeof(double));
         if(!inp)
             Abort("Failed to read coords from txye file");
-        if (!std::is_sorted(buf_t.begin(), buf_t.end()))
+        if (!std::is_sorted(buf_x.begin(), buf_x.end()))
             Abort("Coordinates are not sorted  in txye file");
         inp.read(reinterpret_cast<char*>(buf_y.dataPtr()), ny*sizeof(double));
         if(!inp)
             Abort("Failed to read coords from txye file");
-        if (!std::is_sorted(buf_t.begin(), buf_t.end()))
+        if (!std::is_sorted(buf_y.begin(), buf_y.end()))
             Abort("Coordinates are not sorted in txye file");
 
 #if (AMREX_SPACEDIM == 3)
