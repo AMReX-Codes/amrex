@@ -631,8 +631,9 @@ Real WarpXParticleContainer::sumParticleCharge(bool local) {
 
     amrex::Real total_charge = 0.0;
 
-    const int nlevels = finestLevel();
-    for (int lev = 0; lev < nlevels; ++lev)
+    const int nLevels = finestLevel();
+
+    for (int lev = 0; lev < nLevels; ++lev)
     {
 
 #ifdef _OPENMP
