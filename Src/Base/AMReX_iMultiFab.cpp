@@ -626,10 +626,15 @@ OwnerMask (FabArrayBase const& mf, const Periodicity& period)
                         if (run_on_gpu) {
                             tags.push_back({arr,obx});
                         } else {
-                            amrex::LoopConcurrentOnCpu(obx, [=] (int i, int j, int k) noexcept
-                            {
+                            // cannot use amrex::Loop because of a gcc bug.
+                            const auto lo = amrex::lbound(obx);
+                            const auto hi = amrex::ubound(obx);
+                            for (int k = lo.z; k <= hi.z; ++k) {
+                            for (int j = lo.y; j <= hi.y; ++j) {
+                            AMREX_PRAGMA_SIMD
+                            for (int i = lo.x; i <= hi.x; ++i) {
                                 arr(i,j,k) = nonowner;
-                            });
+                            }}}
                         }
                     }
                 }
