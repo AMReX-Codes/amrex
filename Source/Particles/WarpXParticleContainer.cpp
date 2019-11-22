@@ -1,4 +1,3 @@
-
 #include <limits>
 
 #include <MultiParticleContainer.H>
@@ -514,7 +513,7 @@ WarpXParticleContainer::DepositCharge (Vector<std::unique_ptr<MultiFab> >& rho,
                                         bool do_rz_volume_scaling)
 {
     // Loop over the refinement levels
-    int const finest_level = rho.size() - 1;
+    const int finest_level = rho.size() - 1;
     for (int lev = 0; lev <= finest_level; ++lev) {
 
         // Reset the `rho` array if `reset` is True
@@ -567,7 +566,7 @@ WarpXParticleContainer::DepositCharge (Vector<std::unique_ptr<MultiFab> >& rho,
         MultiFab coarsened_fine_data(coarsened_fine_BA, fine_dm, rho[lev+1]->nComp(), 0);
         coarsened_fine_data.setVal(0.0);
 
-        int const refinement_ratio = 2;
+        const int refinement_ratio = 2;
 
         interpolateDensityFineToCoarse( *rho[lev+1], coarsened_fine_data, refinement_ratio );
         rho[lev]->ParallelAdd( coarsened_fine_data, m_gdb->Geom(lev).periodicity() );
@@ -632,7 +631,8 @@ Real WarpXParticleContainer::sumParticleCharge(bool local) {
 
     amrex::Real total_charge = 0.0;
 
-    for (int lev = 0; lev < finestLevel(); ++lev)
+    const int nlevels = finestLevel();
+    for (int lev = 0; lev < nlevels; ++lev)
     {
 
 #ifdef _OPENMP
@@ -662,7 +662,9 @@ std::array<Real, 3> WarpXParticleContainer::meanParticleVelocity(bool local) {
 
     amrex::Real inv_clight_sq = 1.0/PhysConst::c/PhysConst::c;
 
-    for (int lev = 0; lev <= finestLevel(); ++lev) {
+    const int nLevels = finestLevel();
+
+    for (int lev = 0; lev <= nLevels; ++lev) {
 
 #ifdef _OPENMP
 #pragma omp parallel reduction(+:vx_total, vy_total, vz_total, np_total)
@@ -706,7 +708,9 @@ Real WarpXParticleContainer::maxParticleVelocity(bool local) {
 
     amrex::ParticleReal max_v = 0.0;
 
-    for (int lev = 0; lev <= finestLevel(); ++lev)
+    const int nLevels = finestLevel();
+
+    for (int lev = 0; lev <= nLevels; ++lev)
     {
 
 #ifdef _OPENMP
@@ -732,7 +736,7 @@ WarpXParticleContainer::PushXES (Real dt)
 {
     BL_PROFILE("WPC::PushXES()");
 
-    int num_levels = finestLevel() + 1;
+    const int num_levels = finestLevel() + 1;
 
     for (int lev = 0; lev < num_levels; ++lev) {
         const auto& gm = m_gdb->Geom(lev);
@@ -761,7 +765,9 @@ WarpXParticleContainer::PushXES (Real dt)
 void
 WarpXParticleContainer::PushX (Real dt)
 {
-    for (int lev = 0; lev <= finestLevel(); ++lev) {
+    const int nLevels = finestLevel();
+
+    for (int lev = 0; lev <= nLevels; ++lev) {
         PushX(lev, dt);
     }
 }
