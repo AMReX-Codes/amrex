@@ -200,7 +200,8 @@ MLEBTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode 
                          Box const ybx = amrex::surroundingNodes(bx,1);,
                          Box const zbx = amrex::surroundingNodes(bx,2););
 
-            auto fabtyp = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
+            // grow by 1 because of corners
+            auto fabtyp = (flags) ? (*flags)[mfi].getType(amrex::grow(bx,1)) : FabType::regular;
 
             if (fabtyp == FabType::covered) {
                 AMREX_D_TERM(Array4<Real> const& fxfab = fluxmf[0].array(mfi);,
@@ -297,7 +298,8 @@ MLEBTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode 
                          FArrayBox& fyfab = fluxmf[1][mfi];,
                          FArrayBox& fzfab = fluxmf[2][mfi];);
 
-            auto fabtyp = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
+            // grow by 1 because of corners
+            auto fabtyp = (flags) ? (*flags)[mfi].getType(amrex::grow(bx,1)) : FabType::regular;
 
             if (fabtyp == FabType::covered) {
                 AMREX_D_TERM(fxfab.setVal(0.0, xbx, 0, AMREX_SPACEDIM);,

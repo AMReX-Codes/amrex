@@ -8,6 +8,7 @@
 #include <AMReX_MFIter.H>
 #include <AMReX_ParGDB.H>
 #include <AMReX_ParticleTile.H>
+#include <AMReX_TypeTraits.H>
 
 #include <limits>
 
@@ -15,90 +16,161 @@ namespace amrex
 {
 
 /**
- * /brief A general single particle copying routine that can run on the GPU. 
+ * \brief Returns the number of particles that are more than nGrow cells
+ * from the box correspond to the input iterator.
  *
- * \tparam NSR number of extra reals in the particle struct
- * \tparam NSI number of extra ints in the particle struct
- * \tparam NAR number of reals in the struct-of-arrays
- * \tparam NAI number of ints in the struct-of-arrays
+ * \tparam Iterator an AMReX ParticleIterator
  *
- * \param dst the destination tile
- * \param src the source tile
- * \param src_i the index in the source to read from
- * \param dst_i the index in the destination to write to
+ * \param the iterator pointing to the current grid/tile to test
+ * \param nGrow the number of grow cells allowed.
  *
  */
-template <int NSR, int NSI, int NAR, int NAI>
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void copyParticle(const      ParticleTileData<NSR, NSI, NAR, NAI>& dst, 
-                  const ConstParticleTileData<NSR, NSI, NAR, NAI>& src, 
-                  int src_i, int dst_i) noexcept
+template <class Iterator, EnableIf_t<amrex::IsParticleIterator<Iterator>::value, int> foo = 0>
+int
+numParticlesOutOfRange (Iterator const& pti, int nGrow)
 {
-    AMREX_ASSERT(dst.m_num_runtime_real == src.m_num_runtime_real);
-    AMREX_ASSERT(dst.m_num_runtime_int  == src.m_num_runtime_int );
+    using ParticleType = typename Iterator::ContainerType::ParticleType;
 
-    dst.m_aos[dst_i] = src.m_aos[src_i];
-    for (int j = 0; j < NAR; ++j)
-        dst.m_rdata[j][dst_i] = src.m_rdata[j][src_i];
-    for (int j = 0; j < dst.m_num_runtime_real; ++j)
-        dst.m_runtime_rdata[j][dst_i] = src.m_runtime_rdata[j][src_i];
-    for (int j = 0; j < NAI; ++j)
-        dst.m_idata[j][dst_i] = src.m_idata[j][src_i];
-    for (int j = 0; j < dst.m_num_runtime_int; ++j)
-        dst.m_runtime_idata[j][dst_i] = src.m_runtime_idata[j][src_i];
-}
+    const auto& tile = pti.GetParticleTile();
+    const auto np = tile.numParticles();
+    const auto& aos = tile.GetArrayOfStructs();
+    const auto pstruct = aos().dataPtr();
+    const auto& geom = pti.Geom(pti.GetLevel());
 
-/**
- * /brief Gather particles copies particles into contiguous order from an 
- * arbitrary order. Specifically, the particle at the index inds[i] in src
- * will be copied to the index i in dst.
- * 
- * \tparam PTile the particle tile type
- * \tparam N the size type, e.g. long
- * \tparam IndexType the index type, e.g. unsigned int
- *
- * \param dst the destination tile
- * \param src the source tile
- * \param np the number of particles
- * \param inds pointer to the permutation array
- *
- */
-template <typename PTile, typename N, typename IndexType>
-void gatherParticles (PTile& dst, const PTile& src, N np, const IndexType* inds)
-{
-    const auto src_data = src.getConstParticleTileData();
-          auto dst_data = dst.getParticleTileData();
-          
-          AMREX_FOR_1D( np, i, { copyParticle(dst_data, src_data, inds[i], i); });
-}
+    const auto domain = geom.Domain();
+    const auto plo = geom.ProbLoArray();
+    const auto dxi = geom.InvCellSizeArray();
+    
+    Box box = pti.tilebox();
+    box.grow(nGrow);
+        
+    ReduceOps<ReduceOpSum> reduce_op;
+    ReduceData<int> reduce_data(reduce_op);
+    using ReduceTuple = typename decltype(reduce_data)::Type;
 
-/**
- * /brief Scatter particles copies particles from contiguous order into an
- * arbitrary order. Specifically, the particle at the index i in src
- * will be copied to the index inds[i] in dst.
- * 
- * \tparam PTile the particle tile type
- * \tparam N the size type, e.g. long
- * \tparam IndexType the index type, e.g. unsigned int
- *
- * \param dst the destination tile
- * \param src the source tile
- * \param np the number of particles
- * \param inds pointer to the permutation array
- *
- */
-template <typename PTile, typename N, typename IndexType>
-void scatterParticles (PTile& dst, const PTile& src, N np, const IndexType* inds)
-{
-    const auto src_data = src.getConstParticleTileData();
-          auto dst_data = dst.getParticleTileData();
-          
-          AMREX_FOR_1D( np, i, { copyParticle(dst_data, src_data, i, inds[i]); });
+    reduce_op.eval(np, reduce_data,
+    [=] AMREX_GPU_DEVICE (int i) -> ReduceTuple
+    {
+        const ParticleType& p = pstruct[i];
+        if ((p.id() < 0)) return false;
+        IntVect iv = IntVect(
+            AMREX_D_DECL(floor((p.pos(0)-plo[0])*dxi[0]),
+                         floor((p.pos(1)-plo[1])*dxi[1]),
+                         floor((p.pos(2)-plo[2])*dxi[2])));
+        iv += domain.smallEnd();
+        return !box.contains(iv);
+    });
+    int hv = amrex::get<0>(reduce_data.value());
+    return hv;
 }
     
-AMREX_GPU_HOST_DEVICE
+/**
+ * \brief Returns the number of particles that are more than nGrow cells
+ * from their assigned box.
+ *
+ * This version tests over all levels.
+ *
+ * \tparam PC a type of AMReX particle container.
+ *
+ * \param pc the particle container to test
+ * \param nGrow the number of grow cells allowed.
+ *
+ */    
+template <class PC, EnableIf_t<amrex::IsParticleContainer<PC>::value, int> foo = 0>
+int
+numParticlesOutOfRange (PC const& pc, int nGrow)
+{
+    return numParticlesOutOfRange(pc, 0, pc.finestLevel(), nGrow);
+}
+
+/**
+ * \brief Returns the number of particles that are more than nGrow cells
+ * from their assigned box.
+ *
+ * This version goes over only the specified levels
+ *
+ * \tparam PC a type of AMReX particle container.
+ *
+ * \param pc the particle container to test
+ * \param lev_min the minimum level to test
+ * \param lev_max the maximum level to test
+ * \param nGrow the number of grow cells allowed.
+ *
+ */        
+template <class PC, EnableIf_t<amrex::IsParticleContainer<PC>::value, int> foo = 0>
+int
+numParticlesOutOfRange (PC const& pc, int lev_min, int lev_max, int nGrow)
+{
+    BL_PROFILE("numParticlesOutOfRange()");
+
+    using ParIter = typename PC::ParConstIterType;
+    using ParticleType = typename PC::ParticleType;
+    int num_wrong = 0;
+    for (int lev = lev_min; lev <= lev_max; ++lev)
+    {
+        const auto plo = pc.Geom(lev).ProbLoArray();
+        const auto dxi = pc.Geom(lev).InvCellSizeArray();
+        const Box domain = pc.Geom(lev).Domain();
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion() and !system::regtest_reduction) reduction(+:num_wrong)
+#endif
+        for(ParIter pti(pc, lev); pti.isValid(); ++pti)
+        {
+            num_wrong += numParticlesOutOfRange(pti, nGrow);
+        }
+    }
+    ParallelDescriptor::ReduceIntSum(num_wrong);
+
+    return num_wrong;
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int getTileIndex (const IntVect& iv, const Box& box, const bool a_do_tiling, 
-                  const IntVect& a_tile_size, Box& tbx);
+		  const IntVect& a_tile_size, Box& tbx)
+{
+    if (a_do_tiling == false) {
+        tbx = box;
+        return 0;
+    } else {
+        //
+        // This function must be consistent with FabArrayBase::buildTileArray function!!!
+        //
+        auto tiling_1d = [](int i, int lo, int hi, int tilesize,
+                            int& ntile, int& tileidx, int& tlo, int& thi) {
+            int ncells = hi-lo+1;
+            ntile = amrex::max(ncells/tilesize, 1);
+            int ts_right = ncells/ntile;
+            int ts_left  = ts_right+1;
+            int nleft = ncells - ntile*ts_right;
+	    int ii = i - lo;
+            int nbndry = nleft*ts_left;
+            if (ii < nbndry) {
+                tileidx = ii / ts_left; // tiles on the left of nbndry have size of ts_left
+                tlo = lo + tileidx * ts_left;
+                thi = tlo + ts_left - 1;
+            } else {
+                tileidx = nleft + (ii-nbndry) / ts_right;  // tiles on the right: ts_right
+                tlo = lo + tileidx * ts_right + nleft;
+                thi = tlo + ts_right - 1;
+            }
+        };
+        const IntVect& small = box.smallEnd();
+        const IntVect& big   = box.bigEnd();
+        IntVect ntiles, ivIndex, tilelo, tilehi;
+
+        AMREX_D_TERM(int iv0 = amrex::min(amrex::max(iv[0], small[0]), big[0]);,
+		     int iv1 = amrex::min(amrex::max(iv[1], small[1]), big[1]);,
+		     int iv2 = amrex::min(amrex::max(iv[2], small[2]), big[2]););
+
+        AMREX_D_TERM(tiling_1d(iv0, small[0], big[0], a_tile_size[0], ntiles[0], ivIndex[0], tilelo[0], tilehi[0]);,
+		     tiling_1d(iv1, small[1], big[1], a_tile_size[1], ntiles[1], ivIndex[1], tilelo[1], tilehi[1]);,
+		     tiling_1d(iv2, small[2], big[2], a_tile_size[2], ntiles[2], ivIndex[2], tilelo[2], tilehi[2]););
+
+        tbx = Box(tilelo, tilehi);
+
+        return AMREX_D_TERM(ivIndex[0], + ntiles[0]*ivIndex[1], + ntiles[0]*ntiles[1]*ivIndex[2]);
+    }
+}
 
 template <typename P>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -158,65 +230,6 @@ void enforcePeriodic (P& p,
             if (p.pos(idim) > phi[idim]) p.pos(idim) = phi[idim]-eps; // clamp to avoid precision issues;
         }
     }
-}
-
-template <class PC>
-bool
-numParticlesOutOfRange (PC const& pc, int nGrow)
-{
-    return numParticlesOutOfRange(pc, 0, pc.finestLevel(), nGrow);
-}
-
-template <class PC>
-bool
-numParticlesOutOfRange (PC const& pc, int lev_min, int lev_max, int nGrow)
-{
-    BL_PROFILE("numParticlesOutOfRange()");
-
-    using ParIter = typename PC::ParConstIterType;
-    using ParticleType = typename PC::ParticleType;
-    int num_wrong = 0;
-    for (int lev = lev_min; lev <= lev_max; ++lev)
-    {
-        const auto plo = pc.Geom(lev).ProbLoArray();
-        const auto dxi = pc.Geom(lev).InvCellSizeArray();
-        const Box domain = pc.Geom(lev).Domain();
-#ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion() and !system::regtest_reduction) reduction(+:num_wrong)
-#endif
-        for(ParIter pti(pc, lev); pti.isValid(); ++pti)
-        {
-            const auto& tile = pti.GetParticleTile();
-            const auto np = tile.numParticles();
-            const auto& aos = tile.GetArrayOfStructs();
-            const auto pstruct = aos().dataPtr();
-            
-            Box box = pti.tilebox();
-            box.grow(nGrow);
-
-            ReduceOps<ReduceOpSum> reduce_op;
-            ReduceData<int> reduce_data(reduce_op);
-            using ReduceTuple = typename decltype(reduce_data)::Type;
-
-            reduce_op.eval(np, reduce_data,
-            [=] AMREX_GPU_DEVICE (int i) -> ReduceTuple
-            {
-                const ParticleType& p = pstruct[i];
-                if ((p.id() < 0)) return false;
-                IntVect iv = IntVect(
-                        AMREX_D_DECL(floor((p.pos(0)-plo[0])*dxi[0]),
-                                     floor((p.pos(1)-plo[1])*dxi[1]),
-                                     floor((p.pos(2)-plo[2])*dxi[2])));
-                iv += domain.smallEnd();
-                return !box.contains(iv);
-            });
-            int hv = amrex::get<0>(reduce_data.value());
-            num_wrong += hv;
-        }
-    }
-    ParallelDescriptor::ReduceIntSum(num_wrong);
-
-    return num_wrong;
 }
 
 IntVect computeRefFac (const ParGDBBase* a_gdb, int src_lev, int lev);

@@ -190,7 +190,8 @@ public:
     virtual void unapplyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const = 0;
     virtual void fillSolutionBC (int amrlev, MultiFab& sol, const MultiFab* crse_bcdata=nullptr) = 0;
 
-    virtual void applyInhomogNeumannTerm (int armlev, MultiFab& rhs) const {}
+    virtual void unimposeNeumannBC (int amrlev, MultiFab& rhs) const {} // only nodal solver might need it
+    virtual void applyInhomogNeumannTerm (int amrlev, MultiFab& rhs) const {}
 
     virtual void prepareForSolve () = 0;
     virtual bool isSingular (int amrlev) const = 0;

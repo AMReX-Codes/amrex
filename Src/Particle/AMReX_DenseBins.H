@@ -70,7 +70,6 @@ public:
         AMREX_FOR_1D ( nitems, i,
         {
             bin_type iv = f(v[i]);
-            AMREX_ASSERT(bx.contains(iv));
             int nx = hi.x-lo.x+1;
             int ny = hi.y-lo.y+1;
             int nz = hi.z-lo.z+1;
@@ -103,16 +102,16 @@ public:
     long numBins () const noexcept { return m_offsets.size()-1; }
     
     //! \brief returns the pointer to the permutation array 
-    index_type* permutationPtr() noexcept { return m_perm.dataPtr(); }
+    index_type* permutationPtr () noexcept { return m_perm.dataPtr(); }
 
     //! \brief returns the pointer to the offsets array
-    index_type* offsetsPtr() noexcept { return m_offsets.dataPtr(); }
+    index_type* offsetsPtr () noexcept { return m_offsets.dataPtr(); }
 
     //! \brief returns const pointer to the permutation array 
-    const index_type* permutationPtr() const noexcept { return m_perm.dataPtr(); }
+    const index_type* permutationPtr () const noexcept { return m_perm.dataPtr(); }
 
     //! \brief returns const pointer to the offsets array
-    const index_type* offsetsPtr() const noexcept { return m_offsets.dataPtr(); }
+    const index_type* offsetsPtr () const noexcept { return m_offsets.dataPtr(); }
     
 private:
 

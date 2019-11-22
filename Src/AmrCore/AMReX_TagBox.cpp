@@ -458,6 +458,8 @@ TagBoxArray::borderSize () const noexcept
 void 
 TagBoxArray::buffer (const IntVect& nbuf)
 {
+    Gpu::LaunchSafeGuard lsg(false); // xxxxx TODO: gpu
+
     AMREX_ASSERT(nbuf.allLE(n_grow));
 
     if (nbuf.max() > 0)
@@ -485,6 +487,8 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
 
     tmp.copy(*this, geom.periodicity(), FabArrayBase::ADD);
 
+    Gpu::LaunchSafeGuard lsg(false); // xxxxx TODO: gpu
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -498,6 +502,8 @@ long
 TagBoxArray::numTags () const
 {
     long ntag = 0;
+
+    Gpu::LaunchSafeGuard lsg(false); // xxxxx TODO: gpu
 
 #ifdef _OPENMP
 #pragma omp parallel reduction(+:ntag)
@@ -516,6 +522,8 @@ void
 TagBoxArray::collate (Vector<IntVect>& TheGlobalCollateSpace) const
 {
     BL_PROFILE("TagBoxArray::collate()");
+
+    // Gpu::LaunchSafeGuard lsg(false); // xxxxx TODO: gpu
 
     long count = 0;
 
@@ -630,6 +638,8 @@ void
 TagBoxArray::setVal (const BoxArray& ba,
                      TagBox::TagVal  val)
 {
+    Gpu::LaunchSafeGuard lsg(false); // xxxxx TODO: gpu
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -654,6 +664,8 @@ TagBoxArray::coarsen (const IntVect & ratio)
     // If team is used, all team workers need to go through all the fabs, including ones they don't own.
     int teamsize = ParallelDescriptor::TeamSize();
     unsigned char flags = (teamsize == 1) ? 0 : MFIter::AllBoxes;
+
+    Gpu::LaunchSafeGuard lsg(false); // xxxxx TODO: gpu
 
 #if defined(_OPENMP)
 #pragma omp parallel if (teamsize == 1)

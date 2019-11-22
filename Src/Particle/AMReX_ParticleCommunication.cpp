@@ -11,7 +11,7 @@ void ParticleCopyOp::clear ()
     m_periodic_shift.resize(0);
 }
 
-void ParticleCopyOp::setNumLevels(const int num_levels)
+void ParticleCopyOp::setNumLevels (const int num_levels)
 {
     m_boxes.resize(num_levels);
     m_levels.resize(num_levels);

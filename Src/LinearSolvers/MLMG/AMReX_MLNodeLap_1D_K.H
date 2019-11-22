@@ -39,13 +39,13 @@ inline void mlndlap_bc_doit (Box const& vbx, Array4<T> const& a, Box const& doma
 {}
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlndlap_adotx_ha (Box const& bx, Array4<Real> const& y, Array4<Real const> const& x,
+void mlndlap_adotx_ha (int i, int j, int k, Array4<Real> const& y, Array4<Real const> const& x,
                        Array4<Real const> const& sx, Array4<int const> const& msk,
                        GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
 {}
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlndlap_adotx_aa (Box const& bx, Array4<Real> const& y, Array4<Real const> const& x,
+void mlndlap_adotx_aa (int i, int j, int k, Array4<Real> const& y, Array4<Real const> const& x,
                        Array4<Real const> const& sig, Array4<int const> const& msk,
                        GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
 {}
@@ -146,7 +146,7 @@ void mlndlap_divu_cf_contrib (int i, int j, int, Array4<Real> const& rhs,
 {}
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlndlap_crse_resid (Box const& bx, Array4<Real> const& resid,
+void mlndlap_crse_resid (int i, int j, int k, Array4<Real> const& resid,
                          Array4<Real const> const& rhs, Array4<int const> const& msk,
                          Box const& nddom, GpuArray<LinOpBCType,AMREX_SPACEDIM> const& bclo,
                          GpuArray<LinOpBCType,AMREX_SPACEDIM> const& bchi) noexcept
@@ -190,7 +190,7 @@ void mlndlap_stencil_rap (int i, int j, int k, Array4<Real> const& csten,
 {}
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlndlap_adotx_sten (Box const& bx, Array4<Real> const& y, Array4<Real const> const& x,
+void mlndlap_adotx_sten (int i, int j, int k, Array4<Real> const& y, Array4<Real const> const& x,
                          Array4<Real const> const& sten, Array4<int const> const& msk) noexcept
 {}
 

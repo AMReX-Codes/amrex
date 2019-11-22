@@ -29,7 +29,6 @@ target_sources( amrex
    AMReX_ParticleUtil.cpp
    AMReX_StructOfArrays.H
    AMReX_ArrayOfStructs.H
-   AMReX_Functors.H
    AMReX_ParticleTile.H
    AMReX_NeighborParticlesCPUImpl.H
    AMReX_NeighborParticlesGPUImpl.H
@@ -43,4 +42,5 @@ target_sources( amrex
    AMReX_ParticleLocator.H
    AMReX_ParticleIO.H
    AMReX_DenseBins.H
+   AMReX_ParticleTransformation.H
    )

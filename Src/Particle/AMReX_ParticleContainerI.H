@@ -108,7 +108,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
               if (pld.m_grown_gridbox.contains(iv)) {
                   pld.m_cell = iv;
                   if (!pld.m_tilebox.contains(iv)) {
-		    pld.m_tile = getTileIndex(iv, pld.m_gridbox, do_tiling, tile_size, pld.m_tilebox);
+                      pld.m_tile = getTileIndex(iv, pld.m_gridbox, do_tiling, tile_size, pld.m_tilebox);
                   }
                   return true;
               }
@@ -827,7 +827,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
-clearParticles()
+clearParticles ()
 {
     BL_PROFILE("ParticleContainer::clearParticles()");
     
@@ -843,7 +843,7 @@ clearParticles()
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
-copyParticles(const ParticleContainerType& other, bool local)
+copyParticles (const ParticleContainerType& other, bool local)
 {
     BL_PROFILE("ParticleContainer::copyParticles");
     clearParticles();   
@@ -853,7 +853,7 @@ copyParticles(const ParticleContainerType& other, bool local)
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
-addParticles(const ParticleContainerType& other, bool local)
+addParticles (const ParticleContainerType& other, bool local)
 {
     BL_PROFILE("ParticleContainer::addParticles");
 
@@ -863,37 +863,18 @@ addParticles(const ParticleContainerType& other, bool local)
         auto& plevel = GetParticles(lev);
         for(MFIter mfi = other.MakeMFIter(lev); mfi.isValid(); ++mfi)
         {
-            auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());
-            
+            auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());            
             if(plevel_other.find(index) == plevel_other.end()) continue;
-            
-            const auto& tile_other = plevel_other.at(index);
-            
-            if (tile_other.numParticles() == 0) continue;
-            
-            const auto& aos_other = tile_other.GetArrayOfStructs();
-            for (const auto& particle_struct : aos_other)
-            {
-                plevel[index].push_back(particle_struct);
-            }
 
-            const auto& soa_other = tile_other.GetStructOfArrays();
-            for (int j = 0; j < NumRealComps(); ++j)
-            {
-                auto& rdata = soa_other.GetRealData(j);
-                for(const auto& real_attrib : rdata)
-                {
-                    plevel[index].push_back_real(j, real_attrib);
-                }                
-            }
-            for (int j = 0; j < NumIntComps(); ++j)
-            {
-                auto& idata = soa_other.GetIntData(j);
-                for(const auto& int_attrib : idata)
-                {
-                    plevel[index].push_back_int(j, int_attrib);
-                }
-            }
+            auto& ptile = plevel[index];
+            const auto& ptile_other = plevel_other.at(index);
+            auto np = ptile_other.numParticles();
+            if (np == 0) continue;
+
+            auto dst_index = ptile.numParticles();
+            ptile.resize(dst_index + np);
+
+            amrex::copyParticles(ptile, ptile_other, 0, dst_index, np);            
         }
     }
     
@@ -992,7 +973,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         const auto& geom = Geom(0);
         if ((ba.size() == 1) and geom.isAllPeriodic())
         {
-            EnforcePeriodicGPU();
+            EnforcePeriodic();
             AMREX_ASSERT(OK());
             return;
         }
@@ -1077,9 +1058,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                 auto dst_grids_ptr = m_grids_r.dataPtr();
                 auto dst_levs_ptr = m_levs_r.dataPtr();
                 
-                int num_rr = m_num_runtime_real;
-                int num_ri = m_num_runtime_int;
-
                 num_stay = Scan::PrefixSum<int> (np, 
                     [=] AMREX_GPU_DEVICE (int i) -> int 
                     {
@@ -1087,28 +1065,15 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                     },
                     [=] AMREX_GPU_DEVICE (int i, int const& s)
                     {
-                        if (particle_stays(i)) {
-                            dst_data.m_aos[s] = src_data.m_aos[i];
-                            for (int j = 0; j < NArrayReal; ++j)
-                                dst_data.m_rdata[j][s] = src_data.m_rdata[j][i];
-                            for (int j = 0; j < NArrayInt; ++j)
-                                dst_data.m_idata[j][s] = src_data.m_idata[j][i];
-                            for (int j = 0; j < num_rr; ++j)
-                                dst_data.m_runtime_rdata[j][s] = src_data.m_runtime_rdata[j][i];
-                            for (int j = 0; j < num_ri; ++j)
-                                dst_data.m_runtime_idata[j][s] = src_data.m_runtime_idata[j][i];
+                        if ( particle_stays(i) )
+                        {
+                            copyParticle(dst_data, src_data, i, s);
                             dst_grids_ptr[s] = grids_ptr[i];
                             dst_levs_ptr[s] = levs_ptr[i];
-                        } else {
-                            dst_data.m_aos[np-1-(i-s)] = src_data.m_aos[i];
-                            for (int j = 0; j < NArrayReal; ++j)
-                                dst_data.m_rdata[j][np-1-(i-s)] = src_data.m_rdata[j][i];
-                            for (int j = 0; j < NArrayInt; ++j)
-                                dst_data.m_idata[j][np-1-(i-s)] = src_data.m_idata[j][i];
-                            for (int j = 0; j < num_rr; ++j)
-                                dst_data.m_runtime_rdata[j][np-1-(i-s)] = src_data.m_runtime_rdata[j][i];
-                            for (int j = 0; j < num_ri; ++j)
-                                dst_data.m_runtime_idata[j][np-1-(i-s)] = src_data.m_runtime_idata[j][i];
+                        }
+                        else
+                        {
+                            copyParticle(dst_data, src_data, i, np-1-(i-s));
                             dst_grids_ptr[np-1-(i-s)] = grids_ptr[i];
                             dst_levs_ptr[np-1-(i-s)] = levs_ptr[i];
                         }
@@ -1207,13 +1172,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 #endif    
 }
 
-#ifdef AMREX_USE_CUDA
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
-::EnforcePeriodicGPU ()
+::EnforcePeriodic ()
 {
-    BL_PROFILE("ParticleContainer::EnforcePeriodicGPU()");
+    BL_PROFILE("ParticleContainer::EnforcePeriodic()");
     const int lev = 0;
     const Geometry& geom = Geom(lev);
     auto& plev = m_particles[lev];
@@ -1236,7 +1200,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         });
     }
 }
-#endif //AMREX_USE_CUDA
 
 //
 // The CPU implementation of Redistribute

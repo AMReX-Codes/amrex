@@ -278,8 +278,7 @@ FabArrayBase::CPC::CPC (const FabArrayBase& dstfa, const IntVect& dstng,
       m_period(period),
       m_srcba(srcfa.boxArray()), 
       m_dstba(dstfa.boxArray()),
-      m_threadsafe_loc(false), m_threadsafe_rcv(false),
-      m_LocTags(0), m_SndTags(0), m_RcvTags(0), m_nuse(0)
+      m_nuse(0)
 {
     this->define(m_dstba, dstfa.DistributionMap(), dstfa.IndexArray(), 
 		 m_srcba, srcfa.DistributionMap(), srcfa.IndexArray());
@@ -297,18 +296,13 @@ FabArrayBase::CPC::CPC (const BoxArray& dstba, const DistributionMapping& dstdm,
       m_period(period),
       m_srcba(srcba), 
       m_dstba(dstba),
-      m_threadsafe_loc(false), m_threadsafe_rcv(false),
-      m_LocTags(0), m_SndTags(0), m_RcvTags(0), m_nuse(0)
+      m_nuse(0)
 {
     this->define(dstba, dstdm, dstidx, srcba, srcdm, srcidx, myproc);
 }
 
 FabArrayBase::CPC::~CPC ()
-{
-    delete m_LocTags;
-    delete m_SndTags;
-    delete m_RcvTags;
-}
+{}
 
 void
 FabArrayBase::CPC::define (const BoxArray& ba_dst, const DistributionMapping& dm_dst,
@@ -322,9 +316,9 @@ FabArrayBase::CPC::define (const BoxArray& ba_dst, const DistributionMapping& dm
     BL_ASSERT(ba_dst.size() > 0 && ba_src.size() > 0);
     BL_ASSERT(ba_dst.ixType() == ba_src.ixType());
     
-    m_LocTags = new CopyComTag::CopyComTagsContainer;
-    m_SndTags = new CopyComTag::MapOfCopyComTagContainers;
-    m_RcvTags = new CopyComTag::MapOfCopyComTagContainers;
+    m_LocTags.reset(new CopyComTag::CopyComTagsContainer);
+    m_SndTags.reset(new CopyComTag::MapOfCopyComTagContainers);
+    m_RcvTags.reset(new CopyComTag::MapOfCopyComTagContainers);
 
     if (!(imap_dst.empty() && imap_src.empty())) 
     {
@@ -459,14 +453,13 @@ FabArrayBase::CPC::CPC (const BoxArray& ba, const IntVect& ng,
       m_period(),
       m_srcba(ba), 
       m_dstba(ba),
-      m_threadsafe_loc(true), m_threadsafe_rcv(true),
-      m_LocTags(0), m_SndTags(0), m_RcvTags(0), m_nuse(0)
+      m_nuse(0)
 {
     BL_ASSERT(ba.size() > 0);
 
-    m_LocTags = new CopyComTag::CopyComTagsContainer;
-    m_SndTags = new CopyComTag::MapOfCopyComTagContainers;
-    m_RcvTags = new CopyComTag::MapOfCopyComTagContainers;
+    m_LocTags.reset(new CopyComTag::CopyComTagsContainer);
+    m_SndTags.reset(new CopyComTag::MapOfCopyComTagContainers);
+    m_RcvTags.reset(new CopyComTag::MapOfCopyComTagContainers);
 
     const int myproc = ParallelDescriptor::MyProc();
 
@@ -613,13 +606,13 @@ FabArrayBase::FB::FB (const FabArrayBase& fa, const IntVect& nghost,
     : m_typ(fa.boxArray().ixType()), m_crse_ratio(fa.boxArray().crseRatio()),
       m_ngrow(nghost), m_cross(cross),
       m_epo(enforce_periodicity_only), m_period(period),
-      m_threadsafe_loc(false), m_threadsafe_rcv(false),
-      m_LocTags(new CopyComTag::CopyComTagsContainer),
-      m_SndTags(new CopyComTag::MapOfCopyComTagContainers),
-      m_RcvTags(new CopyComTag::MapOfCopyComTagContainers),
       m_nuse(0)
 {
     BL_PROFILE("FabArrayBase::FB::FB()");
+
+    m_LocTags.reset(new CopyComTag::CopyComTagsContainer);
+    m_SndTags.reset(new CopyComTag::MapOfCopyComTagContainers);
+    m_RcvTags.reset(new CopyComTag::MapOfCopyComTagContainers);
 
     if (!fa.IndexArray().empty()) {
 	if (enforce_periodicity_only) {
@@ -987,11 +980,7 @@ FabArrayBase::FB::define_epo (const FabArrayBase& fa)
 }
 
 FabArrayBase::FB::~FB ()
-{
-    delete m_LocTags;
-    delete m_SndTags;
-    delete m_RcvTags;
-}
+{}
 
 void
 FabArrayBase::flushFB (bool no_assertion) const
