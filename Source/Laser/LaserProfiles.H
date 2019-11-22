@@ -14,7 +14,6 @@
 #include <memory>
 #include <functional>
 #include <limits>
-#include <tuple>
 
 namespace WarpXLaserProfiles {
 
