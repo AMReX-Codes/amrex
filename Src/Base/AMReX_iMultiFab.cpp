@@ -594,8 +594,11 @@ OwnerMask (FabArrayBase const& mf, const Periodicity& period)
                                                DefaultFabFactory<IArrayBox>())};
     const std::vector<IntVect>& pshifts = period.shiftIntVect();
 
+    Vector<Array4BoxTag<int> > tags;
+
+    bool run_on_gpu = Gpu::inLaunchRegion();
 #ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
+#pragma omp parallel if (!run_on_gpu)
 #endif
     {
         std::vector< std::pair<int,Box> > isects;
@@ -620,15 +623,27 @@ OwnerMask (FabArrayBase const& mf, const Periodicity& period)
                     const Box& obx = is.second-iv;
                     if ((oi < idx) || (oi == idx && iv < IntVect::TheZeroVector())) 
                     {
-                        AMREX_HOST_DEVICE_PARALLEL_FOR_3D(obx, i, j, k,
-                        {
-                            arr(i,j,k) = nonowner;
-                        });
+                        if (run_on_gpu) {
+                            tags.push_back({arr,obx});
+                        } else {
+                            amrex::LoopConcurrentOnCpu(obx, [=] (int i, int j, int k) noexcept
+                            {
+                                arr(i,j,k) = nonowner;
+                            });
+                        }
                     }
                 }
             }
         }
     }
+
+#ifdef AMREX_USE_GPU
+    amrex::ParallelFor(tags, 1,
+    [=] AMREX_GPU_DEVICE (int i, int j, int k, int n, Array4<int> const& a) noexcept
+    {
+        a(i,j,k,n) = nonowner;
+    });
+#endif
 
     return p;
 }
