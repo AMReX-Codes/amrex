@@ -39,7 +39,6 @@
 #include <AMReX_ParticleTile.H>
 #include <AMReX_TypeTraits.H>
 #include <AMReX_GpuContainers.H>
-#include <AMReX_Functors.H>
 #include <AMReX_ParticleUtil.H>
 #include <AMReX_ParticleReduce.H>
 #include <AMReX_ParticleBufferMap.H>
@@ -47,6 +46,7 @@
 #include <AMReX_ParticleLocator.H>
 #include <AMReX_Scan.H>
 #include <AMReX_DenseBins.H>
+#include <AMReX_ParticleTransformation.H>
 
 #ifdef BL_LAZY
 #include <AMReX_Lazy.H>
@@ -54,16 +54,6 @@
 
 #ifdef _OPENMP
 #include <omp.h>
-#endif
-
-#ifdef AMREX_USE_CUDA
-#include <thrust/device_vector.h>
-#include <thrust/binary_search.h>
-#include <thrust/iterator/zip_iterator.h>
-#include <thrust/iterator/retag.h>
-#include <thrust/device_ptr.h>
-#include <thrust/tuple.h>
-#include <thrust/gather.h>
 #endif
 
 namespace amrex {
@@ -96,7 +86,7 @@ struct ParticleLocData
 };
 
 /**
-* /brief A struct used to pass initial data into the various Init methods.
+* \brief A struct used to pass initial data into the various Init methods.
 * This struct is used to pass initial data into the various Init methods
 * of the particle container. That data should be initialized in the order
 * real struct data, int struct data, real array data, int array data.
@@ -116,7 +106,7 @@ struct ParticleInitType
     std::array<double, NArrayReal > real_array_data;
     std::array<int,    NArrayInt  > int_array_data;
 };
-
+    
 template <bool is_const, int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 class ParIterBase;
 
@@ -125,6 +115,10 @@ class ParIter;
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 class ParConstIter;
+
+class ParticleContainerBase
+{
+};
     
 /**
  * \brief A distributed container for Particles sorted onto the levels, grids,
@@ -133,15 +127,26 @@ class ParConstIter;
  * The data layout on a single tile is determined by the value of the following
  * template parameters:
  *
- * \tparam NStructReal The number of extra Real components in the particle struct
- * \tparam NStructInt The number of extra integer components in the particle struct
- * \tparam NArrayReal The number of extra Real components stored in struct-of-array form
- * \tparam NArrayInt The number of extra integer components stored in struct-of-array form
+ * \tparam T_NStructReal The number of extra Real components in the particle struct
+ * \tparam T_NStructInt The number of extra integer components in the particle struct
+ * \tparam T_NArrayReal The number of extra Real components stored in struct-of-array form
+ * \tparam T_NArrayInt The number of extra integer components stored in struct-of-array form
  *
  */
-template <int NStructReal, int NStructInt=0, int NArrayReal=0, int NArrayInt=0>
-class ParticleContainer
+template <int T_NStructReal, int T_NStructInt=0, int T_NArrayReal=0, int T_NArrayInt=0>
+class ParticleContainer : ParticleContainerBase
 {
+public:
+    //! \brief number of extra Real components in the particle struct
+    static constexpr int NStructReal = T_NStructReal;
+    //! \brief number of extra integer components in the particle struct
+    static constexpr int NStructInt = T_NStructInt;
+    //! \brief number of extra Real components stored in struct-of-array form
+    static constexpr int NArrayReal = T_NArrayReal;
+    //! \brief number of extra integer components stored in struct-of-array form
+    static constexpr int NArrayInt = T_NArrayInt;
+
+private:
     friend class ParIterBase<true,NStructReal, NStructInt, NArrayReal, NArrayInt>;
     friend class ParIterBase<false,NStructReal, NStructInt, NArrayReal, NArrayInt>;
 
@@ -172,8 +177,8 @@ public:
     using RealVector       = typename SoA::RealVector;
     using IntVector        = typename SoA::IntVector;
     using ParticleVector   = typename AoS::ParticleVector;
-    using CharVector       = Gpu::ManagedDeviceVector<char>;
-    using SendBuffer       = Gpu::PolymorphicDeviceVector<char>;
+    using CharVector       = Gpu::ManagedVector<char>;
+    using SendBuffer       = Gpu::PolymorphicVector<char>;
     using ParIterType      = ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
     using ParConstIterType = ParConstIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
 
@@ -633,7 +638,7 @@ public:
     /**
     * \brief Clear all the particles in this container. This does not free memory.
     */
-    void clearParticles();
+    void clearParticles ();
 
 
     /**
@@ -643,7 +648,7 @@ public:
     *
     * \param other
     */
-    void copyParticles(const ParticleContainerType& other, bool local=false);
+    void copyParticles (const ParticleContainerType& other, bool local=false);
 
     /**
     * \brief Add particles from other to this ParticleContainer. local controls 
@@ -651,7 +656,7 @@ public:
     *
     * \param other
     */
-    void addParticles(const ParticleContainerType& other, bool local=false);
+    void addParticles (const ParticleContainerType& other, bool local=false);
 
     /**
     * \brief Write a contiguous chunk of real particle data to an ostream.
@@ -819,12 +824,10 @@ public:
     { return m_particles[lev].at(std::make_pair(grid, tile)); }
 
     template <class Iterator>
-
     const ParticleTileType& ParticlesAt (int lev, const Iterator& iter) const
         { return ParticlesAt(lev, iter.index(), iter.LocalTileIndex()); }
 
     template <class Iterator>
-
     ParticleTileType&       ParticlesAt (int lev, const Iterator& iter)
         { return ParticlesAt(lev, iter.index(), iter.LocalTileIndex()); }
 
@@ -935,9 +938,7 @@ public:
 
     long superParticleSize() const { return superparticle_size; }
 
-#ifdef AMREX_USE_CUDA    
-    void EnforcePeriodicGPU ();
-#endif
+    void EnforcePeriodic ();
 
     template <typename T,
               typename std::enable_if<std::is_same<T,bool>::value,int>::type=0>
@@ -1051,18 +1052,18 @@ protected:
     DenseBins<ParticleType> m_bins;
     
 #ifdef AMREX_USE_GPU
-    Gpu::ManagedDeviceVector<int> m_grids_r;
-    Gpu::ManagedDeviceVector<int> m_levs_r;
-    Gpu::ManagedDeviceVector<int> m_grids_tmp;
-    Gpu::ManagedDeviceVector<int> m_levs_tmp;
+    Gpu::ManagedVector<int> m_grids_r;
+    Gpu::ManagedVector<int> m_levs_r;
+    Gpu::ManagedVector<int> m_grids_tmp;
+    Gpu::ManagedVector<int> m_levs_tmp;
 
     ParticleCopyOp redistribute_copy_op;
     ParticleCopyPlan redistribute_copy_plan;
 
     Gpu::DeviceVector<char> redistribute_snd_buffer;
     Gpu::DeviceVector<char> redistribute_rcv_buffer;
-    Gpu::PinnedDeviceVector<char> pinned_snd_buffer;
-    Gpu::PinnedDeviceVector<char> pinned_rcv_buffer;
+    Gpu::PinnedVector<char> pinned_snd_buffer;
+    Gpu::PinnedVector<char> pinned_rcv_buffer;
 
     mutable AmrParticleLocator m_particle_locator;
 #endif
@@ -1099,7 +1100,6 @@ private:
     Vector<std::unique_ptr<MultiFab> > m_dummy_mf;
 };
 
-
 template <bool is_const, int NStructReal, int NStructInt=0, int NArrayReal=0, int NArrayInt=0>
 class ParIterBase
     : public MFIter
@@ -1133,8 +1133,8 @@ public:
     ParIterBase (ContainerRef pc, int level, MFItInfo& info);
 
 #ifdef _OPENMP
-    void operator++ () {
-
+    void operator++ ()
+    {
         if (dynamic) {
 #pragma omp atomic capture
             m_pariter_index = nextDynamicIndex++;
@@ -1144,7 +1144,8 @@ public:
         currentIndex = m_valid_index[m_pariter_index];
     }
 #else
-    void operator++ () {
+    void operator++ ()
+    {
         ++m_pariter_index;
         currentIndex = m_valid_index[m_pariter_index];
 #ifdef AMREX_USE_GPU
@@ -1161,7 +1162,6 @@ public:
     SoARef GetStructOfArrays () const { return GetParticleTile().GetStructOfArrays(); }
 
     template <typename Container>
-
     void GetPosition (AMREX_D_DECL(Container& x,
                                    Container& y,
                                    Container& z)) const;
@@ -1171,6 +1171,8 @@ public:
     int GetLevel () const { return m_level; }
 
     std::pair<int, int> GetPairIndex () const { return std::make_pair(this->index(), this->LocalTileIndex()); }
+
+    const Geometry& Geom (int lev) const { return m_pc.Geom(lev); } 
     
 protected:
     
@@ -1178,6 +1180,7 @@ protected:
     int m_pariter_index;
     Vector<int> m_valid_index;
     Vector<ParticleTilePtr> m_particle_tiles;
+    ContainerRef m_pc;
 };
 
 

@@ -91,6 +91,9 @@ def configure(argv):
                         help="Enable position independent code [default=no]",
                         choices=["yes","no"],
                         default="no")   
+    parser.add_argument("--cuda-arch",
+                        help="Specify CUDA architecture [default=70]",
+                        default="70")   
     args = parser.parse_args()
 
     f = open("GNUmakefile","w")
@@ -114,6 +117,7 @@ def configure(argv):
     f.write("USE_OMP_OFFLOAD = {}\n".format("FALSE" if args.with_omp_offload == "no" else "TRUE"))
     f.write("TINY_PROFILE = {}\n".format("FALSE" if args.enable_tiny_profile == "no" else "TRUE"))
     f.write("USE_COMPILE_PIC = {}\n".format("FALSE" if args.enable_pic == "no" else "TRUE"))
+    f.write("CUDA_ARCH = " + args.cuda_arch.strip() + "\n")
     f.write("\n")
 
     fin = open("GNUmakefile.in","r")
