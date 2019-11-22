@@ -25,7 +25,7 @@ namespace amrex
  * \param nGrow the number of grow cells allowed.
  *
  */
-template <class Iterator, EnableIf_t<amrex::IsParticleIterator<Iterator>::value, int> foo = 0>
+template <class Iterator, EnableIf_t<IsParticleIterator<Iterator>::value, int> foo = 0>
 int
 numParticlesOutOfRange (Iterator const& pti, int nGrow)
 {
@@ -76,7 +76,7 @@ numParticlesOutOfRange (Iterator const& pti, int nGrow)
  * \param nGrow the number of grow cells allowed.
  *
  */    
-template <class PC, EnableIf_t<amrex::IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
 int
 numParticlesOutOfRange (PC const& pc, int nGrow)
 {
@@ -97,7 +97,7 @@ numParticlesOutOfRange (PC const& pc, int nGrow)
  * \param nGrow the number of grow cells allowed.
  *
  */        
-template <class PC, EnableIf_t<amrex::IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
 int
 numParticlesOutOfRange (PC const& pc, int lev_min, int lev_max, int nGrow)
 {
