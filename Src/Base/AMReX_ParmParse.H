@@ -853,7 +853,7 @@ public:
     */
     static void Finalize();
 
-    static void AbortIfUnusedInputs ();
+    static bool QueryUnusedInputs ();
     
     struct PP_entry;
     typedef std::list<PP_entry> Table;
