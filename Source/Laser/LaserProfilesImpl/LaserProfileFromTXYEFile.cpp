@@ -66,6 +66,7 @@ FromTXYEFileLaserProfile::fill_amplitude (
         amrex::ParallelFor(np,
             [=] AMREX_GPU_DEVICE (int i) {
                 amplitude[i] = 0.0_rt;});
+        return;
     }
 
     const size_t idx_t_right = std::distance(m_params.t_coords.begin(),
@@ -77,7 +78,7 @@ FromTXYEFileLaserProfile::fill_amplitude (
         Abort("Something bad has happened with the simulation time");
     }
 
-      #pragma omp critical
+    #pragma omp critical
     {
         if(idx_t_right >  m_params.last_time_index){
             read_data_t_chuck(idx_t_left, idx_t_left+m_params.time_chunk_size);
@@ -105,7 +106,6 @@ FromTXYEFileLaserProfile::fill_amplitude (
     amrex::ParallelFor(
         np,
         [=] AMREX_GPU_DEVICE (int i) {
-
             if (Xp[i] <= tmp_x_min || Xp[i] >= tmp_x_max){
                 amplitude[i] = 0.0_rt;
                 return;
@@ -128,10 +128,10 @@ FromTXYEFileLaserProfile::fill_amplitude (
             amplitude[i] = WarpXUtilAlgo::bilinear_interp(
                 tmp_t_left, tmp_t_right,
                 p_x_coords[idx_x_left], p_x_coords[idx_x_right],
-                p_E_data[idx(tmp_t_left, idx_x_left)],
-                p_E_data[idx(tmp_t_left, idx_x_right)],
-                p_E_data[idx(tmp_t_right, idx_x_left)],
-                p_E_data[idx(tmp_t_right, idx_x_right)],
+                p_E_data[idx(idx_t_left, idx_x_left)],
+                p_E_data[idx(idx_t_left, idx_x_right)],
+                p_E_data[idx(idx_t_right, idx_x_left)],
+                p_E_data[idx(idx_t_right, idx_x_right)],
                 t, Xp[i])*tmp_e_max;
 
 #elif (AMREX_SPACEDIM == 3)
@@ -148,16 +148,15 @@ FromTXYEFileLaserProfile::fill_amplitude (
                 tmp_t_left, tmp_t_right,
                 p_x_coords[idx_x_left], p_x_coords[idx_x_right],
                 p_y_coords[idx_y_left], p_y_coords[idx_y_right],
-                p_E_data[idx(tmp_t_left, idx_x_left, idx_y_left)],
-                p_E_data[idx(tmp_t_left, idx_x_left, idx_y_right)],
-                p_E_data[idx(tmp_t_left, idx_x_right, idx_y_left)],
-                p_E_data[idx(tmp_t_left, idx_x_right, idx_y_right)],
-                p_E_data[idx(tmp_t_right, idx_x_left, idx_y_left)],
-                p_E_data[idx(tmp_t_right, idx_x_left, idx_y_right)],
-                p_E_data[idx(tmp_t_right, idx_x_right, idx_y_left)],
-                p_E_data[idx(tmp_t_right, idx_x_right, idx_y_right)],
+                p_E_data[idx(idx_t_left, idx_x_left, idx_y_left)],
+                p_E_data[idx(idx_t_left, idx_x_left, idx_y_right)],
+                p_E_data[idx(idx_t_left, idx_x_right, idx_y_left)],
+                p_E_data[idx(idx_t_left, idx_x_right, idx_y_right)],
+                p_E_data[idx(idx_t_right, idx_x_left, idx_y_left)],
+                p_E_data[idx(idx_t_right, idx_x_left, idx_y_right)],
+                p_E_data[idx(idx_t_right, idx_x_right, idx_y_left)],
+                p_E_data[idx(idx_t_right, idx_x_right, idx_y_right)],
                 t, Xp[i], Yp[i])*tmp_e_max;
-
 #endif
         }
     );
