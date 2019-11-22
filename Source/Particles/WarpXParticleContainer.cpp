@@ -8,7 +8,7 @@
 #include <WarpX_f.H>
 #include <WarpX.H>
 #include <WarpXAlgorithmSelection.H>
-
+#include <WarpXComm.H>
 // Import low-level single-particle kernels
 #include <GetAndSetPosition.H>
 #include <UpdatePosition.H>
@@ -18,6 +18,7 @@
 using namespace amrex;
 
 int WarpXParticleContainer::do_not_push = 0;
+int WarpXParticleContainer::do_not_deposit = 0;
 
 WarpXParIter::WarpXParIter (ContainerType& pc, int level)
     : ParIter(pc, level, MFItInfo().SetDynamic(WarpX::do_dynamic_scheduling))
@@ -121,6 +122,7 @@ WarpXParticleContainer::ReadParameters ()
 #endif
         pp.query("do_tiling",  do_tiling);
         pp.query("do_not_push", do_not_push);
+        pp.query("do_not_deposit", do_not_deposit);
 
         initialized = true;
     }
@@ -270,6 +272,9 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
                                      "Deposition buffers only work for lev-1");
     // If no particles, do not do anything
     if (np_to_depose == 0) return;
+
+    // If user decides not to deposit
+    if (do_not_deposit) return;
 
     const long ngJ = jx->nGrow();
     const std::array<Real,3>& dx = WarpX::CellSize(std::max(depos_lev,0));
@@ -428,6 +433,9 @@ WarpXParticleContainer::DepositCharge (WarpXParIter& pti, RealVector& wp,
     // If no particles, do not do anything
     if (np_to_depose == 0) return;
 
+    // If user decides not to deposit
+    if (do_not_deposit) return;
+
     const long ngRho = rho->nGrow();
     const std::array<Real,3>& dx = WarpX::CellSize(std::max(depos_lev,0));
     const Real q = this->charge;
@@ -501,11 +509,16 @@ WarpXParticleContainer::DepositCharge (WarpXParIter& pti, RealVector& wp,
 }
 
 void
-WarpXParticleContainer::DepositCharge (Vector<std::unique_ptr<MultiFab> >& rho, bool local)
+WarpXParticleContainer::DepositCharge (Vector<std::unique_ptr<MultiFab> >& rho,
+                                        bool local, bool reset,
+                                        bool do_rz_volume_scaling)
 {
     // Loop over the refinement levels
     int const finest_level = rho.size() - 1;
-    for (int lev = 0; lev < finest_level; ++lev) {
+    for (int lev = 0; lev <= finest_level; ++lev) {
+
+        // Reset the `rho` array if `reset` is True
+        if (reset) rho[lev]->setVal(0.0, rho[lev]->nGrow());
 
         // Loop over particle tiles and deposit charge on each level
 #ifdef _OPENMP
@@ -534,6 +547,13 @@ WarpXParticleContainer::DepositCharge (Vector<std::unique_ptr<MultiFab> >& rho, 
 #ifdef _OPENMP
         }
 #endif
+
+#ifdef WARPX_DIM_RZ
+        if (do_rz_volume_scaling) {
+            WarpX::GetInstance().ApplyInverseVolumeScalingToChargeDensity(rho[lev].get(), lev);
+        }
+#endif
+
         // Exchange guard cells
         if (!local) rho[lev]->SumBoundary( m_gdb->Geom(lev).periodicity() );
     }
