@@ -520,7 +520,7 @@
         }}}} \
     }}}
 
-#define AMREX_GPU_DEVICE_FOR_4D(box,ancomp,i,j,k,n,block) \
+#define AMREX_GPU_DEVICE_FOR_4D(box,ncomp,i,j,k,n,block) \
     { auto const& amrex_i_box = box; auto const& amrex_i_ncomp = ncomp; \
     if (!amrex::isEmpty(amrex_i_box)) { \
         int amrex_i_ncells = amrex_i_box.numPts(); \
