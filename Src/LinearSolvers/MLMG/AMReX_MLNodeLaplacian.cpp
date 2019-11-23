@@ -828,7 +828,6 @@ MLNodeLaplacian::buildStencil ()
                 for (MFIter mfi(*m_stencil[amrlev][0],mfi_info); mfi.isValid(); ++mfi)
                 {
                     Box vbx = mfi.validbox();
-                    Box const& ccvbx = amrex::enclosedCells(vbx);
                     AMREX_D_TERM(vbx.growLo(0,1);, vbx.growLo(1,1);, vbx.growLo(2,1));
                     Box bx = mfi.growntilebox(1);
                     bx &= vbx;
