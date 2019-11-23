@@ -1081,6 +1081,12 @@ MLMG::buildFineMask ()
             (new iMultiFab(makeFineMask(rhs[alev], rhs[alev+1], IntVect(0), IntVect(amrrr[alev]),
                                         Periodicity::NonPeriodic(), 1, 0)));
     }
+
+    if (!linop.isCellCentered()) {
+        for (int alev = 0; alev < finest_amr_lev; ++alev) {
+            linop.fixUpResidualMask(alev, *fine_mask[alev]);
+        }
+    }
 }
 
 void
