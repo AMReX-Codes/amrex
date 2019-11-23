@@ -310,9 +310,6 @@ WarpX::ReadParameters ()
         pp.queryarr("B_external_particle", B_external_particle);
         pp.queryarr("E_external_particle", E_external_particle);
 
-        pp.queryarr("E_external_grid", E_external_grid);
-        pp.queryarr("B_external_grid", B_external_grid);
-
         pp.query("do_moving_window", do_moving_window);
         if (do_moving_window)
         {

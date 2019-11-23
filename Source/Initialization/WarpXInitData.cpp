@@ -12,7 +12,6 @@
 #endif
 #include <GpuParser.H>
 
-#include <FieldInit.H>
 
 using namespace amrex;
 
@@ -271,192 +270,216 @@ void
 WarpX::InitLevelData (int lev, Real time)
 {
 
-    amrex::Print() << " at initlevel data " << lev << " time " << time << "\n";
     ParmParse pp("warpx");
 
     std::string B_ext_grid_s;
-    // default is constant so that the default values of 
-    // E_external_grid[i] and B_external_grid[i] can 
-    // be used for setting the value of the E & B fields.
-    B_ext_grid_s = "constant";
+    std::string E_ext_grid_s;
+    // default values of E_external_grid and B_external_grid
+    // are used to set the E and B field when "constant" or 
+    // "parser" is not explicitly used in the input. 
+    B_ext_grid_s = "default";
+    E_ext_grid_s = "default";
     
     pp.query("B_ext_grid_init_style", B_ext_grid_s);
     std::transform(B_ext_grid_s.begin(),
                    B_ext_grid_s.end(),
                    B_ext_grid_s.begin(),
                    ::tolower);
-    amrex::Print() << " init style " << B_ext_grid_s << "\n";
+    amrex::Print() << " B_init style " << B_ext_grid_s << "\n";
 
-    std::string E_ext_grid_s;
     pp.query("E_ext_grid_init_style", E_ext_grid_s);
     std::transform(E_ext_grid_s.begin(),
                    E_ext_grid_s.end(),
                    E_ext_grid_s.begin(),
                    ::tolower);
+    amrex::Print() << " E_init style " << E_ext_grid_s << "\n";
 
-    if (B_ext_grid_s == "constant") {
+    // if the input string is "constant", the values for the 
+    // external grid must be provided in the input. 
+    if (B_ext_grid_s == "constant")
         pp.getarr("B_external_grid", B_external_grid);     
-    }
-    if (B_ext_grid_s == "parse_b_ext_grid_function") 
-    {
-       amrex::Print() << " parse function " << "\n";
-//       std::vector<std::string> f;
-//       pp.getarr("Bx_external_grid_function(x,y,z)", f);
-//       for (auto const& s : f) {
-//           str_Bx_ext_grid_function += s;
-//       }
-//       f.clear();
-//
-    }
-
-    if (E_ext_grid_s == "constant") {
+   
+    // if the input string is "constant", the values for the 
+    // external grid must be provided in the input. 
+    if (E_ext_grid_s == "constant") 
         pp.getarr("E_external_grid", E_external_grid);     
-    }
-
+    
     for (int i = 0; i < 3; ++i) {
         current_fp[lev][i]->setVal(0.0);
-        Bfield_fp[lev][i]->setVal(0.0);
-        Efield_fp[lev][i]->setVal(0.0);
-        if (B_ext_grid_s == "constant") {
-           Bfield_fp[lev][i]->setVal(B_external_grid[i]);
-        }
-        if (E_ext_grid_s == "constant") {
-           Efield_fp[lev][i]->setVal(E_external_grid[i]);
-        }
+        if (B_ext_grid_s == "constant" || B_ext_grid_s == "default") 
+           Bfield_fp[lev][i]->setVal(B_external_grid[i]);        
+        if (E_ext_grid_s == "constant" || E_ext_grid_s == "default") 
+           Efield_fp[lev][i]->setVal(E_external_grid[i]);        
     }
+
     if (B_ext_grid_s == "parse_b_ext_grid_function") {
-       
+
+       std::vector<std::string> f;
+       // Parse Bx_external_grid_function 
+       pp.getarr("Bx_external_grid_function(x,y,z)", f);
+       str_Bx_ext_grid_function.clear();
+       for (auto const& s : f) {
+           str_Bx_ext_grid_function += s;
+       }
+       f.clear();
+
+       // Parse By_external_grid_function
+       pp.getarr("By_external_grid_function(x,y,z)", f);
+       str_By_ext_grid_function.clear();
+       for (auto const& s : f) {
+            str_By_ext_grid_function += s;
+       }
+       f.clear();
+     
+       // Parse Bz_external_grid_function
+       pp.getarr("Bz_external_grid_function(x,y,z)", f);
+       str_Bz_ext_grid_function.clear();
+       for (auto const& s : f) {
+           str_Bz_ext_grid_function += s;
+       }
+       f.clear();
+
+       // Initialize Bfield_fp with external function  
        MultiFab *Bx, *By, *Bz;
        Bx = Bfield_fp[lev][0].get();
        By = Bfield_fp[lev][1].get();
        Bz = Bfield_fp[lev][2].get();
-       const auto dx_lev = geom[lev].CellSizeArray();
-       const RealBox& real_box = geom[lev].ProbDomain();
-       amrex::Print() << " cell size " << dx_lev[0] << " " << dx_lev[1] << " \n";
-          std::string str_Bx_function;
-          std::vector<std::string> f;
-          pp.getarr("Bx_external_grid_function(x,y,z)", f);
-          str_Bx_function.clear();
-          for (auto const& s : f) {
-              str_Bx_function += s;
-          }
-          f.clear();
 
-          std::unique_ptr<ParserWrapper> Bx_parsewrap;
-          Bx_parsewrap.reset(new ParserWrapper(makeParser(str_Bx_function)));
-          ParserWrapper* Bx_wrap = (Bx_parsewrap.get());
+       bool B_flag = 1;
+       InitializeExternalFieldsOnGridUsingParser(Bx, By, Bz, lev, B_flag);
 
        for ( MFIter mfi(*Bx, TilingIfNotGPU()); mfi.isValid(); ++mfi) 
        {
           const Box& tbx = mfi.tilebox(Bx_nodal_flag);
           const Box& tby = mfi.tilebox(By_nodal_flag);
           const Box& tbz = mfi.tilebox(Bz_nodal_flag);
-          // Bx 
-          auto const& Bxfab = Bx->array(mfi);
-          auto const& lo = lbound(tbx);
-          auto const& hi = ubound(tbx);
-          amrex::Print() << " lo " << lo << " hi " << hi << "\n";
-          auto const& Bx_IndexType = (*Bx).ixType();
-          IntVect Bx_type(AMREX_D_DECL(0,0,0));
-          for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-              Bx_type[idim] = Bx_IndexType.nodeCentered(idim);
-          }
-          amrex::Print() << " ix type " << Bx_IndexType << "\n";
-          amrex::Print() << " type : " << Bx_type << "\n";
-          //ParserWrapper *Bx_parsewrap = new ParserWrapper(Bx_parser);
-//          amrex::Print() << " parsewrap " << Bx_parsewrap->m_parser << "\n";
-//          amrex::Print() <<  " parse wrap " << Bx_wrap->m_parser << "\n";
-          Real xx = 1.0; Real yy = 0.0; Real zz = 0.0;
-          Real g = Bx_wrap->m_parser(xx,yy,zz);
-          amrex::Print() << "g " << g << "\n";
-          Real g2 = Bx_wrap->getField(xx,yy,zz);
-          amrex::Print() << "g2 " << g2 << "\n";
-          amrex::ParallelFor (tbx, 
-              [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                  int xdim = 0; int ydim = 1; int zdim = 2;
-                  
-                  //Real fac_x = (1.0 - Bx_type[0]) * dx_lev[0]*0.5;
-                  //Real x = i*dx_lev[xdim] + real_box.lo(xdim) + fac_x;
-                  //Real fac_y = (1.0 - Bx_type[1]) * dx_lev[1]*0.5;
-                  //Real y = j*dx_lev[ydim] + real_box.lo(ydim) + fac_y;
-                  Real x = 0.0, y = 0.0,  z = 0.0;
-                  Bxfab(i,j,k) = Bx_wrap->getField(x,y,z);
-          //        Bxfab(i,j,k) = 0.0;
-                  
-              }
-          );
-         
-       //   for (int k = lo.z; k <= hi.z; ++k) {
-       //   for (int j = lo.y; j <= hi.y; ++j) {
-       //   for (int i = lo.x; i <= hi.x; ++i) {
-       //       //std::vector<std::string> f;
-       //       //pp.getarr("Bx_external_grid_function(x,y,z)", f);
-       //       //str_Bx_ext_grid_function.clear();
-       //       //for (auto const& s : f) {
-       //       //    str_Bx_ext_grid_function += s;
-       //       //}
-       //       //f.clear();
-       //       //WarpXParser const& Bx_parser = makeParser(str_Bx_ext_grid_function);
-       //       // 
-       //       //GpuParser m_Bx_parser = Bx_parser;
 
-       //       //Real x,y,z;
-       //       int xdim = 0; int ydim = 1; int zdim = 2;
-       //       //
-       //       Real fac_x = (1.0 - Bx_type[0]) * dx_lev[0]*0.5;
-       //       Real x = i*dx_lev[xdim] + real_box.lo(xdim) + fac_x;
-       //       Real fac_y = (1.0 - Bx_type[1]) * dx_lev[1]*0.5;
-       //       Real y = j*dx_lev[ydim] + real_box.lo(ydim) + fac_y;
-       //       Real z = 0.0;
-       //       //Bxfab(i,j,k) = m_Bx_parser(x,y,z);
-       //       //amrex::Print() << " facx " << fac_x << " facy " << fac_y << "\n";
-       //       //amrex::Print() << " Bx at " << i << " " << j << " " << k << " is " << Bxfab(i,j,k) << " x is " << x << " z is "  << y <<  "\n";
-       //       amrex::Print() << " x " << x << " " << y  << "\n";
-       //       //Real compare = 200*std::cosh(x/2.0) + 10*y;
-       //       Real compare = 200*std::cos(x/2.0) + 10*y;
-       //       amrex::Print() << " Bx at " << i << " " << j << " " << k << " is " << Bxfab(i,j,k) << " compare " << compare << "\n";
-       //   }}}          
+          auto const& Bxfab = Bx->array(mfi);
+          auto const& Byfab = By->array(mfi);
+          auto const& Bzfab = Bz->array(mfi);
+
+          const auto lo = lbound(tbx);
+          const auto hi = ubound(tbx); 
+          for (int k = lo.z; k <= hi.z; ++k) {
+          for (int j = lo.y; j <= hi.y; ++j) {
+          for (int i = lo.x; i <= hi.x; ++i) {
+              amrex::Print() << " Bx at " << i << " " << j << " " << k << " is " << Bxfab(i,j,k) << "\n";
+          }}}          
        //   // By
-       //   auto const& By_IndexType = (*By).ixType();
-       //   auto const& Byfab = By->array(mfi);
-       //   auto const& lo_y = lbound(tby);
-       //   auto const& hi_y = ubound(tby);
-       //   for (int k = lo_y.z; k <= hi_y.z; ++k) {
-       //   for (int j = lo_y.y; j <= hi_y.y; ++j) {
-       //   for (int i = lo_y.x; i <= hi_y.x; ++i) {
-//     //         Byfab(i,j,k) = B_external_grid[1];
-       //       Byfab(i,j,k) = 0;
-       //       amrex::Print() << " By at " << i << " " << j << " " << k << " is " << Byfab(i,j,k) << "\n";
-       //   }}}          
-       //   
+          auto const& lo_y = lbound(tby);
+          auto const& hi_y = ubound(tby);
+          for (int k = lo_y.z; k <= hi_y.z; ++k) {
+          for (int j = lo_y.y; j <= hi_y.y; ++j) {
+          for (int i = lo_y.x; i <= hi_y.x; ++i) {
+              amrex::Print() << " By at " << i << " " << j << " " << k << " is " << Byfab(i,j,k) << "\n";
+          }}}          
+          
        //   // Bz
-       //   auto const& Bz_IndexType = (*Bz).ixType();
-       //   auto const& Bzfab = Bz->array(mfi);
-       //   auto const& lo_z = lbound(tbz);
-       //   auto const& hi_z = ubound(tbz);
-       //   for (int k = lo_z.z; k <= hi_z.z; ++k) {
-       //   for (int j = lo_z.y; j <= hi_z.y; ++j) {
-       //   for (int i = lo_z.x; i <= hi_z.x; ++i) {
-       //       //Bzfab(i,j,k) = B_external_grid[2];
-       //       Bzfab(i,j,k) = 0;
-       //       amrex::Print() << " Bz at " << i << " " << j << " " << k << " is " << Bzfab(i,j,k) << "\n";
-       //   }}}          
-       //   
+          auto const& lo_z = lbound(tbz);
+          auto const& hi_z = ubound(tbz);
+          for (int k = lo_z.z; k <= hi_z.z; ++k) {
+          for (int j = lo_z.y; j <= hi_z.y; ++j) {
+          for (int i = lo_z.x; i <= hi_z.x; ++i) {
+              amrex::Print() << " Bz at " << i << " " << j << " " << k << " is " << Bzfab(i,j,k) << "\n";
+          }}}          
+          
        }
     }
 
     if (lev > 0) {
         for (int i = 0; i < 3; ++i) {
             current_cp[lev][i]->setVal(0.0);
-            if (B_ext_grid_s == "constant") {
+            if (B_ext_grid_s == "constant" || B_ext_grid_s == "default") {
                Bfield_aux[lev][i]->setVal(B_external_grid[i]);
                Bfield_cp[lev][i]->setVal(B_external_grid[i]);
             }
-            else {
-               Bfield_aux[lev][i]->setVal(0.0);
-               Bfield_cp[lev][i]->setVal(0.0);
+            else if (B_ext_grid_s == "parse_b_ext_grid_function") {
+
+               MultiFab *Bx_aux, *By_aux, *Bz_aux;
+               Bx_aux = Bfield_aux[lev][0].get();
+               By_aux = Bfield_aux[lev][1].get();
+               Bz_aux = Bfield_aux[lev][2].get();
+
+               bool B_flag = 1;
+               InitializeExternalFieldsOnGridUsingParser(Bx_aux, By_aux,
+                                                         Bz_aux, lev, B_flag);
+
+               MultiFab *Bx_cp, *By_cp, *Bz_cp;
+               Bx_cp = Bfield_cp[lev][0].get();
+               By_cp = Bfield_cp[lev][1].get();
+               Bz_cp = Bfield_cp[lev][2].get();
+
+               InitializeExternalFieldsOnGridUsingParser(Bx_cp, By_cp,
+                                                         Bz_cp, lev, B_flag);
+
+               for ( MFIter mfi(*Bx_aux, TilingIfNotGPU()); mfi.isValid(); ++mfi) 
+               {
+                  const Box& tbx = mfi.tilebox(Bx_nodal_flag);
+                  const Box& tby = mfi.tilebox(By_nodal_flag);
+                  const Box& tbz = mfi.tilebox(Bz_nodal_flag);
+
+                  auto const& Bxfab = Bx_aux->array(mfi);
+                  auto const& Byfab = By_aux->array(mfi);
+                  auto const& Bzfab = Bz_aux->array(mfi);
+
+                  const auto lo = lbound(tbx);
+                  const auto hi = ubound(tbx); 
+                  for (int k = lo.z; k <= hi.z; ++k) {
+                  for (int j = lo.y; j <= hi.y; ++j) {
+                  for (int i = lo.x; i <= hi.x; ++i) {
+                      amrex::Print() << " Bx at aux " << i << " " << j << " " << k << " is " << Bxfab(i,j,k) << "\n";
+                  }}}          
+                  const auto lo_y = lbound(tby);
+                  const auto hi_y = ubound(tby); 
+                  for (int k = lo_y.z; k <= hi_y.z; ++k) {
+                  for (int j = lo_y.y; j <= hi_y.y; ++j) {
+                  for (int i = lo_y.x; i <= hi_y.x; ++i) {
+                      amrex::Print() << " By at aux " << i << " " << j << " " << k << " is " << Byfab(i,j,k) << "\n";
+                  }}}          
+                  const auto lo_z = lbound(tbz);
+                  const auto hi_z = ubound(tbz); 
+                  for (int k = lo_z.z; k <= hi_z.z; ++k) {
+                  for (int j = lo_z.y; j <= hi_z.y; ++j) {
+                  for (int i = lo_z.x; i <= hi_z.x; ++i) {
+                      amrex::Print() << " Bz at aux " << i << " " << j << " " << k << " is " << Bzfab(i,j,k) << "\n";
+                  }}}          
+               }
+
+               for ( MFIter mfi(*Bx_cp, TilingIfNotGPU()); mfi.isValid(); ++mfi) 
+               {
+                  const Box& tbx = mfi.tilebox(Bx_nodal_flag);
+                  const Box& tby = mfi.tilebox(By_nodal_flag);
+                  const Box& tbz = mfi.tilebox(Bz_nodal_flag);
+
+                  auto const& Bxfab = Bx_cp->array(mfi);
+                  auto const& Byfab = By_cp->array(mfi);
+                  auto const& Bzfab = Bz_cp->array(mfi);
+
+                  const auto lo = lbound(tbx);
+                  const auto hi = ubound(tbx); 
+                  for (int k = lo.z; k <= hi.z; ++k) {
+                  for (int j = lo.y; j <= hi.y; ++j) {
+                  for (int i = lo.x; i <= hi.x; ++i) {
+                      amrex::Print() << " Bx at cp " << i << " " << j << " " << k << " is " << Bxfab(i,j,k) << "\n";
+                  }}}          
+                  const auto lo_y = lbound(tby);
+                  const auto hi_y = ubound(tby); 
+                  for (int k = lo_y.z; k <= hi_y.z; ++k) {
+                  for (int j = lo_y.y; j <= hi_y.y; ++j) {
+                  for (int i = lo_y.x; i <= hi_y.x; ++i) {
+                      amrex::Print() << " By at cp " << i << " " << j << " " << k << " is " << Byfab(i,j,k) << "\n";
+                  }}}          
+                  const auto lo_z = lbound(tbz);
+                  const auto hi_z = ubound(tbz); 
+                  for (int k = lo_z.z; k <= hi_z.z; ++k) {
+                  for (int j = lo_z.y; j <= hi_z.y; ++j) {
+                  for (int i = lo_z.x; i <= hi_z.x; ++i) {
+                      amrex::Print() << " Bz at cp " << i << " " << j << " " << k << " is " << Bzfab(i,j,k) << "\n";
+                  }}}          
+               }
+
             }
-            if (E_ext_grid_s == "constant") {
+            if (E_ext_grid_s == "constant" || E_ext_grid_s == " default") {
                Efield_aux[lev][i]->setVal(E_external_grid[i]);
                Efield_cp[lev][i]->setVal(E_external_grid[i]);
             } else {
@@ -521,3 +544,116 @@ WarpX::InitLevelDataFFT (int lev, Real time)
 }
 
 #endif
+
+
+void 
+WarpX::InitializeExternalFieldsOnGridUsingParser (
+       MultiFab *mfx, MultiFab *mfy, MultiFab *mfz, 
+       const int lev, const bool B_flag)
+{
+    std::unique_ptr<ParserWrapper> Bx_parsewrap;
+    std::unique_ptr<ParserWrapper> By_parsewrap;
+    std::unique_ptr<ParserWrapper> Bz_parsewrap;
+
+    if (B_flag == 1) {
+        Bx_parsewrap.reset(new ParserWrapper
+                           (makeParser(str_Bx_ext_grid_function)));
+        By_parsewrap.reset(new ParserWrapper
+                           (makeParser(str_By_ext_grid_function)));
+        Bz_parsewrap.reset(new ParserWrapper
+                           (makeParser(str_Bz_ext_grid_function)));
+    } else {
+        Bx_parsewrap.reset(new ParserWrapper
+                           (makeParser(str_Bx_ext_grid_function)));
+        By_parsewrap.reset(new ParserWrapper
+                           (makeParser(str_By_ext_grid_function)));
+        Bz_parsewrap.reset(new ParserWrapper
+                           (makeParser(str_Bz_ext_grid_function)));
+    }
+   
+    ParserWrapper *xfield_wrap = Bx_parsewrap.get(); 
+    ParserWrapper *yfield_wrap = By_parsewrap.get(); 
+    ParserWrapper *zfield_wrap = Bz_parsewrap.get(); 
+
+    const auto dx_lev = geom[lev].CellSizeArray();
+    const RealBox& real_box = geom[lev].ProbDomain();
+    for ( MFIter mfi(*mfx, TilingIfNotGPU()); mfi.isValid(); ++mfi) 
+    {
+       IntVect x_nodal_flag, y_nodal_flag, z_nodal_flag;
+       if (B_flag == 1) {
+          x_nodal_flag = Bx_nodal_flag;
+          y_nodal_flag = By_nodal_flag;
+          z_nodal_flag = Bz_nodal_flag;
+       } else {
+          x_nodal_flag = Ex_nodal_flag;
+          y_nodal_flag = Ey_nodal_flag;
+          z_nodal_flag = Ez_nodal_flag;
+       }
+       const Box& tbx = mfi.tilebox(Bx_nodal_flag);
+       const Box& tby = mfi.tilebox(By_nodal_flag);
+       const Box& tbz = mfi.tilebox(Bz_nodal_flag);
+    
+       auto const& mfxfab = mfx->array(mfi);
+       auto const& mfyfab = mfy->array(mfi);
+       auto const& mfzfab = mfz->array(mfi);
+    
+       auto const& mfx_IndexType = (*mfx).ixType();
+       auto const& mfy_IndexType = (*mfy).ixType();
+       auto const& mfz_IndexType = (*mfz).ixType();
+    
+       IntVect mfx_type(AMREX_D_DECL(0,0,0));
+       IntVect mfy_type(AMREX_D_DECL(0,0,0));
+       IntVect mfz_type(AMREX_D_DECL(0,0,0));
+
+       for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+           mfx_type[idim] = mfx_IndexType.nodeCentered(idim);
+           mfy_type[idim] = mfy_IndexType.nodeCentered(idim);
+           mfz_type[idim] = mfz_IndexType.nodeCentered(idim);
+       }
+
+       amrex::ParallelFor (tbx, tby, tbz,
+           [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+               Real fac_x = (1.0 - mfx_type[0]) * dx_lev[0]*0.5;
+               Real fac_y = (1.0 - mfx_type[1]) * dx_lev[1]*0.5;
+               Real x = i*dx_lev[0] + real_box.lo(0) + fac_x;
+               Real y = j*dx_lev[1] + real_box.lo(1) + fac_y;
+#if (AMREX_SPACEDIM==2)
+               Real z = 0.0;
+#elif (AMREX_SPACEDIM==3)
+               Real fac_z = (1.0 - mfx_type[2]) * dx_lev[2]*0.5;
+               Real z = k*dx_lev[2] + real_box.lo(2) + fac_z;
+#endif
+               mfxfab(i,j,k) = xfield_wrap->getField(x,y,z);
+            },
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                Real fac_x = (1.0 - mfy_type[0]) * dx_lev[0]*0.5;
+                Real fac_y = (1.0 - mfy_type[1]) * dx_lev[1]*0.5;
+                Real x = i*dx_lev[0] + real_box.lo(0) + fac_x;
+                Real y = j*dx_lev[1] + real_box.lo(1) + fac_y;
+#if (AMREX_SPACEDIM==2)
+                Real z = 0.0;
+#elif (AMREX_SPACEDIM==3)
+                Real fac_z = (1.0 - mfy_type[2]) * dx_lev[2]*0.5;
+                Real z = k*dx_lev[2] + real_box.lo(2) + fac_z;
+#endif
+                mfyfab(i,j,k)  = yfield_wrap->getField(x,y,z);
+            },
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                Real fac_x = (1.0 - mfz_type[0]) * dx_lev[0]*0.5;
+                Real fac_y = (1.0 - mfz_type[1]) * dx_lev[1]*0.5;
+                Real x = i*dx_lev[0] + real_box.lo(0) + fac_x;
+                Real y = j*dx_lev[1] + real_box.lo(1) + fac_y;
+#if (AMREX_SPACEDIM==2)
+                Real z = 0.0;
+#elif (AMREX_SPACEDIM==3)
+                Real fac_z = (1.0 - mfz_type[2]) * dx_lev[2]*0.5;
+                Real z = k*dx_lev[2] + real_box.lo(2) + fac_z;
+#endif
+                mfzfab(i,j,k) = zfield_wrap->getField(x,y,z);
+            },
+            amrex::Gpu::numThreadsPerBlockParallelFor() * sizeof(double) * 3
+        );
+
+    }
+
+}

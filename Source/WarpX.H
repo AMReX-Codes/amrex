@@ -45,6 +45,27 @@ enum struct PatchType : int
     coarse
 };
 
+struct ParserWrapper
+    : public amrex::Gpu::Managed
+{
+    ParserWrapper (WarpXParser const& a_parser) noexcept
+       : m_parser(a_parser) {}    
+
+    ~ParserWrapper() {
+       m_parser.clear();
+    }
+
+    AMREX_GPU_HOST_DEVICE
+    amrex::Real
+    getField (amrex::Real x, amrex::Real y, amrex::Real z) const noexcept
+    {
+       return m_parser(x,y,z);
+    }
+
+    GpuParser m_parser;
+};
+
+
 class WarpX
     : public amrex::AmrCore
 {
@@ -321,6 +342,12 @@ public:
     // Making this function public to allow the use of GPU launch
     // to initialize E and B fields using parser. 
     void InitLevelData (int lev, amrex::Real time);
+
+    void InitializeExternalFieldsOnGridUsingParser (
+           amrex::MultiFab* mfx, amrex::MultiFab *mfy, amrex::MultiFab *mfz, 
+//           ParserWrapper* xField_wrap, ParserWrapper* yField_wrap,
+//           ParserWrapper* zField_wrap,
+            const int lev, const bool B_flag);
 protected:
 
     //! Tagging cells for refinement
@@ -659,25 +686,5 @@ private:
     int insitu_pin_mesh;
 };
 
-struct ParserWrapper
-    : public amrex::Gpu::Managed
-{
-    ParserWrapper (WarpXParser const& a_parser) noexcept
-       : m_parser(a_parser) {}    
-
-    AMREX_GPU_HOST_DEVICE
-    amrex::Real
-    getField (amrex::Real x, amrex::Real y, amrex::Real z) const noexcept
-    {
-       return m_parser(x,y,z);
-    }
-
-    GpuParser m_parser;
-
-    ~ParserWrapper() {
-       m_parser.clear();
-    }
-    
-};
 
 #endif
