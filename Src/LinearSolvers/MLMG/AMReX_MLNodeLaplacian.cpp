@@ -1638,7 +1638,7 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
                 if (Gpu::inLaunchRegion()) {
                     AMREX_ASSERT(ccbxg1 == crse_cc_mask[mfi].box());
                     has_fine = Reduce::AnyOf(ccbxg1,
-                                             [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept -> bool
+                                             [cccmsk,nonowner] AMREX_GPU_DEVICE (int i, int j, int k) noexcept -> bool
                     {
                         return cccmsk(i,j,k) == nonowner;
                     });
