@@ -138,10 +138,11 @@ public:
 
         Box bins_box(IntVect::TheZeroVector(), m_num_bins-IntVect::TheUnitVector());
         IntVect bin_size = m_bin_size;
+        IntVect bins_lo = m_bins_lo;
         m_bins.build(num_boxes, boxes_ptr, bins_box,
                      [=] AMREX_GPU_HOST_DEVICE (const Box& box) noexcept -> IntVect
                      {
-                         return box.smallEnd() / bin_size;
+                         return (box.smallEnd() - bins_lo) / bin_size;
                      });                           
     }
 
