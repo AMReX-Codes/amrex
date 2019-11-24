@@ -3,12 +3,16 @@
 
 #include <WarpXConst.H>
 #include <AMReX_Random.H>
+#include <cmath> // isnan() isinf()
 
 /* \brief Update particle velocities according to
  *        F. Perez et al., Phys. Plasmas 19, 083104 (2012).
  *        LmdD is max(Debye length, minimal interparticle distance).
  *        L is the Coulomb log. A fixed L will be used if L > 0,
- *        otherwise L will be calculated based on the algorithm.*/
+ *        otherwise L will be calculated based on the algorithm.
+ *        To see if there are nan or inf updated velocities,
+ *        compile with USE_ASSERTION=TRUE.
+*/
 
 template <typename T_R>
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
@@ -99,9 +103,9 @@ void UpdateMomentumPerezElastic (
     // Compute scattering angle
     T_R cosXs;
     T_R sinXs;
-    if ( s <= 0.1 )
+    if ( s <= 0.01 )
     { cosXs = 1. + s * std::log(buf1); }
-    else if ( s > 0.1 && s <= 3. )
+    else if ( s > 0.01 && s <= 3. )
     {
         // buf2 is A inverse
         buf2 = 0.0056958 + 0.9560202*s - 0.508139*s*s +
@@ -163,6 +167,8 @@ void UpdateMomentumPerezElastic (
         u1x  = p1x / m1;
         u1y  = p1y / m1;
         u1z  = p1z / m1;
+        AMREX_ASSERT(!std::isnan(u1x+u1y+u1z+u2x+u2y+u2z));
+        AMREX_ASSERT(!std::isinf(u1x+u1y+u1z+u2x+u2y+u2z));
     }
     buf2 = amrex::Random();
     if ( w1/amrex::max(w1,w2) > buf2 )
@@ -170,6 +176,8 @@ void UpdateMomentumPerezElastic (
         u2x  = p2x / m2;
         u2y  = p2y / m2;
         u2z  = p2z / m2;
+        AMREX_ASSERT(!std::isnan(u1x+u1y+u1z+u2x+u2y+u2z));
+        AMREX_ASSERT(!std::isinf(u1x+u1y+u1z+u2x+u2y+u2z));
     }
 }
 
