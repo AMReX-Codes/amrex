@@ -387,9 +387,13 @@ StateData::replaceOldData (MultiFab&& mf)
 // This version does NOT delete the replaced data.
 
 void
-StateData::replaceOldData (StateData& s)
+StateData::replaceOldData (StateData& s, bool pointer_swap)
 {
-    std::swap(old_data, s.old_data);
+    if (pointer_swap) {
+        std::swap(old_data, s.old_data);
+    } else {
+        MultiFab::Swap(*old_data, *s.old_data, 0, 0, old_data->nComp(), old_data->nGrow());
+    }
 }
 
 void
@@ -401,9 +405,13 @@ StateData::replaceNewData (MultiFab&& mf)
 // This version does NOT delete the replaced data.
 
 void
-StateData::replaceNewData (StateData& s)
+StateData::replaceNewData (StateData& s, bool pointer_swap)
 {
-    std::swap(new_data, s.new_data);
+    if (pointer_swap) {
+        std::swap(new_data, s.new_data);
+    } else {
+        MultiFab::Swap(*new_data, *s.new_data, 0, 0, new_data->nComp(), new_data->nGrow());
+    }
 }
 
 void
