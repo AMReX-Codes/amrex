@@ -58,7 +58,8 @@ MultiParticleContainer::MultiParticleContainer (AmrCore* amr_core)
     // collision
     allcollisions.resize(ncollisions);
     for (int i = 0; i < ncollisions; ++i) {
-        allcollisions[i].reset(new CollisionType(species_names, collision_names[i]));
+        allcollisions[i].reset
+            (new CollisionType(species_names, collision_names[i]));
     }
 
 }
@@ -632,33 +633,27 @@ MultiParticleContainer::doCoulombCollisions ()
 
     for (int i = 0; i < ncollisions; ++i)
     {
-        // At this point, the code always collides the first and second species
-        // TODO: Read the user input to read the different types of collisions requested
-        //       and loop over all types of collisions, selecting each time the
-        //       two types of species that will be collided
-        // auto& species1 = allcontainers[0];
-        // auto& species2 = allcontainers[1];
         auto& species1 = allcontainers[ allcollisions[i]->m_species1_index ];
         auto& species2 = allcontainers[ allcollisions[i]->m_species2_index ];
-    
+
         // Enable tiling
         MFItInfo info;
         if (Gpu::notInLaunchRegion()) info.EnableTiling(species1->tile_size);
-    
+
         // Loop over refinement levels
         for (int lev = 0; lev <= species1->finestLevel(); ++lev){
-    
+
             // Loop over all grids/tiles at this level
 #ifdef _OPENMP
             info.SetDynamic(true);
             #pragma omp parallel
 #endif
             for (MFIter mfi = species1->MakeMFIter(lev, info); mfi.isValid(); ++mfi){
-    
+
                 CollisionType::doCoulombCollisionsWithinTile
                     ( lev, mfi, species1, species2,
                       allcollisions[i]->m_isSameSpecies );
-    
+
             }
         }
     }
