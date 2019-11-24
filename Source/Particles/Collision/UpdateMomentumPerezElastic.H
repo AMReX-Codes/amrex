@@ -103,9 +103,17 @@ void UpdateMomentumPerezElastic (
     // Compute scattering angle
     T_R cosXs;
     T_R sinXs;
-    if ( s <= 0.01 )
-    { cosXs = 1. + s * std::log(buf1); }
-    else if ( s > 0.01 && s <= 3. )
+    if ( s <= 0.1 )
+    {
+        while ( true )
+        {
+            cosXs = 1. + s * std::log(buf1);
+            // avoid the bug when buf1 is too small
+            if ( cosXs >= -1.0 ) { break; }
+            buf1 = amrex::Random();
+        }
+    }
+    else if ( s > 0.1 && s <= 3. )
     {
         // buf2 is A inverse
         buf2 = 0.0056958 + 0.9560202*s - 0.508139*s*s +
