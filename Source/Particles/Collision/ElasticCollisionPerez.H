@@ -22,7 +22,7 @@
  *        dt is the time step length between two collision calls.
  *        L is the Coulomb log and will be used if greater than zero,
  *        otherwise will be computed.
- *        V is the volume of the corresponding cell.
+ *        dV is the volume of the corresponding cell.
 */
 
 template <typename T_index, typename T_R>
@@ -37,7 +37,7 @@ void ElasticCollisionPerez (
     T_R const  q1, T_R const  q2,
     T_R const  m1, T_R const  m2,
     T_R const  T1, T_R const  T2,
-    T_R const  dt, T_R const   L, T_R const V)
+    T_R const  dt, T_R const   L, T_R const dV)
 {
 
     T_R constexpr inv_c2 = 1./(PhysConst::c*PhysConst::c);
@@ -46,7 +46,7 @@ void ElasticCollisionPerez (
 
     // get local T1t and T2t
     T_R T1t; T_R T2t;
-    if ( T1 <= 0. )
+    if ( T1 <= 0. && L <= 0. )
     {
         T_R vx = 0.; T_R vy = 0.;
         T_R vz = 0.; T_R vs = 0.;
@@ -71,7 +71,7 @@ void ElasticCollisionPerez (
         }
     }
     else { T1t = T1; }
-    if ( T2 <= 0. )
+    if ( T2 <= 0. && L <= 0. )
     {
         T_R vx = 0.; T_R vy = 0.;
         T_R vz = 0.; T_R vs = 0.;
@@ -103,7 +103,7 @@ void ElasticCollisionPerez (
     T_R n12 = 0.;
     for (int i1=I1s; i1<I1e; ++i1) { n1 += w1[ I1[i1] ]; }
     for (int i2=I2s; i2<I2e; ++i2) { n2 += w2[ I2[i2] ]; }
-    n1 = n1 / V; n2 = n2 / V;
+    n1 = n1 / dV; n2 = n2 / dV;
     {
       int i1 = I1s; int i2 = I2s;
       for (int k = 0; k < amrex::max(NI1,NI2); ++k)
@@ -112,7 +112,7 @@ void ElasticCollisionPerez (
         ++i1; if ( i1 == I1e ) { i1 = I1s; }
         ++i2; if ( i2 == I2e ) { i2 = I2s; }
       }
-      n12 = n12 / V;
+      n12 = n12 / dV;
     }
 
     // compute Debye length lmdD
