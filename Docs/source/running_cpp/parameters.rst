@@ -363,7 +363,7 @@ Particle initialization
     Split particles of the species when crossing the boundary from a lower
     resolution domain to a higher resolution domain.
 
-* ``do_not_deposit`` (`0` or `1` optional; default `0`)
+* ``<species_name>.do_not_deposit`` (`0` or `1` optional; default `0`)
     If `1` is given, both charge deposition and current deposition will
     not be done, so the fields due to particles remain zero.
 
