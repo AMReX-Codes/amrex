@@ -707,11 +707,12 @@ namespace amrex
             for (MFIter mfi(mask); mfi.isValid(); ++mfi)
             {
                 const Box& bx = mfi.fabbox();
-                Array4<int> const& fab = mask.array(mfi);
+                Array4<int> const& arr = mask.array(mfi);
+                IArrayBox& fab = mask[mfi];
 
                 AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
                 {
-                    fab(i,j,k) = crse_value;
+                    arr(i,j,k) = crse_value;
                 });
 
                 for (const auto& iv : pshifts) {
@@ -719,12 +720,9 @@ namespace amrex
                     for (const auto is : isects) {
                         Box const& b = is.second-iv;
                         if (run_on_gpu) {
-                            tags.push_back({fab,b});
+                            tags.push_back({arr,b});
                         } else {
-                            amrex::LoopConcurrentOnCpu(b, [=] (int i, int j, int k) noexcept
-                            {
-                                fab(i,j,k) = fine_value;
-                            });
+                            fab.setVal(fine_value, b);
                         }
                     }
                 }
