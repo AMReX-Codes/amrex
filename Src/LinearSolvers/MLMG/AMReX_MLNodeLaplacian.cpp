@@ -1555,7 +1555,7 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
     // cell-center, 1: coarse; 0: covered by fine
     const int owner = 1;
     const int nonowner = 0;
-    iMultiFab crse_cc_mask = amrex::makeFineMask(ccba, dmap, IntVect(1), ccfba, ref_ratio,
+    iMultiFab crse_cc_mask = amrex::makeFineMask(ccba, dmap, IntVect(2), ccfba, ref_ratio,
                                                  geom.periodicity(), owner, nonowner);
 
     const Box& ccdom = geom.Domain();
