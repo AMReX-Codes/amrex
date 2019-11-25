@@ -853,6 +853,8 @@ public:
     */
     static void Finalize();
 
+    static bool QueryUnusedInputs ();
+    
     struct PP_entry;
     typedef std::list<PP_entry> Table;
     static void appendTable(ParmParse::Table& tab);
