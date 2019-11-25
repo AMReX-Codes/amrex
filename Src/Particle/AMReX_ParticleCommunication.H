@@ -200,6 +200,11 @@ private:
     //
     void doHandShakeGlobal (const Vector<long>& Snds, Vector<long>& Rcvs) const;
 
+    //
+    // Another version of the above that is implemented using MPI All-to-All
+    //    
+    void doHandShakeAllToAll (const Vector<long>& Snds, Vector<long>& Rcvs) const;
+
     bool m_local;
 };
 
