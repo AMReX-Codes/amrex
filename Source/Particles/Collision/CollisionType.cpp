@@ -13,6 +13,10 @@ CollisionType::CollisionType(
     amrex::ParmParse pp(collision_name);
     pp.getarr("species", collision_species);
 
+    // default Coulomb log, if < 0, will be computed automatically
+    m_CoulombLog = -1.0;
+    pp.query("CoulombLog", m_CoulombLog);
+
     for (int i=0; i<species_names.size(); i++)
     {
         if (species_names[i] == collision_species[0])
@@ -77,10 +81,10 @@ void CollisionType::doCoulombCollisionsWithinTile
     ( int lev, MFIter const& mfi,
     std::unique_ptr<WarpXParticleContainer>& species_1,
     std::unique_ptr<WarpXParticleContainer>& species_2,
-    bool isSameSpecies )
+    bool isSameSpecies, Real CoulombLog )
 {
 
-    if ( isSameSpecies) // species_1 == species_2
+    if ( isSameSpecies ) // species_1 == species_2
     {
         // Extract particles in the tile that `mfi` points to
         ParticleTileType& ptile_1 = species_1->ParticlesAt(lev, mfi);
@@ -130,7 +134,7 @@ void CollisionType::doCoulombCollisionsWithinTile
                         cell_half_1, cell_stop_1,
                         indices_1, indices_1,
                         ux_1, uy_1, uz_1, ux_1, uy_1, uz_1, w_1, w_1,
-                        q1, q1, m1, m1, -1.0, -1.0, dt, 2.0, dV);
+                        q1, q1, m1, m1, -1.0, -1.0, dt, CoulombLog, dV);
                 }
             }
         );
@@ -203,7 +207,7 @@ void CollisionType::doCoulombCollisionsWithinTile
                         cell_start_1, cell_stop_1, cell_start_2, cell_stop_2,
                         indices_1, indices_2,
                         ux_1, uy_1, uz_1, ux_2, uy_2, uz_2, w_1, w_2,
-                        q1, q2, m1, m2, -1.0, -1.0, dt, 2.0, dV);
+                        q1, q2, m1, m2, -1.0, -1.0, dt, CoulombLog, dV);
                 }
             }
         );

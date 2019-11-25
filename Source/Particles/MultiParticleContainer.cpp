@@ -652,7 +652,8 @@ MultiParticleContainer::doCoulombCollisions ()
 
                 CollisionType::doCoulombCollisionsWithinTile
                     ( lev, mfi, species1, species2,
-                      allcollisions[i]->m_isSameSpecies );
+                      allcollisions[i]->m_isSameSpecies,
+                      allcollisions[i]->m_CoulombLog );
 
             }
         }
