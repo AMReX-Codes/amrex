@@ -122,7 +122,6 @@ WarpXParticleContainer::ReadParameters ()
 #endif
         pp.query("do_tiling",  do_tiling);
         pp.query("do_not_push", do_not_push);
-        pp.query("do_not_deposit", do_not_deposit);
 
         initialized = true;
     }
