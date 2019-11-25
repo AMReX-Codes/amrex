@@ -270,6 +270,27 @@ void ParticleCopyPlan::doHandShakeLocal (const Vector<long>& Snds, Vector<long>&
 #endif
 }
 
+void ParticleCopyPlan::doHandShakeAllToAll (const Vector<long>& Snds, Vector<long>& Rcvs) const
+{
+#ifdef BL_USE_MPI
+    BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(long),
+                    ParallelDescriptor::MyProc(), BLProfiler::BeforeCall());
+
+    BL_MPI_REQUIRE( MPI_Alltoall(Snds.dataPtr(),
+                                 1,
+                                 ParallelDescriptor::Mpi_typemap<long>::type(),
+                                 Rcvs.dataPtr(),
+                                 1,
+                                 ParallelDescriptor::Mpi_typemap<long>::type(),
+                                 ParallelDescriptor::Communicator()) );
+    
+    BL_ASSERT(Rcvs[ParallelDescriptor::MyProc()] == 0);
+    
+    BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(long),
+                    ParallelDescriptor::MyProc(), BLProfiler::AfterCall());
+#endif
+}
+
 void ParticleCopyPlan::doHandShakeGlobal (const Vector<long>& Snds, Vector<long>& Rcvs) const
 {
 #ifdef BL_USE_MPI
