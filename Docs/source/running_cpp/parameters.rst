@@ -363,14 +363,14 @@ Particle initialization
     Split particles of the species when crossing the boundary from a lower
     resolution domain to a higher resolution domain.
 
-* ``<species_name>.do_not_deposit`` (`0` or `1` optional; default `0`)
-    If `1` is given, both charge deposition and current deposition will
-    not be done, so the fields due to particles remain zero.
-
 * ``<species_name>.split_type`` (`int`) optional (default `0`)
     Splitting technique. When `0`, particles are split along the simulation
     axes (4 particles in 2D, 6 particles in 3D). When `1`, particles are split
     along the diagonals (4 particles in 2D, 8 particles in 3D).
+
+* ``<species_name>.do_not_deposit`` (`0` or `1` optional; default `0`)
+    If `1` is given, both charge deposition and current deposition will
+    not be done, thus that species does not contribute to the fields.
 
 * ``<species>.plot_species`` (`0` or `1` optional; default `1`)
     Whether to plot particle quantities for this species.
