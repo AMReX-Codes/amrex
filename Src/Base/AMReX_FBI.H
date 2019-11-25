@@ -520,7 +520,6 @@ FabArray<FAB>::CMD_local_setVal_gpu (typename FabArray<FAB>::value_type x,
     {
         const CopyComTag& tag = LocTags[i];
         BL_ASSERT(distributionMap[tag.dstIndex] == ParallelDescriptor::MyProc());
-        BL_ASSERT(distributionMap[tag.srcIndex] == ParallelDescriptor::MyProc());
         loc_setval_tags.push_back({this->array(tag.dstIndex), tag.dbox});
     }
 
