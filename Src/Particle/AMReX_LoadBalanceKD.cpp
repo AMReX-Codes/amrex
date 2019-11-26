@@ -58,7 +58,7 @@ void KDTree::walkKDTree(KDNode* node, BoxList& bl, Vector<Real>& costs) {
 bool KDTree::partitionNode(KDNode* node, const FArrayBox& cost) {
     
     const Box& box = node->box;
-    BL_ASSERT(cost.box().contains(box));
+    AMREX_ASSERT(cost.box().contains(box));
     
     int split;
     Real cost_left, cost_right;
@@ -72,8 +72,8 @@ bool KDTree::partitionNode(KDNode* node, const FArrayBox& cost) {
         bool success = splitBox(split, dir, box, left, right);        
         if (not success) return false;
         
-        BL_ASSERT(left.numPts()  > 0);
-        BL_ASSERT(right.numPts() > 0);
+        AMREX_ASSERT(left.numPts()  > 0);
+        AMREX_ASSERT(right.numPts() > 0);
         
         amrex_set_box_cost(cost.dataPtr(), cost.loVect(), cost.hiVect(),
                            left.loVect(), left.hiVect(), &cost_left);
