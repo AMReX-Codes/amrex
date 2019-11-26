@@ -186,8 +186,9 @@ MultiFab::Swap (MultiFab& dst, MultiFab& src,
 
     bool explicit_swap = true;
 
-    if (srccomp == dstcomp && dstcomp == 0 && src.nComp() == dst.nComp() && src.nGrow() == dst.nGrow() &&
-        src.myArena() == dst.myArena() && src.hasEBFabFactory() == dst.hasEBFabFactory()) {
+    if (srccomp == dstcomp && dstcomp == 0 && src.nComp() == dst.nComp() &&
+        src.nGrowVect() == nghost && src.nGrowVect() == dst.nGrowVect() &&
+        src.arena() == dst.arena() && src.hasEBFabFactory() == dst.hasEBFabFactory()) {
         explicit_swap = false;
     }
 
