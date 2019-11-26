@@ -187,83 +187,34 @@ MLNodeLinOp::buildMasks ()
     const auto lobc = LoBC();
     const auto hibc = HiBC();
 
+    for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
+    {
+        for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
+        {
+            const Geometry& geom = m_geom[amrlev][mglev];
+            const auto& period = geom.periodicity();
+            const Box& ccdomain = geom.Domain();
+            const Box& nddomain = amrex::surroundingNodes(ccdomain);
+
+            auto& dmask = *m_dirichlet_mask[amrlev][mglev];
+
+            iMultiFab ccm(m_grids[amrlev][mglev],m_dmap[amrlev][mglev],1,1);
+            ccm.BuildMask(ccdomain,period,0,1,2,0);
+
+            MFItInfo mfi_info;
+            if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    {
-        std::vector< std::pair<int,Box> > isects;
-        IArrayBox ccfab;
-
-        for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
-        {
-            for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
+            for (MFIter mfi(dmask, mfi_info); mfi.isValid(); ++mfi)
             {
-                const Geometry& geom = m_geom[amrlev][mglev];
-                const auto& period = geom.periodicity();
-                const Box& ccdomain = geom.Domain();
-                const Box& nddomain = amrex::surroundingNodes(ccdomain);
-                const std::vector<IntVect>& pshifts = period.shiftIntVect();
-
-                Box ccdomain_p = ccdomain;
-                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                    if (geom.isPeriodic(idim)) {
-                        ccdomain_p.grow(idim, 1);
-                    }
-                }
-
+                const Box& ndbx = mfi.validbox();
+                Array4<int> const& mskarr = dmask.array(mfi);
+                Array4<int const> const& ccarr = ccm.const_array(mfi);
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( ndbx, tbx,
                 {
-                    auto& dmask = *m_dirichlet_mask[amrlev][mglev];
-                    const BoxArray& ccba = m_grids[amrlev][mglev];
-
-                    MFItInfo mfi_info;
-                    if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
-                    for (MFIter mfi(dmask, mfi_info); mfi.isValid(); ++mfi)
-                    {
-                        const Box& ndbx = mfi.validbox();
-                        const Box& ccbx = amrex::enclosedCells(ndbx);
-                        const Box& ccbxg1 = amrex::grow(ccbx,1);
-                        Array4<int> const& mskarr = dmask.array(mfi);
-
-                        ccfab.resize(ccbxg1);
-                        Elixir cceli = ccfab.elixir();
-                        Array4<int> const& ccarr = ccfab.array();
-
-                        if (ccdomain_p.contains(ccarr)) {
-                            AMREX_HOST_DEVICE_PARALLEL_FOR_3D(ccbxg1, i, j, k,
-                            {
-                                ccarr(i,j,k) = 1;
-                            });
-                        } else {
-                            AMREX_HOST_DEVICE_FOR_3D(ccbxg1, i, j, k,
-                            {
-                                if (ccdomain_p.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
-                                    ccarr(i,j,k) = 1;
-                                } else {
-                                    ccarr(i,j,k) = 2;
-                                }
-                            });
-                        }
-
-                        for (const auto& iv : pshifts)
-                        {
-                            ccba.intersections(ccbxg1+iv, isects);
-                            for (const auto& is : isects)
-                            {
-                                Box b = is.second-iv;
-                                AMREX_HOST_DEVICE_PARALLEL_FOR_3D(b, i, j, k,
-                                {
-                                    ccarr(i,j,k) = 0;
-                                });
-                            }
-                        }
-
-                        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( ndbx, tbx,
-                        {
-                            mlndlap_set_dirichlet_mask(tbx, mskarr, ccarr, nddomain,
-                                                       lobc, hibc);
-                        });
-                    }
-                }
+                    mlndlap_set_dirichlet_mask(tbx, mskarr, ccarr, nddomain, lobc, hibc);
+                });
             }
         }
     }
