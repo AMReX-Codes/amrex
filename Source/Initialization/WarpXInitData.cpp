@@ -264,7 +264,30 @@ WarpXParser makeParser (std::string const& parse_function)
 
 
 
-
+/* \brief
+ *  This function initializes E, B, rho, and F, at all the levels 
+ *  of the multifab. rho and F are initialized with 0.
+ *  The E and B fields are initialized using user-defined inputs.
+ *  The initialization type is set using "B_ext_grid_init_style" 
+ *  and "E_ext_grid_init_style". The initialization style is set to "default"
+ *  if not explicitly defined by the user, and the E and B fields are 
+ *  initialized with E_external_grid and B_external_grid, respectively, each with 
+ *  a default value of 0. 
+ *  If the initialization type for the E and B field is "constant",
+ *  then, the E and B fields at all the levels are initialized with 
+ *  user-defined values for E_external_grid and B_external_grid. 
+ *  If the initialization type for B-field is set to 
+ *  "parse_B_ext_grid_function", then, the parser is used to read
+ *  Bx_external_grid_function(x,y,z), By_external_grid_function(x,y,z),
+ *  and Bz_external_grid_function(x,y,z).
+ *  Similarly, if the E-field initialization type is set to
+ *  "parse_E_ext_grid_function", then, the parser is used to read
+ *  Ex_external_grid_function(x,y,z), Ey_external_grid_function(x,y,z),
+ *  and Ex_external_grid_function(x,y,z). The parser for the E and B
+ *  initialization assumes that the function has three independent
+ *  variables, at max, namely, x, y, z. However, any number of constants
+ *  can be used in the function used to define the E and B fields on the grid. 
+ */ 
 
 void
 WarpX::InitLevelData (int lev, Real time)
@@ -285,14 +308,12 @@ WarpX::InitLevelData (int lev, Real time)
                    B_ext_grid_s.end(),
                    B_ext_grid_s.begin(),
                    ::tolower);
-    amrex::Print() << " B_init style " << B_ext_grid_s << "\n";
 
     pp.query("E_ext_grid_init_style", E_ext_grid_s);
     std::transform(E_ext_grid_s.begin(),
                    E_ext_grid_s.end(),
                    E_ext_grid_s.begin(),
                    ::tolower);
-    amrex::Print() << " E_init style " << E_ext_grid_s << "\n";
 
     // if the input string is "constant", the values for the 
     // external grid must be provided in the input. 
@@ -347,43 +368,6 @@ WarpX::InitLevelData (int lev, Real time)
 
        bool B_flag = 1;
        InitializeExternalFieldsOnGridUsingParser(Bx, By, Bz, lev, B_flag);
-
-       for ( MFIter mfi(*Bx, TilingIfNotGPU()); mfi.isValid(); ++mfi) 
-       {
-          const Box& tbx = mfi.tilebox(Bx_nodal_flag);
-          const Box& tby = mfi.tilebox(By_nodal_flag);
-          const Box& tbz = mfi.tilebox(Bz_nodal_flag);
-
-          auto const& Bxfab = Bx->array(mfi);
-          auto const& Byfab = By->array(mfi);
-          auto const& Bzfab = Bz->array(mfi);
-
-          const auto lo = lbound(tbx);
-          const auto hi = ubound(tbx); 
-          for (int k = lo.z; k <= hi.z; ++k) {
-          for (int j = lo.y; j <= hi.y; ++j) {
-          for (int i = lo.x; i <= hi.x; ++i) {
-              amrex::Print() << " Bx at " << i << " " << j << " " << k << " is " << Bxfab(i,j,k) << "\n";
-          }}}          
-       //   // By
-          auto const& lo_y = lbound(tby);
-          auto const& hi_y = ubound(tby);
-          for (int k = lo_y.z; k <= hi_y.z; ++k) {
-          for (int j = lo_y.y; j <= hi_y.y; ++j) {
-          for (int i = lo_y.x; i <= hi_y.x; ++i) {
-              amrex::Print() << " By at " << i << " " << j << " " << k << " is " << Byfab(i,j,k) << "\n";
-          }}}          
-          
-       //   // Bz
-          auto const& lo_z = lbound(tbz);
-          auto const& hi_z = ubound(tbz);
-          for (int k = lo_z.z; k <= hi_z.z; ++k) {
-          for (int j = lo_z.y; j <= hi_z.y; ++j) {
-          for (int i = lo_z.x; i <= hi_z.x; ++i) {
-              amrex::Print() << " Bz at " << i << " " << j << " " << k << " is " << Bzfab(i,j,k) << "\n";
-          }}}          
-          
-       }
     }
 
     if (E_ext_grid_s == "parse_e_ext_grid_function") {
@@ -422,39 +406,6 @@ WarpX::InitLevelData (int lev, Real time)
        bool B_flag = 0;
        InitializeExternalFieldsOnGridUsingParser(Ex, Ey, Ez, lev, B_flag);
 
-       for ( MFIter mfi(*Ex, TilingIfNotGPU()); mfi.isValid(); ++mfi) 
-       {
-          const Box& tbx = mfi.tilebox(Ex_nodal_flag);
-          const Box& tby = mfi.tilebox(Ey_nodal_flag);
-          const Box& tbz = mfi.tilebox(Ez_nodal_flag);
-
-          auto const& Exfab = Ex->array(mfi);
-          auto const& Eyfab = Ey->array(mfi);
-          auto const& Ezfab = Ez->array(mfi);
-
-          const auto lo = lbound(tbx);
-          const auto hi = ubound(tbx); 
-          for (int k = lo.z; k <= hi.z; ++k) {
-          for (int j = lo.y; j <= hi.y; ++j) {
-          for (int i = lo.x; i <= hi.x; ++i) {
-              amrex::Print() << " Ex at " << i << " " << j << " " << k << " is " << Exfab(i,j,k) << "\n";
-          }}}          
-          auto const& lo_y = lbound(tby);
-          auto const& hi_y = ubound(tby);
-          for (int k = lo_y.z; k <= hi_y.z; ++k) {
-          for (int j = lo_y.y; j <= hi_y.y; ++j) {
-          for (int i = lo_y.x; i <= hi_y.x; ++i) {
-              amrex::Print() << " Ey at " << i << " " << j << " " << k << " is " << Eyfab(i,j,k) << "\n";
-          }}}          
-          auto const& lo_z = lbound(tbz);
-          auto const& hi_z = ubound(tbz);
-          for (int k = lo_z.z; k <= hi_z.z; ++k) {
-          for (int j = lo_z.y; j <= hi_z.y; ++j) {
-          for (int i = lo_z.x; i <= hi_z.x; ++i) {
-              amrex::Print() << " Ez at " << i << " " << j << " " << k << " is " << Ezfab(i,j,k) << "\n";
-          }}}                    
-       }
-       
     }
 
     if (lev > 0) {
@@ -471,6 +422,8 @@ WarpX::InitLevelData (int lev, Real time)
                By_aux = Bfield_aux[lev][1].get();
                Bz_aux = Bfield_aux[lev][2].get();
 
+               // Setting b_flag to 1 since we are initializing 
+               // B_external on the grid.
                bool B_flag = 1;
                InitializeExternalFieldsOnGridUsingParser(Bx_aux, By_aux,
                                                          Bz_aux, lev, B_flag);
@@ -483,72 +436,6 @@ WarpX::InitLevelData (int lev, Real time)
                InitializeExternalFieldsOnGridUsingParser(Bx_cp, By_cp,
                                                          Bz_cp, lev, B_flag);
 
-               for ( MFIter mfi(*Bx_aux, TilingIfNotGPU()); mfi.isValid(); ++mfi) 
-               {
-                  const Box& tbx = mfi.tilebox(Bx_nodal_flag);
-                  const Box& tby = mfi.tilebox(By_nodal_flag);
-                  const Box& tbz = mfi.tilebox(Bz_nodal_flag);
-
-                  auto const& Bxfab = Bx_aux->array(mfi);
-                  auto const& Byfab = By_aux->array(mfi);
-                  auto const& Bzfab = Bz_aux->array(mfi);
-
-                  const auto lo = lbound(tbx);
-                  const auto hi = ubound(tbx); 
-                  for (int k = lo.z; k <= hi.z; ++k) {
-                  for (int j = lo.y; j <= hi.y; ++j) {
-                  for (int i = lo.x; i <= hi.x; ++i) {
-                      amrex::Print() << " Bx at aux " << i << " " << j << " " << k << " is " << Bxfab(i,j,k) << "\n";
-                  }}}          
-                  const auto lo_y = lbound(tby);
-                  const auto hi_y = ubound(tby); 
-                  for (int k = lo_y.z; k <= hi_y.z; ++k) {
-                  for (int j = lo_y.y; j <= hi_y.y; ++j) {
-                  for (int i = lo_y.x; i <= hi_y.x; ++i) {
-                      amrex::Print() << " By at aux " << i << " " << j << " " << k << " is " << Byfab(i,j,k) << "\n";
-                  }}}          
-                  const auto lo_z = lbound(tbz);
-                  const auto hi_z = ubound(tbz); 
-                  for (int k = lo_z.z; k <= hi_z.z; ++k) {
-                  for (int j = lo_z.y; j <= hi_z.y; ++j) {
-                  for (int i = lo_z.x; i <= hi_z.x; ++i) {
-                      amrex::Print() << " Bz at aux " << i << " " << j << " " << k << " is " << Bzfab(i,j,k) << "\n";
-                  }}}          
-               }
-
-               for ( MFIter mfi(*Bx_cp, TilingIfNotGPU()); mfi.isValid(); ++mfi) 
-               {
-                  const Box& tbx = mfi.tilebox(Bx_nodal_flag);
-                  const Box& tby = mfi.tilebox(By_nodal_flag);
-                  const Box& tbz = mfi.tilebox(Bz_nodal_flag);
-
-                  auto const& Bxfab = Bx_cp->array(mfi);
-                  auto const& Byfab = By_cp->array(mfi);
-                  auto const& Bzfab = Bz_cp->array(mfi);
-
-                  const auto lo = lbound(tbx);
-                  const auto hi = ubound(tbx); 
-                  for (int k = lo.z; k <= hi.z; ++k) {
-                  for (int j = lo.y; j <= hi.y; ++j) {
-                  for (int i = lo.x; i <= hi.x; ++i) {
-                      amrex::Print() << " Bx at cp " << i << " " << j << " " << k << " is " << Bxfab(i,j,k) << "\n";
-                  }}}          
-                  const auto lo_y = lbound(tby);
-                  const auto hi_y = ubound(tby); 
-                  for (int k = lo_y.z; k <= hi_y.z; ++k) {
-                  for (int j = lo_y.y; j <= hi_y.y; ++j) {
-                  for (int i = lo_y.x; i <= hi_y.x; ++i) {
-                      amrex::Print() << " By at cp " << i << " " << j << " " << k << " is " << Byfab(i,j,k) << "\n";
-                  }}}          
-                  const auto lo_z = lbound(tbz);
-                  const auto hi_z = ubound(tbz); 
-                  for (int k = lo_z.z; k <= hi_z.z; ++k) {
-                  for (int j = lo_z.y; j <= hi_z.y; ++j) {
-                  for (int i = lo_z.x; i <= hi_z.x; ++i) {
-                      amrex::Print() << " Bz at cp " << i << " " << j << " " << k << " is " << Bzfab(i,j,k) << "\n";
-                  }}}          
-               }
-
             }
             if (E_ext_grid_s == "constant" || E_ext_grid_s == " default") {
                Efield_aux[lev][i]->setVal(E_external_grid[i]);
@@ -559,7 +446,8 @@ WarpX::InitLevelData (int lev, Real time)
                Ex_aux = Efield_aux[lev][0].get(); 
                Ey_aux = Efield_aux[lev][1].get(); 
                Ez_aux = Efield_aux[lev][2].get(); 
-
+               // Setting b_flag to zero since we are initializing 
+               // E_external on the grid here.
                bool B_flag = 0;
                InitializeExternalFieldsOnGridUsingParser(Ex_aux, Ey_aux,
                                                          Ez_aux, lev, B_flag);
@@ -572,71 +460,6 @@ WarpX::InitLevelData (int lev, Real time)
                InitializeExternalFieldsOnGridUsingParser(Ex_cp, Ey_cp,
                                                          Ez_cp, lev, B_flag);
 
-               for (MFIter mfi(*Ex_aux, TilingIfNotGPU()); mfi.isValid(); ++mfi)
-               {
-                  const Box& tbx = mfi.tilebox(Ex_nodal_flag);
-                  const Box& tby = mfi.tilebox(Ey_nodal_flag);
-                  const Box& tbz = mfi.tilebox(Ez_nodal_flag);
-
-                  auto const& Exfab = Ex_aux->array(mfi);
-                  auto const& Eyfab = Ey_aux->array(mfi);
-                  auto const& Ezfab = Ez_aux->array(mfi);
-
-                  const auto lo = lbound(tbx);
-                  const auto hi = ubound(tbx);
-                  for (int k = lo.z; k <= hi.z; ++k) {
-                  for (int j = lo.y; j <= hi.y; ++j) {
-                  for (int i = lo.x; i <= hi.x; ++i) {
-                       amrex::Print() << " Ex at aux " << i << " " << j << " " << k << " is " << Exfab(i,j,k) << "\n";
-                  }}}
-                  const auto lo_y = lbound(tby);
-                  const auto hi_y = ubound(tby);
-                  for (int k = lo_y.z; k <= hi_y.z; ++k) {
-                  for (int j = lo_y.y; j <= hi_y.y; ++j) {
-                  for (int i = lo_y.x; i <= hi_y.x; ++i) {
-                       amrex::Print() << " Ey at aux " << i << " " << j << " " << k << " is " << Eyfab(i,j,k) << "\n";
-                  }}}
-                  const auto lo_z = lbound(tbz);
-                  const auto hi_z = ubound(tbz);
-                  for (int k = lo_z.z; k <= hi_z.z; ++k) {
-                  for (int j = lo_z.y; j <= hi_z.y; ++j) {
-                  for (int i = lo_z.x; i <= hi_z.x; ++i) {
-                       amrex::Print() << " Ez at aux " << i << " " << j << " " << k << " is " << Ezfab(i,j,k) << "\n";
-                  }}}
-               }
-
-               for (MFIter mfi(*Ex_cp, TilingIfNotGPU()); mfi.isValid(); ++mfi)
-               {
-                  const Box& tbx = mfi.tilebox(Ex_nodal_flag);
-                  const Box& tby = mfi.tilebox(Ey_nodal_flag);
-                  const Box& tbz = mfi.tilebox(Ez_nodal_flag);
-
-                  auto const& Exfab = Ex_cp->array(mfi);
-                  auto const& Eyfab = Ey_cp->array(mfi);
-                  auto const& Ezfab = Ez_cp->array(mfi);
-
-                  const auto lo = lbound(tbx);
-                  const auto hi = ubound(tbx);
-                  for (int k = lo.z; k <= hi.z; ++k) {
-                  for (int j = lo.y; j <= hi.y; ++j) {
-                  for (int i = lo.x; i <= hi.x; ++i) {
-                       amrex::Print() << " Ex at cp " << i << " " << j << " " << k << " is " << Exfab(i,j,k) << "\n";
-                  }}}
-                  const auto lo_y = lbound(tby);
-                  const auto hi_y = ubound(tby);
-                  for (int k = lo_y.z; k <= hi_y.z; ++k) {
-                  for (int j = lo_y.y; j <= hi_y.y; ++j) {
-                  for (int i = lo_y.x; i <= hi_y.x; ++i) {
-                       amrex::Print() << " Ey at cp " << i << " " << j << " " << k << " is " << Eyfab(i,j,k) << "\n";
-                  }}}
-                  const auto lo_z = lbound(tbz);
-                  const auto hi_z = ubound(tbz);
-                  for (int k = lo_z.z; k <= hi_z.z; ++k) {
-                  for (int j = lo_z.y; j <= hi_z.y; ++j) {
-                  for (int i = lo_z.x; i <= hi_z.x; ++i) {
-                       amrex::Print() << " Ez at cp " << i << " " << j << " " << k << " is " << Ezfab(i,j,k) << "\n";
-                  }}}
-               }
             }
         }
     }
@@ -697,35 +520,44 @@ WarpX::InitLevelDataFFT (int lev, Real time)
 
 #endif
 
+/* \brief
+ * This function initializes the E and B fields on each level
+ * using the parser and the user-defined function for the external fields.
+ * Depending on the bool value of the B_flag, the subroutine will parse 
+ * the Bx_/By_/Bz_external_grid_function (if B_flag==1)
+ * or parse the Ex_/Ey_/Ez_external_grid_function (if B_flag==0). 
+ * Then, the B or E multifab is initialized based on the (x,y,z) position
+ * on the staggered yee-grid or cell-centered grid.
+ */
 
 void 
 WarpX::InitializeExternalFieldsOnGridUsingParser (
        MultiFab *mfx, MultiFab *mfy, MultiFab *mfz, 
        const int lev, const bool B_flag)
 {
-    std::unique_ptr<ParserWrapper> Bx_parsewrap;
-    std::unique_ptr<ParserWrapper> By_parsewrap;
-    std::unique_ptr<ParserWrapper> Bz_parsewrap;
+    std::unique_ptr<ParserWrapper> xfield_parsewrap;
+    std::unique_ptr<ParserWrapper> yfield_parsewrap;
+    std::unique_ptr<ParserWrapper> zfield_parsewrap;
 
     if (B_flag == 1) {
-        Bx_parsewrap.reset(new ParserWrapper
-                           (makeParser(str_Bx_ext_grid_function)));
-        By_parsewrap.reset(new ParserWrapper
-                           (makeParser(str_By_ext_grid_function)));
-        Bz_parsewrap.reset(new ParserWrapper
-                           (makeParser(str_Bz_ext_grid_function)));
+        xfield_parsewrap.reset(new ParserWrapper
+                          (makeParser(str_Bx_ext_grid_function)));
+        yfield_parsewrap.reset(new ParserWrapper
+                          (makeParser(str_By_ext_grid_function)));
+        zfield_parsewrap.reset(new ParserWrapper
+                          (makeParser(str_Bz_ext_grid_function)));
     } else {
-        Bx_parsewrap.reset(new ParserWrapper
-                           (makeParser(str_Bx_ext_grid_function)));
-        By_parsewrap.reset(new ParserWrapper
-                           (makeParser(str_By_ext_grid_function)));
-        Bz_parsewrap.reset(new ParserWrapper
-                           (makeParser(str_Bz_ext_grid_function)));
+        xfield_parsewrap.reset(new ParserWrapper
+                          (makeParser(str_Ex_ext_grid_function)));
+        yfield_parsewrap.reset(new ParserWrapper
+                          (makeParser(str_Ey_ext_grid_function)));
+        zfield_parsewrap.reset(new ParserWrapper
+                           (makeParser(str_Ez_ext_grid_function)));
     }
    
-    ParserWrapper *xfield_wrap = Bx_parsewrap.get(); 
-    ParserWrapper *yfield_wrap = By_parsewrap.get(); 
-    ParserWrapper *zfield_wrap = Bz_parsewrap.get(); 
+    ParserWrapper *xfield_wrap = xfield_parsewrap.get(); 
+    ParserWrapper *yfield_wrap = yfield_parsewrap.get(); 
+    ParserWrapper *zfield_wrap = zfield_parsewrap.get(); 
 
     const auto dx_lev = geom[lev].CellSizeArray();
     const RealBox& real_box = geom[lev].ProbDomain();
@@ -753,6 +585,8 @@ WarpX::InitializeExternalFieldsOnGridUsingParser (
        auto const& mfy_IndexType = (*mfy).ixType();
        auto const& mfz_IndexType = (*mfz).ixType();
     
+       // Initialize IntVect based on the index type of multiFab
+       // 0 if cell-centered, 1 if node-centered.
        IntVect mfx_type(AMREX_D_DECL(0,0,0));
        IntVect mfy_type(AMREX_D_DECL(0,0,0));
        IntVect mfz_type(AMREX_D_DECL(0,0,0));
@@ -764,18 +598,22 @@ WarpX::InitializeExternalFieldsOnGridUsingParser (
        }
 
        amrex::ParallelFor (tbx, tby, tbz,
-           [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-               Real fac_x = (1.0 - mfx_type[0]) * dx_lev[0]*0.5;
-               Real fac_y = (1.0 - mfx_type[1]) * dx_lev[1]*0.5;
-               Real x = i*dx_lev[0] + real_box.lo(0) + fac_x;
-               Real y = j*dx_lev[1] + real_box.lo(1) + fac_y;
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                // Shift required in the x-, y-, or z- position 
+                // depending on the index type of the multifab                
+                Real fac_x = (1.0 - mfx_type[0]) * dx_lev[0]*0.5;
+                Real fac_y = (1.0 - mfx_type[1]) * dx_lev[1]*0.5;
+ 
+                Real x = i*dx_lev[0] + real_box.lo(0) + fac_x;
+                Real y = j*dx_lev[1] + real_box.lo(1) + fac_y;
 #if (AMREX_SPACEDIM==2)
-               Real z = 0.0;
-#elif (AMREX_SPACEDIM==3)
-               Real fac_z = (1.0 - mfx_type[2]) * dx_lev[2]*0.5;
-               Real z = k*dx_lev[2] + real_box.lo(2) + fac_z;
+                Real z = 0.0;
+#else
+                Real fac_z = (1.0 - mfx_type[2]) * dx_lev[2]*0.5;
+                Real z = k*dx_lev[2] + real_box.lo(2) + fac_z;
 #endif
-               mfxfab(i,j,k) = xfield_wrap->getField(x,y,z);
+                // Initialize the x-component of the field.
+                mfxfab(i,j,k) = xfield_wrap->getField(x,y,z);
             },
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
                 Real fac_x = (1.0 - mfy_type[0]) * dx_lev[0]*0.5;
@@ -788,6 +626,7 @@ WarpX::InitializeExternalFieldsOnGridUsingParser (
                 Real fac_z = (1.0 - mfy_type[2]) * dx_lev[2]*0.5;
                 Real z = k*dx_lev[2] + real_box.lo(2) + fac_z;
 #endif
+                // Initialize the y-component of the field.
                 mfyfab(i,j,k)  = yfield_wrap->getField(x,y,z);
             },
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
@@ -801,6 +640,7 @@ WarpX::InitializeExternalFieldsOnGridUsingParser (
                 Real fac_z = (1.0 - mfz_type[2]) * dx_lev[2]*0.5;
                 Real z = k*dx_lev[2] + real_box.lo(2) + fac_z;
 #endif
+                // Initialize the z-component of the field.
                 mfzfab(i,j,k) = zfield_wrap->getField(x,y,z);
             },
             amrex::Gpu::numThreadsPerBlockParallelFor() * sizeof(double) * 3
