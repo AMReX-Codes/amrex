@@ -167,6 +167,36 @@ MLNodeLinOp::applyInhomogNeumannTerm (int amrlev, MultiFab& rhs) const
     }
 }
 
+namespace {
+
+void MLNodeLinOp_set_dot_mask (MultiFab& dot_mask, iMultiFab const& omask, Geometry const& geom,
+                               GpuArray<LinOpBCType,AMREX_SPACEDIM> const& lobc,
+                               GpuArray<LinOpBCType,AMREX_SPACEDIM> const& hibc,
+                               MLNodeLinOp::CoarseningStrategy strategy)
+{
+    Box nddomain = amrex::surroundingNodes(geom.Domain());
+
+    if (strategy != MLNodeLinOp::CoarseningStrategy::Sigma) {
+        nddomain.grow(1000); // hack to avoid masks being modified at Neuman boundary
+    }
+
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(dot_mask,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        Array4<Real> const& dfab = dot_mask.array(mfi);
+        Array4<int const> const& sfab = omask.const_array(mfi);
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+        {
+            mlndlap_set_dot_mask(tbx, dfab, sfab, nddomain, lobc, hibc);
+        });
+    }
+}
+
+}
+
 void
 MLNodeLinOp::buildMasks ()
 {
@@ -269,58 +299,20 @@ MLNodeLinOp::buildMasks ()
     {
         int amrlev = 0;
         int mglev = m_num_mg_levels[amrlev]-1;
+        const Geometry& geom = m_geom[amrlev][mglev];
         const iMultiFab& omask = *m_owner_mask[amrlev][mglev];
         m_bottom_dot_mask.define(omask.boxArray(), omask.DistributionMap(), 1, 0);
-
-        const Geometry& geom = m_geom[amrlev][mglev];
-        Box nddomain = amrex::surroundingNodes(geom.Domain());
-
-        if (m_coarsening_strategy != CoarseningStrategy::Sigma) {
-            nddomain.grow(1000); // hack to avoid masks being modified at Neuman boundary
-        }
-
-#ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-        for (MFIter mfi(m_bottom_dot_mask,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-        {
-            const Box& bx = mfi.tilebox();
-            Array4<Real> const& dfab = m_bottom_dot_mask.array(mfi);
-            Array4<int const> const& sfab = omask.const_array(mfi);
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
-            {
-                mlndlap_set_dot_mask(tbx, dfab, sfab, nddomain, lobc, hibc);
-            });
-        }
+        MLNodeLinOp_set_dot_mask(m_bottom_dot_mask, omask, geom, lobc, hibc, m_coarsening_strategy);
     }
 
     if (m_is_bottom_singular)
     {
         int amrlev = 0;
         int mglev = 0;
+        const Geometry& geom = m_geom[amrlev][mglev];
         const iMultiFab& omask = *m_owner_mask[amrlev][mglev];
         m_coarse_dot_mask.define(omask.boxArray(), omask.DistributionMap(), 1, 0);
-
-        const Geometry& geom = m_geom[amrlev][mglev];
-        Box nddomain = amrex::surroundingNodes(geom.Domain());
-
-        if (m_coarsening_strategy != CoarseningStrategy::Sigma) {
-            nddomain.grow(1000); // hack to avoid masks being modified at Neuman boundary
-        }
-
-#ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-        for (MFIter mfi(m_coarse_dot_mask,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-        {
-            const Box& bx = mfi.tilebox();
-            Array4<Real> const& dfab = m_coarse_dot_mask.array(mfi);
-            Array4<int const> const& sfab = omask.const_array(mfi);
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
-            {
-                mlndlap_set_dot_mask(tbx, dfab, sfab, nddomain, lobc, hibc);
-            });
-        }
+        MLNodeLinOp_set_dot_mask(m_coarse_dot_mask, omask, geom, lobc, hibc, m_coarsening_strategy);
     }
 }
 
