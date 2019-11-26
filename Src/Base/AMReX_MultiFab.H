@@ -480,6 +480,25 @@ public:
 #endif
 
     /**
+    * \brief Swap from src to dst including nghost ghost cells.
+    * The two MultiFabs MUST have the same underlying BoxArray.
+    * The swap is local.
+    */
+    static void Swap (MultiFab&       dst,
+                      MultiFab&       src,
+                      int             srccomp,
+                      int             dstcomp,
+                      int             numcomp,
+                      int             nghost);
+
+    static void Swap (MultiFab&       dst,
+                      MultiFab&       src,
+                      int             srccomp,
+                      int             dstcomp,
+                      int             numcomp,
+                      const IntVect&  nghost);
+
+    /**
     * \brief Subtract src from dst including nghost ghost cells.
     * The two MultiFabs MUST have the same underlying BoxArray.
     */

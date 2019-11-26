@@ -389,7 +389,7 @@ StateData::replaceOldData (MultiFab&& mf)
 void
 StateData::replaceOldData (StateData& s)
 {
-    std::swap(old_data, s.old_data);
+    MultiFab::Swap(*old_data, *s.old_data, 0, 0, old_data->nComp(), old_data->nGrow());
 }
 
 void
@@ -403,7 +403,7 @@ StateData::replaceNewData (MultiFab&& mf)
 void
 StateData::replaceNewData (StateData& s)
 {
-    std::swap(new_data, s.new_data);
+    MultiFab::Swap(*new_data, *s.new_data, 0, 0, new_data->nComp(), new_data->nGrow());
 }
 
 void
