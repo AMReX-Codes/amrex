@@ -433,19 +433,48 @@ An example using :cpp:`AsyncArray` is given below,
 
     aa_s.copyToHost(&h_s, 1); // Copy the value back to host
 
-ManagedVector
--------------
+Gpu Vectors
+-----------
 
-AMReX also provides a dynamic memory allocation object for GPU managed memory:
-:cpp:`Gpu::ManagedVector`.  This class behaves identically to an
-:cpp:`amrex::Vector`, (see :ref:`sec:basics:vecandarr`), except the vector's
-allocator has been changed to allocate and deallocate its data in CUDA
-managed memory whenever ``USE_CUDA=TRUE``.
+AMReX also provides a number of dynamic vectors for use with GPU kernels.
+These are configured to use the different AMReX memory Arenas, as
+summarized below. By using the memory Arenas, we can avoid expensive
+allocations and deallocations when (for example) resizing vectors.
 
-While the data is managed and available on GPUs, the member functions of
-:cpp:`Gpu::ManagedVector` are not. To use the data on the GPU, it is
-necessary to pass the underlying data pointer to the GPU. The managed data
-pointer can be accessed using the :cpp:`data()` member function.
+.. raw:: latex
+
+    \begin{center}
+
+.. _tab:gpu:arena:
+
+.. table:: Memory Arenas
+
+    +----------------+----------------------+
+    | Vector         | Arena                |
+    +================+======================+
+    | DeviceVector   | The_Arena()          |
+    +----------------+----------------------+
+    | HostVector     | None                 |
+    +----------------+----------------------+
+    | ManagedVector  | The_Managed_Arena()  |
+    +----------------+----------------------+
+    | PinnedVector   | The_Pinned_Arena()   |
+    +----------------+----------------------+
+
+.. raw:: latex
+
+    \end{center}
+
+These classes behave identically to an
+:cpp:`amrex::Vector`, (see :ref:`sec:basics:vecandarr`), except that they
+can only hold "plain-old-data" objects (e.g. Reals, integers, amrex Particles,
+etc... ).
+
+Note that, even if the data in the vector is  managed and available on GPUs,
+the member functions of e.g. :cpp:`Gpu::ManagedVector` are not.
+To use the data on the GPU, it is necessary to pass the underlying data pointer
+in to the GPU kernels. The managed data pointer can be accessed using the :cpp:`data()`
+member function.
 
 Be aware: resizing of dynamically allocated memory on the GPU is unsupported.
 All resizing of the vector should be done on the CPU, in a manner that avoids
@@ -455,33 +484,6 @@ Also note: :cpp:`Gpu::ManagedVector` is not async-safe.  It cannot be safely
 constructed inside of an MFIter loop with GPU kernels and great care should
 be used when accessing :cpp:`Gpu::ManagedVector` data on GPUs to avoid race
 conditions.
-
-
-CUDA's Thrust Vectors
----------------------
-
-CUDA's Thrust library can also be used to manage dynamically sized data sets.
-However, if Thrust is used directly in AMReX code, it will be unable to compile
-for cases when ``USE_CUDA=FALSE``.  To alleviate this issue,
-:cpp:`thrust::host_vector` and :cpp:`thrust::device_vector` have been wrapped
-into the AMReX classes :cpp:`Gpu::HostVector` and :cpp:`Gpu::DeviceVector`.
-When ``USE_CUDA=FALSE``, these classes revert to AMReX's Vector class. When
-``USE_CUDA=TRUE``, these classes become the corresponding Thrust vector.
-
-Just like with Thrust vectors, :cpp:`HostVector` and :cpp:`DeviceVector` cannot
-be directly used on the device. For convenience, the :cpp:`dataPtr()` member
-function has been altered to implement :cpp:`thrust::raw_pointer_cast` and
-return the raw data pointer which can be used to access the vector's underlying
-data on the GPU.
-
-It has proven useful to have a version of Thrust's :cpp:`device_vector`
-that uses CUDA managed memory. This is provided by :cpp:`Gpu::ManagedDeviceVector`.
-
-:cpp:`Gpu::DeviceVector` and :cpp:`Gpu::ManagedDeviceVector` are configured to
-use the memory Arenas provided by AMReX (see :ref:`sec:gpu:memory`). This
-means that you can create temporary versions of these containers on-the-fly
-without needing to performance expensive device memory allocate and free
-operations.
 
 amrex::min and amrex::max
 -------------------------

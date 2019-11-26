@@ -150,18 +150,32 @@ namespace amrex {
             Real divnc(0.0);
             Real vtot(0.0);
             Real wted_frac(0.0);
-
+            int  ks(0);
+            int  ke(0);
+#if (AMREX_SPACEDIM==3)
+            ks = -1;
+            ke = 1;
+#endif
             for(int ii(-1); ii <= 1; ii++)
+            {
                 for(int jj(-1); jj <= 1; jj++)
-                    for(int kk(-1); kk <= 1; kk++)
+                {
+                    for(int kk(ks); kk <= ke; kk++)
+                    {
+#if (AMREX_SPACEDIM==3)
                         if( (ii != 0 or jj != 0 or kk != 0) and
+#else
+                        if( (ii != 0 or jj != 0) and
+#endif
                             (flags(i,j,k).isConnected({AMREX_D_DECL(ii,jj,kk)}) == 1))
                         {
                             wted_frac = vfrac(i+ii,j+jj,k+kk) * wt(i+ii,j+jj,k+kk) * mask(i+ii,j+jj,k+kk);
                             vtot   += wted_frac;
                             divnc  += wted_frac * divc(i+ii,j+jj,k+kk,n);
                         }
-
+                    }
+                }
+            }
             divnc /= vtot;
 
             // We need to multiply divc by mask to make sure optmp is zero for cells
@@ -184,11 +198,20 @@ namespace amrex {
         if(flags(i,j,k).isSingleValued())
         {
             Real wtot(0.0);
-
+            int  ks(0);
+            int  ke(0);
+#if (AMREX_SPACEDIM==3)
+            ks = -1;
+            ke = 1;
+#endif
             for(int ii(-1); ii <= 1; ii++)
                 for(int jj(-1); jj <= 1; jj++)
-                    for(int kk(-1); kk <= 1; kk++)
-                        if((ii != 0 or jj != 0 or kk != 0) and
+                    for(int kk(ks); kk <= ke; kk++)
+#if (AMREX_SPACEDIM==3)
+                        if( (ii != 0 or jj != 0 or kk != 0) and
+#else
+                        if( (ii != 0 or jj != 0) and
+#endif
                             (flags(i,j,k).isConnected({AMREX_D_DECL(ii,jj,kk)}) == 1))
                         {
                             wtot += wt(i+ii,j+jj,k+kk) * vfrac(i+ii,j+jj,k+kk) * mask(i+ii,j+jj,k+kk);
@@ -199,8 +222,12 @@ namespace amrex {
 
             for(int ii(-1); ii <= 1; ii++)
                 for(int jj(-1); jj <= 1; jj++)
-                    for(int kk(-1); kk <= 1; kk++)
-                        if((ii != 0 or jj != 0 or kk != 0) and
+                    for(int kk(ks); kk <= ke; kk++)
+#if (AMREX_SPACEDIM==3)
+                        if( (ii != 0 or jj != 0 or kk != 0) and
+#else
+                        if( (ii != 0 or jj != 0) and
+#endif
                             (flags(i,j,k).isConnected({AMREX_D_DECL(ii,jj,kk)}) == 1))
                         {
 #ifdef AMREX_USE_CUDA

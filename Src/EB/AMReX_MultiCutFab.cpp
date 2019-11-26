@@ -90,12 +90,17 @@ void
 MultiCutFab::setVal (Real val)
 {
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(m_data); mfi.isValid(); ++mfi)
     {
         if (ok(mfi)) {
-            m_data[mfi].setVal(val);
+            Array4<Real> const& a = m_data.array(mfi);
+            Box const& b = mfi.fabbox();
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D(b, m_data.nComp(), i, j, k, n,
+            {
+                a(i,j,k,n) = val;
+            });
         }
     }
 }
@@ -109,19 +114,28 @@ MultiCutFab::ParallelCopy (const MultiCutFab& src, int scomp, int dcomp, int nco
 MultiFab
 MultiCutFab::ToMultiFab (Real regular_value, Real covered_value) const
 {
-    MultiFab mf(boxArray(), DistributionMap(), nComp(), nGrow());
+    const int ncomp = nComp();
+    MultiFab mf(boxArray(), DistributionMap(), ncomp, nGrow());
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(mf); mfi.isValid(); ++mfi)
     {
         auto t = (*m_cellflags)[mfi].getType();
+        Box const& b = mfi.fabbox();
+        Array4<Real> const& d = mf.array(mfi);
         if (t == FabType::singlevalued) {
-            mf[mfi].copy(m_data[mfi]);
-        } else if (t == FabType::regular) {
-            mf[mfi].setVal(regular_value);
+            Array4<Real const> const& s = m_data.const_array(mfi);
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D(b, ncomp, i, j, k, n,
+            {
+                d(i,j,k,n) = s(i,j,k,n);
+            });
         } else {
-            mf[mfi].setVal(covered_value);
+            Real val = (t == FabType::regular) ? regular_value : covered_value;
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D(b, ncomp, i, j, k, n,
+            {
+                d(i,j,k,n) = val;
+            });
         }
     }
     return mf;

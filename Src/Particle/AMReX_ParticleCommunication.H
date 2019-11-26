@@ -6,6 +6,7 @@
 #include <AMReX_IntVect.H>
 #include <AMReX_ParticleBufferMap.H>
 #include <AMReX_MFIter.H>
+#include <AMReX_TypeTraits.H>
 
 #include <map>
 
@@ -14,7 +15,7 @@ namespace amrex {
 struct NeighborUnpackPolicy
 {
     template <class PTile> 
-    void resizeTiles(std::vector<PTile*>& tiles, const std::vector<int>& sizes, std::vector<int>& offsets) const
+    void resizeTiles (std::vector<PTile*>& tiles, const std::vector<int>& sizes, std::vector<int>& offsets) const
     {
         for(int i = 0; i < static_cast<int>(sizes.size()); ++i)
         {
@@ -29,7 +30,7 @@ struct NeighborUnpackPolicy
 struct RedistributeUnpackPolicy
 {
     template <class PTile> 
-    void resizeTiles(std::vector<PTile*>& tiles, const std::vector<int>& sizes, std::vector<int>& offsets) const
+    void resizeTiles (std::vector<PTile*>& tiles, const std::vector<int>& sizes, std::vector<int>& offsets) const
     {        
         int N = static_cast<int>(sizes.size());
 
@@ -50,14 +51,14 @@ struct RedistributeUnpackPolicy
 
 struct ParticleCopyOp 
 {
-    Vector<std::map<int, Gpu::ManagedDeviceVector<int> > > m_boxes;
-    Vector<std::map<int, Gpu::ManagedDeviceVector<int> > > m_levels;
-    Vector<std::map<int, Gpu::ManagedDeviceVector<int> > > m_src_indices;
-    Vector<std::map<int, Gpu::ManagedDeviceVector<IntVect> > > m_periodic_shift;
+    Vector<std::map<int, Gpu::ManagedVector<int> > > m_boxes;
+    Vector<std::map<int, Gpu::ManagedVector<int> > > m_levels;
+    Vector<std::map<int, Gpu::ManagedVector<int> > > m_src_indices;
+    Vector<std::map<int, Gpu::ManagedVector<IntVect> > > m_periodic_shift;
 
     void clear ();
 
-    void setNumLevels(const int num_levels);
+    void setNumLevels (const int num_levels);
 
     void resize (const int gid, const int lev, const int size);
 
@@ -70,15 +71,15 @@ struct ParticleCopyOp
 
 struct ParticleCopyPlan 
 {
-    Vector<std::map<int, Gpu::ManagedDeviceVector<int> > > m_dst_indices;
+    Vector<std::map<int, Gpu::ManagedVector<int> > > m_dst_indices;
     
-    Gpu::ManagedDeviceVector<unsigned int> m_box_counts;
-    Gpu::ManagedDeviceVector<unsigned int> m_box_offsets;
+    Gpu::ManagedVector<unsigned int> m_box_counts;
+    Gpu::ManagedVector<unsigned int> m_box_offsets;
 
-    Gpu::ManagedDeviceVector<int> m_rcv_box_counts;
-    Gpu::ManagedDeviceVector<int> m_rcv_box_offsets;
-    Gpu::ManagedDeviceVector<int> m_rcv_box_ids;
-    Gpu::ManagedDeviceVector<int> m_rcv_box_levs;
+    Gpu::ManagedVector<int> m_rcv_box_counts;
+    Gpu::ManagedVector<int> m_rcv_box_offsets;
+    Gpu::ManagedVector<int> m_rcv_box_ids;
+    Gpu::ManagedVector<int> m_rcv_box_levs;
 
     long m_NumSnds;
     int m_nrcvs;
@@ -99,7 +100,7 @@ struct ParticleCopyPlan
     Vector<std::size_t> m_rOffset;
     Gpu::HostVector<int> m_rcv_data;
 
-    template <class PC>
+    template <class PC, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
     void build (const PC& pc, const ParticleCopyOp& op, bool local)
     {
         BL_PROFILE("ParticleCopyPlan::build");
@@ -171,7 +172,7 @@ struct ParticleCopyPlan
         buildMPIStart(pc.BufferMap());
     }
 
-    void clear();
+    void clear ();
 
     void buildMPIFinish (const ParticleBufferMap& map);
 
@@ -199,10 +200,15 @@ private:
     //
     void doHandShakeGlobal (const Vector<long>& Snds, Vector<long>& Rcvs) const;
 
+    //
+    // Another version of the above that is implemented using MPI All-to-All
+    //    
+    void doHandShakeAllToAll (const Vector<long>& Snds, Vector<long>& Rcvs) const;
+
     bool m_local;
 };
 
-template <class PC, class Buffer>
+template <class PC, class Buffer, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
 void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan& plan, Buffer& snd_buffer)
 {
     BL_PROFILE("amrex::packBuffer");
@@ -276,7 +282,8 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
     }
 }
 
-template <class PC, class Buffer, class UnpackPolicy>
+template <class PC, class Buffer, class UnpackPolicy,
+          EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
 void unpackBuffer (PC& pc, const ParticleCopyPlan& plan, const Buffer& snd_buffer, const UnpackPolicy policy)
 {
     BL_PROFILE("amrex::unpackBuffer");
@@ -348,7 +355,8 @@ void unpackBuffer (PC& pc, const ParticleCopyPlan& plan, const Buffer& snd_buffe
     }
 }
 
-template <class PC, class Buffer>
+template <class PC, class Buffer,
+          EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
 void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buffer& snd_buffer, Buffer& rcv_buffer)
 {
     BL_PROFILE("amrex::communicateParticlesStart");
@@ -391,9 +399,9 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buff
         const auto offset = rOffset[i]*psize;
         const auto Cnt    = plan.m_rcv_num_particles[Who]*psize;
 
-        BL_ASSERT(Cnt > 0);
-        BL_ASSERT(Cnt < std::numeric_limits<int>::max());
-        BL_ASSERT(Who >= 0 && Who < NProcs);
+        AMREX_ASSERT(Cnt > 0);
+        AMREX_ASSERT(Cnt < std::numeric_limits<int>::max());
+        AMREX_ASSERT(Who >= 0 && Who < NProcs);
         
         plan.m_particle_rreqs[i] = 
             ParallelDescriptor::Arecv((char*) (rcv_buffer.dataPtr() + offset), Cnt, Who, SeqNum).req();
@@ -407,8 +415,8 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buff
         const auto Cnt = plan.m_snd_num_particles[i]*psize;
         if (Cnt == 0) continue;
 
-        BL_ASSERT(Who >= 0 && Who < NProcs);
-        BL_ASSERT(Cnt < std::numeric_limits<int>::max());
+        AMREX_ASSERT(Who >= 0 && Who < NProcs);
+        AMREX_ASSERT(Cnt < std::numeric_limits<int>::max());
         
         int bucket = pc.BufferMap().firstBucketOnProc(i);
         const auto snd_offset = plan.m_box_offsets[bucket]*psize;
@@ -420,7 +428,8 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buff
 
 void communicateParticlesFinish (const ParticleCopyPlan& plan);
 
-template <class PC, class Buffer, class UnpackPolicy>
+template <class PC, class Buffer, class UnpackPolicy,
+          EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
 void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, const UnpackPolicy& policy)
 {
     BL_PROFILE("amrex::unpackRemotes");

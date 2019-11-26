@@ -24,7 +24,7 @@ int main_main()
     bool any_nans = false;
     ErrZone err_zone;
     bool all_variables_found = true;
-
+    
     // defaults
     int norm = 0;
     std::string plotfile_a;
@@ -35,6 +35,7 @@ int main_main()
     Real rtol = 0.0;
     std::string zone_info_var_name;
     Vector<std::string> plot_names(1);
+    bool abort_if_not_all_found = false;
 
     int farg = 1;
     while (farg <= narg) {
@@ -55,6 +56,8 @@ int main_main()
             allow_diff_grids = true;
         } else if (fname == "-r" or fname == "--rel_tol") {
             rtol = std::stod(amrex::get_command_argument(++farg));
+        } else if (fname == "--abort_if_not_all_found") {
+            abort_if_not_all_found = true;            
         } else {
             break;
         }
@@ -340,6 +343,7 @@ int main_main()
 
     if (! all_variables_found) {
         amrex::Print() << " WARNING: not all variables present in both files\n";
+        if (abort_if_not_all_found) return EXIT_FAILURE;
     }
 
     if (global_error == 0.0 and !any_nans) {

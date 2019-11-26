@@ -10,14 +10,6 @@
 #include <AMReX_TypeTraits.H>
 #endif
 
-#ifdef AMREX_USE_CUDA
-#include <thrust/device_vector.h>
-#include <thrust/binary_search.h>
-#include <thrust/iterator/zip_iterator.h>
-#include <thrust/device_ptr.h>
-#include <thrust/tuple.h>
-#endif
-
 namespace amrex {
 /**
 * \brief This class is a thin wrapper around std::vector.  Unlike vector,
@@ -33,16 +25,17 @@ class Vector
 public:
 
     using std::vector<T, Allocator>::vector;
+    using typename std::vector<T, Allocator>::size_type;
 
-    T& operator[] (std::size_t i) noexcept
+    T& operator[] (size_type i) noexcept
     {
-      BL_ASSERT( i < (this->std::vector<T, Allocator>::size()) );
+        BL_ASSERT( i < (this->std::vector<T, Allocator>::size()) );
 	return this->std::vector<T, Allocator>::operator[](i);
     }
 
-    const T& operator[] (std::size_t i) const noexcept
+    const T& operator[] (size_type i) const noexcept
     {
-      BL_ASSERT( i < (this->std::vector<T, Allocator>::size()) );
+        BL_ASSERT( i < (this->std::vector<T, Allocator>::size()) );
 	return this->std::vector<T, Allocator>::operator[](i);
     }
 
@@ -51,7 +44,7 @@ public:
     //! get access to the underlying data pointer
     const T* dataPtr () const noexcept { return this->data(); }
 
-    long size() const {return static_cast<long>(std::vector<T, Allocator>::size());}
+    long size () const noexcept {return static_cast<long>(std::vector<T, Allocator>::size());}
 
 };
     

@@ -202,7 +202,7 @@ amrex::Random_int (unsigned long n)
 #endif
 
 void
-amrex::SaveRandomState(std::ostream& os)
+amrex::SaveRandomState (std::ostream& os)
 {
     for (int i = 0; i < nthreads; i++) {
         os << generators[i] << "\n";
@@ -210,7 +210,7 @@ amrex::SaveRandomState(std::ostream& os)
 }
 
 void
-amrex::RestoreRandomState(std::istream& is, int nthreads_old, int nstep_old)
+amrex::RestoreRandomState (std::istream& is, int nthreads_old, int nstep_old)
 {
     int N = std::min(nthreads, nthreads_old);
     for (int i = 0; i < N; i++)
@@ -253,7 +253,7 @@ amrex::UniqueRandomSubset (Vector<int> &uSet, int setSize, int poolSize,
   }
 }
 
-void amrex::ResetRandomSeed(unsigned long seed)
+void amrex::ResetRandomSeed (unsigned long seed)
 {
     InitRandom(seed);
 }
@@ -316,7 +316,7 @@ amrex::ResizeRandomSeed (int N)
 }
 
 void
-amrex::DeallocateRandomSeedDevArray()
+amrex::DeallocateRandomSeedDevArray ()
 {
 #ifdef AMREX_USE_CUDA  
     if (states_h_ptr != nullptr)
