@@ -1,6 +1,7 @@
 
 #include <AMReX_MLNodeLinOp.H>
 #include <AMReX_MLNodeLap_K.H>
+#include <AMReX_MultiFabUtil.H>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -48,10 +49,11 @@ MLNodeLinOp::define (const Vector<Geometry>& a_geom,
     {
         if (amrlev < m_num_amr_levels-1)
         {
-            m_cc_fine_mask[amrlev].reset(new iMultiFab(m_grids[amrlev][0], m_dmap[amrlev][0], 1, 1));
             m_nd_fine_mask[amrlev].reset(new iMultiFab(amrex::convert(m_grids[amrlev][0],IntVect::TheNodeVector()),
                                                        m_dmap[amrlev][0], 1, 0));
         }
+        m_cc_fine_mask[amrlev].reset(new iMultiFab(m_grids[amrlev][0], m_dmap[amrlev][0], 1, 1,
+                                                   MFInfo().SetAlloc(false)));
         m_has_fine_bndry[amrlev].reset(new LayoutData<int>(m_grids[amrlev][0], m_dmap[amrlev][0]));
     }
 }
@@ -271,44 +273,22 @@ MLNodeLinOp::buildMasks ()
         iMultiFab& cc_mask = *m_cc_fine_mask[amrlev];
         iMultiFab& nd_mask = *m_nd_fine_mask[amrlev];
         LayoutData<int>& has_cf = *m_has_fine_bndry[amrlev];
-        const BoxArray& fba = m_grids[amrlev+1][0];
-        const BoxArray& cfba = amrex::coarsen(fba, AMRRefRatio(amrlev));
-
         const Box& ccdom = m_geom[amrlev][0].Domain();
 
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(AMRRefRatio(amrlev) == 2, "ref_ratio != 0 not supported");
 
-        cc_mask.setVal(0);  // coarse by default
-
-        const std::vector<IntVect>& pshifts = m_geom[amrlev][0].periodicity().shiftIntVect();
+        cc_mask = amrex::makeFineMask(cc_mask, *m_cc_fine_mask[amrlev+1], cc_mask.nGrowVect(),
+                                      IntVect(AMRRefRatio(amrlev)), m_geom[amrlev][0].periodicity(),
+                                      0, 1, has_cf); // coarse: 0, fine: 1
 
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
+        for (MFIter mfi(cc_mask); mfi.isValid(); ++mfi)
         {
-            std::vector< std::pair<int,Box> > isects;
-
-            for (MFIter mfi(cc_mask); mfi.isValid(); ++mfi)
-            {
-                has_cf[mfi] = 0;
-                const Box& bx = mfi.fabbox();
-                Array4<int> const& fab = cc_mask.array(mfi);
-                for (const auto& iv : pshifts)
-                {
-                    cfba.intersections(bx+iv, isects);
-                    for (const auto& is : isects)
-                    {
-                        Box const& b = is.second-iv;
-                        AMREX_HOST_DEVICE_PARALLEL_FOR_3D(b,i,j,k,
-                        {
-                            fab(i,j,k) = 1;
-                        });
-                    }
-                    if (!isects.empty()) has_cf[mfi] = 1;
-                }
-
-                mlndlap_fillbc_cc<int>(mfi.validbox(),fab,ccdom,lobc,hibc);
-            }
+            const Box& bx = mfi.validbox();
+            Array4<int> const& fab = cc_mask.array(mfi);
+            mlndlap_fillbc_cc<int>(bx,fab,ccdom,lobc,hibc);
         }
 
 #ifdef _OPENMP
