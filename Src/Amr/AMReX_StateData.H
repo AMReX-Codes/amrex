@@ -138,13 +138,11 @@ public:
 
     /**
     * \brief Swaps old data with another StateData.
-    * Does not delete the previous old data. Can
-    * optionally be done with an explicit swap
-    * instead of a pointer swap.
+    * Does not delete the previous old data.
     *
     * \param s
     */
-    void replaceOldData ( StateData& s, bool pointer_swap = true );
+    void replaceOldData ( StateData& s );
 
     /**
     * \brief Swaps new data with a new MultiFab.
@@ -156,13 +154,11 @@ public:
 
     /**
     * \brief Swaps new data with another StateData.
-    * Does not delete the previous new data. Can
-    * optionally be done with an explicit swap
-    * instead of a pointer swap.
+    * Does not delete the previous new data.
     *
     * \param s
     */
-    void replaceNewData ( StateData& s, bool pointer_swap = true );
+    void replaceNewData ( StateData& s );
 
 
     /**
