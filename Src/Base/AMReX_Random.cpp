@@ -64,7 +64,7 @@ amrex::InitRandom (unsigned long seed, int nprocs)
 
 #ifdef __CUDA_ARCH__
 AMREX_GPU_DEVICE
-int amrex::get_state(int tid)
+int amrex::get_state (int tid)
 {
   // block size must evenly divide # of RNG states so we cut off the excess states
   int bsize = blockDim.x * blockDim.y * blockDim.z;
@@ -82,7 +82,7 @@ int amrex::get_state(int tid)
 }
 
 AMREX_GPU_DEVICE
-void amrex::free_state(int tid)
+void amrex::free_state (int tid)
 {
   int bsize = blockDim.x * blockDim.y * blockDim.z;
   int nstates = cuda_nstates - (cuda_nstates % bsize);
