@@ -51,9 +51,11 @@ MLNodeLinOp::define (const Vector<Geometry>& a_geom,
         {
             m_nd_fine_mask[amrlev].reset(new iMultiFab(amrex::convert(m_grids[amrlev][0],IntVect::TheNodeVector()),
                                                        m_dmap[amrlev][0], 1, 0));
+            m_cc_fine_mask[amrlev].reset(new iMultiFab(m_grids[amrlev][0], m_dmap[amrlev][0], 1, 1));
+        } else {
+            m_cc_fine_mask[amrlev].reset(new iMultiFab(m_grids[amrlev][0], m_dmap[amrlev][0], 1, 1,
+                                                       MFInfo().SetAlloc(false)));
         }
-        m_cc_fine_mask[amrlev].reset(new iMultiFab(m_grids[amrlev][0], m_dmap[amrlev][0], 1, 1,
-                                                   MFInfo().SetAlloc(false)));
         m_has_fine_bndry[amrlev].reset(new LayoutData<int>(m_grids[amrlev][0], m_dmap[amrlev][0]));
     }
 }
