@@ -38,7 +38,7 @@ namespace amrex {
                                      ParallelDescriptor::Mpi_typemap<long>::type(),
                                      ParallelDescriptor::Communicator()) );
 
-        BL_ASSERT(Rcvs[ParallelDescriptor::MyProc()] == 0);
+        AMREX_ASSERT(Rcvs[ParallelDescriptor::MyProc()] == 0);
         
         BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(long),
                         ParallelDescriptor::MyProc(), BLProfiler::AfterCall());
@@ -68,7 +68,7 @@ namespace amrex {
             const int Who = neighbor_procs[i];
             const long Cnt = 1;
             
-            BL_ASSERT(Who >= 0 && Who < ParallelDescriptor::NProcs());
+            AMREX_ASSERT(Who >= 0 && Who < ParallelDescriptor::NProcs());
             
             rreqs[i] = ParallelDescriptor::Arecv(&Rcvs[Who], Cnt, Who, SeqNum).req();
         }
@@ -78,7 +78,7 @@ namespace amrex {
             const int Who = neighbor_procs[i];
             const long Cnt = 1;
             
-            BL_ASSERT(Who >= 0 && Who < ParallelDescriptor::NProcs());
+            AMREX_ASSERT(Who >= 0 && Who < ParallelDescriptor::NProcs());
             
             ParallelDescriptor::Send(&Snds[Who], Cnt, Who, SeqNum);        
         }

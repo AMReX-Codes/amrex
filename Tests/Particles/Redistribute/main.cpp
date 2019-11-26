@@ -322,8 +322,8 @@ void get_test_params(TestParams& params, const std::string& prefix)
     pp.get("nsteps", params.nsteps);
     pp.get("nlevs", params.nlevs);
     pp.get("do_regrid", params.do_regrid);
-    pp.get("num_runtime_real", num_runtime_real);
-    pp.get("num_runtime_int", num_runtime_int);
+    pp.query("num_runtime_real", num_runtime_real);
+    pp.query("num_runtime_int", num_runtime_int);
 
     params.sort = 0;
     pp.query("sort", params.sort);
