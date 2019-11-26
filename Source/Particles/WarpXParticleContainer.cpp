@@ -513,7 +513,7 @@ WarpXParticleContainer::DepositCharge (Vector<std::unique_ptr<MultiFab> >& rho,
                                         bool do_rz_volume_scaling)
 {
     // Loop over the refinement levels
-    const int finest_level = rho.size() - 1;
+    int const finest_level = rho.size() - 1;
     for (int lev = 0; lev <= finest_level; ++lev) {
 
         // Reset the `rho` array if `reset` is True
@@ -566,7 +566,7 @@ WarpXParticleContainer::DepositCharge (Vector<std::unique_ptr<MultiFab> >& rho,
         MultiFab coarsened_fine_data(coarsened_fine_BA, fine_dm, rho[lev+1]->nComp(), 0);
         coarsened_fine_data.setVal(0.0);
 
-        const int refinement_ratio = 2;
+        int const refinement_ratio = 2;
 
         interpolateDensityFineToCoarse( *rho[lev+1], coarsened_fine_data, refinement_ratio );
         rho[lev]->ParallelAdd( coarsened_fine_data, m_gdb->Geom(lev).periodicity() );
@@ -632,7 +632,6 @@ Real WarpXParticleContainer::sumParticleCharge(bool local) {
     amrex::Real total_charge = 0.0;
 
     const int nLevels = finestLevel();
-
     for (int lev = 0; lev < nLevels; ++lev)
     {
 
@@ -664,7 +663,6 @@ std::array<Real, 3> WarpXParticleContainer::meanParticleVelocity(bool local) {
     amrex::Real inv_clight_sq = 1.0/PhysConst::c/PhysConst::c;
 
     const int nLevels = finestLevel();
-
     for (int lev = 0; lev <= nLevels; ++lev) {
 
 #ifdef _OPENMP
@@ -710,7 +708,6 @@ Real WarpXParticleContainer::maxParticleVelocity(bool local) {
     amrex::ParticleReal max_v = 0.0;
 
     const int nLevels = finestLevel();
-
     for (int lev = 0; lev <= nLevels; ++lev)
     {
 
@@ -767,7 +764,6 @@ void
 WarpXParticleContainer::PushX (Real dt)
 {
     const int nLevels = finestLevel();
-
     for (int lev = 0; lev <= nLevels; ++lev) {
         PushX(lev, dt);
     }

@@ -12,7 +12,6 @@ WarpX::LoadBalance ()
     AMREX_ALWAYS_ASSERT(costs[0] != nullptr);
 
     const int nLevels = finestLevel();
-
     for (int lev = 0; lev <= nLevels; ++lev)
     {
         const Real nboxes = costs[lev]->size();

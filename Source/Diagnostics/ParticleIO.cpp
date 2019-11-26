@@ -172,8 +172,7 @@ PhysicalParticleContainer::ConvertUnits(ConvertDirection convert_direction)
     }
 
     const int nLevels = finestLevel();
-
-    for (int lev=0; lev<=nLevels; ++lev){
+    for (int lev=0; lev<=nLevels; lev++){
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
