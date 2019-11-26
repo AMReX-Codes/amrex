@@ -116,12 +116,12 @@ amrex::RandomNormal (amrex::Real mean, amrex::Real stddev)
               + (threadIdx.y * blockDim.x) + threadIdx.x ;
 
     int i = get_state(tid);
-    __threadfence();
 #ifdef BL_USE_FLOAT
     rand = stddev * curand_normal(&states_d_ptr[i]) + mean;
 #else
     rand = stddev * curand_normal_double(&states_d_ptr[i]) + mean;
 #endif
+    __threadfence();
     free_state(tid);
 #else
 
@@ -149,14 +149,13 @@ amrex::Random ()
               + (threadIdx.z * (blockDim.x * blockDim.y))
               + (threadIdx.y * blockDim.x) + threadIdx.x ;
     int i = get_state(tid);
-    __threadfence();
 #ifdef BL_USE_FLOAT
     rand = curand_uniform(&states_d_ptr[i]);
 #else
     rand = curand_uniform_double(&states_d_ptr[i]);
 #endif
+        __threadfence();
     free_state(tid);
-
 #else
 
 #ifdef _OPENMP
@@ -187,10 +186,10 @@ amrex::Random_int (unsigned int N)
 
     unsigned int rand;
     int i = get_state(tid);
-    __threadfence();
     do {
         rand = curand(&states_d_ptr[i]);
     } while (rand > (RAND_M - RAND_M % N));
+    __threadfence();
     free_state(tid);
 
     return rand % N;
