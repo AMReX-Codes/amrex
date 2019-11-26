@@ -2087,7 +2087,7 @@ FabArray<FAB>::RecvLayoutMask (const CommMetaData& thecmd)
 {
     LayoutData<int> r(this->boxArray(), this->DistributionMap());
 #ifdef _OPENMP
-#pragma omp parallel for if (thecmd.m_threadsafe_rcv)
+#pragma omp parallel if (thecmd.m_threadsafe_rcv)
 #endif
     for (MFIter mfi(r); mfi.isValid(); ++mfi) {
         r[mfi] = 0;
