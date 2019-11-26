@@ -585,21 +585,21 @@ WarpX::InitLevelData (int lev, Real time)
                   const auto lo = lbound(tbx);
                   const auto hi = ubound(tbx);
                   for (int k = lo.z; k <= hi.z; ++k) {
-                  for (int j = lo.y; k <= hi.y; ++j) {
+                  for (int j = lo.y; j <= hi.y; ++j) {
                   for (int i = lo.x; i <= hi.x; ++i) {
                        amrex::Print() << " Ex at aux " << i << " " << j << " " << k << " is " << Exfab(i,j,k) << "\n";
                   }}}
                   const auto lo_y = lbound(tby);
                   const auto hi_y = ubound(tby);
                   for (int k = lo_y.z; k <= hi_y.z; ++k) {
-                  for (int j = lo_y.y; k <= hi_y.y; ++j) {
+                  for (int j = lo_y.y; j <= hi_y.y; ++j) {
                   for (int i = lo_y.x; i <= hi_y.x; ++i) {
                        amrex::Print() << " Ey at aux " << i << " " << j << " " << k << " is " << Eyfab(i,j,k) << "\n";
                   }}}
                   const auto lo_z = lbound(tbz);
                   const auto hi_z = ubound(tbz);
                   for (int k = lo_z.z; k <= hi_z.z; ++k) {
-                  for (int j = lo_z.y; k <= hi_z.y; ++j) {
+                  for (int j = lo_z.y; j <= hi_z.y; ++j) {
                   for (int i = lo_z.x; i <= hi_z.x; ++i) {
                        amrex::Print() << " Ez at aux " << i << " " << j << " " << k << " is " << Ezfab(i,j,k) << "\n";
                   }}}
@@ -618,21 +618,21 @@ WarpX::InitLevelData (int lev, Real time)
                   const auto lo = lbound(tbx);
                   const auto hi = ubound(tbx);
                   for (int k = lo.z; k <= hi.z; ++k) {
-                  for (int j = lo.y; k <= hi.y; ++j) {
+                  for (int j = lo.y; j <= hi.y; ++j) {
                   for (int i = lo.x; i <= hi.x; ++i) {
                        amrex::Print() << " Ex at cp " << i << " " << j << " " << k << " is " << Exfab(i,j,k) << "\n";
                   }}}
                   const auto lo_y = lbound(tby);
                   const auto hi_y = ubound(tby);
                   for (int k = lo_y.z; k <= hi_y.z; ++k) {
-                  for (int j = lo_y.y; k <= hi_y.y; ++j) {
+                  for (int j = lo_y.y; j <= hi_y.y; ++j) {
                   for (int i = lo_y.x; i <= hi_y.x; ++i) {
                        amrex::Print() << " Ey at cp " << i << " " << j << " " << k << " is " << Eyfab(i,j,k) << "\n";
                   }}}
                   const auto lo_z = lbound(tbz);
                   const auto hi_z = ubound(tbz);
                   for (int k = lo_z.z; k <= hi_z.z; ++k) {
-                  for (int j = lo_z.y; k <= hi_z.y; ++j) {
+                  for (int j = lo_z.y; j <= hi_z.y; ++j) {
                   for (int i = lo_z.x; i <= hi_z.x; ++i) {
                        amrex::Print() << " Ez at cp " << i << " " << j << " " << k << " is " << Ezfab(i,j,k) << "\n";
                   }}}
