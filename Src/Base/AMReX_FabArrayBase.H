@@ -417,9 +417,9 @@ public:
         ~RegionTag () { popRegionTag(); }
     };
 
-#ifndef AMREX_USE_GPU
-protected:
-#endif
+//#ifndef AMREX_USE_GPU
+//protected:
+//#endif
 
     void clear ();
 
@@ -460,9 +460,20 @@ protected:
 			 bool no_assertion=false) const;
     static void flushTileArrayCache (); //!< This flushes the entire cache.
 
+    struct CommMetaData
+    {
+        // The cache of local and send/recv per FillBoundary() or ParallelCopy().
+	bool m_threadsafe_loc = false;
+	bool m_threadsafe_rcv = false;
+        std::unique_ptr<CopyComTagsContainer>      m_LocTags;
+        std::unique_ptr<MapOfCopyComTagContainers> m_SndTags;
+        std::unique_ptr<MapOfCopyComTagContainers> m_RcvTags;
+    };
+
     //
     //! FillBoundary
     struct FB
+        : CommMetaData
     {
         FB (const FabArrayBase& fa, const IntVect& nghost,
             bool cross, const Periodicity& period,
@@ -475,14 +486,6 @@ protected:
         bool         m_cross;
 	bool         m_epo;
 	Periodicity  m_period;
-        //
-        // The cache of local and send/recv per FillBoundary().
-        //
-	bool                m_threadsafe_loc;
-	bool                m_threadsafe_rcv;
-        CopyComTagsContainer*      m_LocTags;
-        MapOfCopyComTagContainers* m_SndTags;
-        MapOfCopyComTagContainers* m_RcvTags;
 	//
 	int                 m_nuse;
 	//
@@ -513,6 +516,7 @@ protected:
     //
     //! parallel copy or add
     struct CPC
+        : CommMetaData
     {
 	CPC (const FabArrayBase& dstfa, const IntVect& dstng,
 	     const FabArrayBase& srcfa, const IntVect& srcng,
@@ -535,14 +539,6 @@ protected:
 	Periodicity m_period;
 	BoxArray    m_srcba;
 	BoxArray    m_dstba;
-        //
-        // The cache of local and send/recv info per FabArray::copy().
-        //
-	bool        m_threadsafe_loc;
-	bool        m_threadsafe_rcv;
-        CopyComTagsContainer*      m_LocTags;
-        MapOfCopyComTagContainers* m_SndTags;
-        MapOfCopyComTagContainers* m_RcvTags;
 	//
         int         m_nuse;
 

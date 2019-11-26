@@ -692,7 +692,6 @@ namespace amrex
                             Periodicity const& period, int crse_value, int fine_value)
     {
         iMultiFab mask(cba, cdm, 1, cnghost);
-        mask.setVal(crse_value);
 
         Vector<Array4BoxTag<int> > tags;
 
@@ -708,18 +707,22 @@ namespace amrex
             for (MFIter mfi(mask); mfi.isValid(); ++mfi)
             {
                 const Box& bx = mfi.fabbox();
-                Array4<int> const& fab = mask.array(mfi);
+                Array4<int> const& arr = mask.array(mfi);
+                IArrayBox& fab = mask[mfi];
+
+                AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+                {
+                    arr(i,j,k) = crse_value;
+                });
+
                 for (const auto& iv : pshifts) {
                     cfba.intersections(bx+iv, isects);
                     for (const auto is : isects) {
                         Box const& b = is.second-iv;
                         if (run_on_gpu) {
-                            tags.push_back({fab,is.second-iv});
+                            tags.push_back({arr,b});
                         } else {
-                            amrex::LoopConcurrentOnCpu(b, [=] (int i, int j, int k) noexcept
-                            {
-                                fab(i,j,k) = fine_value;
-                            });
+                            fab.setVal(fine_value, b);
                         }
                     }
                 }
@@ -733,6 +736,21 @@ namespace amrex
             a(i,j,k,n) = fine_value;
         });
 #endif
+
+        return mask;
+    }
+
+    iMultiFab makeFineMask (const MultiFab& cmf, const MultiFab& fmf,
+                            const IntVect& cnghost, const IntVect& ratio,
+                            Periodicity const& period, int crse_value, int fine_fine)
+    {
+        iMultiFab mask(cmf.boxArray(), cmf.DistributionMap(), 1, cnghost);
+        mask.setVal(crse_value);
+
+        iMultiFab foo(amrex::coarsen(fmf.boxArray(),ratio), fmf.DistributionMap(),
+                      1, 0, MFInfo().SetAlloc(false));
+        const FabArrayBase::CPC& cpc = mask.getCPC(cnghost,foo,IntVect::TheZeroVector(),period);
+        mask.setVal(fine_fine, cpc, 0, 1);
 
         return mask;
     }
