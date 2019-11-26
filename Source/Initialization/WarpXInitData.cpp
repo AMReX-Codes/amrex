@@ -386,6 +386,77 @@ WarpX::InitLevelData (int lev, Real time)
        }
     }
 
+    if (E_ext_grid_s == "parse_e_ext_grid_function") {
+
+       std::vector<std::string> f;
+       // Parse Ex_external_grid_function 
+       pp.getarr("Ex_external_grid_function(x,y,z)", f);
+       str_Ex_ext_grid_function.clear();
+       for (auto const& s : f) {
+           str_Ex_ext_grid_function += s;
+       }
+       f.clear();
+
+       // Parse Ey_external_grid_function 
+       pp.getarr("Ey_external_grid_function(x,y,z)", f);
+       str_Ey_ext_grid_function.clear();
+       for (auto const& s : f) {
+           str_Ey_ext_grid_function += s;
+       }
+       f.clear();
+        
+       // Parse Ez_external_grid_function 
+       pp.getarr("Ez_external_grid_function(x,y,z)", f);
+       str_Ez_ext_grid_function.clear();
+       for (auto const& s : f) {
+           str_Ez_ext_grid_function += s;
+       }
+       f.clear();
+
+       // Initialize Efield_fp with external function  
+       MultiFab *Ex, *Ey, *Ez;
+       Ex = Efield_fp[lev][0].get();
+       Ey = Efield_fp[lev][1].get();
+       Ez = Efield_fp[lev][2].get();
+
+       bool B_flag = 0;
+       InitializeExternalFieldsOnGridUsingParser(Ex, Ey, Ez, lev, B_flag);
+
+       for ( MFIter mfi(*Ex, TilingIfNotGPU()); mfi.isValid(); ++mfi) 
+       {
+          const Box& tbx = mfi.tilebox(Ex_nodal_flag);
+          const Box& tby = mfi.tilebox(Ey_nodal_flag);
+          const Box& tbz = mfi.tilebox(Ez_nodal_flag);
+
+          auto const& Exfab = Ex->array(mfi);
+          auto const& Eyfab = Ey->array(mfi);
+          auto const& Ezfab = Ez->array(mfi);
+
+          const auto lo = lbound(tbx);
+          const auto hi = ubound(tbx); 
+          for (int k = lo.z; k <= hi.z; ++k) {
+          for (int j = lo.y; j <= hi.y; ++j) {
+          for (int i = lo.x; i <= hi.x; ++i) {
+              amrex::Print() << " Ex at " << i << " " << j << " " << k << " is " << Exfab(i,j,k) << "\n";
+          }}}          
+          auto const& lo_y = lbound(tby);
+          auto const& hi_y = ubound(tby);
+          for (int k = lo_y.z; k <= hi_y.z; ++k) {
+          for (int j = lo_y.y; j <= hi_y.y; ++j) {
+          for (int i = lo_y.x; i <= hi_y.x; ++i) {
+              amrex::Print() << " Ey at " << i << " " << j << " " << k << " is " << Eyfab(i,j,k) << "\n";
+          }}}          
+          auto const& lo_z = lbound(tbz);
+          auto const& hi_z = ubound(tbz);
+          for (int k = lo_z.z; k <= hi_z.z; ++k) {
+          for (int j = lo_z.y; j <= hi_z.y; ++j) {
+          for (int i = lo_z.x; i <= hi_z.x; ++i) {
+              amrex::Print() << " Ez at " << i << " " << j << " " << k << " is " << Ezfab(i,j,k) << "\n";
+          }}}                    
+       }
+       
+    }
+
     if (lev > 0) {
         for (int i = 0; i < 3; ++i) {
             current_cp[lev][i]->setVal(0.0);
@@ -482,9 +553,90 @@ WarpX::InitLevelData (int lev, Real time)
             if (E_ext_grid_s == "constant" || E_ext_grid_s == " default") {
                Efield_aux[lev][i]->setVal(E_external_grid[i]);
                Efield_cp[lev][i]->setVal(E_external_grid[i]);
-            } else {
-               Efield_aux[lev][i]->setVal(0.0);
-               Efield_cp[lev][i]->setVal(0.0);
+            } else if (E_ext_grid_s == "parse_e_ext_grid_function") {
+               
+               MultiFab *Ex_aux, *Ey_aux, *Ez_aux;
+               Ex_aux = Efield_aux[lev][0].get(); 
+               Ey_aux = Efield_aux[lev][1].get(); 
+               Ez_aux = Efield_aux[lev][2].get(); 
+
+               bool B_flag = 0;
+               InitializeExternalFieldsOnGridUsingParser(Ex_aux, Ey_aux,
+                                                         Ez_aux, lev, B_flag);
+
+               MultiFab *Ex_cp, *Ey_cp, *Ez_cp;
+               Ex_cp = Efield_cp[lev][0].get();
+               Ey_cp = Efield_cp[lev][1].get();
+               Ez_cp = Efield_cp[lev][2].get();
+
+               InitializeExternalFieldsOnGridUsingParser(Ex_cp, Ey_cp,
+                                                         Ez_cp, lev, B_flag);
+
+               for (MFIter mfi(*Ex_aux, TilingIfNotGPU()); mfi.isValid(); ++mfi)
+               {
+                  const Box& tbx = mfi.tilebox(Ex_nodal_flag);
+                  const Box& tby = mfi.tilebox(Ey_nodal_flag);
+                  const Box& tbz = mfi.tilebox(Ez_nodal_flag);
+
+                  auto const& Exfab = Ex_aux->array(mfi);
+                  auto const& Eyfab = Ey_aux->array(mfi);
+                  auto const& Ezfab = Ez_aux->array(mfi);
+
+                  const auto lo = lbound(tbx);
+                  const auto hi = ubound(tbx);
+                  for (int k = lo.z; k <= hi.z; ++k) {
+                  for (int j = lo.y; k <= hi.y; ++j) {
+                  for (int i = lo.x; i <= hi.x; ++i) {
+                       amrex::Print() << " Ex at aux " << i << " " << j << " " << k << " is " << Exfab(i,j,k) << "\n";
+                  }}}
+                  const auto lo_y = lbound(tby);
+                  const auto hi_y = ubound(tby);
+                  for (int k = lo_y.z; k <= hi_y.z; ++k) {
+                  for (int j = lo_y.y; k <= hi_y.y; ++j) {
+                  for (int i = lo_y.x; i <= hi_y.x; ++i) {
+                       amrex::Print() << " Ey at aux " << i << " " << j << " " << k << " is " << Eyfab(i,j,k) << "\n";
+                  }}}
+                  const auto lo_z = lbound(tbz);
+                  const auto hi_z = ubound(tbz);
+                  for (int k = lo_z.z; k <= hi_z.z; ++k) {
+                  for (int j = lo_z.y; k <= hi_z.y; ++j) {
+                  for (int i = lo_z.x; i <= hi_z.x; ++i) {
+                       amrex::Print() << " Ez at aux " << i << " " << j << " " << k << " is " << Ezfab(i,j,k) << "\n";
+                  }}}
+               }
+
+               for (MFIter mfi(*Ex_cp, TilingIfNotGPU()); mfi.isValid(); ++mfi)
+               {
+                  const Box& tbx = mfi.tilebox(Ex_nodal_flag);
+                  const Box& tby = mfi.tilebox(Ey_nodal_flag);
+                  const Box& tbz = mfi.tilebox(Ez_nodal_flag);
+
+                  auto const& Exfab = Ex_cp->array(mfi);
+                  auto const& Eyfab = Ey_cp->array(mfi);
+                  auto const& Ezfab = Ez_cp->array(mfi);
+
+                  const auto lo = lbound(tbx);
+                  const auto hi = ubound(tbx);
+                  for (int k = lo.z; k <= hi.z; ++k) {
+                  for (int j = lo.y; k <= hi.y; ++j) {
+                  for (int i = lo.x; i <= hi.x; ++i) {
+                       amrex::Print() << " Ex at cp " << i << " " << j << " " << k << " is " << Exfab(i,j,k) << "\n";
+                  }}}
+                  const auto lo_y = lbound(tby);
+                  const auto hi_y = ubound(tby);
+                  for (int k = lo_y.z; k <= hi_y.z; ++k) {
+                  for (int j = lo_y.y; k <= hi_y.y; ++j) {
+                  for (int i = lo_y.x; i <= hi_y.x; ++i) {
+                       amrex::Print() << " Ey at cp " << i << " " << j << " " << k << " is " << Eyfab(i,j,k) << "\n";
+                  }}}
+                  const auto lo_z = lbound(tbz);
+                  const auto hi_z = ubound(tbz);
+                  for (int k = lo_z.z; k <= hi_z.z; ++k) {
+                  for (int j = lo_z.y; k <= hi_z.y; ++j) {
+                  for (int i = lo_z.x; i <= hi_z.x; ++i) {
+                       amrex::Print() << " Ez at cp " << i << " " << j << " " << k << " is " << Ezfab(i,j,k) << "\n";
+                  }}}
+               }
             }
         }
     }
@@ -589,9 +741,9 @@ WarpX::InitializeExternalFieldsOnGridUsingParser (
           y_nodal_flag = Ey_nodal_flag;
           z_nodal_flag = Ez_nodal_flag;
        }
-       const Box& tbx = mfi.tilebox(Bx_nodal_flag);
-       const Box& tby = mfi.tilebox(By_nodal_flag);
-       const Box& tbz = mfi.tilebox(Bz_nodal_flag);
+       const Box& tbx = mfi.tilebox(x_nodal_flag);
+       const Box& tby = mfi.tilebox(y_nodal_flag);
+       const Box& tbz = mfi.tilebox(z_nodal_flag);
     
        auto const& mfxfab = mfx->array(mfi);
        auto const& mfyfab = mfy->array(mfi);
