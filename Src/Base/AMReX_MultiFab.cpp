@@ -181,22 +181,40 @@ MultiFab::Swap (MultiFab& dst, MultiFab& src,
 
     BL_PROFILE("MultiFab::Swap()");
 
+    // We can take a shortcut and do a std::swap if we're swapping all of the data
+    // and they are allocated in the same Arena.
+
+    bool explicit_swap = true;
+
+    if (srccomp == dstcomp && dstcomp == 0 && src.nComp() == dst.nComp() && src.nGrow() == dst.nGrow() &&
+        src.myArena() == dst.myArena() && src.hasEBFabFactory() == dst.hasEBFabFactory()) {
+        explicit_swap = false;
+    }
+
+    if (!explicit_swap) {
+
+        std::swap(dst, src);
+
+    } else {
+
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = mfi.growntilebox(nghost);
-        if (bx.ok()) {
-            auto sfab = src.array(mfi);
-            auto dfab = dst.array(mfi);
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, numcomp, i, j, k, n,
-            {
-                const amrex::Real tmp = dfab(i,j,k,n+dstcomp);
-                dfab(i,j,k,n+dstcomp) = sfab(i,j,k,n+srccomp);
-                sfab(i,j,k,n+srccomp) = tmp;
-            });
+        for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.growntilebox(nghost);
+            if (bx.ok()) {
+                auto sfab = src.array(mfi);
+                auto dfab = dst.array(mfi);
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, numcomp, i, j, k, n,
+                {
+                    const amrex::Real tmp = dfab(i,j,k,n+dstcomp);
+                    dfab(i,j,k,n+dstcomp) = sfab(i,j,k,n+srccomp);
+                    sfab(i,j,k,n+srccomp) = tmp;
+                });
+            }
         }
+
     }
 }
 
