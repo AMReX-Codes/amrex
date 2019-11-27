@@ -240,9 +240,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                            const Vector<std::string>& int_comp_names) const
 {
     BL_PROFILE("ParticleContainer::WriteBinaryParticleData()");
-    BL_ASSERT(OK());
+    AMREX_ASSERT(OK());
     
-    BL_ASSERT(sizeof(typename ParticleType::RealType) == 4 ||
+    AMREX_ASSERT(sizeof(typename ParticleType::RealType) == 4 ||
               sizeof(typename ParticleType::RealType) == 8);
     
     const int NProcs = ParallelDescriptor::NProcs();
@@ -810,8 +810,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::Restart (const std::string& dir, const std::string& file)
 {
     BL_PROFILE("ParticleContainer::Restart()");
-    BL_ASSERT(!dir.empty());
-    BL_ASSERT(!file.empty());
+    AMREX_ASSERT(!dir.empty());
+    AMREX_ASSERT(!file.empty());
     
     const Real strttime = amrex::second();
     
@@ -835,7 +835,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
   
     std::string version;
     HdrFile >> version;
-    BL_ASSERT(!version.empty());
+    AMREX_ASSERT(!version.empty());
     
     // What do our version strings mean?
     // "Version_One_Dot_Zero" -- hard-wired to write out in double precision.
@@ -894,16 +894,16 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     
     long nparticles;
     HdrFile >> nparticles;
-    BL_ASSERT(nparticles >= 0);
+    AMREX_ASSERT(nparticles >= 0);
     
     int maxnextid;
     HdrFile >> maxnextid;
-    BL_ASSERT(maxnextid > 0);
+    AMREX_ASSERT(maxnextid > 0);
     ParticleType::NextID(maxnextid);
     
     int finest_level_in_file;
     HdrFile >> finest_level_in_file;
-    BL_ASSERT(finest_level_in_file >= 0);
+    AMREX_ASSERT(finest_level_in_file >= 0);
     
     // Determine whether this is a dual-grid restart or not.
     Vector<BoxArray> particle_box_arrays(finest_level_in_file + 1);
@@ -962,9 +962,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     Vector<int> ngrids(finest_level_in_file+1);
     for (int lev = 0; lev <= finest_level_in_file; lev++) {
         HdrFile >> ngrids[lev];
-        BL_ASSERT(ngrids[lev] > 0);
+        AMREX_ASSERT(ngrids[lev] > 0);
         if (lev <= finestLevel()) {
-            BL_ASSERT(ngrids[lev] == int(ParticleBoxArray(lev).size()));
+            AMREX_ASSERT(ngrids[lev] == int(ParticleBoxArray(lev).size()));
         }
     }
     
@@ -1061,7 +1061,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     
     Redistribute();
     
-    BL_ASSERT(OK());
+    AMREX_ASSERT(OK());
     
     if (m_verbose > 1) {
         Real stoptime = amrex::second() - strttime;	
@@ -1078,8 +1078,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::ReadParticles (int cnt, int grd, int lev, std::ifstream& ifs, int finest_level_in_file)
 {
     BL_PROFILE("ParticleContainer::ReadParticles()");
-    BL_ASSERT(cnt > 0);
-    BL_ASSERT(lev < int(m_particles.size()));
+    AMREX_ASSERT(cnt > 0);
+    AMREX_ASSERT(lev < int(m_particles.size()));
 
     // First read in the integer data in binary.  We do not store
     // the m_lev and m_grid data on disk.  We can easily recreate
@@ -1126,7 +1126,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             ++iptr;
         }
 
-        BL_ASSERT(p.m_idata.id > 0);
+        AMREX_ASSERT(p.m_idata.id > 0);
         
         AMREX_D_TERM(p.m_rdata.pos[0] = rptr[0];,
                      p.m_rdata.pos[1] = rptr[1];,
@@ -1202,7 +1202,7 @@ void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteAsciiFile (const std::string& filename)
 {
     BL_PROFILE("ParticleContainer::WriteAsciiFile()");
-    BL_ASSERT(!filename.empty());
+    AMREX_ASSERT(!filename.empty());
 
     const Real strttime = amrex::second();
     //
@@ -1351,7 +1351,7 @@ void
 ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt>::WriteCoarsenedAsciiFile (const std::string& filename)
 {
     BL_PROFILE("ParticleContainer::WriteCoarsenedAsciiFile()");
-    BL_ASSERT(!filename.empty());
+    AMREX_ASSERT(!filename.empty());
 
     const Real strttime = amrex::second();
  

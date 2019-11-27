@@ -244,7 +244,7 @@ public:
     const FabFactory<FAB>& Factory () const noexcept { return *m_factory; }
 
     // Provides access to the Arena this FabArray was build with.
-    const Arena* arena () const noexcept { return m_dallocator.arena(); }
+    Arena* arena () const noexcept { return m_dallocator.arena(); }
 
     bool hasEBFabFactory () const noexcept {
 #ifdef AMREX_USE_EB
@@ -678,6 +678,9 @@ public:
 
     template <class F=FAB, class = typename std::enable_if<IsBaseFab<F>::value>::type >
     void setVal (value_type x, const CommMetaData& thecmd, int scomp, int ncomp);
+
+    template <class F=FAB, class = typename std::enable_if<IsBaseFab<F>::value>::type >
+    LayoutData<int> RecvLayoutMask (const CommMetaData& thecmd);
 
 #ifdef AMREX_USE_GPU
 
@@ -2075,6 +2078,38 @@ FabArray<FAB>::setVal (value_type val, const CommMetaData& thecmd, int scomp, in
             }
         }
     }
+}
+
+template <class FAB>
+template <class F, class B>
+LayoutData<int>
+FabArray<FAB>::RecvLayoutMask (const CommMetaData& thecmd)
+{
+    LayoutData<int> r(this->boxArray(), this->DistributionMap());
+#ifdef _OPENMP
+#pragma omp parallel if (thecmd.m_threadsafe_rcv)
+#endif
+    for (MFIter mfi(r); mfi.isValid(); ++mfi) {
+        r[mfi] = 0;
+    }
+
+    const CopyComTagsContainer&      LocTags = *(thecmd.m_LocTags);
+    const MapOfCopyComTagContainers& RcvTags = *(thecmd.m_RcvTags);
+
+    int N_locs = LocTags.size();
+    for (int i = 0; i < N_locs; ++i) {
+        const CopyComTag& tag = LocTags[i];
+        r[tag.dstIndex] = 1;
+    }
+
+    for (auto it = RcvTags.begin(); it != RcvTags.end(); ++it) {
+        int N = it->second.size();
+        for (int i = 0; i < N; ++i) {
+            const CopyComTag& tag = it->second[i];
+            r[tag.dstIndex] = 1;
+        }
+    }
+    return r;
 }
 
 }
