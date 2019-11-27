@@ -631,8 +631,8 @@ Particle<NReal, NInt>::Interp (const Particle<NReal, NInt>& prt,
 			  int                 cnt)
 {
     BL_PROFILE("Particle<NReal, NInt>::Interp()");
-    BL_ASSERT(idx != 0);
-    BL_ASSERT(val != 0);
+    AMREX_ASSERT(idx != 0);
+    AMREX_ASSERT(val != 0);
 
     const int       M   = AMREX_D_TERM(2,+2,+4);
     const Real*     plo = geom.ProbLo();
@@ -647,7 +647,7 @@ Particle<NReal, NInt>::Interp (const Particle<NReal, NInt>& prt,
 
     for (int i = 0; i < cnt; i++)
     {
-        BL_ASSERT(idx[i] >= 0 && idx[i] < fab.nComp());
+        AMREX_ASSERT(idx[i] >= 0 && idx[i] < fab.nComp());
 
         val[i] = Particle<NReal, NInt>::InterpDoit(fab,fracs,cells,idx[i]);
     }
@@ -661,7 +661,7 @@ Particle<NReal, NInt>::GetGravity (const FArrayBox&    gfab,
 			      Real*               grav)
 {
     BL_PROFILE("Particle<NReal, NInt>::GetGravity()");
-    BL_ASSERT(grav != 0);
+    AMREX_ASSERT(grav != 0);
 
     int idx[AMREX_SPACEDIM] = { AMREX_D_DECL(0,1,2) };
 

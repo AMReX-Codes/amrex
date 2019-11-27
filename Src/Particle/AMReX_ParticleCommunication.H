@@ -200,6 +200,11 @@ private:
     //
     void doHandShakeGlobal (const Vector<long>& Snds, Vector<long>& Rcvs) const;
 
+    //
+    // Another version of the above that is implemented using MPI All-to-All
+    //    
+    void doHandShakeAllToAll (const Vector<long>& Snds, Vector<long>& Rcvs) const;
+
     bool m_local;
 };
 
@@ -394,9 +399,9 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buff
         const auto offset = rOffset[i]*psize;
         const auto Cnt    = plan.m_rcv_num_particles[Who]*psize;
 
-        BL_ASSERT(Cnt > 0);
-        BL_ASSERT(Cnt < std::numeric_limits<int>::max());
-        BL_ASSERT(Who >= 0 && Who < NProcs);
+        AMREX_ASSERT(Cnt > 0);
+        AMREX_ASSERT(Cnt < std::numeric_limits<int>::max());
+        AMREX_ASSERT(Who >= 0 && Who < NProcs);
         
         plan.m_particle_rreqs[i] = 
             ParallelDescriptor::Arecv((char*) (rcv_buffer.dataPtr() + offset), Cnt, Who, SeqNum).req();
@@ -410,8 +415,8 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buff
         const auto Cnt = plan.m_snd_num_particles[i]*psize;
         if (Cnt == 0) continue;
 
-        BL_ASSERT(Who >= 0 && Who < NProcs);
-        BL_ASSERT(Cnt < std::numeric_limits<int>::max());
+        AMREX_ASSERT(Who >= 0 && Who < NProcs);
+        AMREX_ASSERT(Cnt < std::numeric_limits<int>::max());
         
         int bucket = pc.BufferMap().firstBucketOnProc(i);
         const auto snd_offset = plan.m_box_offsets[bucket]*psize;

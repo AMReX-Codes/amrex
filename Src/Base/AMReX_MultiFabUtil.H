@@ -132,19 +132,27 @@ namespace amrex
     //! Return an iMultiFab that has the same BoxArray and DistributionMapping
     //! as the coarse MultiFab cmf. Cells covered by the coarsened fine grids
     //! are set to fine_value, whereas other cells are set to crse_value.
-    iMultiFab makeFineMask (const MultiFab& cmf, const BoxArray& fba, const IntVect& ratio,
+    template <typename FAB>
+    iMultiFab makeFineMask (const FabArray<FAB>& cmf, const BoxArray& fba, const IntVect& ratio,
                             int crse_value = 0, int fine_value = 1);
     iMultiFab makeFineMask (const BoxArray& cba, const DistributionMapping& cdm,
                             const BoxArray& fba, const IntVect& ratio,
                             int crse_value = 0, int fine_value = 1);
-    iMultiFab makeFineMask (const MultiFab& cmf, const BoxArray& fba, const IntVect& ratio,
+    template <typename FAB>
+    iMultiFab makeFineMask (const FabArray<FAB>& cmf, const BoxArray& fba, const IntVect& ratio,
                             Periodicity const& period, int crse_value, int fine_value);
     iMultiFab makeFineMask (const BoxArray& cba, const DistributionMapping& cdm,
                             const IntVect& cnghost, const BoxArray& fba, const IntVect& ratio,
-                            Periodicity const& period, int crse_value, int fine_fine);
-    iMultiFab makeFineMask (const MultiFab& cmf, const MultiFab& fmf,
+                            Periodicity const& period, int crse_value, int fine_value);
+    template <typename FAB>
+    iMultiFab makeFineMask (const FabArray<FAB>& cmf, const FabArray<FAB>& fmf,
                             const IntVect& cnghost, const IntVect& ratio,
-                            Periodicity const& period, int crse_value, int fine_fine);
+                            Periodicity const& period, int crse_value, int fine_value);
+    template <typename FAB>
+    iMultiFab makeFineMask (const FabArray<FAB>& cmf, const FabArray<FAB>& fmf,
+                            const IntVect& cnghost, const IntVect& ratio,
+                            Periodicity const& period, int crse_value, int fine_value,
+                            LayoutData<int>& has_cf);
 
     //! Computes divergence of face-data stored in the umac MultiFab.
     void computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPACEDIM>& umac,
@@ -334,5 +342,63 @@ namespace amrex
     }
 }
 
+namespace amrex {
+
+template <typename FAB>
+iMultiFab
+makeFineMask (const FabArray<FAB>& cmf, const BoxArray& fba, const IntVect& ratio,
+              int crse_value, int fine_value)
+{
+    return makeFineMask(cmf.boxArray(), cmf.DistributionMap(), cmf.nGrowVect(),
+                        fba, ratio, Periodicity::NonPeriodic(), crse_value, fine_value);
+}
+
+template <typename FAB>
+iMultiFab
+makeFineMask (const MultiFab& cmf, const BoxArray& fba, const IntVect& ratio,
+              Periodicity const& period, int crse_value, int fine_value)
+{
+    return makeFineMask(cmf.boxArray(), cmf.DistributionMap(), cmf.nGrowVect(),
+                        fba, ratio, period, crse_value, fine_value);
+}
+
+template <typename FAB>
+iMultiFab
+makeFineMask (const FabArray<FAB>& cmf, const FabArray<FAB>& fmf,
+              const IntVect& cnghost, const IntVect& ratio,
+              Periodicity const& period, int crse_value, int fine_value)
+{
+    iMultiFab mask(cmf.boxArray(), cmf.DistributionMap(), 1, cnghost);
+    mask.setVal(crse_value);
+
+    iMultiFab foo(amrex::coarsen(fmf.boxArray(),ratio), fmf.DistributionMap(),
+                  1, 0, MFInfo().SetAlloc(false));
+    const FabArrayBase::CPC& cpc = mask.getCPC(cnghost,foo,IntVect::TheZeroVector(),period);
+    mask.setVal(fine_value, cpc, 0, 1);
+
+    return mask;
+}
+
+template <typename FAB>
+iMultiFab
+makeFineMask (const FabArray<FAB>& cmf, const FabArray<FAB>& fmf,
+              const IntVect& cnghost, const IntVect& ratio,
+              Periodicity const& period, int crse_value, int fine_value,
+              LayoutData<int>& has_cf)
+{
+    iMultiFab mask(cmf.boxArray(), cmf.DistributionMap(), 1, cnghost);
+    mask.setVal(crse_value);
+
+    iMultiFab foo(amrex::coarsen(fmf.boxArray(),ratio), fmf.DistributionMap(),
+                  1, 0, MFInfo().SetAlloc(false));
+    const FabArrayBase::CPC& cpc = mask.getCPC(cnghost,foo,IntVect::TheZeroVector(),period);
+    mask.setVal(fine_value, cpc, 0, 1);
+
+    has_cf = mask.RecvLayoutMask(cpc);
+
+    return mask;
+}
+
+}
 
 #endif

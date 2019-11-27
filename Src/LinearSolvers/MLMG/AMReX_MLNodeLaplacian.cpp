@@ -828,7 +828,6 @@ MLNodeLaplacian::buildStencil ()
                 for (MFIter mfi(*m_stencil[amrlev][0],mfi_info); mfi.isValid(); ++mfi)
                 {
                     Box vbx = mfi.validbox();
-                    Box const& ccvbx = amrex::enclosedCells(vbx);
                     AMREX_D_TERM(vbx.growLo(0,1);, vbx.growLo(1,1);, vbx.growLo(2,1));
                     Box bx = mfi.growntilebox(1);
                     bx &= vbx;
@@ -1637,7 +1636,11 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
                 bool has_fine;
                 if (Gpu::inLaunchRegion()) {
                     AMREX_ASSERT(ccbxg1 == crse_cc_mask[mfi].box());
-                    has_fine = (nonowner == Reduce::Min(ccbxg1.numPts(), crse_cc_mask[mfi].dataPtr()));
+                    has_fine = Reduce::AnyOf(ccbxg1,
+                                             [cccmsk,nonowner] AMREX_GPU_DEVICE (int i, int j, int k) noexcept -> bool
+                    {
+                        return cccmsk(i,j,k) == nonowner;
+                    });
                 } else {
                     has_fine = mlndlap_any_fine_sync_cells(ccbxg1,cccmsk,nonowner);
                 }

@@ -165,6 +165,62 @@ MultiFab::Copy (MultiFab&       dst,
 
 
 void
+MultiFab::Swap (MultiFab& dst, MultiFab& src,
+                int srccomp, int dstcomp, int numcomp, int nghost)
+{
+    Swap(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
+}
+
+void
+MultiFab::Swap (MultiFab& dst, MultiFab& src,
+                int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
+{
+    BL_ASSERT(dst.boxArray() == src.boxArray());
+    BL_ASSERT(dst.distributionMap == src.distributionMap);
+    BL_ASSERT(dst.nGrowVect().allGE(nghost) and src.nGrowVect().allGE(nghost));
+
+    BL_PROFILE("MultiFab::Swap()");
+
+    // We can take a shortcut and do a std::swap if we're swapping all of the data
+    // and they are allocated in the same Arena.
+
+    bool explicit_swap = true;
+
+    if (srccomp == dstcomp && dstcomp == 0 && src.nComp() == dst.nComp() &&
+        src.nGrowVect() == nghost && src.nGrowVect() == dst.nGrowVect() &&
+        src.arena() == dst.arena() && src.hasEBFabFactory() == dst.hasEBFabFactory()) {
+        explicit_swap = false;
+    }
+
+    if (!explicit_swap) {
+
+        std::swap(dst, src);
+
+    } else {
+
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.growntilebox(nghost);
+            if (bx.ok()) {
+                auto sfab = src.array(mfi);
+                auto dfab = dst.array(mfi);
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, numcomp, i, j, k, n,
+                {
+                    const amrex::Real tmp = dfab(i,j,k,n+dstcomp);
+                    dfab(i,j,k,n+dstcomp) = sfab(i,j,k,n+srccomp);
+                    sfab(i,j,k,n+srccomp) = tmp;
+                });
+            }
+        }
+
+    }
+}
+
+
+void
 MultiFab::Subtract (MultiFab& dst, const MultiFab& src,
                     int srccomp, int dstcomp, int numcomp, int nghost)
 {
