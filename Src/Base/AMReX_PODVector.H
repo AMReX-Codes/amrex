@@ -2,6 +2,7 @@
 #define AMREX_PODVECTOR_H_
 
 #include <AMReX_TypeTraits.H>
+#include <AMReX_Gpu.H>
 
 #include <type_traits>
 #include <utility>
