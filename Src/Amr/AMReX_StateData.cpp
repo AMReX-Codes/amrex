@@ -27,6 +27,7 @@ std::map<std::string, Vector<char> > *StateData::faHeaderMap;
 
 StateData::StateData () 
     : desc(nullptr),
+      arena(nullptr),
       new_time{INVALID_TIME,INVALID_TIME},
       old_time{INVALID_TIME,INVALID_TIME}
 {
@@ -46,6 +47,7 @@ StateData::StateData (const Box&             p_domain,
 StateData::StateData (StateData&& rhs) noexcept
     : m_factory(std::move(rhs.m_factory)),
       desc(rhs.desc),
+      arena(rhs.arena),
       domain(rhs.domain),
       grids(std::move(rhs.grids)),
       dmap(std::move(rhs.dmap)),
@@ -61,15 +63,20 @@ StateData::operator= (StateData const& rhs)
 {
     m_factory.reset(rhs.m_factory->clone());
     desc = rhs.desc;
+    arena = rhs.arena;
     domain = rhs.domain;
     grids = rhs.grids;
     dmap = rhs.dmap;
     new_time = rhs.new_time;
     old_time = rhs.old_time;
-    new_data.reset(new MultiFab(grids,dmap,desc->nComp(),desc->nExtra(), MFInfo().SetTag("StateData"), *m_factory));
+    new_data.reset(new MultiFab(grids,dmap,desc->nComp(),desc->nExtra(),
+                                MFInfo().SetTag("StateData").SetArena(arena),
+                                *m_factory));
     MultiFab::Copy(*new_data, *rhs.new_data, 0, 0, desc->nComp(),desc->nExtra());
     if (rhs.old_data) {
-        old_data.reset(new MultiFab(grids,dmap,desc->nComp(),desc->nExtra(), MFInfo().SetTag("StateData"), *m_factory));
+        old_data.reset(new MultiFab(grids,dmap,desc->nComp(),desc->nExtra(),
+                                    MFInfo().SetTag("StateData").SetArena(arena),
+                                    *m_factory));
         MultiFab::Copy(*old_data, *rhs.old_data, 0, 0, desc->nComp(),desc->nExtra());
     } else {
         old_data.reset();
@@ -88,6 +95,7 @@ StateData::define (const Box&             p_domain,
     BL_PROFILE("StateData::define()");
     domain = p_domain;
     desc = &d;
+    arena = nullptr;
     grids = grds;
     dmap = dm;
     m_factory.reset(factory.clone());
@@ -115,7 +123,9 @@ StateData::define (const Box&             p_domain,
     }
     int ncomp = desc->nComp();
 
-    new_data.reset(new MultiFab(grids,dmap,ncomp,desc->nExtra(), MFInfo().SetTag("StateData"), *m_factory));
+    new_data.reset(new MultiFab(grids,dmap,ncomp,desc->nExtra(),
+                                MFInfo().SetTag("StateData").SetArena(arena),
+                                *m_factory));
     old_data.reset();
 }
 
@@ -169,6 +179,7 @@ StateData::restart (std::istream&          is,
                     const std::string&     chkfile)
 {
     desc = &d;
+    arena = nullptr;
     domain = p_domain;
     grids = grds;
     dmap = dm;
@@ -207,11 +218,13 @@ StateData::restartDoit (std::istream& is, const std::string& chkfile)
     is >> nsets;
 
     new_data.reset(new MultiFab(grids,dmap,desc->nComp(),desc->nExtra(),
-                                MFInfo().SetTag("StateData"), *m_factory));
+                                MFInfo().SetTag("StateData").SetArena(arena),
+                                *m_factory));
     old_data.reset();
     if (nsets == 2) {
         old_data.reset(new MultiFab(grids,dmap,desc->nComp(),desc->nExtra(),
-                                    MFInfo().SetTag("StateData"), *m_factory));
+                                    MFInfo().SetTag("StateData").SetArena(arena),
+                                    *m_factory));
     }
     //
     // If no data is written then we just allocate the MF instead of reading it in. 
@@ -266,6 +279,7 @@ StateData::restart (const StateDescriptor& d,
 		    const StateData& rhs)
 {
     desc = &d;
+    arena = nullptr;
     domain = rhs.domain;
     grids = rhs.grids;
     old_time.start = rhs.old_time.start;
@@ -273,7 +287,9 @@ StateData::restart (const StateDescriptor& d,
     new_time.start = rhs.new_time.start;
     new_time.stop  = rhs.new_time.stop;
     old_data.reset();
-    new_data.reset(new MultiFab(grids,dmap,desc->nComp(),desc->nExtra(), MFInfo().SetTag("StateData"), *m_factory));
+    new_data.reset(new MultiFab(grids,dmap,desc->nComp(),desc->nExtra(),
+                                MFInfo().SetTag("StateData").SetArena(arena),
+                                *m_factory));
     new_data->setVal(0.);
 }
 
@@ -287,7 +303,9 @@ StateData::allocOldData ()
 {
     if (old_data == nullptr)
     {
-        old_data.reset(new MultiFab(grids,dmap,desc->nComp(),desc->nExtra(), MFInfo().SetTag("StateData"), *m_factory));
+        old_data.reset(new MultiFab(grids,dmap,desc->nComp(),desc->nExtra(),
+                                    MFInfo().SetTag("StateData").SetArena(arena),
+                                    *m_factory));
     }
 }
 
@@ -389,7 +407,7 @@ StateData::replaceOldData (MultiFab&& mf)
 void
 StateData::replaceOldData (StateData& s)
 {
-    std::swap(old_data, s.old_data);
+    MultiFab::Swap(*old_data, *s.old_data, 0, 0, old_data->nComp(), old_data->nGrow());
 }
 
 void
@@ -403,7 +421,7 @@ StateData::replaceNewData (MultiFab&& mf)
 void
 StateData::replaceNewData (StateData& s)
 {
-    std::swap(new_data, s.new_data);
+    MultiFab::Swap(*new_data, *s.new_data, 0, 0, new_data->nComp(), new_data->nGrow());
 }
 
 void

@@ -665,26 +665,12 @@ namespace amrex
         return slice;
     }
 
-    iMultiFab makeFineMask (const MultiFab& cmf, const BoxArray& fba, const IntVect& ratio,
-                            int crse_value, int fine_value)
-    {
-        return makeFineMask(cmf.boxArray(), cmf.DistributionMap(), cmf.nGrowVect(),
-                            fba, ratio, Periodicity::NonPeriodic(), crse_value, fine_value);
-    }
-
     iMultiFab makeFineMask (const BoxArray& cba, const DistributionMapping& cdm,
                             const BoxArray& fba, const IntVect& ratio,
                             int crse_value, int fine_value)
     {
         return makeFineMask(cba, cdm, IntVect{0}, fba, ratio, Periodicity::NonPeriodic(),
                             crse_value, fine_value);
-    }
-
-    iMultiFab makeFineMask (const MultiFab& cmf, const BoxArray& fba, const IntVect& ratio,
-                            Periodicity const& period, int crse_value, int fine_value)
-    {
-        return makeFineMask(cmf.boxArray(), cmf.DistributionMap(), cmf.nGrowVect(),
-                            fba, ratio, period, crse_value, fine_value);
     }
 
     iMultiFab makeFineMask (const BoxArray& cba, const DistributionMapping& cdm,
@@ -736,21 +722,6 @@ namespace amrex
             a(i,j,k,n) = fine_value;
         });
 #endif
-
-        return mask;
-    }
-
-    iMultiFab makeFineMask (const MultiFab& cmf, const MultiFab& fmf,
-                            const IntVect& cnghost, const IntVect& ratio,
-                            Periodicity const& period, int crse_value, int fine_fine)
-    {
-        iMultiFab mask(cmf.boxArray(), cmf.DistributionMap(), 1, cnghost);
-        mask.setVal(crse_value);
-
-        iMultiFab foo(amrex::coarsen(fmf.boxArray(),ratio), fmf.DistributionMap(),
-                      1, 0, MFInfo().SetAlloc(false));
-        const FabArrayBase::CPC& cpc = mask.getCPC(cnghost,foo,IntVect::TheZeroVector(),period);
-        mask.setVal(fine_fine, cpc, 0, 1);
 
         return mask;
     }
