@@ -265,18 +265,18 @@ WarpXParser makeParser (std::string const& parse_function)
 
 
 /* \brief
- *  This function initializes E, B, rho, and F, at all the levels 
+ *  This function initializes E, B, rho, and F, at all the levels
  *  of the multifab. rho and F are initialized with 0.
  *  The E and B fields are initialized using user-defined inputs.
- *  The initialization type is set using "B_ext_grid_init_style" 
+ *  The initialization type is set using "B_ext_grid_init_style"
  *  and "E_ext_grid_init_style". The initialization style is set to "default"
- *  if not explicitly defined by the user, and the E and B fields are 
- *  initialized with E_external_grid and B_external_grid, respectively, each with 
- *  a default value of 0. 
+ *  if not explicitly defined by the user, and the E and B fields are
+ *  initialized with E_external_grid and B_external_grid, respectively, each with
+ *  a default value of 0.
  *  If the initialization type for the E and B field is "constant",
- *  then, the E and B fields at all the levels are initialized with 
- *  user-defined values for E_external_grid and B_external_grid. 
- *  If the initialization type for B-field is set to 
+ *  then, the E and B fields at all the levels are initialized with
+ *  user-defined values for E_external_grid and B_external_grid.
+ *  If the initialization type for B-field is set to
  *  "parse_B_ext_grid_function", then, the parser is used to read
  *  Bx_external_grid_function(x,y,z), By_external_grid_function(x,y,z),
  *  and Bz_external_grid_function(x,y,z).
@@ -286,8 +286,8 @@ WarpXParser makeParser (std::string const& parse_function)
  *  and Ex_external_grid_function(x,y,z). The parser for the E and B
  *  initialization assumes that the function has three independent
  *  variables, at max, namely, x, y, z. However, any number of constants
- *  can be used in the function used to define the E and B fields on the grid. 
- */ 
+ *  can be used in the function used to define the E and B fields on the grid.
+ */
 
 void
 WarpX::InitLevelData (int lev, Real time)
@@ -298,11 +298,11 @@ WarpX::InitLevelData (int lev, Real time)
     std::string B_ext_grid_s;
     std::string E_ext_grid_s;
     // default values of E_external_grid and B_external_grid
-    // are used to set the E and B field when "constant" or 
-    // "parser" is not explicitly used in the input. 
+    // are used to set the E and B field when "constant" or
+    // "parser" is not explicitly used in the input.
     B_ext_grid_s = "default";
     E_ext_grid_s = "default";
-    
+
     pp.query("B_ext_grid_init_style", B_ext_grid_s);
     std::transform(B_ext_grid_s.begin(),
                    B_ext_grid_s.end(),
@@ -315,28 +315,28 @@ WarpX::InitLevelData (int lev, Real time)
                    E_ext_grid_s.begin(),
                    ::tolower);
 
-    // if the input string is "constant", the values for the 
-    // external grid must be provided in the input. 
+    // if the input string is "constant", the values for the
+    // external grid must be provided in the input.
     if (B_ext_grid_s == "constant")
-        pp.getarr("B_external_grid", B_external_grid);     
-   
-    // if the input string is "constant", the values for the 
-    // external grid must be provided in the input. 
-    if (E_ext_grid_s == "constant") 
-        pp.getarr("E_external_grid", E_external_grid);     
-    
+        pp.getarr("B_external_grid", B_external_grid);
+
+    // if the input string is "constant", the values for the
+    // external grid must be provided in the input.
+    if (E_ext_grid_s == "constant")
+        pp.getarr("E_external_grid", E_external_grid);
+
     for (int i = 0; i < 3; ++i) {
         current_fp[lev][i]->setVal(0.0);
-        if (B_ext_grid_s == "constant" || B_ext_grid_s == "default") 
-           Bfield_fp[lev][i]->setVal(B_external_grid[i]);        
-        if (E_ext_grid_s == "constant" || E_ext_grid_s == "default") 
-           Efield_fp[lev][i]->setVal(E_external_grid[i]);        
+        if (B_ext_grid_s == "constant" || B_ext_grid_s == "default")
+           Bfield_fp[lev][i]->setVal(B_external_grid[i]);
+        if (E_ext_grid_s == "constant" || E_ext_grid_s == "default")
+           Efield_fp[lev][i]->setVal(E_external_grid[i]);
     }
 
     if (B_ext_grid_s == "parse_b_ext_grid_function") {
 
        std::vector<std::string> f;
-       // Parse Bx_external_grid_function 
+       // Parse Bx_external_grid_function
        pp.getarr("Bx_external_grid_function(x,y,z)", f);
        str_Bx_ext_grid_function.clear();
        for (auto const& s : f) {
@@ -351,7 +351,7 @@ WarpX::InitLevelData (int lev, Real time)
             str_By_ext_grid_function += s;
        }
        f.clear();
-     
+
        // Parse Bz_external_grid_function
        pp.getarr("Bz_external_grid_function(x,y,z)", f);
        str_Bz_ext_grid_function.clear();
@@ -360,7 +360,7 @@ WarpX::InitLevelData (int lev, Real time)
        }
        f.clear();
 
-       // Initialize Bfield_fp with external function  
+       // Initialize Bfield_fp with external function
        MultiFab *Bx, *By, *Bz;
        Bx = Bfield_fp[lev][0].get();
        By = Bfield_fp[lev][1].get();
@@ -373,7 +373,7 @@ WarpX::InitLevelData (int lev, Real time)
     if (E_ext_grid_s == "parse_e_ext_grid_function") {
 
        std::vector<std::string> f;
-       // Parse Ex_external_grid_function 
+       // Parse Ex_external_grid_function
        pp.getarr("Ex_external_grid_function(x,y,z)", f);
        str_Ex_ext_grid_function.clear();
        for (auto const& s : f) {
@@ -381,15 +381,15 @@ WarpX::InitLevelData (int lev, Real time)
        }
        f.clear();
 
-       // Parse Ey_external_grid_function 
+       // Parse Ey_external_grid_function
        pp.getarr("Ey_external_grid_function(x,y,z)", f);
        str_Ey_ext_grid_function.clear();
        for (auto const& s : f) {
            str_Ey_ext_grid_function += s;
        }
        f.clear();
-        
-       // Parse Ez_external_grid_function 
+
+       // Parse Ez_external_grid_function
        pp.getarr("Ez_external_grid_function(x,y,z)", f);
        str_Ez_ext_grid_function.clear();
        for (auto const& s : f) {
@@ -397,7 +397,7 @@ WarpX::InitLevelData (int lev, Real time)
        }
        f.clear();
 
-       // Initialize Efield_fp with external function  
+       // Initialize Efield_fp with external function
        MultiFab *Ex, *Ey, *Ez;
        Ex = Efield_fp[lev][0].get();
        Ey = Efield_fp[lev][1].get();
@@ -422,7 +422,7 @@ WarpX::InitLevelData (int lev, Real time)
                By_aux = Bfield_aux[lev][1].get();
                Bz_aux = Bfield_aux[lev][2].get();
 
-               // Setting b_flag to 1 since we are initializing 
+               // Setting b_flag to 1 since we are initializing
                // B_external on the grid.
                bool B_flag = 1;
                InitializeExternalFieldsOnGridUsingParser(Bx_aux, By_aux,
@@ -441,12 +441,12 @@ WarpX::InitLevelData (int lev, Real time)
                Efield_aux[lev][i]->setVal(E_external_grid[i]);
                Efield_cp[lev][i]->setVal(E_external_grid[i]);
             } else if (E_ext_grid_s == "parse_e_ext_grid_function") {
-               
+
                MultiFab *Ex_aux, *Ey_aux, *Ez_aux;
-               Ex_aux = Efield_aux[lev][0].get(); 
-               Ey_aux = Efield_aux[lev][1].get(); 
-               Ez_aux = Efield_aux[lev][2].get(); 
-               // Setting b_flag to zero since we are initializing 
+               Ex_aux = Efield_aux[lev][0].get();
+               Ey_aux = Efield_aux[lev][1].get();
+               Ez_aux = Efield_aux[lev][2].get();
+               // Setting b_flag to zero since we are initializing
                // E_external on the grid here.
                bool B_flag = 0;
                InitializeExternalFieldsOnGridUsingParser(Ex_aux, Ey_aux,
@@ -523,16 +523,16 @@ WarpX::InitLevelDataFFT (int lev, Real time)
 /* \brief
  * This function initializes the E and B fields on each level
  * using the parser and the user-defined function for the external fields.
- * Depending on the bool value of the B_flag, the subroutine will parse 
+ * Depending on the bool value of the B_flag, the subroutine will parse
  * the Bx_/By_/Bz_external_grid_function (if B_flag==1)
- * or parse the Ex_/Ey_/Ez_external_grid_function (if B_flag==0). 
+ * or parse the Ex_/Ey_/Ez_external_grid_function (if B_flag==0).
  * Then, the B or E multifab is initialized based on the (x,y,z) position
  * on the staggered yee-grid or cell-centered grid.
  */
 
-void 
+void
 WarpX::InitializeExternalFieldsOnGridUsingParser (
-       MultiFab *mfx, MultiFab *mfy, MultiFab *mfz, 
+       MultiFab *mfx, MultiFab *mfy, MultiFab *mfz,
        const int lev, const bool B_flag)
 {
     std::unique_ptr<ParserWrapper> xfield_parsewrap;
@@ -554,14 +554,14 @@ WarpX::InitializeExternalFieldsOnGridUsingParser (
         zfield_parsewrap.reset(new ParserWrapper
                            (makeParser(str_Ez_ext_grid_function)));
     }
-   
-    ParserWrapper *xfield_wrap = xfield_parsewrap.get(); 
-    ParserWrapper *yfield_wrap = yfield_parsewrap.get(); 
-    ParserWrapper *zfield_wrap = zfield_parsewrap.get(); 
+
+    ParserWrapper *xfield_wrap = xfield_parsewrap.get();
+    ParserWrapper *yfield_wrap = yfield_parsewrap.get();
+    ParserWrapper *zfield_wrap = zfield_parsewrap.get();
 
     const auto dx_lev = geom[lev].CellSizeArray();
     const RealBox& real_box = geom[lev].ProbDomain();
-    for ( MFIter mfi(*mfx, TilingIfNotGPU()); mfi.isValid(); ++mfi) 
+    for ( MFIter mfi(*mfx, TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
        IntVect x_nodal_flag, y_nodal_flag, z_nodal_flag;
        if (B_flag == 1) {
@@ -576,15 +576,15 @@ WarpX::InitializeExternalFieldsOnGridUsingParser (
        const Box& tbx = mfi.tilebox(x_nodal_flag);
        const Box& tby = mfi.tilebox(y_nodal_flag);
        const Box& tbz = mfi.tilebox(z_nodal_flag);
-    
+
        auto const& mfxfab = mfx->array(mfi);
        auto const& mfyfab = mfy->array(mfi);
        auto const& mfzfab = mfz->array(mfi);
-    
+
        auto const& mfx_IndexType = (*mfx).ixType();
        auto const& mfy_IndexType = (*mfy).ixType();
        auto const& mfz_IndexType = (*mfz).ixType();
-    
+
        // Initialize IntVect based on the index type of multiFab
        // 0 if cell-centered, 1 if node-centered.
        IntVect mfx_type(AMREX_D_DECL(0,0,0));
@@ -599,11 +599,11 @@ WarpX::InitializeExternalFieldsOnGridUsingParser (
 
        amrex::ParallelFor (tbx, tby, tbz,
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                // Shift required in the x-, y-, or z- position 
-                // depending on the index type of the multifab                
+                // Shift required in the x-, y-, or z- position
+                // depending on the index type of the multifab
                 Real fac_x = (1.0 - mfx_type[0]) * dx_lev[0]*0.5;
                 Real fac_y = (1.0 - mfx_type[1]) * dx_lev[1]*0.5;
- 
+
                 Real x = i*dx_lev[0] + real_box.lo(0) + fac_x;
                 Real y = j*dx_lev[1] + real_box.lo(1) + fac_y;
 #if (AMREX_SPACEDIM==2)

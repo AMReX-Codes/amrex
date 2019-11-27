@@ -632,44 +632,44 @@ Laser initialization
     so that it contains at least ``mirror_z_npoints``.
 
 * ``warpx.B_ext_grid_init_style`` (string) optional (default is "default")
-    This parameter determines the type of initialization for the external 
+    This parameter determines the type of initialization for the external
     magnetic field. The "default" style initializes the
     external magnetic field (Bx,By,Bz) to (0.0, 0.0, 0.0).
-    The string can be set to "constant" if a constant magnetic field is 
-    required to be set at initialization. If set to "constant", then an 
-    array for ``warpx.B_external_grid`` must be specified. 
+    The string can be set to "constant" if a constant magnetic field is
+    required to be set at initialization. If set to "constant", then an
+    array for ``warpx.B_external_grid`` must be specified.
     If set to ``parse_B_ext_grid_function``, then a mathematical expression can
-    be used to initialize the external magnetic field on the grid. It 
+    be used to initialize the external magnetic field on the grid. It
     required additional parameters in the input file, namely,
     ``warpx.Bx_external_grid_function(x,y,z)``,
     ``warpx.By_external_grid_function(x,y,z)``,
     ``warpx.Bz_external_grid_function(x,y,z)`` can be used to initialize the external
     magnetic field for each of the three components on the grid.
     Constants required in the expression can be set using ``my_constants``.
-    For example, if ``warpx.Bx_external_grid_function(x,y,z)=Bo*x + delta*(y + z)`` 
+    For example, if ``warpx.Bx_external_grid_function(x,y,z)=Bo*x + delta*(y + z)``
     then the constants `Bo` and `delta` required in the above equation
     can be set using ``my_constants.Bo=`` and ``my_constants.delta=`` in the
-    input file. 
+    input file.
 
 * ``warpx.E_Ext_grid_init_style`` (string) optional (default is "default")
-    This parameter determines the type of initialization for the external 
+    This parameter determines the type of initialization for the external
     electric field. The "default" style initializes the
     external electric field (Ex,Ey,Ez) to (0.0, 0.0, 0.0).
-    The string can be set to "constant" if a constant electric field is 
-    required to be set at initialization. If set to "constant", then an 
-    array for ``warpx.E_external_grid`` must be specified. 
+    The string can be set to "constant" if a constant electric field is
+    required to be set at initialization. If set to "constant", then an
+    array for ``warpx.E_external_grid`` must be specified.
     If set to ``parse_E_ext_grid_function``, then a mathematical expression can
-    be used to initialize the external magnetic field on the grid. It 
+    be used to initialize the external magnetic field on the grid. It
     required additional parameters in the input file, namely,
     ``warpx.Ex_external_grid_function(x,y,z)``,
     ``warpx.Ey_external_grid_function(x,y,z)``,
     ``warpx.Ez_external_grid_function(x,y,z)`` can be used to initialize the external
     magnetic field for each of the three components on the grid.
     Constants required in the expression can be set using ``my_constants``.
-    For example, if ``warpx.Ex_external_grid_function(x,y,z)=Eo*x + delta*(y + z)`` 
+    For example, if ``warpx.Ex_external_grid_function(x,y,z)=Eo*x + delta*(y + z)``
     then the constants `Bo` and `delta` required in the above equation
     can be set using ``my_constants.Eo=`` and ``my_constants.delta=`` in the
-    input file. 
+    input file.
 
 * ``warpx.E_external_grid`` & ``warpx.B_external_grid`` (list of `int`)
     required when ``warpx.B_ext_grid_init_style="parse_B_ext_grid_function"``

@@ -49,7 +49,7 @@ struct ParserWrapper
     : public amrex::Gpu::Managed
 {
     ParserWrapper (WarpXParser const& a_parser) noexcept
-       : m_parser(a_parser) {}    
+       : m_parser(a_parser) {}
 
     ~ParserWrapper() {
        m_parser.clear();
@@ -346,11 +346,11 @@ public:
                    std::array<amrex::Real, 3> const beta = {{0,0,0}} ) const;
 
     // Making this function public to allow the use of GPU launch
-    // to initialize E and B fields using parser. 
+    // to initialize E and B fields using parser.
     void InitLevelData (int lev, amrex::Real time);
 
     void InitializeExternalFieldsOnGridUsingParser (
-           amrex::MultiFab* mfx, amrex::MultiFab *mfy, amrex::MultiFab *mfz, 
+           amrex::MultiFab* mfx, amrex::MultiFab *mfy, amrex::MultiFab *mfz,
 //           ParserWrapper* xField_wrap, ParserWrapper* yField_wrap,
 //           ParserWrapper* zField_wrap,
             const int lev, const bool B_flag);
