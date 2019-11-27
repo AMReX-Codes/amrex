@@ -1,4 +1,3 @@
-
 #include <MultiParticleContainer.H>
 #include <WarpX.H>
 
@@ -172,7 +171,8 @@ PhysicalParticleContainer::ConvertUnits(ConvertDirection convert_direction)
         factor = 1./mass;
     }
 
-    for (int lev=0; lev<=finestLevel(); lev++){
+    const int nLevels = finestLevel();
+    for (int lev=0; lev<=nLevels; lev++){
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
