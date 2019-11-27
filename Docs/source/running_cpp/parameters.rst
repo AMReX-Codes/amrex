@@ -637,13 +637,13 @@ Laser initialization
     external magnetic field (Bx,By,Bz) to (0.0, 0.0, 0.0).
     The string can be set to "constant" if a constant magnetic field is
     required to be set at initialization. If set to "constant", then an
-    array for ``warpx.B_external_grid`` must be specified.
+    additional parameter, namely, ``warpx.B_external_grid`` must be specified.
     If set to ``parse_B_ext_grid_function``, then a mathematical expression can
     be used to initialize the external magnetic field on the grid. It
-    required additional parameters in the input file, namely,
+    requires additional parameters in the input file, namely,
     ``warpx.Bx_external_grid_function(x,y,z)``,
     ``warpx.By_external_grid_function(x,y,z)``,
-    ``warpx.Bz_external_grid_function(x,y,z)`` can be used to initialize the external
+    ``warpx.Bz_external_grid_function(x,y,z)`` to initialize the external
     magnetic field for each of the three components on the grid.
     Constants required in the expression can be set using ``my_constants``.
     For example, if ``warpx.Bx_external_grid_function(x,y,z)=Bo*x + delta*(y + z)``
@@ -657,13 +657,14 @@ Laser initialization
     external electric field (Ex,Ey,Ez) to (0.0, 0.0, 0.0).
     The string can be set to "constant" if a constant electric field is
     required to be set at initialization. If set to "constant", then an
-    array for ``warpx.E_external_grid`` must be specified.
+    additional parameter, namely, ``warpx.E_external_grid`` must be specified
+    in the input file.
     If set to ``parse_E_ext_grid_function``, then a mathematical expression can
     be used to initialize the external magnetic field on the grid. It
     required additional parameters in the input file, namely,
     ``warpx.Ex_external_grid_function(x,y,z)``,
     ``warpx.Ey_external_grid_function(x,y,z)``,
-    ``warpx.Ez_external_grid_function(x,y,z)`` can be used to initialize the external
+    ``warpx.Ez_externail_grid_function(x,y,z)`` to initialize the external
     magnetic field for each of the three components on the grid.
     Constants required in the expression can be set using ``my_constants``.
     For example, if ``warpx.Ex_external_grid_function(x,y,z)=Eo*x + delta*(y + z)``
