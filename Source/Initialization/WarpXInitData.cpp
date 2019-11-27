@@ -415,7 +415,12 @@ WarpX::InitLevelData (int lev, Real time)
                Bfield_aux[lev][i]->setVal(B_external_grid[i]);
                Bfield_cp[lev][i]->setVal(B_external_grid[i]);
             }
-            else if (B_ext_grid_s == "parse_b_ext_grid_function") {
+            if (E_ext_grid_s == "constant" || E_ext_grid_s == " default") {
+               Efield_aux[lev][i]->setVal(E_external_grid[i]);
+               Efield_cp[lev][i]->setVal(E_external_grid[i]);
+            }
+        }
+        if (B_ext_grid_s == "parse_b_ext_grid_function") {
 
                MultiFab *Bx_aux, *By_aux, *Bz_aux;
                Bx_aux = Bfield_aux[lev][0].get();
@@ -436,11 +441,8 @@ WarpX::InitLevelData (int lev, Real time)
                InitializeExternalFieldsOnGridUsingParser(Bx_cp, By_cp,
                                                          Bz_cp, lev, B_flag);
 
-            }
-            if (E_ext_grid_s == "constant" || E_ext_grid_s == " default") {
-               Efield_aux[lev][i]->setVal(E_external_grid[i]);
-               Efield_cp[lev][i]->setVal(E_external_grid[i]);
-            } else if (E_ext_grid_s == "parse_e_ext_grid_function") {
+        }
+        if (E_ext_grid_s == "parse_e_ext_grid_function") {
 
                MultiFab *Ex_aux, *Ey_aux, *Ez_aux;
                Ex_aux = Efield_aux[lev][0].get();
@@ -460,7 +462,6 @@ WarpX::InitLevelData (int lev, Real time)
                InitializeExternalFieldsOnGridUsingParser(Ex_cp, Ey_cp,
                                                          Ez_cp, lev, B_flag);
 
-            }
         }
     }
 
