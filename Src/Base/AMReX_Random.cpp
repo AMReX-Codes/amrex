@@ -15,7 +15,6 @@ namespace
     amrex::Vector<std::mt19937> generators;
 
 #ifdef AMREX_USE_CUDA
-
     // This seems to be a good default value on NVIDIA V100 GPUs
     constexpr int cuda_nstates_default = 1e5;
 
@@ -27,6 +26,8 @@ namespace
     AMREX_GPU_DEVICE int* locks_d_ptr;
     int* locks_h_ptr = nullptr;
 
+    AMREX_GPU_DEVICE unsigned int* n_work_threads_d_ptr;
+    unsigned int* n_work_threads_h_ptr = nullptr;
 #endif
 
 }
@@ -64,33 +65,40 @@ amrex::InitRandom (unsigned long seed, int nprocs)
 
 #ifdef __CUDA_ARCH__
 AMREX_GPU_DEVICE
-int amrex::get_state(int tid)
+int amrex::get_state (int tid)
 {
-  // block size must evenly divide # of RNG states so we cut off the excess states
-  int bsize = blockDim.x * blockDim.y * blockDim.z;
-  int nstates = cuda_nstates - (cuda_nstates % bsize);
-  int i = tid % nstates;
-  if (tid % bsize == 0)
+    // block size must evenly divide # of RNG states so we cut off the excess states
+    int bsize = blockDim.x * blockDim.y * blockDim.z;
+    int nstates = cuda_nstates - (cuda_nstates % bsize);
+    int i = tid % nstates;
+
+    while (true)
     {
-      while (amrex::Gpu::Atomic::CAS(&locks_d_ptr[i],0,1))
+        int r = atomicCAS(&locks_d_ptr[i], -1, blockIdx.x);
+        if ((r == -1) or (r == blockIdx.x))
         {
-          continue;  //Trap 1 thread per block
+            break;
+        }
+        else {
+            continue;
         }
     }
-  __syncthreads(); // Other threads will wait here for master to be freed
-  return i;        // This ensures threads move with block - Important for prevolta
+    atomicInc(&n_work_threads_d_ptr[i], 100000000);
+
+    return i;    
 }
 
 AMREX_GPU_DEVICE
-void amrex::free_state(int tid)
+void amrex::free_state (int tid)
 {
-  int bsize = blockDim.x * blockDim.y * blockDim.z;
-  int nstates = cuda_nstates - (cuda_nstates % bsize);
-  int i = tid % nstates;
-  if (tid % bsize == 0)  // we only locked the master thread state. 
-  {
-        locks_d_ptr[i] = 0;
-  }
+    int bsize = blockDim.x * blockDim.y * blockDim.z;
+    int nstates = cuda_nstates - (cuda_nstates % bsize);
+    int i = tid % nstates;
+
+    if (atomicDec(&n_work_threads_d_ptr[i], 100000000) == 1)
+    {
+        atomicExch(&locks_d_ptr[i], -1);
+    }
 }
 #endif
 
@@ -113,6 +121,7 @@ amrex::RandomNormal (amrex::Real mean, amrex::Real stddev)
 #else
     rand = stddev * curand_normal_double(&states_d_ptr[i]) + mean;
 #endif
+    __threadfence();
     free_state(tid);
 #else
 
@@ -145,8 +154,8 @@ amrex::Random ()
 #else
     rand = curand_uniform_double(&states_d_ptr[i]);
 #endif
+        __threadfence();
     free_state(tid);
-
 #else
 
 #ifdef _OPENMP
@@ -180,6 +189,7 @@ amrex::Random_int (unsigned int N)
     do {
         rand = curand(&states_d_ptr[i]);
     } while (rand > (RAND_M - RAND_M % N));
+    __threadfence();
     free_state(tid);
 
     return rand % N;
@@ -272,10 +282,12 @@ amrex::ResizeRandomSeed (int N)
 
     curandState_t* new_data;
     int* new_mutex;
+    unsigned int* new_work_thread_count;
 
     AMREX_CUDA_SAFE_CALL(cudaMalloc(&new_data, N*sizeof(curandState_t)));
     AMREX_CUDA_SAFE_CALL(cudaMalloc(&new_mutex, N*sizeof(int)));
-
+    AMREX_CUDA_SAFE_CALL(cudaMalloc(&new_work_thread_count, N*sizeof(unsigned int)));
+    
     if (states_h_ptr != nullptr) {
 
         AMREX_ASSERT(locks_h_ptr != nullptr);
@@ -286,13 +298,18 @@ amrex::ResizeRandomSeed (int N)
         AMREX_CUDA_SAFE_CALL(cudaMemcpy(new_mutex, locks_h_ptr,
                                         PrevSize*sizeof(int),
                                         cudaMemcpyDeviceToDevice));
-
+        AMREX_CUDA_SAFE_CALL(cudaMemcpy(new_work_thread_count, n_work_threads_h_ptr,
+                                        PrevSize*sizeof(unsigned int),
+                                        cudaMemcpyDeviceToDevice));
+        
         AMREX_CUDA_SAFE_CALL(cudaFree(states_h_ptr));
         AMREX_CUDA_SAFE_CALL(cudaFree(locks_h_ptr));
+        AMREX_CUDA_SAFE_CALL(cudaFree(n_work_threads_h_ptr));
     }
 
     states_h_ptr = new_data;
     locks_h_ptr = new_mutex;
+    n_work_threads_h_ptr = new_work_thread_count;
     cuda_nstates = N;
 
     AMREX_CUDA_SAFE_CALL(cudaMemcpyToSymbol(states_d_ptr,
@@ -301,6 +318,9 @@ amrex::ResizeRandomSeed (int N)
     AMREX_CUDA_SAFE_CALL(cudaMemcpyToSymbol(locks_d_ptr,
                                             &locks_h_ptr,
                                             sizeof(int *)));
+    AMREX_CUDA_SAFE_CALL(cudaMemcpyToSymbol(n_work_threads_d_ptr,
+                                            &n_work_threads_h_ptr,
+                                            sizeof(unsigned int *)));
 
     const int MyProc = amrex::ParallelDescriptor::MyProc();
     AMREX_PARALLEL_FOR_1D (SizeDiff, idx,
@@ -308,7 +328,8 @@ amrex::ResizeRandomSeed (int N)
         unsigned long seed = MyProc*1234567UL + 12345UL ;
         int seqstart = idx + 10 * idx ;
         int loc = idx + PrevSize;
-        locks_d_ptr[loc] = 0;
+        locks_d_ptr[loc] = -1;
+        n_work_threads_d_ptr[loc] = 0;
         curand_init(seed, seqstart, 0, &states_d_ptr[loc]);
     });
 
@@ -330,6 +351,13 @@ amrex::DeallocateRandomSeedDevArray ()
         cudaFree(locks_h_ptr);
         locks_h_ptr = nullptr;
     }
+
+    if (n_work_threads_h_ptr != nullptr)
+    {
+        cudaFree(n_work_threads_h_ptr);
+        n_work_threads_h_ptr = nullptr;
+    }
+
     cuda_nstates = 0;
 #endif
 }
