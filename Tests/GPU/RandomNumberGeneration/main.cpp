@@ -62,7 +62,28 @@ void RandomNumGen ()
     Gpu::Device::synchronize();
 
     }
- 
+
+    {
+
+    BL_PROFILE_REGION("Draw2");
+
+    auto x_ptr = x.dataPtr();
+    auto y_ptr = y.dataPtr();
+    auto z_ptr = z.dataPtr(); 
+    AMREX_PARALLEL_FOR_1D (Ndraw, idx,
+    {
+        if (idx  == 0)
+        {
+            x_ptr[idx] = amrex::Random();
+            y_ptr[idx] = amrex::Random();
+            z_ptr[idx] = amrex::Random();
+        }
+    });
+   
+    Gpu::Device::synchronize();
+
+    }
+    
     // for (int i = 0; i < Ndraw; i++ )
     // {
     //     amrex::Print() << i << " " << x[i]  << " " << y[i] << " " << z[i]<< "\n";
