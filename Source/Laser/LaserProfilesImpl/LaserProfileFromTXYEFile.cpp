@@ -69,7 +69,8 @@ FromTXYEFileLaserProfile::init (
  */
 void
 FromTXYEFileLaserProfile::fill_amplitude (
-    const int np, Real const * AMREX_RESTRICT const Xp, Real const * AMREX_RESTRICT const Yp,
+    const int np,
+    Real const * AMREX_RESTRICT const Xp, Real const * AMREX_RESTRICT const Yp,
     Real t, Real * AMREX_RESTRICT const amplitude)
 {
     if(t < m_params.t_coords.front() ||  t > m_params.t_coords.back()){
@@ -79,10 +80,22 @@ FromTXYEFileLaserProfile::fill_amplitude (
         return;
     }
 
-    const size_t idx_t_right = std::distance(m_params.t_coords.begin(),
+    size_t idx_t_right;
+
+    if(m_params.is_grid_uniform){
+        const auto t_min = m_params.t_coords.front();
+        const auto t_max = m_params.t_coords.back();
+        idx_t_right = static_cast<size_t>(
+            ceil( (m_params.nt-1)*(t-t_min)/(t_max-t_min)));
+        idx_t_right = min(idx_t_right, m_params.nt-1);
+    }
+    else{
+        const size_t idx_t_right = std::distance(m_params.t_coords.begin(),
         std::upper_bound(m_params.t_coords.begin(),
             m_params.t_coords.end(), t));
-    const size_t idx_t_left = idx_t_right - 1;
+    }
+
+    const size_t idx_t_left = idx_t_right-1;
 
     if(idx_t_left <  m_params.first_time_index){
         Abort("Something bad has happened with the simulation time");
@@ -90,91 +103,26 @@ FromTXYEFileLaserProfile::fill_amplitude (
 
     #pragma omp critical
     {
+        amrex::Print() << "here!" << std::endl;
         if(idx_t_right >  m_params.last_time_index){
             read_data_t_chuck(idx_t_left, idx_t_left+m_params.time_chunk_size);
         }
     }
 
-    //REPLACE
-    // Copy member variables to tmp copies
-    // and get pointers to underlying data for GPU runs.
-    const auto tmp_e_max = m_common_params.e_max;
-    const auto tmp_x_min = m_params.x_coords.front();
-    const auto tmp_x_max = m_params.x_coords.back();
-    const auto tmp_y_min = m_params.y_coords.front();
-    const auto tmp_y_max = m_params.y_coords.back();
-    const auto p_x_coords = m_params.x_coords.dataPtr();
-    const auto tmp_x_coords_size = m_params.x_coords.size();
-    const auto p_y_coords = m_params.y_coords.dataPtr();
-    const auto tmp_y_coords_size = m_params.y_coords.size();
-    const auto p_E_data = m_params.E_data.dataPtr();
-    const auto tmp_t_left = m_params.t_coords[idx_t_left];
-    const auto tmp_t_right = m_params.t_coords[idx_t_right];
-    const auto tmp_idx_first_time = m_params.first_time_index;
-    // Loop through the macroparticle to calculate the proper amplitude
-
-    amrex::ParallelFor(
-        np,
-        [=] AMREX_GPU_DEVICE (int i) {
-            if (Xp[i] <= tmp_x_min || Xp[i] >= tmp_x_max){
-                amplitude[i] = 0.0_rt;
-                return;
-            }
-#if (AMREX_SPACEDIM == 3)
-            if (Yp[i] <= tmp_y_min || Yp[i] >= tmp_y_max){
-                amplitude[i] = 0.0_rt;
-                return;
-            }
-#endif
-            auto const p_x_right = WarpXUtilAlgo::upper_bound(
-                    p_x_coords, p_x_coords+tmp_x_coords_size, Xp[i]);
-            const size_t idx_x_right = p_x_right - p_x_coords;
-            const size_t idx_x_left = idx_x_right - 1;
-
-#if (AMREX_SPACEDIM == 2)
-            auto idx = [=](int i, int j){
-                return (i-tmp_idx_first_time) * tmp_x_coords_size + j;
-            };
-            amplitude[i] = WarpXUtilAlgo::bilinear_interp(
-                tmp_t_left, tmp_t_right,
-                p_x_coords[idx_x_left], p_x_coords[idx_x_right],
-                p_E_data[idx(idx_t_left, idx_x_left)],
-                p_E_data[idx(idx_t_left, idx_x_right)],
-                p_E_data[idx(idx_t_right, idx_x_left)],
-                p_E_data[idx(idx_t_right, idx_x_right)],
-                t, Xp[i])*tmp_e_max;
-
-#elif (AMREX_SPACEDIM == 3)
-            auto const p_y_right = WarpXUtilAlgo::upper_bound(
-                p_y_coords, p_y_coords+tmp_y_coords_size, Yp[i]);
-            const size_t idx_y_right = p_y_right - p_y_coords;
-            const size_t idx_y_left = idx_y_right - 1;
-            auto idx = [=](int i, int j, int k){
-                return
-                    (i-tmp_idx_first_time)*tmp_x_coords_size*tmp_y_coords_size+
-                    j*tmp_y_coords_size + k;
-            };
-            amplitude[i] = WarpXUtilAlgo::trilinear_interp(
-                tmp_t_left, tmp_t_right,
-                p_x_coords[idx_x_left], p_x_coords[idx_x_right],
-                p_y_coords[idx_y_left], p_y_coords[idx_y_right],
-                p_E_data[idx(idx_t_left, idx_x_left, idx_y_left)],
-                p_E_data[idx(idx_t_left, idx_x_left, idx_y_right)],
-                p_E_data[idx(idx_t_left, idx_x_right, idx_y_left)],
-                p_E_data[idx(idx_t_left, idx_x_right, idx_y_right)],
-                p_E_data[idx(idx_t_right, idx_x_left, idx_y_left)],
-                p_E_data[idx(idx_t_right, idx_x_left, idx_y_right)],
-                p_E_data[idx(idx_t_right, idx_x_right, idx_y_left)],
-                p_E_data[idx(idx_t_right, idx_x_right, idx_y_right)],
-                t, Xp[i], Yp[i])*tmp_e_max;
-#endif
-        }
-    );
+    if(m_params.is_grid_uniform){
+        internal_fill_amplitude_uniform(
+            idx_t_left, np, Xp, Yp, t, amplitude);
+    }
+    else{
+        internal_fill_amplitude_nonuniform(
+            idx_t_left, np, Xp, Yp, t, amplitude);
+    }
 }
 
 /* \brief parse a field file in the binary 'txye' format (whose details are given below).
  *
  * A 'txye' file should be a binary file with the following format:
+ * -flag to indicate if the grid is uniform or not (1 byte, 0 means non-uniform, !=0 means uniform)
  * -number_of_timesteps (uint32_t)
  * -number_of_x_coords (uint32_t)
  * -number_of_y_coords (uint32_t, must be 1 for 2D simulations and >=2 for 3D simulations)
@@ -183,7 +131,7 @@ FromTXYEFileLaserProfile::fill_amplitude (
  * -y_coords (double[number_of_y_coords])
  * -field_data (double[number_of_timesteps * number_of_x_coords * number_of_y_coords],
  * -with number_of_timesteps being the slowest coordinate).
- * The spatiotemporal grid must be rectangular, but it can be non-uniform.
+ * The spatiotemporal grid must be rectangular.
  * This function parses the file and loads the coordinates
  *
  * \param txye_file_name: name of the file to parse
@@ -191,50 +139,67 @@ FromTXYEFileLaserProfile::fill_amplitude (
 void
 FromTXYEFileLaserProfile::parse_txye_file(std::string txye_file_name)
 {
-    size_t nt, nx, ny;
     if(ParallelDescriptor::IOProcessor()){
         std::ifstream inp(txye_file_name, std::ios::binary);
         if(!inp) Abort("Failed to open txye file");
+
+        char flag;
+        inp.read(&flag, 1);
+        if(!inp) Abort("Failed to read sizes from txye file");
+        m_params.is_grid_uniform=flag;
 
         auto const three_uint32_size = sizeof(uint32_t)*3;
         char buf[three_uint32_size];
         inp.read(buf, three_uint32_size);
         if(!inp) Abort("Failed to read sizes from txye file");
-        nt = reinterpret_cast<uint32_t*>(buf)[0];
-        nx = reinterpret_cast<uint32_t*>(buf)[1];
-        ny = reinterpret_cast<uint32_t*>(buf)[2];
+        m_params.nt = reinterpret_cast<uint32_t*>(buf)[0];
+        m_params.nx = reinterpret_cast<uint32_t*>(buf)[1];
+        m_params.ny = reinterpret_cast<uint32_t*>(buf)[2];
 
-        Vector<double> buf_t(nt);
-        Vector<double> buf_x(nx);
-        Vector<double> buf_y(ny);
+#if (AMREX_SPACEDIM == 3)
+        if(m_params.ny <= 1) Abort("ny in txye file must be >=2 in 3D");
+#elif(AMREX_SPACEDIM == 2)
+        if(m_params.ny != 1) Abort("ny in txye file must be 1 in 2D");
+#endif
 
-        inp.read(reinterpret_cast<char*>(buf_t.dataPtr()), nt*sizeof(double));
+        Vector<double> buf_t, buf_x, buf_y;
+        if(m_params.is_grid_uniform){
+            buf_t.resize(2);
+            buf_x.resize(2);
+#if (AMREX_SPACEDIM == 3)
+            buf_y.resize(2);
+#elif(AMREX_SPACEDIM == 2)
+            buf_y.resize(1);
+#endif
+        }
+        else{
+            buf_t.resize(m_params.nt);
+            buf_x.resize(m_params.nx);
+            buf_y.resize(m_params.ny);
+        }
+
+        inp.read(reinterpret_cast<char*>(buf_t.dataPtr()),
+            buf_t.size()*sizeof(double));
         if(!inp)
             Abort("Failed to read coords from txye file");
         if (!std::is_sorted(buf_t.begin(), buf_t.end()))
             Abort("Coordinates are not sorted  in txye file");
-        inp.read(reinterpret_cast<char*>(buf_x.dataPtr()), nx*sizeof(double));
+        inp.read(reinterpret_cast<char*>(buf_x.dataPtr()),
+            buf_x.size()*sizeof(double));
         if(!inp)
             Abort("Failed to read coords from txye file");
         if (!std::is_sorted(buf_x.begin(), buf_x.end()))
             Abort("Coordinates are not sorted  in txye file");
-        inp.read(reinterpret_cast<char*>(buf_y.dataPtr()), ny*sizeof(double));
+        inp.read(reinterpret_cast<char*>(buf_y.dataPtr()),
+            buf_y.size()*sizeof(double));
         if(!inp)
             Abort("Failed to read coords from txye file");
         if (!std::is_sorted(buf_y.begin(), buf_y.end()))
             Abort("Coordinates are not sorted in txye file");
 
-#if (AMREX_SPACEDIM == 3)
-        if(ny <= 1) Abort("ny in txye file must be >=2 in 3D");
-#endif
-
-#if (AMREX_SPACEDIM == 2)
-        if(ny != 1) Abort("ny in txye file must be 1 in 2D");
-#endif
-
-        m_params.t_coords = Gpu::ManagedVector<amrex::Real>(nt);
-        m_params.x_coords = Gpu::ManagedVector<amrex::Real>(nx);
-        m_params.y_coords = Gpu::ManagedVector<amrex::Real>(ny);
+        m_params.t_coords = Gpu::ManagedVector<amrex::Real>(buf_t.size());
+        m_params.x_coords = Gpu::ManagedVector<amrex::Real>(buf_x.size());
+        m_params.y_coords = Gpu::ManagedVector<amrex::Real>(buf_y.size());
 
         std::transform(buf_t.begin(), buf_t.end(), m_params.t_coords.begin(),
             [](auto x) {return static_cast<amrex::Real>(x);} );
@@ -244,16 +209,25 @@ FromTXYEFileLaserProfile::parse_txye_file(std::string txye_file_name)
             [](auto x) {return static_cast<amrex::Real>(x);} );
     }
 
-    size_t t_sizes[3] = {nt, nx, ny};
-    ParallelDescriptor::Bcast(t_sizes, 3,
+    char is_grid_uniform = m_params.is_grid_uniform;
+    ParallelDescriptor::Bcast(&is_grid_uniform, 1,
         ParallelDescriptor::IOProcessorNumber());
     ParallelDescriptor::Barrier();
-    nt = t_sizes[0]; nx = t_sizes[1]; ny = t_sizes[2];
+    m_params.is_grid_uniform = is_grid_uniform;
+
+    size_t t_sizes[6] = {m_params.nt, m_params.nx, m_params.ny,
+        m_params.t_coords.size(),
+        m_params.x_coords.size(),
+        m_params.y_coords.size()};
+    ParallelDescriptor::Bcast(t_sizes, 6,
+        ParallelDescriptor::IOProcessorNumber());
+    ParallelDescriptor::Barrier();
+    m_params.nt = t_sizes[0]; m_params.nx = t_sizes[1]; m_params.ny = t_sizes[2];
 
     if(!ParallelDescriptor::IOProcessor()){
-        m_params.t_coords = Gpu::ManagedVector<amrex::Real>(nt);
-        m_params.x_coords = Gpu::ManagedVector<amrex::Real>(nx);
-        m_params.y_coords = Gpu::ManagedVector<amrex::Real>(ny);
+        m_params.t_coords = Gpu::ManagedVector<amrex::Real>(t_sizes[3]);
+        m_params.x_coords = Gpu::ManagedVector<amrex::Real>(t_sizes[4]);
+        m_params.y_coords = Gpu::ManagedVector<amrex::Real>(t_sizes[5]);
     }
 
     ParallelDescriptor::Bcast(m_params.t_coords.dataPtr(),
@@ -287,7 +261,8 @@ FromTXYEFileLaserProfile::read_data_t_chuck(size_t t_begin, size_t t_end)
         std::ifstream inp(m_params.txye_file_name, std::ios::binary);
         if(!inp) Abort("Failed to open txye file");
 
-        size_t skip_amount = 3*sizeof(uint32_t) +
+        size_t skip_amount = 1 +
+            3*sizeof(uint32_t) +
             m_params.t_coords.size()*sizeof(double) +
             m_params.x_coords.size()*sizeof(double) +
             m_params.y_coords.size()*sizeof(double) +
@@ -311,4 +286,202 @@ FromTXYEFileLaserProfile::read_data_t_chuck(size_t t_begin, size_t t_end)
 
     m_params.first_time_index = i_first;
     m_params.last_time_index = i_last;
+}
+
+/* \brief Private function to fill the amplitude in case of a uniform grid
+ *
+ * \param idx_t_left index of the last time coordinate < t
+ * \param np: number of laser particles
+ * \param Xp: pointer to first component of positions of laser particles
+ * \param Yp: pointer to second component of positions of laser particles
+ * \param t: Current physical time
+ * \param amplitude: pointer to array of field amplitude.
+ */
+void
+FromTXYEFileLaserProfile::internal_fill_amplitude_uniform(
+    const size_t idx_t_left,
+    const int np,
+    Real const * AMREX_RESTRICT const Xp, Real const * AMREX_RESTRICT const Yp,
+    Real t, Real * AMREX_RESTRICT const amplitude)
+{
+    // Copy member variables to tmp copies
+    // and get pointers to underlying data for GPU.
+    const auto tmp_e_max = m_common_params.e_max;
+    const auto tmp_x_min = m_params.x_coords.front();
+    const auto tmp_x_max = m_params.x_coords.back();
+    const auto tmp_y_min = m_params.y_coords.front();
+    const auto tmp_y_max = m_params.y_coords.back();
+    const auto tmp_nx = m_params.nx;
+    const auto p_E_data = m_params.E_data.dataPtr();
+    const auto tmp_idx_first_time = m_params.first_time_index;
+    const size_t idx_t_right = idx_t_left+1;
+    const auto t_left = idx_t_left*
+        (m_params.t_coords.back()-m_params.t_coords.front())/(m_params.nt-1) +
+        m_params.t_coords.front();
+    const auto t_right = idx_t_right*
+        (m_params.t_coords.back()-m_params.t_coords.front())/(m_params.nt-1) +
+        m_params.t_coords.front();
+
+    // Loop through the macroparticle to calculate the proper amplitude
+    amrex::ParallelFor(
+    np,
+    [=] AMREX_GPU_DEVICE (int i) {
+        if (Xp[i] <= tmp_x_min || Xp[i] >= tmp_x_max){
+            amplitude[i] = 0.0_rt;
+            return;
+        }
+#if (AMREX_SPACEDIM == 3)
+        if (Yp[i] <= tmp_y_min || Yp[i] >= tmp_y_max){
+            amplitude[i] = 0.0_rt;
+            return;
+        }
+#endif
+        const size_t temp_idx_x_right = static_cast<size_t>(
+            ceil((tmp_nx-1)*(Xp[i]- tmp_x_min)/(tmp_x_max-tmp_x_min)));
+        const size_t idx_x_right =
+            max(min(temp_idx_x_right,tmp_nx-1),static_cast<size_t>(1));
+        const size_t idx_x_left = idx_x_right - 1;
+        const auto x_0 =
+            idx_x_left*(tmp_x_max-tmp_x_min)/(tmp_nx-1) + tmp_x_min;
+        const auto x_1 =
+            idx_x_right*(tmp_x_max-tmp_x_min)/(tmp_nx-1) + tmp_x_min;
+
+#if (AMREX_SPACEDIM == 2)
+        auto idx = [=](int i, int j){
+            return (i-tmp_idx_first_time) * tmp_nx + j;
+        };
+        amplitude[i] = WarpXUtilAlgo::bilinear_interp(
+            t_left, t_right,
+            x_0, x_1,
+            p_E_data[idx(idx_t_left, idx_x_left)],
+            p_E_data[idx(idx_t_left, idx_x_right)],
+            p_E_data[idx(idx_t_right, idx_x_left)],
+            p_E_data[idx(idx_t_right, idx_x_right)],
+            t, Xp[i])*tmp_e_max;
+
+#elif (AMREX_SPACEDIM == 3)
+        const size_t temp_idx_y_right = static_cast<size_t>(
+            ceil((tmp_ny-1)*(Yp[i]- tmp_y_min)/(tmp_y_max-tmp_y_min)));
+        const size_t idx_y_right =
+            max(min(temp_idx_y_right,tmp_ny-1),static_cast<size_t>(1));
+        const size_t idx_y_left = idx_y_right - 1;
+        const auto y_0 =
+            idx_y_left*(tmp_y_max-tmp_y_min)/(tmp_ny-1) + tmp_y_min;
+        const auto y_1 =
+            idx_y_right*(tmp_y_max-tmp_y_min)/(tmp_ny-1) + tmp_y_min;
+
+        auto idx = [=](int i, int j, int k){
+            return
+                (i-tmp_idx_first_time)*tmp_nx*tmp_ny+
+                j*tmp_ny + k;
+        };
+        amplitude[i] = WarpXUtilAlgo::trilinear_interp(
+            t_left, t_right,
+            x0, x1,
+            y0, y1,
+            p_E_data[idx(idx_t_left, idx_x_left, idx_y_left)],
+            p_E_data[idx(idx_t_left, idx_x_left, idx_y_right)],
+            p_E_data[idx(idx_t_left, idx_x_right, idx_y_left)],
+            p_E_data[idx(idx_t_left, idx_x_right, idx_y_right)],
+            p_E_data[idx(idx_t_right, idx_x_left, idx_y_left)],
+            p_E_data[idx(idx_t_right, idx_x_left, idx_y_right)],
+            p_E_data[idx(idx_t_right, idx_x_right, idx_y_left)],
+            p_E_data[idx(idx_t_right, idx_x_right, idx_y_right)],
+            t, Xp[i], Yp[i])*tmp_e_max;
+#endif
+        }
+    );
+}
+
+/* \brief Private function to fill the amplitude in case of a non-uniform grid
+ *
+ * \param idx_t_left index of the last time coordinate < t
+ * \param np: number of laser particles
+ * \param Xp: pointer to first component of positions of laser particles
+ * \param Yp: pointer to second component of positions of laser particles
+ * \param t: Current physical time
+ * \param amplitude: pointer to array of field amplitude.
+ */
+void
+FromTXYEFileLaserProfile::internal_fill_amplitude_nonuniform(
+    const size_t idx_t_left,
+    const int np,
+    Real const * AMREX_RESTRICT const Xp, Real const * AMREX_RESTRICT const Yp,
+    Real t, Real * AMREX_RESTRICT const amplitude)
+{
+    // Copy member variables to tmp copies
+    // and get pointers to underlying data for GPU.
+    const auto tmp_e_max = m_common_params.e_max;
+    const auto tmp_x_min = m_params.x_coords.front();
+    const auto tmp_x_max = m_params.x_coords.back();
+    const auto tmp_y_min = m_params.y_coords.front();
+    const auto tmp_y_max = m_params.y_coords.back();
+    const auto p_x_coords = m_params.x_coords.dataPtr();
+    const auto tmp_x_coords_size = m_params.x_coords.size();
+    const auto p_y_coords = m_params.y_coords.dataPtr();
+    const auto tmp_y_coords_size = m_params.y_coords.size();
+    const auto p_E_data = m_params.E_data.dataPtr();
+    const auto tmp_idx_first_time = m_params.first_time_index;
+    const size_t idx_t_right = idx_t_left+1;
+    const auto t_left = m_params.t_coords[idx_t_left];
+    const auto t_right = m_params.t_coords[idx_t_right];
+
+    // Loop through the macroparticle to calculate the proper amplitude
+    amrex::ParallelFor(
+    np,
+    [=] AMREX_GPU_DEVICE (int i) {
+        if (Xp[i] <= tmp_x_min || Xp[i] >= tmp_x_max){
+            amplitude[i] = 0.0_rt;
+            return;
+        }
+#if (AMREX_SPACEDIM == 3)
+        if (Yp[i] <= tmp_y_min || Yp[i] >= tmp_y_max){
+            amplitude[i] = 0.0_rt;
+            return;
+        }
+#endif
+        auto const p_x_right = WarpXUtilAlgo::upper_bound(
+                p_x_coords, p_x_coords+tmp_x_coords_size, Xp[i]);
+        const size_t idx_x_right = p_x_right - p_x_coords;
+        const size_t idx_x_left = idx_x_right - 1;
+
+#if (AMREX_SPACEDIM == 2)
+        auto idx = [=](int i, int j){
+            return (i-tmp_idx_first_time) * tmp_x_coords_size + j;
+        };
+        amplitude[i] = WarpXUtilAlgo::bilinear_interp(
+            t_left, t_right,
+            p_x_coords[idx_x_left], p_x_coords[idx_x_right],
+            p_E_data[idx(idx_t_left, idx_x_left)],
+            p_E_data[idx(idx_t_left, idx_x_right)],
+            p_E_data[idx(idx_t_right, idx_x_left)],
+            p_E_data[idx(idx_t_right, idx_x_right)],
+            t, Xp[i])*tmp_e_max;
+
+#elif (AMREX_SPACEDIM == 3)
+        auto const p_y_right = WarpXUtilAlgo::upper_bound(
+            p_y_coords, p_y_coords+tmp_y_coords_size, Yp[i]);
+        const size_t idx_y_right = p_y_right - p_y_coords;
+        const size_t idx_y_left = idx_y_right - 1;
+        auto idx = [=](int i, int j, int k){
+            return
+                (i-tmp_idx_first_time)*tmp_x_coords_size*tmp_y_coords_size+
+                j*tmp_y_coords_size + k;
+        };
+        amplitude[i] = WarpXUtilAlgo::trilinear_interp(
+            t_left, t_right,
+            p_x_coords[idx_x_left], p_x_coords[idx_x_right],
+            p_y_coords[idx_y_left], p_y_coords[idx_y_right],
+            p_E_data[idx(idx_t_left, idx_x_left, idx_y_left)],
+            p_E_data[idx(idx_t_left, idx_x_left, idx_y_right)],
+            p_E_data[idx(idx_t_left, idx_x_right, idx_y_left)],
+            p_E_data[idx(idx_t_left, idx_x_right, idx_y_right)],
+            p_E_data[idx(idx_t_right, idx_x_left, idx_y_left)],
+            p_E_data[idx(idx_t_right, idx_x_left, idx_y_right)],
+            p_E_data[idx(idx_t_right, idx_x_right, idx_y_left)],
+            p_E_data[idx(idx_t_right, idx_x_right, idx_y_right)],
+            t, Xp[i], Yp[i])*tmp_e_max;
+#endif
+        }
+    );
 }
