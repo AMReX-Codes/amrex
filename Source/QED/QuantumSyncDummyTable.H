@@ -14,14 +14,14 @@ namespace QedUtils{
 const struct //QuantumSyncEngineInnardsDummy
 {
     picsar::multi_physics::quantum_synchrotron_engine_ctrl<amrex::Real> ctrl{
-        0.001, //chi_part_min
-        0.001, //chi_part_tdndt_min
-        200, //chi_part_tdndt_max
-        64, //chi_part_tdndt_how_many
-        0.001, //chi_part_tem_min
-        200, //chi_part_tem_max
-        2, //chi_part_tem_how_many
-        2 //prob_tem_how_many
+        0.001, /*chi_part_min*/
+        0.001, /*chi_part_tdndt_min*/
+        200, /*chi_part_tdndt_max*/
+        64, /*chi_part_tdndt_how_many*/
+        0.001, /*chi_part_tem_min*/
+        200, /*chi_part_tem_max*/
+        2, /*chi_part_tem_how_many*/
+        2 /*prob_tem_how_many*/
     };
     std::vector<amrex::Real> KKfunc_coords{
         -6.907755279, -6.714008094, -6.520260909, -6.326513724,

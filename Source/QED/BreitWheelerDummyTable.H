@@ -14,14 +14,14 @@ namespace QedUtils{
 const struct //BreitWheelerEngineInnardsDummy
 {
     picsar::multi_physics::breit_wheeler_engine_ctrl<amrex::Real> ctrl{
-        0.001, //chi_phot_min
-        0.1, //chi_phot_tdndt_min
-        200, //chi_phot_tdndt_max
-        64, //chi_phot_tdndt_how_many
-        0.01, //chi_phot_tpair_min
-        200, //chi_phot_tpair_max
-        2, //chi_phot_tpair_how_many
-        2, //chi_frac_tpair_how_many
+        0.001, /*chi_phot_min*/
+        0.1, /*chi_phot_tdndt_min*/
+        200, /*chi_phot_tdndt_max*/
+        64, /*chi_phot_tdndt_how_many*/
+        0.01, /*chi_phot_tpair_min*/
+        200, /*chi_phot_tpair_max*/
+        2, /*chi_phot_tpair_how_many*/
+        2 /*chi_frac_tpair_how_many*/
     };
     std::vector<amrex::Real> TTfunc_coords{
         -2.302585093, -2.181935848, -2.061286602, -1.940637357,
