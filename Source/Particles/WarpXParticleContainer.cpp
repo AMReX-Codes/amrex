@@ -1,4 +1,3 @@
-
 #include <limits>
 
 #include <MultiParticleContainer.H>
@@ -122,7 +121,6 @@ WarpXParticleContainer::ReadParameters ()
 #endif
         pp.query("do_tiling",  do_tiling);
         pp.query("do_not_push", do_not_push);
-        pp.query("do_not_deposit", do_not_deposit);
 
         initialized = true;
     }
@@ -632,7 +630,8 @@ Real WarpXParticleContainer::sumParticleCharge(bool local) {
 
     amrex::Real total_charge = 0.0;
 
-    for (int lev = 0; lev < finestLevel(); ++lev)
+    const int nLevels = finestLevel();
+    for (int lev = 0; lev < nLevels; ++lev)
     {
 
 #ifdef _OPENMP
@@ -662,7 +661,8 @@ std::array<Real, 3> WarpXParticleContainer::meanParticleVelocity(bool local) {
 
     amrex::Real inv_clight_sq = 1.0/PhysConst::c/PhysConst::c;
 
-    for (int lev = 0; lev <= finestLevel(); ++lev) {
+    const int nLevels = finestLevel();
+    for (int lev = 0; lev <= nLevels; ++lev) {
 
 #ifdef _OPENMP
 #pragma omp parallel reduction(+:vx_total, vy_total, vz_total, np_total)
@@ -706,7 +706,8 @@ Real WarpXParticleContainer::maxParticleVelocity(bool local) {
 
     amrex::ParticleReal max_v = 0.0;
 
-    for (int lev = 0; lev <= finestLevel(); ++lev)
+    const int nLevels = finestLevel();
+    for (int lev = 0; lev <= nLevels; ++lev)
     {
 
 #ifdef _OPENMP
@@ -732,7 +733,7 @@ WarpXParticleContainer::PushXES (Real dt)
 {
     BL_PROFILE("WPC::PushXES()");
 
-    int num_levels = finestLevel() + 1;
+    const int num_levels = finestLevel() + 1;
 
     for (int lev = 0; lev < num_levels; ++lev) {
         const auto& gm = m_gdb->Geom(lev);
@@ -761,7 +762,8 @@ WarpXParticleContainer::PushXES (Real dt)
 void
 WarpXParticleContainer::PushX (Real dt)
 {
-    for (int lev = 0; lev <= finestLevel(); ++lev) {
+    const int nLevels = finestLevel();
+    for (int lev = 0; lev <= nLevels; ++lev) {
         PushX(lev, dt);
     }
 }
