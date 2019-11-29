@@ -1,4 +1,3 @@
-
 #include <WarpX.H>
 #include <AMReX_BLProfiler.H>
 
@@ -12,7 +11,8 @@ WarpX::LoadBalance ()
 
     AMREX_ALWAYS_ASSERT(costs[0] != nullptr);
 
-    for (int lev = 0; lev <= finestLevel(); ++lev)
+    const int nLevels = finestLevel();
+    for (int lev = 0; lev <= nLevels; ++lev)
     {
         const Real nboxes = costs[lev]->size();
         const Real nprocs = ParallelDescriptor::NProcs();

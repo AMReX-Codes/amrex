@@ -224,6 +224,18 @@ Particle initialization
     initialization. This can be required whith a moving window and/or when
     running in a boosted frame.
 
+* ``<species_name>.initialize_self_fields`` (`0` or `1`)
+    Whether to calculate the space-charge fields associated with this species
+    at the beginning of the simulation.
+
+* ``<species_name>.self_fields_required_precision`` (`float`, default: 1.e-11)
+    The relative precision with which the initial space-charge fields should
+    be calculated. More specifically, the initial space-charge fields are
+    computed with an iterative Multi-Level Multi-Grid (MLMG) solver.
+    For highly-relativistic beams, this solver can fail to reach the default
+    precision within a reasonable time ; in that case, users can set a
+    relaxed precision requirement through ``self_fields_required_precision``.
+
 * ``<species_name>.profile`` (`string`)
     Density profile for this species. The options are:
 
@@ -363,6 +375,10 @@ Particle initialization
     Splitting technique. When `0`, particles are split along the simulation
     axes (4 particles in 2D, 6 particles in 3D). When `1`, particles are split
     along the diagonals (4 particles in 2D, 8 particles in 3D).
+
+* ``<species_name>.do_not_deposit`` (`0` or `1` optional; default `0`)
+    If `1` is given, both charge deposition and current deposition will
+    not be done, thus that species does not contribute to the fields.
 
 * ``<species>.plot_species`` (`0` or `1` optional; default `1`)
     Whether to plot particle quantities for this species.
