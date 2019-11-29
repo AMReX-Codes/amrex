@@ -1,6 +1,7 @@
 #include "BreitWheelerEngineWrapper.H"
 
 #include "QedTableParserHelperFunctions.H"
+#include "BreitWheelerDummyTable.H"
 
 #include <utility>
 
@@ -140,6 +141,28 @@ BreitWheelerEngine::init_lookup_tables_from_raw_data (
     return true;
 }
 
+void BreitWheelerEngine::init_dummy_tables()
+{
+    m_innards.ctrl = QedUtils::BreitWheelerEngineInnardsDummy.ctrl;
+    m_innards.TTfunc_coords.assign(
+        QedUtils::BreitWheelerEngineInnardsDummy.TTfunc_coords.begin(),
+        QedUtils::BreitWheelerEngineInnardsDummy.TTfunc_coords.end());
+    m_innards.TTfunc_data.assign(
+        QedUtils::BreitWheelerEngineInnardsDummy.TTfunc_data.begin(),
+        QedUtils::BreitWheelerEngineInnardsDummy.TTfunc_data.end());
+    m_innards.cum_distrib_coords_1.assign(
+        QedUtils::BreitWheelerEngineInnardsDummy.cum_distrib_coords_1.begin(),
+        QedUtils::BreitWheelerEngineInnardsDummy.cum_distrib_coords_1.end());
+    m_innards.cum_distrib_coords_2.assign(
+        QedUtils::BreitWheelerEngineInnardsDummy.cum_distrib_coords_2.begin(),
+        QedUtils::BreitWheelerEngineInnardsDummy.cum_distrib_coords_2.end());
+    m_innards.cum_distrib_data.assign(
+        QedUtils::BreitWheelerEngineInnardsDummy.cum_distrib_data.begin(),
+        QedUtils::BreitWheelerEngineInnardsDummy.cum_distrib_data.end());
+
+    m_lookup_tables_initialized = true;
+}
+
 Vector<char> BreitWheelerEngine::export_lookup_tables_data () const
 {
    Vector<char> res{};
@@ -174,6 +197,12 @@ PicsarBreitWheelerCtrl
 BreitWheelerEngine::get_default_ctrl() const
 {
     return PicsarBreitWheelerCtrl();
+}
+
+const PicsarBreitWheelerCtrl&
+BreitWheelerEngine::get_ref_ctrl() const
+{
+    return m_innards.ctrl;
 }
 
 void BreitWheelerEngine::compute_lookup_tables (
