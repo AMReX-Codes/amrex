@@ -54,8 +54,18 @@ FromTXYEFileLaserProfile::init (
     m_common_params = params;
 }
 
-/* \brief compute [...]
+/* \brief compute field amplitude at particles' position for a laser beam
+ * loaded from an E(x,y,t) file.
  *
+ * Both Xp and Yp are given in laser plane coordinate.
+ * For each particle with position Xp and Yp, this routine computes the
+ * amplitude of the laser electric field, stored in array amplitude.
+ *
+ * \param np: number of laser particles
+ * \param Xp: pointer to first component of positions of laser particles
+ * \param Yp: pointer to second component of positions of laser particles
+ * \param t: Current physical time
+ * \param amplitude: pointer to array of field amplitude.
  */
 void
 FromTXYEFileLaserProfile::fill_amplitude (
@@ -162,6 +172,22 @@ FromTXYEFileLaserProfile::fill_amplitude (
     );
 }
 
+/* \brief parse a field file in the binary 'txye' format (whose details are given below).
+ *
+ * A 'txye' file should be a binary file with the following format:
+ * -number_of_timesteps (uint32_t)
+ * -number_of_x_coords (uint32_t)
+ * -number_of_y_coords (uint32_t, must be 1 for 2D simulations and >=2 for 3D simulations)
+ * -timesteps (double[number_of_timesteps])
+ * -x_coords (double[number_of_x_coords])
+ * -y_coords (double[number_of_y_coords])
+ * -field_data (double[number_of_timesteps * number_of_x_coords * number_of_y_coords],
+ * -with number_of_timesteps being the slowest coordinate).
+ * The spatiotemporal grid must be rectangular, but it can be non-uniform.
+ * This function parses the file and loads the coordinates
+ *
+ * \param txye_file_name: name of the file to parse
+ */
 void
 FromTXYEFileLaserProfile::parse_txye_file(std::string txye_file_name)
 {
@@ -239,6 +265,13 @@ FromTXYEFileLaserProfile::parse_txye_file(std::string txye_file_name)
     ParallelDescriptor::Barrier();
 }
 
+/* \brief Load field data within the temporal range [t_begin, t_end)
+ *
+ * Must be called after having parsed a data file with parse_txye_file.
+ *
+ * \param t_begin: left limit of the timestep range to read
+ * \param t_end: right limit of the timestep range to read (t_end is not read)
+ */
 void
 FromTXYEFileLaserProfile::read_data_t_chuck(size_t t_begin, size_t t_end)
 {
