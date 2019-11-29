@@ -94,7 +94,6 @@ qed_qs.lookup_table_mode = "dummy_builtin"
 
 #qed_qs.lookup_table_mode = "generate"
 #qed_qs.chi_min = 0.001
-#qed_qs.generate_table = 1
 #qed_qs.tab_dndt_chi_min = 0.001
 #qed_qs.tab_dndt_chi_max = 200
 #qed_qs.tab_dndt_how_many = 32
