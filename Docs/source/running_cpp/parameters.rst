@@ -429,15 +429,19 @@ Particle initialization
 
 * ``<species>.do_qed`` (`int`) optional (default `0`)
     If `<species>.do_qed = 0` all the QED effects are disabled for this species.
-    If `<species>.do_qed = 1` QED effects can be enabled for this species (see below)
+    If `<species>.do_qed = 1` QED effects can be enabled for this species (see below).
     **Implementation of this feature is in progress. It requires to compile with QED=TRUE**
 
 * ``<species>.do_qed_quantum_sync`` (`int`) optional (default `0`)
     It only works if `<species>.do_qed = 1`. Enables Quantum synchrotron emission for this species.
+    Quantum synchrotron lookup table should be either generated or loaded from disk to enable
+    this process (see "Lookup tables for QED modules" section below).
     **Implementation of this feature is in progress. It requires to compile with QED=TRUE**
 
 * ``<species>.do_qed_breit_wheeler`` (`int`) optional (default `0`)
     It only works if `<species>.do_qed = 1`. Enables non-linear Breit-Wheeler process for this species.
+    Breit-Wheeler lookup table should be either generated or loaded from disk to enable
+    this process (see "Lookup tables for QED modules" section below).
     **Implementation of this feature is in progress. It requires to compile with QED=TRUE**
 
 * ``warpx.E_external_particle`` & ``warpx.B_external_particle`` (list of `float`) optional (default `0. 0. 0.`)
@@ -969,6 +973,85 @@ Diagnostics and output
     copied from the full back-transformed diagnostic to the reduced
     slice diagnostic if there are within the user-defined width from
     the slice region defined by ``slice.dom_lo`` and ``slice.dom_hi``.
+
+Lookup tables for QED modules (implementation in progress)
+----------------------------------------------------------
+Lookup tables store pre-computed values for functions used by the QED modules.
+**Implementation of this feature is in progress. It requires to compile with QED=TRUE**
+
+* ``qed_bw.lookup_table_mode`` (`string`)
+    There are three options to prepare the lookup table required by the Breit-Wheeler module:
+
+    * ``dummy_builtin``:  a built-in table is used (Warning: the quality of the table is very low,
+      so this option has to be used only for test purposes).
+
+    * ``generate``: a new table is generated. This option requires Boost math library
+      (version >= 1.67) and to compile with QED_TABLE_GEN=TRUE. All
+      the following parameters must be specified:
+
+        * ``qed_bw.chi_min`` (`float`): minimum chi parameter to be considered by the engine
+
+        * ``qed_bw.tab_dndt_chi_min`` (`float`): minimum chi parameter for lookup table 1 (
+          used for the evolution of the optical depth of the photons)
+
+        * ``qed_bw.tab_dndt_chi_max`` (`float`): maximum chi parameter for lookup table 1
+
+        * ``qed_bw.tab_dndt_how_many`` (`int`): number of points to be used for lookup table 1
+
+        * ``qed_bw.tab_pair_chi_min`` (`float`): minimum chi parameter for lookup table 2 (
+          used for pair generation)
+
+        * ``qed_bw.tab_pair_chi_max`` (`float`): maximum chi parameter for lookup table 2
+
+        * ``qed_bw.tab_pair_chi_how_many`` (`int`): number of points to be used for chi axis in lookup table 2
+
+        * ``qed_bw.tab_pair_frac_how_many`` (`int`): number of points to be used for the second axis in lookup table 2
+          (the second axis is the ratio between the energy of the less energetic particle of the pair and the
+          energy of the photon).
+
+        * ``qed_bw.save_table_in`` (`string`): where to save the lookup table
+
+    * ``load``: a lookup table is loaded from a pre-generated binary file. The following parameter
+      must be specified:
+
+        * ``qed_bw.load_table_from`` (`string`): name of the lookup table file to read from.
+
+* ``qed_qs.lookup_table_mode`` (`string`)
+    There are three options to prepare the lookup table required by the Quantum Synchrotron module:
+
+    * ``dummy_builtin``:  a built-in table is used (Warning: the quality of the table is very low,
+      so this option has to be used only for test purposes).
+
+    * ``generate``: a new table is generated. This option requires Boost math library
+      (version >= 1.67) and to compile with QED_TABLE_GEN=TRUE. All
+      the following parameters must be specified:
+
+        * ``qed_qs.chi_min`` (`float`): minimum chi parameter to be considered by the engine
+
+        * ``qed_qs.tab_dndt_chi_min`` (`float`): minimum chi parameter for lookup table 1 (
+          used for the evolution of the optical depth of electrons and positrons)
+
+        * ``qed_qs.tab_dndt_chi_max`` (`float`): maximum chi parameter for lookup table 1
+
+        * ``qed_qs.tab_dndt_how_many`` (`int`): number of points to be used for lookup table 1
+
+        * ``qed_qs.tab_em_chi_min`` (`float`): minimum chi parameter for lookup table 2 (
+          used for photon emission)
+
+        * ``qed_qs.tab_em_chi_max`` (`float`): maximum chi parameter for lookup table 2
+
+        * ``qed_qs.tab_em_chi_how_many`` (`int`): number of points to be used for chi axis in lookup table 2
+
+        * ``qed_qs.tab_em_prob_how_many`` (`int`): number of points to be used for the second axis in lookup table 2
+          (the second axis is a cumulative probability).
+
+        * ``qed_bw.save_table_in`` (`string`): where to save the lookup table
+
+    * ``load``: a lookup table is loaded from a pre-generated binary file. The following parameter
+      must be specified:
+
+        * ``qed_qs.load_table_from`` (`string`): name of the lookup table file to read from.
+
 
 Checkpoints and restart
 -----------------------
