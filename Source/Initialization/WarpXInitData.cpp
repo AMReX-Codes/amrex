@@ -415,13 +415,12 @@ WarpX::InitLevelData (int lev, Real time)
                Bfield_aux[lev][i]->setVal(B_external_grid[i]);
                Bfield_cp[lev][i]->setVal(B_external_grid[i]);
             }
-            if (E_ext_grid_s == "constant" || E_ext_grid_s == " default") {
+            if (E_ext_grid_s == "constant" || E_ext_grid_s == "default") {
                Efield_aux[lev][i]->setVal(E_external_grid[i]);
                Efield_cp[lev][i]->setVal(E_external_grid[i]);
             }
         }
         if (B_ext_grid_s == "parse_b_ext_grid_function") {
-
             MultiFab *Bx_aux, *By_aux, *Bz_aux;
             Bx_aux = Bfield_aux[lev][0].get();
             By_aux = Bfield_aux[lev][1].get();
