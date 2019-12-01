@@ -237,7 +237,6 @@ WarpX::PostRestart ()
 namespace {
 WarpXParser makeParser (std::string const& parse_function)
 {
-    std::cout << " in make parser " << parse_function << std::endl;
     WarpXParser parser(parse_function);
     parser.registerVariables({"x","y","z"});
     ParmParse pp("my_constants");
@@ -295,14 +294,9 @@ WarpX::InitLevelData (int lev, Real time)
 
     ParmParse pp("warpx");
 
-    std::string B_ext_grid_s;
-    std::string E_ext_grid_s;
     // default values of E_external_grid and B_external_grid
     // are used to set the E and B field when "constant" or
     // "parser" is not explicitly used in the input.
-    B_ext_grid_s = "default";
-    E_ext_grid_s = "default";
-
     pp.query("B_ext_grid_init_style", B_ext_grid_s);
     std::transform(B_ext_grid_s.begin(),
                    B_ext_grid_s.end(),

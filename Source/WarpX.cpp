@@ -30,6 +30,9 @@ Vector<Real> WarpX::E_external_particle(3, 0.0);
 Vector<Real> WarpX::E_external_grid(3, 0.0);
 Vector<Real> WarpX::B_external_grid(3, 0.0);
 
+std::string WarpX::B_ext_grid_s = "default";
+std::string WarpX::E_ext_grid_s = "default";
+
 // Parser for B_external on the grid
 std::string WarpX::str_Bx_ext_grid_function;
 std::string WarpX::str_By_ext_grid_function;

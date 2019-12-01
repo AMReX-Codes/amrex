@@ -103,6 +103,10 @@ public:
     static amrex::Vector<amrex::Real> E_external_grid;
     static amrex::Vector<amrex::Real> B_external_grid;
 
+    // Initialization Type for External E and B
+    static std::string B_ext_grid_s;
+    static std::string E_ext_grid_s;
+
     // Parser for B_external on the grid
     static std::string str_Bx_ext_grid_function;
     static std::string str_By_ext_grid_function;
