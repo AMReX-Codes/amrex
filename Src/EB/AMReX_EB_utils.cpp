@@ -61,7 +61,7 @@ namespace amrex {
     //
     // Do small cell redistribution on one FAB
     //
-    void apply_eb_redistribution ( Box& bx,
+    void apply_eb_redistribution ( const Box& bx,
                                    MultiFab& div_mf,
                                    MultiFab& divc_mf,
                                    const MultiFab& weights,
@@ -269,14 +269,19 @@ namespace amrex {
 
         Real covered_val = 1.e40;
 
-        int nghost = div_tmp_in.nGrow();
-
-        EB_set_covered(div_tmp_in, 0, ncomp, nghost, covered_val);
+	// apply_eb_redistribution() requires div_tmp_in to have 2 ghost cells. change nghost? -- Candace
+	//int nghost = div_tmp_in.nGrow();
+        int nghost = 2;
+	AMREX_ASSERT(div_tmp_in.nGrow() >= 2);
+	
+        EB_set_covered(div_tmp_in, 0, ncomp, div_tmp_in.nGrow(), covered_val);
 
         div_tmp_in.FillBoundary(geom[lev].periodicity());
 
         // Here we take care of both the regular and covered cases ... all we do below is the cut cell cases
-        MultiFab::Copy(div_out, div_tmp_in, 0, div_comp, ncomp, div_out.nGrow());
+	// apply_eb_redistribution() doesn't fill any ghost cells for div_out, so why fill ghost cells here? -- Candace
+        //MultiFab::Copy(div_out, div_tmp_in, 0, div_comp, ncomp, div_out.nGrow());
+	MultiFab::Copy(div_out, div_tmp_in, 0, div_comp, ncomp, 0);
 
         // Get EB geometric info
         const auto& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(div_out.Factory());
@@ -285,7 +290,7 @@ namespace amrex {
         for (MFIter mfi(div_out,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             // Tilebox
-            Box bx = mfi.tilebox ();
+            const Box& bx = mfi.tilebox ();
 
             // this is to check efficiently if this tile contains any eb stuff
             const EBFArrayBox&  div_fab = static_cast<EBFArrayBox const&>(div_out[mfi]);
