@@ -257,6 +257,7 @@ FromTXYEFileLaserProfile::read_data_t_chuck(size_t t_begin, size_t t_end)
     amrex::Print() <<
         "Reading [" << t_begin << ", " << t_end <<
         ") data chunk from " << m_params.txye_file_name << "\n";
+
     //Indices of the first and last timestep to read
     auto i_first = max(static_cast<size_t>(0), t_begin);
     auto i_last = min(t_end-1, m_params.nt-1);
