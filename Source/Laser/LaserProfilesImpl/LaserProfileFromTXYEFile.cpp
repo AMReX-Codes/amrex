@@ -319,6 +319,7 @@ FromTXYEFileLaserProfile::internal_fill_amplitude_uniform(
     const auto tmp_y_min = m_params.y_coords.front();
     const auto tmp_y_max = m_params.y_coords.back();
     const auto tmp_nx = m_params.nx;
+    const auto tmp_ny = m_params.ny;
     const auto p_E_data = m_params.E_data.dataPtr();
     const auto tmp_idx_first_time = m_params.first_time_index;
     const size_t idx_t_right = idx_t_left+1;
@@ -389,8 +390,8 @@ FromTXYEFileLaserProfile::internal_fill_amplitude_uniform(
         };
         amplitude[i] = WarpXUtilAlgo::trilinear_interp(
             t_left, t_right,
-            x0, x1,
-            y0, y1,
+            x_0, x_1,
+            y_0, y_1,
             p_E_data[idx(idx_t_left, idx_x_left, idx_y_left)],
             p_E_data[idx(idx_t_left, idx_x_left, idx_y_right)],
             p_E_data[idx(idx_t_left, idx_x_right, idx_y_left)],
