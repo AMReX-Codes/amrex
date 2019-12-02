@@ -1,3 +1,16 @@
+# 19.12
+
+  -- Fix potential deadlocks in amrex::Random.
+
+  -- MultiFab::Swap that does shallow swap if it can, does deep swap
+     otherwise.
+
+  -- FabArray::arena function that returns the Arena used to build.
+
+  -- Nodal projection sync residuals are implemented for RAP.
+
+  -- GPU support for initializing Fabs to NaNs.
+
 # 19.11
 
   -- AmrCore::regrid will now simply return instead of abort if the
