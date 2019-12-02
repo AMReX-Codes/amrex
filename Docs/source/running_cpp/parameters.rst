@@ -538,6 +538,36 @@ Laser initialization
       none of the parameters below are used when ``<laser_name>.parse_field_function=1``. Even
       though ``<laser_name>.wavelength`` and ``<laser_name>.e_max`` should be included in the laser
       function, they still have to be specified as they are used for numerical purposes.
+    - ``"from_txye_file"``: the electric field of the laser is read from an external binary file
+      whose format is explained below. It requires to provide the name of the binary file
+      setting the additional parameter ``<laser_name>.txye_file_name`` (string). It accepts an
+      optional parameter ``<laser_name>.time_chunk_size`` (int). This allows to read only
+      time_chunk_size timesteps from the binary file. New timesteps are read as soon as they are needed.
+      The default value is automatically set to the number of timesteps contained in the binary file
+      (i.e. only one read is performed at the beginning of the simulation).
+      The external binary file should provide E(x,y,t) on a rectangular (but non necessarily uniform)
+      grid. The code performs a bi-linear (in 2D) or tri-linear (in 3D) interpolation to set the field
+      values. x,y,t are meant to be in S.I. units, while the field value is meant to be multiplied by
+      ``<laser_name>.e_max`` (i.e. in most cases the maximum of abs(E(x,y,t)) should be 1,
+      so that the maximum field intensity can be set straightforwardly with ``<laser_name>.e_max``).
+      The binary file has to respect the following format:
+
+        * flag to indicate if the grid is uniform or not (1 byte, 0 means non-uniform, !=0 means uniform)
+
+        * np, number of timesteps (uint32_t, must be >=2)
+
+        * nx, number of points along x (uint32_t, must be >=2)
+
+        * ny, number of points along y (uint32_t, must be 1 for 2D simulations and >=2 for 3D simulations)
+
+        * timesteps (double[2] if grid is uniform, double[np] otherwise)
+
+        * x_coords (double[2] if grid is uniform, double[nx] otherwise)
+
+        * y_coords (double[1] if 2D, double[2] if 3D & uniform grid, double[ny] if 3D & non uniform grid)
+
+        * field_data (double[nt * nx * ny], with nt being the slowest coordinate).
+
 
 *  ``<laser_name>.profile_t_peak`` (`float`; in seconds)
     The time at which the laser reaches its peak intensity, at the position
