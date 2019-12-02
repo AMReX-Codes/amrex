@@ -269,14 +269,15 @@ namespace amrex {
 
         Real covered_val = 1.e40;
 
-        int nghost = div_tmp_in.nGrow();
-
-        EB_set_covered(div_tmp_in, 0, ncomp, nghost, covered_val);
+        int nghost = 2;
+	AMREX_ASSERT(div_tmp_in.nGrow() >= nghost);
+	
+        EB_set_covered(div_tmp_in, 0, ncomp, div_tmp_in.nGrow(), covered_val);
 
         div_tmp_in.FillBoundary(geom[lev].periodicity());
 
         // Here we take care of both the regular and covered cases ... all we do below is the cut cell cases
-        MultiFab::Copy(div_out, div_tmp_in, 0, div_comp, ncomp, div_out.nGrow());
+        MultiFab::Copy(div_out, div_tmp_in, 0, div_comp, ncomp, 0);
 
         // Get EB geometric info
         const auto& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(div_out.Factory());
