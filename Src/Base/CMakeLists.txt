@@ -163,6 +163,7 @@ target_sources( amrex
    AMReX_Geometry.H
    AMReX_MultiFabUtil.cpp
    AMReX_MultiFabUtil.H
+   AMReX_MultiFabUtilI.H
    # Boundary-related --------------------------------------------------------
    AMReX_BCRec.cpp
    AMReX_BCRec.H 

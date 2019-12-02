@@ -124,11 +124,11 @@ public:
                                   const Vector<BCRec>& bcr, const int bcomp,
                                   const int scomp) const;
 
-        bool RunOnGPU () const noexcept { return m_run_on_gpu; }
+        virtual bool RunOnGPU () const noexcept { return m_run_on_gpu; }
 
         void setRunOnGPU (bool b) noexcept { m_run_on_gpu = b; }
 
-        bool hasFabVersion () const noexcept { return m_funcfab != nullptr; }
+        virtual bool hasFabVersion () const noexcept { return m_funcfab != nullptr; }
 
     private:
 
