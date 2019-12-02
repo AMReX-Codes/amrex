@@ -46,7 +46,7 @@ public:
                         amrex::Gpu::ManagedDeviceVector<amrex::ParticleReal>& zp,
                         amrex::Real dt, DtType a_dt_type=DtType::Full) override;
 
-    // Don't push momenta for photons
+    // Do nothing
     virtual void PushP (int lev,
                         amrex::Real dt,
                         const amrex::MultiFab& Ex,
@@ -78,6 +78,18 @@ public:
     {
         return false;
     };
+
+#ifdef WARPX_QED
+    /**
+     * This function evolves the optical depth of the photons if QED effects
+     * are enabled.
+     * @param[in,out] pti particle iterator (optical depth will be modified)
+     * @param[in] dt temporal step
+     */
+    virtual void EvolveOpticalDepth(WarpXParIter& pti,
+        amrex::Real dt) override;
+
+#endif
 
 };
 

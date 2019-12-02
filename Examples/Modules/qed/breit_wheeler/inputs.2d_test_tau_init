@@ -65,16 +65,19 @@ photons.do_qed_breit_wheeler = 1
 #################################
 
 #######QED ENGINE PARAMETERS#####
-qed_bw.chi_min = 0.01
-qed_bw.ignore_tables_for_test = 1
-#qed_bw.generate_table = 1
-#qed_bw.tab_dndt_chi_min = 0.01
-#qed_bw.tab_dndt_chi_max = 100
-#qed_bw.tab_dndt_how_many = 200
+qed_bw.lookup_table_mode = "dummy_builtin"
+
+#qed_bw.lookup_table_mode = "generate"
+#qed_bw.chi_min = 0.001
+#qed_bw.tab_dndt_chi_min = 0.1
+#qed_bw.tab_dndt_chi_max = 200
+#qed_bw.tab_dndt_how_many = 64
 #qed_bw.tab_pair_chi_min = 0.01
-#qed_bw.tab_pair_chi_max = 100
-#qed_bw.tab_pair_chi_how_many = 30
-#qed_bw.tab_pair_frac_how_many = 30
-#qed_bw.save_table_in = "bw_table"
-#qed_bw.load_table_from = "bw_table"
+#qed_bw.tab_pair_chi_max = 200
+#qed_bw.tab_pair_chi_how_many = 2
+#qed_bw.tab_pair_frac_how_many = 2
+#qed_bw.save_table_in = "bw_micro_table"
+
+#qed_bw.lookup_table_mode = "load"
+#qed_bw.load_table_from = "bw_micro_table"
 #################################
