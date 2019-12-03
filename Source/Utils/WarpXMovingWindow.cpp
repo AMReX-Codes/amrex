@@ -3,6 +3,33 @@
 
 using namespace amrex;
 
+namespace {
+WarpXParser makeParser (std::string const& parse_function)
+{
+    WarpXParser parser(parse_function);
+    parser.registerVariables({"x","y","z"});
+    ParmParse pp("my_constants");
+    std::set<std::string> symbols = parser.symbols();
+    symbols.erase("x");
+    symbols.erase("y");
+    symbols.erase("z");
+    for (auto it = symbols.begin(); it != symbols.end(); ) {
+        Real v;
+        if (pp.query(it->c_str(), v)) {
+           parser.setConstant(*it, v);
+           it = symbols.erase(it);
+        } else {
+           ++it;
+        }
+    }
+    for (auto const& s : symbols) {
+        amrex::Abort(" ExternalEBFieldOnGrid::makeParser::Unknown symbol "+s);
+    }
+    return parser;
+}
+}
+
+
 void
 WarpX::UpdatePlasmaInjectionPosition (Real a_dt)
 {
@@ -99,8 +126,10 @@ WarpX::MoveWindow (bool move_j)
         for (int dim = 0; dim < 3; ++dim) {
 
             // Fine grid
-            shiftMF(*Bfield_fp[lev][dim], geom[lev], num_shift, dir, B_external_grid[dim]);
-            shiftMF(*Efield_fp[lev][dim], geom[lev], num_shift, dir, E_external_grid[dim]);
+            // initialize with external field = true and B_flag = true;
+            shiftMF(*Bfield_fp[lev][dim], geom[lev], num_shift, dir, true, true);
+            // initialize with external field = true and B_flag = false;
+            shiftMF(*Efield_fp[lev][dim], geom[lev], num_shift, dir, true, false);
             if (move_j) {
                 shiftMF(*current_fp[lev][dim], geom[lev], num_shift, dir);
             }
@@ -113,8 +142,10 @@ WarpX::MoveWindow (bool move_j)
 
             if (lev > 0) {
                 // Coarse grid
-                shiftMF(*Bfield_cp[lev][dim], geom[lev-1], num_shift_crse, dir, B_external_grid[dim]);
-                shiftMF(*Efield_cp[lev][dim], geom[lev-1], num_shift_crse, dir, E_external_grid[dim]);
+                // initialize with external field = true and B_flag = true;
+                shiftMF(*Bfield_cp[lev][dim], geom[lev-1], num_shift_crse, dir, true, true);
+                // initialize with external field = true and B_flag = false;
+                shiftMF(*Efield_cp[lev][dim], geom[lev-1], num_shift_crse, dir, true, false);
                 shiftMF(*Bfield_aux[lev][dim], geom[lev], num_shift, dir);
                 shiftMF(*Efield_aux[lev][dim], geom[lev], num_shift, dir);
                 if (move_j) {
@@ -204,13 +235,15 @@ WarpX::MoveWindow (bool move_j)
 
 void
 WarpX::shiftMF (MultiFab& mf, const Geometry& geom, int num_shift, int dir,
-                amrex::Real external_field)
+                bool ext_init, bool B_flag)
 {
     BL_PROFILE("WarpX::shiftMF()");
     const BoxArray& ba = mf.boxArray();
     const DistributionMapping& dm = mf.DistributionMap();
     const int nc = mf.nComp();
     const IntVect& ng = mf.nGrowVect();
+    // default value of external_field = 0.0 for initialization of mf
+    amrex::Real external_field = 0.0;
 
     AMREX_ALWAYS_ASSERT(ng.min() >= num_shift);
 
@@ -246,20 +279,101 @@ WarpX::shiftMF (MultiFab& mf, const Geometry& geom, int num_shift, int dir,
     shiftiv[dir] = num_shift;
     Dim3 shift = shiftiv.dim3();
 
+    const RealBox& real_box = geom.ProbDomain();
+    const auto dx = geom.CellSizeArray();
+    std::unique_ptr<ParserWrapper> field_parsewrap;
+    bool useparser = false;
+
+    if (ext_init == true && B_flag == true) {
+        if (B_ext_grid_s == "constant" || B_ext_grid_s == "default")
+            external_field = B_external_grid[dir];
+        if (B_ext_grid_s == "parse_b_ext_grid_function") {
+           useparser = true;   
+           if (dir==0) 
+              field_parsewrap.reset(new ParserWrapper(
+                              makeParser(str_Bx_ext_grid_function)));           
+           if (dir==1) 
+#if (AMREX_SPACEDIM==2)
+               field_parsewrap.reset(new ParserWrapper(
+                              makeParser(str_Bz_ext_grid_function)));
+#else
+               field_parsewrap.reset(new ParserWrapper(
+                              makeParser(str_By_ext_grid_function)));
+#endif
+           if (dir==2) 
+               field_parsewrap.reset(new ParserWrapper(
+                              makeParser(str_Bz_ext_grid_function)));
+        }
+    }
+    if (ext_init == true && B_flag == false) {
+        if (E_ext_grid_s == "constant" || E_ext_grid_s == "default")
+            external_field = E_external_grid[dir];
+        if (E_ext_grid_s == "parse_e_ext_grid_function") {
+           if (dir==0) 
+               field_parsewrap.reset(new ParserWrapper(
+                              makeParser(str_Ex_ext_grid_function)));
+           if (dir==1) 
+#if (AMREX_SPACEDIM==2)
+               field_parsewrap.reset(new ParserWrapper(
+                              makeParser(str_Ez_ext_grid_function)));
+#else
+               field_parsewrap.reset(new ParserWrapper(
+                              makeParser(str_Ey_ext_grid_function)));
+#endif
+           if (dir==2) 
+               field_parsewrap.reset(new ParserWrapper(
+                              makeParser(str_Ez_ext_grid_function)));
+           useparser = true;
+        }
+    }
+ 
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
+
+    ParserWrapper *field_wrap = field_parsewrap.get();
+
     for (MFIter mfi(tmpmf); mfi.isValid(); ++mfi )
     {
         auto const& dstfab = mf.array(mfi);
         auto const& srcfab = tmpmf.array(mfi);
 
         const Box& outbox = mfi.fabbox() & adjBox;
+        
         if (outbox.ok()) {
-            AMREX_PARALLEL_FOR_4D ( outbox, nc, i, j, k, n,
-            {
-                srcfab(i,j,k,n) = external_field;
-            });
+            if (useparser == false) {
+                AMREX_PARALLEL_FOR_4D ( outbox, nc, i, j, k, n,
+                {
+                    srcfab(i,j,k,n) = external_field;
+                });
+            } else if (useparser == true) {
+                // index type of the src mf
+                auto const& mf_IndexType = (tmpmf).ixType();
+                IntVect mf_type(AMREX_D_DECL(0,0,0));
+                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                    mf_type[idim] = mf_IndexType.nodeCentered(idim);
+                }
+                 
+                amrex::ParallelFor (outbox, nc,
+                      [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                      // Compute x,y,z co-ordinates based on index type of mf
+                      Real fac_x = (1.0 - mf_type[0]) * dx[0]*0.5;
+                      Real fac_y = (1.0 - mf_type[1]) * dx[1]*0.5;
+                      Real x = i*dx[0] + real_box.lo(0) + fac_x;
+                      Real y = j*dx[1] + real_box.lo(1) + fac_y;
+#if (AMREX_SPACEDIM==2)
+                      Real z = 0.0;
+#else
+                      Real fac_z = (1.0 - mf_type[2]) * dx[2]*0.5;
+                      Real z = k*dx[2] + real_box.lo(2) + fac_z;
+#endif             
+                      srcfab(i,j,k,n) = field_wrap->getField(x,y,z);
+                }
+                , amrex::Gpu::numThreadsPerBlockParallelFor() * sizeof(double)*3
+                );
+            }
+  
         }
 
         Box dstBox = mf[mfi].box();

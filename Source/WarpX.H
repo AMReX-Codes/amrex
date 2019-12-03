@@ -90,8 +90,8 @@ public:
 
     MultiParticleContainer& GetPartContainer () { return *mypc; }
 
-    static void shiftMF(amrex::MultiFab& mf, const amrex::Geometry& geom, int num_shift, int dir,
-                        amrex::Real external_field = 0.);
+    static void shiftMF (amrex::MultiFab& mf, const amrex::Geometry& geom, int num_shift, int dir,
+                         bool ext_init=false, bool B_flag=false);
 
     static void GotoNextLine (std::istream& is);
 
