@@ -18,7 +18,7 @@ warpx.do_pml = 0
 warpx.serialize_ics = 1
 warpx.verbose = 1
 warpx.cfl = 1.0
-amr.plot_int = 1
+amr.plot_int = 10
 warpx.plot_raw_fields = 0
 
 #################################
