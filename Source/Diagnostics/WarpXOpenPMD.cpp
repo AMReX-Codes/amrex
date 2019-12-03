@@ -25,7 +25,7 @@ void WarpXOpenPMDPlot::GetFileName(std::string& filename, int ts)
   std::string dir = "diags/";
   std::string prefix="/plot";
 
-  // Write openPMD format: only for level 0
+  // Write openPMD fields: only for level 0; particles: all (from locally finest level)
   filename = std::string(dir);
   filename.append(m_OpenPMDFileType);
 
