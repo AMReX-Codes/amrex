@@ -1,5 +1,0 @@
-CEXE_sources += main.cpp
-
-FEXE_headers += myfunc_F.H
-
-f90EXE_sources += SetIC.f90
