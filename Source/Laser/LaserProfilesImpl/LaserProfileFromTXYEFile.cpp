@@ -319,7 +319,9 @@ FromTXYEFileLaserProfile::internal_fill_amplitude_uniform(
     const auto tmp_y_min = m_params.y_coords.front();
     const auto tmp_y_max = m_params.y_coords.back();
     const auto tmp_nx = m_params.nx;
+#if (AMREX_SPACEDIM == 3)
     const auto tmp_ny = m_params.ny;
+#endif
     const auto p_E_data = m_params.E_data.dataPtr();
     const auto tmp_idx_first_time = m_params.first_time_index;
     const size_t idx_t_right = idx_t_left+1;

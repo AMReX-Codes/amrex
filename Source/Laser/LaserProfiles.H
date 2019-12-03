@@ -203,10 +203,8 @@ public:
         amrex::Real t,
         amrex::Real * AMREX_RESTRICT const amplitude) override final;
 
-private:
-    void parse_txye_file(std::string txye_file_name);
-    void read_data_t_chuck(size_t t_begin, size_t t_end);
-
+    //These functions cannot be private due to restrictions related to
+    //the use of extended __device__ lambda
     void internal_fill_amplitude_uniform(
         const size_t idx_t_left,
         const int np,
@@ -221,6 +219,11 @@ private:
         amrex::Real const * AMREX_RESTRICT const Yp,
         amrex::Real t,
         amrex::Real * AMREX_RESTRICT const amplitude) ;
+    //__________
+
+private:
+    void parse_txye_file(std::string txye_file_name);
+    void read_data_t_chuck(size_t t_begin, size_t t_end);
 
     struct{
         std::string txye_file_name; //Name of the file containing the data
@@ -236,7 +239,6 @@ private:
     } m_params;
 
     CommonLaserParameters m_common_params;
-
 };
 
 /**
