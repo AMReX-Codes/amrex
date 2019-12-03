@@ -120,7 +120,7 @@ private:
   int m_MPISize = 1;
 
   int m_NumSoARealAttributes = PIdx::nattribs;
-  int m_NumAoSRealAttributes = 0; // WarpX definition
+  int m_NumAoSRealAttributes = 0; //! WarpX definition: no additional attributes in particle AoS
 
   bool m_OneFilePerTS = true;
   std::string m_OpenPMDFileType = "bp";
