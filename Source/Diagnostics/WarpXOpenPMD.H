@@ -71,7 +71,7 @@ public:
 
   void WriteOpenPMDParticles(const std::unique_ptr<MultiParticleContainer>&);
 
-  void WriteOpenPMDFields(//const std::string& filename,
+  void WriteOpenPMDFields(
               const std::vector<std::string>& varnames,
               const amrex::MultiFab& mf,
               const amrex::Geometry& geom,
