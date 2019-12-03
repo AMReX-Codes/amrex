@@ -195,13 +195,14 @@ void
 FArrayBox::initVal () noexcept
 {
     Real * p = dataPtr();
-    if (p and truesize > 0) {
+    long s = size();
+    if (p and s > 0) {
         if (init_snan) {
 #if defined(AMREX_USE_GPU)
             if (Gpu::inLaunchRegion())
             {
 #if (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
-                amrex::ParallelFor(truesize, [=] AMREX_GPU_DEVICE (long i) noexcept
+                amrex::ParallelFor(s, [=] AMREX_GPU_DEVICE (long i) noexcept
                 {
                     p[i] = std::numeric_limits<Real>::signaling_NaN();
                 });
@@ -210,10 +211,14 @@ FArrayBox::initVal () noexcept
             else
 #endif
             {
-                amrex_array_init_snan(p, truesize);
+                amrex_array_init_snan(p, s);
             }
         } else if (do_initval) {
-            setVal(initval);
+            const Real x = initval;
+            AMREX_HOST_DEVICE_PARALLEL_FOR_1D( s, i,
+            {
+                p[i] = x;
+            });
         }
     }
 }
