@@ -256,6 +256,7 @@ public:
 
     bool do_splitting = false;
     bool initialize_self_fields = false;
+    amrex::Real self_fields_required_precision = 1.e-11;
 
     // split along diagonals (0) or axes (1)
     int split_type = 0;
@@ -328,9 +329,12 @@ protected:
 #ifdef WARPX_QED
     bool m_do_qed = false;
 
+    //Species for which QED effects are relevant should override these methods
     virtual bool has_quantum_sync(){return false;};
     virtual bool has_breit_wheeler(){return false;};
 
+    //Species can receive a shared pointer to a QED engine (species for
+    //which this is relevant should override these functions)
     virtual void
     set_breit_wheeler_engine_ptr(std::shared_ptr<BreitWheelerEngine>){};
     virtual void
