@@ -9,7 +9,7 @@ int main (int argc, char* argv[])
 
     {
         int scaling_test = 0;
-        ParmParse pp;
+        amrex::ParmParse pp;
         pp.query("scaling_test", scaling_test);
 
         BL_PROFILE("main");
