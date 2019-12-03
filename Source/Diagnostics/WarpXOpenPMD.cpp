@@ -255,7 +255,7 @@ WarpXOpenPMDPlot::SaveRealProperty(WarpXParIter& pti,
   const auto& aos = pti.GetArrayOfStructs();  // size =  numParticlesOnTile
   const auto& soa = pti.GetStructOfArrays();
 
-  // properties are saved seperately
+  // properties are saved separately
   {
     for (auto idx=0; idx<m_NumAoSRealAttributes; idx++) {
       if (write_real_comp[idx]) {
