@@ -53,13 +53,20 @@ MyTest::solve ()
 
     LPInfo info;
     info.setMaxCoarseningLevel(max_coarsening_level);
+    info.setAgglomerationGridSize(agg_grid_size);
+    info.setConsolidationGridSize(con_grid_size);
 
     for (int ilev = 0; ilev <= max_level; ++ilev) {
         phi[ilev].setVal(0.0,0,1,IntVect(0));
     }
 
+    static int ipass = 0;
+    ++ipass;
+
     if (composite_solve)
     {
+        BL_PROFILE_REGION("COMPOSITE_SOLVE-pass"+std::to_string(ipass));
+
         MLEBABecLap mleb (geom, grids, dmap, info, amrex::GetVecOfConstPtrs(factory));
         mleb.setMaxOrder(linop_maxorder);
         
@@ -103,6 +110,8 @@ MyTest::solve ()
     {
         for (int ilev = 0; ilev <= max_level; ++ilev)
         {
+            BL_PROFILE_REGION("LEVEL-SOLVE-lev"+std::to_string(ilev)+"-pass"+std::to_string(ipass));
+
             MLEBABecLap mleb({geom[ilev]}, {grids[ilev]}, {dmap[ilev]}, info, {factory[ilev].get()});
             mleb.setMaxOrder(linop_maxorder);
 
@@ -243,6 +252,8 @@ MyTest::readParameters ()
 #ifdef AMREX_USE_PETSC
     pp.query("use_petsc", use_petsc);
 #endif
+    pp.query("agg_grid_size", agg_grid_size);
+    pp.query("con_grid_size", con_grid_size);
 
     pp.query("composite_solve", composite_solve);
 }
