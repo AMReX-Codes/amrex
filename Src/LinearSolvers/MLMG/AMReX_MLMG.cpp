@@ -71,7 +71,10 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
 
     Real solve_start_time = amrex::second();
 
-    Real composite_norminf;
+    Real& composite_norminf = m_final_resnorm0;
+
+    m_niters_cg.clear();
+    m_iter_fine_resnorm0.clear();
 
     prepareForSolve(a_sol, a_rhs);
 
@@ -91,6 +94,9 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
                            << "MLMG: Initial residual (resid0) = " << resnorm0 << "\n";
         }
     }
+
+    m_init_resnorm0 = resnorm0;
+    m_rhsnorm0 = rhsnorm0;
 
     Real max_norm;
     std::string norm_name;
@@ -125,6 +131,7 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
             if (is_nsolve) continue;
 
             Real fine_norminf = ResNormInf(finest_amr_lev);
+            m_iter_fine_resnorm0.push_back(fine_norminf);
             composite_norminf = fine_norminf;
             if (verbose >= 2) {
                 amrex::Print() << "MLMG: Iteration " << std::setw(3) << iter+1 << " Fine resid/"
@@ -979,6 +986,7 @@ MLMG::bottomSolveWithCG (MultiFab& x, const MultiFab& b, MLCGSolver::Type type)
     if (ret != 0 && verbose > 1) {
         amrex::Print() << "MLMG: Bottom solve failed.\n";
     }
+    m_niters_cg.push_back(cg_solver.getNumIters());
     return ret;
 }
 
