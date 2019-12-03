@@ -58,7 +58,7 @@ private:
 
 //
 //
-//
+/** Writer logic for openPMD particles and fields */
 class WarpXOpenPMDPlot
 {
 public:
