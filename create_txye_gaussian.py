@@ -10,12 +10,12 @@ c = 299792458
 
 #Parameters of the gaussian beam
 wavelength = 1.*um
-w = 6.*um
+w0 = 6.*um
 tt = 10.*fs
 x_c = 0.*um
 y_c = 0.*um
 t_c = 20.*fs
-foc_dist = 10.0*um
+foc_dist = 10*um
 
 #Parameters of the txy grid
 x_l = -12.0*um
@@ -26,7 +26,7 @@ y_r = 12.0*um
 y_points = 480
 t_l = 0.0*fs
 t_r = 40.0*fs
-t_points = 200
+t_points = 800
 tcoords = np.linspace(t_l, t_r, t_points)
 xcoords = np.linspace(x_l, x_r, x_points)
 ycoords = np.linspace(y_l, y_r, y_points)
@@ -36,10 +36,10 @@ def gauss(T,X,Y,opt):
     inv_tau2 = 1./tt/tt
     osc_phase = k0*c*(T-t_c)
 
-    diff_factor = 1.0 + 1.0j* foc_dist * 2/(k0*w*w)
-    inv_w_2 = 1.0/(w*w*diff_factor)
+    diff_factor = 1.0 + 1.0j* foc_dist * 2/(k0*w0*w0)
+    inv_w_2 = 1.0/(w0*w0*diff_factor)
 
-    pre_fact = 1.0*np.exp(1.0j * osc_phase)
+    pre_fact = np.exp(1.0j * osc_phase)
 
     if opt == '3d':
         pre_fact = pre_fact/diff_factor
@@ -50,6 +50,21 @@ def gauss(T,X,Y,opt):
 
     return np.real(pre_fact * np.exp(exp_arg))
 
+def my_gauss(T,X,Y,opt):
+    omega = 2.0*np.pi*c/wavelength
+    Zr = omega * w0**2/2.
+    w  = np.sqrt(1./(1.+(foc_dist/Zr)**2))
+    invWaist2 = (w/w0)**2
+    inv_tau2 = 1./tt/tt
+    coeff = -omega * foc_dist * w**2 / (2.*Zr**2)
+    space = np.exp( -invWaist2*((X-x_c)**2 + (Y-y_c)**2 ))
+    if opt is '2d' :
+        space = np.sqrt(w)*space
+    else :
+        space = w*space
+    phase = coeff * ((X-x_c)**2 + (Y-y_c)**2)
+    osc_phase =  (2.0*np.pi*c/wavelength)*(T-t_c)
+    return np.real(space*np.exp( 1.0j*(osc_phase + phase) - inv_tau2 * (T-t_c)*(T-t_c)))
 
 def write_file(fname, x, y, t, E):
     with open(fname, 'wb') as file:
@@ -93,7 +108,7 @@ def create_file_gnu(x, t, E):
 
 def create_gaussian_2d():
    T, X, Y = np.meshgrid(tcoords, xcoords, np.array([0.0]), indexing='ij')
-   E_t = gauss(T,X,Y,'2d')
+   E_t = my_gauss(T,X,Y,'2d')
    write_file("gauss_2d.txye", xcoords, np.array([0.0]), tcoords, E_t)
    write_file_unf("gauss_2d_unf.txye", xcoords, np.array([0.0]), tcoords, E_t)
    create_file_gnu(xcoords, tcoords, E_t)
