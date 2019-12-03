@@ -288,11 +288,11 @@ WarpX::shiftMF (MultiFab& mf, const Geometry& geom, int num_shift, int dir,
         if (B_ext_grid_s == "constant" || B_ext_grid_s == "default")
             external_field = B_external_grid[dir];
         if (B_ext_grid_s == "parse_b_ext_grid_function") {
-           useparser = true;   
-           if (dir==0) 
+           useparser = true;
+           if (dir==0)
               field_parsewrap.reset(new ParserWrapper(
-                              makeParser(str_Bx_ext_grid_function)));           
-           if (dir==1) 
+                              makeParser(str_Bx_ext_grid_function)));
+           if (dir==1)
 #if (AMREX_SPACEDIM==2)
                field_parsewrap.reset(new ParserWrapper(
                               makeParser(str_Bz_ext_grid_function)));
@@ -300,7 +300,7 @@ WarpX::shiftMF (MultiFab& mf, const Geometry& geom, int num_shift, int dir,
                field_parsewrap.reset(new ParserWrapper(
                               makeParser(str_By_ext_grid_function)));
 #endif
-           if (dir==2) 
+           if (dir==2)
                field_parsewrap.reset(new ParserWrapper(
                               makeParser(str_Bz_ext_grid_function)));
         }
@@ -309,10 +309,10 @@ WarpX::shiftMF (MultiFab& mf, const Geometry& geom, int num_shift, int dir,
         if (E_ext_grid_s == "constant" || E_ext_grid_s == "default")
             external_field = E_external_grid[dir];
         if (E_ext_grid_s == "parse_e_ext_grid_function") {
-           if (dir==0) 
+           if (dir==0)
                field_parsewrap.reset(new ParserWrapper(
                               makeParser(str_Ex_ext_grid_function)));
-           if (dir==1) 
+           if (dir==1)
 #if (AMREX_SPACEDIM==2)
                field_parsewrap.reset(new ParserWrapper(
                               makeParser(str_Ez_ext_grid_function)));
@@ -320,13 +320,13 @@ WarpX::shiftMF (MultiFab& mf, const Geometry& geom, int num_shift, int dir,
                field_parsewrap.reset(new ParserWrapper(
                               makeParser(str_Ey_ext_grid_function)));
 #endif
-           if (dir==2) 
+           if (dir==2)
                field_parsewrap.reset(new ParserWrapper(
                               makeParser(str_Ez_ext_grid_function)));
            useparser = true;
         }
     }
- 
+
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -339,7 +339,7 @@ WarpX::shiftMF (MultiFab& mf, const Geometry& geom, int num_shift, int dir,
         auto const& srcfab = tmpmf.array(mfi);
 
         const Box& outbox = mfi.fabbox() & adjBox;
-        
+
         if (outbox.ok()) {
             if (useparser == false) {
                 AMREX_PARALLEL_FOR_4D ( outbox, nc, i, j, k, n,
@@ -353,7 +353,7 @@ WarpX::shiftMF (MultiFab& mf, const Geometry& geom, int num_shift, int dir,
                 for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                     mf_type[idim] = mf_IndexType.nodeCentered(idim);
                 }
-                 
+
                 amrex::ParallelFor (outbox, nc,
                       [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
@@ -367,13 +367,13 @@ WarpX::shiftMF (MultiFab& mf, const Geometry& geom, int num_shift, int dir,
 #else
                       Real fac_z = (1.0 - mf_type[2]) * dx[2]*0.5;
                       Real z = k*dx[2] + real_box.lo(2) + fac_z;
-#endif             
+#endif
                       srcfab(i,j,k,n) = field_wrap->getField(x,y,z);
                 }
                 , amrex::Gpu::numThreadsPerBlockParallelFor() * sizeof(double)*3
                 );
             }
-  
+
         }
 
         Box dstBox = mf[mfi].box();
