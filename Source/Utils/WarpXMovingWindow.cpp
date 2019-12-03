@@ -331,7 +331,6 @@ WarpX::shiftMF (MultiFab& mf, const Geometry& geom, int num_shift, int dir,
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
 
-    ParserWrapper *field_wrap = field_parsewrap.get();
 
     for (MFIter mfi(tmpmf); mfi.isValid(); ++mfi )
     {
@@ -353,6 +352,7 @@ WarpX::shiftMF (MultiFab& mf, const Geometry& geom, int num_shift, int dir,
                 for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                     mf_type[idim] = mf_IndexType.nodeCentered(idim);
                 }
+                ParserWrapper *field_wrap = field_parsewrap.get();
 
                 amrex::ParallelFor (outbox, nc,
                       [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
