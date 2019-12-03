@@ -36,7 +36,12 @@ public:
   std::vector<unsigned long long> m_ParticleOffsetAtRank;;
   std::vector<unsigned long long> m_ParticleSizeAtRank;;
 private:
-  // get the offset in the overall particle id collection
+  /** get the offset in the overall particle id collection
+  *
+  * @param[out] numParticles particles on this processor (?) / amrex fab (?)
+  * @param[out] offset particle offset over all, mpi-global amrex fabs (?)
+  * @param[out] number of all particles from all amrex fabs (?)
+  */
   void GetParticleOffsetOfProcessor(const long& numParticles,
                     unsigned long long& offset,
                     unsigned long long& sum)  const ;
