@@ -245,7 +245,7 @@ WarpXOpenPMDPlot::SaveRealProperty(WarpXParIter& pti,
 
 {
   int numOutputReal = 0;
-  int totalRealAttrs = m_NumAoSRealAttributes + m_NumSoARealAttributes;
+  int const totalRealAttrs = m_NumAoSRealAttributes + m_NumSoARealAttributes;
 
   for (int i = 0; i < totalRealAttrs; ++i)
     if (write_real_comp[i])
