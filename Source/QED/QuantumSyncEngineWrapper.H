@@ -79,7 +79,7 @@ class QuantumSynchrotronEvolveOpticalDepth
 {
 public:
     /**
-     * Constructor acquires a reference to control parameters and
+     * Constructor acquires pointers to control parameters and
      * lookup tables data.
      * lookup_table uses non-owning vectors under the hood. So no new data
      * allocations should be triggered on GPU
@@ -152,7 +152,7 @@ class QuantumSynchrotronGeneratePhotonAndUpdateMomentum
 {
 public:
     /**
-     * Constructor acquires a reference to control parameters and
+     * Constructor acquires pointers to control parameters and
      * lookup tables data.
      * lookup_table uses non-owning vectors under the hood. So no new data
      * allocations should be triggered on GPU
@@ -267,6 +267,12 @@ public:
     bool init_lookup_tables_from_raw_data (const amrex::Vector<char>& raw_data);
 
     /**
+     * Init lookup tables using built-in dummy tables
+     * for test purposes.
+     */
+    void init_dummy_tables();
+
+    /**
      * Export lookup tables data into a raw binary Vector
      * @return the data in binary format. The Vector is empty if tables were
      * not previously initialized.
@@ -284,6 +290,12 @@ public:
      * @return default control params to generate the tables
      */
     PicsarQuantumSynchrotronCtrl get_default_ctrl() const;
+
+    /**
+     * returns a constant reference to the control parameters
+     * @return const reference to control parameters
+     */
+    const PicsarQuantumSynchrotronCtrl& get_ref_ctrl() const;
 
 private:
     bool m_lookup_tables_initialized = false;

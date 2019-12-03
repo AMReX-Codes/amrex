@@ -1,4 +1,4 @@
-#! /usr/bin/env python3
+#! /usr/bin/env python
 import yt
 import numpy as np
 import scipy.stats as st

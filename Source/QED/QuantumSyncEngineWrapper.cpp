@@ -1,6 +1,7 @@
 #include "QuantumSyncEngineWrapper.H"
 
 #include "QedTableParserHelperFunctions.H"
+#include "QuantumSyncDummyTable.H"
 
 #include <utility>
 
@@ -139,6 +140,28 @@ QuantumSynchrotronEngine::init_lookup_tables_from_raw_data (
     return true;
 }
 
+void QuantumSynchrotronEngine::init_dummy_tables()
+{
+    m_innards.ctrl = QedUtils::QuantumSyncEngineInnardsDummy.ctrl;
+    m_innards.KKfunc_coords.assign(
+        QedUtils::QuantumSyncEngineInnardsDummy.KKfunc_coords.begin(),
+        QedUtils::QuantumSyncEngineInnardsDummy.KKfunc_coords.end());
+    m_innards.KKfunc_data.assign(
+        QedUtils::QuantumSyncEngineInnardsDummy.KKfunc_data.begin(),
+        QedUtils::QuantumSyncEngineInnardsDummy.KKfunc_data.end());
+    m_innards.cum_distrib_coords_1.assign(
+        QedUtils::QuantumSyncEngineInnardsDummy.cum_distrib_coords_1.begin(),
+        QedUtils::QuantumSyncEngineInnardsDummy.cum_distrib_coords_1.end());
+    m_innards.cum_distrib_coords_2.assign(
+        QedUtils::QuantumSyncEngineInnardsDummy.cum_distrib_coords_2.begin(),
+        QedUtils::QuantumSyncEngineInnardsDummy.cum_distrib_coords_2.end());
+    m_innards.cum_distrib_data.assign(
+        QedUtils::QuantumSyncEngineInnardsDummy.cum_distrib_data.begin(),
+        QedUtils::QuantumSyncEngineInnardsDummy.cum_distrib_data.end());
+
+    m_lookup_tables_initialized = true;
+}
+
 Vector<char> QuantumSynchrotronEngine::export_lookup_tables_data () const
 {
     Vector<char> res{};
@@ -173,6 +196,12 @@ PicsarQuantumSynchrotronCtrl
 QuantumSynchrotronEngine::get_default_ctrl() const
 {
     return PicsarQuantumSynchrotronCtrl();
+}
+
+const PicsarQuantumSynchrotronCtrl&
+QuantumSynchrotronEngine::get_ref_ctrl() const
+{
+    return m_innards.ctrl;
 }
 
 void QuantumSynchrotronEngine::compute_lookup_tables (
