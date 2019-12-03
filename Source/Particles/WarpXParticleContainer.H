@@ -104,7 +104,7 @@ class WarpXParticleContainer
 public:
     friend MultiParticleContainer;
 #ifdef WARPX_USE_OPENPMD
-  friend class WarpXOpenPMDPlot;
+    friend class WarpXOpenPMDPlot;
 #endif
 
     // amrex::StructOfArrays with DiagIdx::nattribs amrex::ParticleReal components
