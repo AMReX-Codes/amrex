@@ -2,9 +2,8 @@
 # If you set AMREX_HOME as an environment variable, this line will be ignored
 AMREX_HOME ?= ../../../../../
 
-DEBUG     = FALSE
-USE_MPI   = FALSE 
-USE_OMP   = FALSE
+DEBUG     = TRUE 
+USE_MPI   = TRUE 
 USE_HIP   = TRUE 
 COMP      = hip
 DIM       = 3 
