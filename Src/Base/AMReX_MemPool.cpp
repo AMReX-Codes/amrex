@@ -156,14 +156,26 @@ void amrex_real_array_init (Real* p, size_t nelems)
 
 void amrex_array_init_snan (Real* p, size_t nelems)
 {
+#ifdef BL_USE_DOUBLE
+
 #ifdef UINT64_MAX
     const uint64_t snan = UINT64_C(0x7ff0000080000001);
-#else
-    static_assert(sizeof(double) == sizeof(long long), "MemPool: sizeof double != sizeof long long");
-    const long long snan = 0x7ff0000080000001LL;
-#endif
+    static_assert(sizeof(double) == sizeof(uint64_t), "MemPool: sizeof double != sizeof uint64_t");
     for (size_t i = 0; i < nelems; ++i) {
         std::memcpy(p++, &snan, sizeof(double));
     }
+#endif
+
+#else
+
+#ifdef UINT32_MAX
+    const uint32_t snan = UINT32_C(0x7fa00000);
+    static_assert(sizeof(float) == sizeof(uint32_t), "MemPool: sizeof float != sizeof uint32_t");
+    for (size_t i = 0; i < nelems; ++i) {
+        std::memcpy(p++, &snan, sizeof(float));
+    }
+#endif
+
+#endif
 }
 }

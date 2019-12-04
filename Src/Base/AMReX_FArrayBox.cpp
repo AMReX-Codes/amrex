@@ -194,32 +194,32 @@ FArrayBox::operator= (Real v) noexcept
 void
 FArrayBox::initVal () noexcept
 {
-    if (init_snan) {
-#ifdef BL_USE_DOUBLE
+    Real * p = dataPtr();
+    long s = size();
+    if (p and s > 0) {
+        if (init_snan) {
 #if defined(AMREX_USE_GPU)
-
-        double * p = dataPtr();
-        if (p and truesize > 0) {
-            AMREX_HOST_DEVICE_FOR_1D (truesize, i,
+            if (Gpu::inLaunchRegion())
             {
-#ifdef UINT64_MAX
-                static_assert(sizeof(double) == sizeof(uint64_t), "sizeof double != sizeof uint64_t");
-                const uint64_t snan = UINT64_C(0x7ff0000080000001);
-#else
-                static_assert(sizeof(double) == sizeof(long long), "sizeof double != sizeof long long");
-                const long long snan = 0x7ff0000080000001LL;
+#if (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
+                amrex::ParallelFor(s, [=] AMREX_GPU_DEVICE (long i) noexcept
+                {
+                    p[i] = std::numeric_limits<Real>::signaling_NaN();
+                });
 #endif
-                double* pi = p + i;
-                std::memcpy(pi, &snan, sizeof(double));
+            }
+            else
+#endif
+            {
+                amrex_array_init_snan(p, s);
+            }
+        } else if (do_initval) {
+            const Real x = initval;
+            AMREX_HOST_DEVICE_PARALLEL_FOR_1D( s, i,
+            {
+                p[i] = x;
             });
-       }
-
-#else
-	amrex_array_init_snan(dataPtr(), truesize);
-#endif
-#endif
-    } else if (do_initval) {
-	setVal(initval);
+        }
     }
 }
 

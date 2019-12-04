@@ -2273,7 +2273,7 @@ MLNodeLaplacian::buildIntegral ()
             MFItInfo mfi_info;
             if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
 #ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion());
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
             for (MFIter mfi(*intg,mfi_info); mfi.isValid(); ++mfi)
             {

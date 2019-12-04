@@ -27,6 +27,12 @@ MyTest::MyTest ()
 void
 MyTest::solve ()
 {
+    BL_PROFILE("solve()");
+
+    for (int ilev = 0; ilev <= max_level; ++ilev) {
+        phi[ilev].setVal(0.0);
+    }
+
     std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_lobc;
     std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_hibc;
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
@@ -39,9 +45,10 @@ MyTest::solve ()
         }
     }
             
-
     LPInfo info;
     info.setMaxCoarseningLevel(max_coarsening_level);
+    info.setAgglomerationGridSize(agg_grid_size);
+    info.setConsolidationGridSize(con_grid_size);
 
     MLNodeLaplacian mlndlap(geom, grids, dmap, info, amrex::GetVecOfConstPtrs(factory));
 
@@ -56,18 +63,6 @@ MyTest::solve ()
     }
 
     mlndlap.compRHS(amrex::GetVecOfPtrs(rhs), amrex::GetVecOfPtrs(vel), {}, {});
-
-#if 0
-#if (AMREX_SPACEDIM == 2)
-    for (int ilev = 0; ilev <= max_level; ++ilev) {
-        amrex::VisMF::Write(rhs[ilev], "rhs2d");
-    }
-#else
-    for (int ilev = 0; ilev <= max_level; ++ilev) {
-        amrex::VisMF::Write(rhs[ilev], "rhs3d");
-    }
-#endif
-#endif
 
     MLMG mlmg(mlndlap);
     mlmg.setVerbose(verbose);
@@ -85,20 +80,8 @@ MyTest::solve ()
     mlndlap.updateVelocity(amrex::GetVecOfPtrs(vel), amrex::GetVecOfConstPtrs(phi));
 
 #if 0
-#if (AMREX_SPACEDIM == 2)
-    for (int ilev = 0; ilev <= max_level; ++ilev) {
-        amrex::VisMF::Write(phi[ilev], "phi2d");
-    }
-#else
-    for (int ilev = 0; ilev <= max_level; ++ilev) {
-        amrex::VisMF::Write(phi[ilev], "phi3d");
-    }
-#endif
-#endif
-
     mlndlap.compRHS(amrex::GetVecOfPtrs(rhs), amrex::GetVecOfPtrs(vel), {}, {});
 
-#if 0
     for (int ilev = 0; ilev <= max_level; ++ilev) {
         amrex::VisMF::Write(rhs[ilev], "rhs"+std::to_string(ilev));
         amrex::Print() << "rhs.norm0() = " << rhs[ilev].norm0() << "\n";
@@ -151,6 +134,8 @@ MyTest::readParameters ()
 #ifdef AMREX_USE_HYPRE
     pp.query("use_hypre", use_hypre);
 #endif
+    pp.query("agg_grid_size", agg_grid_size);
+    pp.query("con_grid_size", con_grid_size);
 
     pp.query("sigma", sigma);
 
