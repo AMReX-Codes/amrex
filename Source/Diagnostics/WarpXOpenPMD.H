@@ -38,9 +38,9 @@ public:
 private:
   /** get the offset in the overall particle id collection
   *
-  * @param[out] numParticles particles on this processor  / amrex fab 
+  * @param[out] numParticles particles on this processor  / amrex fab
   * @param[out] offset particle offset over all, mpi-global amrex fabs
-  * @param[out] sum number of all particles from all amrex fabs 
+  * @param[out] sum number of all particles from all amrex fabs
   */
   void GetParticleOffsetOfProcessor(const long& numParticles,
                     unsigned long long& offset,
@@ -85,7 +85,7 @@ private:
   /** This function sets up the entries for storing the particle positions in an openPMD  species
   *
   * @param[in]  currSpecies The openPMD species
-  * @param[in]  np  Number of particles 
+  * @param[in]  np  Number of particles
   */
   void SetupPos(openPMD::ParticleSpecies& currSpecies,
         const unsigned long long& np) const ;
@@ -95,7 +95,7 @@ private:
    * @param[in] currSpecies The openPMD species
    * @param[in] write_real_comp The real attribute ids, from WarpX
    * @param[in] real_comp_names The real attribute names, from WarpX
-   * @param[in] np  Number of particles 
+   * @param[in] np  Number of particles
    */
   void SetupRealProperties(openPMD::ParticleSpecies& currSpecies,
                const amrex::Vector<int>& write_real_comp,
@@ -106,7 +106,7 @@ private:
    *
    * @param[in] pti WarpX particle iterator
    * @param[in] currSpecies The openPMD species to save to
-   * @param[in] offset offset to start saving  the particle iterator contents 
+   * @param[in] offset offset to start saving  the particle iterator contents
    * @param[in] write_real_comp The real attribute ids, from WarpX
    * @param[in] real_comp_names The real attribute names, from WarpX
    */
@@ -118,7 +118,7 @@ private:
 
   /** This function saves the plot file
    *
-   * @param[in] pc WarpX particle container 
+   * @param[in] pc WarpX particle container
    * @param[in] iteration timestep
    * @param[in] write_real_comp The real attribute ids, from WarpX
    * @param[in] real_comp_names The real attribute names, from WarpX
