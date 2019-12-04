@@ -128,12 +128,13 @@ WarpX::ResetInstance ()
 
 WarpX::WarpX ()
 {
-#ifdef WARPX_USE_OPENPMD
-      m_OpenPMDPlotWriter = new WarpXOpenPMDPlot(openpmd_tspf, openpmd_backend);
-#endif
     m_instance = this;
 
     ReadParameters();
+
+#ifdef WARPX_USE_OPENPMD
+    m_OpenPMDPlotWriter = new WarpXOpenPMDPlot(openpmd_tspf, openpmd_backend);
+#endif
 
     // Geometry on all levels has been defined already.
 
