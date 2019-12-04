@@ -267,7 +267,7 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
                 int src_index = p_src_indices[i];
                 ptd.packParticleData(p_snd_buffer, src_index, dst_index, p_comm_real, p_comm_int, psize);
                 
-                typename PC::ParticleType* p = (typename PC::ParticleType*) &p_snd_buffer[dst_index*psize];
+                ParticleType* p = (ParticleType*) &p_snd_buffer[dst_index*psize];
                 const IntVect& pshift = p_periodic_shift[i];
                 for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
                 {
@@ -361,8 +361,6 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buff
 {
     BL_PROFILE("amrex::communicateParticlesStart");
     
-    using ParticleType = typename PC::SuperParticleType;
-
     long psize = pc.superParticleSize();
 
 #ifdef BL_USE_MPI
