@@ -206,14 +206,14 @@ public:
     //These functions cannot be private due to restrictions related to
     //the use of extended __device__ lambda
     void internal_fill_amplitude_uniform(
-        const size_t idx_t_left,
+        const int idx_t_left,
         const int np,
         amrex::Real const * AMREX_RESTRICT const Xp,
         amrex::Real const * AMREX_RESTRICT const Yp,
         amrex::Real t,
         amrex::Real * AMREX_RESTRICT const amplitude) ;
     void internal_fill_amplitude_nonuniform(
-        const size_t idx_t_left,
+        const int idx_t_left,
         const int np,
         amrex::Real const * AMREX_RESTRICT const Xp,
         amrex::Real const * AMREX_RESTRICT const Yp,
@@ -223,18 +223,18 @@ public:
 
 private:
     void parse_txye_file(std::string txye_file_name);
-    void read_data_t_chuck(size_t t_begin, size_t t_end);
+    void read_data_t_chuck(int t_begin, int t_end);
 
     struct{
         std::string txye_file_name; //Name of the file containing the data
         bool is_grid_uniform = false; //Flag to store if the grid is uniform
-        size_t nt, nx, ny; //Dimensions of E_data
+        int nt, nx, ny; //Dimensions of E_data
         amrex::Gpu::ManagedVector<amrex::Real> t_coords; //Vector of temporal coordinates
         amrex::Gpu::ManagedVector<amrex::Real> x_coords; //Vector of x coordinates
         amrex::Gpu::ManagedVector<amrex::Real> y_coords; //Vector of y coordinates
-        size_t time_chunk_size; //Size of the timestep range to load
-        size_t first_time_index; //Index of the first timestep in memory
-        size_t last_time_index; //Index of the last timestep in memory
+        int time_chunk_size; //Size of the timestep range to load
+        int first_time_index; //Index of the first timestep in memory
+        int last_time_index; //Index of the last timestep in memory
         amrex::Gpu::ManagedVector<amrex::Real> E_data; //Field data
     } m_params;
 
