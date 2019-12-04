@@ -104,7 +104,6 @@ numParticlesOutOfRange (PC const& pc, int lev_min, int lev_max, int nGrow)
     BL_PROFILE("numParticlesOutOfRange()");
 
     using ParIter = typename PC::ParConstIterType;
-    using ParticleType = typename PC::ParticleType;
     int num_wrong = 0;
     for (int lev = lev_min; lev <= lev_max; ++lev)
     {

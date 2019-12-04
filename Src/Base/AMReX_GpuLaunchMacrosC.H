@@ -54,12 +54,6 @@
 
 #define AMREX_GPU_LAUNCH_DEVICE_LAMBDA_BOX(...) AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_BOX(__VA_ARGS__)
 
-#define AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_ASYNC(bbb,tbb,sync_id,block) \
-    { \
-        const amrex::Box& tbb = bbb; \
-        block \
-    }
-
 #define AMREX_GPU_LAUNCH_HOST_DEVICE_XYZ(bbx,bby,bbz,tbx,tby,tbz,blockx,blocky,blockz) \
     { \
         const amrex::Box& tbx = bbx; \
