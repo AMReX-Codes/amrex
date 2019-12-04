@@ -153,10 +153,11 @@ namespace amrex
 
 		iterator erase (const_iterator a_first, const_iterator a_last) noexcept
 		{
-			size_type num_to_erase = a_last - a_first;
-			m_size -= num_to_erase;
-			memmove(const_cast<iterator>(a_first), a_first+num_to_erase, (end() - a_first)*sizeof(T));
-			return const_cast<iterator>(a_first);
+                    size_type num_to_erase = a_last - a_first;
+                    if (num_to_erase == 0) return const_cast<iterator>(a_first);
+                    m_size -= num_to_erase;
+                    memmove(const_cast<iterator>(a_first), a_first+num_to_erase, (end() - a_first)*sizeof(T));
+                    return const_cast<iterator>(a_first);
 		}
 
 		iterator insert (const_iterator a_pos, const T& a_item) noexcept
@@ -181,6 +182,7 @@ namespace amrex
 
 		iterator insert (const_iterator a_pos, size_type a_count, const T& a_value) noexcept
 		{
+                    if (a_count == 0) return;
 			if( capacity() < size() + a_count)
 			{
 				size_t insert_index = std::distance(m_data, const_cast<iterator>(a_pos));
@@ -242,24 +244,25 @@ namespace amrex
 		template <class InputIt, class bar = typename std::iterator_traits<InputIt>::difference_type>
 		iterator insert (const_iterator a_pos, InputIt a_first, InputIt a_last) noexcept
 		{
-			size_type count = std::distance(a_first, a_last);
-			if( capacity() < size() + count)
-			{
-				size_t insert_index = std::distance(m_data, const_cast<iterator>(a_pos));
-				AllocateBufferForInsert(GetNewCapacity(count), insert_index, count);
-				a_pos = m_data;
-				std::advance(a_pos, insert_index);
-			}
-			else
-			{
-				memmove(const_cast<iterator>(a_pos)+count, a_pos, (end() - a_pos) * sizeof(T));
-				m_size += count;
-			}        pointer dst = const_cast<iterator>(a_pos);
-			while(a_first != a_last) { *(dst++) = *(a_first++); }
-			return const_cast<iterator>(a_pos);
+                    size_type count = std::distance(a_first, a_last);
+                    if (count == 0) return const_cast<iterator>(a_pos);
+                    if( capacity() < size() + count)
+                    {
+                        size_t insert_index = std::distance(m_data, const_cast<iterator>(a_pos));
+                        AllocateBufferForInsert(GetNewCapacity(count), insert_index, count);
+                        a_pos = m_data;
+                        std::advance(a_pos, insert_index);
+                    }
+                    else
+                    {
+                        memmove(const_cast<iterator>(a_pos)+count, a_pos, (end() - a_pos) * sizeof(T));
+                        m_size += count;
+                    }        pointer dst = const_cast<iterator>(a_pos);
+                    while(a_first != a_last) { *(dst++) = *(a_first++); }
+                    return const_cast<iterator>(a_pos);
 		}
-
-		void assign (size_type a_count, const T& a_value) noexcept
+            
+                void assign (size_type a_count, const T& a_value) noexcept
 		{
 			if ( a_count > capacity() ) AllocateBuffer(GetNewCapacity(a_count));
 			m_size = a_count;
@@ -441,7 +444,7 @@ namespace amrex
 		void AllocateBuffer (size_type a_capacity) noexcept
 		{
 			pointer new_data = allocate(a_capacity);
-			memcpy(new_data, m_data, size() * sizeof(T));
+			if (m_data) memcpy(new_data, m_data, size() * sizeof(T));
 			deallocate(m_data, capacity());
 			m_data = new_data;
 			m_capacity = a_capacity;
@@ -450,13 +453,16 @@ namespace amrex
 		// need to have this version too
 		void AllocateBufferForInsert(size_type a_capacity, size_type a_index, size_type a_count) noexcept
 		{
-			pointer new_data = allocate(a_capacity);
-			memcpy(new_data, m_data, a_index * sizeof(T));
-			memcpy(new_data + a_index + a_count, m_data + a_index, (size() - a_index)*sizeof(T));
-			deallocate(m_data, capacity());
-			m_data = new_data;
-			m_size = size() + a_count;
-			m_capacity = a_capacity;
+                    pointer new_data = allocate(a_capacity);
+                    if (m_data)
+                    {
+                        memcpy(new_data, m_data, a_index * sizeof(T));
+                        memcpy(new_data + a_index + a_count, m_data + a_index, (size() - a_index)*sizeof(T));
+                    }
+                    deallocate(m_data, capacity());
+                    m_data = new_data;
+                    m_size = size() + a_count;
+                    m_capacity = a_capacity;
 		}
 
 		PODVector& CopyAssignmentDoIt (const PODVector<T, Allocator>& a_vector, std::false_type) noexcept
