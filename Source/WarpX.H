@@ -569,8 +569,8 @@ private:
 #ifdef WARPX_USE_OPENPMD
     bool dump_plotfiles = false;
     bool dump_openpmd = true;
-  //bool openpmd_tspf = true; // one file per timestep
-    bool openpmd_tspf = false; // one file per timestep
+    bool openpmd_tspf = true; // one file per timestep
+  //bool openpmd_tspf = false; // one file all timesteps
     WarpXOpenPMDPlot* m_OpenPMDPlotWriter = nullptr;
 
 #else
