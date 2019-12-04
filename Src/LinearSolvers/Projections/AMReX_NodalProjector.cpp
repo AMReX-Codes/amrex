@@ -379,7 +379,7 @@ NodalProjector::setup ()
     m_solver->setBottomVerbose(m_bottom_verbose);
     m_solver->setMaxIter(m_maxiter);
     m_solver->setBottomMaxIter(m_bottom_maxiter);
-    m_solver->setBottomTolerance(m_rtol);
+    m_solver->setBottomTolerance(m_bottom_rtol);
     m_solver->setBottomToleranceAbs(m_bottom_atol);
 
 }
