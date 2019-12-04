@@ -34,6 +34,8 @@ private:
     int max_fmg_iter = 0;
     int max_coarsening_level = 30;
     bool use_hypre = false;
+    int agg_grid_size = -1;
+    int con_grid_size = -1;
 
     int cylinder_direction = 0;
 
