@@ -85,22 +85,35 @@ public:
                       const amrex::Vector<amrex::MultiFab*>&       a_S_cc = {},
                       const amrex::Vector<const amrex::MultiFab*>& a_S_nd = {} );
 
+    // Methods to set verbosity
+    void setVerbose            (int  v) noexcept { m_verbose = v; }
+    void setBottomVerbose      (int  v) noexcept { m_bottom_verbose = v; }
+
+    // Methods to control MLMG behavior
+    void setBottomSolver  (std::string b) noexcept { m_bottom_solver = b;}
+    void setMaxIter               (int i) noexcept { m_maxiter = i; }
+    void setBottomMaxIter         (int i) noexcept { m_bottom_maxiter = i; }
+    void setTolerance            (Real t) noexcept { m_rtol = t; }
+    void setToleranceAbs         (Real t) noexcept { m_atol = t; }
+    void setBottomTolerance      (Real t) noexcept { m_bottom_rtol = t; }
+    void setBottomToleranceAbs   (Real t) noexcept { m_bottom_atol = t; }
+
 private:
 
     bool m_ok = false;
 
     // Verbosity
-    int  m_verbose = 0;
-    int  m_mg_verbose = 0;
-    int  m_mg_cg_verbose = 0;
+    int  m_verbose        = 0;
+    int  m_bottom_verbose = 0;
 
     // Control MLMG behavior
-    int  m_mg_maxiter = 100;
-    int  m_mg_cg_maxiter = 100;
-    Real m_mg_rtol = 1.0e-11;
-    Real m_mg_atol = 1.0e-14;
-    std::string m_bottom_solver_type = "bicgcg";
-
+    std::string m_bottom_solver = "bicgcg";
+    int  m_maxiter        = 100;
+    int  m_bottom_maxiter = 100;
+    Real m_rtol           = 1.0e-11;
+    Real m_atol           = 1.0e-14;
+    Real m_bottom_rtol    = 1.0e-4;
+    Real m_bottom_atol    = -1.0;
 
     Vector<Geometry>                    m_geom;
     Vector<BoxArray>                    m_grids;
