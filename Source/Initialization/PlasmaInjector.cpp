@@ -269,6 +269,50 @@ void PlasmaInjector::parseMomentum (ParmParse& pp)
         // Construct InjectorMomentum with InjectorMomentumGaussian.
         inj_mom.reset(new InjectorMomentum((InjectorMomentumGaussian*)nullptr,
                                            ux_m, uy_m, uz_m, ux_th, uy_th, uz_th));
+    } else if (mom_dist_s == "maxwell_boltzmann"){
+        Real beta = 0.;
+        Real theta = 10.;
+        int dir = 0;
+        std::string direction = "x";
+        pp.query("beta", beta);
+        pp.query("theta", theta);
+        pp.query("direction", direction);
+        if(direction == "x" || direction == "X"){
+            dir = 0;
+        } else if (direction == "y" || direction == "Y"){
+            dir = 1;
+        } else if (direction == "z" || direction == "Z"){
+            dir = 2;
+        } else{
+            std::stringstream stringstream;
+            stringstream << "Direction " << direction << " is not recognzied. Please enter x, y, or z.";
+            direction = stringstream.str();
+            amrex::Abort(direction.c_str());
+        }
+        // Construct InjectorMomentum with InjectorMomentumBoltzmann.
+        inj_mom.reset(new InjectorMomentum((InjectorMomentumBoltzmann*)nullptr, theta, beta, dir));
+    } else if (mom_dist_s == "maxwell_juttner"){
+        Real beta = 0.;
+        Real theta = 10.;
+        int dir = 0;
+        std::string direction = "x";
+        pp.query("beta", beta);
+        pp.query("theta", theta);
+        pp.query("direction", direction);
+        if(direction == "x" || direction == "X"){
+            dir = 0;
+        } else if (direction == "y" || direction == "Y"){
+            dir = 1;
+        } else if (direction == "z" || direction == "Z"){
+            dir = 2;
+        } else{
+            std::stringstream stringstream;
+            stringstream << "Direction " << direction << " is not recognzied. Please enter x, y, or z.";
+            direction = stringstream.str();
+            amrex::Abort(direction.c_str());
+        }
+        // Construct InjectorMomentum with InjectorMomentumJuttner.
+        inj_mom.reset(new InjectorMomentum((InjectorMomentumJuttner*)nullptr, theta, beta, dir));
     } else if (mom_dist_s == "radial_expansion") {
         Real u_over_r = 0.;
         pp.query("u_over_r", u_over_r);

@@ -2,7 +2,6 @@
 #define WARPX_PARTICLES_SORTING_SORTINGUTILS_H_
 
 #include <WarpXParticleContainer.H>
-#include <AMReX_CudaContainers.H>
 #include <AMReX_Gpu.H>
 #ifdef AMREX_USE_GPU
     #include <thrust/partition.h>
@@ -43,7 +42,7 @@ ForwardIterator stablePartition(ForwardIterator const index_begin,
     // On GPU: Use thrust
     int const* AMREX_RESTRICT predicate_ptr = predicate.dataPtr();
     ForwardIterator const sep = thrust::stable_partition(
-        thrust::cuda::par(amrex::Cuda::The_ThrustCachedAllocator()),
+        thrust::cuda::par(amrex::Gpu::The_ThrustCachedAllocator()),
         index_begin, index_end,
         [predicate_ptr] AMREX_GPU_DEVICE (long i) { return predicate_ptr[i]; }
     );

@@ -73,12 +73,12 @@ public:
     WarpXParIter (ContainerType& pc, int level);
 
 #if (AMREX_SPACEDIM == 2)
-    void GetPosition (amrex::Cuda::ManagedDeviceVector<amrex::ParticleReal>& x,
-                      amrex::Cuda::ManagedDeviceVector<amrex::ParticleReal>& y,
-                      amrex::Cuda::ManagedDeviceVector<amrex::ParticleReal>& z) const;
-    void SetPosition (const amrex::Cuda::ManagedDeviceVector<amrex::ParticleReal>& x,
-                      const amrex::Cuda::ManagedDeviceVector<amrex::ParticleReal>& y,
-                      const amrex::Cuda::ManagedDeviceVector<amrex::ParticleReal>& z);
+    void GetPosition (amrex::Gpu::ManagedDeviceVector<amrex::ParticleReal>& x,
+                      amrex::Gpu::ManagedDeviceVector<amrex::ParticleReal>& y,
+                      amrex::Gpu::ManagedDeviceVector<amrex::ParticleReal>& z) const;
+    void SetPosition (const amrex::Gpu::ManagedDeviceVector<amrex::ParticleReal>& x,
+                      const amrex::Gpu::ManagedDeviceVector<amrex::ParticleReal>& y,
+                      const amrex::Gpu::ManagedDeviceVector<amrex::ParticleReal>& z);
 #endif
     const std::array<RealVector, PIdx::nattribs>& GetAttribs () const {
         return GetStructOfArrays().GetRealData();
@@ -185,7 +185,8 @@ public:
                         const amrex::MultiFab& Bz) = 0;
 
     void DepositCharge(amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
-                       bool local = false);
+                       bool local = false, bool reset = false,
+                       bool do_rz_volume_scaling = false );
     std::unique_ptr<amrex::MultiFab> GetChargeDensity(int lev, bool local = false);
 
     virtual void DepositCharge(WarpXParIter& pti,
@@ -254,6 +255,8 @@ public:
     void setNextID(int next_id) { ParticleType::NextID(next_id); }
 
     bool do_splitting = false;
+    bool initialize_self_fields = false;
+    amrex::Real self_fields_required_precision = 1.e-11;
 
     // split along diagonals (0) or axes (1)
     int split_type = 0;
@@ -299,6 +302,7 @@ protected:
     bool m_gather_from_main_grid = false;
 
     static int do_not_push;
+    static int do_not_deposit;
 
     // Whether to allow particles outside of the simulation domain to be
     // initialized when they enter the domain.
@@ -322,9 +326,12 @@ protected:
 #ifdef WARPX_QED
     bool m_do_qed = false;
 
+    //Species for which QED effects are relevant should override these methods
     virtual bool has_quantum_sync(){return false;};
     virtual bool has_breit_wheeler(){return false;};
 
+    //Species can receive a shared pointer to a QED engine (species for
+    //which this is relevant should override these functions)
     virtual void
     set_breit_wheeler_engine_ptr(std::shared_ptr<BreitWheelerEngine>){};
     virtual void

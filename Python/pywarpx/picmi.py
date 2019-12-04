@@ -56,7 +56,7 @@ class Species(picmistandard.PICMI_Species):
                 if self.mass is None:
                     self.mass = element.mass*periodictable.constants.atomic_mass_constant
 
-    def initialize_inputs(self, layout):
+    def initialize_inputs(self, layout, initialize_self_fields=False):
         self.species_number = pywarpx.particles.nspecies
         pywarpx.particles.nspecies += 1
 
@@ -68,7 +68,8 @@ class Species(picmistandard.PICMI_Species):
         else:
             pywarpx.particles.species_names += ' ' + self.name
 
-        self.species = pywarpx.Bucket.Bucket(self.name, mass=self.mass, charge=self.charge, injection_style = 'python')
+        self.species = pywarpx.Bucket.Bucket(self.name, mass=self.mass, charge=self.charge,
+                        injection_style = 'python', initialize_self_fields=int(initialize_self_fields))
         pywarpx.Particles.particles_list.append(self.species)
 
         if self.initial_distribution is not None:
@@ -77,9 +78,9 @@ class Species(picmistandard.PICMI_Species):
 
 picmistandard.PICMI_MultiSpecies.Species_class = Species
 class MultiSpecies(picmistandard.PICMI_MultiSpecies):
-    def initialize_inputs(self, layout):
+    def initialize_inputs(self, layout, initialize_self_fields=False):
         for species in self.species_instances_list:
-            species.initialize_inputs(layout)
+            species.initialize_inputs(layout, initialize_self_fields)
 
 
 class GaussianBunchDistribution(picmistandard.PICMI_GaussianBunchDistribution):
@@ -544,8 +545,7 @@ class Simulation(picmistandard.PICMI_Simulation):
         self.solver.initialize_inputs()
 
         for i in range(len(self.species)):
-            assert not self.initialize_self_fields[i], Exception('WarpX does not support initializing self fields')
-            self.species[i].initialize_inputs(self.layouts[i])
+            self.species[i].initialize_inputs(self.layouts[i], self.initialize_self_fields[i])
 
         for i in range(len(self.lasers)):
             self.lasers[i].initialize_inputs()

@@ -1,4 +1,4 @@
-#! /usr/bin/env python3
+#! /usr/bin/env python
 
 # This script contains few simple tests for the radiation reaction pusher
 # It initializes an electron or a positron with normalized momentum in different

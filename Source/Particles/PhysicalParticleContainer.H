@@ -94,9 +94,9 @@ public:
                          DtType a_dt_type=DtType::Full) override;
 
     virtual void PushPX(WarpXParIter& pti,
-                        amrex::Cuda::ManagedDeviceVector<amrex::ParticleReal>& xp,
-                        amrex::Cuda::ManagedDeviceVector<amrex::ParticleReal>& yp,
-                        amrex::Cuda::ManagedDeviceVector<amrex::ParticleReal>& zp,
+                        amrex::Gpu::ManagedDeviceVector<amrex::ParticleReal>& xp,
+                        amrex::Gpu::ManagedDeviceVector<amrex::ParticleReal>& yp,
+                        amrex::Gpu::ManagedDeviceVector<amrex::ParticleReal>& zp,
                         amrex::Real dt, DtType a_dt_type=DtType::Full);
 
     virtual void PushP (int lev, amrex::Real dt,
@@ -187,13 +187,47 @@ public:
         amrex::FArrayBox const * & byfab, amrex::FArrayBox const * & bzfab);
 
 #ifdef WARPX_QED
+    //Functions decleared in WarpXParticleContainer.H
+    //containers for which QED processes could be relevant
+    //are expected to override these functions
+
+    /**
+     * Tells if this PhysicalParticleContainer has Quantum
+     * Synchrotron process enabled
+     * @return true if process is enabled
+     */
     bool has_quantum_sync() override;
+
+    /**
+     * Tells if this PhysicalParticleContainer has Breit
+     * Wheeler process enabled
+     * @return true if process is enabled
+     */
     bool has_breit_wheeler() override;
 
+    /**
+     * Acquires a shared smart pointer to a BreitWheelerEngine
+     * @param[in] ptr the pointer
+     */
     void set_breit_wheeler_engine_ptr
-        (std::shared_ptr<BreitWheelerEngine>) override;
+        (std::shared_ptr<BreitWheelerEngine> ptr) override;
+
+    /**
+     * Acquires a shared smart pointer to a QuantumSynchrotronEngine
+     * @param[in] ptr the pointer
+     */
     void set_quantum_sync_engine_ptr
-        (std::shared_ptr<QuantumSynchrotronEngine>) override;
+        (std::shared_ptr<QuantumSynchrotronEngine> ptr) override;
+    //__________
+
+    /**
+     * This function evolves the optical depth of the particles if QED effects
+     * are enabled.
+     * @param[in,out] pti particle iterator (optical depth will be modified)
+     * @param[in] dt temporal step
+     */
+    virtual void EvolveOpticalDepth(WarpXParIter& pti,
+        amrex::Real dt);
 #endif
 
 protected:

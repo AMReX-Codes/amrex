@@ -109,3 +109,4 @@ slice.coarsening_ratio = 1 1 1
 slice.plot_int = -1
 slice.num_slice_snapshots_lab = 4
 slice.dt_slice_snapshots_lab = 3.3356409519815207e-12
+slice.particle_slice_width_lab = 2.e-6
