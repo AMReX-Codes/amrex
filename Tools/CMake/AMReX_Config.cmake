@@ -94,6 +94,21 @@ function (configure_amrex)
          $<$<CXX_COMPILER_ID:Cray>:-h;noomp> )     
    endif ()
 
+   if (ENABLE_TIMEMORY)
+
+      set(_TIMEMORY_COMPONENTS headers papi cuda nvtx cupti cudart-device gperftools-cpu caliper gotcha likwid vtune tau)
+      if(ENABLE_MPI)
+         list(APPEND _TIMEMORY_COMPONENTS mpi)
+      endif()
+
+      if(ENABLE_UPCXX)
+         list(APPEND _TIMEMORY_COMPONENTS upcxx)
+      endif()
+
+      set(TIMEMORY_COMPONENTS "${_TIMEMORY_COMPONENTS}" CACHE STRING "timemory components")
+      find_package(timemory REQUIRED COMPONENTS $(TIMEMORY_COMPONENTS))
+
+   endif ()
    
    if (ENABLE_CUDA)     
       # After we load the setups for ALL the supported compilers

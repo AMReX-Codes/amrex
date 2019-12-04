@@ -65,7 +65,10 @@ function ( set_amrex_defines )
 
    # OpenMP
    add_amrex_define( AMREX_USE_OMP IF ENABLE_OMP )
-  
+ 
+   # OpenMP
+   add_amrex_define( AMREX_USE_TIMEMORY IF ENABLE_TIMEMORY )
+ 
    # Precision
    if (NOT ENABLE_DP)
       add_amrex_define(AMREX_USE_FLOAT)

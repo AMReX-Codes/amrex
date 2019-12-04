@@ -45,6 +45,7 @@ set(AMReX_@DIM@D_FOUND                  ON)
 set(AMReX_MPI_FOUND                 @ENABLE_MPI@)
 set(AMReX_OMP_FOUND                 @ENABLE_OMP@)
 set(AMReX_CUDA_FOUND                @ENABLE_CUDA@)
+set(AMReX_TIMEMORY_FOUND            @ENABLE_TIMEMORY@)
 set(AMReX_DP_FOUND                  @ENABLE_DP@)
 
 # Actual components selection 
@@ -87,6 +88,10 @@ if (@ENABLE_MPI@)
    endif ()
    find_dependency(MPI REQUIRED ${_mpi_components})
    unset(_mpi_components)
+endif()
+
+if (@ENABLE_TIMEMORY@)
+   find_dependency(timemory REQUIRED @TIMEMORY_COMPONENTS@)
 endif()
 
 if (@ENABLE_OMP@)
