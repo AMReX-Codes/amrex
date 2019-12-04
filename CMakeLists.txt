@@ -18,6 +18,7 @@ if ( CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT )
       CACHE PATH "AMReX installation directory" FORCE)
 endif ()
 
+find_package(Threads)
 #
 # Include options, utilities and other stuff we need
 # 

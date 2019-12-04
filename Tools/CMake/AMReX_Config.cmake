@@ -106,7 +106,11 @@ function (configure_amrex)
       endif()
 
       set(TIMEMORY_COMPONENTS "${_TIMEMORY_COMPONENTS}" CACHE STRING "timemory components")
-      find_package(timemory REQUIRED COMPONENTS $(TIMEMORY_COMPONENTS))
+      find_package(timemory REQUIRED COMPONENTS ${TIMEMORY_COMPONENTS})
+
+      target_link_libraries(amrex
+         PUBLIC
+         timemory)
 
    endif ()
    

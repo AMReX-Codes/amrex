@@ -479,7 +479,14 @@ inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
 #define BL_TINY_PROFILE_INITIALIZE()   amrex::TinyProfiler::Initialize();
 #define BL_TINY_PROFILE_FINALIZE()     amrex::TinyProfiler::Finalize();
 
-#define BL_PROFILE(fname)         amrex::TinyProfiler tiny_profiler__((fname));
+#include <timemory/timemory.hpp>
+using namespace tim::component;
+using simple_timer_t = tim::component_tuple<wall_clock>;
+using kernel_timer_t = tim::component_list<cupti_activity, cupti_counters, papi_array_t>;
+using hybrid_timer_t = tim::auto_hybrid<simple_timer_t, kernel_timer_t>;
+#define BL_PROFILE(fname) TIMEMORY_BLANK_MARKER(hybrid_timer_t, fname)
+
+// #define BL_PROFILE(fname)         amrex::TinyProfiler tiny_profiler__((fname));
 #define BL_PROFILE_T(a, T)
 #define BL_PROFILE_S(fname)
 #define BL_PROFILE_T_S(fname, T)
