@@ -134,6 +134,8 @@ MyTest::readParameters ()
 #ifdef AMREX_USE_HYPRE
     pp.query("use_hypre", use_hypre);
 #endif
+    pp.query("agg_grid_size", agg_grid_size);
+    pp.query("con_grid_size", con_grid_size);
 
     pp.query("sigma", sigma);
 
