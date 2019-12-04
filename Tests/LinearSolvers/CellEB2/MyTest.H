@@ -48,6 +48,8 @@ private:
     int max_coarsening_level = 30;
     bool use_hypre = false;
     bool use_petsc = false;
+    int agg_grid_size = 8;
+    int con_grid_size = 8;
 
     int composite_solve = 0;
 
