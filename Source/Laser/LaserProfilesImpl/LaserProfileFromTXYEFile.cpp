@@ -106,11 +106,13 @@ FromTXYEFileLaserProfile::fill_amplitude (
     }
 
     //Load data chunck if needed
-    #pragma omp critical
-    {
-        if(idx_t_right >  m_params.last_time_index){
+    if(idx_t_right >  m_params.last_time_index){
+        #pragma omp barrier
+        #pragma omp single
+        {
             read_data_t_chuck(idx_t_left, idx_t_left+m_params.time_chunk_size);
         }
+        #pragma omp barrier
     }
 
     if(m_params.is_grid_uniform){
