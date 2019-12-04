@@ -1362,40 +1362,41 @@ PhysicalParticleContainer::applyNCIFilter (
 #endif
 
     // Filter Ex (Both 2D and 3D)
-    filtered_Ex.resize(amrex::convert(tbox,WarpX::Ex_nodal_flag));
+    filtered_Ex.resize(amrex::convert(tbox,Ex.box().ixType()));
     // Safeguard for GPU
     exeli = filtered_Ex.elixir();
     // Apply filter on Ex, result stored in filtered_Ex
+
     nci_godfrey_filter_exeybz[lev]->ApplyStencil(filtered_Ex, Ex, filtered_Ex.box());
     // Update ex_ptr reference
     ex_ptr = &filtered_Ex;
 
     // Filter Ez
-    filtered_Ez.resize(amrex::convert(tbox,WarpX::Ez_nodal_flag));
+    filtered_Ez.resize(amrex::convert(tbox,Ez.box().ixType()));
     ezeli = filtered_Ez.elixir();
     nci_godfrey_filter_bxbyez[lev]->ApplyStencil(filtered_Ez, Ez, filtered_Ez.box());
     ez_ptr = &filtered_Ez;
 
     // Filter By
-    filtered_By.resize(amrex::convert(tbox,WarpX::By_nodal_flag));
+    filtered_By.resize(amrex::convert(tbox,By.box().ixType()));
     byeli = filtered_By.elixir();
     nci_godfrey_filter_bxbyez[lev]->ApplyStencil(filtered_By, By, filtered_By.box());
     by_ptr = &filtered_By;
 #if (AMREX_SPACEDIM == 3)
     // Filter Ey
-    filtered_Ey.resize(amrex::convert(tbox,WarpX::Ey_nodal_flag));
+    filtered_Ey.resize(amrex::convert(tbox,Ey.box().ixType()));
     eyeli = filtered_Ey.elixir();
     nci_godfrey_filter_exeybz[lev]->ApplyStencil(filtered_Ey, Ey, filtered_Ey.box());
     ey_ptr = &filtered_Ey;
 
     // Filter Bx
-    filtered_Bx.resize(amrex::convert(tbox,WarpX::Bx_nodal_flag));
+    filtered_Bx.resize(amrex::convert(tbox,Bx.box().ixType()));
     bxeli = filtered_Bx.elixir();
     nci_godfrey_filter_bxbyez[lev]->ApplyStencil(filtered_Bx, Bx, filtered_Bx.box());
     bx_ptr = &filtered_Bx;
 
     // Filter Bz
-    filtered_Bz.resize(amrex::convert(tbox,WarpX::Bz_nodal_flag));
+    filtered_Bz.resize(amrex::convert(tbox,Bz.box().ixType()));
     bzeli = filtered_Bz.elixir();
     nci_godfrey_filter_exeybz[lev]->ApplyStencil(filtered_Bz, Bz, filtered_Bz.box());
     bz_ptr = &filtered_Bz;
