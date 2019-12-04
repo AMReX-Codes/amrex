@@ -178,7 +178,7 @@ namespace amrex
         
         iterator insert (const_iterator a_pos, size_type a_count, const T& a_value) noexcept
         {
-            if (a_count == 0) return;
+            if (a_count == 0) return const_cast<iterator>(a_pos);
             if( capacity() < size() + a_count)
                 {
                     size_t insert_index = std::distance(m_data, const_cast<iterator>(a_pos));
