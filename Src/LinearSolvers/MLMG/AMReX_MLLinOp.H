@@ -46,7 +46,7 @@ struct LPInfo
     LPInfo& setMetricTerm (bool x) noexcept { has_metric_term = x; return *this; }
     LPInfo& setMaxCoarseningLevel (int n) noexcept { max_coarsening_level = n; return *this; }
 
-    static constexpr getDefaultAgglomerationGridSize () {
+    static constexpr int getDefaultAgglomerationGridSize () {
 #ifdef AMREX_USE_GPU
         return 32;
 #else
@@ -54,7 +54,7 @@ struct LPInfo
 #endif
     }
 
-    static constexpr getDefaultConsolidationGridSize () {
+    static constexpr int getDefaultConsolidationGridSize () {
 #ifdef AMREX_USE_GPU
         return 32;
 #else
