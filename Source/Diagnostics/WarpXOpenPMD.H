@@ -38,9 +38,9 @@ public:
 private:
   /** get the offset in the overall particle id collection
   *
-  * @param[out] numParticles particles on this processor (?) / amrex fab (?)
-  * @param[out] offset particle offset over all, mpi-global amrex fabs (?)
-  * @param[out] number of all particles from all amrex fabs (?)
+  * @param[out] numParticles particles on this processor  / amrex fab 
+  * @param[out] offset particle offset over all, mpi-global amrex fabs
+  * @param[out] sum number of all particles from all amrex fabs 
   */
   void GetParticleOffsetOfProcessor(const long& numParticles,
                     unsigned long long& offset,
@@ -82,27 +82,49 @@ private:
   void Init(const std::string& filename,
         openPMD::AccessType accessType);
 
-  /*
-  // get the offset in the overall particle id collection
-  void GetParticleOffsetOfProcessor(const long& numParticles,
-                    unsigned long long& offset,
-                    unsigned long long& sum)  const ;
+  /** This function sets up the entries for storing the particle positions in an openPMD  species
+  *
+  * @param[in]  currSpecies The openPMD species
+  * @param[in]  np  Number of particles 
   */
   void SetupPos(openPMD::ParticleSpecies& currSpecies,
         const unsigned long long& np) const ;
 
+  /** This function sets up the entries for particle properties
+   *
+   * @param[in] currSpecies The openPMD species
+   * @param[in] write_real_comp The real attribute ids, from WarpX
+   * @param[in] real_comp_names The real attribute names, from WarpX
+   * @param[in] np  Number of particles 
+   */
   void SetupRealProperties(openPMD::ParticleSpecies& currSpecies,
                const amrex::Vector<int>& write_real_comp,
                const amrex::Vector<std::string>& real_comp_names,
                unsigned long long np) const;
 
+  /** This function saves the values of the entries for particle properties
+   *
+   * @param[in] pti WarpX particle iterator
+   * @param[in] currSpecies The openPMD species to save to
+   * @param[in] offset offset to start saving  the particle iterator contents 
+   * @param[in] write_real_comp The real attribute ids, from WarpX
+   * @param[in] real_comp_names The real attribute names, from WarpX
+   */
   void SaveRealProperty(WarpXParIter& pti, //int, int,
             openPMD::ParticleSpecies& currSpecies,
             unsigned long long offset,
             const amrex::Vector<int>& write_real_comp,
             const amrex::Vector<std::string>& real_comp_names) const;
 
-
+  /** This function saves the plot file
+   *
+   * @param[in] pc WarpX particle container 
+   * @param[in] iteration timestep
+   * @param[in] write_real_comp The real attribute ids, from WarpX
+   * @param[in] real_comp_names The real attribute names, from WarpX
+   * @param[in] write_int_comp The int attribute ids, from WarpX
+   * @param[in] int_comp_names The int attribute names, from WarpX
+   */
   void SavePlotFile(const std::unique_ptr<WarpXParticleContainer>& pc,
             const std::string& name,
             int iteration,
@@ -122,7 +144,7 @@ private:
   int m_NumSoARealAttributes = PIdx::nattribs; //! WarpX' addition particle attributes in SoA
   int m_NumAoSRealAttributes = 0; //! WarpX definition: no additional attributes in particle AoS
 
-  bool m_OneFilePerTS = true;
+  bool m_OneFilePerTS = true;  //! write in openPMD fileBased manner for individual time steps
   std::string m_OpenPMDFileType = "bp"; //! MPI-parallel openPMD backend: bp or h5
   int m_CurrentStep  = -1;
 };

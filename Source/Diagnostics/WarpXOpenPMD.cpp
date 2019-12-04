@@ -117,7 +117,7 @@ WarpXOpenPMDPlot::WriteOpenPMDParticles(const std::unique_ptr<MultiParticleConta
       if(pc->do_field_ionization){
          int_names.push_back("ionization_level");
          // int_flags specifies, for each integer attribs, whether it is
-         // dumped to plotfiles. So far, ionization_level is the only
+         // dumped as particle record in a plotfile. So far, ionization_level is the only
          // integer attribs, and it is automatically dumped to plotfiles
          // when ionization is on.
          int_flags.resize(1, 1);

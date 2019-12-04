@@ -425,6 +425,7 @@ WarpX::ReadParameters ()
 
         pp.query("dump_openpmd", dump_openpmd);
         pp.query("openpmd_backend", openpmd_backend);
+        pp.query("openpmd_tspf", openpmd_tspf);
         pp.query("dump_plotfiles", dump_plotfiles);
         pp.query("plot_raw_fields", plot_raw_fields);
         pp.query("plot_raw_fields_guards", plot_raw_fields_guards);
