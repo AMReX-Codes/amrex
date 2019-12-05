@@ -45,20 +45,13 @@ void LockingTest ()
 {
     int Ndraw= 1e7;
 #ifdef AMREX_USE_CUDA    
-    
-    amrex::Print() << "Generating random numbers using GPU ";
-    amrex::Print() << amrex::Gpu::Device::deviceId() << " on rank ";
-    amrex::Print() << amrex::ParallelDescriptor::MyProc() << "\n";
-
     Gpu::DeviceVector<double> d_xpos(Ndraw);
     Gpu::DeviceVector<double> d_ypos(Ndraw);
     Gpu::DeviceVector<double> d_zpos(Ndraw);
 
     double *dxpos = d_xpos.dataPtr();
     double *dypos = d_ypos.dataPtr();
-    double *dzpos = d_zpos.dataPtr();
-    
-
+    double *dzpos = d_zpos.dataPtr();    
 #endif
 
     amrex::Vector<double> hx(Ndraw);
@@ -68,21 +61,18 @@ void LockingTest ()
     double *hypos = hy.dataPtr();
     double *hzpos = hz.dataPtr();
 
-
     AMREX_PARALLEL_FOR_1D (Ndraw, idx,
-	 {
-#ifdef AMREX_USE_CUDA
-	   
+    {
+#ifdef AMREX_USE_CUDA	   
            addone(dxpos);
 	   addone(dypos);
-	   addone(dzpos);
-	  
+	   addone(dzpos);	  
 #else // Not defined for CPU -> this will still have the test pass if run with cpus
 	   hx[i] = hx[i]+1;
 	   hy[i] = hy[i]+1;
 	   hz[i] = hz[i]+1;
 #endif	   
-	 });
+    });
 
     
 #ifdef AMREX_USE_CUDA
@@ -95,13 +85,13 @@ void LockingTest ()
    int sumy = 0;
    int sumz = 0;
    for (int i = 0; i < Ndraw; i++ )
-     {
+   {
        sumx = sumx + hxpos[i];
        sumy = sumy + hypos[i];
        sumz = sumz + hzpos[i];
-     }
+   }
 
-   //For the test to pass and race conditions avoided successfuly
+   // For the test to pass and race conditions avoided successfuly
    // All of these numbers should be the same
    amrex::Print() << "Sumx  = " << sumx << std::endl;
    amrex::Print() << "Sumy  = " << sumy << std::endl;
@@ -109,14 +99,13 @@ void LockingTest ()
    amrex::Print() << "Ndraw = " << Ndraw << std::endl;
 
    if ( (sumx == sumy) && (sumz == Ndraw) && (sumx == sumz) )
-     {
+   {
        amrex::Print() << "Locking Test Passed!" << std::endl;
-     }
+   }
    else
-     {
+   {
        amrex::Print() << "Locking Test Failed!" << std::endl;
-     }
-  
+   }  
 }
 
 
