@@ -2,10 +2,11 @@
 #include "FieldIO.H"  // for getReversedVec
 
 WarpXOpenPMDPlot::WarpXOpenPMDPlot(bool oneFilePerTS,
-                       const std::string& openPMDFileType)
+				   std::string& openPMDFileType)
   :m_Series(nullptr),
    m_OneFilePerTS(oneFilePerTS),
-   m_OpenPMDFileType(openPMDFileType)
+   m_OpenPMDFileType(std::move(openPMDFileType))
+   //m_OpenPMDFileType(openPMDFileType)
 {}
 
 WarpXOpenPMDPlot::~WarpXOpenPMDPlot()
@@ -20,28 +21,20 @@ WarpXOpenPMDPlot::~WarpXOpenPMDPlot()
 //
 //
 //
-void WarpXOpenPMDPlot::GetFileName(std::string& filename, int ts)
+void WarpXOpenPMDPlot::GetFileName(std::string& filename)
 {
   std::string dir = "diags/";
-  std::string prefix="/plot";
 
-  // Write openPMD fields: only for level 0; particles: all (from locally finest level)
-  filename = std::string(dir);
-  filename.append(m_OpenPMDFileType);
-
+  filename = dir;
+  filename.append(m_OpenPMDFileType).append("/simData");
+  //
+  // OpenPMD supports timestepped names 
+  //
   if (m_OneFilePerTS)
-    filename += amrex::Concatenate(prefix, ts);
-  else
-    filename.append(prefix);
-
-  filename += std::string(".") + m_OpenPMDFileType;
+      filename = filename.append("_%07T");
+  filename.append(".").append(m_OpenPMDFileType);
 }
 
-
-void WarpXOpenPMDPlot::SetOpenPMDType(const std::string& type)
-{
-  m_OpenPMDFileType = type;
-}
 
 void WarpXOpenPMDPlot::SetStep(int ts)
 {
@@ -50,22 +43,23 @@ void WarpXOpenPMDPlot::SetStep(int ts)
 
   m_CurrentStep =  ts;
 
-  std::string filename;
-  if (m_OneFilePerTS) {
-    GetFileName(filename, ts);
-    Init(filename, openPMD::AccessType::CREATE);
-  } else { // one file
-    if (nullptr == m_Series) {
-      GetFileName(filename, -1);
-      Init(filename, openPMD::AccessType::CREATE);
-    }
-  }
+  Init(openPMD::AccessType::CREATE);
 }
 
 void
-WarpXOpenPMDPlot::Init(const std::string& filename,
-               openPMD::AccessType accessType)
+WarpXOpenPMDPlot::Init(openPMD::AccessType accessType)
 {
+  if (!m_OneFilePerTS) {// one file
+    if (nullptr != m_Series) {
+      return;
+    }
+  }
+
+  // either for the next ts file, 
+  // or init a single file for all ts
+  std::string filename;    
+  GetFileName(filename);
+
   if (m_Series != nullptr) {
     m_Series->flush();
     delete m_Series;
@@ -81,6 +75,7 @@ WarpXOpenPMDPlot::Init(const std::string& filename,
   }
   else
     m_Series = new openPMD::Series(filename, accessType);
+
 }
 
 
@@ -118,7 +113,7 @@ WarpXOpenPMDPlot::WriteOpenPMDParticles(const std::unique_ptr<MultiParticleConta
          int_names.push_back("ionization_level");
          // int_flags specifies, for each integer attribs, whether it is
          // dumped as particle record in a plotfile. So far, ionization_level is the only
-         // integer attribs, and it is automatically dumped to plotfiles
+         // integer attribs, and it is automatically dumped as particle record
          // when ionization is on.
          int_flags.resize(1, 1);
       }
@@ -174,7 +169,8 @@ WarpXOpenPMDPlot::SavePlotFile (const std::unique_ptr<WarpXParticleContainer>& p
 
   for (auto currentLevel = 0; currentLevel <= pc->finestLevel(); currentLevel++)
     {
-      long numParticles = counter.m_ParticleSizeAtRank[currentLevel];
+      //long numParticles = counter.m_ParticleSizeAtRank[currentLevel]
+      unsigned long long const numParticles = counter.m_ParticleSizeAtRank[currentLevel];
       unsigned long long offset = counter.m_ParticleOffsetAtRank[currentLevel];
 
       //if return after this, all is fine (although nothing useful is written)
@@ -322,7 +318,8 @@ WarpXOpenPMDPlot::WriteOpenPMDFields( //const std::string& filename,
                       const int iteration,
                       const double time ) const
 {
-  BL_PROFILE("WriteOpenPMDFields()");
+  //This is AmrEx's tiny profiler. Possibly will apply it later
+  //BL_PROFILE("WriteOpenPMDFields()");
 
   if ( nullptr == m_Series)
     return;

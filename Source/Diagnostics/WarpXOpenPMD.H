@@ -62,12 +62,13 @@ private:
 class WarpXOpenPMDPlot
 {
 public:
-  WarpXOpenPMDPlot(bool, const std::string& filetype);
+  // not  using const string, to  allow std::move to be effective
+  WarpXOpenPMDPlot(bool, std::string& filetype);
+
   //WarpXOpenPMDPlot(const std::string& dir, const std::string& fileType);
   ~WarpXOpenPMDPlot();
 
   void SetStep(int ts);
-  void SetOpenPMDType(const std::string& type);
 
   void WriteOpenPMDParticles(const std::unique_ptr<MultiParticleContainer>&);
 
@@ -79,7 +80,7 @@ public:
 
 
 private:
-  void Init(const std::string& filename,
+  void Init(//const std::string& filename,
         openPMD::AccessType accessType);
 
   /** This function sets up the entries for storing the particle positions in an openPMD  species
@@ -132,11 +133,12 @@ private:
             const amrex::Vector<int>& write_int_comp,
             const amrex::Vector<std::string>& real_comp_names,
             const amrex::Vector<std::string>&  int_comp_names) const;
+  
+  // no need for ts in the name, openPMD  handles it
+  void GetFileName(std::string& filename);
 
-
-  void GetFileName(std::string& filename, int ts);
   //std::string m_Dir;
-  openPMD::Series* m_Series;
+  openPMD::Series* m_Series = nullptr;
 
   int m_MPIRank = 0;
   int m_MPISize = 1;
