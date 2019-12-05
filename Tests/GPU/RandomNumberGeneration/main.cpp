@@ -61,6 +61,11 @@ void RandomNumGen ()
 
     }
 
+    // for (int i = 0; i < Ndraw; i++ )
+    // {
+    //     amrex::Print() << i << " " << x[i]  << " " << y[i] << " " << z[i]<< "\n";
+    // }
+    
     {
 
     BL_PROFILE_REGION("Draw2");
@@ -81,11 +86,6 @@ void RandomNumGen ()
     Gpu::Device::synchronize();
 
     }
-    
-    // for (int i = 0; i < Ndraw; i++ )
-    // {
-    //     amrex::Print() << i << " " << x[i]  << " " << y[i] << " " << z[i]<< "\n";
-    // }
 }
 
 
