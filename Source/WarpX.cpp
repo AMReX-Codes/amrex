@@ -334,6 +334,9 @@ WarpX::ReadParameters ()
                 amrex::Abort(msg.c_str());
             }
 
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(Geom(0).isPeriodic(moving_window_dir) == 0,
+                       "The problem must be non-periodic in the moving window direction");
+
             moving_window_x = geom[0].ProbLo(moving_window_dir);
 
             pp.get("moving_window_v", moving_window_v);

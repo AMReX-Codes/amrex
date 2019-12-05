@@ -41,7 +41,7 @@ text = re.sub('runtime_params =',
 # Use only 2 cores for compiling
 text = re.sub( 'numMakeJobs = \d+', 'numMakeJobs = 2', text )
 # Use only 1 MPI and 1 thread proc for tests
-text = re.sub( 'numprocs = \d+', 'numprocs = 1', text)
+text = re.sub( 'numprocs = \d+', 'numprocs = 2', text)
 text = re.sub( 'numthreads = \d+', 'numthreads = 1', text)
 # Prevent emails from being sent
 text = re.sub( 'sendEmailWhenFail = 1', 'sendEmailWhenFail = 0', text )
