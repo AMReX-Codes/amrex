@@ -114,12 +114,23 @@ endif
 
 ########################################################################
 
-ifeq ($(gcc_major_version),4)
-  CXXFLAGS += -std=c++11
-else ifeq ($(gcc_major_version),5)
-  CXXFLAGS += -std=c++14
+ifdef CXXSTD
+  CXXSTD := $(strip $(CXXSTD))
+  ifeq ($(shell expr $(gcc_major_version) \< 5),1)
+    ifeq ($(CXXSTD),c++14)
+      $(error C++14 support requires GCC 5 or newer.)
+    endif
+  endif
+  CXXFLAGS += -std=$(CXXSTD)
+else
+  ifeq ($(gcc_major_version),4)
+    CXXFLAGS += -std=c++11
+  else ifeq ($(gcc_major_version),5)
+    CXXFLAGS += -std=c++14
+  endif
 endif
-CFLAGS     += -std=gnu99
+
+CFLAGS   += -std=gnu99
 
 ########################################################################
 
