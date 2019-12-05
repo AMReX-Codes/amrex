@@ -22,6 +22,8 @@ InjectorDensity::~InjectorDensity ()
         object.predefined.clear();
         break;
     }
+    default:
+        return;
     }
 }
 
