@@ -28,7 +28,7 @@ void WarpXOpenPMDPlot::GetFileName(std::string& filename)
   filename = dir;
   filename.append(m_OpenPMDFileType).append("/simData");
   //
-  // OpenPMD supports timestepped names 
+  // OpenPMD supports timestepped names
   //
   if (m_OneFilePerTS)
       filename = filename.append("_%07T");
@@ -55,9 +55,9 @@ WarpXOpenPMDPlot::Init(openPMD::AccessType accessType)
     }
   }
 
-  // either for the next ts file, 
+  // either for the next ts file,
   // or init a single file for all ts
-  std::string filename;    
+  std::string filename;
   GetFileName(filename);
 
   if (m_Series != nullptr) {

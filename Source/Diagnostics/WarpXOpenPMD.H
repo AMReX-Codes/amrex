@@ -133,7 +133,7 @@ private:
             const amrex::Vector<int>& write_int_comp,
             const amrex::Vector<std::string>& real_comp_names,
             const amrex::Vector<std::string>&  int_comp_names) const;
-  
+
   // no need for ts in the name, openPMD  handles it
   void GetFileName(std::string& filename);
 
