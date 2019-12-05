@@ -60,11 +60,17 @@ endif
 
 ########################################################################
 
+ifdef CXXSTD
+  CXXSTD := $(strip $(CXXSTD))
+else
+  CXXSTD := c++11
+endif
+
 ifeq ($(COMP_VERSION),9)
-  CXXFLAGS += -std=c++11
+  CXXFLAGS += -std=$(CXXSTD)
   CFLAGS   += -std=c99
 else
-  CXXFLAGS += -h std=c++11
+  CXXFLAGS += -h std=$(CXXSTD)
   CFLAGS   += -h c99
 endif
 

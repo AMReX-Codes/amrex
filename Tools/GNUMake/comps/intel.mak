@@ -37,11 +37,22 @@ endif
 
 ########################################################################
 
-ifeq ($(firstword $(sort 17.0 $(intel_version))), 17.0) 
-  CXXFLAGS += -std=c++14
+ifdef CXXSTD
+  CXXSTD := $(strip $(CXXSTD))
+  ifneq ($(firstword $(sort 17.0 $(intel_version))), 17.0)
+    ifeq ($(CXXSTD),c++14)
+      $(error C++14 support requires Intel icpc 17.0 or newer.)
+    endif
+  endif
+  CXXFLAGS += -std=$(CXXSTD)
 else
-  CXXFLAGS += -std=c++11
+  ifeq ($(firstword $(sort 17.0 $(intel_version))), 17.0)
+    CXXFLAGS += -std=c++14
+  else
+    CXXFLAGS += -std=c++11
+  endif
 endif
+
 CFLAGS   += -std=c99
 
 F90FLAGS += -implicitnone
