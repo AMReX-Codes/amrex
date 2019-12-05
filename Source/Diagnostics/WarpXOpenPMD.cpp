@@ -2,7 +2,7 @@
 #include "FieldIO.H"  // for getReversedVec
 
 WarpXOpenPMDPlot::WarpXOpenPMDPlot(bool oneFilePerTS,
-				   std::string& openPMDFileType)
+                   std::string& openPMDFileType)
   :m_Series(nullptr),
    m_OneFilePerTS(oneFilePerTS),
    m_OpenPMDFileType(std::move(openPMDFileType))
