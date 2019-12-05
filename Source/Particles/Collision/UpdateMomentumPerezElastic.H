@@ -49,6 +49,9 @@ void UpdateMomentumPerezElastic (
     T_R const vcm = std::sqrt(vcx*vcx+vcy*vcy+vcz*vcz);
     T_R const gc  = 1./std::sqrt(1.-vcm*vcm*inv_c2);
 
+    // Avoid 1/0 -> nan
+    if ( vcm == 0. ) { return; }
+
     // Compute vc dot v1 and v2
     T_R const vcDv1 = (vcx*u1x + vcy*u1y + vcz*u1z)/g1;
     T_R const vcDv2 = (vcx*u2x + vcy*u2y + vcz*u2z)/g2;
