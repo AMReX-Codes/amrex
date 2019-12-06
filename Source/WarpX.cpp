@@ -379,7 +379,7 @@ WarpX::ReadParameters ()
 
         // Read filter and fill IntVect filter_npass_each_dir with
         // proper size for AMREX_SPACEDIM
-            pp.query("use_filter", use_filter);
+        pp.query("use_filter", use_filter);
         Vector<int> parse_filter_npass_each_dir(AMREX_SPACEDIM,1);
         pp.queryarr("filter_npass_each_dir", parse_filter_npass_each_dir);
         filter_npass_each_dir[0] = parse_filter_npass_each_dir[0];
@@ -434,6 +434,7 @@ WarpX::ReadParameters ()
         pp.query("dump_openpmd", dump_openpmd);
         pp.query("openpmd_backend", openpmd_backend);
         pp.query("dump_plotfiles", dump_plotfiles);
+        pp.query("plot_costs", plot_costs);
         pp.query("plot_raw_fields", plot_raw_fields);
         pp.query("plot_raw_fields_guards", plot_raw_fields_guards);
         pp.query("plot_coarsening_ratio", plot_coarsening_ratio);
