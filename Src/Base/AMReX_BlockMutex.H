@@ -20,36 +20,16 @@ struct BlockMutex
         return state_t{{-1,0}};
     }
 
-    static void init_states (state_t* state, int N) {
-        launch_global<<<(N+255)/256,256>>>([=] AMREX_GPU_DEVICE () noexcept
-        {
-            int i = threadIdx.x + blockIdx.x*blockDim.x;
-            if (i < N) state[i] = FreeState();
-        });
-    }
+    static void init_states (state_t* state, int N) noexcept;
 
-    explicit BlockMutex (int N)
-        : m_nstates(N)
-    {
-        static_assert(sizeof(unsigned long long) == 2*sizeof(int) and
-                      sizeof(unsigned long long) == sizeof(state_t),
-                      "BlockMutex: wrong size");
-        // The first 4 bytes of unsigned long stores blockIdx.
-        // The second 4 bytes, count.
-        // The initial values are -1 and 0.
-        cudaMalloc(&m_state, sizeof(state_t)*m_nstates);
-        // In amrex, we will use amrex::ParallelFor
-        init_states(m_state, m_nstates);
-    }
-
-    ~BlockMutex () {
-        cudaFree(m_state);
-    }
+    explicit BlockMutex (int N) noexcept;
+    
+    ~BlockMutex ();
 
     void operator= (BlockMutex const&) = delete;
 
-    AMREX_GPU_DEVICE
-    void lock (int i) {
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    void lock (int i) noexcept {
         int blockid = blockIdx.z*blockDim.x*blockDim.y + blockIdx.y*blockDim.x + blockIdx.x;
         state_t old = m_state[i];
         state_t assumed;
@@ -69,8 +49,8 @@ struct BlockMutex
         } while (assumed.ull != old.ull);
     }
 
-    AMREX_GPU_DEVICE
-    void unlock (int i) {
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    void unlock (int i) noexcept {
         state_t old = m_state[i];
         state_t assumed;
         do {
