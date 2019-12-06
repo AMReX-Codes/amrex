@@ -1396,7 +1396,7 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
             }
         }
 
-// not needed for Jacobi        nodalSync(amrlev, mglev, sol);
+        if (nsweeps > 1) nodalSync(amrlev, mglev, sol);
     }
     else // cpu
 #endif
