@@ -29,6 +29,7 @@ BlockMutex::~BlockMutex () {
     AMREX_GPU_SAFE_CALL(cudaFree(m_state));
 }
 
+#endif
+    
 }
 
-#endif
