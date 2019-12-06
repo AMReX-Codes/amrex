@@ -45,6 +45,7 @@ void addone(double volatile * num)
 
   int i = amrex::get_state(tid);
   num[i] = num[i]+1;
+  __threadfence();
   amrex::free_state(tid);
 }
 
