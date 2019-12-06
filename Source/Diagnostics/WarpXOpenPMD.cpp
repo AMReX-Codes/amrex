@@ -76,6 +76,8 @@ WarpXOpenPMDPlot::Init(openPMD::AccessType accessType)
   else
     m_Series = new openPMD::Series(filename, accessType);
 
+  // actually default is "particles"  by openPMD.
+  m_Series->setParticlesPath("particles");
 }
 
 
@@ -153,9 +155,6 @@ WarpXOpenPMDPlot::SavePlotFile (const std::unique_ptr<WarpXParticleContainer>& p
 {
   if ( nullptr == m_Series)
     return;
-
-  if (0 == m_CurrentStep ) // can only define once
-    m_Series->setParticlesPath("particles");
 
   WarpXParticleCounter counter(pc);
 
