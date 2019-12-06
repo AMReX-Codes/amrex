@@ -15,6 +15,8 @@ C$(AMREX_BASE)_headers += AMReX_IndexSequence.H
 
 C$(AMREX_BASE)_headers += AMReX_PODVector.H
 
+C$(AMREX_BASE)_headers += AMReX_BlockMutex.H
+
 C$(AMREX_BASE)_sources += AMReX_ParmParse.cpp AMReX_parmparse_fi.cpp AMReX_Utility.cpp
 C$(AMREX_BASE)_headers += AMReX_ParmParse.H AMReX_Utility.H AMReX_BLassert.H AMReX_ArrayLim.H
 C$(AMREX_BASE)_headers += AMReX_Functional.H AMReX_Reduce.H AMReX_Scan.H AMReX_Partition.H

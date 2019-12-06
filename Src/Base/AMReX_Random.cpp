@@ -3,6 +3,7 @@
 #include <AMReX_BLFort.H>
 #include <AMReX_Print.H>
 #include <AMReX_Random.H>
+#include <AMReX_BlockMutex.H>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -23,8 +24,11 @@ namespace
     AMREX_GPU_DEVICE curandState_t* states_d_ptr;
     curandState_t* states_h_ptr = nullptr;
 
-    AMREX_GPU_DEVICE unsigned long long* locks_d_ptr;
-    unsigned long long* locks_h_ptr = nullptr;
+    amrex::BlockMutex* h_mutex_h_ptr = nullptr;
+    amrex::BlockMutex* d_mutex_h_ptr = nullptr;    
+
+    AMREX_GPU_DEVICE
+    amrex::BlockMutex* d_mutex_d_ptr = nullptr;
 
     static_assert(sizeof(unsigned long long) == 2*sizeof(int),
                   "sizeof unsigned long long != 2 * sizeof int");
@@ -72,30 +76,8 @@ int amrex::get_state (int tid)
     int nstates = cuda_nstates - (cuda_nstates % bsize);
     int i = tid % nstates;
 
-    unsigned long long* d_state = locks_d_ptr + i;
-    unsigned long long old = *d_state;
-    unsigned long long assumed;
-
-    do {
-        assumed = old;
-        int* assumed_block = (int*)(&assumed);
-        int* assumed_count = assumed_block + 1;
-
-        unsigned long long val; // The value we try to store
-        int* val_block = (int*)(&val);
-        int* val_count = val_block + 1;
-        *val_block = blockIdx.x;
-
-        if (*assumed_block == blockIdx.x) { // locked by this block. so the goal is ++count
-            *val_count = *assumed_count + 1;
-        } else { // unlocked or locked by another block. so the goal is to lock.
-            *val_count = 1;
-            *assumed_block = -1; // only able to lock if the address hold (-1,0).
-            *assumed_count = 0;
-        }
-        old = atomicCAS(d_state, assumed, val);
-    } while (assumed != old);
-        
+    d_mutex_d_ptr->lock(i);
+            
     return i;
 }
 
@@ -106,30 +88,7 @@ void amrex::free_state (int tid)
     int nstates = cuda_nstates - (cuda_nstates % bsize);
     int i = tid % nstates;
 
-    unsigned long long* d_state = locks_d_ptr + i;    
-    unsigned long long old = *d_state;
-    unsigned long long assumed;
-
-    do {
-        assumed = old;
-        int* assumed_block = (int*)(&assumed);
-        int* assumed_count = assumed_block + 1;
-        // since we are trying to release the lock (i.e. we still hold the lock),
-        // the assumed blockid is blockIdx.x.
-
-        unsigned long long val;
-        int* val_block = (int*)(&val);
-        int* val_count = val_block+1;
-
-        if (*assumed_count == 1) { // last thread is responsible for releasing the lock
-            *val_block = -1; // lock will be released of we can it to (-1,0).
-            *val_count = 0;
-        } else { // try to --count, but cannot release the lock yet
-            *val_block = *assumed_block;
-            *val_count = *assumed_count - 1;
-        }
-        old = atomicCAS(d_state, assumed, val);
-    } while(assumed != old);
+    d_mutex_d_ptr->unlock(i);
 }
 #endif
 
@@ -312,36 +271,42 @@ amrex::ResizeRandomSeed (int N)
     int SizeDiff = N - PrevSize;
 
     curandState_t* new_data;
-    unsigned long long* new_mutex;
-
     AMREX_CUDA_SAFE_CALL(cudaMalloc(&new_data, N*sizeof(curandState_t)));
-    AMREX_CUDA_SAFE_CALL(cudaMalloc(&new_mutex, N*sizeof(unsigned long long)));
+
+    if (h_mutex_h_ptr != nullptr)
+    {
+        delete h_mutex_h_ptr;
+        h_mutex_h_ptr = nullptr;
+    }
+
+    if (d_mutex_h_ptr != nullptr)
+    {
+        AMREX_CUDA_SAFE_CALL(cudaFree(d_mutex_h_ptr));
+        d_mutex_h_ptr = nullptr;
+    }
+
+    h_mutex_h_ptr = new amrex::BlockMutex(N);
+    AMREX_CUDA_SAFE_CALL(cudaMalloc(&d_mutex_h_ptr, sizeof(amrex::BlockMutex)));
+    AMREX_CUDA_SAFE_CALL(cudaMemcpy(d_mutex_h_ptr, h_mutex_h_ptr, sizeof(amrex::BlockMutex),
+                                    cudaMemcpyHostToDevice));
     
     if (states_h_ptr != nullptr) {
-
-        AMREX_ASSERT(locks_h_ptr != nullptr);
-
         AMREX_CUDA_SAFE_CALL(cudaMemcpy(new_data, states_h_ptr,
                                         PrevSize*sizeof(curandState_t),
                                         cudaMemcpyDeviceToDevice));
-        AMREX_CUDA_SAFE_CALL(cudaMemcpy(new_mutex, locks_h_ptr,
-                                        PrevSize*sizeof(unsigned long long),
-                                        cudaMemcpyDeviceToDevice));
         
         AMREX_CUDA_SAFE_CALL(cudaFree(states_h_ptr));
-        AMREX_CUDA_SAFE_CALL(cudaFree(locks_h_ptr));
     }
 
     states_h_ptr = new_data;
-    locks_h_ptr = new_mutex;
     cuda_nstates = N;
 
     AMREX_CUDA_SAFE_CALL(cudaMemcpyToSymbol(states_d_ptr,
                                             &states_h_ptr,
                                             sizeof(curandState_t *)));
-    AMREX_CUDA_SAFE_CALL(cudaMemcpyToSymbol(locks_d_ptr,
-                                            &locks_h_ptr,
-                                            sizeof(unsigned long long*)));
+    AMREX_CUDA_SAFE_CALL(cudaMemcpyToSymbol(d_mutex_d_ptr,
+                                            &d_mutex_h_ptr,
+                                            sizeof(amrex::BlockMutex*)));
 
     const int MyProc = amrex::ParallelDescriptor::MyProc();
     AMREX_PARALLEL_FOR_1D (SizeDiff, idx,
@@ -349,12 +314,6 @@ amrex::ResizeRandomSeed (int N)
         unsigned long seed = MyProc*1234567UL + 12345UL ;
         int seqstart = idx + 10 * idx ;
         int loc = idx + PrevSize;
-
-        int* val_block = (int*)(locks_d_ptr + loc);
-        int* val_count = val_block+1;
-
-        *val_block = -1;
-        *val_count = 0;
         
         curand_init(seed, seqstart, 0, &states_d_ptr[loc]);
     });
@@ -372,10 +331,16 @@ amrex::DeallocateRandomSeedDevArray ()
         states_h_ptr = nullptr;
     }
 
-    if (locks_h_ptr != nullptr)
+    if (h_mutex_h_ptr != nullptr)
     {
-        cudaFree(locks_h_ptr);
-        locks_h_ptr = nullptr;
+        delete h_mutex_h_ptr;
+        h_mutex_h_ptr = nullptr;
+    }
+
+    if (d_mutex_h_ptr != nullptr)
+    {
+        AMREX_CUDA_SAFE_CALL(cudaFree(d_mutex_h_ptr));
+        d_mutex_h_ptr = nullptr;
     }
 
     cuda_nstates = 0;
