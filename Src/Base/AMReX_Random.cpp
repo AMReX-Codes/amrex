@@ -31,9 +31,6 @@ namespace
 
     AMREX_GPU_DEVICE
     amrex::BlockMutex* d_mutex_d_ptr = nullptr;
-
-    static_assert(sizeof(unsigned long long) == 2*sizeof(int),
-                  "sizeof unsigned long long != 2 * sizeof int");
 #endif
 
 }
