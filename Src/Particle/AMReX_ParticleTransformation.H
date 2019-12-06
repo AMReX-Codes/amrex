@@ -48,7 +48,7 @@ void copyParticle(const      ParticleTileData<NSR, NSI, NAR, NAI>& dst,
  * \brief Copy particles from src to dst. This version copies all the 
  * particles, writing them to the beginning of dst.
  * 
- * \tparam PTile the src particle tile type
+ * \tparam PTile the particle tile type
  *
  * \param dst the destination tile
  * \param src the source tile
