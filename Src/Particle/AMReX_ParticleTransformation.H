@@ -48,7 +48,7 @@ void copyParticle(const      ParticleTileData<NSR, NSI, NAR, NAI>& dst,
  * \brief Copy particles from src to dst. This version copies all the 
  * particles, writing them to the beginning of dst.
  * 
- * \tparam PTile the particle tile type
+ * \tparam PTile the src particle tile type
  *
  * \param dst the destination tile
  * \param src the source tile
@@ -94,7 +94,8 @@ void copyParticles(PTile& dst, const PTile& src,
  * \brief Apply the function f to all the particles in src, writing the
  * result to dst. This version does all the particles in src.
  * 
- * \tparam PTile the particle tile type
+ * \tparam DstTile the dst particle tile type
+ * \tparam SrcTile the src particle tile type
  * \tparam F a function object
  *
  * \param dst the destination tile
@@ -102,8 +103,8 @@ void copyParticles(PTile& dst, const PTile& src,
  * \param f the function that will be applied to each particle
  *
  */    
-template <typename PTile, typename F>
-void transformParticles(PTile& dst, const PTile& src, F&& f) noexcept
+template <typename DstTile, typename SrcTile, typename F>
+void transformParticles(DstTile& dst, const SrcTile& src, F&& f) noexcept
 {
     auto np = src.numParticles();
     transformParticles(dst, src, 0, 0, np, std::forward<F>(f));
@@ -114,7 +115,8 @@ void transformParticles(PTile& dst, const PTile& src, F&& f) noexcept
  * result to dst. This version applies the function to n particles
  * starting at index src_start, writing the result starting at dst_start.
  * 
- * \tparam PTile the particle tile type
+ * \tparam DstTile the dst particle tile type
+ * \tparam SrcTile the src particle tile type
  * \tparam Index the index type, e.g. unsigned int
  * \tparam N the size type, e.g. long
  * \tparam F a function object
@@ -126,9 +128,9 @@ void transformParticles(PTile& dst, const PTile& src, F&& f) noexcept
  * \param f the function that will be applied to each particle
  *
  */
-template <typename PTile, typename Index, typename N, typename F,
+template <typename DstTile, typename SrcTile, typename Index, typename N, typename F,
           amrex::EnableIf_t<std::is_integral<Index>::value, int> foo = 0>
-void transformParticles(PTile& dst, const PTile& src,
+void transformParticles(DstTile& dst, const SrcTile& src,
                         Index src_start, Index dst_start, N n, F&& f) noexcept
 {
     const auto src_data = src.getConstParticleTileData();
@@ -144,7 +146,9 @@ void transformParticles(PTile& dst, const PTile& src,
  * \brief Apply the function f to all the particles in src, writing the
  * results to dst1 and dst2. This version does all the particles in src.
  * 
- * \tparam PTile the particle tile type
+ * \tparam DstTile1 the dst1 particle tile type
+ * \tparam DstTile2 the dst2 particle tile type
+ * \tparam SrcTile the src particle tile type
  * \tparam F a function object
  *
  * \param dst1 the first destination tile
@@ -153,8 +157,8 @@ void transformParticles(PTile& dst, const PTile& src,
  * \param f the function that will be applied to each particle
  *
  */    
-template <typename PTile, typename F>
-void transformParticles(PTile& dst1, PTile& dst2, const PTile& src, F&& f) noexcept
+template <typename DstTile1, typename DstTile2, typename SrcTile, typename F>
+void transformParticles(DstTile1& dst1, DstTile2& dst2, const SrcTile& src, F&& f) noexcept
 {
     auto np = src.numParticles();
     transformParticles(dst1, dst2, src, 0, 0, 0, np, std::forward<F>(f));
@@ -165,7 +169,9 @@ void transformParticles(PTile& dst1, PTile& dst2, const PTile& src, F&& f) noexc
  * results to dst1 and dst2. This version applies the function to n particles
  * starting at index src_start, writing the result starting at dst1_start and dst2_start.
  * 
- * \tparam PTile the particle tile type
+ * \tparam DstTile1 the dst1 particle tile type
+ * \tparam DstTile2 the dst2 particle tile type
+ * \tparam SrcTile the src particle tile type
  * \tparam Index the index type, e.g. unsigned int
  * \tparam N the size type, e.g. long
  * \tparam F a function object
@@ -179,9 +185,10 @@ void transformParticles(PTile& dst1, PTile& dst2, const PTile& src, F&& f) noexc
  * \param f the function that will be applied to each particle
  *
  */
-template <typename PTile, typename Index, typename N, typename F,
+template <typename DstTile1, typename DstTile2, typename SrcTile,
+          typename Index, typename N, typename F,
           amrex::EnableIf_t<std::is_integral<Index>::value, int> foo = 0>
-void transformParticles(PTile& dst1, PTile& dst2, const PTile& src,
+void transformParticles(DstTile1& dst1, DstTile2& dst2, const SrcTile& src,
                         Index src_start, Index dst1_start, Index dst2_start, N n, F&& f) noexcept
 {
     const auto src_data  = src.getConstParticleTileData();
@@ -266,7 +273,8 @@ auto filterParticles(PTile& dst, const PTile& src, Pred&& p) noexcept
  * \brief Conditionally copy particles from src to dst based on the value of mask.
  * A transformation will also be applied to the particles on copy.
  * 
- * \tparam PTile the particle tile type
+ * \tparam DstTile the dst particle tile type
+ * \tparam SrcTile the src particle tile type
  * \tparam Index the index type, e.g. unsigned int
  * \tparam F the transform function type
  *
@@ -276,9 +284,9 @@ auto filterParticles(PTile& dst, const PTile& src, Pred&& p) noexcept
  * \param f defines the transformation that will be applied to the particles on copy
  *
  */
-template <typename PTile, typename Index, typename F,
+template <typename DstTile, typename SrcTile, typename Index, typename F,
           amrex::EnableIf_t<std::is_integral<Index>::value, int> foo = 0>
-Index filterAndTransformParticles(PTile& dst, const PTile& src, Index* mask, F&& f) noexcept
+Index filterAndTransformParticles(DstTile& dst, const SrcTile& src, Index* mask, F&& f) noexcept
 {
     auto np = src.numParticles();
     Gpu::DeviceVector<Index> offsets(np);
@@ -306,7 +314,8 @@ Index filterAndTransformParticles(PTile& dst, const PTile& src, Index* mask, F&&
  * \brief Conditionally copy particles from src to dst based on a predicate.
  * A transformation will also be applied to the particles on copy.
  * 
- * \tparam PTile the particle tile type
+ * \tparam DstTile the dst particle tile type
+ * \tparam SrcTile the src particle tile type
  * \tparam Index the index type, e.g. unsigned int
  * \tparam Pred a function object
  * \tparam F the transform function type
@@ -317,11 +326,11 @@ Index filterAndTransformParticles(PTile& dst, const PTile& src, Index* mask, F&&
  * \param f defines the transformation that will be applied to the particles on copy
  *
  */    
-template <typename PTile, typename Pred, typename F>
-auto filterAndTransformParticles(PTile& dst, const PTile& src, Pred&& p, F&& f) noexcept
-    -> decltype(p(typename PTile::ConstParticleTileDataType(), 0))
+template <typename DstTile, typename SrcTile, typename Pred, typename F>
+auto filterAndTransformParticles(DstTile& dst, const SrcTile& src, Pred&& p, F&& f) noexcept
+    -> decltype(p(typename SrcTile::ConstParticleTileDataType(), 0))
 {
-    using Index = decltype(p(typename PTile::ConstParticleTileDataType(), 0));
+    using Index = decltype(p(typename SrcTile::ConstParticleTileDataType(), 0));
     auto np = src.numParticles();
     Gpu::DeviceVector<Index> mask(np);
 
