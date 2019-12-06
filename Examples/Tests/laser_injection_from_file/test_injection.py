@@ -1,5 +1,10 @@
 #!/usr/bin/python3
 
+#COMMENT TO ADD
+#COMMENT TO ADD
+#COMMENT TO ADD
+#COMMENT TO ADD
+
 import sys
 import numpy as np
 
@@ -13,23 +18,18 @@ wavelength = 1.*um
 w0 = 6.*um
 tt = 10.*fs
 x_c = 0.*um
-y_c = 0.*um
 t_c = 20.*fs
 foc_dist = 10*um
 
-#Parameters of the txy grid
+#Parameters of the tx grid
 x_l = -12.0*um
 x_r = 12.0*um
 x_points = 480
-y_l = -12.0*um
-y_r = 12.0*um
-y_points = 480
 t_l = 0.0*fs
 t_r = 40.0*fs
-t_points = 800
+t_points = 400
 tcoords = np.linspace(t_l, t_r, t_points)
 xcoords = np.linspace(x_l, x_r, x_points)
-ycoords = np.linspace(y_l, y_r, y_points)
 
 def gauss(T,X,Y,opt):
     k0 = 2.0*np.pi/wavelength
@@ -49,22 +49,6 @@ def gauss(T,X,Y,opt):
     exp_arg = - (X*X + Y*Y)*inv_w_2 - inv_tau2 * (T-t_c)*(T-t_c)
 
     return np.real(pre_fact * np.exp(exp_arg))
-
-def my_gauss(T,X,Y,opt):
-    omega = 2.0*np.pi*c/wavelength
-    Zr = omega * w0**2/2.
-    w  = np.sqrt(1./(1.+(foc_dist/Zr)**2))
-    invWaist2 = (w/w0)**2
-    inv_tau2 = 1./tt/tt
-    coeff = -omega * foc_dist * w**2 / (2.*Zr**2)
-    space = np.exp( -invWaist2*((X-x_c)**2 + (Y-y_c)**2 ))
-    if opt is '2d' :
-        space = np.sqrt(w)*space
-    else :
-        space = w*space
-    phase = coeff * ((X-x_c)**2 + (Y-y_c)**2)
-    osc_phase =  (2.0*np.pi*c/wavelength)*(T-t_c)
-    return np.real(space*np.exp( 1.0j*(osc_phase + phase) - inv_tau2 * (T-t_c)*(T-t_c)))
 
 def write_file(fname, x, y, t, E):
     with open(fname, 'wb') as file:
@@ -94,35 +78,22 @@ def write_file_unf(fname, x, y, t, E):
         file.write(y[-1].tobytes())
         file.write(E.tobytes())
 
-def create_file_gnu(x, t, E):
-    with open("data.dat", 'w') as file:
-        print("gnu gnu")
-        print(len(t), len(x))
-        print(E.shape)
-        print("gnu gnu")
-        for i in range(len(t)):
-            for j in range(len(x)):
-                k = 0
-                file.write("{} {} {} \n".format(t[i], x[j], E[i,j,k]))
-
 
 def create_gaussian_2d():
    T, X, Y = np.meshgrid(tcoords, xcoords, np.array([0.0]), indexing='ij')
-   E_t = my_gauss(T,X,Y,'2d')
+   E_t = gauss(T,X,Y,'2d')
    write_file("gauss_2d.txye", xcoords, np.array([0.0]), tcoords, E_t)
    write_file_unf("gauss_2d_unf.txye", xcoords, np.array([0.0]), tcoords, E_t)
-   create_file_gnu(xcoords, tcoords, E_t)
 
-
-def create_gaussian_3d():
-   T, X, Y = np.meshgrid(tcoords, xcoords, ycoords, indexing='ij')
-   E_t = gauss(T,X,Y,'3d')
-   write_file("gauss_3d.txye", xcoords, ycoords, tcoords, E_t)
-   write_file_unf("gauss_3d_unf.txye", xcoords, ycoords, tcoords, E_t)
-
+def do_analysis(arg):
+    return true
 
 def main() :
-    create_gaussian_2d()
+    arg = sys.argv[1]
+    if arg == "--generate_txye_files":
+        create_gaussian_2d()
+    elif arg == "--check":
+        do_analysis(sys.argv[2])
 
 
 if __name__ == "__main__":
