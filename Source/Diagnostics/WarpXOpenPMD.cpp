@@ -13,7 +13,6 @@ WarpXOpenPMDPlot::~WarpXOpenPMDPlot()
 {
   if (nullptr != m_Series) {
     m_Series->flush();
-    delete m_Series;
   }
 }
 
@@ -62,19 +61,18 @@ WarpXOpenPMDPlot::Init(openPMD::AccessType accessType)
 
   if (m_Series != nullptr) {
     m_Series->flush();
-    delete m_Series;
     m_Series = nullptr;
   }
 
   if (amrex::ParallelDescriptor::NProcs() > 1) {
-    m_Series = new openPMD::Series(filename,
+    m_Series = std::make_unique<openPMD::Series>(filename,
                    accessType,
                    amrex::ParallelDescriptor::Communicator());
     m_MPISize = amrex::ParallelDescriptor::NProcs();
     m_MPIRank = amrex::ParallelDescriptor::MyProc();
   }
-  else
-    m_Series = new openPMD::Series(filename, accessType);
+    else
+    m_Series = std::make_unique<openPMD::Series>(filename, accessType);
 
   // actually default is "particles"  by openPMD.
   m_Series->setParticlesPath("particles");

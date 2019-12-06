@@ -138,7 +138,7 @@ private:
   void GetFileName(std::string& filename);
 
   //std::string m_Dir;
-  openPMD::Series* m_Series = nullptr;
+  std::unique_ptr<openPMD::Series> m_Series;
 
   int m_MPIRank = 0;
   int m_MPISize = 1;
