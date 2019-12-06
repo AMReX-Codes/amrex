@@ -729,9 +729,9 @@ namespace amrex
     void computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPACEDIM>& umac,
                             const Geometry& geom)
     {
-        AMREX_ASSERT(divu.nComp()==umac[0]->nComp());
-        AMREX_ASSERT(divu.nComp()==umac[1]->nComp());
-        AMREX_ASSERT(divu.nComp()==umac[2]->nComp());
+        AMREX_D_TERM(AMREX_ASSERT(divu.nComp()==umac[0]->nComp());,
+                     AMREX_ASSERT(divu.nComp()==umac[1]->nComp());,
+                     AMREX_ASSERT(divu.nComp()==umac[2]->nComp()));
 
         const GpuArray<Real,AMREX_SPACEDIM> dxinv = geom.InvCellSizeArray();
 #ifdef _OPENMP
