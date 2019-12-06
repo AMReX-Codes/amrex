@@ -1413,6 +1413,35 @@ AMReX for GPUs:
         ...
     }
 
+* Generally, AMReX users should not have to directly call ``thrust``
+  functions, as they are wrapped inside AMReX functions. However, if
+  a ``thrust`` function does need to be directly called, it is
+  important to include the appropriate parallel execution policy. 
+  Although ``thrust`` is capable of default location selection, 
+  AMReX's use of non- ``thrust`` data structures can cause
+  ``thrust`` to default to the host unexpectedly, which will either
+  cause performance loss or runtime errors.
+
+  Thrust comes with two built-in policies, ``thrust::host`` and
+  ``thrust::device``. AMReX also includes a ``thrust::device`` 
+  execution policy, ``amrex::Gpu::The_ThrustCachedPolicy()``, that
+  uses AMReX Arenas when allocating temporary memory space, which 
+  substantially reduces cudaMalloc time inside ``thrust``
+  functions. This is the recommended execution policy for optimal
+  performance when calling thrust functions.
+
+  The parallel execution policy is an optional first variable passed
+  to most ``thrust`` functions. For example:
+
+.. highlight:: cpp
+
+::
+    Real r = thrust::reduce(amrex::Gpu::The_ThrustCachedPolicy(),
+                            vec.begin(), vec.end(), 0.0, thrust::plus<Real>());
+
+    Real r = thrust::reduce(thrust::host,
+                            vec.begin(), vec.end(), 0.0, thrust::plus<Real>());
+
 .. ===================================================================
 
 Inputs Parameters
