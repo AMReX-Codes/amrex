@@ -16,7 +16,9 @@ int main (int argc, char* argv[])
     amrex::Initialize(argc,argv);
     {
     auto begin = std::chrono::high_resolution_clock::now();
-    LockingTest();
+    for (int i = 0; i < 100; ++i)
+        LockingTest();
+    amrex::Print() << "Locking test passed! \n";
     auto end = std::chrono::high_resolution_clock::now();
     std::cout << "Execution Time: ";
     std::cout << std::chrono::duration_cast<std::chrono::nanoseconds>(end-begin).count()
@@ -45,9 +47,9 @@ void LockingTest ()
 {
     int Ndraw= 1e7;
 #ifdef AMREX_USE_CUDA    
-    Gpu::DeviceVector<double> d_xpos(Ndraw);
-    Gpu::DeviceVector<double> d_ypos(Ndraw);
-    Gpu::DeviceVector<double> d_zpos(Ndraw);
+    Gpu::DeviceVector<double> d_xpos(Ndraw, 0.0);
+    Gpu::DeviceVector<double> d_ypos(Ndraw, 0.0);
+    Gpu::DeviceVector<double> d_zpos(Ndraw, 0.0);
 
     double *dxpos = d_xpos.dataPtr();
     double *dypos = d_ypos.dataPtr();
@@ -61,24 +63,23 @@ void LockingTest ()
     double *hypos = hy.dataPtr();
     double *hzpos = hz.dataPtr();
 
-    AMREX_PARALLEL_FOR_1D (Ndraw, idx,
+    AMREX_PARALLEL_FOR_1D (Ndraw, i,
     {
-#ifdef AMREX_USE_CUDA	   
-           addone(dxpos);
-	   addone(dypos);
-	   addone(dzpos);	  
+#ifdef AMREX_USE_CUDA
+        addone(dxpos);
+        addone(dypos);
+        addone(dzpos);	  
 #else // Not defined for CPU -> this will still have the test pass if run with cpus
-	   hx[i] = hx[i]+1;
-	   hy[i] = hy[i]+1;
-	   hz[i] = hz[i]+1;
+        hx[i] = hx[i]+1;
+        hy[i] = hy[i]+1;
+        hz[i] = hz[i]+1;
 #endif	   
     });
-
     
 #ifdef AMREX_USE_CUDA
-        cudaMemcpy(hxpos,dxpos,sizeof(double)*Ndraw,cudaMemcpyDeviceToHost);
-        cudaMemcpy(hypos,dypos,sizeof(double)*Ndraw,cudaMemcpyDeviceToHost);
-        cudaMemcpy(hzpos,dzpos,sizeof(double)*Ndraw,cudaMemcpyDeviceToHost);
+    cudaMemcpy(hxpos,dxpos,sizeof(double)*Ndraw,cudaMemcpyDeviceToHost);
+    cudaMemcpy(hypos,dypos,sizeof(double)*Ndraw,cudaMemcpyDeviceToHost);
+    cudaMemcpy(hzpos,dzpos,sizeof(double)*Ndraw,cudaMemcpyDeviceToHost);
 #endif
 
    int sumx = 0;
@@ -97,15 +98,9 @@ void LockingTest ()
    amrex::Print() << "Sumy  = " << sumy << std::endl;
    amrex::Print() << "Sumz  = " << sumz << std::endl;
    amrex::Print() << "Ndraw = " << Ndraw << std::endl;
-
-   if ( (sumx == sumy) && (sumz == Ndraw) && (sumx == sumz) )
-   {
-       amrex::Print() << "Locking Test Passed!" << std::endl;
-   }
-   else
-   {
-       amrex::Print() << "Locking Test Failed!" << std::endl;
-   }  
+   amrex::Print() << "\n";
+   
+   AMREX_ALWAYS_ASSERT((sumx == sumy) && (sumz == Ndraw) && (sumx == sumz));   
 }
 
 
