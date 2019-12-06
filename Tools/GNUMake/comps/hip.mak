@@ -19,6 +19,12 @@ ifeq ($(lowercase_hipcc_host_comp),$(filter $(lowercase_hipcc_host_comp),gcc gnu
   endif
 endif
 
+ifdef CXXSTD
+  CXXSTD := $(strip $(CXXSTD))
+else
+  CXXSTD := c++14
+endif
+
 #ifeq ($(lowercase_hipcc_host_comp),gnu)
 #  ifeq ($(gcc_major_version),4)
 #    CXXFLAGS_FROM_HOST := -ccbin=g++ -Xcompiler='$(CXXFLAGS) --std=c++11' --std=c++11
@@ -34,7 +40,7 @@ endif
 #  CFLAGS_FROM_HOST := $(CXXFLAGS_FROM_HOST)
 #endif
 
-CXXFLAGS_FROM_HOST := -ccbin=$(CXX) --std=c++14
+CXXFLAGS_FROM_HOST := -ccbin=$(CXX) --std=$(CXXSTD)
 CFLAGS_FROM_HOST := -ccbin=$(CXX)
 
 HIPCC_FLAGS = -Wno-deprecated-gpu-targets -m64 -arch=compute_$(CUDA_ARCH) -code=sm_$(CUDA_ARCH) -maxrregcount=$(CUDA_MAXREGCOUNT)
