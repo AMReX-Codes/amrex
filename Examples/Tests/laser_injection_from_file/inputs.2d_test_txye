@@ -41,5 +41,5 @@ txye_laser.polarization = 0. 1. 0.     # The main polarization vector
 txye_laser.e_max        = 1.e12        # Maximum amplitude of the laser field (in V/m)
 txye_laser.wavelength = 1.0e-6         # The wavelength of the laser (in meters)
 txye_laser.profile      = from_txye_file
-txye_laser.txye_file_name = "gauss_2d_unf.txye"
+txye_laser.txye_file_name = "gauss_2d.txye"
 txye_laser.time_chunk_size = 50
