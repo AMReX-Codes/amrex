@@ -5,19 +5,25 @@
 #include <AMReX_Array.H>
 #include <AMReX_GpuContainers.H>
 #include <AMReX_ParmParse.H>
+#include <AMReX_BlockMutex.H>
 
 using namespace amrex;
 
-void LockingTest();
+void lockingTest();
+void blockCountingTest();
 
 int main (int argc, char* argv[])
 {
-
     amrex::Initialize(argc,argv);
     {
     auto begin = std::chrono::high_resolution_clock::now();
+    amrex::Print() << "Testing using locks to do atomic adds \n";
     for (int i = 0; i < 10; ++i)
-        LockingTest();
+        lockingTest();
+    amrex::Print() << "Locking test passed! \n";
+    amrex::Print() << "Testing using locks to count the number of blocks a kernel was launched with \n";
+    for (int i = 0; i < 10; ++i)
+        blockCountingTest();
     amrex::Print() << "Locking test passed! \n";
     auto end = std::chrono::high_resolution_clock::now();
     std::cout << "Execution Time: ";
@@ -42,8 +48,7 @@ void addone(double volatile * num)
   amrex::free_state(tid);
 }
 
-
-void LockingTest ()
+void lockingTest ()
 {
     int Ndraw= 1e7;
 #ifdef AMREX_USE_CUDA    
@@ -103,7 +108,47 @@ void LockingTest ()
    AMREX_ALWAYS_ASSERT((sumx == sumy) && (sumz == Ndraw) && (sumx == sumz));   
 }
 
+__global__
+void count_blocks (BlockMutex* mut, int *numBlocks, int lock_index)
+{
+    mut->lock(lock_index);
+    if (threadIdx.x == 0) { numBlocks[0] = numBlocks[0] + 1; }
+    __threadfence();
+    mut->unlock(lock_index);
+}
 
+void blockCountingTest ()
+{
+    
+    constexpr int NUMBLOCKS = 512;
+    constexpr int NUMTHREADS = 1024;
+    
+    {
+        int h_counting, *d_counting;
+        
+        AMREX_CUDA_SAFE_CALL(cudaMalloc(&d_counting, sizeof(int)));
 
+        h_counting = 0;
 
+        AMREX_CUDA_SAFE_CALL(cudaMemcpy(d_counting, &h_counting, sizeof(int), cudaMemcpyHostToDevice));
 
+        BlockMutex h_mut(1);
+        BlockMutex* d_mut;
+        AMREX_CUDA_SAFE_CALL(cudaMalloc(&d_mut, sizeof(BlockMutex)));
+        AMREX_CUDA_SAFE_CALL(cudaMemcpy(d_mut, &h_mut, sizeof(BlockMutex), cudaMemcpyHostToDevice));
+               
+        count_blocks<<<NUMBLOCKS, NUMTHREADS>>>(d_mut, d_counting, 0);
+
+        cudaPeekAtLastError();
+
+        Gpu::Device::synchronize();
+
+        AMREX_CUDA_SAFE_CALL(cudaMemcpy(&h_counting, d_counting, sizeof(int), cudaMemcpyDeviceToHost));
+
+        amrex::Print() << "Number of blocks is: " << h_counting << "\n";
+
+        if (h_counting != NUMBLOCKS) amrex::Abort();
+
+        AMREX_CUDA_SAFE_CALL(cudaFree(d_counting));
+    }
+}
