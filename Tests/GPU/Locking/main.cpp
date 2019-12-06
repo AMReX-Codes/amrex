@@ -16,7 +16,7 @@ int main (int argc, char* argv[])
     amrex::Initialize(argc,argv);
     {
     auto begin = std::chrono::high_resolution_clock::now();
-    for (int i = 0; i < 100; ++i)
+    for (int i = 0; i < 10; ++i)
         LockingTest();
     amrex::Print() << "Locking test passed! \n";
     auto end = std::chrono::high_resolution_clock::now();
