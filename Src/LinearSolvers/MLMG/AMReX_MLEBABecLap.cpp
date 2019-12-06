@@ -84,40 +84,9 @@ MLEBABecLap::define (const Vector<Geometry>& a_geom,
             }
 
             m_cc_mask[amrlev][mglev].define(m_grids[amrlev][mglev], m_dmap[amrlev][mglev], 1, 1);
-            m_cc_mask[amrlev][mglev].setVal(0);
-        }
-    }
-
-#ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-    {
-        std::vector< std::pair<int,Box> > isects;
-        for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
-        {
-            for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
-            {
-                const std::vector<IntVect>& pshifts = m_geom[amrlev][mglev].periodicity().shiftIntVect();
-                iMultiFab& mask = m_cc_mask[amrlev][mglev];
-                const BoxArray& ba = mask.boxArray();
-                for (MFIter mfi(mask); mfi.isValid(); ++mfi)
-                {
-                    Array4<int> const& fab = mask.array(mfi);
-                    const Box& bx = mfi.fabbox();
-                    for (const auto& iv : pshifts)
-                    {
-                        ba.intersections(bx+iv, isects);
-                        for (const auto& is : isects)
-                        {
-                            const Box& b = is.second-iv;
-                            AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( b, i, j, k,
-                            {
-                                fab(i,j,k) = 1;
-                            });
-                        }
-                    }
-                }
-            }
+            m_cc_mask[amrlev][mglev].BuildMask(m_geom[amrlev][mglev].Domain(),
+                                               m_geom[amrlev][mglev].periodicity(),
+                                               1, 0, 0, 1);
         }
     }
 }

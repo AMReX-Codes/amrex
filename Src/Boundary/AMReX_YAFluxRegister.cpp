@@ -37,7 +37,6 @@ YAFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
 
     BoxArray cfba = fba;
     cfba.coarsen(ref_ratio);
-    cfba.uniqify();
 
     Box cdomain = m_crse_geom.Domain();
     for (int idim=0; idim < AMREX_SPACEDIM; ++idim) {
@@ -49,48 +48,18 @@ YAFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
     m_crse_fab_flag.resize(m_crse_flag.local_size(), crse_cell);
 
     m_crse_flag.setVal(crse_cell);
-
+    {
+        iMultiFab foo(cfba, fdm, 1, 1, MFInfo().SetAlloc(false));
+        const FabArrayBase::CPC& cpc1 = m_crse_flag.getCPC(IntVect(1), foo, IntVect(1), cperiod);
+        m_crse_flag.setVal(crse_fine_boundary_cell, cpc1, 0, 1);
+        const FabArrayBase::CPC& cpc0 = m_crse_flag.getCPC(IntVect(1), foo, IntVect(0), cperiod);
+        m_crse_flag.setVal(fine_cell, cpc0, 0, 1);
+        auto recv_layout_mask = m_crse_flag.RecvLayoutMask(cpc0);
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    {
-        std::vector< std::pair<int,Box> > isects;
-
-        for (MFIter mfi(m_crse_flag); mfi.isValid(); ++mfi)
-        {
-            auto const& fab = m_crse_flag.array(mfi);
-            const Box& bx = mfi.fabbox() & cdomain;
-
-            bool has_fine = false;
-
-            for (const auto& iv : pshifts)
-            {
-                cfba.intersections(bx+iv, isects, false, 1);
-                for (const auto& is : isects)
-                {
-                    const Box& ibx = is.second - iv;
-                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D(ibx, i, j, k,
-                    {
-                        fab(i,j,k) = amrex_yafluxreg_crse_fine_boundary_cell;
-                    });
-                    has_fine = true;
-                }
-            }
-
-            for (const auto& iv : pshifts)
-            {
-                cfba.intersections(bx+iv, isects);
-                for (const auto& is : isects)
-                {
-                    const Box& ibx = is.second - iv;
-                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D(ibx, i, j, k,
-                    {
-                        fab(i,j,k) = amrex_yafluxreg_fine_cell;
-                    });
-                }
-            }
-
-            if (has_fine) {
+        for (MFIter mfi(m_crse_flag); mfi.isValid(); ++mfi) {
+            if (recv_layout_mask[mfi]) {
                 m_crse_fab_flag[mfi.LocalIndex()] = fine_cell;
             }
         }
@@ -101,6 +70,7 @@ YAFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
     int nlocal = 0;
     const int myproc = ParallelDescriptor::MyProc();
     const int n_cfba = cfba.size();
+    cfba.uniqify();
 
 #ifdef _OPENMP
     
@@ -200,10 +170,14 @@ YAFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
         m_cfp_mask.define(cfp_ba, cfp_dm, 1, 0, MFInfo(), FArrayBoxFactory());
         m_cfp_mask.setVal(1.0);
 
+        Vector<Array4BoxTag<Real> > tags;
+
+        bool run_on_gpu = Gpu::inLaunchRegion();
+
         const Box& domainbox = m_crse_geom.Domain();
 
 #ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
+#pragma omp parallel if (!run_on_gpu)
 #endif
         {
             std::vector< std::pair<int,Box> > isects;
@@ -213,7 +187,8 @@ YAFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
                 const Box& bx = mfi.fabbox();
                 if (!domainbox.contains(bx))  // part of the box is outside periodic boundary
                 {
-                    auto const& fab = m_cfp_mask.array(mfi);
+                    FArrayBox& fab = m_cfp_mask[mfi];
+                    auto const& arr = m_cfp_mask.array(mfi);
                     for (const auto& iv : pshifts)
                     {
                         if (iv != IntVect::TheZeroVector())
@@ -222,16 +197,25 @@ YAFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
                             for (const auto& is : isects)
                             {
                                 const Box& ibx = is.second - iv;
-                                AMREX_HOST_DEVICE_PARALLEL_FOR_3D(ibx,i,j,k,
-                                {
-                                    fab(i,j,k) = 0.0;
-                                });
+                                if (run_on_gpu) {
+                                    tags.push_back({arr,ibx});
+                                } else {
+                                    fab.setVal(0.0, ibx);
+                                }
                             }
                         }
                     }
                 }
             }
         }
+
+#ifdef AMREX_USE_GPU
+        amrex::ParallelFor(tags, 1,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k, int n, Array4<Real> const& a) noexcept
+        {
+            a(i,j,k,n) = 0.0;
+        });
+#endif
     }
 }
 

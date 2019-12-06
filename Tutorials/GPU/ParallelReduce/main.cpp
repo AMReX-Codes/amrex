@@ -44,9 +44,14 @@ void main_main ()
         Box const& bx = mfi.validbox();
         auto const& fab = mf.array(mfi);
         auto const& ifab = imf.array(mfi);
+
         amrex::ParallelFor(bx,
-        [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept 
         {
+//            Currently needed for HIP to work correctly.
+//            fab(i,j,k) = 1.0;
+//            ifab(i,j,k) = 1;
+
             fab(i,j,k) = amrex::Random();
             ifab(i,j,k) = (amrex::Random() > 0.5) ? 1 : 0;
         });
@@ -304,6 +309,5 @@ void main_main ()
         amrex::Print().SetPrecision(17) << "thrust::reduce sum " << r << "\n";
     }
 #endif
-
 
 }

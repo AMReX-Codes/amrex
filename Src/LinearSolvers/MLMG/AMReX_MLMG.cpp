@@ -71,7 +71,10 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
 
     Real solve_start_time = amrex::second();
 
-    Real composite_norminf;
+    Real& composite_norminf = m_final_resnorm0;
+
+    m_niters_cg.clear();
+    m_iter_fine_resnorm0.clear();
 
     prepareForSolve(a_sol, a_rhs);
 
@@ -91,6 +94,9 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
                            << "MLMG: Initial residual (resid0) = " << resnorm0 << "\n";
         }
     }
+
+    m_init_resnorm0 = resnorm0;
+    m_rhsnorm0 = rhsnorm0;
 
     Real max_norm;
     std::string norm_name;
@@ -125,6 +131,7 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
             if (is_nsolve) continue;
 
             Real fine_norminf = ResNormInf(finest_amr_lev);
+            m_iter_fine_resnorm0.push_back(fine_norminf);
             composite_norminf = fine_norminf;
             if (verbose >= 2) {
                 amrex::Print() << "MLMG: Iteration " << std::setw(3) << iter+1 << " Fine resid/"
@@ -979,6 +986,7 @@ MLMG::bottomSolveWithCG (MultiFab& x, const MultiFab& b, MLCGSolver::Type type)
     if (ret != 0 && verbose > 1) {
         amrex::Print() << "MLMG: Bottom solve failed.\n";
     }
+    m_niters_cg.push_back(cg_solver.getNumIters());
     return ret;
 }
 
@@ -1077,31 +1085,9 @@ MLMG::buildFineMask ()
     const auto& amrrr = linop.AMRRefRatio();
     for (int alev = 0; alev < finest_amr_lev; ++alev)
     {
-        fine_mask[alev].reset(new iMultiFab(rhs[alev].boxArray(), rhs[alev].DistributionMap(), 1, 0));
-        fine_mask[alev]->setVal(1);
-
-        BoxArray baf = rhs[alev+1].boxArray();
-        baf.coarsen(amrrr[alev]);
-
-#ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-        for (MFIter mfi(*fine_mask[alev], MFItInfo().SetDynamic(true)); mfi.isValid(); ++mfi)
-        {
-            Box const& fabbox = mfi.fabbox();
-            Array4<int> const& fab = fine_mask[alev]->array(mfi);
-
-            const std::vector< std::pair<int,Box> >& isects = baf.intersections(fabbox);
-
-            for (int ii = 0; ii < isects.size(); ++ii)
-            {
-                Box const& b = isects[ii].second;
-                AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( b, i, j, k,
-                {
-                    fab(i,j,k) = 0;
-                });
-            }
-        }
+        fine_mask[alev].reset
+            (new iMultiFab(makeFineMask(rhs[alev], rhs[alev+1], IntVect(0), IntVect(amrrr[alev]),
+                                        Periodicity::NonPeriodic(), 1, 0)));
     }
 
     if (!linop.isCellCentered()) {
@@ -1178,6 +1164,7 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
         }
         MultiFab::Copy(rhs[alev], *a_rhs[alev], 0, 0, ncomp, nghost);
         linop.applyMetricTerm(alev, 0, rhs[alev]);
+        linop.unimposeNeumannBC(alev, rhs[alev]);
         linop.applyInhomogNeumannTerm(alev, rhs[alev]);
 
 #ifdef AMREX_USE_EB
@@ -1460,6 +1447,7 @@ MLMG::compResidual (const Vector<MultiFab*>& a_res, const Vector<MultiFab*>& a_s
                         MFInfo(), *linop.Factory(alev));
         MultiFab::Copy(rhstmp, *prhs, 0, 0, ncomp, nghost);
         linop.applyMetricTerm(alev, 0, rhstmp);
+        linop.unimposeNeumannBC(alev, rhstmp);
         linop.applyInhomogNeumannTerm(alev, rhstmp);
         prhs = &rhstmp;
 #endif

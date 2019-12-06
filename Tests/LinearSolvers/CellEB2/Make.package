@@ -1,5 +1,5 @@
 
 CEXE_sources += main.cpp
 CEXE_sources += MyTest.cpp initEB.cpp
-CEXE_headers += MyTest.H MyEB.H MyTest_F.H
-F90EXE_sources += mytest_f.F90
+CEXE_headers += MyTest.H MyEB.H MyTest_K.H
+
