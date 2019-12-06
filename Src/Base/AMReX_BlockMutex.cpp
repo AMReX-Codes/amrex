@@ -1,6 +1,6 @@
 #include <AMReX_BlockMutex.H>
 
-using namespace amrex;
+namespace amrex {
 
 #ifdef AMREX_USE_GPU
 
@@ -21,13 +21,14 @@ BlockMutex::BlockMutex (int N) noexcept
     // The first 4 bytes of unsigned long stores blockIdx.
     // The second 4 bytes, count.
     // The initial values are -1 and 0.
-    cudaMalloc(&m_state, sizeof(state_t)*m_nstates);
-    // In amrex, we will use amrex::ParallelFor
+    AMREX_GPU_SAFE_CALL(cudaMalloc(&m_state, sizeof(state_t)*m_nstates));
     init_states(m_state, m_nstates);
 }
 
 BlockMutex::~BlockMutex () {
     AMREX_GPU_SAFE_CALL(cudaFree(m_state));
+}
+
 }
 
 #endif
