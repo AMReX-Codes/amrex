@@ -14,6 +14,7 @@
 #include <memory>
 #include <functional>
 #include <limits>
+#include <utility>
 
 namespace WarpXLaserProfiles {
 
@@ -32,8 +33,8 @@ struct CommonLaserParameters
 
 /** Abstract interface for laser profile classes
  *
- * Each new laser profile should inherit this interface and implement two
- * methods: init and fill_amplitude (described below).
+ * Each new laser profile should inherit this interface and implement three
+ * methods: init, update and fill_amplitude (described below).
  *
  * The declaration of a LaserProfile class should be placed in this file,
  * while the implementation of the methods should be in a dedicated file in
@@ -61,6 +62,17 @@ public:
         const amrex::ParmParse& ppc,
         CommonLaserParameters params) = 0;
 
+    /** Update Laser Profile
+     *
+     * Some laser profiles might need to perform an "update" operation per
+     * time step.
+     *
+     * @param[in] t simulation time (seconds)
+     */
+    virtual void
+    update (
+        amrex::Real t) = 0;
+
     /** Fill Electric Field Amplitude for each particle of the antenna.
      *
      * Xp, Yp and amplitude must be arrays with the same length
@@ -76,7 +88,7 @@ public:
         amrex::Real const * AMREX_RESTRICT const Xp,
         amrex::Real const * AMREX_RESTRICT const Yp,
         amrex::Real t,
-        amrex::Real * AMREX_RESTRICT const amplitude) = 0;
+        amrex::Real * AMREX_RESTRICT const amplitude) const = 0;
 
     virtual ~ILaserProfile(){};
 };
@@ -94,13 +106,17 @@ public:
         const amrex::ParmParse& ppc,
         CommonLaserParameters params) override final;
 
+    //No update needed
+    void
+    update (amrex::Real /*t */) override final {}
+
     void
     fill_amplitude (
         const int np,
         amrex::Real const * AMREX_RESTRICT const Xp,
         amrex::Real const * AMREX_RESTRICT const Yp,
         amrex::Real t,
-        amrex::Real * AMREX_RESTRICT const amplitude) override final;
+        amrex::Real * AMREX_RESTRICT const amplitude) const override final;
 
 private:
     struct {
@@ -132,13 +148,17 @@ public:
         const amrex::ParmParse& ppc,
         CommonLaserParameters params) override final;
 
+    //No update needed
+    void
+    update (amrex::Real /*t */) override final {}
+
     void
     fill_amplitude (
         const int np,
         amrex::Real const * AMREX_RESTRICT const Xp,
         amrex::Real const * AMREX_RESTRICT const Yp,
         amrex::Real t,
-        amrex::Real * AMREX_RESTRICT const amplitude) override final;
+        amrex::Real * AMREX_RESTRICT const amplitude) const override final;
 
 private:
     struct {
@@ -163,13 +183,17 @@ public:
         const amrex::ParmParse& ppc,
         CommonLaserParameters params) override final;
 
+    //No update needed
+    void
+    update (amrex::Real /*t */) override final {}
+
     void
     fill_amplitude (
         const int np,
         amrex::Real const * AMREX_RESTRICT const Xp,
         amrex::Real const * AMREX_RESTRICT const Yp,
         amrex::Real t,
-        amrex::Real * AMREX_RESTRICT const amplitude) override final;
+        amrex::Real * AMREX_RESTRICT const amplitude) const override final;
 
 private:
     struct{
@@ -195,13 +219,17 @@ public:
         const amrex::ParmParse& ppc,
         CommonLaserParameters params) override final;
 
+    //Update is needed
+    void
+    update (amrex::Real t) override final;
+
     void
     fill_amplitude (
         const int np,
         amrex::Real const * AMREX_RESTRICT const Xp,
         amrex::Real const * AMREX_RESTRICT const Yp,
         amrex::Real t,
-        amrex::Real * AMREX_RESTRICT const amplitude) override final;
+        amrex::Real * AMREX_RESTRICT const amplitude) const override final;
 
     //These functions cannot be private due to restrictions related to
     //the use of extended __device__ lambda
@@ -211,18 +239,20 @@ public:
         amrex::Real const * AMREX_RESTRICT const Xp,
         amrex::Real const * AMREX_RESTRICT const Yp,
         amrex::Real t,
-        amrex::Real * AMREX_RESTRICT const amplitude) ;
+        amrex::Real * AMREX_RESTRICT const amplitude) const;
+
     void internal_fill_amplitude_nonuniform(
         const int idx_t_left,
         const int np,
         amrex::Real const * AMREX_RESTRICT const Xp,
         amrex::Real const * AMREX_RESTRICT const Yp,
         amrex::Real t,
-        amrex::Real * AMREX_RESTRICT const amplitude) ;
+        amrex::Real * AMREX_RESTRICT const amplitude) const;
     //__________
 
 private:
     void parse_txye_file(std::string txye_file_name);
+    std::pair<int,int> find_left_right_time_indices(amrex::Real t) const;
     void read_data_t_chuck(int t_begin, int t_end);
 
     struct{

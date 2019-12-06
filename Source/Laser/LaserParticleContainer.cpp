@@ -386,6 +386,9 @@ LaserParticleContainer::Evolve (int lev,
         t_lab = 1./WarpX::gamma_boost*t + WarpX::beta_boost*Z0_lab/PhysConst::c;
     }
 
+    // Update laser profile
+    m_up_laser_profile->update(t);
+
     BL_ASSERT(OnSameGrids(lev,jx));
 
     MultiFab* cost = WarpX::getCosts(lev);

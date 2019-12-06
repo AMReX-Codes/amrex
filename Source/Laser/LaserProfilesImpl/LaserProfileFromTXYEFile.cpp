@@ -59,6 +59,21 @@ FromTXYEFileLaserProfile::init (
     m_common_params = params;
 }
 
+/** \brief Reads new field data chunk from file if needed
+ *
+ * @param[in] t simulation time (seconds)
+ */
+void
+FromTXYEFileLaserProfile::update (amrex::Real t)
+{
+    int idx_t_left, idx_t_right;
+    std::tie(idx_t_left, idx_t_right) = find_left_right_time_indices(t);
+    //Load data chunck if needed
+    if(idx_t_right >  m_params.last_time_index){
+        read_data_t_chuck(idx_t_left, idx_t_left+m_params.time_chunk_size);
+    }
+}
+
 /* \brief compute field amplitude at particles' position for a laser beam
  * loaded from an E(x,y,t) file.
  *
@@ -76,7 +91,7 @@ void
 FromTXYEFileLaserProfile::fill_amplitude (
     const int np,
     Real const * AMREX_RESTRICT const Xp, Real const * AMREX_RESTRICT const Yp,
-    Real t, Real * AMREX_RESTRICT const amplitude)
+    Real t, Real * AMREX_RESTRICT const amplitude) const
 {
     //Amplitude is 0 if time is out of range
     if(t < m_params.t_coords.front() ||  t > m_params.t_coords.back()){
@@ -87,32 +102,11 @@ FromTXYEFileLaserProfile::fill_amplitude (
     }
 
     //Find left and right time indices
-    int idx_t_right;
-    if(m_params.is_grid_uniform){
-        const auto t_min = m_params.t_coords.front();
-        const auto t_max = m_params.t_coords.back();
-        idx_t_right = static_cast<int>(
-            ceil( (m_params.nt-1)*(t-t_min)/(t_max-t_min)));
-        idx_t_right = max(min(idx_t_right, m_params.nt-1),1);
-    }
-    else{
-        idx_t_right = std::distance(m_params.t_coords.begin(),
-        std::upper_bound(m_params.t_coords.begin(),
-            m_params.t_coords.end(), t));
-    }
-    const int idx_t_left = idx_t_right-1;
+    int idx_t_left, idx_t_right;
+    std::tie(idx_t_left, idx_t_right) = find_left_right_time_indices(t);
+
     if(idx_t_left <  m_params.first_time_index){
         Abort("Something bad has happened with the simulation time");
-    }
-
-    //Load data chunck if needed
-    if(idx_t_right >  m_params.last_time_index){
-        #pragma omp barrier
-        #pragma omp single
-        {
-            read_data_t_chuck(idx_t_left, idx_t_left+m_params.time_chunk_size);
-        }
-        #pragma omp barrier
     }
 
     if(m_params.is_grid_uniform){
@@ -246,6 +240,30 @@ FromTXYEFileLaserProfile::parse_txye_file(std::string txye_file_name)
     ParallelDescriptor::Barrier();
 }
 
+/* \brief Finds left and right time indices corresponding to time t
+ *
+ *
+ * \param t: simulation time
+ */
+std::pair<int,int>
+FromTXYEFileLaserProfile::find_left_right_time_indices(amrex::Real t) const
+{
+    int idx_t_right;
+    if(m_params.is_grid_uniform){
+        const auto t_min = m_params.t_coords.front();
+        const auto t_max = m_params.t_coords.back();
+        const int temp_idx_t_right =
+            ceil( (m_params.nt-1)*(t-t_min)/(t_max-t_min));
+        idx_t_right = max(min(temp_idx_t_right, m_params.nt-1),1);
+    }
+    else{
+        idx_t_right = std::distance(m_params.t_coords.begin(),
+        std::upper_bound(m_params.t_coords.begin(),
+            m_params.t_coords.end(), t));
+    }
+    return std::make_pair(idx_t_right-1, idx_t_right);
+}
+
 /* \brief Load field data within the temporal range [t_begin, t_end)
  *
  * Must be called after having parsed a data file with parse_txye_file.
@@ -311,7 +329,7 @@ FromTXYEFileLaserProfile::internal_fill_amplitude_uniform(
     const int idx_t_left,
     const int np,
     Real const * AMREX_RESTRICT const Xp, Real const * AMREX_RESTRICT const Yp,
-    Real t, Real * AMREX_RESTRICT const amplitude)
+    Real t, Real * AMREX_RESTRICT const amplitude) const
 {
     // Copy member variables to tmp copies
     // and get pointers to underlying data for GPU.
@@ -424,7 +442,7 @@ FromTXYEFileLaserProfile::internal_fill_amplitude_nonuniform(
     const int idx_t_left,
     const int np,
     Real const * AMREX_RESTRICT const Xp, Real const * AMREX_RESTRICT const Yp,
-    Real t, Real * AMREX_RESTRICT const amplitude)
+    Real t, Real * AMREX_RESTRICT const amplitude) const
 {
     // Copy member variables to tmp copies
     // and get pointers to underlying data for GPU.
