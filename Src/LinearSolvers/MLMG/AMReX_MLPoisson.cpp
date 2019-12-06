@@ -486,8 +486,6 @@ MLPoisson::makeNLinOp (int grid_size) const
 
     nop->setScalars(1.0, -1.0);
 
-    const BoxArray& myba = m_grids[0].back();
-
     const Real* dxinv = geom.InvCellSize();
     Real dxscale = dxinv[0];
 #if (AMREX_SPACEDIM >= 2)
@@ -500,26 +498,9 @@ MLPoisson::makeNLinOp (int grid_size) const
     MultiFab alpha(ba, dm, 1, 0);
     alpha.setVal(1.e30*dxscale*dxscale);
 
-#ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-    {
-        std::vector< std::pair<int,Box> > isects;
-        
-        for (MFIter mfi(alpha, MFItInfo().SetDynamic(true)); mfi.isValid(); ++mfi)
-        {
-            Box const& box = mfi.fabbox();
-            Array4<Real> const& fab = alpha.array(mfi);
-            myba.intersections(box, isects);
-            for (const auto& is : isects)
-            {
-                Box const& b = is.second;
-                AMREX_HOST_DEVICE_PARALLEL_FOR_3D(b, i, j, k, {
-                    fab(i,j,k) = 0.0;
-                });
-            }
-        }
-    }
+    MultiFab foo(m_grids[0].back(), m_dmap[0].back(), 1, 0, MFInfo().SetAlloc(false));
+    const FabArrayBase::CPC& cpc = alpha.getCPC(IntVect(0),foo,IntVect(0),Periodicity::NonPeriodic());
+    alpha.setVal(0.0, cpc, 0, 1);
 
     nop->setACoeffs(0, alpha);
 

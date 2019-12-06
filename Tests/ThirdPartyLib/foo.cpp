@@ -51,8 +51,12 @@ void csolve ()
     // set right hand side to some random numbers
     for (MFIter mfi(rhs); mfi.isValid(); ++mfi)
     {
-        auto& fab = rhs[mfi];
-        fab.ForEach(fab.box(), 0, 1, [] (Real& rho) { rho = Random(); });
+        auto const& fab = rhs.array(mfi);
+        Box const& bx = mfi.fabbox();
+        amrex::For(bx, [=] (int i, int j, int k) noexcept
+        {
+            fab(i,j,k) = Random();
+        });
     }
 
     // set initial guess of potential to zero
@@ -61,7 +65,7 @@ void csolve ()
     MLPoisson mlpoisson({geom}, {grids}, {dm});
 
     mlpoisson.setDomainBC({LinOpBCType::Periodic,LinOpBCType::Periodic,LinOpBCType::Periodic},
-                          {LinOpBCType::Periodic,LinOpBCType::Periodic,LinOpBCType::Periodic});                        
+                          {LinOpBCType::Periodic,LinOpBCType::Periodic,LinOpBCType::Periodic});
     mlpoisson.setLevelBC(0,nullptr);
    
     MLMG mlmg(mlpoisson);

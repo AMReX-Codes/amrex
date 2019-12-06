@@ -1,19 +1,19 @@
 #ifndef AMREX_STRUCTOFARRAYS_H_
 #define AMREX_STRUCTOFARRAYS_H_
 
-#include <array>
-
 #include <AMReX_REAL.H>
 #include <AMReX_Vector.H>
 #include <AMReX_GpuContainers.H>
+
+#include <array>
 
 namespace amrex {
 
 template <int NReal, int NInt>
 struct StructOfArrays {
 
-    using RealVector = Gpu::ManagedDeviceVector<ParticleReal>;
-    using IntVector = Gpu::ManagedDeviceVector<int>;    
+    using RealVector = Gpu::ManagedVector<ParticleReal>;
+    using IntVector = Gpu::ManagedVector<int>;    
 
     StructOfArrays()
         : m_num_neighbor_particles(0),

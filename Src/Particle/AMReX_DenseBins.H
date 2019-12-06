@@ -70,13 +70,13 @@ public:
         AMREX_FOR_1D ( nitems, i,
         {
             bin_type iv = f(v[i]);
-            AMREX_ASSERT(bx.contains(iv));
+            auto iv3 = iv.dim3();
             int nx = hi.x-lo.x+1;
             int ny = hi.y-lo.y+1;
             int nz = hi.z-lo.z+1;
-            index_type uix = min(nx-1,max(0,iv[0]));
-            index_type uiy = min(ny-1,max(0,iv[1]));
-            index_type uiz = min(nz-1,max(0,iv[2]));
+            index_type uix = amrex::min(nx-1,amrex::max(0,iv3.x));
+            index_type uiy = amrex::min(ny-1,amrex::max(0,iv3.y));
+            index_type uiz = amrex::min(nz-1,amrex::max(0,iv3.z));
             pcell[i] = (uix * ny + uiy) * nz + uiz;
             Gpu::Atomic::Add(&pcount[pcell[i]], index_type{ 1 });
         });
@@ -103,16 +103,16 @@ public:
     long numBins () const noexcept { return m_offsets.size()-1; }
     
     //! \brief returns the pointer to the permutation array 
-    index_type* permutationPtr() noexcept { return m_perm.dataPtr(); }
+    index_type* permutationPtr () noexcept { return m_perm.dataPtr(); }
 
     //! \brief returns the pointer to the offsets array
-    index_type* offsetsPtr() noexcept { return m_offsets.dataPtr(); }
+    index_type* offsetsPtr () noexcept { return m_offsets.dataPtr(); }
 
     //! \brief returns const pointer to the permutation array 
-    const index_type* permutationPtr() const noexcept { return m_perm.dataPtr(); }
+    const index_type* permutationPtr () const noexcept { return m_perm.dataPtr(); }
 
     //! \brief returns const pointer to the offsets array
-    const index_type* offsetsPtr() const noexcept { return m_offsets.dataPtr(); }
+    const index_type* offsetsPtr () const noexcept { return m_offsets.dataPtr(); }
     
 private:
 

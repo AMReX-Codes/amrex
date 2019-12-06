@@ -449,7 +449,7 @@ int main_main()
             << " optional arguments:\n"
             << "    -r|--rel_tol rtol     : relative tolerance (default is 0)\n"
             << std::endl;
-        return 0;
+        return EXIT_SUCCESS;
     }
     
     ParticleHeader header1(fn1, pt);
@@ -457,6 +457,7 @@ int main_main()
     
     if (header1 != header2) {
         amrex::Print() << "FAIL - Particle data headers do not agree. \n";
+        return EXIT_FAILURE;
     }
 
     // for each grid, store the corresponding information about where to look up the 

@@ -50,6 +50,7 @@ void RandomNumGen ()
     Gpu::DeviceVector<Real> y_d(Ndraw);
     Gpu::DeviceVector<Real> z_d(Ndraw);
 
+    // Test for random numbers. 
     {
 
         BL_PROFILE_REGION("Draw");
@@ -71,11 +72,36 @@ void RandomNumGen ()
     Gpu::dtoh_memcpy(x_h.dataPtr(), x_d.dataPtr(), sizeof(Real)*Ndraw);
     Gpu::dtoh_memcpy(y_h.dataPtr(), y_d.dataPtr(), sizeof(Real)*Ndraw);
     Gpu::dtoh_memcpy(z_h.dataPtr(), z_d.dataPtr(), sizeof(Real)*Ndraw);
-
+    
+    // Output to check for random-ness
     // for (int i = 0; i < Ndraw; i++ )
     // {
     //     amrex::Print() << i << " " << x_h[i]  << " " << y_h[i] << " " << z_h[i] << "\n";
     // }
+
+
+    // Test for a subset of threads calling amrex::Random().
+    // Testing for a possible hang.
+    {
+
+        BL_PROFILE_REGION("Draw2");
+
+        auto x_d_ptr = x_d.dataPtr();
+        auto y_d_ptr = y_d.dataPtr();
+        auto z_d_ptr = z_d.dataPtr(); 
+        AMREX_PARALLEL_FOR_1D (Ndraw, idx,
+        {
+            if (idx  == 0)
+            {
+                x_d_ptr[idx] = amrex::Random();
+                y_d_ptr[idx] = amrex::Random();
+                z_d_ptr[idx] = amrex::Random();
+            }
+        });
+   
+        Gpu::Device::synchronize();
+
+    }
 }
 
 

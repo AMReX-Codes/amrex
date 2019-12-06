@@ -150,18 +150,32 @@ namespace amrex {
             Real divnc(0.0);
             Real vtot(0.0);
             Real wted_frac(0.0);
-
+            int  ks(0);
+            int  ke(0);
+#if (AMREX_SPACEDIM==3)
+            ks = -1;
+            ke = 1;
+#endif
             for(int ii(-1); ii <= 1; ii++)
+            {
                 for(int jj(-1); jj <= 1; jj++)
-                    for(int kk(-1); kk <= 1; kk++)
+                {
+                    for(int kk(ks); kk <= ke; kk++)
+                    {
+#if (AMREX_SPACEDIM==3)
                         if( (ii != 0 or jj != 0 or kk != 0) and
+#else
+                        if( (ii != 0 or jj != 0) and
+#endif
                             (flags(i,j,k).isConnected({AMREX_D_DECL(ii,jj,kk)}) == 1))
                         {
                             wted_frac = vfrac(i+ii,j+jj,k+kk) * wt(i+ii,j+jj,k+kk) * mask(i+ii,j+jj,k+kk);
                             vtot   += wted_frac;
                             divnc  += wted_frac * divc(i+ii,j+jj,k+kk,n);
                         }
-
+                    }
+                }
+            }
             divnc /= vtot;
 
             // We need to multiply divc by mask to make sure optmp is zero for cells
@@ -184,11 +198,20 @@ namespace amrex {
         if(flags(i,j,k).isSingleValued())
         {
             Real wtot(0.0);
-
+            int  ks(0);
+            int  ke(0);
+#if (AMREX_SPACEDIM==3)
+            ks = -1;
+            ke = 1;
+#endif
             for(int ii(-1); ii <= 1; ii++)
                 for(int jj(-1); jj <= 1; jj++)
-                    for(int kk(-1); kk <= 1; kk++)
-                        if((ii != 0 or jj != 0 or kk != 0) and
+                    for(int kk(ks); kk <= ke; kk++)
+#if (AMREX_SPACEDIM==3)
+                        if( (ii != 0 or jj != 0 or kk != 0) and
+#else
+                        if( (ii != 0 or jj != 0) and
+#endif
                             (flags(i,j,k).isConnected({AMREX_D_DECL(ii,jj,kk)}) == 1))
                         {
                             wtot += wt(i+ii,j+jj,k+kk) * vfrac(i+ii,j+jj,k+kk) * mask(i+ii,j+jj,k+kk);
@@ -199,8 +222,12 @@ namespace amrex {
 
             for(int ii(-1); ii <= 1; ii++)
                 for(int jj(-1); jj <= 1; jj++)
-                    for(int kk(-1); kk <= 1; kk++)
-                        if((ii != 0 or jj != 0 or kk != 0) and
+                    for(int kk(ks); kk <= ke; kk++)
+#if (AMREX_SPACEDIM==3)
+                        if( (ii != 0 or jj != 0 or kk != 0) and
+#else
+                        if( (ii != 0 or jj != 0) and
+#endif
                             (flags(i,j,k).isConnected({AMREX_D_DECL(ii,jj,kk)}) == 1))
                         {
 #ifdef AMREX_USE_CUDA
@@ -242,14 +269,15 @@ namespace amrex {
 
         Real covered_val = 1.e40;
 
-        int nghost = div_tmp_in.nGrow();
-
-        EB_set_covered(div_tmp_in, 0, ncomp, nghost, covered_val);
+        int nghost = 2;
+	AMREX_ASSERT(div_tmp_in.nGrow() >= nghost);
+	
+        EB_set_covered(div_tmp_in, 0, ncomp, div_tmp_in.nGrow(), covered_val);
 
         div_tmp_in.FillBoundary(geom[lev].periodicity());
 
         // Here we take care of both the regular and covered cases ... all we do below is the cut cell cases
-        MultiFab::Copy(div_out, div_tmp_in, 0, div_comp, ncomp, div_out.nGrow());
+        MultiFab::Copy(div_out, div_tmp_in, 0, div_comp, ncomp, 0);
 
         // Get EB geometric info
         const auto& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(div_out.Factory());
