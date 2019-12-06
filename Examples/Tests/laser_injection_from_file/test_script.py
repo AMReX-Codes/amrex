@@ -12,7 +12,7 @@ def launch_analysis(file):
     print(file)
     os.system("./test_injection.py --generate_txye_files")
     os.system("./" + file + " inputs.2d_test_txye")
-    os.system("./test_injection.py --check ")
+    os.system("./test_injection.py --check diags/plotfiles/plt00507/")
 
 def main() :
     files = glob.glob("main2d*")
