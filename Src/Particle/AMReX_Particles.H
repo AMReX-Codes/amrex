@@ -837,6 +837,14 @@ public:
         return ParticlesAt(lev, grid, tile);
     }
 
+    template <class Iterator>
+    ParticleTileType& DefineAndReturnParticleTile (int lev, const Iterator& iter)
+    {
+        auto index = std::make_pair(iter.index(), iter.LocalTileIndex());
+        m_particles[lev][index].define(NumRuntimeRealComps(), NumRuntimeIntComps());
+        return ParticlesAt(lev, iter);
+    }
+    
     /**
     * \brief Functions depending the layout of the data.  Use with caution.
     *
