@@ -1,5 +1,9 @@
 #!/usr/bin/python3
 
+#ADD COMMENT
+#ADD COMMENT
+#ADD COMMENT
+
 import sys
 import glob
 import os
@@ -7,7 +11,7 @@ import os
 def launch_analysis(file):
     print(file)
     os.system("./test_injection.py --generate_txye_files")
-    os.system("./" + file + " inputs.2d_text_txye")
+    os.system("./" + file + " inputs.2d_test_txye")
     os.system("./test_injection.py --check ")
 
 def main() :

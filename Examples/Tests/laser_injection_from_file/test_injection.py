@@ -7,6 +7,7 @@
 
 import sys
 import numpy as np
+import matplotlib.pyplot as plt
 
 #Physical parameters
 um = 1.e-6
@@ -20,6 +21,7 @@ tt = 10.*fs
 x_c = 0.*um
 t_c = 20.*fs
 foc_dist = 10*um
+E_max = 1e12
 
 #Parameters of the tx grid
 x_l = -12.0*um
@@ -86,6 +88,21 @@ def create_gaussian_2d():
    write_file_unf("gauss_2d_unf.txye", xcoords, np.array([0.0]), tcoords, E_t)
 
 def do_analysis(arg):
+    data_set_end = yt.load(filename)
+    sim_time = data_set_end.current_time.to_value()
+    ray0 = data_set_end.ray((0*um,0*um,0), (15*um, 15*um,0))
+
+    xx0 = np.array(ray0["t"])*np.sqrt(2)*15*um
+    EE0 = np.array(ray0["Ey"])/E_max
+
+    expected0 = [-my_gauss((sim_time)-x/c , 0, 0, '2d') for x in xx0]
+
+    #DEBUG
+    plt.plot(xx0,EE0,'bo')
+    plt.plot(xx0,expected0,'ro')
+    plt.savefig('graph.png')
+    #__DEBUG__
+
     return true
 
 def main() :
