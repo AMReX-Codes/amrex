@@ -20,6 +20,14 @@ ifeq ($(lowercase_hipcc_host_comp),$(filter $(lowercase_hipcc_host_comp),gcc gnu
   endif
 endif
 
+ifdef CXXSTD
+  CXXSTD := $(strip $(CXXSTD))
+else
+  CXXSTD := c++14
+endif
+
+#ifeq ($(lowercase_hipcc_host_comp),gnu)
+#  ifeq ($(gcc_major_version),4)
 #    CXXFLAGS_FROM_HOST := -ccbin=g++ -Xcompiler='$(CXXFLAGS) --std=c++11' --std=c++11
 #  else
 #    CXXFLAGS_FROM_HOST := -ccbin=g++ -Xcompiler='$(CXXFLAGS) --std=c++14' --std=c++14
@@ -37,8 +45,8 @@ endif
 
 # This is dogora for now.
 ifeq ($(HIP_PLATFORM),hcc)
-  CXXFLAGS_FROM_HOST := 
-  CFLAGS_FROM_HOST := 
+  CXXFLAGS_FROM_HOST := --std=$(CXXSTD) 
+  CFLAGS_FROM_HOST :=
   HIPCC_FLAGS = -m64
   HIP_PATH=$(shell hipconfig --path)
 

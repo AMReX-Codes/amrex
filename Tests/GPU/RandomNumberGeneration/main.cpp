@@ -32,8 +32,6 @@ void RandomNumGen ()
     pp.get("num_draw", Ndraw);    
 
 #ifdef AMREX_USE_GPU
-    //    amrex::InitRandSeedOnDevice(Nstates);  // This will set the number of RNGs
-
     amrex::Print() << "Generating random numbers using GPU ";
     amrex::Print() << amrex::Gpu::Device::deviceId() << " on rank ";
     amrex::Print() << amrex::ParallelDescriptor::MyProc() << "\n";
@@ -79,11 +77,9 @@ void RandomNumGen ()
     //     amrex::Print() << i << " " << x_h[i]  << " " << y_h[i] << " " << z_h[i] << "\n";
     // }
 
-
     // Test for a subset of threads calling amrex::Random().
     // Testing for a possible hang.
     {
-
         BL_PROFILE_REGION("Draw2");
 
         auto x_d_ptr = x_d.dataPtr();
@@ -91,7 +87,7 @@ void RandomNumGen ()
         auto z_d_ptr = z_d.dataPtr(); 
         AMREX_PARALLEL_FOR_1D (Ndraw, idx,
         {
-            if (idx  == 0)
+            if (idx % 2 == 0)
             {
                 x_d_ptr[idx] = amrex::Random();
                 y_d_ptr[idx] = amrex::Random();
