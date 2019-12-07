@@ -618,13 +618,12 @@ WarpX::WritePlotFile () const
 
 #ifdef WARPX_USE_OPENPMD
     // Write openPMD format: only for level 0
-    // Timer t("openPMD plot");
-    m_OpenPMDPlotWriter->WriteOpenPMDParticles(mypc);
+    if (dump_openpmd)
+        m_OpenPMDPlotWriter->WriteOpenPMDParticles(mypc);
 #endif
     // leaving the option of binary output through AMREx around
     // regardless of openPMD. This can be adjusted later
     {
-      //Timer t("amrex plot");
       mypc->WritePlotFile(plotfilename);
     }
 

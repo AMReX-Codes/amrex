@@ -82,6 +82,7 @@ WarpXOpenPMDPlot::Init(openPMD::AccessType accessType)
 void
 WarpXOpenPMDPlot::WriteOpenPMDParticles(const std::unique_ptr<MultiParticleContainer>& mpc)
 {
+  BL_PROFILE("WarpXOpenPMDPlot::WriteOpenPMDParticles()");
   std::vector<std::string> species_names = mpc->GetSpeciesNames();
 
   for (unsigned i = 0, n = species_names.size(); i < n; ++i) {
@@ -316,7 +317,7 @@ WarpXOpenPMDPlot::WriteOpenPMDFields( //const std::string& filename,
                       const double time ) const
 {
   //This is AmrEx's tiny profiler. Possibly will apply it later
-  //BL_PROFILE("WriteOpenPMDFields()");
+  BL_PROFILE("WarpXOpenPMDPlot::WriteOpenPMDFields()");
 
   if ( nullptr == m_Series)
     return;
@@ -398,7 +399,6 @@ WarpXOpenPMDPlot::WriteOpenPMDFields( //const std::string& filename,
     }
   }
   // Flush data to disk after looping over all components
-  //std::cout<<" this is optional "<<std::endl;
   m_Series->flush();
 }
 
