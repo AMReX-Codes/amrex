@@ -44,7 +44,13 @@ endif
 
 ########################################################################
 
-CXXFLAGS += -std=c++14
+ifdef CXXSTD
+  CXXSTD := $(strip $(CXXSTD))
+else
+  CXXSTD := c++14
+endif
+
+CXXFLAGS += -std=$(CXXSTD)
 CFLAGS   += -std=c99
 
 FFLAGS   += -ffixed-line-length-none -fno-range-check -fno-second-underscore
