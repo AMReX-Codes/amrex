@@ -34,25 +34,60 @@ ifeq ($(lowercase_nvcc_host_comp),$(filter $(lowercase_nvcc_host_comp),gcc gnu g
 endif
 
 ifeq ($(lowercase_nvcc_host_comp),gnu)
-  ifeq ($(gcc_major_version),4)
-    CXXFLAGS_FROM_HOST := -ccbin=g++ -Xcompiler='$(CXXFLAGS) --std=c++11' --std=c++11
+  ifdef CXXSTD
+    CXXSTD := $(strip $(CXXSTD))
+    ifeq ($(shell expr $(gcc_major_version) \< 5),1)
+      ifeq ($(CXXSTD),c++14)
+        $(error C++14 support requires GCC 5 or newer.)
+      endif
+    endif
   else
-    CXXFLAGS_FROM_HOST := -ccbin=g++ -Xcompiler='$(CXXFLAGS) --std=c++14' --std=c++14
+    ifeq ($(gcc_major_version),4)
+      CXXSTD := c++11
+    else ifeq ($(gcc_major_version),5)
+      CXXSTD := c++14
+    else
+      CXXSTD := c++14
+    endif
   endif
+
+  CXXFLAGS += -std=$(CXXSTD)
+
+  CXXFLAGS_FROM_HOST := -ccbin=g++ -Xcompiler='$(CXXFLAGS) --std=$(CXXSTD)' --std=$(CXXSTD)
   CFLAGS_FROM_HOST := $(CXXFLAGS_FROM_HOST)
   ifeq ($(USE_OMP),TRUE)
      LIBRARIES += -lgomp
   endif
 else ifeq ($(lowercase_nvcc_host_comp),pgi)
-  # In pgi.make, we use gcc_major_version to handle c++11/c++14 flag.
-  ifeq ($(gcc_major_version),4)
-    CXXFLAGS_FROM_HOST := -ccbin=pgc++ -Xcompiler='$(CXXFLAGS)' --std=c++11
+  ifdef CXXSTD
+    CXXSTD := $(strip $(CXXSTD))
+    ifeq ($(shell expr $(gcc_major_version) \< 5),1)
+      ifeq ($(CXXSTD),c++14)
+        $(error C++14 support requires GCC 5 or newer.)
+      endif
+    endif
   else
-    CXXFLAGS_FROM_HOST := -ccbin=pgc++ -Xcompiler='$(CXXFLAGS)' --std=c++14
+    ifeq ($(gcc_major_version),4)
+      CXXSTD := c++11
+    else ifeq ($(gcc_major_version),5)
+      CXXSTD := c++14
+    else
+      CXXSTD := c++14
+    endif
   endif
+
+  CXXFLAGS += -std=$(CXXSTD)
+
+  # In pgi.make, we use gcc_major_version to handle c++11/c++14 flag.
+  CXXFLAGS_FROM_HOST := -ccbin=pgc++ -Xcompiler='$(CXXFLAGS)' --std=$(CXXSTD)
   CFLAGS_FROM_HOST := $(CXXFLAGS_FROM_HOST)
 else
-  CXXFLAGS_FROM_HOST := -ccbin=$(CXX) -Xcompiler='$(CXXFLAGS)'
+  ifdef CXXSTD
+    CXXSTD := $(strip $(CXXSTD))
+  else
+    CXXSTD := c++11
+  endif
+  CXXFLAGS_FROM_HOST := -ccbin=$(CXX) -Xcompiler='$(CXXFLAGS)' --std=$(CXXSTD)
   CFLAGS_FROM_HOST := $(CXXFLAGS_FROM_HOST)
 endif
 

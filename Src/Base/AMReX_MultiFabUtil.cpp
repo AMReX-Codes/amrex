@@ -1,4 +1,4 @@
-
+#include <AMReX_BoxArray.H>
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_MultiFabUtil_C.H>
 #include <sstream>
@@ -729,11 +729,30 @@ namespace amrex
     void computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPACEDIM>& umac,
                             const Geometry& geom)
     {
-        AMREX_ASSERT(divu.nComp()==umac[0]->nComp());
-        AMREX_ASSERT(divu.nComp()==umac[1]->nComp());
-        AMREX_ASSERT(divu.nComp()==umac[2]->nComp());
+        AMREX_D_TERM(AMREX_ASSERT(divu.nComp()==umac[0]->nComp());,
+                     AMREX_ASSERT(divu.nComp()==umac[1]->nComp());,
+                     AMREX_ASSERT(divu.nComp()==umac[2]->nComp()));
 
+#if (AMREX_SPACEDIM==2)
+        const auto& ba = divu.boxArray();
+        const auto& dm = divu.DistributionMap();
+
+        MultiFab volume(ba,dm,1,0);
+        geom.GetVolume(volume);
+
+        BoxArray xba = ba;
+        xba.surroundingNodes(0);
+        MultiFab areax(xba,dm,1,0);
+        geom.GetFaceArea(areax,0);
+
+        BoxArray yba = ba;
+        yba.surroundingNodes(1);
+        MultiFab areay(yba,dm,1,0);
+        geom.GetFaceArea(areay,1);
+#else
         const GpuArray<Real,AMREX_SPACEDIM> dxinv = geom.InvCellSizeArray();
+#endif
+
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -745,10 +764,21 @@ namespace amrex
                          Array4<Real const> const& varr = umac[1]->const_array(mfi);,
                          Array4<Real const> const& warr = umac[2]->const_array(mfi););
 
+#if (AMREX_SPACEDIM==2)
+            Array4<Real> const&  ax =  areax.array(mfi);
+            Array4<Real> const&  ay =  areay.array(mfi);
+            Array4<Real> const& vol = volume.array(mfi);
+
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+            {
+                amrex_compute_divergence(tbx,divuarr,AMREX_D_DECL(uarr,varr,warr),ax,ay,vol);
+            });
+#else
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
             {
                 amrex_compute_divergence(tbx,divuarr,AMREX_D_DECL(uarr,varr,warr),dxinv);
             });
+#endif
         }
     }
 
@@ -756,7 +786,26 @@ namespace amrex
                           const Geometry& geom)
     {
         AMREX_ASSERT(grad.nComp() >= AMREX_SPACEDIM);
+#if (AMREX_SPACEDIM==2)
+        const auto& ba = grad.boxArray();
+        const auto& dm = grad.DistributionMap();
+
+        MultiFab volume(ba,dm,1,0);
+        geom.GetVolume(volume);
+
+        BoxArray xba = ba;
+        xba.surroundingNodes(0);
+        MultiFab areax(xba,dm,1,0);
+        geom.GetFaceArea(areax,0);
+
+        BoxArray yba = ba;
+        yba.surroundingNodes(1);
+        MultiFab areay(yba,dm,1,0);
+        geom.GetFaceArea(areay,1);
+#else
         const GpuArray<Real,AMREX_SPACEDIM> dxinv = geom.InvCellSizeArray();
+#endif
+
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -767,11 +816,21 @@ namespace amrex
             AMREX_D_TERM(const auto& ufab = umac[0]->const_array(mfi);,
                          const auto& vfab = umac[1]->const_array(mfi);,
                          const auto& wfab = umac[2]->const_array(mfi););
+#if (AMREX_SPACEDIM==2)
+            Array4<Real> const&  ax =  areax.array(mfi);
+            Array4<Real> const&  ay =  areay.array(mfi);
+            Array4<Real> const& vol = volume.array(mfi);
 
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+            {
+                amrex_compute_gradient(tbx,gradfab,AMREX_D_DECL(ufab,vfab,wfab),ax,ay,vol);
+            });
+#else
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
             {
                 amrex_compute_gradient(tbx,gradfab,AMREX_D_DECL(ufab,vfab,wfab),dxinv);
             });
+#endif
         }
     }
 

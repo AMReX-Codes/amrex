@@ -44,7 +44,13 @@ endif
 
 ########################################################################
 
-CXXFLAGS += -std=c++11
+ifdef CXXSTD
+  CXXSTD := $(strip $(CXXSTD))
+else
+  CXXSTD := c++11
+endif
+
+CXXFLAGS += -std=$(CXXSTD)
 CFLAGS   += -std=c99
 
 FMODULES = -J$(fmoddir) -I $(fmoddir)
