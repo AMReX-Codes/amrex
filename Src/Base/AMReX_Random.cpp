@@ -303,11 +303,11 @@ amrex::ResizeRandomSeed (int N)
 
     h_mutex_h_ptr = new amrex::BlockMutex(N);
     d_mutex_h_ptr = static_cast<amrex::BlockMutex*> (The_Device_Arena()->alloc(sizeof(amrex::BlockMutex)));
-    amrex::Gpu::htod_memcpy();
+    amrex::Gpu::htod_memcpy(d_mutex_h_ptr, h_mutex_h_ptr, sizeof(amrex::BlockMutex));
 
     if (d_states_h_ptr != nullptr)
     {
-        amrex::Gpu::dtod_memcpy();
+        amrex::Gpu::dtod_memcpy(new_data, d_states_h_ptr, PrevSize*sizeof(randState_t));
         The_Device_Arena()->free(d_states_h_ptr);
     }
 
@@ -344,7 +344,7 @@ amrex::DeallocateRandomSeedDevArray ()
     if (d_states_h_ptr != nullptr)
     {
         The_Device_Arena()->free(d_states_h_ptr);
-        states_h_ptr = nullptr;
+        d_states_h_ptr = nullptr;
     }
 
     if (h_mutex_h_ptr != nullptr)
