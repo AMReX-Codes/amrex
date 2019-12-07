@@ -20,7 +20,6 @@ int main (int argc, char* argv[])
     amrex::Print() << "Testing using locks to do atomic adds \n";
     for (int i = 0; i < 10; ++i)
         lockingTest();
-    amrex::Print() << "Locking test passed! \n";
     amrex::Print() << "Testing using locks to count the number of blocks a kernel was launched with \n";
     for (int i = 0; i < 10; ++i)
         blockCountingTest();
