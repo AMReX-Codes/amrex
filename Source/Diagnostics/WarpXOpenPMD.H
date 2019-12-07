@@ -2,7 +2,6 @@
 #define WARPX_OPEN_PMD_H_
 
 #include <MultiParticleContainer.H> // has AMReX Vector etc used below
-//#include <WarpX.H>
 
 #include <openPMD/openPMD.hpp>
 
