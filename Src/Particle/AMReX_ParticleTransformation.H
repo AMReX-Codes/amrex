@@ -344,6 +344,89 @@ auto filterAndTransformParticles(DstTile& dst, const SrcTile& src, Pred&& p, F&&
 
     return filterAndTransformParticles(dst, src, mask.dataPtr(), std::forward<F>(f));
 }
+
+/**
+ * \brief Conditionally copy particles from src to dst1 and dst2 based on the value of mask.
+ * A transformation will also be applied to the particles on copy.
+ * 
+ * \tparam DstTile1 the dst1 particle tile type
+ * \tparam DstTile2 the dst2 particle tile type
+ * \tparam SrcTile the src particle tile type
+ * \tparam Index the index type, e.g. unsigned int
+ * \tparam F the transform function type
+ *
+ * \param dst1 the first destination tile
+ * \param dst2 the second destination tile
+ * \param src the source tile
+ * \param mask pointer to the mask - 1 means copy, 0 means don't copy
+ * \param f defines the transformation that will be applied to the particles on copy
+ *
+ */
+template <typename DstTile1, typename DstTile2, typename SrcTile, typename Index, typename F,
+          amrex::EnableIf_t<std::is_integral<Index>::value, int> foo = 0>
+Index filterAndTransformParticles(DstTile1& dst1, DstTile2& dst2,
+                                  const SrcTile& src, Index* mask, F&& f) noexcept
+{
+    auto np = src.numParticles();
+    Gpu::DeviceVector<Index> offsets(np);
+    Gpu::exclusive_scan(mask, mask+np, offsets.begin());
+
+    Index last_mask, last_offset;
+    Gpu::copyAsync(Gpu::deviceToHost, mask+np-1, mask + np, &last_mask);
+    Gpu::copyAsync(Gpu::deviceToHost, offsets.data()+np-1, offsets.data()+np, &last_offset);    
+
+    auto p_offsets = offsets.dataPtr();
+    
+    const auto src_data  = src.getConstParticleTileData();
+          auto dst_data1 = dst1.getParticleTileData();
+          auto dst_data2 = dst2.getParticleTileData();
+
+    AMREX_HOST_DEVICE_FOR_1D( np, i,
+    {
+        if (mask[i]) f(dst_data1, dst_data2, src_data, i, p_offsets[i], p_offsets[i]);
+    });
+
+    Gpu::streamSynchronize();
+    return last_mask + last_offset;
+}
+
+/**
+ * \brief Conditionally copy particles from src to dst1 and dst2 based on a predicate.
+ * A transformation will also be applied to the particles on copy.
+ * 
+ * \tparam DstTile1 the dst1 particle tile type
+ * \tparam DstTile2 the dst2 particle tile type
+ * \tparam SrcTile the src particle tile type
+ * \tparam Index the index type, e.g. unsigned int
+ * \tparam Pred a function object
+ * \tparam F the transform function type
+ *
+ * \param dst1 the first destination tile
+ * \param dst2 the second destination tile
+ * \param src the source tile
+ * \param p predicate function - particles will be copied if p returns true
+ * \param f defines the transformation that will be applied to the particles on copy
+ *
+ */    
+template <typename DstTile1, typename DstTile2, typename SrcTile, typename Pred, typename F>
+auto filterAndTransformParticles(DstTile1& dst1, DstTile2& dst2, const SrcTile& src,
+                                 Pred&& p, F&& f) noexcept
+    -> decltype(p(typename SrcTile::ConstParticleTileDataType(), 0))
+{
+    using Index = decltype(p(typename SrcTile::ConstParticleTileDataType(), 0));
+    auto np = src.numParticles();
+    Gpu::DeviceVector<Index> mask(np);
+
+    auto p_mask = mask.dataPtr();
+    const auto src_data = src.getConstParticleTileData();
+    
+    AMREX_HOST_DEVICE_FOR_1D(np, i,
+    {
+        p_mask[i] = p(src_data, i);
+    });
+
+    return filterAndTransformParticles(dst1, dst2, src, mask.dataPtr(), std::forward<F>(f));
+}
     
 /**
  * \brief Gather particles copies particles into contiguous order from an 
