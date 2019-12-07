@@ -46,6 +46,8 @@ ifeq ($(lowercase_nvcc_host_comp),gnu)
       CXXSTD := c++11
     else ifeq ($(gcc_major_version),5)
       CXXSTD := c++14
+    else
+      CXXSTD := c++14
     endif
   endif
 
@@ -68,6 +70,8 @@ else ifeq ($(lowercase_nvcc_host_comp),pgi)
     ifeq ($(gcc_major_version),4)
       CXXSTD := c++11
     else ifeq ($(gcc_major_version),5)
+      CXXSTD := c++14
+    else
       CXXSTD := c++14
     endif
   endif
