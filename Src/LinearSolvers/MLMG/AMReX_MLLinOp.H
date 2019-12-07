@@ -34,8 +34,8 @@ struct LPInfo
 {
     bool do_agglomeration = true;
     bool do_consolidation = true;
-    int agg_grid_size = AMREX_D_PICK(32, 16, 8);
-    int con_grid_size = AMREX_D_PICK(32, 16, 8);
+    int agg_grid_size = -1;
+    int con_grid_size = -1;
     bool has_metric_term = true;
     int max_coarsening_level = 30;
 
@@ -45,6 +45,22 @@ struct LPInfo
     LPInfo& setConsolidationGridSize (int x) noexcept { con_grid_size = x; return *this; }
     LPInfo& setMetricTerm (bool x) noexcept { has_metric_term = x; return *this; }
     LPInfo& setMaxCoarseningLevel (int n) noexcept { max_coarsening_level = n; return *this; }
+
+    static constexpr int getDefaultAgglomerationGridSize () {
+#ifdef AMREX_USE_GPU
+        return 32;
+#else
+        return AMREX_D_PICK(32, 16, 8);
+#endif
+    }
+
+    static constexpr int getDefaultConsolidationGridSize () {
+#ifdef AMREX_USE_GPU
+        return 32;
+#else
+        return AMREX_D_PICK(32, 16, 8);
+#endif
+    }
 };
 
 class MLLinOp

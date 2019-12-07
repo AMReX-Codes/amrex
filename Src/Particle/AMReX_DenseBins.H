@@ -66,7 +66,6 @@ public:
         const auto hi = ubound(bx);
         index_type* pcell   = m_cells.dataPtr();
         index_type* pcount  = m_counts.dataPtr();
-        index_type* poffset = m_offsets.dataPtr();
         AMREX_FOR_1D ( nitems, i,
         {
             bin_type iv = f(v[i]);
