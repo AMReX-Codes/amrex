@@ -79,7 +79,7 @@ namespace amrex
         {
             AllocateBuffer(GetNewCapacity(a_size));
             m_size = a_size;		
-            std::uninitialized_fill_n<T*, size_type>(m_data, a_size, a_value);
+            std::uninitialized_fill_n<T*, T>(m_data, a_size, a_value);
         }
 	
         PODVector (std::initializer_list<T> a_initializer_list,
@@ -192,7 +192,7 @@ namespace amrex
                     m_size += a_count;
                 }
             
-            std::uninitialized_fill_n<T*, size_type>(const_cast<iterator>(a_pos), a_count, a_value);
+            std::uninitialized_fill_n<T*, T>(const_cast<iterator>(a_pos), a_count, a_value);
             
             return const_cast<iterator>(a_pos);
         }
@@ -266,7 +266,7 @@ namespace amrex
             auto data = m_data;
             AMREX_FOR_1D(a_count, i, data[i] = a_value;);
 #else
-            std::uninitialized_fill_n<T*, size_type>(m_data, a_count, a_value);
+            std::uninitialized_fill_n<T*, T>(m_data, a_count, a_value);
 #endif
         }    
         
@@ -379,8 +379,8 @@ namespace amrex
                     AMREX_FOR_1D(count, i, data[i+old_size] = a_val;);
 #else
                     
-                    std::uninitialized_fill<T*,size_type>(m_data + old_size, 
-                                                          m_data + size(), a_val);
+                    std::uninitialized_fill<T*,T>(m_data + old_size, 
+                                                  m_data + size(), a_val);
 #endif
                 }
         }

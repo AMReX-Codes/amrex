@@ -1775,21 +1775,26 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
                 char* pbuf = ((char*) &recvdata[offset]) + j*superparticle_size;
 
                 ParticleType p;
-                std::memcpy(&p, pbuf, sizeof(ParticleType));            
+                std::memcpy(&p, pbuf, sizeof(ParticleType));
+                pbuf += sizeof(ParticleType);
                 ptile.push_back(p);
-                Real* rdata = (Real*)(pbuf + particle_size);
                 for (int comp = 0; comp < NumRealComps(); ++comp) {
                     if (communicate_real_comp[comp]) {
-                        ptile.push_back_real(comp, *rdata++);
+                        Real rdata;
+                        std::memcpy(&rdata, pbuf, sizeof(Real));
+                        pbuf += sizeof(Real);
+                        ptile.push_back_real(comp, rdata);
                     } else {
                         ptile.push_back_real(comp, 0.0);
                     }
                 }
             
-                int* idata = (int*)(pbuf + particle_size + num_real_comm_comps*sizeof(Real));
                 for (int comp = 0; comp < NumIntComps(); ++comp) {
                     if (communicate_int_comp[comp]) {
-                        ptile.push_back_int(comp, *idata++);
+                        int idata;
+                        std::memcpy(&idata, pbuf, sizeof(int));
+                        pbuf += sizeof(int);
+                        ptile.push_back_int(comp, idata);
                     } else {
                         ptile.push_back_int(comp, 0);
                     }
@@ -1827,28 +1832,33 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
 
                 ParticleType p;
                 std::memcpy(&p, pbuf, sizeof(ParticleType));
-	  
+                pbuf += sizeof(ParticleType);
+                
                 host_real_attribs[lev][ind].resize(NumRealComps());
                 host_int_attribs[lev][ind].resize(NumIntComps());
 	  
                 // add the struct
                 host_particles[lev][ind].push_back(p);
 	  
-                Real* rdata = (Real*)(pbuf + particle_size);
                 // add the real...
                 for (int comp = 0; comp < NumRealComps(); ++comp) {
                     if (communicate_real_comp[comp]) {
-                        host_real_attribs[lev][ind][comp].push_back(*rdata++);
+                        Real rdata;
+                        std::memcpy(&rdata, pbuf, sizeof(Real));
+                        pbuf += sizeof(Real);
+                        host_real_attribs[lev][ind][comp].push_back(rdata);
                     } else {
                         host_real_attribs[lev][ind][comp].push_back(0.0);
                     }                    
                 }
                 
-                int* idata = (int*)(pbuf + particle_size + num_real_comm_comps*sizeof(Real));        
                 // ... and int array data
                 for (int comp = 0; comp < NumIntComps(); ++comp) {
                     if (communicate_int_comp[comp]) {
-                        host_int_attribs[lev][ind][comp].push_back(*idata++);
+                        int idata;
+                        std::memcpy(&idata, pbuf, sizeof(int));
+                        pbuf += sizeof(int);
+                        host_int_attribs[lev][ind][comp].push_back(idata);
                     } else {
                         host_int_attribs[lev][ind][comp].push_back(0);
                     }
