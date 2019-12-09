@@ -148,7 +148,7 @@ public:
     //! \brief The type of the Real data 
     using RealType = typename Particle<NStructReal, NStructInt>::RealType;
 
-#ifdef BL_SINGLE_PRECISION_PARTICLES
+#ifdef AMREX_SINGLE_PRECISION_PARTICLES
     RealDescriptor ParticleRealDescriptor = FPC::Native32RealDescriptor();
 #else
     RealDescriptor ParticleRealDescriptor = FPC::Native64RealDescriptor();
