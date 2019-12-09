@@ -169,6 +169,7 @@ NodalProjector::project ( const amrex::Vector<amrex::MultiFab*>&       a_vel,
     {
         amrex::Print() << " >> Before projection:" << std::endl;
         printInfo();
+        amrex::Print() << std::endl;
     }
 
     // Set matrix coefficients
@@ -176,7 +177,7 @@ NodalProjector::project ( const amrex::Vector<amrex::MultiFab*>&       a_vel,
         m_matrix -> setSigma(lev, *a_sigma[lev]);
 
     // Solve
-    m_solver -> solve( GetVecOfPtrs(m_phi), GetVecOfConstPtrs(m_rhs), m_mg_rtol, m_mg_atol );
+    m_solver -> solve( GetVecOfPtrs(m_phi), GetVecOfConstPtrs(m_rhs), m_rtol, m_atol );
 
     // Get fluxes -- fluxes = - sigma*grad(phi)
     m_solver -> getFluxes( GetVecOfPtrs(m_fluxes) );
@@ -204,6 +205,7 @@ NodalProjector::project ( const amrex::Vector<amrex::MultiFab*>&       a_vel,
 
         amrex::Print() << " >> After projection:" << std::endl;
         printInfo();
+        amrex::Print() << std::endl;
     }
 }
 
@@ -243,6 +245,7 @@ NodalProjector::project2 ( const amrex::Vector<amrex::MultiFab*>&       a_vel,
     {
         amrex::Print() << " >> Before projection:" << std::endl;
         printInfo();
+        amrex::Print() << std::endl;
     }
 
     // Set matrix coefficients
@@ -261,7 +264,7 @@ NodalProjector::project2 ( const amrex::Vector<amrex::MultiFab*>&       a_vel,
     }
 
     // Solve
-    m_solver -> solve( GetVecOfPtrs(m_phi), GetVecOfConstPtrs(a_rhs), m_mg_rtol, m_mg_atol );
+    m_solver -> solve( GetVecOfPtrs(m_phi), GetVecOfConstPtrs(a_rhs), m_rtol, m_atol );
 
     // Get fluxes -- fluxes = -  (alpha/beta) * grad(phi)
     m_solver -> getFluxes( GetVecOfPtrs(m_fluxes) );
@@ -294,15 +297,16 @@ NodalProjector::project2 ( const amrex::Vector<amrex::MultiFab*>&       a_vel,
 void
 NodalProjector::readParameters ()
 {
-    ParmParse pp("projection");
-    pp.query( "verbose"                , m_verbose );
-    pp.query( "mg_verbose"             , m_mg_verbose );
-    pp.query( "mg_cg_verbose"          , m_mg_cg_verbose );
-    pp.query( "mg_maxiter"             , m_mg_maxiter );
-    pp.query( "mg_cg_maxiter"          , m_mg_cg_maxiter );
-    pp.query( "mg_rtol"                , m_mg_rtol );
-    pp.query( "mg_atol"                , m_mg_atol );
-    pp.query( "bottom_solver_type"     , m_bottom_solver_type );
+    ParmParse pp("nodal_proj");
+    pp.query( "verbose"       , m_verbose );
+    pp.query( "bottom_verbose", m_bottom_verbose );
+    pp.query( "maxiter"       , m_maxiter );
+    pp.query( "bottom_maxiter", m_bottom_maxiter );
+    pp.query( "rtol"          , m_rtol );
+    pp.query( "atol"          , m_atol );
+    pp.query( "bottom_rtol"   , m_bottom_rtol );
+    pp.query( "bottom_atol"   , m_bottom_atol );
+    pp.query( "bottom_solver" , m_bottom_solver );
 }
 
 
@@ -319,9 +323,9 @@ NodalProjector::setup ()
     // Initialize all variables
     for (int lev(0); lev < m_phi.size(); ++lev)
     {
-        m_phi[lev] -> setVal(0.0);
+        m_phi[lev]    -> setVal(0.0);
         m_fluxes[lev] -> setVal(0.0);
-        m_rhs[lev] ->  setVal(0.0);
+        m_rhs[lev]    -> setVal(0.0);
     }
 
     //
@@ -342,32 +346,27 @@ NodalProjector::setup ()
     //
     m_solver.reset(new MLMG(*m_matrix));
 
-    m_solver->setMaxIter(m_mg_maxiter);
-    m_solver->setVerbose(m_mg_verbose);
-    m_solver->setCGVerbose(m_mg_cg_verbose);
-    m_solver->setCGMaxIter(m_mg_cg_maxiter);
-
-    if (m_bottom_solver_type == "smoother")
+    if (m_bottom_solver == "smoother")
     {
         m_solver->setBottomSolver(MLMG::BottomSolver::smoother);
     }
-    else if (m_bottom_solver_type == "bicg")
+    else if (m_bottom_solver == "bicg")
     {
         m_solver->setBottomSolver(MLMG::BottomSolver::bicgstab);
     }
-    else if (m_bottom_solver_type == "cg")
+    else if (m_bottom_solver == "cg")
     {
         m_solver->setBottomSolver(MLMG::BottomSolver::cg);
     }
-    else if (m_bottom_solver_type == "bicgcg")
+    else if (m_bottom_solver == "bicgcg")
     {
         m_solver->setBottomSolver(MLMG::BottomSolver::bicgcg);
     }
-    else if (m_bottom_solver_type == "cgbicg")
+    else if (m_bottom_solver == "cgbicg")
     {
         m_solver->setBottomSolver(MLMG::BottomSolver::cgbicg);
     }
-    else if (m_bottom_solver_type == "hypre")
+    else if (m_bottom_solver == "hypre")
     {
 #ifdef AMREX_USE_HYPRE
         m_solver->setBottomSolver(MLMG::BottomSolver::hypre);
@@ -375,6 +374,13 @@ NodalProjector::setup ()
         amrex::Abort("AMReX was not built with HYPRE support");
 #endif
     }
+
+    m_solver->setVerbose(m_verbose);
+    m_solver->setBottomVerbose(m_bottom_verbose);
+    m_solver->setMaxIter(m_maxiter);
+    m_solver->setBottomMaxIter(m_bottom_maxiter);
+    m_solver->setBottomTolerance(m_bottom_rtol);
+    m_solver->setBottomToleranceAbs(m_bottom_atol);
 
 }
 
