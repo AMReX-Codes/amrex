@@ -1,4 +1,4 @@
-#include <AMReX_BoxArray.H>
+
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_MultiFabUtil_C.H>
 #include <sstream>
@@ -736,22 +736,15 @@ namespace amrex
 #if (AMREX_SPACEDIM==2)
         const auto& ba = divu.boxArray();
         const auto& dm = divu.DistributionMap();
-
-        MultiFab volume(ba,dm,1,0);
-        geom.GetVolume(volume);
-
-        BoxArray xba = ba;
-        xba.surroundingNodes(0);
-        MultiFab areax(xba,dm,1,0);
-        geom.GetFaceArea(areax,0);
-
-        BoxArray yba = ba;
-        yba.surroundingNodes(1);
-        MultiFab areay(yba,dm,1,0);
-        geom.GetFaceArea(areay,1);
-#else
-        const GpuArray<Real,AMREX_SPACEDIM> dxinv = geom.InvCellSizeArray();
+        MultiFab volume, areax, areay;
+        if (geom.IsRZ()) {
+            geom.GetVolume(volume, ba, dm, 0);
+            geom.GetFaceArea(areax, ba, dm, 0, 0);
+            geom.GetFaceArea(areay, ba, dm, 1, 0);
+        }
 #endif
+
+        const GpuArray<Real,AMREX_SPACEDIM> dxinv = geom.InvCellSizeArray();
 
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -765,20 +758,23 @@ namespace amrex
                          Array4<Real const> const& warr = umac[2]->const_array(mfi););
 
 #if (AMREX_SPACEDIM==2)
-            Array4<Real> const&  ax =  areax.array(mfi);
-            Array4<Real> const&  ay =  areay.array(mfi);
-            Array4<Real> const& vol = volume.array(mfi);
+            if (geom.IsRZ()) {
+                Array4<Real const> const&  ax =  areax.array(mfi);
+                Array4<Real const> const&  ay =  areay.array(mfi);
+                Array4<Real const> const& vol = volume.array(mfi);
 
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
-            {
-                amrex_compute_divergence(tbx,divuarr,AMREX_D_DECL(uarr,varr,warr),ax,ay,vol);
-            });
-#else
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
-            {
-                amrex_compute_divergence(tbx,divuarr,AMREX_D_DECL(uarr,varr,warr),dxinv);
-            });
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+                {
+                    amrex_compute_divergence_rz(tbx,divuarr,AMREX_D_DECL(uarr,varr,warr),ax,ay,vol);
+                });
+            } else
 #endif
+            {
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+                {
+                    amrex_compute_divergence(tbx,divuarr,AMREX_D_DECL(uarr,varr,warr),dxinv);
+                });
+            }
         }
     }
 
@@ -786,25 +782,19 @@ namespace amrex
                           const Geometry& geom)
     {
         AMREX_ASSERT(grad.nComp() >= AMREX_SPACEDIM);
+
 #if (AMREX_SPACEDIM==2)
         const auto& ba = grad.boxArray();
         const auto& dm = grad.DistributionMap();
-
-        MultiFab volume(ba,dm,1,0);
-        geom.GetVolume(volume);
-
-        BoxArray xba = ba;
-        xba.surroundingNodes(0);
-        MultiFab areax(xba,dm,1,0);
-        geom.GetFaceArea(areax,0);
-
-        BoxArray yba = ba;
-        yba.surroundingNodes(1);
-        MultiFab areay(yba,dm,1,0);
-        geom.GetFaceArea(areay,1);
-#else
-        const GpuArray<Real,AMREX_SPACEDIM> dxinv = geom.InvCellSizeArray();
+        MultiFab volume, areax, areay;
+        if (geom.IsRZ()) {
+            geom.GetVolume(volume, ba, dm, 0);
+            geom.GetFaceArea(areax, ba, dm, 0, 0);
+            geom.GetFaceArea(areay, ba, dm, 1, 0);
+        }
 #endif
+
+        const GpuArray<Real,AMREX_SPACEDIM> dxinv = geom.InvCellSizeArray();
 
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -817,20 +807,23 @@ namespace amrex
                          const auto& vfab = umac[1]->const_array(mfi);,
                          const auto& wfab = umac[2]->const_array(mfi););
 #if (AMREX_SPACEDIM==2)
-            Array4<Real> const&  ax =  areax.array(mfi);
-            Array4<Real> const&  ay =  areay.array(mfi);
-            Array4<Real> const& vol = volume.array(mfi);
+            if (geom.IsRZ()) {
+                Array4<Real const> const&  ax =  areax.array(mfi);
+                Array4<Real const> const&  ay =  areay.array(mfi);
+                Array4<Real const> const& vol = volume.array(mfi);
 
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
-            {
-                amrex_compute_gradient(tbx,gradfab,AMREX_D_DECL(ufab,vfab,wfab),ax,ay,vol);
-            });
-#else
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
-            {
-                amrex_compute_gradient(tbx,gradfab,AMREX_D_DECL(ufab,vfab,wfab),dxinv);
-            });
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+                {
+                    amrex_compute_gradient_rz(tbx,gradfab,AMREX_D_DECL(ufab,vfab,wfab),ax,ay,vol);
+                });
+            } else
 #endif
+            {
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+                {
+                    amrex_compute_gradient(tbx,gradfab,AMREX_D_DECL(ufab,vfab,wfab),dxinv);
+                });
+            }
         }
     }
 
