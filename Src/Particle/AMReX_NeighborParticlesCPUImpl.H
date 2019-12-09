@@ -107,7 +107,7 @@ sumNeighborsMPI (std::map<int, Vector<char> >& not_ours,
 {
     BL_PROFILE("NeighborParticleContainer::sumNeighborsMPI");
     
-#ifdef BL_USE_MPI
+#ifdef AMREX_USE_MPI
     const int NProcs = ParallelDescriptor::NProcs();
     
     Vector<long> isnds(NProcs, 0);
@@ -382,7 +382,7 @@ getRcvCountsMPI () {
 
     BL_PROFILE("NeighborParticleContainer::getRcvCountsMPI");
 
-#ifdef BL_USE_MPI
+#ifdef AMREX_USE_MPI
     const int NProcs = ParallelDescriptor::NProcs();
 
     // each proc figures out how many bytes it will send, and how
@@ -428,7 +428,7 @@ getRcvCountsMPI () {
 
     if (num_rcvs > 0) ParallelDescriptor::Waitall(rreqs, stats);
 
-#endif // BL_USE_MPI
+#endif // AMREX_USE_MPI
 }
 
 template <int NStructReal, int NStructInt>
@@ -438,7 +438,7 @@ fillNeighborsMPI (bool reuse_rcv_counts) {
 
     BL_PROFILE("NeighborParticleContainer::fillNeighborsMPI");
 
-#ifdef BL_USE_MPI
+#ifdef AMREX_USE_MPI
     const int NProcs = ParallelDescriptor::NProcs();
 
     // each proc figures out how many bytes it will send, and how

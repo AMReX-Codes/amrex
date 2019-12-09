@@ -46,7 +46,7 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map)
 {
     BL_PROFILE("ParticleCopyPlan::buildMPIStart");
 
-#ifdef BL_USE_MPI
+#ifdef AMREX_USE_MPI
     const int NProcs = ParallelDescriptor::NProcs();
     const int MyProc = ParallelDescriptor::MyProc();
     const int NNeighborProcs = m_neighbor_procs.size();
@@ -172,7 +172,7 @@ void ParticleCopyPlan::buildMPIFinish (const ParticleBufferMap& map)
 {
     BL_PROFILE("ParticleCopyPlan::buildMPIFinish");
 
-#ifdef BL_USE_MPI
+#ifdef AMREX_USE_MPI
 
     const int NProcs = ParallelDescriptor::NProcs();
     if (NProcs == 1) return;
@@ -235,7 +235,7 @@ void ParticleCopyPlan::doHandShake (const Vector<long>& Snds, Vector<long>& Rcvs
 
 void ParticleCopyPlan::doHandShakeLocal (const Vector<long>& Snds, Vector<long>& Rcvs) const
 {
-#ifdef BL_USE_MPI
+#ifdef AMREX_USE_MPI
     const int SeqNum = ParallelDescriptor::SeqNum();
     const int num_rcvs = m_neighbor_procs.size();
     Vector<MPI_Status>  stats(num_rcvs);
@@ -272,7 +272,7 @@ void ParticleCopyPlan::doHandShakeLocal (const Vector<long>& Snds, Vector<long>&
 
 void ParticleCopyPlan::doHandShakeAllToAll (const Vector<long>& Snds, Vector<long>& Rcvs) const
 {
-#ifdef BL_USE_MPI
+#ifdef AMREX_USE_MPI
     BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(long),
                     ParallelDescriptor::MyProc(), BLProfiler::BeforeCall());
 
@@ -293,7 +293,7 @@ void ParticleCopyPlan::doHandShakeAllToAll (const Vector<long>& Snds, Vector<lon
 
 void ParticleCopyPlan::doHandShakeGlobal (const Vector<long>& Snds, Vector<long>& Rcvs) const
 {
-#ifdef BL_USE_MPI
+#ifdef AMREX_USE_MPI
     const int SeqNum = ParallelDescriptor::SeqNum();
     const int NProcs = ParallelDescriptor::NProcs();
 
@@ -334,7 +334,7 @@ void ParticleCopyPlan::doHandShakeGlobal (const Vector<long>& Snds, Vector<long>
 void amrex::communicateParticlesFinish (const ParticleCopyPlan& plan)
 {
     BL_PROFILE("amrex::communicateParticlesFinish");
-#ifdef BL_USE_MPI
+#ifdef AMREX_USE_MPI
     if (plan.m_nrcvs > 0)
     {
         ParallelDescriptor::Waitall(plan.m_particle_rreqs, plan.m_particle_stats);
