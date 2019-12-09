@@ -5,7 +5,7 @@
 
 CollisionType::CollisionType(
     const std::vector<std::string>& species_names,
-    std::string collision_name)
+    std::string const collision_name)
 {
 
     std::vector<std::string> collision_species;
@@ -20,15 +20,15 @@ CollisionType::CollisionType(
     for (int i=0; i<species_names.size(); i++)
     {
         if (species_names[i] == collision_species[0])
-    { m_species1_index = i; }
+        { m_species1_index = i; }
         if (species_names[i] == collision_species[1])
-    { m_species2_index = i; }
+        { m_species2_index = i; }
     }
 
     if (collision_species[0] == collision_species[1])
-    { m_isSameSpecies = true; }
+        m_isSameSpecies = true;
     else
-    { m_isSameSpecies = false; }
+        m_isSameSpecies = false;
 
 }
 
@@ -44,7 +44,7 @@ namespace {
     /* Find the particles and count the particles that are in each cell.
        Note that this does *not* rearrange particle arrays */
     ParticleBins
-    findParticlesInEachCell( int lev, MFIter const& mfi,
+    findParticlesInEachCell( int const lev, MFIter const& mfi,
                              ParticleTileType const& ptile) {
 
         // Extract particle structures for this tile
@@ -78,10 +78,10 @@ namespace {
 
 /* \brief Perform Coulomb collisions within one particle tile */
 void CollisionType::doCoulombCollisionsWithinTile
-    ( int lev, MFIter const& mfi,
+    ( int const lev, MFIter const& mfi,
     std::unique_ptr<WarpXParticleContainer>& species_1,
     std::unique_ptr<WarpXParticleContainer>& species_2,
-    bool isSameSpecies, Real CoulombLog )
+    bool const isSameSpecies, Real const CoulombLog )
 {
 
     if ( isSameSpecies ) // species_1 == species_2

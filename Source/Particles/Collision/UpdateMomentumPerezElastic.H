@@ -30,8 +30,8 @@ void UpdateMomentumPerezElastic (
     T_R constexpr inv_c2 = 1./(PhysConst::c * PhysConst::c);
 
     // Compute Lorentz factor gamma
-    T_R g1 = std::sqrt(1.+(u1x*u1x+u1y*u1y+u1z*u1z)*inv_c2);
-    T_R g2 = std::sqrt(1.+(u2x*u2x+u2y*u2y+u2z*u2z)*inv_c2);
+    T_R g1 = std::sqrt(T_R(1.)+(u1x*u1x+u1y*u1y+u1z*u1z)*inv_c2);
+    T_R g2 = std::sqrt(T_R(1.)+(u2x*u2x+u2y*u2y+u2z*u2z)*inv_c2);
 
     // Compute momenta
     T_R p1x = u1x * m1;
@@ -58,15 +58,15 @@ void UpdateMomentumPerezElastic (
     T_R const vcDv2 = (vcx*u2x + vcy*u2y + vcz*u2z)/g2;
 
     // Compute p1 star
-    buf2 = ( (gc-1.)/vcm/vcm*vcDv1 - gc )*buf1;
+    buf2 = ( (gc-T_R(1.))/vcm/vcm*vcDv1 - gc )*buf1;
     T_R const p1sx = p1x + buf2*vcx;
     T_R const p1sy = p1y + buf2*vcy;
     T_R const p1sz = p1z + buf2*vcz;
     T_R const p1sm = std::sqrt(p1sx*p1sx+p1sy*p1sy+p1sz*p1sz);
 
     // Compute gamma star
-    T_R const g1s = (1.-vcDv1*inv_c2)*gc*g1;
-    T_R const g2s = (1.-vcDv2*inv_c2)*gc*g2;
+    T_R const g1s = (T_R(1.)-vcDv1*inv_c2)*gc*g1;
+    T_R const g2s = (T_R(1.)-vcDv2*inv_c2)*gc*g2;
 
     // Compute the Coulomb log lnLmd
     T_R lnLmd;
@@ -76,27 +76,27 @@ void UpdateMomentumPerezElastic (
     {
         // Compute b0 (buf1)
         buf1 = std::abs(q1*q2) * inv_c2 /
-               (4.*MathConst::pi*PhysConst::ep0) * gc/(m1*g1+m2*g2) *
-               ( m1*g1s*m2*g2s/p1sm/p1sm/inv_c2 + 1. );
+               (T_R(4.)*MathConst::pi*PhysConst::ep0) * gc/(m1*g1+m2*g2) *
+               ( m1*g1s*m2*g2s/(p1sm*p1sm*inv_c2) + T_R(1.) );
 
         // Compute the minimal impact parameter (buf2)
         buf2 = amrex::max(PhysConst::hbar*MathConst::pi/p1sm,buf1);
 
         // Compute the Coulomb log lnLmd
-        lnLmd = amrex::max( 2., 0.5*std::log(1.+lmdD*lmdD/buf2/buf2) );
+        lnLmd = amrex::max( T_R(2.), T_R(0.5)*std::log(T_R(1.)+lmdD*lmdD/(buf2*buf2)) );
     }
 
     // Compute s
     T_R s = n1*n2/n12 * dt*lnLmd*q1*q1*q2*q2 /
-          ( 4. * MathConst::pi * PhysConst::ep0 * PhysConst::ep0 *
-            m1*g1*m2*g2/inv_c2/inv_c2 ) * gc*p1sm/(m1*g1+m2*g2) *
-            std::pow(m1*g1s*m2*g2s/inv_c2/p1sm/p1sm + 1., 2);
+          ( T_R(4.) * MathConst::pi * PhysConst::ep0 * PhysConst::ep0 *
+            m1*g1*m2*g2/(inv_c2*inv_c2) ) * gc*p1sm/(m1*g1+m2*g2) *
+            std::pow(m1*g1s*m2*g2s/(inv_c2*p1sm*p1sm) + T_R(1.), 2);
 
     // Compute s'
     buf1 = (m1*g1+m2*g2)*p1sm/(m1*g1s*m2*g2s*gc); // vrel
-    T_R const sp = std::pow(4.*MathConst::pi/3.,1./3.) *
+    T_R const sp = std::pow(T_R(4.)*MathConst::pi/T_R(3.),T_R(1./3.)) *
           n1*n2/n12 * dt * buf1 * (m1+m2) /
-          amrex::max(m1*std::pow(n1,2./3.),m2*std::pow(n2,2./3.));
+          amrex::max(m1*std::pow(n1,T_R(2./3.)),m2*std::pow(n2,T_R(2./3.)));
 
     // Determine s
     s = amrex::min(s,sp);
@@ -111,9 +111,9 @@ void UpdateMomentumPerezElastic (
     {
         while ( true )
         {
-            cosXs = 1. + s * std::log(buf1);
+            cosXs = T_R(1.) + s * std::log(buf1);
             // avoid the bug when buf1 is too small
-            if ( cosXs >= -1.0 ) { break; }
+            if ( cosXs >= T_R(-1.0) ) { break; }
             buf1 = amrex::Random();
         }
     }
@@ -132,12 +132,12 @@ void UpdateMomentumPerezElastic (
     }
     else
     {
-        cosXs = 2.*buf1 - 1.;
+        cosXs = T_R(2.)*buf1 - T_R(1.);
     }
     sinXs = std::sqrt(1. - cosXs*cosXs);
 
     // Get random azimuthal angle
-    buf1 = amrex::Random() * 2. * MathConst::pi;
+    buf1 = amrex::Random() * T_R(2.) * MathConst::pi;
 
     // Compute post-collision momenta in COM
     // buf2 is the p1s perpendicular
@@ -155,7 +155,7 @@ void UpdateMomentumPerezElastic (
                ( p1sy          ) * cosXs;
     }
     p1z  = (-buf2          ) * sinXs*std::cos(buf1) +
-           ( 0.            ) * sinXs*std::sin(buf1) +
+           ( T_R(0.)       ) * sinXs*std::sin(buf1) +
            ( p1sz          ) * cosXs;
     p2x  = -p1x;
     p2y  = -p1y;
@@ -165,14 +165,14 @@ void UpdateMomentumPerezElastic (
     // buf1 is vc dot p1 (p1fs)
     // p1 is then updated to be p1f
     buf1 = vcx*p1x + vcy*p1y + vcz*p1z;
-    buf2 = (gc-1.)/vcm/vcm*buf1 + m1*g1s*gc;
+    buf2 = (gc-T_R(1.))/(vcm*vcm)*buf1 + m1*g1s*gc;
     p1x  = p1x + vcx * buf2;
     p1y  = p1y + vcy * buf2;
     p1z  = p1z + vcz * buf2;
     // buf1 is vc dot p2 (p2fs)
     // p2 is then updated to be p2f
     buf1 = vcx*p2x + vcy*p2y + vcz*p2z;
-    buf2 = (gc-1.)/vcm/vcm*buf1 + m2*g2s*gc;
+    buf2 = (gc-T_R(1.))/(vcm*vcm)*buf1 + m2*g2s*gc;
     p2x  = p2x + vcx * buf2;
     p2y  = p2y + vcy * buf2;
     p2z  = p2z + vcz * buf2;

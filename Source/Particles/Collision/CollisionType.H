@@ -19,10 +19,10 @@ public:
         std::string collision_name);
 
     static void doCoulombCollisionsWithinTile (
-        int lev, amrex::MFIter const& mfi,
+        int const lev, amrex::MFIter const& mfi,
         std::unique_ptr<WarpXParticleContainer>& species1,
         std::unique_ptr<WarpXParticleContainer>& species2,
-        bool isSameSpecies, amrex::Real CoulombLog );
+        bool const isSameSpecies, amrex::Real const CoulombLog );
 
 };
 

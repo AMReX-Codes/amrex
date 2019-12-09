@@ -56,7 +56,7 @@ void ElasticCollisionPerez (
             us = ( u1x[ I1[i1] ] * u1x[ I1[i1] ] +
                    u1y[ I1[i1] ] * u1y[ I1[i1] ] +
                    u1z[ I1[i1] ] * u1z[ I1[i1] ] );
-            gm = std::sqrt(1.+us*inv_c2);
+            gm = std::sqrt(T_R(1.)+us*inv_c2);
             vx += u1x[ I1[i1] ] / gm;
             vy += u1y[ I1[i1] ] / gm;
             vz += u1z[ I1[i1] ] / gm;
@@ -67,7 +67,7 @@ void ElasticCollisionPerez (
         {
             vx = vx / NI1; vy = vy / NI1;
             vz = vz / NI1; vs = vs / NI1;
-            T1t = m1/3.*(vs-(vx*vx+vy*vy+vz*vz));
+            T1t = m1/T_R(3.)*(vs-(vx*vx+vy*vy+vz*vz));
         }
     }
     else { T1t = T1; }
@@ -81,7 +81,7 @@ void ElasticCollisionPerez (
           us = ( u2x[ I2[i2] ] * u2x[ I2[i2] ] +
                  u2y[ I2[i2] ] * u2y[ I2[i2] ] +
                  u2z[ I2[i2] ] * u2z[ I2[i2] ] );
-          gm = std::sqrt(1.+us*inv_c2);
+          gm = std::sqrt(T_R(1.)+us*inv_c2);
           vx += u2x[ I2[i2] ] / gm;
           vy += u2y[ I2[i2] ] / gm;
           vz += u2z[ I2[i2] ] / gm;
@@ -92,7 +92,7 @@ void ElasticCollisionPerez (
         {
             vx = vx / NI2; vy = vy / NI2;
             vz = vz / NI2; vs = vs / NI2;
-            T2t = m2/3.*(vs-(vx*vx+vy*vy+vz*vz));
+            T2t = m2/T_R(3.)*(vs-(vx*vx+vy*vy+vz*vz));
         }
     }
     else { T2t = T2; }
@@ -117,10 +117,10 @@ void ElasticCollisionPerez (
 
     // compute Debye length lmdD
     T_R lmdD;
-    lmdD = 1./std::sqrt( n1*q1*q1/(T1t*PhysConst::ep0) +
+    lmdD = T_R(1.)/std::sqrt( n1*q1*q1/(T1t*PhysConst::ep0) +
                          n2*q2*q2/(T2t*PhysConst::ep0) );
     T_R rmin =
-        std::pow(4.*MathConst::pi/3.*amrex::max(n1,n2),-1./3.);
+        std::pow(T_R(4.)*MathConst::pi/T_R(3.)*amrex::max(n1,n2),T_R(-1./3.));
     lmdD = amrex::max(lmdD, rmin);
 
     // call UpdateMomentumPerezElastic()
