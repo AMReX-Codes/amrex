@@ -41,20 +41,24 @@ public:
     void project (const Vector<MultiFab*>& phi_in, Real reltol, Real atol, MLMG::Location);
     void project (Real reltol, Real atol, MLMG::Location);
 
+    // Methods to set verbosity
     void setVerbose            (int  v) noexcept { m_verbose = v; }
-    void setCGVerbose          (int  v) noexcept { m_cg_verbose = v; }
-    void setBottomVerbose      (int  v) noexcept { m_cg_verbose = v; }
-    void setBottomTolerance    (Real t) noexcept { m_bottom_reltol = t; }
-    void setBottomToleranceAbs (Real t) noexcept { m_bottom_abstol = t; }
-    void setMaxIter (int v) noexcept { m_maxiter = v; }
-    void setCGMaxIter (int v) noexcept { m_cg_maxiter = v; }
+    void setBottomVerbose      (int  v) noexcept { m_bottom_verbose = v; }
 
-    void setBottomSolver (MLMG::BottomSolver bottom_solver_type_in) noexcept
-     { bottom_solver_type = bottom_solver_type_in;}
+    // Methods to control MLMG behavior
+    void setBottomSolver  (std::string b) noexcept { m_bottom_solver = b;}
+    void setMaxIter               (int i) noexcept { m_maxiter = i; }
+    void setBottomMaxIter         (int i) noexcept { m_bottom_maxiter = i; }
+    void setBottomTolerance      (Real t) noexcept { m_bottom_rtol = t; }
+    void setBottomToleranceAbs   (Real t) noexcept { m_bottom_atol = t; }
+
 
     MLLinOp& getLinOp () noexcept { return *m_linop; }
 
 private:
+
+    void readParameters ();
+    void setup ();
 
     std::unique_ptr<MLABecLaplacian> m_abeclap;
 #ifdef AMREX_USE_EB
@@ -72,18 +76,20 @@ private:
 
     Vector<Geometry> m_geom;
 
+    // Verbosity
     int m_verbose = 0;
-    int m_cg_verbose = 0;
-    int m_maxiter = 200;
-    int m_cg_maxiter = 200;
+    int m_bottom_verbose = 0;
+
+    // Control MLMG behavior
+    std::string m_bottom_solver = "bicg";
+    int  m_maxiter        = 200;
+    int  m_bottom_maxiter = 200;
+    Real m_bottom_rtol    = 1.0e-4;
+    Real m_bottom_atol    = -1.0;
+
     int m_max_coarsening_level = 100;
-
-    Real m_bottom_reltol = 1.e-4;
-    Real m_bottom_abstol = -1.0;
-
     bool m_needs_domain_bcs = true;
 
-    MLMG::BottomSolver bottom_solver_type = MLMG::BottomSolver::bicgstab;
 };
 
 }

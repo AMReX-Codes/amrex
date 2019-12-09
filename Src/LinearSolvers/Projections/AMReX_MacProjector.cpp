@@ -1,10 +1,10 @@
-
 #ifdef AMREX_USE_EB
 #include <AMReX_EBMultiFabUtil.H>
 #endif
-#include <AMReX_MultiFabUtil.H>
 
+#include <AMReX_MultiFabUtil.H>
 #include <AMReX_MacProjector.H>
+#include <AMReX_ParmParse.H>
 
 namespace amrex {
 
@@ -16,6 +16,9 @@ MacProjector::MacProjector (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_um
     : m_umac(a_umac),
       m_geom(a_geom)
 {
+
+    readParameters();
+
     int nlevs = a_umac.size();
     Vector<BoxArray> ba(nlevs);
     Vector<DistributionMapping> dm(nlevs);
@@ -110,18 +113,7 @@ MacProjector::setLevelBC (int amrlev, const MultiFab* levelbcdata)
 void
 MacProjector::project (Real reltol, Real atol, MLMG::Location loc)
 {
-    if (m_mlmg == nullptr)
-    {
-        m_mlmg.reset(new MLMG(*m_linop));
-        m_mlmg->setVerbose(m_verbose);
-        m_mlmg->setCGVerbose(m_cg_verbose);
-        m_mlmg->setMaxIter(m_maxiter);
-        m_mlmg->setCGMaxIter(m_cg_maxiter);
-        m_mlmg->setBottomTolerance   (m_bottom_reltol);
-        m_mlmg->setBottomToleranceAbs(m_bottom_abstol);
-    }
-
-    m_mlmg->setBottomSolver(bottom_solver_type);
+    setup();
 
     const int nlevs = m_rhs.size();
 
@@ -163,16 +155,7 @@ MacProjector::project (Real reltol, Real atol, MLMG::Location loc)
 void
 MacProjector::project (const Vector<MultiFab*>& phi_inout, Real reltol, Real atol, MLMG::Location loc)
 {
-    if (m_mlmg == nullptr)
-    {
-        m_mlmg.reset(new MLMG(*m_linop));
-        m_mlmg->setVerbose(m_verbose);
-        m_mlmg->setCGVerbose(m_cg_verbose);
-        m_mlmg->setMaxIter(m_maxiter);
-        m_mlmg->setCGMaxIter(m_cg_maxiter);
-    }
-
-    m_mlmg->setBottomSolver(bottom_solver_type);
+    setup();
 
     const int nlevs = m_rhs.size();
 
@@ -218,4 +201,73 @@ MacProjector::project (const Vector<MultiFab*>& phi_inout, Real reltol, Real ato
     }
 }
 
+
+//
+// Read from input file
+//
+void
+MacProjector::readParameters ()
+{
+    ParmParse pp("mac_proj");
+    pp.query( "verbose"       , m_verbose );
+    pp.query( "bottom_verbose", m_bottom_verbose );
+    pp.query( "maxiter"       , m_maxiter );
+    pp.query( "bottom_maxiter", m_bottom_maxiter );
+    pp.query( "bottom_rtol"   , m_bottom_rtol );
+    pp.query( "bottom_atol"   , m_bottom_atol );
+    pp.query( "bottom_solver" , m_bottom_solver );
+}
+
+
+//
+// Setup object before solve
+//
+void
+MacProjector::setup()
+{
+    BL_PROFILE("MacProjector::setup");
+
+    if (m_mlmg == nullptr)
+    {
+        m_mlmg.reset(new MLMG(*m_linop));
+
+        if (m_bottom_solver == "smoother")
+        {
+            m_mlmg->setBottomSolver(MLMG::BottomSolver::smoother);
+        }
+        else if (m_bottom_solver == "bicg")
+        {
+            m_mlmg->setBottomSolver(MLMG::BottomSolver::bicgstab);
+        }
+        else if (m_bottom_solver == "cg")
+        {
+            m_mlmg->setBottomSolver(MLMG::BottomSolver::cg);
+        }
+        else if (m_bottom_solver == "bicgcg")
+        {
+            m_mlmg->setBottomSolver(MLMG::BottomSolver::bicgcg);
+        }
+        else if (m_bottom_solver == "cgbicg")
+        {
+            m_mlmg->setBottomSolver(MLMG::BottomSolver::cgbicg);
+        }
+        else if (m_bottom_solver == "hypre")
+        {
+#ifdef AMREX_USE_HYPRE
+            m_mlmg->setBottomSolver(MLMG::BottomSolver::hypre);
+#else
+            amrex::Abort("AMReX was not built with HYPRE support");
+#endif
+        }
+
+        m_mlmg->setVerbose(m_verbose);
+        m_mlmg->setBottomVerbose(m_bottom_verbose);
+        m_mlmg->setMaxIter(m_maxiter);
+        m_mlmg->setBottomMaxIter(m_bottom_maxiter);
+        m_mlmg->setBottomTolerance(m_bottom_rtol);
+        m_mlmg->setBottomToleranceAbs(m_bottom_atol);
+
+    }
+
+}
 }
