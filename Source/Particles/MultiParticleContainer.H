@@ -42,6 +42,11 @@ public:
         return *allcontainers[ispecies];
     }
 
+#ifdef WARPX_USE_OPENPMD
+    std::unique_ptr<WarpXParticleContainer>& GetUniqueContainer(int ispecies) {
+      return  allcontainers[ispecies];
+    }
+#endif
     std::array<amrex::Real, 3> meanParticleVelocity(int ispecies) {
         return allcontainers[ispecies]->meanParticleVelocity();
     }
