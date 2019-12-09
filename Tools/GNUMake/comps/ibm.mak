@@ -61,7 +61,13 @@ endif
 
 ########################################################################
 
-CXXFLAGS += -std=c++1y
+ifdef CXXSTD
+  CXXSTD := $(strip $(CXXSTD))
+else
+  CXXSTD := c++1y
+endif
+
+CXXFLAGS += -std=$(CXXSTD)
 CFLAGS   += -std=gnu99
 
 ########################################################################

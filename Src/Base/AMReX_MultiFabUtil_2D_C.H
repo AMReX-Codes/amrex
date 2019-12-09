@@ -280,19 +280,20 @@ inline
 void amrex_compute_divergence (Box const& bx, Array4<Real> const& divu,
                                Array4<Real const> const& u,
                                Array4<Real const> const& v,
-                               GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+                               Array4<Real const> const& ax,
+                               Array4<Real const> const& ay,
+                               Array4<Real const> const& vol) noexcept
 {
     const auto lo = lbound(bx);
     const auto hi = ubound(bx);
-    const Real dxi = dxinv[0];
-    const Real dyi = dxinv[1];
 
     for     (int n = 0; n < divu.ncomp; ++n) {
         for     (int j = lo.y; j <= hi.y; ++j) {
             AMREX_PRAGMA_SIMD
                 for (int i = lo.x; i <= hi.x; ++i) {
-                    divu(i,j,0,n) = dxi * (u(i+1,j,0,n)-u(i,j,0,n))
-                        +           dyi * (v(i,j+1,0,n)-v(i,j,0,n));
+                    divu(i,j,0,n) = (ax(i+1,j,0,0)*u(i+1,j,0,n)-ax(i,j,0,0)*u(i,j,0,n))
+                        +           (ay(i,j+1,0,0)*v(i,j+1,0,n)-ay(i,j,0,0)*v(i,j,0,n));
+                    divu(i,j,0,n) /= vol(i,j,0,0);
                 }
         }
     }
@@ -303,18 +304,18 @@ inline
 void amrex_compute_gradient (Box const& bx, Array4<Real> const& grad,
                              Array4<Real const> const& u,
                              Array4<Real const> const& v,
-                             GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+                             Array4<Real const> const& ax,
+                             Array4<Real const> const& ay,
+                             Array4<Real const> const& vol) noexcept
 {
     const auto lo = lbound(bx);
     const auto hi = ubound(bx);
-    const Real dxi = dxinv[0];
-    const Real dyi = dxinv[1];
 
     for     (int j = lo.y; j <= hi.y; ++j) {
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
-            grad(i,j,0,0) = dxi * (u(i+1,j,0)-u(i,j,0));
-            grad(i,j,0,1) = dyi * (v(i,j+1,0)-v(i,j,0));
+            grad(i,j,0,0) = (ax(i+1,j,0,0)*u(i+1,j,0)-ax(i,j,0,0)*u(i,j,0))/vol(i,j,0,0);
+            grad(i,j,0,1) = (ay(i,j+1,0,0)*v(i,j+1,0)-ay(i,j,0,0)*v(i,j,0))/vol(i,j,0,0);
         }
     }
 }
