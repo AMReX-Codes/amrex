@@ -23,6 +23,7 @@ void UpdateMomentumPerezElastic (
     T_R const q2, T_R const m2, T_R const w2,
     T_R const dt, T_R const L,  T_R const lmdD)
 {
+
     // Temporary variabls
     T_R buf1; T_R buf2;
 
@@ -142,12 +143,17 @@ void UpdateMomentumPerezElastic (
     // buf2 is the p1s perpendicular
     // p1 is now p1f star
     buf2 = std::sqrt(p1sx*p1sx + p1sy*p1sy);
-    p1x  = ( p1sx*p1sz/buf2) * sinXs*std::cos(buf1) +
-           (-p1sy*p1sm/buf2) * sinXs*std::sin(buf1) +
-           ( p1sx          ) * cosXs;
-    p1y  = ( p1sy*p1sz/buf2) * sinXs*std::cos(buf1) +
-           ( p1sx*p1sm/buf2) * sinXs*std::sin(buf1) +
-           ( p1sy          ) * cosXs;
+    // Avoid 1/0 -> nan
+    if ( buf2 == 0. ) { p1x = 0.; p1y = 0.; }
+    else
+    {
+        p1x  = ( p1sx*p1sz/buf2) * sinXs*std::cos(buf1) +
+               (-p1sy*p1sm/buf2) * sinXs*std::sin(buf1) +
+               ( p1sx          ) * cosXs;
+        p1y  = ( p1sy*p1sz/buf2) * sinXs*std::cos(buf1) +
+               ( p1sx*p1sm/buf2) * sinXs*std::sin(buf1) +
+               ( p1sy          ) * cosXs;
+    }
     p1z  = (-buf2          ) * sinXs*std::cos(buf1) +
            ( 0.            ) * sinXs*std::sin(buf1) +
            ( p1sz          ) * cosXs;
@@ -190,6 +196,7 @@ void UpdateMomentumPerezElastic (
         AMREX_ASSERT(!std::isnan(u1x+u1y+u1z+u2x+u2y+u2z));
         AMREX_ASSERT(!std::isinf(u1x+u1y+u1z+u2x+u2y+u2z));
     }
+
 }
 
 #endif // WARPX_PARTICLES_COLLISION_UPDATE_MOMENTUM_PEREZ_ELASTIC_H_
