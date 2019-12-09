@@ -180,6 +180,85 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlebabeclap_ebflux (int i, int j, int k, int n,
+                         Array4<Real> const& feb,
+                         Array4<Real const> const& x,
+                         Array4<EBCellFlag const> const& flag,
+                         Array4<Real const> const& vfrc,
+                         Array4<Real const> const& apx,
+                         Array4<Real const> const& apy,
+                         Array4<Real const> const& apz,
+                         Array4<Real const> const& bc,
+                         Array4<Real const> const& beb,
+                         Array4<Real const> const& phieb,
+                         bool is_inhomog,
+                         GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+{
+    Real dhx = dxinv[0];
+
+    if (!flag(i,j,k).isSingleValued())
+    {
+        feb(i,j,k,n) = 0.0;
+    }
+    else
+    {
+        Real kappa = vfrc(i,j,k);
+        Real apxm = apx(i,j,k);
+        Real apxp = apx(i+1,j,k);
+        Real apym = apy(i,j,k);
+        Real apyp = apy(i,j+1,k);
+        Real apzm = apz(i,j,k);
+        Real apzp = apz(i,j,k+1);
+
+        Real dapx = apxm-apxp;
+        Real dapy = apym-apyp;
+        Real dapz = apzm-apzp;
+        Real anorm = std::sqrt(dapx*dapx+dapy*dapy+dapz*dapz);
+        Real anorminv = 1.0/anorm;
+        Real anrmx = dapx * anorminv;
+        Real anrmy = dapy * anorminv;
+        Real anrmz = dapz * anorminv;
+
+        Real phib = is_inhomog ? phieb(i,j,k,n) : 0.0;
+
+        Real bctx = bc(i,j,k,0);
+        Real bcty = bc(i,j,k,1);
+        Real bctz = bc(i,j,k,2);
+        Real dx_eb = get_dx_eb(kappa);
+
+        Real dg = dx_eb / amrex::max(std::abs(anrmx), std::abs(anrmy), std::abs(anrmz));
+        Real gx = bctx - dg*anrmx;
+        Real gy = bcty - dg*anrmy;
+        Real gz = bctz - dg*anrmz;
+        Real sx = std::copysign(1.0,anrmx);
+        Real sy = std::copysign(1.0,anrmy);
+        Real sz = std::copysign(1.0,anrmz);
+        int ii = i - static_cast<int>(sx);
+        int jj = j - static_cast<int>(sy);
+        int kk = k - static_cast<int>(sz);
+
+        gx = sx*gx;
+        gy = sy*gy;
+        gz = sz*gz;
+        Real gxy = gx*gy;
+        Real gxz = gx*gz;
+        Real gyz = gy*gz;
+        Real gxyz = gx*gy*gz;
+        Real phig = (1.0+gx+gy+gz+gxy+gxz+gyz+gxyz) * x(i ,j ,k ,n)
+            +       (-gz - gxz - gyz - gxyz)        * x(i ,j ,kk,n)
+            +       (-gy - gxy - gyz - gxyz)        * x(i ,jj,k ,n)
+            +       (gyz + gxyz)                    * x(i ,jj,kk,n)
+            +       (-gx - gxy - gxz - gxyz)        * x(ii,j ,k ,n)
+            +       (gxz + gxyz)                    * x(ii,j ,kk,n)
+            +       (gxy + gxyz)                    * x(ii,jj,k ,n)
+            +       (-gxyz)                         * x(ii,jj,kk,n);
+
+        Real dphidn = dhx*(phib-phig)/dg;
+        feb(i,j,k,n) = -beb(i,j,k,n) * dphidn;
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebabeclap_gsrb (Box const& box,
                        Array4<Real> const& phi, Array4<Real const> const& rhs,
                        Real alpha, Array4<Real const> const& a,
