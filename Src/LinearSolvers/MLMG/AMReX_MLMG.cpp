@@ -1334,8 +1334,9 @@ void
 MLMG::getFluxes (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_flux,
                  Location a_loc)
 {
-    if (!linop.isCellCentered())
+    if (!linop.isCellCentered()) {
        amrex::Abort("Calling wrong getFluxes for nodal solver");
+    }
 
     AMREX_ASSERT(sol.size() == a_flux.size());
     getFluxes(a_flux, sol, a_loc);
@@ -1348,8 +1349,9 @@ MLMG::getFluxes (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_flux,
 {
     BL_PROFILE("MLMG::getFluxes()");
 
-    if (!linop.isCellCentered())
+    if (!linop.isCellCentered()) {
        amrex::Abort("Calling wrong getFluxes for nodal solver");
+    }
 
     linop.getFluxes(a_flux, a_sol, a_loc);
 }
@@ -1394,6 +1396,31 @@ MLMG::getFluxes (const Vector<MultiFab*> & a_flux, const Vector<MultiFab*>& a_so
         linop.getFluxes(a_flux, a_sol);
     } 
 }
+
+#ifdef AMREX_USE_EB
+void
+MLMG::getEBFluxes (const Vector<MultiFab*>& a_eb_flux)
+{
+    if (!linop.isCellCentered()) {
+       amrex::Abort("getEBFluxes is for cell-centered only");
+    }
+
+    AMREX_ASSERT(sol.size() == a_eb_flux.size());
+    getEBFluxes(a_eb_flux, sol);
+}
+
+void
+MLMG::getEBFluxes (const Vector<MultiFab*>& a_eb_flux, const Vector<MultiFab*>& a_sol)
+{
+    BL_PROFILE("MLMG::getEBFluxes()");
+
+    if (!linop.isCellCentered()) {
+       amrex::Abort("getEBFluxes is for cell-centered only");
+    }
+
+    linop.getEBFluxes(a_eb_flux, a_sol);
+}
+#endif
 
 void
 MLMG::compResidual (const Vector<MultiFab*>& a_res, const Vector<MultiFab*>& a_sol,
