@@ -47,7 +47,7 @@
 #include <AMReX_Scan.H>
 #include <AMReX_DenseBins.H>
 #include <AMReX_ParticleTransformation.H>
-#include <AMReX_ParIterI.H>
+#include <AMReX_ParIter.H>
 
 #ifdef BL_LAZY
 #include <AMReX_Lazy.H>
