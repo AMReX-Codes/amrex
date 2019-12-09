@@ -48,7 +48,7 @@ void UpdateMomentumPerezElastic (
     T_R const vcy = (p1y+p2y) / buf2;
     T_R const vcz = (p1z+p2z) / buf2;
     T_R const vcm = std::sqrt(vcx*vcx+vcy*vcy+vcz*vcz);
-    T_R const gc  = 1./std::sqrt(1.-vcm*vcm*inv_c2);
+    T_R const gc  = T_R(1.)/std::sqrt(T_R(1.)-vcm*vcm*inv_c2);
 
     // Avoid 1/0 -> nan
     if ( vcm == 0. ) { return; }

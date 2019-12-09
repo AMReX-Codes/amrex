@@ -16,7 +16,7 @@ public:
 
     CollisionType(
         const std::vector<std::string>& species_names,
-        std::string collision_name);
+        std::string const collision_name);
 
     static void doCoulombCollisionsWithinTile (
         int const lev, amrex::MFIter const& mfi,
