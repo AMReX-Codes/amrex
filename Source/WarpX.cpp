@@ -140,6 +140,10 @@ WarpX::WarpX ()
 
     ReadParameters();
 
+#ifdef WARPX_USE_OPENPMD
+    m_OpenPMDPlotWriter = new WarpXOpenPMDPlot(openpmd_tspf, openpmd_backend);
+#endif
+
     // Geometry on all levels has been defined already.
 
     // No valid BoxArray and DistributionMapping have been defined.
@@ -254,6 +258,10 @@ WarpX::~WarpX ()
 
 #ifdef BL_USE_SENSEI_INSITU
     delete insitu_bridge;
+#endif
+
+#ifdef WARPX_USE_OPENPMD
+    delete m_OpenPMDPlotWriter;
 #endif
 }
 
@@ -379,7 +387,7 @@ WarpX::ReadParameters ()
 
         // Read filter and fill IntVect filter_npass_each_dir with
         // proper size for AMREX_SPACEDIM
-            pp.query("use_filter", use_filter);
+        pp.query("use_filter", use_filter);
         Vector<int> parse_filter_npass_each_dir(AMREX_SPACEDIM,1);
         pp.queryarr("filter_npass_each_dir", parse_filter_npass_each_dir);
         filter_npass_each_dir[0] = parse_filter_npass_each_dir[0];
@@ -433,7 +441,11 @@ WarpX::ReadParameters ()
 
         pp.query("dump_openpmd", dump_openpmd);
         pp.query("openpmd_backend", openpmd_backend);
+#ifdef WARPX_USE_OPENPMD
+        pp.query("openpmd_tspf", openpmd_tspf);
+#endif
         pp.query("dump_plotfiles", dump_plotfiles);
+        pp.query("plot_costs", plot_costs);
         pp.query("plot_raw_fields", plot_raw_fields);
         pp.query("plot_raw_fields_guards", plot_raw_fields_guards);
         pp.query("plot_coarsening_ratio", plot_coarsening_ratio);
