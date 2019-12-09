@@ -1,3 +1,147 @@
+#include <AMReX_MFIter.H>
+#include <AMReX_Gpu.H>
+
+namespace amrex
+{
+
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+class ParticleContainer;
+    
+template <bool is_const, int NStructReal, int NStructInt=0, int NArrayReal=0, int NArrayInt=0>
+class ParIterBase
+    : public MFIter
+{
+private:
+
+    using PCType = ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>;
+    using ContainerRef    = typename std::conditional<is_const, PCType const&, PCType&>::type;
+    using ParticleTileRef = typename std::conditional
+        <is_const, typename PCType::ParticleTileType const&, typename PCType::ParticleTileType &>::type;
+    using ParticleTilePtr = typename std::conditional
+        <is_const, typename PCType::ParticleTileType const*, typename PCType::ParticleTileType *>::type;
+    using AoSRef          = typename std::conditional
+        <is_const, typename PCType::AoS const&, typename PCType::AoS&>::type;
+    using SoARef          = typename std::conditional
+        <is_const, typename PCType::SoA const&, typename PCType::SoA&>::type;
+
+public:
+
+    using ContainerType    = ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>;
+    using ParticleTileType = typename ContainerType::ParticleTileType;
+    using AoS              = typename ContainerType::AoS;
+    using SoA              = typename ContainerType::SoA;
+    using ParticleType     = typename ContainerType::ParticleType;
+    using RealVector       = typename SoA::RealVector;
+    using IntVector        = typename SoA::IntVector;
+    using ParticleVector   = typename ContainerType::ParticleVector;
+
+    ParIterBase (ContainerRef pc, int level);
+
+    ParIterBase (ContainerRef pc, int level, MFItInfo& info);
+
+#ifdef _OPENMP
+    void operator++ ()
+    {
+        if (dynamic) {
+#pragma omp atomic capture
+            m_pariter_index = nextDynamicIndex++;
+        } else {
+            ++m_pariter_index;
+        }
+        currentIndex = m_valid_index[m_pariter_index];
+    }
+#else
+    void operator++ ()
+    {
+        ++m_pariter_index;
+        currentIndex = m_valid_index[m_pariter_index];
+#ifdef AMREX_USE_GPU
+
+        Gpu::Device::setStreamIndex(currentIndex);
+#endif
+    }
+#endif
+
+    ParticleTileRef GetParticleTile () const { return *m_particle_tiles[m_pariter_index]; }
+
+    AoSRef GetArrayOfStructs () const { return GetParticleTile().GetArrayOfStructs(); }
+
+    SoARef GetStructOfArrays () const { return GetParticleTile().GetStructOfArrays(); }
+
+    template <typename Container>
+    void GetPosition (AMREX_D_DECL(Container& x,
+                                   Container& y,
+                                   Container& z)) const;
+
+    int numParticles () const { return GetArrayOfStructs().numParticles(); }
+
+    int GetLevel () const { return m_level; }
+
+    std::pair<int, int> GetPairIndex () const { return std::make_pair(this->index(), this->LocalTileIndex()); }
+
+    const Geometry& Geom (int lev) const { return m_pc.Geom(lev); } 
+    
+protected:
+    
+    int m_level;
+    int m_pariter_index;
+    Vector<int> m_valid_index;
+    Vector<ParticleTilePtr> m_particle_tiles;
+    ContainerRef m_pc;
+};
+
+template <int NStructReal, int NStructInt=0, int NArrayReal=0, int NArrayInt=0>
+class ParIter
+    : public ParIterBase<false,NStructReal,NStructInt, NArrayReal, NArrayInt>
+{
+public:
+
+    using ContainerType    = ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>;
+    using ParticleTileType = typename ContainerType::ParticleTileType;
+    using AoS              = typename ContainerType::AoS;
+    using SoA              = typename ContainerType::SoA;
+    using ParticleType     = typename ContainerType::ParticleType;
+    using RealVector       = typename SoA::RealVector;
+    using IntVector        = typename SoA::IntVector;
+
+    ParIter (ContainerType& pc, int level)
+        : ParIterBase<false,NStructReal,NStructInt, NArrayReal, NArrayInt>(pc,level)
+        {}
+
+    ParIter (ContainerType& pc, int level, MFItInfo& info)
+        : ParIterBase<false,NStructReal,NStructInt,NArrayReal,NArrayInt>(pc,level,info)
+        {}
+
+    template <typename Container>
+
+    void SetPosition (AMREX_D_DECL(const Container& x,
+                                   const Container& y,
+                                   const Container& z)) const;
+};
+
+template <int NStructReal, int NStructInt=0, int NArrayReal=0, int NArrayInt=0>
+class ParConstIter
+    : public ParIterBase<true,NStructReal,NStructInt, NArrayReal, NArrayInt>
+{
+public:
+
+    using ContainerType    = ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>;
+    using ParticleTileType = typename ContainerType::ParticleTileType;
+    using AoS              = typename ContainerType::AoS;
+    using SoA              = typename ContainerType::SoA;
+    using ParticleType     = typename ContainerType::ParticleType;
+    using RealVector       = typename SoA::RealVector;
+    using IntVector        = typename SoA::IntVector;
+
+    ParConstIter (ContainerType const& pc, int level)
+        : ParIterBase<true,NStructReal,NStructInt, NArrayReal, NArrayInt>(pc,level)
+        {}
+
+    ParConstIter (ContainerType const& pc, int level, MFItInfo& info)
+        : ParIterBase<true,NStructReal,NStructInt,NArrayReal,NArrayInt>(pc,level,info)
+        {}
+
+};
 
 template <bool is_const, int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 ParIterBase<is_const, NStructReal, NStructInt, NArrayReal, NArrayInt>::ParIterBase 
@@ -137,4 +281,6 @@ ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>::SetPosition
     });
 
     Gpu::streamSynchronize();
+}
+
 }
