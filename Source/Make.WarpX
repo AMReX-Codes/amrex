@@ -2,6 +2,7 @@ AMREX_HOME ?= ../../../amrex
 PICSAR_HOME ?= ../../../picsar
 OPENBC_HOME ?= ../../../openbc_poisson
 
+CXXSTD        = c++14
 USE_MPI       = TRUE
 USE_PARTICLES = TRUE
 USE_RPATH     = TRUE
