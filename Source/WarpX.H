@@ -29,6 +29,10 @@
 #   include <omp.h>
 #endif
 
+#ifdef WARPX_USE_OPENPMD
+#include <WarpXOpenPMD.H>
+#endif
+
 #include <iostream>
 #include <memory>
 #include <array>
@@ -545,10 +549,14 @@ private:
     int check_int = -1;
     int plot_int = -1;
 
-    std::string openpmd_backend {"h5"};
+    std::string openpmd_backend {"bp"};
 #ifdef WARPX_USE_OPENPMD
     bool dump_plotfiles = false;
     bool dump_openpmd = true;
+    bool openpmd_tspf = true; // one file per timestep
+  //bool openpmd_tspf = false; // one file all timesteps
+    WarpXOpenPMDPlot* m_OpenPMDPlotWriter = nullptr;
+
 #else
     bool dump_plotfiles = true;
     bool dump_openpmd = false;

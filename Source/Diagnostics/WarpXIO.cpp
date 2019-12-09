@@ -18,6 +18,11 @@
 #include <AMReX_Conduit_Blueprint.H>
 #endif
 
+#ifdef WARPX_USE_OPENPMD
+#include "WarpXOpenPMD.H"
+#endif
+
+
 using namespace amrex;
 
 namespace
@@ -522,18 +527,13 @@ WarpX::WritePlotFile () const
     }
 
 #ifdef WARPX_USE_OPENPMD
-    if (dump_openpmd){
-        // Write openPMD format: only for level 0
-        std::string filename = std::string("diags/");
-        filename.append(openpmd_backend);
-        filename += amrex::Concatenate("/data", istep[0]);
-        filename += std::string(".") + openpmd_backend;
-        WriteOpenPMDFields( filename, varnames,
-                      *output_mf[0], output_geom[0], istep[0], t_new[0] );
-    }
+    m_OpenPMDPlotWriter->SetStep(istep[0]);
+    if (dump_openpmd)
+      m_OpenPMDPlotWriter->WriteOpenPMDFields(varnames,
+                          *output_mf[0], output_geom[0], istep[0], t_new[0] );
 #endif
 
-    if (dump_plotfiles){
+    if (dump_plotfiles ||  dump_openpmd) {
 
     // Write the fields contained in `mf_avg`, and corresponding to the
     // names `varnames`, into a plotfile.
@@ -616,7 +616,16 @@ WarpX::WritePlotFile () const
         }
     }
 
-    mypc->WritePlotFile(plotfilename);
+#ifdef WARPX_USE_OPENPMD
+    // Write openPMD format: only for level 0
+    if (dump_openpmd)
+        m_OpenPMDPlotWriter->WriteOpenPMDParticles(mypc);
+#endif
+    // leaving the option of binary output through AMREx around
+    // regardless of openPMD. This can be adjusted later
+    {
+      mypc->WritePlotFile(plotfilename);
+    }
 
     WriteJobInfo(plotfilename);
 
