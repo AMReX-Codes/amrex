@@ -452,7 +452,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::ByteSpread ()
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
     const std::size_t sz = sizeof(ParticleType)+NumRealComps()*sizeof(Real)+NumIntComps()*sizeof(int);
 
-#ifdef BL_LAZY
+#ifdef AMREX_LAZY
     Lazy::QueueReduction( [=] () mutable {
 #endif
     ParallelDescriptor::ReduceLongMin(mn, IOProc);
@@ -466,7 +466,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::ByteSpread ()
                    << mx*sz
                    << " (" << mx << ")"
                    << "] total particles: (" << cnt << ")\n";
-#ifdef BL_LAZY
+#ifdef AMREX_LAZY
     });
 #endif
 }
@@ -1538,12 +1538,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
       
       ByteSpread();
       
-#ifdef BL_LAZY
+#ifdef AMREX_LAZY
       Lazy::QueueReduction( [=] () mutable {
 #endif
               ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
               amrex::Print() << "ParticleContainer::Redistribute() time: " << stoptime << "\n\n";
-#ifdef BL_LAZY
+#ifdef AMREX_LAZY
           });
 #endif
   }

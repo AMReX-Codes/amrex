@@ -49,7 +49,7 @@
 #include <AMReX_ParticleTransformation.H>
 #include <AMReX_ParIter.H>
 
-#ifdef BL_LAZY
+#ifdef AMREX_LAZY
 #include <AMReX_Lazy.H>
 #endif
 
