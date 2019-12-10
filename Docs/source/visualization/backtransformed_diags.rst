@@ -3,7 +3,7 @@ Visualizing back-transformed diagnostics
 
 When running a simulation in a boosted frame, WarpX has the capability to
 back-transform the simulation results to the laboratory frame of reference, which
-is often useful to study the physics. A set of function can be found in the
+is often useful to study the physics. A set of functions can be found in the
 python file :download:`read_raw_data.py<../../../Tools/read_raw_data.py>`. The main commands can be found in our example jupyter notebook for postprocessing :download:`Visualization.ipynb<../../../Tools/Visualization.ipynb>`.
 
 The full back-transformed diagnostics of the entire domain is written in ``lab_frame_data/snapshots/`` and the back-transformed diagnostics of the reduced domain is written to ``lab_frame_data/slices/``
@@ -22,7 +22,7 @@ For instance: To plot the ``Ez`` field along the z-direction at the center of th
     F = allrd[field]
     plt.plot(F[F.shape[0]//2,F.shape[1]//2-1,:])
 
-Similarly, the back-transformed diagnostics on a reduced domain (1D line, 2D slice, 3D reduced diagnostic) can also be visualized using read_raw_data.py. For instance -- let us say that the user-input is an ``x-z`` slice (at the of the domain in the ``y`` direction), then, to plot ``Ez`` of the x-z slice along the z-direction at the center of the slice:
+Similarly, the back-transformed diagnostics on a reduced domain (1D line, 2D slice, 3D reduced diagnostic) can also be visualized using read_raw_data.py. For instance -- let us say that the user-input is an "x-z" slice (at the center of the domain in the "y-direction"), then, to plot ``Ez`` on this x-z slice:
 
 ::
 
