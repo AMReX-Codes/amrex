@@ -188,7 +188,7 @@ int main (int argc, char* argv[])
 
         // Set bottom-solver to use hypre instead of native BiCGStab 
         if (use_hypre) 
-           macproj.setBottomSolver(MLMG::BottomSolver::hypre);
+           macproj.setBottomSolver("hypre");
 	
 	// Hard-wire the boundary conditions to be Neumann on the low x-face, Dirichlet
 	// on the high x-face, and periodic in the other two directions  
@@ -201,7 +201,7 @@ int main (int argc, char* argv[])
 					  LinOpBCType::Periodic)});
 
         macproj.setVerbose(mg_verbose);
-        macproj.setCGVerbose(cg_verbose);
+        macproj.setBottomVerbose(cg_verbose);
 	
 	// Define the relative tolerance
         Real reltol = 1.e-8;
