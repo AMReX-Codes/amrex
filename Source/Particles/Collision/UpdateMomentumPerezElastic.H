@@ -231,7 +231,7 @@ void UpdateMomentumPerezElastic (
         p2fy = p2fsy + vcy * buf2;
         p2fz = p2fsz + vcz * buf2;
     }
-    else
+    else // If vcms = 0, don't do Lorentz-transform.
     {
         p1fx = p1fsx;
         p1fy = p1fsy;
