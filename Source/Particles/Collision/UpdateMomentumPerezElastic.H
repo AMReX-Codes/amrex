@@ -26,6 +26,12 @@ void UpdateMomentumPerezElastic (
     T_R const dt, T_R const L,  T_R const lmdD)
 {
 
+    // If g = u1 - u2 = 0, do not collide.
+    if ( std::abs(u1x-u2x) < std::numeric_limits<T_R>::min() &&
+         std::abs(u1y-u2y) < std::numeric_limits<T_R>::min() &&
+         std::abs(u1z-u2z) < std::numeric_limits<T_R>::min() )
+    { return; }
+
     T_R constexpr inv_c2 = T_R(1.0) / ( PhysConst::c * PhysConst::c );
 
     // Compute Lorentz factor gamma
@@ -70,8 +76,6 @@ void UpdateMomentumPerezElastic (
         p1sz = p1z;
     }
     T_R const p1sm = std::sqrt( p1sx*p1sx + p1sy*p1sy + p1sz*p1sz );
-    // If p1sm is zero, u1 = u2, g = u1 - u2 = 0, thus do not collide.
-    if ( p1sm < std::numeric_limits<T_R>::min() ) { return; }
 
     // Compute gamma star
     T_R const g1s = ( T_R(1.0) - vcDv1*inv_c2 )*gc*g1;
