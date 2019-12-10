@@ -122,7 +122,7 @@ void UpdateMomentumPerezElastic (
         while ( true )
         {
             cosXs = T_R(1.0) + s * std::log(r);
-            // avoid the bug when r is too small such that cosXs < -1
+            // Avoid the bug when r is too small such that cosXs < -1
             if ( cosXs >= T_R(-1.0) ) { break; }
             r = amrex::Random();
         }
@@ -157,7 +157,7 @@ void UpdateMomentumPerezElastic (
     T_R p1fsz;
     // p1sp is the p1s perpendicular
     T_R p1sp = std::sqrt( p1sx*p1sx + p1sy*p1sy );
-    // make sure p1sp is not almost zero
+    // Make sure p1sp is not almost zero
     if ( p1sp > std::numeric_limits<T_R>::min() )
     {
         p1fsx = ( p1sx*p1sz/p1sp ) * sinXs*cosphis +
@@ -193,8 +193,8 @@ void UpdateMomentumPerezElastic (
         }
         else
         {
-            // if the previous two p1sp are all almost zero
-            // this p1sp must not be almost zero
+            // If the previous two p1sp are all almost zero,
+            // this p1sp must not be almost zero.
             // x->y  y->z  z->x
             p1sp = std::sqrt( p1sz*p1sz + p1sx*p1sx );
             p1fsz = ( p1sz*p1sy/p1sp ) * sinXs*cosphis +
