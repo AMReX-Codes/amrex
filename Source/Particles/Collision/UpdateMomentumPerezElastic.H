@@ -3,10 +3,12 @@
 
 #include <WarpXConst.H>
 #include <AMReX_Random.H>
-#include <cmath> // isnan() isinf()
+#include <cmath>  // isnan() isinf()
+#include <limits> // numeric_limits<float>::min()
 
 /* \brief Update particle velocities according to
- *        F. Perez et al., Phys. Plasmas 19, 083104 (2012).
+ *        F. Perez et al., Phys.Plasmas.19.083104 (2012),
+ *        which is based on Nanbu's method, PhysRevE.55.4642 (1997).
  *        LmdD is max(Debye length, minimal interparticle distance).
  *        L is the Coulomb log. A fixed L will be used if L > 0,
  *        otherwise L will be calculated based on the algorithm.
@@ -24,175 +26,237 @@ void UpdateMomentumPerezElastic (
     T_R const dt, T_R const L,  T_R const lmdD)
 {
 
-    // Temporary variabls
-    T_R buf1; T_R buf2;
-
-    T_R constexpr inv_c2 = 1./(PhysConst::c * PhysConst::c);
+    T_R constexpr inv_c2 = T_R(1.0) / ( PhysConst::c * PhysConst::c );
 
     // Compute Lorentz factor gamma
-    T_R g1 = std::sqrt(T_R(1.)+(u1x*u1x+u1y*u1y+u1z*u1z)*inv_c2);
-    T_R g2 = std::sqrt(T_R(1.)+(u2x*u2x+u2y*u2y+u2z*u2z)*inv_c2);
+    T_R const g1 = std::sqrt( T_R(1.0) + (u1x*u1x+u1y*u1y+u1z*u1z)*inv_c2 );
+    T_R const g2 = std::sqrt( T_R(1.0) + (u2x*u2x+u2y*u2y+u2z*u2z)*inv_c2 );
 
     // Compute momenta
-    T_R p1x = u1x * m1;
-    T_R p1y = u1y * m1;
-    T_R p1z = u1z * m1;
-    T_R p2x = u2x * m2;
-    T_R p2y = u2y * m2;
-    T_R p2z = u2z * m2;
+    T_R const p1x = u1x * m1;
+    T_R const p1y = u1y * m1;
+    T_R const p1z = u1z * m1;
+    T_R const p2x = u2x * m2;
+    T_R const p2y = u2y * m2;
+    T_R const p2z = u2z * m2;
 
     // Compute center-of-mass (COM) velocity and gamma
-    buf1 = m1 * g1;
-    buf2 = m2 * g2 + buf1;
-    T_R const vcx = (p1x+p2x) / buf2;
-    T_R const vcy = (p1y+p2y) / buf2;
-    T_R const vcz = (p1z+p2z) / buf2;
-    T_R const vcm = std::sqrt(vcx*vcx+vcy*vcy+vcz*vcz);
-    T_R const gc  = T_R(1.)/std::sqrt(T_R(1.)-vcm*vcm*inv_c2);
-
-    // Avoid 1/0 -> nan
-    if ( vcm == 0. ) { return; }
+    T_R const mass_g = m1 * g1 + m2 * g2;
+    T_R const vcx    = (p1x+p2x) / mass_g;
+    T_R const vcy    = (p1y+p2y) / mass_g;
+    T_R const vcz    = (p1z+p2z) / mass_g;
+    T_R const vcms   = vcx*vcx + vcy*vcy + vcz*vcz;
+    T_R const gc     = T_R(1.0) / std::sqrt( T_R(1.0) - vcms*inv_c2 );
 
     // Compute vc dot v1 and v2
-    T_R const vcDv1 = (vcx*u1x + vcy*u1y + vcz*u1z)/g1;
-    T_R const vcDv2 = (vcx*u2x + vcy*u2y + vcz*u2z)/g2;
+    T_R const vcDv1 = (vcx*u1x + vcy*u1y + vcz*u1z) / g1;
+    T_R const vcDv2 = (vcx*u2x + vcy*u2y + vcz*u2z) / g2;
 
     // Compute p1 star
-    buf2 = ( (gc-T_R(1.))/vcm/vcm*vcDv1 - gc )*buf1;
-    T_R const p1sx = p1x + buf2*vcx;
-    T_R const p1sy = p1y + buf2*vcy;
-    T_R const p1sz = p1z + buf2*vcz;
-    T_R const p1sm = std::sqrt(p1sx*p1sx+p1sy*p1sy+p1sz*p1sz);
+    T_R p1sx;
+    T_R p1sy;
+    T_R p1sz;
+    if ( vcms > std::numeric_limits<T_R>::min() )
+    {
+        T_R const buf = ( (gc-T_R(1.0))/vcms*vcDv1 - gc )*m1*g1;
+        p1sx = p1x + buf*vcx;
+        p1sy = p1y + buf*vcy;
+        p1sz = p1z + buf*vcz;
+    }
+    else // If vcms = 0, don't do Lorentz-transform.
+    {
+        p1sx = p1x;
+        p1sy = p1y;
+        p1sz = p1z;
+    }
+    T_R const p1sm = std::sqrt( p1sx*p1sx + p1sy*p1sy + p1sz*p1sz );
+    // If p1sm is zero, u1 = u2, g = u1 - u2 = 0, thus do not collide.
+    if ( p1sm < std::numeric_limits<T_R>::min() ) { return; }
 
     // Compute gamma star
-    T_R const g1s = (T_R(1.)-vcDv1*inv_c2)*gc*g1;
-    T_R const g2s = (T_R(1.)-vcDv2*inv_c2)*gc*g2;
+    T_R const g1s = ( T_R(1.0) - vcDv1*inv_c2 )*gc*g1;
+    T_R const g2s = ( T_R(1.0) - vcDv2*inv_c2 )*gc*g2;
 
     // Compute the Coulomb log lnLmd
     T_R lnLmd;
-    if ( L > 0. )
-    { lnLmd = L; }
+    if ( L > T_R(0.0) ) { lnLmd = L; }
     else
     {
-        // Compute b0 (buf1)
-        buf1 = std::abs(q1*q2) * inv_c2 /
-               (T_R(4.)*MathConst::pi*PhysConst::ep0) * gc/(m1*g1+m2*g2) *
-               ( m1*g1s*m2*g2s/(p1sm*p1sm*inv_c2) + T_R(1.) );
+        // Compute b0
+        T_R const b0 = std::abs(q1*q2) * inv_c2 /
+               (T_R(4.0)*MathConst::pi*PhysConst::ep0) * gc/mass_g *
+               ( m1*g1s*m2*g2s/(p1sm*p1sm*inv_c2) + T_R(1.0) );
 
-        // Compute the minimal impact parameter (buf2)
-        buf2 = amrex::max(PhysConst::hbar*MathConst::pi/p1sm,buf1);
+        // Compute the minimal impact parameter
+        T_R bmin = amrex::max(PhysConst::hbar*MathConst::pi/p1sm,b0);
 
         // Compute the Coulomb log lnLmd
-        lnLmd = amrex::max( T_R(2.), T_R(0.5)*std::log(T_R(1.)+lmdD*lmdD/(buf2*buf2)) );
+        lnLmd = amrex::max( T_R(2.0),
+                T_R(0.5)*std::log(T_R(1.0)+lmdD*lmdD/(bmin*bmin)) );
     }
 
     // Compute s
     T_R s = n1*n2/n12 * dt*lnLmd*q1*q1*q2*q2 /
-          ( T_R(4.) * MathConst::pi * PhysConst::ep0 * PhysConst::ep0 *
-            m1*g1*m2*g2/(inv_c2*inv_c2) ) * gc*p1sm/(m1*g1+m2*g2) *
-            std::pow(m1*g1s*m2*g2s/(inv_c2*p1sm*p1sm) + T_R(1.), 2);
+          ( T_R(4.0) * MathConst::pi * PhysConst::ep0 * PhysConst::ep0 *
+            m1*g1*m2*g2/(inv_c2*inv_c2) ) * gc*p1sm/mass_g *
+            std::pow(m1*g1s*m2*g2s/(inv_c2*p1sm*p1sm) + T_R(1.0), 2.0);
 
     // Compute s'
-    buf1 = (m1*g1+m2*g2)*p1sm/(m1*g1s*m2*g2s*gc); // vrel
-    T_R const sp = std::pow(T_R(4.)*MathConst::pi/T_R(3.),T_R(1./3.)) *
-          n1*n2/n12 * dt * buf1 * (m1+m2) /
-          amrex::max(m1*std::pow(n1,T_R(2./3.)),m2*std::pow(n2,T_R(2./3.)));
+    T_R const vrel = mass_g*p1sm/(m1*g1s*m2*g2s*gc);
+    T_R const sp = std::pow(T_R(4.0)*MathConst::pi/T_R(3.0),T_R(1.0/3.0)) *
+          n1*n2/n12 * dt * vrel * (m1+m2) /
+          amrex::max( m1*std::pow(n1,T_R(2.0/3.0)),
+                      m2*std::pow(n2,T_R(2.0/3.0)) );
 
     // Determine s
     s = amrex::min(s,sp);
 
     // Get random numbers
-    buf1 = amrex::Random();
+    T_R r = amrex::Random();
 
     // Compute scattering angle
     T_R cosXs;
     T_R sinXs;
-    if ( s <= 0.1 )
+    if ( s <= T_R(0.1) )
     {
         while ( true )
         {
-            cosXs = T_R(1.) + s * std::log(buf1);
-            // avoid the bug when buf1 is too small
+            cosXs = T_R(1.0) + s * std::log(r);
+            // avoid the bug when r is too small such that cosXs < -1
             if ( cosXs >= T_R(-1.0) ) { break; }
-            buf1 = amrex::Random();
+            r = amrex::Random();
         }
     }
-    else if ( s > 0.1 && s <= 3. )
+    else if ( s > T_R(0.1) && s <= T_R(3.0) )
     {
-        // buf2 is A inverse
-        buf2 = 0.0056958 + 0.9560202*s - 0.508139*s*s +
-               0.47913906*s*s*s - 0.12788975*s*s*s*s + 0.02389567*s*s*s*s*s;
-        cosXs = buf2*std::log(std::exp(-1./buf2)+2.*buf1*std::sinh(1.0/buf2));
+        T_R const Ainv = 0.0056958 + 0.9560202*s - 0.508139*s*s +
+            0.47913906*s*s*s - 0.12788975*s*s*s*s + 0.02389567*s*s*s*s*s;
+        cosXs = Ainv * std::log( std::exp(T_R(-1.0)/Ainv) +
+                T_R(2.0) * r * std::sinh(T_R(1.0)/Ainv) );
     }
-    else if ( s > 3. && s <= 6. )
+    else if ( s > T_R(3.0) && s <= T_R(6.0) )
     {
-        // buf2 is A
-        buf2 = 3. * std::exp(-s);
-        cosXs = 1./buf2*std::log(std::exp(-buf2)+2.*buf1*std::sinh(buf2));
+        T_R const A = T_R(3.0) * std::exp(-s);
+        cosXs = T_R(1.0)/A * std::log( std::exp(-A) +
+                T_R(2.0) * r * std::sinh(A) );
     }
     else
     {
-        cosXs = T_R(2.)*buf1 - T_R(1.);
+        cosXs = T_R(2.0) * r - T_R(1.0);
     }
-    sinXs = std::sqrt(1. - cosXs*cosXs);
+    sinXs = std::sqrt(T_R(1.0) - cosXs*cosXs);
 
     // Get random azimuthal angle
-    buf1 = amrex::Random() * T_R(2.) * MathConst::pi;
+    T_R const phis = amrex::Random() * T_R(2.0) * MathConst::pi;
+    T_R const cosphis = std::cos(phis);
+    T_R const sinphis = std::sin(phis);
 
-    // Compute post-collision momenta in COM
-    // buf2 is the p1s perpendicular
-    // p1 is now p1f star
-    buf2 = std::sqrt(p1sx*p1sx + p1sy*p1sy);
-    // Avoid 1/0 -> nan
-    if ( buf2 == 0. ) { p1x = 0.; p1y = 0.; }
+    // Compute post-collision momenta pfs in COM
+    T_R p1fsx;
+    T_R p1fsy;
+    T_R p1fsz;
+    // p1sp is the p1s perpendicular
+    T_R p1sp = std::sqrt( p1sx*p1sx + p1sy*p1sy );
+    // make sure p1sp is not almost zero
+    if ( p1sp > std::numeric_limits<T_R>::min() )
+    {
+        p1fsx = ( p1sx*p1sz/p1sp ) * sinXs*cosphis +
+                ( p1sy*p1sm/p1sp ) * sinXs*sinphis +
+                ( p1sx           ) * cosXs;
+        p1fsy = ( p1sy*p1sz/p1sp ) * sinXs*cosphis +
+                (-p1sx*p1sm/p1sp ) * sinXs*sinphis +
+                ( p1sy           ) * cosXs;
+        p1fsz = (-p1sp           ) * sinXs*cosphis +
+                ( T_R(0.0)       ) * sinXs*sinphis +
+                ( p1sz           ) * cosXs;
+        // Note a negative sign is different from
+        // Eq. (12) in Perez's paper,
+        // but they are the same due to the random nature of phis.
+    }
     else
     {
-        p1x  = ( p1sx*p1sz/buf2) * sinXs*std::cos(buf1) +
-               (-p1sy*p1sm/buf2) * sinXs*std::sin(buf1) +
-               ( p1sx          ) * cosXs;
-        p1y  = ( p1sy*p1sz/buf2) * sinXs*std::cos(buf1) +
-               ( p1sx*p1sm/buf2) * sinXs*std::sin(buf1) +
-               ( p1sy          ) * cosXs;
+        // If the previous p1sp is almost zero
+        // x->y  y->z  z->x
+        // This set is equivalent to the one in Nanbu's paper
+        p1sp = std::sqrt( p1sy*p1sy + p1sz*p1sz );
+        if ( p1sp > std::numeric_limits<T_R>::min() )
+        {
+            p1fsy = ( p1sy*p1sx/p1sp ) * sinXs*cosphis +
+                    ( p1sz*p1sm/p1sp ) * sinXs*sinphis +
+                    ( p1sy           ) * cosXs;
+            p1fsz = ( p1sz*p1sx/p1sp ) * sinXs*cosphis +
+                    (-p1sy*p1sm/p1sp ) * sinXs*sinphis +
+                    ( p1sz           ) * cosXs;
+            p1fsx = (-p1sp           ) * sinXs*cosphis +
+                    ( T_R(0.0)       ) * sinXs*sinphis +
+                    ( p1sx           ) * cosXs;
+        }
+        else
+        {
+            // if the previous two p1sp are all almost zero
+            // this p1sp must not be almost zero
+            // x->y  y->z  z->x
+            p1sp = std::sqrt( p1sz*p1sz + p1sx*p1sx );
+            p1fsz = ( p1sz*p1sy/p1sp ) * sinXs*cosphis +
+                    ( p1sx*p1sm/p1sp ) * sinXs*sinphis +
+                    ( p1sz           ) * cosXs;
+            p1fsx = ( p1sx*p1sy/p1sp ) * sinXs*cosphis +
+                    (-p1sz*p1sm/p1sp ) * sinXs*sinphis +
+                    ( p1sx           ) * cosXs;
+            p1fsy = (-p1sp           ) * sinXs*cosphis +
+                    ( T_R(0.0)       ) * sinXs*sinphis +
+                    ( p1sy           ) * cosXs;
+        }
     }
-    p1z  = (-buf2          ) * sinXs*std::cos(buf1) +
-           ( T_R(0.)       ) * sinXs*std::sin(buf1) +
-           ( p1sz          ) * cosXs;
-    p2x  = -p1x;
-    p2y  = -p1y;
-    p2z  = -p1z;
+
+    T_R const p2fsx = -p1fsx;
+    T_R const p2fsy = -p1fsy;
+    T_R const p2fsz = -p1fsz;
 
     // Transform from COM to lab frame
-    // buf1 is vc dot p1 (p1fs)
-    // p1 is then updated to be p1f
-    buf1 = vcx*p1x + vcy*p1y + vcz*p1z;
-    buf2 = (gc-T_R(1.))/(vcm*vcm)*buf1 + m1*g1s*gc;
-    p1x  = p1x + vcx * buf2;
-    p1y  = p1y + vcy * buf2;
-    p1z  = p1z + vcz * buf2;
-    // buf1 is vc dot p2 (p2fs)
-    // p2 is then updated to be p2f
-    buf1 = vcx*p2x + vcy*p2y + vcz*p2z;
-    buf2 = (gc-T_R(1.))/(vcm*vcm)*buf1 + m2*g2s*gc;
-    p2x  = p2x + vcx * buf2;
-    p2y  = p2y + vcy * buf2;
-    p2z  = p2z + vcz * buf2;
+    T_R p1fx;    T_R p2fx;
+    T_R p1fy;    T_R p2fy;
+    T_R p1fz;    T_R p2fz;
+    if ( vcms > std::numeric_limits<T_R>::min() )
+    {
+        T_R const vcDp1fs = vcx*p1fsx + vcy*p1fsy + vcz*p1fsz;
+        T_R const vcDp2fs = vcx*p2fsx + vcy*p2fsy + vcz*p2fsz;
+        T_R const buf = (gc-T_R(1.0))/vcms;
+        T_R const buf1 = buf*vcDp1fs + m1*g1s*gc;
+        T_R const buf2 = buf*vcDp2fs + m2*g2s*gc;
+        p1fx = p1fsx + vcx * buf1;
+        p1fy = p1fsy + vcy * buf1;
+        p1fz = p1fsz + vcz * buf1;
+        p2fx = p2fsx + vcx * buf2;
+        p2fy = p2fsy + vcy * buf2;
+        p2fz = p2fsz + vcz * buf2;
+    }
+    else
+    {
+        p1fx = p1fsx;
+        p1fy = p1fsy;
+        p1fz = p1fsz;
+        p2fx = p2fsx;
+        p2fy = p2fsy;
+        p2fz = p2fsz;
+    }
 
     // Rejection method
-    buf1 = amrex::Random();
-    if ( w2/amrex::max(w1,w2) > buf1 )
+    r = amrex::Random();
+    if ( w2/amrex::max(w1,w2) > r )
     {
-        u1x  = p1x / m1;
-        u1y  = p1y / m1;
-        u1z  = p1z / m1;
+        u1x  = p1fx / m1;
+        u1y  = p1fy / m1;
+        u1z  = p1fz / m1;
         AMREX_ASSERT(!std::isnan(u1x+u1y+u1z+u2x+u2y+u2z));
         AMREX_ASSERT(!std::isinf(u1x+u1y+u1z+u2x+u2y+u2z));
     }
-    buf2 = amrex::Random();
-    if ( w1/amrex::max(w1,w2) > buf2 )
+    r = amrex::Random();
+    if ( w1/amrex::max(w1,w2) > r )
     {
-        u2x  = p2x / m2;
-        u2y  = p2y / m2;
-        u2z  = p2z / m2;
+        u2x  = p2fx / m2;
+        u2y  = p2fy / m2;
+        u2z  = p2fz / m2;
         AMREX_ASSERT(!std::isnan(u1x+u1y+u1z+u2x+u2y+u2z));
         AMREX_ASSERT(!std::isinf(u1x+u1y+u1z+u2x+u2y+u2z));
     }
