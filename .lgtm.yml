@@ -20,5 +20,5 @@ extraction:
       - echo "Yeah"
     index:
       build_command:
-        - make -j 2 AMREX_HOME=../third-party/amrex PICSAR_HOME=../third-party/picsar
+        - make -j 2 AMREX_HOME=./third-party/amrex PICSAR_HOME=./third-party/picsar
 
