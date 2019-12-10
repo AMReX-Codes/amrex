@@ -6,6 +6,7 @@ extraction:
         - mpich
         - libmpich-dev
     after_prepare:
+      - mkdir -p third-party
       - wget https://github.com/AMReX-Codes/amrex/archive/development.zip
       - unzip development.zip
       - mv amrex-development third-party/amrex
