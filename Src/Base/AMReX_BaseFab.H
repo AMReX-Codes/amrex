@@ -1325,6 +1325,7 @@ BaseFab<T>::shiftHalf (int idir, int n_cell) noexcept
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 void
 BaseFab<T>::setVal (T x, const Box& bx, int n) noexcept
 {
@@ -1332,6 +1333,7 @@ BaseFab<T>::setVal (T x, const Box& bx, int n) noexcept
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 void
 BaseFab<T>::setVal (T x, int n) noexcept
 {
@@ -1339,6 +1341,7 @@ BaseFab<T>::setVal (T x, int n) noexcept
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 void
 BaseFab<T>::setVal (T x, const Box& bx, int dcomp, int ncomp) noexcept
 {
@@ -1346,6 +1349,7 @@ BaseFab<T>::setVal (T x, const Box& bx, int dcomp, int ncomp) noexcept
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 void
 BaseFab<T>::setValIfNot (T val, const Box& bx, const BaseFab<int>& mask, int ns, int num) noexcept
 {
@@ -1353,6 +1357,7 @@ BaseFab<T>::setValIfNot (T val, const Box& bx, const BaseFab<int>& mask, int ns,
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::copy (const BaseFab<T>& src, const Box& srcbox, int srccomp,
                   const Box& destbox, int destcomp, int numcomp) noexcept
@@ -1387,6 +1392,7 @@ BaseFab<T>::copy (const BaseFab<T>& src, const Box& srcbox, int srccomp,
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::copy (const BaseFab<T>& src, const Box& destbox) noexcept
 {
@@ -1394,6 +1400,7 @@ BaseFab<T>::copy (const BaseFab<T>& src, const Box& destbox) noexcept
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::copy (const BaseFab<T>& src, int srccomp, int destcomp, int numcomp) noexcept
 {
@@ -1534,6 +1541,7 @@ BaseFab<T>::BaseFab (BaseFab<T>&& rhs) noexcept
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::operator= (T t) noexcept
 {
@@ -1648,6 +1656,7 @@ BaseFab<T>::release () noexcept
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 std::size_t
 BaseFab<T>::copyToMem (const Box& srcbox,
                        int        srccomp,
@@ -1674,6 +1683,7 @@ BaseFab<T>::copyToMem (const Box& srcbox,
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 std::size_t
 BaseFab<T>::copyFromMem (const Box&  dstbox,
                          int         dstcomp,
@@ -1701,6 +1711,7 @@ BaseFab<T>::copyFromMem (const Box&  dstbox,
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 std::size_t
 BaseFab<T>::addFromMem (const Box&  dstbox,
                         int         dstcomp,
@@ -1735,6 +1746,7 @@ BaseFab<T>::setComplement (T x, const Box& b, int ns, int num) noexcept
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 void
 BaseFab<T>::abs () noexcept
 {
@@ -1742,6 +1754,7 @@ BaseFab<T>::abs () noexcept
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 void
 BaseFab<T>::abs (int comp, int numcomp) noexcept
 {
@@ -1749,6 +1762,7 @@ BaseFab<T>::abs (int comp, int numcomp) noexcept
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 void
 BaseFab<T>::abs (const Box& subbox, int comp, int numcomp) noexcept
 {
@@ -2115,6 +2129,7 @@ BaseFab<T>::maskGE (BaseFab<int>& mask, T val, int comp) const noexcept
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::atomicAdd (const BaseFab<T>& x) noexcept
 {
@@ -2124,6 +2139,7 @@ BaseFab<T>::atomicAdd (const BaseFab<T>& x) noexcept
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::saxpy (T a, const BaseFab<T>& x, const Box& srcbox, const Box& destbox,
                    int srccomp, int destcomp, int numcomp) noexcept
@@ -2150,6 +2166,7 @@ BaseFab<T>::saxpy (T a, const BaseFab<T>& x, const Box& srcbox, const Box& destb
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::saxpy (T a, const BaseFab<T>& x) noexcept
 {
@@ -2159,6 +2176,7 @@ BaseFab<T>::saxpy (T a, const BaseFab<T>& x) noexcept
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::xpay (T a, const BaseFab<T>& x,
                   const Box& srcbox, const Box& destbox,
@@ -2186,6 +2204,7 @@ BaseFab<T>::xpay (T a, const BaseFab<T>& x,
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::addproduct (const Box& destbox, int destcomp, int numcomp,
                         const BaseFab<T>& src1, int comp1,
@@ -2209,6 +2228,7 @@ BaseFab<T>::addproduct (const Box& destbox, int destcomp, int numcomp,
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::linComb (const BaseFab<T>& f1, const Box& b1, int comp1,
                      const BaseFab<T>& f2, const Box& b2, int comp2,
@@ -2352,6 +2372,7 @@ BaseFab<T>::sum (const Box& subbox, int comp, int numcomp) const noexcept
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::negate (int comp, int numcomp) noexcept
 {
@@ -2359,6 +2380,7 @@ BaseFab<T>::negate (int comp, int numcomp) noexcept
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::negate (const Box& b, int comp, int numcomp) noexcept
 {
@@ -2366,6 +2388,7 @@ BaseFab<T>::negate (const Box& b, int comp, int numcomp) noexcept
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::invert (T r, int comp, int numcomp) noexcept
 {
@@ -2373,6 +2396,7 @@ BaseFab<T>::invert (T r, int comp, int numcomp) noexcept
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::invert (T r, const Box& b, int comp, int numcomp) noexcept
 {
@@ -2380,6 +2404,7 @@ BaseFab<T>::invert (T r, const Box& b, int comp, int numcomp) noexcept
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::plus (T r, int comp, int numcomp) noexcept
 {
@@ -2387,6 +2412,7 @@ BaseFab<T>::plus (T r, int comp, int numcomp) noexcept
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::plus (T r, const Box& b, int comp, int numcomp) noexcept
 {
@@ -2394,6 +2420,7 @@ BaseFab<T>::plus (T r, const Box& b, int comp, int numcomp) noexcept
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::plus (const BaseFab<T>& src, int srccomp, int destcomp, int numcomp) noexcept
 {
@@ -2401,6 +2428,7 @@ BaseFab<T>::plus (const BaseFab<T>& src, int srccomp, int destcomp, int numcomp)
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::atomicAdd (const BaseFab<T>& src, int srccomp, int destcomp, int numcomp) noexcept
 {
@@ -2410,6 +2438,7 @@ BaseFab<T>::atomicAdd (const BaseFab<T>& src, int srccomp, int destcomp, int num
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::plus (const BaseFab<T>& src, const Box& subbox, int srccomp, int destcomp,
                   int numcomp) noexcept
@@ -2418,6 +2447,7 @@ BaseFab<T>::plus (const BaseFab<T>& src, const Box& subbox, int srccomp, int des
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::atomicAdd (const BaseFab<T>& src, const Box& subbox, int srccomp, int destcomp,
                        int numcomp) noexcept
@@ -2429,6 +2459,7 @@ BaseFab<T>::atomicAdd (const BaseFab<T>& src, const Box& subbox, int srccomp, in
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::plus (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
                   int srccomp, int destcomp, int numcomp) noexcept
@@ -2462,6 +2493,7 @@ BaseFab<T>::plus (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::atomicAdd (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
                        int srccomp, int destcomp, int numcomp) noexcept
@@ -2495,6 +2527,7 @@ _Pragma("omp atomic update")
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::minus (const BaseFab<T>& src, int srccomp, int destcomp, int numcomp) noexcept
 {
@@ -2502,6 +2535,7 @@ BaseFab<T>::minus (const BaseFab<T>& src, int srccomp, int destcomp, int numcomp
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::minus (const BaseFab<T>& src, const Box& subbox, int srccomp, int destcomp, int numcomp) noexcept
 {
@@ -2509,6 +2543,7 @@ BaseFab<T>::minus (const BaseFab<T>& src, const Box& subbox, int srccomp, int de
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::minus (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
                    int srccomp, int destcomp, int numcomp) noexcept
@@ -2534,6 +2569,7 @@ BaseFab<T>::minus (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::mult (T r, int comp, int numcomp) noexcept
 {
@@ -2541,6 +2577,7 @@ BaseFab<T>::mult (T r, int comp, int numcomp) noexcept
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::mult (T r, const Box& b, int comp, int numcomp) noexcept
 {
@@ -2548,6 +2585,7 @@ BaseFab<T>::mult (T r, const Box& b, int comp, int numcomp) noexcept
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::mult (const BaseFab<T>& src, int srccomp, int destcomp, int numcomp) noexcept
 {
@@ -2555,6 +2593,7 @@ BaseFab<T>::mult (const BaseFab<T>& src, int srccomp, int destcomp, int numcomp)
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::mult (const BaseFab<T>& src, const Box& subbox, int srccomp, int destcomp, int numcomp) noexcept
 {
@@ -2562,6 +2601,7 @@ BaseFab<T>::mult (const BaseFab<T>& src, const Box& subbox, int srccomp, int des
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::mult (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
                   int srccomp, int destcomp, int numcomp) noexcept
@@ -2587,6 +2627,7 @@ BaseFab<T>::mult (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::divide (T r, int comp, int numcomp) noexcept
 {
@@ -2594,6 +2635,7 @@ BaseFab<T>::divide (T r, int comp, int numcomp) noexcept
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::divide (T r, const Box& b, int comp, int numcomp) noexcept
 {
@@ -2601,6 +2643,7 @@ BaseFab<T>::divide (T r, const Box& b, int comp, int numcomp) noexcept
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::divide (const BaseFab<T>& src, int srccomp, int destcomp, int numcomp) noexcept
 {
@@ -2608,6 +2651,7 @@ BaseFab<T>::divide (const BaseFab<T>& src, int srccomp, int destcomp, int numcom
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::divide (const BaseFab<T>& src, const Box& subbox, int srccomp, int destcomp, int numcomp) noexcept
 {
@@ -2615,6 +2659,7 @@ BaseFab<T>::divide (const BaseFab<T>& src, const Box& subbox, int srccomp, int d
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::divide (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
                     int srccomp, int destcomp, int numcomp) noexcept
@@ -2640,6 +2685,7 @@ BaseFab<T>::divide (const BaseFab<T>& src, const Box& srcbox, const Box& destbox
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::protected_divide (const BaseFab<T>& src) noexcept
 {
@@ -2649,6 +2695,7 @@ BaseFab<T>::protected_divide (const BaseFab<T>& src) noexcept
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::protected_divide (const BaseFab<T>& src, int srccomp, int destcomp, int numcomp) noexcept
 {
@@ -2658,6 +2705,7 @@ BaseFab<T>::protected_divide (const BaseFab<T>& src, int srccomp, int destcomp, 
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::protected_divide (const BaseFab<T>& src, const Box& subbox, int srccomp, int destcomp,
                               int numcomp) noexcept
@@ -2669,6 +2717,7 @@ BaseFab<T>::protected_divide (const BaseFab<T>& src, const Box& subbox, int srcc
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::protected_divide (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
                               int srccomp, int destcomp, int numcomp) noexcept
@@ -2707,6 +2756,7 @@ BaseFab<T>::protected_divide (const BaseFab<T>& src, const Box& srcbox, const Bo
 */
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::linInterp (const BaseFab<T>& f1, const Box& b1, int comp1,
                        const BaseFab<T>& f2, const Box& b2, int comp2,
@@ -2719,6 +2769,7 @@ BaseFab<T>::linInterp (const BaseFab<T>& f1, const Box& b1, int comp1,
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::linInterp (const BaseFab<T>& f1, int comp1,
                        const BaseFab<T>& f2, int comp2,
@@ -2745,6 +2796,7 @@ BaseFab<T>::linInterp (const BaseFab<T>& f1, int comp1,
 //
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 void
 BaseFab<T>::setVal (T val) noexcept
 {
@@ -2752,6 +2804,7 @@ BaseFab<T>::setVal (T val) noexcept
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 void
 BaseFab<T>::setVal (T x, Box const& bx, DestComp dcomp, NumComps ncomp) noexcept
 {
@@ -2765,6 +2818,7 @@ BaseFab<T>::setVal (T x, Box const& bx, DestComp dcomp, NumComps ncomp) noexcept
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 void
 BaseFab<T>::setValIf (T val, const BaseFab<int>& mask) noexcept
 {
@@ -2772,6 +2826,7 @@ BaseFab<T>::setValIf (T val, const BaseFab<int>& mask) noexcept
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 void
 BaseFab<T>::setValIf (T val, Box const& bx, const BaseFab<int>& mask, DestComp dcomp, NumComps ncomp) noexcept
 {
@@ -2786,6 +2841,7 @@ BaseFab<T>::setValIf (T val, Box const& bx, const BaseFab<int>& mask, DestComp d
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 void
 BaseFab<T>::setValIfNot (T val, const BaseFab<int>& mask) noexcept
 {
@@ -2793,6 +2849,7 @@ BaseFab<T>::setValIfNot (T val, const BaseFab<int>& mask) noexcept
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 void
 BaseFab<T>::setValIfNot (T val, Box const& bx, const BaseFab<int>& mask, DestComp dcomp, NumComps ncomp) noexcept
 {
@@ -2817,6 +2874,7 @@ BaseFab<T>::setComplement (T x, const Box& bx, DestComp dcomp, NumComps ncomp) n
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::copy (const BaseFab<T>& src) noexcept
 {
@@ -2825,6 +2883,7 @@ BaseFab<T>::copy (const BaseFab<T>& src) noexcept
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::copy (const BaseFab<T>& src, Box bx,
                   SrcComp scomp, DestComp dcomp, NumComps ncomp) noexcept
@@ -2846,6 +2905,7 @@ BaseFab<T>::copy (const BaseFab<T>& src, Box bx,
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::plus (T val) noexcept
 {
@@ -2853,6 +2913,7 @@ BaseFab<T>::plus (T val) noexcept
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::operator+= (T val) noexcept
 {
@@ -2860,6 +2921,7 @@ BaseFab<T>::operator+= (T val) noexcept
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::plus (T val, Box const& bx, DestComp dcomp, NumComps ncomp) noexcept
 {
@@ -2875,6 +2937,7 @@ BaseFab<T>::plus (T val, Box const& bx, DestComp dcomp, NumComps ncomp) noexcept
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::plus (const BaseFab<T>& src) noexcept
 {
@@ -2882,6 +2945,7 @@ BaseFab<T>::plus (const BaseFab<T>& src) noexcept
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::operator+= (const BaseFab<T>& src) noexcept
 {
@@ -2889,6 +2953,7 @@ BaseFab<T>::operator+= (const BaseFab<T>& src) noexcept
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::plus (const BaseFab<T>& src, Box bx,
                   SrcComp scomp, DestComp dcomp, NumComps ncomp) noexcept
@@ -2910,6 +2975,7 @@ BaseFab<T>::plus (const BaseFab<T>& src, Box bx,
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::minus (T val) noexcept
 {
@@ -2917,6 +2983,7 @@ BaseFab<T>::minus (T val) noexcept
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::operator-= (T val) noexcept
 {
@@ -2924,6 +2991,7 @@ BaseFab<T>::operator-= (T val) noexcept
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::minus (T val, Box const& bx, DestComp dcomp, NumComps ncomp) noexcept
 {
@@ -2939,6 +3007,7 @@ BaseFab<T>::minus (T val, Box const& bx, DestComp dcomp, NumComps ncomp) noexcep
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::minus (const BaseFab<T>& src) noexcept
 {
@@ -2946,6 +3015,7 @@ BaseFab<T>::minus (const BaseFab<T>& src) noexcept
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::operator-= (const BaseFab<T>& src) noexcept
 {
@@ -2953,6 +3023,7 @@ BaseFab<T>::operator-= (const BaseFab<T>& src) noexcept
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::minus (const BaseFab<T>& src, Box bx,
                    SrcComp scomp, DestComp dcomp, NumComps ncomp) noexcept
@@ -2974,6 +3045,7 @@ BaseFab<T>::minus (const BaseFab<T>& src, Box bx,
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::mult (T val) noexcept
 {
@@ -2981,6 +3053,7 @@ BaseFab<T>::mult (T val) noexcept
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::operator*= (T val) noexcept
 {
@@ -2988,6 +3061,7 @@ BaseFab<T>::operator*= (T val) noexcept
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::mult (T val, Box const& bx, DestComp dcomp, NumComps ncomp) noexcept
 {
@@ -3003,6 +3077,7 @@ BaseFab<T>::mult (T val, Box const& bx, DestComp dcomp, NumComps ncomp) noexcept
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::mult (const BaseFab<T>& src) noexcept
 {
@@ -3010,6 +3085,7 @@ BaseFab<T>::mult (const BaseFab<T>& src) noexcept
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::operator*= (const BaseFab<T>& src) noexcept
 {
@@ -3017,6 +3093,7 @@ BaseFab<T>::operator*= (const BaseFab<T>& src) noexcept
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::mult (const BaseFab<T>& src, Box bx,
                   SrcComp scomp, DestComp dcomp, NumComps ncomp) noexcept
@@ -3038,6 +3115,7 @@ BaseFab<T>::mult (const BaseFab<T>& src, Box bx,
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::divide (T val) noexcept
 {
@@ -3045,6 +3123,7 @@ BaseFab<T>::divide (T val) noexcept
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::operator/= (T val) noexcept
 {
@@ -3052,6 +3131,7 @@ BaseFab<T>::operator/= (T val) noexcept
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::divide (T val, Box const& bx, DestComp dcomp, NumComps ncomp) noexcept
 {
@@ -3067,6 +3147,7 @@ BaseFab<T>::divide (T val, Box const& bx, DestComp dcomp, NumComps ncomp) noexce
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::divide (const BaseFab<T>& src) noexcept
 {
@@ -3074,6 +3155,7 @@ BaseFab<T>::divide (const BaseFab<T>& src) noexcept
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::operator/= (const BaseFab<T>& src) noexcept
 {
@@ -3081,6 +3163,7 @@ BaseFab<T>::operator/= (const BaseFab<T>& src) noexcept
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::divide (const BaseFab<T>& src, Box bx,
                     SrcComp scomp, DestComp dcomp, NumComps ncomp) noexcept
@@ -3102,6 +3185,7 @@ BaseFab<T>::divide (const BaseFab<T>& src, Box bx,
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::negate () noexcept
 {
@@ -3109,6 +3193,7 @@ BaseFab<T>::negate () noexcept
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::negate (const Box& bx, DestComp dcomp, NumComps ncomp) noexcept
 {
@@ -3124,6 +3209,7 @@ BaseFab<T>::negate (const Box& bx, DestComp dcomp, NumComps ncomp) noexcept
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::invert (T r) noexcept
 {
@@ -3131,6 +3217,7 @@ BaseFab<T>::invert (T r) noexcept
 }
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>&
 BaseFab<T>::invert (T r, const Box& bx, DestComp dcomp, NumComps ncomp) noexcept
 {
