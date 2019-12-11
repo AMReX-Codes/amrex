@@ -5,7 +5,7 @@
 
 namespace amrex {
 
-#ifdef BL_USE_MPI    
+#ifdef AMREX_USE_MPI    
     
     long CountSnds(const std::map<int, Vector<char> >& not_ours, Vector<long>& Snds)
     {
@@ -89,6 +89,6 @@ namespace amrex {
         
         return NumSnds;
     }
-#endif  // BL_USE_MPI
+#endif  // AMREX_USE_MPI
 
 }

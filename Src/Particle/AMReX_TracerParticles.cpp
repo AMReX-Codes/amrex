@@ -106,13 +106,13 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
     {
         Real stoptime = amrex::second() - strttime;
 
-#ifdef BL_LAZY
+#ifdef AMREX_LAZY
 	Lazy::QueueReduction( [=] () mutable {
 #endif
         ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
 
         amrex::Print() << "TracerParticleContainer::AdvectWithUmac() time: " << stoptime << '\n';
-#ifdef BL_LAZY
+#ifdef AMREX_LAZY
 	});
 #endif
     }
@@ -185,13 +185,13 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
     {
         Real stoptime = amrex::second() - strttime;
 
-#ifdef BL_LAZY
+#ifdef AMREX_LAZY
 	Lazy::QueueReduction( [=] () mutable {
 #endif
         ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
 
         amrex::Print() << "TracerParticleContainer::AdvectWithUcc() time: " << stoptime << '\n';
-#ifdef BL_LAZY
+#ifdef AMREX_LAZY
 	});
 #endif
     }
@@ -353,12 +353,12 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
     {
         Real stoptime = amrex::second() - strttime;
 
-#ifdef BL_LAZY
+#ifdef AMREX_LAZY
         Lazy::QueueReduction( [=] () mutable {
 #endif
         ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
         amrex::Print() << "TracerParticleContainer::Timestamp: lev: " << lev << " time: " << stoptime << '\n';
-#ifdef BL_LAZY
+#ifdef AMREX_LAZY
         });
 #endif
     }
