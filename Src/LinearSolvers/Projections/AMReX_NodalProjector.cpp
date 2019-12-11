@@ -177,10 +177,10 @@ NodalProjector::project ( const amrex::Vector<amrex::MultiFab*>&       a_vel,
         m_linop -> setSigma(lev, *a_sigma[lev]);
 
     // Solve
-    m_solver -> solve( GetVecOfPtrs(m_phi), GetVecOfConstPtrs(m_rhs), m_rtol, m_atol );
+    m_mlmg -> solve( GetVecOfPtrs(m_phi), GetVecOfConstPtrs(m_rhs), m_rtol, m_atol );
 
     // Get fluxes -- fluxes = - sigma*grad(phi)
-    m_solver -> getFluxes( GetVecOfPtrs(m_fluxes) );
+    m_mlmg -> getFluxes( GetVecOfPtrs(m_fluxes) );
 
     // Perform projection
     for (int lev(0); lev < m_phi.size(); ++lev)
@@ -264,10 +264,10 @@ NodalProjector::project2 ( const amrex::Vector<amrex::MultiFab*>&       a_vel,
     }
 
     // Solve
-    m_solver -> solve( GetVecOfPtrs(m_phi), GetVecOfConstPtrs(a_rhs), m_rtol, m_atol );
+    m_mlmg -> solve( GetVecOfPtrs(m_phi), GetVecOfConstPtrs(a_rhs), m_rtol, m_atol );
 
     // Get fluxes -- fluxes = -  (alpha/beta) * grad(phi)
-    m_solver -> getFluxes( GetVecOfPtrs(m_fluxes) );
+    m_mlmg -> getFluxes( GetVecOfPtrs(m_fluxes) );
 
     // Perform projection
     for (int lev(0); lev < m_phi.size(); ++lev)
@@ -306,7 +306,7 @@ NodalProjector::readParameters ()
     pp.query( "atol"          , m_atol );
     pp.query( "bottom_rtol"   , m_bottom_rtol );
     pp.query( "bottom_atol"   , m_bottom_atol );
-    pp.query( "bottom_solver" , m_bottom_solver );
+    pp.query( "bottom_mlmg" , m_bottom_mlmg );
 }
 
 
@@ -344,43 +344,43 @@ NodalProjector::setup ()
     //
     // Setup solver
     //
-    m_solver.reset(new MLMG(*m_linop));
+    m_mlmg.reset(new MLMG(*m_linop));
 
-    if (m_bottom_solver == "smoother")
+    if (m_bottom_mlmg == "smoother")
     {
-        m_solver->setBottomSolver(MLMG::BottomSolver::smoother);
+        m_mlmg->setBottomSolver(MLMG::BottomSolver::smoother);
     }
-    else if (m_bottom_solver == "bicg")
+    else if (m_bottom_mlmg == "bicg")
     {
-        m_solver->setBottomSolver(MLMG::BottomSolver::bicgstab);
+        m_mlmg->setBottomSolver(MLMG::BottomSolver::bicgstab);
     }
-    else if (m_bottom_solver == "cg")
+    else if (m_bottom_mlmg == "cg")
     {
-        m_solver->setBottomSolver(MLMG::BottomSolver::cg);
+        m_mlmg->setBottomSolver(MLMG::BottomSolver::cg);
     }
-    else if (m_bottom_solver == "bicgcg")
+    else if (m_bottom_mlmg == "bicgcg")
     {
-        m_solver->setBottomSolver(MLMG::BottomSolver::bicgcg);
+        m_mlmg->setBottomSolver(MLMG::BottomSolver::bicgcg);
     }
-    else if (m_bottom_solver == "cgbicg")
+    else if (m_bottom_mlmg == "cgbicg")
     {
-        m_solver->setBottomSolver(MLMG::BottomSolver::cgbicg);
+        m_mlmg->setBottomSolver(MLMG::BottomSolver::cgbicg);
     }
-    else if (m_bottom_solver == "hypre")
+    else if (m_bottom_mlmg == "hypre")
     {
 #ifdef AMREX_USE_HYPRE
-        m_solver->setBottomSolver(MLMG::BottomSolver::hypre);
+        m_mlmg->setBottomSolver(MLMG::BottomSolver::hypre);
 #else
         amrex::Abort("AMReX was not built with HYPRE support");
 #endif
     }
 
-    m_solver->setVerbose(m_verbose);
-    m_solver->setBottomVerbose(m_bottom_verbose);
-    m_solver->setMaxIter(m_maxiter);
-    m_solver->setBottomMaxIter(m_bottom_maxiter);
-    m_solver->setBottomTolerance(m_bottom_rtol);
-    m_solver->setBottomToleranceAbs(m_bottom_atol);
+    m_mlmg->setVerbose(m_verbose);
+    m_mlmg->setBottomVerbose(m_bottom_verbose);
+    m_mlmg->setMaxIter(m_maxiter);
+    m_mlmg->setBottomMaxIter(m_bottom_maxiter);
+    m_mlmg->setBottomTolerance(m_bottom_rtol);
+    m_mlmg->setBottomToleranceAbs(m_bottom_atol);
 
 }
 
