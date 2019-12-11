@@ -1,6 +1,5 @@
 import numpy as np
 from pywarpx import picmi
-import pywarpx
 #from warp import picmi
 
 constants = picmi.constants
@@ -52,7 +51,7 @@ beam = picmi.Species(particle_type='electron', name='beam', initial_distribution
 plasma = picmi.Species(particle_type='electron', name='plasma', initial_distribution=plasma_distribution)
 
 sim = picmi.Simulation(solver = solver,
-                       max_steps = 10,
+                       max_steps = 2,
                        verbose = 1,
                        warpx_plot_int = 2,
                        warpx_current_deposition_algo = 'esirkepov')
