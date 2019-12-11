@@ -90,7 +90,7 @@ public:
     void setBottomVerbose      (int  v) noexcept { m_bottom_verbose = v; }
 
     // Methods to control MLMG behavior
-    void setBottomSolver  (std::string b) noexcept { m_bottom_solver = b;}
+    void setBottomSolver  (std::string b) noexcept { m_bottom_mlmg = b;}
     void setMaxIter               (int i) noexcept { m_maxiter = i; }
     void setBottomMaxIter         (int i) noexcept { m_bottom_maxiter = i; }
     void setTolerance            (Real t) noexcept { m_rtol = t; }
@@ -107,7 +107,7 @@ private:
     int  m_bottom_verbose = 0;
 
     // Control MLMG behavior
-    std::string m_bottom_solver = "bicgcg";
+    std::string m_bottom_mlmg = "bicgcg";
     int  m_maxiter        = 100;
     int  m_bottom_maxiter = 100;
     Real m_rtol           = 1.0e-11;
@@ -139,7 +139,7 @@ private:
     std::unique_ptr< MLNodeLaplacian > m_linop;
 
     // Solver
-    std::unique_ptr< MLMG > m_solver;
+    std::unique_ptr< MLMG > m_mlmg;
 
     void readParameters ();
 
