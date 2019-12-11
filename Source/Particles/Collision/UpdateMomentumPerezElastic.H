@@ -64,10 +64,11 @@ void UpdateMomentumPerezElastic (
     T_R p1sz;
     if ( vcms > std::numeric_limits<T_R>::min() )
     {
-        T_R const buf = ( (gc-T_R(1.0))/vcms*vcDv1 - gc )*m1*g1;
-        p1sx = p1x + buf*vcx;
-        p1sy = p1y + buf*vcy;
-        p1sz = p1z + buf*vcz;
+        T_R const lorentz_tansform_factor =
+            ( (gc-T_R(1.0))/vcms*vcDv1 - gc )*m1*g1;
+        p1sx = p1x + vcx*lorentz_tansform_factor;
+        p1sy = p1y + vcy*lorentz_tansform_factor;
+        p1sz = p1z + vcz*lorentz_tansform_factor;
     }
     else // If vcms = 0, don't do Lorentz-transform.
     {
@@ -225,15 +226,15 @@ void UpdateMomentumPerezElastic (
     {
         T_R const vcDp1fs = vcx*p1fsx + vcy*p1fsy + vcz*p1fsz;
         T_R const vcDp2fs = vcx*p2fsx + vcy*p2fsy + vcz*p2fsz;
-        T_R const buf = (gc-T_R(1.0))/vcms;
-        T_R const buf1 = buf*vcDp1fs + m1*g1s*gc;
-        T_R const buf2 = buf*vcDp2fs + m2*g2s*gc;
-        p1fx = p1fsx + vcx * buf1;
-        p1fy = p1fsy + vcy * buf1;
-        p1fz = p1fsz + vcz * buf1;
-        p2fx = p2fsx + vcx * buf2;
-        p2fy = p2fsy + vcy * buf2;
-        p2fz = p2fsz + vcz * buf2;
+        T_R const factor = (gc-T_R(1.0))/vcms;
+        T_R const factor1 = factor*vcDp1fs + m1*g1s*gc;
+        T_R const factor2 = factor*vcDp2fs + m2*g2s*gc;
+        p1fx = p1fsx + vcx * factor1;
+        p1fy = p1fsy + vcy * factor1;
+        p1fz = p1fsz + vcz * factor1;
+        p2fx = p2fsx + vcx * factor2;
+        p2fy = p2fsy + vcy * factor2;
+        p2fz = p2fsz + vcz * factor2;
     }
     else // If vcms = 0, don't do Lorentz-transform.
     {
