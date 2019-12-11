@@ -206,13 +206,14 @@ endif
 ifeq ($(USE_HIP),TRUE)
   HIP_PLATFORM = $(shell hipconfig --compiler)
   ifeq ($(HIP_PLATFORM),nvcc)
-    CUDA_ARCH ?= 60
-    CUDA_MAX_THREADS ?= 256
-    CUDA_MAXREGCOUNT ?= 255
+  $(error HIP_PLATFORM nvcc is not supported at this time. Use USE_CUDA to compile for NVIDIA platforms.)
+#    CUDA_ARCH ?= 60
+#    CUDA_MAX_THREADS ?= 256
+#    CUDA_MAXREGCOUNT ?= 255
   else ifeq ($(HIP_PLATFORM),hcc)
 # do nothing special for now, but also don't abort
   else
-    $(error HIP_PLATFORM must be nvcc or hcc)
+    $(error only HIP_PLATFORM=hcc is supported)
   endif
 endif
 
@@ -577,7 +578,8 @@ ifeq ($(USE_HIP),TRUE)
     DEFINES += -DAMREX_USE_HIP
 
     ifeq ($(HIP_PLATFORM),nvcc)
-        DEFINES += -DAMREX_USE_CUDA -DAMREX_HIP_PLATFORM_NVCC
+        $(error HIP_PLATFORM nvcc is not supported at this time. Use USE_CUDA to compile for NVIDIA platforms.)
+ #       DEFINES += -DAMREX_USE_CUDA -DAMREX_HIP_PLATFORM_NVCC
     else ifeq ($(HIP_PLATFORM),hcc)
         DEFINES += -DAMREX_HIP_PLATFORM_HCC
     endif
