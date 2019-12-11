@@ -174,7 +174,7 @@ NodalProjector::project ( const amrex::Vector<amrex::MultiFab*>&       a_vel,
 
     // Set matrix coefficients
     for (int lev(0); lev < a_sigma.size(); ++lev)
-        m_matrix -> setSigma(lev, *a_sigma[lev]);
+        m_linop -> setSigma(lev, *a_sigma[lev]);
 
     // Solve
     m_solver -> solve( GetVecOfPtrs(m_phi), GetVecOfConstPtrs(m_rhs), m_rtol, m_atol );
@@ -260,7 +260,7 @@ NodalProjector::project2 ( const amrex::Vector<amrex::MultiFab*>&       a_vel,
         MultiFab::Copy(*sigma[lev],*a_alpha[lev],0,0,1,0);
         MultiFab::Divide(*sigma[lev],*a_beta[lev],0,0,1,0);
 
-        m_matrix -> setSigma(lev, *sigma[lev]);
+        m_linop -> setSigma(lev, *sigma[lev]);
     }
 
     // Solve
@@ -332,19 +332,19 @@ NodalProjector::setup ()
     // Setup Matrix
     //
 #ifdef AMREX_USE_EB
-    m_matrix.reset(new MLNodeLaplacian(m_geom, m_grids, m_dmap, m_lpinfo, m_ebfactory));
+    m_linop.reset(new MLNodeLaplacian(m_geom, m_grids, m_dmap, m_lpinfo, m_ebfactory));
 #else
-    m_matrix.reset(new MLNodeLaplacian(m_geom, m_grids, m_dmap, m_lpinfo));
+    m_linop.reset(new MLNodeLaplacian(m_geom, m_grids, m_dmap, m_lpinfo));
 #endif
 
-    m_matrix->setGaussSeidel(true);
-    m_matrix->setHarmonicAverage(false);
-    m_matrix->setDomainBC(m_bc_lo, m_bc_hi);
+    m_linop->setGaussSeidel(true);
+    m_linop->setHarmonicAverage(false);
+    m_linop->setDomainBC(m_bc_lo, m_bc_hi);
 
     //
     // Setup solver
     //
-    m_solver.reset(new MLMG(*m_matrix));
+    m_solver.reset(new MLMG(*m_linop));
 
     if (m_bottom_solver == "smoother")
     {
@@ -418,7 +418,7 @@ NodalProjector::computeRHS (  const amrex::Vector<amrex::MultiFab*>&       a_rhs
             AMREX_ALWAYS_ASSERT_WITH_MESSAGE(a_S_nd[lev]->ixType().nodeCentered(),"a_S_nd is not node centered");
     }
 
-    m_matrix -> compRHS( a_rhs, a_vel, a_S_nd, a_S_cc );
+    m_linop -> compRHS( a_rhs, a_vel, a_S_nd, a_S_cc );
 }
 
 

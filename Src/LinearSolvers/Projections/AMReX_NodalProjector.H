@@ -136,7 +136,7 @@ private:
     Vector< std::unique_ptr< MultiFab > >  m_rhs;
 
     // Linear operator
-    std::unique_ptr< MLNodeLaplacian > m_matrix;
+    std::unique_ptr< MLNodeLaplacian > m_linop;
 
     // Solver
     std::unique_ptr< MLMG > m_solver;
