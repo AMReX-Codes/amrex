@@ -138,7 +138,7 @@ MacProjector::project (Real reltol, Real atol, MLMG::Location loc)
 #endif
         MultiFab::Subtract(m_rhs[ilev], divu, 0, 0, 1, 0);
     }
-    amrex::Print() << "norm1(RHS) = " << m_rhs[0].norm1(0,0,false) << std::endl;
+
     m_mlmg->solve(amrex::GetVecOfPtrs(m_phi), amrex::GetVecOfConstPtrs(m_rhs), reltol, atol);
 
     m_mlmg->getFluxes(amrex::GetVecOfArrOfPtrs(m_fluxes), loc);
