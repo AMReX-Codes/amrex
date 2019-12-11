@@ -830,7 +830,7 @@ MLCellLinOp::xdoty (int amrlev, int mglev, const MultiFab& x, const MultiFab& y,
     const int nghost = 0;
     Real result = MultiFab::Dot(x,0,y,0,ncomp,nghost,true);
     if (!local) {
-        ParallelAllReduce::Sum(result, Communicator(amrlev, mglev));
+        ParallelAllReduce::Sum(result, ParallelContext::CommunicatorSub());
     }
     return result;
 }
