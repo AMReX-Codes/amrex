@@ -2,6 +2,7 @@
 #define WARPX_PARTICLES_COLLISION_ELASTIC_COLLISION_PEREZ_H_
 
 #include "UpdateMomentumPerezElastic.H"
+#include "ComputeTemperature.H"
 #include <WarpXConst.H>
 #include <AMReX_Random.H>
 
@@ -48,52 +49,12 @@ void ElasticCollisionPerez (
     T_R T1t; T_R T2t;
     if ( T1 <= 0. && L <= 0. )
     {
-        T_R vx = 0.; T_R vy = 0.;
-        T_R vz = 0.; T_R vs = 0.;
-        T_R gm = 0.; T_R us = 0.;
-        for (int i1 = I1s; i1 < I1e; ++i1)
-        {
-            us = ( u1x[ I1[i1] ] * u1x[ I1[i1] ] +
-                   u1y[ I1[i1] ] * u1y[ I1[i1] ] +
-                   u1z[ I1[i1] ] * u1z[ I1[i1] ] );
-            gm = std::sqrt(T_R(1.)+us*inv_c2);
-            vx += u1x[ I1[i1] ] / gm;
-            vy += u1y[ I1[i1] ] / gm;
-            vz += u1z[ I1[i1] ] / gm;
-            vs += us / gm / gm;
-        }
-        if ( NI1 == 0 ) { T1t = 0.; }
-        else
-        {
-            vx = vx / NI1; vy = vy / NI1;
-            vz = vz / NI1; vs = vs / NI1;
-            T1t = m1/T_R(3.)*(vs-(vx*vx+vy*vy+vz*vz));
-        }
+        T1t = ComputeTemperature(I1s,I1e,I1,u1x,u1y,u1z,m1);
     }
     else { T1t = T1; }
     if ( T2 <= 0. && L <= 0. )
     {
-        T_R vx = 0.; T_R vy = 0.;
-        T_R vz = 0.; T_R vs = 0.;
-        T_R gm = 0.; T_R us = 0.;
-        for (int i2 = I2s; i2 < I2e; ++i2)
-        {
-          us = ( u2x[ I2[i2] ] * u2x[ I2[i2] ] +
-                 u2y[ I2[i2] ] * u2y[ I2[i2] ] +
-                 u2z[ I2[i2] ] * u2z[ I2[i2] ] );
-          gm = std::sqrt(T_R(1.)+us*inv_c2);
-          vx += u2x[ I2[i2] ] / gm;
-          vy += u2y[ I2[i2] ] / gm;
-          vz += u2z[ I2[i2] ] / gm;
-          vs += us / gm / gm;
-        }
-        if ( NI2 == 0 ) { T2t = 0.; }
-        else
-        {
-            vx = vx / NI2; vy = vy / NI2;
-            vz = vz / NI2; vs = vs / NI2;
-            T2t = m2/T_R(3.)*(vs-(vx*vx+vy*vy+vz*vz));
-        }
+        T2t = ComputeTemperature(I2s,I2e,I2,u2x,u2y,u2z,m2);
     }
     else { T2t = T2; }
 

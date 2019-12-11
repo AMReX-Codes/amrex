@@ -2,6 +2,7 @@ CEXE_headers += CollisionType.H
 CEXE_headers += ElasticCollisionPerez.H
 CEXE_headers += ShuffleFisherYates.H
 CEXE_headers += UpdateMomentumPerezElastic.H
+CEXE_headers += ComputeTemperature.H
 
 CEXE_sources += CollisionType.cpp
 
