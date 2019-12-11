@@ -1,5 +1,5 @@
-#ifndef BL_PARTICLEINIT_H
-#define BL_PARTICLEINIT_H
+#ifndef AMREX_PARTICLEINIT_H
+#define AMREX_PARTICLEINIT_H
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
@@ -1404,4 +1404,4 @@ InitNRandomPerCell (int n_per_cell, const ParticleInitData& pdata)
 
     Gpu::streamSynchronize();
 }
-#endif /*BL_PARTICLEINIT_H*/
+#endif /*AMREX_PARTICLEINIT_H*/
