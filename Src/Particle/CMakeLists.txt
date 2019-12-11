@@ -23,7 +23,7 @@ target_sources( amrex
    AMReX_ParticleContainerI.H
    AMReX_LoadBalanceKD.H
    AMReX_KDTree_F.H
-   AMReX_ParIterI.H
+   AMReX_ParIter.H
    AMReX_ParticleMPIUtil.H
    AMReX_ParticleUtil.H
    AMReX_ParticleUtil.cpp

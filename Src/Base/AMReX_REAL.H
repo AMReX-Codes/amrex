@@ -57,7 +57,7 @@ typedef double amrex_real;
 #define AMREX_REAL_LOWEST -DBL_MAX
 #endif
 
-#ifdef BL_SINGLE_PRECISION_PARTICLES
+#ifdef AMREX_SINGLE_PRECISION_PARTICLES
 typedef float amrex_particle_real;
 #else
 typedef double amrex_particle_real;

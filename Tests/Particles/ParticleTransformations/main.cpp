@@ -140,6 +140,47 @@ struct Transformer
     }
 };
 
+struct TwoWayTransformer
+{    
+    int m_factor1;
+    int m_factor2;
+
+    /**
+       \brief This copies the particle but multiplies all the idata by a factor,
+       placing the result in both dst1 and dst2;
+       *
+     **/
+    TwoWayTransformer (int a_factor1, int a_factor2)
+        : m_factor1(a_factor1), m_factor2(a_factor2)
+    {}
+
+    template <typename DstData, typename SrcData>
+    AMREX_GPU_HOST_DEVICE
+    void operator() (const DstData& dst1, const DstData& dst2, const SrcData& src,
+                     int src_i, int dst1_i, int dst2_i) const noexcept
+    {
+        dst1.m_aos[dst1_i] = src.m_aos[src_i];
+        for (int j = 0; j < DstData::NAR; ++j)
+            dst1.m_rdata[j][dst1_i] = src.m_rdata[j][src_i];
+        for (int j = 0; j < dst1.m_num_runtime_real; ++j)
+            dst1.m_runtime_rdata[j][dst1_i] = src.m_runtime_rdata[j][src_i];
+        for (int j = 0; j < DstData::NAI; ++j)
+            dst1.m_idata[j][dst1_i] = m_factor1*src.m_idata[j][src_i];
+        for (int j = 0; j < dst1.m_num_runtime_int; ++j)
+            dst1.m_runtime_idata[j][dst1_i] = src.m_runtime_idata[j][src_i];
+
+        dst2.m_aos[dst2_i] = src.m_aos[src_i];
+        for (int j = 0; j < DstData::NAR; ++j)
+            dst2.m_rdata[j][dst2_i] = src.m_rdata[j][src_i];
+        for (int j = 0; j < dst2.m_num_runtime_real; ++j)
+            dst2.m_runtime_rdata[j][dst2_i] = src.m_runtime_rdata[j][src_i];
+        for (int j = 0; j < DstData::NAI; ++j)
+            dst2.m_idata[j][dst2_i] = m_factor2*src.m_idata[j][src_i];
+        for (int j = 0; j < dst2.m_num_runtime_int; ++j)
+            dst2.m_runtime_idata[j][dst2_i] = src.m_runtime_idata[j][src_i];
+    }
+};
+
 struct KeepOddFilter
 {    
     template <typename SrcData>
@@ -181,6 +222,63 @@ void transformParticles (PC& pc, F&& f)
             ptile.swap(ptile_tmp);
         }
     }
+}
+
+template <typename PC, typename F>
+void twoWayTransformParticles (PC& dst1, PC& dst2, const PC& src, F&& f)
+{
+    BL_PROFILE("twoWayTransformParticles");
+
+    using ParIter = typename PC::ParConstIterType;
+
+    for (int lev = 0; lev <= src.finestLevel(); ++lev)
+    {
+        for(ParIter pti(src, lev); pti.isValid(); ++pti)
+        {
+            auto& ptile_src = src.ParticlesAt(lev, pti);
+            auto& ptile_dst1 = dst1.DefineAndReturnParticleTile(lev, pti);
+            auto& ptile_dst2 = dst2.DefineAndReturnParticleTile(lev, pti);
+            
+            ptile_dst1.resize(ptile_src.size());
+            ptile_dst2.resize(ptile_src.size());
+            
+            amrex::transformParticles(ptile_dst1, ptile_dst2, ptile_src, std::forward<F>(f));
+        }
+    }
+}
+
+template <typename PC>
+void testTwoWayTransform (const PC& pc)
+{
+    using PType = typename PC::SuperParticleType;
+
+    PC pc1(pc.Geom(0), pc.ParticleDistributionMap(0), pc.ParticleBoxArray(0));
+    pc1.copyParticles(pc);
+
+    auto np_old = pc1.TotalNumberOfParticles();
+    
+    PC pc2(pc.Geom(0), pc.ParticleDistributionMap(0), pc.ParticleBoxArray(0));
+    PC pc3(pc.Geom(0), pc.ParticleDistributionMap(0), pc.ParticleBoxArray(0));
+    
+    twoWayTransformParticles(pc2, pc3, pc1, TwoWayTransformer(2, 3));
+
+    auto mx1 = amrex::ReduceMax(pc1, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> int { return p.idata(NSI+1); });
+
+    auto mx2 = amrex::ReduceMax(pc2, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> int { return p.idata(NSI+1); });
+
+    AMREX_ALWAYS_ASSERT(2*mx1 == mx2);
+
+    auto np_new = pc2.TotalNumberOfParticles();
+
+    AMREX_ALWAYS_ASSERT(np_old == np_new);
+    
+    auto mx3 = amrex::ReduceMax(pc3, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> int { return p.idata(NSI+1); });
+
+    AMREX_ALWAYS_ASSERT(mx3 == 3*mx1);
+
+    np_new = pc3.TotalNumberOfParticles();
+
+    AMREX_ALWAYS_ASSERT(np_old == np_new);    
 }
 
 template <typename PC, typename F>
@@ -227,6 +325,34 @@ void filterAndTransformParticles (PC& pc, Pred&& p, F&& f)
             auto num_output = amrex::filterAndTransformParticles(ptile_tmp, ptile, std::forward<Pred>(p), std::forward<F>(f));
             ptile.swap(ptile_tmp);
             ptile.resize(num_output);
+        }
+    }
+}
+
+template <typename PC, typename Pred, typename F>
+void twoWayFilterAndTransformParticles (PC& dst1, PC& dst2, const PC& src, Pred&& p, F&& f)
+{
+    BL_PROFILE("twoWayFilterAndTransformParticles");
+
+    using ParIter = typename PC::ParConstIterType;    
+    for (int lev = 0; lev <= src.finestLevel(); ++lev)
+    {
+        for(ParIter pti(src, lev); pti.isValid(); ++pti)
+        {
+            auto& ptile_src = src.ParticlesAt(lev, pti);
+            auto& ptile_dst1 = dst1.DefineAndReturnParticleTile(lev, pti);
+            auto& ptile_dst2 = dst2.DefineAndReturnParticleTile(lev, pti);
+            
+            ptile_dst1.resize(ptile_src.size());
+            ptile_dst2.resize(ptile_src.size());
+            
+            auto num_output = amrex::filterAndTransformParticles(ptile_dst1,
+                                                                 ptile_dst2,
+                                                                 ptile_src,
+                                                                 std::forward<Pred>(p),
+                                                                 std::forward<F>(f));
+            ptile_dst1.resize(num_output);
+            ptile_dst2.resize(num_output);
         }
     }
 }
@@ -322,6 +448,36 @@ void testFilterAndTransform (const PC& pc)
     AMREX_ALWAYS_ASSERT(mx2 == 3*mx1);
 }
 
+template <typename PC>
+void testTwoWayFilterAndTransform (const PC& pc)
+{
+    using PType = typename PC::SuperParticleType;
+
+    PC pc1(pc.Geom(0), pc.ParticleDistributionMap(0), pc.ParticleBoxArray(0));
+    pc1.copyParticles(pc);
+
+    auto np_old = pc1.TotalNumberOfParticles();
+    
+    PC pc2(pc.Geom(0), pc.ParticleDistributionMap(0), pc.ParticleBoxArray(0));
+    PC pc3(pc.Geom(0), pc.ParticleDistributionMap(0), pc.ParticleBoxArray(0));
+    
+    twoWayFilterAndTransformParticles(pc2, pc3, pc1, KeepEvenFilter(), TwoWayTransformer(2, 3));
+    
+    auto mx1 = amrex::ReduceMax(pc1, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> int { return p.idata(NSI+1); });
+
+    auto mx2 = amrex::ReduceMax(pc2, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> int { return p.idata(NSI+1); });
+
+    auto mx3 = amrex::ReduceMax(pc3, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> int { return p.idata(NSI+1); });
+    
+    auto np_new2 = pc2.TotalNumberOfParticles();
+    auto np_new3 = pc2.TotalNumberOfParticles();
+    
+    AMREX_ALWAYS_ASSERT(2*np_new2 == np_old);
+    AMREX_ALWAYS_ASSERT(2*np_new3 == np_old);
+    AMREX_ALWAYS_ASSERT(mx2 == 2*mx1);
+    AMREX_ALWAYS_ASSERT(mx3 == 3*mx1);
+}
+
 struct TestParams
 {
     IntVect size;
@@ -391,6 +547,10 @@ void testTransformations ()
     testFilter(pc);
 
     testFilterAndTransform(pc);
+
+    testTwoWayTransform(pc);
+
+    testTwoWayFilterAndTransform(pc);
     
     amrex::Print() << "pass \n";
 }

@@ -9,29 +9,32 @@
 
 using namespace amrex;
 
-void lockingTest();
+void lockingTest(int num_draw);
 void blockCountingTest();
 
 int main (int argc, char* argv[])
 {
     amrex::Initialize(argc,argv);
     {
-    auto begin = std::chrono::high_resolution_clock::now();
-    amrex::Print() << "Testing using locks to do atomic adds \n";
-    for (int i = 0; i < 10; ++i)
-        lockingTest();
-    amrex::Print() << "Locking test passed! \n";
-    amrex::Print() << "Testing using locks to count the number of blocks a kernel was launched with \n";
-    for (int i = 0; i < 10; ++i)
-        blockCountingTest();
-    amrex::Print() << "Locking test passed! \n";
-    auto end = std::chrono::high_resolution_clock::now();
-    std::cout << "Execution Time: ";
-    std::cout << std::chrono::duration_cast<std::chrono::nanoseconds>(end-begin).count()
-	      << "ns" << std::endl;
+        int num_draw;
+        
+        ParmParse pp;        
+        pp.get("num_draw", num_draw);
+                    
+        auto begin = std::chrono::high_resolution_clock::now();
+        amrex::Print() << "Testing using locks to do atomic adds \n";
+        for (int i = 0; i < 10; ++i)
+            lockingTest(num_draw);
+        amrex::Print() << "Testing using locks to count the number of blocks a kernel was launched with \n";
+        for (int i = 0; i < 10; ++i)
+            blockCountingTest();
+        amrex::Print() << "Locking test passed! \n";
+        auto end = std::chrono::high_resolution_clock::now();
+        std::cout << "Execution Time: ";
+        std::cout << std::chrono::duration_cast<std::chrono::nanoseconds>(end-begin).count()
+                  << "ns" << std::endl;
     }
     amrex::Finalize();
-
 }
 
 AMREX_GPU_DEVICE
@@ -49,9 +52,8 @@ void addone(double volatile * num)
   amrex::free_state(tid);
 }
 
-void lockingTest ()
+void lockingTest (int Ndraw)
 {
-    int Ndraw= 1e7;
 #ifdef AMREX_USE_CUDA    
     Gpu::DeviceVector<double> d_xpos(Ndraw, 0.0);
     Gpu::DeviceVector<double> d_ypos(Ndraw, 0.0);

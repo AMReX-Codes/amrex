@@ -54,6 +54,12 @@ public:
     void compResidual (const Vector<MultiFab*>& a_res, const Vector<MultiFab*>& a_sol,
                        const Vector<MultiFab const*>& a_rhs);
 
+#ifdef AMREX_USE_EB
+    // Flux into the EB wall
+    void getEBFluxes (const Vector<MultiFab*>& a_eb_flux);
+    void getEBFluxes (const Vector<MultiFab*>& a_eb_flux, const Vector<MultiFab*> & a_sol);
+#endif
+
     /**
     * \brief ``out = L(in)``. Note that, if no actual solve is needed, one could
     * turn off multigrid coarsening by constructing a MLLinOp object
