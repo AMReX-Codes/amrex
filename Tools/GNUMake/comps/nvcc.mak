@@ -41,14 +41,17 @@ ifeq ($(lowercase_nvcc_host_comp),gnu)
         $(error C++14 support requires GCC 5 or newer.)
       endif
     endif
-    CXXFLAGS += -std=$(CXXSTD)
   else
     ifeq ($(gcc_major_version),4)
-      CXXFLAGS += -std=c++11
+      CXXSTD := c++11
     else ifeq ($(gcc_major_version),5)
-      CXXFLAGS += -std=c++14
+      CXXSTD := c++14
+    else
+      CXXSTD := c++14
     endif
   endif
+
+  CXXFLAGS += -std=$(CXXSTD)
 
   CXXFLAGS_FROM_HOST := -ccbin=g++ -Xcompiler='$(CXXFLAGS) --std=$(CXXSTD)' --std=$(CXXSTD)
   CFLAGS_FROM_HOST := $(CXXFLAGS_FROM_HOST)
@@ -63,14 +66,17 @@ else ifeq ($(lowercase_nvcc_host_comp),pgi)
         $(error C++14 support requires GCC 5 or newer.)
       endif
     endif
-    CXXFLAGS += -std=$(CXXSTD)
   else
     ifeq ($(gcc_major_version),4)
-      CXXFLAGS += -std=c++11
+      CXXSTD := c++11
     else ifeq ($(gcc_major_version),5)
-      CXXFLAGS += -std=c++14
+      CXXSTD := c++14
+    else
+      CXXSTD := c++14
     endif
   endif
+
+  CXXFLAGS += -std=$(CXXSTD)
 
   # In pgi.make, we use gcc_major_version to handle c++11/c++14 flag.
   CXXFLAGS_FROM_HOST := -ccbin=pgc++ -Xcompiler='$(CXXFLAGS)' --std=$(CXXSTD)
