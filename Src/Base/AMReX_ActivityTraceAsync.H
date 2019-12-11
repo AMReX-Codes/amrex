@@ -35,32 +35,51 @@ namespace amrex {
 
 static uint64_t startTimestamp;
   
-const char* getActivityOverheadKindString(CUpti_ActivityOverheadKind kind) noexcept;
-const char* getActivityObjectKindString(CUpti_ActivityObjectKind kind) noexcept;
-uint32_t getActivityObjectKindId(CUpti_ActivityObjectKind kind, CUpti_ActivityObjectKindId *id) noexcept;
+const char* getActivityOverheadKindString (CUpti_ActivityOverheadKind kind) noexcept;
+const char* getActivityObjectKindString (CUpti_ActivityObjectKind kind) noexcept;
+uint32_t getActivityObjectKindId (CUpti_ActivityObjectKind kind,
+				  CUpti_ActivityObjectKindId *id) noexcept;
 
-void printActivity(CUpti_Activity *record) noexcept;
+void printActivity (CUpti_Activity *record) noexcept;
 
-void CUPTIAPI bufferRequested(uint8_t **buffer, size_t *size, size_t *maxNumRecords) noexcept;
-void CUPTIAPI bufferCompleted(CUcontext ctx, uint32_t streamId, uint8_t *buffer, size_t size, size_t validSize) noexcept;
+void CUPTIAPI bufferRequested (uint8_t **buffer, size_t *size,
+			      size_t *maxNumRecords) noexcept;
+void CUPTIAPI bufferCompleted (CUcontext ctx, uint32_t streamId, uint8_t *buffer,
+			      size_t size, size_t validSize) noexcept;
 
-void initTrace() noexcept;
+void initCuptiTrace () noexcept;
+void cuptiTraceStart () noexcept;
+void cuptiTraceStop () noexcept;
+void cuptiTraceStop (unsigned boxUintID) noexcept;
 
 class CUpti_Activity_Userdata {
-  friend class CUpti_Activity;
 private:
-  unsigned uintID;
-  const char* charID;
+  CUpti_Activity* record_;
+  unsigned uintID_;
+  const char* charID_;
+  
 public:
-  void setUintID(unsigned) noexcept;
-  unsigned getUintID() noexcept;
-  void setCharID(const char*) noexcept;
-  const char* getCharID() noexcept;
+  void setRecord (CUpti_Activity*) noexcept;
+  void setUintID (unsigned) noexcept;
+  void setCharID (const char*) noexcept;
+  CUpti_Activity* getRecord () noexcept;
+  unsigned getUintID () noexcept;
+  const char* getCharID () noexcept;
 };
 
-extern std::vector<CUpti_Activity_Userdata*> activityRecordUserdata;
-double computeElapsedTimeUserdata(std::vector<CUpti_Activity_Userdata*> activityRecordUserdata) noexcept;
+class CuptiTrace {
+public:
+  CuptiTrace () noexcept;
+  ~CuptiTrace () noexcept;
+  void start () noexcept;
+  void stop () noexcept;
+  void stop (unsigned boxUintID) noexcept;
+  void cleanup () noexcept;
+};    
 
+extern std::vector<CUpti_Activity_Userdata*> activityRecordUserdata;
+double computeElapsedTimeUserdata(std::vector<CUpti_Activity_Userdata*>
+				  activityRecordUserdata) noexcept;
 }
 
 #endif // AMREX_USE_CUPTI

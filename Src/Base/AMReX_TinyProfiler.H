@@ -23,21 +23,15 @@ class TinyProfiler
 {
 public:
     explicit TinyProfiler (std::string funcname) noexcept;
-    TinyProfiler (std::string funcname, bool start_) noexcept;
-#ifdef AMREX_USE_CUPTI
     TinyProfiler (std::string funcname, bool start_, bool useCUPTI) noexcept;
-#endif // AMREX_USE_CUPTI
     explicit TinyProfiler (const char* funcname) noexcept;
-    TinyProfiler (const char* funcname, bool start_) noexcept;
-#ifdef AMREX_USE_CUPTI
     TinyProfiler (const char* funcname, bool start_, bool useCUPTI) noexcept;
-#endif // AMREX_USE_CUPTI
     ~TinyProfiler ();
 
     void start () noexcept;
     void stop () noexcept;
 #ifdef AMREX_USE_CUPTI
-    void stop (unsigned boxUintID, const char* boxCharID) noexcept;
+    void stop (unsigned boxUintID) noexcept;
 #endif // AMREX_USE_CUPTI
 
     static void Initialize () noexcept;
@@ -49,38 +43,6 @@ public:
     static void PrintCallStack (std::ostream& os);
 
 private:
-    //! stats on a single process
-#ifndef AMREX_USE_CUPTI
-    struct Stats
-    {
-    	Stats () noexcept : depth(0), n(0L), dtin(0.0), dtex(0.0) { }
-    	int  depth; //!< recursive depth
-    	long n;     //!< number of calls
-    	double dtin;  //!< inclusive dt
-    	double dtex;  //!< exclusive dt
-    };
-  
-    //! stats across processes
-    struct ProcStats
-    {
-    	ProcStats () : nmin(std::numeric_limits<long>::max()),
-    		       navg(0L), nmax(0L),
-    		       dtinmin(std::numeric_limits<double>::max()),
-    		       dtinavg(0.0), dtinmax(0.0),
-    		       dtexmin(std::numeric_limits<double>::max()),
-    		       dtexavg(0.0), dtexmax(0.0)  {}
-    	long nmin, navg, nmax;
-    	double dtinmin, dtinavg, dtinmax;
-    	double dtexmin, dtexavg, dtexmax;
-    	std::string fname;
-    	static bool compex (const ProcStats& lhs, const ProcStats& rhs) {
-    	    return lhs.dtexmax > rhs.dtexmax;
-    	}
-    	static bool compin (const ProcStats& lhs, const ProcStats& rhs) {
-    	    return lhs.dtinmax > rhs.dtinmax;
-    	}
-    };
-#else
     struct Stats
     {
         Stats () noexcept : depth(0), n(0L), dtin(0.0), dtex(0.0),
@@ -117,8 +79,6 @@ private:
     };
 
     bool uCUPTI;
-#endif // AMREX_USE_CUPTI
-  
     std::string fname;
     int global_depth;
     std::vector<Stats*> stats;

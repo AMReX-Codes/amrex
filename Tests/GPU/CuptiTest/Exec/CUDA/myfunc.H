@@ -8,7 +8,6 @@ using namespace amrex;
 
 void main_main ();
 
-void doRandomSleep (amrex::MultiFab& mf);
+void doDeviceSleep (amrex::MultiFab& mf, int& n);
 
-void init_mf (amrex::MultiFab& mf_new, amrex::Geometry const& geom);
 #endif
