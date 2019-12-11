@@ -222,10 +222,12 @@ endif
 ifeq ($(TINY_PROFILE),TRUE)
   C$(AMREX_BASE)_headers += AMReX_TinyProfiler.H
   C$(AMREX_BASE)_sources += AMReX_TinyProfiler.cpp
-  ifeq ($(USE_CUPTI),TRUE)
-    C$(AMREX_BASE)_headers += AMReX_ActivityTraceAsync.H
-    C$(AMREX_BASE)_sources += AMReX_ActivityTraceAsync.cpp
-  endif
+endif
+
+# CUPTI Trace
+ifeq ($(USE_CUPTI),TRUE)
+  C$(AMREX_BASE)_headers += AMReX_ActivityTraceAsync.H
+  C$(AMREX_BASE)_sources += AMReX_ActivityTraceAsync.cpp
 endif
 
 # Machine model

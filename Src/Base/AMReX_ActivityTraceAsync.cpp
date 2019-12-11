@@ -1,5 +1,5 @@
-/*
- * Downsized version of activity_trace_async.cpp in:
+ /*
+ * Uses functions from activity_trace_async.cpp in:
  *     $(CUDA_HOME)/extras/CUPTI/samples 
  *
  * Copyright 2011-2015 NVIDIA Corporation. All rights reserved
@@ -8,7 +8,6 @@
  * using asynchronous handling of activity buffers.
  *
  */
-
 #include <AMReX_ActivityTraceAsync.H>
 #ifdef AMREX_USE_CUPTI
 #include <stdio.h>
@@ -18,11 +17,11 @@
 
 
 namespace amrex {
-  
+
 std::vector<CUpti_Activity_Userdata*> activityRecordUserdata;
 
 const char *
-getActivityOverheadKindString(CUpti_ActivityOverheadKind kind) noexcept
+getActivityOverheadKindString (CUpti_ActivityOverheadKind kind) noexcept
 {
   switch (kind) {
   case CUPTI_ACTIVITY_OVERHEAD_DRIVER_COMPILER:
@@ -41,7 +40,7 @@ getActivityOverheadKindString(CUpti_ActivityOverheadKind kind) noexcept
 }
 
 const char *
-getActivityObjectKindString(CUpti_ActivityObjectKind kind) noexcept
+getActivityObjectKindString (CUpti_ActivityObjectKind kind) noexcept
 {
   switch (kind) {
   case CUPTI_ACTIVITY_OBJECT_PROCESS:
@@ -62,7 +61,8 @@ getActivityObjectKindString(CUpti_ActivityObjectKind kind) noexcept
 }
 
 uint32_t
-getActivityObjectKindId(CUpti_ActivityObjectKind kind, CUpti_ActivityObjectKindId *id) noexcept
+getActivityObjectKindId (CUpti_ActivityObjectKind kind,
+			 CUpti_ActivityObjectKindId *id) noexcept
 {
   switch (kind) {
   case CUPTI_ACTIVITY_OBJECT_PROCESS:
@@ -82,7 +82,8 @@ getActivityObjectKindId(CUpti_ActivityObjectKind kind, CUpti_ActivityObjectKindI
   return 0xffffffff;
 }
 
-void printActivity(CUpti_Activity *record) noexcept
+void
+printActivity (CUpti_Activity *record) noexcept
 {
   switch (record->kind)
   {
@@ -96,7 +97,8 @@ void printActivity(CUpti_Activity *record) noexcept
              kernel->name,
              (unsigned long long) (kernel->start - startTimestamp),
              (unsigned long long) (kernel->end - startTimestamp),
-	     (unsigned long long) (((kernel->end - startTimestamp) - (kernel->start - startTimestamp))),
+	     (unsigned long long) (((kernel->end - startTimestamp)
+				    - (kernel->start - startTimestamp))),
              kernel->deviceId, kernel->contextId, kernel->streamId,
              kernel->correlationId);
       printf("    grid [%u,%u,%u], block [%u,%u,%u], shared memory (static %u, dynamic %u)\n",
@@ -112,7 +114,8 @@ void printActivity(CUpti_Activity *record) noexcept
              getActivityOverheadKindString(overhead->overheadKind),
              (unsigned long long) overhead->start - startTimestamp,
              (unsigned long long) overhead->end - startTimestamp,
-	     (unsigned long long) (((overhead->end - startTimestamp) - (overhead->start - startTimestamp))),
+	     (unsigned long long) (((overhead->end - startTimestamp)
+				    - (overhead->start - startTimestamp))),
              getActivityObjectKindString(overhead->objectKind),
              getActivityObjectKindId(overhead->objectKind, &overhead->objectId));
       break;
@@ -125,7 +128,8 @@ void printActivity(CUpti_Activity *record) noexcept
 	   kernel->name,
 	   (unsigned long long) (kernel->start - startTimestamp),
 	   (unsigned long long) (kernel->end - startTimestamp),
-	   (unsigned long long) (((kernel->end - startTimestamp) - (kernel->start - startTimestamp))),
+	   (unsigned long long) (((kernel->end - startTimestamp)
+				  - (kernel->start - startTimestamp))),
 	   kernel->deviceId, kernel->contextId, kernel->streamId,
 	   kernel->correlationId);
     printf("    grid [%u,%u,%u], block [%u,%u,%u], shared memory (static %u, dynamic %u)\n",
@@ -138,7 +142,8 @@ void printActivity(CUpti_Activity *record) noexcept
   }
 }
 
-void CUPTIAPI bufferRequested(uint8_t **buffer, size_t *size, size_t *maxNumRecords) noexcept
+void CUPTIAPI
+bufferRequested (uint8_t **buffer, size_t *size, size_t *maxNumRecords) noexcept
 {
   uint8_t *bfr = (uint8_t *) malloc(BUF_SIZE + ALIGN_SIZE);
   if (bfr == NULL) {
@@ -151,16 +156,24 @@ void CUPTIAPI bufferRequested(uint8_t **buffer, size_t *size, size_t *maxNumReco
   *maxNumRecords = 0;
 }
 
-void CUPTIAPI bufferCompleted(CUcontext ctx, uint32_t streamId, uint8_t *buffer, size_t size, size_t validSize) noexcept
+void CUPTIAPI
+bufferCompleted (CUcontext ctx, uint32_t streamId, uint8_t *buffer,
+		size_t size, size_t validSize) noexcept
 { 
   CUptiResult status;
   CUpti_Activity *record = NULL;
-  
+
   if (validSize > 0) {
     do {
       status = cuptiActivityGetNextRecord(buffer, validSize, &record);
       if (status == CUPTI_SUCCESS) {
-	CUpti_Activity_Userdata* recordUserData = (CUpti_Activity_Userdata*) record;
+	//CUpti_Activity_Userdata* recordUserData = (CUpti_Activity_Userdata*) record;
+	CUpti_Activity_Userdata* recordUserData = new CUpti_Activity_Userdata();
+	//*recordUserData = CUpti_Activity_Userdata();
+	//CUpti_ActivityKernel4* kernel = (CUpti_ActivityKernel4*) record;
+	//CUpti_Activity_Userdata* recordUserData = (CUpti_Activity_Userdata*) record;
+	recordUserData->setRecord(record);
+	//recordUserData = (CUpti_Activity_Userdata*) record;
 	activityRecordUserdata.push_back(recordUserData);
 	//printActivity(record);
       }
@@ -178,12 +191,12 @@ void CUPTIAPI bufferCompleted(CUcontext ctx, uint32_t streamId, uint8_t *buffer,
       printf("Dropped %u activity records\n", (unsigned int) dropped);
     }
   }
-
+  
   free(buffer);
 }
 
 void
-initTrace() noexcept
+initCuptiTrace () noexcept
 {
   // 1) CUPTI activity record is created when CUDA initializes, so must enable
   //    before cuInit() or any CUDA runtime call
@@ -194,7 +207,9 @@ initTrace() noexcept
   size_t attrValue = 0, attrValueSize = sizeof(size_t);
   
   // Kernel activity records
-  CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_KERNEL));
+  CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_CONCURRENT_KERNEL));
+  //CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_KERNEL));
+
   
   // Overhead activity records
   //CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_OVERHEAD));
@@ -215,15 +230,44 @@ initTrace() noexcept
   // Default value is 100.
   CUPTI_CALL(cuptiActivityGetAttribute(CUPTI_ACTIVITY_ATTR_DEVICE_BUFFER_POOL_LIMIT, &attrValueSize, &attrValue));
   printf("%s = %llu\n", "CUPTI_ACTIVITY_ATTR_DEVICE_BUFFER_POOL_LIMIT", (long long unsigned)attrValue);
-  attrValue *= 2; // Just for example.
+  attrValue *= 2; // Just for example
   CUPTI_CALL(cuptiActivitySetAttribute(CUPTI_ACTIVITY_ATTR_DEVICE_BUFFER_POOL_LIMIT, &attrValueSize, &attrValue));
 
   // Time at initialization, used for normalizing other printed times
   CUPTI_CALL(cuptiGetTimestamp(&startTimestamp));
 }
 
+void
+cuptiTraceStart () noexcept
+{
+  cudaDeviceSynchronize();
+  cuptiActivityFlushAll(0);  
+  activityRecordUserdata.clear();
+}
+
+void
+cuptiTraceStop () noexcept
+{
+  cudaDeviceSynchronize();
+  cuptiActivityFlushAll(0);
+}
+
+void
+cuptiTraceStop (unsigned boxUintID) noexcept
+{
+  cudaDeviceSynchronize();
+  cuptiActivityFlushAll(0);
+  for (auto record : activityRecordUserdata) {
+    record->setUintID(boxUintID);
+    record->setCharID(("CharID_" + std::to_string(boxUintID)).c_str());
+    //printf("Record ID: %llu\n", record->getUintID());
+    //printf("Char ID: %s\n", record->getCharID());
+  }
+}
+
 double
-computeElapsedTimeUserdata(std::vector<CUpti_Activity_Userdata*> activityRecordUserdata) noexcept
+computeElapsedTimeUserdata (std::vector<CUpti_Activity_Userdata*>
+			    activityRecordUserdata) noexcept
 {
   unsigned long long t_elapsed = 0;
   unsigned long long t_start = 0;
@@ -233,8 +277,9 @@ computeElapsedTimeUserdata(std::vector<CUpti_Activity_Userdata*> activityRecordU
   
   // Initialize tally of unique streams
   for (auto record : activityRecordUserdata) {
-    CUpti_ActivityKernel4 *kernel = (CUpti_ActivityKernel4 *) record;
-    if (streamIDToElapsedTimeMap.find(kernel->streamId) == streamIDToElapsedTimeMap.end()) {
+    CUpti_ActivityKernel4* kernel = (CUpti_ActivityKernel4*) record->getRecord();
+    if (streamIDToElapsedTimeMap.find(kernel->streamId)
+	== streamIDToElapsedTimeMap.end()) {
       // Not found
       streamIDToElapsedTimeMap[kernel->streamId] = 0;
     } else {
@@ -244,7 +289,7 @@ computeElapsedTimeUserdata(std::vector<CUpti_Activity_Userdata*> activityRecordU
 
   // Sum kernel times in each stream
   for (auto record : activityRecordUserdata) {
-    CUpti_ActivityKernel4 *kernel = (CUpti_ActivityKernel4 *) record;
+    CUpti_ActivityKernel4* kernel = (CUpti_ActivityKernel4*) record->getRecord();
     t_start = (unsigned long long) (kernel->start - startTimestamp);
     t_stop = (unsigned long long) (kernel->end - startTimestamp);
     t_elapsed = (((unsigned long long)t_stop) - ((unsigned long long)t_start));
@@ -258,35 +303,81 @@ computeElapsedTimeUserdata(std::vector<CUpti_Activity_Userdata*> activityRecordU
   }
   res /= streamIDToElapsedTimeMap.size();
   
-  // Default is ns, convert to sec  
+  // Default is ns, convert to sec
   return (double) res*1e-9;
     
 }
 
 void
-CUpti_Activity_Userdata::setUintID (unsigned pUintID) noexcept
+CUpti_Activity_Userdata::setRecord (CUpti_Activity* record) noexcept
 {
-  uintID = pUintID;
+  record_ = record;
+}
+
+CUpti_Activity*
+CUpti_Activity_Userdata::getRecord () noexcept
+{ 
+  return record_;
+}
+
+void
+CUpti_Activity_Userdata::setUintID (unsigned uintID) noexcept
+{
+  uintID_ = uintID;
 }
 
 unsigned
 CUpti_Activity_Userdata::getUintID () noexcept
-{
-  return uintID;
+{ 
+  return uintID_;
 }
 
 void
-CUpti_Activity_Userdata::setCharID (const char* pCharID) noexcept
+CUpti_Activity_Userdata::setCharID (const char* charID) noexcept
 {
-  charID = pCharID;
+  charID_ = charID;
 }
 
 const char*
 CUpti_Activity_Userdata::getCharID () noexcept
+{ 
+  return charID_;
+}
+  
+CuptiTrace::CuptiTrace () noexcept
 {
-  return charID;
+}
+
+CuptiTrace::~CuptiTrace () noexcept
+{
+  this->cleanup();
+}
+ 
+void
+CuptiTrace::start () noexcept
+{
+  cuptiTraceStart();
+}
+
+void
+CuptiTrace::stop () noexcept
+{
+  cuptiTraceStop();
+}
+
+void
+CuptiTrace::stop (unsigned boxUintID) noexcept
+{
+  cuptiTraceStop(boxUintID);
+}
+
+void
+CuptiTrace::cleanup () noexcept
+{
+  for (auto record : activityRecordUserdata) {
+   delete[] record;
+  }
 }
 
 }
-
 #endif // AMREX_USE_CUPTI

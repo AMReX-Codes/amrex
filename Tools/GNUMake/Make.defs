@@ -543,10 +543,11 @@ ifeq ($(USE_ACC),TRUE)
 endif
 
 ifeq ($(USE_CUPTI),TRUE)
-  ifeq ($(USE_CUDA),TRUE)
-
-  DEFINES += -DAMREX_USE_CUPTI
-
+  ifeq ($(USE_CUDA),TRUE)	
+    DEFINES += -DAMREX_USE_CUPTI
+    CUPTISuffix := .CUPTI
+  else
+    $(error CUPTI can only be used with USE_CUDA=TRUE)
   endif
 endif
 
@@ -744,7 +745,7 @@ ifeq ($(USE_RPATH),TRUE)
 endif
 LDFLAGS	+= -L. $(addprefix -L, $(LIBRARY_LOCATIONS))
 
-machineSuffix	= $(lowercase_comp)$(archSuffix)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(MProfSuffix)$(BTSuffix)$(MPISuffix)$(UPCXXSuffix)$(OMPSuffix)$(ACCSuffix)$(GPUSuffix)$(USERSuffix)
+machineSuffix	= $(lowercase_comp)$(archSuffix)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(MProfSuffix)$(BTSuffix)$(MPISuffix)$(UPCXXSuffix)$(OMPSuffix)$(ACCSuffix)$(GPUSuffix)$(CUPTISuffix)$(USERSuffix)
 
 optionsSuffix	= $(DIM)d.$(machineSuffix)
 

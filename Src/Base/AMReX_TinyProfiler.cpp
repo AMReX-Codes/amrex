@@ -35,123 +35,10 @@ namespace {
     static constexpr char mainregion[] = "main";
 }
 
-#ifndef AMREX_USE_CUPTI
-  TinyProfiler::TinyProfiler (std::string funcname) noexcept
-    : fname(std::move(funcname))
-{
-    start();
-}
-
-TinyProfiler::TinyProfiler (std::string funcname, bool start_) noexcept
-    : fname(std::move(funcname))
-{
-    if (start_) start();
-}
-
-TinyProfiler::TinyProfiler (const char* funcname) noexcept
-    : fname(funcname)
-{
-    start();
-}
-
-TinyProfiler::TinyProfiler (const char* funcname, bool start_) noexcept
-    : fname(funcname)
-{
-    if (start_) start();
-}
-
-TinyProfiler::~TinyProfiler ()
-{
-    stop();
-}
-
-void
-TinyProfiler::start () noexcept
-{
-#ifdef _OPENMP
-#pragma omp master
-#endif
-    if (stats.empty() && !regionstack.empty())
-    {
-	double t = amrex::second();
-
-	ttstack.emplace_back(std::make_tuple(t, 0.0, &fname));
-	global_depth = ttstack.size();
-
-#ifdef AMREX_USE_CUDA
-	nvtx_id = nvtxRangeStartA(fname.c_str());
-#endif
-
-        for (auto const& region : regionstack)
-        {
-            Stats& st = statsmap[region][fname];
-            ++st.depth;
-            stats.push_back(&st);
-        }
-    }
-}
-
-void
-TinyProfiler::stop () noexcept
-{
-#ifdef _OPENMP
-#pragma omp master
-#endif
-    if (!stats.empty()) 
-    {
-	double t = amrex::second();
-
-	while (static_cast<int>(ttstack.size()) > global_depth) {
-	    ttstack.pop_back();
-	};
-
-	if (static_cast<int>(ttstack.size()) == global_depth)
-	{
-	    const std::tuple<double,double,std::string*>& tt = ttstack.back();
-	    
-	    // first: wall time when the pair is pushed into the stack
-	    // second: accumulated dt of children
-	    
-	    double dtin = t - std::get<0>(tt); // elapsed time since start() is called.
-	    double dtex = dtin - std::get<1>(tt);
-
-            for (Stats* st : stats)
-            {
-                --(st->depth);
-                ++(st->n);
-                if (st->depth == 0) {
-                    st->dtin += dtin;
-                }
-                st->dtex += dtex;
-            }
-                
-	    ttstack.pop_back();
-	    if (!ttstack.empty()) {
-		std::tuple<double,double,std::string*>& parent = ttstack.back();
-		std::get<1>(parent) += dtin;
-	    }
-
-#ifdef AMREX_USE_CUDA
-	    nvtxRangeEnd(nvtx_id);
-#endif
-	} else {
-	    improperly_nested_timers.insert(fname);
-	} 
-
-        stats.clear();
-    }
-}
-#else
 TinyProfiler::TinyProfiler (std::string funcname) noexcept
     : fname(std::move(funcname)), uCUPTI(false)
 {
     start();
-}
-
-TinyProfiler::TinyProfiler (std::string funcname, bool start_) noexcept
-    : fname(std::move(funcname)), uCUPTI(false)
-{
-    if (start_) start();
 }
 
 TinyProfiler::TinyProfiler (std::string funcname, bool start_, bool useCUPTI) noexcept
@@ -164,12 +51,6 @@ TinyProfiler::TinyProfiler (const char* funcname) noexcept
     : fname(funcname), uCUPTI(false)
 {
     start();
-}
-
-TinyProfiler::TinyProfiler (const char* funcname, bool start_) noexcept
-    : fname(funcname), uCUPTI(false)
-{
-    if (start_) start();
 }
 
 TinyProfiler::TinyProfiler (const char* funcname, bool start_, bool useCUPTI) noexcept
@@ -192,15 +73,17 @@ TinyProfiler::start () noexcept
     if (stats.empty() && !regionstack.empty())
     {
         double t;
-        if (!uCUPTI) {
+	if (!uCUPTI) {
 	  t = amrex::second();
 	} else {
+#ifdef AMREX_USE_CUPTI
 	  cudaDeviceSynchronize();
 	  cuptiActivityFlushAll(0);
 	  activityRecordUserdata.clear();
 	  t = amrex::second();
+#endif // AMREX_USE_CUPTI
 	}
-	
+	  
 	ttstack.emplace_back(std::make_tuple(t, 0.0, &fname));
 	global_depth = ttstack.size();
 
@@ -226,17 +109,18 @@ TinyProfiler::stop () noexcept
     if (!stats.empty()) 
     {
         double t;
-        int nKernelCalls = 0;
-        	
-        if (!uCUPTI) {
+	int nKernelCalls = 0;
+	if (!uCUPTI) {
 	  t = amrex::second();
 	} else {
+#ifdef AMREX_USE_CUPTI
 	  cudaDeviceSynchronize();
 	  cuptiActivityFlushAll(0);
 	  t = computeElapsedTimeUserdata(activityRecordUserdata);
 	  nKernelCalls = activityRecordUserdata.size();
+#endif // AMREX_USE_CUPTI
 	}
-
+	
 	while (static_cast<int>(ttstack.size()) > global_depth) {
 	    ttstack.pop_back();
 	};
@@ -256,7 +140,7 @@ TinyProfiler::stop () noexcept
 	      dtin = t;
 	      dtex = dtin - std::get<1>(tt); 
 	    }
-
+	      
             for (Stats* st : stats)
             {
                 --(st->depth);
@@ -266,8 +150,10 @@ TinyProfiler::stop () noexcept
                 }
                 st->dtex += dtex;
                 st->usesCUPTI = uCUPTI;
-                st->nk += nKernelCalls;
-            }
+		if (uCUPTI) {
+		  st->nk += nKernelCalls;
+		}
+	    }
                 
 	    ttstack.pop_back();
 	    if (!ttstack.empty()) {
@@ -286,81 +172,71 @@ TinyProfiler::stop () noexcept
     }
 }
 
+#ifdef AMREX_USE_CUPTI
 void
-TinyProfiler::stop (unsigned boxUintID, const char* boxCharID) noexcept
+TinyProfiler::stop (unsigned boxUintID) noexcept
 {
 #ifdef _OPENMP
 #pragma omp master
 #endif
     if (!stats.empty()) 
     {
-        double t;
-	int nKernelCalls = 0;
-	
-        if (!uCUPTI) {
-	  t = amrex::second();
-	} else {
-	  cudaDeviceSynchronize();
-	  cuptiActivityFlushAll(0);
-	  t = computeElapsedTimeUserdata(activityRecordUserdata);
-	  nKernelCalls = activityRecordUserdata.size();
+      double t;
+      cudaDeviceSynchronize();
+      cuptiActivityFlushAll(0);
+      t = computeElapsedTimeUserdata(activityRecordUserdata);
+      int nKernelCalls = activityRecordUserdata.size();
+      
+      for (auto record : activityRecordUserdata) {
+	record->setUintID(boxUintID);
+      }
+      
+      while (static_cast<int>(ttstack.size()) > global_depth) {
+	ttstack.pop_back();
+      };
 
-	  for (auto record : activityRecordUserdata) {
-	    record->setUintID(boxUintID);
-	    record->setCharID(boxCharID);
-	  }
-	}
-
-	while (static_cast<int>(ttstack.size()) > global_depth) {
-	    ttstack.pop_back();
-	};
-
-	if (static_cast<int>(ttstack.size()) == global_depth)
+      if (static_cast<int>(ttstack.size()) == global_depth)
 	{
-	    const std::tuple<double,double,std::string*>& tt = ttstack.back();
+	  const std::tuple<double,double,std::string*>& tt = ttstack.back();
 	    
-	    // first: wall time when the pair is pushed into the stack
-	    // second: accumulated dt of children
-	    double dtin;
-	    double dtex;
-	    if (!uCUPTI) {
-	      dtin = t - std::get<0>(tt); // elapsed time since start() is called.
-	      dtex = dtin - std::get<1>(tt);
-	    } else {
-	      dtin = t;
-	      dtex = dtin - std::get<1>(tt); 
-	    }
-
-            for (Stats* st : stats)
+	  // first: wall time when the pair is pushed into the stack
+	  // second: accumulated dt of children
+	  double dtin;
+	  double dtex;
+	  
+	  dtin = t;
+	  dtex = dtin - std::get<1>(tt); 
+	  
+	  for (Stats* st : stats)
             {
-                --(st->depth);
-                ++(st->n);
-                if (st->depth == 0) {
-                  st->dtin += dtin;
-                }
-                st->dtex += dtex;
-                st->usesCUPTI = uCUPTI;
-                st->nk += nKernelCalls;
+	      --(st->depth);
+	      ++(st->n);
+	      if (st->depth == 0) {
+		st->dtin += dtin;
+	      }
+	      st->dtex += dtex;
+	      st->usesCUPTI = uCUPTI;
+	      st->nk += nKernelCalls;		
             }
-            
-	    ttstack.pop_back();
-	    if (!ttstack.empty()) {
-		std::tuple<double,double,std::string*>& parent = ttstack.back();
-		std::get<1>(parent) += dtin;
-	    }
+	  
+	  ttstack.pop_back();
+	  if (!ttstack.empty()) {
+	    std::tuple<double,double,std::string*>& parent = ttstack.back();
+	    std::get<1>(parent) += dtin;
+	  }
 
 #ifdef AMREX_USE_CUDA
-	    nvtxRangeEnd(nvtx_id);
+	  nvtxRangeEnd(nvtx_id);
 #endif
 	} else {
-	    improperly_nested_timers.insert(fname);
-	} 
-
-        stats.clear();
+	improperly_nested_timers.insert(fname);
+      } 
+      
+      stats.clear();
     }
 }
 #endif // AMREX_USE_CUPTI
-
+ 
 void
 TinyProfiler::Initialize () noexcept
 {
@@ -669,7 +545,7 @@ TinyProfiler::StopRegion (const std::string& regname) noexcept
 
 TinyProfileRegion::TinyProfileRegion (std::string a_regname) noexcept
     : regname(std::move(a_regname)),
-      tprof(std::string("REG::")+regname, false)
+      tprof(std::string("REG::")+regname, false, false)
 {
     TinyProfiler::StartRegion(regname);
     tprof.start();
@@ -677,7 +553,7 @@ TinyProfileRegion::TinyProfileRegion (std::string a_regname) noexcept
 
 TinyProfileRegion::TinyProfileRegion (const char* a_regname) noexcept
     : regname(a_regname),
-      tprof(std::string("REG::")+std::string(a_regname), false)
+      tprof(std::string("REG::")+std::string(a_regname), false, false)
 {
     TinyProfiler::StartRegion(a_regname);
     tprof.start();
