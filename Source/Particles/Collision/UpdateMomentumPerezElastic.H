@@ -184,34 +184,15 @@ void UpdateMomentumPerezElastic (
         // x->y  y->z  z->x
         // This set is equivalent to the one in Nanbu's paper
         p1sp = std::sqrt( p1sy*p1sy + p1sz*p1sz );
-        if ( p1sp > std::numeric_limits<T_R>::min() )
-        {
-            p1fsy = ( p1sy*p1sx/p1sp ) * sinXs*cosphis +
-                    ( p1sz*p1sm/p1sp ) * sinXs*sinphis +
-                    ( p1sy           ) * cosXs;
-            p1fsz = ( p1sz*p1sx/p1sp ) * sinXs*cosphis +
-                    (-p1sy*p1sm/p1sp ) * sinXs*sinphis +
-                    ( p1sz           ) * cosXs;
-            p1fsx = (-p1sp           ) * sinXs*cosphis +
-                    ( T_R(0.0)       ) * sinXs*sinphis +
-                    ( p1sx           ) * cosXs;
-        }
-        else
-        {
-            // If the previous two p1sp are all almost zero,
-            // this p1sp must not be almost zero.
-            // x->y  y->z  z->x
-            p1sp = std::sqrt( p1sz*p1sz + p1sx*p1sx );
-            p1fsz = ( p1sz*p1sy/p1sp ) * sinXs*cosphis +
-                    ( p1sx*p1sm/p1sp ) * sinXs*sinphis +
-                    ( p1sz           ) * cosXs;
-            p1fsx = ( p1sx*p1sy/p1sp ) * sinXs*cosphis +
-                    (-p1sz*p1sm/p1sp ) * sinXs*sinphis +
-                    ( p1sx           ) * cosXs;
-            p1fsy = (-p1sp           ) * sinXs*cosphis +
-                    ( T_R(0.0)       ) * sinXs*sinphis +
-                    ( p1sy           ) * cosXs;
-        }
+        p1fsy = ( p1sy*p1sx/p1sp ) * sinXs*cosphis +
+                ( p1sz*p1sm/p1sp ) * sinXs*sinphis +
+                ( p1sy           ) * cosXs;
+        p1fsz = ( p1sz*p1sx/p1sp ) * sinXs*cosphis +
+                (-p1sy*p1sm/p1sp ) * sinXs*sinphis +
+                ( p1sz           ) * cosXs;
+        p1fsx = (-p1sp           ) * sinXs*cosphis +
+                ( T_R(0.0)       ) * sinXs*sinphis +
+                ( p1sx           ) * cosXs;
     }
 
     T_R const p2fsx = -p1fsx;
