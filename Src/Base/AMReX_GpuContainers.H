@@ -6,6 +6,8 @@
 #include <AMReX_Vector.H>
 #include <AMReX_PODVector.H>
 #include <AMReX_GpuAllocators.H>
+#include <AMReX_Scan.H>
+#include <type_traits>
 
 namespace amrex {
 
@@ -291,22 +293,22 @@ namespace Gpu {
     }
     
     template<class InIter, class OutIter>
-    OutIter inclusive_scan (InIter begin, InIter end, OutIter result)
+    auto inclusive_scan (InIter begin, InIter end, OutIter result) -> decltype(typename std::remove_pointer<OutIter>::type())
     {
 #ifdef AMREX_USE_GPU
-        return thrust::inclusive_scan(Gpu::The_ThrustCachedPolicy(),
-                                      begin, end, result);
+        auto N = std::distance(begin, end);
+        return Scan::InclusiveSum(N, &(*begin), &(*result));
 #else
         return std::partial_sum(begin, end, result);
 #endif
     }
 
     template<class InIter, class OutIter>
-    OutIter exclusive_scan(InIter begin, InIter end, OutIter result)
+    auto exclusive_scan(InIter begin, InIter end, OutIter result) -> decltype(typename std::remove_pointer<OutIter>::type())
     {
 #ifdef AMREX_USE_GPU
-        return thrust::exclusive_scan(Gpu::The_ThrustCachedPolicy(),
-                                      begin, end, result);
+        auto N = std::distance(begin, end);
+        return Scan::ExclusiveSum(N, &(*begin), &(*result));
 #else
         if (begin == end) return result;
         
