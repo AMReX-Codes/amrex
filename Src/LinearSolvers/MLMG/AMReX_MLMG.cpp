@@ -1773,7 +1773,7 @@ MLMG::getNodalSum (int amrlev, int mglev, MultiFab& mf) const
     const bool local = true;
     Real s1 = linop.xdoty(amrlev, mglev, mf, one, local);
     Real s2 = linop.xdoty(amrlev, mglev, one, one, local);
-    ParallelAllReduce::Sum<Real>({s1,s2}, linop.Communicator(amrlev,mglev));
+    ParallelAllReduce::Sum<Real>({s1,s2}, ParallelContext::CommunicatorSub());
     return s1/s2;
 }
 
