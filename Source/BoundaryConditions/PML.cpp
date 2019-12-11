@@ -844,11 +844,10 @@ PML::Exchange (MultiFab& pml, MultiFab& reg, const Geometry& geom,
 void
 PML::CopyToPML (MultiFab& pml, MultiFab& reg, const Geometry& geom)
 {
-  const IntVect& ngr = reg.nGrowVect();
   const IntVect& ngp = pml.nGrowVect();
   const auto& period = geom.periodicity();
 
-  pml.ParallelCopy(reg, 0, 0, 1, ngr, ngp, period);
+  pml.ParallelCopy(reg, 0, 0, 1, IntVect(0), ngp, period);
 }
 
 void
