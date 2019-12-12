@@ -245,6 +245,43 @@ extern "C"
     WARPX_GET_LOVECTS(warpx_getCurrentDensityCPLoVects, WarpX::GetInstance().getcurrent_cp);
     WARPX_GET_LOVECTS(warpx_getCurrentDensityFPLoVects, WarpX::GetInstance().getcurrent_fp);
 
+#define WARPX_GET_FIELD_PML(FIELD, GETTER) \
+    amrex::Real** FIELD(int lev, int direction, \
+                        int *return_size, int *ncomps, int *ngrow, int **shapes) { \
+        auto * pml = WarpX::GetInstance().GetPML(lev); \
+        if (pml) { \
+            auto & mf = *(pml->GETTER()[direction]); \
+            return getMultiFabPointers(mf, return_size, ncomps, ngrow, shapes); \
+        } else { \
+            return nullptr; \
+        } \
+    }
+
+#define WARPX_GET_LOVECTS_PML(FIELD, GETTER) \
+    int* FIELD(int lev, int direction, \
+               int *return_size, int *ngrow) { \
+        auto * pml = WarpX::GetInstance().GetPML(lev); \
+        if (pml) { \
+            auto & mf = *(pml->GETTER()[direction]); \
+            return getMultiFabLoVects(mf, return_size, ngrow); \
+        } else { \
+            return nullptr; \
+        } \
+    }
+
+    WARPX_GET_FIELD_PML(warpx_getEfieldCP_PML, GetE_cp);
+    WARPX_GET_FIELD_PML(warpx_getEfieldFP_PML, GetE_fp);
+    WARPX_GET_FIELD_PML(warpx_getBfieldCP_PML, GetB_cp);
+    WARPX_GET_FIELD_PML(warpx_getBfieldFP_PML, GetB_fp);
+    WARPX_GET_FIELD_PML(warpx_getCurrentDensityCP_PML, Getj_cp);
+    WARPX_GET_FIELD_PML(warpx_getCurrentDensityFP_PML, Getj_fp);
+    WARPX_GET_LOVECTS_PML(warpx_getEfieldCPLoVects_PML, GetE_cp);
+    WARPX_GET_LOVECTS_PML(warpx_getEfieldFPLoVects_PML, GetE_fp);
+    WARPX_GET_LOVECTS_PML(warpx_getBfieldCPLoVects_PML, GetB_cp);
+    WARPX_GET_LOVECTS_PML(warpx_getBfieldFPLoVects_PML, GetB_fp);
+    WARPX_GET_LOVECTS_PML(warpx_getCurrentDensityCPLoVects_PML, Getj_cp);
+    WARPX_GET_LOVECTS_PML(warpx_getCurrentDensityFPLoVects_PML, Getj_fp);
+
     amrex::ParticleReal** warpx_getParticleStructs(int speciesnumber, int lev,
                                       int* num_tiles, int** particles_per_tile) {
         auto & mypc = WarpX::GetInstance().GetPartContainer();
