@@ -271,7 +271,14 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
                         rhs_cc_a(i,j,k) = mlndlap_rhcc_eb(i,j,k,rhccarr,vfracarr,intgarr,dmskarr);
                     });
                 }
-                else if (typ == FabType::regular)
+                else if (typ == FabType::covered)
+                {
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+                    {
+                        rhs_cc_a(i,j,k) = 0.0;
+                    });
+                }
+                else
 #endif
                 {
                     AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,

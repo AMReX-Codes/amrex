@@ -11,7 +11,7 @@
 
 using namespace amrex;
 
-void write_plotfile(const Geometry& geom, const MultiFab& plotmf)
+void write_plotfile(const Geometry& geom, const MultiFab& plotmf, int regtest)
 {
     std::stringstream sstream;
     sstream << "plt00000";
@@ -24,9 +24,20 @@ void write_plotfile(const Geometry& geom, const MultiFab& plotmf)
                                    { "proc" ,"xvel", "yvel" },
                                      geom, 0.0, 0);
 #elif (AMREX_SPACEDIM == 3)
-       EB_WriteSingleLevelPlotfile(plotfile_name, plotmf,
-                                   { "proc", "xvel", "yvel", "zvel" },
-                                     geom, 0.0, 0);
+
+       if (regtest == 1)
+       {
+           MultiFab small_mf(plotmf.boxArray(), plotmf.DistributionMap(), AMREX_SPACEDIM, 0, MFInfo(), plotmf.Factory());
+           MultiFab::Copy(small_mf, plotmf, 0, 0, small_mf.nComp(),0);
+
+           EB_WriteSingleLevelPlotfile(plotfile_name, small_mf,
+                                       { "proc", "xvel", "yvel" },
+                                         geom, 0.0, 0);
+       } else {
+           EB_WriteSingleLevelPlotfile(plotfile_name, plotmf,
+                                       { "proc", "xvel", "yvel", "zvel" },
+                                         geom, 0.0, 0);
+       }
 #endif
 }
 
@@ -45,6 +56,7 @@ int main (int argc, char* argv[])
         int n_cell = 128;
         int max_grid_size = 32;
         int use_hypre  = 0;
+        int regtest   = 0;
 
         Real obstacle_radius = 0.10;
 
@@ -56,6 +68,7 @@ int main (int argc, char* argv[])
             pp.query("n_cell", n_cell);
             pp.query("max_grid_size", max_grid_size);
             pp.query("use_hypre", use_hypre);
+            pp.query("regtest", regtest);
         }
 
 #ifndef AMREX_USE_HYPRE
@@ -232,13 +245,13 @@ int main (int argc, char* argv[])
             vel[idim].FillBoundary(geom.periodicity());
         }
 
-        // copy processor id into plotfile_mf
-	plotfile_mf.setVal(ParallelDescriptor::MyProc(), 0, 1);
+        // Copy processor id into plotfile_mf
+        plotfile_mf.setVal(ParallelDescriptor::MyProc(), 0, 1);
 
-        // copy velocity into plotfile
+        // Copy velocity into plotfile (starting at component 1)
         average_face_to_cellcenter(plotfile_mf,1,amrex::GetArrOfConstPtrs(vel));
 
-        write_plotfile(geom, plotfile_mf);
+        write_plotfile(geom, plotfile_mf, regtest);
     }
 
     Real stop_time = amrex::second() - strt_time;
