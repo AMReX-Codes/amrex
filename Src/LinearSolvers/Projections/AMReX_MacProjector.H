@@ -14,6 +14,9 @@ class MacProjector
 {
 public:
 
+    //
+    // Constructors
+    //
     MacProjector (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_umac,
                   const Vector<Array<MultiFab const*,AMREX_SPACEDIM> >& a_beta,
                   const Vector<Geometry>& a_geom,
@@ -26,11 +29,24 @@ public:
                   const Vector<MultiFab const*>& a_divu = {})
      : MacProjector(a_umac, a_beta, a_geom, LPInfo(), a_divu) {};
 
+    //
+    // Methods to set BCs and coarse/fine values
+    //
+    // These methods are wrappers of the linop methods of the same name
+    // However, use of these is preferred to make sure operations
+    // are performed in the correct order
+    //
     void setDomainBC (const Array<LinOpBCType,AMREX_SPACEDIM>& lobc,
                       const Array<LinOpBCType,AMREX_SPACEDIM>& hibc);
 
     void setLevelBC  (int amrlev, const MultiFab* levelbcdata);
 
+    void setCoarseFineBC (const MultiFab* crse, int crse_ratio)
+        { m_linop->setCoarseFineBC(crse, crse_ratio);}
+
+    //
+    // Methods to perform projection
+    //
 #ifndef AMREX_USE_EB
     void project (const Vector<MultiFab*>& phi_in, Real reltol, Real atol)
      { project(phi_in, reltol, atol, MLMG::Location::FaceCenter); }
@@ -41,24 +57,19 @@ public:
     void project (const Vector<MultiFab*>& phi_in, Real reltol, Real atol, MLMG::Location);
     void project (Real reltol, Real atol, MLMG::Location);
 
-    // Methods to set verbosity
+    //
+    // Setters and getters
+    //
     void setVerbose            (int  v) noexcept { m_verbose = v; }
-    void setBottomVerbose      (int  v) noexcept { m_bottom_verbose = v; }
 
-    // Methods to control MLMG behavior
-    void setBottomSolver  (std::string b) noexcept { m_bottom_solver = b;}
-    void setMaxIter               (int i) noexcept { m_maxiter = i; }
-    void setBottomMaxIter         (int i) noexcept { m_bottom_maxiter = i; }
-    void setBottomTolerance      (Real t) noexcept { m_bottom_rtol = t; }
-    void setBottomToleranceAbs   (Real t) noexcept { m_bottom_atol = t; }
-
-
+    // Methods to get underlying objects
+    // Use these to modify properties of MLMG and linear operator
     MLLinOp& getLinOp () noexcept { return *m_linop; }
+    MLMG&    getMLMG  () noexcept { return *m_mlmg;  }
 
 private:
 
-    void readParameters ();
-    void setup ();
+    void setOptions ();
 
     std::unique_ptr<MLABecLaplacian> m_abeclap;
 #ifdef AMREX_USE_EB
@@ -76,18 +87,8 @@ private:
 
     Vector<Geometry> m_geom;
 
-    // Verbosity
     int m_verbose = 0;
-    int m_bottom_verbose = 0;
 
-    // Control MLMG behavior
-    std::string m_bottom_solver = "bicg";
-    int  m_maxiter        = 200;
-    int  m_bottom_maxiter = 200;
-    Real m_bottom_rtol    = 1.0e-4;
-    Real m_bottom_atol    = -1.0;
-
-    int m_max_coarsening_level = 100;
     bool m_needs_domain_bcs = true;
 
 };

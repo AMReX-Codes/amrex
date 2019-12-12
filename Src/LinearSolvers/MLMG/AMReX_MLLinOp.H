@@ -347,13 +347,7 @@ protected:
     bool isBottomActive () const noexcept { return true; }
 #endif
     MPI_Comm BottomCommunicator () const noexcept { return m_bottom_comm; }
-    MPI_Comm Communicator (int amrlev, int mglev) const noexcept {
-        if (amrlev == 0 && mglev == NMGLevels(0)-1) {
-            return m_bottom_comm;
-        } else {
-            return m_default_comm;
-        }
-    }
+    MPI_Comm Communicator () const noexcept { return m_default_comm; }
 
     void setCoarseFineBCLocation (const RealVect& cloc) noexcept { m_coarse_bc_loc = cloc; }
 
