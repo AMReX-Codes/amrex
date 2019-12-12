@@ -21,7 +21,7 @@ namespace {
         amrex::Abort(string.c_str());
     }
 
-    Real parseChargeName(const ParmParse pp, const std::string& name) {
+    Real parseChargeName(const ParmParse& pp, const std::string& name) {
         Real result;
         if (name == "q_e") {
             return PhysConst::q_e;
@@ -33,13 +33,13 @@ namespace {
         }
     }
 
-    Real parseChargeString(const ParmParse pp, const std::string& name) {
+    Real parseChargeString(const ParmParse& pp, const std::string& name) {
         if(name.substr(0, 1) == "-")
             return -1.0 * parseChargeName(pp, name.substr(1, name.size() - 1));
         return parseChargeName(pp, name);
     }
 
-    Real parseMassString(const ParmParse pp, const std::string& name) {
+    Real parseMassString(const ParmParse& pp, const std::string& name) {
         Real result;
         if (name == "m_e") {
             return PhysConst::m_e;

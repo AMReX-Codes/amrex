@@ -583,7 +583,7 @@ WarpX::ComputeDt ()
  * simulation box passes input parameter zmax_plasma_to_compute_max_step.
  */
 void
-WarpX::computeMaxStepBoostAccelerator(amrex::Geometry a_geom){
+WarpX::computeMaxStepBoostAccelerator(const amrex::Geometry& a_geom){
     // Sanity checks: can use zmax_plasma_to_compute_max_step only if
     // the moving window and the boost are all in z direction.
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(

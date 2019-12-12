@@ -1078,11 +1078,11 @@ PhysicalParticleContainer::Evolve (int lev,
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
         {
             const auto np = pti.numParticles();
-            const auto lev = pti.GetLevel();
+            const auto t_lev = pti.GetLevel();
             const auto index = pti.GetPairIndex();
             tmp_particle_data.resize(finestLevel()+1);
             for (int i = 0; i < TmpIdx::nattribs; ++i)
-                tmp_particle_data[lev][index][i].resize(np);
+                tmp_particle_data[t_lev][index][i].resize(np);
         }
     }
 
