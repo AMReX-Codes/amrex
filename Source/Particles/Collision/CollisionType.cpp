@@ -12,6 +12,8 @@ CollisionType::CollisionType(
 
     amrex::ParmParse pp(collision_name);
     pp.getarr("species", collision_species);
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(collision_species.size() == 2,
+    "Collision species must name exactly two species.");
 
     // default Coulomb log, if < 0, will be computed automatically
     m_CoulombLog = -1.0;
