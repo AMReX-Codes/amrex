@@ -667,35 +667,12 @@ EB_average_face_to_cellcenter (MultiFab& ccmf, int dcomp,
 void
 EB_interp_CC_to_Centroid (MultiFab& sol, int nc)
 {
-
-    //const Real* h = m_geom[amrlev][mglev].CellSize();
-    //AMREX_D_TERM(const Real dhx = m_b_scalar/(h[0]*h[0]);,
-    //             const Real dhy = m_b_scalar/(h[1]*h[1]);,
-    //             const Real dhz = m_b_scalar/(h[2]*h[2]));
-    //const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
-
-    //auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
-        
-    //const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
-    //const MultiFab* vfrac = (factory) ? &(factory->getVolFrac()) : nullptr;
-    //auto area = (factory) ? factory->getAreaFrac()
-    //    : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
-    ////auto fcent = (factory) ? factory->getFaceCent()
-    ////    : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
-    //const MultiCutFab* barea = (factory) ? &(factory->getBndryArea()) : nullptr;
-    //const MultiCutFab* bcent = (factory) ? &(factory->getBndryCent()) : nullptr;
-    
-    
     const auto& factory = dynamic_cast<EBFArrayBoxFactory const&>(sol.Factory());
-        const auto& flags = factory.getMultiEBCellFlagFab();
-        const auto& vfrac = factory.getVolFrac();
-        const auto& area = factory.getAreaFrac();
-        const auto& cent = factory.getCentroid();
-        const auto& barea = factory.getBndryArea();
-
-    //bool is_eb_dirichlet =  isEBDirichlet();
-
-//VisMF::Write(sol,"EM_DEBUG_Peos_in_EB_interp");
+    const auto& flags = factory.getMultiEBCellFlagFab();
+    const auto& vfrac = factory.getVolFrac();
+    const auto& area = factory.getAreaFrac();
+    const auto& cent = factory.getCentroid();
+    const auto& barea = factory.getBndryArea();
 
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
@@ -706,13 +683,7 @@ EB_interp_CC_to_Centroid (MultiFab& sol, int nc)
     {
 
         const Box& vbx = mfi.validbox();
-        const auto& solnfab = sol.array(mfi);
-
-        //auto fabtyp = (flags) ? (*flags)[mfi].getType(vbx) : FabType::regular;
-        //amrex::Print() << "EM DEBUG PLOTTING SOLNFAB" << std::endl;
-        //amrex::Print() << solnfab;
-        //amrex::Abort();
-        
+        const auto& solnfab = sol.array(mfi);       
         const auto fabtyp = flags[mfi].getType(vbx);
 
         if (fabtyp == FabType::covered)
@@ -747,16 +718,7 @@ EB_interp_CC_to_Centroid (MultiFab& sol, int nc)
             });
         }
     }
-    
-    
-    VisMF::Write(sol,"EM_DEBUG_Peos_after_EB_interp");
-        //amrex::Abort();
 }
-
-
-
-
-
 
 
 }
