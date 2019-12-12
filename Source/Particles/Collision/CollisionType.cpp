@@ -134,7 +134,8 @@ void CollisionType::doCoulombCollisionsWithinTile
                         cell_half_1, cell_stop_1,
                         indices_1, indices_1,
                         ux_1, uy_1, uz_1, ux_1, uy_1, uz_1, w_1, w_1,
-                        q1, q1, m1, m1, -1.0, -1.0, dt, CoulombLog, dV);
+                        q1, q1, m1, m1, Real(-1.0), Real(-1.0),
+                        dt, CoulombLog, dV );
                 }
             }
         );
@@ -207,7 +208,8 @@ void CollisionType::doCoulombCollisionsWithinTile
                         cell_start_1, cell_stop_1, cell_start_2, cell_stop_2,
                         indices_1, indices_2,
                         ux_1, uy_1, uz_1, ux_2, uy_2, uz_2, w_1, w_2,
-                        q1, q2, m1, m2, -1.0, -1.0, dt, CoulombLog, dV);
+                        q1, q2, m1, m2, Real(-1.0), Real(-1.0),
+                        dt, CoulombLog, dV );
                 }
             }
         );
