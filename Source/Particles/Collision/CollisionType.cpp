@@ -8,8 +8,21 @@ CollisionType::CollisionType(
     std::string const collision_name)
 {
 
-    std::vector<std::string> collision_species;
+    // check the coordinate is Cartesian
+    amrex::ParmParse pp_check("geometry");
+    int coord_sys;
+    pp_check.query("coord_sys",coord_sys);
+    if (coord_sys != 0)
+    { amrex::Abort("Collision only works for Cartesian coordinate for now."); }
 
+    // check the dimension is 3
+    std::vector<std::string> prob_lo;
+    pp_check.getarr("prob_lo", prob_lo);
+    if (prob_lo.size() != 3)
+    { amrex::Abort("Collision only works for 3D for now."); }
+
+    // read collision species
+    std::vector<std::string> collision_species;
     amrex::ParmParse pp(collision_name);
     pp.getarr("species", collision_species);
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(collision_species.size() == 2,
