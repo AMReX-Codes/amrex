@@ -39,6 +39,9 @@ namespace amrex
 
     void EB_average_face_to_cellcenter (MultiFab& ccmf, int dcomp,
                                         const Array<MultiFab const*,AMREX_SPACEDIM>& fmf);
+    
+    void EB_interp_CC_to_Centroid (MultiFab& sol, int nc);
+
 }
 
 #endif

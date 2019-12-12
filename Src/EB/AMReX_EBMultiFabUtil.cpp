@@ -8,6 +8,8 @@
 #include <AMReX_EBCellFlag.H>
 #include <AMReX_MultiCutFab.H>
 
+#include <AMReX_VisMF.H>
+
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -659,5 +661,123 @@ EB_average_face_to_cellcenter (MultiFab& ccmf, int dcomp,
         }
     }
 }
+
+// EM DEBUG: NEW ROUTINE TO INTEROLATE CELL CENTER VALUES TO CENTROID
+
+void
+EB_interp_CC_to_Centroid (MultiFab& sol, int nc)
+{
+
+    //const Real* h = m_geom[amrlev][mglev].CellSize();
+    //AMREX_D_TERM(const Real dhx = m_b_scalar/(h[0]*h[0]);,
+    //             const Real dhy = m_b_scalar/(h[1]*h[1]);,
+    //             const Real dhz = m_b_scalar/(h[2]*h[2]));
+    //const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
+
+    //auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
+        
+    //const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
+    //const MultiFab* vfrac = (factory) ? &(factory->getVolFrac()) : nullptr;
+    //auto area = (factory) ? factory->getAreaFrac()
+    //    : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
+    ////auto fcent = (factory) ? factory->getFaceCent()
+    ////    : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
+    //const MultiCutFab* barea = (factory) ? &(factory->getBndryArea()) : nullptr;
+    //const MultiCutFab* bcent = (factory) ? &(factory->getBndryCent()) : nullptr;
+    
+    
+    const auto& factory = dynamic_cast<EBFArrayBoxFactory const&>(sol.Factory());
+        const auto& flags = factory.getMultiEBCellFlagFab();
+        const auto& vfrac = factory.getVolFrac();
+        const auto& area = factory.getAreaFrac();
+        const auto& cent = factory.getCentroid();
+        const auto& barea = factory.getBndryArea();
+
+    //bool is_eb_dirichlet =  isEBDirichlet();
+
+//VisMF::Write(sol,"EM_DEBUG_Peos_in_EB_interp");
+
+    MFItInfo mfi_info;
+    if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(sol, mfi_info);  mfi.isValid(); ++mfi)
+    {
+
+        const Box& vbx = mfi.validbox();
+        const auto& solnfab = sol.array(mfi);
+
+        //auto fabtyp = (flags) ? (*flags)[mfi].getType(vbx) : FabType::regular;
+        //amrex::Print() << "EM DEBUG PLOTTING SOLNFAB" << std::endl;
+        //amrex::Print() << solnfab;
+        //amrex::Abort();
+        
+        const auto fabtyp = flags[mfi].getType(vbx);
+
+        if (fabtyp == FabType::covered)
+        {
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( vbx, nc, i, j, k, n,
+            {
+                solnfab(i,j,k,n) = 0.0;
+            });
+        }
+        else if (fabtyp == FabType::regular)
+        {
+            // do nothing
+        }
+        else
+        {
+            Array4<EBCellFlag const> const& flagfab = flags.const_array(mfi);
+            Array4<Real const> const& vfracfab = vfrac.const_array(mfi);
+            AMREX_D_TERM(Array4<Real const> const& apxfab = area[0]->const_array(mfi);,
+                         Array4<Real const> const& apyfab = area[1]->const_array(mfi);,
+                         Array4<Real const> const& apzfab = area[2]->const_array(mfi););
+            Array4<Real const> const& bafab = barea.const_array(mfi);
+            Array4<Real const> const& centfab = cent.const_array(mfi);
+
+
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( vbx, thread_box,
+            {
+                eb_interp_cc2cent(thread_box, solnfab,
+                                 flagfab, vfracfab,
+                                 AMREX_D_DECL(apxfab,apyfab,apzfab),
+                                 bafab, centfab,
+                                 vbx, nc);
+            });
+        }
+    }
+    
+    
+    VisMF::Write(sol,"EM_DEBUG_Peos_after_EB_interp");
+        //amrex::Abort();
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 }
