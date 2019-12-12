@@ -18,6 +18,16 @@ public:
         const std::vector<std::string>& species_names,
         std::string const collision_name);
 
+    /** Perform all binary collisions within a tile
+     *
+     * @param lev AMR level of the tile
+     * @param mfi iterator for multifab
+     * @param species1/2 pointer to species container
+     * @param isSameSpecies true if collision is between same species
+     * @param CoulombLog user input Coulomb logrithm
+     *
+     */
+
     static void doCoulombCollisionsWithinTile (
         int const lev, amrex::MFIter const& mfi,
         std::unique_ptr<WarpXParticleContainer>& species1,
