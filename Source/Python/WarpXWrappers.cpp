@@ -207,113 +207,43 @@ extern "C"
         return myspc.TotalNumberOfParticles();
     }
 
-    amrex::Real** warpx_getEfield(int lev, int direction,
-                             int *return_size, int *ncomps, int *ngrow, int **shapes) {
-        auto & mf = WarpX::GetInstance().getEfield(lev, direction);
-        return getMultiFabPointers(mf, return_size, ncomps, ngrow, shapes);
+#define WARPX_GET_FIELD(FIELD, GETTER) \
+    amrex::Real** FIELD(int lev, int direction, \
+                        int *return_size, int *ncomps, int *ngrow, int **shapes) { \
+        auto & mf = GETTER(lev, direction); \
+        return getMultiFabPointers(mf, return_size, ncomps, ngrow, shapes); \
     }
 
-    int* warpx_getEfieldLoVects(int lev, int direction,
-                                int *return_size, int *ngrow) {
-        auto & mf = WarpX::GetInstance().getEfield(lev, direction);
-        return getMultiFabLoVects(mf, return_size, ngrow);
+#define WARPX_GET_LOVECTS(FIELD, GETTER) \
+    int* FIELD(int lev, int direction, \
+               int *return_size, int *ngrow) { \
+        auto & mf = GETTER(lev, direction); \
+        return getMultiFabLoVects(mf, return_size, ngrow); \
     }
 
-    amrex::Real** warpx_getEfieldCP(int lev, int direction,
-                               int *return_size, int *ncomps, int *ngrow, int **shapes) {
-        auto & mf = WarpX::GetInstance().getEfield_cp(lev, direction);
-        return getMultiFabPointers(mf, return_size, ncomps, ngrow, shapes);
-    }
+    WARPX_GET_FIELD(warpx_getEfield, WarpX::GetInstance().getEfield);
+    WARPX_GET_FIELD(warpx_getEfieldCP, WarpX::GetInstance().getEfield_cp);
+    WARPX_GET_FIELD(warpx_getEfieldFP, WarpX::GetInstance().getEfield_fp);
 
-    int* warpx_getEfieldCPLoVects(int lev, int direction,
-                                  int *return_size, int *ngrow) {
-        auto & mf = WarpX::GetInstance().getEfield_cp(lev, direction);
-        return getMultiFabLoVects(mf, return_size, ngrow);
-    }
+    WARPX_GET_FIELD(warpx_getBfield, WarpX::GetInstance().getBfield);
+    WARPX_GET_FIELD(warpx_getBfieldCP, WarpX::GetInstance().getBfield_cp);
+    WARPX_GET_FIELD(warpx_getBfieldFP, WarpX::GetInstance().getBfield_fp);
 
-    amrex::Real** warpx_getEfieldFP(int lev, int direction,
-                               int *return_size, int *ncomps, int *ngrow, int **shapes) {
-        auto & mf = WarpX::GetInstance().getEfield_fp(lev, direction);
-        return getMultiFabPointers(mf, return_size, ncomps, ngrow, shapes);
-    }
+    WARPX_GET_FIELD(warpx_getCurrentDensity, WarpX::GetInstance().getcurrent);
+    WARPX_GET_FIELD(warpx_getCurrentDensityCP, WarpX::GetInstance().getcurrent_cp);
+    WARPX_GET_FIELD(warpx_getCurrentDensityFP, WarpX::GetInstance().getcurrent_fp);
 
-    int* warpx_getEfieldFPLoVects(int lev, int direction,
-                                  int *return_size, int *ngrow) {
-        auto & mf = WarpX::GetInstance().getEfield_fp(lev, direction);
-        return getMultiFabLoVects(mf, return_size, ngrow);
-    }
+    WARPX_GET_LOVECTS(warpx_getEfieldLoVects, WarpX::GetInstance().getEfield);
+    WARPX_GET_LOVECTS(warpx_getEfieldCPLoVects, WarpX::GetInstance().getEfield_cp);
+    WARPX_GET_LOVECTS(warpx_getEfieldFPLoVects, WarpX::GetInstance().getEfield_fp);
 
-    amrex::Real** warpx_getBfield(int lev, int direction,
-                             int *return_size, int *ncomps, int *ngrow, int **shapes) {
-        auto & mf = WarpX::GetInstance().getBfield(lev, direction);
-        return getMultiFabPointers(mf, return_size, ncomps, ngrow, shapes);
-    }
+    WARPX_GET_LOVECTS(warpx_getBfieldLoVects, WarpX::GetInstance().getBfield);
+    WARPX_GET_LOVECTS(warpx_getBfieldCPLoVects, WarpX::GetInstance().getBfield_cp);
+    WARPX_GET_LOVECTS(warpx_getBfieldFPLoVects, WarpX::GetInstance().getBfield_fp);
 
-    int* warpx_getBfieldLoVects(int lev, int direction,
-                                int *return_size, int *ngrow) {
-        auto & mf = WarpX::GetInstance().getBfield(lev, direction);
-        return getMultiFabLoVects(mf, return_size, ngrow);
-    }
-
-    amrex::Real** warpx_getBfieldCP(int lev, int direction,
-                               int *return_size, int *ncomps, int *ngrow, int **shapes) {
-        auto & mf = WarpX::GetInstance().getBfield_cp(lev, direction);
-        return getMultiFabPointers(mf, return_size, ncomps, ngrow, shapes);
-    }
-
-    int* warpx_getBfieldCPLoVects(int lev, int direction,
-                                  int *return_size, int *ngrow) {
-        auto & mf = WarpX::GetInstance().getBfield_cp(lev, direction);
-        return getMultiFabLoVects(mf, return_size, ngrow);
-    }
-
-    amrex::Real** warpx_getBfieldFP(int lev, int direction,
-                               int *return_size, int *ncomps, int *ngrow, int **shapes) {
-        auto & mf = WarpX::GetInstance().getBfield_fp(lev, direction);
-        return getMultiFabPointers(mf, return_size, ncomps, ngrow, shapes);
-    }
-
-    int* warpx_getBfieldFPLoVects(int lev, int direction,
-                                  int *return_size, int *ngrow) {
-        auto & mf = WarpX::GetInstance().getBfield_fp(lev, direction);
-        return getMultiFabLoVects(mf, return_size, ngrow);
-    }
-
-    amrex::Real** warpx_getCurrentDensity(int lev, int direction,
-                                     int *return_size, int *ncomps, int *ngrow, int **shapes) {
-        auto & mf = WarpX::GetInstance().getcurrent(lev, direction);
-        return getMultiFabPointers(mf, return_size, ncomps, ngrow, shapes);
-    }
-
-    int* warpx_getCurrentDensityLoVects(int lev, int direction,
-                                        int *return_size, int *ngrow) {
-        auto & mf = WarpX::GetInstance().getcurrent(lev, direction);
-        return getMultiFabLoVects(mf, return_size, ngrow);
-    }
-
-    amrex::Real** warpx_getCurrentDensityCP(int lev, int direction,
-                                       int *return_size, int *ncomps, int *ngrow, int **shapes) {
-        auto & mf = WarpX::GetInstance().getcurrent_cp(lev, direction);
-        return getMultiFabPointers(mf, return_size, ncomps, ngrow, shapes);
-    }
-
-    int* warpx_getCurrentDensityCPLoVects(int lev, int direction,
-                                          int *return_size, int *ngrow) {
-        auto & mf = WarpX::GetInstance().getcurrent_cp(lev, direction);
-        return getMultiFabLoVects(mf, return_size, ngrow);
-    }
-
-    amrex::Real** warpx_getCurrentDensityFP(int lev, int direction,
-                                       int *return_size, int *ncomps, int *ngrow, int **shapes) {
-        auto & mf = WarpX::GetInstance().getcurrent_fp(lev, direction);
-        return getMultiFabPointers(mf, return_size, ncomps, ngrow, shapes);
-    }
-
-    int* warpx_getCurrentDensityFPLoVects(int lev, int direction,
-                                          int *return_size, int *ngrow) {
-        auto & mf = WarpX::GetInstance().getcurrent_fp(lev, direction);
-        return getMultiFabLoVects(mf, return_size, ngrow);
-    }
+    WARPX_GET_LOVECTS(warpx_getCurrentDensityLoVects, WarpX::GetInstance().getcurrent);
+    WARPX_GET_LOVECTS(warpx_getCurrentDensityCPLoVects, WarpX::GetInstance().getcurrent_cp);
+    WARPX_GET_LOVECTS(warpx_getCurrentDensityFPLoVects, WarpX::GetInstance().getcurrent_fp);
 
     amrex::ParticleReal** warpx_getParticleStructs(int speciesnumber, int lev,
                                       int* num_tiles, int** particles_per_tile) {
