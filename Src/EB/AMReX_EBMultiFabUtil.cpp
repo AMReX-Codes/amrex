@@ -759,25 +759,4 @@ EB_interp_CC_to_Centroid (MultiFab& sol, int nc)
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 }
