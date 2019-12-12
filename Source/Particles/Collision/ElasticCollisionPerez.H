@@ -8,22 +8,22 @@
 
 /* \brief Prepare information for and call
  *        UpdateMomentumPerezElastic().
- *        I1s,I2s is the start index for I1,I2 (inclusive).
- *        I1e,I2e is the start index for I1,I2 (exclusive).
- *        I1 and I2 are the index arrays.
- *        u1 and u2 are the velocity arrays (u=v*gamma),
- *        they could be either different or the same,
- *        their lengths are not needed,
- *        I1 and I2 determine all elements that will be used.
- *        w1 and w2 are arrays of weights.
- *        q1 and q2 are charges. m1 and m2 are masses.
- *        T1 and T2 are temperatures (Joule)
- *        and will be used if greater than zero,
- *        otherwise will be computed.
- *        dt is the time step length between two collision calls.
- *        L is the Coulomb log and will be used if greater than zero,
- *        otherwise will be computed.
- *        dV is the volume of the corresponding cell.
+ * @param[in] I1s,I2s is the start index for I1,I2 (inclusive).
+ * @param[in] I1e,I2e is the start index for I1,I2 (exclusive).
+ * @param[in] I1 and I2 are the index arrays.
+ * @param[in,out] u1 and u2 are the velocity arrays (u=v*gamma),
+ *                they could be either different or the same,
+ *                their lengths are not needed,
+ * @param[in] I1 and I2 determine all elements that will be used.
+ * @param[in] w1 and w2 are arrays of weights.
+ * @param[in] q1 and q2 are charges. m1 and m2 are masses.
+ * @param[in] T1 and T2 are temperatures (Joule)
+ *            and will be used if greater than zero,
+ *            otherwise will be computed.
+ * @param[in] dt is the time step length between two collision calls.
+ * @param[in] L is the Coulomb log and will be used if greater than zero,
+ *            otherwise will be computed.
+ * @param[in] dV is the volume of the corresponding cell.
 */
 
 template <typename T_index, typename T_R>
