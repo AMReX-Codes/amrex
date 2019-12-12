@@ -227,7 +227,6 @@ target_sources( amrex
    AMReX_GpuRange.H
    AMReX_GpuReduce.H
    AMReX_GpuAllocators.H
-   AMReX_GpuAllocators.cpp
    AMReX_GpuContainers.H
    # CUDA --------------------------------------------------------------------
    AMReX_CudaGraph.H

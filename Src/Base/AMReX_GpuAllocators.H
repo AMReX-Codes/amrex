@@ -14,8 +14,6 @@
 #include <cuda.h>
 #include <driver_types.h>
 #include <cuda_runtime.h>
-#include <thrust/system/cuda/vector.h>
-#include <thrust/device_malloc_allocator.h>
 #endif // AMREX_USE_CUDA
 
 namespace amrex {
@@ -148,37 +146,6 @@ namespace amrex {
     operator!=(Allocator<T> const& x, Allocator<U> const& y) noexcept
     {
         return !(x == y);
-    }
-
-    template<class T>
-    class ThrustManagedAllocator : public thrust::device_malloc_allocator<T>
-    {
-    public:
-        using value_type = T;
-
-        typedef thrust::device_ptr<T>  pointer;
-        inline pointer allocate(size_t n)
-            {
-                value_type* result = nullptr;
-                result = (value_type*) The_Arena()->alloc(n * sizeof(T));
-                return thrust::device_pointer_cast(result);
-            }
-
-        inline void deallocate(pointer ptr, size_t)
-            {
-                The_Arena()->free(thrust::raw_pointer_cast(ptr));
-            }
-    };
-
-    
-    namespace Gpu
-    {
-        ThrustManagedAllocator<char>& The_ThrustCachedAllocator ();
-
-        AMREX_FORCE_INLINE auto The_ThrustCachedPolicy() -> decltype (thrust::cuda::par(Gpu::The_ThrustCachedAllocator()))
-        {
-            return thrust::cuda::par(Gpu::The_ThrustCachedAllocator());
-        };
     }
 
 #endif // AMREX_USE_GPU

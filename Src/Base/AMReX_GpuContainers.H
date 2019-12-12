@@ -114,7 +114,6 @@ namespace Gpu {
     {
         using value_type = typename std::iterator_traits<InIter>::value_type;
         static_assert(AMREX_IS_TRIVIALLY_COPYABLE(value_type)
-                      || detail::is_thrust_complex<value_type>::value,
                       "Can only copy trivially copyable types");
         auto size = std::distance(begin, end);
 #ifdef AMREX_USE_GPU
@@ -147,7 +146,6 @@ namespace Gpu {
     {
         using value_type = typename std::iterator_traits<InIter>::value_type;
         static_assert(AMREX_IS_TRIVIALLY_COPYABLE(value_type)
-                      || detail::is_thrust_complex<value_type>::value,
                       "Can only copy trivially copyable types");
         auto size = std::distance(begin, end);
 #ifdef AMREX_USE_GPU        
@@ -180,7 +178,6 @@ namespace Gpu {
     {
         using value_type = typename std::iterator_traits<InIter>::value_type;
         static_assert(AMREX_IS_TRIVIALLY_COPYABLE(value_type)
-                      || detail::is_thrust_complex<value_type>::value,
                       "Can only copy trivially copyable types");
         auto size = std::distance(begin, end);
 #ifdef AMREX_USE_GPU
@@ -214,7 +211,6 @@ namespace Gpu {
     {
         using value_type = typename std::iterator_traits<InIter>::value_type;
         static_assert(AMREX_IS_TRIVIALLY_COPYABLE(value_type)
-                      || detail::is_thrust_complex<value_type>::value,
                       "Can only copy trivially copyable types");
         auto size = std::distance(begin, end);
 #ifdef AMREX_USE_GPU
@@ -248,7 +244,6 @@ namespace Gpu {
     {
         using value_type = typename std::iterator_traits<InIter>::value_type;
         static_assert(AMREX_IS_TRIVIALLY_COPYABLE(value_type)
-                      || detail::is_thrust_complex<value_type>::value,
                       "Can only copy trivially copyable types");
         auto size = std::distance(begin, end);
 #ifdef AMREX_USE_GPU        
@@ -282,7 +277,6 @@ namespace Gpu {
     {
         using value_type = typename std::iterator_traits<InIter>::value_type;
         static_assert(AMREX_IS_TRIVIALLY_COPYABLE(value_type)
-                      || detail::is_thrust_complex<value_type>::value,
                       "Can only copy trivially copyable types");
         auto size = std::distance(begin, end);
 #ifdef AMREX_USE_GPU
