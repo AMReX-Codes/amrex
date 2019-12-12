@@ -293,22 +293,28 @@ namespace Gpu {
     }
     
     template<class InIter, class OutIter>
-    auto inclusive_scan (InIter begin, InIter end, OutIter result) -> decltype(typename std::remove_pointer<OutIter>::type())
+    OutIter inclusive_scan (InIter begin, InIter end, OutIter result)
     {
 #ifdef AMREX_USE_GPU
         auto N = std::distance(begin, end);
-        return Scan::InclusiveSum(N, &(*begin), &(*result));
+        Scan::InclusiveSum(N, &(*begin), &(*result));
+        OutIter result_end = result;
+        std::advance(result_end, N);
+        return result_end;
 #else
         return std::partial_sum(begin, end, result);
 #endif
     }
 
     template<class InIter, class OutIter>
-    auto exclusive_scan(InIter begin, InIter end, OutIter result) -> decltype(typename std::remove_pointer<OutIter>::type())
+    OutIter exclusive_scan(InIter begin, InIter end, OutIter result)
     {
 #ifdef AMREX_USE_GPU
         auto N = std::distance(begin, end);
-        return Scan::ExclusiveSum(N, &(*begin), &(*result));
+        Scan::ExclusiveSum(N, &(*begin), &(*result));
+        OutIter result_end = result;
+        std::advance(result_end, N);
+        return result_end;
 #else
         if (begin == end) return result;
         
