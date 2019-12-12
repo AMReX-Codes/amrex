@@ -2,6 +2,14 @@
 
 # This script tests the collision module
 # using electron-ion temperature relaxation.
+# Initially, electrons and ions are both in equilibrium
+# (gaussian) distributions, but have different temperatures.
+# Relaxation occurs to bring the two temeratures to be
+# a final same temperature through collisions.
+# The code was tested to be valid, more detailed results
+# were used to obtian an exponential fit with
+# coefficients a and b.
+# This automated test compares the results with the fit.
 
 # Possible errors:
 # tolerance: 0.001
