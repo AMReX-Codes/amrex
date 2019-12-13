@@ -284,14 +284,9 @@ void eb_interp_cc2cent (Box const& box,
           Real anrmx = dapx * anorminv;
           Real anrmy = dapy * anorminv;
 
-          Real dg, gx, gy, sx, sy;
-          if (std::abs(anrmx) > std::abs(anrmy)) {
-            sx = std::copysign(1.0,anrmx);
-            sy = std::copysign(1.0,anrmy);
-          } else {
-            sx = std::copysign(1.0,anrmx);
-            sy = std::copysign(1.0,anrmy);
-          }
+          Real gx, gy, sx, sy;
+          sx = std::copysign(1.0,anrmx);
+          sy = std::copysign(1.0,anrmy);
                         
           int ii = i - static_cast<int>(sx);
           int jj = j - static_cast<int>(sy);
