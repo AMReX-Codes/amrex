@@ -653,9 +653,9 @@ Laser initialization
     For example, if ``warpx.Bx_external_grid_function(x,y,z)=Bo*x + delta*(y + z)``
     then the constants `Bo` and `delta` required in the above equation
     can be set using ``my_constants.Bo=`` and ``my_constants.delta=`` in the
-    input file.
+    input file. For a two-dimensional simulation, it is assumed that the first dimension     is `x` and the second dimension in `z`, and the value of `y` is set to zero.
 
-* ``warpx.E_Ext_grid_init_style`` (string) optional (default is "default")
+* ``warpx.E_ext_grid_init_style`` (string) optional (default is "default")
     This parameter determines the type of initialization for the external
     electric field. The "default" style initializes the
     external electric field (Ex,Ey,Ez) to (0.0, 0.0, 0.0).
@@ -674,7 +674,9 @@ Laser initialization
     For example, if ``warpx.Ex_external_grid_function(x,y,z)=Eo*x + delta*(y + z)``
     then the constants `Bo` and `delta` required in the above equation
     can be set using ``my_constants.Eo=`` and ``my_constants.delta=`` in the
-    input file.
+    input file. For a two-dimensional simulation, it is assumed that the first 
+    dimension is `x` and the second dimension in `z`, 
+    and the value of `y` is set to zero.
 
 * ``warpx.E_external_grid`` & ``warpx.B_external_grid`` (list of `int`)
     required when ``warpx.B_ext_grid_init_style="parse_B_ext_grid_function"``

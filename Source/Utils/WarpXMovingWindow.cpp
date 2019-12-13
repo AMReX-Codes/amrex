@@ -359,12 +359,14 @@ WarpX::shiftMF (MultiFab& mf, const Geometry& geom, int num_shift, int dir,
                 {
                       // Compute x,y,z co-ordinates based on index type of mf
                       Real fac_x = (1.0 - mf_type[0]) * dx[0]*0.5;
-                      Real fac_y = (1.0 - mf_type[1]) * dx[1]*0.5;
                       Real x = i*dx[0] + real_box.lo(0) + fac_x;
-                      Real y = j*dx[1] + real_box.lo(1) + fac_y;
 #if (AMREX_SPACEDIM==2)
-                      Real z = 0.0;
+                      Real y = 0.0;
+                      Real fac_z = (1.0 - mf_type[1]) * dx[1]*0.5;
+                      Real z = j*dx[1] + real_box.lo(1) + fac_z;
 #else
+                      Real fac_y = (1.0 - mf_type[1]) * dx[1]*0.5;
+                      Real y = j*dx[1] + real_box.lo(1) + fac_y;
                       Real fac_z = (1.0 - mf_type[2]) * dx[2]*0.5;
                       Real z = k*dx[2] + real_box.lo(2) + fac_z;
 #endif

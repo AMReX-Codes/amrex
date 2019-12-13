@@ -596,13 +596,14 @@ WarpX::InitializeExternalFieldsOnGridUsingParser (
                 // Shift required in the x-, y-, or z- position
                 // depending on the index type of the multifab
                 Real fac_x = (1.0 - mfx_type[0]) * dx_lev[0]*0.5;
-                Real fac_y = (1.0 - mfx_type[1]) * dx_lev[1]*0.5;
-
                 Real x = i*dx_lev[0] + real_box.lo(0) + fac_x;
-                Real y = j*dx_lev[1] + real_box.lo(1) + fac_y;
 #if (AMREX_SPACEDIM==2)
-                Real z = 0.0;
+                Real y = 0.0;
+                Real fac_z = (1.0 - mfx_type[1]) * dx_lev[1]*0.5;
+                Real z = j*dx_lev[1] + real_box.lo(1) + fac_z;
 #else
+                Real fac_y = (1.0 - mfx_type[1]) * dx_lev[1]*0.5;
+                Real y = j*dx_lev[1] + real_box.lo(1) + fac_y;
                 Real fac_z = (1.0 - mfx_type[2]) * dx_lev[2]*0.5;
                 Real z = k*dx_lev[2] + real_box.lo(2) + fac_z;
 #endif
@@ -611,13 +612,15 @@ WarpX::InitializeExternalFieldsOnGridUsingParser (
             },
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
                 Real fac_x = (1.0 - mfy_type[0]) * dx_lev[0]*0.5;
-                Real fac_y = (1.0 - mfy_type[1]) * dx_lev[1]*0.5;
                 Real x = i*dx_lev[0] + real_box.lo(0) + fac_x;
-                Real y = j*dx_lev[1] + real_box.lo(1) + fac_y;
 #if (AMREX_SPACEDIM==2)
-                Real z = 0.0;
+                Real y = 0.0;
+                Real fac_z = (1.0 - mfx_type[1]) * dx_lev[1]*0.5;
+                Real z = j*dx_lev[1] + real_box.lo(1) + fac_z;
 #elif (AMREX_SPACEDIM==3)
-                Real fac_z = (1.0 - mfy_type[2]) * dx_lev[2]*0.5;
+                Real fac_y = (1.0 - mfx_type[1]) * dx_lev[1]*0.5;
+                Real y = j*dx_lev[1] + real_box.lo(1) + fac_y;
+                Real fac_z = (1.0 - mfx_type[2]) * dx_lev[2]*0.5;
                 Real z = k*dx_lev[2] + real_box.lo(2) + fac_z;
 #endif
                 // Initialize the y-component of the field.
@@ -629,8 +632,12 @@ WarpX::InitializeExternalFieldsOnGridUsingParser (
                 Real x = i*dx_lev[0] + real_box.lo(0) + fac_x;
                 Real y = j*dx_lev[1] + real_box.lo(1) + fac_y;
 #if (AMREX_SPACEDIM==2)
-                Real z = 0.0;
+                Real y = 0.0;
+                Real fac_z = (1.0 - mfx_type[1]) * dx_lev[1]*0.5;
+                Real z = j*dx_lev[1] + real_box.lo(1) + fac_z;
 #elif (AMREX_SPACEDIM==3)
+                Real fac_y = (1.0 - mfx_type[1]) * dx_lev[1]*0.5;
+                Real y = j*dx_lev[1] + real_box.lo(1) + fac_y;
                 Real fac_z = (1.0 - mfz_type[2]) * dx_lev[2]*0.5;
                 Real z = k*dx_lev[2] + real_box.lo(2) + fac_z;
 #endif
