@@ -325,5 +325,82 @@ void eb_avg_fc_to_cc (int i, int j, int k, int n, Array4<Real> const& cc,
     }
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void eb_interp_cc2cent (Box const& box,
+                        Array4<Real> const& phi,
+                        Array4<EBCellFlag const> const& flag,
+                        Array4<Real const> const& vfrc,
+                        Array4<Real const> const& apx,
+                        Array4<Real const> const& apy,
+                        Array4<Real const> const& apz,
+                        Array4<Real const> const& ba, Array4<Real const> const& cent,
+                        Box const& vbox, int ncomp) noexcept
+{
+    amrex::Loop(box, ncomp, [=] (int i, int j, int k, int n) noexcept
+    {
+      if (flag(i,j,k).isCovered())
+      {
+        phi(i,j,k,n) = phi(i,j,k,n); //do nothing
+      }
+      else
+      {
+        if (flag(i,j,k).isRegular())
+        {
+          phi(i,j,k,n) = phi(i,j,k,n);
+        }
+        else
+        {
+          Real apxm = apx(i,j,k);
+          Real apxp = apx(i+1,j,k);
+          Real apym = apy(i,j,k);
+          Real apyp = apy(i,j+1,k);
+          Real apzm = apz(i,j,k);
+          Real apzp = apz(i,j,k+1);
+
+          Real dapx = apxm-apxp;
+          Real dapy = apym-apyp;
+          Real dapz = apzm-apzp;
+          Real anorm = std::sqrt(dapx*dapx+dapy*dapy+dapz*dapz);
+          Real anorminv = 1.0/anorm;
+          Real anrmx = dapx * anorminv;
+          Real anrmy = dapy * anorminv;
+          Real anrmz = dapz * anorminv;
+
+          Real gx, gy, gz;
+          Real sx = std::copysign(1.0,anrmx);
+          Real sy = std::copysign(1.0,anrmy);
+          Real sz = std::copysign(1.0,anrmz);
+                        
+          int ii = i - static_cast<int>(sx);
+          int jj = j - static_cast<int>(sy);
+          int kk = k - static_cast<int>(sz);
+                        
+          gx = cent(i,j,k,0); 
+          gy = cent(i,j,k,1);
+          gz = cent(i,j,k,2); 
+          Real gxy = gx*gy;
+          Real gxz = gx*gz;
+          Real gyz = gy*gz;
+          Real gxyz = gx*gy*gz;
+          Real phig = (1.0+gx+gy+gz+gxy+gxz+gyz+gxyz) * phi(i ,j ,k ,n)
+              +       (-gz - gxz - gyz - gxyz)        * phi(i ,j ,kk,n)
+              +       (-gy - gxy - gyz - gxyz)        * phi(i ,jj,k ,n)
+              +       (gyz + gxyz)                    * phi(i ,jj,kk,n)
+              +       (-gx - gxy - gxz - gxyz)        * phi(ii,j ,k ,n)
+              +       (gxz + gxyz)                    * phi(ii,j ,kk,n)
+              +       (gxy + gxyz)                    * phi(ii,jj,k ,n)
+              +       (-gxyz)                         * phi(ii,jj,kk,n);
+
+           phi(i,j,k,n) = phig;
+         }
+       }
+    });
+}
+
+
+
+
+
+
 }
 #endif
