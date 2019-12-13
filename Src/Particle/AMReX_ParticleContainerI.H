@@ -181,10 +181,15 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                 {
                     grid = local_grid;
                 }
-                else
-                {
-                    grid = (*redistribute_mask_ptr)[local_grid](Index(p, lev), 0);
-                }
+		else
+		{
+		    ba.intersections(Box(iv, iv), isects, true, 0);
+		    grid = isects.empty() ? -1 : isects[0].first;
+		    if(grid == -1)
+		    {
+		        grid = (*redistribute_mask_ptr)[local_grid](Index(p, lev), 0);
+		    }
+		}
 	    }
             
             if (grid >= 0) {
