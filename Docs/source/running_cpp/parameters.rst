@@ -674,8 +674,8 @@ Laser initialization
     For example, if ``warpx.Ex_external_grid_function(x,y,z)=Eo*x + delta*(y + z)``
     then the constants `Bo` and `delta` required in the above equation
     can be set using ``my_constants.Eo=`` and ``my_constants.delta=`` in the
-    input file. For a two-dimensional simulation, it is assumed that the first 
-    dimension is `x` and the second dimension in `z`, 
+    input file. For a two-dimensional simulation, it is assumed that the first
+    dimension is `x` and the second dimension in `z`,
     and the value of `y` is set to zero.
 
 * ``warpx.E_external_grid`` & ``warpx.B_external_grid`` (list of `int`)
