@@ -1,15 +1,6 @@
 #ifndef AMREX_EB_MULTIFAB_UTIL_2D_C_H_
 #define AMREX_EB_MULTIFAB_UTIL_2D_C_H_
 
-namespace amrex { namespace {
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    Real get_dx_eb (Real kappa) noexcept {
-        return amrex::max(0.3,(kappa*kappa-0.25)/(2.0*kappa));
-    }
-}}
-
-
-
 namespace amrex {
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -253,9 +244,8 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void eb_interp_cc2cent (Box const& box,
                        Array4<Real> const& phi,
                        Array4<EBCellFlag const> const& flag,
-                       Array4<Real const> const& vfrc,
                        Array4<Real const> const& apx, Array4<Real const> const& apy,
-                       Array4<Real const> const& ba, Array4<Real const> const& cent,
+                       Array4<Real const> const& cent,
                        Box const& vbox, int ncomp) noexcept
 {
     amrex::Loop(box, ncomp, [=] (int i, int j, int k, int n) noexcept
@@ -272,24 +262,50 @@ void eb_interp_cc2cent (Box const& box,
         }
         else
         {
-          Real apxm = apx(i,j,k);
-          Real apxp = apx(i+1,j,k);
-          Real apym = apy(i,j,k);
-          Real apyp = apy(i,j+1,k);
                     
-          Real dapx = apxm-apxp;
-          Real dapy = apym-apyp;
-          Real anorm = std::hypot(dapx,dapy);
-          Real anorminv = 1.0/anorm;
-          Real anrmx = dapx * anorminv;
-          Real anrmy = dapy * anorminv;
-
-          Real gx, gy, sx, sy;
-          sx = std::copysign(1.0,anrmx);
-          sy = std::copysign(1.0,anrmy);
-                        
-          int ii = i - static_cast<int>(sx);
-          int jj = j - static_cast<int>(sy);
+          //Real apxm = apx(i,j,k);
+          //Real apxp = apx(i+1,j,k);
+          //Real apym = apy(i,j,k);
+          //Real apyp = apy(i,j+1,k);
+          //          
+          //Real dapx = apxm-apxp;
+          //Real dapy = apym-apyp;
+          //Real anorm = std::hypot(dapx,dapy);
+          //Real anorminv = 1.0/anorm;
+          //Real anrmx = dapx * anorminv;
+          //Real anrmy = dapy * anorminv;
+          //
+          //Real gx, gy, sx, sy;
+          //sx = std::copysign(1.0,anrmx);
+          //sy = std::copysign(1.0,anrmy);
+          //              
+          //int ii = i - static_cast<int>(sx);
+          //int jj = j - static_cast<int>(sy);
+          // 
+          // 
+          //amrex::Print() << " EM DEBUG   i,j,ii,jj " << i << " " << j << " " << ii << " " << jj << std::endl; 
+          //
+          Real gx, gy;
+          int ii, jj;
+          if (cent(i,j,k,0) < 0.0)
+          {
+           ii = i - 1;
+          }
+          else
+          {
+            ii = i + 1;
+          }
+          if (cent(i,j,k,1) < 0.0)
+          {
+            jj = j - 1;
+          }
+          else
+          {
+            jj = j + 1;
+          }
+          
+           //amrex::Print() << " EM DEBUG 2 i,j,ii,jj " << i << " " << j << " " << ii << " " << jj << std::endl; 
+          
                         
           gx = cent(i,j,k,0); 
           gy = cent(i,j,k,1); 
@@ -304,6 +320,229 @@ void eb_interp_cc2cent (Box const& box,
        }
     });
 }
+
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void eb_interp_cc2facecent (Box const& box,
+                       Array4<Real> const& phi,
+                       Array4<EBCellFlag const> const& flag,
+                       Array4<Real const> const& apx, Array4<Real const> const& apy,
+                       Array4<Real const> const& fcx,
+                       Array4<Real const> const& fcy,
+                       Array4<Real> const& edg_x,
+                       Array4<Real> const& edg_y,
+                       Box const& vbox, int a_comp, int ncomp,
+                       const Box& a_domain,
+                       const Vector<BCRec>& a_bcs) noexcept
+{
+  
+  const Dim3 domlo = amrex::lbound(a_domain);
+  const Dim3 domhi = amrex::ubound(a_domain);
+  
+  D_TERM( const Box ubx_grown = amrex::surroundingNodes(amrex::grow(box,1),0);,
+          const Box vbx_grown = amrex::surroundingNodes(amrex::grow(box,1),1);,
+          const Box wbx_grown = amrex::surroundingNodes(amrex::grow(box,1),2););
+  
+  const auto bc = a_bcs.dataPtr();
+  
+  //
+  // ===================== X =====================
+  //
+  amrex::Loop(ubx_grown, ncomp, [=] (int i, int j, int k, int n) noexcept
+    {
+
+      if (apx(i,j,k) == 0)
+      {
+        edg_x(i,j,k,n) == 1e40;
+      }
+      else
+      {
+        if (apx(i,j,k) == 1)
+        {
+          if ( (i == domlo.x) and (bc[n].lo(0) == BCType::ext_dir) )
+          {
+            edg_x(i,j,k,n) = phi(domlo.x-1,j,k,a_comp+n);
+          }
+          else if ( (i == domhi.x+1) and (bc[n].hi(0) == BCType::ext_dir) )
+          {
+            edg_x(i,j,k,n) = phi(domhi.x+1,j,k,a_comp+n);
+          }
+          else
+          {
+            edg_x(i,j,k,n) = 0.5 * ( phi(i,j,k,a_comp+n) + phi(i-1,j,k,a_comp+n) );
+          }
+          
+        //   amrex::Print() << "EM DEBUG FACE REGULAR i=" << i << " j= " << j <<
+        //" k = " << k << " n = " << n << std::endl;
+        //amrex::Print() << "EM DEBUG EDGESTATE_X = " << edg_x(i,j,k,n) << std::endl;
+          
+          
+        }
+        else
+        {
+          Real gx, gy;
+          int ii, jj;
+          ii = i - 1;
+
+          if (fcx(i,j,k) < 0.0)
+          {
+            jj = j - 1;
+          }
+          else
+          {
+            jj = j + 1;
+          }
+                        
+          gx = -0.5; 
+          gy = fcx(i,j,k); 
+          Real gxy = gx*gy;
+          Real phig = (1.0+gx+gy+gxy)  * phi(i ,j ,k ,n)
+           +              (-gy - gxy ) * phi(i ,jj,k ,n)
+           +              (-gx - gxy ) * phi(ii,j ,k ,n)
+           +              (gxy )       * phi(ii,jj,k ,n);
+        
+           edg_x(i,j,k,n) = phig;
+        
+        // amrex::Print() << "EM DEBUG FACE CENTROID i=" << i << " j= " << j <<
+        //" k = " << k << " n = " << n << " FCX = " << fcx(i,j,k) << " FCY = " << fcy(i,j,k) << std::endl;
+        //     amrex::Print() << "apx(i,j,k) is " << apx(i,j,k) << std::endl;
+         //amrex::Print() << "EM DEBUG EDGESTATE_X = " << edg_x(i,j,k,n) << std::endl;
+        // amrex::Print() << "EM DEBUG EDGESTATE_Y = " << edg_y(i,j,k,n) << std::endl;
+        
+         } 
+       }
+    });
+  
+
+    //
+  // ===================== Y =====================
+  //
+  amrex::Loop(vbx_grown, ncomp, [=] (int i, int j, int k, int n) noexcept
+    {
+      if (apy(i,j,k) == 0)
+      {
+        edg_y(i,j,k,n) = 1e40;
+      }
+      else
+      {
+        if (apy(i,j,k) == 1)
+        {
+          if ( (j == domlo.y) and (bc[n].lo(1) == BCType::ext_dir) )
+          {
+            edg_y(i,j,k,n) = phi(i,domlo.y-1,k,a_comp+n);
+          }
+          else if ( (j == domhi.y+1) and (bc[n].hi(1) == BCType::ext_dir) )
+          {
+            edg_y(i,j,k,n) = phi(i,domhi.y+1,k,a_comp+n);
+          }
+          else
+          {
+            edg_y(i,j,k,n) = 0.5 * (phi(i,j  ,k,a_comp+n) + phi(i,j-1,k,a_comp+n));
+          }
+          
+        //   amrex::Print() << "EM DEBUG FACE REGULAR i=" << i << " j= " << j <<
+        //" k = " << k << " n = " << n << std::endl;
+        //amrex::Print() << "EM DEBUG EDGESTATE_Y = " << edg_y(i,j,k,n) << std::endl;
+        //  
+          
+        }
+        else
+        {
+          Real gx, gy;
+          int ii, jj;
+          if (fcy(i,j,k) < 0.0)
+          {
+           ii = i - 1;
+          }
+          else
+          {
+            ii = i + 1;
+          }
+
+          jj = j - 1;
+
+                        
+          gx = fcy(i,j,k);  
+          gy = -0.5;
+          Real gxy = gx*gy;
+          Real phig = (1.0+gx+gy+gxy)  * phi(i ,j ,k ,n)
+           +              (-gy - gxy ) * phi(i ,jj,k ,n)
+           +              (-gx - gxy ) * phi(ii,j ,k ,n)
+           +              (gxy )       * phi(ii,jj,k ,n);
+        
+           edg_y(i,j,k,n) = phig;
+        
+        // amrex::Print() << "EM DEBUG FACE CENTROID i=" << i << " j= " << j <<
+        //" k = " << k << " n = " << n << " FCX = " << fcx(i,j,k) << " FCY = " << fcy(i,j,k) << std::endl;
+        // amrex::Print() << "EM DEBUG EDGESTATE_X = " << edg_x(i,j,k,n) << std::endl;
+        // amrex::Print() << "EM DEBUG EDGESTATE_Y = " << edg_y(i,j,k,n) << std::endl;
+        
+         } 
+       }
+    });
+  
+}
+
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void eb_interp_cc2face (Box const& box,
+                       Array4<Real> const& phi,
+                       Array4<Real> const& edg_x,
+                       Array4<Real> const& edg_y,
+                       Box const& vbox, int a_comp, int ncomp,
+                       const Box& a_domain,
+                       const Vector<BCRec>& a_bcs) noexcept
+{
+  
+  const Dim3 domlo = amrex::lbound(a_domain);
+  const Dim3 domhi = amrex::ubound(a_domain);
+  
+  D_TERM( const Box ubx_grown = amrex::surroundingNodes(amrex::grow(box,1),0);,
+          const Box vbx_grown = amrex::surroundingNodes(amrex::grow(box,1),1);,
+          const Box wbx_grown = amrex::surroundingNodes(amrex::grow(box,1),2););
+  
+  const auto bc = a_bcs.dataPtr();
+  
+  //
+  // ===================== X =====================
+  //
+  amrex::Loop(ubx_grown, ncomp, [=] (int i, int j, int k, int n) noexcept
+    {
+        if ( (i == domlo.x) and (bc[n].lo(0) == BCType::ext_dir) )
+        {
+          edg_x(i,j,k,n) = phi(domlo.x-1,j,k,a_comp+n);
+        }
+        else if ( (i == domhi.x+1) and (bc[n].hi(0) == BCType::ext_dir) )
+        {
+          edg_x(i,j,k,n) = phi(domhi.x+1,j,k,a_comp+n);
+        }
+        else
+        {
+          edg_x(i,j,k,n) = 0.5 * ( phi(i,j,k,a_comp+n) + phi(i-1,j,k,a_comp+n) );
+        } 
+    });
+  
+
+    //
+  // ===================== Y =====================
+  //
+  amrex::Loop(vbx_grown, ncomp, [=] (int i, int j, int k, int n) noexcept
+    {
+        if ( (j == domlo.y) and (bc[n].lo(1) == BCType::ext_dir) )
+        {
+          edg_y(i,j,k,n) = phi(i,domlo.y-1,k,a_comp+n);
+        }
+        else if ( (j == domhi.y+1) and (bc[n].hi(1) == BCType::ext_dir) )
+        {
+          edg_y(i,j,k,n) = phi(i,domhi.y+1,k,a_comp+n);
+        }
+        else
+        {
+          edg_y(i,j,k,n) = 0.5 * (phi(i,j  ,k,a_comp+n) + phi(i,j-1,k,a_comp+n));
+        }
+    });
+}
+
 
 }
 
