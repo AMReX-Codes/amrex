@@ -66,8 +66,13 @@ FromTXYEFileLaserProfile::init (
 void
 FromTXYEFileLaserProfile::update (amrex::Real t)
 {
-    int idx_t_left, idx_t_right;
-    std::tie(idx_t_left, idx_t_right) = find_left_right_time_indices(t);
+    if(t >= m_params.t_coords.back())
+        return;
+
+    const auto idx_times = find_left_right_time_indices(t);
+    const auto idx_t_left = idx_times.first;
+    const auto idx_t_right = idx_times.second;
+
     //Load data chunck if needed
     if(idx_t_right >  m_params.last_time_index){
         read_data_t_chuck(idx_t_left, idx_t_left+m_params.time_chunk_size);
