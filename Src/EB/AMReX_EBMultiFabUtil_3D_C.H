@@ -329,7 +329,6 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void eb_interp_cc2cent (Box const& box,
                         Array4<Real> const& phi,
                         Array4<EBCellFlag const> const& flag,
-                        Array4<Real const> const& vfrc,
                         Array4<Real const> const& apx,
                         Array4<Real const> const& apy,
                         Array4<Real const> const& apz,
@@ -350,30 +349,58 @@ void eb_interp_cc2cent (Box const& box,
         }
         else
         {
-          Real apxm = apx(i,j,k);
-          Real apxp = apx(i+1,j,k);
-          Real apym = apy(i,j,k);
-          Real apyp = apy(i,j+1,k);
-          Real apzm = apz(i,j,k);
-          Real apzp = apz(i,j,k+1);
-
-          Real dapx = apxm-apxp;
-          Real dapy = apym-apyp;
-          Real dapz = apzm-apzp;
-          Real anorm = std::sqrt(dapx*dapx+dapy*dapy+dapz*dapz);
-          Real anorminv = 1.0/anorm;
-          Real anrmx = dapx * anorminv;
-          Real anrmy = dapy * anorminv;
-          Real anrmz = dapz * anorminv;
-
-          Real gx, gy, gz;
-          Real sx = std::copysign(1.0,anrmx);
-          Real sy = std::copysign(1.0,anrmy);
-          Real sz = std::copysign(1.0,anrmz);
+          //Real apxm = apx(i,j,k);
+          //Real apxp = apx(i+1,j,k);
+          //Real apym = apy(i,j,k);
+          //Real apyp = apy(i,j+1,k);
+          //Real apzm = apz(i,j,k);
+          //Real apzp = apz(i,j,k+1);
+          //
+          //Real dapx = apxm-apxp;
+          //Real dapy = apym-apyp;
+          //Real dapz = apzm-apzp;
+          //Real anorm = std::sqrt(dapx*dapx+dapy*dapy+dapz*dapz);
+          //Real anorminv = 1.0/anorm;
+          //Real anrmx = dapx * anorminv;
+          //Real anrmy = dapy * anorminv;
+          //Real anrmz = dapz * anorminv;
+          //
+          //Real gx, gy, gz;
+          //Real sx = std::copysign(1.0,anrmx);
+          //Real sy = std::copysign(1.0,anrmy);
+          //Real sz = std::copysign(1.0,anrmz);
+          //              
+          //int ii = i - static_cast<int>(sx);
+          //int jj = j - static_cast<int>(sy);
+          //int kk = k - static_cast<int>(sz);
                         
-          int ii = i - static_cast<int>(sx);
-          int jj = j - static_cast<int>(sy);
-          int kk = k - static_cast<int>(sz);
+          Real gx, gy, gz;
+          int ii, jj, kk;
+          if (cent(i,j,k,0) < 0.0)
+          {
+           ii = i - 1;
+          }
+          else
+          {
+            ii = i + 1;
+          }
+          if (cent(i,j,k,1) < 0.0)
+          {
+            jj = j - 1;
+          }
+          else
+          {
+            jj = j + 1;
+          }
+          if (cent(i,j,k,2) < 0.0)
+          {
+            kk = k - 1;
+          }
+          else
+          {
+            kk = k + 1;
+          }
+                        
                         
           gx = cent(i,j,k,0); 
           gy = cent(i,j,k,1);
