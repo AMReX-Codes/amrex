@@ -669,9 +669,7 @@ EB_interp_CC_to_Centroid (MultiFab& sol, int nc, const Geometry& geom)
 {
     const auto& factory = dynamic_cast<EBFArrayBoxFactory const&>(sol.Factory());
     const auto& flags = factory.getMultiEBCellFlagFab();
-    const auto& area = factory.getAreaFrac();
     const auto& cent = factory.getCentroid();
-    const auto& barea = factory.getBndryArea();
 
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
@@ -699,19 +697,14 @@ EB_interp_CC_to_Centroid (MultiFab& sol, int nc, const Geometry& geom)
         else
         {
             Array4<EBCellFlag const> const& flagfab = flags.const_array(mfi);
-            AMREX_D_TERM(Array4<Real const> const& apxfab = area[0]->const_array(mfi);,
-                         Array4<Real const> const& apyfab = area[1]->const_array(mfi);,
-                         Array4<Real const> const& apzfab = area[2]->const_array(mfi););
             Array4<Real const> const& centfab = cent.const_array(mfi);
-
 
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( vbx, thread_box,
             {
                 eb_interp_cc2cent(thread_box, solnfab,
                                  flagfab,
-                                 AMREX_D_DECL(apxfab,apyfab,apzfab),
                                  centfab,
-                                 vbx, nc);
+                                 nc);
             });
         }
     }
@@ -732,7 +725,6 @@ EB_interp_CC_to_FaceCentroid (MultiFab& sol,
     const auto& flags = factory.getMultiEBCellFlagFab();
     const auto& area = factory.getAreaFrac();
     const auto& fcent = factory.getFaceCent();
-    const auto& barea = factory.getBndryArea();
 
     AMREX_ALWAYS_ASSERT(a_bcs.size() == nc );
     
@@ -744,7 +736,6 @@ EB_interp_CC_to_FaceCentroid (MultiFab& sol,
     D_TERM(edgestate_x.setVal(1e40);,
            edgestate_y.setVal(1e40);,
            edgestate_z.setVal(1e40););
-    
     
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
@@ -773,7 +764,7 @@ EB_interp_CC_to_FaceCentroid (MultiFab& sol,
             {
                 eb_interp_cc2face(thread_box, solnfab,
                                  AMREX_D_DECL(edg_x,edg_y,edg_z),
-                                 vbx, icomp, nc,
+                                 icomp, nc,
                                  domain, a_bcs);
             });
             
@@ -795,7 +786,7 @@ EB_interp_CC_to_FaceCentroid (MultiFab& sol,
                                  AMREX_D_DECL(apxfab,apyfab,apzfab),
                                  AMREX_D_DECL(fcx,fcy,fcz),
                                  AMREX_D_DECL(edg_x,edg_y,edg_z),
-                                 vbx, icomp, nc,
+                                 icomp, nc,
                                  domain, a_bcs);
             });
           }
