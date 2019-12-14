@@ -717,7 +717,7 @@ EB_interp_CC_to_FaceCentroid (MultiFab& sol,
                               D_DECL( MultiFab& edgestate_x,
                                       MultiFab& edgestate_y,
                                       MultiFab& edgestate_z),
-                              int icomp, int nc,
+                              int scomp, int dcomp, int nc,
                               const Geometry& a_geom,
                               const Vector<BCRec>& a_bcs)
 {
@@ -763,9 +763,9 @@ EB_interp_CC_to_FaceCentroid (MultiFab& sol,
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( vbx, thread_box,
             {
                 eb_interp_cc2face(thread_box, solnfab,
-                                 AMREX_D_DECL(edg_x,edg_y,edg_z),
-                                 icomp, nc,
-                                 domain, a_bcs);
+                                  AMREX_D_DECL(edg_x,edg_y,edg_z),
+                                  scomp, dcomp, nc,
+                                  domain, a_bcs);
             });
             
           }
@@ -781,13 +781,13 @@ EB_interp_CC_to_FaceCentroid (MultiFab& sol,
  
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( vbx, thread_box,
             {
-                eb_interp_cc2facecent(thread_box, solnfab,
-                                 flagfab,
-                                 AMREX_D_DECL(apxfab,apyfab,apzfab),
-                                 AMREX_D_DECL(fcx,fcy,fcz),
-                                 AMREX_D_DECL(edg_x,edg_y,edg_z),
-                                 icomp, nc,
-                                 domain, a_bcs);
+              eb_interp_cc2facecent(thread_box, solnfab,
+                                    flagfab,
+                                    AMREX_D_DECL(apxfab,apyfab,apzfab),
+                                    AMREX_D_DECL(fcx,fcy,fcz),
+                                    AMREX_D_DECL(edg_x,edg_y,edg_z),
+                                    scomp, dcomp, nc,
+                                    domain, a_bcs);
             });
           }
         }

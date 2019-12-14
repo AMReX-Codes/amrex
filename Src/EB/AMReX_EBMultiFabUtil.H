@@ -47,7 +47,7 @@ namespace amrex
                                        D_DECL( MultiFab& a_edgestate_x,
                                                MultiFab& a_edgestate_y,
                                                MultiFab& a_edgestate_z),
-                                       int icomp, int nc,
+                                       int scomp, int dcomp, int nc,
                                        const Geometry& geom,
                                        const amrex::Vector<amrex::BCRec>& a_bcs);
 

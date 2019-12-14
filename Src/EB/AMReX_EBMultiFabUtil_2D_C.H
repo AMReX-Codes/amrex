@@ -261,34 +261,15 @@ void eb_interp_cc2cent (Box const& box,
         }
         else
         {
-          Real gx, gy;
-          int ii, jj;
-          if (cent(i,j,k,0) < 0.0)
-          {
-           ii = i - 1;
-          }
-          else
-          {
-            ii = i + 1;
-          }
-          if (cent(i,j,k,1) < 0.0)
-          {
-            jj = j - 1;
-          }
-          else
-          {
-            jj = j + 1;
-          }
-                        
-          gx = cent(i,j,k,0); 
-          gy = cent(i,j,k,1); 
+          Real gx = cent(i,j,k,0); 
+          Real gy = cent(i,j,k,1); 
+          int ii = (gx < 0.0) ? i - 1 : i + 1;
+          int jj = (gy < 0.0) ? j - 1 : j + 1;
           Real gxy = gx*gy;
-          Real phig = (1.0+gx+gy+gxy)  * phi(i ,j ,k ,n)
-           +              (-gy - gxy ) * phi(i ,jj,k ,n)
-           +              (-gx - gxy ) * phi(ii,j ,k ,n)
-           +              (gxy )       * phi(ii,jj,k ,n);
-
-           phi(i,j,k,n) = phig;
+          phi(i,j,k,n) = (1.0+gx+gy+gxy)  * phi(i ,j ,k ,n)
+           +                 (-gy - gxy ) * phi(i ,jj,k ,n)
+           +                 (-gx - gxy ) * phi(ii,j ,k ,n)
+           +                  (gxy )       * phi(ii,jj,k ,n);
          }
        }
     });
@@ -297,16 +278,16 @@ void eb_interp_cc2cent (Box const& box,
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void eb_interp_cc2facecent (Box const& box,
-                       Array4<Real> const& phi,
-                       Array4<EBCellFlag const> const& flag,
-                       Array4<Real const> const& apx, Array4<Real const> const& apy,
-                       Array4<Real const> const& fcx,
-                       Array4<Real const> const& fcy,
-                       Array4<Real> const& edg_x,
-                       Array4<Real> const& edg_y,
-                       int a_comp, int ncomp,
-                       const Box& a_domain,
-                       const Vector<BCRec>& a_bcs) noexcept
+                            Array4<Real> const& phi,
+                            Array4<EBCellFlag const> const& flag,
+                            Array4<Real const> const& apx, Array4<Real const> const& apy,
+                            Array4<Real const> const& fcx,
+                            Array4<Real const> const& fcy,
+                            Array4<Real> const& edg_x,
+                            Array4<Real> const& edg_y,
+                            int a_scomp, int a_dcomp, int ncomp,
+                            const Box& a_domain,
+                            const Vector<BCRec>& a_bcs) noexcept
 {
   
   const Dim3 domlo = amrex::lbound(a_domain);
@@ -326,7 +307,7 @@ void eb_interp_cc2facecent (Box const& box,
 
       if (apx(i,j,k) == 0)
       {
-        edg_x(i,j,k,n) == 1e40;
+        edg_x(i,j,k,a_dcomp+n) == 1e40;
       }
       else
       {
@@ -334,31 +315,28 @@ void eb_interp_cc2facecent (Box const& box,
         {
           if ( (i == domlo.x) and (bc[n].lo(0) == BCType::ext_dir) )
           {
-            edg_x(i,j,k,n) = phi(domlo.x-1,j,k,a_comp+n);
+            edg_x(i,j,k,a_dcomp+n) = phi(domlo.x-1,j,k,a_scomp+n);
           }
           else if ( (i == domhi.x+1) and (bc[n].hi(0) == BCType::ext_dir) )
           {
-            edg_x(i,j,k,n) = phi(domhi.x+1,j,k,a_comp+n);
+            edg_x(i,j,k,a_dcomp+n) = phi(domhi.x+1,j,k,a_scomp+n);
           }
           else
           {
-            edg_x(i,j,k,n) = 0.5 * ( phi(i,j,k,a_comp+n) + phi(i-1,j,k,a_comp+n) );
+            edg_x(i,j,k,a_dcomp+n) = 0.5 * ( phi(i,j,k,a_scomp+n) + phi(i-1,j,k,a_scomp+n) );
           }          
         }
         else
         {
-          Real gx, gy;
           int ii = i - 1;
           int jj = (fcx(i,j,k) < 0.0) ? j - 1 : j + 1;                        
-          gx = -0.5; 
-          gy = fcx(i,j,k); 
+          Real gx = -0.5; 
+          Real gy = fcx(i,j,k); 
           Real gxy = gx*gy;
-          Real phig = (1.0+gx+gy+gxy)  * phi(i ,j ,k ,n)
-           +              (-gy - gxy ) * phi(i ,jj,k ,n)
-           +              (-gx - gxy ) * phi(ii,j ,k ,n)
-           +              (gxy )       * phi(ii,jj,k ,n);
-        
-           edg_x(i,j,k,n) = phig;
+          edg_x(i,j,k,a_dcomp+n) = (1.0+gx+gy+gxy)  * phi(i ,j ,k ,a_scomp+n)
+           +                           (-gy - gxy ) * phi(i ,jj,k ,a_scomp+n)
+           +                           (-gx - gxy ) * phi(ii,j ,k ,a_scomp+n)
+           +                           (gxy )       * phi(ii,jj,k ,a_scomp+n);
          } 
        }
     });
@@ -371,7 +349,7 @@ void eb_interp_cc2facecent (Box const& box,
     {
       if (apy(i,j,k) == 0)
       {
-        edg_y(i,j,k,n) = 1e40;
+        edg_y(i,j,k,a_dcomp+n) = 1e40;
       }
       else
       {
@@ -379,31 +357,28 @@ void eb_interp_cc2facecent (Box const& box,
         {
           if ( (j == domlo.y) and (bc[n].lo(1) == BCType::ext_dir) )
           {
-            edg_y(i,j,k,n) = phi(i,domlo.y-1,k,a_comp+n);
+            edg_y(i,j,k,a_dcomp+n) = phi(i,domlo.y-1,k,a_scomp+n);
           }
           else if ( (j == domhi.y+1) and (bc[n].hi(1) == BCType::ext_dir) )
           {
-            edg_y(i,j,k,n) = phi(i,domhi.y+1,k,a_comp+n);
+            edg_y(i,j,k,a_dcomp+n) = phi(i,domhi.y+1,k,a_scomp+n);
           }
           else
           {
-            edg_y(i,j,k,n) = 0.5 * (phi(i,j  ,k,a_comp+n) + phi(i,j-1,k,a_comp+n));
+            edg_y(i,j,k,a_dcomp+n) = 0.5 * (phi(i,j  ,k,a_scomp+n) + phi(i,j-1,k,a_scomp+n));
           }
         }
         else
         {
-          Real gx, gy;
           int ii = (fcy(i,j,k) < 0.0) ? i - 1 : i + 1;
           int jj = j - 1;
-          gx = fcy(i,j,k);  
-          gy = -0.5;
+          Real gx = fcy(i,j,k);  
+          Real gy = -0.5;
           Real gxy = gx*gy;
-          Real phig = (1.0+gx+gy+gxy)  * phi(i ,j ,k ,n)
-           +              (-gy - gxy ) * phi(i ,jj,k ,n)
-           +              (-gx - gxy ) * phi(ii,j ,k ,n)
-           +              (gxy )       * phi(ii,jj,k ,n);
-        
-           edg_y(i,j,k,n) = phig;       
+          edg_y(i,j,k,a_dcomp+n) = (1.0+gx+gy+gxy)  * phi(i ,j ,k ,a_scomp+n)
+           +                           (-gy - gxy ) * phi(i ,jj,k ,a_scomp+n)
+           +                           (-gx - gxy ) * phi(ii,j ,k ,a_scomp+n)
+           +                           (gxy )       * phi(ii,jj,k ,a_scomp+n);
          } 
        }
     });
@@ -413,12 +388,12 @@ void eb_interp_cc2facecent (Box const& box,
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void eb_interp_cc2face (Box const& box,
-                       Array4<Real> const& phi,
-                       Array4<Real> const& edg_x,
-                       Array4<Real> const& edg_y,
-                       int a_comp, int ncomp,
-                       const Box& a_domain,
-                       const Vector<BCRec>& a_bcs) noexcept
+                        Array4<Real> const& phi,
+                        Array4<Real> const& edg_x,
+                        Array4<Real> const& edg_y,
+                        int a_scomp, int a_dcomp, int ncomp,
+                        const Box& a_domain,
+                        const Vector<BCRec>& a_bcs) noexcept
 {
   
   const Dim3 domlo = amrex::lbound(a_domain);
@@ -437,15 +412,15 @@ void eb_interp_cc2face (Box const& box,
     {
         if ( (i == domlo.x) and (bc[n].lo(0) == BCType::ext_dir) )
         {
-          edg_x(i,j,k,n) = phi(domlo.x-1,j,k,a_comp+n);
+          edg_x(i,j,k,a_dcomp+n) = phi(domlo.x-1,j,k,a_scomp+n);
         }
         else if ( (i == domhi.x+1) and (bc[n].hi(0) == BCType::ext_dir) )
         {
-          edg_x(i,j,k,n) = phi(domhi.x+1,j,k,a_comp+n);
+          edg_x(i,j,k,a_dcomp+n) = phi(domhi.x+1,j,k,a_scomp+n);
         }
         else
         {
-          edg_x(i,j,k,n) = 0.5 * ( phi(i,j,k,a_comp+n) + phi(i-1,j,k,a_comp+n) );
+          edg_x(i,j,k,a_dcomp+n) = 0.5 * ( phi(i,j,k,a_scomp+n) + phi(i-1,j,k,a_scomp+n) );
         } 
     });
   
@@ -457,15 +432,15 @@ void eb_interp_cc2face (Box const& box,
     {
         if ( (j == domlo.y) and (bc[n].lo(1) == BCType::ext_dir) )
         {
-          edg_y(i,j,k,n) = phi(i,domlo.y-1,k,a_comp+n);
+          edg_y(i,j,k,a_dcomp+n) = phi(i,domlo.y-1,k,a_scomp+n);
         }
         else if ( (j == domhi.y+1) and (bc[n].hi(1) == BCType::ext_dir) )
         {
-          edg_y(i,j,k,n) = phi(i,domhi.y+1,k,a_comp+n);
+          edg_y(i,j,k,a_dcomp+n) = phi(i,domhi.y+1,k,a_scomp+n);
         }
         else
         {
-          edg_y(i,j,k,n) = 0.5 * (phi(i,j  ,k,a_comp+n) + phi(i,j-1,k,a_comp+n));
+          edg_y(i,j,k,a_dcomp+n) = 0.5 * (phi(i,j  ,k,a_scomp+n) + phi(i,j-1,k,a_scomp+n));
         }
     });
 }
