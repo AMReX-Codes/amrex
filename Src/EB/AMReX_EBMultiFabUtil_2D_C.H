@@ -244,9 +244,8 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void eb_interp_cc2cent (Box const& box,
                        Array4<Real> const& phi,
                        Array4<EBCellFlag const> const& flag,
-                       Array4<Real const> const& apx, Array4<Real const> const& apy,
                        Array4<Real const> const& cent,
-                       Box const& vbox, int ncomp) noexcept
+                       int ncomp) noexcept
 {
     amrex::Loop(box, ncomp, [=] (int i, int j, int k, int n) noexcept
     {
@@ -262,29 +261,6 @@ void eb_interp_cc2cent (Box const& box,
         }
         else
         {
-                    
-          //Real apxm = apx(i,j,k);
-          //Real apxp = apx(i+1,j,k);
-          //Real apym = apy(i,j,k);
-          //Real apyp = apy(i,j+1,k);
-          //          
-          //Real dapx = apxm-apxp;
-          //Real dapy = apym-apyp;
-          //Real anorm = std::hypot(dapx,dapy);
-          //Real anorminv = 1.0/anorm;
-          //Real anrmx = dapx * anorminv;
-          //Real anrmy = dapy * anorminv;
-          //
-          //Real gx, gy, sx, sy;
-          //sx = std::copysign(1.0,anrmx);
-          //sy = std::copysign(1.0,anrmy);
-          //              
-          //int ii = i - static_cast<int>(sx);
-          //int jj = j - static_cast<int>(sy);
-          // 
-          // 
-          //amrex::Print() << " EM DEBUG   i,j,ii,jj " << i << " " << j << " " << ii << " " << jj << std::endl; 
-          //
           Real gx, gy;
           int ii, jj;
           if (cent(i,j,k,0) < 0.0)
@@ -303,9 +279,6 @@ void eb_interp_cc2cent (Box const& box,
           {
             jj = j + 1;
           }
-          
-           //amrex::Print() << " EM DEBUG 2 i,j,ii,jj " << i << " " << j << " " << ii << " " << jj << std::endl; 
-          
                         
           gx = cent(i,j,k,0); 
           gy = cent(i,j,k,1); 
@@ -331,7 +304,7 @@ void eb_interp_cc2facecent (Box const& box,
                        Array4<Real const> const& fcy,
                        Array4<Real> const& edg_x,
                        Array4<Real> const& edg_y,
-                       Box const& vbox, int a_comp, int ncomp,
+                       int a_comp, int ncomp,
                        const Box& a_domain,
                        const Vector<BCRec>& a_bcs) noexcept
 {
@@ -370,13 +343,7 @@ void eb_interp_cc2facecent (Box const& box,
           else
           {
             edg_x(i,j,k,n) = 0.5 * ( phi(i,j,k,a_comp+n) + phi(i-1,j,k,a_comp+n) );
-          }
-          
-        //   amrex::Print() << "EM DEBUG FACE REGULAR i=" << i << " j= " << j <<
-        //" k = " << k << " n = " << n << std::endl;
-        //amrex::Print() << "EM DEBUG EDGESTATE_X = " << edg_x(i,j,k,n) << std::endl;
-          
-          
+          }          
         }
         else
         {
@@ -402,13 +369,6 @@ void eb_interp_cc2facecent (Box const& box,
            +              (gxy )       * phi(ii,jj,k ,n);
         
            edg_x(i,j,k,n) = phig;
-        
-        // amrex::Print() << "EM DEBUG FACE CENTROID i=" << i << " j= " << j <<
-        //" k = " << k << " n = " << n << " FCX = " << fcx(i,j,k) << " FCY = " << fcy(i,j,k) << std::endl;
-        //     amrex::Print() << "apx(i,j,k) is " << apx(i,j,k) << std::endl;
-         //amrex::Print() << "EM DEBUG EDGESTATE_X = " << edg_x(i,j,k,n) << std::endl;
-        // amrex::Print() << "EM DEBUG EDGESTATE_Y = " << edg_y(i,j,k,n) << std::endl;
-        
          } 
        }
     });
@@ -439,12 +399,6 @@ void eb_interp_cc2facecent (Box const& box,
           {
             edg_y(i,j,k,n) = 0.5 * (phi(i,j  ,k,a_comp+n) + phi(i,j-1,k,a_comp+n));
           }
-          
-        //   amrex::Print() << "EM DEBUG FACE REGULAR i=" << i << " j= " << j <<
-        //" k = " << k << " n = " << n << std::endl;
-        //amrex::Print() << "EM DEBUG EDGESTATE_Y = " << edg_y(i,j,k,n) << std::endl;
-        //  
-          
         }
         else
         {
@@ -470,13 +424,7 @@ void eb_interp_cc2facecent (Box const& box,
            +              (-gx - gxy ) * phi(ii,j ,k ,n)
            +              (gxy )       * phi(ii,jj,k ,n);
         
-           edg_y(i,j,k,n) = phig;
-        
-        // amrex::Print() << "EM DEBUG FACE CENTROID i=" << i << " j= " << j <<
-        //" k = " << k << " n = " << n << " FCX = " << fcx(i,j,k) << " FCY = " << fcy(i,j,k) << std::endl;
-        // amrex::Print() << "EM DEBUG EDGESTATE_X = " << edg_x(i,j,k,n) << std::endl;
-        // amrex::Print() << "EM DEBUG EDGESTATE_Y = " << edg_y(i,j,k,n) << std::endl;
-        
+           edg_y(i,j,k,n) = phig;       
          } 
        }
     });
@@ -489,7 +437,7 @@ void eb_interp_cc2face (Box const& box,
                        Array4<Real> const& phi,
                        Array4<Real> const& edg_x,
                        Array4<Real> const& edg_y,
-                       Box const& vbox, int a_comp, int ncomp,
+                       int a_comp, int ncomp,
                        const Box& a_domain,
                        const Vector<BCRec>& a_bcs) noexcept
 {
@@ -523,7 +471,7 @@ void eb_interp_cc2face (Box const& box,
     });
   
 
-    //
+  //
   // ===================== Y =====================
   //
   amrex::Loop(vbx_grown, ncomp, [=] (int i, int j, int k, int n) noexcept
