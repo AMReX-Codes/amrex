@@ -312,16 +312,16 @@ void eb_interp_cc2facecent (Box const& box,
   const Dim3 domlo = amrex::lbound(a_domain);
   const Dim3 domhi = amrex::ubound(a_domain);
   
-  D_TERM( const Box ubx_grown = amrex::surroundingNodes(amrex::grow(box,1),0);,
-          const Box vbx_grown = amrex::surroundingNodes(amrex::grow(box,1),1);,
-          const Box wbx_grown = amrex::surroundingNodes(amrex::grow(box,1),2););
+  D_TERM( const Box ubx = amrex::surroundingNodes(box,0);,
+          const Box vbx = amrex::surroundingNodes(box,1);,
+          const Box wbx = amrex::surroundingNodes(box,2););
   
   const auto bc = a_bcs.dataPtr();
   
   //
   // ===================== X =====================
   //
-  amrex::Loop(ubx_grown, ncomp, [=] (int i, int j, int k, int n) noexcept
+  amrex::Loop(ubx, ncomp, [=] (int i, int j, int k, int n) noexcept
     {
 
       if (apx(i,j,k) == 0)
@@ -348,18 +348,8 @@ void eb_interp_cc2facecent (Box const& box,
         else
         {
           Real gx, gy;
-          int ii, jj;
-          ii = i - 1;
-
-          if (fcx(i,j,k) < 0.0)
-          {
-            jj = j - 1;
-          }
-          else
-          {
-            jj = j + 1;
-          }
-                        
+          int ii = i - 1;
+          int jj = (fcx(i,j,k) < 0.0) ? j - 1 : j + 1;                        
           gx = -0.5; 
           gy = fcx(i,j,k); 
           Real gxy = gx*gy;
@@ -377,7 +367,7 @@ void eb_interp_cc2facecent (Box const& box,
     //
   // ===================== Y =====================
   //
-  amrex::Loop(vbx_grown, ncomp, [=] (int i, int j, int k, int n) noexcept
+  amrex::Loop(vbx, ncomp, [=] (int i, int j, int k, int n) noexcept
     {
       if (apy(i,j,k) == 0)
       {
@@ -403,19 +393,8 @@ void eb_interp_cc2facecent (Box const& box,
         else
         {
           Real gx, gy;
-          int ii, jj;
-          if (fcy(i,j,k) < 0.0)
-          {
-           ii = i - 1;
-          }
-          else
-          {
-            ii = i + 1;
-          }
-
-          jj = j - 1;
-
-                        
+          int ii = (fcy(i,j,k) < 0.0) ? i - 1 : i + 1;
+          int jj = j - 1;
           gx = fcy(i,j,k);  
           gy = -0.5;
           Real gxy = gx*gy;
@@ -445,16 +424,16 @@ void eb_interp_cc2face (Box const& box,
   const Dim3 domlo = amrex::lbound(a_domain);
   const Dim3 domhi = amrex::ubound(a_domain);
   
-  D_TERM( const Box ubx_grown = amrex::surroundingNodes(amrex::grow(box,1),0);,
-          const Box vbx_grown = amrex::surroundingNodes(amrex::grow(box,1),1);,
-          const Box wbx_grown = amrex::surroundingNodes(amrex::grow(box,1),2););
+  D_TERM( const Box ubx = amrex::surroundingNodes(box,0);,
+          const Box vbx = amrex::surroundingNodes(box,1);,
+          const Box wbx = amrex::surroundingNodes(box,2););
   
   const auto bc = a_bcs.dataPtr();
   
   //
   // ===================== X =====================
   //
-  amrex::Loop(ubx_grown, ncomp, [=] (int i, int j, int k, int n) noexcept
+  amrex::Loop(ubx, ncomp, [=] (int i, int j, int k, int n) noexcept
     {
         if ( (i == domlo.x) and (bc[n].lo(0) == BCType::ext_dir) )
         {
@@ -474,7 +453,7 @@ void eb_interp_cc2face (Box const& box,
   //
   // ===================== Y =====================
   //
-  amrex::Loop(vbx_grown, ncomp, [=] (int i, int j, int k, int n) noexcept
+  amrex::Loop(vbx, ncomp, [=] (int i, int j, int k, int n) noexcept
     {
         if ( (j == domlo.y) and (bc[n].lo(1) == BCType::ext_dir) )
         {
