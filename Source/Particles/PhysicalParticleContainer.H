@@ -164,17 +164,17 @@ public:
  * \param lev MR level
  * \param box box onto which the filter is applied
  * \param exeli safeguard Elixir object (to avoid de-allocating too early
-            --between ParIter iterations-- on GPU) for field Ex 
+            --between ParIter iterations-- on GPU) for field Ex
  * \param eyeli safeguard Elixir object (to avoid de-allocating too early
-            --between ParIter iterations-- on GPU) for field Ey 
+            --between ParIter iterations-- on GPU) for field Ey
  * \param ezeli safeguard Elixir object (to avoid de-allocating too early
-            --between ParIter iterations-- on GPU) for field Ez 
+            --between ParIter iterations-- on GPU) for field Ez
  * \param bxeli safeguard Elixir object (to avoid de-allocating too early
-            --between ParIter iterations-- on GPU) for field Bx 
+            --between ParIter iterations-- on GPU) for field Bx
  * \param byeli safeguard Elixir object (to avoid de-allocating too early
-            --between ParIter iterations-- on GPU) for field By 
+            --between ParIter iterations-- on GPU) for field By
  * \param bzeli safeguard Elixir object (to avoid de-allocating too early
-            --between ParIter iterations-- on GPU) for field Bz 
+            --between ParIter iterations-- on GPU) for field Bz
  * \param filtered_Ex Array containing filtered value
  * \param filtered_Ey Array containing filtered value
  * \param filtered_Ez Array containing filtered value
