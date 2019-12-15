@@ -37,3 +37,4 @@ In order to learn to use the code, please see the sections below:
    running_python/running_python
    visualization/visualization
    theory/theory
+   api/library_root

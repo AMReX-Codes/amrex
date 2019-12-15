@@ -21,7 +21,6 @@ import os, sys
 import sphinx_rtd_theme
 sys.path.insert(0, os.path.join( os.path.abspath(__file__), '../Python') )
 
-
 # -- General configuration ------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
@@ -33,7 +32,10 @@ sys.path.insert(0, os.path.join( os.path.abspath(__file__), '../Python') )
 # ones.
 extensions = ['sphinx.ext.autodoc',
     'sphinx.ext.mathjax',
-    'sphinx.ext.viewcode' ]
+    'sphinx.ext.viewcode',
+    'breathe',
+    'exhale'
+ ]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -162,3 +164,28 @@ texinfo_documents = [
 
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {'https://amrex-codes.github.io/': None}
+
+# Setup the breathe extension
+breathe_projects = {
+    "My Project": "../doxyxml/"
+}
+breathe_default_project = "My Project"
+
+# Setup the exhale extension
+exhale_args = {
+    # These arguments are required
+    "containmentFolder": "./api",
+    "rootFileName": "library_root.rst",
+    "rootFileTitle": "Doxygen documentation",
+    "doxygenStripFromPath": "..",
+    # Suggested optional arguments
+    "createTreeView": True,
+    # TIP: if using the sphinx-bootstrap-theme, you need
+    # "treeViewIsBootstrap": True,
+    "exhaleExecutesDoxygen": True,
+    "exhaleDoxygenStdin": "INPUT = ../../Source/"
+}
+# Tell sphinx what the primary language being documented is.
+primary_domain = 'cpp'
+# Tell sphinx what the pygments highlight language should be.
+highlight_language = 'cpp'
