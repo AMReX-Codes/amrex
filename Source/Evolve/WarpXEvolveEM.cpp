@@ -475,7 +475,7 @@ WarpX::OneStep_sub1 (Real curtime)
 }
 
 void
-WarpX::PushParticlesandDepose (Real cur_time)
+WarpX::PushParticlesandDepose (amrex::Real cur_time)
 {
     // Evolve particles to p^{n+1/2} and x^{n+1}
     // Depose current, j^{n+1/2}
@@ -485,7 +485,7 @@ WarpX::PushParticlesandDepose (Real cur_time)
 }
 
 void
-WarpX::PushParticlesandDepose (int lev, Real cur_time, DtType a_dt_type)
+WarpX::PushParticlesandDepose (int lev, amrex::Real cur_time, DtType a_dt_type)
 {
     mypc->Evolve(lev,
                  *Efield_aux[lev][0],*Efield_aux[lev][1],*Efield_aux[lev][2],
