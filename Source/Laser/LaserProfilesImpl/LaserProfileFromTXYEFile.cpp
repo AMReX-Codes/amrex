@@ -293,7 +293,7 @@ FromTXYEFileLaserProfile::read_data_t_chuck(int t_begin, int t_end)
         //Read data chunk
         std::ifstream inp(m_params.txye_file_name, std::ios::binary);
         if(!inp) Abort("Failed to open txye file");
-        int skip_amount = 1 +
+        size_t skip_amount = 1 +
             3*sizeof(uint32_t) +
             m_params.t_coords.size()*sizeof(double) +
             m_params.x_coords.size()*sizeof(double) +
