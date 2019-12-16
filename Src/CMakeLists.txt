@@ -109,6 +109,11 @@ if (ENABLE_HYPRE)
    add_subdirectory(Extern/HYPRE)
 endif ()
 
+if (ENABLE_PETSC)
+   add_subdirectory(Extern/PETSc)
+endif ()
+
+
 
 #
 # Print out summary -- do it here so we already linked all
