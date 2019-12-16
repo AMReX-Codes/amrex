@@ -1,3 +1,6 @@
+#ifndef WARPX_UTILS_H_
+#define WARPX_UTILS_H_
+
 #include <AMReX_REAL.H>
 #include <AMReX_Vector.H>
 #include <AMReX_MultiFab.H>
@@ -96,3 +99,5 @@ T trilinear_interp(T x0, T x1,T y0, T y1, T z0, T z1,
 }
 
 }
+
+#endif //WARPX_UTILS_H_

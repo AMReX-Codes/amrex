@@ -1,6 +1,5 @@
 import numpy as np
 from pywarpx import picmi
-import pywarpx
 #from warp import picmi
 
 constants = picmi.constants
@@ -52,7 +51,7 @@ beam = picmi.Species(particle_type='electron', name='beam', initial_distribution
 plasma = picmi.Species(particle_type='electron', name='plasma', initial_distribution=plasma_distribution)
 
 sim = picmi.Simulation(solver = solver,
-                       max_steps = 10,
+                       max_steps = 2,
                        verbose = 1,
                        warpx_plot_int = 2,
                        warpx_current_deposition_algo = 'esirkepov')
@@ -62,8 +61,8 @@ sim.add_species(plasma, layout=picmi.GriddedLayout(grid=grid, n_macroparticle_pe
 
 # write_inputs will create an inputs file that can be used to run
 # with the compiled version.
-sim.write_input_file(file_name = 'inputs_from_PICMI.mr')
+#sim.write_input_file(file_name = 'inputs_from_PICMI.mr')
 
 # Alternatively, sim.step will run WarpX, controlling it from Python
-#sim.step()
+sim.step()
 

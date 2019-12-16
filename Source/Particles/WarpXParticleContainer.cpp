@@ -846,8 +846,9 @@ WarpXParticleContainer::particlePostLocate(ParticleType& p,
     {
         p.m_idata.id = DoSplitParticleID;
     }
-    // For the moment, do not do anything if particles goes
-    // to lower level.
+
     if (pld.m_lev == lev-1){
+        // For the moment, do not do anything if particles goes
+        // to lower level.
     }
 }
