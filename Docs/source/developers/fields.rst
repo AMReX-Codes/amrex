@@ -69,8 +69,23 @@ The innermost step ``// Apply field solver on the FAB`` could be done with 3 nes
 
 Function ``warpx_push_ex_yee`` performs the FDTD stencil operation on a single cell. It is implemented in ``Source/FieldSolver/WarpX_K.H`` (where ``_K`` stands for kernel).
 
+Interpolations for MR
+---------------------
+
+.. note::
+
+   Section empty!
+
 Filter
 ------
 
+.. note::
+
+   Section empty!
+
 Buffers
 -------
+
+.. note::
+
+   Section empty!
