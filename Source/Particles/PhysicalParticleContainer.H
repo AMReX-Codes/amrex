@@ -15,6 +15,13 @@
 
 #include <map>
 
+/**
+ * PhysicalParticleContainer is the ParticleContainer class containing plasma
+ * particles (if a simulation has 2 plasma species, say "electrons" and
+ * "ions"), they will be two instances of PhysicalParticleContainer.
+ *
+ * PhysicalParticleContainer inherits from WarpXParticleContainer.
+ */
 class PhysicalParticleContainer
     : public WarpXParticleContainer
 {
