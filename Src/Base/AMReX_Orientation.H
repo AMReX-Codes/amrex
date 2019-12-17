@@ -45,6 +45,11 @@ public:
     {
         BL_ASSERT(0 <= dir && dir < AMREX_SPACEDIM);
     }
+    AMREX_GPU_HOST_DEVICE
+    constexpr Orientation (Direction dir, Side side) noexcept
+        : val(AMREX_SPACEDIM*side + static_cast<int>(dir))
+    {}
+
     //! Logical equality.
     AMREX_GPU_HOST_DEVICE
     bool operator== (const Orientation& o) const noexcept { return val == o.val; }
