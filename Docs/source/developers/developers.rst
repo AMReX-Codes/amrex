@@ -15,3 +15,4 @@ For general information on how to contribute to WarpX, including our ``git`` wor
    moving_window
    main_classes
    portability
+   profiling

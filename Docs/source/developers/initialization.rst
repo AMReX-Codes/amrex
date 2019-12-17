@@ -1,0 +1,5 @@
+Initialization
+==============
+
+.. note::
+   Section empty!
