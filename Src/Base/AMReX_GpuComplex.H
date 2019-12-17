@@ -1,5 +1,5 @@
-#ifndef AMREX_COMPLEX_H_
-#define AMREX_COMPLEX_H_
+#ifndef AMREX_GPUCOMPLEX_H_
+#define AMREX_GPUCOMPLEX_H_
 
 #include <cmath>
 
