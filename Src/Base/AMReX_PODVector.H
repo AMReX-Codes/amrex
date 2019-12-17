@@ -100,7 +100,7 @@ namespace amrex
         {
             AllocateBuffer(a_vector.capacity());
             m_size = a_vector.size();
-            memcpy(m_data, a_vector.m_data, a_vector.size() * sizeof(T));
+            std::memcpy(m_data, a_vector.m_data, a_vector.size() * sizeof(T));
         }
         
         PODVector (PODVector<T, Allocator>&& a_vector) noexcept
@@ -143,7 +143,7 @@ namespace amrex
         iterator erase (const_iterator a_pos) noexcept
         {
             --m_size;
-            memmove(const_cast<iterator>(a_pos), a_pos+1, (end() - a_pos)*sizeof(T));
+            std::memmove(const_cast<iterator>(a_pos), a_pos+1, (end() - a_pos)*sizeof(T));
             return const_cast<iterator>(a_pos);
         }
         
@@ -152,7 +152,7 @@ namespace amrex
             size_type num_to_erase = a_last - a_first;
             if (num_to_erase == 0) return const_cast<iterator>(a_first);
             m_size -= num_to_erase;
-            memmove(const_cast<iterator>(a_first), a_first+num_to_erase, (end() - a_first)*sizeof(T));
+            std::memmove(const_cast<iterator>(a_first), a_first+num_to_erase, (end() - a_first)*sizeof(T));
             return const_cast<iterator>(a_first);
         }
         
@@ -167,7 +167,7 @@ namespace amrex
                 }
             else
                 {
-                    memmove(const_cast<iterator>(a_pos)+1, a_pos, (end() - a_pos) * sizeof(T));
+                    std::memmove(const_cast<iterator>(a_pos)+1, a_pos, (end() - a_pos) * sizeof(T));
                     ++m_size;
                 }
             
@@ -188,7 +188,7 @@ namespace amrex
                 }
             else
                 {
-                    memmove(const_cast<iterator>(a_pos)+a_count, a_pos, (end() - a_pos) * sizeof(T));
+                    std::memmove(const_cast<iterator>(a_pos)+a_count, a_pos, (end() - a_pos) * sizeof(T));
                     m_size += a_count;
                 }
             
@@ -208,7 +208,7 @@ namespace amrex
                 }
             else
                 {
-                    memmove(const_cast<iterator>(a_pos)+1, a_pos, (end() - a_pos) * sizeof(T));
+                    std::memmove(const_cast<iterator>(a_pos)+1, a_pos, (end() - a_pos) * sizeof(T));
                     ++m_size;
                 }
             
@@ -229,7 +229,7 @@ namespace amrex
                 }
             else
                 {
-                    memmove(const_cast<iterator>(a_pos)+count, a_pos, (end() - a_pos) * sizeof(T));
+                    std::memmove(const_cast<iterator>(a_pos)+count, a_pos, (end() - a_pos) * sizeof(T));
                     m_size += count;
                 }        // copy the initializer list
             pointer dst = const_cast<iterator>(a_pos);
@@ -251,7 +251,7 @@ namespace amrex
                 }
             else
                 {
-                    memmove(const_cast<iterator>(a_pos)+count, a_pos, (end() - a_pos) * sizeof(T));
+                    std::memmove(const_cast<iterator>(a_pos)+count, a_pos, (end() - a_pos) * sizeof(T));
                     m_size += count;
                 }        pointer dst = const_cast<iterator>(a_pos);
             while(a_first != a_last) { *(dst++) = *(a_first++); }
@@ -439,7 +439,7 @@ namespace amrex
         void AllocateBuffer (size_type a_capacity) noexcept
         {
             pointer new_data = allocate(a_capacity);
-            if (m_data) memcpy(new_data, m_data, size() * sizeof(T));
+            if (m_data) std::memcpy(new_data, m_data, size() * sizeof(T));
             deallocate(m_data, capacity());
             m_data = new_data;
             m_capacity = a_capacity;
@@ -451,8 +451,8 @@ namespace amrex
             pointer new_data = allocate(a_capacity);
             if (m_data)
                 {
-                    memcpy(new_data, m_data, a_index * sizeof(T));
-                    memcpy(new_data + a_index + a_count, m_data + a_index, (size() - a_index)*sizeof(T));
+                    std::memcpy(new_data, m_data, a_index * sizeof(T));
+                    std::memcpy(new_data + a_index + a_count, m_data + a_index, (size() - a_index)*sizeof(T));
                 }
             deallocate(m_data, capacity());
             m_data = new_data;
@@ -468,7 +468,7 @@ namespace amrex
             
             m_size = other_size;
             
-            memcpy(m_data, a_vector.m_data, size() * sizeof(T));
+            std::memcpy(m_data, a_vector.m_data, size() * sizeof(T));
             
             return *this;
         }
@@ -487,7 +487,7 @@ namespace amrex
                     
                     m_size = other_size;
                     
-                    memcpy(m_data, a_vector.m_data, size() * sizeof(T));
+                    std::memcpy(m_data, a_vector.m_data, size() * sizeof(T));
                     
                     Allocator::operator=(static_cast<Allocator&>(a_vector));
                     
