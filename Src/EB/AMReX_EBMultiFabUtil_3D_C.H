@@ -327,7 +327,8 @@ void eb_avg_fc_to_cc (int i, int j, int k, int n, Array4<Real> const& cc,
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void eb_interp_cc2cent (Box const& box,
-                        Array4<Real> const& phi,
+                        const Array4<Real>& phicent,
+                        Array4<Real const > const& phicc,
                         Array4<EBCellFlag const> const& flag,
                         Array4<Real const> const& cent,
                         int ncomp) noexcept
@@ -336,13 +337,13 @@ void eb_interp_cc2cent (Box const& box,
     {
       if (flag(i,j,k).isCovered())
       {
-        phi(i,j,k,n) = phi(i,j,k,n); //do nothing
+        phicent(i,j,k,n) = phicc(i,j,k,n); //do nothing
       }
       else
       {
         if (flag(i,j,k).isRegular())
         {
-          phi(i,j,k,n) = phi(i,j,k,n);
+          phicent(i,j,k,n) = phicc(i,j,k,n);
         }
         else
         {                      
@@ -356,16 +357,14 @@ void eb_interp_cc2cent (Box const& box,
           Real gxz = gx*gz;
           Real gyz = gy*gz;
           Real gxyz = gx*gy*gz;
-          Real phig = (1.0+gx+gy+gz+gxy+gxz+gyz+gxyz) * phi(i ,j ,k ,n)
-              +       (-gz - gxz - gyz - gxyz)        * phi(i ,j ,kk,n)
-              +       (-gy - gxy - gyz - gxyz)        * phi(i ,jj,k ,n)
-              +       (gyz + gxyz)                    * phi(i ,jj,kk,n)
-              +       (-gx - gxy - gxz - gxyz)        * phi(ii,j ,k ,n)
-              +       (gxz + gxyz)                    * phi(ii,j ,kk,n)
-              +       (gxy + gxyz)                    * phi(ii,jj,k ,n)
-              +       (-gxyz)                         * phi(ii,jj,kk,n);
-
-           phi(i,j,k,n) = phig;
+          phicent(i,j,k,n) = (1.0+gx+gy+gz+gxy+gxz+gyz+gxyz) * phicc(i ,j ,k ,n)
+              +              (-gz - gxz - gyz - gxyz)        * phicc(i ,j ,kk,n)
+              +              (-gy - gxy - gyz - gxyz)        * phicc(i ,jj,k ,n)
+              +              (gyz + gxyz)                    * phicc(i ,jj,kk,n)
+              +              (-gx - gxy - gxz - gxyz)        * phicc(ii,j ,k ,n)
+              +              (gxz + gxyz)                    * phicc(ii,j ,kk,n)
+              +              (gxy + gxyz)                    * phicc(ii,jj,k ,n)
+              +              (-gxyz)                         * phicc(ii,jj,kk,n);
          }
        }
     });

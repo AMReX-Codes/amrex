@@ -665,29 +665,28 @@ EB_average_face_to_cellcenter (MultiFab& ccmf, int dcomp,
 // EM DEBUG: NEW ROUTINE TO INTEROLATE CELL CENTER VALUES TO CENTROID
 
 void
-EB_interp_CC_to_Centroid (MultiFab& sol, int nc, const Geometry& geom)
+EB_interp_CC_to_Centroid (MultiFab& cent, const MultiFab& cc, int sc, int dc, int nc, const Geometry& geom)
 {
-    const auto& factory = dynamic_cast<EBFArrayBoxFactory const&>(sol.Factory());
+    const auto& factory = dynamic_cast<EBFArrayBoxFactory const&>(cc.Factory());
     const auto& flags = factory.getMultiEBCellFlagFab();
-    const auto& cent = factory.getCentroid();
+    const auto& loc = factory.getCentroid();
 
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(sol, mfi_info);  mfi.isValid(); ++mfi)
+    for (MFIter mfi(cc, mfi_info);  mfi.isValid(); ++mfi)
     {
-
         const Box& vbx = mfi.validbox();
-        const auto& solnfab = sol.array(mfi);       
-        const auto fabtyp = flags[mfi].getType(vbx);
+        const auto& centfab = cent.array(mfi,dc);
+        const auto& fabtyp = flags[mfi].getType(vbx);
 
         if (fabtyp == FabType::covered)
         {
             AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( vbx, nc, i, j, k, n,
             {
-                solnfab(i,j,k,n) = 0.0;
+                centfab(i,j,k,n) = 0.0;
             });
         }
         else if (fabtyp == FabType::regular)
@@ -696,20 +695,18 @@ EB_interp_CC_to_Centroid (MultiFab& sol, int nc, const Geometry& geom)
         }
         else
         {
-            Array4<EBCellFlag const> const& flagfab = flags.const_array(mfi);
-            Array4<Real const> const& centfab = cent.const_array(mfi);
+            const auto& flagfab = flags.const_array(mfi);
+            const auto& locfab = loc.const_array(mfi);
+            const auto& ccfab = cc.array(mfi,sc);
 
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( vbx, thread_box,
             {
-                eb_interp_cc2cent(thread_box, solnfab,
-                                 flagfab,
-                                 centfab,
-                                 nc);
+              eb_interp_cc2cent(thread_box, centfab, ccfab, flagfab, locfab, nc);
             });
         }
     }
-    
-    sol.FillBoundary(geom.periodicity());
+
+    cent.FillBoundary(dc,nc,geom.periodicity());
 }
 
 void
