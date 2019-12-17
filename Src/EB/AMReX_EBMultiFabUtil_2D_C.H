@@ -242,22 +242,23 @@ void eb_avg_fc_to_cc (int i, int j, int k, int n, Array4<Real> const& cc,
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void eb_interp_cc2cent (Box const& box,
-                       Array4<Real> const& phi,
-                       Array4<EBCellFlag const> const& flag,
-                       Array4<Real const> const& cent,
-                       int ncomp) noexcept
+                        const Array4<Real>& phicent,
+                        Array4<Real const> const& phicc,
+                        Array4<EBCellFlag const> const& flag,
+                        Array4<Real const> const& cent,
+                        int ncomp) noexcept
 {
     amrex::Loop(box, ncomp, [=] (int i, int j, int k, int n) noexcept
     {
       if (flag(i,j,k).isCovered())
       {
-        phi(i,j,k,n) = phi(i,j,k,n); //do nothing
+        phicent(i,j,k,n) = phicc(i,j,k,n); //do nothing
       }
       else
       {
         if (flag(i,j,k).isRegular())
         {
-          phi(i,j,k,n) = phi(i,j,k,n);
+          phicent(i,j,k,n) = phicc(i,j,k,n);
         }
         else
         {
@@ -266,10 +267,10 @@ void eb_interp_cc2cent (Box const& box,
           int ii = (gx < 0.0) ? i - 1 : i + 1;
           int jj = (gy < 0.0) ? j - 1 : j + 1;
           Real gxy = gx*gy;
-          phi(i,j,k,n) = (1.0+gx+gy+gxy)  * phi(i ,j ,k ,n)
-           +                 (-gy - gxy ) * phi(i ,jj,k ,n)
-           +                 (-gx - gxy ) * phi(ii,j ,k ,n)
-           +                  (gxy )       * phi(ii,jj,k ,n);
+          phicent(i,j,k,n) = (1.0+gx+gy+gxy)  * phicc(i ,j ,k ,n)
+           +                     (-gy - gxy ) * phicc(i ,jj,k ,n)
+           +                     (-gx - gxy ) * phicc(ii,j ,k ,n)
+           +                     (gxy )       * phicc(ii,jj,k ,n);
          }
        }
     });
