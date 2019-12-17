@@ -307,7 +307,7 @@ void eb_interp_cc2facecent (Box const& box,
 
       if (apx(i,j,k) == 0)
       {
-        edg_x(i,j,k,a_dcomp+n) == 1e40;
+        edg_x(i,j,k,a_dcomp+n) = 1e40;
       }
       else
       {
