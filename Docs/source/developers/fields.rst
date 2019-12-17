@@ -54,7 +54,7 @@ As all cell-wise operation, the field push is done as follows (this is split in 
   }
 
 The innermost step ``// Apply field solver on the FAB`` could be done with 3 nested ``for`` loops for the 3 dimensions (in 3D). However, for portability reasons (see section :doc:`./portability`), this is done in two steps: (i) extract AMReX data structures into plain-old-data simple structures, and (ii) call a general ``ParallelFor`` function (translated into nested loops on CPU or a kernel launch on GPU, for instance)::
-  
+
   // Get Box corresponding to the current MFIter
   const Box& tex  = mfi.tilebox(Ex_nodal_flag);
   // Extract the FArrayBox into a simple structure, for portability

@@ -105,7 +105,7 @@ public:
 class MultiParticleContainer;
 
 /**
- * WarpXParticleContainer is the base polymorphic class from which all concrete 
+ * WarpXParticleContainer is the base polymorphic class from which all concrete
  * particle container classes (that store a collection of particles) derive. Derived
  * classes can be used for plasma particles, photon particles, or non-physical
  * particles (e.g., for the laser antenna).

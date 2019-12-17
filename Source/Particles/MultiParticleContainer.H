@@ -29,7 +29,7 @@
  *
  * MultiParticleContainer typically has two types of functions:
  * - Functions that loop over all instances of WarpXParticleContainer in
- *   allcontainers and calls the corresponding function (for instance, 
+ *   allcontainers and calls the corresponding function (for instance,
  *   MultiParticleContainer::Evolve loops over all particles containers and
  *   calls the corresponding WarpXParticleContainer::Evolve function).
  * - Functions that specifically handle multiple species (for instance
