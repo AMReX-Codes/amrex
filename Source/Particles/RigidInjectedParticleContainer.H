@@ -14,7 +14,7 @@
  * simulation result, to depend on the Lorentz factor of the boost.
  *
  * This feature is implemented in RigidInjectedParticleContainer: At each
- * iteration, for each particle, if z<z0 the particle moves in a straigh line,
+ * iteration, for each particle, if z<z0 the particle moves in a straight line,
  * and if z>z0 the particle evolves as a regular PhysicalParticleContainer.
  *
  * Note: This option is also useful to build self-consistent space charge

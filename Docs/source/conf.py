@@ -171,20 +171,20 @@ breathe_projects = {
 }
 breathe_default_project = "My Project"
 
-# # Setup the exhale extension
-# exhale_args = {
-#     # These arguments are required
-#     "containmentFolder": "./api",
-#     "rootFileName": "library_root.rst",
-#     "rootFileTitle": "Doxygen",
-#     "doxygenStripFromPath": "..",
-#     # Suggested optional arguments
-#     "createTreeView": True,
-#     # TIP: if using the sphinx-bootstrap-theme, you need
-#     # "treeViewIsBootstrap": True,
-#     "exhaleExecutesDoxygen": True,
-#     "exhaleDoxygenStdin": "INPUT = ../../Source/"
-# }
+# Setup the exhale extension
+exhale_args = {
+    # These arguments are required
+    "containmentFolder": "./api",
+    "rootFileName": "library_root.rst",
+    "rootFileTitle": "Doxygen",
+    "doxygenStripFromPath": "..",
+    # Suggested optional arguments
+    "createTreeView": True,
+    # TIP: if using the sphinx-bootstrap-theme, you need
+    # "treeViewIsBootstrap": True,
+    "exhaleExecutesDoxygen": True,
+    "exhaleDoxygenStdin": "INPUT = ../../Source/"
+}
 
 # Tell sphinx what the primary language being documented is.
 primary_domain = 'cpp'

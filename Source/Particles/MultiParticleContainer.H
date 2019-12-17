@@ -23,7 +23,7 @@
 
 /**
  * The class MultiParticleContainer holds multiple instances of the polymorphic
- * class WarpXParticleContainer, stored in its member variable allcontainers.
+ * class WarpXParticleContainer, stored in its member variable "allcontainers".
  * The class WarpX typically has a single (pointer to an) instance of
  * MultiParticleContainer.
  *

@@ -20,4 +20,3 @@ WarpX-specific vocabulary
 -------------------------
 
 - ``Evolve`` is a generic term to advance a quantity (this comes from AMReX). For instance, ``WarpX::EvolveE(dt)`` advances the electric field for duration ``dt``, ``PhysicalParticleContainer::Evolve(...)`` does field gather + particle push + current deposition for all particles in ``PhysicalParticleContainer``, and ``WarpX::EvolveEM`` is the central ``WarpX`` function that performs 1 PIC iteration.
--

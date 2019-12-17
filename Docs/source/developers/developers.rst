@@ -13,6 +13,6 @@ For general information on how to contribute to WarpX, including our ``git`` wor
    initialization
    diagnostics
    moving_window
-   main_classes
    portability
    profiling
+   documentation
