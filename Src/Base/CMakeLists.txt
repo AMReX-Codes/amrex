@@ -35,6 +35,7 @@ target_sources( amrex
    AMReX_Array.H
    AMReX_BlockMutex.H
    AMReX_BlockMutex.cpp
+   AMReX_GpuComplex.H
    AMReX_Vector.H
    AMReX_Tuple.H
    AMReX.cpp
