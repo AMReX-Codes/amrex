@@ -6,8 +6,8 @@
 ###############################################
 
 #
-# Include module 
-# 
+# Include module
+#
 include (CMakeDependentOption)
 
 if (DEFINED __AMREX_OPTIONS__)
@@ -20,8 +20,8 @@ endif ()
 set (__AMREX_OPTIONS__ "")
 
 #
-# Define a macro to check the value of the inputs integer options 
-# 
+# Define a macro to check the value of the inputs integer options
+#
 macro (print_option var)
    message ( STATUS "   ${var} = ${${var}}")
 endmacro ()
@@ -37,7 +37,7 @@ else ()
 endif()
 
 #
-# Populate the cache and check the value of the user-definable options 
+# Populate the cache and check the value of the user-definable options
 #
 message (STATUS "Configuring AMReX with the following options: ")
 
@@ -57,11 +57,11 @@ if ( USE_XSDK_DEFAULTS )
 else ()
    option( BUILD_SHARED_LIBS "Build AMReX shared library" OFF )
 endif ()
-print_option( BUILD_SHARED_LIBS ) 
+print_option( BUILD_SHARED_LIBS )
 
 #
 # Print out info on install path
-# 
+#
 print_option( CMAKE_INSTALL_PREFIX )
 
 
@@ -104,7 +104,7 @@ endif ()
 
 #
 # AMReX components selection
-# 
+#
 option( ENABLE_EB "Build EB Code" OFF )
 print_option(ENABLE_EB)
 
@@ -113,7 +113,7 @@ if ( USE_XSDK_DEFAULTS )
    print_option(XSDK_ENABLE_Fortran)
    set ( ENABLE_FORTRAN_INTERFACES ${XSDK_ENABLE_Fortran} )
    print_option(ENABLE_FORTRAN_INTERFACES)
-else() 
+else()
    option( ENABLE_FORTRAN_INTERFACES "Build Fortran API" OFF )
    print_option(ENABLE_FORTRAN_INTERFACES)
 endif ()
@@ -167,14 +167,17 @@ print_option(ENABLE_SUNDIALS)
 if (ENABLE_LINEAR_SOLVERS)
    option(ENABLE_HYPRE "Enable Hypre interfaces" OFF)
    print_option(ENABLE_HYPRE)
+   option(ENABLE_HYPRE "Enable PETSc interfaces" OFF)
+   print_option(ENABLE_PETSC)
 else ()
    set(ENABLE_HYPRE OFF CACHE INTERNAL "Enable Hypre interfaces")
+   set(ENABLE_PETSC OFF CACHE INTERNAL "Enable Hypre interfaces")
 endif ()
 
 
 #
 # Compilation options
-#  
+#
 option(ENABLE_FPE "Enable Floating Point Exceptions checks" OFF)
 print_option( ENABLE_FPE )
 
@@ -189,12 +192,12 @@ print_option( ENABLE_ASSERTIONS )
 
 #
 # Profiling options
-# 
+#
 option( ENABLE_BASE_PROFILE "Enable basic profiling" OFF )
 print_option( ENABLE_BASE_PROFILE )
 
 option( ENABLE_TINY_PROFILE "NOT ENABLE_BASE_DEBUG" OFF)
-print_option( ENABLE_TINY_PROFILE ) 
+print_option( ENABLE_TINY_PROFILE )
 
 option( ENABLE_TRACE_PROFILE "Enable trace-profiling" OFF )
 print_option( ENABLE_TRACE_PROFILE )
@@ -261,7 +264,7 @@ if (ENABLE_CUDA OR ENABLE_ACC)
    set(GPUS_PER_SOCKET "IGNORE" CACHE STRING
       "Number of GPUs per socket" )
    print_option(GPUS_PER_SOCKET)
-   
+
    set(GPUS_PER_NODE "IGNORE" CACHE STRING
       "Number of GPUs per node" )
    print_option(GPUS_PER_NODE)
