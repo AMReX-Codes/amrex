@@ -20,7 +20,7 @@
 
   -- Enforce in AmrCore that blocking factor must be a power of 2.
 
-  -- Add support to write plotfile in HDF4 format.
+  -- Add support to write plotfile in HDF5 format.
 
   -- FabArray's Reduce functions can now take lambda working on Array4
      in addition of FAB.
