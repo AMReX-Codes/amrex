@@ -325,7 +325,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 GpuComplex<T> pow (const GpuComplex<T>& a_z, int a_n) noexcept
 {
     return a_n < 0
-                 ? GpuComplex<T>(1) / detail::complex_pow_unsigned(a_z, -(unsigned)a_n)
+                 ? GpuComplex<T>(1) / detail::complex_pow_unsigned(a_z, (unsigned)(-a_n))
                  : detail::complex_pow_unsigned(a_z, a_n);
 }
     
