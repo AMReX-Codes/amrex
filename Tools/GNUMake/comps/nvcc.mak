@@ -91,7 +91,7 @@ else
   CFLAGS_FROM_HOST := $(CXXFLAGS_FROM_HOST)
 endif
 
-NVCC_FLAGS = -Wno-deprecated-gpu-targets -m64 -arch=compute_$(CUDA_ARCH) -code=sm_$(CUDA_ARCH) -maxrregcount=$(CUDA_MAXREGCOUNT)
+NVCC_FLAGS = -Wno-deprecated-gpu-targets -m64 -arch=compute_$(CUDA_ARCH) -code=sm_$(CUDA_ARCH) -maxrregcount=$(CUDA_MAXREGCOUNT) --expt-relaxed-constexpr --expt-extended-lambda
 # Unfortunately, on cori with cuda 10.0 this fails in thrust code
 # NVCC_FLAGS += --Werror=cross-execution-space-call
 
@@ -120,8 +120,6 @@ ifeq ($(nvcc_version),9.2)
     $(error Cuda 9.2 is not supported with USE_EB=TRUE. Use 9.1 or 10.0 instead.)
   endif
 endif
-
-CXXFLAGS += --expt-relaxed-constexpr --expt-extended-lambda
 
 CXX = nvcc
 CC  = nvcc
