@@ -19,6 +19,7 @@ include $(WARPX_HOME)/Source/Particles/Deposition/Make.package
 include $(WARPX_HOME)/Source/Particles/Gather/Make.package
 include $(WARPX_HOME)/Source/Particles/Sorting/Make.package
 include $(WARPX_HOME)/Source/Particles/ParticleCreation/Make.package
+include $(WARPX_HOME)/Source/Particles/Collision/Make.package
 
 INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/Particles
 VPATH_LOCATIONS   += $(WARPX_HOME)/Source/Particles
