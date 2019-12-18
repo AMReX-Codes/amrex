@@ -6,7 +6,7 @@
 #include <WarpXConst.H>
 #include <AMReX_Random.H>
 
-/* \brief Prepare information for and call
+/** \brief Prepare information for and call
  *        UpdateMomentumPerezElastic().
  * @param[in] I1s,I2s is the start index for I1,I2 (inclusive).
  * @param[in] I1e,I2e is the start index for I1,I2 (exclusive).

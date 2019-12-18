@@ -8,18 +8,11 @@ CollisionType::CollisionType(
     std::string const collision_name)
 {
 
-    // check the coordinate is Cartesian
-    amrex::ParmParse pp_check("geometry");
-    int coord_sys;
-    pp_check.query("coord_sys",coord_sys);
-    if (coord_sys != 0)
-    { amrex::Abort("Collision only works for Cartesian coordinate for now."); }
-
-    // check the dimension is 3
-    std::vector<std::string> prob_lo;
-    pp_check.getarr("prob_lo", prob_lo);
-    if (prob_lo.size() != 3)
-    { amrex::Abort("Collision only works for 3D for now."); }
+#if defined WARPX_DIM_XZ
+    amrex::Abort("Collisions only work in 3D geometry for now.");
+#elif defined WARPX_DIM_RZ
+    amrex::Abort("Collisions only work in Cartesian geometry for now.");
+#endif
 
     // read collision species
     std::vector<std::string> collision_species;
@@ -90,8 +83,15 @@ namespace {
 
 }
 
-
-/* \brief Perform Coulomb collisions within one particle tile */
+/** Perform all binary collisions within a tile
+ *
+ * @param lev AMR level of the tile
+ * @param mfi iterator for multifab
+ * @param species1/2 pointer to species container
+ * @param isSameSpecies true if collision is between same species
+ * @param CoulombLog user input Coulomb logrithm
+ *
+ */
 void CollisionType::doCoulombCollisionsWithinTile
     ( int const lev, MFIter const& mfi,
     std::unique_ptr<WarpXParticleContainer>& species_1,
@@ -113,10 +113,14 @@ void CollisionType::doCoulombCollisionsWithinTile
         int const n_cells = bins_1.numBins();
         // - Species 1
         auto& soa_1 = ptile_1.GetStructOfArrays();
-        Real* ux_1  = soa_1.GetRealData(PIdx::ux).data();
-        Real* uy_1  = soa_1.GetRealData(PIdx::uy).data();
-        Real* uz_1  = soa_1.GetRealData(PIdx::uz).data();
-        Real* w_1   = soa_1.GetRealData(PIdx::w).data();
+        ParticleReal * const AMREX_RESTRICT ux_1 =
+            soa_1.GetRealData(PIdx::ux).data();
+        ParticleReal * const AMREX_RESTRICT uy_1 =
+            soa_1.GetRealData(PIdx::uy).data();
+        ParticleReal * const AMREX_RESTRICT uz_1  =
+            soa_1.GetRealData(PIdx::uz).data();
+        ParticleReal const * const AMREX_RESTRICT w_1 =
+            soa_1.GetRealData(PIdx::w).data();
         index_type* indices_1 = bins_1.permutationPtr();
         index_type const* cell_offsets_1 = bins_1.offsetsPtr();
         Real q1 = species_1->getCharge();
@@ -171,10 +175,14 @@ void CollisionType::doCoulombCollisionsWithinTile
         int const n_cells = bins_1.numBins();
         // - Species 1
         auto& soa_1 = ptile_1.GetStructOfArrays();
-        Real* ux_1  = soa_1.GetRealData(PIdx::ux).data();
-        Real* uy_1  = soa_1.GetRealData(PIdx::uy).data();
-        Real* uz_1  = soa_1.GetRealData(PIdx::uz).data();
-        Real* w_1   = soa_1.GetRealData(PIdx::w).data();
+        ParticleReal * const AMREX_RESTRICT ux_1 =
+            soa_1.GetRealData(PIdx::ux).data();
+        ParticleReal * const AMREX_RESTRICT uy_1 =
+            soa_1.GetRealData(PIdx::uy).data();
+        ParticleReal * const AMREX_RESTRICT uz_1 =
+            soa_1.GetRealData(PIdx::uz).data();
+        ParticleReal const * const AMREX_RESTRICT w_1 =
+            soa_1.GetRealData(PIdx::w).data();
         index_type* indices_1 = bins_1.permutationPtr();
         index_type const* cell_offsets_1 = bins_1.offsetsPtr();
         Real q1 = species_1->getCharge();

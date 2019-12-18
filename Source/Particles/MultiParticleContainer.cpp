@@ -646,7 +646,7 @@ MultiParticleContainer::doCoulombCollisions ()
             // Loop over all grids/tiles at this level
 #ifdef _OPENMP
             info.SetDynamic(true);
-            #pragma omp parallel
+            #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
             for (MFIter mfi = species1->MakeMFIter(lev, info); mfi.isValid(); ++mfi){
 

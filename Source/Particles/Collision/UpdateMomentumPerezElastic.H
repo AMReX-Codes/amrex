@@ -9,8 +9,8 @@
 /* \brief Update particle velocities according to
  *        F. Perez et al., Phys.Plasmas.19.083104 (2012),
  *        which is based on Nanbu's method, PhysRevE.55.4642 (1997).
- *        LmdD is max(Debye length, minimal interparticle distance).
- *        L is the Coulomb log. A fixed L will be used if L > 0,
+ *        @param[in] LmdD is max(Debye length, minimal interparticle distance).
+ *        @param[in] L is the Coulomb log. A fixed L will be used if L > 0,
  *        otherwise L will be calculated based on the algorithm.
  *        To see if there are nan or inf updated velocities,
  *        compile with USE_ASSERTION=TRUE.
@@ -229,7 +229,7 @@ void UpdateMomentumPerezElastic (
 
     // Rejection method
     r = amrex::Random();
-    if ( w2/amrex::max(w1,w2) > r )
+    if ( w2 > r*amrex::max(w1, w2) )
     {
         u1x  = p1fx / m1;
         u1y  = p1fy / m1;
@@ -238,7 +238,7 @@ void UpdateMomentumPerezElastic (
         AMREX_ASSERT(!std::isinf(u1x+u1y+u1z+u2x+u2y+u2z));
     }
     r = amrex::Random();
-    if ( w1/amrex::max(w1,w2) > r )
+    if ( w1 > r*amrex::max(w1, w2) )
     {
         u2x  = p2fx / m2;
         u2y  = p2fy / m2;
