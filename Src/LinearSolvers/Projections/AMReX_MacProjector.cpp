@@ -211,7 +211,7 @@ MacProjector::setOptions ()
 {
 
     // Default values
-    int          maxorder(2);
+    int          maxorder(3);
     int          bottom_verbose(0);
     int          maxiter(200);
     int          bottom_maxiter(200);

@@ -70,7 +70,7 @@ struct AssignGrid
             for (int jj = amrex::max(iy-1, 0); jj <= amrex::min(iy, ny-1); ++jj) {
                 for (int kk = amrex::max(iz-1, 0); kk <= amrex::min(iz, nz-1); ++kk) {
                     int index = (ii * ny + jj) * nz + kk;
-                    for (int p = m_poffset[index]; p < m_poffset[index+1]; ++p) {
+                    for (int p = m_poffset[index]; p < int(m_poffset[index+1]); ++p) {
                         const Box& box = m_boxes_ptr[m_pperm[p]];
                         if (box.contains(iv)) return m_pperm[p];
                     }

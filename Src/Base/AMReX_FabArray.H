@@ -255,6 +255,19 @@ public:
 #endif
     }
 
+    bool isAllRegular () const noexcept {
+#ifdef AMREX_USE_EB
+        const auto f = dynamic_cast<EBFArrayBoxFactory const*>(m_factory.get());
+        if (f) {
+            return f->isAllRegular();
+        } else {
+            return true;
+        }
+#else
+        return true;
+#endif
+    }
+
     /**
     * \brief Return true if the FabArray is well-defined.  That is,
     * if FABs are allocated for each Box in the BoxArray and the
