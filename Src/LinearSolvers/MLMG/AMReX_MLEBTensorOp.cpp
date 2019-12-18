@@ -703,8 +703,6 @@ MLEBTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxe
         }
         else if ( loc==Location::FaceCenter )
         {
-            Array4<EBCellFlag const> const& flag = flags->array(mfi);
-
 	    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
 	      const Box& nbx = mfi.nodaltilebox(idim);
 	      Array4<Real      > dst = fluxes[idim]->array(mfi);
@@ -713,7 +711,7 @@ MLEBTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxe
 
 	      AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( nbx, tbx,
 	      {
-	        mlebtensor_flux_0(tbx, dst, src, ap, flag, bscalar);
+	        mlebtensor_flux_0(tbx, dst, src, ap, bscalar);
 	      });
 	    }
         }
@@ -740,23 +738,22 @@ MLEBTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxe
 			 Array4<Real const> const& fcy = fcent[1]->const_array(mfi);,
 			 Array4<Real const> const& fcz = fcent[2]->const_array(mfi););
 	    Array4<int const> const& msk = ccmask.const_array(mfi);
-	    Array4<EBCellFlag const> flg = flags->const_array(mfi);
 
 	    const int face_only = 0;
 
 	    AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
                 xbx, txbx,
 		{
-		  mlebtensor_flux_x(txbx, Ax, fx, apx, fcx, bscalar, msk, flg, face_only, xbx);
+		  mlebtensor_flux_x(txbx, Ax, fx, apx, fcx, bscalar, msk, face_only, xbx);
 		}
 		, ybx, tybx,
 		{
-		  mlebtensor_flux_y(tybx, Ay, fy, apy, fcy, bscalar, msk, flg, face_only, ybx);
+		  mlebtensor_flux_y(tybx, Ay, fy, apy, fcy, bscalar, msk, face_only, ybx);
 		}
 #if (AMREX_SPACEDIM == 3)
 		, zbx, tzbx,
 		{
-		  mlebtensor_flux_z(tzbx, Az, fz, apz, fcz, bscalar, msk, flg, face_only, zbx);
+		  mlebtensor_flux_z(tzbx, Az, fz, apz, fcz, bscalar, msk, face_only, zbx);
 		}
 #endif
 	    );

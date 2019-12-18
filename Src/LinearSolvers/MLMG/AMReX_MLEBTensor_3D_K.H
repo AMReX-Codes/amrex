@@ -510,7 +510,6 @@ void mlebtensor_flux_0 (Box const& box,
 			Array4<Real> const& Ax,
 			Array4<Real const> const& fx,
 			Array4<Real const> const& ap,
-			Array4<EBCellFlag const> const& flag,
 			Real bscalar) noexcept
   {
     const auto lo = amrex::lbound(box);
@@ -536,7 +535,6 @@ void mlebtensor_flux_x (Box const& box, Array4<Real>& Ax,
 			Array4<Real const> const& fx, Array4<Real const> const& apx,
 			Array4<Real const> const& fcx,
 			Real const bscalar, Array4<int const> const& ccm,
-			Array4<EBCellFlag const> const& flag,
 			int face_only, Box const& xbox) noexcept
 {
     int lof = xbox.smallEnd(0);
@@ -544,7 +542,7 @@ void mlebtensor_flux_x (Box const& box, Array4<Real>& Ax,
     amrex::LoopConcurrent(box, [=] (int i, int j, int k) noexcept
     {
         if (!face_only or lof == i or hif == i) {
-	  if (apx(i,j,k) == 1.0 or flag(i,j,k).isRegular()) {
+	  if (apx(i,j,k) == 1.0) {
 	    for (int n=0; n<AMREX_SPACEDIM; n++)
 	        Ax(i,j,k,n) += bscalar*fx(i,j,k,n);
 	  }
@@ -583,7 +581,6 @@ void mlebtensor_flux_y (Box const& box, Array4<Real> & Ay,
 			Array4<Real const> const& fy, Array4<Real const> const& apy,
 			Array4<Real const> const& fcy,
 			Real const bscalar, Array4<int const> const& ccm,
-			Array4<EBCellFlag const> const& flag,
 			int face_only, Box const& ybox) noexcept
 {
     int lof = ybox.smallEnd(1);
@@ -591,7 +588,7 @@ void mlebtensor_flux_y (Box const& box, Array4<Real> & Ay,
     amrex::LoopConcurrent(box, [=] (int i, int j, int k) noexcept
     {
         if (!face_only or lof == j or hif == j) {
-	  if (apy(i,j,k) == 1.0 or flag(i,j,k).isRegular()) {
+	  if (apy(i,j,k) == 1.0) {
 	    for (int n=0; n<AMREX_SPACEDIM; n++)
 	          Ay(i,j,k,n) += bscalar*fy(i,j,k,n);
 	  } else if (apy(i,j,k) != 0) {
@@ -630,7 +627,6 @@ void mlebtensor_flux_z (Box const& box, Array4<Real>& Az,
 			Array4<Real const> const& fz, Array4<Real const> const& apz,
 			Array4<Real const> const& fcz,
 			Real const bscalar, Array4<int const> const& ccm,
-			Array4<EBCellFlag const> const& flag,
 			int face_only, Box const& zbox) noexcept
 {
     int lof = zbox.smallEnd(2);
@@ -638,7 +634,7 @@ void mlebtensor_flux_z (Box const& box, Array4<Real>& Az,
     amrex::LoopConcurrent(box, [=] (int i, int j, int k) noexcept
     {
         if (!face_only or lof == k or hif == k) {
-	  if (apz(i,j,k) == 1.0 or flag(i,j,k).isRegular()) {
+	  if (apz(i,j,k) == 1.0) {
 	    for (int n=0; n<AMREX_SPACEDIM; n++)
 	          Az(i,j,k,n) += bscalar*fz(i,j,k,n);
 	  }
