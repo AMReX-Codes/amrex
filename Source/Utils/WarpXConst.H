@@ -14,9 +14,9 @@ namespace MathConst
 // https://physics.nist.gov/cuu/Constants/index.html
 namespace PhysConst
 {
-    static constexpr amrex::Real c     =  299792458.;
-    static constexpr amrex::Real ep0   =  	;
-    static constexpr amrex::Real mu0   =  1.25663706212e-06;
+    static constexpr amrex::Real c     = 299792458.;
+    static constexpr amrex::Real ep0   = 8.8541878128e-12;
+    static constexpr amrex::Real mu0   = 1.25663706212e-06;
     static constexpr amrex::Real q_e   = 1.602176634e-19;
     static constexpr amrex::Real m_e   = 9.1093837015e-31;
     static constexpr amrex::Real m_p   = 1.67262192369e-27;
