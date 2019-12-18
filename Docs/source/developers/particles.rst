@@ -63,7 +63,7 @@ On a loop over boxes in a ``MultiFab`` (``MFIter``), it can be useful to access 
   auto& soa = ptile.GetStructOfArrays();
   // As an example, let's get the ux momentum
   const ParticleReal * const AMREX_RESTRICT ux = soa.GetRealData(PIdx::ux).data();
-    
+
 On a loop over particles it can be useful to access the fields on the box we are looping over (typically when we use both field and particle data on the same box, for field gather or current deposition for instance). This is done for instance by adding this snippet in ``[MY INNER LOOP]``::
 
   // E is a reference to, say, WarpX::Efield_aux
@@ -78,7 +78,7 @@ Main functions
 .. doxygenfunction:: PhysicalParticleContainer::FieldGather
 
 .. doxygenfunction:: PhysicalParticleContainer::PushPX
-   
+
 .. doxygenfunction:: WarpXParticleContainer::DepositCurrent
 
 .. note::

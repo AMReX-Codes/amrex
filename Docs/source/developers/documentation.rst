@@ -19,7 +19,7 @@ WarpX uses a Doxygen documentation. Whenever you create a new class, please docu
    { ... }
 
 Doxygen reads this docstring, so please be accurate with the syntax! See `Doxygen manual <http://www.doxygen.nl/manual/docblocks.html>`__ for more information. Similarly, please document functions when you declare them (typically in a header file) like::
-  
+
   /**
    * few-line description explaining the purpose of my_function.
    *
