@@ -334,9 +334,6 @@ class CylindricalGrid(picmistandard.PICMI_CylindricalGrid):
                     pywarpx.warpx.moving_window_v = self.moving_window_zvelocity/constants.c  # in units of the speed of light
             else:
                 raise Exception('RZ PICMI moving_window_velocity (only available in z direction) should be a scalar')
-
-        if self.moving_window_velocity is not None:
-            raise Exception('PICMI RZ geometry uses moving_window_zvelocity (scalar) instead of moving_window_velocity (vector)')
     
         if self.refined_regions:
             assert len(self.refined_regions) == 1, Exception('WarpX only supports one refined region.')
