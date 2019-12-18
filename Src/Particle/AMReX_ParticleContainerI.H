@@ -1708,7 +1708,7 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
         const auto offset = rOffset[i];
         const auto Cnt = (Rcvs[Who] + sizeof(buffer_type)-1)/sizeof(buffer_type);
         AMREX_ASSERT(Cnt > 0);
-        AMREX_ASSERT(Cnt < std::numeric_limits<int>::max());
+        AMREX_ASSERT(Cnt < size_t(std::numeric_limits<int>::max()));
         AMREX_ASSERT(Who >= 0 && Who < NProcs);
         
         rreqs[i] = ParallelDescriptor::Arecv(&recvdata[offset], Cnt, Who, SeqNum).req();
@@ -1744,7 +1744,7 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
             const auto offset = rOffset[j];
             const auto Who    = RcvProc[j];
             const auto Cnt    = Rcvs[Who] / superparticle_size;            
-            for (int i = 0; i < Cnt; ++i)
+            for (int i = 0; i < int(Cnt); ++i)
             {
                 char* pbuf = ((char*) &recvdata[offset]) + i*superparticle_size;
                 ParticleType p;
@@ -1768,7 +1768,7 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
             const auto offset = rOffset[i];
             const auto Who    = RcvProc[i];
             const auto Cnt = Rcvs[Who] / superparticle_size;            
-            for (int j = 0; j < Cnt; ++j)
+            for (int j = 0; j < int(Cnt); ++j)
             {                
                 auto& ptile = m_particles[rcv_levs[ipart]][std::make_pair(rcv_grid[ipart],
                                                                           rcv_tile[ipart])];
