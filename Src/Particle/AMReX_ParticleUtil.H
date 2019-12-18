@@ -54,9 +54,9 @@ numParticlesOutOfRange (Iterator const& pti, int nGrow)
         const ParticleType& p = pstruct[i];
         if ((p.id() < 0)) return false;
         IntVect iv = IntVect(
-            AMREX_D_DECL(floor((p.pos(0)-plo[0])*dxi[0]),
-                         floor((p.pos(1)-plo[1])*dxi[1]),
-                         floor((p.pos(2)-plo[2])*dxi[2])));
+            AMREX_D_DECL(int(floor((p.pos(0)-plo[0])*dxi[0])),
+                         int(floor((p.pos(1)-plo[1])*dxi[1])),
+                         int(floor((p.pos(2)-plo[2])*dxi[2]))));
         iv += domain.smallEnd();
         return !box.contains(iv);
     });
@@ -107,9 +107,6 @@ numParticlesOutOfRange (PC const& pc, int lev_min, int lev_max, int nGrow)
     int num_wrong = 0;
     for (int lev = lev_min; lev <= lev_max; ++lev)
     {
-        const auto plo = pc.Geom(lev).ProbLoArray();
-        const auto dxi = pc.Geom(lev).InvCellSizeArray();
-        const Box domain = pc.Geom(lev).Domain();
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion() and !system::regtest_reduction) reduction(+:num_wrong)
 #endif
