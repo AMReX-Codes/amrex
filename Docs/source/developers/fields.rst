@@ -69,19 +69,43 @@ The innermost step ``// Apply field solver on the FAB`` could be done with 3 nes
 
 Function ``warpx_push_ex_yee`` performs the FDTD stencil operation on a single cell. It is implemented in ``Source/FieldSolver/WarpX_K.H`` (where ``_K`` stands for kernel).
 
+Guard cells exchanges
+---------------------
+
+Communications are mostly handled in ``Source/Parallelization/``.
+
+For E and B guard cell **exchanges**, the main functions are variants of ``amrex::FillBoundary(amrex::MultiFab, ...)`` (or ``amrex::MultiFab::FillBoundary(...)``) that fill guard cells of all ``amrex::FArrayBox`` in an ``amrex::MultiFab`` with valid cells of corresponding ``amrex::FArrayBox`` neighbors of the same ``amrex::MultiFab``. There are a number of ``FillBoundaryE``, ``FillBoundaryB`` etc. Under the hood, ``amrex::FillBoundary`` calls ``amrex::ParallelCopy``, which is also sometimes directly called in WarpX. Most calls a
+
+For the current density, the valid cells of neighboring ``MultiFabs`` are accumulated (added) rather than just copied. This is done using ``amrex::MultiFab::SumBoundary``, and mostly located in ``Source/Parallelization/WarpXSumGuardCells.H``.
+
 Interpolations for MR
 ---------------------
 
-.. note::
+This is mostly implemented in ``Source/Parallelization``, see the following functions (you may complain to the authors if the documentation is empty)
 
-   Section empty!
+.. doxygenfunction:: WarpX::SyncCurrent
+
+.. doxygenfunction:: WarpX::interpolateCurrentFineToCoarse
+
+.. doxygenfunction:: WarpX::RestrictCurrentFromFineToCoarsePatch
+
+.. doxygenfunction:: WarpX::AddCurrentFromFineLevelandSumBoundary
 
 Filter
 ------
 
-.. note::
+General functions for filtering can be found in ``Source/Filter/``, where the main ``Filter`` class is defined (see below). All filters (so far there are two of them) in WarpX derive from this class.
 
-   Section empty!
+.. doxygenclass:: Filter
+
+Bilinear filter
+~~~~~~~~~~~~~~~
+
+See
+
+Godfrey's anti-NCI filter for FDTD simulations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 
 Buffers
 -------
