@@ -11,8 +11,6 @@ WarpX is build on the Adaptive Mesh Refinement (AMR) library `AMReX <https://git
 
 * ``amrex::MultiFab``: Collection of `FAB` (= ``FArrayBox``) on a single AMR level, distributed over MPI ranks. The concept of `ghost cells` is defined at the ``MultiFab`` level.
 
-* ``amrex::Particle``: Data for 1 particle. It contains default member variables stored as  and 
-
 * ``amrex::ParticleContainer``: A collection of particles, typically for particles of a physical species. Particles in a ``ParticleContainer`` are organized per ``Box``. Particles in a ``Box`` are organized per tile (this feature is off when running on GPU). Particles within a tile are stored in several structures, each being contiguous in memory: (i) an Array-Of-Struct (AoS) (often called `data`, they are the 3D position, the particle ID and the index of the CPU owning the particle), where the Struct is an ``amrex::Particle`` and (ii) Struct-Of-Arrays (SoA) for extra variables (often called `attribs`, in WarpX they are the momentum, field on particle etc.).
 
 The simulation domain is decomposed in several ``Box``, and each MPI rank owns (and performs operations on) the fields and particles defined on a few of these ``Box``, but has the metadata of all of them. For convenience, AMReX provides iterators, to easily iterate over all ``FArrayBox`` (or even tile-by-tile, optionally) in a ``MultiFab`` own by the MPI rank (``MFIter``), or over all particles in a ``ParticleContainer`` on a per-box basis (``ParIter``, or its derived class ``WarpXParIter``). These are respectively done in loops like::
