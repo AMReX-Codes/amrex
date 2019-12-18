@@ -3,7 +3,7 @@
 
 #include <AMReX_MultiFab.H>
 
-/* \brief Sum the values of `mf`, where the different boxes overlap
+/** \brief Sum the values of `mf`, where the different boxes overlap
  * (i.e. in the guard cells)
  *
  * This is typically called for the sources of the Maxwell equations (J/rho)
@@ -28,7 +28,7 @@ WarpXSumGuardCells(amrex::MultiFab& mf, const amrex::Periodicity& period,
     mf.SumBoundary(icomp, ncomp, n_updated_guards, period);
 }
 
-/* \brief Sum the values of `src` where the different boxes overlap
+/** \brief Sum the values of `src` where the different boxes overlap
  * (i.e. in the guard cells) and copy them into `dst`
  *
  * This is typically called for the sources of the Maxwell equations (J/rho)
