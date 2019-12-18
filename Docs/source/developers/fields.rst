@@ -1,6 +1,10 @@
 Fields
 ======
 
+.. note::
+
+   Add info on staggering and domain decomposition. Synchronize with section ``initialization``.
+
 The main fields are the electric field ``Efield``, the magnetic field ``Bfield``, the current density ``current`` and the charge density ``rho``. When a divergence-cleaner is used, another field ``F`` (containing ``div(Efield)-rho``).
 
 Due the AMR strategy used in WarpX (see section :doc:`../../theory/amr` for a complete description), each field on a given refinement level ``lev`` (except for the coarsest `0`) is defined on:
@@ -18,8 +22,7 @@ As an example, the structures for the electric field are ``Efield_fp``, ``Efield
 Declaration
 -----------
 
-All the fields described above are public members of class ``WarpX``, defined in ``WarpX.H``. They are defined as an ``amrex::Vector`` (over MR levels) of ``std::array`` (for the 3 spatial components `Ex`, `Ey`, `Ez`) of ``std::unique_ptr`` of ``amrex::MultiFab``, i.e.,
-::
+All the fields described above are public members of class ``WarpX``, defined in ``WarpX.H``. They are defined as an ``amrex::Vector`` (over MR levels) of ``std::array`` (for the 3 spatial components `Ex`, `Ey`, `Ez`) of ``std::unique_ptr`` of ``amrex::MultiFab``, i.e.,::
 
   amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Efield_fp;
 
@@ -32,19 +35,16 @@ The ``MultiFab`` constructor (for, e.g., `Ex` on level `lev`) is called in ``War
 
 By default, the ``MultiFab`` are set to ``0`` at initialization. They can be assigned a different value in ``WarpX::InitLevelData``.
 
-.. note::
-
-   Add info on staggering, guard cells and domain decomposition. Synchronize with section ``initialization``.
-
 Field solver
 ------------
 
 The field solver is performed in ``WarpX::EvolveE`` for the electric field and ``WarpX::EvolveB`` for the magnetic field, called from ``WarpX::OneStep_nosub`` in ``WarpX::EvolveEM``. This section describes the FDTD field push (the PSATD field push should be added later). It is implemented in ``Source/FieldSolver/WarpXPushFieldsEM.cpp``.
 
-As all cell-wise operation, the field push is done as follows (this is split in multiple functions in the actual implementation to aboid code duplication)::
+As all cell-wise operation, the field push is done as follows (this is split in multiple functions in the actual implementation to aboid code duplication)
+::
 
-  // Loop over MR levels
-  for (int lev = 0; lev <= finest_level; ++lev) {
+   // Loop over MR levels
+   for (int lev = 0; lev <= finest_level; ++lev) {
       // Get pointer to MultiFab Ex on level lev
       MultiFab* Ex = Efield_fp[lev][0].get();
       // Loop over boxes (or tiles if not on GPU)
@@ -85,7 +85,7 @@ This is mostly implemented in ``Source/Parallelization``, see the following func
 
 .. doxygenfunction:: WarpX::SyncCurrent
 
-.. doxygenfunction:: WarpX::interpolateCurrentFineToCoarse
+.. doxygenfunction:: interpolateCurrentFineToCoarse
 
 .. doxygenfunction:: WarpX::RestrictCurrentFromFineToCoarsePatch
 
@@ -101,15 +101,21 @@ General functions for filtering can be found in ``Source/Filter/``, where the ma
 Bilinear filter
 ~~~~~~~~~~~~~~~
 
-See
+The multi-pass bilinear filter (applied on the current density) is implemented in ``Source/Filter/``, and class ``WarpX`` holds an instance of this class in member variable ``WarpX::bilinear_filter``. For performance reasons (to avoid creating too many guard cells), this filter is directly applied in communication routines, see
+
+.. doxygenfunction:: WarpX::AddCurrentFromFineLevelandSumBoundary
+
+and
+
+.. doxygenfunction:: WarpX::ApplyFilterandSumBoundaryJ
 
 Godfrey's anti-NCI filter for FDTD simulations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+This filter is applied on the electric and magnetic field (on the auxiliary grid) to suppress the Numerical Cherenkov Instability when running FDTD. It is implemented in ``Source/Filter/``, and there are two different stencils, one for ``Ex``, ``Ey`` and ``Bz`` and the other for ``Ez``, ``Bx`` and ``By``.
 
-Buffers
--------
+.. doxygenclass:: NCIGodfreyFilter
 
-.. note::
+The class ``WarpX`` holds two corresponding instances of this class in member variables ``WarpX::nci_godfrey_filter_exeybz`` and ``WarpX::nci_godfrey_filter_bxbyez``. It is a 9-point stencil (is the ``z`` direction only), for which the coefficients are computed using tabulated values (depending on dz/dx) in ``Source/Utils/NCIGodfreyTables.H``, see variable ``table_nci_godfrey_galerkin_Ex_Ey_Bz``. The filter is applied in ``PhysicalParticleContainer::Evolve``, right after field gather and before particle push, see
 
-   Section empty!
+.. doxygenfunction:: PhysicalParticleContainer::applyNCIFilter
