@@ -1,0 +1,166 @@
+#################################
+####### GENERAL PARAMETERS ######
+#################################
+max_step = 10
+amr.n_cell =  64 64 64
+amr.max_grid_size = 32   # maximum size of each AMReX box, used to decompose the domain
+amr.blocking_factor = 8 # minimum size of each AMReX box, used to decompose the domain
+amr.plot_int = 10
+geometry.coord_sys   = 0                  # 0: Cartesian
+geometry.is_periodic = 1  1  1      # Is periodic?
+geometry.prob_lo     =  -1.e-6   -1.e-6  -1e-6  # physical domain
+geometry.prob_hi     =  1.e-6   1.e-6   1e-6
+amr.max_level = 0 # Maximum level in hierarchy (1 might be unstable, >1 is not supported)
+
+#################################
+############ NUMERICS ###########
+#################################
+algo.current_deposition = esirkepov
+algo.charge_deposition = standard
+algo.field_gathering = energy-conserving
+algo.particle_pusher = boris
+interpolation.nox = 3 # Particle interpolation order. Must be the same in x, y, and z
+interpolation.noy = 3
+interpolation.noz = 3
+warpx.verbose = 1
+warpx.do_dive_cleaning = 0
+warpx.plot_raw_fields = 0
+warpx.plot_raw_fields_guards = 0
+warpx.use_filter = 1
+warpx.cfl = 1. # if 1., the time step is set to its CFL limit
+warpx.do_pml = 1 # use Perfectly Matched Layer as boundary condition
+warpx.serialize_ics = 1
+
+#################################
+############ PLASMA #############
+#################################
+particles.nspecies = 4 # number of species
+particles.species_names = p1 p2 p3 p4
+particles.photon_species = p1 p2 p3 p4
+#################################
+
+p1.charge = -q_e
+p1.mass = m_e
+p1.injection_style = "NUniformPerCell"
+p1.profile = "constant"
+p1.xmin = -0.5e-6
+p1.ymin = -0.5e-6
+p1.zmin = -0.5e-6
+p1.xmax = 0.5e6
+p1.ymax = 0.5e6
+p1.zmax = 0.5e6
+p1.num_particles_per_cell_each_dim = 2 2 2
+p1.density = 1e19
+p1.profile = "constant"
+p1.momentum_distribution_type = "gaussian"
+p1.ux_m = 2000.0
+p1.uy_m = 0.0
+p1.uz_m = 0.0
+p1.ux_th = 0.
+p1.uy_th = 0.
+p1.uz_th = 0.
+##########QED####################
+p1.do_qed = 1
+p1.do_qed_breit_wheeler = 1
+#################################
+
+p2.charge = -q_e
+p2.mass = m_e
+p2.injection_style = "NUniformPerCell"
+p2.profile = "constant"
+p2.xmin = -0.5e-6
+p2.ymin = -0.5e-6
+p2.zmin = -0.5e-6
+p2.xmax = 0.5e6
+p2.ymax = 0.5e6
+p2.zmax = 0.5e6
+p2.num_particles_per_cell_each_dim = 2 2 2
+p2.density = 1e19
+p2.profile = "constant"
+p2.momentum_distribution_type = "gaussian"
+p2.ux_m = 0.0
+p2.uy_m = 5000.0
+p2.uz_m = 0.0
+p2.ux_th = 0.
+p2.uy_th = 0.
+p2.uz_th = 0.
+##########QED####################
+p2.do_qed = 1
+p2.do_qed_breit_wheeler = 1
+#################################
+
+p3.charge = -q_e
+p3.mass = m_e
+p3.injection_style = "NUniformPerCell"
+p3.profile = "constant"
+p3.xmin = -0.5e-6
+p3.ymin = -0.5e-6
+p3.zmin = -0.5e-6
+p3.xmax = 0.5e6
+p3.ymax = 0.5e6
+p3.zmax = 0.5e6
+p3.num_particles_per_cell_each_dim = 2 2 2
+p3.density = 1e19
+p3.profile = "constant"
+p3.momentum_distribution_type = "gaussian"
+p3.ux_m = 0.0
+p3.uy_m = 0.0
+p3.uz_m = 10000.0
+p3.ux_th = 0.
+p3.uy_th = 0.
+p3.uz_th = 0.
+##########QED####################
+p3.do_qed = 1
+p3.do_qed_breit_wheeler = 1
+#################################
+
+p4.charge = -q_e
+p4.mass = m_e
+p4.injection_style = "NUniformPerCell"
+p4.profile = "constant"
+p4.xmin = -0.5e-6
+p4.ymin = -0.5e-6
+p4.zmin = -0.5e-6
+p4.xmax = 0.5e6
+p4.ymax = 0.5e6
+p4.zmax = 0.5e6
+p4.num_particles_per_cell_each_dim = 2 2 2
+p4.density = 1e19
+p4.profile = "constant"
+p4.momentum_distribution_type = "gaussian"
+p4.ux_m = 57735.02691896
+p4.uy_m = 57735.02691896
+p4.uz_m = 57735.02691896
+p4.ux_th = 0.
+p4.uy_th = 0.
+p4.uz_th = 0.
+##########QED####################
+p4.do_qed = 1
+p4.do_qed_breit_wheeler = 1
+#################################
+
+##########QED TABLES####################
+qed_bw.lookup_table_mode = "dummy_builtin"
+
+#qed_bw.lookup_table_mode = "generate"
+#qed_bw.chi_min = 0.001
+#qed_bw.tab_dndt_chi_min = 0.1
+#qed_bw.tab_dndt_chi_max = 200
+#qed_bw.tab_dndt_how_many = 64
+#qed_bw.tab_pair_chi_min = 0.01
+#qed_bw.tab_pair_chi_max = 200
+#qed_bw.tab_pair_chi_how_many = 2
+#qed_bw.tab_pair_frac_how_many = 2
+#qed_bw.save_table_in = "bw_micro_table"
+
+#qed_bw.lookup_table_mode = "load"
+#qed_bw.load_table_from = "bw_micro_table"
+#################################
+
+### EXTERNAL E FIELD ### (3e15 * [-0.811107105653813 0.324442842261525 0.486664263392288] )
+warpx.E_external_particle = -2433321316961438 973328526784575 1459992790176863
+####
+
+### EXTERNAL B FIELD ### (1e7 * [0.28571429 0.42857143 0.85714286] )
+warpx.B_external_particle = 2857142.85714286 4285714.28571428 8571428.57142857
+####

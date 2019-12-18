@@ -140,6 +140,10 @@ WarpX::WarpX ()
 
     ReadParameters();
 
+#ifdef WARPX_USE_OPENPMD
+    m_OpenPMDPlotWriter = new WarpXOpenPMDPlot(openpmd_tspf, openpmd_backend);
+#endif
+
     // Geometry on all levels has been defined already.
 
     // No valid BoxArray and DistributionMapping have been defined.
@@ -255,6 +259,10 @@ WarpX::~WarpX ()
 #ifdef BL_USE_SENSEI_INSITU
     delete insitu_bridge;
 #endif
+
+#ifdef WARPX_USE_OPENPMD
+    delete m_OpenPMDPlotWriter;
+#endif
 }
 
 void
@@ -325,6 +333,9 @@ WarpX::ReadParameters ()
                 amrex::Abort(msg.c_str());
             }
 
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(Geom(0).isPeriodic(moving_window_dir) == 0,
+                       "The problem must be non-periodic in the moving window direction");
+
             moving_window_x = geom[0].ProbLo(moving_window_dir);
 
             pp.get("moving_window_v", moving_window_v);
@@ -376,7 +387,7 @@ WarpX::ReadParameters ()
 
         // Read filter and fill IntVect filter_npass_each_dir with
         // proper size for AMREX_SPACEDIM
-            pp.query("use_filter", use_filter);
+        pp.query("use_filter", use_filter);
         Vector<int> parse_filter_npass_each_dir(AMREX_SPACEDIM,1);
         pp.queryarr("filter_npass_each_dir", parse_filter_npass_each_dir);
         filter_npass_each_dir[0] = parse_filter_npass_each_dir[0];
@@ -430,7 +441,11 @@ WarpX::ReadParameters ()
 
         pp.query("dump_openpmd", dump_openpmd);
         pp.query("openpmd_backend", openpmd_backend);
+#ifdef WARPX_USE_OPENPMD
+        pp.query("openpmd_tspf", openpmd_tspf);
+#endif
         pp.query("dump_plotfiles", dump_plotfiles);
+        pp.query("plot_costs", plot_costs);
         pp.query("plot_raw_fields", plot_raw_fields);
         pp.query("plot_raw_fields_guards", plot_raw_fields_guards);
         pp.query("plot_coarsening_ratio", plot_coarsening_ratio);
@@ -1030,9 +1045,9 @@ WarpX::Evolve (int numsteps) {
 }
 
 void
-WarpX::ComputeDivB (MultiFab& divB, int dcomp,
-                    const std::array<const MultiFab*, 3>& B,
-                    const std::array<Real,3>& dx)
+WarpX::ComputeDivB (amrex::MultiFab& divB, int dcomp,
+                    const std::array<const amrex::MultiFab*, 3>& B,
+                    const std::array<amrex::Real,3>& dx)
 {
     Real dxinv = 1./dx[0], dyinv = 1./dx[1], dzinv = 1./dx[2];
 
@@ -1064,9 +1079,9 @@ WarpX::ComputeDivB (MultiFab& divB, int dcomp,
 }
 
 void
-WarpX::ComputeDivB (MultiFab& divB, int dcomp,
-                    const std::array<const MultiFab*, 3>& B,
-                    const std::array<Real,3>& dx, int ngrow)
+WarpX::ComputeDivB (amrex::MultiFab& divB, int dcomp,
+                    const std::array<const amrex::MultiFab*, 3>& B,
+                    const std::array<amrex::Real,3>& dx, int ngrow)
 {
     Real dxinv = 1./dx[0], dyinv = 1./dx[1], dzinv = 1./dx[2];
 
@@ -1098,9 +1113,9 @@ WarpX::ComputeDivB (MultiFab& divB, int dcomp,
 }
 
 void
-WarpX::ComputeDivE (MultiFab& divE, int dcomp,
-                    const std::array<const MultiFab*, 3>& E,
-                    const std::array<Real,3>& dx)
+WarpX::ComputeDivE (amrex::MultiFab& divE, int dcomp,
+                    const std::array<const amrex::MultiFab*, 3>& E,
+                    const std::array<amrex::Real,3>& dx)
 {
     Real dxinv = 1./dx[0], dyinv = 1./dx[1], dzinv = 1./dx[2];
 
@@ -1132,9 +1147,9 @@ WarpX::ComputeDivE (MultiFab& divE, int dcomp,
 }
 
 void
-WarpX::ComputeDivE (MultiFab& divE, int dcomp,
-                    const std::array<const MultiFab*, 3>& E,
-                    const std::array<Real,3>& dx, int ngrow)
+WarpX::ComputeDivE (amrex::MultiFab& divE, int dcomp,
+                    const std::array<const amrex::MultiFab*, 3>& E,
+                    const std::array<amrex::Real,3>& dx, int ngrow)
 {
     Real dxinv = 1./dx[0], dyinv = 1./dx[1], dzinv = 1./dx[2];
 

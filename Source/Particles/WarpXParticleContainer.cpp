@@ -1,4 +1,3 @@
-
 #include <limits>
 
 #include <MultiParticleContainer.H>
@@ -18,6 +17,7 @@
 using namespace amrex;
 
 int WarpXParticleContainer::do_not_push = 0;
+int WarpXParticleContainer::do_not_deposit = 0;
 
 WarpXParIter::WarpXParIter (ContainerType& pc, int level)
     : ParIter(pc, level, MFItInfo().SetDynamic(WarpX::do_dynamic_scheduling))
@@ -271,6 +271,9 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
     // If no particles, do not do anything
     if (np_to_depose == 0) return;
 
+    // If user decides not to deposit
+    if (do_not_deposit) return;
+
     const long ngJ = jx->nGrow();
     const std::array<Real,3>& dx = WarpX::CellSize(std::max(depos_lev,0));
     Real q = this->charge;
@@ -417,7 +420,7 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
 void
 WarpXParticleContainer::DepositCharge (WarpXParIter& pti, RealVector& wp,
                                        const int * const ion_lev,
-                                       MultiFab* rho, int icomp,
+                                       amrex::MultiFab* rho, int icomp,
                                        const long offset, const long np_to_depose,
                                        int thread_num, int lev, int depos_lev)
 {
@@ -427,6 +430,9 @@ WarpXParticleContainer::DepositCharge (WarpXParIter& pti, RealVector& wp,
 
     // If no particles, do not do anything
     if (np_to_depose == 0) return;
+
+    // If user decides not to deposit
+    if (do_not_deposit) return;
 
     const long ngRho = rho->nGrow();
     const std::array<Real,3>& dx = WarpX::CellSize(std::max(depos_lev,0));
@@ -501,7 +507,7 @@ WarpXParticleContainer::DepositCharge (WarpXParIter& pti, RealVector& wp,
 }
 
 void
-WarpXParticleContainer::DepositCharge (Vector<std::unique_ptr<MultiFab> >& rho,
+WarpXParticleContainer::DepositCharge (amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
                                         bool local, bool reset,
                                         bool do_rz_volume_scaling)
 {
@@ -624,7 +630,8 @@ Real WarpXParticleContainer::sumParticleCharge(bool local) {
 
     amrex::Real total_charge = 0.0;
 
-    for (int lev = 0; lev < finestLevel(); ++lev)
+    const int nLevels = finestLevel();
+    for (int lev = 0; lev < nLevels; ++lev)
     {
 
 #ifdef _OPENMP
@@ -654,7 +661,8 @@ std::array<Real, 3> WarpXParticleContainer::meanParticleVelocity(bool local) {
 
     amrex::Real inv_clight_sq = 1.0/PhysConst::c/PhysConst::c;
 
-    for (int lev = 0; lev <= finestLevel(); ++lev) {
+    const int nLevels = finestLevel();
+    for (int lev = 0; lev <= nLevels; ++lev) {
 
 #ifdef _OPENMP
 #pragma omp parallel reduction(+:vx_total, vy_total, vz_total, np_total)
@@ -698,7 +706,8 @@ Real WarpXParticleContainer::maxParticleVelocity(bool local) {
 
     amrex::ParticleReal max_v = 0.0;
 
-    for (int lev = 0; lev <= finestLevel(); ++lev)
+    const int nLevels = finestLevel();
+    for (int lev = 0; lev <= nLevels; ++lev)
     {
 
 #ifdef _OPENMP
@@ -724,7 +733,7 @@ WarpXParticleContainer::PushXES (Real dt)
 {
     BL_PROFILE("WPC::PushXES()");
 
-    int num_levels = finestLevel() + 1;
+    const int num_levels = finestLevel() + 1;
 
     for (int lev = 0; lev < num_levels; ++lev) {
         const auto& gm = m_gdb->Geom(lev);
@@ -751,15 +760,16 @@ WarpXParticleContainer::PushXES (Real dt)
 }
 
 void
-WarpXParticleContainer::PushX (Real dt)
+WarpXParticleContainer::PushX (amrex::Real dt)
 {
-    for (int lev = 0; lev <= finestLevel(); ++lev) {
+    const int nLevels = finestLevel();
+    for (int lev = 0; lev <= nLevels; ++lev) {
         PushX(lev, dt);
     }
 }
 
 void
-WarpXParticleContainer::PushX (int lev, Real dt)
+WarpXParticleContainer::PushX (int lev, amrex::Real dt)
 {
     BL_PROFILE("WPC::PushX()");
 
@@ -836,8 +846,9 @@ WarpXParticleContainer::particlePostLocate(ParticleType& p,
     {
         p.m_idata.id = DoSplitParticleID;
     }
-    // For the moment, do not do anything if particles goes
-    // to lower level.
+
     if (pld.m_lev == lev-1){
+        // For the moment, do not do anything if particles goes
+        // to lower level.
     }
 }

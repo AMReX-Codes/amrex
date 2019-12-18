@@ -14,8 +14,9 @@ namespace
         *num_boxes = mf.local_size();
         int shapesize = AMREX_SPACEDIM;
         if (mf.nComp() > 1) shapesize += 1;
-        *shapes = (int*) malloc(shapesize * (*num_boxes) * sizeof(int));
-        amrex::Real** data = (amrex::Real**) malloc((*num_boxes) * sizeof(amrex::Real*));
+        *shapes = static_cast<int*>(malloc(sizeof(int)*shapesize * (*num_boxes)));
+        auto data =
+            static_cast<amrex::Real**>(malloc((*num_boxes) * sizeof(amrex::Real*)));
 
 #ifdef _OPENMP
 #pragma omp parallel

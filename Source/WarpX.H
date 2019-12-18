@@ -31,6 +31,10 @@
 #   include <omp.h>
 #endif
 
+#ifdef WARPX_USE_OPENPMD
+#include <WarpXOpenPMD.H>
+#endif
+
 #include <iostream>
 #include <memory>
 #include <array>
@@ -169,7 +173,7 @@ public:
 
     void ComputeDt ();
     // Compute max_step automatically for simulations in a boosted frame.
-    void computeMaxStepBoostAccelerator(amrex::Geometry geom);
+    void computeMaxStepBoostAccelerator(const amrex::Geometry& geom);
     int  MoveWindow (bool move_j);
     void UpdatePlasmaInjectionPosition (amrex::Real dt);
 
@@ -310,10 +314,16 @@ public:
     const amrex::IntVect getngF() const { return guard_cells.ng_alloc_F; };
 
     void InitSpaceChargeField (WarpXParticleContainer& pc);
-    void computePhi(const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
-                       amrex::Vector<std::unique_ptr<amrex::MultiFab> >& phi) const;
-    void computeE(amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
-               const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& phi) const;
+    void computePhi (const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
+                     amrex::Vector<std::unique_ptr<amrex::MultiFab> >& phi,
+                     std::array<amrex::Real, 3> const beta = {{0,0,0}},
+                     amrex::Real const required_precision=1.e-11 ) const;
+    void computeE (amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
+                   const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& phi,
+                   std::array<amrex::Real, 3> const beta = {{0,0,0}} ) const;
+    void computeB (amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& B,
+                   const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& phi,
+                   std::array<amrex::Real, 3> const beta = {{0,0,0}} ) const;
 
 protected:
 
@@ -546,15 +556,20 @@ private:
     int check_int = -1;
     int plot_int = -1;
 
-    std::string openpmd_backend {"h5"};
+    std::string openpmd_backend {"bp"};
 #ifdef WARPX_USE_OPENPMD
     bool dump_plotfiles = false;
     bool dump_openpmd = true;
+    bool openpmd_tspf = true; // one file per timestep
+  //bool openpmd_tspf = false; // one file all timesteps
+    WarpXOpenPMDPlot* m_OpenPMDPlotWriter = nullptr;
+
 #else
     bool dump_plotfiles = true;
     bool dump_openpmd = false;
 #endif
     bool plot_rho           = false;
+    bool plot_costs         = true;
     bool plot_finepatch     = false;
     bool plot_crsepatch     = false;
     bool plot_raw_fields    = false;

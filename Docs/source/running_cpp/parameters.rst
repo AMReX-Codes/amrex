@@ -228,6 +228,14 @@ Particle initialization
     Whether to calculate the space-charge fields associated with this species
     at the beginning of the simulation.
 
+* ``<species_name>.self_fields_required_precision`` (`float`, default: 1.e-11)
+    The relative precision with which the initial space-charge fields should
+    be calculated. More specifically, the initial space-charge fields are
+    computed with an iterative Multi-Level Multi-Grid (MLMG) solver.
+    For highly-relativistic beams, this solver can fail to reach the default
+    precision within a reasonable time ; in that case, users can set a
+    relaxed precision requirement through ``self_fields_required_precision``.
+
 * ``<species_name>.profile`` (`string`)
     Density profile for this species. The options are:
 
@@ -368,6 +376,10 @@ Particle initialization
     axes (4 particles in 2D, 6 particles in 3D). When `1`, particles are split
     along the diagonals (4 particles in 2D, 8 particles in 3D).
 
+* ``<species_name>.do_not_deposit`` (`0` or `1` optional; default `0`)
+    If `1` is given, both charge deposition and current deposition will
+    not be done, thus that species does not contribute to the fields.
+
 * ``<species>.plot_species`` (`0` or `1` optional; default `1`)
     Whether to plot particle quantities for this species.
 
@@ -417,15 +429,19 @@ Particle initialization
 
 * ``<species>.do_qed`` (`int`) optional (default `0`)
     If `<species>.do_qed = 0` all the QED effects are disabled for this species.
-    If `<species>.do_qed = 1` QED effects can be enabled for this species (see below)
+    If `<species>.do_qed = 1` QED effects can be enabled for this species (see below).
     **Implementation of this feature is in progress. It requires to compile with QED=TRUE**
 
 * ``<species>.do_qed_quantum_sync`` (`int`) optional (default `0`)
     It only works if `<species>.do_qed = 1`. Enables Quantum synchrotron emission for this species.
+    Quantum synchrotron lookup table should be either generated or loaded from disk to enable
+    this process (see "Lookup tables for QED modules" section below).
     **Implementation of this feature is in progress. It requires to compile with QED=TRUE**
 
 * ``<species>.do_qed_breit_wheeler`` (`int`) optional (default `0`)
     It only works if `<species>.do_qed = 1`. Enables non-linear Breit-Wheeler process for this species.
+    Breit-Wheeler lookup table should be either generated or loaded from disk to enable
+    this process (see "Lookup tables for QED modules" section below).
     **Implementation of this feature is in progress. It requires to compile with QED=TRUE**
 
 * ``warpx.E_external_particle`` & ``warpx.B_external_particle`` (list of `float`) optional (default `0. 0. 0.`)
@@ -624,6 +640,34 @@ Laser initialization
     to the grid at initialization. Use with caution as these fields are used for
     the field solver. In particular, do not use any other boundary condition
     than periodic.
+
+Collision initialization
+------------------------
+
+WarpX provides a relativistic elastic Monte Carlo binary collision model,
+following the algorithm given by `Perez et al. (Phys. Plasmas 19, 083104, 2012) <https://doi.org/10.1063/1.4742167>`_.
+
+* ``collisions.ncollisions`` (`int`) optional (default `0`)
+    Number of collision types.
+
+* ``collisions.collision_names`` (`strings`, separated by spaces)
+    The name of each collision type. It must be provided if ``collisions.ncollisions`` is not zero.
+    This is then used in the rest of the input deck;
+    in this documentation we use ``<collision_name>`` as a placeholder.
+    The number of strings provided should match the number of collision types,
+    i.e. ``collisions.ncollisions``.
+
+* ``<collision_name>.species`` (`strings`, two species names separated by spaces)
+    The names of two species, between which the collision will be considered.
+    It must be provided if ``collisions.ncollisions`` is not zero, and
+    the number of provided ``<collision_name>.species`` should match
+    the number of collision types, i.e. ``collisions.ncollisions``.
+
+* ``<collision_name>.CoulombLog`` (`float`) optional
+    A provided fixed Coulomb logarithm of the collision type
+    ``<collision_name>``.
+    If this is not provided, or if a non-positive value is provided,
+    a Coulomb logarithm will be computed automatically according to the algorithm.
 
 Numerics and algorithms
 -----------------------
@@ -912,6 +956,85 @@ Diagnostics and output
     copied from the full back-transformed diagnostic to the reduced
     slice diagnostic if there are within the user-defined width from
     the slice region defined by ``slice.dom_lo`` and ``slice.dom_hi``.
+
+Lookup tables for QED modules (implementation in progress)
+----------------------------------------------------------
+Lookup tables store pre-computed values for functions used by the QED modules.
+**Implementation of this feature is in progress. It requires to compile with QED=TRUE**
+
+* ``qed_bw.lookup_table_mode`` (`string`)
+    There are three options to prepare the lookup table required by the Breit-Wheeler module:
+
+    * ``dummy_builtin``:  a built-in table is used (Warning: the quality of the table is very low,
+      so this option has to be used only for test purposes).
+
+    * ``generate``: a new table is generated. This option requires Boost math library
+      (version >= 1.67) and to compile with QED_TABLE_GEN=TRUE. All
+      the following parameters must be specified:
+
+        * ``qed_bw.chi_min`` (`float`): minimum chi parameter to be considered by the engine
+
+        * ``qed_bw.tab_dndt_chi_min`` (`float`): minimum chi parameter for lookup table 1 (
+          used for the evolution of the optical depth of the photons)
+
+        * ``qed_bw.tab_dndt_chi_max`` (`float`): maximum chi parameter for lookup table 1
+
+        * ``qed_bw.tab_dndt_how_many`` (`int`): number of points to be used for lookup table 1
+
+        * ``qed_bw.tab_pair_chi_min`` (`float`): minimum chi parameter for lookup table 2 (
+          used for pair generation)
+
+        * ``qed_bw.tab_pair_chi_max`` (`float`): maximum chi parameter for lookup table 2
+
+        * ``qed_bw.tab_pair_chi_how_many`` (`int`): number of points to be used for chi axis in lookup table 2
+
+        * ``qed_bw.tab_pair_frac_how_many`` (`int`): number of points to be used for the second axis in lookup table 2
+          (the second axis is the ratio between the energy of the less energetic particle of the pair and the
+          energy of the photon).
+
+        * ``qed_bw.save_table_in`` (`string`): where to save the lookup table
+
+    * ``load``: a lookup table is loaded from a pre-generated binary file. The following parameter
+      must be specified:
+
+        * ``qed_bw.load_table_from`` (`string`): name of the lookup table file to read from.
+
+* ``qed_qs.lookup_table_mode`` (`string`)
+    There are three options to prepare the lookup table required by the Quantum Synchrotron module:
+
+    * ``dummy_builtin``:  a built-in table is used (Warning: the quality of the table is very low,
+      so this option has to be used only for test purposes).
+
+    * ``generate``: a new table is generated. This option requires Boost math library
+      (version >= 1.67) and to compile with QED_TABLE_GEN=TRUE. All
+      the following parameters must be specified:
+
+        * ``qed_qs.chi_min`` (`float`): minimum chi parameter to be considered by the engine
+
+        * ``qed_qs.tab_dndt_chi_min`` (`float`): minimum chi parameter for lookup table 1 (
+          used for the evolution of the optical depth of electrons and positrons)
+
+        * ``qed_qs.tab_dndt_chi_max`` (`float`): maximum chi parameter for lookup table 1
+
+        * ``qed_qs.tab_dndt_how_many`` (`int`): number of points to be used for lookup table 1
+
+        * ``qed_qs.tab_em_chi_min`` (`float`): minimum chi parameter for lookup table 2 (
+          used for photon emission)
+
+        * ``qed_qs.tab_em_chi_max`` (`float`): maximum chi parameter for lookup table 2
+
+        * ``qed_qs.tab_em_chi_how_many`` (`int`): number of points to be used for chi axis in lookup table 2
+
+        * ``qed_qs.tab_em_prob_how_many`` (`int`): number of points to be used for the second axis in lookup table 2
+          (the second axis is a cumulative probability).
+
+        * ``qed_bw.save_table_in`` (`string`): where to save the lookup table
+
+    * ``load``: a lookup table is loaded from a pre-generated binary file. The following parameter
+      must be specified:
+
+        * ``qed_qs.load_table_from`` (`string`): name of the lookup table file to read from.
+
 
 Checkpoints and restart
 -----------------------

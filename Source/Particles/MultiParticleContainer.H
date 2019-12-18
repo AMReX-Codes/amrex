@@ -11,16 +11,17 @@
 
 #include <AMReX_Particles.H>
 #ifdef WARPX_QED
+    #include <QedChiFunctions.H>
     #include <BreitWheelerEngineWrapper.H>
     #include <QuantumSyncEngineWrapper.H>
 #endif
+
+#include "CollisionType.H"
 
 #include <memory>
 #include <map>
 #include <string>
 #include <algorithm>
-#include <utility>
-#include <tuple>
 
 //
 // MultiParticleContainer holds multiple (nspecies or npsecies+1 when
@@ -43,6 +44,11 @@ public:
         return *allcontainers[ispecies];
     }
 
+#ifdef WARPX_USE_OPENPMD
+    std::unique_ptr<WarpXParticleContainer>& GetUniqueContainer(int ispecies) {
+      return  allcontainers[ispecies];
+    }
+#endif
     std::array<amrex::Real, 3> meanParticleVelocity(int ispecies) {
         return allcontainers[ispecies]->meanParticleVelocity();
     }
@@ -138,6 +144,8 @@ public:
 
     void doFieldIonization ();
 
+    void doCoulombCollisions ();
+
     void Checkpoint (const std::string& dir) const;
 
     void WritePlotFile (const std::string& dir) const;
@@ -210,6 +218,10 @@ protected:
 
     std::vector<std::string> lasers_names;
 
+    std::vector<std::string> collision_names;
+
+    amrex::Vector<std::unique_ptr<CollisionType> > allcollisions;
+
     //! instead of depositing (current, charge) on the finest patch level, deposit to the coarsest grid
     std::vector<bool> m_deposit_on_main_grid;
 
@@ -256,22 +268,17 @@ protected:
     void InitBreitWheeler ();
 
     /**
-     * Parses inputfile parameters for Quantum Synchrotron engine
-     * @return {a tuple containing a flag which is true if tables
-     * have to be generate, a filename (where tables should be stored
-     * or read from) and control parameters.}
+     * Called by InitQuantumSync if a new table has
+     * to be generated.
      */
-    std::tuple<bool, std::string, PicsarQuantumSynchrotronCtrl>
-    ParseQuantumSyncParams ();
+    void QuantumSyncGenerateTable();
 
     /**
-     * Parses inputfile parameters for Breit Wheeler engine
-     * @return {a tuple containing a flag which is true if tables
-     * have to be generate, a filename (where tables should be stored
-     * or read from) and control parameters.}
+     * Called by InitBreitWheeler if a new table has
+     * to be generated.
      */
-    std::tuple<bool, std::string, PicsarBreitWheelerCtrl>
-    ParseBreitWheelerParams ();
+    void BreitWheelerGenerateTable();
+
 #endif
 
 private:
@@ -296,5 +303,6 @@ private:
     // runtime parameters
     int nlasers = 0;
     int nspecies = 1;   // physical particles only. nspecies+nlasers == allcontainers.size().
+    int ncollisions = 0;
 };
 #endif /*WARPX_ParticleContainer_H_*/

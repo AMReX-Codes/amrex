@@ -78,8 +78,6 @@ PhotonParticleContainer::PushPX(WarpXParIter& pti,
         copy_attribs(pti, x, y, z);
     }
 
-    //No need to update momentum for photons (for now)
-
     amrex::ParallelFor(
         pti.numParticles(),
         [=] AMREX_GPU_DEVICE (long i) {
@@ -88,7 +86,6 @@ PhotonParticleContainer::PushPX(WarpXParIter& pti,
                             ux[i], uy[i], uz[i], dt );
         }
     );
-
 }
 
 void
@@ -116,3 +113,48 @@ PhotonParticleContainer::Evolve (int lev,
                                        t, dt);
 
 }
+
+#ifdef WARPX_QED
+
+void
+PhotonParticleContainer::EvolveOpticalDepth(
+    WarpXParIter& pti,amrex::Real dt)
+{
+     if(!has_breit_wheeler())
+        return;
+
+    auto& attribs = pti.GetAttribs();
+    ParticleReal* const AMREX_RESTRICT ux = attribs[PIdx::ux].dataPtr();
+    ParticleReal* const AMREX_RESTRICT uy = attribs[PIdx::uy].dataPtr();
+    ParticleReal* const AMREX_RESTRICT uz = attribs[PIdx::uz].dataPtr();
+    const ParticleReal* const AMREX_RESTRICT Ex = attribs[PIdx::Ex].dataPtr();
+    const ParticleReal* const AMREX_RESTRICT Ey = attribs[PIdx::Ey].dataPtr();
+    const ParticleReal* const AMREX_RESTRICT Ez = attribs[PIdx::Ez].dataPtr();
+    const ParticleReal* const AMREX_RESTRICT Bx = attribs[PIdx::Bx].dataPtr();
+    const ParticleReal* const AMREX_RESTRICT By = attribs[PIdx::By].dataPtr();
+    const ParticleReal* const AMREX_RESTRICT Bz = attribs[PIdx::Bz].dataPtr();
+
+    BreitWheelerEvolveOpticalDepth evolve_opt =
+        m_shr_p_bw_engine->build_evolve_functor();
+
+    amrex::Real* AMREX_RESTRICT p_tau =
+        pti.GetAttribs(particle_comps["tau"]).dataPtr();
+
+    const auto me = PhysConst::m_e;
+
+    amrex::ParallelFor(
+        pti.numParticles(),
+        [=] AMREX_GPU_DEVICE (long i) {
+            const ParticleReal px = me * ux[i];
+            const ParticleReal py = me * uy[i];
+            const ParticleReal pz = me * uz[i];
+
+            bool has_event_happened = evolve_opt(
+                px, py, pz,
+                Ex[i], Ey[i], Ez[i],
+                Bx[i], By[i], Bz[i],
+                dt, p_tau[i]);
+        }
+    );
+}
+#endif

@@ -163,13 +163,39 @@ public:
  * \brief Apply NCI Godfrey filter to all components of E and B before gather
  * \param lev MR level
  * \param box box onto which the filter is applied
- * \param exeli safeguard to avoid destructing arrays between ParIter iterations on GPU
+ * \param exeli safeguard Elixir object (to avoid de-allocating too early
+            --between ParIter iterations-- on GPU) for field Ex
+ * \param eyeli safeguard Elixir object (to avoid de-allocating too early
+            --between ParIter iterations-- on GPU) for field Ey
+ * \param ezeli safeguard Elixir object (to avoid de-allocating too early
+            --between ParIter iterations-- on GPU) for field Ez
+ * \param bxeli safeguard Elixir object (to avoid de-allocating too early
+            --between ParIter iterations-- on GPU) for field Bx
+ * \param byeli safeguard Elixir object (to avoid de-allocating too early
+            --between ParIter iterations-- on GPU) for field By
+ * \param bzeli safeguard Elixir object (to avoid de-allocating too early
+            --between ParIter iterations-- on GPU) for field Bz
  * \param filtered_Ex Array containing filtered value
+ * \param filtered_Ey Array containing filtered value
+ * \param filtered_Ez Array containing filtered value
+ * \param filtered_Bx Array containing filtered value
+ * \param filtered_By Array containing filtered value
+ * \param filtered_Bz Array containing filtered value
  * \param Ex Field array before filtering (not modified)
- * \param ex_ptr pointer to the array used for field gather.
+ * \param Ey Field array before filtering (not modified)
+ * \param Ez Field array before filtering (not modified)
+ * \param Bx Field array before filtering (not modified)
+ * \param By Field array before filtering (not modified)
+ * \param Bz Field array before filtering (not modified)
+ * \param exfab pointer to the Ex field (modified)
+ * \param eyfab pointer to the Ey field (modified)
+ * \param ezfab pointer to the Ez field (modified)
+ * \param bxfab pointer to the Bx field (modified)
+ * \param byfab pointer to the By field (modified)
+ * \param bzfab pointer to the Bz field (modified)
  *
  * The NCI Godfrey filter is applied on Ex, the result is stored in filtered_Ex
- * and the pointer is modified (before this function is called, it points to Ex
+ * and the pointer exfab is modified (before this function is called, it points to Ex
  * and after this function is called, it points to Ex_filtered)
  */
     void applyNCIFilter (
@@ -187,13 +213,47 @@ public:
         amrex::FArrayBox const * & byfab, amrex::FArrayBox const * & bzfab);
 
 #ifdef WARPX_QED
+    //Functions decleared in WarpXParticleContainer.H
+    //containers for which QED processes could be relevant
+    //are expected to override these functions
+
+    /**
+     * Tells if this PhysicalParticleContainer has Quantum
+     * Synchrotron process enabled
+     * @return true if process is enabled
+     */
     bool has_quantum_sync() override;
+
+    /**
+     * Tells if this PhysicalParticleContainer has Breit
+     * Wheeler process enabled
+     * @return true if process is enabled
+     */
     bool has_breit_wheeler() override;
 
+    /**
+     * Acquires a shared smart pointer to a BreitWheelerEngine
+     * @param[in] ptr the pointer
+     */
     void set_breit_wheeler_engine_ptr
-        (std::shared_ptr<BreitWheelerEngine>) override;
+        (std::shared_ptr<BreitWheelerEngine> ptr) override;
+
+    /**
+     * Acquires a shared smart pointer to a QuantumSynchrotronEngine
+     * @param[in] ptr the pointer
+     */
     void set_quantum_sync_engine_ptr
-        (std::shared_ptr<QuantumSynchrotronEngine>) override;
+        (std::shared_ptr<QuantumSynchrotronEngine> ptr) override;
+    //__________
+
+    /**
+     * This function evolves the optical depth of the particles if QED effects
+     * are enabled.
+     * @param[in,out] pti particle iterator (optical depth will be modified)
+     * @param[in] dt temporal step
+     */
+    virtual void EvolveOpticalDepth(WarpXParIter& pti,
+        amrex::Real dt);
 #endif
 
 protected:

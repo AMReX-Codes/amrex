@@ -1,3 +1,6 @@
+#ifndef WARPX_UTILS_H_
+#define WARPX_UTILS_H_
+
 #include <AMReX_REAL.H>
 #include <AMReX_Vector.H>
 #include <AMReX_MultiFab.H>
@@ -21,3 +24,5 @@ namespace WarpXUtilIO{
      */
     bool WriteBinaryDataOnFile(std::string filename, const amrex::Vector<char>& data);
 }
+
+#endif //WARPX_UTILS_H_
