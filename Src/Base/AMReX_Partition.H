@@ -9,16 +9,16 @@ namespace amrex {
 
 #ifdef AMREX_USE_GPU
 
-template <typename T, typename N, typename F>
-int Partition (T* data, N n, F && f)
+template <typename T, typename F>
+int Partition (T* data, int n, F && f)
 {
     return Partition(data, 0, n, std::forward<F>(f));
 }
 
-template <typename T, typename N, typename F>
-int Partition (T* data, N beg, N end, F && f)    
+template <typename T, typename F>
+int Partition (T* data, int beg, int end, F && f)    
 {
-    int n = static_cast<int>(end - beg);
+    int n = end - beg;
     Gpu::DeviceVector<T> v2(n);
     T const* AMREX_RESTRICT pv = data + beg;
     T * AMREX_RESTRICT pv2 = v2.dataPtr();
@@ -84,17 +84,11 @@ int Partition (Gpu::DeviceVector<T>& v, F && f)
     return tot;
 }
 
-template <typename T, typename N, typename F>
-int StablePartition (T* data, N n, F && f)
-{
-    return StablePartition(data, 0, n, std::forward<F>(f));
-}
-
-template <typename T, typename N, typename F>
-int StablePartition (T* data, N beg, N end, F && f)
+template <typename T, typename F>
+int StablePartition (T* data, int beg, int end, F && f)
 {
     int n = Partition(data, beg, end, std::forward<F>(f));
-    int n2 = static_cast<int>(end - beg);
+    int n2 = end - beg;
     if (n2 > 1) {
         int npairs = n2/2;
         T* p = data + beg + n;
@@ -107,6 +101,12 @@ int StablePartition (T* data, N beg, N end, F && f)
     return n;
 }
     
+template <typename T, typename F>
+int StablePartition (T* data, int n, F && f)
+{
+    return StablePartition(data, 0, n, std::forward<F>(f));
+}
+
 template <typename T, typename F>
 int StablePartition (Gpu::DeviceVector<T>& v, F && f)
 {
