@@ -641,6 +641,34 @@ Laser initialization
     the field solver. In particular, do not use any other boundary condition
     than periodic.
 
+Collision initialization
+------------------------
+
+WarpX provides a relativistic elastic Monte Carlo binary collision model,
+following the algorithm given by `Perez et al. (Phys. Plasmas 19, 083104, 2012) <https://doi.org/10.1063/1.4742167>`_.
+
+* ``collisions.ncollisions`` (`int`) optional (default `0`)
+    Number of collision types.
+
+* ``collisions.collision_names`` (`strings`, separated by spaces)
+    The name of each collision type. It must be provided if ``collisions.ncollisions`` is not zero.
+    This is then used in the rest of the input deck;
+    in this documentation we use ``<collision_name>`` as a placeholder.
+    The number of strings provided should match the number of collision types,
+    i.e. ``collisions.ncollisions``.
+
+* ``<collision_name>.species`` (`strings`, two species names separated by spaces)
+    The names of two species, between which the collision will be considered.
+    It must be provided if ``collisions.ncollisions`` is not zero, and
+    the number of provided ``<collision_name>.species`` should match
+    the number of collision types, i.e. ``collisions.ncollisions``.
+
+* ``<collision_name>.CoulombLog`` (`float`) optional
+    A provided fixed Coulomb logarithm of the collision type
+    ``<collision_name>``.
+    If this is not provided, or if a non-positive value is provided,
+    a Coulomb logarithm will be computed automatically according to the algorithm.
+
 Numerics and algorithms
 -----------------------
 
