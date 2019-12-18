@@ -70,11 +70,6 @@ public:
 
     virtual void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
                         StateMode s_mode, const MLMGBndry* bndry=nullptr) const final override;
-    //
-    // WARNING
-    // compFlux() does NOT compute any EB wall flux
-    // Currently only computes the fluxes across cell faces
-    //
     virtual void compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
                            MultiFab& sol, Location loc) const override;
 
