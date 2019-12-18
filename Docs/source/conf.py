@@ -17,7 +17,7 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-import os, sys
+import os, sys, subprocess
 import sphinx_rtd_theme
 sys.path.insert(0, os.path.join( os.path.abspath(__file__), '../Python') )
 
@@ -33,9 +33,9 @@ sys.path.insert(0, os.path.join( os.path.abspath(__file__), '../Python') )
 extensions = ['sphinx.ext.autodoc',
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
-    'breathe'
+    'breathe',
+    'exhale'
  ]
-#    'exhale'
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -190,3 +190,8 @@ exhale_args = {
 primary_domain = 'cpp'
 # Tell sphinx what the pygments highlight language should be.
 highlight_language = 'cpp'
+
+
+read_the_docs_build = os.environ.get('READTHEDOCS', None) == 'True'
+if read_the_docs_build:
+    subprocess.call('cd ../; doxygen', shell=True)
