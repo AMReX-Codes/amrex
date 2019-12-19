@@ -3,7 +3,7 @@
 AMReX basics (excessively basic)
 ================================
 
-WarpX is build on the Adaptive Mesh Refinement (AMR) library `AMReX <https://github.com/AMReX-Codes/amrex>`__. This section provides a very sporadic description of the main AMReX classes and concepts relevant for WarpX, that can serve as a reminder. Please read the AMReX basics `doc page <https://amrex-codes.github.io/amrex/docs_html/Basics.html>`__, of which this section is largely inspired.
+WarpX is built on the Adaptive Mesh Refinement (AMR) library `AMReX <https://github.com/AMReX-Codes/amrex>`__. This section provides a very sporadic description of the main AMReX classes and concepts relevant for WarpX, that can serve as a reminder. Please read the AMReX basics `doc page <https://amrex-codes.github.io/amrex/docs_html/Basics.html>`__, of which this section is largely inspired.
 
 * ``amrex::Box``: Dimension-dependent lower and upper indices defining a rectangular volume in 3D (or surface in 2D) in the index space. ``Box`` is a lightweight meta-data class, with useful member functions.
 
