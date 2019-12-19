@@ -262,15 +262,18 @@ void eb_interp_cc2cent (Box const& box,
         }
         else
         {
-          Real gx = cent(i,j,k,0); 
-          Real gy = cent(i,j,k,1); 
+          Real gx = cent(i,j,k,0);
+          Real gy = cent(i,j,k,1);
           int ii = (gx < 0.0) ? i - 1 : i + 1;
           int jj = (gy < 0.0) ? j - 1 : j + 1;
+          gx = std::abs(gx);
+          gy = std::abs(gy);
           Real gxy = gx*gy;
-          phicent(i,j,k,n) = (1.0+gx+gy+gxy)  * phicc(i ,j ,k ,n)
-           +                     (-gy - gxy ) * phicc(i ,jj,k ,n)
-           +                     (-gx - gxy ) * phicc(ii,j ,k ,n)
-           +                     (gxy )       * phicc(ii,jj,k ,n);
+
+          phicent(i,j,k,n) = (1.0-gx-gy+gxy) * phicc(i ,j ,k ,n)
+           +                      (gy - gxy) * phicc(i ,jj,k ,n)
+           +                      (gx - gxy) * phicc(ii,j ,k ,n)
+           +                      (     gxy) * phicc(ii,jj,k ,n);
          }
        }
     });
@@ -338,7 +341,7 @@ void eb_interp_cc2facecent (Box const& box,
            +                           (-gy - gxy ) * phi(i ,jj,k ,a_scomp+n)
            +                           (-gx - gxy ) * phi(ii,j ,k ,a_scomp+n)
            +                           (gxy )       * phi(ii,jj,k ,a_scomp+n);
-         } 
+         }
        }
     });
   
