@@ -172,7 +172,7 @@ WarpX::EvolveEM (int numsteps)
 
         /** Create object for reduced diagnostics */
         MultiReducedDiags* reduced_diags;
-        reduced_diags = new MultiReducedDiags(step);
+        reduced_diags = new MultiReducedDiags(step+1);
 
         amrex::Print()<< "STEP " << step+1 << " ends." << " TIME = " << cur_time
                       << " DT = " << dt[0] << "\n";

@@ -30,9 +30,8 @@ MultiReducedDiags::MultiReducedDiags (int step)
 
         /** do the diags */
         if (reduced_diags_type[0].compare("ParticleKineticEnergy") == 0
-            && m_step%reduced_diags_freq == 0)
+            && (m_step-1)%reduced_diags_freq == 0)
         {
-            std::cerr << "REDUCED!!!" << std::endl;
             m_multi_rd[i_rd].reset( new ParticleKineticEnergy() );
         }
 
