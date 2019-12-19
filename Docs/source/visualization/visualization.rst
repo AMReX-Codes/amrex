@@ -17,6 +17,7 @@ This section describes some of the tools available to visualize the data:
    :maxdepth: 1
 
    yt
+   backtransformed_diags
    visit
    picviewer
    openpmdviewer

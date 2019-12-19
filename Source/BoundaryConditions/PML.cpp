@@ -752,14 +752,14 @@ PML::CopyJtoPMLs (const std::array<amrex::MultiFab*,3>& j_fp,
 
 
 void
-PML::ExchangeF (MultiFab* F_fp, MultiFab* F_cp, int do_pml_in_domain)
+PML::ExchangeF (amrex::MultiFab* F_fp, amrex::MultiFab* F_cp, int do_pml_in_domain)
 {
     ExchangeF(PatchType::fine, F_fp, do_pml_in_domain);
     ExchangeF(PatchType::coarse, F_cp, do_pml_in_domain);
 }
 
 void
-PML::ExchangeF (PatchType patch_type, MultiFab* Fp, int do_pml_in_domain)
+PML::ExchangeF (PatchType patch_type, amrex::MultiFab* Fp, int do_pml_in_domain)
 {
     if (patch_type == PatchType::fine && pml_F_fp && Fp) {
         Exchange(*pml_F_fp, *Fp, *m_geom, do_pml_in_domain);
@@ -844,11 +844,10 @@ PML::Exchange (MultiFab& pml, MultiFab& reg, const Geometry& geom,
 void
 PML::CopyToPML (MultiFab& pml, MultiFab& reg, const Geometry& geom)
 {
-  const IntVect& ngr = reg.nGrowVect();
   const IntVect& ngp = pml.nGrowVect();
   const auto& period = geom.periodicity();
 
-  pml.ParallelCopy(reg, 0, 0, 1, ngr, ngp, period);
+  pml.ParallelCopy(reg, 0, 0, 1, IntVect(0), ngp, period);
 }
 
 void

@@ -119,6 +119,7 @@ private:
   /** This function saves the plot file
    *
    * @param[in] pc WarpX particle container
+   * @param[in] name species name
    * @param[in] iteration timestep
    * @param[in] write_real_comp The real attribute ids, from WarpX
    * @param[in] real_comp_names The real attribute names, from WarpX

@@ -144,7 +144,7 @@ void Filter::DoFilter (const Box& tbx,
  * \param ncomp Number of components on which the filter is applied.
  */
 void
-Filter::ApplyStencil (MultiFab& dstmf, const MultiFab& srcmf, int scomp, int dcomp, int ncomp)
+Filter::ApplyStencil (amrex::MultiFab& dstmf, const amrex::MultiFab& srcmf, int scomp, int dcomp, int ncomp)
 {
     BL_PROFILE("BilinearFilter::ApplyStencil()");
     ncomp = std::min(ncomp, srcmf.nComp());
@@ -179,8 +179,8 @@ Filter::ApplyStencil (MultiFab& dstmf, const MultiFab& srcmf, int scomp, int dco
  * \param ncomp Number of components on which the filter is applied.
  */
 void
-Filter::ApplyStencil (FArrayBox& dstfab, const FArrayBox& srcfab,
-                      const Box& tbx, int scomp, int dcomp, int ncomp)
+Filter::ApplyStencil (amrex::FArrayBox& dstfab, const amrex::FArrayBox& srcfab,
+                      const amrex::Box& tbx, int scomp, int dcomp, int ncomp)
 {
     BL_PROFILE("BilinearFilter::ApplyStencil(FArrayBox)");
     ncomp = std::min(ncomp, srcfab.nComp());

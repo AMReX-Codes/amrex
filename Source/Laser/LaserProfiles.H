@@ -45,7 +45,7 @@ public:
     /** Initialize Laser Profile
      *
      * Reads the section of the inputfile relative to the laser beam
-     * (e.g. <laser_name>.profile_t_peak, <laser_name>.profile_duration...)
+     * (e.g. laser_name.profile_t_peak, laser_name.profile_duration...)
      * and the "my_constants" section. It also receives some common
      * laser profile parameters. It uses these data to initialize the
      * member variables of the laser profile class.
@@ -64,6 +64,7 @@ public:
      *
      * Xp, Yp and amplitude must be arrays with the same length
      *
+     * @param[in] np number of antenna particles
      * @param[in] Xp X coordinate of the particles of the antenna
      * @param[in] Yp Y coordinate of the particles of the antenna
      * @param[in] t time (seconds)

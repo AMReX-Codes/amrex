@@ -54,6 +54,14 @@ MultiParticleContainer::MultiParticleContainer (AmrCore* amr_core)
         }
     }
     ionization_process = IonizationProcess();
+
+    // collision
+    allcollisions.resize(ncollisions);
+    for (int i = 0; i < ncollisions; ++i) {
+        allcollisions[i].reset
+            (new CollisionType(species_names, collision_names[i]));
+    }
+
 }
 
 void
@@ -118,6 +126,15 @@ MultiParticleContainer::ReadParameters ()
                     int i = std::distance(species_names.begin(), it);
                     species_types[i] = PCTypes::Photon;
                 }
+            }
+
+            // collision
+            ParmParse pc("collisions");
+            pc.query("ncollisions", ncollisions);
+            BL_ASSERT(ncollisions >= 0);
+            if (ncollisions > 0) {
+                pc.getarr("collision_names", collision_names);
+                BL_ASSERT(collision_names.size() == ncollisions);
             }
 
         }
@@ -607,6 +624,40 @@ MultiParticleContainer::doFieldIonization ()
             }
         } // lev
     } // pc_source
+}
+
+void
+MultiParticleContainer::doCoulombCollisions ()
+{
+    BL_PROFILE("MPC::doCoulombCollisions");
+
+    for (int i = 0; i < ncollisions; ++i)
+    {
+        auto& species1 = allcontainers[ allcollisions[i]->m_species1_index ];
+        auto& species2 = allcontainers[ allcollisions[i]->m_species2_index ];
+
+        // Enable tiling
+        MFItInfo info;
+        if (Gpu::notInLaunchRegion()) info.EnableTiling(species1->tile_size);
+
+        // Loop over refinement levels
+        for (int lev = 0; lev <= species1->finestLevel(); ++lev){
+
+            // Loop over all grids/tiles at this level
+#ifdef _OPENMP
+            info.SetDynamic(true);
+            #pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+            for (MFIter mfi = species1->MakeMFIter(lev, info); mfi.isValid(); ++mfi){
+
+                CollisionType::doCoulombCollisionsWithinTile
+                    ( lev, mfi, species1, species2,
+                      allcollisions[i]->m_isSameSpecies,
+                      allcollisions[i]->m_CoulombLog );
+
+            }
+        }
+    }
 }
 
 #ifdef WARPX_QED

@@ -280,6 +280,7 @@ WarpX::OneStep_nosub (Real cur_time)
     // Loop over species. For each ionizable species, create particles in
     // product species.
     mypc->doFieldIonization();
+    mypc->doCoulombCollisions();
     // Push particle from x^{n} to x^{n+1}
     //               from p^{n-1/2} to p^{n+1/2}
     // Deposit current j^{n+1/2}
@@ -475,7 +476,7 @@ WarpX::OneStep_sub1 (Real curtime)
 }
 
 void
-WarpX::PushParticlesandDepose (Real cur_time)
+WarpX::PushParticlesandDepose (amrex::Real cur_time)
 {
     // Evolve particles to p^{n+1/2} and x^{n+1}
     // Depose current, j^{n+1/2}
@@ -485,7 +486,7 @@ WarpX::PushParticlesandDepose (Real cur_time)
 }
 
 void
-WarpX::PushParticlesandDepose (int lev, Real cur_time, DtType a_dt_type)
+WarpX::PushParticlesandDepose (int lev, amrex::Real cur_time, DtType a_dt_type)
 {
     mypc->Evolve(lev,
                  *Efield_aux[lev][0],*Efield_aux[lev][1],*Efield_aux[lev][2],
@@ -583,7 +584,7 @@ WarpX::ComputeDt ()
  * simulation box passes input parameter zmax_plasma_to_compute_max_step.
  */
 void
-WarpX::computeMaxStepBoostAccelerator(amrex::Geometry a_geom){
+WarpX::computeMaxStepBoostAccelerator(const amrex::Geometry& a_geom){
     // Sanity checks: can use zmax_plasma_to_compute_max_step only if
     // the moving window and the boost are all in z direction.
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(

@@ -963,8 +963,12 @@ PhysicalParticleContainer::EvolveES (const Vector<std::array<std::unique_ptr<Mul
 
 void
 PhysicalParticleContainer::FieldGather (int lev,
-                                        const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
-                                        const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz)
+                                        const amrex::MultiFab& Ex,
+                                        const amrex::MultiFab& Ey,
+                                        const amrex::MultiFab& Ez,
+                                        const amrex::MultiFab& Bx,
+                                        const amrex::MultiFab& By,
+                                        const amrex::MultiFab& Bz)
 {
     const std::array<Real,3>& dx = WarpX::CellSize(lev);
 
@@ -1078,11 +1082,11 @@ PhysicalParticleContainer::Evolve (int lev,
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
         {
             const auto np = pti.numParticles();
-            const auto lev = pti.GetLevel();
+            const auto t_lev = pti.GetLevel();
             const auto index = pti.GetPairIndex();
             tmp_particle_data.resize(finestLevel()+1);
             for (int i = 0; i < TmpIdx::nattribs; ++i)
-                tmp_particle_data[lev][index][i].resize(np);
+                tmp_particle_data[t_lev][index][i].resize(np);
         }
     }
 
@@ -2148,12 +2152,12 @@ PhysicalParticleContainer::FieldGather (WarpXParIter& pti,
                                         RealVector& Bxp,
                                         RealVector& Byp,
                                         RealVector& Bzp,
-                                        FArrayBox const * exfab,
-                                        FArrayBox const * eyfab,
-                                        FArrayBox const * ezfab,
-                                        FArrayBox const * bxfab,
-                                        FArrayBox const * byfab,
-                                        FArrayBox const * bzfab,
+                                        amrex::FArrayBox const * exfab,
+                                        amrex::FArrayBox const * eyfab,
+                                        amrex::FArrayBox const * ezfab,
+                                        amrex::FArrayBox const * bxfab,
+                                        amrex::FArrayBox const * byfab,
+                                        amrex::FArrayBox const * bzfab,
                                         const int ngE, const int e_is_nodal,
                                         const long offset,
                                         const long np_to_gather,
@@ -2169,8 +2173,6 @@ PhysicalParticleContainer::FieldGather (WarpXParIter& pti,
     if (np_to_gather == 0) return;
     // Get cell size on gather_lev
     const std::array<Real,3>& dx = WarpX::CellSize(std::max(gather_lev,0));
-    // Set staggering shift depending on e_is_nodal
-    const Real stagger_shift = e_is_nodal ? 0.0 : 0.5;
 
     // Get box from which field is gathered.
     // If not gathering from the finest level, the box is coarsened.
@@ -2184,13 +2186,6 @@ PhysicalParticleContainer::FieldGather (WarpXParIter& pti,
 
     // Add guard cells to the box.
     box.grow(ngE);
-
-    const Array4<const Real>& ex_arr = exfab->array();
-    const Array4<const Real>& ey_arr = eyfab->array();
-    const Array4<const Real>& ez_arr = ezfab->array();
-    const Array4<const Real>& bx_arr = bxfab->array();
-    const Array4<const Real>& by_arr = byfab->array();
-    const Array4<const Real>& bz_arr = bzfab->array();
 
     const ParticleReal * const AMREX_RESTRICT xp = m_xp[thread_num].dataPtr() + offset;
     const ParticleReal * const AMREX_RESTRICT zp = m_zp[thread_num].dataPtr() + offset;
@@ -2209,25 +2204,25 @@ PhysicalParticleContainer::FieldGather (WarpXParIter& pti,
                                 Exp.dataPtr() + offset, Eyp.dataPtr() + offset,
                                 Ezp.dataPtr() + offset, Bxp.dataPtr() + offset,
                                 Byp.dataPtr() + offset, Bzp.dataPtr() + offset,
-                                ex_arr, ey_arr, ez_arr, bx_arr, by_arr, bz_arr,
+                                exfab, eyfab, ezfab, bxfab, byfab, bzfab,
                                 np_to_gather, dx,
-                                xyzmin, lo, stagger_shift, WarpX::n_rz_azimuthal_modes);
+                                xyzmin, lo, WarpX::n_rz_azimuthal_modes);
         } else if (WarpX::nox == 2){
             doGatherShapeN<2,1>(xp, yp, zp,
                                 Exp.dataPtr() + offset, Eyp.dataPtr() + offset,
                                 Ezp.dataPtr() + offset, Bxp.dataPtr() + offset,
                                 Byp.dataPtr() + offset, Bzp.dataPtr() + offset,
-                                ex_arr, ey_arr, ez_arr, bx_arr, by_arr, bz_arr,
+                                exfab, eyfab, ezfab, bxfab, byfab, bzfab,
                                 np_to_gather, dx,
-                                xyzmin, lo, stagger_shift, WarpX::n_rz_azimuthal_modes);
+                                xyzmin, lo, WarpX::n_rz_azimuthal_modes);
         } else if (WarpX::nox == 3){
             doGatherShapeN<3,1>(xp, yp, zp,
                                 Exp.dataPtr() + offset, Eyp.dataPtr() + offset,
                                 Ezp.dataPtr() + offset, Bxp.dataPtr() + offset,
                                 Byp.dataPtr() + offset, Bzp.dataPtr() + offset,
-                                ex_arr, ey_arr, ez_arr, bx_arr, by_arr, bz_arr,
+                                exfab, eyfab, ezfab, bxfab, byfab, bzfab,
                                 np_to_gather, dx,
-                                xyzmin, lo, stagger_shift, WarpX::n_rz_azimuthal_modes);
+                                xyzmin, lo, WarpX::n_rz_azimuthal_modes);
         }
     } else {
         if        (WarpX::nox == 1){
@@ -2235,25 +2230,25 @@ PhysicalParticleContainer::FieldGather (WarpXParIter& pti,
                                 Exp.dataPtr() + offset, Eyp.dataPtr() + offset,
                                 Ezp.dataPtr() + offset, Bxp.dataPtr() + offset,
                                 Byp.dataPtr() + offset, Bzp.dataPtr() + offset,
-                                ex_arr, ey_arr, ez_arr, bx_arr, by_arr, bz_arr,
+                                exfab, eyfab, ezfab, bxfab, byfab, bzfab,
                                 np_to_gather, dx,
-                                xyzmin, lo, stagger_shift, WarpX::n_rz_azimuthal_modes);
+                                xyzmin, lo, WarpX::n_rz_azimuthal_modes);
         } else if (WarpX::nox == 2){
             doGatherShapeN<2,0>(xp, yp, zp,
                                 Exp.dataPtr() + offset, Eyp.dataPtr() + offset,
                                 Ezp.dataPtr() + offset, Bxp.dataPtr() + offset,
                                 Byp.dataPtr() + offset, Bzp.dataPtr() + offset,
-                                ex_arr, ey_arr, ez_arr, bx_arr, by_arr, bz_arr,
+                                exfab, eyfab, ezfab, bxfab, byfab, bzfab,
                                 np_to_gather, dx,
-                                xyzmin, lo, stagger_shift, WarpX::n_rz_azimuthal_modes);
+                                xyzmin, lo, WarpX::n_rz_azimuthal_modes);
         } else if (WarpX::nox == 3){
             doGatherShapeN<3,0>(xp, yp, zp,
                                 Exp.dataPtr() + offset, Eyp.dataPtr() + offset,
                                 Ezp.dataPtr() + offset, Bxp.dataPtr() + offset,
                                 Byp.dataPtr() + offset, Bzp.dataPtr() + offset,
-                                ex_arr, ey_arr, ez_arr, bx_arr, by_arr, bz_arr,
+                                exfab, eyfab, ezfab, bxfab, byfab, bzfab,
                                 np_to_gather, dx,
-                                xyzmin, lo, stagger_shift, WarpX::n_rz_azimuthal_modes);
+                                xyzmin, lo, WarpX::n_rz_azimuthal_modes);
         }
     }
 }

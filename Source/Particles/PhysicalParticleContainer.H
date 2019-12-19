@@ -163,13 +163,39 @@ public:
  * \brief Apply NCI Godfrey filter to all components of E and B before gather
  * \param lev MR level
  * \param box box onto which the filter is applied
- * \param exeli safeguard to avoid destructing arrays between ParIter iterations on GPU
+ * \param exeli safeguard Elixir object (to avoid de-allocating too early
+            --between ParIter iterations-- on GPU) for field Ex
+ * \param eyeli safeguard Elixir object (to avoid de-allocating too early
+            --between ParIter iterations-- on GPU) for field Ey
+ * \param ezeli safeguard Elixir object (to avoid de-allocating too early
+            --between ParIter iterations-- on GPU) for field Ez
+ * \param bxeli safeguard Elixir object (to avoid de-allocating too early
+            --between ParIter iterations-- on GPU) for field Bx
+ * \param byeli safeguard Elixir object (to avoid de-allocating too early
+            --between ParIter iterations-- on GPU) for field By
+ * \param bzeli safeguard Elixir object (to avoid de-allocating too early
+            --between ParIter iterations-- on GPU) for field Bz
  * \param filtered_Ex Array containing filtered value
+ * \param filtered_Ey Array containing filtered value
+ * \param filtered_Ez Array containing filtered value
+ * \param filtered_Bx Array containing filtered value
+ * \param filtered_By Array containing filtered value
+ * \param filtered_Bz Array containing filtered value
  * \param Ex Field array before filtering (not modified)
- * \param ex_ptr pointer to the array used for field gather.
+ * \param Ey Field array before filtering (not modified)
+ * \param Ez Field array before filtering (not modified)
+ * \param Bx Field array before filtering (not modified)
+ * \param By Field array before filtering (not modified)
+ * \param Bz Field array before filtering (not modified)
+ * \param exfab pointer to the Ex field (modified)
+ * \param eyfab pointer to the Ey field (modified)
+ * \param ezfab pointer to the Ez field (modified)
+ * \param bxfab pointer to the Bx field (modified)
+ * \param byfab pointer to the By field (modified)
+ * \param bzfab pointer to the Bz field (modified)
  *
  * The NCI Godfrey filter is applied on Ex, the result is stored in filtered_Ex
- * and the pointer is modified (before this function is called, it points to Ex
+ * and the pointer exfab is modified (before this function is called, it points to Ex
  * and after this function is called, it points to Ex_filtered)
  */
     void applyNCIFilter (

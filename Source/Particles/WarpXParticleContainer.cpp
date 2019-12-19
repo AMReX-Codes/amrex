@@ -420,7 +420,7 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
 void
 WarpXParticleContainer::DepositCharge (WarpXParIter& pti, RealVector& wp,
                                        const int * const ion_lev,
-                                       MultiFab* rho, int icomp,
+                                       amrex::MultiFab* rho, int icomp,
                                        const long offset, const long np_to_depose,
                                        int thread_num, int lev, int depos_lev)
 {
@@ -507,7 +507,7 @@ WarpXParticleContainer::DepositCharge (WarpXParIter& pti, RealVector& wp,
 }
 
 void
-WarpXParticleContainer::DepositCharge (Vector<std::unique_ptr<MultiFab> >& rho,
+WarpXParticleContainer::DepositCharge (amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
                                         bool local, bool reset,
                                         bool do_rz_volume_scaling)
 {
@@ -760,7 +760,7 @@ WarpXParticleContainer::PushXES (Real dt)
 }
 
 void
-WarpXParticleContainer::PushX (Real dt)
+WarpXParticleContainer::PushX (amrex::Real dt)
 {
     const int nLevels = finestLevel();
     for (int lev = 0; lev <= nLevels; ++lev) {
@@ -769,7 +769,7 @@ WarpXParticleContainer::PushX (Real dt)
 }
 
 void
-WarpXParticleContainer::PushX (int lev, Real dt)
+WarpXParticleContainer::PushX (int lev, amrex::Real dt)
 {
     BL_PROFILE("WPC::PushX()");
 
@@ -846,8 +846,9 @@ WarpXParticleContainer::particlePostLocate(ParticleType& p,
     {
         p.m_idata.id = DoSplitParticleID;
     }
-    // For the moment, do not do anything if particles goes
-    // to lower level.
+
     if (pld.m_lev == lev-1){
+        // For the moment, do not do anything if particles goes
+        // to lower level.
     }
 }
