@@ -555,8 +555,11 @@ void EB_computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPA
         const auto& area = factory.getAreaFrac();
         const auto& fcent = factory.getFaceCent();
 
-        iMultiFab cc_mask(divu.boxArray(), divu.DistributionMap(), 1, 1);
-        cc_mask.BuildMask(geom.Domain(), geom.periodicity(), 1, 0, 0, 1);
+        iMultiFab cc_mask;
+        if (!already_on_centroids) {
+            cc_mask.define(divu.boxArray(), divu.DistributionMap(), 1, 1);
+            cc_mask.BuildMask(geom.Domain(), geom.periodicity(), 1, 0, 0, 1);
+        }
 
         const GpuArray<Real,AMREX_SPACEDIM> dxinv = geom.InvCellSizeArray();
         MFItInfo info;
@@ -585,7 +588,8 @@ void EB_computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPA
                     amrex_compute_divergence(b,divuarr,AMREX_D_DECL(uarr,varr,warr),dxinv);
                 });
             } else {
-                Array4<int const> const& ccm = cc_mask.const_array(mfi);
+                Array4<int const> const& ccm = (already_on_centroids) ?
+                    Array4<int const>{} : cc_mask.const_array(mfi);
                 Array4<Real const> const& vol = vfrac.const_array(mfi);
                 AMREX_D_TERM(Array4<Real const> const& apx = area[0]->const_array(mfi);,
                              Array4<Real const> const& apy = area[1]->const_array(mfi);,
