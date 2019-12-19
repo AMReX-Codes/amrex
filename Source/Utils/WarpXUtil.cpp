@@ -164,7 +164,7 @@ namespace WarpXUtilIO{
     }
 }
 
-void Store_parserString(std::string query_string, 
+void Store_parserString(std::string query_string,
                         std::string& stored_string)
 {
 

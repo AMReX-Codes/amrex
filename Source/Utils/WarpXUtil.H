@@ -15,7 +15,7 @@ void ConvertLabParamsToBoost();
 void NullifyMF(amrex::MultiFab& mf, int lev, amrex::Real zmin,
                amrex::Real zmax);
 
-void Store_parserString(std::string query_string, 
+void Store_parserString(std::string query_string,
                         std::string& stored_string);
 
 namespace WarpXUtilIO{
