@@ -30,5 +30,8 @@ void ReducedDiags::WriteToFile (int step, std::ofstream & ofs)
     }
     ///< end loop over data size
 
+    /// end line
+    ofs << std::endl;
+
 }
 ///< end ReducedDiags::WriteToFile

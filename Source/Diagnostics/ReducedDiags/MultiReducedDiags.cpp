@@ -85,7 +85,6 @@ void MultiReducedDiags::WriteToFile (int step)
         m_multi_rd[i_rd]->WriteToFile(step, ofs);
 
         /// close file
-        ofs << std::endl;
         ofs.close();
 
     }
