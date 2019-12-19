@@ -529,7 +529,7 @@ private:
     amrex::Real load_balance_knapsack_factor = 1.24;
 
     // Override sync every ? steps
-    int override_sync_int = 10;
+    int override_sync_int = 1;
 
     // Other runtime parameters
     int verbose = 1;
