@@ -7,7 +7,7 @@ Fields
 
    Add info on staggering and domain decomposition. Synchronize with section ``initialization``.
 
-The main fields are the electric field ``Efield``, the magnetic field ``Bfield``, the current density ``current`` and the charge density ``rho``. When a divergence-cleaner is used, we add another field ``F`` (containing :math:`\vec \nabla \vec E - \rho`).
+The main fields are the electric field ``Efield``, the magnetic field ``Bfield``, the current density ``current`` and the charge density ``rho``. When a divergence-cleaner is used, we add another field ``F`` (containing :math:`\vec \nabla \cdot \vec E - \rho`).
 
 Due the AMR strategy used in WarpX (see section :ref:`Theory: AMR <theory-amr>` for a complete description), each field on a given refinement level ``lev`` (except for the coarsest ``0``) is defined on:
 
