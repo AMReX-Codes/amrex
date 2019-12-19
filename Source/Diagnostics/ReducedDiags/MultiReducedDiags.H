@@ -20,18 +20,15 @@ public:
     /** */
     std::vector<std::unique_ptr<ReducedDiags>> m_multi_rd;
 
-    /** current iteration */
-    int m_step;
-
     /** constructor */
-    MultiReducedDiags(int step);
+    MultiReducedDiags();
 
     /** destructor */
     ~MultiReducedDiags();
 
-    void ComputeDiags();
+    void ComputeDiags(int step);
 
-    void WriteToFile();
+    void WriteToFile(int step);
 };
 
 #endif //WARPX_DIAGNOSTICS_REDUCEDDIAGS_MULTIREDUCEDDIAGS_H_

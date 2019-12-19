@@ -13,8 +13,6 @@
 #include <AMReX_AmrMeshInSituBridge.H>
 #endif
 
-#include "MultiReducedDiags.H"
-
 using namespace amrex;
 
 void
@@ -170,10 +168,6 @@ WarpX::EvolveEM (int numsteps)
             mypc->SortParticlesByCell();
         }
 
-        /** Create object for reduced diagnostics */
-        MultiReducedDiags* reduced_diags;
-        reduced_diags = new MultiReducedDiags(step+1);
-
         amrex::Print()<< "STEP " << step+1 << " ends." << " TIME = " << cur_time
                       << " DT = " << dt[0] << "\n";
         Real walltime_end_step = amrex::second();
@@ -186,6 +180,11 @@ WarpX::EvolveEM (int numsteps)
         for (int i = 0; i <= max_level; ++i) {
             t_new[i] = cur_time;
         }
+
+        // do reduced diags
+        //reduced_diags->ComputeDiags(step);
+        reduced_diags->ComputeDiags(step);
+        reduced_diags->WriteToFile(step);
 
         // slice gen //
         if (to_make_plot || do_insitu || to_make_slice_plot)

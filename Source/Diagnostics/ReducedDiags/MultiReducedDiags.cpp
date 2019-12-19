@@ -4,7 +4,7 @@
 using namespace amrex;
 
 /** constructor */
-MultiReducedDiags::MultiReducedDiags (int step)
+MultiReducedDiags::MultiReducedDiags ()
 {
 
     /** read reduced diags names and types */
@@ -12,7 +12,6 @@ MultiReducedDiags::MultiReducedDiags (int step)
     pp.getarr("reduced_diags_names", m_reduced_diags_names);
     m_n_diags = m_reduced_diags_names.size();
     m_multi_rd.resize(m_n_diags);
-    m_step = step;
 
     /** loop over all reduced diags */
     for (int i_rd = 0; i_rd < m_n_diags; ++i_rd)
@@ -28,9 +27,8 @@ MultiReducedDiags::MultiReducedDiags (int step)
         int reduced_diags_freq;
         pp.query("frequency", reduced_diags_freq);
 
-        /** do the diags */
-        if (reduced_diags_type[0].compare("ParticleKineticEnergy") == 0
-            && (m_step-1)%reduced_diags_freq == 0)
+        /** initialize the diags */
+        if (reduced_diags_type[0].compare("ParticleKineticEnergy") == 0)
         {
             m_multi_rd[i_rd].reset( new ParticleKineticEnergy() );
         }
@@ -43,3 +41,8 @@ MultiReducedDiags::MultiReducedDiags (int step)
 MultiReducedDiags::~MultiReducedDiags ()
 {}
 
+void MultiReducedDiags::ComputeDiags (int step)
+{}
+
+void MultiReducedDiags::WriteToFile (int step)
+{}

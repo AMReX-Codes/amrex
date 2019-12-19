@@ -7,6 +7,7 @@
 #include <BackTransformedDiagnostic.H>
 #include <BilinearFilter.H>
 #include <NCIGodfreyFilter.H>
+#include "MultiReducedDiags.H"
 
 #ifdef WARPX_USE_PSATD
 #   include <SpectralSolver.H>
@@ -166,6 +167,8 @@ public:
     amrex::Vector<amrex::Real> mirror_z;
     amrex::Vector<amrex::Real> mirror_z_width;
     amrex::Vector<int> mirror_z_npoints;
+
+    MultiReducedDiags* reduced_diags;
 
     void applyMirrors(amrex::Real time);
 
