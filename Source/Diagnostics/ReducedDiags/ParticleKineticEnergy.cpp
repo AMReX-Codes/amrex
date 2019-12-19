@@ -17,7 +17,7 @@ std::string rd_name, std::ofstream & ofs )
     auto & mypc = warpx.GetPartContainer();
 
     /// get number of species (int)
-    auto species_number = mypc.nSpecies(); 
+    auto species_number = mypc.nSpecies();
 
     /// get species names (std::vector<std::string>)
     auto species_names = mypc.GetSpeciesNames();
@@ -34,10 +34,10 @@ std::string rd_name, std::ofstream & ofs )
 }
 ///< end constructor
 
-/// destructor 
+/// destructor
 ParticleKineticEnergy::~ParticleKineticEnergy ()
 {}
-///< end destructor 
+///< end destructor
 
 /// function that computes kinetic energy
 void ParticleKineticEnergy::ComputeDiags (int step)
@@ -53,7 +53,7 @@ void ParticleKineticEnergy::ComputeDiags (int step)
     auto & mypc = warpx.GetPartContainer();
 
     /// get number of species (int)
-    auto species_number = mypc.nSpecies(); 
+    auto species_number = mypc.nSpecies();
 
     /// resize data array
     m_data.resize(species_number,0.0);
