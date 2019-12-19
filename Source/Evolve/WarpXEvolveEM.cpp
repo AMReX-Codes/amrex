@@ -13,6 +13,7 @@
 #include <AMReX_AmrMeshInSituBridge.H>
 #endif
 
+#include "MultiReducedDiags.H"
 
 using namespace amrex;
 
@@ -168,6 +169,10 @@ WarpX::EvolveEM (int numsteps)
             amrex::Print() << "re-sorting particles \n";
             mypc->SortParticlesByCell();
         }
+
+        /** Create object for reduced diagnostics */
+        MultiReducedDiags* reduced_diags;
+        reduced_diags = new MultiReducedDiags(step);
 
         amrex::Print()<< "STEP " << step+1 << " ends." << " TIME = " << cur_time
                       << " DT = " << dt[0] << "\n";

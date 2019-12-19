@@ -1,0 +1,9 @@
+CEXE_sources += MultiReducedDiags.cpp
+CEXE_sources += ReducedDiags.cpp
+CEXE_sources += ParticleKineticEnergy.cpp
+CEXE_headers += MultiReducedDiags.H
+CEXE_headers += ReducedDiags.H
+CEXE_headers += ParticleKineticEnergy.H
+
+INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/Diagnostics/ReducedDiags
+VPATH_LOCATIONS   += $(WARPX_HOME)/Source/Diagnostics/ReducedDiags

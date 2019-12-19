@@ -61,6 +61,7 @@ endif
 include $(WARPX_HOME)/Source/Make.package
 include $(WARPX_HOME)/Source/BoundaryConditions/Make.package
 include $(WARPX_HOME)/Source/Diagnostics/Make.package
+include $(WARPX_HOME)/Source/Diagnostics/ReducedDiags/Make.package
 include $(WARPX_HOME)/Source/FieldSolver/Make.package
 include $(WARPX_HOME)/Source/Filter/Make.package
 include $(WARPX_HOME)/Source/FortranInterface/Make.package
