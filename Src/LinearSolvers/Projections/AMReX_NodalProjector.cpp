@@ -191,10 +191,10 @@ NodalProjector::project ( const amrex::Vector<amrex::MultiFab*>&       a_vel,
         // set m_fluxes = -fluxes/sigma = grad(phi)
         m_fluxes[lev] -> mult(- 1.0, m_fluxes[lev]->nGrow() );
         for (int n(0); n < AMREX_SPACEDIM; ++n)
-            MultiFab::Divide(*m_fluxes[lev], *a_sigma[lev], 0, n, 1, m_fluxes[lev]->nGrow() );
+            MultiFab::Divide(*m_fluxes[lev], *a_sigma[lev], 0, n, 1, 0);
 
         // Fill boundaries and apply scale factor to phi
-        m_phi[lev] -> FillBoundary( m_geom[lev].periodicity());
+        // m_phi[lev] -> FillBoundary( m_geom[lev].periodicity());
 
     }
 
