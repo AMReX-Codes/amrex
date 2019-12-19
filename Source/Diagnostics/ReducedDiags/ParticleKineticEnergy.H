@@ -8,12 +8,12 @@ class ParticleKineticEnergy : public ReducedDiags
 public:
 
     /** constructor */
-    ParticleKineticEnergy();
+    ParticleKineticEnergy(std::string rd_name);
 
     /** destructor */
     ~ParticleKineticEnergy();
 
-    void ComputeDiags();
+    virtual void ComputeDiags(int step) final;
 
 };
 

@@ -11,11 +11,8 @@ class MultiReducedDiags
 {
 public:
 
-    /** number of reduced diagnostics */
-    int m_n_diags;
-
     /** names of reduced diagnostics */
-    std::vector<std::string> m_reduced_diags_names;
+    std::vector<std::string> m_rd_names;
 
     /** */
     std::vector<std::unique_ptr<ReducedDiags>> m_multi_rd;
