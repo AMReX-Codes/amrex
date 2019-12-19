@@ -1,29 +1,36 @@
 #ifndef WARPX_DIAGNOSTICS_REDUCEDDIAGS_REDUCEDDIAGS_H_
 #define WARPX_DIAGNOSTICS_REDUCEDDIAGS_REDUCEDDIAGS_H_
 
-#include <AMReX_REAL.H>
+#include "AMReX_REAL.H"
 #include <string>
+#include <vector>
+#include <fstream>
 
+/// This class contains basic information for all diagnostics.
 class ReducedDiags
 {
 public:
 
-    /** output frequency of the reduced diagnostics */
+    /// output frequency
     int m_freq;
 
-    /** number of species */
-    int m_nspecies;
+    /// output data
+    std::vector<amrex::Real> m_data;
 
-    /** number of species */
-    amrex::Real m_data;
+    /** constructor
+     *  @param[in] rd_name reduced diags names */
+    ReducedDiags(std::string rd_name);
 
-    /** constructor */
-    ReducedDiags (std::string rd_name);
+    /// destructor
+    ~ReducedDiags();
 
-    /** destructor */
-    ~ReducedDiags ();
-
+    /// function to compute diags
     virtual void ComputeDiags(int step) = 0;
-};
 
-#endif //WARPX_DIAGNOSTICS_REDUCEDDIAGS_REDUCEDDIAGS_H_
+    /// write to file function
+    virtual void WriteToFile(int step, std::ofstream & ofs);
+
+};
+///< end class ReducedDiags
+
+#endif // WARPX_DIAGNOSTICS_REDUCEDDIAGS_REDUCEDDIAGS_H_

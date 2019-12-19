@@ -7,25 +7,32 @@
 #include <string>
 #include <memory>
 
+/// This class addresses all diagnostics
 class MultiReducedDiags
 {
 public:
 
-    /** names of reduced diagnostics */
+    /// names of reduced diagnostics
     std::vector<std::string> m_rd_names;
 
-    /** */
+    /// create ReducedDiags class object
     std::vector<std::unique_ptr<ReducedDiags>> m_multi_rd;
 
-    /** constructor */
+    /// constructor
     MultiReducedDiags();
 
-    /** destructor */
+    /// destructor
     ~MultiReducedDiags();
 
+    /** function to call diags computation
+     *  @param[in] step current iteration time */
     void ComputeDiags(int step);
 
+    /** function to write diags
+     *  @param[in] step current iteration time */
     void WriteToFile(int step);
-};
 
-#endif //WARPX_DIAGNOSTICS_REDUCEDDIAGS_MULTIREDUCEDDIAGS_H_
+};
+///< end class MultiReducedDiags
+
+#endif // WARPX_DIAGNOSTICS_REDUCEDDIAGS_MULTIREDUCEDDIAGS_H_

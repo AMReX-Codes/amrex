@@ -1,20 +1,34 @@
 #include "ReducedDiags.H"
 #include "AMReX_ParmParse.H"
 
-using namespace amrex;
-
+/// constructor
 ReducedDiags::ReducedDiags (std::string rd_name)
 {
-
-    /** read reduced diags frequency */
-    ParmParse pp1(rd_name);
-    pp1.query("frequency", m_freq);
-
-    /** read number species */
-    ParmParse pp2("particles");
-    pp2.query("nspecies", m_nspecies);
-
+    /// read reduced diags frequency
+    amrex::ParmParse pp(rd_name);
+    pp.query("frequency", m_freq);
 }
+///< end constructor
 
+/// destructor
 ReducedDiags::~ReducedDiags ()
 {}
+///< end destructor
+
+/// write to file function
+void ReducedDiags::WriteToFile (int step, std::ofstream & ofs)
+{
+
+    /// write step
+    ofs << step+1;
+
+    /// loop over data size and write
+    for (int i = 0; i < m_data.size(); ++i)
+    {
+        ofs << ",";
+        ofs << m_data[i];
+    }
+    ///< end loop over data size
+
+}
+///< end ReducedDiags::WriteToFile

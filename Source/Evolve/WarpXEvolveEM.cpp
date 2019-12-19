@@ -181,8 +181,7 @@ WarpX::EvolveEM (int numsteps)
             t_new[i] = cur_time;
         }
 
-        // do reduced diags
-        //reduced_diags->ComputeDiags(step);
+        /// do reduced diags
         reduced_diags->ComputeDiags(step);
         reduced_diags->WriteToFile(step);
 
