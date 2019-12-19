@@ -21,20 +21,21 @@ MultiReducedDiags::MultiReducedDiags ()
         std::string rd_type;
         pp.query("type", rd_type);
 
+        /// replace old and open output file
+        std::string dirname = "./";
+        std::ofstream ofs;
+        ofs.open(dirname+m_rd_names[i_rd]+".txt", std::ios::trunc);
+
         /// match diags
         if (rd_type.compare("ParticleKineticEnergy") == 0)
         {
-            /// replace old and open output file
-            std::string dirname = "./";
-            std::ofstream ofs;
-            ofs.open(dirname+m_rd_names[i_rd]+".txt", std::ios::trunc);
-            /// declare
             m_multi_rd[i_rd].reset
                 ( new ParticleKineticEnergy(m_rd_names[i_rd], ofs));
-            /// close file
-            ofs.close();
         }
         ///< end if match diags
+
+        /// close file
+        ofs.close();
 
     }
     ///< end loop over all reduced diags
