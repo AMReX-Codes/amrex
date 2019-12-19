@@ -707,7 +707,6 @@ EB_interp_CC_to_Centroid (MultiFab& cent, const MultiFab& cc, int sc, int dc, in
     }
 
     cent.FillBoundary(dc,nc,geom.periodicity());
-
 }
 
 void
