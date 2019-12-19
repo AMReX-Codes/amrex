@@ -266,8 +266,10 @@ void eb_interp_cc2cent (Box const& box,
           Real gy = cent(i,j,k,1);
           int ii = (gx < 0.0) ? i - 1 : i + 1;
           int jj = (gy < 0.0) ? j - 1 : j + 1;
-          gx = std::abs(gx);
-          gy = std::abs(gy);
+          
+          gx = (gx < 0.0) ? 1. - 0.5*(0.5 + std::abs(gx)) : gx = 0.5*(0.5 + std::abs(gx));
+          gy = (gy < 0.0) ? 1. - 0.5*(0.5 + std::abs(gy)) : gy = 0.5*(0.5 + std::abs(gy));
+          
           Real gxy = gx*gy;
 
           phicent(i,j,k,n) = (1.0-gx-gy+gxy) * phicc(i ,j ,k ,n)
@@ -334,12 +336,17 @@ void eb_interp_cc2facecent (Box const& box,
         {
           int ii = i - 1;
           int jj = (fcx(i,j,k) < 0.0) ? j - 1 : j + 1;                        
-          Real gx = -0.5; 
-          Real gy = fcx(i,j,k); 
+          Real gx = 0.5; 
+          Real gy = fcx(i,j,k);
+          
+          gy = (gy < 0.0) ? 1. - 0.5*(0.5 + std::abs(gy)) : gy = 0.5*(0.5 + std::abs(gy));
+          
+  
+          
           Real gxy = gx*gy;
-          edg_x(i,j,k,a_dcomp+n) = (1.0+gx+gy+gxy)  * phi(i ,j ,k ,a_scomp+n)
-           +                           (-gy - gxy ) * phi(i ,jj,k ,a_scomp+n)
-           +                           (-gx - gxy ) * phi(ii,j ,k ,a_scomp+n)
+          edg_x(i,j,k,a_dcomp+n) = (1.0-gx-gy+gxy)  * phi(i ,j ,k ,a_scomp+n)
+           +                           (gy - gxy )  * phi(i ,jj,k ,a_scomp+n)
+           +                           (gx - gxy )  * phi(ii,j ,k ,a_scomp+n)
            +                           (gxy )       * phi(ii,jj,k ,a_scomp+n);
          }
        }
@@ -376,12 +383,14 @@ void eb_interp_cc2facecent (Box const& box,
         {
           int ii = (fcy(i,j,k) < 0.0) ? i - 1 : i + 1;
           int jj = j - 1;
-          Real gx = fcy(i,j,k);  
-          Real gy = -0.5;
+          Real gx = fcy(i,j,k);
+          gx = (gx < 0.0) ? 1. - 0.5*(0.5 + std::abs(gx)) : gx = 0.5*(0.5 + std::abs(gx));
+          Real gy = 0.5;
+          
           Real gxy = gx*gy;
-          edg_y(i,j,k,a_dcomp+n) = (1.0+gx+gy+gxy)  * phi(i ,j ,k ,a_scomp+n)
-           +                           (-gy - gxy ) * phi(i ,jj,k ,a_scomp+n)
-           +                           (-gx - gxy ) * phi(ii,j ,k ,a_scomp+n)
+          edg_y(i,j,k,a_dcomp+n) = (1.0-gx-gy+gxy)  * phi(i ,j ,k ,a_scomp+n)
+           +                           (gy - gxy )  * phi(i ,jj,k ,a_scomp+n)
+           +                           (gx - gxy )  * phi(ii,j ,k ,a_scomp+n)
            +                           (gxy )       * phi(ii,jj,k ,a_scomp+n);
          } 
        }
