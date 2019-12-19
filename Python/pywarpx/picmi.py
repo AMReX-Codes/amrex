@@ -55,15 +55,15 @@ class Species(picmistandard.PICMI_Species):
                 self.element = element
                 if self.mass is None:
                     self.mass = element.mass*periodictable.constants.atomic_mass_constant
-
-        if 'ionization' in self.interactions:
-            if self.interactions[1]=='ADK':
-                species.do_field_ionization=1
-                species.physical_element=self.particle_type
-                species.ionization_product_species = self.interactions[2]
-                species.ionization_initial_level = self.charge_state
-            else:
-                raise Exception('WarpX only supports the ionization model of ADK')
+            print(self.name,self.interactions)
+            if 'ionization' in self.interactions:
+                if self.interactions[1]=='ADK':
+                    species.do_field_ionization=1
+                    species.physical_element=self.particle_type
+                    species.ionization_product_species = self.interactions[2]
+                    species.ionization_initial_level = self.charge_state
+                else:
+                    raise Exception('WarpX only supports the ionization model of ADK')
 
     def initialize_inputs(self, layout, initialize_self_fields=False):
         self.species_number = pywarpx.particles.nspecies
