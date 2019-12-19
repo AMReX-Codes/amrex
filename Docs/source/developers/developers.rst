@@ -1,3 +1,5 @@
+.. _developers:
+
 Developers documentation
 ========================
 

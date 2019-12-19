@@ -167,9 +167,9 @@ intersphinx_mapping = {'https://amrex-codes.github.io/': None}
 
 # Setup the breathe extension
 breathe_projects = {
-    "My Project": "../doxyxml/"
+    "WarpX": "../doxyxml/"
 }
-breathe_default_project = "My Project"
+breathe_default_project = "WarpX"
 
 # Setup the exhale extension
 exhale_args = {

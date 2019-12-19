@@ -1,3 +1,5 @@
+.. _developers-repo-structure:
+
 WarpX structure
 ===============
 

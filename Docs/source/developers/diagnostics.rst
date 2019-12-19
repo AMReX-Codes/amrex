@@ -1,14 +1,16 @@
+.. _developers-diagnostics:
+
 Diagnostics
 ===========
 
-Regular diagnostics (plotfiles)
+Regular Diagnostics (plotfiles)
 -------------------------------
 
 .. note::
 
    Section empty!
 
-Back-transformed-diagnostics
+Back-Transformed Diagnostics
 ----------------------------
 
 .. note::

@@ -1,13 +1,18 @@
+.. _developers-docs:
+
 Documentation
 =============
 
 .. warning::
-   Needs info on how to install all pieces to compile the doc! Some basic info is in the CONTRIBUTING.md
+
+   Needs info on how to install all pieces to compile the doc! Some basic info is in the ``CONTRIBUTING.md`` .
 
 Doxygen documentation
 ---------------------
 
 WarpX uses a Doxygen documentation. Whenever you create a new class, please document it where it is declared (typically in the header file)::
+
+.. code-block:: cpp
 
    /**
     * few-line description explaining the purpose of my_class.
@@ -19,6 +24,8 @@ WarpX uses a Doxygen documentation. Whenever you create a new class, please docu
    { ... }
 
 Doxygen reads this docstring, so please be accurate with the syntax! See `Doxygen manual <http://www.doxygen.nl/manual/docblocks.html>`__ for more information. Similarly, please document functions when you declare them (typically in a header file) like::
+
+.. code-block:: cpp
 
   /**
    * few-line description explaining the purpose of my_function.
@@ -35,7 +42,7 @@ Your Doxygen documentation is not only useful for people looking into the code, 
 
   .. doxygenclass:: WarpXParticleContainer
 
-Exhale documentation?
----------------------
+Exhale documentation
+--------------------
 
-Very similar to Breathe, the Python module `exhale <https://exhale.readthedocs.io/en/latest/>`__ reads the full Doxygen documentation and renders it in `rst` format, and is accessible from the main WarpX ReadTheDocs page.
+Very similar to Breathe, the Python module `exhale <https://exhale.readthedocs.io/en/latest/>`__ reads the full Doxygen documentation and renders it in ` rst <https://en.wikipedia.org/wiki/ReStructuredText>`__ format, and is accessible from the main WarpX ReadTheDocs page.

@@ -1,3 +1,5 @@
+.. _developers-profiling:
+
 Profiling
 =========
 

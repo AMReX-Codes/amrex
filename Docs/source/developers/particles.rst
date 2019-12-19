@@ -1,3 +1,5 @@
+.. _developers-particles:
+
 Particles
 =========
 
@@ -21,6 +23,8 @@ Loop over particles
 -------------------
 
 A typical loop over particles reads::
+
+.. code-block:: cpp
 
   // pc is a std::unique_ptr<WarpXParticleContainer>
   // Loop over MR levels
@@ -52,6 +56,8 @@ In WarpX, the loop over boxes through a ``MultiFab`` iterator ``MFIter`` and the
 
 On a loop over boxes in a ``MultiFab`` (``MFIter``), it can be useful to access particle data on a GPU-friendly way. This can be done by::
 
+.. code-block:: cpp
+
   // Index of grid (= box)
   const int grid_id = mfi.index();
   // Index of tile within the grid
@@ -65,6 +71,8 @@ On a loop over boxes in a ``MultiFab`` (``MFIter``), it can be useful to access 
   const ParticleReal * const AMREX_RESTRICT ux = soa.GetRealData(PIdx::ux).data();
 
 On a loop over particles it can be useful to access the fields on the box we are looping over (typically when we use both field and particle data on the same box, for field gather or current deposition for instance). This is done for instance by adding this snippet in ``[MY INNER LOOP]``::
+
+.. code-block:: cpp
 
   // E is a reference to, say, WarpX::Efield_aux
   // Get the Ex field on the grid

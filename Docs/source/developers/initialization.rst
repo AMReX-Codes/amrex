@@ -1,3 +1,5 @@
+.. _developers-initialization:
+
 Initialization
 ==============
 
@@ -18,4 +20,3 @@ Field initialization
 
 Particle initialization
 -----------------------
-
