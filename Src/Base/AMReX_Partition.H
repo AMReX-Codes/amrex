@@ -124,7 +124,7 @@ template <typename T, typename F>
 int Partition (Gpu::DeviceVector<T>& v, F && f)
 {
     auto it = std::partition(v.begin(), v.end(), f);
-    return static_cast<int>(std::distance(b.begin(), it));
+    return static_cast<int>(std::distance(v.begin(), it));
 }
 
 template <typename T, typename F>
@@ -144,7 +144,7 @@ template <typename T, typename F>
 int StablePartition (Gpu::DeviceVector<T>& v, F && f)
 {
     auto it = std::stable_partition(v.begin(), v.end(), f);
-    return static_cast<int>(std::distance(b.begin(), it));
+    return static_cast<int>(std::distance(v.begin(), it));
 }
 
 #endif
