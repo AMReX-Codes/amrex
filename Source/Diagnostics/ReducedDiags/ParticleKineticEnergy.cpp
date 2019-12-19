@@ -24,4 +24,22 @@ void ParticleKineticEnergy::ComputeDiags (int step)
 
     std::vector<std::unique_ptr<WarpXParticleContainer>> allcontainers;
 
+    /** loop over species */
+    for (int i = 0; i < m_nspecies; ++i)
+    {
+
+        /** loop over refinement levels */
+        for (int lev = 0; lev <= allcontainers[i]->finestLevel(); ++lev)
+        {
+            /** Loop over all grids/tiles at this level */
+#ifdef _OPENMP
+            #pragma omp parallel reduction(+:m_data)
+#endif
+            for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
+            {
+            }
+        }
+        
+    }
+
 }
