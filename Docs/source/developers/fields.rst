@@ -43,7 +43,7 @@ Field solver
 The field solver is performed in ``WarpX::EvolveE`` for the electric field and ``WarpX::EvolveB`` for the magnetic field, called from ``WarpX::OneStep_nosub`` in ``WarpX::EvolveEM``. This section describes the FDTD field push (the PSATD field push should be added later). It is implemented in ``Source/FieldSolver/WarpXPushFieldsEM.cpp``.
 
 As all cell-wise operation, the field push is done as follows (this is split in multiple functions in the actual implementation to aboid code duplication)
-::
+:
 
 .. code-block:: cpp
 
@@ -57,7 +57,7 @@ As all cell-wise operation, the field push is done as follows (this is split in 
       }
   }
 
-The innermost step ``// Apply field solver on the FAB`` could be done with 3 nested ``for`` loops for the 3 dimensions (in 3D). However, for portability reasons (see section :ref:`Developers: Portability <developers-portability>`), this is done in two steps: (i) extract AMReX data structures into plain-old-data simple structures, and (ii) call a general ``ParallelFor`` function (translated into nested loops on CPU or a kernel launch on GPU, for instance)::
+The innermost step ``// Apply field solver on the FAB`` could be done with 3 nested ``for`` loops for the 3 dimensions (in 3D). However, for portability reasons (see section :ref:`Developers: Portability <developers-portability>`), this is done in two steps: (i) extract AMReX data structures into plain-old-data simple structures, and (ii) call a general ``ParallelFor`` function (translated into nested loops on CPU or a kernel launch on GPU, for instance):
 
 .. code-block:: cpp
 
