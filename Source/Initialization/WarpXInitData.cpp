@@ -1,4 +1,3 @@
-
 #include <WarpX.H>
 #include <WarpX_f.H>
 #include <BilinearFilter.H>
@@ -11,6 +10,7 @@
 #include <AMReX_AmrMeshInSituBridge.H>
 #endif
 #include <GpuParser.H>
+#include <WarpXUtil.H>
 
 
 using namespace amrex;
@@ -261,8 +261,6 @@ WarpXParser makeParser (std::string const& parse_function)
 }
 
 
-
-
 /* \brief
  *  This function initializes E, B, rho, and F, at all the levels
  *  of the multifab. rho and F are initialized with 0.
@@ -329,76 +327,35 @@ WarpX::InitLevelData (int lev, Real time)
 
     if (B_ext_grid_s == "parse_b_ext_grid_function") {
 
-       std::vector<std::string> f;
-       // Parse Bx_external_grid_function
-       pp.getarr("Bx_external_grid_function(x,y,z)", f);
-       str_Bx_ext_grid_function.clear();
-       for (auto const& s : f) {
-           str_Bx_ext_grid_function += s;
-       }
-       f.clear();
-
-       // Parse By_external_grid_function
-       pp.getarr("By_external_grid_function(x,y,z)", f);
-       str_By_ext_grid_function.clear();
-       for (auto const& s : f) {
-            str_By_ext_grid_function += s;
-       }
-       f.clear();
-
-       // Parse Bz_external_grid_function
-       pp.getarr("Bz_external_grid_function(x,y,z)", f);
-       str_Bz_ext_grid_function.clear();
-       for (auto const& s : f) {
-           str_Bz_ext_grid_function += s;
-       }
-       f.clear();
-
+       Store_parserString("Bx_external_grid_function(x,y,z)", 
+                                                    str_Bx_ext_grid_function);
+       Store_parserString("By_external_grid_function(x,y,z)", 
+                                                    str_By_ext_grid_function);
+       Store_parserString("Bz_external_grid_function(x,y,z)",
+                                                    str_Bz_ext_grid_function);
        // Initialize Bfield_fp with external function
-       MultiFab *Bx, *By, *Bz;
-       Bx = Bfield_fp[lev][0].get();
-       By = Bfield_fp[lev][1].get();
-       Bz = Bfield_fp[lev][2].get();
-
        bool B_flag = 1;
-       InitializeExternalFieldsOnGridUsingParser(Bx, By, Bz, lev, B_flag);
+       InitializeExternalFieldsOnGridUsingParser(Bfield_fp[lev][0].get(), 
+                                                 Bfield_fp[lev][1].get(), 
+                                                 Bfield_fp[lev][2].get(), 
+                                                 lev, B_flag);
     }
 
     if (E_ext_grid_s == "parse_e_ext_grid_function") {
 
-       std::vector<std::string> f;
-       // Parse Ex_external_grid_function
-       pp.getarr("Ex_external_grid_function(x,y,z)", f);
-       str_Ex_ext_grid_function.clear();
-       for (auto const& s : f) {
-           str_Ex_ext_grid_function += s;
-       }
-       f.clear();
-
-       // Parse Ey_external_grid_function
-       pp.getarr("Ey_external_grid_function(x,y,z)", f);
-       str_Ey_ext_grid_function.clear();
-       for (auto const& s : f) {
-           str_Ey_ext_grid_function += s;
-       }
-       f.clear();
-
-       // Parse Ez_external_grid_function
-       pp.getarr("Ez_external_grid_function(x,y,z)", f);
-       str_Ez_ext_grid_function.clear();
-       for (auto const& s : f) {
-           str_Ez_ext_grid_function += s;
-       }
-       f.clear();
+       Store_parserString("Ex_external_grid_function(x,y,z)", 
+                                                    str_Ex_ext_grid_function);
+       Store_parserString("Ey_external_grid_function(x,y,z)", 
+                                                    str_Ey_ext_grid_function);
+       Store_parserString("Ez_external_grid_function(x,y,z)",
+                                                    str_Ez_ext_grid_function);
 
        // Initialize Efield_fp with external function
-       MultiFab *Ex, *Ey, *Ez;
-       Ex = Efield_fp[lev][0].get();
-       Ey = Efield_fp[lev][1].get();
-       Ez = Efield_fp[lev][2].get();
-
        bool B_flag = 0;
-       InitializeExternalFieldsOnGridUsingParser(Ex, Ey, Ez, lev, B_flag);
+       InitializeExternalFieldsOnGridUsingParser(Efield_fp[lev][0].get(), 
+                                                 Efield_fp[lev][1].get(), 
+                                                 Efield_fp[lev][2].get(), 
+                                                 lev, B_flag);
 
     }
 
@@ -415,46 +372,35 @@ WarpX::InitLevelData (int lev, Real time)
             }
         }
         if (B_ext_grid_s == "parse_b_ext_grid_function") {
-            MultiFab *Bx_aux, *By_aux, *Bz_aux;
-            Bx_aux = Bfield_aux[lev][0].get();
-            By_aux = Bfield_aux[lev][1].get();
-            Bz_aux = Bfield_aux[lev][2].get();
 
             // Setting b_flag to 1 since we are initializing
             // B_external on the grid.
             bool B_flag = 1;
-            InitializeExternalFieldsOnGridUsingParser(Bx_aux, By_aux,
-                                                      Bz_aux, lev, B_flag);
+            InitializeExternalFieldsOnGridUsingParser(Bfield_aux[lev][0].get(), 
+                                                      Bfield_aux[lev][1].get(),
+                                                      Bfield_aux[lev][2].get(), 
+                                                      lev, B_flag);
 
-            MultiFab *Bx_cp, *By_cp, *Bz_cp;
-            Bx_cp = Bfield_cp[lev][0].get();
-            By_cp = Bfield_cp[lev][1].get();
-            Bz_cp = Bfield_cp[lev][2].get();
-
-            InitializeExternalFieldsOnGridUsingParser(Bx_cp, By_cp,
-                                                      Bz_cp, lev, B_flag);
+            InitializeExternalFieldsOnGridUsingParser(Bfield_cp[lev][0].get(), 
+                                                      Bfield_cp[lev][1].get(),
+                                                      Bfield_cp[lev][2].get(), 
+                                                      lev, B_flag);
 
         }
         if (E_ext_grid_s == "parse_e_ext_grid_function") {
 
-            MultiFab *Ex_aux, *Ey_aux, *Ez_aux;
-            Ex_aux = Efield_aux[lev][0].get();
-            Ey_aux = Efield_aux[lev][1].get();
-            Ez_aux = Efield_aux[lev][2].get();
             // Setting b_flag to zero since we are initializing
             // E_external on the grid here.
             bool B_flag = 0;
-            InitializeExternalFieldsOnGridUsingParser(Ex_aux, Ey_aux,
-                                                      Ez_aux, lev, B_flag);
+            InitializeExternalFieldsOnGridUsingParser(Efield_aux[lev][0].get(), 
+                                                      Efield_aux[lev][1].get(),
+                                                      Efield_aux[lev][2].get(), 
+                                                      lev, B_flag);
 
-            MultiFab *Ex_cp, *Ey_cp, *Ez_cp;
-            Ex_cp = Efield_cp[lev][0].get();
-            Ey_cp = Efield_cp[lev][1].get();
-            Ez_cp = Efield_cp[lev][2].get();
-
-            InitializeExternalFieldsOnGridUsingParser(Ex_cp, Ey_cp,
-                                                      Ez_cp, lev, B_flag);
-
+            InitializeExternalFieldsOnGridUsingParser(Efield_cp[lev][0].get(), 
+                                                      Efield_cp[lev][1].get(),
+                                                      Efield_cp[lev][2].get(),
+                                                      lev, B_flag);
         }
     }
 
