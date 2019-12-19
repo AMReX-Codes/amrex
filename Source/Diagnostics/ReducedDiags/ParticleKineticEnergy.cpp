@@ -25,10 +25,14 @@ std::string rd_name, std::ofstream & ofs )
     // write header row
     ofs << "#";
     ofs << "step";
+    ofs << ",";
+    ofs << "time(s)";
+    ofs << ",";
+    ofs << "total(J)";
     for (int i = 0; i < species_number; ++i)
     {
         ofs << ",";
-        ofs << species_names[i];
+        ofs << species_names[i]+"(J)";
     }
     ofs << std::endl;
 }
@@ -56,7 +60,8 @@ void ParticleKineticEnergy::ComputeDiags (int step)
     auto species_number = mypc.nSpecies();
 
     /// resize data array
-    m_data.resize(species_number,0.0);
+    /// the extra one is for total energy
+    m_data.resize(species_number+1,0.0);
 
     /// get species names (std::vector<std::string>)
     auto species_names = mypc.GetSpeciesNames();
@@ -66,6 +71,9 @@ void ParticleKineticEnergy::ComputeDiags (int step)
 
     /// speed of light squared
     auto c2 = PhysConst::c * PhysConst::c;
+
+    /// declare total kinetic energy variable
+    amrex::Real EKtot = 0.0;
 
     /// loop over species
     for (int i_s = 0; i_s < species_number; ++i_s)
@@ -99,7 +107,7 @@ void ParticleKineticEnergy::ComputeDiags (int step)
                     /// get momentum squared
                     auto ps = (px[i]*px[i] + py[i]*py[i] + pz[i]*pz[i]);
                     /// get relativistic kinetic energy
-                    EK += std::sqrt(ps*c2 + m*m*c2*c2);
+                    EK += std::sqrt(ps*c2 + m*m*c2*c2) - m*c2;
                 }
                 ///< end loop over particles
 
@@ -113,10 +121,16 @@ void ParticleKineticEnergy::ComputeDiags (int step)
         amrex::ParallelDescriptor::ReduceRealSum(EK);
 
         /// save EK to m_data
-        m_data[i_s] = EK;
+        m_data[i_s+1] = EK;
+
+        /// compute total EK
+        EKtot += EK;
 
     }
     ///< end loop over species
+
+    /// save total EK
+    m_data[0] = EKtot;
 
 }
 ///< end void ParticleKineticEnergy::ComputeDiags

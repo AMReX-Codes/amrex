@@ -27,7 +27,9 @@ public:
     /// function to compute diags
     virtual void ComputeDiags(int step) = 0;
 
-    /// write to file function
+    /** write to file function
+     *  @param[in] step time step
+     *  @param[in] file to write */
     virtual void WriteToFile(int step, std::ofstream & ofs);
 
 };

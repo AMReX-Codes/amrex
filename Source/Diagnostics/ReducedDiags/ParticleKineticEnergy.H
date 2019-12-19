@@ -14,7 +14,8 @@ class ParticleKineticEnergy : public ReducedDiags
 public:
 
     /** constructor
-     *  @param[in] rd_name reduced diags names */
+     *  @param[in] rd_name reduced diags names
+     *  @param[in] ofs file to write */
     ParticleKineticEnergy(std::string rd_name, std::ofstream & ofs);
 
     /// destructor
@@ -22,7 +23,7 @@ public:
 
     /** This funciton computes the particle relativistic
      *  kinetic energy (EK).
-     *  EK = sqrt( p^2 c^2 + m^2 c^4 ),
+     *  EK = sqrt( p^2 c^2 + m^2 c^4 ) - m c^2,
      *  where p is the relativistic momentum,
      *  m is the particle rest mass. */
     virtual void ComputeDiags(int step) final;
