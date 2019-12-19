@@ -288,6 +288,11 @@ public:
     std::map<std::string, int> getParticleComps () { return particle_comps;}
     std::map<std::string, int> getParticleiComps () { return particle_icomps;}
 
+    //amrex::Real getCharge () {return charge;}
+    amrex::ParticleReal getCharge () const {return charge;}
+    //amrex::Real getMass () {return mass;}
+    amrex::ParticleReal getMass () const {return mass;}
+
 protected:
 
     std::map<std::string, int> particle_comps;
