@@ -358,10 +358,11 @@ public:
     void InitLevelData (int lev, amrex::Real time);
 
     void InitializeExternalFieldsOnGridUsingParser (
-           amrex::MultiFab* mfx, amrex::MultiFab *mfy, amrex::MultiFab *mfz,
-//           ParserWrapper* xField_wrap, ParserWrapper* yField_wrap,
-//           ParserWrapper* zField_wrap,
-            const int lev, const bool B_flag);
+         amrex::MultiFab *mfx, amrex::MultiFab *mfy, amrex::MultiFab *mfz,
+         const std::string x_function, const std::string y_function,
+         const std::string z_function, amrex::IntVect x_nodal_flag,
+         amrex::IntVect y_nodal_flag, amrex::IntVect z_nodal_flag,
+         const int lev);
 protected:
 
     //! Tagging cells for refinement

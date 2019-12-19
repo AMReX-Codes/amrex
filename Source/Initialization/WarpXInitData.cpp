@@ -334,11 +334,14 @@ WarpX::InitLevelData (int lev, Real time)
        Store_parserString("Bz_external_grid_function(x,y,z)",
                                                     str_Bz_ext_grid_function);
        // Initialize Bfield_fp with external function
-       bool B_flag = 1;
        InitializeExternalFieldsOnGridUsingParser(Bfield_fp[lev][0].get(),
                                                  Bfield_fp[lev][1].get(),
                                                  Bfield_fp[lev][2].get(),
-                                                 lev, B_flag);
+                                                 str_Bx_ext_grid_function,
+                                                 str_By_ext_grid_function,
+                                                 str_Bz_ext_grid_function,
+                                                 Bx_nodal_flag, By_nodal_flag,
+                                                 Bz_nodal_flag, lev);
     }
 
     if (E_ext_grid_s == "parse_e_ext_grid_function") {
@@ -351,12 +354,14 @@ WarpX::InitLevelData (int lev, Real time)
                                                     str_Ez_ext_grid_function);
 
        // Initialize Efield_fp with external function
-       bool B_flag = 0;
        InitializeExternalFieldsOnGridUsingParser(Efield_fp[lev][0].get(),
                                                  Efield_fp[lev][1].get(),
                                                  Efield_fp[lev][2].get(),
-                                                 lev, B_flag);
-
+                                                 str_Ex_ext_grid_function,
+                                                 str_Ey_ext_grid_function,
+                                                 str_Ez_ext_grid_function,
+                                                 Ex_nodal_flag, Ey_nodal_flag,
+                                                 Ez_nodal_flag, lev);
     }
 
     if (lev > 0) {
@@ -373,34 +378,44 @@ WarpX::InitLevelData (int lev, Real time)
         }
         if (B_ext_grid_s == "parse_b_ext_grid_function") {
 
-            // Setting b_flag to 1 since we are initializing
-            // B_external on the grid.
-            bool B_flag = 1;
             InitializeExternalFieldsOnGridUsingParser(Bfield_aux[lev][0].get(),
                                                       Bfield_aux[lev][1].get(),
                                                       Bfield_aux[lev][2].get(),
-                                                      lev, B_flag);
+                                                      str_Bx_ext_grid_function,
+                                                      str_By_ext_grid_function,
+                                                      str_Bz_ext_grid_function,
+                                                      Bx_nodal_flag, By_nodal_flag,
+                                                      Bz_nodal_flag, lev);
 
             InitializeExternalFieldsOnGridUsingParser(Bfield_cp[lev][0].get(),
                                                       Bfield_cp[lev][1].get(),
                                                       Bfield_cp[lev][2].get(),
-                                                      lev, B_flag);
+                                                      str_Bx_ext_grid_function,
+                                                      str_By_ext_grid_function,
+                                                      str_Bz_ext_grid_function,
+                                                      Bx_nodal_flag, By_nodal_flag,
+                                                      Bz_nodal_flag, lev);
 
         }
         if (E_ext_grid_s == "parse_e_ext_grid_function") {
 
-            // Setting b_flag to zero since we are initializing
-            // E_external on the grid here.
-            bool B_flag = 0;
             InitializeExternalFieldsOnGridUsingParser(Efield_aux[lev][0].get(),
                                                       Efield_aux[lev][1].get(),
                                                       Efield_aux[lev][2].get(),
-                                                      lev, B_flag);
+                                                      str_Ex_ext_grid_function,
+                                                      str_Ey_ext_grid_function,
+                                                      str_Ez_ext_grid_function,
+                                                      Ex_nodal_flag, Ey_nodal_flag,
+                                                      Ez_nodal_flag, lev);
 
             InitializeExternalFieldsOnGridUsingParser(Efield_cp[lev][0].get(),
                                                       Efield_cp[lev][1].get(),
                                                       Efield_cp[lev][2].get(),
-                                                      lev, B_flag);
+                                                      str_Ex_ext_grid_function,
+                                                      str_Ey_ext_grid_function,
+                                                      str_Ez_ext_grid_function,
+                                                      Ex_nodal_flag, Ey_nodal_flag,
+                                                      Ez_nodal_flag, lev);
         }
     }
 
@@ -463,37 +478,25 @@ WarpX::InitLevelDataFFT (int lev, Real time)
 /* \brief
  * This function initializes the E and B fields on each level
  * using the parser and the user-defined function for the external fields.
- * Depending on the bool value of the B_flag, the subroutine will parse
- * the Bx_/By_/Bz_external_grid_function (if B_flag==1)
- * or parse the Ex_/Ey_/Ez_external_grid_function (if B_flag==0).
- * Then, the B or E multifab is initialized based on the (x,y,z) position
+ * The subroutine will parse the x_/y_z_external_grid_function and
+ * then, the B or E multifab is initialized based on the (x,y,z) position
  * on the staggered yee-grid or cell-centered grid.
  */
-
 void
 WarpX::InitializeExternalFieldsOnGridUsingParser (
        MultiFab *mfx, MultiFab *mfy, MultiFab *mfz,
-       const int lev, const bool B_flag)
+       const std::string x_function, const std::string y_function,
+       const std::string z_function, IntVect x_nodal_flag,
+       IntVect y_nodal_flag, IntVect z_nodal_flag,
+       const int lev)
 {
     std::unique_ptr<ParserWrapper> xfield_parsewrap;
     std::unique_ptr<ParserWrapper> yfield_parsewrap;
     std::unique_ptr<ParserWrapper> zfield_parsewrap;
 
-    if (B_flag == 1) {
-        xfield_parsewrap.reset(new ParserWrapper
-                          (makeParser(str_Bx_ext_grid_function)));
-        yfield_parsewrap.reset(new ParserWrapper
-                          (makeParser(str_By_ext_grid_function)));
-        zfield_parsewrap.reset(new ParserWrapper
-                          (makeParser(str_Bz_ext_grid_function)));
-    } else {
-        xfield_parsewrap.reset(new ParserWrapper
-                          (makeParser(str_Ex_ext_grid_function)));
-        yfield_parsewrap.reset(new ParserWrapper
-                          (makeParser(str_Ey_ext_grid_function)));
-        zfield_parsewrap.reset(new ParserWrapper
-                           (makeParser(str_Ez_ext_grid_function)));
-    }
+    xfield_parsewrap.reset(new ParserWrapper(makeParser(x_function)));
+    yfield_parsewrap.reset(new ParserWrapper(makeParser(y_function)));
+    zfield_parsewrap.reset(new ParserWrapper(makeParser(z_function)));
 
     ParserWrapper *xfield_wrap = xfield_parsewrap.get();
     ParserWrapper *yfield_wrap = yfield_parsewrap.get();
@@ -503,16 +506,6 @@ WarpX::InitializeExternalFieldsOnGridUsingParser (
     const RealBox& real_box = geom[lev].ProbDomain();
     for ( MFIter mfi(*mfx, TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
-       IntVect x_nodal_flag, y_nodal_flag, z_nodal_flag;
-       if (B_flag == 1) {
-          x_nodal_flag = Bx_nodal_flag;
-          y_nodal_flag = By_nodal_flag;
-          z_nodal_flag = Bz_nodal_flag;
-       } else {
-          x_nodal_flag = Ex_nodal_flag;
-          y_nodal_flag = Ey_nodal_flag;
-          z_nodal_flag = Ez_nodal_flag;
-       }
        const Box& tbx = mfi.tilebox(x_nodal_flag);
        const Box& tby = mfi.tilebox(y_nodal_flag);
        const Box& tbz = mfi.tilebox(z_nodal_flag);
