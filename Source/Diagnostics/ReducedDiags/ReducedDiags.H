@@ -12,7 +12,10 @@ class ReducedDiags
 public:
 
     /// output frequency
-    int m_freq;
+    int m_freq = 1;
+
+    /// separator in the output file
+    std::string m_sep = ",";
 
     /// output data
     std::vector<amrex::Real> m_data;

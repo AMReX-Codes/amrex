@@ -26,7 +26,7 @@ void ReducedDiags::WriteToFile (int step, std::ofstream & ofs)
     /// write step
     ofs << step+1;
 
-    ofs << ",";
+    ofs << m_sep;
 
     /// write time
     ofs << (step+1)*dt;
@@ -34,7 +34,7 @@ void ReducedDiags::WriteToFile (int step, std::ofstream & ofs)
     /// loop over data size and write
     for (int i = 0; i < m_data.size(); ++i)
     {
-        ofs << ",";
+        ofs << m_sep;
         ofs << m_data[i];
     }
     ///< end loop over data size

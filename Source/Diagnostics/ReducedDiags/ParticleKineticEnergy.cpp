@@ -25,13 +25,13 @@ std::string rd_name, std::ofstream & ofs )
     // write header row
     ofs << "#";
     ofs << "step";
-    ofs << ",";
+    ofs << m_sep;
     ofs << "time(s)";
-    ofs << ",";
+    ofs << m_sep;
     ofs << "total(J)";
     for (int i = 0; i < species_number; ++i)
     {
-        ofs << ",";
+        ofs << m_sep;
         ofs << species_names[i]+"(J)";
     }
     ofs << std::endl;
