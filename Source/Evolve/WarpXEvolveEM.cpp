@@ -141,9 +141,9 @@ WarpX::EvolveEM (int numsteps)
         bool do_insitu = ((step+1) >= insitu_start) &&
             (insitu_int > 0) && ((step+1) % insitu_int == 0);
 
-        if (do_boosted_frame_diagnostic) {
+        if (do_back_transformed_diagnostics) {
             std::unique_ptr<MultiFab> cell_centered_data = nullptr;
-            if (WarpX::do_boosted_frame_fields) {
+            if (WarpX::do_back_transformed_fields) {
                 cell_centered_data = GetCellCenteredData();
             }
             myBFD->writeLabFrameData(cell_centered_data.get(), *mypc, geom[0], cur_time, dt[0]);
@@ -261,7 +261,7 @@ WarpX::EvolveEM (int numsteps)
         WriteCheckPointFile();
     }
 
-    if (do_boosted_frame_diagnostic) {
+    if (do_back_transformed_diagnostics) {
         myBFD->Flush(geom[0]);
     }
 
@@ -280,6 +280,7 @@ WarpX::OneStep_nosub (Real cur_time)
     // Loop over species. For each ionizable species, create particles in
     // product species.
     mypc->doFieldIonization();
+    mypc->doCoulombCollisions();
     // Push particle from x^{n} to x^{n+1}
     //               from p^{n-1/2} to p^{n+1/2}
     // Deposit current j^{n+1/2}
@@ -475,7 +476,7 @@ WarpX::OneStep_sub1 (Real curtime)
 }
 
 void
-WarpX::PushParticlesandDepose (Real cur_time)
+WarpX::PushParticlesandDepose (amrex::Real cur_time)
 {
     // Evolve particles to p^{n+1/2} and x^{n+1}
     // Depose current, j^{n+1/2}
@@ -485,7 +486,7 @@ WarpX::PushParticlesandDepose (Real cur_time)
 }
 
 void
-WarpX::PushParticlesandDepose (int lev, Real cur_time, DtType a_dt_type)
+WarpX::PushParticlesandDepose (int lev, amrex::Real cur_time, DtType a_dt_type)
 {
     mypc->Evolve(lev,
                  *Efield_aux[lev][0],*Efield_aux[lev][1],*Efield_aux[lev][2],
@@ -562,6 +563,18 @@ WarpX::ComputeDt ()
     if (do_electrostatic) {
         dt[0] = const_dt;
     }
+
+    for (int lev=0; lev <= max_level; lev++) {
+        const Real* dx_lev = geom[lev].CellSize();
+        Print()<<"Level "<<lev<<": dt = "<<dt[lev]
+               <<" ; dx = "<<dx_lev[0]
+#if (defined WARPX_DIM_XZ) || (defined WARPX_DIM_RZ)
+               <<" ; dz = "<<dx_lev[1]<<'\n';
+#elif (defined WARPX_DIM_3D)
+               <<" ; dy = "<<dx_lev[1]
+               <<" ; dz = "<<dx_lev[2]<<'\n';
+#endif
+    }
 }
 
 /* \brief computes max_step for wakefield simulation in boosted frame.
@@ -571,20 +584,21 @@ WarpX::ComputeDt ()
  * simulation box passes input parameter zmax_plasma_to_compute_max_step.
  */
 void
-WarpX::computeMaxStepBoostAccelerator(amrex::Geometry a_geom){
+WarpX::computeMaxStepBoostAccelerator(const amrex::Geometry& a_geom){
     // Sanity checks: can use zmax_plasma_to_compute_max_step only if
     // the moving window and the boost are all in z direction.
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
         WarpX::moving_window_dir == AMREX_SPACEDIM-1,
         "Can use zmax_plasma_to_compute_max_step only if " +
         "moving window along z. TODO: all directions.");
-
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-        (WarpX::boost_direction[0]-0)*(WarpX::boost_direction[0]-0) +
-        (WarpX::boost_direction[1]-0)*(WarpX::boost_direction[1]-0) +
-        (WarpX::boost_direction[2]-1)*(WarpX::boost_direction[2]-1) < 1.e-12,
-        "Can use zmax_plasma_to_compute_max_step only if " +
-        "warpx.boost_direction = z. TODO: all directions.");
+    if (gamma_boost > 1){
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+            (WarpX::boost_direction[0]-0)*(WarpX::boost_direction[0]-0) +
+            (WarpX::boost_direction[1]-0)*(WarpX::boost_direction[1]-0) +
+            (WarpX::boost_direction[2]-1)*(WarpX::boost_direction[2]-1) < 1.e-12,
+            "Can use zmax_plasma_to_compute_max_step in boosted frame only if " +
+            "warpx.boost_direction = z. TODO: all directions.");
+    }
 
     // Lower end of the simulation domain. All quantities are given in boosted
     // frame except zmax_plasma_to_compute_max_step.

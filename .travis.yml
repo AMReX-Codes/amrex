@@ -4,8 +4,10 @@ sudo: true
 
 env:
   matrix:
-    - WARPX_TEST_DIM=3
-    - WARPX_TEST_DIM=2
+    - WARPX_TEST_DIM=3 HAS_QED=FALSE
+    - WARPX_TEST_DIM=RZ HAS_QED=FALSE
+    - WARPX_TEST_DIM=2 HAS_QED=FALSE
+    - HAS_QED=TRUE
 
 before_install:
     - sudo apt-get update
@@ -14,7 +16,8 @@ before_install:
     - wget http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
     - bash Miniconda3-latest-Linux-x86_64.sh -b
     - export PATH=/home/travis/miniconda3/bin:$PATH
-    - pip install --upgrade pip && pip install numpy scipy matplotlib yt mpi4py
+    - pip install --upgrade pip && pip install numpy scipy matplotlib mpi4py cython
+    - pip install git+https://github.com/yt-project/yt.git
 
 script:
     - export FFTW_HOME=/usr/

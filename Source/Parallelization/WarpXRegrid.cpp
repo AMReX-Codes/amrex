@@ -1,4 +1,3 @@
-
 #include <WarpX.H>
 #include <AMReX_BLProfiler.H>
 
@@ -12,7 +11,8 @@ WarpX::LoadBalance ()
 
     AMREX_ALWAYS_ASSERT(costs[0] != nullptr);
 
-    for (int lev = 0; lev <= finestLevel(); ++lev)
+    const int nLevels = finestLevel();
+    for (int lev = 0; lev <= nLevels; ++lev)
     {
         const Real nboxes = costs[lev]->size();
         const Real nprocs = ParallelDescriptor::NProcs();
@@ -91,7 +91,7 @@ WarpX::RemakeLevel (int lev, Real time, const BoxArray& ba, const DistributionMa
 
         // Aux patch
 
-        if (lev == 0)
+        if (lev == 0 && Bfield_aux[0][0]->ixType() == Bfield_fp[0][0]->ixType())
         {
             for (int idim = 0; idim < 3; ++idim) {
                 Bfield_aux[lev][idim].reset(new MultiFab(*Bfield_fp[lev][idim], amrex::make_alias, 0, Bfield_aux[lev][idim]->nComp()));

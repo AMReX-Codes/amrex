@@ -1,0 +1,83 @@
+#################################
+####### GENERAL PARAMETERS ######
+#################################
+max_step = 1
+amr.n_cell =  128 128
+amr.max_grid_size = 128   # maximum size of each AMReX box, used to decompose the domain
+amr.blocking_factor = 32 # minimum size of each AMReX box, used to decompose the domain
+amr.plot_int = 1
+geometry.coord_sys   = 0                  # 0: Cartesian
+geometry.is_periodic = 0     0      # Is periodic?
+geometry.prob_lo     =  -32.e-6   -32.e-6    # physical domain
+geometry.prob_hi     =  32.e-6   32.e-6
+amr.max_level = 0 # Maximum level in hierarchy (1 might be unstable, >1 is not supported)
+
+#################################
+############ NUMERICS ###########
+#################################
+algo.current_deposition = esirkepov
+algo.charge_deposition = standard
+algo.field_gathering = energy-conserving
+algo.particle_pusher = boris
+interpolation.nox = 3 # Particle interpolation order. Must be the same in x, y, and z
+interpolation.noy = 3
+interpolation.noz = 3
+warpx.verbose = 1
+warpx.do_dive_cleaning = 0
+warpx.plot_raw_fields = 0
+warpx.plot_raw_fields_guards = 0
+warpx.use_filter = 1
+warpx.cfl = 1. # if 1., the time step is set to its CFL limit
+warpx.do_pml = 1 # use Perfectly Matched Layer as boundary condition
+warpx.serialize_ics = 1
+
+#################################
+############ PLASMA #############
+#################################
+particles.nspecies = 1 # number of species
+particles.species_names = photons
+particles.photon_species = photons
+#################################
+
+photons.charge = -q_e
+photons.mass = m_e
+photons.injection_style = "NUniformPerCell"
+photons.profile = "constant"
+photons.xmin = -30e-6
+photons.ymin = -30e-6
+photons.zmin = -30e-6
+photons.xmax = 30e-6
+photons.ymax = 30e-6
+photons.zmax = 30e-6
+photons.num_particles_per_cell_each_dim = 2 2
+photons.density = 1e19
+photons.profile = "constant"
+photons.momentum_distribution_type = "gaussian"
+photons.ux_m = 0.0
+photons.uy_m = 0.0
+photons.uz_m = 0.0
+photons.ux_th = 100.
+photons.uy_th = 100.
+photons.uz_th = 100.
+##########QED####################
+photons.do_qed = 1
+photons.do_qed_breit_wheeler = 1
+#################################
+
+#######QED ENGINE PARAMETERS#####
+qed_bw.lookup_table_mode = "dummy_builtin"
+
+#qed_bw.lookup_table_mode = "generate"
+#qed_bw.chi_min = 0.001
+#qed_bw.tab_dndt_chi_min = 0.1
+#qed_bw.tab_dndt_chi_max = 200
+#qed_bw.tab_dndt_how_many = 64
+#qed_bw.tab_pair_chi_min = 0.01
+#qed_bw.tab_pair_chi_max = 200
+#qed_bw.tab_pair_chi_how_many = 2
+#qed_bw.tab_pair_frac_how_many = 2
+#qed_bw.save_table_in = "bw_micro_table"
+
+#qed_bw.lookup_table_mode = "load"
+#qed_bw.load_table_from = "bw_micro_table"
+#################################

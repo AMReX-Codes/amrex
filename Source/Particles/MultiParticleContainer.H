@@ -1,27 +1,42 @@
-
 #ifndef WARPX_ParticleContainer_H_
 #define WARPX_ParticleContainer_H_
 
-#include <AMReX_Particles.H>
+#include "ElementaryProcess.H"
+
 #include <WarpXParticleContainer.H>
 #include <PhysicalParticleContainer.H>
 #include <RigidInjectedParticleContainer.H>
 #include <PhotonParticleContainer.H>
 #include <LaserParticleContainer.H>
 
+#include <AMReX_Particles.H>
+#ifdef WARPX_QED
+    #include <QedChiFunctions.H>
+    #include <BreitWheelerEngineWrapper.H>
+    #include <QuantumSyncEngineWrapper.H>
+#endif
+
+#include "CollisionType.H"
+
 #include <memory>
 #include <map>
 #include <string>
 #include <algorithm>
 
-//
-// MultiParticleContainer holds multiple (nspecies or npsecies+1 when
-// using laser) WarpXParticleContainer.  WarpXParticleContainer is
-// derived from amrex::ParticleContainer, and it is
-// polymorphic. PhysicalParticleContainer and LaserParticleContainer are
-// concrete class derived from WarpXParticlContainer.
-//
-
+/**
+ * The class MultiParticleContainer holds multiple instances of the polymorphic
+ * class WarpXParticleContainer, stored in its member variable "allcontainers".
+ * The class WarpX typically has a single (pointer to an) instance of
+ * MultiParticleContainer.
+ *
+ * MultiParticleContainer typically has two types of functions:
+ * - Functions that loop over all instances of WarpXParticleContainer in
+ *   allcontainers and calls the corresponding function (for instance,
+ *   MultiParticleContainer::Evolve loops over all particles containers and
+ *   calls the corresponding WarpXParticleContainer::Evolve function).
+ * - Functions that specifically handle multiple species (for instance
+ *   ReadParameters or mapSpeciesProduct).
+ */
 class MultiParticleContainer
 {
 
@@ -35,6 +50,11 @@ public:
         return *allcontainers[ispecies];
     }
 
+#ifdef WARPX_USE_OPENPMD
+    std::unique_ptr<WarpXParticleContainer>& GetUniqueContainer(int ispecies) {
+      return  allcontainers[ispecies];
+    }
+#endif
     std::array<amrex::Real, 3> meanParticleVelocity(int ispecies) {
         return allcontainers[ispecies]->meanParticleVelocity();
     }
@@ -130,6 +150,8 @@ public:
 
     void doFieldIonization ();
 
+    void doCoulombCollisions ();
+
     void Checkpoint (const std::string& dir) const;
 
     void WritePlotFile (const std::string& dir) const;
@@ -157,9 +179,9 @@ public:
 
     int nSpecies() const {return nspecies;}
 
-    int nSpeciesBoostedFrameDiags() const {return nspecies_boosted_frame_diags;}
-    int mapSpeciesBoostedFrameDiags(int i) const {return map_species_boosted_frame_diags[i];}
-    int doBoostedFrameDiags() const {return do_boosted_frame_diags;}
+    int nSpeciesBackTransformedDiagnostics() const {return nspecies_back_transformed_diagnostics;}
+    int mapSpeciesBackTransformedDiagnostics(int i) const {return map_species_back_transformed_diagnostics[i];}
+    int doBackTransformedDiagnostics() const {return do_back_transformed_diagnostics;}
 
     int nSpeciesDepositOnMainGrid () const {
         bool const onMainGrid = true;
@@ -191,6 +213,8 @@ public:
 
     PhysicalParticleContainer& GetPCtmp () { return *pc_tmp; }
 
+    IonizationProcess ionization_process;
+
 protected:
 
     // Particle container types
@@ -200,6 +224,10 @@ protected:
 
     std::vector<std::string> lasers_names;
 
+    std::vector<std::string> collision_names;
+
+    amrex::Vector<std::unique_ptr<CollisionType> > allcollisions;
+
     //! instead of depositing (current, charge) on the finest patch level, deposit to the coarsest grid
     std::vector<bool> m_deposit_on_main_grid;
 
@@ -207,6 +235,57 @@ protected:
     std::vector<bool> m_gather_from_main_grid;
 
     std::vector<PCTypes> species_types;
+
+#ifdef WARPX_QED
+    // The QED engines
+    std::shared_ptr<BreitWheelerEngine> m_shr_p_bw_engine;
+    std::shared_ptr<QuantumSynchrotronEngine> m_shr_p_qs_engine;
+    //_______________________________
+
+    /**
+     * Initialize QED engines and provides smart pointers
+     * to species who need QED processes
+     */
+    void InitQED ();
+
+    //Variables to store how many species need a QED process
+    int m_nspecies_quantum_sync = 0;
+    int m_nspecies_breit_wheeler = 0;
+    //________
+
+    /**
+     * Returns the number of species having Quantum Synchrotron process enabled
+     */
+    int NSpeciesQuantumSync() const { return  m_nspecies_quantum_sync;}
+
+    /**
+     * Returns the number of species having Breit Wheeler process enabled
+     */
+    int NSpeciesBreitWheeler() const { return m_nspecies_breit_wheeler;}
+
+    /**
+     * Initializes the Quantum Synchrotron engine
+     */
+    void InitQuantumSync ();
+
+    /**
+     * Initializes the Quantum Synchrotron engine
+     */
+    void InitBreitWheeler ();
+
+    /**
+     * Called by InitQuantumSync if a new table has
+     * to be generated.
+     */
+    void QuantumSyncGenerateTable();
+
+    /**
+     * Called by InitBreitWheeler if a new table has
+     * to be generated.
+     */
+    void BreitWheelerGenerateTable();
+
+#endif
 
 private:
 
@@ -220,15 +299,16 @@ private:
     void mapSpeciesProduct ();
     int getSpeciesID (std::string product_str);
 
-    // Number of species dumped in BoostedFrameDiagnostics
-    int nspecies_boosted_frame_diags = 0;
-    // map_species_boosted_frame_diags[i] is the species ID in
-    // MultiParticleContainer for 0<i<nspecies_boosted_frame_diags
-    std::vector<int> map_species_boosted_frame_diags;
-    int do_boosted_frame_diags = 0;
+    // Number of species dumped in BackTransformedDiagnostics
+    int nspecies_back_transformed_diagnostics = 0;
+    // map_species_back_transformed_diagnostics[i] is the species ID in
+    // MultiParticleContainer for 0<i<nspecies_back_transformed_diagnostics
+    std::vector<int> map_species_back_transformed_diagnostics;
+    int do_back_transformed_diagnostics = 0;
 
     // runtime parameters
     int nlasers = 0;
     int nspecies = 1;   // physical particles only. nspecies+nlasers == allcontainers.size().
+    int ncollisions = 0;
 };
 #endif /*WARPX_ParticleContainer_H_*/

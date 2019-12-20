@@ -1,0 +1,29 @@
+max_step = 0
+amr.n_cell =  64 64 64
+amr.max_grid_size = 32
+amr.max_level = 0
+
+amr.plot_int = 1
+geometry.coord_sys   = 0                  # 0: Cartesian
+geometry.is_periodic = 0     0     0       # Is periodic?
+geometry.prob_lo     = -50.e-6   -50.e-6    -50.e-6
+geometry.prob_hi     =  50.e-6    50.e-6     50.e-6
+
+particles.nspecies = 1
+particles.species_names = beam
+beam.charge = -q_e
+beam.mass = m_e
+beam.injection_style = "gaussian_beam"
+beam.initialize_self_fields = 1
+beam.x_rms = 2.e-6
+beam.y_rms = 2.e-6
+beam.z_rms = 2.e-6
+beam.x_m = 0.
+beam.y_m = 0.
+beam.z_m = 0.e-6
+beam.npart = 20000
+beam.q_tot = -1.e-20
+beam.momentum_distribution_type = "gaussian"
+beam.ux_m = 0.0
+beam.uy_m = 0.0
+beam.uz_m = 0.0

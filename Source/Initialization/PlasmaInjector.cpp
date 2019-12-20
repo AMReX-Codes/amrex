@@ -21,7 +21,7 @@ namespace {
         amrex::Abort(string.c_str());
     }
 
-    Real parseChargeName(const ParmParse pp, const std::string& name) {
+    Real parseChargeName(const ParmParse& pp, const std::string& name) {
         Real result;
         if (name == "q_e") {
             return PhysConst::q_e;
@@ -33,13 +33,13 @@ namespace {
         }
     }
 
-    Real parseChargeString(const ParmParse pp, const std::string& name) {
+    Real parseChargeString(const ParmParse& pp, const std::string& name) {
         if(name.substr(0, 1) == "-")
             return -1.0 * parseChargeName(pp, name.substr(1, name.size() - 1));
         return parseChargeName(pp, name);
     }
 
-    Real parseMassString(const ParmParse pp, const std::string& name) {
+    Real parseMassString(const ParmParse& pp, const std::string& name) {
         Real result;
         if (name == "m_e") {
             return PhysConst::m_e;
@@ -109,6 +109,7 @@ PlasmaInjector::PlasmaInjector (int ispecies, const std::string& name)
                    part_pos_s.end(),
                    part_pos_s.begin(),
                    ::tolower);
+    num_particles_per_cell_each_dim.assign(3, 0);
     if (part_pos_s == "python") {
         return;
     } else if (part_pos_s == "singleparticle") {
@@ -269,6 +270,68 @@ void PlasmaInjector::parseMomentum (ParmParse& pp)
         // Construct InjectorMomentum with InjectorMomentumGaussian.
         inj_mom.reset(new InjectorMomentum((InjectorMomentumGaussian*)nullptr,
                                            ux_m, uy_m, uz_m, ux_th, uy_th, uz_th));
+    } else if (mom_dist_s == "maxwell_boltzmann"){
+        Real beta = 0.;
+        Real theta = 10.;
+        int dir = 0;
+        std::string direction = "x";
+        pp.query("beta", beta);
+        if(beta < 0){
+            amrex::Abort("Please enter a positive beta value. Drift direction is set with <s_name>.bulk_vel_dir = 'x' or '+x', '-x', 'y' or '+y', etc.");
+        }
+        pp.query("theta", theta);
+        pp.query("bulk_vel_dir", direction);
+        if(direction[0] == '-'){
+            beta = -beta;
+        }
+        if((direction == "x" || direction[1] == 'x') ||
+           (direction == "X" || direction[1] == 'X')){
+            dir = 0;
+        } else if ((direction == "y" || direction[1] == 'y') ||
+                   (direction == "Y" || direction[1] == 'Y')){
+            dir = 1;
+        } else if ((direction == "z" || direction[1] == 'z') ||
+                   (direction == "Z" || direction[1] == 'Z')){
+            dir = 2;
+        } else{
+            std::stringstream stringstream;
+            stringstream << "Cannot interpret <s_name>.bulk_vel_dir input '" << direction << "'. Please enter +/- x, y, or z with no whitespace between the sign and other character.";
+            direction = stringstream.str();
+            amrex::Abort(direction.c_str());
+        }
+        // Construct InjectorMomentum with InjectorMomentumBoltzmann.
+        inj_mom.reset(new InjectorMomentum((InjectorMomentumBoltzmann*)nullptr, theta, beta, dir));
+    } else if (mom_dist_s == "maxwell_juttner"){
+        Real beta = 0.;
+        Real theta = 10.;
+        int dir = 0;
+        std::string direction = "x";
+        pp.query("beta", beta);
+        if(beta < 0){
+            amrex::Abort("Please enter a positive beta value. Drift direction is set with <s_name>.bulk_vel_dir = 'x' or '+x', '-x', 'y' or '+y', etc.");
+        }
+        pp.query("theta", theta);
+        pp.query("bulk_vel_dir", direction);
+        if(direction[0] == '-'){
+            beta = -beta;
+        }
+        if((direction == "x" || direction[1] == 'x') ||
+           (direction == "X" || direction[1] == 'X')){
+            dir = 0;
+        } else if ((direction == "y" || direction[1] == 'y') ||
+                   (direction == "Y" || direction[1] == 'Y')){
+            dir = 1;
+        } else if ((direction == "z" || direction[1] == 'z') ||
+                   (direction == "Z" || direction[1] == 'Z')){
+            dir = 2;
+        } else{
+            std::stringstream stringstream;
+            stringstream << "Cannot interpret <s_name>.bulk_vel_dir input '" << direction << "'. Please enter +/- x, y, or z with no whitespace between the sign and other character.";
+            direction = stringstream.str();
+            amrex::Abort(direction.c_str());
+        }
+        // Construct InjectorMomentum with InjectorMomentumJuttner.
+        inj_mom.reset(new InjectorMomentum((InjectorMomentumJuttner*)nullptr, theta, beta, dir));
     } else if (mom_dist_s == "radial_expansion") {
         Real u_over_r = 0.;
         pp.query("u_over_r", u_over_r);

@@ -13,3 +13,7 @@ jobs:
       run: .github/workflows/source/hasTabs
     - name: End-of-Line whitespaces
       run: .github/workflows/source/hasEOLwhiteSpace
+    - name: Proper file names in Examples
+      run: .github/workflows/source/wrongFileNameInExamples
+    - name: Examples are tested
+      run: .github/workflows/source/inputsNotTested

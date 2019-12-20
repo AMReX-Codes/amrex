@@ -1,4 +1,3 @@
-
 #include <MultiParticleContainer.H>
 #include <WarpX.H>
 
@@ -112,6 +111,12 @@ MultiParticleContainer::WritePlotFile (const std::string& dir) const
                 int_flags.resize(1, 1);
             }
 
+#ifdef WARPX_QED
+                if(pc->m_do_qed){
+                        real_names.push_back("tau");
+                }
+#endif
+
             // Convert momentum to SI
             pc->ConvertUnits(ConvertDirection::WarpX_to_SI);
             // real_names contains a list of all particle attributes.
@@ -166,7 +171,8 @@ PhysicalParticleContainer::ConvertUnits(ConvertDirection convert_direction)
         factor = 1./mass;
     }
 
-    for (int lev=0; lev<=finestLevel(); lev++){
+    const int nLevels = finestLevel();
+    for (int lev=0; lev<=nLevels; lev++){
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif

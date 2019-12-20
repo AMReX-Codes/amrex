@@ -111,19 +111,6 @@ For instance, in order to obtain the array of position `x` as a numpy array:
     ad = ds.all_data()
     x = ad['particle_position_x'].to_ndarray()
 
-
-Read back-transformed diagnotics
---------------------------------
-
-When running a simulation in a boosted frame, WarpX has the capability to
-back-transform the simulation results to the laboratory frame of reference, which
-is often useful to study the physics. A set of function can be found in the
-python file :download:`read_raw_data.py<../../../Tools/read_raw_data.py>`.
-
-Alternatively, the main commands can be found in our example jupyter
-notebook for postprocessing
-:download:`Visualization.ipynb<../../../Tools/Visualization.ipynb>`.
-
 Further information
 -------------------
 

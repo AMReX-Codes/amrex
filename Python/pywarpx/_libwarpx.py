@@ -130,18 +130,30 @@ libwarpx.warpx_getEfieldCP.restype = _LP_LP_c_real
 libwarpx.warpx_getEfieldCPLoVects.restype = _LP_c_int
 libwarpx.warpx_getEfieldFP.restype = _LP_LP_c_real
 libwarpx.warpx_getEfieldFPLoVects.restype = _LP_c_int
+libwarpx.warpx_getEfieldCP_PML.restype = _LP_LP_c_real
+libwarpx.warpx_getEfieldCPLoVects_PML.restype = _LP_c_int
+libwarpx.warpx_getEfieldFP_PML.restype = _LP_LP_c_real
+libwarpx.warpx_getEfieldFPLoVects_PML.restype = _LP_c_int
 libwarpx.warpx_getBfield.restype = _LP_LP_c_real
 libwarpx.warpx_getBfieldLoVects.restype = _LP_c_int
 libwarpx.warpx_getBfieldCP.restype = _LP_LP_c_real
 libwarpx.warpx_getBfieldCPLoVects.restype = _LP_c_int
 libwarpx.warpx_getBfieldFP.restype = _LP_LP_c_real
 libwarpx.warpx_getBfieldFPLoVects.restype = _LP_c_int
+libwarpx.warpx_getBfieldCP_PML.restype = _LP_LP_c_real
+libwarpx.warpx_getBfieldCPLoVects_PML.restype = _LP_c_int
+libwarpx.warpx_getBfieldFP_PML.restype = _LP_LP_c_real
+libwarpx.warpx_getBfieldFPLoVects_PML.restype = _LP_c_int
 libwarpx.warpx_getCurrentDensity.restype = _LP_LP_c_real
 libwarpx.warpx_getCurrentDensityLoVects.restype = _LP_c_int
 libwarpx.warpx_getCurrentDensityCP.restype = _LP_LP_c_real
 libwarpx.warpx_getCurrentDensityCPLoVects.restype = _LP_c_int
 libwarpx.warpx_getCurrentDensityFP.restype = _LP_LP_c_real
 libwarpx.warpx_getCurrentDensityFPLoVects.restype = _LP_c_int
+libwarpx.warpx_getCurrentDensityCP_PML.restype = _LP_LP_c_real
+libwarpx.warpx_getCurrentDensityCPLoVects_PML.restype = _LP_c_int
+libwarpx.warpx_getCurrentDensityFP_PML.restype = _LP_LP_c_real
+libwarpx.warpx_getCurrentDensityFPLoVects_PML.restype = _LP_c_int
 
 #libwarpx.warpx_getPMLSigma.restype = _LP_c_real
 #libwarpx.warpx_getPMLSigmaStar.restype = _LP_c_real
@@ -747,6 +759,66 @@ def get_mesh_electric_field_fp(level, direction, include_ghosts=True):
     return _get_mesh_field_list(libwarpx.warpx_getEfieldFP, level, direction, include_ghosts)
 
 
+def get_mesh_electric_field_cp_pml(level, direction, include_ghosts=True):
+    '''
+
+    This returns a list of numpy arrays containing the mesh electric field
+    data on each grid for this process. This version returns the field on
+    the coarse patch for the PML for the given level.
+
+    The data for the numpy arrays are not copied, but share the underlying
+    memory buffer with WarpX. The numpy arrays are fully writeable.
+
+    Parameters
+    ----------
+
+        level          : the AMR level to get the data for
+        direction      : the component of the data you want
+        include_ghosts : whether to include ghost zones or not
+
+    Returns
+    -------
+
+        A List of numpy arrays.
+
+    '''
+
+    try:
+        return _get_mesh_field_list(libwarpx.warpx_getEfieldCP_PML, level, direction, include_ghosts)
+    except ValueError:
+        raise Exception('PML not initialized')
+
+
+def get_mesh_electric_field_fp_pml(level, direction, include_ghosts=True):
+    '''
+
+    This returns a list of numpy arrays containing the mesh electric field
+    data on each grid for this process. This version returns the field on
+    the fine patch for the PML for the given level.
+
+    The data for the numpy arrays are not copied, but share the underlying
+    memory buffer with WarpX. The numpy arrays are fully writeable.
+
+    Parameters
+    ----------
+
+        level          : the AMR level to get the data for
+        direction      : the component of the data you want
+        include_ghosts : whether to include ghost zones or not
+
+    Returns
+    -------
+
+        A List of numpy arrays.
+
+    '''
+
+    try:
+        return _get_mesh_field_list(libwarpx.warpx_getEfieldFP_PML, level, direction, include_ghosts)
+    except ValueError:
+        raise Exception('PML not initialized')
+
+
 def get_mesh_magnetic_field(level, direction, include_ghosts=True):
     '''
 
@@ -829,6 +901,66 @@ def get_mesh_magnetic_field_fp(level, direction, include_ghosts=True):
     return _get_mesh_field_list(libwarpx.warpx_getBfieldFP, level, direction, include_ghosts)
 
 
+def get_mesh_magnetic_field_cp_pml(level, direction, include_ghosts=True):
+    '''
+
+    This returns a list of numpy arrays containing the mesh magnetic field
+    data on each grid for this process. This version returns the field on
+    the coarse patch for the PML for the given level.
+
+    The data for the numpy arrays are not copied, but share the underlying
+    memory buffer with WarpX. The numpy arrays are fully writeable.
+
+    Parameters
+    ----------
+
+        level          : the AMR level to get the data for
+        direction      : the component of the data you want
+        include_ghosts : whether to include ghost zones or not
+
+    Returns
+    -------
+
+        A List of numpy arrays.
+
+    '''
+
+    try:
+        return _get_mesh_field_list(libwarpx.warpx_getBfieldCP_PML, level, direction, include_ghosts)
+    except ValueError:
+        raise Exception('PML not initialized')
+
+
+def get_mesh_magnetic_field_fp_pml(level, direction, include_ghosts=True):
+    '''
+
+    This returns a list of numpy arrays containing the mesh magnetic field
+    data on each grid for this process. This version returns the field on
+    the fine patch for the PML for the given level.
+
+    The data for the numpy arrays are not copied, but share the underlying
+    memory buffer with WarpX. The numpy arrays are fully writeable.
+
+    Parameters
+    ----------
+
+        level          : the AMR level to get the data for
+        direction      : the component of the data you want
+        include_ghosts : whether to include ghost zones or not
+
+    Returns
+    -------
+
+        A List of numpy arrays.
+
+    '''
+
+    try:
+        return _get_mesh_field_list(libwarpx.warpx_getBfieldFP_PML, level, direction, include_ghosts)
+    except ValueError:
+        raise Exception('PML not initialized')
+
+
 def get_mesh_current_density(level, direction, include_ghosts=True):
     '''
 
@@ -907,6 +1039,66 @@ def get_mesh_current_density_fp(level, direction, include_ghosts=True):
     '''
 
     return _get_mesh_field_list(libwarpx.warpx_getCurrentDensityFP, level, direction, include_ghosts)
+
+
+def get_mesh_current_density_cp_pml(level, direction, include_ghosts=True):
+    '''
+
+    This returns a list of numpy arrays containing the mesh current density
+    data on each grid for this process. This version returns the density for
+    the coarse patch for the PML for the given level.
+
+    The data for the numpy arrays are not copied, but share the underlying
+    memory buffer with WarpX. The numpy arrays are fully writeable.
+
+    Parameters
+    ----------
+
+        level          : the AMR level to get the data for
+        direction      : the component of the data you want
+        include_ghosts : whether to include ghost zones or not
+
+    Returns
+    -------
+
+        A List of numpy arrays.
+
+    '''
+
+    try:
+        return _get_mesh_field_list(libwarpx.warpx_getCurrentDensityCP_PML, level, direction, include_ghosts)
+    except ValueError:
+        raise Exception('PML not initialized')
+
+
+def get_mesh_current_density_fp_pml(level, direction, include_ghosts=True):
+    '''
+
+    This returns a list of numpy arrays containing the mesh current density
+    data on each grid for this process. This version returns the density on
+    the fine patch for the PML for the given level.
+
+    The data for the numpy arrays are not copied, but share the underlying
+    memory buffer with WarpX. The numpy arrays are fully writeable.
+
+    Parameters
+    ----------
+
+        level          : the AMR level to get the data for
+        direction      : the component of the data you want
+        include_ghosts : whether to include ghost zones or not
+
+    Returns
+    -------
+
+        A List of numpy arrays.
+
+    '''
+
+    try:
+        return _get_mesh_field_list(libwarpx.warpx_getCurrentDensityFP_PML, level, direction, include_ghosts)
+    except ValueError:
+        raise Exception('PML not initialized')
 
 
 def _get_mesh_array_lovects(level, direction, include_ghosts=True, getarrayfunc=None):
@@ -998,6 +1190,56 @@ def get_mesh_electric_field_fp_lovects(level, direction, include_ghosts=True):
     return _get_mesh_array_lovects(level, direction, include_ghosts, libwarpx.warpx_getEfieldFPLoVects)
 
 
+def get_mesh_electric_field_cp_lovects_pml(level, direction, include_ghosts=True):
+    '''
+
+    This returns a list of the lo vectors of the arrays containing the mesh electric field
+    data on each PML grid for this process.
+
+    Parameters
+    ----------
+
+        level          : the AMR level to get the data for
+        direction      : the component of the data you want
+        include_ghosts : whether to include ghost zones or not
+
+    Returns
+    -------
+
+        A 2d numpy array of the lo vector for each grid with the shape (dims, number of grids)
+
+    '''
+    try:
+        return _get_mesh_array_lovects(level, direction, include_ghosts, libwarpx.warpx_getEfieldCPLoVects_PML)
+    except ValueError:
+        raise Exception('PML not initialized')
+
+
+def get_mesh_electric_field_fp_lovects_pml(level, direction, include_ghosts=True):
+    '''
+
+    This returns a list of the lo vectors of the arrays containing the mesh electric field
+    data on each PML grid for this process.
+
+    Parameters
+    ----------
+
+        level          : the AMR level to get the data for
+        direction      : the component of the data you want
+        include_ghosts : whether to include ghost zones or not
+
+    Returns
+    -------
+
+        A 2d numpy array of the lo vector for each grid with the shape (dims, number of grids)
+
+    '''
+    try:
+        return _get_mesh_array_lovects(level, direction, include_ghosts, libwarpx.warpx_getEfieldFPLoVects_PML)
+    except ValueError:
+        raise Exception('PML not initialized')
+
+
 def get_mesh_magnetic_field_lovects(level, direction, include_ghosts=True):
     '''
 
@@ -1066,6 +1308,56 @@ def get_mesh_magnetic_field_fp_lovects(level, direction, include_ghosts=True):
     return _get_mesh_array_lovects(level, direction, include_ghosts, libwarpx.warpx_getBfieldFPLoVects)
 
 
+def get_mesh_magnetic_field_cp_lovects_pml(level, direction, include_ghosts=True):
+    '''
+
+    This returns a list of the lo vectors of the arrays containing the mesh electric field
+    data on each PML grid for this process.
+
+    Parameters
+    ----------
+
+        level          : the AMR level to get the data for
+        direction      : the component of the data you want
+        include_ghosts : whether to include ghost zones or not
+
+    Returns
+    -------
+
+        A 2d numpy array of the lo vector for each grid with the shape (dims, number of grids)
+
+    '''
+    try:
+        return _get_mesh_array_lovects(level, direction, include_ghosts, libwarpx.warpx_getBfieldCPLoVects_PML)
+    except ValueError:
+        raise Exception('PML not initialized')
+
+
+def get_mesh_magnetic_field_fp_lovects_pml(level, direction, include_ghosts=True):
+    '''
+
+    This returns a list of the lo vectors of the arrays containing the mesh electric field
+    data on each PML grid for this process.
+
+    Parameters
+    ----------
+
+        level          : the AMR level to get the data for
+        direction      : the component of the data you want
+        include_ghosts : whether to include ghost zones or not
+
+    Returns
+    -------
+
+        A 2d numpy array of the lo vector for each grid with the shape (dims, number of grids)
+
+    '''
+    try:
+        return _get_mesh_array_lovects(level, direction, include_ghosts, libwarpx.warpx_getBfieldFPLoVects_PML)
+    except ValueError:
+        raise Exception('PML not initialized')
+
+
 def get_mesh_current_density_lovects(level, direction, include_ghosts=True):
     '''
 
@@ -1129,3 +1421,52 @@ def get_mesh_current_density_fp_lovects(level, direction, include_ghosts=True):
 
     '''
     return _get_mesh_array_lovects(level, direction, include_ghosts, libwarpx.warpx_getCurrentDensityFPLoVects)
+
+
+def get_mesh_current_density_cp_lovects_pml(level, direction, include_ghosts=True):
+    '''
+
+    This returns a list of the lo vectors of the arrays containing the mesh electric field
+    data on each PML grid for this process.
+
+    Parameters
+    ----------
+
+        level          : the AMR level to get the data for
+        direction      : the component of the data you want
+        include_ghosts : whether to include ghost zones or not
+
+    Returns
+    -------
+
+        A 2d numpy array of the lo vector for each grid with the shape (dims, number of grids)
+
+    '''
+    try:
+        return _get_mesh_array_lovects(level, direction, include_ghosts, libwarpx.warpx_getCurrentDensityCPLoVects_PML)
+    except ValueError:
+        raise Exception('PML not initialized')
+
+def get_mesh_current_density_fp_lovects_pml(level, direction, include_ghosts=True):
+    '''
+
+    This returns a list of the lo vectors of the arrays containing the mesh electric field
+    data on each PML grid for this process.
+
+    Parameters
+    ----------
+
+        level          : the AMR level to get the data for
+        direction      : the component of the data you want
+        include_ghosts : whether to include ghost zones or not
+
+    Returns
+    -------
+
+        A 2d numpy array of the lo vector for each grid with the shape (dims, number of grids)
+
+    '''
+    try:
+        return _get_mesh_array_lovects(level, direction, include_ghosts, libwarpx.warpx_getCurrentDensityFPLoVects_PML)
+    except ValueError:
+        raise Exception('PML not initialized')

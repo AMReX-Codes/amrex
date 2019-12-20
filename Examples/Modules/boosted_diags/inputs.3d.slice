@@ -1,0 +1,112 @@
+warpx.zmax_plasma_to_compute_max_step = 0.0031
+
+amr.n_cell =  32 32 64
+amr.max_grid_size = 64
+amr.blocking_factor = 32
+amr.max_level = 0
+amr.plot_int = 10000
+
+geometry.coord_sys   = 0                  # 0: Cartesian
+geometry.is_periodic = 1  1   0            # Is periodic?
+geometry.prob_lo     = -128.e-6 -128.e-6  -40.e-6
+geometry.prob_hi     =  128.e-6  128.e-6   0.96e-6
+
+algo.current_deposition = esirkepov
+algo.charge_deposition = standard
+algo.field_gathering = energy-conserving
+algo.particle_pusher = vay
+algo.maxwell_fdtd_solver = ckc
+interpolation.nox = 3
+interpolation.noy = 3
+interpolation.noz = 3
+warpx.use_filter = 1
+warpx.cfl = 1.
+warpx.do_pml = 0
+
+warpx.do_moving_window = 1
+warpx.moving_window_dir = z
+warpx.moving_window_v = 1.0 # in units of the speed of light
+warpx.serialize_ics = 1
+
+warpx.gamma_boost = 10.
+warpx.boost_direction = z
+warpx.do_back_transformed_diagnostics = 1
+warpx.num_snapshots_lab = 4
+warpx.dz_snapshots_lab = 0.001
+warpx.boosted_frame_diag_fields= Ex Ey Ez By rho
+
+particles.nspecies = 3
+particles.species_names = electrons ions beam
+particles.use_fdtd_nci_corr = 1
+
+electrons.charge = -q_e
+electrons.mass = m_e
+electrons.injection_style = NUniformPerCell
+electrons.num_particles_per_cell_each_dim = 1 1 1
+electrons.momentum_distribution_type = "gaussian"
+electrons.xmin = -120.e-6
+electrons.xmax =  120.e-6
+electrons.ymin = -120.e-6
+electrons.ymax =  120.e-6
+electrons.zmin = 0.
+electrons.zmax = .003
+electrons.profile = constant
+electrons.density = 3.5e24
+electrons.do_continuous_injection = 1
+electrons.do_back_transformed_diagnostics = 1
+
+ions.charge = q_e
+ions.mass = m_p
+ions.injection_style = NUniformPerCell
+ions.num_particles_per_cell_each_dim = 1 1 1
+ions.momentum_distribution_type = "gaussian"
+ions.xmin = -120.e-6
+ions.xmax =  120.e-6
+ions.ymin = -120.e-6
+ions.ymax =  120.e-6
+ions.zmin = 0.
+ions.zmax = .003
+ions.profile = constant
+ions.density = 3.5e24
+ions.do_continuous_injection = 1
+ions.do_back_transformed_diagnostics = 1
+
+beam.charge = -q_e
+beam.mass = m_e
+beam.injection_style = "gaussian_beam"
+beam.x_rms = 1.e-6
+beam.y_rms = 1.e-6
+beam.z_rms = .2e-6
+beam.x_m = 0.
+beam.y_m = 0.
+beam.z_m = -20.e-6
+beam.npart = 1000
+beam.q_tot = -1.e-14
+beam.momentum_distribution_type = "gaussian"
+beam.ux_m = 0.0
+beam.uy_m = 0.0
+beam.uz_m = 200000.
+beam.ux_th = .2
+beam.uy_th = .2
+beam.uz_th = 20.
+
+lasers.nlasers      = 1
+lasers.names        = laser1
+laser1.profile      = Gaussian
+laser1.position     = 0. 0. -0.1e-6 # This point is on the laser plane
+laser1.direction    = 0. 0. 1.      # The plane normal direction
+laser1.polarization = 0. 1. 0.      # The main polarization vector
+laser1.e_max        = 2.e12       # Maximum amplitude of the laser field (in V/m)
+laser1.profile_waist = 45.e-6       # The waist of the laser (in meters)
+laser1.profile_duration = 20.e-15   # The duration of the laser (in seconds)
+laser1.profile_t_peak = 40.e-15    # The time at which the laser reaches its peak (in seconds)
+laser1.profile_focal_distance = 0.5e-3  # Focal distance from the antenna (in meters)
+laser1.wavelength = 0.81e-6         # The wavelength of the laser (in meters)
+
+slice.dom_lo     = -128.e-6  0.0  -40.e-6
+slice.dom_hi     =  128.e-6  0.0  0.96e-6
+slice.coarsening_ratio = 1 1 1
+slice.plot_int = -1
+slice.num_slice_snapshots_lab = 4
+slice.dt_slice_snapshots_lab = 3.3356409519815207e-12
+slice.particle_slice_width_lab = 2.e-6

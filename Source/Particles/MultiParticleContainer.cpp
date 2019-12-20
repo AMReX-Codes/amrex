@@ -1,10 +1,16 @@
+#include <MultiParticleContainer.H>
+
+#include <AMReX_Vector.H>
+
+#include <WarpX_f.H>
+#include <WarpX.H>
+
+//This is now needed for writing a binary file on disk.
+#include <WarpXUtil.H>
+
 #include <limits>
 #include <algorithm>
 #include <string>
-
-#include <MultiParticleContainer.H>
-#include <WarpX_f.H>
-#include <WarpX.H>
 
 using namespace amrex;
 
@@ -37,16 +43,25 @@ MultiParticleContainer::MultiParticleContainer (AmrCore* amr_core)
     // Compute the number of species for which lab-frame data is dumped
     // nspecies_lab_frame_diags, and map their ID to MultiParticleContainer
     // particle IDs in map_species_lab_diags.
-    map_species_boosted_frame_diags.resize(nspecies);
-    nspecies_boosted_frame_diags = 0;
+    map_species_back_transformed_diagnostics.resize(nspecies);
+    nspecies_back_transformed_diagnostics = 0;
     for (int i=0; i<nspecies; i++){
         auto& pc = allcontainers[i];
-        if (pc->do_boosted_frame_diags){
-            map_species_boosted_frame_diags[nspecies_boosted_frame_diags] = i;
-            do_boosted_frame_diags = 1;
-            nspecies_boosted_frame_diags += 1;
+        if (pc->do_back_transformed_diagnostics){
+            map_species_back_transformed_diagnostics[nspecies_back_transformed_diagnostics] = i;
+            do_back_transformed_diagnostics = 1;
+            nspecies_back_transformed_diagnostics += 1;
         }
     }
+    ionization_process = IonizationProcess();
+
+    // collision
+    allcollisions.resize(ncollisions);
+    for (int i = 0; i < ncollisions; ++i) {
+        allcollisions[i].reset
+            (new CollisionType(species_names, collision_names[i]));
+    }
+
 }
 
 void
@@ -113,6 +128,15 @@ MultiParticleContainer::ReadParameters ()
                 }
             }
 
+            // collision
+            ParmParse pc("collisions");
+            pc.query("ncollisions", ncollisions);
+            BL_ASSERT(ncollisions >= 0);
+            if (ncollisions > 0) {
+                pc.getarr("collision_names", collision_names);
+                BL_ASSERT(collision_names.size() == ncollisions);
+            }
+
         }
 
         pp.query("use_fdtd_nci_corr", WarpX::use_fdtd_nci_corr);
@@ -149,6 +173,11 @@ MultiParticleContainer::InitData ()
     // For each species, get the ID of its product species.
     // This is used for ionization and pair creation processes.
     mapSpeciesProduct();
+
+#ifdef WARPX_QED
+    InitQED();
+#endif
+
 }
 
 
@@ -381,8 +410,8 @@ MultiParticleContainer
     BL_PROFILE("MultiParticleContainer::GetLabFrameData");
 
     // Loop over particle species
-    for (int i = 0; i < nspecies_boosted_frame_diags; ++i){
-        int isp = map_species_boosted_frame_diags[i];
+    for (int i = 0; i < nspecies_back_transformed_diagnostics; ++i){
+        int isp = map_species_back_transformed_diagnostics[i];
         WarpXParticleContainer* pc = allcontainers[isp].get();
         WarpXParticleContainer::DiagnosticParticles diagnostic_particles;
         pc->GetParticleSlice(direction, z_old, z_new, t_boost, t_lab, dt, diagnostic_particles);
@@ -520,146 +549,6 @@ MultiParticleContainer::getSpeciesID (std::string product_str)
     return i_product;
 }
 
-namespace
-{
-    // For particle i in mfi, if is_ionized[i]=1, copy particle
-    // particle i from container pc_source into pc_product
-    void createIonizedParticles (
-        int lev, const MFIter& mfi,
-        std::unique_ptr< WarpXParticleContainer>& pc_source,
-        std::unique_ptr< WarpXParticleContainer>& pc_product,
-        amrex::Gpu::ManagedDeviceVector<int>& is_ionized)
-    {
-        BL_PROFILE("createIonizedParticles");
-
-        const int * const AMREX_RESTRICT p_is_ionized = is_ionized.dataPtr();
-
-        const int grid_id = mfi.index();
-        const int tile_id = mfi.LocalTileIndex();
-
-        // Get source particle data
-        auto& ptile_source = pc_source->GetParticles(lev)[std::make_pair(grid_id,tile_id)];
-        const int np_source = ptile_source.GetArrayOfStructs().size();
-        if (np_source == 0) return;
-        // --- source AoS particle data
-        WarpXParticleContainer::ParticleType* particles_source = ptile_source.GetArrayOfStructs()().data();
-        // --- source SoA particle data
-        auto& soa_source = ptile_source.GetStructOfArrays();
-        GpuArray<ParticleReal*,PIdx::nattribs> attribs_source;
-        for (int ia = 0; ia < PIdx::nattribs; ++ia) {
-            attribs_source[ia] = soa_source.GetRealData(ia).data();
-        }
-        // --- source runtime attribs
-        GpuArray<ParticleReal*,3> runtime_uold_source;
-        // Prepare arrays for boosted frame diagnostics.
-        runtime_uold_source[0] = soa_source.GetRealData(PIdx::ux).data();
-        runtime_uold_source[1] = soa_source.GetRealData(PIdx::uy).data();
-        runtime_uold_source[2] = soa_source.GetRealData(PIdx::uz).data();
-
-        // Indices of product particle for each ionized source particle.
-        // i_product[i]-1 is the location in product tile of product particle
-        // from source particle i.
-        amrex::Gpu::ManagedDeviceVector<int> i_product;
-        i_product.resize(np_source);
-        // 0<i<np_source
-        // 0<i_product<np_ionized
-        // Strictly speaking, i_product should be an exclusive_scan of
-        // is_ionized. However, for indices where is_ionized is 1, the
-        // inclusive scan gives the same result with an offset of 1.
-        // The advantage of inclusive_scan is that the sum of is_ionized
-        // is in the last element, so no other reduction is required to get
-        // number of particles.
-        // Gpu::inclusive_scan runs on the current GPU stream, and synchronizes
-        // with the CPU, so that the next line (executed by the CPU) has the
-        // updated values of i_product
-        amrex::Gpu::inclusive_scan(is_ionized.begin(), is_ionized.end(), i_product.begin());
-        int np_ionized = i_product[np_source-1];
-        if (np_ionized == 0) return;
-        int* AMREX_RESTRICT p_i_product = i_product.dataPtr();
-
-        // Get product particle data
-        auto& ptile_product = pc_product->GetParticles(lev)[std::make_pair(grid_id,tile_id)];
-        // old and new (i.e., including ionized particles) number of particles
-        // for product species
-        const int np_product_old = ptile_product.GetArrayOfStructs().size();
-        const int np_product_new = np_product_old + np_ionized;
-        // Allocate extra space in product species for ionized particles.
-        ptile_product.resize(np_product_new);
-        // --- product AoS particle data
-        // First element is the first newly-created product particle
-        WarpXParticleContainer::ParticleType* particles_product = ptile_product.GetArrayOfStructs()().data() + np_product_old;
-        // --- product SoA particle data
-        auto& soa_product = ptile_product.GetStructOfArrays();
-        GpuArray<ParticleReal*,PIdx::nattribs> attribs_product;
-        for (int ia = 0; ia < PIdx::nattribs; ++ia) {
-            // First element is the first newly-created product particle
-            attribs_product[ia] = soa_product.GetRealData(ia).data() + np_product_old;
-        }
-        // --- product runtime attribs
-        GpuArray<ParticleReal*,6> runtime_attribs_product;
-        bool do_boosted_product = WarpX::do_boosted_frame_diagnostic
-            && pc_product->DoBoostedFrameDiags();
-        if (do_boosted_product) {
-            std::map<std::string, int> comps_product = pc_product->getParticleComps();
-            runtime_attribs_product[0] = soa_product.GetRealData(comps_product[ "xold"]).data() + np_product_old;
-            runtime_attribs_product[1] = soa_product.GetRealData(comps_product[ "yold"]).data() + np_product_old;
-            runtime_attribs_product[2] = soa_product.GetRealData(comps_product[ "zold"]).data() + np_product_old;
-            runtime_attribs_product[3] = soa_product.GetRealData(comps_product["uxold"]).data() + np_product_old;
-            runtime_attribs_product[4] = soa_product.GetRealData(comps_product["uyold"]).data() + np_product_old;
-            runtime_attribs_product[5] = soa_product.GetRealData(comps_product["uzold"]).data() + np_product_old;
-        }
-
-        int pid_product;
-#pragma omp critical (doFieldIonization_nextid)
-        {
-            // ID of first newly-created product particle
-            pid_product = pc_product->NextID();
-            // Update NextID to include particles created in this function
-            pc_product->setNextID(pid_product+np_ionized);
-        }
-        const int cpuid = ParallelDescriptor::MyProc();
-
-        // Loop over all source particles. If is_ionized, copy particle data
-        // to corresponding product particle.
-        amrex::For(
-            np_source, [=] AMREX_GPU_DEVICE (int is) noexcept
-            {
-                if(p_is_ionized[is]){
-                    // offset of 1 due to inclusive scan
-                    int ip = p_i_product[is]-1;
-                    // is: index of ionized particle in source species
-                    // ip: index of corresponding new particle in product species
-                    WarpXParticleContainer::ParticleType& p_product = particles_product[ip];
-                    WarpXParticleContainer::ParticleType& p_source  = particles_source[is];
-                    // Copy particle from source to product: AoS
-                    p_product.id() = pid_product + ip;
-                    p_product.cpu() = cpuid;
-                    p_product.pos(0) = p_source.pos(0);
-                    p_product.pos(1) = p_source.pos(1);
-#if (AMREX_SPACEDIM == 3)
-                    p_product.pos(2) = p_source.pos(2);
-#endif
-                    // Copy particle from source to product: SoA
-                    for (int ia = 0; ia < PIdx::nattribs; ++ia) {
-                        attribs_product[ia][ip] = attribs_source[ia][is];
-                    }
-                    // Update xold etc. if boosted frame diagnostics required
-                    // for product species. Fill runtime attribs with a copy of
-                    // current properties (xold = x etc.).
-                    if (do_boosted_product) {
-                        runtime_attribs_product[0][ip] = p_source.pos(0);
-                        runtime_attribs_product[1][ip] = p_source.pos(1);
-                        runtime_attribs_product[2][ip] = p_source.pos(2);
-                        runtime_attribs_product[3][ip] = runtime_uold_source[0][ip];
-                        runtime_attribs_product[4][ip] = runtime_uold_source[1][ip];
-                        runtime_attribs_product[5][ip] = runtime_uold_source[2][ip];
-                    }
-                }
-            }
-        );
-    }
-}
-
 void
 MultiParticleContainer::doFieldIonization ()
 {
@@ -721,8 +610,339 @@ MultiParticleContainer::doFieldIonization ()
                 amrex::Gpu::ManagedDeviceVector<int> is_ionized;
                 pc_source->buildIonizationMask(mfi, lev, is_ionized);
                 // Create particles in pc_product
-                createIonizedParticles(lev, mfi, pc_source, pc_product, is_ionized);
+                int do_boost = WarpX::do_back_transformed_diagnostics
+                    && pc_product->doBackTransformedDiagnostics();
+                amrex::Gpu::ManagedDeviceVector<int> v_do_back_transformed_product{do_boost};
+                const amrex::Vector<WarpXParticleContainer*> v_pc_product {pc_product.get()};
+                // Copy source to product particles, and increase ionization
+                // level of source particle
+                ionization_process.createParticles(lev, mfi, pc_source, v_pc_product,
+                                                   is_ionized, v_do_back_transformed_product);
+                // Synchronize to prevent the destruction of temporary arrays (at the
+                // end of the function call) before the kernel executes.
+                Gpu::streamSynchronize();
             }
         } // lev
     } // pc_source
 }
+
+void
+MultiParticleContainer::doCoulombCollisions ()
+{
+    BL_PROFILE("MPC::doCoulombCollisions");
+
+    for (int i = 0; i < ncollisions; ++i)
+    {
+        auto& species1 = allcontainers[ allcollisions[i]->m_species1_index ];
+        auto& species2 = allcontainers[ allcollisions[i]->m_species2_index ];
+
+        // Enable tiling
+        MFItInfo info;
+        if (Gpu::notInLaunchRegion()) info.EnableTiling(species1->tile_size);
+
+        // Loop over refinement levels
+        for (int lev = 0; lev <= species1->finestLevel(); ++lev){
+
+            // Loop over all grids/tiles at this level
+#ifdef _OPENMP
+            info.SetDynamic(true);
+            #pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+            for (MFIter mfi = species1->MakeMFIter(lev, info); mfi.isValid(); ++mfi){
+
+                CollisionType::doCoulombCollisionsWithinTile
+                    ( lev, mfi, species1, species2,
+                      allcollisions[i]->m_isSameSpecies,
+                      allcollisions[i]->m_CoulombLog );
+
+            }
+        }
+    }
+}
+
+#ifdef WARPX_QED
+void MultiParticleContainer::InitQED ()
+{
+    m_shr_p_qs_engine = std::make_shared<QuantumSynchrotronEngine>();
+    m_shr_p_bw_engine = std::make_shared<BreitWheelerEngine>();
+
+    m_nspecies_quantum_sync = 0;
+    m_nspecies_breit_wheeler = 0;
+
+    for (auto& pc : allcontainers) {
+        if(pc->has_quantum_sync()){
+            pc->set_quantum_sync_engine_ptr
+                (m_shr_p_qs_engine);
+            m_nspecies_quantum_sync++;
+        }
+        if(pc->has_breit_wheeler()){
+            pc->set_breit_wheeler_engine_ptr
+                (m_shr_p_bw_engine);
+            m_nspecies_breit_wheeler++;
+        }
+    }
+
+    if(m_nspecies_quantum_sync != 0)
+        InitQuantumSync();
+
+    if(m_nspecies_breit_wheeler !=0)
+        InitBreitWheeler();
+
+}
+
+void MultiParticleContainer::InitQuantumSync ()
+{
+    std::string lookup_table_mode;
+    ParmParse pp("qed_qs");
+    pp.query("lookup_table_mode", lookup_table_mode);
+    if(lookup_table_mode.empty()){
+        amrex::Abort("Quantum Synchrotron table mode should be provided");
+    }
+
+    if(lookup_table_mode == "generate"){
+        amrex::Print() << "Quantum Synchrotron table will be generated. \n" ;
+#ifndef WARPX_QED_TABLE_GEN
+        amrex::Error("Error: Compile with QED_TABLE_GEN=TRUE to enable table generation!\n");
+#else
+        QuantumSyncGenerateTable();
+#endif
+    }
+    else if(lookup_table_mode == "load"){
+        amrex::Print() << "Quantum Synchrotron table will be read from file. \n" ;
+        std::string load_table_name;
+        pp.query("load_table_from", load_table_name);
+        if(load_table_name.empty()){
+            amrex::Abort("Quantum Synchrotron table name should be provided");
+        }
+        Vector<char> table_data;
+        ParallelDescriptor::ReadAndBcastFile(load_table_name, table_data);
+        ParallelDescriptor::Barrier();
+        m_shr_p_qs_engine->init_lookup_tables_from_raw_data(table_data);
+    }
+    else if(lookup_table_mode == "dummy_builtin"){
+        amrex::Print() << "Built-in Quantum Synchrotron dummy table will be used. \n" ;
+        m_shr_p_qs_engine->init_dummy_tables();
+    }
+    else{
+        amrex::Abort("Unknown Quantum Synchrotron table mode");
+    }
+
+    if(!m_shr_p_qs_engine->are_lookup_tables_initialized()){
+        amrex::Abort("Table initialization has failed!");
+    }
+}
+
+void MultiParticleContainer::InitBreitWheeler ()
+{
+    std::string lookup_table_mode;
+    ParmParse pp("qed_bw");
+    pp.query("lookup_table_mode", lookup_table_mode);
+    if(lookup_table_mode.empty()){
+        amrex::Abort("Breit Wheeler table mode should be provided");
+    }
+
+    if(lookup_table_mode == "generate"){
+        amrex::Print() << "Breit Wheeler table will be generated. \n" ;
+#ifndef WARPX_QED_TABLE_GEN
+        amrex::Error("Error: Compile with QED_TABLE_GEN=TRUE to enable table generation!\n");
+#else
+        BreitWheelerGenerateTable();
+#endif
+    }
+    else if(lookup_table_mode == "load"){
+        amrex::Print() << "Breit Wheeler table will be read from file. \n" ;
+        std::string load_table_name;
+        pp.query("load_table_from", load_table_name);
+        if(load_table_name.empty()){
+            amrex::Abort("Breit Wheeler table name should be provided");
+        }
+        Vector<char> table_data;
+        ParallelDescriptor::ReadAndBcastFile(load_table_name, table_data);
+        ParallelDescriptor::Barrier();
+        m_shr_p_bw_engine->init_lookup_tables_from_raw_data(table_data);
+    }
+    else if(lookup_table_mode == "dummy_builtin"){
+        amrex::Print() << "Built-in Breit Wheeler dummy table will be used. \n" ;
+        m_shr_p_bw_engine->init_dummy_tables();
+    }
+    else{
+        amrex::Abort("Unknown Breit Wheeler table mode");
+    }
+
+    if(!m_shr_p_bw_engine->are_lookup_tables_initialized()){
+        amrex::Abort("Table initialization has failed!");
+    }
+}
+
+void
+MultiParticleContainer::QuantumSyncGenerateTable ()
+{
+    ParmParse pp("qed_qs");
+    std::string table_name;
+    pp.query("save_table_in", table_name);
+    if(table_name.empty())
+        amrex::Abort("qed_qs.save_table_in should be provided!");
+
+    if(ParallelDescriptor::IOProcessor()){
+        PicsarQuantumSynchrotronCtrl ctrl;
+        int t_int;
+
+        // Engine paramenter: chi_part_min is the minium chi parameter to be
+        // considered by the engine. If a lepton has chi < chi_part_min,
+        // the optical depth is not evolved and photon generation is ignored
+        if(!pp.query("chi_min", ctrl.chi_part_min))
+            amrex::Abort("qed_qs.chi_min should be provided!");
+
+        //==Table parameters==
+
+        //--- sub-table 1 (1D)
+        //These parameters are used to pre-compute a function
+        //which appears in the evolution of the optical depth
+
+        //Minimun chi for the table. If a lepton has chi < chi_part_tdndt_min,
+        //chi is considered as it were equal to chi_part_tdndt_min
+        if(!pp.query("tab_dndt_chi_min", ctrl.chi_part_tdndt_min))
+            amrex::Abort("qed_qs.tab_dndt_chi_min should be provided!");
+
+        //Maximum chi for the table. If a lepton has chi > chi_part_tdndt_max,
+        //chi is considered as it were equal to chi_part_tdndt_max
+        if(!pp.query("tab_dndt_chi_max", ctrl.chi_part_tdndt_max))
+            amrex::Abort("qed_qs.tab_dndt_chi_max should be provided!");
+
+        //How many points should be used for chi in the table
+        if(!pp.query("tab_dndt_how_many", t_int))
+            amrex::Abort("qed_qs.tab_dndt_how_many should be provided!");
+        ctrl.chi_part_tdndt_how_many = t_int;
+        //------
+
+        //--- sub-table 2 (2D)
+        //These parameters are used to pre-compute a function
+        //which is used to extract the properties of the generated
+        //photons.
+
+        //Minimun chi for the table. If a lepton has chi < chi_part_tem_min,
+        //chi is considered as it were equal to chi_part_tem_min
+        if(!pp.query("tab_em_chi_min", ctrl.chi_part_tem_min))
+            amrex::Abort("qed_qs.tab_em_chi_min should be provided!");
+
+        //Maximum chi for the table. If a lepton has chi > chi_part_tem_max,
+        //chi is considered as it were equal to chi_part_tem_max
+        if(!pp.query("tab_em_chi_max", ctrl.chi_part_tem_max))
+            amrex::Abort("qed_qs.tab_em_chi_max should be provided!");
+
+        //How many points should be used for chi in the table
+        if(!pp.query("tab_em_chi_how_many", t_int))
+            amrex::Abort("qed_qs.tab_em_chi_how_many should be provided!");
+        ctrl.chi_part_tem_how_many = t_int;
+
+        //The other axis of the table is a cumulative probability distribution
+        //(corresponding to different energies of the generated particles)
+        //This parameter is the number of different points to consider
+        if(!pp.query("tab_em_prob_how_many", t_int))
+            amrex::Abort("qed_qs.tab_em_prob_how_many should be provided!");
+        ctrl.prob_tem_how_many = t_int;
+        //====================
+
+        m_shr_p_qs_engine->compute_lookup_tables(ctrl);
+        WarpXUtilIO::WriteBinaryDataOnFile(table_name,
+            m_shr_p_qs_engine->export_lookup_tables_data());
+    }
+
+    ParallelDescriptor::Barrier();
+    Vector<char> table_data;
+    ParallelDescriptor::ReadAndBcastFile(table_name, table_data);
+    ParallelDescriptor::Barrier();
+
+    //No need to initialize from raw data for the processor that
+    //has just generated the table
+    if(!ParallelDescriptor::IOProcessor()){
+        m_shr_p_qs_engine->init_lookup_tables_from_raw_data(table_data);
+    }
+}
+
+void
+MultiParticleContainer::BreitWheelerGenerateTable ()
+{
+    ParmParse pp("qed_bw");
+    std::string table_name;
+    pp.query("save_table_in", table_name);
+    if(table_name.empty())
+        amrex::Abort("qed_bw.save_table_in should be provided!");
+
+    if(ParallelDescriptor::IOProcessor()){
+        PicsarBreitWheelerCtrl ctrl;
+        int t_int;
+
+        // Engine paramenter: chi_phot_min is the minium chi parameter to be
+        // considered by the engine. If a photon has chi < chi_phot_min,
+        // the optical depth is not evolved and pair generation is ignored
+        if(!pp.query("chi_min", ctrl.chi_phot_min))
+            amrex::Abort("qed_bw.chi_min should be provided!");
+
+        //==Table parameters==
+
+        //--- sub-table 1 (1D)
+        //These parameters are used to pre-compute a function
+        //which appears in the evolution of the optical depth
+
+        //Minimun chi for the table. If a photon has chi < chi_phot_tdndt_min,
+        //an analytical approximation is used.
+        if(!pp.query("tab_dndt_chi_min", ctrl.chi_phot_tdndt_min))
+            amrex::Abort("qed_bw.tab_dndt_chi_min should be provided!");
+
+        //Maximum chi for the table. If a photon has chi > chi_phot_tdndt_min,
+        //an analytical approximation is used.
+        if(!pp.query("tab_dndt_chi_max", ctrl.chi_phot_tdndt_max))
+            amrex::Abort("qed_bw.tab_dndt_chi_max should be provided!");
+
+        //How many points should be used for chi in the table
+        if(!pp.query("tab_dndt_how_many", t_int))
+            amrex::Abort("qed_bw.tab_dndt_how_many should be provided!");
+        ctrl.chi_phot_tdndt_how_many = t_int;
+        //------
+
+        //--- sub-table 2 (2D)
+        //These parameters are used to pre-compute a function
+        //which is used to extract the properties of the generated
+        //particles.
+
+        //Minimun chi for the table. If a photon has chi < chi_phot_tpair_min
+        //chi is considered as it were equal to chi_phot_tpair_min
+        if(!pp.query("tab_pair_chi_min", ctrl.chi_phot_tpair_min))
+            amrex::Abort("qed_bw.tab_pair_chi_min should be provided!");
+
+        //Maximum chi for the table. If a photon has chi > chi_phot_tpair_max
+        //chi is considered as it were equal to chi_phot_tpair_max
+        if(!pp.query("tab_pair_chi_max", ctrl.chi_phot_tpair_max))
+            amrex::Abort("qed_bw.tab_pair_chi_max should be provided!");
+
+        //How many points should be used for chi in the table
+        if(!pp.query("tab_pair_chi_how_many", t_int))
+            amrex::Abort("qed_bw.tab_pair_chi_how_many should be provided!");
+        ctrl.chi_phot_tpair_how_many = t_int;
+
+        //The other axis of the table is the fraction of the initial energy
+        //'taken away' by the most energetic particle of the pair.
+        //This parameter is the number of different fractions to consider
+        if(!pp.query("tab_pair_frac_how_many", t_int))
+            amrex::Abort("qed_bw.tab_pair_frac_how_many should be provided!");
+        ctrl.chi_frac_tpair_how_many = t_int;
+        //====================
+
+        m_shr_p_bw_engine->compute_lookup_tables(ctrl);
+        WarpXUtilIO::WriteBinaryDataOnFile(table_name,
+            m_shr_p_bw_engine->export_lookup_tables_data());
+    }
+
+    ParallelDescriptor::Barrier();
+    Vector<char> table_data;
+    ParallelDescriptor::ReadAndBcastFile(table_name, table_data);
+    ParallelDescriptor::Barrier();
+
+    //No need to initialize from raw data for the processor that
+    //has just generated the table
+    if(!ParallelDescriptor::IOProcessor()){
+        m_shr_p_bw_engine->init_lookup_tables_from_raw_data(table_data);
+    }
+}
+#endif

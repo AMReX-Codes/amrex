@@ -56,7 +56,7 @@ class Species(picmistandard.PICMI_Species):
                 if self.mass is None:
                     self.mass = element.mass*periodictable.constants.atomic_mass_constant
 
-    def initialize_inputs(self, layout):
+    def initialize_inputs(self, layout, initialize_self_fields=False):
         self.species_number = pywarpx.particles.nspecies
         pywarpx.particles.nspecies += 1
 
@@ -68,7 +68,8 @@ class Species(picmistandard.PICMI_Species):
         else:
             pywarpx.particles.species_names += ' ' + self.name
 
-        self.species = pywarpx.Bucket.Bucket(self.name, mass=self.mass, charge=self.charge, injection_style = 'python')
+        self.species = pywarpx.Bucket.Bucket(self.name, mass=self.mass, charge=self.charge,
+                        injection_style = 'python', initialize_self_fields=int(initialize_self_fields))
         pywarpx.Particles.particles_list.append(self.species)
 
         if self.initial_distribution is not None:
@@ -77,9 +78,9 @@ class Species(picmistandard.PICMI_Species):
 
 picmistandard.PICMI_MultiSpecies.Species_class = Species
 class MultiSpecies(picmistandard.PICMI_MultiSpecies):
-    def initialize_inputs(self, layout):
+    def initialize_inputs(self, layout, initialize_self_fields=False):
         for species in self.species_instances_list:
-            species.initialize_inputs(layout)
+            species.initialize_inputs(layout, initialize_self_fields)
 
 
 class GaussianBunchDistribution(picmistandard.PICMI_GaussianBunchDistribution):
@@ -325,13 +326,14 @@ class CylindricalGrid(picmistandard.PICMI_CylindricalGrid):
         pywarpx.geometry.prob_hi = self.upper_bound
         pywarpx.warpx.n_rz_azimuthal_modes = self.n_azimuthal_modes
 
-        if self.moving_window_velocity is not None and np.any(np.not_equal(self.moving_window_velocity, 0.)):
-            pywarpx.warpx.do_moving_window = 1
-            if self.moving_window_velocity[0] != 0.:
-                raise Exception('In cylindrical coordinates, a moving window in r can not be done')
-            if self.moving_window_velocity[1] != 0.:
-                pywarpx.warpx.moving_window_dir = 'z'
-                pywarpx.warpx.moving_window_v = self.moving_window_velocity[1]/constants.c  # in units of the speed of light
+        if self.moving_window_zvelocity is not None:
+            if np.isscalar(self.moving_window_zvelocity):
+                if self.moving_window_zvelocity !=0:
+                    pywarpx.warpx.do_moving_window = 1
+                    pywarpx.warpx.moving_window_dir = 'z'
+                    pywarpx.warpx.moving_window_v = self.moving_window_zvelocity/constants.c  # in units of the speed of light
+            else:
+                raise Exception('RZ PICMI moving_window_velocity (only available in z direction) should be a scalar')
 
         if self.refined_regions:
             assert len(self.refined_regions) == 1, Exception('WarpX only supports one refined region.')
@@ -544,8 +546,7 @@ class Simulation(picmistandard.PICMI_Simulation):
         self.solver.initialize_inputs()
 
         for i in range(len(self.species)):
-            assert not self.initialize_self_fields[i], Exception('WarpX does not support initializing self fields')
-            self.species[i].initialize_inputs(self.layouts[i])
+            self.species[i].initialize_inputs(self.layouts[i], self.initialize_self_fields[i])
 
         for i in range(len(self.lasers)):
             self.lasers[i].initialize_inputs()
@@ -671,10 +672,10 @@ class LabFrameFieldDiagnostic(picmistandard.PICMI_LabFrameFieldDiagnostic):
         pywarpx.warpx.check_consistency('dt_snapshots_lab', self.dt_snapshots, 'The time between snapshots must be the same in all lab frame diagnostics')
         pywarpx.warpx.check_consistency('lab_data_directory', self.write_dir, 'The write directory must be the same in all lab frame diagnostics')
 
-        pywarpx.warpx.do_boosted_frame_diagnostic = 1
+        pywarpx.warpx.do_back_transformed_diagnostics = 1
         pywarpx.warpx.num_snapshots_lab = self.num_snapshots
         pywarpx.warpx.dt_snapshots_lab = self.dt_snapshots
-        pywarpx.warpx.do_boosted_frame_fields = 1
+        pywarpx.warpx.do_back_transformed_fields = 1
         pywarpx.warpx.lab_data_directory = self.write_dir
 
 
@@ -685,8 +686,8 @@ class LabFrameParticleDiagnostic(picmistandard.PICMI_LabFrameParticleDiagnostic)
         pywarpx.warpx.check_consistency('dt_snapshots_lab', self.dt_snapshots, 'The time between snapshots must be the same in all lab frame diagnostics')
         pywarpx.warpx.check_consistency('lab_data_directory', self.write_dir, 'The write directory must be the same in all lab frame diagnostics')
 
-        pywarpx.warpx.do_boosted_frame_diagnostic = 1
+        pywarpx.warpx.do_back_transformed_diagnostics = 1
         pywarpx.warpx.num_snapshots_lab = self.num_snapshots
         pywarpx.warpx.dt_snapshots_lab = self.dt_snapshots
-        pywarpx.warpx.do_boosted_frame_particles = 1
+        pywarpx.warpx.do_back_transformed_particles = 1
         pywarpx.warpx.lab_data_directory = self.write_dir

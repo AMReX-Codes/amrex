@@ -5,18 +5,18 @@ import os, copy
 from functions_perftest import test_element
 
 def executable_name(compiler,architecture):
-    return 'perf_tests3d.' + compiler + '.TPROF.MPI.ACC.CUDA.ex'
+    return 'perf_tests3d.' + compiler + '.TPROF.MPI.CUDA.ex'
 
 def get_config_command(compiler, architecture):
     config_command = ''
-    config_command += 'module load pgi;'
+    config_command += 'module load gcc;'
     config_command += 'module load cuda;'
     return config_command
 
 # This function runs a batch script with
 # dependencies to perform the analysis
 # after all performance tests are done.
-def process_analysis(automated, cwd, compiler, architecture, n_node_list, start_date):
+def process_analysis(automated, cwd, compiler, architecture, n_node_list, start_date, path_source, path_results):
 
     batch_string = '''#!/bin/bash
 #BSUB -P APH114
@@ -35,7 +35,9 @@ def process_analysis(automated, cwd, compiler, architecture, n_node_list, start_
         compiler + ' --architecture=' + architecture + \
         ' --mode=read' + \
         ' --n_node_list=' + '"' + n_node_list + '"' + \
-        ' --start_date=' + start_date
+        ' --start_date=' + start_date + \
+        ' --path_source=' + path_source + \
+        ' --path_results=' + path_results
     if automated == True:
         batch_string += ' --automated'
     batch_string += '\n'
@@ -44,7 +46,6 @@ def process_analysis(automated, cwd, compiler, architecture, n_node_list, start_
     f_exe.write(batch_string)
     f_exe.close()
     os.system('chmod 700 ' + batch_file)
-
     print( 'process_analysis line:  ' + 'bsub ' + batch_file)
     os.system('bsub ' + batch_file)
 
@@ -66,7 +67,7 @@ def get_batch_string(test_list, job_time_min, Cname, n_node):
     batch_string += '#BSUB -nnodes ' + str(n_node) + '\n'
     batch_string += '#BSUB -J ' + test_list[0].input_file + '\n'
     batch_string += '#BSUB -e error.txt\n'
-    batch_string += 'module load pgi\n'
+    batch_string += 'module load gcc\n'
     batch_string += 'module load cuda\n'
     return batch_string
 
@@ -113,14 +114,14 @@ def get_test_list(n_repeat):
     test_list_unq.append( test_element(input_file='automated_test_4_labdiags_2ppc',
                                        n_mpi_per_node=6,
                                        n_omp=1,
-                                       n_cell=[384, 512, 512],
+                                       n_cell=[384, 256, 512],
                                        max_grid_size=256,
                                        blocking_factor=128,
                                        n_step=50) )
     test_list_unq.append( test_element(input_file='automated_test_5_loadimbalance',
                                        n_mpi_per_node=6,
                                        n_omp=1,
-                                       n_cell=[64, 128, 192],
+                                       n_cell=[64, 64, 192],
                                        max_grid_size=64,
                                        blocking_factor=32,
                                        n_step=10) )

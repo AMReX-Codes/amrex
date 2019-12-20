@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+
+# Search input files in Examples/ and verify if all input files are tested
+
+ok=0
+
+for file in $(find Examples -type f)
+do
+    # Name of file without path
+    filename=$(basename $file)
+    # If file is an input file
+    if [[ ${filename:0:6 } =~ inputs       ]] ||
+       [[ ${filename:0:12} =~ PICMI_inputs ]]
+    then
+        # Search file name in test list
+        string_match=$(grep -m1 "$file" Regression/WarpX-tests.ini)
+        # If match is empty, inputs examples is not tested
+        if [[ -z $string_match ]]
+        then
+            echo "$file is not tested!"
+            ok=1
+        fi
+    fi
+done
+
+if [ $ok -ne 0 ]
+then
+    echo ""
+    echo "All files in Examples that start with one of"
+    echo " - inputs"
+    echo " - PICMI_inputs"
+    echo "must have an automated test."
+    echo "Please add a test in Regression/WarpX-tests.ini"
+    echo "for all files listed above."
+fi
+
+exit $ok

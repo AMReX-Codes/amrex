@@ -2,8 +2,10 @@ AMREX_HOME ?= ../../../amrex
 PICSAR_HOME ?= ../../../picsar
 OPENBC_HOME ?= ../../../openbc_poisson
 
+CXXSTD        = c++14
 USE_MPI       = TRUE
 USE_PARTICLES = TRUE
+USE_RPATH     = TRUE
 
 ifeq ($(USE_GPU),TRUE)
   USE_OMP  = FALSE
@@ -27,23 +29,23 @@ ifeq ($(USE_ASCENT_INSITU),TRUE)
   USE_ASCENT = TRUE
 endif
 
-include $(AMREX_HOME)/Tools/GNUMake/Make.defs
-
 ifndef USE_PYTHON_MAIN
   USE_PYTHON_MAIN = FALSE
 endif
 
 ifeq ($(USE_PYTHON_MAIN),TRUE)
-  CXXFLAGS += -fPIC
+  XTRA_CXXFLAGS += -fPIC
 ifeq ($(USE_OMP),TRUE)
   LDFLAGS += -fopenmp
 endif
-  CFLAGS   += -fPIC
-  FFLAGS   += -fPIC
-  F90FLAGS += -fPIC
+  XTRA_CFLAGS   += -fPIC
+  XTRA_FFLAGS   += -fPIC
+  XTRA_F90FLAGS += -fPIC
   USERSuffix := .Lib
   DEFINES += -DWARPX_USE_PY
 endif
+
+include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
 ifeq ($(DIM),3)
   DEFINES += -DWARPX_DIM_3D
@@ -75,6 +77,7 @@ include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/Particle/Make.package
 include $(AMREX_HOME)/Src/Boundary/Make.package
 include $(AMREX_HOME)/Src/AmrCore/Make.package
+include $(AMREX_HOME)/Src/LinearSolvers/MLMG/Make.package
 
 ifeq ($(USE_SENSEI_INSITU),TRUE)
   include $(AMREX_HOME)/Src/Amr/Make.package
@@ -82,19 +85,27 @@ ifeq ($(USE_SENSEI_INSITU),TRUE)
 endif
 
 ifeq ($(QED),TRUE)
-  BOOST_ROOT ?= NOT_SET
-  ifneq ($(BOOST_ROOT),NOT_SET)
-    VPATH_LOCATIONS += $(BOOST_ROOT)
-    INCLUDE_LOCATIONS += $(BOOST_ROOT)
-  endif
   INCLUDE_LOCATIONS += $(PICSAR_HOME)/src/multi_physics/QED/src
   CXXFLAGS += -DWARPX_QED
   CFLAGS   += -DWARPX_QED
   FFLAGS   += -DWARPX_QED
   F90FLAGS += -DWARPX_QED
   include $(WARPX_HOME)/Source/QED/Make.package
-endif
+  USERSuffix := $(USERSuffix).QED
 
+  ifeq ($(QED_TABLE_GEN),TRUE)
+    BOOST_ROOT ?= NOT_SET
+    ifneq ($(BOOST_ROOT),NOT_SET)
+      VPATH_LOCATIONS += $(BOOST_ROOT)
+      INCLUDE_LOCATIONS += $(BOOST_ROOT)
+    endif
+    CXXFLAGS += -DWARPX_QED_TABLE_GEN
+    CFLAGS   += -DWARPX_QED_TABLE_GEN
+    FFLAGS   += -DWARPX_QED_TABLE_GEN
+    F90FLAGS += -DWARPX_QED_TABLE_GEN
+     USERSuffix := $(USERSuffix).GENTABLES
+  endif
+endif
 
 include $(PICSAR_HOME)/src/Make.package
 
@@ -115,8 +126,8 @@ ifeq ($(USE_OPENPMD), TRUE)
    # try pkg-config query
    ifeq (0, $(shell pkg-config "openPMD >= 0.9.0"; echo $$?))
        CXXFLAGS += $(shell pkg-config --cflags openPMD)
-       LDFLAGS += $(shell pkg-config --libs openPMD)
-       LDFLAGS += -Xlinker -rpath -Xlinker $(shell pkg-config --variable=libdir openPMD)
+       LIBRARY_LOCATIONS += $(shell pkg-config --variable=libdir openPMD)
+       libraries += $(shell pkg-config --libs-only-l openPMD)
    # fallback to manual settings
    else
        OPENPMD_LIB_PATH ?= NOT_SET
@@ -209,7 +220,11 @@ libwarpx$(PYDIM).a: $(objForExecs)
 
 libwarpx$(PYDIM).so: $(objForExecs)
 	@echo Making dynamic library $@ ...
+ifeq ($(USE_CUDA),TRUE)
+	$(SILENT) $(CXX) $(LINKFLAGS) $(SHARED_OPTION) -Xlinker=$(SHARED_OPTION) -Xlinker=-fPIC -o $@ $^ $(LDFLAGS) $(libraries)
+else
 	$(SILENT) $(CXX) $(SHARED_OPTION) -fPIC -o $@ $^ $(LDFLAGS) $(libraries)
+endif
 	$(SILENT) $(RM) AMReX_buildInfo.cpp
 	@echo SUCCESS
 

@@ -1,0 +1,23 @@
+CEXE_headers += QedWrapperCommons.H
+CEXE_headers += QedChiFunctions.H
+CEXE_headers += QedTableParserHelperFunctions.H
+CEXE_headers += BreitWheelerEngineInnards.H
+CEXE_headers += QuantumSyncEngineInnards.H
+CEXE_headers += BreitWheelerEngineWrapper.H
+CEXE_headers += QuantumSyncEngineWrapper.H
+CEXE_headers += BreitWheelerDummyTable.H
+CEXE_headers += QuantumSyncDummyTable.H
+CEXE_sources += BreitWheelerEngineWrapper.cpp
+CEXE_sources += QuantumSyncEngineWrapper.cpp
+
+#Table generation is enabled only if QED_TABLE_GEN is
+#set to true
+ifeq ($(QED_TABLE_GEN),TRUE)
+    CEXE_headers += BreitWheelerEngineTableBuilder.H
+    CEXE_headers += QuantumSyncEngineTableBuilder.H
+    CEXE_sources += BreitWheelerEngineTableBuilder.cpp
+    CEXE_sources += QuantumSyncEngineTableBuilder.cpp
+endif
+
+INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/QED
+VPATH_LOCATIONS   += $(WARPX_HOME)/Source/QED

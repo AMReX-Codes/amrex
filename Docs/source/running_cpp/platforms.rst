@@ -8,7 +8,7 @@ The batch script below can be used to run a WarpX simulation on 2 KNL nodes on
 the supercomputer Cori at NERSC. Replace descriptions between chevrons ``<>``
 by relevant values, for instance ``<job name>`` could be ``laserWakefield``.
 
-.. literalinclude:: ../../../Examples/batchScripts/batch_cori.sh
+.. literalinclude:: ../../../Tools/batchScripts/batch_cori.sh
    :language: bash
 
 To run a simulation, copy the lines above to a file ``batch_cori.sh`` and
@@ -42,7 +42,7 @@ by relevalt values, for instance ``<input file>`` could be
 ``plasma_mirror_inputs``. Note that the only option so far is to run with one
 MPI rank per GPU.
 
-.. literalinclude:: ../../../Examples/batchScripts/batch_summit.sh
+.. literalinclude:: ../../../Tools/batchScripts/batch_summit.sh
    :language: bash
 
 To run a simulation, copy the lines above to a file ``batch_summit.sh`` and
@@ -66,4 +66,4 @@ regime), the following set of parameters provided good performance:
 * **Two `128x128x128` grids per GPU**, or **one `128x128x256` grid per GPU**.
 
 A batch script with more options regarding profiling on Summit can be found at
-:download:`Summit batch script<../../../Examples/Tests/gpu_test/script_profiling.sh>`
+:download:`Summit batch script<../../../Tools/batchScripts/script_profiling_summit.sh>`
