@@ -1,14 +1,22 @@
 #include "MultiReducedDiags.H"
 #include "AMReX_ParmParse.H"
+#include "AMReX_Utility.H"
 #include <fstream>
 
 /// constructor
 MultiReducedDiags::MultiReducedDiags ()
 {
 
-    /// read reduced diags names
+    /// read reduced diags names and path
     amrex::ParmParse pp("warpx");
     pp.getarr("reduced_diags_names", m_rd_names);
+    pp.query("reduced_diags_path", m_path);
+
+    /// creater folder
+    if (!amrex::UtilCreateDirectory(m_path, 0755))
+    { amrex::CreateDirectoryFailed(m_path); }
+
+    /// resize
     m_multi_rd.resize(m_rd_names.size());
 
     /// loop over all reduced diags
@@ -22,9 +30,8 @@ MultiReducedDiags::MultiReducedDiags ()
         pp.query("type", rd_type);
 
         /// replace old and open output file
-        std::string dirname = "./";
         std::ofstream ofs;
-        ofs.open(dirname+m_rd_names[i_rd]+".txt", std::ios::trunc);
+        ofs.open(m_path+m_rd_names[i_rd]+".txt", std::ios::trunc);
 
         /// match diags
         if (rd_type.compare("ParticleKineticEnergy") == 0)
@@ -76,9 +83,8 @@ void MultiReducedDiags::WriteToFile (int step)
         if ( (step+1) % m_multi_rd[i_rd]->m_freq != 0 ) { return; }
 
         /// open file
-        std::string dirname = "./";
         std::ofstream ofs;
-        ofs.open(dirname+m_rd_names[i_rd]+".txt",
+        ofs.open(m_path+m_rd_names[i_rd]+".txt",
             std::ofstream::out | std::ofstream::app);
 
         /// call the write to file function

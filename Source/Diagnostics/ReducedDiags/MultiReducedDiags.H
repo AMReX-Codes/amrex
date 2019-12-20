@@ -12,6 +12,9 @@ class MultiReducedDiags
 {
 public:
 
+    /// output path (default)
+    std::string m_path = "./diags/reducedfiles/";
+
     /// names of reduced diagnostics
     std::vector<std::string> m_rd_names;
 

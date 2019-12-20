@@ -1,6 +1,7 @@
 #include "ReducedDiags.H"
-#include "AMReX_ParmParse.H"
 #include "WarpX.H"
+#include "AMReX_ParmParse.H"
+#include "AMReX_Print.H"
 
 /// constructor
 ReducedDiags::ReducedDiags (std::string rd_name)
@@ -24,23 +25,23 @@ void ReducedDiags::WriteToFile (int step, std::ofstream & ofs)
     auto dt = WarpX::GetInstance().getdt(0);
 
     /// write step
-    ofs << step+1;
+    amrex::Print(ofs) << step+1;
 
-    ofs << m_sep;
+    amrex::Print(ofs) << m_sep;
 
     /// write time
-    ofs << (step+1)*dt;
+    amrex::Print(ofs) << (step+1)*dt;
 
     /// loop over data size and write
     for (int i = 0; i < m_data.size(); ++i)
     {
-        ofs << m_sep;
-        ofs << m_data[i];
+        amrex::Print(ofs) << m_sep;
+        amrex::Print(ofs) << m_data[i];
     }
     ///< end loop over data size
 
     /// end line
-    ofs << std::endl;
+    amrex::Print(ofs) << std::endl;
 
 }
 ///< end ReducedDiags::WriteToFile

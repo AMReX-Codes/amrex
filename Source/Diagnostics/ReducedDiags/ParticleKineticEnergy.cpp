@@ -2,6 +2,7 @@
 #include "WarpX.H"
 #include "WarpXConst.H"
 #include "AMReX_REAL.H"
+#include "AMReX_Print.H"
 #include <iostream>
 #include <cmath>
 
@@ -23,18 +24,18 @@ std::string rd_name, std::ofstream & ofs )
     auto species_names = mypc.GetSpeciesNames();
 
     // write header row
-    ofs << "#";
-    ofs << "step";
-    ofs << m_sep;
-    ofs << "time(s)";
-    ofs << m_sep;
-    ofs << "total(J)";
+    amrex::Print(ofs) << "#";
+    amrex::Print(ofs) << "step";
+    amrex::Print(ofs) << m_sep;
+    amrex::Print(ofs) << "time(s)";
+    amrex::Print(ofs) << m_sep;
+    amrex::Print(ofs) << "total(J)";
     for (int i = 0; i < species_number; ++i)
     {
-        ofs << m_sep;
-        ofs << species_names[i]+"(J)";
+        amrex::Print(ofs) << m_sep;
+        amrex::Print(ofs) << species_names[i]+"(J)";
     }
-    ofs << std::endl;
+    amrex::Print(ofs) << std::endl;
 }
 ///< end constructor
 
