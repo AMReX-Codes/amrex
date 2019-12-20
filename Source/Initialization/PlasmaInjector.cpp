@@ -109,6 +109,7 @@ PlasmaInjector::PlasmaInjector (int ispecies, const std::string& name)
                    part_pos_s.end(),
                    part_pos_s.begin(),
                    ::tolower);
+    num_particles_per_cell_each_dim.assign(3, 0);
     if (part_pos_s == "python") {
         return;
     } else if (part_pos_s == "singleparticle") {
