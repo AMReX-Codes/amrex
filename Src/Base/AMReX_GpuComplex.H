@@ -32,7 +32,6 @@ struct GpuComplex
     GpuComplex<T>& operator+= (const T& a_t) noexcept
     {
         m_real += a_t;
-        m_imag += a_t;
         return *this;
     }
 
@@ -40,7 +39,6 @@ struct GpuComplex
     GpuComplex<T>& operator-= (const T& a_t) noexcept
     {
         m_real -= a_t;
-        m_imag -= a_t;
         return *this;
     }
     
