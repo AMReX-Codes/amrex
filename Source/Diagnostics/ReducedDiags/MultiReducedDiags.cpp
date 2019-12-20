@@ -1,6 +1,5 @@
 #include "MultiReducedDiags.H"
 #include "AMReX_ParmParse.H"
-#include "AMReX_Utility.H"
 #include "AMReX_ParallelDescriptor.H"
 #include <fstream>
 
@@ -8,16 +7,12 @@
 MultiReducedDiags::MultiReducedDiags ()
 {
 
-    /// read reduced diags flag, names, and path
+    /// read reduced diags names
     amrex::ParmParse pp("warpx");
-    pp.query("plot_reduced_diags", m_plot_rd);
-    if ( m_plot_rd == 0 ) { return; }
-    pp.getarr("reduced_diags_names", m_rd_names);
-    pp.query("reduced_diags_path", m_path);
+    m_plot_rd = pp.queryarr("reduced_diags_names", m_rd_names);
 
-    /// creater folder
-    if (!amrex::UtilCreateDirectory(m_path, 0755))
-    { amrex::CreateDirectoryFailed(m_path); }
+    /// if names are not given, reduced diags will not be done
+    if ( m_plot_rd == 0 ) { return; }
 
     /// resize
     m_multi_rd.resize(m_rd_names.size());
@@ -32,20 +27,19 @@ MultiReducedDiags::MultiReducedDiags ()
         std::string rd_type;
         pp.query("type", rd_type);
 
-        /// replace old and open output file
-        std::ofstream ofs;
-        ofs.open(m_path+m_rd_names[i_rd]+".txt", std::ios::trunc);
-
         /// match diags
         if (rd_type.compare("ParticleMeanEnergy") == 0)
         {
             m_multi_rd[i_rd].reset
-                ( new ParticleMeanEnergy(m_rd_names[i_rd], ofs));
+                ( new ParticleMeanEnergy(m_rd_names[i_rd]));
         }
-        ///< end if match diags
+        else if (rd_type.compare("FieldMeanEnergy") == 0)
+        {
 
-        /// close file
-        ofs.close();
+        }
+        else
+        { amrex::Abort("No matching reduced diagnostics type found."); }
+        ///< end if match diags
 
     }
     ///< end loop over all reduced diags
@@ -84,16 +78,8 @@ void MultiReducedDiags::WriteToFile (int step)
         /// Judge if the diags should be done
         if ( (step+1) % m_multi_rd[i_rd]->m_freq != 0 ) { return; }
 
-        /// open file
-        std::ofstream ofs;
-        ofs.open(m_path+m_rd_names[i_rd]+".txt",
-            std::ofstream::out | std::ofstream::app);
-
         /// call the write to file function
-        m_multi_rd[i_rd]->WriteToFile(step, ofs);
-
-        /// close file
-        ofs.close();
+        m_multi_rd[i_rd]->WriteToFile(step);
 
     }
     ///< end loop over all reduced diags

@@ -14,9 +14,8 @@ class ParticleMeanEnergy : public ReducedDiags
 public:
 
     /** constructor
-     *  @param[in] rd_name reduced diags names
-     *  @param[in] ofs file to write */
-    ParticleMeanEnergy(std::string rd_name, std::ofstream & ofs);
+     *  @param[in] rd_name reduced diags names */
+    ParticleMeanEnergy(std::string rd_name);
 
     /// destructor
     ~ParticleMeanEnergy();

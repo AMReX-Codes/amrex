@@ -19,9 +19,6 @@ public:
     /// flag
     int m_plot_rd = 0;
 
-    /// output path (default)
-    std::string m_path = "./diags/reducedfiles/";
-
     /// names of reduced diagnostics
     std::vector<std::string> m_rd_names;
 

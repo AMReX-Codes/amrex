@@ -1,14 +1,35 @@
 #include "ReducedDiags.H"
 #include "WarpX.H"
 #include "AMReX_ParmParse.H"
+#include "AMReX_Utility.H"
 #include <iomanip>
 
 /// constructor
 ReducedDiags::ReducedDiags (std::string rd_name)
 {
+
+    m_rd_name = rd_name;
+
+    amrex::ParmParse pp(m_rd_name);
+
+    /// read path
+    pp.query("path", m_path);
+
+    /// creater folder
+    if (!amrex::UtilCreateDirectory(m_path, 0755))
+    { amrex::CreateDirectoryFailed(m_path); }
+
+    /// replace / create output file
+    std::ofstream ofs;
+    ofs.open(m_path+m_rd_name+".txt", std::ios::trunc);
+    ofs.close();
+
     /// read reduced diags frequency
-    amrex::ParmParse pp(rd_name);
     pp.query("frequency", m_freq);
+
+    /// read separator
+    pp.query("separator", m_sep);
+
 }
 ///< end constructor
 
@@ -18,11 +39,16 @@ ReducedDiags::~ReducedDiags ()
 ///< end destructor
 
 /// write to file function
-void ReducedDiags::WriteToFile (int step, std::ofstream & ofs)
+void ReducedDiags::WriteToFile (int step)
 {
 
     /// get dt
     auto dt = WarpX::GetInstance().getdt(0);
+
+    /// open file
+    std::ofstream ofs;
+    ofs.open(m_path + m_rd_name + ".txt",
+        std::ofstream::out | std::ofstream::app);
 
     /// write step
     ofs << step+1;
@@ -39,13 +65,15 @@ void ReducedDiags::WriteToFile (int step, std::ofstream & ofs)
     for (int i = 0; i < m_data.size(); ++i)
     {
         ofs << m_sep;
-        //ofs << std::setprecision(16) << std::scientific;
         ofs << m_data[i];
     }
     ///< end loop over data size
 
     /// end line
     ofs << std::endl;
+
+    /// close file
+    ofs.close();
 
 }
 ///< end ReducedDiags::WriteToFile

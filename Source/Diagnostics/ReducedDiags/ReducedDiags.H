@@ -11,6 +11,12 @@ class ReducedDiags
 {
 public:
 
+    /// output path (default)
+    std::string m_path = "./diags/reducedfiles/";
+
+    /// diags name
+    std::string m_rd_name;
+
     /// output frequency
     int m_freq = 1;
 
@@ -31,9 +37,8 @@ public:
     virtual void ComputeDiags(int step) = 0;
 
     /** write to file function
-     *  @param[in] step time step
-     *  @param[in] file to write */
-    virtual void WriteToFile(int step, std::ofstream & ofs);
+     *  @param[in] step time step */
+    virtual void WriteToFile(int step);
 
 };
 ///< end class ReducedDiags

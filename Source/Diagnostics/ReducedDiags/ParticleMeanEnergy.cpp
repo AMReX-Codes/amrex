@@ -6,8 +6,7 @@
 #include <cmath>
 
 /// constructor
-ParticleMeanEnergy::ParticleMeanEnergy (
-std::string rd_name, std::ofstream & ofs )
+ParticleMeanEnergy::ParticleMeanEnergy (std::string rd_name)
 : ReducedDiags{rd_name}
 {
     /// get WarpX class object
@@ -22,6 +21,11 @@ std::string rd_name, std::ofstream & ofs )
     /// get species names (std::vector<std::string>)
     auto species_names = mypc.GetSpeciesNames();
 
+    /// open file
+    std::ofstream ofs;
+    ofs.open(m_path + m_rd_name + ".txt",
+        std::ofstream::out | std::ofstream::app);
+
     // write header row
     ofs << "#";
     ofs << "step";
@@ -35,6 +39,10 @@ std::string rd_name, std::ofstream & ofs )
         ofs << species_names[i]+"(J)";
     }
     ofs << std::endl;
+
+    /// close file
+    ofs.close();
+
 }
 ///< end constructor
 
