@@ -1,6 +1,3 @@
-#include <AMReX_MGT_Solver.H>
-#include <AMReX_stencil_types.H>
-
 #include <WarpX.H>
 #include <WarpX_f.H>
 
@@ -10,16 +7,6 @@ namespace
 }
 
 using namespace amrex;
-
-class NoOpPhysBC
-    : public amrex::PhysBCFunctBase
-{
-public:
-    NoOpPhysBC () {}
-    virtual ~NoOpPhysBC () {}
-    virtual void FillBoundary (amrex::MultiFab& mf, int, int, amrex::Real time) override { }
-    using amrex::PhysBCFunctBase::FillBoundary;
-};
 
 void
 WarpX::EvolveES (int numsteps) {
