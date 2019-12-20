@@ -1,6 +1,7 @@
 #include "MultiReducedDiags.H"
 #include "AMReX_ParmParse.H"
 #include "AMReX_Utility.H"
+#include "AMReX_ParallelDescriptor.H"
 #include <fstream>
 
 /// constructor
@@ -73,9 +74,8 @@ void MultiReducedDiags::ComputeDiags (int step)
 void MultiReducedDiags::WriteToFile (int step)
 {
 
-    int mpi_rank;
-    MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
-    if (mpi_rank != 0) { return; }
+    /// Only the I/O rank does
+    if ( !amrex::ParallelDescriptor::IOProcessor() ) { return; }
 
     /// loop over all reduced diags
     for (int i_rd = 0; i_rd < m_rd_names.size(); ++i_rd)
