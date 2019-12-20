@@ -7,8 +7,10 @@
 MultiReducedDiags::MultiReducedDiags ()
 {
 
-    /// read reduced diags names and path
+    /// read reduced diags flag, names, and path
     amrex::ParmParse pp("warpx");
+    pp.query("plot_reduced_diags", m_plot_rd);
+    if ( m_plot_rd == 0 ) { return; }
     pp.getarr("reduced_diags_names", m_rd_names);
     pp.query("reduced_diags_path", m_path);
 

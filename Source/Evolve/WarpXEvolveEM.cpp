@@ -181,9 +181,12 @@ WarpX::EvolveEM (int numsteps)
             t_new[i] = cur_time;
         }
 
-        /// do reduced diags
-        reduced_diags->ComputeDiags(step);
-        reduced_diags->WriteToFile(step);
+        /// reduced diags
+        if (reduced_diags->m_plot_rd != 0)
+        {
+            reduced_diags->ComputeDiags(step);
+            reduced_diags->WriteToFile(step);
+        }
 
         // slice gen //
         if (to_make_plot || do_insitu || to_make_slice_plot)

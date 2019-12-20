@@ -12,6 +12,9 @@ class MultiReducedDiags
 {
 public:
 
+    /// flag
+    int m_plot_rd = 0;
+
     /// output path (default)
     std::string m_path = "./diags/reducedfiles/";
 
