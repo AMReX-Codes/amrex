@@ -75,6 +75,13 @@ class Species(picmistandard.PICMI_Species):
         if self.initial_distribution is not None:
             self.initial_distribution.initialize_inputs(self.species_number, layout, self.species, self.density_scale)
 
+        for interaction in self.interactions:
+            assert interaction[0] == 'ionization'
+            assert interaction[1] == 'ADK', 'WarpX only has ADK ionization model implemented'
+            self.species.do_field_ionization=1
+            self.species.physical_element=self.particle_type
+            self.species.ionization_product_species = interaction[2].name
+            self.species.ionization_initial_level = self.charge_state
 
 picmistandard.PICMI_MultiSpecies.Species_class = Species
 class MultiSpecies(picmistandard.PICMI_MultiSpecies):
