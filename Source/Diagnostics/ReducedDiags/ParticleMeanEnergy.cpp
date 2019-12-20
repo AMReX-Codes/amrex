@@ -109,7 +109,7 @@ void ParticleMeanEnergy::ComputeDiags (int step)
 
                 /// sum total number of particles
                 np += pti.numParticles();
-    
+
                 /// loop over particles
                 for (long i = 0; i < px.size(); i++)
                 {
