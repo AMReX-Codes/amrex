@@ -76,7 +76,6 @@ class Species(picmistandard.PICMI_Species):
             self.initial_distribution.initialize_inputs(self.species_number, layout, self.species, self.density_scale)
 
         for interaction in self.interactions:
-            print(self, interaction[2].name)
             assert interaction[0] == 'ionization'
             assert interaction[1] == 'ADK', 'WarpX only has ADK ionization model implemented'
             self.species.do_field_ionization=1
