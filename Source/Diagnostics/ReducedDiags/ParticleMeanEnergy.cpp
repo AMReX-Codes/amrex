@@ -5,6 +5,8 @@
 #include <iostream>
 #include <cmath>
 
+using namespace amrex;
+
 /// constructor
 ParticleMeanEnergy::ParticleMeanEnergy (std::string rd_name)
 : ReducedDiags{rd_name}
@@ -81,7 +83,7 @@ void ParticleMeanEnergy::ComputeDiags (int step)
     auto c2 = PhysConst::c * PhysConst::c;
 
     /// declare total kinetic energy variable
-    amrex::Real EKtot = 0.0;
+    Real EKtot = 0.0;
 
     /// total number of particles;
     long nptot = 0;
@@ -92,51 +94,61 @@ void ParticleMeanEnergy::ComputeDiags (int step)
         /// get WarpXParticleContainer class object
         auto & myspc = mypc.GetParticleContainer(i_s);
 
-        /// get mass (amrex:Real)
+        /// get mass (Real)
         auto m = myspc.getMass();
 
         /// declare kinetic energy variable
-        amrex::Real EK = 0.0;
+        Real EK = 0.0;
 
         /// number of particles;
         long np = 0;
 
-        /// loop over refinement levels
-        for (int lev = 0; lev <= level_number; ++lev)
-        {
-
-            #pragma omp parallel reduction(+:EK, np)
-            /// Loop over boxes
-            for (WarpXParIter pti(myspc, lev); pti.isValid(); ++pti)
+#ifdef AMREX_USE_GPU
+        amrex::Abort("Reduced diagnostics is not avaiable for GPU yet.");
+        if ( Gpu::inLaunchRegion() )
+        { /// if GPU
+        } /// end if GPU
+        else
+#endif
+        { /// if OpenMP
+            /// loop over refinement levels
+            for (int lev = 0; lev <= level_number; ++lev)
             {
-
-                /// get particle momentum arrays
-                auto & px = pti.GetAttribs(PIdx::ux);
-                auto & py = pti.GetAttribs(PIdx::uy);
-                auto & pz = pti.GetAttribs(PIdx::uz);
-
-                /// sum total number of particles
-                np += pti.numParticles();
-
-                /// loop over particles
-                for (long i = 0; i < px.size(); i++)
+#ifdef _OPENMP
+#pragma omp parallel if (!system::regtest_reduction) reduction(+:EK, np)
+#endif
+                /// Loop over boxes
+                for (WarpXParIter pti(myspc, lev); pti.isValid(); ++pti)
                 {
-                    /// get momentum squared
-                    auto ps = (px[i]*px[i] + py[i]*py[i] + pz[i]*pz[i]);
-                    /// get relativistic kinetic energy
-                    EK += std::sqrt(ps*c2 + m*m*c2*c2) - m*c2;
+
+                    /// get particle momentum arrays
+                    auto & px = pti.GetAttribs(PIdx::ux);
+                    auto & py = pti.GetAttribs(PIdx::uy);
+                    auto & pz = pti.GetAttribs(PIdx::uz);
+
+                    /// sum total number of particles
+                    np += pti.numParticles();
+
+                    /// loop over particles
+                    for (long i = 0; i < px.size(); i++)
+                    {
+                        /// get momentum squared
+                        auto ps = (px[i]*px[i] + py[i]*py[i] + pz[i]*pz[i]);
+                        /// get relativistic kinetic energy
+                        EK += std::sqrt(ps*c2 + m*m*c2*c2) - m*c2;
+                    }
+                    ///< end loop over particles
+
                 }
-                ///< end loop over particles
+                ///< end loop over boxes
 
             }
-            ///< end loop over boxes
-
-        }
-        ///< end loop over refinement levels
+            ///< end loop over refinement levels
+        } ///< end if OpenMP
 
         /// reduced sum for mpi ranks
-        amrex::ParallelDescriptor::ReduceRealSum(EK);
-        amrex::ParallelDescriptor::ReduceLongSum(np);
+        ParallelDescriptor::ReduceRealSum(EK);
+        ParallelDescriptor::ReduceLongSum(np);
 
         /// compute total EK
         EKtot += EK;
