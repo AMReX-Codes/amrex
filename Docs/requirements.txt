@@ -2,3 +2,5 @@ sphinx_rtd_theme>=0.3.1
 recommonmark
 sphinx
 pygments
+breathe
+exhale
