@@ -104,7 +104,7 @@ void ParticleMeanEnergy::ComputeDiags (int step)
         long np = 0;
 
 #ifdef AMREX_USE_GPU
-        amrex::Abort("Reduced diagnostics is not avaiable for GPU yet.");
+        Abort("Reduced diagnostics is not avaiable for GPU yet.");
         if ( Gpu::inLaunchRegion() )
         { /// if GPU
         } /// end if GPU
@@ -144,6 +144,7 @@ void ParticleMeanEnergy::ComputeDiags (int step)
 
             }
             ///< end loop over refinement levels
+
         } ///< end if OpenMP
 
         /// reduced sum for mpi ranks

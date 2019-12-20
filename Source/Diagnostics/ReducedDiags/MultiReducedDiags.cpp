@@ -3,12 +3,14 @@
 #include "AMReX_ParallelDescriptor.H"
 #include <fstream>
 
+using namespace amrex;
+
 /// constructor
 MultiReducedDiags::MultiReducedDiags ()
 {
 
     /// read reduced diags names
-    amrex::ParmParse pp("warpx");
+    ParmParse pp("warpx");
     m_plot_rd = pp.queryarr("reduced_diags_names", m_rd_names);
 
     /// if names are not given, reduced diags will not be done
@@ -21,7 +23,7 @@ MultiReducedDiags::MultiReducedDiags ()
     for (int i_rd = 0; i_rd < m_rd_names.size(); ++i_rd)
     {
 
-        amrex::ParmParse pp(m_rd_names[i_rd]);
+        ParmParse pp(m_rd_names[i_rd]);
 
         /// read reduced diags type
         std::string rd_type;
@@ -38,7 +40,7 @@ MultiReducedDiags::MultiReducedDiags ()
 
         }
         else
-        { amrex::Abort("No matching reduced diagnostics type found."); }
+        { Abort("No matching reduced diagnostics type found."); }
         ///< end if match diags
 
     }
@@ -69,7 +71,7 @@ void MultiReducedDiags::WriteToFile (int step)
 {
 
     /// Only the I/O rank does
-    if ( !amrex::ParallelDescriptor::IOProcessor() ) { return; }
+    if ( !ParallelDescriptor::IOProcessor() ) { return; }
 
     /// loop over all reduced diags
     for (int i_rd = 0; i_rd < m_rd_names.size(); ++i_rd)

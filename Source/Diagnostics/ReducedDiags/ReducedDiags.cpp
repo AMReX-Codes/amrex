@@ -4,20 +4,22 @@
 #include "AMReX_Utility.H"
 #include <iomanip>
 
+using namespace amrex;
+
 /// constructor
 ReducedDiags::ReducedDiags (std::string rd_name)
 {
 
     m_rd_name = rd_name;
 
-    amrex::ParmParse pp(m_rd_name);
+    ParmParse pp(m_rd_name);
 
     /// read path
     pp.query("path", m_path);
 
     /// creater folder
-    if (!amrex::UtilCreateDirectory(m_path, 0755))
-    { amrex::CreateDirectoryFailed(m_path); }
+    if (!UtilCreateDirectory(m_path, 0755))
+    { CreateDirectoryFailed(m_path); }
 
     /// replace / create output file
     std::ofstream ofs;
