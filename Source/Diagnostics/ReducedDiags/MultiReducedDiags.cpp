@@ -36,10 +36,10 @@ MultiReducedDiags::MultiReducedDiags ()
         ofs.open(m_path+m_rd_names[i_rd]+".txt", std::ios::trunc);
 
         /// match diags
-        if (rd_type.compare("ParticleKineticEnergy") == 0)
+        if (rd_type.compare("ParticleMeanEnergy") == 0)
         {
             m_multi_rd[i_rd].reset
-                ( new ParticleKineticEnergy(m_rd_names[i_rd], ofs));
+                ( new ParticleMeanEnergy(m_rd_names[i_rd], ofs));
         }
         ///< end if match diags
 

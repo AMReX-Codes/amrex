@@ -1,13 +1,12 @@
-#include "ParticleKineticEnergy.H"
+#include "ParticleMeanEnergy.H"
 #include "WarpX.H"
 #include "WarpXConst.H"
 #include "AMReX_REAL.H"
-#include "AMReX_Print.H"
 #include <iostream>
 #include <cmath>
 
 /// constructor
-ParticleKineticEnergy::ParticleKineticEnergy (
+ParticleMeanEnergy::ParticleMeanEnergy (
 std::string rd_name, std::ofstream & ofs )
 : ReducedDiags{rd_name}
 {
@@ -24,28 +23,28 @@ std::string rd_name, std::ofstream & ofs )
     auto species_names = mypc.GetSpeciesNames();
 
     // write header row
-    amrex::Print(ofs) << "#";
-    amrex::Print(ofs) << "step";
-    amrex::Print(ofs) << m_sep;
-    amrex::Print(ofs) << "time(s)";
-    amrex::Print(ofs) << m_sep;
-    amrex::Print(ofs) << "total(J)";
+    ofs << "#";
+    ofs << "step";
+    ofs << m_sep;
+    ofs << "time(s)";
+    ofs << m_sep;
+    ofs << "total(J)";
     for (int i = 0; i < species_number; ++i)
     {
-        amrex::Print(ofs) << m_sep;
-        amrex::Print(ofs) << species_names[i]+"(J)";
+        ofs << m_sep;
+        ofs << species_names[i]+"(J)";
     }
-    amrex::Print(ofs) << std::endl;
+    ofs << std::endl;
 }
 ///< end constructor
 
 /// destructor
-ParticleKineticEnergy::~ParticleKineticEnergy ()
+ParticleMeanEnergy::~ParticleMeanEnergy ()
 {}
 ///< end destructor
 
 /// function that computes kinetic energy
-void ParticleKineticEnergy::ComputeDiags (int step)
+void ParticleMeanEnergy::ComputeDiags (int step)
 {
 
     /// Judge if the diags should be done
@@ -76,6 +75,9 @@ void ParticleKineticEnergy::ComputeDiags (int step)
     /// declare total kinetic energy variable
     amrex::Real EKtot = 0.0;
 
+    /// total number of particles;
+    long nptot = 0;
+
     /// loop over species
     for (int i_s = 0; i_s < species_number; ++i_s)
     {
@@ -88,11 +90,14 @@ void ParticleKineticEnergy::ComputeDiags (int step)
         /// declare kinetic energy variable
         amrex::Real EK = 0.0;
 
+        /// number of particles;
+        long np = 0;
+
         /// loop over refinement levels
         for (int lev = 0; lev <= level_number; ++lev)
         {
 
-            #pragma omp parallel reduction(+:EK)
+            #pragma omp parallel reduction(+:EK, np)
             /// Loop over boxes
             for (WarpXParIter pti(myspc, lev); pti.isValid(); ++pti)
             {
@@ -102,6 +107,9 @@ void ParticleKineticEnergy::ComputeDiags (int step)
                 auto & py = pti.GetAttribs(PIdx::uy);
                 auto & pz = pti.GetAttribs(PIdx::uz);
 
+                /// sum total number of particles
+                np += pti.numParticles();
+    
                 /// loop over particles
                 for (long i = 0; i < px.size(); i++)
                 {
@@ -120,18 +128,28 @@ void ParticleKineticEnergy::ComputeDiags (int step)
 
         /// reduced sum for mpi ranks
         amrex::ParallelDescriptor::ReduceRealSum(EK);
-
-        /// save EK to m_data
-        m_data[i_s+1] = EK;
+        amrex::ParallelDescriptor::ReduceLongSum(np);
 
         /// compute total EK
         EKtot += EK;
+
+        /// compute total np
+        nptot += np;
+
+        /// save EK to m_data
+        if ( np > 0 )
+        { m_data[i_s+1] = EK / np; }
+        else
+        { m_data[i_s+1] = 0.0; }
 
     }
     ///< end loop over species
 
     /// save total EK
-    m_data[0] = EKtot;
+    if ( nptot > 0 )
+    { m_data[0] = EKtot / nptot; }
+    else
+    { m_data[0] = 0.0; }
 
 }
-///< end void ParticleKineticEnergy::ComputeDiags
+///< end void ParticleMeanEnergy::ComputeDiags
