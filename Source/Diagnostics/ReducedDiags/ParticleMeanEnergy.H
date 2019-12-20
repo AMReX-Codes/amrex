@@ -26,7 +26,7 @@ public:
      *  EK = sqrt( p^2 c^2 + m^2 c^4 ) - m c^2,
      *  where p is the relativistic momentum,
      *  m is the particle rest mass. */
-    virtual void ComputeDiags(int step) final;
+    virtual void ComputeDiags(int step) override final;
 
 };
 ///< end class ParticleMeanEnergy

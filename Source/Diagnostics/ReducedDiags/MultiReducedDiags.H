@@ -7,7 +7,11 @@
 #include <string>
 #include <memory>
 
-/// This class addresses all diagnostics
+/**
+ * This class holds multiple instances of ReducedDiagnostics, and contains
+ * general functions to initialize, compute, and write these diagnostics
+ * to file.
+ */
 class MultiReducedDiags
 {
 public:
@@ -30,11 +34,11 @@ public:
     /// destructor
     ~MultiReducedDiags();
 
-    /** function to call diags computation
+    /** Loop over all ReducedDiags and call their ComputeDiags
      *  @param[in] step current iteration time */
     void ComputeDiags(int step);
 
-    /** function to write diags
+    /** Loop over all ReducedDiags and call their WriteToFile
      *  @param[in] step current iteration time */
     void WriteToFile(int step);
 
