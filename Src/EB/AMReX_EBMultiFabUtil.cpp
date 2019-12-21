@@ -665,7 +665,7 @@ EB_average_face_to_cellcenter (MultiFab& ccmf, int dcomp,
 // EM DEBUG: NEW ROUTINE TO INTEROLATE CELL CENTER VALUES TO CENTROID
 
 void
-EB_interp_CC_to_Centroid (MultiFab& cent, const MultiFab& cc, int sc, int dc, int nc, const Geometry& geom)
+EB_interp_CC_to_Centroid (MultiFab& cent, const MultiFab& cc, int scomp, int dcomp, int ncomp, const Geometry& geom)
 {
     const auto& factory = dynamic_cast<EBFArrayBoxFactory const&>(cc.Factory());
     const auto& flags = factory.getMultiEBCellFlagFab();
@@ -679,12 +679,12 @@ EB_interp_CC_to_Centroid (MultiFab& cent, const MultiFab& cc, int sc, int dc, in
     for (MFIter mfi(cc, mfi_info);  mfi.isValid(); ++mfi)
     {
         const Box& vbx = mfi.validbox();
-        const auto& centfab = cent.array(mfi,dc);
+        const auto& centfab = cent.array(mfi,dcomp);
         const auto& fabtyp = flags[mfi].getType(vbx);
 
         if (fabtyp == FabType::covered)
         {
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( vbx, nc, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( vbx, ncomp, i, j, k, n,
             {
                 centfab(i,j,k,n) = 0.0;
             });
@@ -697,16 +697,16 @@ EB_interp_CC_to_Centroid (MultiFab& cent, const MultiFab& cc, int sc, int dc, in
         {
             const auto& flagfab = flags.const_array(mfi);
             const auto& locfab = loc.const_array(mfi);
-            const auto& ccfab = cc.array(mfi,sc);
+            const auto& ccfab = cc.array(mfi,scomp);
 
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( vbx, thread_box,
             {
-              eb_interp_cc2cent(thread_box, centfab, ccfab, flagfab, locfab, nc);
+                eb_interp_cc2cent(thread_box, centfab, ccfab, flagfab, locfab, ncomp);
             });
         }
     }
 
-    cent.FillBoundary(dc,nc,geom.periodicity());
+    cent.FillBoundary(dcomp,ncomp,geom.periodicity());
 }
 
 void
@@ -714,7 +714,7 @@ EB_interp_CC_to_FaceCentroid (MultiFab& sol,
                               D_DECL( MultiFab& edgestate_x,
                                       MultiFab& edgestate_y,
                                       MultiFab& edgestate_z),
-                              int scomp, int dcomp, int nc,
+                              int scomp, int dcomp, int ncomp,
                               const Geometry& a_geom,
                               const Vector<BCRec>& a_bcs)
 {
@@ -723,7 +723,7 @@ EB_interp_CC_to_FaceCentroid (MultiFab& sol,
     const auto& area = factory.getAreaFrac();
     const auto& fcent = factory.getFaceCent();
 
-    AMREX_ALWAYS_ASSERT(a_bcs.size() == nc );
+    AMREX_ALWAYS_ASSERT(a_bcs.size() == ncomp );
     
     Box domain(a_geom.Domain());
     
@@ -743,50 +743,50 @@ EB_interp_CC_to_FaceCentroid (MultiFab& sol,
     {
 
         const Box& vbx = mfi.tilebox();
-        const auto& solnfab = sol.array(mfi);       
+        const auto& solnfab = sol.array(mfi,scomp);
         const auto fabtyp = flags[mfi].getType(amrex::grow(vbx,0));
         const auto fabtyp_ghost = flags[mfi].getType(amrex::grow(vbx,nghost));
 
         if (fabtyp != FabType::covered)
         {
 
-          AMREX_D_TERM(Array4<Real> const& edg_x = edgestate_x.array(mfi);,
-                       Array4<Real> const& edg_y = edgestate_y.array(mfi);,
-                       Array4<Real> const& edg_z = edgestate_z.array(mfi););
+            AMREX_D_TERM(Array4<Real> const& edg_x = edgestate_x.array(mfi,dcomp);,
+                         Array4<Real> const& edg_y = edgestate_y.array(mfi,dcomp);,
+                         Array4<Real> const& edg_z = edgestate_z.array(mfi,dcomp););
           
-          if (fabtyp_ghost == FabType::regular )
-          {
-
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( vbx, thread_box,
+            if (fabtyp_ghost == FabType::regular )
             {
-                eb_interp_cc2face(thread_box, solnfab,
-                                  AMREX_D_DECL(edg_x,edg_y,edg_z),
-                                  scomp, dcomp, nc,
-                                  domain, a_bcs);
-            });
+                
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( vbx, thread_box,
+                {
+                    eb_interp_cc2face(thread_box, solnfab,
+                                      AMREX_D_DECL(edg_x,edg_y,edg_z),
+                                      ncomp,
+                                      domain, a_bcs);
+                });
             
-          }
-          else
-          {
-            Array4<EBCellFlag const> const& flagfab = flags.const_array(mfi);
-            AMREX_D_TERM(Array4<Real const> const& apxfab = area[0]->const_array(mfi);,
-                         Array4<Real const> const& apyfab = area[1]->const_array(mfi);,
-                         Array4<Real const> const& apzfab = area[2]->const_array(mfi););
-            AMREX_D_TERM(Array4<Real const> const& fcx = fcent[0]->const_array(mfi);,
-                         Array4<Real const> const& fcy = fcent[1]->const_array(mfi);,
-                         Array4<Real const> const& fcz = fcent[2]->const_array(mfi););
- 
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( vbx, thread_box,
+            }
+            else
             {
-              eb_interp_cc2facecent(thread_box, solnfab,
-                                    flagfab,
-                                    AMREX_D_DECL(apxfab,apyfab,apzfab),
-                                    AMREX_D_DECL(fcx,fcy,fcz),
-                                    AMREX_D_DECL(edg_x,edg_y,edg_z),
-                                    scomp, dcomp, nc,
-                                    domain, a_bcs);
-            });
-          }
+                Array4<EBCellFlag const> const& flagfab = flags.const_array(mfi);
+                AMREX_D_TERM(Array4<Real const> const& apxfab = area[0]->const_array(mfi);,
+                             Array4<Real const> const& apyfab = area[1]->const_array(mfi);,
+                             Array4<Real const> const& apzfab = area[2]->const_array(mfi););
+                AMREX_D_TERM(Array4<Real const> const& fcx = fcent[0]->const_array(mfi);,
+                             Array4<Real const> const& fcy = fcent[1]->const_array(mfi);,
+                             Array4<Real const> const& fcz = fcent[2]->const_array(mfi););
+                
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( vbx, thread_box,
+                {
+                    eb_interp_cc2facecent(thread_box, solnfab,
+                                          flagfab,
+                                          AMREX_D_DECL(apxfab,apyfab,apzfab),
+                                          AMREX_D_DECL(fcx,fcy,fcz),
+                                          AMREX_D_DECL(edg_x,edg_y,edg_z),
+                                          ncomp,
+                                          domain, a_bcs);
+                });
+            }
         }
     }
     
