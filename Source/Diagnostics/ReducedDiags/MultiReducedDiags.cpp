@@ -1,3 +1,5 @@
+#include "ParticleMeanEnergy.H"
+#include "FieldMeanEnergy.H"
 #include "MultiReducedDiags.H"
 #include "AMReX_ParmParse.H"
 #include "AMReX_ParallelDescriptor.H"
@@ -37,7 +39,8 @@ MultiReducedDiags::MultiReducedDiags ()
         }
         else if (rd_type.compare("FieldMeanEnergy") == 0)
         {
-
+            m_multi_rd[i_rd].reset
+                ( new FieldMeanEnergy(m_rd_names[i_rd]));
         }
         else
         { Abort("No matching reduced diagnostics type found."); }

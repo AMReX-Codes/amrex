@@ -5,15 +5,34 @@
 #include <iostream>
 #include <cmath>
 
+using namespace amrex;
+
 /// constructor
-FieldMeanEnergy::FieldMeanEnergy (
-std::string rd_name, std::ofstream & ofs )
+FieldMeanEnergy::FieldMeanEnergy (std::string rd_name)
 : ReducedDiags{rd_name}
 {
+
+    /// open file
+    std::ofstream ofs;
+    ofs.open(m_path + m_rd_name + ".txt",
+        std::ofstream::out | std::ofstream::app);
+
     // write header row
-    ofs << "#" << "step" << m_sep << "time(s)" << m_sep;
-    ofs << "total(J)" << m_sep << "E(J)" << m_sep << "B(J)";
+    ofs << "#";
+    ofs << "step";
+    ofs << m_sep;
+    ofs << "time(s)";
+    ofs << m_sep;
+    ofs << "total(J)";
+    ofs << m_sep;
+    ofs << "E(J)";
+    ofs << m_sep;
+    ofs << "B(J)";
     ofs << std::endl;
+
+    /// close file
+    ofs.close();
+
 }
 ///< end constructor
 
@@ -22,7 +41,7 @@ FieldMeanEnergy::~FieldMeanEnergy ()
 {}
 ///< end destructor
 
-/// function that computes kinetic energy
+/// function that computes field energy
 void FieldMeanEnergy::ComputeDiags (int step)
 {
 
@@ -36,28 +55,23 @@ void FieldMeanEnergy::ComputeDiags (int step)
     /// the extra one is for total energy
     m_data.resize(3,0.0);
 
-    /// declare total energy variable
-    amrex::Real Etot = 0.0;
+    /// loop over refinement levels
+    for (int lev = 0; lev <= 0; ++lev)
+    {
+        auto & Ex = warpx.getEfield(lev,0);
+        auto & Ey = warpx.getEfield(lev,1);
+        auto & Ez = warpx.getEfield(lev,2);
+        auto & Bx = warpx.getBfield(lev,0);
+        auto & By = warpx.getBfield(lev,1);
+        auto & Bz = warpx.getBfield(lev,2);
+        for ( MFIter mfi(Ex, TilingIfNotGPU()); mfi.isValid(); ++mfi )
+        {
+            //Ex(i,j,k)
+        }
+    }
 
-    #pragma omp parallel reduction(+:EK, np)
-
-    /// compute total EK
-    EKtot += EK;
-
-    /// compute total np
-    nptot += np;
-
-    /// save EK to m_data
-    if ( np > 0 )
-    { m_data[i_s+1] = EK / np; }
-    else
-    { m_data[i_s+1] = 0.0; }
-
-    /// save total EK
-    if ( nptot > 0 )
-    { m_data[0] = EKtot / nptot; }
-    else
-    { m_data[0] = 0.0; }
+    /// reduced sum for mpi ranks
+    //ParallelDescriptor::ReduceRealSum();
 
 }
-///< end void FieldMeanEnergy::ComputeDiags
+///< end void ParticleMeanEnergy::ComputeDiags

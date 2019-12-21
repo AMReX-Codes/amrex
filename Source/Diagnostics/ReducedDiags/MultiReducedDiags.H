@@ -2,7 +2,6 @@
 #define WARPX_DIAGNOSTICS_REDUCEDDIAGS_MULTIREDUCEDDIAGS_H_
 
 #include "ReducedDiags.H"
-#include "ParticleMeanEnergy.H"
 #include <vector>
 #include <string>
 #include <memory>

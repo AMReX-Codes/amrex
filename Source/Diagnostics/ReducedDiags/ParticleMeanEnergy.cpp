@@ -2,6 +2,7 @@
 #include "WarpX.H"
 #include "WarpXConst.H"
 #include "AMReX_REAL.H"
+#include "AMReX_ParticleReduce.H"
 #include <iostream>
 #include <cmath>
 
@@ -60,11 +61,8 @@ void ParticleMeanEnergy::ComputeDiags (int step)
     /// Judge if the diags should be done
     if ( (step+1) % m_freq != 0 ) { return; }
 
-    /// get WarpX class object
-    auto & warpx = WarpX::GetInstance();
-
     /// get MultiParticleContainer class object
-    auto & mypc = warpx.GetPartContainer();
+    auto & mypc = WarpX::GetInstance().GetPartContainer();
 
     /// get number of species (int)
     auto species_number = mypc.nSpecies();
@@ -76,17 +74,8 @@ void ParticleMeanEnergy::ComputeDiags (int step)
     /// get species names (std::vector<std::string>)
     auto species_names = mypc.GetSpeciesNames();
 
-    /// get number of level (int)
-    auto level_number = warpx.finestLevel();
-
     /// speed of light squared
     auto c2 = PhysConst::c * PhysConst::c;
-
-    /// declare total kinetic energy variable
-    Real EKtot = 0.0;
-
-    /// total number of particles;
-    long nptot = 0;
 
     /// loop over species
     for (int i_s = 0; i_s < species_number; ++i_s)
@@ -97,78 +86,49 @@ void ParticleMeanEnergy::ComputeDiags (int step)
         /// get mass (Real)
         auto m = myspc.getMass();
 
-        /// declare kinetic energy variable
-        Real EK = 0.0;
+        using PType = typename WarpXParticleContainer::SuperParticleType;
 
-        /// number of particles;
-        long np = 0;
+        auto Etot = ReduceSum( myspc,
+        [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real
+        {
+            auto w  = p.rdata(PIdx::w);
+            auto px = p.rdata(PIdx::ux);
+            auto py = p.rdata(PIdx::uy);
+            auto pz = p.rdata(PIdx::uz);
+            auto ps = (px*px + py*py + pz*pz);
+            return ( std::sqrt(ps*c2 + m*m*c2*c2) - m*c2 ) * w;
+        });
 
-#ifdef AMREX_USE_GPU
-        Abort("Reduced diagnostics is not avaiable for GPU yet.");
-        if ( Gpu::inLaunchRegion() )
-        { /// if GPU
-        } /// end if GPU
-        else
-#endif
-        { /// if OpenMP
-            /// loop over refinement levels
-            for (int lev = 0; lev <= level_number; ++lev)
-            {
-#ifdef _OPENMP
-#pragma omp parallel if (!system::regtest_reduction) reduction(+:EK, np)
-#endif
-                /// Loop over boxes
-                for (WarpXParIter pti(myspc, lev); pti.isValid(); ++pti)
-                {
-
-                    /// get particle momentum arrays
-                    auto & px = pti.GetAttribs(PIdx::ux);
-                    auto & py = pti.GetAttribs(PIdx::uy);
-                    auto & pz = pti.GetAttribs(PIdx::uz);
-
-                    /// sum total number of particles
-                    np += pti.numParticles();
-
-                    /// loop over particles
-                    for (long i = 0; i < px.size(); i++)
-                    {
-                        /// get momentum squared
-                        auto ps = (px[i]*px[i] + py[i]*py[i] + pz[i]*pz[i]);
-                        /// get relativistic kinetic energy
-                        EK += std::sqrt(ps*c2 + m*m*c2*c2) - m*c2;
-                    }
-                    ///< end loop over particles
-
-                }
-                ///< end loop over boxes
-
-            }
-            ///< end loop over refinement levels
-
-        } ///< end if OpenMP
+        auto Wtot = ReduceSum( myspc,
+        [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real
+        {
+            return p.rdata(PIdx::w);
+        });
 
         /// reduced sum for mpi ranks
-        ParallelDescriptor::ReduceRealSum(EK);
-        ParallelDescriptor::ReduceLongSum(np);
+        ParallelDescriptor::ReduceRealSum(Etot);
+        ParallelDescriptor::ReduceRealSum(Wtot);
 
-        /// compute total EK
-        EKtot += EK;
-
-        /// compute total np
-        nptot += np;
-
-        /// save EK to m_data
-        if ( np > 0 )
-        { m_data[i_s+1] = EK / np; }
+        /// save Etot to m_data
+        if ( Wtot > 0.0 )
+        { m_data[i_s+1] = Etot / Wtot; }
         else
         { m_data[i_s+1] = 0.0; }
 
     }
     ///< end loop over species
 
-    /// save total EK
-    if ( nptot > 0 )
-    { m_data[0] = EKtot / nptot; }
+    Real E_sum = 0.0;
+    /// loop over species
+    for (int i_s = 0; i_s < species_number; ++i_s)
+    {
+        E_sum += m_data[i_s+1];
+    }
+    ///< end loop over species
+
+    /// save total energy
+    if ( species_number > 0 )
+    { m_data[0] = E_sum / species_number; }
     else
     { m_data[0] = 0.0; }
 
