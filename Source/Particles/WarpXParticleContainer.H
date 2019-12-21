@@ -101,8 +101,32 @@ public:
     }
 };
 
+// Forward-declaration needed by WarpXParticleContainer below
 class MultiParticleContainer;
 
+/**
+ * WarpXParticleContainer is the base polymorphic class from which all concrete
+ * particle container classes (that store a collection of particles) derive. Derived
+ * classes can be used for plasma particles, photon particles, or non-physical
+ * particles (e.g., for the laser antenna).
+ * It derives from amrex::ParticleContainer<0,0,PIdx::nattribs>, where the
+ * template arguments stand for the number of int and amrex::Real SoA and AoS
+ * data in amrex::Particle.
+ *  - AoS amrex::Real: x, y, z (default), 0 additional (first template
+ *    parameter)
+ *  - AoS int: id, cpu (default), 0 additional (second template parameter)
+ *  - SoA amrex::Real: PIdx::nattribs (third template parameter), see PIdx for
+ * the list.
+ *
+ * WarpXParticleContainer contains the main functions for initialization,
+ * interaction with the grid (field gather and current deposition) and particle
+ * push.
+ *
+ * Note: many functions are pure virtual (meaning they MUST be defined in
+ * derived classes, e.g., Evolve) or empty function (meaning they
+ * do not do anything, e.g., FieldGather, meant to be overriden by derived
+ * function) or actual functions (e.g. CurrentDeposition).
+ */
 class WarpXParticleContainer
     : public amrex::ParticleContainer<0,0,PIdx::nattribs>
 {
@@ -140,6 +164,11 @@ public:
                            amrex::Real t, amrex::Real dt) = 0;
 #endif // WARPX_DO_ELECTROSTATIC
 
+    /**
+     * Evolve is the central WarpXParticleContainer function that advances
+     * particles for a time dt (typically one timestep). It is a pure virtual
+     * function for flexibility.
+     */
     virtual void Evolve (int lev,
                          const amrex::MultiFab& Ex, const amrex::MultiFab& Ey, const amrex::MultiFab& Ez,
                          const amrex::MultiFab& Bx, const amrex::MultiFab& By, const amrex::MultiFab& Bz,

@@ -1,6 +1,3 @@
-#include <AMReX_MGT_Solver.H>
-#include <AMReX_stencil_types.H>
-
 #include <WarpX.H>
 #include <WarpX_f.H>
 
@@ -98,24 +95,7 @@ WritePlotFileES (const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
         }
     }
 
-    Vector<std::string> particle_varnames;
-    particle_varnames.push_back("weight");
-
-    particle_varnames.push_back("momentum_x");
-    particle_varnames.push_back("momentum_y");
-    particle_varnames.push_back("momentum_z");
-
-    particle_varnames.push_back("Ex");
-    particle_varnames.push_back("Ey");
-    particle_varnames.push_back("Ez");
-
-    particle_varnames.push_back("Bx");
-    particle_varnames.push_back("By");
-    particle_varnames.push_back("Bz");
-
-    Vector<std::string> int_names;
-
-    mypc->Checkpoint(plotfilename, particle_varnames, int_names);
+    mypc->Checkpoint(plotfilename);
 
     WriteJobInfo(plotfilename);
 
