@@ -654,7 +654,7 @@ WarpX::AverageAndPackFields ( Vector<std::string>& varnames,
             AverageAndPackVectorFieldComponents(mf_avg[lev], Efield_fp[lev], dmap[lev], dcomp, ngrow);
             if (lev == 0) {
                 AddToVarNames(varnames, "E", "_fp");
-                if (n_rz_azimuthal_modes > 0) {
+                if (n_rz_azimuthal_modes > 1) {
                     AddToVarNames(varnames, "E", ComponentName("_fp", 0, "real"));
                     for (int mode=1 ; mode < n_rz_azimuthal_modes ; mode++) {
                         AddToVarNames(varnames, "E", ComponentName("_fp", mode, "real"));
@@ -667,7 +667,7 @@ WarpX::AverageAndPackFields ( Vector<std::string>& varnames,
             AverageAndPackVectorFieldComponents(mf_avg[lev], Bfield_fp[lev], dmap[lev], dcomp, ngrow);
             if (lev == 0) {
                 AddToVarNames(varnames, "B", "_fp");
-                if (n_rz_azimuthal_modes > 0) {
+                if (n_rz_azimuthal_modes > 1) {
                     AddToVarNames(varnames, "B", ComponentName("_fp", 0, "real"));
                     for (int mode=1 ; mode < n_rz_azimuthal_modes ; mode++) {
                         AddToVarNames(varnames, "B", ComponentName("_fp", mode, "real"));
