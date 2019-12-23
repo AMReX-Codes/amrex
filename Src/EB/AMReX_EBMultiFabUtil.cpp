@@ -730,9 +730,9 @@ EB_interp_CC_to_FaceCentroid (MultiFab& sol,
     const int nghost(4);
     
    // Initialize edge state
-    D_TERM(edgestate_x.setVal(1e40);,
-           edgestate_y.setVal(1e40);,
-           edgestate_z.setVal(1e40););
+    D_TERM(edgestate_x.setVal(1e40,dcomp,ncomp);,
+           edgestate_y.setVal(1e40,dcomp,ncomp);,
+           edgestate_z.setVal(1e40,dcomp,ncomp));
     
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
