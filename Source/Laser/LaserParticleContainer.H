@@ -10,6 +10,17 @@
 #include <memory>
 #include <limits>
 
+/**
+ * The main method to inject a laser pulse in WarpX is to use an artificial
+ * antenna: particles evenly distributed in a given plane (one particle per
+ * cell) move at each iteration and deposit a current J onto the grid, which
+ * in turns creates an electromagnetic field on the grid. The particles'
+ * displacements are prescribed to create the field requested by the user.
+ *
+ * These artificial particles are contained in the LaserParticleContainer.
+ * LaserParticleContainer derives directly from WarpXParticleContainer. It
+ * requires a DepositCurrent function, but no FieldGather function.
+ */
 class LaserParticleContainer
     : public WarpXParticleContainer
 {

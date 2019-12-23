@@ -15,6 +15,13 @@
 
 #include <map>
 
+/**
+ * PhysicalParticleContainer is the ParticleContainer class containing plasma
+ * particles (if a simulation has 2 plasma species, say "electrons" and
+ * "ions"), they will be two instances of PhysicalParticleContainer.
+ *
+ * PhysicalParticleContainer inherits from WarpXParticleContainer.
+ */
 class PhysicalParticleContainer
     : public WarpXParticleContainer
 {
@@ -68,6 +75,39 @@ public:
                       int lev,
                       int depos_lev);
 
+    /**
+     * \brief Evolve is the central function PhysicalParticleContainer that
+     * advances plasma particles for a time dt (typically one timestep).
+     *
+     * \param lev level on which particles are living
+     * \param Ex MultiFab from which field Ex is gathered
+     * \param Ey MultiFab from which field Ey is gathered
+     * \param Ez MultiFab from which field Ez is gathered
+     * \param Bx MultiFab from which field Bx is gathered
+     * \param By MultiFab from which field By is gathered
+     * \param Bz MultiFab from which field Bz is gathered
+     * \param jx MultiFab to which the particles' current jx is deposited
+     * \param jy MultiFab to which the particles' current jy is deposited
+     * \param jz MultiFab to which the particles' current jz is deposited
+     * \param cjx Same as jx (coarser, from lev-1), when using deposition buffers
+     * \param cjy Same as jy (coarser, from lev-1), when using deposition buffers
+     * \param cjz Same as jz (coarser, from lev-1), when using deposition buffers
+     * \param rho MultiFab to which the particles' charge is deposited
+     * \param crho Same as rho (coarser, from lev-1), when using deposition buffers
+     * \param cEx Same as Ex (coarser, from lev-1), when using gather buffers
+     * \param cEy Same as Ey (coarser, from lev-1), when using gather buffers
+     * \param cEz Same as Ez (coarser, from lev-1), when using gather buffers
+     * \param cBx Same as Bx (coarser, from lev-1), when using gather buffers
+     * \param cBy Same as By (coarser, from lev-1), when using gather buffers
+     * \param cBz Same as Bz (coarser, from lev-1), when using gather buffers
+     * \param t current physical time
+     * \param dt time step by which particles are advanced
+     * \param a_dt_type type of time step (used for sub-cycling)
+     *
+     * Evolve iterates over particle iterator (each box) and performs filtering,
+     * field gather, particle push and current deposition for all particles
+     * in the box.
+     */
     virtual void Evolve (int lev,
                          const amrex::MultiFab& Ex,
                          const amrex::MultiFab& Ey,

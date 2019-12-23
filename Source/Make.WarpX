@@ -172,9 +172,6 @@ ifeq ($(USE_RZ),TRUE)
 endif
 
 ifeq ($(DO_ELECTROSTATIC),TRUE)
-     include $(AMREX_HOME)/Src/LinearSolvers/C_to_F_MG/Make.package
-     include $(AMREX_HOME)/Src/LinearSolvers/F_MG/FParallelMG.mak
-     include $(AMREX_HOME)/Src/F_BaseLib/FParallelMG.mak
      DEFINES += -DWARPX_DO_ELECTROSTATIC
 endif
 
