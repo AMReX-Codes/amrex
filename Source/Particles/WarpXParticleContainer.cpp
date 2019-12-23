@@ -26,41 +26,50 @@ WarpXParIter::WarpXParIter (ContainerType& pc, int level)
 
 #if (AMREX_SPACEDIM == 2)
 void
-WarpXParIter::GetPosition (Gpu::ManagedDeviceVector<ParticleReal>& x,
-                           Gpu::ManagedDeviceVector<ParticleReal>& y,
-                           Gpu::ManagedDeviceVector<ParticleReal>& z) const
+WarpXParIter::GetPosition (Gpu::ManagedDeviceVector<ParticleReal>& xp,
+                           Gpu::ManagedDeviceVector<ParticleReal>& yp,
+                           Gpu::ManagedDeviceVector<ParticleReal>& zp) const
 {
-    amrex::ParIter<0,0,PIdx::nattribs>::GetPosition(x, z);
+    amrex::ParIter<0,0,PIdx::nattribs>::GetPosition(xp, zp);
 #ifdef WARPX_DIM_RZ
     const auto& attribs = GetAttribs();
-    const auto& theta = attribs[PIdx::theta];
-    y.resize(x.size());
-    for (unsigned int i=0 ; i < x.size() ; i++) {
+    const auto& thetap = attribs[PIdx::theta];
+    yp.resize(xp.size());
+    ParticleReal* const AMREX_RESTRICT x = xp.dataPtr();
+    ParticleReal* const AMREX_RESTRICT y = yp.dataPtr();
+    const ParticleReal* const AMREX_RESTRICT theta = thetap.dataPtr();
+    amrex::ParallelFor( xp.size(),
+        [=] AMREX_GPU_DEVICE (long i) {
         // The x stored in the particles is actually the radius
         y[i] = x[i]*std::sin(theta[i]);
         x[i] = x[i]*std::cos(theta[i]);
-    }
+    });
 #else
-    y.resize(x.size(), std::numeric_limits<ParticleReal>::quiet_NaN());
+    yp.resize(xp.size(), std::numeric_limits<ParticleReal>::quiet_NaN());
 #endif
 }
 
 void
-WarpXParIter::SetPosition (const Gpu::ManagedDeviceVector<ParticleReal>& x,
-                           const Gpu::ManagedDeviceVector<ParticleReal>& y,
-                           const Gpu::ManagedDeviceVector<ParticleReal>& z)
+WarpXParIter::SetPosition (const Gpu::ManagedDeviceVector<ParticleReal>& xp,
+                           const Gpu::ManagedDeviceVector<ParticleReal>& yp,
+                           const Gpu::ManagedDeviceVector<ParticleReal>& zp)
 {
 #ifdef WARPX_DIM_RZ
     auto& attribs = GetAttribs();
-    auto& theta = attribs[PIdx::theta];
-    Gpu::ManagedDeviceVector<ParticleReal> r(x.size());
-    for (unsigned int i=0 ; i < x.size() ; i++) {
+    auto& thetap = attribs[PIdx::theta];
+    Gpu::ManagedDeviceVector<ParticleReal> rp(xp.size());
+    const ParticleReal* const AMREX_RESTRICT x = xp.dataPtr();
+    const ParticleReal* const AMREX_RESTRICT y = yp.dataPtr();
+    ParticleReal* const AMREX_RESTRICT r = rp.dataPtr();
+    ParticleReal* const AMREX_RESTRICT theta = thetap.dataPtr();
+    amrex::ParallelFor( xp.size(),
+        [=] AMREX_GPU_DEVICE (long i) {
         theta[i] = std::atan2(y[i], x[i]);
         r[i] = std::sqrt(x[i]*x[i] + y[i]*y[i]);
-    }
-    amrex::ParIter<0,0,PIdx::nattribs>::SetPosition(r, z);
+    });
+    amrex::ParIter<0,0,PIdx::nattribs>::SetPosition(rp, zp);
 #else
-    amrex::ParIter<0,0,PIdx::nattribs>::SetPosition(x, z);
+    amrex::ParIter<0,0,PIdx::nattribs>::SetPosition(xp, zp);
 #endif
 }
 #endif
