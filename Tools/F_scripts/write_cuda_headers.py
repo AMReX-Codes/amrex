@@ -608,6 +608,11 @@ def convert_cxx(inputs):
                 if "nohost" in entry or no_host_version == True:
                     do_host_version = False
 
+            synchronize = False
+            for entry in split_line:
+                if "sync" in entry:
+                    synchronize = True
+
             # we don't need to reproduce the pragma line in the
             # output, but we need to capture the whole function
             # call that follows
@@ -666,7 +671,7 @@ def convert_cxx(inputs):
 
             hout.write("    AMREX_GPU_SAFE_CALL(cudaGetLastError());\n")
 
-            if 'AMREX_DEBUG' in defines:
+            if 'AMREX_DEBUG' in defines or synchronize:
                 hout.write("AMREX_GPU_SAFE_CALL(cudaDeviceSynchronize());\n")
 
             if do_host_version:
