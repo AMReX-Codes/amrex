@@ -815,9 +815,19 @@ Device::box_threads_and_blocks (const Box& bx, dim3& numBlocks, dim3& numThreads
 
     if (num_SMs > 0) {
 
+#if (AMREX_SPACEDIM == 1)
+        numBlocks.x = num_SMs * SM_mult_factor;
+        numBlocks.y = 1;
+        numBlocks.z = 1;
+#elif (AMREX_SPACEDIM == 2)
+        numBlocks.x = 1;
+        numBlocks.y = SM_mult_factor * num_SMs;
+        numBlocks.z = 1;
+#else
         numBlocks.x = 1;
         numBlocks.y = SM_mult_factor;
         numBlocks.z = num_SMs;
+#endif
 
     } else {
 
