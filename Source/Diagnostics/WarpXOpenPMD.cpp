@@ -165,7 +165,7 @@ WarpXOpenPMDPlot::SavePlotFile (const std::unique_ptr<WarpXParticleContainer>& p
   SetupPos(currSpecies, counter.GetTotalNumParticles());
   SetupRealProperties(currSpecies, write_real_comp, real_comp_names, counter.GetTotalNumParticles());
 
-  // force the files created by all processors! this is the key to resolve RZ storage issue!!
+  // forces the files created by all processors! this is the key to resolve RZ storage issue!!
   m_Series->flush();
   for (auto currentLevel = 0; currentLevel <= pc->finestLevel(); currentLevel++)
     {
