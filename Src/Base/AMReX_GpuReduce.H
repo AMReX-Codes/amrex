@@ -42,7 +42,7 @@ T blockReduce (T x, WARPREDUCE && warp_reduce, T x0)
     __syncthreads();
     if (lane == 0) shared[wid] = x;
     __syncthreads();
-    bool b = (threadIdx.x < std::max(blockDim.x, warpSize) / warpSize);
+    bool b = (threadIdx.x == 0) or (threadIdx.x < blockDim.x / warpSize);
     x =  b ? shared[lane] : x0;
     if (wid == 0) x = warp_reduce(x);
     return x;
