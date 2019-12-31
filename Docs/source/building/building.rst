@@ -56,12 +56,22 @@ This will generate an executable file in the ``Bin`` directory.
 
         make -j 4 USE_OMP=FALSE
 
-If you updated the AMReX or PICSAR files in your `warpx_directory` through
-a `git pull` or if you would like to clean a previously compiled version:
+In order to clean a previously compiled version:
 
 ::
 
     make realclean
+
+Troubleshooting
+---------------
+
+If you are having trouble compiling WarpX, you should try to run:
+
+::
+
+   make realclean
+
+before re-attempting compilation.
 
 Advanced building instructions
 ------------------------------
