@@ -3,40 +3,6 @@
 #include <AMReX_PCI.H>
 
 template <class FAB>
-int
-FabArray<FAB>::select_comm_data_type (std::size_t nbytes)
-{
-    if (nbytes <= std::size_t(std::numeric_limits<int>::max()))
-    {
-        return 1;
-    }
-    else if (amrex::aligned_size(sizeof(unsigned long long), nbytes) <=
-             sizeof(unsigned long long)*std::size_t(std::numeric_limits<int>::max()))
-    {
-        return 2;
-    }
-    else
-    {
-        return 3;
-    }
-}
-
-template <class FAB>
-std::size_t
-FabArray<FAB>::alignof_comm_data (std::size_t nbytes)
-{
-    const int t = select_comm_data_type(nbytes);
-    if (t == 1) {
-        return 1;
-    } else if (t == 2) {
-        return sizeof(unsigned long long);
-    } else {
-        amrex::Abort("TODO: message size is too big");
-        return 0;
-    }
-}
-
-template <class FAB>
 template <class FOO, class BAR>  // FOO fools nvcc
 void
 FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
@@ -221,6 +187,11 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                         ((unsigned long long *)send_data[j],
                          send_size[j]/sizeof(unsigned long long),
                          rank, SeqNum, comm).req();
+                } else if (comm_data_type == 3) {
+                    send_reqs[j] = ParallelDescriptor::Asend
+                        ((ParallelDescriptor::lull_t *)send_data[j],
+                         send_size[j]/sizeof(ParallelDescriptor::lull_t),
+                         rank, SeqNum, comm).req();
                 } else {
                     amrex::Abort("TODO: message size is too big");
                 }
@@ -293,7 +264,7 @@ FabArray<FAB>::FillBoundary_finish ()
         if (actual_n_rcvs > 0) {
             ParallelDescriptor::Waitall(fb_recv_reqs, fb_recv_stat);
 #ifdef AMREX_DEBUG
-            if (!CheckRcvStats(fb_recv_stat, fb_recv_size, MPI_CHAR, fb_tag))
+            if (!CheckRcvStats(fb_recv_stat, fb_recv_size, fb_tag))
             {
                 amrex::Abort("FillBoundary_finish failed with wrong message size");
             }
@@ -558,6 +529,11 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                             ((unsigned long long *)send_data[j],
                              send_size[j]/sizeof(unsigned long long),
                              rank, SeqNum, comm).req();
+                    } else if (comm_data_type == 3) {
+                        send_reqs[j] = ParallelDescriptor::Asend
+                            ((ParallelDescriptor::lull_t *)send_data[j],
+                             send_size[j]/sizeof(ParallelDescriptor::lull_t),
+                             rank, SeqNum, comm).req();
                     } else {
                         amrex::Abort("TODO: message size is too big");
                     }
@@ -598,7 +574,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                 Vector<MPI_Status> stats(N_rcvs);
                 ParallelDescriptor::Waitall(recv_reqs, stats);
 #ifdef AMREX_DEBUG
-                if (!CheckRcvStats(stats, recv_size, MPI_CHAR, SeqNum))
+                if (!CheckRcvStats(stats, recv_size, SeqNum))
                 {
                     amrex::Abort("ParallelCopy failed with wrong message size");
                 }
@@ -744,7 +720,7 @@ FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&  m_RcvTags,
             nbytes += (*this)[cct.dstIndex].nBytes(cct.dbox,icomp,ncomp);
         }
 
-        std:size_t acd = alignof_comm_data(nbytes);
+        std::size_t acd = alignof_comm_data(nbytes);
         nbytes = amrex::aligned_size(acd, nbytes);  // so that nbytes are aligned
 
         // Also need to align the offset properly
@@ -788,6 +764,11 @@ FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&  m_RcvTags,
                     recv_reqs[i] = ParallelDescriptor::Arecv
                         ((unsigned long long *)recv_data[i],
                          recv_size[i]/sizeof(unsigned long long),
+                         rank, SeqNum, comm).req();
+                } else if (comm_data_type == 3) {
+                    recv_reqs[i] = ParallelDescriptor::Arecv
+                        ((ParallelDescriptor::lull_t *)recv_data[i],
+                         recv_size[i]/sizeof(ParallelDescriptor::lull_t),
                          rank, SeqNum, comm).req();
                 } else {
                     amrex::Abort("TODO: message size is too big");
