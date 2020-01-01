@@ -319,6 +319,7 @@ ParallelDescriptor::StartParallel (int*    argc,
     auto t2 = Mpi_typemap<IndexType>::type();
     auto t3 = Mpi_typemap<Box>::type();
     auto t4 = Mpi_typemap<ParallelDescriptor::lull_t>::type();
+    amrex::ignore_unused(t1,t2,t3,t4);
 
     // ---- find the maximum value for a tag
     int flag(0), *p;

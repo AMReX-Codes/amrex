@@ -35,11 +35,6 @@ void actual_init_bcoef (int i, int j, int k,
     constexpr amrex::Real sigma = 10.;
     const amrex::Real theta = 0.5*std::log(3.) / (w + 1.e-50);
 
-    constexpr amrex::Real pi = 3.1415926535897932;
-    constexpr amrex::Real tpi =  2.*pi;
-    constexpr amrex::Real fpi =  4.*pi;
-    constexpr amrex::Real fac = 12.*pi*pi;
-
     amrex::Real xc = (prob_hi[0] + prob_lo[0])*0.5;
     amrex::Real yc = (prob_hi[1] + prob_lo[1])*0.5;
     amrex::Real zc = (prob_hi[2] + prob_lo[2])*0.5;
