@@ -844,9 +844,6 @@ private:
                    int                                    ncomp,
                    int                                    SeqNum);
 
-    static int select_comm_data_type (std::size_t nbytes);
-    static std::size_t alignof_comm_data (std::size_t nbytes);
-
 #endif
 
 public:

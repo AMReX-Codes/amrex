@@ -2,48 +2,6 @@
 #include <AMReX_FBI.H>
 #include <AMReX_PCI.H>
 
-#ifdef AMREX_USE_MPI
-template <class FAB>
-int
-FabArray<FAB>::select_comm_data_type (std::size_t nbytes)
-{
-    if (nbytes <= std::size_t(std::numeric_limits<int>::max()))
-    {
-        return 1;
-    }
-    else if (amrex::aligned_size(sizeof(unsigned long long), nbytes) <=
-             sizeof(unsigned long long)*std::size_t(std::numeric_limits<int>::max()))
-    {
-        return 2;
-    } else if (amrex::aligned_size(sizeof(ParallelDescriptor::lull_t), nbytes) <=
-               sizeof(ParallelDescriptor::lull_t)*std::size_t(std::numeric_limits<int>::max()))
-    {
-        return 3;
-    }
-    else
-    {
-        return 0;
-    }
-}
-
-template <class FAB>
-std::size_t
-FabArray<FAB>::alignof_comm_data (std::size_t nbytes)
-{
-    const int t = select_comm_data_type(nbytes);
-    if (t == 1) {
-        return 1;
-    } else if (t == 2) {
-        return sizeof(unsigned long long);
-    } else if (t == 3) {
-        return sizeof(ParallelDescriptor::lull_t);
-    } else {
-        amrex::Abort("TODO: message size is too big");
-        return 0;
-    }
-}
-#endif
-
 template <class FAB>
 template <class FOO, class BAR>  // FOO fools nvcc
 void
@@ -306,7 +264,7 @@ FabArray<FAB>::FillBoundary_finish ()
         if (actual_n_rcvs > 0) {
             ParallelDescriptor::Waitall(fb_recv_reqs, fb_recv_stat);
 #ifdef AMREX_DEBUG
-            if (!CheckRcvStats(fb_recv_stat, fb_recv_size, MPI_CHAR, fb_tag))
+            if (!CheckRcvStats(fb_recv_stat, fb_recv_size, fb_tag))
             {
                 amrex::Abort("FillBoundary_finish failed with wrong message size");
             }
@@ -616,7 +574,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                 Vector<MPI_Status> stats(N_rcvs);
                 ParallelDescriptor::Waitall(recv_reqs, stats);
 #ifdef AMREX_DEBUG
-                if (!CheckRcvStats(stats, recv_size, MPI_CHAR, SeqNum))
+                if (!CheckRcvStats(stats, recv_size, SeqNum))
                 {
                     amrex::Abort("ParallelCopy failed with wrong message size");
                 }
