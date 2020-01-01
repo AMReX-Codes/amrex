@@ -2,6 +2,7 @@
 #include <AMReX_FBI.H>
 #include <AMReX_PCI.H>
 
+#ifdef AMREX_USE_MPI
 template <class FAB>
 int
 FabArray<FAB>::select_comm_data_type (std::size_t nbytes)
@@ -35,6 +36,7 @@ FabArray<FAB>::alignof_comm_data (std::size_t nbytes)
         return 0;
     }
 }
+#endif
 
 template <class FAB>
 template <class FOO, class BAR>  // FOO fools nvcc
