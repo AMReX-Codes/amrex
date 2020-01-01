@@ -37,9 +37,7 @@ Arena::~Arena () {}
 std::size_t
 aligned_size (std::size_t align_requirement, std::size_t size)
 {
-    std::size_t x = size + (align_requirement-1);
-    x -= x & (align_requirement-1);
-    return x;
+    return ((size + (align_requirement-1)) / align_requirement) * align_requirement;
 }
 
 std::size_t
