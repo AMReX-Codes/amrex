@@ -15,10 +15,14 @@ FabArray<FAB>::select_comm_data_type (std::size_t nbytes)
              sizeof(unsigned long long)*std::size_t(std::numeric_limits<int>::max()))
     {
         return 2;
+    } else if (amrex::aligned_size(sizeof(ParallelDescriptor::lull_t), nbytes) <=
+               sizeof(ParallelDescriptor::lull_t)*std::size_t(std::numeric_limits<int>::max()))
+    {
+        return 3;
     }
     else
     {
-        return 3;
+        return 0;
     }
 }
 
@@ -31,6 +35,8 @@ FabArray<FAB>::alignof_comm_data (std::size_t nbytes)
         return 1;
     } else if (t == 2) {
         return sizeof(unsigned long long);
+    } else if (t == 3) {
+        return sizeof(ParallelDescriptor::lull_t);
     } else {
         amrex::Abort("TODO: message size is too big");
         return 0;
@@ -222,6 +228,11 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                     send_reqs[j] = ParallelDescriptor::Asend
                         ((unsigned long long *)send_data[j],
                          send_size[j]/sizeof(unsigned long long),
+                         rank, SeqNum, comm).req();
+                } else if (comm_data_type == 3) {
+                    send_reqs[j] = ParallelDescriptor::Asend
+                        ((ParallelDescriptor::lull_t *)send_data[j],
+                         send_size[j]/sizeof(ParallelDescriptor::lull_t),
                          rank, SeqNum, comm).req();
                 } else {
                     amrex::Abort("TODO: message size is too big");
@@ -560,6 +571,11 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                             ((unsigned long long *)send_data[j],
                              send_size[j]/sizeof(unsigned long long),
                              rank, SeqNum, comm).req();
+                    } else if (comm_data_type == 3) {
+                        send_reqs[j] = ParallelDescriptor::Asend
+                            ((ParallelDescriptor::lull_t *)send_data[j],
+                             send_size[j]/sizeof(ParallelDescriptor::lull_t),
+                             rank, SeqNum, comm).req();
                     } else {
                         amrex::Abort("TODO: message size is too big");
                     }
@@ -790,6 +806,11 @@ FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&  m_RcvTags,
                     recv_reqs[i] = ParallelDescriptor::Arecv
                         ((unsigned long long *)recv_data[i],
                          recv_size[i]/sizeof(unsigned long long),
+                         rank, SeqNum, comm).req();
+                } else if (comm_data_type == 3) {
+                    recv_reqs[i] = ParallelDescriptor::Arecv
+                        ((ParallelDescriptor::lull_t *)recv_data[i],
+                         recv_size[i]/sizeof(ParallelDescriptor::lull_t),
                          rank, SeqNum, comm).req();
                 } else {
                     amrex::Abort("TODO: message size is too big");

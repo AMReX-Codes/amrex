@@ -56,6 +56,10 @@ namespace ParallelDescriptor
 
     MPI_Comm m_comm = MPI_COMM_NULL;    // communicator for all ranks, probably MPI_COMM_WORLD
 
+#ifdef AMREX_USE_MPI
+    MPI_Datatype m_lull_mpi_data_type = MPI_DATATYPE_NULL;
+#endif
+
     int m_MinTag = 1000, m_MaxTag = -1;
 
     const int ioProcessor = 0;
@@ -307,6 +311,10 @@ ParallelDescriptor::StartParallel (int*    argc,
     }
 
     ParallelContext::push(m_comm);
+
+    if (m_lull_mpi_data_type == MPI_DATATYPE_NULL) {
+        MPI_Type_contiguous(sizeof(lull_t), MPI_CHAR, &m_lull_mpi_data_type);
+    }
 
     // ---- find the maximum value for a tag
     int flag(0), *p;
@@ -1572,6 +1580,13 @@ MPI_Datatype
 ParallelDescriptor::Mpi_typemap<double>::type ()
 {
     return  MPI_DOUBLE;
+}
+
+template <>
+MPI_Datatype
+ParallelDescriptor::Mpi_typemap<ParallelDescriptor::lull_t>::type ()
+{
+    return  m_lull_mpi_data_type;
 }
 
 void

@@ -207,6 +207,10 @@ while ( false )
     extern MPI_Comm m_comm;
     inline MPI_Comm Communicator () noexcept { return m_comm; }
 
+#ifdef AMREX_USE_MPI
+    extern MPI_Datatype m_lull_mpi_data_type;
+#endif
+
     //! return the number of MPI ranks local to the current Parallel Context
     inline int
     NProcs () noexcept
