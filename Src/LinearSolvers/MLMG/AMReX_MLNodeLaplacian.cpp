@@ -16,10 +16,6 @@
 
 namespace amrex {
 
-namespace {
-    const Real bogus_value = std::numeric_limits<Real>::quiet_NaN();
-}
-
 MLNodeLaplacian::MLNodeLaplacian (const Vector<Geometry>& a_geom,
                                   const Vector<BoxArray>& a_grids,
                                   const Vector<DistributionMapping>& a_dmap,
