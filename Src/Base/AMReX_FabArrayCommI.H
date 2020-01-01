@@ -720,7 +720,7 @@ FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&  m_RcvTags,
             nbytes += (*this)[cct.dstIndex].nBytes(cct.dbox,icomp,ncomp);
         }
 
-        std:size_t acd = alignof_comm_data(nbytes);
+        std::size_t acd = alignof_comm_data(nbytes);
         nbytes = amrex::aligned_size(acd, nbytes);  // so that nbytes are aligned
 
         // Also need to align the offset properly
