@@ -24,6 +24,7 @@
 #include <AMReX_DistributionMapping.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Random.H>
+#include <AMReX_GpuQualifiers.H>
 
 namespace amrex
 {
@@ -32,7 +33,9 @@ namespace amrex
 */
 
     //! This shuts up the compiler about unused variables
-    template<class T> void ignore_unused( const T& ) { }
+    template <class... Ts>
+    AMREX_GPU_HOST_DEVICE
+    constexpr void ignore_unused (const Ts&...) {}
 
     //! Return true if argument is a non-zero length string of digits.
     bool is_integer (const char* str);
