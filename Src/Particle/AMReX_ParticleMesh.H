@@ -71,14 +71,14 @@ ParticleToMesh (PC const& pc, MF& mf, int lev, F&& f)
                 fab.atomicAdd(local_fab, tile_box, tile_box, 0, 0, mf_pointer->nComp());
             }
         }
+    }
 
-        mf_pointer->SumBoundary(pc.Geom(lev).periodicity());
+    mf_pointer->SumBoundary(pc.Geom(lev).periodicity());
 
-        if (mf_pointer != &mf)
-        {
-            mf.copy(*mf_pointer,0,0,mf_pointer->nComp());
-            delete mf_pointer;
-        }
+    if (mf_pointer != &mf)
+    {
+        mf.copy(*mf_pointer,0,0,mf_pointer->nComp());
+        delete mf_pointer;
     }
 }
 

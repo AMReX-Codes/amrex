@@ -408,11 +408,10 @@ namespace amrex
         
         void swap (PODVector<T, Allocator>& a_vector) noexcept
         {
-            using std::swap;
-            swap(m_data, a_vector.m_data);
-            swap(m_size, a_vector.m_size);
-            swap(m_capacity, a_vector.m_capacity);
-            swap(static_cast<Allocator&>(a_vector), static_cast<Allocator&>(*this));
+            std::swap(m_data, a_vector.m_data);
+            std::swap(m_size, a_vector.m_size);
+            std::swap(m_capacity, a_vector.m_capacity);
+            std::swap(static_cast<Allocator&>(a_vector), static_cast<Allocator&>(*this));
         }
 	
     private:
