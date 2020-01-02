@@ -80,7 +80,9 @@ MLCellABecLap::applyInhomogNeumannTerm (int amrlev, MultiFab& rhs) const
     const int mglev = 0;
 
     const auto problo = m_geom[amrlev][mglev].ProbLoArray();
-    // const auto probhi = m_geom[amrlev][mglev].ProbHiArray(); SET_BUT_NOT_USED
+#if (AMREX_SPACEDIM == 1) or (AMREX_SPACEDIM == 2)
+    const auto probhi = m_geom[amrlev][mglev].ProbHiArray();
+#endif
     const Real dxi = m_geom[amrlev][mglev].InvCellSize(0);
     const Real dyi = (AMREX_SPACEDIM >= 2) ? m_geom[amrlev][mglev].InvCellSize(1) : 1.0;
     const Real dzi = (AMREX_SPACEDIM == 3) ? m_geom[amrlev][mglev].InvCellSize(2) : 1.0;
