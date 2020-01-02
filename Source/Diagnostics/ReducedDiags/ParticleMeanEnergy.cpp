@@ -92,11 +92,11 @@ void ParticleMeanEnergy::ComputeDiags (int step)
         [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real
         {
             auto w  = p.rdata(PIdx::w);
-            auto px = p.rdata(PIdx::ux);
-            auto py = p.rdata(PIdx::uy);
-            auto pz = p.rdata(PIdx::uz);
-            auto ps = (px*px + py*py + pz*pz);
-            return ( std::sqrt(ps*c2 + m*m*c2*c2) - m*c2 ) * w;
+            auto ux = p.rdata(PIdx::ux);
+            auto uy = p.rdata(PIdx::uy);
+            auto uz = p.rdata(PIdx::uz);
+            auto us = (ux*ux + uy*uy + uz*uz);
+            return ( std::sqrt(us*c2 + c2*c2) - c2 ) * m * w;
         });
 
         auto Wtot = ReduceSum( myspc,

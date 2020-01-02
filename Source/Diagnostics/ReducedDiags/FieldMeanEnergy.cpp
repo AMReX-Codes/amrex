@@ -132,4 +132,4 @@ void FieldMeanEnergy::ComputeDiags (int step)
     //ParallelDescriptor::ReduceRealSum();
 
 }
-///< end void ParticleMeanEnergy::ComputeDiags
+///< end void FieldMeanEnergy::ComputeDiags
