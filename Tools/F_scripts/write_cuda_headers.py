@@ -31,27 +31,56 @@ import find_files_vpath as ffv
 import preprocess
 from multiprocessing import Pool
 
-
 TEMPLATE = """
 __global__ static void cuda_{}
 {{
 {}
 {}
+   int nx = (hi[0] - lo[0] + 1);
+   int ny = (hi[1] - lo[1] + 1);
+   int nz = (hi[2] - lo[2] + 1);
+   int n_cell = nx * ny * nz;
+
    int blo[3];
    int bhi[3];
-   for (int k = lo[2] + blockIdx.z * blockDim.z + threadIdx.z; k <= hi[2]; k += blockDim.z * gridDim.z) {{
-     blo[2] = k;
-     bhi[2] = k;
-     for (int j = lo[1] + blockIdx.y * blockDim.y + threadIdx.y; j <= hi[1]; j += blockDim.y * gridDim.y) {{
-       blo[1] = j;
-       bhi[1] = j;
-       for (int i = lo[0] + blockIdx.x * blockDim.x + threadIdx.x; i <= hi[0]; i += blockDim.x * gridDim.x) {{
-         blo[0] = i;
-         bhi[0] = i;
-         {};
-       }}
+
+   // Default to a single-dimensional grid-stride loop for most cases.
+
+   if (blockDim.y == 1 && blockDim.z == 1) {{
+
+     for (int n = blockIdx.x * blockDim.x + threadIdx.x; n < n_cell; n += blockDim.x * gridDim.x) {{
+       int k = n / (nx * ny);
+       int j = (n - k * (nx * ny)) / nx;
+       int i = (n - k * (nx * ny)) - j * nx;
+
+       blo[0] = i + lo[0];
+       bhi[0] = i + lo[0];
+       blo[1] = j + lo[1];
+       bhi[1] = j + lo[1];
+       blo[2] = k + lo[2];
+       bhi[2] = k + lo[2];
+       {};
      }}
-   }}
+
+  }} else {{
+
+    // Handle the case where we've asked for threads in the y and z dimension.
+
+    for (int k = lo[2] + blockIdx.z * blockDim.z + threadIdx.z; k <= hi[2]; k += blockDim.z * gridDim.z) {{
+       blo[2] = k;
+       bhi[2] = k;
+       for (int j = lo[1] + blockIdx.y * blockDim.y + threadIdx.y; j <= hi[1]; j += blockDim.y * gridDim.y) {{
+          blo[1] = j;
+          bhi[1] = j;
+          for (int i = lo[0] + blockIdx.x * blockDim.x + threadIdx.x; i <= hi[0]; i += blockDim.x * gridDim.x) {{
+            blo[0] = i;
+            bhi[0] = i;
+            {};
+          }}
+        }}
+      }}
+
+  }}
 }}
 """
 
@@ -529,7 +558,7 @@ def convert_headers(inputs):
 
 
         hout.write(device_sig)
-        hout.write(TEMPLATE.format(func_sig[idx:].replace(';',''), intvects, reals, new_call))
+        hout.write(TEMPLATE.format(func_sig[idx:].replace(';',''), intvects, reals, new_call, new_call))
         hout.write("\n")
 
 
@@ -608,6 +637,11 @@ def convert_cxx(inputs):
                 if "nohost" in entry or no_host_version == True:
                     do_host_version = False
 
+            synchronize = False
+            for entry in split_line:
+                if "sync" in entry:
+                    synchronize = True
+
             # we don't need to reproduce the pragma line in the
             # output, but we need to capture the whole function
             # call that follows
@@ -666,7 +700,7 @@ def convert_cxx(inputs):
 
             hout.write("    AMREX_GPU_SAFE_CALL(cudaGetLastError());\n")
 
-            if 'AMREX_DEBUG' in defines:
+            if 'AMREX_DEBUG' in defines or synchronize:
                 hout.write("AMREX_GPU_SAFE_CALL(cudaDeviceSynchronize());\n")
 
             if do_host_version:
