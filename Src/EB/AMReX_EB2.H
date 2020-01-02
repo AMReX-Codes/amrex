@@ -50,7 +50,7 @@ protected:
 };
 
 const IndexSpace* TopIndexSpaceIfPresent () noexcept;
-const IndexSpace* TopIndexSpace () noexcept { return TopIndexSpaceIfPresent(); }
+inline const IndexSpace* TopIndexSpace () noexcept { return TopIndexSpaceIfPresent(); }
 
 template <typename G>
 class IndexSpaceImp
