@@ -10,8 +10,5 @@ CEXE_sources += ParticleMeanEnergy.cpp
 CEXE_headers += FieldMeanEnergy.H
 CEXE_sources += FieldMeanEnergy.cpp
 
-CEXE_headers += FieldMeanEnergyNMT.H
-CEXE_sources += FieldMeanEnergyNMT.cpp
-
 INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/Diagnostics/ReducedDiags
 VPATH_LOCATIONS   += $(WARPX_HOME)/Source/Diagnostics/ReducedDiags
