@@ -121,8 +121,10 @@ void FieldMeanEnergy::ComputeDiags (int step)
         { return xfab.dot(bx,xcomp,yfab,bx,ycomp,numcomp); }
         );
     //if (!local) ParallelAllReduce::Sum(sm, ParallelContext::CommunicatorSub());
-    ParallelAllReduce::Sum(Es, ParallelContext::CommunicatorSub());
-    ParallelAllReduce::Sum(Bs, ParallelContext::CommunicatorSub());
+//    ParallelAllReduce::Sum(Es, ParallelContext::CommunicatorSub());
+//    ParallelAllReduce::Sum(Bs, ParallelContext::CommunicatorSub());
+    ParallelDescriptor::ReduceRealSum(Es);
+    ParallelDescriptor::ReduceRealSum(Bs);
 
     m_data[1] = 0.5*Es*PhysConst::ep0;
     m_data[2] = 0.5*Bs/PhysConst::mu0;
