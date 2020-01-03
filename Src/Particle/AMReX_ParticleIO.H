@@ -1,5 +1,5 @@
-#ifndef BL_PARTICLEIO_H
-#define BL_PARTICLEIO_H
+#ifndef AMREX_PARTICLEIO_H
+#define AMREX_PARTICLEIO_H
 
 #ifdef AMREX_USE_HDF5
 #include <hdf5.h>
@@ -988,9 +988,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                            const Vector<std::string>& int_comp_names) const
 {
     BL_PROFILE("ParticleContainer::WriteBinaryParticleData()");
-    BL_ASSERT(OK());
+    AMREX_ASSERT(OK());
     
-    BL_ASSERT(sizeof(typename ParticleType::RealType) == 4 ||
+    AMREX_ASSERT(sizeof(typename ParticleType::RealType) == 4 ||
               sizeof(typename ParticleType::RealType) == 8);
     
     const int NProcs = ParallelDescriptor::NProcs();
@@ -1559,8 +1559,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::Restart (const std::string& dir, const std::string& file)
 {
     BL_PROFILE("ParticleContainer::Restart()");
-    BL_ASSERT(!dir.empty());
-    BL_ASSERT(!file.empty());
+    AMREX_ASSERT(!dir.empty());
+    AMREX_ASSERT(!file.empty());
     
     const Real strttime = amrex::second();
     
@@ -1584,7 +1584,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
   
     std::string version;
     HdrFile >> version;
-    BL_ASSERT(!version.empty());
+    AMREX_ASSERT(!version.empty());
     
     // What do our version strings mean?
     // "Version_One_Dot_Zero" -- hard-wired to write out in double precision.
@@ -1643,16 +1643,16 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     
     long nparticles;
     HdrFile >> nparticles;
-    BL_ASSERT(nparticles >= 0);
+    AMREX_ASSERT(nparticles >= 0);
     
     int maxnextid;
     HdrFile >> maxnextid;
-    BL_ASSERT(maxnextid > 0);
+    AMREX_ASSERT(maxnextid > 0);
     ParticleType::NextID(maxnextid);
     
     int finest_level_in_file;
     HdrFile >> finest_level_in_file;
-    BL_ASSERT(finest_level_in_file >= 0);
+    AMREX_ASSERT(finest_level_in_file >= 0);
     
     // Determine whether this is a dual-grid restart or not.
     Vector<BoxArray> particle_box_arrays(finest_level_in_file + 1);
@@ -1711,9 +1711,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     Vector<int> ngrids(finest_level_in_file+1);
     for (int lev = 0; lev <= finest_level_in_file; lev++) {
         HdrFile >> ngrids[lev];
-        BL_ASSERT(ngrids[lev] > 0);
+        AMREX_ASSERT(ngrids[lev] > 0);
         if (lev <= finestLevel()) {
-            BL_ASSERT(ngrids[lev] == int(ParticleBoxArray(lev).size()));
+            AMREX_ASSERT(ngrids[lev] == int(ParticleBoxArray(lev).size()));
         }
     }
     
@@ -1810,7 +1810,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     
     Redistribute();
     
-    BL_ASSERT(OK());
+    AMREX_ASSERT(OK());
     
     if (m_verbose > 1) {
         Real stoptime = amrex::second() - strttime;	
@@ -1827,8 +1827,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::ReadParticles (int cnt, int grd, int lev, std::ifstream& ifs, int finest_level_in_file)
 {
     BL_PROFILE("ParticleContainer::ReadParticles()");
-    BL_ASSERT(cnt > 0);
-    BL_ASSERT(lev < int(m_particles.size()));
+    AMREX_ASSERT(cnt > 0);
+    AMREX_ASSERT(lev < int(m_particles.size()));
 
     // First read in the integer data in binary.  We do not store
     // the m_lev and m_grid data on disk.  We can easily recreate
@@ -1854,12 +1854,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     host_particles.resize(finest_level_in_file+1);
 
     Vector<std::map<std::pair<int, int>,
-                    std::vector<Cuda::HostVector<Real> > > > host_real_attribs;
+                    std::vector<Gpu::HostVector<Real> > > > host_real_attribs;
     host_real_attribs.reserve(15);
     host_real_attribs.resize(finest_level_in_file+1);
 
     Vector<std::map<std::pair<int, int>,
-                    std::vector<Cuda::HostVector<int> > > > host_int_attribs;
+                    std::vector<Gpu::HostVector<int> > > > host_int_attribs;
     host_int_attribs.reserve(15);
     host_int_attribs.resize(finest_level_in_file+1);
 
@@ -1875,7 +1875,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             ++iptr;
         }
 
-        BL_ASSERT(p.m_idata.id > 0);
+        AMREX_ASSERT(p.m_idata.id > 0);
         
         AMREX_D_TERM(p.m_rdata.pos[0] = rptr[0];,
                      p.m_rdata.pos[1] = rptr[1];,
@@ -1924,20 +1924,21 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 	  auto new_size = old_size + src_tile.size();
 	  dst_tile.resize(new_size);
                 
-	  Cuda::thrust_copy(src_tile.begin(),
-			    src_tile.end(),
-			    dst_tile.GetArrayOfStructs().begin() + old_size);
+	  Gpu::copy(Gpu::hostToDevice, src_tile.begin(), src_tile.end(),
+                    dst_tile.GetArrayOfStructs().begin() + old_size);
 	  
 	  for (int i = 0; i < NumRealComps(); ++i) {
-              Cuda::thrust_copy(host_real_attribs[host_lev][std::make_pair(grid,tile)][i].begin(),
-                                host_real_attribs[host_lev][std::make_pair(grid,tile)][i].end(),
-                                dst_tile.GetStructOfArrays().GetRealData(i).begin() + old_size);
+              Gpu::copy(Gpu::hostToDevice,
+                        host_real_attribs[host_lev][std::make_pair(grid,tile)][i].begin(),
+                        host_real_attribs[host_lev][std::make_pair(grid,tile)][i].end(),
+                        dst_tile.GetStructOfArrays().GetRealData(i).begin() + old_size);
 	  }
 	  
 	  for (int i = 0; i < NumIntComps(); ++i) {
-              Cuda::thrust_copy(host_int_attribs[host_lev][std::make_pair(grid,tile)][i].begin(),
-                                host_int_attribs[host_lev][std::make_pair(grid,tile)][i].end(),
-                                dst_tile.GetStructOfArrays().GetIntData(i).begin() + old_size);
+              Gpu::copy(Gpu::hostToDevice,
+                        host_int_attribs[host_lev][std::make_pair(grid,tile)][i].begin(),
+                        host_int_attribs[host_lev][std::make_pair(grid,tile)][i].end(),
+                        dst_tile.GetStructOfArrays().GetIntData(i).begin() + old_size);
 	  }
 	}
       }
@@ -1950,7 +1951,7 @@ void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteAsciiFile (const std::string& filename)
 {
     BL_PROFILE("ParticleContainer::WriteAsciiFile()");
-    BL_ASSERT(!filename.empty());
+    AMREX_ASSERT(!filename.empty());
 
     const Real strttime = amrex::second();
     //
@@ -1964,7 +1965,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteAsciiFil
             const auto& aos = kv.second.GetArrayOfStructs();
 	    auto np = aos.numParticles();
 	    Gpu::HostVector<ParticleType> host_aos(np);
-	    Gpu::thrust_copy(aos.begin(), aos.end(), host_aos.begin());
+	    Gpu::copy(Gpu::deviceToHost, aos.begin(), aos.end(), host_aos.begin());
 	    for (int k = 0; k < np; ++k) {
 	        const ParticleType& p = host_aos[k];
                 if (p.m_idata.id > 0)
@@ -2039,7 +2040,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteAsciiFil
 
 		auto np = aos.numParticles();
 		Gpu::HostVector<ParticleType> host_aos(np);
-		Gpu::thrust_copy(aos.begin(), aos.end(), host_aos.begin());
+		Gpu::copy(Gpu::deviceToHost, aos.begin(), aos.end(), host_aos.begin());
 
 		for (int index = 0; index < np; ++index) {
 		    const ParticleType* it = &host_aos[index];
@@ -2099,7 +2100,7 @@ void
 ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt>::WriteCoarsenedAsciiFile (const std::string& filename)
 {
     BL_PROFILE("ParticleContainer::WriteCoarsenedAsciiFile()");
-    BL_ASSERT(!filename.empty());
+    AMREX_ASSERT(!filename.empty());
 
     const Real strttime = amrex::second();
  
@@ -2243,4 +2244,4 @@ ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt>::WriteCoarsenedA
         amrex::Print() << "ParticleContainer::WriteCoarsenedAsciiFile() time: " << stoptime << '\n';
     }
 }
-#endif /*BL_PARTICLEIO_H*/
+#endif /*AMREX_PARTICLEIO_H*/

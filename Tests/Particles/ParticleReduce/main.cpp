@@ -89,23 +89,20 @@ public:
             auto new_size = old_size + host_particles.size();
             particle_tile.resize(new_size);
             
-            Cuda::thrust_copy(host_particles.begin(),
-                              host_particles.end(),
-                              particle_tile.GetArrayOfStructs().begin() + old_size);        
-
+            Gpu::copy(Gpu::hostToDevice, host_particles.begin(), host_particles.end(),
+                      particle_tile.GetArrayOfStructs().begin() + old_size);        
+            
             auto& soa = particle_tile.GetStructOfArrays();
             for (int i = 0; i < NAR; ++i)
             {
-                Cuda::thrust_copy(host_real[i].begin(),
-                                  host_real[i].end(),
-                                  soa.GetRealData(i).begin() + old_size);
+                Gpu::copy(Gpu::hostToDevice, host_real[i].begin(), host_real[i].end(),
+                          soa.GetRealData(i).begin() + old_size);
             }
-
+            
             for (int i = 0; i < NAI; ++i)
             {
-                Cuda::thrust_copy(host_int[i].begin(),
-                                  host_int[i].end(),
-                                  soa.GetIntData(i).begin() + old_size);
+                Gpu::copy(Gpu::hostToDevice, host_int[i].begin(), host_int[i].end(),
+                          soa.GetIntData(i).begin() + old_size);
             }
         }
     }

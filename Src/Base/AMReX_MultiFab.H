@@ -480,6 +480,25 @@ public:
 #endif
 
     /**
+    * \brief Swap from src to dst including nghost ghost cells.
+    * The two MultiFabs MUST have the same underlying BoxArray.
+    * The swap is local.
+    */
+    static void Swap (MultiFab&       dst,
+                      MultiFab&       src,
+                      int             srccomp,
+                      int             dstcomp,
+                      int             numcomp,
+                      int             nghost);
+
+    static void Swap (MultiFab&       dst,
+                      MultiFab&       src,
+                      int             srccomp,
+                      int             dstcomp,
+                      int             numcomp,
+                      const IntVect&  nghost);
+
+    /**
     * \brief Subtract src from dst including nghost ghost cells.
     * The two MultiFabs MUST have the same underlying BoxArray.
     */
@@ -540,6 +559,15 @@ public:
 		       int             dstcomp,
 		       int             numcomp,
 		       int             nghost);
+
+    static void Saxpy (MultiFab&       dst,
+		       Real            a,
+		       const MultiFab& src,
+		       int             srccomp,
+		       int             dstcomp,
+		       int             numcomp,
+		       const IntVect&  nghost);
+
     /**
     * \brief dst = src + a*dst
     */
@@ -550,6 +578,14 @@ public:
 		      int             dstcomp,
 		      int             numcomp,
 		      int             nghost);
+
+    static void Xpay (MultiFab&       dst,
+		      Real            a,
+		      const MultiFab& src,
+		      int             srccomp,
+		      int             dstcomp,
+		      int             numcomp,
+		      const IntVect&  nghost);
     /**
     * \brief dst = a*x + b*y
     */
@@ -563,6 +599,18 @@ public:
 			 int             dstcomp,
 			 int             numcomp,
 			 int             nghost);
+
+    static void LinComb (MultiFab&       dst,
+			 Real            a,
+			 const MultiFab& x,
+			 int             xcomp,
+			 Real            b,
+			 const MultiFab& y,
+			 int             ycomp,
+			 int             dstcomp,
+			 int             numcomp,
+			 const IntVect&  nghost);
+
     /**
     * \brief dst += src1*src2
     */
@@ -574,6 +622,15 @@ public:
 			    int             dstcomp,
 			    int             numcomp,
 			    int             nghost);
+
+    static void AddProduct (MultiFab&       dst,
+			    const MultiFab& src1,
+			    int             comp1,
+			    const MultiFab& src2,
+			    int             comp2,
+			    int             dstcomp,
+			    int             numcomp,
+			    const IntVect&  nghost);
 
     /**
     * \brief Are there any NaNs in the MF?

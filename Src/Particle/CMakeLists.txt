@@ -23,13 +23,12 @@ target_sources( amrex
    AMReX_ParticleContainerI.H
    AMReX_LoadBalanceKD.H
    AMReX_KDTree_F.H
-   AMReX_ParIterI.H
+   AMReX_ParIter.H
    AMReX_ParticleMPIUtil.H
    AMReX_ParticleUtil.H
    AMReX_ParticleUtil.cpp
    AMReX_StructOfArrays.H
    AMReX_ArrayOfStructs.H
-   AMReX_Functors.H
    AMReX_ParticleTile.H
    AMReX_NeighborParticlesCPUImpl.H
    AMReX_NeighborParticlesGPUImpl.H
@@ -42,4 +41,6 @@ target_sources( amrex
    AMReX_ParticleMesh.H
    AMReX_ParticleLocator.H
    AMReX_ParticleIO.H
+   AMReX_DenseBins.H
+   AMReX_ParticleTransformation.H
    )

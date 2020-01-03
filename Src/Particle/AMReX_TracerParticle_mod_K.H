@@ -21,7 +21,7 @@ void cic_interpolate (const P& p,
 		      const amrex::Array4<amrex::Real const> &  uccarr,
 		      amrex::Real * val){
   
-  BL_ASSERT(val != 0);
+  AMREX_ASSERT(val != 0);
 
 #if (AMREX_SPACEDIM == 1)
   

@@ -31,109 +31,43 @@ MultiMask::define (const BoxArray& regba, const DistributionMapping& dm, const G
     BoxArray mskba(regba, bbatrans);
     m_fa.define(mskba, dm, ncomp, 0, MFInfo(), DefaultFabFactory<Mask>());
 
-    const Box& geomdomain = geom.Domain();
-    const int bndrydata_outside_domain = BndryData::outside_domain;
-    const int bndrydata_not_covered = BndryData::not_covered;
+    if (initval)
+    {
+        const int bndrydata_outside_domain = BndryData::outside_domain;
+        const int bndrydata_not_covered = BndryData::not_covered;
+        const int bndrydata_covered = BndryData::covered;
+
+        int ngrow = std::max(out_rad, extent_rad);
+        Box domain = geom.Domain();
+        for (int i = 0; i < AMREX_SPACEDIM; ++i) {
+            if (geom.isPeriodic(i)) {
+                domain.grow(i, ngrow);
+            }
+        }
 
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    if (initval)
-    {
-	for (MFIter mfi(m_fa); mfi.isValid(); ++mfi)
-	{
-	    const Box& face_box = m_fa[mfi].box();
-            Array4<int> const& m_arr = m_fa.array(mfi);
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( face_box, tbx,
+        for (MFIter mfi(m_fa); mfi.isValid(); ++mfi)
+        {
+            auto const& fab = m_fa.array(mfi);
+            Box const fbx{fab};
+            AMREX_HOST_DEVICE_FOR_3D(fbx, i, j, k,
             {
-                Mask m(m_arr, tbx.ixType());
-                m.setVal(bndrydata_outside_domain, tbx, DestComp{0}, NumComps{ncomp});
-                const Box& dbox = geomdomain & tbx;
-                if (dbox.ok()) {
-                    m.setVal(bndrydata_not_covered, dbox, DestComp{0}, NumComps{ncomp});
+                if (domain.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
+                    fab(i,j,k) = bndrydata_not_covered;
+                } else {
+                    fab(i,j,k) = bndrydata_outside_domain;
                 }
             });
         }
-    }
 
-#ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-    if (initval)
-    {
-	Vector<IntVect> pshifts(26);
-	std::vector< std::pair<int,Box> > isects;
-
-	for (MFIter mfi(m_fa); mfi.isValid(); ++mfi)
-	{
-	    Mask& m = m_fa[mfi];
-	    const Box& face_box = m.box();
-	    //
-	    // Now have to set as not_covered the periodic translates as well.
-	    //
-	    if (geom.isAnyPeriodic() && !geom.Domain().contains(face_box))
-	    {
-		geom.periodicShift(geom.Domain(), face_box, pshifts);
-		
-		for (Vector<IntVect>::const_iterator it = pshifts.begin(), End = pshifts.end();
-		     it != End;
-		     ++it)
-		{
-		    const IntVect& iv = *it;
-		    m.shift(iv);
-		    const Box& target = geom.Domain() & m.box();
-                    if (target.ok()) {
-                        auto val = BndryData::not_covered;
-                        auto const& a = m.array();
-                        AMREX_HOST_DEVICE_PARALLEL_FOR_4D (target, ncomp, i, j, k, n,
-                        {
-                            a(i,j,k,n) = val;
-                        });
-                    }
-		    m.shift(-iv);
-		}
-	    }
-	    //
-	    // Turn mask off on intersection with regba
-	    //
-	    regba.intersections(face_box,isects);
-
-	    for (int ii = 0, N = isects.size(); ii < N; ii++) {
-                const Box& b = isects[ii].second;
-                auto val = BndryData::covered;
-                auto const& a = m.array();
-                AMREX_HOST_DEVICE_PARALLEL_FOR_4D(b,ncomp,i,j,k,n,
-                {
-                    a(i,j,k,n) = val;
-                });
-	    }
-	    
-	    if (geom.isAnyPeriodic() && !geom.Domain().contains(face_box))
-	    {
-		//
-		// Handle special cases if periodic: "face_box" hasn't changed;
-		// reuse pshifts from above.
-		//
-		for (Vector<IntVect>::const_iterator it = pshifts.begin(), End = pshifts.end();
-		     it != End;
-		     ++it)
-		{
-		    const IntVect& iv = *it;
-		    m.shift(iv);
-		    regba.intersections(m.box(),isects);
-		    for (int ii = 0, N = isects.size(); ii < N; ii++) {
-                        const Box& b = isects[ii].second;
-                        auto val = BndryData::covered;
-                        auto const& a = m.array();
-                        AMREX_HOST_DEVICE_PARALLEL_FOR_4D(b,ncomp,i,j,k,n,
-                        {
-                            a(i,j,k,n) = val;
-                        });
-		    }
-		    m.shift(-iv);
-		}
-	    }
-	}
+        FabArray<Mask> regmf(regba, dm, 1, 0, MFInfo().SetAlloc(false));
+        const FabArrayBase::CPC& cpc = m_fa.getCPC(IntVect::TheZeroVector(),
+                                                   regmf,
+                                                   IntVect::TheZeroVector(),
+                                                   geom.periodicity());
+        m_fa.setVal(bndrydata_covered, cpc, 0, 1);
     }
 }
 

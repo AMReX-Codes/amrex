@@ -8,9 +8,9 @@
 
 namespace amrex {
 
-    // 
+    //
     // Fill EB normals
-    // 
+    //
     void FillEBNormals(MultiFab & normals, const EBFArrayBoxFactory & eb_factory,
                        const Geometry & geom) {
 
@@ -58,9 +58,9 @@ namespace amrex {
     }
 
 #if (AMREX_SPACEDIM > 1)
-    // 
+    //
     // Do small cell redistribution on one FAB
-    // 
+    //
     void apply_eb_redistribution ( Box& bx,
                                    MultiFab& div_mf,
                                    MultiFab& divc_mf,
@@ -82,7 +82,7 @@ namespace amrex {
         const Real tolerance = std::numeric_limits<Real>::epsilon();
 
 #if (AMREX_SPACEDIM == 2)
-        if (std::abs(dx[0] - dx[1]) > tolerance) 
+        if (std::abs(dx[0] - dx[1]) > tolerance)
             amrex::Abort("apply_eb_redistribution(): grid spacing must be uniform");
 #elif (AMREX_SPACEDIM == 3)
         if( (std::abs(dx[0] - dx[1]) > tolerance) or
@@ -118,7 +118,7 @@ namespace amrex {
         Array4<Real> const& delm  = delm_fab.array();
 
         //
-        // Array "mask" is used to sever the link to ghost cells when the BCs 
+        // Array "mask" is used to sever the link to ghost cells when the BCs
         // are not periodic
         // It is set to 1 when a cell can be used in computations, 0 otherwise
         //
@@ -150,18 +150,32 @@ namespace amrex {
             Real divnc(0.0);
             Real vtot(0.0);
             Real wted_frac(0.0);
-
+            int  ks(0);
+            int  ke(0);
+#if (AMREX_SPACEDIM==3)
+            ks = -1;
+            ke = 1;
+#endif
             for(int ii(-1); ii <= 1; ii++)
+            {
                 for(int jj(-1); jj <= 1; jj++)
-                    for(int kk(-1); kk <= 1; kk++)
+                {
+                    for(int kk(ks); kk <= ke; kk++)
+                    {
+#if (AMREX_SPACEDIM==3)
                         if( (ii != 0 or jj != 0 or kk != 0) and
+#else
+                        if( (ii != 0 or jj != 0) and
+#endif
                             (flags(i,j,k).isConnected({AMREX_D_DECL(ii,jj,kk)}) == 1))
                         {
                             wted_frac = vfrac(i+ii,j+jj,k+kk) * wt(i+ii,j+jj,k+kk) * mask(i+ii,j+jj,k+kk);
                             vtot   += wted_frac;
                             divnc  += wted_frac * divc(i+ii,j+jj,k+kk,n);
                         }
-
+                    }
+                }
+            }
             divnc /= vtot;
 
             // We need to multiply divc by mask to make sure optmp is zero for cells
@@ -184,11 +198,20 @@ namespace amrex {
         if(flags(i,j,k).isSingleValued())
         {
             Real wtot(0.0);
-
+            int  ks(0);
+            int  ke(0);
+#if (AMREX_SPACEDIM==3)
+            ks = -1;
+            ke = 1;
+#endif
             for(int ii(-1); ii <= 1; ii++)
                 for(int jj(-1); jj <= 1; jj++)
-                    for(int kk(-1); kk <= 1; kk++)
-                        if((ii != 0 or jj != 0 or kk != 0) and
+                    for(int kk(ks); kk <= ke; kk++)
+#if (AMREX_SPACEDIM==3)
+                        if( (ii != 0 or jj != 0 or kk != 0) and
+#else
+                        if( (ii != 0 or jj != 0) and
+#endif
                             (flags(i,j,k).isConnected({AMREX_D_DECL(ii,jj,kk)}) == 1))
                         {
                             wtot += wt(i+ii,j+jj,k+kk) * vfrac(i+ii,j+jj,k+kk) * mask(i+ii,j+jj,k+kk);
@@ -199,8 +222,12 @@ namespace amrex {
 
             for(int ii(-1); ii <= 1; ii++)
                 for(int jj(-1); jj <= 1; jj++)
-                    for(int kk(-1); kk <= 1; kk++)
-                        if((ii != 0 or jj != 0 or kk != 0) and
+                    for(int kk(ks); kk <= ke; kk++)
+#if (AMREX_SPACEDIM==3)
+                        if( (ii != 0 or jj != 0 or kk != 0) and
+#else
+                        if( (ii != 0 or jj != 0) and
+#endif
                             (flags(i,j,k).isConnected({AMREX_D_DECL(ii,jj,kk)}) == 1))
                         {
 #ifdef AMREX_USE_CUDA
@@ -224,9 +251,9 @@ namespace amrex {
         Gpu::synchronize();
     }
 
-    // 
+    //
     // Do small cell redistribution on a MultiFab -- with a weighting function
-    // 
+    //
     void single_level_weighted_redistribute ( int lev, MultiFab& div_tmp_in, MultiFab& div_out, const MultiFab& weights,
                                               int div_comp, int ncomp, const Vector<Geometry>& geom)
     {
@@ -242,14 +269,15 @@ namespace amrex {
 
         Real covered_val = 1.e40;
 
-        int nghost = div_tmp_in.nGrow();
-
-        EB_set_covered(div_tmp_in, div_comp, ncomp, nghost, covered_val);
+        int nghost = 2;
+	AMREX_ASSERT(div_tmp_in.nGrow() >= nghost);
+	
+        EB_set_covered(div_tmp_in, 0, ncomp, div_tmp_in.nGrow(), covered_val);
 
         div_tmp_in.FillBoundary(geom[lev].periodicity());
 
         // Here we take care of both the regular and covered cases ... all we do below is the cut cell cases
-        MultiFab::Copy(div_out, div_tmp_in, 0, div_comp, ncomp, div_out.nGrow());
+        MultiFab::Copy(div_out, div_tmp_in, 0, div_comp, ncomp, 0);
 
         // Get EB geometric info
         const auto& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(div_out.Factory());
@@ -259,11 +287,11 @@ namespace amrex {
         {
             // Tilebox
             Box bx = mfi.tilebox ();
-    
+
             // this is to check efficiently if this tile contains any eb stuff
             const EBFArrayBox&  div_fab = static_cast<EBFArrayBox const&>(div_out[mfi]);
             const EBCellFlagFab&  flags = div_fab.getEBCellFlagFab();
-    
+
             if ( !(flags.getType(amrex::grow(bx,     0)) == FabType::covered) &&
                  !(flags.getType(amrex::grow(bx,nghost)) == FabType::regular) )
             {
@@ -277,9 +305,9 @@ namespace amrex {
         }
     }
 
-    // 
+    //
     // Do small cell redistribution on a MultiFab -- without a weighting function
-    // 
+    //
     void single_level_redistribute ( int lev, MultiFab& div_tmp_in, MultiFab& div_out,
                                      int div_comp, int ncomp, const Vector<Geometry>& geom)
     {

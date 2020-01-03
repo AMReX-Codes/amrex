@@ -1,12 +1,15 @@
 #ifndef AMREX_PARTICLEMESH_H_
 #define AMREX_PARTICLEMESH_H_
 
+#include <AMReX_TypeTraits.H>
+#include <AMReX_MultiFab.H>
+
 namespace amrex
 {
 
-template <class PC, class MF, class F>
+template <class PC, class MF, class F, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
 void
-ParticleToMesh(PC const& pc, MF& mf, int lev, F f)
+ParticleToMesh (PC const& pc, MF& mf, int lev, F&& f)
 {
     BL_PROFILE("amrex::ParticleToMesh");
     
@@ -68,20 +71,20 @@ ParticleToMesh(PC const& pc, MF& mf, int lev, F f)
                 fab.atomicAdd(local_fab, tile_box, tile_box, 0, 0, mf_pointer->nComp());
             }
         }
+    }
 
-        mf_pointer->SumBoundary(pc.Geom(lev).periodicity());
+    mf_pointer->SumBoundary(pc.Geom(lev).periodicity());
 
-        if (mf_pointer != &mf)
-        {
-            mf.copy(*mf_pointer,0,0,mf_pointer->nComp());
-            delete mf_pointer;
-        }
+    if (mf_pointer != &mf)
+    {
+        mf.copy(*mf_pointer,0,0,mf_pointer->nComp());
+        delete mf_pointer;
     }
 }
 
-template <class PC, class MF, class F>
+template <class PC, class MF, class F, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
 void
-MeshToParticle(PC& pc, MF const& mf, int lev, F f)
+MeshToParticle (PC& pc, MF const& mf, int lev, F&& f)
 {
     BL_PROFILE("amrex::MeshToParticle");
 

@@ -665,46 +665,63 @@ namespace amrex
         return slice;
     }
 
-    iMultiFab makeFineMask (const MultiFab& cmf, const BoxArray& fba, const IntVect& ratio,
-                            int crse_value, int fine_value)
-    {
-        return makeFineMask(cmf.boxArray(), cmf.DistributionMap(), fba, ratio, crse_value, fine_value);
-    }
-
     iMultiFab makeFineMask (const BoxArray& cba, const DistributionMapping& cdm,
                             const BoxArray& fba, const IntVect& ratio,
                             int crse_value, int fine_value)
     {
-        iMultiFab mask(cba, cdm, 1, 0);
-        const BoxArray& cfba = amrex::coarsen(fba,ratio);
+        return makeFineMask(cba, cdm, IntVect{0}, fba, ratio, Periodicity::NonPeriodic(),
+                            crse_value, fine_value);
+    }
 
+    iMultiFab makeFineMask (const BoxArray& cba, const DistributionMapping& cdm,
+                            const IntVect& cnghost, const BoxArray& fba, const IntVect& ratio,
+                            Periodicity const& period, int crse_value, int fine_value)
+    {
+        iMultiFab mask(cba, cdm, 1, cnghost);
+
+        Vector<Array4BoxTag<int> > tags;
+
+        bool run_on_gpu = Gpu::inLaunchRegion();
+
+        const BoxArray& cfba = amrex::coarsen(fba,ratio);
+        const std::vector<IntVect>& pshifts = period.shiftIntVect();
 #ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
+#pragma omp parallel if (!run_on_gpu)
 #endif
         {
-            std::vector< std::pair<int,Box> > isects;
-
+            std::vector <std::pair<int,Box> > isects;
             for (MFIter mfi(mask); mfi.isValid(); ++mfi)
             {
-                const Box& bx = mfi.validbox();
-                Array4<int> const& fab = mask.array(mfi);
+                const Box& bx = mfi.fabbox();
+                Array4<int> const& arr = mask.array(mfi);
+                IArrayBox& fab = mask[mfi];
 
-                AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( bx, i, j, k,
+                AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
                 {
-                    fab(i,j,k) = crse_value;
+                    arr(i,j,k) = crse_value;
                 });
 
-                cfba.intersections(bx, isects);
-                for (auto const& is : isects)
-                {
-                    const Box ibx = is.second;
-                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D(ibx, i, j, k,
-                    {
-                        fab(i,j,k) = fine_value;
-                    });
+                for (const auto& iv : pshifts) {
+                    cfba.intersections(bx+iv, isects);
+                    for (const auto is : isects) {
+                        Box const& b = is.second-iv;
+                        if (run_on_gpu) {
+                            tags.push_back({arr,b});
+                        } else {
+                            fab.setVal(fine_value, b);
+                        }
+                    }
                 }
             }
         }
+
+#ifdef AMREX_USE_GPU
+        amrex::ParallelFor(tags, 1,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k, int n, Array4<int> const& a) noexcept
+        {
+            a(i,j,k,n) = fine_value;
+        });
+#endif
 
         return mask;
     }
@@ -712,11 +729,23 @@ namespace amrex
     void computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPACEDIM>& umac,
                             const Geometry& geom)
     {
-        AMREX_ASSERT(divu.nComp()==umac[0]->nComp());
-        AMREX_ASSERT(divu.nComp()==umac[1]->nComp());
-        AMREX_ASSERT(divu.nComp()==umac[2]->nComp());
+        AMREX_D_TERM(AMREX_ASSERT(divu.nComp()==umac[0]->nComp());,
+                     AMREX_ASSERT(divu.nComp()==umac[1]->nComp());,
+                     AMREX_ASSERT(divu.nComp()==umac[2]->nComp()));
+
+#if (AMREX_SPACEDIM==2)
+        const auto& ba = divu.boxArray();
+        const auto& dm = divu.DistributionMap();
+        MultiFab volume, areax, areay;
+        if (geom.IsRZ()) {
+            geom.GetVolume(volume, ba, dm, 0);
+            geom.GetFaceArea(areax, ba, dm, 0, 0);
+            geom.GetFaceArea(areay, ba, dm, 1, 0);
+        }
+#endif
 
         const GpuArray<Real,AMREX_SPACEDIM> dxinv = geom.InvCellSizeArray();
+
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -728,10 +757,24 @@ namespace amrex
                          Array4<Real const> const& varr = umac[1]->const_array(mfi);,
                          Array4<Real const> const& warr = umac[2]->const_array(mfi););
 
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+#if (AMREX_SPACEDIM==2)
+            if (geom.IsRZ()) {
+                Array4<Real const> const&  ax =  areax.array(mfi);
+                Array4<Real const> const&  ay =  areay.array(mfi);
+                Array4<Real const> const& vol = volume.array(mfi);
+
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+                {
+                    amrex_compute_divergence_rz(tbx,divuarr,AMREX_D_DECL(uarr,varr,warr),ax,ay,vol);
+                });
+            } else
+#endif
             {
-                amrex_compute_divergence(tbx,divuarr,AMREX_D_DECL(uarr,varr,warr),dxinv);
-            });
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+                {
+                    amrex_compute_divergence(tbx,divuarr,AMREX_D_DECL(uarr,varr,warr),dxinv);
+                });
+            }
         }
     }
 
@@ -739,7 +782,20 @@ namespace amrex
                           const Geometry& geom)
     {
         AMREX_ASSERT(grad.nComp() >= AMREX_SPACEDIM);
+
+#if (AMREX_SPACEDIM==2)
+        const auto& ba = grad.boxArray();
+        const auto& dm = grad.DistributionMap();
+        MultiFab volume, areax, areay;
+        if (geom.IsRZ()) {
+            geom.GetVolume(volume, ba, dm, 0);
+            geom.GetFaceArea(areax, ba, dm, 0, 0);
+            geom.GetFaceArea(areay, ba, dm, 1, 0);
+        }
+#endif
+
         const GpuArray<Real,AMREX_SPACEDIM> dxinv = geom.InvCellSizeArray();
+
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -750,11 +806,24 @@ namespace amrex
             AMREX_D_TERM(const auto& ufab = umac[0]->const_array(mfi);,
                          const auto& vfab = umac[1]->const_array(mfi);,
                          const auto& wfab = umac[2]->const_array(mfi););
+#if (AMREX_SPACEDIM==2)
+            if (geom.IsRZ()) {
+                Array4<Real const> const&  ax =  areax.array(mfi);
+                Array4<Real const> const&  ay =  areay.array(mfi);
+                Array4<Real const> const& vol = volume.array(mfi);
 
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+                {
+                    amrex_compute_gradient_rz(tbx,gradfab,AMREX_D_DECL(ufab,vfab,wfab),ax,ay,vol);
+                });
+            } else
+#endif
             {
-                amrex_compute_gradient(tbx,gradfab,AMREX_D_DECL(ufab,vfab,wfab),dxinv);
-            });
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+                {
+                    amrex_compute_gradient(tbx,gradfab,AMREX_D_DECL(ufab,vfab,wfab),dxinv);
+                });
+            }
         }
     }
 
