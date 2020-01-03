@@ -633,6 +633,16 @@ class FieldDiagnostic(picmistandard.PICMI_FieldDiagnostic):
                 pywarpx.warpx.add_field_to_plot('divE')
             elif dataname == 'divb':
                 pywarpx.warpx.add_field_to_plot('divB')
+            elif dataname == 'costs':
+                pywarpx.warpx.plot_costs = 1
+            elif dataname == 'raw_fields':
+                self.plot_raw_fields = 1
+            elif dataname == 'raw_fields_guards':
+                self.plot_raw_fields_guards = 1
+            elif dataname == 'finepatch':
+                self.plot_finepatch = 1
+            elif dataname == 'crsepatch':
+                self.plot_crsepatch = 1
 
         pywarpx.warpx.plot_raw_fields = self.plot_raw_fields
         pywarpx.warpx.plot_raw_fields_guards = self.plot_raw_fields_guards
