@@ -247,6 +247,26 @@ WarpX::WarpX ()
     // at different levels (the stencil depends on c*dt/dz)
     nci_godfrey_filter_exeybz.resize(nlevs_max);
     nci_godfrey_filter_bxbyez.resize(nlevs_max);
+
+    // Sanity checks. Must be done after calling the MultiParticleContainer
+    // constructor, as it reads additional parameters
+    // (e.g., use_fdtd_nci_corr)
+
+    bool momentum_conserving = field_gathering_algo == GatheringAlgo::MomentumConserving;
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+        not ( use_fdtd_nci_corr & momentum_conserving ),
+        "NCI corrector with momentum-conserving gather not implemented"
+        );
+#ifndef WARPX_USE_PSATD
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+        not ( do_pml & do_nodal ),
+        "PML + do_nodal for finite-difference not implemented"
+        );
+#endif
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+        not ( do_dive_cleaning & do_nodal ),
+        "divE cleaning + do_nodal not implemented"
+        );
 }
 
 WarpX::~WarpX ()
@@ -633,7 +653,6 @@ WarpX::ReadParameters ()
        }
 
     }
-
 }
 
 // This is a virtual function.
