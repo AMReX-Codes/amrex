@@ -339,16 +339,35 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
     std::string pdir = dir;
     if ( not pdir.empty() and pdir[pdir.size()-1] != '/') pdir += '/';
-    pdir += name;
     
     if ( ! levelDirectoriesCreated)
     {
-        if (ParallelDescriptor::IOProcessor()) 
+        if (ParallelDescriptor::IOProcessor()) {
             if ( ! amrex::UtilCreateDirectory(pdir, 0755)) 
                 amrex::CreateDirectoryFailed(pdir);
+
+            int set_stripe = 0;
+            char setstripe[1024];
+            int stripe_count = 128;
+            int stripe_size = 32;
+            char *stripe_count_str = getenv("HDF5_STRIPE_COUNT");
+            char *stripe_size_str  = getenv("HDF5_STRIPE_SIZE");
+            if (stripe_count_str) { 
+                stripe_count = atoi(stripe_count_str);
+                set_stripe = 1;
+            }
+            if (stripe_size_str) {
+                stripe_size = atoi(stripe_size_str);
+                set_stripe = 1;
+            }
+            if (set_stripe == 1) {
+                sprintf(setstripe, "lfs setstripe -c %d -S %dm %s", stripe_count, stripe_size, pdir.c_str());
+                std::cout << "Setting stripe parameters for HDF5 output: " << setstripe << std::endl; 
+                std::system(setstripe);
+            }
+        }
         ParallelDescriptor::Barrier();
     }
-
 
     long nparticles = 0;
     int maxnextid;
@@ -410,7 +429,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     if ( ! HDF5FileName.empty() && HDF5FileName[HDF5FileName.size()-1] != '/')
         HDF5FileName += '/';
     
-    HDF5FileName += "particles.h5";
+    HDF5FileName += name;
+    if (std::string::npos == HDF5FileName.find("h5") && std::string::npos == HDF5FileName.find("hdf5")) 
+        HDF5FileName += ".h5";
     HdrFileNamePrePost = HDF5FileName;
 	
     if (ParallelDescriptor::IOProcessor()) {
@@ -515,8 +536,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             ngrids = ParticleBoxArray(lev).size();
             CreateWriteHDF5AttrInt(grp, "ngrids", 1, &ngrids);
 
-            int ratio = 1;
-            CreateWriteHDF5AttrInt(grp, "ref_ratio", 1, &ratio);
+            /* int ratio = 1; */
+            /* CreateWriteHDF5AttrInt(grp, "ref_ratio", 1, &ratio); */
 
             int mfs_size = 2 * AMREX_SPACEDIM;
             hsize_t mfs_dim = (hsize_t)ngrids;
