@@ -612,22 +612,33 @@ class FieldDiagnostic(picmistandard.PICMI_FieldDiagnostic):
         pywarpx.amr.check_consistency('plot_int', self.period, 'The period must be the same for all simulation frame diagnostics')
         pywarpx.amr.plot_int = self.period
 
-        if 'rho' in self.data_list:
-            pywarpx.warpx.plot_rho = 1
-        if 'dive' in self.data_list:
-            pywarpx.warpx.plot_dive = 1
-        if 'divb' in self.data_list:
-            pywarpx.warpx.plot_divb = 1
-        if 'F' in self.data_list:
-            pywarpx.warpx.plot_F = 1
-        if 'proc_number' in self.data_list:
-            pywarpx.warpx.plot_proc_number = 1
+        for dataname in self.data_list:
+            if dataname == 'E':
+                pywarpx.warpx.add_field_to_plot('Ex')
+                pywarpx.warpx.add_field_to_plot('Ey')
+                pywarpx.warpx.add_field_to_plot('Ez')
+            elif dataname == 'B':
+                pywarpx.warpx.add_field_to_plot('Bx')
+                pywarpx.warpx.add_field_to_plot('By')
+                pywarpx.warpx.add_field_to_plot('Bz')
+            elif dataname == 'J':
+                pywarpx.warpx.add_field_to_plot('jx')
+                pywarpx.warpx.add_field_to_plot('jy')
+                pywarpx.warpx.add_field_to_plot('jz')
+            elif dataname in ['Ex', 'Ey', 'Ez', 'Bx', 'By', 'Bz', 'rho', 'F', 'proc_number']:
+                pywarpx.warpx.add_field_to_plot(dataname)
+            elif dataname in ['Jx', 'Jy', 'Jz']:
+                pywarpx.warpx.add_field_to_plot(dataname.lower())
+            elif dataname == 'dive':
+                pywarpx.warpx.add_field_to_plot('divE')
+            elif dataname == 'divb':
+                pywarpx.warpx.add_field_to_plot('divB')
 
         pywarpx.warpx.plot_raw_fields = self.plot_raw_fields
         pywarpx.warpx.plot_raw_fields_guards = self.plot_raw_fields_guards
 
-        pywarpx.amr.check_consistency('plot_finepatch', self.plot_finepatch, 'The fine patch flag must be the same for all simulation frame field diagnostics')
-        pywarpx.amr.check_consistency('plot_crsepatch', self.plot_crsepatch, 'The coarse patch flag must be the same for all simulation frame field diagnostics')
+        pywarpx.warpx.check_consistency('plot_finepatch', self.plot_finepatch, 'The fine patch flag must be the same for all simulation frame field diagnostics')
+        pywarpx.warpx.check_consistency('plot_crsepatch', self.plot_crsepatch, 'The coarse patch flag must be the same for all simulation frame field diagnostics')
         pywarpx.warpx.plot_finepatch = self.plot_finepatch
         pywarpx.warpx.plot_crsepatch = self.plot_crsepatch
 
@@ -654,12 +665,9 @@ class ParticleDiagnostic(picmistandard.PICMI_ParticleDiagnostic):
         pywarpx.amr.check_consistency('plot_int', self.period, 'The period must be the same for all simulation frame diagnostics')
         pywarpx.amr.plot_int = self.period
 
-        if 'part_per_cell' in self.data_list:
-            pywarpx.warpx.plot_part_per_cell = 1
-        if 'part_per_grid' in self.data_list:
-            pywarpx.warpx.plot_part_per_grid = 1
-        if 'part_per_proc' in self.data_list:
-            pywarpx.warpx.plot_part_per_proc = 1
+        for dataname in self.data_list:
+            if dataname in ['part_per_cell', 'part_per_grid', 'part_per_proc']:
+                pywarpx.warpx.add_field_to_plot(dataname)
 
         if self.write_dir is not None:
             plot_file = self.write_dir + '/plotfiles/plt'
@@ -694,7 +702,16 @@ class LabFrameParticleDiagnostic(picmistandard.PICMI_LabFrameParticleDiagnostic)
         pywarpx.warpx.check_consistency('lab_data_directory', self.write_dir, 'The write directory must be the same in all lab frame diagnostics')
 
         pywarpx.warpx.do_back_transformed_diagnostics = 1
+
+        if isinstance(self.species, Species):
+            self.species.do_back_transformed_diagnostics = 1
+        else:
+            try:
+                for specie in self.species:
+                    specie.do_back_transformed_diagnostics = 1
+            except TypeError:
+                pass
+
         pywarpx.warpx.num_snapshots_lab = self.num_snapshots
         pywarpx.warpx.dt_snapshots_lab = self.dt_snapshots
-        pywarpx.warpx.do_back_transformed_particles = 1
         pywarpx.warpx.lab_data_directory = self.write_dir

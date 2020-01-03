@@ -48,6 +48,14 @@ class WarpX(Bucket):
 
         return argv
 
+    def add_field_to_plot(self, field):
+        try:
+            # Check if the field was already added to the string
+            if field not in self.fields_to_plot:
+                self.fields_to_plot.append(field)
+        except AttributeError:
+            self.fields_to_plot = [field]
+
     def init(self):
         from . import wx
         argv = ['warpx'] + self.create_argv_list()

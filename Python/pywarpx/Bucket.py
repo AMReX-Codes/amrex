@@ -35,8 +35,9 @@ class Bucket(object):
             if isinstance(value, str):
                 rhs = value
             elif hasattr(value, '__iter__'):
-                # --- For lists, tuples, and arrays make a space delimited string of the values
-                rhs = ' '.join(map(repr, value))
+                # --- For lists, tuples, and arrays make a space delimited string of the values.
+                # --- The lambda is needed in case this is a list of strings.
+                rhs = ' '.join(map(lambda s : repr(s).strip("'\""), value))
             else:
                 rhs = value
             attrstring = '{0}.{1} = {2}'.format(self.instancename, attr, repr(rhs).strip("'\""))
