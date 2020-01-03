@@ -120,6 +120,12 @@ public:
     //! Return constant reference to associated DistributionMapping.
     const DistributionMapping& DistributionMap () const noexcept { return distributionMap; }
 
+    // These are provided for convenience to keep track of how many
+    // ghost cells are up to date.  The number of filled ghost cells
+    // is updated by FillBoundary and ParallelCopy.
+    IntVect nGrowFilled () const noexcept { return n_filled; }
+    void setNGrowFilled (IntVect const& ng) noexcept { n_filled = ng; }
+
     //
     struct CacheStats
     {
@@ -411,9 +417,9 @@ public:
         ~RegionTag () { popRegionTag(); }
     };
 
-#ifndef AMREX_USE_GPU
-protected:
-#endif
+//#ifndef AMREX_USE_GPU
+//protected:
+//#endif
 
     void clear ();
 
@@ -435,6 +441,7 @@ protected:
     IntVect             n_grow;
     int                 n_comp;
     mutable BDKey       m_bdkey;
+    IntVect             n_filled;  // Note that IntVect is zero by default.
 
     //
     // Tiling
@@ -453,9 +460,20 @@ protected:
 			 bool no_assertion=false) const;
     static void flushTileArrayCache (); //!< This flushes the entire cache.
 
+    struct CommMetaData
+    {
+        // The cache of local and send/recv per FillBoundary() or ParallelCopy().
+	bool m_threadsafe_loc = false;
+	bool m_threadsafe_rcv = false;
+        std::unique_ptr<CopyComTagsContainer>      m_LocTags;
+        std::unique_ptr<MapOfCopyComTagContainers> m_SndTags;
+        std::unique_ptr<MapOfCopyComTagContainers> m_RcvTags;
+    };
+
     //
     //! FillBoundary
     struct FB
+        : CommMetaData
     {
         FB (const FabArrayBase& fa, const IntVect& nghost,
             bool cross, const Periodicity& period,
@@ -468,14 +486,6 @@ protected:
         bool         m_cross;
 	bool         m_epo;
 	Periodicity  m_period;
-        //
-        // The cache of local and send/recv per FillBoundary().
-        //
-	bool                m_threadsafe_loc;
-	bool                m_threadsafe_rcv;
-        CopyComTagsContainer*      m_LocTags;
-        MapOfCopyComTagContainers* m_SndTags;
-        MapOfCopyComTagContainers* m_RcvTags;
 	//
 	int                 m_nuse;
 	//
@@ -506,6 +516,7 @@ protected:
     //
     //! parallel copy or add
     struct CPC
+        : CommMetaData
     {
 	CPC (const FabArrayBase& dstfa, const IntVect& dstng,
 	     const FabArrayBase& srcfa, const IntVect& srcng,
@@ -528,14 +539,6 @@ protected:
 	Periodicity m_period;
 	BoxArray    m_srcba;
 	BoxArray    m_dstba;
-        //
-        // The cache of local and send/recv info per FabArray::copy().
-        //
-	bool        m_threadsafe_loc;
-	bool        m_threadsafe_rcv;
-        CopyComTagsContainer*      m_LocTags;
-        MapOfCopyComTagContainers* m_SndTags;
-        MapOfCopyComTagContainers* m_RcvTags;
 	//
         int         m_nuse;
 
@@ -605,8 +608,11 @@ protected:
 
 #ifdef BL_USE_MPI
     static bool CheckRcvStats(Vector<MPI_Status>& recv_stats,
-			      const Vector<int>& recv_size,
-			      MPI_Datatype datatype, int tag);
+			      const Vector<std::size_t>& recv_size,
+                              int tag);
+
+    static int select_comm_data_type (std::size_t nbytes);
+    static std::size_t alignof_comm_data (std::size_t nbytes);
 #endif
 
 };

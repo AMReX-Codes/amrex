@@ -5,26 +5,38 @@
 #include <AMReX_NodalProjector.H>
 #include <AMReX_ParmParse.H>
 
-using namespace amrex;
+namespace amrex {
 
 NodalProjector::NodalProjector ( const amrex::Vector<amrex::Geometry>&             a_geom,
-                                   const amrex::Vector<amrex::BoxArray>&             a_grids,
-                                   const amrex::Vector<amrex::DistributionMapping>&  a_dmap,
-                                   std::array<amrex::LinOpBCType,AMREX_SPACEDIM>     a_bc_lo,
-                                   std::array<amrex::LinOpBCType,AMREX_SPACEDIM>     a_bc_hi,
-                                   amrex::Vector<amrex::EBFArrayBoxFactory const *>  a_ebfactory )
+                                 const amrex::Vector<amrex::BoxArray>&             a_grids,
+                                 const amrex::Vector<amrex::DistributionMapping>&  a_dmap,
+                                 std::array<amrex::LinOpBCType,AMREX_SPACEDIM>     a_bc_lo,
+                                 std::array<amrex::LinOpBCType,AMREX_SPACEDIM>     a_bc_hi,
+                                 const LPInfo&                                     a_lpinfo )
 {
-    define(a_geom, a_grids, a_dmap, a_bc_lo, a_bc_hi, a_ebfactory);
+    define(a_geom, a_grids, a_dmap, a_bc_lo, a_bc_hi, a_lpinfo);
 }
 
+#ifdef AMREX_USE_EB
+NodalProjector::NodalProjector ( const amrex::Vector<amrex::Geometry>&             a_geom,
+                                 const amrex::Vector<amrex::BoxArray>&             a_grids,
+                                 const amrex::Vector<amrex::DistributionMapping>&  a_dmap,
+                                 std::array<amrex::LinOpBCType,AMREX_SPACEDIM>     a_bc_lo,
+                                 std::array<amrex::LinOpBCType,AMREX_SPACEDIM>     a_bc_hi,
+                                 amrex::Vector<amrex::EBFArrayBoxFactory const *>  a_ebfactory,
+                                 const LPInfo&                                     a_lpinfo)
+{
+    define(a_geom, a_grids, a_dmap, a_bc_lo, a_bc_hi, a_ebfactory, a_lpinfo);
+}
+#endif
 
 void
-NodalProjector::define ( const  amrex::Vector<amrex::Geometry>&                    a_geom,
-                          const  amrex::Vector<amrex::BoxArray>&                    a_grids,
-                          const  amrex::Vector<amrex::DistributionMapping>&         a_dmap,
-                          std::array<amrex::LinOpBCType,AMREX_SPACEDIM>             a_bc_lo,
-                          std::array<amrex::LinOpBCType,AMREX_SPACEDIM>             a_bc_hi,
-                          amrex::Vector<amrex::EBFArrayBoxFactory const *>          a_ebfactory )
+NodalProjector::define ( const  amrex::Vector<amrex::Geometry>&              a_geom,
+                         const  amrex::Vector<amrex::BoxArray>&              a_grids,
+                         const  amrex::Vector<amrex::DistributionMapping>&   a_dmap,
+                         std::array<amrex::LinOpBCType,AMREX_SPACEDIM>       a_bc_lo,
+                         std::array<amrex::LinOpBCType,AMREX_SPACEDIM>       a_bc_hi,
+                         const LPInfo&                                       a_lpinfo )
 {
 
     m_geom      = a_geom;
@@ -32,7 +44,7 @@ NodalProjector::define ( const  amrex::Vector<amrex::Geometry>&                 
     m_dmap      = a_dmap;
     m_bc_lo     = a_bc_lo;
     m_bc_hi     = a_bc_hi;
-    m_ebfactory = a_ebfactory;
+    m_lpinfo    = a_lpinfo;
 
     int nlev( m_grids.size() );
 
@@ -47,10 +59,63 @@ NodalProjector::define ( const  amrex::Vector<amrex::Geometry>&                 
     for (int lev(0); lev < nlev; ++lev )
     {
         // Cell-centered data
-        m_fluxes[lev].reset(new MultiFab(m_grids[lev], m_dmap[lev], 3, ng, MFInfo(), *m_ebfactory[lev]));
+        m_fluxes[lev].reset(new MultiFab(m_grids[lev], m_dmap[lev], AMREX_SPACEDIM, ng));
 
         // Node-centered data
-        const auto& ba_nd = amrex::convert(m_grids[lev], IntVect{1,1,1});
+        BoxArray tmp = m_grids[lev];
+        const auto& ba_nd = tmp.surroundingNodes();
+        m_phi[lev].reset(new MultiFab(ba_nd, m_dmap[lev], 1, ng));
+        m_rhs[lev].reset(new MultiFab(ba_nd, m_dmap[lev], 1, ng));
+    }
+
+    // Get inputs from ParmParse
+    readParameters();
+
+    // object is ready
+    m_ok = true;
+
+    // First setup
+    setup();
+}
+
+
+#ifdef AMREX_USE_EB
+void
+NodalProjector::define ( const  amrex::Vector<amrex::Geometry>&                   a_geom,
+                         const  amrex::Vector<amrex::BoxArray>&                   a_grids,
+                         const  amrex::Vector<amrex::DistributionMapping>&        a_dmap,
+                         std::array<amrex::LinOpBCType,AMREX_SPACEDIM>            a_bc_lo,
+                         std::array<amrex::LinOpBCType,AMREX_SPACEDIM>            a_bc_hi,
+                         amrex::Vector<amrex::EBFArrayBoxFactory const *>         a_ebfactory,
+                         const LPInfo&                                            a_lpinfo )
+{
+
+    m_geom      = a_geom;
+    m_grids     = a_grids;
+    m_dmap      = a_dmap;
+    m_bc_lo     = a_bc_lo;
+    m_bc_hi     = a_bc_hi;
+    m_ebfactory = a_ebfactory;
+    m_lpinfo    = a_lpinfo;
+
+    int nlev( m_grids.size() );
+
+    // Resize member data
+    m_phi.resize(nlev);
+    m_fluxes.resize(nlev);
+    m_rhs.resize(nlev);
+
+    // Allocate member data
+    int ng(1);      // We use 1 ghost node only -- it should be enough
+
+    for (int lev(0); lev < nlev; ++lev )
+    {
+        // Cell-centered data
+        m_fluxes[lev].reset(new MultiFab(m_grids[lev], m_dmap[lev], AMREX_SPACEDIM, ng, MFInfo(), *m_ebfactory[lev]));
+
+        // Node-centered data
+        BoxArray tmp = m_grids[lev];
+	const auto& ba_nd = tmp.surroundingNodes();
         m_phi[lev].reset(new MultiFab(ba_nd, m_dmap[lev], 1, ng, MFInfo(), *m_ebfactory[lev]));
         m_rhs[lev].reset(new MultiFab(ba_nd, m_dmap[lev], 1, ng, MFInfo(), *m_ebfactory[lev]));
     }
@@ -64,7 +129,7 @@ NodalProjector::define ( const  amrex::Vector<amrex::Geometry>&                 
     // First setup
     setup();
 }
-
+#endif
 
 //
 // Perform projection:
@@ -81,33 +146,38 @@ NodalProjector::define ( const  amrex::Vector<amrex::Geometry>&                 
 //  grad(phi) is node-centered.
 //
 void
-NodalProjector::project (      Vector< std::unique_ptr< amrex::MultiFab > >& a_vel,
-                          const Vector< std::unique_ptr< amrex::MultiFab > >& a_sigma,
-                          const Vector< std::unique_ptr< amrex::MultiFab > >& a_S_cc,
-                          const Vector< std::unique_ptr< amrex::MultiFab > >& a_S_nd )
+NodalProjector::project ( const amrex::Vector<amrex::MultiFab*>&       a_vel,
+                          const amrex::Vector<const amrex::MultiFab*>& a_sigma,
+                          const amrex::Vector<amrex::MultiFab*>        a_S_cc,
+                          const amrex::Vector<const amrex::MultiFab*>& a_S_nd )
 
 {
     AMREX_ALWAYS_ASSERT(m_ok);
     BL_PROFILE("NodalProjector::project");
 
-    amrex::Print() << "Nodal Projection:" << std::endl;
+    if (m_verbose > 0)
+        amrex::Print() << "Nodal Projection:" << std::endl;
 
     // Setup solver -- ALWAYS do this because matrix may change
     setup();
 
     // Compute RHS
-    computeRHS( m_rhs, a_vel, a_S_cc, a_S_nd );
+    computeRHS( GetVecOfPtrs(m_rhs), a_vel, a_S_cc, a_S_nd );
 
     // Print diagnostics
-    amrex::Print() << " >> Before projection:" << std::endl;
-    printInfo();
+    if (m_verbose > 0)
+    {
+        amrex::Print() << " >> Before projection:" << std::endl;
+        printInfo();
+        amrex::Print() << std::endl;
+    }
 
     // Set matrix coefficients
     for (int lev(0); lev < a_sigma.size(); ++lev)
         m_matrix -> setSigma(lev, *a_sigma[lev]);
 
     // Solve
-    m_solver -> solve( GetVecOfPtrs(m_phi), GetVecOfConstPtrs(m_rhs), m_mg_rtol, m_mg_atol );
+    m_solver -> solve( GetVecOfPtrs(m_phi), GetVecOfConstPtrs(m_rhs), m_rtol, m_atol );
 
     // Get fluxes -- fluxes = - sigma*grad(phi)
     m_solver -> getFluxes( GetVecOfPtrs(m_fluxes) );
@@ -128,12 +198,15 @@ NodalProjector::project (      Vector< std::unique_ptr< amrex::MultiFab > >& a_v
 
     }
 
-    // Compute RHS -- this is only needed to print out post projection values
-    computeRHS( m_rhs, a_vel, a_S_cc, a_S_nd );
-
     // Print diagnostics
-    amrex::Print() << " >> After projection:" << std::endl;
-    printInfo();
+    if (m_verbose > 0)
+    {
+        computeRHS( GetVecOfPtrs(m_rhs), a_vel, a_S_cc, a_S_nd );
+
+        amrex::Print() << " >> After projection:" << std::endl;
+        printInfo();
+        amrex::Print() << std::endl;
+    }
 }
 
 
@@ -152,29 +225,38 @@ NodalProjector::project (      Vector< std::unique_ptr< amrex::MultiFab > >& a_v
 //  grad(phi) is node-centered.
 //
 void
-NodalProjector::project2 (  Vector< std::unique_ptr< amrex::MultiFab > >&       a_vel,
-                            const Vector< std::unique_ptr< amrex::MultiFab > >& a_alpha,
-                            const Vector< std::unique_ptr< amrex::MultiFab > >& a_beta,
-                            const Vector< std::unique_ptr< amrex::MultiFab > >& a_rhs )
+NodalProjector::project2 ( const amrex::Vector<amrex::MultiFab*>&       a_vel,
+                           const amrex::Vector<const amrex::MultiFab*>& a_alpha,
+                           const amrex::Vector<const amrex::MultiFab*>& a_beta,
+                           const amrex::Vector<const amrex::MultiFab*>& a_rhs )
 
 {
     AMREX_ALWAYS_ASSERT(m_ok);
     BL_PROFILE("NodalProjector::project");
 
-    amrex::Print() << "Nodal Projection:" << std::endl;
+    if (m_verbose > 0)
+        amrex::Print() << "Nodal Projection:" << std::endl;
 
     // Setup solver -- ALWAYS do this because matrix may change
     setup();
 
     // Print diagnostics
-    amrex::Print() << " >> Before projection:" << std::endl;
-    printInfo();
+    if (m_verbose > 0)
+    {
+        amrex::Print() << " >> Before projection:" << std::endl;
+        printInfo();
+        amrex::Print() << std::endl;
+    }
 
     // Set matrix coefficients
     Vector< std::unique_ptr<MultiFab> > sigma(m_phi.size());
     for (int lev(0); lev < sigma.size(); ++lev)
     {
+#ifdef AMREX_USE_EB
         sigma[lev].reset(new MultiFab( m_grids[lev], m_dmap[lev], 3, 1 , MFInfo(), *m_ebfactory[lev] ) );
+#else
+        sigma[lev].reset(new MultiFab( m_grids[lev], m_dmap[lev], 3, 1 ) );
+#endif
         MultiFab::Copy(*sigma[lev],*a_alpha[lev],0,0,1,0);
         MultiFab::Divide(*sigma[lev],*a_beta[lev],0,0,1,0);
 
@@ -182,7 +264,7 @@ NodalProjector::project2 (  Vector< std::unique_ptr< amrex::MultiFab > >&       
     }
 
     // Solve
-    m_solver -> solve( GetVecOfPtrs(m_phi), GetVecOfConstPtrs(a_rhs), m_mg_rtol, m_mg_atol );
+    m_solver -> solve( GetVecOfPtrs(m_phi), GetVecOfConstPtrs(a_rhs), m_rtol, m_atol );
 
     // Get fluxes -- fluxes = -  (alpha/beta) * grad(phi)
     m_solver -> getFluxes( GetVecOfPtrs(m_fluxes) );
@@ -215,16 +297,16 @@ NodalProjector::project2 (  Vector< std::unique_ptr< amrex::MultiFab > >&       
 void
 NodalProjector::readParameters ()
 {
-    ParmParse pp("projection");
-    pp.query( "verbose"                , m_verbose );
-    pp.query( "mg_verbose"             , m_mg_verbose );
-    pp.query( "mg_cg_verbose"          , m_mg_cg_verbose );
-    pp.query( "mg_maxiter"             , m_mg_maxiter );
-    pp.query( "mg_cg_maxiter"          , m_mg_cg_maxiter );
-    pp.query( "mg_rtol"                , m_mg_rtol );
-    pp.query( "mg_atol"                , m_mg_atol );
-    pp.query( "mg_max_coarsening_level", m_mg_max_coarsening_level );
-    pp.query( "bottom_solver_type"     , m_bottom_solver_type );
+    ParmParse pp("nodal_proj");
+    pp.query( "verbose"       , m_verbose );
+    pp.query( "bottom_verbose", m_bottom_verbose );
+    pp.query( "maxiter"       , m_maxiter );
+    pp.query( "bottom_maxiter", m_bottom_maxiter );
+    pp.query( "rtol"          , m_rtol );
+    pp.query( "atol"          , m_atol );
+    pp.query( "bottom_rtol"   , m_bottom_rtol );
+    pp.query( "bottom_atol"   , m_bottom_atol );
+    pp.query( "bottom_solver" , m_bottom_solver );
 }
 
 
@@ -241,17 +323,19 @@ NodalProjector::setup ()
     // Initialize all variables
     for (int lev(0); lev < m_phi.size(); ++lev)
     {
-        m_phi[lev] -> setVal(0.0);
+        m_phi[lev]    -> setVal(0.0);
         m_fluxes[lev] -> setVal(0.0);
-        m_rhs[lev] ->  setVal(0.0);
+        m_rhs[lev]    -> setVal(0.0);
     }
 
     //
     // Setup Matrix
     //
-    LPInfo                       info;
-    info.setMaxCoarseningLevel(m_mg_max_coarsening_level);
-    m_matrix.reset(new MLNodeLaplacian(m_geom, m_grids, m_dmap, info, m_ebfactory));
+#ifdef AMREX_USE_EB
+    m_matrix.reset(new MLNodeLaplacian(m_geom, m_grids, m_dmap, m_lpinfo, m_ebfactory));
+#else
+    m_matrix.reset(new MLNodeLaplacian(m_geom, m_grids, m_dmap, m_lpinfo));
+#endif
 
     m_matrix->setGaussSeidel(true);
     m_matrix->setHarmonicAverage(false);
@@ -262,32 +346,27 @@ NodalProjector::setup ()
     //
     m_solver.reset(new MLMG(*m_matrix));
 
-    m_solver->setMaxIter(m_mg_maxiter);
-    m_solver->setVerbose(m_mg_verbose);
-    m_solver->setCGVerbose(m_mg_cg_verbose);
-    m_solver->setCGMaxIter(m_mg_cg_maxiter);
-
-    if (m_bottom_solver_type == "smoother")
+    if (m_bottom_solver == "smoother")
     {
         m_solver->setBottomSolver(MLMG::BottomSolver::smoother);
     }
-    else if (m_bottom_solver_type == "bicg")
+    else if (m_bottom_solver == "bicg")
     {
         m_solver->setBottomSolver(MLMG::BottomSolver::bicgstab);
     }
-    else if (m_bottom_solver_type == "cg")
+    else if (m_bottom_solver == "cg")
     {
         m_solver->setBottomSolver(MLMG::BottomSolver::cg);
     }
-    else if (m_bottom_solver_type == "bicgcg")
+    else if (m_bottom_solver == "bicgcg")
     {
         m_solver->setBottomSolver(MLMG::BottomSolver::bicgcg);
     }
-    else if (m_bottom_solver_type == "cgbicg")
+    else if (m_bottom_solver == "cgbicg")
     {
         m_solver->setBottomSolver(MLMG::BottomSolver::cgbicg);
     }
-    else if (m_bottom_solver_type == "hypre")
+    else if (m_bottom_solver == "hypre")
     {
 #ifdef AMREX_USE_HYPRE
         m_solver->setBottomSolver(MLMG::BottomSolver::hypre);
@@ -296,24 +375,50 @@ NodalProjector::setup ()
 #endif
     }
 
+    m_solver->setVerbose(m_verbose);
+    m_solver->setBottomVerbose(m_bottom_verbose);
+    m_solver->setMaxIter(m_maxiter);
+    m_solver->setBottomMaxIter(m_bottom_maxiter);
+    m_solver->setBottomTolerance(m_bottom_rtol);
+    m_solver->setBottomToleranceAbs(m_bottom_atol);
+
 }
 
 
 //
 // Compute RHS: div(u) + S_nd + S_cc
 //
-
 void
-NodalProjector::computeRHS (  amrex::Vector< std::unique_ptr< amrex::MultiFab > >& a_rhs,
-                               const amrex::Vector< std::unique_ptr< amrex::MultiFab > >& a_vel,
-                               const amrex::Vector< std::unique_ptr< amrex::MultiFab > >& a_S_cc,
-                               const amrex::Vector< std::unique_ptr< amrex::MultiFab > >& a_S_nd )
+NodalProjector::computeRHS (  const amrex::Vector<amrex::MultiFab*>&       a_rhs,
+                              const amrex::Vector<amrex::MultiFab*>&       a_vel,
+                              const amrex::Vector<amrex::MultiFab*>&       a_S_cc,
+                              const amrex::Vector<const amrex::MultiFab*>& a_S_nd )
 {
     AMREX_ALWAYS_ASSERT(m_ok);
+    AMREX_ALWAYS_ASSERT(a_rhs.size()==m_phi.size());
+    AMREX_ALWAYS_ASSERT(a_vel.size()==m_phi.size());
+    AMREX_ALWAYS_ASSERT((a_S_cc.size()==0) || (a_S_cc.size()==m_phi.size()) );
+    AMREX_ALWAYS_ASSERT((a_S_nd.size()==0) || (a_S_nd.size()==m_phi.size()) );
+
     BL_PROFILE("NodalProjector::computeRHS");
 
-    m_matrix -> compRHS( GetVecOfPtrs(a_rhs),  GetVecOfPtrs(a_vel), GetVecOfConstPtrs(a_S_cc),
-                         GetVecOfPtrs(a_S_nd) );
+    bool has_S_cc(!a_S_cc.empty());
+    bool has_S_nd(!a_S_nd.empty());
+
+    // Check the type of grids used
+    for (int lev(0); lev < m_phi.size(); ++lev)
+    {
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(a_rhs[lev]->ixType().nodeCentered(), "a_rhs is not node centered");
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(a_vel[lev]->ixType().cellCentered(), "a_vel is not cell centered");
+
+        if (has_S_cc)
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(a_S_cc[lev]->ixType().cellCentered(),"a_S_cc is not cell centered");
+
+        if (has_S_nd)
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(a_S_nd[lev]->ixType().nodeCentered(),"a_S_nd is not node centered");
+    }
+
+    m_matrix -> compRHS( a_rhs, a_vel, a_S_nd, a_S_cc );
 }
 
 
@@ -327,4 +432,6 @@ NodalProjector::printInfo ()
                        << m_rhs[lev]->norm0(0,0,false,true)
                        << std::endl;
     }
+}
+
 }

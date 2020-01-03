@@ -433,19 +433,48 @@ An example using :cpp:`AsyncArray` is given below,
 
     aa_s.copyToHost(&h_s, 1); // Copy the value back to host
 
-ManagedVector
--------------
+Gpu Vectors
+-----------
 
-AMReX also provides a dynamic memory allocation object for GPU managed memory:
-:cpp:`Gpu::ManagedVector`.  This class behaves identically to an
-:cpp:`amrex::Vector`, (see :ref:`sec:basics:vecandarr`), except the vector's
-allocator has been changed to allocate and deallocate its data in CUDA
-managed memory whenever ``USE_CUDA=TRUE``.
+AMReX also provides a number of dynamic vectors for use with GPU kernels.
+These are configured to use the different AMReX memory Arenas, as
+summarized below. By using the memory Arenas, we can avoid expensive
+allocations and deallocations when (for example) resizing vectors.
 
-While the data is managed and available on GPUs, the member functions of
-:cpp:`Gpu::ManagedVector` are not. To use the data on the GPU, it is
-necessary to pass the underlying data pointer to the GPU. The managed data
-pointer can be accessed using the :cpp:`data()` member function.
+.. raw:: latex
+
+    \begin{center}
+
+.. _tab:gpu:arena:
+
+.. table:: Memory Arenas
+
+    +----------------+----------------------+
+    | Vector         | Arena                |
+    +================+======================+
+    | DeviceVector   | The_Arena()          |
+    +----------------+----------------------+
+    | HostVector     | None                 |
+    +----------------+----------------------+
+    | ManagedVector  | The_Managed_Arena()  |
+    +----------------+----------------------+
+    | PinnedVector   | The_Pinned_Arena()   |
+    +----------------+----------------------+
+
+.. raw:: latex
+
+    \end{center}
+
+These classes behave identically to an
+:cpp:`amrex::Vector`, (see :ref:`sec:basics:vecandarr`), except that they
+can only hold "plain-old-data" objects (e.g. Reals, integers, amrex Particles,
+etc... ).
+
+Note that, even if the data in the vector is  managed and available on GPUs,
+the member functions of e.g. :cpp:`Gpu::ManagedVector` are not.
+To use the data on the GPU, it is necessary to pass the underlying data pointer
+in to the GPU kernels. The managed data pointer can be accessed using the :cpp:`data()`
+member function.
 
 Be aware: resizing of dynamically allocated memory on the GPU is unsupported.
 All resizing of the vector should be done on the CPU, in a manner that avoids
@@ -455,36 +484,6 @@ Also note: :cpp:`Gpu::ManagedVector` is not async-safe.  It cannot be safely
 constructed inside of an MFIter loop with GPU kernels and great care should
 be used when accessing :cpp:`Gpu::ManagedVector` data on GPUs to avoid race
 conditions.
-
-
-CUDA's Thrust Vectors
----------------------
-
-CUDA's Thrust library can also be used to manage dynamically sized data sets.
-However, if Thrust is used directly in AMReX code, it will be unable to compile
-for cases when ``USE_CUDA=FALSE``.  To alleviate this issue,
-:cpp:`thrust::host_vector` and :cpp:`thrust::device_vector` have been wrapped
-into the AMReX classes :cpp:`Gpu::HostVector` and :cpp:`Gpu::DeviceVector`.
-When ``USE_CUDA=FALSE``, these classes revert to AMReX's Vector class. When
-``USE_CUDA=TRUE``, these classes become the corresponding Thrust vector.
-
-Just like with Thrust vectors, :cpp:`HostVector` and :cpp:`DeviceVector` cannot
-be directly used on the device. For convenience, the :cpp:`dataPtr()` member
-function has been altered to implement :cpp:`thrust::raw_pointer_cast` and
-return the raw data pointer which can be used to access the vector's underlying
-data on the GPU.
-
-It has proven useful to have a version of Thrust's :cpp:`device_vector`
-that uses CUDA managed memory. This is provided by :cpp:`Gpu::ManagedDeviceVector`.
-
-:cpp:`thrust::copy` is also commonly used in AMReX applications. It can be
-implemented portably using :cpp:`Gpu::thrust_copy`.
-
-:cpp:`Gpu::DeviceVector` and :cpp:`Gpu::ManagedDeviceVector` are configured to
-use the memory Arenas provided by AMReX (see :ref:`sec:gpu:memory`). This
-means that you can create temporary versions of these containers on-the-fly
-without needing to performance expensive device memory allocate and free
-operations.
 
 amrex::min and amrex::max
 -------------------------
@@ -1235,19 +1234,11 @@ Particle Support
 
 .. _sec:gpu:particle:
 
-AMReX's GPU particle support relies on Thrust, a parallel algorithms library maintained by
-Nvidia. Thrust provides a GPU-capable vector container that is otherwise similar to the one
-in the C++ Standard Template Library, along with associated sorting, searching, and prefix
-summing operations. Combined with Cuda's unified memory, Thrust forms the basis of AMReX's
-GPU support for particles.
-
-When compiled with ``USE_CUDA=TRUE``, AMReX places all its particle data in instances of
-``thrust::device_vector`` that have been configured using a custom memory allocator using
-``cudaMallocManaged``. This means that the :cpp:`dataPtr` associated with particle data
-is managed and can be passed into GPU kernels, similar to the way it would be passed into
-a Fortran subroutine in typical AMReX CPU code. As with the mesh data, these kernels can
-be launched with a variety of approaches, including Cuda C / Fortran and OpenACC. An example
-Fortran particle subroutine offloaded via OpenACC might look like the following:
+As with ``MultiFab``, particle data stored in AMReX ``ParticleContainer`` classes are
+stored in unified memory when AMReX is compiled with ``USE_CUDA=TRUE``. This means that the :cpp:`dataPtr` associated with particles
+is managed and can be passed into GPU kernels. These kernels can be launched with a variety of approaches,
+including Cuda C / Fortran and OpenACC. An example Fortran particle subroutine offloaded via OpenACC might
+look like the following:
 
 .. highlight:: fortran
 
@@ -1280,72 +1271,19 @@ Fortran particle subroutine offloaded via OpenACC might look like the following:
 
 Note the use of the :fortran:`!$acc parallel deviceptr` clause to specify which data has been placed
 in managed memory. This instructs OpenACC to treat those variables as if they already live on
-the device, bypassing the usual copies. For a complete example of a particle code that has been ported
-to GPUs using OpenACC, please see :cpp:`Tutorials/Particles/ElectromagneticPIC`.
+the device, bypassing the usual copies. For complete examples of a particle code that has been ported
+to GPUs using Cuda, OpenACC, and OpenMP, please see :cpp:`Tutorials/Particles/ElectromagneticPIC`.
 
-For portability, we have provided a set of Vector classes that wrap around the Thrust and
-STL vectors. When ``USE_CUDA = FALSE``, these classes reduce to the normal :cpp:`amrex::Vector`.
-When ``USE_CUDA = TRUE``, they have different meanings. :cpp:`Cuda::HostVector` is a wrapper
-around :cpp:`thrust::host_vector`. :cpp:`Cuda::DeviceVector` is a wrapper around :cpp:`thrust::device_vector`,
-while :cpp:`Cuda::ManagedDeviceVector` is a :cpp:`thrust::device_vector` that lives in managed memory.
-These classes are useful when there are certain stages of an algorithm that will always
-execute on either the host or the device. For example, the following code generates particles on
-the CPU and copies them over to the GPU in one batch per tile:
+GPU-aware implementations of many common particle operations are provided with AMReX, including neighbor list
+construction and traversal, particle-mesh deposition and interpolation, parallel reductions of particle data,
+and a set of transformation and filtering operations that are useful when operating on sets of particles. For
+examples of these features in use, please see :cpp:`Tests/Particles/`. 
 
-.. highlight:: cpp
-
-::
-
-       for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
-       {
-           const Box& tile_box  = mfi.tilebox();
-           Cuda::HostVector<ParticleType> host_particles;
-
-           for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv))
-           {
-               < generate some particles... >
-           }
-
-           auto& particles = GetParticles(lev);
-           auto& particle_tile = particles[std::make_pair(mfi.index(), mfi.LocalTileIndex())];
-           auto old_size = particle_tile.GetArrayOfStructs().size();
-           auto new_size = old_size + host_particles.size();
-           particle_tile.resize(new_size);
-
-           Cuda::thrust_copy(host_particles.begin(),
-                             host_particles.end(),
-                             particle_tile.GetArrayOfStructs().begin() + old_size);
-        }
-
-The following example shows how to use :cpp:`Cuda::DeviceVector`. Specifically, this code creates
-temporary device vectors for the particle x, y, and z positions, and then copies from an Array-of-Structs
-to a Struct-of-Arrays representation, all without copying any particle data off the GPU:
-
-.. highlight:: cpp
-
-::
-
-   Cuda::DeviceVector<Real> xp, yp, zp;
-
-   for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
-   {
-       pti.GetPosition(xp, yp, zp);
-
-       < use xp, yp, zp... >
-   }
-
-Note that the above code will cause problems if multiple streams are used to launch kernels inside the
-particle iterator loop. This is because the temporary variables :cpp:`xp`, :cpp:`yp`, and :cpp:`zp` are
-shared between different iterations. However, if all the kernel launches happen on the default stream,
-so that the kernels are guaranteed to complete in order, then the above approach will give the
-expected results.
-
-Finally, AMReX's :cpp:`Redistribute()`, which moves particles back to the proper grids after their positions
-have changed, has been ported to work on the GPU as well. It cannot be called from device code,
-but it can be called on particles that reside on the device and it won't trigger any unified
-memory traffic. As with :cpp:`MultiFab` data, the MPI portion of the particle redistribute is set
-up to take advantange of the Cuda-aware MPI implementations available on platforms such as
-ORNL's Summit and Summit-dev.
+Finally, the parallel communiciation of particle data has been ported and optimized for performance on GPU
+platforms. This includes :cpp:`Redistribute()`, which moves particles back to the proper grids after their positions
+have changed, as well as :cpp:`fillNeighbors()` and :cpp:`updateNeighbors()`, which are used to exchange halo particles.
+As with :cpp:`MultiFab` data, these have been designed to minimize host / device traffic as much as possible, and can
+take advantange of the Cuda-aware MPI implementations available on platforms such as ORNL's Summit.
 
 
 Profiling with GPUs
@@ -1414,6 +1352,35 @@ AMReX for GPUs:
     {
         ...
     }
+
+* Generally, AMReX users should not have to directly call ``thrust``
+  functions, as they are wrapped inside AMReX functions. However, if
+  a ``thrust`` function does need to be directly called, it is
+  important to include the appropriate parallel execution policy. 
+  Although ``thrust`` is capable of default location selection, 
+  AMReX's use of non- ``thrust`` data structures can cause
+  ``thrust`` to default to the host unexpectedly, which will either
+  cause performance loss or runtime errors.
+
+  Thrust comes with two built-in policies, ``thrust::host`` and
+  ``thrust::device``. AMReX also includes a ``thrust::device`` 
+  execution policy, ``amrex::Gpu::The_ThrustCachedPolicy()``, that
+  uses AMReX Arenas when allocating temporary memory space, which 
+  substantially reduces cudaMalloc time inside ``thrust``
+  functions. This is the recommended execution policy for optimal
+  performance when calling thrust functions.
+
+  The parallel execution policy is an optional first variable passed
+  to most ``thrust`` functions. For example:
+
+.. highlight:: cpp
+
+::
+    Real r = thrust::reduce(amrex::Gpu::The_ThrustCachedPolicy(),
+                            vec.begin(), vec.end(), 0.0, thrust::plus<Real>());
+
+    Real r = thrust::reduce(thrust::host,
+                            vec.begin(), vec.end(), 0.0, thrust::plus<Real>());
 
 .. ===================================================================
 

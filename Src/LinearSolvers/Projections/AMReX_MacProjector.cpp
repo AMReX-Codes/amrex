@@ -1,10 +1,10 @@
-
 #ifdef AMREX_USE_EB
 #include <AMReX_EBMultiFabUtil.H>
 #endif
-#include <AMReX_MultiFabUtil.H>
 
+#include <AMReX_MultiFabUtil.H>
 #include <AMReX_MacProjector.H>
+#include <AMReX_ParmParse.H>
 
 namespace amrex {
 
@@ -84,6 +84,10 @@ MacProjector::MacProjector (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_um
             MultiFab::Copy(m_rhs[ilev], *a_divu[ilev], 0, 0, 1, 0);
         }
     }
+
+    m_mlmg.reset(new MLMG(*m_linop));
+
+    setOptions();
 }
 
 void
@@ -94,24 +98,24 @@ MacProjector::setDomainBC (const Array<LinOpBCType,AMREX_SPACEDIM>& lobc,
     for (int ilev = 0, N = m_umac.size(); ilev < N; ++ilev) {
         m_linop->setLevelBC(ilev, nullptr);
     }
+
+    m_needs_domain_bcs = false;
 }
+
+
+void
+MacProjector::setLevelBC (int amrlev, const MultiFab* levelbcdata)
+{
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!m_needs_domain_bcs,
+                                     "setDomainBC must be called before setLevelBC");
+    m_linop->setLevelBC(amrlev, levelbcdata);
+}
+
+
 
 void
 MacProjector::project (Real reltol, Real atol, MLMG::Location loc)
 {
-    if (m_mlmg == nullptr)
-    {
-        m_mlmg.reset(new MLMG(*m_linop));
-        m_mlmg->setVerbose(m_verbose);
-        m_mlmg->setCGVerbose(m_cg_verbose);
-        m_mlmg->setMaxIter(m_maxiter);
-        m_mlmg->setCGMaxIter(m_cg_maxiter);
-        m_mlmg->setBottomTolerance   (m_bottom_reltol);
-        m_mlmg->setBottomToleranceAbs(m_bottom_abstol);
-    }
-
-    m_mlmg->setBottomSolver(bottom_solver_type);
-
     const int nlevs = m_rhs.size();
 
     for (int ilev = 0; ilev < nlevs; ++ilev)
@@ -138,7 +142,7 @@ MacProjector::project (Real reltol, Real atol, MLMG::Location loc)
     m_mlmg->solve(amrex::GetVecOfPtrs(m_phi), amrex::GetVecOfConstPtrs(m_rhs), reltol, atol);
 
     m_mlmg->getFluxes(amrex::GetVecOfArrOfPtrs(m_fluxes), loc);
-    
+
     for (int ilev = 0; ilev < nlevs; ++ilev) {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             MultiFab::Add(*m_umac[ilev][idim], m_fluxes[ilev][idim], 0, 0, 1, 0);
@@ -152,16 +156,6 @@ MacProjector::project (Real reltol, Real atol, MLMG::Location loc)
 void
 MacProjector::project (const Vector<MultiFab*>& phi_inout, Real reltol, Real atol, MLMG::Location loc)
 {
-    if (m_mlmg == nullptr)
-    {
-        m_mlmg.reset(new MLMG(*m_linop));
-        m_mlmg->setVerbose(m_verbose);
-        m_mlmg->setCGVerbose(m_cg_verbose);
-        m_mlmg->setMaxIter(m_maxiter);
-        m_mlmg->setCGMaxIter(m_cg_maxiter);
-    }
-
-    m_mlmg->setBottomSolver(bottom_solver_type);
 
     const int nlevs = m_rhs.size();
 
@@ -192,7 +186,7 @@ MacProjector::project (const Vector<MultiFab*>& phi_inout, Real reltol, Real ato
 
     m_mlmg->getFluxes(amrex::GetVecOfArrOfPtrs(m_fluxes), loc);
 
-    
+
     for (int ilev = 0; ilev < nlevs; ++ilev) {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             MultiFab::Add(*m_umac[ilev][idim], m_fluxes[ilev][idim], 0, 0, 1, 0);
@@ -204,6 +198,74 @@ MacProjector::project (const Vector<MultiFab*>& phi_inout, Real reltol, Real ato
     for (int ilev = 0; ilev < nlevs; ++ilev)
     {
         MultiFab::Copy(*phi_inout[ilev], m_phi[ilev], 0, 0, 1, 0);
+    }
+}
+
+
+
+//
+// Set options by using default values and values read in input file
+//
+void
+MacProjector::setOptions ()
+{
+
+    // Default values
+    int          maxorder(3);
+    int          bottom_verbose(0);
+    int          maxiter(200);
+    int          bottom_maxiter(200);
+    Real         bottom_rtol(1.0e-4);
+    Real         bottom_atol(-1.0);
+    std::string  bottom_solver("bicg");
+
+    // Read from input file
+    ParmParse pp("mac_proj");
+    pp.query( "verbose"       , m_verbose );
+    pp.query( "maxorder"      , maxorder );
+    pp.query( "bottom_verbose", bottom_verbose );
+    pp.query( "maxiter"       , maxiter );
+    pp.query( "bottom_maxiter", bottom_maxiter );
+    pp.query( "bottom_rtol"   , bottom_rtol );
+    pp.query( "bottom_atol"   , bottom_atol );
+    pp.query( "bottom_solver" , bottom_solver );
+
+    // Set default/input values
+    m_linop->setMaxOrder(maxorder);
+    m_mlmg->setVerbose(m_verbose);
+    m_mlmg->setBottomVerbose(bottom_verbose);
+    m_mlmg->setMaxIter(maxiter);
+    m_mlmg->setBottomMaxIter(bottom_maxiter);
+    m_mlmg->setBottomTolerance(bottom_rtol);
+    m_mlmg->setBottomToleranceAbs(bottom_atol);
+
+    if (bottom_solver == "smoother")
+    {
+        m_mlmg->setBottomSolver(MLMG::BottomSolver::smoother);
+    }
+    else if (bottom_solver == "bicg")
+    {
+        m_mlmg->setBottomSolver(MLMG::BottomSolver::bicgstab);
+    }
+    else if (bottom_solver == "cg")
+    {
+        m_mlmg->setBottomSolver(MLMG::BottomSolver::cg);
+    }
+    else if (bottom_solver == "bicgcg")
+    {
+        m_mlmg->setBottomSolver(MLMG::BottomSolver::bicgcg);
+    }
+    else if (bottom_solver == "cgbicg")
+    {
+        m_mlmg->setBottomSolver(MLMG::BottomSolver::cgbicg);
+    }
+    else if (bottom_solver == "hypre")
+    {
+#ifdef AMREX_USE_HYPRE
+        m_mlmg->setBottomSolver(MLMG::BottomSolver::hypre);
+#else
+        amrex::Abort("AMReX was not built with HYPRE support");
+#endif
     }
 }
 

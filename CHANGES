@@ -1,3 +1,61 @@
+# 20.01
+
+  -- GPU host device version of swap.
+
+  -- Fix an edge case of gpu block reduce where the block size is less
+     than a warp.
+
+  -- Always check MPI buffer size for overflow.
+
+  -- CMake support for PETSc.
+
+  -- Include C sources in the CUDA proprecessing.
+
+  -- It's now safe to construct a zero components Fab.
+
+  -- CXXSTD: option to set c++ standard in GNU make system
+
+  -- Improve performance of the nodal linear solver on GPU.
+
+# 19.12
+
+  -- Fix potential deadlocks in amrex::Random.
+
+  -- MultiFab::Swap that does shallow swap if it can, does deep swap
+     otherwise.
+
+  -- FabArray::arena function that returns the Arena used to build.
+
+  -- Nodal projection sync residuals are implemented for RAP.
+
+  -- GPU support for initializing Fabs to NaNs.
+
+# 19.11
+
+  -- AmrCore::regrid will now simply return instead of abort if the
+     base level is already the maximal level.
+
+  -- Add NodalProjector that wraps MLMG for convenience.
+
+  -- Enforce in AmrCore that blocking factor must be a power of 2.
+
+  -- Add support to write plotfile in HDF5 format.
+
+  -- FabArray's Reduce functions can now take lambda working on Array4
+     in addition of FAB.
+
+  -- Add AMREX_REAL_MIN, AMREX_REAL_MAX and AMREX_REAL_LOWEST for
+     convenience.
+
+  -- GPU launch functions and macros are now safe with empty boxes.
+
+  -- Remove FabView from BaseFab.
+
+  -- Avoid race conditions in GPU reduction code called multiple
+     times.
+
+  -- MLMG tensor solver is fixed for AMR.
+
 # 19.10
 
   -- Add inhomogeneous Neumann BC to MLMG for convenience.

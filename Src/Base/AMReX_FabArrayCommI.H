@@ -92,7 +92,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
     //
     char*&                          the_send_data = fb_the_send_data;
     Vector<char*> &                     send_data = fb_send_data;
-    Vector<int>                         send_size;
+    Vector<std::size_t>                 send_size;
     Vector<int>                         send_rank;
     Vector<MPI_Request>&                send_reqs = fb_send_reqs;
     Vector<const CopyComTagsContainer*> send_cctc;
@@ -108,6 +108,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
         send_reqs.reserve(N_snds);
 	send_cctc.reserve(N_snds);
 
+        Vector<std::size_t> offset; offset.reserve(N_snds);
         std::size_t total_volume = 0;
         for (auto const& kv : *TheFB.m_SndTags)
         {
@@ -119,13 +120,20 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
             {
                 nbytes += (*this)[cct.srcIndex].nBytes(cct.sbox,scomp,ncomp);
             }
-            
-            BL_ASSERT(nbytes < std::size_t(std::numeric_limits<int>::max()));
-            
+
+            std::size_t acd = alignof_comm_data(nbytes);
+            nbytes = amrex::aligned_size(acd, nbytes); // so that bytes are aligned
+
+            // Also need to align the offset properly
+            total_volume = amrex::aligned_size(std::max(alignof(typename FAB::value_type),
+                                                        acd),
+                                               total_volume);
+
+            offset.push_back(total_volume);
             total_volume += nbytes;
 
             send_data.push_back(nullptr);
-            send_size.push_back(static_cast<int>(nbytes));
+            send_size.push_back(nbytes);
             send_rank.push_back(kv.first);
             send_reqs.push_back(MPI_REQUEST_NULL);
             send_cctc.push_back(&cctc);
@@ -134,13 +142,13 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
         if (total_volume > 0)
         {
             the_send_data = static_cast<char*>(amrex::The_FA_Arena()->alloc(total_volume));
-            char* p = the_send_data;
             for (int i = 0, N = send_size.size(); i < N; ++i) {
                 if (send_size[i] > 0) {
-                    send_data[i] = p;
-                    p += send_size[i];
+                    send_data[i] = the_send_data + offset[i];
                 }
             }
+        } else {
+            the_send_data = nullptr;
         }
 
 #ifdef AMREX_USE_GPU
@@ -162,14 +170,31 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
             pack_send_buffer_cpu(*this, scomp, ncomp, send_data, send_size, send_cctc);
         }
 
+        MPI_Comm comm = ParallelContext::CommunicatorSub();
+
         for (int j = 0; j < N_snds; ++j)
         {
             if (send_size[j] > 0) {
-                send_reqs[j] = ParallelDescriptor::Asend
-                    (send_data[j], send_size[j],
-                     ParallelContext::global_to_local_rank(send_rank[j]),
-                     SeqNum,
-                     ParallelContext::CommunicatorSub()).req();
+                const int rank = ParallelContext::global_to_local_rank(send_rank[j]);
+                const int comm_data_type = select_comm_data_type(send_size[j]);
+                if (comm_data_type == 1) {
+                    send_reqs[j] = ParallelDescriptor::Asend
+                        (send_data[j],
+                         send_size[j],
+                         rank, SeqNum, comm).req();
+                } else if (comm_data_type == 2) {
+                    send_reqs[j] = ParallelDescriptor::Asend
+                        ((unsigned long long *)send_data[j],
+                         send_size[j]/sizeof(unsigned long long),
+                         rank, SeqNum, comm).req();
+                } else if (comm_data_type == 3) {
+                    send_reqs[j] = ParallelDescriptor::Asend
+                        ((ParallelDescriptor::lull_t *)send_data[j],
+                         send_size[j]/sizeof(ParallelDescriptor::lull_t),
+                         rank, SeqNum, comm).req();
+                } else {
+                    amrex::Abort("TODO: message size is too big");
+                }
             }
 	}
     }
@@ -214,6 +239,8 @@ FabArray<FAB>::FillBoundary_finish ()
 
     if ( n_grow.allLE(IntVect::TheZeroVector()) && !fb_epo ) return; // For epo (Enforce Periodicity Only), there may be no ghost cells.
 
+    n_filled = fb_nghost;
+
     if (ParallelContext::NProcsSub() == 1) return;
 
 #ifdef AMREX_USE_MPI
@@ -237,7 +264,7 @@ FabArray<FAB>::FillBoundary_finish ()
         if (actual_n_rcvs > 0) {
             ParallelDescriptor::Waitall(fb_recv_reqs, fb_recv_stat);
 #ifdef AMREX_DEBUG
-            if (!CheckRcvStats(fb_recv_stat, fb_recv_size, MPI_CHAR, fb_tag))
+            if (!CheckRcvStats(fb_recv_stat, fb_recv_size, fb_tag))
             {
                 amrex::Abort("FillBoundary_finish failed with wrong message size");
             }
@@ -308,6 +335,8 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 
     BL_ASSERT(src.nGrowVect().allGE(snghost));
     BL_ASSERT(    nGrowVect().allGE(dnghost));
+
+    n_filled = dnghost;
 
     if ((src.boxArray().ixType().cellCentered() || op == FabArrayBase::COPY) &&
         (boxarray == src.boxarray && distributionMap == src.distributionMap)
@@ -400,7 +429,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 
         Vector<int>         recv_from;
         Vector<char*>       recv_data;
-        Vector<int>         recv_size;
+        Vector<std::size_t> recv_size;
         Vector<MPI_Request> recv_reqs;
         //
         // Post rcvs. Allocate one chunk of space to hold'm all.
@@ -419,7 +448,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 	//
         char*                               the_send_data;
 	Vector<char*>                       send_data;
-	Vector<int>                         send_size;
+	Vector<std::size_t>                 send_size;
 	Vector<int>                         send_rank;
 	Vector<MPI_Request>                 send_reqs;
 	Vector<const CopyComTagsContainer*> send_cctc;
@@ -432,6 +461,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
             send_reqs.reserve(N_snds);
 	    send_cctc.reserve(N_snds);
 
+            Vector<std::size_t> offset; offset.reserve(N_snds);
             std::size_t total_volume = 0;
             for (auto const& kv : *thecpc.m_SndTags)
 	    {
@@ -443,13 +473,19 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                 {
                     nbytes += src[cct.srcIndex].nBytes(cct.sbox,SC,NC);
                 }
-		
-		BL_ASSERT(nbytes < std::size_t(std::numeric_limits<int>::max()));
 
+                std::size_t acd = alignof_comm_data(nbytes);
+                nbytes = amrex::aligned_size(acd, nbytes); // so that bytes are aligned
+
+                // Also need to align the offset properly
+                total_volume = amrex::aligned_size(std::max(alignof(typename FAB::value_type),
+                                                            acd),
+                                                   total_volume);
+                offset.push_back(total_volume);
                 total_volume += nbytes;
 
 		send_data.push_back(nullptr);
-                send_size.push_back(static_cast<int>(nbytes));
+                send_size.push_back(nbytes);
                 send_rank.push_back(kv.first);
                 send_reqs.push_back(MPI_REQUEST_NULL);
                 send_cctc.push_back(&cctc);
@@ -458,11 +494,9 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
             if (total_volume > 0)
             {
                 the_send_data = static_cast<char*>(amrex::The_FA_Arena()->alloc(total_volume));
-                char* p = the_send_data;
                 for (int i = 0, N = send_size.size(); i < N; ++i) {
                     if (send_size[i] > 0) {
-                        send_data[i] = p;
-                        p += send_size[i];
+                        send_data[i] = the_send_data + offset[i];
                     }
                 }
             }
@@ -478,14 +512,31 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                 pack_send_buffer_cpu(src, SC, NC, send_data, send_size, send_cctc);
             }
 
+            MPI_Comm comm = ParallelContext::CommunicatorSub();
+
             for (int j = 0; j < N_snds; ++j)
             {
                 if (send_size[j] > 0) {
-                    send_reqs[j] = ParallelDescriptor::Asend
-                        (send_data[j], send_size[j],
-                         ParallelContext::global_to_local_rank(send_rank[j]),
-                         SeqNum,
-                         ParallelContext::CommunicatorSub()).req();
+                    const int rank = ParallelContext::global_to_local_rank(send_rank[j]);
+                    const int comm_data_type = select_comm_data_type(send_size[j]);
+                    if (comm_data_type == 1) {
+                        send_reqs[j] = ParallelDescriptor::Asend
+                            (send_data[j],
+                             send_size[j],
+                             rank, SeqNum, comm).req();
+                    } else if (comm_data_type == 2) {
+                        send_reqs[j] = ParallelDescriptor::Asend
+                            ((unsigned long long *)send_data[j],
+                             send_size[j]/sizeof(unsigned long long),
+                             rank, SeqNum, comm).req();
+                    } else if (comm_data_type == 3) {
+                        send_reqs[j] = ParallelDescriptor::Asend
+                            ((ParallelDescriptor::lull_t *)send_data[j],
+                             send_size[j]/sizeof(ParallelDescriptor::lull_t),
+                             rank, SeqNum, comm).req();
+                    } else {
+                        amrex::Abort("TODO: message size is too big");
+                    }
                 }
 	    }
 	}
@@ -523,7 +574,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                 Vector<MPI_Status> stats(N_rcvs);
                 ParallelDescriptor::Waitall(recv_reqs, stats);
 #ifdef AMREX_DEBUG
-                if (!CheckRcvStats(stats, recv_size, MPI_CHAR, SeqNum))
+                if (!CheckRcvStats(stats, recv_size, SeqNum))
                 {
                     amrex::Abort("ParallelCopy failed with wrong message size");
                 }
@@ -647,7 +698,7 @@ void
 FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&  m_RcvTags,
                          char*&                            the_recv_data,
                          Vector<char*>&                    recv_data,
-                         Vector<int>&                      recv_size,
+                         Vector<std::size_t>&              recv_size,
                          Vector<int>&                      recv_from,
                          Vector<MPI_Request>&              recv_reqs,
                          int                               icomp,
@@ -659,6 +710,7 @@ FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&  m_RcvTags,
     recv_from.clear();
     recv_reqs.clear();
 
+    Vector<std::size_t> offset;
     std::size_t TotalRcvsVolume = 0;
     for (const auto& kv : m_RcvTags) // loop over senders
     {
@@ -668,18 +720,24 @@ FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&  m_RcvTags,
             nbytes += (*this)[cct.dstIndex].nBytes(cct.dbox,icomp,ncomp);
         }
 
-        BL_ASSERT(nbytes < std::size_t(std::numeric_limits<int>::max()));
+        std::size_t acd = alignof_comm_data(nbytes);
+        nbytes = amrex::aligned_size(acd, nbytes);  // so that nbytes are aligned
 
+        // Also need to align the offset properly
+        TotalRcvsVolume = amrex::aligned_size(std::max(alignof(typename FAB::value_type),acd),
+                                              TotalRcvsVolume);
+
+        offset.push_back(TotalRcvsVolume);
         TotalRcvsVolume += nbytes;
 
         recv_data.push_back(nullptr);
-        recv_size.push_back(static_cast<int>(nbytes));
+        recv_size.push_back(nbytes);
         recv_from.push_back(kv.first);
         recv_reqs.push_back(MPI_REQUEST_NULL);
     }
 
     const int nrecv = recv_from.size();
-    
+
     MPI_Comm comm = ParallelContext::CommunicatorSub();
 
     if (TotalRcvsVolume == 0)
@@ -689,24 +747,34 @@ FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&  m_RcvTags,
     else
     {
         the_recv_data = static_cast<char*>(amrex::The_FA_Arena()->alloc(TotalRcvsVolume));
-    }
 
-    int recv_counter = 0;
-    char* p = the_recv_data;
-    while (recv_counter < nrecv)
-    {
-        int i = recv_counter;
-
-        if (recv_size[i] > 0)
+        for (int i = 0; i < nrecv; ++i)
         {
-            recv_data[i] = p;
-            p += recv_size[i];
-            recv_reqs[i] = ParallelDescriptor::Arecv(recv_data[i], recv_size[i],
-                                                     ParallelContext::global_to_local_rank(recv_from[i]),
-                                                     SeqNum, comm).req();
+            if (recv_size[i] > 0)
+            {
+                recv_data[i] = the_recv_data + offset[i];
+                const int rank = ParallelContext::global_to_local_rank(recv_from[i]);
+                const int comm_data_type = select_comm_data_type(recv_size[i]);
+                if (comm_data_type == 1) {
+                    recv_reqs[i] = ParallelDescriptor::Arecv
+                        (recv_data[i],
+                         recv_size[i],
+                         rank, SeqNum, comm).req();
+                } else if (comm_data_type == 2) {
+                    recv_reqs[i] = ParallelDescriptor::Arecv
+                        ((unsigned long long *)recv_data[i],
+                         recv_size[i]/sizeof(unsigned long long),
+                         rank, SeqNum, comm).req();
+                } else if (comm_data_type == 3) {
+                    recv_reqs[i] = ParallelDescriptor::Arecv
+                        ((ParallelDescriptor::lull_t *)recv_data[i],
+                         recv_size[i]/sizeof(ParallelDescriptor::lull_t),
+                         rank, SeqNum, comm).req();
+                } else {
+                    amrex::Abort("TODO: message size is too big");
+                }
+            }
         }
-        
-        ++recv_counter;
     }
 }
 #endif

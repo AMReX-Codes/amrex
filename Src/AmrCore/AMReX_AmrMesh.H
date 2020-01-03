@@ -60,6 +60,31 @@ public:
     const DistributionMapping& DistributionMap (int lev) const noexcept { return dmap[lev]; }
     const BoxArray& boxArray (int lev) const noexcept { return grids[lev]; }
 
+    Vector<Geometry> Geom (int a_coarsest_lev, int a_finest_lev) const noexcept {
+        Vector<Geometry> r;
+        r.reserve(a_finest_lev-a_coarsest_lev+1);
+        for (int lev = a_coarsest_lev; lev <= a_finest_lev; ++lev) {
+            r.push_back(geom[lev]);
+        }
+        return r;
+    }
+    Vector<BoxArray> boxArray (int a_coarsest_lev, int a_finest_lev) const noexcept {
+        Vector<BoxArray> r;
+        r.reserve(a_finest_lev-a_coarsest_lev+1);
+        for (int lev = a_coarsest_lev; lev <= a_finest_lev; ++lev) {
+            r.push_back(grids[lev]);
+        }
+        return r;
+    }
+    Vector<DistributionMapping> DistributionMap (int a_coarsest_lev, int a_finest_lev) const noexcept {
+        Vector<DistributionMapping> r;
+        r.reserve(a_finest_lev-a_coarsest_lev+1);
+        for (int lev = a_coarsest_lev; lev <= a_finest_lev; ++lev) {
+            r.push_back(dmap[lev]);
+        }
+        return r;
+    }
+
     Vector<Geometry>& Geom () noexcept { return geom; }
     Geometry& Geom (int lev) noexcept { return geom[lev]; }
 
@@ -104,6 +129,9 @@ public:
     void SetDistributionMap (int lev, const DistributionMapping& dmap_in) noexcept;
     void SetBoxArray (int lev, const BoxArray& ba_in) noexcept;
     void SetGeometry (int lev, const Geometry& geom_in) noexcept;
+
+    //! Given domain box, return AMR level.  Return -1 if there is no match.
+    int GetLevel (Box const& domain) noexcept;
 
     void ClearDistributionMap (int lev) noexcept;
     void ClearBoxArray (int lev) noexcept;

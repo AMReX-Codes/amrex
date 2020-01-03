@@ -10,6 +10,9 @@ static constexpr int NSI = 3;
 static constexpr int NAR = 2;
 static constexpr int NAI = 1;
 
+int num_runtime_real = 0;
+int num_runtime_int = 0;
+
 void get_position_unit_cell(Real* r, const IntVect& nppc, int i_part)
 {
     int nx = nppc[0];
@@ -44,7 +47,16 @@ public:
                            const Vector<amrex::BoxArray>            & a_ba,
                            const Vector<amrex::IntVect>             & a_rr)
         : amrex::ParticleContainer<NSR, NSI, NAR, NAI>(a_geom, a_dmap, a_ba, a_rr)
-    {}
+    {
+        for (int i = 0; i < num_runtime_real; ++i)
+        {
+            AddRealComp(true);
+        }
+        for (int i = 0; i < num_runtime_int; ++i)
+        {
+            AddIntComp(true);
+        }
+    }
 
     void RedistributeLocal ()
     {
@@ -83,6 +95,10 @@ public:
             Gpu::HostVector<ParticleType> host_particles;
             std::array<Gpu::HostVector<Real>, NAR> host_real;
             std::array<Gpu::HostVector<int>, NAI> host_int;
+
+            std::vector<Gpu::HostVector<Real> > host_runtime_real(NumRuntimeRealComps());
+            std::vector<Gpu::HostVector<int> > host_runtime_int(NumRuntimeIntComps());
+
             for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv))
             {
                 for (int i_part=0; i_part<num_ppc;i_part++) {
@@ -108,32 +124,53 @@ public:
                         host_real[i].push_back(p.id());
                     for (int i = 0; i < NAI; ++i)
                         host_int[i].push_back(p.id());
+                    for (int i = 0; i < NumRuntimeRealComps(); ++i)
+                        host_runtime_real[i].push_back(p.id());
+                    for (int i = 0; i < NumRuntimeIntComps(); ++i)
+                        host_runtime_int[i].push_back(p.id());
                 }
             }
         
-            auto& particles = GetParticles(lev);
-            auto& particle_tile = particles[std::make_pair(mfi.index(), mfi.LocalTileIndex())];
+            auto& particle_tile = DefineAndReturnParticleTile(lev, mfi.index(), mfi.LocalTileIndex());
             auto old_size = particle_tile.GetArrayOfStructs().size();
             auto new_size = old_size + host_particles.size();
             particle_tile.resize(new_size);
             
-            Cuda::thrust_copy(host_particles.begin(),
-                              host_particles.end(),
-                              particle_tile.GetArrayOfStructs().begin() + old_size);        
+            Gpu::copy(Gpu::hostToDevice,
+                      host_particles.begin(),
+                      host_particles.end(),
+                      particle_tile.GetArrayOfStructs().begin() + old_size);        
 
             auto& soa = particle_tile.GetStructOfArrays();
             for (int i = 0; i < NAR; ++i)
             {
-                Cuda::thrust_copy(host_real[i].begin(),
-                                  host_real[i].end(),
-                                  soa.GetRealData(i).begin() + old_size);
+                Gpu::copy(Gpu::hostToDevice,
+                          host_real[i].begin(),
+                          host_real[i].end(),
+                          soa.GetRealData(i).begin() + old_size);
             }
 
             for (int i = 0; i < NAI; ++i)
             {
-                Cuda::thrust_copy(host_int[i].begin(),
-                                  host_int[i].end(),
-                                  soa.GetIntData(i).begin() + old_size);
+                Gpu::copy(Gpu::hostToDevice,
+                          host_int[i].begin(),
+                          host_int[i].end(),
+                          soa.GetIntData(i).begin() + old_size);
+            }
+            for (int i = 0; i < NumRuntimeRealComps(); ++i)
+            {
+                Gpu::copy(Gpu::hostToDevice,
+                          host_runtime_real[i].begin(),
+                          host_runtime_real[i].end(),
+                          soa.GetRealData(NAR+i).begin() + old_size);
+            }
+
+            for (int i = 0; i < NumRuntimeIntComps(); ++i)
+            {
+                Gpu::copy(Gpu::hostToDevice,
+                          host_runtime_int[i].begin(),
+                          host_runtime_int[i].end(),
+                          soa.GetIntData(NAI+i).begin() + old_size);
             }
         }
 
@@ -198,6 +235,9 @@ public:
         
         AMREX_ALWAYS_ASSERT(OK());
         
+        int num_rr = NumRuntimeRealComps();
+        int num_ii = NumRuntimeIntComps();
+
         for (int lev = 0; lev <= finestLevel(); ++lev)
         {
             const Geometry& geom = Geom(lev);
@@ -211,7 +251,7 @@ public:
                 auto& ptile = plev.at(std::make_pair(gid, tid));
                 const auto ptd = ptile.getConstParticleTileData();
                 const size_t np = ptile.numParticles();
-
+                
                 AMREX_FOR_1D ( np, i,
                 {
                     for (int j = 0; j < NSR; ++j)
@@ -230,6 +270,14 @@ public:
                     {
                         AMREX_ALWAYS_ASSERT(ptd.m_idata[j][i] == ptd.m_aos[i].id());
                     }
+                    for (int j = 0; j < num_rr; ++j)
+                    {
+                        AMREX_ALWAYS_ASSERT(ptd.m_runtime_rdata[j][i] == ptd.m_aos[i].id());
+                    }
+                    for (int j = 0; j < num_ii; ++j)
+                    {
+                        AMREX_ALWAYS_ASSERT(ptd.m_runtime_idata[j][i] == ptd.m_aos[i].id());
+                    }
                 });
             }
         }
@@ -247,6 +295,7 @@ struct TestParams
     int nsteps;
     int nlevs;
     int do_regrid;
+    int sort;
 };
 
 void testRedistribute();
@@ -273,6 +322,11 @@ void get_test_params(TestParams& params, const std::string& prefix)
     pp.get("nsteps", params.nsteps);
     pp.get("nlevs", params.nlevs);
     pp.get("do_regrid", params.do_regrid);
+    pp.query("num_runtime_real", num_runtime_real);
+    pp.query("num_runtime_int", num_runtime_int);
+
+    params.sort = 0;
+    pp.query("sort", params.sort);
 }
 
 void testRedistribute ()
@@ -330,12 +384,15 @@ void testRedistribute ()
 
     pc.InitParticles(nppc);
 
+    pc.checkAnswer();
+
     auto np_old = pc.TotalNumberOfParticles();
     
     for (int i = 0; i < params.nsteps; ++i)
     {
         pc.moveParticles(params.move_dir, params.do_random);
         pc.RedistributeLocal();
+        if (params.sort) pc.SortParticlesByCell();
         pc.checkAnswer();
     }
 

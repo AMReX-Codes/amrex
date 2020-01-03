@@ -1,34 +1,43 @@
 
 module amrex_filcc_module
 
-  use amrex_fort_module, only : amrex_real, amrex_spacedim, amrex_get_loop_bounds
+  use amrex_fort_module, only : amrex_real, amrex_spacedim
   use amrex_bc_types_module
   use amrex_constants_module
 
   implicit none
 
+#if !(defined(AMREX_USE_CUDA) && defined(AMREX_USE_GPU_PRAGMA) && defined(AMREX_GPU_PRAGMA_NO_HOST))
   interface amrex_filcc
      module procedure amrex_filcc_1
      module procedure amrex_filcc_n
   end interface amrex_filcc
+#endif
 
   private
-  public :: amrex_filcc, amrex_fab_filcc, amrex_filccn, amrex_hoextraptocc
+#if !(defined(AMREX_USE_CUDA) && defined(AMREX_USE_GPU_PRAGMA) && defined(AMREX_GPU_PRAGMA_NO_HOST))
+  public :: amrex_filcc, amrex_fab_filcc, amrex_hoextraptocc
+#endif
+  public :: amrex_filccn
+#if (defined(AMREX_USE_CUDA) && defined(AMREX_USE_GPU_PRAGMA) && !defined(AMREX_GPU_PRAGMA_NO_HOST))
+  public :: amrex_filccn_device
+#endif
 #if (AMREX_SPACEDIM == 3)
   public :: amrex_hoextraptocc_3d
 #endif
 #if (AMREX_SPACEDIM == 2)
   public :: amrex_hoextraptocc_2d
 #endif
-#if defined(AMREX_USE_CUDA) && defined(AMREX_USE_GPU_PRAGMA)
-  public :: amrex_filccn_device
-#endif
 
+#if !(defined(AMREX_USE_CUDA) && defined(AMREX_USE_GPU_PRAGMA) && defined(AMREX_GPU_PRAGMA_NO_HOST))
 #ifndef AMREX_XSDK
   public :: filccn
 #endif
+#endif
 
 contains
+
+#if !(defined(AMREX_USE_CUDA) && defined(AMREX_USE_GPU_PRAGMA) && defined(AMREX_GPU_PRAGMA_NO_HOST))
 
   subroutine amrex_filcc_n(q,qlo,qhi,domlo,domhi,dx,xlo,bclo,bchi)
     integer, intent(in) :: qlo(4), qhi(4)
@@ -99,7 +108,8 @@ contains
 
     integer :: lo(3), hi(3)
 
-    call amrex_get_loop_bounds(lo, hi, qlo, qhi)
+    lo = qlo
+    hi = qhi
 
     call amrex_filccn(lo, hi, q, qlo, qhi, nq, domlo, domhi, dx, xlo, bc)
 
@@ -1134,8 +1144,16 @@ contains
 
   end subroutine amrex_filccn
 
-#if defined(AMREX_USE_CUDA) && defined(AMREX_USE_GPU_PRAGMA)
+#endif
+
+#if (defined(AMREX_USE_CUDA) && defined(AMREX_USE_GPU_PRAGMA))
+
+  ! Select function name based on whether we're appending _device using the GPU pragma script.
+#ifdef AMREX_GPU_PRAGMA_NO_HOST
+  attributes(device) subroutine amrex_filccn(lo, hi, q, q_lo, q_hi, ncomp, domlo, domhi, dx, xlo, bc)
+#else
   attributes(device) subroutine amrex_filccn_device(lo, hi, q, q_lo, q_hi, ncomp, domlo, domhi, dx, xlo, bc)
+#endif
 
     implicit none
 
@@ -2095,7 +2113,12 @@ contains
 
     end do
 
+#ifdef AMREX_GPU_PRAGMA_NO_HOST
+  end subroutine amrex_filccn
+#else
   end subroutine amrex_filccn_device
+#endif
+
 #endif
 
   subroutine amrex_hoextraptocc (q, qlo, qhi, domlo, domhi, dx, xlo) &

@@ -34,7 +34,7 @@ contains
 
     nlevs = amrex_get_numlevels()
 
-    call amrex_string_build(varname(1), "Phi")
+    call amrex_string_build(varname(1), "phi")
 
     call amrex_write_plotfile(name, nlevs, phi_new, varname, amrex_geom, &
          t_new(0), stepno, amrex_ref_ratio)

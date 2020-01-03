@@ -3,6 +3,7 @@
 
 #include <AMReX_Gpu.H>
 #include <AMReX_Scan.H>
+#include <AMReX_Algorithm.H>
 #include <algorithm>
 
 namespace amrex {
@@ -53,7 +54,7 @@ int StablePartition (Gpu::DeviceVector<T>& v, F && f)
         T* p = v.dataPtr() + n;
         amrex::ParallelFor(npairs, [=] AMREX_GPU_DEVICE (int i) noexcept
         {
-            std::swap(p[i], p[n2-1-i]);
+            amrex::Swap(p[i], p[n2-1-i]);
         });
         Gpu::synchronize();
     }
