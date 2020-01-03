@@ -65,6 +65,10 @@
 #include <thrust/gather.h>
 #endif
 
+#ifdef AMREX_USE_HDF5
+#include <hdf5.h>
+#endif
+
 namespace amrex {
 
 /**
@@ -711,6 +715,38 @@ public:
     void CheckpointPost ();
 
     /**
+     * \brief Writes a particle checkpoint to HDF5 file, suitable for restarting.
+     *
+     * \param dir The base directory into which to write (i.e. "plt00000")
+     * \param name The name of the sub-directory for this particle type (i.e. "Tracer")
+     */
+    void CheckpointHDF5 (const std::string& dir, const std::string& name) const;
+
+    /**
+     * \brief Writes a particle checkpoint to HDF5 file, suitable for restarting.
+     */
+    void CheckpointHDF5 (const std::string& dir, const std::string& name, bool is_checkpoint,
+                     const Vector<std::string>& real_comp_names = Vector<std::string>(),
+                     const Vector<std::string>& int_comp_names = Vector<std::string>()) const;
+
+     /**
+      * \brief Writes particle data to disk in the AMReX native format. 
+      * 
+      * \param dir The base directory into which to write (i.e. "plt00000")
+      * \param name The name of the sub-directory for this particle type (i.e. "Tracer")
+      * \param write_real_comp for each real component, whether or not we include that component in the file
+      * \param write_int_comp for each integer component, whether or not we include that component in the file
+      * \param real_comp_names for each real component, a name to label the data with
+      * \param int_comp_names for each integer component, a name to label the data with      
+     */
+    void WriteHDF5ParticleData (const std::string& dir,
+                                  const std::string& name,
+                                  const Vector<int>& write_real_comp,
+                                  const Vector<int>& write_int_comp,    
+                                  const Vector<std::string>& real_comp_names,
+                                  const Vector<std::string>&  int_comp_names) const;
+    
+    /**
      *   \brief Restart from checkpoint
      *
      * \param dir The base directory into which to write (i.e. "plt00000")
@@ -1012,6 +1048,9 @@ protected:
     void WriteParticles (int level, std::ofstream& ofs, int fnum,
                          Vector<int>& which, Vector<int>& count, Vector<long>& where,
                          const Vector<int>& write_real_comp, const Vector<int>& write_int_comp) const;
+#ifdef AMREX_USE_HDF5
+void WriteParticlesHDF5 ( hid_t grp, int level, Vector<int>& count, Vector<long>& where ) const;
+#endif
 
     template <class RTYPE>
     void ReadParticles (int cnt, int grd, int lev, std::ifstream& ifs, int finest_level_in_file);

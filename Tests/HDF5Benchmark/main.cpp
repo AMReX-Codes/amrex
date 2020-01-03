@@ -128,6 +128,10 @@ int main(int argc, char* argv[])
     }
     
     myPC.Checkpoint("plt00000", "particle0", false, particle_realnames, particle_intnames);
+    myPC.WriteAsciiFile("particle0_ascii");
+#ifdef AMREX_USE_HDF5    
+    myPC.CheckpointHDF5("plt00000", "particle0", false, particle_realnames, particle_intnames);
+#endif
     }
     amrex::Finalize();
 }
