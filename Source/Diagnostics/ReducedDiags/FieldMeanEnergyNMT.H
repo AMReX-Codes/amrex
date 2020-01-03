@@ -24,7 +24,8 @@ public:
      *  where E is the electric field,
      *  B is the magnetic field,
      *  eps is the vacuum permittivity,
-     *  mu is the vacuum permeability. */
+     *  mu is the vacuum permeability.
+     *  NMT represents No Multi-Threading. */
     virtual void ComputeDiags(int step) override final;
 
 };

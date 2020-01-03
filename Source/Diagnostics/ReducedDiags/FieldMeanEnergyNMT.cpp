@@ -57,74 +57,88 @@ void FieldMeanEnergyNMT::ComputeDiags (int step)
     m_data.resize(3,0.0);
 
     /// get MultiFab data at level 0
-    const MultiFab & Ex = warpx.getEfield(0,0);
-    const MultiFab & Ey = warpx.getEfield(0,1);
-    const MultiFab & Ez = warpx.getEfield(0,2);
-    const MultiFab & Bx = warpx.getBfield(0,0);
-    const MultiFab & By = warpx.getBfield(0,1);
-    const MultiFab & Bz = warpx.getBfield(0,2);
+    auto & Ex = warpx.getEfield(0,0);
+    auto & Ey = warpx.getEfield(0,1);
+    auto & Ez = warpx.getEfield(0,2);
+    auto & Bx = warpx.getBfield(0,0);
+    auto & By = warpx.getBfield(0,1);
+    auto & Bz = warpx.getBfield(0,2);
 
+    /// summed E and B squared
     Real Es = 0.0;
     Real Bs = 0.0;
 
+    // summed total number of grids
+    int  ng = 0;
+
+    /// Ex
+    /// loop over boxes
     for (MFIter mfi(Ex); mfi.isValid(); ++mfi)
     {
-        const Box & box = mfi.validbox();
-        const auto lo = lbound(box);
-        const auto hi = ubound(box);
-        const FArrayBox & fab = Ex[mfi];
-        auto arr = fab.array();
+        /// This is the valid Box of the current FArrayBox.
+        /// By "valid", we mean the original ungrown Box in BoxArray.
+        auto box = mfi.validbox();
+        /// Obtain Array4 from FArrayBox.
+        auto arr = Ex.array(mfi);
+        /// get indices
+        auto lo = lbound(box);
+        auto hi = ubound(box);
+        /// loops over indices
         for (int i = lo.x; i <= hi.x; ++i) {
         for (int j = lo.y; j <  hi.y; ++j) {
         for (int k = lo.z; k <  hi.z; ++k) {
-            Real F = 0.25 * ( arr(i,j,k) + arr(i,j+1,k) + arr(i,j,k+1) + arr(i,j+1,k+1) );
+            Real F = 0.25 * ( arr(i,j,k) + arr(i,j+1,k) +
+                              arr(i,j,k+1) + arr(i,j+1,k+1) );
             Es += F*F;
+            ng++;
         }
         }
         }
     }
 
+    /// Ey
     for (MFIter mfi(Ey); mfi.isValid(); ++mfi)
     {
-        const Box & box = mfi.validbox();
-        const auto lo = lbound(box);
-        const auto hi = ubound(box);
-        const FArrayBox & fab = Ey[mfi];
-        auto arr = fab.array();
+        auto box = mfi.validbox();
+        auto arr = Ey.array(mfi);
+        auto lo = lbound(box);
+        auto hi = ubound(box);
         for (int i = lo.x; i <  hi.x; ++i) {
         for (int j = lo.y; j <= hi.y; ++j) {
         for (int k = lo.z; k <  hi.z; ++k) {
-            Real F = 0.25 * ( arr(i,j,k) + arr(i+1,j,k) + arr(i,j,k+1) + arr(i+1,j,k+1) );
+            Real F = 0.25 * ( arr(i,j,k) + arr(i+1,j,k) +
+                              arr(i,j,k+1) + arr(i+1,j,k+1) );
             Es += F*F;
         }
         }
         }
     }
 
+    /// Ez
     for (MFIter mfi(Ez); mfi.isValid(); ++mfi)
     {
-        const Box & box = mfi.validbox();
-        const auto lo = lbound(box);
-        const auto hi = ubound(box);
-        const FArrayBox & fab = Ez[mfi];
-        auto arr = fab.array();
+        auto box = mfi.validbox();
+        auto arr = Ez.array(mfi);
+        auto lo = lbound(box);
+        auto hi = ubound(box);
         for (int i = lo.x; i <  hi.x; ++i) {
         for (int j = lo.y; j <  hi.y; ++j) {
         for (int k = lo.z; k <= hi.z; ++k) {
-            Real F = 0.25 * ( arr(i,j,k) + arr(i+1,j,k) + arr(i,j+1,k) + arr(i+1,j+1,k) );
+            Real F = 0.25 * ( arr(i,j,k) + arr(i+1,j,k) +
+                              arr(i,j+1,k) + arr(i+1,j+1,k) );
             Es += F*F;
         }
         }
         }
     }
 
+    /// Bx
     for (MFIter mfi(Bx); mfi.isValid(); ++mfi)
     {
-        const Box & box = mfi.validbox();
-        const auto lo = lbound(box);
-        const auto hi = ubound(box);
-        const FArrayBox & fab = Bx[mfi];
-        auto arr = fab.array();
+        auto box = mfi.validbox();
+        auto arr = Bx.array(mfi);
+        auto lo = lbound(box);
+        auto hi = ubound(box);
         for (int i = lo.x; i <  hi.x; ++i) {
         for (int j = lo.y; j <= hi.y; ++j) {
         for (int k = lo.z; k <= hi.z; ++k) {
@@ -135,13 +149,13 @@ void FieldMeanEnergyNMT::ComputeDiags (int step)
         }
     }
 
+    /// By
     for (MFIter mfi(By); mfi.isValid(); ++mfi)
     {
-        const Box & box = mfi.validbox();
-        const auto lo = lbound(box);
-        const auto hi = ubound(box);
-        const FArrayBox & fab = By[mfi];
-        auto arr = fab.array();
+        auto box = mfi.validbox();
+        auto arr = By.array(mfi);
+        auto lo = lbound(box);
+        auto hi = ubound(box);
         for (int i = lo.x; i <= hi.x; ++i) {
         for (int j = lo.y; j <  hi.y; ++j) {
         for (int k = lo.z; k <= hi.z; ++k) {
@@ -152,13 +166,13 @@ void FieldMeanEnergyNMT::ComputeDiags (int step)
         }
     }
 
+    /// Bz
     for (MFIter mfi(Bz); mfi.isValid(); ++mfi)
     {
-        const Box & box = mfi.validbox();
-        const auto lo = lbound(box);
-        const auto hi = ubound(box);
-        const FArrayBox & fab = Bz[mfi];
-        auto arr = fab.array();
+        auto box = mfi.validbox();
+        auto arr = Bz.array(mfi);
+        auto lo = lbound(box);
+        auto hi = ubound(box);
         for (int i = lo.x; i <= hi.x; ++i) {
         for (int j = lo.y; j <= hi.y; ++j) {
         for (int k = lo.z; k <  hi.z; ++k) {
@@ -169,11 +183,14 @@ void FieldMeanEnergyNMT::ComputeDiags (int step)
         }
     }
 
+    /// sum over mpi ranks
     ParallelDescriptor::ReduceRealSum(Es);
     ParallelDescriptor::ReduceRealSum(Bs);
+    ParallelDescriptor::ReduceIntSum(ng);
 
-    m_data[1] = 0.5*Es*PhysConst::ep0;
-    m_data[2] = 0.5*Bs/PhysConst::mu0;
+    /// save data for output
+    m_data[1] = 0.5*Es*PhysConst::ep0/Real(ng);
+    m_data[2] = 0.5*Bs/PhysConst::mu0/Real(ng);
     m_data[0] = m_data[1] + m_data[2];
 
 }
