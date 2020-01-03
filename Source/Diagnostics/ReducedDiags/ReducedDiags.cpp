@@ -41,7 +41,7 @@ ReducedDiags::~ReducedDiags ()
 ///< end destructor
 
 /// write to file function
-void ReducedDiags::WriteToFile (int step)
+void ReducedDiags::WriteToFile (int step) const
 {
 
     /// get dt

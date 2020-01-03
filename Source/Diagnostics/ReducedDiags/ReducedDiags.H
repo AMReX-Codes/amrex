@@ -38,7 +38,7 @@ public:
 
     /** write to file function
      *  @param[in] step time step */
-    virtual void WriteToFile(int step);
+    virtual void WriteToFile(int step) const;
 
 };
 ///< end class ReducedDiags
