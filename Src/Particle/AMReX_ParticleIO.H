@@ -513,7 +513,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             // Then the number of grids at each level.
             /* HdrFile << ParticleBoxArray(lev).size() << '\n'; */
             ngrids = ParticleBoxArray(lev).size();
-            CreateWriteHDF5AttrInt(fid, "ngrids", 1, &ngrids);
+            CreateWriteHDF5AttrInt(grp, "ngrids", 1, &ngrids);
 
             int ratio = 1;
             CreateWriteHDF5AttrInt(grp, "ref_ratio", 1, &ratio);
