@@ -376,6 +376,8 @@ WarpX::OneStep_nosub (Real cur_time)
 * steps of the fine grid.
 *
 */
+
+
 void
 WarpX::OneStep_sub1 (Real curtime)
 {
@@ -502,6 +504,13 @@ WarpX::OneStep_sub1 (Real curtime)
     EvolveF(coarse_lev, PatchType::fine, 0.5*dt[coarse_lev], DtType::SecondHalf);
 
     if (do_pml) {
+        if (do_moving_window & field_gathering_algo == GatheringAlgo::MomentumConserving){
+            // Exchance guard cells of PMLs only (0 cells are exchanged for the
+            // regular B field MultiFab). This is required as B has just been
+            // evolved and one guard cell is needed for the averaging
+            // in momentum-conserving gather.
+            FillBoundaryB(coarse_lev, PatchType::fine, IntVect::TheZeroVector());
+        }
         DampPML(coarse_lev, PatchType::fine);
     }
 }
