@@ -720,7 +720,7 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
 
     bool aux_is_nodal = (field_gathering_algo == GatheringAlgo::MomentumConserving);
 
-    int nJ_buffer = guard_cells.Init(
+    guard_cells.Init(
         do_subcycling,
         WarpX::use_fdtd_nci_corr,
         do_nodal,
@@ -743,7 +743,7 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
     }
 
     if (n_current_deposition_buffer < 0) {
-        n_current_deposition_buffer = nJ_buffer;
+        n_current_deposition_buffer = guard_cells.ng_alloc_J.max();
     }
     if (n_field_gather_buffer < 0) {
         // Field gather buffer should be larger than current deposition buffers
@@ -751,14 +751,14 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
     }
 
     AllocLevelMFs(lev, ba, dm, guard_cells.ng_alloc_EB, guard_cells.ng_alloc_J,
-                  guard_cells.ng_alloc_Rho, guard_cells.ng_alloc_F_int,
+                  guard_cells.ng_alloc_Rho, guard_cells.ng_alloc_F,
                   guard_cells.ng_Extra, aux_is_nodal);
 }
 
 void
 WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm,
-                      const IntVect& ngE, const IntVect& ngJ, const IntVect& ngRho, int ngF,
-                      const IntVect& ngextra, const bool aux_is_nodal)
+                      const IntVect& ngE, const IntVect& ngJ, const IntVect& ngRho,
+                      const IntVect& ngF, const IntVect& ngextra, const bool aux_is_nodal)
 {
 
 #if defined WARPX_DIM_RZ
@@ -799,7 +799,7 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
 
     if (do_dive_cleaning)
     {
-        F_fp[lev].reset  (new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,ncomps, ngF));
+        F_fp[lev].reset  (new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,ncomps, ngF.max()));
     }
 #ifdef WARPX_USE_PSATD
     else
@@ -884,7 +884,7 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
         }
         if (do_dive_cleaning)
         {
-            F_cp[lev].reset  (new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,ncomps, ngF));
+            F_cp[lev].reset  (new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,ncomps, ngF.max()));
         }
 #ifdef WARPX_USE_PSATD
         else

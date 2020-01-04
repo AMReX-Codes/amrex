@@ -4,7 +4,7 @@
 
 using namespace amrex;
 
-int
+void
 guardCellManager::Init(
     const bool do_subcycling,
     const bool do_fdtd_nci_corr,
@@ -69,11 +69,9 @@ guardCellManager::Init(
     ng_alloc_J = IntVect(ngJx,ngJz);
 #endif
 
-    int nJ_buffer = ng_alloc_J.max(); // guard cells for J required for deposition only.
-
     ng_alloc_Rho = ng_alloc_J+1; //One extra ghost cell, so that it's safe to deposit charge density
     // after pushing particle.
-    ng_alloc_F_int = (do_moving_window) ? 2 : 0;
+    int ng_alloc_F_int = (do_moving_window) ? 2 : 0;
     // CKC solver requires one additional guard cell
     if (maxwell_fdtd_solver_id == 1) ng_alloc_F_int = std::max( ng_alloc_F_int, 1 );
     ng_alloc_F = IntVect(AMREX_D_DECL(ng_alloc_F_int, ng_alloc_F_int, ng_alloc_F_int));
@@ -155,6 +153,4 @@ guardCellManager::Init(
     if (do_moving_window){
         ng_MovingWindow[moving_window_dir] = 1;
     }
-
-    return nJ_buffer;
 }

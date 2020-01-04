@@ -138,7 +138,7 @@ public:
 
     // do nodal
     static int do_nodal;
-
+    
     const amrex::MultiFab& getcurrent (int lev, int direction) {return *current_fp[lev][direction];}
     const amrex::MultiFab& getEfield  (int lev, int direction) {return *Efield_aux[lev][direction];}
     const amrex::MultiFab& getBfield  (int lev, int direction) {return *Bfield_aux[lev][direction];}
@@ -455,8 +455,8 @@ private:
 
     void AllocLevelMFs (int lev, const amrex::BoxArray& ba, const amrex::DistributionMapping& dm,
                         const amrex::IntVect& ngE, const amrex::IntVect& ngJ,
-                        const amrex::IntVect& ngRho, int ngF, const amrex::IntVect& ngextra,
-                        const bool aux_is_nodal);
+                        const amrex::IntVect& ngRho, const amrex::IntVect& ngF,
+                        const amrex::IntVect& ngextra, const bool aux_is_nodal);
 
     amrex::Vector<int> istep;      // which step?
     amrex::Vector<int> nsubsteps;  // how many substeps on each level?
