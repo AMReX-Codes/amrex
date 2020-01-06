@@ -19,7 +19,7 @@ void solve_for_accel(const Vector<MultiFab*>& rhs,
                      const Vector<Geometry>& geom,
 		     int base_level, int finest_level, Real offset);
 
-int single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc, bool verbose) 
+void single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc, bool verbose) 
 {
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
 
@@ -196,4 +196,6 @@ int single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc,
            std::cout << "Time in Solve        : " << end_solve << '\n';
            std::cout << "Time in moveKick     : " << end_mK    << '\n';
     }
+
+    return ;
 }
