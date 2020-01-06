@@ -4,6 +4,7 @@
 #include <AMReX_REAL.H>
 #include <AMReX_Vector.H>
 #include <AMReX_MultiFab.H>
+#include <WarpXParser.H>
 
 #include <string>
 
@@ -27,5 +28,7 @@ namespace WarpXUtilIO{
      */
     bool WriteBinaryDataOnFile(std::string filename, const amrex::Vector<char>& data);
 }
+
+WarpXParser makeParser (std::string const& parse_function);
 
 #endif //WARPX_UTILS_H_
