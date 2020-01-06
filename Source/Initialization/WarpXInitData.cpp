@@ -234,34 +234,6 @@ WarpX::PostRestart ()
 }
 
 
-namespace {
-WarpXParser makeParser (std::string const& parse_function)
-{
-    WarpXParser parser(parse_function);
-    parser.registerVariables({"x","y","z"});
-    ParmParse pp("my_constants");
-    std::set<std::string> symbols = parser.symbols();
-    symbols.erase("x");
-    symbols.erase("y");
-    symbols.erase("z");
-    for (auto it = symbols.begin(); it != symbols.end(); ) {
-        Real v;
-        if (pp.query(it->c_str(), v)) {
-           parser.setConstant(*it, v);
-           it = symbols.erase(it);
-        } else {
-           ++it;
-        }
-    }
-    for (auto const& s : symbols) {
-        amrex::Abort(" ExternalEBFieldOnGrid::makeParser::Unknown symbol "+s);
-    }
-    return parser;
-}
-}
-
-
-
 void
 WarpX::InitLevelData (int lev, Real time)
 {

@@ -3,6 +3,7 @@
 #include <WarpXConst.H>
 #include <WarpX_f.H>
 #include <WarpX.H>
+#include <WarpXUtil.H>
 
 #include <AMReX.H>
 
@@ -166,34 +167,6 @@ PlasmaInjector::PlasmaInjector (int ispecies, const std::string& name)
     } else {
         StringParseAbortMessage("Injection style", part_pos_s);
     }
-}
-
-namespace {
-WarpXParser makeParser (std::string const& parse_function)
-{
-    WarpXParser parser(parse_function);
-    parser.registerVariables({"x","y","z"});
-
-    ParmParse pp("my_constants");
-    std::set<std::string> symbols = parser.symbols();
-    symbols.erase("x");
-    symbols.erase("y");
-    symbols.erase("z"); // after removing variables, we are left with constants
-    for (auto it = symbols.begin(); it != symbols.end(); ) {
-        Real v;
-        if (pp.query(it->c_str(), v)) {
-            parser.setConstant(*it, v);
-            it = symbols.erase(it);
-        } else {
-            ++it;
-        }
-    }
-    for (auto const& s : symbols) { // make sure there no unknown symbols
-        amrex::Abort("PlasmaInjector::makeParser: Unknown symbol "+s);
-    }
-
-    return parser;
-}
 }
 
 // Depending on injection type at runtime, initialize inj_rho
