@@ -267,10 +267,23 @@ WarpX::InitLevelData (int lev, Real time)
 
     for (int i = 0; i < 3; ++i) {
         current_fp[lev][i]->setVal(0.0);
-        if (B_ext_grid_s == "constant" || B_ext_grid_s == "default")
+        if (lev > 0)
+           current_cp[lev][i]->setVal(0.0);
+
+        if (B_ext_grid_s == "constant" || B_ext_grid_s == "default") {
            Bfield_fp[lev][i]->setVal(B_external_grid[i]);
-        if (E_ext_grid_s == "constant" || E_ext_grid_s == "default")
+           if (lev > 0) {
+              Bfield_aux[lev][i]->setVal(B_external_grid[i]);
+              Bfield_cp[lev][i]->setVal(B_external_grid[i]);
+           }
+        }
+        if (E_ext_grid_s == "constant" || E_ext_grid_s == "default") {
            Efield_fp[lev][i]->setVal(E_external_grid[i]);
+           if (lev > 0) {
+              Efield_aux[lev][i]->setVal(E_external_grid[i]);
+              Efield_cp[lev][i]->setVal(E_external_grid[i]);
+           }
+        }
     }
 
     if (B_ext_grid_s == "parse_b_ext_grid_function") {
@@ -290,6 +303,25 @@ WarpX::InitLevelData (int lev, Real time)
                                                  str_Bz_ext_grid_function,
                                                  Bx_nodal_flag, By_nodal_flag,
                                                  Bz_nodal_flag, lev);
+       if (lev > 0) {
+          InitializeExternalFieldsOnGridUsingParser(Bfield_aux[lev][0].get(),
+                                                    Bfield_aux[lev][1].get(),
+                                                    Bfield_aux[lev][2].get(),
+                                                    str_Bx_ext_grid_function,
+                                                    str_By_ext_grid_function,
+                                                    str_Bz_ext_grid_function,
+                                                    Bx_nodal_flag, By_nodal_flag,
+                                                    Bz_nodal_flag, lev);
+
+          InitializeExternalFieldsOnGridUsingParser(Bfield_cp[lev][0].get(),
+                                                    Bfield_cp[lev][1].get(),
+                                                    Bfield_cp[lev][2].get(),
+                                                    str_Bx_ext_grid_function,
+                                                    str_By_ext_grid_function,
+                                                    str_Bz_ext_grid_function,
+                                                    Bx_nodal_flag, By_nodal_flag,
+                                                    Bz_nodal_flag, lev);
+       }
     }
 
     if (E_ext_grid_s == "parse_e_ext_grid_function") {
@@ -310,61 +342,25 @@ WarpX::InitLevelData (int lev, Real time)
                                                  str_Ez_ext_grid_function,
                                                  Ex_nodal_flag, Ey_nodal_flag,
                                                  Ez_nodal_flag, lev);
-    }
+       if (lev > 0) {
+          InitializeExternalFieldsOnGridUsingParser(Efield_aux[lev][0].get(),
+                                                    Efield_aux[lev][1].get(),
+                                                    Efield_aux[lev][2].get(),
+                                                    str_Ex_ext_grid_function,
+                                                    str_Ey_ext_grid_function,
+                                                    str_Ez_ext_grid_function,
+                                                    Ex_nodal_flag, Ey_nodal_flag,
+                                                    Ez_nodal_flag, lev);
 
-    if (lev > 0) {
-        for (int i = 0; i < 3; ++i) {
-            current_cp[lev][i]->setVal(0.0);
-            if (B_ext_grid_s == "constant" || B_ext_grid_s == "default") {
-               Bfield_aux[lev][i]->setVal(B_external_grid[i]);
-               Bfield_cp[lev][i]->setVal(B_external_grid[i]);
-            }
-            if (E_ext_grid_s == "constant" || E_ext_grid_s == "default") {
-               Efield_aux[lev][i]->setVal(E_external_grid[i]);
-               Efield_cp[lev][i]->setVal(E_external_grid[i]);
-            }
-        }
-        if (B_ext_grid_s == "parse_b_ext_grid_function") {
-
-            InitializeExternalFieldsOnGridUsingParser(Bfield_aux[lev][0].get(),
-                                                      Bfield_aux[lev][1].get(),
-                                                      Bfield_aux[lev][2].get(),
-                                                      str_Bx_ext_grid_function,
-                                                      str_By_ext_grid_function,
-                                                      str_Bz_ext_grid_function,
-                                                      Bx_nodal_flag, By_nodal_flag,
-                                                      Bz_nodal_flag, lev);
-
-            InitializeExternalFieldsOnGridUsingParser(Bfield_cp[lev][0].get(),
-                                                      Bfield_cp[lev][1].get(),
-                                                      Bfield_cp[lev][2].get(),
-                                                      str_Bx_ext_grid_function,
-                                                      str_By_ext_grid_function,
-                                                      str_Bz_ext_grid_function,
-                                                      Bx_nodal_flag, By_nodal_flag,
-                                                      Bz_nodal_flag, lev);
-
-        }
-        if (E_ext_grid_s == "parse_e_ext_grid_function") {
-
-            InitializeExternalFieldsOnGridUsingParser(Efield_aux[lev][0].get(),
-                                                      Efield_aux[lev][1].get(),
-                                                      Efield_aux[lev][2].get(),
-                                                      str_Ex_ext_grid_function,
-                                                      str_Ey_ext_grid_function,
-                                                      str_Ez_ext_grid_function,
-                                                      Ex_nodal_flag, Ey_nodal_flag,
-                                                      Ez_nodal_flag, lev);
-
-            InitializeExternalFieldsOnGridUsingParser(Efield_cp[lev][0].get(),
-                                                      Efield_cp[lev][1].get(),
-                                                      Efield_cp[lev][2].get(),
-                                                      str_Ex_ext_grid_function,
-                                                      str_Ey_ext_grid_function,
-                                                      str_Ez_ext_grid_function,
-                                                      Ex_nodal_flag, Ey_nodal_flag,
-                                                      Ez_nodal_flag, lev);
-        }
+          InitializeExternalFieldsOnGridUsingParser(Efield_cp[lev][0].get(),
+                                                    Efield_cp[lev][1].get(),
+                                                    Efield_cp[lev][2].get(),
+                                                    str_Ex_ext_grid_function,
+                                                    str_Ey_ext_grid_function,
+                                                    str_Ez_ext_grid_function,
+                                                    Ex_nodal_flag, Ey_nodal_flag,
+                                                    Ez_nodal_flag, lev);
+       }
     }
 
     if (F_fp[lev]) {
