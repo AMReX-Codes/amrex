@@ -261,30 +261,6 @@ WarpXParser makeParser (std::string const& parse_function)
 }
 
 
-/* \brief
- *  This function initializes E, B, rho, and F, at all the levels
- *  of the multifab. rho and F are initialized with 0.
- *  The E and B fields are initialized using user-defined inputs.
- *  The initialization type is set using "B_ext_grid_init_style"
- *  and "E_ext_grid_init_style". The initialization style is set to "default"
- *  if not explicitly defined by the user, and the E and B fields are
- *  initialized with E_external_grid and B_external_grid, respectively, each with
- *  a default value of 0.
- *  If the initialization type for the E and B field is "constant",
- *  then, the E and B fields at all the levels are initialized with
- *  user-defined values for E_external_grid and B_external_grid.
- *  If the initialization type for B-field is set to
- *  "parse_B_ext_grid_function", then, the parser is used to read
- *  Bx_external_grid_function(x,y,z), By_external_grid_function(x,y,z),
- *  and Bz_external_grid_function(x,y,z).
- *  Similarly, if the E-field initialization type is set to
- *  "parse_E_ext_grid_function", then, the parser is used to read
- *  Ex_external_grid_function(x,y,z), Ey_external_grid_function(x,y,z),
- *  and Ex_external_grid_function(x,y,z). The parser for the E and B
- *  initialization assumes that the function has three independent
- *  variables, at max, namely, x, y, z. However, any number of constants
- *  can be used in the function used to define the E and B fields on the grid.
- */
 
 void
 WarpX::InitLevelData (int lev, Real time)
@@ -475,13 +451,6 @@ WarpX::InitLevelDataFFT (int lev, Real time)
 
 #endif
 
-/* \brief
- * This function initializes the E and B fields on each level
- * using the parser and the user-defined function for the external fields.
- * The subroutine will parse the x_/y_z_external_grid_function and
- * then, the B or E multifab is initialized based on the (x,y,z) position
- * on the staggered yee-grid or cell-centered grid.
- */
 void
 WarpX::InitializeExternalFieldsOnGridUsingParser (
        MultiFab *mfx, MultiFab *mfy, MultiFab *mfz,
