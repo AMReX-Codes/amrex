@@ -1260,6 +1260,17 @@ WarpX::ComputeDivE (amrex::MultiFab& divE, int dcomp,
     }
 }
 
+PML*
+WarpX::GetPML (int lev)
+{
+    if (do_pml) {
+        // This should check if pml was initialized
+        return pml[lev].get();
+    } else {
+        return nullptr;
+    }
+}
+
 void
 WarpX::BuildBufferMasks ()
 {

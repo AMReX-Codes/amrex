@@ -282,12 +282,13 @@ Particle initialization
       temperature parameter ``<species_name>.theta`` as an input, where theta is kb*T/(m*c^2),
       kb is the Boltzmann constant, c is the speed of light, and m is the mass of the species.
       It also includes the optional parameter ``<species_name>.beta`` where beta is equal to v/c.
-      The plasma will be initialized to move at drift velocity beta*c in the positive
-      ``<species_name>.direction = 'x', 'y', 'z'`` direction. The MB distribution is initialized
-      in the drifting frame by sampling three Gaussian distributions in each dimension using,
-      the Box Mueller method, and then the distribution is transformed to the simulation frame
-      using the flipping method. The flipping method can be found in Zenitani 2015
-      section III. B. (Phys. Plasmas 22, 042116).
+      The plasma will be initialized to move at drift velocity beta*c in the
+      ``<species_name>.drift_vel_dir = (+/-) 'x', 'y', 'z'`` direction. Please leave no whitespace
+      between the sign and the character on input. A direction without a sign will be treated as
+      positive. The MB distribution is initialized in the drifting frame by sampling three Gaussian
+      distributions in each dimension using, the Box Mueller method, and then the distribution is
+      transformed to the simulation frame using the flipping method. The flipping method can be
+      found in Zenitani 2015 section III. B. (Phys. Plasmas 22, 042116).
 
       Note that though the particles may move at relativistic speeds in the simulation frame,
       they are not relativistic in the drift frame. This is as opposed to the Maxwell Juttner
@@ -297,11 +298,12 @@ Particle initialization
       requires a dimensionless temperature parameter ``<species_name>.theta``, where theta is equal
       to kb*T/(m*c^2), where kb is the Boltzmann constant, and m is the mass of the species. It also
       includes the optional parameter ``<species_name>.beta`` where beta is equal to v/c. The plasma
-      will be initialized to move at velocity beta*c in the positive
-      ``<species_name>.direction = 'x', 'y', 'z'`` direction. The MJ distribution will be initialized
-      in the moving frame using the Sobol method, and then the distribution will be transformed to the
-      simulation frame using the flipping method. Both the Sobol and the flipping method can be found
-      in Zenitani 2015 (Phys. Plasmas 22, 042116).
+      will be initialized to move at velocity beta*c in the
+      ``<species_name>.drift_vel_dir = (+/-) 'x', 'y', 'z'`` direction. Please leave no whitespace
+      between the sign and the character on input. A direction without a sign will be treated as
+      positive. The MJ distribution will be initialized in the moving frame using the Sobol method,
+      and then the distribution will be transformed to the simulation frame using the flipping method.
+      Both the Sobol and the flipping method can be found in Zenitani 2015 (Phys. Plasmas 22, 042116).
 
       Please take notice that particles initialized with this setting can be relativistic in two ways.
       In the simulation frame, they can drift with a relativistic speed beta. Then, in the drifting
@@ -738,6 +740,10 @@ Numerics and algorithms
        (see `Esirkepov, Comp. Phys. Comm. (2001) <https://www.sciencedirect.com/science/article/pii/S0010465500002289>`__)
      - ``direct``: simpler current deposition algorithm, described in
        the section :doc:`../theory/picsar_theory`. Note that this algorithm is not strictly charge-conserving.
+
+    If ``algo.current_deposition`` is not specified, the default is
+    ``esirkepov`` (unless WarpX is compiled with ``USE_PSATD=TRUE``, in which
+    case the default is ``direct``).
 
 * ``algo.charge_deposition`` (`string`, optional)
     The algorithm for the charge density deposition. Available options are:

@@ -2,14 +2,17 @@ CEXE_sources += WarpXIO.cpp
 CEXE_sources += BackTransformedDiagnostic.cpp
 CEXE_sources += ParticleIO.cpp
 CEXE_sources += FieldIO.cpp
+CEXE_sources += SliceDiagnostic.cpp
+ifeq ($(DO_ELECTROSTATIC),TRUE)
+     CEXE_sources += ElectrostaticIO.cpp
+endif
+
 CEXE_headers += FieldIO.H
 CEXE_headers += BackTransformedDiagnostic.H
-CEXE_headers += ElectrostaticIO.cpp
 CEXE_headers += SliceDiagnostic.H
-CEXE_sources += SliceDiagnostic.cpp
 
 ifeq ($(USE_OPENPMD), TRUE)
-CEXE_sources += WarpXOpenPMD.cpp
+  CEXE_sources += WarpXOpenPMD.cpp
 endif
 
 INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/Diagnostics

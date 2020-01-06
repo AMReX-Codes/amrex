@@ -241,6 +241,8 @@ public:
 
     void CopyJPML ();
 
+    PML* GetPML (int lev);
+
     void PushParticlesandDepose (int lev, amrex::Real cur_time, DtType a_dt_type=DtType::Full);
     void PushParticlesandDepose (         amrex::Real cur_time);
 
@@ -602,7 +604,7 @@ private:
     amrex::Real load_balance_knapsack_factor = 1.24;
 
     // Override sync every ? steps
-    int override_sync_int = 10;
+    int override_sync_int = 1;
 
     // Other runtime parameters
     int verbose = 1;
