@@ -3,10 +3,6 @@
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_Particles.H>
 
-#ifdef BL_HDF5
-#include <WritePlotfileHDF5.H>
-#endif
-
 using namespace amrex;
 
 int main(int argc, char* argv[])
@@ -110,12 +106,12 @@ int main(int argc, char* argv[])
         varnames.push_back("component_" + std::to_string(i));
     }
 
-#ifdef BL_HDF5    
+    Vector<int> level_steps(nlevs, 0);
+#ifdef AMREX_USE_HDF5    
     WriteMultiLevelPlotfileHDF5("plt00000", nlevs, amrex::GetVecOfConstPtrs(mf), 
-                                varnames, geom, time, dt, ref_ratio);
+                                varnames, geom, time, level_steps, ref_ratio);
 #endif
 
-    Vector<int> level_steps(nlevs, 0);
     WriteMultiLevelPlotfile("plt00000", nlevs, amrex::GetVecOfConstPtrs(mf),
                             varnames, geom, time, level_steps, ref_ratio);
 
@@ -132,6 +128,10 @@ int main(int argc, char* argv[])
     }
     
     myPC.Checkpoint("plt00000", "particle0", false, particle_realnames, particle_intnames);
+    /* myPC.WriteAsciiFile("particle0_ascii"); */
+#ifdef AMREX_USE_HDF5    
+    myPC.CheckpointHDF5("plt00000", "particle0", false, particle_realnames, particle_intnames);
+#endif
     }
     amrex::Finalize();
 }
