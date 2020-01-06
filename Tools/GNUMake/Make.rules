@@ -366,14 +366,14 @@ $(depEXETempDir)/f90.depends: $(f90EXE_sources) $(F90EXE_sources)
 
 # $(CEXE_sources)
 ifeq ($(USE_GPU_PRAGMA),TRUE)
-$(TmpBuildDir)/$(optionsSuffix)_cuda_done: $(CEXE_sources)
+$(TmpBuildDir)/$(optionsSuffix)_cuda_done: $(CEXE_sources) $(cEXE_sources)
 	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
 	@$(SHELL) -ec 'touch $(TmpBuildDir)/$(optionsSuffix)_cuda_done' # So that the rule always gets updated
 	$(AMREX_HOME)/Tools/F_scripts/write_cuda_headers.py \
              --output_dir "$(srcTempDir)" \
              --vpath "$(VPATH_LOCATIONS)" \
              --headers "$(FEXE_headers) $(F90EXE_headers)" \
-             --cxx "$(CEXE_sources)" \
+             --cxx "$(CEXE_sources) $(cEXE_sources)" \
              --cpp "gcc -E -P -std=c99" \
              --defines "$(CPPFLAGS) $(includes)" \
              --exclude_defines "-DAMREX_USE_MPI -DBL_USE_MPI" \

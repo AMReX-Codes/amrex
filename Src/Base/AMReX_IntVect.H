@@ -173,6 +173,22 @@ public:
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     const int& operator[] (int i) const noexcept { BL_ASSERT(i>=0 && i < AMREX_SPACEDIM); return vect[i]; }
 
+    //! Returns a pointer to the first element of the IntVect.
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    int* begin () noexcept { return &vect[0]; }
+
+    //! Returns a pointer to the first element of the IntVect.
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    const int* begin () const noexcept { return &vect[0]; }
+
+    //! Returns a pointer to the (last+1) element of the IntVect.
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    int* end () noexcept { return &vect[AMREX_SPACEDIM]; }
+
+    //! Returns a pointer to the (last+1) element of the IntVect.
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    const int* end () const noexcept { return &vect[AMREX_SPACEDIM]; }
+
     //! Set i'th coordinate of IntVect to val.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     IntVect& setVal (int i, int val) noexcept

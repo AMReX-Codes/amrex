@@ -1431,6 +1431,7 @@ MLMG::compResidual (const Vector<MultiFab*>& a_res, const Vector<MultiFab*>& a_s
     const int ncomp = linop.getNComp();
     int nghost = 0;
     if (cf_strategy == CFStrategy::ghostnodes) nghost = linop.getNGrow();
+    amrex::ignore_unused(nghost);
    
     sol.resize(namrlevs);
     sol_raii.resize(namrlevs);

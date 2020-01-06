@@ -49,7 +49,8 @@ protected:
     static Vector<std::unique_ptr<IndexSpace> > m_instance;
 };
 
-const IndexSpace* TopIndexSpaceIfPresent() noexcept;
+const IndexSpace* TopIndexSpaceIfPresent () noexcept;
+inline const IndexSpace* TopIndexSpace () noexcept { return TopIndexSpaceIfPresent(); }
 
 template <typename G>
 class IndexSpaceImp

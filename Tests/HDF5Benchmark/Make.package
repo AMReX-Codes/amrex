@@ -1,2 +1,1 @@
-CEXE_sources += main.cpp WritePlotfileHDF5.cpp
-CEXE_headers += WritePlotfileHDF5.H
+CEXE_sources += main.cpp 

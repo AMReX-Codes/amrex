@@ -101,6 +101,41 @@ public:
   /*@}*/
 
   /**
+     \name Iterators
+  */
+  /*@{*/
+
+  ///
+  /**
+     Return pointer to the first component.
+  */
+  inline
+  Real* begin () noexcept;
+  
+  ///
+  /**
+     Return pointer to the first component.
+  */
+  inline
+  const Real* begin () const noexcept;
+  
+  ///
+  /**
+     Return pointer to the one past last component
+  */
+  inline
+  Real* end () noexcept;
+  
+  ///
+  /**
+     Return pointer to the one past last component
+  */
+  inline
+  const Real* end () const noexcept;
+  
+  /*@}*/
+
+  /**
      \name Comparison Operators
   */
   /*@{*/
@@ -516,6 +551,26 @@ inline const Real& RealVect::operator[] (int i) const noexcept
 {
   assert(i>=0 && i < SpaceDim);
   return vect[i];
+}
+
+inline Real* RealVect::begin () noexcept
+{ 
+  return &vect[0];
+}
+
+inline const Real* RealVect::begin () const noexcept
+{
+  return &vect[0];
+}
+
+inline Real* RealVect::end () noexcept
+{
+  return &vect[SpaceDim];
+}
+
+inline const Real* RealVect::end () const noexcept
+{
+  return &vect[SpaceDim];
 }
 
 inline RealVect::RealVect (const RealVect &iv) noexcept

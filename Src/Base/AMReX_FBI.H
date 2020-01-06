@@ -730,7 +730,7 @@ template <class FAB>
 void
 FabArray<FAB>::FB_pack_send_buffer_cuda_graph (const FB& TheFB, int scomp, int ncomp,
                                                Vector<char*>& send_data,
-                                               Vector<int> const& send_size,
+                                               Vector<std::size_t> const& send_size,
                                                Vector<typename FabArray<FAB>::CopyComTagsContainer const*> const& send_cctc)
 {
     const int N_snds = send_data.size();
@@ -804,7 +804,7 @@ FabArray<FAB>::FB_pack_send_buffer_cuda_graph (const FB& TheFB, int scomp, int n
                 
                 dptr += (tag.sbox.numPts() * ncomp * sizeof(value_type));
             }
-            BL_ASSERT(dptr == send_data[j] + send_size[j]); 
+            BL_ASSERT(dptr <= send_data[j] + send_size[j]);
         }
     }
     
@@ -816,7 +816,7 @@ template <class FAB>
 void
 FabArray<FAB>::FB_unpack_recv_buffer_cuda_graph (const FB& TheFB, int dcomp, int ncomp,
                                                  Vector<char*> const& recv_data,
-                                                 Vector<int> const& recv_size,
+                                                 Vector<std::size_t> const& recv_size,
                                                  Vector<CopyComTagsContainer const*> const& recv_cctc,
                                                  bool is_thread_safe)
 {
@@ -837,7 +837,7 @@ FabArray<FAB>::FB_unpack_recv_buffer_cuda_graph (const FB& TheFB, int dcomp, int
                 dptr += tag.dbox.numPts() * ncomp * sizeof(value_type);
                 launches++;
             }
-            BL_ASSERT(dptr == recv_data[k] + recv_size[k]);
+            BL_ASSERT(dptr <= recv_data[k] + recv_size[k]);
         }
     }
   
@@ -900,7 +900,7 @@ template <class FAB>
 void
 FabArray<FAB>::pack_send_buffer_gpu (FabArray<FAB> const& src, int scomp, int ncomp,
                                      Vector<char*>& send_data,
-                                     Vector<int> const& send_size,
+                                     Vector<std::size_t> const& send_size,
                                      Vector<CopyComTagsContainer const*> const& send_cctc)
 {
     const int N_snds = send_data.size();
@@ -921,7 +921,7 @@ FabArray<FAB>::pack_send_buffer_gpu (FabArray<FAB> const& src, int scomp, int nc
                       src.array(tag.srcIndex), tag.sbox, Dim3{0,0,0}});
                 dptr += (tag.sbox.numPts() * ncomp * sizeof(value_type));
             }
-            BL_ASSERT(dptr == send_data[j] + send_size[j]); 
+            BL_ASSERT(dptr <= send_data[j] + send_size[j]);
         }
     }
 
@@ -933,7 +933,7 @@ template <class FAB>
 void
 FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
                                        Vector<char*> const& recv_data,
-                                       Vector<int> const& recv_size,
+                                       Vector<std::size_t> const& recv_size,
                                        Vector<CopyComTagsContainer const*> const& recv_cctc,
                                        CpOp op, bool is_thread_safe)
 {
@@ -976,7 +976,7 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
                     masks.push_back(maskfabs[li].array());
                 }
             }
-            BL_ASSERT(dptr == recv_data[k] + recv_size[k]);
+            BL_ASSERT(dptr <= recv_data[k] + recv_size[k]);
         }
     }
 
@@ -1019,7 +1019,7 @@ template <class FAB>
 void
 FabArray<FAB>::pack_send_buffer_cpu (FabArray<FAB> const& src, int scomp, int ncomp,
                                      Vector<char*>& send_data,
-                                     Vector<int> const& send_size,
+                                     Vector<std::size_t> const& send_size,
                                      Vector<CopyComTagsContainer const*> const& send_cctc)
 {
     const int N_snds = send_data.size();
@@ -1046,7 +1046,7 @@ FabArray<FAB>::pack_send_buffer_cpu (FabArray<FAB> const& src, int scomp, int nc
                 });
                 dptr += (bx.numPts() * ncomp * sizeof(value_type));
             }
-            BL_ASSERT(dptr == send_data[j] + send_size[j]); 
+            BL_ASSERT(dptr <= send_data[j] + send_size[j]);
         }
     }
 }
@@ -1055,7 +1055,7 @@ template <class FAB>
 void
 FabArray<FAB>::unpack_recv_buffer_cpu (FabArray<FAB>& dst, int dcomp, int ncomp,
                                        Vector<char*> const& recv_data,
-                                       Vector<int> const& recv_size,
+                                       Vector<std::size_t> const& recv_size,
                                        Vector<CopyComTagsContainer const*> const& recv_cctc,
                                        CpOp op, bool is_thread_safe)
 {
@@ -1087,7 +1087,7 @@ FabArray<FAB>::unpack_recv_buffer_cpu (FabArray<FAB>& dst, int dcomp, int ncomp,
                     }
                     dptr += bx.numPts() * ncomp * sizeof(value_type);
                 }
-                BL_ASSERT(dptr == recv_data[k] + recv_size[k]);
+                BL_ASSERT(dptr <= recv_data[k] + recv_size[k]);
             }
         }
     }
@@ -1106,7 +1106,7 @@ FabArray<FAB>::unpack_recv_buffer_cpu (FabArray<FAB>& dst, int dcomp, int ncomp,
                     recv_copy_tags[tag.dstIndex].push_back({dptr,tag.dbox});
                     dptr += tag.dbox.numPts() * ncomp * sizeof(value_type);
                 }
-                BL_ASSERT(dptr == recv_data[k] + recv_size[k]);
+                BL_ASSERT(dptr <= recv_data[k] + recv_size[k]);
             }
         }
 
