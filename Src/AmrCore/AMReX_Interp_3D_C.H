@@ -391,8 +391,8 @@ cellconslin_fine_alpha (Box const& bx, Array4<Real> const& alpha,
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
 
-    const auto slo = amrex::lbound(slopes);
-    const auto shi = amrex::ubound(slopes);
+    // const auto slo = amrex::lbound(slopes); SET_BUT_NOT_USED 
+    // const auto shi = amrex::ubound(slopes); SET_BUT_NOT_USED 
 
     const Array4<Real const> mm(slopes, ncomp*AMREX_SPACEDIM);  // min and max
 
