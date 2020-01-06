@@ -1,3 +1,22 @@
+# 20.01
+
+  -- GPU host device version of swap.
+
+  -- Fix an edge case of gpu block reduce where the block size is less
+     than a warp.
+
+  -- Always check MPI buffer size for overflow.
+
+  -- CMake support for PETSc.
+
+  -- Include C sources in the CUDA proprecessing.
+
+  -- It's now safe to construct a zero components Fab.
+
+  -- CXXSTD: option to set c++ standard in GNU make system
+
+  -- Improve performance of the nodal linear solver on GPU.
+
 # 19.12
 
   -- Fix potential deadlocks in amrex::Random.

@@ -129,39 +129,42 @@ public:
     void rewind () noexcept { face = 0; }
     //! Return the orientation of the face.
     AMREX_GPU_HOST_DEVICE
-    Orientation operator() () const noexcept { BL_ASSERT(ok()); return Orientation(face); }
+    Orientation operator() () const noexcept { BL_ASSERT(isValid()); return Orientation(face); }
     //! Cast to void*.  Used to test if iterator is valid.
     AMREX_GPU_HOST_DEVICE
     operator void* () noexcept { return 0 <= face && face < 2*AMREX_SPACEDIM ? this : 0; }
+    //! Is the iterator valid?
+    AMREX_GPU_HOST_DEVICE
+    bool isValid () const noexcept { return 0 <= face && face < 2*AMREX_SPACEDIM; }
     //! Pre-decrement.
     AMREX_GPU_HOST_DEVICE
-    OrientationIter& operator-- () noexcept { BL_ASSERT(ok()); --face; return *this; }
+    OrientationIter& operator-- () noexcept { BL_ASSERT(isValid()); --face; return *this; }
     //! Pre-increment.
     AMREX_GPU_HOST_DEVICE
-    OrientationIter& operator++ () noexcept { BL_ASSERT(ok()); ++face; return *this; }
+    OrientationIter& operator++ () noexcept { BL_ASSERT(isValid()); ++face; return *this; }
     //! Post-decrement.
     AMREX_GPU_HOST_DEVICE
     OrientationIter operator-- (int) noexcept
     {
-        BL_ASSERT(ok()); OrientationIter it(face); --face; return it;
+        BL_ASSERT(isValid()); OrientationIter it(face); --face; return it;
     }
     //! Post-increment.
     AMREX_GPU_HOST_DEVICE
     OrientationIter operator++ (int) noexcept
     {
-        BL_ASSERT(ok()); OrientationIter it(face); ++face; return it;
+        BL_ASSERT(isValid()); OrientationIter it(face); ++face; return it;
     }
     //! The equality operator.
     AMREX_GPU_HOST_DEVICE
     bool operator== (const OrientationIter& oi) const noexcept
     {
-        BL_ASSERT(ok() && oi.ok()); return face == oi.face;
+        BL_ASSERT(isValid() && oi.isValid()); return face == oi.face;
     }
     //! The inequality operator.
     AMREX_GPU_HOST_DEVICE
     bool operator!= (const OrientationIter& oi) const noexcept
     {
-        BL_ASSERT(ok() && oi.ok()); return face != oi.face;
+        BL_ASSERT(isValid() && oi.isValid()); return face != oi.face;
     }
 
 private:
@@ -170,9 +173,6 @@ private:
     //! Construct an iterator on the face.
     AMREX_GPU_HOST_DEVICE
     OrientationIter (int _face) noexcept : face(_face) {}
-    //! Is the iterator valid?
-    AMREX_GPU_HOST_DEVICE
-    bool ok () const noexcept { return 0 <= face && face < 2*AMREX_SPACEDIM; }
 };
 
 }
