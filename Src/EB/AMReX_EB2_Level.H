@@ -192,7 +192,6 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
     }
 
     const auto dx = geom.CellSizeArray();
-    // const auto dxinv = geom.InvCellSizeArray(); SET_BUT_NOT_USED
     const auto problo = geom.ProbLoArray();
 
     RunOn gshop_run_on = (Gpu::inLaunchRegion() && gshop.isGPUable())
