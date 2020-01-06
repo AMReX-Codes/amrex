@@ -695,7 +695,11 @@ EB_interp_CC_to_Centroid (MultiFab& cent, const MultiFab& cc, int scomp, int dco
         }
         else if (fabtyp == FabType::regular)
         {
-            // do nothing
+            const auto& ccfab = cc.array(mfi,scomp);
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( vbx, ncomp, i, j, k, n,
+            {
+               centfab(i,j,k,n) = ccfab(i,j,k,n);
+            });
         }
         else
         {
@@ -711,6 +715,7 @@ EB_interp_CC_to_Centroid (MultiFab& cent, const MultiFab& cc, int scomp, int dco
     }
 
     cent.FillBoundary(dcomp,ncomp,geom.periodicity());
+    
 }
 
 void
