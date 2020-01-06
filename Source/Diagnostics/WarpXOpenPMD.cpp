@@ -355,11 +355,9 @@ WarpXOpenPMDPlot::WriteOpenPMDFields( //const std::string& filename,
     const std::string& varname = varnames[icomp];
     std::string field_name = varname;
     std::string comp_name = openPMD::MeshRecordComponent::SCALAR;
-    bool is_vector = false;
     for (const char* vector_field: {"E", "B", "j"}){
         for (const char* comp: {"x", "y", "z"}){
             if (varname[0] == *vector_field && varname[1] == *comp ){
-                is_vector = true;
                 field_name = varname[0] + varname.substr(2); // Strip component
                 comp_name = varname[1];
             }
