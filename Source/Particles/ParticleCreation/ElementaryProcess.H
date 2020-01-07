@@ -4,6 +4,7 @@
 #include "WarpXParticleContainer.H"
 #include "CopyParticle.H"
 #include "TransformParticle.H"
+#include "DefaultInitialization.H"
 
 /**
  * \brief Base class for particle creation processes
