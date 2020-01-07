@@ -286,9 +286,9 @@ WarpX::InitLevelData (int lev, Real time)
         }
     }
 
-    // if the input string for the B-field is "parse_b_ext_grid_function", 
-    // then the analytical expression or function must be 
-    // provided in the input file. 
+    // if the input string for the B-field is "parse_b_ext_grid_function",
+    // then the analytical expression or function must be
+    // provided in the input file.
     if (B_ext_grid_s == "parse_b_ext_grid_function") {
 
        Store_parserString("Bx_external_grid_function(x,y,z)",
@@ -327,9 +327,9 @@ WarpX::InitLevelData (int lev, Real time)
        }
     }
 
-    // if the input string for the E-field is "parse_e_ext_grid_function", 
-    // then the analytical expression or function must be 
-    // provided in the input file. 
+    // if the input string for the E-field is "parse_e_ext_grid_function",
+    // then the analytical expression or function must be
+    // provided in the input file.
     if (E_ext_grid_s == "parse_e_ext_grid_function") {
 
        Store_parserString("Ex_external_grid_function(x,y,z)",
