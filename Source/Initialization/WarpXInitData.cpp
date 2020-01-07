@@ -297,31 +297,39 @@ WarpX::InitLevelData (int lev, Real time)
                                                     str_By_ext_grid_function);
        Store_parserString("Bz_external_grid_function(x,y,z)",
                                                     str_Bz_ext_grid_function);
+
+       Bxfield_parser.reset(new ParserWrapper(
+                                makeParser(str_Bx_ext_grid_function)));
+       Byfield_parser.reset(new ParserWrapper(
+                                makeParser(str_By_ext_grid_function)));
+       Bzfield_parser.reset(new ParserWrapper(
+                                makeParser(str_Bz_ext_grid_function)));
+
        // Initialize Bfield_fp with external function
        InitializeExternalFieldsOnGridUsingParser(Bfield_fp[lev][0].get(),
                                                  Bfield_fp[lev][1].get(),
                                                  Bfield_fp[lev][2].get(),
-                                                 str_Bx_ext_grid_function,
-                                                 str_By_ext_grid_function,
-                                                 str_Bz_ext_grid_function,
+                                                 Bxfield_parser.get(),
+                                                 Byfield_parser.get(),
+                                                 Bzfield_parser.get(),
                                                  Bx_nodal_flag, By_nodal_flag,
                                                  Bz_nodal_flag, lev);
        if (lev > 0) {
           InitializeExternalFieldsOnGridUsingParser(Bfield_aux[lev][0].get(),
                                                     Bfield_aux[lev][1].get(),
                                                     Bfield_aux[lev][2].get(),
-                                                    str_Bx_ext_grid_function,
-                                                    str_By_ext_grid_function,
-                                                    str_Bz_ext_grid_function,
+                                                    Bxfield_parser.get(),
+                                                    Byfield_parser.get(),
+                                                    Bzfield_parser.get(),
                                                     Bx_nodal_flag, By_nodal_flag,
                                                     Bz_nodal_flag, lev);
 
           InitializeExternalFieldsOnGridUsingParser(Bfield_cp[lev][0].get(),
                                                     Bfield_cp[lev][1].get(),
                                                     Bfield_cp[lev][2].get(),
-                                                    str_Bx_ext_grid_function,
-                                                    str_By_ext_grid_function,
-                                                    str_Bz_ext_grid_function,
+                                                    Bxfield_parser.get(),
+                                                    Byfield_parser.get(),
+                                                    Bzfield_parser.get(),
                                                     Bx_nodal_flag, By_nodal_flag,
                                                     Bz_nodal_flag, lev);
        }
@@ -339,31 +347,38 @@ WarpX::InitLevelData (int lev, Real time)
        Store_parserString("Ez_external_grid_function(x,y,z)",
                                                     str_Ez_ext_grid_function);
 
+       Exfield_parser.reset(new ParserWrapper(
+                                makeParser(str_Ex_ext_grid_function)));
+       Eyfield_parser.reset(new ParserWrapper(
+                                makeParser(str_Ey_ext_grid_function)));
+       Ezfield_parser.reset(new ParserWrapper(
+                                makeParser(str_Ez_ext_grid_function)));
+
        // Initialize Efield_fp with external function
        InitializeExternalFieldsOnGridUsingParser(Efield_fp[lev][0].get(),
                                                  Efield_fp[lev][1].get(),
                                                  Efield_fp[lev][2].get(),
-                                                 str_Ex_ext_grid_function,
-                                                 str_Ey_ext_grid_function,
-                                                 str_Ez_ext_grid_function,
+                                                 Exfield_parser.get(),
+                                                 Eyfield_parser.get(),
+                                                 Ezfield_parser.get(),
                                                  Ex_nodal_flag, Ey_nodal_flag,
                                                  Ez_nodal_flag, lev);
        if (lev > 0) {
           InitializeExternalFieldsOnGridUsingParser(Efield_aux[lev][0].get(),
                                                     Efield_aux[lev][1].get(),
                                                     Efield_aux[lev][2].get(),
-                                                    str_Ex_ext_grid_function,
-                                                    str_Ey_ext_grid_function,
-                                                    str_Ez_ext_grid_function,
+                                                    Exfield_parser.get(),
+                                                    Eyfield_parser.get(),
+                                                    Ezfield_parser.get(),
                                                     Ex_nodal_flag, Ey_nodal_flag,
                                                     Ez_nodal_flag, lev);
 
           InitializeExternalFieldsOnGridUsingParser(Efield_cp[lev][0].get(),
                                                     Efield_cp[lev][1].get(),
                                                     Efield_cp[lev][2].get(),
-                                                    str_Ex_ext_grid_function,
-                                                    str_Ey_ext_grid_function,
-                                                    str_Ez_ext_grid_function,
+                                                    Exfield_parser.get(),
+                                                    Eyfield_parser.get(),
+                                                    Ezfield_parser.get(),
                                                     Ex_nodal_flag, Ey_nodal_flag,
                                                     Ez_nodal_flag, lev);
        }
@@ -428,22 +443,11 @@ WarpX::InitLevelDataFFT (int lev, Real time)
 void
 WarpX::InitializeExternalFieldsOnGridUsingParser (
        MultiFab *mfx, MultiFab *mfy, MultiFab *mfz,
-       const std::string x_function, const std::string y_function,
-       const std::string z_function, IntVect x_nodal_flag,
+       ParserWrapper *xfield_parser, ParserWrapper *yfield_parser,
+       ParserWrapper *zfield_parser, IntVect x_nodal_flag,
        IntVect y_nodal_flag, IntVect z_nodal_flag,
        const int lev)
 {
-    std::unique_ptr<ParserWrapper> xfield_parsewrap;
-    std::unique_ptr<ParserWrapper> yfield_parsewrap;
-    std::unique_ptr<ParserWrapper> zfield_parsewrap;
-
-    xfield_parsewrap.reset(new ParserWrapper(makeParser(x_function)));
-    yfield_parsewrap.reset(new ParserWrapper(makeParser(y_function)));
-    zfield_parsewrap.reset(new ParserWrapper(makeParser(z_function)));
-
-    ParserWrapper *xfield_wrap = xfield_parsewrap.get();
-    ParserWrapper *yfield_wrap = yfield_parsewrap.get();
-    ParserWrapper *zfield_wrap = zfield_parsewrap.get();
 
     const auto dx_lev = geom[lev].CellSizeArray();
     const RealBox& real_box = geom[lev].ProbDomain();
@@ -490,7 +494,7 @@ WarpX::InitializeExternalFieldsOnGridUsingParser (
                 Real z = k*dx_lev[2] + real_box.lo(2) + fac_z;
 #endif
                 // Initialize the x-component of the field.
-                mfxfab(i,j,k) = xfield_wrap->getField(x,y,z);
+                mfxfab(i,j,k) = xfield_parser->getField(x,y,z);
             },
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
                 Real fac_x = (1.0 - mfy_type[0]) * dx_lev[0]*0.5;
@@ -506,7 +510,7 @@ WarpX::InitializeExternalFieldsOnGridUsingParser (
                 Real z = k*dx_lev[2] + real_box.lo(2) + fac_z;
 #endif
                 // Initialize the y-component of the field.
-                mfyfab(i,j,k)  = yfield_wrap->getField(x,y,z);
+                mfyfab(i,j,k)  = yfield_parser->getField(x,y,z);
             },
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
                 Real fac_x = (1.0 - mfz_type[0]) * dx_lev[0]*0.5;
@@ -522,7 +526,7 @@ WarpX::InitializeExternalFieldsOnGridUsingParser (
                 Real z = k*dx_lev[2] + real_box.lo(2) + fac_z;
 #endif
                 // Initialize the z-component of the field.
-                mfzfab(i,j,k) = zfield_wrap->getField(x,y,z);
+                mfzfab(i,j,k) = zfield_parser->getField(x,y,z);
             },
             amrex::Gpu::numThreadsPerBlockParallelFor() * sizeof(double) * 3
         );

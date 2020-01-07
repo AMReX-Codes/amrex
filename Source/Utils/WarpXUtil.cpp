@@ -183,7 +183,6 @@ void Store_parserString(std::string query_string,
 }
 
 
-//namespace {
 WarpXParser makeParser (std::string const& parse_function)
 {
     WarpXParser parser(parse_function);
@@ -207,4 +206,3 @@ WarpXParser makeParser (std::string const& parse_function)
     }
     return parser;
 }
-//}

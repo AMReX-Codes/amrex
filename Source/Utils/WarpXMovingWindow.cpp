@@ -101,9 +101,25 @@ WarpX::MoveWindow (bool move_j)
 
             // Fine grid
             // initialize with external field = true and B_flag = true;
-            shiftMF(*Bfield_fp[lev][dim], geom[lev], num_shift, dir, true, true);
+            ParserWrapper *Bfield_parser;
+            ParserWrapper *Efield_parser;
+            bool use_Bparser = false;
+            bool use_Eparser = false;
+            if (B_ext_grid_s == "parse_b_ext_grid_function") {
+                use_Bparser = true;
+                if (dim == 0) Bfield_parser = Bxfield_parser.get();
+                if (dim == 1) Bfield_parser = Byfield_parser.get();
+                if (dim == 2) Bfield_parser = Bzfield_parser.get();
+            }
+            shiftMF(*Bfield_fp[lev][dim], geom[lev], num_shift, dir, B_external_grid[dim], use_Bparser, Bfield_parser);
             // initialize with external field = true and B_flag = false;
-            shiftMF(*Efield_fp[lev][dim], geom[lev], num_shift, dir, true, false);
+            if (E_ext_grid_s == "parse_e_ext_grid_function") {
+                use_Eparser = true;
+                if (dim == 0) Efield_parser = Exfield_parser.get();
+                if (dim == 1) Efield_parser = Eyfield_parser.get();
+                if (dim == 2) Efield_parser = Ezfield_parser.get();
+            }
+            shiftMF(*Efield_fp[lev][dim], geom[lev], num_shift, dir, E_external_grid[dim], use_Eparser, Efield_parser);
             if (move_j) {
                 shiftMF(*current_fp[lev][dim], geom[lev], num_shift, dir);
             }
@@ -117,9 +133,9 @@ WarpX::MoveWindow (bool move_j)
             if (lev > 0) {
                 // Coarse grid
                 // initialize with external field = true and B_flag = true;
-                shiftMF(*Bfield_cp[lev][dim], geom[lev-1], num_shift_crse, dir, true, true);
+                shiftMF(*Bfield_cp[lev][dim], geom[lev-1], num_shift_crse, dir, B_external_grid[dim], use_Bparser, Bfield_parser);
                 // initialize with external field = true and B_flag = false;
-                shiftMF(*Efield_cp[lev][dim], geom[lev-1], num_shift_crse, dir, true, false);
+                shiftMF(*Efield_cp[lev][dim], geom[lev-1], num_shift_crse, dir, E_external_grid[dim], use_Eparser, Efield_parser);
                 shiftMF(*Bfield_aux[lev][dim], geom[lev], num_shift, dir);
                 shiftMF(*Efield_aux[lev][dim], geom[lev], num_shift, dir);
                 if (move_j) {
@@ -137,7 +153,7 @@ WarpX::MoveWindow (bool move_j)
         // Shift scalar component F for dive cleaning
         if (do_dive_cleaning) {
             // Fine grid
-            shiftMF(*F_fp[lev],   geom[lev], num_shift, dir);
+            shiftMF(*F_fp[lev], geom[lev], num_shift, dir);
             if (do_pml && pml[lev]->ok()) {
                 MultiFab* pml_F = pml[lev]->GetF_fp();
                 shiftMF(*pml_F, geom[lev], num_shift, dir);
@@ -209,15 +225,13 @@ WarpX::MoveWindow (bool move_j)
 
 void
 WarpX::shiftMF (MultiFab& mf, const Geometry& geom, int num_shift, int dir,
-                bool ext_init, bool B_flag)
+                amrex::Real external_field, bool useparser, ParserWrapper *field_parser)
 {
     BL_PROFILE("WarpX::shiftMF()");
     const BoxArray& ba = mf.boxArray();
     const DistributionMapping& dm = mf.DistributionMap();
     const int nc = mf.nComp();
     const IntVect& ng = mf.nGrowVect();
-    // default value of external_field = 0.0 for initialization of mf
-    amrex::Real external_field = 0.0;
 
     AMREX_ALWAYS_ASSERT(ng.min() >= num_shift);
 
@@ -255,51 +269,6 @@ WarpX::shiftMF (MultiFab& mf, const Geometry& geom, int num_shift, int dir,
 
     const RealBox& real_box = geom.ProbDomain();
     const auto dx = geom.CellSizeArray();
-    std::unique_ptr<ParserWrapper> field_parsewrap;
-    bool useparser = false;
-
-    if (ext_init == true && B_flag == true) {
-        if (B_ext_grid_s == "constant" || B_ext_grid_s == "default")
-            external_field = B_external_grid[dir];
-        if (B_ext_grid_s == "parse_b_ext_grid_function") {
-           useparser = true;
-           if (dir==0)
-              field_parsewrap.reset(new ParserWrapper(
-                              makeParser(str_Bx_ext_grid_function)));
-           if (dir==1)
-#if (AMREX_SPACEDIM==2)
-               field_parsewrap.reset(new ParserWrapper(
-                              makeParser(str_Bz_ext_grid_function)));
-#else
-               field_parsewrap.reset(new ParserWrapper(
-                              makeParser(str_By_ext_grid_function)));
-#endif
-           if (dir==2)
-               field_parsewrap.reset(new ParserWrapper(
-                              makeParser(str_Bz_ext_grid_function)));
-        }
-    }
-    if (ext_init == true && B_flag == false) {
-        if (E_ext_grid_s == "constant" || E_ext_grid_s == "default")
-            external_field = E_external_grid[dir];
-        if (E_ext_grid_s == "parse_e_ext_grid_function") {
-           if (dir==0)
-               field_parsewrap.reset(new ParserWrapper(
-                              makeParser(str_Ex_ext_grid_function)));
-           if (dir==1)
-#if (AMREX_SPACEDIM==2)
-               field_parsewrap.reset(new ParserWrapper(
-                              makeParser(str_Ez_ext_grid_function)));
-#else
-               field_parsewrap.reset(new ParserWrapper(
-                              makeParser(str_Ey_ext_grid_function)));
-#endif
-           if (dir==2)
-               field_parsewrap.reset(new ParserWrapper(
-                              makeParser(str_Ez_ext_grid_function)));
-           useparser = true;
-        }
-    }
 
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -326,7 +295,6 @@ WarpX::shiftMF (MultiFab& mf, const Geometry& geom, int num_shift, int dir,
                 for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                     mf_type[idim] = mf_IndexType.nodeCentered(idim);
                 }
-                ParserWrapper *field_wrap = field_parsewrap.get();
 
                 amrex::ParallelFor (outbox, nc,
                       [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
@@ -344,7 +312,7 @@ WarpX::shiftMF (MultiFab& mf, const Geometry& geom, int num_shift, int dir,
                       Real fac_z = (1.0 - mf_type[2]) * dx[2]*0.5;
                       Real z = k*dx[2] + real_box.lo(2) + fac_z;
 #endif
-                      srcfab(i,j,k,n) = field_wrap->getField(x,y,z);
+                      srcfab(i,j,k,n) = field_parser->getField(x,y,z);
                 }
                 , amrex::Gpu::numThreadsPerBlockParallelFor() * sizeof(double)*3
                 );
