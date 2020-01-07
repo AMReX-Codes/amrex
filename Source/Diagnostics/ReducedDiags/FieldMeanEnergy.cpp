@@ -64,43 +64,39 @@ void FieldMeanEnergy::ComputeDiags (int step)
     const MultiFab & By = warpx.getBfield(0,1);
     const MultiFab & Bz = warpx.getBfield(0,2);
 
-    Real Es = 0.0;
-    Real Bs = 0.0;
+    /// get number of grids used
+    Geometry const & geom = warpx.Geom(0);
+    auto domain_box = geom.Domain();
+    long nx = domain_box.length(0);
+    long ny = domain_box.length(1);
+    long nz = domain_box.length(2);
+    long nx_extra = geom.isPeriodic(0) ? 0 : 1;
+    long ny_extra = geom.isPeriodic(1) ? 0 : 1;
+    long nz_extra = geom.isPeriodic(2) ? 0 : 1;
+    long ex_num_points = nx*(ny+ny_extra)*(nz+nz_extra);
+    long ey_num_points = (nx+nx_extra)*ny*(nz+nz_extra);
+    long ez_num_points = (nx+nx_extra)*(ny+ny_extra)*nz;
+    long bx_num_points = (nx+nx_extra)*ny*nz;
+    long by_num_points = nx*(ny+ny_extra)*nz;
+    long bz_num_points = nx*ny*(nz+nz_extra);
 
-    Es += amrex::ReduceSum(
-        Ex, 0,
-        [=] AMREX_GPU_HOST_DEVICE (Box const& bx, FArrayBox const& xfab) -> Real
-        { return xfab.dot(bx,0,1); }
-        );
-    Es += amrex::ReduceSum(
-        Ey, 0,
-        [=] AMREX_GPU_HOST_DEVICE (Box const& bx, FArrayBox const& xfab) -> Real
-        { return xfab.dot(bx,0,1); }
-        );
-    Es += amrex::ReduceSum(
-        Ez, 0,
-        [=] AMREX_GPU_HOST_DEVICE (Box const& bx, FArrayBox const& xfab) -> Real
-        { return xfab.dot(bx,0,1); }
-        );
-    Bs += amrex::ReduceSum(
-        Bx, 0,
-        [=] AMREX_GPU_HOST_DEVICE (Box const& bx, FArrayBox const& xfab) -> Real
-        { return xfab.dot(bx,0,1); }
-        );
-    Bs += amrex::ReduceSum(
-        By, 0,
-        [=] AMREX_GPU_HOST_DEVICE (Box const& bx, FArrayBox const& xfab) -> Real
-        { return xfab.dot(bx,0,1); }
-        );
-    Bs += amrex::ReduceSum(
-        Bz, 0,
-        [=] AMREX_GPU_HOST_DEVICE (Box const& bx, FArrayBox const& xfab) -> Real
-        { return xfab.dot(bx,0,1); }
-        );
+    /// compute E squared
+    Real tmpx = Ex.norm2(0,geom.periodicity());
+    Real tmpy = Ey.norm2(0,geom.periodicity());
+    Real tmpz = Ez.norm2(0,geom.periodicity());
+    Real Es = tmpx*tmpx/Real(ex_num_points) +
+              tmpy*tmpy/Real(ey_num_points) +
+              tmpz*tmpz/Real(ez_num_points);
 
-    ParallelDescriptor::ReduceRealSum(Es);
-    ParallelDescriptor::ReduceRealSum(Bs);
+    /// compute B squared
+    tmpx = Bx.norm2(0,geom.periodicity());
+    tmpy = By.norm2(0,geom.periodicity());
+    tmpz = Bz.norm2(0,geom.periodicity());
+    Real Bs = tmpx*tmpx/Real(bx_num_points) +
+              tmpy*tmpy/Real(by_num_points) +
+              tmpz*tmpz/Real(bz_num_points);
 
+    /// save data
     m_data[1] = 0.5*Es*PhysConst::ep0;
     m_data[2] = 0.5*Bs/PhysConst::mu0;
     m_data[0] = m_data[1] + m_data[2];
