@@ -363,7 +363,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             if (set_stripe == 1) {
                 sprintf(setstripe, "lfs setstripe -c %d -S %dm %s", stripe_count, stripe_size, pdir.c_str());
                 std::cout << "Setting stripe parameters for HDF5 output: " << setstripe << std::endl; 
-                std::system(setstripe);
+                amrex::ignore_unused(std::system(setstripe));
             }
         }
         ParallelDescriptor::Barrier();
