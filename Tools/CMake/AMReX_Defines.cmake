@@ -81,7 +81,7 @@ function ( set_amrex_defines )
    add_amrex_define( AMREX_USE_ASSERTION IF ENABLE_ASSERTIONS )
 
    #
-   # Fortran-specific defines: BL_LANG_FORT e AMREX_LANG_FORT
+   # Fortran-specific defines: BL_LANG_FORT and AMREX_LANG_FORT
    #
    target_compile_definitions ( amrex PUBLIC
       $<$<COMPILE_LANGUAGE:Fortran>:BL_LANG_FORT> )
