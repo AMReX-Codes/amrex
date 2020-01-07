@@ -96,7 +96,7 @@ public:
 
     static void shiftMF (amrex::MultiFab& mf, const amrex::Geometry& geom,
                          int num_shift, int dir, amrex::Real external_field=0.0,
-                         bool useparser = false, 
+                         bool useparser = false,
                          ParserWrapper *field_parser=nullptr);
 
     static void GotoNextLine (std::istream& is);
