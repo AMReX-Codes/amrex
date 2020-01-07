@@ -252,11 +252,6 @@ WarpX::WarpX ()
     // constructor, as it reads additional parameters
     // (e.g., use_fdtd_nci_corr)
 
-    bool momentum_conserving = field_gathering_algo == GatheringAlgo::MomentumConserving;
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-        not ( use_fdtd_nci_corr & momentum_conserving ),
-        "NCI corrector with momentum-conserving gather not implemented"
-        );
 #ifndef WARPX_USE_PSATD
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
         not ( do_pml & do_nodal ),
@@ -590,7 +585,7 @@ WarpX::ReadParameters ()
         particle_pusher_algo = GetAlgorithmInteger(pp, "particle_pusher");
         maxwell_fdtd_solver_id = GetAlgorithmInteger(pp, "maxwell_fdtd_solver");
         field_gathering_algo = GetAlgorithmInteger(pp, "field_gathering");
-        if (field_gathering_algo == GatheringAlgo::MomentumConserving) {
+        if (field_gathering_algo == GatheringAlgo:M:omentumConserving) {
             // Use same shape factors in all directions, for gathering
             l_lower_order_in_v = false;
         }
