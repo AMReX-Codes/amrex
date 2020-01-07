@@ -31,7 +31,7 @@ class SpectralSolver
          * \brief Transform the component `i_comp` of MultiFab `mf`
          *  to spectral space, and store the corresponding result internally
          *  (in the spectral field specified by `field_index`) */
-         void ForwardTransform( const amrex::MultiFab& mf,
+        void ForwardTransform( const amrex::MultiFab& mf,
                                const int field_index,
                                const int i_comp=0 ){
             BL_PROFILE("SpectralSolver::ForwardTransform");
