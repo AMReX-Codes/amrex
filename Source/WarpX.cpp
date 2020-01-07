@@ -254,7 +254,7 @@ WarpX::WarpX ()
 
 #ifndef WARPX_USE_PSATD
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-        not ( do_pml & do_nodal ),
+        not ( do_pml && do_nodal ),
         "PML + do_nodal for finite-difference not implemented"
         );
 #endif
