@@ -3,7 +3,8 @@
 
 #include <SpectralBaseAlgorithm.H>
 
-/* \brief Class that updates the field in spectral space
+/**
+ * \brief Class that updates the field in spectral space
  * and stores the coefficients of the corresponding update equation.
  */
 class PsatdAlgorithm : public SpectralBaseAlgorithm
