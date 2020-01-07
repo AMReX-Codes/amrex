@@ -259,7 +259,7 @@ WarpX::WarpX ()
         );
 #endif
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-        not ( do_dive_cleaning & do_nodal ),
+        not ( do_dive_cleaning && do_nodal ),
         "divE cleaning + do_nodal not implemented"
         );
 #ifdef WARPX_USE_PSATD
