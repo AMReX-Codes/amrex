@@ -11,6 +11,7 @@ int main(int argc, char* argv[])
     { 
     const int nghost = 0;
     int ncells, max_grid_size, ncomp, nlevs, nppc;
+    int restart_check = 0;
 
     ParmParse pp;
     pp.get("ncells", ncells);
@@ -18,6 +19,7 @@ int main(int argc, char* argv[])
     pp.get("ncomp", ncomp);
     pp.get("nlevs", nlevs);
     pp.get("nppc", nppc);
+    pp.query("restart_check", restart_check);
     
     AMREX_ALWAYS_ASSERT(nlevs < 2); // relax this later
 
@@ -132,6 +134,35 @@ int main(int argc, char* argv[])
 #ifdef AMREX_USE_HDF5    
     myPC.CheckpointHDF5("plt00000", "particle0", false, particle_realnames, particle_intnames);
 #endif
+
+    if (restart_check)
+    {
+        MyPC newPC(geom, dmap, ba, ref_ratio);
+        newPC.Restart("plt00000", "particle0");
+        
+        using PType = typename MyPC::SuperParticleType;
+
+        for (int icomp=0; icomp<NStructReal+NArrayReal+NStructInt+NArrayInt; ++icomp)
+        {
+            auto sm_new = amrex::ReduceSum(newPC,
+                [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real
+                {
+                    return p.rdata(1);
+                });
+
+            auto sm_old = amrex::ReduceSum(myPC,
+                [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real
+                {
+                    return p.rdata(1);
+                });
+            
+            ParallelDescriptor::ReduceRealSum(sm_new);
+            ParallelDescriptor::ReduceRealSum(sm_old);
+        
+            AMREX_ALWAYS_ASSERT(sm_old = sm_new);
+        }
+    }
+    
     }
     amrex::Finalize();
 }
