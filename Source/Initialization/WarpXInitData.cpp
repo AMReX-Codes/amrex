@@ -286,8 +286,8 @@ WarpX::InitLevelData (int lev, Real time)
         }
     }
 
-    // if the input string is "constant", the values for the 
-    // external field on the grid must be provided in the input file. 
+    // if the input string is "constant", the values for the
+    // external field on the grid must be provided in the input file.
 
     if (B_ext_grid_s == "parse_b_ext_grid_function") {
 
