@@ -68,6 +68,18 @@ void FieldMeanEnergy::ComputeDiags (int step)
     /// get number of grids used
     Geometry const & geom = warpx.Geom(0);
     auto domain_box = geom.Domain();
+#if (AMREX_SPACEDIM == 2)
+    long n1 = domain_box.length(0);
+    long n2 = domain_box.length(1);
+    long n1_extra = geom.isPeriodic(0) ? 0 : 1;
+    long n2_extra = geom.isPeriodic(1) ? 0 : 1;
+    long ex_num_points = n1*(n2+n2_extra);
+    long ey_num_points = (n1+n1_extra)*(n2+n2_extra);
+    long ez_num_points = (n1+n1_extra)*n2;
+    long bx_num_points = (n1+n1_extra)*n2;
+    long by_num_points = n1*n2;
+    long bz_num_points = n1*(n2+n2_extra);
+#elif (AMREX_SPACEDIM == 3)
     long nx = domain_box.length(0);
     long ny = domain_box.length(1);
     long nz = domain_box.length(2);
@@ -80,6 +92,7 @@ void FieldMeanEnergy::ComputeDiags (int step)
     long bx_num_points = (nx+nx_extra)*ny*nz;
     long by_num_points = nx*(ny+ny_extra)*nz;
     long bz_num_points = nx*ny*(nz+nz_extra);
+#endif
 
     /// compute E squared
     Real tmpx = Ex.norm2(0,geom.periodicity());
