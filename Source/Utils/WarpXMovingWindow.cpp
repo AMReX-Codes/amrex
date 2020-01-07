@@ -98,9 +98,7 @@ WarpX::MoveWindow (bool move_j)
 
         // Shift each component of vector fields (E, B, j)
         for (int dim = 0; dim < 3; ++dim) {
-
             // Fine grid
-            // initialize with external field = true and B_flag = true;
             ParserWrapper *Bfield_parser;
             ParserWrapper *Efield_parser;
             bool use_Bparser = false;
@@ -111,14 +109,13 @@ WarpX::MoveWindow (bool move_j)
                 if (dim == 1) Bfield_parser = Byfield_parser.get();
                 if (dim == 2) Bfield_parser = Bzfield_parser.get();
             }
-            shiftMF(*Bfield_fp[lev][dim], geom[lev], num_shift, dir, B_external_grid[dim], use_Bparser, Bfield_parser);
-            // initialize with external field = true and B_flag = false;
             if (E_ext_grid_s == "parse_e_ext_grid_function") {
                 use_Eparser = true;
                 if (dim == 0) Efield_parser = Exfield_parser.get();
                 if (dim == 1) Efield_parser = Eyfield_parser.get();
                 if (dim == 2) Efield_parser = Ezfield_parser.get();
             }
+            shiftMF(*Bfield_fp[lev][dim], geom[lev], num_shift, dir, B_external_grid[dim], use_Bparser, Bfield_parser);
             shiftMF(*Efield_fp[lev][dim], geom[lev], num_shift, dir, E_external_grid[dim], use_Eparser, Efield_parser);
             if (move_j) {
                 shiftMF(*current_fp[lev][dim], geom[lev], num_shift, dir);
@@ -131,10 +128,8 @@ WarpX::MoveWindow (bool move_j)
             }
 
             if (lev > 0) {
-                // Coarse grid
-                // initialize with external field = true and B_flag = true;
+                // coarse grid
                 shiftMF(*Bfield_cp[lev][dim], geom[lev-1], num_shift_crse, dir, B_external_grid[dim], use_Bparser, Bfield_parser);
-                // initialize with external field = true and B_flag = false;
                 shiftMF(*Efield_cp[lev][dim], geom[lev-1], num_shift_crse, dir, E_external_grid[dim], use_Eparser, Efield_parser);
                 shiftMF(*Bfield_aux[lev][dim], geom[lev], num_shift, dir);
                 shiftMF(*Efield_aux[lev][dim], geom[lev], num_shift, dir);
