@@ -13,26 +13,27 @@ FieldMeanEnergy::FieldMeanEnergy (std::string rd_name)
 : ReducedDiags{rd_name}
 {
 
-    /// open file
-    std::ofstream ofs;
-    ofs.open(m_path + m_rd_name + ".txt",
-        std::ofstream::out | std::ofstream::app);
-
-    // write header row
-    ofs << "#";
-    ofs << "step";
-    ofs << m_sep;
-    ofs << "time(s)";
-    ofs << m_sep;
-    ofs << "total(J)";
-    ofs << m_sep;
-    ofs << "E(J)";
-    ofs << m_sep;
-    ofs << "B(J)";
-    ofs << std::endl;
-
-    /// close file
-    ofs.close();
+    if (ParallelDescriptor::IOProcessor())
+    {
+        /// open file
+        std::ofstream ofs;
+        ofs.open(m_path + m_rd_name + ".txt",
+            std::ofstream::out | std::ofstream::app);
+        // write header row
+        ofs << "#";
+        ofs << "step";
+        ofs << m_sep;
+        ofs << "time(s)";
+        ofs << m_sep;
+        ofs << "total(J)";
+        ofs << m_sep;
+        ofs << "E(J)";
+        ofs << m_sep;
+        ofs << "B(J)";
+        ofs << std::endl;
+        /// close file
+        ofs.close();
+    }
 
 }
 ///< end constructor

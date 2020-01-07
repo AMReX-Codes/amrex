@@ -24,27 +24,28 @@ ParticleMeanEnergy::ParticleMeanEnergy (std::string rd_name)
     /// get species names (std::vector<std::string>)
     auto species_names = mypc.GetSpeciesNames();
 
-    /// open file
-    std::ofstream ofs;
-    ofs.open(m_path + m_rd_name + ".txt",
-        std::ofstream::out | std::ofstream::app);
-
-    // write header row
-    ofs << "#";
-    ofs << "step";
-    ofs << m_sep;
-    ofs << "time(s)";
-    ofs << m_sep;
-    ofs << "total(J)";
-    for (int i = 0; i < species_number; ++i)
+    if (ParallelDescriptor::IOProcessor())
     {
+        /// open file
+        std::ofstream ofs;
+        ofs.open(m_path + m_rd_name + ".txt",
+            std::ofstream::out | std::ofstream::app);
+        // write header row
+        ofs << "#";
+        ofs << "step";
         ofs << m_sep;
-        ofs << species_names[i]+"(J)";
+        ofs << "time(s)";
+        ofs << m_sep;
+        ofs << "total(J)";
+        for (int i = 0; i < species_number; ++i)
+        {
+            ofs << m_sep;
+            ofs << species_names[i]+"(J)";
+        }
+        ofs << std::endl;
+        /// close file
+        ofs.close();
     }
-    ofs << std::endl;
-
-    /// close file
-    ofs.close();
 
 }
 ///< end constructor
