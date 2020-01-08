@@ -26,9 +26,9 @@ namespace amrex
  */
 template <int NSR, int NSI, int NAR, int NAI>
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void copyParticle(const      ParticleTileData<NSR, NSI, NAR, NAI>& dst, 
-                  const ConstParticleTileData<NSR, NSI, NAR, NAI>& src, 
-                  int src_i, int dst_i) noexcept
+void copyParticle (const      ParticleTileData<NSR, NSI, NAR, NAI>& dst, 
+                   const ConstParticleTileData<NSR, NSI, NAR, NAI>& src, 
+                   int src_i, int dst_i) noexcept
 {
     AMREX_ASSERT(dst.m_num_runtime_real == src.m_num_runtime_real);
     AMREX_ASSERT(dst.m_num_runtime_int  == src.m_num_runtime_int );
@@ -56,7 +56,7 @@ void copyParticle(const      ParticleTileData<NSR, NSI, NAR, NAI>& dst,
  *
  */    
 template <typename PTile>
-void copyParticles(PTile& dst, const PTile& src) noexcept
+void copyParticles (PTile& dst, const PTile& src) noexcept
 {
     auto np = src.numParticles();
     copyParticles(dst, src, 0, 0, np);
@@ -78,8 +78,8 @@ void copyParticles(PTile& dst, const PTile& src) noexcept
  */
 template <typename PTile, typename Index, typename N,
           amrex::EnableIf_t<std::is_integral<Index>::value, int> foo = 0>
-void copyParticles(PTile& dst, const PTile& src,
-                   Index src_start, Index dst_start, N n) noexcept
+void copyParticles (PTile& dst, const PTile& src,
+                    Index src_start, Index dst_start, N n) noexcept
 {
     const auto src_data = src.getConstParticleTileData();
           auto dst_data = dst.getParticleTileData();
@@ -104,7 +104,7 @@ void copyParticles(PTile& dst, const PTile& src,
  *
  */    
 template <typename DstTile, typename SrcTile, typename F>
-void transformParticles(DstTile& dst, const SrcTile& src, F&& f) noexcept
+void transformParticles (DstTile& dst, const SrcTile& src, F&& f) noexcept
 {
     auto np = src.numParticles();
     transformParticles(dst, src, 0, 0, np, std::forward<F>(f));
@@ -130,8 +130,8 @@ void transformParticles(DstTile& dst, const SrcTile& src, F&& f) noexcept
  */
 template <typename DstTile, typename SrcTile, typename Index, typename N, typename F,
           amrex::EnableIf_t<std::is_integral<Index>::value, int> foo = 0>
-void transformParticles(DstTile& dst, const SrcTile& src,
-                        Index src_start, Index dst_start, N n, F&& f) noexcept
+void transformParticles (DstTile& dst, const SrcTile& src,
+                         Index src_start, Index dst_start, N n, F&& f) noexcept
 {
     const auto src_data = src.getConstParticleTileData();
           auto dst_data = dst.getParticleTileData();
@@ -158,7 +158,7 @@ void transformParticles(DstTile& dst, const SrcTile& src,
  *
  */    
 template <typename DstTile1, typename DstTile2, typename SrcTile, typename F>
-void transformParticles(DstTile1& dst1, DstTile2& dst2, const SrcTile& src, F&& f) noexcept
+void transformParticles (DstTile1& dst1, DstTile2& dst2, const SrcTile& src, F&& f) noexcept
 {
     auto np = src.numParticles();
     transformParticles(dst1, dst2, src, 0, 0, 0, np, std::forward<F>(f));
@@ -188,8 +188,8 @@ void transformParticles(DstTile1& dst1, DstTile2& dst2, const SrcTile& src, F&& 
 template <typename DstTile1, typename DstTile2, typename SrcTile,
           typename Index, typename N, typename F,
           amrex::EnableIf_t<std::is_integral<Index>::value, int> foo = 0>
-void transformParticles(DstTile1& dst1, DstTile2& dst2, const SrcTile& src,
-                        Index src_start, Index dst1_start, Index dst2_start, N n, F&& f) noexcept
+void transformParticles (DstTile1& dst1, DstTile2& dst2, const SrcTile& src,
+                         Index src_start, Index dst1_start, Index dst2_start, N n, F&& f) noexcept
 {
     const auto src_data  = src.getConstParticleTileData();
           auto dst1_data = dst1.getParticleTileData();
@@ -214,7 +214,7 @@ void transformParticles(DstTile1& dst1, DstTile2& dst2, const SrcTile& src,
  */
 template <typename PTile, typename Index,
           amrex::EnableIf_t<std::is_integral<Index>::value, int> foo = 0>
-Index filterParticles(PTile& dst, const PTile& src, const Index* mask) noexcept
+Index filterParticles (PTile& dst, const PTile& src, const Index* mask) noexcept
 {
     auto np = src.numParticles();
     Gpu::DeviceVector<Index> offsets(np);
@@ -251,7 +251,7 @@ Index filterParticles(PTile& dst, const PTile& src, const Index* mask) noexcept
  *
  */    
 template <typename PTile, typename Pred>
-auto filterParticles(PTile& dst, const PTile& src, Pred&& p) noexcept
+auto filterParticles (PTile& dst, const PTile& src, Pred&& p) noexcept
     -> decltype(p(typename PTile::ConstParticleTileDataType(), 0))
 {
     using Index = decltype(p(typename PTile::ConstParticleTileDataType(), 0));
@@ -286,7 +286,7 @@ auto filterParticles(PTile& dst, const PTile& src, Pred&& p) noexcept
  */
 template <typename DstTile, typename SrcTile, typename Index, typename F,
           amrex::EnableIf_t<std::is_integral<Index>::value, int> foo = 0>
-Index filterAndTransformParticles(DstTile& dst, const SrcTile& src, Index* mask, F&& f) noexcept
+Index filterAndTransformParticles (DstTile& dst, const SrcTile& src, Index* mask, F&& f) noexcept
 {
     auto np = src.numParticles();
     Gpu::DeviceVector<Index> offsets(np);
@@ -327,7 +327,7 @@ Index filterAndTransformParticles(DstTile& dst, const SrcTile& src, Index* mask,
  *
  */    
 template <typename DstTile, typename SrcTile, typename Pred, typename F>
-auto filterAndTransformParticles(DstTile& dst, const SrcTile& src, Pred&& p, F&& f) noexcept
+auto filterAndTransformParticles (DstTile& dst, const SrcTile& src, Pred&& p, F&& f) noexcept
     -> decltype(p(typename SrcTile::ConstParticleTileDataType(), 0))
 {
     using Index = decltype(p(typename SrcTile::ConstParticleTileDataType(), 0));
@@ -364,8 +364,8 @@ auto filterAndTransformParticles(DstTile& dst, const SrcTile& src, Pred&& p, F&&
  */
 template <typename DstTile1, typename DstTile2, typename SrcTile, typename Index, typename F,
           amrex::EnableIf_t<std::is_integral<Index>::value, int> foo = 0>
-Index filterAndTransformParticles(DstTile1& dst1, DstTile2& dst2,
-                                  const SrcTile& src, Index* mask, F&& f) noexcept
+Index filterAndTransformParticles (DstTile1& dst1, DstTile2& dst2,
+                                   const SrcTile& src, Index* mask, F&& f) noexcept
 {
     auto np = src.numParticles();
     Gpu::DeviceVector<Index> offsets(np);
@@ -409,8 +409,8 @@ Index filterAndTransformParticles(DstTile1& dst1, DstTile2& dst2,
  *
  */    
 template <typename DstTile1, typename DstTile2, typename SrcTile, typename Pred, typename F>
-auto filterAndTransformParticles(DstTile1& dst1, DstTile2& dst2, const SrcTile& src,
-                                 Pred&& p, F&& f) noexcept
+auto filterAndTransformParticles (DstTile1& dst1, DstTile2& dst2, const SrcTile& src,
+                                  Pred&& p, F&& f) noexcept
     -> decltype(p(typename SrcTile::ConstParticleTileDataType(), 0))
 {
     using Index = decltype(p(typename SrcTile::ConstParticleTileDataType(), 0));
