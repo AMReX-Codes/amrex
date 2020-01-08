@@ -36,7 +36,7 @@ struct DefaultInitializer
 {
     const InitializationPolicy* m_policies;
 
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     amrex::Real operator() (int j) const noexcept
     {
         switch (m_policies[j]) {
