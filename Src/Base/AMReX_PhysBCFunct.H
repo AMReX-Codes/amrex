@@ -61,7 +61,8 @@ class GpuBndryFuncFab
 {
 public:
     GpuBndryFuncFab () = default;
-    GpuBndryFuncFab (F a_f) : m_user_f(a_f) {}
+    GpuBndryFuncFab (F const& a_f) : m_user_f(a_f) {}
+    GpuBndryFuncFab (F&& a_f) : m_user_f(std::move(a_f)) {}
 
     void operator() (Box const& bx, FArrayBox& dest,
                      const int dcomp, const int numcomp,
@@ -96,7 +97,8 @@ public:
     //! note this is pure virtual and must be implemented in a derived class
     //! (see PhysBCFunct below for an example)
     //!
-    virtual void FillBoundary (MultiFab& mf, int dcomp, int ncomp, Real time, int bccomp) = 0;
+    virtual void FillBoundary (MultiFab& mf, int dcomp, int ncomp, IntVect const& nghost,
+                                Real time, int bccomp) = 0;
     virtual ~PhysBCFunctBase () = 0;
 };
 
@@ -107,8 +109,8 @@ class PhysBCFunctNoOp final
     : public PhysBCFunctBase
 {
 public:
-    virtual void FillBoundary (MultiFab& mf, int dcomp, int ncomp, Real time, int bccomp)
-        override {}
+    virtual void FillBoundary (MultiFab& mf, int dcomp, int ncomp, IntVect const& nghost,
+                               Real time, int bccomp) override {}
     virtual ~PhysBCFunctNoOp () override {}
 };
 
@@ -124,13 +126,22 @@ public:
         : m_geom(geom), m_bcr(bcr), m_f(f)
         {}
 
+    PhysBCFunct (const Geometry& geom, const Vector<BCRec>& bcr, F&& f)
+        : m_geom(geom), m_bcr(bcr), m_f(std::move(f))
+        {}
+
     virtual ~PhysBCFunct () {}
 
     void define (const Geometry& geom, const Vector<BCRec>& bcr, F const& f) {
         m_geom = geom; m_bcr = bcr; m_f = f;
     }
 
-    virtual void FillBoundary (MultiFab& mf, int icomp, int ncomp, Real time, int bccomp) override
+    void define (const Geometry& geom, const Vector<BCRec>& bcr, F&& f) {
+        m_geom = geom; m_bcr = bcr; m_f = std::move(f);
+    }
+
+    virtual void FillBoundary (MultiFab& mf, int icomp, int ncomp, IntVect const& nghost,
+                               Real time, int bccomp) override
     {
         if (m_geom.isAllPeriodic()) return;
 
@@ -139,10 +150,9 @@ public:
         //! create a grown domain box containing valid + periodic cells
         const Box& domain = m_geom.Domain();
         Box gdomain = amrex::convert(domain, mf.boxArray().ixType());
-        const IntVect& ngrow = mf.nGrowVect();
         for (int i = 0; i < AMREX_SPACEDIM; ++i) {
             if (m_geom.isPeriodic(i)) {
-                gdomain.grow(i, ngrow[i]);
+                gdomain.grow(i, nghost[i]);
             }
         }
 

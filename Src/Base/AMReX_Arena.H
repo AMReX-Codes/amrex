@@ -7,6 +7,12 @@
 
 namespace amrex {
 
+/**
+ * \brief Given a minimum required size of size bytes, this returns
+ * the next largest arena size that will align to align_requirement bytes
+ */
+std::size_t aligned_size (std::size_t align_requirement, std::size_t size);
+
 class Arena;
 
 Arena* The_Arena ();
@@ -93,10 +99,10 @@ protected:
         long double ld;
         void (*f) ();
     };
-    static const unsigned int align_size = sizeof(Word);
+    static const std::size_t align_size = sizeof(Word);
 #endif
 
-    static const unsigned int align_size = 16;
+    static const std::size_t align_size = 16;
 
     ArenaInfo arena_info;
 

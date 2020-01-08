@@ -30,16 +30,20 @@ namespace {
     bool abort_on_out_of_gpu_memory = false;
 }
 
-const unsigned int Arena::align_size;
+const std::size_t Arena::align_size;
 
 Arena::~Arena () {}
 
 std::size_t
+aligned_size (std::size_t align_requirement, std::size_t size)
+{
+    return ((size + (align_requirement-1)) / align_requirement) * align_requirement;
+}
+
+std::size_t
 Arena::align (std::size_t s)
 {
-    std::size_t x = s + (align_size-1);
-    x -= x & (align_size-1);
-    return x;
+    return amrex::aligned_size(align_size, s);
 }
 
 void*

@@ -195,7 +195,7 @@ contains
 
     call syncthreads()
 
-    if ((threadIdx%x-1) < blockDim%x / warpsize) then
+    if ((threadIdx%x-1) < max(blockDim%x, warpsize) / warpsize) then
        y = s(lane)
     else
        y = 0
