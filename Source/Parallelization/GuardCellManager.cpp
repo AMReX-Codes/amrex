@@ -132,7 +132,7 @@ guardCellManager::Init(
     } else {
 
         ng_FieldSolver = ng_FieldSolver.min(ng_alloc_EB);
-    
+
         // Compute number of cells required for Field Gather
         int FGcell[4] = {0,1,1,2}; // Index is nox
         IntVect ng_FieldGather_noNCI = IntVect(AMREX_D_DECL(FGcell[nox],FGcell[nox],FGcell[nox]));
