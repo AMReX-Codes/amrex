@@ -191,7 +191,6 @@ void PlasmaInjector::parseDensity (ParmParse& pp)
         inj_rho.reset(new InjectorDensity((InjectorDensityPredefined*)nullptr,species_name));
     } else if (rho_prof_s == "parse_density_function") {
         Store_parserString(pp, "density_function(x,y,z)", str_density_function);
-        amrex::Print() << " str density " << str_density_function << "\n";
         // Construct InjectorDensity with InjectorDensityParser.
         inj_rho.reset(new InjectorDensity((InjectorDensityParser*)nullptr,
                                           makeParser(str_density_function)));
@@ -315,7 +314,6 @@ void PlasmaInjector::parseMomentum (ParmParse& pp)
                                                str_momentum_function_uy);
         Store_parserString(pp, "momentum_function_uz(x,y,z)",
                                                str_momentum_function_uz);
-        amrex::Print() << " str_ux " << str_momentum_function_ux << " uy " << str_momentum_function_uy << " uz " << str_momentum_function_uz << "\n";
         // Construct InjectorMomentum with InjectorMomentumParser.
         inj_mom.reset(new InjectorMomentum((InjectorMomentumParser*)nullptr,
                                            makeParser(str_momentum_function_ux),
