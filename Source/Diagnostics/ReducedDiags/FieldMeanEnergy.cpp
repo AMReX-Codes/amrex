@@ -41,11 +41,6 @@ FieldMeanEnergy::FieldMeanEnergy (std::string rd_name)
 }
 ///< end constructor
 
-/// destructor
-FieldMeanEnergy::~FieldMeanEnergy ()
-{}
-///< end destructor
-
 /// function that computes field energy
 void FieldMeanEnergy::ComputeDiags (int step)
 {

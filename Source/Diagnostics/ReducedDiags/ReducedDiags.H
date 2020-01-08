@@ -33,9 +33,6 @@ public:
      *  @param[in] rd_name reduced diags names */
     ReducedDiags(std::string rd_name);
 
-    /// destructor
-    ~ReducedDiags();
-
     /// function to compute diags
     virtual void ComputeDiags(int step) = 0;
 

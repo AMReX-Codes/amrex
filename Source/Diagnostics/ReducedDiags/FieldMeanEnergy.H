@@ -16,9 +16,6 @@ public:
      *  @param[in] rd_name reduced diags names */
     FieldMeanEnergy(std::string rd_name);
 
-    /// destructor
-    ~FieldMeanEnergy();
-
     /** This funciton computes the mean field energy on a grid (EF).
      *  EF = E eps / 2 + B / mu / 2,
      *  where E is the electric field,

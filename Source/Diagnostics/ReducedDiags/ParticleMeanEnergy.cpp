@@ -53,11 +53,6 @@ ParticleMeanEnergy::ParticleMeanEnergy (std::string rd_name)
 }
 ///< end constructor
 
-/// destructor
-ParticleMeanEnergy::~ParticleMeanEnergy ()
-{}
-///< end destructor
-
 /// function that computes kinetic energy
 void ParticleMeanEnergy::ComputeDiags (int step)
 {

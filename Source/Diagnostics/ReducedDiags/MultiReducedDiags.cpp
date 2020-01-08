@@ -52,11 +52,6 @@ MultiReducedDiags::MultiReducedDiags ()
 }
 ///< end constructor
 
-/// destructor
-MultiReducedDiags::~MultiReducedDiags ()
-{}
-///< end destructor
-
 /// call functions to compute diags
 void MultiReducedDiags::ComputeDiags (int step)
 {

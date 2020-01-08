@@ -17,9 +17,6 @@ public:
      *  @param[in] rd_name reduced diags names */
     ParticleMeanEnergy(std::string rd_name);
 
-    /// destructor
-    ~ParticleMeanEnergy();
-
     /** This funciton computes the mean particle relativistic
      *  kinetic energy (EP).
      *  EP = sqrt( p^2 c^2 + m^2 c^4 ) - m c^2,

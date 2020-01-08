@@ -27,9 +27,6 @@ public:
     /// constructor
     MultiReducedDiags();
 
-    /// destructor
-    ~MultiReducedDiags();
-
     /** Loop over all ReducedDiags and call their ComputeDiags
      *  @param[in] step current iteration time */
     void ComputeDiags(int step);

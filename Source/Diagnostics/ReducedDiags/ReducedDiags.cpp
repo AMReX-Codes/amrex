@@ -44,11 +44,6 @@ ReducedDiags::ReducedDiags (std::string rd_name)
 }
 ///< end constructor
 
-/// destructor
-ReducedDiags::~ReducedDiags ()
-{}
-///< end destructor
-
 /// write to file function
 void ReducedDiags::WriteToFile (int step) const
 {
