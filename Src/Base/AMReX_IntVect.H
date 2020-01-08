@@ -458,15 +458,15 @@ public:
 
     //! for serialization
     static size_t AMREX_FORCE_INLINE
-    linearSize() noexcept
+    linearSize () noexcept
     {
         size_t retval = AMREX_SPACEDIM*sizeof(int);
         return retval;
     }
 
     //! for serialization
-    void linearOut(void* a_buffer ) const noexcept;
-    void linearIn(void* a_buffer ) noexcept;
+    void linearOut (void* a_buffer ) const noexcept;
+    void linearIn (void* a_buffer ) noexcept;
 
     /**
     * \brief This static member function returns a reference to a constant IntVect
