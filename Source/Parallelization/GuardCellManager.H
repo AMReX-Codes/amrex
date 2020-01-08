@@ -41,7 +41,8 @@ public:
         const int nox_fft, const int noy_fft, const int noz_fft,
         const int nci_corr_stencil,
         const int maxwell_fdtd_solver_id,
-        const int max_level);
+        const int max_level,
+        const bool exchange_all_guard_cells);
 
     // Guard cells allocated for MultiFabs E and B
     amrex::IntVect ng_alloc_EB = amrex::IntVect::TheZeroVector();

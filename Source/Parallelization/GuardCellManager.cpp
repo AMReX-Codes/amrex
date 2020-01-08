@@ -17,7 +17,8 @@ guardCellManager::Init(
     const int nox_fft, const int noy_fft, const int noz_fft,
     const int nci_corr_stencil,
     const int maxwell_fdtd_solver_id,
-    const int max_level)
+    const int max_level,
+    const bool exchange_all_guard_cells)
 {
     // When using subcycling, the particles on the fine level perform two pushes
     // before being redistributed ; therefore, we need one extra guard cell
@@ -119,38 +120,50 @@ guardCellManager::Init(
     ng_FieldSolver = IntVect(AMREX_D_DECL(1,1,1));
     ng_FieldSolverF = IntVect(AMREX_D_DECL(1,1,1));
 #endif
-    ng_FieldSolver = ng_FieldSolver.min(ng_alloc_EB);
 
-    // Compute number of cells required for Field Gather
-    int FGcell[4] = {0,1,1,2}; // Index is nox
-    IntVect ng_FieldGather_noNCI = IntVect(AMREX_D_DECL(FGcell[nox],FGcell[nox],FGcell[nox]));
-    // Add one cell if momentum_conserving gather in a staggered-field simulation
-    ng_FieldGather_noNCI += ng_Extra;
-    // Not sure why, but need one extra guard cell when using MR
-    if (max_level >= 1) ng_FieldGather_noNCI += ng_Extra;
-    ng_FieldGather_noNCI = ng_FieldGather_noNCI.min(ng_alloc_EB);
-    // If NCI filter, add guard cells in the z direction
-    IntVect ng_NCIFilter = IntVect::TheZeroVector();
-    if (do_fdtd_nci_corr)
-        ng_NCIFilter[AMREX_SPACEDIM-1] = NCIGodfreyFilter::m_stencil_width;
-    // Note: communications of guard cells for bilinear filter are handled
-    // separately.
-    ng_FieldGather = ng_FieldGather_noNCI + ng_NCIFilter;
+    if (exchange_all_guard_cells){
+        // Run in safe mode: exchange all allocated guard cells at each
+        // call of FillBoundary
+        ng_FieldSolver = ng_alloc_EB;
+        ng_FieldSolverF = ng_alloc_F;
+        ng_FieldGather = ng_alloc_EB;
+        ng_UpdateAux = ng_alloc_EB;
+        ng_MovingWindow = ng_alloc_EB;
+    } else {
 
-    // Guard cells for auxiliary grid.
-    // Not sure why there is a 2* here...
-    ng_UpdateAux = 2*ng_FieldGather_noNCI + ng_NCIFilter;
+        ng_FieldSolver = ng_FieldSolver.min(ng_alloc_EB);
+    
+        // Compute number of cells required for Field Gather
+        int FGcell[4] = {0,1,1,2}; // Index is nox
+        IntVect ng_FieldGather_noNCI = IntVect(AMREX_D_DECL(FGcell[nox],FGcell[nox],FGcell[nox]));
+        // Add one cell if momentum_conserving gather in a staggered-field simulation
+        ng_FieldGather_noNCI += ng_Extra;
+        // Not sure why, but need one extra guard cell when using MR
+        if (max_level >= 1) ng_FieldGather_noNCI += ng_Extra;
+        ng_FieldGather_noNCI = ng_FieldGather_noNCI.min(ng_alloc_EB);
+        // If NCI filter, add guard cells in the z direction
+        IntVect ng_NCIFilter = IntVect::TheZeroVector();
+        if (do_fdtd_nci_corr)
+            ng_NCIFilter[AMREX_SPACEDIM-1] = NCIGodfreyFilter::m_stencil_width;
+        // Note: communications of guard cells for bilinear filter are handled
+        // separately.
+        ng_FieldGather = ng_FieldGather_noNCI + ng_NCIFilter;
 
-    // Make sure we do not exchange more guard cells than allocated.
-    ng_FieldGather = ng_FieldGather.min(ng_alloc_EB);
-    ng_UpdateAux = ng_UpdateAux.min(ng_alloc_EB);
-    ng_FieldSolverF = ng_FieldSolverF.min(ng_alloc_F);
-    // Only FillBoundary(ng_FieldGather) is called between consecutive
-    // field solves. So ng_FieldGather must have enough cells
-    // for the field solve too.
-    ng_FieldGather = ng_FieldGather.max(ng_FieldSolver);
+        // Guard cells for auxiliary grid.
+        // Not sure why there is a 2* here...
+        ng_UpdateAux = 2*ng_FieldGather_noNCI + ng_NCIFilter;
 
-    if (do_moving_window){
-        ng_MovingWindow[moving_window_dir] = 1;
+        // Make sure we do not exchange more guard cells than allocated.
+        ng_FieldGather = ng_FieldGather.min(ng_alloc_EB);
+        ng_UpdateAux = ng_UpdateAux.min(ng_alloc_EB);
+        ng_FieldSolverF = ng_FieldSolverF.min(ng_alloc_F);
+        // Only FillBoundary(ng_FieldGather) is called between consecutive
+        // field solves. So ng_FieldGather must have enough cells
+        // for the field solve too.
+        ng_FieldGather = ng_FieldGather.max(ng_FieldSolver);
+
+        if (do_moving_window){
+            ng_MovingWindow[moving_window_dir] = 1;
+        }
     }
 }
