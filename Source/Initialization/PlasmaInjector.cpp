@@ -190,7 +190,7 @@ void PlasmaInjector::parseDensity (ParmParse& pp)
         // Construct InjectorDensity with InjectorDensityPredefined.
         inj_rho.reset(new InjectorDensity((InjectorDensityPredefined*)nullptr,species_name));
     } else if (rho_prof_s == "parse_density_function") {
-        Store_parserString(pp, "density_function", str_density_function);
+        Store_parserString(pp, "density_function(x,y,z)", str_density_function);
         amrex::Print() << " str density " << str_density_function << "\n";
         // Construct InjectorDensity with InjectorDensityParser.
         inj_rho.reset(new InjectorDensity((InjectorDensityParser*)nullptr,
