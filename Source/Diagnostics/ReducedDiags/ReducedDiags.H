@@ -20,6 +20,9 @@ public:
     /// output frequency
     int m_freq = 1;
 
+    /// check if it is a restart run
+    int m_IsNotRestart = 1;
+
     /// separator in the output file
     std::string m_sep = ",";
 

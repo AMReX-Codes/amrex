@@ -21,10 +21,19 @@ ReducedDiags::ReducedDiags (std::string rd_name)
     if (!UtilCreateDirectory(m_path, 0755))
     { CreateDirectoryFailed(m_path); }
 
+    /// check if it is a restart run
+    std::string restart_chkfile = "";
+    ParmParse pp_amr("amr");
+    pp_amr.query("restart", restart_chkfile);
+    m_IsNotRestart = restart_chkfile.empty();
+
     /// replace / create output file
-    std::ofstream ofs;
-    ofs.open(m_path+m_rd_name+".txt", std::ios::trunc);
-    ofs.close();
+    if ( m_IsNotRestart ) ///< not a restart
+    {
+        std::ofstream ofs;
+        ofs.open(m_path+m_rd_name+".txt", std::ios::trunc);
+        ofs.close();
+    }
 
     /// read reduced diags frequency
     pp.query("frequency", m_freq);
