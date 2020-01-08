@@ -53,7 +53,7 @@ namespace amrex
   }
 
   AMREX_GPU_HOST_DEVICE
-  Real RealVect::dotProduct(const RealVect& a_rhs) const noexcept
+  Real RealVect::dotProduct (const RealVect& a_rhs) const noexcept
   {
     return AMREX_D_TERM(vect[0]*a_rhs.vect[0], +
                   vect[1]*a_rhs.vect[1], +
@@ -62,7 +62,7 @@ namespace amrex
 
 #if (AMREX_SPACEDIM == 3)
   AMREX_GPU_HOST_DEVICE
-  RealVect RealVect::crossProduct(const RealVect& a_rhs) const noexcept
+  RealVect RealVect::crossProduct (const RealVect& a_rhs) const noexcept
   {
     RealVect tmp(vect[1]*a_rhs[2] - vect[2]*a_rhs[1],
                  vect[2]*a_rhs[0] - vect[0]*a_rhs[2],
@@ -70,6 +70,18 @@ namespace amrex
     return tmp;
   }
 #endif
+
+  AMREX_GPU_HOST_DEVICE
+  Real RealVect::norm () const noexcept
+  {
+    return std::sqrt(this->dotProduct(*this));
+  }
+
+  AMREX_GPU_HOST_DEVICE
+  Real RealVect::norm_sqr () const noexcept
+  {
+    return this->dotProduct(*this);
+  }
 
   AMREX_GPU_HOST_DEVICE
   bool
