@@ -957,6 +957,57 @@ Diagnostics and output
     slice diagnostic if there are within the user-defined width from
     the slice region defined by ``slice.dom_lo`` and ``slice.dom_hi``.
 
+* ``warpx.reduced_diags_names`` (`strings`, separated by spaces)
+    The names given by the user of simple reduced diagnostics.
+    Also the names of the output `.txt` files.
+    This reduced diagnostics aims to produce simple outputs
+    of the time history of some physical quantities.
+    If ``warpx.reduced_diags_names`` is not provided in the input file,
+    no reduced diagnostics will be done.
+    This is then used in the rest of the input deck;
+    in this documentation we use `<reduced_diags_name>` as a placeholder.
+
+* ``<reduced_diags_name>.type`` (`string`)
+    The type of reduced diagnostics associated with this `<reduced_diags_name>`.
+    Currently, there are only two types available:
+    ``ParticleMeanEnergy`` and ``FieldMeanEnergy``.
+
+    ``ParticleMeanEnergy`` (:math:`E_p`) computes the relativistic particle kinetic energy
+    of all species, and the value is averaged by
+    the number of real particles of each species.
+
+    .. math::
+
+        E_p = ( p^2 c^2 + m_0^2 c^4 )^{1/2} - m_0 c^2
+
+    where :math:`p` is the relativistic momentum,
+    :math:`c` is the speed of light,
+    and :math:`m_0` is the rest mass.
+
+    ``FieldMeanEnergy`` (:math:`E_f`) computes the electric and magnetic field energy,
+    and the value is averaged by the number of grids.
+
+    .. math::
+
+        E_f = \varepsilon_0 E^2 / 2 + B^2 / ( 2 \mu_0 )
+
+    where
+    :math:`E` is the electric field,
+    :math:`B` is the magnetic field,
+    :math:`\varepsilon_0` is the vacuum permittivity,
+    and :math:`\mu_0` is the vacuum permeability.
+
+* ``<reduced_diags_name>.frequency`` (`int`)
+    The output frequency (every # time steps).
+
+* ``<reduced_diags_name>.path`` (`string`) optional (default `./diags/reducedfiles/`)
+    The path that the output file will be stored.
+
+* ``<reduced_diags_name>.separator`` (`string`) optional (default `,`)
+    The separator between row values in the output file.
+    The default separator is comma, i.e. the output file is in
+    the CSV (comma separated value) format.
+
 Lookup tables for QED modules (implementation in progress)
 ----------------------------------------------------------
 Lookup tables store pre-computed values for functions used by the QED modules.
