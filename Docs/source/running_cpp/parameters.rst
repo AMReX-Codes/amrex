@@ -656,6 +656,8 @@ Laser initialization
     then the constants `Bo` and `delta` required in the above equation
     can be set using ``my_constants.Bo=`` and ``my_constants.delta=`` in the
     input file. For a two-dimensional simulation, it is assumed that the first dimension     is `x` and the second dimension in `z`, and the value of `y` is set to zero.
+    Note that the current implementation of the parser for external B-field
+    does not work with RZ and the code will abort with an error message.
 
 * ``warpx.E_ext_grid_init_style`` (string) optional (default is "default")
     This parameter determines the type of initialization for the external
@@ -679,6 +681,8 @@ Laser initialization
     input file. For a two-dimensional simulation, it is assumed that the first
     dimension is `x` and the second dimension in `z`,
     and the value of `y` is set to zero.
+    Note that the current implementation of the parser for external E-field
+    does not work with RZ and the code will abort with an error message.
 
 * ``warpx.E_external_grid`` & ``warpx.B_external_grid`` (list of `int`)
     required when ``warpx.B_ext_grid_init_style="parse_B_ext_grid_function"``
