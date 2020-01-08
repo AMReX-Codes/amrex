@@ -164,11 +164,10 @@ namespace WarpXUtilIO{
     }
 }
 
-void Store_parserString(std::string query_string,
+void Store_parserString(amrex::ParmParse& pp, std::string query_string,
                         std::string& stored_string)
 {
 
-    ParmParse pp("warpx");
     char cstr[query_string.size()+1];
     strcpy(cstr, query_string.c_str());
 

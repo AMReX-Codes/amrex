@@ -291,11 +291,11 @@ WarpX::InitLevelData (int lev, Real time)
     // provided in the input file.
     if (B_ext_grid_s == "parse_b_ext_grid_function") {
 
-       Store_parserString("Bx_external_grid_function(x,y,z)",
+       Store_parserString(pp, "Bx_external_grid_function(x,y,z)",
                                                     str_Bx_ext_grid_function);
-       Store_parserString("By_external_grid_function(x,y,z)",
+       Store_parserString(pp, "By_external_grid_function(x,y,z)",
                                                     str_By_ext_grid_function);
-       Store_parserString("Bz_external_grid_function(x,y,z)",
+       Store_parserString(pp, "Bz_external_grid_function(x,y,z)",
                                                     str_Bz_ext_grid_function);
 
        Bxfield_parser.reset(new ParserWrapper(
@@ -340,11 +340,11 @@ WarpX::InitLevelData (int lev, Real time)
     // provided in the input file.
     if (E_ext_grid_s == "parse_e_ext_grid_function") {
 
-       Store_parserString("Ex_external_grid_function(x,y,z)",
+       Store_parserString(pp, "Ex_external_grid_function(x,y,z)",
                                                     str_Ex_ext_grid_function);
-       Store_parserString("Ey_external_grid_function(x,y,z)",
+       Store_parserString(pp, "Ey_external_grid_function(x,y,z)",
                                                     str_Ey_ext_grid_function);
-       Store_parserString("Ez_external_grid_function(x,y,z)",
+       Store_parserString(pp, "Ez_external_grid_function(x,y,z)",
                                                     str_Ez_ext_grid_function);
 
        Exfield_parser.reset(new ParserWrapper(
