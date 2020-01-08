@@ -151,7 +151,8 @@ namespace amrex
 	AMREX_ASSERT(cc.nComp() >= AMREX_SPACEDIM);
 	AMREX_ASSERT(fc[0]->nComp() == 1); // We only expect fc to have the gradient perpendicular to the face
 
-        // const GeometryData gd = geom.data(); SET_BUT_NOT_USED
+        const GeometryData gd = geom.data();
+        amrex::ignore_unused(gd);
 
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
