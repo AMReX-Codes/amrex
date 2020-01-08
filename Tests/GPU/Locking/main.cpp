@@ -54,7 +54,7 @@ void addone(double volatile * num)
 
 void lockingTest (int Ndraw)
 {
-#ifdef AMREX_USE_CUDA    
+#ifdef AMREX_USE_GPU
     Gpu::DeviceVector<double> d_xpos(Ndraw, 0.0);
     Gpu::DeviceVector<double> d_ypos(Ndraw, 0.0);
     Gpu::DeviceVector<double> d_zpos(Ndraw, 0.0);
@@ -73,7 +73,7 @@ void lockingTest (int Ndraw)
 
     AMREX_PARALLEL_FOR_1D (Ndraw, i,
     {
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
         addone(dxpos);
         addone(dypos);
         addone(dzpos);	  
@@ -84,10 +84,10 @@ void lockingTest (int Ndraw)
 #endif	   
     });
     
-#ifdef AMREX_USE_CUDA
-    cudaMemcpy(hxpos,dxpos,sizeof(double)*Ndraw,cudaMemcpyDeviceToHost);
-    cudaMemcpy(hypos,dypos,sizeof(double)*Ndraw,cudaMemcpyDeviceToHost);
-    cudaMemcpy(hzpos,dzpos,sizeof(double)*Ndraw,cudaMemcpyDeviceToHost);
+#ifdef AMREX_USE_GPU
+    amrex::Gpu::dtoh_memcpy(hxpos, dxpos, sizeof(double)*Ndraw);
+    amrex::Gpu::dtoh_memcpy(hypos, dypos, sizeof(double)*Ndraw);
+    amrex::Gpu::dtoh_memcpy(hzpos, dzpos, sizeof(double)*Ndraw);
 #endif
 
    int sumx = 0;
@@ -125,33 +125,37 @@ void blockCountingTest ()
     
     constexpr int NUMBLOCKS = 512;
     constexpr int NUMTHREADS = 1024;
-    
     {
         int h_counting, *d_counting;
-        
-        AMREX_CUDA_SAFE_CALL(cudaMalloc(&d_counting, sizeof(int)));
+
+        d_counting = static_cast<int*>(The_Device_Arena()->alloc(sizeof(int)));        
 
         h_counting = 0;
 
-        AMREX_CUDA_SAFE_CALL(cudaMemcpy(d_counting, &h_counting, sizeof(int), cudaMemcpyHostToDevice));
+        amrex::Gpu::htod_memcpy(d_counting, &h_counting, sizeof(int));
 
         BlockMutex h_mut(1);
         BlockMutex* d_mut;
-        AMREX_CUDA_SAFE_CALL(cudaMalloc(&d_mut, sizeof(BlockMutex)));
-        AMREX_CUDA_SAFE_CALL(cudaMemcpy(d_mut, &h_mut, sizeof(BlockMutex), cudaMemcpyHostToDevice));
-               
-        count_blocks<<<NUMBLOCKS, NUMTHREADS>>>(d_mut, d_counting, 0);
+        d_mut = static_cast<BlockMutex*>(The_Device_Arena()->alloc(sizeof(BlockMutex)));
+        amrex::Gpu::htod_memcpy(d_mut, &h_mut, sizeof(BlockMutex));
 
-        cudaPeekAtLastError();
+#ifdef AMREX_USE_HIP
+        hipLaunchKernelGGL(count_blocks, NUMBLOCKS, NUMTHREADS, 0, 0, d_mut, d_counting, 0);
+#else
+        count_blocks<<<NUMBLOCKS, NUMTHREADS>>>(d_mut, d_counting, 0);
+#endif
+
+        AMREX_HIP_OR_CUDA( hipPeekAtLastError();,
+                           cudaPeekAtLastError(); );
 
         Gpu::Device::synchronize();
 
-        AMREX_CUDA_SAFE_CALL(cudaMemcpy(&h_counting, d_counting, sizeof(int), cudaMemcpyDeviceToHost));
+        amrex::Gpu::dtoh_memcpy(&h_counting, d_counting, sizeof(int));
 
         amrex::Print() << "Number of blocks is: " << h_counting << "\n";
 
         if (h_counting != NUMBLOCKS) amrex::Abort();
 
-        AMREX_CUDA_SAFE_CALL(cudaFree(d_counting));
+        The_Device_Arena()->free(d_counting);
     }
 }
