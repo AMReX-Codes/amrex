@@ -49,6 +49,14 @@ enum struct PatchType : int
     coarse
 };
 
+/**
+ * \brief
+ *  The ParserWrapper struct is constructed to safely use the GpuParser class
+ *  that can essentially be though of as a raw pointer. The GpuParser does
+ *  not have an explicit destructor and the AddPlasma subroutines handle the GpuParser
+ *  in a safe way. The ParserWrapper struct is used to avoid memory leak
+ *  in the EB parser functions.
+ */
 struct ParserWrapper
     : public amrex::Gpu::Managed
 {
