@@ -11,13 +11,7 @@
 #include "AMReX_REAL.H"
 #include "AMReX_SPACE.H"
 #include <vector>
-#include <cassert>
 #include "AMReX_IntVect.H"
-
-
-//template<typename T, int n>
-//class IndexTM;
-
 
 namespace amrex
 {
@@ -596,15 +590,15 @@ protected:
 AMREX_GPU_HOST_DEVICE
 inline Real& RealVect::operator[] (int i) noexcept
 {
-  assert(i>=0 && i < SpaceDim);
-  return vect[i];
+    AMREX_ASSERT(i>=0 && i < SpaceDim);
+    return vect[i];
 }
 
 AMREX_GPU_HOST_DEVICE
 inline const Real& RealVect::operator[] (int i) const noexcept
 {
-  assert(i>=0 && i < SpaceDim);
-  return vect[i];
+    AMREX_ASSERT(i>=0 && i < SpaceDim);
+    return vect[i];
 }
 
 AMREX_GPU_HOST_DEVICE
@@ -768,11 +762,10 @@ inline
 RealVect&
 RealVect::min (const RealVect& p) noexcept
 {
-  AMREX_D_EXPR(vect[0] = std::min(vect[0], p.vect[0]),
-         vect[1] = std::min(vect[1], p.vect[1]),
-         vect[2] = std::min(vect[2], p.vect[2]));
-
-  return *this;
+    AMREX_D_EXPR(vect[0] = amrex::min(vect[0], p.vect[0]),
+                 vect[1] = amrex::min(vect[1], p.vect[1]),
+                 vect[2] = amrex::min(vect[2], p.vect[2]));
+    return *this;
 }
 
 AMREX_GPU_HOST_DEVICE
@@ -780,10 +773,10 @@ inline
 RealVect&
 RealVect::max (const RealVect& p) noexcept
 {
-  AMREX_D_EXPR(vect[0] = std::max(vect[0], p.vect[0]),
-         vect[1] = std::max(vect[1], p.vect[1]),
-         vect[2] = std::max(vect[2], p.vect[2]));
-  return *this;
+    AMREX_D_EXPR(vect[0] = amrex::max(vect[0], p.vect[0]),
+                 vect[1] = amrex::max(vect[1], p.vect[1]),
+                 vect[2] = amrex::max(vect[2], p.vect[2]));
+    return *this;
 }
 
 AMREX_GPU_HOST_DEVICE
