@@ -8,7 +8,7 @@
     #include <thrust/distance.h>
 #endif
 
-/* \brief Fill the elements of the input vector with consecutive integer,
+/** \brief Fill the elements of the input vector with consecutive integer,
  *        starting from 0
  *
  * \param[inout] v Vector of integers, to be filled by this routine
@@ -24,7 +24,7 @@ void fillWithConsecutiveIntegers( amrex::Gpu::DeviceVector<long>& v )
 #endif
 }
 
-/* \brief Find the indices that would reorder the elements of `predicate`
+/** \brief Find the indices that would reorder the elements of `predicate`
  * so that the elements with non-zero value precede the other elements
  *
  * \param[in, out] index_begin Point to the beginning of the vector which is
@@ -56,7 +56,7 @@ ForwardIterator stablePartition(ForwardIterator const index_begin,
     return sep;
 }
 
-/* \brief Return the number of elements between `first` and `last`
+/** \brief Return the number of elements between `first` and `last`
  *
  * \param[in] fist Points to a position in a vector
  * \param[in] last Points to another position in a vector
@@ -74,7 +74,7 @@ int iteratorDistance(ForwardIterator const first,
 #endif
 }
 
-/* \brief Functor that fills the elements of the particle array `inexflag`
+/** \brief Functor that fills the elements of the particle array `inexflag`
  *  with the value of the spatial array `bmasks`, at the corresponding particle position.
  *
  * \param[in] pti Contains information on the particle positions
@@ -124,7 +124,7 @@ class fillBufferFlag
         amrex::Array4<int const> m_buffer_mask;
 };
 
-/* \brief Functor that fills the elements of the particle array `inexflag`
+/** \brief Functor that fills the elements of the particle array `inexflag`
  *  with the value of the spatial array `bmasks`, at the corresponding particle position.
  *
  * Contrary to `fillBufferFlag`, here this is done only for the particles that
@@ -186,7 +186,7 @@ class fillBufferFlagRemainingParticles
         long const* m_indices_ptr;
 };
 
-/* \brief Functor that copies the elements of `src` into `dst`,
+/** \brief Functor that copies the elements of `src` into `dst`,
  *       while reordering them according to `indices`
  *
  * \param[in] src Source vector

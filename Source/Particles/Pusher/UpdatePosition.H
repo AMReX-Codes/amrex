@@ -5,7 +5,7 @@
 #include <WarpXConst.H>
 #include <AMReX_REAL.H>
 
-/* \brief Push the particle's positions over one timestep,
+/** \brief Push the particle's positions over one timestep,
  *    given the value of its momenta `ux`, `uy`, `uz` */
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void UpdatePosition(

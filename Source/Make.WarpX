@@ -124,7 +124,7 @@ endif
 
 ifeq ($(USE_OPENPMD), TRUE)
    # try pkg-config query
-   ifeq (0, $(shell pkg-config "openPMD >= 0.9.0"; echo $$?))
+   ifeq (0, $(shell pkg-config "openPMD >= 0.10.3"; echo $$?))
        CXXFLAGS += $(shell pkg-config --cflags openPMD)
        LIBRARY_LOCATIONS += $(shell pkg-config --variable=libdir openPMD)
        libraries += $(shell pkg-config --libs-only-l openPMD)

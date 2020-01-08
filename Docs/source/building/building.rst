@@ -62,6 +62,17 @@ In order to clean a previously compiled version:
 
     make realclean
 
+Troubleshooting
+---------------
+
+If you are having trouble compiling WarpX, you should try to run:
+
+::
+
+   make realclean
+
+before re-attempting compilation.
+
 Advanced building instructions
 ------------------------------
 

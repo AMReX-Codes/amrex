@@ -6,8 +6,10 @@
 #include <AMReX_FArrayBox.H>
 #include <AMReX_REAL.H>
 
-/* \brief Push the position of a photon particle over one timestep,
- *    given the value of its momenta `ux`, `uy`, `uz` */
+/**
+ * \brief Push the position of a photon particle over one timestep,
+ *    given the value of its momenta `ux`, `uy`, `uz`
+ */
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void UpdatePositionPhoton(
     amrex::ParticleReal& x, amrex::ParticleReal& y, amrex::ParticleReal& z,
