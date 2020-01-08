@@ -259,6 +259,8 @@ WarpX::~WarpX ()
         ClearLevel(lev);
     }
 
+    delete reduced_diags;
+
 #ifdef BL_USE_SENSEI_INSITU
     delete insitu_bridge;
 #endif
