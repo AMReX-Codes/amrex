@@ -747,9 +747,20 @@ Device::grid_stride_threads_and_blocks (dim3& numBlocks, dim3& numThreads) noexc
 
     if (num_SMs > 0) {
 
-        numBlocks.x = 1;
-        numBlocks.y = SM_mult_factor;
-        numBlocks.z = num_SMs;
+        // Default to only an x loop in most cases.
+        if (numThreadsMin.y == 1 && numThreadsMin.z == 1) {
+
+            numBlocks.x = SM_mult_factor * num_SMs;
+            numBlocks.y = 1;
+            numBlocks.z = 1;
+
+        } else {
+
+            numBlocks.x = 1;
+            numBlocks.y = SM_mult_factor;
+            numBlocks.z = num_SMs;
+
+        }
 
     } else {
 
@@ -815,9 +826,20 @@ Device::box_threads_and_blocks (const Box& bx, dim3& numBlocks, dim3& numThreads
 
     if (num_SMs > 0) {
 
-        numBlocks.x = 1;
-        numBlocks.y = SM_mult_factor;
-        numBlocks.z = num_SMs;
+        // Default to only an x loop in most cases.
+        if (numThreadsMin.y == 1 && numThreadsMin.z == 1) {
+
+            numBlocks.x = SM_mult_factor * num_SMs;
+            numBlocks.y = 1;
+            numBlocks.z = 1;
+
+        } else {
+
+            numBlocks.x = 1;
+            numBlocks.y = SM_mult_factor;
+            numBlocks.z = num_SMs;
+
+        }
 
     } else {
 
