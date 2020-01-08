@@ -689,7 +689,11 @@ Real
 RealVect::vectorLength () const noexcept
 {
   Real len = this->radSquared();
+#ifdef AMREX_USE_HIP
+  len = sqrt(len);
+#else
   len = std::sqrt(len);
+#endif
 
   return len;
 }
