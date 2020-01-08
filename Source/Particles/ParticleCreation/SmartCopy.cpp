@@ -29,6 +29,6 @@ SmartCopyTag getSmartCopyTag (const NameMap& src, const NameMap& dst)
             ++i_dst;
         }
     }
-    
+
     return tag;
 }

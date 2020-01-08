@@ -87,11 +87,11 @@ class DefaultInitializerFactory
 {
     amrex::Gpu::DeviceVector<InitializationPolicy> m_policies;
     bool m_defined;
-    
+
 public:
 
     DefaultInitializerFactory () noexcept : m_defined(false) {};
-    
+
     void define (const std::map<std::string, int>& comps) noexcept
     {
         m_policies.resize(comps.size());

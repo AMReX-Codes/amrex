@@ -398,7 +398,7 @@ protected:
     amrex::Vector<std::map<PairIndex, std::array<DataContainer, TmpIdx::nattribs> > > tmp_particle_data;
 
     DefaultInitializerFactory m_default_initializer_factory;
-    
+
 private:
     virtual void particlePostLocate(ParticleType& p, const amrex::ParticleLocData& pld,
                                     const int lev) override;

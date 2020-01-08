@@ -12,7 +12,7 @@ struct SmartCopyTag
     std::vector<std::string> common_names;
     std::vector<int> src_comps;
     std::vector<int> dst_comps;
-    
+
     int size () const noexcept { return common_names.size(); }
 };
 
