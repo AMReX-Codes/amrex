@@ -86,15 +86,29 @@ static std::map<std::string, InitializationPolicy> initialization_policies = {
 class DefaultInitializerFactory
 {
     amrex::Gpu::DeviceVector<InitializationPolicy> m_policies;
-
+    bool m_defined;
+    
 public:
 
-    DefaultInitializerFactory () noexcept
+    DefaultInitializerFactory () noexcept : m_defined(false) {};
+    
+    void define (const std::map<std::string, int>& comps) noexcept
     {
-        // set up m_policies based on map;
+        m_policies.resize(comps.size());
+        for (const auto& kv : comps)
+        {
+            m_policies[kv.second] = initialization_policies[kv.first];
+            m_defined = true;
+        }
     }
 
-    DefaultInitializer getDefaultInitializer () const noexcept { return DefaultInitializer{m_policies.dataPtr()}; }
+    DefaultInitializer getDefaultInitializer () const noexcept
+    {
+        AMREX_ASSERT(m_defined);
+        return DefaultInitializer{m_policies.dataPtr()};
+    }
+
+    bool isDefined () const noexcept { return m_defined; }
 };
 
 #endif
