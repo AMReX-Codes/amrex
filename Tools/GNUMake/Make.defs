@@ -204,9 +204,14 @@ else
 endif
 
 ifeq ($(USE_HIP),TRUE)
+  ifeq ($(USE_CUDA),TRUE)
+    $(error HIP-nvcc based builds are currently unsupported. Both USE_CUDA and USE_HIP cannot be TRUE)
+  endif
+
   HIP_PLATFORM = $(shell hipconfig --compiler)
   ifeq ($(HIP_PLATFORM),nvcc)
-  $(error HIP_PLATFORM nvcc is not supported at this time. Use USE_CUDA to compile for NVIDIA platforms.)
+  $(error HIP_PLATFORM nvcc is not supported at this time. Use USE_CUDA to compile for NVIDIA platforms)
+#    If nvcc is supported, put this back.
 #    CUDA_ARCH ?= 60
 #    CUDA_MAX_THREADS ?= 256
 #    CUDA_MAXREGCOUNT ?= 255
@@ -555,7 +560,7 @@ ifeq ($(USE_HIP),TRUE)
 
     ifneq ($(lowercase_comp),gnu)
     else ifneq ($(lowercase_comp),hip)
-        $(error HIP can only be used with COMP=gnu)
+        $(error HIP can only be used with COMP=hip)
     endif
 
 #    include $(AMREX_HOME)/Tools/GNUMake/comps/hip.mak
