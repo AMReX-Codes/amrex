@@ -17,10 +17,9 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-import os, sys
+import os, sys, subprocess
 import sphinx_rtd_theme
 sys.path.insert(0, os.path.join( os.path.abspath(__file__), '../Python') )
-
 
 # -- General configuration ------------------------------------------------
 
@@ -33,7 +32,10 @@ sys.path.insert(0, os.path.join( os.path.abspath(__file__), '../Python') )
 # ones.
 extensions = ['sphinx.ext.autodoc',
     'sphinx.ext.mathjax',
-    'sphinx.ext.viewcode' ]
+    'sphinx.ext.viewcode',
+    'breathe',
+    'exhale'
+ ]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -98,7 +100,7 @@ numfig = True
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = [] #['_static']
+html_static_path = ['_static']
 
 
 # -- Options for HTMLHelp output ------------------------------------------
@@ -162,3 +164,34 @@ texinfo_documents = [
 
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {'https://amrex-codes.github.io/': None}
+
+# Setup the breathe extension
+breathe_projects = {
+    "WarpX": "../doxyxml/"
+}
+breathe_default_project = "WarpX"
+
+# Setup the exhale extension
+exhale_args = {
+    # These arguments are required
+    "containmentFolder": "./api",
+    "rootFileName": "library_root.rst",
+    "rootFileTitle": "Doxygen",
+    "doxygenStripFromPath": "..",
+    # Suggested optional arguments
+    "createTreeView": True,
+    # TIP: if using the sphinx-bootstrap-theme, you need
+    # "treeViewIsBootstrap": True,
+    "exhaleExecutesDoxygen": True,
+    "exhaleDoxygenStdin": "INPUT = ../../Source/"
+}
+
+# Tell sphinx what the primary language being documented is.
+primary_domain = 'cpp'
+# Tell sphinx what the pygments highlight language should be.
+highlight_language = 'cpp'
+
+
+read_the_docs_build = os.environ.get('READTHEDOCS', None) == 'True'
+if read_the_docs_build:
+    subprocess.call('cd ../; doxygen; mkdir -p source/_static; cp -r doxyhtml source/_static/', shell=True)

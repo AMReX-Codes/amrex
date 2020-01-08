@@ -4,7 +4,8 @@
 #include "ShapeFactors.H"
 #include <WarpX_Complex.H>
 
-/* \brief Field gather for particles handled by thread thread_num
+/**
+ * \brief Field gather for particles handled by thread thread_num
  * \param xp, yp, zp   : Pointer to arrays of particle positions.
  * \param Exp, Eyp, Ezp: Pointer to array of electric field on particles.
  * \param Bxp, Byp, Bzp: Pointer to array of magnetic field on particles.
