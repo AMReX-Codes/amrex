@@ -19,7 +19,8 @@ struct ShiftType {
     enum{ TransformFromCellCentered=0, TransformToCellCentered=1 };
 };
 
-/* \brief Class that represents the spectral space.
+/**
+ * \brief Class that represents the spectral space.
  *
  * (Contains info about the size of the spectral space corresponding
  * to each box in `realspace_ba`, as well as the value of the

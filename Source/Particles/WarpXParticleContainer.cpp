@@ -173,7 +173,6 @@ WarpXParticleContainer::AddNParticles (int lev,
 
     //  Add to grid 0 and tile 0
     // Redistribute() will move them to proper places.
-    std::pair<int,int> key {0,0};
     auto& particle_tile = DefineAndReturnParticleTile(0, 0, 0);
 
     std::size_t np = iend-ibegin;
