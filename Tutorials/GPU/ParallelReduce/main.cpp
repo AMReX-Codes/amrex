@@ -48,12 +48,16 @@ void main_main ()
         amrex::ParallelFor(bx,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept 
         {
-//            Currently needed for HIP to work correctly.
-//            fab(i,j,k) = 1.0;
-//            ifab(i,j,k) = 1;
 
+#ifdef AMREX_USE_HIP
+//          Currently needed for HIP to work correctly.
+//          Random lock is under investigation.
+            fab(i,j,k) = 1.0;
+            ifab(i,j,k) = 1;
+#else
             fab(i,j,k) = amrex::Random();
             ifab(i,j,k) = (amrex::Random() > 0.5) ? 1 : 0;
+#endif
         });
     }
 
@@ -256,7 +260,11 @@ void main_main ()
     Gpu::DeviceVector<Real> vec(N);
     Real* pvec = vec.dataPtr();
     amrex::ParallelFor(N, [=] AMREX_GPU_DEVICE (int i) noexcept {
-            pvec[i] = amrex::Random() - 0.5;
+#ifdef AMREX_USE_HIP
+           pvec[i] = 1.5;
+#else
+           pvec[i] = amrex::Random() - 0.5;
+#endif
     });
 
     {
@@ -301,6 +309,7 @@ void main_main ()
         amrex::Print().SetPrecision(17) << "Reduce::MinMax " << r.first
                                         << ", " << r.second << "\n";
     }
+
 
 #if defined(AMREX_USE_GPU)
     {
