@@ -5,6 +5,7 @@
 #include "CopyParticle.H"
 #include "TransformParticle.H"
 #include "DefaultInitialization.H"
+#include "SmartCopy.H"
 
 /**
  * \brief Base class for particle creation processes
