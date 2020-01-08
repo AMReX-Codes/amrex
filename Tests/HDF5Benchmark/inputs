@@ -13,3 +13,6 @@ ncomp = 6
 
 # Number of particles per cell
 nppc = 2
+
+# Whether to check the correctness of Checkpoint / Restart
+restart_check = 1

@@ -46,6 +46,15 @@ namespace amrex
     Dim3 elemwiseMax (Dim3 const& a, Dim3 const& b) noexcept {
         return Dim3{amrex::max(a.x,b.x),amrex::max(a.y,b.y),amrex::max(a.z,b.z)};
     }
+
+    template<typename T>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    void Swap (T& t1, T& t2) noexcept
+    {
+        T temp = std::move(t1);
+        t1 = std::move(t2);
+        t2 = std::move(temp);
+    }
 }
 
 #endif
