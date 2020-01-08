@@ -16,7 +16,7 @@ int main(int argc, char* argv[])
 #if defined(_OPENMP) && defined(WARPX_USE_PSATD)
     int provided;
     MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &provided);
-    assert(provided >= MPI_THREAD_FUNNELED);
+    AMREX_ALWAYS_ASSERT(provided >= MPI_THREAD_FUNNELED);
 #else
     MPI_Init(&argc, &argv);
 #endif
