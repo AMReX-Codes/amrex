@@ -639,7 +639,10 @@ WriteGenericPlotfileHeaderHDF5 (hid_t fid,
             continue;
         }
 
-        int ratio = ref_ratio[level][0];
+        int ratio = 1;
+        if (ref_ratio.size() > 0) 
+            ratio = ref_ratio[level][0];
+        
         if (level == finest_level) {
             ratio = 1;
         }
@@ -739,7 +742,7 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
     int ndim = AMREX_SPACEDIM;
     int finest_level = nlevels-1;
     int ncomp = mf[0]->nComp();
-    double total_write_start_time(ParallelDescriptor::second());
+    /* double total_write_start_time(ParallelDescriptor::second()); */
     std::string filename(plotfilename + ".h5");
 
     // Write out root level metadata
@@ -993,13 +996,13 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
 
     H5Fclose(fid);
 
-    double total_write_end_time(ParallelDescriptor::second());
-    double total_write_time(total_write_end_time - total_write_start_time);
-    ParallelDescriptor::ReduceRealMax(total_write_time);
+    /* double total_write_end_time(ParallelDescriptor::second()); */
+    /* double total_write_time(total_write_end_time - total_write_start_time); */
+    /* ParallelDescriptor::ReduceRealMax(total_write_time); */
 
-    if(ParallelDescriptor::IOProcessor()) {
-        std::cout << "WriteMultiLevelPlotfileHDF5 Time = " << total_write_time << "  seconds." << std::endl;
-    }    
+    /* if(ParallelDescriptor::IOProcessor()) { */
+    /*     std::cout << "WriteMultiLevelPlotfileHDF5 Time = " << total_write_time << "  seconds." << std::endl; */
+    /* } */    
 
 }
 

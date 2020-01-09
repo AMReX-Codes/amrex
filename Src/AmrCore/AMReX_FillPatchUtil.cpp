@@ -45,16 +45,30 @@ namespace amrex
 			       int scomp, int dcomp, int ncomp,
 			       const Geometry& geom, PhysBCFunctBase& physbcf, int bcfcomp)
     {
+        FillPatchSingleLevel(mf, mf.nGrowVect(), time, smf, stime, scomp, dcomp, ncomp,
+                             geom, physbcf, bcfcomp);
+    }
+
+    void FillPatchSingleLevel (MultiFab& mf, IntVect const& nghost, Real time,
+			       const Vector<MultiFab*>& smf, const Vector<Real>& stime,
+			       int scomp, int dcomp, int ncomp,
+			       const Geometry& geom, PhysBCFunctBase& physbcf, int bcfcomp)
+    {
 	BL_PROFILE("FillPatchSingleLevel");
 
-	BL_ASSERT(scomp+ncomp <= smf[0]->nComp());
-	BL_ASSERT(dcomp+ncomp <= mf.nComp());
-	BL_ASSERT(smf.size() == stime.size());
-	BL_ASSERT(smf.size() != 0);
+	AMREX_ASSERT(scomp+ncomp <= smf[0]->nComp());
+	AMREX_ASSERT(dcomp+ncomp <= mf.nComp());
+	AMREX_ASSERT(smf.size() == stime.size());
+	AMREX_ASSERT(smf.size() != 0);
+        AMREX_ASSERT(nghost.allLE(mf.nGrowVect()));
 
 	if (smf.size() == 1)
 	{
-	    mf.ParallelCopy(*smf[0], scomp, dcomp, ncomp, IntVect{0}, mf.nGrowVect(), geom.periodicity());
+            if (&mf == smf[0] and scomp == dcomp) {
+                mf.FillBoundary(dcomp, ncomp, nghost, geom.periodicity());
+            } else {
+                mf.ParallelCopy(*smf[0], scomp, dcomp, ncomp, IntVect{0}, nghost, geom.periodicity());
+            }
 	}
 	else if (smf.size() == 2)
 	{
@@ -63,7 +77,9 @@ namespace amrex
 	    MultiFab * dmf;
 	    int destcomp;
 	    bool sameba;
-	    if (mf.boxArray() == smf[0]->boxArray()) {
+	    if (mf.boxArray() == smf[0]->boxArray() and
+                mf.DistributionMap() == smf[0]->DistributionMap())
+            {
 		dmf = &mf;
 		destcomp = dcomp;
 		sameba = true;
@@ -76,34 +92,37 @@ namespace amrex
 		sameba = false;
 	    }
 
+            if ((dmf != smf[0] and dmf != smf[1]) or scomp != dcomp)
+            {
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-	    for (MFIter mfi(*dmf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-	    {
-		const Box& bx = mfi.tilebox();
-                const Real t0 = stime[0];
-                const Real t1 = stime[1];
-                auto const sfab0 = smf[0]->array(mfi);
-                auto const sfab1 = smf[1]->array(mfi);
-                auto       dfab  = dmf->array(mfi);
+                for (MFIter mfi(*dmf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+                {
+                    const Box& bx = mfi.tilebox();
+                    const Real t0 = stime[0];
+                    const Real t1 = stime[1];
+                    auto const sfab0 = smf[0]->array(mfi);
+                    auto const sfab1 = smf[1]->array(mfi);
+                    auto       dfab  = dmf->array(mfi);
 
-                if (std::abs(t1-t0) > 1.e-16)
-                {
-                    Real alpha = (t1-time)/(t1-t0);
-                    Real beta = (time-t0)/(t1-t0);
-                    AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
+                    if (std::abs(t1-t0) > 1.e-16)
                     {
-                        dfab(i,j,k,n+destcomp) = alpha*sfab0(i,j,k,n+scomp)
-                            +                     beta*sfab1(i,j,k,n+scomp);
-                    });
-                }
-                else
-                {
-                    AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
+                        Real alpha = (t1-time)/(t1-t0);
+                        Real beta = (time-t0)/(t1-t0);
+                        AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
+                        {
+                            dfab(i,j,k,n+destcomp) = alpha*sfab0(i,j,k,n+scomp)
+                                +                     beta*sfab1(i,j,k,n+scomp);
+                        });
+                    }
+                    else
                     {
-                        dfab(i,j,k,n+destcomp) = sfab0(i,j,k,n+scomp);
-                    });
+                        AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
+                        {
+                            dfab(i,j,k,n+destcomp) = sfab0(i,j,k,n+scomp);
+                        });
+                    }
                 }
 	    }
 
@@ -111,12 +130,12 @@ namespace amrex
 	    {
 		// Note that when sameba is true mf's BoxArray is nonoverlapping.
 		// So FillBoundary is safe.
-		mf.FillBoundary(dcomp,ncomp,geom.periodicity());
+		mf.FillBoundary(dcomp, ncomp, nghost, geom.periodicity());
 	    }
 	    else
 	    {
 		IntVect src_ngrow = IntVect::TheZeroVector();
-		IntVect dst_ngrow = mf.nGrowVect();
+		IntVect dst_ngrow = nghost;
 
 		mf.ParallelCopy(*dmf, 0, dcomp, ncomp, src_ngrow, dst_ngrow, geom.periodicity());
 	    }
@@ -125,7 +144,7 @@ namespace amrex
 	    amrex::Abort("FillPatchSingleLevel: high-order interpolation in time not implemented yet");
 	}
 
-	physbcf.FillBoundary(mf, dcomp, ncomp, time, bcfcomp);
+	physbcf.FillBoundary(mf, dcomp, ncomp, nghost, time, bcfcomp);
     }
 
     namespace { void FillPatchTwoLevels_doit
@@ -313,7 +332,7 @@ namespace amrex
 
 	mf_crse_patch.copy(cmf, scomp, 0, ncomp, cgeom.periodicity());
 
-	cbc.FillBoundary(mf_crse_patch, 0, ncomp, time, cbccomp);
+	cbc.FillBoundary(mf_crse_patch, 0, ncomp, mf_crse_patch.nGrowVect(), time, cbccomp);
 
 	int idummy1=0, idummy2=0;
 
@@ -349,7 +368,7 @@ namespace amrex
             }
 	}
 
-	fbc.FillBoundary(mf, dcomp, ncomp, time, fbccomp);
+	fbc.FillBoundary(mf, dcomp, ncomp, mf.nGrowVect(), time, fbccomp);
     }
 
     // B fields are assumed to be on staggered grids.

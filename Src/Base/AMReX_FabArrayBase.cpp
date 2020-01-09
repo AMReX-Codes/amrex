@@ -1651,34 +1651,90 @@ FabArrayBase::WaitForAsyncSends (int                 N_snds,
 
 
 #ifdef BL_USE_MPI
+
+int
+FabArrayBase::select_comm_data_type (std::size_t nbytes)
+{
+    if (nbytes <= std::size_t(std::numeric_limits<int>::max()))
+    {
+        return 1;
+    }
+    else if (amrex::aligned_size(sizeof(unsigned long long), nbytes) <=
+             sizeof(unsigned long long)*std::size_t(std::numeric_limits<int>::max()))
+    {
+        return 2;
+    } else if (amrex::aligned_size(sizeof(ParallelDescriptor::lull_t), nbytes) <=
+               sizeof(ParallelDescriptor::lull_t)*std::size_t(std::numeric_limits<int>::max()))
+    {
+        return 3;
+    }
+    else
+    {
+        return 0;
+    }
+}
+
+std::size_t
+FabArrayBase::alignof_comm_data (std::size_t nbytes)
+{
+    const int t = select_comm_data_type(nbytes);
+    if (t == 1) {
+        return 1;
+    } else if (t == 2) {
+        return sizeof(unsigned long long);
+    } else if (t == 3) {
+        return sizeof(ParallelDescriptor::lull_t);
+    } else {
+        amrex::Abort("TODO: message size is too big");
+        return 0;
+    }
+}
+
 bool
 FabArrayBase::CheckRcvStats(Vector<MPI_Status>& recv_stats,
-			    const Vector<int>& recv_size,
-			    MPI_Datatype datatype, int tag)
+			    const Vector<std::size_t>& recv_size,
+			    int tag)
 {
-    bool r = true;
     for (int i = 0, n = recv_size.size(); i < n; ++i) {
 	if (recv_size[i] > 0) {
-	    int count;
+	    std::size_t count;
+            int tmp_count;
 
-	    MPI_Get_count(&recv_stats[i], datatype, &count);
+            const int comm_data_type = select_comm_data_type(recv_size[i]);
+            if (comm_data_type == 1) {
+                MPI_Get_count(&recv_stats[i],
+                              ParallelDescriptor::Mpi_typemap<char>::type(),
+                              &tmp_count);
+                count = tmp_count;
+            } else if (comm_data_type == 2) {
+                MPI_Get_count(&recv_stats[i],
+                              ParallelDescriptor::Mpi_typemap<unsigned long long>::type(),
+                              &tmp_count);
+                count = sizeof(unsigned long long) * tmp_count;
+            } else if (comm_data_type == 3) {
+                MPI_Get_count(&recv_stats[i],
+                              ParallelDescriptor::Mpi_typemap<ParallelDescriptor::lull_t>::type(),
+                              &tmp_count);
+                count = sizeof(ParallelDescriptor::lull_t) * tmp_count;
+            }
 
 	    if (count != recv_size[i]) {
-		r = false;
                 if (amrex::Verbose()) {
                     amrex::AllPrint() << "ERROR: Proc. " << ParallelContext::MyProcSub()
-                                      << " received " << count << " counts of data from Proc. "
+                                      << " received " << count << " bytes of data from Proc. "
                                       << recv_stats[i].MPI_SOURCE
                                       << " with tag " << recv_stats[i].MPI_TAG
                                       << " error " << recv_stats[i].MPI_ERROR
-                                      << ", but the expected counts is " << recv_size[i]
+                                      << ", but the expected size is " << recv_size[i]
                                       << " with tag " << tag << "\n";
                 }
+                return false;
 	    }
 	}
     }
-    return r;
+    return true;
 }
+
 #endif
 
 std::ostream&
