@@ -75,19 +75,6 @@ FromTXYEFileLaserProfile::update (amrex::Real t)
     }
 }
 
-/* \brief compute field amplitude at particles' position for a laser beam
- * loaded from an E(x,y,t) file.
- *
- * Both Xp and Yp are given in laser plane coordinate.
- * For each particle with position Xp and Yp, this routine computes the
- * amplitude of the laser electric field, stored in array amplitude.
- *
- * \param np: number of laser particles
- * \param Xp: pointer to first component of positions of laser particles
- * \param Yp: pointer to second component of positions of laser particles
- * \param t: Current physical time
- * \param amplitude: pointer to array of field amplitude.
- */
 void
 FromTXYEFileLaserProfile::fill_amplitude (
     const int np,
@@ -120,21 +107,6 @@ FromTXYEFileLaserProfile::fill_amplitude (
     }
 }
 
-/* \brief parse a field file in the binary 'txye' format (whose details are given below).
- *
- * A 'txye' file should be a binary file with the following format:
- * -flag to indicate if the grid is uniform or not (1 byte, 0 means non-uniform, !=0 means uniform)
- * -np, number of timesteps (uint32_t, must be >=2)
- * -nx, number of points along x (uint32_t, must be >=2)
- * -ny, number of points along y (uint32_t, must be 1 for 2D simulations and >=2 for 3D simulations)
- * -timesteps (double[2] if grid is uniform, double[np] otherwise)
- * -x_coords (double[2] if grid is uniform, double[nx] otherwise)
- * -y_coords (double[1] if 2D, double[2] if 3D & uniform grid, double[ny] if 3D & non uniform grid)
- * -field_data (double[nt * nx * ny], with nt being the slowest coordinate).
- * The spatiotemporal grid must be rectangular.
- *
- * \param txye_file_name: name of the file to parse
- */
 void
 FromTXYEFileLaserProfile::parse_txye_file(std::string txye_file_name)
 {
@@ -241,11 +213,6 @@ FromTXYEFileLaserProfile::parse_txye_file(std::string txye_file_name)
     ParallelDescriptor::Barrier();
 }
 
-/* \brief Finds left and right time indices corresponding to time t
- *
- *
- * \param t: simulation time
- */
 std::pair<int,int>
 FromTXYEFileLaserProfile::find_left_right_time_indices(amrex::Real t) const
 {
@@ -265,13 +232,6 @@ FromTXYEFileLaserProfile::find_left_right_time_indices(amrex::Real t) const
     return std::make_pair(idx_t_right-1, idx_t_right);
 }
 
-/* \brief Load field data within the temporal range [t_begin, t_end)
- *
- * Must be called after having parsed a data file with parse_txye_file.
- *
- * \param t_begin: left limit of the timestep range to read
- * \param t_end: right limit of the timestep range to read (t_end is not read)
- */
 void
 FromTXYEFileLaserProfile::read_data_t_chuck(int t_begin, int t_end)
 {
@@ -316,15 +276,6 @@ FromTXYEFileLaserProfile::read_data_t_chuck(int t_begin, int t_end)
     m_params.last_time_index = i_last;
 }
 
-/* \brief Private function to fill the amplitude in case of a uniform grid
- *
- * \param idx_t_left index of the last time coordinate < t
- * \param np: number of laser particles
- * \param Xp: pointer to first component of positions of laser particles
- * \param Yp: pointer to second component of positions of laser particles
- * \param t: Current physical time
- * \param amplitude: pointer to array of field amplitude.
- */
 void
 FromTXYEFileLaserProfile::internal_fill_amplitude_uniform(
     const int idx_t_left,
@@ -429,15 +380,6 @@ FromTXYEFileLaserProfile::internal_fill_amplitude_uniform(
     );
 }
 
-/* \brief Private function to fill the amplitude in case of a non-uniform grid
- *
- * \param idx_t_left index of the last time coordinate < t
- * \param np: number of laser particles
- * \param Xp: pointer to first component of positions of laser particles
- * \param Yp: pointer to second component of positions of laser particles
- * \param t: Current physical time
- * \param amplitude: pointer to array of field amplitude.
- */
 void
 FromTXYEFileLaserProfile::internal_fill_amplitude_nonuniform(
     const int idx_t_left,
