@@ -44,6 +44,10 @@ tcoords = np.linspace(t_l, t_r, t_points)
 xcoords = np.linspace(x_l, x_r, x_points)
 
 def gauss(T,X,Y,opt):
+    """Compute the electric field for a Gaussian laser pulse.
+       This is used to write the binary input file.
+    """
+
     k0 = 2.0*np.pi/wavelength
     inv_tau2 = 1./tt/tt
     osc_phase = k0*c*(T-t_c)
@@ -64,6 +68,8 @@ def gauss(T,X,Y,opt):
 
 # Function for the envelope
 def gauss_env(T,XX,ZZ):
+    '''Function to compute the theory for the envelope
+    '''
 
     X = np.cos(rot_angle)*XX + np.sin(rot_angle)*ZZ
     Z = -np.sin(rot_angle)*XX + np.cos(rot_angle)*ZZ
