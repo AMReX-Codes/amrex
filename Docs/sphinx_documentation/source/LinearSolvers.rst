@@ -189,7 +189,7 @@ The :cpp:`MLLinOp` member function for this step is
 Here :cpp:`const MultiFab* crse` contains the Dirichlet boundary
 values at the coarse resolution, and :cpp:`int crse_ratio` (e.g., 2)
 is the refinement ratio between the coarsest solver level and the AMR
-level below it.  The MultiFb crse does not need to have ghost cells itself. 
+level below it.  The MultiFab crse does not need to have ghost cells itself. 
 If the coarse grid bc's for the solve are identically zero, :cpp:`nullptr` 
 can be passed instead of :cpp:`crse`.
 
@@ -214,7 +214,7 @@ domain boundary of ``levelbcdata`` must hold the value of the solution
 at the domain boundary; 
 if the boundary condition is Neumann those ghost cells must hold
 the value of the gradient of the solution normal to the boundary
-(e.g. it would hold dphi/dx on both the low and high facees in the x-direction).
+(e.g. it would hold dphi/dx on both the low and high faces in the x-direction).
 
 If the boundary conditions contain no inhomogeneous Dirichlet or Neumann boundaries,
 we can pass :cpp:`nullptr` instead of a MultiFab.
@@ -410,7 +410,7 @@ the MACProjector object and use it to perform a MAC projection.
                          {geom},                           // the geometry object
                          lp_info);                         // structure for passing info to the operator
 
-    // Here we specifiy the desired divergence S
+    // Here we specify the desired divergence S
     // MacProjector macproj({amrex::GetArrOfPtrs(vel)},       // face-based velocity
     //                      {amrex::GetArrOfConstPtrs(beta)}, // beta
     //                      {geom},                           // the geometry object
@@ -555,7 +555,7 @@ gradient term to make the vector field result satisfy the divergence constraint.
    // RHS is nodal
    const BoxArray & nd_grids = amrex::convert(grids, IntVect{1,1,1}); // nodal grids
 
-   // Multifab to host RHS
+   // MultiFab to host RHS
    MultiFab rhs(nd_grids, dmap, 1, 1, MFInfo(), factory);
 
    // Cell-centered contributions to RHS
@@ -613,7 +613,7 @@ gradient term to make the vector field result satisfy the divergence constraint.
    nodal_solver.solve( {&phi}, {&rhs}, reltol, abstol);
 
    //
-   // Create cell-centered multifab to hold value of -sigma*grad(phi) at cell-centers
+   // Create cell-centered MultiFab to hold value of -sigma*grad(phi) at cell-centers
    // 
    //
    MultiFab fluxes(grids, dmap, AMREX_SPACEDIM, 1, MFInfo(), factory);
@@ -667,7 +667,7 @@ We evaluate the following terms from the above using the ``MLABecLaplacian`` and
 
     (\eta w_x)_x                        + (              \eta           w_y)_y + ( (\frac{4}{3} \eta + \kappa) w_z)_z 
 
-the following cross-terms are evaluted separately using the ``MLTensorOp`` and ``MLEBTensorOp`` operators.
+the following cross-terms are evaluated separately using the ``MLTensorOp`` and ``MLEBTensorOp`` operators.
 
 .. math::
 
