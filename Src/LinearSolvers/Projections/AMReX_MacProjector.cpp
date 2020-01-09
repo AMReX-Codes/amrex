@@ -127,11 +127,12 @@ MacProjector::project (Real reltol, Real atol, MLMG::Location loc)
         MultiFab divu(m_rhs[ilev].boxArray(), m_rhs[ilev].DistributionMap(),
                       1, 0, MFInfo(), m_rhs[ilev].Factory());
 #ifdef AMREX_USE_EB
-        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            m_umac[ilev][idim]->FillBoundary(m_geom[ilev].periodicity());
+        bool already_on_centroid = (loc == MLMG::Location::FaceCentroid);
+        if (!already_on_centroid) {
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                m_umac[ilev][idim]->FillBoundary(m_geom[ilev].periodicity());
+            }
         }
-        bool already_on_centroid = false;
-        if (loc == MLMG::Location::FaceCentroid) already_on_centroid = true;
         EB_computeDivergence(divu, u, m_geom[ilev], already_on_centroid);
 #else
         computeDivergence(divu, u, m_geom[ilev]);
@@ -168,11 +169,12 @@ MacProjector::project (const Vector<MultiFab*>& phi_inout, Real reltol, Real ato
         MultiFab divu(m_rhs[ilev].boxArray(), m_rhs[ilev].DistributionMap(),
                       1, 0, MFInfo(), m_rhs[ilev].Factory());
 #ifdef AMREX_USE_EB
-        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            m_umac[ilev][idim]->FillBoundary(m_geom[ilev].periodicity());
+        bool already_on_centroid = (loc == MLMG::Location::FaceCentroid);
+        if (!already_on_centroid) {
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                m_umac[ilev][idim]->FillBoundary(m_geom[ilev].periodicity());
+            }
         }
-        bool already_on_centroid = false;
-        if (loc == MLMG::Location::FaceCentroid) already_on_centroid = true;
         EB_computeDivergence(divu, u, m_geom[ilev], already_on_centroid);
 #else
         computeDivergence(divu, u, m_geom[ilev]);

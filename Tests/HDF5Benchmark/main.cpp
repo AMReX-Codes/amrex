@@ -3,10 +3,6 @@
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_Particles.H>
 
-#ifdef BL_HDF5
-#include <WritePlotfileHDF5.H>
-#endif
-
 using namespace amrex;
 
 int main(int argc, char* argv[])
@@ -15,6 +11,7 @@ int main(int argc, char* argv[])
     { 
     const int nghost = 0;
     int ncells, max_grid_size, ncomp, nlevs, nppc;
+    int restart_check = 0;
 
     ParmParse pp;
     pp.get("ncells", ncells);
@@ -22,6 +19,7 @@ int main(int argc, char* argv[])
     pp.get("ncomp", ncomp);
     pp.get("nlevs", nlevs);
     pp.get("nppc", nppc);
+    pp.query("restart_check", restart_check);
     
     AMREX_ALWAYS_ASSERT(nlevs < 2); // relax this later
 
@@ -110,12 +108,12 @@ int main(int argc, char* argv[])
         varnames.push_back("component_" + std::to_string(i));
     }
 
-#ifdef BL_HDF5    
+    Vector<int> level_steps(nlevs, 0);
+#ifdef AMREX_USE_HDF5    
     WriteMultiLevelPlotfileHDF5("plt00000", nlevs, amrex::GetVecOfConstPtrs(mf), 
-                                varnames, geom, time, dt, ref_ratio);
+                                varnames, geom, time, level_steps, ref_ratio);
 #endif
 
-    Vector<int> level_steps(nlevs, 0);
     WriteMultiLevelPlotfile("plt00000", nlevs, amrex::GetVecOfConstPtrs(mf),
                             varnames, geom, time, level_steps, ref_ratio);
 
@@ -132,6 +130,39 @@ int main(int argc, char* argv[])
     }
     
     myPC.Checkpoint("plt00000", "particle0", false, particle_realnames, particle_intnames);
+    /* myPC.WriteAsciiFile("particle0_ascii"); */
+#ifdef AMREX_USE_HDF5    
+    myPC.CheckpointHDF5("plt00000", "particle0", false, particle_realnames, particle_intnames);
+#endif
+
+    if (restart_check)
+    {
+        MyPC newPC(geom, dmap, ba, ref_ratio);
+        newPC.Restart("plt00000", "particle0");
+        
+        using PType = typename MyPC::SuperParticleType;
+
+        for (int icomp=0; icomp<NStructReal+NArrayReal+NStructInt+NArrayInt; ++icomp)
+        {
+            auto sm_new = amrex::ReduceSum(newPC,
+                [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real
+                {
+                    return p.rdata(1);
+                });
+
+            auto sm_old = amrex::ReduceSum(myPC,
+                [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real
+                {
+                    return p.rdata(1);
+                });
+            
+            ParallelDescriptor::ReduceRealSum(sm_new);
+            ParallelDescriptor::ReduceRealSum(sm_old);
+        
+            AMREX_ALWAYS_ASSERT(sm_old = sm_new);
+        }
+    }
+    
     }
     amrex::Finalize();
 }
