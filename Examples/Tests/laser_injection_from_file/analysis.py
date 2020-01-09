@@ -2,7 +2,6 @@
 
 #ADD COMMENT
 #ADD COMMENT
-#ADD COMMENT
 import yt ; yt.funcs.mylog.setLevel(50)
 import numpy as np
 import matplotlib.pyplot as plt
