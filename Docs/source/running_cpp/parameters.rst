@@ -570,6 +570,8 @@ Laser initialization
 
         * field_data (double[nt * nx * ny], with nt being the slowest coordinate).
 
+      A file at this format can be generated from Python, see an example at ``Examples/Modules/laser_injection_from_file``
+
 
 *  ``<laser_name>.profile_t_peak`` (`float`; in seconds)
     The time at which the laser reaches its peak intensity, at the position
