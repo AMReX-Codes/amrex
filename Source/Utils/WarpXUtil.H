@@ -67,7 +67,7 @@ T linear_interp(T x0, T x1, T f0, T f1, T x)
     return ((x1-x)*f0 + (x-x0)*f1)/(x1-x0);
 }
 
-/* \brief Performs a bilinear interpolation
+/** \brief Performs a bilinear interpolation
  *
  * Performs a bilinear interpolation at (x,y) given the 4 points
  * (x0, y0, f00), (x0, y1, f01), (x1, y0, f10), (x1, y1, f11).
