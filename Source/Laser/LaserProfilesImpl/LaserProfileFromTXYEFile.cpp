@@ -59,10 +59,6 @@ FromTXYEFileLaserProfile::init (
     m_common_params = params;
 }
 
-/** \brief Reads new field data chunk from file if needed
- *
- * @param[in] t simulation time (seconds)
- */
 void
 FromTXYEFileLaserProfile::update (amrex::Real t)
 {

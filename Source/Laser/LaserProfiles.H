@@ -220,7 +220,10 @@ public:
         const amrex::ParmParse& ppc,
         CommonLaserParameters params) override final;
 
-    //Update is needed
+    /** \brief Reads new field data chunk from file if needed
+    *
+    * @param[in] t simulation time (seconds)
+    */
     void
     update (amrex::Real t) override final;
 
