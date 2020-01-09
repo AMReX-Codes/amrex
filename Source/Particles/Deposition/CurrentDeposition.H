@@ -7,7 +7,8 @@
 #include <AMReX_Array4.H>
 #include <AMReX_REAL.H>
 
-/* \brief Current Deposition for thread thread_num
+/**
+ * \brief Current Deposition for thread thread_num
  * /param xp, yp, zp   : Pointer to arrays of particle positions.
  * \param wp           : Pointer to array of particle weights.
  * \param uxp uyp uzp  : Pointer to arrays of particle momentum.
@@ -219,7 +220,9 @@ void doDepositionShapeN(const amrex::ParticleReal * const xp,
         );
 }
 
-/* \brief Esirkepov Current Deposition for thread thread_num
+/**
+ * \brief Esirkepov Current Deposition for thread thread_num
+ *
  * \param xp, yp, zp   : Pointer to arrays of particle positions.
  * \param wp           : Pointer to array of particle weights.
  * \param uxp uyp uzp  : Pointer to arrays of particle momentum.

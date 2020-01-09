@@ -297,4 +297,4 @@ def _read_buffer(snapshot, header_fn, _component_names):
 
 
 if __name__ == "__main__":
-    data = read_lab_snapshot("lab_frame_data/snapshot00012");
+    data = read_lab_snapshot("lab_frame_data/snapshot00012", "lab_frame_data/Header");

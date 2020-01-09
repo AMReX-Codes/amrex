@@ -69,7 +69,7 @@ grid = picmi.CylindricalGrid(number_of_cells = [nr, nz],
                              upper_bound = [rmax, zmax],
                              lower_boundary_conditions = ['dirichlet', 'periodic'],
                              upper_boundary_conditions = ['dirichlet', 'periodic'],
-                             moving_window_velocity = [0., 0.],
+                             moving_window_zvelocity = 0.,
                              warpx_max_grid_size=64)
 
 solver = picmi.ElectromagneticSolver(grid=grid, cfl=1.)

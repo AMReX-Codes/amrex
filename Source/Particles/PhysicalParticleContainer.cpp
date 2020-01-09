@@ -963,8 +963,12 @@ PhysicalParticleContainer::EvolveES (const Vector<std::array<std::unique_ptr<Mul
 
 void
 PhysicalParticleContainer::FieldGather (int lev,
-                                        const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
-                                        const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz)
+                                        const amrex::MultiFab& Ex,
+                                        const amrex::MultiFab& Ey,
+                                        const amrex::MultiFab& Ez,
+                                        const amrex::MultiFab& Bx,
+                                        const amrex::MultiFab& By,
+                                        const amrex::MultiFab& Bz)
 {
     const std::array<Real,3>& dx = WarpX::CellSize(lev);
 
@@ -1427,15 +1431,19 @@ PhysicalParticleContainer::SplitParticles(int lev)
     {
         pti.GetPosition(xp, yp, zp);
 
-        // offset for split particles is computed as a function of cell size
-        // and number of particles per cell, so that a uniform distribution
-        // before splitting results in a uniform distribution after splitting
         const amrex::Vector<int> ppc_nd = plasma_injector->num_particles_per_cell_each_dim;
         const std::array<Real,3>& dx = WarpX::CellSize(lev);
-        amrex::Vector<Real> split_offset = {dx[0]/2._rt/ppc_nd[0],
-                                            dx[1]/2._rt/ppc_nd[1],
-                                            dx[2]/2._rt/ppc_nd[2]};
-
+        amrex::Vector<Real> split_offset = {dx[0]/2._rt,
+                                            dx[1]/2._rt,
+                                            dx[2]/2._rt};
+        if (ppc_nd[0] > 0){
+            // offset for split particles is computed as a function of cell size
+            // and number of particles per cell, so that a uniform distribution
+            // before splitting results in a uniform distribution after splitting
+            split_offset[0] /= ppc_nd[0];
+            split_offset[1] /= ppc_nd[1];
+            split_offset[2] /= ppc_nd[2];
+        }
         // particle Array Of Structs data
         auto& particles = pti.GetArrayOfStructs();
         // particle Struct Of Arrays data
@@ -2148,12 +2156,12 @@ PhysicalParticleContainer::FieldGather (WarpXParIter& pti,
                                         RealVector& Bxp,
                                         RealVector& Byp,
                                         RealVector& Bzp,
-                                        FArrayBox const * exfab,
-                                        FArrayBox const * eyfab,
-                                        FArrayBox const * ezfab,
-                                        FArrayBox const * bxfab,
-                                        FArrayBox const * byfab,
-                                        FArrayBox const * bzfab,
+                                        amrex::FArrayBox const * exfab,
+                                        amrex::FArrayBox const * eyfab,
+                                        amrex::FArrayBox const * ezfab,
+                                        amrex::FArrayBox const * bxfab,
+                                        amrex::FArrayBox const * byfab,
+                                        amrex::FArrayBox const * bzfab,
                                         const int ngE, const int e_is_nodal,
                                         const long offset,
                                         const long np_to_gather,

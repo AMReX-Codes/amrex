@@ -21,7 +21,7 @@ void transformSourceParticle(
 /**
  * \brief small modifications on product particle
  * \param i index of particle
- * \param particle particle struct
+ * \param v_particle pointer to vector of particles
  */
 template < ElementaryProcessType ProcessT >
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE

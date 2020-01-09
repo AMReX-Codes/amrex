@@ -67,24 +67,6 @@ extern "C" {
 
     long warpx_getNumParticles(int speciesnumber);
 
-    amrex::Real** warpx_getEfield(int lev, int direction,
-                                  int *return_size, int* ncomps, int* ngrow, int **shapes);
-
-    int* warpx_getEfieldLoVects(int lev, int direction,
-                                int *return_size, int* ngrow);
-
-    amrex::Real** warpx_getBfield(int lev, int direction,
-                                  int *return_size, int* ncomps, int* ngrow, int **shapes);
-
-    int* warpx_getBfieldLoVects(int lev, int direction,
-                                int *return_size, int* ngrow);
-
-    amrex::Real** warpx_getCurrentDensity(int lev, int direction,
-                                          int *return_size, int* ncomps, int* ngrow, int **shapes);
-
-    int* warpx_getCurrentDensityLoVects(int lev, int direction,
-                                        int *return_size, int* ngrow);
-
     amrex::ParticleReal** warpx_getParticleStructs(int speciesnumber, int lev,
                                                    int* num_tiles, int** particles_per_tile);
 

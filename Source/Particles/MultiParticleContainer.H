@@ -16,19 +16,27 @@
     #include <QuantumSyncEngineWrapper.H>
 #endif
 
+#include "CollisionType.H"
+
 #include <memory>
 #include <map>
 #include <string>
 #include <algorithm>
 
-//
-// MultiParticleContainer holds multiple (nspecies or npsecies+1 when
-// using laser) WarpXParticleContainer.  WarpXParticleContainer is
-// derived from amrex::ParticleContainer, and it is
-// polymorphic. PhysicalParticleContainer and LaserParticleContainer are
-// concrete class derived from WarpXParticlContainer.
-//
-
+/**
+ * The class MultiParticleContainer holds multiple instances of the polymorphic
+ * class WarpXParticleContainer, stored in its member variable "allcontainers".
+ * The class WarpX typically has a single (pointer to an) instance of
+ * MultiParticleContainer.
+ *
+ * MultiParticleContainer typically has two types of functions:
+ * - Functions that loop over all instances of WarpXParticleContainer in
+ *   allcontainers and calls the corresponding function (for instance,
+ *   MultiParticleContainer::Evolve loops over all particles containers and
+ *   calls the corresponding WarpXParticleContainer::Evolve function).
+ * - Functions that specifically handle multiple species (for instance
+ *   ReadParameters or mapSpeciesProduct).
+ */
 class MultiParticleContainer
 {
 
@@ -142,6 +150,8 @@ public:
 
     void doFieldIonization ();
 
+    void doCoulombCollisions ();
+
     void Checkpoint (const std::string& dir) const;
 
     void WritePlotFile (const std::string& dir) const;
@@ -213,6 +223,10 @@ protected:
     std::vector<std::string> species_names;
 
     std::vector<std::string> lasers_names;
+
+    std::vector<std::string> collision_names;
+
+    amrex::Vector<std::unique_ptr<CollisionType> > allcollisions;
 
     //! instead of depositing (current, charge) on the finest patch level, deposit to the coarsest grid
     std::vector<bool> m_deposit_on_main_grid;
@@ -295,5 +309,6 @@ private:
     // runtime parameters
     int nlasers = 0;
     int nspecies = 1;   // physical particles only. nspecies+nlasers == allcontainers.size().
+    int ncollisions = 0;
 };
 #endif /*WARPX_ParticleContainer_H_*/
