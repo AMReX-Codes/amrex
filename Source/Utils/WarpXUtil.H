@@ -27,7 +27,7 @@ bool WriteBinaryDataOnFile(std::string filename, const amrex::Vector<char>& data
 
 namespace WarpXUtilAlgo{
 
-/* \brief Returns a pointer to the first element in the range [first, last) that is greater than val
+/** \brief Returns a pointer to the first element in the range [first, last) that is greater than val
  *
  * A re-implementation of the upper_bound algorithm suitable for GPU kernels.
  *
