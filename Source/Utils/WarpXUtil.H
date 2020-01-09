@@ -80,7 +80,7 @@ T bilinear_interp(T x0, T x1, T y0, T y1, T f00, T f01, T f10, T f11, T x, T y)
     return linear_interp(y0, y1, fx0, fx1, y);
 }
 
-/* \brief Performs a trilinear interpolation
+/** \brief Performs a trilinear interpolation
  *
  * Performs a trilinear interpolation at (x,y,z) given the 8 points
  * (x0, y0, z0, f000), (x0, y0, z1, f001), (x0, y1, z0, f010), (x0, y1, z1, f011),
