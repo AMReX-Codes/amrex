@@ -233,7 +233,9 @@ WarpX::DampJPML (int lev, PatchType patch_type)
     }
 }
 
-/* \brief Copy the current J from the regular grid to the PML */
+/**
+ * \brief Copy the current J from the regular grid to the PML
+ */
 void
 WarpX::CopyJPML ()
 {

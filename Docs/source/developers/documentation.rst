@@ -35,6 +35,8 @@ Doxygen reads this docstring, so please be accurate with the syntax! See `Doxyge
    */
   void my_class::my_function(int* my_int);
 
+A HTML rendered version of the Doxygen documentation `is located here <../_static/doxyhtml/index.html>`_.
+
 Breathe documentation
 ---------------------
 
