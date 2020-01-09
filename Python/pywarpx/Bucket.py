@@ -1,3 +1,5 @@
+import numpy as np
+
 class Bucket(object):
     """
     The purpose of this class is to be a named bucket for holding attributes.
@@ -34,7 +36,10 @@ class Bucket(object):
             # --- The strip is then needed when value is a string.
             if isinstance(value, str):
                 rhs = value
-            elif hasattr(value, '__iter__'):
+            elif np.iterable(value):
+                if len(value) == 0:
+                    # --- Skip if empty
+                    continue
                 # --- For lists, tuples, and arrays make a space delimited string of the values.
                 # --- The lambda is needed in case this is a list of strings.
                 rhs = ' '.join(map(lambda s : repr(s).strip("'\""), value))
