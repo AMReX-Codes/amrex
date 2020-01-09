@@ -56,7 +56,7 @@ const T* upper_bound(const T* first, const T* last, const T& val)
         return first;
 }
 
-/* \brief Performs a linear interpolation
+/** \brief Performs a linear interpolation
  *
  * Performs a linear interpolation at x given the 2 points
  * (x0, f0) and (x1, f1)
