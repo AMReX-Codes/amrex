@@ -1,7 +1,13 @@
 #!/usr/bin/python3
 
-#ADD COMMENT
-#ADD COMMENT
+# This file is part of the WarpX automated test suite. It is used to test the
+# injection of a laser pulse from an external binary file.
+#
+# - Generate an input binary file with a gaussian laser pulse.
+# - Run the WarpX simulation for time T, when the pulse is fully injected
+# - Compute the theory for laser envelope at time T
+# - Compare theory and simulation, for both envelope and central frequency
+
 import yt ; yt.funcs.mylog.setLevel(50)
 import numpy as np
 import matplotlib.pyplot as plt
