@@ -673,7 +673,7 @@ Laser initialization
     ``warpx.Ex_external_grid_function(x,y,z)``,
     ``warpx.Ey_external_grid_function(x,y,z)``,
     ``warpx.Ez_externail_grid_function(x,y,z)`` to initialize the external
-    magnetic field for each of the three components on the grid.
+    electric field for each of the three components on the grid.
     Constants required in the expression can be set using ``my_constants``.
     For example, if ``warpx.Ex_external_grid_function(x,y,z)=Eo*x + delta*(y + z)``
     then the constants `Bo` and `delta` required in the above equation
