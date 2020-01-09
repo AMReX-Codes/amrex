@@ -12,7 +12,7 @@ Overview of AMReX GPU Strategy
 AMReX's GPU strategy focuses on providing performant GPU support
 with minimal changes and maximum flexibility.  This allows
 application teams to get running on GPUs quickly while allowing
-long term perfomance tuning and programming model selection.  AMReX
+long term performance tuning and programming model selection.  AMReX
 uses CUDA for GPUs, but application teams can use CUDA, CUDA
 Fortran, OpenACC or OpenMP in their individual codes.
 
@@ -188,7 +188,7 @@ architecture is supported by the system. If more than one is found, CMake
 will build for all of them. This will generally results in a larger library and longer build times.
 If autodetection fails, a set of "common" architectures is assumed.
 You can specify the target architecture to build for via the configuration option
-``-DCUDA_ARCH=<target-achitecture>``, where ``<target-architecture>`` can be either
+``-DCUDA_ARCH=<target-architecture>``, where ``<target-architecture>`` can be either
 the name of the NVIDIA GPU, i.e. ``Turing``, ``Volta``, ``Pascal``, ``...`` , or its
 version number, i.e. ``10.0``, ``9.0``, ``8.0``, ``...`` .
 For example, on Cori GPUs you can specify the architecture as follows:
@@ -540,7 +540,7 @@ MPI ranks and return the total dot product of the two
 To implement a different reduction, replace the code block inside the
 lambda function with the operation that should be applied, being sure
 to return the value to be summed, minimized, or maximized.  The reduction
-templates have a few different interfaces to accomodate a variety of
+templates have a few different interfaces to accommodate a variety of
 reductions.  The :cpp:`amrex::ReduceSum` reduction template has varieties
 that take either one, two or three ::cpp:`MultiFab`\ s.
 :cpp:`amrex::ReduceMin` and :cpp:`amrex::ReduceMax` can take either one
@@ -715,7 +715,7 @@ C++ macro.  It behaves identically to the function, but hides the lambda functio
 from to the user.  There are some subtle differences between the two implementations,
 that will be discussed.  It is up to the user to select which version they would like
 to use.  For simplicity, the function variation will be discussed throughout the rest of
-this documenation, however all code snippets will also include the macro variation
+this documentation, however all code snippets will also include the macro variation
 for reference.
 
 A 4D example of the launch function, :cpp:`amrex::ParallelFor`, is given here:
@@ -1000,7 +1000,7 @@ CUDA supports multiple streams and kernels. Kernels launched in the
 same stream are executed sequentially, but different streams of kernel
 launches may be run in parallel.  For each iteration of :cpp:`MFIter`,
 AMReX uses a different CUDA stream (up to 16 streams in total).  This
-allows each iteration of an :cpp:`MFIter` loop to run indepenently,
+allows each iteration of an :cpp:`MFIter` loop to run independently,
 but in the expected sequence, and maximize the use of GPU parallelism.
 However, AMReX uses the default CUDA stream outside of :cpp:`MFIter`
 loops.
@@ -1008,7 +1008,7 @@ loops.
 Launching kernels with AMReX's launch macros or functions implement
 a C++ lambda function. Lambdas functions used with CUDA have some
 restrictions the user must understand.  First, the function enclosing the
-extended lamdba must not have private or protected access within its parent
+extended lambda must not have private or protected access within its parent
 class,  otherwise the code will not compile.  This can be fixed by changing
 the access of the enclosing function to public.
 
@@ -1204,7 +1204,7 @@ To help debugging, we often use :cpp:`amrex::Assert` and
 :cpp:`amrex::Abort`.  These functions are GPU safe and can be used in
 GPU kernels.  However, implementing these functions requires additional
 GPU registers, which will reduce overall performance.  Therefore, it
-is preferred to implement such calls in debug mode only by wraping the
+is preferred to implement such calls in debug mode only by wrapping the
 calls using ``#ifdef AMREX_DEBUG``. 
 
 In CPU code, :cpp:`AMREX_GPU_ERROR_CHECK()` can be called
@@ -1279,11 +1279,11 @@ construction and traversal, particle-mesh deposition and interpolation, parallel
 and a set of transformation and filtering operations that are useful when operating on sets of particles. For
 examples of these features in use, please see :cpp:`Tests/Particles/`. 
 
-Finally, the parallel communiciation of particle data has been ported and optimized for performance on GPU
+Finally, the parallel communication of particle data has been ported and optimized for performance on GPU
 platforms. This includes :cpp:`Redistribute()`, which moves particles back to the proper grids after their positions
 have changed, as well as :cpp:`fillNeighbors()` and :cpp:`updateNeighbors()`, which are used to exchange halo particles.
 As with :cpp:`MultiFab` data, these have been designed to minimize host / device traffic as much as possible, and can
-take advantange of the Cuda-aware MPI implementations available on platforms such as ORNL's Summit.
+take advantage of the Cuda-aware MPI implementations available on platforms such as ORNL's Summit.
 
 
 Profiling with GPUs
@@ -1295,7 +1295,7 @@ When profiling for GPUs, AMReX recommends ``nvprof``, NVIDIA's visual
 profiler.  ``nvprof`` returns data on how long each kernel launch lasted on
 the GPU, the number of threads and registers used, the occupancy of the GPU
 and recommendations for improving the code.  For more information on how to
-use ``nvprof``, see NVIDIA's User's Guide as well as the help webpages of
+use ``nvprof``, see NVIDIA's User's Guide as well as the help web pages of
 your favorite supercomputing facility that uses NVIDIA GPUs.
 
 AMReX's internal profilers currently cannot hook into profiling information
@@ -1303,7 +1303,7 @@ on the GPU and an efficient way to time and retrieve that information is
 being explored. In the meantime, AMReX's timers can be used to report some
 generic timers that are useful in categorizing an application.
 
-Due to the asynchonous launching of GPU kernels, any AMReX timers inside of
+Due to the asynchronous launching of GPU kernels, any AMReX timers inside of
 asynchronous regions or inside GPU kernels will not measure useful
 information.  However, since the :cpp:`MFIter` synchronizes when being
 destroyed, any timer wrapped around an :cpp:`MFIter` loop will yield a
@@ -1389,7 +1389,7 @@ Inputs Parameters
 
 .. _sec:gpu:parameters:
 
-The following inputs parameters control the behaviour of amrex when running on GPUs. They should be prefaced
+The following inputs parameters control the behavior of amrex when running on GPUs. They should be prefaced
 by "amrex" in your :cpp:`inputs` file.
 
 +----------------------------+-----------------------------------------------------------------------+-------------+-------------+
