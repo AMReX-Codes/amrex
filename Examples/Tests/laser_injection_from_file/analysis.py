@@ -5,10 +5,8 @@
 #ADD COMMENT
 import yt ; yt.funcs.mylog.setLevel(50)
 import numpy as np
-import scipy.constants as scc
 import matplotlib.pyplot as plt
 from scipy.signal import hilbert
-import sys
 import glob
 import os
 
@@ -65,7 +63,6 @@ def gauss_env(T,XX,ZZ):
     X = np.cos(rot_angle)*XX + np.sin(rot_angle)*ZZ
     Z = -np.sin(rot_angle)*XX + np.cos(rot_angle)*ZZ
 
-    k0 = 2.0*np.pi/wavelength
     inv_tau2 = 1./tt/tt
     inv_w_2 = 1.0/(w0*w0)
     exp_arg = - (X*X)*inv_w_2 - inv_tau2 / c/c * (Z-T*c)*(Z-T*c)
