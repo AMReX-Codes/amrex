@@ -68,8 +68,12 @@ class Species(picmistandard.PICMI_Species):
         else:
             pywarpx.particles.species_names += ' ' + self.name
 
-        self.species = pywarpx.Bucket.Bucket(self.name, mass=self.mass, charge=self.charge,
-                        injection_style = 'python', initialize_self_fields=int(initialize_self_fields))
+        self.species = pywarpx.Bucket.Bucket(self.name,
+                                             mass = self.mass,
+                                             charge = self.charge,
+                                             injection_style = 'python',
+                                             initialize_self_fields = int(initialize_self_fields),
+                                             plot_vars = set())
         pywarpx.Particles.particles_list.append(self.species)
 
         if self.initial_distribution is not None:
@@ -675,9 +679,36 @@ class ParticleDiagnostic(picmistandard.PICMI_ParticleDiagnostic):
         pywarpx.amr.check_consistency('plot_int', self.period, 'The period must be the same for all simulation frame diagnostics')
         pywarpx.amr.plot_int = self.period
 
+        plot_vars = set()
         for dataname in self.data_list:
-            if dataname in ['part_per_cell', 'part_per_grid', 'part_per_proc']:
+            if dataname == 'position':
+                # --- The positions are alway written out anyway
+                pass
+            elif dataname == 'momentum':
+                plot_vars.add('ux')
+                plot_vars.add('uy')
+                plot_vars.add('uz')
+            elif dataname == 'weighting':
+                plot_vars.add('w')
+            elif dataname == 'fields':
+                plot_vars.add('Ex')
+                plot_vars.add('Ey')
+                plot_vars.add('Ez')
+                plot_vars.add('Bx')
+                plot_vars.add('By')
+                plot_vars.add('Bz')
+            elif dataname in ['ux', 'uy', 'uz', 'Ex', 'Ey', 'Ez', 'Bx', 'By', 'Bz']:
+                plot_vars.add(dataname)
+            elif dataname in ['part_per_cell', 'part_per_grid', 'part_per_proc']:
                 pywarpx.warpx.add_field_to_plot(dataname)
+
+        if plot_vars:
+            species = self.species
+            if not np.iterable(species):
+                species = [species]
+            for specie in species:
+                for var in plot_vars:
+                    specie.species.plot_vars.add(var)
 
         if self.write_dir is not None:
             plot_file = self.write_dir + '/plotfiles/plt'
