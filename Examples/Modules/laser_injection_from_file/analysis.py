@@ -80,6 +80,11 @@ def gauss_env(T,XX,ZZ):
     return E_max * np.real(np.exp(exp_arg))
 
 def write_file(fname, x, y, t, E):
+    """ For a given filename fname, space coordinates x and y, time coordinate t
+    and field E, write a WarpX-compatible input binary file containing the
+    profile of the laser pulse
+    """
+
     with open(fname, 'wb') as file:
         flag_unif = 0
         file.write(flag_unif.to_bytes(1, byteorder='little'))
@@ -93,6 +98,12 @@ def write_file(fname, x, y, t, E):
 
 
 def write_file_unf(fname, x, y, t, E):
+    """ For a given filename fname, space coordinates x and y, time coordinate t
+    and field E, write a WarpX-compatible input binary file containing the
+    profile of the laser pulse. This function should be used in the case
+    of a uniform spatio-temporal mesh
+    """
+
     with open(fname, 'wb') as file:
         flag_unif = 1
         file.write(flag_unif.to_bytes(1, byteorder='little'))
@@ -103,10 +114,12 @@ def write_file_unf(fname, x, y, t, E):
         file.write(t[-1].tobytes())
         file.write(x[0].tobytes())
         file.write(x[-1].tobytes())
-        file.write(y[0].tobytes())
-        file.write(y[-1].tobytes())
+        if len(y) == 1 :
+            file.write(y[0].tobytes())
+        else :
+            file.write(y[0].tobytes())
+            file.write(y[-1].tobytes())
         file.write(E.tobytes())
-
 
 def create_gaussian_2d():
    T, X, Y = np.meshgrid(tcoords, xcoords, np.array([0.0]), indexing='ij')
