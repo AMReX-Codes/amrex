@@ -27,7 +27,7 @@ bool WriteBinaryDataOnFile(std::string filename, const amrex::Vector<char>& data
 
 namespace WarpXUtilAlgo{
 
-/* \brief Returns a pointer to the first element in the range [first, last) that is greater than val
+/** \brief Returns a pointer to the first element in the range [first, last) that is greater than val
  *
  * A re-implementation of the upper_bound algorithm suitable for GPU kernels.
  *
@@ -56,7 +56,7 @@ const T* upper_bound(const T* first, const T* last, const T& val)
         return first;
 }
 
-/* \brief Performs a linear interpolation
+/** \brief Performs a linear interpolation
  *
  * Performs a linear interpolation at x given the 2 points
  * (x0, f0) and (x1, f1)
@@ -67,7 +67,7 @@ T linear_interp(T x0, T x1, T f0, T f1, T x)
     return ((x1-x)*f0 + (x-x0)*f1)/(x1-x0);
 }
 
-/* \brief Performs a bilinear interpolation
+/** \brief Performs a bilinear interpolation
  *
  * Performs a bilinear interpolation at (x,y) given the 4 points
  * (x0, y0, f00), (x0, y1, f01), (x1, y0, f10), (x1, y1, f11).
@@ -80,7 +80,7 @@ T bilinear_interp(T x0, T x1, T y0, T y1, T f00, T f01, T f10, T f11, T x, T y)
     return linear_interp(y0, y1, fx0, fx1, y);
 }
 
-/* \brief Performs a trilinear interpolation
+/** \brief Performs a trilinear interpolation
  *
  * Performs a trilinear interpolation at (x,y,z) given the 8 points
  * (x0, y0, z0, f000), (x0, y0, z1, f001), (x0, y1, z0, f010), (x0, y1, z1, f011),

@@ -67,7 +67,7 @@ public:
      * Some laser profiles might need to perform an "update" operation per
      * time step.
      *
-     * @param[in] t simulation time (seconds)
+     * @param[in] t Current physical time in the simulation (seconds)
      */
     virtual void
     update (
