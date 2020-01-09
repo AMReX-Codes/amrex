@@ -173,6 +173,7 @@ FromTXYEFileLaserProfile::parse_txye_file(std::string txye_file_name)
         m_params.t_coords = Gpu::ManagedVector<amrex::Real>(buf_t.size());
         m_params.x_coords = Gpu::ManagedVector<amrex::Real>(buf_x.size());
         m_params.y_coords = Gpu::ManagedVector<amrex::Real>(buf_y.size());
+        // Convert from double to amrex::Real
         std::transform(buf_t.begin(), buf_t.end(), m_params.t_coords.begin(),
             [](auto x) {return static_cast<amrex::Real>(x);} );
         std::transform(buf_x.begin(), buf_x.end(), m_params.x_coords.begin(),
