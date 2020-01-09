@@ -29,6 +29,12 @@ namespace amrex
     bool ProperlyNested (const IntVect& ratio, const IntVect& blockint_factor, int ngrow,
 			 const IndexType& boxType, Interpolater* mapper);
 
+    void FillPatchSingleLevel (MultiFab& mf, IntVect const& nghost, Real time,
+			       const Vector<MultiFab*>& smf, const Vector<Real>& stime,
+			       int scomp, int dcomp, int ncomp,
+			       const Geometry& geom,
+                               PhysBCFunctBase& physbcf, int bcfcomp);
+
     void FillPatchSingleLevel (MultiFab& mf, Real time,
 			       const Vector<MultiFab*>& smf, const Vector<Real>& stime,
 			       int scomp, int dcomp, int ncomp,

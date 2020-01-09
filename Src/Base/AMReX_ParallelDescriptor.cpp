@@ -46,6 +46,12 @@ namespace amrex {
 
 namespace ParallelDescriptor
 {
+#ifdef AMREX_USE_MPI
+    template <> MPI_Datatype Mpi_typemap<IntVect>::type();
+    template <> MPI_Datatype Mpi_typemap<IndexType>::type();
+    template <> MPI_Datatype Mpi_typemap<Box>::type();
+#endif
+
 #ifdef AMREX_USE_GPU
     int use_gpu_aware_mpi = false;
 #else
@@ -307,6 +313,13 @@ ParallelDescriptor::StartParallel (int*    argc,
     }
 
     ParallelContext::push(m_comm);
+
+    // Create these types outside OMP parallel region
+    auto t1 = Mpi_typemap<IntVect>::type();
+    auto t2 = Mpi_typemap<IndexType>::type();
+    auto t3 = Mpi_typemap<Box>::type();
+    auto t4 = Mpi_typemap<ParallelDescriptor::lull_t>::type();
+    amrex::ignore_unused(t1,t2,t3,t4);
 
     // ---- find the maximum value for a tag
     int flag(0), *p;
@@ -1572,6 +1585,19 @@ MPI_Datatype
 ParallelDescriptor::Mpi_typemap<double>::type ()
 {
     return  MPI_DOUBLE;
+}
+
+template <>
+MPI_Datatype
+ParallelDescriptor::Mpi_typemap<ParallelDescriptor::lull_t>::type ()
+{
+    static MPI_Datatype mine = MPI_DATATYPE_NULL;
+    if (mine == MPI_DATATYPE_NULL)
+    {
+        BL_MPI_REQUIRE( MPI_Type_contiguous(sizeof(lull_t), MPI_CHAR, &mine) );
+        BL_MPI_REQUIRE( MPI_Type_commit(&mine) );
+    }
+    return mine;
 }
 
 void

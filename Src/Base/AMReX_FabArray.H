@@ -722,12 +722,12 @@ public:
 
     void FB_pack_send_buffer_cuda_graph (const FB& TheFB, int scomp, int ncomp,
                                          Vector<char*>& send_data,
-                                         Vector<int> const& send_size,
+                                         Vector<std::size_t> const& send_size,
                                          Vector<const CopyComTagsContainer*> const& send_cctc);
 
     void FB_unpack_recv_buffer_cuda_graph (const FB& TheFB, int dcomp, int ncomp,
                                            Vector<char*> const& recv_data,
-                                           Vector<int> const& recv_size,
+                                           Vector<std::size_t> const& recv_size,
                                            Vector<const CopyComTagsContainer*> const& recv_cctc,
                                            bool is_thread_safe);
 
@@ -735,12 +735,12 @@ public:
 
     static void pack_send_buffer_gpu (FabArray<FAB> const& src, int scomp, int ncomp,
                                       Vector<char*>& send_data,
-                                      Vector<int> const& send_size,
+                                      Vector<std::size_t> const& send_size,
                                       Vector<const CopyComTagsContainer*> const& send_cctc);
 
     static void unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
                                         Vector<char*> const& recv_data,
-                                        Vector<int> const& recv_size,
+                                        Vector<std::size_t> const& recv_size,
                                         Vector<const CopyComTagsContainer*> const& recv_cctc,
                                         CpOp op, bool is_thread_safe);
 
@@ -748,12 +748,12 @@ public:
 
     static void pack_send_buffer_cpu (FabArray<FAB> const& src, int scomp, int ncomp,
                                       Vector<char*>& send_data,
-                                      Vector<int> const& send_size,
+                                      Vector<std::size_t> const& send_size,
                                       Vector<const CopyComTagsContainer*> const& send_cctc);
 
     static void unpack_recv_buffer_cpu (FabArray<FAB>& dst, int dcomp, int ncomp,
                                         Vector<char*> const& recv_data,
-                                        Vector<int> const& recv_size,
+                                        Vector<std::size_t> const& recv_size,
                                         Vector<const CopyComTagsContainer*> const& recv_cctc,
                                         CpOp op, bool is_thread_safe);
 
@@ -837,12 +837,13 @@ private:
     void PostRcvs (const MapOfCopyComTagContainers&       m_RcvTags,
                    char*&                                 the_recv_data,
                    Vector<char*>&                         recv_data,
-                   Vector<int>&                           recv_size,
+                   Vector<std::size_t>&                   recv_size,
                    Vector<int>&                           recv_from,
                    Vector<MPI_Request>&                   recv_reqs,
                    int                                    icomp,
                    int                                    ncomp,
                    int                                    SeqNum);
+
 #endif
 
 public:
@@ -857,7 +858,7 @@ public:
     char*               fb_the_send_data = nullptr;
     Vector<int>         fb_recv_from;
     Vector<char*>       fb_recv_data;
-    Vector<int>         fb_recv_size;
+    Vector<std::size_t> fb_recv_size;
     Vector<MPI_Request> fb_recv_reqs;
     Vector<MPI_Status>  fb_recv_stat;
     //
