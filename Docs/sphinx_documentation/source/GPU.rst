@@ -637,7 +637,7 @@ be used to extend the life of the data.  For example,
       Elixir tmp_eli = tmp_fab.elixir();
       Array4<Real> const& tmp_arr = tmp_fab.array();
 
-      // gpu kerenls using the temporary
+      // GPU kernels using the temporary
     }
 
 Without :cpp:`Elixir`, the code above will likely cause memory errors
