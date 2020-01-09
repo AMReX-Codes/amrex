@@ -43,8 +43,7 @@ public:
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void setCovered () noexcept {
-        flag &= zero_lower_mask;
-        flag |= covered_bits;
+        flag = covered_value;
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE

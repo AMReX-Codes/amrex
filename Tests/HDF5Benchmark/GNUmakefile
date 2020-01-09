@@ -26,10 +26,10 @@ include $(AMREX_HOME)/Src/Particle/Make.package
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 
-HDF5_HOME   = /home/khl7265/.local
+# HDF5_HOME   = /home/khl7265/.local
 USE_HDF5 = TRUE
 ifeq ($(USE_HDF5), TRUE)
-DEFINES += -DBL_HDF5 
+DEFINES += -DAMREX_USE_HDF5
 INCLUDE_LOCATIONS += $(HDF5_HOME)/include
 LIBRARIES         += -lhdf5 -lz -ldl -L$(HDF5_HOME)/lib
 endif

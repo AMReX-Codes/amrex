@@ -1383,7 +1383,6 @@ template <class T>
 void
 BaseFab<T>::define ()
 {
-    AMREX_ASSERT(this->nvar > 0);
     AMREX_ASSERT(this->dptr == 0);
     AMREX_ASSERT(this->domain.numPts() > 0);
 #if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
@@ -1391,6 +1390,9 @@ BaseFab<T>::define ()
 #else
     AMREX_ASSERT(LONG_MAX/this->nvar > this->domain.numPts());
 #endif
+
+    AMREX_ASSERT(this->nvar >= 0);
+    if (this->nvar == 0) return;
 
     this->truesize  = this->nvar*this->domain.numPts();
     this->ptr_owner = true;
