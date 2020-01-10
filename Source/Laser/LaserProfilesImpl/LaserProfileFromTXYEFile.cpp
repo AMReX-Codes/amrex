@@ -227,8 +227,8 @@ FromTXYEFileLaserProfile::find_left_right_time_indices(amrex::Real t) const
     if(m_params.is_grid_uniform){
         const auto t_min = m_params.t_coords.front();
         const auto t_max = m_params.t_coords.back();
-        const int temp_idx_t_right =
-            ceil( (m_params.nt-1)*(t-t_min)/(t_max-t_min));
+        const auto temp_idx_t_right = static_cast<int>(
+            ceil( (m_params.nt-1)*(t-t_min)/(t_max-t_min)));
         idx_t_right = max(min(temp_idx_t_right, m_params.nt-1),1);
     }
     else{
