@@ -14,11 +14,23 @@ class FiniteDifferenceSolver
         using ConstVectorField = std::array< std::unique_ptr<amrex::MultiFab const>, 3 >;
 
         // Constructor
-        void FiniteDifferenceSolver( std::array<Real,3> dx );
+        void FiniteDifferenceSolver::FiniteDifferenceSolver ( std::array<Real,3> cell_size ) {
+            // Select algorithm (The choice of algorithm is a runtime option,
+            // but we compile code for each algorithm, using templates)
+            if (fdtd_algo == MaxwellSolverAlgo::Yee){
+                YeeAlgorithm::InitializeStencilCoefficients( cell_size,
+                    stencil_coefs_x, stencil_coefs_y, stencil_coefs_z );
+            } else if (fdtd_algo == MaxwellSolverAlgo::CKC) {
+                CKCAlgorithm::InitializeStencilCoefficients( cell_size,
+                    stencil_coefs_x, stencil_coefs_y, stencil_coefs_z );
+            } else {
+                amrex::Abort("Unknown algorithm");
+            }
+        };
 
-        void EvolveB( VectorField Bfield,
-                    ConstVectorField Efield,
-                    amrex::Real dt ) const;
+        void EvolveB ( VectorField Bfield,
+                       ConstVectorField Efield,
+                       amrex::Real dt ) const;
 
         };
 
@@ -31,7 +43,9 @@ class FiniteDifferenceSolver
         amrex::Gpu::ManagedVector<amrex::Real> stencil_coefs_z;
 
         template< typename fdtd_algo >
-        void EvolveB
+        void EvolveBwithAlgo ( VectorField Bfield,
+                               ConstVectorField Efield,
+                               amrex::Real dt ) const;
 
 };
 

@@ -6,18 +6,18 @@ FiniteDifferenceSolver::EvolveB ( VectorField Bfield,
     // Select algorithm (The choice of algorithm is a runtime option,
     // but we compile code for each algorithm, using templates)
     if (fdtd_algo == MaxwellSolverAlgo::Yee){
-        EvolveB <YeeAlgorithm> ( Bfield, Efield, dt );
+        EvolveBwithAlgo <YeeAlgorithm> ( Bfield, Efield, dt );
     } else if (fdtd_algo == MaxwellSolverAlgo::CKC) {
-        EvolveB <CKCAlgorithm> ( Bfield, Efield, dt );
+        EvolveBwithAlgo <CKCAlgorithm> ( Bfield, Efield, dt );
     } else {
         amrex::Abort("Unknown algorithm");
     }
 )
 
 template<typename algo>
-FiniteDifferenceSolver::EvolveB ( VectorField Bfield,
-                                 ConstVectorField Efield,
-                                 amrex::Real dt ) {
+FiniteDifferenceSolver::EvolveBwithAlgo ( VectorField Bfield,
+                                          ConstVectorField Efield,
+                                          amrex::Real dt ) {
 
     // Loop through the grids, and over the tiles within each grid
 #ifdef _OPENMP
