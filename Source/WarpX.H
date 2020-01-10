@@ -24,6 +24,7 @@
 #include <AMReX_LayoutData.H>
 #include <AMReX_Interpolater.H>
 #include <AMReX_FillPatchUtil.H>
+#include <WarpXParserWrapper.H>
 
 #ifdef _OPENMP
 #   include <omp.h>
@@ -48,35 +49,6 @@ enum struct PatchType : int
     fine,
     coarse
 };
-
-/**
- * \brief
- *  The ParserWrapper struct is constructed to safely use the GpuParser class
- *  that can essentially be though of as a raw pointer. The GpuParser does
- *  not have an explicit destructor and the AddPlasma subroutines handle the GpuParser
- *  in a safe way. The ParserWrapper struct is used to avoid memory leak
- *  in the EB parser functions.
- */
-struct ParserWrapper
-    : public amrex::Gpu::Managed
-{
-    ParserWrapper (WarpXParser const& a_parser) noexcept
-       : m_parser(a_parser) {}
-
-    ~ParserWrapper() {
-       m_parser.clear();
-    }
-
-    AMREX_GPU_HOST_DEVICE
-    amrex::Real
-    getField (amrex::Real x, amrex::Real y, amrex::Real z) const noexcept
-    {
-       return m_parser(x,y,z);
-    }
-
-    GpuParser m_parser;
-};
-
 
 class WarpX
     : public amrex::AmrCore
@@ -396,48 +368,51 @@ public:
     void computeB (amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& B,
                    const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& phi,
                    std::array<amrex::Real, 3> const beta = {{0,0,0}} ) const;
-/**
- * \brief
- *  This function initializes E, B, rho, and F, at all the levels
- *  of the multifab. rho and F are initialized with 0.
- *  The E and B fields are initialized using user-defined inputs.
- *  The initialization type is set using "B_ext_grid_init_style"
- *  and "E_ext_grid_init_style". The initialization style is set to "default"
- *  if not explicitly defined by the user, and the E and B fields are
- *  initialized with E_external_grid and B_external_grid, respectively, each with
- *  a default value of 0.
- *  If the initialization type for the E and B field is "constant",
- *  then, the E and B fields at all the levels are initialized with
- *  user-defined values for E_external_grid and B_external_grid.
- *  If the initialization type for B-field is set to
- *  "parse_B_ext_grid_function", then, the parser is used to read
- *  Bx_external_grid_function(x,y,z), By_external_grid_function(x,y,z),
- *  and Bz_external_grid_function(x,y,z).
- *  Similarly, if the E-field initialization type is set to
- *  "parse_E_ext_grid_function", then, the parser is used to read
- *  Ex_external_grid_function(x,y,z), Ey_external_grid_function(x,y,z),
- *  and Ex_external_grid_function(x,y,z). The parser for the E and B
- *  initialization assumes that the function has three independent
- *  variables, at max, namely, x, y, z. However, any number of constants
- *  can be used in the function used to define the E and B fields on the grid.
- */
+
+protected:
+
+    /**
+     * \brief
+     *  This function initializes E, B, rho, and F, at all the levels
+     *  of the multifab. rho and F are initialized with 0.
+     *  The E and B fields are initialized using user-defined inputs.
+     *  The initialization type is set using "B_ext_grid_init_style"
+     *  and "E_ext_grid_init_style". The initialization style is set to "default"
+     *  if not explicitly defined by the user, and the E and B fields are
+     *  initialized with E_external_grid and B_external_grid, respectively, each with
+     *  a default value of 0.
+     *  If the initialization type for the E and B field is "constant",
+     *  then, the E and B fields at all the levels are initialized with
+     *  user-defined values for E_external_grid and B_external_grid.
+     *  If the initialization type for B-field is set to
+     *  "parse_B_ext_grid_function", then, the parser is used to read
+     *  Bx_external_grid_function(x,y,z), By_external_grid_function(x,y,z),
+     *  and Bz_external_grid_function(x,y,z).
+     *  Similarly, if the E-field initialization type is set to
+     *  "parse_E_ext_grid_function", then, the parser is used to read
+     *  Ex_external_grid_function(x,y,z), Ey_external_grid_function(x,y,z),
+     *  and Ex_external_grid_function(x,y,z). The parser for the E and B
+     *  initialization assumes that the function has three independent
+     *  variables, at max, namely, x, y, z. However, any number of constants
+     *  can be used in the function used to define the E and B fields on the grid.
+     */
     void InitLevelData (int lev, amrex::Real time);
 
-/**
- * \brief
- * This function initializes the E and B fields on each level
- * using the parser and the user-defined function for the external fields.
- * The subroutine will parse the x_/y_z_external_grid_function and
- * then, the B or E multifab is initialized based on the (x,y,z) position
- * on the staggered yee-grid or cell-centered grid.
- */
+    /**
+     * \brief
+     * This function initializes the E and B fields on each level
+     * using the parser and the user-defined function for the external fields.
+     * The subroutine will parse the x_/y_z_external_grid_function and
+     * then, the B or E multifab is initialized based on the (x,y,z) position
+     * on the staggered yee-grid or cell-centered grid.
+     */
     void InitializeExternalFieldsOnGridUsingParser (
          amrex::MultiFab *mfx, amrex::MultiFab *mfy, amrex::MultiFab *mfz,
          ParserWrapper *xfield_parser, ParserWrapper *yfield_parser,
          ParserWrapper *zfield_parser, amrex::IntVect x_nodal_flag,
          amrex::IntVect y_nodal_flag, amrex::IntVect z_nodal_flag,
          const int lev);
-protected:
+
 
     //! Tagging cells for refinement
     virtual void ErrorEst (int lev, amrex::TagBoxArray& tags, amrex::Real time, int /*ngrow*/) final;
