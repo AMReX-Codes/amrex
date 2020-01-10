@@ -1,0 +1,46 @@
+#################################
+####### GENERAL PARAMETERS ######
+#################################
+max_step = 400
+amr.n_cell =  672 672
+amr.plot_int = 50
+amr.max_grid_size = 512
+amr.blocking_factor = 32
+amr.max_level = 0
+geometry.coord_sys   = 0                  # 0: Cartesian
+geometry.is_periodic = 1 1 1     # Is periodic?
+geometry.prob_lo     = -25.e-6  -25.0e-6     # physical domain
+geometry.prob_hi     =  25.e-6   25.e-6
+warpx.verbose = 1
+warpx.serialize_ics = 1
+
+#################################
+############ NUMERICS ###########
+#################################
+interpolation.nox = 3
+interpolation.noy = 3
+interpolation.noz = 3
+warpx.cfl = 0.98
+warpx.do_dynamic_scheduling = 0
+warpx.load_balance_int = -1
+warpx.use_filter = 0
+algo.maxwell_fdtd_solver = ckc
+
+#################################
+############ PLASMA #############
+#################################
+particles.nspecies = 0
+
+#################################
+############# LASER #############
+#################################
+lasers.nlasers      = 1
+lasers.names        = txye_laser
+txye_laser.position     = 0. 0. 0. # This point is on the laser plane
+txye_laser.direction    = 1. 0. 1.     # The plane normal direction
+txye_laser.polarization = 0. 1. 0.     # The main polarization vector
+txye_laser.e_max        = 1.e12        # Maximum amplitude of the laser field (in V/m)
+txye_laser.wavelength = 1.0e-6         # The wavelength of the laser (in meters)
+txye_laser.profile      = from_txye_file
+txye_laser.txye_file_name = "gauss_2d_unf.txye"
+txye_laser.time_chunk_size = 50
