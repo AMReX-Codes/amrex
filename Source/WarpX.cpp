@@ -350,14 +350,14 @@ WarpX::ReadParameters ()
         // then the values for the external B on particles must
         // be provided in the input file.
         if (B_ext_particle_s == "constant")
-            pp.getarr("B_external_particle", B_external_particle);    
-        
+            pp.getarr("B_external_particle", B_external_particle);
+
         // if the input string for E_external on particles is "constant"
         // then the values for the external E on particles must
         // be provided in the input file.
         if (E_ext_particle_s == "constant")
-            pp.getarr("E_external_particle", E_external_particle);    
-       
+            pp.getarr("E_external_particle", E_external_particle);
+
         if (B_ext_particle_s == "parse_b_ext_particle_function") {
            // store the mathematical expression as string
            Store_parserString(pp, "Bx_external_particle_function(x,y,z)",
@@ -383,14 +383,14 @@ WarpX::ReadParameters ()
                                       str_Ey_ext_particle_function);
            Store_parserString(pp, "Ez_external_particle_function(x,y,z)",
                                       str_Ez_ext_particle_function);
-          
+
            Ex_particle_parser.reset(new ParserWrapper(
                                     makeParser(str_Ex_ext_particle_function)));
            Ey_particle_parser.reset(new ParserWrapper(
                                     makeParser(str_Ey_ext_particle_function)));
            Ez_particle_parser.reset(new ParserWrapper(
                                     makeParser(str_Ez_ext_particle_function)));
-        } 
+        }
 
         pp.query("do_moving_window", do_moving_window);
         if (do_moving_window)

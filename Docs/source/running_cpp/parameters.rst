@@ -698,7 +698,7 @@ Laser initialization
      the input file.
      To parse a mathematical function for the external B-field, use the option
      ``parse_B_ext_particle_function``. This option requires additional parameters
-     in the input file, namely, 
+     in the input file, namely,
      ``warpx.Bx_external_particle_function(x,y,z)``,
      ``warpx.By_external_particle_function(x,y,z)``,
      ``warpx.Bz_external_particle_function(x,y,z)`` to apply the external B-field

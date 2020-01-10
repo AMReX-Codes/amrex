@@ -116,13 +116,13 @@ public:
 
     // EV parser for particles -- to delete comment
     // Parser for B_external on the particle
-    static std::string str_Bx_ext_particle_function; 
-    static std::string str_By_ext_particle_function; 
-    static std::string str_Bz_ext_particle_function; 
+    static std::string str_Bx_ext_particle_function;
+    static std::string str_By_ext_particle_function;
+    static std::string str_Bz_ext_particle_function;
     // Parser for E_external on the particle
-    static std::string str_Ex_ext_particle_function; 
-    static std::string str_Ey_ext_particle_function; 
-    static std::string str_Ez_ext_particle_function; 
+    static std::string str_Ex_ext_particle_function;
+    static std::string str_Ey_ext_particle_function;
+    static std::string str_Ez_ext_particle_function;
 
     // -- to delete comment
     // ParserWrapper for B_external on the particle
