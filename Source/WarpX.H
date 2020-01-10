@@ -360,7 +360,7 @@ public:
          ParserWrapper *zfield_parser, amrex::IntVect x_nodal_flag,
          amrex::IntVect y_nodal_flag, amrex::IntVect z_nodal_flag,
          const int lev);
-    
+
 protected:
 
     /**
