@@ -2,6 +2,7 @@
 #define AMREX_GPUCOMPLEX_H_
 
 #include <cmath>
+#include <iostream>
 
 namespace amrex {
 
@@ -95,9 +96,20 @@ struct GpuComplex
         m_imag = (m_imag * a_z.real() - m_real * a_z.imag()) / n;
         m_real = r / n;
         return *this;
-    }    
+    }
+
+    template <typename U>
+    friend std::ostream & operator<< (std::ostream &out, const GpuComplex<U>& c);
 };
 
+template <typename U>
+std::ostream& operator<< (std::ostream& out, const GpuComplex<U>& c)
+{
+    out << c.m_real;
+    out << " + " << c.m_imag << "i";
+    return out;
+} 
+    
 template<typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 GpuComplex<T> operator+ (const GpuComplex<T>& a_x) { return a_x; }
