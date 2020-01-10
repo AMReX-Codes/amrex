@@ -615,9 +615,10 @@ WarpX::computeMaxStepBoostAccelerator(const amrex::Geometry& a_geom){
     // Divide by dt, and update value of max_step.
     int computed_max_step;
     if (do_subcycling){
-        computed_max_step = interaction_time_boost/dt[0];
+        computed_max_step = static_cast<int>(interaction_time_boost/dt[0]);
     } else {
-        computed_max_step = interaction_time_boost/dt[maxLevel()];
+        computed_max_step =
+            static_cast<int>(interaction_time_boost/dt[maxLevel()]);
     }
     max_step = computed_max_step;
     Print()<<"max_step computed in computeMaxStepBoostAccelerator: "
