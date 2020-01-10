@@ -28,6 +28,7 @@ warpx.verbose = 1
 # Algorithms
 algo.current_deposition = direct
 algo.field_gathering = energy-conserving
+warpx.do_pml = 0
 
 # Interpolation
 interpolation.nox = 1
