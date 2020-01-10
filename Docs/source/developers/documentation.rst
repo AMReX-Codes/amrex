@@ -3,9 +3,26 @@
 Documentation
 =============
 
-.. warning::
+Basic information and guidelines on how to contribute to the project can be found in ``CONTRIBUTING.md`` .
 
-   Needs info on how to install all pieces to compile the doc! Some basic info is in the ``CONTRIBUTING.md`` .
+How to compile the documentation
+--------------------------------
+
+Compilation requires `Sphinx <http://www.sphinx-doc.org/en/master/index.html>`_, the Sphinx theme `Read the Docs <https://sphinx-rtd-theme.readthedocs.io/en/stable/>`_, `Breathe <https://breathe.readthedocs.io/en/latest/>`_ (the reStructuredText (RST) and Sphinx bridge to Doxygen) and the Sphinx extension `Exhale <https://exhale.readthedocs.io/en/latest/>`_. These are all distributed on PyPI and can be installed with ``pip``:
+
+.. code-block:: bash
+
+   pip install -U sphinx
+   pip install sphinx-rtd-theme
+   pip install breathe
+   pip install exhale
+
+Please note that Sphinx requires at least Python 3.5 to run. To compile the documentation, execute the following commands in the directory ``Docs/``:
+
+.. code-block:: bash
+
+   make Doxygen-build
+   make html
 
 Doxygen documentation
 ---------------------
