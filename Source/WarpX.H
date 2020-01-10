@@ -346,6 +346,21 @@ public:
                    const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& phi,
                    std::array<amrex::Real, 3> const beta = {{0,0,0}} ) const;
 
+    /**
+     * \brief
+     * This function initializes the E and B fields on each level
+     * using the parser and the user-defined function for the external fields.
+     * The subroutine will parse the x_/y_z_external_grid_function and
+     * then, the B or E multifab is initialized based on the (x,y,z) position
+     * on the staggered yee-grid or cell-centered grid.
+     */
+    void InitializeExternalFieldsOnGridUsingParser (
+         amrex::MultiFab *mfx, amrex::MultiFab *mfy, amrex::MultiFab *mfz,
+         ParserWrapper *xfield_parser, ParserWrapper *yfield_parser,
+         ParserWrapper *zfield_parser, amrex::IntVect x_nodal_flag,
+         amrex::IntVect y_nodal_flag, amrex::IntVect z_nodal_flag,
+         const int lev);
+
 protected:
 
     /**
@@ -374,22 +389,6 @@ protected:
      *  can be used in the function used to define the E and B fields on the grid.
      */
     void InitLevelData (int lev, amrex::Real time);
-
-    /**
-     * \brief
-     * This function initializes the E and B fields on each level
-     * using the parser and the user-defined function for the external fields.
-     * The subroutine will parse the x_/y_z_external_grid_function and
-     * then, the B or E multifab is initialized based on the (x,y,z) position
-     * on the staggered yee-grid or cell-centered grid.
-     */
-    void InitializeExternalFieldsOnGridUsingParser (
-         amrex::MultiFab *mfx, amrex::MultiFab *mfy, amrex::MultiFab *mfz,
-         ParserWrapper *xfield_parser, ParserWrapper *yfield_parser,
-         ParserWrapper *zfield_parser, amrex::IntVect x_nodal_flag,
-         amrex::IntVect y_nodal_flag, amrex::IntVect z_nodal_flag,
-         const int lev);
-
 
     //! Tagging cells for refinement
     virtual void ErrorEst (int lev, amrex::TagBoxArray& tags, amrex::Real time, int /*ngrow*/) final;
