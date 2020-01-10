@@ -32,6 +32,9 @@ Vector<Real> WarpX::B_external_grid(3, 0.0);
 
 std::string WarpX::B_ext_grid_s = "default";
 std::string WarpX::E_ext_grid_s = "default";
+//to delete comment
+std::string WarpX::B_ext_particle_s = "default";
+std::string WarpX::E_ext_particle_s = "default";
 
 // Parser for B_external on the grid
 std::string WarpX::str_Bx_ext_grid_function;
@@ -41,6 +44,17 @@ std::string WarpX::str_Bz_ext_grid_function;
 std::string WarpX::str_Ex_ext_grid_function;
 std::string WarpX::str_Ey_ext_grid_function;
 std::string WarpX::str_Ez_ext_grid_function;
+
+// EV parser for particles -- to delete comment
+// Parser for B_external on the particle
+std::string WarpX::str_Bx_ext_particle_function;
+std::string WarpX::str_By_ext_particle_function;
+std::string WarpX::str_Bz_ext_particle_function;
+// Parser for E_external on the particle
+std::string WarpX::str_Ex_ext_particle_function;
+std::string WarpX::str_Ey_ext_particle_function;
+std::string WarpX::str_Ez_ext_particle_function;
+
 
 int WarpX::do_moving_window = 0;
 int WarpX::moving_window_dir = -1;
@@ -318,8 +332,65 @@ WarpX::ReadParameters ()
             pp.query("zmax_plasma_to_compute_max_step",
                       zmax_plasma_to_compute_max_step);
 
-        pp.queryarr("B_external_particle", B_external_particle);
-        pp.queryarr("E_external_particle", E_external_particle);
+        // -- to delete comment
+        // default values of E_external_particle and B_external_particle
+        // are used to set the E and B field when "constant" or "parser"
+        // is not explicitly used in the input
+        pp.query("B_ext_particle_init_style", B_ext_particle_s);
+        std::transform(B_ext_particle_s.begin(),
+                       B_ext_particle_s.end(),
+                       B_ext_particle_s.begin(),
+                       ::tolower);
+        pp.query("E_ext_particle_init_style", E_ext_particle_s);
+        std::transform(E_ext_particle_s.begin(),
+                       E_ext_particle_s.end(),
+                       E_ext_particle_s.begin(),
+                       ::tolower);
+        // if the input string for B_external on particles is "constant"
+        // then the values for the external B on particles must
+        // be provided in the input file.
+        if (B_ext_particle_s == "constant")
+            pp.getarr("B_external_particle", B_external_particle);	
+        
+        // if the input string for E_external on particles is "constant"
+        // then the values for the external E on particles must
+        // be provided in the input file.
+        if (E_ext_particle_s == "constant")
+            pp.getarr("E_external_particle", E_external_particle);	
+       
+        if (B_ext_particle_s == "parse_b_ext_particle_function") {
+           // store the mathematical expression as string
+           Store_parserString(pp, "Bx_external_particle_function(x,y,z)",
+                                      str_Bx_ext_particle_function);
+           Store_parserString(pp, "By_external_particle_function(x,y,z)",
+                                      str_By_ext_particle_function);
+           Store_parserString(pp, "Bz_external_particle_function(x,y,z)",
+                                      str_Bz_ext_particle_function);
+
+           Bx_particle_parser.reset(new ParserWrapper(
+                                    makeParser(str_Bx_ext_particle_function)));
+           By_particle_parser.reset(new ParserWrapper(
+                                    makeParser(str_By_ext_particle_function)));
+           Bz_particle_parser.reset(new ParserWrapper(
+                                    makeParser(str_Bz_ext_particle_function)));
+        }
+
+        if (E_ext_particle_s == "parse_e_ext_particle_function") {
+
+           Store_parserString(pp, "Ex_external_particle_function(x,y,z)",
+                                      str_Ex_ext_particle_function);
+           Store_parserString(pp, "Ey_external_particle_function(x,y,z)",
+                                      str_Ey_ext_particle_function);
+           Store_parserString(pp, "Ez_external_particle_function(x,y,z)",
+                                      str_Ez_ext_particle_function);
+          
+           Ex_particle_parser.reset(new ParserWrapper(
+                                    makeParser(str_Ex_ext_particle_function)));
+           Ey_particle_parser.reset(new ParserWrapper(
+                                    makeParser(str_Ey_ext_particle_function)));
+           Ez_particle_parser.reset(new ParserWrapper(
+                                    makeParser(str_Ez_ext_particle_function)));
+        } 
 
         pp.query("do_moving_window", do_moving_window);
         if (do_moving_window)

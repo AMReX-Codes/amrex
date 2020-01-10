@@ -117,9 +117,12 @@ public:
     static amrex::Vector<amrex::Real> E_external_grid;
     static amrex::Vector<amrex::Real> B_external_grid;
 
-    // Initialization Type for External E and B
+    // Initialization Type for External E and B on grid and particles
     static std::string B_ext_grid_s;
     static std::string E_ext_grid_s;
+    // EB parser for particles -- to delete comment
+    static std::string B_ext_particle_s;
+    static std::string E_ext_particle_s;
 
     // Parser for B_external on the grid
     static std::string str_Bx_ext_grid_function;
@@ -138,6 +141,26 @@ public:
     std::unique_ptr<ParserWrapper> Exfield_parser;
     std::unique_ptr<ParserWrapper> Eyfield_parser;
     std::unique_ptr<ParserWrapper> Ezfield_parser;
+
+    // EV parser for particles -- to delete comment
+    // Parser for B_external on the particle
+    static std::string str_Bx_ext_particle_function; 
+    static std::string str_By_ext_particle_function; 
+    static std::string str_Bz_ext_particle_function; 
+    // Parser for E_external on the particle
+    static std::string str_Ex_ext_particle_function; 
+    static std::string str_Ey_ext_particle_function; 
+    static std::string str_Ez_ext_particle_function; 
+
+    // -- to delete comment
+    // ParserWrapper for B_external on the particle
+    std::unique_ptr<ParserWrapper> Bx_particle_parser;
+    std::unique_ptr<ParserWrapper> By_particle_parser;
+    std::unique_ptr<ParserWrapper> Bz_particle_parser;
+    // ParserWrapper for E_external on the particle
+    std::unique_ptr<ParserWrapper> Ex_particle_parser;
+    std::unique_ptr<ParserWrapper> Ey_particle_parser;
+    std::unique_ptr<ParserWrapper> Ez_particle_parser;
 
     // Algorithms
     static long current_deposition_algo;
