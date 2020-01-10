@@ -326,6 +326,7 @@ amrex::ResizeRandomSeed (int N)
     [=] AMREX_GPU_DEVICE
     {
         d_states_d_ptr = new_data;
+        d_mutex_d_ptr = d_mutex_h_ptr;
         gpu_nstates_d = N;
     });
 
