@@ -4,11 +4,11 @@ CEXE_sources += MultiReducedDiags.cpp
 CEXE_headers += ReducedDiags.H
 CEXE_sources += ReducedDiags.cpp
 
-CEXE_headers += ParticleMeanEnergy.H
-CEXE_sources += ParticleMeanEnergy.cpp
+CEXE_headers += ParticleEnergy.H
+CEXE_sources += ParticleEnergy.cpp
 
-CEXE_headers += FieldMeanEnergy.H
-CEXE_sources += FieldMeanEnergy.cpp
+CEXE_headers += FieldEnergy.H
+CEXE_sources += FieldEnergy.cpp
 
 INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/Diagnostics/ReducedDiags
 VPATH_LOCATIONS   += $(WARPX_HOME)/Source/Diagnostics/ReducedDiags

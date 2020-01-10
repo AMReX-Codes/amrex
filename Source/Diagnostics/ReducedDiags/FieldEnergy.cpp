@@ -1,4 +1,4 @@
-#include "FieldMeanEnergy.H"
+#include "FieldEnergy.H"
 #include "WarpX.H"
 #include "WarpXConst.H"
 #include "AMReX_REAL.H"
@@ -9,7 +9,7 @@
 using namespace amrex;
 
 /// constructor
-FieldMeanEnergy::FieldMeanEnergy (std::string rd_name)
+FieldEnergy::FieldEnergy (std::string rd_name)
 : ReducedDiags{rd_name}
 {
 
@@ -42,7 +42,7 @@ FieldMeanEnergy::FieldMeanEnergy (std::string rd_name)
 ///< end constructor
 
 /// function that computes field energy
-void FieldMeanEnergy::ComputeDiags (int step)
+void FieldEnergy::ComputeDiags (int step)
 {
 
     /// Judge if the diags should be done
@@ -67,51 +67,27 @@ void FieldMeanEnergy::ComputeDiags (int step)
     Geometry const & geom = warpx.Geom(0);
     auto domain_box = geom.Domain();
 #if (AMREX_SPACEDIM == 2)
-    long n1 = domain_box.length(0);
-    long n2 = domain_box.length(1);
-    long n1_extra = geom.isPeriodic(0) ? 0 : 1;
-    long n2_extra = geom.isPeriodic(1) ? 0 : 1;
-    long ex_num_points = n1*(n2+n2_extra);
-    long ey_num_points = (n1+n1_extra)*(n2+n2_extra);
-    long ez_num_points = (n1+n1_extra)*n2;
-    long bx_num_points = (n1+n1_extra)*n2;
-    long by_num_points = n1*n2;
-    long bz_num_points = n1*(n2+n2_extra);
+    auto dV = geom.CellSize(0) * geom.CellSize(1);
 #elif (AMREX_SPACEDIM == 3)
-    long nx = domain_box.length(0);
-    long ny = domain_box.length(1);
-    long nz = domain_box.length(2);
-    long nx_extra = geom.isPeriodic(0) ? 0 : 1;
-    long ny_extra = geom.isPeriodic(1) ? 0 : 1;
-    long nz_extra = geom.isPeriodic(2) ? 0 : 1;
-    long ex_num_points = nx*(ny+ny_extra)*(nz+nz_extra);
-    long ey_num_points = (nx+nx_extra)*ny*(nz+nz_extra);
-    long ez_num_points = (nx+nx_extra)*(ny+ny_extra)*nz;
-    long bx_num_points = (nx+nx_extra)*ny*nz;
-    long by_num_points = nx*(ny+ny_extra)*nz;
-    long bz_num_points = nx*ny*(nz+nz_extra);
+    auto dV = geom.CellSize(0) * geom.CellSize(1) * geom.CellSize(2);
 #endif
 
     /// compute E squared
     Real tmpx = Ex.norm2(0,geom.periodicity());
     Real tmpy = Ey.norm2(0,geom.periodicity());
     Real tmpz = Ez.norm2(0,geom.periodicity());
-    Real Es = tmpx*tmpx/Real(ex_num_points) +
-              tmpy*tmpy/Real(ey_num_points) +
-              tmpz*tmpz/Real(ez_num_points);
+    Real Es = tmpx*tmpx + tmpy*tmpy + tmpz*tmpz;
 
     /// compute B squared
     tmpx = Bx.norm2(0,geom.periodicity());
     tmpy = By.norm2(0,geom.periodicity());
     tmpz = Bz.norm2(0,geom.periodicity());
-    Real Bs = tmpx*tmpx/Real(bx_num_points) +
-              tmpy*tmpy/Real(by_num_points) +
-              tmpz*tmpz/Real(bz_num_points);
+    Real Bs = tmpx*tmpx + tmpy*tmpy + tmpz*tmpz;
 
     /// save data
-    m_data[1] = 0.5*Es*PhysConst::ep0;
-    m_data[2] = 0.5*Bs/PhysConst::mu0;
+    m_data[1] = 0.5 * Es * PhysConst::ep0 * dV;
+    m_data[2] = 0.5 * Bs / PhysConst::mu0 * dV;
     m_data[0] = m_data[1] + m_data[2];
 
 }
-///< end void FieldMeanEnergy::ComputeDiags
+///< end void FieldEnergy::ComputeDiags

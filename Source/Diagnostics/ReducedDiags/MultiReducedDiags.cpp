@@ -1,5 +1,5 @@
-#include "ParticleMeanEnergy.H"
-#include "FieldMeanEnergy.H"
+#include "ParticleEnergy.H"
+#include "FieldEnergy.H"
 #include "MultiReducedDiags.H"
 #include "AMReX_ParmParse.H"
 #include "AMReX_ParallelDescriptor.H"
@@ -32,15 +32,15 @@ MultiReducedDiags::MultiReducedDiags ()
         pp.query("type", rd_type);
 
         /// match diags
-        if (rd_type.compare("ParticleMeanEnergy") == 0)
+        if (rd_type.compare("ParticleEnergy") == 0)
         {
             m_multi_rd[i_rd].reset
-                ( new ParticleMeanEnergy(m_rd_names[i_rd]));
+                ( new ParticleEnergy(m_rd_names[i_rd]));
         }
-        else if (rd_type.compare("FieldMeanEnergy") == 0)
+        else if (rd_type.compare("FieldEnergy") == 0)
         {
             m_multi_rd[i_rd].reset
-                ( new FieldMeanEnergy(m_rd_names[i_rd]));
+                ( new FieldEnergy(m_rd_names[i_rd]));
         }
         else
         { Abort("No matching reduced diagnostics type found."); }

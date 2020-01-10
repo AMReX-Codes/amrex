@@ -15,7 +15,7 @@ class MultiReducedDiags
 {
 public:
 
-    /// Bool: whether or not reduced diagnostics are activated 
+    /// Bool: whether or not reduced diagnostics are activated
     int m_plot_rd = 0;
 
     /// names of reduced diagnostics

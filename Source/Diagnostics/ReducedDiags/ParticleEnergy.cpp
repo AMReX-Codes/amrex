@@ -1,4 +1,4 @@
-#include "ParticleMeanEnergy.H"
+#include "ParticleEnergy.H"
 #include "WarpX.H"
 #include "WarpXConst.H"
 #include "AMReX_REAL.H"
@@ -9,7 +9,7 @@
 using namespace amrex;
 
 /// constructor
-ParticleMeanEnergy::ParticleMeanEnergy (std::string rd_name)
+ParticleEnergy::ParticleEnergy (std::string rd_name)
 : ReducedDiags{rd_name}
 {
     /// get WarpX class object
@@ -32,7 +32,7 @@ ParticleMeanEnergy::ParticleMeanEnergy (std::string rd_name)
             std::ofstream ofs;
             ofs.open(m_path + m_rd_name + ".txt",
                 std::ofstream::out | std::ofstream::app);
-            // write header row
+            /// write header row
             ofs << "#";
             ofs << "step";
             ofs << m_sep;
@@ -44,6 +44,13 @@ ParticleMeanEnergy::ParticleMeanEnergy (std::string rd_name)
                 ofs << m_sep;
                 ofs << species_names[i]+"(J)";
             }
+            ofs << m_sep;
+            ofs << "total.mean(J)";
+            for (int i = 0; i < species_number; ++i)
+            {
+                ofs << m_sep;
+                ofs << species_names[i]+".mean(J)";
+            }
             ofs << std::endl;
             /// close file
             ofs.close();
@@ -54,7 +61,7 @@ ParticleMeanEnergy::ParticleMeanEnergy (std::string rd_name)
 ///< end constructor
 
 /// function that computes kinetic energy
-void ParticleMeanEnergy::ComputeDiags (int step)
+void ParticleEnergy::ComputeDiags (int step)
 {
 
     /// Judge if the diags should be done
@@ -67,8 +74,7 @@ void ParticleMeanEnergy::ComputeDiags (int step)
     auto species_number = mypc.nSpecies();
 
     /// resize data array
-    /// the extra one is for total energy
-    m_data.resize(species_number+1,0.0);
+    m_data.resize(2*species_number+2,0.0);
 
     /// get species names (std::vector<std::string>)
     auto species_names = mypc.GetSpeciesNames();
@@ -89,7 +95,7 @@ void ParticleMeanEnergy::ComputeDiags (int step)
 
         // Use amex::ReduceSum to compute the sum of energies of all particles
         // held by the current MPI rank, for this species. This involves a loop over all
-        // boxes held by this MPI rank. 
+        // boxes held by this MPI rank.
         auto Etot = ReduceSum( myspc,
         [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real
         {
@@ -109,32 +115,32 @@ void ParticleMeanEnergy::ComputeDiags (int step)
         });
 
         /// reduced sum for mpi ranks
-        ParallelDescriptor::ReduceRealSum(Etot);
-        ParallelDescriptor::ReduceRealSum(Etot, ParallelDescriptor::IOProcessorNumber());
-        ParallelDescriptor::ReduceRealSum(Wtot, ParallelDescriptor::IOProcessorNumber());
+        ParallelDescriptor::ReduceRealSum
+            (Etot, ParallelDescriptor::IOProcessorNumber());
+        ParallelDescriptor::ReduceRealSum
+            (Wtot, ParallelDescriptor::IOProcessorNumber());
 
-        /// save average energy for this species i_s into m_data[i_s+1]
+        /// save results for this species i_s into m_data
+        m_data[i_s+1] = Etot;
         if ( Wtot > 0.0 )
-        { m_data[i_s+1] = Etot / Wtot; }
+        { m_data[species_number+2+i_s] = Etot / Wtot; }
         else
-        { m_data[i_s+1] = 0.0; }
+        { m_data[species_number+2+i_s] = 0.0; }
 
-    }
-    ///< end loop over species
 
-    Real E_sum = 0.0;
-    /// loop over species
-    for (int i_s = 0; i_s < species_number; ++i_s)
-    {
-        E_sum += m_data[i_s+1];
     }
     ///< end loop over species
 
     /// save total energy
-    if ( species_number > 0 )
-    { m_data[0] = E_sum / species_number; }
-    else
-    { m_data[0] = 0.0; }
+    /// loop over species
+    m_data[0] = 0.0;                ///< total energy
+    m_data[species_number+1] = 0.0; ///< total mean energy
+    for (int i_s = 0; i_s < species_number; ++i_s)
+    {
+        m_data[0] += m_data[i_s+1];
+        m_data[species_number+1] += m_data[species_number+2+i_s];
+    }
+    ///< end loop over species
 
 }
-///< end void ParticleMeanEnergy::ComputeDiags
+///< end void ParticleEnergy::ComputeDiags
