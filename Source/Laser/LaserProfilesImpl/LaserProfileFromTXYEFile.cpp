@@ -189,6 +189,12 @@ FromTXYEFileLaserProfile::parse_txye_file(std::string txye_file_name)
     m_params.is_grid_uniform = is_grid_uniform;
 
     //Broadcast grid size and coordinate sizes
+    //When a non-uniform grid is used, nt, nx and ny are identical
+    //to t_coords.size(), x_coords.size() and y_coords.size().
+    //When a uniform grid is used, nt,nx and ny store the number of points
+    //used for the mesh, while t_coords, x_coords and y_coords store the
+    //extrems in each direaction. Thus t_coords and x_coords in this case
+    //have size 2 and y_coords has size 1 in 2D and size 2 in 3D.
     int t_sizes[6] = {m_params.nt, m_params.nx, m_params.ny,
         static_cast<int>(m_params.t_coords.size()),
         static_cast<int>(m_params.x_coords.size()),

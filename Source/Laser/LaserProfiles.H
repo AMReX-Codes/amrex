@@ -320,17 +320,39 @@ private:
     */
     void read_data_t_chuck(int t_begin, int t_end);
 
+    /**
+     * \brief m_params contains all the internal parameters
+     * used by this laser profile
+     */
     struct{
-        std::string txye_file_name; //Name of the file containing the data
-        bool is_grid_uniform = false; //Flag to store if the grid is uniform
-        int nt, nx, ny; //Dimensions of E_data
-        amrex::Gpu::ManagedVector<amrex::Real> t_coords; //Vector of temporal coordinates
-        amrex::Gpu::ManagedVector<amrex::Real> x_coords; //Vector of x coordinates
-        amrex::Gpu::ManagedVector<amrex::Real> y_coords; //Vector of y coordinates
-        int time_chunk_size; //Size of the timestep range to load
-        int first_time_index; //Index of the first timestep in memory
-        int last_time_index; //Index of the last timestep in memory
-        amrex::Gpu::ManagedVector<amrex::Real> E_data; //Field data
+        /** Name of the file containing the data */
+        std::string txye_file_name;
+        /** Flag to store if the grid is uniform */
+        bool is_grid_uniform = false;
+        /** Dimensions of E_data. nt, nx must be >=2.
+         * If DIM=3, ny must be >=2 as well.
+         * If DIM=2, ny must be 1 */
+        int nt, nx, ny;
+        /** Vector of temporal coordinates. For a non-uniform grid, it contains
+         * all values of time. For a uniform grid, it contains only the start and stop
+         * times and intermediate times are obtained with nt */
+        amrex::Gpu::ManagedVector<amrex::Real> t_coords;
+        /** Vector or x coordinates. For a non-uniform grid, it contains all values
+         * of space dimension x. For a uniform grid, it contains only the min and max
+         * x coordinates, and intermediate positions are obtained with nx */
+        amrex::Gpu::ManagedVector<amrex::Real> x_coords;
+        /** Vector or y coordinates. For a non-uniform grid, it contains all values
+         * of space dimension y. For a uniform grid, it contains only the min and max
+         * y coordinates, and intermediate positions are obtained with ny */
+        amrex::Gpu::ManagedVector<amrex::Real> y_coords;
+        /** Size of the timestep range to load */
+        int time_chunk_size;
+        /** Index of the first timestep in memory */
+        int first_time_index;
+        /** Index of the last timestep in memory */
+        int last_time_index;
+        /** Field data */
+        amrex::Gpu::ManagedVector<amrex::Real> E_data;
     } m_params;
 
     CommonLaserParameters m_common_params;
