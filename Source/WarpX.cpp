@@ -263,8 +263,8 @@ WarpX::WarpX ()
         "divE cleaning + do_nodal not implemented"
         );
 #ifdef WARPX_USE_PSATD
-    BL_ASSERT(use_fdtd_nci_corr == 0);
-    BL_ASSERT(do_subcycling == 0);
+    AMREX_ALWAYS_ASSERT(use_fdtd_nci_corr == 0);
+    AMREX_ALWAYS_ASSERT(do_subcycling == 0);
 #endif
 }
 
