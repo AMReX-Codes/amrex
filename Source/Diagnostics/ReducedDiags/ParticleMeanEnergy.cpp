@@ -87,6 +87,9 @@ void ParticleMeanEnergy::ComputeDiags (int step)
 
         using PType = typename WarpXParticleContainer::SuperParticleType;
 
+        // Use amex::ReduceSum to compute the sum of energies of all particles
+        // held by the current MPI rank, for this species. This involves a loop over all
+        // boxes held by this MPI rank. 
         auto Etot = ReduceSum( myspc,
         [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real
         {
@@ -98,6 +101,7 @@ void ParticleMeanEnergy::ComputeDiags (int step)
             return ( std::sqrt(us*c2 + c2*c2) - c2 ) * m * w;
         });
 
+        // Same thing for the particles weights.
         auto Wtot = ReduceSum( myspc,
         [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real
         {
@@ -106,9 +110,10 @@ void ParticleMeanEnergy::ComputeDiags (int step)
 
         /// reduced sum for mpi ranks
         ParallelDescriptor::ReduceRealSum(Etot);
-        ParallelDescriptor::ReduceRealSum(Wtot);
+        ParallelDescriptor::ReduceRealSum(Etot, ParallelDescriptor::IOProcessorNumber());
+        ParallelDescriptor::ReduceRealSum(Wtot, ParallelDescriptor::IOProcessorNumber());
 
-        /// save Etot to m_data
+        /// save average energy for this species i_s into m_data[i_s+1]
         if ( Wtot > 0.0 )
         { m_data[i_s+1] = Etot / Wtot; }
         else

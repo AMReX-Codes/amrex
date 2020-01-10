@@ -6,7 +6,9 @@
 #include <vector>
 #include <fstream>
 
-/// This class contains basic information for all diagnostics.
+/// Base class for reduced diagnostics. Each type of reduced diagnostics is
+/// implemented in a derived class, and must override the (pure virtual)
+/// function ComputeDiags
 class ReducedDiags
 {
 public:
@@ -30,7 +32,7 @@ public:
     std::vector<amrex::Real> m_data;
 
     /** constructor
-     *  @param[in] rd_name reduced diags names */
+     *  @param[in] rd_name reduced diags name */
     ReducedDiags(std::string rd_name);
 
     /// function to compute diags

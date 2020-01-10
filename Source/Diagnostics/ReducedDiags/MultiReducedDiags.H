@@ -15,13 +15,13 @@ class MultiReducedDiags
 {
 public:
 
-    /// flag
+    /// Bool: whether or not reduced diagnostics are activated 
     int m_plot_rd = 0;
 
     /// names of reduced diagnostics
     std::vector<std::string> m_rd_names;
 
-    /// create ReducedDiags class object
+    /// m_multi_rd stores a pointer to each reduced diagnostics
     std::vector<std::unique_ptr<ReducedDiags>> m_multi_rd;
 
     /// constructor
