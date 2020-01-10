@@ -1616,10 +1616,9 @@ PhysicalParticleContainer::PushPX(WarpXParIter& pti,
 
 #ifdef WARPX_QED
 
-    auto t_chi_max = m_shr_p_qs_engine->get_ref_ctrl().chi_part_min;
-
     if(do_classical_radiation_reaction){
         if(m_do_qed_quantum_sync){
+            const auto t_chi_max = m_shr_p_qs_engine->get_ref_ctrl().chi_part_min;
             amrex::ParallelFor(
                 pti.numParticles(),
                 [=] AMREX_GPU_DEVICE (long i) {
