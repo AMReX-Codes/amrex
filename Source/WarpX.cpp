@@ -223,9 +223,13 @@ WarpX::WarpX ()
 
     costs.resize(nlevs_max);
 
+    // Allocate field solver objects
 #ifdef WARPX_USE_PSATD
     spectral_solver_fp.resize(nlevs_max);
     spectral_solver_cp.resize(nlevs_max);
+#else
+    fdtd_solver_fp.resize(nlevs_max);
+    fdtd_solver_cp.resize(nlevs_max);
 #endif
 #ifdef WARPX_USE_PSATD_HYBRID
     Efield_fp_fft.resize(nlevs_max);
@@ -889,11 +893,11 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
     if (fft_hybrid_mpi_decomposition == false){
         // Allocate and initialize the spectral solver
         std::array<Real,3> dx = CellSize(lev);
-#if (AMREX_SPACEDIM == 3)
+    #if (AMREX_SPACEDIM == 3)
         RealVect dx_vect(dx[0], dx[1], dx[2]);
-#elif (AMREX_SPACEDIM == 2)
+    #elif (AMREX_SPACEDIM == 2)
         RealVect dx_vect(dx[0], dx[2]);
-#endif
+    #endif
         // Get the cell-centered box, with guard cells
         BoxArray realspace_ba = ba;  // Copy box
         realspace_ba.enclosedCells().grow(ngE); // cell-centered + guard cells
@@ -901,8 +905,10 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
         spectral_solver_fp[lev].reset( new SpectralSolver( realspace_ba, dm,
             nox_fft, noy_fft, noz_fft, do_nodal, dx_vect, dt[lev] ) );
     }
+#else
+        std::array<Real,3> dx = CellSize(lev);
+        fdtd_solver_fp[lev].reset( new FiniteDifferenceSolver(dx); )
 #endif
-
     //
     // The Aux patch (i.e., the full solution)
     //
@@ -986,6 +992,9 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
             spectral_solver_cp[lev].reset( new SpectralSolver( realspace_ba, dm,
                 nox_fft, noy_fft, noz_fft, do_nodal, cdx_vect, dt[lev] ) );
         }
+#else
+    std::array<Real,3> dx = CellSize(lev-1);
+    fdtd_solver_cp[lev].reset( new FiniteDifferenceSolver(dx); )
 #endif
     }
 

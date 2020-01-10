@@ -694,6 +694,9 @@ private:
 
     amrex::Vector<std::unique_ptr<SpectralSolver>> spectral_solver_fp;
     amrex::Vector<std::unique_ptr<SpectralSolver>> spectral_solver_cp;
+#else
+    amrex::Vector<std::unique_ptr<FiniteDifferenceSolver>> fdtd_solver_fp;
+    amrex::Vector<std::unique_ptr<FiniteDifferenceSolver>> fdtd_solver_cp;
 #endif
 
 #ifdef WARPX_USE_PSATD_HYBRID

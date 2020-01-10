@@ -111,6 +111,13 @@ WarpX::EvolveB (int lev, amrex::Real a_dt)
 void
 WarpX::EvolveB (int lev, PatchType patch_type, amrex::Real a_dt)
 {
+    if (patch_type == PatchType::fine) {
+        fdtd_solver_fp->EvolveB( Bfield_fp[lev], Efield_fp[lev], a_dt );
+    } else {
+        fdtd_solver_cp->EvolveB( Bfield_cp[lev], Efield_cp[lev], a_dt );
+    }
+
+    // Goes into initializer
     const int patch_level = (patch_type == PatchType::fine) ? lev : lev-1;
     const std::array<Real,3>& dx = WarpX::CellSize(patch_level);
     const Real dtsdx = a_dt/dx[0], dtsdy = a_dt/dx[1], dtsdz = a_dt/dx[2];
