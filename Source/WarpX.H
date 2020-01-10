@@ -24,6 +24,7 @@
 #include <AMReX_LayoutData.H>
 #include <AMReX_Interpolater.H>
 #include <AMReX_FillPatchUtil.H>
+#include <WarpXParserWrapper.H>
 
 #ifdef _OPENMP
 #   include <omp.h>
@@ -48,35 +49,6 @@ enum struct PatchType : int
     fine,
     coarse
 };
-
-/**
- * \brief
- *  The ParserWrapper struct is constructed to safely use the GpuParser class
- *  that can essentially be though of as a raw pointer. The GpuParser does
- *  not have an explicit destructor and the AddPlasma subroutines handle the GpuParser
- *  in a safe way. The ParserWrapper struct is used to avoid memory leak
- *  in the EB parser functions.
- */
-struct ParserWrapper
-    : public amrex::Gpu::Managed
-{
-    ParserWrapper (WarpXParser const& a_parser) noexcept
-       : m_parser(a_parser) {}
-
-    ~ParserWrapper() {
-       m_parser.clear();
-    }
-
-    AMREX_GPU_HOST_DEVICE
-    amrex::Real
-    getField (amrex::Real x, amrex::Real y, amrex::Real z) const noexcept
-    {
-       return m_parser(x,y,z);
-    }
-
-    GpuParser m_parser;
-};
-
 
 class WarpX
     : public amrex::AmrCore
