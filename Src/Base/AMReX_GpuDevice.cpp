@@ -113,7 +113,7 @@ Device::Initialize ()
 
     int gpu_device_count;
     AMREX_HIP_OR_CUDA(AMREX_HIP_SAFE_CALL (hipGetDeviceCount(&gpu_device_count));,
-                      AMREX_CUDA_SAFE_CALL(cudaGetDeviceCount(&cuda_device_count)); );
+                      AMREX_CUDA_SAFE_CALL(cudaGetDeviceCount(&gpu_device_count)); );
 
     if (gpu_device_count <= 0) {
         amrex::Abort("No GPU device found");
