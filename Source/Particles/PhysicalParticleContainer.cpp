@@ -450,7 +450,8 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
             overlap_box.setBig( dir,
                 int( std::round((overlap_realbox.hi(dir)-overlap_realbox.lo(dir))
                                 /dx[dir] )) - 1);
-            shifted[dir] = std::round((overlap_realbox.lo(dir)-problo[dir])/dx[dir]);
+            shifted[dir] =
+                static_cast<int>(std::round((overlap_realbox.lo(dir)-problo[dir])/dx[dir]));
             // shifted is exact in non-moving-window direction.  That's all we care.
         }
         if (no_overlap == 1) {
@@ -580,7 +581,8 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
 
             IntVect iv = overlap_box.atOffset(cellid);
 
-            const XDim3 r = inj_pos->getPositionUnitBox(i_part, fac);
+            const XDim3 r =
+                inj_pos->getPositionUnitBox(i_part, static_cast<int>(fac));
 #if (AMREX_SPACEDIM == 3)
             Real x = overlap_corner[0] + (iv[0]+r.x)*dx[0];
             Real y = overlap_corner[1] + (iv[1]+r.y)*dx[1];
@@ -1614,10 +1616,9 @@ PhysicalParticleContainer::PushPX(WarpXParIter& pti,
 
 #ifdef WARPX_QED
 
-    auto t_chi_max = m_shr_p_qs_engine->get_ref_ctrl().chi_part_min;
-
     if(do_classical_radiation_reaction){
         if(m_do_qed_quantum_sync){
+            const auto t_chi_max = m_shr_p_qs_engine->get_ref_ctrl().chi_part_min;
             amrex::ParallelFor(
                 pti.numParticles(),
                 [=] AMREX_GPU_DEVICE (long i) {

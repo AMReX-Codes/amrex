@@ -19,7 +19,7 @@ import sys
 import yt
 import re
 import math
-import statistics
+import numpy
 from glob import glob
 
 tolerance = 0.001
@@ -53,8 +53,8 @@ for fn in fn_list:
     buf = temp.match(fn).groups()
     j = int(buf[1])
     # compute error
-    vxe = statistics.mean(px[ 0:ne])/me/c
-    vxi = statistics.mean(px[ne:np])/mi/c
+    vxe = numpy.mean(px[ 0:ne])/me/c
+    vxi = numpy.mean(px[ne:np])/mi/c
     vxd = vxe - vxi
     fit = a*math.exp(b*j)
     error = error + abs(fit-vxd)
