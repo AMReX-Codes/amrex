@@ -32,7 +32,6 @@ Vector<Real> WarpX::B_external_grid(3, 0.0);
 
 std::string WarpX::B_ext_grid_s = "default";
 std::string WarpX::E_ext_grid_s = "default";
-//to delete comment
 std::string WarpX::B_ext_particle_s = "default";
 std::string WarpX::E_ext_particle_s = "default";
 
@@ -45,7 +44,6 @@ std::string WarpX::str_Ex_ext_grid_function;
 std::string WarpX::str_Ey_ext_grid_function;
 std::string WarpX::str_Ez_ext_grid_function;
 
-// EV parser for particles -- to delete comment
 // Parser for B_external on the particle
 std::string WarpX::str_Bx_ext_particle_function;
 std::string WarpX::str_By_ext_particle_function;
@@ -331,7 +329,6 @@ WarpX::ReadParameters ()
             pp.query("zmax_plasma_to_compute_max_step",
                       zmax_plasma_to_compute_max_step);
 
-        // -- to delete comment
         // default values of E_external_particle and B_external_particle
         // are used to set the E and B field when "constant" or "parser"
         // is not explicitly used in the input

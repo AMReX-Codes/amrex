@@ -323,7 +323,6 @@ public:
     //amrex::Real getMass () {return mass;}
     amrex::ParticleReal getMass () const {return mass;}
 
-    // to delete comment
     // ParserWrapper for B_external on the particle
     std::unique_ptr<ParserWrapper> Bx_particle_parser;
     std::unique_ptr<ParserWrapper> By_particle_parser;
@@ -332,7 +331,7 @@ public:
     std::unique_ptr<ParserWrapper> Ex_particle_parser;
     std::unique_ptr<ParserWrapper> Ey_particle_parser;
     std::unique_ptr<ParserWrapper> Ez_particle_parser;
- 
+
 
 protected:
 

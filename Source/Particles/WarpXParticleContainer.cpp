@@ -115,8 +115,6 @@ WarpXParticleContainer::WarpXParticleContainer (AmrCore* amr_core, int ispecies)
     m_yp.resize(num_threads);
     m_zp.resize(num_threads);
 
-   
-    // to delete comment
     if (WarpX::B_ext_particle_s == "parse_b_ext_particle_function") {
        Bx_particle_parser.reset(new ParserWrapper(
                                 makeParser(WarpX::str_Bx_ext_particle_function)));

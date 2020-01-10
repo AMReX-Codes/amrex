@@ -1033,7 +1033,6 @@ PhysicalParticleContainer::FieldGather (int lev,
             //
             pti.GetPosition(m_xp[thread_num], m_yp[thread_num], m_zp[thread_num]);
 
-            // to delete comment 
             if (WarpX::E_ext_particle_s=="parse_e_ext_particle_function") {
                // Points to particle position
                Real* const AMREX_RESTRICT xp_data = m_xp[thread_num].dataPtr();
@@ -1042,9 +1041,9 @@ PhysicalParticleContainer::FieldGather (int lev,
                Real* const AMREX_RESTRICT Exp_data = Exp.dataPtr();
                Real* const AMREX_RESTRICT Eyp_data = Eyp.dataPtr();
                Real* const AMREX_RESTRICT Ezp_data = Ezp.dataPtr();
-               ParserWrapper *xfield_partparser = Ex_particle_parser.get(); 
-               ParserWrapper *yfield_partparser = Ey_particle_parser.get(); 
-               ParserWrapper *zfield_partparser = Ez_particle_parser.get(); 
+               ParserWrapper *xfield_partparser = Ex_particle_parser.get();
+               ParserWrapper *yfield_partparser = Ey_particle_parser.get();
+               ParserWrapper *zfield_partparser = Ez_particle_parser.get();
                amrex::ParallelFor(pti.numParticles(),
                      [=] AMREX_GPU_DEVICE (long i) {
                      Real x = xp_data[i];
@@ -1063,9 +1062,9 @@ PhysicalParticleContainer::FieldGather (int lev,
                Real* const AMREX_RESTRICT Bxp_data = Bxp.dataPtr();
                Real* const AMREX_RESTRICT Byp_data = Byp.dataPtr();
                Real* const AMREX_RESTRICT Bzp_data = Bzp.dataPtr();
-               ParserWrapper *xfield_partparser = Bx_particle_parser.get(); 
-               ParserWrapper *yfield_partparser = By_particle_parser.get(); 
-               ParserWrapper *zfield_partparser = Bz_particle_parser.get(); 
+               ParserWrapper *xfield_partparser = Bx_particle_parser.get();
+               ParserWrapper *yfield_partparser = By_particle_parser.get();
+               ParserWrapper *zfield_partparser = Bz_particle_parser.get();
                amrex::ParallelFor(pti.numParticles(),
                      [=] AMREX_GPU_DEVICE (long i) {
                      Real x = xp_data[i];
@@ -1076,7 +1075,7 @@ PhysicalParticleContainer::FieldGather (int lev,
                      Bzp_data[i] = zfield_partparser->getField(x,y,z);
                });
             }
-            
+
 
             //
             // Field Gather
@@ -1225,7 +1224,7 @@ PhysicalParticleContainer::Evolve (int lev,
             // copy data from particle container to temp arrays
             //
             pti.GetPosition(m_xp[thread_num], m_yp[thread_num], m_zp[thread_num]);
-            // to delete comment 
+
             if (WarpX::E_ext_particle_s=="parse_e_ext_particle_function") {
                // Points to particle position
                Real* const AMREX_RESTRICT xp_data = m_xp[thread_num].dataPtr();
@@ -1933,7 +1932,6 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
             //
             pti.GetPosition(m_xp[thread_num], m_yp[thread_num], m_zp[thread_num]);
 
-            // to delete comment 
             if (WarpX::E_ext_particle_s=="parse_e_ext_particle_function") {
                // Points to particle position
                Real* const AMREX_RESTRICT xp_data = m_xp[thread_num].dataPtr();
