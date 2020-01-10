@@ -221,8 +221,8 @@ template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 GpuComplex<T> operator/ (const T& a_x, const GpuComplex<T>& a_y) noexcept
 {
-    GpuComplex<T> r = a_y;
-    r /= a_x;
+    GpuComplex<T> r = a_x;
+    r /= a_y;
     return r;
 }
         
