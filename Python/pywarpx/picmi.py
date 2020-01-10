@@ -63,10 +63,7 @@ class Species(picmistandard.PICMI_Species):
         if self.name is None:
             self.name = 'species{}'.format(self.species_number)
 
-        if pywarpx.particles.species_names is None:
-            pywarpx.particles.species_names = self.name
-        else:
-            pywarpx.particles.species_names += ' ' + self.name
+        pywarpx.particles.species_names.append(self.name)
 
         self.species = pywarpx.Bucket.Bucket(self.name,
                                              mass = self.mass,

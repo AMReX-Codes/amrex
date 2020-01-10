@@ -29,7 +29,7 @@ class WarpX(Bucket):
 
         # --- Search through species_names and add any predefined particle objects in the list.
         particles_list_names = [p.instancename for p in particles_list]
-        for pstring in particles.species_names.split(' '):
+        for pstring in particles.species_names:
             if pstring in particles_list_names:
                 # --- The species is already included in particles_list
                 continue
