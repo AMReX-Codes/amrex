@@ -48,7 +48,7 @@ Very similar to Breathe, the Python module `exhale <https://exhale.readthedocs.i
 Building the documentation
 --------------------------
 
-To build the documentation, you will need to install Doxygen as well as the Python modules `breathe` and `exhale`. On MacOS this can by done by
+To build the documentation on your local computer, you will need to install Doxygen as well as the Python modules `breathe` and `exhale`. On MacOS this can by done by
 
 .. code-block:: sh
 
