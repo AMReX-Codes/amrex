@@ -47,6 +47,25 @@ public:
                            amrex::Real t, amrex::Real dt) override;
 #endif // WARPX_DO_ELECTROSTATIC
 
+    /**
+     * \brief Apply external E and B fields on the particles. The E and B
+     * fields could be defined as a constant or using a parser for reading
+     * in a mathematical expression. The default value for the E- and B-fields
+     * is (0.0,0.0,0.0). 
+     *
+     * \param Exp-Bzp: fields on particles modified based on external E and B
+     * \param xp,yp,zp: arrays of particle positions required to compute 
+     *                  mathematical expression for the external fields 
+     *                  using parser.
+     */
+    void ApplyExternalFieldOnParticles ( WarpXParIter& pti, 
+                                         RealVector& Exp, RealVector& Eyp,
+                                         RealVector& Ezp, RealVector& Bxp,
+                                         RealVector& Byp, RealVector& Bzp,
+                  amrex::Gpu::ManagedDeviceVector<amrex::ParticleReal> xp,
+                  amrex::Gpu::ManagedDeviceVector<amrex::ParticleReal> yp,
+                  amrex::Gpu::ManagedDeviceVector<amrex::ParticleReal> zp);
+
     virtual void FieldGather (int lev,
                               const amrex::MultiFab& Ex,
                               const amrex::MultiFab& Ey,
@@ -317,6 +336,7 @@ protected:
     //When true PhysicalParticleContainer tries to use a pusher including
     //radiation reaction
     bool do_classical_radiation_reaction = false;
+
 
 #ifdef WARPX_QED
     // A flag to enable quantum_synchrotron process for leptons
