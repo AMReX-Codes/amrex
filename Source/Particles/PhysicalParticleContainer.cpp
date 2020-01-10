@@ -1010,17 +1010,73 @@ PhysicalParticleContainer::FieldGather (int lev,
             const FArrayBox& byfab = By[pti];
             const FArrayBox& bzfab = Bz[pti];
 
-            Exp.assign(np,WarpX::E_external_particle[0]);
-            Eyp.assign(np,WarpX::E_external_particle[1]);
-            Ezp.assign(np,WarpX::E_external_particle[2]);
-            Bxp.assign(np,WarpX::B_external_particle[0]);
-            Byp.assign(np,WarpX::B_external_particle[1]);
-            Bzp.assign(np,WarpX::B_external_particle[2]);
-
+            if (WarpX::E_ext_particle_s=="constant" ||
+                WarpX::E_ext_particle_s=="default") {
+                amrex::Print() << " const " << WarpX::E_external_particle[0];
+                amrex::Print() << " " << WarpX::E_external_particle[1];
+                amrex::Print() << " " << WarpX::E_external_particle[2] << "\n";
+                Exp.assign(np,WarpX::E_external_particle[0]);
+                Eyp.assign(np,WarpX::E_external_particle[1]);
+                Ezp.assign(np,WarpX::E_external_particle[2]);
+            }
+            if (WarpX::B_ext_particle_s=="constant" ||
+                WarpX::B_ext_particle_s=="default") {
+                amrex::Print() << " const " << WarpX::B_external_particle[0];
+                amrex::Print() << " " << WarpX::B_external_particle[1];
+                amrex::Print() << " " << WarpX::B_external_particle[2] << "\n";
+                Bxp.assign(np,WarpX::B_external_particle[0]);
+                Byp.assign(np,WarpX::B_external_particle[1]);
+                Bzp.assign(np,WarpX::B_external_particle[2]);
+            }
             //
             // copy data from particle container to temp arrays
             //
             pti.GetPosition(m_xp[thread_num], m_yp[thread_num], m_zp[thread_num]);
+
+            // to delete comment 
+            if (WarpX::E_ext_particle_s=="parse_e_ext_particle_function") {
+               // Points to particle position
+               Real* const AMREX_RESTRICT xp_data = m_xp[thread_num].dataPtr();
+               Real* const AMREX_RESTRICT yp_data = m_yp[thread_num].dataPtr();
+               Real* const AMREX_RESTRICT zp_data = m_zp[thread_num].dataPtr();
+               Real* const AMREX_RESTRICT Exp_data = Exp.dataPtr();
+               Real* const AMREX_RESTRICT Eyp_data = Eyp.dataPtr();
+               Real* const AMREX_RESTRICT Ezp_data = Ezp.dataPtr();
+               ParserWrapper *xfield_partparser = Ex_particle_parser.get(); 
+               ParserWrapper *yfield_partparser = Ey_particle_parser.get(); 
+               ParserWrapper *zfield_partparser = Ez_particle_parser.get(); 
+               amrex::ParallelFor(pti.numParticles(),
+                     [=] AMREX_GPU_DEVICE (long i) {
+                     Real x = xp_data[i];
+                     Real y = yp_data[i];
+                     Real z = zp_data[i];
+                     Exp_data[i] = xfield_partparser->getField(x,y,z);
+                     Eyp_data[i] = yfield_partparser->getField(x,y,z);
+                     Ezp_data[i] = zfield_partparser->getField(x,y,z);
+               });
+            }
+            if (WarpX::B_ext_particle_s=="parse_b_ext_particle_function") {
+               // Points to particle position
+               Real* const AMREX_RESTRICT xp_data = m_xp[thread_num].dataPtr();
+               Real* const AMREX_RESTRICT yp_data = m_yp[thread_num].dataPtr();
+               Real* const AMREX_RESTRICT zp_data = m_zp[thread_num].dataPtr();
+               Real* const AMREX_RESTRICT Bxp_data = Bxp.dataPtr();
+               Real* const AMREX_RESTRICT Byp_data = Byp.dataPtr();
+               Real* const AMREX_RESTRICT Bzp_data = Bzp.dataPtr();
+               ParserWrapper *xfield_partparser = Bx_particle_parser.get(); 
+               ParserWrapper *yfield_partparser = By_particle_parser.get(); 
+               ParserWrapper *zfield_partparser = Bz_particle_parser.get(); 
+               amrex::ParallelFor(pti.numParticles(),
+                     [=] AMREX_GPU_DEVICE (long i) {
+                     Real x = xp_data[i];
+                     Real y = yp_data[i];
+                     Real z = zp_data[i];
+                     Bxp_data[i] = xfield_partparser->getField(x,y,z);
+                     Byp_data[i] = yfield_partparser->getField(x,y,z);
+                     Bzp_data[i] = zfield_partparser->getField(x,y,z);
+               });
+            }
+            
 
             //
             // Field Gather
@@ -1147,13 +1203,72 @@ PhysicalParticleContainer::Evolve (int lev,
                                exfab, eyfab, ezfab, bxfab, byfab, bzfab);
             }
 
-            Exp.assign(np,WarpX::E_external_particle[0]);
-            Eyp.assign(np,WarpX::E_external_particle[1]);
-            Ezp.assign(np,WarpX::E_external_particle[2]);
+            if (WarpX::E_ext_particle_s=="constant" ||
+                WarpX::E_ext_particle_s=="default") {
+                amrex::Print() << " const " << WarpX::E_external_particle[0];
+                amrex::Print() << " " << WarpX::E_external_particle[1];
+                amrex::Print() << " " << WarpX::E_external_particle[2] << "\n";
+                Exp.assign(np,WarpX::E_external_particle[0]);
+                Eyp.assign(np,WarpX::E_external_particle[1]);
+                Ezp.assign(np,WarpX::E_external_particle[2]);
+            }
+            if (WarpX::B_ext_particle_s=="constant" ||
+                WarpX::B_ext_particle_s=="default") {
+                amrex::Print() << " const " << WarpX::B_external_particle[0];
+                amrex::Print() << " " << WarpX::B_external_particle[1];
+                amrex::Print() << " " << WarpX::B_external_particle[2] << "\n";
+                Bxp.assign(np,WarpX::B_external_particle[0]);
+                Byp.assign(np,WarpX::B_external_particle[1]);
+                Bzp.assign(np,WarpX::B_external_particle[2]);
+            }
+            //
+            // copy data from particle container to temp arrays
+            //
+            pti.GetPosition(m_xp[thread_num], m_yp[thread_num], m_zp[thread_num]);
+            // to delete comment 
+            if (WarpX::E_ext_particle_s=="parse_e_ext_particle_function") {
+               // Points to particle position
+               Real* const AMREX_RESTRICT xp_data = m_xp[thread_num].dataPtr();
+               Real* const AMREX_RESTRICT yp_data = m_yp[thread_num].dataPtr();
+               Real* const AMREX_RESTRICT zp_data = m_zp[thread_num].dataPtr();
+               Real* const AMREX_RESTRICT Exp_data = Exp.dataPtr();
+               Real* const AMREX_RESTRICT Eyp_data = Eyp.dataPtr();
+               Real* const AMREX_RESTRICT Ezp_data = Ezp.dataPtr();
+               ParserWrapper *xfield_partparser = Ex_particle_parser.get();
+               ParserWrapper *yfield_partparser = Ey_particle_parser.get();
+               ParserWrapper *zfield_partparser = Ez_particle_parser.get();
+               amrex::ParallelFor(pti.numParticles(),
+                     [=] AMREX_GPU_DEVICE (long i) {
+                     Real x = xp_data[i];
+                     Real y = yp_data[i];
+                     Real z = zp_data[i];
+                     Exp_data[i] = xfield_partparser->getField(x,y,z);
+                     Eyp_data[i] = yfield_partparser->getField(x,y,z);
+                     Ezp_data[i] = zfield_partparser->getField(x,y,z);
+               });
+            }
+            if (WarpX::B_ext_particle_s=="parse_b_ext_particle_function") {
+               // Points to particle position
+               Real* const AMREX_RESTRICT xp_data = m_xp[thread_num].dataPtr();
+               Real* const AMREX_RESTRICT yp_data = m_yp[thread_num].dataPtr();
+               Real* const AMREX_RESTRICT zp_data = m_zp[thread_num].dataPtr();
+               Real* const AMREX_RESTRICT Bxp_data = Bxp.dataPtr();
+               Real* const AMREX_RESTRICT Byp_data = Byp.dataPtr();
+               Real* const AMREX_RESTRICT Bzp_data = Bzp.dataPtr();
+               ParserWrapper *xfield_partparser = Bx_particle_parser.get();
+               ParserWrapper *yfield_partparser = By_particle_parser.get();
+               ParserWrapper *zfield_partparser = Bz_particle_parser.get();
+               amrex::ParallelFor(pti.numParticles(),
+                     [=] AMREX_GPU_DEVICE (long i) {
+                     Real x = xp_data[i];
+                     Real y = yp_data[i];
+                     Real z = zp_data[i];
+                     Bxp_data[i] = xfield_partparser->getField(x,y,z);
+                     Byp_data[i] = yfield_partparser->getField(x,y,z);
+                     Bzp_data[i] = zfield_partparser->getField(x,y,z);
+               });
+            }
 
-            Bxp.assign(np,WarpX::B_external_particle[0]);
-            Byp.assign(np,WarpX::B_external_particle[1]);
-            Bzp.assign(np,WarpX::B_external_particle[2]);
 
             // Determine which particles deposit/gather in the buffer, and
             // which particles deposit/gather in the fine patch
@@ -1795,18 +1910,74 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
             const FArrayBox& byfab = By[pti];
             const FArrayBox& bzfab = Bz[pti];
 
-            Exp.assign(np,WarpX::E_external_particle[0]);
-            Eyp.assign(np,WarpX::E_external_particle[1]);
-            Ezp.assign(np,WarpX::E_external_particle[2]);
-
-            Bxp.assign(np,WarpX::B_external_particle[0]);
-            Byp.assign(np,WarpX::B_external_particle[1]);
-            Bzp.assign(np,WarpX::B_external_particle[2]);
-
+            if (WarpX::E_ext_particle_s=="constant" ||
+                WarpX::E_ext_particle_s=="default") {
+                amrex::Print() << " const " << WarpX::E_external_particle[0];
+                amrex::Print() << " " << WarpX::E_external_particle[1];
+                amrex::Print() << " " << WarpX::E_external_particle[2] << "\n";
+                Exp.assign(np,WarpX::E_external_particle[0]);
+                Eyp.assign(np,WarpX::E_external_particle[1]);
+                Ezp.assign(np,WarpX::E_external_particle[2]);
+            }
+            if (WarpX::B_ext_particle_s=="constant" ||
+                WarpX::B_ext_particle_s=="default") {
+                amrex::Print() << " const " << WarpX::B_external_particle[0];
+                amrex::Print() << " " << WarpX::B_external_particle[1];
+                amrex::Print() << " " << WarpX::B_external_particle[2] << "\n";
+                Bxp.assign(np,WarpX::B_external_particle[0]);
+                Byp.assign(np,WarpX::B_external_particle[1]);
+                Bzp.assign(np,WarpX::B_external_particle[2]);
+            }
             //
             // copy data from particle container to temp arrays
             //
             pti.GetPosition(m_xp[thread_num], m_yp[thread_num], m_zp[thread_num]);
+
+            // to delete comment 
+            if (WarpX::E_ext_particle_s=="parse_e_ext_particle_function") {
+               // Points to particle position
+               Real* const AMREX_RESTRICT xp_data = m_xp[thread_num].dataPtr();
+               Real* const AMREX_RESTRICT yp_data = m_yp[thread_num].dataPtr();
+               Real* const AMREX_RESTRICT zp_data = m_zp[thread_num].dataPtr();
+               Real* const AMREX_RESTRICT Exp_data = Exp.dataPtr();
+               Real* const AMREX_RESTRICT Eyp_data = Eyp.dataPtr();
+               Real* const AMREX_RESTRICT Ezp_data = Ezp.dataPtr();
+               ParserWrapper *xfield_partparser = Ex_particle_parser.get();
+               ParserWrapper *yfield_partparser = Ey_particle_parser.get();
+               ParserWrapper *zfield_partparser = Ez_particle_parser.get();
+               amrex::ParallelFor(pti.numParticles(),
+                     [=] AMREX_GPU_DEVICE (long i) {
+                     Real x = xp_data[i];
+                     Real y = yp_data[i];
+                     Real z = zp_data[i];
+                     Exp_data[i] = xfield_partparser->getField(x,y,z);
+                     Eyp_data[i] = yfield_partparser->getField(x,y,z);
+                     Ezp_data[i] = zfield_partparser->getField(x,y,z);
+               });
+            }
+            if (WarpX::B_ext_particle_s=="parse_b_ext_particle_function") {
+               // Points to particle position
+               Real* const AMREX_RESTRICT xp_data = m_xp[thread_num].dataPtr();
+               Real* const AMREX_RESTRICT yp_data = m_yp[thread_num].dataPtr();
+               Real* const AMREX_RESTRICT zp_data = m_zp[thread_num].dataPtr();
+               Real* const AMREX_RESTRICT Bxp_data = Bxp.dataPtr();
+               Real* const AMREX_RESTRICT Byp_data = Byp.dataPtr();
+               Real* const AMREX_RESTRICT Bzp_data = Bzp.dataPtr();
+               ParserWrapper *xfield_partparser = Bx_particle_parser.get();
+               ParserWrapper *yfield_partparser = By_particle_parser.get();
+               ParserWrapper *zfield_partparser = Bz_particle_parser.get();
+               amrex::ParallelFor(pti.numParticles(),
+                     [=] AMREX_GPU_DEVICE (long i) {
+                     Real x = xp_data[i];
+                     Real y = yp_data[i];
+                     Real z = zp_data[i];
+                     Bxp_data[i] = xfield_partparser->getField(x,y,z);
+                     Byp_data[i] = yfield_partparser->getField(x,y,z);
+                     Bzp_data[i] = zfield_partparser->getField(x,y,z);
+               });
+            }
+
+
 
             int e_is_nodal = Ex.is_nodal() and Ey.is_nodal() and Ez.is_nodal();
             FieldGather(pti, Exp, Eyp, Ezp, Bxp, Byp, Bzp,

@@ -55,7 +55,6 @@ std::string WarpX::str_Ex_ext_particle_function;
 std::string WarpX::str_Ey_ext_particle_function;
 std::string WarpX::str_Ez_ext_particle_function;
 
-
 int WarpX::do_moving_window = 0;
 int WarpX::moving_window_dir = -1;
 Real WarpX::moving_window_v = std::numeric_limits<amrex::Real>::max();
@@ -367,12 +366,12 @@ WarpX::ReadParameters ()
            Store_parserString(pp, "Bz_external_particle_function(x,y,z)",
                                       str_Bz_ext_particle_function);
 
-           Bx_particle_parser.reset(new ParserWrapper(
-                                    makeParser(str_Bx_ext_particle_function)));
-           By_particle_parser.reset(new ParserWrapper(
-                                    makeParser(str_By_ext_particle_function)));
-           Bz_particle_parser.reset(new ParserWrapper(
-                                    makeParser(str_Bz_ext_particle_function)));
+           //Bx_particle_parser.reset(new ParserWrapper(
+           //                         makeParser(str_Bx_ext_particle_function)));
+           //By_particle_parser.reset(new ParserWrapper(
+           //                         makeParser(str_By_ext_particle_function)));
+           //Bz_particle_parser.reset(new ParserWrapper(
+           //                         makeParser(str_Bz_ext_particle_function)));
         }
 
         if (E_ext_particle_s == "parse_e_ext_particle_function") {
@@ -384,12 +383,12 @@ WarpX::ReadParameters ()
            Store_parserString(pp, "Ez_external_particle_function(x,y,z)",
                                       str_Ez_ext_particle_function);
 
-           Ex_particle_parser.reset(new ParserWrapper(
-                                    makeParser(str_Ex_ext_particle_function)));
-           Ey_particle_parser.reset(new ParserWrapper(
-                                    makeParser(str_Ey_ext_particle_function)));
-           Ez_particle_parser.reset(new ParserWrapper(
-                                    makeParser(str_Ez_ext_particle_function)));
+           //Ex_particle_parser.reset(new ParserWrapper(
+           //                         makeParser(str_Ex_ext_particle_function)));
+           //Ey_particle_parser.reset(new ParserWrapper(
+           //                         makeParser(str_Ey_ext_particle_function)));
+           //Ez_particle_parser.reset(new ParserWrapper(
+           //                         makeParser(str_Ez_ext_particle_function)));
         }
 
         pp.query("do_moving_window", do_moving_window);

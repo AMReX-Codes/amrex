@@ -5,6 +5,7 @@
 
 #include <AMReX_Particles.H>
 #include <AMReX_AmrCore.H>
+#include <WarpXParserWrapper.H>
 
 #ifdef WARPX_QED
     #include <QuantumSyncEngineWrapper.H>
@@ -280,7 +281,7 @@ public:
 
     virtual void ConvertUnits (ConvertDirection convert_dir){};
 
-    static void ReadParameters ();
+    void ReadParameters ();
 
     static int NextID () { return ParticleType::NextID(); }
 
@@ -321,6 +322,17 @@ public:
     amrex::ParticleReal getCharge () const {return charge;}
     //amrex::Real getMass () {return mass;}
     amrex::ParticleReal getMass () const {return mass;}
+
+    // to delete comment
+    // ParserWrapper for B_external on the particle
+    std::unique_ptr<ParserWrapper> Bx_particle_parser;
+    std::unique_ptr<ParserWrapper> By_particle_parser;
+    std::unique_ptr<ParserWrapper> Bz_particle_parser;
+    // ParserWrapper for E_external on the particle
+    std::unique_ptr<ParserWrapper> Ex_particle_parser;
+    std::unique_ptr<ParserWrapper> Ey_particle_parser;
+    std::unique_ptr<ParserWrapper> Ez_particle_parser;
+ 
 
 protected:
 
