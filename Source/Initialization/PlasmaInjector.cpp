@@ -3,6 +3,7 @@
 #include <WarpXConst.H>
 #include <WarpX_f.H>
 #include <WarpX.H>
+#include <WarpXUtil.H>
 
 #include <AMReX.H>
 
@@ -168,34 +169,6 @@ PlasmaInjector::PlasmaInjector (int ispecies, const std::string& name)
     }
 }
 
-namespace {
-WarpXParser makeParser (std::string const& parse_function)
-{
-    WarpXParser parser(parse_function);
-    parser.registerVariables({"x","y","z"});
-
-    ParmParse pp("my_constants");
-    std::set<std::string> symbols = parser.symbols();
-    symbols.erase("x");
-    symbols.erase("y");
-    symbols.erase("z"); // after removing variables, we are left with constants
-    for (auto it = symbols.begin(); it != symbols.end(); ) {
-        Real v;
-        if (pp.query(it->c_str(), v)) {
-            parser.setConstant(*it, v);
-            it = symbols.erase(it);
-        } else {
-            ++it;
-        }
-    }
-    for (auto const& s : symbols) { // make sure there no unknown symbols
-        amrex::Abort("PlasmaInjector::makeParser: Unknown symbol "+s);
-    }
-
-    return parser;
-}
-}
-
 // Depending on injection type at runtime, initialize inj_rho
 // so that inj_rho->getDensity calls
 // InjectorPosition[Constant or Custom or etc.].getDensity.
@@ -217,11 +190,7 @@ void PlasmaInjector::parseDensity (ParmParse& pp)
         // Construct InjectorDensity with InjectorDensityPredefined.
         inj_rho.reset(new InjectorDensity((InjectorDensityPredefined*)nullptr,species_name));
     } else if (rho_prof_s == "parse_density_function") {
-        std::vector<std::string> f;
-        pp.getarr("density_function(x,y,z)", f);
-        for (auto const& s : f) {
-            str_density_function += s;
-        }
+        Store_parserString(pp, "density_function(x,y,z)", str_density_function);
         // Construct InjectorDensity with InjectorDensityParser.
         inj_rho.reset(new InjectorDensity((InjectorDensityParser*)nullptr,
                                           makeParser(str_density_function)));
@@ -339,21 +308,12 @@ void PlasmaInjector::parseMomentum (ParmParse& pp)
         inj_mom.reset(new InjectorMomentum
                       ((InjectorMomentumRadialExpansion*)nullptr, u_over_r));
     } else if (mom_dist_s == "parse_momentum_function") {
-        std::vector<std::string> f;
-        pp.getarr("momentum_function_ux(x,y,z)", f);
-        for (auto const& s : f) {
-            str_momentum_function_ux += s;
-        }
-        f.clear();
-        pp.getarr("momentum_function_uy(x,y,z)", f);
-        for (auto const& s : f) {
-            str_momentum_function_uy += s;
-        }
-        f.clear();
-        pp.getarr("momentum_function_uz(x,y,z)", f);
-        for (auto const& s : f) {
-            str_momentum_function_uz += s;
-        }
+        Store_parserString(pp, "momentum_function_ux(x,y,z)",
+                                               str_momentum_function_ux);
+        Store_parserString(pp, "momentum_function_uy(x,y,z)",
+                                               str_momentum_function_uy);
+        Store_parserString(pp, "momentum_function_uz(x,y,z)",
+                                               str_momentum_function_uz);
         // Construct InjectorMomentum with InjectorMomentumParser.
         inj_mom.reset(new InjectorMomentum((InjectorMomentumParser*)nullptr,
                                            makeParser(str_momentum_function_ux),
