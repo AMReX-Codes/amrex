@@ -36,7 +36,7 @@ amr.plot_file = "plotfiles/plt"
 warpx.do_pml = 0
 amr.max_level = 0
 warpx.boost_direction = z
-warpx.fine_tag_lo = -2.e-6 -8.e-6 
+warpx.fine_tag_lo = -2.e-6 -8.e-6
 warpx.fine_tag_hi =  2.e-6  0.e-6
 warpx.pml_ncell=6
 

@@ -37,7 +37,7 @@ COMPILE=true
 COMPILE_fcompare=true
 CLEAN=true
 DIM=2d
-REL_TOL=2e-15 
+REL_TOL=2e-15
 plotfile=plt00002
 OMP_NUM_THREADS=1
 
@@ -133,7 +133,7 @@ for NCI_CORR in 0 1; do
                                             if [ $DIVE == 1 ] && [ $NODAL == 1 ]; then continue; fi
                                             # Exception: NCI corrector + momentum-conserving gather (SEGFAULT on dev branch)
                                             if [ $NCI_CORR == 1 ] && [ $GATHER == momentum-conserving ]; then continue; fi
-                                            # Exceptions: PSATD does not work with NCI corrector, subcycling, 
+                                            # Exceptions: PSATD does not work with NCI corrector, subcycling,
                                             if [[ $EXECUTABLE == *"PSATD"* ]]; then
                                                 if  [ $NCI_CORR == 1 ] || [ $SOLVER == ckc ] || [ $SUBCYCLING == 1 ] || \
                                                         [ $NODAL == 0 ] || [ $GATHER == momentum-conserving ] || \
