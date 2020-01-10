@@ -16,11 +16,14 @@ int main (int argc, char* argv[])
 {
     amrex::Initialize(argc,argv);
     {
-        int num_draw;
+        int num_draw, num_states = 1e5;
         
-        ParmParse pp;        
+        ParmParse pp;
         pp.get("num_draw", num_draw);
-                    
+        pp.query("num_states", num_states);
+        if (num_states != 1e5)
+            { amrex::ResizeRandomSeed(num_states); }
+
         auto begin = std::chrono::high_resolution_clock::now();
         amrex::Print() << "Testing using locks to do atomic adds \n";
         for (int i = 0; i < 10; ++i)
@@ -55,9 +58,13 @@ void addone(double volatile * num)
 void lockingTest (int Ndraw)
 {
 #ifdef AMREX_USE_GPU
-    Gpu::DeviceVector<double> d_xpos(Ndraw, 0.0);
-    Gpu::DeviceVector<double> d_ypos(Ndraw, 0.0);
-    Gpu::DeviceVector<double> d_zpos(Ndraw, 0.0);
+    Gpu::DeviceVector<double> d_xpos;
+    Gpu::DeviceVector<double> d_ypos;
+    Gpu::DeviceVector<double> d_zpos;
+
+    d_xpos.resize(Ndraw, 0.0);
+    d_ypos.resize(Ndraw, 0.0);
+    d_zpos.resize(Ndraw, 0.0);
 
     double *dxpos = d_xpos.dataPtr();
     double *dypos = d_ypos.dataPtr();
@@ -83,7 +90,7 @@ void lockingTest (int Ndraw)
         hz[i] = hz[i]+1;
 #endif	   
     });
-    
+
 #ifdef AMREX_USE_GPU
     amrex::Gpu::dtoh_memcpy(hxpos, dxpos, sizeof(double)*Ndraw);
     amrex::Gpu::dtoh_memcpy(hypos, dypos, sizeof(double)*Ndraw);
