@@ -320,13 +320,14 @@ amrex::ResizeRandomSeed (int N)
 
     d_states_h_ptr = new_data;
     gpu_nstates_h = N;
+    amrex::BlockMutex* d_mutex_h_ptr_local = d_mutex_h_ptr;    
 
     // HIP FIX HERE - hipMemcpyToSymbol doesn't work with pointers. 
     AMREX_GPU_LAUNCH_DEVICE(Gpu::ExecutionConfig(1, 1, 0),
     [=] AMREX_GPU_DEVICE
     {
         d_states_d_ptr = new_data;
-        d_mutex_d_ptr = d_mutex_h_ptr;
+        d_mutex_d_ptr = d_mutex_h_ptr_local;
         gpu_nstates_d = N;
     });
 
