@@ -354,6 +354,10 @@ WarpX::ReadParameters ()
         if (E_ext_particle_s == "constant")
             pp.getarr("E_external_particle", E_external_particle);
 
+        // if the input string for B_ext_particle_s is
+        // "parse_b_ext_particle_function" then the mathematical expression
+        // for the Bx_, By_, Bz_external_particle_function(x,y,z)
+        // must be provided in the input file.
         if (B_ext_particle_s == "parse_b_ext_particle_function") {
            // store the mathematical expression as string
            Store_parserString(pp, "Bx_external_particle_function(x,y,z)",
@@ -362,30 +366,20 @@ WarpX::ReadParameters ()
                                       str_By_ext_particle_function);
            Store_parserString(pp, "Bz_external_particle_function(x,y,z)",
                                       str_Bz_ext_particle_function);
-
-           //Bx_particle_parser.reset(new ParserWrapper(
-           //                         makeParser(str_Bx_ext_particle_function)));
-           //By_particle_parser.reset(new ParserWrapper(
-           //                         makeParser(str_By_ext_particle_function)));
-           //Bz_particle_parser.reset(new ParserWrapper(
-           //                         makeParser(str_Bz_ext_particle_function)));
         }
 
+        // if the input string for E_ext_particle_s is
+        // "parse_e_ext_particle_function" then the mathematical expression
+        // for the Ex_, Ey_, Ez_external_particle_function(x,y,z)
+        // must be provided in the input file.
         if (E_ext_particle_s == "parse_e_ext_particle_function") {
-
+           // store the mathematical expression as string
            Store_parserString(pp, "Ex_external_particle_function(x,y,z)",
                                       str_Ex_ext_particle_function);
            Store_parserString(pp, "Ey_external_particle_function(x,y,z)",
                                       str_Ey_ext_particle_function);
            Store_parserString(pp, "Ez_external_particle_function(x,y,z)",
                                       str_Ez_ext_particle_function);
-
-           //Ex_particle_parser.reset(new ParserWrapper(
-           //                         makeParser(str_Ex_ext_particle_function)));
-           //Ey_particle_parser.reset(new ParserWrapper(
-           //                         makeParser(str_Ey_ext_particle_function)));
-           //Ez_particle_parser.reset(new ParserWrapper(
-           //                         makeParser(str_Ez_ext_particle_function)));
         }
 
         pp.query("do_moving_window", do_moving_window);
