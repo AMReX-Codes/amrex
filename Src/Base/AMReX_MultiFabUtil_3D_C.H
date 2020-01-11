@@ -418,14 +418,14 @@ void amrex_compute_gradient (Box const& bx, Array4<Real> const& grad,
 
 AMREX_GPU_HOST_DEVICE
 inline
-void compute_convective_difference (Box const& bx, Array4<Real> const& diff,
-                                    Array4<Real const> const& u_face,
-                                    Array4<Real const> const& v_face,
-                                    Array4<Real const> const& w_face,
-                                    Array4<Real const> const& s_on_x_face,
-                                    Array4<Real const> const& s_on_y_face,
-                                    Array4<Real const> const& s_on_z_face,
-                                    GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+void amrex_compute_convective_difference (Box const& bx, Array4<Real> const& diff,
+                                          Array4<Real const> const& u_face,
+                                          Array4<Real const> const& v_face,
+                                          Array4<Real const> const& w_face,
+                                          Array4<Real const> const& s_on_x_face,
+                                          Array4<Real const> const& s_on_y_face,
+                                          Array4<Real const> const& s_on_z_face,
+                                          GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
 {
     const auto lo = lbound(bx);
     const auto hi = ubound(bx);
