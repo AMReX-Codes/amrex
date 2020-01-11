@@ -58,7 +58,7 @@ public:
      *                  mathematical expression for the external fields
      *                  using parser.
      */
-    void ApplyExternalFieldOnParticles ( WarpXParIter& pti,
+    void AssignExternalFieldOnParticles ( WarpXParIter& pti,
                                          RealVector& Exp, RealVector& Eyp,
                                          RealVector& Ezp, RealVector& Bxp,
                                          RealVector& Byp, RealVector& Bzp,

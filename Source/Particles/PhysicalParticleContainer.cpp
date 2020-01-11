@@ -964,7 +964,7 @@ PhysicalParticleContainer::EvolveES (const Vector<std::array<std::unique_ptr<Mul
 #endif // WARPX_DO_ELECTROSTATIC
 
 void
-PhysicalParticleContainer::ApplyExternalFieldOnParticles(WarpXParIter& pti,
+PhysicalParticleContainer::AssignExternalFieldOnParticles(WarpXParIter& pti,
                            RealVector& Exp, RealVector& Eyp, RealVector& Ezp,
                            RealVector& Bxp, RealVector& Byp, RealVector& Bzp,
                            Gpu::ManagedDeviceVector<ParticleReal> xp,
@@ -1077,9 +1077,9 @@ PhysicalParticleContainer::FieldGather (int lev,
             // copy data from particle container to temp arrays
             //
             pti.GetPosition(m_xp[thread_num], m_yp[thread_num], m_zp[thread_num]);
-            ApplyExternalFieldOnParticles(pti, Exp, Eyp, Ezp, Bxp, Byp, Bzp,
-                                          m_xp[thread_num], m_yp[thread_num],
-                                          m_zp[thread_num]);
+            //ApplyExternalFieldOnParticles(pti, Exp, Eyp, Ezp, Bxp, Byp, Bzp,
+            //                              m_xp[thread_num], m_yp[thread_num],
+            //                              m_zp[thread_num]);
 
             //
             // Field Gather
@@ -1210,9 +1210,9 @@ PhysicalParticleContainer::Evolve (int lev,
             // copy data from particle container to temp arrays
             //
             pti.GetPosition(m_xp[thread_num], m_yp[thread_num], m_zp[thread_num]);
-            ApplyExternalFieldOnParticles(pti, Exp, Eyp, Ezp, Bxp, Byp, Bzp,
-                                          m_xp[thread_num], m_yp[thread_num],
-                                          m_zp[thread_num]);
+            //ApplyExternalFieldOnParticles(pti, Exp, Eyp, Ezp, Bxp, Byp, Bzp,
+            //                              m_xp[thread_num], m_yp[thread_num],
+            //                              m_zp[thread_num]);
 
             // Determine which particles deposit/gather in the buffer, and
             // which particles deposit/gather in the fine patch
@@ -1858,9 +1858,9 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
             //
             pti.GetPosition(m_xp[thread_num], m_yp[thread_num], m_zp[thread_num]);
 
-            ApplyExternalFieldOnParticles(pti, Exp, Eyp, Ezp, Bxp, Byp, Bzp,
-                                          m_xp[thread_num], m_yp[thread_num],
-                                          m_zp[thread_num]);
+            //ApplyExternalFieldOnParticles(pti, Exp, Eyp, Ezp, Bxp, Byp, Bzp,
+            //                              m_xp[thread_num], m_yp[thread_num],
+            //                              m_zp[thread_num]);
 
             int e_is_nodal = Ex.is_nodal() and Ey.is_nodal() and Ez.is_nodal();
             FieldGather(pti, Exp, Eyp, Ezp, Bxp, Byp, Bzp,
@@ -2229,6 +2229,13 @@ PhysicalParticleContainer::FieldGather (WarpXParIter& pti,
 
     // If no particles, do not do anything
     if (np_to_gather == 0) return;
+
+    // initializing the field value to the externally applied field before
+    // gathering fields from the grid to the particles.
+    AssignExternalFieldOnParticles(pti, Exp, Eyp, Ezp, Bxp, Byp, Bzp,
+                                  m_xp[thread_num], m_yp[thread_num],
+                                  m_zp[thread_num]);
+
     // Get cell size on gather_lev
     const std::array<Real,3>& dx = WarpX::CellSize(std::max(gather_lev,0));
 
