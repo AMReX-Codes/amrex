@@ -183,7 +183,7 @@ html documentation with
 ```
 make html
 ```
-in `Docs/`. Then open `html/index.html` with your favorite web browser and look
+in `Docs/`. Then open `Docs/build/html/index.html` with your favorite web browser and look
 for your changes.
 
 Once your code is ready with documentation and automated test,
