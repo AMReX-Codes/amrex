@@ -1,6 +1,8 @@
 #ifndef WARPX_FINITE_DIFFERENCE_SOLVER_H_
 #define WARPX_FINITE_DIFFERENCE_SOLVER_H_
 
+#include<FiniteDifferenceAlgorithms/YeeAlgorithm.H>
+
 /**
  * \brief Top-level class for the electromagnetic finite-difference solver
  *
@@ -15,14 +17,17 @@ class FiniteDifferenceSolver
 
         // Constructor
         void FiniteDifferenceSolver::FiniteDifferenceSolver ( std::array<Real,3> cell_size ) {
-            // Select algorithm (The choice of algorithm is a runtime option,
-            // but we compile code for each algorithm, using templates)
+
+            // Register the type of finite-difference algorithm
+            fdtd_algo = WarpX::maxwell_fdtd_solver_id;
+
+            // Calculate coefficients of finite-difference stencil
             if (fdtd_algo == MaxwellSolverAlgo::Yee){
                 YeeAlgorithm::InitializeStencilCoefficients( cell_size,
                     stencil_coefs_x, stencil_coefs_y, stencil_coefs_z );
-            } else if (fdtd_algo == MaxwellSolverAlgo::CKC) {
-                CKCAlgorithm::InitializeStencilCoefficients( cell_size,
-                    stencil_coefs_x, stencil_coefs_y, stencil_coefs_z );
+//            } else if (fdtd_algo == MaxwellSolverAlgo::CKC) {
+//                CKCAlgorithm::InitializeStencilCoefficients( cell_size,
+//                    stencil_coefs_x, stencil_coefs_y, stencil_coefs_z );
             } else {
                 amrex::Abort("Unknown algorithm");
             }
@@ -31,9 +36,6 @@ class FiniteDifferenceSolver
         void EvolveB ( VectorField Bfield,
                        ConstVectorField Efield,
                        amrex::Real dt ) const;
-
-        };
-
     private:
 
         int fdtd_algo;

@@ -261,21 +261,7 @@ WarpX::EvolveB (int lev, PatchType patch_type, amrex::Real a_dt)
             auto const& pml_Exfab = pml_E[0]->array(mfi);
             auto const& pml_Eyfab = pml_E[1]->array(mfi);
             auto const& pml_Ezfab = pml_E[2]->array(mfi);
-            if (WarpX::maxwell_fdtd_solver_id == 0) {
-               amrex::ParallelFor(tbx, tby, tbz,
-               [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                   warpx_push_pml_bx_yee(i,j,k,pml_Bxfab,pml_Eyfab,pml_Ezfab,
-                                        dtsdy,dtsdz);
-               },
-               [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                   warpx_push_pml_by_yee(i,j,k,pml_Byfab,pml_Exfab,pml_Ezfab,
-                                         dtsdx,dtsdz);
-               },
-               [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                   warpx_push_pml_bz_yee(i,j,k,pml_Bzfab,pml_Exfab,pml_Eyfab,
-                                        dtsdx,dtsdy);
-               });
-            }  else if (WarpX::maxwell_fdtd_solver_id == 1) {
+            if (WarpX::maxwell_fdtd_solver_id == 1) {
                Real betaxy, betaxz, betayx, betayz, betazx, betazy;
                Real gammax, gammay, gammaz;
                Real alphax, alphay, alphaz;
