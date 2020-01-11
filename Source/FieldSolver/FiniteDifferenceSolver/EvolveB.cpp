@@ -1,28 +1,32 @@
+#include <WarpXAlgorithmSelection.H>
 #include<FiniteDifferenceAlgorithms/YeeAlgorithm.H>
 #include<FiniteDifferenceSolver.H>
+#include<AMReX_Gpu.H>
 
-FiniteDifferenceSolver::EvolveB ( VectorField Bfield,
-                                  ConstVectorField Efield,
-                                  amrex::Real dt ) {
+using namespace amrex;
+
+void FiniteDifferenceSolver::EvolveB ( VectorField& Bfield,
+                                       VectorField& Efield,
+                                       amrex::Real dt ) {
     // Select algorithm (The choice of algorithm is a runtime option,
     // but we compile code for each algorithm, using templates)
-    if (fdtd_algo == MaxwellSolverAlgo::Yee){
+    if (m_fdtd_algo == MaxwellSolverAlgo::Yee){
         EvolveBwithAlgo <YeeAlgorithm> ( Bfield, Efield, dt );
 //    } else if (fdtd_algo == MaxwellSolverAlgo::CKC) {
 //       EvolveBwithAlgo <CKCAlgorithm> ( Bfield, Efield, dt );
     } else {
         amrex::Abort("Unknown algorithm");
     }
-)
+}
 
 template<typename algo>
-FiniteDifferenceSolver::EvolveBwithAlgo ( VectorField Bfield,
-                                          ConstVectorField Efield,
-                                          amrex::Real dt ) {
+void FiniteDifferenceSolver::EvolveBwithAlgo ( VectorField& Bfield,
+                                               VectorField& Efield,
+                                               amrex::Real dt ) {
 
     // Loop through the grids, and over the tiles within each grid
 #ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
+#pragma omp parallel if (amrex::Gpu::notInLaunchRegion())
 #endif
     for ( MFIter mfi(*Bfield[0], TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
 
@@ -66,4 +70,4 @@ FiniteDifferenceSolver::EvolveBwithAlgo ( VectorField Bfield,
 
     }
 
-};
+}

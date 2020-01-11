@@ -10,6 +10,8 @@
 
 #ifdef WARPX_USE_PSATD
 #   include <SpectralSolver.H>
+#else
+#   include <FiniteDifferenceSolver.H>
 #endif
 #ifdef WARPX_USE_PSATD_HYBRID
 #   include <PicsarHybridFFTData.H>

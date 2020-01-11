@@ -1,9 +1,14 @@
 #ifndef WARPX_FINITE_DIFFERENCE_ALGORITHM_YEE_H_
 #define WARPX_FINITE_DIFFERENCE_ALGORITHM_YEE_H_
 
+#include <AMReX_REAL.H>
+#include <AMReX_Array4.H>
+#include <AMReX_Gpu.H>
+
 struct YeeAlgorithm {
 
-    void InitializeStencilCoefficients( std::array<Real,3> cell_size,
+    static void InitializeStencilCoefficients(
+        std::array<amrex::Real,3> cell_size,
         amrex::Gpu::ManagedVector<amrex::Real> stencil_coefs_x,
         amrex::Gpu::ManagedVector<amrex::Real> stencil_coefs_y,
         amrex::Gpu::ManagedVector<amrex::Real> stencil_coefs_z ) {
@@ -18,30 +23,33 @@ struct YeeAlgorithm {
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    amrex::Real UpwardDx(
-        Array4 const F, int const i, int const j, int const k,
-        Real const* coefs_x, int const n_coefs_x ) {
+    static amrex::Real UpwardDx(
+        amrex::Array4<amrex::Real> const F,
+        int const i, int const j, int const k,
+        amrex::Real const* coefs_x, int const n_coefs_x ) {
 
-        amrex::Real const inv_dx = coefs_x[0];
+        amrex::Real inv_dx = coefs_x[0];
         return inv_dx*( F(i+1,j,k) - F(i,j,k) );
     };
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    amrex::Real DownwardDx(
-        Array4 const F, int const i, int const j, int const k,
-        Real const* coefs_x, int const n_coefs_x ) {
+    static amrex::Real DownwardDx(
+        amrex::Array4<amrex::Real> const F,
+        int const i, int const j, int const k,
+        amrex::Real const* coefs_x, int const n_coefs_x ) {
 
-        amrex::Real const inv_dx = coefs_x[0];
+        amrex::Real inv_dx = coefs_x[0];
         return inv_dx*( F(i,j,k) - F(i-1,j,k) );
     };
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    amrex::Real UpwardDy(
-        Array4 const F, int const i, int const j, int const k,
-        Real const* coefs_y, int const n_coefs_y ) {
+    static amrex::Real UpwardDy(
+        amrex::Array4<amrex::Real> const F,
+        int const i, int const j, int const k,
+        amrex::Real const* coefs_y, int const n_coefs_y ) {
 
         #if defined WARPX_DIM_3D
-            amrex::Real const inv_dy = coefs_y[0];
+            amrex::Real inv_dy = coefs_y[0];
             return inv_dy*( F(i,j+1,k) - F(i,j,k) );
         #elif (defined WARPX_DIM_XZ)
             return 0; // 2D Cartesian: derivative along y is 0
@@ -49,12 +57,13 @@ struct YeeAlgorithm {
     };
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    amrex::Real DownwardDy(
-        Array4 const F, int const i, int const j, int const k,
-        Real const* coefs_y, int const n_coefs_y ) {
+    static amrex::Real DownwardDy(
+        amrex::Array4<amrex::Real> const F,
+        int const i, int const j, int const k,
+        amrex::Real const* coefs_y, int const n_coefs_y ) {
 
         #if defined WARPX_DIM_3D
-            amrex::Real const inv_dy = coefs_y[0];
+            amrex::Real inv_dy = coefs_y[0];
             return inv_dy*( F(i,j,k) - F(i,j-1,k) );
         #elif (defined WARPX_DIM_XZ)
             return 0; // 2D Cartesian: derivative along y is 0
@@ -62,11 +71,12 @@ struct YeeAlgorithm {
     };
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    amrex::Real UpwardDz(
-        Array4 const F, int const i, int const j, int const k,
-        Real const* coefs_z, int const n_coefs_z ) {
+    static amrex::Real UpwardDz(
+        amrex::Array4<amrex::Real> const F,
+        int const i, int const j, int const k,
+        amrex::Real const* coefs_z, int const n_coefs_z ) {
 
-        amrex::Real const inv_dz = coefs_z[0];
+        amrex::Real inv_dz = coefs_z[0];
         #if defined WARPX_DIM_3D
             return inv_dz*( F(i,j,k+1) - F(i,j,k) );
         #elif (defined WARPX_DIM_XZ)
@@ -74,19 +84,6 @@ struct YeeAlgorithm {
         #endif
     };
 
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    amrex::Real DownwardDz(
-        Array4 const F, int const i, int const j, int const k,
-        Real const* coefs_z, int const n_coefs_z ) {
-
-        amrex::Real const inv_dz = coefs_z[0];
-        #if defined WARPX_DIM_3D
-            return inv_dz*( F(i,j,k) - F(i,j,k-1) );
-        #elif (defined WARPX_DIM_XZ)
-            return inv_dz*( F(i,j,k) - F(i,j-1,k) );
-        #endif
-    };
-
-}
+};
 
 #endif // WARPX_FINITE_DIFFERENCE_ALGORITHM_YEE_H_

@@ -1,6 +1,8 @@
 #ifndef WARPX_FINITE_DIFFERENCE_SOLVER_H_
 #define WARPX_FINITE_DIFFERENCE_SOLVER_H_
 
+#include <AMReX_MultiFab.H>
+#include <WarpXAlgorithmSelection.H>
 #include<FiniteDifferenceAlgorithms/YeeAlgorithm.H>
 
 /**
@@ -13,13 +15,13 @@ class FiniteDifferenceSolver
     public:
 
         using VectorField = std::array< std::unique_ptr<amrex::MultiFab>, 3 >;
-        using ConstVectorField = std::array< std::unique_ptr<amrex::MultiFab const>, 3 >;
 
         // Constructor
-        void FiniteDifferenceSolver::FiniteDifferenceSolver ( std::array<Real,3> cell_size ) {
+        FiniteDifferenceSolver ( int fdtd_algo,
+            std::array<amrex::Real,3> cell_size ) {
 
             // Register the type of finite-difference algorithm
-            fdtd_algo = WarpX::maxwell_fdtd_solver_id;
+            m_fdtd_algo = fdtd_algo;
 
             // Calculate coefficients of finite-difference stencil
             if (fdtd_algo == MaxwellSolverAlgo::Yee){
@@ -33,21 +35,21 @@ class FiniteDifferenceSolver
             }
         };
 
-        void EvolveB ( VectorField Bfield,
-                       ConstVectorField Efield,
-                       amrex::Real dt ) const;
+        void EvolveB ( VectorField& Bfield,
+                       VectorField& Efield,
+                       amrex::Real dt );
     private:
 
-        int fdtd_algo;
+        int m_fdtd_algo;
 
         amrex::Gpu::ManagedVector<amrex::Real> stencil_coefs_x;
         amrex::Gpu::ManagedVector<amrex::Real> stencil_coefs_y;
         amrex::Gpu::ManagedVector<amrex::Real> stencil_coefs_z;
 
         template< typename fdtd_algo >
-        void EvolveBwithAlgo ( VectorField Bfield,
-                               ConstVectorField Efield,
-                               amrex::Real dt ) const;
+        void EvolveBwithAlgo ( VectorField& Bfield,
+                               VectorField& Efield,
+                               amrex::Real dt );
 
 };
 

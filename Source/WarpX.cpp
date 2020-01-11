@@ -907,7 +907,8 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
     }
 #else
         std::array<Real,3> dx = CellSize(lev);
-        fdtd_solver_fp[lev].reset( new FiniteDifferenceSolver(dx); )
+        fdtd_solver_fp[lev].reset(
+            new FiniteDifferenceSolver(maxwell_fdtd_solver_id, dx) );
 #endif
     //
     // The Aux patch (i.e., the full solution)
@@ -994,7 +995,8 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
         }
 #else
     std::array<Real,3> dx = CellSize(lev-1);
-    fdtd_solver_cp[lev].reset( new FiniteDifferenceSolver(dx); )
+    fdtd_solver_cp[lev].reset(
+        new FiniteDifferenceSolver( maxwell_fdtd_solver_id, dx ) );
 #endif
     }
 
