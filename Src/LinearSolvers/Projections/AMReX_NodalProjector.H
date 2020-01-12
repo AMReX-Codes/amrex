@@ -51,25 +51,25 @@ public:
                    amrex::Real a_atol = 1.0e-14 );
 
     Vector< const MultiFab* > getGradPhi () const {return GetVecOfConstPtrs(m_fluxes);};
+    Vector< const MultiFab* > getPhi     () const {return GetVecOfConstPtrs(m_phi);};
 
     void computeRHS ( const amrex::Vector<amrex::MultiFab*>&       a_rhs,
                       const amrex::Vector<amrex::MultiFab*>&       a_vel,
                       const amrex::Vector<amrex::MultiFab*>&       a_S_cc = {},
                       const amrex::Vector<const amrex::MultiFab*>& a_S_nd = {} );
 
-    void setAlpha     (const amrex::Vector<amrex::MultiFab>& a_alpha);
-    void setCustomRHS (const amrex::Vector<amrex::MultiFab>& a_rhs);
+    void setAlpha     (const amrex::Vector<const amrex::MultiFab*> a_alpha)
+        {m_alpha=a_alpha;m_has_alpha=true;};
+    void setCustomRHS (const amrex::Vector<const amrex::MultiFab*> a_rhs);
 
 
     // Methods to set verbosity
-    void setVerbose            (int  v) noexcept { m_verbose = v; }
+    void setVerbose (int  v) noexcept { m_verbose = v; }
 
 
     // Set domain BC
     void setDomainBC ( std::array<LinOpBCType,AMREX_SPACEDIM> a_bc_lo,
-                       std::array<LinOpBCType,AMREX_SPACEDIM> a_bc_hi )
-        {m_bc_lo=a_bc_lo; m_bc_hi=a_bc_hi;};
-
+                       std::array<LinOpBCType,AMREX_SPACEDIM> a_bc_hi );
 
     // Methods to get underlying objects
     // Use these to modify properties of MLMG and linear operator
@@ -83,13 +83,13 @@ public:
 
 private:
 
-
     void setOptions ();
     void setCoarseBoundaryVelocityForSync ();
     void computeSyncResidual ();
 
-    bool m_has_rhs = false;
+    bool m_has_rhs   = false;
     bool m_has_alpha = false;
+    bool m_need_bcs  = true;
 
     // Verbosity
     int  m_verbose        = 0;
@@ -131,8 +131,6 @@ private:
     MultiFab* m_sync_resid_fine = nullptr;
 
     void printInfo ();
-
-
 };
 
 }

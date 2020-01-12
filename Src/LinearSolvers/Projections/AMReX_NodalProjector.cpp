@@ -100,15 +100,6 @@ NodalProjector::NodalProjector ( const amrex::Vector<amrex::MultiFab*>&       a_
     m_mlmg.reset(new MLMG(*m_linop));
 
     setOptions();
-
-    //
-    // Set domain BCs defaults
-    //
-    for (int d=0; d < AMREX_SPACEDIM; ++d)
-    {
-        m_bc_lo[d] = LinOpBCType::Neumann;
-        m_bc_hi[d] = LinOpBCType::Neumann;
-    }
 }
 
 
@@ -176,31 +167,25 @@ NodalProjector::setOptions ()
     #endif
 }
 
-
-
 void
-NodalProjector::setAlpha (const amrex::Vector<amrex::MultiFab>& a_alpha)
+NodalProjector::setDomainBC ( std::array<LinOpBCType,AMREX_SPACEDIM> a_bc_lo,
+                              std::array<LinOpBCType,AMREX_SPACEDIM> a_bc_hi )
 {
-    AMREX_ALWAYS_ASSERT(m_vel.size()==a_alpha.size());
+    m_bc_lo=a_bc_lo;
+    m_bc_hi=a_bc_hi;
+    m_linop->setDomainBC(m_bc_lo,m_bc_hi);
+    m_need_bcs = false;
+};
 
-    m_alpha.resize(a_alpha.size());
-
-    for (int lev=0; lev < a_alpha.size(); ++lev)
-    {
-        m_alpha[lev] = &(a_alpha[lev]);
-    }
-
-    m_has_alpha = true;
-}
 
 void
-NodalProjector::setCustomRHS (const amrex::Vector<amrex::MultiFab>& a_rhs)
+NodalProjector::setCustomRHS (const amrex::Vector<const amrex::MultiFab*> a_rhs)
 {
     AMREX_ALWAYS_ASSERT(m_rhs.size()==a_rhs.size());
 
     for (int lev=0; lev < m_rhs.size(); ++lev)
     {
-        MultiFab::Copy(m_rhs[lev], a_rhs[lev], 0, 0, 1, 0);
+        MultiFab::Copy(m_rhs[lev], *a_rhs[lev], 0, 0, 1, 0);
     }
 
     m_has_rhs = true;
@@ -211,15 +196,13 @@ void
 NodalProjector::project ( Real a_rtol, Real a_atol )
 {
     BL_PROFILE("NodalProjector::project");
-
-    // Set linop BC to reflect user changes
-    m_linop->setDomainBC(m_bc_lo,m_bc_hi);
+    AMREX_ALWAYS_ASSERT(!m_need_bcs);
 
     if (m_verbose > 0)
         amrex::Print() << "Nodal Projection:" << std::endl;
 
     // Set matrix coefficients
-    for (int lev(0); lev < m_sigma.size(); ++lev)
+    for (int lev = 0; lev < m_sigma.size(); ++lev)
     {
         m_linop -> setSigma(lev, *m_sigma[lev]);
     }
@@ -263,19 +246,15 @@ NodalProjector::project ( Real a_rtol, Real a_atol )
         MultiFab::Add( *m_vel[lev], m_fluxes[lev], 0, 0, AMREX_SPACEDIM, 0);
 
         // set m_fluxes = grad(phi)
-        m_fluxes[lev].mult(- 1.0, 0 );
+        m_fluxes[lev].mult(-1.0);
         for (int n = 0; n < AMREX_SPACEDIM; ++n)
         {
             if (m_has_alpha)
             {
-                MultiFab::Multiply(m_fluxes[lev], *m_alpha[lev], 0, n, 1, 0 );
+                MultiFab::Multiply(m_fluxes[lev], *m_alpha[lev], 0, n, 1, 0);
             }
-            MultiFab::Divide(m_fluxes[lev], *m_sigma[lev], 0, n, 1, 0 );
+            MultiFab::Divide(m_fluxes[lev], *m_sigma[lev], 0, n, 1, 0);
         }
-
-
-        // Fill boundaries and apply scale factor to phi
-        //m_phi[lev] -> FillBoundary( m_geom[lev].periodicity());
 
     }
 }
@@ -308,6 +287,7 @@ NodalProjector::computeRHS (  const amrex::Vector<amrex::MultiFab*>&       a_rhs
                               const amrex::Vector<amrex::MultiFab*>&       a_S_cc,
                               const amrex::Vector<const amrex::MultiFab*>& a_S_nd )
 {
+    AMREX_ALWAYS_ASSERT(!m_need_bcs); // This is needed to use linop
     AMREX_ALWAYS_ASSERT(a_rhs.size()==m_phi.size());
     AMREX_ALWAYS_ASSERT(a_vel.size()==m_phi.size());
     AMREX_ALWAYS_ASSERT((a_S_cc.size()==0) || (a_S_cc.size()==m_phi.size()) );
@@ -346,7 +326,6 @@ NodalProjector::printInfo ()
                        << std::endl;
     }
 }
-
 
 
 void
