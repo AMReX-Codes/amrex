@@ -11,13 +11,7 @@
 #include "AMReX_REAL.H"
 #include "AMReX_SPACE.H"
 #include <vector>
-#include <cassert>
 #include "AMReX_IntVect.H"
-
-
-//template<typename T, int n>
-//class IndexTM;
-
 
 namespace amrex
 {
@@ -45,6 +39,7 @@ public:
   /**
      Construct a RealVect whose components are zero.
   */
+  AMREX_GPU_HOST_DEVICE
   RealVect () noexcept;
 
   explicit RealVect (const std::vector<Real>&) noexcept;
@@ -55,12 +50,14 @@ public:
      coordinates.  AMREX_D_DECL is a macro that sets the constructor to
      take AMREX_SPACEDIM arguments.
   */
+  AMREX_GPU_HOST_DEVICE
   RealVect (AMREX_D_DECL(Real i, Real j, Real k)) noexcept;
 
   ///
   /**
      The copy constructor.
   */
+  AMREX_GPU_HOST_DEVICE
   RealVect (const RealVect& rhs) noexcept;
 
 
@@ -69,6 +66,7 @@ public:
      Construct a RealVect from an IntVect by coercing each component
      from <tt>int</tt> to Real.
   */
+  AMREX_GPU_HOST_DEVICE
   explicit RealVect (const IntVect & iv) noexcept
   {
     for (int d=0 ; d<SpaceDim ; ++d)
@@ -81,22 +79,36 @@ public:
   /**
      The assignment operator.
   */
+  AMREX_GPU_HOST_DEVICE
   RealVect& operator= (const RealVect& rhs) noexcept;
+
+  ///
+  /**
+     Prevent rvalue assignment to the <i>i</i>'th coordinate of the
+     RealVect.
+  */
+  AMREX_GPU_HOST_DEVICE
+  inline
+  Real& operator[] (int i) && = delete;
 
   ///
   /**
      Returns a modifiable lvalue reference to the <i>i</i>'th coordinate of the
      RealVect.
   */
+  AMREX_GPU_HOST_DEVICE
   inline
-  Real& operator[] (int i) noexcept;
+  Real& operator[] (int i) & noexcept
+  { AMREX_ASSERT(i>=0 && i < SpaceDim); return vect[i]; }
 
   ///
   /**
      Returns the <i>i</i>'th coordinate of the RealVect.
   */
+  AMREX_GPU_HOST_DEVICE
   inline
-  const Real& operator[] (int i) const noexcept;
+  const Real& operator[] (int i) const& noexcept
+  { AMREX_ASSERT(i>=0 && i < SpaceDim); return vect[i]; }
 
   /*@}*/
 
@@ -109,6 +121,7 @@ public:
   /**
      Return pointer to the first component.
   */
+  AMREX_GPU_HOST_DEVICE
   inline
   Real* begin () noexcept;
   
@@ -116,6 +129,7 @@ public:
   /**
      Return pointer to the first component.
   */
+  AMREX_GPU_HOST_DEVICE
   inline
   const Real* begin () const noexcept;
   
@@ -123,6 +137,7 @@ public:
   /**
      Return pointer to the one past last component
   */
+  AMREX_GPU_HOST_DEVICE
   inline
   Real* end () noexcept;
   
@@ -130,6 +145,7 @@ public:
   /**
      Return pointer to the one past last component
   */
+  AMREX_GPU_HOST_DEVICE
   inline
   const Real* end () const noexcept;
   
@@ -145,6 +161,7 @@ public:
      Returns true if this RealVect is equivalent to argument RealVect.  All
      comparisons between analogous components must be satisfied.
   */
+  AMREX_GPU_HOST_DEVICE
   bool operator== (const RealVect& p) const noexcept;
 
   ///
@@ -152,6 +169,7 @@ public:
      Returns true if this RealVect is different from argument RealVect.
      All comparisons between analogous components must be satisfied.
   */
+  AMREX_GPU_HOST_DEVICE
   bool operator!= (const RealVect& p) const noexcept;
 
   ///
@@ -162,6 +180,7 @@ public:
      an RealVect to be neither greater than, less than, nor equal to
      another.
   */
+  AMREX_GPU_HOST_DEVICE
   bool operator< (const RealVect& p) const noexcept;
 
   ///
@@ -172,6 +191,7 @@ public:
      is possible for an RealVect to be neither greater than or equal
      to, less than or equal to, nor equal to another.
   */
+  AMREX_GPU_HOST_DEVICE
   bool operator<= (const RealVect& p) const noexcept;
 
   ///
@@ -182,6 +202,7 @@ public:
      for an RealVect to be neither greater than, less than, nor equal
      to another.
   */
+  AMREX_GPU_HOST_DEVICE
   bool operator> (const RealVect& p) const noexcept;
 
   ///
@@ -193,6 +214,7 @@ public:
      to, less than or equal to, nor equal to another.
   */
 
+  AMREX_GPU_HOST_DEVICE
   bool operator>= (const RealVect& p) const noexcept;
 
   /*@}*/
@@ -206,6 +228,7 @@ public:
   /**
      Modifies this RealVect by addition of a scalar to each component.
   */
+  AMREX_GPU_HOST_DEVICE
   RealVect& operator+= (Real s) noexcept;
 
   ///
@@ -213,12 +236,14 @@ public:
      Returns a RealVect that is this RealVect with a scalar s added
      to each component.
   */
+  AMREX_GPU_HOST_DEVICE
   RealVect operator+ (Real s) const noexcept;
 
   ///
   /**
      Modifies this RealVect by component-wise addition by argument.
   */
+  AMREX_GPU_HOST_DEVICE
   RealVect& operator+= (const RealVect& p) noexcept;
 
   ///
@@ -226,12 +251,14 @@ public:
      Modifies this RealVect by subtraction of a scalar from each
      component.
   */
+  AMREX_GPU_HOST_DEVICE
   RealVect& operator-= (Real s) noexcept;
 
   ///
   /**
      Modifies this RealVect by component-wise subtraction by argument.
   */
+  AMREX_GPU_HOST_DEVICE
   RealVect& operator-= (const RealVect& p) noexcept;
 
   ///
@@ -239,24 +266,37 @@ public:
      Returns a RealVect that is this RealVect with a scalar s subtracted
      from each component.
   */
+  AMREX_GPU_HOST_DEVICE
   RealVect operator- (Real s) const noexcept;
 
   ///
   /**
      Modifies this RealVect by multiplying each component by a scalar.
   */
+  AMREX_GPU_HOST_DEVICE
   RealVect& operator*= (Real s) noexcept;
 
   ///
   /**
-
+     Returns the result of the scalar product with another RealVect
   */
+  AMREX_GPU_HOST_DEVICE
   Real dotProduct(const RealVect& a_rhs) const noexcept;
+
+#if (AMREX_SPACEDIM == 3)
+  ///
+  /**
+     Returns the result of the cross product with another RealVect
+  */
+  AMREX_GPU_HOST_DEVICE
+  RealVect crossProduct(const RealVect& a_rhs) const noexcept;
+#endif
 
   ///
   /**
      Modifies this RealVect by component-wise multiplication by argument.
   */
+  AMREX_GPU_HOST_DEVICE
   RealVect& operator*= (const RealVect& p) noexcept;
 
 //XXX  ///
@@ -270,18 +310,21 @@ public:
      Returns a RealVect that is this RealVect with each component
      multiplied by a scalar.
   */
+  AMREX_GPU_HOST_DEVICE
   RealVect operator* (Real s) const noexcept;
 
   ///
   /**
      Modifies this RealVect by dividing each component by a scalar.
   */
+  AMREX_GPU_HOST_DEVICE
   RealVect& operator/= (Real s) noexcept;
 
   ///
   /**
      Modifies this RealVect by component-wise division by argument.
   */
+  AMREX_GPU_HOST_DEVICE
   RealVect& operator/= (const RealVect& p) noexcept;
 
 //XXX  ///
@@ -295,12 +338,14 @@ public:
      Returns a RealVect that is this RealVect with each component
      divided by a scalar.
   */
+  AMREX_GPU_HOST_DEVICE
   RealVect operator/ (Real s) const noexcept;
 
   ///
   /**
      Modifies this RealVect by multiplying each component by a scalar.
   */
+  AMREX_GPU_HOST_DEVICE
   RealVect& scale (Real s) noexcept;
 
   /*@}*/
@@ -315,6 +360,7 @@ public:
      Modifies this RealVect by taking component-wise min with RealVect
      argument.
   */
+  AMREX_GPU_HOST_DEVICE
   RealVect& min (const RealVect& p) noexcept;
 
   ///
@@ -322,14 +368,15 @@ public:
      Returns the RealVect that is the component-wise minimum of two
      argument RealVects.
   */
-  friend inline RealVect min (const RealVect& p1,
-                              const RealVect& p2) noexcept;
+  friend AMREX_GPU_HOST_DEVICE inline
+  RealVect min (const RealVect& p1, const RealVect& p2) noexcept;
 
   ///
   /**
      Modifies this RealVect by taking component-wise max with RealVect
      argument.
   */
+  AMREX_GPU_HOST_DEVICE
   RealVect& max (const RealVect& p) noexcept;
 
   ///
@@ -337,8 +384,8 @@ public:
      Returns the RealVect that is the component-wise maximum of two
      argument RealVects.
   */
-  friend inline RealVect max (const RealVect& p1,
-                              const RealVect& p2) noexcept;
+  friend AMREX_GPU_HOST_DEVICE inline
+  RealVect max (const RealVect& p1, const RealVect& p2) noexcept;
 
   /*@}*/
 
@@ -351,36 +398,42 @@ public:
   /**
      Unary plus -- for completeness.
   */
+  AMREX_GPU_HOST_DEVICE
   RealVect operator+ () const noexcept;
 
   ///
   /**
      Unary minus -- negates all components of this RealVect.
   */
+  AMREX_GPU_HOST_DEVICE
   RealVect operator- () const noexcept;
 
   ///
   /**
      Sum of all components of this RealVect.
   */
+  AMREX_GPU_HOST_DEVICE
   Real sum () const noexcept;
 
   ///
   /**
      sqrt(sum squares)
   */
+  AMREX_GPU_HOST_DEVICE
   Real vectorLength() const noexcept;
 
   ///
   /**
      sum squares--no square root
   */
+  AMREX_GPU_HOST_DEVICE
   Real radSquared() const noexcept;
 
   ///
   /**
      Product of all components of this RealVect.
   */
+  AMREX_GPU_HOST_DEVICE
   Real product () const noexcept;
 
   ///
@@ -388,6 +441,7 @@ public:
      Component with the minimum value of this RealVect (returns 0 if they are all the same).
      a_doAbs : if true then take the absolute value before comparing
   */
+  AMREX_GPU_HOST_DEVICE
   int minDir(const bool& a_doAbs) const noexcept;
 
   ///
@@ -395,6 +449,7 @@ public:
      Component with the maximum value of this RealVect (returns 0 if they are all the same).
      a_doAbs : if true then take the absolute value before comparing
   */
+  AMREX_GPU_HOST_DEVICE
   int maxDir(const bool& a_doAbs) const noexcept;
 
   /*@}*/
@@ -408,12 +463,14 @@ public:
   /**
      Only for sending stuff to Fortran
    */
+  AMREX_GPU_HOST_DEVICE
   const Real* dataPtr() const noexcept;
 
   ///
   /**
      Only for sending stuff to Fortran
    */
+  AMREX_GPU_HOST_DEVICE
   Real* dataPtr() noexcept;
 
   /*@}*/
@@ -435,7 +492,8 @@ public:
      BASISREALV(2) == (0.,0.,1.).<br>
      Note that the coordinate directions are based at zero.
   */
-  friend RealVect BASISREALV(int dir) noexcept;
+  friend AMREX_GPU_HOST_DEVICE
+  RealVect BASISREALV(int dir) noexcept;
 
   ///
   /**
@@ -461,65 +519,65 @@ public:
      Returns a RealVect that is a RealVect <i>p</i> with
      a scalar <i>s</i> added to each component.
   */
-  friend RealVect operator+ (Real            s,
-                             const RealVect& p) noexcept;
+  friend AMREX_GPU_HOST_DEVICE
+  RealVect operator+ (Real s, const RealVect& p) noexcept;
 
   ///
   /**
      Returns <i>s - p</i>.
   */
-  friend RealVect operator- (Real            s,
-                             const RealVect& p) noexcept;
+  friend AMREX_GPU_HOST_DEVICE
+  RealVect operator- (Real s, const RealVect& p) noexcept;
 
   ///
   /**
      Returns a RealVect that is a RealVect <i>p</i> with each component
      multiplied by a scalar <i>s</i>.
   */
-  friend RealVect operator* (Real            s,
-                             const RealVect& p) noexcept;
+  friend AMREX_GPU_HOST_DEVICE
+  RealVect operator* (Real s, const RealVect& p) noexcept;
   ///
   /**
      Returns a RealVect that is a RealVect <i>p</i> with each component
      divided by a scalar <i>s</i>.
   */
-  friend RealVect operator/ (Real            s,
-                             const RealVect& p) noexcept;
+  friend AMREX_GPU_HOST_DEVICE
+  RealVect operator/ (Real s, const RealVect& p) noexcept;
 
   ///
   /**
      Returns component-wise sum of RealVects <i>s</i> and <i>p</i>.
   */
-  friend RealVect operator+ (const RealVect& s,
-                             const RealVect& p) noexcept;
+  friend AMREX_GPU_HOST_DEVICE
+  RealVect operator+ (const RealVect& s, const RealVect& p) noexcept;
 
   ///
   /**
      Returns <i>s - p</i>.
   */
-  friend RealVect operator- (const RealVect& s,
-                             const RealVect& p) noexcept;
+  friend AMREX_GPU_HOST_DEVICE
+  RealVect operator- (const RealVect& s, const RealVect& p) noexcept;
 
   ///
   /**
      Returns component-wise product of <i>s</i> and <i>p</i>.
   */
-  friend RealVect operator* (const RealVect& s,
-                             const RealVect& p) noexcept;
+  friend AMREX_GPU_HOST_DEVICE
+  RealVect operator* (const RealVect& s, const RealVect& p) noexcept;
   ///
   /**
      Returns component-wise quotient <i>p / s</i>.
   */
-  friend RealVect operator/ (const RealVect& s,
-                             const RealVect& p) noexcept;
+  friend AMREX_GPU_HOST_DEVICE
+  RealVect operator/ (const RealVect& s, const RealVect& p) noexcept;
 
   ///
   /**
      Returns a RealVect obtained by multiplying each of the components
      of the given RealVect by a scalar.
   */
-  friend inline RealVect scale (const RealVect& p,
-                                Real            s) noexcept;
+  friend inline AMREX_GPU_HOST_DEVICE
+  RealVect scale (const RealVect& p, Real s) noexcept;
 
   /*@}*/
 
@@ -527,8 +585,7 @@ public:
   /**
      Print to the given output stream in ASCII.
   */
-  friend std::ostream& operator<< (std::ostream& ostr,
-                                   const RealVect& p);
+  friend std::ostream& operator<< (std::ostream& ostr, const RealVect& p);
 
   friend std::istream& operator>> (std::istream& is, RealVect& iv);
 
@@ -541,43 +598,37 @@ protected:
 
 };
 
-inline Real& RealVect::operator[] (int i) noexcept
-{
-  assert(i>=0 && i < SpaceDim);
-  return vect[i];
-}
-
-inline const Real& RealVect::operator[] (int i) const noexcept
-{
-  assert(i>=0 && i < SpaceDim);
-  return vect[i];
-}
-
+AMREX_GPU_HOST_DEVICE
 inline Real* RealVect::begin () noexcept
 { 
   return &vect[0];
 }
 
+AMREX_GPU_HOST_DEVICE
 inline const Real* RealVect::begin () const noexcept
 {
   return &vect[0];
 }
 
+AMREX_GPU_HOST_DEVICE
 inline Real* RealVect::end () noexcept
 {
   return &vect[SpaceDim];
 }
 
+AMREX_GPU_HOST_DEVICE
 inline const Real* RealVect::end () const noexcept
 {
   return &vect[SpaceDim];
 }
 
+AMREX_GPU_HOST_DEVICE
 inline RealVect::RealVect (const RealVect &iv) noexcept
 {
   AMREX_D_EXPR(vect[0]=iv.vect[0], vect[1]=iv.vect[1], vect[2]=iv.vect[2]);
 }
 
+AMREX_GPU_HOST_DEVICE
 inline
 RealVect&
 RealVect::operator-= (Real s) noexcept
@@ -586,6 +637,7 @@ RealVect::operator-= (Real s) noexcept
   return *this;
 }
 
+AMREX_GPU_HOST_DEVICE
 inline
 RealVect&
 RealVect::operator-= (const RealVect& p) noexcept
@@ -595,6 +647,7 @@ RealVect::operator-= (const RealVect& p) noexcept
   return *this;
 }
 
+AMREX_GPU_HOST_DEVICE
 inline
 RealVect
 RealVect::operator+ () const noexcept
@@ -602,6 +655,7 @@ RealVect::operator+ () const noexcept
   return RealVect(*this);
 }
 
+AMREX_GPU_HOST_DEVICE
 inline
 RealVect
 RealVect::operator- () const noexcept
@@ -609,6 +663,7 @@ RealVect::operator- () const noexcept
   return RealVect(AMREX_D_DECL(-vect[0], -vect[1], -vect[2]));
 }
 
+AMREX_GPU_HOST_DEVICE
 inline
 RealVect&
 RealVect::scale (Real s) noexcept
@@ -617,6 +672,7 @@ RealVect::scale (Real s) noexcept
   return *this;
 }
 
+AMREX_GPU_HOST_DEVICE
 inline
 Real
 RealVect::sum () const noexcept
@@ -624,6 +680,7 @@ RealVect::sum () const noexcept
   return AMREX_D_TERM(vect[0], + vect[1], + vect[2]);
 }
 
+AMREX_GPU_HOST_DEVICE
 inline
 Real
 RealVect::vectorLength () const noexcept
@@ -634,6 +691,7 @@ RealVect::vectorLength () const noexcept
   return len;
 }
 
+AMREX_GPU_HOST_DEVICE
 inline
 Real
 RealVect::radSquared() const noexcept
@@ -647,6 +705,7 @@ RealVect::radSquared() const noexcept
   return len;
 }
 
+AMREX_GPU_HOST_DEVICE
 inline
 Real
 RealVect::product () const noexcept
@@ -654,6 +713,7 @@ RealVect::product () const noexcept
   return AMREX_D_TERM(vect[0], * vect[1], * vect[2]);
 }
 
+AMREX_GPU_HOST_DEVICE
 inline
 RealVect
 scale (const RealVect& p,
@@ -662,6 +722,7 @@ scale (const RealVect& p,
   return RealVect(AMREX_D_DECL(s * p[0], s * p[1], s * p[2]));
 }
 
+AMREX_GPU_HOST_DEVICE
 inline
 bool
 RealVect::operator< (const RealVect& p) const noexcept
@@ -669,6 +730,7 @@ RealVect::operator< (const RealVect& p) const noexcept
   return AMREX_D_TERM(vect[0] < p[0], && vect[1] < p[1], && vect[2] < p[2]);
 }
 
+AMREX_GPU_HOST_DEVICE
 inline
 bool
 RealVect::operator<= (const RealVect& p) const noexcept
@@ -676,6 +738,7 @@ RealVect::operator<= (const RealVect& p) const noexcept
   return AMREX_D_TERM(vect[0] <= p[0], && vect[1] <= p[1], && vect[2] <= p[2]);
 }
 
+AMREX_GPU_HOST_DEVICE
 inline
 bool
 RealVect::operator> (const RealVect& p) const noexcept
@@ -683,6 +746,7 @@ RealVect::operator> (const RealVect& p) const noexcept
   return AMREX_D_TERM(vect[0] > p[0], && vect[1] > p[1], && vect[2] > p[2]);
 }
 
+AMREX_GPU_HOST_DEVICE
 inline
 bool
 RealVect::operator>= (const RealVect& p) const noexcept
@@ -690,27 +754,29 @@ RealVect::operator>= (const RealVect& p) const noexcept
   return AMREX_D_TERM(vect[0] >= p[0], && vect[1] >= p[1], && vect[2] >= p[2]);
 }
 
+AMREX_GPU_HOST_DEVICE
 inline
 RealVect&
 RealVect::min (const RealVect& p) noexcept
 {
-  AMREX_D_EXPR(vect[0] = std::min(vect[0], p.vect[0]),
-         vect[1] = std::min(vect[1], p.vect[1]),
-         vect[2] = std::min(vect[2], p.vect[2]));
-
-  return *this;
+    AMREX_D_EXPR(vect[0] = amrex::min(vect[0], p.vect[0]),
+                 vect[1] = amrex::min(vect[1], p.vect[1]),
+                 vect[2] = amrex::min(vect[2], p.vect[2]));
+    return *this;
 }
 
+AMREX_GPU_HOST_DEVICE
 inline
 RealVect&
 RealVect::max (const RealVect& p) noexcept
 {
-  AMREX_D_EXPR(vect[0] = std::max(vect[0], p.vect[0]),
-         vect[1] = std::max(vect[1], p.vect[1]),
-         vect[2] = std::max(vect[2], p.vect[2]));
-  return *this;
+    AMREX_D_EXPR(vect[0] = amrex::max(vect[0], p.vect[0]),
+                 vect[1] = amrex::max(vect[1], p.vect[1]),
+                 vect[2] = amrex::max(vect[2], p.vect[2]));
+    return *this;
 }
 
+AMREX_GPU_HOST_DEVICE
 inline
 RealVect
 min (const RealVect& p1,
@@ -720,6 +786,7 @@ min (const RealVect& p1,
   return p.min(p2);
 }
 
+AMREX_GPU_HOST_DEVICE
 inline
 RealVect
 max (const RealVect& p1,
@@ -729,7 +796,7 @@ max (const RealVect& p1,
   return p.max(p2);
 }
 
-extern RealVect BASISREALV(int idir) noexcept;
+extern AMREX_GPU_HOST_DEVICE RealVect BASISREALV(int dir) noexcept;
 
 }
 

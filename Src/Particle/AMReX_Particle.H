@@ -6,6 +6,7 @@
 #include <AMReX_REAL.H>
 #include <AMReX_FArrayBox.H>
 #include <AMReX_IntVect.H>
+#include <AMReX_RealVect.H>
 
 #include <AMReX_ParmParse.H>
 #include <AMReX_Geometry.H>
@@ -70,6 +71,9 @@ struct Particle
     AMREX_GPU_HOST_DEVICE int& cpu()       & {return m_idata.cpu;}
     AMREX_GPU_HOST_DEVICE int  cpu() const & {return m_idata.cpu;}
 
+    AMREX_GPU_HOST_DEVICE RealVect pos() const &
+    {return RealVect(AMREX_D_DECL(m_rdata.pos[0], m_rdata.pos[1], m_rdata.pos[2]));}
+
     AMREX_GPU_HOST_DEVICE RealType& pos(int index)       &
 	{
 		AMREX_ASSERT(index < AMREX_SPACEDIM);
@@ -90,6 +94,20 @@ struct Particle
 	{
 		AMREX_ASSERT(index < NReal);
 		return m_rdata.arr[AMREX_SPACEDIM + index];
+	}
+    AMREX_GPU_HOST_DEVICE RealVect  rvec(AMREX_D_DECL(int indx, int indy, int indz)) const &
+	{
+		AMREX_ASSERT(AMREX_D_TERM(indx < NReal, and indy < NReal, and indz < NReal));
+		return RealVect(AMREX_D_DECL(m_rdata.arr[AMREX_SPACEDIM + indx],
+                                 m_rdata.arr[AMREX_SPACEDIM + indy],
+                                 m_rdata.arr[AMREX_SPACEDIM + indz]));
+	}
+    AMREX_GPU_HOST_DEVICE RealVect  rvec(IntVect& indexes) const &
+	{
+		AMREX_ASSERT(indexes.max() < NReal);
+		return RealVect(AMREX_D_DECL(m_rdata.arr[AMREX_SPACEDIM + indexes[0]],
+                                 m_rdata.arr[AMREX_SPACEDIM + indexes[1]],
+                                 m_rdata.arr[AMREX_SPACEDIM + indexes[2]]));
 	}
 
     AMREX_GPU_HOST_DEVICE int& idata(int index)       &
