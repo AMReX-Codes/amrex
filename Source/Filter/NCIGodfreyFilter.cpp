@@ -35,7 +35,7 @@ void NCIGodfreyFilter::ComputeStencils(){
         "ERROR: NCI filter requires 5 points in z");
 
     // Interpolate coefficients from the table, and store into prestencil.
-    int index = tab_length*m_cdtodz;
+    auto index = static_cast<int>(tab_length*m_cdtodz);
     index = min(index, tab_length-2);
     index = max(index, 0);
     Real weight_right = m_cdtodz - index/tab_length;
