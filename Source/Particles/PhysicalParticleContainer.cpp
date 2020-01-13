@@ -972,29 +972,32 @@ PhysicalParticleContainer::AssignExternalFieldOnParticles(WarpXParIter& pti,
                            Gpu::ManagedDeviceVector<ParticleReal> zp)
 {
    const long np = pti.numParticles();
-
-   if (WarpX::E_ext_particle_s=="constant" ||
-       WarpX::E_ext_particle_s=="default") {
-       Exp.assign(np,WarpX::E_external_particle[0]);
-       Eyp.assign(np,WarpX::E_external_particle[1]);
-       Ezp.assign(np,WarpX::E_external_particle[2]);
+    /// get WarpX class object
+    auto & warpx = WarpX::GetInstance();
+    /// get MultiParticleContainer class object
+    auto & mypc = warpx.GetPartContainer();
+   if (mypc.m_E_ext_particle_s=="constant" ||
+       mypc.m_E_ext_particle_s=="default") {
+       Exp.assign(np,mypc.m_E_external_particle[0]);
+       Eyp.assign(np,mypc.m_E_external_particle[1]);
+       Ezp.assign(np,mypc.m_E_external_particle[2]);
    }
-   if (WarpX::B_ext_particle_s=="constant" ||
-       WarpX::B_ext_particle_s=="default") {
-       Bxp.assign(np,WarpX::B_external_particle[0]);
-       Byp.assign(np,WarpX::B_external_particle[1]);
-       Bzp.assign(np,WarpX::B_external_particle[2]);
+   if (mypc.m_B_ext_particle_s=="constant" ||
+       mypc.m_B_ext_particle_s=="default") {
+       Bxp.assign(np,mypc.m_B_external_particle[0]);
+       Byp.assign(np,mypc.m_B_external_particle[1]);
+       Bzp.assign(np,mypc.m_B_external_particle[2]);
    }
-   if (WarpX::E_ext_particle_s=="parse_e_ext_particle_function") {
+   if (mypc.m_E_ext_particle_s=="parse_e_ext_particle_function") {
       Real* const AMREX_RESTRICT xp_data = xp.dataPtr();
       Real* const AMREX_RESTRICT yp_data = yp.dataPtr();
       Real* const AMREX_RESTRICT zp_data = zp.dataPtr();
       Real* const AMREX_RESTRICT Exp_data = Exp.dataPtr();
       Real* const AMREX_RESTRICT Eyp_data = Eyp.dataPtr();
       Real* const AMREX_RESTRICT Ezp_data = Ezp.dataPtr();
-      ParserWrapper *xfield_partparser = Ex_particle_parser.get();
-      ParserWrapper *yfield_partparser = Ey_particle_parser.get();
-      ParserWrapper *zfield_partparser = Ez_particle_parser.get();
+      ParserWrapper *xfield_partparser = mypc.m_Ex_particle_parser.get();
+      ParserWrapper *yfield_partparser = mypc.m_Ey_particle_parser.get();
+      ParserWrapper *zfield_partparser = mypc.m_Ez_particle_parser.get();
       amrex::ParallelFor(pti.numParticles(),
             [=] AMREX_GPU_DEVICE (long i) {
             Exp_data[i] = xfield_partparser->getField(xp_data[i],yp_data[i],zp_data[i]);
@@ -1002,16 +1005,16 @@ PhysicalParticleContainer::AssignExternalFieldOnParticles(WarpXParIter& pti,
             Ezp_data[i] = zfield_partparser->getField(xp_data[i],yp_data[i],zp_data[i]);
       });
    }
-   if (WarpX::B_ext_particle_s=="parse_b_ext_particle_function") {
+   if (mypc.m_B_ext_particle_s=="parse_b_ext_particle_function") {
       Real* const AMREX_RESTRICT xp_data = xp.dataPtr();
       Real* const AMREX_RESTRICT yp_data = yp.dataPtr();
       Real* const AMREX_RESTRICT zp_data = zp.dataPtr();
       Real* const AMREX_RESTRICT Bxp_data = Bxp.dataPtr();
       Real* const AMREX_RESTRICT Byp_data = Byp.dataPtr();
       Real* const AMREX_RESTRICT Bzp_data = Bzp.dataPtr();
-      ParserWrapper *xfield_partparser = Bx_particle_parser.get();
-      ParserWrapper *yfield_partparser = By_particle_parser.get();
-      ParserWrapper *zfield_partparser = Bz_particle_parser.get();
+      ParserWrapper *xfield_partparser = mypc.m_Bx_particle_parser.get();
+      ParserWrapper *yfield_partparser = mypc.m_By_particle_parser.get();
+      ParserWrapper *zfield_partparser = mypc.m_Bz_particle_parser.get();
       amrex::ParallelFor(pti.numParticles(),
             [=] AMREX_GPU_DEVICE (long i) {
             Bxp_data[i] = xfield_partparser->getField(xp_data[i],yp_data[i],zp_data[i]);
@@ -1077,9 +1080,6 @@ PhysicalParticleContainer::FieldGather (int lev,
             // copy data from particle container to temp arrays
             //
             pti.GetPosition(m_xp[thread_num], m_yp[thread_num], m_zp[thread_num]);
-            //ApplyExternalFieldOnParticles(pti, Exp, Eyp, Ezp, Bxp, Byp, Bzp,
-            //                              m_xp[thread_num], m_yp[thread_num],
-            //                              m_zp[thread_num]);
 
             //
             // Field Gather
@@ -1210,9 +1210,6 @@ PhysicalParticleContainer::Evolve (int lev,
             // copy data from particle container to temp arrays
             //
             pti.GetPosition(m_xp[thread_num], m_yp[thread_num], m_zp[thread_num]);
-            //ApplyExternalFieldOnParticles(pti, Exp, Eyp, Ezp, Bxp, Byp, Bzp,
-            //                              m_xp[thread_num], m_yp[thread_num],
-            //                              m_zp[thread_num]);
 
             // Determine which particles deposit/gather in the buffer, and
             // which particles deposit/gather in the fine patch
@@ -1858,10 +1855,6 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
             //
             pti.GetPosition(m_xp[thread_num], m_yp[thread_num], m_zp[thread_num]);
 
-            //ApplyExternalFieldOnParticles(pti, Exp, Eyp, Ezp, Bxp, Byp, Bzp,
-            //                              m_xp[thread_num], m_yp[thread_num],
-            //                              m_zp[thread_num]);
-
             int e_is_nodal = Ex.is_nodal() and Ey.is_nodal() and Ez.is_nodal();
             FieldGather(pti, Exp, Eyp, Ezp, Bxp, Byp, Bzp,
                         &exfab, &eyfab, &ezfab, &bxfab, &byfab, &bzfab,
@@ -2226,7 +2219,6 @@ PhysicalParticleContainer::FieldGather (WarpXParIter& pti,
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE((gather_lev==(lev-1)) ||
                                      (gather_lev==(lev  )),
                                      "Gather buffers only work for lev-1");
-
     // If no particles, do not do anything
     if (np_to_gather == 0) return;
 
@@ -2235,6 +2227,7 @@ PhysicalParticleContainer::FieldGather (WarpXParIter& pti,
     AssignExternalFieldOnParticles(pti, Exp, Eyp, Ezp, Bxp, Byp, Bzp,
                                   m_xp[thread_num], m_yp[thread_num],
                                   m_zp[thread_num]);
+
 
     // Get cell size on gather_lev
     const std::array<Real,3>& dx = WarpX::CellSize(std::max(gather_lev,0));

@@ -115,24 +115,6 @@ WarpXParticleContainer::WarpXParticleContainer (AmrCore* amr_core, int ispecies)
     m_yp.resize(num_threads);
     m_zp.resize(num_threads);
 
-    if (WarpX::B_ext_particle_s == "parse_b_ext_particle_function") {
-       Bx_particle_parser.reset(new ParserWrapper(
-                                makeParser(WarpX::str_Bx_ext_particle_function)));
-       By_particle_parser.reset(new ParserWrapper(
-                                makeParser(WarpX::str_By_ext_particle_function)));
-       Bz_particle_parser.reset(new ParserWrapper(
-                                makeParser(WarpX::str_Bz_ext_particle_function)));
-    }
-
-    if (WarpX::E_ext_particle_s == "parse_e_ext_particle_function") {
-       Ex_particle_parser.reset(new ParserWrapper(
-                                makeParser(WarpX::str_Ex_ext_particle_function)));
-       Ey_particle_parser.reset(new ParserWrapper(
-                                makeParser(WarpX::str_Ey_ext_particle_function)));
-       Ez_particle_parser.reset(new ParserWrapper(
-                                makeParser(WarpX::str_Ez_ext_particle_function)));
-    }
-
 }
 
 void

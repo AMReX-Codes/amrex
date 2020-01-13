@@ -81,10 +81,6 @@ public:
 
     static void GotoNextLine (std::istream& is);
 
-    // External fields added to particle fields.
-    static amrex::Vector<amrex::Real> B_external_particle;
-    static amrex::Vector<amrex::Real> E_external_particle;
-
     // Initial field on the grid.
     static amrex::Vector<amrex::Real> E_external_grid;
     static amrex::Vector<amrex::Real> B_external_grid;
@@ -92,8 +88,6 @@ public:
     // Initialization Type for External E and B on grid and particles
     static std::string B_ext_grid_s;
     static std::string E_ext_grid_s;
-    static std::string B_ext_particle_s;
-    static std::string E_ext_particle_s;
 
     // Parser for B_external on the grid
     static std::string str_Bx_ext_grid_function;
@@ -112,15 +106,6 @@ public:
     std::unique_ptr<ParserWrapper> Exfield_parser;
     std::unique_ptr<ParserWrapper> Eyfield_parser;
     std::unique_ptr<ParserWrapper> Ezfield_parser;
-
-    // Parser for B_external on the particle
-    static std::string str_Bx_ext_particle_function;
-    static std::string str_By_ext_particle_function;
-    static std::string str_Bz_ext_particle_function;
-    // Parser for E_external on the particle
-    static std::string str_Ex_ext_particle_function;
-    static std::string str_Ey_ext_particle_function;
-    static std::string str_Ez_ext_particle_function;
 
     // Algorithms
     static long current_deposition_algo;

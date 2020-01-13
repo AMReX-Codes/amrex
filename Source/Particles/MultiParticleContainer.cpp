@@ -72,6 +72,85 @@ MultiParticleContainer::ReadParameters ()
     {
         ParmParse pp("particles");
 
+        // allocating and initializing default values of external fields for particles
+        m_E_external_particle.resize(3);
+        m_B_external_particle.resize(3);
+        // initialize E and B fields to 0.0
+        for (int idim = 0; idim < 3; ++idim) {
+            m_E_external_particle[idim] = 0.0;
+            m_B_external_particle[idim] = 0.0;
+        }
+        // default values of E_external_particle and B_external_particle
+        // are used to set the E and B field when "constant" or "parser"
+        // is not explicitly used in the input
+        pp.query("B_ext_particle_init_style", m_B_ext_particle_s);
+        std::transform(m_B_ext_particle_s.begin(),
+                       m_B_ext_particle_s.end(),
+                       m_B_ext_particle_s.begin(),
+                       ::tolower);
+        pp.query("E_ext_particle_init_style", m_E_ext_particle_s);
+        std::transform(m_E_ext_particle_s.begin(),
+                       m_E_ext_particle_s.end(),
+                       m_E_ext_particle_s.begin(),
+                       ::tolower);
+        // if the input string for B_external on particles is "constant"
+        // then the values for the external B on particles must
+        // be provided in the input file.
+        if (m_B_ext_particle_s == "constant")
+            pp.getarr("B_external_particle", m_B_external_particle);
+
+        // if the input string for E_external on particles is "constant"
+        // then the values for the external E on particles must
+        // be provided in the input file.
+        if (m_E_ext_particle_s == "constant")
+            pp.getarr("E_external_particle", m_E_external_particle);
+
+        // if the input string for B_ext_particle_s is
+        // "parse_b_ext_particle_function" then the mathematical expression
+        // for the Bx_, By_, Bz_external_particle_function(x,y,z)
+        // must be provided in the input file.
+        if (m_B_ext_particle_s == "parse_b_ext_particle_function") {
+           // store the mathematical expression as string
+           Store_parserString(pp, "Bx_external_particle_function(x,y,z)",
+                                      m_str_Bx_ext_particle_function);
+           Store_parserString(pp, "By_external_particle_function(x,y,z)",
+                                      m_str_By_ext_particle_function);
+           Store_parserString(pp, "Bz_external_particle_function(x,y,z)",
+                                      m_str_Bz_ext_particle_function);
+
+           m_Bx_particle_parser.reset(new ParserWrapper(
+                                    makeParser(m_str_Bx_ext_particle_function)));
+           m_By_particle_parser.reset(new ParserWrapper(
+                                    makeParser(m_str_By_ext_particle_function)));
+           m_Bz_particle_parser.reset(new ParserWrapper(
+                                    makeParser(m_str_Bz_ext_particle_function)));
+    
+        }
+
+        // if the input string for E_ext_particle_s is
+        // "parse_e_ext_particle_function" then the mathematical expression
+        // for the Ex_, Ey_, Ez_external_particle_function(x,y,z)
+        // must be provided in the input file.
+        if (m_E_ext_particle_s == "parse_e_ext_particle_function") {
+           // store the mathematical expression as string
+           Store_parserString(pp, "Ex_external_particle_function(x,y,z)",
+                                      m_str_Ex_ext_particle_function);
+           Store_parserString(pp, "Ey_external_particle_function(x,y,z)",
+                                      m_str_Ey_ext_particle_function);
+           Store_parserString(pp, "Ez_external_particle_function(x,y,z)",
+                                      m_str_Ez_ext_particle_function);
+           m_Ex_particle_parser.reset(new ParserWrapper(
+                                    makeParser(m_str_Ex_ext_particle_function)));
+           m_Ey_particle_parser.reset(new ParserWrapper(
+                                    makeParser(m_str_Ey_ext_particle_function)));
+           m_Ez_particle_parser.reset(new ParserWrapper(
+                                    makeParser(m_str_Ez_ext_particle_function)));
+
+        }
+ 
+
+
+
         pp.query("nspecies", nspecies);
         BL_ASSERT(nspecies >= 0);
 
