@@ -8,10 +8,10 @@
 struct YeeAlgorithm {
 
     static void InitializeStencilCoefficients(
-        std::array<amrex::Real,3> cell_size,
-        amrex::Gpu::ManagedVector<amrex::Real> stencil_coefs_x,
-        amrex::Gpu::ManagedVector<amrex::Real> stencil_coefs_y,
-        amrex::Gpu::ManagedVector<amrex::Real> stencil_coefs_z ) {
+        std::array<amrex::Real,3>& cell_size,
+        amrex::Gpu::ManagedVector<amrex::Real>& stencil_coefs_x,
+        amrex::Gpu::ManagedVector<amrex::Real>& stencil_coefs_y,
+        amrex::Gpu::ManagedVector<amrex::Real>& stencil_coefs_z ) {
 
         // Store the inverse cell size along each direction in the coefficients
         stencil_coefs_x.resize(1);
@@ -24,9 +24,9 @@ struct YeeAlgorithm {
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     static amrex::Real UpwardDx(
-        amrex::Array4<amrex::Real> const F,
-        int const i, int const j, int const k,
-        amrex::Real const* coefs_x, int const n_coefs_x ) {
+        amrex::Array4<amrex::Real> const& F,
+        amrex::Real const* coefs_x, int const n_coefs_x,
+        int const i, int const j, int const k ) {
 
         amrex::Real inv_dx = coefs_x[0];
         return inv_dx*( F(i+1,j,k) - F(i,j,k) );
@@ -34,9 +34,9 @@ struct YeeAlgorithm {
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     static amrex::Real DownwardDx(
-        amrex::Array4<amrex::Real> const F,
-        int const i, int const j, int const k,
-        amrex::Real const* coefs_x, int const n_coefs_x ) {
+        amrex::Array4<amrex::Real> const& F,
+        amrex::Real const* coefs_x, int const n_coefs_x,
+        int const i, int const j, int const k ) {
 
         amrex::Real inv_dx = coefs_x[0];
         return inv_dx*( F(i,j,k) - F(i-1,j,k) );
@@ -44,9 +44,9 @@ struct YeeAlgorithm {
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     static amrex::Real UpwardDy(
-        amrex::Array4<amrex::Real> const F,
-        int const i, int const j, int const k,
-        amrex::Real const* coefs_y, int const n_coefs_y ) {
+        amrex::Array4<amrex::Real> const& F,
+        amrex::Real const* coefs_y, int const n_coefs_y,
+        int const i, int const j, int const k ) {
 
         #if defined WARPX_DIM_3D
             amrex::Real inv_dy = coefs_y[0];
@@ -58,9 +58,9 @@ struct YeeAlgorithm {
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     static amrex::Real DownwardDy(
-        amrex::Array4<amrex::Real> const F,
-        int const i, int const j, int const k,
-        amrex::Real const* coefs_y, int const n_coefs_y ) {
+        amrex::Array4<amrex::Real> const& F,
+        amrex::Real const* coefs_y, int const n_coefs_y,
+        int const i, int const j, int const k ) {
 
         #if defined WARPX_DIM_3D
             amrex::Real inv_dy = coefs_y[0];
@@ -72,15 +72,29 @@ struct YeeAlgorithm {
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     static amrex::Real UpwardDz(
-        amrex::Array4<amrex::Real> const F,
-        int const i, int const j, int const k,
-        amrex::Real const* coefs_z, int const n_coefs_z ) {
+        amrex::Array4<amrex::Real> const& F,
+        amrex::Real const* coefs_z, int const n_coefs_z,
+        int const i, int const j, int const k ) {
 
         amrex::Real inv_dz = coefs_z[0];
         #if defined WARPX_DIM_3D
             return inv_dz*( F(i,j,k+1) - F(i,j,k) );
         #elif (defined WARPX_DIM_XZ)
             return inv_dz*( F(i,j+1,k) - F(i,j,k) );
+        #endif
+    };
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    static amrex::Real DownwardDz(
+        amrex::Array4<amrex::Real> const& F,
+        amrex::Real const* coefs_z, int const n_coefs_z,
+        int const i, int const j, int const k ) {
+
+        amrex::Real inv_dz = coefs_z[0];
+        #if defined WARPX_DIM_3D
+            return inv_dz*( F(i,j,k) - F(i,j,k-1) );
+        #elif (defined WARPX_DIM_XZ)
+            return inv_dz*( F(i,j,k) - F(i,j-1,k) );
         #endif
     };
 

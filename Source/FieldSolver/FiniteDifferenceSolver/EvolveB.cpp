@@ -40,30 +40,33 @@ void FiniteDifferenceSolver::EvolveBwithAlgo ( VectorField& Bfield,
 
         // Extract stencil coefficients
         Real const* AMREX_RESTRICT coefs_x = stencil_coefs_x.dataPtr();
+        int const n_coefs_x = stencil_coefs_x.size();
         Real const* AMREX_RESTRICT coefs_y = stencil_coefs_y.dataPtr();
+        int const n_coefs_y = stencil_coefs_y.size();
         Real const* AMREX_RESTRICT coefs_z = stencil_coefs_z.dataPtr();
+        int const n_coefs_z = stencil_coefs_z.size();
 
         // Extract tileboxes for which to loop
-        const Box& tbx  = mfi.tilebox(Bx_nodal_flag);
-        const Box& tby  = mfi.tilebox(By_nodal_flag);
-        const Box& tbz  = mfi.tilebox(Bz_nodal_flag);
+        const Box& tbx  = mfi.tilebox(Bfield[0]->ixType().ixType());
+        const Box& tby  = mfi.tilebox(Bfield[1]->ixType().ixType());
+        const Box& tbz  = mfi.tilebox(Bfield[2]->ixType().ixType());
 
         // Loop over the cells and update the fields
         amrex::ParallelFor(tbx, tby, tbz,
 
             [=] AMREX_GPU_DEVICE (int i, int j, int k){
-                Bx(i, j, k) += dt * algo::UpwardDz(Ey, i, j, k, coefs_z)
-                             - dt * algo::UpwardDy(Ez, i, j, k, coefs_y);
+                Bx(i, j, k) += dt * algo::UpwardDz(Ey, coefs_z, n_coefs_z, i, j, k)
+                             - dt * algo::UpwardDy(Ez, coefs_y, n_coefs_y, i, j, k);
             },
 
             [=] AMREX_GPU_DEVICE (int i, int j, int k){
-                By(i, j, k) += dt * algo::UpwardDx(Ez, i, j, k, coefs_x)
-                             - dt * algo::UpwardDz(Ex, i, j, k, coefs_z);
+                By(i, j, k) += dt * algo::UpwardDx(Ez, coefs_x, n_coefs_x, i, j, k)
+                             - dt * algo::UpwardDz(Ex, coefs_z, n_coefs_z, i, j, k);
             },
 
             [=] AMREX_GPU_DEVICE (int i, int j, int k){
-                Bz(i, j, k) += dt * algo::UpwardDy(Ex, i, j, k, coefs_y)
-                             - dt * algo::UpwardDx(Ey, i, j, k, coefs_x);
+                Bz(i, j, k) += dt * algo::UpwardDy(Ex, coefs_y, n_coefs_y, i, j, k)
+                             - dt * algo::UpwardDx(Ey, coefs_x, n_coefs_x, i, j, k);
             }
 
         );
