@@ -354,7 +354,7 @@ public:
      components.
   */
   AMREX_GPU_HOST_DEVICE
-  IntVect floor () noexcept;
+  IntVect floor () const noexcept;
 
   /*@}*/
 
@@ -701,7 +701,7 @@ RealVect::scale (Real s) noexcept
 AMREX_GPU_HOST_DEVICE
 inline
 IntVect
-RealVect::floor () noexcept
+RealVect::floor () const noexcept
 {
   return IntVect(AMREX_D_DECL(std::floor(vect[0]), std::floor(vect[1]), std::floor(vect[2])));
 }
