@@ -1,7 +1,4 @@
-import os, shutil, re
 import numpy as np
-import scipy.constants as scc
-import time, copy
 
 '''
 This Python script helps a user to parallelize a WarpX simulation.

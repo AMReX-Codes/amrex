@@ -1,4 +1,3 @@
-import numpy as np
 from pywarpx import picmi
 #from warp import picmi
 
