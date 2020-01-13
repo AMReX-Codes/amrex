@@ -40,9 +40,11 @@ public:
      Construct a RealVect whose components are zero.
   */
   AMREX_GPU_HOST_DEVICE
-  RealVect () noexcept;
+  constexpr RealVect () noexcept : vect{AMREX_D_DECL(0,0,0)} {}
 
-  explicit RealVect (const std::vector<Real>&) noexcept;
+  explicit RealVect (const std::vector<Real>& vr) noexcept : vect{AMREX_D_DECL(vr[0],vr[1],vr[2])} {
+      BL_ASSERT(vr.size() == AMREX_SPACEDIM);
+  }
 
   ///
   /**
@@ -51,15 +53,19 @@ public:
      take AMREX_SPACEDIM arguments.
   */
   AMREX_GPU_HOST_DEVICE
-  RealVect (AMREX_D_DECL(Real i, Real j, Real k)) noexcept;
+  constexpr RealVect (AMREX_D_DECL(Real i, Real j, Real k)) noexcept : vect{AMREX_D_DECL(i,j,k)} {}
+
+#if (AMREX_SPACEDIM > 1)
+  AMREX_GPU_HOST_DEVICE
+  explicit constexpr RealVect (Real i) noexcept : vect{AMREX_D_DECL(i,i,i)} {}
+#endif
 
   ///
   /**
      The copy constructor.
   */
   AMREX_GPU_HOST_DEVICE
-  RealVect (const RealVect& rhs) noexcept;
-
+  RealVect (const RealVect& rhs) noexcept : vect{AMREX_D_DECL(rhs[0],rhs[1],rhs[2])} {}
 
   ///
   /**
@@ -67,13 +73,7 @@ public:
      from <tt>int</tt> to Real.
   */
   AMREX_GPU_HOST_DEVICE
-  explicit RealVect (const IntVect & iv) noexcept
-  {
-    for (int d=0 ; d<SpaceDim ; ++d)
-    {
-      vect[d] = (Real)iv[d];
-    }
-  }
+  RealVect (const IntVect & iv) noexcept : vect{AMREX_D_DECL((Real)iv[0],(Real)iv[1],(Real)iv[2])} {}
 
   ///
   /**
@@ -348,6 +348,14 @@ public:
   AMREX_GPU_HOST_DEVICE
   RealVect& scale (Real s) noexcept;
 
+  ///
+  /**
+     Returns an IntVect whose components are the std::floor of the RealVect 
+     components.
+  */
+  AMREX_GPU_HOST_DEVICE
+  IntVect floor () noexcept;
+
   /*@}*/
 
   /**
@@ -510,6 +518,30 @@ public:
   /*@}*/
 
   /**
+     \name Static public members functions
+  */
+  /*@{*/
+
+  ///
+  /**
+     The zero vector in AMREX_SPACEDIM-dimensional space.
+  */
+  AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+  static constexpr RealVect TheZeroVector () noexcept {
+      return RealVect(0.);
+  }
+
+  /**
+     The unit vector in AMREX_SPACEDIM-dimensional space.
+  */
+  AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+  static constexpr RealVect TheUnitVector () noexcept {
+      return RealVect(1.);
+  }
+
+  /*@}*/
+
+  /**
      \name Arithmetic friend functions
   */
   /*@{*/
@@ -623,12 +655,6 @@ inline const Real* RealVect::end () const noexcept
 }
 
 AMREX_GPU_HOST_DEVICE
-inline RealVect::RealVect (const RealVect &iv) noexcept
-{
-  AMREX_D_EXPR(vect[0]=iv.vect[0], vect[1]=iv.vect[1], vect[2]=iv.vect[2]);
-}
-
-AMREX_GPU_HOST_DEVICE
 inline
 RealVect&
 RealVect::operator-= (Real s) noexcept
@@ -670,6 +696,14 @@ RealVect::scale (Real s) noexcept
 {
   AMREX_D_EXPR(vect[0] *= s, vect[1] *= s, vect[2] *= s);
   return *this;
+}
+
+AMREX_GPU_HOST_DEVICE
+inline
+IntVect
+RealVect::floor () noexcept
+{
+  return IntVect(AMREX_D_DECL(std::floor(vect[0]), std::floor(vect[1]), std::floor(vect[2])));
 }
 
 AMREX_GPU_HOST_DEVICE
