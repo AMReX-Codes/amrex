@@ -124,7 +124,7 @@ MultiParticleContainer::ReadParameters ()
                                     makeParser(m_str_By_ext_particle_function)));
            m_Bz_particle_parser.reset(new ParserWrapper(
                                     makeParser(m_str_Bz_ext_particle_function)));
-    
+
         }
 
         // if the input string for E_ext_particle_s is
@@ -147,7 +147,7 @@ MultiParticleContainer::ReadParameters ()
                                     makeParser(m_str_Ez_ext_particle_function)));
 
         }
- 
+
 
 
 
