@@ -1,4 +1,4 @@
-import os, sys, shutil, datetime
+import os, shutil, datetime
 import argparse, re, time
 from functions_perftest import *
 
