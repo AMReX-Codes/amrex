@@ -90,6 +90,7 @@ Real WarpX::particle_slice_width_lab = 0.0;
 bool WarpX::do_dynamic_scheduling = true;
 
 int WarpX::do_subcycling = 0;
+bool WarpX::exchange_all_guard_cells = 0;
 
 #if (AMREX_SPACEDIM == 3)
 IntVect WarpX::Bx_nodal_flag(1,0,0);
@@ -324,6 +325,7 @@ WarpX::ReadParameters ()
         pp.query("verbose", verbose);
         pp.query("regrid_int", regrid_int);
         pp.query("do_subcycling", do_subcycling);
+        pp.query("exchange_all_guard_cells", exchange_all_guard_cells);
         pp.query("override_sync_int", override_sync_int);
 
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(do_subcycling != 1 || max_level <= 1,
@@ -744,58 +746,23 @@ WarpX::ClearLevel (int lev)
 void
 WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& dm)
 {
-    // When using subcycling, the particles on the fine level perform two pushes
-    // before being redistributed ; therefore, we need one extra guard cell
-    // (the particles may move by 2*c*dt)
-    const int ngx_tmp = (maxLevel() > 0 && do_subcycling == 1) ? WarpX::nox+1 : WarpX::nox;
-    const int ngy_tmp = (maxLevel() > 0 && do_subcycling == 1) ? WarpX::noy+1 : WarpX::noy;
-    const int ngz_tmp = (maxLevel() > 0 && do_subcycling == 1) ? WarpX::noz+1 : WarpX::noz;
 
-    // Ex, Ey, Ez, Bx, By, and Bz have the same number of ghost cells.
-    // jx, jy, jz and rho have the same number of ghost cells.
-    // E and B have the same number of ghost cells as j and rho if NCI filter is not used,
-    // but different number of ghost cells in z-direction if NCI filter is used.
-    // The number of cells should be even, in order to easily perform the
-    // interpolation from coarse grid to fine grid.
-    int ngx = (ngx_tmp % 2) ? ngx_tmp+1 : ngx_tmp;  // Always even number
-    int ngy = (ngy_tmp % 2) ? ngy_tmp+1 : ngy_tmp;  // Always even number
-    int ngz_nonci = (ngz_tmp % 2) ? ngz_tmp+1 : ngz_tmp;  // Always even number
-    int ngz;
-    if (WarpX::use_fdtd_nci_corr) {
-        int ng = ngz_tmp + NCIGodfreyFilter::m_stencil_width;
-        ngz = (ng % 2) ? ng+1 : ng;
-    } else {
-        ngz = ngz_nonci;
-    }
+    bool aux_is_nodal = (field_gathering_algo == GatheringAlgo::MomentumConserving);
 
-    // J is only interpolated from fine to coarse (not coarse to fine)
-    // and therefore does not need to be even.
-    int ngJx = ngx_tmp;
-    int ngJy = ngy_tmp;
-    int ngJz = ngz_tmp;
-
-    // When calling the moving window (with one level of refinement),  we shift
-    // the fine grid by 2 cells ; therefore, we need at least 2 guard cells
-    // on level 1. This may not be necessary for level 0.
-    if (do_moving_window) {
-        ngx = std::max(ngx,2);
-        ngy = std::max(ngy,2);
-        ngz = std::max(ngz,2);
-        ngJx = std::max(ngJx,2);
-        ngJy = std::max(ngJy,2);
-        ngJz = std::max(ngJz,2);
-    }
-
-#if (AMREX_SPACEDIM == 3)
-    IntVect ngE(ngx,ngy,ngz);
-    IntVect ngJ(ngJx,ngJy,ngJz);
-#elif (AMREX_SPACEDIM == 2)
-    IntVect ngE(ngx,ngz);
-    IntVect ngJ(ngJx,ngJz);
-#endif
-
-    IntVect ngRho = ngJ+1; //One extra ghost cell, so that it's safe to deposit charge density
-                           // after pushing particle.
+    guard_cells.Init(
+        do_subcycling,
+        WarpX::use_fdtd_nci_corr,
+        do_nodal,
+        do_moving_window,
+        fft_hybrid_mpi_decomposition,
+        aux_is_nodal,
+        moving_window_dir,
+        WarpX::nox,
+        nox_fft, noy_fft, noz_fft,
+        NCIGodfreyFilter::m_stencil_width,
+        maxwell_fdtd_solver_id,
+        maxLevel(),
+        exchange_all_guard_cells);
 
     if (mypc->nSpeciesDepositOnMainGrid() && n_current_deposition_buffer == 0) {
         n_current_deposition_buffer = 1;
@@ -806,54 +773,22 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
     }
 
     if (n_current_deposition_buffer < 0) {
-        n_current_deposition_buffer = ngJ.max();
+        n_current_deposition_buffer = guard_cells.ng_alloc_J.max();
     }
     if (n_field_gather_buffer < 0) {
         // Field gather buffer should be larger than current deposition buffers
         n_field_gather_buffer = n_current_deposition_buffer + 1;
     }
 
-    int ngF = (do_moving_window) ? 2 : 0;
-    // CKC solver requires one additional guard cell
-    if (maxwell_fdtd_solver_id == 1) ngF = std::max( ngF, 1 );
-
-#ifdef WARPX_USE_PSATD
-    if (fft_hybrid_mpi_decomposition == false){
-        // All boxes should have the same number of guard cells
-        // (to avoid temporary parallel copies)
-        // Thus take the max of the required number of guards for each field
-        // Also: the number of guard cell should be enough to contain
-        // the stencil of the FFT solver. Here, this number (`ngFFT`)
-        // is determined *empirically* to be the order of the solver
-        // for nodal, and half the order of the solver for staggered.
-        IntVect ngFFT;
-        if (do_nodal) {
-            ngFFT = IntVect(AMREX_D_DECL(nox_fft, noy_fft, noz_fft));
-        } else {
-            ngFFT = IntVect(AMREX_D_DECL(nox_fft/2, noy_fft/2, noz_fft/2));
-        }
-        for (int i_dim=0; i_dim<AMREX_SPACEDIM; i_dim++ ){
-            int ng_required = ngFFT[i_dim];
-            // Get the max
-            ng_required = std::max( ng_required, ngE[i_dim] );
-            ng_required = std::max( ng_required, ngJ[i_dim] );
-            ng_required = std::max( ng_required, ngRho[i_dim] );
-            ng_required = std::max( ng_required, ngF );
-            // Set the guard cells to this max
-            ngE[i_dim] = ng_required;
-            ngJ[i_dim] = ng_required;
-            ngRho[i_dim] = ng_required;
-            ngF = ng_required;
-        }
-    }
-#endif
-
-    AllocLevelMFs(lev, ba, dm, ngE, ngJ, ngRho, ngF);
+    AllocLevelMFs(lev, ba, dm, guard_cells.ng_alloc_EB, guard_cells.ng_alloc_J,
+                  guard_cells.ng_alloc_Rho, guard_cells.ng_alloc_F,
+                  guard_cells.ng_Extra, aux_is_nodal);
 }
 
 void
 WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm,
-                      const IntVect& ngE, const IntVect& ngJ, const IntVect& ngRho, int ngF)
+                      const IntVect& ngE, const IntVect& ngJ, const IntVect& ngRho,
+                      const IntVect& ngF, const IntVect& ngextra, const bool aux_is_nodal)
 {
 
 #if defined WARPX_DIM_RZ
@@ -864,9 +799,6 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
     // Even components are the imaginary parts.
     ncomps = n_rz_azimuthal_modes*2 - 1;
 #endif
-
-    bool aux_is_nodal = (field_gathering_algo == GatheringAlgo::MomentumConserving);
-    IntVect ngextra(static_cast<int>(aux_is_nodal and !do_nodal));
 
     //
     // The fine patch
@@ -897,7 +829,7 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
 
     if (do_dive_cleaning)
     {
-        F_fp[lev].reset  (new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,ncomps, ngF));
+        F_fp[lev].reset  (new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,ncomps, ngF.max()));
     }
 #ifdef WARPX_USE_PSATD
     else
@@ -982,7 +914,7 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
         }
         if (do_dive_cleaning)
         {
-            F_cp[lev].reset  (new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,ncomps, ngF));
+            F_cp[lev].reset  (new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,ncomps, ngF.max()));
         }
 #ifdef WARPX_USE_PSATD
         else
