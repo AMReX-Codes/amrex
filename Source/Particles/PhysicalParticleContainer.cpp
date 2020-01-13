@@ -1003,7 +1003,7 @@ PhysicalParticleContainer::AssignExternalFieldOnParticles(WarpXParIter& pti,
             Exp_data[i] = xfield_partparser->getField(xp_data[i],yp_data[i],zp_data[i]);
             Eyp_data[i] = yfield_partparser->getField(xp_data[i],yp_data[i],zp_data[i]);
             Ezp_data[i] = zfield_partparser->getField(xp_data[i],yp_data[i],zp_data[i]);
-      }
+      },
       /* To allocate shared memory for the GPU threads. */
       /* But, for now only 3 doubles (x,y,z) are allocated. */
       amrex::Gpu::numThreadsPerBlockParallelFor() * sizeof(double) * 3
@@ -1024,7 +1024,7 @@ PhysicalParticleContainer::AssignExternalFieldOnParticles(WarpXParIter& pti,
             Bxp_data[i] = xfield_partparser->getField(xp_data[i],yp_data[i],zp_data[i]);
             Byp_data[i] = yfield_partparser->getField(xp_data[i],yp_data[i],zp_data[i]);
             Bzp_data[i] = zfield_partparser->getField(xp_data[i],yp_data[i],zp_data[i]);
-      }
+      },
       /* To allocate shared memory for the GPU threads. */
       /* But, for now only 3 doubles (x,y,z) are allocated. */
       amrex::Gpu::numThreadsPerBlockParallelFor() * sizeof(double) * 3
