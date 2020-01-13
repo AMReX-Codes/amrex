@@ -102,7 +102,7 @@ struct Particle
                                  m_rdata.arr[AMREX_SPACEDIM + indy],
                                  m_rdata.arr[AMREX_SPACEDIM + indz]));
 	}
-    AMREX_GPU_HOST_DEVICE RealVect  rvec(IntVect& indexes) const &
+    AMREX_GPU_HOST_DEVICE RealVect  rvec(const IntVect& indexes) const &
 	{
 		AMREX_ASSERT(indexes.max() < NReal);
 		return RealVect(AMREX_D_DECL(m_rdata.arr[AMREX_SPACEDIM + indexes[0]],
