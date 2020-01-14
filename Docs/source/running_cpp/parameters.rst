@@ -731,9 +731,9 @@ Laser initialization
      To parse a mathematical function for the external B-field, use the option
      ``parse_B_ext_particle_function``. This option requires additional parameters
      in the input file, namely,
-     ``warpx.Bx_external_particle_function(x,y,z)``,
-     ``warpx.By_external_particle_function(x,y,z)``,
-     ``warpx.Bz_external_particle_function(x,y,z)`` to apply the external B-field
+     ``warpx.Bx_external_particle_function(x,y,z,t)``,
+     ``warpx.By_external_particle_function(x,y,z,t)``,
+     ``warpx.Bz_external_particle_function(x,y,z,t)`` to apply the external B-field
      on the particles. Constants required in the mathematical expression can be set
      using ``my_constants``. For a two-dimensional simulation, it is assumed that
      the first and second dimensions are `x` and `z`, respectively, and the
@@ -752,9 +752,9 @@ Laser initialization
      To parse a mathematical function for the external E-field, use the option
      ``parse_E_ext_particle_function``. This option requires additional
      parameters in the input file, namely,
-     ``warpx.Ex_external_particle_function(x,y,z)``,
-     ``warpx.Ey_external_particle_function(x,y,z)``,
-     ``warpx.Ez_external_particle_function(x,y,z)`` to apply the external E-field
+     ``warpx.Ex_external_particle_function(x,y,z,t)``,
+     ``warpx.Ey_external_particle_function(x,y,z,t)``,
+     ``warpx.Ez_external_particle_function(x,y,z,t)`` to apply the external E-field
      on the particles. Constants required in the mathematical expression can be set
      using ``my_constants``. For a two-dimensional simulation, similar to the B-field,
      it is assumed that the first and second dimensions are `x` and `z`, respectively,
