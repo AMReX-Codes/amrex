@@ -325,11 +325,8 @@ WarpX::ReadParameters ()
         pp.query("verbose", verbose);
         pp.query("regrid_int", regrid_int);
         pp.query("do_subcycling", do_subcycling);
-<<<<<<< HEAD
         pp.query("use_hybrid_QED", use_hybrid_QED);
-=======
         pp.query("exchange_all_guard_cells", exchange_all_guard_cells);
->>>>>>> 727ac478c1e5a7e2cc1217ed64e4605228b95795
         pp.query("override_sync_int", override_sync_int);
 
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(do_subcycling != 1 || max_level <= 1,

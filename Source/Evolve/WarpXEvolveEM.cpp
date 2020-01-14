@@ -346,20 +346,17 @@ WarpX::OneStep_nosub (Real cur_time)
     }
     Print()<<"Standard PSATD push. \n";
     PushPSATD(dt[0]);
+	FillBoundaryE();
+	FillBoundaryB();
 
     if (use_hybrid_QED)
     {
         Print()<<"Begining second itteration of QED function.\n";
-        FillBoundaryE();
-        FillBoundaryB();
         WarpX::Hybrid_QED_Push(dt[0]);
         FillBoundaryE();
         
     }
     if (do_pml) DampPML();
-
-    FillBoundaryE(guard_cells.ng_alloc_EB, guard_cells.ng_Extra);
-    FillBoundaryB(guard_cells.ng_alloc_EB, guard_cells.ng_Extra);
     
 #else
     EvolveF(0.5*dt[0], DtType::FirstHalf);
