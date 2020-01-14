@@ -64,7 +64,7 @@ public:
                                          RealVector& Byp, RealVector& Bzp,
                   amrex::Gpu::ManagedDeviceVector<amrex::ParticleReal> xp,
                   amrex::Gpu::ManagedDeviceVector<amrex::ParticleReal> yp,
-                  amrex::Gpu::ManagedDeviceVector<amrex::ParticleReal> zp);
+                  amrex::Gpu::ManagedDeviceVector<amrex::ParticleReal> zp, int lev);
 
     virtual void FieldGather (int lev,
                               const amrex::MultiFab& Ex,

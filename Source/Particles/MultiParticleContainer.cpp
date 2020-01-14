@@ -111,11 +111,11 @@ MultiParticleContainer::ReadParameters ()
         // must be provided in the input file.
         if (m_B_ext_particle_s == "parse_b_ext_particle_function") {
            // store the mathematical expression as string
-           Store_parserString(pp, "Bx_external_particle_function(x,y,z)",
+           Store_parserString(pp, "Bx_external_particle_function(x,y,z,t)",
                                       m_str_Bx_ext_particle_function);
-           Store_parserString(pp, "By_external_particle_function(x,y,z)",
+           Store_parserString(pp, "By_external_particle_function(x,y,z,t)",
                                       m_str_By_ext_particle_function);
-           Store_parserString(pp, "Bz_external_particle_function(x,y,z)",
+           Store_parserString(pp, "Bz_external_particle_function(x,y,z,t)",
                                       m_str_Bz_ext_particle_function);
 
            m_Bx_particle_parser.reset(new ParserWrapper(
@@ -133,11 +133,11 @@ MultiParticleContainer::ReadParameters ()
         // must be provided in the input file.
         if (m_E_ext_particle_s == "parse_e_ext_particle_function") {
            // store the mathematical expression as string
-           Store_parserString(pp, "Ex_external_particle_function(x,y,z)",
+           Store_parserString(pp, "Ex_external_particle_function(x,y,z,t)",
                                       m_str_Ex_ext_particle_function);
-           Store_parserString(pp, "Ey_external_particle_function(x,y,z)",
+           Store_parserString(pp, "Ey_external_particle_function(x,y,z,t)",
                                       m_str_Ey_ext_particle_function);
-           Store_parserString(pp, "Ez_external_particle_function(x,y,z)",
+           Store_parserString(pp, "Ez_external_particle_function(x,y,z,t)",
                                       m_str_Ez_ext_particle_function);
            m_Ex_particle_parser.reset(new ParserWrapper(
                                     makeParser(m_str_Ex_ext_particle_function)));

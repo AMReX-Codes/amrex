@@ -969,7 +969,7 @@ PhysicalParticleContainer::AssignExternalFieldOnParticles(WarpXParIter& pti,
                            RealVector& Bxp, RealVector& Byp, RealVector& Bzp,
                            Gpu::ManagedDeviceVector<ParticleReal> xp,
                            Gpu::ManagedDeviceVector<ParticleReal> yp,
-                           Gpu::ManagedDeviceVector<ParticleReal> zp)
+                           Gpu::ManagedDeviceVector<ParticleReal> zp, int lev)
 {
    const long np = pti.numParticles();
     /// get WarpX class object
@@ -998,15 +998,16 @@ PhysicalParticleContainer::AssignExternalFieldOnParticles(WarpXParIter& pti,
       ParserWrapper *xfield_partparser = mypc.m_Ex_particle_parser.get();
       ParserWrapper *yfield_partparser = mypc.m_Ey_particle_parser.get();
       ParserWrapper *zfield_partparser = mypc.m_Ez_particle_parser.get();
+      Real time = warpx.gett_new(lev);
       amrex::ParallelFor(pti.numParticles(),
             [=] AMREX_GPU_DEVICE (long i) {
-            Exp_data[i] = xfield_partparser->getField(xp_data[i],yp_data[i],zp_data[i]);
-            Eyp_data[i] = yfield_partparser->getField(xp_data[i],yp_data[i],zp_data[i]);
-            Ezp_data[i] = zfield_partparser->getField(xp_data[i],yp_data[i],zp_data[i]);
+            Exp_data[i] = xfield_partparser->getField(xp_data[i],yp_data[i],zp_data[i],time);
+            Eyp_data[i] = yfield_partparser->getField(xp_data[i],yp_data[i],zp_data[i],time);
+            Ezp_data[i] = zfield_partparser->getField(xp_data[i],yp_data[i],zp_data[i],time);
       },
       /* To allocate shared memory for the GPU threads. */
-      /* But, for now only 3 doubles (x,y,z) are allocated. */
-      amrex::Gpu::numThreadsPerBlockParallelFor() * sizeof(double) * 3
+      /* But, for now only 3 doubles (x,y,z,t) are allocated. */
+      amrex::Gpu::numThreadsPerBlockParallelFor() * sizeof(double) * 4
       );
    }
    if (mypc.m_B_ext_particle_s=="parse_b_ext_particle_function") {
@@ -1019,15 +1020,16 @@ PhysicalParticleContainer::AssignExternalFieldOnParticles(WarpXParIter& pti,
       ParserWrapper *xfield_partparser = mypc.m_Bx_particle_parser.get();
       ParserWrapper *yfield_partparser = mypc.m_By_particle_parser.get();
       ParserWrapper *zfield_partparser = mypc.m_Bz_particle_parser.get();
+      Real time = warpx.gett_new(lev);
       amrex::ParallelFor(pti.numParticles(),
             [=] AMREX_GPU_DEVICE (long i) {
-            Bxp_data[i] = xfield_partparser->getField(xp_data[i],yp_data[i],zp_data[i]);
-            Byp_data[i] = yfield_partparser->getField(xp_data[i],yp_data[i],zp_data[i]);
-            Bzp_data[i] = zfield_partparser->getField(xp_data[i],yp_data[i],zp_data[i]);
+            Bxp_data[i] = xfield_partparser->getField(xp_data[i],yp_data[i],zp_data[i],time);
+            Byp_data[i] = yfield_partparser->getField(xp_data[i],yp_data[i],zp_data[i],time);
+            Bzp_data[i] = zfield_partparser->getField(xp_data[i],yp_data[i],zp_data[i],time);
       },
       /* To allocate shared memory for the GPU threads. */
-      /* But, for now only 3 doubles (x,y,z) are allocated. */
-      amrex::Gpu::numThreadsPerBlockParallelFor() * sizeof(double) * 3
+      /* But, for now only 4 doubles (x,y,z,t) are allocated. */
+      amrex::Gpu::numThreadsPerBlockParallelFor() * sizeof(double) * 4
       );
    }
 
@@ -2234,7 +2236,7 @@ PhysicalParticleContainer::FieldGather (WarpXParIter& pti,
     // gathering fields from the grid to the particles.
     AssignExternalFieldOnParticles(pti, Exp, Eyp, Ezp, Bxp, Byp, Bzp,
                                   m_xp[thread_num], m_yp[thread_num],
-                                  m_zp[thread_num]);
+                                  m_zp[thread_num], lev);
 
 
     // Get cell size on gather_lev
