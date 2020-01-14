@@ -24,7 +24,7 @@ struct ParserWrapper
 
     AMREX_GPU_HOST_DEVICE
     amrex::Real
-    getField (amrex::Real x, amrex::Real y, amrex::Real z, amrex::Real t=0.0) const noexcept 
+    getField (amrex::Real x, amrex::Real y, amrex::Real z, amrex::Real t=0.0) const noexcept
     {
        return m_parser(x,y,z);
     }
