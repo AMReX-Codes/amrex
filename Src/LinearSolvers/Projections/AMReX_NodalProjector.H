@@ -7,6 +7,23 @@
 #include <AMReX_MLNodeLaplacian.H>
 #include <AMReX_MLMG.H>
 
+//
+// Solves
+//
+//     div(sigma*grad(phi)) = div(vel) + S_nd + S_cc
+//
+// and  performs the projection
+//
+//     vel = vel - ( sigma / alpha ) * grad(phi)
+//
+// vel, sigma, alpha, and S_cc are cell-centered variables, while
+// phi and S_nd are nodal-centered variables.
+//
+// By default alpha is assumed to be 1. Use setAlpha to change the default.
+//
+// The user can provide a custom RHS instead of letting NodalProjector to compute
+// one. Use setCustomRHS to provide a custom RHS.
+//
 namespace amrex {
 
 class NodalProjector
@@ -14,139 +31,106 @@ class NodalProjector
 
 public:
 
+    NodalProjector ( const amrex::Vector<amrex::MultiFab*>&       a_vel,
+                     const amrex::Vector<const amrex::MultiFab*>& a_sigma,
+                     const Vector<Geometry>&                      a_geom,
+                     const LPInfo&                                a_lpinfo,
+                     const amrex::Vector<amrex::MultiFab*>&       a_S_cc = {},
+                     const amrex::Vector<const amrex::MultiFab*>& a_S_nd = {} );
 
-    NodalProjector () {};
-
-    NodalProjector ( const Vector<Geometry>&                a_geom,
-                     const Vector<BoxArray>&                a_grids,
-                     const Vector<DistributionMapping>&     a_dmap,
-                     std::array<LinOpBCType,AMREX_SPACEDIM> a_bc_lo,
-                     std::array<LinOpBCType,AMREX_SPACEDIM> a_bc_hi,
-                     const LPInfo&                          a_lpinfo );
-
-    NodalProjector ( const Vector<Geometry>&                a_geom,
-                     const Vector<BoxArray>&                a_grids,
-                     const Vector<DistributionMapping>&     a_dmap,
-                     std::array<LinOpBCType,AMREX_SPACEDIM> a_bc_lo,
-                     std::array<LinOpBCType,AMREX_SPACEDIM> a_bc_hi )
-        : NodalProjector(a_geom, a_grids, a_dmap, a_bc_lo, a_bc_hi, LPInfo()) {};
-
-#ifdef AMREX_USE_EB
-    NodalProjector ( const Vector<Geometry>&                a_geom,
-                     const Vector<BoxArray>&                a_grids,
-                     const Vector<DistributionMapping>&     a_dmap,
-                     std::array<LinOpBCType,AMREX_SPACEDIM> a_bc_lo,
-                     std::array<LinOpBCType,AMREX_SPACEDIM> a_bc_hi,
-                     Vector<EBFArrayBoxFactory const *>     a_ebfactory,
-                     const LPInfo&                          a_lpinfo );
-
-    NodalProjector ( const Vector<Geometry>&                a_geom,
-                     const Vector<BoxArray>&                a_grids,
-                     const Vector<DistributionMapping>&     a_dmap,
-                     std::array<LinOpBCType,AMREX_SPACEDIM> a_bc_lo,
-                     std::array<LinOpBCType,AMREX_SPACEDIM> a_bc_hi,
-                     Vector<EBFArrayBoxFactory const *>     a_ebfactory)
-        : NodalProjector(a_geom, a_grids, a_dmap, a_bc_lo, a_bc_hi, a_ebfactory, LPInfo()) {};
-#endif
+    NodalProjector ( const amrex::Vector<amrex::MultiFab*>&       a_vel,
+                     const amrex::Vector<const amrex::MultiFab*>& a_sigma,
+                     const Vector<Geometry>&                      a_geom,
+                     const amrex::Vector<amrex::MultiFab*>&       a_S_cc = {},
+                     const amrex::Vector<const amrex::MultiFab*>& a_S_nd = {} )
+    : NodalProjector(a_vel, a_sigma, a_geom, LPInfo(), a_S_cc, a_S_nd ) {};
 
 
-    void define ( const Vector<Geometry>&                a_geom,
-                  const Vector<BoxArray>&                a_grids,
-                  const Vector<DistributionMapping>&     a_dmap,
-                  std::array<LinOpBCType,AMREX_SPACEDIM> a_bc_lo,
-                  std::array<LinOpBCType,AMREX_SPACEDIM> a_bc_hi,
-                  const LPInfo&                          a_lpinfo);
+    void project ( amrex::Real a_rtol = 1.0e-11, amrex::Real a_atol = 1.0e-14 );
+    void project ( const Vector<amrex::MultiFab*>& a_phi, amrex::Real a_rtol = 1.0e-11,
+                   amrex::Real a_atol = 1.0e-14 );
 
-#ifdef AMREX_USE_EB
-    void define ( const Vector<Geometry>&                a_geom,
-                  const Vector<BoxArray>&                a_grids,
-                  const Vector<DistributionMapping>&     a_dmap,
-                  std::array<LinOpBCType,AMREX_SPACEDIM> a_bc_lo,
-                  std::array<LinOpBCType,AMREX_SPACEDIM> a_bc_hi,
-                  Vector<EBFArrayBoxFactory const *>     a_ebfactory,
-                  const LPInfo&                          a_lpinfo );
-#endif
-
-    void project ( const amrex::Vector<amrex::MultiFab*>&       a_vel,
-                   const amrex::Vector<const amrex::MultiFab*>& a_sigma,
-                   const amrex::Vector<amrex::MultiFab*>        a_S_cc = {},
-                   const amrex::Vector<const amrex::MultiFab*>& a_S_nd = {} );
-
-    void project2 ( const amrex::Vector<amrex::MultiFab*>&       a_vel,
-                    const amrex::Vector<const amrex::MultiFab*>& a_alpha,
-                    const amrex::Vector<const amrex::MultiFab*>& a_beta,
-                    const amrex::Vector<const amrex::MultiFab*>& a_rhs );
-
-    Vector< const MultiFab* > getPhi ()     const {return GetVecOfConstPtrs(m_phi);};
     Vector< const MultiFab* > getGradPhi () const {return GetVecOfConstPtrs(m_fluxes);};
+    Vector< const MultiFab* > getPhi     () const {return GetVecOfConstPtrs(m_phi);};
 
     void computeRHS ( const amrex::Vector<amrex::MultiFab*>&       a_rhs,
                       const amrex::Vector<amrex::MultiFab*>&       a_vel,
                       const amrex::Vector<amrex::MultiFab*>&       a_S_cc = {},
                       const amrex::Vector<const amrex::MultiFab*>& a_S_nd = {} );
 
-    // Methods to set verbosity
-    void setVerbose            (int  v) noexcept { m_verbose = v; }
-    void setBottomVerbose      (int  v) noexcept { m_bottom_verbose = v; }
+    void setAlpha     (const amrex::Vector<const amrex::MultiFab*> a_alpha)
+        {m_alpha=a_alpha;m_has_alpha=true;};
+    void setCustomRHS (const amrex::Vector<const amrex::MultiFab*> a_rhs);
 
-    // Methods to control MLMG behavior
-    void setBottomSolver  (std::string b) noexcept { m_bottom_solver = b;}
-    void setMaxIter               (int i) noexcept { m_maxiter = i; }
-    void setBottomMaxIter         (int i) noexcept { m_bottom_maxiter = i; }
-    void setTolerance            (Real t) noexcept { m_rtol = t; }
-    void setToleranceAbs         (Real t) noexcept { m_atol = t; }
-    void setBottomTolerance      (Real t) noexcept { m_bottom_rtol = t; }
-    void setBottomToleranceAbs   (Real t) noexcept { m_bottom_atol = t; }
+
+    // Methods to set verbosity
+    void setVerbose (int  v) noexcept { m_verbose = v; }
+
+
+    // Set domain BC
+    void setDomainBC ( std::array<LinOpBCType,AMREX_SPACEDIM> a_bc_lo,
+                       std::array<LinOpBCType,AMREX_SPACEDIM> a_bc_hi );
+
+    // Methods to get underlying objects
+    // Use these to modify properties of MLMG and linear operator
+    MLNodeLaplacian& getLinOp () noexcept { return *m_linop; }
+    MLMG&            getMLMG  () noexcept { return *m_mlmg;  }
+
+    // Methods to set MF for sync
+    void setSyncResidualFine (MultiFab* a_sync_resid_fine) {m_sync_resid_fine=a_sync_resid_fine;}
+    void setSyncResidualCrse (MultiFab* a_sync_resid_crse, IntVect a_ref_ratio, BoxArray a_fine_grids )
+        {m_sync_resid_crse=a_sync_resid_crse; m_ref_ratio=a_ref_ratio; m_fine_grids=a_fine_grids;}
 
 private:
 
-    bool m_ok = false;
+    void setOptions ();
+    void setCoarseBoundaryVelocityForSync ();
+    void computeSyncResidual ();
+
+    bool m_has_rhs   = false;
+    bool m_has_alpha = false;
+    bool m_need_bcs  = true;
 
     // Verbosity
     int  m_verbose        = 0;
-    int  m_bottom_verbose = 0;
 
-    // Control MLMG behavior
-    std::string m_bottom_solver = "bicgcg";
-    int  m_maxiter        = 100;
-    int  m_bottom_maxiter = 100;
-    Real m_rtol           = 1.0e-11;
-    Real m_atol           = 1.0e-14;
-    Real m_bottom_rtol    = 1.0e-4;
-    Real m_bottom_atol    = -1.0;
+    // Geometry
+    Vector<Geometry>               m_geom;
 
-    Vector<Geometry>                    m_geom;
-    Vector<BoxArray>                    m_grids;
-    Vector<DistributionMapping>         m_dmap;
-    LPInfo                              m_lpinfo;
-
+    // EB factory if any
 #ifdef AMREX_USE_EB
     Vector<EBFArrayBoxFactory const *>  m_ebfactory;
 #endif
 
-    // Boundary conditions
+    // Cell-centered data
+    Vector<amrex::MultiFab*>        m_vel;
+    Vector<amrex::MultiFab>         m_fluxes;
+    Vector<const amrex::MultiFab*>  m_alpha;
+    Vector<amrex::MultiFab*>        m_S_cc;
+    Vector<const amrex::MultiFab*>  m_sigma;
+
+    // Node-centered data
+    Vector<amrex::MultiFab>         m_phi;
+    Vector<amrex::MultiFab>         m_rhs;
+    Vector<const amrex::MultiFab*>  m_S_nd;
+
+    // Linear operator
+    std::unique_ptr< MLNodeLaplacian > m_linop;
+
+    // Solver
+    std::unique_ptr< MLMG > m_mlmg;
+
+     // Boundary conditions
     std::array<LinOpBCType,AMREX_SPACEDIM>  m_bc_lo;
     std::array<LinOpBCType,AMREX_SPACEDIM>  m_bc_hi;
 
-    // Cell-centered data
-    Vector< std::unique_ptr< MultiFab > >  m_fluxes;
-
-    // Node-centered data
-    Vector< std::unique_ptr< MultiFab > >  m_phi;
-    Vector< std::unique_ptr< MultiFab > >  m_rhs;
-
-    // Linear operator
-    std::unique_ptr< MLNodeLaplacian > m_matrix;
-
-    // Solver
-    std::unique_ptr< MLMG > m_solver;
-
-    void readParameters ();
+    // Members for syncronization
+    IntVect   m_ref_ratio;
+    BoxArray  m_fine_grids;  // Grid at crse level + 1
+    MultiFab* m_sync_resid_crse = nullptr;
+    MultiFab* m_sync_resid_fine = nullptr;
 
     void printInfo ();
-
-    void setup ();
-
 };
 
 }
