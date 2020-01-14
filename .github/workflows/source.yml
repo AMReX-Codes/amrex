@@ -17,3 +17,7 @@ jobs:
       run: .github/workflows/source/wrongFileNameInExamples
     - name: Examples are tested
       run: .github/workflows/source/inputsNotTested
+    - name: Doxygen
+      run: |
+        sudo apt-get install -y --no-install-recommends doxygen
+        .github/workflows/source/doxygen

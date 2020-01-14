@@ -26,41 +26,50 @@ WarpXParIter::WarpXParIter (ContainerType& pc, int level)
 
 #if (AMREX_SPACEDIM == 2)
 void
-WarpXParIter::GetPosition (Gpu::ManagedDeviceVector<ParticleReal>& x,
-                           Gpu::ManagedDeviceVector<ParticleReal>& y,
-                           Gpu::ManagedDeviceVector<ParticleReal>& z) const
+WarpXParIter::GetPosition (Gpu::ManagedDeviceVector<ParticleReal>& xp,
+                           Gpu::ManagedDeviceVector<ParticleReal>& yp,
+                           Gpu::ManagedDeviceVector<ParticleReal>& zp) const
 {
-    amrex::ParIter<0,0,PIdx::nattribs>::GetPosition(x, z);
+    amrex::ParIter<0,0,PIdx::nattribs>::GetPosition(xp, zp);
 #ifdef WARPX_DIM_RZ
     const auto& attribs = GetAttribs();
-    const auto& theta = attribs[PIdx::theta];
-    y.resize(x.size());
-    for (unsigned int i=0 ; i < x.size() ; i++) {
+    const auto& thetap = attribs[PIdx::theta];
+    yp.resize(xp.size());
+    ParticleReal* const AMREX_RESTRICT x = xp.dataPtr();
+    ParticleReal* const AMREX_RESTRICT y = yp.dataPtr();
+    const ParticleReal* const AMREX_RESTRICT theta = thetap.dataPtr();
+    amrex::ParallelFor( xp.size(),
+        [=] AMREX_GPU_DEVICE (long i) {
         // The x stored in the particles is actually the radius
         y[i] = x[i]*std::sin(theta[i]);
         x[i] = x[i]*std::cos(theta[i]);
-    }
+    });
 #else
-    y.resize(x.size(), std::numeric_limits<ParticleReal>::quiet_NaN());
+    yp.resize(xp.size(), std::numeric_limits<ParticleReal>::quiet_NaN());
 #endif
 }
 
 void
-WarpXParIter::SetPosition (const Gpu::ManagedDeviceVector<ParticleReal>& x,
-                           const Gpu::ManagedDeviceVector<ParticleReal>& y,
-                           const Gpu::ManagedDeviceVector<ParticleReal>& z)
+WarpXParIter::SetPosition (const Gpu::ManagedDeviceVector<ParticleReal>& xp,
+                           const Gpu::ManagedDeviceVector<ParticleReal>& yp,
+                           const Gpu::ManagedDeviceVector<ParticleReal>& zp)
 {
 #ifdef WARPX_DIM_RZ
     auto& attribs = GetAttribs();
-    auto& theta = attribs[PIdx::theta];
-    Gpu::ManagedDeviceVector<ParticleReal> r(x.size());
-    for (unsigned int i=0 ; i < x.size() ; i++) {
+    auto& thetap = attribs[PIdx::theta];
+    Gpu::ManagedDeviceVector<ParticleReal> rp(xp.size());
+    const ParticleReal* const AMREX_RESTRICT x = xp.dataPtr();
+    const ParticleReal* const AMREX_RESTRICT y = yp.dataPtr();
+    ParticleReal* const AMREX_RESTRICT r = rp.dataPtr();
+    ParticleReal* const AMREX_RESTRICT theta = thetap.dataPtr();
+    amrex::ParallelFor( xp.size(),
+        [=] AMREX_GPU_DEVICE (long i) {
         theta[i] = std::atan2(y[i], x[i]);
         r[i] = std::sqrt(x[i]*x[i] + y[i]*y[i]);
-    }
-    amrex::ParIter<0,0,PIdx::nattribs>::SetPosition(r, z);
+    });
+    amrex::ParIter<0,0,PIdx::nattribs>::SetPosition(rp, zp);
 #else
-    amrex::ParIter<0,0,PIdx::nattribs>::SetPosition(x, z);
+    amrex::ParIter<0,0,PIdx::nattribs>::SetPosition(xp, zp);
 #endif
 }
 #endif
@@ -164,7 +173,6 @@ WarpXParticleContainer::AddNParticles (int lev,
 
     //  Add to grid 0 and tile 0
     // Redistribute() will move them to proper places.
-    std::pair<int,int> key {0,0};
     auto& particle_tile = DefineAndReturnParticleTile(0, 0, 0);
 
     std::size_t np = iend-ibegin;
@@ -420,7 +428,7 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
 void
 WarpXParticleContainer::DepositCharge (WarpXParIter& pti, RealVector& wp,
                                        const int * const ion_lev,
-                                       MultiFab* rho, int icomp,
+                                       amrex::MultiFab* rho, int icomp,
                                        const long offset, const long np_to_depose,
                                        int thread_num, int lev, int depos_lev)
 {
@@ -507,7 +515,7 @@ WarpXParticleContainer::DepositCharge (WarpXParIter& pti, RealVector& wp,
 }
 
 void
-WarpXParticleContainer::DepositCharge (Vector<std::unique_ptr<MultiFab> >& rho,
+WarpXParticleContainer::DepositCharge (amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
                                         bool local, bool reset,
                                         bool do_rz_volume_scaling)
 {
@@ -760,7 +768,7 @@ WarpXParticleContainer::PushXES (Real dt)
 }
 
 void
-WarpXParticleContainer::PushX (Real dt)
+WarpXParticleContainer::PushX (amrex::Real dt)
 {
     const int nLevels = finestLevel();
     for (int lev = 0; lev <= nLevels; ++lev) {
@@ -769,7 +777,7 @@ WarpXParticleContainer::PushX (Real dt)
 }
 
 void
-WarpXParticleContainer::PushX (int lev, Real dt)
+WarpXParticleContainer::PushX (int lev, amrex::Real dt)
 {
     BL_PROFILE("WPC::PushX()");
 
@@ -846,8 +854,9 @@ WarpXParticleContainer::particlePostLocate(ParticleType& p,
     {
         p.m_idata.id = DoSplitParticleID;
     }
-    // For the moment, do not do anything if particles goes
-    // to lower level.
+
     if (pld.m_lev == lev-1){
+        // For the moment, do not do anything if particles goes
+        // to lower level.
     }
 }

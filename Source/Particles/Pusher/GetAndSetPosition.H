@@ -7,7 +7,7 @@
 
 #ifndef WARPX_DIM_RZ
 
-/* \brief Extract the particle's coordinates from the ParticleType struct `p`,
+/** \brief Extract the particle's coordinates from the ParticleType struct `p`,
  *        and stores them in the variables `x`, `y`, `z`. */
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void GetPosition(
@@ -25,7 +25,7 @@ void GetPosition(
 #endif
 }
 
-/* \brief Set the particle's coordinates in the ParticleType struct `p`,
+/** \brief Set the particle's coordinates in the ParticleType struct `p`,
  *        from their values in the variables `x`, `y`, `z`. */
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void SetPosition(
@@ -44,7 +44,7 @@ void SetPosition(
 
 # elif defined WARPX_DIM_RZ
 
-/* \brief Extract the particle's coordinates from `theta` and the attributes
+/** \brief Extract the particle's coordinates from `theta` and the attributes
  *         of the ParticleType struct `p` (which contains the radius),
  *         and store them in the variables `x`, `y`, `z` */
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
@@ -58,7 +58,7 @@ void GetCartesianPositionFromCylindrical(
     z = p.pos(1);
 }
 
-/* \brief Set the particle's cylindrical coordinates by setting `theta`
+/** \brief Set the particle's cylindrical coordinates by setting `theta`
  *        and the attributes of the ParticleType struct `p` (which stores the radius),
  *        from the values of `x`, `y`, `z` */
 AMREX_GPU_HOST_DEVICE AMREX_INLINE

@@ -1,4 +1,3 @@
-import numpy as np
 from pywarpx import picmi
 #from warp import picmi
 
@@ -55,8 +54,8 @@ sim.add_species(protons, layout=picmi.PseudoRandomLayout(n_macroparticles=number
 
 # write_inputs will create an inputs file that can be used to run
 # with the compiled version.
-sim.write_input_file(file_name = 'inputs_from_PICMI')
+#sim.write_input_file(file_name = 'inputs_from_PICMI')
 
 # Alternatively, sim.step will run WarpX, controlling it from Python
-#sim.step()
+sim.step()
 

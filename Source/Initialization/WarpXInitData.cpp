@@ -1,4 +1,3 @@
-
 #include <WarpX.H>
 #include <WarpX_f.H>
 #include <BilinearFilter.H>
@@ -10,6 +9,9 @@
 #ifdef BL_USE_SENSEI_INSITU
 #include <AMReX_AmrMeshInSituBridge.H>
 #endif
+#include <GpuParser.H>
+#include <WarpXUtil.H>
+
 
 using namespace amrex;
 
@@ -231,24 +233,161 @@ WarpX::PostRestart ()
     mypc->PostRestart();
 }
 
+
 void
 WarpX::InitLevelData (int lev, Real time)
 {
+
+    ParmParse pp("warpx");
+
+    // default values of E_external_grid and B_external_grid
+    // are used to set the E and B field when "constant" or
+    // "parser" is not explicitly used in the input.
+    pp.query("B_ext_grid_init_style", B_ext_grid_s);
+    std::transform(B_ext_grid_s.begin(),
+                   B_ext_grid_s.end(),
+                   B_ext_grid_s.begin(),
+                   ::tolower);
+
+    pp.query("E_ext_grid_init_style", E_ext_grid_s);
+    std::transform(E_ext_grid_s.begin(),
+                   E_ext_grid_s.end(),
+                   E_ext_grid_s.begin(),
+                   ::tolower);
+
+    // if the input string is "constant", the values for the
+    // external grid must be provided in the input.
+    if (B_ext_grid_s == "constant")
+        pp.getarr("B_external_grid", B_external_grid);
+
+    // if the input string is "constant", the values for the
+    // external grid must be provided in the input.
+    if (E_ext_grid_s == "constant")
+        pp.getarr("E_external_grid", E_external_grid);
+
     for (int i = 0; i < 3; ++i) {
         current_fp[lev][i]->setVal(0.0);
-        Efield_fp[lev][i]->setVal(E_external_grid[i]);
-        Bfield_fp[lev][i]->setVal(B_external_grid[i]);
+        if (lev > 0)
+           current_cp[lev][i]->setVal(0.0);
+
+        if (B_ext_grid_s == "constant" || B_ext_grid_s == "default") {
+           Bfield_fp[lev][i]->setVal(B_external_grid[i]);
+           if (lev > 0) {
+              Bfield_aux[lev][i]->setVal(B_external_grid[i]);
+              Bfield_cp[lev][i]->setVal(B_external_grid[i]);
+           }
+        }
+        if (E_ext_grid_s == "constant" || E_ext_grid_s == "default") {
+           Efield_fp[lev][i]->setVal(E_external_grid[i]);
+           if (lev > 0) {
+              Efield_aux[lev][i]->setVal(E_external_grid[i]);
+              Efield_cp[lev][i]->setVal(E_external_grid[i]);
+           }
+        }
     }
 
-    if (lev > 0) {
-        for (int i = 0; i < 3; ++i) {
-            Efield_aux[lev][i]->setVal(E_external_grid[i]);
-            Bfield_aux[lev][i]->setVal(B_external_grid[i]);
+    // if the input string for the B-field is "parse_b_ext_grid_function",
+    // then the analytical expression or function must be
+    // provided in the input file.
+    if (B_ext_grid_s == "parse_b_ext_grid_function") {
 
-            current_cp[lev][i]->setVal(0.0);
-            Efield_cp[lev][i]->setVal(E_external_grid[i]);
-            Bfield_cp[lev][i]->setVal(B_external_grid[i]);
-        }
+#ifdef WARPX_DIM_RZ
+       amrex::Abort("E and B parser for external fields does not work with RZ -- TO DO");
+#endif
+       Store_parserString(pp, "Bx_external_grid_function(x,y,z)",
+                                                    str_Bx_ext_grid_function);
+       Store_parserString(pp, "By_external_grid_function(x,y,z)",
+                                                    str_By_ext_grid_function);
+       Store_parserString(pp, "Bz_external_grid_function(x,y,z)",
+                                                    str_Bz_ext_grid_function);
+
+       Bxfield_parser.reset(new ParserWrapper(
+                                makeParser(str_Bx_ext_grid_function)));
+       Byfield_parser.reset(new ParserWrapper(
+                                makeParser(str_By_ext_grid_function)));
+       Bzfield_parser.reset(new ParserWrapper(
+                                makeParser(str_Bz_ext_grid_function)));
+
+       // Initialize Bfield_fp with external function
+       InitializeExternalFieldsOnGridUsingParser(Bfield_fp[lev][0].get(),
+                                                 Bfield_fp[lev][1].get(),
+                                                 Bfield_fp[lev][2].get(),
+                                                 Bxfield_parser.get(),
+                                                 Byfield_parser.get(),
+                                                 Bzfield_parser.get(),
+                                                 Bx_nodal_flag, By_nodal_flag,
+                                                 Bz_nodal_flag, lev);
+       if (lev > 0) {
+          InitializeExternalFieldsOnGridUsingParser(Bfield_aux[lev][0].get(),
+                                                    Bfield_aux[lev][1].get(),
+                                                    Bfield_aux[lev][2].get(),
+                                                    Bxfield_parser.get(),
+                                                    Byfield_parser.get(),
+                                                    Bzfield_parser.get(),
+                                                    Bx_nodal_flag, By_nodal_flag,
+                                                    Bz_nodal_flag, lev);
+
+          InitializeExternalFieldsOnGridUsingParser(Bfield_cp[lev][0].get(),
+                                                    Bfield_cp[lev][1].get(),
+                                                    Bfield_cp[lev][2].get(),
+                                                    Bxfield_parser.get(),
+                                                    Byfield_parser.get(),
+                                                    Bzfield_parser.get(),
+                                                    Bx_nodal_flag, By_nodal_flag,
+                                                    Bz_nodal_flag, lev);
+       }
+    }
+
+    // if the input string for the E-field is "parse_e_ext_grid_function",
+    // then the analytical expression or function must be
+    // provided in the input file.
+    if (E_ext_grid_s == "parse_e_ext_grid_function") {
+
+#ifdef WARPX_DIM_RZ
+       amrex::Abort("E and B parser for external fields does not work with RZ -- TO DO");
+#endif
+       Store_parserString(pp, "Ex_external_grid_function(x,y,z)",
+                                                    str_Ex_ext_grid_function);
+       Store_parserString(pp, "Ey_external_grid_function(x,y,z)",
+                                                    str_Ey_ext_grid_function);
+       Store_parserString(pp, "Ez_external_grid_function(x,y,z)",
+                                                    str_Ez_ext_grid_function);
+
+       Exfield_parser.reset(new ParserWrapper(
+                                makeParser(str_Ex_ext_grid_function)));
+       Eyfield_parser.reset(new ParserWrapper(
+                                makeParser(str_Ey_ext_grid_function)));
+       Ezfield_parser.reset(new ParserWrapper(
+                                makeParser(str_Ez_ext_grid_function)));
+
+       // Initialize Efield_fp with external function
+       InitializeExternalFieldsOnGridUsingParser(Efield_fp[lev][0].get(),
+                                                 Efield_fp[lev][1].get(),
+                                                 Efield_fp[lev][2].get(),
+                                                 Exfield_parser.get(),
+                                                 Eyfield_parser.get(),
+                                                 Ezfield_parser.get(),
+                                                 Ex_nodal_flag, Ey_nodal_flag,
+                                                 Ez_nodal_flag, lev);
+       if (lev > 0) {
+          InitializeExternalFieldsOnGridUsingParser(Efield_aux[lev][0].get(),
+                                                    Efield_aux[lev][1].get(),
+                                                    Efield_aux[lev][2].get(),
+                                                    Exfield_parser.get(),
+                                                    Eyfield_parser.get(),
+                                                    Ezfield_parser.get(),
+                                                    Ex_nodal_flag, Ey_nodal_flag,
+                                                    Ez_nodal_flag, lev);
+
+          InitializeExternalFieldsOnGridUsingParser(Efield_cp[lev][0].get(),
+                                                    Efield_cp[lev][1].get(),
+                                                    Efield_cp[lev][2].get(),
+                                                    Exfield_parser.get(),
+                                                    Eyfield_parser.get(),
+                                                    Ezfield_parser.get(),
+                                                    Ex_nodal_flag, Ey_nodal_flag,
+                                                    Ez_nodal_flag, lev);
+       }
     }
 
     if (F_fp[lev]) {
@@ -306,3 +445,100 @@ WarpX::InitLevelDataFFT (int lev, Real time)
 }
 
 #endif
+
+void
+WarpX::InitializeExternalFieldsOnGridUsingParser (
+       MultiFab *mfx, MultiFab *mfy, MultiFab *mfz,
+       ParserWrapper *xfield_parser, ParserWrapper *yfield_parser,
+       ParserWrapper *zfield_parser, IntVect x_nodal_flag,
+       IntVect y_nodal_flag, IntVect z_nodal_flag,
+       const int lev)
+{
+
+    const auto dx_lev = geom[lev].CellSizeArray();
+    const RealBox& real_box = geom[lev].ProbDomain();
+    for ( MFIter mfi(*mfx, TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+       const Box& tbx = mfi.tilebox(x_nodal_flag);
+       const Box& tby = mfi.tilebox(y_nodal_flag);
+       const Box& tbz = mfi.tilebox(z_nodal_flag);
+
+       auto const& mfxfab = mfx->array(mfi);
+       auto const& mfyfab = mfy->array(mfi);
+       auto const& mfzfab = mfz->array(mfi);
+
+       auto const& mfx_IndexType = (*mfx).ixType();
+       auto const& mfy_IndexType = (*mfy).ixType();
+       auto const& mfz_IndexType = (*mfz).ixType();
+
+       // Initialize IntVect based on the index type of multiFab
+       // 0 if cell-centered, 1 if node-centered.
+       IntVect mfx_type(AMREX_D_DECL(0,0,0));
+       IntVect mfy_type(AMREX_D_DECL(0,0,0));
+       IntVect mfz_type(AMREX_D_DECL(0,0,0));
+
+       for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+           mfx_type[idim] = mfx_IndexType.nodeCentered(idim);
+           mfy_type[idim] = mfy_IndexType.nodeCentered(idim);
+           mfz_type[idim] = mfz_IndexType.nodeCentered(idim);
+       }
+
+       amrex::ParallelFor (tbx, tby, tbz,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                // Shift required in the x-, y-, or z- position
+                // depending on the index type of the multifab
+                Real fac_x = (1.0 - mfx_type[0]) * dx_lev[0]*0.5;
+                Real x = i*dx_lev[0] + real_box.lo(0) + fac_x;
+#if (AMREX_SPACEDIM==2)
+                Real y = 0.0;
+                Real fac_z = (1.0 - mfx_type[1]) * dx_lev[1]*0.5;
+                Real z = j*dx_lev[1] + real_box.lo(1) + fac_z;
+#else
+                Real fac_y = (1.0 - mfx_type[1]) * dx_lev[1]*0.5;
+                Real y = j*dx_lev[1] + real_box.lo(1) + fac_y;
+                Real fac_z = (1.0 - mfx_type[2]) * dx_lev[2]*0.5;
+                Real z = k*dx_lev[2] + real_box.lo(2) + fac_z;
+#endif
+                // Initialize the x-component of the field.
+                mfxfab(i,j,k) = xfield_parser->getField(x,y,z);
+            },
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                Real fac_x = (1.0 - mfy_type[0]) * dx_lev[0]*0.5;
+                Real x = i*dx_lev[0] + real_box.lo(0) + fac_x;
+#if (AMREX_SPACEDIM==2)
+                Real y = 0.0;
+                Real fac_z = (1.0 - mfx_type[1]) * dx_lev[1]*0.5;
+                Real z = j*dx_lev[1] + real_box.lo(1) + fac_z;
+#elif (AMREX_SPACEDIM==3)
+                Real fac_y = (1.0 - mfx_type[1]) * dx_lev[1]*0.5;
+                Real y = j*dx_lev[1] + real_box.lo(1) + fac_y;
+                Real fac_z = (1.0 - mfx_type[2]) * dx_lev[2]*0.5;
+                Real z = k*dx_lev[2] + real_box.lo(2) + fac_z;
+#endif
+                // Initialize the y-component of the field.
+                mfyfab(i,j,k)  = yfield_parser->getField(x,y,z);
+            },
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                Real fac_x = (1.0 - mfz_type[0]) * dx_lev[0]*0.5;
+                Real x = i*dx_lev[0] + real_box.lo(0) + fac_x;
+#if (AMREX_SPACEDIM==2)
+                Real y = 0.0;
+                Real fac_z = (1.0 - mfx_type[1]) * dx_lev[1]*0.5;
+                Real z = j*dx_lev[1] + real_box.lo(1) + fac_z;
+#elif (AMREX_SPACEDIM==3)
+                Real fac_y = (1.0 - mfx_type[1]) * dx_lev[1]*0.5;
+                Real y = j*dx_lev[1] + real_box.lo(1) + fac_y;
+                Real fac_z = (1.0 - mfz_type[2]) * dx_lev[2]*0.5;
+                Real z = k*dx_lev[2] + real_box.lo(2) + fac_z;
+#endif
+                // Initialize the z-component of the field.
+                mfzfab(i,j,k) = zfield_parser->getField(x,y,z);
+            },
+            /* To allocate shared memory for the GPU threads. */
+            /* But, for now only 3 doubles (x,y,z) are allocated. */
+            amrex::Gpu::numThreadsPerBlockParallelFor() * sizeof(double) * 3
+        );
+
+    }
+
+}

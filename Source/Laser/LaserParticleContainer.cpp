@@ -249,8 +249,8 @@ LaserParticleContainer::InitData (int lev)
     {
         auto compute_min_max = [&](Real x, Real y, Real z){
             const Vector<Real>& pos_plane = InverseTransform({x, y, z});
-            int i = pos_plane[0]/S_X;
-            int j = pos_plane[1]/S_Y;
+            auto i = static_cast<int>(pos_plane[0]/S_X);
+            auto j = static_cast<int>(pos_plane[1]/S_Y);
             plane_lo[0] = std::min(plane_lo[0], i);
             plane_lo[1] = std::min(plane_lo[1], j);
             plane_hi[0] = std::max(plane_hi[0], i);
@@ -385,6 +385,9 @@ LaserParticleContainer::Evolve (int lev,
         // at the position of the antenna, in the lab-frame)
         t_lab = 1./WarpX::gamma_boost*t + WarpX::beta_boost*Z0_lab/PhysConst::c;
     }
+
+    // Update laser profile
+    m_up_laser_profile->update(t);
 
     BL_ASSERT(OnSameGrids(lev,jx));
 

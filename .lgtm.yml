@@ -1,0 +1,24 @@
+extraction:
+  cpp:
+    prepare:
+      packages:
+        #- libhdf5-mpich-dev
+        - mpich
+        - libmpich-dev
+    after_prepare:
+      - mkdir -p third-party
+      - wget https://github.com/AMReX-Codes/amrex/archive/development.zip
+      - unzip development.zip
+      - mv amrex-development third-party/amrex
+      - rm development.zip
+      - wget https://bitbucket.org/berkeleylab/picsar/get/master.zip
+      - unzip master.zip
+      - mv berkeleylab-picsar-*/ third-party/picsar
+      - rm master.zip
+    configure:
+      command:
+      - echo "Yeah"
+    index:
+      build_command:
+        - make -j 2 AMREX_HOME=./third-party/amrex PICSAR_HOME=./third-party/picsar
+

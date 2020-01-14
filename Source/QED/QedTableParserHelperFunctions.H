@@ -15,7 +15,7 @@ namespace QedUtils{
     * This function safely extracts an amrex::Vector<T> from raw binary data.
     * T must be a simple datatype (e.g. an int, a float, a double...).
     *
-    * @param[in] p_char a pointer to the binary stream
+    * @param[in] p_data a pointer to the binary stream
     * @param[in] how_many how many T should be read from stream
     * @param[in] p_last a pointer to the last element of the char* array
     * @return {a tuple containing
@@ -43,7 +43,7 @@ namespace QedUtils{
     * This function safely extracts a T from raw binary data.
     * T must be a simple datatype (e.g. an int, a float, a double...).
     *
-    * @param[in] p_char a pointer to the binary stream
+    * @param[in] p_data a pointer to the binary stream
     * @param[in] p_last a pointer to the last element of the char* array
     * @return {a tuple containing
     * 1) flag (which is false if p_last is exceeded)

@@ -37,7 +37,7 @@ FieldFunctionLaserProfile::init (
 void
 FieldFunctionLaserProfile::fill_amplitude (
     const int np, Real const * AMREX_RESTRICT const Xp, Real const * AMREX_RESTRICT const Yp,
-    Real t, Real * AMREX_RESTRICT const amplitude)
+    Real t, Real * AMREX_RESTRICT const amplitude) const
 {
     for (int i = 0; i < np; ++i) {
         amplitude[i] = m_parser.eval(Xp[i], Yp[i], t);

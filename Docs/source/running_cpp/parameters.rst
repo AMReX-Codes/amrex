@@ -282,12 +282,13 @@ Particle initialization
       temperature parameter ``<species_name>.theta`` as an input, where theta is kb*T/(m*c^2),
       kb is the Boltzmann constant, c is the speed of light, and m is the mass of the species.
       It also includes the optional parameter ``<species_name>.beta`` where beta is equal to v/c.
-      The plasma will be initialized to move at drift velocity beta*c in the positive
-      ``<species_name>.direction = 'x', 'y', 'z'`` direction. The MB distribution is initialized
-      in the drifting frame by sampling three Gaussian distributions in each dimension using,
-      the Box Mueller method, and then the distribution is transformed to the simulation frame
-      using the flipping method. The flipping method can be found in Zenitani 2015
-      section III. B. (Phys. Plasmas 22, 042116).
+      The plasma will be initialized to move at drift velocity beta*c in the
+      ``<species_name>.drift_vel_dir = (+/-) 'x', 'y', 'z'`` direction. Please leave no whitespace
+      between the sign and the character on input. A direction without a sign will be treated as
+      positive. The MB distribution is initialized in the drifting frame by sampling three Gaussian
+      distributions in each dimension using, the Box Mueller method, and then the distribution is
+      transformed to the simulation frame using the flipping method. The flipping method can be
+      found in Zenitani 2015 section III. B. (Phys. Plasmas 22, 042116).
 
       Note that though the particles may move at relativistic speeds in the simulation frame,
       they are not relativistic in the drift frame. This is as opposed to the Maxwell Juttner
@@ -297,11 +298,12 @@ Particle initialization
       requires a dimensionless temperature parameter ``<species_name>.theta``, where theta is equal
       to kb*T/(m*c^2), where kb is the Boltzmann constant, and m is the mass of the species. It also
       includes the optional parameter ``<species_name>.beta`` where beta is equal to v/c. The plasma
-      will be initialized to move at velocity beta*c in the positive
-      ``<species_name>.direction = 'x', 'y', 'z'`` direction. The MJ distribution will be initialized
-      in the moving frame using the Sobol method, and then the distribution will be transformed to the
-      simulation frame using the flipping method. Both the Sobol and the flipping method can be found
-      in Zenitani 2015 (Phys. Plasmas 22, 042116).
+      will be initialized to move at velocity beta*c in the
+      ``<species_name>.drift_vel_dir = (+/-) 'x', 'y', 'z'`` direction. Please leave no whitespace
+      between the sign and the character on input. A direction without a sign will be treated as
+      positive. The MJ distribution will be initialized in the moving frame using the Sobol method,
+      and then the distribution will be transformed to the simulation frame using the flipping method.
+      Both the Sobol and the flipping method can be found in Zenitani 2015 (Phys. Plasmas 22, 042116).
 
       Please take notice that particles initialized with this setting can be relativistic in two ways.
       In the simulation frame, they can drift with a relativistic speed beta. Then, in the drifting
@@ -538,6 +540,38 @@ Laser initialization
       none of the parameters below are used when ``<laser_name>.parse_field_function=1``. Even
       though ``<laser_name>.wavelength`` and ``<laser_name>.e_max`` should be included in the laser
       function, they still have to be specified as they are used for numerical purposes.
+    - ``"from_txye_file"``: the electric field of the laser is read from an external binary file
+      whose format is explained below. It requires to provide the name of the binary file
+      setting the additional parameter ``<laser_name>.txye_file_name`` (string). It accepts an
+      optional parameter ``<laser_name>.time_chunk_size`` (int). This allows to read only
+      time_chunk_size timesteps from the binary file. New timesteps are read as soon as they are needed.
+      The default value is automatically set to the number of timesteps contained in the binary file
+      (i.e. only one read is performed at the beginning of the simulation).
+      The external binary file should provide E(x,y,t) on a rectangular (but non necessarily uniform)
+      grid. The code performs a bi-linear (in 2D) or tri-linear (in 3D) interpolation to set the field
+      values. x,y,t are meant to be in S.I. units, while the field value is meant to be multiplied by
+      ``<laser_name>.e_max`` (i.e. in most cases the maximum of abs(E(x,y,t)) should be 1,
+      so that the maximum field intensity can be set straightforwardly with ``<laser_name>.e_max``).
+      The binary file has to respect the following format:
+
+        * flag to indicate if the grid is uniform or not (1 byte, 0 means non-uniform, !=0 means uniform)
+
+        * np, number of timesteps (uint32_t, must be >=2)
+
+        * nx, number of points along x (uint32_t, must be >=2)
+
+        * ny, number of points along y (uint32_t, must be 1 for 2D simulations and >=2 for 3D simulations)
+
+        * timesteps (double[2] if grid is uniform, double[np] otherwise)
+
+        * x_coords (double[2] if grid is uniform, double[nx] otherwise)
+
+        * y_coords (double[1] if 2D, double[2] if 3D & uniform grid, double[ny] if 3D & non uniform grid)
+
+        * field_data (double[nt * nx * ny], with nt being the slowest coordinate).
+
+      A file at this format can be generated from Python, see an example at ``Examples/Modules/laser_injection_from_file``
+
 
 *  ``<laser_name>.profile_t_peak`` (`float`; in seconds)
     The time at which the laser reaches its peak intensity, at the position
@@ -635,11 +669,88 @@ Laser initialization
     ``mirror_z_width < dz/cell_size``, the upper bound of the mirror is increased
     so that it contains at least ``mirror_z_npoints``.
 
-* ``warpx.E_external_grid`` & ``warpx.B_external_grid`` (list of `int`) optional (default `0. 0. 0.`)
+* ``warpx.B_ext_grid_init_style`` (string) optional (default is "default")
+    This parameter determines the type of initialization for the external
+    magnetic field. The "default" style initializes the
+    external magnetic field (Bx,By,Bz) to (0.0, 0.0, 0.0).
+    The string can be set to "constant" if a constant magnetic field is
+    required to be set at initialization. If set to "constant", then an
+    additional parameter, namely, ``warpx.B_external_grid`` must be specified.
+    If set to ``parse_B_ext_grid_function``, then a mathematical expression can
+    be used to initialize the external magnetic field on the grid. It
+    requires additional parameters in the input file, namely,
+    ``warpx.Bx_external_grid_function(x,y,z)``,
+    ``warpx.By_external_grid_function(x,y,z)``,
+    ``warpx.Bz_external_grid_function(x,y,z)`` to initialize the external
+    magnetic field for each of the three components on the grid.
+    Constants required in the expression can be set using ``my_constants``.
+    For example, if ``warpx.Bx_external_grid_function(x,y,z)=Bo*x + delta*(y + z)``
+    then the constants `Bo` and `delta` required in the above equation
+    can be set using ``my_constants.Bo=`` and ``my_constants.delta=`` in the
+    input file. For a two-dimensional simulation, it is assumed that the first dimension     is `x` and the second dimension in `z`, and the value of `y` is set to zero.
+    Note that the current implementation of the parser for external B-field
+    does not work with RZ and the code will abort with an error message.
+
+* ``warpx.E_ext_grid_init_style`` (string) optional (default is "default")
+    This parameter determines the type of initialization for the external
+    electric field. The "default" style initializes the
+    external electric field (Ex,Ey,Ez) to (0.0, 0.0, 0.0).
+    The string can be set to "constant" if a constant electric field is
+    required to be set at initialization. If set to "constant", then an
+    additional parameter, namely, ``warpx.E_external_grid`` must be specified
+    in the input file.
+    If set to ``parse_E_ext_grid_function``, then a mathematical expression can
+    be used to initialize the external magnetic field on the grid. It
+    required additional parameters in the input file, namely,
+    ``warpx.Ex_external_grid_function(x,y,z)``,
+    ``warpx.Ey_external_grid_function(x,y,z)``,
+    ``warpx.Ez_externail_grid_function(x,y,z)`` to initialize the external
+    electric field for each of the three components on the grid.
+    Constants required in the expression can be set using ``my_constants``.
+    For example, if ``warpx.Ex_external_grid_function(x,y,z)=Eo*x + delta*(y + z)``
+    then the constants `Bo` and `delta` required in the above equation
+    can be set using ``my_constants.Eo=`` and ``my_constants.delta=`` in the
+    input file. For a two-dimensional simulation, it is assumed that the first
+    dimension is `x` and the second dimension in `z`,
+    and the value of `y` is set to zero.
+    Note that the current implementation of the parser for external E-field
+    does not work with RZ and the code will abort with an error message.
+
+* ``warpx.E_external_grid`` & ``warpx.B_external_grid`` (list of `int`)
+    required when ``warpx.B_ext_grid_init_style="parse_B_ext_grid_function"``
+    and when ``warpx.E_ext_grid_init_style="parse_E_ext_grid_function"``, respectively.
     External uniform and constant electrostatic and magnetostatic field added
     to the grid at initialization. Use with caution as these fields are used for
     the field solver. In particular, do not use any other boundary condition
     than periodic.
+
+Collision initialization
+------------------------
+
+WarpX provides a relativistic elastic Monte Carlo binary collision model,
+following the algorithm given by `Perez et al. (Phys. Plasmas 19, 083104, 2012) <https://doi.org/10.1063/1.4742167>`_.
+
+* ``collisions.ncollisions`` (`int`) optional (default `0`)
+    Number of collision types.
+
+* ``collisions.collision_names`` (`strings`, separated by spaces)
+    The name of each collision type. It must be provided if ``collisions.ncollisions`` is not zero.
+    This is then used in the rest of the input deck;
+    in this documentation we use ``<collision_name>`` as a placeholder.
+    The number of strings provided should match the number of collision types,
+    i.e. ``collisions.ncollisions``.
+
+* ``<collision_name>.species`` (`strings`, two species names separated by spaces)
+    The names of two species, between which the collision will be considered.
+    It must be provided if ``collisions.ncollisions`` is not zero, and
+    the number of provided ``<collision_name>.species`` should match
+    the number of collision types, i.e. ``collisions.ncollisions``.
+
+* ``<collision_name>.CoulombLog`` (`float`) optional
+    A provided fixed Coulomb logarithm of the collision type
+    ``<collision_name>``.
+    If this is not provided, or if a non-positive value is provided,
+    a Coulomb logarithm will be computed automatically according to the algorithm.
 
 Numerics and algorithms
 -----------------------
@@ -665,6 +776,10 @@ Numerics and algorithms
        (see `Esirkepov, Comp. Phys. Comm. (2001) <https://www.sciencedirect.com/science/article/pii/S0010465500002289>`__)
      - ``direct``: simpler current deposition algorithm, described in
        the section :doc:`../theory/picsar_theory`. Note that this algorithm is not strictly charge-conserving.
+
+    If ``algo.current_deposition`` is not specified, the default is
+    ``esirkepov`` (unless WarpX is compiled with ``USE_PSATD=TRUE``, in which
+    case the default is ``direct``).
 
 * ``algo.charge_deposition`` (`string`, optional)
     The algorithm for the charge density deposition. Available options are:

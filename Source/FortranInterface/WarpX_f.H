@@ -1,3 +1,6 @@
+#ifndef WARPX_F_H_
+#define WARPX_F_H_
+
 #include <AMReX_BLFort.H>
 
 #ifdef __cplusplus
@@ -130,3 +133,5 @@ extern "C"
 #ifdef __cplusplus
 }
 #endif
+
+#endif //WARPX_F_H_

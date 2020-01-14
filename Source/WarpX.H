@@ -24,6 +24,9 @@
 #include <AMReX_LayoutData.H>
 #include <AMReX_Interpolater.H>
 #include <AMReX_FillPatchUtil.H>
+#include <WarpXParserWrapper.H>
+
+#include "GuardCellManager.H"
 
 #ifdef _OPENMP
 #   include <omp.h>
@@ -73,8 +76,10 @@ public:
 
     MultiParticleContainer& GetPartContainer () { return *mypc; }
 
-    static void shiftMF(amrex::MultiFab& mf, const amrex::Geometry& geom, int num_shift, int dir,
-                        amrex::Real external_field = 0.);
+    static void shiftMF (amrex::MultiFab& mf, const amrex::Geometry& geom,
+                         int num_shift, int dir, amrex::IntVect ng_extra,
+                         amrex::Real external_field=0.0, bool useparser = false,
+                         ParserWrapper *field_parser=nullptr);
 
     static void GotoNextLine (std::istream& is);
 
@@ -85,6 +90,28 @@ public:
     // Initial field on the grid.
     static amrex::Vector<amrex::Real> E_external_grid;
     static amrex::Vector<amrex::Real> B_external_grid;
+
+    // Initialization Type for External E and B
+    static std::string B_ext_grid_s;
+    static std::string E_ext_grid_s;
+
+    // Parser for B_external on the grid
+    static std::string str_Bx_ext_grid_function;
+    static std::string str_By_ext_grid_function;
+    static std::string str_Bz_ext_grid_function;
+    // Parser for E_external on the grid
+    static std::string str_Ex_ext_grid_function;
+    static std::string str_Ey_ext_grid_function;
+    static std::string str_Ez_ext_grid_function;
+
+    // ParserWrapper for B_external on the grid
+    std::unique_ptr<ParserWrapper> Bxfield_parser;
+    std::unique_ptr<ParserWrapper> Byfield_parser;
+    std::unique_ptr<ParserWrapper> Bzfield_parser;
+    // ParserWrapper for E_external on the grid
+    std::unique_ptr<ParserWrapper> Exfield_parser;
+    std::unique_ptr<ParserWrapper> Eyfield_parser;
+    std::unique_ptr<ParserWrapper> Ezfield_parser;
 
     // Algorithms
     static long current_deposition_algo;
@@ -130,6 +157,8 @@ public:
 
     static int do_subcycling;
 
+    static bool exchange_all_guard_cells;
+
     // buffers
     static int n_field_gather_buffer;       //! in number of cells from the edge (identical for each dimension)
     static int n_current_deposition_buffer; //! in number of cells from the edge (identical for each dimension)
@@ -171,7 +200,7 @@ public:
 
     void ComputeDt ();
     // Compute max_step automatically for simulations in a boosted frame.
-    void computeMaxStepBoostAccelerator(amrex::Geometry geom);
+    void computeMaxStepBoostAccelerator(const amrex::Geometry& geom);
     int  MoveWindow (bool move_j);
     void UpdatePlasmaInjectionPosition (amrex::Real dt);
 
@@ -211,6 +240,8 @@ public:
 
     void CopyJPML ();
 
+    PML* GetPML (int lev);
+
     void PushParticlesandDepose (int lev, amrex::Real cur_time, DtType a_dt_type=DtType::Full);
     void PushParticlesandDepose (         amrex::Real cur_time);
 
@@ -221,12 +252,14 @@ public:
     void UpdateAuxilaryDataSameType ();
 
     // Fill boundary cells including coarse/fine boundaries
-    void FillBoundaryB ();
-    void FillBoundaryE ();
-    void FillBoundaryF ();
-    void FillBoundaryE (int lev);
-    void FillBoundaryB (int lev);
-    void FillBoundaryF (int lev);
+    void FillBoundaryB   (amrex::IntVect ng, amrex::IntVect ng_extra_fine=amrex::IntVect::TheZeroVector());
+    void FillBoundaryE   (amrex::IntVect ng, amrex::IntVect ng_extra_fine=amrex::IntVect::TheZeroVector());
+    void FillBoundaryF   (amrex::IntVect ng);
+    void FillBoundaryAux (amrex::IntVect ng);
+    void FillBoundaryE   (int lev, amrex::IntVect ng, amrex::IntVect ng_extra_fine=amrex::IntVect::TheZeroVector());
+    void FillBoundaryB   (int lev, amrex::IntVect ng, amrex::IntVect ng_extra_fine=amrex::IntVect::TheZeroVector());
+    void FillBoundaryF   (int lev, amrex::IntVect ng);
+    void FillBoundaryAux (int lev, amrex::IntVect ng);
 
     void SyncCurrent ();
     void SyncRho ();
@@ -310,6 +343,8 @@ public:
                              const std::array<const amrex::MultiFab*, 3>& B,
                              const std::array<amrex::Real,3>& dx, int ngrow);
 
+    const amrex::IntVect getngE() const { return guard_cells.ng_alloc_EB; };
+    const amrex::IntVect getngF() const { return guard_cells.ng_alloc_F; };
 
     void InitSpaceChargeField (WarpXParticleContainer& pc);
     void computePhi (const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
@@ -323,7 +358,49 @@ public:
                    const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& phi,
                    std::array<amrex::Real, 3> const beta = {{0,0,0}} ) const;
 
+    /**
+     * \brief
+     * This function initializes the E and B fields on each level
+     * using the parser and the user-defined function for the external fields.
+     * The subroutine will parse the x_/y_z_external_grid_function and
+     * then, the B or E multifab is initialized based on the (x,y,z) position
+     * on the staggered yee-grid or cell-centered grid.
+     */
+    void InitializeExternalFieldsOnGridUsingParser (
+         amrex::MultiFab *mfx, amrex::MultiFab *mfy, amrex::MultiFab *mfz,
+         ParserWrapper *xfield_parser, ParserWrapper *yfield_parser,
+         ParserWrapper *zfield_parser, amrex::IntVect x_nodal_flag,
+         amrex::IntVect y_nodal_flag, amrex::IntVect z_nodal_flag,
+         const int lev);
+
 protected:
+
+    /**
+     * \brief
+     *  This function initializes E, B, rho, and F, at all the levels
+     *  of the multifab. rho and F are initialized with 0.
+     *  The E and B fields are initialized using user-defined inputs.
+     *  The initialization type is set using "B_ext_grid_init_style"
+     *  and "E_ext_grid_init_style". The initialization style is set to "default"
+     *  if not explicitly defined by the user, and the E and B fields are
+     *  initialized with E_external_grid and B_external_grid, respectively, each with
+     *  a default value of 0.
+     *  If the initialization type for the E and B field is "constant",
+     *  then, the E and B fields at all the levels are initialized with
+     *  user-defined values for E_external_grid and B_external_grid.
+     *  If the initialization type for B-field is set to
+     *  "parse_B_ext_grid_function", then, the parser is used to read
+     *  Bx_external_grid_function(x,y,z), By_external_grid_function(x,y,z),
+     *  and Bz_external_grid_function(x,y,z).
+     *  Similarly, if the E-field initialization type is set to
+     *  "parse_E_ext_grid_function", then, the parser is used to read
+     *  Ex_external_grid_function(x,y,z), Ey_external_grid_function(x,y,z),
+     *  and Ex_external_grid_function(x,y,z). The parser for the E and B
+     *  initialization assumes that the function has three independent
+     *  variables, at max, namely, x, y, z. However, any number of constants
+     *  can be used in the function used to define the E and B fields on the grid.
+     */
+    void InitLevelData (int lev, amrex::Real time);
 
     //! Tagging cells for refinement
     virtual void ErrorEst (int lev, amrex::TagBoxArray& tags, amrex::Real time, int /*ngrow*/) final;
@@ -360,9 +437,9 @@ private:
     ///
     void EvolveEM(int numsteps);
 
-    void FillBoundaryB (int lev, PatchType patch_type);
-    void FillBoundaryE (int lev, PatchType patch_type);
-    void FillBoundaryF (int lev, PatchType patch_type);
+    void FillBoundaryB (int lev, PatchType patch_type, amrex::IntVect ng);
+    void FillBoundaryE (int lev, PatchType patch_type, amrex::IntVect ng);
+    void FillBoundaryF (int lev, PatchType patch_type, amrex::IntVect ng);
 
     void OneStep_nosub (amrex::Real t);
     void OneStep_sub1 (amrex::Real t);
@@ -412,7 +489,6 @@ private:
 
     void AllocLevelData (int lev, const amrex::BoxArray& new_grids,
                          const amrex::DistributionMapping& new_dmap);
-    void InitLevelData (int lev, amrex::Real time);
 
     void InitFromCheckpoint ();
     void PostRestart ();
@@ -451,7 +527,8 @@ private:
 
     void AllocLevelMFs (int lev, const amrex::BoxArray& ba, const amrex::DistributionMapping& dm,
                         const amrex::IntVect& ngE, const amrex::IntVect& ngJ,
-                        const amrex::IntVect& ngRho, int ngF);
+                        const amrex::IntVect& ngRho, const amrex::IntVect& ngF,
+                        const amrex::IntVect& ngextra, const bool aux_is_nodal);
 
     amrex::Vector<int> istep;      // which step?
     amrex::Vector<int> nsubsteps;  // how many substeps on each level?
@@ -533,7 +610,7 @@ private:
     amrex::Real load_balance_knapsack_factor = 1.24;
 
     // Override sync every ? steps
-    int override_sync_int = 10;
+    int override_sync_int = 1;
 
     // Other runtime parameters
     int verbose = 1;
@@ -591,6 +668,8 @@ private:
 
     bool is_synchronized = true;
 
+    guardCellManager guard_cells;
+
     //Slice Parameters
     int slice_max_grid_size;
     int slice_plot_int = -1;
@@ -616,18 +695,19 @@ private:
     amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho_cp_fft;
 #endif
 
+    bool fft_hybrid_mpi_decomposition = false;
+    int nox_fft = 16;
+    int noy_fft = 16;
+    int noz_fft = 16;
+
 #ifdef WARPX_USE_PSATD
 private:
     void EvolvePSATD (int numsteps);
     void PushPSATD (amrex::Real dt);
     void PushPSATD_localFFT (int lev, amrex::Real dt);
 
-    bool fft_hybrid_mpi_decomposition = false;
     int ngroups_fft = 4;
     int fftw_plan_measure = 1;
-    int nox_fft = 16;
-    int noy_fft = 16;
-    int noz_fft = 16;
 
     amrex::Vector<std::unique_ptr<SpectralSolver>> spectral_solver_fp;
     amrex::Vector<std::unique_ptr<SpectralSolver>> spectral_solver_cp;
@@ -668,5 +748,6 @@ private:
     std::string insitu_config;
     int insitu_pin_mesh;
 };
+
 
 #endif

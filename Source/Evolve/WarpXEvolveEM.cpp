@@ -7,6 +7,7 @@
 #include <WarpXConst.H>
 #include <WarpX_f.H>
 #include <WarpXUtil.H>
+#include <WarpXAlgorithmSelection.H>
 #ifdef WARPX_USE_PY
 #include <WarpX_py.H>
 #endif
@@ -77,8 +78,9 @@ WarpX::EvolveEM (int numsteps)
         // Particles have p^{n} and x^{n}.
         // is_synchronized is true.
         if (is_synchronized) {
-            FillBoundaryE();
-            FillBoundaryB();
+            // Not called at each iteration, so exchange all guard cells
+            FillBoundaryE(guard_cells.ng_alloc_EB, guard_cells.ng_Extra);
+            FillBoundaryB(guard_cells.ng_alloc_EB, guard_cells.ng_Extra);
             UpdateAuxilaryData();
             // on first step, push p by -0.5*dt
             for (int lev = 0; lev <= finest_level; ++lev) {
@@ -91,14 +93,23 @@ WarpX::EvolveEM (int numsteps)
         } else {
             // Beyond one step, we have E^{n} and B^{n}.
             // Particles have p^{n-1/2} and x^{n}.
-            FillBoundaryE();
-            FillBoundaryB();
-            UpdateAuxilaryData();
 
+            // E and B are up-to-date inside the domain only
+            FillBoundaryE(guard_cells.ng_FieldGather, guard_cells.ng_Extra);
+            FillBoundaryB(guard_cells.ng_FieldGather, guard_cells.ng_Extra);
+            // E and B: enough guard cells to update Aux or call Field Gather in fp and cp
+            // Need to update Aux on lower levels, to interpolate to higher levels.
+#ifndef WARPX_USE_PSATD
+            FillBoundaryAux(guard_cells.ng_UpdateAux);
+#endif
+            UpdateAuxilaryData();
         }
 
         if (do_subcycling == 0 || finest_level == 0) {
             OneStep_nosub(cur_time);
+            // E : guard cells are up-to-date
+            // B : guard cells are NOT up-to-date
+            // F : guard cells are NOT up-to-date
         } else if (do_subcycling == 1 && finest_level == 1) {
             OneStep_sub1(cur_time);
         } else {
@@ -108,6 +119,8 @@ WarpX::EvolveEM (int numsteps)
 
         if (num_mirrors>0){
             applyMirrors(cur_time);
+            // E : guard cells are NOT up-to-date
+            // B : guard cells are NOT up-to-date
         }
 
 #ifdef WARPX_USE_PY
@@ -187,8 +200,14 @@ WarpX::EvolveEM (int numsteps)
         // slice gen //
         if (to_make_plot || do_insitu || to_make_slice_plot)
         {
-            FillBoundaryE();
-            FillBoundaryB();
+            // This is probably overkill, but it's not called often
+            FillBoundaryE(guard_cells.ng_alloc_EB, guard_cells.ng_Extra);
+            // This is probably overkill, but it's not called often
+            FillBoundaryB(guard_cells.ng_alloc_EB, guard_cells.ng_Extra);
+            // This is probably overkill, but it's not called often
+#ifndef WARPX_USE_PSATD
+            FillBoundaryAux(guard_cells.ng_UpdateAux);
+#endif
             UpdateAuxilaryData();
 
             for (int lev = 0; lev <= finest_level; ++lev) {
@@ -239,8 +258,14 @@ WarpX::EvolveEM (int numsteps)
 
     if (write_plot_file || do_insitu)
     {
-        FillBoundaryE();
-        FillBoundaryB();
+        // This is probably overkill, but it's not called often
+        FillBoundaryE(guard_cells.ng_alloc_EB, guard_cells.ng_Extra);
+        // This is probably overkill, but it's not called often
+        FillBoundaryB(guard_cells.ng_alloc_EB, guard_cells.ng_Extra);
+        // This is probably overkill
+#ifndef WARPX_USE_PSATD
+        FillBoundaryAux(guard_cells.ng_UpdateAux);
+#endif
         UpdateAuxilaryData();
 
         for (int lev = 0; lev <= finest_level; ++lev) {
@@ -282,6 +307,7 @@ WarpX::OneStep_nosub (Real cur_time)
     // Loop over species. For each ionizable species, create particles in
     // product species.
     mypc->doFieldIonization();
+    mypc->doCoulombCollisions();
     // Push particle from x^{n} to x^{n+1}
     //               from p^{n-1/2} to p^{n+1/2}
     // Deposit current j^{n+1/2}
@@ -300,6 +326,10 @@ WarpX::OneStep_nosub (Real cur_time)
     SyncCurrent();
 
     SyncRho();
+
+    // At this point, J is up-to-date inside the domain, and E and B are
+    // up-to-date including enough guard cells for first step of the field
+    // solve.
 
     // For extended PML: copy J from regular grid to PML, and damp J in PML
     if (do_pml && pml_has_particles) CopyJPML();
@@ -327,25 +357,29 @@ WarpX::OneStep_nosub (Real cur_time)
         
     }
     if (do_pml) DampPML();
-    FillBoundaryE();
-    FillBoundaryB();
 
+    FillBoundaryE(guard_cells.ng_alloc_EB, guard_cells.ng_Extra);
+    FillBoundaryB(guard_cells.ng_alloc_EB, guard_cells.ng_Extra);
+    
 #else
     EvolveF(0.5*dt[0], DtType::FirstHalf);
-    FillBoundaryF();
+    FillBoundaryF(guard_cells.ng_FieldSolverF);
     EvolveB(0.5*dt[0]); // We now have B^{n+1/2}
-    FillBoundaryB();
 
+    FillBoundaryB(guard_cells.ng_FieldSolver, IntVect::TheZeroVector());
     EvolveE(dt[0]); // We now have E^{n+1}
-    FillBoundaryE();
+
+    FillBoundaryE(guard_cells.ng_FieldSolver, IntVect::TheZeroVector());
     EvolveF(0.5*dt[0], DtType::SecondHalf);
     EvolveB(0.5*dt[0]); // We now have B^{n+1}
     if (do_pml) {
+        FillBoundaryF(guard_cells.ng_alloc_F);
         DampPML();
-        FillBoundaryE();
+        FillBoundaryE(guard_cells.ng_MovingWindow, IntVect::TheZeroVector());
+        FillBoundaryB(guard_cells.ng_MovingWindow, IntVect::TheZeroVector());
     }
-    FillBoundaryB();
-
+    // E and B are up-to-date in the domain, but all guard cells are
+    // outdated.
 #endif
 }
 
@@ -364,6 +398,8 @@ WarpX::OneStep_nosub (Real cur_time)
 * steps of the fine grid.
 *
 */
+
+
 void
 WarpX::OneStep_sub1 (Real curtime)
 {
@@ -388,21 +424,22 @@ WarpX::OneStep_sub1 (Real curtime)
 
     EvolveB(fine_lev, PatchType::fine, 0.5*dt[fine_lev]);
     EvolveF(fine_lev, PatchType::fine, 0.5*dt[fine_lev], DtType::FirstHalf);
-    FillBoundaryB(fine_lev, PatchType::fine);
-    FillBoundaryF(fine_lev, PatchType::fine);
+    FillBoundaryB(fine_lev, PatchType::fine, guard_cells.ng_FieldSolver);
+    FillBoundaryF(fine_lev, PatchType::fine, guard_cells.ng_alloc_F);
 
     EvolveE(fine_lev, PatchType::fine, dt[fine_lev]);
-    FillBoundaryE(fine_lev, PatchType::fine);
+    FillBoundaryE(fine_lev, PatchType::fine, guard_cells.ng_FieldGather);
 
     EvolveB(fine_lev, PatchType::fine, 0.5*dt[fine_lev]);
     EvolveF(fine_lev, PatchType::fine, 0.5*dt[fine_lev], DtType::SecondHalf);
 
     if (do_pml) {
+        FillBoundaryF(fine_lev, PatchType::fine, guard_cells.ng_alloc_F);
         DampPML(fine_lev, PatchType::fine);
-        FillBoundaryE(fine_lev, PatchType::fine);
+        FillBoundaryE(fine_lev, PatchType::fine, guard_cells.ng_FieldGather);
     }
 
-    FillBoundaryB(fine_lev, PatchType::fine);
+    FillBoundaryB(fine_lev, PatchType::fine, guard_cells.ng_FieldGather);
 
     // ii) Push particles on the coarse patch and mother grid.
     // Push the fields on the coarse patch and mother grid
@@ -414,20 +451,21 @@ WarpX::OneStep_sub1 (Real curtime)
 
     EvolveB(fine_lev, PatchType::coarse, dt[fine_lev]);
     EvolveF(fine_lev, PatchType::coarse, dt[fine_lev], DtType::FirstHalf);
-    FillBoundaryB(fine_lev, PatchType::coarse);
-    FillBoundaryF(fine_lev, PatchType::coarse);
+    FillBoundaryB(fine_lev, PatchType::coarse, guard_cells.ng_FieldGather);
+    FillBoundaryF(fine_lev, PatchType::coarse, guard_cells.ng_FieldSolverF);
 
     EvolveE(fine_lev, PatchType::coarse, dt[fine_lev]);
-    FillBoundaryE(fine_lev, PatchType::coarse);
+    FillBoundaryE(fine_lev, PatchType::coarse, guard_cells.ng_FieldGather);
 
     EvolveB(coarse_lev, PatchType::fine, 0.5*dt[coarse_lev]);
     EvolveF(coarse_lev, PatchType::fine, 0.5*dt[coarse_lev], DtType::FirstHalf);
-    FillBoundaryB(coarse_lev, PatchType::fine);
-    FillBoundaryF(coarse_lev, PatchType::fine);
+    FillBoundaryB(coarse_lev, PatchType::fine, guard_cells.ng_FieldGather + guard_cells.ng_Extra);
+    FillBoundaryF(coarse_lev, PatchType::fine, guard_cells.ng_FieldSolverF);
 
     EvolveE(coarse_lev, PatchType::fine, 0.5*dt[coarse_lev]);
-    FillBoundaryE(coarse_lev, PatchType::fine);
+    FillBoundaryE(coarse_lev, PatchType::fine, guard_cells.ng_FieldGather + guard_cells.ng_Extra);
 
+    FillBoundaryAux(guard_cells.ng_UpdateAux);
     // iii) Get auxiliary fields on the fine grid, at dt[fine_lev]
     UpdateAuxilaryData();
 
@@ -442,22 +480,21 @@ WarpX::OneStep_sub1 (Real curtime)
 
     EvolveB(fine_lev, PatchType::fine, 0.5*dt[fine_lev]);
     EvolveF(fine_lev, PatchType::fine, 0.5*dt[fine_lev], DtType::FirstHalf);
-    FillBoundaryB(fine_lev, PatchType::fine);
-    FillBoundaryF(fine_lev, PatchType::fine);
+    FillBoundaryB(fine_lev, PatchType::fine, guard_cells.ng_FieldSolver);
+    FillBoundaryF(fine_lev, PatchType::fine, guard_cells.ng_FieldSolverF);
 
     EvolveE(fine_lev, PatchType::fine, dt[fine_lev]);
-    FillBoundaryE(fine_lev, PatchType::fine);
+    FillBoundaryE(fine_lev, PatchType::fine, guard_cells.ng_FieldSolver);
 
     EvolveB(fine_lev, PatchType::fine, 0.5*dt[fine_lev]);
     EvolveF(fine_lev, PatchType::fine, 0.5*dt[fine_lev], DtType::SecondHalf);
 
     if (do_pml) {
         DampPML(fine_lev, PatchType::fine);
-        FillBoundaryE(fine_lev, PatchType::fine);
+        FillBoundaryE(fine_lev, PatchType::fine, guard_cells.ng_FieldSolver);
     }
 
-    FillBoundaryB(fine_lev, PatchType::fine);
-    FillBoundaryF(fine_lev, PatchType::fine);
+    FillBoundaryB(fine_lev, PatchType::fine, guard_cells.ng_FieldSolver);
 
     // v) Push the fields on the coarse patch and mother grid
     // by only half a coarse step (second half)
@@ -466,36 +503,42 @@ WarpX::OneStep_sub1 (Real curtime)
     AddRhoFromFineLevelandSumBoundary(coarse_lev, ncomps, ncomps);
 
     EvolveE(fine_lev, PatchType::coarse, dt[fine_lev]);
-    FillBoundaryE(fine_lev, PatchType::coarse);
+    FillBoundaryE(fine_lev, PatchType::coarse, guard_cells.ng_FieldSolver);
 
     EvolveB(fine_lev, PatchType::coarse, dt[fine_lev]);
     EvolveF(fine_lev, PatchType::coarse, dt[fine_lev], DtType::SecondHalf);
 
     if (do_pml) {
+        FillBoundaryF(fine_lev, PatchType::fine, guard_cells.ng_FieldSolverF);
         DampPML(fine_lev, PatchType::coarse); // do it twice
         DampPML(fine_lev, PatchType::coarse);
-        FillBoundaryE(fine_lev, PatchType::coarse);
+        FillBoundaryE(fine_lev, PatchType::coarse, guard_cells.ng_alloc_EB);
     }
 
-    FillBoundaryB(fine_lev, PatchType::coarse);
-    FillBoundaryF(fine_lev, PatchType::coarse);
+    FillBoundaryB(fine_lev, PatchType::coarse, guard_cells.ng_FieldSolver);
+
+    FillBoundaryF(fine_lev, PatchType::coarse, guard_cells.ng_FieldSolverF);
 
     EvolveE(coarse_lev, PatchType::fine, 0.5*dt[coarse_lev]);
-    FillBoundaryE(coarse_lev, PatchType::fine);
+    FillBoundaryE(coarse_lev, PatchType::fine, guard_cells.ng_FieldSolver);
 
     EvolveB(coarse_lev, PatchType::fine, 0.5*dt[coarse_lev]);
     EvolveF(coarse_lev, PatchType::fine, 0.5*dt[coarse_lev], DtType::SecondHalf);
 
     if (do_pml) {
+        if (do_moving_window & field_gathering_algo == GatheringAlgo::MomentumConserving){
+            // Exchance guard cells of PMLs only (0 cells are exchanged for the
+            // regular B field MultiFab). This is required as B has just been
+            // evolved and one guard cell is needed for the averaging
+            // in momentum-conserving gather.
+            FillBoundaryB(coarse_lev, PatchType::fine, IntVect::TheZeroVector());
+        }
         DampPML(coarse_lev, PatchType::fine);
-        FillBoundaryE(coarse_lev, PatchType::fine);
     }
-
-    FillBoundaryB(coarse_lev, PatchType::fine);
 }
 
 void
-WarpX::PushParticlesandDepose (Real cur_time)
+WarpX::PushParticlesandDepose (amrex::Real cur_time)
 {
     // Evolve particles to p^{n+1/2} and x^{n+1}
     // Depose current, j^{n+1/2}
@@ -505,7 +548,7 @@ WarpX::PushParticlesandDepose (Real cur_time)
 }
 
 void
-WarpX::PushParticlesandDepose (int lev, Real cur_time, DtType a_dt_type)
+WarpX::PushParticlesandDepose (int lev, amrex::Real cur_time, DtType a_dt_type)
 {
     mypc->Evolve(lev,
                  *Efield_aux[lev][0],*Efield_aux[lev][1],*Efield_aux[lev][2],
@@ -603,7 +646,7 @@ WarpX::ComputeDt ()
  * simulation box passes input parameter zmax_plasma_to_compute_max_step.
  */
 void
-WarpX::computeMaxStepBoostAccelerator(amrex::Geometry a_geom){
+WarpX::computeMaxStepBoostAccelerator(const amrex::Geometry& a_geom){
     // Sanity checks: can use zmax_plasma_to_compute_max_step only if
     // the moving window and the boost are all in z direction.
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
@@ -634,9 +677,10 @@ WarpX::computeMaxStepBoostAccelerator(amrex::Geometry a_geom){
     // Divide by dt, and update value of max_step.
     int computed_max_step;
     if (do_subcycling){
-        computed_max_step = interaction_time_boost/dt[0];
+        computed_max_step = static_cast<int>(interaction_time_boost/dt[0]);
     } else {
-        computed_max_step = interaction_time_boost/dt[maxLevel()];
+        computed_max_step =
+            static_cast<int>(interaction_time_boost/dt[maxLevel()]);
     }
     max_step = computed_max_step;
     Print()<<"max_step computed in computeMaxStepBoostAccelerator: "
