@@ -493,7 +493,9 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
 
         // Update NextID to include particles created in this function
         int pid;
+#ifdef _OPENMP
 #pragma omp critical (add_plasma_nextid)
+#endif
         {
             pid = ParticleType::NextID();
             ParticleType::NextID(pid+max_new_particles);

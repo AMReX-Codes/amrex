@@ -29,7 +29,7 @@ class WarpX(Bucket):
 
         # --- Search through species_names and add any predefined particle objects in the list.
         particles_list_names = [p.instancename for p in particles_list]
-        for pstring in particles.species_names.split(' '):
+        for pstring in particles.species_names:
             if pstring in particles_list_names:
                 # --- The species is already included in particles_list
                 continue
@@ -47,6 +47,14 @@ class WarpX(Bucket):
             argv += laser.attrlist()
 
         return argv
+
+    def add_field_to_plot(self, field):
+        try:
+            # Check if the field was already added to the string
+            if field not in self.fields_to_plot:
+                self.fields_to_plot.append(field)
+        except AttributeError:
+            self.fields_to_plot = [field]
 
     def init(self):
         from . import wx
