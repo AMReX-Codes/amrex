@@ -12,7 +12,7 @@ do
     if [[ ${filename:0:6 } =~ inputs       ]] ||
        [[ ${filename:0:12} =~ PICMI_inputs ]]
     then
-        cr=$'$' # $'\n'
+        cr=$'$'
         file_cr="$file$cr"
         # Search file name in test list
         string_match=$(grep -m1 "$file_cr" Regression/WarpX-tests.ini)
