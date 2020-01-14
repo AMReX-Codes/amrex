@@ -21,9 +21,8 @@ geometry.prob_hi     =  20.e-6    20.e-6    20.e-6
 
 # Verbosity
 warpx.verbose = 1
+
 warpx.do_moving_window = 0
-warpx.moving_window_dir = x
-warpx.moving_window_v = 0.0 # in units of the speed of light
 
 # Algorithms
 algo.current_deposition = direct

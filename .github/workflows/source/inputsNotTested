@@ -12,8 +12,10 @@ do
     if [[ ${filename:0:6 } =~ inputs       ]] ||
        [[ ${filename:0:12} =~ PICMI_inputs ]]
     then
+        cr=$'$'
+        file_cr="$file$cr"
         # Search file name in test list
-        string_match=$(grep -m1 "$file" Regression/WarpX-tests.ini)
+        string_match=$(grep -m1 "$file_cr" Regression/WarpX-tests.ini)
         # If match is empty, inputs examples is not tested
         if [[ -z $string_match ]]
         then
