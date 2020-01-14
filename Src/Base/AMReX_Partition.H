@@ -85,7 +85,7 @@ template <typename T, typename F>
 int StablePartition (T* data, int beg, int end, F && f)
 {
     int n = Partition(data, beg, end, std::forward<F>(f));
-    int n2 = end - beg;
+    int n2 = end - beg - n;
     detail::amrex_stable_partition_helper(data + beg + n, n2);
     return n;
 }
