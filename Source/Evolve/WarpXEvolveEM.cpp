@@ -355,6 +355,7 @@ WarpX::OneStep_nosub (Real cur_time)
         FillBoundaryF(guard_cells.ng_alloc_F);
         DampPML();
         FillBoundaryE(guard_cells.ng_MovingWindow, IntVect::TheZeroVector());
+        FillBoundaryF(guard_cells.ng_MovingWindow);
         FillBoundaryB(guard_cells.ng_MovingWindow, IntVect::TheZeroVector());
     }
     // E and B are up-to-date in the domain, but all guard cells are
@@ -383,7 +384,6 @@ void
 WarpX::OneStep_sub1 (Real curtime)
 {
     // TODO: we could save some charge depositions
-
     // Loop over species. For each ionizable species, create particles in
     // product species.
     mypc->doFieldIonization();
@@ -505,12 +505,12 @@ WarpX::OneStep_sub1 (Real curtime)
     EvolveF(coarse_lev, PatchType::fine, 0.5*dt[coarse_lev], DtType::SecondHalf);
 
     if (do_pml) {
-        if (do_moving_window & field_gathering_algo == GatheringAlgo::MomentumConserving){
+        if (do_moving_window){
             // Exchance guard cells of PMLs only (0 cells are exchanged for the
-            // regular B field MultiFab). This is required as B has just been
-            // evolved and one guard cell is needed for the averaging
-            // in momentum-conserving gather.
+            // regular B field MultiFab). This is required as B and F have just been
+            // evolved.
             FillBoundaryB(coarse_lev, PatchType::fine, IntVect::TheZeroVector());
+            FillBoundaryF(coarse_lev, PatchType::fine, IntVect::TheZeroVector());
         }
         DampPML(coarse_lev, PatchType::fine);
     }

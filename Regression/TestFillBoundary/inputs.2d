@@ -1,7 +1,7 @@
 #################################
 ####### GENERAL PARAMETERS ######
 #################################
-max_step = 2 # 30
+max_step = 10
 amr.n_cell = 32 32 # 128 128 # 32 32
 amr.max_grid_size = 16 # 64 # 16
 amr.blocking_factor = 16 # 64 # 16
