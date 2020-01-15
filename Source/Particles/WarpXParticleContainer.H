@@ -281,7 +281,7 @@ public:
 
     virtual void ConvertUnits (ConvertDirection convert_dir){};
 
-    void ReadParameters ();
+    static void ReadParameters ();
 
     static int NextID () { return ParticleType::NextID(); }
 
