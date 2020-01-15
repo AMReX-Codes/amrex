@@ -1,6 +1,32 @@
 #include "WarpXOpenPMD.H"
 #include "FieldIO.H"  // for getReversedVec
 
+#include <tuple>
+#include <utility>
+
+
+namespace detail
+{
+    /** Unclutter a real_names to openPMD record
+     *
+     * @param fullName name as in real_names variable
+     * @return pair of openPMD record and component name
+     */
+    inline std::pair< std::string, std::string >
+    name2openPMD( std::string const& fullName )
+    {
+        std::string record_name = fullName;
+        std::string component_name = openPMD::RecordComponent::SCALAR;
+        std::size_t startComp = fullName.find_last_of("_");
+
+        if( startComp != std::string::npos ) {  // non-scalar
+            record_name = fullName.substr(0, startComp);
+            component_name = fullName.substr(startComp + 1u);
+        }
+        return make_pair(record_name, component_name);
+    }
+}
+
 WarpXOpenPMDPlot::WarpXOpenPMDPlot(bool oneFilePerTS,
                    std::string& openPMDFileType)
   :m_Series(nullptr),
@@ -74,8 +100,14 @@ WarpXOpenPMDPlot::Init(openPMD::AccessType accessType)
     else
     m_Series = std::make_unique<openPMD::Series>(filename, accessType);
 
-  // actually default is "particles"  by openPMD.
-  m_Series->setParticlesPath("particles");
+    // more natural naming for PIC
+    m_Series->setMeshesPath("fields");
+    // TODO conform to ED-PIC extension of openPMD
+    // uint32_t const openPMD_ED_PIC = 1u;
+    // m_Series->setOpenPMDextension(openPMD_ED_PIC);
+    // meta info
+    m_Series->setSoftware("WarpX");
+    m_Series->setSoftwareVersion(WARPX_GIT_VERSION);
 }
 
 
@@ -93,19 +125,22 @@ WarpXOpenPMDPlot::WriteOpenPMDParticles(const std::unique_ptr<MultiParticleConta
       amrex::Vector<std::string> int_names;
       amrex::Vector<int> int_flags;
 
-      real_names.push_back("weight");
+      // see openPMD ED-PIC extension for namings
+      // note: an underscore separates the record name from its component
+      //       for non-scalar records
+      real_names.push_back("weighting");
 
       real_names.push_back("momentum_x");
       real_names.push_back("momentum_y");
       real_names.push_back("momentum_z");
 
-      real_names.push_back("Ex");
-      real_names.push_back("Ey");
-      real_names.push_back("Ez");
+      real_names.push_back("E_x");
+      real_names.push_back("E_y");
+      real_names.push_back("E_z");
 
-      real_names.push_back("Bx");
-      real_names.push_back("By");
-      real_names.push_back("Bz");
+      real_names.push_back("B_x");
+      real_names.push_back("B_y");
+      real_names.push_back("B_z");
 
 #ifdef WARPX_DIM_RZ
       real_names.push_back("theta");
@@ -224,8 +259,11 @@ WarpXOpenPMDPlot::SetupRealProperties(openPMD::ParticleSpecies& currSpecies,
   auto counter = std::min(write_real_comp.size(), real_comp_names.size());
   for (int i = 0; i < counter; ++i)
     if (write_real_comp[i]) {
-      auto& particleVar = currSpecies[real_comp_names[i]];
-      auto& particleVarComp = particleVar[openPMD::RecordComponent::SCALAR];
+      // handle scalar and non-scalar records by name
+      std::string record_name, component_name;
+      std::tie(record_name, component_name) = detail::name2openPMD(real_comp_names[i]);
+
+      auto& particleVarComp = currSpecies[record_name][component_name];
       particleVarComp.resetDataset(particlesLineup);
     }
 }
@@ -253,7 +291,11 @@ WarpXOpenPMDPlot::SaveRealProperty(WarpXParIter& pti,
   {
     for (auto idx=0; idx<m_NumAoSRealAttributes; idx++) {
       if (write_real_comp[idx]) {
-          auto& currVar = currSpecies[real_comp_names[idx]][openPMD::RecordComponent::SCALAR];
+          // handle scalar and non-scalar records by name
+          std::string record_name, component_name;
+          std::tie(record_name, component_name) = detail::name2openPMD(real_comp_names[idx]);
+
+          auto& currVar = currSpecies[record_name][component_name];
           typename amrex::ParticleReal *d =
                  static_cast<typename amrex::ParticleReal*> (malloc(sizeof(typename amrex::ParticleReal) *  numParticleOnTile));
 
@@ -272,7 +314,11 @@ WarpXOpenPMDPlot::SaveRealProperty(WarpXParIter& pti,
     for (auto idx=0; idx<m_NumSoARealAttributes; idx++) {
       auto ii = m_NumAoSRealAttributes + idx;
       if (write_real_comp[ii]) {
-          auto& currVar = currSpecies[real_comp_names[ii]][openPMD::RecordComponent::SCALAR];
+          // handle scalar and non-scalar records by name
+          std::string record_name, component_name;
+          std::tie(record_name, component_name) = detail::name2openPMD(real_comp_names[ii]);
+
+          auto& currVar = currSpecies[record_name][component_name];
           currVar.storeChunk(openPMD::shareRaw(soa.GetRealData(idx)),
                              {offset}, {static_cast<unsigned long long>(numParticleOnTile)});
       }
