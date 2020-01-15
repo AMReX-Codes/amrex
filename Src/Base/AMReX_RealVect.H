@@ -356,6 +356,22 @@ public:
   AMREX_GPU_HOST_DEVICE
   IntVect floor () const noexcept;
 
+  ///
+  /**
+     Returns an IntVect whose components are the std::floor of the RealVect 
+     components.
+  */
+  AMREX_GPU_HOST_DEVICE
+  IntVect ceil () const noexcept;
+
+  ///
+  /**
+     Returns an IntVect whose components are the std::floor of the RealVect 
+     components.
+  */
+  AMREX_GPU_HOST_DEVICE
+  IntVect round () const noexcept;
+
   /*@}*/
 
   /**
@@ -703,7 +719,29 @@ inline
 IntVect
 RealVect::floor () const noexcept
 {
-  return IntVect(AMREX_D_DECL(std::floor(vect[0]), std::floor(vect[1]), std::floor(vect[2])));
+  return IntVect(AMREX_D_DECL(static_cast<int>(std::floor(vect[0])),
+                              static_cast<int>(std::floor(vect[1])),
+                              static_cast<int>(std::floor(vect[2]))));
+}
+
+AMREX_GPU_HOST_DEVICE
+inline
+IntVect
+RealVect::ceil () const noexcept
+{
+  return IntVect(AMREX_D_DECL(static_cast<int>(std::ceil(vect[0])),
+                              static_cast<int>(std::ceil(vect[1])),
+                              static_cast<int>(std::ceil(vect[2]))));
+}
+
+AMREX_GPU_HOST_DEVICE
+inline
+IntVect
+RealVect::round () const noexcept
+{
+  return IntVect(AMREX_D_DECL(static_cast<int>(std::round(vect[0])),
+                              static_cast<int>(std::round(vect[1])),
+                              static_cast<int>(std::round(vect[2]))));
 }
 
 AMREX_GPU_HOST_DEVICE
