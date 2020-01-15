@@ -19,6 +19,7 @@ public:
 
     /** This funciton computes the particle relativistic
      *  kinetic energy (EP).
+     *  \param [in] step current time step
      *  EP = sqrt( p^2 c^2 + m^2 c^4 ) - m c^2,
      *  where p is the relativistic momentum,
      *  m is the particle rest mass. */

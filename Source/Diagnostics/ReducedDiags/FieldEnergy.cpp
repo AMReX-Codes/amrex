@@ -13,6 +13,10 @@ FieldEnergy::FieldEnergy (std::string rd_name)
 : ReducedDiags{rd_name}
 {
 
+    /// resize data array
+    /// the extra one is for total energy
+    m_data.resize(3,0.0);
+
     if (ParallelDescriptor::IOProcessor())
     {
         if ( m_IsNotRestart )
@@ -51,10 +55,6 @@ void FieldEnergy::ComputeDiags (int step)
     /// get WarpX class object
     auto & warpx = WarpX::GetInstance();
 
-    /// resize data array
-    /// the extra one is for total energy
-    m_data.resize(3,0.0);
-
     /// get MultiFab data at level 0
     const MultiFab & Ex = warpx.getEfield(0,0);
     const MultiFab & Ey = warpx.getEfield(0,1);
@@ -63,11 +63,14 @@ void FieldEnergy::ComputeDiags (int step)
     const MultiFab & By = warpx.getBfield(0,1);
     const MultiFab & Bz = warpx.getBfield(0,2);
 
-    /// get number of grids used
+    /// get cell size
     Geometry const & geom = warpx.Geom(0);
     auto domain_box = geom.Domain();
-#if (AMREX_SPACEDIM == 2)
+#if (defined WARPX_DIM_XZ)
     auto dV = geom.CellSize(0) * geom.CellSize(1);
+#elif (defined WARPX_DIM_RZ)
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(false,
+        "FieldEnergy reduced diagnostics does not work for RZ coordinates.");
 #elif (AMREX_SPACEDIM == 3)
     auto dV = geom.CellSize(0) * geom.CellSize(1) * geom.CellSize(2);
 #endif

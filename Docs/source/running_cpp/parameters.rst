@@ -1062,6 +1062,46 @@ Diagnostics and output
     the first and the second columns in the output file are
     the time step and the corresponding physical time in seconds, respectively.
 
+    * ``ParticleEnergy``
+        This type computes both the total and the mean
+        relativistic particle kinetic energy among all species.
+    
+        .. math::
+    
+            E_p = \sum_{i=1}^N ( \sqrt{ p_i^2 c^2 + m_0^2 c^4 } - m_0 c^2 ) w_i
+    
+        where :math:`p` is the relativistic momentum,
+        :math:`c` is the speed of light,
+        :math:`m_0` is the rest mass,
+        :math:`N` is the number of particles,
+        :math:`w` is the individual particle weight.
+    
+        The output columns are
+        total :math:`E_p` of all species,
+        :math:`E_p` of each species,
+        total mean energy :math:`E_p / \sum w_i`,
+        mean enregy of each species.
+    
+    * ``FieldEnergy``
+        This type computes the electric and magnetic field energy.
+    
+        .. math::
+    
+            E_f = \sum [ \varepsilon_0 E^2 / 2 + B^2 / ( 2 \mu_0 ) ] \Delta V
+    
+        where
+        :math:`E` is the electric field,
+        :math:`B` is the magnetic field,
+        :math:`\varepsilon_0` is the vacuum permittivity,
+        :math:`\mu_0` is the vacuum permeability,
+        :math:`\Delta V` is the cell volume (or area for 2D),
+        the sum is over all cells.
+    
+        The output columns are
+        total field energy :math:`E_f`,
+        :math:`E` field energy,
+        :math:`B` field energy.
+
 * ``<reduced_diags_name>.frequency`` (`int`)
     The output frequency (every # time steps).
 
@@ -1072,46 +1112,6 @@ Diagnostics and output
     The separator between row values in the output file.
     The default separator is comma, i.e. the output file is in
     the CSV (comma separated value) format.
-
-* ``ParticleEnergy``
-    This type computes both the total and the mean
-    relativistic particle kinetic energy among all species.
-
-    .. math::
-
-        E_p = \sum_{i=1}^N ( \sqrt{ p_i^2 c^2 + m_0^2 c^4 } - m_0 c^2 ) w_i
-
-    where :math:`p` is the relativistic momentum,
-    :math:`c` is the speed of light,
-    :math:`m_0` is the rest mass,
-    :math:`N` is the number of particles,
-    :math:`w` is the individual particle weight.
-
-    The output columns are
-    total :math:`E_p` of all species,
-    :math:`E_p` of each species,
-    total mean energy :math:`E_p / \sum w_i`,
-    mean enregy of each species.
-
-* ``FieldEnergy``
-    This type computes the electric and magnetic field energy.
-
-    .. math::
-
-        E_f = \sum [ \varepsilon_0 E^2 / 2 + B^2 / ( 2 \mu_0 ) ] \Delta V
-
-    where
-    :math:`E` is the electric field,
-    :math:`B` is the magnetic field,
-    :math:`\varepsilon_0` is the vacuum permittivity,
-    :math:`\mu_0` is the vacuum permeability,
-    :math:`\Delta V` is the cell volume (or area for 2D),
-    the sum is over all cells.
-
-    The output columns are
-    total field energy :math:`E_f`,
-    :math:`E` field energy,
-    :math:`B` field energy.
 
 Lookup tables for QED modules (implementation in progress)
 ----------------------------------------------------------

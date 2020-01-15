@@ -19,7 +19,10 @@ ParticleEnergy::ParticleEnergy (std::string rd_name)
     auto & mypc = warpx.GetPartContainer();
 
     /// get number of species (int)
-    auto species_number = mypc.nSpecies();
+    auto nSpecies = mypc.nSpecies();
+
+    /// resize data array
+    m_data.resize(2*nSpecies+2,0.0);
 
     /// get species names (std::vector<std::string>)
     auto species_names = mypc.GetSpeciesNames();
@@ -39,14 +42,14 @@ ParticleEnergy::ParticleEnergy (std::string rd_name)
             ofs << "time(s)";
             ofs << m_sep;
             ofs << "total(J)";
-            for (int i = 0; i < species_number; ++i)
+            for (int i = 0; i < nSpecies; ++i)
             {
                 ofs << m_sep;
                 ofs << species_names[i]+"(J)";
             }
             ofs << m_sep;
             ofs << "total.mean(J)";
-            for (int i = 0; i < species_number; ++i)
+            for (int i = 0; i < nSpecies; ++i)
             {
                 ofs << m_sep;
                 ofs << species_names[i]+".mean(J)";
@@ -71,10 +74,7 @@ void ParticleEnergy::ComputeDiags (int step)
     auto & mypc = WarpX::GetInstance().GetPartContainer();
 
     /// get number of species (int)
-    auto species_number = mypc.nSpecies();
-
-    /// resize data array
-    m_data.resize(2*species_number+2,0.0);
+    auto nSpecies = mypc.nSpecies();
 
     /// get species names (std::vector<std::string>)
     auto species_names = mypc.GetSpeciesNames();
@@ -83,7 +83,7 @@ void ParticleEnergy::ComputeDiags (int step)
     auto c2 = PhysConst::c * PhysConst::c;
 
     /// loop over species
-    for (int i_s = 0; i_s < species_number; ++i_s)
+    for (int i_s = 0; i_s < nSpecies; ++i_s)
     {
         /// get WarpXParticleContainer class object
         auto & myspc = mypc.GetParticleContainer(i_s);
@@ -123,9 +123,9 @@ void ParticleEnergy::ComputeDiags (int step)
         /// save results for this species i_s into m_data
         m_data[i_s+1] = Etot;
         if ( Wtot > 0.0 )
-        { m_data[species_number+2+i_s] = Etot / Wtot; }
+        { m_data[nSpecies+2+i_s] = Etot / Wtot; }
         else
-        { m_data[species_number+2+i_s] = 0.0; }
+        { m_data[nSpecies+2+i_s] = 0.0; }
 
 
     }
@@ -133,14 +133,24 @@ void ParticleEnergy::ComputeDiags (int step)
 
     /// save total energy
     /// loop over species
-    m_data[0] = 0.0;                ///< total energy
-    m_data[species_number+1] = 0.0; ///< total mean energy
-    for (int i_s = 0; i_s < species_number; ++i_s)
+    m_data[0] = 0.0;          ///< total energy
+    m_data[nSpecies+1] = 0.0; ///< total mean energy
+    for (int i_s = 0; i_s < nSpecies; ++i_s)
     {
         m_data[0] += m_data[i_s+1];
-        m_data[species_number+1] += m_data[species_number+2+i_s];
+        m_data[nSpecies+1] += m_data[nSpecies+2+i_s];
     }
     ///< end loop over species
+
+    /** m_data now contains up-to-date values for:
+     *  [total energy (all species),
+     *   total energy (species 1),
+     *   ...,
+     *   total energy (species n),
+     *   mean energy (all species),
+     *   mean energy (species 1),
+     *   ...,
+     *   mean energy (species n)] */
 
 }
 ///< end void ParticleEnergy::ComputeDiags
