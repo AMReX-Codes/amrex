@@ -210,7 +210,7 @@ def main() :
         launch_analysis(executables[0])
     else :
         assert(False)
-
+    print('Passed')
 
 if __name__ == "__main__":
     main()
