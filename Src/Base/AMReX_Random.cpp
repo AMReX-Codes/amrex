@@ -50,7 +50,6 @@ namespace
 void
 amrex::InitRandom (unsigned long seed, int nprocs)
 {
-
 #ifdef _OPENMP
     nthreads = omp_get_max_threads();
 #else
@@ -75,7 +74,6 @@ amrex::InitRandom (unsigned long seed, int nprocs)
 #endif
 }
 
-#ifdef AMREX_DEVICE_COMPILE
 AMREX_GPU_DEVICE
 int amrex::get_state (int tid)
 {
@@ -98,7 +96,6 @@ void amrex::free_state (int tid)
 
     d_mutex_d_ptr->unlock(i);
 }
-#endif
 
 AMREX_GPU_HOST_DEVICE amrex::Real
 amrex::RandomNormal (amrex::Real mean, amrex::Real stddev)
@@ -142,7 +139,7 @@ AMREX_GPU_HOST_DEVICE amrex::Real
 amrex::Random ()
 {
     amrex::Real rand;
-#ifdef AMREX_DEVICE_COMPILE
+#ifdef AMREX_DEVICE_COMPILE    // on the device
     int blockId = blockIdx.x + blockIdx.y * gridDim.x + gridDim.x * gridDim.y * blockIdx.z;
 
     int tid = blockId * (blockDim.x * blockDim.y * blockDim.z)
@@ -161,7 +158,7 @@ amrex::Random ()
     __threadfence();
     free_state(tid);
 
-#else
+#else     // on the host
 
 #ifdef _OPENMP
     int tid = omp_get_thread_num();
