@@ -527,13 +527,17 @@ WarpX::WritePlotFile () const
     }
 
 #ifdef WARPX_USE_OPENPMD
-    m_OpenPMDPlotWriter->SetStep(istep[0]);
-    if (dump_openpmd)
-      m_OpenPMDPlotWriter->WriteOpenPMDFields(varnames,
-                          *output_mf[0], output_geom[0], istep[0], t_new[0] );
+    if (dump_openpmd) {
+        m_OpenPMDPlotWriter->SetStep(istep[0]);
+        // fields: only dumped for coarse level
+        m_OpenPMDPlotWriter->WriteOpenPMDFields(
+            varnames, *output_mf[0], output_geom[0], istep[0], t_new[0]);
+        // particles: all (reside only on locally finest level)
+        m_OpenPMDPlotWriter->WriteOpenPMDParticles(mypc);
+    }
 #endif
 
-    if (dump_plotfiles ||  dump_openpmd) {
+    if (dump_plotfiles) {
 
     // Write the fields contained in `mf_avg`, and corresponding to the
     // names `varnames`, into a plotfile.
@@ -616,11 +620,6 @@ WarpX::WritePlotFile () const
         }
     }
 
-#ifdef WARPX_USE_OPENPMD
-    // Write openPMD format: only for level 0
-    if (dump_openpmd)
-        m_OpenPMDPlotWriter->WriteOpenPMDParticles(mypc);
-#endif
     // leaving the option of binary output through AMREx around
     // regardless of openPMD. This can be adjusted later
     {
