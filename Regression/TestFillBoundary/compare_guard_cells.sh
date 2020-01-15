@@ -38,7 +38,7 @@ COMPILE_fcompare=true
 CLEAN=true
 DIM=2d
 REL_TOL=2e-15
-plotfile=plt00002
+plotfile=plt00010
 OMP_NUM_THREADS=1
 
 # Some general variables

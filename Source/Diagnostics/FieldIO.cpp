@@ -352,7 +352,7 @@ AverageAndPackVectorField( MultiFab& mf_avg,
     }
 }
 
-/** \brief Takes the specified component of the three fields and
+/** \brief Takes all of the components of the three fields and
  * averages and packs them into the MultiFab mf_avg.
  */
 void
@@ -363,14 +363,10 @@ AverageAndPackVectorFieldComponents (MultiFab& mf_avg,
 {
     if (vector_field[0]->nComp() > 1) {
         std::array<std::unique_ptr<MultiFab>,3> vector_field_component;
-        vector_field_component[0].reset(new MultiFab(vector_field[0]->boxArray(), dm, 1, vector_field[0]->nGrowVect()));
-        vector_field_component[1].reset(new MultiFab(vector_field[1]->boxArray(), dm, 1, vector_field[1]->nGrowVect()));
-        vector_field_component[2].reset(new MultiFab(vector_field[2]->boxArray(), dm, 1, vector_field[2]->nGrowVect()));
         for (int icomp=0 ; icomp < vector_field[0]->nComp() ; icomp++) {
-            // This is a bit inefficient since it copies the data. Can this be done with pointers?
-            MultiFab::Copy(*vector_field_component[0], *vector_field[0], icomp, 0, 1, vector_field[0]->nGrowVect());
-            MultiFab::Copy(*vector_field_component[1], *vector_field[1], icomp, 0, 1, vector_field[1]->nGrowVect());
-            MultiFab::Copy(*vector_field_component[2], *vector_field[2], icomp, 0, 1, vector_field[2]->nGrowVect());
+            vector_field_component[0].reset(new MultiFab(*vector_field[0], amrex::make_alias, icomp, 1));
+            vector_field_component[1].reset(new MultiFab(*vector_field[1], amrex::make_alias, icomp, 1));
+            vector_field_component[2].reset(new MultiFab(*vector_field[2], amrex::make_alias, icomp, 1));
             AverageAndPackVectorField(mf_avg, vector_field_component, dm, dcomp, ngrow);
             dcomp += 3;
         }
