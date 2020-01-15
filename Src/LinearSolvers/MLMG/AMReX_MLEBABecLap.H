@@ -37,13 +37,17 @@ public:
 
     void setScalars (Real a, Real b);
     void setACoeffs (int amrlev, const MultiFab& alpha);
+    void setACoeffs (int amrlev, Real alpha);
     void setBCoeffs (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& beta);
+    void setBCoeffs (int amrlev, Real beta);
 
     // Tells the solver that EB boundaries have Dirichlet bc's specified by "phi"
     void setEBDirichlet      (int amrlev, const MultiFab& phi, const MultiFab& beta);
+    void setEBDirichlet      (int amrlev, const MultiFab& phi, Real beta);
 
     // Tells the solver that EB boundaries have homogeneous Dirichlet bc's
     void setEBHomogDirichlet (int amrlev,                      const MultiFab& beta);
+    void setEBHomogDirichlet (int amrlev,                      Real beta);
 
     virtual bool needsUpdate () const override {
         return (m_needs_update || MLCellABecLap::needsUpdate());

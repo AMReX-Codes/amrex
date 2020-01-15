@@ -84,12 +84,22 @@ public:
 
   ///
   /**
+     Prevent rvalue assignment to the <i>i</i>'th coordinate of the
+     RealVect.
+  */
+  AMREX_GPU_HOST_DEVICE
+  inline
+  Real& operator[] (int i) && = delete;
+
+  ///
+  /**
      Returns a modifiable lvalue reference to the <i>i</i>'th coordinate of the
      RealVect.
   */
   AMREX_GPU_HOST_DEVICE
   inline
-  Real& operator[] (int i) noexcept;
+  Real& operator[] (int i) & noexcept
+  { AMREX_ASSERT(i>=0 && i < SpaceDim); return vect[i]; }
 
   ///
   /**
@@ -97,7 +107,8 @@ public:
   */
   AMREX_GPU_HOST_DEVICE
   inline
-  const Real& operator[] (int i) const noexcept;
+  const Real& operator[] (int i) const& noexcept
+  { AMREX_ASSERT(i>=0 && i < SpaceDim); return vect[i]; }
 
   /*@}*/
 
@@ -586,20 +597,6 @@ protected:
   Real vect[SpaceDim];
 
 };
-
-AMREX_GPU_HOST_DEVICE
-inline Real& RealVect::operator[] (int i) noexcept
-{
-    AMREX_ASSERT(i>=0 && i < SpaceDim);
-    return vect[i];
-}
-
-AMREX_GPU_HOST_DEVICE
-inline const Real& RealVect::operator[] (int i) const noexcept
-{
-    AMREX_ASSERT(i>=0 && i < SpaceDim);
-    return vect[i];
-}
 
 AMREX_GPU_HOST_DEVICE
 inline Real* RealVect::begin () noexcept
