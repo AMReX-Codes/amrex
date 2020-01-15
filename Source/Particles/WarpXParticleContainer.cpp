@@ -13,7 +13,6 @@
 #include <UpdatePosition.H>
 #include <CurrentDeposition.H>
 #include <ChargeDeposition.H>
-#include <WarpXUtil.H>
 
 using namespace amrex;
 

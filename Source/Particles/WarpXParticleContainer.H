@@ -5,7 +5,6 @@
 
 #include <AMReX_Particles.H>
 #include <AMReX_AmrCore.H>
-#include <WarpXParserWrapper.H>
 
 #ifdef WARPX_QED
     #include <QuantumSyncEngineWrapper.H>
