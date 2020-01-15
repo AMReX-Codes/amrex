@@ -1218,11 +1218,6 @@ PhysicalParticleContainer::Evolve (int lev,
                                exfab, eyfab, ezfab, bxfab, byfab, bzfab);
             }
 
-            //
-            // copy data from particle container to temp arrays
-            //
-            pti.GetPosition(m_xp[thread_num], m_yp[thread_num], m_zp[thread_num]);
-
             // Determine which particles deposit/gather in the buffer, and
             // which particles deposit/gather in the fine patch
             long nfine_current = np;

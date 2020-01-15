@@ -221,14 +221,6 @@ public:
     // External fields added to particle fields.
     amrex::Vector<amrex::Real> m_B_external_particle;
     amrex::Vector<amrex::Real> m_E_external_particle;
-    // Parser for B_external on the particle
-    std::string m_str_Bx_ext_particle_function;
-    std::string m_str_By_ext_particle_function;
-    std::string m_str_Bz_ext_particle_function;
-    // Parser for E_external on the particle
-    std::string m_str_Ex_ext_particle_function;
-    std::string m_str_Ey_ext_particle_function;
-    std::string m_str_Ez_ext_particle_function;
     // ParserWrapper for B_external on the particle
     std::unique_ptr<ParserWrapper> m_Bx_particle_parser;
     std::unique_ptr<ParserWrapper> m_By_particle_parser;

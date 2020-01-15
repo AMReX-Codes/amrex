@@ -53,8 +53,9 @@ public:
      * in a mathematical expression. The default value for the E- and B-fields
      * is (0.0,0.0,0.0).
      *
-     * \param Exp-Bzp: fields on particles modified based on external E and B
-     * \param xp,yp,zp: arrays of particle positions required to compute
+     * \param[in,out] Exp-Bzp pointer to fields on particles modified based
+     *                  on external E and B
+     * \param[in] xp,yp,zp arrays of particle positions required to compute
      *                  mathematical expression for the external fields
      *                  using parser.
      */

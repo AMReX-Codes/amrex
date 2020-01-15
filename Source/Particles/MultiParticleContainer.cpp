@@ -111,19 +111,23 @@ MultiParticleContainer::ReadParameters ()
         // must be provided in the input file.
         if (m_B_ext_particle_s == "parse_b_ext_particle_function") {
            // store the mathematical expression as string
+           std::string str_Bx_ext_particle_function;
+           std::string str_By_ext_particle_function;
+           std::string str_Bz_ext_particle_function;
            Store_parserString(pp, "Bx_external_particle_function(x,y,z,t)",
-                                      m_str_Bx_ext_particle_function);
+                                      str_Bx_ext_particle_function);
            Store_parserString(pp, "By_external_particle_function(x,y,z,t)",
-                                      m_str_By_ext_particle_function);
+                                      str_By_ext_particle_function);
            Store_parserString(pp, "Bz_external_particle_function(x,y,z,t)",
-                                      m_str_Bz_ext_particle_function);
+                                      str_Bz_ext_particle_function);
 
+           // Parser for B_external on the particle
            m_Bx_particle_parser.reset(new ParserWrapper(
-                                    makeParser(m_str_Bx_ext_particle_function)));
+                                    makeParser(str_Bx_ext_particle_function)));
            m_By_particle_parser.reset(new ParserWrapper(
-                                    makeParser(m_str_By_ext_particle_function)));
+                                    makeParser(str_By_ext_particle_function)));
            m_Bz_particle_parser.reset(new ParserWrapper(
-                                    makeParser(m_str_Bz_ext_particle_function)));
+                                    makeParser(str_Bz_ext_particle_function)));
 
         }
 
@@ -133,18 +137,22 @@ MultiParticleContainer::ReadParameters ()
         // must be provided in the input file.
         if (m_E_ext_particle_s == "parse_e_ext_particle_function") {
            // store the mathematical expression as string
+           std::string str_Ex_ext_particle_function;
+           std::string str_Ey_ext_particle_function;
+           std::string str_Ez_ext_particle_function;
            Store_parserString(pp, "Ex_external_particle_function(x,y,z,t)",
-                                      m_str_Ex_ext_particle_function);
+                                      str_Ex_ext_particle_function);
            Store_parserString(pp, "Ey_external_particle_function(x,y,z,t)",
-                                      m_str_Ey_ext_particle_function);
+                                      str_Ey_ext_particle_function);
            Store_parserString(pp, "Ez_external_particle_function(x,y,z,t)",
-                                      m_str_Ez_ext_particle_function);
+                                      str_Ez_ext_particle_function);
+           // Parser for E_external on the particle
            m_Ex_particle_parser.reset(new ParserWrapper(
-                                    makeParser(m_str_Ex_ext_particle_function)));
+                                    makeParser(str_Ex_ext_particle_function)));
            m_Ey_particle_parser.reset(new ParserWrapper(
-                                    makeParser(m_str_Ey_ext_particle_function)));
+                                    makeParser(str_Ey_ext_particle_function)));
            m_Ez_particle_parser.reset(new ParserWrapper(
-                                    makeParser(m_str_Ez_ext_particle_function)));
+                                    makeParser(str_Ez_ext_particle_function)));
 
         }
 
