@@ -62,6 +62,14 @@ public:
 
   ///
   /**
+     Construct a RealVect setting the coordinates to the corresponding values in
+     the Real array a.
+  */
+  AMREX_GPU_HOST_DEVICE
+  explicit RealVect (const Real* a) noexcept : vect{AMREX_D_DECL(a[0],a[1],a[2])} {}
+
+  ///
+  /**
      The copy constructor.
   */
   AMREX_GPU_HOST_DEVICE
