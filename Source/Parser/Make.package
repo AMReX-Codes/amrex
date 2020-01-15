@@ -5,6 +5,7 @@ CEXE_sources += WarpXParser.cpp
 CEXE_headers += WarpXParser.H
 CEXE_headers += GpuParser.H
 CEXE_sources += GpuParser.cpp
+CEXE_headers += WarpXParserWrapper.H
 
 INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/Parser
 VPATH_LOCATIONS   += $(WARPX_HOME)/Source/Parser

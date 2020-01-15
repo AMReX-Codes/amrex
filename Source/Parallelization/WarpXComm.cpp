@@ -321,41 +321,41 @@ WarpX::UpdateAuxilaryDataSameType ()
 }
 
 void
-WarpX::FillBoundaryB ()
+WarpX::FillBoundaryB (IntVect ng, IntVect ng_extra_fine)
 {
     for (int lev = 0; lev <= finest_level; ++lev)
     {
-        FillBoundaryB(lev);
+        FillBoundaryB(lev, ng, ng_extra_fine);
     }
 }
 
 void
-WarpX::FillBoundaryE ()
+WarpX::FillBoundaryE (IntVect ng, IntVect ng_extra_fine)
 {
     for (int lev = 0; lev <= finest_level; ++lev)
     {
-        FillBoundaryE(lev);
+        FillBoundaryE(lev, ng, ng_extra_fine);
     }
 }
 
 void
-WarpX::FillBoundaryF ()
+WarpX::FillBoundaryF (IntVect ng)
 {
     for (int lev = 0; lev <= finest_level; ++lev)
     {
-        FillBoundaryF(lev);
+        FillBoundaryF(lev, ng);
     }
 }
 
 void
-WarpX::FillBoundaryE(int lev)
+WarpX::FillBoundaryE(int lev, IntVect ng, IntVect ng_extra_fine)
 {
-    FillBoundaryE(lev, PatchType::fine);
-    if (lev > 0) FillBoundaryE(lev, PatchType::coarse);
+    FillBoundaryE(lev, PatchType::fine, ng+ng_extra_fine);
+    if (lev > 0) FillBoundaryE(lev, PatchType::coarse, ng);
 }
 
 void
-WarpX::FillBoundaryE (int lev, PatchType patch_type)
+WarpX::FillBoundaryE (int lev, PatchType patch_type, IntVect ng)
 {
     if (patch_type == PatchType::fine)
     {
@@ -370,8 +370,12 @@ WarpX::FillBoundaryE (int lev, PatchType patch_type)
         }
 
         const auto& period = Geom(lev).periodicity();
-        Vector<MultiFab*> mf{Efield_fp[lev][0].get(),Efield_fp[lev][1].get(),Efield_fp[lev][2].get()};
-        amrex::FillBoundary(mf, period);
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+            ng <= Efield_fp[lev][0]->nGrowVect(),
+            "Error: in FillBoundaryE, requested more guard cells than allocated");
+        Efield_fp[lev][0]->FillBoundary(ng, period);
+        Efield_fp[lev][1]->FillBoundary(ng, period);
+        Efield_fp[lev][2]->FillBoundary(ng, period);
     }
     else if (patch_type == PatchType::coarse)
     {
@@ -386,20 +390,24 @@ WarpX::FillBoundaryE (int lev, PatchType patch_type)
         }
 
         const auto& cperiod = Geom(lev-1).periodicity();
-        Vector<MultiFab*> mf{Efield_cp[lev][0].get(),Efield_cp[lev][1].get(),Efield_cp[lev][2].get()};
-        amrex::FillBoundary(mf, cperiod);
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+            ng <= Efield_cp[lev][0]->nGrowVect(),
+            "Error: in FillBoundaryE, requested more guard cells than allocated");
+        Efield_cp[lev][0]->FillBoundary(ng, cperiod);
+        Efield_cp[lev][1]->FillBoundary(ng, cperiod);
+        Efield_cp[lev][2]->FillBoundary(ng, cperiod);
     }
 }
 
 void
-WarpX::FillBoundaryB (int lev)
+WarpX::FillBoundaryB (int lev, IntVect ng, IntVect ng_extra_fine)
 {
-    FillBoundaryB(lev, PatchType::fine);
-    if (lev > 0) FillBoundaryB(lev, PatchType::coarse);
+    FillBoundaryB(lev, PatchType::fine, ng + ng_extra_fine);
+    if (lev > 0) FillBoundaryB(lev, PatchType::coarse, ng);
 }
 
 void
-WarpX::FillBoundaryB (int lev, PatchType patch_type)
+WarpX::FillBoundaryB (int lev, PatchType patch_type, IntVect ng)
 {
     if (patch_type == PatchType::fine)
     {
@@ -413,8 +421,12 @@ WarpX::FillBoundaryB (int lev, PatchType patch_type)
         pml[lev]->FillBoundaryB(patch_type);
         }
         const auto& period = Geom(lev).periodicity();
-        Vector<MultiFab*> mf{Bfield_fp[lev][0].get(),Bfield_fp[lev][1].get(),Bfield_fp[lev][2].get()};
-        amrex::FillBoundary(mf, period);
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+            ng <= Bfield_fp[lev][0]->nGrowVect(),
+            "Error: in FillBoundaryB, requested more guard cells than allocated");
+        Bfield_fp[lev][0]->FillBoundary(ng, period);
+        Bfield_fp[lev][1]->FillBoundary(ng, period);
+        Bfield_fp[lev][2]->FillBoundary(ng, period);
     }
     else if (patch_type == PatchType::coarse)
     {
@@ -428,20 +440,24 @@ WarpX::FillBoundaryB (int lev, PatchType patch_type)
         pml[lev]->FillBoundaryB(patch_type);
         }
         const auto& cperiod = Geom(lev-1).periodicity();
-        Vector<MultiFab*> mf{Bfield_cp[lev][0].get(),Bfield_cp[lev][1].get(),Bfield_cp[lev][2].get()};
-        amrex::FillBoundary(mf, cperiod);
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+            ng <= Bfield_cp[lev][0]->nGrowVect(),
+            "Error: in FillBoundaryB, requested more guard cells than allocated");
+        Bfield_cp[lev][0]->FillBoundary(ng, cperiod);
+        Bfield_cp[lev][1]->FillBoundary(ng, cperiod);
+        Bfield_cp[lev][2]->FillBoundary(ng, cperiod);
     }
 }
 
 void
-WarpX::FillBoundaryF (int lev)
+WarpX::FillBoundaryF (int lev, IntVect ng)
 {
-  FillBoundaryF(lev, PatchType::fine);
-  if (lev > 0) FillBoundaryF(lev, PatchType::coarse);
+    FillBoundaryF(lev, PatchType::fine, ng);
+    if (lev > 0) FillBoundaryF(lev, PatchType::coarse, ng);
 }
 
 void
-WarpX::FillBoundaryF (int lev, PatchType patch_type)
+WarpX::FillBoundaryF (int lev, PatchType patch_type, IntVect ng)
 {
     if (patch_type == PatchType::fine && F_fp[lev])
     {
@@ -453,7 +469,10 @@ WarpX::FillBoundaryF (int lev, PatchType patch_type)
         }
 
         const auto& period = Geom(lev).periodicity();
-        F_fp[lev]->FillBoundary(period);
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+            ng <= F_fp[lev]->nGrowVect(),
+            "Error: in FillBoundaryF, requested more guard cells than allocated");
+        F_fp[lev]->FillBoundary(ng, period);
     }
     else if (patch_type == PatchType::coarse && F_cp[lev])
     {
@@ -465,8 +484,32 @@ WarpX::FillBoundaryF (int lev, PatchType patch_type)
         }
 
         const auto& cperiod = Geom(lev-1).periodicity();
-        F_cp[lev]->FillBoundary(cperiod);
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+            ng <= F_cp[lev]->nGrowVect(),
+            "Error: in FillBoundaryF, requested more guard cells than allocated");
+        F_cp[lev]->FillBoundary(ng, cperiod);
     }
+}
+
+void
+WarpX::FillBoundaryAux (IntVect ng)
+{
+    for (int lev = 0; lev <= finest_level-1; ++lev)
+    {
+        FillBoundaryAux(lev, ng);
+    }
+}
+
+void
+WarpX::FillBoundaryAux (int lev, IntVect ng)
+{
+    const auto& period = Geom(lev).periodicity();
+    Efield_aux[lev][0]->FillBoundary(ng, period);
+    Efield_aux[lev][1]->FillBoundary(ng, period);
+    Efield_aux[lev][2]->FillBoundary(ng, period);
+    Bfield_aux[lev][0]->FillBoundary(ng, period);
+    Bfield_aux[lev][1]->FillBoundary(ng, period);
+    Bfield_aux[lev][2]->FillBoundary(ng, period);
 }
 
 void

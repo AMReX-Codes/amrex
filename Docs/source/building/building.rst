@@ -34,42 +34,35 @@ MPI implementation (e.g., OpenMPI or MPICH). Then ``cd`` into the directory
 
 This will generate an executable file in the ``Bin`` directory.
 
-.. note::
+Compile-time vs. run-time options
+---------------------------------
 
-    The compilation options are set in the file ``GNUmakefile``. The default
-    options correspond to an optimized code for 3D geometry. You can modify the
-    options in this file in order to (for instance):
+WarpX has multiple compile-time and run-time options. The compilation
+options are set in the file ``GNUmakefile``. The default
+options correspond to an optimized code for 3D geometry. The main compile-time
+options are:
 
-        * Use 2D geometry
-        * Disable OpenMP
-        * Profile or debug the code
-        * Choose a given compiler
+    * ``DIM=3D`` or ``2D``: Geometry of the simulation (note that running an executable compiled for 3D with a 2D input file will crash).
+    * ``DEBUG=FALSE`` or ``TRUE``: Compiling in ``DEBUG`` mode can help tremendously during code development.
+    * ``USE_PSATD=FALSE`` or ``TRUE``: Compile the Pseudo-Spectral Analytical Time Domain Maxwell solver. Requires an FFT library.
+    * ``USE_RZ=FALSE`` or ``TRUE``: Compile for 2D axisymmetric geometry.
+    * ``COMP=gcc`` or ``intel``: Compiler.
+    * ``USE_MPI=TRUE`` or ``FALSE``: Whether to compile with MPI support.
+    * ``USE_OMP=TRUE`` or ``FALSE``: Whether to compile with OpenMP support.
 
-    For a description of these different options, see the `corresponding page
-    <https://amrex-codes.github.io/amrex/docs_html/BuildingAMReX.html>`__ in
-    the AMReX documentation.
+For a description of these different options, see the `corresponding page <https://amrex-codes.github.io/amrex/docs_html/BuildingAMReX.html>`__ in the AMReX documentation.
 
-    Alternatively, instead of modifying the file ``GNUmakefile``, you can
-    directly pass the options in command line ; for instance:
+Alternatively, instead of modifying the file ``GNUmakefile``, you can directly pass the options in command line ; for instance:
 
-    ::
+::
 
-        make -j 4 USE_OMP=FALSE
+   make -j 4 USE_OMP=FALSE
 
-In order to clean a previously compiled version:
+In order to clean a previously compiled version (typically useful for troubleshooting, if you encounter unexpected compilation errors):
 
 ::
 
     make realclean
-
-Troubleshooting
----------------
-
-If you are having trouble compiling WarpX, you should try to run:
-
-::
-
-   make realclean
 
 before re-attempting compilation.
 

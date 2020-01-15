@@ -12,9 +12,8 @@ The simulation runs in a boosted frame, and the analysis is done in the lab
 frame, i.e., on the back-transformed diagnostics.
 '''
 
-import sys, os, yt, glob
+import yt
 import numpy as np
-import scipy.constants as scc
 import read_raw_data
 yt.funcs.mylog.setLevel(0)
 

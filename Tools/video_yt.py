@@ -12,7 +12,6 @@ plotfiles.
 '''
 
 # Import statements
-import sys, os
 import yt, glob
 import numpy as np
 

@@ -16,7 +16,6 @@ in which case a warning is raised.
 import sys
 import yt
 import numpy as np
-import scipy.constants as scc
 yt.funcs.mylog.setLevel(0)
 
 filename = sys.argv[1]
