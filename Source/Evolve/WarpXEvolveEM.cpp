@@ -18,6 +18,15 @@
 using namespace amrex;
 
 void
+WarpX::all_FillBoundary()
+{
+    FillBoundaryE(guard_cells.ng_alloc_EB, guard_cells.ng_Extra);
+    FillBoundaryB(guard_cells.ng_alloc_EB, guard_cells.ng_Extra);
+    FillBoundaryF(guard_cells.ng_alloc_F);
+    FillBoundaryAux(guard_cells.ng_UpdateAux);
+}
+
+void
 WarpX::EvolveEM (int numsteps)
 {
     BL_PROFILE("WarpX::EvolveEM()");
@@ -355,11 +364,17 @@ WarpX::OneStep_nosub (Real cur_time)
         FillBoundaryF(guard_cells.ng_alloc_F);
         DampPML();
         FillBoundaryE(guard_cells.ng_MovingWindow, IntVect::TheZeroVector());
+        FillBoundaryF(guard_cells.ng_MovingWindow);
         FillBoundaryB(guard_cells.ng_MovingWindow, IntVect::TheZeroVector());
     }
     // E and B are up-to-date in the domain, but all guard cells are
     // outdated.
 #endif
+//FillBoundaryE(guard_cells.ng_alloc_EB, guard_cells.ng_Extra);
+//FillBoundaryB(guard_cells.ng_alloc_EB, guard_cells.ng_Extra);
+//FillBoundaryF(guard_cells.ng_alloc_F);
+//FillBoundaryAux(guard_cells.ng_UpdateAux);
+//all_FillBoundary();
 }
 
 /* /brief Perform one PIC iteration, with subcycling
