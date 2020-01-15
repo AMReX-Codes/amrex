@@ -18,15 +18,6 @@
 using namespace amrex;
 
 void
-WarpX::all_FillBoundary()
-{
-    FillBoundaryE(guard_cells.ng_alloc_EB, guard_cells.ng_Extra);
-    FillBoundaryB(guard_cells.ng_alloc_EB, guard_cells.ng_Extra);
-    FillBoundaryF(guard_cells.ng_alloc_F);
-    FillBoundaryAux(guard_cells.ng_UpdateAux);
-}
-
-void
 WarpX::EvolveEM (int numsteps)
 {
     BL_PROFILE("WarpX::EvolveEM()");
