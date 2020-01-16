@@ -9,29 +9,13 @@
 #include <memory>
 #include <cstring>
 
-#ifdef AMREX_USE_CUDA
-#include <thrust/complex.h>
-#endif
-
 namespace amrex
 {
-    namespace detail
-    {
-        template <class T>
-        struct is_thrust_complex { static const int value = 0; };
-        
-#ifdef AMREX_USE_CUDA
-        template <class T>
-        struct is_thrust_complex<thrust::complex<T> > { static const int value = 1; };
-#endif
-    }
-
     template <class T, class Allocator = std::allocator<T> >
     class PODVector : public Allocator
     {			
-        static_assert(std::is_standard_layout<T>(),"PODVector can only hold standard layout types");
-        static_assert(AMREX_IS_TRIVIALLY_COPYABLE(T) || detail::is_thrust_complex<T>::value,
-                      "PODVector can only hold trivially copyable types");
+        static_assert(std::is_standard_layout<T>(), "PODVector can only hold standard layout types");
+        static_assert(AMREX_IS_TRIVIALLY_COPYABLE(T), "PODVector can only hold trivially copyable types");
             
         using Allocator::allocate;
         using Allocator::deallocate;
