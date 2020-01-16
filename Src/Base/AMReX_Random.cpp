@@ -74,6 +74,7 @@ amrex::InitRandom (unsigned long seed, int nprocs)
 #endif
 }
 
+#ifdef AMREX_USE_GPU
 AMREX_GPU_DEVICE
 int amrex::get_state (int tid)
 {
@@ -96,6 +97,7 @@ void amrex::free_state (int tid)
 
     d_mutex_d_ptr->unlock(i);
 }
+#endif
 
 AMREX_GPU_HOST_DEVICE amrex::Real
 amrex::RandomNormal (amrex::Real mean, amrex::Real stddev)
