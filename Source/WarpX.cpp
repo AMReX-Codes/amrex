@@ -30,6 +30,7 @@ Vector<Real> WarpX::E_external_particle(3, 0.0);
 Vector<Real> WarpX::E_external_grid(3, 0.0);
 Vector<Real> WarpX::B_external_grid(3, 0.0);
 
+std::string WarpX::authors = "";
 std::string WarpX::B_ext_grid_s = "default";
 std::string WarpX::E_ext_grid_s = "default";
 
@@ -304,6 +305,7 @@ WarpX::ReadParameters ()
         ParmParse pp;// Traditionally, max_step and stop_time do not have prefix.
         pp.query("max_step", max_step);
         pp.query("stop_time", stop_time);
+        pp.query("authors", authors);
     }
 
     {
