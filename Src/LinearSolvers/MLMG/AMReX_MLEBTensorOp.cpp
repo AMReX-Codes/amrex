@@ -393,7 +393,6 @@ MLEBTensorOp::compCrossTerms(int amrlev, int mglev, MultiFab const& mf) const
     Array<MultiFab,AMREX_SPACEDIM> const& etamf = m_b_coeffs[amrlev][mglev];
     Array<MultiFab,AMREX_SPACEDIM> const& kapmf = m_kappa[amrlev][mglev];
     Array<MultiFab,AMREX_SPACEDIM>& fluxmf = m_tauflux[amrlev][mglev];
-    Real bscalar = m_b_scalar;
 
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
@@ -587,7 +586,7 @@ MLEBTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxe
 			 Array4<Real const> const& fcz = fcent[2]->const_array(mfi););
 	    Array4<int const> const& msk = ccmask.const_array(mfi);
 
-	    const int face_only = 0;
+	    int face_only = 0;
 
 	    AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
                 xbx, txbx,
