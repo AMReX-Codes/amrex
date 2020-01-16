@@ -58,6 +58,7 @@ long WarpX::charge_deposition_algo;
 long WarpX::field_gathering_algo;
 long WarpX::particle_pusher_algo;
 int WarpX::maxwell_fdtd_solver_id;
+int WarpX::do_dive_cleaning = 0;
 
 long WarpX::n_rz_azimuthal_modes = 1;
 long WarpX::ncomps = 1;
@@ -155,7 +156,7 @@ WarpX::WarpX ()
     ReadParameters();
 
 #ifdef WARPX_USE_OPENPMD
-    m_OpenPMDPlotWriter = new WarpXOpenPMDPlot(openpmd_tspf, openpmd_backend);
+    m_OpenPMDPlotWriter = new WarpXOpenPMDPlot(openpmd_tspf, openpmd_backend, WarpX::getPMLdirections());
 #endif
 
     // Geometry on all levels has been defined already.
@@ -1221,6 +1222,24 @@ WarpX::GetPML (int lev)
     } else {
         return nullptr;
     }
+}
+
+std::vector< bool >
+WarpX::getPMLdirections() const
+{
+    std::vector< bool > dirsWithPML( 6, false );
+#if AMREX_SPACEDIM!=3
+    dirsWithPML.resize( 4 );
+#endif
+    if( do_pml )
+    {
+        for( auto i = 0u; i < dirsWithPML.size() / 2u; ++i )
+        {
+            dirsWithPML.at( 2u*i      ) = bool(do_pml_Lo[i]);
+            dirsWithPML.at( 2u*i + 1u ) = bool(do_pml_Hi[i]);
+        }
+    }
+    return dirsWithPML;
 }
 
 void
