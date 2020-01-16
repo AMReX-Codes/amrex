@@ -682,7 +682,7 @@ EB_interp_CC_to_Centroid (MultiFab& cent, const MultiFab& cc, int scomp, int dco
 #endif
     for (MFIter mfi(cc, mfi_info);  mfi.isValid(); ++mfi)
     {
-        const Box& vbx = mfi.validbox();
+        const Box& vbx = mfi.growntilebox();
         const auto& centfab = cent.array(mfi,dcomp);
         const auto& fabtyp = flags[mfi].getType(vbx);
 
