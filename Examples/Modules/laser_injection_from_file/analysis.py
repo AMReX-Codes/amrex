@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python
 
 # This file is part of the WarpX automated test suite. It is used to test the
 # injection of a laser pulse from an external binary file.
