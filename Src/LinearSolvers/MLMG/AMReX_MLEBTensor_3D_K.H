@@ -531,7 +531,7 @@ void mlebtensor_flux_0 (Box const& box,
 
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlebtensor_flux_x (Box const& box, Array4<Real>& Ax,
+void mlebtensor_flux_x (Box const& box, Array4<Real> const& Ax,
 			Array4<Real const> const& fx, Array4<Real const> const& apx,
 			Array4<Real const> const& fcx,
 			Real const bscalar, Array4<int const> const& ccm,
@@ -577,7 +577,7 @@ void mlebtensor_flux_x (Box const& box, Array4<Real>& Ax,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlebtensor_flux_y (Box const& box, Array4<Real> & Ay,
+void mlebtensor_flux_y (Box const& box, Array4<Real> const& Ay,
 			Array4<Real const> const& fy, Array4<Real const> const& apy,
 			Array4<Real const> const& fcy,
 			Real const bscalar, Array4<int const> const& ccm,
@@ -623,7 +623,7 @@ void mlebtensor_flux_y (Box const& box, Array4<Real> & Ay,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlebtensor_flux_z (Box const& box, Array4<Real>& Az,
+void mlebtensor_flux_z (Box const& box, Array4<Real> const& Az,
 			Array4<Real const> const& fz, Array4<Real const> const& apz,
 			Array4<Real const> const& fcz,
 			Real const bscalar, Array4<int const> const& ccm,
