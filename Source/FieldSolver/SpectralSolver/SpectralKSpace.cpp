@@ -144,12 +144,7 @@ SpectralKSpace::getSpectralShiftFactor( const DistributionMapping& dm,
         }
         const Complex I{0,1};
         for (int i=0; i<k.size(); i++ ){
-#ifdef AMREX_USE_GPU
-            shift[i] = thrust::exp( I*sign*k[i]*0.5*dx[i_dim] );
-#else
-            shift[i] = std::exp( I*sign*k[i]*0.5*dx[i_dim] );
-#endif
-
+            shift[i] = exp( I*sign*k[i]*0.5*dx[i_dim]);
         }
     }
     return shift_factor;
