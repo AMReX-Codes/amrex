@@ -96,7 +96,7 @@ private:
   void Init(//const std::string& filename,
         openPMD::AccessType accessType);
 
-  /** This function sets up the entries for storing the particle positions and constant records (charge, mass)
+  /** This function sets up the entries for storing the particle positions, global IDs, and constant records (charge, mass)
   *
   * @param[in] pc          WarpX particle container
   * @param[in] currSpecies Corresponding openPMD species

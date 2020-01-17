@@ -3,6 +3,7 @@
 #include "FieldIO.H"  // for getReversedVec
 
 #include <algorithm>
+#include <cstdint>
 #include <map>
 #include <set>
 #include <string>
@@ -13,6 +14,15 @@
 
 namespace detail
 {
+
+    /** Convert AMReX AoS .id and .cpu to a globally unique particle ID
+     */
+    union GlobalID {
+        struct { int id; int cpu; }; //! MPI-rank local ID (and rank/cpu)
+        uint64_t global_id; //! global ID that is unique in the whole simulation
+    };
+    static_assert(sizeof(int) * 2u <= sizeof(uint64_t), "int size might cause collisions in global IDs");
+
     /** Unclutter a real_names to openPMD record
      *
      * @param fullName name as in real_names variable
@@ -286,11 +296,11 @@ WarpXOpenPMDPlot::SavePlotFile (const std::unique_ptr<WarpXParticleContainer>& p
   m_Series->flush();
   for (auto currentLevel = 0; currentLevel <= pc->finestLevel(); currentLevel++)
     {
-      //long numParticles = counter.m_ParticleSizeAtRank[currentLevel]
-      unsigned long long const numParticles = counter.m_ParticleSizeAtRank[currentLevel];
-      unsigned long long offset = counter.m_ParticleOffsetAtRank[currentLevel];
+      //auto const numParticles = counter.m_ParticleSizeAtRank[currentLevel]
+      uint64_t const numParticles = static_cast<uint64_t>( counter.m_ParticleSizeAtRank[currentLevel] );
+      uint64_t offset = static_cast<uint64_t>( counter.m_ParticleOffsetAtRank[currentLevel] );
 
-      if (0 == numParticles)
+      if (0u == numParticles)
           return;
 
       // pc->NumIntComp() & NumRealComp() are protected,
@@ -298,22 +308,33 @@ WarpXOpenPMDPlot::SavePlotFile (const std::unique_ptr<WarpXParticleContainer>& p
       // soa num real attributes = PIdx::nattribs, and num int in soa is 0
 
       for (WarpXParIter pti(*pc, currentLevel); pti.isValid(); ++pti) {
-         auto numParticleOnTile = pti.numParticles();
+         auto const numParticleOnTile = pti.numParticles();
+         uint64_t const numParticleOnTile64 = static_cast<uint64_t>( numParticleOnTile );
 
-         // get position from aos
+         // get position and particle ID from aos
+         // note: this implementation iterates the AoS 4x but saves memory... iterating once could be beneficial, too
          const auto& aos = pti.GetArrayOfStructs();  // size =  numParticlesOnTile
-         { // :: Save Postions, 1D-3D::
-           // this code is tested  with laser 3d,  not tested with 2D examples...
+         {
+           // Save positions
            std::vector<std::string> axisNames={"x", "y", "z"};
-
            for (auto currDim = 0; currDim < AMREX_SPACEDIM; currDim++) {
-                std::vector<amrex::ParticleReal> curr(numParticleOnTile, 0);
+                std::vector<amrex::ParticleReal> curr(numParticleOnTile, 0.);
                 for (auto i=0; i<numParticleOnTile; i++) {
                      curr[i] = aos[i].m_rdata.pos[currDim];
                 }
-                currSpecies["position"][axisNames[currDim]].storeChunk(curr, {offset}, {static_cast<unsigned long long>(numParticleOnTile)});
+                currSpecies["position"][axisNames[currDim]].storeChunk(curr, {offset}, {numParticleOnTile64});
                 m_Series->flush();
            }
+
+           // save particle ID after converting it to a globally unique ID
+           std::vector<uint64_t> ids(numParticleOnTile, 0.);
+           for (auto i=0; i<numParticleOnTile; i++) {
+               detail::GlobalID const nextID = { aos[i].m_idata.id, aos[i].m_idata.cpu };
+               ids[i] = nextID.global_id;
+           }
+           auto const scalar = openPMD::RecordComponent::SCALAR;
+           currSpecies["id"][scalar].storeChunk(ids, {offset}, {numParticleOnTile64});
+           m_Series->flush();
         }
          //  save properties
          SaveRealProperty(pti,
@@ -321,7 +342,7 @@ WarpXOpenPMDPlot::SavePlotFile (const std::unique_ptr<WarpXParticleContainer>& p
              offset,
              write_real_comp, real_comp_names);
 
-         offset += numParticleOnTile;
+         offset += numParticleOnTile64;
       }
     }
 }
@@ -431,21 +452,23 @@ WarpXOpenPMDPlot::SetupPos(const std::unique_ptr<WarpXParticleContainer>& pc,
     openPMD::ParticleSpecies& currSpecies,
     const unsigned long long& np) const
 {
-  auto const particleLineup = openPMD::Dataset(openPMD::determineDatatype<amrex::ParticleReal>(), {np});
+  auto const realType = openPMD::Dataset(openPMD::determineDatatype<amrex::ParticleReal>(), {np});
+  auto const idType = openPMD::Dataset(openPMD::determineDatatype< uint64_t >(), {np});
 
   for( auto const& comp : {"x", "y", "z"} ) {
-      currSpecies["positionOffset"][comp].resetDataset( particleLineup );
+      currSpecies["positionOffset"][comp].resetDataset( realType );
       currSpecies["positionOffset"][comp].makeConstant( 0. );
-      currSpecies["position"][comp].resetDataset( particleLineup );
+      currSpecies["position"][comp].resetDataset( realType );
       // meta data
       //currSpecies["position"][comp].setUnitSI();
       //currSpecies["positionOffset"][comp].setUnitSI();
   }
 
   auto const scalar = openPMD::RecordComponent::SCALAR;
-  currSpecies["charge"][scalar].resetDataset( particleLineup );
+  currSpecies["id"][scalar].resetDataset( idType );
+  currSpecies["charge"][scalar].resetDataset( realType );
   currSpecies["charge"][scalar].makeConstant( pc->getCharge() );
-  currSpecies["mass"][scalar].resetDataset( particleLineup );
+  currSpecies["mass"][scalar].resetDataset( realType );
   currSpecies["mass"][scalar].makeConstant( pc->getMass() );
   //currSpecies["charge"][comp].setUnitSI();
   //currSpecies["mass"][comp].setUnitSI();
@@ -461,6 +484,8 @@ WarpXOpenPMDPlot::SetupPos(const std::unique_ptr<WarpXParticleContainer>& pc,
   currSpecies["position"].setAttribute( "weightingPower", 0.0 );
   currSpecies["positionOffset"].setAttribute( "macroWeighted", 0u );
   currSpecies["positionOffset"].setAttribute( "weightingPower", 0.0 );
+  currSpecies["id"].setAttribute( "macroWeighted", 0u );
+  currSpecies["id"].setAttribute( "weightingPower", 0.0 );
   currSpecies["charge"].setAttribute( "macroWeighted", 0u );
   currSpecies["charge"].setAttribute( "weightingPower", 1.0 );
   currSpecies["mass"].setAttribute( "macroWeighted", 0u );
