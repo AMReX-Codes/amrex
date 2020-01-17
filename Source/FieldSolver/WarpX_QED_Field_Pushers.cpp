@@ -26,8 +26,6 @@ using namespace amrex;
 void
 WarpX::Hybrid_QED_Push (Real a_dt)
 {
-    Print()<<"First function call.\n";
-    
     if (WarpX::do_nodal == 0) {
         Print()<<"The do_nodal flag is tripped.\n";
         try{
@@ -46,7 +44,6 @@ WarpX::Hybrid_QED_Push (Real a_dt)
 void
 WarpX::Hybrid_QED_Push (int lev, Real a_dt)
 {
-    Print()<<"Second function call.\n";
     BL_PROFILE("WarpX::Hybrid_QED_Push()");
     Hybrid_QED_Push(lev, PatchType::fine, a_dt);
     if (lev > 0)
@@ -58,7 +55,6 @@ WarpX::Hybrid_QED_Push (int lev, Real a_dt)
 void
 WarpX::Hybrid_QED_Push (int lev, PatchType patch_type, Real a_dt)
 {
-    Print()<<"Third function call.\n";
     const int patch_level = (patch_type == PatchType::fine) ? lev : lev-1;
     const std::array<Real,3>& dx_vec= WarpX::CellSize(patch_level);
     const Real dx = dx_vec[0];
@@ -148,21 +144,7 @@ WarpX::Hybrid_QED_Push (int lev, PatchType patch_type, Real a_dt)
         AMREX_PARALLEL_FOR_4D (gez, 1, i, j, k, n,
         {
                 tmpEz(i,j,k,n) = Ezfab(i,j,k,n);
-        });
-
-
-        amrex::Print() << "tbx = " << tbx << "\n";
-/*        amrex::Print() << "tby = " << tby << "\n";
-        amrex::Print() << "tbz = " << tbz << "\n";
-        amrex::Print() << "tex = " << tex << "\n";
-        amrex::Print() << "tey = " << tey << "\n";
-        amrex::Print() << "tez = " << tez << "\n";
-        amrex::Print() << "\n";
-        amrex::Print() << "gex = " << gex << "\n";
-        amrex::Print() << "gey = " << gey << "\n";
-        amrex::Print() << "gez = " << gez << "\n";
-        amrex::Print() << "\n";
-*/
+        })
 
         amrex::ParallelFor(tbx,
         [=] AMREX_GPU_DEVICE (int j, int k, int l)

@@ -1,7 +1,7 @@
 #ifndef WarpX_QED_K_h
 #define WarpX_QED_K_h
 
-#include <AMREX_FArrayBox.H>
+#include <AMReX_FArrayBox.H>
 #include <WarpXConst.H>
 #include <cmath>
 
@@ -13,11 +13,10 @@ void warpx_hybrid_QED_push (int j, int k, int l, Array4<Real> const& Ex, Array4<
     Array4<Real const> const& Bz, Array4<Real> const& tmpEx, Array4<Real>
     const& tmpEy, Array4<Real> const& tmpEz, Real dx, Real dy, Real dz, Real dt)
 {
-//if (j== 0) {std::cout <<"(j,k) = (" << j << "," << k << ") \n";}
 
 #if (AMREX_SPACEDIM == 3)
 
-    // Picking out points for stencil to be used in curl function
+    // Picking out points for stencil to be used in curl function of M
     const amrex::Real Mpx[3] = {
 
         -2*PhysConst::xi*pow(PhysConst::c,2) * (2*(pow(tmpEx(j+1,k,l),2)+pow(tmpEy(j+1,k,l),2)+pow(tmpEz(j+1,k,l),2) - pow(PhysConst::c,2)*(pow(Bx(j+1,k,l),2)+pow(By(j+1,k,l),2)+pow(Bz(j+1,k,l),2)))*Bx(j+1,k,l) -7*(tmpEx(j+1,k,l)*Bx(j+1,k,l)+tmpEy(j+1,k,l)*By(j+1,k,l)+tmpEz(j+1,k,l)*Bz(j+1,k,l))*tmpEx(j+1,k,l)),
@@ -88,7 +87,7 @@ void warpx_hybrid_QED_push (int j, int k, int l, Array4<Real> const& Ex, Array4<
 
     // Calculating necessary curls
     const amrex::Real VxM[3] = {
-        0.5*((Mpy[2]-Mny[2])/dy -( Mpz[1]-Mnz[1] )/dz ),
+        0.5*((Mpy[2]-Mny[2])/dy - ( Mpz[1]-Mnz[1] )/dz ),
         0.5*((Mpz[0]-Mnz[0])/dz - ( Mpx[2]-Mnx[2] )/dx ),
         0.5*((Mpx[1]-Mnx[1])/dx - ( Mpy[0]-Mny[0])/dy )};
 
@@ -180,7 +179,7 @@ void warpx_hybrid_QED_push (int j, int k, int l, Array4<Real> const& Ex, Array4<
         invAz[1]*Omega[1]+invAz[2]*Omega[2])/detA;
 
 
-
+// 2D case - follows natrually from 3D case
 #else
     const amrex::Real Mpx[3] = {
 

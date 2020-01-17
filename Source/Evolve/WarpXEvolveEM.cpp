@@ -340,23 +340,22 @@ WarpX::OneStep_nosub (Real cur_time)
 #ifdef WARPX_USE_PSATD
     if (use_hybrid_QED)
     {
-        Print()<<"Begining first itteration of QED function.\n";
         WarpX::Hybrid_QED_Push(dt[0]);
-        FillBoundaryE();
+		FillBoundaryE(guard_cells.ng_alloc_EB, guard_cells.ng_Extra);
     }
-    Print()<<"Standard PSATD push. \n";
     PushPSATD(dt[0]);
-	FillBoundaryE();
-	FillBoundaryB();
+    FillBoundaryE(guard_cells.ng_alloc_EB, guard_cells.ng_Extra);
+    FillBoundaryB(guard_cells.ng_alloc_EB, guard_cells.ng_Extra);
 
     if (use_hybrid_QED)
     {
-        Print()<<"Begining second itteration of QED function.\n";
         WarpX::Hybrid_QED_Push(dt[0]);
-        FillBoundaryE();
+		FillBoundaryE(guard_cells.ng_alloc_EB, guard_cells.ng_Extra);
         
     }
     if (do_pml) DampPML();
+
+;
     
 #else
     EvolveF(0.5*dt[0], DtType::FirstHalf);

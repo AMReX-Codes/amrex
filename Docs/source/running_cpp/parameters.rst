@@ -882,6 +882,10 @@ Numerics and algorithms
     if they have too different values. This option makes sure that they are
     synchronized periodically.
 
+* ``warpx.use_hybrid_QED`` ('bool'; default: 0)
+    Will use the Hybird QED Maxwell solver. When pushing fields. Note that this option can only be
+    used with the PSATD pusher, and warpx.do_nodal must be set to `1`.
+
 Boundary conditions
 -------------------
 
