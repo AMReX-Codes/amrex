@@ -40,7 +40,7 @@ public:
      Construct a RealVect whose components are zero.
   */
   AMREX_GPU_HOST_DEVICE
-  constexpr RealVect () noexcept : vect{AMREX_D_DECL(0,0,0)} {}
+  constexpr RealVect () noexcept : vect{AMREX_D_DECL(0.,0.,0.)} {}
 
   explicit RealVect (const std::vector<Real>& vr) noexcept : vect{AMREX_D_DECL(vr[0],vr[1],vr[2])} {
       BL_ASSERT(vr.size() == AMREX_SPACEDIM);
@@ -70,25 +70,11 @@ public:
 
   ///
   /**
-     The copy constructor.
-  */
-  AMREX_GPU_HOST_DEVICE
-  RealVect (const RealVect& rhs) noexcept : vect{AMREX_D_DECL(rhs[0],rhs[1],rhs[2])} {}
-
-  ///
-  /**
      Construct a RealVect from an IntVect by coercing each component
      from <tt>int</tt> to Real.
   */
   AMREX_GPU_HOST_DEVICE
   RealVect (const IntVect & iv) noexcept : vect{AMREX_D_DECL((Real)iv[0],(Real)iv[1],(Real)iv[2])} {}
-
-  ///
-  /**
-     The assignment operator.
-  */
-  AMREX_GPU_HOST_DEVICE
-  RealVect& operator= (const RealVect& rhs) noexcept;
 
   ///
   /**

@@ -27,14 +27,6 @@ namespace amrex
   }
 
   AMREX_GPU_HOST_DEVICE
-  RealVect&
-  RealVect::operator= (const RealVect &iv) noexcept
-  {
-    AMREX_D_EXPR(vect[0]=iv.vect[0], vect[1]=iv.vect[1], vect[2]=iv.vect[2]);
-    return *this;
-  }
-
-  AMREX_GPU_HOST_DEVICE
   Real RealVect::dotProduct(const RealVect& a_rhs) const noexcept
   {
     return AMREX_D_TERM(vect[0]*a_rhs.vect[0], +
@@ -202,7 +194,7 @@ namespace amrex
   BASISREALV (int dir) noexcept
   {
     AMREX_ASSERT(dir >= 0 && dir < SpaceDim);
-    RealVect tmp(AMREX_D_DECL(0,0,0));
+    RealVect tmp(AMREX_D_DECL(0.,0.,0.));
     tmp.vect[dir] = 1;
     return tmp;
   }
