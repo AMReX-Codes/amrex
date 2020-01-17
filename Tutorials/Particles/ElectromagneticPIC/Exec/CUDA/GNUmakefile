@@ -5,7 +5,7 @@ DEBUG	= FALSE
 
 DIM	= 3
 
-COMP    = pgi
+COMP    = gcc
 
 TINY_PROFILE  = TRUE
 USE_PARTICLES = TRUE
