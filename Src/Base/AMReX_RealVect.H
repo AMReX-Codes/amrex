@@ -551,7 +551,7 @@ public:
      The zero vector in AMREX_SPACEDIM-dimensional space.
   */
   AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-  static constexpr RealVect TheZeroVector () noexcept {
+  static const RealVect TheZeroVector () noexcept {
       return RealVect(0.);
   }
 
@@ -559,7 +559,7 @@ public:
      The unit vector in AMREX_SPACEDIM-dimensional space.
   */
   AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-  static constexpr RealVect TheUnitVector () noexcept {
+  static const RealVect TheUnitVector () noexcept {
       return RealVect(1.);
   }
 

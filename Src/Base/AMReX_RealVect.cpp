@@ -202,7 +202,7 @@ namespace amrex
   BASISREALV (int dir) noexcept
   {
     AMREX_ASSERT(dir >= 0 && dir < SpaceDim);
-    RealVect tmp(AMREX_D_DECL(0,0,0));
+    RealVect tmp(AMREX_D_DECL(0.,0.,0.));
     tmp.vect[dir] = 1;
     return tmp;
   }
