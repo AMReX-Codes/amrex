@@ -351,7 +351,7 @@ WarpX::OneStep_nosub (Real cur_time)
     {
         WarpX::Hybrid_QED_Push(dt[0]);
         FillBoundaryE(guard_cells.ng_alloc_EB, guard_cells.ng_Extra);
-        
+
     }
     if (do_pml) DampPML();
 

@@ -167,14 +167,14 @@ void warpx_hybrid_QED_push (int j, int k, int l, Array4<Real> const& Ex, Array4<
     const amrex::Real invAx[3] = {a22*a11-pow(a12,2), a12*a02-a22*a01, a12*a01-a11*a02};
     const amrex::Real invAy[3] = {a02*a12-a22*a01, a00*a22-pow(a02,2), a01*a02-a12*a00};
     const amrex::Real invAz[3] = {a12*a01-a02*a11, a02*a01-a12*a00, a11*a00-pow(a01,2)};
-    
+
     // Performing push
     Ex(j,k,l) = Ex(j,k,l) - 0.5*dt*(invAx[0]*Omega[0]+
         invAx[1]*Omega[1]+invAx[2]*Omega[2])/detA;
-    
+
     Ey(j,k,l) = Ey(j,k,l) - 0.5*dt*(invAy[0]*Omega[0]+
         invAy[1]*Omega[1]+invAy[2]*Omega[2])/detA;
-        
+
     Ez(j,k,l) = Ez(j,k,l) - 0.5*dt*(invAz[0]*Omega[0]+
         invAz[1]*Omega[1]+invAz[2]*Omega[2])/detA;
 
@@ -290,38 +290,38 @@ void warpx_hybrid_QED_push (int j, int k, int l, Array4<Real> const& Ex, Array4<
             +7*pow(PhysConst::c,2)*(VxB[0]*Bx(j,k,0)+VxB[1]*By(j,k,0)+VxB[2]*Bz(j,k,0))*Bz(j,k,0))};
 
     const amrex::Real a00 = beta + (PhysConst::xi) * ( 8*pow(tmpEx(j,k,0),2) + 14*pow(PhysConst::c,2)*pow(Bx(j,k,0),2) );
-    
+
     const amrex::Real a11 = beta + (PhysConst::xi) * ( 8*pow(tmpEy(j,k,0),2) + 14*pow(PhysConst::c,2)*pow(By(j,k,0),2) );
-    
+
     const amrex::Real a22 = beta + (PhysConst::xi) * ( 8*pow(tmpEz(j,k,0),2) + 14*pow(PhysConst::c,2)*pow(Bz(j,k,0),2) );
-    
+
     const amrex::Real a01 = (PhysConst::xi) * ( 2*tmpEx(j,k,0)*tmpEy(j,k,0) + 14*pow(PhysConst::c,2)*Bx(j,k,0)*By(j,k,0) );
-    
+
     const amrex::Real a02 = (PhysConst::xi) * ( 2*tmpEx(j,k,0)*tmpEz(j,k,0) + 14*pow(PhysConst::c,2)*Bx(j,k,0)*Bz(j,k,0) );
-    
+
     const amrex::Real a12 = (PhysConst::xi) * ( 2*tmpEz(j,k,0)*tmpEy(j,k,0) + 14*pow(PhysConst::c,2)*Bz(j,k,0)*By(j,k,0) );
 
     const amrex::Real detA = a00*(a11*a22-pow(a12,2))-a01*(a01*a22-a02*a12)+a02*(a01*a12-a02*a11);
 
     const amrex::Real invAx[3] = {a22*a11-pow(a12,2), a12*a02-a22*a01, a12*a01-a11*a02};
-    
+
     const amrex::Real invAy[3] = {a02*a12-a22*a01, a00*a22-pow(a02,2), a01*a02-a12*a00};
-    
+
     const amrex::Real invAz[3] = {a12*a01-a02*a11, a02*a01-a12*a00, a11*a00-pow(a01,2)};
-    
+
     const amrex::Real dEx = (-1/detA)*(invAx[0]*Omega[0] +
         invAx[1]*Omega[1] + invAx[2]*Omega[2]);
-        
+
     const amrex::Real dEy = (-1/detA)*(invAy[0]*Omega[0] +
         invAy[1]*Omega[1] + invAy[2]*Omega[2]);
-        
+
     const amrex::Real dEz = (-1/detA)*(invAz[0]*Omega[0] +
         invAz[1]*Omega[1] + invAz[2]*Omega[2]);
-     
+
     Ex(j,k,0) = Ex(j,k,0) + 0.5*dt*dEx;
-       
+
     Ey(j,k,0) = Ey(j,k,0) + 0.5*dt*dEy;
-            
+
     Ez(j,k,0) = Ez(j,k,0) + 0.5*dt*dEz;
 
     if (j == 63 && k == 1050) {

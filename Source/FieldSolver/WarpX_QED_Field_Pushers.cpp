@@ -110,37 +110,37 @@ WarpX::Hybrid_QED_Push (int lev, PatchType patch_type, Real a_dt)
         auto const& Exfab = Ex->array(mfi);
         auto const& Eyfab = Ey->array(mfi);
         auto const& Ezfab = Ez->array(mfi);
-        
+
         const Box& gex = amrex::grow(tex,1);
         const Box& gey = amrex::grow(tey,1);
         const Box& gez = amrex::grow(tez,1);
-        
+
         FArrayBox tmpEx_fab(gex,1);
         //Elixir tmp_eli = tmp_fab.elixir();
         auto const& tmpEx = tmpEx_fab.array();
-        
+
         FArrayBox tmpEy_fab(gey,1);
         //Elixir tmp_eli = tmp_fab.elixir();
         auto const& tmpEy = tmpEy_fab.array();
-        
+
         FArrayBox tmpEz_fab(gez,1);
         //Elixir tmp_eli = tmp_fab.elixir();
         auto const& tmpEz = tmpEz_fab.array();
-        
+
 //        const Box& iex = gex & Ex[mfi].box();
 //        const Box& iey = gey & Ey[mfi].box();
 //        const Box& iez = gez & Ez[mfi].box();
-        
+
         AMREX_PARALLEL_FOR_4D (gex, 1, i, j, k, n,
         {
             tmpEx(i,j,k,n) = Exfab(i,j,k,n);
         });
-        
+
         AMREX_PARALLEL_FOR_4D (gey, 1, i, j, k, n,
         {
                 tmpEy(i,j,k,n) = Eyfab(i,j,k,n);
         });
-        
+
         AMREX_PARALLEL_FOR_4D (gez, 1, i, j, k, n,
         {
                 tmpEz(i,j,k,n) = Ezfab(i,j,k,n);
