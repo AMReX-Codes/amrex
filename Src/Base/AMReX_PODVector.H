@@ -3,6 +3,7 @@
 
 #include <AMReX_TypeTraits.H>
 #include <AMReX_Gpu.H>
+#include <AMReX_GpuAllocators.H>
 
 #include <type_traits>
 #include <utility>
@@ -11,6 +12,23 @@
 
 namespace amrex
 {
+    namespace detail
+    {
+        template <typename T, typename U, typename Size, typename Value>
+        typename std::enable_if<RunOnGpu<T>::value>::type
+        uninitializedFillNImpl (U* data, Size count, const Value& value)
+        {
+            AMREX_FOR_1D(count, i, data[i] = value;);
+        }
+
+        template <typename T, typename U, typename Size, typename Value>
+        typename std::enable_if<!RunOnGpu<T>::value>::type
+        uninitializedFillNImpl (U* data, Size count, const Value& value)
+        {
+            std::uninitialized_fill_n<U*, U>(data, count, value);
+        }
+    }
+    
     template <class T, class Allocator = std::allocator<T> >
     class PODVector : public Allocator
     {			
@@ -62,8 +80,8 @@ namespace amrex
             : Allocator(a_allocator), m_data(nullptr), m_size(0), m_capacity(0) 
         {
             AllocateBuffer(GetNewCapacity(a_size));
-            m_size = a_size;		
-            std::uninitialized_fill_n<T*, T>(m_data, a_size, a_value);
+            m_size = a_size;
+            detail::uninitializedFillNImpl<Allocator>(m_data, a_size, a_value);
         }
 	
         PODVector (std::initializer_list<T> a_initializer_list,
@@ -175,8 +193,8 @@ namespace amrex
                 std::memmove(const_cast<iterator>(a_pos)+a_count, a_pos, (end() - a_pos) * sizeof(T));
                 m_size += a_count;
             }
-            
-            std::uninitialized_fill_n<T*, T>(const_cast<iterator>(a_pos), a_count, a_value);
+
+            detail::uninitializedFillNImpl<Allocator>(a_pos, a_count, a_value);
             
             return const_cast<iterator>(a_pos);
         }
@@ -246,12 +264,7 @@ namespace amrex
         {
             if ( a_count > capacity() ) AllocateBuffer(GetNewCapacity(a_count));
             m_size = a_count;
-#ifdef AMREX_USE_GPU
-            auto data = m_data;
-            AMREX_FOR_1D(a_count, i, data[i] = a_value;);
-#else
-            std::uninitialized_fill_n<T*, T>(m_data, a_count, a_value);
-#endif
+            detail::uninitializedFillNImpl<Allocator>(m_data, a_count, a_value);
         }    
         
         void assign (std::initializer_list<T> a_initializer_list) noexcept
@@ -355,16 +368,9 @@ namespace amrex
         {
             size_type old_size = size();
             resize(a_new_size);
-            if(old_size < a_new_size)
+            if (old_size < a_new_size)
             {
-#ifdef AMREX_USE_GPU
-                auto data = m_data;
-                auto count = size() - old_size;
-                AMREX_FOR_1D(count, i, data[i+old_size] = a_val;);
-#else                
-                std::uninitialized_fill<T*,T>(m_data + old_size, 
-                                              m_data + size(), a_val);
-#endif
+                detail::uninitializedFillNImpl<Allocator>(m_data + old_size, size(), a_val);
             }
         }
         
