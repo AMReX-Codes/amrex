@@ -1100,7 +1100,7 @@ Diagnostics and output
         The output columns are
         total field energy :math:`E_f`,
         :math:`E` field energy,
-        :math:`B` field energy.
+        :math:`B` field energy, at mesh refinement levels from 0 to :math:`n`.
 
 * ``<reduced_diags_name>.frequency`` (`int`)
     The output frequency (every # time steps).
