@@ -43,6 +43,21 @@ namespace amrex
         {
             std::memcpy(dst, src, count);
         }
+
+        template <typename T, typename U>
+        typename std::enable_if<RunOnGpu<T>::value>::type
+        initFromListImpl (U* data, std::initializer_list<U> list)
+        {
+            const U* src = list.begin();
+            AMREX_FOR_1D(list.size(), i, data[i] = src[i];);
+        }
+
+        template <typename T, typename U>
+        typename std::enable_if<!RunOnGpu<T>::value>::type
+        initFromListImpl (U* data, std::initializer_list<U> list)
+        {
+            for (const auto& value : list) { *(data++) = value; }
+        }
     }
     
     template <class T, class Allocator = std::allocator<T> >
@@ -106,11 +121,8 @@ namespace amrex
         {
             size_type size = a_initializer_list.size();
             AllocateBuffer(GetNewCapacity(size));
-            m_size = size;
-            
-            // copy the initializer list
-            pointer dst = m_data;
-            for (const auto& value : a_initializer_list) { *(dst++) = value; }
+            m_size = size;            
+            detail::initFromListImpl<Allocator>(m_data, a_initializer_list);
         }
 	
         PODVector (const PODVector<T, Allocator>& a_vector) noexcept
