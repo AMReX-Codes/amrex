@@ -128,7 +128,9 @@ guardCellManager::Init(
         ng_FieldSolverF = ng_alloc_F;
         ng_FieldGather = ng_alloc_EB;
         ng_UpdateAux = ng_alloc_EB;
-        ng_MovingWindow = ng_alloc_EB;
+        if (do_moving_window){
+            ng_MovingWindow = ng_alloc_EB;
+        }
     } else {
 
         ng_FieldSolver = ng_FieldSolver.min(ng_alloc_EB);
