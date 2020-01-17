@@ -4,6 +4,8 @@
 #include <AMReX_TypeTraits.H>
 #include <AMReX_Gpu.H>
 #include <AMReX_GpuAllocators.H>
+#include <AMReX_GpuContainers.H>
+#include <AMReX_GpuDevice.H>
 
 #include <type_traits>
 #include <utility>
@@ -26,6 +28,20 @@ namespace amrex
         uninitializedFillNImpl (U* data, Size count, const Value& value)
         {
             std::uninitialized_fill_n<U*, U>(data, count, value);
+        }
+
+        template <typename T>
+        typename std::enable_if<RunOnGpu<T>::value>::type
+        memCopyImpl (void* dst, const void* src, std::size_t count)
+        {
+            Gpu::dtod_memcpy(dst, src, count);
+        }
+
+        template <typename T>
+        typename std::enable_if<!RunOnGpu<T>::value>::type
+        memCopyImpl (void* dst, const void* src, std::size_t count)
+        {
+            std::memcpy(dst, src, count);
         }
     }
     
@@ -100,9 +116,10 @@ namespace amrex
         PODVector (const PODVector<T, Allocator>& a_vector) noexcept
             : Allocator(a_vector), m_data(nullptr), m_size(0), m_capacity(0)
         {
+            using namespace detail;
             AllocateBuffer(a_vector.capacity());
             m_size = a_vector.size();
-            std::memcpy(m_data, a_vector.m_data, a_vector.size() * sizeof(T));
+            memCopyImpl<Allocator>(m_data, a_vector.m_data, a_vector.size() * sizeof(T));
         }
         
         PODVector (PODVector<T, Allocator>&& a_vector) noexcept
@@ -427,7 +444,7 @@ namespace amrex
         void AllocateBuffer (size_type a_capacity) noexcept
         {
             pointer new_data = allocate(a_capacity);
-            if (m_data) std::memcpy(new_data, m_data, size() * sizeof(T));
+            if (m_data) detail::memCopyImpl<Allocator>(new_data, m_data, size() * sizeof(T));
             deallocate(m_data, capacity());
             m_data = new_data;
             m_capacity = a_capacity;
@@ -436,11 +453,13 @@ namespace amrex
         // need to have this version too
         void AllocateBufferForInsert(size_type a_capacity, size_type a_index, size_type a_count) noexcept
         {
+            using namespace detail;
             pointer new_data = allocate(a_capacity);
             if (m_data)
             {
-                std::memcpy(new_data, m_data, a_index * sizeof(T));
-                std::memcpy(new_data + a_index + a_count, m_data + a_index, (size() - a_index)*sizeof(T));
+                memCopyImpl<Allocator>(new_data, m_data, a_index * sizeof(T));
+                memCopyImpl<Allocator>(new_data + a_index + a_count, m_data + a_index,
+                                       (size() - a_index)*sizeof(T));
             }
             deallocate(m_data, capacity());
             m_data = new_data;
@@ -453,7 +472,7 @@ namespace amrex
             const size_t other_size = a_vector.size();            
             if ( other_size > capacity() ) { AllocateBuffer(other_size); }            
             m_size = other_size;            
-            std::memcpy(m_data, a_vector.m_data, size() * sizeof(T));            
+            detail::memCopyImpl<Allocator>(m_data, a_vector.m_data, size() * sizeof(T));
             return *this;
         }
         
@@ -468,7 +487,7 @@ namespace amrex
                 const size_t other_size = a_vector.size();                
                 if ( other_size > capacity() ) { AllocateBuffer(other_size); }                
                 m_size = other_size;                    
-                std::memcpy(m_data, a_vector.m_data, size() * sizeof(T));                
+                detail::memCopyImpl<Allocator>(m_data, a_vector.m_data, size() * sizeof(T));
                 Allocator::operator=(static_cast<Allocator&>(a_vector));                
                 return *this;
             }
