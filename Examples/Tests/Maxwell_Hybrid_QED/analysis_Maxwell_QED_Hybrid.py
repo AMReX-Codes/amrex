@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-chmod a+x analysis_Maxwell_QED_hyrbid.py
 import sys
 import yt ; ty.funcs.mylog.setLevel(0)
 import numpy as np
