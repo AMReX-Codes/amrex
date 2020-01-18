@@ -48,8 +48,7 @@ namespace amrex
         typename std::enable_if<RunOnGpu<T>::value>::type
         initFromListImpl (U* data, std::initializer_list<U> list)
         {
-            const U* src = list.begin();
-            AMREX_FOR_1D(list.size(), i, data[i] = src[i];);
+            Gpu::htod_memcpy(data, &(*list.begin()), list.size() * sizeof(U));
         }
 
         template <typename T, typename U>
@@ -399,7 +398,9 @@ namespace amrex
             resize(a_new_size);
             if (old_size < a_new_size)
             {
-                detail::uninitializedFillNImpl<Allocator>(m_data + old_size, size(), a_val);
+                detail::uninitializedFillNImpl<Allocator>(m_data + old_size,
+                                                          size() - old_size,
+                                                          a_val);
             }
         }
         
