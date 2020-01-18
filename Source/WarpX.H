@@ -65,8 +65,8 @@ public:
     WarpX ();
     ~WarpX ();
 
-    static std::string Version ();
-    static std::string PicsarVersion ();
+    static std::string Version (); //! Version of WarpX executable
+    static std::string PicsarVersion (); //! Version of PICSAR dependency
 
     int Verbose () const { return verbose; }
 
