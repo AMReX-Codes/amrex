@@ -45,6 +45,28 @@ namespace amrex
             std::memcpy(dst, src, count);
         }
 
+        template <typename T>
+        typename std::enable_if<RunOnGpu<T>::value>::type
+        memMoveImpl (void* dst, const void* src, std::size_t count, T& allocator)
+        {
+            AMREX_ASSERT(count % sizeof(typename T::value_type) == 0);
+
+            auto N = count / sizeof(typename T::value_type);
+            auto tmp = allocator.allocate(N);
+            
+            Gpu::dtod_memcpy(tmp, src, count);
+            Gpu::dtod_memcpy(dst, tmp, count);
+
+            allocator.deallocate(tmp, N);
+        }
+
+        template <typename T>
+        typename std::enable_if<!RunOnGpu<T>::value>::type
+        memMoveImpl (void* dst, const void* src, std::size_t count)
+        {
+            std::memmove(dst, src, count);
+        }
+        
         template <typename T, typename U>
         typename std::enable_if<RunOnGpu<T>::value>::type
         initFromListImpl (U* data, std::initializer_list<U> list)
@@ -174,7 +196,7 @@ namespace amrex
         iterator erase (const_iterator a_pos) noexcept
         {
             --m_size;
-            std::memmove(const_cast<iterator>(a_pos), a_pos+1, (end() - a_pos)*sizeof(T));
+            detail::memMoveImpl<Allocator>(const_cast<iterator>(a_pos), a_pos+1, (end() - a_pos)*sizeof(T), *this);
             return const_cast<iterator>(a_pos);
         }
         
@@ -183,7 +205,7 @@ namespace amrex
             size_type num_to_erase = a_last - a_first;
             if (num_to_erase == 0) return const_cast<iterator>(a_first);
             m_size -= num_to_erase;
-            std::memmove(const_cast<iterator>(a_first), a_first+num_to_erase, (end() - a_first)*sizeof(T));
+            detail::memMoveImpl<Allocator>(const_cast<iterator>(a_first), a_first+num_to_erase, (end() - a_first)*sizeof(T), *this);
             return const_cast<iterator>(a_first);
         }
         
@@ -198,7 +220,7 @@ namespace amrex
             }
             else
             {
-                std::memmove(const_cast<iterator>(a_pos)+1, a_pos, (end() - a_pos) * sizeof(T));
+                detail::memMoveImpl<Allocator>(const_cast<iterator>(a_pos)+1, a_pos, (end() - a_pos) * sizeof(T), *this);
                 ++m_size;
             }
             
@@ -219,7 +241,7 @@ namespace amrex
             }
             else
             {
-                std::memmove(const_cast<iterator>(a_pos)+a_count, a_pos, (end() - a_pos) * sizeof(T));
+                detail::memMoveImpl<Allocator>(const_cast<iterator>(a_pos)+a_count, a_pos, (end() - a_pos) * sizeof(T), *this);
                 m_size += a_count;
             }
 
@@ -239,7 +261,7 @@ namespace amrex
             }
             else
             {
-                std::memmove(const_cast<iterator>(a_pos)+1, a_pos, (end() - a_pos) * sizeof(T));
+                detail::memMoveImpl<Allocator>(const_cast<iterator>(a_pos)+1, a_pos, (end() - a_pos) * sizeof(T), *this);
                 ++m_size;
             }
             
@@ -260,7 +282,7 @@ namespace amrex
             }
             else
             {
-                std::memmove(const_cast<iterator>(a_pos)+count, a_pos, (end() - a_pos) * sizeof(T));
+                detail::memMoveImpl<Allocator>(const_cast<iterator>(a_pos)+count, a_pos, (end() - a_pos) * sizeof(T), *this);
                 m_size += count;
             }        // copy the initializer list
             pointer dst = const_cast<iterator>(a_pos);
@@ -282,7 +304,7 @@ namespace amrex
             }
             else
             {
-                std::memmove(const_cast<iterator>(a_pos)+count, a_pos, (end() - a_pos) * sizeof(T));
+                detail::memMoveImpl<Allocator>(const_cast<iterator>(a_pos)+count, a_pos, (end() - a_pos) * sizeof(T), *this);
                 m_size += count;
             }        pointer dst = const_cast<iterator>(a_pos);
             while(a_first != a_last) { *(dst++) = *(a_first++); }
