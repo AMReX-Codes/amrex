@@ -21,6 +21,7 @@ namespace amrex
         uninitializedFillNImpl (U* data, Size count, const Value& value)
         {
             AMREX_FOR_1D(count, i, data[i] = value;);
+            Gpu::Device::streamSynchronize();
         }
 
         template <typename T, typename U, typename Size, typename Value>
