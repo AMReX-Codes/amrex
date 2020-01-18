@@ -3,14 +3,14 @@
 #################################
 max_step = 500
 amr.n_cell = 64 1024
-amr.max_grid_size = 4096 
+amr.max_grid_size = 4096
 amr.blocking_factor = 8
 amr.plot_int = 300
 geometry.coord_sys   = 0
-geometry.is_periodic = 1  1  1  
-geometry.prob_lo     =  -32 -512  
+geometry.is_periodic = 1  1  1
+geometry.prob_lo     =  -32 -512
 geometry.prob_hi     =  32 512
-amr.max_level = 0 
+amr.max_level = 0
 amr.plot_file = "./plt"
 warpx.do_nodal = 1
 
@@ -23,9 +23,9 @@ warpx.plot_raw_fields_guards = 1
 warpx.plot_finepatch = 1
 warpx.plot_crsepatch = 1
 warpx.use_filter = 1
-warpx.cfl = 1. 
-warpx.do_pml = 0 
-warpx.use_hybrid_QED = 1 
+warpx.cfl = 1.
+warpx.do_pml = 0
+warpx.use_hybrid_QED = 1
 
 particles.nspecies = 0
 
