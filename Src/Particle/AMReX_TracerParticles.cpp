@@ -12,16 +12,16 @@ void
 TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
 {
     BL_PROFILE("TracerParticleContainer::AdvectWithUmac()");
-    BL_ASSERT(OK(lev, lev, umac[0].nGrow()-1));
-    BL_ASSERT(lev >= 0 && lev < GetParticles().size());
+    AMREX_ASSERT(OK(lev, lev, umac[0].nGrow()-1));
+    AMREX_ASSERT(lev >= 0 && lev < GetParticles().size());
 
-    AMREX_D_TERM(BL_ASSERT(umac[0].nGrow() >= 1);,
-                 BL_ASSERT(umac[1].nGrow() >= 1);,
-                 BL_ASSERT(umac[2].nGrow() >= 1););
+    AMREX_D_TERM(AMREX_ASSERT(umac[0].nGrow() >= 1);,
+                 AMREX_ASSERT(umac[1].nGrow() >= 1);,
+                 AMREX_ASSERT(umac[2].nGrow() >= 1););
 
-    AMREX_D_TERM(BL_ASSERT(!umac[0].contains_nan());,
-                 BL_ASSERT(!umac[1].contains_nan());,
-                 BL_ASSERT(!umac[2].contains_nan()););
+    AMREX_D_TERM(AMREX_ASSERT(!umac[0].contains_nan());,
+                 AMREX_ASSERT(!umac[1].contains_nan());,
+                 AMREX_ASSERT(!umac[2].contains_nan()););
 
     const Real      strttime = amrex::second();
     const Geometry& geom     = m_gdb->Geom(lev);
@@ -106,13 +106,13 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
     {
         Real stoptime = amrex::second() - strttime;
 
-#ifdef BL_LAZY
+#ifdef AMREX_LAZY
 	Lazy::QueueReduction( [=] () mutable {
 #endif
         ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
 
         amrex::Print() << "TracerParticleContainer::AdvectWithUmac() time: " << stoptime << '\n';
-#ifdef BL_LAZY
+#ifdef AMREX_LAZY
 	});
 #endif
     }
@@ -125,17 +125,17 @@ void
 TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
 {
     BL_PROFILE("TracerParticleContainer::AdvectWithUcc()");
-    BL_ASSERT(Ucc.nGrow() > 0);
-    BL_ASSERT(OK(lev, lev, Ucc.nGrow()-1));
-    BL_ASSERT(lev >= 0 && lev < GetParticles().size());
-    BL_ASSERT(!Ucc.contains_nan());
+    AMREX_ASSERT(Ucc.nGrow() > 0);
+    AMREX_ASSERT(OK(lev, lev, Ucc.nGrow()-1));
+    AMREX_ASSERT(lev >= 0 && lev < GetParticles().size());
+    AMREX_ASSERT(!Ucc.contains_nan());
 
     const Real          strttime = amrex::second();
     const Geometry&     geom     = m_gdb->Geom(lev);
     const auto          plo      = geom.ProbLoArray();
     const auto          dxi      = geom.InvCellSizeArray();
 
-    BL_ASSERT(OnSameGrids(lev, Ucc));
+    AMREX_ASSERT(OnSameGrids(lev, Ucc));
 
     for (int ipass = 0; ipass < 2; ipass++)
     {
@@ -185,13 +185,13 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
     {
         Real stoptime = amrex::second() - strttime;
 
-#ifdef BL_LAZY
+#ifdef AMREX_LAZY
 	Lazy::QueueReduction( [=] () mutable {
 #endif
         ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
 
         amrex::Print() << "TracerParticleContainer::AdvectWithUcc() time: " << stoptime << '\n';
-#ifdef BL_LAZY
+#ifdef AMREX_LAZY
 	});
 #endif
     }
@@ -212,10 +212,10 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
     // time     -> simulation time (will be recorded in Timestamp file)
     // indices  -> indices into mf that we output
     //
-    BL_ASSERT(lev >= 0);
-    BL_ASSERT(time >= 0);
-    BL_ASSERT(!basename.empty());
-    BL_ASSERT(lev <= m_gdb->finestLevel());
+    AMREX_ASSERT(lev >= 0);
+    AMREX_ASSERT(time >= 0);
+    AMREX_ASSERT(!basename.empty());
+    AMREX_ASSERT(lev <= m_gdb->finestLevel());
 
     const Real strttime = amrex::second();
 
@@ -353,12 +353,12 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
     {
         Real stoptime = amrex::second() - strttime;
 
-#ifdef BL_LAZY
+#ifdef AMREX_LAZY
         Lazy::QueueReduction( [=] () mutable {
 #endif
         ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
         amrex::Print() << "TracerParticleContainer::Timestamp: lev: " << lev << " time: " << stoptime << '\n';
-#ifdef BL_LAZY
+#ifdef AMREX_LAZY
         });
 #endif
     }

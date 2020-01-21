@@ -321,7 +321,7 @@ public:
         const auto dx = geom.CellSizeArray();
         const Box& bx = levelset.box();
         const auto& a = levelset.array();
-        amrex::Loop(bx, [=] (int i, int j, int k) noexcept
+        amrex::LoopOnCpu(bx, [=] (int i, int j, int k) noexcept
         {
             a(i,j,k) = m_f(RealArray{AMREX_D_DECL(problo[0]+i*dx[0],
                                                   problo[1]+j*dx[1],

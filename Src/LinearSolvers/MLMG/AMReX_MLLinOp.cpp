@@ -136,6 +136,19 @@ MLLinOp::define (const Vector<Geometry>& a_geom,
     }
 
     info = a_info;
+#ifdef AMREX_USE_GPU
+    if (Gpu::notInLaunchRegion())
+    {
+        if (info.agg_grid_size <= 0) info.agg_grid_size = AMREX_D_PICK(32, 16, 8);
+        if (info.con_grid_size <= 0) info.con_grid_size = AMREX_D_PICK(32, 16, 8);
+    }
+    else
+#endif
+    {
+        if (info.agg_grid_size <= 0) info.agg_grid_size = LPInfo::getDefaultAgglomerationGridSize();
+        if (info.con_grid_size <= 0) info.con_grid_size = LPInfo::getDefaultConsolidationGridSize();
+    }
+
 #ifdef AMREX_USE_EB
     if (!a_factory.empty()){
         auto f = dynamic_cast<EBFArrayBoxFactory const*>(a_factory[0]);

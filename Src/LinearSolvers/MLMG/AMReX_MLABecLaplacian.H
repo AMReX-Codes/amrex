@@ -35,7 +35,9 @@ public:
 
     void setScalars (Real a, Real b) noexcept;
     void setACoeffs (int amrlev, const MultiFab& alpha);
+    void setACoeffs (int amrlev, Real alpha);
     void setBCoeffs (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& beta);
+    void setBCoeffs (int amrlev, Real beta);
 
     virtual bool needsUpdate () const override {
         return (m_needs_update || MLCellABecLap::needsUpdate());

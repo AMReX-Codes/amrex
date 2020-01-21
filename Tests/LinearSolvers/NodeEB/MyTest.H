@@ -34,10 +34,14 @@ private:
     int max_fmg_iter = 0;
     int max_coarsening_level = 30;
     bool use_hypre = false;
+    int agg_grid_size = -1;
+    int con_grid_size = -1;
 
     int cylinder_direction = 0;
 
     bool sigma = false;  // only for all_regular, we can set it to true
+
+    int gpu_regtest = 0;
 
     amrex::Vector<amrex::Geometry> geom;
     amrex::Vector<amrex::BoxArray> grids;

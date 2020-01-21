@@ -387,6 +387,15 @@ public:
 		  Vector<Real>& datatime,
 		  Real time) const;
 
+    /**
+    * \brief Get the Arena used.
+    */
+    Arena* getArena () const noexcept { return arena; }
+
+    /**
+    * \brief Set the Arena used.
+    */
+    void setArena (Arena* ar) noexcept { arena = ar; }
 
     /**
     * \brief These facilitate prereading FabArray headers to avoid
@@ -431,6 +440,9 @@ private:
     //! Pointer to previous time data.
     std::unique_ptr<MultiFab> old_data;
 
+    //! Arena we should use for allocating the data.
+    Arena* arena;
+
     /**
     * \brief This is used as a temporary collection of FabArray header
     * names written during a checkpoint
@@ -450,8 +462,8 @@ public:
 
     StateDataPhysBCFunct (StateData& sd, int sc, const Geometry& geom_);
     
-    virtual void FillBoundary (MultiFab& mf, int dcomp, int ncomp, Real time, int bccomp) override;
-    using PhysBCFunctBase::FillBoundary;
+    virtual void FillBoundary (MultiFab& mf, int dcomp, int ncomp, IntVect const& nghost,
+                               Real time, int bccomp) override;
 private:
     StateData* statedata;
     int src_comp;

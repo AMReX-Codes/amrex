@@ -38,16 +38,18 @@
 #include <AMReX_Particle.H>
 #include <AMReX_ParticleTile.H>
 #include <AMReX_TypeTraits.H>
-#include <AMReX_CudaContainers.H>
-#include <AMReX_Functors.H>
+#include <AMReX_GpuContainers.H>
 #include <AMReX_ParticleUtil.H>
 #include <AMReX_ParticleReduce.H>
 #include <AMReX_ParticleBufferMap.H>
 #include <AMReX_ParticleCommunication.H>
 #include <AMReX_ParticleLocator.H>
 #include <AMReX_Scan.H>
+#include <AMReX_DenseBins.H>
+#include <AMReX_ParticleTransformation.H>
+#include <AMReX_ParIter.H>
 
-#ifdef BL_LAZY
+#ifdef AMREX_LAZY
 #include <AMReX_Lazy.H>
 #endif
 
@@ -55,14 +57,8 @@
 #include <omp.h>
 #endif
 
-#ifdef AMREX_USE_CUDA
-#include <thrust/device_vector.h>
-#include <thrust/binary_search.h>
-#include <thrust/iterator/zip_iterator.h>
-#include <thrust/iterator/retag.h>
-#include <thrust/device_ptr.h>
-#include <thrust/tuple.h>
-#include <thrust/gather.h>
+#ifdef AMREX_USE_HDF5
+#include <hdf5.h>
 #endif
 
 namespace amrex {
@@ -95,7 +91,7 @@ struct ParticleLocData
 };
 
 /**
-* /brief A struct used to pass initial data into the various Init methods.
+* \brief A struct used to pass initial data into the various Init methods.
 * This struct is used to pass initial data into the various Init methods
 * of the particle container. That data should be initialized in the order
 * real struct data, int struct data, real array data, int array data.
@@ -115,15 +111,8 @@ struct ParticleInitType
     std::array<double, NArrayReal > real_array_data;
     std::array<int,    NArrayInt  > int_array_data;
 };
-
-template <bool is_const, int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-class ParIterBase;
-
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-class ParIter;
-
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-class ParConstIter;
+    
+class ParticleContainerBase {};
     
 /**
  * \brief A distributed container for Particles sorted onto the levels, grids,
@@ -132,15 +121,26 @@ class ParConstIter;
  * The data layout on a single tile is determined by the value of the following
  * template parameters:
  *
- * \tparam NStructReal The number of extra Real components in the particle struct
- * \tparam NStructInt The number of extra integer components in the particle struct
- * \tparam NArrayReal The number of extra Real components stored in struct-of-array form
- * \tparam NArrayInt The number of extra integer components stored in struct-of-array form
+ * \tparam T_NStructReal The number of extra Real components in the particle struct
+ * \tparam T_NStructInt The number of extra integer components in the particle struct
+ * \tparam T_NArrayReal The number of extra Real components stored in struct-of-array form
+ * \tparam T_NArrayInt The number of extra integer components stored in struct-of-array form
  *
  */
-template <int NStructReal, int NStructInt=0, int NArrayReal=0, int NArrayInt=0>
-class ParticleContainer
+template <int T_NStructReal, int T_NStructInt=0, int T_NArrayReal=0, int T_NArrayInt=0>
+class ParticleContainer : ParticleContainerBase
 {
+public:
+    //! \brief number of extra Real components in the particle struct
+    static constexpr int NStructReal = T_NStructReal;
+    //! \brief number of extra integer components in the particle struct
+    static constexpr int NStructInt = T_NStructInt;
+    //! \brief number of extra Real components stored in struct-of-array form
+    static constexpr int NArrayReal = T_NArrayReal;
+    //! \brief number of extra integer components stored in struct-of-array form
+    static constexpr int NArrayInt = T_NArrayInt;
+
+private:
     friend class ParIterBase<true,NStructReal, NStructInt, NArrayReal, NArrayInt>;
     friend class ParIterBase<false,NStructReal, NStructInt, NArrayReal, NArrayInt>;
 
@@ -152,7 +152,7 @@ public:
     //! \brief The type of the Real data 
     using RealType = typename Particle<NStructReal, NStructInt>::RealType;
 
-#ifdef BL_SINGLE_PRECISION_PARTICLES
+#ifdef AMREX_SINGLE_PRECISION_PARTICLES
     RealDescriptor ParticleRealDescriptor = FPC::Native32RealDescriptor();
 #else
     RealDescriptor ParticleRealDescriptor = FPC::Native64RealDescriptor();
@@ -171,8 +171,8 @@ public:
     using RealVector       = typename SoA::RealVector;
     using IntVector        = typename SoA::IntVector;
     using ParticleVector   = typename AoS::ParticleVector;
-    using CharVector       = Gpu::ManagedDeviceVector<char>;
-    using SendBuffer       = Gpu::PolymorphicDeviceVector<char>;
+    using CharVector       = Gpu::ManagedVector<char>;
+    using SendBuffer       = Gpu::PolymorphicVector<char>;
     using ParIterType      = ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
     using ParConstIterType = ParConstIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
 
@@ -632,7 +632,7 @@ public:
     /**
     * \brief Clear all the particles in this container. This does not free memory.
     */
-    void clearParticles();
+    void clearParticles ();
 
 
     /**
@@ -642,7 +642,7 @@ public:
     *
     * \param other
     */
-    void copyParticles(const ParticleContainerType& other, bool local=false);
+    void copyParticles (const ParticleContainerType& other, bool local=false);
 
     /**
     * \brief Add particles from other to this ParticleContainer. local controls 
@@ -650,7 +650,7 @@ public:
     *
     * \param other
     */
-    void addParticles(const ParticleContainerType& other, bool local=false);
+    void addParticles (const ParticleContainerType& other, bool local=false);
 
     /**
     * \brief Write a contiguous chunk of real particle data to an ostream.
@@ -710,6 +710,38 @@ public:
 
     void CheckpointPost ();
 
+    /**
+     * \brief Writes a particle checkpoint to HDF5 file, suitable for restarting.
+     *
+     * \param dir The base directory into which to write (i.e. "plt00000")
+     * \param name The name of the sub-directory for this particle type (i.e. "Tracer")
+     */
+    void CheckpointHDF5 (const std::string& dir, const std::string& name) const;
+
+    /**
+     * \brief Writes a particle checkpoint to HDF5 file, suitable for restarting.
+     */
+    void CheckpointHDF5 (const std::string& dir, const std::string& name, bool is_checkpoint,
+                     const Vector<std::string>& real_comp_names = Vector<std::string>(),
+                     const Vector<std::string>& int_comp_names = Vector<std::string>()) const;
+
+     /**
+      * \brief Writes particle data to disk in the AMReX native format. 
+      * 
+      * \param dir The base directory into which to write (i.e. "plt00000")
+      * \param name The name of the sub-directory for this particle type (i.e. "Tracer")
+      * \param write_real_comp for each real component, whether or not we include that component in the file
+      * \param write_int_comp for each integer component, whether or not we include that component in the file
+      * \param real_comp_names for each real component, a name to label the data with
+      * \param int_comp_names for each integer component, a name to label the data with      
+     */
+    void WriteHDF5ParticleData (const std::string& dir,
+                                  const std::string& name,
+                                  const Vector<int>& write_real_comp,
+                                  const Vector<int>& write_int_comp,    
+                                  const Vector<std::string>& real_comp_names,
+                                  const Vector<std::string>&  int_comp_names) const;
+    
     /**
      *   \brief Restart from checkpoint
      *
@@ -818,12 +850,10 @@ public:
     { return m_particles[lev].at(std::make_pair(grid, tile)); }
 
     template <class Iterator>
-
     const ParticleTileType& ParticlesAt (int lev, const Iterator& iter) const
         { return ParticlesAt(lev, iter.index(), iter.LocalTileIndex()); }
 
     template <class Iterator>
-
     ParticleTileType&       ParticlesAt (int lev, const Iterator& iter)
         { return ParticlesAt(lev, iter.index(), iter.LocalTileIndex()); }
 
@@ -833,6 +863,14 @@ public:
         return ParticlesAt(lev, grid, tile);
     }
 
+    template <class Iterator>
+    ParticleTileType& DefineAndReturnParticleTile (int lev, const Iterator& iter)
+    {
+        auto index = std::make_pair(iter.index(), iter.LocalTileIndex());
+        m_particles[lev][index].define(NumRuntimeRealComps(), NumRuntimeIntComps());
+        return ParticlesAt(lev, iter);
+    }
+    
     /**
     * \brief Functions depending the layout of the data.  Use with caution.
     *
@@ -883,24 +921,24 @@ public:
     bool PeriodicShift (ParticleType& prt) const;
 
     MFIter MakeMFIter (int lev, const MFItInfo& info) const {
-        BL_ASSERT(m_dummy_mf[lev] != nullptr);
+        AMREX_ASSERT(m_dummy_mf[lev] != nullptr);
         return MFIter(*m_dummy_mf[lev], info);
     }
 
     MFIter MakeMFIter (int lev) const {
-        BL_ASSERT(m_dummy_mf[lev] != nullptr);
+        AMREX_ASSERT(m_dummy_mf[lev] != nullptr);
         return MFIter(*m_dummy_mf[lev], do_tiling ? tile_size : IntVect::TheZeroVector());
     }
 
     MFIter MakeMFIter (int lev, bool tile) const {
-        BL_ASSERT(m_dummy_mf[lev] != nullptr);
+        AMREX_ASSERT(m_dummy_mf[lev] != nullptr);
         return MFIter(*m_dummy_mf[lev], tile ? tile_size : IntVect::TheZeroVector());
     }
 
 
     //! struct-of-array stuff
-    std::vector<bool> communicate_real_comp;
-    std::vector<bool> communicate_int_comp;
+    Gpu::ManagedVector<int> communicate_real_comp;
+    Gpu::ManagedVector<int> communicate_int_comp;
 
     static bool do_tiling;
     static IntVect tile_size;
@@ -932,9 +970,9 @@ public:
 
     bool OKGPU (int lev_min = 0, int lev_max = -1, int nGrow = 0) const;
 
-#ifdef AMREX_USE_CUDA    
-    void EnforcePeriodicGPU ();
-#endif
+    long superParticleSize() const { return superparticle_size; }
+
+    void EnforcePeriodic ();
 
     template <typename T,
               typename std::enable_if<std::is_same<T,bool>::value,int>::type=0>
@@ -1012,6 +1050,9 @@ protected:
     void WriteParticles (int level, std::ofstream& ofs, int fnum,
                          Vector<int>& which, Vector<int>& count, Vector<long>& where,
                          const Vector<int>& write_real_comp, const Vector<int>& write_int_comp) const;
+#ifdef AMREX_USE_HDF5
+void WriteParticlesHDF5 ( hid_t grp, int level, Vector<int>& count, Vector<long>& where ) const;
+#endif
 
     template <class RTYPE>
     void ReadParticles (int cnt, int grd, int lev, std::ifstream& ifs, int finest_level_in_file);
@@ -1030,7 +1071,6 @@ protected:
     ParGDBBase* m_gdb;
     ParGDB      m_gdb_object;
 
-
     //! ---- variables for i/o optimization saved for pre and post checkpoint
     bool         levelDirectoriesCreated;
     bool         usePrePost;
@@ -1045,37 +1085,24 @@ protected:
     mutable std::string HdrFileNamePrePost;
     mutable Vector<std::string> filePrefixPrePost;
 
-#ifdef AMREX_USE_CUDA
-    ParticleVector m_aos_r;
-    std::array<RealVector, NArrayReal> m_rdata_r;
-    std::array<IntVector, NArrayInt>  m_idata_r;
-    Gpu::ManagedDeviceVector<int> m_grids_r;
-    Gpu::ManagedDeviceVector<int> m_levs_r;
-
-    Gpu::ManagedDeviceVector<int> m_lo;
-    Gpu::ManagedDeviceVector<int> m_hi;
-    Gpu::ManagedDeviceVector<int> m_output;
-
-    Gpu::ManagedDeviceVector<int> m_grids_tmp;
-    Gpu::ManagedDeviceVector<int> m_levs_tmp;
-
-    ParticleVector m_aos_to_redistribute;
-    std::vector<RealVector> m_real_arrays_to_redistribute;
-    std::vector<IntVector > m_int_arrays_to_redistribute;
-    Gpu::ManagedDeviceVector<int> m_grids_to_redistribute;
-
-    std::map<int, SendBuffer> m_not_ours;
+    ParticleTileType m_ptile_r;
+    DenseBins<ParticleType> m_bins;
+    
+#ifdef AMREX_USE_GPU
+    Gpu::ManagedVector<int> m_grids_r;
+    Gpu::ManagedVector<int> m_levs_r;
+    Gpu::ManagedVector<int> m_grids_tmp;
+    Gpu::ManagedVector<int> m_levs_tmp;
 
     ParticleCopyOp redistribute_copy_op;
     ParticleCopyPlan redistribute_copy_plan;
-    Gpu::DeviceVector<SuperParticleType> redistribute_snd_buffer;
-    Gpu::DeviceVector<SuperParticleType> redistribute_rcv_buffer;
 
-    Gpu::PinnedDeviceVector<SuperParticleType> pinned_snd_buffer;
-    Gpu::PinnedDeviceVector<SuperParticleType> pinned_rcv_buffer;
+    Gpu::DeviceVector<char> redistribute_snd_buffer;
+    Gpu::DeviceVector<char> redistribute_rcv_buffer;
+    Gpu::PinnedVector<char> pinned_snd_buffer;
+    Gpu::PinnedVector<char> pinned_rcv_buffer;
 
     mutable AmrParticleLocator m_particle_locator;
-    
 #endif
 
     int NumRuntimeRealComps () const { return m_num_runtime_real; }
@@ -1083,7 +1110,6 @@ protected:
     
     int NumRealComps () const { return NArrayReal + NumRuntimeRealComps(); }
     int NumIntComps  () const { return NArrayInt  + NumRuntimeIntComps() ; } 
-
     
 private:
 
@@ -1111,144 +1137,8 @@ private:
     Vector<std::unique_ptr<MultiFab> > m_dummy_mf;
 };
 
-
-template <bool is_const, int NStructReal, int NStructInt=0, int NArrayReal=0, int NArrayInt=0>
-class ParIterBase
-    : public MFIter
-{
-private:
-
-    using PCType = ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>;
-    using ContainerRef    = typename std::conditional<is_const, PCType const&, PCType&>::type;
-    using ParticleTileRef = typename std::conditional
-        <is_const, typename PCType::ParticleTileType const&, typename PCType::ParticleTileType &>::type;
-    using ParticleTilePtr = typename std::conditional
-        <is_const, typename PCType::ParticleTileType const*, typename PCType::ParticleTileType *>::type;
-    using AoSRef          = typename std::conditional
-        <is_const, typename PCType::AoS const&, typename PCType::AoS&>::type;
-    using SoARef          = typename std::conditional
-        <is_const, typename PCType::SoA const&, typename PCType::SoA&>::type;
-
-public:
-
-    using ContainerType    = ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>;
-    using ParticleTileType = typename ContainerType::ParticleTileType;
-    using AoS              = typename ContainerType::AoS;
-    using SoA              = typename ContainerType::SoA;
-    using ParticleType     = typename ContainerType::ParticleType;
-    using RealVector       = typename SoA::RealVector;
-    using IntVector        = typename SoA::IntVector;
-    using ParticleVector   = typename ContainerType::ParticleVector;
-
-    ParIterBase (ContainerRef pc, int level);
-
-    ParIterBase (ContainerRef pc, int level, MFItInfo& info);
-
-#ifdef _OPENMP
-    void operator++ () {
-
-        if (dynamic) {
-#pragma omp atomic capture
-            m_pariter_index = nextDynamicIndex++;
-        } else {
-            ++m_pariter_index;
-        }
-        currentIndex = m_valid_index[m_pariter_index];
-    }
-#else
-    void operator++ () {
-        ++m_pariter_index;
-        currentIndex = m_valid_index[m_pariter_index];
-#ifdef AMREX_USE_GPU
-
-        Gpu::Device::setStreamIndex(currentIndex);
-#endif
-    }
-#endif
-
-    ParticleTileRef GetParticleTile () const { return *m_particle_tiles[m_pariter_index]; }
-
-    AoSRef GetArrayOfStructs () const { return GetParticleTile().GetArrayOfStructs(); }
-
-    SoARef GetStructOfArrays () const { return GetParticleTile().GetStructOfArrays(); }
-
-    template <typename Container>
-
-    void GetPosition (AMREX_D_DECL(Container& x,
-                                   Container& y,
-                                   Container& z)) const;
-
-    int numParticles () const { return GetArrayOfStructs().numParticles(); }
-
-    int GetLevel () const { return m_level; }
-
-    std::pair<int, int> GetPairIndex () const { return std::make_pair(this->index(), this->LocalTileIndex()); }
-    
-protected:
-    
-    int m_level;
-    int m_pariter_index;
-    Vector<int> m_valid_index;
-    Vector<ParticleTilePtr> m_particle_tiles;
-};
-
-
-template <int NStructReal, int NStructInt=0, int NArrayReal=0, int NArrayInt=0>
-class ParIter
-    : public ParIterBase<false,NStructReal,NStructInt, NArrayReal, NArrayInt>
-{
-public:
-
-    using ContainerType    = ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>;
-    using ParticleTileType = typename ContainerType::ParticleTileType;
-    using AoS              = typename ContainerType::AoS;
-    using SoA              = typename ContainerType::SoA;
-    using ParticleType     = typename ContainerType::ParticleType;
-    using RealVector       = typename SoA::RealVector;
-    using IntVector        = typename SoA::IntVector;
-
-    ParIter (ContainerType& pc, int level)
-        : ParIterBase<false,NStructReal,NStructInt, NArrayReal, NArrayInt>(pc,level)
-        {}
-
-    ParIter (ContainerType& pc, int level, MFItInfo& info)
-        : ParIterBase<false,NStructReal,NStructInt,NArrayReal,NArrayInt>(pc,level,info)
-        {}
-
-    template <typename Container>
-
-    void SetPosition (AMREX_D_DECL(const Container& x,
-                                   const Container& y,
-                                   const Container& z)) const;
-};
-
-template <int NStructReal, int NStructInt=0, int NArrayReal=0, int NArrayInt=0>
-class ParConstIter
-    : public ParIterBase<true,NStructReal,NStructInt, NArrayReal, NArrayInt>
-{
-public:
-
-    using ContainerType    = ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>;
-    using ParticleTileType = typename ContainerType::ParticleTileType;
-    using AoS              = typename ContainerType::AoS;
-    using SoA              = typename ContainerType::SoA;
-    using ParticleType     = typename ContainerType::ParticleType;
-    using RealVector       = typename SoA::RealVector;
-    using IntVector        = typename SoA::IntVector;
-
-    ParConstIter (ContainerType const& pc, int level)
-        : ParIterBase<true,NStructReal,NStructInt, NArrayReal, NArrayInt>(pc,level)
-        {}
-
-    ParConstIter (ContainerType const& pc, int level, MFItInfo& info)
-        : ParIterBase<true,NStructReal,NStructInt,NArrayReal,NArrayInt>(pc,level,info)
-        {}
-
-};
-
 #include "AMReX_ParticleInit.H"
 #include "AMReX_ParticleContainerI.H"
-#include "AMReX_ParIterI.H"
 #include "AMReX_ParticleIO.H"
 
 }

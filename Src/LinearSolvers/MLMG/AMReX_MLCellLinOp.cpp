@@ -462,7 +462,7 @@ MLCellLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
 
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(cross || Gpu::notInLaunchRegion(),
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(cross || tensorop || Gpu::notInLaunchRegion(),
                                      "non-cross stencil not support for gpu");
 
 #ifdef _OPENMP
@@ -830,7 +830,7 @@ MLCellLinOp::xdoty (int amrlev, int mglev, const MultiFab& x, const MultiFab& y,
     const int nghost = 0;
     Real result = MultiFab::Dot(x,0,y,0,ncomp,nghost,true);
     if (!local) {
-        ParallelAllReduce::Sum(result, Communicator(amrlev, mglev));
+        ParallelAllReduce::Sum(result, ParallelContext::CommunicatorSub());
     }
     return result;
 }

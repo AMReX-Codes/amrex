@@ -175,7 +175,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
 
     if (use_mask)
     {
-        BL_ASSERT(this->finestLevel() == 0);
+        AMREX_ASSERT(this->finestLevel() == 0);
         const int lev = 0;
         for (MFIter mfi(*mask_ptr[lev],this->do_tiling ? this->tile_size : IntVect::TheZeroVector());
              mfi.isValid(); ++mfi) {
@@ -530,8 +530,8 @@ getNeighborTags (Vector<NeighborCopyTag>& tags, const ParticleType& p,
 
     if (use_mask) {
         const BaseFab<int>& mask = (*mask_ptr[src_tag.level])[src_tag.grid];
-        BL_ASSERT(this->finestLevel() == 0);
-        BL_ASSERT(src_tag.level == 0);
+        AMREX_ASSERT(this->finestLevel() == 0);
+        AMREX_ASSERT(src_tag.level == 0);
 
         const int lev = 0;
         const IntVect& iv = this->Index(p, lev);

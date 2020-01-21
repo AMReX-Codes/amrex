@@ -20,13 +20,15 @@ namespace {
 #else
     constexpr double eps = 1.e-100;
 #endif
+    constexpr Real almostone = 1._rt - 100._rt*std::numeric_limits<Real>::epsilon();
 
 }
 
+namespace {
 inline void
-mlndlap_impose_neumann_bc (Box const& bx, Array4<Real> const& rhs, Box const& nddom,
-                           Array<LinOpBCType,AMREX_SPACEDIM> const& lobc,
-                           Array<LinOpBCType,AMREX_SPACEDIM> const& hibc) noexcept
+mlndlap_scale_neumann_bc (Real s, Box const& bx, Array4<Real> const& rhs, Box const& nddom,
+                          GpuArray<LinOpBCType,AMREX_SPACEDIM> const& lobc,
+                          GpuArray<LinOpBCType,AMREX_SPACEDIM> const& hibc) noexcept
 {
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         if (lobc[idim] == LinOpBCType::Neumann or lobc[idim] == LinOpBCType::inflow) {
@@ -34,7 +36,7 @@ mlndlap_impose_neumann_bc (Box const& bx, Array4<Real> const& rhs, Box const& nd
             if (blo.smallEnd(idim) == nddom.smallEnd(idim)) {
                 AMREX_HOST_DEVICE_PARALLEL_FOR_3D (blo, i, j, k,
                 {
-                    rhs(i,j,k) *= 2.0;
+                    rhs(i,j,k) *= s;
                 });
             }
         }
@@ -43,11 +45,28 @@ mlndlap_impose_neumann_bc (Box const& bx, Array4<Real> const& rhs, Box const& nd
             if (bhi.bigEnd(idim) == nddom.bigEnd(idim)) {
                 AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bhi, i, j, k,
                 {
-                    rhs(i,j,k) *= 2.0;
+                    rhs(i,j,k) *= s;
                 });
             }
         }
     }
+}
+}
+
+inline void
+mlndlap_impose_neumann_bc (Box const& bx, Array4<Real> const& rhs, Box const& nddom,
+                           GpuArray<LinOpBCType,AMREX_SPACEDIM> const& lobc,
+                           GpuArray<LinOpBCType,AMREX_SPACEDIM> const& hibc) noexcept
+{
+    mlndlap_scale_neumann_bc(2.0, bx, rhs, nddom, lobc, hibc);
+}
+
+inline void
+mlndlap_unimpose_neumann_bc (Box const& bx, Array4<Real> const& rhs, Box const& nddom,
+                           GpuArray<LinOpBCType,AMREX_SPACEDIM> const& lobc,
+                           GpuArray<LinOpBCType,AMREX_SPACEDIM> const& hibc) noexcept
+{
+    mlndlap_scale_neumann_bc(0.5, bx, rhs, nddom, lobc, hibc);
 }
 
 }
@@ -64,8 +83,8 @@ namespace amrex {
 
 template <typename T>
 void mlndlap_fillbc_cc (Box const& vbx, Array4<T> const& sigma, Box const& domain,
-                        Array<LinOpBCType, AMREX_SPACEDIM> bclo,
-                        Array<LinOpBCType, AMREX_SPACEDIM> bchi) noexcept
+                        GpuArray<LinOpBCType, AMREX_SPACEDIM> bclo,
+                        GpuArray<LinOpBCType, AMREX_SPACEDIM> bchi) noexcept
 {
     GpuArray<bool,AMREX_SPACEDIM> bflo{AMREX_D_DECL(bclo[0] != LinOpBCType::Periodic,
                                                     bclo[1] != LinOpBCType::Periodic,
@@ -78,8 +97,8 @@ void mlndlap_fillbc_cc (Box const& vbx, Array4<T> const& sigma, Box const& domai
 
 template <typename T>
 void mlndlap_applybc (Box const& vbx, Array4<T> const& phi, Box const& domain,
-                      Array<LinOpBCType, AMREX_SPACEDIM> bclo,
-                      Array<LinOpBCType, AMREX_SPACEDIM> bchi) noexcept
+                      GpuArray<LinOpBCType, AMREX_SPACEDIM> bclo,
+                      GpuArray<LinOpBCType, AMREX_SPACEDIM> bchi) noexcept
 {
     GpuArray<bool,AMREX_SPACEDIM> bflo{AMREX_D_DECL(bclo[0] == LinOpBCType::Neumann or
                                                     bclo[0] == LinOpBCType::inflow,
@@ -124,6 +143,19 @@ void mlndlap_jacobi_sten (Box const& bx, Array4<Real> const& sol,
             sol(i,j,k) += (2./3.) * (rhs(i,j,k) - Ax(i,j,k)) / sten(i,j,k,0);
         }
     });
+}
+
+AMREX_FORCE_INLINE
+bool mlndlap_any_fine_sync_cells (Box const& bx, Array4<int const> const& msk, int fine_flag) noexcept
+{
+    const auto lo = amrex::lbound(bx);
+    const auto hi = amrex::ubound(bx);
+    for (int k = lo.z; k <= hi.z; ++k) {
+    for (int j = lo.y; j <= hi.y; ++j) {
+    for (int i = lo.x; i <= hi.x; ++i) {
+        if (msk(i,j,k) == fine_flag) return true;
+    }}}
+    return false;
 }
 
 }

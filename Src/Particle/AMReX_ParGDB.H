@@ -161,7 +161,7 @@ inline
 void
 ParGDB::SetParticleBoxArray (int level, const BoxArray& new_ba)
 {
-    BL_ASSERT(level < m_nlevels);
+    AMREX_ASSERT(level < m_nlevels);
     m_ba[level] = new_ba;
 }
 
@@ -169,7 +169,7 @@ inline
 void
 ParGDB::SetParticleDistributionMap (int level, const DistributionMapping& new_dm)
 {
-    BL_ASSERT(level < m_nlevels);
+    AMREX_ASSERT(level < m_nlevels);
     m_dmap[level] = new_dm;
 }
 
@@ -177,7 +177,7 @@ inline
 void
 ParGDB::ClearParticleBoxArray (int level)
 {
-    BL_ASSERT(level < m_nlevels);
+    AMREX_ASSERT(level < m_nlevels);
     m_ba[level] = BoxArray();
 }
 
@@ -185,7 +185,7 @@ inline
 void
 ParGDB::ClearParticleDistributionMap (int level)
 {
-    BL_ASSERT(level < m_nlevels);
+    AMREX_ASSERT(level < m_nlevels);
     m_dmap[level] = DistributionMapping();
 }
 

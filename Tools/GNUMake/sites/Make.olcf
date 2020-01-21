@@ -80,10 +80,6 @@ ifeq ($(which_computer),$(filter $(which_computer),summitdev))
   GPUS_PER_NODE=4
   GPUS_PER_SOCKET=2
 
-ifeq ($(USE_OMP_OFFLOAD),TRUE)
-  GENERIC_IBM_FLAGS += -qsmp=omp:noauto -qoffload -qtgtarch=sm_60
-endif
-
 endif
 
 
@@ -126,10 +122,6 @@ ifeq ($(which_computer),$(filter $(which_computer),summit))
   GPUS_PER_NODE=6
   GPUS_PER_SOCKET=3
 
-ifeq ($(USE_OMP_OFFLOAD),TRUE)
-  GENERIC_IBM_FLAGS += -qsmp=omp:noauto -qoffload -qtgtarch=sm_70
-endif
-
 endif
 
 
@@ -169,10 +161,6 @@ ifeq ($(which_computer),$(filter $(which_computer),ascent peak))
 
   GPUS_PER_NODE=6
   GPUS_PER_SOCKET=3
-
-ifeq ($(USE_OMP_OFFLOAD),TRUE)
-  GENERIC_IBM_FLAGS += -qsmp=omp:noauto -qoffload -qtgtarch=sm_70
-endif
 
    CPATH=/autofs/nccsopen-svm1_sw/ascent/.swci/1-compute/opt/spack/20180914/linux-rhel7-ppc64le/pgi-18.7/spectrum-mpi-10.2.0.7-20180830-d6ufwv3i4tohn6fq552fpz6au5ik33ok/include:/sw/ascent/cuda/9.1.85/include
 

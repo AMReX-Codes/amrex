@@ -2,7 +2,7 @@
 #define AMREX_ARRAYOFSTRUCTS_H_
 
 #include <AMReX_Particle.H>
-#include <AMReX_CudaContainers.H>
+#include <AMReX_GpuContainers.H>
 #include <AMReX_Vector.H>
 
 namespace amrex {
@@ -13,7 +13,7 @@ public:
     using ParticleType  = Particle<NReal, NInt>;
     using RealType      = typename ParticleType::RealType;
 
-    using ParticleVector = Gpu::ManagedDeviceVector<ParticleType>;
+    using ParticleVector = Gpu::ManagedVector<ParticleType>;
     
     using Iterator      = typename ParticleVector::iterator;
     using ConstIterator = typename ParticleVector::const_iterator;
@@ -23,8 +23,8 @@ public:
     ArrayOfStructs() 
         : m_num_neighbor_particles(0) {}
 
-    const ParticleVector& operator()() const { return m_data; }
-    ParticleVector& operator()()       { return m_data; }
+    const ParticleVector& operator() () const { return m_data; }
+    ParticleVector& operator() ()       { return m_data; }
 
     /**
     * \brief Returns the total number of particles (real and neighbor)

@@ -4,6 +4,7 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_Particles.H>
+#include <AMReX_ParticleUtil.H>
 
 #ifdef AMREX_USE_CUDA
 #include <AMReX_NeighborList.H>
@@ -311,7 +312,11 @@ public:
 
 #endif
 
-    void setEnableInverse (bool flag) { enable_inverse = flag; }
+    void setEnableInverse (bool flag)
+    {
+        enable_inverse = flag;
+        calcCommSize();
+    }
 
     bool enableInverse () { return enable_inverse; }
 
@@ -422,17 +427,17 @@ protected:
     std::unique_ptr<amrex::iMultiFab> m_neighbor_mask_ptr;
     std::map<int, std::vector<std::vector<NeighborCode> > > m_grid_map;
 
-    std::map<int, amrex::Gpu::ManagedDeviceVector<NeighborCode> > m_code_array;
-    std::map<int, amrex::Gpu::ManagedDeviceVector<int> > m_code_offsets;
+    std::map<int, amrex::Gpu::ManagedVector<NeighborCode> > m_code_array;
+    std::map<int, amrex::Gpu::ManagedVector<int> > m_code_offsets;
 
     ParticleCopyOp neighbor_copy_op;
     ParticleCopyPlan neighbor_copy_plan;
 
-    amrex::Gpu::DeviceVector<ParticleType> snd_buffer;
-    amrex::Gpu::DeviceVector<ParticleType> rcv_buffer;
+    amrex::Gpu::DeviceVector<char> snd_buffer;
+    amrex::Gpu::DeviceVector<char> rcv_buffer;
 
-    Gpu::PinnedDeviceVector<ParticleType> pinned_snd_buffer;
-    Gpu::PinnedDeviceVector<ParticleType> pinned_rcv_buffer;
+    Gpu::PinnedVector<char> pinned_snd_buffer;
+    Gpu::PinnedVector<char> pinned_rcv_buffer;
 
     std::map<std::pair<int, int>, amrex::NeighborList<ParticleType> > m_neighbor_list;
 #endif

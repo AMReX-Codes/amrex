@@ -10,7 +10,7 @@
 namespace amrex {
 
 /**
-  /brief A MCMultiGrid solves the linear equation, L(phi)=rhs, for a MCLinOp L and
+  \brief A MCMultiGrid solves the linear equation, L(phi)=rhs, for a MCLinOp L and
   MultiFabs rhs and phi using a V-type cycle of the MCMultiGrid algorithm
 
   A MCMultiGrid object solves the linear equation, L(phi)=rhs for a MCLinOp
