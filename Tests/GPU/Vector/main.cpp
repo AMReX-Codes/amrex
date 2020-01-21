@@ -45,6 +45,7 @@ int main (int argc, char* argv[])
         test_container<Gpu::HostVector   >();
         test_container<Gpu::ManagedVector>();
         test_container<Gpu::PinnedVector> ();
+        amrex::Print() << "Passed! \n";
     }
     amrex::Finalize();
 }
