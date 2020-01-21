@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
+import sys
 import yt ; yt.funcs.mylog.setLevel(0)
 import numpy as np
 
-dsQED = yt.load('plt00300')
+dsQED = yt.load(sys.argv[1])
 QED_all_data_level_0 = dsQED.covering_grid(level=0,left_edge=(dsQED.domain_left_edge),
                                            dims=dsQED.domain_dimensions)
 EyQED = QED_all_data_level_0['boxlib', 'Ey'].v.squeeze()
