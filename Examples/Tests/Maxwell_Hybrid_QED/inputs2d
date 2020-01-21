@@ -1,7 +1,7 @@
 # ###############################
 ####### GENERAL PARAMETERS ######
 #################################
-max_step = 500
+max_step = 300
 amr.n_cell = 64 1024
 amr.max_grid_size = 4096
 amr.blocking_factor = 8
@@ -21,7 +21,6 @@ warpx.verbose = 0
 warpx.plot_raw_fields = 1
 warpx.plot_raw_fields_guards = 1
 warpx.plot_finepatch = 1
-warpx.plot_crsepatch = 1
 warpx.use_filter = 1
 warpx.cfl = 1.
 warpx.do_pml = 0
