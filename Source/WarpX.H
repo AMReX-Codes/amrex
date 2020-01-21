@@ -83,6 +83,9 @@ public:
 
     static void GotoNextLine (std::istream& is);
 
+    //! Author of an input file / simulation setup
+    static std::string authors;
+
     // External fields added to particle fields.
     static amrex::Vector<amrex::Real> B_external_particle;
     static amrex::Vector<amrex::Real> E_external_particle;
