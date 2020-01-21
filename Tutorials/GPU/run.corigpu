@@ -56,7 +56,7 @@ srun ${EXE} ${INPUTS}
 
 # Run Nsight Systems:
 #   Run nsys profile and store performance data in a qdrep file
-#   Open using nsight-sys
+#   Open using nsight-sys $(pwd)/nsys_out.#.######.qdrep
 #srun nsys profile -o nsys_out.%q{SLURM_PROCID}.%q{SLURM_JOBID} ${EXE} ${INPUTS}
 
 # Run Nsight Compute:
