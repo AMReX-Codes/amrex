@@ -2,7 +2,7 @@
 import yt ; ty.funcs.mylog.setLevel(0)
 import numpy as np
 
-dsQED = yt.load(plt300)
+dsQED = yt.load('plt00300')
 QED_all_data_level_0 = dsQED.covering_grid(level=0,left_edge=(dsQED.domain_left_edge),
                                            dims=dsQED.domain_dimensions)
 EyQED = QED_all_data_level_0['boxlib', 'Ey'].v.squeeze()
