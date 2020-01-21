@@ -282,22 +282,8 @@ Note that Paraview is not able to generate iso-surfaces from cell centered data.
 #. Use the "Contour" icon (next to the calculator) to select the data from which to build the contour ("Contour by"), enters the iso-surfaces
    values and click "Apply".
 
-Once you have loaded an AMReX plotfile time series, you can generate a movie following these instructions:
-
-#. "File" :math:`\rightarrow` "Save Animation...".
-
-#. Enter a file name, select ".avi" as the Type of File and click "OK".
-
-#. Adjust the resolution, compression and framerate, and click "OK"
-
 To visualize particle data within plofile directories (for example, you could
 run the ``ShortRangeParticles`` example):
-
-#. Run ParaView v5.7, and select  then  “File” :math:`\rightarrow` “Open”. You
-   will see a combined “plt..” group. Click on “+” to expand the group, if you
-   want inspect the files in the group. You can select an individual plotfile
-   directory or select a group of directories to read them a time series, as
-   shown in :numref:`fig:ParaView_filegroup`, and click OK.
 
 .. raw:: latex
 
@@ -314,6 +300,11 @@ run the ``ShortRangeParticles`` example):
 
    \end{center}
 
+#. Run ParaView v5.7, and select  then  “File” :math:`\rightarrow` “Open”. You
+   will see a combined “plt..” group. Click on “+” to expand the group, if you
+   want inspect the files in the group. You can select an individual plotfile
+   directory or select a group of directories to read them a time series, as
+   shown in :numref:`fig:ParaView_filegroup`, and click OK. ParaView will ask you about the file type – choose "AMReX/BoxLib Particles Reader".
 
 #. The “Properties” panel in ParaView allows you to specify the “Particle
    Type”, which defaults to “particles”. Using the “Properties” panel, you can
@@ -339,6 +330,17 @@ run the ``ShortRangeParticles`` example):
 .. raw:: latex
 
    \end{center}
+
+Following these instructions, you can open fluid and/or particles plotfiles and visualize them together on the same Panel View.
+
+Once you have loaded an AMReX plotfile time series (fluid and/or particles), you can generate a movie following these instructions:
+
+#. "File" :math:`\rightarrow` "Save Animation...".
+
+#. Enter a file name, select ".avi" as the Type of File and click "OK".
+
+#. Adjust the resolution, compression and framerate, and click "OK"
+
 
 .. _section-2:
 

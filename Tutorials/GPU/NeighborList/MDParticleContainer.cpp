@@ -53,7 +53,7 @@ InitParticles(const IntVect& a_num_particles_per_cell,
     {
         const Box& tile_box  = mfi.tilebox();
 
-        Cuda::HostVector<ParticleType> host_particles;
+        Gpu::HostVector<ParticleType> host_particles;
         
         for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv)) {
             for (int i_part=0; i_part<num_ppc;i_part++) {
@@ -94,9 +94,10 @@ InitParticles(const IntVect& a_num_particles_per_cell,
         auto new_size = old_size + host_particles.size();
         particle_tile.resize(new_size);
         
-        Cuda::thrust_copy(host_particles.begin(),
-                          host_particles.end(),
-                          particle_tile.GetArrayOfStructs().begin() + old_size);        
+        Gpu::copy(Gpu::hostToDevice,
+                  host_particles.begin(),
+                  host_particles.end(),
+                  particle_tile.GetArrayOfStructs().begin() + old_size);        
     }    
 }
 

@@ -41,8 +41,8 @@ void ParticleBufferMap::define (const ParGDBBase* a_gdb)
     m_lev_gid_to_bucket.resize(0);
     m_lev_gid_to_bucket.resize(num_buckets);
 
-    using int3 = std::tuple<int, int, int>;
-    std::vector<int3> box_lev_proc_ids;
+    using ThreeIntTuple = std::tuple<int, int, int>;
+    std::vector<ThreeIntTuple> box_lev_proc_ids;
 
     for (int lev = 0; lev < num_levels; ++lev) {
         for (int i = 0; i < m_ba[lev].size(); ++i) {
@@ -51,7 +51,7 @@ void ParticleBufferMap::define (const ParGDBBase* a_gdb)
     }
     
     std::sort(box_lev_proc_ids.begin(), box_lev_proc_ids.end(), 
-              [](const int3& a, const int3& b) -> bool
+              [](const ThreeIntTuple& a, const ThreeIntTuple& b) -> bool
               {
                   int pid_a = std::get<2>(a);
                   int pid_b = std::get<2>(b);
@@ -103,9 +103,9 @@ void ParticleBufferMap::define (const ParGDBBase* a_gdb)
     d_lev_offsets.resize(0);
     d_lev_offsets.resize(num_levels);
 
-    Gpu::thrust_copy(m_lev_gid_to_bucket.begin(),m_lev_gid_to_bucket.end(),d_lev_gid_to_bucket.begin());
-    Gpu::thrust_copy(m_lev_offsets.begin(),m_lev_offsets.end(),d_lev_offsets.begin());
-    Gpu::thrust_copy(m_bucket_to_pid.begin(),m_bucket_to_pid.end(),d_bucket_to_pid.begin());
+    Gpu::copy(Gpu::hostToDevice, m_lev_gid_to_bucket.begin(),m_lev_gid_to_bucket.end(),d_lev_gid_to_bucket.begin());
+    Gpu::copy(Gpu::hostToDevice, m_lev_offsets.begin(),m_lev_offsets.end(),d_lev_offsets.begin());
+    Gpu::copy(Gpu::hostToDevice, m_bucket_to_pid.begin(),m_bucket_to_pid.end(),d_bucket_to_pid.begin());
 }
 
 bool ParticleBufferMap::isValid (const ParGDBBase* a_gdb) const

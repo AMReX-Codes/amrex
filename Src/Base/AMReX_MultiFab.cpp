@@ -165,6 +165,62 @@ MultiFab::Copy (MultiFab&       dst,
 
 
 void
+MultiFab::Swap (MultiFab& dst, MultiFab& src,
+                int srccomp, int dstcomp, int numcomp, int nghost)
+{
+    Swap(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
+}
+
+void
+MultiFab::Swap (MultiFab& dst, MultiFab& src,
+                int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
+{
+    BL_ASSERT(dst.boxArray() == src.boxArray());
+    BL_ASSERT(dst.distributionMap == src.distributionMap);
+    BL_ASSERT(dst.nGrowVect().allGE(nghost) and src.nGrowVect().allGE(nghost));
+
+    BL_PROFILE("MultiFab::Swap()");
+
+    // We can take a shortcut and do a std::swap if we're swapping all of the data
+    // and they are allocated in the same Arena.
+
+    bool explicit_swap = true;
+
+    if (srccomp == dstcomp && dstcomp == 0 && src.nComp() == dst.nComp() &&
+        src.nGrowVect() == nghost && src.nGrowVect() == dst.nGrowVect() &&
+        src.arena() == dst.arena() && src.hasEBFabFactory() == dst.hasEBFabFactory()) {
+        explicit_swap = false;
+    }
+
+    if (!explicit_swap) {
+
+        std::swap(dst, src);
+
+    } else {
+
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.growntilebox(nghost);
+            if (bx.ok()) {
+                auto sfab = src.array(mfi);
+                auto dfab = dst.array(mfi);
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, numcomp, i, j, k, n,
+                {
+                    const amrex::Real tmp = dfab(i,j,k,n+dstcomp);
+                    dfab(i,j,k,n+dstcomp) = sfab(i,j,k,n+srccomp);
+                    sfab(i,j,k,n+srccomp) = tmp;
+                });
+            }
+        }
+
+    }
+}
+
+
+void
 MultiFab::Subtract (MultiFab& dst, const MultiFab& src,
                     int srccomp, int dstcomp, int numcomp, int nghost)
 {
@@ -228,9 +284,16 @@ void
 MultiFab::Saxpy (MultiFab& dst, Real a, const MultiFab& src,
 		 int srccomp, int dstcomp, int numcomp, int nghost)
 {
+    Saxpy(dst,a,src,srccomp,dstcomp,numcomp,IntVect(nghost));
+}
+
+void
+MultiFab::Saxpy (MultiFab& dst, Real a, const MultiFab& src,
+		 int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
+{
     BL_ASSERT(dst.boxArray() == src.boxArray());
     BL_ASSERT(dst.distributionMap == src.distributionMap);
-    BL_ASSERT(dst.nGrow() >= nghost and src.nGrow() >= nghost);
+    BL_ASSERT(dst.nGrowVect().allGE(nghost) and src.nGrowVect().allGE(nghost));
 
     BL_PROFILE("MultiFab::Saxpy()");
 
@@ -256,9 +319,16 @@ void
 MultiFab::Xpay (MultiFab& dst, Real a, const MultiFab& src,
 		int srccomp, int dstcomp, int numcomp, int nghost)
 {
+    Xpay(dst,a,src,srccomp,dstcomp,numcomp,IntVect(nghost));
+}
+
+void
+MultiFab::Xpay (MultiFab& dst, Real a, const MultiFab& src,
+		int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
+{
     BL_ASSERT(dst.boxArray() == src.boxArray());
     BL_ASSERT(dst.distributionMap == src.distributionMap);
-    BL_ASSERT(dst.nGrow() >= nghost and src.nGrow() >= nghost);
+    BL_ASSERT(dst.nGrowVect().allGE(nghost) and src.nGrowVect().allGE(nghost));
 
     BL_PROFILE("MultiFab::Xpay()");
 
@@ -285,11 +355,20 @@ MultiFab::LinComb (MultiFab& dst,
                    Real b, const MultiFab& y, int ycomp,
                    int dstcomp, int numcomp, int nghost)
 {
+    LinComb(dst,a,x,xcomp,b,y,ycomp,dstcomp,numcomp,IntVect(nghost));
+}
+
+void
+MultiFab::LinComb (MultiFab& dst,
+                   Real a, const MultiFab& x, int xcomp,
+                   Real b, const MultiFab& y, int ycomp,
+                   int dstcomp, int numcomp, const IntVect& nghost)
+{
     BL_ASSERT(dst.boxArray() == x.boxArray());
     BL_ASSERT(dst.distributionMap == x.distributionMap);
     BL_ASSERT(dst.boxArray() == y.boxArray());
     BL_ASSERT(dst.distributionMap == y.distributionMap);
-    BL_ASSERT(dst.nGrow() >= nghost and x.nGrow() >= nghost and y.nGrow() >= nghost);
+    BL_ASSERT(dst.nGrowVect().allGE(nghost) and x.nGrowVect().allGE(nghost) and y.nGrowVect().allGE(nghost));
 
     BL_PROFILE("MultiFab::LinComb()");
 
@@ -318,11 +397,20 @@ MultiFab::AddProduct (MultiFab& dst,
                       const MultiFab& src2, int comp2,
                       int dstcomp, int numcomp, int nghost)
 {
+    AddProduct(dst,src1,comp1,src2,comp2,dstcomp,numcomp,IntVect(nghost));
+}
+
+void
+MultiFab::AddProduct (MultiFab& dst,
+                      const MultiFab& src1, int comp1,
+                      const MultiFab& src2, int comp2,
+                      int dstcomp, int numcomp, const IntVect& nghost)
+{
     BL_ASSERT(dst.boxArray() == src1.boxArray());
     BL_ASSERT(dst.distributionMap == src1.distributionMap);
     BL_ASSERT(dst.boxArray() == src2.boxArray());
     BL_ASSERT(dst.distributionMap == src2.distributionMap);
-    BL_ASSERT(dst.nGrow() >= nghost and src1.nGrow() >= nghost and src2.nGrow() >= nghost);
+    BL_ASSERT(dst.nGrowVect().allGE(nghost) and src1.nGrowVect().allGE(nghost) and src2.nGrowVect().allGE(nghost));
 
     BL_PROFILE("MultiFab::AddProduct()");
 
@@ -509,7 +597,7 @@ MultiFab::initVal ()
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(*this, TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
     {
         FArrayBox& fab = (*this)[mfi];
 	fab.initVal();
@@ -1129,15 +1217,10 @@ MultiFab::SumBoundary (int scomp, int ncomp, IntVect const& nghost, const Period
 
     if ( n_grow == IntVect::TheZeroVector() and boxArray().ixType().cellCentered()) return;
 
-    if (boxArray().ixType().cellCentered()) {
-	// Self copy is safe only for cell-centered MultiFab
-	this->copy(*this,scomp,scomp,ncomp,n_grow,nghost,period,FabArrayBase::ADD);
-    } else {
-	MultiFab tmp(boxArray(), DistributionMap(), ncomp, n_grow, MFInfo(), Factory());
-	MultiFab::Copy(tmp, *this, scomp, 0, ncomp, n_grow);
-	this->setVal(0.0, scomp, ncomp, nghost);
-	this->copy(tmp,0,scomp,ncomp,n_grow,nghost,period,FabArrayBase::ADD);
-    }
+    MultiFab tmp(boxArray(), DistributionMap(), ncomp, n_grow, MFInfo(), Factory());
+    MultiFab::Copy(tmp, *this, scomp, 0, ncomp, n_grow);
+    this->setVal(0.0, scomp, ncomp, nghost);
+    this->copy(tmp,0,scomp,ncomp,n_grow,nghost,period,FabArrayBase::ADD);
 }
 
 void
@@ -1164,8 +1247,11 @@ MultiFab::OverlapMask (const Periodicity& period) const
 
     const std::vector<IntVect>& pshifts = period.shiftIntVect();
 
+    Vector<Array4BoxTag<Real> > tags;
+
+    bool run_on_gpu = Gpu::inLaunchRegion();
 #ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
+#pragma omp parallel if (!run_on_gpu)
 #endif
     {
         std::vector< std::pair<int,Box> > isects;
@@ -1173,7 +1259,7 @@ MultiFab::OverlapMask (const Periodicity& period) const
         for (MFIter mfi(*p); mfi.isValid(); ++mfi)
         {
             const Box& bx = (*p)[mfi].box();
-            auto arr = p->array(mfi); 
+            Array4<Real> const& arr = p->array(mfi);
 
             AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
             {
@@ -1185,19 +1271,31 @@ MultiFab::OverlapMask (const Periodicity& period) const
                 ba.intersections(bx+iv, isects);
                 for (const auto& is : isects)
                 {
-                    Box ibx = is.second-iv;
-                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D(ibx, i, j, k,
-                    {
-                        arr(i,j,k) += 1.0;
-                    });
+                    Box const& b = is.second-iv;
+                    if (run_on_gpu) {
+                        tags.push_back({arr,b});
+                    } else {
+                        amrex::LoopConcurrentOnCpu(b, [=] (int i, int j, int k) noexcept
+                        {
+                            arr(i,j,k) += 1.0;
+                        });
+                    }
                 }
             }
         }
     }
-    
+
+#ifdef AMREX_USE_GPU
+    amrex::ParallelFor(tags, 1,
+    [=] AMREX_GPU_DEVICE (int i, int j, int k, int n, Array4<Real> const& a) noexcept
+    {
+        Real* p = a.ptr(i,j,k,n);
+        Gpu::Atomic::Add(p, 1.0_rt);
+    });
+#endif
+
     return p;
 }
-
 
 std::unique_ptr<iMultiFab>
 MultiFab::OwnerMask (const Periodicity& period) const
