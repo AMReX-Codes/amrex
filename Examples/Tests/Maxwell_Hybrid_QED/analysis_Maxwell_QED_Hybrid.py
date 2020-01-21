@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import yt ; ty.funcs.mylog.setLevel(0)
+import yt ; yt.funcs.mylog.setLevel(0)
 import numpy as np
 
 dsQED = yt.load('plt00300')
