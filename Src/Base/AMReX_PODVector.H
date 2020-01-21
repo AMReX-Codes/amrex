@@ -245,7 +245,7 @@ namespace amrex
                 m_size += a_count;
             }
 
-            detail::uninitializedFillNImpl<Allocator>(a_pos, a_count, a_value);
+            detail::uninitializedFillNImpl<Allocator>(const_cast<iterator>(a_pos), a_count, a_value);
             
             return const_cast<iterator>(a_pos);
         }
