@@ -379,8 +379,7 @@ void testRedistribute ()
     int npc = params.num_ppc;
     IntVect nppc = IntVect(AMREX_D_DECL(npc, npc, npc));
 
-    if (ParallelDescriptor::MyProc() == ParallelDescriptor::IOProcessor())
-        amrex::Print() << "About to initialize particles \n";
+    amrex::Print() << "About to initialize particles \n";
 
     pc.InitParticles(nppc);
 
