@@ -35,9 +35,14 @@ particles.nspecies = 0
 warpx.E_ext_grid_init_style = parse_E_ext_grid_function
 warpx.Ez_external_grid_function(x,y,z) = 0.
 warpx.Ex_external_grid_function(x,y,z) = 0.
-warpx.Ey_external_grid_function(x,y,z) = ((exp(-(z)**2/20000)))*cos(2*3.14159265359*z/64)+1.e5
+warpx.Ey_external_grid_function(x,y,z) = "
+    ((exp(-(z)**2/20000)))*cos(2*3.14159265359*z/64)+1.e5
+    "
 
 warpx.B_ext_grid_init_style = parse_B_ext_grid_function
-warpx.Bx_external_grid_function(x,y,z)= -1*sqrt((1+(12*10**(-13))/(8.8541878128*10**(-12)))/(1+(4*10**(-13))/(8.8541878128*10**(-12))))*(exp(-(z)**2/20000))*cos(2*3.14159265359*z/64)/299792458.
+warpx.Bx_external_grid_function(x,y,z)= "
+    -1*sqrt((1+(12*10**(-13))/(8.8541878128*10**(-12)))/(1+(4*10**(-13))/(8.8541878128*10**(-12))))*
+    (exp(-(z)**2/20000))*cos(2*3.14159265359*z/64)/299792458.
+    "
 warpx.By_external_grid_function(x,y,z)= 0.
 warpx.Bz_external_grid_function(x,y,z) = 0.
