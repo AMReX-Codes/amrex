@@ -34,7 +34,7 @@ using namespace amrex;
 *\param[in] dt The temporal step, used for the half push/correction to the E-fields at the end of the function
 */
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+//AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void warpx_hybrid_QED_push (int j, int k, int l, Array4<Real> const& Ex, Array4<Real>
     const& Ey, Array4<Real> const& Ez, Array4<Real> const& Bx, Array4<Real> const& By,
     Array4<Real const> const& Bz, Array4<Real> const& tmpEx, Array4<Real>
