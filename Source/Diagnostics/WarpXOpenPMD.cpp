@@ -100,6 +100,9 @@ WarpXOpenPMDPlot::Init(openPMD::AccessType accessType)
     else
     m_Series = std::make_unique<openPMD::Series>(filename, accessType);
 
+    // input file / simulation setup author
+    if( WarpX::authors.size() > 0u )
+        m_Series->setAuthor( WarpX::authors );
     // more natural naming for PIC
     m_Series->setMeshesPath("fields");
     // TODO conform to ED-PIC extension of openPMD

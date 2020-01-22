@@ -9,6 +9,10 @@ Input parameters
 Overall simulation parameters
 -----------------------------
 
+* ``authors`` (`string`: e.g. ``"Jane Doe <jane@example.com>, Jimmy Joe <jimmy@example.com>"``)
+    Authors of an input file / simulation setup.
+    When provided, this information is added as metadata to (openPMD) output files.
+
 * ``max_step`` (`integer`)
     The number of PIC cycles to perform.
 
