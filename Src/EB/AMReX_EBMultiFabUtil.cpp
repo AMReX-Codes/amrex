@@ -718,9 +718,9 @@ EB_interp_CC_to_Centroid (MultiFab& cent, const MultiFab& cc, int scomp, int dco
 
 void
 EB_interp_CC_to_FaceCentroid (MultiFab& sol,
-                              D_DECL( MultiFab& edgestate_x,
-                                      MultiFab& edgestate_y,
-                                      MultiFab& edgestate_z),
+                              AMREX_D_DECL( MultiFab& edgestate_x,
+                                            MultiFab& edgestate_y,
+                                            MultiFab& edgestate_z),
                               int scomp, int dcomp, int ncomp,
                               const Geometry& a_geom,
                               const Vector<BCRec>& a_bcs)

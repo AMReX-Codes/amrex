@@ -44,9 +44,9 @@ namespace amrex
     void EB_interp_CC_to_Centroid (MultiFab& cntrd, const MultiFab& cc, int scomp, int dcomp, int ncomp, const Geometry& geom);
     
     void EB_interp_CC_to_FaceCentroid (MultiFab& sol,
-                                       D_DECL( MultiFab& a_edgestate_x,
-                                               MultiFab& a_edgestate_y,
-                                               MultiFab& a_edgestate_z),
+                                       AMREX_D_DECL( MultiFab& a_edgestate_x,
+                                                     MultiFab& a_edgestate_y,
+                                                     MultiFab& a_edgestate_z),
                                        int scomp, int dcomp, int nc,
                                        const Geometry& geom,
                                        const amrex::Vector<amrex::BCRec>& a_bcs);
