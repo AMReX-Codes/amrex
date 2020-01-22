@@ -256,12 +256,16 @@ WarpXOpenPMDPlot::SavePlotFile (const std::unique_ptr<WarpXParticleContainer>& p
   openPMD::Iteration currIteration = m_Series->iterations[iteration];
   openPMD::ParticleSpecies currSpecies = currIteration.particles[name];
   // meta data for ED-PIC extension
-  currSpecies.setAttribute( "particleShape", [](){
-      return double( WarpX::noz );
-  }() );
+  currSpecies.setAttribute( "particleShape", double( WarpX::noz ) );
   // TODO allow this per direction in the openPMD standard, ED-PIC extension?
   currSpecies.setAttribute( "particleShapes", [](){
-      return std::vector< double >{ double(WarpX::nox), double(WarpX::noy), double(WarpX::noz) };
+      return std::vector< double >{
+          double(WarpX::nox),
+#if AMREX_SPACEDIM==3
+          double(WarpX::noy),
+#endif
+          double(WarpX::noz)
+      };
   }() );
   currSpecies.setAttribute( "particlePush", [](){
       switch( WarpX::particle_pusher_algo ) {
@@ -296,7 +300,6 @@ WarpXOpenPMDPlot::SavePlotFile (const std::unique_ptr<WarpXParticleContainer>& p
   m_Series->flush();
   for (auto currentLevel = 0; currentLevel <= pc->finestLevel(); currentLevel++)
     {
-      //auto const numParticles = counter.m_ParticleSizeAtRank[currentLevel]
       uint64_t const numParticles = static_cast<uint64_t>( counter.m_ParticleSizeAtRank[currentLevel] );
       uint64_t offset = static_cast<uint64_t>( counter.m_ParticleOffsetAtRank[currentLevel] );
 
@@ -459,9 +462,6 @@ WarpXOpenPMDPlot::SetupPos(const std::unique_ptr<WarpXParticleContainer>& pc,
       currSpecies["positionOffset"][comp].resetDataset( realType );
       currSpecies["positionOffset"][comp].makeConstant( 0. );
       currSpecies["position"][comp].resetDataset( realType );
-      // meta data
-      //currSpecies["position"][comp].setUnitSI();
-      //currSpecies["positionOffset"][comp].setUnitSI();
   }
 
   auto const scalar = openPMD::RecordComponent::SCALAR;
@@ -470,8 +470,6 @@ WarpXOpenPMDPlot::SetupPos(const std::unique_ptr<WarpXParticleContainer>& pc,
   currSpecies["charge"][scalar].makeConstant( pc->getCharge() );
   currSpecies["mass"][scalar].resetDataset( realType );
   currSpecies["mass"][scalar].makeConstant( pc->getMass() );
-  //currSpecies["charge"][comp].setUnitSI();
-  //currSpecies["mass"][comp].setUnitSI();
 
   // meta data
   currSpecies["position"].setUnitDimension( detail::getUnitDimension("position") );
