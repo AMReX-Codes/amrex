@@ -293,9 +293,8 @@ void eb_interp_cc2facecent (Box const& box,
   const Dim3 domlo = amrex::lbound(domain);
   const Dim3 domhi = amrex::ubound(domain);
 
-  D_TERM( const Box ubx = amrex::surroundingNodes(box,0);,
-          const Box vbx = amrex::surroundingNodes(box,1);,
-          const Box wbx = amrex::surroundingNodes(box,2););
+  const Box ubx = amrex::surroundingNodes(box,0);
+  const Box vbx = amrex::surroundingNodes(box,1);
 
   const auto bc = bcs.dataPtr();
 
@@ -397,9 +396,8 @@ void eb_interp_cc2face (Box const& box,
   const Dim3 domlo = amrex::lbound(domain);
   const Dim3 domhi = amrex::ubound(domain);
   
-  D_TERM( const Box ubx = amrex::surroundingNodes(box,0);,
-          const Box vbx = amrex::surroundingNodes(box,1);,
-          const Box wbx = amrex::surroundingNodes(box,2););
+  const Box ubx = amrex::surroundingNodes(box,0);
+  const Box vbx = amrex::surroundingNodes(box,1);
   
   const auto bc = bcs.dataPtr();
   
