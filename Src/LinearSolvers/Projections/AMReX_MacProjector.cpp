@@ -32,9 +32,6 @@ MacProjector::MacProjector (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_um
     bool has_eb = a_umac[0][0]->hasEBFabFactory();
     if (has_eb)
     {
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(a_umac[0][0]->nGrow() > 0,
-                                         "MacProjector: with EB, umac must have at least one ghost cell");
-
         m_eb_factory.resize(nlevs,nullptr);
         for (int ilev = 0; ilev < nlevs; ++ilev) {
             m_eb_factory[ilev] = dynamic_cast<EBFArrayBoxFactory const*>(&(a_umac[ilev][0]->Factory()));
@@ -130,6 +127,8 @@ MacProjector::project (Real reltol, Real atol, MLMG::Location loc)
         bool already_on_centroid = (loc == MLMG::Location::FaceCentroid);
         if (!already_on_centroid) {
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_umac[ilev][idim]->nGrow() > 0,
+                                                 "MacProjector: with EB, umac must have at least one ghost cell if not already_on_centroid");
                 m_umac[ilev][idim]->FillBoundary(m_geom[ilev].periodicity());
             }
         }
@@ -172,6 +171,8 @@ MacProjector::project (const Vector<MultiFab*>& phi_inout, Real reltol, Real ato
         bool already_on_centroid = (loc == MLMG::Location::FaceCentroid);
         if (!already_on_centroid) {
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_umac[ilev][idim]->nGrow() > 0,
+                                                 "MacProjector: with EB, umac must have at least one ghost cell if not already_on_centroid");
                 m_umac[ilev][idim]->FillBoundary(m_geom[ilev].periodicity());
             }
         }
