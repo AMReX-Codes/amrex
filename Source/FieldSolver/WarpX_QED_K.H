@@ -424,7 +424,10 @@ const amrex::Real xi = PhysConst::xi;
             (
                 tmpEx(j,k,l)*Bx(j,k,l)+tmpEy(j,k,l)*By(j,k,l)+tmpEz(j,k,l)*Bz(j,k,l)
             )
-            + 4*tmpEz(j,k,l)*(Bx(j,k,l)*VxE[0]+By(j,k,l)*VxE[1]+Bz(j,k,l)*VxE[2])
+            + 4*tmpEz(j,k,l)*
+            (
+                Bx(j,k,l)*VxE[0]+By(j,k,l)*VxE[1]+Bz(j,k,l)*VxE[2]
+			)
         )
         + VxM[2],
     };
@@ -440,7 +443,7 @@ const amrex::Real xi = PhysConst::xi;
                 + 2*VxB[0]*
                 (
                     pow(tmpEx(j,k,l),2)+pow(tmpEy(j,k,l),2)+pow(tmpEz(j,k,l),2)
-                    -c2*
+                    - c2*
                     (
                         pow(Bx(j,k,l),2)+pow(By(j,k,l),2)+pow(Bz(j,k,l),2)
                     )
@@ -460,7 +463,7 @@ const amrex::Real xi = PhysConst::xi;
                 + 2*VxB[1]*
                 (
                     pow(tmpEx(j,k,l),2)+pow(tmpEy(j,k,l),2)+pow(tmpEz(j,k,l),2)
-                    -c2*
+                    - c2*
                     (
                         pow(Bx(j,k,l),2)+pow(By(j,k,l),2)+pow(Bz(j,k,l),2)
                     )
@@ -480,7 +483,7 @@ const amrex::Real xi = PhysConst::xi;
                 + 2*VxB[2]*
                 (
                     pow(tmpEx(j,k,l),2)+pow(tmpEy(j,k,l),2)+pow(tmpEz(j,k,l),2)
-                    -c2*
+                    - c2*
                     (
                         pow(Bx(j,k,l),2)+pow(By(j,k,l),2)+pow(Bz(j,k,l),2)
                     )
