@@ -424,10 +424,7 @@ const amrex::Real xi = PhysConst::xi;
             (
                 tmpEx(j,k,l)*Bx(j,k,l)+tmpEy(j,k,l)*By(j,k,l)+tmpEz(j,k,l)*Bz(j,k,l)
             )
-            + 4*tmpEz(j,k,l)
-            (
-                Bx(j,k,l)*VxE[0]+By(j,k,l)*VxE[1]+Bz(j,k,l)*VxE[2]
-            )
+            + 4*tmpEz(j,k,l)*(Bx(j,k,l)*VxE[0]+By(j,k,l)*VxE[1]+Bz(j,k,l)*VxE[2])
         )
         + VxM[2],
     };
