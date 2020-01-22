@@ -427,7 +427,7 @@ const amrex::Real xi = PhysConst::xi;
             + 4*tmpEz(j,k,l)*
             (
                 Bx(j,k,l)*VxE[0]+By(j,k,l)*VxE[1]+Bz(j,k,l)*VxE[2]
-			)
+            )
         )
         + VxM[2],
     };
