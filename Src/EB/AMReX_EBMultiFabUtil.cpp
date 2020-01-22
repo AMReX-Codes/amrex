@@ -666,8 +666,6 @@ EB_average_face_to_cellcenter (MultiFab& ccmf, int dcomp,
     }
 }
 
-// EM DEBUG: NEW ROUTINE TO INTEROLATE CELL CENTER VALUES TO CENTROID
-
 void
 EB_interp_CC_to_Centroid (MultiFab& cent, const MultiFab& cc, int scomp, int dcomp, int ncomp, const Geometry& geom)
 {
@@ -806,9 +804,5 @@ EB_interp_CC_to_FaceCentroid (MultiFab& sol,
 #endif
 
 }
-
-
-
-
 
 }
