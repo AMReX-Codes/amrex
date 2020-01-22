@@ -17,10 +17,10 @@ NodalProjector::NodalProjector ( const amrex::Vector<amrex::MultiFab*>&       a_
                                  const LPInfo&                                a_lpinfo,
                                  const amrex::Vector<amrex::MultiFab*>&       a_S_cc,
                                  const amrex::Vector<const amrex::MultiFab*>& a_S_nd )
-    : m_vel(a_vel),
-      m_sigma(a_sigma),
-      m_geom(a_geom),
+    : m_geom(a_geom),
+      m_vel(a_vel),
       m_S_cc(a_S_cc),
+      m_sigma(a_sigma),
       m_S_nd(a_S_nd)
 {
     int nlevs = a_vel.size();
@@ -349,7 +349,6 @@ NodalProjector::computeSyncResidual ()
 
         if (m_sync_resid_crse != nullptr)
         {
-            int c_lev = 0;
             MultiFab* rhptr = nullptr;
             if (!m_S_cc.empty())
                 rhptr = m_S_cc[c_lev];
