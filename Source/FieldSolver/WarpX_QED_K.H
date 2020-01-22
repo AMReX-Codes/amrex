@@ -49,193 +49,304 @@ const amrex::Real xi = PhysConst::xi
     // Picking out points for stencil to be used in curl function of M
     const amrex::Real Mpx[3] = {
 
-        -2*xi*c2
-        *(
-            2*(
-               pow(tmpEx(j+1,k,l),2)+pow(tmpEy(j+1,k,l),2)+pow(tmpEz(j+1,k,l),2)
-               -c2*(pow(Bx(j+1,k,l),2)+pow(By(j+1,k,l),2)+pow(Bz(j+1,k,l),2))
-			)*Bx(j+1,k,l)
-			-7*(
+        -2*xi*c2*
+        (
+            2*Bx(j+1,k,l)*
+            (
+			    pow(tmpEx(j+1,k,l),2)+pow(tmpEy(j+1,k,l),2)+pow(tmpEz(j+1,k,l),2)
+                - c2*
+                (
+			        pow(Bx(j+1,k,l),2)+pow(By(j+1,k,l),2)+pow(Bz(j+1,k,l),2)
+				)
+			)
+			- 7*tmpEx(j+1,k,l)*
+			(
                tmpEx(j+1,k,l)*Bx(j+1,k,l)+tmpEy(j+1,k,l)*By(j+1,k,l)+tmpEz(j+1,k,l)*Bz(j+1,k,l)
-			)*tmpEx(j+1,k,l)
+			)
 		),
 
-        -2*xi*c2
-        *(
-		    2*(
+        -2*xi*c2*
+        (
+		    2*By(j+1,k,l)*
+		    (
 		        pow(tmpEx(j+1,k,l),2)+pow(tmpEy(j+1,k,l),2)+pow(tmpEz(j+1,k,l),2)
-		        -c2*(pow(Bx(j+1,k,l),2)+pow(By(j+1,k,l),2)+pow(Bz(j+1,k,l),2))
-			)*By(j+1,k,l)
-			-7*(
+		        - c2*
+		        (
+		            pow(Bx(j+1,k,l),2)+pow(By(j+1,k,l),2)+pow(Bz(j+1,k,l),2)
+				)
+			)
+			- 7*tmpEy(j+1,k,l)*
+			(
 			    tmpEx(j+1,k,l)*Bx(j+1,k,l)+tmpEy(j+1,k,l)*By(j+1,k,l)+tmpEz(j+1,k,l)*Bz(j+1,k,l)
-			)*tmpEy(j+1,k,l)),
+			)
+		),
 
-        -2*xi*c2
-        *(
-            2*(
+        -2*xi*c2*
+        (
+            2*Bz(j+1,k,l)*
+            (
                 pow(tmpEx(j+1,k,l),2)+pow(tmpEy(j+1,k,l),2)+pow(tmpEz(j+1,k,l),2)
-                -c2*(pow(Bx(j+1,k,l),2)+pow(By(j+1,k,l),2)+pow(Bz(j+1,k,l),2))
-			)*Bz(j+1,k,l)
-			-7*(
+                - c2*
+                (
+                    pow(Bx(j+1,k,l),2)+pow(By(j+1,k,l),2)+pow(Bz(j+1,k,l),2)
+				)
+			)
+			- 7*tmpEz(j+1,k,l)*
+			(
 			    tmpEx(j+1,k,l)*Bx(j+1,k,l)+tmpEy(j+1,k,l)*By(j+1,k,l)+tmpEz(j+1,k,l)*Bz(j+1,k,l)
-			    )*tmpEz(j+1,k,l))};
+			)
+		),
+	};
 
     const amrex::Real Mnx[3] = {
-        -2*xi*c2
-        *(
-            2*(
+        -2*xi*c2*
+        (
+            2*Bx(j-1,k,l)*
+            (
                 pow(tmpEx(j-1,k,l),2)+pow(tmpEy(j-1,k,l),2)+pow(tmpEz(j-1,k,l),2)
-                -c2*(pow(Bx(j-1,k,l),2)+pow(By(j-1,k,l),2)+pow(Bz(j-1,k,l),2))
-			)*Bx(j-1,k,l)
-			-7*(
+                - c2*
+                (
+                    pow(Bx(j-1,k,l),2)+pow(By(j-1,k,l),2)+pow(Bz(j-1,k,l),2)
+				)
+			)
+			- 7*tmpEx(j-1,k,l)*
+			(
 			    tmpEx(j-1,k,l)*Bx(j-1,k,l)+tmpEy(j-1,k,l)*By(j-1,k,l)+tmpEz(j-1,k,l)*Bz(j-1,k,l)
-			)*tmpEx(j-1,k,l)),
+			)
+		),
 
-        -2*xi*c2
-        *(
-            2*(
-                pow(tmpEx(j-1,k,l),2)+pow(tmpEy(j-1,k,l),2)+pow(tmpEz(j-1,k,l),2)
-                -c2*(pow(Bx(j-1,k,l),2)+pow(By(j-1,k,l),2)+pow(Bz(j-1,k,l),2))
-			)*By(j-1,k,l)
-			-7*(
+        -2*xi*c2*
+        (
+		    2*By(j-1,k,l)*
+		    (
+			    pow(tmpEx(j-1,k,l),2)+pow(tmpEy(j-1,k,l),2)+pow(tmpEz(j-1,k,l),2)
+                - c2*
+                (
+                    pow(Bx(j-1,k,l),2)+pow(By(j-1,k,l),2)+pow(Bz(j-1,k,l),2)
+				)
+			)
+			- 7*tmpEy(j-1,k,l)*
+			(
 			    tmpEx(j-1,k,l)*Bx(j-1,k,l)+tmpEy(j-1,k,l)*By(j-1,k,l)+tmpEz(j-1,k,l)*Bz(j-1,k,l)
-			)*tmpEy(j-1,k,l)),
+			)
+		),
 
-        -2*xi*c2
-        *(
-            2*(
+        -2*xi*c2*
+        (
+            2*Bz(j-1,k,l)*
+            (
                 pow(tmpEx(j-1,k,l),2)+pow(tmpEy(j-1,k,l),2)+pow(tmpEz(j-1,k,l),2)
-                -c2*(pow(Bx(j-1,k,l),2)+pow(By(j-1,k,l),2)+pow(Bz(j-1,k,l),2))
-			)*Bz(j-1,k,l)
-			-7*(
+                - c2*
+                (
+                    pow(Bx(j-1,k,l),2)+pow(By(j-1,k,l),2)+pow(Bz(j-1,k,l),2)
+				)
+			)
+			- 7*tmpEz(j-1,k,l)*
+			(
 			    tmpEx(j-1,k,l)*Bx(j-1,k,l)+tmpEy(j-1,k,l)*By(j-1,k,l)+tmpEz(j-1,k,l)*Bz(j-1,k,l)
-			)*tmpEz(j-1,k,l))};
+			)
+		),
+	};
 
     const amrex::Real Mpy[3] = {
-        -2*xi*c2
-        *(
-            2*(
+        -2*xi*c2*
+        (
+            2*Bx(j,k+1,l)*
+            (
                 pow(tmpEx(j,k+1,l),2)+pow(tmpEy(j,k+1,l),2)+pow(tmpEz(j,k+1,l),2)
-                -c2*(pow(Bx(j,k+1,l),2)+pow(By(j,k+1,l),2)+pow(Bz(j,k+1,l),2))
-			)*Bx(j,k+1,l)
-            -7*(
+                - c2*
+                (
+                    pow(Bx(j,k+1,l),2)+pow(By(j,k+1,l),2)+pow(Bz(j,k+1,l),2)
+				)
+			)
+            - 7*tmpEx(j,k+1,l)*
+            (
                 tmpEx(j,k+1,l)*Bx(j,k+1,l)+tmpEy(j,k+1,l)*By(j,k+1,l)+tmpEz(j,k+1,l)*Bz(j,k+1,l)
-			)*tmpEx(j,k+1,l)),
+			)
+		),
 
-        -2*xi*c2
-        *(
-            2*(
-                pow(tmpEx(j,k+1,l),2)+pow(tmpEy(j,k+1,l),2)+pow(tmpEz(j,k+1,l),2) -
-				c2*(pow(Bx(j,k+1,l),2)+pow(By(j,k+1,l),2)+pow(Bz(j,k+1,l),2))
-			)*By(j,k+1,l)
-            -7*(
-                tmpEx(j,k+1,l)*Bx(j,k+1,l)+tmpEy(j,k+1,l)*By(j,k+1,l)+tmpEz(j,k+1,l)*Bz(j,k+1,l)
-			)*tmpEy(j,k+1,l)),
-
-        -2*xi*c2
-        *(
-            2*(
+        -2*xi*c2*
+        (
+            2*By(j,k+1,l)*
+            (
                 pow(tmpEx(j,k+1,l),2)+pow(tmpEy(j,k+1,l),2)+pow(tmpEz(j,k+1,l),2)
-                -c2*(pow(Bx(j,k+1,l),2)+pow(By(j,k+1,l),2)+pow(Bz(j,k+1,l),2))
-			)*Bz(j,k+1,l)
-            -7*(
+                - c2*
+                (
+				    pow(Bx(j,k+1,l),2)+pow(By(j,k+1,l),2)+pow(Bz(j,k+1,l),2)
+				)
+			)
+            - 7*tmpEy(j,k+1,l)*
+            (
+                tmpEx(j,k+1,l)*Bx(j,k+1,l)+tmpEy(j,k+1,l)*By(j,k+1,l)+tmpEz(j,k+1,l)*Bz(j,k+1,l)
+			)
+		),
+
+        -2*xi*c2*
+        (
+            2*Bz(j,k+1,l)*
+            (
+                pow(tmpEx(j,k+1,l),2)+pow(tmpEy(j,k+1,l),2)+pow(tmpEz(j,k+1,l),2)
+                - c2*
+                (
+                    pow(Bx(j,k+1,l),2)+pow(By(j,k+1,l),2)+pow(Bz(j,k+1,l),2))
+			)
+            - 7*tmpEz(j,k+1,l)*
+            (
                  tmpEx(j,k+1,l)*Bx(j,k+1,l)+tmpEy(j,k+1,l)*By(j,k+1,l)+tmpEz(j,k+1,l)*Bz(j,k+1,l)
-		    )*tmpEz(j,k+1,l))};
+		    )
+		),
+	};
 
     const amrex::Real Mny[3] = {
-        -2*xi*c2
-        *(
-            2*(
+        -2*xi*c2*
+        (
+            2*Bx(j,k-1,l)*
+            (
                 pow(tmpEx(j,k-1,l),2)+pow(tmpEy(j,k-1,l),2)+pow(tmpEz(j,k-1,l),2)
-                -c2*(pow(Bx(j,k-1,l),2)+pow(By(j,k-1,l),2)+pow(Bz(j,k-1,l),2))
-			)*Bx(j,k-1,l)
-            -7*(
+                - c2*
+                (
+                    pow(Bx(j,k-1,l),2)+pow(By(j,k-1,l),2)+pow(Bz(j,k-1,l),2)
+				)
+			)
+            - 7*tmpEx(j,k-1,l)*
+            (
                 tmpEx(j,k-1,l)*Bx(j,k-1,l)+tmpEy(j,k-1,l)*By(j,k-1,l)+tmpEz(j,k-1,l)*Bz(j,k-1,l)
-			)*tmpEx(j,k-1,l)),
+			)
+		),
 
-        -2*xi*c2
-        *(
-            2*(
+        -2*xi*c2*
+        (
+            2*By(j,k-1,l)*
+            (
                 pow(tmpEx(j,k-1,l),2)+pow(tmpEy(j,k-1,l),2)+pow(tmpEz(j,k-1,l),2)
-                -c2*(pow(Bx(j,k-1,l),2)+pow(By(j,k-1,l),2)+pow(Bz(j,k-1,l),2))
-			)*By(j,k-1,l)
-            -7*(
+                - c2*
+                (
+                    pow(Bx(j,k-1,l),2)+pow(By(j,k-1,l),2)+pow(Bz(j,k-1,l),2)
+				)
+			)
+            - 7*tmpEy(j,k-1,l)*
+            (
 			    tmpEx(j,k-1,l)*Bx(j,k-1,l)+tmpEy(j,k-1,l)*By(j,k-1,l)+tmpEz(j,k-1,l)*Bz(j,k-1,l)
-			)*tmpEy(j,k-1,l)),
+			)
+		),
 
-        -2*xi*c2
-        *(
-            2*(
+        -2*xi*c2*
+        (
+            2*Bz(j,k-1,l)*
+            (
                 pow(tmpEx(j,k-1,l),2)+pow(tmpEy(j,k-1,l),2)+pow(tmpEz(j,k-1,l),2)
-                -c2*(pow(Bx(j,k-1,l),2)+pow(By(j,k-1,l),2)+pow(Bz(j,k-1,l),2))
-			)*Bz(j,k-1,l)
-            -7*(
+                - c2*
+                (
+                    pow(Bx(j,k-1,l),2)+pow(By(j,k-1,l),2)+pow(Bz(j,k-1,l),2)
+				)
+			)
+            - 7*tmpEz(j,k-1,l)*
+            (
 			    tmpEx(j,k-1,l)*Bx(j,k-1,l)+tmpEy(j,k-1,l)*By(j,k-1,l)+tmpEz(j,k-1,l)*Bz(j,k-1,l)
-			)*tmpEz(j,k-1,l))};
+			)
+		),
+	};
 
     const amrex::Real Mpz[3] = {
 
-        -2*xi*c2
-        *(
-            2*(
+        -2*xi*c2*
+        (
+            2*Bx(j,k,l+1)*
+            (
                 pow(tmpEx(j,k,l+1),2)+pow(tmpEy(j,k,l+1),2)+pow(tmpEz(j,k,l+1),2)
-                -c2*(pow(Bx(j,k,l+1),2)+pow(By(j,k,l+1),2)+pow(Bz(j,k,l+1),2))
-			)*Bx(j,k,l+1)
-            -7*(
+                - c2*
+                (
+                    pow(Bx(j,k,l+1),2)+pow(By(j,k,l+1),2)+pow(Bz(j,k,l+1),2)
+				)
+			)
+            - 7*tmpEx(j,k,l+1)*
+            (
                 tmpEx(j,k,l+1)*Bx(j,k,l+1)+tmpEy(j,k,l+1)*By(j,k,l+1)+tmpEz(j,k,l+1)*Bz(j,k,l+1)
-			)*tmpEx(j,k,l+1)),
+			)
+		),
 
-        -2*xi*c2
-        *(
-            2*(
+        -2*xi*c2*
+        (
+            2*By(j,k,l+1)*
+            (
                 pow(tmpEx(j,k,l+1),2)+pow(tmpEy(j,k,l+1),2)+pow(tmpEz(j,k,l+1),2)
-                -c2*(pow(Bx(j,k,l+1),2)+pow(By(j,k,l+1),2)+pow(Bz(j,k,l+1),2))
-			)*By(j,k,l+1)
-            -7*(
+                - c2*
+                (
+                    pow(Bx(j,k,l+1),2)+pow(By(j,k,l+1),2)+pow(Bz(j,k,l+1),2)
+				)
+			)
+            - 7*tmpEy(j,k,l+1)*
+            (
                 tmpEx(j,k,l+1)*Bx(j,k,l+1)+tmpEy(j,k,l+1)*By(j,k,l+1)+tmpEz(j,k,l+1)*Bz(j,k,l+1)
-			)*tmpEy(j,k,l+1)),
+			)
+		),
 
-        -2*xi*c2
-		*(
-		    2*(
+        -2*xi*c2*
+		(
+		    2*Bz(j,k,l+1)*
+		    (
 		        pow(tmpEx(j,k,l+1),2)+pow(tmpEy(j,k,l+1),2)+pow(tmpEz(j,k,l+1),2)
-		        -c2*(pow(Bx(j,k,l+1),2)+pow(By(j,k,l+1),2)+pow(Bz(j,k,l+1),2))
-			)*Bz(j,k,l+1)
-            -7*(
+		        - c2*
+		        (
+		            pow(Bx(j,k,l+1),2)+pow(By(j,k,l+1),2)+pow(Bz(j,k,l+1),2)
+				)
+			)
+            - 7*tmpEz(j,k,l+1)*
+            (
 			    tmpEx(j,k,l+1)*Bx(j,k,l+1)+tmpEy(j,k,l+1)*By(j,k,l+1)+tmpEz(j,k,l+1)*Bz(j,k,l+1)
-			)*tmpEz(j,k,l+1))};
+			)
+		),
+	};
 
     const amrex::Real Mnz[3] = {
 
-        -2*xi*c2
-        *(
-            2*(
+        -2*xi*c2*
+        (
+            2*Bx(j,k,l-1)*(
                 pow(tmpEx(j,k,l-1),2)+pow(tmpEy(j,k,l-1),2)+pow(tmpEz(j,k,l-1),2)
-                -c2*(pow(Bx(j,k,l-1),2)+pow(By(j,k,l-1),2)+pow(Bz(j,k,l-1),2))
-			)*Bx(j,k,l-1)
-            -7*(
+                - c2*
+                (
+                    pow(Bx(j,k,l-1),2)+pow(By(j,k,l-1),2)+pow(Bz(j,k,l-1),2)
+				)
+			)
+            - 7*tmpEx(j,k,l-1)*
+            (
                 tmpEx(j,k,l-1)*Bx(j,k,l-1)+tmpEy(j,k,l-1)*By(j,k,l-1)+tmpEz(j,k,l-1)*Bz(j,k,l-1)
-			)*tmpEx(j,k,l-1)),
+			)
+		),
 
-        -2*xi*c2
-        *(
-            2*(
+        -2*xi*c2*
+        (
+            2*By(j,k,l-1)*
+            (
                 pow(tmpEx(j,k,l-1),2)+pow(tmpEy(j,k,l-1),2)+pow(tmpEz(j,k,l-1),2)
-                -c2*(pow(Bx(j,k,l-1),2)+pow(By(j,k,l-1),2)+pow(Bz(j,k,l-1),2))
-			)*By(j,k,l-1)
-            -7*(
+                - c2*
+                (
+                    pow(Bx(j,k,l-1),2)+pow(By(j,k,l-1),2)+pow(Bz(j,k,l-1),2)
+				)
+			)
+            - 7*tmpEy(j,k,l-1)*
+            (
                 tmpEx(j,k,l-1)*Bx(j,k,l-1)+tmpEy(j,k,l-1)*By(j,k,l-1)+tmpEz(j,k,l-1)*Bz(j,k,l-1)
-			)*tmpEy(j,k,l-1)),
+			)
+		),
 
-        -2*xi*c2
-        *(
-            2*(
+        -2*xi*c2*
+        (
+            2*Bz(j,k,l-1)*
+            (
 			    pow(tmpEx(j,k,l-1),2)+pow(tmpEy(j,k,l-1),2)+pow(tmpEz(j,k,l-1),2)
-				-c2*(pow(Bx(j,k,l-1),2)+pow(By(j,k,l-1),2)+pow(Bz(j,k,l-1),2))
-			)*Bz(j,k,l-1)
-            -7*(
+				- c2*
+				(
+				    pow(Bx(j,k,l-1),2)+pow(By(j,k,l-1),2)+pow(Bz(j,k,l-1),2)
+				)
+			)
+            - 7*tmpEz(j,k,l-1)*
+            (
                 tmpEx(j,k,l-1)*Bx(j,k,l-1)+tmpEy(j,k,l-1)*By(j,k,l-1)+tmpEz(j,k,l-1)*Bz(j,k,l-1)
-			)*tmpEz(j,k,l-1))};
+			)
+		),
+	};
 
     // Calculating necessary curls
     const amrex::Real VxM[3] = {
@@ -258,102 +369,130 @@ const amrex::Real xi = PhysConst::xi
 
     // Defining comapct values for QED corrections
     const amrex::Real beta =
-        4*(xi)*(
+        4*(xi)*
+        (
             pow(tmpEx(j,k,l),2)+pow(tmpEy(j,k,l),2)+pow(tmpEz(j,k,l),2)
-            -c2*(
+            - c2*
+            (
                 pow(Bx(j,k,l),2)+pow(By(j,k,l),2)+pow(Bz(j,k,l),2)
 		    )
-		)+PhysConst::ep0;
+		)
+		+PhysConst::ep0;
 
     const amrex::Real Alpha[3] = {
 
         2*xi*c2*
         (
-            (-7)*(
+            (-7)*Bx(j,k,l)*
+            (
                 tmpEx(j,k,l)*VxE[0]+tmpEy(j,k,l)*VxE[1]+tmpEz(j,k,l)*VxE[2]
-			)*Bx(j,k,l)
-			-7*(
+			)
+			- 7*VxE[0]*
+			(
 			    tmpEx(j,k,l)*Bx(j,k,l)+tmpEy(j,k,l)*By(j,k,l)+tmpEz(j,k,l)*Bz(j,k,l)
-			)*VxE[0]
-            +4*(
+			)
+            + 4*tmpEx(j,k,l)*
+            (
                 Bx(j,k,l)*VxE[0]+By(j,k,l)*VxE[1]+Bz(j,k,l)*VxE[2]
-			)*tmpEx(j,k,l)
-		) + VxM[0],
+			)
+		)
+		+ VxM[0],
 
         2*xi*c2*
 		(
-		    (-7)*(
+		    (-7)*By(j,k,l)*
+		    (
 		        tmpEx(j,k,l)*VxE[0]+tmpEy(j,k,l)*VxE[1]+tmpEz(j,k,l)*VxE[2]
-			)*By(j,k,l)
-            -7*(
+			)
+            - 7*VxE[1]*
+            (
                 tmpEx(j,k,l)*Bx(j,k,l)+tmpEy(j,k,l)*By(j,k,l)+tmpEz(j,k,l)*Bz(j,k,l)
-			)*VxE[1]
-            +4*(
+			)
+            + 4*tmpEy(j,k,l)*
+            (
                 Bx(j,k,l)*VxE[0]+By(j,k,l)*VxE[1]+Bz(j,k,l)*VxE[2]
-			)*tmpEy(j,k,l)
-		) + VxM[1],
+			)
+		)
+		+ VxM[1],
 
         2*xi*c2*
 		(
-		    (-7)*(
+		    (-7)*Bz(j,k,l)*
+		    (
 		        tmpEx(j,k,l)*VxE[0]+tmpEy(j,k,l)*VxE[1]+tmpEz(j,k,l)*VxE[2]
-			)*Bz(j,k,l)
-            -7*(
+			)
+            - 7*VxE[2]*
+            (
                 tmpEx(j,k,l)*Bx(j,k,l)+tmpEy(j,k,l)*By(j,k,l)+tmpEz(j,k,l)*Bz(j,k,l)
-			)*VxE[2]
-            +4*(
+			)
+            + 4*tmpEz(j,k,l)
+            (
                 Bx(j,k,l)*VxE[0]+By(j,k,l)*VxE[1]+Bz(j,k,l)*VxE[2]
-			)*tmpEz(j,k,l)
-		) + VxM[2]};
+			)
+		)
+		+ VxM[2],
+	};
 
     const amrex::Real Omega[3] = {
 
         Alpha[0] + 2*xi*c2*
             (
-                4*(
+                4*tmpEx(j,k,l)*
+                (
                     tmpEx(j,k,l)*VxB[0]+tmpEy(j,k,l)*VxB[1]+tmpEz(j,k,l)*VxB[2]
-				)*tmpEx(j,k,l)
-                +2*(
+				)
+                + 2*VxB[0]*
+                (
                     pow(tmpEx(j,k,l),2)+pow(tmpEy(j,k,l),2)+pow(tmpEz(j,k,l),2)
-                    -c2*(
+                    -c2*
+                    (
                         pow(Bx(j,k,l),2)+pow(By(j,k,l),2)+pow(Bz(j,k,l),2)
 					)
-				)*VxB[0]
-                +7*c2*(
+				)
+                + 7*c2*Bx(j,k,l)*
+                (
                     VxB[0]*Bx(j,k,l)+VxB[1]*By(j,k,l)+VxB[2]*Bz(j,k,l)
-				)*Bx(j,k,l)
+				)
 			),
 
         Alpha[1] + 2*xi*c2*
             (
-                4*(
+                4*tmpEy(j,k,l)*
+                (
                     tmpEx(j,k,l)*VxB[0]+tmpEy(j,k,l)*VxB[1]+tmpEz(j,k,l)*VxB[2]
-				)*tmpEy(j,k,l)
-                +2*(
+				)
+                + 2*VxB[1]*
+                (
 				    pow(tmpEx(j,k,l),2)+pow(tmpEy(j,k,l),2)+pow(tmpEz(j,k,l),2)
-                    -c2*(
+                    -c2*
+                    (
                         pow(Bx(j,k,l),2)+pow(By(j,k,l),2)+pow(Bz(j,k,l),2)
 					)
-				)*VxB[1]
-                +7*c2*(
+				)
+                + 7*c2*By(j,k,l)*
+                (
                     VxB[0]*Bx(j,k,l)+VxB[1]*By(j,k,l)+VxB[2]*Bz(j,k,l)
-				)*By(j,k,l)
+				)
 			),
 
         Alpha[2] + 2*xi*c2*
 	        (
-	            4*(
+	            4*tmpEz(j,k,l)*
+	            (
 	                tmpEx(j,k,l)*VxB[0]+tmpEy(j,k,l)*VxB[1]+tmpEz(j,k,l)*VxB[2]
-				)*tmpEz(j,k,l)
-				+2*(
+				)
+				+ 2*VxB[2]*
+				(
 				    pow(tmpEx(j,k,l),2)+pow(tmpEy(j,k,l),2)+pow(tmpEz(j,k,l),2)
-                    -c2*(
+                    -c2*
+                    (
                         pow(Bx(j,k,l),2)+pow(By(j,k,l),2)+pow(Bz(j,k,l),2)
 					)
-				)*VxB[2]
-                +7*c2*(
+				)
+                + 7*c2*Bz(j,k,l)*
+                (
                     VxB[0]*Bx(j,k,l)+VxB[1]*By(j,k,l)+VxB[2]*Bz(j,k,l)
-				)*Bz(j,k,l)
+				)
 			),
 	};
 
@@ -395,111 +534,353 @@ const amrex::Real xi = PhysConst::xi
 #else
     const amrex::Real Mpx[3] = {
 
-        -2*xi*c2 * (2*(pow(tmpEx(j+1,k,0),2)+pow(tmpEy(j+1,k,0),2)+pow(tmpEz(j+1,k,0),2) -c2*(pow(Bx(j+1,k,0),2)+pow(By(j+1,k,0),2)+pow(Bz(j+1,k,0),2)))*Bx(j+1,k,0) -7*(tmpEx(j+1,k,0)*Bx(j+1,k,0)+tmpEy(j+1,k,0)*By(j+1,k,0)+tmpEz(j+1,k,0)*Bz(j+1,k,0))*tmpEx(j+1,k,0)),
+        -2*xi*c2*
+		(
+            2*Bx(j+1,k,0)*
+            (
+                pow(tmpEx(j+1,k,0),2)+pow(tmpEy(j+1,k,0),2)+pow(tmpEz(j+1,k,0),2)
+				- c2*
+				(
+				    pow(Bx(j+1,k,0),2)+pow(By(j+1,k,0),2)+pow(Bz(j+1,k,0),2)
+				)
+			)
+			- 7*tmpEx(j+1,k,0)*
+			(
+			    tmpEx(j+1,k,0)*Bx(j+1,k,0)+tmpEy(j+1,k,0)*By(j+1,k,0)+tmpEz(j+1,k,0)*Bz(j+1,k,0)
+			)
+		),
 
-        -2*xi*c2 * (2*(pow(tmpEx(j+1,k,0),2)+pow(tmpEy(j+1,k,0),2)+pow(tmpEz(j+1,k,0),2) -c2*(pow(Bx(j+1,k,0),2)+pow(By(j+1,k,0),2)+pow(Bz(j+1,k,0),2)))*By(j+1,k,0) -7*(tmpEx(j+1,k,0)*Bx(j+1,k,0)+tmpEy(j+1,k,0)*By(j+1,k,0)+tmpEz(j+1,k,0)*Bz(j+1,k,0))*tmpEy(j+1,k,0)),
+        -2*xi*c2*
+        (
+            2*By(j+1,k,0)*
+            (
+                pow(tmpEx(j+1,k,0),2)+pow(tmpEy(j+1,k,0),2)+pow(tmpEz(j+1,k,0),2)
+				- c2*
+				(
+				    pow(Bx(j+1,k,0),2)+pow(By(j+1,k,0),2)+pow(Bz(j+1,k,0),2)
+				)
+			)
+			- 7*tmpEy(j+1,k,0)*
+			(
+			    tmpEx(j+1,k,0)*Bx(j+1,k,0)+tmpEy(j+1,k,0)*By(j+1,k,0)+tmpEz(j+1,k,0)*Bz(j+1,k,0)
+			)
+		),
 
-        -2*xi*c2 * (2*(pow(tmpEx(j+1,k,0),2)+pow(tmpEy(j+1,k,0),2)+pow(tmpEz(j+1,k,0),2)
-        -c2*(pow(Bx(j+1,k,0),2)+pow(By(j+1,k,0),2)+pow(Bz(j+1,k,0),2)))*Bz(j+1,k,0)
-        -7*(tmpEx(j+1,k,0)*Bx(j+1,k,0)+tmpEy(j+1,k,0)*By(j+1,k,0)+tmpEz(j+1,k,0)*Bz(j+1,k,0))*tmpEz(j+1,k,0))};
+        -2*xi*c2*
+        (
+            2*Bz(j+1,k,0)*
+            (
+                pow(tmpEx(j+1,k,0),2)+pow(tmpEy(j+1,k,0),2)+pow(tmpEz(j+1,k,0),2)
+			    -c2*
+		        (
+		            pow(Bx(j+1,k,0),2)+pow(By(j+1,k,0),2)+pow(Bz(j+1,k,0),2)
+				)
+			)
+            - 7*tmpEz(j+1,k,0)*
+            (
+                tmpEx(j+1,k,0)*Bx(j+1,k,0)+tmpEy(j+1,k,0)*By(j+1,k,0)+tmpEz(j+1,k,0)*Bz(j+1,k,0)
+			)
+		),
+	};
 
     const amrex::Real Mnx[3] = {
 
-        -2*xi*c2 * (2*(pow(tmpEx(j-1,k,0),2)+pow(tmpEy(j-1,k,0),2)+pow(tmpEz(j-1,k,0),2)
-        -c2*(pow(Bx(j-1,k,0),2)+pow(By(j-1,k,0),2)+pow(Bz(j-1,k,0),2)))*Bx(j-1,k,0)
-        -7*(tmpEx(j-1,k,0)*Bx(j-1,k,0)+tmpEy(j-1,k,0)*By(j-1,k,0)+tmpEz(j-1,k,0)*Bz(j-1,k,0))*tmpEx(j-1,k,0)),
+        -2*xi*c2*
+        (
+            2*Bx(j-1,k,0)*
+			(
+			    pow(tmpEx(j-1,k,0),2)+pow(tmpEy(j-1,k,0),2)+pow(tmpEz(j-1,k,0),2)
+		        - c2*
+		        (
+		            pow(Bx(j-1,k,0),2)+pow(By(j-1,k,0),2)+pow(Bz(j-1,k,0),2)
+				)
+			)
+            - 7*tmpEx(j-1,k,0)*
+            (
+                tmpEx(j-1,k,0)*Bx(j-1,k,0)+tmpEy(j-1,k,0)*By(j-1,k,0)+tmpEz(j-1,k,0)*Bz(j-1,k,0)
+			)
+		),
 
-        -2*xi*c2 * (2*(pow(tmpEx(j-1,k,0),2)+pow(tmpEy(j-1,k,0),2)+pow(tmpEz(j-1,k,0),2)
-        -c2*(pow(Bx(j-1,k,0),2)+pow(By(j-1,k,0),2)+pow(Bz(j-1,k,0),2)))*By(j-1,k,0)
-        -7*(tmpEx(j-1,k,0)*Bx(j-1,k,0)+tmpEy(j-1,k,0)*By(j-1,k,0)+tmpEz(j-1,k,0)*Bz(j-1,k,0))*tmpEy(j-1,k,0)),
+        -2*xi*c2*
+        (
+            2*By(j-1,k,0)*
+            (
+                pow(tmpEx(j-1,k,0),2)+pow(tmpEy(j-1,k,0),2)+pow(tmpEz(j-1,k,0),2)
+                - c2*
+                (
+                    pow(Bx(j-1,k,0),2)+pow(By(j-1,k,0),2)+pow(Bz(j-1,k,0),2)
+				)
+			)
+		    -7*tmpEy(j-1,k,0)*
+		    (
+		        tmpEx(j-1,k,0)*Bx(j-1,k,0)+tmpEy(j-1,k,0)*By(j-1,k,0)+tmpEz(j-1,k,0)*Bz(j-1,k,0)
+			)
+		),
 
-        -2*xi*c2 * (2*(pow(tmpEx(j-1,k,0),2)+pow(tmpEy(j-1,k,0),2)+pow(tmpEz(j-1,k,0),2)
-        -c2*(pow(Bx(j-1,k,0),2)+pow(By(j-1,k,0),2)+pow(Bz(j-1,k,0),2)))*Bz(j-1,k,0)
-        -7*(tmpEx(j-1,k,0)*Bx(j-1,k,0)+tmpEy(j-1,k,0)*By(j-1,k,0)+tmpEz(j-1,k,0)*Bz(j-1,k,0))*tmpEz(j-1,k,0))};
+        -2*xi*c2*
+        (
+		    2*Bz(j-1,k,0)*
+		    (
+		        pow(tmpEx(j-1,k,0),2)+pow(tmpEy(j-1,k,0),2)+pow(tmpEz(j-1,k,0),2)
+                - c2*
+                (
+                    pow(Bx(j-1,k,0),2)+pow(By(j-1,k,0),2)+pow(Bz(j-1,k,0),2)
+				)
+			)
+            - 7*tmpEz(j-1,k,0)*
+            (
+                tmpEx(j-1,k,0)*Bx(j-1,k,0)+tmpEy(j-1,k,0)*By(j-1,k,0)+tmpEz(j-1,k,0)*Bz(j-1,k,0)
+			)
+		),
+	};
 
      const amrex::Real Mpz[3] = {
 
-        -2*xi*c2 * (2*(pow(tmpEx(j,k+1,0),2)+pow(tmpEy(j,k+1,0),2)+pow(tmpEz(j,k+1,0),2)
-        -c2*(pow(Bx(j,k+1,0),2)+pow(By(j,k+1,0),2)+pow(Bz(j,k+1,0),2)))*Bx(j,k+1,0)
-        -7*(tmpEx(j,k+1,0)*Bx(j,k+1,0)+tmpEy(j,k+1,0)*By(j,k+1,0)+tmpEz(j,k+1,0)*Bz(j,k+1,0))*tmpEx(j,k+1,0)),
+        -2*xi*c2*
+        (
+            2*Bx(j,k+1,0)*
+            (
+                pow(tmpEx(j,k+1,0),2)+pow(tmpEy(j,k+1,0),2)+pow(tmpEz(j,k+1,0),2)
+                - c2*
+                (
+                    pow(Bx(j,k+1,0),2)+pow(By(j,k+1,0),2)+pow(Bz(j,k+1,0),2)
+				)
+			)
+            - 7*tmpEx(j,k+1,0)*
+            (
+                tmpEx(j,k+1,0)*Bx(j,k+1,0)+tmpEy(j,k+1,0)*By(j,k+1,0)+tmpEz(j,k+1,0)*Bz(j,k+1,0)
+			)
+		),
 
-        -2*xi*c2 * (2*(pow(tmpEx(j,k+1,0),2)+pow(tmpEy(j,k+1,0),2)+pow(tmpEz(j,k+1,0),2)
-        -c2*(pow(Bx(j,k+1,0),2)+pow(By(j,k+1,0),2)+pow(Bz(j,k+1,0),2)))*By(j,k+1,0)
-        -7*(tmpEx(j,k+1,0)*Bx(j,k+1,0)+tmpEy(j,k+1,0)*By(j,k+1,0)+tmpEz(j,k+1,0)*Bz(j,k+1,0))*tmpEy(j,k+1,0)),
+        -2*xi*c2*
+        (
+            2*By(j,k+1,0)*
+            (
+                pow(tmpEx(j,k+1,0),2)+pow(tmpEy(j,k+1,0),2)+pow(tmpEz(j,k+1,0),2)
+                - c2*
+                (
+                    pow(Bx(j,k+1,0),2)+pow(By(j,k+1,0),2)+pow(Bz(j,k+1,0),2)
+				)
+			)
+            - 7*tmpEy(j,k+1,0)*
+            (
+                tmpEx(j,k+1,0)*Bx(j,k+1,0)+tmpEy(j,k+1,0)*By(j,k+1,0)+tmpEz(j,k+1,0)*Bz(j,k+1,0)
+			)
+		),
 
-        -2*xi*c2 * (2*(pow(tmpEx(j,k+1,0),2)+pow(tmpEy(j,k+1,0),2)+pow(tmpEz(j,k+1,0),2)
-        -c2*(pow(Bx(j,k+1,0),2)+pow(By(j,k+1,0),2)+pow(Bz(j,k+1,0),2)))*Bz(j,k+1,0)
-        -7*(tmpEx(j,k+1,0)*Bx(j,k+1,0)+tmpEy(j,k+1,0)*By(j,k+1,0)+tmpEz(j,k+1,0)*Bz(j,k+1,0))*tmpEz(j,k+1,0))};
+        -2*xi*c2*
+        (
+            2*Bz(j,k+1,0)*
+            (
+                pow(tmpEx(j,k+1,0),2)+pow(tmpEy(j,k+1,0),2)+pow(tmpEz(j,k+1,0),2)
+                - c2*
+                (
+                    pow(Bx(j,k+1,0),2)+pow(By(j,k+1,0),2)+pow(Bz(j,k+1,0),2)
+				)
+			)
+            - 7*tmpEz(j,k+1,0)*
+            (
+                tmpEx(j,k+1,0)*Bx(j,k+1,0)+tmpEy(j,k+1,0)*By(j,k+1,0)+tmpEz(j,k+1,0)*Bz(j,k+1,0)
+			)
+		),
+	 };
 
     const amrex::Real Mnz[3] = {
 
-        -2*xi*c2 * (2*(pow(tmpEx(j,k-1,0),2)+pow(tmpEy(j,k-1,0),2)+pow(tmpEz(j,k-1,0),2)
-        -c2*(pow(Bx(j,k-1,0),2)+pow(By(j,k-1,0),2)+pow(Bz(j,k-1,0),2)))*Bx(j,k-1,0)
-        -7*(tmpEx(j,k-1,0)*Bx(j,k-1,0)+tmpEy(j,k-1,0)*By(j,k-1,0)+tmpEz(j,k-1,0)*Bz(j,k-1,0))*tmpEx(j,k-1,0)),
+        -2*xi*c2*
+        (
+            2*Bx(j,k-1,0)*
+            (
+                pow(tmpEx(j,k-1,0),2)+pow(tmpEy(j,k-1,0),2)+pow(tmpEz(j,k-1,0),2)
+                - c2*
+                (
+                    pow(Bx(j,k-1,0),2)+pow(By(j,k-1,0),2)+pow(Bz(j,k-1,0),2)
+				)
+			)
+            - 7*tmpEx(j,k-1,0)*
+            (
+                tmpEx(j,k-1,0)*Bx(j,k-1,0)+tmpEy(j,k-1,0)*By(j,k-1,0)+tmpEz(j,k-1,0)*Bz(j,k-1,0)
+			)
+		),
 
-        -2*xi*c2 * (2*(pow(tmpEx(j,k-1,0),2)+pow(tmpEy(j,k-1,0),2)+pow(tmpEz(j,k-1,0),2)
-        -c2*(pow(Bx(j,k-1,0),2)+pow(By(j,k-1,0),2)+pow(Bz(j,k-1,0),2)))*By(j,k-1,0)
-        -7*(tmpEx(j,k-1,0)*Bx(j,k-1,0)+tmpEy(j,k-1,0)*By(j,k-1,0)+tmpEz(j,k-1,0)*Bz(j,k-1,0))*tmpEy(j,k-1,0)),
+        -2*xi*c2*
+        (
+            2*By(j,k-1,0)*
+            (
+                pow(tmpEx(j,k-1,0),2)+pow(tmpEy(j,k-1,0),2)+pow(tmpEz(j,k-1,0),2)
+                - c2*
+                (
+                    pow(Bx(j,k-1,0),2)+pow(By(j,k-1,0),2)+pow(Bz(j,k-1,0),2)
+				)
+			)
+            - 7*tmpEy(j,k-1,0)*
+            (
+                tmpEx(j,k-1,0)*Bx(j,k-1,0)+tmpEy(j,k-1,0)*By(j,k-1,0)+tmpEz(j,k-1,0)*Bz(j,k-1,0)
+			)
+		),
 
-        -2*xi*c2 * (2*(pow(tmpEx(j,k-1,0),2)+pow(tmpEy(j,k-1,0),2)+pow(tmpEz(j,k-1,0),2)
-        -c2*(pow(Bx(j,k-1,0),2)+pow(By(j,k-1,0),2)+pow(Bz(j,k-1,0),2)))*Bz(j,k-1,0)
-        -7*(tmpEx(j,k-1,0)*Bx(j,k-1,0)+tmpEy(j,k-1,0)*By(j,k-1,0)+tmpEz(j,k-1,0)*Bz(j,k-1,0))*tmpEz(j,k-1,0))};
+        -2*xi*c2*
+        (
+            2*Bz(j,k-1,0)*
+            (
+                pow(tmpEx(j,k-1,0),2)+pow(tmpEy(j,k-1,0),2)+pow(tmpEz(j,k-1,0),2)
+                - c2*
+                (
+                    pow(Bx(j,k-1,0),2)+pow(By(j,k-1,0),2)+pow(Bz(j,k-1,0),2)
+				)
+			)
+            - 7*tmpEz(j,k-1,0)*
+            (
+                tmpEx(j,k-1,0)*Bx(j,k-1,0)+tmpEy(j,k-1,0)*By(j,k-1,0)+tmpEz(j,k-1,0)*Bz(j,k-1,0)
+			)
+		),
+	};
 
     const amrex::Real VxM[3] = {
         -0.5*(Mpz[1]-Mnz[1])/dz,
-        0.5*((Mpz[0]-Mnz[0])/dz - (Mpx[2]-Mnx[2])/dx ),
-        0.5*(Mpx[1]-Mnx[1])/dx };
+        0.5*( (Mpz[0]-Mnz[0])/dz - (Mpx[2]-Mnx[2])/dx ),
+        0.5*(Mpx[1]-Mnx[1])/dx,
+	};
 
     const amrex::Real VxE[3] = {
-        -0.5*(tmpEy(j,k+1,0)-tmpEy(j,k-1,0))/dz,
-        0.5*((tmpEx(j,k+1,0)-tmpEx(j,k-1,0))/dz - (tmpEz(j+1,k,0)-tmpEz(j-1,k,0))/dx),
-        0.5*(tmpEy(j+1,k,0)-tmpEy(j-1,k,0))/dx};
+        -0.5*(tmpEy(j,k+1,0)-tmpEy(j,k-1,0) )/dz,
+        0.5*( (tmpEx(j,k+1,0)-tmpEx(j,k-1,0) )/dz - (tmpEz(j+1,k,0)-tmpEz(j-1,k,0) )/dx ),
+        0.5*(tmpEy(j+1,k,0)-tmpEy(j-1,k,0) )/dx,
+	};
 
     const amrex::Real VxB[3] = {
-        -0.5*(By(j,k+1,0)-By(j,k-1,0))/dz,
-        0.5*((Bx(j,k+1,0)-Bx(j,k-1,0))/dz - (Bz(j+1,k,0)-Bz(j-1,k,0))/dx),
-        0.5*(By(j+1,k,0)-By(j-1,k,0))/dx};
+        -0.5*(By(j,k+1,0)-By(j,k-1,0) )/dz,
+        0.5*( (Bx(j,k+1,0)-Bx(j,k-1,0) )/dz - (Bz(j+1,k,0)-Bz(j-1,k,0) )/dx ),
+        0.5*(By(j+1,k,0)-By(j-1,k,0) )/dx,
+	};
 
     const amrex::Real beta =
-        4*(xi)*(pow(tmpEx(j,k,0),2)+pow(tmpEy(j,k,0),2)+pow(tmpEz(j,k,0),2)-
-        c2*(pow(Bx(j,k,0),2)+pow(By(j,k,0),2)+pow(Bz(j,k,0),2)))+PhysConst::ep0;
+        4*(xi)*
+        (
+            pow(tmpEx(j,k,0),2)+pow(tmpEy(j,k,0),2)+pow(tmpEz(j,k,0),2)
+            - c2*
+            (
+                pow(Bx(j,k,0),2)+pow(By(j,k,0),2)+pow(Bz(j,k,0),2)
+			)
+		)
+		+ PhysConst::ep0;
 
     const amrex::Real Alpha[3] = {
 
-        2*xi*c2 *
-            ((-1)*7*(tmpEx(j,k,0)*VxE[0]+tmpEy(j,k,0)*VxE[1]+tmpEz(j,k,0)*VxE[2])*Bx(j,k,0)
-            - 7*(tmpEx(j,k,0)*Bx(j,k,0)+tmpEy(j,k,0)*By(j,k,0)+tmpEz(j,k,0)*Bz(j,k,0))*VxE[0]
-            + 4*(Bx(j,k,0)*VxE[0]+By(j,k,0)*VxE[1]+Bz(j,k,0)*VxE[2])*tmpEx(j,k,0)) + VxM[0],
+        2*xi*c2*
+            (
+                (-7)*Bx(j,k,0)*
+                (
+                    tmpEx(j,k,0)*VxE[0]+tmpEy(j,k,0)*VxE[1]+tmpEz(j,k,0)*VxE[2]
+				)
+                - 7*VxE[0]*
+                (
+                    tmpEx(j,k,0)*Bx(j,k,0)+tmpEy(j,k,0)*By(j,k,0)+tmpEz(j,k,0)*Bz(j,k,0)
+				)
+                + 4*tmpEx(j,k,0)*
+				(
+                    Bx(j,k,0)*VxE[0]+By(j,k,0)*VxE[1]+Bz(j,k,0)*VxE[2]
+				)
+			)
+		+ VxM[0],
 
-        2*xi*c2 *
-            ((-1)*7*(tmpEx(j,k,0)*VxE[0]+tmpEy(j,k,0)*VxE[1]+tmpEz(j,k,0)*VxE[2])*By(j,k,0)
-            - 7*(tmpEx(j,k,0)*Bx(j,k,0)+tmpEy(j,k,0)*By(j,k,0)+tmpEz(j,k,0)*Bz(j,k,0))*VxE[1]
-            + 4*(Bx(j,k,0)*VxE[0]+By(j,k,0)*VxE[1]+Bz(j,k,0)*VxE[2])*tmpEy(j,k,0)) + VxM[1],
+        2*xi*c2*
+            (
+                (-7)*By(j,k,0)*
+                (
+				    tmpEx(j,k,0)*VxE[0]+tmpEy(j,k,0)*VxE[1]+tmpEz(j,k,0)*VxE[2]
+				)
+                - 7*VxE[1]*
+                (
+                    tmpEx(j,k,0)*Bx(j,k,0)+tmpEy(j,k,0)*By(j,k,0)+tmpEz(j,k,0)*Bz(j,k,0)
+				)
+                + 4*tmpEy(j,k,0)*
+                (
+                    Bx(j,k,0)*VxE[0]+By(j,k,0)*VxE[1]+Bz(j,k,0)*VxE[2]
+				)
+			)
+			+ VxM[1],
 
-        2*xi*c2 *
-            ((-1)*7*(tmpEx(j,k,0)*VxE[0]+tmpEy(j,k,0)*VxE[1]+tmpEz(j,k,0)*VxE[2])*Bz(j,k,0)
-            - 7*(tmpEx(j,k,0)*Bx(j,k,0)+tmpEy(j,k,0)*By(j,k,0)+tmpEz(j,k,0)*Bz(j,k,0))*VxE[2]
-            + 4*(Bx(j,k,0)*VxE[0]+By(j,k,0)*VxE[1]+Bz(j,k,0)*VxE[2])*tmpEz(j,k,0)) + VxM[2]};
+        2*xi*c2*
+            (
+                (-7)*Bz(j,k,0)*
+                (
+                    tmpEx(j,k,0)*VxE[0]+tmpEy(j,k,0)*VxE[1]+tmpEz(j,k,0)*VxE[2]
+				)
+                - 7*VxE[2]*
+                (
+				    tmpEx(j,k,0)*Bx(j,k,0)+tmpEy(j,k,0)*By(j,k,0)+tmpEz(j,k,0)*Bz(j,k,0)
+				)
+                + 4*tmpEz(j,k,0)*
+                (
+                    Bx(j,k,0)*VxE[0]+By(j,k,0)*VxE[1]+Bz(j,k,0)*VxE[2]
+				)
+			)
+			+ VxM[2],
+	};
 
     const amrex::Real Omega[3] = {
 
-        Alpha[0] + 2*xi*c2 *
-            (4*(tmpEx(j,k,0)*VxB[0]+tmpEy(j,k,0)*VxB[1]+tmpEz(j,k,0)*VxB[2])*tmpEx(j,k,0)
-            +2*(pow(tmpEx(j,k,0),2)+pow(tmpEy(j,k,0),2)+pow(tmpEz(j,k,0),2)
-            -c2*(pow(Bx(j,k,0),2)+pow(By(j,k,0),2)+pow(Bz(j,k,0),2)))*VxB[0]
-            +7*c2*(VxB[0]*Bx(j,k,0)+VxB[1]*By(j,k,0)+VxB[2]*Bz(j,k,0))*Bx(j,k,0)),
+        Alpha[0] + 2*xi*c2*
+            (
+                4*tmpEx(j,k,0)*
+                (
+                    tmpEx(j,k,0)*VxB[0]+tmpEy(j,k,0)*VxB[1]+tmpEz(j,k,0)*VxB[2]
+				)
+                +2*VxB[0]*
+                (
+                    pow(tmpEx(j,k,0),2)+pow(tmpEy(j,k,0),2)+pow(tmpEz(j,k,0),2)
+				    - c2*
+				    (
+				        pow(Bx(j,k,0),2)+pow(By(j,k,0),2)+pow(Bz(j,k,0),2)
+					)
+				)
+                + 7*c2*Bx(j,k,0)*
+                (
+                    VxB[0]*Bx(j,k,0)+VxB[1]*By(j,k,0)+VxB[2]*Bz(j,k,0)
+				)
+			),
 
-        Alpha[1] + 2*xi*c2 *
-            (4*(tmpEx(j,k,0)*VxB[0]+tmpEy(j,k,0)*VxB[1]+tmpEz(j,k,0)*VxB[2])*tmpEy(j,k,0)
-            +2*(pow(tmpEx(j,k,0),2)+pow(tmpEy(j,k,0),2)+pow(tmpEz(j,k,0),2)
-            -c2*(pow(Bx(j,k,0),2)+pow(By(j,k,0),2)+pow(Bz(j,k,0),2)))*VxB[1]
-            +7*c2*(VxB[0]*Bx(j,k,0)+VxB[1]*By(j,k,0)+VxB[2]*Bz(j,k,0))*By(j,k,0)),
+        Alpha[1] + 2*xi*c2*
+            (
+                4*tmpEy(j,k,0)*
+                (
+                    tmpEx(j,k,0)*VxB[0]+tmpEy(j,k,0)*VxB[1]+tmpEz(j,k,0)*VxB[2]
+				)
+                +2*VxB[1]*
+                (
+                    pow(tmpEx(j,k,0),2)+pow(tmpEy(j,k,0),2)+pow(tmpEz(j,k,0),2)
+                    - c2*
+                    (
+                        pow(Bx(j,k,0),2)+pow(By(j,k,0),2)+pow(Bz(j,k,0),2)
+					)
+				)
+                + 7*c2*By(j,k,0)*
+                (
+                    VxB[0]*Bx(j,k,0)+VxB[1]*By(j,k,0)+VxB[2]*Bz(j,k,0)
+				)
+			),
 
         Alpha[2] + 2*xi*c2*
-            (4*(tmpEx(j,k,0)*VxB[0]+tmpEy(j,k,0)*VxB[1]+tmpEz(j,k,0)*VxB[2])*tmpEz(j,k,0)
-            +2*(pow(tmpEx(j,k,0),2)+pow(tmpEy(j,k,0),2)+pow(tmpEz(j,k,0),2)
-            -c2*(pow(Bx(j,k,0),2)+pow(By(j,k,0),2)+pow(Bz(j,k,0),2)))*VxB[2]
-            +7*c2*(VxB[0]*Bx(j,k,0)+VxB[1]*By(j,k,0)+VxB[2]*Bz(j,k,0))*Bz(j,k,0))};
+            (
+                4*tmpEz(j,k,0)*
+                (
+                    tmpEx(j,k,0)*VxB[0]+tmpEy(j,k,0)*VxB[1]+tmpEz(j,k,0)*VxB[2]
+				)
+                +2*VxB[2]*
+                (
+                    pow(tmpEx(j,k,0),2)+pow(tmpEy(j,k,0),2)+pow(tmpEz(j,k,0),2)
+                    - c2*
+                    (
+                        pow(Bx(j,k,0),2)+pow(By(j,k,0),2)+pow(Bz(j,k,0),2)
+					)
+				)
+                + 7*c2*Bz(j,k,0)*
+			    (
+			        VxB[0]*Bx(j,k,0)+VxB[1]*By(j,k,0)+VxB[2]*Bz(j,k,0)
+				)
+			),
+	};
 
     const amrex::Real a00 = beta + (xi) * ( 8*pow(tmpEx(j,k,0),2) + 14*c2*pow(Bx(j,k,0),2) );
 
