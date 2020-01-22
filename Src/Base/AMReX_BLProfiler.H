@@ -36,16 +36,16 @@ class BLProfiler
     struct CallStats {
       CallStats() : callStackDepth(-2), csFNameNumber(-2),
                     nCSCalls(0), totalTime(0.0),
-		    stackTime(0.0), callTime(0.0)  { }
+            stackTime(0.0), callTime(0.0)  { }
       CallStats(int depth, int fnamenumber) : callStackDepth(depth),
                                               csFNameNumber(fnamenumber),
                                               nCSCalls(0), totalTime(0.0),
-					      stackTime(0.0), callTime(0.0)  { }
+                          stackTime(0.0), callTime(0.0)  { }
       CallStats(int depth, int fnamenumber, int ncalls, Real totaltime,
                 Real stacktime, Real calltime) : callStackDepth(depth),
                                                  csFNameNumber(fnamenumber),
                                                  nCSCalls(ncalls), totalTime(totaltime),
-					         stackTime(stacktime), callTime(calltime)  { }
+                             stackTime(stacktime), callTime(calltime)  { }
       int callStackDepth, csFNameNumber;
       long nCSCalls;
       Real totalTime, stackTime, callTime;
@@ -180,7 +180,7 @@ class BLProfiler
     static void AddCommStat(const CommFuncType cft, const int size,
                             const int pid, const int tag);
     static void AddWait(const CommFuncType cft, const MPI_Request &reqs,
-		        const MPI_Status &status, const bool bc);
+                const MPI_Status &status, const bool bc);
     static void AddWaitsome(const CommFuncType cft, const Vector<MPI_Request> &reqs,
                             const int completed, const Vector<MPI_Status> &status,
                             const bool bc);
@@ -318,14 +318,14 @@ namespace BLProfilerUtils {
 
   void WriteRow(std::ostream &os, const std::string &fname,
                 const BLProfiler::ProfStats &pstats, const Real percent,
-	        const int colWidth, const Real maxlen,
-	        const bool bwriteavg);
+            const int colWidth, const Real maxlen,
+            const bool bwriteavg);
 
   void WriteStats(std::ostream &os,
                   const std::map<std::string, BLProfiler::ProfStats> &mpStats,
-		  const std::map<std::string, int> &fnameNumbers,
-		  const Vector<BLProfiler::CallStats> &callTraces,
-		  bool bwriteavg = false, bool bwriteinclusivetimes = false);
+          const std::map<std::string, int> &fnameNumbers,
+          const Vector<BLProfiler::CallStats> &callTraces,
+          bool bwriteavg = false, bool bwriteinclusivetimes = false);
 }
 
 
@@ -389,7 +389,7 @@ inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
 
 }
 
-#define BL_PROFILE_INITIALIZE()  amrex::BLProfiler::Initialize();
+#define BL_PROFILE_INITIALIZE(...)  amrex::BLProfiler::Initialize();
 #define BL_PROFILE_INITPARAMS()  amrex::BLProfiler::InitParams();
 #define BL_PROFILE_FINALIZE()    amrex::BLProfiler::Finalize();
 
@@ -466,27 +466,156 @@ inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
 
 #endif
 
+#elif defined(AMREX_USE_TIMEMORY)
+
+
+#include <memory>
+#include <timemory/runtime/configure.hpp>
+#include <timemory/timemory.hpp>
+#include <unordered_map>
+
+using namespace tim::component;
+
+// this is used to make the user_bundle specific to AMReX
+struct BLProfiler_timemory_tag;
+
+/// \typedef BLProfiler_timemory_bundle_t
+/// \brief
+///  This is inserted into tuple, making it fixed at compile-time but run-time
+///  configurable To globally configure this bundle:
+///
+///     tim::configure<BLProfiler_timemory_bundle_t>(...)
+///
+///  with multiple overloads for initializer_lists and STL containers containing either
+///  strings or TIMEMORY_COMPONENT enum values, e.g.
+///
+///     tim::configure<BLProfiler_timemory_bundle_t>({ "cpu_clock", "cpu_util" });
+///
+using BLProfiler_timemory_bundle_t = user_bundle<0, BLProfiler_timemory_tag>;
+
+/// \typedef BLProfiler_timemory_timer_t
+/// \brief
+///  The "always-on" set of tools when enabled
+///
+using BLProfiler_timemory_timer_t =
+    tim::component_tuple<wall_clock, BLProfiler_timemory_bundle_t>;
+
+/// \typedef BLProfiler_timemory_hardware_t
+/// \brief A list of run-time optional tools for collecting hardware counters and
+///  the roofline.
+///
+///  To configure via environment variables:
+///
+///     export TIMEMORY_COMPONENT_LIST_INIT="papi_array,cupti_counters"
+///     export TIMEMORY_PAPI_EVENTS="PAPI_TOT_CYC,PAPI_TOT_INS"
+///     export TIMEMORY_CUPTI_EVENTS="active_cycles,global_load,global_store"
+///     export TIMEMORY_CUPTI_METRICS="inst_per_warp,flop_count_sp"
+///
+///  To configure via source code:
+///
+///     tim::settings::papi_events() = "PAPI_TOT_CYC,PAPI_TOT_INS";
+///     tim::settings::cupti_events() = "active_cycles,global_load,global_store";
+///     tim::settings::cupti_metrics() = "inst_per_warp,flop_count_sp";
+///
+///     BLProfiler_timemory_hardware_t::get_initializer() =
+///         [](BLProfiler_timemory_hardware_t& obj)
+///         {
+///             obj.initialize<papi_array_t, cupti_counters>();
+///         };
+///
+using BLProfiler_timemory_hardware_t =
+    tim::component_list<papi_array_t, cupti_activity, cupti_counters, cpu_roofline_flops,
+                        cpu_roofline_sp_flops, cpu_roofline_dp_flops, gpu_roofline_flops,
+                        gpu_roofline_hp_flops, gpu_roofline_sp_flops,
+                        gpu_roofline_dp_flops>;
+
+///  \typedef BLProfiler_auto_hybrid_t
+///  \brief The tim::auto_hybrid type:
+///      - starts the underlying component_hybrid in constructor
+///      - stops the underlying component_hybird in destructor
+///      - always push/pops from the storage
+///
+using BLProfiler_auto_hybrid_t =
+    tim::auto_hybrid<BLProfiler_timemory_timer_t, BLProfiler_timemory_hardware_t>;
+
+///  \typedef BLProfiler_component_hybrid_t
+///  \brief
+///  The component_hybrid type:
+///      - does not automatically start or stop
+///
+using BLProfiler_component_hybrid_t =
+    tim::component_hybrid<BLProfiler_timemory_timer_t, BLProfiler_timemory_hardware_t>;
+
+///  \typedef BLProfiler_timemory_region_map_t
+///  \brief
+using BLProfiler_timemory_region_map_t =
+    std::unordered_map<std::string, std::shared_ptr<BLProfiler_auto_hybrid_t>>;
+
+BLProfiler_timemory_region_map_t&
+BLProfiler_get_timemory_regions()
+{
+    static thread_local BLProfiler_timemory_region_map_t _instance{};
+    return _instance;
+}
+
+#define BL_PROFILE_INITIALIZE(...) tim::timemory_init(__VA_ARGS__);
+#define BL_PROFILE_INITPARAMS()
+#define BL_PROFILE_FINALIZE() tim::timemory_finalize();
+
+#define BL_TINY_PROFILE_INITIALIZE()
+#define BL_TINY_PROFILE_FINALIZE()
+
+#define BL_PROFILE(fname) TIMEMORY_BLANK_MARKER(BLProfiler_auto_hybrid_t, fname);
+#define BL_PROFILE_T(a, T)
+#define BL_PROFILE_S(fname)
+#define BL_PROFILE_T_S(fname, T) TIMEMORY_BLANK_MARKER(BLProfiler_auto_hybrid_t,         \
+    fname, "/", tim::demangle<T>().c_str());
+#define BL_PROFILE_TIMER(var, a)
+#define BL_PROFILE_START(var)
+#define BL_PROFILE_STOP(var)
+#define BL_PROFILE_THIS_NAME()
+
+#define BL_PROFILE_VAR(fname, vname)                                                     \
+    TIMEMORY_BLANK_CALIPER(vname, BLProfiler_component_hybrid_t, fname);
+#define BL_PROFILE_VAR_NS(fname, vname)                                                  \
+    TIMEMORY_BLANK_CALIPER(vname, BLProfiler_component_hybrid_t, fname);
+#define BL_PROFILE_VAR_START(vname) TIMEMORY_CALIPER_APPLY0(vname, start);
+#define BL_PROFILE_VAR_STOP(vname) TIMEMORY_CALIPER_APPLY0(vname, stop);
+#define BL_PROFILE_INIT_PARAMS(p, w, f)
+#define BL_PROFILE_ADD_STEP(snum)
+#define BL_PROFILE_SET_RUN_TIME(rtime)
+#define BL_PROFILE_REGION(rname)
+#define BL_PROFILE_REGION_START(rname)
+#define BL_PROFILE_REGION_STOP(rname)
+#define BL_PROFILE_REGION_VAR(fname, rvname)
+#define BL_PROFILE_REGION_VAR_START(fname, rvname)                                       \
+    BLProfiler_get_timemory_regions()[##rvname] =                                        \
+        std::make_shared<BLProfiler_auto_hybrid_t>(fname);
+#define BL_PROFILE_REGION_VAR_STOP(fname, rvname)                                        \
+    {                                                                                    \
+        auto itr = BLProfiler_get_timemory_regions().find(##rvname);                     \
+        if(itr != BLProfiler_get_timemory_regions().end())                               \
+            BLProfiler_get_timemory_regions().erase(itr);                                \
+    }
+#define BL_PROFILE_TINY_FLUSH()
+#define BL_PROFILE_FLUSH()
+#define BL_TRACE_PROFILE_FLUSH()
+#define BL_TRACE_PROFILE_SETFLUSHSIZE(fsize)
+#define BL_PROFILE_CHANGE_FORT_INT_NAME(fname, intname)
 
 // --------------------------------------------
 #elif defined(AMREX_TINY_PROFILING)
 
 #include <AMReX_TinyProfiler.H>
 
-#define BL_PROFILE_INITIALIZE()
+#define BL_PROFILE_INITIALIZE(...)
 #define BL_PROFILE_INITPARAMS()
 #define BL_PROFILE_FINALIZE()
 
 #define BL_TINY_PROFILE_INITIALIZE()   amrex::TinyProfiler::Initialize();
 #define BL_TINY_PROFILE_FINALIZE()     amrex::TinyProfiler::Finalize();
 
-#include <timemory/timemory.hpp>
-using namespace tim::component;
-using simple_timer_t = tim::component_tuple<wall_clock>;
-using kernel_timer_t = tim::component_list<cupti_activity, cupti_counters, papi_array_t>;
-using hybrid_timer_t = tim::auto_hybrid<simple_timer_t, kernel_timer_t>;
-#define BL_PROFILE(fname) TIMEMORY_BLANK_MARKER(hybrid_timer_t, fname)
-
-// #define BL_PROFILE(fname)         amrex::TinyProfiler tiny_profiler__((fname));
+#define BL_PROFILE(fname)         amrex::TinyProfiler tiny_profiler__((fname));
 #define BL_PROFILE_T(a, T)
 #define BL_PROFILE_S(fname)
 #define BL_PROFILE_T_S(fname, T)
@@ -537,7 +666,7 @@ class BLProfiler
 
 }
 
-#define BL_PROFILE_INITIALIZE()
+#define BL_PROFILE_INITIALIZE(...)
 #define BL_PROFILE_INITPARAMS()
 #define BL_PROFILE_FINALIZE()
 

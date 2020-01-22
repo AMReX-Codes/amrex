@@ -381,7 +381,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         The_Initialize_Function_Stack.pop();
     }
 
-    BL_PROFILE_INITIALIZE();
+    BL_PROFILE_INITIALIZE(argc, argv);
 
 #ifndef BL_AMRPROF
     if (build_parm_parse)

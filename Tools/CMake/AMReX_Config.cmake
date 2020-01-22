@@ -96,23 +96,41 @@ function (configure_amrex)
 
    if (ENABLE_TIMEMORY)
 
-      set(_TIMEMORY_COMPONENTS headers papi cuda nvtx cupti cudart-device gperftools-cpu caliper gotcha likwid vtune tau)
-      if(ENABLE_MPI)
-         list(APPEND _TIMEMORY_COMPONENTS mpi)
-      endif()
+       set(_TIMEMORY_COMPONENTS
+           headers              # minimal requirement for headers
+           OPTIONAL_COMPONENTS
+           papi                 # enables PAPI hardware counters
+           cuda                 # enable CUDA components
+           nvtx                 # enables NVTX markers
+           cupti cudart-device  # enables GPU profiling
+           # plotting             # enables plotting from C++
+           gperftools-cpu       # gperftools CPU sampler
+           caliper              # enables Caliper support
+           gotcha               # enables gotcha support
+           likwid               # enables LIKWID marker API support
+           vtune                # enables VTune support
+           # tau                  # enables TAU support
+           roofline             # enables CPU and GPU roofline support (PAPI and CUPTI)
+           cpu-roofline         # enables CPU roofline (requires PAPI)
+           gpu-roofline         # enables GPU roofline (requires CUPTI)
+        )
 
-      if(ENABLE_UPCXX)
-         list(APPEND _TIMEMORY_COMPONENTS upcxx)
-      endif()
+        if(ENABLE_MPI)
+            list(APPEND _TIMEMORY_COMPONENTS mpi)
+        endif()
 
-      set(TIMEMORY_COMPONENTS "${_TIMEMORY_COMPONENTS}" CACHE STRING "timemory components")
-      find_package(timemory REQUIRED COMPONENTS ${TIMEMORY_COMPONENTS})
+        if(ENABLE_UPCXX)
+            list(APPEND _TIMEMORY_COMPONENTS upcxx)
+        endif()
 
-      target_link_libraries(amrex
-         PUBLIC
-         timemory)
+        set(TIMEMORY_COMPONENTS "${_TIMEMORY_COMPONENTS}" CACHE STRING "timemory components")
+        find_package(timemory REQUIRED COMPONENTS ${TIMEMORY_COMPONENTS})
 
-   endif ()
+        target_link_libraries(amrex
+            PUBLIC
+            timemory)
+
+    endif ()
    
    if (ENABLE_CUDA)     
       # After we load the setups for ALL the supported compilers
