@@ -10,7 +10,7 @@ Es = 10**5
 xi = 10**-23
 
 # Load dataset and get laser field
-dsQED = yt.load('diags/plotfiles/plt00300/')
+dsQED = yt.load(sys.argv[1])
 QED_all_data_level_0 = dsQED.covering_grid(level=0,left_edge=(dsQED.domain_left_edge),
                                            dims=dsQED.domain_dimensions)
 EyQED_2d = QED_all_data_level_0['boxlib', 'Ey'].v.squeeze()
