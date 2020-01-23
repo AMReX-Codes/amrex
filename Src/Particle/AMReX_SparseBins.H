@@ -15,38 +15,38 @@ struct SparseBinIteratorFactory
 
     using index_type = unsigned int;
     
-    SparseBinIteratorFactory (const Gpu::DeviceVector<index_type>* bins,
+    SparseBinIteratorFactory (const Gpu::DeviceVector<index_type>& bins,
                               const Gpu::DeviceVector<index_type>& offsets, 
                               const Gpu::DeviceVector<index_type>& permutation,
                               const T* items)
-        : m_bins(bins.dataPtr()),
+        : m_bins_ptr(bins.dataPtr()),
           m_offsets_ptr(offsets.dataPtr()),
           m_permutation_ptr(permutation.dataPtr()),
-          m_items(items)
+          m_items(items), m_num_bins(bins.size())
     {}
 
     AMREX_GPU_HOST_DEVICE
-    index_type getIndex (const int bin_number) const noexcept
+    index_type getIndex (const index_type bin_number) const noexcept
     {
         index_type lo = 0;
-        index_type hi = N-1;
+        index_type hi = m_num_bins - 1;
 
         while (lo < hi) {
-            if (m_bins_ptr[lo] == value) return lo;
-            if (m_bins_ptr[hi] == value) return hi;
+            if (m_bins_ptr[lo] == bin_number) return lo;
+            if (m_bins_ptr[hi] == bin_number) return hi;
             
             index_type mid = (lo + hi) / 2;
             index_type mid_value = m_bins_ptr[mid];
-            if (mid_value == value) return mid;
+            if (mid_value == bin_number) return mid;
             
-            mid_value < value ? lo = mid+1 : hi = mid;            
+            mid_value < bin_number ? lo = mid+1 : hi = mid;            
         }
        
         return m_not_found;
     }    
     
     AMREX_GPU_HOST_DEVICE
-    BinIterator<T> getBinIterator (const int bin_number) const noexcept
+    BinIterator<T> getBinIterator (const index_type bin_number) const noexcept
     {
         auto index = getIndex(bin_number);
         return BinIterator<T>(index, m_offsets_ptr, m_permutation_ptr, m_items);
@@ -56,7 +56,8 @@ struct SparseBinIteratorFactory
     const index_type* m_offsets_ptr;
     const index_type* m_permutation_ptr;
     const T* m_items;
-
+    index_type m_num_bins;
+    
     static constexpr index_type m_not_found = std::numeric_limits<index_type>::max(); 
 };
     
@@ -103,10 +104,20 @@ public:
         BL_PROFILE("SparseBins<T>::build");
 
         Gpu::HostVector<index_type> host_cells(nitems);
-        std::map<index_type, index_type> bins_map;                
+        std::map<index_type, index_type> bins_map;
+        const auto lo = lbound(bx);
+        const auto hi = ubound(bx);
         for (int i = 0; i < nitems; ++i)
         {
-            host_cells[i] = f(v[i]);
+            bin_type iv = f(v[i]);
+            auto iv3 = iv.dim3();
+            int nx = hi.x-lo.x+1;
+            int ny = hi.y-lo.y+1;
+            int nz = hi.z-lo.z+1;
+            index_type uix = amrex::min(nx-1,amrex::max(0,iv3.x));
+            index_type uiy = amrex::min(ny-1,amrex::max(0,iv3.y));
+            index_type uiz = amrex::min(nz-1,amrex::max(0,iv3.z));
+            host_cells[i] = (uix * ny + uiy) * nz + uiz;
             bins_map[host_cells[i]] += 1;
         }
 

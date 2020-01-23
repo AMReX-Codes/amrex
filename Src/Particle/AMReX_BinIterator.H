@@ -1,5 +1,5 @@
-#ifndef AMREX_SPARSEBINS_H_
-#define AMREX_SPARSEBINS_H_
+#ifndef AMREX_BINITERATOR_H_
+#define AMREX_BINITERATOR_H_
 
 #include <AMReX_Gpu.H>
 
