@@ -1103,7 +1103,7 @@ void WriteParticlesHDF5 ( hid_t grp, int level, Vector<int>& count, Vector<long>
     Gpu::PinnedVector<char> pinned_snd_buffer;
     Gpu::PinnedVector<char> pinned_rcv_buffer;
 
-    mutable AmrParticleLocator<DenseBins<Box> > m_particle_locator;
+    mutable AmrParticleLocator<SparseBins<Box> > m_particle_locator;
 #endif
 
     int NumRuntimeRealComps () const { return m_num_runtime_real; }
