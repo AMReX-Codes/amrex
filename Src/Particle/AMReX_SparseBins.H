@@ -12,9 +12,12 @@ namespace amrex
 template <typename T>
 struct SparseBinIteratorFactory
 {
-    SparseBinIteratorFactory (const Gpu::DeviceVector<unsigned int>* bins,
-                              const Gpu::DeviceVector<unsigned int>& offsets, 
-                              const Gpu::DeviceVector<unsigned int>& permutation,
+
+    using index_type = unsigned int;
+    
+    SparseBinIteratorFactory (const Gpu::DeviceVector<index_type>* bins,
+                              const Gpu::DeviceVector<index_type>& offsets, 
+                              const Gpu::DeviceVector<index_type>& permutation,
                               const T* items)
         : m_bins(bins.dataPtr()),
           m_offsets_ptr(offsets.dataPtr()),
@@ -23,17 +26,17 @@ struct SparseBinIteratorFactory
     {}
 
     AMREX_GPU_HOST_DEVICE
-    unsigned int getIndex (const int bin_number) const noexcept
+    index_type getIndex (const int bin_number) const noexcept
     {
-        unsigned int lo = 0;
-        unsigned int hi = N-1;
+        index_type lo = 0;
+        index_type hi = N-1;
 
         while (lo < hi) {
             if (m_bins_ptr[lo] == value) return lo;
             if (m_bins_ptr[hi] == value) return hi;
             
-            unsigned int mid = (lo + hi) / 2;
-            unsigned int mid_value = m_bins_ptr[mid];
+            index_type mid = (lo + hi) / 2;
+            index_type mid_value = m_bins_ptr[mid];
             if (mid_value == value) return mid;
             
             mid_value < value ? lo = mid+1 : hi = mid;            
@@ -49,12 +52,12 @@ struct SparseBinIteratorFactory
         return BinIterator<T>(index, m_offsets_ptr, m_permutation_ptr, m_items);
     }
 
-    const unsigned int* m_bins_ptr;
-    const unsigned int* m_offsets_ptr;
-    const unsigned int* m_permutation_ptr;
+    const index_type* m_bins_ptr;
+    const index_type* m_offsets_ptr;
+    const index_type* m_permutation_ptr;
     const T* m_items;
 
-    static constexpr unsigned int m_not_found = std::numeric_limits<unsigned int>::max(); 
+    static constexpr index_type m_not_found = std::numeric_limits<index_type>::max(); 
 };
     
 /**
