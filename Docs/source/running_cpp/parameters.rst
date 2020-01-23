@@ -724,20 +724,20 @@ Laser initialization
     the field solver. In particular, do not use any other boundary condition
     than periodic.
 
-*  ``warpx.B_ext_particle_init_style`` (string) optional (default is "default")
+*  ``particles.B_ext_particle_init_style`` (string) optional (default is "default")
      This parameter determines the type of initialization for the external
      magnetic field that is applied directly to the particles at every timestep.
      The "default" style sets the external B-field (Bx,By,Bz) to (0.0,0.0,0.0).
      The string can be set to "constant" if a constant external B-field is applied
      every timestep. If this parameter is set to "constant", then an additional
-     parameter, namely, ``warpx.B_external_particle`` must be specified in
+     parameter, namely, ``particles.B_external_particle`` must be specified in
      the input file.
      To parse a mathematical function for the external B-field, use the option
      ``parse_B_ext_particle_function``. This option requires additional parameters
      in the input file, namely,
-     ``warpx.Bx_external_particle_function(x,y,z,t)``,
-     ``warpx.By_external_particle_function(x,y,z,t)``,
-     ``warpx.Bz_external_particle_function(x,y,z,t)`` to apply the external B-field
+     ``particles.Bx_external_particle_function(x,y,z,t)``,
+     ``particles.By_external_particle_function(x,y,z,t)``,
+     ``particles.Bz_external_particle_function(x,y,z,t)`` to apply the external B-field
      on the particles. Constants required in the mathematical expression can be set
      using ``my_constants``. For a two-dimensional simulation, it is assumed that
      the first and second dimensions are `x` and `z`, respectively, and the
@@ -745,20 +745,20 @@ Laser initialization
      Note that the current implementation of the parser for B-field on particles
      does not work with RZ and the code will abort with an error message.
 
-*    ``warpx.E_ext_particle_init_style`` (string) optional (default is "default")
+*    ``particles.E_ext_particle_init_style`` (string) optional (default is "default")
      This parameter determines the type of initialization for the external
      electric field that is applied directly to the particles at every timestep.
      The "default" style set the external E-field (Ex,Ey,Ez) to (0.0,0.0,0.0).
      The string can be set to "constant" if a cosntant external E-field is to be
      used in the simulation at every timestep. If this parameter is set to "constant",
-     then an additional parameter, namely, ``warpx.E_external_particle`` must be
+     then an additional parameter, namely, ``particles.E_external_particle`` must be
      specified in the input file.
      To parse a mathematical function for the external E-field, use the option
      ``parse_E_ext_particle_function``. This option requires additional
      parameters in the input file, namely,
-     ``warpx.Ex_external_particle_function(x,y,z,t)``,
-     ``warpx.Ey_external_particle_function(x,y,z,t)``,
-     ``warpx.Ez_external_particle_function(x,y,z,t)`` to apply the external E-field
+     ``particles.Ex_external_particle_function(x,y,z,t)``,
+     ``particles.Ey_external_particle_function(x,y,z,t)``,
+     ``particles.Ez_external_particle_function(x,y,z,t)`` to apply the external E-field
      on the particles. Constants required in the mathematical expression can be set
      using ``my_constants``. For a two-dimensional simulation, similar to the B-field,
      it is assumed that the first and second dimensions are `x` and `z`, respectively,
@@ -766,7 +766,7 @@ Laser initialization
      The current implementation of the parser for the E-field on particles does not work
      with RZ and the code will abort with an error message.
 
-* ``warpx.E_external_particle`` & ``warpx.B_external_particle`` (list of `float`) optional (default `0. 0. 0.`)
+* ``particles.E_external_particle`` & ``particles.B_external_particle`` (list of `float`) optional (default `0. 0. 0.`)
     Two separate parameters which add an externally applied uniform E-field or
     B-field to each particle which is then added to the field values gathered
     from the grid in the PIC cycle.
