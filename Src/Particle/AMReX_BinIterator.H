@@ -16,7 +16,7 @@ struct BinIterator
     struct iterator
     {
         AMREX_GPU_HOST_DEVICE
-        iterator (int start, int stop, const index_type* a_perm, const T* a_items) 
+        iterator (index_type start, index_type stop, const index_type* a_perm, const T* a_items) 
             : m_index(start), m_stop(stop), m_perm(a_perm), m_items(a_items)   
         {}
         
@@ -35,8 +35,8 @@ struct BinIterator
     private:
         const T* m_items;
         const index_type* m_perm;
-        int m_index;
-        int m_stop;
+        index_type m_index;
+        index_type m_stop;
     };
     
     AMREX_GPU_HOST_DEVICE
@@ -57,12 +57,12 @@ struct BinIterator
     }
 
     AMREX_GPU_HOST_DEVICE    
-    BinIterator (int i, const index_type *offsets_ptr, const index_type *permutation_ptr, const T* items)
+    BinIterator (index_type i, const index_type *offsets_ptr, const index_type *permutation_ptr, const T* items)
         : m_i(i), m_offsets_ptr(offsets_ptr), m_permutation_ptr(permutation_ptr), m_items(items)
     {}
     
 private:
-    const int m_i;
+    const index_type m_i;
     const index_type * m_offsets_ptr;
     const index_type * m_permutation_ptr;
     const T * m_items;
