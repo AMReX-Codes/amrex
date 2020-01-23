@@ -4,7 +4,6 @@
 #include <AMReX_Particles.H>
 #include <AMReX_GpuContainers.H>
 #include <AMReX_Tuple.H>
-#include <AMReX_DenseBins.H>
 
 namespace amrex
 {

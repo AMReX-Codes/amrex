@@ -46,6 +46,7 @@
 #include <AMReX_ParticleLocator.H>
 #include <AMReX_Scan.H>
 #include <AMReX_DenseBins.H>
+#include <AMReX_SparseBins.H>
 #include <AMReX_ParticleTransformation.H>
 #include <AMReX_ParIter.H>
 
