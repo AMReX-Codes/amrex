@@ -78,11 +78,15 @@ struct AssignGrid
         return -1;
     }
 };
-    
+
+template <class Bins>
 class ParticleLocator
 {
 public:
 
+    using BinIteratorFactory = typename Bins::BinIteratorFactory;
+    using BinIterator = typename Bins::BinIterator;
+    
     ParticleLocator () : m_defined(false) {}
 
     void build (const BoxArray& ba, const Geometry& geom)
@@ -149,11 +153,11 @@ public:
         m_geom = a_geom;
     }
 
-    AssignGrid<DenseBinIteratorFactory<Box> > getGridAssignor () const noexcept 
+    AssignGrid<BinIteratorFactory> getGridAssignor () const noexcept 
     {
         AMREX_ASSERT(m_defined);
-        return AssignGrid<DenseBinIteratorFactory<Box> >(m_bins.getBinIteratorFactory(),
-                                                         m_bins_lo, m_bins_hi, m_bin_size, m_num_bins, m_geom);
+        return AssignGrid<BinIteratorFactory>(m_bins.getBinIteratorFactory(),
+                                              m_bins_lo, m_bins_hi, m_bin_size, m_num_bins, m_geom);
     }
 
     bool isValid (const BoxArray& ba) const noexcept
@@ -174,7 +178,7 @@ protected:
     IntVect m_bin_size;
     IntVect m_num_bins;
 
-    DenseBins<Box> m_bins;
+    Bins m_bins;
     
     Gpu::HostVector<Box> m_host_boxes;
     Gpu::DeviceVector<Box> m_device_boxes;
@@ -203,10 +207,14 @@ struct AmrAssignGrid
     }
 };
 
-template <class BinIteratorFactory>    
+template <class Bins>
 class AmrParticleLocator
 {
-    Vector<ParticleLocator> m_locators;
+public:
+    using BinIteratorFactory = typename Bins::BinIteratorFactory;
+    
+private:
+    Vector<ParticleLocator<Bins> > m_locators;
     Gpu::ManagedVector<AssignGrid<BinIteratorFactory> > m_grid_assignors;
     bool m_defined = false;
 
