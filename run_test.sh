@@ -38,7 +38,7 @@ cd test_dir
 # Clone PICSAR and AMReX
 git clone --branch development https://github.com/AMReX-Codes/amrex.git
 # Use QED brach for QED tests
-if [ ${HAS_QED} = "TRUE" ]; then
+if [[ ${HAS_QED} = "TRUE" ]]; then
     git clone --branch QED https://bitbucket.org/berkeleylab/picsar.git
 else
     git clone --branch master https://bitbucket.org/berkeleylab/picsar.git
