@@ -802,11 +802,14 @@ AmrMesh::MakeNewGrids (Real time)
 
 	const BoxArray& ba = MakeBaseGrids();
 	DistributionMapping dm(ba);
+        DistributionMapping old_dm = DistributionMap(0);
 
 	MakeNewLevelFromScratch(0, time, ba, dm);
 
 	SetBoxArray(0, ba);
-	SetDistributionMap(0, dm);
+        if (!DistributionMapping::SameRefs(DistributionMap(0),old_dm)) {
+            SetDistributionMap(0, dm);
+        }
     }
 
     if (max_level > 0) // build fine levels
@@ -824,11 +827,14 @@ AmrMesh::MakeNewGrids (Real time)
 	    finest_level = new_finest;
 
 	    DistributionMapping dm(new_grids[new_finest]);
+            DistributionMapping old_dm = DistributionMap(new_finest);
 
             MakeNewLevelFromScratch(new_finest, time, new_grids[finest_level], dm);
 
 	    SetBoxArray(new_finest, new_grids[new_finest]);
-	    SetDistributionMap(new_finest, dm);
+            if (!DistributionMapping::SameRefs(DistributionMap(new_finest),old_dm)) {
+                SetDistributionMap(new_finest, dm);
+            }
 	}
 	while (finest_level < max_level);
 
@@ -852,11 +858,14 @@ AmrMesh::MakeNewGrids (Real time)
 		    if (new_grids[lev] != grids[lev]) {
 		        grids_the_same = false;
 		        DistributionMapping dm(new_grids[lev]);
+                        DistributionMapping old_dm = DistributionMap(lev);
 
                         MakeNewLevelFromScratch(lev, time, new_grids[lev], dm);
 
 		        SetBoxArray(lev, new_grids[lev]);
-		        SetDistributionMap(lev, dm);
+                        if (!DistributionMapping::SameRefs(DistributionMap(lev),old_dm)) {
+                            SetDistributionMap(lev, dm);
+                        }
 		    }
 	        }
 	        if (grids_the_same) break;
