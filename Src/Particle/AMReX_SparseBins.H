@@ -21,18 +21,40 @@ struct SparseBinIteratorFactory
           m_permutation_ptr(permutation.dataPtr()),
           m_items(items)
     {}
+
+    AMREX_GPU_HOST_DEVICE
+    unsigned int getIndex (const int bin_number) const noexcept
+    {
+        unsigned int lo = 0;
+        unsigned int hi = N-1;
+
+        while (lo < hi) {
+            if (m_bins_ptr[lo] == value) return lo;
+            if (m_bins_ptr[hi] == value) return hi;
+            
+            unsigned int mid = (lo + hi) / 2;
+            unsigned int mid_value = m_bins_ptr[mid];
+            if (mid_value == value) return mid;
+            
+            mid_value < value ? lo = mid+1 : hi = mid;            
+        }
+       
+        return m_not_found;
+    }    
     
     AMREX_GPU_HOST_DEVICE
-    BinIterator<T> getBinIterator(const int bin_number) const noexcept
+    BinIterator<T> getBinIterator (const int bin_number) const noexcept
     {
-        // here we must do a bisect to get the index in bins corresponding to bin_number
-        return BinIterator<T>(bin_number, m_offsets_ptr, m_permutation_ptr, m_items);
+        auto index = getIndex(bin_number);
+        return BinIterator<T>(index, m_offsets_ptr, m_permutation_ptr, m_items);
     }
 
     const unsigned int* m_bins_ptr;
     const unsigned int* m_offsets_ptr;
     const unsigned int* m_permutation_ptr;
     const T* m_items;
+
+    static constexpr unsigned int m_not_found = std::numeric_limits<unsigned int>::max(); 
 };
     
 /**
