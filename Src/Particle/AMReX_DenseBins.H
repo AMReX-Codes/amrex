@@ -60,7 +60,6 @@ private:
     const T * m_items;
 };
 
-
 template <typename T>
 struct DenseBinIteratorFactory
 {
