@@ -19,7 +19,7 @@ xi = 10**(-23)
 Es = 10**(5) #THIS IS THE STATIC FIELD FOUND IN INPUTS_2D. IF YOU CHANGE ONE AND YOU MUST CHANGE THE OTHER
 
 c = 299792458.
-vtheory = c/sqrt((1+12*xi*Es**2/eps_0)/(1+4*xi*Es**2/eps_0))
+vtheory = c/np.sqrt((1+12*xi*Es**2/eps_0)/(1+4*xi*Es**2/eps_0))
 
 print('Simulation velocity: ', v)
 print('Theory veclority: ', vtheory)
