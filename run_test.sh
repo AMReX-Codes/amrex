@@ -12,9 +12,11 @@
 # Use `export WARPX_TEST_ARCH=CPU` or `export WARPX_TEST_ARCH=GPU` in order
 # to run the tests on CPU or GPU respectively.
 
-# Parse command line arguments: put all command line arguments into single string
-# (passed as additional command line argument when calling regtest.py)
-args="$*"
+# Parse command line arguments: if test names are given as command line arguments,
+# store them in variable tests_arg and define new command line argument to call
+# regtest.py with option --tests (works also for single test)
+tests_arg=$*
+tests_run=${tests_arg:+--tests=${tests_arg}}
 
 # Remove contents and link to a previous test directory (intentionally two arguments)
 rm -rf test_dir/* test_dir
@@ -53,6 +55,12 @@ cd warpx/Regression
 python prepare_file_travis.py
 cp travis-tests.ini ../../rt-WarpX
 
-# Run the tests
+# Run tests
 cd ../../regression_testing/
-python regtest.py ../rt-WarpX/travis-tests.ini --no_update all --source_git_hash=${WARPX_TEST_COMMIT} $args
+# run only tests specified in variable tests_arg (single test or multiple tests)
+if [[ ! -z "${tests_arg}" ]]; then
+python regtest.py ../rt-WarpX/travis-tests.ini --no_update all --source_git_hash=${WARPX_TEST_COMMIT} "${tests_run}"
+# run all tests (variables tests_arg and tests_run are empty)
+else
+python regtest.py ../rt-WarpX/travis-tests.ini --no_update all --source_git_hash=${WARPX_TEST_COMMIT}
+fi
