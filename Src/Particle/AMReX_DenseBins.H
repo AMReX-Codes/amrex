@@ -12,8 +12,10 @@ namespace amrex
 template <typename T>
 struct DenseBinIteratorFactory
 {
-    DenseBinIteratorFactory (const Gpu::DeviceVector<unsigned int>& offsets, 
-                             const Gpu::DeviceVector<unsigned int>& permutation,
+    using index_type = unsigned int;
+        
+    DenseBinIteratorFactory (const Gpu::DeviceVector<index_type>& offsets, 
+                             const Gpu::DeviceVector<index_type>& permutation,
                              const T* items)
         : m_offsets_ptr(offsets.dataPtr()),
           m_permutation_ptr(permutation.dataPtr()),
@@ -26,8 +28,8 @@ struct DenseBinIteratorFactory
         return BinIterator<T>(bin_number, m_offsets_ptr, m_permutation_ptr, m_items);
     }
     
-    const unsigned int* m_offsets_ptr;
-    const unsigned int* m_permutation_ptr;
+    const index_type* m_offsets_ptr;
+    const index_type* m_permutation_ptr;
     const T* m_items;
 };
     
