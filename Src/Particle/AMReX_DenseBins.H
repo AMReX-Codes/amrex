@@ -54,7 +54,6 @@ class DenseBins
 public:
 
     using BinIteratorFactory = DenseBinIteratorFactory<T>;
-    using BinIterator = BinIterator<T>;
     using bin_type = IntVect;
     using index_type = unsigned int;
 

@@ -83,7 +83,6 @@ class SparseBins
 public:
 
     using BinIteratorFactory = SparseBinIteratorFactory<T>;
-    using BinIterator = BinIterator<T>;
     using bin_type = IntVect;
     using index_type = unsigned int;
 
