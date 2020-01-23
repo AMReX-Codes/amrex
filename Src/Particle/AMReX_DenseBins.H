@@ -103,6 +103,8 @@ class DenseBins
 {
 public:
 
+    using BinIteratorFactory = DenseBinIteratorFactory<T>;
+    using BinIterator = DenseBinIterator<T>;
     using bin_type = IntVect;
     using index_type = unsigned int;
 
@@ -190,6 +192,7 @@ public:
     //! \brief returns const pointer to the offsets array
     const index_type* offsetsPtr () const noexcept { return m_offsets.dataPtr(); }
 
+    //! \brief returns a GPU-capable object that can create iterators over the items in a bin.
     DenseBinIteratorFactory<T> getBinIteratorFactory() const noexcept
     {
         return DenseBinIteratorFactory<T>(m_offsets, m_perm, m_items);
