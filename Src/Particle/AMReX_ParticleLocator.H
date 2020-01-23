@@ -84,7 +84,6 @@ class ParticleLocator
 public:
 
     using BinIteratorFactory = typename Bins::BinIteratorFactory;
-    using BinIterator = typename Bins::BinIterator;
     
     ParticleLocator () : m_defined(false) {}
 

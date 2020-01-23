@@ -102,6 +102,8 @@ public:
     {
         BL_PROFILE("SparseBins<T>::build");
 
+        m_items = v;
+        
         Gpu::HostVector<index_type> host_cells(nitems);
         std::map<index_type, index_type> bins_map;
         const auto lo = lbound(bx);
