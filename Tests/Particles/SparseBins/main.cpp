@@ -65,6 +65,7 @@ void testIntersection()
     }
 
     {
+        auto num_boxes = ba[0].size();
         
     }
 }
