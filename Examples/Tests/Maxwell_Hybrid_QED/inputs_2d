@@ -31,17 +31,21 @@ particles.nspecies = 0
 ############ FIELDS #############
 #################################
 
+my_constants.pi = 3.14159265359
+my_constants.L = 141.4213562373095e-6
+my_constants.eps0 = 8.8541878128e-12
+my_constants.c = 299792458.
+my_constants.wavelength = 64.e-6
+my_constants.Es = 1.e5
+my_constants.xi = 1.e-23
+my_constants
+
 warpx.E_ext_grid_init_style = parse_E_ext_grid_function
 warpx.Ez_external_grid_function(x,y,z) = 0.
 warpx.Ex_external_grid_function(x,y,z) = 0.
-warpx.Ey_external_grid_function(x,y,z) = "
-    ((exp(-(z*10**6)**2/20000)))*cos(2*3.14159265359*z*10**6/64)+1.e5
-    "
+warpx.Ey_external_grid_function(x,y,z) = "exp(-z**2/L**2)*cos(2*pi*z/wavelength) + Es"
 
 warpx.B_ext_grid_init_style = parse_B_ext_grid_function
-warpx.Bx_external_grid_function(x,y,z)= "
-    -1*sqrt((1+(12*10**(-13))/(8.8541878128*10**(-12)))/(1+(4*10**(-13))/(8.8541878128*10**(-12))))*
-    (exp(-(z*10**6)**2/20000))*cos(2*3.14159265359*z*10**6/64)/299792458.
-    "
+warpx.Bx_external_grid_function(x,y,z)= "-sqrt((1+(12*xi*Es**2)/eps0)/(1+(4*xi*Es**2)/eps0))*exp(-z**2/L**2)*cos(2*pi*z/wavelength)/c"
 warpx.By_external_grid_function(x,y,z)= 0.
 warpx.Bz_external_grid_function(x,y,z) = 0.

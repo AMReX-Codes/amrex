@@ -1,28 +1,36 @@
 #!/usr/bin/env python3
+
 import sys
 import yt ; yt.funcs.mylog.setLevel(0)
 import numpy as np
+import scipy.constants as scc
 
+# Static electric field and quantum parameters, from the input file.
+Es = 10**5
+xi = 10**-23
+
+# Load dataset and get laser field
 dsQED = yt.load(sys.argv[1])
 QED_all_data_level_0 = dsQED.covering_grid(level=0,left_edge=(dsQED.domain_left_edge),
                                            dims=dsQED.domain_dimensions)
-EyQED = QED_all_data_level_0['boxlib', 'Ey'].v.squeeze()
-resolution = dsQED.domain_dimensions[1]
+EyQED_2d = QED_all_data_level_0['boxlib', 'Ey'].v.squeeze()
+# Extract 1D lineout of the laser field
+EyQED = EyQED_2d[EyQED_2d.shape[0]//2,:]
+# Longitudinal resolution
+dz = dsQED.domain_width[1].v/dsQED.domain_dimensions[1]
 
-scale = 1.e-6 # NOTE THIS IS DETERMINED FROM THE SIM SCALE SET IN INPUTS_2D. CHANGE ONE AND YOU MUST CHANGE THE OTHER
+# Initial position of the laser pulse max (from input file)
+z_start = 0.
+# Final position of the laser pulse max (from plotfile)
+z_end = dsQED.domain_left_edge[1].v + np.argmax(EyQED) * dz
+# Compute phase velocity and compare with theory
+phase_velocity_pic = (z_end-z_start)/dsQED.current_time.v
+phase_velocity_theory = scc.c/np.sqrt((1+12*xi*Es**2/scc.epsilon_0)/(1+4*xi*Es**2/scc.epsilon_0))
+error_percent = 100*np.abs(phase_velocity_pic-phase_velocity_theory)/phase_velocity_theory
 
-dx = scale*((-0.5*resolution)+np.where(EyQED[0,:] == np.max(EyQED[0,:]))[0])*1024/resolution
-v = dx/(float(dsQED.current_time))
-eps_0 = 8.8541878128*10**(-12)
-xi = 10**(-23)
-
-Es = 10**(5) #THIS IS THE STATIC FIELD FOUND IN INPUTS_2D. IF YOU CHANGE ONE AND YOU MUST CHANGE THE OTHER
-
-c = 299792458.
-vtheory = c/np.sqrt((1+12*xi*Es**2/eps_0)/(1+4*xi*Es**2/eps_0))
-
-print('Simulation velocity: ', v)
-print('Theory veclority: ', vtheory)
-
-assert(100*np.abs(v-vtheory)/vtheory < 1.25)
-
+# Print and assert correctness
+print('Simulation velocity: ' + str(phase_velocity_pic))
+print('Theory velocity    : ' + str(phase_velocity_theory))
+print('error (%)          : ' + str(error_percent) )
+print('Theoretical difference between with/without QED (%): ' + str(100*np.abs(phase_velocity_theory-scc.c)/scc.c))
+assert( error_percent < 1.25 )
