@@ -8,6 +8,84 @@
 namespace amrex
 {
 
+template <typename T>
+struct SparseBinIterator
+{
+    struct iterator
+    {
+        AMREX_GPU_HOST_DEVICE
+        iterator (int start, int stop, const unsigned int* a_perm, const T* a_items) 
+            : m_index(start), m_stop(stop), m_perm(a_perm), m_items(a_items)   
+        {}
+        
+        AMREX_GPU_HOST_DEVICE
+        void operator++ () { ++m_index;; }
+        
+        AMREX_GPU_HOST_DEVICE
+        bool operator!= (iterator const& rhs) const { return m_index < m_stop; }
+        
+        AMREX_GPU_HOST_DEVICE
+        std::pair<unsigned int, T> operator* () const
+        {
+            return std::make_pair(m_perm[m_index], m_items[m_perm[m_index]]);
+        }
+        
+    private:
+        const T* m_items;
+        const unsigned int* m_perm;
+        int m_index;
+        int m_stop;
+    };
+    
+    AMREX_GPU_HOST_DEVICE
+    iterator begin () const {
+        return iterator(m_offsets_ptr[m_i], m_offsets_ptr[m_i+1], m_permutation_ptr, m_items);
+    }
+
+    AMREX_GPU_HOST_DEVICE
+    iterator end () const { 
+        return iterator(m_offsets_ptr[m_i+1], m_offsets_ptr[m_i+1], m_permutation_ptr, m_items);
+    }
+
+    AMREX_GPU_HOST_DEVICE    
+    SparseBinIterator (int i, const unsigned int *offsets_ptr, const unsigned int *permutation_ptr, const T* items)
+        : m_i(i), m_offsets_ptr(offsets_ptr), m_permutation_ptr(permutation_ptr), m_items(items)
+    {}
+    
+private:
+
+    const int m_i;
+    const unsigned int * m_offsets_ptr;
+    const unsigned int * m_permutation_ptr;
+    const T * m_items;
+};
+    
+template <typename T>
+struct SparseBinIteratorFactory
+{
+    SparseBinIteratorFactory (const Gpu::DeviceVector<unsigned int>* bins,
+                              const Gpu::DeviceVector<unsigned int>& offsets, 
+                              const Gpu::DeviceVector<unsigned int>& permutation,
+                              const T* items)
+        : m_bins(bins.dataPtr()),
+          m_offsets_ptr(offsets.dataPtr()),
+          m_permutation_ptr(permutation.dataPtr()),
+          m_items(items)
+    {}
+    
+    AMREX_GPU_HOST_DEVICE
+    SparseBinIterator<T> getBinIterator(const int bin_number) const noexcept
+    {
+        // here we must do a bisect to get the index in bins corresponding to bin_number
+        return SparseBinIterator<T>(bin_number, m_offsets_ptr, m_permutation_ptr, m_items);
+    }
+
+    const unsigned int* m_bins_ptr;
+    const unsigned int* m_offsets_ptr;
+    const unsigned int* m_permutation_ptr;
+    const T* m_items;
+};
+    
 /**
  * \brief A container for storing items in a set of bins using "sparse" storage.
  * 
@@ -29,6 +107,8 @@ class SparseBins
 {
 public:
 
+    using BinIteratorFactory = SparseBinIteratorFactory<T>;
+    using BinIterator = SparseBinIterator<T>;
     using bin_type = IntVect;
     using index_type = unsigned int;
 
@@ -106,7 +186,7 @@ public:
     //! \brief returns a GPU-capable object that can create iterators over the items in a bin.
     SparseBinIteratorFactory<T> getBinIteratorFactory() const noexcept
     {
-        return SparseBinIteratorFactory<T>(m_offsets, m_perm, m_items);
+        return SparseBinIteratorFactory<T>(m_bins, m_offsets, m_perm, m_items);
     }
     
 private:
