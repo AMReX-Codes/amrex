@@ -417,7 +417,7 @@ NodalProjector::setCoarseBoundaryVelocityForSync ()
         else
         {
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
             for (MFIter mfi(*m_vel[0]); mfi.isValid(); ++mfi)
             {
@@ -427,11 +427,6 @@ NodalProjector::setCoarseBoundaryVelocityForSync ()
                 const Box& reg = grids[i];
                 const Box& bxg1 = amrex::grow(reg,1);
                 BoxList bxlist(reg);
-
-                //If tiling only need to redefine these (all the rest can stay the same):
-                // const Box& bxg1 = mfi.growntilebox(1);
-                // const Box& tile = mfi.tilebox();
-                // BoxList bxlist(tile);
 
                 if (m_bc_lo[idir] == LinOpBCType::inflow && reg.smallEnd(idir) == domainBox.smallEnd(idir))
                 {
