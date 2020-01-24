@@ -100,10 +100,10 @@ AmrCore::regrid (int lbase, Real time, bool)
 	    if (new_grids[lev] != grids[lev]) // otherwise nothing
 	    {
                 DistributionMapping new_dmap(new_grids[lev]);
-                DistributionMapping old_dmap = DistributionMap(lev);
+                const auto old_num_setdm = num_setdm;
                 RemakeLevel(lev, time, new_grids[lev], new_dmap);
                 SetBoxArray(lev, new_grids[lev]);
-                if (DistributionMapping::SameRefs(DistributionMap(lev),old_dmap)) {
+                if (old_num_setdm == num_setdm) {
                     SetDistributionMap(lev, new_dmap);
                 }
 	    }
@@ -111,10 +111,10 @@ AmrCore::regrid (int lbase, Real time, bool)
 	else  // a new level
 	{
             DistributionMapping new_dmap(new_grids[lev]);
-            DistributionMapping old_dmap = DistributionMap(lev);
+            const auto old_num_setdm = num_setdm;
             MakeNewLevelFromCoarse(lev, time, new_grids[lev], new_dmap);
             SetBoxArray(lev, new_grids[lev]);
-            if (DistributionMapping::SameRefs(DistributionMap(lev),old_dmap)) {
+            if (old_num_setdm == num_setdm) {
                 SetDistributionMap(lev, new_dmap);
             }
 	}
