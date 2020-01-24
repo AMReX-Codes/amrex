@@ -390,6 +390,7 @@ AmrMesh::MaxRefRatio (int lev) const noexcept
 void
 AmrMesh::SetDistributionMap (int lev, const DistributionMapping& dmap_in) noexcept
 {
+    ++num_setdm;
     if (dmap[lev] != dmap_in) dmap[lev] = dmap_in;
 }
 
@@ -802,12 +803,12 @@ AmrMesh::MakeNewGrids (Real time)
 
 	const BoxArray& ba = MakeBaseGrids();
 	DistributionMapping dm(ba);
-        DistributionMapping old_dm = DistributionMap(0);
+        const auto old_num_setdm = num_setdm;
 
 	MakeNewLevelFromScratch(0, time, ba, dm);
 
         SetBoxArray(0, ba);
-        if (DistributionMapping::SameRefs(DistributionMap(0),old_dm)) {
+        if (old_num_setdm == num_setdm) {
             SetDistributionMap(0, dm);
         }
     }
@@ -827,12 +828,12 @@ AmrMesh::MakeNewGrids (Real time)
 	    finest_level = new_finest;
 
 	    DistributionMapping dm(new_grids[new_finest]);
-            DistributionMapping old_dm = DistributionMap(new_finest);
+            const auto old_num_setdm = num_setdm;
 
             MakeNewLevelFromScratch(new_finest, time, new_grids[finest_level], dm);
 
 	    SetBoxArray(new_finest, new_grids[new_finest]);
-            if (DistributionMapping::SameRefs(DistributionMap(new_finest),old_dm)) {
+            if (old_num_setdm == num_setdm) {
                 SetDistributionMap(new_finest, dm);
             }
 	}
@@ -858,12 +859,12 @@ AmrMesh::MakeNewGrids (Real time)
 		    if (new_grids[lev] != grids[lev]) {
 		        grids_the_same = false;
 		        DistributionMapping dm(new_grids[lev]);
-                        DistributionMapping old_dm = DistributionMap(lev);
+                        const auto old_num_setdm = num_setdm;
 
                         MakeNewLevelFromScratch(lev, time, new_grids[lev], dm);
 
 		        SetBoxArray(lev, new_grids[lev]);
-                        if (DistributionMapping::SameRefs(DistributionMap(lev),old_dm)) {
+                        if (old_num_setdm == num_setdm) {
                             SetDistributionMap(lev, dm);
                         }
 		    }
