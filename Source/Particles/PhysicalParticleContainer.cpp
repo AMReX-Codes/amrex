@@ -40,6 +40,7 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
     pp.query("do_splitting", do_splitting);
     pp.query("split_type", split_type);
     pp.query("do_not_deposit", do_not_deposit);
+    pp.query("do_not_push", do_not_push);
 
     pp.query("do_continuous_injection", do_continuous_injection);
     pp.query("initialize_self_fields", initialize_self_fields);

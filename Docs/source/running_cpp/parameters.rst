@@ -386,6 +386,10 @@ Particle initialization
     If `1` is given, both charge deposition and current deposition will
     not be done, thus that species does not contribute to the fields.
 
+* ``<species_name>.do_not_push`` (`0` or `1` optional; default `0`)
+    If `1` is given, this species will not be pushed
+    by any pusher during the simulation.
+
 * ``<species>.plot_species`` (`0` or `1` optional; default `1`)
     Whether to plot particle quantities for this species.
 
