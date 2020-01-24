@@ -24,9 +24,6 @@
 
 using namespace amrex;
 
-Vector<Real> WarpX::B_external_particle(3, 0.0);
-Vector<Real> WarpX::E_external_particle(3, 0.0);
-
 Vector<Real> WarpX::E_external_grid(3, 0.0);
 Vector<Real> WarpX::B_external_grid(3, 0.0);
 
@@ -341,9 +338,6 @@ WarpX::ReadParameters ()
         do_compute_max_step_from_zmax =
             pp.query("zmax_plasma_to_compute_max_step",
                       zmax_plasma_to_compute_max_step);
-
-        pp.queryarr("B_external_particle", B_external_particle);
-        pp.queryarr("E_external_particle", E_external_particle);
 
         pp.query("do_moving_window", do_moving_window);
         if (do_moving_window)
