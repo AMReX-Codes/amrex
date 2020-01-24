@@ -281,6 +281,16 @@ NodalProjector::project ( Real a_rtol, Real a_atol )
         }
 
     }
+
+    // Print diagnostics
+    if ( (m_verbose > 0) && (!m_has_rhs))
+    {
+        computeRHS( GetVecOfPtrs(m_rhs), m_vel, m_S_cc, m_S_nd );
+        amrex::Print() << " >> After projection:" << std::endl;
+        printInfo();
+        amrex::Print() << std::endl;
+    }
+
 }
 
 void
@@ -345,7 +355,7 @@ NodalProjector::printInfo ()
     for (int lev(0); lev < m_rhs.size(); ++lev)
     {
         amrex::Print() << "  * On lev " << lev
-                       << " max(abs(divu)) = "
+                       << " max(abs(rhs)) = "
                        << m_rhs[lev].norm0(0,0,false,true)
                        << std::endl;
     }
