@@ -6,7 +6,7 @@ import numpy as np
 import scipy.constants as scc
 
 # Static electric field and quantum parameters, from the input file.
-Es = 10**5
+Es = 1.0e5
 xi = 1.0e-23
 
 # Load dataset and get laser field
