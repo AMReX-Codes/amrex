@@ -103,7 +103,7 @@ AmrCore::regrid (int lbase, Real time, bool)
                 DistributionMapping old_dmap = DistributionMap(lev);
                 RemakeLevel(lev, time, new_grids[lev], new_dmap);
                 SetBoxArray(lev, new_grids[lev]);
-                if (!DistributionMapping::SameRefs(DistributionMap(lev),old_dmap)) {
+                if (DistributionMapping::SameRefs(DistributionMap(lev),old_dmap)) {
                     SetDistributionMap(lev, new_dmap);
                 }
 	    }
@@ -114,7 +114,7 @@ AmrCore::regrid (int lbase, Real time, bool)
             DistributionMapping old_dmap = DistributionMap(lev);
             MakeNewLevelFromCoarse(lev, time, new_grids[lev], new_dmap);
             SetBoxArray(lev, new_grids[lev]);
-            if (!DistributionMapping::SameRefs(DistributionMap(lev),old_dmap)) {
+            if (DistributionMapping::SameRefs(DistributionMap(lev),old_dmap)) {
                 SetDistributionMap(lev, new_dmap);
             }
 	}
