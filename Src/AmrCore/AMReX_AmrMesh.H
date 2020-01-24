@@ -231,7 +231,7 @@ protected:
     Vector<DistributionMapping> dmap;
     Vector<BoxArray>            grids;
 
-    long num_setdm = 0;
+    unsigned int num_setdm = 0;
 
     void checkInput();
 
