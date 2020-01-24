@@ -1,0 +1,2 @@
+# keep this entry for GitHub's dependency graph
+openPMD-api>=0.10.3

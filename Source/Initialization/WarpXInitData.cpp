@@ -535,8 +535,8 @@ WarpX::InitializeExternalFieldsOnGridUsingParser (
                 mfzfab(i,j,k) = zfield_parser->getField(x,y,z);
             },
             /* To allocate shared memory for the GPU threads. */
-            /* But, for now only 3 doubles (x,y,z) are allocated. */
-            amrex::Gpu::numThreadsPerBlockParallelFor() * sizeof(double) * 3
+            /* But, for now only 4 doubles (x,y,z,t) are allocated. */
+            amrex::Gpu::numThreadsPerBlockParallelFor() * sizeof(double) * 4
         );
 
     }

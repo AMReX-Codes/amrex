@@ -113,6 +113,7 @@ WarpXParticleContainer::WarpXParticleContainer (AmrCore* amr_core, int ispecies)
     m_xp.resize(num_threads);
     m_yp.resize(num_threads);
     m_zp.resize(num_threads);
+
 }
 
 void
@@ -129,7 +130,6 @@ WarpXParticleContainer::ReadParameters ()
         do_tiling = true;
 #endif
         pp.query("do_tiling",  do_tiling);
-        pp.query("do_not_push", do_not_push);
 
         initialized = true;
     }

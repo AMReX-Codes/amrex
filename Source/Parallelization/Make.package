@@ -1,7 +1,9 @@
 CEXE_sources += WarpXComm.cpp
 CEXE_sources += WarpXRegrid.cpp
+CEXE_sources += GuardCellManager.cpp
 CEXE_headers += WarpXSumGuardCells.H
 CEXE_headers += WarpXComm_K.H
+CEXE_headers += GuardCellManager.H
 CEXE_headers += WarpXComm.H
 
 INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/Parallelization

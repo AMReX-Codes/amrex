@@ -20,3 +20,4 @@ Our Doxygen API documentation in classic formatting `is located here <../_static
    portability
    profiling
    documentation
+   workflow
