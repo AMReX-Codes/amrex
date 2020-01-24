@@ -338,8 +338,8 @@ protected:
     //! instead of gathering fields from the finest patch level, gather from the coarsest
     bool m_gather_from_main_grid = false;
 
-    static int do_not_push;
-    static int do_not_deposit;
+    int do_not_push = 0;
+    int do_not_deposit = 0;
 
     // Whether to allow particles outside of the simulation domain to be
     // initialized when they enter the domain.

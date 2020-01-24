@@ -16,9 +16,6 @@
 
 using namespace amrex;
 
-int WarpXParticleContainer::do_not_push = 0;
-int WarpXParticleContainer::do_not_deposit = 0;
-
 WarpXParIter::WarpXParIter (ContainerType& pc, int level)
     : ParIter(pc, level, MFItInfo().SetDynamic(WarpX::do_dynamic_scheduling))
 {
