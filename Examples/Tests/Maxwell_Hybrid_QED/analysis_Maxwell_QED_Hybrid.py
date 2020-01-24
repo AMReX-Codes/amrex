@@ -14,8 +14,10 @@ dsQED = yt.load(sys.argv[1])
 QED_all_data_level_0 = dsQED.covering_grid(level=0,left_edge=(dsQED.domain_left_edge),
                                            dims=dsQED.domain_dimensions)
 EyQED_2d = QED_all_data_level_0['boxlib', 'Ey'].v.squeeze()
+
 # Extract 1D lineout of the laser field
 EyQED = EyQED_2d[EyQED_2d.shape[0]//2,:]
+
 # Longitudinal resolution
 dz = dsQED.domain_width[1].v/dsQED.domain_dimensions[1]
 
