@@ -64,7 +64,7 @@ MLNodeLaplacian::define (const Vector<Geometry>& a_geom,
         const int idim = 0;
         m_sigma[amrlev][mglev][idim].reset
             (new MultiFab(m_grids[amrlev][mglev], m_dmap[amrlev][mglev], 1, 1,
-                          MFInfo(), *a_factory[amrlev]));
+                          MFInfo(), *m_factory[amrlev]));
         m_sigma[amrlev][mglev][idim]->setVal(0.0);
     }
 
