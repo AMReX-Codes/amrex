@@ -28,7 +28,7 @@ z_end = dsQED.domain_left_edge[1].v + np.argmax(EyQED) * dz
 # Compute phase velocity and compare with theory
 phase_velocity_pic = (z_end-z_start)/dsQED.current_time.v
 phase_velocity_theory = scc.c/np.sqrt((1.+12.*xi*Es**2/scc.epsilon_0)/(1.+4.*xi*Es**2/scc.epsilon_0))
-error_percent = 100*np.abs(phase_velocity_pic-phase_velocity_theory)/phase_velocity_theory
+error_percent = 100.*np.abs(phase_velocity_pic-phase_velocity_theory)/phase_velocity_theory
 
 # Print and assert correctness
 print('Simulation velocity: ' + str(phase_velocity_pic))
