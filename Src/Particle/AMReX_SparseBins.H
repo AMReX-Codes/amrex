@@ -28,7 +28,7 @@ struct SparseBinIteratorFactory
     AMREX_GPU_HOST_DEVICE
     index_type getIndex (const index_type bin_number) const noexcept
     {
-        if (m_num_bins == 1) return 0
+        if (m_num_bins == 1) return 0;
 
         index_type lo = 0;
         index_type hi = m_num_bins - 1;
