@@ -1042,7 +1042,7 @@ Diagnostics and output
     time interval is expressed in the laboratory frame).
 
 * ``slice.particle_slice_width_lab`` (`float`, in meters)
-    Only used when ``warpx.do_boosted_frame_diagnostic`` is ``1`` and
+    Only used when ``warpx.do_back_transformed_diagnostics`` is ``1`` and
     ``slice.num_slice_snapshots_lab`` is non-zero. Particles are
     copied from the full back-transformed diagnostic to the reduced
     slice diagnostic if there are within the user-defined width from
