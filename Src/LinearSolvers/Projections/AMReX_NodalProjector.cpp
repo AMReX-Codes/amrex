@@ -159,12 +159,12 @@ NodalProjector::setOptions ()
     {
         m_mlmg->setBottomSolver(MLMG::BottomSolver::cgbicg);
     }
-    #ifdef AMREX_USE_HYPRE
+#ifdef AMREX_USE_HYPRE
     else if (bottom_solver == "hypre")
     {
         m_mlmg->setBottomSolver(MLMG::BottomSolver::hypre);
     }
-    #endif
+#endif
 }
 
 void
