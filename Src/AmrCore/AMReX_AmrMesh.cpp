@@ -806,8 +806,8 @@ AmrMesh::MakeNewGrids (Real time)
 
 	MakeNewLevelFromScratch(0, time, ba, dm);
 
-	SetBoxArray(0, ba);
-        if (!DistributionMapping::SameRefs(DistributionMap(0),old_dm)) {
+        SetBoxArray(0, ba);
+        if (DistributionMapping::SameRefs(DistributionMap(0),old_dm)) {
             SetDistributionMap(0, dm);
         }
     }
@@ -832,7 +832,7 @@ AmrMesh::MakeNewGrids (Real time)
             MakeNewLevelFromScratch(new_finest, time, new_grids[finest_level], dm);
 
 	    SetBoxArray(new_finest, new_grids[new_finest]);
-            if (!DistributionMapping::SameRefs(DistributionMap(new_finest),old_dm)) {
+            if (DistributionMapping::SameRefs(DistributionMap(new_finest),old_dm)) {
                 SetDistributionMap(new_finest, dm);
             }
 	}
@@ -863,7 +863,7 @@ AmrMesh::MakeNewGrids (Real time)
                         MakeNewLevelFromScratch(lev, time, new_grids[lev], dm);
 
 		        SetBoxArray(lev, new_grids[lev]);
-                        if (!DistributionMapping::SameRefs(DistributionMap(lev),old_dm)) {
+                        if (DistributionMapping::SameRefs(DistributionMap(lev),old_dm)) {
                             SetDistributionMap(lev, dm);
                         }
 		    }
