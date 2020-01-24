@@ -970,9 +970,9 @@ void
 PhysicalParticleContainer::AssignExternalFieldOnParticles(WarpXParIter& pti,
                            RealVector& Exp, RealVector& Eyp, RealVector& Ezp,
                            RealVector& Bxp, RealVector& Byp, RealVector& Bzp,
-                           Gpu::ManagedDeviceVector<ParticleReal> xp,
-                           Gpu::ManagedDeviceVector<ParticleReal> yp,
-                           Gpu::ManagedDeviceVector<ParticleReal> zp, int lev)
+                           const Gpu::ManagedDeviceVector<ParticleReal>& xp,
+                           const Gpu::ManagedDeviceVector<ParticleReal>& yp,
+                           const Gpu::ManagedDeviceVector<ParticleReal>& zp, int lev)
 {
    const long np = pti.numParticles();
     /// get WarpX class object
@@ -992,9 +992,9 @@ PhysicalParticleContainer::AssignExternalFieldOnParticles(WarpXParIter& pti,
        Bzp.assign(np,mypc.m_B_external_particle[2]);
    }
    if (mypc.m_E_ext_particle_s=="parse_e_ext_particle_function") {
-      Real* const AMREX_RESTRICT xp_data = xp.dataPtr();
-      Real* const AMREX_RESTRICT yp_data = yp.dataPtr();
-      Real* const AMREX_RESTRICT zp_data = zp.dataPtr();
+      const Real* const AMREX_RESTRICT xp_data = xp.dataPtr();
+      const Real* const AMREX_RESTRICT yp_data = yp.dataPtr();
+      const Real* const AMREX_RESTRICT zp_data = zp.dataPtr();
       Real* const AMREX_RESTRICT Exp_data = Exp.dataPtr();
       Real* const AMREX_RESTRICT Eyp_data = Eyp.dataPtr();
       Real* const AMREX_RESTRICT Ezp_data = Ezp.dataPtr();
@@ -1014,9 +1014,9 @@ PhysicalParticleContainer::AssignExternalFieldOnParticles(WarpXParIter& pti,
       );
    }
    if (mypc.m_B_ext_particle_s=="parse_b_ext_particle_function") {
-      Real* const AMREX_RESTRICT xp_data = xp.dataPtr();
-      Real* const AMREX_RESTRICT yp_data = yp.dataPtr();
-      Real* const AMREX_RESTRICT zp_data = zp.dataPtr();
+      const Real* const AMREX_RESTRICT xp_data = xp.dataPtr();
+      const Real* const AMREX_RESTRICT yp_data = yp.dataPtr();
+      const Real* const AMREX_RESTRICT zp_data = zp.dataPtr();
       Real* const AMREX_RESTRICT Bxp_data = Bxp.dataPtr();
       Real* const AMREX_RESTRICT Byp_data = Byp.dataPtr();
       Real* const AMREX_RESTRICT Bzp_data = Bzp.dataPtr();
@@ -1035,7 +1035,6 @@ PhysicalParticleContainer::AssignExternalFieldOnParticles(WarpXParIter& pti,
       amrex::Gpu::numThreadsPerBlockParallelFor() * sizeof(double) * 4
       );
    }
-
 }
 
 
