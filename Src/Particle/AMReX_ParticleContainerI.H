@@ -920,7 +920,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::SortParticles
         {
             auto& ptile = ParticlesAt(lev, mfi);
             auto& aos   = ptile.GetArrayOfStructs();
-            auto& soa   = ptile.GetStructOfArrays();
             const size_t np = aos.numParticles();
             auto pstruct_ptr = aos().dataPtr();
 
@@ -933,7 +932,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::SortParticles
                            return getParticleCell(p, plo, dxi, domain);
                        });
           
-            auto inds = m_bins.permutationPtr();
             gatherParticles(m_ptile_r, ptile, np, m_bins.permutationPtr());
             ptile.swap(m_ptile_r);
         }
@@ -1586,12 +1584,12 @@ BuildRedistributeMask (int lev, int nghost) const
         redistribute_mask_ptr.reset(new iMultiFab(ba, dmap, 2, nghost));
         redistribute_mask_ptr->setVal(-1, nghost);
 
-        auto tile_size = this->do_tiling ? this->tile_size : IntVect::TheZeroVector();            
+        const auto tile_size_do = this->do_tiling ? this->tile_size : IntVect::TheZeroVector();            
 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-        for (MFIter mfi(*redistribute_mask_ptr, tile_size); mfi.isValid(); ++mfi)
+        for (MFIter mfi(*redistribute_mask_ptr, tile_size_do); mfi.isValid(); ++mfi)
         {
             const Box& box = mfi.tilebox();
             const int grid_id = mfi.index();
@@ -1603,7 +1601,7 @@ BuildRedistributeMask (int lev, int nghost) const
         redistribute_mask_ptr->FillBoundary(geom.periodicity());
 
         neighbor_procs.clear();
-        for (MFIter mfi(*redistribute_mask_ptr, tile_size); mfi.isValid(); ++mfi) 
+        for (MFIter mfi(*redistribute_mask_ptr, tile_size_do); mfi.isValid(); ++mfi) 
         {
             const Box& box = mfi.growntilebox();
             for (IntVect iv = box.smallEnd(); iv <= box.bigEnd(); box.next(iv))
