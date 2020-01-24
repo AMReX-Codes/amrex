@@ -404,6 +404,11 @@ extern "C"
         return warpx.plotInt ();
     }
 
+    int warpx_openpmdInt () {
+        WarpX& warpx = WarpX::GetInstance();
+        return warpx.openpmdInt ();
+    }
+
     void warpx_WriteCheckPointFile () {
         WarpX& warpx = WarpX::GetInstance();
         warpx.WriteCheckPointFile ();
@@ -411,6 +416,10 @@ extern "C"
     void warpx_WritePlotFile () {
         WarpX& warpx = WarpX::GetInstance();
         warpx.WritePlotFile ();
+    }
+    void warpx_WriteOpenPMDFile () {
+        WarpX& warpx = WarpX::GetInstance();
+        warpx.WriteOpenPMDFile ();
     }
 
     int warpx_finestLevel () {

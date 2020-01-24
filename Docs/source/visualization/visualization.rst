@@ -2,13 +2,13 @@ Visualizing the simulation results
 ==================================
 
 WarpX can write data either in `plotfile` format (AMReX's native format), or
-in `openPMD format <https://www.openpmd.org/>`_ (a common data format for
-Particle-In-Cell codes).
+in `openPMD format <https://www.openpmd.org/>`_ (a common data schema on top of
+HDF5 or ADIOS files for particle-in-cell codes).
 
 .. note::
 
-    This is controlled by the parameters ``warpx.dump_plotfiles`` and
-    ``warpx.dump_openpmd`` & ``warpx.openpmd_backend`` in the section
+    This is controlled by the parameters ``warpx.plot_int`` (AMReX) or the
+    ``warpx.openpmd_int`` & ``warpx.openpmd_backend`` options in the section
     :doc:`../running_cpp/parameters`.
 
 This section describes some of the tools available to visualize the data:

@@ -33,7 +33,7 @@
 #endif
 
 #ifdef WARPX_USE_OPENPMD
-#include <WarpXOpenPMD.H>
+#   include <WarpXOpenPMD.H>
 #endif
 
 #include <iostream>
@@ -277,12 +277,18 @@ public:
 
     int checkInt () const {return check_int;}
     int plotInt () const {return plot_int;}
+    int openpmdInt () const {return openpmd_int;}
 
     void WriteCheckPointFile () const;
+    void WriteOpenPMDFile () const;
     void WritePlotFile () const;
     void UpdateInSitu () const;
     void AverageAndPackFields( amrex::Vector<std::string>& varnames,
         amrex::Vector<amrex::MultiFab>& mf_avg, const int ngrow) const;
+    void prepareFields( int const step, amrex::Vector<std::string>& varnames,
+        amrex::Vector<amrex::MultiFab>& mf_avg,
+        amrex::Vector<const amrex::MultiFab*>& output_mf,
+        amrex::Vector<amrex::Geometry>& output_geom ) const;
 
     void WritePlotFileES(const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
                          const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& phi,
@@ -628,18 +634,13 @@ private:
     int check_int = -1;
     int plot_int = -1;
 
-    std::string openpmd_backend {"bp"};
+    std::string openpmd_backend {"default"};
+    int openpmd_int = -1;
+    bool openpmd_tspf = true; //!< one file per timestep (or one file for all steps)
 #ifdef WARPX_USE_OPENPMD
-    bool dump_plotfiles = false;
-    bool dump_openpmd = true;
-    bool openpmd_tspf = true; // one file per timestep
-  //bool openpmd_tspf = false; // one file all timesteps
     WarpXOpenPMDPlot* m_OpenPMDPlotWriter = nullptr;
-
-#else
-    bool dump_plotfiles = true;
-    bool dump_openpmd = false;
 #endif
+
     bool plot_rho           = false;
     bool plot_costs         = true;
     bool plot_finepatch     = false;

@@ -90,7 +90,19 @@ WarpXOpenPMDPlot::WarpXOpenPMDPlot(bool oneFilePerTS,
    m_OneFilePerTS(oneFilePerTS),
    m_OpenPMDFileType(std::move(openPMDFileType)),
    m_fieldPMLdirections(std::move(fieldPMLdirections))
-{}
+{
+  // pick first available backend if default is chosen
+  if( m_OpenPMDFileType == "default" )
+#if openPMD_HAVE_ADIOS1==1
+    m_OpenPMDFileType = "bp";
+#elif openPMD_HAVE_ADIOS2==1
+    m_OpenPMDFileType = "bp";
+#elif openPMD_HAVE_HDF5==1
+    m_OpenPMDFileType = "h5";
+#else
+    m_OpenPMDFileType = "json";
+#endif
+}
 
 WarpXOpenPMDPlot::~WarpXOpenPMDPlot()
 {
