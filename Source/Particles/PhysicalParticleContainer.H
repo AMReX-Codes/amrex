@@ -60,12 +60,12 @@ public:
      *                  using parser.
      */
     void AssignExternalFieldOnParticles ( WarpXParIter& pti,
-                                         RealVector& Exp, RealVector& Eyp,
-                                         RealVector& Ezp, RealVector& Bxp,
-                                         RealVector& Byp, RealVector& Bzp,
-                  amrex::Gpu::ManagedDeviceVector<amrex::ParticleReal> xp,
-                  amrex::Gpu::ManagedDeviceVector<amrex::ParticleReal> yp,
-                  amrex::Gpu::ManagedDeviceVector<amrex::ParticleReal> zp, int lev);
+                                          RealVector& Exp, RealVector& Eyp,
+                                          RealVector& Ezp, RealVector& Bxp,
+                                          RealVector& Byp, RealVector& Bzp,
+                                          const amrex::Gpu::ManagedDeviceVector<amrex::ParticleReal>& xp,
+                                          const amrex::Gpu::ManagedDeviceVector<amrex::ParticleReal>& yp,
+                                          const amrex::Gpu::ManagedDeviceVector<amrex::ParticleReal>& zp, int lev);
 
     virtual void FieldGather (int lev,
                               const amrex::MultiFab& Ex,
