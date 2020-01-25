@@ -1472,27 +1472,15 @@ FabArray<FAB>::setBndry (value_type val,
             {
                 const Box& gbx = fai.fabbox();
                 const Box& vbx = fai.validbox();
-                BoxList blst = amrex::boxDiff(gbx,vbx);
-                const int nboxes = blst.size();
-                if (nboxes > 0)
+                auto fab = this->array(fai);
+
+                AMREX_FOR_4D (gbx, ncomp, i, j, k, n,
                 {
-                    AsyncArray<Box> async_boxes(blst.data().data(), nboxes);
-                    Box const* pboxes = async_boxes.data();
-
-                    long ncells = 0;
-                    for (const auto& b : blst) {
-                        ncells += b.numPts();
-                    }
-
-                    auto fab = this->array(fai);
-                    AMREX_FOR_1D ( ncells, icell,
+                    if ( !(vbx.contains({i,j,k})) )
                     {
-                        const Dim3 cell = amrex::getCell(pboxes, nboxes, icell).dim3();
-                        for (int n = strt_comp; n < strt_comp+ncomp; ++n) {
-                            fab(cell.x,cell.y,cell.z,n) = val;
-                        }
-                    });
-                }
+                        fab(i,j,k,strt_comp+n) = val;
+                    }
+                });
             }
         }
         else
