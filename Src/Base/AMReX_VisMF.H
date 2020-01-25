@@ -314,7 +314,6 @@ private:
     static void FindOffsets (const FabArray<FArrayBox> &fafab,
 			     const std::string &fafab_name,
                              VisMF::Header &hdr,
-			     bool groupSets,
 			     VisMF::Header::Version whichVersion,
 			     NFilesIter &nfi,
                              MPI_Comm comm = ParallelDescriptor::Communicator());
