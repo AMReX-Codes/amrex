@@ -4,6 +4,7 @@
 #include <AMReX_MLMG.H>
 #include <AMReX_NodalProjector.H>
 #include <AMReX_ParmParse.H>
+#include <AMReX_MultiFabUtil.H>
 
 namespace amrex {
 
