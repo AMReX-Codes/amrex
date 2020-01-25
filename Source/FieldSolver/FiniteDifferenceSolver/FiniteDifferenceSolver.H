@@ -3,6 +3,7 @@
 
 #include "WarpXAlgorithmSelection.H"
 #include "FiniteDifferenceAlgorithms/YeeAlgorithm.H"
+#include "FiniteDifferenceAlgorithms/CKCAlgorithm.H"
 #include <AMReX_MultiFab.H>
 
 /**
@@ -27,9 +28,9 @@ class FiniteDifferenceSolver
             if (fdtd_algo == MaxwellSolverAlgo::Yee){
                 YeeAlgorithm::InitializeStencilCoefficients( cell_size,
                     stencil_coefs_x, stencil_coefs_y, stencil_coefs_z );
-//            } else if (fdtd_algo == MaxwellSolverAlgo::CKC) {
-//                CKCAlgorithm::InitializeStencilCoefficients( cell_size,
-//                    stencil_coefs_x, stencil_coefs_y, stencil_coefs_z );
+            } else if (fdtd_algo == MaxwellSolverAlgo::CKC) {
+                CKCAlgorithm::InitializeStencilCoefficients( cell_size,
+                    stencil_coefs_x, stencil_coefs_y, stencil_coefs_z );
             } else {
                 amrex::Abort("Unknown algorithm");
             }

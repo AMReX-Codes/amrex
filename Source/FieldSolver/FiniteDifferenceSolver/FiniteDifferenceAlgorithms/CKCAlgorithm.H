@@ -176,17 +176,17 @@ struct CKCAlgorithm {
         amrex::Real gammaz = coefs_z[4];
         #if defined WARPX_DIM_3D
             return alphaz * (F(i  ,j  ,k+1) - F(i  ,j  ,k  ))
-                 - betazx * (F(i+1,j  ,k+1) - F(i+1,j  ,k  )
+                 + betazx * (F(i+1,j  ,k+1) - F(i+1,j  ,k  )
                           +  F(i-1,j  ,k+1) - F(i-1,j  ,k  ))
-                 - betazy * (F(i  ,j+1,k+1) - F(i  ,j+1,k  )
+                 + betazy * (F(i  ,j+1,k+1) - F(i  ,j+1,k  )
                           +  F(i  ,j-1,k+1) - F(i  ,j-1,k  ))
-                 - gammaz * (F(i+1,j+1,k+1) - F(i+1,j+1,k  )
+                 + gammaz * (F(i+1,j+1,k+1) - F(i+1,j+1,k  )
                           +  F(i-1,j+1,k+1) - F(i-1,j+1,k  )
                           +  F(i+1,j-1,k+1) - F(i+1,j-1,k  )
                           +  F(i-1,j-1,k+1) - F(i-1,j-1,k  ));
         #elif (defined WARPX_DIM_XZ)
             return alphaz * (F(i  ,j+1,k  ) - F(i  ,j  ,k  ))
-                 - betazx * (F(i+1,j+1,k  ) - F(i+1,j  ,k  )
+                 + betazx * (F(i+1,j+1,k  ) - F(i+1,j  ,k  )
                           +  F(i-1,j+1,k  ) - F(i-1,j  ,k  ));
         #endif
     };
