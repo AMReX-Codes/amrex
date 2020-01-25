@@ -1,5 +1,6 @@
 #include "WarpXAlgorithmSelection.H"
 #include "FiniteDifferenceAlgorithms/YeeAlgorithm.H"
+#include "FiniteDifferenceAlgorithms/CKCAlgorithm.H"
 #include "FiniteDifferenceSolver.H"
 #include <AMReX_Gpu.H>
 
@@ -12,8 +13,8 @@ void FiniteDifferenceSolver::EvolveB ( VectorField& Bfield,
     // but we compile code for each algorithm, using templates)
     if (m_fdtd_algo == MaxwellSolverAlgo::Yee){
         EvolveBwithAlgo <YeeAlgorithm> ( Bfield, Efield, dt );
-//    } else if (fdtd_algo == MaxwellSolverAlgo::CKC) {
-//       EvolveBwithAlgo <CKCAlgorithm> ( Bfield, Efield, dt );
+    } else if (m_fdtd_algo == MaxwellSolverAlgo::CKC) {
+        EvolveBwithAlgo <CKCAlgorithm> ( Bfield, Efield, dt );
     } else {
         amrex::Abort("Unknown algorithm");
     }
