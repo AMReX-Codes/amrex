@@ -2030,7 +2030,6 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
 #endif
             for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
             {
-                int counter_for_ParticleCopy = 0;
                 const Box& box = pti.validbox();
                 auto index = std::make_pair(pti.index(), pti.LocalTileIndex());
                 const RealBox tile_real_box(box, dx, plo);
