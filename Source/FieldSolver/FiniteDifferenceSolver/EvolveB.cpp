@@ -1,13 +1,13 @@
-#include <WarpXAlgorithmSelection.H>
-#include<FiniteDifferenceAlgorithms/YeeAlgorithm.H>
-#include<FiniteDifferenceSolver.H>
-#include<AMReX_Gpu.H>
+#include "WarpXAlgorithmSelection.H"
+#include "FiniteDifferenceAlgorithms/YeeAlgorithm.H"
+#include "FiniteDifferenceSolver.H"
+#include <AMReX_Gpu.H>
 
 using namespace amrex;
 
 void FiniteDifferenceSolver::EvolveB ( VectorField& Bfield,
-                                       VectorField& Efield,
-                                       amrex::Real dt ) {
+                                       VectorField const& Efield,
+                                       amrex::Real const dt ) {
     // Select algorithm (The choice of algorithm is a runtime option,
     // but we compile code for each algorithm, using templates)
     if (m_fdtd_algo == MaxwellSolverAlgo::Yee){
@@ -19,10 +19,10 @@ void FiniteDifferenceSolver::EvolveB ( VectorField& Bfield,
     }
 }
 
-template<typename algo>
+template<typename T_Algo>
 void FiniteDifferenceSolver::EvolveBwithAlgo ( VectorField& Bfield,
-                                               VectorField& Efield,
-                                               amrex::Real dt ) {
+                                               VectorField const& Efield,
+                                               amrex::Real const dt ) {
 
     // Loop through the grids, and over the tiles within each grid
 #ifdef _OPENMP
@@ -55,18 +55,18 @@ void FiniteDifferenceSolver::EvolveBwithAlgo ( VectorField& Bfield,
         amrex::ParallelFor(tbx, tby, tbz,
 
             [=] AMREX_GPU_DEVICE (int i, int j, int k){
-                Bx(i, j, k) += dt * algo::UpwardDz(Ey, coefs_z, n_coefs_z, i, j, k)
-                             - dt * algo::UpwardDy(Ez, coefs_y, n_coefs_y, i, j, k);
+                Bx(i, j, k) += dt * T_Algo::UpwardDz(Ey, coefs_z, n_coefs_z, i, j, k)
+                             - dt * T_Algo::UpwardDy(Ez, coefs_y, n_coefs_y, i, j, k);
             },
 
             [=] AMREX_GPU_DEVICE (int i, int j, int k){
-                By(i, j, k) += dt * algo::UpwardDx(Ez, coefs_x, n_coefs_x, i, j, k)
-                             - dt * algo::UpwardDz(Ex, coefs_z, n_coefs_z, i, j, k);
+                By(i, j, k) += dt * T_Algo::UpwardDx(Ez, coefs_x, n_coefs_x, i, j, k)
+                             - dt * T_Algo::UpwardDz(Ex, coefs_z, n_coefs_z, i, j, k);
             },
 
             [=] AMREX_GPU_DEVICE (int i, int j, int k){
-                Bz(i, j, k) += dt * algo::UpwardDy(Ex, coefs_y, n_coefs_y, i, j, k)
-                             - dt * algo::UpwardDx(Ey, coefs_x, n_coefs_x, i, j, k);
+                Bz(i, j, k) += dt * T_Algo::UpwardDy(Ex, coefs_y, n_coefs_y, i, j, k)
+                             - dt * T_Algo::UpwardDx(Ey, coefs_x, n_coefs_x, i, j, k);
             }
 
         );

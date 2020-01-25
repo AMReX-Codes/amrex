@@ -1,9 +1,9 @@
 #ifndef WARPX_FINITE_DIFFERENCE_SOLVER_H_
 #define WARPX_FINITE_DIFFERENCE_SOLVER_H_
 
+#include "WarpXAlgorithmSelection.H"
+#include "FiniteDifferenceAlgorithms/YeeAlgorithm.H"
 #include <AMReX_MultiFab.H>
-#include <WarpXAlgorithmSelection.H>
-#include<FiniteDifferenceAlgorithms/YeeAlgorithm.H>
 
 /**
  * \brief Top-level class for the electromagnetic finite-difference solver
@@ -17,7 +17,7 @@ class FiniteDifferenceSolver
         using VectorField = std::array< std::unique_ptr<amrex::MultiFab>, 3 >;
 
         // Constructor
-        FiniteDifferenceSolver ( int fdtd_algo,
+        FiniteDifferenceSolver ( int const fdtd_algo,
             std::array<amrex::Real,3> cell_size ) {
 
             // Register the type of finite-difference algorithm
@@ -36,8 +36,8 @@ class FiniteDifferenceSolver
         };
 
         void EvolveB ( VectorField& Bfield,
-                       VectorField& Efield,
-                       amrex::Real dt );
+                       VectorField const& Efield,
+                       amrex::Real const dt );
     private:
 
         int m_fdtd_algo;
@@ -46,10 +46,10 @@ class FiniteDifferenceSolver
         amrex::Gpu::ManagedVector<amrex::Real> stencil_coefs_y;
         amrex::Gpu::ManagedVector<amrex::Real> stencil_coefs_z;
 
-        template< typename fdtd_algo >
+        template< typename T_Algo >
         void EvolveBwithAlgo ( VectorField& Bfield,
-                               VectorField& Efield,
-                               amrex::Real dt );
+                               VectorField const& Efield,
+                               amrex::Real const dt );
 
 };
 
