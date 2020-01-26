@@ -2,8 +2,10 @@
 #define WARPX_FINITE_DIFFERENCE_SOLVER_H_
 
 #include "WarpXAlgorithmSelection.H"
-#include "FiniteDifferenceAlgorithms/YeeAlgorithm.H"
-#include "FiniteDifferenceAlgorithms/CKCAlgorithm.H"
+#ifndef WARPX_DIM_RZ
+    #include "FiniteDifferenceAlgorithms/YeeAlgorithm.H"
+    #include "FiniteDifferenceAlgorithms/CKCAlgorithm.H"
+#endif
 #include <AMReX_MultiFab.H>
 
 /**
@@ -47,10 +49,17 @@ class FiniteDifferenceSolver
         amrex::Gpu::ManagedVector<amrex::Real> stencil_coefs_y;
         amrex::Gpu::ManagedVector<amrex::Real> stencil_coefs_z;
 
+#ifdef WARPX_DIM_RZ
         template< typename T_Algo >
-        void EvolveBwithAlgo ( VectorField& Bfield,
+        void EvolveBCylindrical ( VectorField& Bfield,
                                VectorField const& Efield,
                                amrex::Real const dt );
+#else
+        template< typename T_Algo >
+        void EvolveBCartesian ( VectorField& Bfield,
+                               VectorField const& Efield,
+                               amrex::Real const dt );
+#endif
 
 };
 

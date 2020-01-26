@@ -112,13 +112,11 @@ void
 WarpX::EvolveB (int lev, PatchType patch_type, amrex::Real a_dt)
 {
 
-#if ((defined WARPX_DIM_3D) || (defined WARPX_DIM_XZ)) // Only in Cartesian
     if (patch_type == PatchType::fine) {
         fdtd_solver_fp[lev]->EvolveB( Bfield_fp[lev], Efield_fp[lev], a_dt );
     } else {
         fdtd_solver_cp[lev]->EvolveB( Bfield_cp[lev], Efield_cp[lev], a_dt );
     }
-#endif
 
     // Goes into initializer
     const int patch_level = (patch_type == PatchType::fine) ? lev : lev-1;
@@ -154,7 +152,7 @@ WarpX::EvolveB (int lev, PatchType patch_type, amrex::Real a_dt)
     const Real xmin = Geom(0).ProbLo(0);
 
     // Loop through the grids, and over the tiles within each grid
-#ifdef WARPX_DIM_RZ // Only in cylindrical geometry
+#ifdef BOGUS_CONDITION
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
