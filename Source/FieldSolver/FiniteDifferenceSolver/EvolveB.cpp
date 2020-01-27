@@ -1,7 +1,7 @@
 #include "WarpXAlgorithmSelection.H"
 #include "FiniteDifferenceSolver.H"
 #ifdef WARPX_DIM_RZ
-    #include "FiniteDifferenceAlgorithms/YeeAlgorithm.H"
+    #include "FiniteDifferenceAlgorithms/CylindricalYeeAlgorithm.H"
 #else
     #include "FiniteDifferenceAlgorithms/YeeAlgorithm.H"
     #include "FiniteDifferenceAlgorithms/CKCAlgorithm.H"
@@ -14,19 +14,20 @@ void FiniteDifferenceSolver::EvolveB ( VectorField& Bfield,
                                        VectorField const& Efield,
                                        amrex::Real const dt ) {
 
+   // Select algorithm (The choice of algorithm is a runtime option,
+   // but we compile code for each algorithm, using templates)
 #ifdef WARPX_DIM_RZ
-    EvolveBCylindrical( Bfield, Efield, dt );
+    if (m_fdtd_algo == MaxwellSolverAlgo::Yee){
+        EvolveBCylindrical <CylindricalYeeAlgorithm> ( Bfield, Efield, dt );
 #else
-    // Select algorithm (The choice of algorithm is a runtime option,
-    // but we compile code for each algorithm, using templates)
     if (m_fdtd_algo == MaxwellSolverAlgo::Yee){
         EvolveBCartesian <YeeAlgorithm> ( Bfield, Efield, dt );
     } else if (m_fdtd_algo == MaxwellSolverAlgo::CKC) {
         EvolveBCartesian <CKCAlgorithm> ( Bfield, Efield, dt );
+#endif
     } else {
         amrex::Abort("Unknown algorithm");
     }
-#endif
 
 }
 
@@ -110,11 +111,15 @@ void FiniteDifferenceSolver::EvolveBCylindrical ( VectorField& Bfield,
         auto const& Ez = Efield[2]->array(mfi);
 
         // Extract stencil coefficients
-        Real const dr = m_dr;
         Real const* AMREX_RESTRICT coefs_r = stencil_coefs_r.dataPtr();
         int const n_coefs_r = stencil_coefs_r.size();
         Real const* AMREX_RESTRICT coefs_z = stencil_coefs_z.dataPtr();
         int const n_coefs_z = stencil_coefs_z.size();
+
+        // Extract cylindrical specific parameters
+        Real const dr = m_dr;
+        int const nmodes = m_nmodes;
+        Real const rmin = m_rmin;
 
         // Extract tileboxes for which to loop
         const Box& tbr  = mfi.tilebox(Bfield[0]->ixType().ixType());
@@ -128,9 +133,11 @@ void FiniteDifferenceSolver::EvolveBCylindrical ( VectorField& Bfield,
                 Real const r = rmin + i*dr; // r on nodal point (Br is nodal in r)
                 Br(i, j, 0, 0) += dt * T_Algo::UpwardDz(Et, coefs_z, n_coefs_z, i, j, 0, 0); // Mode m=0
                 for (int m=1; m<nmodes; m++) { // Higher-order modes
-                    Br(i, j, 0, 2*m-1) += dt*( T_Algo::UpwardDz(Et, inv_dz, i, j, 0, 2*m-1)
+                    Br(i, j, 0, 2*m-1) += dt*(
+                        T_Algo::UpwardDz(Et, coefs_z, n_coefs_z, i, j, 0, 2*m-1)
                         - m * T_Algo::DivideByR(Ez, r, dr, m, i, j, 0, 2*m  ));  // Real part
-                    Br(i, j, 0, 2*m  ) += dt*( T_Algo::UpwardDz(Et, inv_dz, i, j, 0, 2*m  )
+                    Br(i, j, 0, 2*m  ) += dt*(
+                        T_Algo::UpwardDz(Et, coefs_z, n_coefs_z, i, j, 0, 2*m  )
                         + m * T_Algo::DivideByR(Ez, r, dr, m, i, j, 0, 2*m-1)); // Imaginary part
                 }
                 // Ensure that Br remains 0 on axis (except for m=1)
@@ -144,24 +151,28 @@ void FiniteDifferenceSolver::EvolveBCylindrical ( VectorField& Bfield,
             },
 
             [=] AMREX_GPU_DEVICE (int i, int j, int k){
-                Bt(i, j, 0, 0) += dt*( T_Algo::UpwardDr(Ez, inv_dr, i, j, 0, 0)
-                                     - T_Algo::UpwardDz(Er, inv_dz, i, j, 0, 0)); // Mode m=0
+                Bt(i, j, 0, 0) += dt*(
+                    T_Algo::UpwardDr(Ez, coefs_r, n_coefs_r, i, j, 0, 0)
+                    - T_Algo::UpwardDz(Er, coefs_z, n_coefs_z, i, j, 0, 0)); // Mode m=0
                 for (int m=1 ; m<nmodes ; m++) { // Higher-order modes
-                    Bt(i, j, 0, 2*m-1) += dt*( T_Algo::UpwardDr(Ez, inv_dr, i, j, 0, 2*m-1)
-                                         - T_Algo::UpwardDz(Er, inv_dz, i, j, 0, 2*m-1)); // Real part
-                    Bt(i, j, 0, 2*m  ) += dt*( T_Algo::UpwardDr(Ez, inv_dr, i, j, 0, 2*m  )
-                                         - T_Algo::UpwardDz(Er, inv_dz, i, j, 0, 2*m  )); // Imaginary part
+                    Bt(i, j, 0, 2*m-1) += dt*(
+                        T_Algo::UpwardDr(Ez, coefs_r, n_coefs_r, i, j, 0, 2*m-1)
+                        - T_Algo::UpwardDz(Er, coefs_z, n_coefs_z, i, j, 0, 2*m-1)); // Real part
+                    Bt(i, j, 0, 2*m  ) += dt*(
+                        T_Algo::UpwardDr(Ez, coefs_r, n_coefs_r, i, j, 0, 2*m  )
+                        - T_Algo::UpwardDz(Er, coefs_z, n_coefs_z, i, j, 0, 2*m  )); // Imaginary part
                 }
             },
 
             [=] AMREX_GPU_DEVICE (int i, int j, int k){
                 Real const r = rmin + (i + 0.5)*dr; // r on a cell-centered grid (Bz is cell-centered in r)
-                Bz(i, j, 0, 0) += dt*( - T_Algo::UpwardDrr_over_r(Et, r, dr, i, j, 0, 0));
+                Bz(i, j, 0, 0) += dt*( - T_Algo::UpwardDrr_over_r(Et, r, dr, coefs_r, n_coefs_r, i, j, 0, 0));
                 for (int m=1 ; m<nmodes ; m++) { // Higher-order modes
                     Bz(i, j, 0, 2*m-1) += dt*( m * Er(i, j, 0, 2*m  )/r
-                        - T_Algo::UpwardDrr_over_r(Et, r, dr, i, j, 0, 2*m-1)); // Real part
+                        - T_Algo::UpwardDrr_over_r(Et, r, dr, coefs_r, n_coefs_r, i, j, 0, 2*m-1)); // Real part
                     Bz(i, j, 0, 2*m  ) += dt*(-m * Er(i, j, 0, 2*m-1)/r
-                        - T_Algo::UpwardDrr_over_r(Et, r, dr, i, j, 0, 2*m  )); // Imaginary part
+                        - T_Algo::UpwardDrr_over_r(Et, r, dr, coefs_r, n_coefs_r, i, j, 0, 2*m  )); // Imaginary part
+                }
             }
 
         );
