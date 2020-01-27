@@ -1468,7 +1468,7 @@ PhysicalParticleContainer::SplitParticles(int lev)
     {
         const auto& aos = pti.GetArrayOfStructs();
         const ParticleType* AMREX_RESTRICT pstruct = aos().dataPtr();
-        
+
         const amrex::Vector<int> ppc_nd = plasma_injector->num_particles_per_cell_each_dim;
         const std::array<Real,3>& dx = WarpX::CellSize(lev);
         amrex::Vector<Real> split_offset = {dx[0]/2._rt,

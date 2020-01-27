@@ -288,7 +288,7 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
 
     const auto& aos = pti.GetArrayOfStructs();
     const ParticleType* AMREX_RESTRICT pstruct = aos().dataPtr() + offset;
-    
+
     // Lower corner of tile box physical domain
     // Note that this includes guard cells since it is after tilebox.ngrow
     const Dim3 lo = lbound(tilebox);
@@ -751,7 +751,7 @@ WarpXParticleContainer::PushX (int lev, amrex::Real dt)
                     ParticleType& p = pstructs[i]; // Particle object that gets updated
 #ifndef WARPX_DIM_RZ
                     UpdatePosition( p, ux[i], uy[i], uz[i], dt);
-#else                    
+#else
                     // For WARPX_DIM_RZ, the particles are still pushed in 3D Cartesian
                     ParticleReal x, y, z; // Temporary variables
                     GetCartesianPositionFromCylindrical( x, y, z, p, theta[i] );

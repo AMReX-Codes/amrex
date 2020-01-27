@@ -568,7 +568,7 @@ LaserParticleContainer::calculate_laser_plane_coordinates (const WarpXParIter& p
                                                            Real * AMREX_RESTRICT const pplane_Yp)
 {
     const auto& aos = pti.GetArrayOfStructs();
-    const ParticleType* AMREX_RESTRICT const pstruct = aos().dataPtr();    
+    const ParticleType* AMREX_RESTRICT const pstruct = aos().dataPtr();
 
     Real tmp_u_X_0 = u_X[0];
     Real tmp_u_X_2 = u_X[2];
@@ -624,7 +624,7 @@ LaserParticleContainer::update_laser_particle(WarpXParIter& pti,
                                               const Real dt)
 {
     auto& aos = pti.GetArrayOfStructs();
-    ParticleType* AMREX_RESTRICT const pstruct = aos().dataPtr();    
+    ParticleType* AMREX_RESTRICT const pstruct = aos().dataPtr();
     Real tmp_p_X_0 = p_X[0];
     Real tmp_p_X_1 = p_X[1];
     Real tmp_p_X_2 = p_X[2];

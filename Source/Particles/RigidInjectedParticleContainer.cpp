@@ -87,7 +87,7 @@ RigidInjectedParticleContainer::RemapParticles()
 
                     auto& aos = pti.GetArrayOfStructs();
                     ParticleType* AMREX_RESTRICT const pstruct = aos().dataPtr();
-                    
+
                     // Loop over particles
                     const long np = pti.numParticles();
                     for (int i=0 ; i < np ; i++) {
@@ -211,7 +211,7 @@ RigidInjectedParticleContainer::PushPX (WarpXParIter& pti, Real dt, DtType a_dt_
 
     auto& aos = pti.GetArrayOfStructs();
     ParticleType* AMREX_RESTRICT const pstruct = aos().dataPtr();
-        
+
     ParticleReal* const AMREX_RESTRICT ux = uxp.dataPtr();
     ParticleReal* const AMREX_RESTRICT uy = uyp.dataPtr();
     ParticleReal* const AMREX_RESTRICT uz = uzp.dataPtr();
@@ -221,7 +221,7 @@ RigidInjectedParticleContainer::PushPX (WarpXParIter& pti, Real dt, DtType a_dt_
     ParticleReal* const AMREX_RESTRICT Bxp = attribs[PIdx::Bx].dataPtr();
     ParticleReal* const AMREX_RESTRICT Byp = attribs[PIdx::By].dataPtr();
     ParticleReal* const AMREX_RESTRICT Bzp = attribs[PIdx::Bz].dataPtr();
-    
+
     if (!done_injecting_lev)
     {
         // If the old values are not already saved, create copies here.
@@ -242,7 +242,7 @@ RigidInjectedParticleContainer::PushPX (WarpXParIter& pti, Real dt, DtType a_dt_
         amrex::Real* const AMREX_RESTRICT uxp_save_ptr = uxp_save.dataPtr();
         amrex::Real* const AMREX_RESTRICT uyp_save_ptr = uyp_save.dataPtr();
         amrex::Real* const AMREX_RESTRICT uzp_save_ptr = uzp_save.dataPtr();
-        
+
         amrex::ParallelFor( np,
                             [=] AMREX_GPU_DEVICE (long i) {
                                 xp_save_ptr[i] = pstruct[i].pos(0);
@@ -251,7 +251,7 @@ RigidInjectedParticleContainer::PushPX (WarpXParIter& pti, Real dt, DtType a_dt_
                                 uxp_save_ptr[i] = ux[i];
                                 uyp_save_ptr[i] = uy[i];
                                 uzp_save_ptr[i] = uz[i];
-                            });        
+                            });
 
         // Scale the fields of particles about to cross the injection plane.
         // This only approximates what should be happening. The particles
@@ -486,7 +486,7 @@ RigidInjectedParticleContainer::PushP (int lev, Real dt,
                                     }
                                 }
                                 );
-            
+
         }
     }
 }
