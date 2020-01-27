@@ -30,7 +30,7 @@ wp_ast_eval (struct wp_node* node)
 #ifdef AMREX_DEVICE_COMPILE
     extern __shared__ amrex_real extern_xyz[];
     int tid = threadIdx.x + threadIdx.y*blockDim.x + threadIdx.z*(blockDim.x*blockDim.y);
-    amrex_real* x = extern_xyz + tid*3;
+    amrex_real* x = extern_xyz + tid*4; // parser assumes 4 independent variables (x,y,z,t)
 #endif
 
     switch (node->type)

@@ -346,11 +346,11 @@ extern "C"
     }
     void warpx_FillBoundaryE () {
         WarpX& warpx = WarpX::GetInstance();
-        warpx.FillBoundaryE ();
+        warpx.FillBoundaryE (warpx.getngE());
     }
     void warpx_FillBoundaryB () {
         WarpX& warpx = WarpX::GetInstance();
-        warpx.FillBoundaryB ();
+        warpx.FillBoundaryB (warpx.getngE());
     }
     void warpx_SyncCurrent () {
         WarpX& warpx = WarpX::GetInstance();

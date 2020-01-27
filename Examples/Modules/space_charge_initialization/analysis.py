@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#!/usr/bin/env python
 """
 This script checks the space-charge initialization routine, by
 verifying that the space-charge field of a Gaussian beam corresponds to

@@ -6,7 +6,6 @@ IonizationEnergiesTable.H, which contains tables + metadata.
 
 import re, os
 import numpy as np
-from scipy.constants import e
 
 filename = os.path.join( '.', 'atomic_data.txt' )
 with open(filename) as f:

@@ -54,7 +54,7 @@ electrons.momentum_distribution_type = "constant"
 electrons.do_continuous_injection = 1
 
 #################################
-############ PLASMA #############
+############ LASER  #############
 #################################
 lasers.nlasers      = 1
 lasers.names        = laser1
