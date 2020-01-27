@@ -1,3 +1,9 @@
+# Copyright 2019 Axel Huebl
+#
+# This file is part of WarpX.
+#
+# License: BSD-3-Clause-LBNL
+
 extraction:
   cpp:
     prepare:

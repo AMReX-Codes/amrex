@@ -1,3 +1,10 @@
+/* Copyright 2019-2020 Axel Huebl, Ligia Diana Amorim, Maxence Thevenet
+ * Revathi Jambunathan, Weiqun Zhang
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #include <InjectorDensity.H>
 #include <PlasmaInjector.H>
 

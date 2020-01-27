@@ -1,3 +1,9 @@
+/* Copyright 2019-2020 Axel Huebl, Junmin Gu
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #include "WarpXOpenPMD.H"
 #include "WarpXAlgorithmSelection.H"
 #include "FieldIO.H"  // for getReversedVec

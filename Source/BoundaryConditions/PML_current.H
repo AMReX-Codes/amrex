@@ -1,3 +1,10 @@
+/* Copyright 2019 Aurore Blelly, Axel Huebl, Maxence Thevenet
+ * Remi Lehe
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #ifndef PML_CURRENT_H_
 #define PML_CURRENT_H_
 

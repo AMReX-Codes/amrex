@@ -1,3 +1,13 @@
+/* Copyright 2019-2020 Andrew Myers, Ann Almgren, Aurore Blelly
+ * Axel Huebl, Burlen Loring, David Grote
+ * Glenn Richardson, Jean-Luc Vay, Luca Fedeli
+ * Maxence Thevenet, Remi Lehe, Revathi Jambunathan
+ * Weiqun Zhang, Yinjian Zhao
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #include <cmath>
 #include <limits>
 

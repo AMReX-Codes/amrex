@@ -1,3 +1,10 @@
+/* Copyright 2019-2020 Maxence Thevenet, Revathi Jambunathan, Weiqun Zhang
+ *
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #include <GpuParser.H>
 
 GpuParser::GpuParser (WarpXParser const& wp)

@@ -1,3 +1,10 @@
+# Copyright 2017-2018 Andrew Myers, David Grote, Weiqun Zhang
+#
+#
+# This file is part of WarpX.
+#
+# License: BSD-3-Clause-LBNL
+
 from ._libwarpx import libwarpx
 from . import callbacks
 

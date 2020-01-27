@@ -1,3 +1,10 @@
+/* Copyright 2019-2020 Axel Huebl, Junmin Gu, Maxence Thevenet
+ *
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #ifndef WARPX_OPEN_PMD_H_
 #define WARPX_OPEN_PMD_H_
 

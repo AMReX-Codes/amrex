@@ -1,3 +1,10 @@
+/* Copyright 2019 Axel Huebl, Luca Fedeli, Maxence Thevenet
+ * Weiqun Zhang
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #include <LaserProfiles.H>
 
 #include <WarpX_Complex.H>

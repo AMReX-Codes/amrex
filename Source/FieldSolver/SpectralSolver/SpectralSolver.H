@@ -1,3 +1,9 @@
+/* Copyright 2019-2020 Maxence Thevenet, Remi Lehe
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #ifndef WARPX_SPECTRAL_SOLVER_H_
 #define WARPX_SPECTRAL_SOLVER_H_
 

@@ -1,3 +1,10 @@
+/* Copyright 2019 Andrew Myers, David Grote, Maxence Thevenet
+ * Remi Lehe, Weiqun Zhang
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #ifndef WARPX_WRAPPERS_H_
 #define WARPX_WRAPPERS_H_
 

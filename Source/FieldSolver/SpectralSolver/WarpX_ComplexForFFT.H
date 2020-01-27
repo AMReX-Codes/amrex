@@ -1,3 +1,9 @@
+/* Copyright 2019 David Grote
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #ifndef WARPX_COMPLEXFORFFT_H_
 #define WARPX_COMPLEXFORFFT_H_
 

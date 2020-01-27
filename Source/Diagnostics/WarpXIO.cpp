@@ -1,3 +1,12 @@
+/* Copyright 2019-2020 Andrew Myers, Ann Almgren, Axel Huebl
+ * Burlen Loring, David Grote, Gunther H. Weber
+ * Junmin Gu, Maxence Thevenet, Remi Lehe
+ * Revathi Jambunathan, Weiqun Zhang
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_FillPatchUtil_F.H>

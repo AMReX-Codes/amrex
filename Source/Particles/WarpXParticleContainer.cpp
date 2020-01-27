@@ -1,3 +1,12 @@
+/* Copyright 2019-2020 Andrew Myers, Axel Huebl, David Grote
+ * Jean-Luc Vay, Luca Fedeli, Maxence Thevenet
+ * Remi Lehe, Revathi Jambunathan, Weiqun Zhang
+ * Yinjian Zhao, levinem
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #include <limits>
 
 #include <MultiParticleContainer.H>

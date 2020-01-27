@@ -1,3 +1,9 @@
+! Copyright 2019 Maxence Thevenet, Weiqun Zhang
+!
+! This file is part of WarpX.
+!
+! License: BSD-3-Clause-LBNL
+
 module warpx_ES_interpolate_cic
 
   use iso_c_binding
