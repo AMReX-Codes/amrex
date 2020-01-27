@@ -64,9 +64,7 @@ MFIter::MFIter (const FabArrayBase& fabarray_,
 
 MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm, unsigned char flags_)
     :
-    m_fa(new FabArray<FArrayBox>(ba, dm, 1, 0,
-                                 MFInfo().SetAlloc(false),
-                                 FArrayBoxFactory())),
+    m_fa(new FabArrayBase(ba,dm,1,0)),
     fabArray(*m_fa),
     tile_size((flags_ & Tiling) ? FabArrayBase::mfiter_tile_size : IntVect::TheZeroVector()),
     flags(flags_),
@@ -79,14 +77,18 @@ MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm, unsigned char
     local_tile_index_map(nullptr),
     num_local_tiles(nullptr)
 {
+#ifdef _OPENMP
+#pragma omp single
+#endif
+    {
+        m_fa->addThisBD();
+    }
     Initialize();
 }
 
 MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm, bool do_tiling_)
     :
-    m_fa(new FabArray<FArrayBox>(ba, dm, 1, 0,
-                                 MFInfo().SetAlloc(false),
-                                 FArrayBoxFactory())),
+    m_fa(new FabArrayBase(ba,dm,1,0)),
     fabArray(*m_fa),
     tile_size((do_tiling_) ? FabArrayBase::mfiter_tile_size : IntVect::TheZeroVector()),
     flags(do_tiling_ ? Tiling : 0),
@@ -99,6 +101,12 @@ MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm, bool do_tilin
     local_tile_index_map(nullptr),
     num_local_tiles(nullptr)
 {
+#ifdef _OPENMP
+#pragma omp single
+#endif
+    {
+        m_fa->addThisBD();
+    }
     Initialize();
 }
 
@@ -106,9 +114,7 @@ MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm, bool do_tilin
 MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm,
                 const IntVect& tilesize_, unsigned char flags_)
     :
-    m_fa(new FabArray<FArrayBox>(ba, dm, 1, 0,
-                                 MFInfo().SetAlloc(false),
-                                 FArrayBoxFactory())),
+    m_fa(new FabArrayBase(ba,dm,1,0)),
     fabArray(*m_fa),
     tile_size(tilesize_),
     flags(flags_ | Tiling),
@@ -121,15 +127,19 @@ MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm,
     local_tile_index_map(nullptr),
     num_local_tiles(nullptr)
 {
+#ifdef _OPENMP
+#pragma omp single
+#endif
+    {
+        m_fa->addThisBD();
+    }
     Initialize();
 }
 
 
 MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm, const MFItInfo& info)
     :
-    m_fa(new FabArray<FArrayBox>(ba, dm, 1, 0,
-                                 MFInfo().SetAlloc(false),
-                                 FArrayBoxFactory())),
+    m_fa(new FabArrayBase(ba, dm, 1, 0)),
     fabArray(*m_fa),
     tile_size(info.tilesize),
     flags(info.do_tiling ? Tiling : 0),
@@ -146,6 +156,12 @@ MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm, const MFItInf
     local_tile_index_map(nullptr),
     num_local_tiles(nullptr)
 {
+#ifdef _OPENMP
+#pragma omp single
+#endif
+    {
+        m_fa->addThisBD();
+    }
 #ifdef _OPENMP
     if (dynamic) {
 #pragma omp barrier
@@ -217,6 +233,14 @@ MFIter::~MFIter ()
     Gpu::Device::resetStreamIndex();
     Gpu::resetNumCallbacks();
 #endif
+
+    if (m_fa) {
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp single
+#endif
+        m_fa->clearThisBD();
+    }
 }
 
 void 
