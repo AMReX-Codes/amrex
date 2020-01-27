@@ -4,6 +4,7 @@
 #include <AMReX_MLMG.H>
 #include <AMReX_NodalProjector.H>
 #include <AMReX_ParmParse.H>
+#include <AMReX_MultiFabUtil.H>
 
 namespace amrex {
 
@@ -17,10 +18,10 @@ NodalProjector::NodalProjector ( const amrex::Vector<amrex::MultiFab*>&       a_
                                  const LPInfo&                                a_lpinfo,
                                  const amrex::Vector<amrex::MultiFab*>&       a_S_cc,
                                  const amrex::Vector<const amrex::MultiFab*>& a_S_nd )
-    : m_vel(a_vel),
-      m_sigma(a_sigma),
-      m_geom(a_geom),
+    : m_geom(a_geom),
+      m_vel(a_vel),
       m_S_cc(a_S_cc),
+      m_sigma(a_sigma),
       m_S_nd(a_S_nd)
 {
     int nlevs = a_vel.size();
@@ -159,12 +160,12 @@ NodalProjector::setOptions ()
     {
         m_mlmg->setBottomSolver(MLMG::BottomSolver::cgbicg);
     }
-    #ifdef AMREX_USE_HYPRE
+#ifdef AMREX_USE_HYPRE
     else if (bottom_solver == "hypre")
     {
         m_mlmg->setBottomSolver(MLMG::BottomSolver::hypre);
     }
-    #endif
+#endif
 }
 
 void
@@ -201,6 +202,16 @@ NodalProjector::project ( Real a_rtol, Real a_atol )
     if (m_verbose > 0)
         amrex::Print() << "Nodal Projection:" << std::endl;
 
+    //
+    // Average fine grid velocity values down to the coarse grid
+    // By doing this operation at this time we:
+    //
+    //   1) fill regions covered by a finer grid with some "valid" data, i.e. not NaNs
+    //      for example. This is required internally by MLMG.
+    //   2) make the velocity field ready for projection on the entirety of each level.
+    //
+    averageDown(m_vel);
+
     // Set matrix coefficients
     for (int lev = 0; lev < m_sigma.size(); ++lev)
     {
@@ -222,10 +233,17 @@ NodalProjector::project ( Real a_rtol, Real a_atol )
     }
 
     // Solve
+    // phi comes out already averaged-down and ready to be used by caller if needed
     m_mlmg -> solve( GetVecOfPtrs(m_phi), GetVecOfConstPtrs(m_rhs), a_rtol, a_atol );
 
     // Get fluxes -- fluxes = -  (alpha/beta) * grad(phi)
     m_mlmg -> getFluxes( GetVecOfPtrs(m_fluxes) );
+
+    // At this time, the fluxes are "correct" only on regions not covered by finer grids.
+    // We average the fluxes down so that they are "correct" everywhere in each level.
+    // This is necessary because the caller can access grad(phi) and may use it for
+    // computations involving the whole level.
+    averageDown(GetVecOfPtrs(m_fluxes));
 
     // Compute sync residual BEFORE performing projection
     computeSyncResidual();
@@ -242,7 +260,14 @@ NodalProjector::project ( Real a_rtol, Real a_atol )
             }
         }
 
+        //
         // vel = vel + fluxes = vel - grad(phi) / beta
+        //
+        // Since we already averaged-down the velocity field and -grad(phi),
+        // we perform the projection by simply adding the two of them.
+        // In virtue of the linearity of the operations involved, this is equivalent
+        // to averaging down the velocity only once AFTER summing -grad(phi)
+        //
         MultiFab::Add( *m_vel[lev], m_fluxes[lev], 0, 0, AMREX_SPACEDIM, 0);
 
         // set m_fluxes = grad(phi)
@@ -257,6 +282,16 @@ NodalProjector::project ( Real a_rtol, Real a_atol )
         }
 
     }
+
+    // Print diagnostics
+    if ( (m_verbose > 0) && (!m_has_rhs))
+    {
+        computeRHS( GetVecOfPtrs(m_rhs), m_vel, m_S_cc, m_S_nd );
+        amrex::Print() << " >> After projection:" << std::endl;
+        printInfo();
+        amrex::Print() << std::endl;
+    }
+
 }
 
 void
@@ -321,7 +356,7 @@ NodalProjector::printInfo ()
     for (int lev(0); lev < m_rhs.size(); ++lev)
     {
         amrex::Print() << "  * On lev " << lev
-                       << " max(abs(divu)) = "
+                       << " max(abs(rhs)) = "
                        << m_rhs[lev].norm0(0,0,false,true)
                        << std::endl;
     }
@@ -349,7 +384,6 @@ NodalProjector::computeSyncResidual ()
 
         if (m_sync_resid_crse != nullptr)
         {
-            int c_lev = 0;
             MultiFab* rhptr = nullptr;
             if (!m_S_cc.empty())
                 rhptr = m_S_cc[c_lev];
@@ -384,7 +418,7 @@ NodalProjector::setCoarseBoundaryVelocityForSync ()
         else
         {
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
             for (MFIter mfi(*m_vel[0]); mfi.isValid(); ++mfi)
             {
@@ -394,11 +428,6 @@ NodalProjector::setCoarseBoundaryVelocityForSync ()
                 const Box& reg = grids[i];
                 const Box& bxg1 = amrex::grow(reg,1);
                 BoxList bxlist(reg);
-
-                //If tiling only need to redefine these (all the rest can stay the same):
-                // const Box& bxg1 = mfi.growntilebox(1);
-                // const Box& tile = mfi.tilebox();
-                // BoxList bxlist(tile);
 
                 if (m_bc_lo[idir] == LinOpBCType::inflow && reg.smallEnd(idir) == domainBox.smallEnd(idir))
                 {
@@ -425,6 +454,32 @@ NodalProjector::setCoarseBoundaryVelocityForSync ()
                 }
             }
         }
+    }
+
+}
+
+
+void
+NodalProjector::averageDown (const amrex::Vector<amrex::MultiFab*> a_var)
+{
+    // If not cartesian, we should average down by using volume weighting
+    // We check that coord sys is Cartesian only for coarsest level and assume
+    // geom for all other levels are Cartesian as well
+    AMREX_ALWAYS_ASSERT(m_geom[0].IsCartesian());
+
+    int f_lev = a_var.size()-1;
+    int c_lev = 0;
+
+    for (int lev = f_lev-1; lev >= c_lev; --lev)
+    {
+        IntVect rr   = m_geom[lev+1].Domain().size() / m_geom[lev].Domain().size();
+
+#ifdef AMREX_USE_EB
+        EB_average_down(*a_var[lev+1], *a_var[lev], 0, a_var[lev]->nComp(), rr);
+#else
+        average_down(*a_var[lev+1], *a_var[lev], 0, a_var[lev]->nComp(), rr);
+#endif
+
     }
 
 }
