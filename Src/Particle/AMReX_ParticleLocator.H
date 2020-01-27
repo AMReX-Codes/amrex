@@ -4,16 +4,14 @@
 #include <AMReX_Particles.H>
 #include <AMReX_GpuContainers.H>
 #include <AMReX_Tuple.H>
-#include <AMReX_DenseBins.H>
 
 namespace amrex
 {
 
+template <class BinIteratorFactory>
 struct AssignGrid
 {
-    const Box* m_boxes_ptr;
-    const unsigned int* m_poffset;
-    const unsigned int* m_pperm;
+    BinIteratorFactory m_bif;
 
     Dim3 m_lo;
     Dim3 m_hi;
@@ -27,11 +25,10 @@ struct AssignGrid
     AMREX_GPU_HOST_DEVICE
     AssignGrid () {}
 
-    AssignGrid (const Box* a_boxes_ptr, const unsigned int* a_poffset, const unsigned int* a_pperm,
+    AssignGrid (BinIteratorFactory a_bif,
                 const IntVect& a_bins_lo, const IntVect& a_bins_hi, const IntVect& a_bin_size,
                 const IntVect& a_num_bins, const Geometry& a_geom)
-        : m_boxes_ptr(a_boxes_ptr),
-          m_poffset(a_poffset), m_pperm(a_pperm),
+        : m_bif(a_bif),
           m_lo(a_bins_lo.dim3()), m_hi(a_bins_hi.dim3()), m_bin_size(a_bin_size.dim3()),
           m_num_bins(a_num_bins.dim3()), m_domain(a_geom.Domain()),
           m_plo(a_geom.ProbLoArray()), m_dxi(a_geom.InvCellSizeArray())
@@ -70,22 +67,24 @@ struct AssignGrid
             for (int jj = amrex::max(iy-1, 0); jj <= amrex::min(iy, ny-1); ++jj) {
                 for (int kk = amrex::max(iz-1, 0); kk <= amrex::min(iz, nz-1); ++kk) {
                     int index = (ii * ny + jj) * nz + kk;
-                    for (int p = m_poffset[index]; p < int(m_poffset[index+1]); ++p) {
-                        const Box& box = m_boxes_ptr[m_pperm[p]];
-                        if (box.contains(iv)) return m_pperm[p];
+                    for (const auto& nbor : m_bif.getBinIterator(index)) {
+                        if (nbor.second.contains(iv)) return nbor.first;
                     }
                 }
             }
         }
 
-        return -1;        
+        return -1;
     }
 };
 
+template <class Bins>
 class ParticleLocator
 {
 public:
 
+    using BinIteratorFactory = typename Bins::BinIteratorFactory;
+    
     ParticleLocator () : m_defined(false) {}
 
     void build (const BoxArray& ba, const Geometry& geom)
@@ -151,12 +150,12 @@ public:
         AMREX_ASSERT(m_defined);
         m_geom = a_geom;
     }
-    
-    AssignGrid getGridAssignor () const noexcept 
+
+    AssignGrid<BinIteratorFactory> getGridAssignor () const noexcept 
     {
         AMREX_ASSERT(m_defined);
-        return AssignGrid(m_device_boxes.dataPtr(), m_bins.offsetsPtr(), m_bins.permutationPtr(),
-                          m_bins_lo, m_bins_hi, m_bin_size, m_num_bins, m_geom);
+        return AssignGrid<BinIteratorFactory>(m_bins.getBinIteratorFactory(),
+                                              m_bins_lo, m_bins_hi, m_bin_size, m_num_bins, m_geom);
     }
 
     bool isValid (const BoxArray& ba) const noexcept
@@ -177,18 +176,19 @@ protected:
     IntVect m_bin_size;
     IntVect m_num_bins;
 
-    DenseBins<Box> m_bins;
+    Bins m_bins;
     
     Gpu::HostVector<Box> m_host_boxes;
     Gpu::DeviceVector<Box> m_device_boxes;
 };
 
+template <class BinIteratorFactory>    
 struct AmrAssignGrid
 {
-    const AssignGrid* m_funcs;
+    const AssignGrid<BinIteratorFactory>* m_funcs;
     std::size_t m_size;
     
-    AmrAssignGrid(const AssignGrid* a_funcs, std::size_t a_size)
+    AmrAssignGrid(const AssignGrid<BinIteratorFactory>* a_funcs, std::size_t a_size)
         : m_funcs(a_funcs), m_size(a_size)
         {}
 
@@ -205,10 +205,15 @@ struct AmrAssignGrid
     }
 };
 
+template <class Bins>
 class AmrParticleLocator
 {
-    Vector<ParticleLocator> m_locators;
-    Gpu::ManagedVector<AssignGrid> m_grid_assignors;
+public:
+    using BinIteratorFactory = typename Bins::BinIteratorFactory;
+    
+private:
+    Vector<ParticleLocator<Bins> > m_locators;
+    Gpu::ManagedVector<AssignGrid<BinIteratorFactory> > m_grid_assignors;
     bool m_defined = false;
 
 public:
@@ -281,11 +286,11 @@ public:
             m_grid_assignors[lev] = m_locators[lev].getGridAssignor();
         }        
     }
-    
-    AmrAssignGrid getGridAssignor () const noexcept 
+
+     AmrAssignGrid<BinIteratorFactory> getGridAssignor () const noexcept 
     {
         AMREX_ASSERT(m_defined);
-        return AmrAssignGrid(m_grid_assignors.dataPtr(), m_locators.size());
+        return AmrAssignGrid<BinIteratorFactory>(m_grid_assignors.dataPtr(), m_locators.size());
     }
 };
 

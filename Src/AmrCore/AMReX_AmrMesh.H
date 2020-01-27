@@ -231,16 +231,12 @@ protected:
     Vector<DistributionMapping> dmap;
     Vector<BoxArray>            grids;
 
+    unsigned int num_setdm = 0;
+
     void checkInput();
 
-     void SetIterateToFalse () noexcept
-     {
-         iterate_on_new_grids = false;
-     }
-     void SetUseNewChop () noexcept
-     {
-         use_new_chop = true;
-     }
+    void SetIterateToFalse () noexcept { iterate_on_new_grids = false; }
+    void SetUseNewChop () noexcept { use_new_chop = true; }
 
 private:
     void InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in,

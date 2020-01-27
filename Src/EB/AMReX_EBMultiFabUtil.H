@@ -4,6 +4,7 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
+#include <AMReX_BCRec.H>
 
 namespace amrex
 {
@@ -39,6 +40,17 @@ namespace amrex
 
     void EB_average_face_to_cellcenter (MultiFab& ccmf, int dcomp,
                                         const Array<MultiFab const*,AMREX_SPACEDIM>& fmf);
+    
+    void EB_interp_CC_to_Centroid (MultiFab& cntrd, const MultiFab& cc, int scomp, int dcomp, int ncomp, const Geometry& geom);
+    
+    void EB_interp_CC_to_FaceCentroid (MultiFab& sol,
+                                       AMREX_D_DECL( MultiFab& a_edgestate_x,
+                                                     MultiFab& a_edgestate_y,
+                                                     MultiFab& a_edgestate_z),
+                                       int scomp, int dcomp, int nc,
+                                       const Geometry& geom,
+                                       const amrex::Vector<amrex::BCRec>& a_bcs);
+
 }
 
 #endif

@@ -8,6 +8,8 @@
 #include <AMReX_EBCellFlag.H>
 #include <AMReX_MultiCutFab.H>
 
+#include <AMReX_VisMF.H>
+
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -662,6 +664,145 @@ EB_average_face_to_cellcenter (MultiFab& ccmf, int dcomp,
             }
         }
     }
+}
+
+void
+EB_interp_CC_to_Centroid (MultiFab& cent, const MultiFab& cc, int scomp, int dcomp, int ncomp, const Geometry& geom)
+{
+    const auto& factory = dynamic_cast<EBFArrayBoxFactory const&>(cc.Factory());
+    const auto& flags = factory.getMultiEBCellFlagFab();
+    const auto& loc = factory.getCentroid();
+
+    MFItInfo mfi_info;
+    if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(cc, mfi_info);  mfi.isValid(); ++mfi)
+    {
+        const Box& vbx = mfi.validbox();
+        const auto& centfab = cent.array(mfi,dcomp);
+        const auto& fabtyp = flags[mfi].getType(vbx);
+
+        if (fabtyp == FabType::covered)
+        {
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( vbx, ncomp, i, j, k, n,
+            {
+                centfab(i,j,k,n) = 0.0;
+            });
+        }
+        else if (fabtyp == FabType::regular)
+        {
+            const auto& ccfab = cc.array(mfi,scomp);
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( vbx, ncomp, i, j, k, n,
+            {
+               centfab(i,j,k,n) = ccfab(i,j,k,n);
+            });
+        }
+        else
+        {
+            const auto& flagfab = flags.const_array(mfi);
+            const auto& locfab = loc.const_array(mfi);
+            const auto& ccfab = cc.array(mfi,scomp);
+
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( vbx, thread_box,
+            {
+                eb_interp_cc2cent(thread_box, centfab, ccfab, flagfab, locfab, ncomp);
+            });
+        }
+    }
+
+    cent.FillBoundary(dcomp,ncomp,geom.periodicity());
+    
+}
+
+void
+EB_interp_CC_to_FaceCentroid (MultiFab& sol,
+                              AMREX_D_DECL( MultiFab& edgestate_x,
+                                            MultiFab& edgestate_y,
+                                            MultiFab& edgestate_z),
+                              int scomp, int dcomp, int ncomp,
+                              const Geometry& a_geom,
+                              const Vector<BCRec>& a_bcs)
+{
+    const auto& factory = dynamic_cast<EBFArrayBoxFactory const&>(sol.Factory());
+    const auto& flags = factory.getMultiEBCellFlagFab();
+    const auto& area = factory.getAreaFrac();
+    const auto& fcent = factory.getFaceCent();
+
+    AMREX_ALWAYS_ASSERT(a_bcs.size() == ncomp );
+    
+    Box domain(a_geom.Domain());
+    
+    const int nghost(4);
+    
+   // Initialize edge state
+    AMREX_D_TERM(edgestate_x.setVal(1e40,dcomp,ncomp);,
+                 edgestate_y.setVal(1e40,dcomp,ncomp);,
+                 edgestate_z.setVal(1e40,dcomp,ncomp));
+    
+    MFItInfo mfi_info;
+    if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(sol, mfi_info);  mfi.isValid(); ++mfi)
+    {
+
+        const Box& vbx = mfi.tilebox();
+        const auto& solnfab = sol.array(mfi,scomp);
+        const auto fabtyp = flags[mfi].getType(amrex::grow(vbx,0));
+        const auto fabtyp_ghost = flags[mfi].getType(amrex::grow(vbx,nghost));
+
+        if (fabtyp != FabType::covered)
+        {
+
+            AMREX_D_TERM(Array4<Real> const& edg_x = edgestate_x.array(mfi,dcomp);,
+                         Array4<Real> const& edg_y = edgestate_y.array(mfi,dcomp);,
+                         Array4<Real> const& edg_z = edgestate_z.array(mfi,dcomp););
+          
+            if (fabtyp_ghost == FabType::regular )
+            {
+                
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( vbx, thread_box,
+                {
+                    eb_interp_cc2face(thread_box, solnfab,
+                                      AMREX_D_DECL(edg_x,edg_y,edg_z),
+                                      ncomp,
+                                      domain, a_bcs);
+                });
+            
+            }
+            else
+            {
+                Array4<EBCellFlag const> const& flagfab = flags.const_array(mfi);
+                AMREX_D_TERM(Array4<Real const> const& apxfab = area[0]->const_array(mfi);,
+                             Array4<Real const> const& apyfab = area[1]->const_array(mfi);,
+                             Array4<Real const> const& apzfab = area[2]->const_array(mfi););
+                AMREX_D_TERM(Array4<Real const> const& fcx = fcent[0]->const_array(mfi);,
+                             Array4<Real const> const& fcy = fcent[1]->const_array(mfi);,
+                             Array4<Real const> const& fcz = fcent[2]->const_array(mfi););
+                
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( vbx, thread_box,
+                {
+                    eb_interp_cc2facecent(thread_box, solnfab,
+                                          flagfab,
+                                          AMREX_D_DECL(apxfab,apyfab,apzfab),
+                                          AMREX_D_DECL(fcx,fcy,fcz),
+                                          AMREX_D_DECL(edg_x,edg_y,edg_z),
+                                          ncomp,
+                                          domain, a_bcs);
+                });
+            }
+        }
+    }
+    
+    edgestate_x.FillBoundary(a_geom.periodicity());
+    edgestate_y.FillBoundary(a_geom.periodicity());
+#if ( AMREX_SPACEDIM == 3 )
+    edgestate_z.FillBoundary(a_geom.periodicity());
+#endif
+
 }
 
 }
