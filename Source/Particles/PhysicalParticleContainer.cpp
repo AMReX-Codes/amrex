@@ -1102,9 +1102,6 @@ PhysicalParticleContainer::FieldGather (int lev,
                                        costarr(i,j,k) += wt;
                                    });
             }
-            // synchronize avoids cudaStreams from over-writing the temporary arrays used to
-            // store positions
-            Gpu::synchronize();
         }
     }
 }
