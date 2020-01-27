@@ -5,44 +5,7 @@
 #include <WarpXParticleContainer.H>
 #include <AMReX_REAL.H>
 
-#ifndef WARPX_DIM_RZ
-
-/** \brief Extract the particle's coordinates from the ParticleType struct `p`,
- *        and stores them in the variables `x`, `y`, `z`. */
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void GetPosition(
-    amrex::ParticleReal& x, amrex::ParticleReal& y, amrex::ParticleReal& z,
-    const WarpXParticleContainer::ParticleType& p)
-{
-#if (AMREX_SPACEDIM==3)
-    x = p.pos(0);
-    y = p.pos(1);
-    z = p.pos(2);
-#else
-    x = p.pos(0);
-    y = std::numeric_limits<amrex::ParticleReal>::quiet_NaN();
-    z = p.pos(1);
-#endif
-}
-
-/** \brief Set the particle's coordinates in the ParticleType struct `p`,
- *        from their values in the variables `x`, `y`, `z`. */
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void SetPosition(
-    WarpXParticleContainer::ParticleType& p,
-    const amrex::ParticleReal x, const amrex::ParticleReal y, const amrex::ParticleReal z)
-{
-#if (AMREX_SPACEDIM==3)
-    p.pos(0) = x;
-    p.pos(1) = y;
-    p.pos(2) = z;
-#else
-    p.pos(0) = x;
-    p.pos(1) = z;
-#endif
-}
-
-# elif defined WARPX_DIM_RZ
+#ifdef WARPX_DIM_RZ
 
 /** \brief Extract the particle's coordinates from `theta` and the attributes
  *         of the ParticleType struct `p` (which contains the radius),

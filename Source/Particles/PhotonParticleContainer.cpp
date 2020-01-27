@@ -50,19 +50,16 @@ void PhotonParticleContainer::InitData()
 }
 
 void
-PhotonParticleContainer::PushPX(WarpXParIter& pti,
-                                Gpu::ManagedDeviceVector<ParticleReal>& xp,
-                                Gpu::ManagedDeviceVector<ParticleReal>& yp,
-                                Gpu::ManagedDeviceVector<ParticleReal>& zp,
-                                Real dt, DtType a_dt_type)
+PhotonParticleContainer::PushPX(WarpXParIter& pti, Real dt, DtType a_dt_type)
 {
 
     // This wraps the momentum and position advance so that inheritors can modify the call.
     auto& attribs = pti.GetAttribs();
+
     // Extract pointers to the different particle quantities
-    ParticleReal* const AMREX_RESTRICT x = xp.dataPtr();
-    ParticleReal* const AMREX_RESTRICT y = yp.dataPtr();
-    ParticleReal* const AMREX_RESTRICT z = zp.dataPtr();
+    auto& aos = pti.GetArrayOfStructs();
+    ParticleType* AMREX_RESTRICT const pstruct = aos().dataPtr();
+    
     ParticleReal* const AMREX_RESTRICT ux = attribs[PIdx::ux].dataPtr();
     ParticleReal* const AMREX_RESTRICT uy = attribs[PIdx::uy].dataPtr();
     ParticleReal* const AMREX_RESTRICT uz = attribs[PIdx::uz].dataPtr();
@@ -75,15 +72,14 @@ PhotonParticleContainer::PushPX(WarpXParIter& pti,
 
     if (WarpX::do_back_transformed_diagnostics && do_back_transformed_diagnostics)
     {
-        copy_attribs(pti, x, y, z);
+        copy_attribs(pti, pstruct);
     }
 
     amrex::ParallelFor(
         pti.numParticles(),
         [=] AMREX_GPU_DEVICE (long i) {
 
-            UpdatePositionPhoton( x[i], y[i], z[i],
-                            ux[i], uy[i], uz[i], dt );
+            UpdatePositionPhoton( pstruct[i], ux[i], uy[i], uz[i], dt );
         }
     );
 }

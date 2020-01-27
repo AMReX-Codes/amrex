@@ -6,7 +6,7 @@
 
 /**
  * \brief Field gather for particles handled by thread thread_num
- * \param xp, yp, zp   : Pointer to arrays of particle positions.
+ * \param pstruct      : Pointer to array of particle structs.
  * \param Exp, Eyp, Ezp: Pointer to array of electric field on particles.
  * \param Bxp, Byp, Bzp: Pointer to array of magnetic field on particles.
  * \param ex_arr ey_arr: Array4 of current density, either full array or tile.
@@ -20,9 +20,7 @@
  * \param n_rz_azimuthal_modes: Number of azimuthal modes when using RZ geometry
  */
 template <int depos_order, int lower_in_v>
-void doGatherShapeN(const amrex::ParticleReal * const xp,
-                    const amrex::ParticleReal * const yp,
-                    const amrex::ParticleReal * const zp,
+void doGatherShapeN(const WarpXParticleContainer::ParticleType * const pstruct,
                     amrex::ParticleReal * const Exp, amrex::ParticleReal * const Eyp,
                     amrex::ParticleReal * const Ezp, amrex::ParticleReal * const Bxp,
                     amrex::ParticleReal * const Byp, amrex::ParticleReal * const Bzp,
@@ -77,10 +75,11 @@ void doGatherShapeN(const amrex::ParticleReal * const xp,
             // x direction
             // Get particle position
 #ifdef WARPX_DIM_RZ
-            const amrex::Real rp = std::sqrt(xp[ip]*xp[ip] + yp[ip]*yp[ip]);
+            const amrex::Real rp = std::sqrt(pstruct[ip].pos(0)*pstruct[ip].pos(0)
+                                           + pstruct[ip].pos(1)*pstruct[ip].pos(1));
             const amrex::Real x = (rp - xmin)*dxi;
 #else
-            const amrex::Real x = (xp[ip]-xmin)*dxi;
+            const amrex::Real x = (pstruct[ip].pos(0)-xmin)*dxi;
 #endif
 
             // j_[eb][xyz] leftmost grid point in x that the particle touches for the centering of each current
@@ -122,7 +121,7 @@ void doGatherShapeN(const amrex::ParticleReal * const xp,
 
 #if (AMREX_SPACEDIM == 3)
             // y direction
-            const amrex::Real y = (yp[ip]-ymin)*dyi;
+            const amrex::Real y = (pstruct[ip].pos(1)-ymin)*dyi;
             amrex::Real sy_node[depos_order + 1];
             amrex::Real sy_cell[depos_order + 1];
             amrex::Real sy_node_v[depos_order + 1 - lower_in_v];
@@ -158,7 +157,7 @@ void doGatherShapeN(const amrex::ParticleReal * const xp,
 
 #endif
             // z direction
-            const amrex::Real z = (zp[ip]-zmin)*dzi;
+            const amrex::Real z = (pstruct[ip].pos(2)-zmin)*dzi;
             amrex::Real sz_node[depos_order + 1];
             amrex::Real sz_cell[depos_order + 1];
             amrex::Real sz_node_v[depos_order + 1 - lower_in_v];
@@ -238,8 +237,8 @@ void doGatherShapeN(const amrex::ParticleReal * const xp,
             amrex::Real costheta;
             amrex::Real sintheta;
             if (rp > 0.) {
-                costheta = xp[ip]/rp;
-                sintheta = yp[ip]/rp;
+                costheta = pstruct[ip].pos(0)/rp;
+                sintheta = pstruct[ip].pos(1)/rp;
             } else {
                 costheta = 1.;
                 sintheta = 0.;

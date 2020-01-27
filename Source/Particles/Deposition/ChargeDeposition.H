@@ -4,7 +4,7 @@
 #include "ShapeFactors.H"
 
 /* \brief Charge Deposition for thread thread_num
- * /param xp, yp, zp   : Pointer to arrays of particle positions.
+ * /param pstruct      : Pointer to array of particle structs
  * \param wp           : Pointer to array of particle weights.
  * \param ion_lev      : Pointer to array of particle ionization level. This is
                          required to have the charge of each macroparticle
@@ -18,9 +18,7 @@
  * /param q            : species charge.
  */
 template <int depos_order>
-void doChargeDepositionShapeN(const amrex::ParticleReal * const xp,
-                              const amrex::ParticleReal * const yp,
-                              const amrex::ParticleReal * const zp,
+void doChargeDepositionShapeN(const WarpXParticleContainer::ParticleType* const pstruct,
                               const amrex::ParticleReal * const wp,
                               const int * const ion_lev,
                               const amrex::Array4<amrex::Real>& rho_arr,
@@ -60,10 +58,11 @@ void doChargeDepositionShapeN(const amrex::ParticleReal * const xp,
             // x direction
             // Get particle position in grid coordinates
 #if (defined WARPX_DIM_RZ)
-            const amrex::Real r = std::sqrt(xp[ip]*xp[ip] + yp[ip]*yp[ip]);
+            const amrex::Real r = std::sqrt(pstruct[ip].pos(0)*pstruct[ip].pos(0)
+                                          + pstruct[ip].pos(1)*pstruct[ip].pos(1));
             const amrex::Real x = (r - xmin)*dxi;
 #else
-            const amrex::Real x = (xp[ip] - xmin)*dxi;
+            const amrex::Real x = (pstruct[ip].pos(0) - xmin)*dxi;
 #endif
             // Compute shape factors for node-centered quantities
             amrex::Real sx[depos_order + 1];
@@ -72,12 +71,12 @@ void doChargeDepositionShapeN(const amrex::ParticleReal * const xp,
 
 #if (defined WARPX_DIM_3D)
             // y direction
-            const amrex::Real y = (yp[ip] - ymin)*dyi;
+            const amrex::Real y = (pstruct[ip].pos(1) - ymin)*dyi;
             amrex::Real sy[depos_order + 1];
             const int j = compute_shape_factor<depos_order>(sy,  y);
 #endif
             // z direction
-            const amrex::Real z = (zp[ip] - zmin)*dzi;
+            const amrex::Real z = (pstruct[ip].pos(2) - zmin)*dzi;
             amrex::Real sz[depos_order + 1];
             const int k = compute_shape_factor<depos_order>(sz,  z);
 
