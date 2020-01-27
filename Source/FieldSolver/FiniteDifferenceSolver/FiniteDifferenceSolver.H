@@ -27,12 +27,19 @@ class FiniteDifferenceSolver
             m_fdtd_algo = fdtd_algo;
 
             // Calculate coefficients of finite-difference stencil
+#ifdef WARPX_DIM_RZ
+            m_dr = cell_size[0];
+            if (fdtd_algo == MaxwellSolverAlgo::Yee){
+                CylindricalYeeAlgorithm::InitializeStencilCoefficients( cell_size,
+                    stencil_coefs_r, stencil_coefs_z );
+#else
             if (fdtd_algo == MaxwellSolverAlgo::Yee){
                 YeeAlgorithm::InitializeStencilCoefficients( cell_size,
                     stencil_coefs_x, stencil_coefs_y, stencil_coefs_z );
             } else if (fdtd_algo == MaxwellSolverAlgo::CKC) {
                 CKCAlgorithm::InitializeStencilCoefficients( cell_size,
                     stencil_coefs_x, stencil_coefs_y, stencil_coefs_z );
+#endif
             } else {
                 amrex::Abort("Unknown algorithm");
             }
@@ -45,9 +52,15 @@ class FiniteDifferenceSolver
 
         int m_fdtd_algo;
 
+#ifdef WARPX_DIM_RZ
+        amrex::Real m_dr;
+        amrex::Gpu::ManagedVector<amrex::Real> stencil_coefs_r;
+        amrex::Gpu::ManagedVector<amrex::Real> stencil_coefs_z;
+#else
         amrex::Gpu::ManagedVector<amrex::Real> stencil_coefs_x;
         amrex::Gpu::ManagedVector<amrex::Real> stencil_coefs_y;
         amrex::Gpu::ManagedVector<amrex::Real> stencil_coefs_z;
+#endif
 
 #ifdef WARPX_DIM_RZ
         template< typename T_Algo >
