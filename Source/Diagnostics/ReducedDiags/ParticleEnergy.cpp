@@ -37,21 +37,24 @@ ParticleEnergy::ParticleEnergy (std::string rd_name)
                 std::ofstream::out | std::ofstream::app);
             /// write header row
             ofs << "#";
-            ofs << "step";
+            ofs << "[1]step";
             ofs << m_sep;
-            ofs << "time(s)";
+            ofs << "[2]time(s)";
             ofs << m_sep;
-            ofs << "total(J)";
+            ofs << "[3]total(J)";
             for (int i = 0; i < nSpecies; ++i)
             {
                 ofs << m_sep;
+                ofs << "[" + std::to_string(4+i) + "]";
                 ofs << species_names[i]+"(J)";
             }
             ofs << m_sep;
+            ofs << "[" + std::to_string(4+nSpecies) + "]";
             ofs << "total.mean(J)";
             for (int i = 0; i < nSpecies; ++i)
             {
                 ofs << m_sep;
+                ofs << "[" + std::to_string(5+nSpecies+i) + "]";
                 ofs << species_names[i]+".mean(J)";
             }
             ofs << std::endl;
@@ -126,7 +129,6 @@ void ParticleEnergy::ComputeDiags (int step)
         { m_data[nSpecies+2+i_s] = Etot / Wtot; }
         else
         { m_data[nSpecies+2+i_s] = 0.0; }
-
 
     }
     ///< end loop over species
