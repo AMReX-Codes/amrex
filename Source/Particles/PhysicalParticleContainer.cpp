@@ -10,6 +10,7 @@
 #include <WarpXWrappers.h>
 #include <IonizationEnergiesTable.H>
 #include <FieldGather.H>
+#include <GetAndSetPosition.H>
 
 #include <WarpXAlgorithmSelection.H>
 
