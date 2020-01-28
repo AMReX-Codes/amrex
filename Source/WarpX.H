@@ -1,3 +1,14 @@
+/* Copyright 2016-2020 Andrew Myers, Ann Almgren, Aurore Blelly
+ * Axel Huebl, Burlen Loring, David Grote
+ * Glenn Richardson, Junmin Gu, Luca Fedeli
+ * Mathieu Lobet, Maxence Thevenet, Remi Lehe
+ * Revathi Jambunathan, Weiqun Zhang, Yinjian Zhao
+ *
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #ifndef WARPX_H_
 #define WARPX_H_
 
@@ -34,7 +45,7 @@
 #endif
 
 #ifdef WARPX_USE_OPENPMD
-#include <WarpXOpenPMD.H>
+#   include <WarpXOpenPMD.H>
 #endif
 
 #include <iostream>
@@ -66,8 +77,8 @@ public:
     WarpX ();
     ~WarpX ();
 
-    static std::string Version ();
-    static std::string PicsarVersion ();
+    static std::string Version (); //! Version of WarpX executable
+    static std::string PicsarVersion (); //! Version of PICSAR dependency
 
     int Verbose () const { return verbose; }
 
@@ -84,15 +95,14 @@ public:
 
     static void GotoNextLine (std::istream& is);
 
-    // External fields added to particle fields.
-    static amrex::Vector<amrex::Real> B_external_particle;
-    static amrex::Vector<amrex::Real> E_external_particle;
+    //! Author of an input file / simulation setup
+    static std::string authors;
 
     // Initial field on the grid.
     static amrex::Vector<amrex::Real> E_external_grid;
     static amrex::Vector<amrex::Real> B_external_grid;
 
-    // Initialization Type for External E and B
+    // Initialization Type for External E and B on grid
     static std::string B_ext_grid_s;
     static std::string E_ext_grid_s;
 
@@ -120,6 +130,9 @@ public:
     static long field_gathering_algo;
     static long particle_pusher_algo;
     static int maxwell_fdtd_solver_id;
+
+    // div E cleaning
+    static int do_dive_cleaning;
 
     // Interpolation order
     static long nox;
@@ -178,6 +191,9 @@ public:
     const amrex::MultiFab& getcurrent_fp (int lev, int direction) {return *current_fp[lev][direction];}
     const amrex::MultiFab& getEfield_fp  (int lev, int direction) {return *Efield_fp[lev][direction];}
     const amrex::MultiFab& getBfield_fp  (int lev, int direction) {return *Bfield_fp[lev][direction];}
+
+    /** get low-high-low-high-... vector for each direction indicating if mother grid PMLs are enabled */
+    std::vector<bool> getPMLdirections() const;
 
     static amrex::MultiFab* getCosts (int lev) {
         if (m_instance) {
@@ -275,12 +291,18 @@ public:
 
     int checkInt () const {return check_int;}
     int plotInt () const {return plot_int;}
+    int openpmdInt () const {return openpmd_int;}
 
     void WriteCheckPointFile () const;
+    void WriteOpenPMDFile () const;
     void WritePlotFile () const;
     void UpdateInSitu () const;
     void AverageAndPackFields( amrex::Vector<std::string>& varnames,
         amrex::Vector<amrex::MultiFab>& mf_avg, const int ngrow) const;
+    void prepareFields( int const step, amrex::Vector<std::string>& varnames,
+        amrex::Vector<amrex::MultiFab>& mf_avg,
+        amrex::Vector<const amrex::MultiFab*>& output_mf,
+        amrex::Vector<amrex::Geometry>& output_geom ) const;
 
     void WritePlotFileES(const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
                          const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& phi,
@@ -577,9 +599,6 @@ private:
     amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > current_buf;
     amrex::Vector<std::unique_ptr<amrex::MultiFab> > charge_buf;
 
-    // div E cleaning
-    int do_dive_cleaning = 0;
-
     // PML
     int do_pml = 1;
     int pml_ncell = 10;
@@ -629,18 +648,13 @@ private:
     int check_int = -1;
     int plot_int = -1;
 
-    std::string openpmd_backend {"bp"};
+    std::string openpmd_backend {"default"};
+    int openpmd_int = -1;
+    bool openpmd_tspf = true; //!< one file per timestep (or one file for all steps)
 #ifdef WARPX_USE_OPENPMD
-    bool dump_plotfiles = false;
-    bool dump_openpmd = true;
-    bool openpmd_tspf = true; // one file per timestep
-  //bool openpmd_tspf = false; // one file all timesteps
     WarpXOpenPMDPlot* m_OpenPMDPlotWriter = nullptr;
-
-#else
-    bool dump_plotfiles = true;
-    bool dump_openpmd = false;
 #endif
+
     bool plot_rho           = false;
     bool plot_costs         = true;
     bool plot_finepatch     = false;

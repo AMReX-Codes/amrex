@@ -1,3 +1,11 @@
+# Copyright 2018-2020 Andrew Myers, David Grote, Ligia Diana Amorim
+# Maxence Thevenet, Remi Lehe, Revathi Jambunathan
+#
+#
+# This file is part of WarpX.
+#
+# License: BSD-3-Clause-LBNL
+
 """Classes following the PICMI standard
 """
 import re

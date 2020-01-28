@@ -1,3 +1,12 @@
+/* Copyright 2019-2020 Andrew Myers, Axel Huebl, David Grote
+ * Jean-Luc Vay, Junmin Gu, Luca Fedeli
+ * Maxence Thevenet, Remi Lehe, Revathi Jambunathan
+ * Weiqun Zhang, Yinjian Zhao
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #ifndef WARPX_WarpXParticleContainer_H_
 #define WARPX_WarpXParticleContainer_H_
 
@@ -338,8 +347,8 @@ protected:
     //! instead of gathering fields from the finest patch level, gather from the coarsest
     bool m_gather_from_main_grid = false;
 
-    static int do_not_push;
-    static int do_not_deposit;
+    int do_not_push = 0;
+    int do_not_deposit = 0;
 
     // Whether to allow particles outside of the simulation domain to be
     // initialized when they enter the domain.

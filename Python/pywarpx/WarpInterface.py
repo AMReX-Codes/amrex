@@ -1,3 +1,9 @@
+# Copyright 2019 David Grote
+#
+# This file is part of WarpX.
+#
+# License: BSD-3-Clause-LBNL
+
 import warp
 from . import fields
 from pywarpx import PGroup

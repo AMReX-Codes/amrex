@@ -1,3 +1,9 @@
+/* Copyright 2019 Remi Lehe
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #ifndef WARPX_PARALLELIZATION_COMM_H_
 #define WARPX_PARALLELIZATION_COMM_H_
 

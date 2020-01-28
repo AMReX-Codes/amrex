@@ -1,3 +1,10 @@
+# Copyright 2017-2019 Andrew Myers, David Grote, Remi Lehe
+# Weiqun Zhang
+#
+# This file is part of WarpX.
+#
+# License: BSD-3-Clause-LBNL
+
 # --- This defines the wrapper functions that directly call the underlying compiled routines
 import os
 import sys

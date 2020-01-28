@@ -1,3 +1,5 @@
+.. _building-openpmd:
+
 Building WarpX with support for openPMD output
 ==============================================
 

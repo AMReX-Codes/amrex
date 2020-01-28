@@ -1,3 +1,10 @@
+/* Copyright 2019 Andrew Myers, Axel Huebl, Maxence Thevenet
+ * Revathi Jambunathan, Weiqun Zhang
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #ifndef WARPX_BackTransformedDiagnostic_H_
 #define WARPX_BackTransformedDiagnostic_H_
 

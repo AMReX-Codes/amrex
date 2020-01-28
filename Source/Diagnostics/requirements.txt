@@ -1,0 +1,8 @@
+# Copyright 2020 Axel Huebl
+#
+# This file is part of WarpX.
+#
+# License: BSD-3-Clause-LBNL
+
+# keep this entry for GitHub's dependency graph
+openPMD-api>=0.10.3

@@ -1,3 +1,10 @@
+/* Copyright 2019 Axel Huebl, David Grote, Igor Andriyash
+ * Remi Lehe
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #ifndef WARPX_FielIO_H_
 #define WARPX_FielIO_H_
 

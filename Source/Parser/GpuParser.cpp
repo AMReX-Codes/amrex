@@ -1,3 +1,10 @@
+/* Copyright 2019-2020 Maxence Thevenet, Revathi Jambunathan, Weiqun Zhang
+ *
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #include <GpuParser.H>
 
 GpuParser::GpuParser (WarpXParser const& wp)
@@ -16,6 +23,7 @@ GpuParser::GpuParser (WarpXParser const& wp)
     wp_parser_regvar_gpu(&m_gpu_parser, "x", 0);
     wp_parser_regvar_gpu(&m_gpu_parser, "y", 1);
     wp_parser_regvar_gpu(&m_gpu_parser, "z", 2);
+    wp_parser_regvar_gpu(&m_gpu_parser, "t", 3);
 
     // Initialize CPU parser: allocate memory in CUDA managed memory,
     // copy all data needed on CPU to m_cpu_parser
@@ -28,6 +36,7 @@ GpuParser::GpuParser (WarpXParser const& wp)
     wp_parser_regvar(&m_cpu_parser, "x", &(m_var.x));
     wp_parser_regvar(&m_cpu_parser, "y", &(m_var.y));
     wp_parser_regvar(&m_cpu_parser, "z", &(m_var.z));
+    wp_parser_regvar(&m_cpu_parser, "t", &(m_t));
 
 #else // not defined AMREX_USE_GPU
 
@@ -39,6 +48,7 @@ GpuParser::GpuParser (WarpXParser const& wp)
 
     m_parser = ::new struct wp_parser*[nthreads];
     m_var = ::new amrex::XDim3[nthreads];
+    m_t = ::new amrex::Real[nthreads];
 
     for (int tid = 0; tid < nthreads; ++tid)
     {
@@ -50,6 +60,7 @@ GpuParser::GpuParser (WarpXParser const& wp)
         wp_parser_regvar(m_parser[tid], "x", &(m_var[tid].x));
         wp_parser_regvar(m_parser[tid], "y", &(m_var[tid].y));
         wp_parser_regvar(m_parser[tid], "z", &(m_var[tid].z));
+        wp_parser_regvar(m_parser[tid], "t", &(m_t[tid]));
     }
 
 #endif // AMREX_USE_GPU

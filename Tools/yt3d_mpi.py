@@ -1,3 +1,9 @@
+# Copyright 2018-2019 Maxence Thevenet
+#
+# This file is part of WarpX.
+#
+# License: BSD-3-Clause-LBNL
+
 '''
 This script loops over 3D plotfiles plt*****, generates a 3D rendering
 of the data with fields and particles, and saves one image per plotfile to

@@ -1,4 +1,11 @@
 #!/bin/bash
+
+# Copyright 2019 Andrew Myers, Maxence Thevenet
+#
+# This file is part of WarpX.
+#
+# License: BSD-3-Clause-LBNL
+
 #BSUB -P GEN109
 #BSUB -W 0:10
 #BSUB -nnodes 1

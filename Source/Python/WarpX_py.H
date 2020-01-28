@@ -1,3 +1,10 @@
+/* Copyright 2019 David Grote, Maxence Thevenet, Weiqun Zhang
+ *
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #ifndef WARPX_PY_H_
 #define WARPX_PY_H_
 

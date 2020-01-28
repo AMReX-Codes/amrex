@@ -1,4 +1,12 @@
 #! /usr/bin/env python
+
+# Copyright 2019-2020 Luca Fedeli, Maxence Thevenet, Remi Lehe
+#
+#
+# This file is part of WarpX.
+#
+# License: BSD-3-Clause-LBNL
+
 """
 This script tests the absorption of particles in the PML.
 

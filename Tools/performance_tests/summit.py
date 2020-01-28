@@ -1,3 +1,10 @@
+# Copyright 2019 Axel Huebl, Luca Fedeli, Maxence Thevenet
+#
+#
+# This file is part of WarpX.
+#
+# License: BSD-3-Clause-LBNL
+
 # requirements:
 # - module load python/3.7.0-anaconda3-5.3.0
 

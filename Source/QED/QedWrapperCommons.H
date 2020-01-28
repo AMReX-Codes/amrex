@@ -1,3 +1,9 @@
+/* Copyright 2019 Luca Fedeli
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #ifndef WARPX_amrex_qed_wrapper_commons_h_
 #define WARPX_amrex_qed_wrapper_commons_h_
 
