@@ -88,7 +88,6 @@ public:
                       const int ngE, const int e_is_nodal,
                       const long offset,
                       const long np_to_gather,
-                      int thread_num,
                       int lev,
                       int depos_lev);
 

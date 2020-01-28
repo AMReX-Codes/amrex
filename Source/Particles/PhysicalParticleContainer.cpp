@@ -1056,11 +1056,6 @@ PhysicalParticleContainer::FieldGather (int lev,
 #pragma omp parallel
 #endif
     {
-#ifdef _OPENMP
-        int thread_num = omp_get_thread_num();
-#else
-        int thread_num = 0;
-#endif
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
         {
             Real wt = amrex::second();
@@ -1093,7 +1088,7 @@ PhysicalParticleContainer::FieldGather (int lev,
             FieldGather(pti, Exp, Eyp, Ezp, Bxp, Byp, Bzp,
                         &exfab, &eyfab, &ezfab, &bxfab, &byfab, &bzfab,
                         Ex.nGrow(), e_is_nodal,
-                        0, np, thread_num, lev, lev);
+                        0, np, lev, lev);
 
             if (cost) {
                 const Box& tbx = pti.tilebox();
@@ -1259,7 +1254,7 @@ PhysicalParticleContainer::Evolve (int lev,
                 FieldGather(pti, Exp, Eyp, Ezp, Bxp, Byp, Bzp,
                             exfab, eyfab, ezfab, bxfab, byfab, bzfab,
                             Ex.nGrow(), e_is_nodal,
-                            0, np_gather, thread_num, lev, lev);
+                            0, np_gather, lev, lev);
 
                 if (np_gather < np)
                 {
@@ -1295,7 +1290,7 @@ PhysicalParticleContainer::Evolve (int lev,
                                 cbxfab, cbyfab, cbzfab,
                                 cEx->nGrow(), e_is_nodal,
                                 nfine_gather, np-nfine_gather,
-                                thread_num, lev, lev-1);
+                                lev, lev-1);
                 }
 
                 BL_PROFILE_VAR_STOP(blp_fg);
@@ -1802,11 +1797,6 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
 #pragma omp parallel
 #endif
     {
-#ifdef _OPENMP
-        int thread_num = omp_get_thread_num();
-#else
-        int thread_num = 0;
-#endif
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
         {
             const Box& box = pti.validbox();
@@ -1834,7 +1824,7 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
             FieldGather(pti, Exp, Eyp, Ezp, Bxp, Byp, Bzp,
                         &exfab, &eyfab, &ezfab, &bxfab, &byfab, &bzfab,
                         Ex.nGrow(), e_is_nodal,
-                        0, np, thread_num, lev, lev);
+                        0, np, lev, lev);
 
             // This wraps the momentum advance so that inheritors can modify the call.
             // Extract pointers to the different particle quantities
@@ -1990,11 +1980,6 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
 #pragma omp parallel
 #endif
         {
-#ifdef _OPENMP
-        int thread_num = omp_get_thread_num();
-#else
-        int thread_num = 0;
-#endif
             for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
             {
                 const Box& box = pti.validbox();
@@ -2157,7 +2142,6 @@ PhysicalParticleContainer::ContinuousInjection(const RealBox& injection_box)
  * \param e_is_nodal: 0 if E is staggered, 1 if E is nodal
  * \param offset: index of first particle for which fields are gathered
  * \param np_to_gather: number of particles onto which fields are gathered
- * \param thread_num: if using OpenMP, thread number
  * \param lev: level on which particles are located
  * \param gather_lev: level from which particles gather fields (lev-1) for
           particles in buffers.
@@ -2179,7 +2163,6 @@ PhysicalParticleContainer::FieldGather (WarpXParIter& pti,
                                         const int ngE, const int e_is_nodal,
                                         const long offset,
                                         const long np_to_gather,
-                                        int thread_num,
                                         int lev,
                                         int gather_lev)
 {
