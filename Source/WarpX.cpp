@@ -24,12 +24,10 @@
 
 using namespace amrex;
 
-Vector<Real> WarpX::B_external_particle(3, 0.0);
-Vector<Real> WarpX::E_external_particle(3, 0.0);
-
 Vector<Real> WarpX::E_external_grid(3, 0.0);
 Vector<Real> WarpX::B_external_grid(3, 0.0);
 
+std::string WarpX::authors = "";
 std::string WarpX::B_ext_grid_s = "default";
 std::string WarpX::E_ext_grid_s = "default";
 
@@ -57,6 +55,7 @@ long WarpX::charge_deposition_algo;
 long WarpX::field_gathering_algo;
 long WarpX::particle_pusher_algo;
 int WarpX::maxwell_fdtd_solver_id;
+int WarpX::do_dive_cleaning = 0;
 
 long WarpX::n_rz_azimuthal_modes = 1;
 long WarpX::ncomps = 1;
@@ -154,7 +153,7 @@ WarpX::WarpX ()
     ReadParameters();
 
 #ifdef WARPX_USE_OPENPMD
-    m_OpenPMDPlotWriter = new WarpXOpenPMDPlot(openpmd_tspf, openpmd_backend);
+    m_OpenPMDPlotWriter = new WarpXOpenPMDPlot(openpmd_tspf, openpmd_backend, WarpX::getPMLdirections());
 #endif
 
     // Geometry on all levels has been defined already.
@@ -309,6 +308,7 @@ WarpX::ReadParameters ()
         ParmParse pp;// Traditionally, max_step and stop_time do not have prefix.
         pp.query("max_step", max_step);
         pp.query("stop_time", stop_time);
+        pp.query("authors", authors);
     }
 
     {
@@ -343,9 +343,6 @@ WarpX::ReadParameters ()
         do_compute_max_step_from_zmax =
             pp.query("zmax_plasma_to_compute_max_step",
                       zmax_plasma_to_compute_max_step);
-
-        pp.queryarr("B_external_particle", B_external_particle);
-        pp.queryarr("E_external_particle", E_external_particle);
 
         pp.query("do_moving_window", do_moving_window);
         if (do_moving_window)
@@ -1226,6 +1223,24 @@ WarpX::GetPML (int lev)
     }
 }
 
+std::vector< bool >
+WarpX::getPMLdirections() const
+{
+    std::vector< bool > dirsWithPML( 6, false );
+#if AMREX_SPACEDIM!=3
+    dirsWithPML.resize( 4 );
+#endif
+    if( do_pml )
+    {
+        for( auto i = 0u; i < dirsWithPML.size() / 2u; ++i )
+        {
+            dirsWithPML.at( 2u*i      ) = bool(do_pml_Lo[i]);
+            dirsWithPML.at( 2u*i + 1u ) = bool(do_pml_Hi[i]);
+        }
+    }
+    return dirsWithPML;
+}
+
 void
 WarpX::BuildBufferMasks ()
 {
@@ -1308,7 +1323,7 @@ WarpX::Version ()
 std::string
 WarpX::PicsarVersion ()
 {
-#ifdef WARPX_GIT_VERSION
+#ifdef PICSAR_GIT_VERSION
     return std::string(PICSAR_GIT_VERSION);
 #else
     return std::string("Unknown");

@@ -6,25 +6,25 @@ This section allows you to **download input files** that correspond to different
 Beam-driven acceleration
 ------------------------
 
-* :download:`2D case<../../../Examples/Physics_applications/plasma_acceleration/inputs.2d>`
-* :download:`2D case in boosted frame<../../../Examples/Physics_applications/plasma_acceleration/inputs.2d.boost>`
-* :download:`3D case in boosted frame<../../../Examples/Physics_applications/plasma_acceleration/inputs.3d.boost>`
+* :download:`2D case <../../../Examples/Physics_applications/plasma_acceleration/inputs_2d>`
+* :download:`2D case in boosted frame <../../../Examples/Physics_applications/plasma_acceleration/inputs_2d_boost>`
+* :download:`3D case in boosted frame <../../../Examples/Physics_applications/plasma_acceleration/inputs_3d_boost>`
 
 
 Laser-driven acceleration
 -------------------------
 
-* :download:`2D case<../../../Examples/Physics_applications/laser_acceleration/inputs.2d>`
-* :download:`2D case in boosted frame<../../../Examples/Physics_applications/laser_acceleration/inputs.2d.boost>`
-* :download:`3D case<../../../Examples/Physics_applications/laser_acceleration/inputs.3d>`
+* :download:`2D case <../../../Examples/Physics_applications/laser_acceleration/inputs_2d>`
+* :download:`2D case in boosted frame <../../../Examples/Physics_applications/laser_acceleration/inputs_2d_boost>`
+* :download:`3D case <../../../Examples/Physics_applications/laser_acceleration/inputs_3d>`
 
 Plasma mirror
 -------------
 
-:download:`2D case<../../../Examples/Physics_applications/plasma_mirror/inputs.2d>`
+:download:`2D case <../../../Examples/Physics_applications/plasma_mirror/inputs_2d>`
 
 Uniform plasma
 --------------
 
-:download:`2D case<../../../Examples/Physics_applications/uniform_plasma/inputs.2d>`
-:download:`3D case<../../../Examples/Physics_applications/uniform_plasma/inputs.3d>`
+:download:`2D case <../../../Examples/Physics_applications/uniform_plasma/inputs_2d>`
+:download:`3D case <../../../Examples/Physics_applications/uniform_plasma/inputs_3d>`

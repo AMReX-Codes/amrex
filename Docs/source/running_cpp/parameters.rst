@@ -9,6 +9,10 @@ Input parameters
 Overall simulation parameters
 -----------------------------
 
+* ``authors`` (`string`: e.g. ``"Jane Doe <jane@example.com>, Jimmy Joe <jimmy@example.com>"``)
+    Authors of an input file / simulation setup.
+    When provided, this information is added as metadata to (openPMD) output files.
+
 * ``max_step`` (`integer`)
     The number of PIC cycles to perform.
 
@@ -382,6 +386,10 @@ Particle initialization
     If `1` is given, both charge deposition and current deposition will
     not be done, thus that species does not contribute to the fields.
 
+* ``<species_name>.do_not_push`` (`0` or `1` optional; default `0`)
+    If `1` is given, this species will not be pushed
+    by any pusher during the simulation.
+
 * ``<species>.plot_species`` (`0` or `1` optional; default `1`)
     Whether to plot particle quantities for this species.
 
@@ -446,10 +454,6 @@ Particle initialization
     this process (see "Lookup tables for QED modules" section below).
     **Implementation of this feature is in progress. It requires to compile with QED=TRUE**
 
-* ``warpx.E_external_particle`` & ``warpx.B_external_particle`` (list of `float`) optional (default `0. 0. 0.`)
-    Two separate parameters which add a uniform E-field or B-field to each particle
-    which is then added to the field values gathered from the grid in the
-    PIC cycle.
 
 Laser initialization
 --------------------
@@ -723,6 +727,53 @@ Laser initialization
     to the grid at initialization. Use with caution as these fields are used for
     the field solver. In particular, do not use any other boundary condition
     than periodic.
+
+*  ``particles.B_ext_particle_init_style`` (string) optional (default is "default")
+     This parameter determines the type of initialization for the external
+     magnetic field that is applied directly to the particles at every timestep.
+     The "default" style sets the external B-field (Bx,By,Bz) to (0.0,0.0,0.0).
+     The string can be set to "constant" if a constant external B-field is applied
+     every timestep. If this parameter is set to "constant", then an additional
+     parameter, namely, ``particles.B_external_particle`` must be specified in
+     the input file.
+     To parse a mathematical function for the external B-field, use the option
+     ``parse_B_ext_particle_function``. This option requires additional parameters
+     in the input file, namely,
+     ``particles.Bx_external_particle_function(x,y,z,t)``,
+     ``particles.By_external_particle_function(x,y,z,t)``,
+     ``particles.Bz_external_particle_function(x,y,z,t)`` to apply the external B-field
+     on the particles. Constants required in the mathematical expression can be set
+     using ``my_constants``. For a two-dimensional simulation, it is assumed that
+     the first and second dimensions are `x` and `z`, respectively, and the
+     value of the `By` component is set to zero.
+     Note that the current implementation of the parser for B-field on particles
+     does not work with RZ and the code will abort with an error message.
+
+*    ``particles.E_ext_particle_init_style`` (string) optional (default is "default")
+     This parameter determines the type of initialization for the external
+     electric field that is applied directly to the particles at every timestep.
+     The "default" style set the external E-field (Ex,Ey,Ez) to (0.0,0.0,0.0).
+     The string can be set to "constant" if a cosntant external E-field is to be
+     used in the simulation at every timestep. If this parameter is set to "constant",
+     then an additional parameter, namely, ``particles.E_external_particle`` must be
+     specified in the input file.
+     To parse a mathematical function for the external E-field, use the option
+     ``parse_E_ext_particle_function``. This option requires additional
+     parameters in the input file, namely,
+     ``particles.Ex_external_particle_function(x,y,z,t)``,
+     ``particles.Ey_external_particle_function(x,y,z,t)``,
+     ``particles.Ez_external_particle_function(x,y,z,t)`` to apply the external E-field
+     on the particles. Constants required in the mathematical expression can be set
+     using ``my_constants``. For a two-dimensional simulation, similar to the B-field,
+     it is assumed that the first and second dimensions are `x` and `z`, respectively,
+     and the value of the `Ey` component is set to zero.
+     The current implementation of the parser for the E-field on particles does not work
+     with RZ and the code will abort with an error message.
+
+* ``particles.E_external_particle`` & ``particles.B_external_particle`` (list of `float`) optional (default `0. 0. 0.`)
+    Two separate parameters which add an externally applied uniform E-field or
+    B-field to each particle which is then added to the field values gathered
+    from the grid in the PIC cycle.
 
 Collision initialization
 ------------------------
@@ -1038,7 +1089,7 @@ Diagnostics and output
     time interval is expressed in the laboratory frame).
 
 * ``slice.particle_slice_width_lab`` (`float`, in meters)
-    Only used when ``warpx.do_boosted_frame_diagnostic`` is ``1`` and
+    Only used when ``warpx.do_back_transformed_diagnostics`` is ``1`` and
     ``slice.num_slice_snapshots_lab`` is non-zero. Particles are
     copied from the full back-transformed diagnostic to the reduced
     slice diagnostic if there are within the user-defined width from

@@ -323,7 +323,7 @@ WarpX::shiftMF (MultiFab& mf, const Geometry& geom, int num_shift, int dir,
 #endif
                       srcfab(i,j,k,n) = field_parser->getField(x,y,z);
                 }
-                , amrex::Gpu::numThreadsPerBlockParallelFor() * sizeof(double)*3
+                , amrex::Gpu::numThreadsPerBlockParallelFor() * sizeof(double)*4
                 );
             }
 

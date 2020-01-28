@@ -66,8 +66,8 @@ public:
     WarpX ();
     ~WarpX ();
 
-    static std::string Version ();
-    static std::string PicsarVersion ();
+    static std::string Version (); //! Version of WarpX executable
+    static std::string PicsarVersion (); //! Version of PICSAR dependency
 
     int Verbose () const { return verbose; }
 
@@ -84,15 +84,14 @@ public:
 
     static void GotoNextLine (std::istream& is);
 
-    // External fields added to particle fields.
-    static amrex::Vector<amrex::Real> B_external_particle;
-    static amrex::Vector<amrex::Real> E_external_particle;
+    //! Author of an input file / simulation setup
+    static std::string authors;
 
     // Initial field on the grid.
     static amrex::Vector<amrex::Real> E_external_grid;
     static amrex::Vector<amrex::Real> B_external_grid;
 
-    // Initialization Type for External E and B
+    // Initialization Type for External E and B on grid
     static std::string B_ext_grid_s;
     static std::string E_ext_grid_s;
 
@@ -120,6 +119,9 @@ public:
     static long field_gathering_algo;
     static long particle_pusher_algo;
     static int maxwell_fdtd_solver_id;
+
+    // div E cleaning
+    static int do_dive_cleaning;
 
     // Interpolation order
     static long nox;
@@ -178,6 +180,9 @@ public:
     const amrex::MultiFab& getcurrent_fp (int lev, int direction) {return *current_fp[lev][direction];}
     const amrex::MultiFab& getEfield_fp  (int lev, int direction) {return *Efield_fp[lev][direction];}
     const amrex::MultiFab& getBfield_fp  (int lev, int direction) {return *Bfield_fp[lev][direction];}
+
+    /** get low-high-low-high-... vector for each direction indicating if mother grid PMLs are enabled */
+    std::vector<bool> getPMLdirections() const;
 
     static amrex::MultiFab* getCosts (int lev) {
         if (m_instance) {
@@ -576,9 +581,6 @@ private:
     // If charge/current deposition buffers are used
     amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > current_buf;
     amrex::Vector<std::unique_ptr<amrex::MultiFab> > charge_buf;
-
-    // div E cleaning
-    int do_dive_cleaning = 0;
 
     // PML
     int do_pml = 1;
