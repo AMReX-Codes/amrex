@@ -38,25 +38,25 @@ BeamRelevant::BeamRelevant (std::string rd_name)
                 std::ofstream::out | std::ofstream::app);
             /// write header row
             ofs << "#";
-            ofs << "step";            ofs << m_sep;
-            ofs << "time(s)";         ofs << m_sep;
-            ofs << "x_mean(m)";       ofs << m_sep;
-            ofs << "y_mean(m)";       ofs << m_sep;
-            ofs << "z_mean(m)";       ofs << m_sep;
-            ofs << "ux_mean(m/s)";    ofs << m_sep;
-            ofs << "uy_mean(m/s)";    ofs << m_sep;
-            ofs << "uz_mean(m/s)";    ofs << m_sep;
-            ofs << "gamma_mean";      ofs << m_sep;
-            ofs << "x_rms(m)";        ofs << m_sep;
-            ofs << "y_rms(m)";        ofs << m_sep;
-            ofs << "z_rms(m)";        ofs << m_sep;
-            ofs << "ux_rms(m/s)";     ofs << m_sep;
-            ofs << "uy_rms(m/s)";     ofs << m_sep;
-            ofs << "uz_rms(m/s)";     ofs << m_sep;
-            ofs << "gamma_rms";       ofs << m_sep;
-            ofs << "emittance_x(m)";  ofs << m_sep;
-            ofs << "emittance_y(m)";  ofs << m_sep;
-            ofs << "emittance_z(m)";  ofs << std::endl;
+            ofs << "(1)step";             ofs << m_sep;
+            ofs << "(2)time(s)";          ofs << m_sep;
+            ofs << "(3)x_mean(m)";        ofs << m_sep;
+            ofs << "(4)y_mean(m)";        ofs << m_sep;
+            ofs << "(5)z_mean(m)";        ofs << m_sep;
+            ofs << "(6)ux_mean(m/s)";     ofs << m_sep;
+            ofs << "(7)uy_mean(m/s)";     ofs << m_sep;
+            ofs << "(8)uz_mean(m/s)";     ofs << m_sep;
+            ofs << "(9)gamma_mean";       ofs << m_sep;
+            ofs << "(10)x_rms(m)";        ofs << m_sep;
+            ofs << "(11)y_rms(m)";        ofs << m_sep;
+            ofs << "(12)z_rms(m)";        ofs << m_sep;
+            ofs << "(13)ux_rms(m/s)";     ofs << m_sep;
+            ofs << "(14)uy_rms(m/s)";     ofs << m_sep;
+            ofs << "(15)uz_rms(m/s)";     ofs << m_sep;
+            ofs << "(16)gamma_rms";       ofs << m_sep;
+            ofs << "(17)emittance_x(m)";  ofs << m_sep;
+            ofs << "(18)emittance_y(m)";  ofs << m_sep;
+            ofs << "(19)emittance_z(m)";  ofs << std::endl;
             /// close file
             ofs.close();
         }
