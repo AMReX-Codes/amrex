@@ -29,13 +29,6 @@ struct ParserWrapper
        return m_parser(x,y,z);
     }
 
-    AMREX_GPU_HOST_DEVICE
-    amrex::Real
-    getField (const WarpXParticleContainer::ParticleType& p, amrex::Real t=0.0) const noexcept
-    {
-        return m_parser(p.pos(0),p.pos(1),p.pos(2));
-    }
-
     GpuParser m_parser;
 };
 
