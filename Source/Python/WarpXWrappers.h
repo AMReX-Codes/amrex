@@ -95,9 +95,11 @@ extern "C" {
 
   int warpx_checkInt ();
   int warpx_plotInt ();
+  int warpx_openpmdInt ();
 
   void warpx_WriteCheckPointFile ();
   void warpx_WritePlotFile ();
+  void warpx_WriteOpenPMDFile ();
 
   int warpx_finestLevel ();
 

@@ -74,6 +74,9 @@ WarpX::InitData ()
         if (plot_int > 0)
             WritePlotFile();
 
+        if (openpmd_int > 0)
+            WriteOpenPMDFile();
+
         if (check_int > 0)
             WriteCheckPointFile();
 

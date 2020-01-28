@@ -66,8 +66,10 @@ class TimeStepper(object):
 
         max_time_reached = ((self.cur_time >= libwarpx.warpx_stopTime() - 1.e-6*dt) or (self.istep >= libwarpx.warpx_maxStep()))
 
-        if libwarpx.warpx_plotInt() > 0 and (self.istep+1)%libwarpx.warpx_plotInt() == 0 or max_time_reached:
+        if (libwarpx.warpx_plotInt() > 0 and (self.istep+1)%libwarpx.warpx_plotInt() == 0) or max_time_reached:
             libwarpx.warpx_WritePlotFile()
+        if (libwarpx.warpx_openpmdInt() > 0 and (self.istep+1)%libwarpx.warpx_openpmdInt() == 0) or max_time_reached:
+            libwarpx.warpx_WriteOpenPMDFile()
 
         if libwarpx.warpx_checkInt() > 0 and (self.istep+1)%libwarpx.warpx_plotInt() == 0 or max_time_reached:
             libwarpx.warpx_WriteCheckPointFile()
