@@ -8,6 +8,7 @@
 
 namespace amrex {
 
+#ifndef BL_NO_FORT
     //
     // Fill EB normals
     //
@@ -56,6 +57,7 @@ namespace amrex {
 
         normals.FillBoundary(geom.periodicity());
     }
+#endif
 
 #if (AMREX_SPACEDIM > 1)
     //
