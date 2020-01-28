@@ -4,10 +4,35 @@
 #include <AMReX_Gpu.H>
 #include <AMReX_IntVect.H>
 #include <AMReX_BLProfiler.H>
+#include <AMReX_BinIterator.H>
 
 namespace amrex
 {
 
+template <typename T>
+struct DenseBinIteratorFactory
+{
+    using index_type = unsigned int;
+        
+    DenseBinIteratorFactory (const Gpu::DeviceVector<index_type>& offsets, 
+                             const Gpu::DeviceVector<index_type>& permutation,
+                             const T* items)
+        : m_offsets_ptr(offsets.dataPtr()),
+          m_permutation_ptr(permutation.dataPtr()),
+          m_items(items)
+    {}
+    
+    AMREX_GPU_HOST_DEVICE
+    BinIterator<T> getBinIterator(const int bin_number) const noexcept
+    {
+        return BinIterator<T>(bin_number, m_offsets_ptr, m_permutation_ptr, m_items);
+    }
+    
+    const index_type* m_offsets_ptr;
+    const index_type* m_permutation_ptr;
+    const T* m_items;
+};
+    
 /**
  * \brief A container for storing items in a set of bins.
  * 
@@ -28,6 +53,7 @@ class DenseBins
 {
 public:
 
+    using BinIteratorFactory = DenseBinIteratorFactory<T>;
     using bin_type = IntVect;
     using index_type = unsigned int;
 
@@ -52,6 +78,8 @@ public:
     {
         BL_PROFILE("DenseBins<T>::build");
 
+        m_items = v;
+        
         m_cells.resize(nitems);
         m_perm.resize(nitems);
         
@@ -112,9 +140,17 @@ public:
 
     //! \brief returns const pointer to the offsets array
     const index_type* offsetsPtr () const noexcept { return m_offsets.dataPtr(); }
+
+    //! \brief returns a GPU-capable object that can create iterators over the items in a bin.
+    DenseBinIteratorFactory<T> getBinIteratorFactory() const noexcept
+    {
+        return DenseBinIteratorFactory<T>(m_offsets, m_perm, m_items);
+    }
     
 private:
 
+    const T* m_items;
+            
     Gpu::DeviceVector<index_type> m_cells;
     Gpu::DeviceVector<index_type> m_counts;
     Gpu::DeviceVector<index_type> m_offsets;

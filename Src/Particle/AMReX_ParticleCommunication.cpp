@@ -46,6 +46,10 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map)
 {
     BL_PROFILE("ParticleCopyPlan::buildMPIStart");
 
+    BL_PROFILE_VAR_NS("RedistributeMPI_resize", blp_resize);
+    BL_PROFILE_VAR_NS("RedistributeMPI_first", blp_first);
+    BL_PROFILE_VAR_NS("RedistributeMPI_second", blp_second);
+    
 #ifdef AMREX_USE_MPI
     const int NProcs = ParallelDescriptor::NProcs();
     const int MyProc = ParallelDescriptor::MyProc();
@@ -53,6 +57,8 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map)
 
     if (NProcs == 1) return;
 
+    BL_PROFILE_VAR_START(blp_resize);
+    
     m_Snds.resize(0);
     m_Snds.resize(NProcs, 0);
     
@@ -69,6 +75,10 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map)
     Gpu::copy(Gpu::deviceToHost, m_box_counts.begin(), m_box_counts.end(), box_counts.begin());
     std::map<int, Vector<int> > snd_data;
 
+    BL_PROFILE_VAR_STOP(blp_resize);
+
+    BL_PROFILE_VAR_START(blp_first);
+    
     m_NumSnds = 0;
     for (int i = 0; i < NProcs; ++i)
     {
@@ -91,8 +101,12 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map)
 	m_NumSnds += nbytes;
     }
 
+    BL_PROFILE_VAR_STOP(blp_first);
+    
     doHandShake(m_Snds, m_Rcvs);
 
+    BL_PROFILE_VAR_START(blp_second);
+    
     const int SeqNum = ParallelDescriptor::SeqNum();
     long tot_snds_this_proc = 0;
     long tot_rcvs_this_proc = 0;
@@ -165,6 +179,9 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map)
         
         ParallelDescriptor::Asend((char*) snd_data[i].data(), Cnt, Who, SeqNum);
     }
+
+    BL_PROFILE_VAR_STOP(blp_second);
+    
 #endif
 }
 
