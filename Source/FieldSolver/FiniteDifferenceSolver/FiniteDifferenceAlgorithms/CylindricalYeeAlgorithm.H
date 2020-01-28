@@ -26,12 +26,12 @@ struct CylindricalYeeAlgorithm {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     static amrex::Real UpwardDrr_over_r(
         amrex::Array4<amrex::Real> const& F,
-        amrex::Real const r, int const dr,
+        amrex::Real const r, amrex::Real const dr,
         amrex::Real const* coefs_r, int const n_coefs_r,
         int const i, int const j, int const k, int const comp ) {
 
         amrex::Real inv_dr = coefs_r[0];
-        return inv_dr*( (r+0.5*dr)*F(i+1,j,k,comp) - (r-0.5*dr)*F(i,j,k,comp) );
+        return 1./r * inv_dr*( (r+0.5*dr)*F(i+1,j,k,comp) - (r-0.5*dr)*F(i,j,k,comp) );
     };
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
