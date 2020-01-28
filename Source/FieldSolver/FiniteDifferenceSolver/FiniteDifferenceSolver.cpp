@@ -17,6 +17,7 @@ FiniteDifferenceSolver::FiniteDifferenceSolver (
 
     // Register the type of finite-difference algorithm
     m_fdtd_algo = fdtd_algo;
+    m_do_nodal = do_nodal;
 
     // Calculate coefficients of finite-difference stencil
 #ifdef WARPX_DIM_RZ
