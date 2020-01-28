@@ -8,6 +8,7 @@
 #include <WarpX_Complex.H>
 #include <WarpX_f.H>
 #include <MultiParticleContainer.H>
+#include <GetAndSetPosition.H>
 
 using namespace amrex;
 using namespace WarpXLaserProfiles;
@@ -567,8 +568,7 @@ LaserParticleContainer::calculate_laser_plane_coordinates (const WarpXParIter& p
                                                            Real * AMREX_RESTRICT const pplane_Xp,
                                                            Real * AMREX_RESTRICT const pplane_Yp)
 {
-    const auto& aos = pti.GetArrayOfStructs();
-    const ParticleType* AMREX_RESTRICT const pstruct = aos().dataPtr();
+    const auto get_position = GetPosition(pti);
 
     Real tmp_u_X_0 = u_X[0];
     Real tmp_u_X_2 = u_X[2];
@@ -585,19 +585,21 @@ LaserParticleContainer::calculate_laser_plane_coordinates (const WarpXParIter& p
     amrex::ParallelFor(
         np,
         [=] AMREX_GPU_DEVICE (int i) {
+            Real x, y, z;
+            get_position(i, x, y, z);
 #if (defined WARPX_DIM_3D) || (defined WARPX_DIM_RZ)
             pplane_Xp[i] =
-                tmp_u_X_0 * (pstruct[i].pos(0) - tmp_position_0) +
-                tmp_u_X_1 * (pstruct[i].pos(1) - tmp_position_1) +
-                tmp_u_X_2 * (pstruct[i].pos(2) - tmp_position_2);
+                tmp_u_X_0 * (x - tmp_position_0) +
+                tmp_u_X_1 * (y - tmp_position_1) +
+                tmp_u_X_2 * (z - tmp_position_2);
             pplane_Yp[i] =
-                tmp_u_Y_0 * (pstruct[i].pos(0) - tmp_position_0) +
-                tmp_u_Y_1 * (pstruct[i].pos(1) - tmp_position_1) +
-                tmp_u_Y_2 * (pstruct[i].pos(2) - tmp_position_2);
+                tmp_u_Y_0 * (x - tmp_position_0) +
+                tmp_u_Y_1 * (y - tmp_position_1) +
+                tmp_u_Y_2 * (z - tmp_position_2);
 #elif (AMREX_SPACEDIM == 2)
             pplane_Xp[i] =
-                tmp_u_X_0 * (pstruct[i].pos(0) - tmp_position_0) +
-                tmp_u_X_2 * (pstruct[i].pos(2) - tmp_position_2);
+                tmp_u_X_0 * (x - tmp_position_0) +
+                tmp_u_X_2 * (z - tmp_position_2);
             pplane_Yp[i] = 0.;
 #endif
         }
@@ -623,8 +625,9 @@ LaserParticleContainer::update_laser_particle(WarpXParIter& pti,
                                               Real const * AMREX_RESTRICT const amplitude,
                                               const Real dt)
 {
-    auto& aos = pti.GetArrayOfStructs();
-    ParticleType* AMREX_RESTRICT const pstruct = aos().dataPtr();
+    const auto get_position = GetPosition(pti);
+    auto       set_position = SetPosition(pti);
+    
     Real tmp_p_X_0 = p_X[0];
     Real tmp_p_X_1 = p_X[1];
     Real tmp_p_X_2 = p_X[2];
@@ -657,12 +660,16 @@ LaserParticleContainer::update_laser_particle(WarpXParIter& pti,
             puxp[i] = gamma * vx;
             puyp[i] = gamma * vy;
             puzp[i] = gamma * vz;
+            
             // Push the the particle positions
-            pstruct[i].pos(0) += vx * dt;
+            Real x, y, z;
+            get_position(i, x, y, z);
+            x += vx * dt;
 #if (defined WARPX_DIM_3D) || (defined WARPX_DIM_RZ)
-            pstruct[i].pos(1) += vy * dt;
+            y += vy * dt;
 #endif
-            pstruct[i].pos(2) += vz * dt;
+            z += vz * dt;
+            set_position(i, x, y, z);
         }
         );
 }
