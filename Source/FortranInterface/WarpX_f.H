@@ -24,7 +24,6 @@
 #define WRPX_INTERPOLATE_CIC             warpx_interpolate_cic_3d
 #define WRPX_INTERPOLATE_CIC_TWO_LEVELS  warpx_interpolate_cic_two_levels_3d
 #define WRPX_PUSH_LEAPFROG               warpx_push_leapfrog_3d
-#define WRPX_PUSH_LEAPFROG_POSITIONS     warpx_push_leapfrog_positions_3d
 
 #elif (AMREX_SPACEDIM == 2)
 
@@ -33,7 +32,6 @@
 #define WRPX_INTERPOLATE_CIC             warpx_interpolate_cic_2d
 #define WRPX_INTERPOLATE_CIC_TWO_LEVELS  warpx_interpolate_cic_two_levels_2d
 #define WRPX_PUSH_LEAPFROG               warpx_push_leapfrog_2d
-#define WRPX_PUSH_LEAPFROG_POSITIONS     warpx_push_leapfrog_positions_2d
 
 #endif
 
