@@ -185,6 +185,7 @@ public:
 };
 
 
+#ifndef BL_NO_FORT
 /**
 * \brief Bilinear interpolation on cell centered data.
 *
@@ -250,6 +251,7 @@ public:
                          int              actual_state,
                          RunOn            gpu_or_cpu) override;
 };
+#endif
 
 
 /**
@@ -324,6 +326,7 @@ protected:
 };
 
 
+#ifndef BL_NO_FORT
 /**
 * \brief Lin. cons. interp. on cc data with protection against under/over-shoots.
 *
@@ -426,8 +429,10 @@ public:
                           Vector<BCRec>&   bcr,
                           RunOn            gpu_or_cpu) override;
 };
+#endif
 
 
+#ifndef BL_NO_FORT
 /**
 * \brief Quadratic interpolation on cell centered data.
 *
@@ -503,6 +508,7 @@ private:
 
     bool  do_limited_slope;
 };
+#endif
 
 
 /**
@@ -570,6 +576,7 @@ public:
 };
 
 
+#ifndef BL_NO_FORT
 /**
 * \brief Conservative quartic interpolation on cell averaged data.
 *
@@ -637,18 +644,21 @@ public:
                          int              actual_state,
                          RunOn            gpu_or_cpu) override;
 };
-
+#endif
 
 
 //! CONSTRUCT A GLOBAL OBJECT OF EACH VERSION.
 extern PCInterp                  pc_interp;
 extern NodeBilinear              node_bilinear_interp;
-extern CellBilinear              cell_bilinear_interp;
-extern CellQuadratic             quadratic_interp;
 extern CellConservativeLinear    lincc_interp;
 extern CellConservativeLinear    cell_cons_interp;
+
+#ifndef BL_NO_FORT
+extern CellBilinear              cell_bilinear_interp;
+extern CellQuadratic             quadratic_interp;
 extern CellConservativeProtected protected_interp;
 extern CellConservativeQuartic   quartic_interp;
+#endif
 
 class InterpolaterBoxCoarsener
     : public BoxConverter
