@@ -77,7 +77,7 @@ struct CylindricalYeeAlgorithm {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     static amrex::Real DivideByR(
         amrex::Array4<amrex::Real> const& F,
-        amrex::Real const r, int const dr, int const m,
+        amrex::Real const r, amrex::Real const dr, int const m,
         int const i, int const j, int const k, int const comp) {
 
         if (r != 0) {
