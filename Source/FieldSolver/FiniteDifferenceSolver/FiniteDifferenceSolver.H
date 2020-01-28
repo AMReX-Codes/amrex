@@ -18,7 +18,7 @@ class FiniteDifferenceSolver
         FiniteDifferenceSolver (
             int const fdtd_algo,
             std::array<amrex::Real,3> cell_size,
-            int const do_nodal );
+            bool const do_nodal );
 
         void EvolveB ( VectorField& Bfield,
                        VectorField const& Efield,
@@ -26,7 +26,7 @@ class FiniteDifferenceSolver
     private:
 
         int m_fdtd_algo;
-        int m_do_nodal;
+        bool m_do_nodal;
 
 #ifdef WARPX_DIM_RZ
         amrex::Real m_dr, m_rmin;

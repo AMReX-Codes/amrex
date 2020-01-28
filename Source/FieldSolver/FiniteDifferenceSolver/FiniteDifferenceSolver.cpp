@@ -13,7 +13,7 @@
 FiniteDifferenceSolver::FiniteDifferenceSolver (
     int const fdtd_algo,
     std::array<amrex::Real,3> cell_size,
-    int do_nodal ) {
+    bool do_nodal ) {
 
     // Register the type of finite-difference algorithm
     m_fdtd_algo = fdtd_algo;
