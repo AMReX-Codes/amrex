@@ -627,7 +627,7 @@ LaserParticleContainer::update_laser_particle(WarpXParIter& pti,
 {
     const auto get_position = GetPosition(pti);
     auto       set_position = SetPosition(pti);
-    
+
     Real tmp_p_X_0 = p_X[0];
     Real tmp_p_X_1 = p_X[1];
     Real tmp_p_X_2 = p_X[2];
@@ -660,7 +660,7 @@ LaserParticleContainer::update_laser_particle(WarpXParIter& pti,
             puxp[i] = gamma * vx;
             puyp[i] = gamma * vy;
             puzp[i] = gamma * vz;
-            
+
             // Push the the particle positions
             Real x, y, z;
             get_position(i, x, y, z);

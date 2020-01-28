@@ -287,7 +287,7 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
     // (same for jx and jz)
 
     const auto get_position = GetPosition(pti, offset);
-    
+
     // Lower corner of tile box physical domain
     // Note that this includes guard cells since it is after tilebox.ngrow
     const Dim3 lo = lbound(tilebox);
@@ -735,7 +735,7 @@ WarpXParticleContainer::PushX (int lev, amrex::Real dt)
 
             const auto get_position = GetPosition(pti);
                   auto set_position = SetPosition(pti);
-                  
+
             // - momenta are stored as a struct of array, in `attribs`
             auto& attribs = pti.GetAttribs();
             ParticleReal* AMREX_RESTRICT ux = attribs[PIdx::ux].dataPtr();

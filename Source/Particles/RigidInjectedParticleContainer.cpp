@@ -88,14 +88,14 @@ RigidInjectedParticleContainer::RemapParticles()
 
                     const auto get_position = GetPosition(pti);
                           auto set_position = SetPosition(pti);
-                    
+
                     // Loop over particles
                     const long np = pti.numParticles();
                     for (int i=0 ; i < np ; i++) {
 
                         Real xp, yp, zp;
                         get_position(i, xp, yp, zp);
-                        
+
                         const Real gammapr = std::sqrt(1. + (uxp[i]*uxp[i] + uyp[i]*uyp[i] + uzp[i]*uzp[i])/csq);
                         const Real vzpr = uzp[i]/gammapr;
 
@@ -148,14 +148,14 @@ RigidInjectedParticleContainer::BoostandRemapParticles()
 
             const auto get_position = GetPosition(pti);
                   auto set_position = SetPosition(pti);
-            
+
             // Loop over particles
             const long np = pti.numParticles();
             for (int i=0 ; i < np ; i++) {
 
                 Real xp, yp, zp;
                 get_position(i, xp, yp, zp);
-                
+
                 const Real gamma_lab = std::sqrt(1. + (uxp[i]*uxp[i] + uyp[i]*uyp[i] + uzp[i]*uzp[i])/(PhysConst::c*PhysConst::c));
 
                 const Real vx_lab = uxp[i]/gamma_lab;
@@ -198,7 +198,7 @@ RigidInjectedParticleContainer::BoostandRemapParticles()
                     const Real vzpr = uzp[i]/gammapr;
                     zp = zpr - vzpr*tpr;
                 }
-                
+
                 set_position(i, xp, yp, zp);
             }
         }
@@ -219,8 +219,8 @@ RigidInjectedParticleContainer::PushPX (WarpXParIter& pti, Real dt, DtType a_dt_
     Gpu::ManagedDeviceVector<ParticleReal> xp_save, yp_save, zp_save;
     RealVector uxp_save, uyp_save, uzp_save;
 
-    auto& aos = pti.GetArrayOfStructs();
-    ParticleType* AMREX_RESTRICT const pstruct = aos().dataPtr();
+    const auto get_position = GetPosition(pti);
+          auto set_position = SetPosition(pti);
 
     ParticleReal* const AMREX_RESTRICT ux = uxp.dataPtr();
     ParticleReal* const AMREX_RESTRICT uy = uyp.dataPtr();
@@ -255,9 +255,11 @@ RigidInjectedParticleContainer::PushPX (WarpXParIter& pti, Real dt, DtType a_dt_
 
         amrex::ParallelFor( np,
                             [=] AMREX_GPU_DEVICE (long i) {
-                                xp_save_ptr[i] = pstruct[i].pos(0);
-                                yp_save_ptr[i] = pstruct[i].pos(1);
-                                zp_save_ptr[i] = pstruct[i].pos(2);
+                                Real xp, yp, zp;
+                                get_position(i, xp, yp, zp);
+                                xp_save_ptr[i] = xp;
+                                yp_save_ptr[i] = yp;
+                                zp_save_ptr[i] = zp;
                                 uxp_save_ptr[i] = ux[i];
                                 uyp_save_ptr[i] = uy[i];
                                 uzp_save_ptr[i] = uz[i];
@@ -272,17 +274,19 @@ RigidInjectedParticleContainer::PushPX (WarpXParIter& pti, Real dt, DtType a_dt_
         const Real vz_ave_boosted = vzbeam_ave_boosted;
         amrex::ParallelFor( pti.numParticles(),
             [=] AMREX_GPU_DEVICE (long i) {
-            const Real dtscale = dt - (z_plane_previous - pstruct[i].pos(2))/(vz_ave_boosted + v_boost);
-            if (0. < dtscale && dtscale < dt) {
-                Exp[i] *= dtscale;
-                Eyp[i] *= dtscale;
-                Ezp[i] *= dtscale;
-                Bxp[i] *= dtscale;
-                Byp[i] *= dtscale;
-                Bzp[i] *= dtscale;
-            }
-        }
-        );
+                                Real xp, yp, zp;
+                                get_position(i, xp, yp, zp);
+                                const Real dtscale = dt - (z_plane_previous - zp)/(vz_ave_boosted + v_boost);
+                                if (0. < dtscale && dtscale < dt) {
+                                    Exp[i] *= dtscale;
+                                    Eyp[i] *= dtscale;
+                                    Ezp[i] *= dtscale;
+                                    Bxp[i] *= dtscale;
+                                    Byp[i] *= dtscale;
+                                    Bzp[i] *= dtscale;
+                                }
+                            }
+            );
     }
 
     PhysicalParticleContainer::PushPX(pti, dt, a_dt_type);
@@ -304,19 +308,22 @@ RigidInjectedParticleContainer::PushPX (WarpXParIter& pti, Real dt, DtType a_dt_
         const Real inv_csq = 1./(PhysConst::c*PhysConst::c);
         amrex::ParallelFor( pti.numParticles(),
                             [=] AMREX_GPU_DEVICE (long i) {
-                                if (pstruct[i].pos(2) <= z_plane_lev) {
+                                Real xp, yp, zp;
+                                get_position(i, xp, yp, zp);
+                                if (zp <= z_plane_lev) {
                                     ux[i] = ux_save[i];
                                     uy[i] = uy_save[i];
                                     uz[i] = uz_save[i];
-                                    pstruct[i].pos(0) = x_save[i];
-                                    pstruct[i].pos(1) = y_save[i];
+                                    xp = x_save[i];
+                                    yp = y_save[i];
                                     if (rigid) {
-                                        pstruct[i].pos(2) = z_save[i] + dt*vz_ave_boosted;
+                                        zp = z_save[i] + dt*vz_ave_boosted;
                                     }
                                     else {
                                         const Real gi = 1./std::sqrt(1. + (ux[i]*ux[i] + uy[i]*uy[i] + uz[i]*uz[i])*inv_csq);
-                                        pstruct[i].pos(2) = z_save[i] + dt*uz[i]*gi;
+                                        zp = z_save[i] + dt*uz[i]*gi;
                                     }
+                                    set_position(i, xp, yp, zp);
                                 }
                             });
     }
@@ -415,9 +422,7 @@ RigidInjectedParticleContainer::PushP (int lev, Real dt,
 
             // This wraps the momentum advance so that inheritors can modify the call.
             // Extract pointers to the different particle quantities
-            const auto& aos = pti.GetArrayOfStructs();
-            const ParticleType* AMREX_RESTRICT const pstruct = aos().dataPtr();
-
+            const auto get_position = GetPosition(pti);
             ParticleReal* const AMREX_RESTRICT uxpp = uxp.dataPtr();
             ParticleReal* const AMREX_RESTRICT uypp = uyp.dataPtr();
             ParticleReal* const AMREX_RESTRICT uzpp = uzp.dataPtr();
@@ -484,14 +489,15 @@ RigidInjectedParticleContainer::PushP (int lev, Real dt,
             const ParticleReal zz = zinject_plane_levels[lev];
             amrex::ParallelFor( pti.numParticles(),
                                 [=] AMREX_GPU_DEVICE (long i) {
-                                    if (pstruct[i].pos(2) <= zz) {
+                                    ParticleReal xp, yp, zp;
+                                    get_position(i, xp, yp, zp);
+                                    if (zp <= zz) {
                                         uxpp[i] = ux_save[i];
                                         uypp[i] = uy_save[i];
                                         uzpp[i] = uz_save[i];
                                     }
                                 }
-                                );
-
+                );
         }
     }
 }

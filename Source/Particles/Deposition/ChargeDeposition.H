@@ -57,7 +57,7 @@ void doChargeDepositionShapeN(const GetPosition& get_position,
 
             amrex::Real xp, yp, zp;
             get_position(ip, xp, yp, zp);
-            
+
             // --- Compute shape factors
             // x direction
             // Get particle position in grid coordinates

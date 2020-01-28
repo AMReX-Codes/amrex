@@ -1746,7 +1746,7 @@ PhysicalParticleContainer::PushPX (WarpXParIter& pti, Real dt, DtType a_dt_type)
                 Real x, y, z;
                 get_position(i, x, y, z);
                 UpdatePosition(x, y, z, ux[i], uy[i], uz[i], dt );
-                set_position(i, x, y, z);                
+                set_position(i, x, y, z);
             }
         );
     } else {
@@ -1934,7 +1934,7 @@ void PhysicalParticleContainer::copy_attribs (WarpXParIter& pti)
     ParticleReal* AMREX_RESTRICT uzpold = tmp_particle_data[lev][index][TmpIdx::uzold].dataPtr();
 
     const auto get_position = GetPosition(pti);
-    
+
     ParallelFor( np,
                  [=] AMREX_GPU_DEVICE (long i) {
                      Real x, y, z;
@@ -2213,7 +2213,7 @@ PhysicalParticleContainer::FieldGather (WarpXParIter& pti,
     box.grow(ngE);
 
     const auto get_position = GetPosition(pti, offset);
-    
+
     // Lower corner of tile box physical domain
     const std::array<Real, 3>& xyzmin = WarpX::LowerCorner(box, gather_lev);
 

@@ -90,7 +90,7 @@ void doDepositionShapeN(const GetPosition& get_position,
 
             amrex::Real xp, yp, zp;
             get_position(ip, xp, yp, zp);
-            
+
             const amrex::Real vx  = uxp[ip]*gaminv;
             const amrex::Real vy  = uyp[ip]*gaminv;
             const amrex::Real vz  = uzp[ip]*gaminv;
@@ -313,7 +313,7 @@ void doEsirkepovDepositionShapeN (const GetPosition& get_position,
 
             Real xp, yp, zp;
             get_position(ip, xp, yp, zp);
-            
+
             Real const wqx = wq*invdtdx;
 #if (defined WARPX_DIM_3D)
             Real const wqy = wq*invdtdy;

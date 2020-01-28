@@ -74,7 +74,7 @@ PhotonParticleContainer::PushPX(WarpXParIter& pti, Real dt, DtType a_dt_type)
 
     const auto get_position = GetPosition(pti);
           auto set_position = SetPosition(pti);
-    
+
     amrex::ParallelFor(
         pti.numParticles(),
         [=] AMREX_GPU_DEVICE (long i) {

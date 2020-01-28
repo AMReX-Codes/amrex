@@ -9,7 +9,7 @@ struct GetPosition
 {
     using PType = WarpXParticleContainer::ParticleType;
     using RType = amrex::ParticleReal;
-    
+
     const PType* AMREX_RESTRICT m_structs;
 #if (defined WARPX_DIM_RZ)
     const RType* m_theta;
@@ -30,7 +30,7 @@ struct GetPosition
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void operator() (const int i, RType& x, RType& y, RType& z) const noexcept
-    {        
+    {
 #ifdef WARPX_DIM_RZ
         RType r = m_structs[i].pos(0);
         x = r*std::cos(m_theta[i]);
@@ -43,8 +43,8 @@ struct GetPosition
 #else
         x = m_structs[i].pos(0);
         y = m_snan;
-        z = m_structs[i].pos(2);        
-#endif        
+        z = m_structs[i].pos(2);
+#endif
     }
 };
 
@@ -66,7 +66,7 @@ struct SetPosition
         m_theta = soa.GetRealData(PIdx::theta).dataPtr() + a_offset;
 #endif
     }
-    
+
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void operator() (const int i, RType x, RType y, RType z) const noexcept
     {
