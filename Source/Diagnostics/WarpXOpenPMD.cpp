@@ -93,9 +93,9 @@ WarpXOpenPMDPlot::WarpXOpenPMDPlot(bool oneFilePerTS,
 {
   // pick first available backend if default is chosen
   if( m_OpenPMDFileType == "default" )
-#if openPMD_HAVE_ADIOS1==1
+#if openPMD_HAVE_ADIOS2==1
     m_OpenPMDFileType = "bp";
-#elif openPMD_HAVE_ADIOS2==1
+#elif openPMD_HAVE_ADIOS1==1
     m_OpenPMDFileType = "bp";
 #elif openPMD_HAVE_HDF5==1
     m_OpenPMDFileType = "h5";
@@ -384,6 +384,30 @@ WarpXOpenPMDPlot::SetupRealProperties(openPMD::ParticleSpecies& currSpecies,
       auto& particleVarComp = currSpecies[record_name][component_name];
       particleVarComp.resetDataset(particlesLineup);
     }
+
+  std::set< std::string > addedRecords; // add meta-data per record only once
+  for (auto idx=0; idx<m_NumSoARealAttributes; idx++) {
+    auto ii = m_NumAoSRealAttributes + idx;
+    if (write_real_comp[ii]) {
+      // handle scalar and non-scalar records by name
+      std::string record_name, component_name;
+      std::tie(record_name, component_name) = detail::name2openPMD(real_comp_names[ii]);
+      auto& currRecord = currSpecies[record_name];
+      //auto& currRecordComp = currRecord[component_name];
+
+      // meta data for ED-PIC extension
+      bool newRecord = false;
+      std::tie(std::ignore, newRecord) = addedRecords.insert(record_name);
+      if( newRecord ) {
+    currRecord.setAttribute( "macroWeighted", 0u );
+    if( record_name == "momentum" )
+      currRecord.setAttribute( "weightingPower", 1.0 );
+    else
+          currRecord.setAttribute( "weightingPower", 0.0 );
+        currRecord.setUnitDimension( detail::getUnitDimension(record_name) );
+      }
+    }
+  }
 }
 
 void
@@ -430,7 +454,6 @@ WarpXOpenPMDPlot::SaveRealProperty(WarpXParIter& pti,
   }
 
   {
-    std::set< std::string > addedRecords; // add meta-data per record only once
     for (auto idx=0; idx<m_NumSoARealAttributes; idx++) {
       auto ii = m_NumAoSRealAttributes + idx;
       if (write_real_comp[ii]) {
@@ -439,18 +462,6 @@ WarpXOpenPMDPlot::SaveRealProperty(WarpXParIter& pti,
           std::tie(record_name, component_name) = detail::name2openPMD(real_comp_names[ii]);
           auto& currRecord = currSpecies[record_name];
           auto& currRecordComp = currRecord[component_name];
-
-          // meta data for ED-PIC extension
-          bool newRecord = false;
-          std::tie(std::ignore, newRecord) = addedRecords.insert(record_name);
-          if( newRecord ) {
-              currRecord.setAttribute( "macroWeighted", 0u );
-              if( record_name == "momentum" )
-                  currRecord.setAttribute( "weightingPower", 1.0 );
-              else
-                  currRecord.setAttribute( "weightingPower", 0.0 );
-              currRecord.setUnitDimension( detail::getUnitDimension(record_name) );
-          }
 
           currRecordComp.storeChunk(openPMD::shareRaw(soa.GetRealData(idx)),
               {offset}, {static_cast<unsigned long long>(numParticleOnTile)});
