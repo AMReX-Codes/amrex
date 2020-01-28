@@ -43,7 +43,7 @@ struct GetPosition
 #else
         x = m_structs[i].pos(0);
         y = m_snan;
-        z = m_structs[i].pos(2);
+        z = m_structs[i].pos(1);
 #endif
     }
 };
@@ -80,7 +80,7 @@ struct SetPosition
         m_structs[i].pos(2) = z;
 #else
         m_structs[i].pos(0) = x;
-        m_structs[i].pos(2) = z;
+        m_structs[i].pos(1) = z;
 #endif
     }
 };
