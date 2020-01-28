@@ -1,5 +1,12 @@
 #! /usr/bin/env python
 
+# Copyright 2019 David Grote, Maxence Thevenet
+#
+# This file is part of WarpX.
+#
+# License: BSD-3-Clause-LBNL
+
+
 # This is a script that analyses the simulation results from
 # the script `inputs.multi.rz.rt`. This simulates a RZ periodic plasma wave.
 # The electric field in the simulation is given (in theory) by:

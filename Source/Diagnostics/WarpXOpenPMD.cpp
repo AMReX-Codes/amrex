@@ -1,3 +1,9 @@
+/* Copyright 2019-2020 Axel Huebl, Junmin Gu
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #include "WarpXOpenPMD.H"
 #include "WarpXAlgorithmSelection.H"
 #include "FieldIO.H"  // for getReversedVec
@@ -90,12 +96,26 @@ WarpXOpenPMDPlot::WarpXOpenPMDPlot(bool oneFilePerTS,
    m_OneFilePerTS(oneFilePerTS),
    m_OpenPMDFileType(std::move(openPMDFileType)),
    m_fieldPMLdirections(std::move(fieldPMLdirections))
-{}
+{
+  // pick first available backend if default is chosen
+  if( m_OpenPMDFileType == "default" )
+#if openPMD_HAVE_ADIOS2==1
+    m_OpenPMDFileType = "bp";
+#elif openPMD_HAVE_ADIOS1==1
+    m_OpenPMDFileType = "bp";
+#elif openPMD_HAVE_HDF5==1
+    m_OpenPMDFileType = "h5";
+#else
+    m_OpenPMDFileType = "json";
+#endif
+}
 
 WarpXOpenPMDPlot::~WarpXOpenPMDPlot()
 {
-  if (nullptr != m_Series) {
+  if( m_Series )
+  {
     m_Series->flush();
+    m_Series.reset( nullptr );
   }
 }
 
@@ -131,31 +151,26 @@ void WarpXOpenPMDPlot::SetStep(int ts)
 void
 WarpXOpenPMDPlot::Init(openPMD::AccessType accessType)
 {
-  if (!m_OneFilePerTS) {// one file
-    if (nullptr != m_Series) {
-      return;
+    // either for the next ts file,
+    // or init a single file for all ts
+    std::string filename;
+    GetFileName(filename);
+
+    if( amrex::ParallelDescriptor::NProcs() > 1 )
+    {
+        m_Series = std::make_unique<openPMD::Series>(
+            filename, accessType,
+            amrex::ParallelDescriptor::Communicator()
+        );
+        m_MPISize = amrex::ParallelDescriptor::NProcs();
+        m_MPIRank = amrex::ParallelDescriptor::MyProc();
     }
-  }
-
-  // either for the next ts file,
-  // or init a single file for all ts
-  std::string filename;
-  GetFileName(filename);
-
-  if (m_Series != nullptr) {
-    m_Series->flush();
-    m_Series = nullptr;
-  }
-
-  if (amrex::ParallelDescriptor::NProcs() > 1) {
-    m_Series = std::make_unique<openPMD::Series>(filename,
-                   accessType,
-                   amrex::ParallelDescriptor::Communicator());
-    m_MPISize = amrex::ParallelDescriptor::NProcs();
-    m_MPIRank = amrex::ParallelDescriptor::MyProc();
-  }
     else
-    m_Series = std::make_unique<openPMD::Series>(filename, accessType);
+    {
+        m_Series = std::make_unique<openPMD::Series>(filename, accessType);
+        m_MPISize = 1;
+        m_MPIRank = 1;
+    }
 
     // input file / simulation setup author
     if( WarpX::authors.size() > 0u )
@@ -166,8 +181,12 @@ WarpXOpenPMDPlot::Init(openPMD::AccessType accessType)
     uint32_t const openPMD_ED_PIC = 1u;
     m_Series->setOpenPMDextension( openPMD_ED_PIC );
     // meta info
+#if (OPENPMDAPI_VERSION_MAJOR>=0) && (OPENPMDAPI_VERSION_MINOR>=11)
+    m_Series->setSoftware( "WarpX", WarpX::Version() );
+#else
     m_Series->setSoftware( "WarpX" );
-    m_Series->setSoftwareVersion( WarpX::Version() ) ;
+    m_Series->setSoftwareVersion( WarpX::Version() );
+#endif
 }
 
 
@@ -248,8 +267,7 @@ WarpXOpenPMDPlot::SavePlotFile (const std::unique_ptr<WarpXParticleContainer>& p
                     const amrex::Vector<std::string>& real_comp_names,
                     const amrex::Vector<std::string>&  int_comp_names) const
 {
-  if ( nullptr == m_Series)
-    return;
+  AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_Series != nullptr, "openPMD series must be initialized");
 
   WarpXParticleCounter counter(pc);
 
@@ -296,50 +314,48 @@ WarpXOpenPMDPlot::SavePlotFile (const std::unique_ptr<WarpXParticleContainer>& p
   SetupPos(pc, currSpecies, counter.GetTotalNumParticles());
   SetupRealProperties(currSpecies, write_real_comp, real_comp_names, counter.GetTotalNumParticles());
 
-  // forces the files created by all processors! this is the key to resolve RZ storage issue!!
+  // open files from all processors, in case some will not contribute below
   m_Series->flush();
+
   for (auto currentLevel = 0; currentLevel <= pc->finestLevel(); currentLevel++)
     {
-      uint64_t const numParticles = static_cast<uint64_t>( counter.m_ParticleSizeAtRank[currentLevel] );
       uint64_t offset = static_cast<uint64_t>( counter.m_ParticleOffsetAtRank[currentLevel] );
-
-      if (0u == numParticles)
-          return;
-
-      // pc->NumIntComp() & NumRealComp() are protected,
-      // from WarpXParIter template class definition, we know that
-      // soa num real attributes = PIdx::nattribs, and num int in soa is 0
 
       for (WarpXParIter pti(*pc, currentLevel); pti.isValid(); ++pti) {
          auto const numParticleOnTile = pti.numParticles();
          uint64_t const numParticleOnTile64 = static_cast<uint64_t>( numParticleOnTile );
 
          // get position and particle ID from aos
-         // note: this implementation iterates the AoS 4x but saves memory... iterating once could be beneficial, too
+         // note: this implementation iterates the AoS 4x...
+         // if we flush late as we do now, we can also copy out the data in one go
          const auto& aos = pti.GetArrayOfStructs();  // size =  numParticlesOnTile
          {
            // Save positions
            std::vector<std::string> axisNames={"x", "y", "z"};
            for (auto currDim = 0; currDim < AMREX_SPACEDIM; currDim++) {
-                std::vector<amrex::ParticleReal> curr(numParticleOnTile, 0.);
+                std::shared_ptr< amrex::ParticleReal > curr(
+                    new amrex::ParticleReal[numParticleOnTile],
+                    [](amrex::ParticleReal const *p){ delete[] p; }
+                );
                 for (auto i=0; i<numParticleOnTile; i++) {
-                     curr[i] = aos[i].m_rdata.pos[currDim];
+                     curr.get()[i] = aos[i].m_rdata.pos[currDim];
                 }
                 currSpecies["position"][axisNames[currDim]].storeChunk(curr, {offset}, {numParticleOnTile64});
-                m_Series->flush();
            }
 
            // save particle ID after converting it to a globally unique ID
-           std::vector<uint64_t> ids(numParticleOnTile, 0.);
+           std::shared_ptr< uint64_t > ids(
+               new uint64_t[numParticleOnTile],
+               [](uint64_t const *p){ delete[] p; }
+           );
            for (auto i=0; i<numParticleOnTile; i++) {
                detail::GlobalID const nextID = { aos[i].m_idata.id, aos[i].m_idata.cpu };
-               ids[i] = nextID.global_id;
+               ids.get()[i] = nextID.global_id;
            }
            auto const scalar = openPMD::RecordComponent::SCALAR;
            currSpecies["id"][scalar].storeChunk(ids, {offset}, {numParticleOnTile64});
-           m_Series->flush();
         }
-         //  save properties
+         //  save "extra" particle properties in AoS and SoA
          SaveRealProperty(pti,
              currSpecies,
              offset,
@@ -348,6 +364,7 @@ WarpXOpenPMDPlot::SavePlotFile (const std::unique_ptr<WarpXParticleContainer>& p
          offset += numParticleOnTile64;
       }
     }
+    m_Series->flush();
 }
 
 void
@@ -369,9 +386,32 @@ WarpXOpenPMDPlot::SetupRealProperties(openPMD::ParticleSpecies& currSpecies,
       std::string record_name, component_name;
       std::tie(record_name, component_name) = detail::name2openPMD(real_comp_names[i]);
 
-      auto& particleVarComp = currSpecies[record_name][component_name];
+      auto particleVarComp = currSpecies[record_name][component_name];
       particleVarComp.resetDataset(particlesLineup);
     }
+
+  std::set< std::string > addedRecords; // add meta-data per record only once
+  for (auto idx=0; idx<m_NumSoARealAttributes; idx++) {
+    auto ii = m_NumAoSRealAttributes + idx;
+    if (write_real_comp[ii]) {
+      // handle scalar and non-scalar records by name
+      std::string record_name, component_name;
+      std::tie(record_name, component_name) = detail::name2openPMD(real_comp_names[ii]);
+      auto currRecord = currSpecies[record_name];
+
+      // meta data for ED-PIC extension
+      bool newRecord = false;
+      std::tie(std::ignore, newRecord) = addedRecords.insert(record_name);
+      if( newRecord ) {
+        currRecord.setUnitDimension( detail::getUnitDimension(record_name) );
+        currRecord.setAttribute( "macroWeighted", 0u );
+        if( record_name == "momentum" )
+            currRecord.setAttribute( "weightingPower", 1.0 );
+        else
+            currRecord.setAttribute( "weightingPower", 0.0 );
+      }
+    }
+  }
 }
 
 void
@@ -390,6 +430,7 @@ WarpXOpenPMDPlot::SaveRealProperty(WarpXParIter& pti,
       ++numOutputReal;
 
   auto const numParticleOnTile = pti.numParticles();
+  uint64_t const numParticleOnTile64 = static_cast<uint64_t>( numParticleOnTile );
   auto const& aos = pti.GetArrayOfStructs();  // size =  numParticlesOnTile
   auto const& soa = pti.GetStructOfArrays();
 
@@ -400,25 +441,24 @@ WarpXOpenPMDPlot::SaveRealProperty(WarpXParIter& pti,
           // handle scalar and non-scalar records by name
           std::string record_name, component_name;
           std::tie(record_name, component_name) = detail::name2openPMD(real_comp_names[idx]);
-          auto& currRecord = currSpecies[record_name];
-          auto& currRecordComp = currRecord[component_name];
+          auto currRecord = currSpecies[record_name];
+          auto currRecordComp = currRecord[component_name];
 
-          amrex::ParticleReal *d =
-              static_cast<amrex::ParticleReal*>( malloc(sizeof(amrex::ParticleReal) *  numParticleOnTile) );
+          std::shared_ptr< amrex::ParticleReal > d(
+              new amrex::ParticleReal[numParticleOnTile],
+              [](amrex::ParticleReal const *p){ delete[] p; }
+          );
 
           for( auto kk=0; kk<numParticleOnTile; kk++ )
-               d[kk] = aos[kk].m_rdata.arr[AMREX_SPACEDIM+idx];
+               d.get()[kk] = aos[kk].m_rdata.arr[AMREX_SPACEDIM+idx];
 
-          std::shared_ptr<amrex::ParticleReal> data(d, free);
-          currRecordComp.storeChunk(data,
-               {offset}, {static_cast<unsigned long long>(numParticleOnTile)});
-          m_Series->flush();
+          currRecordComp.storeChunk(d,
+               {offset}, {numParticleOnTile64});
       }
     }
   }
 
   {
-    std::set< std::string > addedRecords; // add meta-data per record only once
     for (auto idx=0; idx<m_NumSoARealAttributes; idx++) {
       auto ii = m_NumAoSRealAttributes + idx;
       if (write_real_comp[ii]) {
@@ -428,23 +468,10 @@ WarpXOpenPMDPlot::SaveRealProperty(WarpXParIter& pti,
           auto& currRecord = currSpecies[record_name];
           auto& currRecordComp = currRecord[component_name];
 
-          // meta data for ED-PIC extension
-          bool newRecord = false;
-          std::tie(std::ignore, newRecord) = addedRecords.insert(record_name);
-          if( newRecord ) {
-              currRecord.setAttribute( "macroWeighted", 0u );
-              if( record_name == "momentum" )
-                  currRecord.setAttribute( "weightingPower", 1.0 );
-              else
-                  currRecord.setAttribute( "weightingPower", 0.0 );
-              currRecord.setUnitDimension( detail::getUnitDimension(record_name) );
-          }
-
           currRecordComp.storeChunk(openPMD::shareRaw(soa.GetRealData(idx)),
-              {offset}, {static_cast<unsigned long long>(numParticleOnTile)});
+              {offset}, {numParticleOnTile64});
       }
     }
-    m_Series->flush();
   }
 }
 
@@ -505,8 +532,7 @@ WarpXOpenPMDPlot::WriteOpenPMDFields( //const std::string& filename,
   //This is AMReX's tiny profiler. Possibly will apply it later
   BL_PROFILE("WarpXOpenPMDPlot::WriteOpenPMDFields()");
 
-  if ( nullptr == m_Series)
-    return;
+  AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_Series != nullptr, "openPMD series must be initialized");
 
   int const ncomp = mf.nComp();
 
@@ -692,13 +718,14 @@ WarpXParticleCounter::WarpXParticleCounter(const std::unique_ptr<WarpXParticleCo
 
 // get the offset in the overall particle id collection
 //
+// note: this is a MPI-collective operation
+//
 // input: num of particles  of from each   processor
 //
 // output:
 //     offset within <all> the particles in the comm
 //     sum of all particles in the comm
 //
-
 void
 WarpXParticleCounter::GetParticleOffsetOfProcessor(const long& numParticles,
                            unsigned long long& offset,

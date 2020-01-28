@@ -1,3 +1,13 @@
+/* Copyright 2019-2020 Andrew Myers, Ann Almgren, Axel Huebl
+ * David Grote, Jean-Luc Vay, Luca Fedeli
+ * Mathieu Lobet, Maxence Thevenet, Remi Lehe
+ * Revathi Jambunathan, Weiqun Zhang, Yinjian Zhao
+ *
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #include <MultiParticleContainer.H>
 
 #include <AMReX_Vector.H>

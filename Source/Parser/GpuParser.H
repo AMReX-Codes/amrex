@@ -1,3 +1,10 @@
+/* Copyright 2019-2020 Maxence Thevenet, Revathi Jambunathan, Weiqun Zhang
+ *
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #ifndef WARPX_GPU_PARSER_H_
 #define WARPX_GPU_PARSER_H_
 

@@ -1,5 +1,12 @@
 #!/bin/bash
 
+# Copyright 2020 Maxence Thevenet
+#
+# This file is part of WarpX.
+#
+# License: BSD-3-Clause-LBNL
+
+
 # This script compares runs WarpX with (i) default guard cell exchanges and
 # (ii) exchanging all guard cells, and check that they match to a certain
 # tolerance level (typically 2.e-15). For a large number of configurations

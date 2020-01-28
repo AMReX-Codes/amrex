@@ -1,3 +1,10 @@
+# Copyright 2018-2019 Andrew Myers, Luca Fedeli, Maxence Thevenet
+# Remi Lehe
+#
+# This file is part of WarpX.
+#
+# License: BSD-3-Clause-LBNL
+
 # This script modifies `WarpX-test.ini` (which is used for nightly builds)
 # and creates the file `travis-test.ini` (which is used for continous
 # integration on TravisCI (https://travis-ci.org/)

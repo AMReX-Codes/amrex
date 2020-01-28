@@ -1,3 +1,9 @@
+/* Copyright 2019 Revathi Jambunathan
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #ifndef WARPX_SliceDiagnostic_H_
 #define WARPX_SliceDiagnostic_H_
 

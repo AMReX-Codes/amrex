@@ -1,5 +1,12 @@
 #!/usr/bin/env bash
 
+# Copyright 2020 Maxence Thevenet
+#
+# This file is part of WarpX.
+#
+# License: BSD-3-Clause-LBNL
+
+
 # This script updates release version number in all source files.
 #
 # updates occurences like "version = '??.??'" where ??.?? is the version number

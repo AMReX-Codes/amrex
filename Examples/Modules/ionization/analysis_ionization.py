@@ -1,5 +1,12 @@
 #! /usr/bin/env python
 
+# Copyright 2019-2020 Luca Fedeli, Maxence Thevenet
+#
+# This file is part of WarpX.
+#
+# License: BSD-3-Clause-LBNL
+
+
 """
 This script tests the result of the ionization module in WarpX.
 
