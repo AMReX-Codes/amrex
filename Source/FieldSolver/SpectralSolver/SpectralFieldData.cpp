@@ -1,3 +1,10 @@
+/* Copyright 2019 Maxence Thevenet, Remi Lehe, Revathi Jambunathan
+ *
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #include <SpectralFieldData.H>
 
 using namespace amrex;

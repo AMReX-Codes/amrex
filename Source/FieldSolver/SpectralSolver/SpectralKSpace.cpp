@@ -1,3 +1,10 @@
+/* Copyright 2019-2020 Andrew Myers, Maxence Thevenet, Remi Lehe
+ * Revathi Jambunathan
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #include <WarpXConst.H>
 #include <SpectralKSpace.H>
 #include <cmath>

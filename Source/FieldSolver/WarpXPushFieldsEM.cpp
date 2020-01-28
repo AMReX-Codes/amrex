@@ -1,3 +1,11 @@
+/* Copyright 2019 Andrew Myers, Aurore Blelly, Axel Huebl
+ * David Grote, Maxence Thevenet, Remi Lehe
+ * Revathi Jambunathan, Weiqun Zhang
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 
 #include <cmath>
 #include <limits>

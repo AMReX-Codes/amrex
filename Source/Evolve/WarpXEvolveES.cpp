@@ -1,3 +1,11 @@
+/* Copyright 2019 Andrew Myers, Axel Huebl, David Bizzozero
+ * David Grote, Maxence Thevenet, Remi Lehe
+ *
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #include <WarpX.H>
 #include <WarpX_f.H>
 

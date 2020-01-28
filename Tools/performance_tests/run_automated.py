@@ -1,3 +1,10 @@
+# Copyright 2018-2019 Axel Huebl, Luca Fedeli, Maxence Thevenet
+#
+#
+# This file is part of WarpX.
+#
+# License: BSD-3-Clause-LBNL
+
 import os, sys, shutil, datetime, git
 import argparse, re, time, copy
 import pandas as pd

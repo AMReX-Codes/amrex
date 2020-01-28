@@ -1,4 +1,13 @@
 #!/bin/bash
+
+# Copyright 2018-2020 Axel Huebl, David Grote, Edoardo Zoni
+# Luca Fedeli, Maxence Thevenet, Remi Lehe
+#
+#
+# This file is part of WarpX.
+#
+# License: BSD-3-Clause-LBNL
+
 # This script runs some of WarpX's standard regression tests, but
 # without comparing the output to previously run simulations.
 # This checks that:

@@ -1,3 +1,10 @@
+/* Copyright 2019 Axel Huebl, Maxence Thevenet, Weiqun Zhang
+ *
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 
 #include <WarpX.H>
 #include <AMReX_BoxIterator.H>

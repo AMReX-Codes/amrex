@@ -1,3 +1,12 @@
+/* Copyright 2019-2020 Andrew Myers, David Grote, Glenn Richardson
+ * Ligia Diana Amorim, Luca Fedeli, Maxence Thevenet
+ * Remi Lehe, Revathi Jambunathan, Weiqun Zhang
+ * Yinjian Zhao
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #include <limits>
 #include <sstream>
 #include <algorithm>

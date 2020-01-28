@@ -1,3 +1,9 @@
+/* Copyright 2019 Weiqun Zhang
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #ifndef WARPX_PARSER_H_
 #define WARPX_PARSER_H_
 

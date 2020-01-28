@@ -1,3 +1,10 @@
+/* Copyright 2019 David Grote, Maxence Thevenet, Remi Lehe
+ * Weiqun Zhang
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #ifndef WARPX_PARTICLES_PUSHER_UPDATEMOMENTUM_VAY_H_
 #define WARPX_PARTICLES_PUSHER_UPDATEMOMENTUM_VAY_H_
 

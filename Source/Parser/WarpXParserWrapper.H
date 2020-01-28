@@ -1,3 +1,9 @@
+/* Copyright 2020 Revathi Jambunathan
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #ifndef WARPX_PARSER_WRAPPER_H_
 #define WARPX_PARSER_WRAPPER_H_
 

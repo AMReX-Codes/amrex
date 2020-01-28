@@ -1,3 +1,10 @@
+/* Copyright 2019 Maxence Thevenet, Remi Lehe, Weiqun Zhang
+ *
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #ifndef WARPX_SUM_GUARD_CELLS_H_
 #define WARPX_SUM_GUARD_CELLS_H_
 

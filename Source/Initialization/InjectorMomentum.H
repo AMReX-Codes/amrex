@@ -1,3 +1,10 @@
+/* Copyright 2019 Axel Huebl, Cameron Yang, Maxence Thevenet
+ * Weiqun Zhang
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #ifndef INJECTOR_MOMENTUM_H_
 #define INJECTOR_MOMENTUM_H_
 

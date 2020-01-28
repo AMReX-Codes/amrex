@@ -1,3 +1,10 @@
+/* Copyright 2019 Andrew Myers, Maxence Thevenet, Weiqun Zhang
+ *
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #include <Filter.H>
 
 #ifndef WARPX_BILIN_FILTER_H_

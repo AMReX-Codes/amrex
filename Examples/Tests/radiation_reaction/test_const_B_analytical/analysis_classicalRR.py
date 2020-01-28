@@ -1,5 +1,13 @@
 #! /usr/bin/env python
 
+# Copyright 2019 Luca Fedeli, Maxence Thevenet, Remi Lehe
+#
+#
+# This file is part of WarpX.
+#
+# License: BSD-3-Clause-LBNL
+
+
 # This script contains few simple tests for the radiation reaction pusher
 # It initializes an electron or a positron with normalized momentum in different
 # directions, propagating in a static magnetic field (along [2/7,3/7,6/7]).
