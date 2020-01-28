@@ -227,10 +227,9 @@ WarpX::WarpX ()
 #ifdef WARPX_USE_PSATD
     spectral_solver_fp.resize(nlevs_max);
     spectral_solver_cp.resize(nlevs_max);
-#else
+#endif
     fdtd_solver_fp.resize(nlevs_max);
     fdtd_solver_cp.resize(nlevs_max);
-#endif
 #ifdef WARPX_USE_PSATD_HYBRID
     Efield_fp_fft.resize(nlevs_max);
     Bfield_fp_fft.resize(nlevs_max);
