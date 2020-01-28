@@ -21,7 +21,7 @@ struct GetPosition
         const auto& aos = a_pti.GetArrayOfStructs();
         m_structs = aos().dataPtr();
 #if (defined WARPX_DIM_RZ)
-        const auto& soa = a_pti.GetArrayOfStructs();
+        const auto& soa = a_pti.GetStructOfArrays();
         m_theta = soa.GetRealData(PIdx::theta).dataPtr();
 #elif (AMREX_SPACEDIM == 2)
         static constexpr RType m_snan = std::numeric_limits<RType>::quiet_NaN();
@@ -62,7 +62,7 @@ struct SetPosition
         auto& aos = a_pti.GetArrayOfStructs();
         m_structs = aos().dataPtr();
 #if (defined WARPX_DIM_RZ)
-        auto& soa = a_pti.GetArrayOfStructs();
+        auto& soa = a_pti.GetStructOfArrays();
         m_theta = soa.GetRealData(PIdx::theta).dataPtr();
 #endif
     }
