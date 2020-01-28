@@ -6,7 +6,6 @@
 #
 # License: BSD-3-Clause-LBNL
 
-
 # This file loops over all WarpX source files, uses git to get the list of
 # contributors, and writes a copyright header at the beginning of each file
 # with the list of contributors.
