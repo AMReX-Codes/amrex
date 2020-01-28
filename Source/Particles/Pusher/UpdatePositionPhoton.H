@@ -12,7 +12,7 @@
  */
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void UpdatePositionPhoton(
-    WarpXParticleContainer::ParticleType& p,
+    amrex::ParticleReal& x, amrex::ParticleReal& y, amrex::ParticleReal& z,
     const amrex::ParticleReal ux, const amrex::ParticleReal uy, const amrex::ParticleReal uz,
     const amrex::Real dt )
 {
@@ -20,12 +20,11 @@ void UpdatePositionPhoton(
     const amrex::Real c_over_umod = PhysConst::c/std::sqrt(ux*ux + uy*uy + uz*uz);
 
     // Update positions over one time step
-    p.pos(0) += ux * c_over_umod * dt;
+    x += ux * c_over_umod * dt;
 #if (defined WARPX_DIM_3D) || (defined WARPX_DIM_RZ) // RZ pushes particles in 3D
-    p.pos(1) += uy * c_over_umod * dt;
+    y += uy * c_over_umod * dt;
 #endif
-    p.pos(2) += uz * c_over_umod * dt;
-
+    z += uz * c_over_umod * dt;
 }
 
 #endif // WARPX_PARTICLES_PUSHER_UPDATEPOSITION_H_

@@ -286,9 +286,8 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
     // CPU, tiling: deposit into local_jx
     // (same for jx and jz)
 
-    const auto& aos = pti.GetArrayOfStructs();
-    const ParticleType* AMREX_RESTRICT pstruct = aos().dataPtr() + offset;
-
+    const auto get_position = GetPosition(pti, offset);
+    
     // Lower corner of tile box physical domain
     // Note that this includes guard cells since it is after tilebox.ngrow
     const Dim3 lo = lbound(tilebox);
@@ -298,19 +297,19 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
     if (WarpX::current_deposition_algo == CurrentDepositionAlgo::Esirkepov) {
         if        (WarpX::nox == 1){
             doEsirkepovDepositionShapeN<1>(
-                pstruct, wp.dataPtr() + offset, uxp.dataPtr() + offset,
+                get_position, wp.dataPtr() + offset, uxp.dataPtr() + offset,
                 uyp.dataPtr() + offset, uzp.dataPtr() + offset, ion_lev,
                 jx_arr, jy_arr, jz_arr, np_to_depose, dt, dx, xyzmin, lo, q,
                 WarpX::n_rz_azimuthal_modes);
         } else if (WarpX::nox == 2){
             doEsirkepovDepositionShapeN<2>(
-                pstruct, wp.dataPtr() + offset, uxp.dataPtr() + offset,
+                get_position, wp.dataPtr() + offset, uxp.dataPtr() + offset,
                 uyp.dataPtr() + offset, uzp.dataPtr() + offset, ion_lev,
                 jx_arr, jy_arr, jz_arr, np_to_depose, dt, dx, xyzmin, lo, q,
                 WarpX::n_rz_azimuthal_modes);
         } else if (WarpX::nox == 3){
             doEsirkepovDepositionShapeN<3>(
-                pstruct, wp.dataPtr() + offset, uxp.dataPtr() + offset,
+                get_position, wp.dataPtr() + offset, uxp.dataPtr() + offset,
                 uyp.dataPtr() + offset, uzp.dataPtr() + offset, ion_lev,
                 jx_arr, jy_arr, jz_arr, np_to_depose, dt, dx, xyzmin, lo, q,
                 WarpX::n_rz_azimuthal_modes);
@@ -318,19 +317,19 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
     } else {
         if        (WarpX::nox == 1){
             doDepositionShapeN<1>(
-                pstruct, wp.dataPtr() + offset, uxp.dataPtr() + offset,
+                get_position, wp.dataPtr() + offset, uxp.dataPtr() + offset,
                 uyp.dataPtr() + offset, uzp.dataPtr() + offset, ion_lev,
                 jx_fab, jy_fab, jz_fab, np_to_depose, dt, dx,
                 xyzmin, lo, q);
         } else if (WarpX::nox == 2){
             doDepositionShapeN<2>(
-                pstruct, wp.dataPtr() + offset, uxp.dataPtr() + offset,
+                get_position, wp.dataPtr() + offset, uxp.dataPtr() + offset,
                 uyp.dataPtr() + offset, uzp.dataPtr() + offset, ion_lev,
                 jx_fab, jy_fab, jz_fab, np_to_depose, dt, dx,
                 xyzmin, lo, q);
         } else if (WarpX::nox == 3){
             doDepositionShapeN<3>(
-                pstruct, wp.dataPtr() + offset, uxp.dataPtr() + offset,
+                get_position, wp.dataPtr() + offset, uxp.dataPtr() + offset,
                 uyp.dataPtr() + offset, uzp.dataPtr() + offset, ion_lev,
                 jx_fab, jy_fab, jz_fab, np_to_depose, dt, dx,
                 xyzmin, lo, q);
@@ -424,8 +423,7 @@ WarpXParticleContainer::DepositCharge (WarpXParIter& pti, RealVector& wp,
     // GPU, no tiling: deposit directly in rho
     // CPU, tiling: deposit into local_rho
 
-    const auto& aos = pti.GetArrayOfStructs();
-    const ParticleType* AMREX_RESTRICT pstruct = aos().dataPtr() + offset;
+    const auto get_position = GetPosition(pti, offset);
 
     // Lower corner of tile box physical domain
     // Note that this includes guard cells since it is after tilebox.ngrow
@@ -435,13 +433,13 @@ WarpXParticleContainer::DepositCharge (WarpXParIter& pti, RealVector& wp,
 
     BL_PROFILE_VAR_START(blp_ppc_chd);
     if        (WarpX::nox == 1){
-        doChargeDepositionShapeN<1>(pstruct, wp.dataPtr()+offset, ion_lev,
+        doChargeDepositionShapeN<1>(get_position, wp.dataPtr()+offset, ion_lev,
                                     rho_arr, np_to_depose, dx, xyzmin, lo, q);
     } else if (WarpX::nox == 2){
-        doChargeDepositionShapeN<2>(pstruct, wp.dataPtr()+offset, ion_lev,
+        doChargeDepositionShapeN<2>(get_position, wp.dataPtr()+offset, ion_lev,
                                     rho_arr, np_to_depose, dx, xyzmin, lo, q);
     } else if (WarpX::nox == 3){
-        doChargeDepositionShapeN<3>(pstruct, wp.dataPtr()+offset, ion_lev,
+        doChargeDepositionShapeN<3>(get_position, wp.dataPtr()+offset, ion_lev,
                                     rho_arr, np_to_depose, dx, xyzmin, lo, q);
     }
     BL_PROFILE_VAR_STOP(blp_ppc_chd);
@@ -734,28 +732,33 @@ WarpXParticleContainer::PushX (int lev, amrex::Real dt)
             //
             // Particle Push
             //
-            // Extract pointers to particle position and momenta, for this particle tile
-            // - positions are stored as an array of struct, in `ParticleType`
-            ParticleType * AMREX_RESTRICT pstructs = &(pti.GetArrayOfStructs()[0]);
+
+            const auto get_position = GetPosition(pti);
+                  auto set_position = SetPosition(pti);
+                  
             // - momenta are stored as a struct of array, in `attribs`
             auto& attribs = pti.GetAttribs();
             ParticleReal* AMREX_RESTRICT ux = attribs[PIdx::ux].dataPtr();
             ParticleReal* AMREX_RESTRICT uy = attribs[PIdx::uy].dataPtr();
             ParticleReal* AMREX_RESTRICT uz = attribs[PIdx::uz].dataPtr();
 #ifdef WARPX_DIM_RZ
+            auto& aos = pti.GetArrayOfStructs();
+            ParticleType* AMREX_RESTRICT const pstruct = aos().dataPtr();
             ParticleReal* AMREX_RESTRICT theta = attribs[PIdx::theta].dataPtr();
 #endif
             // Loop over the particles and update their position
             amrex::ParallelFor( pti.numParticles(),
                 [=] AMREX_GPU_DEVICE (long i) {
-                    ParticleType& p = pstructs[i]; // Particle object that gets updated
+                                    Real x, y, z;
 #ifndef WARPX_DIM_RZ
-                    UpdatePosition( p, ux[i], uy[i], uz[i], dt);
+                                    get_position(i, x, y, z);
+                                    UpdatePosition(x, y, z, ux[i], uy[i], uz[i], dt);
+                                    set_position(i, x, y, z);
 #else
                     // For WARPX_DIM_RZ, the particles are still pushed in 3D Cartesian
-                    ParticleReal x, y, z; // Temporary variables
+                    ParticleType& p = pstruct[i]; // Particle object that gets updated
                     GetCartesianPositionFromCylindrical( x, y, z, p, theta[i] );
-                    UpdatePosition( p, ux[i], uy[i], uz[i], dt);
+                    UpdatePosition( x, y, z, ux[i], uy[i], uz[i], dt);
                     SetCylindricalPositionFromCartesian( p, theta[i], x, y, z );
 #endif
                 }

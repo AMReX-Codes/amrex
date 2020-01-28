@@ -16,13 +16,13 @@ struct GetPosition
 #elif (AMREX_SPACEDIM == 2)
     static constexpr RType m_snan = std::numeric_limits<RType>::quiet_NaN();
 #endif
-    GetPosition (const WarpXParIter& a_pti) noexcept
+    GetPosition (const WarpXParIter& a_pti, int a_offset = 0) noexcept
     {
         const auto& aos = a_pti.GetArrayOfStructs();
-        m_structs = aos().dataPtr();
+        m_structs = aos().dataPtr() + a_offset;
 #if (defined WARPX_DIM_RZ)
         const auto& soa = a_pti.GetStructOfArrays();
-        m_theta = soa.GetRealData(PIdx::theta).dataPtr();
+        m_theta = soa.GetRealData(PIdx::theta).dataPtr() + a_offset;
 #elif (AMREX_SPACEDIM == 2)
         static constexpr RType m_snan = std::numeric_limits<RType>::quiet_NaN();
 #endif
@@ -57,13 +57,13 @@ struct SetPosition
 #if (defined WARPX_DIM_RZ)
     RType* AMREX_RESTRICT m_theta;
 #endif
-    SetPosition (WarpXParIter& a_pti) noexcept
+    SetPosition (WarpXParIter& a_pti, int a_offset = 0) noexcept
     {
         auto& aos = a_pti.GetArrayOfStructs();
-        m_structs = aos().dataPtr();
+        m_structs = aos().dataPtr() + a_offset;
 #if (defined WARPX_DIM_RZ)
         auto& soa = a_pti.GetStructOfArrays();
-        m_theta = soa.GetRealData(PIdx::theta).dataPtr();
+        m_theta = soa.GetRealData(PIdx::theta).dataPtr() + a_offset;
 #endif
     }
     

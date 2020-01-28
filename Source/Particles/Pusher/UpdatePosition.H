@@ -8,7 +8,7 @@
 /** \brief Push the particle's positions over one timestep,
  *    given the value of its momenta `ux`, `uy`, `uz` */
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void UpdatePosition(WarpXParticleContainer::ParticleType& p,
+void UpdatePosition(amrex::ParticleReal& x, amrex::ParticleReal& y, amrex::ParticleReal& z,
                     const amrex::ParticleReal ux, const amrex::ParticleReal uy, const amrex::ParticleReal uz,
                     const amrex::Real dt )
 {
@@ -18,11 +18,11 @@ void UpdatePosition(WarpXParticleContainer::ParticleType& p,
     // Compute inverse Lorentz factor
     const amrex::Real inv_gamma = 1./std::sqrt(1. + (ux*ux + uy*uy + uz*uz)*inv_c2);
     // Update positions over one time step
-    p.pos(0) += ux * inv_gamma * dt;
+    x += ux * inv_gamma * dt;
 #if (AMREX_SPACEDIM == 3) || (defined WARPX_DIM_RZ) // RZ pushes particles in 3D
-    p.pos(1) += uy * inv_gamma * dt;
+    y += uy * inv_gamma * dt;
 #endif
-    p.pos(2) += uz * inv_gamma * dt;
+    z += uz * inv_gamma * dt;
 }
 
 #endif // WARPX_PARTICLES_PUSHER_UPDATEPOSITION_H_

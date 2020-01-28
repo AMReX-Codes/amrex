@@ -366,11 +366,6 @@ RigidInjectedParticleContainer::PushP (int lev, Real dt,
 #pragma omp parallel
 #endif
     {
-#ifdef _OPENMP
-        int thread_num = omp_get_thread_num();
-#else
-        int thread_num = 0;
-#endif
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
         {
             const Box& box = pti.validbox();
@@ -401,7 +396,7 @@ RigidInjectedParticleContainer::PushP (int lev, Real dt,
             FieldGather(pti, Exp, Eyp, Ezp, Bxp, Byp, Bzp,
                         &exfab, &eyfab, &ezfab, &bxfab, &byfab, &bzfab,
                         Ex.nGrow(), e_is_nodal,
-                        0, np, thread_num, lev, lev);
+                        0, np, lev, lev);
 
             // Save the position and momenta, making copies
             auto uxp_save = uxp;

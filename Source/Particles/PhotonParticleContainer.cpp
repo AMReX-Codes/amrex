@@ -14,7 +14,7 @@
 
 // Import low-level single-particle kernels
 #include <UpdatePositionPhoton.H>
-
+#include <GetAndSetPosition.H>
 
 using namespace amrex;
 
@@ -72,14 +72,19 @@ PhotonParticleContainer::PushPX(WarpXParIter& pti, Real dt, DtType a_dt_type)
 
     if (WarpX::do_back_transformed_diagnostics && do_back_transformed_diagnostics)
     {
-        copy_attribs(pti, pstruct);
+        copy_attribs(pti);
     }
 
+    const auto get_position = GetPosition(pti);
+          auto set_position = SetPosition(pti);
+    
     amrex::ParallelFor(
         pti.numParticles(),
         [=] AMREX_GPU_DEVICE (long i) {
-
-            UpdatePositionPhoton( pstruct[i], ux[i], uy[i], uz[i], dt );
+            Real x, y, z;
+            get_position(i, x, y, z);
+            UpdatePositionPhoton( x, y, z, ux[i], uy[i], uz[i], dt );
+            set_position(i, x, y, z);
         }
     );
 }

@@ -172,7 +172,7 @@ public:
                         RealVector& uzp,
                         RealVector& wp );
 
-    void copy_attribs (WarpXParIter& pti, const ParticleType* pstruct);
+    void copy_attribs (WarpXParIter& pti);
 
     virtual void PostRestart () final {}
 
