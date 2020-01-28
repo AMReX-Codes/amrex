@@ -57,9 +57,6 @@ PhotonParticleContainer::PushPX(WarpXParIter& pti, Real dt, DtType a_dt_type)
     auto& attribs = pti.GetAttribs();
 
     // Extract pointers to the different particle quantities
-    auto& aos = pti.GetArrayOfStructs();
-    ParticleType* AMREX_RESTRICT const pstruct = aos().dataPtr();
-
     ParticleReal* const AMREX_RESTRICT ux = attribs[PIdx::ux].dataPtr();
     ParticleReal* const AMREX_RESTRICT uy = attribs[PIdx::uy].dataPtr();
     ParticleReal* const AMREX_RESTRICT uz = attribs[PIdx::uz].dataPtr();

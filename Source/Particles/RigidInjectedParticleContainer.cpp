@@ -15,6 +15,7 @@
 #include <UpdateMomentumVay.H>
 #include <UpdateMomentumBorisWithRadiationReaction.H>
 #include <UpdateMomentumHigueraCary.H>
+#include <GetAndSetPosition.H>
 
 using namespace amrex;
 
@@ -85,25 +86,30 @@ RigidInjectedParticleContainer::RemapParticles()
                     auto& uyp = attribs[PIdx::uy];
                     auto& uzp = attribs[PIdx::uz];
 
-                    auto& aos = pti.GetArrayOfStructs();
-                    ParticleType* AMREX_RESTRICT const pstruct = aos().dataPtr();
-
+                    const auto get_position = GetPosition(pti);
+                          auto set_position = SetPosition(pti);
+                    
                     // Loop over particles
                     const long np = pti.numParticles();
                     for (int i=0 ; i < np ; i++) {
 
+                        Real xp, yp, zp;
+                        get_position(i, xp, yp, zp);
+                        
                         const Real gammapr = std::sqrt(1. + (uxp[i]*uxp[i] + uyp[i]*uyp[i] + uzp[i]*uzp[i])/csq);
                         const Real vzpr = uzp[i]/gammapr;
 
                         // Back out the value of z_lab
-                        const Real z_lab = (pstruct[i].pos(2) + uz_boost*t_lab + WarpX::gamma_boost*t_lab*vzpr)/(WarpX::gamma_boost + uz_boost*vzpr/csq);
+                        const Real z_lab = (zp + uz_boost*t_lab + WarpX::gamma_boost*t_lab*vzpr)/(WarpX::gamma_boost + uz_boost*vzpr/csq);
 
                         // Time of the particle in the boosted frame given its position in the lab frame at t=0.
                         const Real tpr = WarpX::gamma_boost*t_lab - uz_boost*z_lab/csq;
 
                         // Adjust the position, taking away its motion from its own velocity and adding
                         // the motion from the average velocity
-                        pstruct[i].pos(2) += tpr*vzpr - tpr*vzbeam_ave_boosted;
+                        zp += tpr*vzpr - tpr*vzbeam_ave_boosted;
+
+                        set_position(i, xp, yp, zp);
 
                     }
                 }
@@ -140,13 +146,16 @@ RigidInjectedParticleContainer::BoostandRemapParticles()
             auto& uyp = attribs[PIdx::uy];
             auto& uzp = attribs[PIdx::uz];
 
-            auto& aos = pti.GetArrayOfStructs();
-            ParticleType* AMREX_RESTRICT const pstruct = aos().dataPtr();
-
+            const auto get_position = GetPosition(pti);
+                  auto set_position = SetPosition(pti);
+            
             // Loop over particles
             const long np = pti.numParticles();
             for (int i=0 ; i < np ; i++) {
 
+                Real xp, yp, zp;
+                get_position(i, xp, yp, zp);
+                
                 const Real gamma_lab = std::sqrt(1. + (uxp[i]*uxp[i] + uyp[i]*uyp[i] + uzp[i]*uzp[i])/(PhysConst::c*PhysConst::c));
 
                 const Real vx_lab = uxp[i]/gamma_lab;
@@ -156,24 +165,24 @@ RigidInjectedParticleContainer::BoostandRemapParticles()
                 // t0_lab is the time in the lab frame that the particles reaches z=0
                 // The location and time (z=0, t=0) is a synchronization point between the
                 // lab and boosted frames.
-                const Real t0_lab = -pstruct[i].pos(2)/vz_lab;
+                const Real t0_lab = -zp/vz_lab;
 
                 if (!projected) {
-                    pstruct[i].pos(0) += t0_lab*vx_lab;
-                    pstruct[i].pos(1) += t0_lab*vy_lab;
+                    xp += t0_lab*vx_lab;
+                    yp += t0_lab*vy_lab;
                 }
                 if (focused) {
                     // Correct for focusing effect from shift from z=0 to zinject
                     const Real tfocus = -zinject_plane*WarpX::gamma_boost/vz_lab;
-                    pstruct[i].pos(0) -= tfocus*vx_lab;
-                    pstruct[i].pos(1) -= tfocus*vy_lab;
+                    xp -= tfocus*vx_lab;
+                    yp -= tfocus*vy_lab;
                 }
 
                 // Time of the particle in the boosted frame given its position in the lab frame at t=0.
-                const Real tpr = -WarpX::gamma_boost*WarpX::beta_boost*pstruct[i].pos(2)/PhysConst::c;
+                const Real tpr = -WarpX::gamma_boost*WarpX::beta_boost*zp/PhysConst::c;
 
                 // Position of the particle in the boosted frame given its position in the lab frame at t=0.
-                const Real zpr = WarpX::gamma_boost*pstruct[i].pos(2);
+                const Real zpr = WarpX::gamma_boost*zp;
 
                 // Momentum of the particle in the boosted frame (assuming that it is fixed).
                 uzp[i] = WarpX::gamma_boost*(uzp[i] - WarpX::beta_boost*PhysConst::c*gamma_lab);
@@ -181,15 +190,16 @@ RigidInjectedParticleContainer::BoostandRemapParticles()
                 // Put the particle at the location in the boosted frame at boost frame t=0,
                 if (rigid_advance) {
                     // with the particle moving at the average velocity
-                    pstruct[i].pos(2) = zpr - vzbeam_ave_boosted*tpr;
+                    zp = zpr - vzbeam_ave_boosted*tpr;
                 }
                 else {
                     // with the particle moving with its own velocity
                     const Real gammapr = std::sqrt(1. + (uxp[i]*uxp[i] + uyp[i]*uyp[i] + uzp[i]*uzp[i])/(PhysConst::c*PhysConst::c));
                     const Real vzpr = uzp[i]/gammapr;
-                    pstruct[i].pos(2) = zpr - vzpr*tpr;
+                    zp = zpr - vzpr*tpr;
                 }
-
+                
+                set_position(i, xp, yp, zp);
             }
         }
     }
