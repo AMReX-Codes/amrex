@@ -39,6 +39,10 @@ class FiniteDifferenceSolver
         amrex::Gpu::ManagedVector<amrex::Real> stencil_coefs_z;
 #endif
 
+    public:
+        // The member functions below contain extended __device__ lambda.
+        // In order to compile with nvcc, they need to be public.
+
 #ifdef WARPX_DIM_RZ
         template< typename T_Algo >
         void EvolveBCylindrical ( VectorField& Bfield,
