@@ -13,8 +13,10 @@ namespace amrex {
                                               int div_comp, int ncomp, const Vector<Geometry>& geom);
 #endif
 
+#ifndef BL_NO_FORT
     void FillEBNormals(MultiFab & normals, const EBFArrayBoxFactory & eb_factory,
                        const Geometry & geom);
+#endif
 }
 
 #endif
