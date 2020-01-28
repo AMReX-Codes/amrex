@@ -5,6 +5,7 @@
 #else
     #include "FiniteDifferenceAlgorithms/YeeAlgorithm.H"
     #include "FiniteDifferenceAlgorithms/CKCAlgorithm.H"
+    #include "FiniteDifferenceAlgorithms/NodalAlgorithm.H"
 #endif
 #include <AMReX_Gpu.H>
 
@@ -20,7 +21,9 @@ void FiniteDifferenceSolver::EvolveB ( VectorField& Bfield,
     if (m_fdtd_algo == MaxwellSolverAlgo::Yee){
         EvolveBCylindrical <CylindricalYeeAlgorithm> ( Bfield, Efield, dt );
 #else
-    if (m_fdtd_algo == MaxwellSolverAlgo::Yee){
+    if (m_do_nodal) {
+        EvolveBCartesian <NodalAlgorithm> ( Bfield, Efield, dt );
+    } else if (m_fdtd_algo == MaxwellSolverAlgo::Yee) {
         EvolveBCartesian <YeeAlgorithm> ( Bfield, Efield, dt );
     } else if (m_fdtd_algo == MaxwellSolverAlgo::CKC) {
         EvolveBCartesian <CKCAlgorithm> ( Bfield, Efield, dt );

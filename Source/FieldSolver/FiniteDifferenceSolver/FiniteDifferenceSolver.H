@@ -1,13 +1,6 @@
 #ifndef WARPX_FINITE_DIFFERENCE_SOLVER_H_
 #define WARPX_FINITE_DIFFERENCE_SOLVER_H_
 
-#include "WarpXAlgorithmSelection.H"
-#ifdef WARPX_DIM_RZ
-    #include "FiniteDifferenceAlgorithms/CylindricalYeeAlgorithm.H"
-#else
-    #include "FiniteDifferenceAlgorithms/YeeAlgorithm.H"
-    #include "FiniteDifferenceAlgorithms/CKCAlgorithm.H"
-#endif
 #include <AMReX_MultiFab.H>
 
 /**
@@ -22,8 +15,10 @@ class FiniteDifferenceSolver
         using VectorField = std::array< std::unique_ptr<amrex::MultiFab>, 3 >;
 
         // Constructor
-        FiniteDifferenceSolver ( int const fdtd_algo,
-            std::array<amrex::Real,3> cell_size );
+        FiniteDifferenceSolver (
+            int const fdtd_algo,
+            std::array<amrex::Real,3> cell_size,
+            int const do_nodal );
 
         void EvolveB ( VectorField& Bfield,
                        VectorField const& Efield,
@@ -31,6 +26,7 @@ class FiniteDifferenceSolver
     private:
 
         int m_fdtd_algo;
+        int m_do_nodal;
 
 #ifdef WARPX_DIM_RZ
         amrex::Real m_dr, m_rmin;

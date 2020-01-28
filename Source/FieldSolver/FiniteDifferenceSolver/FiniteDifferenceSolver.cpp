@@ -1,9 +1,19 @@
+#include "WarpXAlgorithmSelection.H"
+#ifdef WARPX_DIM_RZ
+    #include "FiniteDifferenceAlgorithms/CylindricalYeeAlgorithm.H"
+#else
+    #include "FiniteDifferenceAlgorithms/YeeAlgorithm.H"
+    #include "FiniteDifferenceAlgorithms/CKCAlgorithm.H"
+    #include "FiniteDifferenceAlgorithms/NodalAlgorithm.H"
+#endif
 #include "FiniteDifferenceSolver.H"
 #include "WarpX.H"
 
 // Constructor
-FiniteDifferenceSolver::FiniteDifferenceSolver ( int const fdtd_algo,
-    std::array<amrex::Real,3> cell_size ) {
+FiniteDifferenceSolver::FiniteDifferenceSolver (
+    int const fdtd_algo,
+    std::array<amrex::Real,3> cell_size,
+    int do_nodal ) {
 
     // Register the type of finite-difference algorithm
     m_fdtd_algo = fdtd_algo;
@@ -13,11 +23,14 @@ FiniteDifferenceSolver::FiniteDifferenceSolver ( int const fdtd_algo,
     m_dr = cell_size[0];
     m_nmodes = WarpX::GetInstance().n_rz_azimuthal_modes;
     m_rmin = WarpX::GetInstance().Geom(0).ProbLo(0);
-    if (fdtd_algo == MaxwellSolverAlgo::Yee){
+    if (fdtd_algo == MaxwellSolverAlgo::Yee) {
         CylindricalYeeAlgorithm::InitializeStencilCoefficients( cell_size,
             stencil_coefs_r, stencil_coefs_z );
 #else
-    if (fdtd_algo == MaxwellSolverAlgo::Yee){
+    if (do_nodal) {
+        NodalAlgorithm::InitializeStencilCoefficients( cell_size,
+            stencil_coefs_x, stencil_coefs_y, stencil_coefs_z );
+    } else if (fdtd_algo == MaxwellSolverAlgo::Yee) {
         YeeAlgorithm::InitializeStencilCoefficients( cell_size,
             stencil_coefs_x, stencil_coefs_y, stencil_coefs_z );
     } else if (fdtd_algo == MaxwellSolverAlgo::CKC) {
