@@ -193,6 +193,7 @@ target_sources( amrex
    AMReX_MultiFabUtil_C.H
    AMReX_FilCC_${DIM}D_C.H
    AMReX_FilCC_C.H
+   AMReX_FilCC_C.cpp
    AMReX_filcc_mod.F90
    AMReX_omp_mod.F90
    AMReX_acc_mod.F90
