@@ -1,3 +1,10 @@
+/* Copyright 2020 Remi Lehe
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
+
 #ifndef WARPX_FINITE_DIFFERENCE_ALGORITHM_CKC_H_
 #define WARPX_FINITE_DIFFERENCE_ALGORITHM_CKC_H_
 

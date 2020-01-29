@@ -1,3 +1,10 @@
+/* Copyright 2020 Remi Lehe
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
+
 #include "WarpXAlgorithmSelection.H"
 #include "FiniteDifferenceSolver.H"
 #ifdef WARPX_DIM_RZ
