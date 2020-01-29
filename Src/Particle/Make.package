@@ -9,7 +9,7 @@ C$(AMREX_PARTICLE)_headers += AMReX_Particle.H AMReX_ParticleInit.H AMReX_Partic
 C$(AMREX_PARTICLE)_headers += AMReX_ParIter.H AMReX_ParticleMPIUtil.H AMReX_StructOfArrays.H AMReX_ArrayOfStructs.H AMReX_ParticleTile.H
 C$(AMREX_PARTICLE)_headers += AMReX_ParticleUtil.H AMReX_NeighborList.H AMReX_ParticleBufferMap.H AMReX_ParticleCommunication.H AMReX_ParticleReduce.H AMReX_ParticleLocator.H
 C$(AMREX_PARTICLE)_headers += AMReX_NeighborParticlesCPUImpl.H AMReX_NeighborParticlesGPUImpl.H
-C$(AMREX_PARTICLE)_headers += AMReX_Particle_mod_K.H AMReX_TracerParticle_mod_K.H AMReX_ParticleMesh.H AMReX_ParticleIO.H AMReX_DenseBins.H AMReX_ParticleTransformation.H
+C$(AMREX_PARTICLE)_headers += AMReX_Particle_mod_K.H AMReX_TracerParticle_mod_K.H AMReX_ParticleMesh.H AMReX_ParticleIO.H AMReX_DenseBins.H AMReX_ParticleTransformation.H AMReX_SparseBins.H AMReX_BinIterator.H
 
 F90$(AMREX_PARTICLE)_sources += AMReX_KDTree_$(DIM)d.F90
 
