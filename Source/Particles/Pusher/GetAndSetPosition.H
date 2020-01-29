@@ -26,7 +26,7 @@ struct GetParticlePosition
 #endif
     }
 
-    /** \brief Extract the particle's cartesian position coordinates 
+    /** \brief Extract the particle's cartesian position coordinates
      *         and store them in the variables `x`, `y`, `z` */
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void operator() (const int i, RType& x, RType& y, RType& z) const noexcept
@@ -67,7 +67,7 @@ struct SetParticlePosition
 #endif
     }
 
-    /** \brief Extract the particle's cartesian position coordinates 
+    /** \brief Extract the particle's cartesian position coordinates
      *         and store them in the variables `x`, `y`, `z` */
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void operator() (const int i, RType x, RType y, RType z) const noexcept
