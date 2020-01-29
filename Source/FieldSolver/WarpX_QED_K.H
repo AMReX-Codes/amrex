@@ -68,7 +68,7 @@ const amrex::Real dyi = 1./dy;
     amrex::Real Mny [3] = {0.,0.,0.};
     amrex::Real Mpz [3] = {0.,0.,0.};
     amrex::Real Mnz [3] = {0.,0.,0.};
-	
+    
     calc_M(Mpx, tmpEx(j+1,k,l), tmpEy(j+1,k,l), tmpEz(j+1,k,l),
                 Bx(j+1,k,l), By(j+1,k,l), Bz(j+1,k,l), xi, c2);
     calc_M(Mnx, tmpEx(j-1,k,l), tmpEy(j-1,k,l), tmpEz(j-1,k,l),
