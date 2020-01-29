@@ -167,13 +167,13 @@ const amrex::Real dyi = 1./dy;
     amrex::Real Mpz [3] = {0.,0.,0.};
     amrex::Real Mnz [3] = {0.,0.,0.};
 
-    M_calc(Mpx, tmpEx(j+1,k,0), tmpEy(j+1,k,0), tmpEz(j+1,k,0),
+    calc_M(Mpx, tmpEx(j+1,k,0), tmpEy(j+1,k,0), tmpEz(j+1,k,0),
                 Bx(j+1,k,0), By(j+1,k,0), Bz(j+1,k,0), xi, c2);
-    M_calc(Mnx, tmpEx(j-1,k,0), tmpEy(j-1,k,0), tmpEz(j-1,k,0),
+    calc_M(Mnx, tmpEx(j-1,k,0), tmpEy(j-1,k,0), tmpEz(j-1,k,0),
                 Bx(j-1,k,0), By(j-1,k,0), Bz(j-1,k,0), xi, c2);
-    M_calc(Mpz, tmpEx(j,k+1,0), tmpEy(j,k+1,0), tmpEz(j,k+1,0),
+    calc_M(Mpz, tmpEx(j,k+1,0), tmpEy(j,k+1,0), tmpEz(j,k+1,0),
                 Bx(j,k+1,0), By(j,k+1,0), Bz(j,k+1,0), xi, c2);
-    M_calc(Mnz, tmpEx(j,k-1,0), tmpEy(j,k-1,0), tmpEz(j,k-1,0),
+    calc_M(Mnz, tmpEx(j,k-1,0), tmpEy(j,k-1,0), tmpEz(j,k-1,0),
                 Bx(j,k-1,0), By(j,k-1,0), Bz(j,k-1,0), xi, c2);
 
     const amrex::Real VxM[3] = {
