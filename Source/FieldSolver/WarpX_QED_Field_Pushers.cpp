@@ -125,12 +125,12 @@ WarpX::Hybrid_QED_Push (int lev, PatchType patch_type, Real a_dt)
         FArrayBox tmpEz_fab(gez,1);
         Elixir tmp_eli = tmp_fab.elixir();
         auto const& tmpEz = tmpEz_fab.array();
-        
+
         AMREX_PARALLEL_FOR_4D(
             gex, 1, i, j, k, n,
             { tmpEx(i,j,k,n) = Exfab(i,j,k,n); }
         );
-        
+
         AMREX_PARALLEL_FOR_4D(
             gey, 1, i, j, k, n,
             { tmpEy(i,j,k,n) = Eyfab(i,j,k,n); }
@@ -140,7 +140,7 @@ WarpX::Hybrid_QED_Push (int lev, PatchType patch_type, Real a_dt)
             gez, 1, i, j, k, n,
             { tmpEz(i,j,k,n) = Ezfab(i,j,k,n); }
         );
-        
+
         amrex::ParallelFor(
             tbx,
             [=] AMREX_GPU_DEVICE (int j, int k, int l)
