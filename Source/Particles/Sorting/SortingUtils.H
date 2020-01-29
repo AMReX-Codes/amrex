@@ -1,3 +1,10 @@
+/* Copyright 2019-2020 Andrew Myers, Maxence Thevenet, Remi Lehe
+ * Weiqun Zhang
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #ifndef WARPX_PARTICLES_SORTING_SORTINGUTILS_H_
 #define WARPX_PARTICLES_SORTING_SORTINGUTILS_H_
 

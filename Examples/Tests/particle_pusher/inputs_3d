@@ -40,5 +40,7 @@ warpx.plot_raw_fields = 0
 
 # External fields
 # Ex is set to be Ex = -vy*Bz
-warpx.B_external_particle =  0.0  0.0  1.0
-warpx.E_external_particle =  -2.994174829214179e+08  0.0  0.0
+particles.B_ext_particle_init_style = "constant"
+particles.B_external_particle =  0.0  0.0  1.0
+particles.E_ext_particle_init_style = "constant"
+particles.E_external_particle =  -2.994174829214179e+08  0.0  0.0

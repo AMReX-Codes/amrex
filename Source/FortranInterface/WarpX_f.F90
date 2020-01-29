@@ -1,3 +1,11 @@
+! Copyright 2019 Andrew Myers, Axel Huebl, David Grote
+! Ligia Diana Amorim, Mathieu Lobet, Maxence Thevenet
+! Remi Lehe, Weiqun Zhang
+!
+! This file is part of WarpX.
+!
+! License: BSD-3-Clause-LBNL
+
 
 module warpx_module
 

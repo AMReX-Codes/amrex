@@ -1,3 +1,12 @@
+/* Copyright 2019-2020 Andrew Myers, Axel Huebl, David Grote
+ * Ligia Diana Amorim, Luca Fedeli, Maxence Thevenet
+ * Remi Lehe, Revathi Jambunathan, Weiqun Zhang
+ * Yinjian Zhao
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #ifndef WARPX_PhysicalParticleContainer_H_
 #define WARPX_PhysicalParticleContainer_H_
 
@@ -46,6 +55,26 @@ public:
                            amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
                            amrex::Real t, amrex::Real dt) override;
 #endif // WARPX_DO_ELECTROSTATIC
+
+    /**
+     * \brief Apply external E and B fields on the particles. The E and B
+     * fields could be defined as a constant or using a parser for reading
+     * in a mathematical expression. The default value for the E- and B-fields
+     * is (0.0,0.0,0.0).
+     *
+     * \param[in,out] Exp-Bzp pointer to fields on particles modified based
+     *                  on external E and B
+     * \param[in] xp,yp,zp arrays of particle positions required to compute
+     *                  mathematical expression for the external fields
+     *                  using parser.
+     */
+    void AssignExternalFieldOnParticles ( WarpXParIter& pti,
+                                          RealVector& Exp, RealVector& Eyp,
+                                          RealVector& Ezp, RealVector& Bxp,
+                                          RealVector& Byp, RealVector& Bzp,
+                                          const amrex::Gpu::ManagedDeviceVector<amrex::ParticleReal>& xp,
+                                          const amrex::Gpu::ManagedDeviceVector<amrex::ParticleReal>& yp,
+                                          const amrex::Gpu::ManagedDeviceVector<amrex::ParticleReal>& zp, int lev);
 
     virtual void FieldGather (int lev,
                               const amrex::MultiFab& Ex,
@@ -317,6 +346,7 @@ protected:
     //When true PhysicalParticleContainer tries to use a pusher including
     //radiation reaction
     bool do_classical_radiation_reaction = false;
+
 
 #ifdef WARPX_QED
     // A flag to enable quantum_synchrotron process for leptons

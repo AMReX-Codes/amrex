@@ -1,3 +1,13 @@
+/* Copyright 2019-2020 Andrew Myers, Aurore Blelly, Axel Huebl
+ * David Grote, Glenn Richardson, Jean-Luc Vay
+ * Ligia Diana Amorim, Luca Fedeli, Maxence Thevenet
+ * Remi Lehe, Revathi Jambunathan, Weiqun Zhang
+ * Yinjian Zhao
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #include <limits>
 #include <sstream>
 
@@ -40,6 +50,7 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
     pp.query("do_splitting", do_splitting);
     pp.query("split_type", split_type);
     pp.query("do_not_deposit", do_not_deposit);
+    pp.query("do_not_push", do_not_push);
 
     pp.query("do_continuous_injection", do_continuous_injection);
     pp.query("initialize_self_fields", initialize_self_fields);
@@ -966,6 +977,79 @@ PhysicalParticleContainer::EvolveES (const Vector<std::array<std::unique_ptr<Mul
 #endif // WARPX_DO_ELECTROSTATIC
 
 void
+PhysicalParticleContainer::AssignExternalFieldOnParticles(WarpXParIter& pti,
+                           RealVector& Exp, RealVector& Eyp, RealVector& Ezp,
+                           RealVector& Bxp, RealVector& Byp, RealVector& Bzp,
+                           const Gpu::ManagedDeviceVector<ParticleReal>& xp,
+                           const Gpu::ManagedDeviceVector<ParticleReal>& yp,
+                           const Gpu::ManagedDeviceVector<ParticleReal>& zp, int lev)
+{
+   const long np = pti.numParticles();
+    /// get WarpX class object
+    auto & warpx = WarpX::GetInstance();
+    /// get MultiParticleContainer class object
+    auto & mypc = warpx.GetPartContainer();
+   if (mypc.m_E_ext_particle_s=="constant" ||
+       mypc.m_E_ext_particle_s=="default") {
+       Exp.assign(np,mypc.m_E_external_particle[0]);
+       Eyp.assign(np,mypc.m_E_external_particle[1]);
+       Ezp.assign(np,mypc.m_E_external_particle[2]);
+   }
+   if (mypc.m_B_ext_particle_s=="constant" ||
+       mypc.m_B_ext_particle_s=="default") {
+       Bxp.assign(np,mypc.m_B_external_particle[0]);
+       Byp.assign(np,mypc.m_B_external_particle[1]);
+       Bzp.assign(np,mypc.m_B_external_particle[2]);
+   }
+   if (mypc.m_E_ext_particle_s=="parse_e_ext_particle_function") {
+      const Real* const AMREX_RESTRICT xp_data = xp.dataPtr();
+      const Real* const AMREX_RESTRICT yp_data = yp.dataPtr();
+      const Real* const AMREX_RESTRICT zp_data = zp.dataPtr();
+      Real* const AMREX_RESTRICT Exp_data = Exp.dataPtr();
+      Real* const AMREX_RESTRICT Eyp_data = Eyp.dataPtr();
+      Real* const AMREX_RESTRICT Ezp_data = Ezp.dataPtr();
+      ParserWrapper *xfield_partparser = mypc.m_Ex_particle_parser.get();
+      ParserWrapper *yfield_partparser = mypc.m_Ey_particle_parser.get();
+      ParserWrapper *zfield_partparser = mypc.m_Ez_particle_parser.get();
+      Real time = warpx.gett_new(lev);
+      amrex::ParallelFor(pti.numParticles(),
+            [=] AMREX_GPU_DEVICE (long i) {
+            Exp_data[i] = xfield_partparser->getField(xp_data[i],yp_data[i],zp_data[i],time);
+            Eyp_data[i] = yfield_partparser->getField(xp_data[i],yp_data[i],zp_data[i],time);
+            Ezp_data[i] = zfield_partparser->getField(xp_data[i],yp_data[i],zp_data[i],time);
+      },
+      /* To allocate shared memory for the GPU threads. */
+      /* But, for now only 4 doubles (x,y,z,t) are allocated. */
+      amrex::Gpu::numThreadsPerBlockParallelFor() * sizeof(double) * 4
+      );
+   }
+   if (mypc.m_B_ext_particle_s=="parse_b_ext_particle_function") {
+      const Real* const AMREX_RESTRICT xp_data = xp.dataPtr();
+      const Real* const AMREX_RESTRICT yp_data = yp.dataPtr();
+      const Real* const AMREX_RESTRICT zp_data = zp.dataPtr();
+      Real* const AMREX_RESTRICT Bxp_data = Bxp.dataPtr();
+      Real* const AMREX_RESTRICT Byp_data = Byp.dataPtr();
+      Real* const AMREX_RESTRICT Bzp_data = Bzp.dataPtr();
+      ParserWrapper *xfield_partparser = mypc.m_Bx_particle_parser.get();
+      ParserWrapper *yfield_partparser = mypc.m_By_particle_parser.get();
+      ParserWrapper *zfield_partparser = mypc.m_Bz_particle_parser.get();
+      Real time = warpx.gett_new(lev);
+      amrex::ParallelFor(pti.numParticles(),
+            [=] AMREX_GPU_DEVICE (long i) {
+            Bxp_data[i] = xfield_partparser->getField(xp_data[i],yp_data[i],zp_data[i],time);
+            Byp_data[i] = yfield_partparser->getField(xp_data[i],yp_data[i],zp_data[i],time);
+            Bzp_data[i] = zfield_partparser->getField(xp_data[i],yp_data[i],zp_data[i],time);
+      },
+      /* To allocate shared memory for the GPU threads. */
+      /* But, for now only 4 doubles (x,y,z,t) are allocated. */
+      amrex::Gpu::numThreadsPerBlockParallelFor() * sizeof(double) * 4
+      );
+   }
+}
+
+
+
+void
 PhysicalParticleContainer::FieldGather (int lev,
                                         const amrex::MultiFab& Ex,
                                         const amrex::MultiFab& Ey,
@@ -1014,13 +1098,6 @@ PhysicalParticleContainer::FieldGather (int lev,
             const FArrayBox& byfab = By[pti];
             const FArrayBox& bzfab = Bz[pti];
 
-            Exp.assign(np,WarpX::E_external_particle[0]);
-            Eyp.assign(np,WarpX::E_external_particle[1]);
-            Ezp.assign(np,WarpX::E_external_particle[2]);
-            Bxp.assign(np,WarpX::B_external_particle[0]);
-            Byp.assign(np,WarpX::B_external_particle[1]);
-            Bzp.assign(np,WarpX::B_external_particle[2]);
-
             //
             // copy data from particle container to temp arrays
             //
@@ -1045,6 +1122,9 @@ PhysicalParticleContainer::FieldGather (int lev,
                                        costarr(i,j,k) += wt;
                                    });
             }
+            // synchronize avoids cudaStreams from over-writing the temporary arrays used to
+            // store positions
+            Gpu::synchronize();
         }
     }
 }
@@ -1150,14 +1230,6 @@ PhysicalParticleContainer::Evolve (int lev,
                                Ex[pti], Ey[pti], Ez[pti], Bx[pti], By[pti], Bz[pti],
                                exfab, eyfab, ezfab, bxfab, byfab, bzfab);
             }
-
-            Exp.assign(np,WarpX::E_external_particle[0]);
-            Eyp.assign(np,WarpX::E_external_particle[1]);
-            Ezp.assign(np,WarpX::E_external_particle[2]);
-
-            Bxp.assign(np,WarpX::B_external_particle[0]);
-            Byp.assign(np,WarpX::B_external_particle[1]);
-            Bzp.assign(np,WarpX::B_external_particle[2]);
 
             // Determine which particles deposit/gather in the buffer, and
             // which particles deposit/gather in the fine patch
@@ -1798,14 +1870,6 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
             const FArrayBox& byfab = By[pti];
             const FArrayBox& bzfab = Bz[pti];
 
-            Exp.assign(np,WarpX::E_external_particle[0]);
-            Eyp.assign(np,WarpX::E_external_particle[1]);
-            Ezp.assign(np,WarpX::E_external_particle[2]);
-
-            Bxp.assign(np,WarpX::B_external_particle[0]);
-            Byp.assign(np,WarpX::B_external_particle[1]);
-            Bzp.assign(np,WarpX::B_external_particle[2]);
-
             //
             // copy data from particle container to temp arrays
             //
@@ -1979,7 +2043,6 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
 #endif
             for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
             {
-                int counter_for_ParticleCopy = 0;
                 const Box& box = pti.validbox();
                 auto index = std::make_pair(pti.index(), pti.LocalTileIndex());
                 const RealBox tile_real_box(box, dx, plo);
@@ -2175,9 +2238,16 @@ PhysicalParticleContainer::FieldGather (WarpXParIter& pti,
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE((gather_lev==(lev-1)) ||
                                      (gather_lev==(lev  )),
                                      "Gather buffers only work for lev-1");
-
     // If no particles, do not do anything
     if (np_to_gather == 0) return;
+
+    // initializing the field value to the externally applied field before
+    // gathering fields from the grid to the particles.
+    AssignExternalFieldOnParticles(pti, Exp, Eyp, Ezp, Bxp, Byp, Bzp,
+                                  m_xp[thread_num], m_yp[thread_num],
+                                  m_zp[thread_num], lev);
+
+
     // Get cell size on gather_lev
     const std::array<Real,3>& dx = WarpX::CellSize(std::max(gather_lev,0));
 
@@ -2423,4 +2493,5 @@ set_quantum_sync_engine_ptr(std::shared_ptr<QuantumSynchrotronEngine> ptr)
 {
     m_shr_p_qs_engine = ptr;
 }
+
 #endif

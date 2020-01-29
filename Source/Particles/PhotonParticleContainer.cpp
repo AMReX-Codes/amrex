@@ -1,3 +1,10 @@
+/* Copyright 2019 David Grote, Luca Fedeli, Maxence Thevenet
+ * Weiqun Zhang
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #include <limits>
 #include <sstream>
 #include <algorithm>

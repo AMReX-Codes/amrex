@@ -1,3 +1,10 @@
+# Copyright 2019-2020 Axel Huebl, Luca Fedeli, Maxence Thevenet
+#
+#
+# This file is part of WarpX.
+#
+# License: BSD-3-Clause-LBNL
+
 '''
 This python script reads ionization tables in atomic_data.txt (generated from
 the NIST website) and extracts ionization levels into C++ file

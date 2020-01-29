@@ -1,3 +1,10 @@
+/* Copyright 2019-2020 Luca Fedeli, Revathi Jambunathan, Weiqun Zhang
+ *
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #include "SliceDiagnostic.H"
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_PlotFileUtil.H>

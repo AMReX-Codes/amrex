@@ -1,3 +1,9 @@
+/* Copyright 2019 Luca Fedeli
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #include "BreitWheelerEngineTableBuilder.H"
 
 //Include the full Breit Wheeler engine with table generation support

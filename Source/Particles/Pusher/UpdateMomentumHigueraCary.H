@@ -1,3 +1,9 @@
+/* Copyright 2019 Yinjian Zhao
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #ifndef WARPX_PARTICLES_PUSHER_UPDATEMOMENTUM_HIGUERACARY_H_
 #define WARPX_PARTICLES_PUSHER_UPDATEMOMENTUM_HIGUERACARY_H_
 

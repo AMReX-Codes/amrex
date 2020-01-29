@@ -95,7 +95,7 @@ Once your new feature is ready, you can check that you did not break anything.
 WarpX has automated tests running for each Pull Request. For easier debugging,
 it can be convenient to run the tests on your local machine with
 ```
-./run_tests.sh
+./run_test.sh
 ```
 from WarpX root folder. The tests can be influenced by environment variables:
 - `export WARPX_TEST_DIM=3`, `export WARPX_TEST_DIM=2` or `export WARPX_TEST_DIM=RZ` 
@@ -103,6 +103,11 @@ in order to select only the tests that correspond to this dimensionality
 - `export WARPX_TEST_ARCH=CPU` or `export WARPX_TEST_ARCH=GPU` in order to
 run the tests on CPU or GPU respectively.
 - `export WARPX_TEST_COMMIT=...` in order to test a specific commit.
+
+The command above (without command line arguments) runs all the tests defined in [Regression/WarpX-tests.ini](./Regression/WarpX-tests.ini). In order to run single tests, pass the test names as command line arguments:
+```
+./run_test.sh test1 test2
+```
 
 ### Submit a Pull Request
 

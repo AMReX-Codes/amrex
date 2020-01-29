@@ -1,3 +1,10 @@
+/* Copyright 2019 Andrew Myers, Luca Fedeli, Maxence Thevenet
+ * Weiqun Zhang
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #ifndef WARPX_CONST_H_
 #define WARPX_CONST_H_
 
