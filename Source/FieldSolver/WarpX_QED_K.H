@@ -553,13 +553,13 @@ const amrex::Real dyi = 1./dy;
     amrex::Real Mnz [3] = {0.,0.,0.};
 
     my_function(Mpx, tmpEx(j+1,k,0), tmpEy(j+1,k,0), tmpEz(j+1,k,0),
-                      Bx(j+1,k,0), By(j+1,k,0), Bz(j+1,k,0), xi, c2);
+                Bx(j+1,k,0), By(j+1,k,0), Bz(j+1,k,0), xi, c2);
     my_function(Mnx, tmpEx(j-1,k,0), tmpEy(j-1,k,0), tmpEz(j-1,k,0),
-                      Bx(j-1,k,0), By(j-1,k,0), Bz(j-1,k,0), xi, c2);
+                Bx(j-1,k,0), By(j-1,k,0), Bz(j-1,k,0), xi, c2);
     my_function(Mpz, tmpEx(j,k+1,0), tmpEy(j,k+1,0), tmpEz(j,k+1,0),
-                      Bx(j,k+1,0), By(j,k+1,0), Bz(j,k+1,0), xi, c2);
+                Bx(j,k+1,0), By(j,k+1,0), Bz(j,k+1,0), xi, c2);
     my_function(Mnz, tmpEx(j,k-1,0), tmpEy(j,k-1,0), tmpEz(j,k-1,0),
-                      Bx(j,k-1,0), By(j,k-1,0), Bz(j,k-1,0), xi, c2);
+                Bx(j,k-1,0), By(j,k-1,0), Bz(j,k-1,0), xi, c2);
 
     const amrex::Real VxM[3] = {
         -0.5*(Mpz[1]-Mnz[1])*dzi,
@@ -619,7 +619,7 @@ const amrex::Real dyi = 1./dy;
 
     const amrex::Real a12 = (xi) * ( 2*ez*ey + 14*c2*bz*by );
 
-    const amrex::Real detA = a00*(a11*a22-a12*a12-a01*(a01*a22-a02*a12)+a02*(a01*a12-a02*a11);
+    const amrex::Real detA = a00*(a11*a22-a12*a12)-a01*(a01*a22-a02*a12)+a02*(a01*a12-a02*a11);
 
     const amrex::Real invAx[3] = {a22*a11-a12*a12, a12*a02-a22*a01, a12*a01-a11*a02};
 
@@ -628,13 +628,16 @@ const amrex::Real dyi = 1./dy;
     const amrex::Real invAz[3] = {a12*a01-a02*a11, a02*a01-a12*a00, a11*a00-a01*a01};
 
     const amrex::Real dEx = (-1/detA)*(invAx[0]*Omega[0] +
-        invAx[1]*Omega[1] + invAx[2]*Omega[2]);
+                                       invAx[1]*Omega[1] +
+                                       invAx[2]*Omega[2]);
 
     const amrex::Real dEy = (-1/detA)*(invAy[0]*Omega[0] +
-        invAy[1]*Omega[1] + invAy[2]*Omega[2]);
+                                       invAy[1]*Omega[1] +
+                                       invAy[2]*Omega[2]);
 
     const amrex::Real dEz = (-1/detA)*(invAz[0]*Omega[0] +
-        invAz[1]*Omega[1] + invAz[2]*Omega[2]);
+                                       invAz[1]*Omega[1] +
+                                       invAz[2]*Omega[2]);
 
     Ex(j,k,0) = Ex(j,k,0) + 0.5*dt*dEx;
 
