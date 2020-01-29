@@ -34,7 +34,7 @@ using namespace amrex;
  *\param[in] dt The temporal step, used for the half push/correction to the E-fields at the end of the function
  */
 
-AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void my_function(Real arr [], Real ex, Real ey, Real ez, Real bx, Real by, Real bz, Real xi, Real c2)
 {
 
