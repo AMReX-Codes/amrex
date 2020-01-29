@@ -77,10 +77,10 @@ const amrex::Real dyi = 1./dy;
                 Bx(j,k+1,l), By(j,k+1,l), Bz(j,k+1,l), xi, c2);
     calc_M(Mny, tmpEx(j,k-1,l), tmpEy(j,k-1,l), tmpEz(j,k-1,l),
                 Bx(j,k-1,l), By(j,k-1,l), Bz(j,k-1,l), xi, c2);
-	calc_M(Mpz, tmpEx(j,k,l+1), tmpEy(j,k,l+1), tmpEz(j,k,l+1),
-				Bx(j,k,l+1), By(j,k,l+1), Bz(j,k,l+1), xi, c2);
-	calc_M(Mnz, tmpEx(j,k,l-1), tmpEy(j,k,l-1), tmpEz(j,k,l-1),
-				Bx(j,k,l-1), By(j,k,l-1), Bz(j,k,l-1), xi, c2);
+    calc_M(Mpz, tmpEx(j,k,l+1), tmpEy(j,k,l+1), tmpEz(j,k,l+1),
+                Bx(j,k,l+1), By(j,k,l+1), Bz(j,k,l+1), xi, c2);
+    calc_M(Mnz, tmpEx(j,k,l-1), tmpEy(j,k,l-1), tmpEz(j,k,l-1),
+                Bx(j,k,l-1), By(j,k,l-1), Bz(j,k,l-1), xi, c2);
 
     // Calculating necessary curls
     const amrex::Real VxM[3] = {
@@ -120,16 +120,16 @@ const amrex::Real dyi = 1./dy;
     const amrex::Real beta = 4*xi*( ee - c2*bb) + PhysConst::ep0;
     
     const amrex::Real Alpha[3] = {
-	    2*xi*c2*( -7*bx*EVxE - 7*VxE[0]*eb + 4*ex*BVxB ) + VxM[0],
-	    2*xi*c2*( -7*by*EVxE - 7*VxE[1]*eb + 4*ey*BVxE ) + VxM[1],
-	    2*xi*c2*( -7*bz*EVxE - 7*VxE[2]*eb + 4*ez*BVxE ) + VxM[2]
-	};
-	
-	const amrex::Real Omega[3] = {
-	    Alpha[0] + 2*xi*c2*( 4*ex*EVxB + 2*VxB[0]*(ee-c2*bb) + 7*c2*bx*BVxB),
-	    Alpha[1] + 2*xi*c2*( 4*ey*EVxB + 2*VxB[1]*(ee-c2*bb) + 7*c2*by*BVxB),
-	    Alpha[2] + 2*xi*c2*( 4*ez*EVxB + 2*VxB[2]*(ee-c2*bb) + 7*c2*bz*BVxB)
-	};
+        2*xi*c2*( -7*bx*EVxE - 7*VxE[0]*eb + 4*ex*BVxB ) + VxM[0],
+        2*xi*c2*( -7*by*EVxE - 7*VxE[1]*eb + 4*ey*BVxE ) + VxM[1],
+        2*xi*c2*( -7*bz*EVxE - 7*VxE[2]*eb + 4*ez*BVxE ) + VxM[2]
+    };
+    
+    const amrex::Real Omega[3] = {
+        Alpha[0] + 2*xi*c2*( 4*ex*EVxB + 2*VxB[0]*(ee-c2*bb) + 7*c2*bx*BVxB),
+        Alpha[1] + 2*xi*c2*( 4*ey*EVxB + 2*VxB[1]*(ee-c2*bb) + 7*c2*by*BVxB),
+        Alpha[2] + 2*xi*c2*( 4*ez*EVxB + 2*VxB[2]*(ee-c2*bb) + 7*c2*bz*BVxB)
+    };
 
     // Defining matrix for the algorithm
     const amrex::Real a00 = beta + xi*( 8*ex*ex + 14*c2*bx*bx );
