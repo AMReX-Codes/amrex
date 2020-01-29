@@ -12,6 +12,7 @@ target_sources( amrex
    AMReX_LoadBalanceKD.cpp
    AMReX_ParticleMPIUtil.cpp
    AMReX_Particles.H
+   AMReX_SparseBins.H
    AMReX_ParGDB.H
    AMReX_Particle_mod_K.H
    AMReX_TracerParticles.H
@@ -42,5 +43,6 @@ target_sources( amrex
    AMReX_ParticleLocator.H
    AMReX_ParticleIO.H
    AMReX_DenseBins.H
+   AMReX_BinIterator.H
    AMReX_ParticleTransformation.H
    )
