@@ -1,4 +1,12 @@
 #!/usr/bin/env python3
+
+# Copyright 2017-2020 Andrew Myers, Axel Huebl, Burlen Loring
+# Maxence Thevenet, Remi Lehe
+#
+# This file is part of WarpX.
+#
+# License: BSD-3-Clause-LBNL
+
 # -*- coding: utf-8 -*-
 #
 # WarpX documentation build configuration file, created by

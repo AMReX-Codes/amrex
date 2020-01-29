@@ -1,3 +1,9 @@
+/* Copyright 2019-2020 Andrew Myers, Yinjian Zhao
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #ifndef WARPX_PARTICLES_COLLISION_COMPUTE_TEMPERATURE_H_
 #define WARPX_PARTICLES_COLLISION_COMPUTE_TEMPERATURE_H_
 

@@ -1,3 +1,9 @@
+/* Copyright 2019 Luca Fedeli
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #ifndef WARPX_breit_wheeler_dummy_tables_h_
 #define WARPX_breit_wheeler_dummy_tables_h_
 

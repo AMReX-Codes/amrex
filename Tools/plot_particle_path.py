@@ -1,3 +1,10 @@
+# Copyright 2019 Andrew Myers, Jean-Luc Vay, Maxence Thevenet
+# Remi Lehe, Weiqun Zhang
+#
+# This file is part of WarpX.
+#
+# License: BSD-3-Clause-LBNL
+
 import numpy as np
 
 class AMReXParticleHeader(object):

@@ -1,5 +1,12 @@
 #! /usr/bin/env python
 
+# Copyright 2019 Yinjian Zhao
+#
+# This file is part of WarpX.
+#
+# License: BSD-3-Clause-LBNL
+
+
 # This script tests the particle pusher (HC)
 # using a force-free field,
 # in which position x should remain 0.

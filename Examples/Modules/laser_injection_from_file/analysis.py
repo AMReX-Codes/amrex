@@ -1,5 +1,13 @@
 #!/usr/bin/env python3
 
+# Copyright 2020 Andrew Myers, Axel Huebl, Luca Fedeli
+# Remi Lehe
+#
+# This file is part of WarpX.
+#
+# License: BSD-3-Clause-LBNL
+
+
 # This file is part of the WarpX automated test suite. It is used to test the
 # injection of a laser pulse from an external binary file.
 #

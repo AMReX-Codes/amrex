@@ -1,3 +1,10 @@
+# Copyright 2016-2020 Andrew Myers, David Grote, Maxence Thevenet
+# Remi Lehe
+#
+# This file is part of WarpX.
+#
+# License: BSD-3-Clause-LBNL
+
 from .Bucket import Bucket
 from .Constants import my_constants
 from .Amr import amr

@@ -1,3 +1,10 @@
+# Copyright 2017-2020 Luca Fedeli, Maxence Thevenet, Remi Lehe
+#
+#
+# This file is part of WarpX.
+#
+# License: BSD-3-Clause-LBNL
+
 import os, sys, shutil
 import argparse, re, time
 from functions_perftest import *

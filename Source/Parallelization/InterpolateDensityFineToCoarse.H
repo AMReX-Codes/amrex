@@ -1,4 +1,4 @@
-/* Copyright 2019 Axel Huebl, Weiqun Zhang
+/* Copyright 2019 Axel Huebl
  *
  * This file is part of WarpX.
  *

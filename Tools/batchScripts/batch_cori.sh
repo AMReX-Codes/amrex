@@ -1,5 +1,12 @@
 #!/bin/bash -l
 
+# Copyright 2019 Maxence Thevenet
+#
+# This file is part of WarpX.
+#
+# License: BSD-3-Clause-LBNL
+
+
 #SBATCH -N 2
 #SBATCH -t 01:00:00
 #SBATCH -q regular

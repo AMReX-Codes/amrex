@@ -1,3 +1,10 @@
+! Copyright 2019 Andrew Myers, Maxence Thevenet, Remi Lehe
+! Weiqun Zhang
+!
+! This file is part of WarpX.
+!
+! License: BSD-3-Clause-LBNL
+
 
 module warpx_fft_module
   use amrex_error_module, only : amrex_error, amrex_abort

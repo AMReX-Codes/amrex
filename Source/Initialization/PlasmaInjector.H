@@ -1,3 +1,11 @@
+/* Copyright 2019 Andrew Myers, Axel Huebl, David Grote
+ * Maxence Thevenet, Remi Lehe, Weiqun Zhang
+ *
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #ifndef PLASMA_INJECTOR_H_
 #define PLASMA_INJECTOR_H_
 

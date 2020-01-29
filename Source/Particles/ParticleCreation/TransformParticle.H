@@ -1,3 +1,9 @@
+/* Copyright 2019 Axel Huebl, Maxence Thevenet
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #ifndef TRANSFORMPARTICLE_H_
 #define TRANSFORMPARTICLE_H_
 

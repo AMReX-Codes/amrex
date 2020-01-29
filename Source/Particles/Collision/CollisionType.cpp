@@ -1,3 +1,9 @@
+/* Copyright 2019 Yinjian Zhao
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #include "CollisionType.H"
 #include "ShuffleFisherYates.H"
 #include "ElasticCollisionPerez.H"

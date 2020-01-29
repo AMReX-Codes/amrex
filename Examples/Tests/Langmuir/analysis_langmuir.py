@@ -1,5 +1,13 @@
 #! /usr/bin/env python
 
+# Copyright 2019 Jean-Luc Vay, Maxence Thevenet, Remi Lehe
+#
+#
+# This file is part of WarpX.
+#
+# License: BSD-3-Clause-LBNL
+
+
 import sys
 import re
 import matplotlib

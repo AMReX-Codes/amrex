@@ -1,3 +1,9 @@
+# Copyright 2017-2019 David Grote
+#
+# This file is part of WarpX.
+#
+# License: BSD-3-Clause-LBNL
+
 """Provides wrappers around field and current density on multiFABs
 
 Available routines:

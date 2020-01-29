@@ -1,3 +1,11 @@
+/* Copyright 2019 Andrew Myers, Aurore Blelly, Axel Huebl
+ * David Grote, Maxence Thevenet, Remi Lehe
+ * Revathi Jambunathan, Weiqun Zhang
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 
 #include <cmath>
 #include <limits>
@@ -118,7 +126,6 @@ WarpX::EvolveB (int lev, PatchType patch_type, amrex::Real a_dt)
         fdtd_solver_cp[lev]->EvolveB( Bfield_cp[lev], Efield_cp[lev], a_dt );
     }
 
-    // Goes into initializer
     const int patch_level = (patch_type == PatchType::fine) ? lev : lev-1;
     const std::array<Real,3>& dx = WarpX::CellSize(patch_level);
     const Real dtsdx = a_dt/dx[0], dtsdy = a_dt/dx[1], dtsdz = a_dt/dx[2];

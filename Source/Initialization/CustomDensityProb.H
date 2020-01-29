@@ -1,3 +1,9 @@
+/* Copyright 2019 Maxence Thevenet, Weiqun Zhang
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #ifndef CUSTOM_DENSITY_PROB_H_
 #define CUSTOM_DENSITY_PROB_H_
 

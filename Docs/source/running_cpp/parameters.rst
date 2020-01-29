@@ -969,25 +969,21 @@ Boundary conditions
 Diagnostics and output
 ----------------------
 
-* ``amr.plot_int`` (`integer`)
-    The number of PIC cycles inbetween two consecutive data dumps. Use a
-    negative number to disable data dumping.
+* ``amr.plot_int`` (`integer`) optional
+    The number of PIC cycles (interval) in between two consecutive `plotfile` data dumps.
+    Use a negative number to disable data dumping.
+    This is ``-1`` (disabled) by default.
 
-* ``warpx.dump_plotfiles`` (`0` or `1`) optional
-    Whether to dump the simulation data in
-    `AMReX plotfile <https://amrex-codes.github.io/amrex/docs_html/IO.html>`__
-    format. This is ``1`` by default, unless WarpX is compiled with openPMD support.
+* ``warpx.openpmd_int`` (`integer`) optional
+    The number of PIC cycles (interval) in between two consecutive `openPMD <https://www.openPMD.org>`_ data dumps.
+    Requires to build WarpX with ``USE_OPENPMD=TRUE`` (see :ref:`instructions <building-openpmd>`).
+    This is ``-1`` (disabled) by default.
 
-* ``warpx.dump_openpmd`` (`0` or `1`) optional
-    Whether to dump the simulation data in
-    `openPMD <https://github.com/openPMD>`__ format.
-    When WarpX is compiled with openPMD support, this is ``1`` by default.
-
-* ``warpx.openpmd_backend`` (``h5``, ``bp`` or ``json``) optional
-    I/O backend for
-    `openPMD <https://github.com/openPMD>`__ dumps.
-    When WarpX is compiled with openPMD support, this is ``h5`` by default.
+* ``warpx.openpmd_backend`` (``bp``, ``h5`` or ``json``) optional
+    `I/O backend <https://openpmd-api.readthedocs.io/en/latest/backends/overview.html>`_ for `openPMD <https://www.openPMD.org>`_ data dumps.
+    ``bp`` is the `ADIOS I/O library <https://csmd.ornl.gov/adios>`_, ``h5`` is the `HDF5 format <https://www.hdfgroup.org/solutions/hdf5/>`, and ``json`` is a `simple text format <https://en.wikipedia.org/wiki/JSON>`_.
     ``json`` only works with serial/single-rank jobs.
+    When WarpX is compiled with openPMD support, the first available backend in the order given above is taken.
 
 * ``warpx.do_back_transformed_diagnostics`` (`0` or `1`)
     Whether to use the **back-transformed diagnostics** (i.e. diagnostics that
