@@ -127,13 +127,6 @@ namespace amrex {
         //
         AMREX_FOR_3D(grown2_bx, i, j, k,
         {
-            if(((not cyclic_x) and (i < dom_low.x or i > dom_high.x)) or
-               ((not cyclic_y) and (j < dom_low.y or j > dom_high.y)) or
-               ((not cyclic_z) and (k < dom_low.z or k > dom_high.z)))
-                mask(i,j,k) = 0;
-            else
-                mask(i,j,k) = 1;
-                
             mask(i,j,k) = (dbox.contains(IntVect(AMREX_D_DECL(i,j,k)))) ? 1.0 : 0.0;
         });
 
@@ -212,7 +205,7 @@ namespace amrex {
                 for (int ii(-1); ii <= 1; ++ii) {         
             
                         if( (ii != 0 or jj != 0 or kk != 0) and
-                            (flags(i,j,k).isConnected(ii,jj,kk) == 1) )
+                            (flags(i,j,k).isConnected(ii,jj,kk)) )
                         {
                             wtot += wt(i+ii,j+jj,k+kk) * vfrac(i+ii,j+jj,k+kk) * mask(i+ii,j+jj,k+kk);
                         }
@@ -226,7 +219,7 @@ namespace amrex {
                 for (int ii(-1); ii <= 1; ++ii) {       
             
                         if( (ii != 0 or jj != 0 or kk != 0) and
-                            (flags(i,j,k).isConnected(ii,jj,kk) == 1) and
+                            (flags(i,j,k).isConnected(ii,jj,kk)) and
                             bx.contains(IntVect(AMREX_D_DECL(i+ii,j+jj,k+kk))) )
                         {
 #ifdef AMREX_USE_CUDA
