@@ -118,7 +118,7 @@ void ParticleEnergy::ComputeDiags (int step)
             return p.rdata(PIdx::w);
         });
 
-        /// reduced sum for mpi ranks
+        /// reduced sum over mpi ranks
         ParallelDescriptor::ReduceRealSum
             (Etot, ParallelDescriptor::IOProcessorNumber());
         ParallelDescriptor::ReduceRealSum
