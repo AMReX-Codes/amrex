@@ -2007,8 +2007,7 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
 
                 if ( !slice_box.intersects(tile_real_box) ) continue;
 
-                const auto& aos = pti.GetArrayOfStructs();
-                const ParticleType* AMREX_RESTRICT pstruct = aos().dataPtr();
+                const auto get_position = GetPosition(pti);
 
                 auto& attribs = pti.GetAttribs();
                 Real* const AMREX_RESTRICT wpnew = attribs[PIdx::w].dataPtr();
@@ -2046,12 +2045,14 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
                 amrex::ParallelFor(np,
                 [=] AMREX_GPU_DEVICE(int i)
                 {
-                   Flag[i] = 0;
-                   if ( (((pstruct[i].pos(2) >= z_new) && (zpold[i] <= z_old)) ||
-                         ((pstruct[i].pos(2) <= z_new) && (zpold[i] >= z_old))) )
-                   {
-                      Flag[i] = 1;
-                   }
+                    ParticleReal xp, yp, zp;
+                    get_position(i, xp, yp, zp);
+                    Flag[i] = 0;
+                    if ( (((zp >= z_new) && (zpold[i] <= z_old)) ||
+                          ((zp <= z_new) && (zpold[i] >= z_old))) )
+                    {
+                        Flag[i] = 1;
+                    }
                 });
 
                 // exclusive scan to obtain location indices using flag values
@@ -2088,6 +2089,8 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
                 amrex::ParallelFor(np,
                 [=] AMREX_GPU_DEVICE(int i)
                 {
+                    ParticleReal xp_new, yp_new, zp_new;
+                    get_position(i, xp_new, yp_new, zp_new);
                     if (Flag[i] == 1)
                     {
                          // Lorentz Transform particles to lab-frame
@@ -2095,8 +2098,8 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
                                                   (uxpnew[i]*uxpnew[i]
                                                  + uypnew[i]*uypnew[i]
                                                  + uzpnew[i]*uzpnew[i]));
-                         const Real t_new_p = gammaboost*t_boost - uzfrm*pstruct[i].pos(2)*inv_c2;
-                         const Real z_new_p = gammaboost*(pstruct[i].pos(2) + betaboost*Phys_c*t_boost);
+                         const Real t_new_p = gammaboost*t_boost - uzfrm*zp_new*inv_c2;
+                         const Real z_new_p = gammaboost*(zp_new + betaboost*Phys_c*t_boost);
                          const Real uz_new_p = gammaboost*uzpnew[i] - gamma_new_p*uzfrm;
 
                          const Real gamma_old_p = std::sqrt(1.0 + inv_c2*
@@ -2116,8 +2119,8 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
                          const Real weight_new = (t_lab - t_old_p)
                                                / (t_new_p - t_old_p);
 
-                         const Real xp = xpold[i]*weight_old + pstruct[i].pos(0)*weight_new;
-                         const Real yp = ypold[i]*weight_old + pstruct[i].pos(1)*weight_new;
+                         const Real xp = xpold[i]*weight_old + xp_new*weight_new;
+                         const Real yp = ypold[i]*weight_old + yp_new*weight_new;
                          const Real zp = z_old_p*weight_old  + z_new_p*weight_new;
 
                          const Real uxp = uxpold[i]*weight_old

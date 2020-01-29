@@ -23,8 +23,6 @@ struct GetPosition
 #if (defined WARPX_DIM_RZ)
         const auto& soa = a_pti.GetStructOfArrays();
         m_theta = soa.GetRealData(PIdx::theta).dataPtr() + a_offset;
-#elif (AMREX_SPACEDIM == 2)
-        static constexpr RType m_snan = std::numeric_limits<RType>::quiet_NaN();
 #endif
     }
 
