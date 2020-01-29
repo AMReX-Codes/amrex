@@ -592,7 +592,7 @@ const amrex::Real dyi = 1./dy;
     const amrex::Real BVxE = bx*VxE[0] + by*VxE[1] + bz*VxE[2];
     const amrex::Real EVxB = ex*VxB[0] + ey*VxB[1] + ez*VxB[2];
     const amrex::Real BVxB = bx*VxB[0] + by*VxB[1] + bz*VxB[2];
-    
+
     const amrex::Real beta = 4*xi*( ee- c2*bb ) + PhysConst::ep0;
 
     const amrex::Real Alpha[3] = {
