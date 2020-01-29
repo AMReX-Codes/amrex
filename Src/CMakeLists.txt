@@ -105,10 +105,13 @@ if (ENABLE_CONDUIT)
    add_subdirectory(Extern/Conduit)
 endif ()
 
-if (ENABLE_HYPRE)
+if (ENABLE_HYPRE OR ENABLE_PETSC)
    add_subdirectory(Extern/HYPRE)
 endif ()
 
+if (ENABLE_PETSC)
+   add_subdirectory(Extern/PETSc)
+endif ()
 
 #
 # Print out summary -- do it here so we already linked all

@@ -54,6 +54,12 @@ public:
     void compResidual (const Vector<MultiFab*>& a_res, const Vector<MultiFab*>& a_sol,
                        const Vector<MultiFab const*>& a_rhs);
 
+#ifdef AMREX_USE_EB
+    // Flux into the EB wall
+    void getEBFluxes (const Vector<MultiFab*>& a_eb_flux);
+    void getEBFluxes (const Vector<MultiFab*>& a_eb_flux, const Vector<MultiFab*> & a_sol);
+#endif
+
     /**
     * \brief ``out = L(in)``. Note that, if no actual solve is needed, one could
     * turn off multigrid coarsening by constructing a MLLinOp object
@@ -146,6 +152,16 @@ public:
 
     int bottomSolveWithCG (MultiFab& x, const MultiFab& b, MLCGSolver::Type type);
 
+    Real getInitRHS () const noexcept { return m_rhsnorm0; }
+    // Initial composite residual
+    Real getInitResidual () const noexcept { return m_init_resnorm0; }
+    // Final composite residual
+    Real getFinalResidual () const noexcept { return m_final_resnorm0; }
+    // Residuals on the *finest* AMR level after each iteration
+    Vector<Real> const& getResidualHistory () const noexcept { return m_iter_fine_resnorm0; }
+    int getNumIters () const noexcept { return m_iter_fine_resnorm0.size(); }
+    Vector<int> const& getNumCGIters () const noexcept { return m_niters_cg; }
+
 private:
 
     int verbose = 1;
@@ -233,6 +249,12 @@ private:
 
     enum timer_types { solve_time=0, iter_time, bottom_time, ntimers };
     Vector<Real> timer;
+
+    Real m_rhsnorm0 = -1.0;
+    Real m_init_resnorm0 = -1.0;
+    Real m_final_resnorm0 = -1.0;
+    Vector<int> m_niters_cg;
+    Vector<Real> m_iter_fine_resnorm0; // Residual for each iteration at the finest level
 
     void checkPoint (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rhs,
                      Real a_tol_rel, Real a_tol_abs, const char* a_file_name) const;

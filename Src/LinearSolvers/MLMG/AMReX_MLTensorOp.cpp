@@ -60,12 +60,29 @@ MLTensorOp::setShearViscosity (int amrlev, const Array<MultiFab const*,AMREX_SPA
 }
 
 void
+MLTensorOp::setShearViscosity (int amrlev, Real eta)
+{
+    MLABecLaplacian::setBCoeffs(amrlev, eta);
+}
+
+void
 MLTensorOp::setBulkViscosity (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& kappa)
 {
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         MultiFab::Copy(m_kappa[amrlev][0][idim], *kappa[idim], 0, 0, 1, 0);
     }
     m_has_kappa = true;
+}
+
+void
+MLTensorOp::setBulkViscosity (int amrlev, Real kappa)
+{
+    if (kappa != 0.0) {
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            m_kappa[amrlev][0][idim].setVal(kappa);
+        }
+        m_has_kappa = true;
+    }
 }
 
 void

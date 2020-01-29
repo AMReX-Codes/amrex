@@ -60,6 +60,31 @@ public:
     const DistributionMapping& DistributionMap (int lev) const noexcept { return dmap[lev]; }
     const BoxArray& boxArray (int lev) const noexcept { return grids[lev]; }
 
+    Vector<Geometry> Geom (int a_coarsest_lev, int a_finest_lev) const noexcept {
+        Vector<Geometry> r;
+        r.reserve(a_finest_lev-a_coarsest_lev+1);
+        for (int lev = a_coarsest_lev; lev <= a_finest_lev; ++lev) {
+            r.push_back(geom[lev]);
+        }
+        return r;
+    }
+    Vector<BoxArray> boxArray (int a_coarsest_lev, int a_finest_lev) const noexcept {
+        Vector<BoxArray> r;
+        r.reserve(a_finest_lev-a_coarsest_lev+1);
+        for (int lev = a_coarsest_lev; lev <= a_finest_lev; ++lev) {
+            r.push_back(grids[lev]);
+        }
+        return r;
+    }
+    Vector<DistributionMapping> DistributionMap (int a_coarsest_lev, int a_finest_lev) const noexcept {
+        Vector<DistributionMapping> r;
+        r.reserve(a_finest_lev-a_coarsest_lev+1);
+        for (int lev = a_coarsest_lev; lev <= a_finest_lev; ++lev) {
+            r.push_back(dmap[lev]);
+        }
+        return r;
+    }
+
     Vector<Geometry>& Geom () noexcept { return geom; }
     Geometry& Geom (int lev) noexcept { return geom[lev]; }
 
@@ -206,16 +231,12 @@ protected:
     Vector<DistributionMapping> dmap;
     Vector<BoxArray>            grids;
 
+    unsigned int num_setdm = 0;
+
     void checkInput();
 
-     void SetIterateToFalse () noexcept
-     {
-         iterate_on_new_grids = false;
-     }
-     void SetUseNewChop () noexcept
-     {
-         use_new_chop = true;
-     }
+    void SetIterateToFalse () noexcept { iterate_on_new_grids = false; }
+    void SetUseNewChop () noexcept { use_new_chop = true; }
 
 private:
     void InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in,

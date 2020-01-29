@@ -1074,6 +1074,20 @@ ParmParse::Initialize (int         argc,
     amrex::ExecOnFinalize(ParmParse::Finalize);
 }
 
+bool
+ParmParse::QueryUnusedInputs ()
+{
+    if ( ParallelDescriptor::IOProcessor() && unused_table_entries_q(g_table))
+    {
+      finalize_verbose = amrex::system::verbose;
+      if (finalize_verbose) amrex::OutStream() << "Unused ParmParse Variables:\n";
+      finalize_table("  [TOP]", g_table);
+      if (finalize_verbose) amrex::OutStream() << std::endl;
+      return true;
+    }
+    return false;
+}
+    
 void
 ParmParse::Finalize ()
 {

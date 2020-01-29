@@ -9,6 +9,8 @@
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
 
+#include <AMReX_MultiFabUtilI.H>
+
 namespace amrex
 {
     //! Average nodal-based MultiFab onto cell-centered MultiFab.
@@ -132,11 +134,27 @@ namespace amrex
     //! Return an iMultiFab that has the same BoxArray and DistributionMapping
     //! as the coarse MultiFab cmf. Cells covered by the coarsened fine grids
     //! are set to fine_value, whereas other cells are set to crse_value.
-    iMultiFab makeFineMask (const MultiFab& cmf, const BoxArray& fba, const IntVect& ratio,
+    template <typename FAB>
+    iMultiFab makeFineMask (const FabArray<FAB>& cmf, const BoxArray& fba, const IntVect& ratio,
                             int crse_value = 0, int fine_value = 1);
     iMultiFab makeFineMask (const BoxArray& cba, const DistributionMapping& cdm,
                             const BoxArray& fba, const IntVect& ratio,
                             int crse_value = 0, int fine_value = 1);
+    template <typename FAB>
+    iMultiFab makeFineMask (const FabArray<FAB>& cmf, const BoxArray& fba, const IntVect& ratio,
+                            Periodicity const& period, int crse_value, int fine_value);
+    iMultiFab makeFineMask (const BoxArray& cba, const DistributionMapping& cdm,
+                            const IntVect& cnghost, const BoxArray& fba, const IntVect& ratio,
+                            Periodicity const& period, int crse_value, int fine_value);
+    template <typename FAB>
+    iMultiFab makeFineMask (const FabArray<FAB>& cmf, const FabArray<FAB>& fmf,
+                            const IntVect& cnghost, const IntVect& ratio,
+                            Periodicity const& period, int crse_value, int fine_value);
+    template <typename FAB>
+    iMultiFab makeFineMask (const FabArray<FAB>& cmf, const FabArray<FAB>& fmf,
+                            const IntVect& cnghost, const IntVect& ratio,
+                            Periodicity const& period, int crse_value, int fine_value,
+                            LayoutData<int>& has_cf);
 
     //! Computes divergence of face-data stored in the umac MultiFab.
     void computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPACEDIM>& umac,
@@ -164,7 +182,7 @@ namespace amrex
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        for (MFIter mfi(mf_in,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        for (MFIter mfi(mf_in); mfi.isValid(); ++mfi)
         {
             const long n = mfi.fabbox().numPts() * mf_in.nComp();
             auto pdst = mf_out[mfi].dataPtr();
@@ -176,155 +194,65 @@ namespace amrex
         }
         return mf_out;
     }
-
-    //! General collection of MultiFab utilities
-    namespace MFUtil {
-
-        //! Template class defining a copy operation where source and target are
-        //! grown by ng. Template parameter T must be either MultiFab or
-        //! iMultiFab
-        template<typename T>
-        struct SymmetricGhost {
-            static void copy (T & target, const T & source, int nc, int ng) {
-                target.copy(source, 0, 0, nc, ng, ng);
-            }
-        };
-
-
-        //! Template class defining a copy operation where only the target is
-        //! grown by ng. Template parameter T must be either MultiFab or
-        //! iMultiFab
-        template<typename T> // T can be either MultiFab or iMultiFab
-        struct AsymmetricGhost {
-            static void copy (T & target, const T & source, int nc, int ng) {
-                target.copy(source, 0, 0, nc, 0, ng);
-            }
-        };
-
-
-        //! Duplicate class T (which must be either of type MultiFab or
-        //! iMultiFab) using a new BoxArray and DistributionMapping. Data from
-        //! the source (mf_in) is copied using a ParallelCopy (ghost cells are
-        //! treated based on the Cpy class (which is either SymmetricGhost or
-        //! AsymmetricGhost)).
-        template<typename T, template<typename> class Cpy>
-        T duplicate(const BoxArray & ba, const DistributionMapping & dm, const T & mf_in) {
-
-            int ng = mf_in.nGrow();
-            int nc = mf_in.nComp();
-
-            T mf_out(ba, dm, nc, ng);
-
-            Cpy<T>::copy(mf_out, mf_in, nc, ng);
-
-            return mf_out;
-        }
-
-
-        //! Duplicate class T (which must be either of type MultiFab or
-        //! iMultiFab) using a new BoxArray and DistributionMapping. Data from
-        //! the source (mf_in) is copied using a ParallelCopy (ghost cells are
-        //! treated based on the Cpy class (which is either SymmetricGhost or
-        //! AsymmetricGhost)). Following the copy operation, a FillBoundary
-        //! operation is called.
-        template<typename T, template<typename> class Cpy>
-        T duplicate(const BoxArray & ba, const DistributionMapping & dm, const T & mf_in,
-                    const Periodicity & periodicity) {
-
-            T mf_out = duplicate<T, Cpy>(ba, dm, mf_in);
-            mf_out.FillBoundary(periodicity);
-
-            return mf_out;
-        }
-
-
-        //! Regrid (by duplication) class T (which must be either of type
-        //! MultiFab or iMultiFab) usign the new BoxArray and
-        //! DistributionMapping. The boolean flag `regrid_ghost` switched
-        //! between the SymmetricGhost and AsymmetricGhost copy functions.
-        template<typename T>
-        T regrid(const BoxArray & ba, const DistributionMapping & dm,
-                 const T & mf_in, bool regrid_ghost = false ) {
-
-            if (regrid_ghost) {
-                T mf_out = duplicate<T, SymmetricGhost>(ba, dm, mf_in);
-                return mf_out;
-            } else {
-                T mf_out = duplicate<T, AsymmetricGhost>(ba, dm, mf_in);
-                return mf_out;
-            }
-        }
-
-
-        //! Regrid (by duplication) class T (which must be either of type
-        //! MultiFab or iMultiFab) using the new BoxArray and
-        //! DistributionMapping. The T-object at the end of the pointer `mf_out`
-        //! is re-defined. The boolean flag `regrid_ghost` switched between the
-        //! SymmetricGhost and AsymmetricGhost copy functions.
-        template<typename T>
-        void regrid( T & mf_out, const BoxArray & ba, const DistributionMapping & dm,
-                     const T & mf_in, bool regrid_ghost = false ) {
-
-            int ng = mf_in.nGrow();
-            int nc = mf_in.nComp();
-
-            mf_out.define(ba, dm, nc, ng);
-            if (regrid_ghost)  SymmetricGhost<T>::copy(mf_out, mf_in, nc, ng);
-            else              AsymmetricGhost<T>::copy(mf_out, mf_in, nc, ng);
-        }
-
-
-        //! Regrid (by duplication) class T. The T-object at the end of the
-        //! reference `mf_out` is re-defined using the EBFArrayBoxFactory
-        //! provided by `eb_factory`. The boolean flag `regrid_ghost` switched
-        //! between the SymmetricGhost and AsymmetricGhost copy functions.
-        template<typename T>
-        void regrid( T & mf_out, const BoxArray & ba, const DistributionMapping & dm,
-                     const FabFactory<FArrayBox> & eb_factory,
-                     const T & mf_in, bool regrid_ghost = false ) {
-
-            int ng = mf_in.nGrow();
-            int nc = mf_in.nComp();
-
-            mf_out.define(ba, dm, nc, ng, MFInfo(), eb_factory);
-            if (regrid_ghost)  SymmetricGhost<T>::copy(mf_out, mf_in, nc, ng);
-            else              AsymmetricGhost<T>::copy(mf_out, mf_in, nc, ng);
-        }
-
-
-        //! Convert class T_src (which must either be of type MultiFab or
-        //! iMultiFab) to type T_dest (which must also be of type MultiFab or
-        //! iMultiFab). This function is useful for convering iMultiFab MultiFab
-        //! or vice-versa.
-        template<typename T_src, typename T_dest>
-            std::unique_ptr<T_dest> convert(const T_src & mf_in) {
-
-            const BoxArray & ba            = mf_in.boxArray();
-            const DistributionMapping & dm = mf_in.DistributionMap();
-            int ncomp                      = mf_in.nComp();
-            int ngrow                      = mf_in.nGrow();
-
-            std::unique_ptr<T_dest> mf_out(new T_dest(ba, dm, ncomp, ngrow));
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-            for(MFIter mfi(mf_in, true); mfi.isValid(); ++ mfi) {
-                const IArrayBox & in_tile  =      mf_in[mfi];
-                FArrayBox & out_tile = (* mf_out)[mfi];
-
-                for(BoxIterator bit(mfi.growntilebox()); bit.ok(); ++ bit) {
-
-                    for(int i = 0; i < ncomp; i ++)
-                        out_tile(bit(), i) = in_tile(bit(), i);
-
-                }
-            }
-
-            return mf_out;
-        }
-    }
 }
 
+namespace amrex {
+
+template <typename FAB>
+iMultiFab
+makeFineMask (const FabArray<FAB>& cmf, const BoxArray& fba, const IntVect& ratio,
+              int crse_value, int fine_value)
+{
+    return makeFineMask(cmf.boxArray(), cmf.DistributionMap(), cmf.nGrowVect(),
+                        fba, ratio, Periodicity::NonPeriodic(), crse_value, fine_value);
+}
+
+template <typename FAB>
+iMultiFab
+makeFineMask (const MultiFab& cmf, const BoxArray& fba, const IntVect& ratio,
+              Periodicity const& period, int crse_value, int fine_value)
+{
+    return makeFineMask(cmf.boxArray(), cmf.DistributionMap(), cmf.nGrowVect(),
+                        fba, ratio, period, crse_value, fine_value);
+}
+
+template <typename FAB>
+iMultiFab
+makeFineMask (const FabArray<FAB>& cmf, const FabArray<FAB>& fmf,
+              const IntVect& cnghost, const IntVect& ratio,
+              Periodicity const& period, int crse_value, int fine_value)
+{
+    iMultiFab mask(cmf.boxArray(), cmf.DistributionMap(), 1, cnghost);
+    mask.setVal(crse_value);
+
+    iMultiFab foo(amrex::coarsen(fmf.boxArray(),ratio), fmf.DistributionMap(),
+                  1, 0, MFInfo().SetAlloc(false));
+    const FabArrayBase::CPC& cpc = mask.getCPC(cnghost,foo,IntVect::TheZeroVector(),period);
+    mask.setVal(fine_value, cpc, 0, 1);
+
+    return mask;
+}
+
+template <typename FAB>
+iMultiFab
+makeFineMask (const FabArray<FAB>& cmf, const FabArray<FAB>& fmf,
+              const IntVect& cnghost, const IntVect& ratio,
+              Periodicity const& period, int crse_value, int fine_value,
+              LayoutData<int>& has_cf)
+{
+    iMultiFab mask(cmf.boxArray(), cmf.DistributionMap(), 1, cnghost);
+    mask.setVal(crse_value);
+
+    iMultiFab foo(amrex::coarsen(fmf.boxArray(),ratio), fmf.DistributionMap(),
+                  1, 0, MFInfo().SetAlloc(false));
+    const FabArrayBase::CPC& cpc = mask.getCPC(cnghost,foo,IntVect::TheZeroVector(),period);
+    mask.setVal(fine_value, cpc, 0, 1);
+
+    has_cf = mask.RecvLayoutMask(cpc);
+
+    return mask;
+}
+
+}
 
 #endif

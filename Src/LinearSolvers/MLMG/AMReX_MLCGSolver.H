@@ -58,6 +58,8 @@ public:
                   Real            eps_rel,
                   Real            eps_abs);
 
+    int getNumIters () const noexcept { return iter; }
+
 private:
 
     MLMG* mlmg;
@@ -65,9 +67,10 @@ private:
     Type solver_type;
     const int amrlev;
     const int mglev;
-    int    verbose   = 0;
-    int    maxiter   = 100;
+    int verbose   = 0;
+    int maxiter   = 100;
     int nghost = 0;
+    int iter = -1;
 };
 
 }

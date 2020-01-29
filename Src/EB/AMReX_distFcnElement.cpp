@@ -6,17 +6,11 @@
 
 namespace amrex {
 
-int distFcnElement2d::solve_thomas(std::vector<amrex::Real> ain,
-                                   std::vector<amrex::Real> bin,
-                                   std::vector<amrex::Real> cin,
-                                   std::vector<amrex::Real> din,
-                                   std::vector<amrex::Real>& x) {
-  std::vector<amrex::Real> a, b, c, d;
-  a = ain;  // off diagonal on low side
-  b = bin;  // diagonal
-  c = cin;  // off diagonal on high side
-  d = din;  // rhs
-
+int distFcnElement2d::solve_thomas(const std::vector<amrex::Real> &a,
+                                   std::vector<amrex::Real> b,
+                                   const std::vector<amrex::Real> &c,
+                                   std::vector<amrex::Real> d,
+                                   std::vector<amrex::Real> &x) {
   unsigned n;
   n = d.size();
   x.resize(n);
@@ -27,13 +21,13 @@ int distFcnElement2d::solve_thomas(std::vector<amrex::Real> ain,
     b[i] -= m*c[i-1];
     d[i] -= m*d[i-1];
   }
-  x = b;
+
   x[n-1] = d[n-1] / b[n-1];
 
-
-  for (unsigned i=n-2; i > 0; --i) {
+  for (int i=n-2; i > -1; --i) {
     x[i] = (d[i]-c[i]*x[i+1])/b[i];
   }
+
   return 0;
 }
 
@@ -242,26 +236,23 @@ void SplineDistFcnElement2d::calc_D(bool clamped_bc) {
   Dx.resize(nsplines+1);
   Dy.resize(nsplines+1);
 
-  for (int i=0; i<nsplines-1; ++i) {
+  for (int i=0; i<nsplines; ++i) {
     diag[i] = 4.0;
     diagminus[i] = 1.0;
     diagplus[i] = 1.0;
   }
-  diag[nsplines-1] = 4.0;
-
-
 
   for (int i=1; i<nsplines; ++i) {
-    rhsx[i] = control_points_x[i+1] - control_points_x[i-1];
-    rhsy[i] = control_points_y[i+1] - control_points_y[i-1];
+    rhsx[i] = 3.0*(control_points_x[i+1] - control_points_x[i-1]);
+    rhsy[i] = 3.0*(control_points_y[i+1] - control_points_y[i-1]);
   }
 
   if (clamped_bc) {
     diag[0] = 1.0;
-    diagplus[0] = 0.0;
+    diagminus[0] = 0.0;
 
     diag[nsplines] = 1.0;
-    diagminus[nsplines-1] = 0.0;
+    diagplus[nsplines] = 0.0;
 
     rhsx[0] = control_points_x[0] - bc_pt_start[0];
     rhsx[nsplines] = -control_points_x[nsplines-1] + bc_pt_end[0];
@@ -330,9 +321,9 @@ void SplineDistFcnElement2d::print_spline() const {
       amrex::Real y = eval(j*dt, control_points_y[i],
                            control_points_y[i+1], Dy[i], Dy[i+1]);
 
-      std::cout << x << "  " <<  y << std::endl;
     }
   }
+
 }
 
 
@@ -375,8 +366,8 @@ amrex::Real LineDistFcnElement2d::cpside(amrex::RealVect pt,
     if (dist < mindist) {
       mindist = dist;
       cpmin = cp;
-      l0 = amrex::RealVect(D_DECL(control_points_x[i-1], control_points_y[i-1],0.0));
-      l1 = amrex::RealVect(D_DECL(control_points_x[i], control_points_y[i],0.0));
+      l0 = amrex::RealVect(AMREX_D_DECL(control_points_x[i-1], control_points_y[i-1],0.0));
+      l1 = amrex::RealVect(AMREX_D_DECL(control_points_x[i], control_points_y[i],0.0));
     }
   }
 
@@ -408,6 +399,7 @@ amrex::Real LineDistFcnElement2d::cpside(amrex::RealVect pt,
     }
     */
   }
+  amrex::Abort("Should not get here");
 }
 
 void LineDistFcnElement2d::set_control_points
@@ -424,18 +416,18 @@ void LineDistFcnElement2d::single_seg_cpdist(amrex::RealVect pt,
                                              amrex::Real y0, amrex::Real y1,
                                              amrex::RealVect& cp,
                                              amrex::Real& dist) const {
-  amrex::RealVect A(D_DECL(pt[0]-x0, pt[1]-y0,0.0));
-  amrex::RealVect B(D_DECL(x1-x0, y1-y0,0.0));
+  amrex::RealVect A(AMREX_D_DECL(pt[0]-x0, pt[1]-y0,0.0));
+  amrex::RealVect B(AMREX_D_DECL(x1-x0, y1-y0,0.0));
 
   amrex::Real magBsq = B[0]*B[0] + B[1]*B[1];
   amrex::Real t =  (A[0]*B[0] + A[1]*B[1])/magBsq;
 
   if (t < 0) {
-    cp = amrex::RealVect(D_DECL(x0,y0,0.0));
+    cp = amrex::RealVect(AMREX_D_DECL(x0,y0,0.0));
   } else if (t > 1.0) {
-    cp = amrex::RealVect(D_DECL(x1,y1,0.0));
+    cp = amrex::RealVect(AMREX_D_DECL(x1,y1,0.0));
   } else {
-    cp  = amrex::RealVect(D_DECL(x0,y0,0.0)) + t*B;
+    cp  = amrex::RealVect(AMREX_D_DECL(x0,y0,0.0)) + t*B;
   }
 
   amrex::RealVect delta = pt - cp;

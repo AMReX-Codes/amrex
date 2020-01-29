@@ -1,7 +1,7 @@
 
 #include <AMReX_MLNodeLinOp.H>
-#include <AMReX_MLNodeLap_F.H>
 #include <AMReX_MLNodeLap_K.H>
+#include <AMReX_MultiFabUtil.H>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -49,9 +49,12 @@ MLNodeLinOp::define (const Vector<Geometry>& a_geom,
     {
         if (amrlev < m_num_amr_levels-1)
         {
-            m_cc_fine_mask[amrlev].reset(new iMultiFab(m_grids[amrlev][0], m_dmap[amrlev][0], 1, 1));
             m_nd_fine_mask[amrlev].reset(new iMultiFab(amrex::convert(m_grids[amrlev][0],IntVect::TheNodeVector()),
                                                        m_dmap[amrlev][0], 1, 0));
+            m_cc_fine_mask[amrlev].reset(new iMultiFab(m_grids[amrlev][0], m_dmap[amrlev][0], 1, 1));
+        } else {
+            m_cc_fine_mask[amrlev].reset(new iMultiFab(m_grids[amrlev][0], m_dmap[amrlev][0], 1, 1,
+                                                       MFInfo().SetAlloc(false)));
         }
         m_has_fine_bndry[amrlev].reset(new LayoutData<int>(m_grids[amrlev][0], m_dmap[amrlev][0]));
     }
@@ -143,7 +146,7 @@ MLNodeLinOp::xdoty (int amrlev, int mglev, const MultiFab& x, const MultiFab& y,
     }
     Real result = MultiFab::Dot(tmp,0,y,0,ncomp,nghost,true);
     if (!local) {
-        ParallelAllReduce::Sum(result, Communicator(amrlev, mglev));
+        ParallelAllReduce::Sum(result, ParallelContext::CommunicatorSub());
     }
     return result;
 }
@@ -165,6 +168,206 @@ MLNodeLinOp::applyInhomogNeumannTerm (int amrlev, MultiFab& rhs) const
         }
     }
 }
+
+namespace {
+
+void MLNodeLinOp_set_dot_mask (MultiFab& dot_mask, iMultiFab const& omask, Geometry const& geom,
+                               GpuArray<LinOpBCType,AMREX_SPACEDIM> const& lobc,
+                               GpuArray<LinOpBCType,AMREX_SPACEDIM> const& hibc,
+                               MLNodeLinOp::CoarseningStrategy strategy)
+{
+    Box nddomain = amrex::surroundingNodes(geom.Domain());
+
+    if (strategy != MLNodeLinOp::CoarseningStrategy::Sigma) {
+        nddomain.grow(1000); // hack to avoid masks being modified at Neuman boundary
+    }
+
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(dot_mask,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        Array4<Real> const& dfab = dot_mask.array(mfi);
+        Array4<int const> const& sfab = omask.const_array(mfi);
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+        {
+            mlndlap_set_dot_mask(tbx, dfab, sfab, nddomain, lobc, hibc);
+        });
+    }
+}
+
+}
+
+void
+MLNodeLinOp::buildMasks ()
+{
+    if (m_masks_built) return;
+
+    BL_PROFILE("MLNodeLinOp::buildMasks()");
+
+    m_masks_built = true;
+
+    m_is_bottom_singular = false;
+    auto itlo = std::find(m_lobc[0].begin(), m_lobc[0].end(), BCType::Dirichlet);
+    auto ithi = std::find(m_hibc[0].begin(), m_hibc[0].end(), BCType::Dirichlet);
+    if (itlo == m_lobc[0].end() && ithi == m_hibc[0].end())
+    {  // No Dirichlet
+        m_is_bottom_singular = m_domain_covered[0];
+    }
+
+    const auto lobc = LoBC();
+    const auto hibc = HiBC();
+
+    for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
+    {
+        for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
+        {
+            const Geometry& geom = m_geom[amrlev][mglev];
+            const auto& period = geom.periodicity();
+            const Box& ccdomain = geom.Domain();
+            const Box& nddomain = amrex::surroundingNodes(ccdomain);
+
+            auto& dmask = *m_dirichlet_mask[amrlev][mglev];
+
+            iMultiFab ccm(m_grids[amrlev][mglev],m_dmap[amrlev][mglev],1,1);
+            ccm.BuildMask(ccdomain,period,0,1,2,0);
+
+            MFItInfo mfi_info;
+            if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+            for (MFIter mfi(dmask, mfi_info); mfi.isValid(); ++mfi)
+            {
+                const Box& ndbx = mfi.validbox();
+                Array4<int> const& mskarr = dmask.array(mfi);
+                Array4<int const> const& ccarr = ccm.const_array(mfi);
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( ndbx, tbx,
+                {
+                    mlndlap_set_dirichlet_mask(tbx, mskarr, ccarr, nddomain, lobc, hibc);
+                });
+            }
+        }
+    }
+
+    for (int amrlev = 0; amrlev < m_num_amr_levels-1; ++amrlev)
+    {
+        iMultiFab& cc_mask = *m_cc_fine_mask[amrlev];
+        iMultiFab& nd_mask = *m_nd_fine_mask[amrlev];
+        LayoutData<int>& has_cf = *m_has_fine_bndry[amrlev];
+        const Box& ccdom = m_geom[amrlev][0].Domain();
+
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(AMRRefRatio(amrlev) == 2, "ref_ratio != 0 not supported");
+
+        cc_mask = amrex::makeFineMask(cc_mask, *m_cc_fine_mask[amrlev+1], cc_mask.nGrowVect(),
+                                      IntVect(AMRRefRatio(amrlev)), m_geom[amrlev][0].periodicity(),
+                                      0, 1, has_cf); // coarse: 0, fine: 1
+
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for (MFIter mfi(cc_mask); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.validbox();
+            Array4<int> const& fab = cc_mask.array(mfi);
+            mlndlap_fillbc_cc<int>(bx,fab,ccdom,lobc,hibc);
+        }
+
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for (MFIter mfi(nd_mask,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.tilebox();
+            Array4<int> const& nmsk = nd_mask.array(mfi);
+            Array4<int const> const& cmsk = cc_mask.const_array(mfi);
+            AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
+            {
+                mlndlap_set_nodal_mask(i,j,k,nmsk,cmsk);
+            });
+        }
+    }
+
+    auto& has_cf = *m_has_fine_bndry[m_num_amr_levels-1];
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(has_cf); mfi.isValid(); ++mfi)
+    {
+        has_cf[mfi] = 0;
+    }
+
+    {
+        int amrlev = 0;
+        int mglev = m_num_mg_levels[amrlev]-1;
+        const Geometry& geom = m_geom[amrlev][mglev];
+        const iMultiFab& omask = *m_owner_mask[amrlev][mglev];
+        m_bottom_dot_mask.define(omask.boxArray(), omask.DistributionMap(), 1, 0);
+        MLNodeLinOp_set_dot_mask(m_bottom_dot_mask, omask, geom, lobc, hibc, m_coarsening_strategy);
+    }
+
+    if (m_is_bottom_singular)
+    {
+        int amrlev = 0;
+        int mglev = 0;
+        const Geometry& geom = m_geom[amrlev][mglev];
+        const iMultiFab& omask = *m_owner_mask[amrlev][mglev];
+        m_coarse_dot_mask.define(omask.boxArray(), omask.DistributionMap(), 1, 0);
+        MLNodeLinOp_set_dot_mask(m_coarse_dot_mask, omask, geom, lobc, hibc, m_coarsening_strategy);
+    }
+}
+
+void
+MLNodeLinOp::applyBC (int amrlev, int mglev, MultiFab& phi, BCMode/* bc_mode*/, StateMode,
+                      bool skip_fillboundary) const
+{
+    BL_PROFILE("MLNodeLinOp::applyBC()");
+
+    const Geometry& geom = m_geom[amrlev][mglev];
+    const Box& nd_domain = amrex::surroundingNodes(geom.Domain());
+
+    if (!skip_fillboundary) {
+        phi.FillBoundary(geom.periodicity());
+    }
+
+    if (m_coarsening_strategy == CoarseningStrategy::Sigma)
+    {
+        const auto lobc = LoBC();
+        const auto hibc = HiBC();
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for (MFIter mfi(phi); mfi.isValid(); ++mfi)
+        {
+            Array4<Real> const& fab = phi.array(mfi);
+            mlndlap_applybc(mfi.validbox(),fab,nd_domain,lobc,hibc);
+        }
+    }
+}
+
+#ifdef AMREX_USE_HYPRE
+std::unique_ptr<HypreNodeLap>
+MLNodeLinOp::makeHypreNodeLap (int bottom_verbose) const
+{
+    const BoxArray& ba = m_grids[0].back();
+    const DistributionMapping& dm = m_dmap[0].back();
+    const Geometry& geom = m_geom[0].back();
+    const auto& factory = *(m_factory[0].back());
+    const auto& owner_mask = *(m_owner_mask[0].back());
+    const auto& dirichlet_mask = *(m_dirichlet_mask[0].back());
+    MPI_Comm comm = BottomCommunicator();
+
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(NMGLevels(0) == 1,
+                                     "MLNodeLaplacian: To use hypre, max_coarsening_level must be 0");
+
+    std::unique_ptr<HypreNodeLap> hypre_solver
+        (new amrex::HypreNodeLap(ba, dm, geom, factory, owner_mask, dirichlet_mask,
+                                 comm, this, bottom_verbose));
+
+    return hypre_solver;
+}
+#endif
 
 }
 

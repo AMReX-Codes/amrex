@@ -1,21 +1,19 @@
-AMREX_HOME ?= ../amrex/
+AMREX_HOME ?= ../../../
 
 DEBUG	= TRUE
 DEBUG	= FALSE
 
 DIM	= 3
 
-COMP    = pgi
+COMP    = gcc
 
-TINY_PROFILE  = TRUE
+TINY_PROFILE = TRUE
+USE_PARTICLES = TRUE
 
-PRECISION     = DOUBLE
+PRECISION = DOUBLE
 
-USE_MPI       = FALSE
-USE_OMP       = FALSE
-USE_CUDA      = TRUE
-
-CUDA_VERSION = 9.0
+USE_MPI   = TRUE
+USE_OMP   = FALSE
 
 ###################################################
 
@@ -25,5 +23,6 @@ include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
 include ./Make.package
 include $(AMREX_HOME)/Src/Base/Make.package
+include $(AMREX_HOME)/Src/Particle/Make.package
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules

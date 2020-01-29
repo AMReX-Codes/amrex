@@ -1,13 +1,53 @@
 #include <AMReX.H>
 #include <AMReX_Gpu.H>
 #include <AMReX_Utility.H>
-#include <AMReX_CudaContainers.H>
+#include <AMReX_GpuContainers.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_Partition.H>
 
 #include <thrust/tuple.h>
 #include <thrust/gather.h>
 #include <thrust/iterator/zip_iterator.h>
+#include <thrust/partition.h>
+#include <thrust/device_malloc_allocator.h>
+
+namespace amrex
+{
+    template<class T>
+    class ThrustManagedAllocator : public thrust::device_malloc_allocator<T>
+    {
+    public:
+        using value_type = T;
+        
+        typedef thrust::device_ptr<T>  pointer;
+        inline pointer allocate(size_t n)
+        {
+            value_type* result = nullptr;
+            result = (value_type*) The_Arena()->alloc(n * sizeof(T));
+            return thrust::device_pointer_cast(result);
+        }
+        
+        inline void deallocate(pointer ptr, size_t)
+        {
+            The_Arena()->free(thrust::raw_pointer_cast(ptr));
+        }
+    };
+
+    namespace
+    {
+        ThrustManagedAllocator<char> g_cached_allocator;
+    }
+
+    namespace Gpu
+    {
+        ThrustManagedAllocator<char>& The_ThrustCachedAllocator () { return g_cached_allocator; };
+        
+        AMREX_FORCE_INLINE auto The_ThrustCachedPolicy() -> decltype (thrust::cuda::par(Gpu::The_ThrustCachedAllocator()))
+        {
+            return thrust::cuda::par(Gpu::The_ThrustCachedAllocator());
+        };
+    }
+}
 
 using namespace amrex;
 
@@ -48,7 +88,7 @@ int ThrustPartition (Gpu::DeviceVector<T>& x, F f)
 
     thrust::transform(thrust::device, x.begin(), x.end(), func.begin(), f);
 
-    auto mid = thrust::partition(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
+    auto mid = thrust::partition(Gpu::The_ThrustCachedPolicy(),
                                  index.begin(), index.end(), func.begin(), f);
 
     return thrust::distance(index.begin(), mid);
@@ -88,7 +128,7 @@ int CurrentPartition (Gpu::DeviceVector<T>& x, F f)
         }
     });
 
-    thrust::exclusive_scan(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()), 
+    thrust::exclusive_scan(Gpu::The_ThrustCachedPolicy(), 
                            thrust::make_zip_iterator(thrust::make_tuple(lo.begin(), hi.begin())),
                            thrust::make_zip_iterator(thrust::make_tuple(lo.end(),   hi.end())),
                            thrust::make_zip_iterator(thrust::make_tuple(lo.begin(), hi.begin())),

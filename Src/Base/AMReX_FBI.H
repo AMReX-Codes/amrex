@@ -21,6 +21,95 @@ struct VoidCopyTag {
     Box dbox;
 };
 
+template <class T>
+struct Array4BoxTag {
+    Array4<T> dfab;
+    Box       dbox;
+};
+
+#ifdef AMREX_USE_GPU
+template <class T, class F>
+void
+ParallelFor (Vector<Array4BoxTag<T> > const& tags, int ncomp, F && f)
+{
+    typedef Array4BoxTag<T> TagType;
+
+    const int ntags = tags.size();
+    if (ntags == 0) return;
+
+    int ntotwarps = 0;
+    Vector<int> nwarps;
+    nwarps.reserve(ntags+1);
+    for (int i = 0; i < ntags; ++i)
+    {
+        auto& tag = tags[i];
+        nwarps.push_back(ntotwarps);
+        ntotwarps += static_cast<int>(tag.dbox.numPts()+Gpu::Device::warp_size-1)/Gpu::Device::warp_size;
+    }
+    nwarps.push_back(ntotwarps);
+
+    std::size_t nbytes = ntags*sizeof(TagType);
+    auto d_tags = static_cast<TagType*>(The_Device_Arena()->alloc(nbytes));
+    Gpu::htod_memcpy(d_tags, tags.data(), nbytes);
+
+    nbytes = (ntags+1)*sizeof(int);
+    auto d_nwarps = static_cast<int*>(The_Device_Arena()->alloc(nbytes));
+    Gpu::htod_memcpy(d_nwarps, nwarps.data(), nbytes);
+
+    constexpr int nthreads = 128;
+    constexpr int nwarps_per_block = nthreads/Gpu::Device::warp_size;
+    int nblocks = (ntotwarps + nwarps_per_block-1) / nwarps_per_block;
+    amrex::launch_global<<<nblocks,nthreads>>>(
+    [=] AMREX_GPU_DEVICE () noexcept
+    {
+        int g_tid = blockDim.x*blockIdx.x + threadIdx.x;
+        int g_wid = g_tid / Gpu::Device::warp_size;
+        if (g_wid >= ntotwarps) return;
+
+        int tag_id;
+        {
+            int lo = 0;
+            int hi = ntags;
+            while (lo <= hi)
+            {
+                int mid = (lo+hi)/2;
+                if (g_wid >= d_nwarps[mid] and g_wid < d_nwarps[mid+1]) {
+                    tag_id = mid;
+                    break;
+                } else if (g_wid < d_nwarps[mid]) {
+                    hi = mid-1;
+                } else {
+                    lo = mid+1;
+                }
+            };
+        }
+
+        auto tag = d_tags[tag_id];
+        int ncells = tag.dbox.numPts();
+        int b_wid = g_wid - d_nwarps[tag_id]; // b_wid'th warp on this box
+        int lane = threadIdx.x % Gpu::Device::warp_size;
+        int icell = b_wid*Gpu::Device::warp_size + lane;
+        if (icell < ncells) {
+            const auto len = amrex::length(tag.dbox);
+            const auto lo  = amrex::lbound(tag.dbox);
+            int k =  icell /   (len.x*len.y);
+            int j = (icell - k*(len.x*len.y)) /   len.x;
+            int i = (icell - k*(len.x*len.y)) - j*len.x;
+            i += lo.x;
+            j += lo.y;
+            k += lo.z;
+            for (int n = 0; n < ncomp; ++n) {
+                f(i,j,k,n,tag.dfab);
+            }
+        }
+    });
+
+    Gpu::synchronize();
+    The_Device_Arena()->free(d_nwarps);
+    The_Device_Arena()->free(d_tags);
+}
+#endif
+
 namespace detail {
 
 #ifdef AMREX_USE_GPU
@@ -411,6 +500,64 @@ FabArray<FAB>::FB_local_copy_gpu (const FB& TheFB, int scomp, int ncomp)
     }
 }
 
+template <class FAB>
+void
+FabArray<FAB>::CMD_local_setVal_gpu (typename FabArray<FAB>::value_type x,
+                                    const CommMetaData& thecmd, int scomp, int ncomp)
+{
+    auto const& LocTags = *(thecmd.m_LocTags);
+    int N_locs = LocTags.size();
+    if (N_locs == 0) return;
+    bool is_thread_safe = thecmd.m_threadsafe_loc;
+
+    typedef Array4BoxTag<value_type> TagType;
+    Vector<TagType> loc_setval_tags;
+    loc_setval_tags.reserve(N_locs);
+
+    AMREX_ALWAYS_ASSERT(amrex::IsStoreAtomic<value_type>::value or is_thread_safe);
+
+    for (int i = 0; i < N_locs; ++i)
+    {
+        const CopyComTag& tag = LocTags[i];
+        BL_ASSERT(distributionMap[tag.dstIndex] == ParallelDescriptor::MyProc());
+        loc_setval_tags.push_back({this->array(tag.dstIndex), tag.dbox});
+    }
+
+    amrex::ParallelFor(loc_setval_tags, ncomp,
+    [x,scomp] AMREX_GPU_DEVICE (int i, int j, int k, int n, Array4<value_type> const& a) noexcept
+    {
+        a(i,j,k,n+scomp) = x;
+    });
+}
+
+template <class FAB>
+void
+FabArray<FAB>::CMD_remote_setVal_gpu (typename FabArray<FAB>::value_type x,
+                                    const CommMetaData& thecmd, int scomp, int ncomp)
+{
+    auto const& RcvTags = *(thecmd.m_RcvTags);
+    bool is_thread_safe = thecmd.m_threadsafe_rcv;
+
+    typedef Array4BoxTag<value_type> TagType;
+    Vector<TagType> rcv_setval_tags;
+
+    for (auto it = RcvTags.begin(); it != RcvTags.end(); ++it) {
+        for (auto const& tag: it->second) {
+            rcv_setval_tags.push_back({this->array(tag.dstIndex), tag.dbox});
+        }
+    }
+
+    if (rcv_setval_tags.empty()) return;
+
+    AMREX_ALWAYS_ASSERT(amrex::IsStoreAtomic<value_type>::value or is_thread_safe);
+
+    amrex::ParallelFor(rcv_setval_tags, ncomp,
+    [x,scomp] AMREX_GPU_DEVICE (int i, int j, int k, int n, Array4<value_type> const& a) noexcept
+    {
+        a(i,j,k,n+scomp) = x;
+    });
+}
+
 #if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10))
 template <class FAB>
 void
@@ -583,7 +730,7 @@ template <class FAB>
 void
 FabArray<FAB>::FB_pack_send_buffer_cuda_graph (const FB& TheFB, int scomp, int ncomp,
                                                Vector<char*>& send_data,
-                                               Vector<int> const& send_size,
+                                               Vector<std::size_t> const& send_size,
                                                Vector<typename FabArray<FAB>::CopyComTagsContainer const*> const& send_cctc)
 {
     const int N_snds = send_data.size();
@@ -657,7 +804,7 @@ FabArray<FAB>::FB_pack_send_buffer_cuda_graph (const FB& TheFB, int scomp, int n
                 
                 dptr += (tag.sbox.numPts() * ncomp * sizeof(value_type));
             }
-            BL_ASSERT(dptr == send_data[j] + send_size[j]); 
+            BL_ASSERT(dptr <= send_data[j] + send_size[j]);
         }
     }
     
@@ -669,7 +816,7 @@ template <class FAB>
 void
 FabArray<FAB>::FB_unpack_recv_buffer_cuda_graph (const FB& TheFB, int dcomp, int ncomp,
                                                  Vector<char*> const& recv_data,
-                                                 Vector<int> const& recv_size,
+                                                 Vector<std::size_t> const& recv_size,
                                                  Vector<CopyComTagsContainer const*> const& recv_cctc,
                                                  bool is_thread_safe)
 {
@@ -690,7 +837,7 @@ FabArray<FAB>::FB_unpack_recv_buffer_cuda_graph (const FB& TheFB, int dcomp, int
                 dptr += tag.dbox.numPts() * ncomp * sizeof(value_type);
                 launches++;
             }
-            BL_ASSERT(dptr == recv_data[k] + recv_size[k]);
+            BL_ASSERT(dptr <= recv_data[k] + recv_size[k]);
         }
     }
   
@@ -753,7 +900,7 @@ template <class FAB>
 void
 FabArray<FAB>::pack_send_buffer_gpu (FabArray<FAB> const& src, int scomp, int ncomp,
                                      Vector<char*>& send_data,
-                                     Vector<int> const& send_size,
+                                     Vector<std::size_t> const& send_size,
                                      Vector<CopyComTagsContainer const*> const& send_cctc)
 {
     const int N_snds = send_data.size();
@@ -774,7 +921,7 @@ FabArray<FAB>::pack_send_buffer_gpu (FabArray<FAB> const& src, int scomp, int nc
                       src.array(tag.srcIndex), tag.sbox, Dim3{0,0,0}});
                 dptr += (tag.sbox.numPts() * ncomp * sizeof(value_type));
             }
-            BL_ASSERT(dptr == send_data[j] + send_size[j]); 
+            BL_ASSERT(dptr <= send_data[j] + send_size[j]);
         }
     }
 
@@ -786,7 +933,7 @@ template <class FAB>
 void
 FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
                                        Vector<char*> const& recv_data,
-                                       Vector<int> const& recv_size,
+                                       Vector<std::size_t> const& recv_size,
                                        Vector<CopyComTagsContainer const*> const& recv_cctc,
                                        CpOp op, bool is_thread_safe)
 {
@@ -829,7 +976,7 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
                     masks.push_back(maskfabs[li].array());
                 }
             }
-            BL_ASSERT(dptr == recv_data[k] + recv_size[k]);
+            BL_ASSERT(dptr <= recv_data[k] + recv_size[k]);
         }
     }
 
@@ -872,7 +1019,7 @@ template <class FAB>
 void
 FabArray<FAB>::pack_send_buffer_cpu (FabArray<FAB> const& src, int scomp, int ncomp,
                                      Vector<char*>& send_data,
-                                     Vector<int> const& send_size,
+                                     Vector<std::size_t> const& send_size,
                                      Vector<CopyComTagsContainer const*> const& send_cctc)
 {
     const int N_snds = send_data.size();
@@ -899,7 +1046,7 @@ FabArray<FAB>::pack_send_buffer_cpu (FabArray<FAB> const& src, int scomp, int nc
                 });
                 dptr += (bx.numPts() * ncomp * sizeof(value_type));
             }
-            BL_ASSERT(dptr == send_data[j] + send_size[j]); 
+            BL_ASSERT(dptr <= send_data[j] + send_size[j]);
         }
     }
 }
@@ -908,7 +1055,7 @@ template <class FAB>
 void
 FabArray<FAB>::unpack_recv_buffer_cpu (FabArray<FAB>& dst, int dcomp, int ncomp,
                                        Vector<char*> const& recv_data,
-                                       Vector<int> const& recv_size,
+                                       Vector<std::size_t> const& recv_size,
                                        Vector<CopyComTagsContainer const*> const& recv_cctc,
                                        CpOp op, bool is_thread_safe)
 {
@@ -940,7 +1087,7 @@ FabArray<FAB>::unpack_recv_buffer_cpu (FabArray<FAB>& dst, int dcomp, int ncomp,
                     }
                     dptr += bx.numPts() * ncomp * sizeof(value_type);
                 }
-                BL_ASSERT(dptr == recv_data[k] + recv_size[k]);
+                BL_ASSERT(dptr <= recv_data[k] + recv_size[k]);
             }
         }
     }
@@ -959,7 +1106,7 @@ FabArray<FAB>::unpack_recv_buffer_cpu (FabArray<FAB>& dst, int dcomp, int ncomp,
                     recv_copy_tags[tag.dstIndex].push_back({dptr,tag.dbox});
                     dptr += tag.dbox.numPts() * ncomp * sizeof(value_type);
                 }
-                BL_ASSERT(dptr == recv_data[k] + recv_size[k]);
+                BL_ASSERT(dptr <= recv_data[k] + recv_size[k]);
             }
         }
 

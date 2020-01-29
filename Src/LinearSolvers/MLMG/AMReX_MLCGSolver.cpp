@@ -123,7 +123,8 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
     {
         amrex::Print() << "MLCGSolver_BiCGStab: Initial error (error0) =        " << rnorm0 << '\n';
     }
-    int ret = 0, nit = 1;
+    int ret = 0;
+    iter = 1;
     Real rho_1 = 0, alpha = 0, omega = 0;
 
     if ( rnorm0 == 0 || rnorm0 < eps_abs )
@@ -137,14 +138,14 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
         return ret;
     }
 
-    for (; nit <= maxiter; ++nit)
+    for (; iter <= maxiter; ++iter)
     {
         const Real rho = dotxy(rh,r);
         if ( rho == 0 ) 
 	{
             ret = 1; break;
 	}
-        if ( nit == 1 )
+        if ( iter == 1 )
         {
             MultiFab::Copy(p,r,0,0,ncomp,nghost);
         }
@@ -177,7 +178,7 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
         if ( verbose > 2 && ParallelDescriptor::IOProcessor() )
         {
             amrex::Print() << "MLCGSolver_BiCGStab: Half Iter "
-                           << std::setw(11) << nit
+                           << std::setw(11) << iter
                            << " rel. err. "
                            << rnorm/(rnorm0) << '\n';
         }
@@ -216,7 +217,7 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
         if ( verbose > 2 )
         {
             amrex::Print() << "MLCGSolver_BiCGStab: Iteration "
-                           << std::setw(11) << nit
+                           << std::setw(11) << iter
                            << " rel. err. "
                            << rnorm/(rnorm0) << '\n';
         }
@@ -233,7 +234,7 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
     if ( verbose > 0 )
     {
         amrex::Print() << "MLCGSolver_BiCGStab: Final: Iteration "
-                       << std::setw(4) << nit
+                       << std::setw(4) << iter
                        << " rel. err. "
                        << rnorm/(rnorm0) << '\n';
     }
@@ -294,9 +295,9 @@ MLCGSolver::solve_cg (MultiFab&       sol,
         amrex::Print() << "MLCGSolver_CG: Initial error (error0) :        " << rnorm0 << '\n';
     }
 
-    Real rho_1         = 0;
-    int  ret           = 0;
-    int  nit           = 1;
+    Real rho_1 = 0;
+    int  ret = 0;
+    iter = 1;
 
     if ( rnorm0 == 0 || rnorm0 < eps_abs )
     {
@@ -308,7 +309,7 @@ MLCGSolver::solve_cg (MultiFab&       sol,
         return ret;
     }
 
-    for (; nit <= maxiter; ++nit)
+    for (; iter <= maxiter; ++iter)
     {
         MultiFab::Copy(z,r,0,0,ncomp,nghost);
 
@@ -318,7 +319,7 @@ MLCGSolver::solve_cg (MultiFab&       sol,
         {
             ret = 1; break;
         }
-        if (nit == 1)
+        if (iter == 1)
         {
             MultiFab::Copy(p,z,0,0,ncomp,nghost);
         }
@@ -342,7 +343,7 @@ MLCGSolver::solve_cg (MultiFab&       sol,
         if ( verbose > 2 )
         {
             amrex::Print() << "MLCGSolver_cg:"
-                           << " nit " << nit
+                           << " iter " << iter
                            << " rho " << rho
                            << " alpha " << alpha << '\n';
         }
@@ -353,7 +354,7 @@ MLCGSolver::solve_cg (MultiFab&       sol,
         if ( verbose > 2 )
         {
             amrex::Print() << "MLCGSolver_cg:       Iteration"
-                           << std::setw(4) << nit
+                           << std::setw(4) << iter
                            << " rel. err. "
                            << rnorm/(rnorm0) << '\n';
         }
@@ -366,7 +367,7 @@ MLCGSolver::solve_cg (MultiFab&       sol,
     if ( verbose > 0 )
     {
         amrex::Print() << "MLCGSolver_cg: Final Iteration"
-                       << std::setw(4) << nit
+                       << std::setw(4) << iter
                        << " rel. err. "
                        << rnorm/(rnorm0) << '\n';
     }
