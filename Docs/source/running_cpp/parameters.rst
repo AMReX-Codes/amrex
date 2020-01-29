@@ -225,7 +225,7 @@ Particle initialization
 
 * ``<species_name>.do_continuous_injection`` (`0` or `1`)
     Whether to inject particles during the simulation, and not only at
-    initialization. This can be required whith a moving window and/or when
+    initialization. This can be required with a moving window and/or when
     running in a boosted frame.
 
 * ``<species_name>.initialize_self_fields`` (`0` or `1`)
@@ -296,7 +296,7 @@ Particle initialization
 
       Note that though the particles may move at relativistic speeds in the simulation frame,
       they are not relativistic in the drift frame. This is as opposed to the Maxwell Juttner
-      setting, which initializes particles with relativistc momentums in their drifting frame.
+      setting, which initializes particles with relativistic momentums in their drifting frame.
 
     * ``maxwell_juttner``: Maxwell-Juttner distribution for high temperature plasma. This mode
       requires a dimensionless temperature parameter ``<species_name>.theta``, where theta is equal
@@ -708,7 +708,7 @@ Laser initialization
     required additional parameters in the input file, namely,
     ``warpx.Ex_external_grid_function(x,y,z)``,
     ``warpx.Ey_external_grid_function(x,y,z)``,
-    ``warpx.Ez_externail_grid_function(x,y,z)`` to initialize the external
+    ``warpx.Ez_external_grid_function(x,y,z)`` to initialize the external
     electric field for each of the three components on the grid.
     Constants required in the expression can be set using ``my_constants``.
     For example, if ``warpx.Ex_external_grid_function(x,y,z)=Eo*x + delta*(y + z)``
@@ -753,7 +753,7 @@ Laser initialization
      This parameter determines the type of initialization for the external
      electric field that is applied directly to the particles at every timestep.
      The "default" style set the external E-field (Ex,Ey,Ez) to (0.0,0.0,0.0).
-     The string can be set to "constant" if a cosntant external E-field is to be
+     The string can be set to "constant" if a constant external E-field is to be
      used in the simulation at every timestep. If this parameter is set to "constant",
      then an additional parameter, namely, ``particles.E_external_particle`` must be
      specified in the input file.
@@ -1104,7 +1104,7 @@ Diagnostics and output
 * ``<reduced_diags_name>.type`` (`string`)
     The type of reduced diagnostics associated with this `<reduced_diags_name>`.
     For example, ``ParticleEnergy`` and ``FieldEnergy``.
-    All available types will be descriped below in detail.
+    All available types will be described below in detail.
     For all reduced diagnostics,
     the first and the second columns in the output file are
     the time step and the corresponding physical time in seconds, respectively.
@@ -1127,7 +1127,7 @@ Diagnostics and output
         total :math:`E_p` of all species,
         :math:`E_p` of each species,
         total mean energy :math:`E_p / \sum w_i`,
-        mean enregy of each species.
+        mean energy of each species.
 
     * ``FieldEnergy``
         This type computes the electric and magnetic field energy.
@@ -1148,6 +1148,45 @@ Diagnostics and output
         total field energy :math:`E_f`,
         :math:`E` field energy,
         :math:`B` field energy, at mesh refinement levels from 0 to :math:`n`.
+
+    * ``BeamRelevant``
+        This type computes some quantities that are relevant to a beam.
+
+        `<reduced_diags_name>.species` must be provided,
+        such that the diagnostics are done for this (beam-like) species only.
+
+        The output columns are the following:
+
+        [1], [2], [3]: The mean values of beam positions
+        :math:`\langle x \rangle`, :math:`\langle y \rangle`,
+        :math:`\langle z \rangle`.
+
+        [4], [5], [6]: The mean values of beam relativistic velocities
+        :math:`\langle u_x \rangle`, :math:`\langle u_y \rangle`,
+        :math:`\langle u_z \rangle`.
+
+        [7]: The mean Lorentz factor :math:`\langle \gamma \rangle`.
+
+        [8], [9], [10]: The RMS values of beam positions
+        :math:`\delta_x = \sqrt{ \langle (x - \langle x \rangle)^2 \rangle }`,
+        :math:`\delta_y = \sqrt{ \langle (y - \langle y \rangle)^2 \rangle }`,
+        :math:`\delta_z = \sqrt{ \langle (z - \langle z \rangle)^2 \rangle }`.
+
+        [11], [12], [13]: The RMS values of beam relativistic velocities
+        :math:`\delta_{ux} = \sqrt{ \langle (u_x - \langle u_x \rangle)^2 \rangle }`,
+        :math:`\delta_{uy} = \sqrt{ \langle (u_y - \langle u_y \rangle)^2 \rangle }`,
+        :math:`\delta_{uz} = \sqrt{ \langle (u_z - \langle u_z \rangle)^2 \rangle }`.
+
+        [14]: The RMS value of the Lorentz factor
+        :math:`\sqrt{ \langle (\gamma - \langle \gamma \rangle)^2 \rangle }`.
+
+        [15], [16], [17]: beam emittance
+        :math:`\epsilon_x = \dfrac{1}{c} \sqrt{\delta_x^2 \delta_{ux}^2 -
+        \Big\langle (x-\langle x \rangle) (u_x-\langle u_x \rangle) \Big\rangle^2}`,
+        :math:`\epsilon_y = \dfrac{1}{c} \sqrt{\delta_y^2 \delta_{uy}^2 -
+        \Big\langle (y-\langle y \rangle) (u_y-\langle u_y \rangle) \Big\rangle^2}`,
+        :math:`\epsilon_z = \dfrac{1}{c} \sqrt{\delta_z^2 \delta_{uz}^2 -
+        \Big\langle (z-\langle z \rangle) (u_z-\langle u_z \rangle) \Big\rangle^2}`.
 
 * ``<reduced_diags_name>.frequency`` (`int`)
     The output frequency (every # time steps).

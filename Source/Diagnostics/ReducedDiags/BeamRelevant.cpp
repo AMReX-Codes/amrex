@@ -19,13 +19,13 @@ BeamRelevant::BeamRelevant (std::string rd_name)
     pp.get("beam_name",m_beam_name);
 
     /// resize data array
-    ///  0 --  2: mean x,y,z
-    ///  3 --  5: mean ux,uy,uz
+    ///  0, 1, 2: mean x,y,z
+    ///  3, 4, 5: mean ux,uy,uz
     ///        6: gamma
-    ///  7 --  9: rms x,y,z
-    /// 10 -- 12: rms ux,uy,uz
+    ///  7, 8, 9: rms x,y,z
+    /// 10,11,12: rms ux,uy,uz
     ///       13: rms gamma
-    /// 14 -- 16: emittance x,y,z
+    /// 14,15,16: emittance x,y,z
     m_data.resize(17,0.0);
 
     if (ParallelDescriptor::IOProcessor())
@@ -34,29 +34,29 @@ BeamRelevant::BeamRelevant (std::string rd_name)
         {
             /// open file
             std::ofstream ofs;
-            ofs.open(m_path + m_rd_name + ".txt",
+            ofs.open(m_path + m_rd_name + "." + m_extension,
                 std::ofstream::out | std::ofstream::app);
             /// write header row
             ofs << "#";
-            ofs << "(1)step";             ofs << m_sep;
-            ofs << "(2)time(s)";          ofs << m_sep;
-            ofs << "(3)x_mean(m)";        ofs << m_sep;
-            ofs << "(4)y_mean(m)";        ofs << m_sep;
-            ofs << "(5)z_mean(m)";        ofs << m_sep;
-            ofs << "(6)ux_mean(m/s)";     ofs << m_sep;
-            ofs << "(7)uy_mean(m/s)";     ofs << m_sep;
-            ofs << "(8)uz_mean(m/s)";     ofs << m_sep;
-            ofs << "(9)gamma_mean";       ofs << m_sep;
-            ofs << "(10)x_rms(m)";        ofs << m_sep;
-            ofs << "(11)y_rms(m)";        ofs << m_sep;
-            ofs << "(12)z_rms(m)";        ofs << m_sep;
-            ofs << "(13)ux_rms(m/s)";     ofs << m_sep;
-            ofs << "(14)uy_rms(m/s)";     ofs << m_sep;
-            ofs << "(15)uz_rms(m/s)";     ofs << m_sep;
-            ofs << "(16)gamma_rms";       ofs << m_sep;
-            ofs << "(17)emittance_x(m)";  ofs << m_sep;
-            ofs << "(18)emittance_y(m)";  ofs << m_sep;
-            ofs << "(19)emittance_z(m)";  ofs << std::endl;
+            ofs << "[1]step";             ofs << m_sep;
+            ofs << "[2]time(s)";          ofs << m_sep;
+            ofs << "[3]x_mean(m)";        ofs << m_sep;
+            ofs << "[4]y_mean(m)";        ofs << m_sep;
+            ofs << "[5]z_mean(m)";        ofs << m_sep;
+            ofs << "[6]ux_mean(m/s)";     ofs << m_sep;
+            ofs << "[7]uy_mean(m/s)";     ofs << m_sep;
+            ofs << "[8]uz_mean(m/s)";     ofs << m_sep;
+            ofs << "[9]gamma_mean";       ofs << m_sep;
+            ofs << "[10]x_rms(m)";        ofs << m_sep;
+            ofs << "[11]y_rms(m)";        ofs << m_sep;
+            ofs << "[12]z_rms(m)";        ofs << m_sep;
+            ofs << "[13]ux_rms(m/s)";     ofs << m_sep;
+            ofs << "[14]uy_rms(m/s)";     ofs << m_sep;
+            ofs << "[15]uz_rms(m/s)";     ofs << m_sep;
+            ofs << "[16]gamma_rms";       ofs << m_sep;
+            ofs << "[17]emittance_x(m)";  ofs << m_sep;
+            ofs << "[18]emittance_y(m)";  ofs << m_sep;
+            ofs << "[19]emittance_z(m)";  ofs << std::endl;
             /// close file
             ofs.close();
         }
@@ -65,7 +65,7 @@ BeamRelevant::BeamRelevant (std::string rd_name)
 }
 ///< end constructor
 
-/// function that compute
+/// function that compute beam relevant quantities
 void BeamRelevant::ComputeDiags (int step)
 {
 
@@ -88,7 +88,7 @@ void BeamRelevant::ComputeDiags (int step)
     for (int i_s = 0; i_s < nSpecies; ++i_s)
     {
 
-        /// only beam species
+        /// only beam species does
         if (species_names[i_s] != m_beam_name) { continue; }
 
         /// get WarpXParticleContainer class object
@@ -249,16 +249,26 @@ void BeamRelevant::ComputeDiags (int step)
         });
 
         /// reduced sum over mpi ranks
-        ParallelDescriptor::ReduceRealSum(x_rms);
-        ParallelDescriptor::ReduceRealSum(y_rms);
-        ParallelDescriptor::ReduceRealSum(z_rms);
-        ParallelDescriptor::ReduceRealSum(ux_rms);
-        ParallelDescriptor::ReduceRealSum(uy_rms);
-        ParallelDescriptor::ReduceRealSum(uz_rms);
-        ParallelDescriptor::ReduceRealSum(gm_rms);
-        ParallelDescriptor::ReduceRealSum(xux);
-        ParallelDescriptor::ReduceRealSum(yuy);
-        ParallelDescriptor::ReduceRealSum(zuz);
+        ParallelDescriptor::ReduceRealSum
+            ( x_rms, ParallelDescriptor::IOProcessorNumber());
+        ParallelDescriptor::ReduceRealSum
+            ( y_rms, ParallelDescriptor::IOProcessorNumber());
+        ParallelDescriptor::ReduceRealSum
+            ( z_rms, ParallelDescriptor::IOProcessorNumber());
+        ParallelDescriptor::ReduceRealSum
+            (ux_rms, ParallelDescriptor::IOProcessorNumber());
+        ParallelDescriptor::ReduceRealSum
+            (uy_rms, ParallelDescriptor::IOProcessorNumber());
+        ParallelDescriptor::ReduceRealSum
+            (uz_rms, ParallelDescriptor::IOProcessorNumber());
+        ParallelDescriptor::ReduceRealSum
+            (gm_rms, ParallelDescriptor::IOProcessorNumber());
+        ParallelDescriptor::ReduceRealSum
+            (   xux, ParallelDescriptor::IOProcessorNumber());
+        ParallelDescriptor::ReduceRealSum
+            (   yuy, ParallelDescriptor::IOProcessorNumber());
+        ParallelDescriptor::ReduceRealSum
+            (   zuz, ParallelDescriptor::IOProcessorNumber());
 
         /// save data
         m_data[0]  = x_mean;
