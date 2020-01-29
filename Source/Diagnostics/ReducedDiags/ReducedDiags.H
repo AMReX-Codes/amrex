@@ -16,6 +16,9 @@ public:
     /// output path (default)
     std::string m_path = "./diags/reducedfiles/";
 
+    /// output extension (default)
+    std::string m_extension = "txt";
+
     /// diags name
     std::string m_rd_name;
 

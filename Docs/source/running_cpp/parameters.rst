@@ -1155,6 +1155,9 @@ Diagnostics and output
 * ``<reduced_diags_name>.path`` (`string`) optional (default `./diags/reducedfiles/`)
     The path that the output file will be stored.
 
+* ``<reduced_diags_name>.extension`` (`string`) optional (default `txt`)
+    The extension of the output file.
+
 * ``<reduced_diags_name>.separator`` (`string`) optional (default `,`)
     The separator between row values in the output file.
     The default separator is comma, i.e. the output file is in
