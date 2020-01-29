@@ -598,7 +598,7 @@ const amrex::Real dyi = 1./dy;
     const amrex::Real Alpha[3] = {
         2*xi*c2*( -7*bx*EVxE - 7*VxE[0]*eb + 4*ex*BVxE ) + VxM[0],
         2*xi*c2*( -7*by*EVxE - 7*VxE[1]*eb + 4*ey*BVxE ) + VxM[1],
-        2*xi*c2*( -7*by*EVxE - 7*VxE[2]*eb + 4*ez*BVxE ) + VxM[2]
+        2*xi*c2*( -7*bz*EVxE - 7*VxE[2]*eb + 4*ez*BVxE ) + VxM[2]
     };
 
     const amrex::Real Omega[3] = {
