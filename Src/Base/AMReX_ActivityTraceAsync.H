@@ -57,14 +57,29 @@ private:
   CUpti_Activity* record_;
   unsigned uintID_;
   const char* charID_;
+  unsigned long long startTime_;
+  unsigned long long endTime_;
+  unsigned long long timeElapsed_;
+  int streamID_;
+  const char* name_;
   
 public:
   void setRecord (CUpti_Activity*) noexcept;
   void setUintID (unsigned) noexcept;
   void setCharID (const char*) noexcept;
+  void setStartTime (unsigned long long) noexcept;
+  void setEndTime (unsigned long long) noexcept;
+  void setTimeElapsed (unsigned long long) noexcept;
+  void setStreamID (int) noexcept;
+  void setName (const char*) noexcept;
   CUpti_Activity* getRecord () noexcept;
   unsigned getUintID () noexcept;
   const char* getCharID () noexcept;
+  unsigned long long getStartTime () noexcept;
+  unsigned long long getEndTime () noexcept;
+  unsigned long long getTimeElapsed () noexcept;
+  int getStreamID () noexcept;
+  const char* getName () noexcept;
 };
 
 class CuptiTrace {
