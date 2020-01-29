@@ -14,11 +14,18 @@ BeamRelevant::BeamRelevant (std::string rd_name)
 : ReducedDiags{rd_name}
 {
 
+    /// RZ coordinate is not working
+    #if (defined WARPX_DIM_RZ)
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(false,
+        "BeamRelevant reduced diagnostics does not work for RZ coordinate.");
+    #endif
+
     /// read beam name
     ParmParse pp(rd_name);
-    pp.get("beam_name",m_beam_name);
+    pp.get("species",m_beam_name);
 
     /// resize data array
+    #if (AMREX_SPACEDIM == 3)
     ///  0, 1, 2: mean x,y,z
     ///  3, 4, 5: mean ux,uy,uz
     ///        6: gamma
@@ -27,6 +34,16 @@ BeamRelevant::BeamRelevant (std::string rd_name)
     ///       13: rms gamma
     /// 14,15,16: emittance x,y,z
     m_data.resize(17,0.0);
+    #elif (AMREX_SPACEDIM == 2)
+    ///     0, 1: mean x,z
+    ///  2, 3, 4: mean ux,uy,uz
+    ///        5: gamma
+    ///     6, 7: rms x,z
+    ///  8, 9,10: rms ux,uy,uz
+    ///       11: rms gamma
+    ///    12,13: emittance x,z
+    m_data.resize(14,0.0);
+    #endif
 
     if (ParallelDescriptor::IOProcessor())
     {
@@ -37,6 +54,7 @@ BeamRelevant::BeamRelevant (std::string rd_name)
             ofs.open(m_path + m_rd_name + "." + m_extension,
                 std::ofstream::out | std::ofstream::app);
             /// write header row
+            #if (AMREX_SPACEDIM == 3)
             ofs << "#";
             ofs << "[1]step";             ofs << m_sep;
             ofs << "[2]time(s)";          ofs << m_sep;
@@ -57,6 +75,25 @@ BeamRelevant::BeamRelevant (std::string rd_name)
             ofs << "[17]emittance_x(m)";  ofs << m_sep;
             ofs << "[18]emittance_y(m)";  ofs << m_sep;
             ofs << "[19]emittance_z(m)";  ofs << std::endl;
+            #elif (AMREX_SPACEDIM == 2)
+            ofs << "#";
+            ofs << "[1]step";             ofs << m_sep;
+            ofs << "[2]time(s)";          ofs << m_sep;
+            ofs << "[3]x_mean(m)";        ofs << m_sep;
+            ofs << "[4]z_mean(m)";        ofs << m_sep;
+            ofs << "[5]ux_mean(m/s)";     ofs << m_sep;
+            ofs << "[6]uy_mean(m/s)";     ofs << m_sep;
+            ofs << "[7]uz_mean(m/s)";     ofs << m_sep;
+            ofs << "[8]gamma_mean";       ofs << m_sep;
+            ofs << "[9]x_rms(m)";         ofs << m_sep;
+            ofs << "[10]z_rms(m)";        ofs << m_sep;
+            ofs << "[11]ux_rms(m/s)";     ofs << m_sep;
+            ofs << "[12]uy_rms(m/s)";     ofs << m_sep;
+            ofs << "[13]uz_rms(m/s)";     ofs << m_sep;
+            ofs << "[14]gamma_rms";       ofs << m_sep;
+            ofs << "[15]emittance_x(m)";  ofs << m_sep;
+            ofs << "[16]emittance_z(m)";  ofs << std::endl;
+            #endif
             /// close file
             ofs.close();
         }
@@ -83,6 +120,13 @@ void BeamRelevant::ComputeDiags (int step)
 
     /// inverse of speed of light squared
     auto inv_c2 = 1.0 / (PhysConst::c * PhysConst::c);
+
+    /// If 2D-XZ, p.pos(1) is z, rather than p.pos(2).
+    #if (AMREX_SPACEDIM == 3)
+    int index_z = 2;
+    #elif (AMREX_SPACEDIM == 2)
+    int index_z = 1;
+    #endif
 
     /// loop over species
     for (int i_s = 0; i_s < nSpecies; ++i_s)
@@ -118,15 +162,17 @@ void BeamRelevant::ComputeDiags (int step)
         [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real
         { return p.pos(0) * p.rdata(PIdx::w) / w_sum; });
 
+        #if (AMREX_SPACEDIM == 3)
         /// y mean
         auto y_mean = ReduceSum( myspc,
         [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real
         { return p.pos(1) * p.rdata(PIdx::w) / w_sum; });
+        #endif
 
         /// z mean
         auto z_mean = ReduceSum( myspc,
         [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real
-        { return p.pos(2) * p.rdata(PIdx::w) / w_sum; });
+        { return p.pos(index_z) * p.rdata(PIdx::w) / w_sum; });
 
         /// ux mean
         auto ux_mean = ReduceSum( myspc,
@@ -156,7 +202,9 @@ void BeamRelevant::ComputeDiags (int step)
 
         /// reduced sum over mpi ranks
         ParallelDescriptor::ReduceRealSum(x_mean);
+        #if (AMREX_SPACEDIM == 3)
         ParallelDescriptor::ReduceRealSum(y_mean);
+        #endif
         ParallelDescriptor::ReduceRealSum(z_mean);
         ParallelDescriptor::ReduceRealSum(ux_mean);
         ParallelDescriptor::ReduceRealSum(uy_mean);
@@ -171,6 +219,7 @@ void BeamRelevant::ComputeDiags (int step)
             return a * p.rdata(PIdx::w) / w_sum;
         });
 
+        #if (AMREX_SPACEDIM == 3)
         /// y rms
         auto y_rms = ReduceSum( myspc,
         [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real
@@ -178,12 +227,13 @@ void BeamRelevant::ComputeDiags (int step)
             auto a = (p.pos(1)-y_mean) * (p.pos(1)-y_mean);
             return a * p.rdata(PIdx::w) / w_sum;
         });
+        #endif
 
         /// z rms
         auto z_rms = ReduceSum( myspc,
         [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real
         {
-            auto a = (p.pos(2)-z_mean) * (p.pos(2)-z_mean);
+            auto a = (p.pos(index_z)-z_mean) * (p.pos(index_z)-z_mean);
             return a * p.rdata(PIdx::w) / w_sum;
         });
 
@@ -232,6 +282,7 @@ void BeamRelevant::ComputeDiags (int step)
             return a * p.rdata(PIdx::w) / w_sum;
         });
 
+        #if (AMREX_SPACEDIM == 3)
         /// y times uy
         auto yuy = ReduceSum( myspc,
         [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real
@@ -239,20 +290,23 @@ void BeamRelevant::ComputeDiags (int step)
             auto a = (p.pos(1)-y_mean) * (p.rdata(PIdx::uy)-uy_mean);
             return a * p.rdata(PIdx::w) / w_sum;
         });
+        #endif
 
         /// z times uz
         auto zuz = ReduceSum( myspc,
         [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real
         {
-            auto a = (p.pos(2)-z_mean) * (p.rdata(PIdx::uz)-uz_mean);
+            auto a = (p.pos(index_z)-z_mean) * (p.rdata(PIdx::uz)-uz_mean);
             return a * p.rdata(PIdx::w) / w_sum;
         });
 
         /// reduced sum over mpi ranks
         ParallelDescriptor::ReduceRealSum
             ( x_rms, ParallelDescriptor::IOProcessorNumber());
+        #if (AMREX_SPACEDIM == 3)
         ParallelDescriptor::ReduceRealSum
             ( y_rms, ParallelDescriptor::IOProcessorNumber());
+        #endif
         ParallelDescriptor::ReduceRealSum
             ( z_rms, ParallelDescriptor::IOProcessorNumber());
         ParallelDescriptor::ReduceRealSum
@@ -265,12 +319,15 @@ void BeamRelevant::ComputeDiags (int step)
             (gm_rms, ParallelDescriptor::IOProcessorNumber());
         ParallelDescriptor::ReduceRealSum
             (   xux, ParallelDescriptor::IOProcessorNumber());
+        #if (AMREX_SPACEDIM == 3)
         ParallelDescriptor::ReduceRealSum
             (   yuy, ParallelDescriptor::IOProcessorNumber());
+        #endif
         ParallelDescriptor::ReduceRealSum
             (   zuz, ParallelDescriptor::IOProcessorNumber());
 
         /// save data
+        #if (AMREX_SPACEDIM == 3)
         m_data[0]  = x_mean;
         m_data[1]  = y_mean;
         m_data[2]  = z_mean;
@@ -288,6 +345,22 @@ void BeamRelevant::ComputeDiags (int step)
         m_data[14] = std::sqrt(std::abs(x_rms*ux_rms-xux*xux)) / PhysConst::c;
         m_data[15] = std::sqrt(std::abs(y_rms*uy_rms-yuy*yuy)) / PhysConst::c;
         m_data[16] = std::sqrt(std::abs(z_rms*uz_rms-zuz*zuz)) / PhysConst::c;
+        #elif (AMREX_SPACEDIM == 2)
+        m_data[0]  = x_mean;
+        m_data[1]  = z_mean;
+        m_data[2]  = ux_mean;
+        m_data[3]  = uy_mean;
+        m_data[4]  = uz_mean;
+        m_data[5]  = gm_mean;
+        m_data[6]  = std::sqrt(x_rms);
+        m_data[7]  = std::sqrt(z_rms);
+        m_data[8]  = std::sqrt(ux_rms);
+        m_data[9]  = std::sqrt(uy_rms);
+        m_data[10] = std::sqrt(uz_rms);
+        m_data[11] = std::sqrt(gm_rms);
+        m_data[12] = std::sqrt(std::abs(x_rms*ux_rms-xux*xux)) / PhysConst::c;
+        m_data[13] = std::sqrt(std::abs(z_rms*uz_rms-zuz*zuz)) / PhysConst::c;
+        #endif
 
     }
     ///< end loop over species
