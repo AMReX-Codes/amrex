@@ -9,6 +9,10 @@ Input parameters
 Overall simulation parameters
 -----------------------------
 
+* ``authors`` (`string`: e.g. ``"Jane Doe <jane@example.com>, Jimmy Joe <jimmy@example.com>"``)
+    Authors of an input file / simulation setup.
+    When provided, this information is added as metadata to (openPMD) output files.
+
 * ``max_step`` (`integer`)
     The number of PIC cycles to perform.
 
@@ -883,8 +887,9 @@ Numerics and algorithms
     synchronized periodically.
 
 * ``warpx.use_hybrid_QED`` ('bool'; default: 0)
-    Will use the Hybird QED Maxwell solver. When pushing fields. Note that this option can only be
-    used with the PSATD pusher, and warpx.do_nodal must be set to `1`.
+    Will use the Hybird QED Maxwell solver when pushing fields. Note that this option can only be
+    used with the PSATD build. Furthermore, warpx.do_nodal must be set to `1` which is not its
+    default value.
 
 Boundary conditions
 -------------------
@@ -1042,7 +1047,7 @@ Diagnostics and output
     time interval is expressed in the laboratory frame).
 
 * ``slice.particle_slice_width_lab`` (`float`, in meters)
-    Only used when ``warpx.do_boosted_frame_diagnostic`` is ``1`` and
+    Only used when ``warpx.do_back_transformed_diagnostics`` is ``1`` and
     ``slice.num_slice_snapshots_lab`` is non-zero. Particles are
     copied from the full back-transformed diagnostic to the reduced
     slice diagnostic if there are within the user-defined width from
