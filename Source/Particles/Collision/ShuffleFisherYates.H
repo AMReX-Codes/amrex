@@ -23,13 +23,13 @@ void ShuffleFisherYates (T_index *array, T_index const is, T_index const ie)
     T_index buf;
     for (int i = ie-1; i >= is+1; --i)
     {
-        // get random number j: is <= j <= i
+        /// get random number j: is <= j <= i
         j = amrex::Random_int(i-is+1) + is;
-        // swop the ith array element with the jth
+        /// swop the ith array element with the jth
         buf      = array[i];
         array[i] = array[j];
         array[j] = buf;
     }
 }
 
-#endif // WARPX_PARTICLES_COLLISION_SHUFFLE_FISHER_YATES_H_
+#endif ///< WARPX_PARTICLES_COLLISION_SHUFFLE_FISHER_YATES_H_
