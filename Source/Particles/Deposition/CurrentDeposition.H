@@ -88,7 +88,7 @@ void doDepositionShapeN(const GetPosition& get_position,
                 wq *= ion_lev[ip];
             }
 
-            amrex::Real xp, yp, zp;
+            amrex::ParticleReal xp, yp, zp;
             get_position(ip, xp, yp, zp);
 
             const amrex::Real vx  = uxp[ip]*gaminv;
@@ -311,7 +311,7 @@ void doEsirkepovDepositionShapeN (const GetPosition& get_position,
                 wq *= ion_lev[ip];
             }
 
-            Real xp, yp, zp;
+            ParticleReal xp, yp, zp;
             get_position(ip, xp, yp, zp);
 
             Real const wqx = wq*invdtdx;

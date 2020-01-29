@@ -749,7 +749,7 @@ WarpXParticleContainer::PushX (int lev, amrex::Real dt)
             // Loop over the particles and update their position
             amrex::ParallelFor( pti.numParticles(),
                 [=] AMREX_GPU_DEVICE (long i) {
-                                    Real x, y, z;
+                                    ParticleReal x, y, z;
 #ifndef WARPX_DIM_RZ
                                     get_position(i, x, y, z);
                                     UpdatePosition(x, y, z, ux[i], uy[i], uz[i], dt);

@@ -78,7 +78,7 @@ PhotonParticleContainer::PushPX(WarpXParIter& pti, Real dt, DtType a_dt_type)
     amrex::ParallelFor(
         pti.numParticles(),
         [=] AMREX_GPU_DEVICE (long i) {
-            Real x, y, z;
+            ParticleReal x, y, z;
             get_position(i, x, y, z);
             UpdatePositionPhoton( x, y, z, ux[i], uy[i], uz[i], dt );
             set_position(i, x, y, z);

@@ -55,7 +55,7 @@ void doChargeDepositionShapeN(const GetPosition& get_position,
                 wq *= ion_lev[ip];
             }
 
-            amrex::Real xp, yp, zp;
+            amrex::ParticleReal xp, yp, zp;
             get_position(ip, xp, yp, zp);
 
             // --- Compute shape factors

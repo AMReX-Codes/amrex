@@ -73,7 +73,7 @@ void doGatherShapeN(const GetPosition& get_position,
         np_to_gather,
         [=] AMREX_GPU_DEVICE (long ip) {
 
-            amrex::Real xp, yp, zp;
+            amrex::ParticleReal xp, yp, zp;
             get_position(ip, xp, yp, zp);
 
             // --- Compute shape factors

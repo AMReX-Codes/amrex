@@ -585,7 +585,7 @@ LaserParticleContainer::calculate_laser_plane_coordinates (const WarpXParIter& p
     amrex::ParallelFor(
         np,
         [=] AMREX_GPU_DEVICE (int i) {
-            Real x, y, z;
+            ParticleReal x, y, z;
             get_position(i, x, y, z);
 #if (defined WARPX_DIM_3D) || (defined WARPX_DIM_RZ)
             pplane_Xp[i] =
@@ -662,7 +662,7 @@ LaserParticleContainer::update_laser_particle(WarpXParIter& pti,
             puzp[i] = gamma * vz;
 
             // Push the the particle positions
-            Real x, y, z;
+            ParticleReal x, y, z;
             get_position(i, x, y, z);
             x += vx * dt;
 #if (defined WARPX_DIM_3D) || (defined WARPX_DIM_RZ)
