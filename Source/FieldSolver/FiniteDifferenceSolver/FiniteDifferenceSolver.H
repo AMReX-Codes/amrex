@@ -6,7 +6,8 @@
 /**
  * \brief Top-level class for the electromagnetic finite-difference solver
  *
- * TODO
+ * Stores the coefficients of the finite-difference stencils,
+ * and has member functions to update fields over one time step.
  */
 class FiniteDifferenceSolver
 {
