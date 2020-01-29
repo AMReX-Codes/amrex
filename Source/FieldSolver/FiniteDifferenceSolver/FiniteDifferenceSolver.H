@@ -13,16 +13,14 @@ class FiniteDifferenceSolver
 {
     public:
 
-        using VectorField = std::array< std::unique_ptr<amrex::MultiFab>, 3 >;
-
         // Constructor
         FiniteDifferenceSolver (
             int const fdtd_algo,
             std::array<amrex::Real,3> cell_size,
             bool const do_nodal );
 
-        void EvolveB ( VectorField& Bfield,
-                       VectorField const& Efield,
+        void EvolveB ( std::array< std::unique_ptr<amrex::MultiFab>, 3 >& Bfield,
+                       std::array< std::unique_ptr<amrex::MultiFab>, 3 > const& Efield,
                        amrex::Real const dt );
     private:
 
@@ -46,14 +44,16 @@ class FiniteDifferenceSolver
 
 #ifdef WARPX_DIM_RZ
         template< typename T_Algo >
-        void EvolveBCylindrical ( VectorField& Bfield,
-                               VectorField const& Efield,
-                               amrex::Real const dt );
+        void EvolveBCylindrical (
+            std::array< std::unique_ptr<amrex::MultiFab>, 3 >& Bfield,
+            std::array< std::unique_ptr<amrex::MultiFab>, 3 > const& Efield,
+            amrex::Real const dt );
 #else
         template< typename T_Algo >
-        void EvolveBCartesian ( VectorField& Bfield,
-                               VectorField const& Efield,
-                               amrex::Real const dt );
+        void EvolveBCartesian (
+            std::array< std::unique_ptr<amrex::MultiFab>, 3 >& Bfield,
+            std::array< std::unique_ptr<amrex::MultiFab>, 3 > const& Efield,
+            amrex::Real const dt );
 #endif
 
 };

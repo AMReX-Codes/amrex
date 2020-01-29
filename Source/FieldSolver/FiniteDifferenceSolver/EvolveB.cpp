@@ -11,22 +11,34 @@
 
 using namespace amrex;
 
-void FiniteDifferenceSolver::EvolveB ( VectorField& Bfield,
-                                       VectorField const& Efield,
-                                       amrex::Real const dt ) {
+/**
+ * \brief Update the B field, over one timestep
+ */
+void FiniteDifferenceSolver::EvolveB (
+    std::array< std::unique_ptr<amrex::MultiFab>, 3 >& Bfield,
+    std::array< std::unique_ptr<amrex::MultiFab>, 3 > const& Efield,
+    amrex::Real const dt ) {
 
    // Select algorithm (The choice of algorithm is a runtime option,
    // but we compile code for each algorithm, using templates)
 #ifdef WARPX_DIM_RZ
     if (m_fdtd_algo == MaxwellSolverAlgo::Yee){
+
         EvolveBCylindrical <CylindricalYeeAlgorithm> ( Bfield, Efield, dt );
+
 #else
     if (m_do_nodal) {
+
         EvolveBCartesian <NodalAlgorithm> ( Bfield, Efield, dt );
+
     } else if (m_fdtd_algo == MaxwellSolverAlgo::Yee) {
+
         EvolveBCartesian <YeeAlgorithm> ( Bfield, Efield, dt );
+
     } else if (m_fdtd_algo == MaxwellSolverAlgo::CKC) {
+
         EvolveBCartesian <CKCAlgorithm> ( Bfield, Efield, dt );
+
 #endif
     } else {
         amrex::Abort("Unknown algorithm");
@@ -34,12 +46,14 @@ void FiniteDifferenceSolver::EvolveB ( VectorField& Bfield,
 
 }
 
+
 #ifndef WARPX_DIM_RZ
 
 template<typename T_Algo>
-void FiniteDifferenceSolver::EvolveBCartesian ( VectorField& Bfield,
-                                               VectorField const& Efield,
-                                               amrex::Real const dt ) {
+void FiniteDifferenceSolver::EvolveBCartesian (
+    std::array< std::unique_ptr<amrex::MultiFab>, 3 >& Bfield,
+    std::array< std::unique_ptr<amrex::MultiFab>, 3 > const& Efield,
+    amrex::Real const dt ) {
 
     // Loop through the grids, and over the tiles within each grid
 #ifdef _OPENMP
@@ -95,9 +109,10 @@ void FiniteDifferenceSolver::EvolveBCartesian ( VectorField& Bfield,
 #else // corresponds to ifndef WARPX_DIM_RZ
 
 template<typename T_Algo>
-void FiniteDifferenceSolver::EvolveBCylindrical ( VectorField& Bfield,
-                                               VectorField const& Efield,
-                                               amrex::Real const dt ) {
+void FiniteDifferenceSolver::EvolveBCylindrical (
+    std::array< std::unique_ptr<amrex::MultiFab>, 3 >& Bfield,
+    std::array< std::unique_ptr<amrex::MultiFab>, 3 > const& Efield,
+    amrex::Real const dt ) {
 
     // Loop through the grids, and over the tiles within each grid
 #ifdef _OPENMP

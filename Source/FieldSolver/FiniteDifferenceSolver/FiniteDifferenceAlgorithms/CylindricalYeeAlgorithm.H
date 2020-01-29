@@ -22,7 +22,7 @@ struct CylindricalYeeAlgorithm {
     /** Applies the differential operator `1/r * d(rF)/dr`,
      * where `F` is on a *nodal* grid in `r`
      * and the differential operator is evaluated on *cell-centered* grid.
-     * The input parameter `r` is given at the cell-centered position*/
+     * The input parameter `r` is given at the cell-centered position */
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     static amrex::Real UpwardDrr_over_r(
         amrex::Array4<amrex::Real> const& F,
@@ -34,6 +34,8 @@ struct CylindricalYeeAlgorithm {
         return 1./r * inv_dr*( (r+0.5*dr)*F(i+1,j,k,comp) - (r-0.5*dr)*F(i,j,k,comp) );
     };
 
+    /**
+    /* Perform derivative along r on a cell-centered grid, from a nodal field `F`*/
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     static amrex::Real UpwardDr(
         amrex::Array4<amrex::Real> const& F,
@@ -44,6 +46,8 @@ struct CylindricalYeeAlgorithm {
         return inv_dr*( F(i+1,j,k,comp) - F(i,j,k,comp) );
     };
 
+    /**
+    /* Perform derivative along r on a nodal grid, from a cell-centered field `F`*/
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     static amrex::Real DownwardDr(
         amrex::Array4<amrex::Real> const& F,
@@ -54,6 +58,8 @@ struct CylindricalYeeAlgorithm {
         return inv_dr*( F(i,j,k,comp) - F(i-1,j,k,comp) );
     };
 
+    /**
+    /* Perform derivative along z on a cell-centered grid, from a nodal field `F`*/
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     static amrex::Real UpwardDz(
         amrex::Array4<amrex::Real> const& F,
@@ -64,6 +70,8 @@ struct CylindricalYeeAlgorithm {
         return inv_dz*( F(i,j+1,k,comp) - F(i,j,k,comp) );
     };
 
+    /**
+    /* Perform derivative along z on a nodal grid, from a cell-centered field `F`*/
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     static amrex::Real DownwardDz(
         amrex::Array4<amrex::Real> const& F,
@@ -74,6 +82,7 @@ struct CylindricalYeeAlgorithm {
         return inv_dz*( F(i,j,k,comp) - F(i,j-1,k,comp) );
     };
 
+    /** Divide by the radius `r` and avoid potential singularities */
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     static amrex::Real DivideByR(
         amrex::Array4<amrex::Real> const& F,

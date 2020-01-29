@@ -22,6 +22,10 @@ struct NodalAlgorithm {
         stencil_coefs_z[0] = 1./cell_size[2];
     }
 
+    /**
+    /* Perform derivative along x
+    /* (For a solver on a staggered grid, `UpwardDx` and `DownwardDx` take into
+    /* account the staggering; but for `NodalAlgorithm`, they are equivalent) */
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     static amrex::Real UpwardDx(
         amrex::Array4<amrex::Real> const& F,
@@ -32,8 +36,12 @@ struct NodalAlgorithm {
         return 0.5*inv_dx*( F(i+1,j,k) - F(i-1,j,k) );
     };
 
+    /**
+    /* Perform derivative along x
+    /* (For a solver on a staggered grid, `UpwardDx` and `DownwardDx` take into
+    /* account the staggering; but for `NodalAlgorithm`, they are equivalent) */
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    static amrex::Real DownwardDx(
+    static amrex::Real Downwardx(
         amrex::Array4<amrex::Real> const& F,
         amrex::Real const* coefs_x, int const n_coefs_x,
         int const i, int const j, int const k ) {
@@ -42,34 +50,46 @@ struct NodalAlgorithm {
         return 0.5*inv_dx*( F(i+1,j,k) - F(i-1,j,k) );
     };
 
+    /**
+    /* Perform derivative along y
+    /* (For a solver on a staggered grid, `UpwardDy` and `DownwardDy` take into
+    /* account the staggering; but for `NodalAlgorithm`, they are equivalent) */
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     static amrex::Real UpwardDy(
         amrex::Array4<amrex::Real> const& F,
         amrex::Real const* coefs_y, int const n_coefs_y,
         int const i, int const j, int const k ) {
 
-        #if defined WARPX_DIM_3D
+#        if defined WARPX_DIM_3D
             amrex::Real inv_dy = coefs_y[0];
             return 0.5*inv_dy*( F(i,j+1,k) - F(i,j-1,k) );
-        #elif (defined WARPX_DIM_XZ)
+#        elif (defined WARPX_DIM_XZ)
             return 0; // 2D Cartesian: derivative along y is 0
-        #endif
+#        endif
     };
 
+    /**
+    /* Perform derivative along y
+    /* (For a solver on a staggered grid, `UpwardDy` and `DownwardDy` take into
+    /* account the staggering; but for `NodalAlgorithm`, they are equivalent) */
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    static amrex::Real DownwardDy(
+    static amrex::Real Downwardy(
         amrex::Array4<amrex::Real> const& F,
         amrex::Real const* coefs_y, int const n_coefs_y,
         int const i, int const j, int const k ) {
 
-        #if defined WARPX_DIM_3D
+#        if defined WARPX_DIM_3D
             amrex::Real inv_dy = coefs_y[0];
             return 0.5*inv_dy*( F(i,j+1,k) - F(i,j-1,k) );
-        #elif (defined WARPX_DIM_XZ)
+#        elif (defined WARPX_DIM_XZ)
             return 0; // 2D Cartesian: derivative along y is 0
-        #endif
+#        endif
     };
 
+    /**
+    /* Perform derivative along z
+    /* (For a solver on a staggered grid, `UpwardDz` and `DownwardDz` take into
+    /* account the staggering; but for `NodalAlgorithm`, they are equivalent) */
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     static amrex::Real UpwardDz(
         amrex::Array4<amrex::Real> const& F,
@@ -77,25 +97,29 @@ struct NodalAlgorithm {
         int const i, int const j, int const k ) {
 
         amrex::Real inv_dz = coefs_z[0];
-        #if defined WARPX_DIM_3D
+#        if defined WARPX_DIM_3D
             return 0.5*inv_dz*( F(i,j,k+1) - F(i,j,k-1) );
-        #elif (defined WARPX_DIM_XZ)
+#        elif (defined WARPX_DIM_XZ)
             return 0.5*inv_dz*( F(i,j+1,k) - F(i,j-1,k) );
-        #endif
+#        endif
     };
 
+    /**
+    /* Perform derivative along z
+    /* (For a solver on a staggered grid, `UpwardDz` and `DownwardDz` take into
+    /* account the staggering; but for `NodalAlgorithm`, they are equivalent) */
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    static amrex::Real DownwardDz(
+    static amrex::Real Downwardz(
         amrex::Array4<amrex::Real> const& F,
         amrex::Real const* coefs_z, int const n_coefs_z,
         int const i, int const j, int const k ) {
 
         amrex::Real inv_dz = coefs_z[0];
-        #if defined WARPX_DIM_3D
+#        if defined WARPX_DIM_3D
             return 0.5*inv_dz*( F(i,j,k+1) - F(i,j,k-1) );
-        #elif (defined WARPX_DIM_XZ)
+#        elif (defined WARPX_DIM_XZ)
             return 0.5*inv_dz*( F(i,j+1,k) - F(i,j-1,k) );
-        #endif
+#        endif
     };
 
 };

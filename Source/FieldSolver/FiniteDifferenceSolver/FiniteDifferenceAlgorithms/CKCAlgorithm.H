@@ -23,7 +23,7 @@ struct CKCAlgorithm {
         Real const inv_dx = 1./cell_size[0];
         Real const inv_dy = 1./cell_size[1];
         Real const inv_dz = 1./cell_size[2];
-        #if defined WARPX_DIM_3D
+#        if defined WARPX_DIM_3D
             const Real delta = std::max( { inv_dx,inv_dy,inv_dz } );
             const Real rx = (inv_dx/delta)*(inv_dx/delta);
             const Real ry = (inv_dy/delta)*(inv_dy/delta);
@@ -53,7 +53,7 @@ struct CKCAlgorithm {
             gammax *= inv_dx;
             gammay *= inv_dy;
             gammaz *= inv_dz;
-        #elif defined WARPX_DIM_XZ
+#        elif defined WARPX_DIM_XZ
             const Real delta = std::max(inv_dx,inv_dz);
             const Real rx = (inv_dx/delta)*(inv_dx/delta);
             const Real rz = (inv_dz/delta)*(inv_dz/delta);
@@ -65,7 +65,7 @@ struct CKCAlgorithm {
             betazx *= inv_dz;
             alphax *= inv_dx;
             alphaz *= inv_dz;
-        #endif
+#        endif
 
         // Store the coefficients in array `stencil_coefs`, in prescribed order
         stencil_coefs_x.resize(6);
@@ -88,6 +88,8 @@ struct CKCAlgorithm {
         stencil_coefs_z[4] = gammaz;
     }
 
+    /**
+    /* Perform derivative along x on a cell-centered grid, from a nodal field `F`*/
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     static amrex::Real UpwardDx(
         amrex::Array4<amrex::Real> const& F,
@@ -98,7 +100,7 @@ struct CKCAlgorithm {
         amrex::Real betaxy = coefs_x[2];
         amrex::Real betaxz = coefs_x[3];
         amrex::Real gammax = coefs_x[4];
-        #if defined WARPX_DIM_3D
+#        if defined WARPX_DIM_3D
             return alphax * (F(i+1,j  ,k  ) - F(i,  j,  k  ))
                  + betaxy * (F(i+1,j+1,k  ) - F(i  ,j+1,k  )
                           +  F(i+1,j-1,k  ) - F(i  ,j-1,k  ))
@@ -108,15 +110,17 @@ struct CKCAlgorithm {
                           +  F(i+1,j-1,k+1) - F(i  ,j-1,k+1)
                           +  F(i+1,j+1,k-1) - F(i  ,j+1,k-1)
                           +  F(i+1,j-1,k-1) - F(i  ,j-1,k-1));
-        #elif (defined WARPX_DIM_XZ)
+#        elif (defined WARPX_DIM_XZ)
             return alphax * (F(i+1,j  ,k  ) - F(i,  j,  k  ))
                  + betaxz * (F(i+1,j+1,k  ) - F(i  ,j+1,k  )
                           +  F(i+1,j-1,k  ) - F(i  ,j-1,k  ));
-        #endif
+#        endif
     };
 
+    /**
+    /* Perform derivative along x on a nodal grid, from a cell-centered field `F`*/
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    static amrex::Real DownwardDx(
+    static amrex::Real Downwardx(
         amrex::Array4<amrex::Real> const& F,
         amrex::Real const* coefs_x, int const n_coefs_x,
         int const i, int const j, int const k ) {
@@ -125,13 +129,15 @@ struct CKCAlgorithm {
         return inv_dx*( F(i,j,k) - F(i-1,j,k) );
     };
 
+    /**
+    /* Perform derivative along y on a cell-centered grid, from a nodal field `F`*/
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     static amrex::Real UpwardDy(
         amrex::Array4<amrex::Real> const& F,
         amrex::Real const* coefs_y, int const n_coefs_y,
         int const i, int const j, int const k ) {
 
-        #if defined WARPX_DIM_3D
+#        if defined WARPX_DIM_3D
             amrex::Real alphay = coefs_y[1];
             amrex::Real betayz = coefs_y[2];
             amrex::Real betayx = coefs_y[3];
@@ -145,25 +151,29 @@ struct CKCAlgorithm {
                           +  F(i-1,j+1,k+1) - F(i-1,j  ,k+1)
                           +  F(i+1,j+1,k-1) - F(i+1,j  ,k-1)
                           +  F(i-1,j+1,k-1) - F(i-1,j  ,k-1));
-        #elif (defined WARPX_DIM_XZ)
+#        elif (defined WARPX_DIM_XZ)
             return 0; // 2D Cartesian: derivative along y is 0
-        #endif
+#        endif
     };
 
+    /**
+    /* Perform derivative along y on a nodal grid, from a cell-centered field `F`*/
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    static amrex::Real DownwardDy(
+    static amrex::Real Downwardy(
         amrex::Array4<amrex::Real> const& F,
         amrex::Real const* coefs_y, int const n_coefs_y,
         int const i, int const j, int const k ) {
 
-        #if defined WARPX_DIM_3D
+#        if defined WARPX_DIM_3D
             amrex::Real inv_dy = coefs_y[0];
             return inv_dy*( F(i,j,k) - F(i,j-1,k) );
-        #elif (defined WARPX_DIM_XZ)
+#        elif (defined WARPX_DIM_XZ)
             return 0; // 2D Cartesian: derivative along y is 0
-        #endif
+#        endif
     };
 
+    /**
+    /* Perform derivative along z on a cell-centered grid, from a nodal field `F`*/
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     static amrex::Real UpwardDz(
         amrex::Array4<amrex::Real> const& F,
@@ -174,7 +184,7 @@ struct CKCAlgorithm {
         amrex::Real betazx = coefs_z[2];
         amrex::Real betazy = coefs_z[3];
         amrex::Real gammaz = coefs_z[4];
-        #if defined WARPX_DIM_3D
+#        if defined WARPX_DIM_3D
             return alphaz * (F(i  ,j  ,k+1) - F(i  ,j  ,k  ))
                  + betazx * (F(i+1,j  ,k+1) - F(i+1,j  ,k  )
                           +  F(i-1,j  ,k+1) - F(i-1,j  ,k  ))
@@ -184,25 +194,27 @@ struct CKCAlgorithm {
                           +  F(i-1,j+1,k+1) - F(i-1,j+1,k  )
                           +  F(i+1,j-1,k+1) - F(i+1,j-1,k  )
                           +  F(i-1,j-1,k+1) - F(i-1,j-1,k  ));
-        #elif (defined WARPX_DIM_XZ)
+#        elif (defined WARPX_DIM_XZ)
             return alphaz * (F(i  ,j+1,k  ) - F(i  ,j  ,k  ))
                  + betazx * (F(i+1,j+1,k  ) - F(i+1,j  ,k  )
                           +  F(i-1,j+1,k  ) - F(i-1,j  ,k  ));
-        #endif
+#        endif
     };
 
+    /**
+    /* Perform derivative along z on a nodal grid, from a cell-centered field `F`*/
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    static amrex::Real DownwardDz(
+    static amrex::Real Downwardz(
         amrex::Array4<amrex::Real> const& F,
         amrex::Real const* coefs_z, int const n_coefs_z,
         int const i, int const j, int const k ) {
 
         amrex::Real inv_dz = coefs_z[0];
-        #if defined WARPX_DIM_3D
+#        if defined WARPX_DIM_3D
             return inv_dz*( F(i,j,k) - F(i,j,k-1) );
-        #elif (defined WARPX_DIM_XZ)
+#        elif (defined WARPX_DIM_XZ)
             return inv_dz*( F(i,j,k) - F(i,j-1,k) );
-        #endif
+#        endif
     };
 
 };

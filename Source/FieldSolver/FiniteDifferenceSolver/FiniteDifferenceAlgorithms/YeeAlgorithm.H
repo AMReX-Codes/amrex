@@ -22,6 +22,8 @@ struct YeeAlgorithm {
         stencil_coefs_z[0] = 1./cell_size[2];
     }
 
+    /**
+    /* Perform derivative along x on a cell-centered grid, from a nodal field `F`*/
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     static amrex::Real UpwardDx(
         amrex::Array4<amrex::Real> const& F,
@@ -32,8 +34,10 @@ struct YeeAlgorithm {
         return inv_dx*( F(i+1,j,k) - F(i,j,k) );
     };
 
+    /**
+    /* Perform derivative along x on a nodal grid, from a cell-centered field `F`*/
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    static amrex::Real DownwardDx(
+    static amrex::Real Downwardx(
         amrex::Array4<amrex::Real> const& F,
         amrex::Real const* coefs_x, int const n_coefs_x,
         int const i, int const j, int const k ) {
@@ -42,6 +46,8 @@ struct YeeAlgorithm {
         return inv_dx*( F(i,j,k) - F(i-1,j,k) );
     };
 
+    /**
+    /* Perform derivative along y on a cell-centered grid, from a nodal field `F`*/
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     static amrex::Real UpwardDy(
         amrex::Array4<amrex::Real> const& F,
@@ -56,8 +62,10 @@ struct YeeAlgorithm {
         #endif
     };
 
+    /**
+    /* Perform derivative along y on a nodal grid, from a cell-centered field `F`*/
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    static amrex::Real DownwardDy(
+    static amrex::Real Downwardy(
         amrex::Array4<amrex::Real> const& F,
         amrex::Real const* coefs_y, int const n_coefs_y,
         int const i, int const j, int const k ) {
@@ -70,7 +78,9 @@ struct YeeAlgorithm {
         #endif
     };
 
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    /**
+    /* Perform derivative along z on a cell-centered grid, from a nodal field `F`*/
+   AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     static amrex::Real UpwardDz(
         amrex::Array4<amrex::Real> const& F,
         amrex::Real const* coefs_z, int const n_coefs_z,
@@ -84,8 +94,10 @@ struct YeeAlgorithm {
         #endif
     };
 
+    /**
+    /* Perform derivative along z on a nodal grid, from a cell-centered field `F`*/
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    static amrex::Real DownwardDz(
+    static amrex::Real Downwardz(
         amrex::Array4<amrex::Real> const& F,
         amrex::Real const* coefs_z, int const n_coefs_z,
         int const i, int const j, int const k ) {
