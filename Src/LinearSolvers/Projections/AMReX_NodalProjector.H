@@ -86,6 +86,7 @@ private:
     void setOptions ();
     void setCoarseBoundaryVelocityForSync ();
     void computeSyncResidual ();
+    void averageDown (const amrex::Vector<amrex::MultiFab*> a_var);
 
     bool m_has_rhs   = false;
     bool m_has_alpha = false;
