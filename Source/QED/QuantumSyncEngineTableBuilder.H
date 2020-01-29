@@ -1,3 +1,9 @@
+/* Copyright 2019 Luca Fedeli
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #ifndef WARPX_quantum_sync_engine_table_builder_h_
 #define WARPX_quantum_sync_engine_table_builder_h_
 

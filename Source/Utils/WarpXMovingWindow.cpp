@@ -1,3 +1,11 @@
+/* Copyright 2019-2020 Andrew Myers, Axel Huebl, Maxence Thevenet
+ * Remi Lehe, Revathi Jambunathan, Weiqun Zhang
+ *
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #include "GuardCellManager.H"
 #include <WarpX.H>
 #include <WarpXUtil.H>

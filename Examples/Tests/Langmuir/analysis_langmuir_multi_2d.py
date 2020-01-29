@@ -1,5 +1,13 @@
 #! /usr/bin/env python
 
+# Copyright 2019 Jean-Luc Vay, Maxence Thevenet, Remi Lehe
+#
+#
+# This file is part of WarpX.
+#
+# License: BSD-3-Clause-LBNL
+
+
 # This is a script that analyses the simulation results from
 # the script `inputs.multi.rt`. This simulates a 3D periodic plasma wave.
 # The electric field in the simulation is given (in theory) by:

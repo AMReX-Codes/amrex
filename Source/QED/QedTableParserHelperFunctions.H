@@ -1,3 +1,9 @@
+/* Copyright 2019 Luca Fedeli, Maxence Thevenet
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #ifndef WARPX_amrex_qed_table_parser_helper_functions_h_
 #define WARPX_amrex_qed_table_parser_helper_functions_h_
 

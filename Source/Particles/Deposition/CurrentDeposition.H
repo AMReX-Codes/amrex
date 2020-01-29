@@ -1,3 +1,10 @@
+/* Copyright 2019 Axel Huebl, David Grote, Maxence Thevenet
+ * Remi Lehe, Weiqun Zhang
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #ifndef CURRENTDEPOSITION_H_
 #define CURRENTDEPOSITION_H_
 

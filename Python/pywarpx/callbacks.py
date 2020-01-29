@@ -1,3 +1,9 @@
+# Copyright 2017 David Grote
+#
+# This file is part of WarpX.
+#
+# License: BSD-3-Clause-LBNL
+
 """call back operations
 =====================
 

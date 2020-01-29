@@ -1,4 +1,11 @@
 #! /usr/bin/env python
+
+# Copyright 2019 Luca Fedeli, Maxence Thevenet
+#
+# This file is part of WarpX.
+#
+# License: BSD-3-Clause-LBNL
+
 # -*- coding: utf-8 -*-
 
 import yt
@@ -19,8 +26,8 @@ import scipy.integrate as integ
 # References:
 # 1) R. Duclous et al 2011 Plasma Phys. Control. Fusion 53 015009
 # 2) A. Gonoskov et al. 2015 Phys. Rev. E 92, 023305
-# 3) M. Lobet. PhD thesis "Effets radiatifs et d'électrodynamique
-#    quantique dans l'interaction laser-matière ultra-relativiste"
+# 3) M. Lobet. PhD thesis "Effets radiatifs et d'electrodynamique
+#    quantique dans l'interaction laser-matiere ultra-relativiste"
 #    URL: https://tel.archives-ouvertes.fr/tel-01314224
 
 

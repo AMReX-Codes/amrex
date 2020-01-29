@@ -1,3 +1,10 @@
+# Copyright 2016-2020 Andrew Myers, David Grote, Maxence Thevenet
+#
+#
+# This file is part of WarpX.
+#
+# License: BSD-3-Clause-LBNL
+
 import numpy as np
 
 class Bucket(object):

@@ -1,3 +1,10 @@
+/* Copyright 2019-2020 Andrew Myers, Luca Fedeli, Maxence Thevenet
+ * Revathi Jambunathan, Revathi Jambunathan
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #ifndef WARPX_UTILS_H_
 #define WARPX_UTILS_H_
 

@@ -1,3 +1,9 @@
+/* Copyright 2019 Maxence Thevenet, Weiqun Zhang
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #include <AMReX_MultiFab.H>
 
 #ifndef WARPX_FILTER_H_

@@ -1,3 +1,9 @@
+# Copyright 2017 David Grote
+#
+# This file is part of WarpX.
+#
+# License: BSD-3-Clause-LBNL
+
 from warp.run_modes.timestepper import PICAPI
 from ._libwarpx import libwarpx
 

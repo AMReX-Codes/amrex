@@ -1,4 +1,11 @@
 #!/bin/bash
+
+# Copyright 2019 Maxence Thevenet
+#
+# This file is part of WarpX.
+#
+# License: BSD-3-Clause-LBNL
+
 #SBATCH --job-name=postproc
 #SBATCH --time=00:20:00
 #SBATCH -C haswell

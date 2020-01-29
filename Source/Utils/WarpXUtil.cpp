@@ -1,3 +1,11 @@
+/* Copyright 2019-2020 Andrew Myers, Burlen Loring, Luca Fedeli
+ * Maxence Thevenet, Remi Lehe, Revathi Jambunathan
+ * Revathi Jambunathan
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #include <WarpXUtil.H>
 #include <WarpXConst.H>
 #include <AMReX_ParmParse.H>

@@ -1,3 +1,9 @@
+/* Copyright 2019 Maxence Thevenet
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #include <AMReX_AmrCore.H>
 
 #ifndef WARPX_GODFREY_COEFF_TABLE_H_

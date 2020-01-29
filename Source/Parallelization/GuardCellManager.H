@@ -1,3 +1,9 @@
+/* Copyright 2019-2020 Maxence Thevenet
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #ifndef GUARDCELLMANAGER_H_
 #define GUARDCELLMANAGER_H_
 
