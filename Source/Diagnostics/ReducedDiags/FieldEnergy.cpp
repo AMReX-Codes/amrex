@@ -13,6 +13,12 @@ FieldEnergy::FieldEnergy (std::string rd_name)
 : ReducedDiags{rd_name}
 {
 
+    /// RZ coordinate is not working
+    #if (defined WARPX_DIM_RZ)
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(false,
+        "FieldEnergy reduced diagnostics does not work for RZ coordinate.");
+    #endif
+
     /// get WarpX class object
     auto & warpx = WarpX::GetInstance();
 
@@ -71,12 +77,6 @@ void FieldEnergy::ComputeDiags (int step)
 
     /// get number of level
     auto nLevel = warpx.finestLevel() + 1;
-
-    /// RZ coordinate is not working
-    #if (defined WARPX_DIM_RZ)
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(false,
-        "FieldEnergy reduced diagnostics does not work for RZ coordinate.");
-    #endif
 
     /// loop over refinement levels
     for (int lev = 0; lev < nLevel; ++lev)
