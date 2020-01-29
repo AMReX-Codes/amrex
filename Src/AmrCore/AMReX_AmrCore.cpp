@@ -2,7 +2,6 @@
 #include <algorithm>
 
 #include <AMReX_AmrCore.H>
-#include <AMReX_ParmParse.H>
 #include <AMReX_Print.H>
 
 #ifdef AMREX_PARTICLES
@@ -59,6 +58,16 @@ AmrCore::AmrCore (const RealBox& rb, int max_level_in,
     InitAmrCore();
 }
 
+AmrCore::AmrCore (Geometry const& level_0_gome, AmrInfo const& amr_info)
+    : AmrMesh(level_0_gome,amr_info)
+{
+    Initialize();
+
+#ifdef AMREX_PARTICLES
+    m_gdb.reset(new AmrParGDB(this));
+#endif
+}
+
 AmrCore::~AmrCore ()
 {
     Finalize();
@@ -67,10 +76,6 @@ AmrCore::~AmrCore ()
 void
 AmrCore::InitAmrCore ()
 {
-    verbose   = 0;
-    ParmParse pp("amr");
-    pp.query("v",verbose);
-
 #ifdef AMREX_PARTICLES
     m_gdb.reset(new AmrParGDB(this));
 #endif

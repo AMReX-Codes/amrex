@@ -55,6 +55,30 @@ AmrMesh::AmrMesh (const RealBox& rb, int max_level_in,
     InitAmrMesh(max_level_in,n_cell_in, a_refrat, &rb, coord, is_per.data());
 }
 
+AmrMesh::AmrMesh (Geometry const& level_0_geom, AmrInfo const& amr_info)
+    : AmrInfo(amr_info)
+{
+    Initialize();
+
+    int nlev = max_level + 1;
+    ref_ratio.resize      (nlev, amr_info.ref_ratio.back());
+    blocking_factor.resize(nlev, amr_info.blocking_factor.back());
+    max_grid_size.resize  (nlev, amr_info.max_grid_size.back());
+    n_error_buf.resize    (nlev, amr_info.n_error_buf.back());
+
+    dmap.resize(nlev);
+    grids.resize(nlev);
+    geom.reserve(nlev);
+    geom.push_back(level_0_geom);
+    for (int lev = 1; lev <= max_level; ++lev) {
+        geom.push_back(amrex::refine(geom[lev-1], ref_ratio[lev-1]));
+    }
+
+    finest_level = -1;
+
+    if (check_input) checkInput();
+}
+
 AmrMesh::~AmrMesh ()
 {
     Finalize();
@@ -65,18 +89,6 @@ AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in,
                       Vector<IntVect> a_refrat, const RealBox* rb,
                       int coord, const int* is_per)
 {
-    verbose   = 0;
-    grid_eff  = 0.7;
-    n_proper  = 1;
-
-    use_fixed_coarse_grids = false;
-    use_fixed_upto_level   = 0;
-    refine_grid_layout     = true;
-    check_input            = true;
-
-    use_new_chop         = false;
-    iterate_on_new_grids = true;
-
     ParmParse pp("amr");
 
     pp.query("v",verbose);
@@ -1001,5 +1013,31 @@ AmrMesh::CountCells (int lev) noexcept
     return grids[lev].numPts();
 }
 
+std::ostream& operator<< (std::ostream& os, AmrInfo const& amr_info)
+{
+    os << "  verbose = " << amr_info.verbose << "\n";
+    os << "  max_level = " << amr_info.max_level << "\n";
+    os << "  ref_ratio =";
+    for (int lev = 0; lev < amr_info.max_level; ++lev) os << " " << amr_info.ref_ratio[lev];
+    os << "\n";
+    os << "  blocking_factor =";
+    for (int lev = 0; lev <= amr_info.max_level; ++lev) os << " " << amr_info.blocking_factor[lev];
+    os << "\n";
+    os << "  max_grid_size =";
+    for (int lev = 0; lev <= amr_info.max_level; ++lev) os << " " << amr_info.max_grid_size[lev];
+    os << "\n";
+    os << "  n_error_buf =";
+    for (int lev = 0; lev < amr_info.max_level; ++lev) os << " " << amr_info.n_error_buf[lev];
+    os << "\n";
+    os << "  grid_eff = " << amr_info.grid_eff << "\n";
+    os << "  n_proper = " << amr_info.n_proper << "\n";
+    os << "  use_fixed_upto_level = " << amr_info.use_fixed_upto_level << "\n";
+    os << "  use_fixed_coarse_grids = " << amr_info.use_fixed_coarse_grids << "\n";
+    os << "  refine_grid_layout = " << amr_info.refine_grid_layout << "\n";
+    os << "  check_input = " << amr_info.check_input  << "\n";
+    os << "  use_new_chop = " << amr_info.use_new_chop << "\n";
+    os << "  iterate_on_new_grids = " << amr_info.iterate_on_new_grids << "\n";
+    return os;
+}
 
 }
