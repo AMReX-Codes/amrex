@@ -115,15 +115,15 @@ WarpX::Hybrid_QED_Push (int lev, PatchType patch_type, Real a_dt)
         const Box& gez = amrex::grow(tez,1);
 
         FArrayBox tmpEx_fab(gex,1);
-        Elixir tmp_eli = tmp_fab.elixir();
+        Elixir tmpEx_eli = tmpEx_fab.elixir();
         auto const& tmpEx = tmpEx_fab.array();
 
         FArrayBox tmpEy_fab(gey,1);
-        Elixir tmp_eli = tmp_fab.elixir();
+        Elixir tmpEy_eli = tmpEy_fab.elixir();
         auto const& tmpEy = tmpEy_fab.array();
 
         FArrayBox tmpEz_fab(gez,1);
-        Elixir tmp_eli = tmp_fab.elixir();
+        Elixir tmpEz_eli = tmpEz_fab.elixir();
         auto const& tmpEz = tmpEz_fab.array();
 
         AMREX_PARALLEL_FOR_4D(
