@@ -37,10 +37,9 @@ using namespace amrex;
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void my_function(Real arr [], Real ex, Real ey, Real ez, Real bx, Real by, Real bz, Real xi, Real c2)
 {
-
-    Real ee = ex*ex+ey*ey+ez*ez;
-    Real bb = bx*bx+by*by+bz*bz;
-    Real eb = ex*bx+ey*by+ez*bz;
+    const Real ee = ex*ex+ey*ey+ez*ez;
+    const Real bb = bx*bx+by*by+bz*bz;
+    const Real eb = ex*bx+ey*by+ez*bz;
     arr[0] = -2*xi*c2*( 2*bx*(ee-c2*bb) - 7*ex*eb );
     arr[1] = -2*xi*c2*( 2*by*(ee-c2*bb) - 7*ey*eb );
     arr[2] = -2*xi*c2*( 2*bz*(ee-c2*bb) - 7*ez*eb );
@@ -55,8 +54,11 @@ void warpx_hybrid_QED_push (int j, int k, int l, Array4<Real> const& Ex, Array4<
 
 const amrex::Real c2 = PhysConst::c * PhysConst::c;
 const amrex::Real xi = PhysConst::xi;
+const amrex::Real dxi = 1./dx;
+const amrex::Real dzi = 1./dz;
 
 #if (AMREX_SPACEDIM == 3)
+const amrex::Real dyi = 1./dy;
 
     // Picking out points for stencil to be used in curl function of M
     const amrex::Real Mpx[3] = {
@@ -560,170 +562,70 @@ const amrex::Real xi = PhysConst::xi;
                       Bx(j,k-1,0), By(j,k-1,0), Bz(j,k-1,0), xi, c2);
 
     const amrex::Real VxM[3] = {
-        -0.5*(Mpz[1]-Mnz[1])/dz,
-        0.5*( (Mpz[0]-Mnz[0])/dz - (Mpx[2]-Mnx[2])/dx ),
-        0.5*(Mpx[1]-Mnx[1])/dx,
+        -0.5*(Mpz[1]-Mnz[1])*dzi,
+        0.5*( (Mpz[0]-Mnz[0])*dzi - (Mpx[2]-Mnx[2])*dxi ),
+        0.5*(Mpx[1]-Mnx[1])*dxi,
     };
 
     const amrex::Real VxE[3] = {
-        -0.5*(tmpEy(j,k+1,0)-tmpEy(j,k-1,0) )/dz,
-        0.5*( (tmpEx(j,k+1,0)-tmpEx(j,k-1,0) )/dz - (tmpEz(j+1,k,0)-tmpEz(j-1,k,0) )/dx ),
-        0.5*(tmpEy(j+1,k,0)-tmpEy(j-1,k,0) )/dx,
+        -0.5*(tmpEy(j,k+1,0)-tmpEy(j,k-1,0) )*dzi,
+        0.5*( (tmpEx(j,k+1,0)-tmpEx(j,k-1,0) )*dzi - (tmpEz(j+1,k,0)-tmpEz(j-1,k,0) )*dxi ),
+        0.5*(tmpEy(j+1,k,0)-tmpEy(j-1,k,0) )*dxi,
     };
 
     const amrex::Real VxB[3] = {
-        -0.5*(By(j,k+1,0)-By(j,k-1,0) )/dz,
-        0.5*( (Bx(j,k+1,0)-Bx(j,k-1,0) )/dz - (Bz(j+1,k,0)-Bz(j-1,k,0) )/dx ),
-        0.5*(By(j+1,k,0)-By(j-1,k,0) )/dx,
+        -0.5*(By(j,k+1,0)-By(j,k-1,0) )*dzi,
+        0.5*( (Bx(j,k+1,0)-Bx(j,k-1,0) )*dzi - (Bz(j+1,k,0)-Bz(j-1,k,0) )*dxi ),
+        0.5*(By(j+1,k,0)-By(j-1,k,0) )*dxi,
     };
 
-    const amrex::Real beta =
-        4*(xi)*
-        (
-            pow(tmpEx(j,k,0),2)+pow(tmpEy(j,k,0),2)+pow(tmpEz(j,k,0),2)
-            - c2*
-            (
-                pow(Bx(j,k,0),2)+pow(By(j,k,0),2)+pow(Bz(j,k,0),2)
-            )
-        )
-        + PhysConst::ep0;
+    const amrex::Real ex = tmpEx(j,k,0);
+    const amrex::Real ey = tmpEy(j,k,0);
+    const amrex::Real ez = tmpEz(j,k,0);
+    const amrex::Real bx = Bx(j,k,0);
+    const amrex::Real by = By(j,k,0);
+    const amrex::Real bz = Bz(j,k,0);
+    const amrex::Real ee = ex*ex + ey*ey + ez*ez;
+    const amrex::Real bb = bx*bx + by*by + bz*bz;
+    const amrex::Real eb = ex*bx + ey*by + ez*bz;
+    const amrex::Real EVxE = ex*VxE[0] + ey*VxE[1] + ez*VxE[2];
+    const amrex::Real BVxE = bx*VxE[0] + by*VxE[1] + bz*VxE[2];
+    const amrex::Real EVxB = ex*VxB[0] + ey*VxB[1] + ez*VxB[2];
+    const amrex::Real BVxB = bx*VxB[0] + by*VxB[1] + bz*VxB[2];
+    
+    const amrex::Real beta = 4*xi*( ee- c2*bb ) + PhysConst::ep0;
 
     const amrex::Real Alpha[3] = {
-
-        2*xi*c2*
-            (
-                (-7)*Bx(j,k,0)*
-                (
-                    tmpEx(j,k,0)*VxE[0]+tmpEy(j,k,0)*VxE[1]+tmpEz(j,k,0)*VxE[2]
-                )
-                - 7*VxE[0]*
-                (
-                    tmpEx(j,k,0)*Bx(j,k,0)+tmpEy(j,k,0)*By(j,k,0)+tmpEz(j,k,0)*Bz(j,k,0)
-                )
-                + 4*tmpEx(j,k,0)*
-                (
-                    Bx(j,k,0)*VxE[0]+By(j,k,0)*VxE[1]+Bz(j,k,0)*VxE[2]
-                )
-            )
-        + VxM[0],
-
-        2*xi*c2*
-            (
-                (-7)*By(j,k,0)*
-                (
-                    tmpEx(j,k,0)*VxE[0]+tmpEy(j,k,0)*VxE[1]+tmpEz(j,k,0)*VxE[2]
-                )
-                - 7*VxE[1]*
-                (
-                    tmpEx(j,k,0)*Bx(j,k,0)+tmpEy(j,k,0)*By(j,k,0)+tmpEz(j,k,0)*Bz(j,k,0)
-                )
-                + 4*tmpEy(j,k,0)*
-                (
-                    Bx(j,k,0)*VxE[0]+By(j,k,0)*VxE[1]+Bz(j,k,0)*VxE[2]
-                )
-            )
-            + VxM[1],
-
-        2*xi*c2*
-            (
-                (-7)*Bz(j,k,0)*
-                (
-                    tmpEx(j,k,0)*VxE[0]+tmpEy(j,k,0)*VxE[1]+tmpEz(j,k,0)*VxE[2]
-                )
-                - 7*VxE[2]*
-                (
-                    tmpEx(j,k,0)*Bx(j,k,0)+tmpEy(j,k,0)*By(j,k,0)+tmpEz(j,k,0)*Bz(j,k,0)
-                )
-                + 4*tmpEz(j,k,0)*
-                (
-                    Bx(j,k,0)*VxE[0]+By(j,k,0)*VxE[1]+Bz(j,k,0)*VxE[2]
-                )
-            )
-            + VxM[2],
+        2*xi*c2*( -7*bx*EVxE - 7*VxE[0]*eb + 4*ex*BVxE ) + VxM[0],
+        2*xi*c2*( -7*by*EVxE - 7*VxE[1]*eb + 4*ey*BVxE ) + VxM[1],
+        2*xi*c2*( -7*by*EVxE - 7*VxE[2]*eb + 4*ez*BVxE ) + VxM[2]
     };
 
     const amrex::Real Omega[3] = {
-
-        Alpha[0] + 2*xi*c2*
-            (
-                4*tmpEx(j,k,0)*
-                (
-                    tmpEx(j,k,0)*VxB[0]+tmpEy(j,k,0)*VxB[1]+tmpEz(j,k,0)*VxB[2]
-                )
-                +2*VxB[0]*
-                (
-                    pow(tmpEx(j,k,0),2)+pow(tmpEy(j,k,0),2)+pow(tmpEz(j,k,0),2)
-                    - c2*
-                    (
-                        pow(Bx(j,k,0),2)+pow(By(j,k,0),2)+pow(Bz(j,k,0),2)
-                    )
-                )
-                + 7*c2*Bx(j,k,0)*
-                (
-                    VxB[0]*Bx(j,k,0)+VxB[1]*By(j,k,0)+VxB[2]*Bz(j,k,0)
-                )
-            ),
-
-        Alpha[1] + 2*xi*c2*
-            (
-                4*tmpEy(j,k,0)*
-                (
-                    tmpEx(j,k,0)*VxB[0]+tmpEy(j,k,0)*VxB[1]+tmpEz(j,k,0)*VxB[2]
-                )
-                +2*VxB[1]*
-                (
-                    pow(tmpEx(j,k,0),2)+pow(tmpEy(j,k,0),2)+pow(tmpEz(j,k,0),2)
-                    - c2*
-                    (
-                        pow(Bx(j,k,0),2)+pow(By(j,k,0),2)+pow(Bz(j,k,0),2)
-                    )
-                )
-                + 7*c2*By(j,k,0)*
-                (
-                    VxB[0]*Bx(j,k,0)+VxB[1]*By(j,k,0)+VxB[2]*Bz(j,k,0)
-                )
-            ),
-
-        Alpha[2] + 2*xi*c2*
-            (
-                4*tmpEz(j,k,0)*
-                (
-                    tmpEx(j,k,0)*VxB[0]+tmpEy(j,k,0)*VxB[1]+tmpEz(j,k,0)*VxB[2]
-                )
-                +2*VxB[2]*
-                (
-                    pow(tmpEx(j,k,0),2)+pow(tmpEy(j,k,0),2)+pow(tmpEz(j,k,0),2)
-                    - c2*
-                    (
-                        pow(Bx(j,k,0),2)+pow(By(j,k,0),2)+pow(Bz(j,k,0),2)
-                    )
-                )
-                + 7*c2*Bz(j,k,0)*
-                (
-                    VxB[0]*Bx(j,k,0)+VxB[1]*By(j,k,0)+VxB[2]*Bz(j,k,0)
-                )
-            ),
+        Alpha[0] + 2*xi*c2*( 4*ex*EVxB + 2*VxB[0]*(ee-c2*bb) + 7*c2*bx*BVxB ),
+        Alpha[1] + 2*xi*c2*( 4*ey*EVxB + 2*VxB[1]*(ee-c2*bb) + 7*c2*by*BVxB ),
+        Alpha[2] + 2*xi*c2*( 4*ez*EVxB + 2*VxB[2]*(ee-c2*bb) + 7*c2*bz*BVxB )
     };
 
-    const amrex::Real a00 = beta + (xi) * ( 8*pow(tmpEx(j,k,0),2) + 14*c2*pow(Bx(j,k,0),2) );
+    const amrex::Real a00 = beta + xi * ( 8*ex*ex + 14*c2*bx*bx );
 
-    const amrex::Real a11 = beta + (xi) * ( 8*pow(tmpEy(j,k,0),2) + 14*c2*pow(By(j,k,0),2) );
+    const amrex::Real a11 = beta + xi * ( 8*ey*ey + 14*c2*by*by );
 
-    const amrex::Real a22 = beta + (xi) * ( 8*pow(tmpEz(j,k,0),2) + 14*c2*pow(Bz(j,k,0),2) );
+    const amrex::Real a22 = beta + xi * ( 8*ez*ez + 14*c2*bz*bz );
 
-    const amrex::Real a01 = (xi) * ( 2*tmpEx(j,k,0)*tmpEy(j,k,0) + 14*c2*Bx(j,k,0)*By(j,k,0) );
+    const amrex::Real a01 = xi * ( 2*ex*ey + 14*c2*bx*by );
 
-    const amrex::Real a02 = (xi) * ( 2*tmpEx(j,k,0)*tmpEz(j,k,0) + 14*c2*Bx(j,k,0)*Bz(j,k,0) );
+    const amrex::Real a02 = xi * ( 2*ex*ez + 14*c2*bx*bz );
 
-    const amrex::Real a12 = (xi) * ( 2*tmpEz(j,k,0)*tmpEy(j,k,0) + 14*c2*Bz(j,k,0)*By(j,k,0) );
+    const amrex::Real a12 = (xi) * ( 2*ez*ey + 14*c2*bz*by );
 
-    const amrex::Real detA = a00*(a11*a22-pow(a12,2))-a01*(a01*a22-a02*a12)+a02*(a01*a12-a02*a11);
+    const amrex::Real detA = a00*(a11*a22-a12*a12-a01*(a01*a22-a02*a12)+a02*(a01*a12-a02*a11);
 
-    const amrex::Real invAx[3] = {a22*a11-pow(a12,2), a12*a02-a22*a01, a12*a01-a11*a02};
+    const amrex::Real invAx[3] = {a22*a11-a12*a12, a12*a02-a22*a01, a12*a01-a11*a02};
 
-    const amrex::Real invAy[3] = {a02*a12-a22*a01, a00*a22-pow(a02,2), a01*a02-a12*a00};
+    const amrex::Real invAy[3] = {a02*a12-a22*a01, a00*a22-a02*a02, a01*a02-a12*a00};
 
-    const amrex::Real invAz[3] = {a12*a01-a02*a11, a02*a01-a12*a00, a11*a00-pow(a01,2)};
+    const amrex::Real invAz[3] = {a12*a01-a02*a11, a02*a01-a12*a00, a11*a00-a01*a01};
 
     const amrex::Real dEx = (-1/detA)*(invAx[0]*Omega[0] +
         invAx[1]*Omega[1] + invAx[2]*Omega[2]);
