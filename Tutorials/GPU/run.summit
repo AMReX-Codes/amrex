@@ -7,6 +7,10 @@
 #BSUB -nnodes 1
 #BSUB -alloc_flags "smt1" 
 
+## BSUB -alloc_flags gpumps
+# Turn on MPS. Needed when running multiple MPI ranks per GPU. 
+# For standard runs, this is not needed. 
+
 module list
 set -x
 
@@ -64,10 +68,6 @@ SMPIARGS+=" --smpiargs="-disable_gpu_hooks -x PAMI_DISABLE_CUDA_HOOK=1""
 # Turns off CUDA hooks required for CUDA-aware MPI. 
 # RECOMMENDED ON.
 # May eliminate intermittent finalize bug that prevents obtaining profiling data.
-
-# SMPIARGS+= --alloc_flags gpumps
-# Turn on MPS. Needed when running multiple MPI ranks per GPU. 
-# For standard runs, this is not needed. 
 
 # Profiler flags
 # =====================
