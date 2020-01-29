@@ -61,7 +61,7 @@ const amrex::Real dzi = 1./dz;
 const amrex::Real dyi = 1./dy;
 
     // Picking out points for stencil to be used in curl function of M
-    
+
     amrex::Real Mpx [3] = {0.,0.,0.};
     amrex::Real Mnx [3] = {0.,0.,0.};
     amrex::Real Mpy [3] = {0.,0.,0.};
@@ -100,7 +100,7 @@ const amrex::Real dyi = 1./dy;
         0.5*( (Bx(j,k,l+1)-Bx(j,k,l-1) )*dzi - (Bz(j+1,k,l)-Bz(j-1,k,l) )*dxi ),
         0.5*( (By(j+1,k,l)-By(j-1,k,l) )*dxi - (Bx(j,k+1,l)-Bx(j,k-1,l) )*dyi ),
     };
-    
+
     const amrex::Real ex = tmpEx(j,k,0);
     const amrex::Real ey = tmpEy(j,k,0);
     const amrex::Real ez = tmpEz(j,k,0);
@@ -114,17 +114,17 @@ const amrex::Real dyi = 1./dy;
     const amrex::Real BVxE = bx*VxE[0] + by*VxE[1] + bz*VxE[2];
     const amrex::Real EVxB = ex*VxB[0] + ey*VxB[1] + ez*VxB[2];
     const amrex::Real BVxB = bx*VxB[0] + by*VxB[1] + bz*VxB[2];
-    
+
     // Defining comapct values for QED corrections
-    
+
     const amrex::Real beta = 4*xi*( ee - c2*bb) + PhysConst::ep0;
-    
+
     const amrex::Real Alpha[3] = {
         2*xi*c2*( -7*bx*EVxE - 7*VxE[0]*eb + 4*ex*BVxB ) + VxM[0],
         2*xi*c2*( -7*by*EVxE - 7*VxE[1]*eb + 4*ey*BVxE ) + VxM[1],
         2*xi*c2*( -7*bz*EVxE - 7*VxE[2]*eb + 4*ez*BVxE ) + VxM[2]
     };
-    
+
     const amrex::Real Omega[3] = {
         Alpha[0] + 2*xi*c2*( 4*ex*EVxB + 2*VxB[0]*(ee-c2*bb) + 7*c2*bx*BVxB),
         Alpha[1] + 2*xi*c2*( 4*ey*EVxB + 2*VxB[1]*(ee-c2*bb) + 7*c2*by*BVxB),
