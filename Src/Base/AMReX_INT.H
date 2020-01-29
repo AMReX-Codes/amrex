@@ -6,7 +6,7 @@
 #include <type_traits>
 #include <cinttypes>
 
-using amrex_long = std::conditional<sizeof(long) == sizeof(int64_t), long, int64_t>::type;
+using amrex_long = int64_t;
 namespace amrex {
     using Long = amrex_long;
 }
