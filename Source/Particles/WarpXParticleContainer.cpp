@@ -750,17 +750,9 @@ WarpXParticleContainer::PushX (int lev, amrex::Real dt)
             amrex::ParallelFor( pti.numParticles(),
                 [=] AMREX_GPU_DEVICE (long i) {
                                     ParticleReal x, y, z;
-#ifndef WARPX_DIM_RZ
                                     get_position(i, x, y, z);
                                     UpdatePosition(x, y, z, ux[i], uy[i], uz[i], dt);
                                     set_position(i, x, y, z);
-#else
-                    // For WARPX_DIM_RZ, the particles are still pushed in 3D Cartesian
-                    ParticleType& p = pstruct[i]; // Particle object that gets updated
-                    GetCartesianPositionFromCylindrical( x, y, z, p, theta[i] );
-                    UpdatePosition( x, y, z, ux[i], uy[i], uz[i], dt);
-                    SetCylindricalPositionFromCartesian( p, theta[i], x, y, z );
-#endif
                 }
             );
 
