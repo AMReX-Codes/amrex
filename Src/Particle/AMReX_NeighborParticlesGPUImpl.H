@@ -176,27 +176,20 @@ buildNeighborCopyOp ()
 	auto p_code_offsets = m_code_offsets[gid].dataPtr();	
 	AMREX_FOR_1D ( np, i,
         {
-	    IntVect iv = IntVect(
-                AMREX_D_DECL(floor((p_ptr[i].pos(0)-plo[0])*dxi[0]),
-                             floor((p_ptr[i].pos(1)-plo[1])*dxi[1]),
-                             floor((p_ptr[i].pos(2)-plo[2])*dxi[2]))
-                );
-            
-            iv += domain.smallEnd();
-            
+            IntVect iv = getParticleCell(p_ptr[i], plo, dxi, domain);            
 	    int code = mask_arr(iv);
 	    if (code >= 0)
-	    {
-	      int start = p_code_offsets[code];
-	      int stop =  p_code_offsets[code+1];
-	      Gpu::Atomic::Add(&p_counts[i], stop-start);
+            {
+                int start = p_code_offsets[code];
+                int stop =  p_code_offsets[code+1];
+                p_counts[i] += stop - start;
 	    }
 	});
 
-        amrex::Gpu::exclusive_scan(counts.begin(), counts.end() + 1, offsets.begin());
+        amrex::Gpu::exclusive_scan(counts.begin(), counts.end(), offsets.begin());
 
 	int num_copies;
-        Gpu::dtoh_memcpy(&num_copies, thrust::raw_pointer_cast(offsets.data())+np, sizeof(int));
+        Gpu::dtoh_memcpy(&num_copies, offsets.data()+np, sizeof(int));
 
 	neighbor_copy_op.resize(gid, lev, num_copies);
 
@@ -207,14 +200,7 @@ buildNeighborCopyOp ()
 
 	AMREX_FOR_1D ( np, i,
         {
-	    IntVect iv = IntVect(
-                AMREX_D_DECL(floor((p_ptr[i].pos(0)-plo[0])*dxi[0]),
-                             floor((p_ptr[i].pos(1)-plo[1])*dxi[1]),
-                             floor((p_ptr[i].pos(2)-plo[2])*dxi[2]))
-                );
-            
-            iv += domain.smallEnd();
-            	   
+            IntVect iv = getParticleCell(p_ptr[i], plo, dxi, domain);            
 	    int code = mask_arr(iv);
 	    if (code >= 0)
 	    {
@@ -223,15 +209,17 @@ buildNeighborCopyOp ()
 	        int stop =  p_code_offsets[code+1];
 	        for (int j = start; j < stop; ++j)
 	        {
-		  int index = p_offsets[i]+k;
-		  p_boxes[index] = p_code_array[j].grid_id;
-                  p_levs[index] = 0;
-		  p_periodic_shift[index] = p_code_array[j].periodic_shift;
-		  p_src_indices[index] = i;
-		  ++k;
+                    int index = p_offsets[i]+k;
+                    p_boxes[index] = p_code_array[j].grid_id;
+                    p_levs[index] = 0;
+                    p_periodic_shift[index] = p_code_array[j].periodic_shift;
+                    p_src_indices[index] = i;
+                    ++k;
 		}
 	    }
-	});		
+	});
+
+        Gpu::streamSynchronize();
     }
 }
 
@@ -243,7 +231,8 @@ fillNeighborsGPU ()
     BL_PROFILE("NeighborParticleContainer<NStructReal, NStructInt>::fillNeighbors");
 
     AMREX_ASSERT(this->numLevels() == 1);
-
+    AMREX_ASSERT(numParticlesOutOfRange(*this, 0) == 0);
+    
     buildNeighborMask();
     this->defineBufferMap();
 
@@ -276,13 +265,13 @@ updateNeighborsGPU ()
     else
     {
         pinned_snd_buffer.resize(snd_buffer.size());
-        cudaMemcpyAsync(pinned_snd_buffer.dataPtr(), snd_buffer.dataPtr(), snd_buffer.size()*sizeof(SuperParticleType), cudaMemcpyDeviceToHost);        
+        cudaMemcpyAsync(pinned_snd_buffer.dataPtr(), snd_buffer.dataPtr(), snd_buffer.size(), cudaMemcpyDeviceToHost);        
         neighbor_copy_plan.buildMPIFinish(this->BufferMap());
         communicateParticlesStart(*this, neighbor_copy_plan, pinned_snd_buffer, pinned_rcv_buffer);
         rcv_buffer.resize(pinned_rcv_buffer.size());
         unpackBuffer(*this, neighbor_copy_plan, snd_buffer, NeighborUnpackPolicy());
         communicateParticlesFinish(neighbor_copy_plan);
-        cudaMemcpyAsync(rcv_buffer.dataPtr(), pinned_rcv_buffer.dataPtr(), pinned_rcv_buffer.size()*sizeof(SuperParticleType), cudaMemcpyHostToDevice);
+        cudaMemcpyAsync(rcv_buffer.dataPtr(), pinned_rcv_buffer.dataPtr(), pinned_rcv_buffer.size(), cudaMemcpyHostToDevice);
         unpackRemotes(*this, neighbor_copy_plan, rcv_buffer, NeighborUnpackPolicy());
     }
 }
@@ -334,6 +323,8 @@ buildNeighborListGPU(CheckPair check_pair)
         Box bx = mfi.tilebox();
         bx.grow(m_num_neighbor_cells);
 
+        AMREX_ASSERT(numParticlesOutOfRange(*this, m_num_neighbor_cells) == 0);
+        
         m_neighbor_list[index].build(aos(), bx, geom, check_pair);
     }
 }

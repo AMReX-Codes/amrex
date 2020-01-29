@@ -77,10 +77,25 @@ MLEBTensorOp::setShearViscosity (int amrlev, const Array<MultiFab const*,AMREX_S
 }
 
 void
+MLEBTensorOp::setShearViscosity (int amrlev, Real eta)
+{
+    MLEBABecLap::setBCoeffs(amrlev, eta);
+}
+
+void
 MLEBTensorOp::setBulkViscosity (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& kappa)
 {
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         MultiFab::Copy(m_kappa[amrlev][0][idim], *kappa[idim], 0, 0, 1, 0);
+    }
+    m_has_kappa = true;
+}
+
+void
+MLEBTensorOp::setBulkViscosity (int amrlev, Real kappa)
+{
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        m_kappa[amrlev][0][idim].setVal(kappa);
     }
     m_has_kappa = true;
 }
@@ -92,10 +107,25 @@ MLEBTensorOp::setEBShearViscosity (int amrlev, MultiFab const& eta)
 }
 
 void
+MLEBTensorOp::setEBShearViscosity (int amrlev, Real eta)
+{
+    MLEBABecLap::setEBHomogDirichlet(amrlev, eta);
+}
+
+void
 MLEBTensorOp::setEBBulkViscosity (int amrlev, MultiFab const& kappa)
 {
     MultiFab::Copy(m_eb_kappa[amrlev][0], kappa, 0, 0, 1, 0);
     m_has_eb_kappa = true;
+}
+
+void
+MLEBTensorOp::setEBBulkViscosity (int amrlev, Real kappa)
+{
+    if (kappa != 0.0) {
+        m_eb_kappa[amrlev][0].setVal(kappa);
+        m_has_eb_kappa = true;
+    }
 }
 
 void
@@ -199,7 +229,8 @@ MLEBTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode 
                          Box const ybx = amrex::surroundingNodes(bx,1);,
                          Box const zbx = amrex::surroundingNodes(bx,2););
 
-            auto fabtyp = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
+            // grow by 1 because of corners
+            auto fabtyp = (flags) ? (*flags)[mfi].getType(amrex::grow(bx,1)) : FabType::regular;
 
             if (fabtyp == FabType::covered) {
                 AMREX_D_TERM(Array4<Real> const& fxfab = fluxmf[0].array(mfi);,
@@ -296,7 +327,8 @@ MLEBTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode 
                          FArrayBox& fyfab = fluxmf[1][mfi];,
                          FArrayBox& fzfab = fluxmf[2][mfi];);
 
-            auto fabtyp = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
+            // grow by 1 because of corners
+            auto fabtyp = (flags) ? (*flags)[mfi].getType(amrex::grow(bx,1)) : FabType::regular;
 
             if (fabtyp == FabType::covered) {
                 AMREX_D_TERM(fxfab.setVal(0.0, xbx, 0, AMREX_SPACEDIM);,

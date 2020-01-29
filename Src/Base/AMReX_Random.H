@@ -28,25 +28,28 @@ namespace amrex
 
 #ifdef AMREX_USE_CUDA
     // Locking mechanism functions for locking and unlocking
-    AMREX_GPU_DEVICE int get_state(int tid);
-    AMREX_GPU_DEVICE void free_state(int tid);
+    AMREX_GPU_DEVICE int get_state (int tid);
+    AMREX_GPU_DEVICE void free_state (int tid);
 #endif
 
 
     /**
-    * \brief Generates one pseudorandom unsigned long integer which is
+    * \brief Generates one pseudorandom unsigned integer which is
     *  uniformly distributed on [0,n-1]-interval for each call.
     *
     * The CPU version of this function uses C++11's mt19937.
     * The GPU version uses CURAND's XORWOW generator.
     */
-#ifdef __CUDA_ARCH__    
-    AMREX_GPU_DEVICE
-    unsigned int Random_int(unsigned int n); // [0,n-1]
-#else
-    AMREX_GPU_HOST
-    unsigned long Random_int(unsigned long n); // [0,n-1]    
-#endif
+    AMREX_GPU_HOST_DEVICE unsigned int Random_int (unsigned int n); // [0,n-1]
+
+    /**
+    * \brief Generates one pseudorandom unsigned long which is
+    *  uniformly distributed on [0,n-1]-interval for each call.
+    *
+    * The CPU version of this function uses C++11's mt19937.
+    * There is no GPU version.
+    */
+    AMREX_GPU_HOST unsigned long Random_long (unsigned long n); // [0,n-1]
 
     /** \brief Set the seed of the random number generator.
     *
@@ -65,8 +68,8 @@ namespace amrex
     /**
     * \brief Resize seed array and copy address to global symbol
     */
-    void ResizeRandomSeed(int N);
-    void ResetRandomSeed(unsigned long seed);
+    void ResizeRandomSeed (int N);
+    void ResetRandomSeed (unsigned long seed);
 
     /**
     * \brief Set the seeds of the random number generator for each CUDA thread .
@@ -80,9 +83,9 @@ namespace amrex
     * \brief Save and restore random state.
     *
     */
-    void SaveRandomState(std::ostream& os);
+    void SaveRandomState (std::ostream& os);
 
-    void RestoreRandomState(std::istream& is, int nthreads_old, int nstep_old);
+    void RestoreRandomState (std::istream& is, int nthreads_old, int nstep_old);
 
     /**
     * \brief Create a unique subset of random numbers from a pool

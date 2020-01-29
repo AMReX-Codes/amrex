@@ -31,7 +31,9 @@ public:
 
 
 class PolynomialIF
+#ifndef AMREX_DEBUG
     : public GPUable
+#endif
 {
 public:
 

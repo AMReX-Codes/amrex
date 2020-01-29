@@ -76,6 +76,13 @@ MLABecLaplacian::setACoeffs (int amrlev, const MultiFab& alpha)
 }
 
 void
+MLABecLaplacian::setACoeffs (int amrlev, Real alpha)
+{
+    m_a_coeffs[amrlev][0].setVal(alpha);
+    m_needs_update = true;
+}
+
+void
 MLABecLaplacian::setBCoeffs (int amrlev,
                              const Array<MultiFab const*,AMREX_SPACEDIM>& beta)
 {
@@ -84,6 +91,15 @@ MLABecLaplacian::setBCoeffs (int amrlev,
         for (int icomp = 0; icomp < ncomp; ++icomp) {
             MultiFab::Copy(m_b_coeffs[amrlev][0][idim], *beta[idim], 0, icomp, 1, 0);
         }
+    }
+    m_needs_update = true;
+}
+
+void
+MLABecLaplacian::setBCoeffs (int amrlev, Real beta)
+{
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        m_b_coeffs[amrlev][0][idim].setVal(beta);
     }
     m_needs_update = true;
 }

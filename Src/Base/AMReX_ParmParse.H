@@ -853,12 +853,14 @@ public:
     */
     static void Finalize();
 
+    static bool QueryUnusedInputs ();
+    
     struct PP_entry;
     typedef std::list<PP_entry> Table;
     static void appendTable(ParmParse::Table& tab);
     const Table& table() const {return m_table;}
 
-private:
+protected:
     //
     // Don't allow one ParmParse object to be assigned to another.
     // Given that we use a const reference for "m_table" there's

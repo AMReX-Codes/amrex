@@ -1591,7 +1591,7 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
 
         if (nghost > 0) {
             StateDataPhysBCFunct physbcf(state[idx],SComp,geom);
-            physbcf.FillBoundary(mf, DComp, NComp, time, SComp);
+            physbcf.FillBoundary(mf, DComp, NComp, mf.nGrowVect(), time, SComp);
         }
 
         DComp += NComp;

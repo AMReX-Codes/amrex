@@ -46,16 +46,17 @@ def compiletesting(arg_string):
 #                     'Tutorials/Particles/ElectromagneticPIC',
 #                     'Tutorials/Particles/ElectrostaticPIC',
                      'Tutorials/Particles/NeighborList',
-                     'Tests/DataServicesTest0',
-#                     'OldTutorials/MultiColor_C',
                      'OldTutorials/MultiFabTests_C',
                      'OldTutorials/Tiling_C',
                      'OldTutorials/Tiling_Heat_C',
                      'OldTutorials/WaveEquation_C',
+                     'Tests/DataServicesTest0',
                      'Tests/BBIOBenchmark',
                      'Tests/C_BaseLib',
                      'Tests/IOBenchmark',
                      'Tests/NoFort',
+                     'Tests/SinglePrecision',
+                     'Tests/Particles/ParticleMesh',
                      'Tests/LinearSolvers/CellEB',
                      'Tests/LinearSolvers/CellEB2',
                      'Tests/LinearSolvers/C_CellMG',
@@ -70,6 +71,7 @@ def compiletesting(arg_string):
                      'Tutorials/LinearSolvers/ABecLaplacian_F',
                      'Tutorials/Particles/NeighborList',
                      'Tests/NoFort',
+                     'Tests/SinglePrecision',
                      'Tests/LinearSolvers/CellEB2']
 
     print("Test List: ", test_list)

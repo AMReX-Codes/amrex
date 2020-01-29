@@ -16,13 +16,14 @@ public:
 
     void writePlotfile ();
 
+    void initData ();
+
 private:
 
     void initializeEB ();
     void readParameters ();
     void initGrids ();
     void addFineGrids ();
-    void initData ();
 
     int max_level = 0;
     int ref_ratio = 2;
@@ -47,6 +48,8 @@ private:
     int max_coarsening_level = 30;
     bool use_hypre = false;
     bool use_petsc = false;
+    int agg_grid_size = -1;
+    int con_grid_size = -1;
 
     int composite_solve = 0;
 

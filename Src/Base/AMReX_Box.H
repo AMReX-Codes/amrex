@@ -90,7 +90,7 @@ public:
 
     template <typename T>
     AMREX_GPU_HOST_DEVICE
-    Box (Array4<T> const& a) noexcept
+    explicit Box (Array4<T> const& a) noexcept
         : smallend(AMREX_D_DECL(a.begin.x,a.begin.y,a.begin.z)),
           bigend  (AMREX_D_DECL(a.end.x-1,a.end.y-1,a.end.z-1))
         {}

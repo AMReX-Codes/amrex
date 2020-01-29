@@ -11,22 +11,33 @@
 
 using namespace amrex;
 
-void write_plotfile(const Geometry& geom, const MultiFab& plotmf)
+void write_plotfile(const Geometry& geom, const MultiFab& plotmf, int regtest)
 {
     std::stringstream sstream;
     sstream << "plt00000";
     std::string plotfile_name = sstream.str();
 
-    amrex::Print() << "Writing " << plotfile_name << std::endl;    
-    
+    amrex::Print() << "Writing " << plotfile_name << std::endl;
+
 #if (AMREX_SPACEDIM == 2)
        EB_WriteSingleLevelPlotfile(plotfile_name, plotmf,
                                    { "proc" ,"xvel", "yvel" },
                                      geom, 0.0, 0);
 #elif (AMREX_SPACEDIM == 3)
-       EB_WriteSingleLevelPlotfile(plotfile_name, plotmf,
-                                   { "proc", "xvel", "yvel", "zvel" },
-                                     geom, 0.0, 0);
+
+       if (regtest == 1)
+       {
+           MultiFab small_mf(plotmf.boxArray(), plotmf.DistributionMap(), AMREX_SPACEDIM, 0, MFInfo(), plotmf.Factory());
+           MultiFab::Copy(small_mf, plotmf, 0, 0, small_mf.nComp(),0);
+
+           EB_WriteSingleLevelPlotfile(plotfile_name, small_mf,
+                                       { "proc", "xvel", "yvel" },
+                                         geom, 0.0, 0);
+       } else {
+           EB_WriteSingleLevelPlotfile(plotfile_name, plotmf,
+                                       { "proc", "xvel", "yvel", "zvel" },
+                                         geom, 0.0, 0);
+       }
 #endif
 }
 
@@ -38,13 +49,14 @@ int main (int argc, char* argv[])
     amrex::Initialize(argc, argv);
 
     Real strt_time = amrex::second();
-    
+
     {
         int mg_verbose = 0;
         int cg_verbose = 0;
         int n_cell = 128;
         int max_grid_size = 32;
         int use_hypre  = 0;
+        int regtest   = 0;
 
         Real obstacle_radius = 0.10;
 
@@ -56,10 +68,11 @@ int main (int argc, char* argv[])
             pp.query("n_cell", n_cell);
             pp.query("max_grid_size", max_grid_size);
             pp.query("use_hypre", use_hypre);
+            pp.query("regtest", regtest);
         }
 
 #ifndef AMREX_USE_HYPRE
-        if (use_hypre == 1) 
+        if (use_hypre == 1)
            amrex::Abort("Cant use hypre if we dont build with USE_HYPRE=TRUE");
 #endif
 
@@ -113,7 +126,7 @@ int main (int argc, char* argv[])
         int direction =  2;
         Real height   = -1.0;  // Putting a negative number for height means it extends beyond the domain
 
-        // The "false" below is the boolean that determines if the fluid is inside ("true") or 
+        // The "false" below is the boolean that determines if the fluid is inside ("true") or
         //     outside ("false") the object(s)
 
         Array<EB2::CylinderIF,9> obstacles{
@@ -133,16 +146,16 @@ int main (int argc, char* argv[])
         auto all     = EB2::makeUnion(group_1,group_2,group_3);
         auto gshop9  = EB2::makeShop(all);
         EB2::Build(gshop9, geom, required_coarsening_level, max_coarsening_level);
-   
+
         const EB2::IndexSpace& eb_is = EB2::IndexSpace::top();
         const EB2::Level& eb_level = eb_is.getLevel(geom);
-   
+
         // options are basic, volume, or full
         EBSupport ebs = EBSupport::full;
-  
+
         // number of ghost cells for each of the 3 EBSupport types
         Vector<int> ng_ebs = {2,2,2};
- 
+
         // This object provides access to the EB database in the format of basic AMReX objects
         // such as BaseFab, FArrayBox, FabArray, and MultiFab
         EBFArrayBoxFactory factory(eb_level, geom, grids, dmap, ng_ebs, ebs);
@@ -158,7 +171,7 @@ int main (int argc, char* argv[])
 
 	// If we want to supply a non-zero S we must allocate and fill it outside the solver
         // MultiFab S(grids, dmap, 1, 0, MFInfo(), factory);
-	// Set S here ... 
+	// Set S here ...
 
         // store plotfile variables; velocity and processor id
         plotfile_mf.define(grids, dmap, AMREX_SPACEDIM+1, 0, MFInfo(), factory);
@@ -171,14 +184,14 @@ int main (int argc, char* argv[])
         LPInfo lp_info;
 
         // If we want to use hypre to solve the full problem we need to not coarsen inside AMReX
-        if (use_hypre) 
+        if (use_hypre)
             lp_info.setMaxCoarseningLevel(0);
 
         MacProjector macproj({amrex::GetArrOfPtrs(vel)},       // mac velocity
                              {amrex::GetArrOfConstPtrs(beta)}, // beta
                              {geom},                           // the geometry object
                              lp_info);                         // structure for passing info to the operator
-	  
+
 	// Here we specifiy the desired divergence S
 	// MacProjector macproj({amrex::GetArrOfPtrs(vel)},       // face-based velocity
 	//                      {amrex::GetArrOfConstPtrs(beta)}, // beta
@@ -186,12 +199,12 @@ int main (int argc, char* argv[])
 	//                      lp_info,                          // structure for passing info to the operator
 	//                      {&S});                            // defines the specified RHS divergence
 
-        // Set bottom-solver to use hypre instead of native BiCGStab 
-        if (use_hypre) 
-           macproj.setBottomSolver(MLMG::BottomSolver::hypre);
-	
+        // Set bottom-solver to use hypre instead of native BiCGStab
+        if (use_hypre)
+            macproj.getMLMG().setBottomSolver(MLMG::BottomSolver::hypre);
+
 	// Hard-wire the boundary conditions to be Neumann on the low x-face, Dirichlet
-	// on the high x-face, and periodic in the other two directions  
+	// on the high x-face, and periodic in the other two directions
 	// (the first argument is for the low end, the second is for the high end)
         macproj.setDomainBC({AMREX_D_DECL(LinOpBCType::Neumann,
                                           LinOpBCType::Periodic,
@@ -201,46 +214,46 @@ int main (int argc, char* argv[])
 					  LinOpBCType::Periodic)});
 
         macproj.setVerbose(mg_verbose);
-        macproj.setCGVerbose(cg_verbose);
-	
+        macproj.getMLMG().setBottomVerbose(cg_verbose);
+
 	// Define the relative tolerance
         Real reltol = 1.e-8;
 
 	// Define the absolute tolerance; note that this argument is optional
         Real abstol = 1.e-15;
 
-        amrex::Print() << " \n********************************************************************" << std::endl; 
+        amrex::Print() << " \n********************************************************************" << std::endl;
         amrex::Print() << " Let's project the initial velocity to find " << std::endl;
         amrex::Print() << "   the flow field around the obstacles ... " << std::endl;
         amrex::Print() << " The domain has " << n_cell_x << " cells in the x-direction "          << std::endl;
-        amrex::Print() << " The maximum grid size is " << max_grid_size                             << std::endl;  
-        amrex::Print() << "******************************************************************** \n" << std::endl; 
+        amrex::Print() << " The maximum grid size is " << max_grid_size                             << std::endl;
+        amrex::Print() << "******************************************************************** \n" << std::endl;
 
 	// Solve for phi and subtract from the velocity to make it divergence-free
 	// Note that the normal velocities are at face centers (not centroids)
         macproj.project(reltol,abstol,MLMG::Location::FaceCenter);
-	
+
 	// If we want to use phi elsewhere, we can pass in an array in which to return the solution
-	// MultiFab phi_inout(grids, dmap, 1, 1, MFInfo(), factory);	
+	// MultiFab phi_inout(grids, dmap, 1, 1, MFInfo(), factory);
 	// macproj.project_center_vels({&phi_inout},reltol,abstol,MLMG::Location::FaceCenter);
 
-        amrex::Print() << " \n********************************************************************" << std::endl; 
+        amrex::Print() << " \n********************************************************************" << std::endl;
         amrex::Print() << " Done!" << std::endl;
-        amrex::Print() << "******************************************************************** \n" << std::endl; 
+        amrex::Print() << "******************************************************************** \n" << std::endl;
 
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             vel[idim].FillBoundary(geom.periodicity());
         }
 
-        // copy processor id into plotfile_mf
-	plotfile_mf.setVal(ParallelDescriptor::MyProc(), 0, 1);
-	
-        // copy velocity into plotfile
+        // Copy processor id into plotfile_mf
+        plotfile_mf.setVal(ParallelDescriptor::MyProc(), 0, 1);
+
+        // Copy velocity into plotfile (starting at component 1)
         average_face_to_cellcenter(plotfile_mf,1,amrex::GetArrOfConstPtrs(vel));
 
-        write_plotfile(geom, plotfile_mf); 
+        write_plotfile(geom, plotfile_mf, regtest);
     }
-  
+
     Real stop_time = amrex::second() - strt_time;
     amrex::Print() << "Total run time " << stop_time << std::endl;
 
