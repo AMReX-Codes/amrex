@@ -7,7 +7,7 @@
 
 /**
  * \brief Field gather for particles handled by thread thread_num
- * /param get_position : A functor for returning the particle position.
+ * /param GetPosition : A functor for returning the particle position.
  * \param Exp, Eyp, Ezp: Pointer to array of electric field on particles.
  * \param Bxp, Byp, Bzp: Pointer to array of magnetic field on particles.
  * \param ex_arr ey_arr: Array4 of current density, either full array or tile.
@@ -21,7 +21,7 @@
  * \param n_rz_azimuthal_modes: Number of azimuthal modes when using RZ geometry
  */
 template <int depos_order, int lower_in_v>
-void doGatherShapeN(const GetPosition& get_position,
+void doGatherShapeN(const GetParticlePosition& GetPosition,
                     amrex::ParticleReal * const Exp, amrex::ParticleReal * const Eyp,
                     amrex::ParticleReal * const Ezp, amrex::ParticleReal * const Bxp,
                     amrex::ParticleReal * const Byp, amrex::ParticleReal * const Bzp,
@@ -74,7 +74,7 @@ void doGatherShapeN(const GetPosition& get_position,
         [=] AMREX_GPU_DEVICE (long ip) {
 
             amrex::ParticleReal xp, yp, zp;
-            get_position(ip, xp, yp, zp);
+            GetPosition(ip, xp, yp, zp);
 
             // --- Compute shape factors
             // x direction

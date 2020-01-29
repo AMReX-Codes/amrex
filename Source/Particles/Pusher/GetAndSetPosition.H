@@ -5,7 +5,7 @@
 #include <WarpXParticleContainer.H>
 #include <AMReX_REAL.H>
 
-struct GetPosition
+struct GetParticlePosition
 {
     using PType = WarpXParticleContainer::ParticleType;
     using RType = amrex::ParticleReal;
@@ -16,7 +16,7 @@ struct GetPosition
 #elif (AMREX_SPACEDIM == 2)
     static constexpr RType m_snan = std::numeric_limits<RType>::quiet_NaN();
 #endif
-    GetPosition (const WarpXParIter& a_pti, int a_offset = 0) noexcept
+    GetParticlePosition (const WarpXParIter& a_pti, int a_offset = 0) noexcept
     {
         const auto& aos = a_pti.GetArrayOfStructs();
         m_structs = aos().dataPtr() + a_offset;
@@ -48,7 +48,7 @@ struct GetPosition
     }
 };
 
-struct SetPosition
+struct SetParticlePosition
 {
     using PType = WarpXParticleContainer::ParticleType;
     using RType = amrex::ParticleReal;
@@ -57,7 +57,7 @@ struct SetPosition
 #if (defined WARPX_DIM_RZ)
     RType* AMREX_RESTRICT m_theta;
 #endif
-    SetPosition (WarpXParIter& a_pti, int a_offset = 0) noexcept
+    SetParticlePosition (WarpXParIter& a_pti, int a_offset = 0) noexcept
     {
         auto& aos = a_pti.GetArrayOfStructs();
         m_structs = aos().dataPtr() + a_offset;

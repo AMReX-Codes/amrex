@@ -10,7 +10,7 @@
 
 /**
  * \brief Current Deposition for thread thread_num
- * /param get_position : A functor for returning the particle position.
+ * /param GetPosition : A functor for returning the particle position.
  * \param wp           : Pointer to array of particle weights.
  * \param uxp uyp uzp  : Pointer to arrays of particle momentum.
  * \param ion_lev      : Pointer to array of particle ionization level. This is
@@ -28,7 +28,7 @@
  * /param q            : species charge.
  */
 template <int depos_order>
-void doDepositionShapeN(const GetPosition& get_position,
+void doDepositionShapeN(const GetParticlePosition& GetPosition,
                         const amrex::ParticleReal * const wp,
                         const amrex::ParticleReal * const uxp,
                         const amrex::ParticleReal * const uyp,
@@ -89,7 +89,7 @@ void doDepositionShapeN(const GetPosition& get_position,
             }
 
             amrex::ParticleReal xp, yp, zp;
-            get_position(ip, xp, yp, zp);
+            GetPosition(ip, xp, yp, zp);
 
             const amrex::Real vx  = uxp[ip]*gaminv;
             const amrex::Real vy  = uyp[ip]*gaminv;
@@ -226,7 +226,7 @@ void doDepositionShapeN(const GetPosition& get_position,
 /**
  * \brief Esirkepov Current Deposition for thread thread_num
  *
- * /param get_position : A functor for returning the particle position.
+ * /param GetPosition : A functor for returning the particle position.
  * \param wp           : Pointer to array of particle weights.
  * \param uxp uyp uzp  : Pointer to arrays of particle momentum.
  * \param ion_lev      : Pointer to array of particle ionization level. This is
@@ -245,7 +245,7 @@ void doDepositionShapeN(const GetPosition& get_position,
  * \param n_rz_azimuthal_modes: Number of azimuthal modes when using RZ geometry
  */
 template <int depos_order>
-void doEsirkepovDepositionShapeN (const GetPosition& get_position,
+void doEsirkepovDepositionShapeN (const GetParticlePosition& GetPosition,
                                   const amrex::ParticleReal * const wp,
                                   const amrex::ParticleReal * const uxp,
                                   const amrex::ParticleReal * const uyp,
@@ -312,7 +312,7 @@ void doEsirkepovDepositionShapeN (const GetPosition& get_position,
             }
 
             ParticleReal xp, yp, zp;
-            get_position(ip, xp, yp, zp);
+            GetPosition(ip, xp, yp, zp);
 
             Real const wqx = wq*invdtdx;
 #if (defined WARPX_DIM_3D)

@@ -5,7 +5,7 @@
 #include "ShapeFactors.H"
 
 /* \brief Charge Deposition for thread thread_num
- * /param get_position : A functor for returning the particle position.
+ * /param GetPosition : A functor for returning the particle position.
  * \param wp           : Pointer to array of particle weights.
  * \param ion_lev      : Pointer to array of particle ionization level. This is
                          required to have the charge of each macroparticle
@@ -19,7 +19,7 @@
  * /param q            : species charge.
  */
 template <int depos_order>
-void doChargeDepositionShapeN(const GetPosition& get_position,
+void doChargeDepositionShapeN(const GetParticlePosition& GetPosition,
                               const amrex::ParticleReal * const wp,
                               const int * const ion_lev,
                               const amrex::Array4<amrex::Real>& rho_arr,
@@ -56,7 +56,7 @@ void doChargeDepositionShapeN(const GetPosition& get_position,
             }
 
             amrex::ParticleReal xp, yp, zp;
-            get_position(ip, xp, yp, zp);
+            GetPosition(ip, xp, yp, zp);
 
             // --- Compute shape factors
             // x direction

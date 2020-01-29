@@ -568,7 +568,7 @@ LaserParticleContainer::calculate_laser_plane_coordinates (const WarpXParIter& p
                                                            Real * AMREX_RESTRICT const pplane_Xp,
                                                            Real * AMREX_RESTRICT const pplane_Yp)
 {
-    const auto get_position = GetPosition(pti);
+    const auto GetPosition = GetParticlePosition(pti);
 
     Real tmp_u_X_0 = u_X[0];
     Real tmp_u_X_2 = u_X[2];
@@ -586,7 +586,7 @@ LaserParticleContainer::calculate_laser_plane_coordinates (const WarpXParIter& p
         np,
         [=] AMREX_GPU_DEVICE (int i) {
             ParticleReal x, y, z;
-            get_position(i, x, y, z);
+            GetPosition(i, x, y, z);
 #if (defined WARPX_DIM_3D) || (defined WARPX_DIM_RZ)
             pplane_Xp[i] =
                 tmp_u_X_0 * (x - tmp_position_0) +
@@ -625,8 +625,8 @@ LaserParticleContainer::update_laser_particle(WarpXParIter& pti,
                                               Real const * AMREX_RESTRICT const amplitude,
                                               const Real dt)
 {
-    const auto get_position = GetPosition(pti);
-    auto       set_position = SetPosition(pti);
+    const auto GetPosition = GetParticlePosition(pti);
+    auto       SetPosition = SetParticlePosition(pti);
 
     Real tmp_p_X_0 = p_X[0];
     Real tmp_p_X_1 = p_X[1];
@@ -663,13 +663,13 @@ LaserParticleContainer::update_laser_particle(WarpXParIter& pti,
 
             // Push the the particle positions
             ParticleReal x, y, z;
-            get_position(i, x, y, z);
+            GetPosition(i, x, y, z);
             x += vx * dt;
 #if (defined WARPX_DIM_3D) || (defined WARPX_DIM_RZ)
             y += vy * dt;
 #endif
             z += vz * dt;
-            set_position(i, x, y, z);
+            SetPosition(i, x, y, z);
         }
         );
 }
