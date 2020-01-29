@@ -63,7 +63,8 @@ MLNodeLaplacian::define (const Vector<Geometry>& a_geom,
         const int mglev = 0;
         const int idim = 0;
         m_sigma[amrlev][mglev][idim].reset
-            (new MultiFab(m_grids[amrlev][mglev], m_dmap[amrlev][mglev], 1, 1));
+            (new MultiFab(m_grids[amrlev][mglev], m_dmap[amrlev][mglev], 1, 1,
+                          MFInfo(), *m_factory[amrlev][0]));
         m_sigma[amrlev][mglev][idim]->setVal(0.0);
     }
 
@@ -688,8 +689,13 @@ MLNodeLaplacian::averageDownCoeffsToCoarseAmrLevel (int flev)
 {
     const int mglev = 0;
     const int idim = 0;  // other dimensions are just aliases
+#ifdef AMREX_USE_EB
+    amrex::EB_average_down(*m_sigma[flev][mglev][idim], *m_sigma[flev-1][mglev][idim], 0, 1,
+                           m_amr_ref_ratio[flev-1]);
+#else
     amrex::average_down(*m_sigma[flev][mglev][idim], *m_sigma[flev-1][mglev][idim], 0, 1,
                         m_amr_ref_ratio[flev-1]);
+#endif
 }
 
 void

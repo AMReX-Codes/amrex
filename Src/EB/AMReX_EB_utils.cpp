@@ -71,16 +71,14 @@ namespace amrex {
                                    const EBCellFlagFab& flags_fab,
                                    const MultiFab* volfrac,
                                    Box& domain,
-                                   const int cyclic_x,
-                                   const int cyclic_y,
-                                   const int cyclic_z,
-                                   const Real* dx)
+                                   const Geometry & geom)
     {
         //
         // Check that grid is uniform
         //
         const Real tolerance = std::numeric_limits<Real>::epsilon();
-
+        const Real* dx = geom.CellSize();
+        
 #if (AMREX_SPACEDIM == 2)
         if (std::abs(dx[0] - dx[1]) > tolerance)
             amrex::Abort("apply_eb_redistribution(): grid spacing must be uniform");
@@ -90,6 +88,8 @@ namespace amrex {
             (std::abs(dx[1] - dx[2]) > tolerance) )
             amrex::Abort("apply_eb_redistribution(): grid spacing must be uniform");
 #endif
+
+        const Box dbox = geom.growPeriodicDomain(2);
 
         const amrex::Dim3 dom_low  = amrex::lbound(domain);
         const amrex::Dim3 dom_high = amrex::ubound(domain);
@@ -105,7 +105,7 @@ namespace amrex {
 
         const Box& grown1_bx = amrex::grow(bx,1);
         const Box& grown2_bx = amrex::grow(bx,2);
-
+        
         //
         // Working arrays
         //
@@ -124,12 +124,7 @@ namespace amrex {
         //
         AMREX_FOR_3D(grown2_bx, i, j, k,
         {
-            if(((not cyclic_x) and (i < dom_low.x or i > dom_high.x)) or
-               ((not cyclic_y) and (j < dom_low.y or j > dom_high.y)) or
-               ((not cyclic_z) and (k < dom_low.z or k > dom_high.z)))
-                mask(i,j,k) = 0;
-            else
-                mask(i,j,k) = 1;
+            mask(i,j,k) = (dbox.contains(IntVect(AMREX_D_DECL(i,j,k)))) ? 1.0 : 0.0;
         });
 
         //
@@ -156,32 +151,30 @@ namespace amrex {
             ks = -1;
             ke = 1;
 #endif
-            for(int ii(-1); ii <= 1; ii++)
-            {
-                for(int jj(-1); jj <= 1; jj++)
-                {
-                    for(int kk(ks); kk <= ke; kk++)
-                    {
-#if (AMREX_SPACEDIM==3)
-                        if( (ii != 0 or jj != 0 or kk != 0) and
-#else
-                        if( (ii != 0 or jj != 0) and
-#endif
-                            (flags(i,j,k).isConnected({AMREX_D_DECL(ii,jj,kk)}) == 1))
+
+            for (int kk(ks); kk <= ke; ++kk) {
+              for (int jj(-1); jj <= 1; ++jj) {
+                for (int ii(-1); ii <= 1; ++ii) {
+		        if( (ii != 0 or jj != 0 or kk != 0) and
+			    flags(i,j,k).isConnected(ii,jj,kk) and
+			    dbox.contains(IntVect(AMREX_D_DECL(i+ii,j+jj,k+kk))))
                         {
+
                             wted_frac = vfrac(i+ii,j+jj,k+kk) * wt(i+ii,j+jj,k+kk) * mask(i+ii,j+jj,k+kk);
                             vtot   += wted_frac;
                             divnc  += wted_frac * divc(i+ii,j+jj,k+kk,n);
+  
                         }
-                    }
                 }
+              }
             }
-            divnc /= vtot;
-
+            divnc /=  (vtot + 1.e-80);
+  
             // We need to multiply divc by mask to make sure optmp is zero for cells
             // outside the domain for non-cyclic BCs
             optmp(i,j,k,n) =  (1 - vfrac(i,j,k)) * (divnc - divc(i,j,k,n) * mask(i,j,k));
             delm(i,j,k,n)  = -(    vfrac(i,j,k)) * optmp(i,j,k,n);
+
         }
         else
         {
@@ -204,31 +197,27 @@ namespace amrex {
             ks = -1;
             ke = 1;
 #endif
-            for(int ii(-1); ii <= 1; ii++)
-                for(int jj(-1); jj <= 1; jj++)
-                    for(int kk(ks); kk <= ke; kk++)
-#if (AMREX_SPACEDIM==3)
+            for (int kk(ks); kk <= ke; ++kk) {
+              for (int jj(-1); jj <= 1; ++jj) {
+                for (int ii(-1); ii <= 1; ++ii) {         
+            
                         if( (ii != 0 or jj != 0 or kk != 0) and
-#else
-                        if( (ii != 0 or jj != 0) and
-#endif
-                            (flags(i,j,k).isConnected({AMREX_D_DECL(ii,jj,kk)}) == 1))
+                            (flags(i,j,k).isConnected(ii,jj,kk)) )
                         {
                             wtot += wt(i+ii,j+jj,k+kk) * vfrac(i+ii,j+jj,k+kk) * mask(i+ii,j+jj,k+kk);
                         }
 
+            }}}
 
-            wtot = 1.0/wtot;
-
-            for(int ii(-1); ii <= 1; ii++)
-                for(int jj(-1); jj <= 1; jj++)
-                    for(int kk(ks); kk <= ke; kk++)
-#if (AMREX_SPACEDIM==3)
+            wtot = 1.0/(wtot + 1.e-80);
+           
+            for (int kk(ks); kk <= ke; ++kk) {
+              for (int jj(-1); jj <= 1; ++jj) {
+                for (int ii(-1); ii <= 1; ++ii) {       
+            
                         if( (ii != 0 or jj != 0 or kk != 0) and
-#else
-                        if( (ii != 0 or jj != 0) and
-#endif
-                            (flags(i,j,k).isConnected({AMREX_D_DECL(ii,jj,kk)}) == 1))
+                            (flags(i,j,k).isConnected(ii,jj,kk)) and
+                            bx.contains(IntVect(AMREX_D_DECL(i+ii,j+jj,k+kk))) )
                         {
 #ifdef AMREX_USE_CUDA
                             Gpu::Atomic::Add(&optmp(i+ii,j+jj,k+kk,n),
@@ -237,6 +226,8 @@ namespace amrex {
                             optmp(i+ii,j+jj,k+kk,n) += delm(i,j,k,n) * wtot * mask(i+ii,j+jj,k+kk) * wt(i+ii,j+jj,k+kk);
 #endif
                         }
+                        }}}
+
         }
         });
 
@@ -259,21 +250,13 @@ namespace amrex {
     {
         Box domain(geom[lev].Domain());
 
-        const int cyclic_x = geom[0].isPeriodic(0) ? 1 : 0;
-        const int cyclic_y = geom[0].isPeriodic(1) ? 1 : 0;
-#if (AMREX_SPACEDIM == 2)
-        const int cyclic_z = 0;
-#elif (AMREX_SPACEDIM == 3)
-        const int cyclic_z = geom[0].isPeriodic(2) ? 1 : 0;
-#endif
-
         Real covered_val = 1.e40;
 
         int nghost = 2;
 	AMREX_ASSERT(div_tmp_in.nGrow() >= nghost);
 	
         EB_set_covered(div_tmp_in, 0, ncomp, div_tmp_in.nGrow(), covered_val);
-
+              
         div_tmp_in.FillBoundary(geom[lev].periodicity());
 
         // Here we take care of both the regular and covered cases ... all we do below is the cut cell cases
@@ -298,8 +281,7 @@ namespace amrex {
                 // Compute div(tau) with EB algorithm
                 apply_eb_redistribution(bx, div_out, div_tmp_in, weights, &mfi,
                                                div_comp, ncomp, flags, volfrac, domain,
-                                               cyclic_x, cyclic_y, cyclic_z,
-                                               geom[lev].CellSize());
+                                               geom[lev]);
 
             }
         }

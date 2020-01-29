@@ -18,6 +18,9 @@
 
 namespace amrex {
 
+    template <typename T>
+    struct RunOnGpu : std::false_type {};
+        
 #ifdef AMREX_USE_GPU
   
     template<typename T>
@@ -147,6 +150,15 @@ namespace amrex {
     {
         return !(x == y);
     }
+
+    template <typename T>
+    struct RunOnGpu<ArenaAllocator<T> > : std::true_type {};
+
+    template <typename T>
+    struct RunOnGpu<DeviceArenaAllocator<T> > : std::true_type {};
+
+    template <typename T>
+    struct RunOnGpu<ManagedArenaAllocator<T> > : std::true_type {};
 
 #endif // AMREX_USE_GPU
 

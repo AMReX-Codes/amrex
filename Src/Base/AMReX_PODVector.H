@@ -3,6 +3,9 @@
 
 #include <AMReX_TypeTraits.H>
 #include <AMReX_Gpu.H>
+#include <AMReX_GpuAllocators.H>
+#include <AMReX_GpuContainers.H>
+#include <AMReX_GpuDevice.H>
 
 #include <type_traits>
 #include <utility>
@@ -11,6 +14,74 @@
 
 namespace amrex
 {
+    namespace detail
+    {
+        template <typename T, typename U, typename Size, typename Value>
+        typename std::enable_if<RunOnGpu<T>::value>::type
+        uninitializedFillNImpl (U* data, Size count, const Value& value)
+        {
+            AMREX_FOR_1D(count, i, data[i] = value;);
+            Gpu::Device::streamSynchronize();
+        }
+
+        template <typename T, typename U, typename Size, typename Value>
+        typename std::enable_if<!RunOnGpu<T>::value>::type
+        uninitializedFillNImpl (U* data, Size count, const Value& value)
+        {
+            std::uninitialized_fill_n<U*, U>(data, count, value);
+        }
+
+        template <typename T>
+        typename std::enable_if<RunOnGpu<T>::value>::type
+        memCopyImpl (void* dst, const void* src, std::size_t count)
+        {
+            Gpu::dtod_memcpy(dst, src, count);
+        }
+
+        template <typename T>
+        typename std::enable_if<!RunOnGpu<T>::value>::type
+        memCopyImpl (void* dst, const void* src, std::size_t count)
+        {
+            std::memcpy(dst, src, count);
+        }
+
+        template <typename T>
+        typename std::enable_if<RunOnGpu<T>::value>::type
+        memMoveImpl (void* dst, const void* src, std::size_t count, T& allocator)
+        {
+            AMREX_ASSERT(count % sizeof(typename T::value_type) == 0);
+
+            auto N = count / sizeof(typename T::value_type);
+            auto tmp = allocator.allocate(N);
+            
+            Gpu::dtod_memcpy(tmp, src, count);
+            Gpu::dtod_memcpy(dst, tmp, count);
+
+            allocator.deallocate(tmp, N);
+        }
+
+        template <typename T>
+        typename std::enable_if<!RunOnGpu<T>::value>::type
+        memMoveImpl (void* dst, const void* src, std::size_t count, T& allocator)
+        {
+            std::memmove(dst, src, count);
+        }
+        
+        template <typename T, typename U>
+        typename std::enable_if<RunOnGpu<T>::value>::type
+        initFromListImpl (U* data, std::initializer_list<U> list)
+        {
+            Gpu::htod_memcpy(data, &(*list.begin()), list.size() * sizeof(U));
+        }
+
+        template <typename T, typename U>
+        typename std::enable_if<!RunOnGpu<T>::value>::type
+        initFromListImpl (U* data, std::initializer_list<U> list)
+        {
+            for (const auto& value : list) { *(data++) = value; }
+        }
+    }
+    
     template <class T, class Allocator = std::allocator<T> >
     class PODVector : public Allocator
     {			
@@ -62,8 +133,8 @@ namespace amrex
             : Allocator(a_allocator), m_data(nullptr), m_size(0), m_capacity(0) 
         {
             AllocateBuffer(GetNewCapacity(a_size));
-            m_size = a_size;		
-            std::uninitialized_fill_n<T*, T>(m_data, a_size, a_value);
+            m_size = a_size;
+            detail::uninitializedFillNImpl<Allocator>(m_data, a_size, a_value);
         }
 	
         PODVector (std::initializer_list<T> a_initializer_list,
@@ -72,19 +143,17 @@ namespace amrex
         {
             size_type size = a_initializer_list.size();
             AllocateBuffer(GetNewCapacity(size));
-            m_size = size;
-            
-            // copy the initializer list
-            pointer dst = m_data;
-            for (const auto& value : a_initializer_list) { *(dst++) = value; }
+            m_size = size;            
+            detail::initFromListImpl<Allocator>(m_data, a_initializer_list);
         }
 	
         PODVector (const PODVector<T, Allocator>& a_vector) noexcept
             : Allocator(a_vector), m_data(nullptr), m_size(0), m_capacity(0)
         {
+            using namespace detail;
             AllocateBuffer(a_vector.capacity());
             m_size = a_vector.size();
-            std::memcpy(m_data, a_vector.m_data, a_vector.size() * sizeof(T));
+            memCopyImpl<Allocator>(m_data, a_vector.m_data, a_vector.size() * sizeof(T));
         }
         
         PODVector (PODVector<T, Allocator>&& a_vector) noexcept
@@ -127,7 +196,7 @@ namespace amrex
         iterator erase (const_iterator a_pos) noexcept
         {
             --m_size;
-            std::memmove(const_cast<iterator>(a_pos), a_pos+1, (end() - a_pos)*sizeof(T));
+            detail::memMoveImpl<Allocator>(const_cast<iterator>(a_pos), a_pos+1, (end() - a_pos)*sizeof(T), *this);
             return const_cast<iterator>(a_pos);
         }
         
@@ -136,24 +205,24 @@ namespace amrex
             size_type num_to_erase = a_last - a_first;
             if (num_to_erase == 0) return const_cast<iterator>(a_first);
             m_size -= num_to_erase;
-            std::memmove(const_cast<iterator>(a_first), a_first+num_to_erase, (end() - a_first)*sizeof(T));
+            detail::memMoveImpl<Allocator>(const_cast<iterator>(a_first), a_first+num_to_erase, (end() - a_first)*sizeof(T), *this);
             return const_cast<iterator>(a_first);
         }
         
         iterator insert (const_iterator a_pos, const T& a_item) noexcept
         {
             if(m_size == m_capacity)
-                {
-                    size_t insert_index = std::distance(m_data, const_cast<iterator>(a_pos));
-                    AllocateBufferForInsert(GetNewCapacity(1), insert_index, 1);
-                    a_pos = m_data;
-                    std::advance(a_pos, insert_index);
-                }
+            {
+                size_t insert_index = std::distance(m_data, const_cast<iterator>(a_pos));
+                AllocateBufferForInsert(GetNewCapacity(1), insert_index, 1);
+                a_pos = m_data;
+                std::advance(a_pos, insert_index);
+            }
             else
-                {
-                    std::memmove(const_cast<iterator>(a_pos)+1, a_pos, (end() - a_pos) * sizeof(T));
-                    ++m_size;
-                }
+            {
+                detail::memMoveImpl<Allocator>(const_cast<iterator>(a_pos)+1, a_pos, (end() - a_pos) * sizeof(T), *this);
+                ++m_size;
+            }
             
             *const_cast<iterator>(a_pos) = a_item;
             
@@ -164,19 +233,19 @@ namespace amrex
         {
             if (a_count == 0) return const_cast<iterator>(a_pos);
             if( capacity() < size() + a_count)
-                {
-                    size_t insert_index = std::distance(m_data, const_cast<iterator>(a_pos));
-                    AllocateBufferForInsert(GetNewCapacity(a_count), insert_index, a_count);
-                    a_pos = m_data;
-                    std::advance(a_pos, insert_index);
-                }
+            {
+                size_t insert_index = std::distance(m_data, const_cast<iterator>(a_pos));
+                AllocateBufferForInsert(GetNewCapacity(a_count), insert_index, a_count);
+                a_pos = m_data;
+                std::advance(a_pos, insert_index);
+            }
             else
-                {
-                    std::memmove(const_cast<iterator>(a_pos)+a_count, a_pos, (end() - a_pos) * sizeof(T));
-                    m_size += a_count;
-                }
-            
-            std::uninitialized_fill_n<T*, T>(const_cast<iterator>(a_pos), a_count, a_value);
+            {
+                detail::memMoveImpl<Allocator>(const_cast<iterator>(a_pos)+a_count, a_pos, (end() - a_pos) * sizeof(T), *this);
+                m_size += a_count;
+            }
+
+            detail::uninitializedFillNImpl<Allocator>(const_cast<iterator>(a_pos), a_count, a_value);
             
             return const_cast<iterator>(a_pos);
         }
@@ -184,17 +253,17 @@ namespace amrex
         iterator insert (const_iterator a_pos, T&& a_item) noexcept
         {
             if(m_size == m_capacity)
-                {
-                    size_t insert_index = std::distance(m_data, const_cast<iterator>(a_pos));
-                    AllocateBufferForInsert(GetNewCapacity(1), insert_index, 1);
-                    a_pos = m_data;
-                    std::advance(a_pos, insert_index);
-                }
+            {
+                size_t insert_index = std::distance(m_data, const_cast<iterator>(a_pos));
+                AllocateBufferForInsert(GetNewCapacity(1), insert_index, 1);
+                a_pos = m_data;
+                std::advance(a_pos, insert_index);
+            }
             else
-                {
-                    std::memmove(const_cast<iterator>(a_pos)+1, a_pos, (end() - a_pos) * sizeof(T));
-                    ++m_size;
-                }
+            {
+                detail::memMoveImpl<Allocator>(const_cast<iterator>(a_pos)+1, a_pos, (end() - a_pos) * sizeof(T), *this);
+                ++m_size;
+            }
             
             *const_cast<iterator>(a_pos) = a_item;
             
@@ -205,17 +274,17 @@ namespace amrex
         {
             size_type count = a_initializer_list.size();
             if( capacity() < size() + count)
-                {
-                    size_t insert_index = std::distance(m_data, const_cast<iterator>(a_pos));
-                    AllocateBufferForInsert(GetNewCapacity(count), insert_index, count);
-                    a_pos = m_data;
-                    std::advance(a_pos, insert_index);
-                }
+            {
+                size_t insert_index = std::distance(m_data, const_cast<iterator>(a_pos));
+                AllocateBufferForInsert(GetNewCapacity(count), insert_index, count);
+                a_pos = m_data;
+                std::advance(a_pos, insert_index);
+            }
             else
-                {
-                    std::memmove(const_cast<iterator>(a_pos)+count, a_pos, (end() - a_pos) * sizeof(T));
-                    m_size += count;
-                }        // copy the initializer list
+            {
+                detail::memMoveImpl<Allocator>(const_cast<iterator>(a_pos)+count, a_pos, (end() - a_pos) * sizeof(T), *this);
+                m_size += count;
+            }        // copy the initializer list
             pointer dst = const_cast<iterator>(a_pos);
             for (const auto& value : a_initializer_list) { *(dst++) = value; }        
             return const_cast<iterator>(a_pos);
@@ -227,17 +296,17 @@ namespace amrex
             size_type count = std::distance(a_first, a_last);
             if (count == 0) return const_cast<iterator>(a_pos);
             if( capacity() < size() + count)
-                {
-                    size_t insert_index = std::distance(m_data, const_cast<iterator>(a_pos));
-                    AllocateBufferForInsert(GetNewCapacity(count), insert_index, count);
-                    a_pos = m_data;
-                    std::advance(a_pos, insert_index);
-                }
+            {
+                size_t insert_index = std::distance(m_data, const_cast<iterator>(a_pos));
+                AllocateBufferForInsert(GetNewCapacity(count), insert_index, count);
+                a_pos = m_data;
+                std::advance(a_pos, insert_index);
+            }
             else
-                {
-                    std::memmove(const_cast<iterator>(a_pos)+count, a_pos, (end() - a_pos) * sizeof(T));
-                    m_size += count;
-                }        pointer dst = const_cast<iterator>(a_pos);
+            {
+                detail::memMoveImpl<Allocator>(const_cast<iterator>(a_pos)+count, a_pos, (end() - a_pos) * sizeof(T), *this);
+                m_size += count;
+            }        pointer dst = const_cast<iterator>(a_pos);
             while(a_first != a_last) { *(dst++) = *(a_first++); }
             return const_cast<iterator>(a_pos);
         }
@@ -246,12 +315,7 @@ namespace amrex
         {
             if ( a_count > capacity() ) AllocateBuffer(GetNewCapacity(a_count));
             m_size = a_count;
-#ifdef AMREX_USE_GPU
-            auto data = m_data;
-            AMREX_FOR_1D(a_count, i, data[i] = a_value;);
-#else
-            std::uninitialized_fill_n<T*, T>(m_data, a_count, a_value);
-#endif
+            detail::uninitializedFillNImpl<Allocator>(m_data, a_count, a_value);
         }    
         
         void assign (std::initializer_list<T> a_initializer_list) noexcept
@@ -355,18 +419,12 @@ namespace amrex
         {
             size_type old_size = size();
             resize(a_new_size);
-            if(old_size < a_new_size)
-                {
-#ifdef AMREX_USE_GPU
-                    auto data = m_data;
-                    auto count = size() - old_size;
-                    AMREX_FOR_1D(count, i, data[i+old_size] = a_val;);
-#else
-                    
-                    std::uninitialized_fill<T*,T>(m_data + old_size, 
-                                                  m_data + size(), a_val);
-#endif
-                }
+            if (old_size < a_new_size)
+            {
+                detail::uninitializedFillNImpl<Allocator>(m_data + old_size,
+                                                          size() - old_size,
+                                                          a_val);
+            }
         }
         
         void reserve (size_type a_capacity) noexcept 
@@ -378,16 +436,16 @@ namespace amrex
         {
             const size_type current_size = size();
             if ( current_size == 0 )
-                {
-                    deallocate(m_data, capacity());
-                    m_data = nullptr;
-                    m_size = 0;
-                    m_capacity = 0;
-                }
+            {
+                deallocate(m_data, capacity());
+                m_data = nullptr;
+                m_size = 0;
+                m_capacity = 0;
+            }
             else if ( current_size < capacity() )
-                {
-                    AllocateBuffer(current_size);
-                }
+            {
+                AllocateBuffer(current_size);
+            }
         }
         
         void swap (PODVector<T, Allocator>& a_vector) noexcept
@@ -406,14 +464,14 @@ namespace amrex
             size_type new_capacity = capacity();
             
             if (capacity() == 0)
-                {
-                    new_capacity = std::max(64 / sizeof(T), size_type(1));
-                }
+            {
+                new_capacity = std::max(64 / sizeof(T), size_type(1));
+            }
             
             while (new_capacity < (capacity() + a_num_to_be_added))
-                {
-                    new_capacity = (3 * new_capacity + 1)/2;
-                }
+            {
+                new_capacity = (3 * new_capacity + 1)/2;
+            }
             
             return new_capacity;
         }
@@ -422,7 +480,7 @@ namespace amrex
         void AllocateBuffer (size_type a_capacity) noexcept
         {
             pointer new_data = allocate(a_capacity);
-            if (m_data) std::memcpy(new_data, m_data, size() * sizeof(T));
+            if (m_data) detail::memCopyImpl<Allocator>(new_data, m_data, size() * sizeof(T));
             deallocate(m_data, capacity());
             m_data = new_data;
             m_capacity = a_capacity;
@@ -431,12 +489,14 @@ namespace amrex
         // need to have this version too
         void AllocateBufferForInsert(size_type a_capacity, size_type a_index, size_type a_count) noexcept
         {
+            using namespace detail;
             pointer new_data = allocate(a_capacity);
             if (m_data)
-                {
-                    std::memcpy(new_data, m_data, a_index * sizeof(T));
-                    std::memcpy(new_data + a_index + a_count, m_data + a_index, (size() - a_index)*sizeof(T));
-                }
+            {
+                memCopyImpl<Allocator>(new_data, m_data, a_index * sizeof(T));
+                memCopyImpl<Allocator>(new_data + a_index + a_count, m_data + a_index,
+                                       (size() - a_index)*sizeof(T));
+            }
             deallocate(m_data, capacity());
             m_data = new_data;
             m_size = size() + a_count;
@@ -445,58 +505,49 @@ namespace amrex
         
         PODVector& CopyAssignmentDoIt (const PODVector<T, Allocator>& a_vector, std::false_type) noexcept
         {
-            const size_t other_size = a_vector.size();
-            
-            if ( other_size > capacity() ) { AllocateBuffer(other_size); }
-            
-            m_size = other_size;
-            
-            std::memcpy(m_data, a_vector.m_data, size() * sizeof(T));
-            
+            const size_t other_size = a_vector.size();            
+            if ( other_size > capacity() ) { AllocateBuffer(other_size); }            
+            m_size = other_size;            
+            detail::memCopyImpl<Allocator>(m_data, a_vector.m_data, size() * sizeof(T));
             return *this;
         }
         
         PODVector& CopyAssignmentDoIt (const PODVector<T, Allocator>& a_vector, std::true_type) noexcept
         {
             if (static_cast<Allocator&>(a_vector) == static_cast<Allocator&>(*this))
-                {
-                    CopyAssignmentDoIt(a_vector, std::false_type());
-                }
+            {
+                CopyAssignmentDoIt(a_vector, std::false_type());
+            }
             else
-                {
-                    const size_t other_size = a_vector.size();
-                    
-                    if ( other_size > capacity() ) { AllocateBuffer(other_size); }
-                    
-                    m_size = other_size;
-                    
-                    std::memcpy(m_data, a_vector.m_data, size() * sizeof(T));
-                    
-                    Allocator::operator=(static_cast<Allocator&>(a_vector));
-                    
-                    return *this;
-                }
+            {
+                const size_t other_size = a_vector.size();                
+                if ( other_size > capacity() ) { AllocateBuffer(other_size); }                
+                m_size = other_size;                    
+                detail::memCopyImpl<Allocator>(m_data, a_vector.m_data, size() * sizeof(T));
+                Allocator::operator=(static_cast<Allocator&>(a_vector));                
+                return *this;
+            }
         }
         
         PODVector& MoveAssignmentDoIt (PODVector<T, Allocator>&& a_vector, std::false_type) noexcept
         {
             if(static_cast<Allocator&>(a_vector) == static_cast<Allocator&>(*this))
-                {
-                    deallocate(m_data, capacity());
-                    
-                    m_data = a_vector.m_data;
-                    m_size = a_vector.m_size;
-                    m_capacity = a_vector.m_capacity;
-                    
-                    a_vector.m_data = nullptr;
-                    a_vector.m_size = 0;
-                    a_vector.m_capacity = 0;
-                }
+            {
+                deallocate(m_data, capacity());
+                
+                m_data = a_vector.m_data;
+                m_size = a_vector.m_size;
+                m_capacity = a_vector.m_capacity;
+                
+                a_vector.m_data = nullptr;
+                a_vector.m_size = 0;
+                a_vector.m_capacity = 0;
+            }
             else
-                {
-                    // if the allocators are not the same we give up and copy
-                    CopyAssignmentDoIt(a_vector, std::false_type());
-                }
+            {
+                // if the allocators are not the same we give up and copy
+                CopyAssignmentDoIt(a_vector, std::false_type());
+            }
             
             return *this;
         }

@@ -46,6 +46,7 @@
 #include <AMReX_ParticleLocator.H>
 #include <AMReX_Scan.H>
 #include <AMReX_DenseBins.H>
+#include <AMReX_SparseBins.H>
 #include <AMReX_ParticleTransformation.H>
 #include <AMReX_ParIter.H>
 
@@ -1102,7 +1103,7 @@ void WriteParticlesHDF5 ( hid_t grp, int level, Vector<int>& count, Vector<long>
     Gpu::PinnedVector<char> pinned_snd_buffer;
     Gpu::PinnedVector<char> pinned_rcv_buffer;
 
-    mutable AmrParticleLocator m_particle_locator;
+    mutable AmrParticleLocator<DenseBins<Box> > m_particle_locator;
 #endif
 
     int NumRuntimeRealComps () const { return m_num_runtime_real; }
