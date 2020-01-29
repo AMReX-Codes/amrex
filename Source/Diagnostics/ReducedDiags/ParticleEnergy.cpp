@@ -5,6 +5,7 @@
 #include "AMReX_ParticleReduce.H"
 #include <iostream>
 #include <cmath>
+#include <limits>
 
 using namespace amrex;
 
@@ -125,7 +126,7 @@ void ParticleEnergy::ComputeDiags (int step)
 
         /// save results for this species i_s into m_data
         m_data[i_s+1] = Etot;
-        if ( Wtot > 0.0 )
+        if ( Wtot > std::numeric_limits<Real>::min() )
         { m_data[nSpecies+2+i_s] = Etot / Wtot; }
         else
         { m_data[nSpecies+2+i_s] = 0.0; }
