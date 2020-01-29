@@ -10,6 +10,7 @@
  */
 #include <AMReX_ActivityTraceAsync.H>
 #ifdef AMREX_USE_CUPTI
+#include <AMReX_Print.H>
 #include <stdio.h>
 #include <map>
 #include <cuda.h>
@@ -167,15 +168,17 @@ bufferCompleted (CUcontext ctx, uint32_t streamId, uint8_t *buffer,
     do {
       status = cuptiActivityGetNextRecord(buffer, validSize, &record);
       if (status == CUPTI_SUCCESS) {
-	//CUpti_Activity_Userdata* recordUserData = (CUpti_Activity_Userdata*) record;
 	CUpti_Activity_Userdata* recordUserData = new CUpti_Activity_Userdata();
-	//*recordUserData = CUpti_Activity_Userdata();
-	//CUpti_ActivityKernel4* kernel = (CUpti_ActivityKernel4*) record;
-	//CUpti_Activity_Userdata* recordUserData = (CUpti_Activity_Userdata*) record;
+	CUpti_ActivityKernel4* kernel = (CUpti_ActivityKernel4*) record;
+
+	// Save record data
 	recordUserData->setRecord(record);
-	//recordUserData = (CUpti_Activity_Userdata*) record;
+	recordUserData->setStartTime(kernel->start);
+	recordUserData->setEndTime(kernel->end);
+	recordUserData->setTimeElapsed(kernel->end - kernel->start);
+	recordUserData->setStreamID(kernel->streamId);
+	recordUserData->setName(kernel->name);
 	activityRecordUserdata.push_back(recordUserData);
-	//printActivity(record);
       }
       else if (status == CUPTI_ERROR_MAX_LIMIT_REACHED)
         break;
@@ -221,7 +224,7 @@ initCuptiTrace () noexcept
   // activity API.  Some attributes require to be set before any CUDA context is
   // created to be effective, e.g. to be applied to all device buffer allocations.
   CUPTI_CALL(cuptiActivityGetAttribute(CUPTI_ACTIVITY_ATTR_DEVICE_BUFFER_SIZE, &attrValueSize, &attrValue));
-  printf("%s = %llu\n", "CUPTI_ACTIVITY_ATTR_DEVICE_BUFFER_SIZE", (long long unsigned)attrValue);
+  //printf("%s = %llu\n", "CUPTI_ACTIVITY_ATTR_DEVICE_BUFFER_SIZE", (long long unsigned)attrValue);
   attrValue *= 2; // Just for example
   CUPTI_CALL(cuptiActivitySetAttribute(CUPTI_ACTIVITY_ATTR_DEVICE_BUFFER_SIZE, &attrValueSize, &attrValue));
   
@@ -229,12 +232,14 @@ initCuptiTrace () noexcept
   // Increasing this reduces the number of times CUPTI needs to flush the buffers.
   // Default value is 100.
   CUPTI_CALL(cuptiActivityGetAttribute(CUPTI_ACTIVITY_ATTR_DEVICE_BUFFER_POOL_LIMIT, &attrValueSize, &attrValue));
-  printf("%s = %llu\n", "CUPTI_ACTIVITY_ATTR_DEVICE_BUFFER_POOL_LIMIT", (long long unsigned)attrValue);
+  //printf("%s = %llu\n", "CUPTI_ACTIVITY_ATTR_DEVICE_BUFFER_POOL_LIMIT", (long long unsigned)attrValue);
   attrValue *= 2; // Just for example
   CUPTI_CALL(cuptiActivitySetAttribute(CUPTI_ACTIVITY_ATTR_DEVICE_BUFFER_POOL_LIMIT, &attrValueSize, &attrValue));
 
   // Time at initialization, used for normalizing other printed times
   CUPTI_CALL(cuptiGetTimestamp(&startTimestamp));
+  
+  amrex::Print() << "CUPTI initialized";
 }
 
 void
@@ -260,8 +265,8 @@ cuptiTraceStop (unsigned boxUintID) noexcept
   for (auto record : activityRecordUserdata) {
     record->setUintID(boxUintID);
     record->setCharID(("CharID_" + std::to_string(boxUintID)).c_str());
-    //printf("Record ID: %llu\n", record->getUintID());
-    //printf("Char ID: %s\n", record->getCharID());
+    // printf("Record ID: %llu\n", record->getUintID());
+    // printf("Char ID: %s\n", record->getCharID());
   }
 }
 
@@ -269,19 +274,14 @@ double
 computeElapsedTimeUserdata (std::vector<CUpti_Activity_Userdata*>
 			    activityRecordUserdata) noexcept
 {
-  unsigned long long t_elapsed = 0;
-  unsigned long long t_start = 0;
-  unsigned long long t_stop = 0;
-
   std::map<int, unsigned long long> streamIDToElapsedTimeMap;
   
   // Initialize tally of unique streams
   for (auto record : activityRecordUserdata) {
-    CUpti_ActivityKernel4* kernel = (CUpti_ActivityKernel4*) record->getRecord();
-    if (streamIDToElapsedTimeMap.find(kernel->streamId)
+    if (streamIDToElapsedTimeMap.find(record->getStreamID())
 	== streamIDToElapsedTimeMap.end()) {
       // Not found
-      streamIDToElapsedTimeMap[kernel->streamId] = 0;
+      streamIDToElapsedTimeMap[record->getStreamID()] = 0;
     } else {
       // Found
     }
@@ -289,11 +289,7 @@ computeElapsedTimeUserdata (std::vector<CUpti_Activity_Userdata*>
 
   // Sum kernel times in each stream
   for (auto record : activityRecordUserdata) {
-    CUpti_ActivityKernel4* kernel = (CUpti_ActivityKernel4*) record->getRecord();
-    t_start = (unsigned long long) (kernel->start - startTimestamp);
-    t_stop = (unsigned long long) (kernel->end - startTimestamp);
-    t_elapsed = (((unsigned long long)t_stop) - ((unsigned long long)t_start));
-    streamIDToElapsedTimeMap[kernel->streamId] += t_elapsed;
+    streamIDToElapsedTimeMap[record->getStreamID()] += record->getTimeElapsed();
   }
 
   // Average over streams
@@ -326,6 +322,36 @@ CUpti_Activity_Userdata::setUintID (unsigned uintID) noexcept
   uintID_ = uintID;
 }
 
+void
+CUpti_Activity_Userdata::setStartTime (unsigned long long startTime) noexcept
+{
+  startTime_ = startTime;
+}
+
+void
+CUpti_Activity_Userdata::setEndTime (unsigned long long endTime) noexcept
+{
+  endTime_ = endTime;
+}
+
+void
+CUpti_Activity_Userdata::setTimeElapsed (unsigned long long timeElapsed) noexcept
+{
+  timeElapsed_ = timeElapsed;
+}
+
+void
+CUpti_Activity_Userdata::setStreamID (int streamID) noexcept
+{
+  streamID_ = streamID;
+}
+
+void
+CUpti_Activity_Userdata::setName (const char* name) noexcept
+{
+  name_ = name;
+}
+
 unsigned
 CUpti_Activity_Userdata::getUintID () noexcept
 { 
@@ -342,6 +368,36 @@ const char*
 CUpti_Activity_Userdata::getCharID () noexcept
 { 
   return charID_;
+}
+
+unsigned long long
+CUpti_Activity_Userdata::getStartTime () noexcept
+{
+  return startTime_;
+}
+
+unsigned long long
+CUpti_Activity_Userdata::getEndTime () noexcept
+{
+  return endTime_;
+}
+
+unsigned long long
+CUpti_Activity_Userdata::getTimeElapsed () noexcept
+{
+  return timeElapsed_;
+}
+
+int
+CUpti_Activity_Userdata::getStreamID () noexcept
+{
+  return streamID_;
+}
+
+const char*
+CUpti_Activity_Userdata::getName () noexcept
+{
+  return name_;
 }
   
 CuptiTrace::CuptiTrace () noexcept
