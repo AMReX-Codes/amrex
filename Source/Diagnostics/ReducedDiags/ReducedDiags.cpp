@@ -17,6 +17,9 @@ ReducedDiags::ReducedDiags (std::string rd_name)
     /// read path
     pp.query("path", m_path);
 
+    /// read extension
+    pp.query("extension", m_extension);
+
     /// creater folder
     if (!UtilCreateDirectory(m_path, 0755))
     { CreateDirectoryFailed(m_path); }
@@ -31,7 +34,7 @@ ReducedDiags::ReducedDiags (std::string rd_name)
     if ( m_IsNotRestart ) ///< not a restart
     {
         std::ofstream ofs;
-        ofs.open(m_path+m_rd_name+".txt", std::ios::trunc);
+        ofs.open(m_path+m_rd_name+"."+m_extension, std::ios::trunc);
         ofs.close();
     }
 
@@ -53,7 +56,7 @@ void ReducedDiags::WriteToFile (int step) const
 
     /// open file
     std::ofstream ofs;
-    ofs.open(m_path + m_rd_name + ".txt",
+    ofs.open(m_path + m_rd_name + "." + m_extension,
         std::ofstream::out | std::ofstream::app);
 
     /// write step

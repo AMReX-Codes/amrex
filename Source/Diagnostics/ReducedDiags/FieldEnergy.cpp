@@ -31,7 +31,7 @@ FieldEnergy::FieldEnergy (std::string rd_name)
         {
             /// open file
             std::ofstream ofs;
-            ofs.open(m_path + m_rd_name + ".txt",
+            ofs.open(m_path + m_rd_name + "." + m_extension,
                 std::ofstream::out | std::ofstream::app);
             // write header row
             ofs << "#";
