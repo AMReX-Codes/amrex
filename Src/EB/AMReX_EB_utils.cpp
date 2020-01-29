@@ -134,12 +134,7 @@ namespace amrex {
             else
                 mask(i,j,k) = 1;
                 
-#if (AMREX_SPACEDIM==3)             
-            mask(i,j,k) = (dbox.contains(IntVect(i,j,k))) ? 1.0 : 0.0;
-#else
-            mask(i,j,k) = (dbox.contains(IntVect(i,j))) ? 1 : 0;
-#endif
-                
+            mask(i,j,k) = (dbox.contains(IntVect(AMREX_D_DECL(i,j,k)))) ? 1.0 : 0.0;
         });
 
         //
@@ -170,16 +165,9 @@ namespace amrex {
             for (int kk(ks); kk <= ke; ++kk) {
               for (int jj(-1); jj <= 1; ++jj) {
                 for (int ii(-1); ii <= 1; ++ii) {
-              
- #if (AMREX_SPACEDIM==3)
-                        if( (ii != 0 or jj != 0 or kk != 0) and
-                          flags(i,j,k).isConnected(ii,jj,kk) and
-                          dbox.contains(IntVect(i+ii,j+jj,k+kk)))
-#else
-                        if( (ii != 0 or jj != 0) and
-                          flags(i,j,k).isConnected({AMREX_D_DECL(ii,jj,kk)}) and
-                          dbox.contains(IntVect(i+ii,j+jj)))
-#endif
+		        if( (ii != 0 or jj != 0 or kk != 0) and
+			    flags(i,j,k).isConnected(ii,jj,kk) and
+			    dbox.contains(IntVect(AMREX_D_DECL(i+ii,j+jj,k+kk))))
                         {
 
                             wted_frac = vfrac(i+ii,j+jj,k+kk) * wt(i+ii,j+jj,k+kk) * mask(i+ii,j+jj,k+kk);
@@ -223,12 +211,8 @@ namespace amrex {
               for (int jj(-1); jj <= 1; ++jj) {
                 for (int ii(-1); ii <= 1; ++ii) {         
             
-#if (AMREX_SPACEDIM==3)
                         if( (ii != 0 or jj != 0 or kk != 0) and
-#else
-                        if( (ii != 0 or jj != 0) and
-#endif
-                            (flags(i,j,k).isConnected({AMREX_D_DECL(ii,jj,kk)}) == 1))
+                            (flags(i,j,k).isConnected(ii,jj,kk) == 1) )
                         {
                             wtot += wt(i+ii,j+jj,k+kk) * vfrac(i+ii,j+jj,k+kk) * mask(i+ii,j+jj,k+kk);
                         }
@@ -241,13 +225,9 @@ namespace amrex {
               for (int jj(-1); jj <= 1; ++jj) {
                 for (int ii(-1); ii <= 1; ++ii) {       
             
-#if (AMREX_SPACEDIM==3)
                         if( (ii != 0 or jj != 0 or kk != 0) and
-#else
-                        if( (ii != 0 or jj != 0) and
-#endif
-                            (flags(i,j,k).isConnected({AMREX_D_DECL(ii,jj,kk)}) == 1) and
-                            bx.contains(IntVect(i+ii,j+jj)))
+                            (flags(i,j,k).isConnected(ii,jj,kk) == 1) and
+                            bx.contains(IntVect(AMREX_D_DECL(i+ii,j+jj,k+kk))) )
                         {
 #ifdef AMREX_USE_CUDA
                             Gpu::Atomic::Add(&optmp(i+ii,j+jj,k+kk,n),
