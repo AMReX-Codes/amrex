@@ -145,7 +145,7 @@ void ParticleEnergy::ComputeDiags (int step)
     }
     // end loop over species
 
-    /** m_data now contains up-to-date values for:
+    /* m_data now contains up-to-date values for:
      *  [total energy (all species),
      *   total energy (species 1),
      *   ...,
