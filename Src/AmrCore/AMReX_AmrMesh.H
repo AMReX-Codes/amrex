@@ -64,7 +64,7 @@ public:
     AmrMesh (AmrMesh&& rhs) = default;
     AmrMesh& operator= (AmrMesh&& rhs) = default;
 
-    virtual ~AmrMesh ();
+    virtual ~AmrMesh () = default;
 
     int Verbose () const noexcept { return verbose; }
 
