@@ -233,9 +233,6 @@ public:
 
     long CountCells (int lev) noexcept;
 
-    static void Initialize ();
-    static void Finalize ();
-
 protected:
 
     int finest_level;    //!< Current finest level.
