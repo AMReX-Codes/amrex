@@ -43,4 +43,4 @@ T_R ComputeTemperature (
     return m/T_R(3.0)*(vs-(vx*vx+vy*vy+vz*vz));
 }
 
-#endif ///< WARPX_PARTICLES_COLLISION_COMPUTE_TEMPERATURE_H_
+#endif // WARPX_PARTICLES_COLLISION_COMPUTE_TEMPERATURE_H_

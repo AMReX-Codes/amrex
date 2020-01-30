@@ -18,14 +18,14 @@ CollisionType::CollisionType(
     amrex::Abort("Collisions only work in Cartesian geometry for now.");
     #endif
 
-    /// read collision species
+    // read collision species
     std::vector<std::string> collision_species;
     amrex::ParmParse pp(collision_name);
     pp.getarr("species", collision_species);
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(collision_species.size() == 2,
     "Collision species must name exactly two species.");
 
-    /// default Coulomb log, if < 0, will be computed automatically
+    // default Coulomb log, if < 0, will be computed automatically
     m_CoulombLog = -1.0;
     pp.query("CoulombLog", m_CoulombLog);
 
@@ -45,7 +45,7 @@ CollisionType::CollisionType(
 }
 
 using namespace amrex;
-/// Define shortcuts for frequently-used type names
+// Define shortcuts for frequently-used type names
 using ParticleType = WarpXParticleContainer::ParticleType;
 using ParticleTileType = WarpXParticleContainer::ParticleTileType;
 using ParticleBins = DenseBins<ParticleType>;
@@ -59,22 +59,22 @@ namespace {
     findParticlesInEachCell( int const lev, MFIter const& mfi,
                              ParticleTileType const& ptile) {
 
-        /// Extract particle structures for this tile
+        // Extract particle structures for this tile
         int const np = ptile.numParticles();
         ParticleType const* particle_ptr = ptile.GetArrayOfStructs()().data();
 
-        /// Extract box properties
+        // Extract box properties
         Geometry const& geom = WarpX::GetInstance().Geom(lev);
         Box const& cbx = mfi.tilebox(IntVect::TheZeroVector()); //Cell-centered box
         const auto lo = lbound(cbx);
         const auto dxi = geom.InvCellSizeArray();
         const auto plo = geom.ProbLoArray();
 
-        /// Find particles that are in each cell;
-        /// results are stored in the object `bins`.
+        // Find particles that are in each cell;
+        // results are stored in the object `bins`.
         ParticleBins bins;
         bins.build(np, particle_ptr, cbx,
-            /// Pass lambda function that returns the cell index
+            // Pass lambda function that returns the cell index
             [=] AMREX_GPU_HOST_DEVICE (const ParticleType& p) noexcept -> IntVect
             {
                 return IntVect(AMREX_D_DECL((p.pos(0)-plo[0])*dxi[0] - lo.x,
@@ -103,19 +103,19 @@ void CollisionType::doCoulombCollisionsWithinTile
     bool const isSameSpecies, Real const CoulombLog )
 {
 
-    if ( isSameSpecies ) /// species_1 == species_2
+    if ( isSameSpecies ) // species_1 == species_2
     {
-        /// Extract particles in the tile that `mfi` points to
+        // Extract particles in the tile that `mfi` points to
         ParticleTileType& ptile_1 = species_1->ParticlesAt(lev, mfi);
 
-        /// Find the particles that are in each cell of this tile
+        // Find the particles that are in each cell of this tile
         ParticleBins bins_1 = findParticlesInEachCell( lev, mfi, ptile_1 );
 
-        /// Loop over cells, and collide the particles in each cell
+        // Loop over cells, and collide the particles in each cell
 
-        /// Extract low-level data
+        // Extract low-level data
         int const n_cells = bins_1.numBins();
-        /// - Species 1
+        // - Species 1
         auto& soa_1 = ptile_1.GetStructOfArrays();
         ParticleReal * const AMREX_RESTRICT ux_1 =
             soa_1.GetRealData(PIdx::ux).data();
@@ -138,24 +138,24 @@ void CollisionType::doCoulombCollisionsWithinTile
         auto dV = geom.CellSize(0) * geom.CellSize(1) * geom.CellSize(2);
         #endif
 
-        /// Loop over cells
+        // Loop over cells
         amrex::ParallelFor( n_cells,
             [=] AMREX_GPU_DEVICE (int i_cell) noexcept
             {
-                /// The particles from species1 that are in the cell `i_cell` are
-                /// given by the `indices_1[cell_start_1:cell_stop_1]`
+                // The particles from species1 that are in the cell `i_cell` are
+                // given by the `indices_1[cell_start_1:cell_stop_1]`
                 index_type const cell_start_1 = cell_offsets_1[i_cell];
                 index_type const cell_stop_1  = cell_offsets_1[i_cell+1];
                 index_type const cell_half_1 = (cell_start_1+cell_stop_1)/2;
 
-                /// Do not collide if there is only one particle in the cell
+                // Do not collide if there is only one particle in the cell
                 if ( cell_stop_1 - cell_start_1 >= 2 )
                 {
-                    /// shuffle
+                    // shuffle
                     ShuffleFisherYates(
                         indices_1, cell_start_1, cell_half_1 );
 
-                    /// Call the function in order to perform collisions
+                    // Call the function in order to perform collisions
                     ElasticCollisionPerez(
                         cell_start_1, cell_half_1,
                         cell_half_1, cell_stop_1,
@@ -167,21 +167,21 @@ void CollisionType::doCoulombCollisionsWithinTile
             }
         );
     }
-    else /// species_1 != species_2
+    else // species_1 != species_2
     {
-        /// Extract particles in the tile that `mfi` points to
+        // Extract particles in the tile that `mfi` points to
         ParticleTileType& ptile_1 = species_1->ParticlesAt(lev, mfi);
         ParticleTileType& ptile_2 = species_2->ParticlesAt(lev, mfi);
 
-        /// Find the particles that are in each cell of this tile
+        // Find the particles that are in each cell of this tile
         ParticleBins bins_1 = findParticlesInEachCell( lev, mfi, ptile_1 );
         ParticleBins bins_2 = findParticlesInEachCell( lev, mfi, ptile_2 );
 
-        /// Loop over cells, and collide the particles in each cell
+        // Loop over cells, and collide the particles in each cell
 
-        /// Extract low-level data
+        // Extract low-level data
         int const n_cells = bins_1.numBins();
-        /// - Species 1
+        // - Species 1
         auto& soa_1 = ptile_1.GetStructOfArrays();
         ParticleReal * const AMREX_RESTRICT ux_1 =
             soa_1.GetRealData(PIdx::ux).data();
@@ -195,7 +195,7 @@ void CollisionType::doCoulombCollisionsWithinTile
         index_type const* cell_offsets_1 = bins_1.offsetsPtr();
         Real q1 = species_1->getCharge();
         Real m1 = species_1->getMass();
-        /// - Species 2
+        // - Species 2
         auto& soa_2 = ptile_2.GetStructOfArrays();
         Real* ux_2  = soa_2.GetRealData(PIdx::ux).data();
         Real* uy_2  = soa_2.GetRealData(PIdx::uy).data();
@@ -214,31 +214,31 @@ void CollisionType::doCoulombCollisionsWithinTile
         auto dV = geom.CellSize(0) * geom.CellSize(1) * geom.CellSize(2);
         #endif
 
-        /// Loop over cells
+        // Loop over cells
         amrex::ParallelFor( n_cells,
             [=] AMREX_GPU_DEVICE (int i_cell) noexcept
             {
-                /// The particles from species1 that are in the cell `i_cell` are
-                /// given by the `indices_1[cell_start_1:cell_stop_1]`
+                // The particles from species1 that are in the cell `i_cell` are
+                // given by the `indices_1[cell_start_1:cell_stop_1]`
                 index_type const cell_start_1 = cell_offsets_1[i_cell];
                 index_type const cell_stop_1  = cell_offsets_1[i_cell+1];
-                /// Same for species 2
+                // Same for species 2
                 index_type const cell_start_2 = cell_offsets_2[i_cell];
                 index_type const cell_stop_2  = cell_offsets_2[i_cell+1];
 
-                /// ux from species1 can be accessed like this:
-                /// ux_1[ indices_1[i] ], where i is between
-                /// cell_start_1 (inclusive) and cell_start_2 (exclusive)
+                // ux from species1 can be accessed like this:
+                // ux_1[ indices_1[i] ], where i is between
+                // cell_start_1 (inclusive) and cell_start_2 (exclusive)
 
-                /// Do not collide if one species is missing in the cell
+                // Do not collide if one species is missing in the cell
                 if ( cell_stop_1 - cell_start_1 >= 1 &&
                      cell_stop_2 - cell_start_2 >= 1 )
                 {
-                    /// shuffle
+                    // shuffle
                     ShuffleFisherYates(indices_1, cell_start_1, cell_stop_1);
                     ShuffleFisherYates(indices_2, cell_start_2, cell_stop_2);
 
-                    /// Call the function in order to perform collisions
+                    // Call the function in order to perform collisions
                     ElasticCollisionPerez(
                         cell_start_1, cell_stop_1, cell_start_2, cell_stop_2,
                         indices_1, indices_2,
@@ -248,6 +248,6 @@ void CollisionType::doCoulombCollisionsWithinTile
                 }
             }
         );
-    } ///< end if ( isSameSpecies)
+    } // end if ( isSameSpecies)
 
 }

@@ -51,7 +51,7 @@ void ElasticCollisionPerez (
     int NI1 = I1e - I1s;
     int NI2 = I2e - I2s;
 
-    /// get local T1t and T2t
+    // get local T1t and T2t
     T_R T1t; T_R T2t;
     if ( T1 <= T_R(0.0) && L <= T_R(0.0) )
     {
@@ -64,7 +64,7 @@ void ElasticCollisionPerez (
     }
     else { T2t = T2; }
 
-    /// local density
+    // local density
     T_R n1  = T_R(0.0);
     T_R n2  = T_R(0.0);
     T_R n12 = T_R(0.0);
@@ -82,7 +82,7 @@ void ElasticCollisionPerez (
       n12 = n12 / dV;
     }
 
-    /// compute Debye length lmdD
+    // compute Debye length lmdD
     T_R lmdD;
     lmdD = T_R(1.0)/std::sqrt( n1*q1*q1/(T1t*PhysConst::ep0) +
                          n2*q2*q2/(T2t*PhysConst::ep0) );
@@ -90,7 +90,7 @@ void ElasticCollisionPerez (
                amrex::max(n1,n2), T_R(-1.0/3.0) );
     lmdD = amrex::max(lmdD, rmin);
 
-    /// call UpdateMomentumPerezElastic()
+    // call UpdateMomentumPerezElastic()
     {
       int i1 = I1s; int i2 = I2s;
       for (int k = 0; k < amrex::max(NI1,NI2); ++k)
@@ -108,4 +108,4 @@ void ElasticCollisionPerez (
 
 }
 
-#endif ///< WARPX_PARTICLES_COLLISION_ELASTIC_COLLISION_PEREZ_H_
+#endif // WARPX_PARTICLES_COLLISION_ELASTIC_COLLISION_PEREZ_H_
