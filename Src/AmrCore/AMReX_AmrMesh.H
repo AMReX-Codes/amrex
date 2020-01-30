@@ -38,9 +38,11 @@ struct AmrInfo {
 };
 
 class AmrMesh
-    : public AmrInfo
+    : protected AmrInfo
 {
 public:
+
+    friend std::ostream& operator<< (std::ostream& os, AmrMesh const& amr_mesh);
 
     AmrMesh ();
 
@@ -258,7 +260,7 @@ private:
                               Array<int,AMREX_SPACEDIM> const& is_per);
 };
 
-std::ostream& operator<< (std::ostream& os, AmrInfo const& amr_info);
+std::ostream& operator<< (std::ostream& os, AmrMesh const& amr_mesh);
 
 }
 

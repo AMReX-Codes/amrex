@@ -1023,30 +1023,30 @@ AmrMesh::CountCells (int lev) noexcept
     return grids[lev].numPts();
 }
 
-std::ostream& operator<< (std::ostream& os, AmrInfo const& amr_info)
+std::ostream& operator<< (std::ostream& os, AmrMesh const& amr_mesh)
 {
-    os << "  verbose = " << amr_info.verbose << "\n";
-    os << "  max_level = " << amr_info.max_level << "\n";
+    os << "  verbose = " << amr_mesh.verbose << "\n";
+    os << "  max_level = " << amr_mesh.max_level << "\n";
     os << "  ref_ratio =";
-    for (int lev = 0; lev < amr_info.max_level; ++lev) os << " " << amr_info.ref_ratio[lev];
+    for (int lev = 0; lev < amr_mesh.max_level; ++lev) os << " " << amr_mesh.ref_ratio[lev];
     os << "\n";
     os << "  blocking_factor =";
-    for (int lev = 0; lev <= amr_info.max_level; ++lev) os << " " << amr_info.blocking_factor[lev];
+    for (int lev = 0; lev <= amr_mesh.max_level; ++lev) os << " " << amr_mesh.blocking_factor[lev];
     os << "\n";
     os << "  max_grid_size =";
-    for (int lev = 0; lev <= amr_info.max_level; ++lev) os << " " << amr_info.max_grid_size[lev];
+    for (int lev = 0; lev <= amr_mesh.max_level; ++lev) os << " " << amr_mesh.max_grid_size[lev];
     os << "\n";
     os << "  n_error_buf =";
-    for (int lev = 0; lev < amr_info.max_level; ++lev) os << " " << amr_info.n_error_buf[lev];
+    for (int lev = 0; lev < amr_mesh.max_level; ++lev) os << " " << amr_mesh.n_error_buf[lev];
     os << "\n";
-    os << "  grid_eff = " << amr_info.grid_eff << "\n";
-    os << "  n_proper = " << amr_info.n_proper << "\n";
-    os << "  use_fixed_upto_level = " << amr_info.use_fixed_upto_level << "\n";
-    os << "  use_fixed_coarse_grids = " << amr_info.use_fixed_coarse_grids << "\n";
-    os << "  refine_grid_layout = " << amr_info.refine_grid_layout << "\n";
-    os << "  check_input = " << amr_info.check_input  << "\n";
-    os << "  use_new_chop = " << amr_info.use_new_chop << "\n";
-    os << "  iterate_on_new_grids = " << amr_info.iterate_on_new_grids << "\n";
+    os << "  grid_eff = " << amr_mesh.grid_eff << "\n";
+    os << "  n_proper = " << amr_mesh.n_proper << "\n";
+    os << "  use_fixed_upto_level = " << amr_mesh.use_fixed_upto_level << "\n";
+    os << "  use_fixed_coarse_grids = " << amr_mesh.use_fixed_coarse_grids << "\n";
+    os << "  refine_grid_layout = " << amr_mesh.refine_grid_layout << "\n";
+    os << "  check_input = " << amr_mesh.check_input  << "\n";
+    os << "  use_new_chop = " << amr_mesh.use_new_chop << "\n";
+    os << "  iterate_on_new_grids = " << amr_mesh.iterate_on_new_grids << "\n";
     return os;
 }
 
