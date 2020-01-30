@@ -711,6 +711,7 @@ public:
 
     void CheckpointPost ();
 
+#ifdef AMREX_USE_HDF5
     /**
      * \brief Writes a particle checkpoint to HDF5 file, suitable for restarting.
      *
@@ -742,6 +743,24 @@ public:
                                   const Vector<int>& write_int_comp,    
                                   const Vector<std::string>& real_comp_names,
                                   const Vector<std::string>&  int_comp_names) const;
+    /**
+     *   \brief Restart from checkpoint in HDF5 format
+     *
+     * \param dir The base directory into which to write (i.e. "plt00000")
+     * \param file The name of the sub-directory for this particle type (i.e. "Tracer")
+     */
+    void RestartHDF5 (const std::string& dir, const std::string& file);
+
+    /**
+     *   \brief Older version, for backwards compatibility
+     *
+     * \param dir The base directory into which to write (i.e. "plt00000")
+     * \param file The name of the sub-directory for this particle type (i.e. "Tracer")
+     * \param is_checkpoint Whether the particle id and cpu are included in the file.
+     */
+    void RestartHDF5 (const std::string& dir, const std::string& file, bool is_checkpoint);
+ 
+#endif
     
     /**
      *   \brief Restart from checkpoint
@@ -1053,6 +1072,9 @@ protected:
                          const Vector<int>& write_real_comp, const Vector<int>& write_int_comp) const;
 #ifdef AMREX_USE_HDF5
 void WriteParticlesHDF5 ( hid_t grp, int level, Vector<int>& count, Vector<long>& where ) const;
+
+template <class RTYPE>
+void ReadParticlesHDF5 (hsize_t offset, hsize_t cnt, int grd, int lev, hid_t int_dset, hid_t real_dset, int finest_level_in_file);
 #endif
 
     template <class RTYPE>
