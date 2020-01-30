@@ -32,7 +32,10 @@ void FlashFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
     // For a fine Box, there is at most one face per direction abutting coarse level.
     {
         BoxArray const& fndba = amrex::convert(fba,IntVect::TheNodeVector());
-        Array<BoxList,AMREX_SPACEDIM> bl;
+        Array<BoxList,AMREX_SPACEDIM> bl
+            {AMREX_D_DECL(BoxList(IndexType(IntVect::TheDimensionVector(0))),
+                          BoxList(IndexType(IntVect::TheDimensionVector(1))),
+                          BoxList(IndexType(IntVect::TheDimensionVector(2))))};
         Array<Vector<int>,AMREX_SPACEDIM> procmap;
         Array<Vector<int>,AMREX_SPACEDIM> my_global_indices;
         std::vector<std::pair<int,Box> > isects;
@@ -90,7 +93,10 @@ void FlashFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
     // For a coarse Box, there are at most two faces per direction abutting fine level.
     {
         BoxArray const fba_coarsened = amrex::coarsen(fba,ref_ratio);
-        Array<BoxList,AMREX_SPACEDIM> bl;
+        Array<BoxList,AMREX_SPACEDIM> bl
+            {AMREX_D_DECL(BoxList(IndexType(IntVect::TheDimensionVector(0))),
+                          BoxList(IndexType(IntVect::TheDimensionVector(1))),
+                          BoxList(IndexType(IntVect::TheDimensionVector(2))))};
         Array<Vector<int>,AMREX_SPACEDIM> procmap;
         Array<Vector<int>,AMREX_SPACEDIM> my_global_indices;
         std::vector<std::pair<int,Box> > isects;
