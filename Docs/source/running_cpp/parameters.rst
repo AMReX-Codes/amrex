@@ -934,7 +934,8 @@ Numerics and algorithms
     synchronized periodically.
 
 * ``warpx.use_hybrid_QED`` ('bool'; default: 0)
-    Will use the Hybird QED Maxwell solver when pushing fields. Note that this option can only be
+    Will use the Hybird QED Maxwell solver when pushing fields: a QED correction is added to the field solver to solve non-linear Maxwell's equations, according to [Quantum Electrodynamics vacuum polarization solver, P. Carneiro et al., `ArXiv 2016 <https://arxiv.org/abs/1607.04224>`__].
+    Note that this option can only be
     used with the PSATD build. Furthermore, warpx.do_nodal must be set to `1` which is not its
     default value.
 
