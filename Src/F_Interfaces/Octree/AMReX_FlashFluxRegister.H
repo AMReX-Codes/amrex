@@ -25,15 +25,11 @@ public:
                  const Geometry& fgeom, const Geometry& cgeom,
                  IntVect const& ref_ratio, int nvar);
 
-    void store (int fine_global_index,
-                Array<FArrayBox const*, AMREX_SPACEDIM> const& fine_fluxes,
-                Real scaling_factor);
+    void store (int fine_global_index, int dir, FArrayBox const& fine_flux, Real scaling_factor);
 
     void communicate ();
 
-    void load (int coarse_global_index,
-               Array<FArrayBox*, AMREX_SPACEDIM> const& crse_fluxes,
-               Real scaling_factor) const;
+    void load (int coarse_global_index, int dir, FArrayBox& crse_flux, Real scaling_factor) const;
 
 protected:
 

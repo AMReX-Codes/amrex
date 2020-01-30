@@ -3,13 +3,15 @@ module amrex_octree_module
   use iso_c_binding
   use amrex_base_module
   use amrex_amrcore_module
+  use amrex_flash_fluxregister_module
 
   implicit none
 
   private
 
   public :: amrex_octree_init, amrex_octree_finalize, amrex_octree_iter_build, &
-       amrex_octree_iter_destroy, amrex_octree_average_down_leaves
+       amrex_octree_iter_destroy, amrex_octree_average_down_leaves, &
+       amrex_flash_fluxregister, amrex_flash_fluxregister_build, amrex_flash_fluxregister_destroy
 
   type, public :: amrex_octree_iter
      integer, private :: begin_index    = 0
