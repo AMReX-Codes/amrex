@@ -213,8 +213,6 @@ MLEBTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode 
     const Geometry& geom = m_geom[amrlev][mglev];
     const auto dxinv = geom.InvCellSizeArray();
 
-    Array<MultiFab,AMREX_SPACEDIM> const& etamf = m_b_coeffs[amrlev][mglev];
-    Array<MultiFab,AMREX_SPACEDIM> const& kapmf = m_kappa[amrlev][mglev];
     Array<MultiFab,AMREX_SPACEDIM>& fluxmf = m_tauflux[amrlev][mglev];
     iMultiFab const& mask = m_cc_mask[amrlev][mglev];
     MultiFab const& etaebmf = *m_eb_b_coeffs[amrlev][mglev];
@@ -292,7 +290,7 @@ MLEBTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
 
     auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
-
+    
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
 #ifdef _OPENMP
@@ -375,7 +373,37 @@ MLEBTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
         }
     }
 
+    IntVect cell(44,-1,-1), ng(1,1,1); int n(-1);
+    Print()<<"  isPeriodic: "<<m_geom[amrlev][mglev].isPeriodic(0)
+	   <<" "<<m_geom[amrlev][mglev].isPeriodic(1)
+      	   <<" "<<m_geom[amrlev][mglev].isPeriodic(2)<<"\n"
+	   <<"  period = "<<m_geom[amrlev][mglev].period(2)<<"\n";
+    Print()<<"vel ng = "<<vel.nGrow()<<"\n";
+    // Uncomment me and enforcePeriodicity behaves as expected for compFluxes
+    //fixme
+    // Print()<<"Before enforcePeriodicity in applyBCTensor : \n";
+    // Print()<<"  isPeriodic: "<<m_geom[amrlev][mglev].isPeriodic(0)
+    // 	   <<" "<<m_geom[amrlev][mglev].isPeriodic(1)
+    //   	   <<" "<<m_geom[amrlev][mglev].isPeriodic(2)<<"\n"
+    // 	   <<"  period = "<<m_geom[amrlev][mglev].period(2)<<"\n";
+    // amrex::print_state(vel, cell, n, ng);
+    // cell = {44,-1,-1+m_geom[amrlev][mglev].period(2)};
+    // amrex::print_state(vel, cell, n, ng);
+    ///////////
+
     vel.EnforcePeriodicity(0, AMREX_SPACEDIM, m_geom[amrlev][mglev].periodicity());
+
+    //fixme
+    Print()<<"After enforcePeriodicity in applyBCTensor : \n";
+    Print()<<"  isPeriodic: "<<m_geom[amrlev][mglev].isPeriodic(0)
+	   <<" "<<m_geom[amrlev][mglev].isPeriodic(1)
+      	   <<" "<<m_geom[amrlev][mglev].isPeriodic(2)<<"\n"
+	   <<"  period = "<<m_geom[amrlev][mglev].period(2)<<"\n";
+    Print()<<"vel ng = "<<vel.nGrow()<<"\n";
+    //IntVect cell(44,-1,-1), ng(1,1,1); int n(-1);
+    amrex::print_state(vel, cell, n, ng);
+    cell = {44,-1,-1+m_geom[amrlev][mglev].period(2)};
+    amrex::print_state(vel, cell, n, ng);
 }
 
 void
@@ -393,7 +421,7 @@ MLEBTensorOp::compCrossTerms(int amrlev, int mglev, MultiFab const& mf) const
     Array<MultiFab,AMREX_SPACEDIM> const& etamf = m_b_coeffs[amrlev][mglev];
     Array<MultiFab,AMREX_SPACEDIM> const& kapmf = m_kappa[amrlev][mglev];
     Array<MultiFab,AMREX_SPACEDIM>& fluxmf = m_tauflux[amrlev][mglev];
-
+    
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
 #ifdef _OPENMP
@@ -517,13 +545,11 @@ MLEBTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxe
     const Geometry& geom = m_geom[amrlev][mglev];
     const auto dxinv = geom.InvCellSizeArray();
 
-    Array<MultiFab,AMREX_SPACEDIM> const& etamf = m_b_coeffs[amrlev][mglev];
-    Array<MultiFab,AMREX_SPACEDIM> const& kapmf = m_kappa[amrlev][mglev];
     Array<MultiFab,AMREX_SPACEDIM>& fluxmf = m_tauflux[amrlev][mglev];
     Real bscalar = m_b_scalar;
 
     compCrossTerms(amrlev, mglev, sol);
-    
+
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
 #ifdef _OPENMP
@@ -576,7 +602,6 @@ MLEBTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxe
 			 Array4<Real      > Ay = fluxes[1]->array(mfi);,
 			 Array4<Real      > Az = fluxes[2]->array(mfi););
 
-	    const auto& area = factory->getAreaFrac();
 	    const auto& fcent = factory->getFaceCent();
 	    AMREX_D_TERM(Array4<Real const> const& apx = area[0]->const_array(mfi);,
 			 Array4<Real const> const& apy = area[1]->const_array(mfi);,
