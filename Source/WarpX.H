@@ -213,6 +213,7 @@ public:
     amrex::Vector<amrex::Real> mirror_z_width;
     amrex::Vector<int> mirror_z_npoints;
 
+    /// object with all reduced diagnotics, similar to MultiParticleContainer for species.
     MultiReducedDiags* reduced_diags;
 
     void applyMirrors(amrex::Real time);
