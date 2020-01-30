@@ -1,3 +1,10 @@
+/* Copyright 2019-2020 Maxence Thevenet, Yinjian Zhao
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
+
 #include "ReducedDiags.H"
 #include "WarpX.H"
 #include "AMReX_ParmParse.H"

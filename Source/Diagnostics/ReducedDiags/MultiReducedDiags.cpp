@@ -1,3 +1,10 @@
+/* Copyright 2019-2020 Maxence Thevenet, Yinjian Zhao
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
+
 #include "ParticleEnergy.H"
 #include "FieldEnergy.H"
 #include "MultiReducedDiags.H"

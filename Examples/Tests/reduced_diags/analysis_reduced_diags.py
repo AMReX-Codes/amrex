@@ -1,5 +1,11 @@
 #! /usr/bin/env python
 
+# Copyright 2019-2020 Yinjian Zhao
+#
+# This file is part of WarpX.
+#
+# License: BSD-3-Clause-LBNL
+
 # This script tests the reduced diagnostics.
 # The setup is a uniform plasma with electrons and protons.
 # Particle energy and field energy will be outputed
