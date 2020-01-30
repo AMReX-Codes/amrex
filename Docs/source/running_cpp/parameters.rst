@@ -1150,43 +1150,46 @@ Diagnostics and output
         :math:`B` field energy, at mesh refinement levels from 0 to :math:`n`.
 
     * ``BeamRelevant``
-        This type computes some quantities that are relevant to a beam.
+        This type computes properties of a particle beam relevant for particle accelerators,
+        like position, momentum, emittance, etc.
 
         `<reduced_diags_name>.species` must be provided,
         such that the diagnostics are done for this (beam-like) species only.
 
-        The output columns are the following:
+        The output columns are the following for 3D:
 
-        [1], [2], [3]: The mean values of beam positions
+        [1], [2], [3]: The mean values of beam positions (m)
         :math:`\langle x \rangle`, :math:`\langle y \rangle`,
         :math:`\langle z \rangle`.
 
-        [4], [5], [6]: The mean values of beam relativistic velocities
-        :math:`\langle u_x \rangle`, :math:`\langle u_y \rangle`,
-        :math:`\langle u_z \rangle`.
+        [4], [5], [6]: The mean values of beam relativistic momenta (kg m/s)
+        :math:`\langle p_x \rangle`, :math:`\langle p_y \rangle`,
+        :math:`\langle p_z \rangle`.
 
         [7]: The mean Lorentz factor :math:`\langle \gamma \rangle`.
 
-        [8], [9], [10]: The RMS values of beam positions
+        [8], [9], [10]: The RMS values of beam positions (m)
         :math:`\delta_x = \sqrt{ \langle (x - \langle x \rangle)^2 \rangle }`,
         :math:`\delta_y = \sqrt{ \langle (y - \langle y \rangle)^2 \rangle }`,
         :math:`\delta_z = \sqrt{ \langle (z - \langle z \rangle)^2 \rangle }`.
 
-        [11], [12], [13]: The RMS values of beam relativistic velocities
-        :math:`\delta_{ux} = \sqrt{ \langle (u_x - \langle u_x \rangle)^2 \rangle }`,
-        :math:`\delta_{uy} = \sqrt{ \langle (u_y - \langle u_y \rangle)^2 \rangle }`,
-        :math:`\delta_{uz} = \sqrt{ \langle (u_z - \langle u_z \rangle)^2 \rangle }`.
+        [11], [12], [13]: The RMS values of beam relativistic momenta (kg m/s)
+        :math:`\delta_{ux} = \sqrt{ \langle (p_x - \langle p_x \rangle)^2 \rangle }`,
+        :math:`\delta_{uy} = \sqrt{ \langle (p_y - \langle p_y \rangle)^2 \rangle }`,
+        :math:`\delta_{uz} = \sqrt{ \langle (p_z - \langle p_z \rangle)^2 \rangle }`.
 
         [14]: The RMS value of the Lorentz factor
         :math:`\sqrt{ \langle (\gamma - \langle \gamma \rangle)^2 \rangle }`.
 
-        [15], [16], [17]: beam emittance
+        [15], [16], [17]: beam emittance (m)
         :math:`\epsilon_x = \dfrac{1}{c} \sqrt{\delta_x^2 \delta_{ux}^2 -
         \Big\langle (x-\langle x \rangle) (u_x-\langle u_x \rangle) \Big\rangle^2}`,
         :math:`\epsilon_y = \dfrac{1}{c} \sqrt{\delta_y^2 \delta_{uy}^2 -
         \Big\langle (y-\langle y \rangle) (u_y-\langle u_y \rangle) \Big\rangle^2}`,
         :math:`\epsilon_z = \dfrac{1}{c} \sqrt{\delta_z^2 \delta_{uz}^2 -
         \Big\langle (z-\langle z \rangle) (u_z-\langle u_z \rangle) \Big\rangle^2}`.
+
+        For 2D, position :math:`y` related quantities are not outputted.
 
 * ``<reduced_diags_name>.frequency`` (`int`)
     The output frequency (every # time steps).

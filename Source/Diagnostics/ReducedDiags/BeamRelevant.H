@@ -6,7 +6,7 @@
 
 /**
  *  This class contains diagnostics that are relevant to beam.
-*/
+ */
 class BeamRelevant : public ReducedDiags
 {
 public:
@@ -20,10 +20,9 @@ public:
 
     /** This funciton computes beam relevant quantites.
      *  \param [in] step current time step
-     *  */
+     */
     virtual void ComputeDiags(int step) override final;
 
 };
-///< end class BeamRelevant
 
-#endif // WARPX_DIAGNOSTICS_REDUCEDDIAGS_BEAMRELEVANT_H_
+#endif
