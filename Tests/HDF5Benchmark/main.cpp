@@ -109,13 +109,13 @@ int main(int argc, char* argv[])
     }
 
     Vector<int> level_steps(nlevs, 0);
+
+    WriteMultiLevelPlotfile("plt00000", nlevs, amrex::GetVecOfConstPtrs(mf),
+                            varnames, geom, time, level_steps, ref_ratio);
 #ifdef AMREX_USE_HDF5    
     WriteMultiLevelPlotfileHDF5("plt00000", nlevs, amrex::GetVecOfConstPtrs(mf), 
                                 varnames, geom, time, level_steps, ref_ratio);
 #endif
-
-    WriteMultiLevelPlotfile("plt00000", nlevs, amrex::GetVecOfConstPtrs(mf),
-                            varnames, geom, time, level_steps, ref_ratio);
 
     Vector<std::string> particle_realnames;
     for (int i = 0; i < NStructReal + NArrayReal; ++i)
@@ -129,16 +129,21 @@ int main(int argc, char* argv[])
         particle_intnames.push_back("particle_int_component_" + std::to_string(i));
     }
     
-    myPC.Checkpoint("plt00000", "particle0", false, particle_realnames, particle_intnames);
-    /* myPC.WriteAsciiFile("particle0_ascii"); */
 #ifdef AMREX_USE_HDF5    
     myPC.CheckpointHDF5("plt00000", "particle0", false, particle_realnames, particle_intnames);
+#else
+    myPC.Checkpoint("plt00000", "particle0", false, particle_realnames, particle_intnames);
+    /* myPC.WriteAsciiFile("particle0_ascii"); */
 #endif
 
     if (restart_check)
     {
         MyPC newPC(geom, dmap, ba, ref_ratio);
+#ifdef AMREX_USE_HDF5    
+        newPC.RestartHDF5("plt00000", "particle0");
+#else
         newPC.Restart("plt00000", "particle0");
+#endif
         
         using PType = typename MyPC::SuperParticleType;
 
