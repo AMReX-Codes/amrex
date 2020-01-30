@@ -14,11 +14,9 @@ CollisionType::CollisionType(
     std::string const collision_name)
 {
 
-#if defined WARPX_DIM_XZ
-    amrex::Abort("Collisions only work in 3D geometry for now.");
-#elif defined WARPX_DIM_RZ
+    #if defined WARPX_DIM_RZ
     amrex::Abort("Collisions only work in Cartesian geometry for now.");
-#endif
+    #endif
 
     // read collision species
     std::vector<std::string> collision_species;
@@ -72,7 +70,7 @@ namespace {
         const auto dxi = geom.InvCellSizeArray();
         const auto plo = geom.ProbLoArray();
 
-        // Find particles that are in each cell ;
+        // Find particles that are in each cell;
         // results are stored in the object `bins`.
         ParticleBins bins;
         bins.build(np, particle_ptr, cbx,
@@ -134,7 +132,11 @@ void CollisionType::doCoulombCollisionsWithinTile
 
         const Real dt = WarpX::GetInstance().getdt(lev);
         Geometry const& geom = WarpX::GetInstance().Geom(lev);
-        const Real dV = geom.CellSize(0)*geom.CellSize(1)*geom.CellSize(2);
+        #if (AMREX_SPACEDIM == 2)
+        auto dV = geom.CellSize(0) * geom.CellSize(1);
+        #elif (AMREX_SPACEDIM == 3)
+        auto dV = geom.CellSize(0) * geom.CellSize(1) * geom.CellSize(2);
+        #endif
 
         // Loop over cells
         amrex::ParallelFor( n_cells,
@@ -206,7 +208,11 @@ void CollisionType::doCoulombCollisionsWithinTile
 
         const Real dt = WarpX::GetInstance().getdt(lev);
         Geometry const& geom = WarpX::GetInstance().Geom(lev);
-        const Real dV = geom.CellSize(0)*geom.CellSize(1)*geom.CellSize(2);
+        #if (AMREX_SPACEDIM == 2)
+        auto dV = geom.CellSize(0) * geom.CellSize(1);
+        #elif (AMREX_SPACEDIM == 3)
+        auto dV = geom.CellSize(0) * geom.CellSize(1) * geom.CellSize(2);
+        #endif
 
         // Loop over cells
         amrex::ParallelFor( n_cells,
