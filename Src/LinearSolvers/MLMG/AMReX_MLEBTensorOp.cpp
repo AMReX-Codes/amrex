@@ -373,37 +373,7 @@ MLEBTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
         }
     }
 
-    IntVect cell(44,-1,-1), ng(1,1,1); int n(-1);
-    Print()<<"  isPeriodic: "<<m_geom[amrlev][mglev].isPeriodic(0)
-	   <<" "<<m_geom[amrlev][mglev].isPeriodic(1)
-      	   <<" "<<m_geom[amrlev][mglev].isPeriodic(2)<<"\n"
-	   <<"  period = "<<m_geom[amrlev][mglev].period(2)<<"\n";
-    Print()<<"vel ng = "<<vel.nGrow()<<"\n";
-    // Uncomment me and enforcePeriodicity behaves as expected for compFluxes
-    //fixme
-    // Print()<<"Before enforcePeriodicity in applyBCTensor : \n";
-    // Print()<<"  isPeriodic: "<<m_geom[amrlev][mglev].isPeriodic(0)
-    // 	   <<" "<<m_geom[amrlev][mglev].isPeriodic(1)
-    //   	   <<" "<<m_geom[amrlev][mglev].isPeriodic(2)<<"\n"
-    // 	   <<"  period = "<<m_geom[amrlev][mglev].period(2)<<"\n";
-    // amrex::print_state(vel, cell, n, ng);
-    // cell = {44,-1,-1+m_geom[amrlev][mglev].period(2)};
-    // amrex::print_state(vel, cell, n, ng);
-    ///////////
-
     vel.EnforcePeriodicity(0, AMREX_SPACEDIM, m_geom[amrlev][mglev].periodicity());
-
-    //fixme
-    Print()<<"After enforcePeriodicity in applyBCTensor : \n";
-    Print()<<"  isPeriodic: "<<m_geom[amrlev][mglev].isPeriodic(0)
-	   <<" "<<m_geom[amrlev][mglev].isPeriodic(1)
-      	   <<" "<<m_geom[amrlev][mglev].isPeriodic(2)<<"\n"
-	   <<"  period = "<<m_geom[amrlev][mglev].period(2)<<"\n";
-    Print()<<"vel ng = "<<vel.nGrow()<<"\n";
-    //IntVect cell(44,-1,-1), ng(1,1,1); int n(-1);
-    amrex::print_state(vel, cell, n, ng);
-    cell = {44,-1,-1+m_geom[amrlev][mglev].period(2)};
-    amrex::print_state(vel, cell, n, ng);
 }
 
 void
