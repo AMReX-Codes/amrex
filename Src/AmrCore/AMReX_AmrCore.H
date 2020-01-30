@@ -62,9 +62,6 @@ public:
     //! Rebuild levels finer than lbase
     virtual void regrid (int lbase, Real time, bool initial=false);
 
-    static void Initialize ();
-    static void Finalize ();
-
     void printGridSummary (std::ostream& os, int min_lev, int max_lev) const noexcept;
 
 protected:

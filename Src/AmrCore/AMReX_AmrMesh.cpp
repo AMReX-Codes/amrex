@@ -8,28 +8,8 @@
 
 namespace amrex {
 
-namespace
-{
-    bool initialized = false;
-}
-
-void
-AmrMesh::Initialize ()
-{
-    if (initialized) return;
-    initialized = true;
-}
-
-void
-AmrMesh::Finalize ()
-{
-    initialized = false;
-}
-
-
 AmrMesh::AmrMesh ()
 {
-    Initialize();
     Geometry::Setup();
     int max_level_in = -1;
     Vector<int> n_cell_in(AMREX_SPACEDIM, -1);
@@ -40,7 +20,6 @@ AmrMesh::AmrMesh (const RealBox* rb, int max_level_in,
                   const Vector<int>& n_cell_in, int coord,
                   Vector<IntVect> a_refrat, const int* is_per)
 {
-    Initialize();
     Geometry::Setup(rb,coord,is_per);
     InitAmrMesh(max_level_in,n_cell_in, std::move(a_refrat), rb, coord, is_per);
 }
@@ -50,7 +29,6 @@ AmrMesh::AmrMesh (const RealBox& rb, int max_level_in,
                   const Vector<IntVect>& a_refrat,
                   const Array<int,AMREX_SPACEDIM>& is_per)
 {
-    Initialize();
     Geometry::Setup(&rb,coord,is_per.data());
     InitAmrMesh(max_level_in,n_cell_in, a_refrat, &rb, coord, is_per.data());
 }
@@ -58,8 +36,6 @@ AmrMesh::AmrMesh (const RealBox& rb, int max_level_in,
 AmrMesh::AmrMesh (Geometry const& level_0_geom, AmrInfo const& amr_info)
     : AmrInfo(amr_info)
 {
-    Initialize();
-
     int nlev = max_level + 1;
     ref_ratio.resize      (nlev, amr_info.ref_ratio.back());
     blocking_factor.resize(nlev, amr_info.blocking_factor.back());
@@ -81,7 +57,6 @@ AmrMesh::AmrMesh (Geometry const& level_0_geom, AmrInfo const& amr_info)
 
 AmrMesh::~AmrMesh ()
 {
-    Finalize();
 }
 
 void

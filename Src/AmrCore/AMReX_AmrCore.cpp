@@ -14,28 +14,9 @@
 
 namespace amrex {
 
-namespace
-{
-    bool initialized = false;
-}
-
-void
-AmrCore::Initialize ()
-{
-    if (initialized) return;
-    initialized = true;
-}
-
-void
-AmrCore::Finalize ()
-{
-    initialized = false;
-}
-
 AmrCore::AmrCore ()
     : AmrMesh()
 {
-    Initialize();
     InitAmrCore();
 }
 
@@ -44,7 +25,6 @@ AmrCore::AmrCore (const RealBox* rb, int max_level_in,
                   Vector<IntVect> ref_ratios, const int* is_per)
     : AmrMesh(rb, max_level_in, n_cell_in, coord, std::move(ref_ratios), is_per)
 {
-    Initialize();
     InitAmrCore();
 }
 
@@ -54,15 +34,12 @@ AmrCore::AmrCore (const RealBox& rb, int max_level_in,
                   Array<int,AMREX_SPACEDIM> const& is_per)
     : AmrMesh(rb, max_level_in, n_cell_in, coord, ref_ratios, is_per)
 {
-    Initialize();
     InitAmrCore();
 }
 
 AmrCore::AmrCore (Geometry const& level_0_gome, AmrInfo const& amr_info)
     : AmrMesh(level_0_gome,amr_info)
 {
-    Initialize();
-
 #ifdef AMREX_PARTICLES
     m_gdb.reset(new AmrParGDB(this));
 #endif
@@ -70,7 +47,6 @@ AmrCore::AmrCore (Geometry const& level_0_gome, AmrInfo const& amr_info)
 
 AmrCore::~AmrCore ()
 {
-    Finalize();
 }
 
 void
