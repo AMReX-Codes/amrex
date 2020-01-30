@@ -1014,10 +1014,10 @@ Diagnostics and output
 * ``warpx.do_back_transformed_fields`` (`0 or 1`)
     Whether to use the **back-transformed diagnostics** for the fields.
 
-* ``warpx.boosted_frame_diag_fields`` (space-separated list of `string`)
+* ``warpx.back_transformed_diag_fields`` (space-separated list of `string`)
     Which fields to dumped in back-transformed diagnostics. Choices are
     'Ex', 'Ey', Ez', 'Bx', 'By', Bz', 'jx', 'jy', jz' and 'rho'. Example:
-    ``warpx.boosted_frame_diag_fields = Ex Ez By``. By default, all fields
+    ``warpx.back_transformed_diag_fields = Ex Ez By``. By default, all fields
     are dumped.
 
 * ``warpx.plot_raw_fields`` (`0` or `1`) optional (default `0`)
