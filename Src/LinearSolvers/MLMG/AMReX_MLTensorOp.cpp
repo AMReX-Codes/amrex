@@ -317,7 +317,6 @@ MLTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
 
         for (MFIter mfi(sol, TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
-            const Box& bx = mfi.tilebox();
             Array4<Real const> const vfab = sol.const_array(mfi);
             AMREX_D_TERM(Array4<Real const> const etaxfab = etamf[0].const_array(mfi);,
                          Array4<Real const> const etayfab = etamf[1].const_array(mfi);,
