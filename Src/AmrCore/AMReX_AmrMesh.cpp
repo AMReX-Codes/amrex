@@ -55,10 +55,6 @@ AmrMesh::AmrMesh (Geometry const& level_0_geom, AmrInfo const& amr_info)
     if (check_input) checkInput();
 }
 
-AmrMesh::~AmrMesh ()
-{
-}
-
 void
 AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in,
                       Vector<IntVect> a_refrat, const RealBox* rb,
