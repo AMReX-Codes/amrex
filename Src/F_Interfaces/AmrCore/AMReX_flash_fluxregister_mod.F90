@@ -70,18 +70,15 @@ module amrex_flash_fluxregister_module
 
 contains
 
-  subroutine amrex_flash_fluxregister_build (fr, fine_lev, ncomp)
+  subroutine amrex_flash_fluxregister_build (fr, fba, cba, fdm, cdm, fine_lev, ncomp)
     type(amrex_flash_fluxregister) :: fr
     integer, intent(in) :: fine_lev, ncomp
-    type(amrex_boxarray) :: fba, cba
-    type(amrex_distromap) :: fdm, cdm
+    type(amrex_boxarray), intent(in) :: fba, cba
+    type(amrex_distromap), intent(in) :: fdm, cdm
+    !
     type(amrex_geometry) :: fgm, cgm
     fr%owner = .true.
     fr%flev  = fine_lev
-    fba = amrex_get_boxarray(fine_lev)
-    cba = amrex_get_boxarray(fine_lev-1)
-    fdm = amrex_get_distromap(fine_lev)
-    cdm = amrex_get_distromap(fine_lev-1)
     fgm = amrex_get_geometry(fine_lev)
     cgm = amrex_get_geometry(fine_lev-1)
     call amrex_fi_new_flash_fluxregister(fr%p,fba%p,cba%p,fdm%p,cdm%p,fgm%p,cgm%p, &
