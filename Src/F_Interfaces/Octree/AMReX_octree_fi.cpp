@@ -63,7 +63,8 @@ extern "C" {
         pp.addarr("ref_ratio", ref_ratio);
     }
 
-    void amrex_fi_build_octree_leaves (AmrCore* const amrcore, int* n, Vector<treenode>*& leaves)
+    void amrex_fi_build_octree_leaves (AmrCore* const amrcore, int* n, Vector<treenode>*& leaves,
+                                       int* level_offset)
     {
         leaves = new Vector<treenode>;
         const int finest_level = amrcore->finestLevel();
@@ -82,6 +83,8 @@ extern "C" {
 
         for (int lev = 0; lev <= finest_level; ++lev)
         {
+            level_offset[lev] = leaves->size();
+
             famrcore->octree_li_full_to_leaf[lev].clear();
             famrcore->octree_li_leaf_to_full[lev].clear();
 
@@ -154,6 +157,7 @@ extern "C" {
                 }
             }
         }
+        level_offset[finest_level+1] = leaves->size();
         *n = leaves->size();
     }
 
