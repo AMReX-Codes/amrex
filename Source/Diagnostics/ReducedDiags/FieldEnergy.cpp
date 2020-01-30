@@ -119,7 +119,7 @@ void FieldEnergy::ComputeDiags (int step)
     }
     // end loop over refinement levels
 
-    /** m_data now contains up-to-date values for:
+    /* m_data now contains up-to-date values for:
      *  [total field energy at level 0,
      *   electric field energy at level 0,
      *   magnetic field energy at level 0,
