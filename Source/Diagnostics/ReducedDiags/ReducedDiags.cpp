@@ -6,7 +6,7 @@
 
 using namespace amrex;
 
-/// constructor
+// constructor
 ReducedDiags::ReducedDiags (std::string rd_name)
 {
 
@@ -14,75 +14,72 @@ ReducedDiags::ReducedDiags (std::string rd_name)
 
     ParmParse pp(m_rd_name);
 
-    /// read path
+    // read path
     pp.query("path", m_path);
 
-    /// read extension
+    // read extension
     pp.query("extension", m_extension);
 
-    /// creater folder
+    // creater folder
     if (!UtilCreateDirectory(m_path, 0755))
     { CreateDirectoryFailed(m_path); }
 
-    /// check if it is a restart run
+    // check if it is a restart run
     std::string restart_chkfile = "";
     ParmParse pp_amr("amr");
     pp_amr.query("restart", restart_chkfile);
     m_IsNotRestart = restart_chkfile.empty();
 
-    /// replace / create output file
-    if ( m_IsNotRestart ) ///< not a restart
+    // replace / create output file
+    if ( m_IsNotRestart ) // not a restart
     {
         std::ofstream ofs;
         ofs.open(m_path+m_rd_name+"."+m_extension, std::ios::trunc);
         ofs.close();
     }
 
-    /// read reduced diags frequency
+    // read reduced diags frequency
     pp.query("frequency", m_freq);
 
-    /// read separator
+    // read separator
     pp.query("separator", m_sep);
 
 }
-///< end constructor
+// end constructor
 
-/// write to file function
+// write to file function
 void ReducedDiags::WriteToFile (int step) const
 {
 
-    /// get dt
-    auto dt = WarpX::GetInstance().getdt(0);
-
-    /// open file
+    // open file
     std::ofstream ofs;
     ofs.open(m_path + m_rd_name + "." + m_extension,
         std::ofstream::out | std::ofstream::app);
 
-    /// write step
+    // write step
     ofs << step+1;
 
     ofs << m_sep;
 
-    /// set precision
+    // set precision
     ofs << std::fixed << std::setprecision(14) << std::scientific;
 
-    /// write time
-    ofs << (step+1)*dt;
+    // write time
+    ofs << WarpX::GetInstance().gett_new(0);
 
-    /// loop over data size and write
+    // loop over data size and write
     for (int i = 0; i < m_data.size(); ++i)
     {
         ofs << m_sep;
         ofs << m_data[i];
     }
-    ///< end loop over data size
+    // end loop over data size
 
-    /// end line
+    // end line
     ofs << std::endl;
 
-    /// close file
+    // close file
     ofs.close();
 
 }
-///< end ReducedDiags::WriteToFile
+// end ReducedDiags::WriteToFile

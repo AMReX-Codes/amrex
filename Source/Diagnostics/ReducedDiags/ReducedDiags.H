@@ -6,9 +6,11 @@
 #include <vector>
 #include <fstream>
 
-/// Base class for reduced diagnostics. Each type of reduced diagnostics is
-/// implemented in a derived class, and must override the (pure virtual)
-/// function ComputeDiags
+/**
+ *  Base class for reduced diagnostics. Each type of reduced diagnostics is
+ *  implemented in a derived class, and must override the (pure virtual)
+ *  function ComputeDiags.
+ */
 class ReducedDiags
 {
 public:
@@ -46,6 +48,5 @@ public:
     virtual void WriteToFile(int step) const;
 
 };
-///< end class ReducedDiags
 
-#endif // WARPX_DIAGNOSTICS_REDUCEDDIAGS_REDUCEDDIAGS_H_
+#endif

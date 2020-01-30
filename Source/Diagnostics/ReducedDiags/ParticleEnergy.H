@@ -8,7 +8,7 @@
  *  This class mainly contains a function that
  *  computes the particle relativistic kinetic energy
  *  of each species.
-*/
+ */
 class ParticleEnergy : public ReducedDiags
 {
 public:
@@ -26,6 +26,5 @@ public:
     virtual void ComputeDiags(int step) override final;
 
 };
-///< end class ParticleEnergy
 
-#endif // WARPX_DIAGNOSTICS_REDUCEDDIAGS_PARTICLEENERGY_H_
+#endif
