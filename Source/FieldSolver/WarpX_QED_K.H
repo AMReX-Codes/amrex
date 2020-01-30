@@ -68,7 +68,7 @@ const amrex::Real dyi = 1./dy;
     amrex::Real Mny [3] = {0.,0.,0.};
     amrex::Real Mpz [3] = {0.,0.,0.};
     amrex::Real Mnz [3] = {0.,0.,0.};
-    
+
     calc_M(Mpx, tmpEx(j+1,k,l), tmpEy(j+1,k,l), tmpEz(j+1,k,l),
                 Bx(j+1,k,l), By(j+1,k,l), Bz(j+1,k,l), xi, c2);
     calc_M(Mnx, tmpEx(j-1,k,l), tmpEy(j-1,k,l), tmpEz(j-1,k,l),
@@ -100,7 +100,7 @@ const amrex::Real dyi = 1./dy;
         0.5*( (Bx(j,k,l+1)-Bx(j,k,l-1) )*dzi - (Bz(j+1,k,l)-Bz(j-1,k,l) )*dxi ),
         0.5*( (By(j+1,k,l)-By(j-1,k,l) )*dxi - (Bx(j,k+1,l)-Bx(j,k-1,l) )*dyi ),
     };
-    
+
     // Defining comapct values for QED corrections
 
     const amrex::Real ex = tmpEx(j,k,l);
