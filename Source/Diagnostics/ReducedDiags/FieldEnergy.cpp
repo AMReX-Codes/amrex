@@ -8,34 +8,34 @@
 
 using namespace amrex;
 
-/// constructor
+// constructor
 FieldEnergy::FieldEnergy (std::string rd_name)
 : ReducedDiags{rd_name}
 {
 
-    /// RZ coordinate is not working
+    // RZ coordinate is not working
     #if (defined WARPX_DIM_RZ)
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(false,
         "FieldEnergy reduced diagnostics does not work for RZ coordinate.");
     #endif
 
-    /// get WarpX class object
+    // get WarpX class object
     auto & warpx = WarpX::GetInstance();
 
-    /// read number of levels
+    // read number of levels
     int nLevel = 0;
     ParmParse pp("amr");
     pp.query("max_level", nLevel);
     nLevel += 1;
 
-    /// resize data array
+    // resize data array
     m_data.resize(3*nLevel,0.0);
 
     if (ParallelDescriptor::IOProcessor())
     {
         if ( m_IsNotRestart )
         {
-            /// open file
+            // open file
             std::ofstream ofs;
             ofs.open(m_path + m_rd_name + "." + m_extension,
                 std::ofstream::out | std::ofstream::app);
@@ -57,32 +57,32 @@ FieldEnergy::FieldEnergy (std::string rd_name)
                 ofs << "B(J)lev"+std::to_string(lev);
             }
             ofs << std::endl;
-            /// close file
+            // close file
             ofs.close();
         }
     }
 
 }
-///< end constructor
+// end constructor
 
-/// function that computes field energy
+// function that computes field energy
 void FieldEnergy::ComputeDiags (int step)
 {
 
-    /// Judge if the diags should be done
+    // Judge if the diags should be done
     if ( (step+1) % m_freq != 0 ) { return; }
 
-    /// get WarpX class object
+    // get WarpX class object
     auto & warpx = WarpX::GetInstance();
 
-    /// get number of level
+    // get number of level
     auto nLevel = warpx.finestLevel() + 1;
 
-    /// loop over refinement levels
+    // loop over refinement levels
     for (int lev = 0; lev < nLevel; ++lev)
     {
 
-        /// get MultiFab data at lev
+        // get MultiFab data at lev
         const MultiFab & Ex = warpx.getEfield(lev,0);
         const MultiFab & Ey = warpx.getEfield(lev,1);
         const MultiFab & Ez = warpx.getEfield(lev,2);
@@ -90,7 +90,7 @@ void FieldEnergy::ComputeDiags (int step)
         const MultiFab & By = warpx.getBfield(lev,1);
         const MultiFab & Bz = warpx.getBfield(lev,2);
 
-        /// get cell size
+        // get cell size
         Geometry const & geom = warpx.Geom(lev);
         auto domain_box = geom.Domain();
         #if (AMREX_SPACEDIM == 2)
@@ -99,25 +99,25 @@ void FieldEnergy::ComputeDiags (int step)
         auto dV = geom.CellSize(0) * geom.CellSize(1) * geom.CellSize(2);
         #endif
 
-        /// compute E squared
+        // compute E squared
         Real tmpx = Ex.norm2(0,geom.periodicity());
         Real tmpy = Ey.norm2(0,geom.periodicity());
         Real tmpz = Ez.norm2(0,geom.periodicity());
         Real Es = tmpx*tmpx + tmpy*tmpy + tmpz*tmpz;
 
-        /// compute B squared
+        // compute B squared
         tmpx = Bx.norm2(0,geom.periodicity());
         tmpy = By.norm2(0,geom.periodicity());
         tmpz = Bz.norm2(0,geom.periodicity());
         Real Bs = tmpx*tmpx + tmpy*tmpy + tmpz*tmpz;
 
-        /// save data
+        // save data
         m_data[lev*3+1] = 0.5 * Es * PhysConst::ep0 * dV;
         m_data[lev*3+2] = 0.5 * Bs / PhysConst::mu0 * dV;
         m_data[lev*3+0] = m_data[lev*3+1] + m_data[lev*3+2];
 
     }
-    ///< end loop over refinement levels
+    // end loop over refinement levels
 
     /** m_data now contains up-to-date values for:
      *  [total field energy at level 0,
@@ -129,4 +129,4 @@ void FieldEnergy::ComputeDiags (int step)
      *   ......] */
 
 }
-///< end void FieldEnergy::ComputeDiags
+// end void FieldEnergy::ComputeDiags

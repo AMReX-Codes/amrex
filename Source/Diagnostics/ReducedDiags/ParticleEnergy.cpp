@@ -9,34 +9,34 @@
 
 using namespace amrex;
 
-/// constructor
+// constructor
 ParticleEnergy::ParticleEnergy (std::string rd_name)
 : ReducedDiags{rd_name}
 {
-    /// get WarpX class object
+    // get WarpX class object
     auto & warpx = WarpX::GetInstance();
 
-    /// get MultiParticleContainer class object
+    // get MultiParticleContainer class object
     auto & mypc = warpx.GetPartContainer();
 
-    /// get number of species (int)
+    // get number of species (int)
     auto nSpecies = mypc.nSpecies();
 
-    /// resize data array
+    // resize data array
     m_data.resize(2*nSpecies+2,0.0);
 
-    /// get species names (std::vector<std::string>)
+    // get species names (std::vector<std::string>)
     auto species_names = mypc.GetSpeciesNames();
 
     if (ParallelDescriptor::IOProcessor())
     {
         if ( m_IsNotRestart )
         {
-            /// open file
+            // open file
             std::ofstream ofs;
             ofs.open(m_path + m_rd_name + "." + m_extension,
                 std::ofstream::out | std::ofstream::app);
-            /// write header row
+            // write header row
             ofs << "#";
             ofs << "[1]step";
             ofs << m_sep;
@@ -59,40 +59,40 @@ ParticleEnergy::ParticleEnergy (std::string rd_name)
                 ofs << species_names[i]+".mean(J)";
             }
             ofs << std::endl;
-            /// close file
+            // close file
             ofs.close();
         }
     }
 
 }
-///< end constructor
+// end constructor
 
-/// function that computes kinetic energy
+// function that computes kinetic energy
 void ParticleEnergy::ComputeDiags (int step)
 {
 
-    /// Judge if the diags should be done
+    // Judge if the diags should be done
     if ( (step+1) % m_freq != 0 ) { return; }
 
-    /// get MultiParticleContainer class object
+    // get MultiParticleContainer class object
     auto & mypc = WarpX::GetInstance().GetPartContainer();
 
-    /// get number of species (int)
+    // get number of species (int)
     auto nSpecies = mypc.nSpecies();
 
-    /// get species names (std::vector<std::string>)
+    // get species names (std::vector<std::string>)
     auto species_names = mypc.GetSpeciesNames();
 
-    /// speed of light squared
+    // speed of light squared
     auto c2 = PhysConst::c * PhysConst::c;
 
-    /// loop over species
+    // loop over species
     for (int i_s = 0; i_s < nSpecies; ++i_s)
     {
-        /// get WarpXParticleContainer class object
+        // get WarpXParticleContainer class object
         auto & myspc = mypc.GetParticleContainer(i_s);
 
-        /// get mass (Real)
+        // get mass (Real)
         auto m = myspc.getMass();
 
         using PType = typename WarpXParticleContainer::SuperParticleType;
@@ -118,13 +118,13 @@ void ParticleEnergy::ComputeDiags (int step)
             return p.rdata(PIdx::w);
         });
 
-        /// reduced sum over mpi ranks
+        // reduced sum over mpi ranks
         ParallelDescriptor::ReduceRealSum
             (Etot, ParallelDescriptor::IOProcessorNumber());
         ParallelDescriptor::ReduceRealSum
             (Wtot, ParallelDescriptor::IOProcessorNumber());
 
-        /// save results for this species i_s into m_data
+        // save results for this species i_s into m_data
         m_data[i_s+1] = Etot;
         if ( Wtot > std::numeric_limits<Real>::min() )
         { m_data[nSpecies+2+i_s] = Etot / Wtot; }
@@ -132,18 +132,18 @@ void ParticleEnergy::ComputeDiags (int step)
         { m_data[nSpecies+2+i_s] = 0.0; }
 
     }
-    ///< end loop over species
+    // end loop over species
 
-    /// save total energy
-    /// loop over species
-    m_data[0] = 0.0;          ///< total energy
-    m_data[nSpecies+1] = 0.0; ///< total mean energy
+    // save total energy
+    // loop over species
+    m_data[0] = 0.0;          // total energy
+    m_data[nSpecies+1] = 0.0; // total mean energy
     for (int i_s = 0; i_s < nSpecies; ++i_s)
     {
         m_data[0] += m_data[i_s+1];
         m_data[nSpecies+1] += m_data[nSpecies+2+i_s];
     }
-    ///< end loop over species
+    // end loop over species
 
     /** m_data now contains up-to-date values for:
      *  [total energy (all species),
@@ -156,4 +156,4 @@ void ParticleEnergy::ComputeDiags (int step)
      *   mean energy (species n)] */
 
 }
-///< end void ParticleEnergy::ComputeDiags
+// end void ParticleEnergy::ComputeDiags

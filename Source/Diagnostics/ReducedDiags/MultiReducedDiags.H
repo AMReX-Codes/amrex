@@ -36,6 +36,5 @@ public:
     void WriteToFile(int step);
 
 };
-///< end class MultiReducedDiags
 
-#endif // WARPX_DIAGNOSTICS_REDUCEDDIAGS_MULTIREDUCEDDIAGS_H_
+#endif

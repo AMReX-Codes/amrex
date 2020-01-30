@@ -7,7 +7,7 @@
 /**
  *  This class mainly contains a function that
  *  computes the field energy.
-*/
+ */
 class FieldEnergy : public ReducedDiags
 {
 public:
@@ -25,6 +25,5 @@ public:
     virtual void ComputeDiags(int step) override final;
 
 };
-///< end class FieldEnergy
 
-#endif // WARPX_DIAGNOSTICS_REDUCEDDIAGS_FIELDENERGY_H_
+#endif
