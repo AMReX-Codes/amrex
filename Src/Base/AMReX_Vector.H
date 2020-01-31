@@ -27,6 +27,8 @@ public:
     using std::vector<T, Allocator>::vector;
     using typename std::vector<T, Allocator>::size_type;
 
+    Vector() = default;
+
     Vector(const std::vector<T, Allocator>& other)
       : std::vector<T, Allocator>(other) {}
 
