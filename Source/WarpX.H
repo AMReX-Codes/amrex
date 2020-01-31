@@ -158,7 +158,6 @@ public:
     static bool do_back_transformed_particles;
 
     // Boosted frame parameters
-    static amrex::Real quantum_xi;
     static amrex::Real gamma_boost;
     static amrex::Real beta_boost;
     static amrex::Vector<int> boost_direction;
@@ -237,9 +236,11 @@ public:
     void EvolveE (int lev, PatchType patch_type, amrex::Real dt);
     void EvolveF (int lev, PatchType patch_type, amrex::Real dt, DtType dt_type);
 
+    // Maxwell Hybrid QED Solver components
     void Hybrid_QED_Push (         amrex::Vector<amrex::Real> dt);
     void Hybrid_QED_Push (int lev, amrex::Real dt);
     void Hybrid_QED_Push (int lev, PatchType patch_type, amrex::Real dt);
+	static amrex::Real quantum_xi;
 
 #ifdef WARPX_DIM_RZ
     void ApplyInverseVolumeScalingToCurrentDensity(amrex::MultiFab* Jx,
