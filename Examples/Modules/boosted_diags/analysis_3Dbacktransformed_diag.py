@@ -1,5 +1,12 @@
 #! /usr/bin/env python
 
+# Copyright 2019 Maxence Thevenet, Revathi Jambunathan
+#
+# This file is part of WarpX.
+#
+# License: BSD-3-Clause-LBNL
+
+
 '''
 Analysis script of a WarpX simulation in a boosted frame.
 

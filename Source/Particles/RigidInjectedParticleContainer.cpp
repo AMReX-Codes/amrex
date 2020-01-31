@@ -1,3 +1,12 @@
+/* Copyright 2019-2020 Andrew Myers, David Grote, Glenn Richardson
+ * Ligia Diana Amorim, Luca Fedeli, Maxence Thevenet
+ * Remi Lehe, Revathi Jambunathan, Weiqun Zhang
+ * Yinjian Zhao
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #include <limits>
 #include <sstream>
 #include <algorithm>
@@ -391,13 +400,6 @@ RigidInjectedParticleContainer::PushP (int lev, Real dt,
             const FArrayBox& bxfab = Bx[pti];
             const FArrayBox& byfab = By[pti];
             const FArrayBox& bzfab = Bz[pti];
-
-            Exp.assign(np,WarpX::E_external_particle[0]);
-            Eyp.assign(np,WarpX::E_external_particle[1]);
-            Ezp.assign(np,WarpX::E_external_particle[2]);
-            Bxp.assign(np,WarpX::B_external_particle[0]);
-            Byp.assign(np,WarpX::B_external_particle[1]);
-            Bzp.assign(np,WarpX::B_external_particle[2]);
 
             //
             // copy data from particle container to temp arrays

@@ -6,8 +6,6 @@ amr.blocking_factor = 8
 amr.max_grid_size = 1024
 amr.max_level = 0
 
-warpx.dump_plotfiles = 1
-
 # Geometry
 geometry.coord_sys   = 0                  # 0: Cartesian
 geometry.is_periodic = 0     0     0     # Is periodic?

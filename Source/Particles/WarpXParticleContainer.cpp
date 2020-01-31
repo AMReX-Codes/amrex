@@ -1,3 +1,12 @@
+/* Copyright 2019-2020 Andrew Myers, Axel Huebl, David Grote
+ * Jean-Luc Vay, Luca Fedeli, Maxence Thevenet
+ * Remi Lehe, Revathi Jambunathan, Weiqun Zhang
+ * Yinjian Zhao, levinem
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #include <limits>
 
 #include <MultiParticleContainer.H>
@@ -15,9 +24,6 @@
 #include <ChargeDeposition.H>
 
 using namespace amrex;
-
-int WarpXParticleContainer::do_not_push = 0;
-int WarpXParticleContainer::do_not_deposit = 0;
 
 WarpXParIter::WarpXParIter (ContainerType& pc, int level)
     : ParIter(pc, level, MFItInfo().SetDynamic(WarpX::do_dynamic_scheduling))
@@ -113,6 +119,7 @@ WarpXParticleContainer::WarpXParticleContainer (AmrCore* amr_core, int ispecies)
     m_xp.resize(num_threads);
     m_yp.resize(num_threads);
     m_zp.resize(num_threads);
+
 }
 
 void
@@ -129,7 +136,6 @@ WarpXParticleContainer::ReadParameters ()
         do_tiling = true;
 #endif
         pp.query("do_tiling",  do_tiling);
-        pp.query("do_not_push", do_not_push);
 
         initialized = true;
     }
@@ -734,37 +740,6 @@ Real WarpXParticleContainer::maxParticleVelocity(bool local) {
 
     if (!local) ParallelAllReduce::Max(max_v, ParallelDescriptor::Communicator());
     return max_v;
-}
-
-void
-WarpXParticleContainer::PushXES (Real dt)
-{
-    BL_PROFILE("WPC::PushXES()");
-
-    const int num_levels = finestLevel() + 1;
-
-    for (int lev = 0; lev < num_levels; ++lev) {
-        const auto& gm = m_gdb->Geom(lev);
-        const RealBox& prob_domain = gm.ProbDomain();
-        for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti) {
-            auto& particles = pti.GetArrayOfStructs();
-            int nstride = particles.dataShape().first;
-            const long np  = pti.numParticles();
-
-            auto& attribs = pti.GetAttribs();
-            auto& uxp = attribs[PIdx::ux];
-            auto& uyp = attribs[PIdx::uy];
-            auto& uzp = attribs[PIdx::uz];
-
-            WRPX_PUSH_LEAPFROG_POSITIONS(particles.dataPtr(), nstride, np,
-                                         uxp.dataPtr(), uyp.dataPtr(),
-#if AMREX_SPACEDIM == 3
-                                         uzp.dataPtr(),
-#endif
-                                         &dt,
-                                         prob_domain.lo(), prob_domain.hi());
-        }
-    }
 }
 
 void

@@ -1,3 +1,10 @@
+/* Copyright 2019 Remi Lehe, Revathi Jambunathan, Revathi Jambunathan
+ *
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #ifndef WARPX_PML_KERNELS_H_
 #define WARPX_PML_KERNELS_H_
 

@@ -1,4 +1,13 @@
 #!/bin/bash
+
+# Copyright 2018-2020 Axel Huebl, David Grote, Edoardo Zoni
+# Luca Fedeli, Maxence Thevenet, Remi Lehe
+#
+#
+# This file is part of WarpX.
+#
+# License: BSD-3-Clause-LBNL
+
 # This script runs some of WarpX's standard regression tests, but
 # without comparing the output to previously run simulations.
 # This checks that:
@@ -11,6 +20,12 @@
 # select only the tests that correspond to this dimension
 # Use `export WARPX_TEST_ARCH=CPU` or `export WARPX_TEST_ARCH=GPU` in order
 # to run the tests on CPU or GPU respectively.
+
+# Parse command line arguments: if test names are given as command line arguments,
+# store them in variable tests_arg and define new command line argument to call
+# regtest.py with option --tests (works also for single test)
+tests_arg=$*
+tests_run=${tests_arg:+--tests=${tests_arg}}
 
 # Remove contents and link to a previous test directory (intentionally two arguments)
 rm -rf test_dir/* test_dir
@@ -34,7 +49,7 @@ cd test_dir
 # Clone PICSAR and AMReX
 git clone --branch development https://github.com/AMReX-Codes/amrex.git
 # Use QED brach for QED tests
-if [ ${HAS_QED} = "TRUE" ]; then
+if [ "${HAS_QED}" = "TRUE" ]; then
     git clone --branch QED https://bitbucket.org/berkeleylab/picsar.git
 else
     git clone --branch master https://bitbucket.org/berkeleylab/picsar.git
@@ -49,6 +64,12 @@ cd warpx/Regression
 python prepare_file_travis.py
 cp travis-tests.ini ../../rt-WarpX
 
-# Run the tests
+# Run tests
 cd ../../regression_testing/
+# run only tests specified in variable tests_arg (single test or multiple tests)
+if [[ ! -z "${tests_arg}" ]]; then
+python regtest.py ../rt-WarpX/travis-tests.ini --no_update all --source_git_hash=${WARPX_TEST_COMMIT} "${tests_run}"
+# run all tests (variables tests_arg and tests_run are empty)
+else
 python regtest.py ../rt-WarpX/travis-tests.ini --no_update all --source_git_hash=${WARPX_TEST_COMMIT}
+fi

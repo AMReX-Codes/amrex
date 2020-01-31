@@ -1,3 +1,10 @@
+/* Copyright 2019-2020 Maxence Thevenet, Revathi Jambunathan, Weiqun Zhang
+ *
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #ifndef WARPX_GPU_PARSER_H_
 #define WARPX_GPU_PARSER_H_
 
@@ -17,7 +24,7 @@ public:
 
     AMREX_GPU_HOST_DEVICE
     amrex::Real
-    operator() (amrex::Real x, amrex::Real y, amrex::Real z) const noexcept
+    operator() (amrex::Real x, amrex::Real y, amrex::Real z, amrex::Real t=0.0) const noexcept
     {
 #ifdef AMREX_USE_GPU
 
@@ -27,15 +34,17 @@ public:
         amrex::Gpu::SharedMemory<amrex::Real> gsm;
         amrex::Real* p = gsm.dataPtr();
         int tid = threadIdx.x + threadIdx.y*blockDim.x + threadIdx.z*(blockDim.x*blockDim.y);
-        p[tid*3] = x;
-        p[tid*3+1] = y;
-        p[tid*3+2] = z;
+        p[tid*4] = x;
+        p[tid*4+1] = y;
+        p[tid*4+2] = z;
+        p[tid*4+3] = t;
         return wp_ast_eval(m_gpu_parser.ast);
 #else
 // WarpX compiled for GPU, function compiled for __host__
         m_var.x = x;
         m_var.y = y;
         m_var.z = z;
+        m_t = t;
         return wp_ast_eval(m_cpu_parser.ast);
 #endif
 
@@ -49,9 +58,11 @@ public:
         m_var[tid].x = x;
         m_var[tid].y = y;
         m_var[tid].z = z;
+        m_t[tid] = t;
         return wp_ast_eval(m_parser[tid]->ast);
 #endif
     }
+
 
 private:
 
@@ -61,10 +72,12 @@ private:
     // Copy of the parser running on __host__
     struct wp_parser m_cpu_parser;
     mutable amrex::XDim3 m_var;
+    mutable amrex::Real m_t;
 #else
     // Only one parser
     struct wp_parser** m_parser;
     mutable amrex::XDim3* m_var;
+    mutable amrex::Real* m_t;
     int nthreads;
 #endif
 };

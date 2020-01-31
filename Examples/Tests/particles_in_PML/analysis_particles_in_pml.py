@@ -1,4 +1,12 @@
 #! /usr/bin/env python
+
+# Copyright 2019-2020 Luca Fedeli, Maxence Thevenet, Remi Lehe
+#
+#
+# This file is part of WarpX.
+#
+# License: BSD-3-Clause-LBNL
+
 """
 This script tests the absorption of particles in the PML.
 
@@ -11,7 +19,6 @@ charge, with associated fields, behind them.
 """
 import sys
 import yt
-import numpy as np
 yt.funcs.mylog.setLevel(0)
 
 # Open plotfile specified in command line

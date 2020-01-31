@@ -1,3 +1,11 @@
+/* Copyright 2019 Andrew Myers, Aurore Blelly, Axel Huebl
+ * Maxence Thevenet, Remi Lehe, Weiqun Zhang
+ *
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #include <PML.H>
 #include <WarpX.H>
 #include <WarpXConst.H>

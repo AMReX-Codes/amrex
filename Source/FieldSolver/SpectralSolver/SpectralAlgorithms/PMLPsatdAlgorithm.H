@@ -1,3 +1,9 @@
+/* Copyright 2019 Axel Huebl, Remi Lehe
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #ifndef WARPX_PML_PSATD_ALGORITHM_H_
 #define WARPX_PML_PSATD_ALGORITHM_H_
 

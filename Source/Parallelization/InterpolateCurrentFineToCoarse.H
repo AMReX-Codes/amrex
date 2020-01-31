@@ -1,4 +1,4 @@
-/* Copyright 2019 Axel Huebl, Weiqun Zhang
+/* Copyright 2019-2020 Axel Huebl
  *
  * This file is part of WarpX.
  *
@@ -63,9 +63,9 @@ public:
 
         // return zero for out-of-bounds accesses during interpolation
         // this is efficiently used as a method to add neutral elements beyond guards in the average below
-        auto const fine = [fine_unsafe] AMREX_GPU_DEVICE (int const j, int const k, int const l) noexcept
+        auto const fine = [fine_unsafe] AMREX_GPU_DEVICE (int const jj, int const kk, int const ll) noexcept
         {
-            return fine_unsafe.contains(j, k, l) ? fine_unsafe(j, k, l) :  amrex::Real{0.};
+            return fine_unsafe.contains(jj, kk, ll) ? fine_unsafe(jj, kk, ll) :  amrex::Real{0.};
         };
 
         int const ii = i * m_refinement_ratio;

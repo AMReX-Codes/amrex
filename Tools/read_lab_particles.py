@@ -1,3 +1,9 @@
+# Copyright 2018-2019 Andrew Myers, Maxence Thevenet
+#
+# This file is part of WarpX.
+#
+# License: BSD-3-Clause-LBNL
+
 import numpy as np
 from glob import glob
 import os

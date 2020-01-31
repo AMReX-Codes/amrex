@@ -1,4 +1,11 @@
 #!/bin/bash
+
+# Copyright 2019 Maxence Thevenet
+#
+# This file is part of WarpX.
+#
+# License: BSD-3-Clause-LBNL
+
 #BSUB -P <allocation ID>
 #BSUB -W 00:10
 #BSUB -nnodes 2

@@ -1,4 +1,12 @@
 #!/usr/bin/env python3
+
+# Copyright 2017-2020 Andrew Myers, Axel Huebl, Burlen Loring
+# Maxence Thevenet, Remi Lehe
+#
+# This file is part of WarpX.
+#
+# License: BSD-3-Clause-LBNL
+
 # -*- coding: utf-8 -*-
 #
 # WarpX documentation build configuration file, created by
@@ -59,7 +67,7 @@ author = 'WarpX collaboration'
 # built documents.
 #
 # The short X.Y version.
-version = '19.10'
+version = '20.01'
 # The full version, including alpha/beta/rc tags.
 release = ''
 
@@ -191,7 +199,4 @@ primary_domain = 'cpp'
 # Tell sphinx what the pygments highlight language should be.
 highlight_language = 'cpp'
 
-
-read_the_docs_build = os.environ.get('READTHEDOCS', None) == 'True'
-if read_the_docs_build:
-    subprocess.call('cd ../; doxygen; mkdir -p source/_static; cp -r doxyhtml source/_static/', shell=True)
+subprocess.call('cd ../; doxygen; mkdir -p source/_static; cp -r doxyhtml source/_static/', shell=True)

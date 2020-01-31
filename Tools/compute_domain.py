@@ -1,7 +1,10 @@
-import os, shutil, re
+# Copyright 2019-2020 Luca Fedeli, Maxence Thevenet
+#
+# This file is part of WarpX.
+#
+# License: BSD-3-Clause-LBNL
+
 import numpy as np
-import scipy.constants as scc
-import time, copy
 
 '''
 This Python script helps a user to parallelize a WarpX simulation.

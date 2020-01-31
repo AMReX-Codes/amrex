@@ -1,3 +1,10 @@
+# Copyright 2017-2019 Andrew Myers, Axel Huebl, Maxence Thevenet
+# Remi Lehe
+#
+# This file is part of WarpX.
+#
+# License: BSD-3-Clause-LBNL
+
 from glob import glob
 import os
 import numpy as np

@@ -27,12 +27,12 @@ In order to compile for the **Haswell architecture**:
 
         make -j 16 COMP=intel
 
-    * with the GNU compiler
+    * with the GNU compiler (``COMP=gcc`` is the corresponding optional flag)
 
     ::
 
         module swap PrgEnv-intel PrgEnv-gnu
-        make -j 16 COMP=gnu
+        make -j 16 COMP=gcc
 
 In order to compile for the **Knight's Landing (KNL) architecture**:
 
@@ -49,7 +49,7 @@ In order to compile for the **Knight's Landing (KNL) architecture**:
 
         module swap craype-haswell craype-mic-knl
         module swap PrgEnv-intel PrgEnv-gnu
-        make -j 16 COMP=gnu
+        make -j 16 COMP=gcc
 
 See :doc:`../running_cpp/platforms` for more information on how to run
 WarpX on Cori.
@@ -120,6 +120,6 @@ Finally, compile WarpX:
 
     cd ../WarpX
     export PKG_CONFIG_PATH=$PWD/../openPMD-install/lib64/pkgconfig:$PKG_CONFIG_PATH
-    make -j 16 COMP=gnu USE_OPENPMD=TRUE
+    make -j 16 COMP=gcc USE_OPENPMD=TRUE
 
 In order to run WarpX, load the same modules again.

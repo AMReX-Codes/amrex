@@ -1,3 +1,10 @@
+/* Copyright 2019-2020 Axel Huebl, Ligia Diana Amorim, Maxence Thevenet
+ * Revathi Jambunathan, Weiqun Zhang
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #include <InjectorDensity.H>
 #include <PlasmaInjector.H>
 
@@ -36,8 +43,8 @@ InjectorDensity::sharedMemoryNeeded () const noexcept
     case Type::parser:
     {
         // For parser injector, the 3D position of each particle
-        // is stored in shared memory.
-        return amrex::Gpu::numThreadsPerBlockParallelFor() * sizeof(double) * 3;
+        // and time, t, is stored in shared memory.
+        return amrex::Gpu::numThreadsPerBlockParallelFor() * sizeof(double) * 4;
     }
     default:
         return 0;

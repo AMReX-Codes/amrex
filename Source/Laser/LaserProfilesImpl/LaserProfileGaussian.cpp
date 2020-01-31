@@ -1,3 +1,10 @@
+/* Copyright 2019 Axel Huebl, Luca Fedeli, Maxence Thevenet
+ * Weiqun Zhang
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #include <LaserProfiles.H>
 
 #include <WarpX_Complex.H>
@@ -72,7 +79,7 @@ GaussianLaserProfile::init (
 void
 GaussianLaserProfile::fill_amplitude (
     const int np, Real const * AMREX_RESTRICT const Xp, Real const * AMREX_RESTRICT const Yp,
-    Real t, Real * AMREX_RESTRICT const amplitude)
+    Real t, Real * AMREX_RESTRICT const amplitude) const
 {
     Complex I(0,1);
     // Calculate a few factors which are independent of the macroparticle

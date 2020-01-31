@@ -64,4 +64,5 @@ pos_perp2.single_particle_vel = -958.3148474999095 127.77531299998823 255.550625
 pos_perp2.single_particle_weight = 1e-08
 pos_perp2.do_classical_radiation_reaction = 1
 
-warpx.B_external_particle = 917978.2333474257 1376967.350021139 2753934.700042278
+particles.B_ext_particle_init_style = "constant"
+particles.B_external_particle = 917978.2333474257 1376967.350021139 2753934.700042278

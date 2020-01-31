@@ -1,3 +1,9 @@
+# Copyright 2019-2020 Axel Huebl, Maxence Thevenet
+#
+# This file is part of WarpX.
+#
+# License: BSD-3-Clause-LBNL
+
 name: source
 
 on: [push, pull_request]
@@ -9,6 +15,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v1
+    - name: Non-ASCII characters
+      run: .github/workflows/source/hasNonASCII
     - name: TABs
       run: .github/workflows/source/hasTabs
     - name: End-of-Line whitespaces
@@ -17,3 +25,7 @@ jobs:
       run: .github/workflows/source/wrongFileNameInExamples
     - name: Examples are tested
       run: .github/workflows/source/inputsNotTested
+    - name: Doxygen
+      run: |
+        sudo apt-get install -y --no-install-recommends doxygen
+        .github/workflows/source/doxygen

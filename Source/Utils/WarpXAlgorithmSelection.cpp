@@ -1,3 +1,11 @@
+/* Copyright 2019-2020 Axel Huebl, David Grote, Luca Fedeli
+ * Remi Lehe, Weiqun Zhang, Yinjian Zhao
+ *
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #include <WarpXAlgorithmSelection.H>
 
 #include <map>

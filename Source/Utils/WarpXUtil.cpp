@@ -1,3 +1,11 @@
+/* Copyright 2019-2020 Andrew Myers, Burlen Loring, Luca Fedeli
+ * Maxence Thevenet, Remi Lehe, Revathi Jambunathan
+ * Revathi Jambunathan
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #include <WarpXUtil.H>
 #include <WarpXConst.H>
 #include <AMReX_ParmParse.H>
@@ -164,3 +172,45 @@ namespace WarpXUtilIO{
     }
 }
 
+void Store_parserString(amrex::ParmParse& pp, std::string query_string,
+                        std::string& stored_string)
+{
+
+    char cstr[query_string.size()+1];
+    strcpy(cstr, query_string.c_str());
+
+    std::vector<std::string> f;
+    pp.getarr(cstr, f);
+    stored_string.clear();
+    for (auto const& s : f) {
+        stored_string += s;
+    }
+    f.clear();
+
+}
+
+
+WarpXParser makeParser (std::string const& parse_function)
+{
+    WarpXParser parser(parse_function);
+    parser.registerVariables({"x","y","z","t"});
+    ParmParse pp("my_constants");
+    std::set<std::string> symbols = parser.symbols();
+    symbols.erase("x");
+    symbols.erase("y");
+    symbols.erase("z");
+    symbols.erase("t");
+    for (auto it = symbols.begin(); it != symbols.end(); ) {
+        Real v;
+        if (pp.query(it->c_str(), v)) {
+           parser.setConstant(*it, v);
+           it = symbols.erase(it);
+        } else {
+           ++it;
+        }
+    }
+    for (auto const& s : symbols) {
+        amrex::Abort("makeParser::Unknown symbol "+s);
+    }
+    return parser;
+}

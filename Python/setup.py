@@ -1,5 +1,13 @@
 #!/usr/bin/env python
 
+# Copyright 2016-2020 Andrew Myers, David Grote, Maxence Thevenet
+# Remi Lehe
+#
+# This file is part of WarpX.
+#
+# License: BSD-3-Clause-LBNL
+
+
 """
 setup.py file for WarpX
 """
@@ -20,7 +28,7 @@ else:
     package_data = {}
 
 setup (name = 'pywarpx',
-       version = '19.10',
+       version = '20.01',
        packages = ['pywarpx'],
        package_dir = {'pywarpx':'pywarpx'},
        description = """Wrapper of WarpX""",

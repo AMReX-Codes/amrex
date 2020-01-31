@@ -1,6 +1,12 @@
+# Copyright 2017-2020 Andrew Myers, David Grote
+#
+# This file is part of WarpX.
+#
+# License: BSD-3-Clause-LBNL
+
 from .Bucket import Bucket
 
-particles = Bucket('particles', nspecies=0, species_names=None)
+particles = Bucket('particles', nspecies=0, species_names=[])
 particles_list = []
 
 electrons = Bucket('electrons')

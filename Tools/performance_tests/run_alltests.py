@@ -1,3 +1,10 @@
+# Copyright 2017-2020 Luca Fedeli, Maxence Thevenet, Remi Lehe
+#
+#
+# This file is part of WarpX.
+#
+# License: BSD-3-Clause-LBNL
+
 import os, sys, shutil
 import argparse, re, time
 from functions_perftest import *
@@ -262,7 +269,7 @@ if args.mode == 'read':
         n_node   = current_run[1]
         n_mpi    = current_run[2]
         n_omp    = current_run[3]
-        if args.n_steps == None:
+        if args.n_steps is None:
             n_steps = get_nsteps(cwd + run_name)
         else:
             n_steps = int(args.n_steps)

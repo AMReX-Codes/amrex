@@ -1,0 +1,65 @@
+#################################
+####### GENERAL PARAMETERS ######
+#################################
+max_step = 150
+amr.n_cell = 8 8
+amr.max_grid_size = 8
+amr.blocking_factor = 8
+amr.max_level = 0
+geometry.coord_sys   = 0
+geometry.is_periodic = 1     1
+geometry.prob_lo     = 0.    0.
+geometry.prob_hi     = 4.154046151855669e2  4.154046151855669e2
+warpx.do_pml = 0
+
+#################################
+############ NUMERICS ###########
+#################################
+warpx.serialize_ics = 1
+warpx.verbose = 1
+warpx.cfl = 1.0
+amr.plot_int = 10
+warpx.plot_raw_fields = 0
+
+#################################
+############ PLASMA #############
+#################################
+particles.nspecies = 2
+particles.species_names = electron ion
+
+electron.charge = -q_e
+electron.mass = m_e
+electron.injection_style = "NRandomPerCell"
+electron.num_particles_per_cell = 200
+electron.profile = constant
+electron.density = 1.0e21
+electron.momentum_distribution_type = "gaussian"
+electron.ux_th = 0.044237441120300
+electron.uy_th = 0.044237441120300
+electron.uz_th = 0.044237441120300
+electron.ux_m  = 0.044237441120300
+electron.do_not_deposit = 1
+
+ion.charge = q_e
+ion.mass = 4.554691780000000e-30
+ion.injection_style = "NRandomPerCell"
+ion.num_particles_per_cell = 200
+ion.profile = constant
+ion.density = 1.0e21
+ion.momentum_distribution_type = "gaussian"
+ion.ux_th = 0.006256118919701
+ion.uy_th = 0.006256118919701
+ion.uz_th = 0.006256118919701
+ion.do_not_deposit = 1
+
+#################################
+############ COLLISION ##########
+#################################
+collisions.ncollisions = 3
+collisions.collision_names = collision1 collision2 collision3
+collision1.species = electron ion
+collision2.species = electron electron
+collision3.species = ion ion
+collision1.CoulombLog = 15.9
+collision2.CoulombLog = 15.9
+collision3.CoulombLog = 15.9

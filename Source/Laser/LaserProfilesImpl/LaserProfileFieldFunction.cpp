@@ -1,3 +1,9 @@
+/* Copyright 2019 Luca Fedeli
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #include <LaserProfiles.H>
 
 #include <WarpX_Complex.H>
@@ -37,7 +43,7 @@ FieldFunctionLaserProfile::init (
 void
 FieldFunctionLaserProfile::fill_amplitude (
     const int np, Real const * AMREX_RESTRICT const Xp, Real const * AMREX_RESTRICT const Yp,
-    Real t, Real * AMREX_RESTRICT const amplitude)
+    Real t, Real * AMREX_RESTRICT const amplitude) const
 {
     for (int i = 0; i < np; ++i) {
         amplitude[i] = m_parser.eval(Xp[i], Yp[i], t);

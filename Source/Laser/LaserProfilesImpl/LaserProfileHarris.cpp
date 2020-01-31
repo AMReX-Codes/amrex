@@ -1,3 +1,9 @@
+/* Copyright 2019 Luca Fedeli
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #include <LaserProfiles.H>
 
 #include <WarpX_Complex.H>
@@ -35,7 +41,7 @@ HarrisLaserProfile::init (
 void
 HarrisLaserProfile::fill_amplitude (
     const int np, Real const * AMREX_RESTRICT const Xp, Real const * AMREX_RESTRICT const Yp,
-    Real t, Real * AMREX_RESTRICT const amplitude)
+    Real t, Real * AMREX_RESTRICT const amplitude) const
 {
     // This function uses the Harris function as the temporal profile of the pulse
     const Real omega0 =

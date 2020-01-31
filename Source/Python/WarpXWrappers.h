@@ -1,3 +1,10 @@
+/* Copyright 2019 Andrew Myers, David Grote, Maxence Thevenet
+ * Remi Lehe, Weiqun Zhang
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #ifndef WARPX_WRAPPERS_H_
 #define WARPX_WRAPPERS_H_
 
@@ -95,9 +102,11 @@ extern "C" {
 
   int warpx_checkInt ();
   int warpx_plotInt ();
+  int warpx_openpmdInt ();
 
   void warpx_WriteCheckPointFile ();
   void warpx_WritePlotFile ();
+  void warpx_WriteOpenPMDFile ();
 
   int warpx_finestLevel ();
 

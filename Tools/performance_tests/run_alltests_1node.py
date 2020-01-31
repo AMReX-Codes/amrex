@@ -1,4 +1,10 @@
-import os, sys, shutil, datetime
+# Copyright 2018-2020 Luca Fedeli, Maxence Thevenet
+#
+# This file is part of WarpX.
+#
+# License: BSD-3-Clause-LBNL
+
+import os, shutil, datetime
 import argparse, re, time
 from functions_perftest import *
 

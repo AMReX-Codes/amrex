@@ -1,3 +1,9 @@
+/* Copyright 2019 Axel Huebl, David Grote
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #ifndef WARPX_FDTD_H_
 #define WARPX_FDTD_H_
 

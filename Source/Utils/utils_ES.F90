@@ -1,3 +1,9 @@
+! Copyright 2019 Maxence Thevenet, Remi Lehe
+!
+! This file is part of WarpX.
+!
+! License: BSD-3-Clause-LBNL
+
 module warpx_ES_utils
 
   use iso_c_binding

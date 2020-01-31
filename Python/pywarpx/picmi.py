@@ -1,3 +1,11 @@
+# Copyright 2018-2020 Andrew Myers, David Grote, Ligia Diana Amorim
+# Maxence Thevenet, Remi Lehe, Revathi Jambunathan
+#
+#
+# This file is part of WarpX.
+#
+# License: BSD-3-Clause-LBNL
+
 """Classes following the PICMI standard
 """
 import re
@@ -63,13 +71,14 @@ class Species(picmistandard.PICMI_Species):
         if self.name is None:
             self.name = 'species{}'.format(self.species_number)
 
-        if pywarpx.particles.species_names is None:
-            pywarpx.particles.species_names = self.name
-        else:
-            pywarpx.particles.species_names += ' ' + self.name
+        pywarpx.particles.species_names.append(self.name)
 
-        self.species = pywarpx.Bucket.Bucket(self.name, mass=self.mass, charge=self.charge,
-                        injection_style = 'python', initialize_self_fields=int(initialize_self_fields))
+        self.species = pywarpx.Bucket.Bucket(self.name,
+                                             mass = self.mass,
+                                             charge = self.charge,
+                                             injection_style = 'python',
+                                             initialize_self_fields = int(initialize_self_fields),
+                                             plot_vars = set())
         pywarpx.Particles.particles_list.append(self.species)
 
         if self.initial_distribution is not None:
@@ -612,22 +621,43 @@ class FieldDiagnostic(picmistandard.PICMI_FieldDiagnostic):
         pywarpx.amr.check_consistency('plot_int', self.period, 'The period must be the same for all simulation frame diagnostics')
         pywarpx.amr.plot_int = self.period
 
-        if 'rho' in self.data_list:
-            pywarpx.warpx.plot_rho = 1
-        if 'dive' in self.data_list:
-            pywarpx.warpx.plot_dive = 1
-        if 'divb' in self.data_list:
-            pywarpx.warpx.plot_divb = 1
-        if 'F' in self.data_list:
-            pywarpx.warpx.plot_F = 1
-        if 'proc_number' in self.data_list:
-            pywarpx.warpx.plot_proc_number = 1
+        for dataname in self.data_list:
+            if dataname == 'E':
+                pywarpx.warpx.add_field_to_plot('Ex')
+                pywarpx.warpx.add_field_to_plot('Ey')
+                pywarpx.warpx.add_field_to_plot('Ez')
+            elif dataname == 'B':
+                pywarpx.warpx.add_field_to_plot('Bx')
+                pywarpx.warpx.add_field_to_plot('By')
+                pywarpx.warpx.add_field_to_plot('Bz')
+            elif dataname == 'J':
+                pywarpx.warpx.add_field_to_plot('jx')
+                pywarpx.warpx.add_field_to_plot('jy')
+                pywarpx.warpx.add_field_to_plot('jz')
+            elif dataname in ['Ex', 'Ey', 'Ez', 'Bx', 'By', 'Bz', 'rho', 'F', 'proc_number']:
+                pywarpx.warpx.add_field_to_plot(dataname)
+            elif dataname in ['Jx', 'Jy', 'Jz']:
+                pywarpx.warpx.add_field_to_plot(dataname.lower())
+            elif dataname == 'dive':
+                pywarpx.warpx.add_field_to_plot('divE')
+            elif dataname == 'divb':
+                pywarpx.warpx.add_field_to_plot('divB')
+            elif dataname == 'costs':
+                pywarpx.warpx.plot_costs = 1
+            elif dataname == 'raw_fields':
+                self.plot_raw_fields = 1
+            elif dataname == 'raw_fields_guards':
+                self.plot_raw_fields_guards = 1
+            elif dataname == 'finepatch':
+                self.plot_finepatch = 1
+            elif dataname == 'crsepatch':
+                self.plot_crsepatch = 1
 
         pywarpx.warpx.plot_raw_fields = self.plot_raw_fields
         pywarpx.warpx.plot_raw_fields_guards = self.plot_raw_fields_guards
 
-        pywarpx.amr.check_consistency('plot_finepatch', self.plot_finepatch, 'The fine patch flag must be the same for all simulation frame field diagnostics')
-        pywarpx.amr.check_consistency('plot_crsepatch', self.plot_crsepatch, 'The coarse patch flag must be the same for all simulation frame field diagnostics')
+        pywarpx.warpx.check_consistency('plot_finepatch', self.plot_finepatch, 'The fine patch flag must be the same for all simulation frame field diagnostics')
+        pywarpx.warpx.check_consistency('plot_crsepatch', self.plot_crsepatch, 'The coarse patch flag must be the same for all simulation frame field diagnostics')
         pywarpx.warpx.plot_finepatch = self.plot_finepatch
         pywarpx.warpx.plot_crsepatch = self.plot_crsepatch
 
@@ -654,12 +684,36 @@ class ParticleDiagnostic(picmistandard.PICMI_ParticleDiagnostic):
         pywarpx.amr.check_consistency('plot_int', self.period, 'The period must be the same for all simulation frame diagnostics')
         pywarpx.amr.plot_int = self.period
 
-        if 'part_per_cell' in self.data_list:
-            pywarpx.warpx.plot_part_per_cell = 1
-        if 'part_per_grid' in self.data_list:
-            pywarpx.warpx.plot_part_per_grid = 1
-        if 'part_per_proc' in self.data_list:
-            pywarpx.warpx.plot_part_per_proc = 1
+        plot_vars = set()
+        for dataname in self.data_list:
+            if dataname == 'position':
+                # --- The positions are alway written out anyway
+                pass
+            elif dataname == 'momentum':
+                plot_vars.add('ux')
+                plot_vars.add('uy')
+                plot_vars.add('uz')
+            elif dataname == 'weighting':
+                plot_vars.add('w')
+            elif dataname == 'fields':
+                plot_vars.add('Ex')
+                plot_vars.add('Ey')
+                plot_vars.add('Ez')
+                plot_vars.add('Bx')
+                plot_vars.add('By')
+                plot_vars.add('Bz')
+            elif dataname in ['ux', 'uy', 'uz', 'Ex', 'Ey', 'Ez', 'Bx', 'By', 'Bz']:
+                plot_vars.add(dataname)
+            elif dataname in ['part_per_cell', 'part_per_grid', 'part_per_proc']:
+                pywarpx.warpx.add_field_to_plot(dataname)
+
+        if plot_vars:
+            species = self.species
+            if not np.iterable(species):
+                species = [species]
+            for specie in species:
+                for var in plot_vars:
+                    specie.species.plot_vars.add(var)
 
         if self.write_dir is not None:
             plot_file = self.write_dir + '/plotfiles/plt'
@@ -694,7 +748,16 @@ class LabFrameParticleDiagnostic(picmistandard.PICMI_LabFrameParticleDiagnostic)
         pywarpx.warpx.check_consistency('lab_data_directory', self.write_dir, 'The write directory must be the same in all lab frame diagnostics')
 
         pywarpx.warpx.do_back_transformed_diagnostics = 1
+
+        if isinstance(self.species, Species):
+            self.species.do_back_transformed_diagnostics = 1
+        else:
+            try:
+                for specie in self.species:
+                    specie.do_back_transformed_diagnostics = 1
+            except TypeError:
+                pass
+
         pywarpx.warpx.num_snapshots_lab = self.num_snapshots
         pywarpx.warpx.dt_snapshots_lab = self.dt_snapshots
-        pywarpx.warpx.do_back_transformed_particles = 1
         pywarpx.warpx.lab_data_directory = self.write_dir

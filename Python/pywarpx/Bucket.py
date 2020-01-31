@@ -1,3 +1,12 @@
+# Copyright 2016-2020 Andrew Myers, David Grote, Maxence Thevenet
+#
+#
+# This file is part of WarpX.
+#
+# License: BSD-3-Clause-LBNL
+
+import numpy as np
+
 class Bucket(object):
     """
     The purpose of this class is to be a named bucket for holding attributes.
@@ -34,9 +43,13 @@ class Bucket(object):
             # --- The strip is then needed when value is a string.
             if isinstance(value, str):
                 rhs = value
-            elif hasattr(value, '__iter__'):
-                # --- For lists, tuples, and arrays make a space delimited string of the values
-                rhs = ' '.join(map(repr, value))
+            elif np.iterable(value):
+                if len(value) == 0:
+                    # --- Skip if empty
+                    continue
+                # --- For lists, tuples, and arrays make a space delimited string of the values.
+                # --- The lambda is needed in case this is a list of strings.
+                rhs = ' '.join(map(lambda s : repr(s).strip("'\""), value))
             else:
                 rhs = value
             attrstring = '{0}.{1} = {2}'.format(self.instancename, attr, repr(rhs).strip("'\""))

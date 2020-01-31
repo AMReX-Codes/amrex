@@ -1,3 +1,9 @@
+/* Copyright 2019 Axel Huebl, Maxence Thevenet
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 // This script was automatically generated!
 // Edit dev/Source/Utils/write_atomic_data_cpp.py instead!
 #ifndef WARPX_IONIZATION_TABLE_H_

@@ -1,3 +1,10 @@
+/* Copyright 2019-2020 Luca Fedeli, Revathi Jambunathan, Weiqun Zhang
+ *
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #include "SliceDiagnostic.H"
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_PlotFileUtil.H>
@@ -236,8 +243,10 @@ CheckSliceInput( const RealBox real_box, RealBox &slice_cc_nd_box,
     {
         // Modify coarsening ratio if the input value is not an exponent of 2 for AMR //
         if ( slice_cr_ratio[idim] > 0 ) {
-            int log_cr_ratio = floor ( log2( double(slice_cr_ratio[idim])));
-            slice_cr_ratio[idim] = exp2( double(log_cr_ratio) );
+            int log_cr_ratio =
+               static_cast<int>(floor ( log2( double(slice_cr_ratio[idim]))));
+            slice_cr_ratio[idim] =
+               static_cast<int> (exp2( double(log_cr_ratio) ));
         }
 
         //// Default coarsening ratio is 1 //
@@ -269,20 +278,24 @@ CheckSliceInput( const RealBox real_box, RealBox &slice_cc_nd_box,
 
             // check for interpolation -- compute index lo with floor and ceil
             if ( slice_cc_nd_box.lo(idim) - real_box.lo(idim) >= fac ) {
-                slice_lo[idim] = floor( ( (slice_cc_nd_box.lo(idim)
+                slice_lo[idim] = static_cast<int>(
+                                 floor( ( (slice_cc_nd_box.lo(idim)
                                  - (real_box.lo(idim) + fac ) )
-                                 / dom_geom[0].CellSize(idim)) + fac * 1E-10);
-                slice_lo2[idim] = ceil( ( (slice_cc_nd_box.lo(idim)
+                                 / dom_geom[0].CellSize(idim)) + fac * 1E-10) );
+                slice_lo2[idim] = static_cast<int>(
+                                 ceil( ( (slice_cc_nd_box.lo(idim)
                                  - (real_box.lo(idim) + fac) )
-                                 / dom_geom[0].CellSize(idim)) - fac * 1E-10 );
+                                 / dom_geom[0].CellSize(idim)) - fac * 1E-10 ) );
             }
             else {
-                slice_lo[idim] =  round( (slice_cc_nd_box.lo(idim)
+                slice_lo[idim] = static_cast<int>(
+                                  round( (slice_cc_nd_box.lo(idim)
                                   - (real_box.lo(idim) ) )
-                                  / dom_geom[0].CellSize(idim));
-                slice_lo2[idim] = ceil((slice_cc_nd_box.lo(idim)
+                                  / dom_geom[0].CellSize(idim)) );
+                slice_lo2[idim] = static_cast<int>(
+                                  ceil((slice_cc_nd_box.lo(idim)
                                   - (real_box.lo(idim) ) )
-                                  / dom_geom[0].CellSize(idim) );
+                                  / dom_geom[0].CellSize(idim) ) );
             }
 
             // flag for interpolation -- if reduced dimension location  //
@@ -302,10 +315,10 @@ CheckSliceInput( const RealBox real_box, RealBox &slice_cc_nd_box,
         else
         {
             // moving realbox.lo and reabox.hi to nearest coarsenable grid point //
-            int index_lo = floor(((slice_realbox.lo(idim) +  1E-10
-                            - (real_box.lo(idim))) / dom_geom[0].CellSize(idim)));
-            int index_hi = ceil(((slice_realbox.hi(idim)  - 1E-10
-                            - (real_box.lo(idim))) / dom_geom[0].CellSize(idim)));
+            auto index_lo = static_cast<int>(floor(((slice_realbox.lo(idim) +  1E-10
+                            - (real_box.lo(idim))) / dom_geom[0].CellSize(idim))) );
+            auto index_hi = static_cast<int>(ceil(((slice_realbox.hi(idim)  - 1E-10
+                            - (real_box.lo(idim))) / dom_geom[0].CellSize(idim))) );
 
             bool modify_cr = true;
 

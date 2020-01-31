@@ -1,3 +1,5 @@
+.. _building-openpmd:
+
 Building WarpX with support for openPMD output
 ==============================================
 
@@ -30,22 +32,20 @@ First, install the openPMD-api library:
 
 ::
 
-    spack install openpmd-api -python +adios1
+    spack install openpmd-api -python
 
 Then, ``cd`` into the ``WarpX`` folder, and type:
 
 ::
 
-    spack load mpi
-    spack load openpmd-api
+    spack load -r openpmd-api
     make -j 4 USE_OPENPMD=TRUE
 
 You will also need to load the same spack environment when running WarpX, for instance:
 
 ::
 
-    spack load mpi
-    spack load openpmd-api
+    spack load -r openpmd-api
 
     mpirun -np 4 ./warpx.exe inputs
 
@@ -57,9 +57,9 @@ First, install the openPMD-api library, and load it in your environment:
 ::
 
     spack install hdf5
-    spack install adios
+    spack install adios2
     spack load -r hdf5
-    spack load -r adios
+    spack load -r adios2
 
 Then, in the `warpx_directory`, download and build the openPMD API:
 
@@ -83,8 +83,7 @@ You will also need to load the same spack environment when running WarpX, for in
 
 ::
 
-    spack load openmpi
-    spack load hdf5
-    spack load adios
+    spack load -r hdf5
+    spack load -r adios2
 
     mpirun -np 4 ./warpx.exe inputs

@@ -15,5 +15,7 @@ ifeq ($(USE_OPENPMD), TRUE)
   CEXE_sources += WarpXOpenPMD.cpp
 endif
 
+include $(WARPX_HOME)/Source/Diagnostics/ReducedDiags/Make.package
+
 INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/Diagnostics
 VPATH_LOCATIONS   += $(WARPX_HOME)/Source/Diagnostics

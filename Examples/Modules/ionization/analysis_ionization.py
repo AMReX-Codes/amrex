@@ -1,5 +1,12 @@
 #! /usr/bin/env python
 
+# Copyright 2019-2020 Luca Fedeli, Maxence Thevenet
+#
+# This file is part of WarpX.
+#
+# License: BSD-3-Clause-LBNL
+
+
 """
 This script tests the result of the ionization module in WarpX.
 
@@ -14,7 +21,6 @@ ions are N5+, in agreement with theory from Chen's article.
 import sys
 import yt
 import numpy as np
-import scipy.constants as scc
 yt.funcs.mylog.setLevel(0)
 
 # Open plotfile specified in command line, and get ion's ionization level.

@@ -1,5 +1,12 @@
 #! /usr/bin/env python
 
+# Copyright 2019-2020 Luca Fedeli, Maxence Thevenet
+#
+# This file is part of WarpX.
+#
+# License: BSD-3-Clause-LBNL
+
+
 '''
 Analysis script of a WarpX simulation of rigid injection.
 
@@ -16,7 +23,6 @@ in which case a warning is raised.
 import sys
 import yt
 import numpy as np
-import scipy.constants as scc
 yt.funcs.mylog.setLevel(0)
 
 filename = sys.argv[1]
