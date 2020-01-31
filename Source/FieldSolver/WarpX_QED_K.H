@@ -6,36 +6,7 @@
 #include <cmath>
 
 using namespace amrex;
-
-/**
- *warpx_hybrid_QED_push uses an FDTD scheme to calculate QED corrections to Maxwell's equations and
- *preforms a half timestep correction to the E-fields
- *\param[in] Ex This function modifies the Ex field at the end
- *\param[in] Ey This function modifies the Ey field at the end
- *\param[in] Ez This function modifies the Ez field at the end
- *\param[in] Bx The QED corrections are non-linear functions of B. However,
- *they do not modify B itself
- *\param[in] By The QED corrections are non-linear functions of B. However,
- *they do not modify B itself
- *\param[in] Bz The QED corrections are non-linear functions of B. However,
- * they do not modify B itself
- *\param[in] tempEx Since the corrections to E at a given node are non-linear functions
- *of the values of E on the surronding nodes, temp arrays are used so that modifications to
- *one node do not influence the corrections to the surronding nodes
- *\param[in] tempEy Since the corrections to E at a given node are non-linear functions
- *of the values of E on the surronding nodes, temp arrays are used so that modifications to
- *one node do not influence the corrections to the surronding nodes
- *\param[in] tempEz Since the corrections to E at a given node are non-linear functions
- * of the values of E on the surronding nodes, temp arrays are used so that modifications to
- *one node do not influence the corrections to the surronding nodes
- *\param[in] dx The x spatial step, used for calculating curls
- *\param[in] dy The y spatial step, used for calculating curls
- *\param[in] dz The z spatial step, used for calulating curls
- *\param[in] dt The temporal step, used for the half push/correction to the E-fields at the end of the function
- */
-
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
-
 void calc_M(Real arr [], Real ex, Real ey, Real ez, Real bx, Real by, Real bz, Real xi, Real c2)
 {
     const Real ee = ex*ex+ey*ey+ez*ez;
@@ -46,6 +17,34 @@ void calc_M(Real arr [], Real ex, Real ey, Real ez, Real bx, Real by, Real bz, R
     arr[2] = -2*xi*c2*( 2*bz*(ee-c2*bb) - 7*ez*eb );
 };
 
+
+/**
+ * warpx_hybrid_QED_push uses an FDTD scheme to calculate QED corrections to Maxwell's equations and
+ * preforms a half timestep correction to the E-fields
+ * \param[in] Ex This function modifies the Ex field at the end
+ * \param[in] Ey This function modifies the Ey field at the end
+ * \param[in] Ez This function modifies the Ez field at the end
+ * \param[in] Bx The QED corrections are non-linear functions of B. However,
+ * they do not modify B itself
+ * \param[in] By The QED corrections are non-linear functions of B. However,
+ * they do not modify B itself
+ * \param[in] Bz The QED corrections are non-linear functions of B. However,
+ * they do not modify B itself
+ * \param[in] tempEx Since the corrections to E at a given node are non-linear functions
+ * of the values of E on the surronding nodes, temp arrays are used so that modifications to
+ * one node do not influence the corrections to the surronding nodes
+ * \param[in] tempEy Since the corrections to E at a given node are non-linear functions
+ * of the values of E on the surronding nodes, temp arrays are used so that modifications to
+ * one node do not influence the corrections to the surronding nodes
+ * \param[in] tempEz Since the corrections to E at a given node are non-linear functions
+ * of the values of E on the surronding nodes, temp arrays are used so that modifications to
+ * one node do not influence the corrections to the surronding nodes
+ * \param[in] dx The x spatial step, used for calculating curls
+ * \param[in] dy The y spatial step, used for calculating curls
+ * \param[in] dz The z spatial step, used for calulating curls
+ * \param[in] dt The temporal step, used for the half push/correction to the E-fields at the end of the function
+ */
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void warpx_hybrid_QED_push (int j, int k, int l, Array4<Real> const& Ex, Array4<Real>
     const& Ey, Array4<Real> const& Ez, Array4<Real> const& Bx, Array4<Real> const& By,
     Array4<Real const> const& Bz, Array4<Real> const& tmpEx, Array4<Real>
@@ -53,7 +52,7 @@ void warpx_hybrid_QED_push (int j, int k, int l, Array4<Real> const& Ex, Array4<
 {
 
 const amrex::Real c2 = PhysConst::c * PhysConst::c;
-const amrex::Real xi = PhysConst::xi;
+const amrex::Real xi = WarpX::quantum_xi;
 const amrex::Real dxi = 1./dx;
 const amrex::Real dzi = 1./dz;
 
