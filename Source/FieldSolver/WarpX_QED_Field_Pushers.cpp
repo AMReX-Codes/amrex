@@ -112,6 +112,7 @@ WarpX::Hybrid_QED_Push (int lev, PatchType patch_type, Real a_dt)
         auto const& Eyfab = Ey->array(mfi);
         auto const& Ezfab = Ez->array(mfi);
 
+        // Define grown box with 1 ghost cell for finite difference stencil
         const Box& gex = amrex::grow(tex,1);
         const Box& gey = amrex::grow(tey,1);
         const Box& gez = amrex::grow(tez,1);
