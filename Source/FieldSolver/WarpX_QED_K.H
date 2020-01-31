@@ -47,10 +47,10 @@ void calc_M(Real arr [], Real ex, Real ey, Real ez, Real bx, Real by, Real bz, R
  */
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void warpx_hybrid_QED_push (int j, int k, int l, Array4<Real> const& Ex, Array4<Real>
-						    const& Ey, Array4<Real> const& Ez, Array4<Real> const& Bx,
-						    Array4<Real> const& By, Array4<Real const> const& Bz,
-						    Array4<Real> const& tmpEx, Array4<Real> const& tmpEy,
-						    Array4<Real> const& tmpEz, Real dx, Real dy, Real dz, Real dt)
+                            const& Ey, Array4<Real> const& Ez, Array4<Real> const& Bx,
+                            Array4<Real> const& By, Array4<Real const> const& Bz,
+                            Array4<Real> const& tmpEx, Array4<Real> const& tmpEy,
+                            Array4<Real> const& tmpEz, Real dx, Real dy, Real dz, Real dt)
 {
 
 const amrex::Real c2 = PhysConst::c * PhysConst::c;

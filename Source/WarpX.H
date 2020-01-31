@@ -240,7 +240,7 @@ public:
     void Hybrid_QED_Push (         amrex::Vector<amrex::Real> dt);
     void Hybrid_QED_Push (int lev, amrex::Real dt);
     void Hybrid_QED_Push (int lev, PatchType patch_type, amrex::Real dt);
-	static amrex::Real quantum_xi;
+    static amrex::Real quantum_xi;
 
 #ifdef WARPX_DIM_RZ
     void ApplyInverseVolumeScalingToCurrentDensity(amrex::MultiFab* Jx,
