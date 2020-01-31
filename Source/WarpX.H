@@ -244,6 +244,10 @@ public:
      * \param dt time step
      */
     void Hybrid_QED_Push (int lev, amrex::Real dt);
+    /** \brief apply QED correction on electric field for level lev and patch type patch_type
+     * \param dt time step
+     * \param dt patch_type which MR patch: PatchType::fine or PatchType::coarse
+     */
     void Hybrid_QED_Push (int lev, PatchType patch_type, amrex::Real dt);
     static amrex::Real quantum_xi;
 
