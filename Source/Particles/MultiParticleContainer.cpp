@@ -652,8 +652,8 @@ MultiParticleContainer::doFieldIonization ()
         // Get product species
         auto& pc_product = allcontainers[pc_source->ionization_product];
 
-        defineAllParticleTiles(*pc_source);
-        defineAllParticleTiles(*pc_product);
+        pc_source ->defineAllParticleTiles();
+        pc_product->defineAllParticleTiles();
         
         for (int lev = 0; lev <= pc_source->finestLevel(); ++lev)
         {

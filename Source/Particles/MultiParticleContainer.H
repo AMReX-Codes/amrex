@@ -34,25 +34,6 @@
 #include <string>
 #include <algorithm>
 
-template <typename PC>
-void defineAllParticleTiles (PC& pc) noexcept
-{
-    // When using runtime components, AMReX requires to touch all tiles
-    // in serial and create particles tiles with runtime components if
-    // they do not exist (or if they were defined by default, i.e.,
-    // without runtime component).
-    for (int lev = 0; lev <= pc.finestLevel(); ++lev)
-    {
-        for (auto mfi = pc.MakeMFIter(lev); mfi.isValid(); ++mfi)
-        {
-            const int grid_id = mfi.index();
-            const int tile_id = mfi.LocalTileIndex();
-            pc.GetParticles(lev)[std::make_pair(grid_id,tile_id)];
-            pc.DefineAndReturnParticleTile(lev, grid_id, tile_id);
-        }
-    }
-}
-
 /**
  * The class MultiParticleContainer holds multiple instances of the polymorphic
  * class WarpXParticleContainer, stored in its member variable "allcontainers".
