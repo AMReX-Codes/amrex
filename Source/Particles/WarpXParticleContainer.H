@@ -400,7 +400,7 @@ protected:
     DefaultInitializerFactory m_default_initializer_factory;
 
     void defineAllParticleTiles () noexcept;
-        
+
 private:
     virtual void particlePostLocate(ParticleType& p, const amrex::ParticleLocData& pld,
                                     const int lev) override;

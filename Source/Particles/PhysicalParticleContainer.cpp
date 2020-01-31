@@ -375,7 +375,7 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
 #endif
 
     defineAllParticleTiles();
-        
+
     MultiFab* cost = WarpX::getCosts(lev);
 
     const int nlevs = numLevels();
