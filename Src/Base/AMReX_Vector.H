@@ -28,10 +28,10 @@ public:
     using typename std::vector<T, Allocator>::size_type;
 
     Vector(const std::vector<T, Allocator>& other)
-      : vector(other) {}
+      : std::vector<T, Allocator>(other) {}
 
     Vector(std::vector<T, Allocator>&& other) noexcept
-      : vector(std::move(other)) {}
+      : std::vector<T, Allocator>(std::move(other)) {}
 
     T& operator[] (size_type i) noexcept
     {
