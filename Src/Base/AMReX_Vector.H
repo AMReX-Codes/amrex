@@ -27,6 +27,12 @@ public:
     using std::vector<T, Allocator>::vector;
     using typename std::vector<T, Allocator>::size_type;
 
+    Vector(const std::vector<T, Allocator>& other)
+      : vector(other) {}
+
+    Vector(std::vector<T, Allocator>&& other) noexcept
+      : vector(std::move(other)) {}
+
     T& operator[] (size_type i) noexcept
     {
         BL_ASSERT( i < (this->std::vector<T, Allocator>::size()) );
