@@ -12,6 +12,7 @@ geometry.prob_lo     =  -32.e-6 -512.e-6
 geometry.prob_hi     =  32.e-6 512.e-6
 amr.max_level = 0
 warpx.do_nodal = 1
+warpx.quantum_xi = 1.e-23
 
 #################################
 ############ NUMERICS ###########
@@ -38,7 +39,7 @@ my_constants.c = 299792458.
 my_constants.wavelength = 64.e-6
 my_constants.Es = 1.e5
 my_constants.xi = 1.e-23
-my_constants
+
 
 warpx.E_ext_grid_init_style = parse_E_ext_grid_function
 warpx.Ez_external_grid_function(x,y,z) = 0.
