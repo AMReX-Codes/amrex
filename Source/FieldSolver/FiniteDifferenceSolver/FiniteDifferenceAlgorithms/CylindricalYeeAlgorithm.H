@@ -37,7 +37,7 @@ struct CylindricalYeeAlgorithm {
         amrex::Real const* coefs_r, int const n_coefs_r,
         int const i, int const j, int const k, int const comp ) {
 
-        amrex::Real inv_dr = coefs_r[0];
+        amrex::Real const inv_dr = coefs_r[0];
         return 1./r * inv_dr*( (r+0.5*dr)*F(i+1,j,k,comp) - (r-0.5*dr)*F(i,j,k,comp) );
     };
 
@@ -49,7 +49,7 @@ struct CylindricalYeeAlgorithm {
         amrex::Real const* coefs_r, int const n_coefs_r,
         int const i, int const j, int const k, int const comp ) {
 
-        amrex::Real inv_dr = coefs_r[0];
+        amrex::Real const inv_dr = coefs_r[0];
         return inv_dr*( F(i+1,j,k,comp) - F(i,j,k,comp) );
     };
 
@@ -61,7 +61,7 @@ struct CylindricalYeeAlgorithm {
         amrex::Real const* coefs_r, int const n_coefs_r,
         int const i, int const j, int const k, int const comp ) {
 
-        amrex::Real inv_dr = coefs_r[0];
+        amrex::Real const inv_dr = coefs_r[0];
         return inv_dr*( F(i,j,k,comp) - F(i-1,j,k,comp) );
     };
 
@@ -73,7 +73,7 @@ struct CylindricalYeeAlgorithm {
         amrex::Real const* coefs_z, int const n_coefs_z,
         int const i, int const j, int const k, int const comp ) {
 
-        amrex::Real inv_dz = coefs_z[0];
+        amrex::Real const inv_dz = coefs_z[0];
         return inv_dz*( F(i,j+1,k,comp) - F(i,j,k,comp) );
     };
 
@@ -85,7 +85,7 @@ struct CylindricalYeeAlgorithm {
         amrex::Real const* coefs_z, int const n_coefs_z,
         int const i, int const j, int const k, int const comp ) {
 
-        amrex::Real inv_dz = coefs_z[0];
+        amrex::Real const inv_dz = coefs_z[0];
         return inv_dz*( F(i,j,k,comp) - F(i,j-1,k,comp) );
     };
 

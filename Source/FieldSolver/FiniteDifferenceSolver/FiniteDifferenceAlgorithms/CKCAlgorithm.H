@@ -103,10 +103,10 @@ struct CKCAlgorithm {
         amrex::Real const* coefs_x, int const n_coefs_x,
         int const i, int const j, int const k ) {
 
-        amrex::Real alphax = coefs_x[1];
-        amrex::Real betaxy = coefs_x[2];
-        amrex::Real betaxz = coefs_x[3];
-        amrex::Real gammax = coefs_x[4];
+        amrex::Real const alphax = coefs_x[1];
+        amrex::Real const betaxy = coefs_x[2];
+        amrex::Real const betaxz = coefs_x[3];
+        amrex::Real const gammax = coefs_x[4];
 #        if defined WARPX_DIM_3D
             return alphax * (F(i+1,j  ,k  ) - F(i,  j,  k  ))
                  + betaxy * (F(i+1,j+1,k  ) - F(i  ,j+1,k  )
@@ -132,7 +132,7 @@ struct CKCAlgorithm {
         amrex::Real const* coefs_x, int const n_coefs_x,
         int const i, int const j, int const k ) {
 
-        amrex::Real inv_dx = coefs_x[0];
+        amrex::Real const inv_dx = coefs_x[0];
         return inv_dx*( F(i,j,k) - F(i-1,j,k) );
     };
 
@@ -145,10 +145,10 @@ struct CKCAlgorithm {
         int const i, int const j, int const k ) {
 
 #        if defined WARPX_DIM_3D
-            amrex::Real alphay = coefs_y[1];
-            amrex::Real betayz = coefs_y[2];
-            amrex::Real betayx = coefs_y[3];
-            amrex::Real gammay = coefs_y[4];
+            amrex::Real const alphay = coefs_y[1];
+            amrex::Real const betayz = coefs_y[2];
+            amrex::Real const betayx = coefs_y[3];
+            amrex::Real const gammay = coefs_y[4];
             return alphay * (F(i  ,j+1,k  ) - F(i  ,j  ,k  ))
                  + betayx * (F(i+1,j+1,k  ) - F(i+1,j  ,k  )
                           +  F(i-1,j+1,k  ) - F(i-1,j  ,k  ))
@@ -172,7 +172,7 @@ struct CKCAlgorithm {
         int const i, int const j, int const k ) {
 
 #        if defined WARPX_DIM_3D
-            amrex::Real inv_dy = coefs_y[0];
+            amrex::Real const inv_dy = coefs_y[0];
             return inv_dy*( F(i,j,k) - F(i,j-1,k) );
 #        elif (defined WARPX_DIM_XZ)
             return 0; // 2D Cartesian: derivative along y is 0
@@ -187,10 +187,10 @@ struct CKCAlgorithm {
         amrex::Real const* coefs_z, int const n_coefs_z,
         int const i, int const j, int const k ) {
 
-        amrex::Real alphaz = coefs_z[1];
-        amrex::Real betazx = coefs_z[2];
-        amrex::Real betazy = coefs_z[3];
-        amrex::Real gammaz = coefs_z[4];
+        amrex::Real const alphaz = coefs_z[1];
+        amrex::Real const betazx = coefs_z[2];
+        amrex::Real const betazy = coefs_z[3];
+        amrex::Real const gammaz = coefs_z[4];
 #        if defined WARPX_DIM_3D
             return alphaz * (F(i  ,j  ,k+1) - F(i  ,j  ,k  ))
                  + betazx * (F(i+1,j  ,k+1) - F(i+1,j  ,k  )
@@ -216,7 +216,7 @@ struct CKCAlgorithm {
         amrex::Real const* coefs_z, int const n_coefs_z,
         int const i, int const j, int const k ) {
 
-        amrex::Real inv_dz = coefs_z[0];
+        amrex::Real const inv_dz = coefs_z[0];
 #        if defined WARPX_DIM_3D
             return inv_dz*( F(i,j,k) - F(i,j,k-1) );
 #        elif (defined WARPX_DIM_XZ)
