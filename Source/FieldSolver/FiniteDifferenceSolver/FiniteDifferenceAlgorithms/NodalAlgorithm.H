@@ -48,7 +48,7 @@ struct NodalAlgorithm {
     /* (For a solver on a staggered grid, `UpwardDx` and `DownwardDx` take into
     /* account the staggering; but for `NodalAlgorithm`, they are equivalent) */
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    static amrex::Real Downwardx(
+    static amrex::Real DownwardDx(
         amrex::Array4<amrex::Real> const& F,
         amrex::Real const* coefs_x, int const n_coefs_x,
         int const i, int const j, int const k ) {
@@ -80,7 +80,7 @@ struct NodalAlgorithm {
     /* (For a solver on a staggered grid, `UpwardDy` and `DownwardDy` take into
     /* account the staggering; but for `NodalAlgorithm`, they are equivalent) */
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    static amrex::Real Downwardy(
+    static amrex::Real DownwardDy(
         amrex::Array4<amrex::Real> const& F,
         amrex::Real const* coefs_y, int const n_coefs_y,
         int const i, int const j, int const k ) {
@@ -116,7 +116,7 @@ struct NodalAlgorithm {
     /* (For a solver on a staggered grid, `UpwardDz` and `DownwardDz` take into
     /* account the staggering; but for `NodalAlgorithm`, they are equivalent) */
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    static amrex::Real Downwardz(
+    static amrex::Real DownwardDz(
         amrex::Array4<amrex::Real> const& F,
         amrex::Real const* coefs_z, int const n_coefs_z,
         int const i, int const j, int const k ) {

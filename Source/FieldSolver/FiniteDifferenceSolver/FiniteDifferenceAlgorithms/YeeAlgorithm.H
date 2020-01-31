@@ -44,7 +44,7 @@ struct YeeAlgorithm {
     /**
     /* Perform derivative along x on a nodal grid, from a cell-centered field `F`*/
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    static amrex::Real Downwardx(
+    static amrex::Real DownwardDx(
         amrex::Array4<amrex::Real> const& F,
         amrex::Real const* coefs_x, int const n_coefs_x,
         int const i, int const j, int const k ) {
@@ -72,7 +72,7 @@ struct YeeAlgorithm {
     /**
     /* Perform derivative along y on a nodal grid, from a cell-centered field `F`*/
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    static amrex::Real Downwardy(
+    static amrex::Real DownwardDy(
         amrex::Array4<amrex::Real> const& F,
         amrex::Real const* coefs_y, int const n_coefs_y,
         int const i, int const j, int const k ) {
@@ -104,7 +104,7 @@ struct YeeAlgorithm {
     /**
     /* Perform derivative along z on a nodal grid, from a cell-centered field `F`*/
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    static amrex::Real Downwardz(
+    static amrex::Real DownwardDz(
         amrex::Array4<amrex::Real> const& F,
         amrex::Real const* coefs_z, int const n_coefs_z,
         int const i, int const j, int const k ) {
