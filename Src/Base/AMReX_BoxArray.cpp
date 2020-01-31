@@ -1381,7 +1381,8 @@ BoxArray::getHashMap () const
 	    const int N = size();
 	    for (int i = 0; i < N; ++i)
             {
-                const Box& bx = m_ref->m_abox[i];
+                Box bx = m_ref->m_abox[i];
+                bx.normalize();
                 maxext = amrex::max(maxext, bx.size());
                 boundingbox.minBox(bx);
             }
@@ -1391,11 +1392,6 @@ BoxArray::getHashMap () const
                 const IntVect& crsnsmlend 
 		    = amrex::coarsen(m_ref->m_abox[i].smallEnd(),maxext);
                 BoxHashMap[crsnsmlend].push_back(i);
-            }
-
-            // Must do this in case the boxarray is nodal.
-            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                boundingbox.growHi(idim);
             }
 
             m_ref->crsn = maxext;
