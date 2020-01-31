@@ -95,6 +95,7 @@ WarpX::Hybrid_QED_Push (int lev, PatchType patch_type, Real a_dt)
     {
         Real wt = amrex::second();
 
+        // Get boxes for E and B
         const Box& tbx  = mfi.tilebox(Bx_nodal_flag);
         const Box& tby  = mfi.tilebox(By_nodal_flag);
         const Box& tbz  = mfi.tilebox(Bz_nodal_flag);
