@@ -237,6 +237,9 @@ public:
     void EvolveF (int lev, PatchType patch_type, amrex::Real dt, DtType dt_type);
 
     // Maxwell Hybrid QED Solver components
+    /** \brief apply QED correction on electric field
+     * \param dt vector of time steps (for all levels)
+     */
     void Hybrid_QED_Push (         amrex::Vector<amrex::Real> dt);
     void Hybrid_QED_Push (int lev, amrex::Real dt);
     void Hybrid_QED_Push (int lev, PatchType patch_type, amrex::Real dt);
