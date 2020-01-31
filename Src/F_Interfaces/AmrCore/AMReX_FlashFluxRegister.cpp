@@ -44,12 +44,12 @@ void FlashFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
         for (int i = 0, nfines = fba.size(); i < nfines; ++i)
         {
             Box const& ccbx = fba[i];
+            Box const& ndbx = amrex::surroundingNodes(ccbx);
             faces.clear();
             for (OrientationIter orit; orit.isValid(); ++orit) {
                 const Orientation ori = orit();
-                faces.emplace_back(std::make_pair(ori,amrex::bdryNode(ccbx,ori)));
+                faces.emplace_back(std::make_pair(ori,amrex::bdryNode(ndbx,ori)));
             }
-            Box const& ndbx = amrex::surroundingNodes(ccbx);
             for (auto const& shift : pshifts) {
                 if (!faces.empty()) {
                     fndba.intersections(ndbx+shift, isects);
@@ -64,7 +64,8 @@ void FlashFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
             }
             for (auto const& face : faces) {  // coarse/fine boundary faces
                 const int dir = face.first.coordDir();
-                bl[dir].push_back(amrex::coarsen(face.second,ref_ratio));
+                bl[dir].push_back(amrex::coarsen(amrex::bdryNode(ccbx,face.first),
+                                                 ref_ratio));
                 procmap[dir].push_back(fdm[i]);
                 if (fdm[i] == myproc) my_global_indices[dir].push_back(i);
             }
