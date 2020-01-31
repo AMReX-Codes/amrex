@@ -1,3 +1,9 @@
+/* Copyright 2019 Maxence Thevenet, Weiqun Zhang
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #ifndef CUSTOM_MOMENTUM_PROB_H
 #define CUSTOM_MOMENTUM_PROB_H
 

@@ -1,3 +1,11 @@
+/* Copyright 2016-2020 Andrew Myers, Ann Almgren, Axel Huebl
+ * David Grote, Jean-Luc Vay, Remi Lehe
+ * Revathi Jambunathan, Weiqun Zhang
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #include <WarpX.H>
 #include <WarpXUtil.H>
 

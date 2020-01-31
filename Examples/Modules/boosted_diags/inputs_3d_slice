@@ -33,7 +33,7 @@ warpx.boost_direction = z
 warpx.do_back_transformed_diagnostics = 1
 warpx.num_snapshots_lab = 4
 warpx.dz_snapshots_lab = 0.001
-warpx.boosted_frame_diag_fields= Ex Ey Ez By rho
+warpx.back_transformed_diag_fields= Ex Ey Ez By rho
 
 particles.nspecies = 3
 particles.species_names = electrons ions beam

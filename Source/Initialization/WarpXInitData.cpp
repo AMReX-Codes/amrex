@@ -1,3 +1,12 @@
+/* Copyright 2019-2020 Andrew Myers, Ann Almgren, Aurore Blelly
+ * Axel Huebl, Burlen Loring, Maxence Thevenet
+ * Remi Lehe, Revathi Jambunathan, Weiqun Zhang
+ *
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #include <WarpX.H>
 #include <WarpX_f.H>
 #include <BilinearFilter.H>
@@ -74,11 +83,21 @@ WarpX::InitData ()
         if (plot_int > 0)
             WritePlotFile();
 
+        if (openpmd_int > 0)
+            WriteOpenPMDFile();
+
         if (check_int > 0)
             WriteCheckPointFile();
 
         if ((insitu_int > 0) && (insitu_start == 0))
             UpdateInSitu();
+
+        // Write reduced diagnostics before the first iteration.
+        if (reduced_diags->m_plot_rd != 0)
+        {
+            reduced_diags->ComputeDiags(-1);
+            reduced_diags->WriteToFile(-1);
+        }
     }
 }
 

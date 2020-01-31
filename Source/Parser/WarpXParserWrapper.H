@@ -1,3 +1,9 @@
+/* Copyright 2020 Revathi Jambunathan
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #ifndef WARPX_PARSER_WRAPPER_H_
 #define WARPX_PARSER_WRAPPER_H_
 
@@ -26,7 +32,7 @@ struct ParserWrapper
     amrex::Real
     getField (amrex::Real x, amrex::Real y, amrex::Real z, amrex::Real t=0.0) const noexcept
     {
-       return m_parser(x,y,z);
+        return m_parser(x,y,z,t);
     }
 
     GpuParser m_parser;

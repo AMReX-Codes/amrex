@@ -1,3 +1,10 @@
+/* Copyright 2019 Axel Huebl, David Grote, Maxence Thevenet
+ * Weiqun Zhang
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #ifndef INJECTOR_POSITION_H_
 #define INJECTOR_POSITION_H_
 

@@ -1,3 +1,10 @@
+# Copyright 2018-2019 Axel Huebl, Luca Fedeli, Maxence Thevenet
+# Remi Lehe
+#
+# This file is part of WarpX.
+#
+# License: BSD-3-Clause-LBNL
+
 import os, shutil, re, copy
 import pandas as pd
 import numpy as np

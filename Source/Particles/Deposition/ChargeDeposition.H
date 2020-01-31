@@ -1,3 +1,10 @@
+/* Copyright 2019 Axel Huebl, David Grote, Maxence Thevenet
+ * Weiqun Zhang
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #ifndef CHARGEDEPOSITION_H_
 #define CHARGEDEPOSITION_H_
 

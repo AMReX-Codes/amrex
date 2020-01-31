@@ -1,7 +1,13 @@
 #! /usr/bin/env python
 
+# Copyright 2019-2020 Yin-YinjiaZhao, Yinjian Zhao
+#
+# This file is part of WarpX.
+#
+# License: BSD-3-Clause-LBNL
+
 # This script tests the collision module
-# using electron-ion temperature relaxation.
+# using electron-ion temperature relaxation in 3D.
 # Initially, electrons and ions are both in equilibrium
 # (gaussian) distributions, but have different temperatures.
 # Relaxation occurs to bring the two temeratures to be

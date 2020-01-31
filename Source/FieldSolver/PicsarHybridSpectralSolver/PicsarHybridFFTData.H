@@ -1,3 +1,9 @@
+/* Copyright 2019 Remi Lehe
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #ifndef WARPX_PICSAR_HYBRID_FFTDATA_H_
 #define WARPX_PICSAR_HYBRID_FFTDATA_H_
 

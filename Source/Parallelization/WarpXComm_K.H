@@ -1,3 +1,9 @@
+/* Copyright 2019 Axel Huebl, Weiqun Zhang
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #ifndef WARPX_COMM_K_H_
 #define WARPX_COMM_K_H_
 

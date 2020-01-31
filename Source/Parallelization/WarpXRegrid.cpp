@@ -1,3 +1,11 @@
+/* Copyright 2019 Andrew Myers, Ann Almgren, Axel Huebl
+ * David Grote, Maxence Thevenet, Remi Lehe
+ * Weiqun Zhang, levinem
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #include <WarpX.H>
 #include <AMReX_BLProfiler.H>
 

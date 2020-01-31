@@ -1,5 +1,13 @@
 #! /usr/bin/env python
 
+# Copyright 2018-2019 Andrew Myers, Jean-Luc Vay, Maxence Thevenet
+# Remi Lehe
+#
+# This file is part of WarpX.
+#
+# License: BSD-3-Clause-LBNL
+
+
 import sys
 import yt ; yt.funcs.mylog.setLevel(0)
 import numpy as np

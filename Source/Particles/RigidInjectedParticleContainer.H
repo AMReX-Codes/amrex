@@ -1,3 +1,10 @@
+/* Copyright 2019 Andrew Myers, David Grote, Maxence Thevenet
+ * Weiqun Zhang
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #ifndef WARPX_RigidInjectedParticleContainer_H_
 #define WARPX_RigidInjectedParticleContainer_H_
 

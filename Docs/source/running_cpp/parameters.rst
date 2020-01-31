@@ -969,25 +969,21 @@ Boundary conditions
 Diagnostics and output
 ----------------------
 
-* ``amr.plot_int`` (`integer`)
-    The number of PIC cycles inbetween two consecutive data dumps. Use a
-    negative number to disable data dumping.
+* ``amr.plot_int`` (`integer`) optional
+    The number of PIC cycles (interval) in between two consecutive `plotfile` data dumps.
+    Use a negative number to disable data dumping.
+    This is ``-1`` (disabled) by default.
 
-* ``warpx.dump_plotfiles`` (`0` or `1`) optional
-    Whether to dump the simulation data in
-    `AMReX plotfile <https://amrex-codes.github.io/amrex/docs_html/IO.html>`__
-    format. This is ``1`` by default, unless WarpX is compiled with openPMD support.
+* ``warpx.openpmd_int`` (`integer`) optional
+    The number of PIC cycles (interval) in between two consecutive `openPMD <https://www.openPMD.org>`_ data dumps.
+    Requires to build WarpX with ``USE_OPENPMD=TRUE`` (see :ref:`instructions <building-openpmd>`).
+    This is ``-1`` (disabled) by default.
 
-* ``warpx.dump_openpmd`` (`0` or `1`) optional
-    Whether to dump the simulation data in
-    `openPMD <https://github.com/openPMD>`__ format.
-    When WarpX is compiled with openPMD support, this is ``1`` by default.
-
-* ``warpx.openpmd_backend`` (``h5``, ``bp`` or ``json``) optional
-    I/O backend for
-    `openPMD <https://github.com/openPMD>`__ dumps.
-    When WarpX is compiled with openPMD support, this is ``h5`` by default.
+* ``warpx.openpmd_backend`` (``bp``, ``h5`` or ``json``) optional
+    `I/O backend <https://openpmd-api.readthedocs.io/en/latest/backends/overview.html>`_ for `openPMD <https://www.openPMD.org>`_ data dumps.
+    ``bp`` is the `ADIOS I/O library <https://csmd.ornl.gov/adios>`_, ``h5`` is the `HDF5 format <https://www.hdfgroup.org/solutions/hdf5/>`, and ``json`` is a `simple text format <https://en.wikipedia.org/wiki/JSON>`_.
     ``json`` only works with serial/single-rank jobs.
+    When WarpX is compiled with openPMD support, the first available backend in the order given above is taken.
 
 * ``warpx.do_back_transformed_diagnostics`` (`0` or `1`)
     Whether to use the **back-transformed diagnostics** (i.e. diagnostics that
@@ -1018,10 +1014,10 @@ Diagnostics and output
 * ``warpx.do_back_transformed_fields`` (`0 or 1`)
     Whether to use the **back-transformed diagnostics** for the fields.
 
-* ``warpx.boosted_frame_diag_fields`` (space-separated list of `string`)
+* ``warpx.back_transformed_diag_fields`` (space-separated list of `string`)
     Which fields to dumped in back-transformed diagnostics. Choices are
     'Ex', 'Ey', Ez', 'Bx', 'By', Bz', 'jx', 'jy', jz' and 'rho'. Example:
-    ``warpx.boosted_frame_diag_fields = Ex Ez By``. By default, all fields
+    ``warpx.back_transformed_diag_fields = Ex Ez By``. By default, all fields
     are dumped.
 
 * ``warpx.plot_raw_fields`` (`0` or `1`) optional (default `0`)
@@ -1094,6 +1090,78 @@ Diagnostics and output
     copied from the full back-transformed diagnostic to the reduced
     slice diagnostic if there are within the user-defined width from
     the slice region defined by ``slice.dom_lo`` and ``slice.dom_hi``.
+
+* ``warpx.reduced_diags_names`` (`strings`, separated by spaces)
+    The names given by the user of simple reduced diagnostics.
+    Also the names of the output `.txt` files.
+    This reduced diagnostics aims to produce simple outputs
+    of the time history of some physical quantities.
+    If ``warpx.reduced_diags_names`` is not provided in the input file,
+    no reduced diagnostics will be done.
+    This is then used in the rest of the input deck;
+    in this documentation we use `<reduced_diags_name>` as a placeholder.
+
+* ``<reduced_diags_name>.type`` (`string`)
+    The type of reduced diagnostics associated with this `<reduced_diags_name>`.
+    For example, ``ParticleEnergy`` and ``FieldEnergy``.
+    All available types will be descriped below in detail.
+    For all reduced diagnostics,
+    the first and the second columns in the output file are
+    the time step and the corresponding physical time in seconds, respectively.
+
+    * ``ParticleEnergy``
+        This type computes both the total and the mean
+        relativistic particle kinetic energy among all species.
+
+        .. math::
+
+            E_p = \sum_{i=1}^N ( \sqrt{ p_i^2 c^2 + m_0^2 c^4 } - m_0 c^2 ) w_i
+
+        where :math:`p` is the relativistic momentum,
+        :math:`c` is the speed of light,
+        :math:`m_0` is the rest mass,
+        :math:`N` is the number of particles,
+        :math:`w` is the individual particle weight.
+
+        The output columns are
+        total :math:`E_p` of all species,
+        :math:`E_p` of each species,
+        total mean energy :math:`E_p / \sum w_i`,
+        mean enregy of each species.
+
+    * ``FieldEnergy``
+        This type computes the electric and magnetic field energy.
+
+        .. math::
+
+            E_f = \sum [ \varepsilon_0 E^2 / 2 + B^2 / ( 2 \mu_0 ) ] \Delta V
+
+        where
+        :math:`E` is the electric field,
+        :math:`B` is the magnetic field,
+        :math:`\varepsilon_0` is the vacuum permittivity,
+        :math:`\mu_0` is the vacuum permeability,
+        :math:`\Delta V` is the cell volume (or area for 2D),
+        the sum is over all cells.
+
+        The output columns are
+        total field energy :math:`E_f`,
+        :math:`E` field energy,
+        :math:`B` field energy, at mesh refinement levels from 0 to :math:`n`.
+
+* ``<reduced_diags_name>.frequency`` (`int`)
+    The output frequency (every # time steps).
+
+* ``<reduced_diags_name>.path`` (`string`) optional (default `./diags/reducedfiles/`)
+    The path that the output file will be stored.
+
+* ``<reduced_diags_name>.extension`` (`string`) optional (default `txt`)
+    The extension of the output file.
+
+* ``<reduced_diags_name>.separator`` (`string`) optional (default `,`)
+    The separator between row values in the output file.
+    The default separator is comma, i.e. the output file is in
+    the CSV (comma separated value) format.
 
 Lookup tables for QED modules (implementation in progress)
 ----------------------------------------------------------

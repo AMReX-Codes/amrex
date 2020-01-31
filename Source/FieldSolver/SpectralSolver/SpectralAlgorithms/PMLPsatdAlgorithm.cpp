@@ -1,3 +1,9 @@
+/* Copyright 2019 Remi Lehe
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #include <PMLPsatdAlgorithm.H>
 #include <WarpXConst.H>
 #include <cmath>

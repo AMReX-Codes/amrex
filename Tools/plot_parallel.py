@@ -1,3 +1,9 @@
+# Copyright 2019 David Grote, Maxence Thevenet
+#
+# This file is part of WarpX.
+#
+# License: BSD-3-Clause-LBNL
+
 import os
 import glob
 import matplotlib

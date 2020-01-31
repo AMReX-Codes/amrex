@@ -1,8 +1,16 @@
+/* Copyright 2019-2020 Andrew Myers, Axel Huebl, David Grote
+ * Maxence Thevenet, Remi Lehe, Revathi Jambunathan
+ * Weiqun Zhang
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 
 #include <WarpX.H>
 #include <FieldIO.H>
 #ifdef WARPX_USE_OPENPMD
-#include <openPMD/openPMD.hpp>
+#   include <openPMD/openPMD.hpp>
 #endif
 
 #include <AMReX_FillPatchUtil_F.H>

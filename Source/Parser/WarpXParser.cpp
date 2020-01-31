@@ -1,3 +1,9 @@
+/* Copyright 2019 Weiqun Zhang
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 
 #include <algorithm>
 #include "WarpXParser.H"

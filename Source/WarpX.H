@@ -1,3 +1,14 @@
+/* Copyright 2016-2020 Andrew Myers, Ann Almgren, Aurore Blelly
+ * Axel Huebl, Burlen Loring, David Grote
+ * Glenn Richardson, Junmin Gu, Luca Fedeli
+ * Mathieu Lobet, Maxence Thevenet, Remi Lehe
+ * Revathi Jambunathan, Weiqun Zhang, Yinjian Zhao
+ *
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #ifndef WARPX_H_
 #define WARPX_H_
 
@@ -7,6 +18,7 @@
 #include <BackTransformedDiagnostic.H>
 #include <BilinearFilter.H>
 #include <NCIGodfreyFilter.H>
+#include "MultiReducedDiags.H"
 
 #ifdef WARPX_USE_PSATD
 #   include <SpectralSolver.H>
@@ -33,7 +45,7 @@
 #endif
 
 #ifdef WARPX_USE_OPENPMD
-#include <WarpXOpenPMD.H>
+#   include <WarpXOpenPMD.H>
 #endif
 
 #include <iostream>
@@ -201,6 +213,9 @@ public:
     amrex::Vector<amrex::Real> mirror_z_width;
     amrex::Vector<int> mirror_z_npoints;
 
+    /// object with all reduced diagnotics, similar to MultiParticleContainer for species.
+    MultiReducedDiags* reduced_diags;
+
     void applyMirrors(amrex::Real time);
 
     void ComputeDt ();
@@ -277,12 +292,18 @@ public:
 
     int checkInt () const {return check_int;}
     int plotInt () const {return plot_int;}
+    int openpmdInt () const {return openpmd_int;}
 
     void WriteCheckPointFile () const;
+    void WriteOpenPMDFile () const;
     void WritePlotFile () const;
     void UpdateInSitu () const;
     void AverageAndPackFields( amrex::Vector<std::string>& varnames,
         amrex::Vector<amrex::MultiFab>& mf_avg, const int ngrow) const;
+    void prepareFields( int const step, amrex::Vector<std::string>& varnames,
+        amrex::Vector<amrex::MultiFab>& mf_avg,
+        amrex::Vector<const amrex::MultiFab*>& output_mf,
+        amrex::Vector<amrex::Geometry>& output_geom ) const;
 
     void WritePlotFileES(const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
                          const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& phi,
@@ -628,18 +649,13 @@ private:
     int check_int = -1;
     int plot_int = -1;
 
-    std::string openpmd_backend {"bp"};
+    std::string openpmd_backend {"default"};
+    int openpmd_int = -1;
+    bool openpmd_tspf = true; //!< one file per timestep (or one file for all steps)
 #ifdef WARPX_USE_OPENPMD
-    bool dump_plotfiles = false;
-    bool dump_openpmd = true;
-    bool openpmd_tspf = true; // one file per timestep
-  //bool openpmd_tspf = false; // one file all timesteps
     WarpXOpenPMDPlot* m_OpenPMDPlotWriter = nullptr;
-
-#else
-    bool dump_plotfiles = true;
-    bool dump_openpmd = false;
 #endif
+
     bool plot_rho           = false;
     bool plot_costs         = true;
     bool plot_finepatch     = false;
