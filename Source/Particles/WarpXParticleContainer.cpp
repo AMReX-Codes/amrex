@@ -743,37 +743,6 @@ Real WarpXParticleContainer::maxParticleVelocity(bool local) {
 }
 
 void
-WarpXParticleContainer::PushXES (Real dt)
-{
-    BL_PROFILE("WPC::PushXES()");
-
-    const int num_levels = finestLevel() + 1;
-
-    for (int lev = 0; lev < num_levels; ++lev) {
-        const auto& gm = m_gdb->Geom(lev);
-        const RealBox& prob_domain = gm.ProbDomain();
-        for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti) {
-            auto& particles = pti.GetArrayOfStructs();
-            int nstride = particles.dataShape().first;
-            const long np  = pti.numParticles();
-
-            auto& attribs = pti.GetAttribs();
-            auto& uxp = attribs[PIdx::ux];
-            auto& uyp = attribs[PIdx::uy];
-            auto& uzp = attribs[PIdx::uz];
-
-            WRPX_PUSH_LEAPFROG_POSITIONS(particles.dataPtr(), nstride, np,
-                                         uxp.dataPtr(), uyp.dataPtr(),
-#if AMREX_SPACEDIM == 3
-                                         uzp.dataPtr(),
-#endif
-                                         &dt,
-                                         prob_domain.lo(), prob_domain.hi());
-        }
-    }
-}
-
-void
 WarpXParticleContainer::PushX (amrex::Real dt)
 {
     const int nLevels = finestLevel();

@@ -201,6 +201,9 @@ WarpX::WarpX ()
     }
     do_back_transformed_particles = mypc->doBackTransformedDiagnostics();
 
+    /** create object for reduced diagnostics */
+    reduced_diags = new MultiReducedDiags();
+
     Efield_aux.resize(nlevs_max);
     Bfield_aux.resize(nlevs_max);
 
@@ -297,6 +300,8 @@ WarpX::~WarpX ()
     for (int lev = 0; lev < nlevs_max; ++lev) {
         ClearLevel(lev);
     }
+
+    delete reduced_diags;
 
 #ifdef BL_USE_SENSEI_INSITU
     delete insitu_bridge;

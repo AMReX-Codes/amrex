@@ -91,6 +91,13 @@ WarpX::InitData ()
 
         if ((insitu_int > 0) && (insitu_start == 0))
             UpdateInSitu();
+
+        // Write reduced diagnostics before the first iteration.
+        if (reduced_diags->m_plot_rd != 0)
+        {
+            reduced_diags->ComputeDiags(-1);
+            reduced_diags->WriteToFile(-1);
+        }
     }
 }
 

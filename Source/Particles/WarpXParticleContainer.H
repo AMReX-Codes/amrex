@@ -201,15 +201,6 @@ public:
     /// This pushes the particle positions by one half time step.
     /// It is used to desynchronize the particles after initializaton
     /// or when restarting from a checkpoint.
-    /// This is the electrostatic version of the particle push.
-    ///
-    void PushXES (amrex::Real dt);
-
-    ///
-    /// This pushes the particle positions by one half time step.
-    /// It is used to desynchronize the particles after initializaton
-    /// or when restarting from a checkpoint.
-    /// This is the electromagnetic version of the particle push.
     ///
     void PushX (         amrex::Real dt);
     void PushX (int lev, amrex::Real dt);

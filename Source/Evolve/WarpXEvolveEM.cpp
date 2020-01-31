@@ -26,7 +26,6 @@
 #include <AMReX_AmrMeshInSituBridge.H>
 #endif
 
-
 using namespace amrex;
 
 void
@@ -206,6 +205,13 @@ WarpX::EvolveEM (int numsteps)
         // sync up time
         for (int i = 0; i <= max_level; ++i) {
             t_new[i] = cur_time;
+        }
+
+        /// reduced diags
+        if (reduced_diags->m_plot_rd != 0)
+        {
+            reduced_diags->ComputeDiags(step);
+            reduced_diags->WriteToFile(step);
         }
 
         // slice gen //
