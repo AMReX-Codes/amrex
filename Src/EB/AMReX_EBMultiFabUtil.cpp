@@ -740,6 +740,20 @@ EB_interp_CC_to_FaceCentroid (MultiFab& sol,
     AMREX_D_TERM(edgestate_x.setVal(1e40,dcomp,ncomp);,
                  edgestate_y.setVal(1e40,dcomp,ncomp);,
                  edgestate_z.setVal(1e40,dcomp,ncomp));
+
+    BCRec const* d_bcs;
+#ifdef AMREX_USE_GPU
+    Gpu::DeviceVector<BCRec> dv_bcs(ncomp);
+    if (Gpu::inLaunchRegion())
+    {
+        Gpu::copy(Gpu::hostToDevice, a_bcs.begin(), a_bcs.begin()+ncomp, dv_bcs.begin());
+        d_bcs = dv_bcs.dataPtr();
+    }
+    else
+#endif
+    {
+        d_bcs = a_bcs.dataPtr();
+    }
     
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
@@ -769,7 +783,7 @@ EB_interp_CC_to_FaceCentroid (MultiFab& sol,
                     eb_interp_cc2face(thread_box, solnfab,
                                       AMREX_D_DECL(edg_x,edg_y,edg_z),
                                       ncomp,
-                                      domain, a_bcs);
+                                      domain, d_bcs);
                 });
             
             }
@@ -791,7 +805,7 @@ EB_interp_CC_to_FaceCentroid (MultiFab& sol,
                                           AMREX_D_DECL(fcx,fcy,fcz),
                                           AMREX_D_DECL(edg_x,edg_y,edg_z),
                                           ncomp,
-                                          domain, a_bcs);
+                                          domain, d_bcs);
                 });
             }
         }
