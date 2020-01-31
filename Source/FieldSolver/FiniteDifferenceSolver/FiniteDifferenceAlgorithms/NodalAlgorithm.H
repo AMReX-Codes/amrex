@@ -67,12 +67,12 @@ struct NodalAlgorithm {
         amrex::Real const* coefs_y, int const n_coefs_y,
         int const i, int const j, int const k ) {
 
-#        if defined WARPX_DIM_3D
+#if defined WARPX_DIM_3D
             amrex::Real const inv_dy = coefs_y[0];
             return 0.5*inv_dy*( F(i,j+1,k) - F(i,j-1,k) );
-#        elif (defined WARPX_DIM_XZ)
+#elif (defined WARPX_DIM_XZ)
             return 0; // 2D Cartesian: derivative along y is 0
-#        endif
+#endif
     };
 
     /**
@@ -85,12 +85,12 @@ struct NodalAlgorithm {
         amrex::Real const* coefs_y, int const n_coefs_y,
         int const i, int const j, int const k ) {
 
-#        if defined WARPX_DIM_3D
+#if defined WARPX_DIM_3D
             amrex::Real const inv_dy = coefs_y[0];
             return 0.5*inv_dy*( F(i,j+1,k) - F(i,j-1,k) );
-#        elif (defined WARPX_DIM_XZ)
+#elif (defined WARPX_DIM_XZ)
             return 0; // 2D Cartesian: derivative along y is 0
-#        endif
+#endif
     };
 
     /**
@@ -104,11 +104,11 @@ struct NodalAlgorithm {
         int const i, int const j, int const k ) {
 
         amrex::Real const inv_dz = coefs_z[0];
-#        if defined WARPX_DIM_3D
+#if defined WARPX_DIM_3D
             return 0.5*inv_dz*( F(i,j,k+1) - F(i,j,k-1) );
-#        elif (defined WARPX_DIM_XZ)
+#elif (defined WARPX_DIM_XZ)
             return 0.5*inv_dz*( F(i,j+1,k) - F(i,j-1,k) );
-#        endif
+#endif
     };
 
     /**
@@ -122,11 +122,11 @@ struct NodalAlgorithm {
         int const i, int const j, int const k ) {
 
         amrex::Real const inv_dz = coefs_z[0];
-#        if defined WARPX_DIM_3D
+#if defined WARPX_DIM_3D
             return 0.5*inv_dz*( F(i,j,k+1) - F(i,j,k-1) );
-#        elif (defined WARPX_DIM_XZ)
+#elif (defined WARPX_DIM_XZ)
             return 0.5*inv_dz*( F(i,j+1,k) - F(i,j-1,k) );
-#        endif
+#endif
     };
 
 };
