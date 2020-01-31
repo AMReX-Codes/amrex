@@ -16,6 +16,12 @@ endif
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.machines
 
+ifeq ($(COMP),dpcpp)
+  USE_MPI := FALSE
+  BL_NO_FORT := TRUE
+  USE_CCACHE := FALSE
+endif
+
 ifdef BL_NO_FORT
   BL_NO_FORT := $(strip $(BL_NO_FORT))
   ifeq ($(BL_NO_FORT),TRUE)
@@ -322,6 +328,8 @@ ifdef AMREX_CCOMP
     AMREX_CCOMP = gnu
   else ifeq ($(lowercase_amrex_comp),intel)
     AMREX_CCOMP = intel
+  else ifeq ($(lowercase_amrex_comp),dpcpp)
+    AMREX_CCOMP = dpcpp
   else ifeq ($(lowercase_amrex_comp),cray)
     AMREX_CCOMP = cray
   else ifeq ($(lowercase_amrex_comp),pgi)
@@ -337,7 +345,7 @@ ifdef AMREX_CCOMP
   else ifeq ($(lowercase_amrex_comp),nec)
     AMREX_CCOMP = nec
   else
-    $(error Unknown compiler $(AMREX_CCOMP). Supported compilers are gnu, intel, cray, pgi, ibm, llvm, nag, and nec)
+    $(error Unknown compiler $(AMREX_CCOMP). Supported compilers are gnu, intel, dpcpp, cray, pgi, ibm, llvm, nag, and nec)
   endif
 endif
 
@@ -354,6 +362,11 @@ else ifeq ($(lowercase_comp),intel)
   AMREX_CCOMP ?= intel
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/intel.mak...)
   include        $(AMREX_HOME)/Tools/GNUMake/comps/intel.mak
+else ifeq ($(lowercase_comp),dpcpp)
+  AMREX_FCOMP ?= none
+  AMREX_CCOMP ?= dpcpp
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/dpdpp.mak...)
+  include        $(AMREX_HOME)/Tools/GNUMake/comps/dpcpp.mak
 else ifeq ($(lowercase_comp),cray)
   AMREX_FCOMP ?= cray
   AMREX_CCOMP ?= cray
@@ -392,7 +405,7 @@ else ifeq ($(lowercase_comp),nec)
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/nec.mak...)
   include        $(AMREX_HOME)/Tools/GNUMake/comps/nec.mak
 else
-  $(error Unknown compiler $(COMP). Supported compilers are gnu, intel, cray, pgi, ibm, llvm, nag, and nec)
+  $(error Unknown compiler $(COMP). Supported compilers are gnu, intel, dpcpp, cray, pgi, ibm, llvm, nag, and nec)
 endif
 
 CXXFLAGS += $(XTRA_CXXFLAGS)
