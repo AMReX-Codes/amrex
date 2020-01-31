@@ -312,14 +312,6 @@ MultiParticleContainer::EvolveES (const Vector<std::array<std::unique_ptr<MultiF
 }
 
 void
-MultiParticleContainer::PushXES (Real dt)
-{
-    for (auto& pc : allcontainers) {
-        pc->PushXES(dt);
-    }
-}
-
-void
 MultiParticleContainer::
 DepositCharge (Vector<std::unique_ptr<MultiFab> >& rho, bool local)
 {
