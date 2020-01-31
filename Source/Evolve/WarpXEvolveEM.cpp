@@ -1,4 +1,4 @@
-    /* Copyright 2019-2020 Andrew Myers, Ann Almgren, Aurore Blelly
+/* Copyright 2019-2020 Andrew Myers, Ann Almgren, Aurore Blelly
  * Axel Huebl, Burlen Loring, David Grote
  * Glenn Richardson, Jean-Luc Vay, Luca Fedeli
  * Maxence Thevenet, Remi Lehe, Revathi Jambunathan
