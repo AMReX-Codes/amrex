@@ -19,26 +19,27 @@ void calc_M(Real arr [], Real ex, Real ey, Real ez, Real bx, Real by, Real bz, R
 
 
 /**
- * warpx_hybrid_QED_push uses an FDTD scheme to calculate QED corrections to Maxwell's equations and
- * preforms a half timestep correction to the E-fields
+ * warpx_hybrid_QED_push uses an FDTD scheme to calculate QED corrections to
+ * Maxwell's equations and preforms a half timestep correction to the E-fields
+ *
  * \param[in] Ex This function modifies the Ex field at the end
  * \param[in] Ey This function modifies the Ey field at the end
  * \param[in] Ez This function modifies the Ez field at the end
  * \param[in] Bx The QED corrections are non-linear functions of B. However,
- * they do not modify B itself
+ *            they do not modify B itself
  * \param[in] By The QED corrections are non-linear functions of B. However,
- * they do not modify B itself
+ *            they do not modify B itself
  * \param[in] Bz The QED corrections are non-linear functions of B. However,
- * they do not modify B itself
+ *            they do not modify B itself
  * \param[in] tempEx Since the corrections to E at a given node are non-linear functions
- * of the values of E on the surronding nodes, temp arrays are used so that modifications to
- * one node do not influence the corrections to the surronding nodes
+ *            of the values of E on the surronding nodes, temp arrays are used so that
+ *            modifications to one node do not influence the corrections to the surronding nodes
  * \param[in] tempEy Since the corrections to E at a given node are non-linear functions
- * of the values of E on the surronding nodes, temp arrays are used so that modifications to
- * one node do not influence the corrections to the surronding nodes
+ *            of the values of E on the surronding nodes, temp arrays are used so that modifications to
+ *            one node do not influence the corrections to the surronding nodes
  * \param[in] tempEz Since the corrections to E at a given node are non-linear functions
- * of the values of E on the surronding nodes, temp arrays are used so that modifications to
- * one node do not influence the corrections to the surronding nodes
+ *            of the values of E on the surronding nodes, temp arrays are used so that modifications to
+ *            one node do not influence the corrections to the surronding nodes
  * \param[in] dx The x spatial step, used for calculating curls
  * \param[in] dy The y spatial step, used for calculating curls
  * \param[in] dz The z spatial step, used for calulating curls
@@ -169,7 +170,7 @@ const amrex::Real dyi = 1./dy;
     Ez(j,k,l) = Ez(j,k,l) + 0.5*dt*dEz;
 
 
-// 2D case - follows natrually from 3D case
+// 2D case - follows naturally from 3D case
 #else
 
     amrex::Real Mpx [3] = {0.,0.,0.};
