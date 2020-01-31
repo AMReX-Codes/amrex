@@ -5,6 +5,12 @@
 #include <WarpXParticleContainer.H>
 #include <AMReX_REAL.H>
 
+/** \brief Functor that can be used to extract the positions of the macroparticles  
+ *         inside a ParallelFor kernel
+ *
+ * \param a_pti iterator to the tile containing the macroparticles
+ * \param a_offset offset to apply to the particle indices
+*/
 struct GetParticlePosition
 {
     using PType = WarpXParticleContainer::ParticleType;
@@ -26,8 +32,9 @@ struct GetParticlePosition
 #endif
     }
 
-    /** \brief Extract the particle's cartesian position coordinates
-     *         and store them in the variables `x`, `y`, `z` */
+    /** \brief Extract the cartesian position coordinates of the particle
+     *         located at index `i + a_offset` and store them in the variables
+     *         `x`, `y`, `z` */
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void operator() (const int i, RType& x, RType& y, RType& z) const noexcept
     {
@@ -48,6 +55,12 @@ struct GetParticlePosition
     }
 };
 
+/** \brief Functor that can be used to modify the positions of the macroparticles, 
+ *         inside a ParallelFor kernel.
+ *
+ * \param a_pti iterator to the tile being modified
+ * \param a_offset offset to apply to the particle indices
+*/
 struct SetParticlePosition
 {
     using PType = WarpXParticleContainer::ParticleType;
@@ -67,8 +80,8 @@ struct SetParticlePosition
 #endif
     }
 
-    /** \brief Extract the particle's cartesian position coordinates
-     *         and store them in the variables `x`, `y`, `z` */
+    /** \brief Set the position of the particle at index `i + a_offset`
+     *         to `x`, `y`, `z` */
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void operator() (const int i, RType x, RType y, RType z) const noexcept
     {
