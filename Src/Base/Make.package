@@ -147,29 +147,24 @@ C$(AMREX_BASE)_headers += AMReX_MultiFabUtil.H AMReX_MultiFabUtil_C.H AMReX_Mult
 C$(AMREX_BASE)_sources += AMReX_MultiFabUtil.cpp
 C$(AMREX_BASE)_headers += AMReX_MultiFabUtilI.H
 
-ifneq ($(BL_NO_FORT),TRUE)
-  C$(AMREX_BASE)_sources += AMReX_MultiFabUtil_Perilla.cpp
-  C$(AMREX_BASE)_headers += AMReX_MultiFabUtil_Perilla.H
-endif
+C$(AMREX_BASE)_sources += AMReX_MultiFabUtil_Perilla.cpp
+C$(AMREX_BASE)_headers += AMReX_MultiFabUtil_Perilla.H
 
 #
 # Boundary-related 
 #
-ifneq ($(BL_NO_FORT),TRUE)
-  C$(AMREX_BASE)_sources += AMReX_BCRec.cpp AMReX_PhysBCFunct.cpp AMReX_BCUtil.cpp
-  C$(AMREX_BASE)_headers += AMReX_BCRec.H AMReX_PhysBCFunct.H
-  C$(AMREX_BASE)_headers += AMReX_BC_TYPES.H AMReX_BCUtil.H
-endif
-
+C$(AMREX_BASE)_sources += AMReX_BCRec.cpp
+C$(AMREX_BASE)_headers += AMReX_BCRec.H AMReX_BC_TYPES.H
+C$(AMREX_BASE)_sources += AMReX_PhysBCFunct.cpp AMReX_BCUtil.cpp
+C$(AMREX_BASE)_headers += AMReX_PhysBCFunct.H AMReX_BCUtil.H
+C$(AMREX_BASE)_sources += AMReX_FilCC_C.cpp
 C$(AMREX_BASE)_headers += AMReX_FilCC_C.H AMReX_FilCC_$(DIM)D_C.H
 
 #
 # Plotfile
 #
-ifneq ($(BL_NO_FORT),TRUE)
-  C$(AMREX_BASE)_sources += AMReX_PlotFileUtil.cpp AMReX_PlotFileDataImpl.cpp
-  C$(AMREX_BASE)_headers += AMReX_PlotFileUtil.H AMReX_PlotFileDataImpl.H
-endif
+C$(AMREX_BASE)_sources += AMReX_PlotFileUtil.cpp AMReX_PlotFileDataImpl.cpp
+C$(AMREX_BASE)_headers += AMReX_PlotFileUtil.H AMReX_PlotFileDataImpl.H
 
 #
 # Misc

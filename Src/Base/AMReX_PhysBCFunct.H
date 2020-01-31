@@ -54,7 +54,7 @@ protected:
 /**
 * In this gpu version, F is provided by the user.  It needs to have a
 * __device__ operator() that can work on a cell for boundaries not
-* handled by amrex_fab_filcc.
+* handled by amrex::fab_filcc.
 */
 template <class F>
 class GpuBndryFuncFab

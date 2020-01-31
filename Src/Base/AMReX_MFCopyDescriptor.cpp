@@ -71,8 +71,6 @@ InterpAddBox (MultiFabCopyDescriptor& fabCopyDesc,
     }
 }
 
-#if !defined(BL_NO_FORT)
-
 void
 InterpFillFab (MultiFabCopyDescriptor& fabCopyDesc,
 		       const Vector<FillBoxId>& fillBoxIds,
@@ -121,7 +119,5 @@ InterpFillFab (MultiFabCopyDescriptor& fabCopyDesc,
                        num_comp);
     }
 }
-
-#endif
 
 }

@@ -2,16 +2,15 @@
 AMRLIB_BASE=EXE
 
 C$(AMRLIB_BASE)_sources += AMReX_Amr.cpp AMReX_AmrLevel.cpp AMReX_AsyncFillPatch.cpp AMReX_Derive.cpp AMReX_StateData.cpp \
-                AMReX_StateDescriptor.cpp AMReX_AuxBoundaryData.cpp AMReX_Extrapolater.cpp
+                AMReX_StateDescriptor.cpp AMReX_AuxBoundaryData.cpp
 
 C$(AMRLIB_BASE)_headers += AMReX_Amr.H AMReX_AmrLevel.H AMReX_Derive.H AMReX_LevelBld.H AMReX_StateData.H \
-                AMReX_StateDescriptor.H AMReX_PROB_AMR_F.H AMReX_AuxBoundaryData.H AMReX_Extrapolater.H
+                AMReX_StateDescriptor.H AMReX_PROB_AMR_F.H AMReX_AuxBoundaryData.H
 
-f90$(AMRLIB_BASE)_sources += AMReX_extrapolater_$(DIM)d.f90
-
-ifeq ($(USE_ARRAYVIEW),TRUE)
-  C$(AMRLIB_BASE)_headers += AMReX_DatasetClient.H
-  C$(AMRLIB_BASE)_sources += AMReX_DatasetClient.cpp
+ifneq ($(BL_NO_FORT),TRUE)
+  f90$(AMRLIB_BASE)_sources += AMReX_extrapolater_$(DIM)d.f90
+  C$(AMRLIB_BASE)_sources += AMReX_Extrapolater.cpp
+  C$(AMRLIB_BASE)_headers += AMReX_Extrapolater.H
 endif
 
 VPATH_LOCATIONS += $(AMREX_HOME)/Src/Amr
