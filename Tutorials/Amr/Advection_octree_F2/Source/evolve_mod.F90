@@ -108,8 +108,7 @@ contains
     type(amrex_multifab), allocatable :: phiborder(:)
     type(amrex_octree_iter) :: oti
     type(amrex_box) :: bx, tbx
-    real(amrex_real), contiguous, pointer, dimension(:,:,:,:) :: pin,pout,pux,puy,puz,pfx,pfy,pfz, &
-         pf, pfab
+    real(amrex_real), contiguous, pointer, dimension(:,:,:,:) :: pin,pout,pux,puy,puz,pfx,pfy,pfz
     type(amrex_fab) :: uface(amrex_spacedim)
     type(amrex_fab) :: fluxes(amrex_spacedim)
 
@@ -127,8 +126,8 @@ contains
        call fillpatch(ilev, time, phiborder(ilev))
     end do
 
-    do ilev = finest_level, 0
-       !$omp parallel private(oti,igrd,bx,tbx,pin,pout,pux,puy,puz,pfx,pfy,pfz,pf,pfab,uface,fluxes)
+    do ilev = finest_level, 0, -1
+       !$omp parallel private(idim,oti,igrd,bx,tbx,pin,pout,pux,puy,puz,pfx,pfy,pfz,uface,fluxes)
        do idim = 1, amrex_spacedim
           call uface(idim)%reset_omp_private()
           call fluxes(idim)%reset_omp_private()
@@ -186,18 +185,18 @@ contains
                dt, amrex_geom(ilev)%dx)
 
           if (ilev < finest_level) then
-             call flux_reg(ilev)%load(pfx, igrd, 0)
-             call flux_reg(ilev)%load(pfy, igrd, 1)
+             call flux_reg(ilev+1)%load(pfx, lbound(pfx), ubound(pfx), igrd, 0)
+             call flux_reg(ilev+1)%load(pfy, lbound(pfy), ubound(pfy), igrd, 1)
 #if AMREX_SPACEDIM == 3
-             call flux_reg(ilev)%load(pfy, igrd, 2)
+             call flux_reg(ilev+1)%load(pfz, lbound(pfz), ubound(pfz), igrd, 2)
 #endif
           end if
 
           if (ilev > 0) then
-             call flux_reg(ilev)%store(pfx, igrd, 0)
-             call flux_reg(ilev)%store(pfy, igrd, 1)
+             call flux_reg(ilev)%store(pfx, lbound(pfx), ubound(pfx), igrd, 0)
+             call flux_reg(ilev)%store(pfy, lbound(pfy), ubound(pfy), igrd, 1)
 #if AMREX_SPACEDIM == 3
-             call flux_reg(ilev)%store(pfy, igrd, 2)
+             call flux_reg(ilev)%store(pfy, lbound(pfz), ubound(pfz), igrd, 2)
 #endif
           end if
 

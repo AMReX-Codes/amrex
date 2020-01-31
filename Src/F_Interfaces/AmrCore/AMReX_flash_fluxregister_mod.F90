@@ -46,7 +46,8 @@ module amrex_flash_fluxregister_module
      subroutine amrex_fi_flash_fluxregister_load (fr,cgid,dir,fabdata,flo,fhi,nc,scale) bind(c)
        import
        implicit none
-       type(c_ptr), value :: fr, fabdata
+       type(c_ptr), value :: fr
+       real(amrex_real), intent(inout) :: fabdata(*)
        integer(c_int), value, intent(in) :: cgid, dir, nc
        integer(c_int), intent(in) :: flo(*), fhi(*)
        real(amrex_real), value :: scale
@@ -55,7 +56,8 @@ module amrex_flash_fluxregister_module
      subroutine amrex_fi_flash_fluxregister_store (fr,cgid,dir,fabdata,flo,fhi,nc,scale) bind(c)
        import
        implicit none
-       type(c_ptr), value :: fr, fabdata
+       type(c_ptr), value :: fr
+       real(amrex_real), intent(in) :: fabdata(*)
        integer(c_int), value, intent(in) :: cgid, dir, nc
        integer(c_int), intent(in) :: flo(*), fhi(*)
        real(amrex_real), value :: scale
@@ -109,46 +111,36 @@ contains
     call amrex_fi_flash_fluxregister_communicate(this%p)
   end subroutine amrex_flash_fluxregister_communicate
 
-  subroutine amrex_flash_fluxregister_store (this, flux, grid_idx, dir, scale)
+  subroutine amrex_flash_fluxregister_store (this, flux, flo, fhi, grid_idx, dir, scale)
     class(amrex_flash_fluxregister), intent(inout) :: this
-    real(amrex_real), target, intent(in) :: flux(:,:,:,:)
-    integer, intent(in) :: grid_idx, dir
+    integer, intent(in) :: flo(*), fhi(*), grid_idx, dir
+    real(amrex_real), intent(in) :: flux(flo(1):fhi(1),flo(2):fhi(2),flo(3):fhi(3),flo(4):fhi(4))
     real(amrex_real), optional, intent(in) :: scale
     !
-    integer(c_int), dimension(4) :: flo, fhi
-    type(c_ptr) :: cp
     real(amrex_real) :: my_scale
     if (present(scale)) then
        my_scale = scale
     else
        my_scale = 1._amrex_real
     end if
-    flo = lbound(flux)
-    fhi = ubound(flux)
-    cp = c_loc(flux(flo(1),flo(2),flo(3),flo(4)))
     call amrex_fi_flash_fluxregister_store(this%p, grid_idx, dir, &
-         cp, flo, fhi, fhi(4)-flo(4)+1, my_scale)
+         flux, flo, fhi, fhi(4)-flo(4)+1, my_scale)
   end subroutine amrex_flash_fluxregister_store
 
-  subroutine amrex_flash_fluxregister_load (this, flux, grid_idx, dir, scale)
+  subroutine amrex_flash_fluxregister_load (this, flux, flo, fhi, grid_idx, dir, scale)
     class(amrex_flash_fluxregister), intent(inout) :: this
-    real(amrex_real), target, intent(inout) :: flux(:,:,:,:)
-    integer, intent(in) :: grid_idx, dir
+    integer, intent(in) :: flo(*), fhi(*), grid_idx, dir
+    real(amrex_real), intent(inout) :: flux(flo(1):fhi(1),flo(2):fhi(2),flo(3):fhi(3),flo(4):fhi(4))
     real(amrex_real), optional, intent(in) :: scale
     !
-    integer(c_int), dimension(4) :: flo, fhi
-    type(c_ptr) :: cp
     real(amrex_real) :: my_scale
     if (present(scale)) then
        my_scale = scale
     else
        my_scale = 1._amrex_real
     end if
-    flo = lbound(flux)
-    fhi = ubound(flux)
-    cp = c_loc(flux(flo(1),flo(2),flo(3),flo(4)))
     call amrex_fi_flash_fluxregister_load(this%p, grid_idx, dir, &
-         cp, flo, fhi, fhi(4)-flo(4)+1, my_scale)
+         flux, flo, fhi, fhi(4)-flo(4)+1, my_scale)
   end subroutine amrex_flash_fluxregister_load
 
 end module amrex_flash_fluxregister_module
