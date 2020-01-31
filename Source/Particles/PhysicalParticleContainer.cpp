@@ -2421,7 +2421,7 @@ PhysicalParticleContainer::buildIonizationMask (const amrex::MFIter& mfi, const 
                 ParticleReal bx = ptd.m_rdata[PIdx::Bx][i];
                 ParticleReal by = ptd.m_rdata[PIdx::By][i];
                 ParticleReal bz = ptd.m_rdata[PIdx::Bz][i];
-                
+
                 Real ga = std::sqrt(1. + (ux*ux + uy*uy + uz*uz) * c2_inv);
                 Real E = std::sqrt(
                     - ( ux*ex + uy*ey + uz*ez ) * ( ux*ex + uy*ey + uz*ez ) * c2_inv
