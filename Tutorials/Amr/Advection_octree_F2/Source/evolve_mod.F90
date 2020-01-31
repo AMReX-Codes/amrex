@@ -219,7 +219,7 @@ contains
        end do
        !$omp end parallel
 
-       call flux_reg(ilev)%communicate()
+       if (ilev > 0) call flux_reg(ilev)%communicate()
     end do
 
     do ilev = 0, finest_level
