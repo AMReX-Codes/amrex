@@ -104,6 +104,7 @@ WarpX::Hybrid_QED_Push (int lev, PatchType patch_type, Real a_dt)
         const Box& tey  = mfi.tilebox(Ey_nodal_flag);
         const Box& tez  = mfi.tilebox(Ez_nodal_flag);
 
+        // Get field arrays
         auto const& Bxfab = Bx->array(mfi);
         auto const& Byfab = By->array(mfi);
         auto const& Bzfab = Bz->array(mfi);
