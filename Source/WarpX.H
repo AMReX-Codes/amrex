@@ -240,15 +240,20 @@ public:
      * \param dt vector of time steps (for all levels)
      */
     void Hybrid_QED_Push (         amrex::Vector<amrex::Real> dt);
+    
     /** \brief apply QED correction on electric field for level lev
+     * \param lev mesh refinement level
      * \param dt time step
      */
     void Hybrid_QED_Push (int lev, amrex::Real dt);
+    
     /** \brief apply QED correction on electric field for level lev and patch type patch_type
-     * \param dt time step
+     * \param lev mesh refinement level
      * \param dt patch_type which MR patch: PatchType::fine or PatchType::coarse
+     * \param dt time step
      */
     void Hybrid_QED_Push (int lev, PatchType patch_type, amrex::Real dt);
+    
     static amrex::Real quantum_xi;
 
 #ifdef WARPX_DIM_RZ
