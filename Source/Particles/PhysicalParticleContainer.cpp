@@ -2380,66 +2380,62 @@ PhysicalParticleContainer::buildIonizationMask (const amrex::MFIter& mfi, const 
                                                 amrex::Gpu::ManagedDeviceVector<int>& ionization_mask)
 {
     BL_PROFILE("PPC::buildIonizationMask");
+
     // Get pointers to ionization data from pc_source
     const Real * const AMREX_RESTRICT p_ionization_energies = ionization_energies.dataPtr();
     const Real * const AMREX_RESTRICT p_adk_prefactor = adk_prefactor.dataPtr();
     const Real * const AMREX_RESTRICT p_adk_exp_prefactor = adk_exp_prefactor.dataPtr();
     const Real * const AMREX_RESTRICT p_adk_power = adk_power.dataPtr();
 
-    // Current tile info
-    const int grid_id = mfi.index();
-    const int tile_id = mfi.LocalTileIndex();
-
-    // Get GPU-friendly arrays of particle data
-    auto& ptile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
-    // Only need attribs (i.e., SoA data)
-    auto& soa = ptile.GetStructOfArrays();
-    const int np = ptile.GetArrayOfStructs().size();
-
-    // If no particle, nothing to do.
+    const auto& ptile = ParticlesAt(lev, mfi);
+    const int np = ptile.numParticles();
     if (np == 0) return;
-    // Otherwise, resize ionization_mask, and get poiters to attribs arrays.
+
     ionization_mask.resize(np);
+
+    auto ptd = ptile.getConstParticleTileData();
     int * const AMREX_RESTRICT p_ionization_mask = ionization_mask.data();
-    const ParticleReal * const AMREX_RESTRICT ux = soa.GetRealData(PIdx::ux).data();
-    const ParticleReal * const AMREX_RESTRICT uy = soa.GetRealData(PIdx::uy).data();
-    const ParticleReal * const AMREX_RESTRICT uz = soa.GetRealData(PIdx::uz).data();
-    const ParticleReal * const AMREX_RESTRICT ex = soa.GetRealData(PIdx::Ex).data();
-    const ParticleReal * const AMREX_RESTRICT ey = soa.GetRealData(PIdx::Ey).data();
-    const ParticleReal * const AMREX_RESTRICT ez = soa.GetRealData(PIdx::Ez).data();
-    const ParticleReal * const AMREX_RESTRICT bx = soa.GetRealData(PIdx::Bx).data();
-    const ParticleReal * const AMREX_RESTRICT by = soa.GetRealData(PIdx::By).data();
-    const ParticleReal * const AMREX_RESTRICT bz = soa.GetRealData(PIdx::Bz).data();
-    int* ion_lev = soa.GetIntData(particle_icomps["ionization_level"]).data();
+    const int comp = particle_icomps["ionization_level"];
 
     Real c = PhysConst::c;
     Real c2_inv = 1./c/c;
     int atomic_number = ion_atomic_number;
 
     // Loop over all particles in grid/tile. If ionized, set mask to 1
-    // and increment ionization level.
-    ParallelFor(
-        np,
-        [=] AMREX_GPU_DEVICE (long i) {
-            // Get index of ionization_level
+    ParallelFor(np,
+        [=] AMREX_GPU_DEVICE (long i)
+        {
             p_ionization_mask[i] = 0;
-            if ( ion_lev[i]<atomic_number ){
-                Real random_draw = amrex::Random();
+
+            int ion_lev = ptd.m_runtime_idata[comp][i];
+            if (ion_lev < atomic_number)
+            {
                 // Compute electric field amplitude in the particle's frame of
                 // reference (particularly important when in boosted frame).
-                Real ga = std::sqrt(1. + (ux[i]*ux[i] + uy[i]*uy[i] + uz[i]*uz[i]) * c2_inv);
+                ParticleReal ux = ptd.m_rdata[PIdx::ux][i];
+                ParticleReal uy = ptd.m_rdata[PIdx::uy][i];
+                ParticleReal uz = ptd.m_rdata[PIdx::uz][i];
+                ParticleReal ex = ptd.m_rdata[PIdx::Ex][i];
+                ParticleReal ey = ptd.m_rdata[PIdx::Ey][i];
+                ParticleReal ez = ptd.m_rdata[PIdx::Ez][i];
+                ParticleReal bx = ptd.m_rdata[PIdx::Bx][i];
+                ParticleReal by = ptd.m_rdata[PIdx::By][i];
+                ParticleReal bz = ptd.m_rdata[PIdx::Bz][i];
+                
+                Real ga = std::sqrt(1. + (ux*ux + uy*uy + uz*uz) * c2_inv);
                 Real E = std::sqrt(
-                    - ( ux[i]*ex[i] + uy[i]*ey[i] + uz[i]*ez[i] ) * ( ux[i]*ex[i] + uy[i]*ey[i] + uz[i]*ez[i] ) * c2_inv
-                    + ( ga   *ex[i] + uy[i]*bz[i] - uz[i]*by[i] ) * ( ga   *ex[i] + uy[i]*bz[i] - uz[i]*by[i] )
-                    + ( ga   *ey[i] + uz[i]*bx[i] - ux[i]*bz[i] ) * ( ga   *ey[i] + uz[i]*bx[i] - ux[i]*bz[i] )
-                    + ( ga   *ez[i] + ux[i]*by[i] - uy[i]*bx[i] ) * ( ga   *ez[i] + ux[i]*by[i] - uy[i]*bx[i] )
+                    - ( ux*ex + uy*ey + uz*ez ) * ( ux*ex + uy*ey + uz*ez ) * c2_inv
+                    + ( ga   *ex + uy*bz - uz*by ) * ( ga   *ex + uy*bz - uz*by )
+                    + ( ga   *ey + uz*bx - ux*bz ) * ( ga   *ey + uz*bx - ux*bz )
+                    + ( ga   *ez + ux*by - uy*bx ) * ( ga   *ez + ux*by - uy*bx )
                     );
                 // Compute probability of ionization p
-                Real w_dtau = 1./ ga * p_adk_prefactor[ion_lev[i]] *
-                    std::pow(E,p_adk_power[ion_lev[i]]) *
-                    std::exp( p_adk_exp_prefactor[ion_lev[i]]/E );
+                Real w_dtau = 1./ ga * p_adk_prefactor[ion_lev] *
+                    std::pow(E,p_adk_power[ion_lev]) *
+                    std::exp( p_adk_exp_prefactor[ion_lev]/E );
                 Real p = 1. - std::exp( - w_dtau );
 
+                Real random_draw = amrex::Random();
                 if (random_draw < p){
                     // update mask
                     p_ionization_mask[i] = 1;
