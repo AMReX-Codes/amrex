@@ -374,17 +374,15 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
     scale_fac = dx[0]*dx[1]/num_ppc;
 #endif
 
+    defineAllParticleTiles(*this);
+        
 #ifdef _OPENMP
     // First touch all tiles in the map in serial
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi) {
         auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());
-        GetParticles(lev)[index];
         tmp_particle_data.resize(finestLevel()+1);
         // Create map entry if not there
         tmp_particle_data[lev][index];
-        if ( (NumRuntimeRealComps()>0) || (NumRuntimeIntComps()>0) ) {
-            DefineAndReturnParticleTile(lev, mfi.index(), mfi.LocalTileIndex());
-        }
     }
 #endif
 

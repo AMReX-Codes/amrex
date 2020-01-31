@@ -652,31 +652,11 @@ MultiParticleContainer::doFieldIonization ()
         // Get product species
         auto& pc_product = allcontainers[pc_source->ionization_product];
 
-        for (int lev = 0; lev <= pc_source->finestLevel(); ++lev){
-
-            // When using runtime components, AMReX requires to touch all tiles
-            // in serial and create particles tiles with runtime components if
-            // they do not exist (or if they were defined by default, i.e.,
-            // without runtime component).
-#ifdef _OPENMP
-            // Touch all tiles of source species in serial if runtime attribs
-            for (MFIter mfi = pc_source->MakeMFIter(lev); mfi.isValid(); ++mfi) {
-                const int grid_id = mfi.index();
-                const int tile_id = mfi.LocalTileIndex();
-                pc_source->GetParticles(lev)[std::make_pair(grid_id,tile_id)];
-                if ( (pc_source->NumRuntimeRealComps()>0) || (pc_source->NumRuntimeIntComps()>0) ) {
-                    pc_source->DefineAndReturnParticleTile(lev, grid_id, tile_id);
-                }
-            }
-#endif
-            // Touch all tiles of product species in serial
-            for (MFIter mfi = pc_source->MakeMFIter(lev); mfi.isValid(); ++mfi) {
-                const int grid_id = mfi.index();
-                const int tile_id = mfi.LocalTileIndex();
-                pc_product->GetParticles(lev)[std::make_pair(grid_id,tile_id)];
-                pc_product->DefineAndReturnParticleTile(lev, grid_id, tile_id);
-            }
-
+        defineAllParticleTiles(*pc_source);
+        defineAllParticleTiles(*pc_product);
+        
+        for (int lev = 0; lev <= pc_source->finestLevel(); ++lev)
+        {
             // Enable tiling
             MFItInfo info;
             if (pc_source->do_tiling && Gpu::notInLaunchRegion()) {
