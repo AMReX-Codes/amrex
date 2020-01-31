@@ -1393,8 +1393,13 @@ BoxArray::getHashMap () const
                 BoxHashMap[crsnsmlend].push_back(i);
             }
 
+            // Must do this in case the boxarray is nodal.
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                boundingbox.growHi(idim);
+            }
+
             m_ref->crsn = maxext;
-            m_ref->bbox =boundingbox.coarsen(maxext);
+            m_ref->bbox = boundingbox.coarsen(maxext);
             m_ref->bbox.normalize();
 
 #ifdef AMREX_MEM_PROFILING
