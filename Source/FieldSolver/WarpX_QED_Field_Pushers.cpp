@@ -23,7 +23,7 @@ using namespace amrex;
 
 
 void
-WarpX::Hybrid_QED_Push (Real a_dt)
+WarpX::Hybrid_QED_Push (amrex::Vector<amrex::Real> dt)
 {
     if (WarpX::do_nodal == 0) {
         Print()<<"The do_nodal flag is tripped.\n";
@@ -36,7 +36,7 @@ WarpX::Hybrid_QED_Push (Real a_dt)
         }
     }
     for (int lev = 0; lev <= finest_level; ++lev) {
-        Hybrid_QED_Push(lev, a_dt);
+        Hybrid_QED_Push(lev, dt[lev]);
     }
 }
 

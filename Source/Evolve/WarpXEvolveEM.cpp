@@ -1,4 +1,4 @@
-/* Copyright 2019-2020 Andrew Myers, Ann Almgren, Aurore Blelly
+	/* Copyright 2019-2020 Andrew Myers, Ann Almgren, Aurore Blelly
  * Axel Huebl, Burlen Loring, David Grote
  * Glenn Richardson, Jean-Luc Vay, Luca Fedeli
  * Maxence Thevenet, Remi Lehe, Revathi Jambunathan
@@ -362,7 +362,7 @@ WarpX::OneStep_nosub (Real cur_time)
 #ifdef WARPX_USE_PSATD
     if (use_hybrid_QED)
     {
-        WarpX::Hybrid_QED_Push(dt[0]);
+        WarpX::Hybrid_QED_Push(dt);
         FillBoundaryE(guard_cells.ng_alloc_EB, guard_cells.ng_Extra);
     }
     PushPSATD(dt[0]);
@@ -371,7 +371,7 @@ WarpX::OneStep_nosub (Real cur_time)
 
     if (use_hybrid_QED)
     {
-        WarpX::Hybrid_QED_Push(dt[0]);
+        WarpX::Hybrid_QED_Push(dt);
         FillBoundaryE(guard_cells.ng_alloc_EB, guard_cells.ng_Extra);
 
     }
