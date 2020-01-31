@@ -8,11 +8,11 @@
 #include "WarpXAlgorithmSelection.H"
 #include "FiniteDifferenceSolver.H"
 #ifdef WARPX_DIM_RZ
-    #include "FiniteDifferenceAlgorithms/CylindricalYeeAlgorithm.H"
+#   include "FiniteDifferenceAlgorithms/CylindricalYeeAlgorithm.H"
 #else
-    #include "FiniteDifferenceAlgorithms/YeeAlgorithm.H"
-    #include "FiniteDifferenceAlgorithms/CKCAlgorithm.H"
-    #include "FiniteDifferenceAlgorithms/NodalAlgorithm.H"
+#   include "FiniteDifferenceAlgorithms/YeeAlgorithm.H"
+#   include "FiniteDifferenceAlgorithms/CKCAlgorithm.H"
+#   include "FiniteDifferenceAlgorithms/NodalAlgorithm.H"
 #endif
 #include <AMReX_Gpu.H>
 
