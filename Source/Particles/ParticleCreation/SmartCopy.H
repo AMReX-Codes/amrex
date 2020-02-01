@@ -43,7 +43,7 @@ struct SmartCopy
             amrex::ParticleReal* dst_data = (m_dst_comps_r[j] < DstData::NAR) ? dst.m_rdata : dst.m_runtime_rdata;
             amrex::ParticleReal* src_data = (m_src_comps_r[j] < SrcData::NAR) ? src.m_rdata : src.m_runtime_rdata;
 
-            dst_data[dst_comp] = src_data[src_comp];            
+            dst_data[dst_comp] = src_data[src_comp];
         }
 
         for (int j = 0; j < m_num_int; ++j)
