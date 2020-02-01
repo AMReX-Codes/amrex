@@ -10,15 +10,15 @@ using namespace amrex;
 /**
  * calc_M calculates the Magnetization field of the vacuum at a specific point and returns it as a three component vector
  * \param[in] arr This is teh empty array that will be filled with the components of the M-field
- * \param[in] ex The x-component of the E-field at the point at whicht he M-field is to be calculated
- * \param[in] ey The y-component of the E-field at the point at whicht he M-field is to be calculated
- * \param[in] ez The z-component of the E-field at the point at whicht he M-field is to be calculated
- * \param[in] bx The x-component of the B-field at the point at whicht he M-field is to be calculated
- * \param[in] by The y-component of the B-field at the point at whicht he M-field is to be calculated
- * \param[in] bz The z-component of the B-field at the point at whicht he M-field is to be calculated
+ * \param[in] ex The x-component of the E-field at the point at whicht the M-field is to be calculated
+ * \param[in] ey The y-component of the E-field at the point at whicht the M-field is to be calculated
+ * \param[in] ez The z-component of the E-field at the point at whicht the M-field is to be calculated
+ * \param[in] bx The x-component of the B-field at the point at whicht the M-field is to be calculated
+ * \param[in] by The y-component of the B-field at the point at whicht the M-field is to be calculated
+ * \param[in] bz The z-component of the B-field at the point at whicht the M-field is to be calculated
  * \param[in] xi The quantum parameter being used for the simulation
  * \param[in] c2 The speed of light squared
-*/
+ */
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void calc_M(Real arr [], Real ex, Real ey, Real ez, Real bx, Real by, Real bz, Real xi, Real c2)
 {
@@ -285,7 +285,7 @@ const amrex::Real dyi = 1./dy;
 
     const amrex::Real detA = a00*( a11*a22 - a12*a12 ) - a01*( a01*a22 - a02*a12 ) + a02*( a01*a12 - a02*a11 );
 
-    // Calcualting matrix values for the QED correction algorithm
+    // Calcualting inverse matrix values using the general 3x3 form
 
     const amrex::Real invAx[3] = {a22*a11 - a12*a12, a12*a02 - a22*a01, a12*a01 - a11*a02};
 
