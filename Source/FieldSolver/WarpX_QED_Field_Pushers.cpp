@@ -130,6 +130,7 @@ WarpX::Hybrid_QED_Push (int lev, PatchType patch_type, Real a_dt)
         Elixir tmpEz_eli = tmpEz_fab.elixir();
         auto const& tmpEz = tmpEz_fab.array();
 
+        // Copy electric field to temporary arrays
         AMREX_PARALLEL_FOR_4D(
             gex, 1, i, j, k, n,
             { tmpEx(i,j,k,n) = Exfab(i,j,k,n); }
