@@ -1,0 +1,52 @@
+# ###############################
+####### GENERAL PARAMETERS ######
+#################################
+max_step = 300
+amr.n_cell = 64 1024
+amr.max_grid_size = 4096
+amr.blocking_factor = 8
+amr.plot_int = 300
+geometry.coord_sys   = 0
+geometry.is_periodic = 1  1  1
+geometry.prob_lo     =  -32.e-6 -512.e-6
+geometry.prob_hi     =  32.e-6 512.e-6
+amr.max_level = 0
+warpx.do_nodal = 1
+warpx.quantum_xi = 1.e-23
+
+#################################
+############ NUMERICS ###########
+#################################
+warpx.verbose = 0
+warpx.plot_raw_fields = 1
+warpx.plot_raw_fields_guards = 1
+warpx.plot_finepatch = 1
+warpx.use_filter = 1
+warpx.cfl = 1.
+warpx.do_pml = 0
+warpx.use_hybrid_QED = 1
+
+particles.nspecies = 0
+
+#################################
+############ FIELDS #############
+#################################
+
+my_constants.pi = 3.14159265359
+my_constants.L = 141.4213562373095e-6
+my_constants.eps0 = 8.8541878128e-12
+my_constants.c = 299792458.
+my_constants.wavelength = 64.e-6
+my_constants.Es = 1.e5
+my_constants.xi = 1.e-23
+
+
+warpx.E_ext_grid_init_style = parse_E_ext_grid_function
+warpx.Ez_external_grid_function(x,y,z) = 0.
+warpx.Ex_external_grid_function(x,y,z) = 0.
+warpx.Ey_external_grid_function(x,y,z) = "exp(-z**2/L**2)*cos(2*pi*z/wavelength) + Es"
+
+warpx.B_ext_grid_init_style = parse_B_ext_grid_function
+warpx.Bx_external_grid_function(x,y,z)= "-sqrt((1+(12*xi*Es**2)/eps0)/(1+(4*xi*Es**2)/eps0))*exp(-z**2/L**2)*cos(2*pi*z/wavelength)/c"
+warpx.By_external_grid_function(x,y,z)= 0.
+warpx.Bz_external_grid_function(x,y,z) = 0.
