@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
-"""
-This routine parses plain-text parameter files that list runtime
+"""This routine parses plain-text parameter files that list runtime
 parameters for use in our codes.  The general format of a parameter
 is:
 
@@ -22,6 +21,10 @@ This script takes a template file and replaces keywords in it
 (delimited by @@...@@) with the Fortran code required to
 initialize the parameters, setup a namelist, and allow for
 commandline overriding of their defaults.
+
+This script supports 2 separate groups of parameters (e.g. probin and
+extern).  The idea is that each can be stored in its own module, but
+the initialization / reading is done together.
 
 """
 
@@ -48,6 +51,15 @@ class Parameter():
         self.dtype = ""
         self.value = ""
         self.priority = 0
+
+    def get_f90_decl(self):
+        """ get the Fortran 90 declaration """
+        if self.dtype == "real":
+            return "real (kind=rt)"
+        elif self.dtype == "character":
+            return "character (len=256)"
+        else:
+            return self.dtype
 
     def __lt__(self, other):
         return self.priority < other.priority
@@ -216,44 +228,23 @@ def write_probin(probin_template, param_A_files, param_B_files,
 
                     dtype = p.dtype
 
-                    if dtype == "real":
+                    if dtype == "character":
                         if managed:
-                            fout.write("{}real (kind=rt), allocatable, public :: {}\n".format(
-                                indent, p.var, p.value))
+                            fout.write("{}{}, public :: {}\n".format(
+                                indent, p.get_f90_decl(), p.var, p.value))
                         else:
-                            fout.write("{}real (kind=rt), save, public :: {} = {}\n".format(
-                                indent, p.var, p.value))
-                        fout.write("{}!$acc declare create({})\n".format(indent, p.var))
-
-                    elif dtype == "character":
-                        if managed:
-                            fout.write("{}character (len=256), public :: {}\n".format(
-                                indent, p.var, p.value))
-                        else:
-                            fout.write("{}character (len=256), save, public :: {} = {}\n".format(
-                                indent, p.var, p.value))
-                        fout.write("{}!$acc declare create({})\n".format(indent, p.var))
-
-                    elif dtype == "integer":
-                        if managed:
-                            fout.write("{}integer, allocatable, public :: {}\n".format(
-                                indent, p.var, p.value))
-                        else:
-                            fout.write("{}integer, save, public :: {} = {}\n".format(
-                                indent, p.var, p.value))
-                        fout.write("{}!$acc declare create({})\n".format(indent, p.var))
-
-                    elif dtype == "logical":
-                        if managed:
-                            fout.write("{}logical, allocatable, public :: {}\n".format(
-                                indent, p.var, p.value))
-                        else:
-                            fout.write("{}logical, save, public :: {} = {}\n".format(
-                                indent, p.var, p.value))
+                            fout.write("{}{}, save, public :: {} = {}\n".format(
+                                indent, p.get_f90_decl(), p.var, p.value))
                         fout.write("{}!$acc declare create({})\n".format(indent, p.var))
 
                     else:
-                        print("write_probin.py: invalid datatype for variable {}".format(p.var))
+                        if managed:
+                            fout.write("{}{}, allocatable, public :: {}\n".format(
+                                indent, p.get_f90_decl(), p.var, p.value))
+                        else:
+                            fout.write("{}{}, save, public :: {} = {}\n".format(
+                                indent, p.get_f90_decl(), p.var, p.value))
+                        fout.write("{}!$acc declare create({})\n".format(indent, p.var))
 
                 if pm:
                     if keyword == "declarationsA":
@@ -378,11 +369,43 @@ def write_probin(probin_template, param_A_files, param_B_files,
                         else:
                             fout.write(", ")
 
+            elif keyword == "cxx_gets":
+                for p in params:
+                    if p.dtype == "character":
+                        # we don't support character
+                        continue
+                    if p.dtype == "logical":
+                        # F90 logicals are integers in C++
+                        fout.write("{}subroutine get_f90_{}({}_in) bind(C, name=\"get_f90_{}\")\n".format(
+                            indent, p.var, p.var, p.var))
+                        fout.write("{}   integer, intent(inout) :: {}_in\n".format(
+                            indent, p.var))
+                        fout.write("{}   {}_in = 0\n".format(indent, p.var))
+                        fout.write("{}   if ({}) then\n".format(indent, p.var))
+                        fout.write("{}      {}_in = 1\n".format(indent, p.var))
+                        fout.write("{}   endif\n".format(indent))
+                        fout.write("{}end subroutine get_f90_{}\n\n".format(
+                            indent, p.var))
+
+                    else:
+                        fout.write("{}subroutine get_f90_{}({}_in) bind(C, name=\"get_f90_{}\")\n".format(
+                            indent, p.var, p.var, p.var))
+                        fout.write("{}   {}, intent(inout) :: {}_in\n".format(
+                            indent, p.get_f90_decl(), p.var))
+                        fout.write("{}   {}_in = {}\n".format(
+                            indent, p.var, p.var))
+                        fout.write("{}end subroutine get_f90_{}\n\n".format(
+                            indent, p.var))
+
+
         else:
             fout.write(line)
 
     print(" ")
     fout.close()
+
+    # now handle the C++ -- we need to write a header and a .cpp file
+    # for the parameters + a _F.H file for the Fortran communication
 
 
 def main():
