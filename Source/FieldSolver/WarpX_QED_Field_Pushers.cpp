@@ -117,6 +117,7 @@ WarpX::Hybrid_QED_Push (int lev, PatchType patch_type, Real a_dt)
         const Box& gey = amrex::grow(tey,1);
         const Box& gez = amrex::grow(tez,1);
 
+        // Temporary arrays for electric field, protected by Elixir on GPU
         FArrayBox tmpEx_fab(gex,1);
         Elixir tmpEx_eli = tmpEx_fab.elixir();
         auto const& tmpEx = tmpEx_fab.array();
@@ -129,6 +130,7 @@ WarpX::Hybrid_QED_Push (int lev, PatchType patch_type, Real a_dt)
         Elixir tmpEz_eli = tmpEz_fab.elixir();
         auto const& tmpEz = tmpEz_fab.array();
 
+        // Copy electric field to temporary arrays
         AMREX_PARALLEL_FOR_4D(
             gex, 1, i, j, k, n,
             { tmpEx(i,j,k,n) = Exfab(i,j,k,n); }
