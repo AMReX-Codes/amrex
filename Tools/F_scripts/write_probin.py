@@ -63,6 +63,7 @@ CXX_F_FOOTER = """
 CXX_HEADER = """
 #ifndef _external_parameters_H_
 #define _external_parameters_H_
+#include <AMReX_BLFort.H>
 
 """
 
@@ -424,6 +425,8 @@ def write_probin(probin_template, param_files,
     with open(ofile, "w") as fout:
         fout.write(CXX_HEADER)
 
+        fout.write("  void init_{}_parameters();\n\n".format(cxx_prefix))
+
         for p in params:
             if p.dtype == "character":
                 # we don't support character
@@ -432,8 +435,30 @@ def write_probin(probin_template, param_files,
             fout.write("  extern {} {};\n\n".format(p.get_cxx_decl(), p.var))
 
         fout.write(CXX_FOOTER)
-    
 
+    # finally the C++ initialization routines
+    ofile = "{}_parameters.cpp".format(cxx_prefix)
+    with open(ofile, "w") as fout:
+        fout.write("#include <{}_parameters.H>\n".format(cxx_prefix))
+        fout.write("#include <{}_parameters_F.H>\n\n".format(cxx_prefix))
+
+        for p in params:
+            if p.dtype == "character":
+                # we don't support character
+                continue
+
+            fout.write("  {} {};\n\n".format(p.get_cxx_decl(), p.var))
+
+        fout.write("\n")
+        fout.write("  void init_{}_parameters() {{\n".format(cxx_prefix))
+
+        for p in params:
+            if p.dtype == "character":
+                continue
+
+            fout.write("    get_f90_{}(&{});\n".format(p.var, p.var))
+
+        fout.write("  }\n")
 
 def main():
 
