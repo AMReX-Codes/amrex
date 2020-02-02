@@ -282,7 +282,7 @@ def write_probin(probin_template, param_files,
                     fout.write("{}namelist /{}/ {}\n".format(
                         indent, namelist_name, p.var))
 
-                if len(params) == 0:
+                if not params:
                     fout.write("{}namelist /{}/ a_dummy_var\n".format(
                         indent, namelist_name))
 
