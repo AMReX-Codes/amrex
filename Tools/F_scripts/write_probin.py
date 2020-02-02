@@ -22,10 +22,6 @@ This script takes a template file and replaces keywords in it
 initialize the parameters, setup a namelist, and allow for
 commandline overriding of their defaults.
 
-This script supports 2 separate groups of parameters (e.g. probin and
-extern).  The idea is that each can be stored in its own module, but
-the initialization / reading is done together.
-
 """
 
 from __future__ import print_function
