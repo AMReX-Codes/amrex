@@ -64,6 +64,16 @@ CXX_F_FOOTER = """
 #endif
 """
 
+CXX_HEADER = """
+#ifndef _external_parameters_H_
+#define _external_parameters_H_
+
+"""
+
+CXX_FOOTER = """
+#endif
+"""
+
 class Parameter():
     # the simple container to hold the runtime parameters
     def __init__(self):
@@ -435,6 +445,8 @@ def write_probin(probin_template, param_A_files, param_B_files,
 
     # now handle the C++ -- we need to write a header and a .cpp file
     # for the parameters + a _F.H file for the Fortran communication
+
+    # first the _F.H file
     ofile = "{}_parameters_F.H".format(cxx_prefix)
     with open(ofile, "w") as fout:
         fout.write(CXX_F_HEADER)
@@ -448,6 +460,21 @@ def write_probin(probin_template, param_A_files, param_B_files,
                 p.var, p.get_cxx_decl(), p.var))
 
         fout.write(CXX_F_FOOTER)
+
+    # now the main C++ header with the global data
+    ofile = "{}_parameters.H".format(cxx_prefix)
+    with open(ofile, "w") as fout:
+        fout.write(CXX_HEADER)
+
+        for p in params:
+            if p.dtype == "character":
+                # we don't support character
+                continue
+
+            fout.write("  extern {} {};\n\n".format(p.get_cxx_decl(), p.var))
+
+        fout.write(CXX_FOOTER)
+    
 
 
 def main():
