@@ -78,8 +78,8 @@ class Parameter():
             return "real (kind=rt)"
         elif self.dtype == "character":
             return "character (len=256)"
-        else:
-            return self.dtype
+
+        return self.dtype
 
     def get_cxx_decl(self):
         """ get the Fortran 90 declaration """
@@ -87,8 +87,8 @@ class Parameter():
             return "amrex::Real"
         elif self.dtype == "character":
             return None
-        else:
-            return "int"
+
+        return "int"
 
     def __lt__(self, other):
         return self.priority < other.priority
@@ -107,17 +107,10 @@ def get_next_line(fin):
     return line[:pos]
 
 
-def parse_param_file(params_list, param_file, other_list=None):
+def parse_param_file(params_list, param_file):
     """read all the parameters in a given parameter file and add valid
     parameters to the params list.
-
-    if otherList is present, we will search through it to make sure
-    we don't add a duplicate parameter.
-
     """
-
-    if other_list is None:
-        other_list = []
 
     err = 0
 
@@ -165,12 +158,6 @@ def parse_param_file(params_list, param_file, other_list=None):
             else:
                 skip = 1
 
-        # don't allow it to be a duplicate in the other_list
-        o_names = [p.var for p in other_list]
-        if current_param.var in o_names:
-            print("write_probin.py: ERROR: parameter {} already defined.".format(current_param.var))
-            err = 1
-
         if not err == 1 and not skip == 1:
             params_list.append(current_param)
 
@@ -189,33 +176,23 @@ def abort(outfile):
     sys.exit(1)
 
 
-def write_probin(probin_template, param_A_files, param_B_files,
-                 namelist_name, out_file,  cxx_prefix, managed=False):
+def write_probin(probin_template, param_files,
+                 namelist_name, out_file, cxx_prefix, managed=False):
 
     """ write_probin will read through the list of parameter files and
     output the new out_file """
 
-    paramsA = []
-    paramsB = []
+    params = []
 
     print(" ")
     print("write_probin.py: creating {}".format(out_file))
 
     # read the parameters defined in the parameter files
 
-    for f in param_A_files:
-        err = parse_param_file(paramsA, f)
+    for f in param_files:
+        err = parse_param_file(params, f)
         if err:
             abort(out_file)
-
-    for f in param_B_files:
-        err = parse_param_file(paramsB, f, other_list=paramsA)
-        if err:
-            abort(out_file)
-
-    # params will hold all the parameters (from both lists A and B)
-    params = paramsA + paramsB
-
 
     # open up the template
     try:
@@ -242,14 +219,10 @@ def write_probin(probin_template, param_A_files, param_B_files,
             keyword = line[index+len("@@"):index2]
             indent = index*" "
 
-            if keyword in ["declarationsA", "declarationsB"]:
-                if keyword == "declarationsA":
-                    pm = paramsA
-                elif keyword == "declarationsB":
-                    pm = paramsB
+            if keyword in ["declarationsA", "declarations"]:
 
                 # declaraction statements
-                for p in pm:
+                for p in params:
 
                     dtype = p.dtype
 
@@ -271,45 +244,34 @@ def write_probin(probin_template, param_A_files, param_B_files,
                                 indent, p.get_f90_decl(), p.var, p.value))
                         fout.write("{}!$acc declare create({})\n".format(indent, p.var))
 
-                if not pm:
-                    if keyword == "declarationsA":
-                        # we always make sure there is atleast one variable
-                        fout.write("{}integer, save, public :: a_dummy_var = 0\n".format(indent))
-                    else:
-                        fout.write("\n")
+                if not params:
+                    # we always make sure there is atleast one variable
+                    fout.write("{}integer, save, public :: a_dummy_var = 0\n".format(indent))
 
-            elif keyword in ["cudaattributesA", "cudaattributesB"]:
+            elif keyword in ["cudaattributesA", "cudaattributes"]:
                 if managed:
-                    if keyword == "cudaattributesA":
-                        pm = paramsA
-                    elif keyword == "cudaattributesB":
-                        pm = paramsB
-                    for pmi in pm:
-                        if pmi.dtype != "character":
-                            fout.write("{}attributes(managed) :: {}\n".format(indent, pmi.var))
+                    for p in params:
+                        if p.dtype != "character":
+                            fout.write("{}attributes(managed) :: {}\n".format(indent, p.var))
 
             elif keyword == "allocations":
                 if managed:
-                    pm = paramsA + paramsB
-                    for pmi in pm:
-                        if pmi.dtype != "character":
-                            fout.write("{}allocate({})\n".format(indent, pmi.var))
+                    for p in params:
+                        if p.dtype != "character":
+                            fout.write("{}allocate({})\n".format(indent, p.var))
 
             elif keyword == "initialize":
                 if managed:
-                    pm = paramsA + paramsB
-                    for pmi in pm:
-                        fout.write("{}{} = {}\n".format(indent, pmi.var, pmi.value))
+                    for p in params:
+                        fout.write("{}{} = {}\n".format(indent, p.var, p.value))
 
             elif keyword == "deallocations":
                 if managed:
-                    pm = paramsA + paramsB
-                    for pmi in pm:
-                        if pmi.dtype != "character":
-                            fout.write("{}deallocate({})\n".format(indent, pmi.var))
+                    for p in params:
+                        if p.dtype != "character":
+                            fout.write("{}deallocate({})\n".format(indent, p.var))
 
             elif keyword == "namelist":
-
                 for p in params:
                     fout.write("{}namelist /{}/ {}\n".format(
                         indent, namelist_name, p.var))
@@ -456,9 +418,8 @@ def main():
     parser.add_argument('-t', type=str, help='probin_template')
     parser.add_argument('-o', type=str, help='out_file')
     parser.add_argument('-n', type=str, help='namelist_name')
-    parser.add_argument('--pa', type=str, help='param_A_files_str')
-    parser.add_argument('--pb', type=str, help='param_B_files_str')
-    parser.add_argument('--cxx_prefix', type=str, default="extern", 
+    parser.add_argument('--p', type=str, help='parameter files')
+    parser.add_argument('--cxx_prefix', type=str, default="extern",
                         help="a name to use in the C++ file names")
     parser.add_argument('--managed', action='store_true',
                         help='If supplied, use CUDA managed memory for probin variables.')
@@ -468,19 +429,14 @@ def main():
     probin_template = args.t
     out_file = args.o
     namelist_name = args.n
-    param_A_files_str = args.pa
-    param_B_files_str = args.pb
+    param_files_str = args.p
 
     if (probin_template == "" or out_file == "" or namelist_name == ""):
         sys.exit("write_probin.py: ERROR: invalid calling sequence")
 
-    param_A_files = param_A_files_str.split()
-    if param_B_files_str is not None:
-        param_B_files = param_B_files_str.split()
-    else:
-        param_B_files = []
+    param_files = param_files_str.split()
 
-    write_probin(probin_template, param_A_files, param_B_files,
+    write_probin(probin_template, param_files,
                  namelist_name, out_file, args.cxx_prefix, managed=args.managed)
 
 if __name__ == "__main__":
