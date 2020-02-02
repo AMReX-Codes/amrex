@@ -44,6 +44,26 @@ HEADER = """
 
 """
 
+CXX_F_HEADER = """
+#ifndef _external_parameters_F_H_
+#define _external_parameters_F_H_
+#include <AMReX_BLFort.H>
+
+#ifdef __cplusplus
+#include <AMReX.H>
+extern "C"
+{
+#endif
+"""
+
+CXX_F_FOOTER = """
+#ifdef __cplusplus
+}
+#endif
+
+#endif
+"""
+
 class Parameter():
     # the simple container to hold the runtime parameters
     def __init__(self):
@@ -60,6 +80,15 @@ class Parameter():
             return "character (len=256)"
         else:
             return self.dtype
+
+    def get_cxx_decl(self):
+        """ get the Fortran 90 declaration """
+        if self.dtype == "real":
+            return "amrex::Real"
+        elif self.dtype == "character":
+            return None
+        else:
+            return "int"
 
     def __lt__(self, other):
         return self.priority < other.priority
@@ -161,7 +190,7 @@ def abort(outfile):
 
 
 def write_probin(probin_template, param_A_files, param_B_files,
-                 namelist_name, out_file, managed=False):
+                 namelist_name, out_file,  cxx_prefix, managed=False):
 
     """ write_probin will read through the list of parameter files and
     output the new out_file """
@@ -169,11 +198,8 @@ def write_probin(probin_template, param_A_files, param_B_files,
     paramsA = []
     paramsB = []
 
-    try:
-        print(" ")
-        print("write_probin.py: creating {}".format(out_file))
-    except:
-        sys.exit("write_probin.py: ERROR: your version of Python is unsupported. Please update to at least Python 2.7.")
+    print(" ")
+    print("write_probin.py: creating {}".format(out_file))
 
     # read the parameters defined in the parameter files
 
@@ -192,13 +218,12 @@ def write_probin(probin_template, param_A_files, param_B_files,
 
 
     # open up the template
-
     try:
         ftemplate = open(probin_template, "r")
     except IOError:
         sys.exit("write_probin.py: ERROR: file {} does not exist".format(probin_template))
 
-    template_lines = [line for line in ftemplate]
+    template_lines = ftemplate.readlines()
 
     ftemplate.close()
 
@@ -246,8 +271,9 @@ def write_probin(probin_template, param_A_files, param_B_files,
                                 indent, p.get_f90_decl(), p.var, p.value))
                         fout.write("{}!$acc declare create({})\n".format(indent, p.var))
 
-                if pm:
+                if not pm:
                     if keyword == "declarationsA":
+                        # we always make sure there is atleast one variable
                         fout.write("{}integer, save, public :: a_dummy_var = 0\n".format(indent))
                     else:
                         fout.write("\n")
@@ -370,6 +396,9 @@ def write_probin(probin_template, param_A_files, param_B_files,
                             fout.write(", ")
 
             elif keyword == "cxx_gets":
+                # this writes out the Fortran functions that can be
+                # called from C++ to get the value of the parameters
+
                 for p in params:
                     if p.dtype == "character":
                         # we don't support character
@@ -406,6 +435,19 @@ def write_probin(probin_template, param_A_files, param_B_files,
 
     # now handle the C++ -- we need to write a header and a .cpp file
     # for the parameters + a _F.H file for the Fortran communication
+    ofile = "{}_parameters_F.H".format(cxx_prefix)
+    with open(ofile, "w") as fout:
+        fout.write(CXX_F_HEADER)
+
+        for p in params:
+            if p.dtype == "character":
+                # we don't support character
+                continue
+
+            fout.write("  void get_f90_{}({}* {});\n\n".format(
+                p.var, p.get_cxx_decl(), p.var))
+
+        fout.write(CXX_F_FOOTER)
 
 
 def main():
@@ -416,6 +458,8 @@ def main():
     parser.add_argument('-n', type=str, help='namelist_name')
     parser.add_argument('--pa', type=str, help='param_A_files_str')
     parser.add_argument('--pb', type=str, help='param_B_files_str')
+    parser.add_argument('--cxx_prefix', type=str, default="extern", 
+                        help="a name to use in the C++ file names")
     parser.add_argument('--managed', action='store_true',
                         help='If supplied, use CUDA managed memory for probin variables.')
 
@@ -437,7 +481,7 @@ def main():
         param_B_files = []
 
     write_probin(probin_template, param_A_files, param_B_files,
-                 namelist_name, out_file, args.managed)
+                 namelist_name, out_file, args.cxx_prefix, managed=args.managed)
 
 if __name__ == "__main__":
     main()
