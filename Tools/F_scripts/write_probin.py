@@ -441,7 +441,7 @@ def main():
     parser.add_argument('-t', type=str, help='probin_template')
     parser.add_argument('-o', type=str, help='out_file')
     parser.add_argument('-n', type=str, help='namelist_name')
-    parser.add_argument('--p', type=str, help='parameter files')
+    parser.add_argument('--pa', type=str, help='parameter files')
     parser.add_argument('--cxx_prefix', type=str, default="extern",
                         help="a name to use in the C++ file names")
     parser.add_argument('--managed', action='store_true',
@@ -452,7 +452,7 @@ def main():
     probin_template = args.t
     out_file = args.o
     namelist_name = args.n
-    param_files_str = args.p
+    param_files_str = args.pa
 
     if (probin_template == "" or out_file == "" or namelist_name == ""):
         sys.exit("write_probin.py: ERROR: invalid calling sequence")
