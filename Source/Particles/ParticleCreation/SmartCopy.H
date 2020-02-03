@@ -5,13 +5,13 @@
 
 #include <AMReX_GpuContainers.H>
 #include <AMReX_TypeTraits.H>
+#include <AMReX_ParallelDescriptor.H>
 
 #include <map>
 #include <string>
 
 using NameMap = std::map<std::string, int>;
 using PolicyVec = amrex::Gpu::DeviceVector<InitializationPolicy>;
-
 
 struct SmartCopyTag
 {
@@ -23,7 +23,30 @@ struct SmartCopyTag
 };
 
 PolicyVec getPolicies (const NameMap& names) noexcept;
+
 SmartCopyTag getSmartCopyTag (const NameMap& src, const NameMap& dst) noexcept;
+
+template <typename PTile>
+void setNewParticleIDs (PTile& ptile, int old_size, int num_added)
+{
+    int pid;
+#ifdef _OPENMP
+#pragma omp critical (ionization_nextid)
+#endif
+    {
+        pid = PTile::ParticleType::NextID();
+        PTile::ParticleType::NextID(pid + num_added);
+    }
+
+    const int cpuid = amrex::ParallelDescriptor::MyProc();
+    auto pp = ptile.GetArrayOfStructs()().data() + old_size;
+    amrex::For(num_added, [=] AMREX_GPU_DEVICE (int ip) noexcept
+    {
+        auto& p = pp[ip];
+        p.id() = pid+ip;
+        p.cpu() = cpuid;
+    });
+}
 
 struct SmartCopy
 {

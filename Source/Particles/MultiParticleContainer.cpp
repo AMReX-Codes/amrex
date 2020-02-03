@@ -642,14 +642,13 @@ void
 MultiParticleContainer::doFieldIonization ()
 {
     BL_PROFILE("MPC::doFieldIonization");
+
     // Loop over all species.
     // Ionized particles in pc_source create particles in pc_product
-    for (auto& pc_source : allcontainers){
-
-        // Skip if not ionizable
+    for (auto& pc_source : allcontainers)
+    {
         if (!pc_source->do_field_ionization){ continue; }
 
-        // Get product species
         auto& pc_product = allcontainers[pc_source->ionization_product];
 
         SmartCopyFactory copy_factory(*pc_source, *pc_product);
@@ -661,7 +660,6 @@ MultiParticleContainer::doFieldIonization ()
 
         for (int lev = 0; lev <= pc_source->finestLevel(); ++lev)
         {
-            // Enable tiling
             MFItInfo info;
             if (pc_source->do_tiling && Gpu::notInLaunchRegion()) {
                 AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
@@ -686,30 +684,14 @@ MultiParticleContainer::doFieldIonization ()
 
                 dst_tile.resize(np_dst + np_src);
 
-                auto num_filter = filterAndTransformParticles(dst_tile, src_tile, np_dst,
+                auto num_added = filterAndTransformParticles(dst_tile, src_tile, np_dst,
                                                               IonizationFilter,
                                                               IonizationTransformFunc(),
                                                               Copier);
 
-                dst_tile.resize(np_dst + num_filter);
+                dst_tile.resize(np_dst + num_added);
 
-                // Update NextID to include particles created in this function
-                int pid;
-#ifdef _OPENMP
-#pragma omp critical (ionization_nextid)
-#endif
-                {
-                    pid = Particle<0,0>::NextID();
-                    Particle<0,0>::NextID(pid+num_filter);
-                }
-                const int cpuid = ParallelDescriptor::MyProc();
-                auto pp = dst_tile.GetArrayOfStructs()().data() + np_dst;
-                amrex::For(num_filter, [=] AMREX_GPU_DEVICE (int ip) noexcept
-                {
-                    auto& p = pp[ip];
-                    p.id() = pid+ip;
-                    p.cpu() = cpuid;
-                });
+                setNewParticleIDs(dst_tile, np_dst, num_added);
             }
         }
     }
