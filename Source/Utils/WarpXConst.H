@@ -30,8 +30,8 @@ namespace PhysConst
     static constexpr amrex::Real hbar  = 1.054571817e-34;
     static constexpr amrex::Real alpha = mu0/(4*MathConst::pi)*q_e*q_e*c/hbar;
     static constexpr amrex::Real r_e   = 1./(4*MathConst::pi*ep0) * q_e*q_e/(m_e*c*c);
-    static constexpr amrex::Real xi    = (2.*pow(alpha,2)*pow(ep0,2)*pow(hbar,3))/
-                                         (45.*pow(m_e,4)*pow(c,5)); // SI value is 1.3050122.e-52
+    static constexpr amrex::Real xi    = (2.*alpha*alpha*ep0*ep0*hbar*hbar*hbar)/
+                                         (45.*m_e*m_e*m_e*m_e*c*c*c*c*c); // SI value is 1.3050122.e-52
 }
 
 #endif
