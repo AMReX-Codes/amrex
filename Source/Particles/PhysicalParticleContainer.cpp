@@ -2367,82 +2367,17 @@ void PhysicalParticleContainer::InitIonizationModule ()
     }
 }
 
-/* \brief create mask of ionized particles (1 if ionized, 0 otherwise)
- *
- * \param mfi: tile or grid
- * \param lev: MR level
- * \param ionization_mask: Array with as many elements as particles in mfi.
- * This function initialized the array, and set each element to 1 or 0
- * depending on whether the particle is ionized or not.
- */
-void
-PhysicalParticleContainer::buildIonizationMask (const amrex::MFIter& mfi, const int lev,
-                                                amrex::Gpu::ManagedDeviceVector<int>& ionization_mask)
+IonizationFilterFunc
+PhysicalParticleContainer::getIonizationFunc ()
 {
-    BL_PROFILE("PPC::buildIonizationMask");
+    BL_PROFILE("PPC::getIonizationFunc");
 
-    // Get pointers to ionization data from pc_source
-    const Real * const AMREX_RESTRICT p_ionization_energies = ionization_energies.dataPtr();
-    const Real * const AMREX_RESTRICT p_adk_prefactor = adk_prefactor.dataPtr();
-    const Real * const AMREX_RESTRICT p_adk_exp_prefactor = adk_exp_prefactor.dataPtr();
-    const Real * const AMREX_RESTRICT p_adk_power = adk_power.dataPtr();
-
-    const auto& ptile = ParticlesAt(lev, mfi);
-    const int np = ptile.numParticles();
-    if (np == 0) return;
-
-    ionization_mask.resize(np);
-
-    auto ptd = ptile.getConstParticleTileData();
-    int * const AMREX_RESTRICT p_ionization_mask = ionization_mask.data();
-    const int comp = particle_icomps["ionization_level"];
-
-    Real c = PhysConst::c;
-    Real c2_inv = 1./c/c;
-    int atomic_number = ion_atomic_number;
-
-    // Loop over all particles in grid/tile. If ionized, set mask to 1
-    ParallelFor(np,
-        [=] AMREX_GPU_DEVICE (long i)
-        {
-            p_ionization_mask[i] = 0;
-
-            int ion_lev = ptd.m_runtime_idata[comp][i];
-            if (ion_lev < atomic_number)
-            {
-                // Compute electric field amplitude in the particle's frame of
-                // reference (particularly important when in boosted frame).
-                ParticleReal ux = ptd.m_rdata[PIdx::ux][i];
-                ParticleReal uy = ptd.m_rdata[PIdx::uy][i];
-                ParticleReal uz = ptd.m_rdata[PIdx::uz][i];
-                ParticleReal ex = ptd.m_rdata[PIdx::Ex][i];
-                ParticleReal ey = ptd.m_rdata[PIdx::Ey][i];
-                ParticleReal ez = ptd.m_rdata[PIdx::Ez][i];
-                ParticleReal bx = ptd.m_rdata[PIdx::Bx][i];
-                ParticleReal by = ptd.m_rdata[PIdx::By][i];
-                ParticleReal bz = ptd.m_rdata[PIdx::Bz][i];
-
-                Real ga = std::sqrt(1. + (ux*ux + uy*uy + uz*uz) * c2_inv);
-                Real E = std::sqrt(
-                    - ( ux*ex + uy*ey + uz*ez ) * ( ux*ex + uy*ey + uz*ez ) * c2_inv
-                    + ( ga   *ex + uy*bz - uz*by ) * ( ga   *ex + uy*bz - uz*by )
-                    + ( ga   *ey + uz*bx - ux*bz ) * ( ga   *ey + uz*bx - ux*bz )
-                    + ( ga   *ez + ux*by - uy*bx ) * ( ga   *ez + ux*by - uy*bx )
-                    );
-                // Compute probability of ionization p
-                Real w_dtau = 1./ ga * p_adk_prefactor[ion_lev] *
-                    std::pow(E,p_adk_power[ion_lev]) *
-                    std::exp( p_adk_exp_prefactor[ion_lev]/E );
-                Real p = 1. - std::exp( - w_dtau );
-
-                Real random_draw = amrex::Random();
-                if (random_draw < p){
-                    // update mask
-                    p_ionization_mask[i] = 1;
-                }
-            }
-        }
-    );
+	return IonizationFilterFunc{ionization_energies.dataPtr(),
+								adk_prefactor.dataPtr(),
+								adk_exp_prefactor.dataPtr(),
+								adk_power.dataPtr(),
+								particle_icomps["ionization_level"],
+			                    ion_atomic_number};
 }
 
 //This function return true if the PhysicalParticleContainer contains electrons

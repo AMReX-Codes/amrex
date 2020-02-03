@@ -8,6 +8,7 @@
 #define TRANSFORMPARTICLE_H_
 
 #include "WarpXParticleContainer.H"
+#include "WarpXConst.H"
 
 enum struct ElementaryProcessType { Ionization };
 

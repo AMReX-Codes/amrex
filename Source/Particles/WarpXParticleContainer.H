@@ -11,7 +11,6 @@
 #define WARPX_WarpXParticleContainer_H_
 
 #include "WarpXDtType.H"
-#include "DefaultInitialization.H"
 
 #include <AMReX_Particles.H>
 #include <AMReX_AmrCore.H>
@@ -310,10 +309,6 @@ public:
     }
 
     int doBackTransformedDiagnostics () const { return do_back_transformed_diagnostics; }
-
-    virtual void buildIonizationMask (const amrex::MFIter& mfi, const int lev,
-                                      amrex::Gpu::ManagedDeviceVector<int>& ionization_mask)
-    {};
 
     std::map<std::string, int> getParticleComps () const noexcept { return particle_comps;}
     std::map<std::string, int> getParticleiComps () const noexcept { return particle_icomps;}
