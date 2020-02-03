@@ -648,32 +648,24 @@ MultiParticleContainer::doFieldIonization ()
     for (auto& pc_source : allcontainers)
     {
         if (!pc_source->do_field_ionization){ continue; }
-
+               
         auto& pc_product = allcontainers[pc_source->ionization_product];
 
         SmartCopyFactory copy_factory(*pc_source, *pc_product);
-        auto Copier = copy_factory.getSmartCopy();
-        auto IonizationFilter = static_cast<PhysicalParticleContainer*>(pc_source.get())->getIonizationFunc();
+        auto Copy = copy_factory.getSmartCopy();
+        auto Filter = static_cast<PhysicalParticleContainer*>(pc_source.get())->getIonizationFunc();
+        auto Transform = IonizationTransformFunc();
 
         pc_source ->defineAllParticleTiles();
         pc_product->defineAllParticleTiles();
 
         for (int lev = 0; lev <= pc_source->finestLevel(); ++lev)
         {
-            MFItInfo info;
-            if (pc_source->do_tiling && Gpu::notInLaunchRegion()) {
-                AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-                    pc_product->do_tiling,
-                    "For ionization, either all or none of the "
-                    "particle species must use tiling.");
-                info.EnableTiling(pc_source->tile_size);
-            }
+            auto info = getMFItInfo(*pc_source, *pc_product);
 
 #ifdef _OPENMP
-            info.SetDynamic(true);
-#pragma omp parallel
-#endif
-            // Loop over all grids (if not tiling) or grids and tiles (if tiling)
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif            
             for (MFIter mfi = pc_source->MakeMFIter(lev, info); mfi.isValid(); ++mfi)
             {
                 auto& src_tile = pc_source ->ParticlesAt(lev, mfi);
@@ -685,9 +677,7 @@ MultiParticleContainer::doFieldIonization ()
                 dst_tile.resize(np_dst + np_src);
 
                 auto num_added = filterAndTransformParticles(dst_tile, src_tile, np_dst,
-                                                              IonizationFilter,
-                                                              IonizationTransformFunc(),
-                                                              Copier);
+                                                              Filter, Transform, Copy);
 
                 dst_tile.resize(np_dst + num_added);
 
@@ -717,7 +707,7 @@ MultiParticleContainer::doCoulombCollisions ()
             // Loop over all grids/tiles at this level
 #ifdef _OPENMP
             info.SetDynamic(true);
-            #pragma omp parallel if (Gpu::notInLaunchRegion())
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
             for (MFIter mfi = species1->MakeMFIter(lev, info); mfi.isValid(); ++mfi){
 
@@ -729,6 +719,25 @@ MultiParticleContainer::doCoulombCollisions ()
             }
         }
     }
+}
+
+MFItInfo MultiParticleContainer::getMFItInfo (const WarpXParticleContainer& pc_src,
+                                              const WarpXParticleContainer& pc_dst) const noexcept
+{
+    MFItInfo info;
+    
+    if (pc_src.do_tiling && Gpu::notInLaunchRegion()) {
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(pc_dst.do_tiling,
+                                         "For ionization, either all or none of the "
+                                         "particle species must use tiling.");
+        info.EnableTiling(pc_src.tile_size);
+    }
+    
+#ifdef _OPENMP
+    info.SetDynamic(true);
+#endif
+    
+    return info;
 }
 
 #ifdef WARPX_QED

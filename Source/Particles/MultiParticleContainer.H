@@ -255,6 +255,9 @@ protected:
 
     std::vector<PCTypes> species_types;
 
+    amrex::MFItInfo getMFItInfo (const WarpXParticleContainer& pc_src,
+                                 const WarpXParticleContainer& pc_dst) const noexcept;
+        
 #ifdef WARPX_QED
     // The QED engines
     std::shared_ptr<BreitWheelerEngine> m_shr_p_bw_engine;
