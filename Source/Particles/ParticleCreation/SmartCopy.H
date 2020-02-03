@@ -104,11 +104,31 @@ struct SmartCopy
         // copy the shared real components
         for (int j = 0; j < m_num_copy_real; ++j)
         {
-            int src_comp = (m_src_comps_r[j] < SrcData::NAR) ? m_src_comps_r[j] : m_src_comps_r[j] - SrcData::NAR;
-            int dst_comp = (m_dst_comps_r[j] < DstData::NAR) ? m_dst_comps_r[j] : m_dst_comps_r[j] - DstData::NAR;
+            int src_comp, dst_comp;
+            amrex::ParticleReal* AMREX_RESTRICT dst_data;
+            const amrex::ParticleReal* AMREX_RESTRICT src_data;
 
-            amrex::ParticleReal* AMREX_RESTRICT dst_data = (m_dst_comps_r[j] < DstData::NAR) ? dst.m_rdata[dst_comp] : dst.m_runtime_rdata[dst_comp];
-            const amrex::ParticleReal* AMREX_RESTRICT src_data = (m_src_comps_r[j] < SrcData::NAR) ? src.m_rdata[src_comp] : src.m_runtime_rdata[src_comp];
+            if (m_src_comps_r[j] < SrcData::NAR)
+            {
+                src_comp = m_src_comps_r[j];
+                src_data = src.m_rdata[src_comp];
+            }
+            else
+            {
+                src_comp = m_src_comps_r[j] - SrcData::NAR;
+                src_data = src.m_runtime_rdata[src_comp];
+            }
+
+            if (m_dst_comps_r[j] < DstData::NAR)
+            {
+                dst_comp = m_dst_comps_r[j];
+                dst_data = dst.m_rdata[dst_comp];
+            }
+            else
+            {
+                dst_comp = m_dst_comps_r[j] - DstData::NAR;
+                dst_data = dst.m_runtime_rdata[dst_comp];
+            }
 
             dst_data[i_dst] = src_data[i_src];
         }
@@ -116,11 +136,31 @@ struct SmartCopy
         // copy the shared int components
         for (int j = 0; j < m_num_copy_int; ++j)
         {
-            int src_comp = (m_src_comps_i[j] < SrcData::NAI) ? m_src_comps_i[j] : m_src_comps_i[j] - SrcData::NAI;
-            int dst_comp = (m_dst_comps_i[j] < DstData::NAI) ? m_dst_comps_i[j] : m_dst_comps_i[j] - DstData::NAI;
+            int src_comp, dst_comp;
+            int* AMREX_RESTRICT dst_data;
+            int* AMREX_RESTRICT src_data;
 
-            int* AMREX_RESTRICT dst_data = (m_dst_comps_i[j] < DstData::NAI) ? dst.m_idata[dst_comp] : dst.m_runtime_idata[dst_comp];
-            const int* AMREX_RESTRICT src_data = (m_src_comps_i[j] < SrcData::NAI) ? src.m_idata[src_comp] : src.m_runtime_idata[src_comp];
+            if (m_src_comps_i[j] < SrcData::NAI)
+            {
+                src_comp = m_src_comps_i[j];
+                src_data = src.m_idata[src_comp];
+            }
+            else
+            {
+                src_comp = m_src_comps_i[j] - SrcData::NAI;
+                src_data = src.m_runtime_idata[src_comp];
+            }
+
+            if (m_dst_comps_i[j] < DstData::NAI)
+            {
+                dst_comp = m_dst_comps_i[j];
+                dst_data = dst.m_idata[dst_comp];
+            }
+            else
+            {
+                dst_comp = m_dst_comps_i[j] - DstData::NAI;
+                dst_data = dst.m_runtime_idata[dst_comp];
+            }
 
             dst_data[i_dst] = src_data[i_src];
         }
