@@ -12,9 +12,38 @@
 
 namespace amrex {
 
+struct AmrInfo {
+    int verbose = 0;
+    // Maximum allowed level.
+    int max_level = 0;
+    // Refinement ratios
+    Vector<IntVect> ref_ratio {{IntVect(2)}};
+    // Blocking factor in grid generation (by level).
+    Vector<IntVect> blocking_factor {{IntVect(8)}};
+    // Maximum allowable grid size (by level).
+    Vector<IntVect> max_grid_size {{IntVect(AMREX_D_PICK(128,128,32))}};
+    // Buffer cells around each tagged cell.
+    Vector<IntVect> n_error_buf {{IntVect(1)}};
+    // Grid efficiency.
+    Real grid_eff = 0.7;
+    // Cells required for proper nesting.
+    int n_proper = 1;
+    int use_fixed_upto_level = 0;
+    bool use_fixed_coarse_grids = false;
+    //chop up grids to have the number of grids no less the number of procs
+    bool refine_grid_layout = true;
+    bool check_input = true;
+    bool use_new_chop = false;
+    bool iterate_on_new_grids = true;
+};
+
 class AmrMesh
+    : protected AmrInfo
 {
 public:
+
+    friend std::ostream& operator<< (std::ostream& os, AmrMesh const& amr_mesh);
+
     AmrMesh ();
 
     AmrMesh (const RealBox* rb, int max_level_in,
@@ -27,13 +56,15 @@ public:
              Vector<IntVect> const& ref_ratios,
              Array<int,AMREX_SPACEDIM> const& is_per);
 
+    AmrMesh (Geometry const& level_0_geom, AmrInfo const& amr_info);
+
     AmrMesh (const AmrMesh& rhs) = delete;
     AmrMesh& operator= (const AmrMesh& rhs) = delete;
 
     AmrMesh (AmrMesh&& rhs) = default;
     AmrMesh& operator= (AmrMesh&& rhs) = default;
 
-    virtual ~AmrMesh ();
+    virtual ~AmrMesh () = default;
 
     int Verbose () const noexcept { return verbose; }
 
@@ -202,31 +233,9 @@ public:
 
     long CountCells (int lev) noexcept;
 
-    static void Initialize ();
-    static void Finalize ();
-
 protected:
 
-    int              verbose;
-    int              max_level;       //!< Maximum allowed level.
-    Vector<IntVect>  ref_ratio;       //!< Refinement ratios [0:finest_level-1]
-
-    int              finest_level;    //!< Current finest level.
-
-    Vector<IntVect>  n_error_buf;     //!< Buffer cells around each tagged cell.
-    Vector<IntVect>  blocking_factor; //!< Blocking factor in grid generation (by level).
-    Vector<IntVect>  max_grid_size;   //!< Maximum allowable grid size (by level).
-    Real             grid_eff;        //!< Grid efficiency.
-    int              n_proper;        //!< # cells required for proper nesting.
-
-    bool use_fixed_coarse_grids;
-    int  use_fixed_upto_level;
-    bool refine_grid_layout; //!< chop up grids to have the number of grids no less the number of procs
-    bool check_input;
-
-    bool iterate_on_new_grids;
-    bool use_new_chop;
-
+    int finest_level;    //!< Current finest level.
     Vector<Geometry>            geom;
     Vector<DistributionMapping> dmap;
     Vector<BoxArray>            grids;
@@ -247,6 +256,8 @@ private:
     static void ProjPeriodic (BoxList& bd, const Box& domain,
                               Array<int,AMREX_SPACEDIM> const& is_per);
 };
+
+std::ostream& operator<< (std::ostream& os, AmrMesh const& amr_mesh);
 
 }
 
