@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
 
+# Copyright 2019-2020 Axel Huebl, Glenn Richardson, Maxence Thevenet
+#
+# This file is part of WarpX.
+#
+# License: BSD-3-Clause-LBNL
+
 import sys
 import yt ; yt.funcs.mylog.setLevel(0)
 import numpy as np
