@@ -138,7 +138,7 @@ public:
  */
 template <typename DstTile, typename SrcTile, typename Index, typename TransFunc, typename CopyFunc,
           amrex::EnableIf_t<std::is_integral<Index>::value, int> foo = 0>
-Index filterAndTransformParticles (DstTile& dst, SrcTile& src, Index* mask,
+Index filterAndTransformParticles (DstTile& dst, SrcTile& src, Index* mask, int dst_index,
                                    TransFunc&& t, CopyFunc&& f) noexcept
 {
     using namespace amrex;
@@ -159,8 +159,8 @@ Index filterAndTransformParticles (DstTile& dst, SrcTile& src, Index* mask,
     {
         if (mask[i])
         {
-            f(dst_data, src_data, i, p_offsets[i]);
-            t(dst_data, src_data, i, p_offsets[i]);
+            f(dst_data, src_data, i, p_offsets[i] + dst_index);
+            t(dst_data, src_data, i, p_offsets[i] + dst_index);
         }
     });
 
@@ -184,7 +184,7 @@ Index filterAndTransformParticles (DstTile& dst, SrcTile& src, Index* mask,
  *
  */
 template <typename DstTile, typename SrcTile, typename PredFunc, typename TransFunc, typename CopyFunc>
-int filterAndTransformParticles (DstTile& dst, SrcTile& src,
+int filterAndTransformParticles (DstTile& dst, SrcTile& src, int dst_index,
                                  PredFunc&& p, TransFunc&& t, CopyFunc&& f) noexcept
 {
     auto np = src.numParticles();
@@ -198,7 +198,7 @@ int filterAndTransformParticles (DstTile& dst, SrcTile& src,
         p_mask[i] = p(src_data, i);
     });
 
-    return filterAndTransformParticles(dst, src, mask.dataPtr(),
+    return filterAndTransformParticles(dst, src, mask.dataPtr(), dst_index,
                                        std::forward<TransFunc>(t),
                                        std::forward<CopyFunc>(f));
 }

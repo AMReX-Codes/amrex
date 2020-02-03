@@ -686,7 +686,7 @@ MultiParticleContainer::doFieldIonization ()
 
                 dst_tile.resize(np_dst + np_src);
 
-                auto num_filter = filterAndTransformParticles(dst_tile, src_tile,
+                auto num_filter = filterAndTransformParticles(dst_tile, src_tile, np_dst,
                                                               IonizationFilter,
                                                               IonizationTransformFunc(),
                                                               Copier);
