@@ -63,7 +63,6 @@ MultiParticleContainer::MultiParticleContainer (AmrCore* amr_core)
             nspecies_back_transformed_diagnostics += 1;
         }
     }
-    ionization_process = IonizationProcess();
 
     // collision
     allcollisions.resize(ncollisions);

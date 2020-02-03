@@ -1,7 +1,5 @@
-CEXE_headers += ElementaryProcess.H
-CEXE_headers += CopyParticle.H
-CEXE_headers += TransformParticle.H
 CEXE_headers += DefaultInitialization.H
+CEXE_headers += Ionization.H
 CEXE_headers += SmartCopy.H
 CEXE_sources += SmartCopy.cpp
 
