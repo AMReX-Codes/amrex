@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright 2020 Axel Huebl, Glenn Richardson, Maxence Thevenet
+# Copyright 2019-2020 Axel Huebl, Glenn Richardson, Maxence Thevenet
 #
 # This file is part of WarpX.
 #
