@@ -1,4 +1,4 @@
-/* Copyright 2019 Glenn Richardson, Maxence Thevenet
+/* Copyright 2020 Glenn Richardson, Maxence Thevenet
  *
  * This file is part of WarpX.
  *
