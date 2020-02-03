@@ -4,10 +4,11 @@
 #include <AMReX_GpuContainers.H>
 #include <AMReX_TypeTraits.H>
 
-template <typename DstTile, typename SrcTile, typename Index, typename TransFunc, typename CopyFunc,
+template <typename DstTile, typename SrcTile, typename Index,
+          typename TransFunc, typename CopyFunc,
           amrex::EnableIf_t<std::is_integral<Index>::value, int> foo = 0>
-Index filterCopyTransformParticles (DstTile& dst, SrcTile& src, Index* mask, int dst_index,
-                                    CopyFunc&& f, TransFunc&& t) noexcept
+Index filterCopyTransformParticles (DstTile& dst, SrcTile& src, Index* mask, Index dst_index,
+                                    CopyFunc&& copy, TransFunc&& transform) noexcept
 {
     using namespace amrex;
     auto np = src.numParticles();
@@ -27,8 +28,8 @@ Index filterCopyTransformParticles (DstTile& dst, SrcTile& src, Index* mask, int
     {
         if (mask[i])
         {
-            f(dst_data, src_data, i, p_offsets[i] + dst_index);
-            t(dst_data, src_data, i, p_offsets[i] + dst_index);
+            copy(dst_data, src_data, i, p_offsets[i] + dst_index);
+            transform(dst_data, src_data, i, p_offsets[i] + dst_index);
         }
     });
 
@@ -36,25 +37,26 @@ Index filterCopyTransformParticles (DstTile& dst, SrcTile& src, Index* mask, int
     return last_mask + last_offset;
 }
 
-template <typename DstTile, typename SrcTile, typename PredFunc, typename TransFunc, typename CopyFunc>
-int filterCopyTransformParticles (DstTile& dst, SrcTile& src, int dst_index,
-                                  PredFunc&& p, CopyFunc&& f, TransFunc&& t) noexcept
+template <typename DstTile, typename SrcTile, typename Index,
+          typename PredFunc, typename TransFunc, typename CopyFunc>
+Index filterCopyTransformParticles (DstTile& dst, SrcTile& src, Index dst_index,
+                                    PredFunc&& filter, CopyFunc&& copy, TransFunc&& transform) noexcept
 {
     using namespace amrex;
     auto np = src.numParticles();
-    Gpu::DeviceVector<int> mask(np);
+    Gpu::DeviceVector<Index> mask(np);
 
     auto p_mask = mask.dataPtr();
     const auto src_data = src.getParticleTileData();
 
     AMREX_HOST_DEVICE_FOR_1D(np, i,
     {
-        p_mask[i] = p(src_data, i);
+        p_mask[i] = filter(src_data, i);
     });
 
     return filterCopyTransformParticles(dst, src, mask.dataPtr(), dst_index,
-                                        std::forward<TransFunc>(t),
-                                        std::forward<CopyFunc>(f));
+                                        std::forward<CopyFunc>(copy),
+                                        std::forward<TransFunc>(transform));
 }
 
 #endif
