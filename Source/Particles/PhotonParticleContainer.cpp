@@ -21,7 +21,7 @@
 
 // Import low-level single-particle kernels
 #include <UpdatePositionPhoton.H>
-
+#include <GetAndSetPosition.H>
 
 using namespace amrex;
 
@@ -57,19 +57,13 @@ void PhotonParticleContainer::InitData()
 }
 
 void
-PhotonParticleContainer::PushPX(WarpXParIter& pti,
-                                Gpu::ManagedDeviceVector<ParticleReal>& xp,
-                                Gpu::ManagedDeviceVector<ParticleReal>& yp,
-                                Gpu::ManagedDeviceVector<ParticleReal>& zp,
-                                Real dt, DtType a_dt_type)
+PhotonParticleContainer::PushPX(WarpXParIter& pti, Real dt, DtType a_dt_type)
 {
 
     // This wraps the momentum and position advance so that inheritors can modify the call.
     auto& attribs = pti.GetAttribs();
+
     // Extract pointers to the different particle quantities
-    ParticleReal* const AMREX_RESTRICT x = xp.dataPtr();
-    ParticleReal* const AMREX_RESTRICT y = yp.dataPtr();
-    ParticleReal* const AMREX_RESTRICT z = zp.dataPtr();
     ParticleReal* const AMREX_RESTRICT ux = attribs[PIdx::ux].dataPtr();
     ParticleReal* const AMREX_RESTRICT uy = attribs[PIdx::uy].dataPtr();
     ParticleReal* const AMREX_RESTRICT uz = attribs[PIdx::uz].dataPtr();
@@ -82,15 +76,19 @@ PhotonParticleContainer::PushPX(WarpXParIter& pti,
 
     if (WarpX::do_back_transformed_diagnostics && do_back_transformed_diagnostics)
     {
-        copy_attribs(pti, x, y, z);
+        copy_attribs(pti);
     }
+
+    const auto GetPosition = GetParticlePosition(pti);
+          auto SetPosition = SetParticlePosition(pti);
 
     amrex::ParallelFor(
         pti.numParticles(),
         [=] AMREX_GPU_DEVICE (long i) {
-
-            UpdatePositionPhoton( x[i], y[i], z[i],
-                            ux[i], uy[i], uz[i], dt );
+            ParticleReal x, y, z;
+            GetPosition(i, x, y, z);
+            UpdatePositionPhoton( x, y, z, ux[i], uy[i], uz[i], dt );
+            SetPosition(i, x, y, z);
         }
     );
 }

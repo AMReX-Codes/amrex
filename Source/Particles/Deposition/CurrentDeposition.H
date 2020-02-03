@@ -8,6 +8,7 @@
 #ifndef CURRENTDEPOSITION_H_
 #define CURRENTDEPOSITION_H_
 
+#include "GetAndSetPosition.H"
 #include "ShapeFactors.H"
 #include <WarpX_Complex.H>
 
@@ -16,7 +17,7 @@
 
 /**
  * \brief Current Deposition for thread thread_num
- * /param xp, yp, zp   : Pointer to arrays of particle positions.
+ * /param GetPosition : A functor for returning the particle position.
  * \param wp           : Pointer to array of particle weights.
  * \param uxp uyp uzp  : Pointer to arrays of particle momentum.
  * \param ion_lev      : Pointer to array of particle ionization level. This is
@@ -34,9 +35,7 @@
  * /param q            : species charge.
  */
 template <int depos_order>
-void doDepositionShapeN(const amrex::ParticleReal * const xp,
-                        const amrex::ParticleReal * const yp,
-                        const amrex::ParticleReal * const zp,
+void doDepositionShapeN(const GetParticlePosition& GetPosition,
                         const amrex::ParticleReal * const wp,
                         const amrex::ParticleReal * const uxp,
                         const amrex::ParticleReal * const uyp,
@@ -95,6 +94,10 @@ void doDepositionShapeN(const amrex::ParticleReal * const xp,
             if (do_ionization){
                 wq *= ion_lev[ip];
             }
+
+            amrex::ParticleReal xp, yp, zp;
+            GetPosition(ip, xp, yp, zp);
+
             const amrex::Real vx  = uxp[ip]*gaminv;
             const amrex::Real vy  = uyp[ip]*gaminv;
             const amrex::Real vz  = uzp[ip]*gaminv;
@@ -102,8 +105,8 @@ void doDepositionShapeN(const amrex::ParticleReal * const xp,
 #if (defined WARPX_DIM_RZ)
             // In RZ, wqx is actually wqr, and wqy is wqtheta
             // Convert to cylinderical at the mid point
-            const amrex::Real xpmid = xp[ip] - 0.5*dt*vx;
-            const amrex::Real ypmid = yp[ip] - 0.5*dt*vy;
+            const amrex::Real xpmid = xp - 0.5*dt*vx;
+            const amrex::Real ypmid = yp - 0.5*dt*vy;
             const amrex::Real rpmid = std::sqrt(xpmid*xpmid + ypmid*ypmid);
             amrex::Real costheta;
             amrex::Real sintheta;
@@ -128,7 +131,7 @@ void doDepositionShapeN(const amrex::ParticleReal * const xp,
 #if (defined WARPX_DIM_RZ)
             const amrex::Real xmid = (rpmid - xmin)*dxi;
 #else
-            const amrex::Real xmid = (xp[ip] - xmin)*dxi - dts2dx*vx;
+            const amrex::Real xmid = (xp - xmin)*dxi - dts2dx*vx;
 #endif
             // j_j[xyz] leftmost grid point in x that the particle touches for the centering of each current
             // sx_j[xyz] shape factor along x for the centering of each current
@@ -153,7 +156,7 @@ void doDepositionShapeN(const amrex::ParticleReal * const xp,
 
 #if (defined WARPX_DIM_3D)
             // y direction
-            const amrex::Real ymid = (yp[ip] - ymin)*dyi - dts2dy*vy;
+            const amrex::Real ymid = (yp - ymin)*dyi - dts2dy*vy;
             amrex::Real sy_node[depos_order + 1];
             amrex::Real sy_cell[depos_order + 1];
             int k_node;
@@ -173,7 +176,7 @@ void doDepositionShapeN(const amrex::ParticleReal * const xp,
 #endif
 
             // z direction
-            const amrex::Real zmid = (zp[ip] - zmin)*dzi - dts2dz*vz;
+            const amrex::Real zmid = (zp - zmin)*dzi - dts2dz*vz;
             amrex::Real sz_node[depos_order + 1];
             amrex::Real sz_cell[depos_order + 1];
             int l_node;
@@ -230,7 +233,7 @@ void doDepositionShapeN(const amrex::ParticleReal * const xp,
 /**
  * \brief Esirkepov Current Deposition for thread thread_num
  *
- * \param xp, yp, zp   : Pointer to arrays of particle positions.
+ * /param GetPosition : A functor for returning the particle position.
  * \param wp           : Pointer to array of particle weights.
  * \param uxp uyp uzp  : Pointer to arrays of particle momentum.
  * \param ion_lev      : Pointer to array of particle ionization level. This is
@@ -249,9 +252,7 @@ void doDepositionShapeN(const amrex::ParticleReal * const xp,
  * \param n_rz_azimuthal_modes: Number of azimuthal modes when using RZ geometry
  */
 template <int depos_order>
-void doEsirkepovDepositionShapeN (const amrex::ParticleReal * const xp,
-                                  const amrex::ParticleReal * const yp,
-                                  const amrex::ParticleReal * const zp,
+void doEsirkepovDepositionShapeN (const GetParticlePosition& GetPosition,
                                   const amrex::ParticleReal * const wp,
                                   const amrex::ParticleReal * const uxp,
                                   const amrex::ParticleReal * const uyp,
@@ -308,14 +309,18 @@ void doEsirkepovDepositionShapeN (const amrex::ParticleReal * const xp,
 
             // --- Get particle quantities
         Real const gaminv = 1.0/std::sqrt(1.0 + uxp[ip]*uxp[ip]*clightsq
-                                                         + uyp[ip]*uyp[ip]*clightsq
-                                                         + uzp[ip]*uzp[ip]*clightsq);
+                                              + uyp[ip]*uyp[ip]*clightsq
+                                              + uzp[ip]*uzp[ip]*clightsq);
 
             // wqx, wqy wqz are particle current in each direction
             Real wq = q*wp[ip];
             if (do_ionization){
                 wq *= ion_lev[ip];
             }
+
+            ParticleReal xp, yp, zp;
+            GetPosition(ip, xp, yp, zp);
+
             Real const wqx = wq*invdtdx;
 #if (defined WARPX_DIM_3D)
             Real const wqy = wq*invdtdy;
@@ -324,17 +329,18 @@ void doEsirkepovDepositionShapeN (const amrex::ParticleReal * const xp,
 
             // computes current and old position in grid units
 #if (defined WARPX_DIM_RZ)
-            Real const xp_mid = xp[ip] - 0.5_rt * dt*uxp[ip]*gaminv;
-            Real const yp_mid = yp[ip] - 0.5_rt * dt*uyp[ip]*gaminv;
-            Real const xp_old = xp[ip] - dt*uxp[ip]*gaminv;
-            Real const yp_old = yp[ip] - dt*uyp[ip]*gaminv;
-            Real const rp_new = std::sqrt(xp[ip]*xp[ip] + yp[ip]*yp[ip]);
+            Real const xp_mid = xp - 0.5_rt * dt*uxp[ip]*gaminv;
+            Real const yp_mid = yp - 0.5_rt * dt*uyp[ip]*gaminv;
+            Real const xp_old = xp - dt*uxp[ip]*gaminv;
+            Real const yp_old = yp - dt*uyp[ip]*gaminv;
+            Real const rp_new = std::sqrt(xp*xp
+                                        + yp*yp);
             Real const rp_mid = std::sqrt(xp_mid*xp_mid + yp_mid*yp_mid);
             Real const rp_old = std::sqrt(xp_old*xp_old + yp_old*yp_old);
             Real costheta_new, sintheta_new;
             if (rp_new > 0._rt) {
-                costheta_new = xp[ip]/rp_new;
-                sintheta_new = yp[ip]/rp_new;
+                costheta_new = xp/rp_new;
+                sintheta_new = yp/rp_new;
             } else {
                 costheta_new = 1.;
                 sintheta_new = 0.;
@@ -361,14 +367,14 @@ void doEsirkepovDepositionShapeN (const amrex::ParticleReal * const xp,
             Real const x_new = (rp_new - xmin)*dxi;
             Real const x_old = (rp_old - xmin)*dxi;
 #else
-            Real const x_new = (xp[ip] - xmin)*dxi;
+            Real const x_new = (xp - xmin)*dxi;
             Real const x_old = x_new - dtsdx0*uxp[ip]*gaminv;
 #endif
 #if (defined WARPX_DIM_3D)
-            Real const y_new = (yp[ip] - ymin)*dyi;
+            Real const y_new = (yp - ymin)*dyi;
             Real const y_old = y_new - dtsdy0*uyp[ip]*gaminv;
 #endif
-            Real const z_new = (zp[ip] - zmin)*dzi;
+            Real const z_new = (zp - zmin)*dzi;
             Real const z_old = z_new - dtsdz0*uzp[ip]*gaminv;
 
 #if (defined WARPX_DIM_RZ)
