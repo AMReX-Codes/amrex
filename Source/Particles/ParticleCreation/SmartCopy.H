@@ -9,6 +9,8 @@
 #include <string>
 
 using NameMap = std::map<std::string, int>;
+using PolicyVec = amrex::Gpu::DeviceVector<InitializationPolicy>;
+
 
 struct SmartCopyTag
 {
@@ -19,14 +21,8 @@ struct SmartCopyTag
     int size () const noexcept { return common_names.size(); }
 };
 
-struct DefaultInitializationTag
-{
-	amrex::Gpu::DeviceVector<InitializationPolicy> m_policy_real;
-    amrex::Gpu::DeviceVector<InitializationPolicy> m_policy_int;	
-
-};
-
-SmartCopyTag getSmartCopyTag (const NameMap& src, const NameMap& dst);
+PolicyVec getPolicies (const NameMap& names) noexcept;
+SmartCopyTag getSmartCopyTag (const NameMap& src, const NameMap& dst) noexcept;
 
 struct SmartCopy
 {
@@ -90,8 +86,8 @@ class SmartCopyFactory
 {
     SmartCopyTag m_tag_real;
     SmartCopyTag m_tag_int;
-    amrex::Gpu::DeviceVector<InitializationPolicy> m_policy_real;
-    amrex::Gpu::DeviceVector<InitializationPolicy> m_policy_int;	
+    PolicyVec m_policy_real;
+    PolicyVec m_policy_int;	
     bool m_defined;
 
 public:	
@@ -102,19 +98,8 @@ public:
         m_tag_real = getSmartCopyTag(src.getParticleComps(),  dst.getParticleComps());
         m_tag_int  = getSmartCopyTag(src.getParticleiComps(), dst.getParticleiComps());
 
-		auto real_comps = dst.getParticleComps();
-		m_policy_real.resize(real_comps.size());
-		for (const auto& kv : real_comps)
-        {
-            m_policy_real[kv.second] = initialization_policies[kv.first];
-        }
-
-		auto int_comps = dst.getParticleiComps();
-		m_policy_int.resize(int_comps.size());
-		for (const auto& kv : int_comps)
-        {
-            m_policy_int[kv.second] = initialization_policies[kv.first];
-        }
+		m_policy_real = getPolicies(dst.getParticleComps());
+		m_policy_int  = getPolicies(dst.getParticleiComps());
 		
         m_defined = true;
     }

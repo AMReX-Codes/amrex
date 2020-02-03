@@ -42,9 +42,9 @@ static std::map<std::string, InitializationPolicy> initialization_policies = {
     {"Bx",    InitializationPolicy::Zero },
     {"By",    InitializationPolicy::Zero },
     {"Bz",    InitializationPolicy::Zero },
-    #ifdef WARPX_DIM_RZ
+#ifdef WARPX_DIM_RZ
     {"theta", InitializationPolicy::Zero},
-    #endif
+#endif
     {"tau",   InitializationPolicy::RandomTau}
 };
 
