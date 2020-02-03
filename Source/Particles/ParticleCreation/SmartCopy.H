@@ -27,7 +27,7 @@ SmartCopyTag getSmartCopyTag (const NameMap& src, const NameMap& dst) noexcept;
 
 /**
  * \brief Sets the ids of newly created particles to the next values.
- * 
+ *
  * \tparam PTile the particle tile type
  *
  * \param ptile the particle tile
@@ -171,7 +171,7 @@ struct SmartCopy
  * \brief A factory for creating SmartCopy functors.
  *
  * Given two particle containers, this can create a functor
- * that will perform the smart copy operation between those 
+ * that will perform the smart copy operation between those
  * particle container's tiles.
  */
 class SmartCopyFactory

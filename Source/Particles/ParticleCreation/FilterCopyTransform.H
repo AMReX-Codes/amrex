@@ -7,10 +7,10 @@
 /**
  * \brief Apply a filter, copy, and transform operation to the particles
  * in src, in that order, writing the result to dst, starting at dst_index.
- * 
+ *
  * Note that the transform function operates on both the src and the dst,
  * so both can be modified.
- * 
+ *
  * \tparam DstTile the dst particle tile type
  * \tparam SrcTile the src particle tile type
  * \tparam Index the index type, e.g. unsigned int
@@ -61,10 +61,10 @@ Index filterCopyTransformParticles (DstTile& dst, SrcTile& src, Index* mask, Ind
 /**
  * \brief Apply a filter, copy, and transform operation to the particles
  * in src, in that order, writing the result to dst, starting at dst_index.
- * 
+ *
  * Note that the transform function operates on both the src and the dst,
  * so both can be modified.
- * 
+ *
  * \tparam DstTile the dst particle tile type
  * \tparam SrcTile the src particle tile type
  * \tparam Index the index type, e.g. unsigned int
