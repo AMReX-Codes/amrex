@@ -328,8 +328,24 @@ namespace amrex
     }
 #endif
 
-    void InterpFromCoarseLevel (MultiFab& mf, Real time, const MultiFab& cmf,
-                                int scomp, int dcomp, int ncomp,
+    void InterpFromCoarseLevel (MultiFab& mf, Real time,
+                                const MultiFab& cmf, int scomp, int dcomp, int ncomp,
+                                const Geometry& cgeom, const Geometry& fgeom,
+                                PhysBCFunctBase& cbc, int cbccomp,
+                                PhysBCFunctBase& fbc, int fbccomp,
+                                const IntVect& ratio,
+                                Interpolater* mapper,
+                                const Vector<BCRec>& bcs, int bcscomp,
+                                const InterpHook& pre_interp,
+                                const InterpHook& post_interp)
+    {
+        InterpFromCoarseLevel(mf,mf.nGrowVect(),time,cmf,scomp,dcomp,ncomp,cgeom,fgeom,
+                              cbc,cbccomp,fbc,fbccomp,ratio,mapper,bcs,bcscomp,
+                              pre_interp,post_interp);
+    }
+
+    void InterpFromCoarseLevel (MultiFab& mf, IntVect const& ngrow, Real time,
+                                const MultiFab& cmf, int scomp, int dcomp, int ncomp,
                                 const Geometry& cgeom, const Geometry& fgeom,
                                 PhysBCFunctBase& cbc, int cbccomp,
                                 PhysBCFunctBase& fbc, int fbccomp,
@@ -343,7 +359,6 @@ namespace amrex
 
 	const BoxArray& ba = mf.boxArray();
 	const DistributionMapping& dm = mf.DistributionMap();
-	const IntVect& ngrow = mf.nGrowVect();
 
 	const IndexType& typ = ba.ixType();
 
@@ -394,7 +409,9 @@ namespace amrex
             {
                 FArrayBox& sfab = mf_crse_patch[mfi];
                 FArrayBox& dfab = mf[mfi];
-                const Box& dbx = dfab.box() & fdomain_g;
+                Box dfab_bx = dfab.box();
+                dfab_bx.grow(ngrow-mf.nGrowVect());
+                const Box& dbx = dfab_bx & fdomain_g;
 
                 amrex::setBC(dbx,fdomain,bcscomp,0,ncomp,bcs,bcr);
 
@@ -416,7 +433,7 @@ namespace amrex
             }
 	}
 
-	fbc.FillBoundary(mf, dcomp, ncomp, mf.nGrowVect(), time, fbccomp);
+	fbc.FillBoundary(mf, dcomp, ncomp, ngrow, time, fbccomp);
     }
 
 #ifndef BL_NO_FORT
