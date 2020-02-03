@@ -653,8 +653,8 @@ MultiParticleContainer::doFieldIonization ()
         SmartCopyFactory copy_factory(*pc_source, *pc_product);
         auto phys_pc_ptr = static_cast<PhysicalParticleContainer*>(pc_source.get());
 
-        auto Copy      = copy_factory.getSmartCopy();
         auto Filter    = phys_pc_ptr->getIonizationFunc();
+        auto Copy      = copy_factory.getSmartCopy();
         auto Transform = IonizationTransformFunc();
 
         pc_source ->defineAllParticleTiles();
@@ -677,8 +677,8 @@ MultiParticleContainer::doFieldIonization ()
 
                 dst_tile.resize(np_dst + np_src);
 
-                auto num_added = filterAndTransformParticles(dst_tile, src_tile, np_dst,
-                                                             Filter, Transform, Copy);
+                auto num_added = filterCopyTransformParticles(dst_tile, src_tile, np_dst,
+                                                              Filter, Copy, Transform);
 
                 dst_tile.resize(np_dst + num_added);
 

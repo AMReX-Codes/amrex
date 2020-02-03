@@ -18,6 +18,7 @@
 #include <LaserParticleContainer.H>
 #include <WarpXParserWrapper.H>
 #include <SmartCopy.H>
+#include <FilterCopyTransform.H>
 
 #include <AMReX_Particles.H>
 #ifdef WARPX_QED
