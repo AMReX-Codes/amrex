@@ -315,8 +315,8 @@ public:
                                       amrex::Gpu::ManagedDeviceVector<int>& ionization_mask)
     {};
 
-    std::map<std::string, int> getParticleComps () { return particle_comps;}
-    std::map<std::string, int> getParticleiComps () { return particle_icomps;}
+    std::map<std::string, int> getParticleComps () const noexcept { return particle_comps;}
+    std::map<std::string, int> getParticleiComps () const noexcept { return particle_icomps;}
 
     //amrex::Real getCharge () {return charge;}
     amrex::ParticleReal getCharge () const {return charge;}
@@ -396,8 +396,6 @@ protected:
     amrex::Vector<std::string> plot_vars;
 
     amrex::Vector<std::map<PairIndex, std::array<DataContainer, TmpIdx::nattribs> > > tmp_particle_data;
-
-    DefaultInitializerFactory m_default_initializer_factory;
 
     void defineAllParticleTiles () noexcept;
 

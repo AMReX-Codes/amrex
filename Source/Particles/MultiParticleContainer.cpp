@@ -652,6 +652,9 @@ MultiParticleContainer::doFieldIonization ()
         // Get product species
         auto& pc_product = allcontainers[pc_source->ionization_product];
 
+		SmartCopyFactory copy_factory(*pc_source, *pc_product);
+		auto Copier = copy_factory.getSmartCopy();
+		
         pc_source ->defineAllParticleTiles();
         pc_product->defineAllParticleTiles();
 

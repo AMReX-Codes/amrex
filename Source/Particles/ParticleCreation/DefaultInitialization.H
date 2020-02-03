@@ -28,35 +28,6 @@
 enum struct InitializationPolicy {Zero=0, One, SignalingNan, RandomTau};
 
 /**
- * \brief This is a functor that implements the above InitializationPolicies
- * in a switch statement. It is designed to be used in device code when
- * running on GPUs.
- */
-struct DefaultInitializer
-{
-    const InitializationPolicy* m_policies;
-
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    amrex::Real operator() (int j) const noexcept
-    {
-        switch (m_policies[j]) {
-            case InitializationPolicy::Zero : return 0.0;
-            case InitializationPolicy::One  : return 1.0;
-            case InitializationPolicy::SignalingNan : {
-                return 1.0;
-            }
-            case InitializationPolicy::RandomTau : {
-                return 1.0;
-            }
-            default : {
-                amrex::Abort("Initialization Policy not recognized");
-                return 1.0;
-            }
-        }
-    }
-};
-
-/**
  * \brief This map sets the initialization policy for each particle component
  * used in WarpX.
  */
@@ -74,41 +45,42 @@ static std::map<std::string, InitializationPolicy> initialization_policies = {
     #ifdef WARPX_DIM_RZ
     {"theta", InitializationPolicy::Zero},
     #endif
-    {"tau", InitializationPolicy::RandomTau}
+    {"tau",   InitializationPolicy::RandomTau}
 };
 
-/**
- * \brief This is a factory class that creates instances of "DefaultInitializer".
- * Each particle type in WarpX has one of these associated with it. While
- * "DefaultInitializer" is a lightweight class intended to be used on the device,
- * this class is meant to be used on the host.
- */
-class DefaultInitializerFactory
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+amrex::ParticleReal initializeRealValue (const InitializationPolicy policy) noexcept
 {
-    amrex::Gpu::DeviceVector<InitializationPolicy> m_policies;
-    bool m_defined;
+	switch (policy) {
+	    case InitializationPolicy::Zero : return 0.0;
+	    case InitializationPolicy::One  : return 1.0;
+	    case InitializationPolicy::SignalingNan : {
+			return 1.0;
+		}
+	    case InitializationPolicy::RandomTau : {
+			return 1.0;
+		}
+	    default : {
+			amrex::Abort("Initialization Policy not recognized");
+			return 1.0;
+		}
+	}	
+}
 
-public:
-
-    DefaultInitializerFactory () noexcept : m_defined(false) {};
-
-    void define (const std::map<std::string, int>& comps) noexcept
-    {
-        m_policies.resize(comps.size());
-        for (const auto& kv : comps)
-        {
-            m_policies[kv.second] = initialization_policies[kv.first];
-            m_defined = true;
-        }
-    }
-
-    DefaultInitializer getDefaultInitializer () const noexcept
-    {
-        AMREX_ASSERT(m_defined);
-        return DefaultInitializer{m_policies.dataPtr()};
-    }
-
-    bool isDefined () const noexcept { return m_defined; }
-};
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+int initializeIntValue (const InitializationPolicy policy) noexcept
+{
+	switch (policy) {
+	    case InitializationPolicy::Zero : return 0;
+	    case InitializationPolicy::One  : return 1;
+	    case InitializationPolicy::SignalingNan : {
+			return 1;
+		}
+	    default : {
+			amrex::Abort("Initialization Policy not recognized");
+			return 1;
+		}
+	}	
+}
 
 #endif
