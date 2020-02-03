@@ -17,15 +17,11 @@
  * The specific meanings are as follows:
  *     Zero         - set the component to zero
  *     One          - set the component to one
- *     SignalingNan - set the component to a signalling nan. If you run
- *                    with amrex.fpe_trap_invalid=1 AND built the code
- *                    with gcc, this will throw an exception the first time
- *                    it is used.
  *     RandomTau    - a special flag for the "tau" component used by certain
  *                    QED processes, which gets a random initial value.
  *
  */
-enum struct InitializationPolicy {Zero=0, One, SignalingNan, RandomTau};
+enum struct InitializationPolicy {Zero=0, One, RandomTau};
 
 /**
  * \brief This map sets the initialization policy for each particle component
@@ -54,11 +50,8 @@ amrex::ParticleReal initializeRealValue (const InitializationPolicy policy) noex
     switch (policy) {
         case InitializationPolicy::Zero : return 0.0;
         case InitializationPolicy::One  : return 1.0;
-        case InitializationPolicy::SignalingNan : {
-            return 1.0;
-        }
         case InitializationPolicy::RandomTau : {
-            return 1.0;
+            return amrex::Random();
         }
         default : {
             amrex::Abort("Initialization Policy not recognized");
@@ -73,9 +66,6 @@ int initializeIntValue (const InitializationPolicy policy) noexcept
     switch (policy) {
         case InitializationPolicy::Zero : return 0;
         case InitializationPolicy::One  : return 1;
-        case InitializationPolicy::SignalingNan : {
-            return 1;
-        }
         default : {
             amrex::Abort("Initialization Policy not recognized");
             return 1;
