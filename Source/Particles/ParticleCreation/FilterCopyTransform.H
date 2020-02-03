@@ -4,6 +4,27 @@
 #include <AMReX_GpuContainers.H>
 #include <AMReX_TypeTraits.H>
 
+/**
+ * \brief Apply a filter, copy, and transform operation to the particles
+ * in src, in that order, writing the result to dst, starting at dst_index.
+ * 
+ * Note that the transform function operates on both the src and the dst,
+ * so both can be modified.
+ * 
+ * \tparam DstTile the dst particle tile type
+ * \tparam SrcTile the src particle tile type
+ * \tparam Index the index type, e.g. unsigned int
+ * \tparam TransFunc the transform function type
+ * \tparam CopyFunc the copy function type
+ *
+ * \param dst the destination tile
+ * \param src the source tile
+ * \param mask pointer to the mask - 1 means copy, 0 means don't copy
+ * \param dst_index the location at which to starting writing the result to dst
+ * \param copy defines the function that will be applied for the "copy" step
+ * \param transform defines that transformation.
+ *
+ */
 template <typename DstTile, typename SrcTile, typename Index,
           typename TransFunc, typename CopyFunc,
           amrex::EnableIf_t<std::is_integral<Index>::value, int> foo = 0>
@@ -37,6 +58,28 @@ Index filterCopyTransformParticles (DstTile& dst, SrcTile& src, Index* mask, Ind
     return last_mask + last_offset;
 }
 
+/**
+ * \brief Apply a filter, copy, and transform operation to the particles
+ * in src, in that order, writing the result to dst, starting at dst_index.
+ * 
+ * Note that the transform function operates on both the src and the dst,
+ * so both can be modified.
+ * 
+ * \tparam DstTile the dst particle tile type
+ * \tparam SrcTile the src particle tile type
+ * \tparam Index the index type, e.g. unsigned int
+ * \tparam Filter the filter function type
+ * \tparam TransFunc the transform function type
+ * \tparam CopyFunc the copy function type
+ *
+ * \param dst the destination tile
+ * \param src the source tile
+ * \param dst_index the location at which to starting writing the result to dst
+ * \param filter a function returning true if that particle is to be copied and transformed
+ * \param copy defines the function that will be applied for the "copy" step
+ * \param transform defines that transformation.
+ *
+ */
 template <typename DstTile, typename SrcTile, typename Index,
           typename PredFunc, typename TransFunc, typename CopyFunc>
 Index filterCopyTransformParticles (DstTile& dst, SrcTile& src, Index dst_index,
