@@ -64,16 +64,16 @@ public:
 
     virtual void PostRestart () final;
 
-    void calculate_laser_plane_coordinates (const int np, const int thread_num,
+    void calculate_laser_plane_coordinates (const WarpXParIter& pti, const int np,
                                             amrex::Real * AMREX_RESTRICT const pplane_Xp,
                                             amrex::Real * AMREX_RESTRICT const pplane_Yp);
 
-    void update_laser_particle (const int np, amrex::ParticleReal * AMREX_RESTRICT const puxp,
+    void update_laser_particle (WarpXParIter& pti, const int np, amrex::ParticleReal * AMREX_RESTRICT const puxp,
                                 amrex::ParticleReal * AMREX_RESTRICT const puyp,
                                 amrex::ParticleReal * AMREX_RESTRICT const puzp,
                                 amrex::ParticleReal const * AMREX_RESTRICT const pwp,
                                 amrex::Real const * AMREX_RESTRICT const amplitude,
-                                const amrex::Real dt, const int thread_num);
+                                const amrex::Real dt);
 
 protected:
 
