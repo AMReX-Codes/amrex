@@ -1,6 +1,5 @@
 
 #include <AMReX_PhysBCFunct.H>
-#include <AMReX_filcc_f.H>
 
 namespace amrex {
 
@@ -63,9 +62,7 @@ CpuBndryFuncFab::operator() (Box const& bx, FArrayBox& dest,
     {
         xlo[i] = problo[i] + dx[i]*(lo[i]-dom_lo[i]);
     }
-    amrex_fab_filcc(BL_TO_FORTRAN_N_ANYD(dest,dcomp), &numcomp,
-                    BL_TO_FORTRAN_BOX(domain),
-                    dx, xlo, bcr[bcomp].vect());
+    fab_filcc(bx, dest.array(dcomp), numcomp, domain, dx, xlo, &(bcr[bcomp]));
 
     if (f_user != nullptr)
     {

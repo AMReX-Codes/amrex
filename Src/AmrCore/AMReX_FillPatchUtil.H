@@ -108,6 +108,7 @@ namespace amrex
                                 const InterpHook& pre_interp = NullInterpHook(),
                                 const InterpHook& post_interp = NullInterpHook());
 
+#ifndef BL_NO_FORT
     enum InterpEM_t { InterpE, InterpB};
 
     void InterpCrseFineBndryEMfield (InterpEM_t interp_type,
@@ -121,6 +122,7 @@ namespace amrex
                                      const Array<MultiFab*,AMREX_SPACEDIM>& fine,
                                      const Geometry& cgeom, const Geometry& fgeom,
                                      int ref_ratio);
+#endif
 }
 
 #endif

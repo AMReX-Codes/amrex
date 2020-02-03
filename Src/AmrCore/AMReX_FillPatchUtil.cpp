@@ -1,11 +1,14 @@
 #include <AMReX_Utility.H>
 #include <AMReX_FillPatchUtil.H>
-#include <AMReX_FillPatchUtil_F.H>
 #include <cmath>
 #include <limits>
 
 #ifdef AMREX_USE_EB
 #include <AMReX_EBFabFactory.H>
+#endif
+
+#ifndef BL_NO_FORT
+#include <AMReX_FillPatchUtil_F.H>
 #endif
 
 #ifdef _OPENMP
@@ -416,6 +419,7 @@ namespace amrex
 	fbc.FillBoundary(mf, dcomp, ncomp, mf.nGrowVect(), time, fbccomp);
     }
 
+#ifndef BL_NO_FORT
     // B fields are assumed to be on staggered grids.
     void InterpCrseFineBndryEMfield (InterpEM_t interp_type,
                                      const Array<MultiFab,AMREX_SPACEDIM>& crse,
@@ -544,4 +548,5 @@ namespace amrex
             }
         }
     }
+#endif
 }

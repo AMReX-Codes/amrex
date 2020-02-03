@@ -959,12 +959,13 @@ AMREX_FORCE_INLINE
 bool
 Box::isSquare () const noexcept
 {
-    const IntVect& sz = this->size();
 #if AMREX_SPACEDIM==1
     return false; // can't build a square in 1-D
 #elif AMREX_SPACEDIM==2
+    const IntVect& sz = this->size();
     return (sz[0] == sz[1]);
 #elif AMREX_SPACEDIM==3
+    const IntVect& sz = this->size();
     return (sz[0] == sz[1] && (sz[1] == sz[2]));
 #endif
 }

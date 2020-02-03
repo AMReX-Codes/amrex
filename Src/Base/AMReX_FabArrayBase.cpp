@@ -1296,7 +1296,6 @@ Box
 FabArrayBase::CFinfo::Domain (const Geometry& geom, const IntVect& ng,
                               bool include_periodic, bool include_physbndry)
 {
-#if !defined(BL_NO_FORT)
     Box bx = geom.Domain();
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         if (geom.isPeriodic(idim)) {
@@ -1310,9 +1309,6 @@ FabArrayBase::CFinfo::Domain (const Geometry& geom, const IntVect& ng,
         }
     }
     return bx;
-#else
-    return Box();
-#endif
 }
 
 long
