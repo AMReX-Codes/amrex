@@ -13,7 +13,7 @@ struct IonizationFilterFunc
 
     int comp;
     int m_atomic_number;
-   
+
     template <typename PData>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool operator() (const PData& ptd, int i) const noexcept
@@ -35,7 +35,7 @@ struct IonizationFilterFunc
             amrex::ParticleReal bx = ptd.m_rdata[PIdx::Bx][i];
             amrex::ParticleReal by = ptd.m_rdata[PIdx::By][i];
             amrex::ParticleReal bz = ptd.m_rdata[PIdx::Bz][i];
-            
+
             amrex::Real ga = std::sqrt(1. + (ux*ux + uy*uy + uz*uz) * c2_inv);
             amrex::Real E = std::sqrt(
                                - ( ux*ex + uy*ey + uz*ez ) * ( ux*ex + uy*ey + uz*ez ) * c2_inv
@@ -49,15 +49,15 @@ struct IonizationFilterFunc
                 std::pow(E, m_adk_power[ion_lev]) *
                 std::exp( m_adk_exp_prefactor[ion_lev]/E );
             amrex::Real p = 1. - std::exp( - w_dtau );
-            
+
             amrex::Real random_draw = amrex::Random();
             if (random_draw < p)
             {
                 return true;
-            }            
+            }
         }
         return false;
-    }    
+    }
 };
 
 struct IonizationTransformFunc
@@ -66,7 +66,7 @@ struct IonizationTransformFunc
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void operator() (DstData& dst, SrcData& src, int i_src, int i_dst) const noexcept
     {
-        src.m_runtime_idata[0][i_src] += 1; 
+        src.m_runtime_idata[0][i_src] += 1;
     }
 };
 

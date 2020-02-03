@@ -37,7 +37,7 @@ struct SmartCopy
 
     const InitializationPolicy* m_policy_real;
     const InitializationPolicy* m_policy_int;
-    
+
     template <typename DstData, typename SrcData>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void operator() (DstData& dst, const SrcData& src, int i_src, int i_dst) const noexcept
@@ -56,7 +56,7 @@ struct SmartCopy
             dst.m_idata[j][i_dst] = initializeIntValue(m_policy_int[j]);
         for (int j = 0; j < dst.m_num_runtime_int; ++j)
             dst.m_idata[j][i_dst] = initializeIntValue(m_policy_int[j+DstData::NAI]);
-        
+
         // copy the shared real components
         for (int j = 0; j < m_num_copy_real; ++j)
         {
@@ -88,10 +88,10 @@ class SmartCopyFactory
     SmartCopyTag m_tag_real;
     SmartCopyTag m_tag_int;
     PolicyVec m_policy_real;
-    PolicyVec m_policy_int;    
+    PolicyVec m_policy_int;
     bool m_defined;
 
-public:    
+public:
     template <class SrcPC, class DstPC>
     SmartCopyFactory (const SrcPC& src, const DstPC& dst) noexcept
         : m_defined(false)
@@ -101,7 +101,7 @@ public:
 
         m_policy_real = getPolicies(dst.getParticleComps());
         m_policy_int  = getPolicies(dst.getParticleiComps());
-        
+
         m_defined = true;
     }
 
@@ -124,7 +124,7 @@ public:
 /**
  * \brief Conditionally copy particles from src to dst based on the value of mask.
  * A transformation will also be applied to the particles on copy.
- * 
+ *
  * \tparam DstTile the dst particle tile type
  * \tparam SrcTile the src particle tile type
  * \tparam Index the index type, e.g. unsigned int
@@ -148,10 +148,10 @@ Index filterAndTransformParticles (DstTile& dst, SrcTile& src, Index* mask,
 
     Index last_mask, last_offset;
     Gpu::copyAsync(Gpu::deviceToHost, mask+np-1, mask + np, &last_mask);
-    Gpu::copyAsync(Gpu::deviceToHost, offsets.data()+np-1, offsets.data()+np, &last_offset);    
+    Gpu::copyAsync(Gpu::deviceToHost, offsets.data()+np-1, offsets.data()+np, &last_offset);
 
     auto p_offsets = offsets.dataPtr();
-    
+
     const auto src_data = src.getParticleTileData();
           auto dst_data = dst.getParticleTileData();
 
@@ -171,7 +171,7 @@ Index filterAndTransformParticles (DstTile& dst, SrcTile& src, Index* mask,
 /**
  * \brief Conditionally copy particles from src to dst based on a predicate.
  * A transformation will also be applied to the particles on copy.
- * 
+ *
  * \tparam DstTile the dst particle tile type
  * \tparam SrcTile the src particle tile type
  * \tparam Pred a function object
@@ -182,7 +182,7 @@ Index filterAndTransformParticles (DstTile& dst, SrcTile& src, Index* mask,
  * \param p predicate function - particles will be copied if p returns true
  * \param f defines the transformation that will be applied to the particles on copy
  *
- */    
+ */
 template <typename DstTile, typename SrcTile, typename PredFunc, typename TransFunc, typename CopyFunc>
 int filterAndTransformParticles (DstTile& dst, SrcTile& src,
                                  PredFunc&& p, TransFunc&& t, CopyFunc&& f) noexcept
@@ -192,7 +192,7 @@ int filterAndTransformParticles (DstTile& dst, SrcTile& src,
 
     auto p_mask = mask.dataPtr();
     const auto src_data = src.getParticleTileData();
-    
+
     AMREX_HOST_DEVICE_FOR_1D(np, i,
     {
         p_mask[i] = p(src_data, i);

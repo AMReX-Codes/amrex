@@ -655,7 +655,7 @@ MultiParticleContainer::doFieldIonization ()
         SmartCopyFactory copy_factory(*pc_source, *pc_product);
         auto Copier = copy_factory.getSmartCopy();
         auto IonizationFilter = static_cast<PhysicalParticleContainer*>(pc_source.get())->getIonizationFunc();
-        
+
         pc_source ->defineAllParticleTiles();
         pc_product->defineAllParticleTiles();
 
@@ -708,8 +708,8 @@ MultiParticleContainer::doFieldIonization ()
                 {
                     auto& p = pp[ip];
                     p.id() = pid+ip;
-                    p.cpu() = cpuid;                               
-                });                          
+                    p.cpu() = cpuid;
+                });
             }
         }
     }

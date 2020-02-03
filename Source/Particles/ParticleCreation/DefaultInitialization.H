@@ -64,7 +64,7 @@ amrex::ParticleReal initializeRealValue (const InitializationPolicy policy) noex
             amrex::Abort("Initialization Policy not recognized");
             return 1.0;
         }
-    }    
+    }
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -80,7 +80,7 @@ int initializeIntValue (const InitializationPolicy policy) noexcept
             amrex::Abort("Initialization Policy not recognized");
             return 1;
         }
-    }    
+    }
 }
 
 #endif
