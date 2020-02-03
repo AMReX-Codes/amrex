@@ -5,6 +5,8 @@ TOP := $(ADR_DIR)
 
 EBASE := main
 
+BL_NO_FORT = TRUE
+
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
 Bdirs 	:= Source Source/Src_$(DIM)d

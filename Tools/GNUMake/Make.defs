@@ -16,6 +16,15 @@ endif
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.machines
 
+ifdef BL_NO_FORT
+  BL_NO_FORT := $(strip $(BL_NO_FORT))
+  ifeq ($(BL_NO_FORT),TRUE)
+    DEFINES += -DBL_NO_FORT
+  endif
+else
+  BL_NO_FORT := FALSE
+endif
+
 ifdef AMREX_XSDK
   AMREX_XSDK := $(strip $(AMREX_XSDK))
 else

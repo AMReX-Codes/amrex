@@ -1,8 +1,11 @@
 
 #include <AMReX_MLCellLinOp.H>
 #include <AMReX_MLLinOp_K.H>
-#include <AMReX_MLLinOp_F.H>
 #include <AMReX_MultiFabUtil.H>
+
+#ifndef BL_NO_FORT
+#include <AMReX_MLLinOp_F.H>
+#endif
 
 namespace amrex {
 
@@ -552,12 +555,16 @@ MLCellLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
 
                 const Mask& m = maskvals[ori][mfi];
 
+#ifndef BL_NO_FORT
                 amrex_mllinop_apply_bc(BL_TO_FORTRAN_BOX(vbx),
                                        BL_TO_FORTRAN_ANYD(in[mfi]),
                                        BL_TO_FORTRAN_ANYD(m),
                                        cdr, bct, bcl,
                                        BL_TO_FORTRAN_ANYD(fsfab),
                                        maxorder, dxinv, flagbc, ncomp, cross);
+#else
+                amrex::Abort("amrex_mllinop_apply_bc not available when BL_NO_FORT=TRUE");
+#endif
             }
         }
     }
