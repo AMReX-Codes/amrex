@@ -1,3 +1,11 @@
+# 20.02
+
+  -- RealVect updated for GPU.
+
+  -- Support for restarting from HDF5 particle checkpoint file.
+
+  -- Improvement of MacProjector and NodalProjector
+
 # 20.01
 
   -- GPU host device version of swap.
