@@ -652,10 +652,10 @@ MultiParticleContainer::doFieldIonization ()
         // Get product species
         auto& pc_product = allcontainers[pc_source->ionization_product];
 
-		SmartCopyFactory copy_factory(*pc_source, *pc_product);
-		auto Copier = copy_factory.getSmartCopy();
-		auto IonizationFilter = static_cast<PhysicalParticleContainer*>(pc_source.get())->getIonizationFunc();
-		
+        SmartCopyFactory copy_factory(*pc_source, *pc_product);
+        auto Copier = copy_factory.getSmartCopy();
+        auto IonizationFilter = static_cast<PhysicalParticleContainer*>(pc_source.get())->getIonizationFunc();
+        
         pc_source ->defineAllParticleTiles();
         pc_product->defineAllParticleTiles();
 
@@ -678,41 +678,41 @@ MultiParticleContainer::doFieldIonization ()
             // Loop over all grids (if not tiling) or grids and tiles (if tiling)
             for (MFIter mfi = pc_source->MakeMFIter(lev, info); mfi.isValid(); ++mfi)
             {
-				auto& src_tile = pc_source ->ParticlesAt(lev, mfi);
-				auto& dst_tile = pc_product->ParticlesAt(lev, mfi);
+                auto& src_tile = pc_source ->ParticlesAt(lev, mfi);
+                auto& dst_tile = pc_product->ParticlesAt(lev, mfi);
 
-				auto np_src = src_tile.numParticles();
-				auto np_dst = dst_tile.numParticles();
+                auto np_src = src_tile.numParticles();
+                auto np_dst = dst_tile.numParticles();
 
-				dst_tile.resize(np_dst + np_src);
+                dst_tile.resize(np_dst + np_src);
 
-				auto num_filter = filterAndTransformParticles(dst_tile, src_tile,
-															  IonizationFilter,
-															  IonizationTransformFunc(),
-															  Copier);
+                auto num_filter = filterAndTransformParticles(dst_tile, src_tile,
+                                                              IonizationFilter,
+                                                              IonizationTransformFunc(),
+                                                              Copier);
 
-				dst_tile.resize(np_dst + num_filter);
+                dst_tile.resize(np_dst + num_filter);
 
-				// Update NextID to include particles created in this function
-				int pid;
+                // Update NextID to include particles created in this function
+                int pid;
 #ifdef _OPENMP
 #pragma omp critical (ionization_nextid)
 #endif
-				{
-					pid = Particle<0,0>::NextID();
-					Particle<0,0>::NextID(pid+num_filter);
-				}
-				const int cpuid = ParallelDescriptor::MyProc();
-				auto pp = dst_tile.GetArrayOfStructs()().data() + np_dst;
-				amrex::For(num_filter, [=] AMREX_GPU_DEVICE (int ip) noexcept
-				{
-					auto& p = pp[ip];
-					p.id() = pid+ip;
-					p.cpu() = cpuid;							   
-				});						  
-			}
-		}
-	}
+                {
+                    pid = Particle<0,0>::NextID();
+                    Particle<0,0>::NextID(pid+num_filter);
+                }
+                const int cpuid = ParallelDescriptor::MyProc();
+                auto pp = dst_tile.GetArrayOfStructs()().data() + np_dst;
+                amrex::For(num_filter, [=] AMREX_GPU_DEVICE (int ip) noexcept
+                {
+                    auto& p = pp[ip];
+                    p.id() = pid+ip;
+                    p.cpu() = cpuid;                               
+                });                          
+            }
+        }
+    }
 }
 
 void

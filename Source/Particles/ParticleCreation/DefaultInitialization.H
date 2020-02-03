@@ -51,36 +51,36 @@ static std::map<std::string, InitializationPolicy> initialization_policies = {
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 amrex::ParticleReal initializeRealValue (const InitializationPolicy policy) noexcept
 {
-	switch (policy) {
-	    case InitializationPolicy::Zero : return 0.0;
-	    case InitializationPolicy::One  : return 1.0;
-	    case InitializationPolicy::SignalingNan : {
-			return 1.0;
-		}
-	    case InitializationPolicy::RandomTau : {
-			return 1.0;
-		}
-	    default : {
-			amrex::Abort("Initialization Policy not recognized");
-			return 1.0;
-		}
-	}	
+    switch (policy) {
+        case InitializationPolicy::Zero : return 0.0;
+        case InitializationPolicy::One  : return 1.0;
+        case InitializationPolicy::SignalingNan : {
+            return 1.0;
+        }
+        case InitializationPolicy::RandomTau : {
+            return 1.0;
+        }
+        default : {
+            amrex::Abort("Initialization Policy not recognized");
+            return 1.0;
+        }
+    }    
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int initializeIntValue (const InitializationPolicy policy) noexcept
 {
-	switch (policy) {
-	    case InitializationPolicy::Zero : return 0;
-	    case InitializationPolicy::One  : return 1;
-	    case InitializationPolicy::SignalingNan : {
-			return 1;
-		}
-	    default : {
-			amrex::Abort("Initialization Policy not recognized");
-			return 1;
-		}
-	}	
+    switch (policy) {
+        case InitializationPolicy::Zero : return 0;
+        case InitializationPolicy::One  : return 1;
+        case InitializationPolicy::SignalingNan : {
+            return 1;
+        }
+        default : {
+            amrex::Abort("Initialization Policy not recognized");
+            return 1;
+        }
+    }    
 }
 
 #endif
