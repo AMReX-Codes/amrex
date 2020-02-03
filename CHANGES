@@ -1,3 +1,12 @@
+# Changes since latest release
+
+  -- AmrCore can now be built without using ParmParse.
+
+  -- Improve BL_NO_FORT support.
+
+  -- Fix OMP bug in MFIter constructors taking BoxArray and
+     DistributionMapping.
+
 # 20.02
 
   -- RealVect updated for GPU.
