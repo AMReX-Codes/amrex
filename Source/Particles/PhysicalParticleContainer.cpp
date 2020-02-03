@@ -2372,12 +2372,12 @@ PhysicalParticleContainer::getIonizationFunc ()
 {
     BL_PROFILE("PPC::getIonizationFunc");
 
-	return IonizationFilterFunc{ionization_energies.dataPtr(),
-								adk_prefactor.dataPtr(),
-								adk_exp_prefactor.dataPtr(),
-								adk_power.dataPtr(),
-								particle_icomps["ionization_level"],
-			                    ion_atomic_number};
+    return IonizationFilterFunc{ionization_energies.dataPtr(),
+                                adk_prefactor.dataPtr(),
+                                adk_exp_prefactor.dataPtr(),
+                                adk_power.dataPtr(),
+                                particle_icomps["ionization_level"],
+                                ion_atomic_number};
 }
 
 //This function return true if the PhysicalParticleContainer contains electrons

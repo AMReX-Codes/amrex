@@ -3,12 +3,12 @@
 PolicyVec getPolicies (const NameMap& names) noexcept
 {
     PolicyVec policies;
-	policies.resize(names.size());
-	for (const auto& kv : names)
-	{
-		policies[kv.second] = initialization_policies[kv.first];
-	}
-	return policies;
+    policies.resize(names.size());
+    for (const auto& kv : names)
+    {
+        policies[kv.second] = initialization_policies[kv.first];
+    }
+    return policies;
 }
 
 SmartCopyTag getSmartCopyTag (const NameMap& src, const NameMap& dst) noexcept
