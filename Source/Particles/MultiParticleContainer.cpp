@@ -647,7 +647,7 @@ MultiParticleContainer::doFieldIonization ()
     for (auto& pc_source : allcontainers)
     {
         if (!pc_source->do_field_ionization){ continue; }
-               
+
         auto& pc_product = allcontainers[pc_source->ionization_product];
 
         SmartCopyFactory copy_factory(*pc_source, *pc_product);
@@ -666,7 +666,7 @@ MultiParticleContainer::doFieldIonization ()
 
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif            
+#endif
             for (MFIter mfi = pc_source->MakeMFIter(lev, info); mfi.isValid(); ++mfi)
             {
                 auto& src_tile = pc_source ->ParticlesAt(lev, mfi);
@@ -726,18 +726,18 @@ MFItInfo MultiParticleContainer::getMFItInfo (const WarpXParticleContainer& pc_s
                                               const WarpXParticleContainer& pc_dst) const noexcept
 {
     MFItInfo info;
-    
+
     if (pc_src.do_tiling && Gpu::notInLaunchRegion()) {
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(pc_dst.do_tiling,
                                          "For ionization, either all or none of the "
                                          "particle species must use tiling.");
         info.EnableTiling(pc_src.tile_size);
     }
-    
+
 #ifdef _OPENMP
     info.SetDynamic(true);
 #endif
-    
+
     return info;
 }
 
