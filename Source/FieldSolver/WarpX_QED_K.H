@@ -1,3 +1,10 @@
+
+/* Copyright 2020 Glenn Richardson, Maxence Thevenet
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #ifndef WarpX_QED_K_h
 #define WarpX_QED_K_h
 
