@@ -81,14 +81,6 @@ public:
 
     WarpXParIter (ContainerType& pc, int level);
 
-#if (AMREX_SPACEDIM == 2)
-    void GetPosition (amrex::Gpu::ManagedDeviceVector<amrex::ParticleReal>& x,
-                      amrex::Gpu::ManagedDeviceVector<amrex::ParticleReal>& y,
-                      amrex::Gpu::ManagedDeviceVector<amrex::ParticleReal>& z) const;
-    void SetPosition (const amrex::Gpu::ManagedDeviceVector<amrex::ParticleReal>& x,
-                      const amrex::Gpu::ManagedDeviceVector<amrex::ParticleReal>& y,
-                      const amrex::Gpu::ManagedDeviceVector<amrex::ParticleReal>& z);
-#endif
     const std::array<RealVector, PIdx::nattribs>& GetAttribs () const {
         return GetStructOfArrays().GetRealData();
     }
@@ -382,8 +374,6 @@ protected:
 
     using DataContainer = amrex::Gpu::ManagedDeviceVector<amrex::ParticleReal>;
     using PairIndex = std::pair<int, int>;
-
-    amrex::Vector<DataContainer> m_xp, m_yp, m_zp;
 
     // Whether to dump particle quantities.
     // If true, particle position is always dumped.

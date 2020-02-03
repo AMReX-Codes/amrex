@@ -32,7 +32,6 @@ void UpdatePositionPhoton(
     y += uy * c_over_umod * dt;
 #endif
     z += uz * c_over_umod * dt;
-
 }
 
 #endif // WARPX_PARTICLES_PUSHER_UPDATEPOSITION_H_
