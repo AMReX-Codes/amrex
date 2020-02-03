@@ -25,6 +25,15 @@ PolicyVec getPolicies (const NameMap& names) noexcept;
 
 SmartCopyTag getSmartCopyTag (const NameMap& src, const NameMap& dst) noexcept;
 
+/**
+ * \brief Sets the ids of newly created particles to the next values.
+ * 
+ * \tparam PTile the particle tile type
+ *
+ * \param ptile the particle tile
+ * \param old_size the index of the first new particle
+ * \param num_added the number of particles to set the ids for.
+ */
 template <typename PTile>
 void setNewParticleIDs (PTile& ptile, int old_size, int num_added)
 {
@@ -47,6 +56,19 @@ void setNewParticleIDs (PTile& ptile, int old_size, int num_added)
     });
 }
 
+/**
+ * \brief This is a functor for performing a "smart copy" that works
+ * in both host and device code.
+ *
+ * A "smart" copy does the following. First, the destination particle
+ * components are initialized to the default values for that component
+ * type. Second, if a given component name is found in both the src
+ * and the dst, then the src value is copied.
+ *
+ * Particle structs - positions and id numbers  - are always copied.
+ *
+ * You don't create this directly - use the SmartCopyFactory object below.
+ */
 struct SmartCopy
 {
     int m_num_copy_real;
@@ -105,6 +127,13 @@ struct SmartCopy
     }
 };
 
+/**
+ * \brief A factory for creating SmartCopy functors.
+ *
+ * Given two particle containers, this can create a functor
+ * that will perform the smart copy operation between those 
+ * particle container's tiles.
+ */
 class SmartCopyFactory
 {
     SmartCopyTag m_tag_real;
