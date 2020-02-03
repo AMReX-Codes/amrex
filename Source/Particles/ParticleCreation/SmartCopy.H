@@ -144,21 +144,6 @@ public:
     bool isDefined () const noexcept { return m_defined; }
 };
 
-/**
- * \brief Conditionally copy particles from src to dst based on the value of mask.
- * A transformation will also be applied to the particles on copy.
- *
- * \tparam DstTile the dst particle tile type
- * \tparam SrcTile the src particle tile type
- * \tparam Index the index type, e.g. unsigned int
- * \tparam F the transform function type
- *
- * \param dst the destination tile
- * \param src the source tile
- * \param mask pointer to the mask - 1 means copy, 0 means don't copy
- * \param f defines the transformation that will be applied to the particles on copy
- *
- */
 template <typename DstTile, typename SrcTile, typename Index, typename TransFunc, typename CopyFunc,
           amrex::EnableIf_t<std::is_integral<Index>::value, int> foo = 0>
 Index filterAndTransformParticles (DstTile& dst, SrcTile& src, Index* mask, int dst_index,
@@ -191,21 +176,6 @@ Index filterAndTransformParticles (DstTile& dst, SrcTile& src, Index* mask, int 
     return last_mask + last_offset;
 }
 
-/**
- * \brief Conditionally copy particles from src to dst based on a predicate.
- * A transformation will also be applied to the particles on copy.
- *
- * \tparam DstTile the dst particle tile type
- * \tparam SrcTile the src particle tile type
- * \tparam Pred a function object
- * \tparam F the transform function type
- *
- * \param dst the destination tile
- * \param src the source tile
- * \param p predicate function - particles will be copied if p returns true
- * \param f defines the transformation that will be applied to the particles on copy
- *
- */
 template <typename DstTile, typename SrcTile, typename PredFunc, typename TransFunc, typename CopyFunc>
 int filterAndTransformParticles (DstTile& dst, SrcTile& src, int dst_index,
                                  PredFunc&& p, TransFunc&& t, CopyFunc&& f) noexcept
