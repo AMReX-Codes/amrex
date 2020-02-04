@@ -35,7 +35,7 @@ Index filterCopyTransformParticles (DstTile& dst, SrcTile& src, Index* mask, Ind
 
     auto np = src.numParticles();
     if (np == 0) return 0;
-    
+
     Gpu::DeviceVector<Index> offsets(np);
     Gpu::exclusive_scan(mask, mask+np, offsets.begin());
 

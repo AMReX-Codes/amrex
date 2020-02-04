@@ -676,7 +676,7 @@ MultiParticleContainer::doFieldIonization ()
                 auto np_dst = dst_tile.numParticles();
 
                 if (np_src == 0) continue;
-                
+
                 dst_tile.resize(np_dst + np_src);
 
                 auto num_added = filterCopyTransformParticles(dst_tile, src_tile, np_dst,
