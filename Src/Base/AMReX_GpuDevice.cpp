@@ -273,7 +273,7 @@ Device::Initialize ()
 
     if (amrex::Verbose()) {
 #if defined(AMREX_USE_MPI) && (AMREX_NVCC_MAJOR_VERSION >= 10)
-        if (num_devices_used == n_procs)
+        if (num_devices_used == ParallelDescriptor::NProcs())
         {
             amrex::Print() << "CUDA initialized with 1 GPU per MPI rank; "
                            << num_devices_used << " GPU(s) used in total\n";
@@ -281,7 +281,7 @@ Device::Initialize ()
         else 
         {
             amrex::Print() << "CUDA initialized with " << num_devices_used << " GPU(s) and "
-                           << n_procs << " ranks.\n";
+                           << ParallelDescriptor::NProcs() << " ranks.\n";
         }
 #else  // Should always be using NVCC >= 10 now, so not going to bother with other combinations.
         amrex::Print() << "CUDA initialized with 1 GPU\n"; 
