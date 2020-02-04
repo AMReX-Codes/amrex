@@ -5,7 +5,7 @@ DEBUG	= TRUE
 
 DIM	= 3
 
-COMP    = hip
+COMP    = gcc
 
 USE_MPI   = FALSE
 USE_OMP   = FALSE
