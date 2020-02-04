@@ -152,6 +152,8 @@ WarpX::Hybrid_QED_Push (int lev, PatchType patch_type, Real a_dt)
             { tmpEz(i,j,k,n) = Ezfab(i,j,k,n); }
         );
 
+        // Make local copy of xi, to use on device.
+        const Real xi = WarpX::quantum_xi;
         // Apply QED correction to electric field, using temporary arrays.
         amrex::ParallelFor(
             tbx,
@@ -159,7 +161,7 @@ WarpX::Hybrid_QED_Push (int lev, PatchType patch_type, Real a_dt)
             {
                 warpx_hybrid_QED_push(j,k,l, Exfab, Eyfab, Ezfab, Bxfab, Byfab,
                                       Bzfab, tmpEx, tmpEy, tmpEz, dx, dy, dz,
-                                      a_dt);
+                                      a_dt, xi);
             }
         );
 
