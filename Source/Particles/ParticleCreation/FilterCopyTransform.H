@@ -32,7 +32,10 @@ Index filterCopyTransformParticles (DstTile& dst, SrcTile& src, Index* mask, Ind
                                     CopyFunc&& copy, TransFunc&& transform) noexcept
 {
     using namespace amrex;
+
     auto np = src.numParticles();
+    if (np == 0) return 0;
+    
     Gpu::DeviceVector<Index> offsets(np);
     Gpu::exclusive_scan(mask, mask+np, offsets.begin());
 
@@ -86,7 +89,10 @@ Index filterCopyTransformParticles (DstTile& dst, SrcTile& src, Index dst_index,
                                     PredFunc&& filter, CopyFunc&& copy, TransFunc&& transform) noexcept
 {
     using namespace amrex;
+
     auto np = src.numParticles();
+    if (np == 0) return 0;
+
     Gpu::DeviceVector<Index> mask(np);
 
     auto p_mask = mask.dataPtr();

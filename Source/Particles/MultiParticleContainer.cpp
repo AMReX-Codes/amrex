@@ -488,11 +488,11 @@ MultiParticleContainer::PostRestart ()
 
 void
 MultiParticleContainer
-::GetLabFrameData(const std::string& snapshot_name,
-                  const int i_lab, const int direction,
-                  const Real z_old, const Real z_new,
-                  const Real t_boost, const Real t_lab, const Real dt,
-                  Vector<WarpXParticleContainer::DiagnosticParticleData>& parts) const
+::GetLabFrameData (const std::string& snapshot_name,
+                   const int i_lab, const int direction,
+                   const Real z_old, const Real z_new,
+                   const Real t_boost, const Real t_lab, const Real dt,
+                   Vector<WarpXParticleContainer::DiagnosticParticleData>& parts) const
 {
 
     BL_PROFILE("MultiParticleContainer::GetLabFrameData");
@@ -554,7 +554,7 @@ MultiParticleContainer
  * calls virtual function ContinuousInjection.
  */
 void
-MultiParticleContainer::ContinuousInjection(const RealBox& injection_box) const
+MultiParticleContainer::ContinuousInjection (const RealBox& injection_box) const
 {
     for (int i=0; i<nspecies+nlasers; i++){
         auto& pc = allcontainers[i];
@@ -570,7 +570,7 @@ MultiParticleContainer::ContinuousInjection(const RealBox& injection_box) const
  * a position to update (PhysicalParticleContainer does not do anything).
  */
 void
-MultiParticleContainer::UpdateContinuousInjectionPosition(Real dt) const
+MultiParticleContainer::UpdateContinuousInjectionPosition (Real dt) const
 {
     for (int i=0; i<nspecies+nlasers; i++){
         auto& pc = allcontainers[i];
@@ -675,6 +675,8 @@ MultiParticleContainer::doFieldIonization ()
                 auto np_src = src_tile.numParticles();
                 auto np_dst = dst_tile.numParticles();
 
+                if (np_src == 0) continue;
+                
                 dst_tile.resize(np_dst + np_src);
 
                 auto num_added = filterCopyTransformParticles(dst_tile, src_tile, np_dst,

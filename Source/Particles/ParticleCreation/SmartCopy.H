@@ -48,7 +48,7 @@ void setNewParticleIDs (PTile& ptile, int old_size, int num_added)
 
     const int cpuid = amrex::ParallelDescriptor::MyProc();
     auto pp = ptile.GetArrayOfStructs()().data() + old_size;
-    amrex::For(num_added, [=] AMREX_GPU_DEVICE (int ip) noexcept
+    amrex::ParallelFor(num_added, [=] AMREX_GPU_DEVICE (int ip) noexcept
     {
         auto& p = pp[ip];
         p.id() = pid+ip;
