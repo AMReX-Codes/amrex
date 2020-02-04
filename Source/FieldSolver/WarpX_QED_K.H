@@ -78,7 +78,6 @@ void warpx_hybrid_QED_push (int j, int k, int l, Array4<Real> const& Ex, Array4<
 // Defining constants to be used in the calculations
 
 constexpr amrex::Real c2 = PhysConst::c * PhysConst::c;
-const amrex::Real xi = WarpX::quantum_xi;
 const amrex::Real dxi = 1./dx;
 const amrex::Real dzi = 1./dz;
 
