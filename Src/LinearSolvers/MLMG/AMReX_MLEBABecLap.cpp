@@ -116,6 +116,13 @@ MLEBABecLap::setACoeffs (int amrlev, const MultiFab& alpha)
 }
 
 void
+MLEBABecLap::setACoeffs (int amrlev, Real alpha)
+{
+    m_a_coeffs[amrlev][0].setVal(alpha);
+    m_needs_update = true;
+}
+
+void
 MLEBABecLap::setBCoeffs (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& beta)
 {
     const int ncomp = getNComp();
@@ -123,6 +130,15 @@ MLEBABecLap::setBCoeffs (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>
         for (int icomp = 0; icomp < ncomp; ++icomp) {
             MultiFab::Copy(m_b_coeffs[amrlev][0][idim], *beta[idim], 0, icomp, 1, 0);
         }
+    }
+    m_needs_update = true;
+}
+
+void
+MLEBABecLap::setBCoeffs (int amrlev, Real beta)
+{
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        m_b_coeffs[amrlev][0][idim].setVal(beta);
     }
     m_needs_update = true;
 }
@@ -184,6 +200,61 @@ MLEBABecLap::setEBDirichlet (int amrlev, const MultiFab& phi, const MultiFab& be
 }
 
 void
+MLEBABecLap::setEBDirichlet (int amrlev, const MultiFab& phi, Real beta)
+{
+    const int ncomp = getNComp();
+    if (m_eb_phi[amrlev] == nullptr) {
+        const int mglev = 0;
+        m_eb_phi[amrlev].reset(new MultiFab(m_grids[amrlev][mglev], m_dmap[amrlev][mglev],
+                                            ncomp, 0, MFInfo(), *m_factory[amrlev][mglev]));
+    }
+    if (m_eb_b_coeffs[amrlev][0] == nullptr) {
+        for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev) {
+            m_eb_b_coeffs[amrlev][mglev].reset(new MultiFab(m_grids[amrlev][mglev],
+                                                            m_dmap[amrlev][mglev],
+                                                            ncomp, 0, MFInfo(),
+                                                            *m_factory[amrlev][mglev]));
+        }
+    }
+
+    auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
+    const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
+
+    MFItInfo mfi_info;
+    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(phi, mfi_info); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        Array4<Real> const& phiout = m_eb_phi[amrlev]->array(mfi);
+        Array4<Real> const& betaout = m_eb_b_coeffs[amrlev][0]->array(mfi);
+        FabType t = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
+        if (FabType::regular == t or FabType::covered == t) {
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
+            {
+                phiout(i,j,k,n) = 0.0;
+                betaout(i,j,k,n) = 0.0;
+            });
+        } else {
+            Array4<Real const> const& phiin = phi.const_array(mfi);
+            const auto& flag = flags->const_array(mfi);
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
+            {
+                if (flag(i,j,k).isSingleValued()) {
+                    phiout(i,j,k,n) = phiin(i,j,k,n);
+                    betaout(i,j,k,n) = beta;
+                } else {
+                    phiout(i,j,k,n) = 0.0;
+                    betaout(i,j,k,n) = 0.0;
+                }
+            });
+        }
+    }
+}
+
+void
 MLEBABecLap::setEBHomogDirichlet (int amrlev, const MultiFab& beta)
 {
     const int ncomp = getNComp();
@@ -231,6 +302,61 @@ MLEBABecLap::setEBHomogDirichlet (int amrlev, const MultiFab& beta)
             {
                 if (flag(i,j,k).isSingleValued()) {
                     betaout(i,j,k,n) = betain(i,j,k,0);
+                } else {
+                    betaout(i,j,k,n) = 0.0;
+                }
+            });
+        }
+    }
+}
+
+void
+MLEBABecLap::setEBHomogDirichlet (int amrlev, Real beta)
+{
+    const int ncomp = getNComp();
+    if (m_eb_phi[amrlev] == nullptr) {
+        const int mglev = 0;
+        m_eb_phi[amrlev].reset(new MultiFab(m_grids[amrlev][mglev], m_dmap[amrlev][mglev],
+                                            ncomp, 0, MFInfo(), *m_factory[amrlev][mglev]));
+    }
+    if (m_eb_b_coeffs[amrlev][0] == nullptr) {
+        for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev) {
+            m_eb_b_coeffs[amrlev][mglev].reset(new MultiFab(m_grids[amrlev][mglev],
+                                                            m_dmap[amrlev][mglev],
+                                                            ncomp, 0, MFInfo(),
+                                                            *m_factory[amrlev][mglev]));
+        }
+    }
+
+    auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
+    const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
+
+    MFItInfo mfi_info;
+    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(*m_eb_phi[amrlev], mfi_info); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        Array4<Real> const& phifab = m_eb_phi[amrlev]->array(mfi);
+        Array4<Real> const& betaout = m_eb_b_coeffs[amrlev][0]->array(mfi);
+        FabType t = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
+        {
+            phifab(i,j,k,n) = 0.0;
+        });
+        if (FabType::regular == t or FabType::covered == t) {
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
+            {
+                betaout(i,j,k,n) = 0.0;
+            });
+        } else {
+            const auto& flag = flags->const_array(mfi);
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
+            {
+                if (flag(i,j,k).isSingleValued()) {
+                    betaout(i,j,k,n) = beta;
                 } else {
                     betaout(i,j,k,n) = 0.0;
                 }
@@ -665,7 +791,6 @@ MLEBABecLap::FFlux (int amrlev, const MFIter& mfi, const Array<FArrayBox*,AMREX_
                      Array4<Real const> const& bycoef = by.const_array();,
                      Array4<Real const> const& bzcoef = bz.const_array(););
         Array4<int const> const& msk = ccmask.const_array(mfi);
-        Array4<EBCellFlag const> flg = flags->const_array(mfi);
         AMREX_D_TERM(Real dhx = m_b_scalar*dxinv[0];,
                      Real dhy = m_b_scalar*dxinv[1];,
                      Real dhz = m_b_scalar*dxinv[2];);
@@ -673,16 +798,16 @@ MLEBABecLap::FFlux (int amrlev, const MFIter& mfi, const Array<FArrayBox*,AMREX_
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
             xbx, txbx,
             {
-                mlebabeclap_flux_x(txbx, fx, apx, fcx, phi, bxcoef, msk, flg, dhx, face_only, ncomp, xbx);
+                mlebabeclap_flux_x(txbx, fx, apx, fcx, phi, bxcoef, msk, dhx, face_only, ncomp, xbx);
             }
             , ybx, tybx,
             {
-                mlebabeclap_flux_y(tybx, fy, apy, fcy, phi, bycoef, msk, flg, dhy, face_only, ncomp, ybx);
+                mlebabeclap_flux_y(tybx, fy, apy, fcy, phi, bycoef, msk, dhy, face_only, ncomp, ybx);
             }
 #if (AMREX_SPACEDIM == 3)
             , zbx, tzbx,
             {
-                mlebabeclap_flux_z(tzbx, fz, apz, fcz, phi, bzcoef, msk, flg, dhz, face_only, ncomp, zbx);
+                mlebabeclap_flux_z(tzbx, fz, apz, fcz, phi, bzcoef, msk, dhz, face_only, ncomp, zbx);
             }
 #endif
         );
@@ -796,21 +921,20 @@ MLEBABecLap::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
                          Array4<Real const> const& fcy = fcent[1]->const_array(mfi);,
                          Array4<Real const> const& fcz = fcent[2]->const_array(mfi););
             Array4<int const> const& msk = ccmask.const_array(mfi);
-            Array4<EBCellFlag const> flg = flags->const_array(mfi);
 
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
                 fbx, txbx,
                 {
-                    mlebabeclap_grad_x(txbx, gx, s, apx, fcx, msk, flg, dxi, ncomp);
+                    mlebabeclap_grad_x(txbx, gx, s, apx, fcx, msk, dxi, ncomp);
                 }
                 , fby, tybx,
                 {
-                    mlebabeclap_grad_y(tybx, gy, s, apy, fcy, msk, flg, dyi, ncomp);
+                    mlebabeclap_grad_y(tybx, gy, s, apy, fcy, msk, dyi, ncomp);
                 }
 #if (AMREX_SPACEDIM == 3)
                 , fbz, tzbx,
                 {
-                    mlebabeclap_grad_z(tzbx, gz, s, apz, fcz, msk, flg, dzi, ncomp);
+                    mlebabeclap_grad_z(tzbx, gz, s, apz, fcz, msk, dzi, ncomp);
                 }
 #endif
             );

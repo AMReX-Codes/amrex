@@ -8,28 +8,8 @@
 
 namespace amrex {
 
-namespace
-{
-    bool initialized = false;
-}
-
-void
-AmrMesh::Initialize ()
-{
-    if (initialized) return;
-    initialized = true;
-}
-
-void
-AmrMesh::Finalize ()
-{
-    initialized = false;
-}
-
-
 AmrMesh::AmrMesh ()
 {
-    Initialize();
     Geometry::Setup();
     int max_level_in = -1;
     Vector<int> n_cell_in(AMREX_SPACEDIM, -1);
@@ -40,7 +20,6 @@ AmrMesh::AmrMesh (const RealBox* rb, int max_level_in,
                   const Vector<int>& n_cell_in, int coord,
                   Vector<IntVect> a_refrat, const int* is_per)
 {
-    Initialize();
     Geometry::Setup(rb,coord,is_per);
     InitAmrMesh(max_level_in,n_cell_in, std::move(a_refrat), rb, coord, is_per);
 }
@@ -50,14 +29,30 @@ AmrMesh::AmrMesh (const RealBox& rb, int max_level_in,
                   const Vector<IntVect>& a_refrat,
                   const Array<int,AMREX_SPACEDIM>& is_per)
 {
-    Initialize();
     Geometry::Setup(&rb,coord,is_per.data());
     InitAmrMesh(max_level_in,n_cell_in, a_refrat, &rb, coord, is_per.data());
 }
 
-AmrMesh::~AmrMesh ()
+AmrMesh::AmrMesh (Geometry const& level_0_geom, AmrInfo const& amr_info)
+    : AmrInfo(amr_info)
 {
-    Finalize();
+    int nlev = max_level + 1;
+    ref_ratio.resize      (nlev, amr_info.ref_ratio.back());
+    blocking_factor.resize(nlev, amr_info.blocking_factor.back());
+    max_grid_size.resize  (nlev, amr_info.max_grid_size.back());
+    n_error_buf.resize    (nlev, amr_info.n_error_buf.back());
+
+    dmap.resize(nlev);
+    grids.resize(nlev);
+    geom.reserve(nlev);
+    geom.push_back(level_0_geom);
+    for (int lev = 1; lev <= max_level; ++lev) {
+        geom.push_back(amrex::refine(geom[lev-1], ref_ratio[lev-1]));
+    }
+
+    finest_level = -1;
+
+    if (check_input) checkInput();
 }
 
 void
@@ -65,18 +60,6 @@ AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in,
                       Vector<IntVect> a_refrat, const RealBox* rb,
                       int coord, const int* is_per)
 {
-    verbose   = 0;
-    grid_eff  = 0.7;
-    n_proper  = 1;
-
-    use_fixed_coarse_grids = false;
-    use_fixed_upto_level   = 0;
-    refine_grid_layout     = true;
-    check_input            = true;
-
-    use_new_chop         = false;
-    iterate_on_new_grids = true;
-
     ParmParse pp("amr");
 
     pp.query("v",verbose);
@@ -390,6 +373,7 @@ AmrMesh::MaxRefRatio (int lev) const noexcept
 void
 AmrMesh::SetDistributionMap (int lev, const DistributionMapping& dmap_in) noexcept
 {
+    ++num_setdm;
     if (dmap[lev] != dmap_in) dmap[lev] = dmap_in;
 }
 
@@ -802,11 +786,14 @@ AmrMesh::MakeNewGrids (Real time)
 
 	const BoxArray& ba = MakeBaseGrids();
 	DistributionMapping dm(ba);
+        const auto old_num_setdm = num_setdm;
 
 	MakeNewLevelFromScratch(0, time, ba, dm);
 
-	SetBoxArray(0, ba);
-	SetDistributionMap(0, dm);
+        SetBoxArray(0, ba);
+        if (old_num_setdm == num_setdm) {
+            SetDistributionMap(0, dm);
+        }
     }
 
     if (max_level > 0) // build fine levels
@@ -824,11 +811,14 @@ AmrMesh::MakeNewGrids (Real time)
 	    finest_level = new_finest;
 
 	    DistributionMapping dm(new_grids[new_finest]);
+            const auto old_num_setdm = num_setdm;
 
             MakeNewLevelFromScratch(new_finest, time, new_grids[finest_level], dm);
 
 	    SetBoxArray(new_finest, new_grids[new_finest]);
-	    SetDistributionMap(new_finest, dm);
+            if (old_num_setdm == num_setdm) {
+                SetDistributionMap(new_finest, dm);
+            }
 	}
 	while (finest_level < max_level);
 
@@ -852,11 +842,14 @@ AmrMesh::MakeNewGrids (Real time)
 		    if (new_grids[lev] != grids[lev]) {
 		        grids_the_same = false;
 		        DistributionMapping dm(new_grids[lev]);
+                        const auto old_num_setdm = num_setdm;
 
                         MakeNewLevelFromScratch(lev, time, new_grids[lev], dm);
 
 		        SetBoxArray(lev, new_grids[lev]);
-		        SetDistributionMap(lev, dm);
+                        if (old_num_setdm == num_setdm) {
+                            SetDistributionMap(lev, dm);
+                        }
 		    }
 	        }
 	        if (grids_the_same) break;
@@ -1001,5 +994,31 @@ AmrMesh::CountCells (int lev) noexcept
     return grids[lev].numPts();
 }
 
+std::ostream& operator<< (std::ostream& os, AmrMesh const& amr_mesh)
+{
+    os << "  verbose = " << amr_mesh.verbose << "\n";
+    os << "  max_level = " << amr_mesh.max_level << "\n";
+    os << "  ref_ratio =";
+    for (int lev = 0; lev < amr_mesh.max_level; ++lev) os << " " << amr_mesh.ref_ratio[lev];
+    os << "\n";
+    os << "  blocking_factor =";
+    for (int lev = 0; lev <= amr_mesh.max_level; ++lev) os << " " << amr_mesh.blocking_factor[lev];
+    os << "\n";
+    os << "  max_grid_size =";
+    for (int lev = 0; lev <= amr_mesh.max_level; ++lev) os << " " << amr_mesh.max_grid_size[lev];
+    os << "\n";
+    os << "  n_error_buf =";
+    for (int lev = 0; lev < amr_mesh.max_level; ++lev) os << " " << amr_mesh.n_error_buf[lev];
+    os << "\n";
+    os << "  grid_eff = " << amr_mesh.grid_eff << "\n";
+    os << "  n_proper = " << amr_mesh.n_proper << "\n";
+    os << "  use_fixed_upto_level = " << amr_mesh.use_fixed_upto_level << "\n";
+    os << "  use_fixed_coarse_grids = " << amr_mesh.use_fixed_coarse_grids << "\n";
+    os << "  refine_grid_layout = " << amr_mesh.refine_grid_layout << "\n";
+    os << "  check_input = " << amr_mesh.check_input  << "\n";
+    os << "  use_new_chop = " << amr_mesh.use_new_chop << "\n";
+    os << "  iterate_on_new_grids = " << amr_mesh.iterate_on_new_grids << "\n";
+    return os;
+}
 
 }

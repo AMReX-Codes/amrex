@@ -3,6 +3,47 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_Scan.H>
 
+#include <thrust/device_malloc_allocator.h>
+#include <thrust/scan.h>
+
+namespace amrex
+{
+    template<class T>
+    class ThrustManagedAllocator : public thrust::device_malloc_allocator<T>
+    {
+    public:
+        using value_type = T;
+        
+        typedef thrust::device_ptr<T>  pointer;
+        inline pointer allocate(size_t n)
+        {
+            value_type* result = nullptr;
+            result = (value_type*) The_Arena()->alloc(n * sizeof(T));
+            return thrust::device_pointer_cast(result);
+        }
+        
+        inline void deallocate(pointer ptr, size_t)
+        {
+            The_Arena()->free(thrust::raw_pointer_cast(ptr));
+        }
+    };
+
+    namespace
+    {
+        ThrustManagedAllocator<char> g_cached_allocator;
+    }
+
+    namespace Gpu
+    {
+        ThrustManagedAllocator<char>& The_ThrustCachedAllocator () { return g_cached_allocator; };
+        
+        AMREX_FORCE_INLINE auto The_ThrustCachedPolicy() -> decltype (thrust::cuda::par(Gpu::The_ThrustCachedAllocator()))
+        {
+            return thrust::cuda::par(Gpu::The_ThrustCachedAllocator());
+        };
+    }
+}
+
 using namespace amrex;
 
 void main_main();

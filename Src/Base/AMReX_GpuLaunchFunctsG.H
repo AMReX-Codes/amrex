@@ -345,7 +345,7 @@ void ParallelFor (Box const& box1, T1 ncomp1, L1&& f1,
 {
     For(box1,ncomp1,std::forward<L1>(f1),
         box2,ncomp2,std::forward<L2>(f2),
-        box3,ncomp3,std::forward<L2>(f3),shared_mem_bytes);
+        box3,ncomp3,std::forward<L3>(f3),shared_mem_bytes);
 }
 
 template <typename T, typename L1, typename L2>

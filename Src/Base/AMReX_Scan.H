@@ -369,6 +369,47 @@ T ExclusiveSum (N n, T const* in, T * out)
 
 #endif
 
+}
+
+namespace Gpu
+{
+    template<class InIter, class OutIter>
+    OutIter inclusive_scan (InIter begin, InIter end, OutIter result)
+    {
+#ifdef AMREX_USE_GPU
+        auto N = std::distance(begin, end);
+        Scan::InclusiveSum(N, &(*begin), &(*result));
+        OutIter result_end = result;
+        std::advance(result_end, N);
+        return result_end;
+#else
+        return std::partial_sum(begin, end, result);
+#endif
+    }
+
+    template<class InIter, class OutIter>
+    OutIter exclusive_scan(InIter begin, InIter end, OutIter result)
+    {
+#ifdef AMREX_USE_GPU
+        auto N = std::distance(begin, end);
+        Scan::ExclusiveSum(N, &(*begin), &(*result));
+        OutIter result_end = result;
+        std::advance(result_end, N);
+        return result_end;
+#else
+        if (begin == end) return result;
+        
+        typename std::iterator_traits<InIter>::value_type sum = *begin;
+        *result++ = sum - *begin;
+        
+        while (++begin != end) {
+            sum = std::move(sum) + *begin;
+            *result++ = sum - *begin;
+        }
+        return ++result;
+#endif
+    }
+
 }}
 
 #endif

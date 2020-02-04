@@ -90,7 +90,7 @@ public:
 
     template <typename T>
     AMREX_GPU_HOST_DEVICE
-    Box (Array4<T> const& a) noexcept
+    explicit Box (Array4<T> const& a) noexcept
         : smallend(AMREX_D_DECL(a.begin.x,a.begin.y,a.begin.z)),
           bigend  (AMREX_D_DECL(a.end.x-1,a.end.y-1,a.end.z-1))
         {}
@@ -960,12 +960,13 @@ AMREX_FORCE_INLINE
 bool
 Box::isSquare () const noexcept
 {
-    const IntVect& sz = this->size();
 #if AMREX_SPACEDIM==1
     return false; // can't build a square in 1-D
 #elif AMREX_SPACEDIM==2
+    const IntVect& sz = this->size();
     return (sz[0] == sz[1]);
 #elif AMREX_SPACEDIM==3
+    const IntVect& sz = this->size();
     return (sz[0] == sz[1] && (sz[1] == sz[2]));
 #endif
 }
