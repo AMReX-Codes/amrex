@@ -46,8 +46,7 @@ void mlebtensor_cross_terms_fx (Box const& box, Array4<Real> const& fx,
                                         +(vel(i-1,jlop,0,0)-vel(i-1,jlom,0,0))*wlo);
                 Real dvdy = (0.5*dyi) * ((vel(i  ,jhip,0,1)-vel(i  ,jhim,0,1))*whi
                                         +(vel(i-1,jlop,0,1)-vel(i-1,jlom,0,1))*wlo);
-
-                Real divu = dvdy;
+		Real divu = dvdy;
                 Real xif = kapx(i,j,0);
                 Real mun = 0.75*(etax(i,j,0,0)-xif);  // restore the original eta
                 Real mut =       etax(i,j,0,1);
@@ -93,7 +92,7 @@ void mlebtensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
                 Real dvdx = (0.5*dxi) * ((vel(ihip,j  ,0,1)-vel(ihim,j  ,0,1))*whi
                                         +(vel(ilop,j-1,0,1)-vel(ilom,j-1,0,1))*wlo);
 
-                Real divu = dudx;
+		Real divu = dudx;
                 Real xif = kapy(i,j,0);
                 Real mun = 0.75*(etay(i,j,0,1)-xif);  // restore the original eta
                 Real mut =       etay(i,j,0,0);
@@ -252,6 +251,97 @@ void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
             }
         }
     }
+}
+
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlebtensor_flux_0 (Box const& box,
+			Array4<Real> const& Ax,
+			Array4<Real const> const& fx,
+			Array4<Real const> const& ap,
+			Real bscalar) noexcept
+{
+    const auto lo = amrex::lbound(box);
+    const auto hi = amrex::ubound(box);
+
+    int k = 0;
+    for     (int j = lo.y; j <= hi.y; ++j) {
+        AMREX_PRAGMA_SIMD
+        for (int i = lo.x; i <= hi.x; ++i) {
+	  if (ap(i,j,k) != 0.0) {
+	      for (int n=0; n<AMREX_SPACEDIM; n++)
+		  Ax(i,j,k,n) += bscalar*fx(i,j,k,n);
+	  }
+	  //else MLEBABec::compFlux already set Ax = 0
+	}
+    }
+}
+
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlebtensor_flux_x (Box const& box, Array4<Real> const& Ax,
+			Array4<Real const> const& fx, Array4<Real const> const& apx,
+			Array4<Real const> const& fcx,
+			Real const bscalar, Array4<int const> const& ccm,
+			int face_only, Box const& xbox) noexcept
+{
+    int lof = xbox.smallEnd(0);
+    int hif = xbox.bigEnd(0);
+    amrex::LoopConcurrent(box, [=] (int i, int j, int k) noexcept
+    {
+        if (!face_only or lof == i or hif == i) {
+	  if (apx(i,j,k) == 1.0) {
+	    for (int n=0; n<AMREX_SPACEDIM; n++)
+	        Ax(i,j,k,n) += bscalar*fx(i,j,k,n);
+	  }
+	  else if (apx(i,j,k) != 0.) {
+                Real fxm_0 = fx(i,j,0,0);
+                Real fxm_1 = fx(i,j,0,1);
+
+		int jj = j + (fcx(i,j,0,0) >= 0.0 ? 1 : -1);
+		Real fracy = (ccm(i-1,jj,0) or ccm(i,jj,0)) ? std::abs(fcx(i,j,0,0)) : 0.0;
+		fxm_0 = (1.0-fracy)*fxm_0 + fracy*fx(i,jj,0,0);
+		fxm_1 = (1.0-fracy)*fxm_1 + fracy*fx(i,jj,0,1);
+
+                Ax(i,j,k,0) += bscalar*fxm_0;
+		Ax(i,j,k,1) += bscalar*fxm_1;
+	  }
+	  //else MLEBABec::compFlux already set Ax = 0
+        }
+    });
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlebtensor_flux_y (Box const& box, Array4<Real> const& Ay,
+			Array4<Real const> const& fy, Array4<Real const> const& apy,
+			Array4<Real const> const& fcy,
+			Real const bscalar, Array4<int const> const& ccm,
+			int face_only, Box const& ybox) noexcept
+{
+    int lof = ybox.smallEnd(1);
+    int hif = ybox.bigEnd(1);
+    amrex::LoopConcurrent(box, [=] (int i, int j, int k) noexcept
+    {
+        if (!face_only or lof == j or hif == j) {
+	  if (apy(i,j,k) == 1.0) {
+	    for (int n=0; n<AMREX_SPACEDIM; n++)
+	        Ay(i,j,k,n) += bscalar*fy(i,j,k,n);
+	  }
+	  else if (apy(i,j,k) != 0.) {
+                Real fym_0 = fy(i,j,0,0);
+                Real fym_1 = fy(i,j,0,1);
+
+		int ii = i + (fcy(i,j,0,0) >= 0.0 ? 1 : -1);
+		Real fracx = (ccm(ii,j-1,0) or ccm(ii,j,0)) ? std::abs(fcy(i,j,0,0)) : 0.0;
+		fym_0 = (1.0-fracx)*fym_0 + fracx*fy(ii,j,0,0);
+		fym_1 = (1.0-fracx)*fym_1 + fracx*fy(ii,j,0,1);
+
+                Ay(i,j,k,0) += bscalar*fym_0;
+		Ay(i,j,k,1) += bscalar*fym_1;
+	  }
+	  //else MLEBABec::compFlux already set Ay = 0
+        }
+    });
 }
 
 }
