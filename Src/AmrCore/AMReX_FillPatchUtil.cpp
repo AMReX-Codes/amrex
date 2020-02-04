@@ -109,7 +109,21 @@ namespace amrex
                     auto const sfab1 = smf[1]->array(mfi);
                     auto       dfab  = dmf->array(mfi);
 
-                    if (std::abs(t1-t0) > 1.e-16)
+                    if (time == t0)
+                    {
+                        AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
+                        {
+                            dfab(i,j,k,n+destcomp) = sfab0(i,j,k,n+scomp);
+                        });
+                    }
+                    else if (time == t1)
+                    {
+                        AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
+                        {
+                            dfab(i,j,k,n+destcomp) = sfab1(i,j,k,n+scomp);
+                        });
+                    }
+                    else if (std::abs(t1-t0) > 1.e-16)
                     {
                         Real alpha = (t1-time)/(t1-t0);
                         Real beta = (time-t0)/(t1-t0);
