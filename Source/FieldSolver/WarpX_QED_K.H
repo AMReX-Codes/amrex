@@ -1,3 +1,9 @@
+/* Copyright 2019-2020 Glenn Richardson, Maxence Thevenet
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #ifndef WarpX_QED_K_h
 #define WarpX_QED_K_h
 
@@ -57,20 +63,21 @@ void calc_M(Real arr [], Real ex, Real ey, Real ez, Real bx, Real by, Real bz, R
  * \param[in] dy The y spatial step, used for calculating curls
  * \param[in] dz The z spatial step, used for calulating curls
  * \param[in] dt The temporal step, used for the half push/correction to the E-fields at the end of the function
+ * \param[in] xi Quantum parameter
  */
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void warpx_hybrid_QED_push (int j, int k, int l, Array4<Real> const& Ex, Array4<Real>
                             const& Ey, Array4<Real> const& Ez, Array4<Real> const& Bx,
                             Array4<Real> const& By, Array4<Real const> const& Bz,
                             Array4<Real> const& tmpEx, Array4<Real> const& tmpEy,
-                            Array4<Real> const& tmpEz, Real dx, Real dy, Real dz, Real dt)
+                            Array4<Real> const& tmpEz, Real dx, Real dy, Real dz, Real dt,
+                            const Real xi)
 {
 
 
 // Defining constants to be used in the calculations
 
 constexpr amrex::Real c2 = PhysConst::c * PhysConst::c;
-const amrex::Real xi = WarpX::quantum_xi;
 const amrex::Real dxi = 1./dx;
 const amrex::Real dzi = 1./dz;
 
