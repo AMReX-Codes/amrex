@@ -55,6 +55,7 @@ int WarpX::do_moving_window = 0;
 int WarpX::moving_window_dir = -1;
 Real WarpX::moving_window_v = std::numeric_limits<amrex::Real>::max();
 
+Real WarpX::quantum_xi = PhysConst::xi;
 Real WarpX::gamma_boost = 1.;
 Real WarpX::beta_boost = 0.;
 Vector<int> WarpX::boost_direction = {0,0,0};
@@ -341,6 +342,7 @@ WarpX::ReadParameters ()
         pp.query("verbose", verbose);
         pp.query("regrid_int", regrid_int);
         pp.query("do_subcycling", do_subcycling);
+        pp.query("use_hybrid_QED", use_hybrid_QED);
         pp.query("exchange_all_guard_cells", exchange_all_guard_cells);
         pp.query("override_sync_int", override_sync_int);
 
@@ -455,6 +457,8 @@ WarpX::ReadParameters ()
         pp.query("n_field_gather_buffer", n_field_gather_buffer);
         pp.query("n_current_deposition_buffer", n_current_deposition_buffer);
         pp.query("sort_int", sort_int);
+
+        pp.query("quantum_xi", quantum_xi);
 
         pp.query("do_pml", do_pml);
         pp.query("pml_ncell", pml_ncell);

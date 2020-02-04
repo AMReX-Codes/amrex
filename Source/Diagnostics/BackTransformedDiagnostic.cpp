@@ -566,7 +566,7 @@ BackTransformedDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
     std::vector<std::string> user_fields_to_dump;
     ParmParse pp("warpx");
     bool do_user_fields;
-    do_user_fields = pp.queryarr("boosted_frame_diag_fields",
+    do_user_fields = pp.queryarr("back_transformed_diag_fields",
                                  user_fields_to_dump);
     // If user specifies fields to dump, overwrite ncomp_to_dump,
     // map_actual_fields_to_dump and mesh_field_names.

@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+#
+# Copyright 2016-2020 Axel Huebl
+#
+# License: BSD-3-Clause-LBNL
+
+# Search recursive inside a folder if a shell scripts or batch system files
+# contains non-ASCII characters. This causes problems with some systems.
+# We can also not guarantee that everyone has UTF8 locales installed, so
+# why depend on it.
+#
+# @result 0 if no files are found, else 1
+#
+
+ok=0
+
+pattern="\.c$|\.cpp$|\.F90$|\.h$|\.H$|\.ini$|\.py$|"\
+"\.sh$|\.tex$|\.txt$|\.xml$|\.yml$|"\
+"CMakeLists\.txt|inputs"
+
+for i in $(find . \
+                -not -path "./.git/*"   \
+                -not -path "./.idea/*"  \
+                -not -path "*wp_parse*" \
+                -type f | \
+           grep -P "${pattern}")
+do
+  # non-ASCII test regex via jerrymouse at stackoverflow under CC-By-SA 3.0:
+  #   http://stackoverflow.com/questions/3001177/how-do-i-grep-for-all-non-ascii-characters-in-unix/9395552#9395552
+  result=$(grep --color='always' -P -n "[\x80-\xFF]" $i)
+
+  if [ $? -eq 0 ]
+  then
+    echo "$i contains non-ASCII characters!"
+    echo "$result"
+    ok=1
+  fi
+done
+
+exit $ok
+

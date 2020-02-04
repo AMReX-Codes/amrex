@@ -933,6 +933,18 @@ Numerics and algorithms
     if they have too different values. This option makes sure that they are
     synchronized periodically.
 
+* ``warpx.use_hybrid_QED`` ('bool'; default: 0)
+    Will use the Hybird QED Maxwell solver when pushing fields: a QED correction is added to the
+    field solver to solve non-linear Maxwell's equations, according to [Quantum Electrodynamics
+    vacuum polarization solver, P. Carneiro et al., `ArXiv 2016 <https://arxiv.org/abs/1607.04224>`__].
+    Note that this option can only be used with the PSATD build. Furthermore,
+    warpx.do_nodal must be set to `1` which is not its default value.
+
+ * ``warpx.quantum_xi`` ('float'; default: 1.3050122.e-52)
+     Overwrites the actual quantum parameter used in Maxwell's QED equations. Assigning a
+     value here will make the simulation unphysical, but will allow QED effects to become more apparent.
+     Note that this option will only have an effect if the warpx.use_Hybrid_QED flag is also triggered.
+
 Boundary conditions
 -------------------
 
@@ -1014,10 +1026,10 @@ Diagnostics and output
 * ``warpx.do_back_transformed_fields`` (`0 or 1`)
     Whether to use the **back-transformed diagnostics** for the fields.
 
-* ``warpx.boosted_frame_diag_fields`` (space-separated list of `string`)
+* ``warpx.back_transformed_diag_fields`` (space-separated list of `string`)
     Which fields to dumped in back-transformed diagnostics. Choices are
     'Ex', 'Ey', Ez', 'Bx', 'By', Bz', 'jx', 'jy', jz' and 'rho'. Example:
-    ``warpx.boosted_frame_diag_fields = Ex Ez By``. By default, all fields
+    ``warpx.back_transformed_diag_fields = Ex Ez By``. By default, all fields
     are dumped.
 
 * ``warpx.plot_raw_fields`` (`0` or `1`) optional (default `0`)

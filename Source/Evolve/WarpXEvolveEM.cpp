@@ -12,6 +12,8 @@
 #include <limits>
 
 #include <WarpX.H>
+#include <WarpX_QED_K.H>
+#include <WarpX_QED_Field_Pushers.cpp>
 #include <WarpXConst.H>
 #include <WarpX_f.H>
 #include <WarpXUtil.H>
@@ -358,10 +360,24 @@ WarpX::OneStep_nosub (Real cur_time)
     // Push E and B from {n} to {n+1}
     // (And update guard cells immediately afterwards)
 #ifdef WARPX_USE_PSATD
+    if (use_hybrid_QED)
+    {
+        WarpX::Hybrid_QED_Push(dt);
+        FillBoundaryE(guard_cells.ng_alloc_EB, guard_cells.ng_Extra);
+    }
     PushPSATD(dt[0]);
-    if (do_pml) DampPML();
     FillBoundaryE(guard_cells.ng_alloc_EB, guard_cells.ng_Extra);
     FillBoundaryB(guard_cells.ng_alloc_EB, guard_cells.ng_Extra);
+
+    if (use_hybrid_QED)
+    {
+        WarpX::Hybrid_QED_Push(dt);
+        FillBoundaryE(guard_cells.ng_alloc_EB, guard_cells.ng_Extra);
+
+    }
+    if (do_pml) DampPML();
+
+;
 #else
     EvolveF(0.5*dt[0], DtType::FirstHalf);
     FillBoundaryF(guard_cells.ng_FieldSolverF);
