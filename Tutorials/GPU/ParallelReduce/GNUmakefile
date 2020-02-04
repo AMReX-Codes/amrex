@@ -4,13 +4,13 @@ DEBUG	= TRUE
 
 DIM	= 3
 
-COMP    = hip
+COMP    = gcc
 
-USE_CUDA  = FALSE 
+USE_CUDA  = TRUE
 
 USE_MPI   = FALSE
 USE_OMP   = FALSE
-USE_HIP   = TRUE
+USE_HIP   = FALSE
 
 TINY_PROFILE = TRUE
 
