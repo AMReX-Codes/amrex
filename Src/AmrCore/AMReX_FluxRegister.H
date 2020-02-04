@@ -340,9 +340,11 @@ public:
                  int             numcomp,
                  const Geometry& crse_geom);
 
+#ifndef BL_NO_FORT
     void OverwriteFlux (Array<MultiFab*,AMREX_SPACEDIM> const& crse_fluxes,
                         Real scale, int srccomp, int destcomp, int numcomp,
                         const Geometry& crse_geom);
+#endif
 
 
     /**

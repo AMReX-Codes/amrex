@@ -35,6 +35,7 @@ target_sources( amrex
    AMReX_Array.H
    AMReX_BlockMutex.H
    AMReX_BlockMutex.cpp
+   AMReX_GpuComplex.H
    AMReX_Vector.H
    AMReX_Tuple.H
    AMReX.cpp
@@ -192,6 +193,7 @@ target_sources( amrex
    AMReX_MultiFabUtil_C.H
    AMReX_FilCC_${DIM}D_C.H
    AMReX_FilCC_C.H
+   AMReX_FilCC_C.cpp
    AMReX_filcc_mod.F90
    AMReX_omp_mod.F90
    AMReX_acc_mod.F90
@@ -227,7 +229,6 @@ target_sources( amrex
    AMReX_GpuRange.H
    AMReX_GpuReduce.H
    AMReX_GpuAllocators.H
-   AMReX_GpuAllocators.cpp
    AMReX_GpuContainers.H
    # CUDA --------------------------------------------------------------------
    AMReX_CudaGraph.H

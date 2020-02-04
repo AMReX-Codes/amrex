@@ -48,9 +48,13 @@ public:
                  const Vector<EBFArrayBoxFactory const*>& a_factory);
 
     void setShearViscosity (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& eta);
+    void setShearViscosity (int amrlev, Real eta);
     void setBulkViscosity (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& kappa);
+    void setBulkViscosity (int amrlev, Real kappa);
     void setEBShearViscosity (int amrlev, MultiFab const& eta);
+    void setEBShearViscosity (int amrlev, Real eta);
     void setEBBulkViscosity (int amrlev, MultiFab const& kappa);
+    void setEBBulkViscosity (int amrlev, Real eta);
 
     virtual int getNComp () const final override { return AMREX_SPACEDIM; }
 
@@ -70,6 +74,8 @@ public:
 
     virtual void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
                         StateMode s_mode, const MLMGBndry* bndry=nullptr) const final override;
+    virtual void compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
+                           MultiFab& sol, Location loc) const override;
 
 protected:
 
@@ -89,6 +95,7 @@ public: // for cuda
 
     void applyBCTensor (int amrlev, int mglev, MultiFab& vel,
                         BCMode bc_mode, StateMode s_mode, const MLMGBndry* bndry) const;
+    void compCrossTerms(int amrlev, int mglev, MultiFab const& mf) const;
 };
 
 }

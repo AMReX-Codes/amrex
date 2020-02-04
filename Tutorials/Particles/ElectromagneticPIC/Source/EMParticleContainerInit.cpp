@@ -69,8 +69,6 @@ InitParticles(const IntVect& a_num_particles_per_cell,
         const auto lo = amrex::lbound(tile_box);
         const auto hi = amrex::ubound(tile_box);
 
-        amrex::CheckSeedArraySizeAndResize(tile_box.numPts());
-
         Gpu::ManagedVector<unsigned int> counts(tile_box.numPts(), 0);
         unsigned int* pcount = counts.dataPtr();
         

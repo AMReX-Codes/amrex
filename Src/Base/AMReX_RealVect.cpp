@@ -9,9 +9,8 @@ using std::ws;
 namespace amrex
 {
 
-  const RealVect RealVect::Unit(AMREX_D_DECL(1.0,1.0,1.0));
-
-  const RealVect RealVect::Zero(AMREX_D_DECL(0.0,0.0,0.0));
+  const RealVect RealVect::Zero = RealVect::TheZeroVector();
+  const RealVect RealVect::Unit = RealVect::TheUnitVector();
 
   AMREX_GPU_HOST_DEVICE
   const Real*
@@ -25,31 +24,6 @@ namespace amrex
   RealVect::dataPtr() noexcept
   {
     return vect;
-  }
-
-  AMREX_GPU_HOST_DEVICE
-  RealVect::RealVect (AMREX_D_DECL(Real i, Real j, Real k)) noexcept
-  {
-    AMREX_D_EXPR(vect[0] = i, vect[1] = j, vect[2] = k);
-  }
-
-  RealVect::RealVect (const std::vector<Real>& vr ) noexcept
-  {
-    AMREX_D_EXPR(vect[0]=vr[0], vect[1]=vr[1], vect[2] = vr[2]);
-  }
-
-  AMREX_GPU_HOST_DEVICE
-  RealVect::RealVect () noexcept
-  {
-    AMREX_D_EXPR(vect[0]=0.0, vect[1]=0.0, vect[2] = 0.0);
-  }
-
-  AMREX_GPU_HOST_DEVICE
-  RealVect&
-  RealVect::operator= (const RealVect &iv) noexcept
-  {
-    AMREX_D_EXPR(vect[0]=iv.vect[0], vect[1]=iv.vect[1], vect[2]=iv.vect[2]);
-    return *this;
   }
 
   AMREX_GPU_HOST_DEVICE
@@ -220,7 +194,7 @@ namespace amrex
   BASISREALV (int dir) noexcept
   {
     AMREX_ASSERT(dir >= 0 && dir < SpaceDim);
-    RealVect tmp(AMREX_D_DECL(0,0,0));
+    RealVect tmp(AMREX_D_DECL(0.,0.,0.));
     tmp.vect[dir] = 1;
     return tmp;
   }

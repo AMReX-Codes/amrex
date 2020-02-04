@@ -20,14 +20,17 @@
 .. |d| image:: ./AmrCore/figs/Adv4.png
        :width: 100%
 
+.. |e| image:: ./AmrCore/figs/Adv5.png
+       :width: 100%
+
 .. _fig:Adv:
 
-.. table:: Time sequence (:math:`t=0,0.5,1,1.5,2` s) of advection of a Gaussian profile using the SingleVortex tutorial. The red, green, and blue boxes indicate grids at AMR levels :math:`\ell=0,1`, and :math:`2`.
+.. table:: Time sequence (:math:`t=0,0.5,1,1.5,2` s) of advection of a Gaussian profile using the SingleVortex tutorial. The analytic velocity field distorts the profile, and then restores the profile to the original configuration.  The red, green, and blue boxes indicate grids at AMR levels :math:`\ell=0,1`, and :math:`2`.  
    :align: center
    
-   +-----+-----+-----+-----+
-   | |a| | |b| | |c| | |d| |
-   +-----+-----+-----+-----+
+   +-----+-----+-----+-----+-----+
+   | |a| | |b| | |c| | |d| | |e| |
+   +-----+-----+-----+-----+-----+
 
 .. raw:: latex
 

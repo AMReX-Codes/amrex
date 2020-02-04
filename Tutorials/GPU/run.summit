@@ -1,15 +1,23 @@
 #!/bin/bash
 #BSUB -P CSC249ADCD03
+#BSUB -J AMREX_GPU
+#BSUB -o AMREX_GPU.o%J
+#BSUB -e AMREX_GPU.e%J
 #BSUB -W 10 
 #BSUB -nnodes 1
-#BSUB -J MMtest 
-#BSUB -o MMtest.%J
-#BSUB -e MMtest.%J
+#BSUB -alloc_flags "smt1" 
+
+## BSUB -alloc_flags gpumps
+# Turn on MPS. Needed when running multiple MPI ranks per GPU. 
+# For standard runs, this is not needed. 
 
 module list
 set -x
 
 # =====================
+# Find the flags you need using jsrun visualizer:
+# https://jsrunvisualizer.olcf.ornl.gov
+#
 # BSUB parameters
 # -nnodes = number of nodes
 
@@ -39,7 +47,7 @@ omp=1
 export OMP_NUM_THREADS=${omp}
 
 EXE="./main3d.pgi.MPI.CUDA.ex"
-JSRUN="jsrun -n 2 -a 1 -g 1 -c 1 --bind=packed:${omp}"
+JSRUN="jsrun -r 6 -a 1 -g 1 -c 7 --bind=packed:7"
 INPUTS=inputs_3d
 SMPIARGS=
 
@@ -56,26 +64,22 @@ PAMI_DISABLE_IPC=1
 # Requires using one resource set per node.
 # RECOMMENDED OFF. ONLY ADD IF YOU REQUIRE IT.
 
-SMPIARGS+=" --smpiargs="-x PAMI_DISABLE_CUDA_HOOK=1 -disable_gpu_hooks""
+SMPIARGS+=" --smpiargs="-disable_gpu_hooks -x PAMI_DISABLE_CUDA_HOOK=1""
 # Turns off CUDA hooks required for CUDA-aware MPI. 
 # RECOMMENDED ON.
 # May eliminate intermittent finalize bug that prevents obtaining profiling data.
 
-# SMPIARGS+= --alloc_flags gpumps
-# Turn on MPS. Needed when running multiple MPI ranks per GPU. 
-# For standard runs, this is not needed. 
-
 # Profiler flags
 # =====================
 # --openmp-profiling off
-# Needed when using nvprof with cuda/10.1.105 on summit: 
-# https://www.olcf.ornl.gov/for-users/system-user-guides/summit/summit-user-guide/#known-issues
+# Needed when using nvprof with Cuda >= 10 on summit, see Resolved Issues:
+# https://docs.olcf.ornl.gov/systems/summit_user_guide.html
 
 # --device-buffer-size <size in MBs> (recommended initial value: 64)
 # Reserves memory for storing profiling data for non-CDP operations for each buffer on a
 #       context. The default value is 8MB. 
 # Ensures sufficient memory so that profiling information written to stdout is reported
-#       in cases wher HBM is over-subscribed (large memory problems).
+#       in cases where HBM is over-subscribed (large memory problems).
 
 # Example run lines
 # =====================
@@ -84,19 +88,37 @@ SMPIARGS+=" --smpiargs="-x PAMI_DISABLE_CUDA_HOOK=1 -disable_gpu_hooks""
 ${JSRUN} ${SMPIARGS} ${EXE} ${INPUTS} >& out.${LSB_JOBID}
 
 # 2. Run under nvprof and direct all stdout and stderr to nvprov.{jobid}
-#${JSRUN} nvprof ${EXE} ${INPUTS} &> nvprof.txt
-#${JSRUN} nvprof --profile-child-processes ${EXE} inputs &> nvprof.${LSB_JOBID}
+#${JSRUN} ${SMPIARGS} nvprof --profile-child-processes --openmp-profiling off --device-buffer-size 64 ${EXE} ${INPUTS} &> out.${LSB_JOBID}
 
 # 3. Run under nvprof and output trace data of gpu launches. 
-#${JSRUN} nvprof --print-gpu-trace --profile-child-processes ${EXE} ${INPUTS} >
+#${JSRUN} ${SMPIARGS} nvprof --print-gpu-trace --profile-child-processes --openmp-profiling off --device-buffer-size 64 ${EXE} ${INPUTS} >& out.${LSB_JOBID}
 
 # 4. Run under nvprof and store performance data in a nvvp file
-# Can be converted to text using nvprof -i nvprof-timeline-%p.nvvp
-#${JSRUN} nvprof --profile-child-processes -o nvprof-timeline-%p.nvvp ${EXE} ${INPUTS} 
+#    Can be converted to text using nvprof -i nvprof-timeline-%p.nvvp
+#${JSRUN} ${SMPIARGS} nvprof --profile-child-processes --openmp-profiling off --device-buffer-size 64 -o nvprof_out.${PMIX_RANK}.${LSB_JOBID}.nvvp ${EXE} ${INPUTS} >& out.${LSB_JOBID}
 
-# COLLECT PERFORMANCE METRICS - THIS IS MUCH SLOWER. Set nsteps=2 in the inputs files
-# 5. Run under nvprof and collect metrics for a subset of kernels
-#${JSRUN} nvprof --profile-child-processes --kernels '(deposit_current|gather_\w+_field|push_\w+_boris)' --analysis-metrics -o nvprof-metrics-kernel-%p.nvvp ${EXE} ${INPUTS} 
+# 5. Run under nvprof only profiling MPI rank PROFILE_RANK
+#${JSRUN} ${SMPIARGS} ./profile_1rank.sh ${EXE} ${INPUTS} &> out.${LSB_JOBID}
 
-# 6. Run under nvprof and collect metrics for all kernels -- MUCH SLOWER!
-#${JSRUN} nvprof --profile-child-processes --analysis-metrics -o nvprof-metrics-%p.nvvp ${EXE} ${INPUTS}
+# Uncomment and copy the following lines into profile_1rank.sh 
+# #!/bin/bash
+# PROFILE_RANK=0
+# if [ $PMIX_RANK == $PROFILE_RANK ]; then
+#   nvprof --profile-child-processes --openmp-profiling off --device-buffer-size 64 "$@"
+# else
+#   "$@"
+# fi
+
+# 6. Run under nsys profile and store performance data in a qdrep file
+#${JSRUN} ${SMPIARGS} nsys profile -o nsys_out.%q{PMIX_RANK}.%q{LSB_JOBID}  ${EXE} ${INPUTS} >& out.${LSB_JOBID}
+
+# 7. Run under nsys profile and store performance data in a qdrep file and collect summary stats in sqlite file
+#    Warning: summary statistics will take A LOT of extra time at the end of the run
+#${JSRUN} ${SMPIARGS} nsys profile --stats=true -o nsys_out.%q{PMIX_RANK}.%q{LSB_JOBID}  ${EXE} ${INPUTS} >& out.${LSB_JOBID}
+
+# 8. Run under nv-sight-cu-cli for Nsight Compute command line interface
+#    Warning: This will do a A LOT of analysis. Limit the kernels profiled with additional flags.
+#    For filtering examples, see:
+#    https://docs.nvidia.com/nsight-compute/NsightComputeCli/index.html#nvtx-filtering
+#${JSRUN} ${SMPIARGS} nv-nsight-cu-cli -o cucli_out.%q{SLURM_PROCID}.%q{SLURM_JOBID} ${EXE} ${INPUTS} >& out.${LSB_JOBID}
+

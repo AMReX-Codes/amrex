@@ -14,16 +14,13 @@
 #include <cuda.h>
 #include <driver_types.h>
 #include <cuda_runtime.h>
-#include <thrust/system/cuda/vector.h>
-#include <thrust/device_malloc_allocator.h>
-#elif defined (AMREX_USE_HIP)
-#include <thrust/memory.h>
-#include <thrust/system/hip/vector.h>
-#include <thrust/device_malloc_allocator.h>
-#endif
+#endif // AMREX_USE_CUDA
 
 namespace amrex {
 
+    template <typename T>
+    struct RunOnGpu : std::false_type {};
+        
 #ifdef AMREX_USE_GPU
   
     template<typename T>
@@ -154,42 +151,14 @@ namespace amrex {
         return !(x == y);
     }
 
-    template<class T>
-    class ThrustManagedAllocator : public thrust::device_malloc_allocator<T>
-    {
-    public:
-        using value_type = T;
+    template <typename T>
+    struct RunOnGpu<ArenaAllocator<T> > : std::true_type {};
 
-        typedef thrust::device_ptr<T>  pointer;
-        inline pointer allocate(size_t n)
-            {
-                value_type* result = nullptr;
-                result = (value_type*) The_Arena()->alloc(n * sizeof(T));
-                return thrust::device_pointer_cast(result);
-            }
+    template <typename T>
+    struct RunOnGpu<DeviceArenaAllocator<T> > : std::true_type {};
 
-        inline void deallocate(pointer ptr, size_t)
-            {
-                The_Arena()->free(thrust::raw_pointer_cast(ptr));
-            }
-    };
-
-    
-    namespace Gpu
-    {
-        ThrustManagedAllocator<char>& The_ThrustCachedAllocator ();
-
-        AMREX_FORCE_INLINE
-#ifdef AMREX_USE_CUDA
-        auto The_ThrustCachedPolicy() -> decltype (thrust::cuda::par(Gpu::The_ThrustCachedAllocator()))
-#elif defined(AMREX_USE_HIP)
-        auto The_ThrustCachedPolicy() -> decltype (thrust::hip::par(Gpu::The_ThrustCachedAllocator()))
-#endif
-        {
-            AMREX_HIP_OR_CUDA(return thrust::hip::par (Gpu::The_ThrustCachedAllocator());,
-                              return thrust::cuda::par(Gpu::The_ThrustCachedAllocator()); );
-        };
-    }
+    template <typename T>
+    struct RunOnGpu<ManagedArenaAllocator<T> > : std::true_type {};
 
 #endif // AMREX_USE_GPU
 
