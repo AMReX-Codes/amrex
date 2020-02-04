@@ -9,7 +9,8 @@ COMP    = hip
 
 USE_MPI   = FALSE
 USE_OMP   = FALSE
-USE_HIP   = TRUE
+USE_CUDA  = FALSE
+USE_HIP   = FALSE
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
