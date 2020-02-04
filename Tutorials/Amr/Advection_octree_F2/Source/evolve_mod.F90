@@ -96,6 +96,7 @@ contains
     use my_amr_module, only : verbose
     use amr_data_module, only : phi_new, flux_reg
     use face_velocity_module, only : get_face_velocity
+    use compute_flux_module, only : compute_flux
     use advect_module, only : advect
     use fillpatch_module, only : fillpatch
     integer, intent(in) :: step
@@ -109,7 +110,7 @@ contains
     type(amrex_box) :: bx, tbx
     real(amrex_real), contiguous, pointer, dimension(:,:,:,:) :: pin,pout,pux,puy,puz,pfx,pfy,pfz
     type(amrex_fab) :: uface(amrex_spacedim)
-    type(amrex_multifab), allocatable :: fluxes(:,:)
+    type(amrex_fab) :: fluxes(amrex_spacedim)
 
     if (verbose .gt. 0 .and. amrex_parallel_ioprocessor()) then
        write(*,'(A, 1X, I0, A, 1X, G0)') &
@@ -119,100 +120,109 @@ contains
     ncomp = phi_new(0)%ncomp()
     finest_level = amrex_get_finest_level()
 
-    allocate(fluxes(amrex_spacedim,0:finest_level))
-    do ilev = 0, finest_level
-       do idim = 1, amrex_spacedim
-          nodal = .false.
-          nodal(idim) = .true.
-          call amrex_multifab_build(fluxes(idim,ilev), phi_new(ilev)%ba, phi_new(ilev)%dm, &
-                                    ncomp, 0, nodal)
-          call fluxes(idim,ilev)%setVal(0.0_amrex_real)
-       end do
-    end do
-
     allocate(phiborder(0:finest_level))
     do ilev = 0, finest_level
        call amrex_multifab_build(phiborder(ilev), phi_new(ilev)%ba, phi_new(ilev)%dm, ncomp, ngrow)
        call fillpatch(ilev, time, phiborder(ilev))
     end do
 
-    !$omp parallel private(idim,oti,ilev,igrd,bx,tbx,pin,pout,pux,puy,puz,pfx,pfy,pfz,uface)
-    do idim = 1, amrex_spacedim
-       call uface(idim)%reset_omp_private()
-    end do
-
-    call amrex_octree_iter_build(oti)
-
-    do while(oti%next())
-       ilev = oti%level()
-       igrd = oti%grid_index()
-       bx   = oti%box()
-
-       pin  => phiborder(ilev)%dataptr(igrd)
-       pout => phi_new(ilev)%dataptr(igrd)
-
-       pfx  => fluxes(1,ilev)%dataptr(igrd)
-       pfy  => fluxes(2,ilev)%dataptr(igrd)
-#if BL_SPACEDIM == 3
-       pfz  => fluxes(3,ilev)%dataptr(igrd)
-#endif
-
+    do ilev = finest_level, 0, -1
+       !$omp parallel private(idim,oti,igrd,bx,tbx,pin,pout,pux,puy,puz,pfx,pfy,pfz,uface,fluxes)
        do idim = 1, amrex_spacedim
-          tbx = bx
-          call tbx%nodalize(idim)
-          call tbx%grow(1)
-          call uface(idim)%resize(tbx,1)
+          call uface(idim)%reset_omp_private()
+          call fluxes(idim)%reset_omp_private()
        end do
 
-       pux => uface(1)%dataptr()
-       puy => uface(2)%dataptr()
-#if BL_SPACEDIM == 3
-       puz => uface(3)%dataptr()
+       call amrex_octree_iter_build(oti,ilev)
+
+       do while(oti%next())
+          igrd = oti%grid_index()
+          bx   = oti%box()
+
+          pin  => phiborder(ilev)%dataptr(igrd)
+          pout => phi_new(ilev)%dataptr(igrd)
+
+          do idim = 1, amrex_spacedim
+             tbx = bx
+             call tbx%nodalize(idim)
+             call fluxes(idim)%resize(tbx,ncomp)
+             call tbx%grow(1)
+             call uface(idim)%resize(tbx,1)
+          end do
+
+          pfx  => fluxes(1)%dataptr()
+          pfy  => fluxes(2)%dataptr()
+#if AMREX_SPACEDIM == 3
+          pfz  => fluxes(3)%dataptr()
 #endif
 
-       call get_face_velocity(time+0.5_amrex_real*dt, &
-            pux, lbound(pux), ubound(pux), &
-            puy, lbound(puy), ubound(puy), &
-#if BL_SPACEDIM == 3
-            puz, lbound(puz), ubound(puz), &
+          pux => uface(1)%dataptr()
+          puy => uface(2)%dataptr()
+#if AMREX_SPACEDIM == 3
+          puz => uface(3)%dataptr()
 #endif
-            amrex_geom(ilev)%dx, amrex_problo)
 
-       call advect(time, bx%lo, bx%hi, &
-            pin, lbound(pin), ubound(pin), &
-            pout,lbound(pout),ubound(pout), &
-            pux, lbound(pux), ubound(pux), &
-            puy, lbound(puy), ubound(puy), &
-#if BL_SPACEDIM == 3
-            puz, lbound(puz), ubound(puz), &
+          call get_face_velocity(time+0.5_amrex_real*dt, &
+               pux, lbound(pux), ubound(pux), &
+               puy, lbound(puy), ubound(puy), &
+#if AMREX_SPACEDIM == 3
+               puz, lbound(puz), ubound(puz), &
 #endif
-            pfx, lbound(pfx), ubound(pfx), &
-            pfy, lbound(pfy), ubound(pfy), &
-#if BL_SPACEDIM == 3
-            pfz, lbound(pfz), ubound(pfz), &
+               amrex_geom(ilev)%dx, amrex_problo)
+
+          call compute_flux(bx%lo, bx%hi, &
+               pin, lbound(pin), ubound(pin), &
+               pux, lbound(pux), ubound(pux), &
+               puy, lbound(puy), ubound(puy), &
+#if AMREX_SPACEDIM == 3
+               puz, lbound(puz), ubound(puz), &
 #endif
-            amrex_geom(ilev)%dx, dt)
-    end do
+               pfx, lbound(pfx), ubound(pfx), &
+               pfy, lbound(pfy), ubound(pfy), &
+#if AMREX_SPACEDIM == 3
+               pfz, lbound(pfz), ubound(pfz), &
+#endif
+               dt, amrex_geom(ilev)%dx)
 
-    call amrex_octree_iter_destroy(oti)
+          if (ilev < finest_level) then
+             call flux_reg(ilev+1)%load(pfx, lbound(pfx), ubound(pfx), igrd, 0)
+             call flux_reg(ilev+1)%load(pfy, lbound(pfy), ubound(pfy), igrd, 1)
+#if AMREX_SPACEDIM == 3
+             call flux_reg(ilev+1)%load(pfz, lbound(pfz), ubound(pfz), igrd, 2)
+#endif
+          end if
 
-    do idim = 1, amrex_spacedim
-       call amrex_fab_destroy(uface(idim))
-    end do
-    !$omp end parallel
+          if (ilev > 0) then
+             call flux_reg(ilev)%store(pfx, lbound(pfx), ubound(pfx), igrd, 0)
+             call flux_reg(ilev)%store(pfy, lbound(pfy), ubound(pfy), igrd, 1)
+#if AMREX_SPACEDIM == 3
+             call flux_reg(ilev)%store(pfy, lbound(pfz), ubound(pfz), igrd, 2)
+#endif
+          end if
 
-    ! Note that the fluxes have already been scaled by dt and area.
-    do ilev = 0, finest_level-1
-       call flux_reg(ilev+1)%setval(0.0_amrex_real)
-       call flux_reg(ilev+1)%crseadd(fluxes(:,ilev), -1.0_amrex_real)
-       call flux_reg(ilev+1)%fineadd(fluxes(:,ilev+1), 1.0_amrex_real)
-       call flux_reg(ilev+1)%reflux(phi_new(ilev), 1.0_amrex_real)
+          call advect(bx%lo, bx%hi, &
+               pin, lbound(pin), ubound(pin), &
+               pout,lbound(pout),ubound(pout), &
+               pfx, lbound(pfx), ubound(pfx), &
+               pfy, lbound(pfy), ubound(pfy), &
+#if AMREX_SPACEDIM == 3
+               pfz, lbound(pfz), ubound(pfz), &
+#endif
+               amrex_geom(ilev)%dx, dt)
+       end do
+
+       call amrex_octree_iter_destroy(oti)
+
+       do idim = 1, amrex_spacedim
+          call amrex_fab_destroy(fluxes(idim))
+          call amrex_fab_destroy(uface(idim))
+       end do
+       !$omp end parallel
+
+       if (ilev > 0) call flux_reg(ilev)%communicate()
     end do
 
     do ilev = 0, finest_level
-       do idim = 1, amrex_spacedim
-          call amrex_multifab_destroy(fluxes(idim,ilev))
-       end do
        call amrex_multifab_destroy(phiborder(ilev))
     end do
     
