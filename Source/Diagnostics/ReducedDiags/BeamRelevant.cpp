@@ -169,7 +169,7 @@ void BeamRelevant::ComputeDiags (int step)
         [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real
         { return p.pos(0) * p.rdata(PIdx::w) / w_sum; });
 
-        #if (AMREX_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
         // y mean
         auto y_mean = ReduceSum( myspc,
         [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real

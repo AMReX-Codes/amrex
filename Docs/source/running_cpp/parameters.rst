@@ -1168,7 +1168,8 @@ Diagnostics and output
         `<reduced_diags_name>.species` must be provided,
         such that the diagnostics are done for this (beam-like) species only.
 
-        The output columns are the following for 3D:
+        The output columns are the following, where the average is done over
+        the whole species (typical usage: the particle beam is in a separate species):
 
         [1], [2], [3]: The mean values of beam positions (m)
         :math:`\langle x \rangle`, :math:`\langle y \rangle`,
@@ -1186,14 +1187,14 @@ Diagnostics and output
         :math:`\delta_z = \sqrt{ \langle (z - \langle z \rangle)^2 \rangle }`.
 
         [11], [12], [13]: The RMS values of beam relativistic momenta (kg m/s)
-        :math:`\delta_{ux} = \sqrt{ \langle (p_x - \langle p_x \rangle)^2 \rangle }`,
-        :math:`\delta_{uy} = \sqrt{ \langle (p_y - \langle p_y \rangle)^2 \rangle }`,
-        :math:`\delta_{uz} = \sqrt{ \langle (p_z - \langle p_z \rangle)^2 \rangle }`.
+        :math:`\delta_{px} = \sqrt{ \langle (p_x - \langle p_x \rangle)^2 \rangle }`,
+        :math:`\delta_{py} = \sqrt{ \langle (p_y - \langle p_y \rangle)^2 \rangle }`,
+        :math:`\delta_{pz} = \sqrt{ \langle (p_z - \langle p_z \rangle)^2 \rangle }`.
 
         [14]: The RMS value of the Lorentz factor
         :math:`\sqrt{ \langle (\gamma - \langle \gamma \rangle)^2 \rangle }`.
 
-        [15], [16], [17]: beam emittance (m)
+        [15], [16], [17]: beam projected transverse RMS normalized emittance (m)
         :math:`\epsilon_x = \dfrac{1}{c} \sqrt{\delta_x^2 \delta_{ux}^2 -
         \Big\langle (x-\langle x \rangle) (u_x-\langle u_x \rangle) \Big\rangle^2}`,
         :math:`\epsilon_y = \dfrac{1}{c} \sqrt{\delta_y^2 \delta_{uy}^2 -
