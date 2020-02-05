@@ -10,5 +10,8 @@ CEXE_sources += ParticleEnergy.cpp
 CEXE_headers += FieldEnergy.H
 CEXE_sources += FieldEnergy.cpp
 
+CEXE_headers += BeamRelevant.H
+CEXE_sources += BeamRelevant.cpp
+
 INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/Diagnostics/ReducedDiags
 VPATH_LOCATIONS   += $(WARPX_HOME)/Source/Diagnostics/ReducedDiags
