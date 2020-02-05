@@ -21,18 +21,18 @@ BeamRelevant::BeamRelevant (std::string rd_name)
 : ReducedDiags{rd_name}
 {
 
+#if (defined WARPX_DIM_RZ)
     // RZ coordinate is not working
-    #if (defined WARPX_DIM_RZ)
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(false,
         "BeamRelevant reduced diagnostics does not work for RZ coordinate.");
-    #endif
+#endif
 
     // read beam name
     ParmParse pp(rd_name);
     pp.get("species",m_beam_name);
 
     // resize data array
-    #if (AMREX_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
     //  0, 1, 2: mean x,y,z
     //  3, 4, 5: mean px,py,pz
     //        6: gamma
@@ -41,7 +41,7 @@ BeamRelevant::BeamRelevant (std::string rd_name)
     //       13: rms gamma
     // 14,15,16: emittance x,y,z
     m_data.resize(17,0.0);
-    #elif (AMREX_SPACEDIM == 2)
+#elif (AMREX_SPACEDIM == 2)
     //     0, 1: mean x,z
     //  2, 3, 4: mean px,py,pz
     //        5: gamma
@@ -50,7 +50,7 @@ BeamRelevant::BeamRelevant (std::string rd_name)
     //       11: rms gamma
     //    12,13: emittance x,z
     m_data.resize(14,0.0);
-    #endif
+#endif
 
     if (ParallelDescriptor::IOProcessor())
     {
@@ -61,7 +61,7 @@ BeamRelevant::BeamRelevant (std::string rd_name)
             ofs.open(m_path + m_rd_name + "." + m_extension,
                 std::ofstream::out | std::ofstream::app);
             // write header row
-            #if (AMREX_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
             ofs << "#";
             ofs << "[1]step";             ofs << m_sep;
             ofs << "[2]time(s)";          ofs << m_sep;
@@ -82,7 +82,7 @@ BeamRelevant::BeamRelevant (std::string rd_name)
             ofs << "[17]emittance_x(m)";  ofs << m_sep;
             ofs << "[18]emittance_y(m)";  ofs << m_sep;
             ofs << "[19]emittance_z(m)";  ofs << std::endl;
-            #elif (AMREX_SPACEDIM == 2)
+#elif (AMREX_SPACEDIM == 2)
             ofs << "#";
             ofs << "[1]step";             ofs << m_sep;
             ofs << "[2]time(s)";          ofs << m_sep;
@@ -100,7 +100,7 @@ BeamRelevant::BeamRelevant (std::string rd_name)
             ofs << "[14]gamma_rms";       ofs << m_sep;
             ofs << "[15]emittance_x(m)";  ofs << m_sep;
             ofs << "[16]emittance_z(m)";  ofs << std::endl;
-            #endif
+#endif
             // close file
             ofs.close();
         }
@@ -129,11 +129,11 @@ void BeamRelevant::ComputeDiags (int step)
     Real constexpr inv_c2 = 1.0 / (PhysConst::c * PhysConst::c);
 
     // If 2D-XZ, p.pos(1) is z, rather than p.pos(2).
-    #if (AMREX_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
     int const index_z = 2;
-    #elif (AMREX_SPACEDIM == 2)
+#elif (AMREX_SPACEDIM == 2)
     int const index_z = 1;
-    #endif
+#endif
 
     // loop over species
     for (int i_s = 0; i_s < nSpecies; ++i_s)
