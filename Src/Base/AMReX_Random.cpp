@@ -19,7 +19,7 @@
 #ifdef AMREX_USE_HIP
 using randState_t = hiprandState_t;
 #elif defined(AMREX_USE_CUDA)
-using randState_t =  curandState_t; 
+using randState_t =  curandState_t;
 #endif
 
 namespace
@@ -39,7 +39,7 @@ namespace
     AMREX_GPU_DEVICE randState_t* d_states_d_ptr;
 
     amrex::BlockMutex* h_mutex_h_ptr = nullptr;
-    amrex::BlockMutex* d_mutex_h_ptr = nullptr;    
+    amrex::BlockMutex* d_mutex_h_ptr = nullptr;
 
     AMREX_GPU_DEVICE
     amrex::BlockMutex* d_mutex_d_ptr = nullptr;
@@ -84,7 +84,7 @@ int amrex::get_state (int tid)
     int i = tid % nstates;
 
     d_mutex_d_ptr->lock(i);
-            
+
     return i;
 }
 
@@ -105,7 +105,7 @@ amrex::RandomNormal (amrex::Real mean, amrex::Real stddev)
 
     amrex::Real rand;
 
-#ifdef AMREX_DEVICE_COMPILE 
+#ifdef AMREX_DEVICE_COMPILE
     int blockId = blockIdx.x + blockIdx.y * gridDim.x + gridDim.x * gridDim.y * blockIdx.z;
 
     int tid = blockId * (blockDim.x * blockDim.y * blockDim.z)
@@ -176,6 +176,40 @@ amrex::Random ()
 }
 
 AMREX_GPU_HOST_DEVICE unsigned int
+amrex::RandomPoisson (amrex::Real lambda)
+{
+    amrex::Real rand;
+
+#ifdef AMREX_DEVICE_COMPILE
+    const auto blockId = blockIdx.x + blockIdx.y * gridDim.x + gridDim.x * gridDim.y * blockIdx.z;
+
+    const auto tid = blockId * (blockDim.x * blockDim.y * blockDim.z)
+              + (threadIdx.z * (blockDim.x * blockDim.y))
+              + (threadIdx.y * blockDim.x) + threadIdx.x ;
+
+    const auto i = get_state(tid);
+
+    AMREX_HIP_OR_CUDA( rand = hiprand_poisson(&d_states_d_ptr[i], lambda);,
+                       rand = curand_poisson(&d_states_d_ptr[i], lambda););
+
+    __threadfence();
+    free_state(tid);
+#else
+
+#ifdef _OPENMP
+    const auto tid = omp_get_thread_num();
+#else
+    const auto tid = 0;
+#endif
+
+    std::poisson_distribution<unsigned int> distribution(lambda);
+    rand = distribution(generators[tid]);
+
+#endif
+    return rand;
+}
+
+AMREX_GPU_HOST_DEVICE unsigned int
 amrex::Random_int (unsigned int n)
 {
 #ifdef AMREX_DEVICE_COMPILE  // on the device
@@ -208,7 +242,7 @@ amrex::Random_int (unsigned int n)
     std::uniform_int_distribution<unsigned int> distribution(0, n-1);
     return distribution(generators[tid]);
 
-#endif // AMREX_DEVICE_COMPILE 
+#endif // AMREX_DEVICE_COMPILE
 }
 
 AMREX_GPU_HOST unsigned long
@@ -280,7 +314,7 @@ void amrex::ResetRandomSeed (unsigned long seed)
     InitRandom(seed);
 }
 
-void 
+void
 amrex::ResizeRandomSeed (int N)
 {
     BL_PROFILE("ResizeRandomSeed");
@@ -299,7 +333,7 @@ amrex::ResizeRandomSeed (int N)
     {
         delete h_mutex_h_ptr;
         h_mutex_h_ptr = nullptr;
-    } 
+    }
 
     if (d_mutex_h_ptr != nullptr)
     {
@@ -319,9 +353,9 @@ amrex::ResizeRandomSeed (int N)
 
     d_states_h_ptr = new_data;
     gpu_nstates_h = N;
-    amrex::BlockMutex* d_mutex_h_ptr_local = d_mutex_h_ptr;    
+    amrex::BlockMutex* d_mutex_h_ptr_local = d_mutex_h_ptr;
 
-    // HIP FIX HERE - hipMemcpyToSymbol doesn't work with pointers. 
+    // HIP FIX HERE - hipMemcpyToSymbol doesn't work with pointers.
     AMREX_GPU_LAUNCH_DEVICE(Gpu::ExecutionConfig(1, 1, 0),
     [=] AMREX_GPU_DEVICE
     {
@@ -357,7 +391,7 @@ amrex::DeallocateRandomSeedDevArray ()
 
     if (h_mutex_h_ptr != nullptr)
     {
-        delete h_mutex_h_ptr; 
+        delete h_mutex_h_ptr;
         h_mutex_h_ptr = nullptr;
     }
 
@@ -432,5 +466,3 @@ extern "C" {
         return static_cast<long>(amrex::Random_int(static_cast<unsigned long>(n)));
     }
 }
-
-
