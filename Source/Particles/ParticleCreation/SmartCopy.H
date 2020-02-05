@@ -110,6 +110,7 @@ struct SmartCopy
 
             if (m_src_comps_r[j] < SrcData::NAR)
             {
+                // This is a compile-time attribute of the src
                 src_comp = m_src_comps_r[j];
                 src_data = src.m_rdata[src_comp];
             }
