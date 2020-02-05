@@ -1281,14 +1281,52 @@ WarpX::BuildBufferMasks ()
                 for (MFIter mfi(*bmasks, true); mfi.isValid(); ++mfi)
                 {
                     const Box& tbx = mfi.growntilebox();
-                    warpx_build_buffer_masks (BL_TO_FORTRAN_BOX(tbx),
-                                              BL_TO_FORTRAN_ANYD((*bmasks)[mfi]),
-                                              BL_TO_FORTRAN_ANYD(tmp[mfi]),
-                                              &ngbuffer);
+                    //warpx_build_buffer_masks(BL_TO_FORTRAN_BOX(tbx),
+                    //                         BL_TO_FORTRAN_ANYD((*bmasks)[mfi]),
+                    //                         BL_TO_FORTRAN_ANYD(tmp[mfi]),
+                    //                         &ngbuffer);
+                    Array4<int> msk = (*bmasks)[mfi].array();
+                    Array4<int> gmsk = tmp[mfi].array();
+                    BuildBufferMasksInBox( tbx, msk, gmsk, ngbuffer );
                 }
             }
         }
     }
+}
+
+void
+WarpX::BuildBufferMasksInBox ( const Box &tbx, Array4<int> &msk, const Array4<int> gmsk, const int ng )
+{
+    const auto lo = amrex::lbound( tbx );
+    const auto hi = amrex::ubound( tbx );
+#if (AMREX_SPACEDIM == 2)
+    int k = lo.z;
+    for     (int j = lo.y; j <= hi.y; ++j) {
+        for (int i = lo.x; i <= hi.x; ++i) {
+            for     (int jj = j-ng; jj <= j+ng; ++jj) {
+                for (int ii = i-ng; ii <= i+ng; ++ii) {
+                    if ( gmsk(ii,jj,k) == 0 ) msk(i,j,k) = 0;
+                    else                      msk(i,j,k) = 1;
+                }
+            }
+        }
+    }
+#elif (AMREX_SPACEDIM == 3)
+    for         (int k = lo.z; k <= hi.z; ++k) {
+        for     (int j = lo.y; j <= hi.y; ++j) {
+            for (int i = lo.x; i <= hi.x; ++i) {
+                for         (int kk = k-ng; kk <= k+ng; ++kk) {
+                    for     (int jj = j-ng; jj <= j+ng; ++jj) {
+                        for (int ii = i-ng; ii <= i+ng; ++ii) {
+                            if ( gmsk(ii,jj,k) == 0 ) msk(i,j,k) = 0;
+                            else                      msk(i,j,k) = 1;
+                        }
+                    }
+                }
+            }
+        }
+    }
+#endif
 }
 
 const iMultiFab*
