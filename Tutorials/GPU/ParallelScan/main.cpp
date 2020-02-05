@@ -58,10 +58,15 @@ int main (int argc, char* argv[])
 void main_main ()
 {
     long N = 256*1024*1024 - 37;
+
     {
         ParmParse pp;
         pp.query("n", N);
     }
+
+    amrex::Print() << "GpuMaxSize = " << amrex::Gpu::Device::totalGlobalMem() << std::endl;
+    amrex::Print() << "ParallelScan with N = " << N*sizeof(int) << std::endl;
+    amrex::Print() << "Number of Ns = " << amrex::Gpu::Device::totalGlobalMem() / (N*sizeof(int)) << std::endl;
 
     typedef int T;
     Vector<T> h_in(N);

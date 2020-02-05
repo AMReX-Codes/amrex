@@ -6,6 +6,10 @@
 #include <memory>
 #include <AMReX_GpuDevice.H>
 
+#ifdef __HIP_PLATFORM_HCC__
+#define HIPRT_CB 
+#endif
+
 namespace amrex {
 namespace Gpu {
 
@@ -15,8 +19,8 @@ namespace {
 
 extern "C" {
 AMREX_HIP_OR_CUDA(
-    void  HIPRT_CB amrex_elixir_delete ( hipStream_t stream,  hipError_t error, void* p),
-    void CUDART_CB amrex_elixir_delete (cudaStream_t stream, cudaError_t error, void* p))
+         void HIPRT_CB  amrex_elixir_delete ( hipStream_t stream,  hipError_t error, void* p),
+         void CUDART_CB amrex_elixir_delete (cudaStream_t stream, cudaError_t error, void* p))
     {
         void** pp = (void**)p;
         void* d = pp[0];
