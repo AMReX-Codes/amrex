@@ -155,12 +155,16 @@ write_lib_id(const char* msg)
 }
 
 void
+AMREX_GPU_HOST_DEVICE
 amrex::Error (const char* msg)
 {
 #ifdef AMREX_DEVICE_COMPILE
 #if !defined(__APPLE__)
     if (msg) printf("%s\n", msg);
+// HIP FIX HERE - assert
+#ifdef AMREX_USE_CUDA
     assert(0);
+#endif
 #endif
 #else
     if (system::error_handler) {
@@ -182,12 +186,16 @@ amrex::Error (const std::string& msg)
 }
 
 void
+AMREX_GPU_HOST_DEVICE
 amrex::Abort (const char* msg)
 {
 #ifdef AMREX_DEVICE_COMPILE
 #if !defined(__APPLE__)
     if (msg) printf("Abort %s\n", msg);
+// HIP FIX HERE - assert
+#ifdef AMREX_USE_CUDA
     assert(0);
+#endif
 #endif
 #else
     if (system::error_handler) {
@@ -212,6 +220,7 @@ amrex::Abort (const std::string& msg)
 }
 
 void
+AMREX_GPU_HOST_DEVICE
 amrex::Warning (const char* msg)
 {
 #ifdef AMREX_DEVICE_COMPILE
@@ -233,12 +242,16 @@ amrex::Warning (const std::string& msg)
 }
 
 void
+AMREX_GPU_HOST_DEVICE
 amrex::Assert (const char* EX,
                const char* file,
                int         line,
                const char* msg)
 {
 #ifdef AMREX_DEVICE_COMPILE
+// HIP FIX HERE - printf & assert
+
+#ifdef AMREX_USE_CUDA
 #if !defined(__APPLE__)
     if (msg) {
         printf("Assertion `%s' failed, file \"%s\", line %d, Msg: %s",
@@ -250,6 +263,8 @@ amrex::Assert (const char* EX,
 
     assert(0);
 #endif
+#endif
+
 #else
     const int N = 512;
 
@@ -482,13 +497,13 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 
     ParallelDescriptor::Initialize();
 
+    Arena::Initialize();
+    amrex_mempool_init();
+
     //
     // Initialize random seed after we're running in parallel.
     //
     amrex::InitRandom(ParallelDescriptor::MyProc()+1, ParallelDescriptor::NProcs());
-
-    Arena::Initialize();
-    amrex_mempool_init();
 
     // For thread safety, we should do these initializations here.
     BaseFab_Initialize();

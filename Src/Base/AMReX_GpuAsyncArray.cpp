@@ -3,10 +3,14 @@
 
 #ifdef AMREX_USE_GPU
 
+#ifdef __HIP_PLATFORM_HCC__
+#define HIPRT_CB 
+#endif
+
 extern "C" {
 AMREX_HIP_OR_CUDA(
-    void  HIPRT_CB amrex_asyncarray_delete ( hipStream_t stream,  hipError_t error, void* p),
-    void CUDART_CB amrex_asyncarray_delete (cudaStream_t stream, cudaError_t error, void* p))
+         void HIPRT_CB  amrex_asyncarray_delete ( hipStream_t stream,  hipError_t error, void* p),
+         void CUDART_CB amrex_asyncarray_delete (cudaStream_t stream, cudaError_t error, void* p))
     {
         void** pp = (void**)p;
         void* dp = pp[0];

@@ -26,7 +26,7 @@ namespace amrex
 
 
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
     // Locking mechanism functions for locking and unlocking
     AMREX_GPU_DEVICE int get_state (int tid);
     AMREX_GPU_DEVICE void free_state (int tid);

@@ -213,13 +213,21 @@ else
 endif
 
 ifeq ($(USE_HIP),TRUE)
+  ifeq ($(USE_CUDA),TRUE)
+    $(error HIP-nvcc based builds are currently unsupported. Both USE_CUDA and USE_HIP cannot be TRUE)
+  endif
+
   HIP_PLATFORM = $(shell hipconfig --compiler)
   ifeq ($(HIP_PLATFORM),nvcc)
-    CUDA_ARCH ?= 60
-    CUDA_MAX_THREADS ?= 256
-    CUDA_MAXREGCOUNT ?= 255
+  $(error HIP_PLATFORM nvcc is not supported at this time. Use USE_CUDA to compile for NVIDIA platforms)
+#    If nvcc is supported, put this back.
+#    CUDA_ARCH ?= 60
+#    CUDA_MAX_THREADS ?= 256
+#    CUDA_MAXREGCOUNT ?= 255
+  else ifeq ($(HIP_PLATFORM),hcc)
+# do nothing special for now, but also don't abort
   else
-    $(error HIP_PLATFORM must be nvcc)
+    $(error only HIP_PLATFORM=hcc is supported)
   endif
 endif
 
@@ -391,6 +399,11 @@ else ifeq ($(lowercase_comp),nec)
   AMREX_CCOMP ?= nec
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/nec.mak...)
   include        $(AMREX_HOME)/Tools/GNUMake/comps/nec.mak
+else ifeq ($(lowercase_comp),hip)
+  AMREX_FCOMP ?= gnu 
+  AMREX_CCOMP ?= hip
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/hip.mak...)
+  include        $(AMREX_HOME)/Tools/GNUMake/comps/hip.mak
 else
   $(error Unknown compiler $(COMP). Supported compilers are gnu, intel, cray, pgi, ibm, llvm, nag, and nec)
 endif
@@ -551,22 +564,40 @@ endif
 ifeq ($(USE_HIP),TRUE)
 
     USE_GPU := TRUE
+    AMREX_FCOMP ?= gnu 
+    AMREX_CCOMP ?= hip
 
     ifneq ($(lowercase_comp),gnu)
-        $(error HIP can only be used with COMP=gnu)
+    else ifneq ($(lowercase_comp),hip)
+        $(error HIP can only be used with COMP=hip)
     endif
 
-    include $(AMREX_HOME)/Tools/GNUMake/comps/hip.mak
+#    include $(AMREX_HOME)/Tools/GNUMake/comps/hip.mak
 
     ifeq ($(USE_MPI),TRUE)
-      $(error MPI is not supported with HIP)
+#      $(error MPI is not supported with HIP)
+
+      export OMPI_CC := hipcc 
+      export OMPI_CXX := hipcc
+      export OMPI_F77 := $(FC)
+      export OMPI_FC  := $(F90)
+
+      export MPICH_CC  := hipcc
+      export MPICH_CXX := hipcc
+      export MPICH_F77 := $(FC)
+      export MPICH_FC  := $(F90)
+
     endif
 
     DEFINES += -DAMREX_USE_HIP
 
     ifeq ($(HIP_PLATFORM),nvcc)
-        DEFINES += -DAMREX_USE_CUDA -DAMREX_HIP_PLATFORM_NVCC
+        $(error HIP_PLATFORM nvcc is not supported at this time. Use USE_CUDA to compile for NVIDIA platforms.)
+ #       DEFINES += -DAMREX_USE_CUDA -DAMREX_HIP_PLATFORM_NVCC
+    else ifeq ($(HIP_PLATFORM),hcc)
+        DEFINES += -DAMREX_HIP_PLATFORM_HCC
     endif
+   
 
     GPUSuffix := .HIP
 
@@ -879,9 +910,6 @@ ifneq ("$(wildcard $(AMREX_HOME)/Tools/GNUMake/Make.local)","")
 endif
 
 ifeq ($(USE_HIP),TRUE)
-
-    HIP_PATH ?= /opt/rocm/hip
-    INCLUDE_LOCATIONS += $(HIP_PATH)/include
 
     LINKFLAGS = $(HIPCC_FLAGS)
     AMREX_LINKER = hipcc

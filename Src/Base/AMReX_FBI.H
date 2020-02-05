@@ -59,7 +59,7 @@ ParallelFor (Vector<Array4BoxTag<T> > const& tags, int ncomp, F && f)
     constexpr int nthreads = 128;
     constexpr int nwarps_per_block = nthreads/Gpu::Device::warp_size;
     int nblocks = (ntotwarps + nwarps_per_block-1) / nwarps_per_block;
-    amrex::launch_global<<<nblocks,nthreads>>>(
+    AMREX_LAUNCH_KERNEL(nblocks, nthreads, 0, 0,
     [=] AMREX_GPU_DEVICE () noexcept
     {
         int g_tid = blockDim.x*blockIdx.x + threadIdx.x;
@@ -178,7 +178,7 @@ fab_to_fab (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, in
     constexpr int nthreads = 128;
     constexpr int nwarps_per_block = nthreads/Gpu::Device::warp_size;
     int nblocks = (ntotwarps + nwarps_per_block-1) / nwarps_per_block;
-    amrex::launch_global<<<nblocks,nthreads>>>(
+    AMREX_LAUNCH_KERNEL(nblocks, nthreads, 0, 0, 
     [=] AMREX_GPU_DEVICE () noexcept
     {
         int g_tid = blockDim.x*blockIdx.x + threadIdx.x;
@@ -265,7 +265,7 @@ fab_to_fab (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, in
     constexpr int nthreads = 128;
     constexpr int nwarps_per_block = nthreads/Gpu::Device::warp_size;
     int nblocks = (ntotwarps + nwarps_per_block-1) / nwarps_per_block;
-    amrex::launch_global<<<nblocks,nthreads>>>(
+    AMREX_LAUNCH_KERNEL(nblocks, nthreads, 0, 0, 
     [=] AMREX_GPU_DEVICE () noexcept
     {
         int g_tid = blockDim.x*blockIdx.x + threadIdx.x;
@@ -310,10 +310,18 @@ fab_to_fab (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, in
         int to_try  = 1;
         while (true) {
             int msk = (m && to_try) ? atomicCAS(m, 0, mypriority) : 0;
+#ifdef AMREX_USE_CUDA
             if (__all_sync(0xffffffff, msk == 0)) {  // 0 means lock acquired
+#elif defined(AMREX_USE_HIP)
+            if (__all(msk == 0)) { 
+#endif
                 break; // all threads have acquired.
             } else {
+#ifdef AMREX_USE_CUDA
                 if (__any_sync(0xffffffff, msk > mypriority)) {
+#elif defined(AMREX_USE_HIP)
+                if (__any(msk > mypriority)) {
+#endif
                     if (m) *m = 0; // yield
                     __threadfence();
                     to_try = 1;
@@ -908,6 +916,9 @@ FabArray<FAB>::pack_send_buffer_gpu (FabArray<FAB> const& src, int scomp, int nc
 
     typedef Array4CopyTag<value_type> TagType;
     Vector<TagType> snd_copy_tags;
+    // FIX HIP HERE -- Dim3
+    Dim3 zero;
+    zero.x = 0; zero.y = 0; zero.z = 0;
     for (int j = 0; j < N_snds; ++j)
     {
         char* dptr = send_data[j];
@@ -918,7 +929,7 @@ FabArray<FAB>::pack_send_buffer_gpu (FabArray<FAB> const& src, int scomp, int nc
             {
                 snd_copy_tags.push_back
                     ({amrex::makeArray4((value_type*)(dptr),tag.sbox,ncomp),
-                      src.array(tag.srcIndex), tag.sbox, Dim3{0,0,0}});
+                      src.array(tag.srcIndex), tag.sbox, zero});
                 dptr += (tag.sbox.numPts() * ncomp * sizeof(value_type));
             }
             BL_ASSERT(dptr <= send_data[j] + send_size[j]);
@@ -939,6 +950,10 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
 {
     const int N_rcvs = recv_cctc.size();
     if (N_rcvs == 0) return;
+
+    // HIP FIX HERE - Dim3
+    Dim3 zero;
+    zero.x = 0; zero.y = 0; zero.z = 0;
 
     typedef Array4CopyTag<value_type> TagType;
     Vector<TagType> recv_copy_tags;
@@ -966,7 +981,7 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
                 recv_copy_tags.push_back
                     ({dst.atLocalIdx(li).array(),
                       amrex::makeArray4((value_type*)(dptr),tag.dbox,ncomp),
-                      tag.dbox, Dim3{0,0,0}});
+                      tag.dbox, zero});
                 dptr += tag.dbox.numPts() * ncomp * sizeof(value_type);
 
                 if (maskfabs.size() > 0) {

@@ -51,7 +51,14 @@ Arena::allocate_system (std::size_t nbytes)
 {
 #ifdef AMREX_USE_GPU
     void * p;
-    if (arena_info.device_use_hostalloc)
+    if (arena_info.use_cpu_memory)
+    {
+        void* p = std::malloc(nbytes);
+        if (p && arena_info.device_use_hostalloc) mlock(p, nbytes);
+        if (p == nullptr) amrex::Abort("Sorry, malloc failed");
+        return p;
+    }
+    else if (arena_info.device_use_hostalloc)
     {
         AMREX_HIP_OR_CUDA(
             AMREX_HIP_SAFE_CALL (hipHostMalloc(&p, nbytes, hipHostMallocMapped));,
@@ -103,7 +110,12 @@ void
 Arena::deallocate_system (void* p, std::size_t nbytes)
 {
 #ifdef AMREX_USE_GPU
-    if (arena_info.device_use_hostalloc)
+    if (arena_info.use_cpu_memory)
+    {
+        if (p && arena_info.device_use_hostalloc) munlock(p, nbytes);
+        std::free(p);
+    }
+    else if (arena_info.device_use_hostalloc)
     {
         AMREX_HIP_OR_CUDA(AMREX_HIP_SAFE_CALL ( hipHostFree(p));,
                           AMREX_CUDA_SAFE_CALL(cudaFreeHost(p)););
