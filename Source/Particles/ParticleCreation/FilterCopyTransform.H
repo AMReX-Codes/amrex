@@ -46,9 +46,9 @@ Index filterCopyTransformParticles (DstTile& dst, SrcTile& src, Index* mask, Ind
 
     Index num_added = last_mask + last_offset;
     dst.resize(std::max(dst_index + num_added, dst.numParticles()));
-    
+
     auto p_offsets = offsets.dataPtr();
-    
+
     const auto src_data = src.getParticleTileData();
           auto dst_data = dst.getParticleTileData();
 
