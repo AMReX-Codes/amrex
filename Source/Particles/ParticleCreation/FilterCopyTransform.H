@@ -1,3 +1,10 @@
+/* Copyright 2019-2020 Andrew Myers, Axel Huebl,
+ * Maxence Thevenet
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #ifndef FILTER_COPY_TRANSFORM_H_
 #define FILTER_COPY_TRANSFORM_H_
 

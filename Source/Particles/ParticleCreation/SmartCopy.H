@@ -1,3 +1,10 @@
+/* Copyright 2019-2020 Andrew Myers, Axel Huebl,
+ * Maxence Thevenet
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #ifndef SMART_COPY_H_
 #define SMART_COPY_H_
 
