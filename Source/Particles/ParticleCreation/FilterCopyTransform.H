@@ -32,6 +32,14 @@
  * \param copy callable that defines what will be done for the "copy" step.
  * \param transform callable that defines the transformation to apply on dst and src.
  *
+ *        The form of the callable should model:
+ *            template <typename DstData, typename SrcData>
+ *            AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+ *            void operator() (DstData& dst, SrcData& src, int i_src, int i_dst);
+ *
+ *        where dst and src refer to the destination and source tiles and
+ *        i_src and i_dst and the particle indices in each tile.
+ *
  * \return num_added the number of particles that were written to dst.
  */
 template <typename DstTile, typename SrcTile, typename Index,
@@ -94,6 +102,14 @@ Index filterCopyTransformParticles (DstTile& dst, SrcTile& src, Index* mask, Ind
  * \param filter a callable returning true if that particle is to be copied and transformed
  * \param copy callable that defines what will be done for the "copy" step.
  * \param transform callable that defines the transformation to apply on dst and src.
+ *
+ *        The form of the callable should model:
+ *            template <typename DstData, typename SrcData>
+ *            AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+ *            void operator() (DstData& dst, SrcData& src, int i_src, int i_dst);
+ *
+ *        where dst and src refer to the destination and source tiles and
+ *        i_src and i_dst and the particle indices in each tile.
  *
  * \return num_added the number of particles that were written to dst.
  */
