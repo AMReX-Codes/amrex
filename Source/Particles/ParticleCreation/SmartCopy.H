@@ -123,11 +123,13 @@ struct SmartCopy
 
             if (m_dst_comps_r[j] < DstData::NAR)
             {
+                // This is a compile-time attribute of the dst
                 dst_comp = m_dst_comps_r[j];
                 dst_data = dst.m_rdata[dst_comp];
             }
             else
             {
+                // This is a runtime attribute of the dst
                 dst_comp = m_dst_comps_r[j] - DstData::NAR;
                 dst_data = dst.m_runtime_rdata[dst_comp];
             }
