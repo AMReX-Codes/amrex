@@ -22,9 +22,10 @@
  * \param src the source tile
  * \param mask pointer to the mask - 1 means copy, 0 means don't copy
  * \param dst_index the location at which to starting writing the result to dst
- * \param copy defines the function that will be applied for the "copy" step
- * \param transform defines that transformation.
+ * \param copy callable that defines what will be done for the "copy" step.
+ * \param transform callable that defines the transformation to apply on dst and src.
  *
+ * \return num_added the number of particles that were written to dst.
  */
 template <typename DstTile, typename SrcTile, typename Index,
           typename TransFunc, typename CopyFunc,
@@ -83,10 +84,11 @@ Index filterCopyTransformParticles (DstTile& dst, SrcTile& src, Index* mask, Ind
  * \param dst the destination tile
  * \param src the source tile
  * \param dst_index the location at which to starting writing the result to dst
- * \param filter a function returning true if that particle is to be copied and transformed
- * \param copy defines the function that will be applied for the "copy" step
- * \param transform defines that transformation.
+ * \param filter a callable returning true if that particle is to be copied and transformed
+ * \param copy callable that defines what will be done for the "copy" step.
+ * \param transform callable that defines the transformation to apply on dst and src.
  *
+ * \return num_added the number of particles that were written to dst.
  */
 template <typename DstTile, typename SrcTile, typename Index,
           typename PredFunc, typename TransFunc, typename CopyFunc>
