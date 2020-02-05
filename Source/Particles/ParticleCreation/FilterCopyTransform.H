@@ -7,6 +7,7 @@
 /**
  * \brief Apply a filter, copy, and transform operation to the particles
  * in src, in that order, writing the result to dst, starting at dst_index.
+ * The dst tile will be extended so all the particles will fit, if needed.
  *
  * Note that the transform function operates on both the src and the dst,
  * so both can be modified.
@@ -43,8 +44,11 @@ Index filterCopyTransformParticles (DstTile& dst, SrcTile& src, Index* mask, Ind
     Gpu::copyAsync(Gpu::deviceToHost, mask+np-1, mask + np, &last_mask);
     Gpu::copyAsync(Gpu::deviceToHost, offsets.data()+np-1, offsets.data()+np, &last_offset);
 
+    Index num_added = last_mask + last_offset;
+    dst.resize(std::max(dst_index + num_added, dst.numParticles()));
+    
     auto p_offsets = offsets.dataPtr();
-
+    
     const auto src_data = src.getParticleTileData();
           auto dst_data = dst.getParticleTileData();
 
@@ -58,12 +62,13 @@ Index filterCopyTransformParticles (DstTile& dst, SrcTile& src, Index* mask, Ind
     });
 
     Gpu::streamSynchronize();
-    return last_mask + last_offset;
+    return num_added;
 }
 
 /**
  * \brief Apply a filter, copy, and transform operation to the particles
  * in src, in that order, writing the result to dst, starting at dst_index.
+ * The dst tile will be extended so all the particles will fit, if needed.
  *
  * Note that the transform function operates on both the src and the dst,
  * so both can be modified.

@@ -672,17 +672,9 @@ MultiParticleContainer::doFieldIonization ()
                 auto& src_tile = pc_source ->ParticlesAt(lev, mfi);
                 auto& dst_tile = pc_product->ParticlesAt(lev, mfi);
 
-                auto np_src = src_tile.numParticles();
                 auto np_dst = dst_tile.numParticles();
-
-                if (np_src == 0) continue;
-
-                dst_tile.resize(np_dst + np_src);
-
                 auto num_added = filterCopyTransformParticles(dst_tile, src_tile, np_dst,
                                                               Filter, Copy, Transform);
-
-                dst_tile.resize(np_dst + num_added);
 
                 setNewParticleIDs(dst_tile, np_dst, num_added);
             }
