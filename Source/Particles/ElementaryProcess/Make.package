@@ -1,0 +1,4 @@
+CEXE_headers += Ionization.H
+
+INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/Particles/ElementaryProcess/
+VPATH_LOCATIONS   += $(WARPX_HOME)/Source/Particles/ElementaryProcess/

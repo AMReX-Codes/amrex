@@ -13,6 +13,7 @@
 #include <PlasmaInjector.H>
 #include <WarpXParticleContainer.H>
 #include <NCIGodfreyFilter.H>
+#include <Ionization.H>
 
 #include <AMReX_IArrayBox.H>
 
@@ -187,8 +188,7 @@ public:
 
     void SplitParticles(int lev);
 
-    virtual void buildIonizationMask (const amrex::MFIter& mfi, const int lev,
-                                      amrex::Gpu::ManagedDeviceVector<int>& ionization_mask) override;
+    IonizationFilterFunc getIonizationFunc ();
 
     // Inject particles in Box 'part_box'
     virtual void AddParticles (int lev);

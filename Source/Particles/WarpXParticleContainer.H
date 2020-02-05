@@ -302,12 +302,8 @@ public:
 
     int doBackTransformedDiagnostics () const { return do_back_transformed_diagnostics; }
 
-    virtual void buildIonizationMask (const amrex::MFIter& mfi, const int lev,
-                                      amrex::Gpu::ManagedDeviceVector<int>& ionization_mask)
-    {};
-
-    std::map<std::string, int> getParticleComps () { return particle_comps;}
-    std::map<std::string, int> getParticleiComps () { return particle_icomps;}
+    std::map<std::string, int> getParticleComps () const noexcept { return particle_comps;}
+    std::map<std::string, int> getParticleiComps () const noexcept { return particle_icomps;}
 
     //amrex::Real getCharge () {return charge;}
     amrex::ParticleReal getCharge () const {return charge;}
@@ -385,6 +381,14 @@ protected:
     amrex::Vector<std::string> plot_vars;
 
     amrex::Vector<std::map<PairIndex, std::array<DataContainer, TmpIdx::nattribs> > > tmp_particle_data;
+
+    /**
+     * When using runtime components, AMReX requires to touch all tiles
+     * in serial and create particles tiles with runtime components if
+     * they do not exist (or if they were defined by default, i.e.,
+     * without runtime component).
+     */
+     void defineAllParticleTiles () noexcept;
 
 private:
     virtual void particlePostLocate(ParticleType& p, const amrex::ParticleLocData& pld,

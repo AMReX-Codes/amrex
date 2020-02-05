@@ -11,14 +11,14 @@
 #ifndef WARPX_ParticleContainer_H_
 #define WARPX_ParticleContainer_H_
 
-#include "ElementaryProcess.H"
-
 #include <WarpXParticleContainer.H>
 #include <PhysicalParticleContainer.H>
 #include <RigidInjectedParticleContainer.H>
 #include <PhotonParticleContainer.H>
 #include <LaserParticleContainer.H>
 #include <WarpXParserWrapper.H>
+#include <SmartCopy.H>
+#include <FilterCopyTransform.H>
 
 #include <AMReX_Particles.H>
 #ifdef WARPX_QED
@@ -217,8 +217,6 @@ public:
 
     PhysicalParticleContainer& GetPCtmp () { return *pc_tmp; }
 
-    IonizationProcess ionization_process;
-
     std::string m_B_ext_particle_s = "default";
     std::string m_E_ext_particle_s = "default";
     // External fields added to particle fields.
@@ -254,6 +252,9 @@ protected:
     std::vector<bool> m_gather_from_main_grid;
 
     std::vector<PCTypes> species_types;
+
+    amrex::MFItInfo getMFItInfo (const WarpXParticleContainer& pc_src,
+                                 const WarpXParticleContainer& pc_dst) const noexcept;
 
 #ifdef WARPX_QED
     // The QED engines

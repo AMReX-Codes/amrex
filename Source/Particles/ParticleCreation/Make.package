@@ -1,6 +1,7 @@
-CEXE_headers += ElementaryProcess.H
-CEXE_headers += CopyParticle.H
-CEXE_headers += TransformParticle.H
+CEXE_headers += DefaultInitialization.H
+CEXE_headers += FilterCopyTransform.H
+CEXE_headers += SmartCopy.H
+CEXE_sources += SmartCopy.cpp
 
 INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/Particles/ParticleCreation/
 VPATH_LOCATIONS   += $(WARPX_HOME)/Source/Particles/ParticleCreation/
