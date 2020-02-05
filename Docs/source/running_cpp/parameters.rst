@@ -1203,7 +1203,7 @@ Diagnostics and output
         \Big\langle (z-\langle z \rangle) (p_z-\langle p_z \rangle) \Big\rangle^2}`.
 
         For 2D-XZ,
-        :math:`\langle y \rangle`, 
+        :math:`\langle y \rangle`,
         :math:`\delta_y`, and
         :math:`\epsilon_y` will not be outputed.
 
