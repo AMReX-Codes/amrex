@@ -34,7 +34,7 @@ Index filterCopyTransformParticles (DstTile& dst, SrcTile& src, Index* mask, Ind
 {
     using namespace amrex;
 
-    auto np = src.numParticles();
+    const auto np = src.numParticles();
     if (np == 0) return 0;
 
     Gpu::DeviceVector<Index> offsets(np);
@@ -44,10 +44,10 @@ Index filterCopyTransformParticles (DstTile& dst, SrcTile& src, Index* mask, Ind
     Gpu::copyAsync(Gpu::deviceToHost, mask+np-1, mask + np, &last_mask);
     Gpu::copyAsync(Gpu::deviceToHost, offsets.data()+np-1, offsets.data()+np, &last_offset);
 
-    Index num_added = last_mask + last_offset;
+    const Index num_added = last_mask + last_offset;
     dst.resize(std::max(dst_index + num_added, dst.numParticles()));
 
-    auto p_offsets = offsets.dataPtr();
+    const auto p_offsets = offsets.dataPtr();
 
     const auto src_data = src.getParticleTileData();
           auto dst_data = dst.getParticleTileData();
@@ -95,7 +95,7 @@ Index filterCopyTransformParticles (DstTile& dst, SrcTile& src, Index dst_index,
 {
     using namespace amrex;
 
-    auto np = src.numParticles();
+    const auto np = src.numParticles();
     if (np == 0) return 0;
 
     Gpu::DeviceVector<Index> mask(np);

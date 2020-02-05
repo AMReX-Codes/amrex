@@ -18,11 +18,11 @@ struct IonizationFilterFunc
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool operator() (const PData& ptd, int i) const noexcept
     {
-        int ion_lev = ptd.m_runtime_idata[comp][i];
+        const int ion_lev = ptd.m_runtime_idata[comp][i];
         if (ion_lev < m_atomic_number)
         {
-            amrex::Real c = PhysConst::c;
-            amrex::Real c2_inv = 1./c/c;
+            constexpr amrex::Real c = PhysConst::c;
+            constexpr amrex::Real c2_inv = 1./c/c;
 
             // Compute electric field amplitude in the particle's frame of
             // reference (particularly important when in boosted frame).
