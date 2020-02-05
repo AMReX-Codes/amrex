@@ -116,6 +116,7 @@ struct SmartCopy
             }
             else
             {
+                // This is a runtime attribute of the src
                 src_comp = m_src_comps_r[j] - SrcData::NAR;
                 src_data = src.m_runtime_rdata[src_comp];
             }
