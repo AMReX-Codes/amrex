@@ -126,7 +126,7 @@ void BeamRelevant::ComputeDiags (int step)
     auto const species_names = mypc.GetSpeciesNames();
 
     // inverse of speed of light squared
-    Real const inv_c2 = 1.0 / (PhysConst::c * PhysConst::c);
+    Real constexpr inv_c2 = 1.0 / (PhysConst::c * PhysConst::c);
 
     // If 2D-XZ, p.pos(1) is z, rather than p.pos(2).
     #if (AMREX_SPACEDIM == 3)
@@ -143,7 +143,7 @@ void BeamRelevant::ComputeDiags (int step)
         if (species_names[i_s] != m_beam_name) { continue; }
 
         // get WarpXParticleContainer class object
-        auto & myspc = mypc.GetParticleContainer(i_s);
+        auto const & myspc = mypc.GetParticleContainer(i_s);
 
         // get mass (Real)
         Real const m = myspc.getMass();
