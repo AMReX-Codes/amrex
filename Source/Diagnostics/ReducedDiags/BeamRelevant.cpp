@@ -120,19 +120,19 @@ void BeamRelevant::ComputeDiags (int step)
     auto & mypc = WarpX::GetInstance().GetPartContainer();
 
     // get number of species
-    int nSpecies = mypc.nSpecies();
+    int const nSpecies = mypc.nSpecies();
 
     // get species names (std::vector<std::string>)
-    auto species_names = mypc.GetSpeciesNames();
+    auto const species_names = mypc.GetSpeciesNames();
 
     // inverse of speed of light squared
-    Real inv_c2 = 1.0 / (PhysConst::c * PhysConst::c);
+    Real const inv_c2 = 1.0 / (PhysConst::c * PhysConst::c);
 
     // If 2D-XZ, p.pos(1) is z, rather than p.pos(2).
     #if (AMREX_SPACEDIM == 3)
-    int index_z = 2;
+    int const index_z = 2;
     #elif (AMREX_SPACEDIM == 2)
-    int index_z = 1;
+    int const index_z = 1;
     #endif
 
     // loop over species
@@ -146,7 +146,7 @@ void BeamRelevant::ComputeDiags (int step)
         auto & myspc = mypc.GetParticleContainer(i_s);
 
         // get mass (Real)
-        Real m = myspc.getMass();
+        Real const m = myspc.getMass();
 
         using PType = typename WarpXParticleContainer::SuperParticleType;
 
@@ -222,7 +222,7 @@ void BeamRelevant::ComputeDiags (int step)
         Real x_ms = ReduceSum( myspc,
         [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real
         {
-            Real a = (p.pos(0)-x_mean) * (p.pos(0)-x_mean);
+            Real const a = (p.pos(0)-x_mean) * (p.pos(0)-x_mean);
             return a * p.rdata(PIdx::w);
         });
 
@@ -231,7 +231,7 @@ void BeamRelevant::ComputeDiags (int step)
         Real y_ms = ReduceSum( myspc,
         [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real
         {
-            Real a = (p.pos(1)-y_mean) * (p.pos(1)-y_mean);
+            Real const a = (p.pos(1)-y_mean) * (p.pos(1)-y_mean);
             return a * p.rdata(PIdx::w);
         });
 #endif
@@ -240,7 +240,7 @@ void BeamRelevant::ComputeDiags (int step)
         Real z_ms = ReduceSum( myspc,
         [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real
         {
-            Real a = (p.pos(index_z)-z_mean) * (p.pos(index_z)-z_mean);
+            Real const a = (p.pos(index_z)-z_mean) * (p.pos(index_z)-z_mean);
             return a * p.rdata(PIdx::w);
         });
 
@@ -248,7 +248,8 @@ void BeamRelevant::ComputeDiags (int step)
         Real ux_ms = ReduceSum( myspc,
         [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real
         {
-            Real a = (p.rdata(PIdx::ux)-ux_mean) * (p.rdata(PIdx::ux)-ux_mean);
+            Real const a = (p.rdata(PIdx::ux)-ux_mean) *
+                           (p.rdata(PIdx::ux)-ux_mean);
             return a * p.rdata(PIdx::w);
         });
 
@@ -256,7 +257,8 @@ void BeamRelevant::ComputeDiags (int step)
         Real uy_ms = ReduceSum( myspc,
         [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real
         {
-            Real a = (p.rdata(PIdx::uy)-uy_mean) * (p.rdata(PIdx::uy)-uy_mean);
+            Real const a = (p.rdata(PIdx::uy)-uy_mean) *
+                           (p.rdata(PIdx::uy)-uy_mean);
             return a * p.rdata(PIdx::w);
         });
 
@@ -264,7 +266,8 @@ void BeamRelevant::ComputeDiags (int step)
         Real uz_ms = ReduceSum( myspc,
         [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real
         {
-            Real a = (p.rdata(PIdx::uz)-uz_mean) * (p.rdata(PIdx::uz)-uz_mean);
+            Real const a = (p.rdata(PIdx::uz)-uz_mean) *
+                           (p.rdata(PIdx::uz)-uz_mean);
             return a * p.rdata(PIdx::w);
         });
 
@@ -272,12 +275,12 @@ void BeamRelevant::ComputeDiags (int step)
         Real gm_ms = ReduceSum( myspc,
         [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real
         {
-            Real ux = p.rdata(PIdx::ux);
-            Real uy = p.rdata(PIdx::uy);
-            Real uz = p.rdata(PIdx::uz);
-            Real us = ux*ux + uy*uy + uz*uz;
-            Real gm = std::sqrt(1.0 + us*inv_c2);
-            Real a  = (gm - gm_mean) * (gm - gm_mean);
+            Real const ux = p.rdata(PIdx::ux);
+            Real const uy = p.rdata(PIdx::uy);
+            Real const uz = p.rdata(PIdx::uz);
+            Real const us = ux*ux + uy*uy + uz*uz;
+            Real const gm = std::sqrt(1.0 + us*inv_c2);
+            Real const a  = (gm - gm_mean) * (gm - gm_mean);
             return a * p.rdata(PIdx::w);
         });
 
@@ -285,7 +288,7 @@ void BeamRelevant::ComputeDiags (int step)
         Real xux = ReduceSum( myspc,
         [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real
         {
-            Real a = (p.pos(0)-x_mean) * (p.rdata(PIdx::ux)-ux_mean);
+            Real const a = (p.pos(0)-x_mean) * (p.rdata(PIdx::ux)-ux_mean);
             return a * p.rdata(PIdx::w);
         });
 
@@ -294,7 +297,7 @@ void BeamRelevant::ComputeDiags (int step)
         Real yuy = ReduceSum( myspc,
         [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real
         {
-            Real a = (p.pos(1)-y_mean) * (p.rdata(PIdx::uy)-uy_mean);
+            Real const a = (p.pos(1)-y_mean) * (p.rdata(PIdx::uy)-uy_mean);
             return a * p.rdata(PIdx::w);
         });
 #endif
@@ -303,7 +306,7 @@ void BeamRelevant::ComputeDiags (int step)
         Real zuz = ReduceSum( myspc,
         [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real
         {
-            Real a = (p.pos(index_z)-z_mean) * (p.rdata(PIdx::uz)-uz_mean);
+            Real const a = (p.pos(index_z)-z_mean) * (p.rdata(PIdx::uz)-uz_mean);
             return a * p.rdata(PIdx::w);
         });
 
