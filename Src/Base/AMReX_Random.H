@@ -18,11 +18,22 @@ namespace amrex
     /**
     * \brief Generate a psuedo-random double using C++11's mt19937.
     *
-    *  Generates one pseudorandom real number (double) which is
-    *  uniformly distributed on [0,1)-interval for each call.
+    *  Generates one pseudorandom real number (double) from a normal
+    *  distribution with mean 'mean' and standard deviation 'stddev'.
     *
     */
-    AMREX_GPU_HOST_DEVICE Real Random (); // [0,1)
+    AMREX_GPU_HOST_DEVICE Real Random ();
+
+    /**
+    * \brief Generate a psuedo-random integer from a Poisson distribution
+    *
+    *  Generates one pseudorandom positive integer number (double)
+    *  extracted from a Poisson distribution, given the Real parameter lambda.
+    *  The CPU version of this function relies on the standard Template Library
+    *  The GPU version of this function relies on the cuRAND library
+    *
+    */
+    AMREX_GPU_HOST_DEVICE unsigned int RandomPoisson (Real lambda);
 
 
 
@@ -74,7 +85,7 @@ namespace amrex
     /**
     * \brief Set the seeds of the random number generator for each CUDA thread .
     *  An in-built CUDA library, curand_init is used here.
-    *  The pseusorandom sequence currently implemented is obtained 
+    *  The pseusorandom sequence currently implemented is obtained
     *  from the XORWOW and MRG32k3a generator
     */
     void InitRandSeedOnDevice (int N);
@@ -108,7 +119,7 @@ namespace amrex
     /**
     * \brief Set the seeds of the random number generator for each CUDA thread .
     *  An in-built CUDA library, curand_init is used here.
-    *  The pseusorandom sequence currently implemented is obtained 
+    *  The pseusorandom sequence currently implemented is obtained
     *  from the XORWOW and MRG32k3a generator
     */
     void InitRandSeedOnDevice (int N);
