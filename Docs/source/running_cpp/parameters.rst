@@ -1168,7 +1168,7 @@ Diagnostics and output
         `<reduced_diags_name>.species` must be provided,
         such that the diagnostics are done for this (beam-like) species only.
 
-        The output columns are the following, where the average is done over
+        The output columns (for 3D-XYZ) are the following, where the average is done over
         the whole species (typical usage: the particle beam is in a separate species):
 
         [1], [2], [3]: The mean values of beam positions (m)
@@ -1195,14 +1195,17 @@ Diagnostics and output
         :math:`\sqrt{ \langle (\gamma - \langle \gamma \rangle)^2 \rangle }`.
 
         [15], [16], [17]: beam projected transverse RMS normalized emittance (m)
-        :math:`\epsilon_x = \dfrac{1}{c} \sqrt{\delta_x^2 \delta_{ux}^2 -
-        \Big\langle (x-\langle x \rangle) (u_x-\langle u_x \rangle) \Big\rangle^2}`,
-        :math:`\epsilon_y = \dfrac{1}{c} \sqrt{\delta_y^2 \delta_{uy}^2 -
-        \Big\langle (y-\langle y \rangle) (u_y-\langle u_y \rangle) \Big\rangle^2}`,
-        :math:`\epsilon_z = \dfrac{1}{c} \sqrt{\delta_z^2 \delta_{uz}^2 -
-        \Big\langle (z-\langle z \rangle) (u_z-\langle u_z \rangle) \Big\rangle^2}`.
+        :math:`\epsilon_x = \dfrac{1}{mc} \sqrt{\delta_x^2 \delta_{px}^2 -
+        \Big\langle (x-\langle x \rangle) (p_x-\langle p_x \rangle) \Big\rangle^2}`,
+        :math:`\epsilon_y = \dfrac{1}{mc} \sqrt{\delta_y^2 \delta_{py}^2 -
+        \Big\langle (y-\langle y \rangle) (p_y-\langle p_y \rangle) \Big\rangle^2}`,
+        :math:`\epsilon_z = \dfrac{1}{mc} \sqrt{\delta_z^2 \delta_{pz}^2 -
+        \Big\langle (z-\langle z \rangle) (p_z-\langle p_z \rangle) \Big\rangle^2}`.
 
-        For 2D, position :math:`y` related quantities are not outputted.
+        For 2D-XZ,
+        :math:`\langle y \rangle`, 
+        :math:`\delta_y`, and
+        :math:`\epsilon_y` will not be outputed.
 
 * ``<reduced_diags_name>.frequency`` (`int`)
     The output frequency (every # time steps).
