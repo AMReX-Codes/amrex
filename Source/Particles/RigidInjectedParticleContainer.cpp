@@ -16,7 +16,6 @@
 #endif
 
 #include <RigidInjectedParticleContainer.H>
-#include <WarpX_f.H>
 #include <WarpX.H>
 #include <WarpXConst.H>
 #include <WarpXAlgorithmSelection.H>

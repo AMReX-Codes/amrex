@@ -10,7 +10,6 @@
  * License: BSD-3-Clause-LBNL
  */
 #include <WarpX.H>
-#include <WarpX_f.H>
 #include <WarpXConst.H>
 #include <WarpXWrappers.h>
 #include <WarpXUtil.H>

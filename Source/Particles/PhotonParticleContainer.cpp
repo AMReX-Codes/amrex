@@ -14,7 +14,6 @@
 #endif
 
 #include <PhotonParticleContainer.H>
-#include <WarpX_f.H>
 #include <WarpX.H>
 #include <WarpXConst.H>
 

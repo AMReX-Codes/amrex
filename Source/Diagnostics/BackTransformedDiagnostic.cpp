@@ -10,7 +10,6 @@
 
 #include "BackTransformedDiagnostic.H"
 #include "SliceDiagnostic.H"
-#include "WarpX_f.H"
 #include "WarpX.H"
 
 using namespace amrex;

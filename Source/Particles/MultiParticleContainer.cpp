@@ -12,7 +12,6 @@
 
 #include <AMReX_Vector.H>
 
-#include <WarpX_f.H>
 #include <WarpX.H>
 
 //This is now needed for writing a binary file on disk.
