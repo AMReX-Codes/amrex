@@ -239,8 +239,8 @@ WarpX::WarpX ()
     spectral_solver_fp.resize(nlevs_max);
     spectral_solver_cp.resize(nlevs_max);
 #endif
-    fdtd_solver_fp.resize(nlevs_max);
-    fdtd_solver_cp.resize(nlevs_max);
+    m_fdtd_solver_fp.resize(nlevs_max);
+    m_fdtd_solver_cp.resize(nlevs_max);
 #ifdef WARPX_USE_PSATD_HYBRID
     Efield_fp_fft.resize(nlevs_max);
     Bfield_fp_fft.resize(nlevs_max);
@@ -863,7 +863,7 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
     }
 #endif
     std::array<Real,3> const dx = CellSize(lev);
-    fdtd_solver_fp[lev].reset(
+    m_fdtd_solver_fp[lev].reset(
         new FiniteDifferenceSolver(maxwell_fdtd_solver_id, dx, do_nodal) );
     //
     // The Aux patch (i.e., the full solution)
@@ -950,7 +950,7 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
         }
 #endif
     std::array<Real,3> cdx = CellSize(lev-1);
-    fdtd_solver_cp[lev].reset(
+    m_fdtd_solver_cp[lev].reset(
         new FiniteDifferenceSolver( maxwell_fdtd_solver_id, cdx, do_nodal ) );
     }
 

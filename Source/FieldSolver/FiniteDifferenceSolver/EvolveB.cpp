@@ -77,12 +77,12 @@ void FiniteDifferenceSolver::EvolveBCartesian (
         Array4<Real> const& Ez = Efield[2]->array(mfi);
 
         // Extract stencil coefficients
-        Real const * const AMREX_RESTRICT coefs_x = stencil_coefs_x.dataPtr();
-        int const n_coefs_x = stencil_coefs_x.size();
-        Real const * const AMREX_RESTRICT coefs_y = stencil_coefs_y.dataPtr();
-        int const n_coefs_y = stencil_coefs_y.size();
-        Real const * const AMREX_RESTRICT coefs_z = stencil_coefs_z.dataPtr();
-        int const n_coefs_z = stencil_coefs_z.size();
+        Real const * const AMREX_RESTRICT coefs_x = m_stencil_coefs_x.dataPtr();
+        int const n_coefs_x = m_stencil_coefs_x.size();
+        Real const * const AMREX_RESTRICT coefs_y = m_stencil_coefs_y.dataPtr();
+        int const n_coefs_y = m_stencil_coefs_y.size();
+        Real const * const AMREX_RESTRICT coefs_z = m_stencil_coefs_z.dataPtr();
+        int const n_coefs_z = m_stencil_coefs_z.size();
 
         // Extract tileboxes for which to loop
         Box const& tbx  = mfi.tilebox(Bfield[0]->ixType().ixType());
@@ -136,10 +136,10 @@ void FiniteDifferenceSolver::EvolveBCylindrical (
         Array4<Real> const& Ez = Efield[2]->array(mfi);
 
         // Extract stencil coefficients
-        Real const * const AMREX_RESTRICT coefs_r = stencil_coefs_r.dataPtr();
-        int const n_coefs_r = stencil_coefs_r.size();
-        Real const * const AMREX_RESTRICT coefs_z = stencil_coefs_z.dataPtr();
-        int const n_coefs_z = stencil_coefs_z.size();
+        Real const * const AMREX_RESTRICT coefs_r = m_stencil_coefs_r.dataPtr();
+        int const n_coefs_r = m_stencil_coefs_r.size();
+        Real const * const AMREX_RESTRICT coefs_z = m_stencil_coefs_z.dataPtr();
+        int const n_coefs_z = m_stencil_coefs_z.size();
 
         // Extract cylindrical specific parameters
         Real const dr = m_dr;

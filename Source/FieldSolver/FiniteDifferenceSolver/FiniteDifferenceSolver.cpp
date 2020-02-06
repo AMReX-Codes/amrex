@@ -41,22 +41,22 @@ FiniteDifferenceSolver::FiniteDifferenceSolver (
     if (fdtd_algo == MaxwellSolverAlgo::Yee) {
 
         CylindricalYeeAlgorithm::InitializeStencilCoefficients( cell_size,
-            stencil_coefs_r, stencil_coefs_z );
+            m_stencil_coefs_r, m_stencil_coefs_z );
 #else
     if (do_nodal) {
 
         CartesianNodalAlgorithm::InitializeStencilCoefficients( cell_size,
-            stencil_coefs_x, stencil_coefs_y, stencil_coefs_z );
+            m_stencil_coefs_x, m_stencil_coefs_y, m_stencil_coefs_z );
 
     } else if (fdtd_algo == MaxwellSolverAlgo::Yee) {
 
         CartesianYeeAlgorithm::InitializeStencilCoefficients( cell_size,
-            stencil_coefs_x, stencil_coefs_y, stencil_coefs_z );
+            m_stencil_coefs_x, m_stencil_coefs_y, m_stencil_coefs_z );
 
     } else if (fdtd_algo == MaxwellSolverAlgo::CKC) {
 
         CartesianCKCAlgorithm::InitializeStencilCoefficients( cell_size,
-            stencil_coefs_x, stencil_coefs_y, stencil_coefs_z );
+            m_stencil_coefs_x, m_stencil_coefs_y, m_stencil_coefs_z );
 
 #endif
     } else {

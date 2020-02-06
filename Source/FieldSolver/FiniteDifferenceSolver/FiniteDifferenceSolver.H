@@ -37,12 +37,12 @@ class FiniteDifferenceSolver
 #ifdef WARPX_DIM_RZ
         amrex::Real m_dr, m_rmin;
         amrex::Real m_nmodes;
-        amrex::Gpu::ManagedVector<amrex::Real> stencil_coefs_r;
-        amrex::Gpu::ManagedVector<amrex::Real> stencil_coefs_z;
+        amrex::Gpu::ManagedVector<amrex::Real> m_stencil_coefs_r;
+        amrex::Gpu::ManagedVector<amrex::Real> m_stencil_coefs_z;
 #else
-        amrex::Gpu::ManagedVector<amrex::Real> stencil_coefs_x;
-        amrex::Gpu::ManagedVector<amrex::Real> stencil_coefs_y;
-        amrex::Gpu::ManagedVector<amrex::Real> stencil_coefs_z;
+        amrex::Gpu::ManagedVector<amrex::Real> m_stencil_coefs_x;
+        amrex::Gpu::ManagedVector<amrex::Real> m_stencil_coefs_y;
+        amrex::Gpu::ManagedVector<amrex::Real> m_stencil_coefs_z;
 #endif
 
     public:
