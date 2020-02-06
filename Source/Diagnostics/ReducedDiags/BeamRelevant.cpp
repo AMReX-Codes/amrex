@@ -358,9 +358,9 @@ void BeamRelevant::ComputeDiags (int step)
         m_data[7]  = std::sqrt(x_ms);
         m_data[8]  = std::sqrt(y_ms);
         m_data[9]  = std::sqrt(z_ms);
-        m_data[10] = std::sqrt(ux_ms * m);
-        m_data[11] = std::sqrt(uy_ms * m);
-        m_data[12] = std::sqrt(uz_ms * m);
+        m_data[10] = std::sqrt(ux_ms) * m;
+        m_data[11] = std::sqrt(uy_ms) * m;
+        m_data[12] = std::sqrt(uz_ms) * m;
         m_data[13] = std::sqrt(gm_ms);
         m_data[14] = std::sqrt(std::abs(x_ms*ux_ms-xux*xux)) / PhysConst::c;
         m_data[15] = std::sqrt(std::abs(y_ms*uy_ms-yuy*yuy)) / PhysConst::c;
@@ -374,9 +374,9 @@ void BeamRelevant::ComputeDiags (int step)
         m_data[5]  = gm_mean;
         m_data[6]  = std::sqrt(x_ms);
         m_data[7]  = std::sqrt(z_ms);
-        m_data[8]  = std::sqrt(ux_ms * m);
-        m_data[9]  = std::sqrt(uy_ms * m);
-        m_data[10] = std::sqrt(uz_ms * m);
+        m_data[8]  = std::sqrt(ux_ms) * m;
+        m_data[9]  = std::sqrt(uy_ms) * m;
+        m_data[10] = std::sqrt(uz_ms) * m;
         m_data[11] = std::sqrt(gm_ms);
         m_data[12] = std::sqrt(std::abs(x_ms*ux_ms-xux*xux)) / PhysConst::c;
         m_data[13] = std::sqrt(std::abs(z_ms*uz_ms-zuz*zuz)) / PhysConst::c;
