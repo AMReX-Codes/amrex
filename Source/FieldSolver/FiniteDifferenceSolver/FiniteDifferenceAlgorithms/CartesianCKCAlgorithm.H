@@ -54,6 +54,11 @@ struct CartesianCKCAlgorithm {
             Real const betazx = 0.125*rx*inv_dz;
             Real const alphax = (1. - 2.*rz*beta)*inv_dx;
             Real const alphaz = (1. - 2.*rx*beta)*inv_dz;
+            // Other coefficients are 0 in 2D Cartesian
+            // (and will actually not be used in the stencil)
+            Real const gammax=0, gammay=0, gammaz=0;
+            Real const betaxy=0, betazy=0, betayx=0, betayz=0;
+            Real const alphay=0;
 #endif
 
         // Store the coefficients in array `stencil_coefs`, in prescribed order
