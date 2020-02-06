@@ -14,7 +14,7 @@
 
 struct CylindricalYeeAlgorithm {
 
-    static void InitializeStencilCoefficients(
+    static void InitializeStencilCoefficients (
         std::array<amrex::Real,3>& cell_size,
         amrex::Gpu::ManagedVector<amrex::Real>& stencil_coefs_r,
         amrex::Gpu::ManagedVector<amrex::Real>& stencil_coefs_z ) {

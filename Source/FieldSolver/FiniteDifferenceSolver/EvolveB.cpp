@@ -69,25 +69,25 @@ void FiniteDifferenceSolver::EvolveBCartesian (
     for ( MFIter mfi(*Bfield[0], TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
 
         // Extract field data for this grid/tile
-        auto const& Bx = Bfield[0]->array(mfi);
-        auto const& By = Bfield[1]->array(mfi);
-        auto const& Bz = Bfield[2]->array(mfi);
-        auto const& Ex = Efield[0]->array(mfi);
-        auto const& Ey = Efield[1]->array(mfi);
-        auto const& Ez = Efield[2]->array(mfi);
+        Array4<Real> const& Bx = Bfield[0]->array(mfi);
+        Array4<Real> const& By = Bfield[1]->array(mfi);
+        Array4<Real> const& Bz = Bfield[2]->array(mfi);
+        Array4<Real> const& Ex = Efield[0]->array(mfi);
+        Array4<Real> const& Ey = Efield[1]->array(mfi);
+        Array4<Real> const& Ez = Efield[2]->array(mfi);
 
         // Extract stencil coefficients
-        Real const* AMREX_RESTRICT coefs_x = stencil_coefs_x.dataPtr();
+        Real const * const AMREX_RESTRICT coefs_x = stencil_coefs_x.dataPtr();
         int const n_coefs_x = stencil_coefs_x.size();
-        Real const* AMREX_RESTRICT coefs_y = stencil_coefs_y.dataPtr();
+        Real const * const AMREX_RESTRICT coefs_y = stencil_coefs_y.dataPtr();
         int const n_coefs_y = stencil_coefs_y.size();
-        Real const* AMREX_RESTRICT coefs_z = stencil_coefs_z.dataPtr();
+        Real const * const AMREX_RESTRICT coefs_z = stencil_coefs_z.dataPtr();
         int const n_coefs_z = stencil_coefs_z.size();
 
         // Extract tileboxes for which to loop
-        const Box& tbx  = mfi.tilebox(Bfield[0]->ixType().ixType());
-        const Box& tby  = mfi.tilebox(Bfield[1]->ixType().ixType());
-        const Box& tbz  = mfi.tilebox(Bfield[2]->ixType().ixType());
+        Box const& tbx  = mfi.tilebox(Bfield[0]->ixType().ixType());
+        Box const& tby  = mfi.tilebox(Bfield[1]->ixType().ixType());
+        Box const& tbz  = mfi.tilebox(Bfield[2]->ixType().ixType());
 
         // Loop over the cells and update the fields
         amrex::ParallelFor(tbx, tby, tbz,
@@ -128,17 +128,17 @@ void FiniteDifferenceSolver::EvolveBCylindrical (
     for ( MFIter mfi(*Bfield[0], TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
 
         // Extract field data for this grid/tile
-        auto const& Br = Bfield[0]->array(mfi);
-        auto const& Bt = Bfield[1]->array(mfi);
-        auto const& Bz = Bfield[2]->array(mfi);
-        auto const& Er = Efield[0]->array(mfi);
-        auto const& Et = Efield[1]->array(mfi);
-        auto const& Ez = Efield[2]->array(mfi);
+        Array4<Real> const& Br = Bfield[0]->array(mfi);
+        Array4<Real> const& Bt = Bfield[1]->array(mfi);
+        Array4<Real> const& Bz = Bfield[2]->array(mfi);
+        Array4<Real> const& Er = Efield[0]->array(mfi);
+        Array4<Real> const& Et = Efield[1]->array(mfi);
+        Array4<Real> const& Ez = Efield[2]->array(mfi);
 
         // Extract stencil coefficients
-        Real const* AMREX_RESTRICT coefs_r = stencil_coefs_r.dataPtr();
+        Real const * const AMREX_RESTRICT coefs_r = stencil_coefs_r.dataPtr();
         int const n_coefs_r = stencil_coefs_r.size();
-        Real const* AMREX_RESTRICT coefs_z = stencil_coefs_z.dataPtr();
+        Real const * const AMREX_RESTRICT coefs_z = stencil_coefs_z.dataPtr();
         int const n_coefs_z = stencil_coefs_z.size();
 
         // Extract cylindrical specific parameters
@@ -147,9 +147,9 @@ void FiniteDifferenceSolver::EvolveBCylindrical (
         Real const rmin = m_rmin;
 
         // Extract tileboxes for which to loop
-        const Box& tbr  = mfi.tilebox(Bfield[0]->ixType().ixType());
-        const Box& tbt  = mfi.tilebox(Bfield[1]->ixType().ixType());
-        const Box& tbz  = mfi.tilebox(Bfield[2]->ixType().ixType());
+        Box const& tbr  = mfi.tilebox(Bfield[0]->ixType().ixType());
+        Box const& tbt  = mfi.tilebox(Bfield[1]->ixType().ixType());
+        Box const& tbz  = mfi.tilebox(Bfield[2]->ixType().ixType());
 
         // Loop over the cells and update the fields
         amrex::ParallelFor(tbr, tbt, tbz,

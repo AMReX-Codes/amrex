@@ -14,7 +14,7 @@
 
 struct YeeAlgorithm {
 
-    static void InitializeStencilCoefficients(
+    static void InitializeStencilCoefficients (
         std::array<amrex::Real,3>& cell_size,
         amrex::Gpu::ManagedVector<amrex::Real>& stencil_coefs_x,
         amrex::Gpu::ManagedVector<amrex::Real>& stencil_coefs_y,
