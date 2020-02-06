@@ -28,7 +28,7 @@ struct CylindricalYeeAlgorithm {
 
     /** Applies the differential operator `1/r * d(rF)/dr`,
      * where `F` is on a *nodal* grid in `r`
-     * and the differential operator is evaluated on *cell-centered* grid.
+     * and the differential operator is evaluated on a *cell-centered* grid.
      * The input parameter `r` is given at the cell-centered position */
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     static amrex::Real UpwardDrr_over_r(
@@ -39,6 +39,21 @@ struct CylindricalYeeAlgorithm {
 
         amrex::Real const inv_dr = coefs_r[0];
         return 1./r * inv_dr*( (r+0.5*dr)*F(i+1,j,k,comp) - (r-0.5*dr)*F(i,j,k,comp) );
+    };
+
+    /** Applies the differential operator `1/r * d(rF)/dr`,
+     * where `F` is on a *cell-centered* grid in `r`
+     * and the differential operator is evaluated on a *nodal* grid.
+     * The input parameter `r` is given at the cell-centered position */
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    static amrex::Real DownwardDrr_over_r(
+        amrex::Array4<amrex::Real> const& F,
+        amrex::Real const r, amrex::Real const dr,
+        amrex::Real const* coefs_r, int const n_coefs_r,
+        int const i, int const j, int const k, int const comp ) {
+
+        amrex::Real const inv_dr = coefs_r[0];
+        return 1./r * inv_dr*( (r+0.5*dr)*F(i,j,k,comp) - (r-0.5*dr)*F(i-1,j,k,comp) );
     };
 
     /**
@@ -87,26 +102,6 @@ struct CylindricalYeeAlgorithm {
 
         amrex::Real const inv_dz = coefs_z[0];
         return inv_dz*( F(i,j,k,comp) - F(i,j-1,k,comp) );
-    };
-
-    /** Divide by the radius `r` and avoid potential singularities */
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    static amrex::Real DivideByR(
-        amrex::Array4<amrex::Real> const& F,
-        amrex::Real const r, amrex::Real const dr, int const m,
-        int const i, int const j, int const k, int const comp) {
-
-        if (r != 0) {
-            return F(i,j,k,comp)/r;
-        } else { // r==0 ; singularity when dividing by r
-            if (m==1) {
-                // For m==1, F is linear in r, for small r
-                // Therefore, the formula below regularizes the singularity
-                return F(i+1,j,k,comp)/dr;
-            } else {
-                return 0;
-            }
-        }
     };
 
 };

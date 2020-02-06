@@ -156,21 +156,33 @@ void FiniteDifferenceSolver::EvolveBCylindrical (
 
             [=] AMREX_GPU_DEVICE (int i, int j, int k){
                 Real const r = rmin + i*dr; // r on nodal point (Br is nodal in r)
-                Br(i, j, 0, 0) += dt * T_Algo::UpwardDz(Et, coefs_z, n_coefs_z, i, j, 0, 0); // Mode m=0
-                for (int m=1; m<nmodes; m++) { // Higher-order modes
-                    Br(i, j, 0, 2*m-1) += dt*(
-                        T_Algo::UpwardDz(Et, coefs_z, n_coefs_z, i, j, 0, 2*m-1)
-                        - m * T_Algo::DivideByR(Ez, r, dr, m, i, j, 0, 2*m  ));  // Real part
-                    Br(i, j, 0, 2*m  ) += dt*(
-                        T_Algo::UpwardDz(Et, coefs_z, n_coefs_z, i, j, 0, 2*m  )
-                        + m * T_Algo::DivideByR(Ez, r, dr, m, i, j, 0, 2*m-1)); // Imaginary part
-                }
-                // Ensure that Br remains 0 on axis (except for m=1)
-                if (r==0) { // On axis
+                if (r != 0) { // Off-axis, regular Maxwell equations
+                    Br(i, j, 0, 0) += dt * T_Algo::UpwardDz(Et, coefs_z, n_coefs_z, i, j, 0, 0); // Mode m=0
+                    for (int m=1; m<nmodes; m++) { // Higher-order modes
+                        Br(i, j, 0, 2*m-1) += dt*(
+                            T_Algo::UpwardDz(Et, coefs_z, n_coefs_z, i, j, 0, 2*m-1)
+                            - m * Ez(i, j, 0, 2*m  )/r );  // Real part
+                        Br(i, j, 0, 2*m  ) += dt*(
+                            T_Algo::UpwardDz(Et, coefs_z, n_coefs_z, i, j, 0, 2*m  )
+                            + m * Ez(i, j, 0, 2*m-1)/r ); // Imaginary part
+                    }
+                } else { // r==0: On-axis corrections
+                    // Ensure that Br remains 0 on axis (except for m=1)
                     Br(i, j, 0, 0) = 0.; // Mode m=0
-                    for (int m=2; m<nmodes; m++) { // Higher-order modes (but not m=1)
-                        Br(i, j, 0, 2*m-1) = 0.;
-                        Br(i, j, 0, 2*m  ) = 0.;
+                    for (int m=1; m<nmodes; m++) { // Higher-order modes
+                        if (m == 1){
+                            // For m==1, Ez is linear in r, for small r
+                            // Therefore, the formula below regularizes the singularity
+                            Br(i, j, 0, 2*m-1) += dt*(
+                                T_Algo::UpwardDz(Et, coefs_z, n_coefs_z, i, j, 0, 2*m-1)
+                                - m * Ez(i+1, j, 0, 2*m  )/dr );  // Real part
+                            Br(i, j, 0, 2*m  ) += dt*(
+                                T_Algo::UpwardDz(Et, coefs_z, n_coefs_z, i, j, 0, 2*m  )
+                                + m * Ez(i+1, j, 0, 2*m-1)/dr ); // Imaginary part
+                        } else {
+                            Br(i, j, 0, 2*m-1) = 0.;
+                            Br(i, j, 0, 2*m  ) = 0.;
+                        }
                     }
                 }
             },
