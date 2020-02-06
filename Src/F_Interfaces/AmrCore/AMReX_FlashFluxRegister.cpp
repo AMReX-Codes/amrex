@@ -250,4 +250,27 @@ void FlashFluxRegister::load (int crse_global_index, int dir, FArrayBox& crse_fl
     }
 }
 
+void FlashFluxRegister::load (int crse_global_index, int dir, FArrayBox& crse_flux,
+                              FArrayBox const& cflux, Real sf_f, Real sf_c) const
+{
+    AMREX_ASSERT(dir < AMREX_SPACEDIM);
+    auto found = m_crse_map.find(crse_global_index);
+    if (found != m_crse_map.end()) {
+        const int ncomp = m_ncomp;
+        Array<FArrayBox*,2*AMREX_SPACEDIM> const& fab_a = found->second;
+        Array4<Real> const& dest = crse_flux.array();
+        Array4<Real const> const& csrc = cflux.const_array();
+        for (int index = dir; index < 2*AMREX_SPACEDIM; index += AMREX_SPACEDIM) {
+            if (fab_a[index]) {
+                Box const& b = fab_a[index]->box();
+                Array4<Real const> const& src = fab_a[index]->const_array();
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D (b, ncomp, i, j, k, n,
+                {
+                    dest(i,j,k,n) = src(i,j,k,n) * sf_f + csrc(i,j,k,n) * sf_c;
+                });
+            }
+        }
+    }
+}
+
 }

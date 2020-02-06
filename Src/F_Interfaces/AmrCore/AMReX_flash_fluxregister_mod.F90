@@ -17,11 +17,12 @@ module amrex_flash_fluxregister_module
      integer     :: flev  = -1
    contains
      generic   :: assignment(=) => amrex_flash_fluxregister_assign ! shallow copy
-     procedure :: load          => amrex_flash_fluxregister_load
+     generic   :: load          => amrex_flash_fluxregister_load_1, amrex_flash_fluxregister_load_2
      procedure :: store         => amrex_flash_fluxregister_store
      procedure :: communicate   => amrex_flash_fluxregister_communicate
      procedure, private :: amrex_flash_fluxregister_assign
-     procedure, private :: amrex_flash_fluxregister_load
+     procedure, private :: amrex_flash_fluxregister_load_1
+     procedure, private :: amrex_flash_fluxregister_load_2
      procedure, private :: amrex_flash_fluxregister_store
 #if !defined(__GFORTRAN__) || (__GNUC__ > 4)
      final :: amrex_flash_fluxregister_destroy
@@ -43,21 +44,32 @@ module amrex_flash_fluxregister_module
        type(c_ptr), value :: fr
      end subroutine amrex_fi_delete_flash_fluxregister
 
-     subroutine amrex_fi_flash_fluxregister_load (fr,cgid,dir,fabdata,flo,fhi,nc,scale) bind(c)
+     subroutine amrex_fi_flash_fluxregister_load_1 (fr,cgid,dir,flux,flo,fhi,nc,scale) bind(c)
        import
        implicit none
        type(c_ptr), value :: fr
-       real(amrex_real), intent(inout) :: fabdata(*)
+       real(amrex_real), intent(inout) :: flux(*)
        integer(c_int), value, intent(in) :: cgid, dir, nc
        integer(c_int), intent(in) :: flo(*), fhi(*)
        real(amrex_real), value :: scale
-     end subroutine amrex_fi_flash_fluxregister_load
+     end subroutine amrex_fi_flash_fluxregister_load_1
 
-     subroutine amrex_fi_flash_fluxregister_store (fr,cgid,dir,fabdata,flo,fhi,nc,scale) bind(c)
+     subroutine amrex_fi_flash_fluxregister_load_2 (fr,cgid,dir,flux,flo,fhi,nc,cflux,sff,sfc) bind(c)
        import
        implicit none
        type(c_ptr), value :: fr
-       real(amrex_real), intent(in) :: fabdata(*)
+       real(amrex_real), intent(inout) :: flux(*)
+       real(amrex_real), intent(in) :: cflux(*)
+       integer(c_int), value, intent(in) :: cgid, dir, nc
+       integer(c_int), intent(in) :: flo(*), fhi(*)
+       real(amrex_real), value :: sff, sfc
+     end subroutine amrex_fi_flash_fluxregister_load_2
+
+     subroutine amrex_fi_flash_fluxregister_store (fr,cgid,dir,flux,flo,fhi,nc,scale) bind(c)
+       import
+       implicit none
+       type(c_ptr), value :: fr
+       real(amrex_real), intent(in) :: flux(*)
        integer(c_int), value, intent(in) :: cgid, dir, nc
        integer(c_int), intent(in) :: flo(*), fhi(*)
        real(amrex_real), value :: scale
@@ -127,7 +139,7 @@ contains
          flux, flo, fhi, fhi(4)-flo(4)+1, my_scale)
   end subroutine amrex_flash_fluxregister_store
 
-  subroutine amrex_flash_fluxregister_load (this, flux, flo, fhi, grid_idx, dir, scale)
+  subroutine amrex_flash_fluxregister_load_1 (this, flux, flo, fhi, grid_idx, dir, scale)
     class(amrex_flash_fluxregister), intent(inout) :: this
     integer, intent(in) :: flo(*), fhi(*), grid_idx, dir
     real(amrex_real), intent(inout) :: flux(flo(1):fhi(1),flo(2):fhi(2),flo(3):fhi(3),flo(4):fhi(4))
@@ -139,8 +151,30 @@ contains
     else
        my_scale = 1._amrex_real
     end if
-    call amrex_fi_flash_fluxregister_load(this%p, grid_idx, dir, &
+    call amrex_fi_flash_fluxregister_load_1(this%p, grid_idx, dir, &
          flux, flo, fhi, fhi(4)-flo(4)+1, my_scale)
-  end subroutine amrex_flash_fluxregister_load
+  end subroutine amrex_flash_fluxregister_load_1
+
+  subroutine amrex_flash_fluxregister_load_2 (this, flux, flo, fhi, cflux, grid_idx, dir, sf_f, sf_c)
+    class(amrex_flash_fluxregister), intent(inout) :: this
+    integer, intent(in) :: flo(*), fhi(*), grid_idx, dir
+    real(amrex_real), intent(inout) ::  flux(flo(1):fhi(1),flo(2):fhi(2),flo(3):fhi(3),flo(4):fhi(4))
+    real(amrex_real), intent(in   ) :: cflux(flo(1):fhi(1),flo(2):fhi(2),flo(3):fhi(3),flo(4):fhi(4))
+    real(amrex_real), optional, intent(in) :: sf_f, sf_c
+    !
+    real(amrex_real) :: my_sf_f, my_sf_c
+    if (present(sf_f)) then
+       my_sf_f = sf_f
+    else
+       my_sf_f = 1._amrex_real
+    end if
+    if (present(sf_c)) then
+       my_sf_c = sf_c
+    else
+       my_sf_c = -1._amrex_real
+    end if
+    call amrex_fi_flash_fluxregister_load_2(this%p, grid_idx, dir, &
+         flux, flo, fhi, fhi(4)-flo(4)+1, cflux, sf_f, sf_c)
+  end subroutine amrex_flash_fluxregister_load_2
 
 end module amrex_flash_fluxregister_module
