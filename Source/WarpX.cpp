@@ -1297,32 +1297,37 @@ WarpX::BuildBufferMasks ()
 void
 WarpX::BuildBufferMasksInBox ( const Box &tbx, Array4<int> &msk, const Array4<int> gmsk, const int ng )
 {
+    bool setnull;
     const auto lo = amrex::lbound( tbx );
     const auto hi = amrex::ubound( tbx );
 #if (AMREX_SPACEDIM == 2)
     int k = lo.z;
     for     (int j = lo.y; j <= hi.y; ++j) {
         for (int i = lo.x; i <= hi.x; ++i) {
+            setnull = false;
             for     (int jj = j-ng; jj <= j+ng; ++jj) {
                 for (int ii = i-ng; ii <= i+ng; ++ii) {
-                    if ( gmsk(ii,jj,k) == 0 ) msk(i,j,k) = 0;
-                    else                      msk(i,j,k) = 1;
+                    if ( gmsk(ii,jj,k) == 0 ) setnull = true;
                 }
             }
+            if ( setnull ) msk(i,j,k) = 0;
+            else           msk(i,j,k) = 1;
         }
     }
 #elif (AMREX_SPACEDIM == 3)
     for         (int k = lo.z; k <= hi.z; ++k) {
         for     (int j = lo.y; j <= hi.y; ++j) {
             for (int i = lo.x; i <= hi.x; ++i) {
+                setnull = false;
                 for         (int kk = k-ng; kk <= k+ng; ++kk) {
                     for     (int jj = j-ng; jj <= j+ng; ++jj) {
                         for (int ii = i-ng; ii <= i+ng; ++ii) {
-                            if ( gmsk(ii,jj,k) == 0 ) msk(i,j,k) = 0;
-                            else                      msk(i,j,k) = 1;
+                            if ( gmsk(ii,jj,kk) == 0 ) setnull = true;
                         }
                     }
                 }
+                if ( setnull ) msk(i,j,k) = 0;
+                else           msk(i,j,k) = 1;
             }
         }
     }
