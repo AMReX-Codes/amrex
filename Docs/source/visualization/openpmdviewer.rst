@@ -14,7 +14,7 @@ openPMD-viewer can be installed via ``conda`` or ``pip``:
 
 ::
 
-    conda install -c rlehe openpmd_viewer
+    conda install -c conda-forge openpmd-viewer
 
 ::
 
