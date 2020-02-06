@@ -1381,7 +1381,8 @@ BoxArray::getHashMap () const
 	    const int N = size();
 	    for (int i = 0; i < N; ++i)
             {
-                const Box& bx = m_ref->m_abox[i];
+                Box bx = m_ref->m_abox[i];
+                bx.normalize();
                 maxext = amrex::max(maxext, bx.size());
                 boundingbox.minBox(bx);
             }
@@ -1394,7 +1395,7 @@ BoxArray::getHashMap () const
             }
 
             m_ref->crsn = maxext;
-            m_ref->bbox =boundingbox.coarsen(maxext);
+            m_ref->bbox = boundingbox.coarsen(maxext);
             m_ref->bbox.normalize();
 
 #ifdef AMREX_MEM_PROFILING

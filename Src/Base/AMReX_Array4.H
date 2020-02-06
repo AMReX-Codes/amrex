@@ -169,10 +169,13 @@ namespace amrex {
             if (i<begin.x || i>=end.x || j<begin.y || j>=end.y || k<begin.z || k>=end.z
                 || n < 0 || n >= ncomp) {
 #ifdef AMREX_DEVICE_COMPILE
+// HIP FIX HERE - printf + amrex::Abort
+#ifdef AMREX_USE_CUDA
                 std::printf(" (%d,%d,%d,%d) is out of bound (%d:%d,%d:%d,%d:%d,0:%d)\n",
                             i, j, k, n, begin.x, end.x-1, begin.y, end.y-1,
                             begin.z, end.z-1, ncomp-1);
                 amrex::Abort();
+#endif
 #else
                 std::stringstream ss;
                 ss << " (" << i << "," << j << "," << k << "," <<  n

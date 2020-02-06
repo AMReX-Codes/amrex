@@ -109,7 +109,21 @@ namespace amrex
                     auto const sfab1 = smf[1]->array(mfi);
                     auto       dfab  = dmf->array(mfi);
 
-                    if (std::abs(t1-t0) > 1.e-16)
+                    if (time == t0)
+                    {
+                        AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
+                        {
+                            dfab(i,j,k,n+destcomp) = sfab0(i,j,k,n+scomp);
+                        });
+                    }
+                    else if (time == t1)
+                    {
+                        AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
+                        {
+                            dfab(i,j,k,n+destcomp) = sfab1(i,j,k,n+scomp);
+                        });
+                    }
+                    else if (std::abs(t1-t0) > 1.e-16)
                     {
                         Real alpha = (t1-time)/(t1-t0);
                         Real beta = (time-t0)/(t1-t0);
@@ -328,8 +342,24 @@ namespace amrex
     }
 #endif
 
-    void InterpFromCoarseLevel (MultiFab& mf, Real time, const MultiFab& cmf,
-                                int scomp, int dcomp, int ncomp,
+    void InterpFromCoarseLevel (MultiFab& mf, Real time,
+                                const MultiFab& cmf, int scomp, int dcomp, int ncomp,
+                                const Geometry& cgeom, const Geometry& fgeom,
+                                PhysBCFunctBase& cbc, int cbccomp,
+                                PhysBCFunctBase& fbc, int fbccomp,
+                                const IntVect& ratio,
+                                Interpolater* mapper,
+                                const Vector<BCRec>& bcs, int bcscomp,
+                                const InterpHook& pre_interp,
+                                const InterpHook& post_interp)
+    {
+        InterpFromCoarseLevel(mf,mf.nGrowVect(),time,cmf,scomp,dcomp,ncomp,cgeom,fgeom,
+                              cbc,cbccomp,fbc,fbccomp,ratio,mapper,bcs,bcscomp,
+                              pre_interp,post_interp);
+    }
+
+    void InterpFromCoarseLevel (MultiFab& mf, IntVect const& ngrow, Real time,
+                                const MultiFab& cmf, int scomp, int dcomp, int ncomp,
                                 const Geometry& cgeom, const Geometry& fgeom,
                                 PhysBCFunctBase& cbc, int cbccomp,
                                 PhysBCFunctBase& fbc, int fbccomp,
@@ -343,7 +373,6 @@ namespace amrex
 
 	const BoxArray& ba = mf.boxArray();
 	const DistributionMapping& dm = mf.DistributionMap();
-	const IntVect& ngrow = mf.nGrowVect();
 
 	const IndexType& typ = ba.ixType();
 
@@ -394,7 +423,9 @@ namespace amrex
             {
                 FArrayBox& sfab = mf_crse_patch[mfi];
                 FArrayBox& dfab = mf[mfi];
-                const Box& dbx = dfab.box() & fdomain_g;
+                Box dfab_bx = dfab.box();
+                dfab_bx.grow(ngrow-mf.nGrowVect());
+                const Box& dbx = dfab_bx & fdomain_g;
 
                 amrex::setBC(dbx,fdomain,bcscomp,0,ncomp,bcs,bcr);
 
@@ -416,7 +447,7 @@ namespace amrex
             }
 	}
 
-	fbc.FillBoundary(mf, dcomp, ncomp, mf.nGrowVect(), time, fbccomp);
+	fbc.FillBoundary(mf, dcomp, ncomp, ngrow, time, fbccomp);
     }
 
 #ifndef BL_NO_FORT

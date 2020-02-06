@@ -5,7 +5,8 @@ namespace amrex {
 #ifdef AMREX_USE_GPU
 
 void BlockMutex::init_states (state_t* state, int N) noexcept {
-    launch_global<<<(N+255)/256,256>>>([=] AMREX_GPU_DEVICE () noexcept
+    AMREX_LAUNCH_KERNEL((N+255)/256, 256, 0, 0, 
+    [=] AMREX_GPU_DEVICE () noexcept
     {
         int i = threadIdx.x + blockIdx.x*blockDim.x;
         if (i < N) state[i] = FreeState();
@@ -21,12 +22,12 @@ BlockMutex::BlockMutex (int N) noexcept
     // The first 4 bytes of unsigned long stores blockIdx.
     // The second 4 bytes, count.
     // The initial values are -1 and 0.
-    AMREX_GPU_SAFE_CALL(cudaMalloc(&m_state, sizeof(state_t)*m_nstates));
+    m_state = static_cast<state_t*>(The_Device_Arena()->alloc(sizeof(state_t)*m_nstates));
     init_states(m_state, m_nstates);
 }
 
 BlockMutex::~BlockMutex () {
-    AMREX_GPU_SAFE_CALL(cudaFree(m_state));
+    The_Device_Arena()->free(m_state);
 }
 
 #endif

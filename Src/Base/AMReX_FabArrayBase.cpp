@@ -158,6 +158,22 @@ FabArrayBase::FabArrayBase ()
 {
 }
 
+FabArrayBase::FabArrayBase (const BoxArray&            bxs,
+                            const DistributionMapping& dm,
+                            int                        nvar,
+                            int                        ngrow)
+    : FabArrayBase(bxs,dm,nvar,IntVect(ngrow))
+{}
+
+FabArrayBase::FabArrayBase (const BoxArray&            bxs,
+                            const DistributionMapping& dm,
+                            int                        nvar,
+                            const IntVect&             ngrow)
+{
+    define(bxs,dm,nvar,ngrow);
+    m_bdkey = getBDKey();
+}
+
 FabArrayBase::~FabArrayBase () {}
 
 void

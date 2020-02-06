@@ -166,108 +166,103 @@ void mlndlap_bc_doit (Box const& vbx, Array4<T> const& a, Box const& domain,
                       GpuArray<bool,AMREX_SPACEDIM> const& bflo,
                       GpuArray<bool,AMREX_SPACEDIM> const& bfhi) noexcept
 {
-    if (domain.strictly_contains(vbx)) return;
+    Box gdomain = domain;
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        if (not bflo[idim]) gdomain.growLo(idim,1);
+        if (not bfhi[idim]) gdomain.growHi(idim,1);
+    }
+
+    if (gdomain.strictly_contains(vbx)) return;
 
     int offset = domain.cellCentered() ? 0 : 1;
 
     const auto dlo = amrex::lbound(domain);
     const auto dhi = amrex::ubound(domain);
+
     Box const& sbox = amrex::grow(vbx,1);
-
-    Box xlo_face = domain;
-    xlo_face.setSmall(0,dlo.x-1);
-    xlo_face.setBig  (0,dlo.x-1);
-    xlo_face &= sbox;
-    Box ylo_face = domain;
-    ylo_face.setSmall(1,dlo.y-1);
-    ylo_face.setBig  (1,dlo.y-1);
-    ylo_face &= sbox;
-    int xoffset = vbx.length(0)+1;
-    int yoffset = vbx.length(1)+1;
-
-    AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
-    xlo_face, txbxlo,
+    AMREX_HOST_DEVICE_FOR_3D(sbox, i, j, k,
     {
-        auto lo = amrex::lbound(txbxlo);
-        auto hi = amrex::ubound(txbxlo);
-        if (lo.x == dlo.x-1 and bflo[0]) {
-            for (int j = lo.y; j <= hi.y; ++j) {
-                a(dlo.x-1,j,0) = a(dlo.x+offset,j,0);
-            }
-        }
-        if (lo.x+xoffset == dhi.x+1 and bfhi[0]) {
-            for (int j = lo.y; j <= hi.y; ++j) {
-                a(dhi.x+1,j,0) = a(dhi.x-offset,j,0);
-            }
-        }
-    },
-    ylo_face, tybxlo,
-    {
-        auto lo = amrex::lbound(tybxlo);
-        auto hi = amrex::ubound(tybxlo);
-        if (lo.y == dlo.y-1 and bflo[1]) {
-            for (int i = lo.x; i <= hi.x; ++i) {
-                a(i,dlo.y-1,0) = a(i,dlo.y+offset,0);
-            }
-        }
-        if (lo.y+yoffset == dhi.y+1 and bfhi[1]) {
-            for (int i = lo.x; i <= hi.x; ++i) {
-                a(i,dhi.y+1,0) = a(i,dhi.y-offset,0);
-            }
-        }
-    });
-
-    const auto lo = amrex::lbound(sbox);
-    const auto hi = amrex::ubound(sbox);
-
-    AMREX_HOST_DEVICE_FOR_1D ( 4, icorner,
-    {
-        switch (icorner) {
-        case 0: {
+        if (not gdomain.contains(IntVect(i,j))) {
             // xlo & ylo
-            if (lo.x == dlo.x-1 and lo.y == dlo.y-1) {
-                if (bflo[0]) {
-                    a(dlo.x-1,dlo.y-1,0) = a(dlo.x+offset,dlo.y-1,0);
-                } else if (bflo[1]) {
-                    a(dlo.x-1,dlo.y-1,0) = a(dlo.x-1,dlo.y+offset,0);
+            if (i == dlo.x-1 and j == dlo.y-1 and (bflo[0] or bflo[1]))
+            {
+                if (bflo[0] and bflo[1])
+                {
+                    a(i,j,k) = a(i+1+offset, j+1+offset, k);
+                }
+                else if (bflo[0])
+                {
+                    a(i,j,k) = a(i+1+offset, j, k);
+                }
+                else if (bflo[1])
+                {
+                    a(i,j,k) = a(i, j+1+offset, k);
                 }
             }
-            break;
-        }
-        case 1: {
             // xhi & ylo
-            if (hi.x == dhi.x+1 and lo.y == dlo.y-1) {
-                if (bfhi[0]) {
-                    a(dhi.x+1,dlo.y-1,0) = a(dhi.x-offset,dlo.y-1,0);
-                } else if (bflo[1]) {
-                    a(dhi.x+1,dlo.y-1,0) = a(dhi.x+1,dlo.y+offset,0);
+            else if (i == dhi.x+1 and j == dlo.y-1 and (bfhi[0] or bflo[1]))
+            {
+                if (bfhi[0] and bflo[1])
+                {
+                    a(i,j,k) = a(i-1-offset, j+1+offset, k);
+                }
+                else if (bfhi[0])
+                {
+                    a(i,j,k) = a(i-1-offset, j, k);
+                }
+                else if (bflo[1])
+                {
+                    a(i,j,k) = a(i, j+1+offset, k);
                 }
             }
-            break;
-        }
-        case 2: {
             // xlo & yhi
-            if (lo.x == dlo.x-1 and hi.y == dhi.y+1) {
-                if (bflo[0]) {
-                    a(dlo.x-1,dhi.y+1,0) = a(dlo.x+offset,dhi.y+1,0);
-                } else if (bfhi[1]) {
-                    a(dlo.x-1,dhi.y+1,0) = a(dlo.x-1,dhi.y-offset,0);
+            else if (i == dlo.x-1 and j == dhi.y+1 and (bflo[0] or bfhi[1]))
+            {
+                if (bflo[0] and bfhi[1])
+                {
+                    a(i,j,k) = a(i+1+offset, j-1-offset, k);
+                }
+                else if (bflo[0])
+                {
+                    a(i,j,k) = a(i+1+offset, j, k);
+                }
+                else if (bfhi[1])
+                {
+                    a(i,j,k) = a(i, j-1-offset, k);
                 }
             }
-            break;
-        }
-        case 3: {
             // xhi & yhi
-            if (hi.x == dhi.x+1 and hi.y == dhi.y+1) {
-                if (bfhi[0]) {
-                    a(dhi.x+1,dhi.y+1,0) = a(dhi.x-offset,dhi.y+1,0);
-                } else if (bfhi[1]) {
-                    a(dhi.x+1,dhi.y+1,0) = a(dhi.x+1,dhi.y-offset,0);
+            else if (i == dhi.x+1 and j == dhi.y+1 and (bfhi[0] or bfhi[1]))
+            {
+                if (bfhi[0] and bfhi[1])
+                {
+                    a(i,j,k) = a(i-1-offset, j-1-offset, k);
+                }
+                else if (bfhi[0])
+                {
+                    a(i,j,k) = a(i-1-offset, j, k);
+                }
+                else if (bfhi[1])
+                {
+                    a(i,j,k) = a(i, j-1-offset, k);
                 }
             }
-            break;
-        }
-        default: {}
+            else if (i == dlo.x-1 and bflo[0])
+            {
+                a(i,j,k) = a(i+1+offset, j, k);
+            }
+            else if (i == dhi.x+1 and bfhi[0])
+            {
+                a(i,j,k) = a(i-1-offset, j, k);
+            }
+            else if (j == dlo.y-1 and bflo[1])
+            {
+                a(i,j,k) = a(i, j+1+offset, k);
+            }
+            else if (j == dhi.y+1 and bfhi[1])
+            {
+                a(i,j,k) = a(i, j-1-offset, k);
+            }
         }
     });
 }

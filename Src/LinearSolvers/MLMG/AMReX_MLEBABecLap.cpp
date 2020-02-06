@@ -791,7 +791,6 @@ MLEBABecLap::FFlux (int amrlev, const MFIter& mfi, const Array<FArrayBox*,AMREX_
                      Array4<Real const> const& bycoef = by.const_array();,
                      Array4<Real const> const& bzcoef = bz.const_array(););
         Array4<int const> const& msk = ccmask.const_array(mfi);
-        Array4<EBCellFlag const> flg = flags->const_array(mfi);
         AMREX_D_TERM(Real dhx = m_b_scalar*dxinv[0];,
                      Real dhy = m_b_scalar*dxinv[1];,
                      Real dhz = m_b_scalar*dxinv[2];);
@@ -799,16 +798,16 @@ MLEBABecLap::FFlux (int amrlev, const MFIter& mfi, const Array<FArrayBox*,AMREX_
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
             xbx, txbx,
             {
-                mlebabeclap_flux_x(txbx, fx, apx, fcx, phi, bxcoef, msk, flg, dhx, face_only, ncomp, xbx);
+                mlebabeclap_flux_x(txbx, fx, apx, fcx, phi, bxcoef, msk, dhx, face_only, ncomp, xbx);
             }
             , ybx, tybx,
             {
-                mlebabeclap_flux_y(tybx, fy, apy, fcy, phi, bycoef, msk, flg, dhy, face_only, ncomp, ybx);
+                mlebabeclap_flux_y(tybx, fy, apy, fcy, phi, bycoef, msk, dhy, face_only, ncomp, ybx);
             }
 #if (AMREX_SPACEDIM == 3)
             , zbx, tzbx,
             {
-                mlebabeclap_flux_z(tzbx, fz, apz, fcz, phi, bzcoef, msk, flg, dhz, face_only, ncomp, zbx);
+                mlebabeclap_flux_z(tzbx, fz, apz, fcz, phi, bzcoef, msk, dhz, face_only, ncomp, zbx);
             }
 #endif
         );
@@ -922,21 +921,20 @@ MLEBABecLap::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
                          Array4<Real const> const& fcy = fcent[1]->const_array(mfi);,
                          Array4<Real const> const& fcz = fcent[2]->const_array(mfi););
             Array4<int const> const& msk = ccmask.const_array(mfi);
-            Array4<EBCellFlag const> flg = flags->const_array(mfi);
 
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
                 fbx, txbx,
                 {
-                    mlebabeclap_grad_x(txbx, gx, s, apx, fcx, msk, flg, dxi, ncomp);
+                    mlebabeclap_grad_x(txbx, gx, s, apx, fcx, msk, dxi, ncomp);
                 }
                 , fby, tybx,
                 {
-                    mlebabeclap_grad_y(tybx, gy, s, apy, fcy, msk, flg, dyi, ncomp);
+                    mlebabeclap_grad_y(tybx, gy, s, apy, fcy, msk, dyi, ncomp);
                 }
 #if (AMREX_SPACEDIM == 3)
                 , fbz, tzbx,
                 {
-                    mlebabeclap_grad_z(tzbx, gz, s, apz, fcz, msk, flg, dzi, ncomp);
+                    mlebabeclap_grad_z(tzbx, gz, s, apz, fcz, msk, dzi, ncomp);
                 }
 #endif
             );
