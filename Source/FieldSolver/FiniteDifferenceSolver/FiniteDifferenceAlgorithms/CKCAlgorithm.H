@@ -24,54 +24,36 @@ struct CKCAlgorithm {
 
         // Compute Cole-Karkkainen-Cowan coefficients according
         // to Cowan - PRST-AB 16, 041303 (2013)
-        Real alphax=0, alphay=0, alphaz=0;
-        Real betaxy=0, betaxz=0, betayx=0, betayz=0, betazx=0, betazy=0;
-        Real gammax=0, gammay=0, gammaz=0;
         Real const inv_dx = 1./cell_size[0];
         Real const inv_dy = 1./cell_size[1];
         Real const inv_dz = 1./cell_size[2];
 #if defined WARPX_DIM_3D
-            const Real delta = std::max( { inv_dx,inv_dy,inv_dz } );
-            const Real rx = (inv_dx/delta)*(inv_dx/delta);
-            const Real ry = (inv_dy/delta)*(inv_dy/delta);
-            const Real rz = (inv_dz/delta)*(inv_dz/delta);
-            const Real beta = 0.125*(1. - rx*ry*rz/(ry*rz + rz*rx + rx*ry));
-            betaxy = ry*beta;
-            betaxz = rz*beta;
-            betayx = rx*beta;
-            betayz = rz*beta;
-            betazx = rx*beta;
-            betazy = ry*beta;
-            gammax = ry*rz*(0.0625 - 0.125*ry*rz/(ry*rz + rz*rx + rx*ry));
-            gammay = rx*rz*(0.0625 - 0.125*rx*rz/(ry*rz + rz*rx + rx*ry));
-            gammaz = rx*ry*(0.0625 - 0.125*rx*ry/(ry*rz + rz*rx + rx*ry));
-            alphax = 1. - 2.*betaxy - 2.*betaxz - 4.*gammax;
-            alphay = 1. - 2.*betayx - 2.*betayz - 4.*gammay;
-            alphaz = 1. - 2.*betazx - 2.*betazy - 4.*gammaz;
-            betaxy *= inv_dx;
-            betaxz *= inv_dx;
-            betayx *= inv_dy;
-            betayz *= inv_dy;
-            betazx *= inv_dz;
-            betazy *= inv_dz;
-            alphax *= inv_dx;
-            alphay *= inv_dy;
-            alphaz *= inv_dz;
-            gammax *= inv_dx;
-            gammay *= inv_dy;
-            gammaz *= inv_dz;
+            Real const delta = std::max( { inv_dx,inv_dy,inv_dz } );
+            Real const rx = (inv_dx/delta)*(inv_dx/delta);
+            Real const ry = (inv_dy/delta)*(inv_dy/delta);
+            Real const rz = (inv_dz/delta)*(inv_dz/delta);
+            Real const beta = 0.125*(1. - rx*ry*rz/(ry*rz + rz*rx + rx*ry));
+            Real const betaxy = ry*beta*inv_dx;
+            Real const betaxz = rz*beta*inv_dx;
+            Real const betayx = rx*beta*inv_dy;
+            Real const betayz = rz*beta*inv_dy;
+            Real const betazx = rx*beta*inv_dz;
+            Real const betazy = ry*beta*inv_dz;
+            Real const gamma = (0.0625 - 0.125*ry*rz/(ry*rz + rz*rx + rx*ry));
+            Real const gammax = ry*rz*gamma;
+            Real const gammay = rx*rz*gamma;
+            Real const gammaz = rx*ry*gamma;
+            Real const alphax = (1. - 2.*ry*beta - 2.*rz*beta - 4.*ry*rz*gamma)*inv_dx;
+            Real const alphay = (1. - 2.*rx*beta - 2.*rz*beta - 4.*rx*rz*gamma)*inv_dy;
+            Real const alphaz = (1. - 2.*rx*beta - 2.*ry*beta - 4.*rx*ry*gamma)*inv_dz;
 #elif defined WARPX_DIM_XZ
-            const Real delta = std::max(inv_dx,inv_dz);
-            const Real rx = (inv_dx/delta)*(inv_dx/delta);
-            const Real rz = (inv_dz/delta)*(inv_dz/delta);
-            betaxz = 0.125*rz;
-            betazx = 0.125*rx;
-            alphax = 1. - 2.*betaxz;
-            alphaz = 1. - 2.*betazx;
-            betaxz *= inv_dx;
-            betazx *= inv_dz;
-            alphax *= inv_dx;
-            alphaz *= inv_dz;
+            Real const delta = std::max(inv_dx,inv_dz);
+            Real const rx = (inv_dx/delta)*(inv_dx/delta);
+            Real const rz = (inv_dz/delta)*(inv_dz/delta);
+            Real const betaxz = 0.125*rz*inv_dx;
+            Real const betazx = 0.125*rx*inv_dz;
+            Real const alphax = (1. - 2.*rz*beta)*inv_dx;
+            Real const alphaz = (1. - 2.*rx*beta)*inv_dz;
 #endif
 
         // Store the coefficients in array `stencil_coefs`, in prescribed order
@@ -98,9 +80,9 @@ struct CKCAlgorithm {
     /**
     /* Perform derivative along x on a cell-centered grid, from a nodal field `F`*/
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    static amrex::Real UpwardDx(
+    static amrex::Real UpwardDx (
         amrex::Array4<amrex::Real> const& F,
-        amrex::Real const* coefs_x, int const n_coefs_x,
+        amrex::Real const * const coefs_x, int const n_coefs_x,
         int const i, int const j, int const k ) {
 
         amrex::Real const alphax = coefs_x[1];
@@ -127,9 +109,9 @@ struct CKCAlgorithm {
     /**
     /* Perform derivative along x on a nodal grid, from a cell-centered field `F`*/
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    static amrex::Real DownwardDx(
+    static amrex::Real DownwardDx (
         amrex::Array4<amrex::Real> const& F,
-        amrex::Real const* coefs_x, int const n_coefs_x,
+        amrex::Real const * const coefs_x, int const n_coefs_x,
         int const i, int const j, int const k ) {
 
         amrex::Real const inv_dx = coefs_x[0];
@@ -139,9 +121,9 @@ struct CKCAlgorithm {
     /**
     /* Perform derivative along y on a cell-centered grid, from a nodal field `F`*/
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    static amrex::Real UpwardDy(
+    static amrex::Real UpwardDy (
         amrex::Array4<amrex::Real> const& F,
-        amrex::Real const* coefs_y, int const n_coefs_y,
+        amrex::Real const * const coefs_y, int const n_coefs_y,
         int const i, int const j, int const k ) {
 
 #if defined WARPX_DIM_3D
@@ -166,9 +148,9 @@ struct CKCAlgorithm {
     /**
     /* Perform derivative along y on a nodal grid, from a cell-centered field `F`*/
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    static amrex::Real DownwardDy(
+    static amrex::Real DownwardDy (
         amrex::Array4<amrex::Real> const& F,
-        amrex::Real const* coefs_y, int const n_coefs_y,
+        amrex::Real const * const coefs_y, int const n_coefs_y,
         int const i, int const j, int const k ) {
 
 #if defined WARPX_DIM_3D
@@ -182,9 +164,9 @@ struct CKCAlgorithm {
     /**
     /* Perform derivative along z on a cell-centered grid, from a nodal field `F`*/
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    static amrex::Real UpwardDz(
+    static amrex::Real UpwardDz (
         amrex::Array4<amrex::Real> const& F,
-        amrex::Real const* coefs_z, int const n_coefs_z,
+        amrex::Real const * const coefs_z, int const n_coefs_z,
         int const i, int const j, int const k ) {
 
         amrex::Real const alphaz = coefs_z[1];
@@ -211,9 +193,9 @@ struct CKCAlgorithm {
     /**
     /* Perform derivative along z on a nodal grid, from a cell-centered field `F`*/
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    static amrex::Real DownwardDz(
+    static amrex::Real DownwardDz (
         amrex::Array4<amrex::Real> const& F,
-        amrex::Real const* coefs_z, int const n_coefs_z,
+        amrex::Real const * const coefs_z, int const n_coefs_z,
         int const i, int const j, int const k ) {
 
         amrex::Real const inv_dz = coefs_z[0];
