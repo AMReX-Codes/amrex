@@ -10,9 +10,9 @@
 #ifdef WARPX_DIM_RZ
 #   include "FiniteDifferenceAlgorithms/CylindricalYeeAlgorithm.H"
 #else
-#   include "FiniteDifferenceAlgorithms/YeeAlgorithm.H"
-#   include "FiniteDifferenceAlgorithms/CKCAlgorithm.H"
-#   include "FiniteDifferenceAlgorithms/NodalAlgorithm.H"
+#   include "FiniteDifferenceAlgorithms/CartesianYeeAlgorithm.H"
+#   include "FiniteDifferenceAlgorithms/CartesianCKCAlgorithm.H"
+#   include "FiniteDifferenceAlgorithms/CartesianNodalAlgorithm.H"
 #endif
 #include <AMReX_Gpu.H>
 
@@ -36,15 +36,15 @@ void FiniteDifferenceSolver::EvolveB (
 #else
     if (m_do_nodal) {
 
-        EvolveBCartesian <NodalAlgorithm> ( Bfield, Efield, dt );
+        EvolveBCartesian <CartesianNodalAlgorithm> ( Bfield, Efield, dt );
 
     } else if (m_fdtd_algo == MaxwellSolverAlgo::Yee) {
 
-        EvolveBCartesian <YeeAlgorithm> ( Bfield, Efield, dt );
+        EvolveBCartesian <CartesianYeeAlgorithm> ( Bfield, Efield, dt );
 
     } else if (m_fdtd_algo == MaxwellSolverAlgo::CKC) {
 
-        EvolveBCartesian <CKCAlgorithm> ( Bfield, Efield, dt );
+        EvolveBCartesian <CartesianCKCAlgorithm> ( Bfield, Efield, dt );
 
 #endif
     } else {

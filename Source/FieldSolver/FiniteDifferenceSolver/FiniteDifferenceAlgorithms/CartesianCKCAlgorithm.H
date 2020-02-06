@@ -5,14 +5,14 @@
  * License: BSD-3-Clause-LBNL
  */
 
-#ifndef WARPX_FINITE_DIFFERENCE_ALGORITHM_CKC_H_
-#define WARPX_FINITE_DIFFERENCE_ALGORITHM_CKC_H_
+#ifndef WARPX_FINITE_DIFFERENCE_ALGORITHM_CARTESIAN_CKC_H_
+#define WARPX_FINITE_DIFFERENCE_ALGORITHM_CARTESIAN_CKC_H_
 
 #include <AMReX_REAL.H>
 #include <AMReX_Array4.H>
 #include <AMReX_Gpu.H>
 
-struct CKCAlgorithm {
+struct CartesianCKCAlgorithm {
 
     static void InitializeStencilCoefficients (
         std::array<amrex::Real,3>& cell_size,
@@ -208,4 +208,4 @@ struct CKCAlgorithm {
 
 };
 
-#endif // WARPX_FINITE_DIFFERENCE_ALGORITHM_CKC_H_
+#endif // WARPX_FINITE_DIFFERENCE_ALGORITHM_CARTESIAN_CKC_H_

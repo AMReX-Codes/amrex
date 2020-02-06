@@ -5,14 +5,14 @@
  * License: BSD-3-Clause-LBNL
  */
 
-#ifndef WARPX_FINITE_DIFFERENCE_ALGORITHM_YEE_H_
-#define WARPX_FINITE_DIFFERENCE_ALGORITHM_YEE_H_
+#ifndef WARPX_FINITE_DIFFERENCE_ALGORITHM_CARTESIAN_NODAL_H_
+#define WARPX_FINITE_DIFFERENCE_ALGORITHM_CARTESIAN_NODAL_H_
 
 #include <AMReX_REAL.H>
 #include <AMReX_Array4.H>
 #include <AMReX_Gpu.H>
 
-struct YeeAlgorithm {
+struct CartesianNodalAlgorithm {
 
     static void InitializeStencilCoefficients (
         std::array<amrex::Real,3>& cell_size,
@@ -30,7 +30,9 @@ struct YeeAlgorithm {
     }
 
     /**
-    /* Perform derivative along x on a cell-centered grid, from a nodal field `F`*/
+    /* Perform derivative along x
+    /* (For a solver on a staggered grid, `UpwardDx` and `DownwardDx` take into
+    /* account the staggering; but for `CartesianNodalAlgorithm`, they are equivalent) */
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     static amrex::Real UpwardDx (
         amrex::Array4<amrex::Real> const& F,
@@ -38,23 +40,27 @@ struct YeeAlgorithm {
         int const i, int const j, int const k ) {
 
         amrex::Real const inv_dx = coefs_x[0];
-        return inv_dx*( F(i+1,j,k) - F(i,j,k) );
+        return 0.5*inv_dx*( F(i+1,j,k) - F(i-1,j,k) );
     };
 
     /**
-    /* Perform derivative along x on a nodal grid, from a cell-centered field `F`*/
+    /* Perform derivative along x
+    /* (For a solver on a staggered grid, `UpwardDx` and `DownwardDx` take into
+    /* account the staggering; but for `CartesianNodalAlgorithm`, they are equivalent) */
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     static amrex::Real DownwardDx (
         amrex::Array4<amrex::Real> const& F,
         amrex::Real const * const coefs_x, int const n_coefs_x,
         int const i, int const j, int const k ) {
 
-        amrex::Real const inv_dx = coefs_x[0];
-        return inv_dx*( F(i,j,k) - F(i-1,j,k) );
+        return UpwardDx( F, coefs_x, n_coefs_x, i, j, k );
+        // For CartesianNodalAlgorithm, UpwardDx and DownwardDx are equivalent
     };
 
     /**
-    /* Perform derivative along y on a cell-centered grid, from a nodal field `F`*/
+    /* Perform derivative along y
+    /* (For a solver on a staggered grid, `UpwardDy` and `DownwardDy` take into
+    /* account the staggering; but for `CartesianNodalAlgorithm`, they are equivalent) */
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     static amrex::Real UpwardDy (
         amrex::Array4<amrex::Real> const& F,
@@ -63,31 +69,31 @@ struct YeeAlgorithm {
 
 #if defined WARPX_DIM_3D
             amrex::Real const inv_dy = coefs_y[0];
-            return inv_dy*( F(i,j+1,k) - F(i,j,k) );
+            return 0.5*inv_dy*( F(i,j+1,k) - F(i,j-1,k) );
 #elif (defined WARPX_DIM_XZ)
             return 0; // 2D Cartesian: derivative along y is 0
 #endif
     };
 
     /**
-    /* Perform derivative along y on a nodal grid, from a cell-centered field `F`*/
+    /* Perform derivative along y
+    /* (For a solver on a staggered grid, `UpwardDy` and `DownwardDy` take into
+    /* account the staggering; but for `CartesianNodalAlgorithm`, they are equivalent) */
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     static amrex::Real DownwardDy (
         amrex::Array4<amrex::Real> const& F,
         amrex::Real const * const coefs_y, int const n_coefs_y,
         int const i, int const j, int const k ) {
 
-#if defined WARPX_DIM_3D
-            amrex::Real const inv_dy = coefs_y[0];
-            return inv_dy*( F(i,j,k) - F(i,j-1,k) );
-#elif (defined WARPX_DIM_XZ)
-            return 0; // 2D Cartesian: derivative along y is 0
-#endif
+        return UpwardDy( F, coefs_y, n_coefs_y, i, j, k );
+        // For CartesianNodalAlgorithm, UpwardDy and DownwardDy are equivalent
     };
 
     /**
-    /* Perform derivative along z on a cell-centered grid, from a nodal field `F`*/
-   AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    /* Perform derivative along z
+    /* (For a solver on a staggered grid, `UpwardDz` and `DownwardDz` take into
+    /* account the staggering; but for `CartesianNodalAlgorithm`, they are equivalent) */
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     static amrex::Real UpwardDz (
         amrex::Array4<amrex::Real> const& F,
         amrex::Real const * const coefs_z, int const n_coefs_z,
@@ -95,28 +101,26 @@ struct YeeAlgorithm {
 
         amrex::Real const inv_dz = coefs_z[0];
 #if defined WARPX_DIM_3D
-            return inv_dz*( F(i,j,k+1) - F(i,j,k) );
+            return 0.5*inv_dz*( F(i,j,k+1) - F(i,j,k-1) );
 #elif (defined WARPX_DIM_XZ)
-            return inv_dz*( F(i,j+1,k) - F(i,j,k) );
+            return 0.5*inv_dz*( F(i,j+1,k) - F(i,j-1,k) );
 #endif
     };
 
     /**
-    /* Perform derivative along z on a nodal grid, from a cell-centered field `F`*/
+    /* Perform derivative along z
+    /* (For a solver on a staggered grid, `UpwardDz` and `DownwardDz` take into
+    /* account the staggering; but for `CartesianNodalAlgorithm`, they are equivalent) */
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     static amrex::Real DownwardDz (
         amrex::Array4<amrex::Real> const& F,
         amrex::Real const * const coefs_z, int const n_coefs_z,
         int const i, int const j, int const k ) {
 
-        amrex::Real const inv_dz = coefs_z[0];
-#if defined WARPX_DIM_3D
-            return inv_dz*( F(i,j,k) - F(i,j,k-1) );
-#elif (defined WARPX_DIM_XZ)
-            return inv_dz*( F(i,j,k) - F(i,j-1,k) );
-#endif
+        return UpwardDz( F, coefs_z, n_coefs_z, i, j, k );
+        // For CartesianNodalAlgorithm, UpwardDz and DownwardDz are equivalent
     };
 
 };
 
-#endif // WARPX_FINITE_DIFFERENCE_ALGORITHM_YEE_H_
+#endif // WARPX_FINITE_DIFFERENCE_ALGORITHM_CARTESIAN_NODAL_H_

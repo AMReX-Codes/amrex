@@ -9,9 +9,9 @@
 #ifdef WARPX_DIM_RZ
 #    include "FiniteDifferenceAlgorithms/CylindricalYeeAlgorithm.H"
 #else
-#    include "FiniteDifferenceAlgorithms/YeeAlgorithm.H"
-#    include "FiniteDifferenceAlgorithms/CKCAlgorithm.H"
-#    include "FiniteDifferenceAlgorithms/NodalAlgorithm.H"
+#    include "FiniteDifferenceAlgorithms/CartesianYeeAlgorithm.H"
+#    include "FiniteDifferenceAlgorithms/CartesianCKCAlgorithm.H"
+#    include "FiniteDifferenceAlgorithms/CartesianNodalAlgorithm.H"
 #endif
 #include "FiniteDifferenceSolver.H"
 #include "WarpX.H"
@@ -45,17 +45,17 @@ FiniteDifferenceSolver::FiniteDifferenceSolver (
 #else
     if (do_nodal) {
 
-        NodalAlgorithm::InitializeStencilCoefficients( cell_size,
+        CartesianNodalAlgorithm::InitializeStencilCoefficients( cell_size,
             stencil_coefs_x, stencil_coefs_y, stencil_coefs_z );
 
     } else if (fdtd_algo == MaxwellSolverAlgo::Yee) {
 
-        YeeAlgorithm::InitializeStencilCoefficients( cell_size,
+        CartesianYeeAlgorithm::InitializeStencilCoefficients( cell_size,
             stencil_coefs_x, stencil_coefs_y, stencil_coefs_z );
 
     } else if (fdtd_algo == MaxwellSolverAlgo::CKC) {
 
-        CKCAlgorithm::InitializeStencilCoefficients( cell_size,
+        CartesianCKCAlgorithm::InitializeStencilCoefficients( cell_size,
             stencil_coefs_x, stencil_coefs_y, stencil_coefs_z );
 
 #endif
