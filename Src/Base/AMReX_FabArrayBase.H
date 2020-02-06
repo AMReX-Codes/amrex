@@ -47,6 +47,16 @@ public:
 
     FabArrayBase ();
 
+    FabArrayBase (const BoxArray&            bxs,
+                  const DistributionMapping& dm,
+                  int                        nvar,
+                  int                        ngrow);
+
+    FabArrayBase (const BoxArray&            bxs,
+                  const DistributionMapping& dm,
+                  int                        nvar,
+                  const IntVect&             ngrow);
+
     virtual ~FabArrayBase();
 
     FabArrayBase (FabArrayBase&& rhs) noexcept = default;

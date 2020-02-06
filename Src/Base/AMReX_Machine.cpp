@@ -16,6 +16,9 @@
 
 using namespace amrex;
 
+// HIP FIX HERE - std::abort
+using std::abort;
+
 namespace {
 
 struct DoubleInt {
@@ -46,12 +49,8 @@ Coord read_df_node_coord (const std::string & name)
         group = cabx / 2 + caby * 6; // 2 cabinets per group, 6 groups per row
     } else {
         amrex::Print() << "Could not determine group!";
-// HIP FIX HERE
-#ifdef AMREX_USE_HIP
+        // HIP FIX HERE - abort implementation
         abort();
-#else
-        std::abort();
-#endif
     }
     int chas = cab_chas + 3*(cabx & 1); // 2 cabinets per group (6 chassis per group)
 

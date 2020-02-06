@@ -63,7 +63,7 @@ namespace amrex {
     //
     // Do small cell redistribution on one FAB
     //
-    void apply_eb_redistribution ( Box& bx,
+    void apply_eb_redistribution ( const Box& bx,
                                    MultiFab& div_mf,
                                    MultiFab& divc_mf,
                                    const MultiFab& weights,
@@ -256,7 +256,7 @@ namespace amrex {
 
         int nghost = 2;
 	AMREX_ASSERT(div_tmp_in.nGrow() >= nghost);
-	
+
         EB_set_covered(div_tmp_in, 0, ncomp, div_tmp_in.nGrow(), covered_val);
               
         div_tmp_in.FillBoundary(geom[lev].periodicity());
@@ -271,7 +271,7 @@ namespace amrex {
         for (MFIter mfi(div_out,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             // Tilebox
-            Box bx = mfi.tilebox ();
+            const Box& bx = mfi.tilebox ();
 
             // this is to check efficiently if this tile contains any eb stuff
             const EBFArrayBox&  div_fab = static_cast<EBFArrayBox const&>(div_out[mfi]);

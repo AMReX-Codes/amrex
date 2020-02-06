@@ -5,6 +5,10 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_iMultiFab.H>
 
+#ifdef AMREX_USE_HIP
+#include <thrust/reduce.h>
+#endif
+
 using namespace amrex;
 
 void main_main();
@@ -40,11 +44,20 @@ void main_main ()
         Box const& bx = mfi.validbox();
         auto const& fab = mf.array(mfi);
         auto const& ifab = imf.array(mfi);
+
         amrex::ParallelFor(bx,
-        [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept 
         {
+
+#ifdef AMREX_USE_HIP
+//          Currently needed for HIP to work correctly.
+//          Random lock is under investigation.
+            fab(i,j,k) = 1.0;
+            ifab(i,j,k) = 1;
+#else
             fab(i,j,k) = amrex::Random();
             ifab(i,j,k) = (amrex::Random() > 0.5) ? 1 : 0;
+#endif
         });
     }
 
@@ -123,7 +136,7 @@ void main_main ()
                 Real rmax = -1.e30; // we should use numeric_limits.
                 long lsum = 0;
                 amrex::Loop(bx,
-                [=,&rsum,&rmin,&rmax,&lsum] (int i, int j, int k) noexcept {
+                [=,&rsum,&rmin,&rmax,&lsum] (int i, int j, int k) AMREX_NOEXCEPT {
                     Real x =  fab(i,j,k);
                     long ix = static_cast<long>(ifab(i,j,k));
                     rsum += x;
@@ -247,7 +260,11 @@ void main_main ()
     Gpu::DeviceVector<Real> vec(N);
     Real* pvec = vec.dataPtr();
     amrex::ParallelFor(N, [=] AMREX_GPU_DEVICE (int i) noexcept {
-            pvec[i] = amrex::Random() - 0.5;
+#ifdef AMREX_USE_HIP
+           pvec[i] = 1.5;
+#else
+           pvec[i] = amrex::Random() - 0.5;
+#endif
     });
 
     {
@@ -260,7 +277,7 @@ void main_main ()
         reduce_op.eval(N, reduce_data,
         [=] AMREX_GPU_DEVICE (int i) -> ReduceTuple
         {
-            return std::abs(pvec[i]);
+            return abs(pvec[i]);
         });
 
         Real hv = amrex::get<0>(reduce_data.value());
@@ -293,13 +310,13 @@ void main_main ()
                                         << ", " << r.second << "\n";
     }
 
-#ifdef AMREX_USE_GPU
+
+#if defined(AMREX_USE_GPU)
     {
         BL_PROFILE("ThrustReduceSum");
         Real r = thrust::reduce(thrust::device, vec.begin(), vec.end(), 0.0, thrust::plus<Real>());
         amrex::Print().SetPrecision(17) << "thrust::reduce sum " << r << "\n";
     }
 #endif
-
 
 }
