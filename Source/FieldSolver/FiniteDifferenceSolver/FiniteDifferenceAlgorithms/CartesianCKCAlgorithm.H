@@ -12,6 +12,10 @@
 #include <AMReX_Array4.H>
 #include <AMReX_Gpu.H>
 
+/**
+ * This struct contains only static functions to initialize the stencil coefficients
+ * and to compute finite-difference derivatives for the Cartesian CKC algorithm.
+ */
 struct CartesianCKCAlgorithm {
 
     static void InitializeStencilCoefficients (
@@ -50,8 +54,9 @@ struct CartesianCKCAlgorithm {
             Real const delta = std::max(inv_dx,inv_dz);
             Real const rx = (inv_dx/delta)*(inv_dx/delta);
             Real const rz = (inv_dz/delta)*(inv_dz/delta);
-            Real const betaxz = 0.125*rz*inv_dx;
-            Real const betazx = 0.125*rx*inv_dz;
+            Real const beta = 0.125;
+            Real const betaxz = beta*rz*inv_dx;
+            Real const betazx = beta*rx*inv_dz;
             Real const alphax = (1. - 2.*rz*beta)*inv_dx;
             Real const alphaz = (1. - 2.*rx*beta)*inv_dz;
             // Other coefficients are 0 in 2D Cartesian

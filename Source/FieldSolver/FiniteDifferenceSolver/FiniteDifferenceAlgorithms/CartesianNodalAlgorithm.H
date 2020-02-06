@@ -12,6 +12,10 @@
 #include <AMReX_Array4.H>
 #include <AMReX_Gpu.H>
 
+/**
+ * This struct contains only static functions to initialize the stencil coefficients
+ * and to compute finite-difference derivatives for the Cartesian nodal algorithm.
+ */
 struct CartesianNodalAlgorithm {
 
     static void InitializeStencilCoefficients (

@@ -16,14 +16,7 @@
 #include "FiniteDifferenceSolver.H"
 #include "WarpX.H"
 
-/* \brief Initialize the finite-difference Maxwell solver (for a given refinement level)
- *
- * This function initializes the stencil coefficients for the chosen finite-difference algorithm
- *
- * \param fdtd_algo Identifies the chosen algorithm, as defined in WarpXAlgorithmSelection.H
- * \param cell_size Cell size along each dimension, for the chosen refinement level
- * \param do_nodal  Whether the solver is applied to a nodal or staggered grid
- */
+/* This function initializes the stencil coefficients for the chosen finite-difference algorithm */
 FiniteDifferenceSolver::FiniteDifferenceSolver (
     int const fdtd_algo,
     std::array<amrex::Real,3> cell_size,
