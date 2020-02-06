@@ -19,6 +19,7 @@
  * Note that the transform function operates on both the src and the dst,
  * so both can be modified.
  *
+ * \tparam N number of particles created in the dst(s) for each filtered src particle
  * \tparam DstTile the dst particle tile type
  * \tparam SrcTile the src particle tile type
  * \tparam Index the index type, e.g. unsigned int
@@ -29,7 +30,6 @@
  * \param src the source tile
  * \param mask pointer to the mask - 1 means copy, 0 means don't copy
  * \param dst_index the location at which to starting writing the result to dst
- * \param multiplicity the number of particles to create in the destination(s) for each src particle
  * \param copy callable that defines what will be done for the "copy" step.
  * \param transform callable that defines the transformation to apply on dst and src.
  *
@@ -43,11 +43,11 @@
  *
  * \return num_added the number of particles that were written to dst.
  */
-template <typename DstTile, typename SrcTile, typename Index,
+template <int N, typename DstTile, typename SrcTile, typename Index,
           typename TransFunc, typename CopyFunc,
           amrex::EnableIf_t<std::is_integral<Index>::value, int> foo = 0>
 Index filterCopyTransformParticles (DstTile& dst, SrcTile& src, Index* mask, Index dst_index,
-                                    Index multiplicity, CopyFunc&& copy, TransFunc&& transform) noexcept
+                                    CopyFunc&& copy, TransFunc&& transform) noexcept
 {
     using namespace amrex;
 
@@ -62,7 +62,7 @@ Index filterCopyTransformParticles (DstTile& dst, SrcTile& src, Index* mask, Ind
     Gpu::copyAsync(Gpu::deviceToHost, offsets.data()+np-1, offsets.data()+np, &last_offset);
 
 	Gpu::streamSynchronize();
-    const Index num_added = multiplicity * (last_mask + last_offset);
+    const Index num_added = N * (last_mask + last_offset);
     dst.resize(std::max(dst_index + num_added, dst.numParticles()));
 
     const auto p_offsets = offsets.dataPtr();
@@ -74,9 +74,9 @@ Index filterCopyTransformParticles (DstTile& dst, SrcTile& src, Index* mask, Ind
     {
         if (mask[i])
         {
-			for (int j = 0; j < multiplicity; ++j)
-				copy(dst_data, src_data, i, multiplicity*p_offsets[i] + dst_index + j);
-            transform(dst_data, src_data, i, multiplicity*p_offsets[i] + dst_index);
+			for (int j = 0; j < N; ++j)
+				copy(dst_data, src_data, i, N*p_offsets[i] + dst_index + j);
+            transform(dst_data, src_data, i, N*p_offsets[i] + dst_index);
         }
     });
 
@@ -92,6 +92,7 @@ Index filterCopyTransformParticles (DstTile& dst, SrcTile& src, Index* mask, Ind
  * Note that the transform function operates on both the src and the dst,
  * so both can be modified.
  *
+ * \tparam N number of particles created in the dst(s) for each filtered src particle
  * \tparam DstTile the dst particle tile type
  * \tparam SrcTile the src particle tile type
  * \tparam Index the index type, e.g. unsigned int
@@ -102,7 +103,6 @@ Index filterCopyTransformParticles (DstTile& dst, SrcTile& src, Index* mask, Ind
  * \param dst the destination tile
  * \param src the source tile
  * \param dst_index the location at which to starting writing the result to dst
- * \param multiplicity the number of particles to create in the destination(s) for each src particle
  * \param filter a callable returning true if that particle is to be copied and transformed
  * \param copy callable that defines what will be done for the "copy" step.
  * \param transform callable that defines the transformation to apply on dst and src.
@@ -117,9 +117,9 @@ Index filterCopyTransformParticles (DstTile& dst, SrcTile& src, Index* mask, Ind
  *
  * \return num_added the number of particles that were written to dst.
  */
-template <typename DstTile, typename SrcTile, typename Index,
+template <int N, typename DstTile, typename SrcTile, typename Index,
           typename PredFunc, typename TransFunc, typename CopyFunc>
-Index filterCopyTransformParticles (DstTile& dst, SrcTile& src, Index dst_index, Index multiplicity,
+Index filterCopyTransformParticles (DstTile& dst, SrcTile& src, Index dst_index,
                                     PredFunc&& filter, CopyFunc&& copy, TransFunc&& transform) noexcept
 {
     using namespace amrex;
@@ -137,9 +137,9 @@ Index filterCopyTransformParticles (DstTile& dst, SrcTile& src, Index dst_index,
         p_mask[i] = filter(src_data, i);
     });
 
-    return filterCopyTransformParticles(dst, src, mask.dataPtr(), dst_index, multiplicity,
-                                        std::forward<CopyFunc>(copy),
-                                        std::forward<TransFunc>(transform));
+    return filterCopyTransformParticles<N>(dst, src, mask.dataPtr(), dst_index,
+													  std::forward<CopyFunc>(copy),
+													  std::forward<TransFunc>(transform));
 }
 
 /**
@@ -151,6 +151,7 @@ Index filterCopyTransformParticles (DstTile& dst, SrcTile& src, Index dst_index,
  * Note that the transform function operates on all of src, dst1, and dst2,
  * so all of them can be modified.
  *
+ * \tparam N number of particles created in the dst(s) for each filtered src particle
  * \tparam DstTile the dst particle tile type
  * \tparam SrcTile the src particle tile type
  * \tparam Index the index type, e.g. unsigned int
@@ -163,7 +164,6 @@ Index filterCopyTransformParticles (DstTile& dst, SrcTile& src, Index dst_index,
  * \param mask pointer to the mask - 1 means copy, 0 means don't copy
  * \param dst1_index the location at which to starting writing the result to dst1
  * \param dst2_index the location at which to starting writing the result to dst2
- * \param multiplicity the number of particles to create in the destination(s) for each src particle
  * \param copy callable that defines what will be done for the "copy" step.
  * \param transform callable that defines the transformation to apply on dst and src.
  *
@@ -177,11 +177,11 @@ Index filterCopyTransformParticles (DstTile& dst, SrcTile& src, Index dst_index,
  *
  * \return num_added the number of particles that were written to dst.
  */
-template <typename DstTile, typename SrcTile, typename Index,
+template <int N, typename DstTile, typename SrcTile, typename Index,
           typename TransFunc, typename CopyFunc,
           amrex::EnableIf_t<std::is_integral<Index>::value, int> foo = 0>
 Index filterCopyTransformParticles (DstTile& dst1, DstTile& dst2, SrcTile& src, Index* mask,
-                                    Index dst1_index, Index dst2_index, Index multiplicity,
+                                    Index dst1_index, Index dst2_index,
                                     CopyFunc&& copy, TransFunc&& transform) noexcept
 {
     using namespace amrex;
@@ -197,7 +197,7 @@ Index filterCopyTransformParticles (DstTile& dst1, DstTile& dst2, SrcTile& src, 
     Gpu::copyAsync(Gpu::deviceToHost, offsets.data()+np-1, offsets.data()+np, &last_offset);
 
 	Gpu::streamSynchronize();
-    Index num_added = multiplicity*(last_mask + last_offset);
+    Index num_added = N*(last_mask + last_offset);
     dst1.resize(std::max(dst1_index + num_added, dst1.numParticles()));
     dst2.resize(std::max(dst2_index + num_added, dst2.numParticles()));
 
@@ -211,14 +211,14 @@ Index filterCopyTransformParticles (DstTile& dst1, DstTile& dst2, SrcTile& src, 
     {
         if (mask[i])
         {
-			for (int j = 0; j < multiplicity; ++j)
+			for (int j = 0; j < N; ++j)
 			{
-				copy(dst1_data, src_data, i, multiplicity*p_offsets[i] + dst1_index + j);
-				copy(dst2_data, src_data, i, multiplicity*p_offsets[i] + dst2_index + j);
+				copy(dst1_data, src_data, i, N*p_offsets[i] + dst1_index + j);
+				copy(dst2_data, src_data, i, N*p_offsets[i] + dst2_index + j);
 			}
             transform(dst1_data, dst2_data, src_data, i,
-                      multiplicity*p_offsets[i] + dst1_index,
-					  multiplicity*p_offsets[i] + dst2_index);
+                      N*p_offsets[i] + dst1_index,
+					  N*p_offsets[i] + dst2_index);
         }
     });
 
@@ -235,6 +235,7 @@ Index filterCopyTransformParticles (DstTile& dst1, DstTile& dst2, SrcTile& src, 
  * Note that the transform function operates on all of src, dst1, and dst2,
  * so all of them can be modified.
  *
+ * \tparam N number of particles created in the dst(s) for each filtered src particle
  * \tparam DstTile the dst particle tile type
  * \tparam SrcTile the src particle tile type
  * \tparam Index the index type, e.g. unsigned int
@@ -247,7 +248,6 @@ Index filterCopyTransformParticles (DstTile& dst1, DstTile& dst2, SrcTile& src, 
  * \param src the source tile
  * \param dst1_index the location at which to starting writing the result to dst1
  * \param dst2_index the location at which to starting writing the result to dst2
- * \param multiplicity the number of particles to create in the destination(s) for each src particle
  * \param filter a callable returning true if that particle is to be copied and transformed
  * \param copy callable that defines what will be done for the "copy" step.
  * \param transform callable that defines the transformation to apply on dst and src.
@@ -262,10 +262,10 @@ Index filterCopyTransformParticles (DstTile& dst1, DstTile& dst2, SrcTile& src, 
  *
  * \return num_added the number of particles that were written to dst.
  */
-template <typename DstTile, typename SrcTile, typename Index,
+template <int N, typename DstTile, typename SrcTile, typename Index,
           typename PredFunc, typename TransFunc, typename CopyFunc>
 Index filterCopyTransformParticles (DstTile& dst1, DstTile& dst2, SrcTile& src,
-                                    Index dst1_index, Index dst2_index, Index multiplicity,
+                                    Index dst1_index, Index dst2_index,
                                     PredFunc&& filter, CopyFunc&& copy, TransFunc&& transform) noexcept
 {
     using namespace amrex;
@@ -283,8 +283,8 @@ Index filterCopyTransformParticles (DstTile& dst1, DstTile& dst2, SrcTile& src,
         p_mask[i] = filter(src_data, i);
     });
 
-    return filterCopyTransformParticles(dst1, dst2, src, mask.dataPtr(),
-                                        dst1_index, dst2_index, multiplicity,
+    return filterCopyTransformParticles<N>(dst1, dst2, src, mask.dataPtr(),
+                                        dst1_index, dst2_index,
                                         std::forward<CopyFunc>(copy),
                                         std::forward<TransFunc>(transform));
 }
