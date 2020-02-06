@@ -254,7 +254,6 @@ MultiLevelToBlueprint (int n_levels,
                        const Vector<IntVect>& ref_ratio,
                        Node &res)
 {
-    res.reset();
     BL_PROFILE("MultiLevelToBlueprint()");
 
     BL_ASSERT(n_levels <= mfs.size());
