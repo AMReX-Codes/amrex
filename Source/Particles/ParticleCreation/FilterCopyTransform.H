@@ -144,8 +144,8 @@ Index filterCopyTransformParticles (DstTile& dst, SrcTile& src, Index dst_index,
 
 /**
  * \brief Apply a filter, copy, and transform operation to the particles
- * in src, in that order, writing the results to dst1 and dst2, starting 
- * at dst1_index and dst2_index. The dst tiles will be extended so all the 
+ * in src, in that order, writing the results to dst1 and dst2, starting
+ * at dst1_index and dst2_index. The dst tiles will be extended so all the
  * particles will fit, if needed.
  *
  * Note that the transform function operates on all of src, dst1, and dst2,
@@ -206,7 +206,7 @@ Index filterCopyTransformParticles (DstTile& dst1, DstTile& dst2, SrcTile& src, 
     const auto src_data  = src.getParticleTileData();
           auto dst1_data = dst1.getParticleTileData();
           auto dst2_data = dst2.getParticleTileData();
-          
+
     AMREX_HOST_DEVICE_FOR_1D( np, i,
     {
         if (mask[i])
@@ -228,8 +228,8 @@ Index filterCopyTransformParticles (DstTile& dst1, DstTile& dst2, SrcTile& src, 
 
 /**
  * \brief Apply a filter, copy, and transform operation to the particles
- * in src, in that order, writing the results to dst1 and dst2, starting 
- * at dst1_index and dst2_index. The dst tiles will be extended so all the 
+ * in src, in that order, writing the results to dst1 and dst2, starting
+ * at dst1_index and dst2_index. The dst tiles will be extended so all the
  * particles will fit, if needed.
  *
  * Note that the transform function operates on all of src, dst1, and dst2,
