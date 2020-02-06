@@ -1280,13 +1280,10 @@ WarpX::BuildBufferMasks ()
 #endif
                 for (MFIter mfi(*bmasks, true); mfi.isValid(); ++mfi)
                 {
-                    const Box& tbx = mfi.growntilebox();
-                    //warpx_build_buffer_masks(BL_TO_FORTRAN_BOX(tbx),
-                    //                         BL_TO_FORTRAN_ANYD((*bmasks)[mfi]),
-                    //                         BL_TO_FORTRAN_ANYD(tmp[mfi]),
-                    //                         &ngbuffer);
-                    Array4<int> msk = (*bmasks)[mfi].array();
+                    const Box tbx = mfi.growntilebox();
+                    Array4<int>  msk = (*bmasks)[mfi].array();
                     Array4<int> gmsk = tmp[mfi].array();
+                    // Build buffer mask within current FArrayBox
                     BuildBufferMasksInBox( tbx, msk, gmsk, ngbuffer );
                 }
             }
@@ -1295,7 +1292,7 @@ WarpX::BuildBufferMasks ()
 }
 
 void
-WarpX::BuildBufferMasksInBox ( const Box &tbx, Array4<int> &msk, const Array4<int> gmsk, const int ng )
+WarpX::BuildBufferMasksInBox ( const Box tbx, Array4<int> &msk, const Array4<int> gmsk, const int ng )
 {
     bool setnull;
     const auto lo = amrex::lbound( tbx );
