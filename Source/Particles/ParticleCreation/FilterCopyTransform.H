@@ -61,7 +61,7 @@ Index filterCopyTransformParticles (DstTile& dst, SrcTile& src, Index* mask, Ind
     Gpu::copyAsync(Gpu::deviceToHost, mask+np-1, mask + np, &last_mask);
     Gpu::copyAsync(Gpu::deviceToHost, offsets.data()+np-1, offsets.data()+np, &last_offset);
 
-	Gpu::streamSynchronize();
+    Gpu::streamSynchronize();
     const Index num_added = N * (last_mask + last_offset);
     dst.resize(std::max(dst_index + num_added, dst.numParticles()));
 
@@ -74,8 +74,8 @@ Index filterCopyTransformParticles (DstTile& dst, SrcTile& src, Index* mask, Ind
     {
         if (mask[i])
         {
-			for (int j = 0; j < N; ++j)
-				copy(dst_data, src_data, i, N*p_offsets[i] + dst_index + j);
+            for (int j = 0; j < N; ++j)
+                copy(dst_data, src_data, i, N*p_offsets[i] + dst_index + j);
             transform(dst_data, src_data, i, N*p_offsets[i] + dst_index);
         }
     });
@@ -138,8 +138,8 @@ Index filterCopyTransformParticles (DstTile& dst, SrcTile& src, Index dst_index,
     });
 
     return filterCopyTransformParticles<N>(dst, src, mask.dataPtr(), dst_index,
-													  std::forward<CopyFunc>(copy),
-													  std::forward<TransFunc>(transform));
+                                                      std::forward<CopyFunc>(copy),
+                                                      std::forward<TransFunc>(transform));
 }
 
 /**
@@ -196,7 +196,7 @@ Index filterCopyTransformParticles (DstTile& dst1, DstTile& dst2, SrcTile& src, 
     Gpu::copyAsync(Gpu::deviceToHost, mask+np-1, mask + np, &last_mask);
     Gpu::copyAsync(Gpu::deviceToHost, offsets.data()+np-1, offsets.data()+np, &last_offset);
 
-	Gpu::streamSynchronize();
+    Gpu::streamSynchronize();
     Index num_added = N*(last_mask + last_offset);
     dst1.resize(std::max(dst1_index + num_added, dst1.numParticles()));
     dst2.resize(std::max(dst2_index + num_added, dst2.numParticles()));
@@ -211,14 +211,14 @@ Index filterCopyTransformParticles (DstTile& dst1, DstTile& dst2, SrcTile& src, 
     {
         if (mask[i])
         {
-			for (int j = 0; j < N; ++j)
-			{
-				copy(dst1_data, src_data, i, N*p_offsets[i] + dst1_index + j);
-				copy(dst2_data, src_data, i, N*p_offsets[i] + dst2_index + j);
-			}
+            for (int j = 0; j < N; ++j)
+            {
+                copy(dst1_data, src_data, i, N*p_offsets[i] + dst1_index + j);
+                copy(dst2_data, src_data, i, N*p_offsets[i] + dst2_index + j);
+            }
             transform(dst1_data, dst2_data, src_data, i,
                       N*p_offsets[i] + dst1_index,
-					  N*p_offsets[i] + dst2_index);
+                      N*p_offsets[i] + dst2_index);
         }
     });
 
