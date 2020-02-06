@@ -642,6 +642,8 @@ MultiParticleContainer::doFieldIonization ()
 {
     BL_PROFILE("MPC::doFieldIonization");
 
+	constexpr int multiplicity = 1;
+	
     // Loop over all species.
     // Ionized particles in pc_source create particles in pc_product
     for (auto& pc_source : allcontainers)
@@ -673,7 +675,7 @@ MultiParticleContainer::doFieldIonization ()
                 auto& dst_tile = pc_product->ParticlesAt(lev, mfi);
 
                 auto np_dst = dst_tile.numParticles();
-                auto num_added = filterCopyTransformParticles(dst_tile, src_tile, np_dst,
+                auto num_added = filterCopyTransformParticles(dst_tile, src_tile, np_dst, multiplicity,
                                                               Filter, Copy, Transform);
 
                 setNewParticleIDs(dst_tile, np_dst, num_added);
