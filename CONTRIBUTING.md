@@ -89,10 +89,6 @@ git pull upstream dev
 ```
 and fix any conflict that may occur.
 
-### Check that you did not break the code
-
-See the [testing section](https://warpx.readthedocs.io/en/latest/developers/testing.html) of our developer's documentation.
-
 ### Submit a Pull Request
 
 A Pull Request (PR) is the way to efficiently visualize the changes you made
