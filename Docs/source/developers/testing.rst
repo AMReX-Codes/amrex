@@ -77,7 +77,7 @@ There are three steps to follow to add a new automated test (illustrated here fo
 
 If you re-use an existing input file, you can add arguments to ``runtime_params``, like ``runtime_params = amr.max_level=1 amr.n_cell=32 512 max_step=100 plasma_e.zmin=-200.e-6``.
 
-Useful tool for plotfile comparisong: ``fcompare``
+Useful tool for plotfile comparison: ``fcompare``
 --------------------------------------------------
 
 AMReX provides ``fcompare``, an executable that takes two ``plotfiles`` as input and returns the absolute and relative difference for each field between these two plotfiles. For some changes in the code, it is very convenient to run the same input file with an old and your current version, and ``fcompare`` the plotfiles at the same iteration. To use it:
@@ -94,8 +94,8 @@ which should return something like
 
 .. code-block:: sh
 
-   variable name            absolute error            relative error
-   (||A - B||)         (||A - B||/||A||)
+             variable name             absolute error            relative error
+                                          (||A - B||)         (||A - B||/||A||)
    ----------------------------------------------------------------------------
    level = 0
    jx                                 1.044455105e+11               1.021651316
