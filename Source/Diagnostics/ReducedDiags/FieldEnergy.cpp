@@ -48,20 +48,20 @@ FieldEnergy::FieldEnergy (std::string rd_name)
                 std::ofstream::out | std::ofstream::app);
             // write header row
             ofs << "#";
-            ofs << "[1]step";
+            ofs << "[1]step()";
             ofs << m_sep;
             ofs << "[2]time(s)";
             for (int lev = 0; lev < nLevel; ++lev)
             {
                 ofs << m_sep;
                 ofs << "[" + std::to_string(3+3*lev) + "]";
-                ofs << "total(J)lev"+std::to_string(lev);
+                ofs << "total_lev"+std::to_string(lev)+"(J)";
                 ofs << m_sep;
                 ofs << "[" + std::to_string(4+3*lev) + "]";
-                ofs << "E(J)lev"+std::to_string(lev);
+                ofs << "E_lev"+std::to_string(lev)+"(J)";
                 ofs << m_sep;
                 ofs << "[" + std::to_string(5+3*lev) + "]";
-                ofs << "B(J)lev"+std::to_string(lev);
+                ofs << "B_lev"+std::to_string(lev)+"(J)";
             }
             ofs << std::endl;
             // close file
