@@ -7,7 +7,6 @@
  */
 
 #include <WarpX.H>
-#include <WarpX_f.H>
 #include <AMReX_iMultiFab.H>
 
 using namespace amrex;

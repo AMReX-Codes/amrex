@@ -134,10 +134,6 @@ extern "C"
 
 #endif
 
-    void warpx_build_buffer_masks (const int* lo, const int* hi,
-                                   int* msk, const int* mlo, const int* mhi,
-                                   const int* gmsk, const int* glo, const int* ghi, const int* ng);
-
 #ifdef __cplusplus
 }
 #endif

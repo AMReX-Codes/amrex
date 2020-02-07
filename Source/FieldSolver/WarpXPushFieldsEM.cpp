@@ -12,7 +12,6 @@
 
 #include <WarpX.H>
 #include <WarpXConst.H>
-#include <WarpX_f.H>
 #include <WarpX_K.H>
 #include <WarpX_PML_kernels.H>
 #include <WarpX_FDTD.H>

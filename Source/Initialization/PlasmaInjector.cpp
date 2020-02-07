@@ -10,7 +10,6 @@
 #include "PlasmaInjector.H"
 
 #include <WarpXConst.H>
-#include <WarpX_f.H>
 #include <WarpX.H>
 #include <WarpXUtil.H>
 
