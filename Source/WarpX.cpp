@@ -10,7 +10,6 @@
  * License: BSD-3-Clause-LBNL
  */
 #include <WarpX.H>
-#include <WarpX_f.H>
 #include <WarpXConst.H>
 #include <WarpXWrappers.h>
 #include <WarpXUtil.H>
@@ -1280,15 +1279,65 @@ WarpX::BuildBufferMasks ()
 #endif
                 for (MFIter mfi(*bmasks, true); mfi.isValid(); ++mfi)
                 {
-                    const Box& tbx = mfi.growntilebox();
-                    warpx_build_buffer_masks (BL_TO_FORTRAN_BOX(tbx),
-                                              BL_TO_FORTRAN_ANYD((*bmasks)[mfi]),
-                                              BL_TO_FORTRAN_ANYD(tmp[mfi]),
-                                              &ngbuffer);
+                    const Box tbx = mfi.growntilebox();
+                    BuildBufferMasksInBox( tbx, (*bmasks)[mfi], tmp[mfi], ngbuffer );
                 }
             }
         }
     }
+}
+
+/**
+ * \brief Build buffer mask within given FArrayBox
+ *
+ * \param tbx         Current FArrayBox
+ * \param buffer_mask Buffer mask to be set
+ * \param guard_mask  Guard mask used to set buffer_mask
+ * \param ng          Number of guard cells
+ */
+void
+WarpX::BuildBufferMasksInBox ( const amrex::Box tbx, amrex::IArrayBox &buffer_mask,
+                               const amrex::IArrayBox &guard_mask, const int ng )
+{
+    bool setnull;
+    const auto lo = amrex::lbound( tbx );
+    const auto hi = amrex::ubound( tbx );
+    Array4<int> msk = buffer_mask.array();
+    Array4<int const> gmsk = guard_mask.array();
+#if (AMREX_SPACEDIM == 2)
+    int k = lo.z;
+    for     (int j = lo.y; j <= hi.y; ++j) {
+        for (int i = lo.x; i <= hi.x; ++i) {
+            setnull = false;
+            // If gmsk=0 for any neighbor within ng cells, current cell is in the buffer region
+            for     (int jj = j-ng; jj <= j+ng; ++jj) {
+                for (int ii = i-ng; ii <= i+ng; ++ii) {
+                    if ( gmsk(ii,jj,k) == 0 ) setnull = true;
+                }
+            }
+            if ( setnull ) msk(i,j,k) = 0;
+            else           msk(i,j,k) = 1;
+        }
+    }
+#elif (AMREX_SPACEDIM == 3)
+    for         (int k = lo.z; k <= hi.z; ++k) {
+        for     (int j = lo.y; j <= hi.y; ++j) {
+            for (int i = lo.x; i <= hi.x; ++i) {
+                setnull = false;
+                // If gmsk=0 for any neighbor within ng cells, current cell is in the buffer region
+                for         (int kk = k-ng; kk <= k+ng; ++kk) {
+                    for     (int jj = j-ng; jj <= j+ng; ++jj) {
+                        for (int ii = i-ng; ii <= i+ng; ++ii) {
+                            if ( gmsk(ii,jj,kk) == 0 ) setnull = true;
+                        }
+                    }
+                }
+                if ( setnull ) msk(i,j,k) = 0;
+                else           msk(i,j,k) = 1;
+            }
+        }
+    }
+#endif
 }
 
 const iMultiFab*

@@ -13,7 +13,6 @@
 #include <WarpXParticleContainer.H>
 #include <AMReX_AmrParGDB.H>
 #include <WarpXComm.H>
-#include <WarpX_f.H>
 #include <WarpX.H>
 #include <WarpXAlgorithmSelection.H>
 #include <WarpXComm.H>

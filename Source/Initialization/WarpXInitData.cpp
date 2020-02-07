@@ -8,7 +8,6 @@
  * License: BSD-3-Clause-LBNL
  */
 #include <WarpX.H>
-#include <WarpX_f.H>
 #include <BilinearFilter.H>
 #include <NCIGodfreyFilter.H>
 

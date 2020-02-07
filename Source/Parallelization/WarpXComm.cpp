@@ -9,7 +9,6 @@
 #include <WarpXComm.H>
 #include <WarpXComm_K.H>
 #include <WarpX.H>
-#include <WarpX_f.H>
 #include <WarpXSumGuardCells.H>
 #include <InterpolateCurrentFineToCoarse.H>
 #include <InterpolateDensityFineToCoarse.H>

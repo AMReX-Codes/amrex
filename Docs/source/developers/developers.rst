@@ -19,5 +19,6 @@ Our Doxygen API documentation in classic formatting `is located here <../_static
    moving_window
    portability
    profiling
+   testing
    documentation
    workflow

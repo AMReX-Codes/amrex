@@ -89,26 +89,6 @@ git pull upstream dev
 ```
 and fix any conflict that may occur.
 
-### Check that you did not break the code
-
-Once your new feature is ready, you can check that you did not break anything.
-WarpX has automated tests running for each Pull Request. For easier debugging,
-it can be convenient to run the tests on your local machine with
-```
-./run_test.sh
-```
-from WarpX root folder. The tests can be influenced by environment variables:
-- `export WARPX_TEST_DIM=3`, `export WARPX_TEST_DIM=2` or `export WARPX_TEST_DIM=RZ` 
-in order to select only the tests that correspond to this dimensionality
-- `export WARPX_TEST_ARCH=CPU` or `export WARPX_TEST_ARCH=GPU` in order to
-run the tests on CPU or GPU respectively.
-- `export WARPX_TEST_COMMIT=...` in order to test a specific commit.
-
-The command above (without command line arguments) runs all the tests defined in [Regression/WarpX-tests.ini](./Regression/WarpX-tests.ini). In order to run single tests, pass the test names as command line arguments:
-```
-./run_test.sh test1 test2
-```
-
 ### Submit a Pull Request
 
 A Pull Request (PR) is the way to efficiently visualize the changes you made
@@ -138,42 +118,7 @@ put the `[WIP]` tag (for Work In Progress) at the beginning of the PR title.
 
 A new feature is great, a **working** new feature is even better! Please test
 your code and add your test to the automated test suite. It's the way to
-protect your work from adventurous developers. There are three steps to follow
-to add a new automated test (illustrated here for PML boundary conditions):
-- An input file for your test, in folder `Example/Tests/...`. For the PML
-test, the input file is at
-[Examples/Tests/PML/inputs2d](./Examples/Tests/PML/inputs2d). You can also
-re-use an existing input file (even better!) and pass specific parameters at
-runtime (see below).
-- A Python script that reads simulation output and tests correctness versus
-theory or calibrated results. For the PML test, see
-[Examples/Tests/PML/analysis_pml.py](/Examples/Tests/PML/analysis_pml.py).
-It typically ends with Python statement `assert( error<0.01 )`.
-- Add an entry to [Regression/WarpX-tests.ini](./Regression/WarpX-tests.ini),
-so that a WarpX simulation runs your test in the continuous integration
-process on [Travis CI](https://docs.travis-ci.com/user/tutorial/), and the
-Python script is executed to assess the correctness. For the PML test, the
-entry is
-```
-[pml_x_yee]
-buildDir = .
-inputFile = Examples/Tests/PML/inputs2d
-runtime_params = warpx.do_dynamic_scheduling=0 algo.maxwell_fdtd_solver=yee
-dim = 2
-addToCompileString =
-restartTest = 0
-useMPI = 1
-numprocs = 2
-useOMP = 1
-numthreads = 2
-compileTest = 0
-doVis = 0
-analysisRoutine = Examples/Tests/PML/analysis_pml_yee.py
-```
-If you re-use an existing input file, you can add arguments to
-`runtime_params`, like
-`runtime_params = amr.max_level=1 amr.n_cell=32 512 max_step=100 plasma_e.zmin=-200.e-6`
-.
+protect your work from adventurous developers. Instructions are given in the [testing section](https://warpx.readthedocs.io/en/latest/developers/testing.html) of our developer's documentation.
 
 #### Include documentation to your PR
 

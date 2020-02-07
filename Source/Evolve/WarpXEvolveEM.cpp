@@ -15,7 +15,6 @@
 #include <WarpX_QED_K.H>
 #include <WarpX_QED_Field_Pushers.cpp>
 #include <WarpXConst.H>
-#include <WarpX_f.H>
 #include <WarpXUtil.H>
 #include <WarpXAlgorithmSelection.H>
 #ifdef WARPX_USE_PY
