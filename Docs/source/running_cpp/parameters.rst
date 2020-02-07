@@ -1219,8 +1219,18 @@ Diagnostics and output
 * ``<reduced_diags_name>.separator`` (`string`) optional (default a `whitespace`)
     The separator between row values in the output file.
     The default separator is a whitespace.
-    If a comma is used, the output file will be in
-    the CSV (comma separated value) format.
+    If one uses a python script to read the data,
+    one example is the following:
+
+    ::
+
+        import numpy
+        data = numpy.genfromtxt("filename.txt")
+        header = numpy.genfromtxt("filename.txt",comments="@",max_rows=1,dtype="str")
+
+    `data` is a two dimensional array, `data[i][j]` gives the data in the ith row
+    and the jth column.
+    `header[i]` gives the name of the ith column.
 
 Lookup tables for QED modules (implementation in progress)
 ----------------------------------------------------------
