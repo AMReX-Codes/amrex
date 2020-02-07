@@ -25,6 +25,8 @@ endif
 ifeq ($(USE_DPCPP),TRUE)
   COMP := dpcpp
   DEFINES += -DAMREX_USE_DPCPP -DAMREX_USE_GPU
+  USE_CUDA := FALSE
+  USE_HIP := FALSE
   # disable mpi, fortran and ccache for now
   USE_MPI := FALSE
   BL_NO_FORT := TRUE
