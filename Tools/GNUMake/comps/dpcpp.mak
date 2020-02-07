@@ -53,7 +53,7 @@ endif
 CXXFLAGS += -std=$(CXXSTD)
 CFLAGS   += -std=c99
 
-DPCPPFLAGS = -fsycl-unnamed-lambda
+EXTRACXXFLAGS += -fsycl-unnamed-lambda
 
 #FFLAGS   += -ffixed-line-length-none -fno-range-check -fno-second-underscore
 #F90FLAGS += -ffree-line-length-none -fno-range-check -fno-second-underscore -fimplicit-none
