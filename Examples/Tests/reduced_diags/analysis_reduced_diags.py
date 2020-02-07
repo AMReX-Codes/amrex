@@ -61,7 +61,6 @@ EFyt = 0.5*Es*scc.epsilon_0*dV + 0.5*Bs/scc.mu_0*dV
 
 # PART2: get results from reduced diagnostics
 
-EF = 0.0
 with open('./diags/reducedfiles/EF.txt') as csv_file:
     csv_reader = csv.reader(csv_file, delimiter=',')
     line_count = 0
@@ -70,7 +69,6 @@ with open('./diags/reducedfiles/EF.txt') as csv_file:
             EF = np.array(row[2]).astype(np.float)
         line_count += 1
 
-EP = 0.0
 with open('./diags/reducedfiles/EP.txt') as csv_file:
     csv_reader = csv.reader(csv_file, delimiter=',')
     line_count = 0
