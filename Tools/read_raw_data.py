@@ -319,7 +319,7 @@ def read_reduced_diags(filename, delimiter=' '):
     field_units =  [s[s.find("(")+1:s.find(")")] for s in unformatted_header]
     field_column =  [s[s.find("[")+1:s.find("]")] for s in unformatted_header]
     # Load data and re-format to a dictionary
-    data = np.loadtxt( filename )
+    data = np.loadtxt( filename, delimiter=delimiter )
     data_dict = {key: data[:,i] for i, key in enumerate(field_names)}
     # Put header data into a dictionary
     metadata_dict = {}
