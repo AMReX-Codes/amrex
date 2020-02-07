@@ -313,7 +313,7 @@ def read_reduced_diags(filename, delimiter=' '):
     - data dictionary with data
     '''
     # Read header line
-    unformatted_header = list( np.genfromtxt( filename, comments="@", max_rows=1, dtype="str", delimiter=' ') )
+    unformatted_header = list( np.genfromtxt( filename, comments="@", max_rows=1, dtype="str", delimiter=delimiter) )
     # From header line, get field name, units and column number
     field_names =  [s[s.find("]")+1:s.find("(")] for s in unformatted_header]
     field_units =  [s[s.find("(")+1:s.find(")")] for s in unformatted_header]
