@@ -27,8 +27,8 @@ F90FLAGS =
 
 ifeq ($(DEBUG),TRUE)
 
-  CXXFLAGS += -g -O0 -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable -ftrapv
-  CFLAGS   += -g -O0 -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable -ftrapv
+  CXXFLAGS += -g -O0 -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable #-ftrapv
+  CFLAGS   += -g -O0 -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable #-ftrapv
 
 #  FFLAGS   += -g -O0 -ggdb -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan -finit-integer=2147483647 -ftrapv
 #  F90FLAGS += -g -O0 -ggdb -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan -finit-integer=2147483647 -ftrapv
@@ -52,6 +52,8 @@ endif
 
 CXXFLAGS += -std=$(CXXSTD)
 CFLAGS   += -std=c99
+
+DPCPPFLAGS = -fsycl-unnamed-lambda
 
 #FFLAGS   += -ffixed-line-length-none -fno-range-check -fno-second-underscore
 #F90FLAGS += -ffree-line-length-none -fno-range-check -fno-second-underscore -fimplicit-none

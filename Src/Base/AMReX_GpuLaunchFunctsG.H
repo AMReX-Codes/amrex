@@ -53,11 +53,34 @@ void For (Box const& box, L&& f, std::size_t shared_mem_bytes=0) noexcept
     const auto len = amrex::length(box);
     const auto ec = Gpu::ExecutionConfig(ncells);
     std::size_t sm = std::max(ec.sharedMem, shared_mem_bytes);
+#ifdef AMREX_USE_DPCPP
+    // If we are on default queue, block all other streams
+    int block_dim = ec.numThreads.x;
+    int grid_dim = (ncells+block_dim-1)/block_dim;
+    int nthreads = grid_dim * block_dim;
+    auto& q = Gpu::Device::streamQueue();
+//    try {
+        q.submit([&] (sycl::handler& h) {
+            h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads),sycl::range<1>(block_dim)),
+            [=] (sycl::nd_item<1> item)
+            {
+                for (int icell = item.get_global_id(0); icell < ncells; icell += nthreads) {
+                    int k =  icell /   (len.x*len.y);
+                    int j = (icell - k*(len.x*len.y)) /   len.x;
+                    int i = (icell - k*(len.x*len.y)) - j*len.x;
+                    i += lo.x;
+                    j += lo.y;
+                    k += lo.z;
+                    f(i,j,k);
+                }
+            });
+        });
+//    } catch (sycl::exception& ex) {
+//        std::cout << ex.what() << std::endl;
+//    }
+#else
     AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, sm, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
-#ifdef AMREX_USE_DPCPP
-        // xxxxx DPCPP todo
-#else
         for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
              icell < ncells; icell += stride) {
             int k =  icell /   (len.x*len.y);
@@ -68,8 +91,8 @@ void For (Box const& box, L&& f, std::size_t shared_mem_bytes=0) noexcept
             k += lo.z;
             f(i,j,k);
         }
-#endif
     });
+#endif
     AMREX_GPU_ERROR_CHECK();
 }
 

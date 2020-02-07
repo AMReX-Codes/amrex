@@ -184,7 +184,7 @@ $(objEXETempDir)/%.o: %.cpp
 ifeq ($(USE_GPU_PRAGMA),TRUE)
 	$(SILENT) $(CCACHE) $(CXX) $(CXXFLAGS) $(CPPFLAGS) $(includes) -c $(srcTempDir)/$(<F) $(EXE_OUTPUT_OPTION)
 else
-	$(SILENT) $(CCACHE) $(CXX) $(CXXFLAGS) $(CPPFLAGS) $(includes) -c $< $(EXE_OUTPUT_OPTION)
+	$(SILENT) $(CCACHE) $(CXX) $(CXXFLAGS) $(DPCPPFLAGS) $(CPPFLAGS) $(includes) -c $< $(EXE_OUTPUT_OPTION)
 endif
 
 $(objEXETempDir)/%.o: %.c

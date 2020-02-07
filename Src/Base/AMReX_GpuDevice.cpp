@@ -314,7 +314,7 @@ Device::Initialize ()
     if (amrex::Verbose()) {
         amrex::Print() << "HIP initialized.\n";
     }
-#elif defined(AMREX_USE_HIP)
+#elif defined(AMREX_USE_DPCPP)
     if (amrex::Verbose()) {
         amrex::Print() << "oneAPI initialized.\n";
     }

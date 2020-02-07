@@ -166,9 +166,11 @@ namespace amrex {
         AMREX_GPU_HOST_DEVICE inline
         void index_assert (int i, int j, int k, int n) const
         {
+#if !defined(AMREX_USE_DPCPP)
             if (i<begin.x || i>=end.x || j<begin.y || j>=end.y || k<begin.z || k>=end.z
                 || n < 0 || n >= ncomp) {
-#ifdef AMREX_DEVICE_COMPILE
+#if defined(AMREX_DEVICE_COMPILE)
+// xxxxx DPCPP todo
 // HIP FIX HERE - printf + amrex::Abort
 #ifdef AMREX_USE_CUDA
                 std::printf(" (%d,%d,%d,%d) is out of bound (%d:%d,%d:%d,%d:%d,0:%d)\n",
@@ -187,6 +189,7 @@ namespace amrex {
                 amrex::Abort(ss.str());
 #endif
             }
+#endif
         }
 #endif
     };
