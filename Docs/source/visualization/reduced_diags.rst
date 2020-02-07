@@ -17,7 +17,7 @@ In addition, a Python function to read the data is available from module ``read_
 
    from read_raw_data import read_reduced_diags
    filename = 'EF.txt'
-   metadata, data = read_raw_data.read_reduced_diags( filename )
+   metadata, data = read_reduced_diags( filename )
    # list available diagnostics
    data.keys()
    # Print total field energy on level 0
