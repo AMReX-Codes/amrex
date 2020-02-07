@@ -1280,22 +1280,30 @@ WarpX::BuildBufferMasks ()
                 for (MFIter mfi(*bmasks, true); mfi.isValid(); ++mfi)
                 {
                     const Box tbx = mfi.growntilebox();
-                    Array4<int>  msk = (*bmasks)[mfi].array();
-                    Array4<int> gmsk = tmp[mfi].array();
-                    // Build buffer mask within current FArrayBox
-                    BuildBufferMasksInBox( tbx, msk, gmsk, ngbuffer );
+                    BuildBufferMasksInBox( tbx, (*bmasks)[mfi], tmp[mfi], ngbuffer );
                 }
             }
         }
     }
 }
 
+/**
+ * \brief Build buffer mask within given FArrayBox
+ *
+ * \param tbx         Current FArrayBox
+ * \param buffer_mask Buffer mask to be set
+ * \param guard_mask  Guard mask used to set buffer_mask
+ * \param ng          Number of guard cells
+ */
 void
-WarpX::BuildBufferMasksInBox ( const Box tbx, Array4<int> &msk, const Array4<int> gmsk, const int ng )
+WarpX::BuildBufferMasksInBox ( const amrex::Box tbx, amrex::IArrayBox &buffer_mask,
+                               const amrex::IArrayBox &guard_mask, const int ng )
 {
     bool setnull;
     const auto lo = amrex::lbound( tbx );
     const auto hi = amrex::ubound( tbx );
+    Array4<int> msk = buffer_mask.array();
+    Array4<int const> gmsk = guard_mask.array();
 #if (AMREX_SPACEDIM == 2)
     int k = lo.z;
     for     (int j = lo.y; j <= hi.y; ++j) {

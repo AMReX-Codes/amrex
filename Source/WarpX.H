@@ -560,8 +560,8 @@ private:
     void LoadBalance ();
 
     void BuildBufferMasks ();
-    void BuildBufferMasksInBox ( const amrex::Box tbx, amrex::Array4<int> &msk,
-                                 const amrex::Array4<int> gmsk, const int ng );
+    void BuildBufferMasksInBox ( const amrex::Box tbx, amrex::IArrayBox &buffer_mask,
+                                 const amrex::IArrayBox &guard_mask, const int ng );
     const amrex::iMultiFab* getCurrentBufferMasks (int lev) const {
         return current_buffer_masks[lev].get();
     }
