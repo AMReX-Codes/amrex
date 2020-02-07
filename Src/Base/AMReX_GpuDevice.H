@@ -183,11 +183,13 @@ streamSynchronize () noexcept
     Device::streamSynchronize();
 }
 
+#ifdef AMREX_USE_DPCPP
 inline void
 nonNullStreamSynchronize () noexcept
 {
     Device::nonNullStreamSynchronize();
 }
+#endif
 
 inline void
 htod_memcpy (void* p_d, const void* p_h, const std::size_t sz) noexcept
@@ -271,11 +273,13 @@ dtod_memcpy_async (void* p_d_dst, const void* p_d_src, const std::size_t sz) noe
 #endif
 }
 
+#ifdef AMREX_USE_DPCPP
 inline bool
 onNullStream ()
 {
     return Device::onNullStream();
 }
+#endif
 
 #ifdef AMREX_USE_GPU
 void callbackAdded ();
