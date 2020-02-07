@@ -2,11 +2,7 @@
 #define AMREX_GPU_CONTROL_H_
 
 #include <AMReX_GpuQualifiers.H>
-
-#ifdef AMREX_USE_DPCPP
-#include <CL/sycl.hpp>
-namespace sycl = cl::sycl;
-#endif
+#include <AMReX_GpuTypes.H>
 
 #ifndef AMREX_GPU_MAX_THREADS
 #define AMREX_GPU_MAX_THREADS 256
@@ -41,10 +37,6 @@ namespace amrex {
 using gpuStream_t = hipStream_t;
 #elif defined(AMREX_USE_CUDA)
 using gpuStream_t = cudaStream_t;
-#elif defined(AMREX_USE_DPCPP)
-    struct gpuStream_t {
-        sycl::ordered_queue* queue = nullptr;
-    };
 #endif
 
 namespace Gpu {

@@ -51,6 +51,7 @@ public:
     static sycl::ordered_queue& nullQueue () noexcept { return *(gpu_default_stream.queue); }
     static sycl::ordered_queue& streamQueue () noexcept { return *(gpu_stream.queue); }
     static sycl::ordered_queue& streamQueue (int i) noexcept { return *(gpu_streams[i].queue); }
+    static bool onNullStream () noexcept { return gpu_stream == gpu_default_stream; }
 #endif
 #endif
 
@@ -183,6 +184,12 @@ streamSynchronize () noexcept
 }
 
 inline void
+nonNullStreamSynchronize () noexcept
+{
+    Device::nonNullStreamSynchronize();
+}
+
+inline void
 htod_memcpy (void* p_d, const void* p_h, const std::size_t sz) noexcept
 {
 #ifdef AMREX_USE_DPCPP
@@ -262,6 +269,12 @@ dtod_memcpy_async (void* p_d_dst, const void* p_d_src, const std::size_t sz) noe
         AMREX_HIP_SAFE_CALL(hipMemcpyAsync(p_d_dst, p_d_src, sz, hipMemcpyDeviceToDevice, gpuStream()));,
         AMREX_CUDA_SAFE_CALL(cudaMemcpyAsync(p_d_dst, p_d_src, sz, cudaMemcpyDeviceToDevice, gpuStream())); )
 #endif
+}
+
+inline bool
+onNullStream ()
+{
+    return Device::onNullStream();
 }
 
 #ifdef AMREX_USE_GPU

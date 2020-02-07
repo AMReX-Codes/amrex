@@ -54,6 +54,7 @@ void For (Box const& box, L&& f, std::size_t shared_mem_bytes=0) noexcept
     const auto ec = Gpu::ExecutionConfig(ncells);
     std::size_t sm = std::max(ec.sharedMem, shared_mem_bytes);
 #ifdef AMREX_USE_DPCPP
+    if (Gpu::onNullStream()) Gpu::nonNullStreamSynchronize();
     // If we are on default queue, block all other streams
     int block_dim = ec.numThreads.x;
     int grid_dim = (ncells+block_dim-1)/block_dim;
