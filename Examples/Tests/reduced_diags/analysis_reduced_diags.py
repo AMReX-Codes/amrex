@@ -61,10 +61,10 @@ EFyt = 0.5*Es*scc.epsilon_0*dV + 0.5*Bs/scc.mu_0*dV
 
 # PART2: get results from reduced diagnostics
 
-metadata, data = read_raw_data.read_reduced_diags( './diags/reducedfiles/EF.txt' )
+metadata, data = read_reduced_diags( './diags/reducedfiles/EF.txt' )
 EF = data['total_lev0'][-1] # last iteration
 
-metadata, data = read_raw_data.read_reduced_diags( './diags/reducedfiles/EP.txt' )
+metadata, data = read_reduced_diags( './diags/reducedfiles/EP.txt' )
 EP = data['total'][-1] # last iteration
 
 # PART3: print and assert
