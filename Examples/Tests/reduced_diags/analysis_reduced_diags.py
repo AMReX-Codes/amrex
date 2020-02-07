@@ -63,8 +63,8 @@ EFyt = 0.5*Es*scc.epsilon_0*dV + 0.5*Bs/scc.mu_0*dV
 EFdata = np.genfromtxt("./diags/reducedfiles/EF.txt")
 EPdata = np.genfromtxt("./diags/reducedfiles/EP.txt")
 
-EF = EFdata[1][2]
-EP = EPdata[1][2]
+EF = EFdata[1][2] #[1][2] is the 2nd row and the 3rd column which is the total field energy
+EP = EPdata[1][2] #[1][2] is the 2nd row and the 3rd column which is the total particle energy
 
 # PART3: print and assert
 
