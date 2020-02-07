@@ -23,6 +23,7 @@ import sys
 import yt
 import numpy as np
 import scipy.constants as scc
+from read_raw_data import read_reduced_diags
 
 fn = sys.argv[1]
 
@@ -60,11 +61,11 @@ EFyt = 0.5*Es*scc.epsilon_0*dV + 0.5*Bs/scc.mu_0*dV
 
 # PART2: get results from reduced diagnostics
 
-EFdata = np.genfromtxt("./diags/reducedfiles/EF.txt")
-EPdata = np.genfromtxt("./diags/reducedfiles/EP.txt")
+metadata, data = read_raw_data.read_reduced_diags( './diags/reducedfiles/EF.txt' )
+EF = data['total_lev0'][-1] # last iteration
 
-EF = EFdata[1][2] #[1][2] is the 2nd row and the 3rd column which is the total field energy
-EP = EPdata[1][2] #[1][2] is the 2nd row and the 3rd column which is the total particle energy
+metadata, data = read_raw_data.read_reduced_diags( './diags/reducedfiles/EP.txt' )
+EP = data['total'][-1] # last iteration
 
 # PART3: print and assert
 
