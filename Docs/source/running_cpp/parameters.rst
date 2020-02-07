@@ -1222,7 +1222,7 @@ Diagnostics and output
     If one uses a python script to read the data,
     one example is the following:
 
-    ::
+    .. code-block:: python
 
         import numpy
         data = numpy.genfromtxt("filename.txt")
