@@ -14,7 +14,7 @@
 #define HIPRT_CB 
 #endif
 
-#ifdef AMREX_USE_GPU
+#if defined(AMREX_USE_GPU) && !defined(AMREX_USE_DPCPP)
 extern "C" {
 AMREX_HIP_OR_CUDA(
          void HIPRT_CB  amrex_asyncarray_delete ( hipStream_t stream,  hipError_t error, void* p);,

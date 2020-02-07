@@ -26,10 +26,14 @@ void For (T n, L&& f, std::size_t shared_mem_bytes=0) noexcept
     std::size_t sm = std::max(ec.sharedMem, shared_mem_bytes);
     AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, sm, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
+#ifdef AMREX_USE_DPCPP
+        // xxxxx DPCPP todo
+#else
         for (T i = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
              i < n; i += stride) {
             f(i);
         }
+#endif
     });
     AMREX_GPU_ERROR_CHECK();
 }
@@ -51,6 +55,9 @@ void For (Box const& box, L&& f, std::size_t shared_mem_bytes=0) noexcept
     std::size_t sm = std::max(ec.sharedMem, shared_mem_bytes);
     AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, sm, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
+#ifdef AMREX_USE_DPCPP
+        // xxxxx DPCPP todo
+#else
         for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
              icell < ncells; icell += stride) {
             int k =  icell /   (len.x*len.y);
@@ -61,6 +68,7 @@ void For (Box const& box, L&& f, std::size_t shared_mem_bytes=0) noexcept
             k += lo.z;
             f(i,j,k);
         }
+#endif
     });
     AMREX_GPU_ERROR_CHECK();
 }
@@ -82,6 +90,9 @@ void For (Box const& box, T ncomp, L&& f, std::size_t shared_mem_bytes=0) noexce
     std::size_t sm = std::max(ec.sharedMem, shared_mem_bytes);
     AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, sm, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
+#ifdef AMREX_USE_DPCPP
+        // xxxxx DPCPP todo
+#else
         for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
              icell < ncells; icell += stride) {
             int k =  icell /   (len.x*len.y);
@@ -94,6 +105,7 @@ void For (Box const& box, T ncomp, L&& f, std::size_t shared_mem_bytes=0) noexce
                 f(i,j,k,n);
             }
         }
+#endif
     });
     AMREX_GPU_ERROR_CHECK();
 }
@@ -120,6 +132,9 @@ void For (Box const& box1, Box const& box2, L1&& f1, L2&& f2,
     std::size_t sm = std::max(ec.sharedMem, shared_mem_bytes);
     AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, sm, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
+#ifdef AMREX_USE_DPCPP
+        // xxxxx DPCPP todo
+#else
         for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
              icell < ncells; icell += stride) {
             if (icell < ncells1) {
@@ -141,6 +156,7 @@ void For (Box const& box1, Box const& box2, L1&& f1, L2&& f2,
                 f2(i,j,k);
             }
         }
+#endif
     });
     AMREX_GPU_ERROR_CHECK();
 }
@@ -164,6 +180,9 @@ void For (Box const& box1, Box const& box2, Box const& box3, L1&& f1, L2&& f2, L
     std::size_t sm = std::max(ec.sharedMem, shared_mem_bytes);
     AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, sm, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
+#ifdef AMREX_USE_DPCPP
+        // xxxxx DPCPP todo
+#else
         for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
              icell < ncells; icell += stride) {
             if (icell < ncells1) {
@@ -194,6 +213,7 @@ void For (Box const& box1, Box const& box2, Box const& box3, L1&& f1, L2&& f2, L
                 f3(i,j,k);
             }
         }
+#endif
     });
     AMREX_GPU_ERROR_CHECK();
 }
@@ -217,6 +237,9 @@ void For (Box const& box1, T1 ncomp1, L1&& f1,
     std::size_t sm = std::max(ec.sharedMem, shared_mem_bytes);
     AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, sm, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
+#ifdef AMREX_USE_DPCPP
+        // xxxxx DPCPP todo
+#else
         for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
              icell < ncells; icell += stride) {
             if (icell < ncells1) {
@@ -242,6 +265,7 @@ void For (Box const& box1, T1 ncomp1, L1&& f1,
                 }
             }
         }
+#endif
     });
     AMREX_GPU_ERROR_CHECK();
 }
@@ -270,6 +294,9 @@ void For (Box const& box1, T1 ncomp1, L1&& f1,
     std::size_t sm = std::max(ec.sharedMem, shared_mem_bytes);
     AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, sm, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
+#ifdef AMREX_USE_DPCPP
+        // xxxxx DPCPP todo
+#else
         for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
              icell < ncells; icell += stride) {
             if (icell < ncells1) {
@@ -306,6 +333,7 @@ void For (Box const& box1, T1 ncomp1, L1&& f1,
                 }
             }
         }
+#endif
     });
     AMREX_GPU_ERROR_CHECK();
 }
@@ -361,6 +389,9 @@ void FabReduce (Box const& box, T const& init_val,
     std::size_t sm = std::max(ec.sharedMem, shared_mem_bytes);
     AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, sm, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
+#ifdef AMREX_USE_DPCPP
+        // xxxxx DPCPP todo
+#else
         auto r = init_val;
         for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
              icell < ncells; icell += stride) {
@@ -373,6 +404,7 @@ void FabReduce (Box const& box, T const& init_val,
             f1(i,j,k,&r);
         }
         f2(r);
+#endif
     });
     AMREX_GPU_ERROR_CHECK();
 }
@@ -391,6 +423,9 @@ void FabReduce (Box const& box, N ncomp, T const& init_val,
     std::size_t sm = std::max(ec.sharedMem, shared_mem_bytes);
     AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, sm, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
+#ifdef AMREX_USE_DPCPP
+        // xxxxx DPCPP todo
+#else
         auto r = init_val;
         for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
              icell < ncells; icell += stride) {
@@ -405,6 +440,7 @@ void FabReduce (Box const& box, N ncomp, T const& init_val,
             }
         }
         f2(r);
+#endif
     });
     AMREX_GPU_ERROR_CHECK();
 }
@@ -420,12 +456,16 @@ void VecReduce (N n, T const& init_val,
     std::size_t sm = std::max(ec.sharedMem, shared_mem_bytes);
     AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, sm, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
+#ifdef AMREX_USE_DPCPP
+        // xxxxx DPCPP todo
+#else
         auto r = init_val;
         for (N i = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
              i < n; i += stride) {
             f1(i,&r);
         }
         f2(r);
+#endif
     });
     AMREX_GPU_ERROR_CHECK();
 

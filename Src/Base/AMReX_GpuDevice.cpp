@@ -42,6 +42,7 @@ dim3 Device::numBlocksOverride  = dim3(0, 0, 0);
 int  Device::max_blocks_per_launch = 640;
 
 std::array<gpuStream_t,Device::max_gpu_streams> Device::gpu_streams;
+gpuStream_t                                     Device::gpu_default_stream;
 gpuStream_t                                     Device::gpu_stream;
 gpuDeviceProp_t                                 Device::device_prop;
 
@@ -98,8 +99,10 @@ Device::Initialize ()
     pp.query("verbose", verbose);
 
     if (amrex::Verbose()) {
-        AMREX_HIP_OR_CUDA( amrex::Print() << "Initializing HIP...\n";,
-                           amrex::Print() << "Initializing CUDA...\n";   );
+        AMREX_HIP_OR_CUDA_OR_DPCPP
+            ( amrex::Print() << "Initializing HIP...\n";,
+              amrex::Print() << "Initializing CUDA...\n";,
+              amrex::Print() << "Initializing oneAPI...\n"; );
     }
 
     // XL CUDA Fortran support needs to be initialized
@@ -109,15 +112,27 @@ Device::Initialize ()
     __xlcuf_init();
 #endif
 
-    // Count the number of CUDA visible devices.
-
-    int gpu_device_count;
+    // Count the number of GPU devices.
+    int gpu_device_count = 0;
+#ifdef AMREX_USE_DPCPP
+    {
+        sycl::gpu_selector device_selector;
+        sycl::platform platform(device_selector);
+        auto const& gpu_devices = platform.get_devices();
+        gpu_device_count = gpu_devices.size();
+        if (gpu_device_count <= 0) {
+            amrex::Abort("No GPU device found");
+        } else if (gpu_device_count > 1) {
+            amrex::Abort("DPCPP TODO: more than one device not supported yet");
+        }
+    }
+#else
     AMREX_HIP_OR_CUDA(AMREX_HIP_SAFE_CALL (hipGetDeviceCount(&gpu_device_count));,
                       AMREX_CUDA_SAFE_CALL(cudaGetDeviceCount(&gpu_device_count)); );
-
     if (gpu_device_count <= 0) {
         amrex::Abort("No GPU device found");
     }
+#endif
 
     // Now, assign ranks to GPUs. If we only have one GPU,
     // or only one MPI rank, this is easy. Otherwise, we
@@ -294,6 +309,10 @@ Device::Initialize ()
     if (amrex::Verbose()) {
         amrex::Print() << "HIP initialized.\n";
     }
+#elif defined(AMREX_USE_HIP)
+    if (amrex::Verbose()) {
+        amrex::Print() << "oneAPI initialized.\n";
+    }
 #endif
 
 }
@@ -336,11 +355,12 @@ Device::initialize_gpu ()
         AMREX_HIP_SAFE_CALL(hipDeviceSetSharedMemConfig(hipSharedMemBankSizeFourByte));
     }
 
+    gpu_default_stream = 0;
     for (int i = 0; i < max_gpu_streams; ++i) {
         AMREX_HIP_SAFE_CALL(hipStreamCreate(&gpu_streams[i]));
     }
 
-#else
+#elif defined(AMREX_USE_CUDA)
     AMREX_CUDA_SAFE_CALL(cudaGetDeviceProperties(&device_prop, device_id));
 
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(device_prop.major >= 6, "Compute capability must be >= 6");
@@ -354,6 +374,7 @@ Device::initialize_gpu ()
         AMREX_CUDA_SAFE_CALL(cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeFourByte));
     }
 
+    gpu_default_stream = 0;
     for (int i = 0; i < max_gpu_streams; ++i) {
         AMREX_CUDA_SAFE_CALL(cudaStreamCreate(&gpu_streams[i]));
 #ifdef AMREX_USE_ACC
@@ -361,11 +382,54 @@ Device::initialize_gpu ()
 #endif
     }
 
+#elif defined(AMREX_USE_DPCPP)
+    { // create streams
+        sycl::gpu_selector device_selector;
+        gpu_default_stream.queue = new sycl::ordered_queue(device_selector);
+        for (int i = 0; i < max_gpu_streams; ++i) {
+            gpu_streams[i].queue = new sycl::ordered_queue(device_selector);
+        }
+    }
+
+    { // device property
+        auto const& d = gpu_default_stream.queue->get_device();
+        device_prop.name = d.get_info<sycl::info::device::name>();
+        device_prop.totalGlobalMem = d.get_info<sycl::info::device::global_mem_size>();
+        device_prop.sharedMemPerBlock = d.get_info<sycl::info::device::local_mem_size>();
+        device_prop.multiProcessorCount = d.get_info<sycl::info::device::max_compute_units>();
+        device_prop.maxThreadsPerMultiProcessor = -1; // unknown
+        device_prop.maxThreadsPerBlock = d.get_info<sycl::info::device::max_work_group_size>();
+        auto mtd = d.get_info<sycl::info::device::max_work_item_sizes>();
+        device_prop.maxThreadsDim[0] = mtd[0];
+        device_prop.maxThreadsDim[1] = mtd[1];
+        device_prop.maxThreadsDim[2] = mtd[2];
+        device_prop.maxGridSize[0] = -1; // unknown
+        device_prop.maxGridSize[0] = -1; // unknown
+        device_prop.maxGridSize[0] = -1; // unknown
+        device_prop.warpSize = warp_size; // xxxxx DPCPP todo
+        device_prop.maxMemAllocSize = d.get_info<sycl::info::device::max_mem_alloc_size>();
+        {
+            amrex::Print() << "Device Properties:\n"
+                           << "  name: " << device_prop.name << "\n"
+                           << "  totalGlobalMem: " << device_prop.totalGlobalMem << "\n"
+                           << "  sharedMemPerBlock: " << device_prop.sharedMemPerBlock << "\n"
+                           << "  multiProcessorCount: " << device_prop.multiProcessorCount << "\n"
+                           << "  maxThreadsPerBlock: " << device_prop.maxThreadsPerBlock << "\n"
+                           << "  maxThreadsDim: (" << device_prop.maxThreadsDim[0] << ", " << device_prop.maxThreadsDim[1] << ", " << device_prop.maxThreadsDim[2] << ")\n"
+                           << "  warpSize: " << device_prop.warpSize << "\n"
+                           << "  maxMemAllocSize: " << device_prop.maxMemAllocSize << "\n"
+                           << std::endl;
+        }
+    }
 #endif
 
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(warp_size == device_prop.warpSize, "Incorrect warp size");
 
-    gpu_stream = 0;
+#ifdef AMREX_USE_DPCPP
+    amrex::Abort("DPCPP: todo");
+#endif
+
+    gpu_stream = gpu_default_stream;
 
     ParmParse pp("device");
 
@@ -427,7 +491,7 @@ Device::setStreamIndex (const int idx) noexcept
 {
 #ifdef AMREX_USE_GPU
     if (idx < 0) {
-        gpu_stream = 0;
+        gpu_stream = gpu_default_stream;
 
 #ifdef AMREX_USE_ACC
         amrex_set_acc_stream(acc_async_sync);
@@ -447,7 +511,7 @@ gpuStream_t
 Device::resetStream () noexcept
 {
     gpuStream_t r = gpu_stream;
-    gpu_stream = 0;
+    gpu_stream = gpu_default_stream;
     return r;
 }
 

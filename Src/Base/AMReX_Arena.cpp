@@ -76,11 +76,8 @@ Arena::allocate_system (std::size_t nbytes)
 
         if (arena_info.device_use_managed_memory)
         {
-#if defined(__CUDACC__)
-            AMREX_CUDA_SAFE_CALL(cudaMallocManaged(&p, nbytes));
-#else
-            AMREX_HIP_SAFE_CALL(hipMalloc(&p, nbytes));
-#endif
+            AMREX_HIP_OR_CUDA(AMREX_HIP_SAFE_CALL(hipMalloc(&p, nbytes));,
+                              AMREX_CUDA_SAFE_CALL(cudaMallocManaged(&p, nbytes)););
             if (arena_info.device_set_readonly)
             {
                 Gpu::Device::mem_advise_set_readonly(p, nbytes);

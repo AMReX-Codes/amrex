@@ -12,7 +12,7 @@
 
 namespace amrex { namespace Gpu {
 
-#ifdef AMREX_USE_GPU
+#if defined(AMREX_USE_GPU)  && !defined(AMREX_USE_DPCPP)
 template <int warpSize, typename T, typename F>
 struct warpReduce
 {
@@ -151,7 +151,7 @@ void deviceReduceLogicalOr (int * dest, int source) noexcept
 
 namespace amrex {
 namespace Gpu {
-#ifdef AMREX_USE_GPU
+#if defined(AMREX_USE_GPU) && !defined(AMREX_USE_DPCPP)
 
 // Based on https://developer.download.nvidia.com/assets/cuda/files/reduction.pdf by Mark Harris
 
