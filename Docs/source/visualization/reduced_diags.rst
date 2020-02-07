@@ -9,7 +9,7 @@ A simple and quick way to read the data using python is
 
     data = numpy.genfromtxt("filename.txt")
 
-where `data` is a two dimensional array, `data[i][j]` gives the data in the ith row and the jth column.
+where ``data`` is a two dimensional array, ``data[i][j]`` gives the data in the ith row and the jth column.
 
 In addition, a Python function to read the data is available from module ``read_raw_data`` in ``WarpX/Tools/``:
 
