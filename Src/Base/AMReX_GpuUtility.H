@@ -131,6 +131,9 @@ namespace Gpu {
             AMREX_GPU_DEVICE AMREX_FORCE_INLINE
             float atomicMax(float* address, float val) noexcept
             {
+#ifdef AMREX_USE_DPCPP
+                return 0.; // xxxxx DPCPP todo
+#else
                 int* address_as_i = (int*) address;
                 int old = *address_as_i, assumed;
                 do {
@@ -139,11 +142,15 @@ namespace Gpu {
                                     __float_as_int(fmaxf(val, __int_as_float(assumed))));
                 } while (assumed != old);
                 return __int_as_float(old);
+#endif
             }
             
             AMREX_GPU_DEVICE AMREX_FORCE_INLINE
             double atomicMax(double* address, double val) noexcept
             {
+#ifdef AMREX_USE_DPCPP
+                return 0.; // xxxxx DPCPP todo
+#else
                 unsigned long long int* address_as_ull = 
                     (unsigned long long int*) address;
                 unsigned long long int old = *address_as_ull, assumed;
@@ -153,11 +160,15 @@ namespace Gpu {
                                     __double_as_longlong(fmax(val, __longlong_as_double(assumed))));
                 } while (assumed != old);
                 return __longlong_as_double(old);
+#endif
             }
 
             AMREX_GPU_DEVICE AMREX_FORCE_INLINE
             float atomicMin(float* address, float val) noexcept
             {
+#ifdef AMREX_USE_DPCPP
+                return 0.; // xxxxx DPCPP todo
+#else
                 int* address_as_i = (int*) address;
                 int old = *address_as_i, assumed;
                 do {
@@ -166,11 +177,15 @@ namespace Gpu {
                                     __float_as_int(fminf(val, __int_as_float(assumed))));
                 } while (assumed != old);
                 return __int_as_float(old);
+#endif
             }
 
             AMREX_GPU_DEVICE AMREX_FORCE_INLINE
             double atomicMin(double* address, double val) noexcept
             {
+#ifdef AMREX_USE_DPCPP
+                return 0.; // xxxxx DPCPP todo
+#else
                 unsigned long long int* address_as_ull = 
                     (unsigned long long int*) address;
                 unsigned long long int old = *address_as_ull, assumed;
@@ -180,6 +195,7 @@ namespace Gpu {
                                     __double_as_longlong(fmin(val, __longlong_as_double(assumed))));
                 } while (assumed != old);
                 return __longlong_as_double(old);
+#endif
             }            
         } // namespace detail
 #endif  // AMREX_USE_GPU

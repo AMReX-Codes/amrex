@@ -29,6 +29,8 @@
 #elif defined(AMREX_USE_HIP) 
 #  define AMREX_LAUNCH_KERNEL(blocks, threads, sharedMem, stream, ... ) \
         hipLaunchKernelGGL(launch_global, blocks, threads, sharedMem, stream, __VA_ARGS__);
+#elif defined(AMREX_USE_DPCPP) 
+#  define AMREX_LAUNCH_KERNEL(blocks, threads, sharedMem, stream, ... )
 #endif
 
 

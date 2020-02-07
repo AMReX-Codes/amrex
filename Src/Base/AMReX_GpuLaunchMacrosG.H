@@ -1,6 +1,52 @@
 #ifndef AMREX_GPU_LAUNCH_MACROS_G_H_
 #define AMREX_GPU_LAUNCH_MACROS_G_H_
 
+#ifdef AMREX_USE_DPCPP
+
+#define AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_BOXIV(BX,IV,block)
+
+#define AMREX_GPU_LAUNCH_DEVICE_LAMBDA_BOXIV(BX,IV,block)
+
+#define AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE(TN,TI,block)
+
+#define AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_2(TN1,TI1,block1,TN2,TI2,block2)
+
+#define AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_3(TN1,TI1,block1,TN2,TI2,block2,TN3,TI3,block3)
+
+#define AMREX_GPU_LAUNCH_DEVICE_LAMBDA_RANGE(TN,TI,block)
+
+#define AMREX_GPU_LAUNCH_DEVICE_LAMBDA_RANGE_2(TN1,TI1,block1,TN2,TI2,block2)
+
+#define AMREX_GPU_LAUNCH_DEVICE_LAMBDA_RANGE_3(TN1,TI1,block1,TN2,TI2,block2,TN3,TI3,block3)
+
+#define AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_BOX(bbb,tbb,block)
+
+#define AMREX_GPU_LAUNCH_DEVICE_LAMBDA_BOX(bbb,tbb,block)
+
+#define AMREX_GPU_LAUNCH_HOST_DEVICE_XYZ(bbx,bby,bbz,tbx,tby,tbz,blockx,blocky,blockz)
+
+#define AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_NOBOX(bbb,tbb,block)
+
+#define AMREX_GPU_LAUNCH_HOST_DEVICE(strategy, ...)
+
+#define AMREX_GPU_LAUNCH_DEVICE(strategy, ...)
+
+#define AMREX_GPU_LAUNCH_GLOBAL(strategy, function, ...)
+
+#define AMREX_GPU_HOST_DEVICE_FOR_1D(n,i,block)
+
+#define AMREX_GPU_DEVICE_FOR_1D(n,i,block)
+
+#define AMREX_GPU_HOST_DEVICE_FOR_3D(box,i,j,k,block)
+
+#define AMREX_GPU_DEVICE_FOR_3D(box,i,j,k,block)
+
+#define AMREX_GPU_HOST_DEVICE_FOR_4D(box,ncomp,i,j,k,n,block)
+
+#define AMREX_GPU_DEVICE_FOR_4D(box,ncomp,i,j,k,n,block)
+
+#else
+
 #define AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_BOXIV(BX,IV,block) \
     { auto const& amrex_i_bx = BX; \
     if (amrex_i_bx.ok()) { \
@@ -430,8 +476,6 @@
         AMREX_GPU_ERROR_CHECK(); \
     }}}
 
-#define AMREX_GPU_DEVICE_PARALLEL_FOR_1D(...) AMREX_GPU_DEVICE_FOR_1D(__VA_ARGS__)
-
 // FOR_3D
 
 #define AMREX_GPU_HOST_DEVICE_FOR_3D(box,i,j,k,block) \
@@ -491,8 +535,6 @@
         }); \
         AMREX_GPU_ERROR_CHECK(); \
     }}
-
-#define AMREX_GPU_DEVICE_PARALLEL_FOR_3D(...) AMREX_GPU_DEVICE_FOR_3D(__VA_ARGS__)
 
 // FOR_4D
 
@@ -555,6 +597,10 @@
         AMREX_GPU_ERROR_CHECK(); \
     }}
 
+#endif
+
+#define AMREX_GPU_DEVICE_PARALLEL_FOR_1D(...) AMREX_GPU_DEVICE_FOR_1D(__VA_ARGS__)
+#define AMREX_GPU_DEVICE_PARALLEL_FOR_3D(...) AMREX_GPU_DEVICE_FOR_3D(__VA_ARGS__)
 #define AMREX_GPU_DEVICE_PARALLEL_FOR_4D(...) AMREX_GPU_DEVICE_FOR_4D(__VA_ARGS__)
 
 #define AMREX_GPU_HOST_DEVICE_PARALLEL_FOR_1D(...) AMREX_GPU_HOST_DEVICE_FOR_1D(__VA_ARGS__)

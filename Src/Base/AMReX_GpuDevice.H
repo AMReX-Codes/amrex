@@ -6,6 +6,7 @@
 #include <array>
 #include <AMReX.H>
 #include <AMReX_Utility.H>
+#include <AMReX_GpuTypes.H>
 #include <AMReX_GpuError.H>
 #include <AMReX_GpuControl.H>
 
@@ -15,6 +16,19 @@ namespace amrex {
 using gpuDeviceProp_t = hipDeviceProp_t;
 #elif defined(AMREX_USE_CUDA)
 using gpuDeviceProp_t = cudaDeviceProp;
+#elif defined(AMREX_USE_DPCPP)
+    struct gpuDeviceProp_t {
+        std::string name;
+        std::size_t totalGlobalMem;
+        std::size_t sharedMemPerBlock;
+        int multiProcessorCount;
+        int maxThreadsPerMultiProcessor;
+        int maxThreadsPerBlock;
+        int maxThreadsDim[3];
+        int maxGridSize[3];
+        int warpSize;
+        long maxMemAllocSize; // oneAPI only
+    };
 #endif
 
 namespace Gpu {
@@ -88,14 +102,8 @@ public:
     static std::size_t freeMemAvailable ();
 
 #ifdef AMREX_USE_GPU
-#ifdef AMREX_USE_CUDA
-    static constexpr int warp_size = 32;
-#else
-    static constexpr int warp_size = 64;
-#endif
-#endif
+    static constexpr int warp_size = AMREX_HIP_OR_CUDA_OR_DPCPP(64,32,32);
 
-#ifdef AMREX_USE_GPU
     static int maxBlocksPerLaunch () noexcept { return max_blocks_per_launch; }
 #endif
 
@@ -120,6 +128,7 @@ private:
     static dim3 numBlocksOverride, numThreadsOverride;
 
     static std::array<gpuStream_t,max_gpu_streams> gpu_streams;
+    static gpuStream_t gpu_default_stream;
     static gpuStream_t gpu_stream;
     static gpuDeviceProp_t device_prop;
     static int max_blocks_per_launch;

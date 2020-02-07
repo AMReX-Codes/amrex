@@ -218,6 +218,9 @@ public:
         std::size_t sm = std::max(ec.sharedMem, shared_mem_bytes);
         AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, sm, amrex::Gpu::gpuStream(),
         [=] AMREX_GPU_DEVICE () noexcept {
+#ifdef AMREX_USE_DPCPP
+// xxxxx DPCPP todo
+#else
             ReduceTuple r = init_val;
             for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
                  icell < ncells; icell += stride) {
@@ -231,6 +234,7 @@ public:
                 Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r, pr);
             }
             Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(*dp,r);
+#endif
         });
         AMREX_GPU_ERROR_CHECK();
     }
@@ -251,6 +255,9 @@ public:
         std::size_t sm = std::max(ec.sharedMem, shared_mem_bytes);
         AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, sm, amrex::Gpu::gpuStream(),
         [=] AMREX_GPU_DEVICE () noexcept {
+#ifdef AMREX_USE_DPCPP
+// xxxxx DPCPP todo
+#else
             ReduceTuple r = init_val;
             for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
                  icell < ncells; icell += stride) {
@@ -266,6 +273,7 @@ public:
                 }
             }
             Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(*dp,r);
+#endif
         });
         AMREX_GPU_ERROR_CHECK();
     }
@@ -283,6 +291,9 @@ public:
         std::size_t sm = std::max(ec.sharedMem, shared_mem_bytes);
         AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, sm, amrex::Gpu::gpuStream(),
         [=] AMREX_GPU_DEVICE () noexcept {
+#ifdef AMREX_USE_DPCPP
+// xxxxx DPCPP todo
+#else
             auto r = init_val;
             for (N i = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
                  i < n; i += stride) {
@@ -290,6 +301,7 @@ public:
                 Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r,pr);
             }
             Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(*dp,r);
+#endif
         });
         AMREX_GPU_ERROR_CHECK();
     }
@@ -409,6 +421,9 @@ bool AnyOf (N n, T const* v, P&& pred)
     ec.numBlocks.x = std::min(ec.numBlocks.x, static_cast<unsigned int>(Gpu::Device::maxBlocksPerLaunch()));
     AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, 0, 0,
     [=] AMREX_GPU_DEVICE () noexcept {
+#ifdef AMREX_USE_DPCPP
+// xxxxx DPCPP todo
+#else
         __shared__ int has_any;
         if (threadIdx.x == 0) has_any = *dp;
         __syncthreads();
@@ -425,6 +440,7 @@ bool AnyOf (N n, T const* v, P&& pred)
                 (r, Gpu::warpReduce<Gpu::Device::warp_size,int,amrex::Plus<int> >(), 0);
             if (threadIdx.x == 0 and r) *dp = 1;
         }
+#endif
     });
     return ds.dataValue();
 }
@@ -442,6 +458,9 @@ bool AnyOf (Box const& box, P&& pred)
     ec.numBlocks.x = std::min(ec.numBlocks.x, static_cast<unsigned int>(Gpu::Device::maxBlocksPerLaunch()));
     AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, 0, 0,
     [=] AMREX_GPU_DEVICE () noexcept {
+#ifdef AMREX_USE_DPCPP
+// xxxxx DPCPP todo
+#else
         __shared__ int has_any;
         if (threadIdx.x == 0) has_any = *dp;
         __syncthreads();
@@ -463,6 +482,7 @@ bool AnyOf (Box const& box, P&& pred)
                 (r, Gpu::warpReduce<Gpu::Device::warp_size,int,amrex::Plus<int> >(), 0);
             if (threadIdx.x == 0 and r) *dp = 1;
         }
+#endif
     });
     return ds.dataValue();
 }

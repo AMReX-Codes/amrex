@@ -20,6 +20,8 @@
 using randState_t = hiprandState_t;
 #elif defined(AMREX_USE_CUDA)
 using randState_t =  curandState_t;
+#elif defined(AMREX_USE_DPCPP)
+struct randState_t {};
 #endif
 
 namespace
@@ -78,6 +80,10 @@ amrex::InitRandom (unsigned long seed, int nprocs)
 AMREX_GPU_DEVICE
 int amrex::get_state (int tid)
 {
+#ifdef AMREX_USE_DPCPP
+// xxxxx DPCPP todo
+    return 0;
+#else
     // block size must evenly divide # of RNG states so we cut off the excess states
     int bsize = blockDim.x * blockDim.y * blockDim.z;
     int nstates = gpu_nstates_d - (gpu_nstates_d % bsize);
@@ -86,16 +92,21 @@ int amrex::get_state (int tid)
     d_mutex_d_ptr->lock(i);
 
     return i;
+#endif
 }
 
 AMREX_GPU_DEVICE
 void amrex::free_state (int tid)
 {
+#ifdef AMREX_USE_DPCPP
+// xxxxx DPCPP todo
+#else
     int bsize = blockDim.x * blockDim.y * blockDim.z;
     int nstates = gpu_nstates_d - (gpu_nstates_d % bsize);
     int i = tid % nstates;
 
     d_mutex_d_ptr->unlock(i);
+#endif
 }
 #endif
 

@@ -62,6 +62,9 @@ ParallelFor (Vector<Array4BoxTag<T> > const& tags, int ncomp, F && f)
     AMREX_LAUNCH_KERNEL(nblocks, nthreads, 0, 0,
     [=] AMREX_GPU_DEVICE () noexcept
     {
+#ifdef AMREX_USE_DPCPP
+// xxxxx DPCPP todo
+#else
         int g_tid = blockDim.x*blockIdx.x + threadIdx.x;
         int g_wid = g_tid / Gpu::Device::warp_size;
         if (g_wid >= ntotwarps) return;
@@ -102,6 +105,7 @@ ParallelFor (Vector<Array4BoxTag<T> > const& tags, int ncomp, F && f)
                 f(i,j,k,n,tag.dfab);
             }
         }
+#endif
     });
 
     Gpu::synchronize();
@@ -181,6 +185,9 @@ fab_to_fab (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, in
     AMREX_LAUNCH_KERNEL(nblocks, nthreads, 0, 0, 
     [=] AMREX_GPU_DEVICE () noexcept
     {
+#ifdef AMREX_USE_DPCPP
+// xxxxx DPCPP todo
+#else
         int g_tid = blockDim.x*blockIdx.x + threadIdx.x;
         int g_wid = g_tid / Gpu::Device::warp_size;
         if (g_wid >= ntotwarps) return;
@@ -222,6 +229,7 @@ fab_to_fab (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, in
                   tag.sfab(i+tag.offset.x,j+tag.offset.y,k+tag.offset.z,n+scomp));
             }
         }
+#endif
     });
 
     Gpu::synchronize();
@@ -268,6 +276,9 @@ fab_to_fab (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, in
     AMREX_LAUNCH_KERNEL(nblocks, nthreads, 0, 0, 
     [=] AMREX_GPU_DEVICE () noexcept
     {
+#ifdef AMREX_USE_DPCPP
+// xxxxx DPCPP todo
+#else
         int g_tid = blockDim.x*blockIdx.x + threadIdx.x;
         int g_wid = g_tid / Gpu::Device::warp_size;
         if (g_wid >= ntotwarps) return;
@@ -339,6 +350,7 @@ fab_to_fab (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, in
         }
 
         if (m) *m = 0;
+#endif
     });
 
     Gpu::synchronize();

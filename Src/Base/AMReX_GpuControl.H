@@ -3,6 +3,11 @@
 
 #include <AMReX_GpuQualifiers.H>
 
+#ifdef AMREX_USE_DPCPP
+#include <CL/sycl.hpp>
+namespace sycl = cl::sycl;
+#endif
+
 #ifndef AMREX_GPU_MAX_THREADS
 #define AMREX_GPU_MAX_THREADS 256
 #endif
@@ -15,6 +20,17 @@
 #define AMREX_HIP_OR_CUDA(a,b) ((void)0);
 #endif
 
+#if defined(AMREX_USE_HIP)
+#define AMREX_HIP_OR_CUDA_OR_DPCPP(a,b,c) a
+#elif defined(AMREX_USE_CUDA)
+#define AMREX_HIP_OR_CUDA_OR_DPCPP(a,b,c) b
+#elif defined(AMREX_USE_DPCPP)
+#define AMREX_HIP_OR_CUDA_OR_DPCPP(a,b,c) c
+#else
+#define AMREX_HIP_OR_CUDA_OR_DPCPP(a,b,c) ((void)0);
+#endif
+
+
 namespace amrex {
     enum struct RunOn { Gpu, Cpu, Device=Gpu, Host=Cpu };
 }
@@ -25,6 +41,10 @@ namespace amrex {
 using gpuStream_t = hipStream_t;
 #elif defined(AMREX_USE_CUDA)
 using gpuStream_t = cudaStream_t;
+#elif defined(AMREX_USE_DPCPP)
+    struct gpuStream_t {
+        sycl::ordered_queue* queue = nullptr;
+    };
 #endif
 
 namespace Gpu {
