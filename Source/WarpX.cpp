@@ -1309,7 +1309,7 @@ WarpX::BuildBufferMasksInBox ( const amrex::Box tbx, amrex::IArrayBox &buffer_ma
     for     (int j = lo.y; j <= hi.y; ++j) {
         for (int i = lo.x; i <= hi.x; ++i) {
             setnull = false;
-            // If gmsk=0 for any neighbor with ng cells, current cell is in the buffer region
+            // If gmsk=0 for any neighbor within ng cells, current cell is in the buffer region
             for     (int jj = j-ng; jj <= j+ng; ++jj) {
                 for (int ii = i-ng; ii <= i+ng; ++ii) {
                     if ( gmsk(ii,jj,k) == 0 ) setnull = true;
@@ -1324,7 +1324,7 @@ WarpX::BuildBufferMasksInBox ( const amrex::Box tbx, amrex::IArrayBox &buffer_ma
         for     (int j = lo.y; j <= hi.y; ++j) {
             for (int i = lo.x; i <= hi.x; ++i) {
                 setnull = false;
-                // If gmsk=0 for any neighbor with ng cells, current cell is in the buffer region
+                // If gmsk=0 for any neighbor within ng cells, current cell is in the buffer region
                 for         (int kk = k-ng; kk <= k+ng; ++kk) {
                     for     (int jj = j-ng; jj <= j+ng; ++jj) {
                         for (int ii = i-ng; ii <= i+ng; ++ii) {
