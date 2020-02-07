@@ -60,8 +60,8 @@ EFyt = 0.5*Es*scc.epsilon_0*dV + 0.5*Bs/scc.mu_0*dV
 
 # PART2: get results from reduced diagnostics
 
-EFdata = np.genfromtxt("EF.txt")
-EPdata = np.genfromtxt("EP.txt")
+EFdata = np.genfromtxt("./diags/reducedfiles/EF.txt")
+EPdata = np.genfromtxt("./diags/reducedfiles/EP.txt")
 
 EF = EFdata[1][2]
 EP = EPdata[1][2]
