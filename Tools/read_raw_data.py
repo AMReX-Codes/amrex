@@ -302,6 +302,30 @@ def _read_buffer(snapshot, header_fn, _component_names):
                 all_data[_component_names[i]] = data
     return all_data
 
+def read_reduced_diags(filename, delimiter=' '):
+    '''
+    Read data written by WarpX Reduced Diagnostics, and return them into Python objects
+    input:
+    - filename name of file to open
+    - delimiter (optional, default ',') delimiter between fields in header.
+    output:
+    - metadata_dict dictionary where first key is the type of metadata, second is the field
+    - data dictionary with data
+    '''
+    # Read header line
+    unformatted_header = list( np.genfromtxt( filename, comments="@", max_rows=1, dtype="str", delimiter=delimiter) )
+    # From header line, get field name, units and column number
+    field_names =  [s[s.find("]")+1:s.find("(")] for s in unformatted_header]
+    field_units =  [s[s.find("(")+1:s.find(")")] for s in unformatted_header]
+    field_column =  [s[s.find("[")+1:s.find("]")] for s in unformatted_header]
+    # Load data and re-format to a dictionary
+    data = np.loadtxt( filename, delimiter=delimiter )
+    data_dict = {key: data[:,i] for i, key in enumerate(field_names)}
+    # Put header data into a dictionary
+    metadata_dict = {}
+    metadata_dict['units'] = {key: field_units[i] for i, key in enumerate(field_names)}
+    metadata_dict['column'] = {key: field_column[i] for i, key in enumerate(field_names)}
+    return metadata_dict, data_dict
 
 if __name__ == "__main__":
     data = read_lab_snapshot("lab_frame_data/snapshot00012", "lab_frame_data/Header");
