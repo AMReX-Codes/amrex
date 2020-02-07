@@ -48,6 +48,11 @@ gpuDeviceProp_t                                 Device::device_prop;
 
 constexpr int                                   Device::warp_size;
 
+#ifdef AMREX_USE_DPCPP
+std::unique_ptr<sycl::context> Device::sycl_context;
+std::unique_ptr<sycl::device>  Device::sycl_device;
+#endif
+
 namespace {
 
     AMREX_GPU_GLOBAL void emptyKernel() {}
@@ -330,6 +335,18 @@ Device::Finalize ()
                           AMREX_CUDA_SAFE_CALL(cudaStreamDestroy(gpu_streams[i])); );
     }
 
+#ifdef AMREX_USE_DPCPP
+    sycl_context.reset();
+    sycl_device.reset();
+    for (auto& s : gpu_streams) {
+        delete s.queue;
+        s.queue = nullptr;
+    }
+    gpu_stream.queue = nullptr;
+    delete gpu_default_stream.queue;
+    gpu_default_stream.queue = nullptr;
+#endif
+
 #ifdef AMREX_USE_ACC
     amrex_finalize_acc();
 #endif
@@ -392,7 +409,9 @@ Device::initialize_gpu ()
     }
 
     { // device property
-        auto const& d = gpu_default_stream.queue->get_device();
+        sycl_context.reset(new sycl::context(gpu_default_stream.queue->get_context()));
+        sycl_device.reset(new sycl::device(gpu_default_stream.queue->get_device()));
+        auto const& d = *sycl_device;
         device_prop.name = d.get_info<sycl::info::device::name>();
         device_prop.totalGlobalMem = d.get_info<sycl::info::device::global_mem_size>();
         device_prop.sharedMemPerBlock = d.get_info<sycl::info::device::local_mem_size>();
@@ -416,7 +435,7 @@ Device::initialize_gpu ()
                            << "  multiProcessorCount: " << device_prop.multiProcessorCount << "\n"
                            << "  maxThreadsPerBlock: " << device_prop.maxThreadsPerBlock << "\n"
                            << "  maxThreadsDim: (" << device_prop.maxThreadsDim[0] << ", " << device_prop.maxThreadsDim[1] << ", " << device_prop.maxThreadsDim[2] << ")\n"
-                           << "  warpSize: " << device_prop.warpSize << "\n"
+//                           << "  warpSize: " << device_prop.warpSize << "\n"
                            << "  maxMemAllocSize: " << device_prop.maxMemAllocSize << "\n"
                            << std::endl;
         }
@@ -424,10 +443,6 @@ Device::initialize_gpu ()
 #endif
 
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(warp_size == device_prop.warpSize, "Incorrect warp size");
-
-#ifdef AMREX_USE_DPCPP
-    amrex::Abort("DPCPP: todo");
-#endif
 
     gpu_stream = gpu_default_stream;
 
@@ -469,7 +484,11 @@ Device::initialize_gpu ()
         InitializeGraph(graph_size);
     }
 
+#ifdef AMREX_USE_DPCPP
+    max_blocks_per_launch = 1000000; // xxxxx DPCPP todo
+#else
     max_blocks_per_launch = numMultiProcessors() * maxThreadsPerMultiProcessor() / AMREX_GPU_MAX_THREADS;
+#endif
 
 #endif
 }
@@ -527,17 +546,36 @@ Device::setStream (gpuStream_t s) noexcept
 void
 Device::synchronize () noexcept
 {
+#ifdef AMREX_USE_DPCPP
+    nonNullStreamSynchronize();
+    gpu_default_stream.queue->wait();
+#else
     AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipDeviceSynchronize());,
                        AMREX_CUDA_SAFE_CALL(cudaDeviceSynchronize()); )
+#endif
 }
 
 void
 Device::streamSynchronize () noexcept
 {
+#ifdef AMREX_USE_DPCPP
+    auto& q = streamQueue();
+    q.wait();
+#else
     AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipStreamSynchronize(gpu_stream));,
                        AMREX_CUDA_SAFE_CALL(cudaStreamSynchronize(gpu_stream)); )
+#endif
 }
 
+#ifdef AMREX_USE_DPCPP
+void
+Device::nonNullStreamSynchronize () noexcept
+{
+    for (auto const& s : gpu_streams) {
+        s.queue->wait();
+    }
+}
+#endif
 
 #if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
 
@@ -947,8 +985,9 @@ Device::freeMemAvailable ()
 {
 #ifdef AMREX_USE_GPU
     std::size_t f, t;
-    AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipMemGetInfo(&f,&t));,
-                       AMREX_CUDA_SAFE_CALL(cudaMemGetInfo(&f,&t)); )
+    AMREX_HIP_OR_CUDA_OR_DPCPP( AMREX_HIP_SAFE_CALL(hipMemGetInfo(&f,&t));,
+                                AMREX_CUDA_SAFE_CALL(cudaMemGetInfo(&f,&t));,
+                                f = device_prop.totalGlobalMem; ); // xxxxx DPCPP tod
     return f;
 #else
     return 0;
