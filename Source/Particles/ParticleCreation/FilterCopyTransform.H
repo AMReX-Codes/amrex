@@ -68,7 +68,7 @@ Index filterCopyTransformParticles (DstTile& dst, SrcTile& src, Index* mask, Ind
     const auto p_offsets = offsets.dataPtr();
 
     const auto src_data = src.getParticleTileData();
-          auto dst_data = dst.getParticleTileData();
+    const auto dst_data = dst.getParticleTileData();
 
     AMREX_HOST_DEVICE_FOR_1D( np, i,
     {
@@ -197,15 +197,15 @@ Index filterCopyTransformParticles (DstTile& dst1, DstTile& dst2, SrcTile& src, 
     Gpu::copyAsync(Gpu::deviceToHost, offsets.data()+np-1, offsets.data()+np, &last_offset);
 
     Gpu::streamSynchronize();
-    Index num_added = N*(last_mask + last_offset);
+    const Index num_added = N*(last_mask + last_offset);
     dst1.resize(std::max(dst1_index + num_added, dst1.numParticles()));
     dst2.resize(std::max(dst2_index + num_added, dst2.numParticles()));
 
     auto p_offsets = offsets.dataPtr();
 
-    const auto src_data  = src.getParticleTileData();
-          auto dst1_data = dst1.getParticleTileData();
-          auto dst2_data = dst2.getParticleTileData();
+    const auto src_data  =  src.getParticleTileData();
+    const auto dst1_data = dst1.getParticleTileData();
+    const auto dst2_data = dst2.getParticleTileData();
 
     AMREX_HOST_DEVICE_FOR_1D( np, i,
     {
