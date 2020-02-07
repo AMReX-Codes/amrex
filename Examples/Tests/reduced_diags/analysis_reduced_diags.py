@@ -23,7 +23,6 @@ import sys
 import yt
 import numpy as np
 import scipy.constants as scc
-import csv
 
 fn = sys.argv[1]
 
@@ -61,28 +60,18 @@ EFyt = 0.5*Es*scc.epsilon_0*dV + 0.5*Bs/scc.mu_0*dV
 
 # PART2: get results from reduced diagnostics
 
-with open('./diags/reducedfiles/EF.txt') as csv_file:
-    csv_reader = csv.reader(csv_file, delimiter=',')
-    line_count = 0
-    for row in csv_reader:
-        if line_count == 2:
-            EF = np.array(row[2]).astype(np.float)
-        line_count += 1
+EFdata = np.genfromtxt("EF.txt")
+EPdata = np.genfromtxt("EP.txt")
 
-with open('./diags/reducedfiles/EP.txt') as csv_file:
-    csv_reader = csv.reader(csv_file, delimiter=',')
-    line_count = 0
-    for row in csv_reader:
-        if line_count == 2:
-            EP = np.array(row[2]).astype(np.float)
-        line_count += 1
+EF = EFdata[1][2]
+EP = EPdata[1][2]
 
 # PART3: print and assert
 
 print('difference of field energy:', abs(EFyt-EF))
 print('tolerance of field energy:', 1.0e-3)
 print('difference of particle energy:', abs(EPyt-EP))
-print('tolerance of particle energy:', 1.0e-10)
+print('tolerance of particle energy:', 1.0e-8)
 
 assert(abs(EFyt-EF) < 1.0e-3)
 assert(abs(EPyt-EP) < 1.0e-8)

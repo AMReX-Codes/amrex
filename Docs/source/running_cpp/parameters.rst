@@ -1216,9 +1216,10 @@ Diagnostics and output
 * ``<reduced_diags_name>.extension`` (`string`) optional (default `txt`)
     The extension of the output file.
 
-* ``<reduced_diags_name>.separator`` (`string`) optional (default `,`)
+* ``<reduced_diags_name>.separator`` (`string`) optional (default a `whitespace`)
     The separator between row values in the output file.
-    The default separator is comma, i.e. the output file is in
+    The default separator is a whitespace.
+    If a comma is used, the output file will be in
     the CSV (comma separated value) format.
 
 Lookup tables for QED modules (implementation in progress)
