@@ -2,6 +2,7 @@
 #define AMREX_GPU_UTILITY_H_
 
 #include <AMReX_GpuQualifiers.H>
+#include <AMReX_GpuTypes.H>
 #include <AMReX_GpuControl.H>
 #include <AMReX_GpuDevice.H>
 #include <AMReX_Extension.H>
@@ -57,6 +58,10 @@ namespace Gpu {
         void* data[] = { (void*)(&is_managed) };
         CUresult r = cuPointerGetAttributes(1, &attrib, data, (CUdeviceptr)p);
         return r == CUDA_SUCCESS && is_managed;
+#elif defined(AMREX_USE_DPCPP)
+//        auto const info = sycl::get_pointer_info(p);
+//        auto type = sycl::get_pointer_type(p,Device::syclContext());
+        return false;
 #else
         return false;
 #endif
