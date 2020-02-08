@@ -60,7 +60,7 @@ void For (Box const& box, L&& f, std::size_t shared_mem_bytes=0) noexcept
     int grid_dim = (ncells+block_dim-1)/block_dim;
     int nthreads = grid_dim * block_dim;
     auto& q = Gpu::Device::streamQueue();
-//    try {
+    try {
         q.submit([&] (sycl::handler& h) {
             h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads),sycl::range<1>(block_dim)),
             [=] (sycl::nd_item<1> item)
@@ -76,9 +76,9 @@ void For (Box const& box, L&& f, std::size_t shared_mem_bytes=0) noexcept
                 }
             });
         });
-//    } catch (sycl::exception& ex) {
-//        std::cout << ex.what() << std::endl;
-//    }
+    } catch (sycl::exception const& ex) {
+        amrex::Abort(ex.what());
+    }
 #else
     AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, sm, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {

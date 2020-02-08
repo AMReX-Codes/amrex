@@ -55,7 +55,9 @@ std::unique_ptr<sycl::device>  Device::sycl_device;
 
 namespace {
 
+#if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
     AMREX_GPU_GLOBAL void emptyKernel() {}
+#endif
 
     void InitializeGraph(int graph_size)
     {
@@ -416,7 +418,7 @@ Device::initialize_gpu ()
         device_prop.totalGlobalMem = d.get_info<sycl::info::device::global_mem_size>();
         device_prop.sharedMemPerBlock = d.get_info<sycl::info::device::local_mem_size>();
         device_prop.multiProcessorCount = d.get_info<sycl::info::device::max_compute_units>();
-        device_prop.maxThreadsPerMultiProcessor = -1; // unknown
+        device_prop.maxThreadsPerMultiProcessor = -1; // d.get_info<sycl::info::device::max_work_items_per_compute_unit>(); // unknown
         device_prop.maxThreadsPerBlock = d.get_info<sycl::info::device::max_work_group_size>();
         auto mtd = d.get_info<sycl::info::device::max_work_item_sizes>();
         device_prop.maxThreadsDim[0] = mtd[0];
@@ -425,7 +427,8 @@ Device::initialize_gpu ()
         device_prop.maxGridSize[0] = -1; // unknown
         device_prop.maxGridSize[0] = -1; // unknown
         device_prop.maxGridSize[0] = -1; // unknown
-        device_prop.warpSize = warp_size; // xxxxx DPCPP todo
+        auto sgss = d.get_info<sycl::info::device::sub_group_sizes>();
+        device_prop.warpSize = sgss.back();
         device_prop.maxMemAllocSize = d.get_info<sycl::info::device::max_mem_alloc_size>();
         {
             amrex::Print() << "Device Properties:\n"
@@ -435,7 +438,7 @@ Device::initialize_gpu ()
                            << "  multiProcessorCount: " << device_prop.multiProcessorCount << "\n"
                            << "  maxThreadsPerBlock: " << device_prop.maxThreadsPerBlock << "\n"
                            << "  maxThreadsDim: (" << device_prop.maxThreadsDim[0] << ", " << device_prop.maxThreadsDim[1] << ", " << device_prop.maxThreadsDim[2] << ")\n"
-//                           << "  warpSize: " << device_prop.warpSize << "\n"
+                           << "  warpSize: " << device_prop.warpSize << "\n"
                            << "  maxMemAllocSize: " << device_prop.maxMemAllocSize << "\n"
                            << std::endl;
         }
