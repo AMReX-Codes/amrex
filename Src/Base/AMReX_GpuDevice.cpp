@@ -402,17 +402,18 @@ Device::initialize_gpu ()
     }
 
 #elif defined(AMREX_USE_DPCPP)
-    { // create streams
+    { // create device, context and queues
         sycl::gpu_selector device_selector;
-        gpu_default_stream.queue = new sycl::ordered_queue(device_selector);
+        sycl::async_handler error_handler{}; // xxxxx DPCPP todo
+        sycl_device.reset(new sycl::device(device_selector));
+        sycl_context.reset(new sycl::context(*sycl_device, error_handler));
+        gpu_default_stream.queue = new sycl::ordered_queue(*sycl_context, device_selector);
         for (int i = 0; i < max_gpu_streams; ++i) {
-            gpu_streams[i].queue = new sycl::ordered_queue(device_selector);
+            gpu_streams[i].queue = new sycl::ordered_queue(*sycl_context, device_selector);
         }
     }
 
     { // device property
-        sycl_context.reset(new sycl::context(gpu_default_stream.queue->get_context()));
-        sycl_device.reset(new sycl::device(gpu_default_stream.queue->get_device()));
         auto const& d = *sycl_device;
         device_prop.name = d.get_info<sycl::info::device::name>();
         device_prop.totalGlobalMem = d.get_info<sycl::info::device::global_mem_size>();
