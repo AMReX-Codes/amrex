@@ -43,6 +43,7 @@ HEADER = """
 CXX_F_HEADER = """
 #ifndef _external_parameters_F_H_
 #define _external_parameters_F_H_
+#include <AMReX.H>
 #include <AMReX_BLFort.H>
 
 #ifdef __cplusplus
@@ -432,7 +433,7 @@ def write_probin(probin_template, param_files,
                 # we don't support character
                 continue
 
-            fout.write("  extern {} {};\n\n".format(p.get_cxx_decl(), p.var))
+            fout.write("  extern AMREX_GPU_MANAGED {} {};\n\n".format(p.get_cxx_decl(), p.var))
 
         fout.write(CXX_FOOTER)
 
@@ -447,7 +448,7 @@ def write_probin(probin_template, param_files,
                 # we don't support character
                 continue
 
-            fout.write("  {} {};\n\n".format(p.get_cxx_decl(), p.var))
+            fout.write("  AMREX_GPU_MANAGED {} {};\n\n".format(p.get_cxx_decl(), p.var))
 
         fout.write("\n")
         fout.write("  void init_{}_parameters() {{\n".format(cxx_prefix))
