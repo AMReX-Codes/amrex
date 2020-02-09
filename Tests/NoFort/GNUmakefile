@@ -11,7 +11,6 @@ USE_MPI   = FALSE
 USE_OMP   = FALSE
 
 BL_NO_FORT = TRUE
-DEFINES += -DBL_NO_FORT
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 

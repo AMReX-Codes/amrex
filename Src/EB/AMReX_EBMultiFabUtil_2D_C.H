@@ -238,6 +238,206 @@ void eb_avg_fc_to_cc (int i, int j, int k, int n, Array4<Real> const& cc,
     }
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void eb_interp_cc2cent (Box const& box,
+                        const Array4<Real>& phicent,
+                        Array4<Real const> const& phicc,
+                        Array4<EBCellFlag const> const& flag,
+                        Array4<Real const> const& cent,
+                        int ncomp) noexcept
+{
+  amrex::Loop(box, ncomp, [=] (int i, int j, int k, int n) noexcept
+  {
+    if (flag(i,j,k).isCovered())
+    {
+      phicent(i,j,k,n) = phicc(i,j,k,n); //do nothing
+    }
+    else
+    {
+      if (flag(i,j,k).isRegular())
+      {
+        phicent(i,j,k,n) = phicc(i,j,k,n);
+      }
+      else
+      {
+        Real gx = cent(i,j,k,0);
+        Real gy = cent(i,j,k,1);
+        int ii = (gx < 0.0) ? i - 1 : i + 1;
+        int jj = (gy < 0.0) ? j - 1 : j + 1;
+        gx = std::abs(gx);
+        gy = std::abs(gy);
+        Real gxy = gx*gy;
+
+        phicent(i,j,k,n) = ( 1.0 - gx - gy + gxy ) * phicc(i ,j ,k ,n)
+          +                (            gy - gxy ) * phicc(i ,jj,k ,n)
+          +                (       gx      - gxy ) * phicc(ii,j ,k ,n)
+          +                (                 gxy ) * phicc(ii,jj,k ,n);
+      }
+    }
+  });
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void eb_interp_cc2facecent (Box const& box,
+                            Array4<Real> const& phi,
+                            Array4<EBCellFlag const> const& flag,
+                            Array4<Real const> const& apx, Array4<Real const> const& apy,
+                            Array4<Real const> const& fcx,
+                            Array4<Real const> const& fcy,
+                            Array4<Real> const& edg_x,
+                            Array4<Real> const& edg_y,
+                            int ncomp,
+                            const Box& domain,
+                            const BCRec* bc) noexcept
+{
+  const Dim3 domlo = amrex::lbound(domain);
+  const Dim3 domhi = amrex::ubound(domain);
+
+  const Box ubx = amrex::surroundingNodes(box,0);
+  const Box vbx = amrex::surroundingNodes(box,1);
+
+  //
+  // ===================== X =====================
+  //
+  amrex::Loop(ubx, ncomp, [=] (int i, int j, int k, int n) noexcept
+    {
+      if (apx(i,j,k) == 0)
+      {
+        edg_x(i,j,k,n) = 1e40;
+      }
+      else
+      {
+        if (apx(i,j,k) == 1)
+        {
+          if ( (i == domlo.x) and (bc[n].lo(0) == BCType::ext_dir) )
+          {
+            edg_x(i,j,k,n) = phi(domlo.x-1,j,k,n);
+          }
+          else if ( (i == domhi.x+1) and (bc[n].hi(0) == BCType::ext_dir) )
+          {
+            edg_x(i,j,k,n) = phi(domhi.x+1,j,k,n);
+          }
+          else
+          {
+            edg_x(i,j,k,n) = 0.5 * ( phi(i,j,k,n) + phi(i-1,j,k,n) );
+          }
+        }
+        else
+        {
+          int ii = i - 1;
+          int jj = (fcx(i,j,k) < 0.0) ? j - 1 : j + 1;
+          Real gx = 0.5;
+          Real gy = abs(fcx(i,j,k));
+          Real gxy = gx*gy;
+          edg_x(i,j,k,n) = ( 1.0 - gx - gy + gxy ) * phi(i ,j ,k ,n)
+           +               (            gy - gxy ) * phi(i ,jj,k ,n)
+           +               (       gx      - gxy ) * phi(ii,j ,k ,n)
+           +               (                 gxy ) * phi(ii,jj,k ,n);
+         }
+       }
+    });
+  
+
+    //
+  // ===================== Y =====================
+  //
+  amrex::Loop(vbx, ncomp, [=] (int i, int j, int k, int n) noexcept
+    {
+      if (apy(i,j,k) == 0)
+      {
+        edg_y(i,j,k,n) = 1e40;
+      }
+      else
+      {
+        if (apy(i,j,k) == 1)
+        {
+          if ( (j == domlo.y) and (bc[n].lo(1) == BCType::ext_dir) )
+          {
+            edg_y(i,j,k,n) = phi(i,domlo.y-1,k,n);
+          }
+          else if ( (j == domhi.y+1) and (bc[n].hi(1) == BCType::ext_dir) )
+          {
+            edg_y(i,j,k,n) = phi(i,domhi.y+1,k,n);
+          }
+          else
+          {
+            edg_y(i,j,k,n) = 0.5 * (phi(i,j  ,k,n) + phi(i,j-1,k,n));
+          }
+        }
+        else
+        {
+          int ii = (fcy(i,j,k) < 0.0) ? i - 1 : i + 1;
+          int jj = j - 1;
+          Real gx = abs(fcy(i,j,k));
+          Real gy = 0.5;
+          Real gxy = gx*gy;
+          edg_y(i,j,k,n) = ( 1.0 - gx - gy + gxy ) * phi(i ,j ,k ,n)
+           +               (            gy - gxy ) * phi(i ,jj,k ,n)
+           +               (       gx      - gxy ) * phi(ii,j ,k ,n)
+           +               (                 gxy ) * phi(ii,jj,k ,n);
+         }
+       }
+    });
+}
+
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void eb_interp_cc2face (Box const& box,
+                        Array4<Real> const& phi,
+                        Array4<Real> const& edg_x,
+                        Array4<Real> const& edg_y,
+                        int ncomp,
+                        const Box& domain,
+                        const BCRec* bc) noexcept
+{
+  
+  const Dim3 domlo = amrex::lbound(domain);
+  const Dim3 domhi = amrex::ubound(domain);
+  
+  const Box ubx = amrex::surroundingNodes(box,0);
+  const Box vbx = amrex::surroundingNodes(box,1);
+  
+  //
+  // ===================== X =====================
+  //
+  amrex::Loop(ubx, ncomp, [=] (int i, int j, int k, int n) noexcept
+    {
+        if ( (i == domlo.x) and (bc[n].lo(0) == BCType::ext_dir) )
+        {
+          edg_x(i,j,k,n) = phi(domlo.x-1,j,k,n);
+        }
+        else if ( (i == domhi.x+1) and (bc[n].hi(0) == BCType::ext_dir) )
+        {
+          edg_x(i,j,k,n) = phi(domhi.x+1,j,k,n);
+        }
+        else
+        {
+          edg_x(i,j,k,n) = 0.5 * ( phi(i,j,k,n) + phi(i-1,j,k,n) );
+        } 
+    });
+  
+
+  //
+  // ===================== Y =====================
+  //
+  amrex::Loop(vbx, ncomp, [=] (int i, int j, int k, int n) noexcept
+    {
+        if ( (j == domlo.y) and (bc[n].lo(1) == BCType::ext_dir) )
+        {
+          edg_y(i,j,k,n) = phi(i,domlo.y-1,k,n);
+        }
+        else if ( (j == domhi.y+1) and (bc[n].hi(1) == BCType::ext_dir) )
+        {
+          edg_y(i,j,k,n) = phi(i,domhi.y+1,k,n);
+        }
+        else
+        {
+          edg_y(i,j,k,n) = 0.5 * (phi(i,j  ,k,n) + phi(i,j-1,k,n));
+        }
+    });
+}
+
+
 }
 
 #endif

@@ -70,7 +70,7 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map)
     std::map<int, Vector<int> > snd_data;
 
     m_NumSnds = 0;
-    for (int i = 0; i < NProcs; ++i)
+    for (auto i : m_neighbor_procs)
     {
         if (i == MyProc) continue;
         auto box_buffer_indices = map.allBucketsOnProc(i);
@@ -96,6 +96,7 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map)
     const int SeqNum = ParallelDescriptor::SeqNum();
     long tot_snds_this_proc = 0;
     long tot_rcvs_this_proc = 0;
+
     if (m_local)
     {
         for (int i = 0; i < NNeighborProcs; ++i)
@@ -110,16 +111,17 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map)
             tot_rcvs_this_proc += m_Rcvs[i];
         }
     }
+
     if ( (tot_snds_this_proc == 0) and (tot_rcvs_this_proc == 0) )
     {
         m_nrcvs = 0;
         return;
-    } 
+    }
 
     m_RcvProc.resize(0);
     m_rOffset.resize(0);    
     std::size_t TotRcvBytes = 0;
-    for (int i = 0; i < NProcs; ++i)
+    for (auto i : m_neighbor_procs)
     {
         if (m_Rcvs[i] > 0)
         {
@@ -152,7 +154,7 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map)
         m_build_rreqs[i] = ParallelDescriptor::Arecv((char*) (m_rcv_data.dataPtr() + offset), Cnt, Who, SeqNum).req();
     }
     
-    for (int i = 0; i < NProcs; ++i)
+    for (auto i : m_neighbor_procs)
     {
         if (i == MyProc) continue;
         const auto Who = i;
@@ -165,6 +167,7 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map)
         
         ParallelDescriptor::Asend((char*) snd_data[i].data(), Cnt, Who, SeqNum);
     }
+
 #endif
 }
 

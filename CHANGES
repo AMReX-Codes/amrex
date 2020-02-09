@@ -1,3 +1,20 @@
+# Changes since latest release
+
+  -- AmrCore can now be built without using ParmParse.
+
+  -- Improve BL_NO_FORT support.
+
+  -- Fix OMP bug in MFIter constructors taking BoxArray and
+     DistributionMapping.
+
+# 20.02
+
+  -- RealVect updated for GPU.
+
+  -- Support for restarting from HDF5 particle checkpoint file.
+
+  -- Improvement of MacProjector and NodalProjector
+
 # 20.01
 
   -- GPU host device version of swap.

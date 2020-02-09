@@ -80,54 +80,8 @@ namespace {
 void
 Device::Initialize ()
 {
-#ifdef AMREX_USE_HIP
 
-    ParmParse pp("device");
-
-    pp.query("v", verbose);
-    pp.query("verbose", verbose);
-
-    if (amrex::Verbose()) {
-        amrex::Print() << "Initializing HIP...\n";
-    }
-
-    int gpu_device_count;
-    AMREX_HIP_SAFE_CALL(hipGetDeviceCount(&gpu_device_count));
-
-    if (gpu_device_count <= 0) {
-        amrex::Abort("No GPU device found");
-    }
-
-    // Now, assign ranks to GPUs. If we only have one GPU,
-    // or only one MPI rank, this is easy. Otherwise, we
-    // need to do a little more work.
-
-    if (ParallelDescriptor::NProcs() == 1) {
-        device_id = 0;
-    }
-    else if (gpu_device_count == 1) {
-        device_id = 0;
-    }
-    else {
-        amrex::Abort("USE_HIP and USE_MPI not supported yet");
-    }
-
-    AMREX_HIP_SAFE_CALL(hipSetDevice(device_id));
-    AMREX_HIP_SAFE_CALL(hipSetDeviceFlags(hipDeviceMapHost));
-
-    initialize_gpu();
-
-    if (amrex::Verbose()) {
-#ifdef AMREX_USE_MPI
-        amrex::Print() << "HIP initialized with 1 GPU per MPI rank\n";
-#else
-        amrex::Print() << "HIP initialized with 1 GPU\n";
-#endif
-    }
-
-#elif defined(AMREX_USE_CUDA)
-
-#if defined(AMREX_PROFILING) || defined(AMREX_TINY_PROFILING)
+#if defined(AMREX_USE_CUDA) && (defined(AMREX_PROFILING) || defined(AMREX_TINY_PROFILING))
     // Wrap cuda init to identify it appropriately in nvvp.
     // Note: first substantial cuda call may cause a lengthy
     // cuda API and cuda driver API initialization that will
@@ -144,23 +98,25 @@ Device::Initialize ()
     pp.query("verbose", verbose);
 
     if (amrex::Verbose()) {
-        amrex::Print() << "Initializing CUDA...\n";
+        AMREX_HIP_OR_CUDA( amrex::Print() << "Initializing HIP...\n";,
+                           amrex::Print() << "Initializing CUDA...\n";   );
     }
 
     // XL CUDA Fortran support needs to be initialized
     // before any CUDA API calls.
 
-#if (defined(__ibmxl__) && !defined(BL_NO_FORT))
+#if (defined(AMREX_USE_CUDA) && defined(__ibmxl__) && !defined(BL_NO_FORT))
     __xlcuf_init();
 #endif
 
     // Count the number of CUDA visible devices.
 
-    int cuda_device_count;
-    AMREX_CUDA_SAFE_CALL(cudaGetDeviceCount(&cuda_device_count));
+    int gpu_device_count;
+    AMREX_HIP_OR_CUDA(AMREX_HIP_SAFE_CALL (hipGetDeviceCount(&gpu_device_count));,
+                      AMREX_CUDA_SAFE_CALL(cudaGetDeviceCount(&gpu_device_count)); );
 
-    if (cuda_device_count <= 0) {
-        amrex::Abort("No CUDA device found");
+    if (gpu_device_count <= 0) {
+        amrex::Abort("No GPU device found");
     }
 
     // Now, assign ranks to GPUs. If we only have one GPU,
@@ -170,7 +126,7 @@ Device::Initialize ()
     if (ParallelDescriptor::NProcs() == 1) {
         device_id = 0;
     }
-    else if (cuda_device_count == 1) {
+    else if (gpu_device_count == 1) {
         device_id = 0;
     }
     else {
@@ -188,7 +144,7 @@ Device::Initialize ()
         // if that standard is unsupported).
 
 #if MPI_VERSION < 3
-        amrex::Abort("When using CUDA with MPI, if multiple devices are visible to each rank, MPI-3.0 must be supported.");
+        amrex::Abort("When using GPUs with MPI, if multiple devices are visible to each rank, MPI-3.0 must be supported.");
 #endif
 
         // However, it's possible that the ranks sharing GPUs will be
@@ -215,7 +171,7 @@ Device::Initialize ()
         int split_type;
 
 #if (defined(OPEN_MPI) && defined(AMREX_GPUS_PER_SOCKET))
-        if (cuda_device_count <= AMREX_GPUS_PER_SOCKET)
+        if (gpu_device_count <= AMREX_GPUS_PER_SOCKET)
             split_type = OMPI_COMM_TYPE_SOCKET;
         else
             split_type = OMPI_COMM_TYPE_NODE;
@@ -243,31 +199,35 @@ Device::Initialize ()
         // ranks to GPUs, assuming that socket awareness has already
         // been handled.
 
-        device_id = my_rank % cuda_device_count;
+        device_id = my_rank % gpu_device_count;
 
         // If we detect more ranks than visible GPUs, warn the user
         // that this will fail in the case where the devices are
         // set to exclusive process mode and MPS is not enabled.
 
-        if (n_procs > cuda_device_count) {
+        if (n_procs > gpu_device_count) {
             amrex::Print() << "Mapping more than one rank per GPU. This will fail if the GPUs are in exclusive process mode\n"
-                           << "and MPS is not enabled. In that case you will see an error such as all CUDA-capable devices are\n"
-                           << "busy. To resolve that issue, set the GPUs to the default compute mode, or enable MPS. If you are\n"
+                           << "and MPS is not enabled. In that case you will see an error such as: 'all CUDA-capable devices are\n"
+                           << "busy'. To resolve that issue, set the GPUs to the default compute mode, or enable MPS. If you are\n"
                            << "on a cluster, please consult the system user guide for how to launch your job in this configuration.\n";
         }
 
-#endif
+#endif   // BL_USE_MPI
 
     }
 
-    AMREX_CUDA_SAFE_CALL(cudaSetDevice(device_id));
-    AMREX_CUDA_SAFE_CALL(cudaSetDeviceFlags(cudaDeviceMapHost));
+    AMREX_HIP_OR_CUDA(AMREX_HIP_SAFE_CALL (hipSetDevice(device_id));,
+                      AMREX_CUDA_SAFE_CALL(cudaSetDevice(device_id)); );
+    AMREX_HIP_OR_CUDA(AMREX_HIP_SAFE_CALL (hipSetDeviceFlags(hipDeviceMapHost));,
+                      AMREX_CUDA_SAFE_CALL(cudaSetDeviceFlags(cudaDeviceMapHost)); );
 
 #ifdef AMREX_USE_ACC
     amrex_initialize_acc(device_id);
 #endif
 
     initialize_gpu();
+
+#ifdef AMREX_USE_CUDA
 
     // Count up the total number of devices used by
     // all MPI ranks. Since we have to consider the
@@ -306,21 +266,34 @@ Device::Initialize ()
     delete[] recvbuf;
 #endif
 
-#if defined(AMREX_PROFILING) || defined(AMREX_TINY_PROFILING)
+#if (defined(AMREX_PROFILING) || defined(AMREX_TINY_PROFILING))
     nvtxRangeEnd(nvtx_init);
 #endif
+    cudaProfilerStart();
 
     if (amrex::Verbose()) {
 #if defined(AMREX_USE_MPI) && (AMREX_NVCC_MAJOR_VERSION >= 10)
-        amrex::Print() << "CUDA initialized with 1 GPU per MPI rank; "
-                       << num_devices_used << " GPU(s) used in total\n";
-#else
-        amrex::Print() << "CUDA initialized with 1 GPU\n";
-#endif
+        if (num_devices_used == ParallelDescriptor::NProcs())
+        {
+            amrex::Print() << "CUDA initialized with 1 GPU per MPI rank; "
+                           << num_devices_used << " GPU(s) used in total\n";
+        }
+        else 
+        {
+            amrex::Print() << "CUDA initialized with " << num_devices_used << " GPU(s) and "
+                           << ParallelDescriptor::NProcs() << " ranks.\n";
+        }
+#else  // Should always be using NVCC >= 10 now, so not going to bother with other combinations.
+        amrex::Print() << "CUDA initialized with 1 GPU\n"; 
+#endif // AMREX_USE_MPI && NVCC >= 10
     }
 
     cudaProfilerStart();
 
+#elif defined(AMREX_USE_HIP) 
+    if (amrex::Verbose()) {
+        amrex::Print() << "HIP initialized.\n";
+    }
 #endif
 
 }
@@ -328,30 +301,22 @@ Device::Initialize ()
 void
 Device::Finalize ()
 {
-#if defined(AMREX_USE_HIP)
-
-    for (int i = 0; i < max_gpu_streams; ++i)
-    {
-        AMREX_HIP_SAFE_CALL(hipStreamDestroy(gpu_streams[i]));
-    }
-
-    AMREX_HIP_SAFE_CALL(hipDeviceReset());
-
-#elif defined(AMREX_USE_CUDA)
-
+#ifdef AMREX_USE_CUDA
     cudaProfilerStop();
+#endif
 
     for (int i = 0; i < max_gpu_streams; ++i)
     {
-        AMREX_CUDA_SAFE_CALL(cudaStreamDestroy(gpu_streams[i]));
+        AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL( hipStreamDestroy(gpu_streams[i]));,
+                          AMREX_CUDA_SAFE_CALL(cudaStreamDestroy(gpu_streams[i])); );
     }
 
 #ifdef AMREX_USE_ACC
     amrex_finalize_acc();
 #endif
 
-    AMREX_CUDA_SAFE_CALL(cudaDeviceReset());
-#endif
+    AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL( hipDeviceReset());,
+                      AMREX_CUDA_SAFE_CALL(cudaDeviceReset()); ); 
 }
 
 void

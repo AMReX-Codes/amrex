@@ -19,7 +19,7 @@ initdata(Box const& bx, Array4<Real> const& phi, GeometryData const& geomdata)
     const Real* AMREX_RESTRICT dx      = geomdata.CellSize();
 
 #ifdef _OPENMP
-#pragma omp parallel for collapse(2) if (GPU::notInLaunchRegion)
+#pragma omp parallel for collapse(2) if (GPU::notInLaunchRegion())
 #endif
     for         (int k = lo.z; k <= hi.z; ++k) {
         for     (int j = lo.y; j <= hi.y; ++j) {

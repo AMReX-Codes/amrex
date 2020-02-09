@@ -112,7 +112,15 @@ struct ParticleCopyPlan
         const int num_levels = pc.BufferMap().numLevels();
         const int num_buckets = pc.BufferMap().numBuckets();
 
-        m_neighbor_procs = pc.NeighborProcs(ngrow);
+        if (m_local) 
+        {
+            m_neighbor_procs = pc.NeighborProcs(ngrow);
+        }
+        else 
+        {
+            m_neighbor_procs.resize(ParallelDescriptor::NProcs());
+            std::iota(m_neighbor_procs.begin(), m_neighbor_procs.end(), 0);
+        }
 
         if (num_buckets == 1 and (not pc.Geom(0).isAnyPeriodic()) )
         {

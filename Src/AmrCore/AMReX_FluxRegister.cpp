@@ -1,11 +1,14 @@
 
 #include <AMReX_BArena.H>
 #include <AMReX_FluxRegister.H>
-#include <AMReX_FLUXREG_F.H>
 #include <AMReX_FluxReg_C.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_iMultiFab.H>
+
+#ifndef BL_NO_FORT
+#include <AMReX_FLUXREG_F.H>
+#endif
 
 #include <vector>
 
@@ -605,6 +608,7 @@ FluxRegister::ClearInternalBorders (const Geometry& geom)
     }
 }
 
+#ifndef BL_NO_FORT
 void
 FluxRegister::OverwriteFlux (Array<MultiFab*,AMREX_SPACEDIM> const& crse_fluxes,
                              Real scale, int srccomp, int destcomp, int numcomp,
@@ -679,6 +683,7 @@ FluxRegister::OverwriteFlux (Array<MultiFab*,AMREX_SPACEDIM> const& crse_fluxes,
         }
     }
 }
+#endif
 
 void
 FluxRegister::write (const std::string& name, std::ostream& os) const

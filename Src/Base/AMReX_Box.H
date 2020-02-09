@@ -90,7 +90,7 @@ public:
 
     template <typename T>
     AMREX_GPU_HOST_DEVICE
-    Box (Array4<T> const& a) noexcept
+    explicit Box (Array4<T> const& a) noexcept
         : smallend(AMREX_D_DECL(a.begin.x,a.begin.y,a.begin.z)),
           bigend  (AMREX_D_DECL(a.end.x-1,a.end.y-1,a.end.z-1))
         {}
@@ -874,6 +874,7 @@ Box::atOffset (long offset) const noexcept
                          static_cast<int>(k+lo[2])) };
 }
 
+// HIP FIX HERE - Initialization List: {{
 AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE
 GpuArray<int,3>
@@ -884,9 +885,9 @@ Box::atOffset3d (long offset) const noexcept
     long k = offset / (len[0]*len[1]);
     long j = (offset - k*(len[0]*len[1])) / len[0];
     long i = (offset - k*(len[0]*len[1])) - j*len[0];
-    return {static_cast<int>(i+lo[0]),
-            static_cast<int>(j+lo[1]),
-            static_cast<int>(k+lo[2]) };
+    return {{static_cast<int>(i+lo[0]),
+             static_cast<int>(j+lo[1]),
+             static_cast<int>(k+lo[2])}};
 }
 
 AMREX_GPU_HOST_DEVICE
@@ -959,12 +960,13 @@ AMREX_FORCE_INLINE
 bool
 Box::isSquare () const noexcept
 {
-    const IntVect& sz = this->size();
 #if AMREX_SPACEDIM==1
     return false; // can't build a square in 1-D
 #elif AMREX_SPACEDIM==2
+    const IntVect& sz = this->size();
     return (sz[0] == sz[1]);
 #elif AMREX_SPACEDIM==3
+    const IntVect& sz = this->size();
     return (sz[0] == sz[1] && (sz[1] == sz[2]));
 #endif
 }

@@ -184,6 +184,10 @@ iMultiFab::iMultiFab (const iMultiFab& rhs, MakeType maketype, int scomp, int nc
 {
 }
 
+iMultiFab::~iMultiFab()
+{
+}
+
 void
 iMultiFab::operator= (int r)
 {
@@ -314,6 +318,8 @@ iMultiFab::sum (int comp, int nghost, bool local) const
     AMREX_ASSERT(nghost >= 0 && nghost <= n_grow.min());
 
     long sm = 0;
+
+// HIP FIX HERE - __shfl_down long used 
 
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())

@@ -717,7 +717,7 @@ public:
 
 #ifdef AMREX_USE_MPI
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
 #if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
 
     void FB_pack_send_buffer_cuda_graph (const FB& TheFB, int scomp, int ncomp,
@@ -1472,27 +1472,16 @@ FabArray<FAB>::setBndry (value_type val,
             {
                 const Box& gbx = fai.fabbox();
                 const Box& vbx = fai.validbox();
-                BoxList blst = amrex::boxDiff(gbx,vbx);
-                const int nboxes = blst.size();
-                if (nboxes > 0)
+                auto fab = this->array(fai);
+
+                amrex::ParallelFor(gbx, ncomp,
+                [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
-                    AsyncArray<Box> async_boxes(blst.data().data(), nboxes);
-                    Box const* pboxes = async_boxes.data();
-
-                    long ncells = 0;
-                    for (const auto& b : blst) {
-                        ncells += b.numPts();
-                    }
-
-                    auto fab = this->array(fai);
-                    AMREX_FOR_1D ( ncells, icell,
+                    if ( !(vbx.contains(IntVect(AMREX_D_DECL(i,j,k)))) )
                     {
-                        const Dim3 cell = amrex::getCell(pboxes, nboxes, icell).dim3();
-                        for (int n = strt_comp; n < strt_comp+ncomp; ++n) {
-                            fab(cell.x,cell.y,cell.z,n) = val;
-                        }
-                    });
-                }
+                        fab(i,j,k,strt_comp+n) = val;
+                    }
+                });
             }
         }
         else
@@ -1537,24 +1526,15 @@ FabArray<FAB>::setDomainBndry (value_type val,
         for (MFIter fai(*this); fai.isValid(); ++fai)
         {
             const Box& gbx = fai.fabbox();
-            BoxList blst = amrex::boxDiff(gbx,domain_box);
-            const int nboxes = blst.size();
-            if (nboxes > 0)
+            if (not domain_box.contains(gbx))
             {
-                AsyncArray<Box> async_boxes(blst.data().data(), nboxes);
-                Box const* pboxes = async_boxes.data();
-
-                long ncells = 0;
-                for (const auto& b : blst) {
-                    ncells += b.numPts();
-                }
-
                 auto fab = this->array(fai);
-                AMREX_FOR_1D ( ncells, icell,
+                amrex::ParallelFor(gbx, ncomp,
+                [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
-                    const Dim3 cell = amrex::getCell(pboxes, nboxes, icell).dim3();
-                    for (int n = strt_comp; n < strt_comp+ncomp; ++n) {
-                        fab(cell.x,cell.y,cell.z,n) = val;
+                    if (not domain_box.contains(IntVect(AMREX_D_DECL(i,j,k))))
+                    {
+                        fab(i,j,k,strt_comp+n) = val;
                     }
                 });
             }

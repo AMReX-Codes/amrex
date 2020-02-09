@@ -7,6 +7,8 @@ DIM := 3
 
 LAZY := TRUE
 
+BL_NO_FORT = TRUE
+
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
 # CNS uses a coarse grained OMP approach
