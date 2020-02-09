@@ -1079,7 +1079,7 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
       hdr.CalculateMinMax(mf, coordinatorProc);
     }
 
-    VisMF::FindOffsets(mf, filePrefix, hdr, groupSets, currentVersion, nfi,
+    VisMF::FindOffsets(mf, filePrefix, hdr, currentVersion, nfi,
                        ParallelDescriptor::Communicator());
 
     bytesWritten += VisMF::WriteHeader(mf_name, hdr, coordinatorProc);
@@ -1128,7 +1128,6 @@ void
 VisMF::FindOffsets (const FabArray<FArrayBox> &mf,
 		    const std::string &filePrefix,
                     VisMF::Header &hdr,
-		    bool groupSets,
 		    VisMF::Header::Version whichVersion,
 		    NFilesIter &nfi, MPI_Comm comm)
 {

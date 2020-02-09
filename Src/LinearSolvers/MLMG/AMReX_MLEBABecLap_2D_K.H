@@ -374,8 +374,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebabeclap_flux_x (Box const& box, Array4<Real> const& fx, Array4<Real const> const& apx,
                          Array4<Real const> const& fcx, Array4<Real const> const& sol,
                          Array4<Real const> const& bX, Array4<int const> const& ccm,
-                         Array4<EBCellFlag const> const& flag, Real dhx,
-                         int face_only, int ncomp, Box const& xbox) noexcept
+                         Real dhx, int face_only, int ncomp, Box const& xbox) noexcept
 {
     int lof = xbox.smallEnd(0);
     int hif = xbox.bigEnd(0);
@@ -384,7 +383,7 @@ void mlebabeclap_flux_x (Box const& box, Array4<Real> const& fx, Array4<Real con
         if (!face_only or lof == i or hif == i) {
             if (apx(i,j,k) == 0.0) {
                 fx(i,j,k,n) = 0.0;
-            } else if (apx(i,j,k) == 1.0 or flag(i,j,k).isRegular()) {
+            } else if (apx(i,j,k) == 1.0) {
                 fx(i,j,k,n) = -dhx*bX(i,j,k,n)*(sol(i,j,k,n)-sol(i-1,j,k,n));
             } else {
                 Real fxm = bX(i,j,k,n)*(sol(i,j,k,n)-sol(i-1,j,k,n));
@@ -401,8 +400,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebabeclap_flux_y (Box const& box, Array4<Real> const& fy, Array4<Real const> const& apy,
                          Array4<Real const> const& fcy, Array4<Real const> const& sol,
                          Array4<Real const> const& bY, Array4<int const> const& ccm,
-                         Array4<EBCellFlag const> const& flag, Real dhy,
-                         int face_only, int ncomp, Box const& ybox) noexcept
+                         Real dhy, int face_only, int ncomp, Box const& ybox) noexcept
 {
     int lof = ybox.smallEnd(1);
     int hif = ybox.bigEnd(1);
@@ -411,7 +409,7 @@ void mlebabeclap_flux_y (Box const& box, Array4<Real> const& fy, Array4<Real con
         if (!face_only or lof == j or hif == j) {
             if (apy(i,j,k) == 0.0) {
                 fy(i,j,k,n) = 0.0;
-            } else if (apy(i,j,k) == 1.0 or flag(i,j,k).isRegular()) {
+            } else if (apy(i,j,k) == 1.0) {
                 fy(i,j,k,n) = -dhy*bY(i,j,k,n)*(sol(i,j,k,n)-sol(i,j-1,k,n));
             } else {
                 Real fym = bY(i,j,k,n)*(sol(i,j,k,n)-sol(i,j-1,k,n));
@@ -465,14 +463,14 @@ void mlebabeclap_flux_y_0 (Box const& box, Array4<Real> const& fy, Array4<Real c
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebabeclap_grad_x (Box const& box, Array4<Real> const& gx, Array4<Real const> const& sol,
                          Array4<Real const> const& apx, Array4<Real const> const& fcx,
-                         Array4<int const> const& ccm, Array4<EBCellFlag const> const& flag,
+                         Array4<int const> const& ccm, 
                          Real dxi, int ncomp) noexcept
 {
     amrex::LoopConcurrent(box, ncomp, [=] (int i, int j, int k, int n) noexcept
     {
         if (apx(i,j,k) == 0.0) {
             gx(i,j,k,n) = 0.0;
-        } else if (apx(i,j,k) == 1.0 or flag(i,j,k).isRegular()) {
+        } else if (apx(i,j,k) == 1.0) {
             gx(i,j,k,n) = dxi*(sol(i,j,k,n)-sol(i-1,j,k,n));
         } else {
             Real gxm = (sol(i,j,k,n)-sol(i-1,j,k,n));
@@ -487,14 +485,14 @@ void mlebabeclap_grad_x (Box const& box, Array4<Real> const& gx, Array4<Real con
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebabeclap_grad_y (Box const& box, Array4<Real> const& gy, Array4<Real const> const& sol,
                          Array4<Real const> const& apy, Array4<Real const> const& fcy,
-                         Array4<int const> const& ccm, Array4<EBCellFlag const> const& flag,
+                         Array4<int const> const& ccm,
                          Real dyi, int ncomp) noexcept
 {
     amrex::LoopConcurrent(box, ncomp, [=] (int i, int j, int k, int n) noexcept
     {
         if (apy(i,j,k) == 0.0) {
             gy(i,j,k,n) = 0.0;
-        } else if (apy(i,j,k) == 1.0 or flag(i,j,k).isRegular()) {
+        } else if (apy(i,j,k) == 1.0) {
             gy(i,j,k,n) = dyi*(sol(i,j,k,n)-sol(i,j-1,k,n));
         } else {
             Real gym = (sol(i,j,k,n)-sol(i,j-1,k,n));

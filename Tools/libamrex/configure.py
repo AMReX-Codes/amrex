@@ -19,6 +19,10 @@ def configure(argv):
                         help="Dimension [default=3]",
                         choices=['1','2','3'],
                         default="3")
+    parser.add_argument("--with-fortran",
+                        help="Use Fortran [default=yes]",
+                        choices=["yes","no"],
+                        default="yes")
     parser.add_argument("--with-mpi",
                         help="Use MPI [default=yes]",
                         choices=["yes","no"],
@@ -96,9 +100,17 @@ def configure(argv):
                         default="70")   
     args = parser.parse_args()
 
+    if args.with_fortran == "no":
+        args.enable_fortran_api = "no";
+        if args.enable_hypre == "yes":
+            sys.exit("ERRROR: must have --with-fortran=yes to use hypre")
+        if args.enable_petsc == "yes":
+            sys.exit("ERRROR: must have --with-fortran=yes to use petsc")
+
     f = open("GNUmakefile","w")
     f.write("AMREX_INSTALL_DIR = " + args.prefix.strip() + "\n")
     f.write("DIM = " + args.dim.strip() + "\n")
+    f.write("BL_NO_FORT = {}\n".format("TRUE" if args.with_fortran == "no" else "FALSE"))
     f.write("USE_MPI = {}\n".format("FALSE" if args.with_mpi == "no" else "TRUE"))
     f.write("USE_OMP = {}\n".format("FALSE" if args.with_omp == "no" else "TRUE"))
     f.write("USE_CUDA = {}\n".format("FALSE" if args.with_cuda == "no" else "TRUE"))

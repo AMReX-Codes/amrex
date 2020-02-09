@@ -235,381 +235,495 @@ inline void mlndlap_bc_doit (Box const& vbx, Array4<T> const& a, Box const& doma
                              GpuArray<bool,AMREX_SPACEDIM> const& bflo,
                              GpuArray<bool,AMREX_SPACEDIM> const& bfhi) noexcept
 {
-    if (domain.strictly_contains(vbx)) return;
+    Box gdomain = domain;
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        if (not bflo[idim]) gdomain.growLo(idim,1);
+        if (not bfhi[idim]) gdomain.growHi(idim,1);
+    }
+
+    if (gdomain.strictly_contains(vbx)) return;
 
     int offset = domain.cellCentered() ? 0 : 1;
 
     const auto dlo = amrex::lbound(domain);
     const auto dhi = amrex::ubound(domain);
+
     Box const& sbox = amrex::grow(vbx,1);
-
-    Box xlo_face = domain;
-    xlo_face.setSmall(0,dlo.x-1);
-    xlo_face.setBig  (0,dlo.x-1);
-    xlo_face &= sbox;
-    Box ylo_face = domain;
-    ylo_face.setSmall(1,dlo.y-1);
-    ylo_face.setBig  (1,dlo.y-1);
-    ylo_face &= sbox;
-    Box zlo_face = domain;
-    zlo_face.setSmall(2,dlo.z-1);
-    zlo_face.setBig  (2,dlo.z-1);
-    zlo_face &= sbox;
-    int xoffset = vbx.length(0)+1;
-    int yoffset = vbx.length(1)+1;
-    int zoffset = vbx.length(2)+1;
-
-    AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
-    xlo_face, txbxlo,
+    AMREX_HOST_DEVICE_FOR_3D(sbox, i, j, k,
     {
-        auto lo = amrex::lbound(txbxlo);
-        auto hi = amrex::ubound(txbxlo);
-        if (lo.x == dlo.x-1 and bflo[0]) {
-            for (int k = lo.z; k <= hi.z; ++k) {
-            for (int j = lo.y; j <= hi.y; ++j) {
-                a(dlo.x-1,j,k) = a(dlo.x+offset,j,k);
-            }}
-        }
-        if (lo.x+xoffset == dhi.x+1 and bfhi[0]) {
-            for (int k = lo.z; k <= hi.z; ++k) {
-            for (int j = lo.y; j <= hi.y; ++j) {
-                a(dhi.x+1,j,k) = a(dhi.x-offset,j,k);
-            }}
-        }
-    },
-    ylo_face, tybxlo,
-    {
-        auto lo = amrex::lbound(tybxlo);
-        auto hi = amrex::ubound(tybxlo);
-        if (lo.y == dlo.y-1 and bflo[1]) {
-            for (int k = lo.z; k <= hi.z; ++k) {
-            for (int i = lo.x; i <= hi.x; ++i) {
-                a(i,dlo.y-1,k) = a(i,dlo.y+offset,k);
-            }}
-        }
-        if (lo.y+yoffset == dhi.y+1 and bfhi[1]) {
-            for (int k = lo.z; k <= hi.z; ++k) {
-            for (int i = lo.x; i <= hi.x; ++i) {
-                a(i,dhi.y+1,k) = a(i,dhi.y-offset,k);
-            }}
-        }
-    },
-    zlo_face, tzbxlo,
-    {
-        auto lo = amrex::lbound(tzbxlo);
-        auto hi = amrex::ubound(tzbxlo);
-        if (lo.z == dlo.z-1 and bflo[2]) {
-            for (int j = lo.y; j <= hi.y; ++j) {
-            for (int i = lo.x; i <= hi.x; ++i) {
-                a(i,j,dlo.z-1) = a(i,j,dlo.z+offset);
-            }}
-        }
-        if (lo.z+zoffset == dhi.z+1 and bfhi[2]) {
-            for (int j = lo.y; j <= hi.y; ++j) {
-            for (int i = lo.x; i <= hi.x; ++i) {
-                a(i,j,dhi.z+1) = a(i,j,dhi.z-offset);
-            }}
-        }
-    });
-
-    const auto lo = amrex::lbound(sbox);
-    const auto hi = amrex::ubound(sbox);
-
-    AMREX_HOST_DEVICE_FOR_1D ( 12, iedge,
-    {
-        switch (iedge) {
-        case 0: {
-            // xlo & ylo
-            if (lo.x == dlo.x-1 and lo.y == dlo.y-1) {
-                if (bflo[0]) {
-                    for (int k = lo.z; k <= hi.z; ++k) {
-                        a(dlo.x-1,dlo.y-1,k) = a(dlo.x+offset,dlo.y-1,k);
-                    }
-                } else if (bflo[1]) {
-                    for (int k = lo.z; k <= hi.z; ++k) {
-                        a(dlo.x-1,dlo.y-1,k) = a(dlo.x-1,dlo.y+offset,k);
-                    }
-                }
-            }
-            break;
-        }
-        case 1: {
-            // xhi & ylo
-            if (hi.x == dhi.x+1 and lo.y == dlo.y-1) {
-                if (bfhi[0]) {
-                    for (int k = lo.z; k <= hi.z; ++k) {
-                        a(dhi.x+1,dlo.y-1,k) = a(dhi.x-offset,dlo.y-1,k);
-                    }
-                } else if (bflo[1]) {
-                    for (int k = lo.z; k <= hi.z; ++k) {
-                        a(dhi.x+1,dlo.y-1,k) = a(dhi.x+1,dlo.y+offset,k);
-                    }
-                }
-            }
-            break;
-        }
-        case 2: {
-            // xlo & yhi
-            if (lo.x == dlo.x-1 and hi.y == dhi.y+1) {
-                if (bflo[0]) {
-                    for (int k = lo.z; k <= hi.z; ++k) {
-                        a(dlo.x-1,dhi.y+1,k) = a(dlo.x+offset,dhi.y+1,k);
-                    }
-                } else if (bfhi[1]) {
-                    for (int k = lo.z; k <= hi.z; ++k) {
-                        a(dlo.x-1,dhi.y+1,k) = a(dlo.x-1,dhi.y-offset,k);
-                    }
-                }
-            }
-            break;
-        }
-        case 3: {
-            // xhi & yhi
-            if (hi.x == dhi.x+1 and hi.y == dhi.y+1) {
-                if (bfhi[0]) {
-                    for (int k = lo.z; k <= hi.z; ++k) {
-                        a(dhi.x+1,dhi.y+1,k) = a(dhi.x-offset,dhi.y+1,k);
-                    }
-                } else if (bfhi[1]) {
-                    for (int k = lo.z; k <= hi.z; ++k) {
-                        a(dhi.x+1,dhi.y+1,k) = a(dhi.x+1,dhi.y-offset,k);
-                    }
-                }
-            }
-            break;
-        }
-        case 4: {
-            // xlo & zlo
-            if (lo.x == dlo.x-1 and lo.z == dlo.z-1) {
-                if (bflo[0]) {
-                    for (int j = lo.y; j <= hi.y; ++j) {
-                        a(dlo.x-1,j,dlo.z-1) = a(dlo.x+offset,j,dlo.z-1);
-                    }
-                } else if (bflo[2]) {
-                    for (int j = lo.y; j <= hi.y; ++j) {
-                        a(dlo.x-1,j,dlo.z-1) = a(dlo.x-1,j,dlo.z+offset);
-                    }
-                }
-            }
-            break;
-        }
-        case 5: {
-            // xhi & zlo
-            if (hi.x == dhi.x+1 and lo.z == dlo.z-1) {
-                if (bfhi[0]) {
-                    for (int j = lo.y; j <= hi.y; ++j) {
-                        a(dhi.x+1,j,dlo.z-1) = a(dhi.x-offset,j,dlo.z-1);
-                    }
-                } else if (bflo[2]) {
-                    for (int j = lo.y; j <= hi.y; ++j) {
-                        a(dhi.x+1,j,dlo.z-1) = a(dhi.x+1,j,dlo.z+offset);
-                    }
-                }
-            }
-            break;
-        }
-        case 6: {
-            // xlo & zhi
-            if (lo.x == dlo.x-1 and hi.z == dhi.z+1) {
-                if (bflo[0]) {
-                    for (int j = lo.y; j <= hi.y; ++j) {
-                        a(dlo.x-1,j,dhi.z+1) = a(dlo.x+offset,j,dhi.z+1);
-                    }
-                } else if (bfhi[2]) {
-                    for (int j = lo.y; j <= hi.y; ++j) {
-                        a(dlo.x-1,j,dhi.z+1) = a(dlo.x-1,j,dhi.z-offset);
-                    }
-                }
-            }
-            break;
-        }
-        case 7: {
-            // xhi & zhi
-            if (hi.x == dhi.x+1 and hi.z == dhi.z+1) {
-                if (bfhi[0]) {
-                    for (int j = lo.y; j <= hi.y; ++j) {
-                        a(dhi.x+1,j,dhi.z+1) = a(dhi.x-offset,j,dhi.z+1);
-                    }
-                } else if (bfhi[2]) {
-                    for (int j = lo.y; j <= hi.y; ++j) {
-                        a(dhi.x+1,j,dhi.z+1) = a(dhi.x+1,j,dhi.z-offset);
-                    }
-                }
-            }
-            break;
-        }
-        case 8: {
-            // ylo & zlo
-            if (lo.y == dlo.y-1 and lo.z == dlo.z-1) {
-                if (bflo[1]) {
-                    for (int i = lo.x; i <= hi.x; ++i) {
-                        a(i,dlo.y-1,dlo.z-1) = a(i,dlo.y+offset,dlo.z-1);
-                    }
-                } else if (bflo[2]) {
-                    for (int i = lo.x; i <= hi.x; ++i) {
-                        a(i,dlo.y-1,dlo.z-1) = a(i,dlo.y-1,dlo.z+offset);
-                    }
-                }
-            }
-            break;
-        }
-        case 9: {
-            // yhi & zlo
-            if (hi.y == dhi.y+1 and lo.z == dlo.z-1) {
-                if (bfhi[1]) {
-                    for (int i = lo.x; i <= hi.x; ++i) {
-                        a(i,dhi.y+1,dlo.z-1) = a(i,dhi.y-offset,dlo.z-1);
-                    }
-                } else if (bflo[2]) {
-                    for (int i = lo.x; i <= hi.x; ++i) {
-                        a(i,dhi.y+1,dlo.z-1) = a(i,dhi.y+1,dlo.z+offset);
-                    }
-                }
-            }
-            break;
-        }
-        case 10: {
-            // ylo & zhi
-            if (lo.y == dlo.y-1 and hi.z == dhi.z+1) {
-                if (bflo[1]) {
-                    for (int i = lo.x; i <= hi.x; ++i) {
-                        a(i,dlo.y-1,dhi.z+1) = a(i,dlo.y+offset,dhi.z+1);
-                    }
-                } else if (bfhi[2]) {
-                    for (int i = lo.x; i <= hi.x; ++i) {
-                        a(i,dlo.y-1,dhi.z+1) = a(i,dlo.y-1,dhi.z-offset);
-                    }
-                }
-            }
-            break;
-        }
-        case 11: {
-            // yhi & zhi
-            if (hi.y == dhi.y+1 and hi.z == dhi.z+1) {
-                if (bfhi[1]) {
-                    for (int i = lo.x; i <= hi.x; ++i) {
-                        a(i,dhi.y+1,dhi.z+1) = a(i,dhi.y-offset,dhi.z+1);
-                    }
-                } else if (bfhi[2]) {
-                    for (int i = lo.x; i <= hi.x; ++i) {
-                        a(i,dhi.y+1,dhi.z+1) = a(i,dhi.y+1,dhi.z-offset);
-                    }
-                }
-            }
-            break;
-        }
-        default: {}
-        }
-    });
-
-    AMREX_HOST_DEVICE_FOR_1D ( 8, icorner,
-    {
-        switch (icorner) {
-        case 0: {
+        if (not gdomain.contains(IntVect(i,j,k))) {
             // xlo & ylo & zlo
-            if (lo.x == dlo.x-1 and lo.y == dlo.y-1 and lo.z == dlo.z-1) {
-                if (bflo[0]) {
-                    a(dlo.x-1,dlo.y-1,dlo.z-1) = a(dlo.x+offset,dlo.y-1,dlo.z-1);
-                } else if (bflo[1]) {
-                    a(dlo.x-1,dlo.y-1,dlo.z-1) = a(dlo.x-1,dlo.y+offset,dlo.z-1);
-                } else if (bflo[2]) {
-                    a(dlo.x-1,dlo.y-1,dlo.z-1) = a(dlo.x-1,dlo.y-1,dlo.z+offset);
+            if (i == dlo.x-1 and j == dlo.y-1 and k == dlo.z-1 and (bflo[0] or bflo[1] or bflo[2]))
+            {
+                if (bflo[0] and bflo[1] and bflo[2])
+                {
+                    a(i,j,k) = a(i+1+offset, j+1+offset, k+1+offset);
+                }
+                else if (bflo[0] and bflo[1])
+                {
+                    a(i,j,k) = a(i+1+offset, j+1+offset, k);
+                }
+                else if (bflo[0] and bflo[2])
+                {
+                    a(i,j,k) = a(i+1+offset, j, k+1+offset);
+                }
+                else if (bflo[1] and bflo[2])
+                {
+                    a(i,j,k) = a(i, j+1+offset, k+1+offset);
+                }
+                else if (bflo[0])
+                {
+                    a(i,j,k) = a(i+1+offset, j, k);
+                }
+                else if (bflo[1])
+                {
+                    a(i,j,k) = a(i, j+1+offset, k);
+                }
+                else if (bflo[2])
+                {
+                    a(i,j,k) = a(i, j, k+1+offset);
                 }
             }
-            break;
-        }
-        case 1: {
             // xhi & ylo & zlo
-            if (hi.x == dhi.x+1 and lo.y == dlo.y-1 and lo.z == dlo.z-1) {
-                if (bfhi[0]) {
-                    a(dhi.x+1,dlo.y-1,dlo.z-1) = a(dhi.x-offset,dlo.y-1,dlo.z-1);
-                } else if (bflo[1]) {
-                    a(dhi.x+1,dlo.y-1,dlo.z-1) = a(dhi.x+1,dlo.y+offset,dlo.z-1);
-                } else if (bflo[2]) {
-                    a(dhi.x+1,dlo.y-1,dlo.z-1) = a(dhi.x+1,dlo.y-1,dlo.z+offset);
+            else if (i == dhi.x+1 and j == dlo.y-1 and k == dlo.z-1 and (bfhi[0] or bflo[1] or bflo[2]))
+            {
+                if (bfhi[0] and bflo[1] and bflo[2])
+                {
+                    a(i,j,k) = a(i-1-offset, j+1+offset, k+1+offset);
+                }
+                else if (bfhi[0] and bflo[1])
+                {
+                    a(i,j,k) = a(i-1-offset, j+1+offset, k);
+                }
+                else if (bfhi[0] and bflo[2])
+                {
+                    a(i,j,k) = a(i-1-offset, j, k+1+offset);
+                }
+                else if (bflo[1] and bflo[2])
+                {
+                    a(i,j,k) = a(i, j+1+offset, k+1+offset);
+                }
+                else if (bfhi[0])
+                {
+                    a(i,j,k) = a(i-1-offset, j, k);
+                }
+                else if (bflo[1])
+                {
+                    a(i,j,k) = a(i, j+1+offset, k);
+                }
+                else if (bflo[2])
+                {
+                    a(i,j,k) = a(i, j, k+1+offset);
                 }
             }
-            break;
-        }
-        case 2: {
             // xlo & yhi & zlo
-            if (lo.x == dlo.x-1 and hi.y == dhi.y+1 and lo.z == dlo.z-1) {
-                if (bflo[0]) {
-                    a(dlo.x-1,dhi.y+1,dlo.z-1) = a(dlo.x+offset,dhi.y+1,dlo.z-1);
-                } else if (bfhi[1]) {
-                    a(dlo.x-1,dhi.y+1,dlo.z-1) = a(dlo.x-1,dhi.y-offset,dlo.z-1);
-                } else if (bflo[2]) {
-                    a(dlo.x-1,dhi.y+1,dlo.z-1) = a(dlo.x-1,dhi.y+1,dlo.z+offset);
+            else if (i == dlo.x-1 and j == dhi.y+1 and k == dlo.z-1 and (bflo[0] or bfhi[1] or bflo[2]))
+            {
+                if (bflo[0] and bfhi[1] and bflo[2])
+                {
+                    a(i,j,k) = a(i+1+offset, j-1-offset, k+1+offset);
+                }
+                else if (bflo[0] and bfhi[1])
+                {
+                    a(i,j,k) = a(i+1+offset, j-1-offset, k);
+                }
+                else if (bflo[0] and bflo[2])
+                {
+                    a(i,j,k) = a(i+1+offset, j, k+1+offset);
+                }
+                else if (bfhi[1] and bflo[2])
+                {
+                    a(i,j,k) = a(i, j-1-offset, k+1+offset);
+                }
+                else if (bflo[0])
+                {
+                    a(i,j,k) = a(i+1+offset, j, k);
+                }
+                else if (bfhi[1])
+                {
+                    a(i,j,k) = a(i, j-1-offset, k);
+                }
+                else if (bflo[2])
+                {
+                    a(i,j,k) = a(i, j, k+1+offset);
                 }
             }
-            break;
-        }
-        case 3: {
             // xhi & yhi & zlo
-            if (hi.x == dhi.x+1 and hi.y == dhi.y+1 and lo.z == dlo.z-1) {
-                if (bfhi[0]) {
-                    a(dhi.x+1,dhi.y+1,dlo.z-1) = a(dhi.x-offset,dhi.y+1,dlo.z-1);
-                } else if (bfhi[1]) {
-                    a(dhi.x+1,dhi.y+1,dlo.z-1) = a(dhi.x+1,dhi.y-offset,dlo.z-1);
-                } else if (bflo[2]) {
-                    a(dhi.x+1,dhi.y+1,dlo.z-1) = a(dhi.x+1,dhi.y+1,dlo.z+offset);
+            else if (i == dhi.x+1 and j == dhi.y+1 and k == dlo.z-1 and (bfhi[0] or bfhi[1] or bflo[2]))
+            {
+                if (bfhi[0] and bfhi[1] and bflo[2])
+                {
+                    a(i,j,k) = a(i-1-offset, j-1-offset, k+1+offset);
+                }
+                else if (bfhi[0] and bfhi[1])
+                {
+                    a(i,j,k) = a(i-1-offset, j-1-offset, k);
+                }
+                else if (bfhi[0] and bflo[2])
+                {
+                    a(i,j,k) = a(i-1-offset, j, k+1+offset);
+                }
+                else if (bfhi[1] and bflo[2])
+                {
+                    a(i,j,k) = a(i, j-1-offset, k+1+offset);
+                }
+                else if (bfhi[0])
+                {
+                    a(i,j,k) = a(i-1-offset, j, k);
+                }
+                else if (bfhi[1])
+                {
+                    a(i,j,k) = a(i, j-1-offset, k);
+                }
+                else if (bflo[2])
+                {
+                    a(i,j,k) = a(i, j, k+1+offset);
                 }
             }
-            break;
-        }
-        case 4: {
             // xlo & ylo & zhi
-            if (lo.x == dlo.x-1 and lo.y == dlo.y-1 and hi.z == dhi.z+1) {
-                if (bflo[0]) {
-                    a(dlo.x-1,dlo.y-1,dhi.z+1) = a(dlo.x+offset,dlo.y-1,dhi.z+1);
-                } else if (bflo[1]) {
-                    a(dlo.x-1,dlo.y-1,dhi.z+1) = a(dlo.x-1,dlo.y+offset,dhi.z+1);
-                } else if (bfhi[2]) {
-                    a(dlo.x-1,dlo.y-1,dhi.z+1) = a(dlo.x-1,dlo.y-1,dhi.z-offset);
+            else if (i == dlo.x-1 and j == dlo.y-1 and k == dhi.z+1 and (bflo[0] or bflo[1] or bfhi[2]))
+            {
+                if (bflo[0] and bflo[1] and bfhi[2])
+                {
+                    a(i,j,k) = a(i+1+offset, j+1+offset, k-1-offset);
+                }
+                else if (bflo[0] and bflo[1])
+                {
+                    a(i,j,k) = a(i+1+offset, j+1+offset, k);
+                }
+                else if (bflo[0] and bfhi[2])
+                {
+                    a(i,j,k) = a(i+1+offset, j, k-1-offset);
+                }
+                else if (bflo[1] and bfhi[2])
+                {
+                    a(i,j,k) = a(i, j+1+offset, k-1-offset);
+                }
+                else if (bflo[0])
+                {
+                    a(i,j,k) = a(i+1+offset, j, k);
+                }
+                else if (bflo[1])
+                {
+                    a(i,j,k) = a(i, j+1+offset, k);
+                }
+                else if (bfhi[2])
+                {
+                    a(i,j,k) = a(i, j, k-1-offset);
                 }
             }
-            break;
-        }
-        case 5: {
             // xhi & ylo & zhi
-            if (hi.x == dhi.x+1 and lo.y == dlo.y-1 and hi.z == dhi.z+1) {
-                if (bfhi[0]) {
-                    a(dhi.x+1,dlo.y-1,dhi.z+1) = a(dhi.x-offset,dlo.y-1,dhi.z+1);
-                } else if (bflo[1]) {
-                    a(dhi.x+1,dlo.y-1,dhi.z+1) = a(dhi.x+1,dlo.y+offset,dhi.z+1);
-                } else if (bfhi[2]) {
-                    a(dhi.x+1,dlo.y-1,dhi.z+1) = a(dhi.x+1,dlo.y-1,dhi.z-offset);
+            else if (i == dhi.x+1 and j == dlo.y-1 and k == dhi.z+1 and (bfhi[0] or bflo[1] or bfhi[2]))
+            {
+                if (bfhi[0] and bflo[1] and bfhi[2])
+                {
+                    a(i,j,k) = a(i-1-offset, j+1+offset, k-1-offset);
+                }
+                else if (bfhi[0] and bflo[1])
+                {
+                    a(i,j,k) = a(i-1-offset, j+1+offset, k);
+                }
+                else if (bfhi[0] and bfhi[2])
+                {
+                    a(i,j,k) = a(i-1-offset, j, k-1-offset);
+                }
+                else if (bflo[1] and bfhi[2])
+                {
+                    a(i,j,k) = a(i, j+1+offset, k-1-offset);
+                }
+                else if (bfhi[0])
+                {
+                    a(i,j,k) = a(i-1-offset, j, k);
+                }
+                else if (bflo[1])
+                {
+                    a(i,j,k) = a(i, j+1+offset, k);
+                }
+                else if (bfhi[2])
+                {
+                    a(i,j,k) = a(i, j, k-1-offset);
                 }
             }
-            break;
-        }
-        case 6: {
             // xlo & yhi & zhi
-            if (lo.x == dlo.x-1 and hi.y == dhi.y+1 and hi.z == dhi.z+1) {
-                if (bflo[0]) {
-                    a(dlo.x-1,dhi.y+1,dhi.z+1) = a(dlo.x+offset,dhi.y+1,dhi.z+1);
-                } else if (bfhi[1]) {
-                    a(dlo.x-1,dhi.y+1,dhi.z+1) = a(dlo.x-1,dhi.y-offset,dhi.z+1);
-                } else if (bfhi[2]) {
-                    a(dlo.x-1,dhi.y+1,dhi.z+1) = a(dlo.x-1,dhi.y+1,dhi.z-offset);
+            else if (i == dlo.x-1 and j == dhi.y+1 and k == dhi.z+1 and (bflo[0] or bfhi[1] or bfhi[2]))
+            {
+                if (bflo[0] and bfhi[1] and bfhi[2])
+                {
+                    a(i,j,k) = a(i+1+offset, j-1-offset, k-1-offset);
+                }
+                else if (bflo[0] and bfhi[1])
+                {
+                    a(i,j,k) = a(i+1+offset, j-1-offset, k);
+                }
+                else if (bflo[0] and bfhi[2])
+                {
+                    a(i,j,k) = a(i+1+offset, j, k-1-offset);
+                }
+                else if (bfhi[1] and bfhi[2])
+                {
+                    a(i,j,k) = a(i, j-1-offset, k-1-offset);
+                }
+                else if (bflo[0])
+                {
+                    a(i,j,k) = a(i+1+offset, j, k);
+                }
+                else if (bfhi[1])
+                {
+                    a(i,j,k) = a(i, j-1-offset, k);
+                }
+                else if (bfhi[2])
+                {
+                    a(i,j,k) = a(i, j, k-1-offset);
                 }
             }
-            break;
-        }
-        case 7: {
             // xhi & yhi & zhi
-            if (hi.x == dhi.x+1 and hi.y == dhi.y+1 and hi.z == dhi.z+1) {
-                if (bfhi[0] ) {
-                    a(dhi.x+1,dhi.y+1,dhi.z+1) = a(dhi.x-offset,dhi.y+1,dhi.z+1);
-                } else if (bfhi[1]) {
-                    a(dhi.x+1,dhi.y+1,dhi.z+1) = a(dhi.x+1,dhi.y-offset,dhi.z+1);
-                } else if (bfhi[2]) {
-                    a(dhi.x+1,dhi.y+1,dhi.z+1) = a(dhi.x+1,dhi.y+1,dhi.z-offset);
+            else if (i == dhi.x+1 and j == dhi.y+1 and k == dhi.z+1 and (bfhi[0] or bfhi[1] or bfhi[2]))
+            {
+                if (bfhi[0] and bfhi[1] and bfhi[2])
+                {
+                    a(i,j,k) = a(i-1-offset, j-1-offset, k-1-offset);
+                }
+                else if (bfhi[0] and bfhi[1])
+                {
+                    a(i,j,k) = a(i-1-offset, j-1-offset, k);
+                }
+                else if (bfhi[0] and bfhi[2])
+                {
+                    a(i,j,k) = a(i-1-offset, j, k-1-offset);
+                }
+                else if (bfhi[1] and bfhi[2])
+                {
+                    a(i,j,k) = a(i, j-1-offset, k-1-offset);
+                }
+                else if (bfhi[0])
+                {
+                    a(i,j,k) = a(i-1-offset, j, k);
+                }
+                else if (bfhi[1])
+                {
+                    a(i,j,k) = a(i, j-1-offset, k);
+                }
+                else if (bfhi[2])
+                {
+                    a(i,j,k) = a(i, j, k-1-offset);
                 }
             }
-            break;
-        }
-        default: {}
+            // xlo & ylo
+            else if (i == dlo.x-1 and j == dlo.y-1 and (bflo[0] or bflo[1]))
+            {
+                if (bflo[0] and bflo[1])
+                {
+                    a(i,j,k) = a(i+1+offset, j+1+offset, k);
+                }
+                else if (bflo[0])
+                {
+                    a(i,j,k) = a(i+1+offset, j, k);
+                }
+                else if (bflo[1])
+                {
+                    a(i,j,k) = a(i, j+1+offset, k);
+                }
+            }
+            // xhi & ylo
+            else if (i == dhi.x+1 and j == dlo.y-1 and (bfhi[0] or bflo[1]))
+            {
+                if (bfhi[0] and bflo[1])
+                {
+                    a(i,j,k) = a(i-1-offset, j+1+offset, k);
+                }
+                else if (bfhi[0])
+                {
+                    a(i,j,k) = a(i-1-offset, j, k);
+                }
+                else if (bflo[1])
+                {
+                    a(i,j,k) = a(i, j+1+offset, k);
+                }
+            }
+            // xlo & yhi
+            else if (i == dlo.x-1 and j == dhi.y+1 and (bflo[0] or bfhi[1]))
+            {
+                if (bflo[0] and bfhi[1])
+                {
+                    a(i,j,k) = a(i+1+offset, j-1-offset, k);
+                }
+                else if (bflo[0])
+                {
+                    a(i,j,k) = a(i+1+offset, j, k);
+                }
+                else if (bfhi[1])
+                {
+                    a(i,j,k) = a(i, j-1-offset, k);
+                }
+            }
+            // xhi & yhi
+            else if (i == dhi.x+1 and j == dhi.y+1 and (bfhi[0] or bfhi[1]))
+            {
+                if (bfhi[0] and bfhi[1])
+                {
+                    a(i,j,k) = a(i-1-offset, j-1-offset, k);
+                }
+                else if (bfhi[0])
+                {
+                    a(i,j,k) = a(i-1-offset, j, k);
+                }
+                else if (bfhi[1])
+                {
+                    a(i,j,k) = a(i, j-1-offset, k);
+                }
+            }
+            // xlo & zlo
+            else if (i == dlo.x-1 and k == dlo.z-1 and (bflo[0] or bflo[2]))
+            {
+                if (bflo[0] and bflo[2])
+                {
+                    a(i,j,k) = a(i+1+offset, j, k+1+offset);
+                }
+                else if (bflo[0])
+                {
+                    a(i,j,k) = a(i+1+offset, j, k);
+                }
+                else if (bflo[2])
+                {
+                    a(i,j,k) = a(i, j, k+1+offset);
+                }
+            }
+            // xhi & zlo
+            else if (i == dhi.x+1 and k == dlo.z-1 and (bfhi[0] or bflo[2]))
+            {
+                if (bfhi[0] and bflo[2])
+                {
+                    a(i,j,k) = a(i-1-offset, j, k+1+offset);
+                }
+                else if (bfhi[0])
+                {
+                    a(i,j,k) = a(i-1-offset, j, k);
+                }
+                else if (bflo[2])
+                {
+                    a(i,j,k) = a(i, j, k+1+offset);
+                }
+            }
+            // xlo & zhi
+            else if (i == dlo.x-1 and k == dhi.z+1 and (bflo[0] or bfhi[2]))
+            {
+                if (bflo[0] and bfhi[2])
+                {
+                    a(i,j,k) = a(i+1+offset, j, k-1-offset);
+                }
+                else if (bflo[0])
+                {
+                    a(i,j,k) = a(i+1+offset, j, k);
+                }
+                else if (bfhi[2])
+                {
+                    a(i,j,k) = a(i, j, k-1-offset);
+                }
+            }
+            // xhi & zhi
+            else if (i == dhi.x+1 and k == dhi.z+1 and (bfhi[0] or bfhi[2]))
+            {
+                if (bfhi[0] and bfhi[2])
+                {
+                    a(i,j,k) = a(i-1-offset, j, k-1-offset);
+                }
+                else if (bfhi[0])
+                {
+                    a(i,j,k) = a(i-1-offset, j, k);
+                }
+                else if (bfhi[2])
+                {
+                    a(i,j,k) = a(i, j, k-1-offset);
+                }
+            }
+            // ylo & zlo
+            else if (j == dlo.y-1 and k == dlo.z-1 and (bflo[1] or bflo[2]))
+            {
+                if (bflo[1] and bflo[2])
+                {
+                    a(i,j,k) = a(i, j+1+offset, k+1+offset);
+                }
+                else if (bflo[1])
+                {
+                    a(i,j,k) = a(i, j+1+offset, k);
+                }
+                else if (bflo[2])
+                {
+                    a(i,j,k) = a(i, j, k+1+offset);
+                }
+            }
+            // yhi & zlo
+            else if (j == dhi.y+1 and k == dlo.z-1 and (bfhi[1] or bflo[2]))
+            {
+                if (bfhi[1] and bflo[2])
+                {
+                    a(i,j,k) = a(i, j-1-offset, k+1+offset);
+                }
+                else if (bfhi[1])
+                {
+                    a(i,j,k) = a(i, j-1-offset, k);
+                }
+                else if (bflo[2])
+                {
+                    a(i,j,k) = a(i, j, k+1+offset);
+                }
+            }
+            // ylo & zhi
+            else if (j == dlo.y-1 and k == dhi.z+1 and (bflo[1] or bfhi[2]))
+            {
+                if (bflo[1] and bfhi[2])
+                {
+                    a(i,j,k) = a(i, j+1+offset, k-1-offset);
+                }
+                else if (bflo[1])
+                {
+                    a(i,j,k) = a(i, j+1+offset, k);
+                }
+                else if (bfhi[2])
+                {
+                    a(i,j,k) = a(i, j, k-1-offset);
+                }
+            }
+            // yhi & zhi
+            else if (j == dhi.y+1 and k == dhi.z+1 and (bfhi[1] or bfhi[2]))
+            {
+                if (bfhi[1] and bfhi[2])
+                {
+                    a(i,j,k) = a(i, j-1-offset, k-1-offset);
+                }
+                else if (bfhi[1])
+                {
+                    a(i,j,k) = a(i, j-1-offset, k);
+                }
+                else if (bfhi[2])
+                {
+                    a(i,j,k) = a(i, j, k-1-offset);
+                }
+            }
+            else if (i == dlo.x-1 and bflo[0])
+            {
+                a(i,j,k) = a(i+1+offset, j, k);
+            }
+            else if (i == dhi.x+1 and bfhi[0])
+            {
+                a(i,j,k) = a(i-1-offset, j, k);
+            }
+            else if (j == dlo.y-1 and bflo[1])
+            {
+                a(i,j,k) = a(i, j+1+offset, k);
+            }
+            else if (j == dhi.y+1 and bfhi[1])
+            {
+                a(i,j,k) = a(i, j-1-offset, k);
+            }
+            else if (k == dlo.z-1 and bflo[2])
+            {
+                a(i,j,k) = a(i, j, k+1+offset);
+            }
+            else if (k == dhi.z+1 and bfhi[2])
+            {
+                a(i,j,k) = a(i, j, k-1-offset);
+            }
         }
     });
 }

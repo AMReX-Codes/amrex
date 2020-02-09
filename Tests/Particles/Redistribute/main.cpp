@@ -379,14 +379,16 @@ void testRedistribute ()
     int npc = params.num_ppc;
     IntVect nppc = IntVect(AMREX_D_DECL(npc, npc, npc));
 
-    if (ParallelDescriptor::MyProc() == ParallelDescriptor::IOProcessor())
-        amrex::Print() << "About to initialize particles \n";
+    amrex::Print() << "About to initialize particles \n";
 
     pc.InitParticles(nppc);
 
     pc.checkAnswer();
 
     auto np_old = pc.TotalNumberOfParticles();
+
+    Gpu::DeviceVector<int> vecy = {1, 2, 3};
+    Gpu::HostVector<int> asdf = {1, 2, 3};
     
     for (int i = 0; i < params.nsteps; ++i)
     {

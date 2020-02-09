@@ -10,9 +10,21 @@
 #include <AMReX_Array4.H>
 #include <iostream>
 #include <cmath>
+
 #ifdef AMREX_USE_CUDA
 #include <cuda.h>
-#include <curand_kernel.h>
+#include <curand_kernel.h>   // Is this needed here?
+#endif
+
+
+#ifdef AMREX_USE_HIP
+// HIP FIX HERE - hand made long __shfl_down through double casting.
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+long __shfl_down(long var, unsigned int offset, int warpSize = amrex::Gpu::Device::warp_size)
+{
+    double d = __shfl_down(*((double*)(&var)), offset, warpSize);
+    return *((long*)(&d));
+}
 #endif
 
 namespace amrex {
@@ -53,7 +65,7 @@ namespace Gpu {
     inline bool isDevicePtr (void const* p) noexcept {
 #if defined(AMREX_USE_HIP)
         hipPointerAttribute_t attrib;
-        // const_cast: earlier versions of hip have a bug
+        // HIP FIX HERE: const_cast: earlier versions of hip have a bug
         hipError_t r = hipPointerGetAttributes(&attrib, const_cast<void*>(p));
         return r == hipSuccess && attrib.memoryType == hipMemoryTypeDevice;
 #elif defined(AMREX_USE_CUDA)
@@ -70,7 +82,7 @@ namespace Gpu {
     inline bool isPinnedPtr (void const* p) noexcept {
 #if defined(AMREX_USE_HIP)
         hipPointerAttribute_t attrib;
-        // const_cast: earlier versions of hip have a bug
+        // HIP FIX HERE: const_cast: earlier versions of hip have a bug
         hipError_t r = hipPointerGetAttributes(&attrib, const_cast<void*>(p));
         return r == hipSuccess && attrib.memoryType == hipMemoryTypeHost;
 #elif defined(AMREX_USE_CUDA)
@@ -90,7 +102,7 @@ namespace Gpu {
             return true;
         } else {
             hipPointerAttribute_t attrib;
-            // const_cast: earlier versions of hip have a bug
+            // HIP FIX HERE: const_cast: earlier versions of hip have a bug
             hipError_t r = hipPointerGetAttributes(&attrib, const_cast<void*>(p));
             return r == hipSuccess &&
                 (attrib.memoryType == hipMemoryTypeHost   ||

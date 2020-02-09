@@ -158,6 +158,22 @@ FabArrayBase::FabArrayBase ()
 {
 }
 
+FabArrayBase::FabArrayBase (const BoxArray&            bxs,
+                            const DistributionMapping& dm,
+                            int                        nvar,
+                            int                        ngrow)
+    : FabArrayBase(bxs,dm,nvar,IntVect(ngrow))
+{}
+
+FabArrayBase::FabArrayBase (const BoxArray&            bxs,
+                            const DistributionMapping& dm,
+                            int                        nvar,
+                            const IntVect&             ngrow)
+{
+    define(bxs,dm,nvar,ngrow);
+    m_bdkey = getBDKey();
+}
+
 FabArrayBase::~FabArrayBase () {}
 
 void
@@ -1280,7 +1296,6 @@ Box
 FabArrayBase::CFinfo::Domain (const Geometry& geom, const IntVect& ng,
                               bool include_periodic, bool include_physbndry)
 {
-#if !defined(BL_NO_FORT)
     Box bx = geom.Domain();
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         if (geom.isPeriodic(idim)) {
@@ -1294,9 +1309,6 @@ FabArrayBase::CFinfo::Domain (const Geometry& geom, const IntVect& ng,
         }
     }
     return bx;
-#else
-    return Box();
-#endif
 }
 
 long

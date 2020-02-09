@@ -159,7 +159,7 @@ T PrefixSum (int n, FIN && fin, FOUT && fout, Type type)
         }
     });
 
-    amrex::launch_global<<<nblocks, nthreads, sm, stream>>>(
+    AMREX_LAUNCH_KERNEL(nblocks, nthreads, sm, stream, 
     [=] AMREX_GPU_DEVICE () noexcept
     {
         int lane = threadIdx.x % Gpu::Device::warp_size;
@@ -212,7 +212,8 @@ T PrefixSum (int n, FIN && fin, FOUT && fout, Type type)
             T x = x0;
             // Scan within a warp
             for (int i = 1; i <= Gpu::Device::warp_size; i *= 2) {
-                T s = __shfl_up_sync(0xffffffff, x, i);
+                AMREX_HIP_OR_CUDA( T s = __shfl_up(x,i);,
+                                   T s = __shfl_up_sync(0xffffffff, x, i); );
                 if (lane >= i) x += s;
             }
 
@@ -230,9 +231,11 @@ T PrefixSum (int n, FIN && fin, FOUT && fout, Type type)
             // participate.
             if (warp == 0 && lane < nwarps) {
                 T y = shared[lane];
-                int mask = (1 << nwarps) - 1;
+                AMREX_HIP_OR_CUDA( long mask = (1 << nwarps) - 1;,
+                                   int  mask = (1 << nwarps) - 1; );
                 for (int i = 1; i <= nwarps; i *= 2) {
-                    T s = __shfl_up_sync(mask, y, i, nwarps);
+                    AMREX_HIP_OR_CUDA( T s = __shfl_up(y, i, nwarps);,
+                                       T s = __shfl_up_sync(mask, y, i, nwarps); );
                     if (lane >= i) y += s;
                 }
 
@@ -282,7 +285,8 @@ T PrefixSum (int n, FIN && fin, FOUT && fout, Type type)
 
                     T x = stva.value;
 
-                    unsigned const status_bf = __ballot_sync(0xffffffff, stva.status == 'p');
+                    AMREX_HIP_OR_CUDA( uint64_t const status_bf = __ballot(stva.status == 'p');,
+                                       unsigned const status_bf = __ballot_sync(0xffffffff, stva.status == 'p'); );
                     bool stop_lookback = status_bf & 0x1u;
                     if (stop_lookback == false) {
                         if (status_bf != 0) {
@@ -300,7 +304,8 @@ T PrefixSum (int n, FIN && fin, FOUT && fout, Type type)
                         }
 
                         for (int i = Gpu::Device::warp_size/2; i > 0; i /= 2) {
-                            x += __shfl_down_sync(0xffffffff, x, i);
+                            AMREX_HIP_OR_CUDA( x += __shfl_down(x,i);,
+                                               x += __shfl_down_sync(0xffffffff, x, i); );
                         }
                     }
 
@@ -363,6 +368,47 @@ T ExclusiveSum (N n, T const* in, T * out)
 }
 
 #endif
+
+}
+
+namespace Gpu
+{
+    template<class InIter, class OutIter>
+    OutIter inclusive_scan (InIter begin, InIter end, OutIter result)
+    {
+#ifdef AMREX_USE_GPU
+        auto N = std::distance(begin, end);
+        Scan::InclusiveSum(N, &(*begin), &(*result));
+        OutIter result_end = result;
+        std::advance(result_end, N);
+        return result_end;
+#else
+        return std::partial_sum(begin, end, result);
+#endif
+    }
+
+    template<class InIter, class OutIter>
+    OutIter exclusive_scan(InIter begin, InIter end, OutIter result)
+    {
+#ifdef AMREX_USE_GPU
+        auto N = std::distance(begin, end);
+        Scan::ExclusiveSum(N, &(*begin), &(*result));
+        OutIter result_end = result;
+        std::advance(result_end, N);
+        return result_end;
+#else
+        if (begin == end) return result;
+        
+        typename std::iterator_traits<InIter>::value_type sum = *begin;
+        *result++ = sum - *begin;
+        
+        while (++begin != end) {
+            sum = std::move(sum) + *begin;
+            *result++ = sum - *begin;
+        }
+        return ++result;
+#endif
+    }
 
 }}
 
