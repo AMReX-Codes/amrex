@@ -86,6 +86,21 @@ namespace amrex
         : std::true_type {};
 #endif
 #endif
+
+    template <typename T, typename U1, typename... Us>
+    struct Same;
+
+    template <typename T, typename U>
+    struct Same<T,U>
+    {
+        static constexpr bool value = std::is_same<T,U>::value;
+    };
+
+    template <typename T, typename U1, typename... Us>
+    struct Same
+    {
+        static constexpr bool value = std::is_same<T,U1>::value and Same<T,Us...>::value;
+    };
 }
 
 #endif
