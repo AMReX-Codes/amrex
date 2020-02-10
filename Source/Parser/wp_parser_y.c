@@ -97,7 +97,6 @@ wp_parser_new (void)
 {
     struct wp_parser* my_parser = (struct wp_parser*) malloc(sizeof(struct wp_parser));
 
-    my_parser->nvars = 0;
     my_parser->sz_mempool = wp_ast_size(wp_root);
     my_parser->p_root = malloc(my_parser->sz_mempool);
     my_parser->p_free = my_parser->p_root;
@@ -143,7 +142,6 @@ struct wp_parser*
 wp_parser_dup (struct wp_parser* source)
 {
     struct wp_parser* dest = (struct wp_parser*) malloc(sizeof(struct wp_parser));
-    dest->nvars = source->nvars;
     dest->sz_mempool = source->sz_mempool;
     dest->p_root = malloc(dest->sz_mempool);
     dest->p_free = dest->p_root;
@@ -1102,14 +1100,12 @@ void
 wp_parser_regvar (struct wp_parser* parser, char const* name, amrex_real* p)
 {
     wp_ast_regvar(parser->ast, name, p);
-    ++(parser->nvars);
 }
 
 void
 wp_parser_regvar_gpu (struct wp_parser* parser, char const* name, int i)
 {
     wp_ast_regvar_gpu(parser->ast, name, i);
-    ++(parser->nvars);
 }
 
 void
