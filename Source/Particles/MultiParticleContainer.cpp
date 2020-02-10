@@ -130,12 +130,12 @@ MultiParticleContainer::ReadParameters ()
                                       str_Bz_ext_particle_function);
 
            // Parser for B_external on the particle
-           m_Bx_particle_parser.reset(new ParserWrapper(
-                                    makeParser(str_Bx_ext_particle_function)));
-           m_By_particle_parser.reset(new ParserWrapper(
-                                    makeParser(str_By_ext_particle_function)));
-           m_Bz_particle_parser.reset(new ParserWrapper(
-                                    makeParser(str_Bz_ext_particle_function)));
+           m_Bx_particle_parser.reset(new ParserWrapper<4>(
+                                    makeParser(str_Bx_ext_particle_function,{"x","y","z","t"})));
+           m_By_particle_parser.reset(new ParserWrapper<4>(
+                                    makeParser(str_By_ext_particle_function,{"x","y","z","t"})));
+           m_Bz_particle_parser.reset(new ParserWrapper<4>(
+                                    makeParser(str_Bz_ext_particle_function,{"x","y","z","t"})));
 
         }
 
@@ -155,12 +155,12 @@ MultiParticleContainer::ReadParameters ()
            Store_parserString(pp, "Ez_external_particle_function(x,y,z,t)",
                                       str_Ez_ext_particle_function);
            // Parser for E_external on the particle
-           m_Ex_particle_parser.reset(new ParserWrapper(
-                                    makeParser(str_Ex_ext_particle_function)));
-           m_Ey_particle_parser.reset(new ParserWrapper(
-                                    makeParser(str_Ey_ext_particle_function)));
-           m_Ez_particle_parser.reset(new ParserWrapper(
-                                    makeParser(str_Ez_ext_particle_function)));
+           m_Ex_particle_parser.reset(new ParserWrapper<4>(
+                                    makeParser(str_Ex_ext_particle_function,{"x","y","z","t"})));
+           m_Ey_particle_parser.reset(new ParserWrapper<4>(
+                                    makeParser(str_Ey_ext_particle_function,{"x","y","z","t"})));
+           m_Ez_particle_parser.reset(new ParserWrapper<4>(
+                                    makeParser(str_Ez_ext_particle_function,{"x","y","z","t"})));
 
         }
 

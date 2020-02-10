@@ -27,6 +27,7 @@ WarpXParser::define (std::string const& func_body)
 
     int nthreads = omp_get_max_threads();
     m_variables.resize(nthreads);
+    m_varnames.resize(nthreads);
     m_parser.resize(nthreads);
     m_parser[0] = wp_c_parser_new(f.c_str());
 #pragma omp parallel
@@ -53,6 +54,7 @@ void
 WarpXParser::clear ()
 {
     m_expression.clear();
+    m_varnames.clear();
 
 #ifdef _OPENMP
 
@@ -80,8 +82,10 @@ WarpXParser::registerVariable (std::string const& name, amrex::Real& var)
     // We assume this is called inside OMP parallel region
 #ifdef _OPENMP
     wp_parser_regvar(m_parser[omp_get_thread_num()], name.c_str(), &var);
+    m_varnames[omp_get_thread_num()].push_back(name);
 #else
     wp_parser_regvar(m_parser, name.c_str(), &var);
+    m_varnames.push_back(name);
 #endif
 }
 
@@ -98,6 +102,7 @@ WarpXParser::registerVariables (std::vector<std::string> const& names)
         auto& v = m_variables[tid];
         for (int j = 0; j < names.size(); ++j) {
             wp_parser_regvar(p, names[j].c_str(), &(v[j]));
+            m_varnames[tid].push_back(names[j]);
         }
     }
 
@@ -105,6 +110,7 @@ WarpXParser::registerVariables (std::vector<std::string> const& names)
 
     for (int j = 0; j < names.size(); ++j) {
         wp_parser_regvar(m_parser, names[j].c_str(), &(m_variables[j]));
+        m_varnames.push_back(names[j]);
     }
 
 #endif

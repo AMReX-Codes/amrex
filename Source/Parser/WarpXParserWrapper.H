@@ -18,24 +18,16 @@
  *  in a safe way. The ParserWrapper struct is used to avoid memory leak
  *  in the EB parser functions.
  */
+template <int N>
 struct ParserWrapper
-    : public amrex::Gpu::Managed
+    : public amrex::Gpu::Managed, public GpuParser<N>
 {
-    ParserWrapper (WarpXParser const& a_parser) noexcept
-       : m_parser(a_parser) {}
+    using GpuParser<N>::GpuParser;
 
-    ~ParserWrapper() {
-       m_parser.clear();
-    }
+    ParserWrapper (ParserWrapper<N> const&) = delete;
+    void operator= (ParserWrapper<N> const&) = delete;
 
-    AMREX_GPU_HOST_DEVICE
-    amrex::Real
-    getField (amrex::Real x, amrex::Real y, amrex::Real z, amrex::Real t=0.0) const noexcept
-    {
-        return m_parser(x,y,z,t);
-    }
-
-    GpuParser m_parser;
+    ~ParserWrapper() { GpuParser<N>::clear(); }
 };
 
 #endif

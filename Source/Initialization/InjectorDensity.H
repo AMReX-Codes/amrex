@@ -45,7 +45,7 @@ struct InjectorDensityParser
     }
 
     // InjectorDensityParser constructs this GpuParser from WarpXParser.
-    GpuParser m_parser;
+    GpuParser<3> m_parser;
 };
 
 // struct whose getDensity returns local density computed from predefined profile.
@@ -151,8 +151,6 @@ struct InjectorDensity
     void operator= (InjectorDensity &&) = delete;
 
     ~InjectorDensity ();
-
-    std::size_t sharedMemoryNeeded () const noexcept;
 
     // call getDensity from the object stored in the union
     // (the union is called Object, and the instance is called object).

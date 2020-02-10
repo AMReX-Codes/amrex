@@ -146,6 +146,7 @@ struct wp_parser {
     void* p_free;
     struct wp_node* ast;
     size_t sz_mempool;
+    int nvars;
 };
 
 struct wp_parser* wp_parser_new (void);

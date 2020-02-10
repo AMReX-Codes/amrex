@@ -23,15 +23,9 @@ extern "C" {
 
 AMREX_GPU_HOST_DEVICE
 inline amrex_real
-wp_ast_eval (struct wp_node* node)
+wp_ast_eval (struct wp_node* node, amrex_real const* x)
 {
     amrex_real result;
-
-#ifdef AMREX_DEVICE_COMPILE
-    extern __shared__ amrex_real extern_xyz[];
-    int tid = threadIdx.x + threadIdx.y*blockDim.x + threadIdx.z*(blockDim.x*blockDim.y);
-    amrex_real* x = extern_xyz + tid*4; // parser assumes 4 independent variables (x,y,z,t)
-#endif
 
     switch (node->type)
     {
@@ -52,40 +46,40 @@ wp_ast_eval (struct wp_node* node)
     }
     case WP_ADD:
     {
-        result = wp_ast_eval(node->l) + wp_ast_eval(node->r);
+        result = wp_ast_eval(node->l,x) + wp_ast_eval(node->r,x);
         break;
     }
     case WP_SUB:
     {
-        result = wp_ast_eval(node->l) - wp_ast_eval(node->r);
+        result = wp_ast_eval(node->l,x) - wp_ast_eval(node->r,x);
         break;
     }
     case WP_MUL:
     {
-        result = wp_ast_eval(node->l) * wp_ast_eval(node->r);
+        result = wp_ast_eval(node->l,x) * wp_ast_eval(node->r,x);
         break;
     }
     case WP_DIV:
     {
-        result = wp_ast_eval(node->l) / wp_ast_eval(node->r);
+        result = wp_ast_eval(node->l,x) / wp_ast_eval(node->r,x);
         break;
     }
     case WP_NEG:
     {
-        result = -wp_ast_eval(node->l);
+        result = -wp_ast_eval(node->l,x);
         break;
     }
     case WP_F1:
     {
         result = wp_call_f1(((struct wp_f1*)node)->ftype,
-                wp_ast_eval(((struct wp_f1*)node)->l));
+                wp_ast_eval(((struct wp_f1*)node)->l,x));
         break;
     }
     case WP_F2:
     {
         result = wp_call_f2(((struct wp_f2*)node)->ftype,
-                wp_ast_eval(((struct wp_f2*)node)->l),
-                wp_ast_eval(((struct wp_f2*)node)->r));
+                wp_ast_eval(((struct wp_f2*)node)->l,x),
+                wp_ast_eval(((struct wp_f2*)node)->r,x));
         break;
     }
     case WP_ADD_VP:

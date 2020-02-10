@@ -223,13 +223,13 @@ public:
     amrex::Vector<amrex::Real> m_B_external_particle;
     amrex::Vector<amrex::Real> m_E_external_particle;
     // ParserWrapper for B_external on the particle
-    std::unique_ptr<ParserWrapper> m_Bx_particle_parser;
-    std::unique_ptr<ParserWrapper> m_By_particle_parser;
-    std::unique_ptr<ParserWrapper> m_Bz_particle_parser;
+    std::unique_ptr<ParserWrapper<4> > m_Bx_particle_parser;
+    std::unique_ptr<ParserWrapper<4> > m_By_particle_parser;
+    std::unique_ptr<ParserWrapper<4> > m_Bz_particle_parser;
     // ParserWrapper for E_external on the particle
-    std::unique_ptr<ParserWrapper> m_Ex_particle_parser;
-    std::unique_ptr<ParserWrapper> m_Ey_particle_parser;
-    std::unique_ptr<ParserWrapper> m_Ez_particle_parser;
+    std::unique_ptr<ParserWrapper<4> > m_Ex_particle_parser;
+    std::unique_ptr<ParserWrapper<4> > m_Ey_particle_parser;
+    std::unique_ptr<ParserWrapper<4> > m_Ez_particle_parser;
 
 
 protected:

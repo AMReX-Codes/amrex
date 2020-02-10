@@ -83,15 +83,6 @@ public:
     InjectorDensity*  getInjectorDensity ();
     InjectorMomentum* getInjectorMomentum ();
 
-    // When running on GPU, injector for position, momentum and density store
-    // particle 3D positions in shared memory IF using the parser.
-    std::size_t
-    sharedMemoryNeeded () const noexcept {
-        return amrex::max(inj_pos->sharedMemoryNeeded(),
-                          inj_rho->sharedMemoryNeeded(),
-                          inj_mom->sharedMemoryNeeded());
-    }
-
 protected:
 
     amrex::Real mass, charge;
