@@ -8,23 +8,11 @@ to use yt within a `Jupyter notebook <http://jupyter.org/>`__.
 Installation
 ------------
 
-From the terminal:
+From the terminal, install the latest version of yt:
 
 ::
 
-    pip install yt jupyter
-
-or with the `Anaconda distribution <https://anaconda.org/>`__ of python (recommended):
-
-::
-
-    conda install -c conda-forge yt
-
-The latest version of `yt` can be required for advanced options (e.g., rigid
-injection for particles). To built `yt` directly from source, you can use
-
-::
-
+    pip install cython
     pip install git+https://github.com/yt-project/yt.git
 
 
