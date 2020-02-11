@@ -138,6 +138,7 @@ struct ParticleCopyPlan
             {
                 int gid = kv.first.first;
                 int num_copies = op.numCopies(gid, lev);
+                if (num_copies == 0) continue;
                 m_dst_indices[lev][gid].resize(num_copies);
             
                 auto p_boxes = op.m_boxes[lev].at(gid).dataPtr();
@@ -234,6 +235,7 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
             const auto ptd = src_tile.getConstParticleTileData();
             
             int num_copies = op.numCopies(gid, lev);
+            if (num_copies == 0) continue;
             
             auto p_boxes = op.m_boxes[lev].at(gid).dataPtr();
             auto p_levels = op.m_levels[lev].at(gid).dataPtr();
