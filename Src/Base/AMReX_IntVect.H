@@ -79,13 +79,13 @@ public:
     * coordinates.  AMREX_D_DECL is a macro that sets the constructor
     * to take AMREX_SPACEDIM arguments.
     */
-    AMREX_GPU_HOST_DEVICE
-    constexpr IntVect (AMREX_D_DECL(int i, int j, int k)) noexcept : vect{AMREX_D_DECL(i,j,k)} {}
-
 #if (AMREX_SPACEDIM > 1)
     AMREX_GPU_HOST_DEVICE
-    explicit constexpr IntVect (int i) noexcept : vect{AMREX_D_DECL(i,i,i)} {}
+    constexpr IntVect (AMREX_D_DECL(int i, int j, int k)) noexcept : vect{AMREX_D_DECL(i,j,k)} {}
 #endif
+
+    AMREX_GPU_HOST_DEVICE
+    explicit constexpr IntVect (int i) noexcept : vect{AMREX_D_DECL(i,i,i)} {}
 
     /**
     * \brief Construct an IntVect setting the coordinates to the
