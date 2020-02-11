@@ -209,7 +209,7 @@ namespace Gpu {
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         void Add (T* sum, T value) noexcept
         {
-#ifdef AMREX_DEVICE_COMPILE
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
             atomicAdd(sum, value);
 #else
             *sum += value;
@@ -219,7 +219,7 @@ namespace Gpu {
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         void Add (long* sum, long value) noexcept
         {
-#ifdef AMREX_DEVICE_COMPILE
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
             atomicAdd((unsigned long long*)sum, static_cast<unsigned long long>(value));
 #else
             *sum += value;
@@ -230,7 +230,7 @@ namespace Gpu {
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         void Min (T* m, T value) noexcept
         {
-#ifdef AMREX_DEVICE_COMPILE
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
             detail::atomicMin(m, value);
 #else
             *m = (*m) < value ? (*m) : value;
@@ -240,7 +240,7 @@ namespace Gpu {
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         void Min (int* m, int value) noexcept
         {
-#ifdef AMREX_DEVICE_COMPILE
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
             atomicMin(m, value);
 #else
             *m = (*m) < value ? (*m) : value;
@@ -250,7 +250,7 @@ namespace Gpu {
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         void Min (unsigned int* m, unsigned int value) noexcept
         {
-#ifdef AMREX_DEVICE_COMPILE
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
             atomicMin(m, value);
 #else
             *m = (*m) < value ? (*m) : value;
@@ -260,7 +260,7 @@ namespace Gpu {
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         void Min (unsigned long long int* m, unsigned long long int value) noexcept
         {
-#ifdef AMREX_DEVICE_COMPILE
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
             atomicMin(m, value);
 #else
             *m = (*m) < value ? (*m) : value;
@@ -271,7 +271,7 @@ namespace Gpu {
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         void Max (T* m, T value) noexcept
         {
-#ifdef AMREX_DEVICE_COMPILE
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
             detail::atomicMax(m, value);
 #else
             *m = (*m) > value ? (*m) : value;
@@ -281,7 +281,7 @@ namespace Gpu {
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         void Max (int* m, int value) noexcept
         {
-#ifdef AMREX_DEVICE_COMPILE
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
             atomicMax(m, value);
 #else
             *m = (*m) > value ? (*m) : value;
@@ -291,7 +291,7 @@ namespace Gpu {
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         void Max (unsigned int* m, unsigned int value) noexcept
         {
-#ifdef AMREX_DEVICE_COMPILE
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
             atomicMax(m, value);
 #else
             *m = (*m) > value ? (*m) : value;
@@ -301,7 +301,7 @@ namespace Gpu {
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         void Max (unsigned long long int* m, unsigned long long int value) noexcept
         {
-#ifdef AMREX_DEVICE_COMPILE
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
             atomicMax(m, value);
 #else
             *m = (*m) > value ? (*m) : value;
@@ -311,7 +311,7 @@ namespace Gpu {
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         void LogicalOr (int* m, int value) noexcept
         {
-#ifdef AMREX_DEVICE_COMPILE
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
             atomicOr(m, value);
 #else
             *m = (*m) || value; 
@@ -321,7 +321,7 @@ namespace Gpu {
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         void LogicalAnd (int* m, int value) noexcept
         {
-#ifdef AMREX_DEVICE_COMPILE
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
             atomicAnd(m, value ? ~0x0 : 0);
 #else
             *m = (*m) && value; 
@@ -331,7 +331,7 @@ namespace Gpu {
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         unsigned int Inc (unsigned int* m, unsigned int value) noexcept
         {
-#ifdef AMREX_DEVICE_COMPILE
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
             return atomicInc(m, value);
 #else
             return (*m)++;
@@ -341,7 +341,7 @@ namespace Gpu {
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         unsigned int Dec (unsigned int* m, unsigned int value) noexcept
         {
-#ifdef AMREX_DEVICE_COMPILE
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
             return atomicDec(m, value);
 #else
             return (*m)--;
@@ -350,7 +350,7 @@ namespace Gpu {
 
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         int Exch (int* address, int val) noexcept {
-#ifdef AMREX_DEVICE_COMPILE
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
             return atomicExch(address, val);
 #else
             int old = *address;
@@ -362,7 +362,7 @@ namespace Gpu {
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         int CAS (int* address, int compare, int val) noexcept
         {
-#ifdef AMREX_DEVICE_COMPILE
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
             return atomicCAS(address, compare, val);
 #else
             int old = *address;
@@ -376,7 +376,7 @@ namespace Gpu {
                           unsigned int compare,
                           unsigned int val) noexcept
         {
-#ifdef AMREX_DEVICE_COMPILE
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
             return atomicCAS(address, compare, val);
 #else
             unsigned int old = *address;
@@ -390,7 +390,7 @@ namespace Gpu {
                                     unsigned long long int compare,
                                     unsigned long long int val) noexcept
         {
-#ifdef AMREX_DEVICE_COMPILE
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
             return atomicCAS(address, compare, val);
 #else
             unsigned long long int old = *address;
@@ -404,7 +404,7 @@ namespace Gpu {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool isnan (T m) noexcept
     {
-#ifdef AMREX_DEVICE_COMPILE
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
         return ::isnan(m);
 #else
         return std::isnan(m);
@@ -415,7 +415,7 @@ namespace Gpu {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool isinf (T m) noexcept
     {
-#ifdef AMREX_DEVICE_COMPILE
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
         return ::isinf(m);
 #else
         return std::isinf(m);
@@ -480,7 +480,7 @@ namespace HostDevice { namespace Atomic {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void Add (T* sum, T value) noexcept
     {
-#ifdef AMREX_DEVICE_COMPILE
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
         Gpu::Atomic::Add(sum,value);
 #else
 #ifdef _OPENMP
