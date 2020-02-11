@@ -80,7 +80,7 @@ yyerror (char const *s, ...)
 {
     va_list vl;
     va_start(vl, s);
-#ifdef AMREX_DEVICE_COMPILE
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
     printf(s,"\n");
     assert(0);
 #else
