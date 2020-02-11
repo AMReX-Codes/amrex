@@ -9,6 +9,27 @@ void launch (T const& n, L&& f, std::size_t shared_mem_bytes=0) noexcept
     if (amrex::isEmpty(n)) return;
     const auto ec = Gpu::ExecutionConfig(n);
     std::size_t sm = std::max(ec.sharedMem, shared_mem_bytes);
+#ifdef AMREX_USE_DPCPP
+    // If we are on default queue, block all other streams
+    if (Gpu::onNullStream()) Gpu::nonNullStreamSynchronize();
+    int nthreads_per_block = ec.numThreads.x;
+    int nthreads_total = nthreads_per_block * ec.numBlocks.x;
+    auto& q = Gpu::Device::streamQueue();
+    try {
+        q.submit([&] (sycl::handler& h) {
+            h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
+                                             sycl::range<1>(nthreads_per_block)),
+            [=] (sycl::nd_item<1> item)
+            {
+                for (auto const i : Gpu::Range(n,item)) {
+                    f(i);
+                }
+            });
+        });
+    } catch (sycl::exception const& ex) {
+        amrex::Abort(ex.what());
+    }
+#else
     AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, sm, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
         for (auto const i : Gpu::Range(n)) {
@@ -16,6 +37,7 @@ void launch (T const& n, L&& f, std::size_t shared_mem_bytes=0) noexcept
         }
     });
     AMREX_GPU_ERROR_CHECK();
+#endif
 }
 
 template <typename T, typename L, typename M=amrex::EnableIf_t<std::is_integral<T>::value> >
@@ -24,18 +46,37 @@ void For (T n, L&& f, std::size_t shared_mem_bytes=0) noexcept
     if (amrex::isEmpty(n)) return;
     const auto ec = Gpu::ExecutionConfig(n);
     std::size_t sm = std::max(ec.sharedMem, shared_mem_bytes);
+#ifdef AMREX_USE_DPCPP
+    // If we are on default queue, block all other streams
+    if (Gpu::onNullStream()) Gpu::nonNullStreamSynchronize();
+    int nthreads_per_block = ec.numThreads.x;
+    int nthreads_total = nthreads_per_block * ec.numBlocks.x;
+    auto& q = Gpu::Device::streamQueue();
+    try {
+        q.submit([&] (sycl::handler& h) {
+            h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
+                                             sycl::range<1>(nthreads_per_block)),
+            [=] (sycl::nd_item<1> item)
+            {
+                for (T i = item.get_global_id(0), stride = item.get_global_range(0);
+                     i < n; i += stride) {
+                    f(i);
+                }
+            });
+        });
+    } catch (sycl::exception const& ex) {
+        amrex::Abort(ex.what());
+    }
+#else
     AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, sm, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
-#ifdef AMREX_USE_DPCPP
-        // xxxxx DPCPP todo
-#else
         for (T i = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
              i < n; i += stride) {
             f(i);
         }
-#endif
     });
     AMREX_GPU_ERROR_CHECK();
+#endif
 }
 
 template <typename T, typename L, typename M=amrex::EnableIf_t<std::is_integral<T>::value> >
@@ -54,18 +95,19 @@ void For (Box const& box, L&& f, std::size_t shared_mem_bytes=0) noexcept
     const auto ec = Gpu::ExecutionConfig(ncells);
     std::size_t sm = std::max(ec.sharedMem, shared_mem_bytes);
 #ifdef AMREX_USE_DPCPP
-    if (Gpu::onNullStream()) Gpu::nonNullStreamSynchronize();
     // If we are on default queue, block all other streams
-    int block_dim = ec.numThreads.x;
-    int grid_dim = (ncells+block_dim-1)/block_dim;
-    int nthreads = grid_dim * block_dim;
+    if (Gpu::onNullStream()) Gpu::nonNullStreamSynchronize();
+    int nthreads_per_block = ec.numThreads.x;
+    int nthreads_total = nthreads_per_block * ec.numBlocks.x;
     auto& q = Gpu::Device::streamQueue();
     try {
         q.submit([&] (sycl::handler& h) {
-            h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads),sycl::range<1>(block_dim)),
+            h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
+                                             sycl::range<1>(nthreads_per_block)),
             [=] (sycl::nd_item<1> item)
             {
-                for (int icell = item.get_global_id(0); icell < ncells; icell += nthreads) {
+                for (int icell = item.get_global_id(0), stride = item.get_global_range(0);
+                     icell < ncells; icell += stride) {
                     int k =  icell /   (len.x*len.y);
                     int j = (icell - k*(len.x*len.y)) /   len.x;
                     int i = (icell - k*(len.x*len.y)) - j*len.x;
@@ -93,8 +135,8 @@ void For (Box const& box, L&& f, std::size_t shared_mem_bytes=0) noexcept
             f(i,j,k);
         }
     });
-#endif
     AMREX_GPU_ERROR_CHECK();
+#endif
 }
 
 template <typename L>
@@ -112,11 +154,38 @@ void For (Box const& box, T ncomp, L&& f, std::size_t shared_mem_bytes=0) noexce
     const auto len = amrex::length(box);
     const auto ec = Gpu::ExecutionConfig(ncells);
     std::size_t sm = std::max(ec.sharedMem, shared_mem_bytes);
+#ifdef AMREX_USE_DPCPP
+    // If we are on default queue, block all other streams
+    if (Gpu::onNullStream()) Gpu::nonNullStreamSynchronize();
+    int nthreads_per_block = ec.numThreads.x;
+    int nthreads_total = nthreads_per_block * ec.numBlocks.x;
+    auto& q = Gpu::Device::streamQueue();
+    try {
+        q.submit([&] (sycl::handler& h) {
+            h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
+                                             sycl::range<1>(nthreads_per_block)),
+            [=] (sycl::nd_item<1> item)
+            {
+                for (int icell = item.get_global_id(0), stride = item.get_global_range(0);
+                     icell < ncells; icell += stride) {
+                    int k =  icell /   (len.x*len.y);
+                    int j = (icell - k*(len.x*len.y)) /   len.x;
+                    int i = (icell - k*(len.x*len.y)) - j*len.x;
+                    i += lo.x;
+                    j += lo.y;
+                    k += lo.z;
+                    for (T n = 0; n < ncomp; ++n) {
+                        f(i,j,k,n);
+                    }
+                }
+            });
+        });
+    } catch (sycl::exception const& ex) {
+        amrex::Abort(ex.what());
+    }
+#else
     AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, sm, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
-#ifdef AMREX_USE_DPCPP
-        // xxxxx DPCPP todo
-#else
         for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
              icell < ncells; icell += stride) {
             int k =  icell /   (len.x*len.y);
@@ -129,9 +198,9 @@ void For (Box const& box, T ncomp, L&& f, std::size_t shared_mem_bytes=0) noexce
                 f(i,j,k,n);
             }
         }
-#endif
     });
     AMREX_GPU_ERROR_CHECK();
+#endif
 }
 
 template <typename T, typename L, typename M=amrex::EnableIf_t<std::is_integral<T>::value> >
@@ -154,11 +223,47 @@ void For (Box const& box1, Box const& box2, L1&& f1, L2&& f2,
     const auto len2 = amrex::length(box2);
     const auto ec = Gpu::ExecutionConfig(ncells);
     std::size_t sm = std::max(ec.sharedMem, shared_mem_bytes);
+#ifdef AMREX_USE_DPCPP
+    // If we are on default queue, block all other streams
+    if (Gpu::onNullStream()) Gpu::nonNullStreamSynchronize();
+    int nthreads_per_block = ec.numThreads.x;
+    int nthreads_total = nthreads_per_block * ec.numBlocks.x;
+    auto& q = Gpu::Device::streamQueue();
+    try {
+        q.submit([&] (sycl::handler& h) {
+            h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
+                                             sycl::range<1>(nthreads_per_block)),
+            [=] (sycl::nd_item<1> item)
+            {
+                for (int icell = item.get_global_id(0), stride = item.get_global_range(0);
+                     icell < ncells; icell += stride) {
+                    if (icell < ncells1) {
+                        int k =  icell /   (len1.x*len1.y);
+                        int j = (icell - k*(len1.x*len1.y)) /   len1.x;
+                        int i = (icell - k*(len1.x*len1.y)) - j*len1.x;
+                        i += lo1.x;
+                        j += lo1.y;
+                        k += lo1.z;
+                        f1(i,j,k);
+                    }
+                    if (icell < ncells2) {
+                        int k =  icell /   (len2.x*len2.y);
+                        int j = (icell - k*(len2.x*len2.y)) /   len2.x;
+                        int i = (icell - k*(len2.x*len2.y)) - j*len2.x;
+                        i += lo2.x;
+                        j += lo2.y;
+                        k += lo2.z;
+                        f2(i,j,k);
+                    }
+                }
+            });
+        });
+    } catch (sycl::exception const& ex) {
+        amrex::Abort(ex.what());
+    }
+#else
     AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, sm, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
-#ifdef AMREX_USE_DPCPP
-        // xxxxx DPCPP todo
-#else
         for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
              icell < ncells; icell += stride) {
             if (icell < ncells1) {
@@ -180,9 +285,9 @@ void For (Box const& box1, Box const& box2, L1&& f1, L2&& f2,
                 f2(i,j,k);
             }
         }
-#endif
     });
     AMREX_GPU_ERROR_CHECK();
+#endif
 }
 
 template <typename L1, typename L2, typename L3>
@@ -202,11 +307,56 @@ void For (Box const& box1, Box const& box2, Box const& box3, L1&& f1, L2&& f2, L
     const auto len3 = amrex::length(box3);
     const auto ec = Gpu::ExecutionConfig(ncells);
     std::size_t sm = std::max(ec.sharedMem, shared_mem_bytes);
+#ifdef AMREX_USE_DPCPP
+    // If we are on default queue, block all other streams
+    if (Gpu::onNullStream()) Gpu::nonNullStreamSynchronize();
+    int nthreads_per_block = ec.numThreads.x;
+    int nthreads_total = nthreads_per_block * ec.numBlocks.x;
+    auto& q = Gpu::Device::streamQueue();
+    try {
+        q.submit([&] (sycl::handler& h) {
+            h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
+                                             sycl::range<1>(nthreads_per_block)),
+            [=] (sycl::nd_item<1> item)
+            {
+                for (int icell = item.get_global_id(0), stride = item.get_global_range(0);
+                     icell < ncells; icell += stride) {
+                    if (icell < ncells1) {
+                        int k =  icell /   (len1.x*len1.y);
+                        int j = (icell - k*(len1.x*len1.y)) /   len1.x;
+                        int i = (icell - k*(len1.x*len1.y)) - j*len1.x;
+                        i += lo1.x;
+                        j += lo1.y;
+                        k += lo1.z;
+                        f1(i,j,k);
+                    }
+                    if (icell < ncells2) {
+                        int k =  icell /   (len2.x*len2.y);
+                        int j = (icell - k*(len2.x*len2.y)) /   len2.x;
+                        int i = (icell - k*(len2.x*len2.y)) - j*len2.x;
+                        i += lo2.x;
+                        j += lo2.y;
+                        k += lo2.z;
+                        f2(i,j,k);
+                    }
+                    if (icell < ncells3) {
+                        int k =  icell /   (len3.x*len3.y);
+                        int j = (icell - k*(len3.x*len3.y)) /   len3.x;
+                        int i = (icell - k*(len3.x*len3.y)) - j*len3.x;
+                        i += lo3.x;
+                        j += lo3.y;
+                        k += lo3.z;
+                        f3(i,j,k);
+                    }
+                }
+            });
+        });
+    } catch (sycl::exception const& ex) {
+        amrex::Abort(ex.what());
+    }
+#else
     AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, sm, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
-#ifdef AMREX_USE_DPCPP
-        // xxxxx DPCPP todo
-#else
         for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
              icell < ncells; icell += stride) {
             if (icell < ncells1) {
@@ -237,9 +387,9 @@ void For (Box const& box1, Box const& box2, Box const& box3, L1&& f1, L2&& f2, L
                 f3(i,j,k);
             }
         }
-#endif
     });
     AMREX_GPU_ERROR_CHECK();
+#endif
 }
 
 template <typename T1, typename T2, typename L1, typename L2,
@@ -259,11 +409,51 @@ void For (Box const& box1, T1 ncomp1, L1&& f1,
     const auto len2 = amrex::length(box2);
     const auto ec = Gpu::ExecutionConfig(ncells);
     std::size_t sm = std::max(ec.sharedMem, shared_mem_bytes);
+#ifdef AMREX_USE_DPCPP
+    // If we are on default queue, block all other streams
+    if (Gpu::onNullStream()) Gpu::nonNullStreamSynchronize();
+    int nthreads_per_block = ec.numThreads.x;
+    int nthreads_total = nthreads_per_block * ec.numBlocks.x;
+    auto& q = Gpu::Device::streamQueue();
+    try {
+        q.submit([&] (sycl::handler& h) {
+            h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
+                                             sycl::range<1>(nthreads_per_block)),
+            [=] (sycl::nd_item<1> item)
+            {
+                for (int icell = item.get_global_id(0), stride = item.get_global_range(0);
+                     icell < ncells; icell += stride) {
+                    if (icell < ncells1) {
+                        int k =  icell /   (len1.x*len1.y);
+                        int j = (icell - k*(len1.x*len1.y)) /   len1.x;
+                        int i = (icell - k*(len1.x*len1.y)) - j*len1.x;
+                        i += lo1.x;
+                        j += lo1.y;
+                        k += lo1.z;
+                        for (T1 n = 0; n < ncomp1; ++n) {
+                            f1(i,j,k,n);
+                        }
+                    }
+                    if (icell < ncells2) {
+                        int k =  icell /   (len2.x*len2.y);
+                        int j = (icell - k*(len2.x*len2.y)) /   len2.x;
+                        int i = (icell - k*(len2.x*len2.y)) - j*len2.x;
+                        i += lo2.x;
+                        j += lo2.y;
+                        k += lo2.z;
+                        for (T2 n = 0; n < ncomp2; ++n) {
+                            f2(i,j,k,n);
+                        }
+                    }
+                }
+            });
+        });
+    } catch (sycl::exception const& ex) {
+        amrex::Abort(ex.what());
+    }
+#else
     AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, sm, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
-#ifdef AMREX_USE_DPCPP
-        // xxxxx DPCPP todo
-#else
         for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
              icell < ncells; icell += stride) {
             if (icell < ncells1) {
@@ -289,9 +479,9 @@ void For (Box const& box1, T1 ncomp1, L1&& f1,
                 }
             }
         }
-#endif
     });
     AMREX_GPU_ERROR_CHECK();
+#endif
 }
 
 template <typename T1, typename T2, typename T3, typename L1, typename L2, typename L3,
@@ -316,11 +506,62 @@ void For (Box const& box1, T1 ncomp1, L1&& f1,
     const auto len3 = amrex::length(box3);
     const auto ec = Gpu::ExecutionConfig(ncells);
     std::size_t sm = std::max(ec.sharedMem, shared_mem_bytes);
+#ifdef AMREX_USE_DPCPP
+    // If we are on default queue, block all other streams
+    if (Gpu::onNullStream()) Gpu::nonNullStreamSynchronize();
+    int nthreads_per_block = ec.numThreads.x;
+    int nthreads_total = nthreads_per_block * ec.numBlocks.x;
+    auto& q = Gpu::Device::streamQueue();
+    try {
+        q.submit([&] (sycl::handler& h) {
+            h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
+                                             sycl::range<1>(nthreads_per_block)),
+            [=] (sycl::nd_item<1> item)
+            {
+                for (int icell = item.get_global_id(0), stride = item.get_global_range(0);
+                     icell < ncells; icell += stride) {
+                    if (icell < ncells1) {
+                        int k =  icell /   (len1.x*len1.y);
+                        int j = (icell - k*(len1.x*len1.y)) /   len1.x;
+                        int i = (icell - k*(len1.x*len1.y)) - j*len1.x;
+                        i += lo1.x;
+                        j += lo1.y;
+                        k += lo1.z;
+                        for (T1 n = 0; n < ncomp1; ++n) {
+                            f1(i,j,k,n);
+                        }
+                    }
+                    if (icell < ncells2) {
+                        int k =  icell /   (len2.x*len2.y);
+                        int j = (icell - k*(len2.x*len2.y)) /   len2.x;
+                        int i = (icell - k*(len2.x*len2.y)) - j*len2.x;
+                        i += lo2.x;
+                        j += lo2.y;
+                        k += lo2.z;
+                        for (T2 n = 0; n < ncomp2; ++n) {
+                            f2(i,j,k,n);
+                        }
+                    }
+                    if (icell < ncells3) {
+                        int k =  icell /   (len3.x*len3.y);
+                        int j = (icell - k*(len3.x*len3.y)) /   len3.x;
+                        int i = (icell - k*(len3.x*len3.y)) - j*len3.x;
+                        i += lo3.x;
+                        j += lo3.y;
+                        k += lo3.z;
+                        for (T3 n = 0; n < ncomp3; ++n) {
+                            f3(i,j,k,n);
+                        }
+                    }
+                }
+            });
+        });
+    } catch (sycl::exception const& ex) {
+        amrex::Abort(ex.what());
+    }
+#else
     AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, sm, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
-#ifdef AMREX_USE_DPCPP
-        // xxxxx DPCPP todo
-#else
         for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
              icell < ncells; icell += stride) {
             if (icell < ncells1) {
@@ -357,9 +598,9 @@ void For (Box const& box1, T1 ncomp1, L1&& f1,
                 }
             }
         }
-#endif
     });
     AMREX_GPU_ERROR_CHECK();
+#endif
 }
 
 template <typename L1, typename L2>
@@ -411,11 +652,38 @@ void FabReduce (Box const& box, T const& init_val,
     auto ec = Gpu::ExecutionConfig(ncells);
     ec.numBlocks.x = std::min(ec.numBlocks.x, static_cast<unsigned int>(Gpu::Device::maxBlocksPerLaunch()));
     std::size_t sm = std::max(ec.sharedMem, shared_mem_bytes);
+#ifdef AMREX_USE_DPCPP
+    // If we are on default queue, block all other streams
+    if (Gpu::onNullStream()) Gpu::nonNullStreamSynchronize();
+    int nthreads_per_block = ec.numThreads.x;
+    int nthreads_total = nthreads_per_block * ec.numBlocks.x;
+    auto& q = Gpu::Device::streamQueue();
+    try {
+        q.submit([&] (sycl::handler& h) {
+            h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
+                                             sycl::range<1>(nthreads_per_block)),
+            [=] (sycl::nd_item<1> item)
+            {
+                auto r = init_val;
+                for (int icell = item.get_global_id(0), stride = item.get_global_range(0);
+                     icell < ncells; icell += stride) {
+                    int k =  icell /   (len.x*len.y);
+                    int j = (icell - k*(len.x*len.y)) /   len.x;
+                    int i = (icell - k*(len.x*len.y)) - j*len.x;
+                    i += lo.x;
+                    j += lo.y;
+                    k += lo.z;
+                    f1(i,j,k,&r);
+                }
+                f2(r);
+            });
+        });
+    } catch (sycl::exception const& ex) {
+        amrex::Abort(ex.what());
+    }
+#else
     AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, sm, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
-#ifdef AMREX_USE_DPCPP
-        // xxxxx DPCPP todo
-#else
         auto r = init_val;
         for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
              icell < ncells; icell += stride) {
@@ -428,9 +696,9 @@ void FabReduce (Box const& box, T const& init_val,
             f1(i,j,k,&r);
         }
         f2(r);
-#endif
     });
     AMREX_GPU_ERROR_CHECK();
+#endif
 }
 
 template <typename N, typename T, typename L1, typename L2,
@@ -445,11 +713,40 @@ void FabReduce (Box const& box, N ncomp, T const& init_val,
     auto ec = Gpu::ExecutionConfig(ncells);
     ec.numBlocks.x = std::min(ec.numBlocks.x, static_cast<unsigned int>(Gpu::Device::maxBlocksPerLaunch()));
     std::size_t sm = std::max(ec.sharedMem, shared_mem_bytes);
+#ifdef AMREX_USE_DPCPP
+    // If we are on default queue, block all other streams
+    if (Gpu::onNullStream()) Gpu::nonNullStreamSynchronize();
+    int nthreads_per_block = ec.numThreads.x;
+    int nthreads_total = nthreads_per_block * ec.numBlocks.x;
+    auto& q = Gpu::Device::streamQueue();
+    try {
+        q.submit([&] (sycl::handler& h) {
+            h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
+                                             sycl::range<1>(nthreads_per_block)),
+            [=] (sycl::nd_item<1> item)
+            {
+                auto r = init_val;
+                for (int icell = item.get_global_id(0), stride = item.get_global_range(0);
+                     icell < ncells; icell += stride) {
+                    int k =  icell /   (len.x*len.y);
+                    int j = (icell - k*(len.x*len.y)) /   len.x;
+                    int i = (icell - k*(len.x*len.y)) - j*len.x;
+                    i += lo.x;
+                    j += lo.y;
+                    k += lo.z;
+                    for (N n = 0; n < ncomp; ++n) {
+                        f1(i,j,k,n,&r);
+                    }
+                }
+                f2(r);
+            });
+        });
+    } catch (sycl::exception const& ex) {
+        amrex::Abort(ex.what());
+    }
+#else
     AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, sm, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
-#ifdef AMREX_USE_DPCPP
-        // xxxxx DPCPP todo
-#else
         auto r = init_val;
         for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
              icell < ncells; icell += stride) {
@@ -464,9 +761,9 @@ void FabReduce (Box const& box, N ncomp, T const& init_val,
             }
         }
         f2(r);
-#endif
     });
     AMREX_GPU_ERROR_CHECK();
+#endif
 }
 
 template <typename N, typename T, typename L1, typename L2,
@@ -478,21 +775,41 @@ void VecReduce (N n, T const& init_val,
     auto ec = Gpu::ExecutionConfig(n);
     ec.numBlocks.x = std::min(ec.numBlocks.x, static_cast<unsigned int>(Gpu::Device::maxBlocksPerLaunch()));
     std::size_t sm = std::max(ec.sharedMem, shared_mem_bytes);
+#ifdef AMREX_USE_DPCPP
+    // If we are on default queue, block all other streams
+    if (Gpu::onNullStream()) Gpu::nonNullStreamSynchronize();
+    int nthreads_per_block = ec.numThreads.x;
+    int nthreads_total = nthreads_per_block * ec.numBlocks.x;
+    auto& q = Gpu::Device::streamQueue();
+    try {
+        q.submit([&] (sycl::handler& h) {
+            h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
+                                             sycl::range<1>(nthreads_per_block)),
+            [=] (sycl::nd_item<1> item)
+            {
+                auto r = init_val;
+                for (N i = item.get_global_id(0), stride = item.get_global_range(0);
+                     i < n; i += stride) {
+                    f(i,&r);
+                }
+                f2(r);
+            });
+        });
+    } catch (sycl::exception const& ex) {
+        amrex::Abort(ex.what());
+    }
+#else
     AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, sm, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
-#ifdef AMREX_USE_DPCPP
-        // xxxxx DPCPP todo
-#else
         auto r = init_val;
         for (N i = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
              i < n; i += stride) {
             f1(i,&r);
         }
         f2(r);
-#endif
     });
     AMREX_GPU_ERROR_CHECK();
-
+#endif
 }
 
 }

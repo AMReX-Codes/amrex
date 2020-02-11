@@ -40,6 +40,7 @@ namespace amrex {
 // ************************************************
 //  Variadic lambda function wrappers for C++ CUDA/HIP Kernel calls.
 
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
     template<class L>
     AMREX_GPU_GLOBAL void launch_global (L f0) { f0(); }
 
@@ -54,6 +55,7 @@ namespace amrex {
         f0();
         call_device(std::forward<Lambdas>(fs)...);
     }
+#endif
     
 // CPU variation
 
@@ -102,7 +104,7 @@ namespace Gpu {
     inline
     Box getThreadBox (const Box& bx, long offset) noexcept
     {
-#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__) || defined(__SYCL_DEVICE_ONLY__)
         const auto len = bx.length3d();
         long k = offset / (len[0]*len[1]);
         long j = (offset - k*(len[0]*len[1])) / len[0];
