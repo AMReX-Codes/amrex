@@ -10,7 +10,6 @@
  * License: BSD-3-Clause-LBNL
  */
 #include <WarpX.H>
-#include <WarpX_f.H>
 #include <WarpXConst.H>
 #include <WarpXWrappers.h>
 #include <WarpXUtil.H>
@@ -55,6 +54,7 @@ int WarpX::do_moving_window = 0;
 int WarpX::moving_window_dir = -1;
 Real WarpX::moving_window_v = std::numeric_limits<amrex::Real>::max();
 
+Real WarpX::quantum_xi = PhysConst::xi;
 Real WarpX::gamma_boost = 1.;
 Real WarpX::beta_boost = 0.;
 Vector<int> WarpX::boost_direction = {0,0,0};
@@ -201,6 +201,9 @@ WarpX::WarpX ()
     }
     do_back_transformed_particles = mypc->doBackTransformedDiagnostics();
 
+    /** create object for reduced diagnostics */
+    reduced_diags = new MultiReducedDiags();
+
     Efield_aux.resize(nlevs_max);
     Bfield_aux.resize(nlevs_max);
 
@@ -301,6 +304,8 @@ WarpX::~WarpX ()
         ClearLevel(lev);
     }
 
+    delete reduced_diags;
+
 #ifdef BL_USE_SENSEI_INSITU
     delete insitu_bridge;
 #endif
@@ -339,6 +344,7 @@ WarpX::ReadParameters ()
         pp.query("verbose", verbose);
         pp.query("regrid_int", regrid_int);
         pp.query("do_subcycling", do_subcycling);
+        pp.query("use_hybrid_QED", use_hybrid_QED);
         pp.query("exchange_all_guard_cells", exchange_all_guard_cells);
         pp.query("override_sync_int", override_sync_int);
 
@@ -453,6 +459,8 @@ WarpX::ReadParameters ()
         pp.query("n_field_gather_buffer", n_field_gather_buffer);
         pp.query("n_current_deposition_buffer", n_current_deposition_buffer);
         pp.query("sort_int", sort_int);
+
+        pp.query("quantum_xi", quantum_xi);
 
         pp.query("do_pml", do_pml);
         pp.query("pml_ncell", pml_ncell);
@@ -1279,15 +1287,65 @@ WarpX::BuildBufferMasks ()
 #endif
                 for (MFIter mfi(*bmasks, true); mfi.isValid(); ++mfi)
                 {
-                    const Box& tbx = mfi.growntilebox();
-                    warpx_build_buffer_masks (BL_TO_FORTRAN_BOX(tbx),
-                                              BL_TO_FORTRAN_ANYD((*bmasks)[mfi]),
-                                              BL_TO_FORTRAN_ANYD(tmp[mfi]),
-                                              &ngbuffer);
+                    const Box tbx = mfi.growntilebox();
+                    BuildBufferMasksInBox( tbx, (*bmasks)[mfi], tmp[mfi], ngbuffer );
                 }
             }
         }
     }
+}
+
+/**
+ * \brief Build buffer mask within given FArrayBox
+ *
+ * \param tbx         Current FArrayBox
+ * \param buffer_mask Buffer mask to be set
+ * \param guard_mask  Guard mask used to set buffer_mask
+ * \param ng          Number of guard cells
+ */
+void
+WarpX::BuildBufferMasksInBox ( const amrex::Box tbx, amrex::IArrayBox &buffer_mask,
+                               const amrex::IArrayBox &guard_mask, const int ng )
+{
+    bool setnull;
+    const auto lo = amrex::lbound( tbx );
+    const auto hi = amrex::ubound( tbx );
+    Array4<int> msk = buffer_mask.array();
+    Array4<int const> gmsk = guard_mask.array();
+#if (AMREX_SPACEDIM == 2)
+    int k = lo.z;
+    for     (int j = lo.y; j <= hi.y; ++j) {
+        for (int i = lo.x; i <= hi.x; ++i) {
+            setnull = false;
+            // If gmsk=0 for any neighbor within ng cells, current cell is in the buffer region
+            for     (int jj = j-ng; jj <= j+ng; ++jj) {
+                for (int ii = i-ng; ii <= i+ng; ++ii) {
+                    if ( gmsk(ii,jj,k) == 0 ) setnull = true;
+                }
+            }
+            if ( setnull ) msk(i,j,k) = 0;
+            else           msk(i,j,k) = 1;
+        }
+    }
+#elif (AMREX_SPACEDIM == 3)
+    for         (int k = lo.z; k <= hi.z; ++k) {
+        for     (int j = lo.y; j <= hi.y; ++j) {
+            for (int i = lo.x; i <= hi.x; ++i) {
+                setnull = false;
+                // If gmsk=0 for any neighbor within ng cells, current cell is in the buffer region
+                for         (int kk = k-ng; kk <= k+ng; ++kk) {
+                    for     (int jj = j-ng; jj <= j+ng; ++jj) {
+                        for (int ii = i-ng; ii <= i+ng; ++ii) {
+                            if ( gmsk(ii,jj,kk) == 0 ) setnull = true;
+                        }
+                    }
+                }
+                if ( setnull ) msk(i,j,k) = 0;
+                else           msk(i,j,k) = 1;
+            }
+        }
+    }
+#endif
 }
 
 const iMultiFab*

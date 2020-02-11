@@ -9,4 +9,3 @@ recommonmark
 sphinx>=2.0
 pygments
 breathe
-exhale

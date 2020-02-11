@@ -225,7 +225,7 @@ Particle initialization
 
 * ``<species_name>.do_continuous_injection`` (`0` or `1`)
     Whether to inject particles during the simulation, and not only at
-    initialization. This can be required whith a moving window and/or when
+    initialization. This can be required with a moving window and/or when
     running in a boosted frame.
 
 * ``<species_name>.initialize_self_fields`` (`0` or `1`)
@@ -296,7 +296,7 @@ Particle initialization
 
       Note that though the particles may move at relativistic speeds in the simulation frame,
       they are not relativistic in the drift frame. This is as opposed to the Maxwell Juttner
-      setting, which initializes particles with relativistc momentums in their drifting frame.
+      setting, which initializes particles with relativistic momentums in their drifting frame.
 
     * ``maxwell_juttner``: Maxwell-Juttner distribution for high temperature plasma. This mode
       requires a dimensionless temperature parameter ``<species_name>.theta``, where theta is equal
@@ -708,7 +708,7 @@ Laser initialization
     required additional parameters in the input file, namely,
     ``warpx.Ex_external_grid_function(x,y,z)``,
     ``warpx.Ey_external_grid_function(x,y,z)``,
-    ``warpx.Ez_externail_grid_function(x,y,z)`` to initialize the external
+    ``warpx.Ez_external_grid_function(x,y,z)`` to initialize the external
     electric field for each of the three components on the grid.
     Constants required in the expression can be set using ``my_constants``.
     For example, if ``warpx.Ex_external_grid_function(x,y,z)=Eo*x + delta*(y + z)``
@@ -753,7 +753,7 @@ Laser initialization
      This parameter determines the type of initialization for the external
      electric field that is applied directly to the particles at every timestep.
      The "default" style set the external E-field (Ex,Ey,Ez) to (0.0,0.0,0.0).
-     The string can be set to "constant" if a cosntant external E-field is to be
+     The string can be set to "constant" if a constant external E-field is to be
      used in the simulation at every timestep. If this parameter is set to "constant",
      then an additional parameter, namely, ``particles.E_external_particle`` must be
      specified in the input file.
@@ -933,6 +933,18 @@ Numerics and algorithms
     if they have too different values. This option makes sure that they are
     synchronized periodically.
 
+* ``warpx.use_hybrid_QED`` ('bool'; default: 0)
+    Will use the Hybird QED Maxwell solver when pushing fields: a QED correction is added to the
+    field solver to solve non-linear Maxwell's equations, according to [Quantum Electrodynamics
+    vacuum polarization solver, P. Carneiro et al., `ArXiv 2016 <https://arxiv.org/abs/1607.04224>`__].
+    Note that this option can only be used with the PSATD build. Furthermore,
+    warpx.do_nodal must be set to `1` which is not its default value.
+
+ * ``warpx.quantum_xi`` ('float'; default: 1.3050122.e-52)
+     Overwrites the actual quantum parameter used in Maxwell's QED equations. Assigning a
+     value here will make the simulation unphysical, but will allow QED effects to become more apparent.
+     Note that this option will only have an effect if the warpx.use_Hybrid_QED flag is also triggered.
+
 Boundary conditions
 -------------------
 
@@ -1014,10 +1026,10 @@ Diagnostics and output
 * ``warpx.do_back_transformed_fields`` (`0 or 1`)
     Whether to use the **back-transformed diagnostics** for the fields.
 
-* ``warpx.boosted_frame_diag_fields`` (space-separated list of `string`)
+* ``warpx.back_transformed_diag_fields`` (space-separated list of `string`)
     Which fields to dumped in back-transformed diagnostics. Choices are
     'Ex', 'Ey', Ez', 'Bx', 'By', Bz', 'jx', 'jy', jz' and 'rho'. Example:
-    ``warpx.boosted_frame_diag_fields = Ex Ez By``. By default, all fields
+    ``warpx.back_transformed_diag_fields = Ex Ez By``. By default, all fields
     are dumped.
 
 * ``warpx.plot_raw_fields`` (`0` or `1`) optional (default `0`)
@@ -1090,6 +1102,123 @@ Diagnostics and output
     copied from the full back-transformed diagnostic to the reduced
     slice diagnostic if there are within the user-defined width from
     the slice region defined by ``slice.dom_lo`` and ``slice.dom_hi``.
+
+* ``warpx.reduced_diags_names`` (`strings`, separated by spaces)
+    The names given by the user of simple reduced diagnostics.
+    Also the names of the output `.txt` files.
+    This reduced diagnostics aims to produce simple outputs
+    of the time history of some physical quantities.
+    If ``warpx.reduced_diags_names`` is not provided in the input file,
+    no reduced diagnostics will be done.
+    This is then used in the rest of the input deck;
+    in this documentation we use `<reduced_diags_name>` as a placeholder.
+
+* ``<reduced_diags_name>.type`` (`string`)
+    The type of reduced diagnostics associated with this `<reduced_diags_name>`.
+    For example, ``ParticleEnergy`` and ``FieldEnergy``.
+    All available types will be described below in detail.
+    For all reduced diagnostics,
+    the first and the second columns in the output file are
+    the time step and the corresponding physical time in seconds, respectively.
+
+    * ``ParticleEnergy``
+        This type computes both the total and the mean
+        relativistic particle kinetic energy among all species.
+
+        .. math::
+
+            E_p = \sum_{i=1}^N ( \sqrt{ p_i^2 c^2 + m_0^2 c^4 } - m_0 c^2 ) w_i
+
+        where :math:`p` is the relativistic momentum,
+        :math:`c` is the speed of light,
+        :math:`m_0` is the rest mass,
+        :math:`N` is the number of particles,
+        :math:`w` is the individual particle weight.
+
+        The output columns are
+        total :math:`E_p` of all species,
+        :math:`E_p` of each species,
+        total mean energy :math:`E_p / \sum w_i`,
+        mean energy of each species.
+
+    * ``FieldEnergy``
+        This type computes the electric and magnetic field energy.
+
+        .. math::
+
+            E_f = \sum [ \varepsilon_0 E^2 / 2 + B^2 / ( 2 \mu_0 ) ] \Delta V
+
+        where
+        :math:`E` is the electric field,
+        :math:`B` is the magnetic field,
+        :math:`\varepsilon_0` is the vacuum permittivity,
+        :math:`\mu_0` is the vacuum permeability,
+        :math:`\Delta V` is the cell volume (or area for 2D),
+        the sum is over all cells.
+
+        The output columns are
+        total field energy :math:`E_f`,
+        :math:`E` field energy,
+        :math:`B` field energy, at mesh refinement levels from 0 to :math:`n`.
+
+    * ``BeamRelevant``
+        This type computes properties of a particle beam relevant for particle accelerators,
+        like position, momentum, emittance, etc.
+
+        `<reduced_diags_name>.species` must be provided,
+        such that the diagnostics are done for this (beam-like) species only.
+
+        The output columns (for 3D-XYZ) are the following, where the average is done over
+        the whole species (typical usage: the particle beam is in a separate species):
+
+        [1], [2], [3]: The mean values of beam positions (m)
+        :math:`\langle x \rangle`, :math:`\langle y \rangle`,
+        :math:`\langle z \rangle`.
+
+        [4], [5], [6]: The mean values of beam relativistic momenta (kg m/s)
+        :math:`\langle p_x \rangle`, :math:`\langle p_y \rangle`,
+        :math:`\langle p_z \rangle`.
+
+        [7]: The mean Lorentz factor :math:`\langle \gamma \rangle`.
+
+        [8], [9], [10]: The RMS values of beam positions (m)
+        :math:`\delta_x = \sqrt{ \langle (x - \langle x \rangle)^2 \rangle }`,
+        :math:`\delta_y = \sqrt{ \langle (y - \langle y \rangle)^2 \rangle }`,
+        :math:`\delta_z = \sqrt{ \langle (z - \langle z \rangle)^2 \rangle }`.
+
+        [11], [12], [13]: The RMS values of beam relativistic momenta (kg m/s)
+        :math:`\delta_{px} = \sqrt{ \langle (p_x - \langle p_x \rangle)^2 \rangle }`,
+        :math:`\delta_{py} = \sqrt{ \langle (p_y - \langle p_y \rangle)^2 \rangle }`,
+        :math:`\delta_{pz} = \sqrt{ \langle (p_z - \langle p_z \rangle)^2 \rangle }`.
+
+        [14]: The RMS value of the Lorentz factor
+        :math:`\sqrt{ \langle (\gamma - \langle \gamma \rangle)^2 \rangle }`.
+
+        [15], [16], [17]: beam projected transverse RMS normalized emittance (m)
+        :math:`\epsilon_x = \dfrac{1}{mc} \sqrt{\delta_x^2 \delta_{px}^2 -
+        \Big\langle (x-\langle x \rangle) (p_x-\langle p_x \rangle) \Big\rangle^2}`,
+        :math:`\epsilon_y = \dfrac{1}{mc} \sqrt{\delta_y^2 \delta_{py}^2 -
+        \Big\langle (y-\langle y \rangle) (p_y-\langle p_y \rangle) \Big\rangle^2}`,
+        :math:`\epsilon_z = \dfrac{1}{mc} \sqrt{\delta_z^2 \delta_{pz}^2 -
+        \Big\langle (z-\langle z \rangle) (p_z-\langle p_z \rangle) \Big\rangle^2}`.
+
+        For 2D-XZ,
+        :math:`\langle y \rangle`,
+        :math:`\delta_y`, and
+        :math:`\epsilon_y` will not be outputed.
+
+* ``<reduced_diags_name>.frequency`` (`int`)
+    The output frequency (every # time steps).
+
+* ``<reduced_diags_name>.path`` (`string`) optional (default `./diags/reducedfiles/`)
+    The path that the output file will be stored.
+
+* ``<reduced_diags_name>.extension`` (`string`) optional (default `txt`)
+    The extension of the output file.
+
+* ``<reduced_diags_name>.separator`` (`string`) optional (default a `whitespace`)
+    The separator between row values in the output file.
+    The default separator is a whitespace.
 
 Lookup tables for QED modules (implementation in progress)
 ----------------------------------------------------------

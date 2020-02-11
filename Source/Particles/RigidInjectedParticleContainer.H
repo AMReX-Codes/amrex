@@ -68,11 +68,7 @@ public:
                          amrex::Real dt,
                          DtType a_dt_type=DtType::Full) override;
 
-    virtual void PushPX(WarpXParIter& pti,
-                        amrex::Gpu::ManagedDeviceVector<amrex::ParticleReal>& xp,
-                        amrex::Gpu::ManagedDeviceVector<amrex::ParticleReal>& yp,
-                        amrex::Gpu::ManagedDeviceVector<amrex::ParticleReal>& zp,
-                        amrex::Real dt, DtType a_dt_type=DtType::Full) override;
+    virtual void PushPX (WarpXParIter& pti, amrex::Real dt, DtType a_dt_type=DtType::Full) override;
 
     virtual void PushP (int lev, amrex::Real dt,
                         const amrex::MultiFab& Ex,

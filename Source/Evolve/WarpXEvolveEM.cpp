@@ -12,8 +12,9 @@
 #include <limits>
 
 #include <WarpX.H>
+#include <WarpX_QED_K.H>
+#include <WarpX_QED_Field_Pushers.cpp>
 #include <WarpXConst.H>
-#include <WarpX_f.H>
 #include <WarpXUtil.H>
 #include <WarpXAlgorithmSelection.H>
 #ifdef WARPX_USE_PY
@@ -23,7 +24,6 @@
 #ifdef BL_USE_SENSEI_INSITU
 #include <AMReX_AmrMeshInSituBridge.H>
 #endif
-
 
 using namespace amrex;
 
@@ -206,6 +206,13 @@ WarpX::EvolveEM (int numsteps)
             t_new[i] = cur_time;
         }
 
+        /// reduced diags
+        if (reduced_diags->m_plot_rd != 0)
+        {
+            reduced_diags->ComputeDiags(step);
+            reduced_diags->WriteToFile(step);
+        }
+
         // slice gen //
         if (to_make_plot || to_write_openPMD || do_insitu || to_make_slice_plot)
         {
@@ -352,10 +359,24 @@ WarpX::OneStep_nosub (Real cur_time)
     // Push E and B from {n} to {n+1}
     // (And update guard cells immediately afterwards)
 #ifdef WARPX_USE_PSATD
+    if (use_hybrid_QED)
+    {
+        WarpX::Hybrid_QED_Push(dt);
+        FillBoundaryE(guard_cells.ng_alloc_EB, guard_cells.ng_Extra);
+    }
     PushPSATD(dt[0]);
-    if (do_pml) DampPML();
     FillBoundaryE(guard_cells.ng_alloc_EB, guard_cells.ng_Extra);
     FillBoundaryB(guard_cells.ng_alloc_EB, guard_cells.ng_Extra);
+
+    if (use_hybrid_QED)
+    {
+        WarpX::Hybrid_QED_Push(dt);
+        FillBoundaryE(guard_cells.ng_alloc_EB, guard_cells.ng_Extra);
+
+    }
+    if (do_pml) DampPML();
+
+;
 #else
     EvolveF(0.5*dt[0], DtType::FirstHalf);
     FillBoundaryF(guard_cells.ng_FieldSolverF);

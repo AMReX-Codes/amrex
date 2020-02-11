@@ -55,9 +55,6 @@ public:
                          DtType a_dt_type=DtType::Full) override;
 
     virtual void PushPX(WarpXParIter& pti,
-                        amrex::Gpu::ManagedDeviceVector<amrex::ParticleReal>& xp,
-                        amrex::Gpu::ManagedDeviceVector<amrex::ParticleReal>& yp,
-                        amrex::Gpu::ManagedDeviceVector<amrex::ParticleReal>& zp,
                         amrex::Real dt, DtType a_dt_type=DtType::Full) override;
 
     // Do nothing

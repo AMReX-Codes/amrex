@@ -7,7 +7,6 @@
  */
 #include <WarpX.H>
 #include <BilinearFilter.H>
-#include <WarpX_f.H>
 
 #ifdef _OPENMP
 #include <omp.h>

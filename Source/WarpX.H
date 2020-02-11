@@ -18,6 +18,7 @@
 #include <BackTransformedDiagnostic.H>
 #include <BilinearFilter.H>
 #include <NCIGodfreyFilter.H>
+#include "MultiReducedDiags.H"
 
 #include <FiniteDifferenceSolver.H>
 #ifdef WARPX_USE_PSATD
@@ -91,7 +92,7 @@ public:
     static void shiftMF (amrex::MultiFab& mf, const amrex::Geometry& geom,
                          int num_shift, int dir, amrex::IntVect ng_extra,
                          amrex::Real external_field=0.0, bool useparser = false,
-                         ParserWrapper *field_parser=nullptr);
+                         ParserWrapper<3> *field_parser=nullptr);
 
     static void GotoNextLine (std::istream& is);
 
@@ -116,13 +117,13 @@ public:
     static std::string str_Ez_ext_grid_function;
 
     // ParserWrapper for B_external on the grid
-    std::unique_ptr<ParserWrapper> Bxfield_parser;
-    std::unique_ptr<ParserWrapper> Byfield_parser;
-    std::unique_ptr<ParserWrapper> Bzfield_parser;
+    std::unique_ptr<ParserWrapper<3> > Bxfield_parser;
+    std::unique_ptr<ParserWrapper<3> > Byfield_parser;
+    std::unique_ptr<ParserWrapper<3> > Bzfield_parser;
     // ParserWrapper for E_external on the grid
-    std::unique_ptr<ParserWrapper> Exfield_parser;
-    std::unique_ptr<ParserWrapper> Eyfield_parser;
-    std::unique_ptr<ParserWrapper> Ezfield_parser;
+    std::unique_ptr<ParserWrapper<3> > Exfield_parser;
+    std::unique_ptr<ParserWrapper<3> > Eyfield_parser;
+    std::unique_ptr<ParserWrapper<3> > Ezfield_parser;
 
     // Algorithms
     static long current_deposition_algo;
@@ -213,6 +214,9 @@ public:
     amrex::Vector<amrex::Real> mirror_z_width;
     amrex::Vector<int> mirror_z_npoints;
 
+    /// object with all reduced diagnotics, similar to MultiParticleContainer for species.
+    MultiReducedDiags* reduced_diags;
+
     void applyMirrors(amrex::Real time);
 
     void ComputeDt ();
@@ -232,6 +236,26 @@ public:
     void EvolveB (int lev, PatchType patch_type, amrex::Real dt);
     void EvolveE (int lev, PatchType patch_type, amrex::Real dt);
     void EvolveF (int lev, PatchType patch_type, amrex::Real dt, DtType dt_type);
+
+    /** \brief apply QED correction on electric field
+     * \param dt vector of time steps (for all levels)
+     */
+    void Hybrid_QED_Push (         amrex::Vector<amrex::Real> dt);
+
+    /** \brief apply QED correction on electric field for level lev
+     * \param lev mesh refinement level
+     * \param dt time step
+     */
+    void Hybrid_QED_Push (int lev, amrex::Real dt);
+
+    /** \brief apply QED correction on electric field for level lev and patch type patch_type
+     * \param lev mesh refinement level
+     * \param dt patch_type which MR patch: PatchType::fine or PatchType::coarse
+     * \param dt time step
+     */
+    void Hybrid_QED_Push (int lev, PatchType patch_type, amrex::Real dt);
+
+    static amrex::Real quantum_xi;
 
 #ifdef WARPX_DIM_RZ
     void ApplyInverseVolumeScalingToCurrentDensity(amrex::MultiFab* Jx,
@@ -387,8 +411,8 @@ public:
      */
     void InitializeExternalFieldsOnGridUsingParser (
          amrex::MultiFab *mfx, amrex::MultiFab *mfy, amrex::MultiFab *mfz,
-         ParserWrapper *xfield_parser, ParserWrapper *yfield_parser,
-         ParserWrapper *zfield_parser, amrex::IntVect x_nodal_flag,
+         ParserWrapper<3> *xfield_parser, ParserWrapper<3> *yfield_parser,
+         ParserWrapper<3> *zfield_parser, amrex::IntVect x_nodal_flag,
          amrex::IntVect y_nodal_flag, amrex::IntVect z_nodal_flag,
          const int lev);
 
@@ -537,6 +561,8 @@ private:
     void LoadBalance ();
 
     void BuildBufferMasks ();
+    void BuildBufferMasksInBox ( const amrex::Box tbx, amrex::IArrayBox &buffer_mask,
+                                 const amrex::IArrayBox &guard_mask, const int ng );
     const amrex::iMultiFab* getCurrentBufferMasks (int lev) const {
         return current_buffer_masks[lev].get();
     }
@@ -630,6 +656,8 @@ private:
 
     // Other runtime parameters
     int verbose = 1;
+
+    bool use_hybrid_QED = 0;
 
     int max_step   = std::numeric_limits<int>::max();
     amrex::Real stop_time = std::numeric_limits<amrex::Real>::max();
