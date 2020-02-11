@@ -1530,7 +1530,7 @@ template <class T>
 AMREX_GPU_HOST_DEVICE
 BaseFab<T>::~BaseFab () noexcept
 {
-#ifndef AMREX_DEVICE_COMPILE
+#if !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
     clear();
 #endif
 }
@@ -2519,7 +2519,7 @@ BaseFab<T>::atomicAdd (const BaseFab<T>& src, const Box& srcbox, const Box& dest
     amrex::Loop(destbox, numcomp, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT 
     {
         T* p = d.ptr(i,j,k,n+destcomp);
-#ifndef AMREX_DEVICE_COMPILE
+#if !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
 #ifdef _OPENMP
 _Pragma("omp atomic update")
 #endif

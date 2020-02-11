@@ -168,7 +168,7 @@ namespace amrex {
         {
             if (i<begin.x || i>=end.x || j<begin.y || j>=end.y || k<begin.z || k>=end.z
                 || n < 0 || n >= ncomp) {
-#if defined(AMREX_DEVICE_COMPILE) || defined(__SYCL_DEVICE_ONLY__)
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__) || defined(__SYCL_DEVICE_ONLY__)
 // HIP FIX HERE - printf + amrex::Abort
 #if defined(AMREX_USE_DPCPP)
                 // xxxxx DPCPP todo
