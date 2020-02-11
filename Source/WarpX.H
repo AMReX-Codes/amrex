@@ -20,6 +20,7 @@
 #include <NCIGodfreyFilter.H>
 #include "MultiReducedDiags.H"
 
+#include <FiniteDifferenceSolver.H>
 #ifdef WARPX_USE_PSATD
 #   include <SpectralSolver.H>
 #endif
@@ -748,6 +749,8 @@ private:
     amrex::Vector<std::unique_ptr<SpectralSolver>> spectral_solver_fp;
     amrex::Vector<std::unique_ptr<SpectralSolver>> spectral_solver_cp;
 #endif
+    amrex::Vector<std::unique_ptr<FiniteDifferenceSolver>> m_fdtd_solver_fp;
+    amrex::Vector<std::unique_ptr<FiniteDifferenceSolver>> m_fdtd_solver_cp;
 
 #ifdef WARPX_USE_PSATD_HYBRID
 private:

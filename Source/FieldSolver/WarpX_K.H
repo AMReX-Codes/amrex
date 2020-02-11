@@ -10,53 +10,6 @@
 #include <AMReX_FArrayBox.H>
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void warpx_push_bx_nodal (int j, int k, int l,
-                          amrex::Array4<amrex::Real> const& Bx,
-                          amrex::Array4<amrex::Real const> const& Ey,
-                          amrex::Array4<amrex::Real const> const& Ez,
-                          amrex::Real dtsdy, amrex::Real dtsdz)
-{
-#if (AMREX_SPACEDIM == 3)
-    Bx(j,k,l) = Bx(j,k,l) - 0.5*dtsdy * (Ez(j,k+1,l  ) - Ez(j,k-1,l  ))
-                          + 0.5*dtsdz * (Ey(j,k  ,l+1) - Ey(j,k  ,l-1));
-#else
-    Bx(j,k,0) = Bx(j,k,0) + 0.5*dtsdz * (Ey(j,k+1,0) - Ey(j,k-1,0));
-#endif
-}
-
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void warpx_push_by_nodal (int j, int k, int l,
-                          amrex::Array4<amrex::Real> const& By,
-                          amrex::Array4<amrex::Real const> const& Ex,
-                          amrex::Array4<amrex::Real const> const& Ez,
-                          amrex::Real dtsdx,
-                          amrex::Real dtsdz)
-{
-#if (AMREX_SPACEDIM == 3)
-    By(j,k,l) = By(j,k,l) + 0.5*dtsdx * (Ez(j+1,k,l  ) - Ez(j-1,k,l  ))
-                          - 0.5*dtsdz * (Ex(j  ,k,l+1) - Ex(j  ,k,l-1));
-#else
-    By(j,k,0) = By(j,k,0) + 0.5*dtsdx * (Ez(j+1,k  ,0) - Ez(j-1,k  ,0))
-                          - 0.5*dtsdz * (Ex(j  ,k+1,0) - Ex(j  ,k-1,0));
-#endif
-}
-
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void warpx_push_bz_nodal (int j, int k, int l,
-                          amrex::Array4<amrex::Real> const& Bz,
-                          amrex::Array4<amrex::Real const> const& Ex,
-                          amrex::Array4<amrex::Real const> const& Ey,
-                          amrex::Real dtsdx, amrex::Real dtsdy)
-{
-#if (AMREX_SPACEDIM == 3)
-    Bz(j,k,l) = Bz(j,k,l) - 0.5*dtsdx * (Ey(j+1,k  ,l) - Ey(j-1,k  ,l))
-                          + 0.5*dtsdy * (Ex(j  ,k+1,l) - Ex(j  ,k-1,l));
-#else
-    Bz(j,k,0) = Bz(j,k,0) - 0.5*dtsdx * (Ey(j+1,k  ,0) - Ey(j-1,k  ,0));
-#endif
-}
-
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void warpx_push_ex_nodal (int j, int k, int l,
                           amrex::Array4<amrex::Real> const& Ex,
                           amrex::Array4<amrex::Real const> const& By,
