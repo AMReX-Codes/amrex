@@ -707,10 +707,7 @@ public:
 #if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10))
 
     void FB_local_copy_cuda_graph_1 (const FB& TheFB, int scomp, int ncomp);
-
-#ifdef AMREX_USE_GPU
     void FB_local_copy_cuda_graph_n (const FB& TheFB, int scomp, int ncomp);
-#endif
 
 #endif
 #endif
