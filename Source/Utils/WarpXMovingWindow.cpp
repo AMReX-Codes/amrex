@@ -111,8 +111,8 @@ WarpX::MoveWindow (bool move_j)
         // Shift each component of vector fields (E, B, j)
         for (int dim = 0; dim < 3; ++dim) {
             // Fine grid
-            ParserWrapper *Bfield_parser;
-            ParserWrapper *Efield_parser;
+            ParserWrapper<3> *Bfield_parser;
+            ParserWrapper<3> *Efield_parser;
             bool use_Bparser = false;
             bool use_Eparser = false;
             if (B_ext_grid_s == "parse_b_ext_grid_function") {
@@ -233,7 +233,7 @@ WarpX::MoveWindow (bool move_j)
 void
 WarpX::shiftMF (MultiFab& mf, const Geometry& geom, int num_shift, int dir,
                 IntVect ng_extra, amrex::Real external_field, bool useparser,
-                ParserWrapper *field_parser)
+                ParserWrapper<3> *field_parser)
 {
     BL_PROFILE("WarpX::shiftMF()");
     const BoxArray& ba = mf.boxArray();
@@ -329,10 +329,8 @@ WarpX::shiftMF (MultiFab& mf, const Geometry& geom, int num_shift, int dir,
                       Real fac_z = (1.0 - mf_type[2]) * dx[2]*0.5;
                       Real z = k*dx[2] + real_box.lo(2) + fac_z;
 #endif
-                      srcfab(i,j,k,n) = field_parser->getField(x,y,z);
-                }
-                , amrex::Gpu::numThreadsPerBlockParallelFor() * sizeof(double)*4
-                );
+                      srcfab(i,j,k,n) = (*field_parser)(x,y,z);
+                });
             }
 
         }

@@ -190,16 +190,13 @@ void Store_parserString(amrex::ParmParse& pp, std::string query_string,
 }
 
 
-WarpXParser makeParser (std::string const& parse_function)
+WarpXParser makeParser (std::string const& parse_function, std::vector<std::string> const& varnames)
 {
     WarpXParser parser(parse_function);
-    parser.registerVariables({"x","y","z","t"});
+    parser.registerVariables(varnames);
     ParmParse pp("my_constants");
     std::set<std::string> symbols = parser.symbols();
-    symbols.erase("x");
-    symbols.erase("y");
-    symbols.erase("z");
-    symbols.erase("t");
+    for (auto const& v : varnames) symbols.erase(v.c_str());
     for (auto it = symbols.begin(); it != symbols.end(); ) {
         Real v;
         if (pp.query(it->c_str(), v)) {

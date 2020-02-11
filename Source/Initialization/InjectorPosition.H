@@ -105,8 +105,6 @@ struct InjectorPosition
     void operator= (InjectorPosition const&) = delete;
     void operator= (InjectorPosition &&) = delete;
 
-    std::size_t sharedMemoryNeeded () const noexcept { return 0; }
-
     // call getPositionUnitBox from the object stored in the union
     // (the union is called Object, and the instance is called object).
     AMREX_GPU_HOST_DEVICE
