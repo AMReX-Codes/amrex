@@ -232,22 +232,22 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
         if (iv[i] > dmn.bigEnd(i))
         {
-            while (p.m_rdata.pos[i] >= geom.ProbHi(i)) p.m_rdata.pos[i] -= geom.ProbLength(i);
-            if (p.m_rdata.pos[i] < geom.ProbLo(i)) p.m_rdata.pos[i] = geom.ProbLo(i); // clamp to avoid precision issues;
-            shifted = true;
+	  while (p.m_rdata.pos[i] >= (typename ParticleType::RealType) geom.ProbHi(i)) p.m_rdata.pos[i] -= (typename ParticleType::RealType) geom.ProbLength(i);
+	  if (p.m_rdata.pos[i] < geom.ProbLo(i)) p.m_rdata.pos[i] = geom.ProbLo(i); // clamp to avoid precision issues;
+	  shifted = true;
         }
         else if (iv[i] < dmn.smallEnd(i))
         {
-            while (p.m_rdata.pos[i] <  geom.ProbLo(i)) p.m_rdata.pos[i] += geom.ProbLength(i);
+	  while (p.m_rdata.pos[i] <  geom.ProbLo(i)) p.m_rdata.pos[i] += (typename ParticleType::RealType) geom.ProbLength(i);
 
             // clamp to avoid precision issues
-            if ( p.m_rdata.pos[i] == geom.ProbHi(i)) p.m_rdata.pos[i] = geom.ProbLo(i);
-            if ((p.m_rdata.pos[i] > geom.ProbHi(i))) 
-                p.m_rdata.pos[i] = geom.ProbHi(i) - std::numeric_limits<typename ParticleType::RealType>::epsilon();
+	  if ( p.m_rdata.pos[i] == (typename ParticleType::RealType) geom.ProbHi(i)) p.m_rdata.pos[i] = geom.ProbLo(i);
+	  if ((p.m_rdata.pos[i] > (typename ParticleType::RealType) geom.ProbHi(i))) 
+	    p.m_rdata.pos[i] = (typename ParticleType::RealType) geom.ProbHi(i) - std::numeric_limits<typename ParticleType::RealType>::epsilon();
 
             shifted = true;
-        }
-        AMREX_ASSERT( (p.m_rdata.pos[i] >= geom.ProbLo(i) ) and ( p.m_rdata.pos[i] < geom.ProbHi(i) ));
+	    }
+        AMREX_ASSERT( (p.m_rdata.pos[i] >= geom.ProbLo(i) ) and ( p.m_rdata.pos[i] < (typename ParticleType::RealType) geom.ProbHi(i) ));
     }
 
     return shifted;
