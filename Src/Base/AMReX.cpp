@@ -155,18 +155,8 @@ write_lib_id(const char* msg)
 }
 
 void
-AMREX_GPU_HOST_DEVICE
-amrex::Error (const char* msg)
+amrex::detail::Error_host_doit (const char* msg)
 {
-#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-#if !defined(__APPLE__)
-    if (msg) printf("%s\n", msg);
-// HIP FIX HERE - assert
-#ifdef AMREX_USE_CUDA
-    assert(0);
-#endif
-#endif
-#else
     if (system::error_handler) {
         system::error_handler(msg);
     } else if (system::throw_exception) {
@@ -176,7 +166,6 @@ amrex::Error (const char* msg)
         write_to_stderr_without_buffering(msg);
         ParallelDescriptor::Abort();
     }
-#endif
 }
 
 void
@@ -186,18 +175,8 @@ amrex::Error (const std::string& msg)
 }
 
 void
-AMREX_GPU_HOST_DEVICE
-amrex::Abort (const char* msg)
+amrex::detail::Abort_host_doit (const char* msg)
 {
-#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-#if !defined(__APPLE__)
-    if (msg) printf("Abort %s\n", msg);
-// HIP FIX HERE - assert
-#ifdef AMREX_USE_CUDA
-    assert(0);
-#endif
-#endif
-#else
     if (system::error_handler) {
         system::error_handler(msg);
     } else if (system::throw_exception) {
@@ -210,7 +189,6 @@ amrex::Abort (const char* msg)
 #endif
        ParallelDescriptor::Abort();
    }
-#endif
 }
 
 void
@@ -220,19 +198,12 @@ amrex::Abort (const std::string& msg)
 }
 
 void
-AMREX_GPU_HOST_DEVICE
-amrex::Warning (const char* msg)
+amrex::detail::Warning_host_doit (const char* msg)
 {
-#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-#if !defined(__APPLE__)
-    if (msg) printf("%s\n", msg);
-#endif
-#else
     if (msg)
     {
 	amrex::Print(Print::AllProcs,amrex::ErrorStream()) << msg << '!' << '\n';
     }
-#endif
 }
 
 void
@@ -242,30 +213,8 @@ amrex::Warning (const std::string& msg)
 }
 
 void
-AMREX_GPU_HOST_DEVICE
-amrex::Assert (const char* EX,
-               const char* file,
-               int         line,
-               const char* msg)
+amrex::detail::Assert_host_doit (const char* EX, const char* file, int line, const char* msg)
 {
-#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-// HIP FIX HERE - printf & assert
-
-#ifdef AMREX_USE_CUDA
-#if !defined(__APPLE__)
-    if (msg) {
-        printf("Assertion `%s' failed, file \"%s\", line %d, Msg: %s",
-               EX, file, line, msg);
-    } else {
-        printf("Assertion `%s' failed, file \"%s\", line %d",
-               EX, file, line);
-    }
-
-    assert(0);
-#endif
-#endif
-
-#else
     const int N = 512;
 
     char buf[N];
@@ -295,7 +244,6 @@ amrex::Assert (const char* EX,
        write_to_stderr_without_buffering(buf);
        ParallelDescriptor::Abort();
    }
-#endif
 }
 
 namespace

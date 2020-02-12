@@ -173,14 +173,7 @@ namespace amrex {
                 AMREX_DEVICE_PRINTF(" (%d,%d,%d,%d) is out of bound (%d:%d,%d:%d,%d:%d,0:%d)\n",
                                     i, j, k, n, begin.x, end.x-1, begin.y, end.y-1,
                                     begin.z, end.z-1, ncomp-1);
-
-// HIP FIX HERE - printf + amrex::Abort
-#if defined(AMREX_USE_DPCPP)
-                // xxxxx DPCPP todo
-#elif defined(AMREX_USE_CUDA)
                 amrex::Abort();
-#endif
-
 #else
                 std::stringstream ss;
                 ss << " (" << i << "," << j << "," << k << "," <<  n

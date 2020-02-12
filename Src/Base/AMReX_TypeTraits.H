@@ -79,13 +79,8 @@ namespace amrex
     
 #if defined(AMREX_USE_GPU)
 
-#if defined(AMREX_USE_DPCPP)
-    template <class T, class Enable = void>
-    struct IsDeviceLambda : std::true_type {};
-#else
     template <class T, class Enable = void>
     struct IsDeviceLambda : std::false_type {};
-#endif
 
 #if defined(AMREX_USE_CUDA)
     template <class T>

@@ -209,6 +209,7 @@ target_sources( amrex
    AMReX_Gpu.H
    AMReX_GpuQualifiers.H
    AMReX_GpuPrint.H
+   AMReX_GpuAssert.H
    AMReX_GpuTypes.H
    AMReX_GpuControl.H
    AMReX_GpuControl.cpp
