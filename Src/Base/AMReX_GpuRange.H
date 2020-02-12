@@ -63,8 +63,8 @@ struct range_impl
     explicit range_impl (T const& b) noexcept : m_b(b), m_n(range_detail::size(b)) {}
 
 #ifdef AMREX_USE_DPCPP
-    range_impl (T const& b, sycl::nd_item<1> const& item) noexcept
-        : m_b(b), m_n(range_detail::size(b)), m_item(item) {}
+    range_impl (T const& b, long gid, long grange) noexcept
+        : m_b(b), m_n(range_detail::size(b)), m_gid(gid), m_grange(grange) {}
 #endif
 
     struct iterator
@@ -92,7 +92,7 @@ struct range_impl
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
         return iterator(m_b, blockDim.x*blockIdx.x+threadIdx.x, blockDim.x*gridDim.x);
 #elif defined (__SYCL_DEVICE_ONLY__)
-        return iterator(m_b, m_item.get_global_id(0), m_item.get_global_range(0));
+        return iterator(m_b, m_gid, m_grange);
 #else
         return iterator(m_b,0,1);
 #endif
@@ -105,15 +105,16 @@ private:
     T m_b;
     long m_n;
 #ifdef AMREX_USE_DPCPP
-    sycl::nd_item<1> const& m_item;
+    long m_gid;
+    long m_grange;
 #endif
 };
 }
 
 #ifdef AMREX_USE_DPCPP
 template <typename T>
-range_detail::range_impl<T> Range (T const& b, sycl::nd_item<1> const& item) noexcept {
-    return range_detail::range_impl<T>(b,item);
+range_detail::range_impl<T> Range (T const& b, long gid, long grange) noexcept {
+    return range_detail::range_impl<T>(b,gid,grange);
 }
 #else
 template <typename T>
