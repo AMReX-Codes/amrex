@@ -198,6 +198,7 @@ htod_memcpy (void* p_d, const void* p_h, const std::size_t sz) noexcept
     Device::nonNullStreamSynchronize();
     auto& q = Device::nullQueue();
     q.submit([&] (sycl::handler& h) { h.memcpy(p_d, p_h, sz); });
+    q.wait();
 #else
     AMREX_HIP_OR_CUDA(
         AMREX_HIP_SAFE_CALL(hipMemcpy(p_d, p_h, sz, hipMemcpyHostToDevice));,
@@ -227,6 +228,7 @@ dtod_memcpy (void* p_d_dst, const void* p_d_src, const std::size_t sz) noexcept
     Device::nonNullStreamSynchronize();
     auto& q = Device::nullQueue();
     q.submit([&] (sycl::handler& h) { h.memcpy(p_d_dst, p_d_src, sz); });
+    q.wait();
 #else
     AMREX_HIP_OR_CUDA(
         AMREX_HIP_SAFE_CALL(hipMemcpy(p_d_dst, p_d_src, sz, hipMemcpyDeviceToDevice));,
