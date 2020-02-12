@@ -116,11 +116,11 @@ template <typename T>
 range_detail::range_impl<T> Range (T const& b, long gid, long grange) noexcept {
     return range_detail::range_impl<T>(b,gid,grange);
 }
-#else
+#endif
+
 template <typename T>
 AMREX_GPU_HOST_DEVICE
 range_detail::range_impl<T> Range (T const& b) noexcept { return range_detail::range_impl<T>(b); }
-#endif
 
 }}
 
