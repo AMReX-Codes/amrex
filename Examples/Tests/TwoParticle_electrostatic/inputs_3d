@@ -1,0 +1,29 @@
+max_step = 30
+amr.n_cell = 128 128 128
+amr.max_level = 0
+amr.blocking_factor = 8
+amr.max_grid_size = 128
+amr.plot_int = 5
+geometry.coord_sys   = 0
+geometry.is_periodic = 0 0 0
+geometry.prob_lo     = -1 -1 -1
+geometry.prob_hi     = 1 1 1
+warpx.do_pml = 0
+warpx.dt = 2e-4
+
+particles.nspecies = 2
+particles.species_names = electron1 electron2
+
+electron1.charge = -q_e
+electron1.mass = m_e
+electron1.injection_style = "SingleParticle"
+electron1.single_particle_pos = 0.057735026918963 0.057735026918963 0.057735026918963
+electron1.single_particle_vel = 0.0 0.0 0.0
+electron1.single_particle_weight = 1.0
+
+electron2.charge = -q_e
+electron2.mass = m_e
+electron2.injection_style = "SingleParticle"
+electron2.single_particle_pos = -0.057735026918963 -0.057735026918963 -0.057735026918963
+electron2.single_particle_vel = 0.0 0.0 0.0
+electron2.single_particle_weight = 1.0
