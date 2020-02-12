@@ -21,7 +21,7 @@ void launch (T const& n, L&& f, std::size_t shared_mem_bytes=0) noexcept
                                              sycl::range<1>(nthreads_per_block)),
             [=] (sycl::nd_item<1> item)
             {
-                for (auto const i : Gpu::Range(n,item.get_global_id(),item.get_global_range())) {
+                for (auto const i : Gpu::Range(n,item.get_global_id(0),item.get_global_range(0))) {
                     f(i);
                 }
             });
