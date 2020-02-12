@@ -21,11 +21,6 @@
 #define AMREX_GPU_DEVICE_MANAGED __device__ __managed__
 #endif
 
-// Put in this header because it is included everywhere
-#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-#define AMREX_DEVICE_COMPILE 1
-#endif
-
 #else
 
 #define AMREX_GPU_HOST
@@ -37,5 +32,7 @@
 #define AMREX_GPU_DEVICE_MANAGED
 
 #endif
+
+#define AMREX_DEVICE_COMPILE() defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__) || defined(__SYCL_DEVICE_ONLY__)
 
 #endif

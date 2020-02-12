@@ -104,7 +104,7 @@ namespace Gpu {
     inline
     Box getThreadBox (const Box& bx, long offset) noexcept
     {
-#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__) || defined(__SYCL_DEVICE_ONLY__)
+#if AMREX_DEVICE_COMPILE()
         const auto len = bx.length3d();
         long k = offset / (len[0]*len[1]);
         long j = (offset - k*(len[0]*len[1])) / len[0];
