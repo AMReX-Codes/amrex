@@ -330,7 +330,10 @@ amrex::ResizeRandomSeed (int N)
 {
     BL_PROFILE("ResizeRandomSeed");
 
-#ifdef AMREX_USE_GPU
+#ifdef AMREX_USE_DPCPP
+    // xxxxx DPCPP todo
+
+#elif defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
 
     if (N <= gpu_nstates_h) return;
 
@@ -367,8 +370,7 @@ amrex::ResizeRandomSeed (int N)
     amrex::BlockMutex* d_mutex_h_ptr_local = d_mutex_h_ptr;
 
     // HIP FIX HERE - hipMemcpyToSymbol doesn't work with pointers.
-    AMREX_GPU_LAUNCH_DEVICE(Gpu::ExecutionConfig(1, 1, 0),
-    [=] AMREX_GPU_DEVICE
+    amrex::ParallelFor(1, [=] AMREX_GPU_DEVICE (int) 
     {
         d_states_d_ptr = new_data;
         d_mutex_d_ptr = d_mutex_h_ptr_local;
@@ -376,7 +378,7 @@ amrex::ResizeRandomSeed (int N)
     });
 
     const int MyProc = amrex::ParallelDescriptor::MyProc();
-    AMREX_PARALLEL_FOR_1D (SizeDiff, idx,
+    amrex::ParallelFor (SizeDiff, [=] AMREX_GPU_DEVICE (int idx) noexcept
     {
         unsigned long seed = MyProc*1234567UL + 12345UL ;
         int seqstart = idx + 10 * idx ;
