@@ -156,6 +156,10 @@ WarpXOpenPMDPlot::Init(openPMD::AccessType accessType)
     std::string filename;
     GetFileName(filename);
 
+    // close a previously open series before creating a new one
+    // see ADIOS1 limitation: https://github.com/openPMD/openPMD-api/pull/686
+    m_Series = nullptr;
+
     if( amrex::ParallelDescriptor::NProcs() > 1 )
     {
         m_Series = std::make_unique<openPMD::Series>(
