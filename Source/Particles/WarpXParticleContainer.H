@@ -328,6 +328,7 @@ protected:
 
     int do_not_push = 0;
     int do_not_deposit = 0;
+    int do_not_gather = 0;
 
     // Whether to allow particles outside of the simulation domain to be
     // initialized when they enter the domain.

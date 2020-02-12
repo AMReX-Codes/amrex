@@ -51,6 +51,7 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
     pp.query("do_splitting", do_splitting);
     pp.query("split_type", split_type);
     pp.query("do_not_deposit", do_not_deposit);
+    pp.query("do_not_gather", do_not_gather);
     pp.query("do_not_push", do_not_push);
 
     pp.query("do_continuous_injection", do_continuous_injection);
@@ -2181,7 +2182,8 @@ PhysicalParticleContainer::FieldGather (WarpXParIter& pti,
                                      (gather_lev==(lev  )),
                                      "Gather buffers only work for lev-1");
     // If no particles, do not do anything
-    if (np_to_gather == 0) return;
+    // If do_not_gather = 1 by user, do not do anything
+    if (np_to_gather == 0 || do_not_gather) return;
 
     // initializing the field value to the externally applied field before
     // gathering fields from the grid to the particles.
