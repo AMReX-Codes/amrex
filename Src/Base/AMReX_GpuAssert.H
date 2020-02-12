@@ -10,14 +10,10 @@
 #endif
 
 #if defined(AMREX_USE_DPCPP) || defined(AMREX_USE_CUDA)
-
-#define AMREX_DEVICE_ASSERT(flag) assert(flag)
-
+#  define AMREX_DEVICE_ASSERT(flag) assert(flag)
 #elif defined(AMREX_USE_HIP)
-
 // HIP FIX HERE - assert
-#define AMREX_DEVICE_ASSERT(flag)
-
+#  define AMREX_DEVICE_ASSERT(flag)
 #endif
 
 #endif  // !defined(__APPLE__)
