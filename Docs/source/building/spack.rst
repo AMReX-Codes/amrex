@@ -17,13 +17,6 @@ This will build the 3-D version of WarpX using the master branch.
 At the very end of the output from build sequence, Spack tells you where the WarpX executable has been placed.
 Alternatively, the "spack load" command can be configured so that "spack load warpx" will put the executable in your execute path.
 
-To build using the dev branch, the command is
-
-::
-
-    spack install warpx@dev
-
-
 Other variants of WarpX can be installed, for example
 
 ::

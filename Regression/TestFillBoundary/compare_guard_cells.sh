@@ -71,8 +71,8 @@ fi
 if [ $DO_GIT_CLONE == true ]; then
     # Clone all three repos
     rm -rf WarpX picsar amrex
-    git clone --branch dev https://github.com/ECP-WarpX/WarpX.git
-    git clone --branch master https://bitbucket.org/berkeleylab/picsar.git
+    git clone https://github.com/ECP-WarpX/WarpX.git
+    git clone https://bitbucket.org/berkeleylab/picsar.git
     git clone --branch development https://github.com/AMReX-Codes/amrex.git
 fi
 
@@ -138,7 +138,7 @@ for NCI_CORR in 0 1; do
                                             if [ $PML == 1 ] && [ $NODAL == 1 ]; then continue; fi
                                             # Exception: divE cleaning + nodal (not implemented)
                                             if [ $DIVE == 1 ] && [ $NODAL == 1 ]; then continue; fi
-                                            # Exception: NCI corrector + momentum-conserving gather (SEGFAULT on dev branch)
+                                            # Exception: NCI corrector + momentum-conserving gather
                                             if [ $NCI_CORR == 1 ] && [ $GATHER == momentum-conserving ]; then continue; fi
                                             # Exceptions: PSATD does not work with NCI corrector, subcycling,
                                             if [[ $EXECUTABLE == *"PSATD"* ]]; then

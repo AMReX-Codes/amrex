@@ -250,9 +250,9 @@ First, log into cori and clone the git repo's.
    cd $SCRATCH
    mkdir warpx
    cd warpx/
-   git clone --branch dev https://github.com/ECP-WarpX/WarpX.git WarpX-libsim
+   git clone https://github.com/ECP-WarpX/WarpX.git WarpX-libsim
    git clone --branch development https://github.com/AMReX-Codes/amrex
-   git clone --branch master https://bitbucket.org/berkeleylab/picsar.git
+   git clone https://bitbucket.org/berkeleylab/picsar.git
    cd WarpX-libsim
    vim GNUmakefile
 
@@ -301,9 +301,9 @@ First, log into cori and clone the git repo's.
    cd $SCRATCH
    mkdir warpx
    cd warpx/
-   git clone --branch dev https://github.com/ECP-WarpX/WarpX.git WarpX-catalyst
+   git clone https://github.com/ECP-WarpX/WarpX.git WarpX-catalyst
    git clone --branch development https://github.com/AMReX-Codes/amrex
-   git clone --branch master https://bitbucket.org/berkeleylab/picsar.git
+   git clone https://bitbucket.org/berkeleylab/picsar.git
    cd WarpX-catalyst
    vim GNUmakefile
 

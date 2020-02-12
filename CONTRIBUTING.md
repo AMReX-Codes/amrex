@@ -17,7 +17,7 @@ The basic WarpX workflow is:
 - Implement your changes and push them on a new branch `<branch_name>` on
 your fork;
 - Create a Pull Request from branch `<branch_name>` on your fork to branch
-`dev` on the main WarpX repo.
+`master` on the main WarpX repo.
 
 First, let us setup your local git repo. Make your own fork of the main
 (`upstream`) WarpX repo:
@@ -31,7 +31,7 @@ git clone --branch master https://bitbucket.org/berkeleylab/picsar.git
 git clone --branch development https://github.com/AMReX-Codes/amrex.git
 
 # Clone your fork on your local computer. You can get this address on your fork's Github page.
-git clone --branch dev https://github.com/<myGithubUsername>/ECP-WarpX/WarpX.git
+git clone https://github.com/<myGithubUsername>/ECP-WarpX/WarpX.git
 cd warpx
 # Keep track of the main WarpX repo, to remain up-to-date.
 git remote add upstream https://github.com/ECP-WarpX/WarpX.git
@@ -40,16 +40,16 @@ Now you are free to play with your fork (for additional information, you can vis
 [Github fork help page](https://help.github.com/en/articles/fork-a-repo)).
 
 > Note: you do not have to re-do the setup above every time.
-> Instead, in the future, you need to update the `dev` branch
+> Instead, in the future, you need to update the `master` branch
 > on your fork with
 > ```
-> git checkout dev
-> git pull upstream dev
+> git checkout master
+> git pull upstream master
 > ```
 
-Make sure you are on WarpX `dev` branch with
+Make sure you are on WarpX `master` branch with
 ```
-git checkout dev
+git checkout master
 ```
 in the WarpX directory.
 
@@ -81,11 +81,11 @@ your fork with
 git push -u origin <branch_name>
 ```
 
-If you want to synchronize your branch with the `dev` branch (this is useful
-when the `dev` branch is being modified while you are working on
+If you want to synchronize your branch with the `master` branch (this is useful
+when the `master` branch is being modified while you are working on
 `<branch_name>`), you can use
 ```
-git pull upstream dev
+git pull upstream master
 ```
 and fix any conflict that may occur.
 
@@ -96,8 +96,6 @@ and to propose your new feature/improvement/fix to the WarpX project.
 Right after you push changes, a banner should appear on the Github page of
 your fork, with your `<branch_name>`.
 - Click on the `compare & pull request` button to prepare your PR.
-- Change the PR destination from `master` to `dev` (make sure that the PR is
-from `<yourFork>/<branch_name>` to `ECP-WarpX/WarpX/dev`).
 - It is time to communicate your changes: write a title and a description for
 your PR. People who review your PR are happy to know
   * what feature/fix you propose, and why
