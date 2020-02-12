@@ -164,16 +164,29 @@ struct DataAllocator {
     AMREX_GPU_HOST_DEVICE
     DataAllocator (Arena* ar) noexcept : m_arena(ar) {}
 
+    AMREX_GPU_HOST
     void* alloc (std::size_t sz) const noexcept {
+#if defined (__SYCL_DEVICE_ONLY__)
+        return nullptr;
+#else
         return arena()->alloc(sz);
+#endif
     }
 
+    AMREX_GPU_HOST
     void free (void* pt) const noexcept {
+#if !defined (__SYCL_DEVICE_ONLY__)
         arena()->free(pt);
+#endif
     }
 
+    AMREX_GPU_HOST
     Arena* arena () const noexcept {
+#if defined (__SYCL_DEVICE_ONLY__)
+        return nullptr;
+#else
         return (m_arena) ? m_arena : The_Arena();
+#endif
     }
 };
 
