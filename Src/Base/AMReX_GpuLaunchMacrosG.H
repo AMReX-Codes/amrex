@@ -68,7 +68,7 @@
         amrex_i_nblocks.y = 2; \
         if (amrex::Gpu::onNullStream()) amrex::Gpu::nonNullStreamSynchronize(); \
         int amrex_i_nthreads_per_block = amrex_i_ec1.numThreads.x; \
-        int amrex_i_nthreads_total = amrex_i_nthreads_per_block * amrex_i_nblocks; \
+        int amrex_i_nthreads_total = amrex_i_nthreads_per_block * amrex_i_nblocks.x; \
         auto& amrex_i_q = amrex::Gpu::Device::streamQueue(); \
         try { \
             amrex_i_q.submit([&] (sycl::handler& amrex_i_h) { \
@@ -81,7 +81,7 @@
                                 block1 \
                             } \
                     break; \
-                    case 1: for (auto const TI2 : amrex::Gpu::Range(amrex_i_tn2,amrex_i_item.get_gloval_id(0),amrex_i_iterm.get_global_range(0))) { \
+                    case 1: for (auto const TI2 : amrex::Gpu::Range(amrex_i_tn2,amrex_i_item.get_global_id(0),amrex_i_item.get_global_range(0))) { \
                                 block2 \
                             } \
                     } \
