@@ -235,7 +235,7 @@ public:
     //! and before calling MakeNewLevelFromScratch.
     //!
     //! For example, use this function if you want to remove covered grids on the coarsest refinement level.
-    virtual void PostProcessBaseGrids(BoxArray& box_array) {}
+    virtual void PostProcessBaseGrids(BoxArray& box_array) const {}
 
     virtual BoxArray GetAreaNotToTag (int lev) { return BoxArray(); }
 
