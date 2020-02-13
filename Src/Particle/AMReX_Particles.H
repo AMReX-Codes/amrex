@@ -693,19 +693,24 @@ public:
      /**
       * \brief Writes particle data to disk in the AMReX native format. 
       * 
+	  * \tparam F function type
+	  * 
       * \param dir The base directory into which to write (i.e. "plt00000")
       * \param name The name of the sub-directory for this particle type (i.e. "Tracer")
       * \param write_real_comp for each real component, whether or not we include that component in the file
       * \param write_int_comp for each integer component, whether or not we include that component in the file
       * \param real_comp_names for each real component, a name to label the data with
       * \param int_comp_names for each integer component, a name to label the data with      
+	  * \param f callable that returns whether a given particle should be written or not
      */
+	template <class F>
     void WriteBinaryParticleData (const std::string& dir,
                                   const std::string& name,
                                   const Vector<int>& write_real_comp,
                                   const Vector<int>& write_int_comp,    
                                   const Vector<std::string>& real_comp_names,
-                                  const Vector<std::string>&  int_comp_names) const;
+                                  const Vector<std::string>&  int_comp_names,
+								  F&& f) const;
     
     void CheckpointPre ();
 
@@ -788,6 +793,20 @@ public:
     void WritePlotFile (const std::string& dir, const std::string& name) const;
 
     /**
+     *  \brief This version of WritePlotFile writes all components and assigns component names
+     *
+	 *  This version also lets you pass in a functor to toggle whether each particle gets output.
+	 *
+	 * \tparam F function type
+	 *
+     * \param dir The base directory into which to write (i.e. "plt00000")
+     * \param name The name of the sub-directory for this particle type (i.e. "Tracer")
+	 * \param f callable that returns whether or not to write each particle		 
+     */
+	template <class F>
+    void WritePlotFile (const std::string& dir, const std::string& name, F&& f) const;
+	
+    /**
      *  \brief This version of WritePlotFile writes all components and allows the user to specify the names of the components. 
      *
      * \param dir The base directory into which to write (i.e. "plt00000")
@@ -800,6 +819,24 @@ public:
                         const Vector<std::string>&  int_comp_names) const;
 
     /**
+     *  \brief This version of WritePlotFile writes all components and allows the user to specify the names of the components. 
+     *
+	 *  This version also lets you pass in a functor to toggle whether each particle gets output.
+     *
+	 * \tparam F function type
+	 *
+     * \param dir The base directory into which to write (i.e. "plt00000")
+     * \param file The name of the sub-directory for this particle type (i.e. "Tracer")
+     * \param real_comp_names for each real component, a name to label the data with
+     * \param int_comp_names for each integer component, a name to label the data with      
+	 * \param f callable that returns whether or not to write each particle		 
+     */
+	template <class F>
+    void WritePlotFile (const std::string& dir, const std::string& name,
+                        const Vector<std::string>& real_comp_names,
+                        const Vector<std::string>&  int_comp_names, F&& f) const;
+	
+    /**
      *  This version of WritePlotFile writes all components and allows the user to specify
      *  the names of the components.
      *
@@ -809,7 +846,24 @@ public:
      */
     void WritePlotFile (const std::string& dir, const std::string& name,
                         const Vector<std::string>& real_comp_names) const;
-    
+
+    /**
+     *  This version of WritePlotFile writes all components and allows the user to specify
+     *  the names of the components.
+     *
+	 *  This version also lets you pass in a functor to toggle whether each particle gets output.
+	 *
+	 * \tparam F function type
+	 *
+     * \param dir The base directory into which to write (i.e. "plt00000")
+     * \param file The name of the sub-directory for this particle type (i.e. "Tracer")
+     * \param real_comp_names for each real component, a name to label the data with
+	 * \param f callable that returns whether or not to write each particle
+     */
+	template <class F>
+    void WritePlotFile (const std::string& dir, const std::string& name,
+                        const Vector<std::string>& real_comp_names, F&& f) const;
+	
     /**
      *  This version of WritePlotFile assigns component names, but allows the user to pass
      *  in a vector of ints that toggle on / off the writing of specfic components.
@@ -823,7 +877,27 @@ public:
                         const std::string& name,
                         const Vector<int>& write_real_comp,
                         const Vector<int>& write_int_comp) const;
-    
+
+    /**
+     *  This version of WritePlotFile assigns component names, but allows the user to pass
+     *  in a vector of ints that toggle on / off the writing of specfic components.
+     *
+	 *  This version also lets you pass in a functor to toggle whether each particle gets output.
+	 *
+	 * \tparam F function type
+	 *
+     * \param dir The base directory into which to write (i.e. "plt00000")
+     * \param file The name of the sub-directory for this particle type (i.e. "Tracer")
+     * \param write_real_comp for each real component, whether to include that comp in the file
+     * \param write_int_comp for each integer component, whether to include that comp in the file
+	 * \param f callable that returns whether or not to write each particle		 
+     */
+	template <class F>
+    void WritePlotFile (const std::string& dir,
+                        const std::string& name,
+                        const Vector<int>& write_real_comp,
+                        const Vector<int>& write_int_comp, F&& f) const;
+	
     /**
      * \brief This is the most general version of WritePlotFile, which takes component 
      * names and flags for whether to write each variable as components. Note that 
@@ -843,7 +917,34 @@ public:
                         const Vector<int>& write_int_comp,    
                         const Vector<std::string>& real_comp_names,
                         const Vector<std::string>&  int_comp_names) const;
-    
+
+    /**
+     * \brief This is the most general version of WritePlotFile, which takes component 
+     * names and flags for whether to write each variable as components. Note that 
+     * the user should pass in vectors containing names of all the components, whether
+     * they are written or not.
+     *
+	 *  This version also lets you pass in a functor to toggle whether each particle gets output.
+	 *
+	 * \tparam F function type
+	 *
+     * \param dir The base directory into which to write (i.e. "plt00000")
+     * \param file The name of the sub-directory for this particle type (i.e. "Tracer")
+     * \param write_real_comp for each real component, whether to include that comp in the file
+     * \param write_int_comp for each integer component, whether to include that comp in the file
+     * \param real_comp_names for each real component, a name to label the data with
+     * \param int_comp_names for each integer component, a name to label the data with
+	 * \param f callable that returns whether or not to write each particle
+     */
+	template <class F>
+    void WritePlotFile (const std::string& dir,
+                        const std::string& name,
+                        const Vector<int>& write_real_comp,
+                        const Vector<int>& write_int_comp,    
+                        const Vector<std::string>& real_comp_names,
+                        const Vector<std::string>&  int_comp_names,
+						F&& f) const;
+	
     void WritePlotFilePre ();
 
     void WritePlotFilePost ();
@@ -1060,16 +1161,21 @@ protected:
     /**
     * \brief Helper function for Checkpoint() and WritePlotFile().
     *
+	* \tparam F callable that returns whether a particle should be written or not
+	*
     * \param level
     * \param ofs
     * \param fnum
     * \param which
     * \param count
     * \param where
+	* \param f 
     */
+	template <class F>
     void WriteParticles (int level, std::ofstream& ofs, int fnum,
                          Vector<int>& which, Vector<int>& count, Vector<long>& where,
-                         const Vector<int>& write_real_comp, const Vector<int>& write_int_comp) const;
+                         const Vector<int>& write_real_comp, const Vector<int>& write_int_comp,
+						 F&& f) const;
 #ifdef AMREX_USE_HDF5
 void WriteParticlesHDF5 ( hid_t grp, int level, Vector<int>& count, Vector<long>& where ) const;
 
