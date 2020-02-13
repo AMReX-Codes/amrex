@@ -458,6 +458,7 @@ AmrMesh::MakeBaseGrids () const
     if (ba == grids[0]) {
         ba = grids[0];  // to avoid duplicates
     }
+    PostProcessBaseGrids(ba);
     return ba;
 }
 
