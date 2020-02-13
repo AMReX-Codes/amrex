@@ -143,6 +143,14 @@ cellconslin_slopes_linlim (Box const& bx, Array4<Real> const& slopes,
                            Array4<Real const> const& u, const int icomp, const int ncomp,
                            BCRec const* AMREX_RESTRICT bcr) noexcept
 {
+#ifdef AMREX_USE_DPCPP
+    using sycl::abs;
+    using sycl::copysign;
+#else
+    using std::abs;
+    using std::copysign;
+#endif
+
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
 
@@ -170,8 +178,8 @@ cellconslin_slopes_linlim (Box const& bx, Array4<Real> const& slopes,
                 Real cen  = slopes(i,j,0,n);
                 Real forw = 2.0*(u(i+1,j,0,nu)-u(i  ,j,0,nu));
                 Real back = 2.0*(u(i  ,j,0,nu)-u(i-1,j,0,nu));
-                Real slp = (forw*back >= 0.0) ? amrex::min(std::abs(forw),std::abs(back)) : 0.0;
-                slopes(i,j,0,n) = std::copysign(1.0,cen)*amrex::min(slp,std::abs(cen));
+                Real slp = (forw*back >= 0.0) ? amrex::min(abs(forw),abs(back)) : 0.0;
+                slopes(i,j,0,n) = copysign(1.0,cen)*amrex::min(slp,abs(cen));
                 if (cen != 0.0) {
                     sf(i,j,0,0) = amrex::min(sf(i,j,0,0), slopes(i,j,0,n)/cen);
                 } else {
@@ -181,8 +189,8 @@ cellconslin_slopes_linlim (Box const& bx, Array4<Real> const& slopes,
                 cen  = slopes(i,j,0,n+ncomp);
                 forw = 2.0*(u(i,j+1,0,nu)-u(i,j  ,0,nu));
                 back = 2.0*(u(i,j  ,0,nu)-u(i,j-1,0,nu));
-                slp = (forw*back >= 0.0) ? amrex::min(std::abs(forw),std::abs(back)) : 0.0;
-                slopes(i,j,0,n+ncomp) = std::copysign(1.0,cen)*amrex::min(slp,std::abs(cen));
+                slp = (forw*back >= 0.0) ? amrex::min(abs(forw),abs(back)) : 0.0;
+                slopes(i,j,0,n+ncomp) = copysign(1.0,cen)*amrex::min(slp,abs(cen));
                 if (cen != 0.0) {
                     sf(i,j,0,1) = amrex::min(sf(i,j,0,1), slopes(i,j,0,n+ncomp)/cen);
                 } else {
@@ -239,6 +247,14 @@ cellconslin_slopes_mclim (Box const& bx, Array4<Real> const& slopes,
                           Array4<Real const> const& u, const int icomp, const int ncomp,
                           BCRec const* AMREX_RESTRICT bcr) noexcept
 {
+#ifdef AMREX_USE_DPCPP
+    using sycl::abs;
+    using sycl::copysign;
+#else
+    using std::abs;
+    using std::copysign;
+#endif
+
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
 
@@ -272,14 +288,14 @@ cellconslin_slopes_mclim (Box const& bx, Array4<Real> const& slopes,
                 Real cen  = slopes(i,j,0,n);
                 Real forw = 2.0*(u(i+1,j,0,nu)-u(i  ,j,0,nu));
                 Real back = 2.0*(u(i  ,j,0,nu)-u(i-1,j,0,nu));
-                Real slp = (forw*back >= 0.0) ? amrex::min(std::abs(forw),std::abs(back)) : 0.0;
-                slopes(i,j,0,n) = std::copysign(1.0,cen)*amrex::min(slp,std::abs(cen));
+                Real slp = (forw*back >= 0.0) ? amrex::min(abs(forw),abs(back)) : 0.0;
+                slopes(i,j,0,n) = copysign(1.0,cen)*amrex::min(slp,abs(cen));
 
                 cen  = slopes(i,j,0,n+ncomp);
                 forw = 2.0*(u(i,j+1,0,nu)-u(i,j  ,0,nu));
                 back = 2.0*(u(i,j  ,0,nu)-u(i,j-1,0,nu));
-                slp = (forw*back >= 0.0) ? amrex::min(std::abs(forw),std::abs(back)) : 0.0;
-                slopes(i,j,0,n+ncomp) = std::copysign(1.0,cen)*amrex::min(slp,std::abs(cen));
+                slp = (forw*back >= 0.0) ? amrex::min(abs(forw),abs(back)) : 0.0;
+                slopes(i,j,0,n+ncomp) = copysign(1.0,cen)*amrex::min(slp,abs(cen));
             }
         }
     }
