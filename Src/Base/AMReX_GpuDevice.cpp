@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <string>
 #include <unordered_set>
+#include <exception>
 #include <AMReX_GpuDevice.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_ParmParse.H>
@@ -24,6 +25,20 @@ extern "C" {
     void amrex_initialize_acc (int);
     void amrex_finalize_acc ();
     void amrex_set_acc_stream (int);
+}
+#endif
+
+#ifdef AMREX_USE_DPCPP
+namespace {
+    auto amrex_sycl_error_handler = [] (sycl::exception_list exceptions) {
+        for (std::exception_ptr const& e : exceptions) {
+            try {
+                std::rethrow_exception(e);
+            } catch (sycl::exception const& e) {
+                amrex::Print() << "Async SYCL exception: " << e.what() << std::endl;
+            }
+        }
+    };
 }
 #endif
 
@@ -404,9 +419,8 @@ Device::initialize_gpu ()
 #elif defined(AMREX_USE_DPCPP)
     { // create device, context and queues
         sycl::gpu_selector device_selector;
-        sycl::async_handler error_handler{}; // xxxxx DPCPP todo
         sycl_device.reset(new sycl::device(device_selector));
-        sycl_context.reset(new sycl::context(*sycl_device, error_handler));
+        sycl_context.reset(new sycl::context(*sycl_device, amrex_sycl_error_handler));
         gpu_default_stream.queue = new sycl::ordered_queue(*sycl_context, device_selector);
         for (int i = 0; i < max_gpu_streams; ++i) {
             gpu_streams[i].queue = new sycl::ordered_queue(*sycl_context, device_selector);
