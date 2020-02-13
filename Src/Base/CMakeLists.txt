@@ -222,6 +222,7 @@ target_sources( amrex
    AMReX_GpuError.H
    AMReX_GpuDevice.H
    AMReX_GpuDevice.cpp
+   AMReX_GpuAtomic.H
    AMReX_GpuUtility.H
    AMReX_GpuUtility.cpp
    AMReX_GpuAsyncArray.H
