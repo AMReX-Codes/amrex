@@ -59,6 +59,7 @@ namespace Gpu {
         CUresult r = cuPointerGetAttributes(1, &attrib, data, (CUdeviceptr)p);
         return r == CUDA_SUCCESS && is_managed;
 #elif defined(AMREX_USE_DPCPP)
+        // xxxxx DPCPP todo
 //        auto const info = sycl::get_pointer_info(p);
 //        auto type = sycl::get_pointer_type(p,Device::syclContext());
         return false;
@@ -79,6 +80,9 @@ namespace Gpu {
         void* data[] = { (void*)(&mem_type) };
         CUresult r = cuPointerGetAttributes(1, &attrib, data, (CUdeviceptr)p);
         return r == CUDA_SUCCESS && mem_type == CU_MEMORYTYPE_DEVICE;
+#elif defined(AMREX_USE_DPCPP)
+        // xxxxx DPCPP todo
+        return false;
 #else
         return false;
 #endif
@@ -96,6 +100,9 @@ namespace Gpu {
         void* data[] = { (void*)(&mem_type) };
         CUresult r = cuPointerGetAttributes(1, &attrib, data, (CUdeviceptr)p);
         return r == CUDA_SUCCESS && mem_type == CU_MEMORYTYPE_HOST;
+#elif defined(AMREX_USE_DPCPP)
+        // xxxxx DPCPP todo
+        return false;
 #else
         return false;
 #endif
@@ -123,6 +130,9 @@ namespace Gpu {
              mem_type == CU_MEMORYTYPE_DEVICE ||
              mem_type == CU_MEMORYTYPE_ARRAY  ||
              mem_type == CU_MEMORYTYPE_UNIFIED);
+#elif defined(AMREX_USE_DPCPP)
+        // xxxxx DPCPP todo
+        return false;
 #else
         return false;
 #endif
@@ -133,8 +143,35 @@ namespace Gpu {
 #ifdef AMREX_USE_GPU
         namespace detail {
 
+#ifdef AMREX_USE_DPCPP
+            template <typename R, typename I>
+            AMREX_FORCE_INLINE
+            void atomicAdd (R* address, R val) noexcept
+            {
+#if defined(__SYCL_DEVICE_ONLY__)
+                constexpr auto mo = sycl::memory_order::relaxed;
+                constexpr auto as = sycl::access::address_space::global_space;
+                static_assert(sizeof(R) == sizeof(I), "sizeof R != sizeof I");
+                I* add_as_I = reinterpret_cast<I*>(address);
+                sycl::atomic<I,as> a{sycl::multi_ptr<I,as>(add_as_I)};
+                auto old_I = a.load(mo);
+                R old_R;
+                do {
+                    old_R = *reinterpret_cast<R const*>(&old_I);
+                    R const new_R = old_R + val;
+                    I const new_I = *reinterpret_cast<I const*>(&new_R);
+                    if (a.compare_exchange_strong(old_I, new_I, mo)) {
+                        break;
+                    }
+                } while(true);
+#else
+                *address += val;
+#endif
+            }
+#endif
+
             AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-            float atomicMax(float* address, float val) noexcept
+            float atomicMax (float* address, float val) noexcept
             {
 #ifdef AMREX_USE_DPCPP
                 return 0.; // xxxxx DPCPP todo
@@ -151,7 +188,7 @@ namespace Gpu {
             }
             
             AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-            double atomicMax(double* address, double val) noexcept
+            double atomicMax (double* address, double val) noexcept
             {
 #ifdef AMREX_USE_DPCPP
                 return 0.; // xxxxx DPCPP todo
@@ -169,7 +206,7 @@ namespace Gpu {
             }
 
             AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-            float atomicMin(float* address, float val) noexcept
+            float atomicMin (float* address, float val) noexcept
             {
 #ifdef AMREX_USE_DPCPP
                 return 0.; // xxxxx DPCPP todo
@@ -186,7 +223,7 @@ namespace Gpu {
             }
 
             AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-            double atomicMin(double* address, double val) noexcept
+            double atomicMin (double* address, double val) noexcept
             {
 #ifdef AMREX_USE_DPCPP
                 return 0.; // xxxxx DPCPP todo
@@ -211,11 +248,28 @@ namespace Gpu {
         {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
             atomicAdd(sum, value);
+#elif defined(__SYCL_DEVICE_ONLY__)
+            constexpr auto mo = sycl::memory_order::relaxed;
+            constexpr auto as = sycl::access::address_space::global_space;
+            sycl::atomic<T,as> a{sycl::multi_ptr<T,as>(sum)};
+            sycl::atomic_fetch_add(a, value, mo);
 #else
             *sum += value;
 #endif
         }
 
+#ifdef AMREX_USE_DPCPP
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        void Add (double* sum, double value) noexcept
+        {
+            detail::atomicAdd<double, unsigned long long>(sum, value);
+        }
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        void Add (float* sum, float value) noexcept
+        {
+            detail::atomicAdd<float, int>(sum, value);
+        }
+#elif defined(AMREX_USE_CUDA) && defined(AMREX_USE_HIP)
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         void Add (long* sum, long value) noexcept
         {
@@ -225,7 +279,8 @@ namespace Gpu {
             *sum += value;
 #endif
         }
-        
+#endif
+
         template<class T>
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         void Min (T* m, T value) noexcept
@@ -283,6 +338,8 @@ namespace Gpu {
         {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
             atomicMax(m, value);
+//#elif defined(__SYCL_DEVICE_ONLY__)
+//            sycl::atomic_max(m, value);
 #else
             *m = (*m) > value ? (*m) : value;
 #endif
@@ -417,6 +474,8 @@ namespace Gpu {
     {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
         return ::isinf(m);
+#elif defined(__SYCL_DEVICE_ONLY__)
+        return sycl::isinf(m);
 #else
         return std::isinf(m);
 #endif
@@ -480,7 +539,7 @@ namespace HostDevice { namespace Atomic {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void Add (T* sum, T value) noexcept
     {
-#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+#if AMREX_DEVICE_COMPILE()
         Gpu::Atomic::Add(sum,value);
 #else
 #ifdef _OPENMP
