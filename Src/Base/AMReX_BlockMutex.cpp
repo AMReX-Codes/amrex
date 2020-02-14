@@ -5,16 +5,16 @@ namespace amrex {
 #ifdef AMREX_USE_GPU
 
 void BlockMutex::init_states (state_t* state, int N) noexcept {
-    AMREX_LAUNCH_KERNEL((N+255)/256, 256, 0, 0, 
+#ifdef AMREX_USE_DPCPP
+    amrex::Abort("xxxxx DPCPP todo");
+#else
+    amrex::launch((N+255)/256, 256, Gpu::nullStream(),
     [=] AMREX_GPU_DEVICE () noexcept
     {
-#ifdef AMREX_USE_DPCPP
-// xxxxx DPCPP todo
-#else
         int i = threadIdx.x + blockIdx.x*blockDim.x;
         if (i < N) state[i] = FreeState();
-#endif
     });
+#endif
 }
 
 BlockMutex::BlockMutex (int N) noexcept
