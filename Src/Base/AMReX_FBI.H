@@ -59,12 +59,12 @@ ParallelFor (Vector<Array4BoxTag<T> > const& tags, int ncomp, F && f)
     constexpr int nthreads = 128;
     constexpr int nwarps_per_block = nthreads/Gpu::Device::warp_size;
     int nblocks = (ntotwarps + nwarps_per_block-1) / nwarps_per_block;
-    AMREX_LAUNCH_KERNEL(nblocks, nthreads, 0, 0,
+#ifdef AMREX_USE_DPCPP
+    amrex::Abort("xxxxx DPCPP todo");
+#else
+    amrex::launch(nblocks, nthreads, Gpu::nullStream(),
     [=] AMREX_GPU_DEVICE () noexcept
     {
-#ifdef AMREX_USE_DPCPP
-// xxxxx DPCPP todo
-#else
         int g_tid = blockDim.x*blockIdx.x + threadIdx.x;
         int g_wid = g_tid / Gpu::Device::warp_size;
         if (g_wid >= ntotwarps) return;
@@ -105,8 +105,8 @@ ParallelFor (Vector<Array4BoxTag<T> > const& tags, int ncomp, F && f)
                 f(i,j,k,n,tag.dfab);
             }
         }
-#endif
     });
+#endif
 
     Gpu::synchronize();
     The_Device_Arena()->free(d_nwarps);
@@ -182,12 +182,12 @@ fab_to_fab (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, in
     constexpr int nthreads = 128;
     constexpr int nwarps_per_block = nthreads/Gpu::Device::warp_size;
     int nblocks = (ntotwarps + nwarps_per_block-1) / nwarps_per_block;
-    AMREX_LAUNCH_KERNEL(nblocks, nthreads, 0, 0, 
+#ifdef AMREX_USE_DPCPP
+    amrex::Abort("xxxxx DPCPP todo");
+#else
+    amrex::launch(nblocks, nthreads, Gpu::nullStream(),
     [=] AMREX_GPU_DEVICE () noexcept
     {
-#ifdef AMREX_USE_DPCPP
-// xxxxx DPCPP todo
-#else
         int g_tid = blockDim.x*blockIdx.x + threadIdx.x;
         int g_wid = g_tid / Gpu::Device::warp_size;
         if (g_wid >= ntotwarps) return;
@@ -229,8 +229,8 @@ fab_to_fab (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, in
                   tag.sfab(i+tag.offset.x,j+tag.offset.y,k+tag.offset.z,n+scomp));
             }
         }
-#endif
     });
+#endif
 
     Gpu::synchronize();
     The_Device_Arena()->free(d_nwarps);
@@ -273,12 +273,12 @@ fab_to_fab (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, in
     constexpr int nthreads = 128;
     constexpr int nwarps_per_block = nthreads/Gpu::Device::warp_size;
     int nblocks = (ntotwarps + nwarps_per_block-1) / nwarps_per_block;
-    AMREX_LAUNCH_KERNEL(nblocks, nthreads, 0, 0, 
+#ifdef AMREX_USE_DPCPP
+    amrex::Abort("xxxxx DPCPP todo");
+#else
+    amrex::launch(nblocks, nthreads, Gpu::nullStream(), 
     [=] AMREX_GPU_DEVICE () noexcept
     {
-#ifdef AMREX_USE_DPCPP
-// xxxxx DPCPP todo
-#else
         int g_tid = blockDim.x*blockIdx.x + threadIdx.x;
         int g_wid = g_tid / Gpu::Device::warp_size;
         if (g_wid >= ntotwarps) return;
@@ -350,8 +350,8 @@ fab_to_fab (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, in
         }
 
         if (m) *m = 0;
-#endif
     });
+#endif
 
     Gpu::synchronize();
     The_Device_Arena()->free(d_masks);

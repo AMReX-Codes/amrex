@@ -3,6 +3,65 @@
 
 namespace amrex {
 
+template <typename L>
+void single_task (gpuStream_t stream, L&& f) noexcept
+{
+#ifdef AMREX_USE_DPCPP
+    if (Gpu::onNullStream(stream)) Gpu::nonNullStreamSynchronize();
+    auto& q = *(stream.queue);
+    try {
+        q.submit([&] (sycl::handler& h) {
+            h.single_task([=] () { f(); });
+        });
+    } catch (sycl::exception const& ex) {
+        amrex::Abort(ex.what());
+    }
+#else
+    AMREX_LAUNCH_KERNEL(1, 1, 0, stream,
+                        [=] AMREX_GPU_DEVICE () noexcept {f();});
+    AMREX_GPU_ERROR_CHECK();
+#endif
+}
+
+#ifdef AMREX_USE_DPCPP
+template<typename L>
+void launch (int nblocks, int nthreads_per_block, gpuStream_t stream,
+             L&& f) noexcept
+{
+    if (Gpu::onNullStream(stream)) Gpu::nonNullStreamSynchronize();
+    int nthreads_total = nthreads_per_block * nblocks;
+    auto& q = *(stream.queue);
+    try {
+        q.submit([&] (sycl::handler& h) {
+            h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
+                                             sycl::range<1>(nthreads_per_block)),
+            [=] (sycl::nd_item<1> item)
+            {
+                f(item);
+            });
+        });
+    } catch (sycl::exception const& ex) {
+        amrex::Abort(ex.what());
+    }
+}
+#else
+template<typename L>
+void launch (int nblocks, int nthreads_per_block, std::size_t shared_mem_bytes,
+             gpuStream_t stream, L&& f) noexcept
+{
+    AMREX_LAUNCH_KERNEL(nblocks, nthreads_per_block, shared_mem_bytes,
+                        stream, [=] AMREX_GPU_DEVICE () noexcept { f(); });
+    AMREX_GPU_ERROR_CHECK();
+}
+
+template<typename L>
+void launch (int nblocks, int nthreads_per_block,
+             gpuStream_t stream, L&& f) noexcept
+{
+    launch(nblocks, nthreads_per_block, 0, stream, std::forward<L>(f));
+}
+#endif
+
 template<typename T, typename L>
 void launch (T const& n, L&& f, std::size_t shared_mem_bytes=0) noexcept
 {

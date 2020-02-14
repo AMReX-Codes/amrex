@@ -43,6 +43,7 @@ public:
 
 #if defined(AMREX_USE_GPU)
     static gpuStream_t gpuStream () noexcept { return gpu_stream; }
+    static gpuStream_t nullStream () noexcept { return gpu_default_stream; }
 #ifdef AMREX_USE_CUDA
     // for backward compatibility
     static cudaStream_t cudaStream () noexcept { return gpu_stream; }
@@ -52,6 +53,7 @@ public:
     static sycl::ordered_queue& streamQueue () noexcept { return *(gpu_stream.queue); }
     static sycl::ordered_queue& streamQueue (int i) noexcept { return *(gpu_streams[i].queue); }
     static bool onNullStream () noexcept { return gpu_stream == gpu_default_stream; }
+    static bool onNullStream (gpuStream_t stream) noexcept { return stream == gpu_default_stream; }
 #endif
 #endif
 
@@ -162,6 +164,12 @@ inline gpuStream_t
 gpuStream () noexcept
 {
     return Device::gpuStream();
+}
+
+inline gpuStream_t
+nullStream () noexcept
+{
+    return Device::nullStream();
 }
 #endif
 
@@ -280,6 +288,12 @@ inline bool
 onNullStream ()
 {
     return Device::onNullStream();
+}
+
+inline bool
+onNullStream (gpuStream_t stream)
+{
+    return Device::onNullStream(stream);
 }
 #endif
 
