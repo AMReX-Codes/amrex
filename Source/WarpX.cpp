@@ -54,7 +54,7 @@ int WarpX::do_moving_window = 0;
 int WarpX::moving_window_dir = -1;
 Real WarpX::moving_window_v = std::numeric_limits<amrex::Real>::max();
 
-Real WarpX::quantum_xi = PhysConst::xi;
+Real WarpX::quantum_xi_c2 = PhysConst::xi_c2;
 Real WarpX::gamma_boost = 1.;
 Real WarpX::beta_boost = 0.;
 Vector<int> WarpX::boost_direction = {0,0,0};
@@ -460,7 +460,10 @@ WarpX::ReadParameters ()
         pp.query("n_current_deposition_buffer", n_current_deposition_buffer);
         pp.query("sort_int", sort_int);
 
-        pp.query("quantum_xi", quantum_xi);
+        double quantum_xi;
+        int quantum_xi_is_specified = pp.query("quantum_xi", quantum_xi);
+        if (quantum_xi_is_specified)
+            quantum_xi_c2 = quantum_xi * PhysConst::c * PhysConst::c;
 
         pp.query("do_pml", do_pml);
         pp.query("pml_ncell", pml_ncell);
