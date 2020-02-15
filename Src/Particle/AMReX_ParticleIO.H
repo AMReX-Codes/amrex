@@ -77,7 +77,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
     WriteBinaryParticleData(dir, name, write_real_comp, write_int_comp,
                             tmp_real_comp_names, tmp_int_comp_names,
-							[=] (const ParticleType& p) {return p.id() > 0;});
+							[=] (const SuperParticleType& p) {return p.id() > 0;});
     
 }
 
@@ -108,7 +108,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     
     WriteBinaryParticleData(dir, name, write_real_comp, write_int_comp,
                             real_comp_names, int_comp_names,
-							[=] (const ParticleType& p) {return p.id() > 0;});
+							[=] (const SuperParticleType& p) {return p.id() > 0;});
 }
 
 #ifdef AMREX_USE_HDF5
@@ -1444,7 +1444,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     
     WriteBinaryParticleData(dir, name, write_real_comp, write_int_comp,
                             real_comp_names, int_comp_names,
-							[=] (const ParticleType& p) {return p.id() > 0;});
+							[=] (const SuperParticleType& p) {return p.id() > 0;});
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
@@ -1466,7 +1466,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     WriteBinaryParticleData(dir, name,
                             write_real_comp, write_int_comp,
                             real_comp_names, int_comp_names,
-							[=] (const ParticleType& p) {return p.id() > 0;});
+							[=] (const SuperParticleType& p) {return p.id() > 0;});
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
@@ -1526,7 +1526,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
     WriteBinaryParticleData(dir, name, write_real_comp, write_int_comp,
                             real_comp_names, int_comp_names,
-							[=] (const ParticleType& p) {return p.id() > 0;});
+							[=] (const SuperParticleType& p) {return p.id() > 0;});
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
@@ -1543,7 +1543,7 @@ WritePlotFile (const std::string& dir, const std::string& name,
     WriteBinaryParticleData(dir, name,
                             write_real_comp, write_int_comp,
                             real_comp_names, int_comp_names,
-							[=] (const ParticleType& p) {return p.id() > 0;});
+							[=] (const SuperParticleType& p) {return p.id() > 0;});
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
@@ -1736,11 +1736,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             const auto& pmap = m_particles[lev];
             for (const auto& kv : pmap)
             {
-                const auto& aos = kv.second.GetArrayOfStructs();
-                for (int k = 0; k < aos.size(); ++k) 
+				const auto ptd = kv.second.getConstParticleTileData();
+                for (int k = 0; k < kv.second.numParticles(); ++k) 
                 {
                     // Only count (and checkpoint) valid particles.
-                    const ParticleType& p = aos[k];
+                    const auto p = ptd.getSuperParticle(k);
                     if (f(p)) nparticles++;
                 }
             }
@@ -2132,11 +2132,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         const int tile = kv.first.second;
         tile_map[grid].push_back(tile);
 
+		const auto ptd = kv.second.getConstParticleTileData();		
         // Only write out valid particles.
         int cnt = 0;	
 		for (int k = 0; k < kv.second.GetArrayOfStructs().size(); ++k)
 		{
-			const ParticleType& p = kv.second.GetArrayOfStructs()[k];
+			const auto p = ptd.getSuperParticle(k);
 			if (f(p)) {
                 cnt++;
 			}	    
@@ -2169,8 +2170,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         
         for (unsigned i = 0; i < tile_map[grid].size(); i++) {
             const auto& pbox = m_particles[lev].at(std::make_pair(grid, tile_map[grid][i]));
+			const auto ptd = pbox.getConstParticleTileData();
             for (int pindex = 0; pindex < pbox.GetArrayOfStructs().size(); ++pindex) {
-                const ParticleType& p = pbox.GetArrayOfStructs()[pindex];
+                const auto p = ptd.getSuperParticle(pindex);
                 if (f(p))
                 {
                     // always write these
@@ -2214,8 +2216,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         
         for (unsigned i = 0; i < tile_map[grid].size(); i++) {
             const auto& pbox = m_particles[lev].at(std::make_pair(grid, tile_map[grid][i]));
+			const auto ptd = pbox.getConstParticleTileData();
             for (int pindex = 0; pindex < pbox.GetArrayOfStructs().size(); ++pindex) {
-                const ParticleType& p = pbox.GetArrayOfStructs()[pindex];
+                const auto p = ptd.getSuperParticle(pindex);
                 if (f(p))
                 {
                     // always write these
@@ -2890,7 +2893,7 @@ ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt>::WriteCoarsenedA
                   int index = 0;
                   ParticleLocData pld;
                   for (int k = 0; k < aos.size(); ++k) {
-		      ParticleType* it = &aos[k];
+					  ParticleType* it = &aos[k];
                       locateParticle(*it, pld, 0, finestLevel(), 0);
                       // Only keep particles in even cells
                       if (it->id() > 0 &&
