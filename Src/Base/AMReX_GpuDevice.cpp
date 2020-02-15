@@ -566,7 +566,11 @@ Device::synchronize () noexcept
 {
 #ifdef AMREX_USE_DPCPP
     nonNullStreamSynchronize();
-    gpu_default_stream.queue->wait();
+    try {
+        gpu_default_stream.queue->wait();
+    } catch (sycl::exception const& ex) {
+        amrex::Abort(ex.what());
+    }
 #else
     AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipDeviceSynchronize());,
                        AMREX_CUDA_SAFE_CALL(cudaDeviceSynchronize()); )
@@ -578,7 +582,11 @@ Device::streamSynchronize () noexcept
 {
 #ifdef AMREX_USE_DPCPP
     auto& q = streamQueue();
-    q.wait();
+    try {
+        q.wait_and_throw();
+    } catch (sycl::exception const& ex) {
+        amrex::Abort(ex.what());
+    }
 #else
     AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipStreamSynchronize(gpu_stream));,
                        AMREX_CUDA_SAFE_CALL(cudaStreamSynchronize(gpu_stream)); )
@@ -590,7 +598,11 @@ void
 Device::nonNullStreamSynchronize () noexcept
 {
     for (auto const& s : gpu_streams) {
-        s.queue->wait();
+        try {
+            s.queue->wait();
+        } catch (sycl::exception const& ex) {
+            amrex::Abort(ex.what());
+        }
     }
 }
 #endif

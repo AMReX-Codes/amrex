@@ -206,7 +206,11 @@ htod_memcpy (void* p_d, const void* p_h, const std::size_t sz) noexcept
     Device::nonNullStreamSynchronize();
     auto& q = Device::nullQueue();
     q.submit([&] (sycl::handler& h) { h.memcpy(p_d, p_h, sz); });
-    q.wait();
+    try {
+        q.wait_and_throw();
+    } catch (sycl::exception const& ex) {
+        amrex::Abort(ex.what());
+    }
 #else
     AMREX_HIP_OR_CUDA(
         AMREX_HIP_SAFE_CALL(hipMemcpy(p_d, p_h, sz, hipMemcpyHostToDevice));,
@@ -221,7 +225,11 @@ dtoh_memcpy (void* p_h, const void* p_d, const std::size_t sz) noexcept
     Device::nonNullStreamSynchronize();
     auto& q = Device::nullQueue();
     q.submit([&] (sycl::handler& h) { h.memcpy(p_h, p_d, sz); });
-    q.wait();
+    try {
+        q.wait_and_throw();
+    } catch (sycl::exception const& ex) {
+        amrex::Abort(ex.what());
+    }
 #else
     AMREX_HIP_OR_CUDA(
         AMREX_HIP_SAFE_CALL(hipMemcpy(p_h, p_d, sz, hipMemcpyDeviceToHost));,
@@ -236,7 +244,11 @@ dtod_memcpy (void* p_d_dst, const void* p_d_src, const std::size_t sz) noexcept
     Device::nonNullStreamSynchronize();
     auto& q = Device::nullQueue();
     q.submit([&] (sycl::handler& h) { h.memcpy(p_d_dst, p_d_src, sz); });
-    q.wait();
+    try {
+        q.wait_and_throw();
+    } catch (sycl::exception const& ex) {
+        amrex::Abort(ex.what());
+    }
 #else
     AMREX_HIP_OR_CUDA(
         AMREX_HIP_SAFE_CALL(hipMemcpy(p_d_dst, p_d_src, sz, hipMemcpyDeviceToDevice));,
