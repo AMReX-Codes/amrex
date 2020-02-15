@@ -10,7 +10,6 @@
 
 import yt
 import numpy as np
-import scipy.stats as st
 import sys
 import math as m
 import scipy.special as spe

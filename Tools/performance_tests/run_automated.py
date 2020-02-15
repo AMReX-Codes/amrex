@@ -6,7 +6,7 @@
 # License: BSD-3-Clause-LBNL
 
 import os, sys, shutil, datetime, git
-import argparse, re, time, copy
+import argparse, time, copy
 import pandas as pd
 from functions_perftest import store_git_hash, get_file_content, \
     run_batch_nnode, extract_dataframe
