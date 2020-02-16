@@ -2293,11 +2293,6 @@ void mlndlap_stencil_rap (int i, int j, int k, Array4<Real> const& csten,
     };
 
     auto interp_from_ppp_to = [&fsten] (int i_, int j_, int k_) -> Real {
-#ifdef AMREX_USE_DPCPP
-        using sycl::abs;
-#else
-        using std::abs;
-#endif
         Real p = 1._rt;
         p += abs(fsten(i_  ,j_  ,k_  ,ist_p00)) /
            ( abs(fsten(i_  ,j_-1,k_-1,ist_ppp))
