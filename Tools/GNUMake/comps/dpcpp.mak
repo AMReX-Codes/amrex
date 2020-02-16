@@ -88,8 +88,6 @@ CFLAGS   += $(GENERIC_COMP_FLAGS)
 
 ########################################################################
 
-#LDFLAGS += -Xlinker --allow-multiple-definition
-
 # ifneq ($(BL_NO_FORT),TRUE)
 # 
 # # ask gfortran the name of the library to link in.  First check for the
