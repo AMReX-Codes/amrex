@@ -1780,12 +1780,7 @@ BaseFab<T>::abs (const Box& subbox, int comp, int numcomp) noexcept
     Array4<T> const& a = this->array();
     amrex::LoopConcurrent(subbox, numcomp, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT 
     {
-#ifdef AMREX_USE_DPCPP
-        using sycl::abs;
-#else
-        using std::abs;
-#endif
-        a(i,j,k,n+comp) = abs(a(i,j,k,n+comp));
+        a(i,j,k,n+comp) = std::abs(a(i,j,k,n+comp));
     });
 }
 
@@ -1803,13 +1798,8 @@ BaseFab<T>::norminfmask (const Box& subbox, const BaseFab<int>& mask,
     Real r = 0.0;
     amrex::Loop(subbox, ncomp, [=,&r] (int i, int j, int k, int n) AMREX_NOEXCEPT 
     {
-#ifdef AMREX_USE_DPCPP
-        using sycl::abs;
-#else
-        using std::abs;
-#endif
         if (m(i,j,k)) {
-            Real t = static_cast<Real>(abs(a(i,j,k,n+scomp)));
+            Real t = static_cast<Real>(std::abs(a(i,j,k,n+scomp)));
             r = amrex::max(r,t);
         }
     });
@@ -1837,23 +1827,13 @@ BaseFab<T>::norm (const Box& subbox, int p, int comp, int numcomp) const noexcep
     if (p == 0) {
         amrex::Loop(subbox, numcomp, [=,&nrm] (int i, int j, int k, int n) AMREX_NOEXCEPT 
         {
-#ifdef AMREX_USE_DPCPP
-            using sycl::abs;
-#else
-            using std::abs;
-#endif
-            Real t = static_cast<Real>(abs(a(i,j,k,n+comp)));
+            Real t = static_cast<Real>(std::abs(a(i,j,k,n+comp)));
             nrm = amrex::max(nrm,t);
         });
     } else if (p == 1) {
         amrex::Loop(subbox, numcomp, [=,&nrm] (int i, int j, int k, int n) AMREX_NOEXCEPT 
         {
-#ifdef AMREX_USE_DPCPP
-            using sycl::abs;
-#else
-            using std::abs;
-#endif
-            nrm += abs(a(i,j,k,n+comp));
+            nrm += std::abs(a(i,j,k,n+comp));
         });
     } else if (p == 2) {
         amrex::Loop(subbox, numcomp, [=,&nrm] (int i, int j, int k, int n) AMREX_NOEXCEPT
@@ -1940,12 +1920,7 @@ BaseFab<T>::maxabs (const Box& subbox, int comp) const noexcept
     T r = 0;
     amrex::Loop(subbox, [=,&r] (int i, int j, int k) AMREX_NOEXCEPT
     {
-#ifdef AMREX_USE_DPCPP
-        using sycl::abs;
-#else
-        using std::abs;
-#endif
-        r = amrex::max(r, abs(a(i,j,k,comp)));
+        r = amrex::max(r, std::abs(a(i,j,k,comp)));
     });
 
     return r;
@@ -2812,13 +2787,8 @@ BaseFab<T>::linInterp (const BaseFab<T>& f1, int comp1,
                        Real t1, Real t2, Real t,
                        const Box& b, int comp, int numcomp) noexcept
 {
-#ifdef AMREX_USE_DPCPP
-    using sycl::abs;
-#else
-    using std::abs;
-#endif
     Real tol = 1.0e-16;
-    if(abs(t2-t1) > tol)
+    if(std::abs(t2-t1) > tol)
     {
         Real alpha = (t2-t)/(t2-t1);
         Real beta = (t-t1)/(t2-t1);
