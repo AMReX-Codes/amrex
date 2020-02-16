@@ -387,10 +387,10 @@ class Machine
 
             // check result
             AMREX_ALWAYS_ASSERT(result != -1);
-#ifndef NDEBUG
+#ifdef AMREX_DEBUG
             auto coord = read_df_node_coord(nersc_host);
             int id_from_coord = df_coord_to_id(coord);
-            AMREX_ASSERT(id_from_coord == result);
+            AMREX_ALWAYS_ASSERT(id_from_coord == result);
 #endif
         } else {
             result = 0;
