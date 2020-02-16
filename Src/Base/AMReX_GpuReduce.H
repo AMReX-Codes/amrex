@@ -19,7 +19,6 @@ template <typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void deviceReduceSum (T * dest, T source) noexcept
 {
-    amrex::Abort("xxxxx deviceReduceSum");
     Gpu::Atomic::Add(dest, source);
 }
 
@@ -27,7 +26,6 @@ template <typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void deviceReduceMin (T * dest, T source) noexcept
 {
-    amrex::Abort("xxxxx deviceReduceMin");
     Gpu::Atomic::Min(dest, source);
 }
 
@@ -35,21 +33,18 @@ template <typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void deviceReduceMax (T * dest, T source) noexcept
 {
-    amrex::Abort("xxxxx deviceReduceMax");
     Gpu::Atomic::Max(dest, source);
 }
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void deviceReduceLogicalAnd (int * dest, int source) noexcept
 {
-    amrex::Abort("xxxxx deviceReduceLogicalAnd");
     Gpu::Atomic::LogicalAnd(dest, source);
 }
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void deviceReduceLogicalOr (int * dest, int source) noexcept
 {
-    amrex::Abort("xxxxx deviceReduceLogicalOr");
     Gpu::Atomic::LogicalOr(dest, source);
 }
 
