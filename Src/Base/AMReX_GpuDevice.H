@@ -209,7 +209,7 @@ htod_memcpy (void* p_d, const void* p_h, const std::size_t sz) noexcept
     try {
         q.wait_and_throw();
     } catch (sycl::exception const& ex) {
-        amrex::Abort(ex.what());
+        amrex::Abort(std::string("htod_memcpy: ")+ex.what()+"!!!!!");
     }
 #else
     AMREX_HIP_OR_CUDA(
@@ -228,7 +228,7 @@ dtoh_memcpy (void* p_h, const void* p_d, const std::size_t sz) noexcept
     try {
         q.wait_and_throw();
     } catch (sycl::exception const& ex) {
-        amrex::Abort(ex.what());
+        amrex::Abort(std::string("dtoh_memcpy: ")+ex.what()+"!!!!!");
     }
 #else
     AMREX_HIP_OR_CUDA(
@@ -247,7 +247,7 @@ dtod_memcpy (void* p_d_dst, const void* p_d_src, const std::size_t sz) noexcept
     try {
         q.wait_and_throw();
     } catch (sycl::exception const& ex) {
-        amrex::Abort(ex.what());
+        amrex::Abort(std::string("dtod_memcpy: ")+ex.what()+"!!!!!");
     }
 #else
     AMREX_HIP_OR_CUDA(

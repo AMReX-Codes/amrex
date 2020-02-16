@@ -24,7 +24,7 @@
                 }); \
             }); \
         } catch (sycl::exception const& ex) { \
-            amrex::Abort(ex.what()); \
+            amrex::Abort(std::string("LAUNCH: ")+ex.what()+"!!!!!"); \
         } \
     } \
     else { \
@@ -88,7 +88,7 @@
                 }); \
             }); \
         } catch (sycl::exception const& ex) { \
-            amrex::Abort(ex.what()); \
+            amrex::Abort(std::string("LAUNCH: ")+ex.what()+"!!!!!"); \
         } \
     } \
     else { \
@@ -174,7 +174,7 @@
                 }); \
             }); \
         } catch (sycl::exception const& ex) { \
-            amrex::Abort(ex.what()); \
+            amrex::Abort(std::string("LAUNCH: ")+ex.what()+"!!!!!"); \
         } \
     } \
     else { \
@@ -255,7 +255,7 @@
                 }); \
             }); \
         } catch (sycl::exception const& ex) { \
-            amrex::Abort(ex.what()); \
+            amrex::Abort(std::string("LAUNCH: ")+ex.what()+"!!!!!"); \
         } \
     } \
     else { \
@@ -315,7 +315,7 @@
                 }); \
             }); \
         } catch (sycl::exception const& ex) { \
-            amrex::Abort(ex.what()); \
+            amrex::Abort(std::string("LAUNCH: ")+ex.what()+"!!!!!"); \
         } \
     } \
     else { \
@@ -390,7 +390,7 @@
                 }); \
             }); \
         } catch (sycl::exception const& ex) { \
-            amrex::Abort(ex.what()); \
+            amrex::Abort(std::string("LAUNCH: ")+ex.what()+"!!!!!"); \
         } \
     } \
     else { \
@@ -457,7 +457,7 @@
                 }); \
             }); \
         } catch (sycl::exception const& ex) { \
-            amrex::Abort(ex.what()); \
+            amrex::Abort(std::string("FOR: ")+ex.what()+"!!!!!"); \
         } \
     } \
     else { \
@@ -509,7 +509,7 @@
                 }); \
             }); \
         } catch (sycl::exception const& ex) { \
-            amrex::Abort(ex.what()); \
+            amrex::Abort(std::string("FOR: ")+ex.what()+"!!!!!"); \
         } \
     }}
 #else
@@ -563,7 +563,7 @@
                 }); \
             }); \
         } catch (sycl::exception const& ex) { \
-            amrex::Abort(ex.what()); \
+            amrex::Abort(std::string("FOR: ")+ex.what()+"!!!!!"); \
         } \
     } \
     else { \
@@ -645,7 +645,7 @@
                 }); \
             }); \
         } catch (sycl::exception const& ex) { \
-            amrex::Abort(ex.what()); \
+            amrex::Abort(std::string("FOR: ")+ex.what()+"!!!!!"); \
         } \
     }
 #else
@@ -707,7 +707,7 @@
                 }); \
             }); \
         } catch (sycl::exception const& ex) { \
-            amrex::Abort(ex.what()); \
+            amrex::Abort(std::string("FOR: ")+ex.what()+"!!!!!"); \
         } \
     } \
     else { \
@@ -791,7 +791,7 @@
                 }); \
             }); \
         } catch (sycl::exception const& ex) { \
-            amrex::Abort(ex.what()); \
+            amrex::Abort(std::string("FOR: ")+ex.what()+"!!!!!"); \
         } \
     }
 #else

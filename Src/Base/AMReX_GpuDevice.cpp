@@ -34,8 +34,8 @@ namespace {
         for (std::exception_ptr const& e : exceptions) {
             try {
                 std::rethrow_exception(e);
-            } catch (sycl::exception const& e) {
-                amrex::Print() << "Async SYCL exception: " << e.what() << std::endl;
+            } catch (sycl::exception const& ex) {
+                amrex::Abort(std::string("Async SYCL exception: ")+ex.what()+"!!!!!");
             }
         }
     };
@@ -569,7 +569,7 @@ Device::synchronize () noexcept
     try {
         gpu_default_stream.queue->wait();
     } catch (sycl::exception const& ex) {
-        amrex::Abort(ex.what());
+        amrex::Abort(std::string("synchronize: ")+ex.what()+"!!!!!");
     }
 #else
     AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipDeviceSynchronize());,
@@ -585,7 +585,7 @@ Device::streamSynchronize () noexcept
     try {
         q.wait_and_throw();
     } catch (sycl::exception const& ex) {
-        amrex::Abort(ex.what());
+        amrex::Abort(std::string("streamSynchronize: ")+ex.what()+"!!!!!");
     }
 #else
     AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipStreamSynchronize(gpu_stream));,
@@ -601,7 +601,7 @@ Device::nonNullStreamSynchronize () noexcept
         try {
             s.queue->wait();
         } catch (sycl::exception const& ex) {
-            amrex::Abort(ex.what());
+            amrex::Abort(std::string("nonNullStreamSynchronize: ")+ex.what()+"!!!!!");
         }
     }
 }

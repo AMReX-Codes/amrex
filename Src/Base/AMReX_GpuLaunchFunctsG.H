@@ -14,7 +14,7 @@ void single_task (gpuStream_t stream, L&& f) noexcept
             h.single_task([=] () { f(); });
         });
     } catch (sycl::exception const& ex) {
-        amrex::Abort(ex.what());
+        amrex::Abort(std::string("single_task: ")+ex.what()+"!!!!!");
     }
 #else
     AMREX_LAUNCH_KERNEL(1, 1, 0, stream,
@@ -43,7 +43,7 @@ void launch (int nblocks, int nthreads_per_block, std::size_t shared_mem_bytes,
             });
         });
     } catch (sycl::exception const& ex) {
-        amrex::Abort(ex.what());
+        amrex::Abort(std::string("launch: ")+ex.what()+"!!!!!");
     }
 }
 
@@ -89,7 +89,7 @@ void launch (T const& n, L&& f) noexcept
             });
         });
     } catch (sycl::exception const& ex) {
-        amrex::Abort(ex.what());
+        amrex::Abort(std::string("launch: ")+ex.what()+"!!!!!");
     }
 #else
     AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
@@ -126,7 +126,7 @@ void For (T n, L&& f) noexcept
             });
         });
     } catch (sycl::exception const& ex) {
-        amrex::Abort(ex.what());
+        amrex::Abort(std::string("For: ")+ex.what()+"!!!!!");
     }
 #else
     AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
@@ -179,7 +179,7 @@ void For (Box const& box, L&& f) noexcept
             });
         });
     } catch (sycl::exception const& ex) {
-        amrex::Abort(ex.what());
+        amrex::Abort(std::string("For: ")+ex.what()+"!!!!!");
     }
 #else
     AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
@@ -240,7 +240,7 @@ void For (Box const& box, T ncomp, L&& f) noexcept
             });
         });
     } catch (sycl::exception const& ex) {
-        amrex::Abort(ex.what());
+        amrex::Abort(std::string("For: ")+ex.what()+"!!!!!");
     }
 #else
     AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
@@ -316,7 +316,7 @@ void For (Box const& box1, Box const& box2, L1&& f1, L2&& f2) noexcept
             });
         });
     } catch (sycl::exception const& ex) {
-        amrex::Abort(ex.what());
+        amrex::Abort(std::string("For: ")+ex.what()+"!!!!!");
     }
 #else
     AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
@@ -407,7 +407,7 @@ void For (Box const& box1, Box const& box2, Box const& box3, L1&& f1, L2&& f2, L
             });
         });
     } catch (sycl::exception const& ex) {
-        amrex::Abort(ex.what());
+        amrex::Abort(std::string("For: ")+ex.what()+"!!!!!");
     }
 #else
     AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
@@ -502,7 +502,7 @@ void For (Box const& box1, T1 ncomp1, L1&& f1,
             });
         });
     } catch (sycl::exception const& ex) {
-        amrex::Abort(ex.what());
+        amrex::Abort(std::string("For: ")+ex.what()+"!!!!!");
     }
 #else
     AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
@@ -608,7 +608,7 @@ void For (Box const& box1, T1 ncomp1, L1&& f1,
             });
         });
     } catch (sycl::exception const& ex) {
-        amrex::Abort(ex.what());
+        amrex::Abort(std::string("For: ")+ex.what()+"!!!!!");
     }
 #else
     AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
@@ -727,7 +727,7 @@ void FabReduce (Box const& box, T const& init_val,
             });
         });
     } catch (sycl::exception const& ex) {
-        amrex::Abort(ex.what());
+        amrex::Abort(std::string("For: ")+ex.what()+"!!!!!");
     }
 #else
     AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, sm, Gpu::gpuStream(),
@@ -791,7 +791,7 @@ void FabReduce (Box const& box, N ncomp, T const& init_val,
             });
         });
     } catch (sycl::exception const& ex) {
-        amrex::Abort(ex.what());
+        amrex::Abort(std::string("For: ")+ex.what()+"!!!!!");
     }
 #else
     AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, sm, Gpu::gpuStream(),
@@ -846,7 +846,7 @@ void VecReduce (N n, T const& init_val,
             });
         });
     } catch (sycl::exception const& ex) {
-        amrex::Abort(ex.what());
+        amrex::Abort(std::string("For: ")+ex.what()+"!!!!!");
     }
 #else
     AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, sm, Gpu::gpuStream(),
