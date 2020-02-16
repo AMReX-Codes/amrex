@@ -3,6 +3,7 @@
 
 #include <cmath>
 #include <iostream>
+#include <AMReX_Math.H>
 
 namespace amrex {
 
@@ -317,7 +318,7 @@ template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 GpuComplex<T> polar (const T& a_r, const T& a_theta) noexcept
 {
-    return GpuComplex<T>(a_r * std::cos(a_theta), a_r * std::sin(a_theta));
+    return GpuComplex<T>(a_r * amrex::Math::cos(a_theta), a_r * amrex::Math::sin(a_theta));
 }    
 
 /**
@@ -327,7 +328,7 @@ template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 GpuComplex<T> exp (const GpuComplex<T>& a_z) noexcept
 {
-    return polar<T>(std::exp(a_z.real()), a_z.imag());
+    return polar<T>(amrex::Math::exp(a_z.real()), a_z.imag());
 }    
 
 /**
@@ -352,12 +353,12 @@ T abs (const GpuComplex<T>& a_z) noexcept
     T x = a_z.real();
     T y = a_z.imag();
 
-    const T s = amrex::max(std::abs(x), std::abs(y));
+    const T s = amrex::max(amrex::Math::abs(x), amrex::Math::abs(y));
     if (s == T())
         return s;
     x /= s;
     y /= s;
-    return s * std::sqrt(x * x + y * y);
+    return s * amrex::Math::sqrt(x * x + y * y);
 }
 
 /**
@@ -372,16 +373,16 @@ GpuComplex<T> sqrt (const GpuComplex<T>& a_z) noexcept
 
     if (x == T())
     {
-        T t = std::sqrt(std::abs(y) / 2);
+        T t = amrex::Math::sqrt(amrex::Math::abs(y) / 2);
         return GpuComplex<T>(t, y < T() ? -t : t);
     }
     else
     {
-        T t = std::sqrt(2 * (amrex::abs(a_z) + std::abs(x)));
+        T t = amrex::Math::sqrt(2 * (amrex::abs(a_z) + amrex::Math::abs(x)));
         T u = t / 2;
         return x > T()
             ? GpuComplex<T>(u, y / t)
-            : GpuComplex<T>(std::abs(y) / t, y < T() ? -u : u);
+            : GpuComplex<T>(amrex::Math::abs(y) / t, y < T() ? -u : u);
     }
 }
 
@@ -392,7 +393,7 @@ template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 T arg (const GpuComplex<T>& a_z) noexcept
 {
-    return std::atan2(a_z.imag(), a_z.real());
+    return amrex::Math::atan2(a_z.imag(), a_z.real());
 }
 
 /**
@@ -402,7 +403,7 @@ template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 GpuComplex<T> log (const GpuComplex<T>& a_z) noexcept
 {
-    return GpuComplex<T>(std::log(amrex::abs(a_z)), amrex::arg(a_z));
+    return GpuComplex<T>(amrex::Math::log(amrex::abs(a_z)), amrex::arg(a_z));
 }
 
 /**
@@ -413,10 +414,10 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 GpuComplex<T> pow (const GpuComplex<T>& a_z, const T& a_y) noexcept
 {
     if (a_z.imag() == T() && a_z.real() > T())
-        return std::pow(a_z.real(), a_y);
+        return amrex::Math::pow(a_z.real(), a_y);
     
     GpuComplex<T> t = amrex::log(a_z);
-    return amrex::polar<T>(std::exp(a_y * t.real()), a_y * t.imag());
+    return amrex::polar<T>(amrex::Math::exp(a_y * t.real()), a_y * t.imag());
 }
 
 namespace detail

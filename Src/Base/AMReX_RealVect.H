@@ -13,6 +13,7 @@
 #include <vector>
 #include <AMReX_IntVect.H>
 #include <AMReX_Utility.H>
+#include <AMReX_Math.H>
 
 namespace amrex
 {
@@ -946,7 +947,7 @@ RealVect::minDir(const bool& a_doAbs) const noexcept
     {
         if (a_doAbs)
         {
-            if (std::abs(vect[idir]) < std::abs(vect[mDir]))
+            if (amrex::Math::abs(vect[idir]) < amrex::Math::abs(vect[mDir]))
             {
                 mDir = idir;
             }
@@ -971,7 +972,7 @@ RealVect::maxDir(const bool& a_doAbs) const noexcept
     {
         if (a_doAbs)
         {
-            if (std::abs(vect[idir]) > std::abs(vect[mDir]))
+            if (amrex::Math::abs(vect[idir]) > amrex::Math::abs(vect[mDir]))
             {
                 mDir = idir;
             }

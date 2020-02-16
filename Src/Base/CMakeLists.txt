@@ -31,6 +31,7 @@ target_sources( amrex
    PRIVATE 
    # Utility classes ---------------------------------------------------------
    AMReX_ccse-mpi.H
+   AMReX_Math.H
    AMReX_Algorithm.H
    AMReX_Array.H
    AMReX_BlockMutex.H
