@@ -11,7 +11,6 @@
 #include <iostream>
 #include <functional>
 #include <string>
-#include <cassert>
 #include <cstdio>
 #include <vector>
 #include <memory>
@@ -154,8 +153,7 @@ namespace amrex
     *
     *        Called as amrex::OutOfMemory(__FILE__, __LINE__);
     */
-    void OutOfMemory (const char* file,
-                      int         line);
+    void OutOfMemory (const char* file, int line);
 
     /**
     * \brief This is used by amrex::Error(), amrex::Abort(), and amrex::Assert()
