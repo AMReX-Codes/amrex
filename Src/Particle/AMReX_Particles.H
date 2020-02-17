@@ -1158,24 +1158,11 @@ protected:
     bool EnforcePeriodicWhere (ParticleType& prt, ParticleLocData& pld,
                                int lev_min = 0, int lev_max = -1, int local_grid=-1) const;
 
-    /**
-    * \brief Helper function for Checkpoint() and WritePlotFile().
-    *
-	* \tparam F callable that returns whether a particle should be written or not
-	*
-    * \param level
-    * \param ofs
-    * \param fnum
-    * \param which
-    * \param count
-    * \param where
-	* \param f 
-    */
-	template <class F>
-    void WriteParticles (int level, std::ofstream& ofs, int fnum,
-                         Vector<int>& which, Vector<int>& count, Vector<long>& where,
-                         const Vector<int>& write_real_comp, const Vector<int>& write_int_comp,
-						 F&& f) const;
+    void
+	WriteParticles (int level, std::ofstream& ofs, int fnum,
+					Vector<int>& which, Vector<int>& count, Vector<long>& where,
+					const Vector<int>& write_real_comp, const Vector<int>& write_int_comp,
+					const Vector<std::map<std::pair<int, int>, Vector<int>>>& particle_io_flags) const;
 #ifdef AMREX_USE_HDF5
 void WriteParticlesHDF5 ( hid_t grp, int level, Vector<int>& count, Vector<long>& where ) const;
 
