@@ -27,7 +27,7 @@ void amrex_fill_slice_interp (Box const& bx, Array4<Real> slice,
 #ifdef AMREX_USE_HIP
     int dirhi =      floor(weight + 0.5);
 #elif defined(AMREX_USE_DPCPP)
-    int dirhi = sycl::floor(weight + 0.5); // xxxxx DPCPP todo
+    int dirhi = amrex::Math::floor(weight + 0.5); // xxxxx DPCPP todo
 #else
     int dirhi = std::floor(weight + 0.5);
 #endif
