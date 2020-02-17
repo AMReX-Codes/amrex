@@ -550,8 +550,13 @@ public:
     /**
      * \brief Sort the particles on each tile by cell, using Fortran ordering.
      */
-    void SortParticlesByCell();
+    void SortParticlesByCell ();
 
+    /**
+     * \brief Sort the particles on each tile by groups of cells, given an IntVect bin_size
+     */
+    void SortParticlesByBin (IntVect bin_size);
+	
     /**
     * \brief OK checks that all particles are in the right places (for some value of right)
     *
