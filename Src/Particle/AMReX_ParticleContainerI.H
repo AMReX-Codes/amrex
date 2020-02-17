@@ -966,7 +966,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::SortParticles
             m_ptile_r.define(m_num_runtime_real, m_num_runtime_int);
             m_ptile_r.resize(np);
 
-			const Box& box = mfi.box();
+			const Box& box = mfi.tilebox();
 			IntVect lo = box.smallEnd();
 			
             m_bins.build(np, pstruct_ptr, mfi.tilebox(),
