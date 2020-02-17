@@ -60,7 +60,7 @@ ParallelFor (Vector<Array4BoxTag<T> > const& tags, int ncomp, F && f)
     constexpr int nwarps_per_block = nthreads/Gpu::Device::warp_size;
     int nblocks = (ntotwarps + nwarps_per_block-1) / nwarps_per_block;
 #ifdef AMREX_USE_DPCPP
-    amrex::Abort("xxxxx DPCPP todo");
+    amrex::Abort("xxxxx DPCPP todo: FBI ParallelFor");
 #else
     amrex::launch(nblocks, nthreads, Gpu::nullStream(),
     [=] AMREX_GPU_DEVICE () noexcept
@@ -183,7 +183,7 @@ fab_to_fab (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, in
     constexpr int nwarps_per_block = nthreads/Gpu::Device::warp_size;
     int nblocks = (ntotwarps + nwarps_per_block-1) / nwarps_per_block;
 #ifdef AMREX_USE_DPCPP
-    amrex::Abort("xxxxx DPCPP todo");
+    amrex::Abort("xxxxx DPCPP todo: FBI fabtofab");
 #else
     amrex::launch(nblocks, nthreads, Gpu::nullStream(),
     [=] AMREX_GPU_DEVICE () noexcept
@@ -274,7 +274,7 @@ fab_to_fab (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, in
     constexpr int nwarps_per_block = nthreads/Gpu::Device::warp_size;
     int nblocks = (ntotwarps + nwarps_per_block-1) / nwarps_per_block;
 #ifdef AMREX_USE_DPCPP
-    amrex::Abort("xxxxx DPCPP todo");
+    amrex::Abort("xxxxx DPCPP todo: fabtofab2");
 #else
     amrex::launch(nblocks, nthreads, Gpu::nullStream(), 
     [=] AMREX_GPU_DEVICE () noexcept
