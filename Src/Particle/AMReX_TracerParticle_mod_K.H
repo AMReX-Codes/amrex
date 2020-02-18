@@ -129,7 +129,7 @@ void mac_interpolate (const P& p,
       val[d] = 0.0;
       for (int ii = 0; ii <= 1; ++ii)
       {
-          val[d] += (p_uccarr[d])(i+ii, 0)*sx[ii];
+          val[d] += (p_uccarr[d])(i+ii, 0, 0, 0)*sx[ii];
       }      
   }
       
@@ -154,7 +154,7 @@ void mac_interpolate (const P& p,
       {
           for (int ii = 0; ii <= 1; ++ii)
           {
-              val[d] += (p_uccarr[d])(i+ii, j+jj, 0)*sx[ii]*sy[jj];
+              val[d] += (p_uccarr[d])(i+ii, j+jj, 0, 0)*sx[ii]*sy[jj];
           }
       }
   }
