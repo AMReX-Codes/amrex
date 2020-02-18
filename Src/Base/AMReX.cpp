@@ -158,7 +158,7 @@ void
 AMREX_GPU_HOST_DEVICE
 amrex::Error (const char* msg)
 {
-#ifdef AMREX_DEVICE_COMPILE
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
 #if !defined(__APPLE__)
     if (msg) printf("%s\n", msg);
 // HIP FIX HERE - assert
@@ -189,7 +189,7 @@ void
 AMREX_GPU_HOST_DEVICE
 amrex::Abort (const char* msg)
 {
-#ifdef AMREX_DEVICE_COMPILE
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
 #if !defined(__APPLE__)
     if (msg) printf("Abort %s\n", msg);
 // HIP FIX HERE - assert
@@ -223,7 +223,7 @@ void
 AMREX_GPU_HOST_DEVICE
 amrex::Warning (const char* msg)
 {
-#ifdef AMREX_DEVICE_COMPILE
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
 #if !defined(__APPLE__)
     if (msg) printf("%s\n", msg);
 #endif
@@ -248,7 +248,7 @@ amrex::Assert (const char* EX,
                int         line,
                const char* msg)
 {
-#ifdef AMREX_DEVICE_COMPILE
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
 // HIP FIX HERE - printf & assert
 
 #ifdef AMREX_USE_CUDA

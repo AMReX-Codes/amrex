@@ -105,7 +105,7 @@ amrex::RandomNormal (amrex::Real mean, amrex::Real stddev)
 
     amrex::Real rand;
 
-#ifdef AMREX_DEVICE_COMPILE
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
     int blockId = blockIdx.x + blockIdx.y * gridDim.x + gridDim.x * gridDim.y * blockIdx.z;
 
     int tid = blockId * (blockDim.x * blockDim.y * blockDim.z)
@@ -141,7 +141,7 @@ AMREX_GPU_HOST_DEVICE amrex::Real
 amrex::Random ()
 {
     amrex::Real rand;
-#ifdef AMREX_DEVICE_COMPILE    // on the device
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)    // on the device
     int blockId = blockIdx.x + blockIdx.y * gridDim.x + gridDim.x * gridDim.y * blockIdx.z;
 
     int tid = blockId * (blockDim.x * blockDim.y * blockDim.z)
@@ -180,7 +180,7 @@ amrex::RandomPoisson (amrex::Real lambda)
 {
     amrex::Real rand;
 
-#ifdef AMREX_DEVICE_COMPILE
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
     const auto blockId = blockIdx.x + blockIdx.y * gridDim.x + gridDim.x * gridDim.y * blockIdx.z;
 
     const auto tid = blockId * (blockDim.x * blockDim.y * blockDim.z)
@@ -212,7 +212,7 @@ amrex::RandomPoisson (amrex::Real lambda)
 AMREX_GPU_HOST_DEVICE unsigned int
 amrex::Random_int (unsigned int n)
 {
-#ifdef AMREX_DEVICE_COMPILE  // on the device
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)  // on the device
     constexpr unsigned int RAND_M = 4294967295; // 2**32-1
 
     int blockId = blockIdx.x + blockIdx.y * gridDim.x + gridDim.x * gridDim.y * blockIdx.z;
@@ -242,7 +242,7 @@ amrex::Random_int (unsigned int n)
     std::uniform_int_distribution<unsigned int> distribution(0, n-1);
     return distribution(generators[tid]);
 
-#endif // AMREX_DEVICE_COMPILE
+#endif
 }
 
 AMREX_GPU_HOST unsigned long

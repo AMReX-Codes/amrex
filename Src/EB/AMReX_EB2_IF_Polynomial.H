@@ -59,7 +59,7 @@ public:
     AMREX_GPU_HOST_DEVICE inline
     Real operator() (AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
     {
-#ifdef AMREX_DEVICE_COMPILE
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
         PolyTerm const* AMREX_RESTRICT pt = m_dp;
 #else
         PolyTerm const* AMREX_RESTRICT pt = m_polynomial.data();

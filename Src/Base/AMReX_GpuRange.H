@@ -31,7 +31,7 @@ long at (T const& b, long offset) noexcept { return offset; }
 AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE long size (Box const& b) noexcept
 {
-#ifdef AMREX_DEVICE_COMPILE
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
     return b.numPts();
 #else
     return 1;
@@ -41,7 +41,7 @@ AMREX_FORCE_INLINE long size (Box const& b) noexcept
 AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE Box at (Box const& b, long offset) noexcept
 {
-#ifdef AMREX_DEVICE_COMPILE
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
     auto len = b.length3d();
     long k = offset / (len[0]*len[1]);
     long j = (offset - k*(len[0]*len[1])) / len[0];
@@ -84,7 +84,7 @@ struct range_impl
 
     AMREX_GPU_HOST_DEVICE
     iterator begin () const noexcept {
-#ifdef AMREX_DEVICE_COMPILE
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
         return iterator(m_b, blockDim.x*blockIdx.x+threadIdx.x, blockDim.x*gridDim.x);
 #else
         return iterator(m_b,0,1);
