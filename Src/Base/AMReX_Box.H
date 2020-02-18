@@ -869,9 +869,9 @@ Box::atOffset (long offset) const noexcept
     long k = offset / (len[0]*len[1]);
     long j = (offset - k*(len[0]*len[1])) / len[0];
     long i = (offset - k*(len[0]*len[1])) - j*len[0];
-    return {AMREX_D_DECL(static_cast<int>(i+lo[0]),
-                         static_cast<int>(j+lo[1]),
-                         static_cast<int>(k+lo[2])) };
+    return IntVect{AMREX_D_DECL(static_cast<int>(i+lo[0]),
+                                static_cast<int>(j+lo[1]),
+                                static_cast<int>(k+lo[2])) };
 }
 
 // HIP FIX HERE - Initialization List: {{

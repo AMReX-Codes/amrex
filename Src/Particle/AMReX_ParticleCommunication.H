@@ -122,25 +122,6 @@ struct ParticleCopyPlan
             std::iota(m_neighbor_procs.begin(), m_neighbor_procs.end(), 0);
         }
 
-        if (num_buckets == 1 and (not pc.Geom(0).isAnyPeriodic()) )
-        {
-#ifdef AMREX_USE_MPI
-            const int NProcs = ParallelDescriptor::NProcs();
-            m_Snds.resize(0);
-            m_Snds.resize(NProcs, 0);
-            
-            m_Rcvs.resize(0);
-            m_Rcvs.resize(NProcs, 0);
-            
-            m_snd_num_particles.resize(0);
-            m_snd_num_particles.resize(NProcs, 0);
-            
-            m_rcv_num_particles.resize(0);
-            m_rcv_num_particles.resize(NProcs, 0);
-#endif
-            return;
-        }
-
         m_box_counts.resize(0);
         m_box_counts.resize(num_buckets+1, 0);
         m_box_offsets.resize(num_buckets+1);
@@ -157,6 +138,7 @@ struct ParticleCopyPlan
             {
                 int gid = kv.first.first;
                 int num_copies = op.numCopies(gid, lev);
+                if (num_copies == 0) continue;
                 m_dst_indices[lev][gid].resize(num_copies);
             
                 auto p_boxes = op.m_boxes[lev].at(gid).dataPtr();
@@ -227,7 +209,6 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
 
     int num_levels = pc.BufferMap().numLevels();
     int num_buckets = pc.BufferMap().numBuckets();
-    if (num_buckets == 1 and (not pc.Geom(0).isAnyPeriodic()) ) return;
     long total_buffer_size = plan.m_box_offsets[num_buckets]*psize;
     snd_buffer.resize(total_buffer_size);
 
@@ -254,6 +235,7 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
             const auto ptd = src_tile.getConstParticleTileData();
             
             int num_copies = op.numCopies(gid, lev);
+            if (num_copies == 0) continue;
             
             auto p_boxes = op.m_boxes[lev].at(gid).dataPtr();
             auto p_levels = op.m_levels[lev].at(gid).dataPtr();
@@ -300,7 +282,6 @@ void unpackBuffer (PC& pc, const ParticleCopyPlan& plan, const Buffer& snd_buffe
 
     int num_levels = pc.BufferMap().numLevels();
     int num_buckets = pc.BufferMap().numBuckets();
-    if (num_buckets == 1 and (not pc.Geom(0).isAnyPeriodic()) ) return;
 
     long psize = pc.superParticleSize();
 
