@@ -14,6 +14,6 @@ WarpX has one release per month. To make the release, you need to:
           cd Tools/
           ./update_release.sh
 
-    * Merge ``dev`` branch into ``master`` branch.
+    * Optional: create a ``release-<version>`` branch, write a changelog, and backport bug-fixes for a few days.
 
     * Click the `Draft a new release` button at https://github.com/ECP-WarpX/WarpX/releases and follow instructions.

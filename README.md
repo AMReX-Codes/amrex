@@ -1,9 +1,8 @@
 # WarpX
 
 [![Code Status master](https://img.shields.io/travis/ECP-WarpX/WarpX/master.svg?label=master)](https://travis-ci.org/ECP-WarpX/WarpX/branches)
-[![Code Status dev](https://img.shields.io/travis/ECP-WarpX/WarpX/dev.svg?label=dev)](https://travis-ci.org/ECP-WarpX/WarpX/branches)
 [![Documentation Status](https://readthedocs.org/projects/warpx/badge/?version=latest)](https://warpx.readthedocs.io/en/latest/?badge=latest)
-[![GitHub commits since last release](https://img.shields.io/github/commits-since/ECP-WarpX/WarpX/latest/dev.svg)](https://github.com/ECP-WarpX/WarpX/compare/master...dev)
+[![GitHub commits since last release](https://img.shields.io/github/commits-since/ECP-WarpX/WarpX/latest/master.svg)](https://github.com/ECP-WarpX/WarpX/compare/master)
 [![Language](https://img.shields.io/badge/language-C%2B%2B11-orange.svg)](https://isocpp.org/)
 [![Development Status](https://img.shields.io/badge/development%20status-alpha-orange.svg)]()  
 [![Gitter](https://badges.gitter.im/ECP-WarpX/community.svg)](https://gitter.im/ECP-WarpX/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
