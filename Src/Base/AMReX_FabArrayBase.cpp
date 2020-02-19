@@ -1816,4 +1816,22 @@ FabArrayBase::popRegionTag ()
     m_region_tag.pop_back();
 }
 
+bool
+FabArrayBase::is_nodal () const noexcept
+{
+    return boxArray().ixType().nodeCentered();
+}
+
+bool
+FabArrayBase::is_nodal (int dir) const noexcept
+{
+    return boxArray().ixType().nodeCentered(dir);
+}
+
+bool
+FabArrayBase::is_cell_centered () const noexcept
+{
+    return boxArray().ixType().cellCentered();
+}
+
 }
