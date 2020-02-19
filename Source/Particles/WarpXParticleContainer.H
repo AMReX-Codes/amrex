@@ -311,7 +311,7 @@ public:
     amrex::ParticleReal getMass () const {return mass;}
 
 protected:
-
+    amrex::Array<amrex::Real,3> v_galilean = {{0}};
     std::map<std::string, int> particle_comps;
     std::map<std::string, int> particle_icomps;
 

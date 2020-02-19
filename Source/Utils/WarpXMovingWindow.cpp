@@ -349,6 +349,41 @@ WarpX::shiftMF (MultiFab& mf, const Geometry& geom, int num_shift, int dir,
 }
 
 void
+WarpX::ShiftGalileanBoundary ()
+{
+    Real cur_time = t_new[0];
+    Real new_lo[AMREX_SPACEDIM];
+    Real new_hi[AMREX_SPACEDIM];
+    const Real* current_lo = geom[0].ProbLo();
+    const Real* current_hi = geom[0].ProbHi();
+
+    Real time_shift = (cur_time - time_of_last_gal_shift);
+
+    #if (AMREX_SPACEDIM == 3)
+        amrex::Array<amrex::Real,3> galilean_shift = { v_galilean[0]* time_shift, v_galilean[1]*time_shift, v_galilean[2]*time_shift };
+    #elif (AMREX_SPACEDIM == 2)
+        amrex::Array<amrex::Real,3> galilean_shift = { v_galilean[0]* time_shift, std::numeric_limits<Real>::quiet_NaN(), v_galilean[2]*time_shift };
+    #endif
+
+    #if (AMREX_SPACEDIM == 3)
+        for (int i=0; i<AMREX_SPACEDIM; i++) {
+            new_lo[i] = current_lo[i] + galilean_shift[i];
+            new_hi[i] = current_hi[i] + galilean_shift[i];
+        }
+    #elif (AMREX_SPACEDIM == 2)
+    {
+        new_lo[0] = current_lo[0] + galilean_shift[0];
+        new_hi[0] = current_hi[0] + galilean_shift[0];
+        new_lo[1] = current_lo[1] + galilean_shift[2];
+        new_hi[1] = current_hi[1] + galilean_shift[2];
+      }
+    #endif
+    time_of_last_gal_shift = cur_time;
+
+    ResetProbDomain(RealBox(new_lo, new_hi));
+}
+
+void
 WarpX::ResetProbDomain (const RealBox& rb)
 {
     Geometry::ResetDefaultProbDomain(rb);

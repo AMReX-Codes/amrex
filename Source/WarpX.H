@@ -209,6 +209,9 @@ public:
     amrex::Vector< std::unique_ptr<NCIGodfreyFilter> > nci_godfrey_filter_exeybz;
     amrex::Vector< std::unique_ptr<NCIGodfreyFilter> > nci_godfrey_filter_bxbyez;
 
+    amrex::Real time_of_last_gal_shift  = 0;
+    amrex::Array<amrex::Real,3> v_galilean = {{0}};
+
     static int num_mirrors;
     amrex::Vector<amrex::Real> mirror_z;
     amrex::Vector<amrex::Real> mirror_z_width;
@@ -223,10 +226,15 @@ public:
     // Compute max_step automatically for simulations in a boosted frame.
     void computeMaxStepBoostAccelerator(const amrex::Geometry& geom);
     int  MoveWindow (bool move_j);
+
+    /**
+     * \brief
+     * This function shifts the boundary of the grid by 'v_galilean*dt'.
+     * In doding so, only positions attributes are changed while fields remain unchanged.
+     */
+    void ShiftGalileanBoundary ();
     void UpdatePlasmaInjectionPosition (amrex::Real dt);
-
     void ResetProbDomain (const amrex::RealBox& rb);
-
     void EvolveE (         amrex::Real dt);
     void EvolveE (int lev, amrex::Real dt);
     void EvolveB (         amrex::Real dt);
@@ -332,11 +340,9 @@ public:
 
     static std::array<amrex::Real,3> CellSize (int lev);
     static amrex::RealBox getRealBox(const amrex::Box& bx, int lev);
-    static std::array<amrex::Real,3> LowerCorner (const amrex::Box& bx, int lev);
+    static std::array<amrex::Real,3> LowerCorner (const amrex::Box& bx,
+                                                  std::array<amrex::Real,3> galilean_shift, int lev);
     static std::array<amrex::Real,3> UpperCorner (const amrex::Box& bx, int lev);
-    // Returns the locations of the lower corner of the box, shifted up
-    // a half cell if cell centered.
-    static std::array<amrex::Real,3> LowerCornerWithCentering (const amrex::Box& bx, int lev);
 
     static amrex::IntVect RefRatio (int lev);
 

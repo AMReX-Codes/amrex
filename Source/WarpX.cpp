@@ -632,6 +632,9 @@ WarpX::ReadParameters ()
         pp.query("nox", nox_fft);
         pp.query("noy", noy_fft);
         pp.query("noz", noz_fft);
+        pp.query("v_galilean", v_galilean);
+      // Scale the velocity by the speed of light
+        for (int i=0; i<3; i++) v_galilean[i] *= PhysConst::c;
     }
 #endif
 
@@ -783,6 +786,7 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
         NCIGodfreyFilter::m_stencil_width,
         maxwell_fdtd_solver_id,
         maxLevel(),
+        WarpX::v_galilean,
         exchange_all_guard_cells);
 
     if (mypc->nSpeciesDepositOnMainGrid() && n_current_deposition_buffer == 0) {
@@ -870,7 +874,7 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
         realspace_ba.enclosedCells().grow(ngE); // cell-centered + guard cells
         // Define spectral solver
         spectral_solver_fp[lev].reset( new SpectralSolver( realspace_ba, dm,
-            nox_fft, noy_fft, noz_fft, do_nodal, dx_vect, dt[lev] ) );
+            nox_fft, noy_fft, noz_fft, do_nodal, v_galilean, dx_vect, dt[lev] ) );
     }
 #endif
     std::array<Real,3> const dx = CellSize(lev);
@@ -957,7 +961,7 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
             realspace_ba.enclosedCells().grow(ngE);// cell-centered + guard cells
             // Define spectral solver
             spectral_solver_cp[lev].reset( new SpectralSolver( realspace_ba, dm,
-                nox_fft, noy_fft, noz_fft, do_nodal, cdx_vect, dt[lev] ) );
+                nox_fft, noy_fft, noz_fft, do_nodal, v_galilean, cdx_vect, dt[lev] ) );
         }
 #endif
     std::array<Real,3> cdx = CellSize(lev-1);
@@ -1041,14 +1045,17 @@ WarpX::getRealBox(const Box& bx, int lev)
 }
 
 std::array<Real,3>
-WarpX::LowerCorner(const Box& bx, int lev)
+WarpX::LowerCorner(const Box& bx, std::array<amrex::Real,3> galilean_shift, int lev)
 {
-    const RealBox grid_box = getRealBox( bx, lev );
+    RealBox grid_box = getRealBox( bx, lev );
+
     const Real* xyzmin = grid_box.lo();
+
 #if (AMREX_SPACEDIM == 3)
-    return { xyzmin[0], xyzmin[1], xyzmin[2] };
+    return { xyzmin[0] + galilean_shift[0], xyzmin[1] + galilean_shift[1], xyzmin[2] + galilean_shift[2] };
+
 #elif (AMREX_SPACEDIM == 2)
-    return { xyzmin[0], std::numeric_limits<Real>::lowest(), xyzmin[1] };
+    return { xyzmin[0] + galilean_shift[0], std::numeric_limits<Real>::lowest(), xyzmin[1] + galilean_shift[2] };
 #endif
 }
 
@@ -1062,21 +1069,6 @@ WarpX::UpperCorner(const Box& bx, int lev)
 #elif (AMREX_SPACEDIM == 2)
     return { xyzmax[0], std::numeric_limits<Real>::max(), xyzmax[1] };
 #endif
-}
-
-std::array<Real,3>
-WarpX::LowerCornerWithCentering(const Box& bx, int lev)
-{
-    std::array<Real,3> corner = LowerCorner(bx, lev);
-    std::array<Real,3> dx = CellSize(lev);
-    if (!bx.type(0)) corner[0] += 0.5*dx[0];
-#if (AMREX_SPACEDIM == 3)
-    if (!bx.type(1)) corner[1] += 0.5*dx[1];
-    if (!bx.type(2)) corner[2] += 0.5*dx[2];
-#else
-    if (!bx.type(1)) corner[2] += 0.5*dx[2];
-#endif
-    return corner;
 }
 
 IntVect

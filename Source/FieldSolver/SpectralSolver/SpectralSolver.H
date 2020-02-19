@@ -30,6 +30,7 @@ class SpectralSolver
                         const amrex::DistributionMapping& dm,
                         const int norder_x, const int norder_y,
                         const int norder_z, const bool nodal,
+                        const amrex::Array<amrex::Real,3>& v_galilean,
                         const amrex::RealVect dx, const amrex::Real dt,
                         const bool pml=false );
 

@@ -299,7 +299,19 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
     // Lower corner of tile box physical domain
     // Note that this includes guard cells since it is after tilebox.ngrow
     const Dim3 lo = lbound(tilebox);
-    const std::array<Real, 3>& xyzmin = WarpX::LowerCorner(tilebox, depos_lev);
+    // Take into account Galilean shift
+    auto& warpx_instance = WarpX::GetInstance();
+    Real cur_time = warpx_instance.gett_new(lev);
+    const auto& time_of_last_gal_shift = warpx_instance.time_of_last_gal_shift;
+    Real time_shift = (cur_time + 0.5*dt - time_of_last_gal_shift);
+    amrex::Array<amrex::Real,3> galilean_shift = { v_galilean[0]* time_shift, v_galilean[1]*time_shift, v_galilean[2]*time_shift };
+    const std::array<Real, 3>& xyzmin = WarpX::LowerCorner(tilebox, galilean_shift, depos_lev);
+
+    if (WarpX::current_deposition_algo == CurrentDepositionAlgo::Esirkepov) {
+        if ( (v_galilean[0]!=0) or (v_galilean[1]!=0) or (v_galilean[2]!=0)){
+            amrex::Abort("The Esirkepov algorithm cannot be used with the Galilean algorithm.");
+        }
+    }
 
     BL_PROFILE_VAR_START(blp_deposit);
     if (WarpX::current_deposition_algo == CurrentDepositionAlgo::Esirkepov) {
@@ -435,7 +447,21 @@ WarpXParticleContainer::DepositCharge (WarpXParIter& pti, RealVector& wp,
 
     // Lower corner of tile box physical domain
     // Note that this includes guard cells since it is after tilebox.ngrow
-    const std::array<Real, 3>& xyzmin = WarpX::LowerCorner(tilebox, depos_lev);
+    const auto& warpx_instance = WarpX::GetInstance();
+    Real cur_time = warpx_instance.gett_new(lev);
+    Real dt = warpx_instance.getdt(lev);
+    const auto& time_of_last_gal_shift = warpx_instance.time_of_last_gal_shift;
+    // Take into account Galilean shift
+    Real time_shift_rho_old = (cur_time - time_of_last_gal_shift);
+    Real time_shift_rho_new = (cur_time + dt - time_of_last_gal_shift);
+    amrex::Array<amrex::Real,3> galilean_shift;
+    if (icomp==0){
+        galilean_shift = { v_galilean[0]*time_shift_rho_old, v_galilean[1]*time_shift_rho_old, v_galilean[2]*time_shift_rho_old };
+    } else{
+        galilean_shift = { v_galilean[0]*time_shift_rho_new, v_galilean[1]*time_shift_rho_new, v_galilean[2]*time_shift_rho_new };
+    }
+    const std::array<Real, 3>& xyzmin = WarpX::LowerCorner(tilebox, galilean_shift, depos_lev);
+
     // Indices of the lower bound
     const Dim3 lo = lbound(tilebox);
 

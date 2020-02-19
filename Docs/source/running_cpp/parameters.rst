@@ -930,6 +930,15 @@ Numerics and algorithms
     See `this section of the FFTW documentation <http://www.fftw.org/fftw3_doc/Planner-Flags.html>`__
     for more information.
 
+* ``pstad.v_galilean`` (`3 floats`, in units of the speed of light; default `0. 0. 0.`)
+    Defines the galilean velocity.
+    Non-zero `v_galilean` activates Galilean algorithm, which suppresses the Numerical Cherenkov instability
+    in boosted-frame simulation. This requires the code to be compiled with `USE_PSATD=TRUE`.
+    (see the sub-section Numerical Stability and alternate formulation
+    in a Galilean frame in :doc:`../theory/boosted-frame`).
+    It also requires the use of the `direct` current deposition option
+    `algo.current_deposition = direct` (does not work with Esirkepov algorithm).
+
 * ``warpx.override_sync_int`` (`integer`) optional (default `10`)
     Number of time steps between synchronization of sources (`rho` and `J`) on
     grid nodes at box boundaries. Since the grid nodes at the interface between

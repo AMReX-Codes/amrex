@@ -128,6 +128,12 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
         }
     }
 
+    // Parse galilean velocity
+    ParmParse ppsatd("psatd");
+    ppsatd.query("v_galilean", v_galilean);
+    // Scale the velocity by the speed of light
+    for (int i=0; i<3; i++) v_galilean[i] *= PhysConst::c;
+
     #ifdef WARPX_QED
         if(m_do_qed){
             //Optical depths is always plotted if QED is on
@@ -1311,11 +1317,11 @@ PhysicalParticleContainer::Evolve (int lev,
                 } else {
                     ion_lev = nullptr;
                 }
-
                 // Deposit inside domains
                 DepositCurrent(pti, wp, uxp, uyp, uzp, ion_lev, &jx, &jy, &jz,
                                0, np_current, thread_num,
                                lev, lev, dt);
+
                 if (has_buffer){
                     // Deposit in buffers
                     DepositCurrent(pti, wp, uxp, uyp, uzp, ion_lev, cjx, cjy, cjz,
@@ -1637,7 +1643,6 @@ PhysicalParticleContainer::PushPX (WarpXParIter& pti, Real dt, DtType a_dt_type)
     const Real m = this-> mass;
 
 #ifdef WARPX_QED
-
     if(do_classical_radiation_reaction){
         if(m_do_qed_quantum_sync){
             const auto t_chi_max = m_shr_p_qs_engine->get_ref_ctrl().chi_part_min;
@@ -2208,8 +2213,12 @@ PhysicalParticleContainer::FieldGather (WarpXParIter& pti,
 
     const auto GetPosition = GetParticlePosition(pti, offset);
 
-    // Lower corner of tile box physical domain
-    const std::array<Real, 3>& xyzmin = WarpX::LowerCorner(box, gather_lev);
+    // Lower corner of tile box physical domain (take into account Galilean shift)
+    Real cur_time = WarpX::GetInstance().gett_new(lev);
+    const auto& time_of_last_gal_shift = WarpX::GetInstance().time_of_last_gal_shift;
+    Real time_shift = (cur_time - time_of_last_gal_shift);
+    amrex::Array<amrex::Real,3> galilean_shift = { v_galilean[0]*time_shift, v_galilean[1]*time_shift, v_galilean[2]*time_shift };
+    const std::array<Real, 3>& xyzmin = WarpX::LowerCorner(box, galilean_shift, gather_lev);
 
     const Dim3 lo = lbound(box);
 

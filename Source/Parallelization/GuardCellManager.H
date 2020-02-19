@@ -48,6 +48,7 @@ public:
         const int nci_corr_stencil,
         const int maxwell_fdtd_solver_id,
         const int max_level,
+        const amrex::Array<amrex::Real,3> v_galilean,
         const bool exchange_all_guard_cells);
 
     // Guard cells allocated for MultiFabs E and B

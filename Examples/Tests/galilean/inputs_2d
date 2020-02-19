@@ -1,0 +1,70 @@
+#################################
+####### GENERAL PARAMETERS ######
+#################################
+max_step = 400
+
+amr.n_cell = 128 128
+amr.max_grid_size = 128
+amr.blocking_factor = 128
+amr.max_level = 0
+psatd.v_galilean = 0. 0. 0.99498743710662
+
+geometry.coord_sys   = 0
+geometry.is_periodic = 1 1
+geometry.prob_lo     = -38.68 -38.68
+geometry.prob_hi     = 38.68 38.68
+
+#################################
+############ NUMERICS ###########
+#################################
+warpx.verbose = 1
+
+algo.maxwell_fdtd_solver = ckc
+algo.current_deposition = direct
+algo.particle_pusher = vay
+
+warpx.cfl = 1.
+amr.plot_int = 100
+interpolation.nox = 3
+interpolation.noy = 3
+interpolation.noz = 3
+
+
+#################################
+############ PLASMA #############
+#################################
+particles.nspecies = 2
+particles.species_names = electrons ions
+
+warpx.do_nodal = 1
+warpx.use_filter = 1
+
+psatd.nox = 16
+psatd.noy = 16
+psatd.noz = 16
+
+electrons.charge = -q_e
+electrons.mass = m_e
+electrons.injection_style = "NUniformPerCell"
+electrons.num_particles_per_cell_each_dim = 2 2
+electrons.profile = constant
+electrons.density = 282197938148984.7
+electrons.momentum_distribution_type = "gaussian"
+electrons.uz_m = 9.9498743710661994
+electrons.xmin = -38.68
+electrons.xmax = 38.68
+electrons.zmin =    -38.68
+electrons.zmax =    38.68
+
+ions.charge = q_e
+ions.mass = m_p
+ions.injection_style = "NUniformPerCell"
+ions.num_particles_per_cell_each_dim = 2 2
+ions.profile = constant
+ions.density =  282197938148984.7
+ions.momentum_distribution_type = "gaussian"
+ions.uz_m = 9.9498743710661994
+ions.xmin = -38.68
+ions.xmax = 38.68
+ions.zmin =  -38.68
+ions.zmax =38.68

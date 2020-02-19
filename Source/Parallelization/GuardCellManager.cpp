@@ -24,14 +24,24 @@ guardCellManager::Init(
     const int nci_corr_stencil,
     const int maxwell_fdtd_solver_id,
     const int max_level,
+    const amrex::Array<amrex::Real,3> v_galilean,
     const bool exchange_all_guard_cells)
 {
     // When using subcycling, the particles on the fine level perform two pushes
     // before being redistributed ; therefore, we need one extra guard cell
     // (the particles may move by 2*c*dt)
-    const int ngx_tmp = (max_level > 0 && do_subcycling == 1) ? nox+1 : nox;
-    const int ngy_tmp = (max_level > 0 && do_subcycling == 1) ? nox+1 : nox;
-    const int ngz_tmp = (max_level > 0 && do_subcycling == 1) ? nox+1 : nox;
+    int ngx_tmp = (max_level > 0 && do_subcycling == 1) ? nox+1 : nox;
+    int ngy_tmp = (max_level > 0 && do_subcycling == 1) ? nox+1 : nox;
+    int ngz_tmp = (max_level > 0 && do_subcycling == 1) ? nox+1 : nox;
+
+    if ((v_galilean[0]!=0) or
+        (v_galilean[1]!=0) or
+        (v_galilean[2]!=0)){
+      // Add one guard cell in the case of the galilean algorithm
+      ngx_tmp += 1;
+      ngy_tmp += 1;
+      ngz_tmp += 1;
+    }
 
     // Ex, Ey, Ez, Bx, By, and Bz have the same number of ghost cells.
     // jx, jy, jz and rho have the same number of ghost cells.

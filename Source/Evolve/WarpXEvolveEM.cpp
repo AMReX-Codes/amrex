@@ -178,10 +178,19 @@ WarpX::EvolveEM (int numsteps)
         // If is_synchronized we need to shift j too so that next step we can evolve E by dt/2.
         // We might need to move j because we are going to make a plotfile.
 
+        ShiftGalileanBoundary();
+
         int num_moved = MoveWindow(move_j);
 
         if (max_level == 0) {
-            int num_redistribute_ghost = num_moved + 1;
+            int num_redistribute_ghost = num_moved;
+            if ((v_galilean[0]!=0) or (v_galilean[1]!=0) or (v_galilean[2]!=0)) {
+                // Galilean algorithm ; particles can move by up to 2 cells
+                num_redistribute_ghost += 2;
+            } else {
+                // Standard algorithm ; particles can move by up to 1 cell
+                num_redistribute_ghost += 1;
+            }
             mypc->RedistributeLocal(num_redistribute_ghost);
         }
         else {

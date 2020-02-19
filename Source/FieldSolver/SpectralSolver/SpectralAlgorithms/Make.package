@@ -1,8 +1,13 @@
 CEXE_headers += SpectralBaseAlgorithm.H
 CEXE_headers += PsatdAlgorithm.H
 CEXE_sources += PsatdAlgorithm.cpp
+
+CEXE_headers += GalileanAlgorithm.H
+CEXE_sources += GalileanAlgorithm.cpp
+
 CEXE_headers += PMLPsatdAlgorithm.H
 CEXE_sources += PMLPsatdAlgorithm.cpp
+
 
 INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/FieldSolver/SpectralSolver/SpectralAlgorithms
 VPATH_LOCATIONS   += $(WARPX_HOME)/Source/FieldSolver/SpectralSolver/SpectralAlgorithms

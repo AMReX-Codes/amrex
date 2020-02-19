@@ -1,40 +1,33 @@
-/* Copyright 2019 Maxence Thevenet, Remi Lehe, Revathi Jambunathan
- *
- *
- * This file is part of WarpX.
- *
- * License: BSD-3-Clause-LBNL
- */
-#ifndef WARPX_PSATD_ALGORITHM_H_
-#define WARPX_PSATD_ALGORITHM_H_
+#ifndef WARPX_GALILEAN_ALGORITHM_H_
+#define WARPX_GALILEAN_ALGORITHM_H_
 
 #include <SpectralBaseAlgorithm.H>
 
-/**
- * \brief Class that updates the field in spectral space
+/* \brief Class that updates the field in spectral space
  * and stores the coefficients of the corresponding update equation.
  */
-class PsatdAlgorithm : public SpectralBaseAlgorithm
+class GalileanAlgorithm : public SpectralBaseAlgorithm
 {
-
     public:
-        PsatdAlgorithm(const SpectralKSpace& spectral_kspace,
+        GalileanAlgorithm(const SpectralKSpace& spectral_kspace,
                          const amrex::DistributionMapping& dm,
                          const int norder_x, const int norder_y,
                          const int norder_z, const bool nodal,
+                         const amrex::Array<amrex::Real,3>& v_galilean,
                          const amrex::Real dt);
-        // Redefine functions from base class
+        // Redefine update equation from base class
         virtual void pushSpectralFields(SpectralFieldData& f) const override final;
         virtual int getRequiredNumberOfFields() const override final {
             return SpectralFieldIndex::n_fields;
-        }
-
+        };
         void InitializeSpectralCoefficients(const SpectralKSpace& spectral_kspace,
                                     const amrex::DistributionMapping& dm,
+                                    const amrex::Array<amrex::Real, 3>& v_galilean,
                                     const amrex::Real dt);
 
     private:
-        SpectralRealCoefficients C_coef, S_ck_coef, X1_coef, X2_coef, X3_coef;
+        SpectralRealCoefficients C_coef, S_ck_coef;
+        SpectralComplexCoefficients Theta2_coef, X1_coef, X2_coef, X3_coef, X4_coef;
 };
 
-#endif // WARPX_PSATD_ALGORITHM_H_
+#endif // WARPX_GALILEAN_ALGORITHM_H_
