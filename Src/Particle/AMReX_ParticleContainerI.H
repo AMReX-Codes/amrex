@@ -931,7 +931,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::SortParticles
             m_ptile_r.define(m_num_runtime_real, m_num_runtime_int);
             m_ptile_r.resize(np);
 
-            m_bins.build(np, pstruct_ptr, mfi.tilebox(), 
+            m_bins.build(np, pstruct_ptr, mfi.tilebox(),
                        [=] AMREX_GPU_HOST_DEVICE (const ParticleType& p) noexcept -> IntVect
                        {
                            return getParticleCell(p, plo, dxi, domain);
