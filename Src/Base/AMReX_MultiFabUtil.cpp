@@ -1,6 +1,5 @@
 
 #include <AMReX_MultiFabUtil.H>
-#include <AMReX_MultiFabUtil_C.H>
 #include <sstream>
 #include <iostream>
 
@@ -552,43 +551,6 @@ namespace amrex
             crse.ParallelCopy(ctmp,0,0,ncomp,ngcrse,ngcrse);
         }
     }
-
-    //! Average fine node-based MultiFab onto crse node-based MultiFab.
-    //! This routine assumes that the crse BoxArray is a coarsened version of the fine BoxArray.
-    void average_down_nodal (const MultiFab& fine, MultiFab& crse, const IntVect& ratio, int ngcrse)
-    {
-        AMREX_ASSERT(fine.is_nodal());
-        AMREX_ASSERT(crse.is_nodal());
-	AMREX_ASSERT(crse.nComp() == fine.nComp());
-
-	int ncomp = crse.nComp();
-
-        if (isMFIterSafe(fine, crse))
-        {
-#ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-            for (MFIter mfi(crse,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-            {
-                const Box& bx = mfi.growntilebox(ngcrse);
-                Array4<Real> const& crsearr = crse.array(mfi);
-                Array4<Real const> const& finearr = fine.const_array(mfi);
-
-                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
-                {
-                    amrex_avgdown_nodes(tbx,crsearr,finearr,0,0,ncomp,ratio);
-                });
-            }
-        }
-        else
-        {
-            MultiFab ctmp(amrex::coarsen(fine.boxArray(),ratio), fine.DistributionMap(),
-                          ncomp, ngcrse, MFInfo(), FArrayBoxFactory());
-            average_down_nodal(fine, ctmp, ratio, ngcrse);
-            crse.ParallelCopy(ctmp,0,0,ncomp,ngcrse,ngcrse);
-        }
-    }
-
 
     void print_state(const MultiFab& mf, const IntVect& cell, const int n, const IntVect& ng)
     {
