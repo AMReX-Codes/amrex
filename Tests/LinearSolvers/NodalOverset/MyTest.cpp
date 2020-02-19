@@ -33,7 +33,6 @@ MyTest::solve ()
     info.setMaxCoarseningLevel(max_coarsening_level);
 
     MLNodeLaplacian mlndlap({geom}, {grids}, {dmap}, info);
-    mlndlap.setCoarseningStrategy(MLNodeLaplacian::CoarseningStrategy::RAP);
 
     mlndlap.setDomainBC(mlmg_lobc, mlmg_hibc);
 
