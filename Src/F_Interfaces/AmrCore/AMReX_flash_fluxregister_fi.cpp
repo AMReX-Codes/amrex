@@ -58,6 +58,20 @@ extern "C" {
         flux_reg->load(cgid, dir, fab, cfab, areafab, sf_f, sf_c);
     }
 
+    void amrex_fi_flash_fluxregister_load_area_ifd (FlashFluxRegister const* flux_reg, int cgid, int dir,
+                                                    Real* flux, const int* flo, const int* fhi, int nc,
+                                                    Real const* cflux, Real const* area,
+                                                    const int* ifd, Real sf_f, Real sf_c)
+    {
+        Box bx;
+        bx = Box(IntVect(flo), IntVect(fhi));
+        bx.shiftHalf(dir,-1);
+        FArrayBox fab(bx,nc,flux);
+        const FArrayBox cfab(bx,nc,const_cast<Real*>(cflux));
+        const FArrayBox areafab(bx,1,const_cast<Real*>(area));
+        flux_reg->load(cgid, dir, fab, cfab, areafab, ifd, sf_f, sf_c);
+    }
+
     void amrex_fi_flash_fluxregister_store (FlashFluxRegister* flux_reg, int fgid, int dir,
                                             Real const* flux, const int* flo, const int* fhi, int nc,
                                             Real scaling_factor)
@@ -79,6 +93,18 @@ extern "C" {
         const FArrayBox fab(bx,nc,const_cast<Real*>(flux));
         const FArrayBox areafab(bx,1,const_cast<Real*>(area));
         flux_reg->store(fgid, dir, fab, areafab, scaling_factor);
+    }
+
+    void amrex_fi_flash_fluxregister_store_area_ifd (FlashFluxRegister* flux_reg, int fgid, int dir,
+                                                     Real const* flux, const int* flo, const int* fhi, int nc,
+                                                     Real const* area, const int* ifd, Real scaling_factor)
+    {
+        Box bx;
+        bx = Box(IntVect(flo), IntVect(fhi));
+        bx.shiftHalf(dir,-1);
+        const FArrayBox fab(bx,nc,const_cast<Real*>(flux));
+        const FArrayBox areafab(bx,1,const_cast<Real*>(area));
+        flux_reg->store(fgid, dir, fab, areafab, ifd, scaling_factor);
     }
 
     void amrex_fi_flash_fluxregister_communicate (FlashFluxRegister* flux_reg)
