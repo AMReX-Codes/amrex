@@ -7,7 +7,6 @@ amr.n_cell = 64 64 64
 amr.max_level = 0
 amr.blocking_factor = 8
 amr.max_grid_size = 8
-amr.plot_int = 1
 geometry.coord_sys   = 0
 geometry.is_periodic = 1 1 1
 geometry.prob_lo = -0.5e-6 -0.5e-6 -0.5e-6

@@ -43,7 +43,7 @@ laser1.profile_t_peak = 30.e-15    # The time at which the laser reaches its pea
 laser1.profile_focal_distance = 100.e-6  # Focal distance from the antenna (in meters)
 
 # I/O
-amr.plot_int = 20
+amr.plot_int = 1000
 
 warpx.do_pml = 0
 

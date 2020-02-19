@@ -1,5 +1,5 @@
 # Maximum number of time steps
-max_step = 20
+max_step = 1000
 
 # number of grid points
 amr.n_cell =  64  64  240

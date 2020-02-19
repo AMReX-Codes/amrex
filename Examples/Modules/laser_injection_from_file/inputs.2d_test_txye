@@ -1,9 +1,9 @@
 #################################
 ####### GENERAL PARAMETERS ######
 #################################
-max_step = 400
+max_step = 250
 amr.n_cell =  672 672
-amr.plot_int = 50
+amr.plot_int = 250
 amr.max_grid_size = 512
 amr.blocking_factor = 32
 amr.max_level = 0

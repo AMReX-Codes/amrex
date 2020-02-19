@@ -1,5 +1,5 @@
 max_step = 120
-amr.plot_int = 30
+amr.plot_int = 120
 amr.n_cell =  128 64 64
 
 amr.blocking_factor = 8
