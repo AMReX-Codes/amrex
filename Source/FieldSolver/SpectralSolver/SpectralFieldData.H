@@ -12,6 +12,8 @@
 #include <SpectralKSpace.H>
 #include <AMReX_MultiFab.H>
 
+#include <string>
+
 // Declare type for spectral fields
 using SpectralField = amrex::FabArray< amrex::BaseFab <Complex> >;
 
@@ -70,6 +72,16 @@ class SpectralFieldData
                             zshift_FFTfromCell, zshift_FFTtoCell;
 #if (AMREX_SPACEDIM==3)
         SpectralShiftFactor yshift_FFTfromCell, yshift_FFTtoCell;
+#endif
+
+#ifdef AMREX_USE_GPU
+        /** \brief This method converts a cufftResult
+        * into the corresponding string
+        *
+        * @param[in] err a cufftResult
+        * @return an std::string
+        */
+        std::string cufftErrorToString (const cufftResult& err);
 #endif
 };
 
