@@ -36,6 +36,11 @@ public:
     void store (int fine_global_index, int dir, FArrayBox const& fine_flux, FArrayBox const& area,
                 Real scaling_factor);
 
+    // flux_in_register = scaling_factor * \sum{fine_flux * area}, if the component is flux denisty
+    //                    scaling_factor * \sum{fine_flux}       , otherwise
+    void store (int fine_global_index, int dir, FArrayBox const& fine_flux, FArrayBox const& area,
+                const int* isFluxDensity, Real scaling_factor);
+
     void communicate ();
 
     // crse_flux = flux_in_register * scaling_factor
@@ -48,6 +53,11 @@ public:
     // crse_flux = flux_in_register/area * sf_f + cflux * sf_c
     void load (int coarse_global_index, int dir, FArrayBox& crse_flux, FArrayBox const& cflux,
                FArrayBox const& area, Real sf_f, Real sf_c) const;
+
+    // crse_flux = flux_in_register/area * sf_f + cflux * sf_c, if the component is flux density
+    //             flux_in_register      * sf_f + cflux * sf_c, otherwise
+    void load (int coarse_global_index, int dir, FArrayBox& crse_flux, FArrayBox const& cflux,
+               FArrayBox const& area, const int* isFluxDensity, Real sf_f, Real sf_c) const;
 
 protected:
 
@@ -67,7 +77,9 @@ protected:
     Array<MultiFab,AMREX_SPACEDIM> m_crse_fluxes;
     std::map<int,Array<FArrayBox*,AMREX_SPACEDIM> > m_fine_map;
     std::map<int,Array<FArrayBox*,2*AMREX_SPACEDIM> > m_crse_map;
-    
+
+    mutable Vector<Gpu::PinnedVector<int> > m_h_ifd;
+    mutable Vector<Gpu::DeviceVector<int> > m_d_ifd;
 };
 
 }
