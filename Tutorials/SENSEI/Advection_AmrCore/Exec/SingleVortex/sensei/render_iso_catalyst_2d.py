@@ -42,7 +42,7 @@ def CreateCoProcessor():
       renderView1.Background = [1.0, 1.0, 1.0]
 
       # init the 'GridAxes3DActor' selected for 'AxesGrid'
-      renderView1.AxesGrid.Visibility = 1
+      renderView1.AxesGrid.Visibility = 0
       renderView1.AxesGrid.XTitle = 'X'
       renderView1.AxesGrid.YTitle = 'Y '
       renderView1.AxesGrid.ZTitle = ''
