@@ -15,7 +15,7 @@ From the terminal, install the latest version of yt:
     pip install cython
     pip install git+https://github.com/yt-project/yt.git
 
-Alternatively, yt can be installed via their installation script, see `yt installation web page <https://yt-project.org/doc/installing.html>`__, which can be particularly useful to setup a post-processing workflow on supercomputers.
+Alternatively, yt can be installed via their installation script, see `yt installation web page <https://yt-project.org/doc/installing.html>`__, which can be particularly useful to setup a post-processing workflow on supercomputers (see instructions in :doc:`../building/summit` to install yt on Summit).
 
 Visualizing the data
 --------------------
