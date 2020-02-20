@@ -88,6 +88,11 @@ public:
 
   ~WarpXOpenPMDPlot();
 
+  /** Set Iteration Step for the series
+   *
+   * @note If an iteration has been written, then it will give a warning
+   *
+   */
   void SetStep(int ts);
 
   void WriteOpenPMDParticles(const std::unique_ptr<MultiParticleContainer>&);

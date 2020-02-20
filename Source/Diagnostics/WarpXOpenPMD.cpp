@@ -16,7 +16,7 @@
 #include <sstream>
 #include <tuple>
 #include <utility>
-
+#include <iostream>
 
 namespace detail
 {
@@ -140,12 +140,19 @@ void WarpXOpenPMDPlot::GetFileName(std::string& filename)
 
 void WarpXOpenPMDPlot::SetStep(int ts)
 {
-  if (ts < 0)
-    return;
+  AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ts >= 0 , "openPMD iterations are unsigned");
 
-  m_CurrentStep =  ts;
+  if (m_CurrentStep >= ts) {
+      // note m_Series is reset in Init(), so using m_Series->iterations.contains(ts) is only able to check the
+      // last written step in m_Series's life time, but not other earlier written steps by other m_Series
+      std::string warnMsg = " Warning from openPMD writer: Already written iteration:"+std::to_string(ts);
+      std::cout<<warnMsg<<std::endl;
+      amrex::Warning(warnMsg);
+  }
 
-  Init(openPMD::AccessType::CREATE);
+    m_CurrentStep =  ts;
+    Init(openPMD::AccessType::CREATE);
+
 }
 
 void

@@ -540,14 +540,14 @@ WarpX::WriteOpenPMDFile () const
 #ifdef WARPX_USE_OPENPMD
     const auto step = istep[0];
 
+    m_OpenPMDPlotWriter->SetStep(step);
+
     Vector<std::string> varnames; // Name of the written fields
     Vector<MultiFab> mf_avg; // contains the averaged, cell-centered fields
     Vector<const MultiFab*> output_mf; // will point to the data to be written
     Vector<Geometry> output_geom;
 
     prepareFields(step, varnames, mf_avg, output_mf, output_geom);
-
-    m_OpenPMDPlotWriter->SetStep(step);
     // fields: only dumped for coarse level
     m_OpenPMDPlotWriter->WriteOpenPMDFields(
         varnames, *output_mf[0], output_geom[0], step, t_new[0]);
