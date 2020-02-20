@@ -74,25 +74,27 @@ AmrCore::regrid (int lbase, Real time, bool)
 
     BL_ASSERT(new_finest <= finest_level+1);
 
-    bool level_changed = false;
+    bool coarse_ba_changed = false;
     for (int lev = lbase+1; lev <= new_finest; ++lev)
     {
         if (lev <= finest_level) // an old level
         {
             bool ba_changed = (new_grids[lev] != grids[lev]);
-	    if (ba_changed or level_changed) { // level_changed: coarser level changed
-                DistributionMapping new_dmap = dmap[lev];
-                if (ba_changed) new_dmap.define(new_grids[lev]);
-                const auto old_num_setdm = num_setdm;
-                RemakeLevel(lev, time, new_grids[lev], new_dmap);
-                SetBoxArray(lev, new_grids[lev]);
-                if (old_num_setdm == num_setdm) {
-                    SetDistributionMap(lev, new_dmap);
+	    if (ba_changed or coarse_ba_changed) {
+                BoxArray level_grids = grids[lev];
+                DistributionMapping level_dmap = dmap[lev];
+                if (ba_changed) {
+                    level_grids = new_grids[lev];
+                    level_dmap = DistributionMapping(level_grids);
                 }
-                level_changed = true;
-            } else {
-                level_changed = false;
+                const auto old_num_setdm = num_setdm;
+                RemakeLevel(lev, time, level_grids, level_dmap);
+                SetBoxArray(lev, level_grids);
+                if (old_num_setdm == num_setdm) {
+                    SetDistributionMap(lev, level_dmap);
+                }
             }
+            coarse_ba_changed = ba_changed;;
 	}
 	else  // a new level
 	{
@@ -103,7 +105,6 @@ AmrCore::regrid (int lbase, Real time, bool)
             if (old_num_setdm == num_setdm) {
                 SetDistributionMap(lev, new_dmap);
             }
-            level_changed = true;
 	}
     }
 
