@@ -14,7 +14,5 @@ CEXE_sources += InjectorMomentum.cpp
 CEXE_headers += CustomDensityProb.H
 CEXE_headers += CustomMomentumProb.H
 
-CEXE_sources += InitSpaceChargeField.cpp
-
 INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/Initialization
 VPATH_LOCATIONS   += $(WARPX_HOME)/Source/Initialization

@@ -14,7 +14,30 @@
 using namespace amrex;
 
 void
-WarpX::InitSpaceChargeField (WarpXParticleContainer& pc)
+WarpX::ComputeSpaceChargeField (bool const reset_fields)
+{
+    if (reset_fields) {
+        // Reset all E and B fields to 0, before calculating space-charge fields
+        const int num_levels = max_level + 1;
+        for (int lev = 0; lev <= max_level; lev++) {
+            for (int comp=0; comp<3; comp++) {
+                Efield_fp[lev][comp]->setVal(0);
+                Bfield_fp[lev][comp]->setVal(0);
+            }
+        }
+    }
+
+    // Loop over the species and add their space-charge contribution to E and B
+    for (int ispecies=0; ispecies<mypc->nSpecies(); ispecies++){
+        WarpXParticleContainer& species = mypc->GetParticleContainer(ispecies);
+        if (species.initialize_self_fields || do_electrostatic) {
+            AddSpaceChargeField(species);
+        }
+    }
+}
+
+void
+WarpX::AddSpaceChargeField (WarpXParticleContainer& pc)
 {
 
 #ifdef WARPX_DIM_RZ

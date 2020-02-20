@@ -1,6 +1,7 @@
 CEXE_headers += WarpX_K.H
 CEXE_headers += WarpX_FDTD.H
 CEXE_sources += WarpXPushFieldsEM.cpp
+CEXE_sources += ElectrostaticSolver.cpp
 ifeq ($(USE_PSATD),TRUE)
   include $(WARPX_HOME)/Source/FieldSolver/SpectralSolver/Make.package
   ifeq ($(USE_PSATD_PICSAR),TRUE)

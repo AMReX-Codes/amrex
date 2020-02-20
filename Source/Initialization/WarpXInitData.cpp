@@ -133,12 +133,8 @@ WarpX::InitFromScratch ()
     mypc->InitData();
 
     // Loop through species and calculate their space-charge field
-    for (int ispecies=0; ispecies<mypc->nSpecies(); ispecies++){
-        WarpXParticleContainer& species = mypc->GetParticleContainer(ispecies);
-        if (species.initialize_self_fields) {
-            InitSpaceChargeField(species);
-        }
-    }
+    bool const reset_fields = false; // Do not erase previous user-specified values on the grid
+    ComputeSpaceChargeField(reset_fields);
 
     InitPML();
 
