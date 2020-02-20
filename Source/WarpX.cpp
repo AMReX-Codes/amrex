@@ -340,6 +340,24 @@ WarpX::ReadParameters ()
     {
         ParmParse pp("warpx");
 
+        // set random seed
+        std::string random_seed = "default";
+        pp.query("random_seed", random_seed);
+        if ( random_seed != "default" ) {
+            unsigned long myproc_1 = ParallelDescriptor::MyProc() + 1;
+            if ( random_seed == "random" ) {
+                std::random_device rd;
+                std::uniform_int_distribution<int> dist(2, INT_MAX);
+                unsigned long seed = myproc_1 * dist(rd);
+                ResetRandomSeed(seed);
+            } else if ( std::stoi(random_seed) > 0 ) {
+                unsigned long seed = myproc_1 * std::stoul(random_seed);
+                ResetRandomSeed(seed);
+            } else {
+                Abort("warpx.random_seed must be \"default\", \"random\" or an integer > 0.");
+            }
+        }
+
         pp.query("cfl", cfl);
         pp.query("verbose", verbose);
         pp.query("regrid_int", regrid_int);

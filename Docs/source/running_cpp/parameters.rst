@@ -44,6 +44,19 @@ Overall simulation parameters
 * ``warpx.verbose`` (`0` or `1`)
     Controls how much information is printed to the terminal, when running WarpX.
 
+* ``warpx.random_seed`` (`string` or `int` > 0) optional
+    If provided ``warpx.random_seed = random``, the random seed will be determined
+    using `std::random_device` and `std::clock()`,
+    thus every simulation run produces different random numbers.
+    If provided ``warpx.random_seed = n``, and it is required that `n > 0`,
+    the random seed for each MPI rank is `(mpi_rank+1) * n`,
+    where `mpi_rank` starts from 0.
+    `n = 1` and ``warpx.random_seed = default``
+    produce the default random seed.
+    Note that when GPU threading is used,
+    one should not expect to obtain the same random numbers,
+    even if a fixed ``warpx.random_seed`` is provided.
+
 Setting up the field mesh
 -------------------------
 
