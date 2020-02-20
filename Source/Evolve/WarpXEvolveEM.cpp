@@ -182,6 +182,12 @@ WarpX::EvolveEM (int numsteps)
 
         int num_moved = MoveWindow(move_j);
 
+#ifdef WARPX_DO_ELECTROSTATIC
+        // Electrostatic solver: particles can move by an arbitrary number of cells
+        mypc->Redistribute();
+#else
+        // Electromagnetic solver: due to CFL condition, particles can
+        // only move by one or two cells per time step
         if (max_level == 0) {
             int num_redistribute_ghost = num_moved;
             if ((v_galilean[0]!=0) or (v_galilean[1]!=0) or (v_galilean[2]!=0)) {
@@ -196,6 +202,7 @@ WarpX::EvolveEM (int numsteps)
         else {
             mypc->Redistribute();
         }
+#endif
 
         bool to_sort = (sort_int > 0) && ((step+1) % sort_int == 0);
         if (to_sort) {
