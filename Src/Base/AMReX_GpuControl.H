@@ -2,6 +2,7 @@
 #define AMREX_GPU_CONTROL_H_
 
 #include <AMReX_GpuQualifiers.H>
+#include <AMReX_GpuTypes.H>
 
 #ifndef AMREX_GPU_MAX_THREADS
 #define AMREX_GPU_MAX_THREADS 256
@@ -14,6 +15,17 @@
 #else
 #define AMREX_HIP_OR_CUDA(a,b) ((void)0);
 #endif
+
+#if defined(AMREX_USE_HIP)
+#define AMREX_HIP_OR_CUDA_OR_DPCPP(a,b,c) a
+#elif defined(AMREX_USE_CUDA)
+#define AMREX_HIP_OR_CUDA_OR_DPCPP(a,b,c) b
+#elif defined(AMREX_USE_DPCPP)
+#define AMREX_HIP_OR_CUDA_OR_DPCPP(a,b,c) c
+#else
+#define AMREX_HIP_OR_CUDA_OR_DPCPP(a,b,c) ((void)0);
+#endif
+
 
 namespace amrex {
     enum struct RunOn { Gpu, Cpu, Device=Gpu, Host=Cpu };

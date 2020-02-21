@@ -236,8 +236,8 @@ cellconslin_slopes_linlim (Box const& bx, Array4<Real> const& slopes,
                     Real cen  = slopes(i,j,k,n);
                     Real forw = 2.0*(u(i+1,j,k,nu)-u(i  ,j,k,nu));
                     Real back = 2.0*(u(i  ,j,k,nu)-u(i-1,j,k,nu));
-                    Real slp = (forw*back >= 0.0) ? amrex::min(std::abs(forw),std::abs(back)) : 0.0;
-                    slopes(i,j,k,n) = std::copysign(1.0,cen)*amrex::min(slp,std::abs(cen));
+                    Real slp = (forw*back >= 0.0) ? amrex::min(amrex::Math::abs(forw),amrex::Math::abs(back)) : 0.0;
+                    slopes(i,j,k,n) = amrex::Math::copysign(1.0,cen)*amrex::min(slp,amrex::Math::abs(cen));
                     if (cen != 0.0) {
                         sf(i,j,k,0) = amrex::min(sf(i,j,k,0), slopes(i,j,k,n)/cen);
                     } else {
@@ -247,8 +247,8 @@ cellconslin_slopes_linlim (Box const& bx, Array4<Real> const& slopes,
                     cen  = slopes(i,j,k,n+ncomp);
                     forw = 2.0*(u(i,j+1,k,nu)-u(i,j  ,k,nu));
                     back = 2.0*(u(i,j  ,k,nu)-u(i,j-1,k,nu));
-                    slp = (forw*back >= 0.0) ? amrex::min(std::abs(forw),std::abs(back)) : 0.0;
-                    slopes(i,j,k,n+ncomp) = std::copysign(1.0,cen)*amrex::min(slp,std::abs(cen));
+                    slp = (forw*back >= 0.0) ? amrex::min(amrex::Math::abs(forw),amrex::Math::abs(back)) : 0.0;
+                    slopes(i,j,k,n+ncomp) = amrex::Math::copysign(1.0,cen)*amrex::min(slp,amrex::Math::abs(cen));
                     if (cen != 0.0) {
                         sf(i,j,k,1) = amrex::min(sf(i,j,k,1), slopes(i,j,k,n+ncomp)/cen);
                     } else {
@@ -258,8 +258,8 @@ cellconslin_slopes_linlim (Box const& bx, Array4<Real> const& slopes,
                     cen  = slopes(i,j,k,n+ncomp*2);
                     forw = 2.0*(u(i,j,k+1,nu)-u(i,j,k  ,nu));
                     back = 2.0*(u(i,j,k  ,nu)-u(i,j,k-1,nu));
-                    slp = (forw*back >= 0.0) ? amrex::min(std::abs(forw),std::abs(back)) : 0.0;
-                    slopes(i,j,k,n+ncomp*2) = std::copysign(1.0,cen)*amrex::min(slp,std::abs(cen));
+                    slp = (forw*back >= 0.0) ? amrex::min(amrex::Math::abs(forw),amrex::Math::abs(back)) : 0.0;
+                    slopes(i,j,k,n+ncomp*2) = amrex::Math::copysign(1.0,cen)*amrex::min(slp,amrex::Math::abs(cen));
                     if (cen != 0.0) {
                         sf(i,j,k,2) = amrex::min(sf(i,j,k,2), slopes(i,j,k,n+ncomp*2)/cen);
                     } else {
@@ -363,20 +363,20 @@ cellconslin_slopes_mclim (Box const& bx, Array4<Real> const& slopes,
                     Real cen  = slopes(i,j,k,n);
                     Real forw = 2.0*(u(i+1,j,k,nu)-u(i  ,j,k,nu));
                     Real back = 2.0*(u(i  ,j,k,nu)-u(i-1,j,k,nu));
-                    Real slp = (forw*back >= 0.0) ? amrex::min(std::abs(forw),std::abs(back)) : 0.0;
-                    slopes(i,j,k,n) = std::copysign(1.0,cen)*amrex::min(slp,std::abs(cen));
+                    Real slp = (forw*back >= 0.0) ? amrex::min(amrex::Math::abs(forw),amrex::Math::abs(back)) : 0.0;
+                    slopes(i,j,k,n) = amrex::Math::copysign(1.0,cen)*amrex::min(slp,amrex::Math::abs(cen));
 
                     cen  = slopes(i,j,k,n+ncomp);
                     forw = 2.0*(u(i,j+1,k,nu)-u(i,j  ,k,nu));
                     back = 2.0*(u(i,j  ,k,nu)-u(i,j-1,k,nu));
-                    slp = (forw*back >= 0.0) ? amrex::min(std::abs(forw),std::abs(back)) : 0.0;
-                    slopes(i,j,k,n+ncomp) = std::copysign(1.0,cen)*amrex::min(slp,std::abs(cen));
+                    slp = (forw*back >= 0.0) ? amrex::min(amrex::Math::abs(forw),amrex::Math::abs(back)) : 0.0;
+                    slopes(i,j,k,n+ncomp) = amrex::Math::copysign(1.0,cen)*amrex::min(slp,amrex::Math::abs(cen));
 
                     cen  = slopes(i,j,k,n+ncomp*2);
                     forw = 2.0*(u(i,j,k+1,nu)-u(i,j,k  ,nu));
                     back = 2.0*(u(i,j,k  ,nu)-u(i,j,k-1,nu));
-                    slp = (forw*back >= 0.0) ? amrex::min(std::abs(forw),std::abs(back)) : 0.0;
-                    slopes(i,j,k,n+ncomp*2) = std::copysign(1.0,cen)*amrex::min(slp,std::abs(cen));
+                    slp = (forw*back >= 0.0) ? amrex::min(amrex::Math::abs(forw),amrex::Math::abs(back)) : 0.0;
+                    slopes(i,j,k,n+ncomp*2) = amrex::Math::copysign(1.0,cen)*amrex::min(slp,amrex::Math::abs(cen));
                 }
             }
         }

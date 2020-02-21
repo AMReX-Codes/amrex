@@ -948,7 +948,7 @@ MultiFab::norm0 (int comp, int nghost, bool local, bool ignore_covered ) const
             Real r = 0.;
             amrex::Loop(bx, [=,&r] (int i, int j, int k) noexcept
             {
-                if (!flag(i,j,k).isCovered()) r = amrex::max(r, std::abs(a(i,j,k,comp)));
+                if (!flag(i,j,k).isCovered()) r = amrex::max(r, amrex::Math::abs(a(i,j,k,comp)));
             });
             return r;
         });

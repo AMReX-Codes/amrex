@@ -20,7 +20,9 @@ namespace amrex
         typename std::enable_if<RunOnGpu<T>::value>::type
         uninitializedFillNImpl (U* data, Size count, const Value& value)
         {
-            AMREX_FOR_1D(count, i, data[i] = value;);
+            amrex::ParallelFor(count, [=] AMREX_GPU_DEVICE (Size i) noexcept {
+                data[i] = value;
+            });
             Gpu::Device::streamSynchronize();
         }
 
