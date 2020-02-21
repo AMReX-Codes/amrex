@@ -21,26 +21,90 @@ extern "C" {
         delete flux_reg;
     }
 
-    void amrex_fi_flash_fluxregister_load (FlashFluxRegister const* flux_reg, int cgid, int dir,
-                                           Real const* fabdata, const int* flo, const int* fhi, int nc,
-                                           Real scaling_factor)
+    void amrex_fi_flash_fluxregister_load_1 (FlashFluxRegister const* flux_reg, int cgid, int dir,
+                                             Real* flux, const int* flo, const int* fhi, int nc,
+                                             Real scaling_factor)
     {
         Box bx;
-	bx = Box(IntVect(flo), IntVect(fhi));
-	bx.shiftHalf(dir,-1);
-        FArrayBox fab(bx,nc,fabdata);
+        bx = Box(IntVect(flo), IntVect(fhi));
+        bx.shiftHalf(dir,-1);
+        FArrayBox fab(bx,nc,flux);
         flux_reg->load(cgid, dir, fab, scaling_factor);
     }
 
+    void amrex_fi_flash_fluxregister_load_2 (FlashFluxRegister const* flux_reg, int cgid, int dir,
+                                             Real* flux, const int* flo, const int* fhi, int nc,
+                                             Real const* cflux, Real sf_f, Real sf_c)
+    {
+        Box bx;
+        bx = Box(IntVect(flo), IntVect(fhi));
+        bx.shiftHalf(dir,-1);
+        FArrayBox fab(bx,nc,flux);
+        const FArrayBox cfab(bx,nc,const_cast<Real*>(cflux));
+        flux_reg->load(cgid, dir, fab, cfab, sf_f, sf_c);
+    }
+
+    void amrex_fi_flash_fluxregister_load_area (FlashFluxRegister const* flux_reg, int cgid, int dir,
+                                                Real* flux, const int* flo, const int* fhi, int nc,
+                                                Real const* cflux, Real const* area,
+                                                Real sf_f, Real sf_c)
+    {
+        Box bx;
+        bx = Box(IntVect(flo), IntVect(fhi));
+        bx.shiftHalf(dir,-1);
+        FArrayBox fab(bx,nc,flux);
+        const FArrayBox cfab(bx,nc,const_cast<Real*>(cflux));
+        const FArrayBox areafab(bx,1,const_cast<Real*>(area));
+        flux_reg->load(cgid, dir, fab, cfab, areafab, sf_f, sf_c);
+    }
+
+    void amrex_fi_flash_fluxregister_load_area_ifd (FlashFluxRegister const* flux_reg, int cgid, int dir,
+                                                    Real* flux, const int* flo, const int* fhi, int nc,
+                                                    Real const* cflux, Real const* area,
+                                                    const int* ifd, Real sf_f, Real sf_c)
+    {
+        Box bx;
+        bx = Box(IntVect(flo), IntVect(fhi));
+        bx.shiftHalf(dir,-1);
+        FArrayBox fab(bx,nc,flux);
+        const FArrayBox cfab(bx,nc,const_cast<Real*>(cflux));
+        const FArrayBox areafab(bx,1,const_cast<Real*>(area));
+        flux_reg->load(cgid, dir, fab, cfab, areafab, ifd, sf_f, sf_c);
+    }
+
     void amrex_fi_flash_fluxregister_store (FlashFluxRegister* flux_reg, int fgid, int dir,
-                                            Real* fabdata, const int* flo, const int* fhi, int nc,
+                                            Real const* flux, const int* flo, const int* fhi, int nc,
                                             Real scaling_factor)
     {
         Box bx;
-	bx = Box(IntVect(flo), IntVect(fhi));
-	bx.shiftHalf(dir,-1);
-        const FArrayBox fab(bx,nc,const_cast<Real*>(fabdata));
+        bx = Box(IntVect(flo), IntVect(fhi));
+        bx.shiftHalf(dir,-1);
+        const FArrayBox fab(bx,nc,const_cast<Real*>(flux));
         flux_reg->store(fgid, dir, fab, scaling_factor);
+    }
+
+    void amrex_fi_flash_fluxregister_store_area (FlashFluxRegister* flux_reg, int fgid, int dir,
+                                                 Real const* flux, const int* flo, const int* fhi, int nc,
+                                                 Real const* area, Real scaling_factor)
+    {
+        Box bx;
+        bx = Box(IntVect(flo), IntVect(fhi));
+        bx.shiftHalf(dir,-1);
+        const FArrayBox fab(bx,nc,const_cast<Real*>(flux));
+        const FArrayBox areafab(bx,1,const_cast<Real*>(area));
+        flux_reg->store(fgid, dir, fab, areafab, scaling_factor);
+    }
+
+    void amrex_fi_flash_fluxregister_store_area_ifd (FlashFluxRegister* flux_reg, int fgid, int dir,
+                                                     Real const* flux, const int* flo, const int* fhi, int nc,
+                                                     Real const* area, const int* ifd, Real scaling_factor)
+    {
+        Box bx;
+        bx = Box(IntVect(flo), IntVect(fhi));
+        bx.shiftHalf(dir,-1);
+        const FArrayBox fab(bx,nc,const_cast<Real*>(flux));
+        const FArrayBox areafab(bx,1,const_cast<Real*>(area));
+        flux_reg->store(fgid, dir, fab, areafab, ifd, scaling_factor);
     }
 
     void amrex_fi_flash_fluxregister_communicate (FlashFluxRegister* flux_reg)

@@ -229,6 +229,14 @@ public:
     //! Manually tag.  Note that tags is built on level lev grids coarsened by bf_lev[lev].
     virtual void ManualTagsPlacement (int lev, TagBoxArray& tags, const Vector<IntVect>& bf_lev) {}
 
+    //! Apply some user-defined changes the to base grids.
+    //!
+    //! This function is only called by MakeNewGrids after computing a box array for the coarsest level
+    //! and before calling MakeNewLevelFromScratch.
+    //!
+    //! For example, use this function if you want to remove covered grids on the coarsest refinement level.
+    virtual void PostProcessBaseGrids(BoxArray& box_array) const {}
+
     virtual BoxArray GetAreaNotToTag (int lev) { return BoxArray(); }
 
     long CountCells (int lev) noexcept;

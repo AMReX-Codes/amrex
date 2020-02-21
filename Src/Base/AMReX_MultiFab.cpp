@@ -675,24 +675,6 @@ MultiFab::contains_inf (bool local) const
     return contains_inf(0,nComp(),nGrow(),local);
 }
 
-bool 
-MultiFab::is_nodal () const noexcept
-{
-    return boxArray().ixType().nodeCentered();
-}
-
-bool 
-MultiFab::is_nodal (int dir) const noexcept
-{
-    return boxArray().ixType().nodeCentered(dir);
-}
-
-bool 
-MultiFab::is_cell_centered () const noexcept
-{
-    return boxArray().ixType().cellCentered();
-}
-
 Real
 MultiFab::min (int comp, int nghost, bool local) const
 {

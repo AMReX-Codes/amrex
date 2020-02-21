@@ -37,10 +37,12 @@ void mlndlap_set_dirichlet_mask (Box const& bx, Array4<int> const& dmsk,
     for (int j = lo.y; j <= hi.y; ++j) {
     AMREX_PRAGMA_SIMD
     for (int i = lo.x; i <= hi.x; ++i) {
-        dmsk(i,j,k) = (omsk(i-1,j-1,k-1) == 1 or omsk(i,j-1,k-1) == 1 or
-                       omsk(i-1,j  ,k-1) == 1 or omsk(i,j  ,k-1) == 1 or
-                       omsk(i-1,j-1,k  ) == 1 or omsk(i,j-1,k  ) == 1 or
-                       omsk(i-1,j  ,k  ) == 1 or omsk(i,j  ,k  ) == 1);
+        if (!dmsk(i,j,k)) {
+            dmsk(i,j,k) = (omsk(i-1,j-1,k-1) == 1 or omsk(i,j-1,k-1) == 1 or
+                           omsk(i-1,j  ,k-1) == 1 or omsk(i,j  ,k-1) == 1 or
+                           omsk(i-1,j-1,k  ) == 1 or omsk(i,j-1,k  ) == 1 or
+                           omsk(i-1,j  ,k  ) == 1 or omsk(i,j  ,k  ) == 1);
+        }
     }}}
 
     const auto domlo = amrex::lbound(dom);
