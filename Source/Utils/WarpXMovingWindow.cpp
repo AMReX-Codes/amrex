@@ -246,15 +246,20 @@ WarpX::shiftMF (MultiFab& mf, const Geometry& geom, int num_shift, int dir,
     MultiFab tmpmf(ba, dm, nc, ng);
     MultiFab::Copy(tmpmf, mf, 0, 0, nc, ng);
 
-    IntVect ng_mw = IntVect::TheUnitVector();
-    // Enough guard cells in the MW direction
-    ng_mw[dir] = num_shift;
-    // Add the extra cell (if momentum-conserving gather with staggered field solve)
-    ng_mw += ng_extra;
-    // Make sure we don't exceed number of guard cells allocated
-    ng_mw = ng_mw.min(ng);
-    // Fill guard cells.
-    tmpmf.FillBoundary(ng_mw, geom.periodicity());
+    if ( WarpX::safe_guard_cells ) {
+        // Fill guard cells.
+        tmpmf.FillBoundary(geom.periodicity());
+    } else {
+        IntVect ng_mw = IntVect::TheUnitVector();
+        // Enough guard cells in the MW direction
+        ng_mw[dir] = num_shift;
+        // Add the extra cell (if momentum-conserving gather with staggered field solve)
+        ng_mw += ng_extra;
+        // Make sure we don't exceed number of guard cells allocated
+        ng_mw = ng_mw.min(ng);
+        // Fill guard cells.
+        tmpmf.FillBoundary(ng_mw, geom.periodicity());
+    }
 
     // Make a box that covers the region that the window moved into
     const IndexType& typ = ba.ixType();

@@ -162,6 +162,9 @@ Distribution across MPI ranks and parallelization
 * ``warpx.do_dynamic_scheduling`` (`0` or `1`) optional (default `1`)
     Whether to activate OpenMP dynamic scheduling.
 
+* ``warpx.safe_guard_cells`` (`0` or `1`) optional (default `0`)
+    For developers: run in safe mode, exchanging more guard cells, and more often in the PIC loop (for debugging).
+
 Math parser and user-defined constants
 --------------------------------------
 

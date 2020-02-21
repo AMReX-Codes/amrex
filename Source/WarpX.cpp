@@ -100,7 +100,7 @@ Real WarpX::particle_slice_width_lab = 0.0;
 bool WarpX::do_dynamic_scheduling = true;
 
 int WarpX::do_subcycling = 0;
-bool WarpX::exchange_all_guard_cells = 0;
+bool WarpX::safe_guard_cells = 0;
 
 #if (AMREX_SPACEDIM == 3)
 IntVect WarpX::Bx_nodal_flag(1,0,0);
@@ -363,7 +363,7 @@ WarpX::ReadParameters ()
         pp.query("regrid_int", regrid_int);
         pp.query("do_subcycling", do_subcycling);
         pp.query("use_hybrid_QED", use_hybrid_QED);
-        pp.query("exchange_all_guard_cells", exchange_all_guard_cells);
+        pp.query("safe_guard_cells", safe_guard_cells);
         pp.query("override_sync_int", override_sync_int);
 
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(do_subcycling != 1 || max_level <= 1,
@@ -805,7 +805,7 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
         maxwell_fdtd_solver_id,
         maxLevel(),
         WarpX::v_galilean,
-        exchange_all_guard_cells);
+        safe_guard_cells);
 
     if (mypc->nSpeciesDepositOnMainGrid() && n_current_deposition_buffer == 0) {
         n_current_deposition_buffer = 1;

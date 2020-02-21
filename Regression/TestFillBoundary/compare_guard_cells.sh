@@ -151,11 +151,11 @@ for NCI_CORR in 0 1; do
                                             echo $RUNNAME >> ran.txt
                                             for WHICH in ref tst; do
                                                 rm -rf $WHICH
-                                                EXCHANGE_ALL_CELLS=0
-                                                if [ $WHICH == ref ]; then EXCHANGE_ALL_CELLS=1; fi
+                                                SAFE_GUARD_CELLS=0
+                                                if [ $WHICH == ref ]; then SAFE_GUARD_CELLS=1; fi
                                                 # Run simulation
                                                 sleep .01
-                                                echo $EXCHANGE_ALL_CELLS
+                                                echo $SAFE_GUARD_CELLS
                                                 mpirun -np 2 $EXECUTABLE inputs.$DIM \
                                                        particles.use_fdtd_nci_corr=$NCI_CORR \
                                                        warpx.use_filter=$FILTER \
@@ -169,7 +169,7 @@ for NCI_CORR in 0 1; do
                                                        warpx.do_subcycling=$SUBCYCLING \
                                                        warpx.do_nodal=$NODAL \
                                                        algo.field_gathering=$GATHER \
-                                                       warpx.exchange_all_guard_cells=$EXCHANGE_ALL_CELLS \
+                                                       warpx.safe_guard_cells=$SAFE_GUARD_CELLS \
                                                        >  ./OUTPUT/$WHICH/$RUNNAME.txt \
                                                        2> ./ERROR/$WHICH/$RUNNAME.txt
                                                 # MPI is sometimes unhappy without this pause (??)

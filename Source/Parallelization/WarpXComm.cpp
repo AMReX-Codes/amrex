@@ -369,40 +369,50 @@ WarpX::FillBoundaryE (int lev, PatchType patch_type, IntVect ng)
         if (do_pml && pml[lev]->ok())
         {
             pml[lev]->ExchangeE(patch_type,
-                              { Efield_fp[lev][0].get(),
-                                Efield_fp[lev][1].get(),
-                                Efield_fp[lev][2].get() },
+                                { Efield_fp[lev][0].get(),
+                                  Efield_fp[lev][1].get(),
+                                  Efield_fp[lev][2].get() },
                                 do_pml_in_domain);
             pml[lev]->FillBoundaryE(patch_type);
         }
 
         const auto& period = Geom(lev).periodicity();
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-            ng <= Efield_fp[lev][0]->nGrowVect(),
-            "Error: in FillBoundaryE, requested more guard cells than allocated");
-        Efield_fp[lev][0]->FillBoundary(ng, period);
-        Efield_fp[lev][1]->FillBoundary(ng, period);
-        Efield_fp[lev][2]->FillBoundary(ng, period);
+        if ( safe_guard_cells ){
+            Vector<MultiFab*> mf{Efield_fp[lev][0].get(),Efield_fp[lev][1].get(),Efield_fp[lev][2].get()};
+            amrex::FillBoundary(mf, period);
+        } else {
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+                ng <= Efield_fp[lev][0]->nGrowVect(),
+                "Error: in FillBoundaryE, requested more guard cells than allocated");
+            Efield_fp[lev][0]->FillBoundary(ng, period);
+            Efield_fp[lev][1]->FillBoundary(ng, period);
+            Efield_fp[lev][2]->FillBoundary(ng, period);
+        }
     }
     else if (patch_type == PatchType::coarse)
     {
         if (do_pml && pml[lev]->ok())
         {
-        pml[lev]->ExchangeE(patch_type,
-                            { Efield_cp[lev][0].get(),
-                              Efield_cp[lev][1].get(),
-                              Efield_cp[lev][2].get() },
-                              do_pml_in_domain);
-        pml[lev]->FillBoundaryE(patch_type);
+            pml[lev]->ExchangeE(patch_type,
+                                { Efield_cp[lev][0].get(),
+                                  Efield_cp[lev][1].get(),
+                                  Efield_cp[lev][2].get() },
+                                do_pml_in_domain);
+            pml[lev]->FillBoundaryE(patch_type);
         }
-
         const auto& cperiod = Geom(lev-1).periodicity();
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-            ng <= Efield_cp[lev][0]->nGrowVect(),
-            "Error: in FillBoundaryE, requested more guard cells than allocated");
-        Efield_cp[lev][0]->FillBoundary(ng, cperiod);
-        Efield_cp[lev][1]->FillBoundary(ng, cperiod);
-        Efield_cp[lev][2]->FillBoundary(ng, cperiod);
+        if ( safe_guard_cells ) {
+            Vector<MultiFab*> mf{Efield_cp[lev][0].get(),Efield_cp[lev][1].get(),Efield_cp[lev][2].get()};
+            amrex::FillBoundary(mf, cperiod);
+
+        } else {
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+                ng <= Efield_cp[lev][0]->nGrowVect(),
+                "Error: in FillBoundaryE, requested more guard cells than allocated");
+            Efield_cp[lev][0]->FillBoundary(ng, cperiod);
+            Efield_cp[lev][1]->FillBoundary(ng, cperiod);
+            Efield_cp[lev][2]->FillBoundary(ng, cperiod);
+        }
     }
 }
 
@@ -428,12 +438,17 @@ WarpX::FillBoundaryB (int lev, PatchType patch_type, IntVect ng)
         pml[lev]->FillBoundaryB(patch_type);
         }
         const auto& period = Geom(lev).periodicity();
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-            ng <= Bfield_fp[lev][0]->nGrowVect(),
-            "Error: in FillBoundaryB, requested more guard cells than allocated");
-        Bfield_fp[lev][0]->FillBoundary(ng, period);
-        Bfield_fp[lev][1]->FillBoundary(ng, period);
-        Bfield_fp[lev][2]->FillBoundary(ng, period);
+        if ( safe_guard_cells ) {
+            Vector<MultiFab*> mf{Bfield_fp[lev][0].get(),Bfield_fp[lev][1].get(),Bfield_fp[lev][2].get()};
+            amrex::FillBoundary(mf, period);
+        } else {
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+                ng <= Bfield_fp[lev][0]->nGrowVect(),
+                "Error: in FillBoundaryB, requested more guard cells than allocated");
+            Bfield_fp[lev][0]->FillBoundary(ng, period);
+            Bfield_fp[lev][1]->FillBoundary(ng, period);
+            Bfield_fp[lev][2]->FillBoundary(ng, period);
+        }
     }
     else if (patch_type == PatchType::coarse)
     {
@@ -447,12 +462,17 @@ WarpX::FillBoundaryB (int lev, PatchType patch_type, IntVect ng)
         pml[lev]->FillBoundaryB(patch_type);
         }
         const auto& cperiod = Geom(lev-1).periodicity();
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-            ng <= Bfield_cp[lev][0]->nGrowVect(),
-            "Error: in FillBoundaryB, requested more guard cells than allocated");
-        Bfield_cp[lev][0]->FillBoundary(ng, cperiod);
-        Bfield_cp[lev][1]->FillBoundary(ng, cperiod);
-        Bfield_cp[lev][2]->FillBoundary(ng, cperiod);
+        if ( safe_guard_cells ){
+            Vector<MultiFab*> mf{Bfield_cp[lev][0].get(),Bfield_cp[lev][1].get(),Bfield_cp[lev][2].get()};
+            amrex::FillBoundary(mf, cperiod);
+        } else {
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+                ng <= Bfield_cp[lev][0]->nGrowVect(),
+                "Error: in FillBoundaryB, requested more guard cells than allocated");
+            Bfield_cp[lev][0]->FillBoundary(ng, cperiod);
+            Bfield_cp[lev][1]->FillBoundary(ng, cperiod);
+            Bfield_cp[lev][2]->FillBoundary(ng, cperiod);
+        }
     }
 }
 
@@ -476,10 +496,14 @@ WarpX::FillBoundaryF (int lev, PatchType patch_type, IntVect ng)
         }
 
         const auto& period = Geom(lev).periodicity();
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-            ng <= F_fp[lev]->nGrowVect(),
-            "Error: in FillBoundaryF, requested more guard cells than allocated");
-        F_fp[lev]->FillBoundary(ng, period);
+        if ( safe_guard_cells ) {
+            F_fp[lev]->FillBoundary(period);
+        } else {
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+                ng <= F_fp[lev]->nGrowVect(),
+                "Error: in FillBoundaryF, requested more guard cells than allocated");
+            F_fp[lev]->FillBoundary(ng, period);
+        }
     }
     else if (patch_type == PatchType::coarse && F_cp[lev])
     {
@@ -491,10 +515,14 @@ WarpX::FillBoundaryF (int lev, PatchType patch_type, IntVect ng)
         }
 
         const auto& cperiod = Geom(lev-1).periodicity();
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-            ng <= F_cp[lev]->nGrowVect(),
-            "Error: in FillBoundaryF, requested more guard cells than allocated");
-        F_cp[lev]->FillBoundary(ng, cperiod);
+        if ( safe_guard_cells ) {
+            F_cp[lev]->FillBoundary(cperiod);
+        } else {
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+                ng <= F_cp[lev]->nGrowVect(),
+                "Error: in FillBoundaryF, requested more guard cells than allocated");
+            F_cp[lev]->FillBoundary(ng, cperiod);
+        }
     }
 }
 

@@ -416,6 +416,8 @@ WarpX::OneStep_nosub (Real cur_time)
     }
     // E and B are up-to-date in the domain, but all guard cells are
     // outdated.
+    if ( safe_guard_cells )
+        FillBoundaryB(guard_cells.ng_alloc_EB, guard_cells.ng_Extra);
 #endif
 }
 
@@ -529,6 +531,8 @@ WarpX::OneStep_sub1 (Real curtime)
         FillBoundaryE(fine_lev, PatchType::fine, guard_cells.ng_FieldSolver);
     }
 
+    if ( safe_guard_cells )
+        FillBoundaryF(fine_lev, PatchType::fine, guard_cells.ng_FieldSolver);
     FillBoundaryB(fine_lev, PatchType::fine, guard_cells.ng_FieldSolver);
 
     // v) Push the fields on the coarse patch and mother grid
@@ -569,7 +573,11 @@ WarpX::OneStep_sub1 (Real curtime)
             FillBoundaryF(coarse_lev, PatchType::fine, IntVect::TheZeroVector());
         }
         DampPML(coarse_lev, PatchType::fine);
+        if ( safe_guard_cells )
+            FillBoundaryE(coarse_lev, PatchType::fine, guard_cells.ng_FieldSolver);
     }
+    if ( safe_guard_cells )
+        FillBoundaryB(coarse_lev, PatchType::fine, guard_cells.ng_FieldSolver);
 }
 
 void
