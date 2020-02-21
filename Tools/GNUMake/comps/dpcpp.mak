@@ -88,8 +88,6 @@ CFLAGS   += $(GENERIC_COMP_FLAGS)
 
 ########################################################################
 
-#LDFLAGS += -Xlinker --allow-multiple-definition
-
 # ifneq ($(BL_NO_FORT),TRUE)
 # 
 # # ask gfortran the name of the library to link in.  First check for the
@@ -107,6 +105,8 @@ CFLAGS   += $(GENERIC_COMP_FLAGS)
 # override XTRALIBS += -lgfortran -lquadmath
 # 
 # endif
+
+override XTRAOBJS += $(DPCPP_DIR)/lib/libsycl-glibc.o $(DPCPP_DIR)/lib/libsycl-cmath.o
 
 ifeq ($(FSANITIZER),TRUE)
   override XTRALIBS += -lubsan
