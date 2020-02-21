@@ -23,7 +23,7 @@ else
 endif
 
 ifeq ($(USE_DPCPP),TRUE)
-  ONEAPI_DIR ?= /opt/intel/inteloneapi
+  DPCPP_DIR ?= /opt/intel/inteloneapi/compiler/latest/linux
   COMP := dpcpp
   DEFINES += -DAMREX_USE_DPCPP -DAMREX_USE_GPU
   USE_CUDA := FALSE

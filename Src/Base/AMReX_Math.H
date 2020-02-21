@@ -10,67 +10,29 @@ namespace sycl = cl::sycl;
 
 namespace amrex { namespace Math {
 
-#ifdef AMREX_USE_GPU
+#ifdef AMREX_USE_DPCPP
 
 using sycl::abs;
-using sycl::exp;
-using sycl::expm1;
-using sycl::log;
-using sycl::log10;
-using sycl::log2;
-using sycl::log1p;
-using sycl::pow;
-using sycl::sqrt;
-using sycl::cbrt;
-using sycl::hypot;
-using sycl::sin;
-using sycl::cos;
-using sycl::tan;
-using sycl::asin;
-using sycl::acos;
-using sycl::atan;
-using sycl::atan2;
-using sycl::sinh;
-using sycl::cosh;
-using sycl::tanh;
-using sycl::asinh;
-using sycl::acosh;
-using sycl::atanh;
 using sycl::ceil;
+using sycl::copysign;
 using sycl::floor;
 using sycl::round;
-using sycl::copysign;
+
+#elif defined (AMREX_USE_HIP)
+
+using abs;
+using ceil;
+using copysign;
+using floor;
+using round;
 
 #else
 
 using std::abs;
-using std::exp;
-using std::expm1;
-using std::log;
-using std::log10;
-using std::log2;
-using std::log1p;
-using std::pow;
-using std::sqrt;
-using std::cbrt;
-using std::hypot;
-using std::sin;
-using std::cos;
-using std::tan;
-using std::asin;
-using std::acos;
-using std::atan;
-using std::atan2;
-using std::sinh;
-using std::cosh;
-using std::tanh;
-using std::asinh;
-using std::acosh;
-using std::atanh;
 using std::ceil;
+using std::copysign;
 using std::floor;
 using std::round;
-using std::copysign;
 
 #endif
 
