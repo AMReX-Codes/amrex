@@ -47,6 +47,27 @@ void launch (int nblocks, int nthreads_per_block, std::size_t shared_mem_bytes,
     }
 }
 
+template<typename L>
+void launch (int nblocks, int nthreads_per_block, gpuStream_t stream, L&& f) noexcept
+{
+    if (Gpu::onNullStream(stream)) Gpu::nonNullStreamSynchronize();
+    int nthreads_total = nthreads_per_block * nblocks;
+    auto& q = *(stream.queue);
+    try {
+        q.submit([&] (sycl::handler& h) {
+            h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
+                                             sycl::range<1>(nthreads_per_block)),
+            [=] (sycl::nd_item<1> item)
+//            [[sycl::intel_reqd_sub_group_size(32)]] xxxxx DPCPP todo
+            {
+                f(item);
+            });
+        });
+    } catch (sycl::exception const& ex) {
+        amrex::Abort(std::string("launch: ")+ex.what()+"!!!!!");
+    }
+}
+
 #else
 
 template<typename L>
@@ -58,13 +79,13 @@ void launch (int nblocks, int nthreads_per_block, std::size_t shared_mem_bytes,
     AMREX_GPU_ERROR_CHECK();
 }
 
-#endif
-
 template<typename L>
 void launch (int nblocks, int nthreads_per_block, gpuStream_t stream, L&& f) noexcept
 {
     launch(nblocks, nthreads_per_block, 0, stream, std::forward<L>(f));
 }
+
+#endif
 
 template<typename T, typename L>
 void launch (T const& n, L&& f) noexcept
@@ -689,8 +710,7 @@ void ParallelFor (Box const& box1, T1 ncomp1, L1&& f1,
 }
 
 template <typename T, typename L1, typename L2>
-void FabReduce (Box const& box, T const& init_val,
-                L1&& f1, L2&& f2, std::size_t shared_mem_bytes=0) noexcept
+void FabReduce (Box const& box, T const& init_val, L1&& f1, L2&& f2) noexcept
 {
     if (amrex::isEmpty(box)) return;
     int ncells = box.numPts();
@@ -698,9 +718,7 @@ void FabReduce (Box const& box, T const& init_val,
     const auto len = amrex::length(box);
     auto ec = Gpu::ExecutionConfig(ncells);
     ec.numBlocks.x = std::min(ec.numBlocks.x, static_cast<unsigned int>(Gpu::Device::maxBlocksPerLaunch()));
-    std::size_t sm = std::max(ec.sharedMem, shared_mem_bytes);
 #ifdef AMREX_USE_DPCPP
-    // xxxxx DPCPP todo: shared_mem_bytes
     // If we are on default queue, block all other streams
     if (Gpu::onNullStream()) Gpu::nonNullStreamSynchronize();
     int nthreads_per_block = ec.numThreads.x;
@@ -730,7 +748,7 @@ void FabReduce (Box const& box, T const& init_val,
         amrex::Abort(std::string("For: ")+ex.what()+"!!!!!");
     }
 #else
-    AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, sm, Gpu::gpuStream(),
+    AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
         auto r = init_val;
         for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
@@ -751,8 +769,7 @@ void FabReduce (Box const& box, T const& init_val,
 
 template <typename N, typename T, typename L1, typename L2,
           typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
-void FabReduce (Box const& box, N ncomp, T const& init_val,
-                L1&& f1, L2&& f2, std::size_t shared_mem_bytes=0) noexcept
+void FabReduce (Box const& box, N ncomp, T const& init_val, L1&& f1, L2&& f2) noexcept
 {
     if (amrex::isEmpty(box)) return;
     int ncells = box.numPts();
@@ -760,9 +777,7 @@ void FabReduce (Box const& box, N ncomp, T const& init_val,
     const auto len = amrex::length(box);
     auto ec = Gpu::ExecutionConfig(ncells);
     ec.numBlocks.x = std::min(ec.numBlocks.x, static_cast<unsigned int>(Gpu::Device::maxBlocksPerLaunch()));
-    std::size_t sm = std::max(ec.sharedMem, shared_mem_bytes);
 #ifdef AMREX_USE_DPCPP
-    // xxxxx DPCPP todo: shared_mem_bytes
     // If we are on default queue, block all other streams
     if (Gpu::onNullStream()) Gpu::nonNullStreamSynchronize();
     int nthreads_per_block = ec.numThreads.x;
@@ -794,7 +809,7 @@ void FabReduce (Box const& box, N ncomp, T const& init_val,
         amrex::Abort(std::string("For: ")+ex.what()+"!!!!!");
     }
 #else
-    AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, sm, Gpu::gpuStream(),
+    AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
         auto r = init_val;
         for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
@@ -817,15 +832,12 @@ void FabReduce (Box const& box, N ncomp, T const& init_val,
 
 template <typename N, typename T, typename L1, typename L2,
           typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
-void VecReduce (N n, T const& init_val,
-                L1&& f1, L2&& f2, std::size_t shared_mem_bytes=0) noexcept
+void VecReduce (N n, T const& init_val, L1&& f1, L2&& f2) noexcept
 {
     if (amrex::isEmpty(n)) return;
     auto ec = Gpu::ExecutionConfig(n);
     ec.numBlocks.x = std::min(ec.numBlocks.x, static_cast<unsigned int>(Gpu::Device::maxBlocksPerLaunch()));
-    std::size_t sm = std::max(ec.sharedMem, shared_mem_bytes);
 #ifdef AMREX_USE_DPCPP
-    // xxxxx DPCPP todo: shared_mem_bytes
     // If we are on default queue, block all other streams
     if (Gpu::onNullStream()) Gpu::nonNullStreamSynchronize();
     int nthreads_per_block = ec.numThreads.x;
@@ -849,7 +861,7 @@ void VecReduce (N n, T const& init_val,
         amrex::Abort(std::string("For: ")+ex.what()+"!!!!!");
     }
 #else
-    AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, sm, Gpu::gpuStream(),
+    AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream(),
     [=] AMREX_GPU_DEVICE () noexcept {
         auto r = init_val;
         for (N i = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
