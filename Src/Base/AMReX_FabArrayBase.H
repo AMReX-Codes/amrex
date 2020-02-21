@@ -130,6 +130,20 @@ public:
     //! Return constant reference to associated DistributionMapping.
     const DistributionMapping& DistributionMap () const noexcept { return distributionMap; }
 
+    /**
+    * \brief This tests on whether the FabArray is fully nodal.
+    */
+    bool is_nodal () const noexcept;
+    /**
+    * \brief This tests on whether the FabArray is nodal in direction dir.
+    */
+    bool is_nodal (int dir) const noexcept;
+    /**
+    * \brief This tests on whether the FabArray is cell-centered.
+    */
+    bool is_cell_centered () const noexcept;
+
+
     // These are provided for convenience to keep track of how many
     // ghost cells are up to date.  The number of filled ghost cells
     // is updated by FillBoundary and ParallelCopy.
