@@ -130,7 +130,7 @@ struct SharedMemory
 };
 
 #ifndef AMREX_USE_DPCPP
-// xxxxx DPCPP todo
+// xxxxx DPCPP todo: extern __shared__
 
 template <>
 struct SharedMemory<double>
