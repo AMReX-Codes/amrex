@@ -1575,7 +1575,7 @@ void mlndlap_set_integral_eb (int i, int j, int, Array4<Real> const& intg,
             Real bb = bcy-kk*bcx;
             Sxy = (1._rt/8._rt)*kk*kk*(xmax4-xmin4) + (1._rt/3._rt)*kk*bb*(xmax3-xmin3)
                 + (0.25_rt*bb*bb-(1._rt/16._rt))*(xmax*xmax-xmin*xmin);
-            Sxy = std::copysign(Sxy, anrmy);
+            Sxy = amrex::Math::copysign(Sxy, anrmy);
         }
 
         if (anrmy == 0._rt) {
