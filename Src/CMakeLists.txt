@@ -90,7 +90,41 @@ if (ENABLE_AMRDATA)
 endif()
 
 if (ENABLE_PROFPARSER)
-   add_subdirectory(Extern/ProfParser)
+    #
+    # Generate BLProfParser.tab.H, BLProfParser.tab.cpp and
+    # BLProfParser.lex.yy.cpp
+    # Must be done here where target "amrex" is defined because
+    # add_custom_command create rules which are seen only within the scope
+    # from which add_custom_command is called
+    #
+    set(_dir ${CMAKE_CURRENT_LIST_DIR}/Extern/ProfParser)
+    set(_odir ${CMAKE_CURRENT_BINARY_DIR})
+    add_custom_command(
+        OUTPUT  ${_dir}/BLProfParser.tab.cpp ${_dir}/BLProfParser.tab.H
+        COMMAND cat   BLProfParser.y $(SED0) $(SED1) > BLProfParserNC.y
+        COMMAND bison --defines=BLProfParser.tab.H
+        --output=BLProfParser.tab.cpp BLProfParserNC.y
+        COMMAND rm    BLProfParserNC.y
+        DEPENDS ${_dir}/BLProfParser.y
+        WORKING_DIRECTORY ${_dir}
+        COMMENT "Generating BLProfParser.tab.H and BLProfParser.tab.cpp" )
+
+    add_custom_command(
+        OUTPUT ${_dir}/BLProfParser.lex.yy.cpp
+        COMMAND flex --outfile=${_dir}/BLProfParser.lex.yy.cpp BLProfParser.l
+        DEPENDS ${_dir}/BLProfParser.l
+        WORKING_DIRECTORY ${_dir}
+        COMMENT "Generating BLProfParser.lex.yy.cpp" )
+
+    target_sources( amrex
+        PRIVATE
+        ${_dir}/BLProfParser.tab.cpp
+        ${_dir}/BLProfParser.lex.yy.cpp
+        ${_dir}/BLProfParser.tab.H
+        )
+    unset(_dir)
+
+    add_subdirectory(Extern/ProfParser)
 endif ()
 
 if (ENABLE_SENSEI_INSITU)
@@ -116,7 +150,7 @@ endif ()
 #
 # Print out summary -- do it here so we already linked all
 # libs at this point
-#  
+#
 print_amrex_configuration_summary ()
 
 #
