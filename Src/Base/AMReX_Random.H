@@ -4,6 +4,8 @@
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_ParallelDescriptor.H>
 
+// xxxxx DPCPP todo
+
 namespace amrex
 {
     /**

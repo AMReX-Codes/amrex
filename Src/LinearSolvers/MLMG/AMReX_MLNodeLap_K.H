@@ -122,7 +122,7 @@ void mlndlap_normalize_sten (Box const& bx, Array4<Real> const& x,
 {
     amrex::LoopConcurrent(bx, [=] (int i, int j, int k) noexcept
     {
-        if (!msk(i,j,k) and std::abs(sten(i,j,k,0)) > s0_norm0) {
+        if (!msk(i,j,k) and amrex::Math::abs(sten(i,j,k,0)) > s0_norm0) {
             x(i,j,k) /= sten(i,j,k,0);
         }
     });

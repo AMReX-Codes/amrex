@@ -55,10 +55,10 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 amrex::Real limiter (amrex::Real dlft, amrex::Real drgt) noexcept
 {
     amrex::Real dcen = 0.5*(dlft+drgt);
-    amrex::Real dsgn = std::copysign(1.0, dcen);
-    amrex::Real slop = 2.0 * amrex::min(std::abs(dlft),std::abs(drgt));
+    amrex::Real dsgn = amrex::Math::copysign(1.0, dcen);
+    amrex::Real slop = 2.0 * amrex::min(amrex::Math::abs(dlft),amrex::Math::abs(drgt));
     amrex::Real dlim = (dlft*drgt >= 0.0) ? slop : 0.0;
-    return dsgn * amrex::min(dlim,std::abs(dcen));
+    return dsgn * amrex::min(dlim,amrex::Math::abs(dcen));
 }
 
 }
@@ -222,12 +222,12 @@ riemann (const amrex::Real gamma, const amrex::Real smallp, const amrex::Real sm
         ustarm = ur - (pr - pstar)*wr;
         ustarp = ul + (pl - pstar)*wl;
 
-        amrex::Real dpditer = std::abs(pstnm1-pstar);
-        amrex::Real zp = std::abs(ustarp-ustnp1);
+        amrex::Real dpditer = amrex::Math::abs(pstnm1-pstar);
+        amrex::Real zp = amrex::Math::abs(ustarp-ustnp1);
         if (zp-weakwv*cleft < 0.0 ) {
             zp = dpditer*wl;
         }
-        amrex::Real zm = std::abs(ustarm-ustnm1);
+        amrex::Real zm = amrex::Math::abs(ustarm-ustnm1);
         if (zm-weakwv*cright < 0.0 ) {
             zm = dpditer*wr;
         }
