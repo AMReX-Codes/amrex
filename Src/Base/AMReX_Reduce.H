@@ -202,7 +202,7 @@ class ReduceOps
 public:
 
     template <typename D, typename F>
-    void eval (Box const& box, D & reduce_data, F&& f, std::size_t shared_mem_bytes = 0)
+    void eval (Box const& box, D & reduce_data, F&& f)
     {
         using ReduceTuple = typename D::Type;
         ReduceTuple init_val;
@@ -214,7 +214,6 @@ public:
         IndexType ixtype = box.ixType();
         auto ec = Gpu::ExecutionConfig(ncells);
         ec.numBlocks.x = std::min(ec.numBlocks.x, static_cast<unsigned int>(Gpu::Device::maxBlocksPerLaunch()));
-        std::size_t sm = std::max(ec.sharedMem, shared_mem_bytes);
 #ifdef AMREX_USE_DPCPP
         amrex::launch(ec.numBlocks.x, ec.numThreads.x, Gpu::gpuStream(),
         [=] AMREX_GPU_DEVICE (sycl::nd_item<1> const& item) noexcept {
@@ -233,7 +232,7 @@ public:
             Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(*dp,r);
         });
 #else
-        amrex::launch(ec.numBlocks.x, ex.numThreads, sm, Gpu::gpuStream(),
+        amrex::launch(ec.numBlocks.x, ec.numThreads.x, 0, Gpu::gpuStream(),
         [=] AMREX_GPU_DEVICE () noexcept {
             ReduceTuple r = init_val;
             for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
@@ -254,7 +253,7 @@ public:
 
     template <typename N, typename D, typename F,
               typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
-    void eval (Box const& box, N ncomp, D & reduce_data, F&& f, std::size_t shared_mem_bytes = 0)
+    void eval (Box const& box, N ncomp, D & reduce_data, F&& f)
     {
         using ReduceTuple = typename D::Type;
         ReduceTuple init_val;
@@ -265,7 +264,6 @@ public:
         const auto len = amrex::length(box);
         auto ec = Gpu::ExecutionConfig(ncells);
         ec.numBlocks.x = std::min(ec.numBlocks.x, static_cast<unsigned int>(Gpu::Device::maxBlocksPerLaunch()));
-        std::size_t sm = std::max(ec.sharedMem, shared_mem_bytes);
 #ifdef AMREX_USE_DPCPP
         amrex::launch(ec.numBlocks.x, ec.numThreads.x, Gpu::gpuStream(),
         [=] AMREX_GPU_DEVICE (sycl::nd_item<1> const& item) noexcept {
@@ -286,7 +284,7 @@ public:
             Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(*dp,r);
         });
 #else
-        amrex::launch(ec.numBlocks.x, ec.numThreads.x, sm, Gpu::gpuStream(),
+        amrex::launch(ec.numBlocks.x, ec.numThreads.x, 0, Gpu::gpuStream(),
         [=] AMREX_GPU_DEVICE () noexcept {
             ReduceTuple r = init_val;
             for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
@@ -309,7 +307,7 @@ public:
 
     template <typename N, typename D, typename F,
               typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
-    void eval (N n, D & reduce_data, F&& f, std::size_t shared_mem_bytes = 0)
+    void eval (N n, D & reduce_data, F&& f)
     {
         using ReduceTuple = typename D::Type;
         ReduceTuple init_val;
@@ -317,7 +315,6 @@ public:
         auto dp = reduce_data.devicePtr();
         auto ec = Gpu::ExecutionConfig(n);
         ec.numBlocks.x = std::min(ec.numBlocks.x, static_cast<unsigned int>(Gpu::Device::maxBlocksPerLaunch()));
-        std::size_t sm = std::max(ec.sharedMem, shared_mem_bytes);
 #ifdef AMREX_USE_DPCPP
         amrex::launch(ec.numBlocks.x, ec.numThreads.x, Gpu::gpuStream(),
         [=] AMREX_GPU_DEVICE (sycl::nd_item<1> const& item) noexcept {
@@ -330,7 +327,7 @@ public:
             Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(*dp,r);
         });
 #else
-        amrex::launch(ec.numBlocks.x, ec.numThreads.x, sm, Gpu::gpuStream(),
+        amrex::launch(ec.numBlocks.x, ec.numThreads.x, 0, Gpu::gpuStream(),
         [=] AMREX_GPU_DEVICE () noexcept {
             auto r = init_val;
             for (N i = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
@@ -604,7 +601,7 @@ private:
 public:
 
     template <typename D, typename F>
-    void eval (Box const& box, D & reduce_data, F&& f, std::size_t shared_mem_bytes = 0)
+    void eval (Box const& box, D & reduce_data, F&& f)
     {
         using ReduceTuple = typename D::Type;
         ReduceTuple& rr = reduce_data.reference();
@@ -614,7 +611,7 @@ public:
 
     template <typename N, typename D, typename F,
               typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
-    void eval (Box const& box, N ncomp, D & reduce_data, F&& f, std::size_t shared_mem_bytes = 0)
+    void eval (Box const& box, N ncomp, D & reduce_data, F&& f)
     {
         using ReduceTuple = typename D::Type;
         ReduceTuple r;
@@ -634,7 +631,7 @@ public:
 
     template <typename N, typename D, typename F,
               typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
-    void eval (N n, D & reduce_data, F&& f, std::size_t shared_mem_bytes = 0)
+    void eval (N n, D & reduce_data, F&& f)
     {
         using ReduceTuple = typename D::Type;
         ReduceTuple r;
