@@ -60,7 +60,50 @@ ParallelFor (Vector<Array4BoxTag<T> > const& tags, int ncomp, F && f)
     constexpr int nwarps_per_block = nthreads/Gpu::Device::warp_size;
     int nblocks = (ntotwarps + nwarps_per_block-1) / nwarps_per_block;
 #ifdef AMREX_USE_DPCPP
-    amrex::Abort("xxxxx DPCPP todo: FBI ParallelFor");
+    amrex::launch(nblocks, nthreads, Gpu::nullStream(),
+    [=] AMREX_GPU_DEVICE (sycl::nd_item<1> const& item) noexcept
+    {
+        int g_tid = item.get_global_id(0);
+        int g_wid = g_tid / Gpu::Device::warp_size;
+        if (g_wid >= ntotwarps) return;
+
+        int tag_id;
+        {
+            int lo = 0;
+            int hi = ntags;
+            while (lo <= hi)
+            {
+                int mid = (lo+hi)/2;
+                if (g_wid >= d_nwarps[mid] and g_wid < d_nwarps[mid+1]) {
+                    tag_id = mid;
+                    break;
+                } else if (g_wid < d_nwarps[mid]) {
+                    hi = mid-1;
+                } else {
+                    lo = mid+1;
+                }
+            };
+        }
+
+        auto tag = d_tags[tag_id];
+        int ncells = tag.dbox.numPts();
+        int b_wid = g_wid - d_nwarps[tag_id]; // b_wid'th warp on this box
+        int lane = item.get_local_id(0) % Gpu::Device::warp_size;
+        int icell = b_wid*Gpu::Device::warp_size + lane;
+        if (icell < ncells) {
+            const auto len = amrex::length(tag.dbox);
+            const auto lo  = amrex::lbound(tag.dbox);
+            int k =  icell /   (len.x*len.y);
+            int j = (icell - k*(len.x*len.y)) /   len.x;
+            int i = (icell - k*(len.x*len.y)) - j*len.x;
+            i += lo.x;
+            j += lo.y;
+            k += lo.z;
+            for (int n = 0; n < ncomp; ++n) {
+                f(i,j,k,n,tag.dfab);
+            }
+        }
+    });
 #else
     amrex::launch(nblocks, nthreads, Gpu::nullStream(),
     [=] AMREX_GPU_DEVICE () noexcept
@@ -146,7 +189,7 @@ struct CellAtomicAdd
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     operator() (U* d, U s) const noexcept
     {
-        atomicAdd(d,s);
+        Gpu::Atomic::Add(d,s);
     }
 };
 
@@ -183,7 +226,51 @@ fab_to_fab (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, in
     constexpr int nwarps_per_block = nthreads/Gpu::Device::warp_size;
     int nblocks = (ntotwarps + nwarps_per_block-1) / nwarps_per_block;
 #ifdef AMREX_USE_DPCPP
-    amrex::Abort("xxxxx DPCPP todo: FBI fabtofab");
+    amrex::launch(nblocks, nthreads, Gpu::nullStream(),
+    [=] AMREX_GPU_DEVICE (sycl::nd_item<1> const& item) noexcept
+    {
+        int g_tid = item.get_global_id(0);
+        int g_wid = g_tid / Gpu::Device::warp_size;
+        if (g_wid >= ntotwarps) return;
+
+        int tag_id;
+        {
+            int lo = 0;
+            int hi = N_locs;
+            while (lo <= hi)
+            {
+                int mid = (lo+hi)/2;
+                if (g_wid >= d_nwarps[mid] and g_wid < d_nwarps[mid+1]) {
+                    tag_id = mid;
+                    break;
+                } else if (g_wid < d_nwarps[mid]) {
+                    hi = mid-1;
+                } else {
+                    lo = mid+1;
+                }
+            };
+        }
+
+        auto tag = d_tags[tag_id];
+        int ncells = tag.dbox.numPts();
+        int b_wid = g_wid - d_nwarps[tag_id]; // b_wid'th warp on this box
+        int lane = item.get_local_id(0) % Gpu::Device::warp_size;
+        int icell = b_wid*Gpu::Device::warp_size + lane;
+        if (icell < ncells) {
+            const auto len = amrex::length(tag.dbox);
+            const auto lo  = amrex::lbound(tag.dbox);
+            int k =  icell /   (len.x*len.y);
+            int j = (icell - k*(len.x*len.y)) /   len.x;
+            int i = (icell - k*(len.x*len.y)) - j*len.x;
+            i += lo.x;
+            j += lo.y;
+            k += lo.z;
+            for (int n = 0; n < ncomp; ++n) {
+                f(&(tag.dfab(i,j,k,n+dcomp)),
+                  tag.sfab(i+tag.offset.x,j+tag.offset.y,k+tag.offset.z,n+scomp));
+            }
+        }
+    });
 #else
     amrex::launch(nblocks, nthreads, Gpu::nullStream(),
     [=] AMREX_GPU_DEVICE () noexcept
