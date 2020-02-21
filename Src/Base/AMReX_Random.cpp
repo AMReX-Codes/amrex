@@ -20,6 +20,8 @@
 using randState_t = hiprandState_t;
 #elif defined(AMREX_USE_CUDA)
 using randState_t =  curandState_t;
+#elif defined(AMREX_USE_DPCPP)
+struct randState_t {};
 #endif
 
 namespace
@@ -78,6 +80,10 @@ amrex::InitRandom (unsigned long seed, int nprocs)
 AMREX_GPU_DEVICE
 int amrex::get_state (int tid)
 {
+#ifdef AMREX_USE_DPCPP
+// xxxxx DPCPP todo
+    return 0;
+#else
     // block size must evenly divide # of RNG states so we cut off the excess states
     int bsize = blockDim.x * blockDim.y * blockDim.z;
     int nstates = gpu_nstates_d - (gpu_nstates_d % bsize);
@@ -86,16 +92,21 @@ int amrex::get_state (int tid)
     d_mutex_d_ptr->lock(i);
 
     return i;
+#endif
 }
 
 AMREX_GPU_DEVICE
 void amrex::free_state (int tid)
 {
+#ifdef AMREX_USE_DPCPP
+// xxxxx DPCPP todo
+#else
     int bsize = blockDim.x * blockDim.y * blockDim.z;
     int nstates = gpu_nstates_d - (gpu_nstates_d % bsize);
     int i = tid % nstates;
 
     d_mutex_d_ptr->unlock(i);
+#endif
 }
 #endif
 
@@ -319,7 +330,10 @@ amrex::ResizeRandomSeed (int N)
 {
     BL_PROFILE("ResizeRandomSeed");
 
-#ifdef AMREX_USE_GPU
+#ifdef AMREX_USE_DPCPP
+    // xxxxx DPCPP todo
+
+#elif defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
 
     if (N <= gpu_nstates_h) return;
 
@@ -356,8 +370,7 @@ amrex::ResizeRandomSeed (int N)
     amrex::BlockMutex* d_mutex_h_ptr_local = d_mutex_h_ptr;
 
     // HIP FIX HERE - hipMemcpyToSymbol doesn't work with pointers.
-    AMREX_GPU_LAUNCH_DEVICE(Gpu::ExecutionConfig(1, 1, 0),
-    [=] AMREX_GPU_DEVICE
+    amrex::ParallelFor(1, [=] AMREX_GPU_DEVICE (int) 
     {
         d_states_d_ptr = new_data;
         d_mutex_d_ptr = d_mutex_h_ptr_local;
@@ -365,7 +378,7 @@ amrex::ResizeRandomSeed (int N)
     });
 
     const int MyProc = amrex::ParallelDescriptor::MyProc();
-    AMREX_PARALLEL_FOR_1D (SizeDiff, idx,
+    amrex::ParallelFor (SizeDiff, [=] AMREX_GPU_DEVICE (int idx) noexcept
     {
         unsigned long seed = MyProc*1234567UL + 12345UL ;
         int seqstart = idx + 10 * idx ;

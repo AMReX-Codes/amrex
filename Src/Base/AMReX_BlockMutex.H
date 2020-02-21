@@ -30,6 +30,9 @@ struct BlockMutex
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void lock (int i) noexcept {
+#ifdef AMREX_USE_DPCPP
+// xxxxx DPCPP todo
+#else
         int blockid = blockIdx.z*blockDim.x*blockDim.y + blockIdx.y*blockDim.x + blockIdx.x;
         state_t old = m_state[i];
         state_t assumed;
@@ -47,10 +50,14 @@ struct BlockMutex
             }
             old.ull = atomicCAS((unsigned long long*)(m_state+i), assumed.ull, val.ull);
         } while (assumed.ull != old.ull);
+#endif
     }
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void unlock (int i) noexcept {
+#ifdef AMREX_USE_DPCPP
+// xxxxx DPCPP todo
+#else
         state_t old = m_state[i];
         state_t assumed;
         do {
@@ -66,6 +73,7 @@ struct BlockMutex
             }
             old.ull = atomicCAS((unsigned long long*)(m_state+i), assumed.ull, val.ull);
         } while (assumed.ull != old.ull);
+#endif
     }
 
 private:

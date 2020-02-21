@@ -9,7 +9,7 @@
 namespace amrex {
 namespace Scan {
 
-#ifdef AMREX_USE_GPU
+#if defined(AMREX_USE_GPU) && !defined(AMREX_USE_DPCPP)
 
 namespace detail {
 
@@ -376,7 +376,7 @@ namespace Gpu
     template<class InIter, class OutIter>
     OutIter inclusive_scan (InIter begin, InIter end, OutIter result)
     {
-#ifdef AMREX_USE_GPU
+#if defined(AMREX_USE_GPU) && !defined(AMREX_USE_DPCPP)
         auto N = std::distance(begin, end);
         Scan::InclusiveSum(N, &(*begin), &(*result));
         OutIter result_end = result;
@@ -390,7 +390,7 @@ namespace Gpu
     template<class InIter, class OutIter>
     OutIter exclusive_scan(InIter begin, InIter end, OutIter result)
     {
-#ifdef AMREX_USE_GPU
+#if defined(AMREX_USE_GPU) && !defined(AMREX_USE_DPCPP)
         auto N = std::distance(begin, end);
         Scan::ExclusiveSum(N, &(*begin), &(*result));
         OutIter result_end = result;
