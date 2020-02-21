@@ -567,7 +567,7 @@ Device::synchronize () noexcept
 #ifdef AMREX_USE_DPCPP
     nonNullStreamSynchronize();
     try {
-        gpu_default_stream.queue->wait();
+        gpu_default_stream.queue->wait_and_throw();
     } catch (sycl::exception const& ex) {
         amrex::Abort(std::string("synchronize: ")+ex.what()+"!!!!!");
     }
@@ -599,7 +599,7 @@ Device::nonNullStreamSynchronize () noexcept
 {
     for (auto const& s : gpu_streams) {
         try {
-            s.queue->wait();
+            s.queue->wait_and_throw();
         } catch (sycl::exception const& ex) {
             amrex::Abort(std::string("nonNullStreamSynchronize: ")+ex.what()+"!!!!!");
         }

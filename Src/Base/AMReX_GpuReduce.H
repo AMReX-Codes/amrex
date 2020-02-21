@@ -15,6 +15,8 @@ namespace amrex { namespace Gpu {
 
 #ifdef AMREX_USE_DPCPP
 
+// xxxxx DPCPP todo: better deviceReduce*
+
 template <typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void deviceReduceSum (T * dest, T source) noexcept
