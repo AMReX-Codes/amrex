@@ -454,12 +454,17 @@ bool AnyOf (N n, T const* v, P&& pred)
     Gpu::LaunchSafeGuard lsg(true);
     Gpu::DeviceScalar<int> ds(0);
     int* dp = ds.dataPtr();
+#ifdef AMREX_USE_DPCPP
+    // xxxxx DPCPP todo: Anyof N: better version
+    amrex::ParallelFor(n, [=] (int i) noexcept
+    {
+        int r = pred(v[i]) ? 1 : 0;
+        Gpu::Atomic::LogicalOr(dp, r);
+    });
+#else
     auto ec = Gpu::ExecutionConfig(n);
     ec.numBlocks.x = std::min(ec.numBlocks.x, static_cast<unsigned int>(Gpu::Device::maxBlocksPerLaunch()));
-#ifdef AMREX_USE_DPCPP
-    amrex::Abort("xxxxx DPCPP todo: Anyof N");
-#else
-    AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, 0, 0,
+    amrex::launch(ec.numBlocks.x, ec.numThreads.x, 0, 0,
     [=] AMREX_GPU_DEVICE () noexcept {
         __shared__ int has_any;
         if (threadIdx.x == 0) has_any = *dp;
@@ -491,11 +496,16 @@ bool AnyOf (Box const& box, P&& pred)
     int ncells = box.numPts();
     const auto lo  = amrex::lbound(box);
     const auto len = amrex::length(box);
+#ifdef AMREX_USE_DPCPP
+    // xxxxx DPCPP todo: Anyof Box: better version
+    amrex::ParallelFor(box, [=] (int i, int j, int k) noexcept
+    {
+        int r = pred(i,j,k) ? 1 : 0;
+        Gpu::Atomic::LogicalOr(dp, r);
+    });
+#else
     auto ec = Gpu::ExecutionConfig(ncells);
     ec.numBlocks.x = std::min(ec.numBlocks.x, static_cast<unsigned int>(Gpu::Device::maxBlocksPerLaunch()));
-#ifdef AMREX_USE_DPCPP
-    amrex::Abort("xxxxx DPCPP todo: Anyof Box");
-#else
     AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, 0, 0,
     [=] AMREX_GPU_DEVICE () noexcept {
         __shared__ int has_any;
