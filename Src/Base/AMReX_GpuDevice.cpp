@@ -433,13 +433,13 @@ Device::initialize_gpu ()
         device_prop.totalGlobalMem = d.get_info<sycl::info::device::global_mem_size>();
         device_prop.sharedMemPerBlock = d.get_info<sycl::info::device::local_mem_size>();
         device_prop.multiProcessorCount = d.get_info<sycl::info::device::max_compute_units>();
-        device_prop.maxThreadsPerMultiProcessor = -1; // d.get_info<sycl::info::device::max_work_items_per_compute_unit>(); // unknown
+        device_prop.maxThreadsPerMultiProcessor = -1; // xxxxx DPCPP todo: d.get_info<sycl::info::device::max_work_items_per_compute_unit>(); // unknown
         device_prop.maxThreadsPerBlock = d.get_info<sycl::info::device::max_work_group_size>();
         auto mtd = d.get_info<sycl::info::device::max_work_item_sizes>();
         device_prop.maxThreadsDim[0] = mtd[0];
         device_prop.maxThreadsDim[1] = mtd[1];
         device_prop.maxThreadsDim[2] = mtd[2];
-        device_prop.maxGridSize[0] = -1; // unknown
+        device_prop.maxGridSize[0] = -1; // xxxxx DPCPP todo: unknown
         device_prop.maxGridSize[0] = -1; // unknown
         device_prop.maxGridSize[0] = -1; // unknown
         auto sgss = d.get_info<sycl::info::device::sub_group_sizes>();
