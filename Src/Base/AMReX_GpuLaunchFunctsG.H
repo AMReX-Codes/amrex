@@ -700,7 +700,7 @@ void FabReduce (Box const& box, T const& init_val,
     ec.numBlocks.x = std::min(ec.numBlocks.x, static_cast<unsigned int>(Gpu::Device::maxBlocksPerLaunch()));
     std::size_t sm = std::max(ec.sharedMem, shared_mem_bytes);
 #ifdef AMREX_USE_DPCPP
-    // xxxxx DPCPP todo
+    // xxxxx DPCPP todo: shared_mem_bytes
     // If we are on default queue, block all other streams
     if (Gpu::onNullStream()) Gpu::nonNullStreamSynchronize();
     int nthreads_per_block = ec.numThreads.x;
@@ -762,7 +762,7 @@ void FabReduce (Box const& box, N ncomp, T const& init_val,
     ec.numBlocks.x = std::min(ec.numBlocks.x, static_cast<unsigned int>(Gpu::Device::maxBlocksPerLaunch()));
     std::size_t sm = std::max(ec.sharedMem, shared_mem_bytes);
 #ifdef AMREX_USE_DPCPP
-    // xxxxx DPCPP todo
+    // xxxxx DPCPP todo: shared_mem_bytes
     // If we are on default queue, block all other streams
     if (Gpu::onNullStream()) Gpu::nonNullStreamSynchronize();
     int nthreads_per_block = ec.numThreads.x;
@@ -825,7 +825,7 @@ void VecReduce (N n, T const& init_val,
     ec.numBlocks.x = std::min(ec.numBlocks.x, static_cast<unsigned int>(Gpu::Device::maxBlocksPerLaunch()));
     std::size_t sm = std::max(ec.sharedMem, shared_mem_bytes);
 #ifdef AMREX_USE_DPCPP
-    // xxxxx DPCPP todo
+    // xxxxx DPCPP todo: shared_mem_bytes
     // If we are on default queue, block all other streams
     if (Gpu::onNullStream()) Gpu::nonNullStreamSynchronize();
     int nthreads_per_block = ec.numThreads.x;

@@ -1195,7 +1195,7 @@ BaseFab<T>::prefetchToHost () const noexcept
 {
     std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
 #if defined(AMREX_USE_DPCPP)
-    // xxxxx DPCPP todo
+    // xxxxx DPCPP todo: how to prefetchToHost
 #elif defined(AMREX_USE_CUDA)
     AMREX_CUDA_SAFE_CALL(cudaMemPrefetchAsync(this->dptr, s,
                                               cudaCpuDeviceId,
@@ -1209,7 +1209,7 @@ BaseFab<T>::prefetchToDevice () const noexcept
 {
     std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
 #if defined(AMREX_USE_DPCPP)
-    // xxxxx DPCPP todo
+    // xxxxx DPCPP todo: how to prefetchToDevice
 #elif defined(AMREX_USE_CUDA)
     AMREX_CUDA_SAFE_CALL(cudaMemPrefetchAsync(this->dptr, s,
                                               Gpu::Device::deviceId(),
