@@ -106,6 +106,8 @@ CFLAGS   += $(GENERIC_COMP_FLAGS)
 # 
 # endif
 
+override XTRAOBJS += $(ONEAPI_DIR)/compiler/latest/linux/lib/libsycl-glibc.o
+
 ifeq ($(FSANITIZER),TRUE)
   override XTRALIBS += -lubsan
 endif
