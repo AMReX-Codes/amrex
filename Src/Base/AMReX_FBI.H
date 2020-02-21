@@ -1,6 +1,12 @@
 #ifndef AMREX_FBI_H_
 #define AMREX_FBI_H_
 
+#include <AMReX_Array4.H>
+#include <AMReX_Box.H>
+#include <AMReX_Dim3.H>
+#include <AMReX_IntVect.H>
+
+
 template <class FAB>
 struct FabCopyTag {
     FAB const* sfab;
@@ -1026,9 +1032,12 @@ FabArray<FAB>::pack_send_buffer_gpu (FabArray<FAB> const& src, int scomp, int nc
             auto const& cctc = *send_cctc[j];
             for (auto const& tag : cctc)
             {
-                snd_copy_tags.push_back
-                    ({amrex::makeArray4((value_type*)(dptr),tag.sbox,ncomp),
-                      src.array(tag.srcIndex), tag.sbox, zero});
+                snd_copy_tags.emplace_back(TagType{
+                    amrex::makeArray4((value_type*)(dptr), tag.sbox, ncomp),
+                    src.array(tag.srcIndex),
+                    tag.sbox,
+                    zero
+                });
                 dptr += (tag.sbox.numPts() * ncomp * sizeof(value_type));
             }
             BL_ASSERT(dptr <= send_data[j] + send_size[j]);
@@ -1077,10 +1086,12 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
             for (auto const& tag : cctc)
             {
                 const int li = dst.localindex(tag.dstIndex);
-                recv_copy_tags.push_back
-                    ({dst.atLocalIdx(li).array(),
-                      amrex::makeArray4((value_type*)(dptr),tag.dbox,ncomp),
-                      tag.dbox, zero});
+                recv_copy_tags.emplace_back(TagType{
+                    dst.atLocalIdx(li).array(),
+                    amrex::makeArray4((value_type*)(dptr), tag.dbox, ncomp),
+                    tag.dbox,
+                    zero
+                });
                 dptr += tag.dbox.numPts() * ncomp * sizeof(value_type);
 
                 if (maskfabs.size() > 0) {
