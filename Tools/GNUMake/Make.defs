@@ -23,6 +23,7 @@ else
 endif
 
 ifeq ($(USE_DPCPP),TRUE)
+  DPCPP_DIR ?= /opt/intel/inteloneapi/compiler/latest/linux
   COMP := dpcpp
   DEFINES += -DAMREX_USE_DPCPP -DAMREX_USE_GPU
   USE_CUDA := FALSE
@@ -447,9 +448,6 @@ ifeq ($(DEBUG),TRUE)
     CPPFLAGS	+= -DAMREX_DEBUG
     DebugSuffix := .DEBUG
 else
-    ifneq ($(AMREX_XSDK),TRUE)
-        CPPFLAGS += -DNDEBUG
-    endif
     DebugSuffix :=
 endif
 
@@ -797,7 +795,7 @@ endif
 
 CPPFLAGS	+= $(DEFINES)
 
-libraries	= $(LIBRARIES) $(XTRALIBS)
+libraries	= $(XTRAOBJS) $(LIBRARIES) $(XTRALIBS)
 
 ifeq ($(USE_RPATH),TRUE)
   LDFLAGS	+= -Xlinker -rpath -Xlinker '$(abspath .)' $(addprefix -Xlinker -rpath -Xlinker , $(abspath $(LIBRARY_LOCATIONS)))
