@@ -16,10 +16,8 @@ struct dim3 {
     unsigned int y = 1;
     unsigned int z = 1;
     dim3 () = default;
-    constexpr dim3 (int x_, int y_=1, int z_=1) : x(x_),y(y_),z(z_) {}
+    constexpr dim3 (unsigned int x_, unsigned int y_=1, unsigned int z_=1) : x(x_),y(y_),z(z_) {}
 };
-#else
-using dim3 = ::dim3;
 #endif
 
 #if defined(AMREX_USE_DPCPP)
