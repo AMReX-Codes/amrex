@@ -27,7 +27,7 @@ void cic_interpolate (const P& p,
   
     amrex::Real lx = (p.pos(0) - plo[0]) * dxi[0] - 0.5; //len
 
-    int const i = std::floor(lx); //cell
+    int const i = amrex::Math::floor(lx); //cell
 
     amrex::Real xint = lx - i; //frac
 
@@ -47,8 +47,8 @@ void cic_interpolate (const P& p,
     amrex::Real lx = (p.pos(0) - plo[0]) * dxi[0] - 0.5; 
     amrex::Real ly = (p.pos(1) - plo[1]) * dxi[1] - 0.5;
 
-    int const i = std::floor(lx);
-    int const j = std::floor(ly);
+    int const i = amrex::Math::floor(lx);
+    int const j = amrex::Math::floor(ly);
 
     amrex::Real xint = lx - i; 
     amrex::Real yint = ly - j;
@@ -75,9 +75,9 @@ void cic_interpolate (const P& p,
     amrex::Real ly = (p.pos(1) - plo[1]) * dxi[1] - 0.5;
     amrex::Real lz = (p.pos(2) - plo[2]) * dxi[2] - 0.5;
 
-    int const i = std::floor(lx);
-    int const j = std::floor(ly);
-    int const k = std::floor(lz);
+    int const i = amrex::Math::floor(lx);
+    int const j = amrex::Math::floor(ly);
+    int const k = amrex::Math::floor(lz);
 
     amrex::Real const xint = lx - i;
     amrex::Real const yint = ly - j;
@@ -120,7 +120,7 @@ void mac_interpolate (const P& p,
     {
       amrex::Real lx = (p.m_rdata.pos[0]-plo[0])*dxi[0] - (d != 0)*0.5;
       
-      int const i = std::floor(lx);
+      int const i = amrex::Math::floor(lx);
       
       amrex::Real const xint = lx - i;
       
@@ -140,8 +140,8 @@ void mac_interpolate (const P& p,
       amrex::Real lx = (p.m_rdata.pos[0]-plo[0])*dxi[0] - (d != 0)*0.5;
       amrex::Real ly = (p.m_rdata.pos[1]-plo[1])*dxi[1] - (d != 1)*0.5;
       
-      int const i = std::floor(lx);
-      int const j = std::floor(ly);
+      int const i = amrex::Math::floor(lx);
+      int const j = amrex::Math::floor(ly);
       
       amrex::Real const xint = lx - i;
       amrex::Real const yint = ly - j;
@@ -168,9 +168,9 @@ void mac_interpolate (const P& p,
       amrex::Real ly = (p.m_rdata.pos[1]-plo[1])*dxi[1] - (d != 1)*0.5;
       amrex::Real lz = (p.m_rdata.pos[2]-plo[2])*dxi[2] - (d != 2)*0.5;
       
-      int const i = std::floor(lx);
-      int const j = std::floor(ly);
-      int const k = std::floor(lz);
+      int const i = amrex::Math::floor(lx);
+      int const j = amrex::Math::floor(ly);
+      int const k = amrex::Math::floor(lz);
       
       amrex::Real const xint = lx - i;
       amrex::Real const yint = ly - j;

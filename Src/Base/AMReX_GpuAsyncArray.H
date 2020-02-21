@@ -14,7 +14,7 @@
 #define HIPRT_CB 
 #endif
 
-#ifdef AMREX_USE_GPU
+#if defined(AMREX_USE_GPU) && !defined(AMREX_USE_DPCPP)
 extern "C" {
 AMREX_HIP_OR_CUDA(
          void HIPRT_CB  amrex_asyncarray_delete ( hipStream_t stream,  hipError_t error, void* p);,
@@ -70,6 +70,7 @@ public:
         if (Gpu::inLaunchRegion())
         {
             if (d_data != nullptr) {
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
                 T** p = static_cast<T**>(std::malloc(2*sizeof(T*)));
                 p[0] = d_data;
                 p[1] = h_data;
@@ -79,6 +80,12 @@ public:
                     AMREX_CUDA_SAFE_CALL(cudaStreamAddCallback(Gpu::gpuStream(),
                                                                amrex_asyncarray_delete, p, 0)););
                 Gpu::callbackAdded();
+#else
+                // xxxxx DPCPP todo
+                Gpu::streamSynchronize();
+                The_Device_Arena()->free(d_data);
+                std::free(h_data);
+#endif
             }
         }
         else

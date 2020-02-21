@@ -10,6 +10,7 @@
 #include <AMReX_BLassert.H>
 #include <AMReX_Extension.H>
 #include <AMReX_GpuQualifiers.H>
+#include <AMReX_Math.H>
 
 #include <iosfwd>
 #include <cstdlib>
@@ -562,12 +563,7 @@ IntVect::coarsen (const IntVect& p) noexcept
         for (int i = 0; i <AMREX_SPACEDIM; ++i)
         {
             const int s = p.vect[i];
-            // HIP FIX HERE - abs
-#ifdef AMREX_USE_HIP
-            vect[i] = ((vect[i]<0) ? -abs(vect[i]+1)/s-1 : vect[i]/s);
-#else
-            vect[i] = ((vect[i]<0) ? -std::abs(vect[i]+1)/s-1 : vect[i]/s); 
-#endif
+            vect[i] = ((vect[i]<0) ? -amrex::Math::abs(vect[i]+1)/s-1 : vect[i]/s); 
         }
     }
     return *this;
@@ -584,12 +580,7 @@ IntVect::maxDir(bool a_doAbsValue) const noexcept
         int maxval = abs((*this)[0]);
         for(int idir = 1; idir < SpaceDim; idir++)
         {
-            // HIP FIX HERE - abs
-#ifdef AMREX_USE_HIP
-            int curval = abs((*this)[idir]);
-#else
-            int curval = std::abs((*this)[idir]);
-#endif
+            int curval = amrex::Math::abs((*this)[idir]);
             if(curval > maxval)
             {
                 maxval = curval;
@@ -810,12 +801,7 @@ Dim3 refine (Dim3 const& coarse, IntVect const& ratio) noexcept
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int coarsen (int i, int ratio) noexcept
 {
-    // HIP FIX HERE - abs
-#ifdef AMREX_USE_HIP
-    return (i<0) ? -abs(i+1)/ratio-1 : i/ratio;
-#else
-    return (i<0) ? -std::abs(i+1)/ratio-1 : i/ratio;
-#endif
+    return (i<0) ? -amrex::Math::abs(i+1)/ratio-1 : i/ratio;
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
