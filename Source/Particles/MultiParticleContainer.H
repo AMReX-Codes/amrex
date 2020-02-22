@@ -168,7 +168,7 @@ public:
 
     void WriteHeader (std::ostream& os) const;
 
-    void SortParticlesByCell ();
+    void SortParticlesByBin (amrex::IntVect bin_size);
 
     void Redistribute ();
 

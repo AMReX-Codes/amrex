@@ -169,6 +169,7 @@ public:
     static bool refine_plasma;
 
     static int sort_int;
+    static amrex::IntVect sort_bin_size;
 
     static int do_subcycling;
 
