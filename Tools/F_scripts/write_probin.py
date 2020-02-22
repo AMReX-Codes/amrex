@@ -26,6 +26,7 @@ commandline overriding of their defaults.
 
 from __future__ import print_function
 
+import os
 import sys
 import argparse
 
@@ -426,7 +427,7 @@ def write_probin(probin_template, param_files,
     with open(ofile, "w") as fout:
         fout.write(CXX_HEADER)
 
-        fout.write("  void init_{}_parameters();\n\n".format(cxx_prefix))
+        fout.write("  void init_{}_parameters();\n\n".format(os.path.basename(cxx_prefix)))
 
         for p in params:
             if p.dtype == "character":
@@ -440,8 +441,8 @@ def write_probin(probin_template, param_files,
     # finally the C++ initialization routines
     ofile = "{}_parameters.cpp".format(cxx_prefix)
     with open(ofile, "w") as fout:
-        fout.write("#include <{}_parameters.H>\n".format(cxx_prefix))
-        fout.write("#include <{}_parameters_F.H>\n\n".format(cxx_prefix))
+        fout.write("#include <{}_parameters.H>\n".format(os.path.basename(cxx_prefix)))
+        fout.write("#include <{}_parameters_F.H>\n\n".format(os.path.basename(cxx_prefix)))
 
         for p in params:
             if p.dtype == "character":
@@ -451,7 +452,7 @@ def write_probin(probin_template, param_files,
             fout.write("  AMREX_GPU_MANAGED {} {};\n\n".format(p.get_cxx_decl(), p.var))
 
         fout.write("\n")
-        fout.write("  void init_{}_parameters() {{\n".format(cxx_prefix))
+        fout.write("  void init_{}_parameters() {{\n".format(os.path.basename(cxx_prefix)))
 
         for p in params:
             if p.dtype == "character":
