@@ -1,3 +1,8 @@
+* In AMReX, we have GpuTuple that we successfully use it on device
+  with CUDA.  But GpuTuple is not standard layout type.  So SYCL does
+  not like.  It is however trivially copyable (i.e., memcpy safe).
+  Why is memcpy not enough for SYCL?  Is this because it's based on
+  OpenCL?  Will DPC++ relax this requirement?
 
 * assert(0) works on device to some extent.  It prints out a message
   on which thread calls it.  But it does not abort the run.  Is that
