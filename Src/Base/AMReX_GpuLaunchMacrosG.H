@@ -617,8 +617,6 @@
 #define AMREX_GPU_DEVICE_FOR_3D(box,i,j,k,block) \
     { auto const& amrex_i_box = box; \
     if (!amrex::isEmpty(amrex_i_box)) { \
-    if (amrex::Gpu::inLaunchRegion()) \
-    { \
         int amrex_i_ncells = amrex_i_box.numPts();          \
         const auto amrex_i_lo  = amrex::lbound(amrex_i_box); \
         const auto amrex_i_len = amrex::length(amrex_i_box); \
@@ -647,7 +645,7 @@
         } catch (sycl::exception const& ex) { \
             amrex::Abort(std::string("FOR: ")+ex.what()+"!!!!!"); \
         } \
-    }
+    }}
 #else
 #define AMREX_GPU_DEVICE_FOR_3D(box,i,j,k,block) \
     { auto const& amrex_i_box = box; \
@@ -763,8 +761,6 @@
 #define AMREX_GPU_DEVICE_FOR_4D(box,ncomp,i,j,k,n,block) \
     { auto const& amrex_i_box = box; auto const& amrex_i_ncomp = ncomp; \
     if (!amrex::isEmpty(amrex_i_box)) { \
-    if (amrex::Gpu::inLaunchRegion()) \
-    { \
         int amrex_i_ncells = amrex_i_box.numPts();          \
         const auto amrex_i_lo  = amrex::lbound(amrex_i_box); \
         const auto amrex_i_len = amrex::length(amrex_i_box); \
@@ -793,7 +789,7 @@
         } catch (sycl::exception const& ex) { \
             amrex::Abort(std::string("FOR: ")+ex.what()+"!!!!!"); \
         } \
-    }
+    }}
 #else
 #define AMREX_GPU_DEVICE_FOR_4D(box,ncomp,i,j,k,n,block) \
     { auto const& amrex_i_box = box; auto const& amrex_i_ncomp = ncomp; \

@@ -28,23 +28,29 @@ template<typename L>
 void launch (int nblocks, int nthreads_per_block, std::size_t shared_mem_bytes,
              gpuStream_t stream, L&& f) noexcept
 {
+    amrex::Abort("xxxxx DPCPP todo: amrex::launch with shared memory not supported with DPC++");
+#if 0
     if (Gpu::onNullStream(stream)) Gpu::nonNullStreamSynchronize();
-    int nthreads_total = nthreads_per_block * nblocks;
     auto& q = *(stream.queue);
     try {
-        // xxxxx DPCPP todo shared memory
+        // If we use a local accessor to do local memory allocation, the object will be gone when
+        // it's out of scope.  So we would have to construct it on the heap and save the pointer
+        // somewhere.  Don't think This is a good solution.
         q.submit([&] (sycl::handler& h) {
-            h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
-                                             sycl::range<1>(nthreads_per_block)),
-            [=] (sycl::nd_item<1> item)
-//            [[sycl::intel_reqd_sub_group_size(32)]] xxxxx DPCPP todo
+            h.parallel_for_work_group(sycl::range<1>(nblocks), sycl::range<1>(nthreads_per_block),
+            [=] (sycl::group<1> grp)
             {
-                f(item);
+               char shared_data[shared_mem_bytes]; // variable length array not support
+               grp.parallel_for_work_item([&] (sycl::h_item<1> item)
+               {
+                   f(item, shared_data);
+               });
             });
         });
     } catch (sycl::exception const& ex) {
         amrex::Abort(std::string("launch: ")+ex.what()+"!!!!!");
     }
+#endif
 }
 
 template<typename L>
