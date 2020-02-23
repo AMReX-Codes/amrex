@@ -75,3 +75,5 @@
 * ftrapv.  The compiler doesn't like `-ftrapv`.
   https://github.com/WeiqunZhang/dpcpp/tree/master/ftrapv
 
+* GpuTuple.  GpuTuple<int> is standard layout and the compiler doesn't
+  complain when it's captured by value.  But it's value seems wrong.
