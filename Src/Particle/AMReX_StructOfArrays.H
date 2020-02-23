@@ -12,8 +12,8 @@ namespace amrex {
 template <int NReal, int NInt>
 struct StructOfArrays {
 
-    using RealVector = Gpu::ManagedVector<ParticleReal>;
-    using IntVector = Gpu::ManagedVector<int>;    
+    using RealVector = Gpu::DeviceVector<ParticleReal>;
+    using IntVector = Gpu::DeviceVector<int>;    
 
     StructOfArrays()
         : m_num_neighbor_particles(0),
