@@ -172,7 +172,7 @@ public:
     using RealVector       = typename SoA::RealVector;
     using IntVector        = typename SoA::IntVector;
     using ParticleVector   = typename AoS::ParticleVector;
-    using CharVector       = Gpu::ManagedVector<char>;
+    using CharVector       = Gpu::DeviceVector<char>;
     using SendBuffer       = Gpu::PolymorphicVector<char>;
     using ParIterType      = ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
     using ParConstIterType = ParConstIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
@@ -1063,8 +1063,8 @@ public:
 
 
     //! struct-of-array stuff
-    Gpu::ManagedVector<int> communicate_real_comp;
-    Gpu::ManagedVector<int> communicate_int_comp;
+    Gpu::DeviceVector<int> communicate_real_comp;
+    Gpu::DeviceVector<int> communicate_int_comp;
 
     static bool do_tiling;
     static IntVect tile_size;
@@ -1210,10 +1210,10 @@ void ReadParticlesHDF5 (hsize_t offset, hsize_t cnt, int grd, int lev, hid_t int
     DenseBins<ParticleType> m_bins;
     
 #ifdef AMREX_USE_GPU
-    Gpu::ManagedVector<int> m_grids_r;
-    Gpu::ManagedVector<int> m_levs_r;
-    Gpu::ManagedVector<int> m_grids_tmp;
-    Gpu::ManagedVector<int> m_levs_tmp;
+    Gpu::DeviceVector<int> m_grids_r;
+    Gpu::DeviceVector<int> m_levs_r;
+    Gpu::DeviceVector<int> m_grids_tmp;
+    Gpu::DeviceVector<int> m_levs_tmp;
 
     ParticleCopyOp redistribute_copy_op;
     ParticleCopyPlan redistribute_copy_plan;
