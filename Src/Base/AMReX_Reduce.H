@@ -123,6 +123,22 @@ template <typename... Ps> class ReduceOps;
 
 namespace Reduce {
 namespace detail {
+#ifdef AMREX_USE_DPCPP
+    // xxxxx DPCPP todo: the compiler seems to have a bug.  It cannot capture
+    //                   GpuTuple<T> correctly even if it's standard layout.
+    template <typename T>
+    void
+    init_tuple_on_device (T* p, T const& v)
+    {
+        amrex::single_task(Gpu::nullStream(), [=] AMREX_GPU_DEVICE () noexcept
+        {
+            new (p) T();
+            new (p+1) T();
+        });
+        Array<T,2> tmp{v,v};
+        Gpu::htod_memcpy(p, tmp.data(), sizeof(T)*2);
+    }
+#else
     template <typename T>
     amrex::EnableIf_t<std::is_standard_layout<T>::value>
     init_tuple_on_device (T* p, T const& v)
@@ -146,6 +162,7 @@ namespace detail {
         Array<T,2> tmp{v,v};
         Gpu::htod_memcpy(p, tmp.data(), sizeof(T)*2);
     }
+#endif
 }}
 
 template <typename... Ts>
@@ -165,8 +182,8 @@ public:
                       "ReduceData::Type must be trivially destructible");
 
         Reduce::detail::for_each_init<0, Type, Ps...>(m_host_tuple);
-
         Reduce::detail::init_tuple_on_device(m_device_tuple, m_host_tuple);
+        Gpu::synchronize();
     }
 
     ~ReduceData () { The_Device_Arena()->free(m_device_tuple); }
