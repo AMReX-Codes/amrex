@@ -155,7 +155,7 @@ public:
     {
 	int         size;     //!< current size: nbuild - nerase
 	int         maxsize;  //!< highest water mark of size
-	int         maxuse;   //!< max # of uses of a cached item
+	long        maxuse;   //!< max # of uses of a cached item
 	long        nuse;     //!< # of uses of the whole cache
 	long        nbuild;   //!< # of build operations
 	long        nerase;   //!< # of erase operations
@@ -170,7 +170,7 @@ public:
 	    ++nbuild;
 	    maxsize = std::max(maxsize, size);
 	}
-	void recordErase (int n) noexcept {
+	void recordErase (long n) noexcept {
 	    // n: how many times the item to be deleted has been used.
 	    --size;
 	    ++nerase;
