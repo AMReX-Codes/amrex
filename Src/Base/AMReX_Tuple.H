@@ -26,6 +26,7 @@ template <std::size_t I, typename T>
 struct gpu_tuple_element
 {
     template <typename U=T, amrex::EnableIf_t<std::is_default_constructible<U>::value,int> = 0>
+    AMREX_GPU_HOST_DEVICE
     constexpr gpu_tuple_element () {}
 
     explicit constexpr gpu_tuple_element (T const& a_value)
@@ -48,6 +49,7 @@ struct gpu_tuple_impl<I, Head, Tail...>
       public gpu_tuple_element<I, Head>
 {
     template<typename U=Head, amrex::EnableIf_t<std::is_default_constructible<U>::value,int> = 0>
+    AMREX_GPU_HOST_DEVICE
     constexpr gpu_tuple_impl () {}
 
     constexpr gpu_tuple_impl (Head const& a_head, Tail const&... a_tail)
@@ -68,6 +70,7 @@ struct gpu_tuple_impl<I, Head>
 {
 
     template<typename U=Head, amrex::EnableIf_t<std::is_default_constructible<U>::value,int> = 0>
+    AMREX_GPU_HOST_DEVICE
     constexpr gpu_tuple_impl () {}
 
     explicit constexpr gpu_tuple_impl (Head const& a_head)
