@@ -38,9 +38,9 @@ cns_estdt (amrex::Box const& bx, amrex::FArrayBox const& statefab,
                 amrex::Real vz = mz*rhoinv;
                 amrex::Real p = amrex::max((Parm::eos_gamma-1.0)*ei, Parm::smallp);
                 amrex::Real cs = std::sqrt(Parm::eos_gamma*p*rhoinv);
-                amrex::Real dtx = dx[0]/(std::abs(vx)+cs);
-                amrex::Real dty = dx[1]/(std::abs(vy)+cs);
-                amrex::Real dtz = dx[2]/(std::abs(vz)+cs);
+                amrex::Real dtx = dx[0]/(amrex::Math::abs(vx)+cs);
+                amrex::Real dty = dx[1]/(amrex::Math::abs(vy)+cs);
+                amrex::Real dtz = dx[2]/(amrex::Math::abs(vz)+cs);
                 dt = amrex::min(dt,amrex::min(dtx,amrex::min(dty,dtz)));
             }
         }

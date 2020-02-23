@@ -2,6 +2,7 @@
 #define AMREX_GPU_UTILITY_H_
 
 #include <AMReX_GpuQualifiers.H>
+#include <AMReX_GpuTypes.H>
 #include <AMReX_GpuControl.H>
 #include <AMReX_GpuDevice.H>
 #include <AMReX_Extension.H>
@@ -57,6 +58,11 @@ namespace Gpu {
         void* data[] = { (void*)(&is_managed) };
         CUresult r = cuPointerGetAttributes(1, &attrib, data, (CUdeviceptr)p);
         return r == CUDA_SUCCESS && is_managed;
+#elif defined(AMREX_USE_DPCPP)
+        // xxxxx DPCPP todo: get_pointer_type
+//        auto const info = sycl::get_pointer_info(p);
+//        auto type = sycl::get_pointer_type(p,Device::syclContext());
+        return false;
 #else
         return false;
 #endif
@@ -74,6 +80,9 @@ namespace Gpu {
         void* data[] = { (void*)(&mem_type) };
         CUresult r = cuPointerGetAttributes(1, &attrib, data, (CUdeviceptr)p);
         return r == CUDA_SUCCESS && mem_type == CU_MEMORYTYPE_DEVICE;
+#elif defined(AMREX_USE_DPCPP)
+        // xxxxx DPCPP todo: get_pointer_type
+        return false;
 #else
         return false;
 #endif
@@ -91,6 +100,9 @@ namespace Gpu {
         void* data[] = { (void*)(&mem_type) };
         CUresult r = cuPointerGetAttributes(1, &attrib, data, (CUdeviceptr)p);
         return r == CUDA_SUCCESS && mem_type == CU_MEMORYTYPE_HOST;
+#elif defined(AMREX_USE_DPCPP)
+        // xxxxx DPCPP todo: get_pointer_type
+        return false;
 #else
         return false;
 #endif
@@ -118,272 +130,19 @@ namespace Gpu {
              mem_type == CU_MEMORYTYPE_DEVICE ||
              mem_type == CU_MEMORYTYPE_ARRAY  ||
              mem_type == CU_MEMORYTYPE_UNIFIED);
+#elif defined(AMREX_USE_DPCPP)
+        // xxxxx DPCPP todo: get_pointer_type
+        return false;
 #else
         return false;
 #endif
     }
 
-    namespace Atomic {
-
-#ifdef AMREX_USE_GPU
-        namespace detail {
-
-            AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-            float atomicMax(float* address, float val) noexcept
-            {
-                int* address_as_i = (int*) address;
-                int old = *address_as_i, assumed;
-                do {
-                    assumed = old;
-                    old = atomicCAS(address_as_i, assumed,
-                                    __float_as_int(fmaxf(val, __int_as_float(assumed))));
-                } while (assumed != old);
-                return __int_as_float(old);
-            }
-            
-            AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-            double atomicMax(double* address, double val) noexcept
-            {
-                unsigned long long int* address_as_ull = 
-                    (unsigned long long int*) address;
-                unsigned long long int old = *address_as_ull, assumed;
-                do {
-                    assumed = old;
-                    old = atomicCAS(address_as_ull, assumed,
-                                    __double_as_longlong(fmax(val, __longlong_as_double(assumed))));
-                } while (assumed != old);
-                return __longlong_as_double(old);
-            }
-
-            AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-            float atomicMin(float* address, float val) noexcept
-            {
-                int* address_as_i = (int*) address;
-                int old = *address_as_i, assumed;
-                do {
-                    assumed = old;
-                    old = atomicCAS(address_as_i, assumed,
-                                    __float_as_int(fminf(val, __int_as_float(assumed))));
-                } while (assumed != old);
-                return __int_as_float(old);
-            }
-
-            AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-            double atomicMin(double* address, double val) noexcept
-            {
-                unsigned long long int* address_as_ull = 
-                    (unsigned long long int*) address;
-                unsigned long long int old = *address_as_ull, assumed;
-                do {
-                    assumed = old;
-                    old = atomicCAS(address_as_ull, assumed,
-                                    __double_as_longlong(fmin(val, __longlong_as_double(assumed))));
-                } while (assumed != old);
-                return __longlong_as_double(old);
-            }            
-        } // namespace detail
-#endif  // AMREX_USE_GPU
-
-        template<class T>
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        void Add (T* sum, T value) noexcept
-        {
-#ifdef AMREX_DEVICE_COMPILE
-            atomicAdd(sum, value);
-#else
-            *sum += value;
-#endif
-        }
-
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        void Add (long* sum, long value) noexcept
-        {
-#ifdef AMREX_DEVICE_COMPILE
-            atomicAdd((unsigned long long*)sum, static_cast<unsigned long long>(value));
-#else
-            *sum += value;
-#endif
-        }
-        
-        template<class T>
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        void Min (T* m, T value) noexcept
-        {
-#ifdef AMREX_DEVICE_COMPILE
-            detail::atomicMin(m, value);
-#else
-            *m = (*m) < value ? (*m) : value;
-#endif
-        }
-
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        void Min (int* m, int value) noexcept
-        {
-#ifdef AMREX_DEVICE_COMPILE
-            atomicMin(m, value);
-#else
-            *m = (*m) < value ? (*m) : value;
-#endif
-        }
-
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        void Min (unsigned int* m, unsigned int value) noexcept
-        {
-#ifdef AMREX_DEVICE_COMPILE
-            atomicMin(m, value);
-#else
-            *m = (*m) < value ? (*m) : value;
-#endif
-        }
-
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        void Min (unsigned long long int* m, unsigned long long int value) noexcept
-        {
-#ifdef AMREX_DEVICE_COMPILE
-            atomicMin(m, value);
-#else
-            *m = (*m) < value ? (*m) : value;
-#endif
-        }
-        
-        template<class T>
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        void Max (T* m, T value) noexcept
-        {
-#ifdef AMREX_DEVICE_COMPILE
-            detail::atomicMax(m, value);
-#else
-            *m = (*m) > value ? (*m) : value;
-#endif
-        }
-
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        void Max (int* m, int value) noexcept
-        {
-#ifdef AMREX_DEVICE_COMPILE
-            atomicMax(m, value);
-#else
-            *m = (*m) > value ? (*m) : value;
-#endif
-        }
-
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        void Max (unsigned int* m, unsigned int value) noexcept
-        {
-#ifdef AMREX_DEVICE_COMPILE
-            atomicMax(m, value);
-#else
-            *m = (*m) > value ? (*m) : value;
-#endif
-        }
-
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        void Max (unsigned long long int* m, unsigned long long int value) noexcept
-        {
-#ifdef AMREX_DEVICE_COMPILE
-            atomicMax(m, value);
-#else
-            *m = (*m) > value ? (*m) : value;
-#endif
-        }
-
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        void LogicalOr (int* m, int value) noexcept
-        {
-#ifdef AMREX_DEVICE_COMPILE
-            atomicOr(m, value);
-#else
-            *m = (*m) || value; 
-#endif
-        }
-
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        void LogicalAnd (int* m, int value) noexcept
-        {
-#ifdef AMREX_DEVICE_COMPILE
-            atomicAnd(m, value ? ~0x0 : 0);
-#else
-            *m = (*m) && value; 
-#endif
-        }
-
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        unsigned int Inc (unsigned int* m, unsigned int value) noexcept
-        {
-#ifdef AMREX_DEVICE_COMPILE
-            return atomicInc(m, value);
-#else
-            return (*m)++;
-#endif
-        }
-
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        unsigned int Dec (unsigned int* m, unsigned int value) noexcept
-        {
-#ifdef AMREX_DEVICE_COMPILE
-            return atomicDec(m, value);
-#else
-            return (*m)--;
-#endif
-        }
-
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        int Exch (int* address, int val) noexcept {
-#ifdef AMREX_DEVICE_COMPILE
-            return atomicExch(address, val);
-#else
-            int old = *address;
-            *address = val;
-            return old;
-#endif
-        }
-
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        int CAS (int* address, int compare, int val) noexcept
-        {
-#ifdef AMREX_DEVICE_COMPILE
-            return atomicCAS(address, compare, val);
-#else
-            int old = *address;
-            *address = (old == compare ? val : old);
-            return old;
-#endif
-        }
-
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        unsigned int CAS (unsigned int* address,
-                          unsigned int compare,
-                          unsigned int val) noexcept
-        {
-#ifdef AMREX_DEVICE_COMPILE
-            return atomicCAS(address, compare, val);
-#else
-            unsigned int old = *address;
-            *address = (old == compare ? val : old);
-            return old;
-#endif
-        }
-
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        unsigned long long int CAS (unsigned long long int* address,
-                                    unsigned long long int compare,
-                                    unsigned long long int val) noexcept
-        {
-#ifdef AMREX_DEVICE_COMPILE
-            return atomicCAS(address, compare, val);
-#else
-            unsigned long long int old = *address;
-            *address = (old == compare ? val : old);
-            return old;
-#endif
-        }
-    } // namespace Atomic
-
     template <class T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool isnan (T m) noexcept
     {
-#ifdef AMREX_DEVICE_COMPILE
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
         return ::isnan(m);
 #else
         return std::isnan(m);
@@ -394,8 +153,10 @@ namespace Gpu {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool isinf (T m) noexcept
     {
-#ifdef AMREX_DEVICE_COMPILE
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
         return ::isinf(m);
+#elif defined(__SYCL_DEVICE_ONLY__)
+        return sycl::isinf(m);
 #else
         return std::isinf(m);
 #endif
@@ -452,24 +213,6 @@ std::ostream& operator<< (std::ostream& os, const dim3& d);
 
 using Gpu::isnan;
 using Gpu::isinf;
-
-namespace HostDevice { namespace Atomic {
-
-    template <class T>
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    void Add (T* sum, T value) noexcept
-    {
-#ifdef AMREX_DEVICE_COMPILE
-        Gpu::Atomic::Add(sum,value);
-#else
-#ifdef _OPENMP
-#pragma omp atomic update
-#endif
-        *sum += value;
-#endif
-    }
-
-}}
 
 } // namespace amrex
 

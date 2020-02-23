@@ -707,10 +707,7 @@ public:
 #if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10))
 
     void FB_local_copy_cuda_graph_1 (const FB& TheFB, int scomp, int ncomp);
-
-#ifdef AMREX_USE_GPU
     void FB_local_copy_cuda_graph_n (const FB& TheFB, int scomp, int ncomp);
-#endif
 
 #endif
 #endif
@@ -1706,7 +1703,7 @@ FabArray<FAB>::abs (int comp, int ncomp, const IntVect& nghost)
         auto fab = this->array(mfi);
         AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
         {
-            fab(i,j,k,n+comp) = std::abs(fab(i,j,k,n+comp));
+            fab(i,j,k,n+comp) = amrex::Math::abs(fab(i,j,k,n+comp));
         });
     }
 }

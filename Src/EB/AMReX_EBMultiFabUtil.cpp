@@ -748,6 +748,7 @@ EB_interp_CC_to_FaceCentroid (MultiFab& sol,
     {
         Gpu::copy(Gpu::hostToDevice, a_bcs.begin(), a_bcs.begin()+ncomp, dv_bcs.begin());
         d_bcs = dv_bcs.dataPtr();
+        Gpu::synchronize();
     }
     else
 #endif
