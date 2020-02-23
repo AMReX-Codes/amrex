@@ -140,7 +140,7 @@ namespace detail {
     }
 #else
     template <typename T>
-    amrex::EnableIf_t<std::is_standard_layout<T>::value>
+    void
     init_tuple_on_device (T* p, T const& v)
     {
         amrex::single_task(Gpu::nullStream(), [=] AMREX_GPU_DEVICE () noexcept
@@ -148,19 +148,6 @@ namespace detail {
             new (p) T(v);
             new (p+1) T(v);
         });
-    }
-
-    template <typename T>
-    amrex::EnableIf_t<!std::is_standard_layout<T>::value>
-    init_tuple_on_device (T* p, T const& v)
-    {
-        amrex::single_task(Gpu::nullStream(), [=] AMREX_GPU_DEVICE () noexcept
-        {
-            new (p) T();
-            new (p+1) T();
-        });
-        Array<T,2> tmp{v,v};
-        Gpu::htod_memcpy(p, tmp.data(), sizeof(T)*2);
     }
 #endif
 }}
