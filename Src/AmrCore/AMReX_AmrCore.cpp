@@ -74,20 +74,27 @@ AmrCore::regrid (int lbase, Real time, bool)
 
     BL_ASSERT(new_finest <= finest_level+1);
 
+    bool coarse_ba_changed = false;
     for (int lev = lbase+1; lev <= new_finest; ++lev)
     {
-	if (lev <= finest_level) // an old level
-	{
-	    if (new_grids[lev] != grids[lev]) // otherwise nothing
-	    {
-                DistributionMapping new_dmap(new_grids[lev]);
-                const auto old_num_setdm = num_setdm;
-                RemakeLevel(lev, time, new_grids[lev], new_dmap);
-                SetBoxArray(lev, new_grids[lev]);
-                if (old_num_setdm == num_setdm) {
-                    SetDistributionMap(lev, new_dmap);
+        if (lev <= finest_level) // an old level
+        {
+            bool ba_changed = (new_grids[lev] != grids[lev]);
+	    if (ba_changed or coarse_ba_changed) {
+                BoxArray level_grids = grids[lev];
+                DistributionMapping level_dmap = dmap[lev];
+                if (ba_changed) {
+                    level_grids = new_grids[lev];
+                    level_dmap = DistributionMapping(level_grids);
                 }
-	    }
+                const auto old_num_setdm = num_setdm;
+                RemakeLevel(lev, time, level_grids, level_dmap);
+                SetBoxArray(lev, level_grids);
+                if (old_num_setdm == num_setdm) {
+                    SetDistributionMap(lev, level_dmap);
+                }
+            }
+            coarse_ba_changed = ba_changed;;
 	}
 	else  // a new level
 	{

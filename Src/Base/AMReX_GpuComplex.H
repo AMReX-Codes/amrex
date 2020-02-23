@@ -3,6 +3,7 @@
 
 #include <cmath>
 #include <iostream>
+#include <AMReX_Math.H>
 
 namespace amrex {
 
@@ -352,7 +353,7 @@ T abs (const GpuComplex<T>& a_z) noexcept
     T x = a_z.real();
     T y = a_z.imag();
 
-    const T s = amrex::max(std::abs(x), std::abs(y));
+    const T s = amrex::max(amrex::Math::abs(x), amrex::Math::abs(y));
     if (s == T())
         return s;
     x /= s;
@@ -372,16 +373,16 @@ GpuComplex<T> sqrt (const GpuComplex<T>& a_z) noexcept
 
     if (x == T())
     {
-        T t = std::sqrt(std::abs(y) / 2);
+        T t = std::sqrt(amrex::Math::abs(y) / 2);
         return GpuComplex<T>(t, y < T() ? -t : t);
     }
     else
     {
-        T t = std::sqrt(2 * (amrex::abs(a_z) + std::abs(x)));
+        T t = std::sqrt(2 * (amrex::abs(a_z) + amrex::Math::abs(x)));
         T u = t / 2;
         return x > T()
             ? GpuComplex<T>(u, y / t)
-            : GpuComplex<T>(std::abs(y) / t, y < T() ? -u : u);
+            : GpuComplex<T>(amrex::Math::abs(y) / t, y < T() ? -u : u);
     }
 }
 

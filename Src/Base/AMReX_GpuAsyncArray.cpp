@@ -7,6 +7,7 @@
 #define HIPRT_CB 
 #endif
 
+#if !defined(AMREX_USE_DPCPP)
 extern "C" {
 AMREX_HIP_OR_CUDA(
          void HIPRT_CB  amrex_asyncarray_delete ( hipStream_t stream,  hipError_t error, void* p),
@@ -20,5 +21,6 @@ AMREX_HIP_OR_CUDA(
         amrex::The_Device_Arena()->free(dp);
     }
 }
+#endif
 
 #endif
