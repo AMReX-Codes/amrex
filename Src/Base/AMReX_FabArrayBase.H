@@ -254,7 +254,7 @@ public:
     //! Tiling
     struct TileArray
     {
-	int nuse;
+	long nuse;
 	Vector<int> numLocalTiles;
 	Vector<int> indexMap;
 	Vector<int> localIndexMap;
@@ -343,7 +343,7 @@ public:
 	IntVect             m_dstng;
 	BoxConverter*       m_coarsener;
 	//
-	int                 m_nuse;
+	long                m_nuse;
     };
 
     typedef std::multimap<BDKey,FabArrayBase::FPinfo*> FPinfoCache;
@@ -388,7 +388,7 @@ public:
         bool                m_include_periodic;
         bool                m_include_physbndry;
         //
-        int                 m_nuse;
+        long                m_nuse;
     };
 
     using CFinfoCache = std::multimap<BDKey,FabArrayBase::CFinfo*>;
@@ -511,7 +511,7 @@ public:
 	bool         m_epo;
 	Periodicity  m_period;
 	//
-	int                 m_nuse;
+	long         m_nuse;
 	//
 #if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
         CudaGraph<CopyMemory> m_localCopy;
@@ -564,7 +564,7 @@ public:
 	BoxArray    m_srcba;
 	BoxArray    m_dstba;
 	//
-        int         m_nuse;
+        long        m_nuse;
 
     private:
 	void define (const BoxArray& ba_dst, const DistributionMapping& dm_dst,
