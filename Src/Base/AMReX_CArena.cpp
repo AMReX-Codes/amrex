@@ -188,4 +188,19 @@ CArena::heap_space_used () const noexcept
     return m_used;
 }
 
+std::size_t
+CArena::sizeOf (void* p)
+{
+    if (p == nullptr) {
+        return 0;
+    } else {
+        auto it = m_busylist.find(Node(p,0,0));
+        if (it == m_busylist.end()) {
+            return 0;
+        } else {
+            return it->size();
+        }
+    }
+}
+
 }
