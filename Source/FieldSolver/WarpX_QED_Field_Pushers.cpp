@@ -48,7 +48,7 @@ WarpX::Hybrid_QED_Push (amrex::Vector<amrex::Real> dt)
 void
 WarpX::Hybrid_QED_Push (int lev, Real a_dt)
 {
-    BL_PROFILE("WarpX::Hybrid_QED_Push()");
+    WARPX_PROFILE("WarpX::Hybrid_QED_Push()");
     Hybrid_QED_Push(lev, PatchType::fine, a_dt);
     if (lev > 0)
     {

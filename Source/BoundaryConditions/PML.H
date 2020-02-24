@@ -11,6 +11,8 @@
 #ifndef WARPX_PML_H_
 #define WARPX_PML_H_
 
+#include "WarpXProfilerWrapper.H"
+
 #include <AMReX_MultiFab.H>
 #include <AMReX_Geometry.H>
 

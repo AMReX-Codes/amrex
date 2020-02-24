@@ -376,12 +376,12 @@ WarpX::FreeFFT (int lev)
 void
 WarpX::PushPSATD_hybridFFT (int lev, amrex::Real /* dt */)
 {
-    BL_PROFILE_VAR_NS("WarpXFFT::CopyDualGrid", blp_copy);
-    BL_PROFILE_VAR_NS("PICSAR::FftPushEB", blp_push_eb);
+    WARPX_PROFILE_VAR_NS("WarpXFFT::CopyDualGrid", blp_copy);
+    WARPX_PROFILE_VAR_NS("PICSAR::FftPushEB", blp_push_eb);
 
     auto period_fp = geom[lev].periodicity();
 
-    BL_PROFILE_VAR_START(blp_copy);
+    WARPX_PROFILE_VAR_START(blp_copy);
     Efield_fp_fft[lev][0]->ParallelCopy(*Efield_fp[lev][0], 0, 0, 1, Efield_fp[lev][0]->nGrow(), 0, period_fp);
     Efield_fp_fft[lev][1]->ParallelCopy(*Efield_fp[lev][1], 0, 0, 1, Efield_fp[lev][1]->nGrow(), 0, period_fp);
     Efield_fp_fft[lev][2]->ParallelCopy(*Efield_fp[lev][2], 0, 0, 1, Efield_fp[lev][2]->nGrow(), 0, period_fp);
@@ -392,9 +392,9 @@ WarpX::PushPSATD_hybridFFT (int lev, amrex::Real /* dt */)
     current_fp_fft[lev][1]->ParallelCopy(*current_fp[lev][1], 0, 0, 1, current_fp[lev][1]->nGrow(), 0, period_fp);
     current_fp_fft[lev][2]->ParallelCopy(*current_fp[lev][2], 0, 0, 1, current_fp[lev][2]->nGrow(), 0, period_fp);
     rho_fp_fft[lev]->ParallelCopy(*rho_fp[lev], 0, 0, 2, rho_fp[lev]->nGrow(), 0, period_fp);
-    BL_PROFILE_VAR_STOP(blp_copy);
+    WARPX_PROFILE_VAR_STOP(blp_copy);
 
-    BL_PROFILE_VAR_START(blp_push_eb);
+    WARPX_PROFILE_VAR_START(blp_push_eb);
     if (Efield_fp_fft[lev][0]->local_size() == 1)
        //Only one FFT patch on this MPI
     {
@@ -435,16 +435,16 @@ WarpX::PushPSATD_hybridFFT (int lev, amrex::Real /* dt */)
     {
         amrex::Abort("WarpX::PushPSATD: TODO");
     }
-    BL_PROFILE_VAR_STOP(blp_push_eb);
+    WARPX_PROFILE_VAR_STOP(blp_push_eb);
 
-    BL_PROFILE_VAR_START(blp_copy);
+    WARPX_PROFILE_VAR_START(blp_copy);
     CopyDataFromFFTToValid(*Efield_fp[lev][0], *Efield_fp_fft[lev][0], ba_valid_fp_fft[lev], geom[lev]);
     CopyDataFromFFTToValid(*Efield_fp[lev][1], *Efield_fp_fft[lev][1], ba_valid_fp_fft[lev], geom[lev]);
     CopyDataFromFFTToValid(*Efield_fp[lev][2], *Efield_fp_fft[lev][2], ba_valid_fp_fft[lev], geom[lev]);
     CopyDataFromFFTToValid(*Bfield_fp[lev][0], *Bfield_fp_fft[lev][0], ba_valid_fp_fft[lev], geom[lev]);
     CopyDataFromFFTToValid(*Bfield_fp[lev][1], *Bfield_fp_fft[lev][1], ba_valid_fp_fft[lev], geom[lev]);
     CopyDataFromFFTToValid(*Bfield_fp[lev][2], *Bfield_fp_fft[lev][2], ba_valid_fp_fft[lev], geom[lev]);
-    BL_PROFILE_VAR_STOP(blp_copy);
+    WARPX_PROFILE_VAR_STOP(blp_copy);
 
     if (lev > 0)
     {

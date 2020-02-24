@@ -26,7 +26,7 @@ using namespace amrex;
 void
 WarpX::InitData ()
 {
-    BL_PROFILE("WarpX::InitData()");
+    WARPX_PROFILE("WarpX::InitData()");
 
     if (restart_chkfile.empty())
     {

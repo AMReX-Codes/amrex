@@ -107,7 +107,7 @@ WarpX::EvolveB (amrex::Real a_dt)
 void
 WarpX::EvolveB (int lev, amrex::Real a_dt)
 {
-    BL_PROFILE("WarpX::EvolveB()");
+    WARPX_PROFILE("WarpX::EvolveB()");
     EvolveB(lev, PatchType::fine, a_dt);
     if (lev > 0)
     {
@@ -208,7 +208,7 @@ WarpX::EvolveE (amrex::Real a_dt)
 void
 WarpX::EvolveE (int lev, amrex::Real a_dt)
 {
-    BL_PROFILE("WarpX::EvolveE()");
+    WARPX_PROFILE("WarpX::EvolveE()");
     EvolveE(lev, PatchType::fine, a_dt);
     if (lev > 0)
     {
@@ -529,7 +529,7 @@ WarpX::EvolveF (int lev, PatchType patch_type, amrex::Real a_dt, DtType a_dt_typ
 {
     if (!do_dive_cleaning) return;
 
-    BL_PROFILE("WarpX::EvolveF()");
+    WARPX_PROFILE("WarpX::EvolveF()");
 
     static constexpr Real mu_c2 = PhysConst::mu0*PhysConst::c*PhysConst::c;
 

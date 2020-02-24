@@ -21,7 +21,7 @@ WarpX::EvolveES (int numsteps) {
 
     amrex::Print() << "Running in electrostatic mode \n";
 
-    BL_PROFILE("WarpX::EvolveES()");
+    WARPX_PROFILE("WarpX::EvolveES()");
     Real cur_time = t_new[0];
     static int last_plot_file_step = 0;
     static int last_check_file_step = 0;

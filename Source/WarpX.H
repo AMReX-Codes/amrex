@@ -173,6 +173,7 @@ public:
 
     static int do_subcycling;
 
+    static bool do_device_synchronize_before_profile;
     static bool safe_guard_cells;
 
     // buffers

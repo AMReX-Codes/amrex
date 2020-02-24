@@ -15,6 +15,7 @@
 #include <WarpXUtil.H>
 #include <WarpXAlgorithmSelection.H>
 #include <WarpX_FDTD.H>
+#include "WarpXProfilerWrapper.H"
 
 #include <AMReX_ParmParse.H>
 #include <AMReX_MultiFabUtil.H>
@@ -143,6 +144,12 @@ int WarpX::n_field_gather_buffer = -1;
 int WarpX::n_current_deposition_buffer = -1;
 
 int WarpX::do_nodal = false;
+
+#ifdef AMREX_USE_GPU
+bool WarpX::do_device_synchronize_before_profile = true;
+#else
+bool WarpX::do_device_synchronize_before_profile = false;
+#endif
 
 WarpX* WarpX::m_instance = nullptr;
 
@@ -375,6 +382,8 @@ WarpX::ReadParameters ()
                                          "Subcycling method 1 only works for 2 levels.");
 
         ReadBoostedFrameParameters(gamma_boost, beta_boost, boost_direction);
+
+        pp.query("do_device_synchronize_before_profile", do_device_synchronize_before_profile);
 
         // pp.query returns 1 if argument zmax_plasma_to_compute_max_step is
         // specified by the user, 0 otherwise.
@@ -1109,7 +1118,7 @@ WarpX::RefRatio (int lev)
 
 void
 WarpX::Evolve (int numsteps) {
-    BL_PROFILE_REGION("WarpX::Evolve()");
+    WARPX_PROFILE_REGION("WarpX::Evolve()");
 
 #ifdef WARPX_DO_ELECTROSTATIC
     if (do_electrostatic) {

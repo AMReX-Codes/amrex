@@ -120,7 +120,7 @@ WarpX::WriteWarpXHeader(const std::string& name) const
 void
 WarpX::WriteCheckPointFile() const
 {
-    BL_PROFILE("WarpX::WriteCheckPointFile()");
+    WARPX_PROFILE("WarpX::WriteCheckPointFile()");
 
     VisMF::Header::Version current_version = VisMF::GetHeaderVersion();
     VisMF::SetHeaderVersion(checkpoint_headerversion);
@@ -203,7 +203,7 @@ WarpX::WriteCheckPointFile() const
 void
 WarpX::InitFromCheckpoint ()
 {
-    BL_PROFILE("WarpX::InitFromCheckpoint()");
+    WARPX_PROFILE("WarpX::InitFromCheckpoint()");
 
     amrex::Print() << "  Restart from checkpoint " << restart_chkfile << "\n";
 
@@ -421,7 +421,7 @@ WarpX::InitFromCheckpoint ()
 std::unique_ptr<MultiFab>
 WarpX::GetCellCenteredData() {
 
-    BL_PROFILE("WarpX::GetCellCenteredData");
+    WARPX_PROFILE("WarpX::GetCellCenteredData");
 
     const int ng =  1;
     const int nc = 10;
@@ -461,7 +461,7 @@ void
 WarpX::UpdateInSitu () const
 {
 #if defined(BL_USE_SENSEI_INSITU) || defined(AMREX_USE_ASCENT)
-    BL_PROFILE("WarpX::UpdateInSitu()");
+    WARPX_PROFILE("WarpX::UpdateInSitu()");
 
     // Average the fields from the simulation to the cell centers
     const int ngrow = 1;
@@ -535,7 +535,7 @@ WarpX::prepareFields(
 void
 WarpX::WriteOpenPMDFile () const
 {
-    BL_PROFILE("WarpX::WriteOpenPMDFile()");
+    WARPX_PROFILE("WarpX::WriteOpenPMDFile()");
 
 #ifdef WARPX_USE_OPENPMD
     const auto step = istep[0];
@@ -559,7 +559,7 @@ WarpX::WriteOpenPMDFile () const
 void
 WarpX::WritePlotFile () const
 {
-    BL_PROFILE("WarpX::WritePlotFile()");
+    WARPX_PROFILE("WarpX::WritePlotFile()");
 
     const auto step = istep[0];
     const std::string& plotfilename = amrex::Concatenate(plot_file,step);

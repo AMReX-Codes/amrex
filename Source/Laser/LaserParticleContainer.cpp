@@ -380,11 +380,11 @@ LaserParticleContainer::Evolve (int lev,
                                 const MultiFab*, const MultiFab*, const MultiFab*,
                                 Real t, Real dt, DtType a_dt_type)
 {
-    BL_PROFILE("Laser::Evolve()");
-    BL_PROFILE_VAR_NS("Laser::Evolve::Copy", blp_copy);
-    BL_PROFILE_VAR_NS("Laser::ParticlePush", blp_pp);
-    BL_PROFILE_VAR_NS("Laser::CurrentDepo", blp_cd);
-    BL_PROFILE_VAR_NS("Laser::Evolve::Accumulate", blp_accumulate);
+    WARPX_PROFILE("Laser::Evolve()");
+    WARPX_PROFILE_VAR_NS("Laser::Evolve::Copy", blp_copy);
+    WARPX_PROFILE_VAR_NS("Laser::ParticlePush", blp_pp);
+    WARPX_PROFILE_VAR_NS("Laser::CurrentDepo", blp_cd);
+    WARPX_PROFILE_VAR_NS("Laser::Evolve::Accumulate", blp_accumulate);
 
     Real t_lab = t;
     if (WarpX::gamma_boost > 1) {
@@ -445,7 +445,7 @@ LaserParticleContainer::Evolve (int lev,
             //
             // Particle Push
             //
-            BL_PROFILE_VAR_START(blp_pp);
+            WARPX_PROFILE_VAR_START(blp_pp);
             // Find the coordinates of the particles in the emission plane
             calculate_laser_plane_coordinates(pti, np,
                                               plane_Xp.dataPtr(),
@@ -461,7 +461,7 @@ LaserParticleContainer::Evolve (int lev,
             update_laser_particle(pti, np, uxp.dataPtr(), uyp.dataPtr(),
                                   uzp.dataPtr(), wp.dataPtr(),
                                   amplitude_E.dataPtr(), dt);
-            BL_PROFILE_VAR_STOP(blp_pp);
+            WARPX_PROFILE_VAR_STOP(blp_pp);
 
             //
             // Current Deposition

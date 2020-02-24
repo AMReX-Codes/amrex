@@ -783,7 +783,7 @@ void
 PML::Exchange (MultiFab& pml, MultiFab& reg, const Geometry& geom,
                 int do_pml_in_domain)
 {
-    BL_PROFILE("PML::Exchange");
+    WARPX_PROFILE("PML::Exchange");
 
     const IntVect& ngr = reg.nGrowVect();
     const IntVect& ngp = pml.nGrowVect();

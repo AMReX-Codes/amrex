@@ -204,7 +204,7 @@ WarpXOpenPMDPlot::Init(openPMD::AccessType accessType)
 void
 WarpXOpenPMDPlot::WriteOpenPMDParticles(const std::unique_ptr<MultiParticleContainer>& mpc)
 {
-  BL_PROFILE("WarpXOpenPMDPlot::WriteOpenPMDParticles()");
+  WARPX_PROFILE("WarpXOpenPMDPlot::WriteOpenPMDParticles()");
   std::vector<std::string> species_names = mpc->GetSpeciesNames();
 
   for (unsigned i = 0, n = species_names.size(); i < n; ++i) {
@@ -541,7 +541,7 @@ WarpXOpenPMDPlot::WriteOpenPMDFields( //const std::string& filename,
                       const double time ) const
 {
   //This is AMReX's tiny profiler. Possibly will apply it later
-  BL_PROFILE("WarpXOpenPMDPlot::WriteOpenPMDFields()");
+  WARPX_PROFILE("WarpXOpenPMDPlot::WriteOpenPMDFields()");
 
   AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_Series != nullptr, "openPMD series must be initialized");
 
