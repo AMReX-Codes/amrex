@@ -12,7 +12,10 @@ namespace amrex { namespace Math {
 
 #ifdef AMREX_USE_DPCPP
 
-using sycl::abs;
+//using sycl::abs;
+// We have to do this because somehow sycl::abs(int) return unsigned int.
+template <typename T> T abs (T a) { return sycl::abs(a); }
+
 using sycl::ceil;
 using sycl::copysign;
 using sycl::floor;
