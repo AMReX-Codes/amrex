@@ -6,15 +6,18 @@
 # setting the compile definitions and so on
 #
 add_library( amrex )
+add_library( amrex::amrex ALIAS amrex )
 
 # Where to store Fortran modules
+if (ENABLE_FORTRAN_INTERFACES)
 set_target_properties( amrex
    PROPERTIES
    Fortran_MODULE_DIRECTORY
    ${PROJECT_BINARY_DIR}/mod_files
-   INTERFACE_INCLUDE_DIRECTORIES
-   $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/mod_files>
+   #INTERFACE_INCLUDE_DIRECTORIES
+   #$<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/mod_files>
    )
+endif()
 
 # Load Flags targets and use them if no user-defined flags is given
 include(AMReXFlagsTargets)
@@ -43,6 +46,10 @@ endif ()
 # General configuration
 include ( AMReX_Config )
 configure_amrex ()
+
+# buildinfo
+include ( AMReXBuildInfo )
+generate_buildinfo(amrex ${CMAKE_CURRENT_LIST_DIR})
 
 #
 # Core components

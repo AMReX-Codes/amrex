@@ -83,31 +83,35 @@ function ( set_amrex_defines )
    #
    # Fortran-specific defines: BL_LANG_FORT and AMREX_LANG_FORT
    #
-   target_compile_definitions ( amrex PUBLIC
-      $<$<COMPILE_LANGUAGE:Fortran>:BL_LANG_FORT> )
-   target_compile_definitions ( amrex PUBLIC
-      $<$<COMPILE_LANGUAGE:Fortran>:AMREX_LANG_FORT> )
+   if (ENABLE_FORTRAN_INTERFACES)
+     target_compile_definitions ( amrex PUBLIC
+       $<$<COMPILE_LANGUAGE:Fortran>:BL_LANG_FORT> )
+     target_compile_definitions ( amrex PUBLIC
+       $<$<COMPILE_LANGUAGE:Fortran>:AMREX_LANG_FORT> )
+   endif()
 
    # 
    # Fortran/C mangling scheme
    # 
-   include( FortranCInterface )
-   include( ${FortranCInterface_BINARY_DIR}/Output.cmake )
+   if (ENABLE_FORTRAN_INTERFACES)
+     include( FortranCInterface )
+     include( ${FortranCInterface_BINARY_DIR}/Output.cmake )
 
-   set( FORTLINK "" )
+     set( FORTLINK "" )
    
-   if ( FortranCInterface_GLOBAL_SUFFIX STREQUAL "" )
-      set(FORTLINK "${FortranCInterface_GLOBAL_CASE}CASE" )
-      message(STATUS "Fortran name mangling scheme: ${FORTLINK} (no append underscore)")
-   elseif ( (FortranCInterface_GLOBAL_SUFFIX STREQUAL "_")  AND
+     if ( FortranCInterface_GLOBAL_SUFFIX STREQUAL "" )
+       set(FORTLINK "${FortranCInterface_GLOBAL_CASE}CASE" )
+       message(STATUS "Fortran name mangling scheme: ${FORTLINK} (no append underscore)")
+     elseif ( (FortranCInterface_GLOBAL_SUFFIX STREQUAL "_")  AND
 	 ( FortranCInterface_GLOBAL_CASE STREQUAL "LOWER" ) )
-      set(FORTLINK "UNDERSCORE")
-      message(STATUS "Fortran name mangling scheme: ${FORTLINK} (lower case, append underscore)")
-   else ()
-      message(AUTHOR_WARNING "Fortran to C mangling not compatible with AMReX code")
-   endif ()
+       set(FORTLINK "UNDERSCORE")
+       message(STATUS "Fortran name mangling scheme: ${FORTLINK} (lower case, append underscore)")
+     else ()
+       message(AUTHOR_WARNING "Fortran to C mangling not compatible with AMReX code")
+     endif ()
 
-   add_amrex_define( AMREX_FORT_USE_${FORTLINK} )
+     add_amrex_define( AMREX_FORT_USE_${FORTLINK} )
+   endif()
 
    # SENSEI Insitu
    add_amrex_define( AMREX_USE_SENSEI_INSITU IF ENABLE_SENSEI_INSITU )

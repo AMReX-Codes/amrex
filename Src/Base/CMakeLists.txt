@@ -12,10 +12,11 @@ if (ENABLE_MPI)
    # Without this, get_target_properties_flattened() would not recognize
    # MPI::MPI_C and MPI::MPI_CXX as targets because they would be visibile only in this
    # folder and subfolders.
-   set_target_properties(
-      MPI::MPI_C MPI::MPI_CXX
-      PROPERTIES
-      IMPORTED_GLOBAL True )
+   #set_target_properties(
+   #   MPI::MPI_C MPI::MPI_CXX
+   #   PROPERTIES
+   #   IMPORTED_GLOBAL True
+   #)
 
    target_link_libraries(amrex PUBLIC MPI::MPI_C MPI::MPI_CXX)
 endif ()
