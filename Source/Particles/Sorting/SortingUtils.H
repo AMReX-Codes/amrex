@@ -200,8 +200,8 @@ class copyAndReorder
 {
     public:
         copyAndReorder(
-            amrex::Gpu::ManagedDeviceVector<T> const& src,
-            amrex::Gpu::ManagedDeviceVector<T>& dst,
+            amrex::Gpu::DeviceVector<T> const& src,
+            amrex::Gpu::DeviceVector<T>& dst,
             amrex::Gpu::DeviceVector<long> const& indices ) {
             // Extract simple structure that can be used directly on the GPU
             m_src_ptr = src.dataPtr();
