@@ -25,6 +25,8 @@ jobs:
       run: .github/workflows/source/wrongFileNameInExamples
     - name: Examples are tested
       run: .github/workflows/source/inputsNotTested
+    - name: Check that the test matrix for Travis includes all tests
+      run: .github/workflows/source/test_travis_matrix.sh
     - name: Doxygen
       run: |
         sudo apt-get install -y --no-install-recommends doxygen

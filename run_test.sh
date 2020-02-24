@@ -16,7 +16,7 @@
 # physically correct.
 
 # The tests can be influenced by environment variables:
-# Use `export WARPX_TEST_DIM=3` or `export WARPX_TEST_DIM=2` in order to
+# Use `export WARPX_CI_DIM=3` or `export WARPX_CI_DIM=2` in order to
 # select only the tests that correspond to this dimension
 # Use `export WARPX_TEST_ARCH=CPU` or `export WARPX_TEST_ARCH=GPU` in order
 # to run the tests on CPU or GPU respectively.
@@ -49,7 +49,7 @@ cd test_dir
 # Clone PICSAR and AMReX
 git clone --branch development https://github.com/AMReX-Codes/amrex.git
 # Use QED brach for QED tests
-if [ "${HAS_QED}" = "TRUE" ]; then
+if [ "${WARPX_CI_QED}" = "TRUE" ]; then
     git clone --branch QED https://bitbucket.org/berkeleylab/picsar.git
 else
     git clone --branch master https://bitbucket.org/berkeleylab/picsar.git
