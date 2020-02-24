@@ -372,9 +372,24 @@ def write_probin(probin_template, param_files,
 
                 for p in params:
                     if p.dtype == "character":
-                        # we don't support character
-                        continue
-                    if p.dtype == "logical":
+                        fout.write("{}subroutine get_f90_{}_len(slen) bind(C, name=\"get_f90_{}_len\")\n".format(
+                            indent, p.var, p.var))
+                        fout.write("{}   integer, intent(inout) :: slen\n".format(indent))
+                        fout.write("{}   slen = len(trim({}))\n".format(indent, p.var))
+                        fout.write("{}end subroutine get_f90_{}_len\n\n".format(indent, p.var))
+
+                        fout.write("{}subroutine get_f90_{}({}_in) bind(C, name=\"get_f90_{}\")\n".format(
+                            indent, p.var, p.var, p.var))
+                        fout.write("{}   character(kind=c_char) :: {}_in(*)\n".format(
+                            indent, p.var))
+                        fout.write("{}   integer :: n\n".format(indent))
+                        fout.write("{}   do n = 1, len(trim({}))\n".format(indent, p.var))
+                        fout.write("{}      {}_in(n:n) = {}(n:n)\n".format(indent, p.var, p.var))
+                        fout.write("{}   end do\n".format(indent))
+                        fout.write("{}   {}_in(len(trim({}))+1) = char(0)\n".format(indent, p.var, p.var))
+                        fout.write("{}end subroutine get_f90_{}\n\n".format(indent, p.var))
+
+                    elif p.dtype == "logical":
                         # F90 logicals are integers in C++
                         fout.write("{}subroutine get_f90_{}({}_in) bind(C, name=\"get_f90_{}\")\n".format(
                             indent, p.var, p.var, p.var))
@@ -414,11 +429,13 @@ def write_probin(probin_template, param_files,
 
         for p in params:
             if p.dtype == "character":
-                # we don't support character
-                continue
+                fout.write("  void get_f90_{}(char* {});\n\n".format(
+                    p.var, p.var))
+                fout.write("  void get_f90_{}_len(int& slen);\n\n".format(p.var))
 
-            fout.write("  void get_f90_{}({}* {});\n\n".format(
-                p.var, p.get_cxx_decl(), p.var))
+            else:
+                fout.write("  void get_f90_{}({}* {});\n\n".format(
+                    p.var, p.get_cxx_decl(), p.var))
 
         fout.write(CXX_F_FOOTER)
 
@@ -431,10 +448,9 @@ def write_probin(probin_template, param_files,
 
         for p in params:
             if p.dtype == "character":
-                # we don't support character
-                continue
-
-            fout.write("  extern AMREX_GPU_MANAGED {} {};\n\n".format(p.get_cxx_decl(), p.var))
+                fout.write("  extern AMREX_GPU_MANAGED std::string {};\n\n".format(p.var))
+            else:
+                fout.write("  extern AMREX_GPU_MANAGED {} {};\n\n".format(p.get_cxx_decl(), p.var))
 
         fout.write(CXX_FOOTER)
 
@@ -446,19 +462,22 @@ def write_probin(probin_template, param_files,
 
         for p in params:
             if p.dtype == "character":
-                # we don't support character
-                continue
-
-            fout.write("  AMREX_GPU_MANAGED {} {};\n\n".format(p.get_cxx_decl(), p.var))
+                fout.write("  AMREX_GPU_MANAGED std::string {};\n\n".format(p.var))
+            else:
+                fout.write("  AMREX_GPU_MANAGED {} {};\n\n".format(p.get_cxx_decl(), p.var))
 
         fout.write("\n")
         fout.write("  void init_{}_parameters() {{\n".format(os.path.basename(cxx_prefix)))
+        fout.write("    int slen = 0;\n\n")
 
         for p in params:
             if p.dtype == "character":
-                continue
-
-            fout.write("    get_f90_{}(&{});\n".format(p.var, p.var))
+                fout.write("    get_f90_{}_len(slen);\n".format(p.var))
+                fout.write("    char _{}[slen+1];\n".format(p.var))
+                fout.write("    get_f90_{}(_{});\n".format(p.var, p.var))
+                fout.write("    {} = std::string(_{});\n\n".format(p.var, p.var))
+            else:
+                fout.write("    get_f90_{}(&{});\n\n".format(p.var, p.var))
 
         fout.write("  }\n")
 

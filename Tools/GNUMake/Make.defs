@@ -34,6 +34,35 @@ ifeq ($(USE_DPCPP),TRUE)
   USE_CCACHE := FALSE
 endif
 
+ifdef USE_HIP
+  USE_HIP := $(strip $(USE_HIP))
+else
+  USE_HIP := FALSE
+endif
+
+ifeq ($(USE_HIP),TRUE)
+  USE_CUDA := FALSE
+  COMP := hip
+  HIP_PLATFORM = $(shell hipconfig --compiler)
+  ifeq ($(HIP_PLATFORM),nvcc)
+  $(error HIP_PLATFORM nvcc is not supported at this time. Use USE_CUDA to compile for NVIDIA platforms)
+#    If nvcc is supported, put this back.
+#    CUDA_ARCH ?= 60
+#    CUDA_MAX_THREADS ?= 256
+#    CUDA_MAXREGCOUNT ?= 255
+  else ifeq ($(HIP_PLATFORM),hcc)
+# do nothing special for now, but also don't abort
+  else
+    $(error only HIP_PLATFORM=hcc is supported)
+  endif
+endif
+
+ifdef USE_CUDA
+  USE_CUDA := $(strip $(USE_CUDA))
+else
+  USE_CUDA := FALSE
+endif
+
 ifdef BL_NO_FORT
   BL_NO_FORT := $(strip $(BL_NO_FORT))
   ifeq ($(BL_NO_FORT),TRUE)
@@ -197,13 +226,6 @@ ifeq ($(USE_MPI3),TRUE)
   USE_MPI := TRUE
 endif
 
-
-ifdef USE_CUDA
-  USE_CUDA := $(strip $(USE_CUDA))
-else
-  USE_CUDA := FALSE
-endif
-
 ifdef USE_CUDA_FAST_MATH
   USE_CUDA_FAST_MATH := $(strip $(USE_CUDA_FAST_MATH))
 else
@@ -222,31 +244,6 @@ ifeq ($(USE_CUDA),TRUE)
 
   # Enable verbosity in the CUDA compilation.
   CUDA_VERBOSE ?= TRUE
-endif
-
-ifdef USE_HIP
-  USE_HIP := $(strip $(USE_HIP))
-else
-  USE_HIP := FALSE
-endif
-
-ifeq ($(USE_HIP),TRUE)
-  ifeq ($(USE_CUDA),TRUE)
-    $(error HIP-nvcc based builds are currently unsupported. Both USE_CUDA and USE_HIP cannot be TRUE)
-  endif
-
-  HIP_PLATFORM = $(shell hipconfig --compiler)
-  ifeq ($(HIP_PLATFORM),nvcc)
-  $(error HIP_PLATFORM nvcc is not supported at this time. Use USE_CUDA to compile for NVIDIA platforms)
-#    If nvcc is supported, put this back.
-#    CUDA_ARCH ?= 60
-#    CUDA_MAX_THREADS ?= 256
-#    CUDA_MAXREGCOUNT ?= 255
-  else ifeq ($(HIP_PLATFORM),hcc)
-# do nothing special for now, but also don't abort
-  else
-    $(error only HIP_PLATFORM=hcc is supported)
-  endif
 endif
 
 ifdef DIMENSION_AGNOSTIC

@@ -5,9 +5,9 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_iMultiFab.H>
 
-#ifdef AMREX_USE_HIP
-#include <thrust/reduce.h>
-#endif
+//#ifdef AMREX_USE_HIP
+//#include <thrust/reduce.h>
+//#endif
 
 using namespace amrex;
 
@@ -49,7 +49,7 @@ void main_main ()
         [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept 
         {
 
-#ifdef AMREX_USE_HIP
+#if defined(AMREX_USE_HIP) || defined(AMREX_USE_DPCPP)
 //          Currently needed for HIP to work correctly.
 //          Random lock is under investigation.
             fab(i,j,k) = 1.0;
@@ -260,7 +260,7 @@ void main_main ()
     Gpu::DeviceVector<Real> vec(N);
     Real* pvec = vec.dataPtr();
     amrex::ParallelFor(N, [=] AMREX_GPU_DEVICE (int i) noexcept {
-#ifdef AMREX_USE_HIP
+#if defined(AMREX_USE_HIP) || defined(AMREX_USE_DPCPP)
            pvec[i] = 1.5;
 #else
            pvec[i] = amrex::Random() - 0.5;
@@ -277,7 +277,7 @@ void main_main ()
         reduce_op.eval(N, reduce_data,
         [=] AMREX_GPU_DEVICE (int i) -> ReduceTuple
         {
-            return abs(pvec[i]);
+            return amrex::Math::abs(pvec[i]);
         });
 
         Real hv = amrex::get<0>(reduce_data.value());
@@ -310,7 +310,7 @@ void main_main ()
                                         << ", " << r.second << "\n";
     }
 
-
+#if 0
 #if defined(AMREX_USE_GPU)
     {
         BL_PROFILE("ThrustReduceSum");
@@ -318,5 +318,5 @@ void main_main ()
         amrex::Print().SetPrecision(17) << "thrust::reduce sum " << r << "\n";
     }
 #endif
-
+#endif
 }
