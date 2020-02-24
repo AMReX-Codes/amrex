@@ -571,6 +571,10 @@ public:
 
     void ByteSpread () const;
 
+    void PrintCapacity () const;
+    
+    void ShrinkToFit ();
+
     /**
     * \brief Returns # of particles at specified the level.
     *
@@ -1206,23 +1210,9 @@ void ReadParticlesHDF5 (hsize_t offset, hsize_t cnt, int grd, int lev, hid_t int
     mutable std::string HdrFileNamePrePost;
     mutable Vector<std::string> filePrefixPrePost;
 
-    ParticleTileType m_ptile_r;
     DenseBins<ParticleType> m_bins;
     
 #ifdef AMREX_USE_GPU
-    Gpu::DeviceVector<int> m_grids_r;
-    Gpu::DeviceVector<int> m_levs_r;
-    Gpu::DeviceVector<int> m_grids_tmp;
-    Gpu::DeviceVector<int> m_levs_tmp;
-
-    ParticleCopyOp redistribute_copy_op;
-    ParticleCopyPlan redistribute_copy_plan;
-
-    Gpu::DeviceVector<char> redistribute_snd_buffer;
-    Gpu::DeviceVector<char> redistribute_rcv_buffer;
-    Gpu::PinnedVector<char> pinned_snd_buffer;
-    Gpu::PinnedVector<char> pinned_rcv_buffer;
-
     mutable AmrParticleLocator<DenseBins<Box> > m_particle_locator;
 #endif
 
