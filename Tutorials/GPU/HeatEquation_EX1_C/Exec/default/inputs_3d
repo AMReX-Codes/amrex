@@ -1,0 +1,6 @@
+nsteps = 1000
+plot_int = -1
+n_cell = 64
+max_grid_size = 32
+
+amrex.v = 1

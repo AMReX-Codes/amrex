@@ -2,11 +2,15 @@
 # If you set AMREX_HOME as an environment variable, this line will be ignored
 AMREX_HOME ?= ../../../../../
 
-DEBUG     = TRUE 
+DEBUG     = FALSE
 USE_MPI   = TRUE 
-USE_HIP   = TRUE 
-COMP      = hip
+USE_OMP   = FALSE
 DIM       = 3 
+COMP      = gcc
+
+USE_CUDA  = TRUE 
+USE_HIP   = FALSE
+USE_DPCPP = FALSE
 
 Bpack   := ./Make.package
 Blocs   := .

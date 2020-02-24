@@ -858,7 +858,7 @@ void VecReduce (N n, T const& init_val, L1&& f1, L2&& f2) noexcept
                 auto r = init_val;
                 for (N i = item.get_global_id(0), stride = item.get_global_range(0);
                      i < n; i += stride) {
-                    f(i,&r);
+                    f1(i,&r);
                 }
                 f2(r);
             });
