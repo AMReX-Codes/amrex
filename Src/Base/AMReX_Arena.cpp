@@ -248,61 +248,25 @@ Arena::PrintUsage ()
     if (The_Arena()) {
         CArena* p = dynamic_cast<CArena*>(The_Arena());
         if (p) {
-            long min_megabytes = p->heap_space_used() / (1024*1024);
-            long max_megabytes = min_megabytes;
-            ParallelDescriptor::ReduceLongMin(min_megabytes, IOProc);
-            ParallelDescriptor::ReduceLongMax(max_megabytes, IOProc);
-#ifdef AMREX_USE_MPI
-            amrex::Print() << "[The         Arena] space (MB) used spread across MPI: ["
-                           << min_megabytes << " ... " << max_megabytes << "]\n";
-#else
-            amrex::Print() << "[The         Arena] space (MB): " << min_megabytes << "\n";
-#endif
+            p->PrintUsage("The         Arena");
         }
     }
     if (The_Device_Arena()) {
         CArena* p = dynamic_cast<CArena*>(The_Device_Arena());
         if (p) {
-            long min_megabytes = p->heap_space_used() / (1024*1024);
-            long max_megabytes = min_megabytes;
-            ParallelDescriptor::ReduceLongMin(min_megabytes, IOProc);
-            ParallelDescriptor::ReduceLongMax(max_megabytes, IOProc);
-#ifdef AMREX_USE_MPI
-            amrex::Print() << "[The  Device Arena] space (MB) used spread across MPI: ["
-                           << min_megabytes << " ... " << max_megabytes << "]\n";
-#else
-            amrex::Print() << "[The  Device Arena] space (MB): " << min_megabytes << "\n";
-#endif
+            p->PrintUsage("The  Device Arena");
         }
     }
     if (The_Managed_Arena()) {
         CArena* p = dynamic_cast<CArena*>(The_Managed_Arena());
         if (p) {
-            long min_megabytes = p->heap_space_used() / (1024*1024);
-            long max_megabytes = min_megabytes;
-            ParallelDescriptor::ReduceLongMin(min_megabytes, IOProc);
-            ParallelDescriptor::ReduceLongMax(max_megabytes, IOProc);
-#ifdef AMREX_USE_MPI
-            amrex::Print() << "[The Managed Arena] space (MB) used spread across MPI: ["
-                           << min_megabytes << " ... " << max_megabytes << "]\n";
-#else
-            amrex::Print() << "[The Managed Arena] space (MB): " << min_megabytes << "\n";
-#endif
+            p->PrintUsage("The Managed Arena");
         }
     }
     if (The_Pinned_Arena()) {
         CArena* p = dynamic_cast<CArena*>(The_Pinned_Arena());
         if (p) {
-            long min_megabytes = p->heap_space_used() / (1024*1024);
-            long max_megabytes = min_megabytes;
-            ParallelDescriptor::ReduceLongMin(min_megabytes, IOProc);
-            ParallelDescriptor::ReduceLongMax(max_megabytes, IOProc);
-#ifdef AMREX_USE_MPI
-            amrex::Print() << "[The  Pinned Arena] space (MB) used spread across MPI: ["
-                           << min_megabytes << " ... " << max_megabytes << "]\n";
-#else
-            amrex::Print() << "[The  Pinned Arena] space (MB): " << min_megabytes << "\n";
-#endif
+            p->PrintUsage("The  Pinned Arena");
         }
     }
 }
