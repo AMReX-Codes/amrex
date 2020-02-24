@@ -83,13 +83,13 @@ EBFArrayBoxFactory::maxCoarseningLevel () const noexcept
 const DistributionMapping&
 EBFArrayBoxFactory::DistributionMap () const noexcept
 {
-    return m_ebdc->getVolFrac().DistributionMap();
+    return m_ebdc->getMultiEBCellFlagFab().DistributionMap();
 }
 
 const BoxArray&
 EBFArrayBoxFactory::boxArray () const noexcept
 {
-    return m_ebdc->getVolFrac().boxArray();
+    return m_ebdc->getMultiEBCellFlagFab().boxArray();
 }
 
 std::unique_ptr<EBFArrayBoxFactory>
