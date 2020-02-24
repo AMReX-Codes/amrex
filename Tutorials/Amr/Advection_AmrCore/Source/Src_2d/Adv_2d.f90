@@ -74,19 +74,6 @@ subroutine advect(time, lo, hi, &
                        flxy, fy_lo, fy_hi, &
                        phix_1d, phiy_1d, phix, phiy, slope, glo, ghi)
 
-  ! Final fluxes
-  do    j = lo(2), hi(2)
-     do i = lo(1), hi(1)+1
-        flxx(i,j) = phix(i,j) * vx(i,j)
-     end do
-  end do
-  !
-  do    j = lo(2), hi(2)+1
-     do i = lo(1), hi(1)
-        flxy(i,j) = phiy(i,j) * vy(i,j)
-     end do
-  end do
-
   ! Do a conservative update
   do    j = lo(2),hi(2)
      do i = lo(1),hi(1)

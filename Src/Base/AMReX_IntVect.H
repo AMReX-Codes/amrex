@@ -10,6 +10,7 @@
 #include <AMReX_BLassert.H>
 #include <AMReX_Extension.H>
 #include <AMReX_GpuQualifiers.H>
+#include <AMReX_Math.H>
 
 #include <iosfwd>
 #include <cstdlib>
@@ -79,13 +80,13 @@ public:
     * coordinates.  AMREX_D_DECL is a macro that sets the constructor
     * to take AMREX_SPACEDIM arguments.
     */
-    AMREX_GPU_HOST_DEVICE
-    constexpr IntVect (AMREX_D_DECL(int i, int j, int k)) noexcept : vect{AMREX_D_DECL(i,j,k)} {}
-
 #if (AMREX_SPACEDIM > 1)
     AMREX_GPU_HOST_DEVICE
-    explicit constexpr IntVect (int i) noexcept : vect{AMREX_D_DECL(i,i,i)} {}
+    constexpr IntVect (AMREX_D_DECL(int i, int j, int k)) noexcept : vect{AMREX_D_DECL(i,j,k)} {}
 #endif
+
+    AMREX_GPU_HOST_DEVICE
+    explicit constexpr IntVect (int i) noexcept : vect{AMREX_D_DECL(i,i,i)} {}
 
     /**
     * \brief Construct an IntVect setting the coordinates to the
@@ -543,6 +544,7 @@ private:
     int vect[AMREX_SPACEDIM];
 };
 
+AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE
 IntVect&
 IntVect::coarsen (int s) noexcept
@@ -551,6 +553,7 @@ IntVect::coarsen (int s) noexcept
     return this->coarsen(IntVect(AMREX_D_DECL(s,s,s)));
 }
 
+AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE
 IntVect&
 IntVect::coarsen (const IntVect& p) noexcept
@@ -560,12 +563,13 @@ IntVect::coarsen (const IntVect& p) noexcept
         for (int i = 0; i <AMREX_SPACEDIM; ++i)
         {
             const int s = p.vect[i];
-            vect[i] = ((vect[i]<0) ? -std::abs(vect[i]+1)/s-1 : vect[i]/s);
+            vect[i] = ((vect[i]<0) ? -amrex::Math::abs(vect[i]+1)/s-1 : vect[i]/s); 
         }
     }
     return *this;
 }
 
+AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE
 int
 IntVect::maxDir(bool a_doAbsValue) const noexcept
@@ -573,10 +577,10 @@ IntVect::maxDir(bool a_doAbsValue) const noexcept
     int retval = 0;
     if(a_doAbsValue)
     {
-        int maxval = std::abs((*this)[0]);
+        int maxval = abs((*this)[0]);
         for(int idir = 1; idir < SpaceDim; idir++)
         {
-            int curval = std::abs((*this)[idir]);
+            int curval = amrex::Math::abs((*this)[idir]);
             if(curval > maxval)
             {
                 maxval = curval;
@@ -797,7 +801,7 @@ Dim3 refine (Dim3 const& coarse, IntVect const& ratio) noexcept
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int coarsen (int i, int ratio) noexcept
 {
-    return (i<0) ? -std::abs(i+1)/ratio-1 : i/ratio;
+    return (i<0) ? -amrex::Math::abs(i+1)/ratio-1 : i/ratio;
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE

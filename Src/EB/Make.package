@@ -20,42 +20,21 @@ CEXE_sources += AMReX_MultiCutFab.cpp
 
 CEXE_headers += AMReX_EBSupport.H
 
-F90EXE_sources += AMReX_ebcellflag_mod.F90
-
 CEXE_headers += AMReX_EBInterpolater.H
 CEXE_sources += AMReX_EBInterpolater.cpp
 
 CEXE_headers += AMReX_EBFluxRegister.H
 CEXE_headers += AMReX_EBFluxRegister_C.H AMReX_EBFluxRegister_$(DIM)_C.H
 CEXE_sources += AMReX_EBFluxRegister.cpp
-F90EXE_sources += AMReX_EBFluxRegister_nd.F90
 
 CEXE_headers += AMReX_EBAmrUtil.H
 CEXE_sources += AMReX_EBAmrUtil.cpp
 
-CEXE_headers += AMReX_EB_F.H AMReX_EB_levelset.H
-CEXE_sources += AMReX_EB_levelset.cpp
-
-F90EXE_sources += AMReX_compute_normals.F90 AMReX_EB_geometry.F90
-F90EXE_sources += AMReX_EB_levelset_F.F90
-
 CEXE_headers += AMReX_EB_utils.H
 CEXE_sources += AMReX_EB_utils.cpp
 
-F90EXE_sources += AMReX_EB_Tagging.F90 AMReX_EB_bc_fill_nd.F90
-
-ifeq ($(DIM),3)
-CEXE_headers += AMReX_EB_LSCoreBase.H
-CEXE_sources += AMReX_EB_LSCoreBase.cpp
-CEXE_headers += AMReX_EB_LSCore.H AMReX_EB_LSCoreI.H AMReX_EB_LSCore_F.H
-endif
-
 CEXE_headers += AMReX_algoim.H AMReX_algoim_K.H
 CEXE_sources += AMReX_algoim.cpp
-
-CEXE_sources += AMReX_WriteEBSurface.cpp
-CEXE_headers += AMReX_WriteEBSurface.H AMReX_WriteEB_F.H
-F90EXE_sources += AMReX_eb_to_pvd.F90
 
 CEXE_headers += AMReX_EB2_IF_AllRegular.H
 CEXE_headers += AMReX_EB2_IF_Box.H
@@ -81,7 +60,6 @@ CEXE_headers += AMReX_EB2_IF_Base.H
 
 CEXE_sources += AMReX_distFcnElement.cpp
 
-
 CEXE_headers += AMReX_EB2_GeometryShop.H AMReX_EB2.H AMReX_EB2_IndexSpaceI.H AMReX_EB2_Level.H
 CEXE_headers += AMReX_EB2_Graph.H AMReX_EB2_MultiGFab.H
 
@@ -89,6 +67,28 @@ CEXE_sources += AMReX_EB2.cpp AMReX_EB2_Level.cpp AMReX_EB2_MultiGFab.cpp
 
 CEXE_sources += AMReX_EB2_$(DIM)D_C.cpp
 CEXE_headers += AMReX_EB2_C.H AMReX_EB2_$(DIM)D_C.H
+
+ifneq ($(BL_NO_FORT),TRUE)
+  F90EXE_sources += AMReX_ebcellflag_mod.F90
+  F90EXE_sources += AMReX_EBFluxRegister_nd.F90
+  F90EXE_sources += AMReX_compute_normals.F90
+  CEXE_headers += AMReX_EB_F.H
+
+  CEXE_sources += AMReX_WriteEBSurface.cpp
+  CEXE_headers += AMReX_WriteEBSurface.H AMReX_WriteEB_F.H
+  F90EXE_sources += AMReX_eb_to_pvd.F90
+
+  # LS
+  F90EXE_sources += AMReX_EB_geometry.F90 AMReX_EB_bc_fill_nd.F90 AMReX_EB_Tagging.F90 AMReX_EB_levelset_F.F90
+  CEXE_headers += AMReX_EB_levelset.H
+  CEXE_sources += AMReX_EB_levelset.cpp
+  ifeq ($(DIM),3)
+    CEXE_headers += AMReX_EB_LSCoreBase.H
+    CEXE_sources += AMReX_EB_LSCoreBase.cpp
+    CEXE_headers += AMReX_EB_LSCore.H AMReX_EB_LSCoreI.H AMReX_EB_LSCore_F.H
+  endif
+
+endif
 
 VPATH_LOCATIONS += $(AMREX_HOME)/Src/EB
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/EB

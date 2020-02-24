@@ -3,6 +3,7 @@
 
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_GpuControl.H>
+#include <AMReX_GpuAtomic.H>
 #include <AMReX_GpuUtility.H>
 #include <AMReX_Functional.H>
 
@@ -12,17 +13,60 @@
 
 namespace amrex { namespace Gpu {
 
-#ifdef AMREX_USE_GPU
+#ifdef AMREX_USE_DPCPP
+
+// xxxxx DPCPP todo: better deviceReduce*
+
+template <typename T>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+void deviceReduceSum (T * dest, T source) noexcept
+{
+    Gpu::Atomic::Add(dest, source);
+}
+
+template <typename T>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+void deviceReduceMin (T * dest, T source) noexcept
+{
+    Gpu::Atomic::Min(dest, source);
+}
+
+template <typename T>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+void deviceReduceMax (T * dest, T source) noexcept
+{
+    Gpu::Atomic::Max(dest, source);
+}
+
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+void deviceReduceLogicalAnd (int * dest, int source) noexcept
+{
+    Gpu::Atomic::LogicalAnd(dest, source);
+}
+
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+void deviceReduceLogicalOr (int * dest, int source) noexcept
+{
+    Gpu::Atomic::LogicalOr(dest, source);
+}
+
+#elif defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+
 template <int warpSize, typename T, typename F>
 struct warpReduce
 {
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     T operator() (T x) const noexcept
     {
+// HIP FIX HERE - __shfl_down_sync -> type of HIP intrinsics don't match. 
+//                e.g. need to figure a work around for longs and Real2.
+//#ifdef AMREX_USE_CUDA
         for (int offset = warpSize/2; offset > 0; offset /= 2) {
-            T y = __shfl_down_sync(0xffffffff, x, offset);
+            AMREX_HIP_OR_CUDA(T y = __shfl_down(x, offset);,
+                              T y = __shfl_down_sync(0xffffffff, x, offset); );
             x = F()(x,y);
         }
+//#endif
         return x;
     }
 };
@@ -146,7 +190,7 @@ void deviceReduceLogicalOr (int * dest, int source) noexcept
 
 namespace amrex {
 namespace Gpu {
-#ifdef AMREX_USE_GPU
+#if defined(AMREX_USE_GPU) && !defined(AMREX_USE_DPCPP)
 
 // Based on https://developer.download.nvidia.com/assets/cuda/files/reduction.pdf by Mark Harris
 

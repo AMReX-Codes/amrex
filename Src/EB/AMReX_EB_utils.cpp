@@ -8,6 +8,7 @@
 
 namespace amrex {
 
+#ifndef BL_NO_FORT
     //
     // Fill EB normals
     //
@@ -56,12 +57,13 @@ namespace amrex {
 
         normals.FillBoundary(geom.periodicity());
     }
+#endif
 
 #if (AMREX_SPACEDIM > 1)
     //
     // Do small cell redistribution on one FAB
     //
-    void apply_eb_redistribution ( Box& bx,
+    void apply_eb_redistribution ( const Box& bx,
                                    MultiFab& div_mf,
                                    MultiFab& divc_mf,
                                    const MultiFab& weights,
@@ -71,9 +73,6 @@ namespace amrex {
                                    const EBCellFlagFab& flags_fab,
                                    const MultiFab* volfrac,
                                    Box& domain,
-                                   const int cyclic_x,
-                                   const int cyclic_y,
-                                   const int cyclic_z,
                                    const Geometry & geom)
     {
         //
@@ -253,19 +252,11 @@ namespace amrex {
     {
         Box domain(geom[lev].Domain());
 
-        const int cyclic_x = geom[0].isPeriodic(0) ? 1 : 0;
-        const int cyclic_y = geom[0].isPeriodic(1) ? 1 : 0;
-#if (AMREX_SPACEDIM == 2)
-        const int cyclic_z = 0;
-#elif (AMREX_SPACEDIM == 3)
-        const int cyclic_z = geom[0].isPeriodic(2) ? 1 : 0;
-#endif
-
         Real covered_val = 1.e40;
 
         int nghost = 2;
 	AMREX_ASSERT(div_tmp_in.nGrow() >= nghost);
-	
+
         EB_set_covered(div_tmp_in, 0, ncomp, div_tmp_in.nGrow(), covered_val);
               
         div_tmp_in.FillBoundary(geom[lev].periodicity());
@@ -280,7 +271,7 @@ namespace amrex {
         for (MFIter mfi(div_out,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             // Tilebox
-            Box bx = mfi.tilebox ();
+            const Box& bx = mfi.tilebox ();
 
             // this is to check efficiently if this tile contains any eb stuff
             const EBFArrayBox&  div_fab = static_cast<EBFArrayBox const&>(div_out[mfi]);
@@ -292,7 +283,6 @@ namespace amrex {
                 // Compute div(tau) with EB algorithm
                 apply_eb_redistribution(bx, div_out, div_tmp_in, weights, &mfi,
                                                div_comp, ncomp, flags, volfrac, domain,
-                                               cyclic_x, cyclic_y, cyclic_z,
                                                geom[lev]);
 
             }

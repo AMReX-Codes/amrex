@@ -335,10 +335,11 @@ void amrex_avgdown_with_vol (Box const& bx, Array4<Real> const& crse,
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE
 inline
-void amrex_avgdown_nodes (Box const& bx, Array4<Real> const& crse,
-                          Array4<Real const> const& fine,
+void amrex_avgdown_nodes (Box const& bx, Array4<T> const& crse,
+                          Array4<T const> const& fine,
                           int ccomp, int fcomp, int ncomp,
                           IntVect const& ratio) noexcept
 {

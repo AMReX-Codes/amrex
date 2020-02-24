@@ -74,6 +74,8 @@ public:
 
     virtual void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
                         StateMode s_mode, const MLMGBndry* bndry=nullptr) const final override;
+    virtual void compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
+                           MultiFab& sol, Location loc) const override;
 
 protected:
 
@@ -93,6 +95,7 @@ public: // for cuda
 
     void applyBCTensor (int amrlev, int mglev, MultiFab& vel,
                         BCMode bc_mode, StateMode s_mode, const MLMGBndry* bndry) const;
+    void compCrossTerms(int amrlev, int mglev, MultiFab const& mf) const;
 };
 
 }

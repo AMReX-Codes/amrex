@@ -114,7 +114,7 @@ $(objEXETempDir)/amrex.pc: FORCE
 	@echo Generating amrex.pc ...
 	@ $(MKPKGCONFIG) --prefix="$(abspath $(AMREX_INSTALL_DIR))" \
 	                 --version="$(AMREX_GIT_VERSION)" \
-	                 --cflags="$(CXXFLAGS)" \
+	                 --cflags="$(CXXFLAGS) $(EXTRACXXFLAGS)" \
 	                 --libs="$(filter-out -L.,$(LDFLAGS)) $(libraries)" \
 	                 --libpriv="" \
 	                 --fflags="$(F90FLAGS)" \
@@ -182,9 +182,9 @@ $(objEXETempDir)/%.o: %.cpp
 	@echo Compiling $*.cpp ...
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
 ifeq ($(USE_GPU_PRAGMA),TRUE)
-	$(SILENT) $(CCACHE) $(CXX) $(CXXFLAGS) $(CPPFLAGS) $(includes) -c $(srcTempDir)/$(<F) $(EXE_OUTPUT_OPTION)
+	$(SILENT) $(CCACHE) $(CXX) $(CXXFLAGS) $(EXTRACXXFLAGS) $(CPPFLAGS) $(includes) -c $(srcTempDir)/$(<F) $(EXE_OUTPUT_OPTION)
 else
-	$(SILENT) $(CCACHE) $(CXX) $(CXXFLAGS) $(CPPFLAGS) $(includes) -c $< $(EXE_OUTPUT_OPTION)
+	$(SILENT) $(CCACHE) $(CXX) $(CXXFLAGS) $(EXTRACXXFLAGS) $(CPPFLAGS) $(includes) -c $< $(EXE_OUTPUT_OPTION)
 endif
 
 $(objEXETempDir)/%.o: %.c
@@ -486,7 +486,7 @@ print-%:
 .PHONY: help
 help:
 	@echo ""
-	@echo "The rule for compiling foo.cpp  is: \$$(CXX) \$$(CXXFLAGS) \$$(CPPFLAGS) \$$(includes) -c foo.o foo.cpp"
+	@echo "The rule for compiling foo.cpp  is: \$$(CXX) \$$(CXXFLAGS) \$$(EXTRACXXFLAGS) \$$(CPPFLAGS) \$$(includes) -c foo.o foo.cpp"
 	@echo "The rule for compiling foo.c    is: \$$(CC) \$$(CFLAGS) \$$(CPPFLAGS) \$$(includes) -c foo.o foo.c"
 	@echo "The rule for compiling foo.f90  is: \$$(F90) \$$(F90FLAGS) \$$(FMODULES) \$$(fincludes) -c foo.o foo.f90"
 	@echo "The rule for compiling foo.F90  is: \$$(F90) \$$(F90FLAGS) \$$(FMODULES) \$$(FCPPFLAGS) \$$(fincludes) -c foo.o foo.F90"
@@ -499,22 +499,23 @@ else
 endif
 	@echo ""
 	@echo "Here the variables are set to:"
-	@echo "    CXX        = $(CXX)"
-	@echo "    CC         = $(CC)"
-	@echo "    FC         = $(FC)"
-	@echo "    F90        = $(F90)"
-	@echo "    CPPFLAGS   = $(CPPFLAGS)"
-	@echo "    FCPPFLAGS  = $(FCPPFLAGS)"
-	@echo "    CXXFLAGS   = $(CXXFLAGS)"
-	@echo "    CFLAGS     = $(CFLAGS)"
-	@echo "    LINKFLAGS  = $(LINKFLAGS)"
-	@echo "    includes   = $(includes)"
-	@echo "    FFLAGS     = $(FFLAGS)"
-	@echo "    F90FLAGS   = $(F90FLAGS)"
-	@echo "    FMODULES   = $(FMODULES)"
-	@echo "    fincludes  = $(fincludes)"
-	@echo "    LDFLAGS    = $(LDFLAGS)"
-	@echo "    libraries  = $(libraries)"
-	@echo "    executable = $(executable)"
+	@echo "    CXX           = $(CXX)"
+	@echo "    CC            = $(CC)"
+	@echo "    FC            = $(FC)"
+	@echo "    F90           = $(F90)"
+	@echo "    CPPFLAGS      = $(CPPFLAGS)"
+	@echo "    FCPPFLAGS     = $(FCPPFLAGS)"
+	@echo "    CXXFLAGS      = $(CXXFLAGS)"
+	@echo "    EXTRACXXFLAGS = $(CXXFLAGS)"
+	@echo "    CFLAGS        = $(CFLAGS)"
+	@echo "    LINKFLAGS     = $(LINKFLAGS)"
+	@echo "    includes      = $(includes)"
+	@echo "    FFLAGS        = $(FFLAGS)"
+	@echo "    F90FLAGS      = $(F90FLAGS)"
+	@echo "    FMODULES      = $(FMODULES)"
+	@echo "    fincludes     = $(fincludes)"
+	@echo "    LDFLAGS       = $(LDFLAGS)"
+	@echo "    libraries     = $(libraries)"
+	@echo "    executable    = $(executable)"
 	@echo ""
 	@echo "Read Tools/GNUMake/README.md for details on tweaking the make system."

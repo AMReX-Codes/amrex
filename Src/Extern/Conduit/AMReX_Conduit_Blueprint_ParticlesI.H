@@ -188,7 +188,6 @@ ParticleContainerToBlueprint(const ParticleContainer<NStructReal,
                              const Vector<std::string> &int_comp_names,
                              conduit::Node &res)
 {
-    res.reset();
     BL_PROFILE("ParticleContainerToBlueprint()");
     
     // validate varnames, which are used to provide field names

@@ -51,10 +51,10 @@ struct RedistributeUnpackPolicy
 
 struct ParticleCopyOp 
 {
-    Vector<std::map<int, Gpu::ManagedVector<int> > > m_boxes;
-    Vector<std::map<int, Gpu::ManagedVector<int> > > m_levels;
-    Vector<std::map<int, Gpu::ManagedVector<int> > > m_src_indices;
-    Vector<std::map<int, Gpu::ManagedVector<IntVect> > > m_periodic_shift;
+    Vector<std::map<int, Gpu::DeviceVector<int> > > m_boxes;
+    Vector<std::map<int, Gpu::DeviceVector<int> > > m_levels;
+    Vector<std::map<int, Gpu::DeviceVector<int> > > m_src_indices;
+    Vector<std::map<int, Gpu::DeviceVector<IntVect> > > m_periodic_shift;
 
     void clear ();
 
@@ -71,15 +71,15 @@ struct ParticleCopyOp
 
 struct ParticleCopyPlan 
 {
-    Vector<std::map<int, Gpu::ManagedVector<int> > > m_dst_indices;
+    Vector<std::map<int, Gpu::DeviceVector<int> > > m_dst_indices;
     
-    Gpu::ManagedVector<unsigned int> m_box_counts;
-    Gpu::ManagedVector<unsigned int> m_box_offsets;
+    Gpu::DeviceVector<unsigned int> m_box_counts;
+    Gpu::DeviceVector<unsigned int> m_box_offsets;
 
-    Gpu::ManagedVector<int> m_rcv_box_counts;
-    Gpu::ManagedVector<int> m_rcv_box_offsets;
-    Gpu::ManagedVector<int> m_rcv_box_ids;
-    Gpu::ManagedVector<int> m_rcv_box_levs;
+    Gpu::DeviceVector<int> m_rcv_box_counts;
+    Gpu::DeviceVector<int> m_rcv_box_offsets;
+    Gpu::DeviceVector<int> m_rcv_box_ids;
+    Gpu::DeviceVector<int> m_rcv_box_levs;
 
     long m_NumSnds;
     int m_nrcvs;
@@ -112,25 +112,14 @@ struct ParticleCopyPlan
         const int num_levels = pc.BufferMap().numLevels();
         const int num_buckets = pc.BufferMap().numBuckets();
 
-        m_neighbor_procs = pc.NeighborProcs(ngrow);
-
-        if (num_buckets == 1 and (not pc.Geom(0).isAnyPeriodic()) )
+        if (m_local) 
         {
-#ifdef AMREX_USE_MPI
-            const int NProcs = ParallelDescriptor::NProcs();
-            m_Snds.resize(0);
-            m_Snds.resize(NProcs, 0);
-            
-            m_Rcvs.resize(0);
-            m_Rcvs.resize(NProcs, 0);
-            
-            m_snd_num_particles.resize(0);
-            m_snd_num_particles.resize(NProcs, 0);
-            
-            m_rcv_num_particles.resize(0);
-            m_rcv_num_particles.resize(NProcs, 0);
-#endif
-            return;
+            m_neighbor_procs = pc.NeighborProcs(ngrow);
+        }
+        else 
+        {
+            m_neighbor_procs.resize(ParallelDescriptor::NProcs());
+            std::iota(m_neighbor_procs.begin(), m_neighbor_procs.end(), 0);
         }
 
         m_box_counts.resize(0);
@@ -149,6 +138,7 @@ struct ParticleCopyPlan
             {
                 int gid = kv.first.first;
                 int num_copies = op.numCopies(gid, lev);
+                if (num_copies == 0) continue;
                 m_dst_indices[lev][gid].resize(num_copies);
             
                 auto p_boxes = op.m_boxes[lev].at(gid).dataPtr();
@@ -219,7 +209,6 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
 
     int num_levels = pc.BufferMap().numLevels();
     int num_buckets = pc.BufferMap().numBuckets();
-    if (num_buckets == 1 and (not pc.Geom(0).isAnyPeriodic()) ) return;
     long total_buffer_size = plan.m_box_offsets[num_buckets]*psize;
     snd_buffer.resize(total_buffer_size);
 
@@ -246,6 +235,7 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
             const auto ptd = src_tile.getConstParticleTileData();
             
             int num_copies = op.numCopies(gid, lev);
+            if (num_copies == 0) continue;
             
             auto p_boxes = op.m_boxes[lev].at(gid).dataPtr();
             auto p_levels = op.m_levels[lev].at(gid).dataPtr();
@@ -292,7 +282,6 @@ void unpackBuffer (PC& pc, const ParticleCopyPlan& plan, const Buffer& snd_buffe
 
     int num_levels = pc.BufferMap().numLevels();
     int num_buckets = pc.BufferMap().numBuckets();
-    if (num_buckets == 1 and (not pc.Geom(0).isAnyPeriodic()) ) return;
 
     long psize = pc.superParticleSize();
 
