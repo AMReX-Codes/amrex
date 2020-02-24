@@ -49,6 +49,9 @@ public:
     //! The current amount of heap space used by the CArena object.
     std::size_t heap_space_used () const noexcept;
 
+    //! Return the amount of memory in this pointer.  Return 0 for unknown pointer.
+    std::size_t sizeOf (void* p);
+
     //! The default memory hunk size to grab from the heap.
     enum { DefaultHunkSize = 1024*1024*8 };
 
