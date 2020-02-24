@@ -11,8 +11,6 @@ CEXE_sources   += AMReX_MLMGBndry.cpp
 CEXE_headers   += AMReX_MLLinOp.H
 CEXE_sources   += AMReX_MLLinOp.cpp
 CEXE_headers   += AMReX_MLLinOp_K.H
-F90EXE_sources += AMReX_MLLinOp_nd.F90
-
 
 CEXE_headers   += AMReX_MLCellLinOp.H
 CEXE_sources   += AMReX_MLCellLinOp.cpp
@@ -62,6 +60,11 @@ CEXE_headers   += AMReX_MLEBABecLap_$(DIM)D_K.H
 CEXE_headers   += AMReX_MLEBTensorOp.H
 CEXE_sources   += AMReX_MLEBTensorOp.cpp
 CEXE_headers   += AMReX_MLEBTensor_K.H AMReX_MLEBTensor_$(DIM)D_K.H
+endif
+
+ifneq ($(BL_NO_FORT),TRUE)
+  CEXE_headers += AMReX_MLLinOp_F.H
+  F90EXE_sources += AMReX_MLLinOp_nd.F90
 endif
 
 VPATH_LOCATIONS += $(AMREX_HOME)/Src/LinearSolvers/MLMG

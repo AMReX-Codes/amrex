@@ -6,17 +6,21 @@
 #include <memory>
 #include <AMReX_GpuDevice.H>
 
+#ifdef __HIP_PLATFORM_HCC__
+#define HIPRT_CB 
+#endif
+
 namespace amrex {
 namespace Gpu {
 
 namespace {
 
-#ifdef AMREX_USE_GPU
+#if defined(AMREX_USE_GPU) && !defined(AMREX_USE_DPCPP)
 
 extern "C" {
 AMREX_HIP_OR_CUDA(
-    void  HIPRT_CB amrex_elixir_delete ( hipStream_t stream,  hipError_t error, void* p),
-    void CUDART_CB amrex_elixir_delete (cudaStream_t stream, cudaError_t error, void* p))
+         void HIPRT_CB  amrex_elixir_delete ( hipStream_t stream,  hipError_t error, void* p),
+         void CUDART_CB amrex_elixir_delete (cudaStream_t stream, cudaError_t error, void* p))
     {
         void** pp = (void**)p;
         void* d = pp[0];
@@ -33,10 +37,11 @@ AMREX_HIP_OR_CUDA(
 void
 Elixir::clear () noexcept
 {
-#ifdef AMREX_USE_GPU
+#if defined(AMREX_USE_GPU)
     if (Gpu::inLaunchRegion())
     {
         if (m_p != nullptr) {
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
             void** p = static_cast<void**>(std::malloc(2*sizeof(void*)));
             p[0] = m_p;
             p[1] = (void*)m_arena;
@@ -46,6 +51,11 @@ Elixir::clear () noexcept
                 AMREX_CUDA_SAFE_CALL(cudaStreamAddCallback(Gpu::gpuStream(),
                                                            amrex_elixir_delete, p, 0)););
             Gpu::callbackAdded();
+#elif defined(AMREX_USE_DPCPP)
+            // xxxxx DPCPP todo
+            Gpu::streamSynchronize();
+            if (m_p != nullptr) m_arena->free(m_p);
+#endif
         }
     }
     else

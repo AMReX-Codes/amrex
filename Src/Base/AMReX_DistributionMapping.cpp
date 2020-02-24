@@ -5,9 +5,7 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_FArrayBox.H>
-#if !defined(BL_NO_FORT)
 #include <AMReX_Geometry.H>
-#endif
 #include <AMReX_VisMF.H>
 #include <AMReX_Utility.H>
 

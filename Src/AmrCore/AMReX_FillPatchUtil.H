@@ -98,16 +98,28 @@ namespace amrex
 #endif
 
     void InterpFromCoarseLevel (MultiFab& mf, Real time,
-				const MultiFab& cmf, int scomp, int dcomp, int ncomp,
-				const Geometry& cgeom, const Geometry& fgeom, 
-				PhysBCFunctBase& cbc, int cbccomp,
+                                const MultiFab& cmf, int scomp, int dcomp, int ncomp,
+                                const Geometry& cgeom, const Geometry& fgeom,
+                                PhysBCFunctBase& cbc, int cbccomp,
                                 PhysBCFunctBase& fbc, int fbccomp,
-                                const IntVect& ratio, 
-				Interpolater* mapper,
+                                const IntVect& ratio,
+                                Interpolater* mapper,
                                 const Vector<BCRec>& bcs, int bcscomp,
                                 const InterpHook& pre_interp = NullInterpHook(),
                                 const InterpHook& post_interp = NullInterpHook());
 
+    void InterpFromCoarseLevel (MultiFab& mf, IntVect const& nghost, Real time,
+                                const MultiFab& cmf, int scomp, int dcomp, int ncomp,
+                                const Geometry& cgeom, const Geometry& fgeom,
+                                PhysBCFunctBase& cbc, int cbccomp,
+                                PhysBCFunctBase& fbc, int fbccomp,
+                                const IntVect& ratio,
+                                Interpolater* mapper,
+                                const Vector<BCRec>& bcs, int bcscomp,
+                                const InterpHook& pre_interp = NullInterpHook(),
+                                const InterpHook& post_interp = NullInterpHook());
+
+#ifndef BL_NO_FORT
     enum InterpEM_t { InterpE, InterpB};
 
     void InterpCrseFineBndryEMfield (InterpEM_t interp_type,
@@ -121,6 +133,7 @@ namespace amrex
                                      const Array<MultiFab*,AMREX_SPACEDIM>& fine,
                                      const Geometry& cgeom, const Geometry& fgeom,
                                      int ref_ratio);
+#endif
 }
 
 #endif

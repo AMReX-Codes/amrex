@@ -242,7 +242,6 @@ Index filterParticles (PTile& dst, const PTile& src, const Index* mask) noexcept
  * \brief Conditionally copy particles from src to dst based on a predicate.
  * 
  * \tparam PTile the particle tile type
- * \tparam Index the index type, e.g. unsigned int
  * \tparam Pred a function object
  *
  * \param dst the destination tile
@@ -316,7 +315,6 @@ Index filterAndTransformParticles (DstTile& dst, const SrcTile& src, Index* mask
  * 
  * \tparam DstTile the dst particle tile type
  * \tparam SrcTile the src particle tile type
- * \tparam Index the index type, e.g. unsigned int
  * \tparam Pred a function object
  * \tparam F the transform function type
  *

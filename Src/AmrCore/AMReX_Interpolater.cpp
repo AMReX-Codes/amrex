@@ -4,8 +4,11 @@
 #include <AMReX_FArrayBox.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_Interpolater.H>
-#include <AMReX_INTERP_F.H>
 #include <AMReX_Interp_C.H>
+
+#ifndef BL_NO_FORT
+#include <AMReX_INTERP_F.H>
+#endif
 
 namespace amrex {
 
@@ -26,12 +29,15 @@ namespace amrex {
 //
 PCInterp                  pc_interp;
 NodeBilinear              node_bilinear_interp;
-CellBilinear              cell_bilinear_interp;
-CellQuadratic             quadratic_interp;
 CellConservativeLinear    lincc_interp;
 CellConservativeLinear    cell_cons_interp(0);
+
+#ifndef BL_NO_FORT
+CellBilinear              cell_bilinear_interp;
+CellQuadratic             quadratic_interp;
 CellConservativeProtected protected_interp;
 CellConservativeQuartic   quartic_interp;
+#endif
 
 Interpolater::~Interpolater () {}
 
@@ -135,6 +141,7 @@ NodeBilinear::interp (const FArrayBox&  crse,
     });
 }
 
+#ifndef BL_NO_FORT
 CellBilinear::~CellBilinear () {}
 
 Box
@@ -215,6 +222,7 @@ CellBilinear::interp (const FArrayBox&  crse,
                    slope.dataPtr(),&num_slope,strip.dataPtr(),&strip_lo,&strip_hi,
                    &actual_comp,&actual_state);
 }
+#endif
 
 Vector<int>
 Interpolater::GetBCArray (const Vector<BCRec>& bcr)
@@ -352,6 +360,7 @@ CellConservativeLinear::interp (const FArrayBox& crse,
     }
 }
 
+#ifndef BL_NO_FORT
 CellQuadratic::CellQuadratic (bool limit)
 {
     do_limited_slope = limit;
@@ -478,6 +487,8 @@ CellQuadratic::interp (const FArrayBox& crse,
 
 #endif /*(AMREX_SPACEDIM > 1)*/
 }
+#endif
+
 
 PCInterp::~PCInterp () {}
 
@@ -522,6 +533,7 @@ PCInterp::interp (const FArrayBox& crse,
     });
 }
 
+#ifndef BL_NO_FORT
 CellConservativeProtected::CellConservativeProtected () {}
 
 CellConservativeProtected::~CellConservativeProtected () {}
@@ -703,7 +715,9 @@ CellConservativeProtected::protect (const FArrayBox& crse,
 #endif /*(AMREX_SPACEDIM > 1)*/
 
 }
+#endif
 
+#ifndef BL_NO_FORT
 CellConservativeQuartic::~CellConservativeQuartic () {}
 
 Box
@@ -803,5 +817,6 @@ CellConservativeQuartic::interp (const FArrayBox&  crse,
 		      AMREX_D_DECL(ftmp.dataPtr(), ctmp.dataPtr(), ctmp2.dataPtr()),
 		      bc.dataPtr(),&actual_comp,&actual_state);
 }
+#endif
 
 }
