@@ -13,9 +13,9 @@ ifeq ($(USE_MPI),TRUE)
   F90 := mpif90
 
   ifeq ($(LINK_WITH_FORTRAN_COMPILER),TRUE)
-    MPI_OTHER_COMP := $(CXX)
+    MPI_OTHER_COMP := mpicxx
   else
-    MPI_OTHER_COMP := $(F90)
+    MPI_OTHER_COMP := mpif90
   endif
 
   # Link to MPI f90 library.
@@ -25,11 +25,13 @@ ifeq ($(USE_MPI),TRUE)
     # mpich
     #
 
-    mpif90_link_flags := $(shell $(MPI_OTHER_COMP) -link_info)
-    #
-    # The first word is the underlying compiler say gfortran
-    #
-    LIBRARIES += $(wordlist 2,1024,$(mpif90_link_flags))
+    ifneq ($(BL_NO_FORT),TRUE)
+      mpif90_link_flags := $(shell $(MPI_OTHER_COMP) -link_info)
+      #
+      # The first word is the underlying compiler say gfortran
+      #
+      LIBRARIES += $(wordlist 2,1024,$(mpif90_link_flags))
+    endif
 
     ifneq ($(CXX),$(filter $(CXX),mpicxx mpic++))
       mpicxx_link_flags := $(shell mpicxx -link_info)
@@ -42,11 +44,13 @@ ifeq ($(USE_MPI),TRUE)
     # mvapich
     #
 
-    mpif90_link_flags := $(shell $(MPI_OTHER_COMP) -link_info)
-    #
-    # The first word is the underlying compiler say gfortran
-    #
-    LIBRARIES += $(wordlist 2,1024,$(mpif90_link_flags))
+    ifneq ($(BL_NO_FORT),TRUE)
+      mpif90_link_flags := $(shell $(MPI_OTHER_COMP) -link_info)
+      #
+      # The first word is the underlying compiler say gfortran
+      #
+      LIBRARIES += $(wordlist 2,1024,$(mpif90_link_flags))
+    endif
 
     ifneq ($(CXX),$(filter $(CXX),mpicxx mpic++))
       mpicxx_link_flags := $(shell mpicxx -link_info)
@@ -59,8 +63,10 @@ ifeq ($(USE_MPI),TRUE)
     # openmpi
     #
 
-    mpif90_link_flags := $(shell $(MPI_OTHER_COMP) -showme:link)
-    LIBRARIES += $(mpif90_link_flags)
+    ifneq ($(BL_NO_FORT),TRUE)
+      mpif90_link_flags := $(shell $(MPI_OTHER_COMP) -showme:link)
+      LIBRARIES += $(mpif90_link_flags)
+    endif
 
     ifneq ($(CXX),$(filter $(CXX),mpicxx mpic++))
       mpicxx_link_flags := $(shell mpicxx -showme:link)
@@ -72,8 +78,10 @@ ifeq ($(USE_MPI),TRUE)
     #
     # Spectrum MPI
     #
-    mpif90_link_flags := $(shell $(MPI_OTHER_COMP) -showme:link)
-    LIBRARIES += $(mpif90_link_flags)
+    ifneq ($(BL_NO_FORT),TRUE)
+      mpif90_link_flags := $(shell $(MPI_OTHER_COMP) -showme:link)
+      LIBRARIES += $(mpif90_link_flags)
+    endif
 
   else
 
