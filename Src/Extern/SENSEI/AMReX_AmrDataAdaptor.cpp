@@ -35,24 +35,6 @@
 #include <map>
 #include <utility>
 
-// return the number of levels currently in use
-static
-unsigned int numActiveLevels(
-    amrex::Vector<std::unique_ptr<amrex::AmrLevel>> &levels)
-{
-    unsigned int nLevels = levels.size();
-    for (int i = 0; i < nLevels; ++i)
-    {
-        if (!levels[i])
-        {
-            nLevels = i;
-            break;
-        }
-    }
-    return nLevels;
-}
-
-
 namespace amrex {
 namespace InSituUtils {
 
@@ -91,6 +73,74 @@ int DescriptorMap::Initialize(const DescriptorList &descriptors)
 
     return 0;
 }
+
+// return the number of levels currently in use
+unsigned int NumActiveLevels(
+    amrex::Vector<std::unique_ptr<amrex::AmrLevel>> &levels)
+{
+    unsigned int nLevels = levels.size();
+    for (int i = 0; i < nLevels; ++i)
+    {
+        if (!levels[i])
+        {
+            nLevels = i;
+            break;
+        }
+    }
+    return nLevels;
+}
+
+// generate the ghost cells arrays
+template <typename n_t>
+int GenerateMasks(amrex::Vector<std::unique_ptr<amrex::AmrLevel>> &levels,
+    std::vector<std::vector<n_t*>> &masks)
+{
+    unsigned int nLevels = InSituUtils::NumActiveLevels(levels);
+
+    masks.resize(nLevels);
+
+    for (unsigned int i = 0; i < nLevels; ++i)
+    {
+        // allocate mask arrays
+        const amrex::BoxArray &boxes = levels[i]->boxArray();
+        const amrex::DistributionMapping &dmap = levels[i]->DistributionMap();
+        const amrex::Box &pdom = levels[i]->Domain();
+
+        amrex::MultiFab& state = levels[i]->get_new_data(0);
+        unsigned int ng = state.nGrow();
+
+        std::vector<n_t*> mask;
+        InSituUtils::AllocateBoxArray<n_t>(pdom, boxes, dmap, ng, mask);
+
+        // mask ghost cells
+        InSituUtils::MaskGhostCells<n_t>(pdom, boxes, dmap, ng, mask);
+
+        // store mask array
+        masks[i] = mask;
+    }
+
+    // loop over coarse levels
+    unsigned int nCoarseLevels = nLevels - 1;
+    for (unsigned int i = 0; i < nCoarseLevels; ++i)
+    {
+        int ii = i + 1;
+
+        // mask regions covered by refinement
+        amrex::MultiFab& state = levels[i]->get_new_data(0);
+        unsigned int ng = state.nGrow();
+
+        const amrex::Box &pdom = levels[i]->Domain();
+        const amrex::BoxArray &cBoxes = levels[i]->boxArray();
+        const amrex::DistributionMapping &cMap = levels[i]->DistributionMap();
+        const amrex::BoxArray &fBoxes = levels[ii]->boxArray();
+        amrex::IntVect fRefRatio = levels[i]->fineRatio();
+
+        InSituUtils::MaskCoveredCells<n_t>(
+            pdom, cBoxes, cMap, fBoxes, fRefRatio, ng, masks[i]);
+    }
+
+    return 0;
+}
 }
 
 // data adaptor's internal data
@@ -104,6 +154,7 @@ struct AmrDataAdaptor::InternalsType
 #if SENSEI_VERSION_MAJOR < 3
     std::vector<vtkDataObject*> ManagedObjects;
 #endif
+    std::vector<std::vector<unsigned char *>> Masks;
 };
 
 //-----------------------------------------------------------------------------
@@ -184,7 +235,7 @@ int AmrDataAdaptor::GetMeshMetadata(unsigned int id,
      this->Internals->SimData->getAmrLevels();
 
     // num levels and blocks per level
-    metadata->NumLevels = numActiveLevels(levels);
+    metadata->NumLevels = InSituUtils::NumActiveLevels(levels);
 
     metadata->NumBlocks = 0;
     metadata->BlocksPerLevel.resize(metadata->NumLevels);
@@ -267,8 +318,14 @@ int AmrDataAdaptor::GetMeshMetadata(unsigned int id,
 
     }
 
+    std::vector<std::vector<std::array<double,2>>> blockArrayRange;
+    std::vector<int> blockId;
     if (metadata->Flags.BlockArrayRangeSet())
-        metadata->BlockArrayRange.reserve(metadata->NumBlocks);
+    {
+        blockArrayRange.reserve(metadata->NumBlocks);
+        blockId.reserve(metadata->NumBlocks);
+        InSituUtils::GenerateMasks(levels, this->Internals->Masks);
+    }
 
     int rank = 0;
     MPI_Comm_rank(this->GetCommunicator(), &rank);
@@ -295,7 +352,7 @@ int AmrDataAdaptor::GetMeshMetadata(unsigned int id,
         const amrex::BoxArray& ba = levels[i]->boxArray();
         unsigned int nBoxes = ba.size();
 
-        for (unsigned int j = 0; j < nBoxes; ++j)
+        for (unsigned int j = 0; j < nBoxes; ++j, ++gid)
         {
             // cell centered box
             amrex::Box cbox = ba[j];
@@ -304,6 +361,9 @@ int AmrDataAdaptor::GetMeshMetadata(unsigned int id,
             for (int q = 0; q < AMREX_SPACEDIM; ++q)
                 cbox.grow(q, ng);
 
+            // cell centered size
+            long clen = cbox.numPts();
+
             // node centered box
             amrex::Box nbox = surroundingNodes(cbox);
 
@@ -311,18 +371,21 @@ int AmrDataAdaptor::GetMeshMetadata(unsigned int id,
             int nboxLo[3] = {AMREX_ARLIM(nbox.loVect())};
             int nboxHi[3] = {AMREX_ARLIM(nbox.hiVect())};
 
+            // node centered size
+            long nlen = nbox.numPts();
+
             // domain decomp
             if (metadata->Flags.BlockDecompSet())
             {
                 metadata->BlockOwner.push_back(dmap[j]);
-                metadata->BlockIds.push_back(gid++);
+                metadata->BlockIds.push_back(gid);
             }
 
             // block sizes
             if (metadata->Flags.BlockSizeSet())
             {
-                metadata->BlockNumPoints.push_back(nbox.numPts());
-                metadata->BlockNumCells.push_back(cbox.numPts());
+                metadata->BlockNumPoints.push_back(nlen);
+                metadata->BlockNumCells.push_back(clen);
             }
 
             // block extent
@@ -341,13 +404,14 @@ int AmrDataAdaptor::GetMeshMetadata(unsigned int id,
                     pdLo[1] + spacing[1]*nboxHi[1], pdLo[2] + spacing[2]*nboxLo[2],
                     pdLo[2] + spacing[2]*nboxHi[2]});
 
-            // only for local blocks
+            // block array range, compute only for local blocks, and then
+            // make a global view
             if ((dmap[j] == rank) && (metadata->Flags.BlockArrayRangeSet()))
             {
                 std::vector<std::array<double,2>> arrayRange;
                 arrayRange.reserve(metadata->NumArrays);
 
-                // block array range
+                // for each collection (point,cell,edge,face...)
                 for (int k = 0; k < ndesc; ++k)
                 {
                     const StateDescriptor &desc = descriptors[k];
@@ -356,16 +420,47 @@ int AmrDataAdaptor::GetMeshMetadata(unsigned int id,
                     int ncomp = desc.nComp();
                     IndexType itype = desc.getType();
 
-                    for (int l = 0; l < ncomp; ++l)
+                    if (state[j].box().ixType() == amrex::IndexType::TheCellType())
                     {
-                        // calculate min/max on this block for this array
-                        amrex_real mn = state[j].min(l);
-                        amrex_real mx = state[j].max(l);
-                        arrayRange.push_back({mn, mx});
+                        // min max on cell centered data only includes
+                        // non ghost and non covered cells
+                        for (int l = 0; l < ncomp; ++l)
+                        {
+                            // pointer to the data
+                            amrex_real *pcd = state[j].dataPtr(l);
+
+                            // pointer to the mask (valid cells are not masked)
+                            unsigned char *mask = this->Internals->Masks[i][j];
+
+                            // compute min / max for valid cells
+                            amrex_real mn = std::numeric_limits<amrex_real>::max();
+                            amrex_real mx = std::numeric_limits<amrex_real>::lowest();
+                            for (long q = 0; q < clen; ++q)
+                            {
+                                amrex_real val = pcd[q];
+                                bool valid = mask[q] == 0;
+                                mn = valid ? std::min(mn, val) : mn;
+                                mx = valid ? std::max(mx, val) : mx;
+                            }
+                            arrayRange.push_back({mn, mx});
+                        }
                     }
+                    else
+                    {
+                        // min max on node, edge and face centered data
+                        // includes non ghost cells and covered cells
+                        for (int l = 0; l < ncomp; ++l)
+                        {
+                            amrex_real mn = state[j].min(l);
+                            amrex_real mx = state[j].max(l);
+                            arrayRange.push_back({mn, mx});
+                        }
+                    }
+
                 }
 
-                metadata->BlockArrayRange.push_back(arrayRange);
+                blockArrayRange.push_back(arrayRange);
+                blockId.push_back(gid);
             }
         }
     }
@@ -373,8 +468,18 @@ int AmrDataAdaptor::GetMeshMetadata(unsigned int id,
     // make the block array range global
     if (metadata->Flags.BlockArrayRangeSet())
     {
-        sensei::MPIUtils::GlobalViewV(this->GetCommunicator(), metadata->BlockArrayRange);
-        sensei::STLUtils::ReduceRange(metadata->BlockArrayRange, metadata->ArrayRange);
+        // global view by rank.
+        sensei::MPIUtils::GlobalViewV(this->GetCommunicator(), blockArrayRange);
+        sensei::STLUtils::ReduceRange(blockArrayRange, metadata->ArrayRange);
+
+        // move from rank order back into block order
+        metadata->BlockArrayRange.resize(metadata->NumBlocks);
+        sensei::MPIUtils::GlobalViewV(this->GetCommunicator(), blockId);
+        for (int i = 0; i < metadata->NumBlocks; ++i)
+        {
+            gid = blockId[i];
+            metadata->BlockArrayRange[gid] = blockArrayRange[i];
+        }
     }
 
     return 0;
@@ -497,7 +602,7 @@ int AmrDataAdaptor::GetMesh(const std::string &meshName,
     amrex::Vector<std::unique_ptr<amrex::AmrLevel>> &levels =
      this->Internals->SimData->getAmrLevels();
 
-    unsigned int nLevels = numActiveLevels(levels);
+    unsigned int nLevels = InSituUtils::NumActiveLevels(levels);
 
     // initialize new vtk datasets
     vtkOverlappingAMR *amrMesh = vtkOverlappingAMR::New();
@@ -626,48 +731,14 @@ int AmrDataAdaptor::AddGhostCellsArray(vtkDataObject* mesh,
     amrex::Vector<std::unique_ptr<amrex::AmrLevel>> &levels =
      this->Internals->SimData->getAmrLevels();
 
-    unsigned int nLevels = numActiveLevels(levels);
+    unsigned int nLevels = InSituUtils::NumActiveLevels(levels);
 
-    std::vector<std::vector<unsigned char*>> masks(nLevels);
-    for (unsigned int i = 0; i < nLevels; ++i)
-    {
-        // allocate mask arrays
-        const amrex::BoxArray &boxes = levels[i]->boxArray();
-        const amrex::DistributionMapping &dmap = levels[i]->DistributionMap();
-        const amrex::Box &pdom = levels[i]->Domain();
-
-        amrex::MultiFab& state = levels[i]->get_new_data(0);
-        unsigned int ng = state.nGrow();
-
-        std::vector<unsigned char*> mask;
-        InSituUtils::AllocateBoxArray<unsigned char>(pdom, boxes, dmap, ng, mask);
-
-        // mask ghost cells
-        InSituUtils::MaskGhostCells<unsigned char>(pdom, boxes, dmap, ng, mask);
-
-        // store mask array
-        masks[i] = mask;
-    }
-
-    // loop over coarse levels
-    unsigned int nCoarseLevels = nLevels - 1;
-    for (unsigned int i = 0; i < nCoarseLevels; ++i)
-    {
-        int ii = i + 1;
-
-        // mask regions covered by refinement
-        amrex::MultiFab& state = levels[i]->get_new_data(0);
-        unsigned int ng = state.nGrow();
-
-        const amrex::Box &pdom = levels[i]->Domain();
-        const amrex::BoxArray &cBoxes = levels[i]->boxArray();
-        const amrex::DistributionMapping &cMap = levels[i]->DistributionMap();
-        const amrex::BoxArray &fBoxes = levels[ii]->boxArray();
-        amrex::IntVect fRefRatio = levels[i]->fineRatio();
-
-        InSituUtils::MaskCoveredCells<unsigned char>(
-            pdom, cBoxes, cMap, fBoxes, fRefRatio, ng, masks[i]);
-    }
+    // generate a mask array for each box in each level
+    // the mask arrays may be chached as they are used in
+    // GetMeshMetadata to determine array min/max over
+    // valid cells
+    if (!this->Internals->Masks.size())
+        InSituUtils::GenerateMasks(levels, this->Internals->Masks);
 
     // loop over levels
     for (unsigned int i = 0; i < nLevels; ++i)
@@ -675,7 +746,7 @@ int AmrDataAdaptor::AddGhostCellsArray(vtkDataObject* mesh,
         const amrex::DistributionMapping &dMap = levels[i]->DistributionMap();
 
         // mask arrays for this level
-        std::vector<unsigned char*> &mask = masks[i];
+        std::vector<unsigned char*> &mask = this->Internals->Masks[i];
 
         // loop over boxes
         const amrex::BoxArray& ba = levels[i]->boxArray();
@@ -703,6 +774,9 @@ int AmrDataAdaptor::AddGhostCellsArray(vtkDataObject* mesh,
             ga->SetArray(mask[j], nCells, 0);
             blockMesh->GetCellData()->AddArray(ga);
             ga->Delete();
+
+            // because VTK takes ownership
+            mask[j] = nullptr;
 
             // for debug can visualize the ghost cells
             // FIXME -- a bug in Catalyst ignores internal ghost zones
@@ -785,7 +859,7 @@ int AmrDataAdaptor::AddArray(vtkDataObject* mesh, const std::string &meshName,
     }
 
     // loop over levels
-    unsigned int nLevels = numActiveLevels(levels);
+    unsigned int nLevels = InSituUtils::NumActiveLevels(levels);
     for (unsigned int i = 0; i < nLevels; ++i)
     {
         // domain decomp
@@ -917,6 +991,19 @@ int AmrDataAdaptor::ReleaseData()
          this->Internals->ManagedObjects[i]->Delete();
      this->Internals->ManagedObjects.clear();
 #endif
+
+    // if masks are cached free them
+    int numLevels = this->Internals->Masks.size();
+    for (int j = 0; j < numLevels; ++j)
+    {
+        std::vector<unsigned char*> &masks = this->Internals->Masks[j];
+        long numBoxes = masks.size();
+        for (long i = 0; i < numBoxes; ++i)
+        {
+            free(masks[i]);
+        }
+    }
+    this->Internals->Masks.clear();
 
     return 0;
 }
