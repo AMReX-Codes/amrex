@@ -189,6 +189,59 @@ CArena::free (void* vp)
     }
 }
 
+std::pair<void*,std::size_t>
+CArena::grow (void* pt, std::size_t min_size, std::size_t max_size)
+{
+    if (pt == nullptr) return std::make_pair(alloc(max_size), max_size);
+
+    max_size = Arena::align(max_size);
+
+    std::lock_guard<std::mutex> lock(carena_mutex);
+
+    auto busy_it = m_busylist.find(Node(pt,0,0));
+
+    BL_ASSERT(!(busy_it == m_busylist.end()));
+    BL_ASSERT(m_freelist.find(*busy_it) == m_freelist.end());
+
+    std::size_t current_size = busy_it->size();
+    if (current_size >= min_size)
+    {
+        return std::make_pair(pt, current_size);
+    }
+    else
+    {
+        void* pt2 = (char*)pt + current_size;
+        auto free_it = m_freelist.find(Node(pt2,0,0));
+        if (free_it == m_freelist.end() or not busy_it->coalescable(*free_it))
+        {
+            return std::make_pair(alloc(max_size), max_size);
+        }
+        else
+        {
+            std::size_t next_block_size = free_it->size();
+            std::size_t new_size = current_size + next_block_size;
+            if (new_size < min_size)
+            {
+                return std::make_pair(alloc(max_size), max_size);
+            }
+            else if (new_size <= max_size)
+            {
+                m_actually_used += next_block_size;
+                m_freelist.erase(free_it);
+                return std::make_pair(pt, new_size);
+            }
+            else
+            {
+                m_actually_used += next_block_size - (new_size-max_size);
+                void* pt3 = (char*)pt + max_size;
+                m_freelist.insert(free_it, Node(pt3, free_it->owner(), new_size-max_size));
+                m_freelist.erase(free_it);
+                return std::make_pair(pt, max_size);
+            }
+        }
+    }
+}
+
 std::size_t
 CArena::heap_space_used () const noexcept
 {

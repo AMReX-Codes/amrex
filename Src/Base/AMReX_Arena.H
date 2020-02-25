@@ -2,6 +2,7 @@
 #define AMREX_ARENA_H_
 
 #include <AMReX_BLassert.H>
+#include <utility>
 #include <cstddef>
 #include <cstdlib>
 
@@ -79,6 +80,17 @@ public:
     * \brief A pure virtual function for deleting the arena pointed to by pt
     */
     virtual void free (void* pt) = 0;
+    /**
+    * Grow the capacity of given pointer.  Arena will try to grow the
+    * capacity of the given pointer to at least the minimum size.  If
+    * it cannot satisfy the minimum size requiement, new allocation
+    * will be made without deleting the given pointer.  The return
+    * value is a pair of pointer and its size.
+    */
+    virtual std::pair<void*,std::size_t> grow (void* pt, std::size_t min_size, std::size_t max_size)
+    {
+        return std::make_pair(alloc(max_size), max_size);
+    }
     /**
     * \brief Given a minimum required arena size of sz bytes, this returns
     * the next largest arena size that will align to align_size bytes

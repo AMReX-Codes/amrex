@@ -47,6 +47,16 @@ public:
     */
     virtual void free (void* ap) override final;
 
+    /**
+    * Grow the capacity of given pointer.  Arena will try to grow the
+    * capacity of the given pointer to at least the minimum size.  If
+    * it cannot satisfy the minimum size requiement, new allocation
+    * will be made without deleting the given pointer.  The return
+    * value is a pair of pointer and its size.
+    */
+    virtual std::pair<void*,std::size_t>
+    grow (void* pt, std::size_t min_size, std::size_t max_size) override final;
+
     //! The current amount of heap space used by the CArena object.
     std::size_t heap_space_used () const noexcept;
 

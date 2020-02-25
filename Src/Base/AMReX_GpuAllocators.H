@@ -5,6 +5,7 @@
 #include <memory>
 #include <limits>
 #include <memory>
+#include <utility>
 
 #include <AMReX_Print.H>
 #include <AMReX_Arena.H>
@@ -40,7 +41,14 @@ namespace amrex {
         inline void deallocate(value_type* ptr, std::size_t)
         {
             The_Arena()->free(ptr);
-        }    
+        }
+
+        inline std::pair<value_type*, std::size_t>
+        grow (value_type* ptr, std::size_t min_size, std::size_t max_size)
+        {
+            auto r = The_Arena()->grow(ptr, min_size, max_size);
+            return std::make_pair((value_type*)(r.first), r.second);
+        }
     };
 
     template<typename T>
@@ -60,7 +68,14 @@ namespace amrex {
         inline void deallocate(value_type* ptr, std::size_t)
         {
             The_Device_Arena()->free(ptr);
-        }    
+        }
+
+        inline std::pair<value_type*, std::size_t>
+        grow (value_type* ptr, std::size_t min_size, std::size_t max_size)
+        {
+            auto r = The_Device_Arena()->grow(ptr, min_size, max_size);
+            return std::make_pair((value_type*)(r.first), r.second);
+        }
     };
 
     template<typename T>
@@ -81,6 +96,13 @@ namespace amrex {
         {
             The_Pinned_Arena()->free(ptr);
         }    
+
+        inline std::pair<value_type*, std::size_t>
+        grow (value_type* ptr, std::size_t min_size, std::size_t max_size)
+        {
+            auto r = The_Pinned_Arena()->grow(ptr, min_size, max_size);
+            return std::make_pair((value_type*)(r.first), r.second);
+        }
     };
 
     template<typename T>
@@ -100,7 +122,14 @@ namespace amrex {
         inline void deallocate(value_type* ptr, std::size_t)
         {
             The_Managed_Arena()->free(ptr);
-        }    
+        }
+
+        inline std::pair<value_type*, std::size_t>
+        grow (value_type* ptr, std::size_t min_size, std::size_t max_size)
+        {
+            auto r = The_Managed_Arena()->grow(ptr, min_size, max_size);
+            return std::make_pair((value_type*)(r.first), r.second);
+        }
     };
 
     template<typename T>
@@ -161,6 +190,18 @@ namespace amrex {
     struct RunOnGpu<ManagedArenaAllocator<T> > : std::true_type {};
 
 #endif // AMREX_USE_GPU
+
+    template <typename T>
+    class StdAllocator
+        : public std::allocator<T>
+    {
+        using value_type = T;
+        inline std::pair<value_type*, std::size_t>
+        grow (value_type* ptr, std::size_t /*min_size*/, std::size_t max_size)
+        {
+            return std::make_pair(std::allocator<T>::allocate(max_size), max_size);
+        }
+    };
 
 } // namespace amrex
 
