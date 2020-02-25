@@ -616,7 +616,6 @@ ifeq ($(USE_HIP),TRUE)
     else ifeq ($(HIP_PLATFORM),hcc)
         DEFINES += -DAMREX_HIP_PLATFORM_HCC
     endif
-   
 
     GPUSuffix := .HIP
 
