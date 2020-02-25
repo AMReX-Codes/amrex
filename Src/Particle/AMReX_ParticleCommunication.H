@@ -408,7 +408,7 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buff
         int bucket = pc.BufferMap().firstBucketOnProc(i);
         const auto snd_offset = plan.m_box_offsets[bucket]*psize;
 
-        ParallelDescriptor::Asend( (char*) (snd_buffer.dataPtr() + snd_offset), Cnt, Who, SeqNum);
+        ParallelDescriptor::Send( (char*) (snd_buffer.dataPtr() + snd_offset), Cnt, Who, SeqNum);
     }
 #endif // MPI
 }

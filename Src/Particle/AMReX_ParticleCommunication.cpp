@@ -165,7 +165,7 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map)
         AMREX_ASSERT(Who >= 0 && Who < NProcs);
         AMREX_ASSERT(Cnt < std::numeric_limits<int>::max());
         
-        ParallelDescriptor::Asend((char*) snd_data[i].data(), Cnt, Who, SeqNum);
+        ParallelDescriptor::Send((char*) snd_data[i].data(), Cnt, Who, SeqNum);
     }
 
 #endif
