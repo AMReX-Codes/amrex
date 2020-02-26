@@ -1,4 +1,3 @@
-CEXE_headers += WarpX_K.H
 CEXE_headers += WarpX_FDTD.H
 CEXE_sources += WarpXPushFieldsEM.cpp
 CEXE_sources += ElectrostaticSolver.cpp

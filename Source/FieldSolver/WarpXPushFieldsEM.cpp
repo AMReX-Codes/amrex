@@ -8,7 +8,6 @@
  */
 #include "WarpX.H"
 #include "Utils/WarpXConst.H"
-#include "WarpX_K.H"
 #include "BoundaryConditions/WarpX_PML_kernels.H"
 #include "BoundaryConditions/PML_current.H"
 #include "WarpX_FDTD.H"
@@ -218,6 +217,15 @@ WarpX::EvolveE (int lev, amrex::Real a_dt)
 void
 WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real a_dt)
 {
+
+    if (patch_type == PatchType::fine) {
+        m_fdtd_solver_fp[lev]->EvolveE( Efield_fp[lev], Bfield_fp[lev],
+                                      current_fp[lev], F_fp[lev], a_dt );
+    } else {
+        m_fdtd_solver_cp[lev]->EvolveE( Efield_cp[lev], Bfield_cp[lev],
+                                      current_cp[lev], F_cp[lev], a_dt );
+    }
+
     const Real mu_c2_dt = (PhysConst::mu0*PhysConst::c*PhysConst::c) * a_dt;
     const Real c2dt = (PhysConst::c*PhysConst::c) * a_dt;
 
@@ -260,123 +268,6 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real a_dt)
     // xmin is only used by the kernel for cylindrical geometry,
     // in which case it is actually rmin.
     const Real xmin = Geom(0).ProbLo(0);
-
-    // Loop through the grids, and over the tiles within each grid
-#ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-    for ( MFIter mfi(*Ex, TilingIfNotGPU()); mfi.isValid(); ++mfi )
-    {
-        Real wt = amrex::second();
-
-        const Box& tex  = mfi.tilebox(Ex_nodal_flag);
-        const Box& tey  = mfi.tilebox(Ey_nodal_flag);
-        const Box& tez  = mfi.tilebox(Ez_nodal_flag);
-
-        auto const& Exfab = Ex->array(mfi);
-        auto const& Eyfab = Ey->array(mfi);
-        auto const& Ezfab = Ez->array(mfi);
-        auto const& Bxfab = Bx->array(mfi);
-        auto const& Byfab = By->array(mfi);
-        auto const& Bzfab = Bz->array(mfi);
-        auto const& jxfab = jx->array(mfi);
-        auto const& jyfab = jy->array(mfi);
-        auto const& jzfab = jz->array(mfi);
-
-        if (do_nodal) {
-            amrex::ParallelFor(tex, tey, tez,
-            [=] AMREX_GPU_DEVICE (int j, int k, int l)
-            {
-                warpx_push_ex_nodal(j,k,l,Exfab,Byfab,Bzfab,jxfab,mu_c2_dt,dtsdy_c2,dtsdz_c2);
-            },
-            [=] AMREX_GPU_DEVICE (int j, int k, int l)
-            {
-                warpx_push_ey_nodal(j,k,l,Eyfab,Bxfab,Bzfab,jyfab,mu_c2_dt,dtsdx_c2,dtsdz_c2);
-            },
-            [=] AMREX_GPU_DEVICE (int j, int k, int l)
-            {
-                warpx_push_ez_nodal(j,k,l,Ezfab,Bxfab,Byfab,jzfab,mu_c2_dt,dtsdx_c2,dtsdy_c2);
-            });
-        } else {
-            const long nmodes = n_rz_azimuthal_modes;
-            amrex::ParallelFor(tex, tey, tez,
-            [=] AMREX_GPU_DEVICE (int j, int k, int l)
-            {
-                warpx_push_ex_yee(j,k,l,Exfab,Byfab,Bzfab,jxfab,mu_c2_dt,dtsdx_c2,dtsdy_c2,dtsdz_c2,dxinv,xmin,nmodes);
-            },
-            [=] AMREX_GPU_DEVICE (int j, int k, int l)
-            {
-                warpx_push_ey_yee(j,k,l,Eyfab,Bxfab,Bzfab,jyfab,Exfab,mu_c2_dt,dtsdx_c2,dtsdz_c2,xmin,nmodes);
-            },
-            [=] AMREX_GPU_DEVICE (int j, int k, int l)
-            {
-                warpx_push_ez_yee(j,k,l,Ezfab,Bxfab,Byfab,jzfab,mu_c2_dt,dtsdx_c2,dtsdy_c2,dxinv,xmin,nmodes);
-            });
-        }
-
-        if (F)
-        {
-            auto const& Ffab = F->array(mfi);
-            if (WarpX::maxwell_fdtd_solver_id == 0) {
-                amrex::ParallelFor(tex, tey, tez,
-                [=] AMREX_GPU_DEVICE (int j, int k, int l)
-                {
-                    warpx_push_ex_f_yee(j,k,l,Exfab,Ffab,dtsdx_c2);
-                },
-                [=] AMREX_GPU_DEVICE (int j, int k, int l)
-                {
-                    warpx_push_ey_f_yee(j,k,l,Eyfab,Ffab,dtsdy_c2);
-                },
-                [=] AMREX_GPU_DEVICE (int j, int k, int l)
-                {
-                    warpx_push_ez_f_yee(j,k,l,Ezfab,Ffab,dtsdz_c2);
-                });
-            }
-            else if (WarpX::maxwell_fdtd_solver_id == 1) {
-                Real betaxy, betaxz, betayx, betayz, betazx, betazy;
-                Real gammax, gammay, gammaz;
-                Real alphax, alphay, alphaz;
-                warpx_calculate_ckc_coefficients(dtsdx_c2, dtsdy_c2, dtsdz_c2,
-                                                 betaxy, betaxz, betayx, betayz, betazx, betazy,
-                                                 gammax, gammay, gammaz,
-                                                 alphax, alphay, alphaz);
-                amrex::ParallelFor(tex, tey, tez,
-                [=] AMREX_GPU_DEVICE (int j, int k, int l)
-                {
-                    warpx_push_ex_f_ckc(j,k,l,Exfab,Ffab,
-                                        betaxy, betaxz, betayx, betayz, betazx, betazy,
-                                        gammax, gammay, gammaz,
-                                        alphax, alphay, alphaz);
-                },
-                [=] AMREX_GPU_DEVICE (int j, int k, int l)
-                {
-                    warpx_push_ey_f_ckc(j,k,l,Eyfab,Ffab,
-                                        betaxy, betaxz, betayx, betayz, betazx, betazy,
-                                        gammax, gammay, gammaz,
-                                        alphax, alphay, alphaz);
-                },
-                [=] AMREX_GPU_DEVICE (int j, int k, int l)
-                {
-                    warpx_push_ez_f_ckc(j,k,l,Ezfab,Ffab,
-                                        betaxy, betaxz, betayx, betayz, betazx, betazy,
-                                        gammax, gammay, gammaz,
-                                        alphax, alphay, alphaz);
-                });
-            }
-        }
-
-        if (cost) {
-            Box cbx = mfi.tilebox(IntVect{AMREX_D_DECL(0,0,0)});
-            if (patch_type == PatchType::coarse) cbx.refine(rr);
-            wt = (amrex::second() - wt) / cbx.d_numPts();
-            auto costfab = cost->array(mfi);
-            amrex::ParallelFor(cbx,
-            [=] AMREX_GPU_DEVICE (int i, int j, int k)
-            {
-                costfab(i,j,k) += wt;
-            });
-        }
-    }
 
     if (do_pml && pml[lev]->ok())
     {

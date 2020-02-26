@@ -40,7 +40,7 @@ By default, the ``MultiFab`` are set to ``0`` at initialization. They can be ass
 Field solver
 ------------
 
-The field solver is performed in ``WarpX::EvolveE`` for the electric field and ``WarpX::EvolveB`` for the magnetic field, called from ``WarpX::OneStep_nosub`` in ``WarpX::EvolveEM``. This section describes the FDTD field push (the PSATD field push should be added later). It is implemented in ``Source/FieldSolver/WarpXPushFieldsEM.cpp``.
+The field solver is performed in ``WarpX::EvolveE`` for the electric field and ``WarpX::EvolveB`` for the magnetic field, called from ``WarpX::OneStep_nosub`` in ``WarpX::EvolveEM``. This section describes the FDTD field push. It is implemented in ``Source/FieldSolver/FiniteDifferenceSolver/``.
 
 As all cell-wise operation, the field push is done as follows (this is split in multiple functions in the actual implementation to aboid code duplication)
 :
@@ -69,11 +69,16 @@ The innermost step ``// Apply field solver on the FAB`` could be done with 3 nes
   amrex::ParallelFor(tex,
       [=] AMREX_GPU_DEVICE (int j, int k, int l)
       {
-          warpx_push_ex_yee(...);
+          Ex(i, j, k) += c2 * dt * (
+              - T_Algo::DownwardDz(By, coefs_z, n_coefs_z, i, j, k)
+              + T_Algo::DownwardDy(Bz, coefs_y, n_coefs_y, i, j, k)
+              - PhysConst::mu0 * jx(i, j, k) );
       }
   );
 
-Function ``warpx_push_ex_yee`` performs the FDTD stencil operation on a single cell. It is implemented in ``Source/FieldSolver/WarpX_K.H`` (where ``_K`` stands for kernel).
+where ``T_Algo::DownwardDz`` and ``T_Algo::DownwardDy`` represent the discretized derivative
+for a given algorithm (represented by the template parameter ``T_Algo``). The available
+discretization algorithms can be found in ``Source/FieldSolver/FiniteDifferenceSolver/FiniteDifferenceAlgorithms``.
 
 Guard cells exchanges
 ---------------------

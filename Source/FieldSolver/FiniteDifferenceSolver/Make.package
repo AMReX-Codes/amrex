@@ -1,6 +1,7 @@
 CEXE_headers += FiniteDifferenceSolver.H
 CEXE_sources += FiniteDifferenceSolver.cpp
 CEXE_sources += EvolveB.cpp
+CEXE_sources += EvolveE.cpp
 
 INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/FieldSolver/FiniteDifferenceSolver
 VPATH_LOCATIONS   += $(WARPX_HOME)/Source/FieldSolver/FiniteDifferenceSolver

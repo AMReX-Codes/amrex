@@ -6,7 +6,6 @@
  */
 #include "WarpX.H"
 #include "Utils/WarpXConst.H"
-#include "WarpX_K.H"
 #include "WarpX_QED_K.H"
 #include "BoundaryConditions/WarpX_PML_kernels.H"
 #include "BoundaryConditions/PML_current.H"
