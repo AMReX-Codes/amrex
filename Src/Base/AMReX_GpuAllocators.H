@@ -46,15 +46,15 @@ namespace amrex {
         inline std::pair<value_type*, std::size_t>
         grow (value_type* ptr, std::size_t min_size, std::size_t max_size)
         {
-            auto r = The_Arena()->grow(ptr, min_size, max_size);
-            return std::make_pair((value_type*)(r.first), r.second);
+            auto r = The_Arena()->grow(ptr, min_size*sizeof(T), max_size*sizeof(T));
+            return std::make_pair((value_type*)(r.first), r.second/sizeof(T));
         }
 
         inline std::pair<value_type*, std::size_t>
         shrink (value_type* ptr, std::size_t desired_size)
         {
-            auto r = The_Arena()->shrink(ptr, desired_size);
-            return std::make_pair((value_type*)(r.first), r.second);
+            auto r = The_Arena()->shrink(ptr, desired_size*sizeof(T));
+            return std::make_pair((value_type*)(r.first), r.second/sizeof(T));
         }
     };
 
@@ -80,15 +80,15 @@ namespace amrex {
         inline std::pair<value_type*, std::size_t>
         grow (value_type* ptr, std::size_t min_size, std::size_t max_size)
         {
-            auto r = The_Device_Arena()->grow(ptr, min_size, max_size);
-            return std::make_pair((value_type*)(r.first), r.second);
+            auto r = The_Device_Arena()->grow(ptr, min_size*sizeof(T), max_size*sizeof(T));
+            return std::make_pair((value_type*)(r.first), r.second/sizeof(T));
         }
 
         inline std::pair<value_type*, std::size_t>
         shrink (value_type* ptr, std::size_t desired_size)
         {
-            auto r = The_Device_Arena()->shrink(ptr, desired_size);
-            return std::make_pair((value_type*)(r.first), r.second);
+            auto r = The_Device_Arena()->shrink(ptr, desired_size*sizeof(T));
+            return std::make_pair((value_type*)(r.first), r.second/sizeof(T));
         }
     };
 
@@ -114,15 +114,15 @@ namespace amrex {
         inline std::pair<value_type*, std::size_t>
         grow (value_type* ptr, std::size_t min_size, std::size_t max_size)
         {
-            auto r = The_Pinned_Arena()->grow(ptr, min_size, max_size);
-            return std::make_pair((value_type*)(r.first), r.second);
+            auto r = The_Pinned_Arena()->grow(ptr, min_size*sizeof(T), max_size*sizeof(T));
+            return std::make_pair((value_type*)(r.first), r.second/sizeof(T));
         }
 
         inline std::pair<value_type*, std::size_t>
         shrink (value_type* ptr, std::size_t desired_size)
         {
-            auto r = The_Pinned_Arena()->shrink(ptr, desired_size);
-            return std::make_pair((value_type*)(r.first), r.second);
+            auto r = The_Pinned_Arena()->shrink(ptr, desired_size*sizeof(T));
+            return std::make_pair((value_type*)(r.first), r.second/sizeof(T));
         }
     };
 
@@ -148,15 +148,15 @@ namespace amrex {
         inline std::pair<value_type*, std::size_t>
         grow (value_type* ptr, std::size_t min_size, std::size_t max_size)
         {
-            auto r = The_Managed_Arena()->grow(ptr, min_size, max_size);
-            return std::make_pair((value_type*)(r.first), r.second);
+            auto r = The_Managed_Arena()->grow(ptr, min_size*sizeof(T), max_size*sizeof(T));
+            return std::make_pair((value_type*)(r.first), r.second/sizeof(T));
         }
 
         inline std::pair<value_type*, std::size_t>
         shrink (value_type* ptr, std::size_t desired_size)
         {
-            auto r = The_Managed_Arena()->shrink(ptr, desired_size);
-            return std::make_pair((value_type*)(r.first), r.second);
+            auto r = The_Managed_Arena()->shrink(ptr, desired_size*sizeof(T));
+            return std::make_pair((value_type*)(r.first), r.second/sizeof(T));
         }
     };
 
@@ -198,11 +198,11 @@ namespace amrex {
         {
             std::pair<void*, std::size_t> r;
             if (ParallelDescriptor::UseGpuAwareMpi()) {
-                r = The_Device_Arena()->grow(ptr, min_size, max_size);
+                r = The_Device_Arena()->grow(ptr, min_size*sizeof(T), max_size*sizeof(T));
             } else {
-                r = The_Pinned_Arena()->grow(ptr, min_size, max_size);
+                r = The_Pinned_Arena()->grow(ptr, min_size*sizeof(T), max_size*sizeof(T));
             }
-            return std::make_pair((value_type*)(r.first), r.second);
+            return std::make_pair((value_type*)(r.first), r.second/sizeof(T));
         }
 
         inline std::pair<value_type*, std::size_t>
@@ -210,11 +210,11 @@ namespace amrex {
         {
             std::pair<void*, std::size_t> r;
             if (ParallelDescriptor::UseGpuAwareMpi()) {
-                r = The_Device_Arena()->shrink(ptr, desired_size);
+                r = The_Device_Arena()->shrink(ptr, desired_size*sizeof(T));
             } else {
-                r = The_Pinned_Arena()->shrink(ptr, desired_size);
+                r = The_Pinned_Arena()->shrink(ptr, desired_size*sizeof(T));
             }
-            return std::make_pair((value_type*)(r.first), r.second);
+            return std::make_pair((value_type*)(r.first), r.second/sizeof(T));
         }
     };
 
