@@ -92,6 +92,17 @@ public:
         return std::make_pair(alloc(max_size), max_size);
     }
     /**
+    * Shrink the capacity of given pointer.  Arena will try to shrink
+    * the capacity of the given pointer without reallocating memory.
+    * It's an error if the current capacity is less than the
+    * desired_size.  The return value is a pair of pointer and its
+    * size.
+    */
+    virtual std::pair<void*,std::size_t> shrink (void* pt, std::size_t desired_size)
+    {
+        return std::make_pair(alloc(desired_size), desired_size);
+    }
+    /**
     * \brief Given a minimum required arena size of sz bytes, this returns
     * the next largest arena size that will align to align_size bytes
     */
