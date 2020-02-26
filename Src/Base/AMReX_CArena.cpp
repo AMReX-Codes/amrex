@@ -268,7 +268,7 @@ CArena::shrink (void* pt, std::size_t desired_size)
     BL_ASSERT(m_freelist.find(*busy_it) == m_freelist.end());
 
     std::size_t current_size = busy_it->size();
-    BL_ASSERT(current_size > desired_size);
+    BL_ASSERT(current_size >= desired_size);
 
     if (current_size > desired_size) {
         std::size_t new_size = current_size - desired_size;
