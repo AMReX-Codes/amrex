@@ -1326,7 +1326,7 @@ DistributionMapping::RRSFCProcessorMap (const BoxArray&          boxes,
 }
 
 DistributionMapping
-DistributionMapping::makeKnapSack (const Vector<Real>& rcost)
+DistributionMapping::makeKnapSack (const Vector<Real>& rcost, int nmax)
 {
     BL_PROFILE("makeKnapSack");
 
@@ -1344,7 +1344,7 @@ DistributionMapping::makeKnapSack (const Vector<Real>& rcost)
     int nprocs = ParallelContext::NProcsSub();
     Real eff;
 
-    r.KnapSackProcessorMap(cost, nprocs, &eff, true);
+    r.KnapSackProcessorMap(cost, nprocs, &eff, true, nmax);
 
     return r;
 }
