@@ -209,7 +209,7 @@ WriteOpenPMDFields( const std::string& filename,
       auto chunk_size = getReversedVec(local_box.size());
 
       // Write local data
-      const double* local_data = fab.dataPtr(icomp);
+      Real const * local_data = fab.dataPtr(icomp);
       mesh_comp.storeChunk(openPMD::shareRaw(local_data),
                            chunk_offset, chunk_size);
     }

@@ -676,7 +676,7 @@ WarpXOpenPMDPlot::WriteOpenPMDFields( //const std::string& filename,
       auto const chunk_size = getReversedVec( local_box.size() );
 
       // Write local data
-      double const * local_data = fab.dataPtr( icomp );
+      amrex::Real const * local_data = fab.dataPtr( icomp );
       mesh_comp.storeChunk( openPMD::shareRaw(local_data),
                             chunk_offset, chunk_size );
     }
