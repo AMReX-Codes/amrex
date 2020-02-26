@@ -448,7 +448,7 @@ def write_probin(probin_template, param_files,
 
         for p in params:
             if p.dtype == "character":
-                fout.write("  extern AMREX_GPU_MANAGED std::string {};\n\n".format(p.var))
+                fout.write("  extern std::string {};\n\n".format(p.var))
             else:
                 fout.write("  extern AMREX_GPU_MANAGED {} {};\n\n".format(p.get_cxx_decl(), p.var))
 
@@ -462,7 +462,7 @@ def write_probin(probin_template, param_files,
 
         for p in params:
             if p.dtype == "character":
-                fout.write("  AMREX_GPU_MANAGED std::string {};\n\n".format(p.var))
+                fout.write("  std::string {};\n\n".format(p.var))
             else:
                 fout.write("  AMREX_GPU_MANAGED {} {};\n\n".format(p.get_cxx_decl(), p.var))
 
