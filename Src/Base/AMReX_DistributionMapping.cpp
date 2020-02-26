@@ -1457,6 +1457,27 @@ DistributionMapping::makeSFC (const MultiFab& weight, bool sort)
     return r;
 }
 
+DistributionMapping
+DistributionMapping::makeSFC (const Vector<Real>& rcost, const BoxArray& ba, bool sort)
+{
+    DistributionMapping r;
+
+    Vector<long> cost(rcost.size());
+    
+    Real wmax = *std::max_element(rcost.begin(), rcost.end());
+    Real scale = (wmax == 0) ? 1.e9 : 1.e9/wmax;
+
+    for (int i = 0; i < rcost.size(); ++i) {
+        cost[i] = long(rcost[i]*scale) + 1L;
+    }
+
+    int nprocs = ParallelContext::NProcsSub();
+
+    r.SFCProcessorMap(ba, cost, nprocs, sort);
+
+    return r;
+}
+
 std::vector<std::vector<int> >
 DistributionMapping::makeSFC (const BoxArray& ba, bool use_box_vol)
 {
