@@ -195,6 +195,7 @@ namespace amrex {
     class StdAllocator
         : public std::allocator<T>
     {
+    public:
         using value_type = T;
         inline std::pair<value_type*, std::size_t>
         grow (value_type* ptr, std::size_t /*min_size*/, std::size_t max_size)
