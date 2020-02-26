@@ -159,7 +159,8 @@ class DistributionMapping
 
     static DistributionMapping makeKnapSack   (const MultiFab& weight,
                                                int nmax=std::numeric_limits<int>::max());
-    static DistributionMapping makeKnapSack   (const Vector<Real>& rcost);
+    static DistributionMapping makeKnapSack   (const Vector<Real>& rcost,
+                                               int nmax=std::numeric_limits<int>::max());
 
     static DistributionMapping makeRoundRobin (const MultiFab& weight);
     static DistributionMapping makeSFC        (const MultiFab& weight, bool sort=true);
