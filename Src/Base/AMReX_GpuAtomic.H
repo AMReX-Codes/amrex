@@ -116,7 +116,7 @@ namespace detail {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     T Add (T* sum, T value) noexcept
     {
-#if AMREX_DEVICE_COMPILE()
+#if AMREX_DEVICE_COMPILE
         return Add_device(sum, value);
 #else
         auto old = *sum;
@@ -175,7 +175,7 @@ namespace detail {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     T Min (T* m, T value) noexcept
     {
-#if AMREX_DEVICE_COMPILE()
+#if AMREX_DEVICE_COMPILE
         return Min_device(m, value);
 #else
         auto old = *m;
@@ -234,7 +234,7 @@ namespace detail {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     T Max (T* m, T value) noexcept
     {
-#if AMREX_DEVICE_COMPILE()
+#if AMREX_DEVICE_COMPILE
         return Max_device(m, value);
 #else
         auto old = *m;
@@ -387,7 +387,7 @@ namespace HostDevice { namespace Atomic {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void Add (T* sum, T value) noexcept
     {
-#if AMREX_DEVICE_COMPILE()
+#if AMREX_DEVICE_COMPILE
         Gpu::Atomic::Add(sum,value);
 #else
 #ifdef _OPENMP
