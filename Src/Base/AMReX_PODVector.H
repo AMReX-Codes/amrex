@@ -432,7 +432,7 @@ namespace amrex
         
         void reserve (size_type a_capacity) noexcept 
         {
-            if(capacity() < a_capacity) AllocateBuffer(a_capacity-capacity(), a_capacity);
+            if(capacity() < a_capacity) AllocateBuffer(a_capacity, a_capacity);
         }
         
         void shrink_to_fit () noexcept
