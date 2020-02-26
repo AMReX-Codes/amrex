@@ -6,6 +6,7 @@
 # setting the compile definitions and so on
 #
 add_library( amrex )
+add_library( AMReX::amrex ALIAS amrex )
 
 # Where to store Fortran modules
 set_target_properties( amrex
