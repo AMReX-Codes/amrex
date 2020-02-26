@@ -182,18 +182,13 @@ namespace WarpXUtilIO{
 void Store_parserString(amrex::ParmParse& pp, std::string query_string,
                         std::string& stored_string)
 {
-
-    char cstr[query_string.size()+1];
-    strcpy(cstr, query_string.c_str());
-
     std::vector<std::string> f;
-    pp.getarr(cstr, f);
+    pp.getarr(query_string.c_str(), f);
     stored_string.clear();
     for (auto const& s : f) {
         stored_string += s;
     }
     f.clear();
-
 }
 
 
