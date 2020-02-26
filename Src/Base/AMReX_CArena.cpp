@@ -142,6 +142,13 @@ CArena::free (void* vp)
     // And remove from busy list.
     //
     m_busylist.erase(busy_it);
+
+    coalesce_freeblocks(free_it);
+}
+
+void
+CArena::coalesce_freeblocks (CArena::NL::iterator free_it)
+{
     //
     // Coalesce freeblock(s) on lo and hi side of this block.
     //
@@ -241,6 +248,44 @@ CArena::grow (void* pt, std::size_t min_size, std::size_t max_size)
             }
         }
     }
+}
+
+std::pair<void*,std::size_t>
+CArena::shrink (void* pt, std::size_t desired_size)
+{
+    if (pt == nullptr) {
+        AMREX_ASSERT(desired_size == 0);
+        return std::make_pair(nullptr, 0);
+    }
+
+    desired_size = Arena::align(desired_size);
+
+    std::lock_guard<std::mutex> lock(carena_mutex);
+
+    auto busy_it = m_busylist.find(Node(pt,0,0));
+
+    BL_ASSERT(!(busy_it == m_busylist.end()));
+    BL_ASSERT(m_freelist.find(*busy_it) == m_freelist.end());
+
+    std::size_t current_size = busy_it->size();
+    BL_ASSERT(current_size > desired_size);
+
+    if (current_size > desired_size) {
+        std::size_t new_size = current_size - desired_size;
+        m_actually_used -= new_size;
+
+        void* block = static_cast<char*>(pt) + desired_size;
+        std::pair<NL::iterator,bool> pair_it = m_freelist.insert
+            (Node(block, busy_it->owner(), new_size));
+
+        BL_ASSERT(pair_it.second == true);
+        NL::iterator free_it = pair_it.first;
+        BL_ASSERT(free_it != m_freelist.end());
+
+        coalesce_freeblocks(free_it);
+    }
+
+    return std::make_pair(pt, desired_size);
 }
 
 std::size_t

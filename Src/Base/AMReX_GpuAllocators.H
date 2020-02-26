@@ -49,6 +49,13 @@ namespace amrex {
             auto r = The_Arena()->grow(ptr, min_size, max_size);
             return std::make_pair((value_type*)(r.first), r.second);
         }
+
+        inline std::pair<value_type*, std::size_t>
+        shrink (value_type* ptr, std::size_t desired_size)
+        {
+            auto r = The_Arena()->shrink(ptr, desired_size);
+            return std::make_pair((value_type*)(r.first), r.second);
+        }
     };
 
     template<typename T>
@@ -74,6 +81,13 @@ namespace amrex {
         grow (value_type* ptr, std::size_t min_size, std::size_t max_size)
         {
             auto r = The_Device_Arena()->grow(ptr, min_size, max_size);
+            return std::make_pair((value_type*)(r.first), r.second);
+        }
+
+        inline std::pair<value_type*, std::size_t>
+        shrink (value_type* ptr, std::size_t desired_size)
+        {
+            auto r = The_Device_Arena()->shrink(ptr, desired_size);
             return std::make_pair((value_type*)(r.first), r.second);
         }
     };
@@ -103,6 +117,13 @@ namespace amrex {
             auto r = The_Pinned_Arena()->grow(ptr, min_size, max_size);
             return std::make_pair((value_type*)(r.first), r.second);
         }
+
+        inline std::pair<value_type*, std::size_t>
+        shrink (value_type* ptr, std::size_t desired_size)
+        {
+            auto r = The_Pinned_Arena()->shrink(ptr, desired_size);
+            return std::make_pair((value_type*)(r.first), r.second);
+        }
     };
 
     template<typename T>
@@ -128,6 +149,13 @@ namespace amrex {
         grow (value_type* ptr, std::size_t min_size, std::size_t max_size)
         {
             auto r = The_Managed_Arena()->grow(ptr, min_size, max_size);
+            return std::make_pair((value_type*)(r.first), r.second);
+        }
+
+        inline std::pair<value_type*, std::size_t>
+        shrink (value_type* ptr, std::size_t desired_size)
+        {
+            auto r = The_Managed_Arena()->shrink(ptr, desired_size);
             return std::make_pair((value_type*)(r.first), r.second);
         }
     };
@@ -164,6 +192,30 @@ namespace amrex {
                 The_Pinned_Arena()->free(ptr);
             }
         }    
+
+        inline std::pair<value_type*, std::size_t>
+        grow (value_type* ptr, std::size_t min_size, std::size_t max_size)
+        {
+            std::pair<void*, std::size_t> r;
+            if (ParallelDescriptor::UseGpuAwareMpi()) {
+                r = The_Device_Arena()->grow(ptr, min_size, max_size);
+            } else {
+                r = The_Pinned_Arena()->grow(ptr, min_size, max_size);
+            }
+            return std::make_pair((value_type*)(r.first), r.second);
+        }
+
+        inline std::pair<value_type*, std::size_t>
+        shrink (value_type* ptr, std::size_t desired_size)
+        {
+            std::pair<void*, std::size_t> r;
+            if (ParallelDescriptor::UseGpuAwareMpi()) {
+                r = The_Device_Arena()->shrink(ptr, desired_size);
+            } else {
+                r = The_Pinned_Arena()->shrink(ptr, desired_size);
+            }
+            return std::make_pair((value_type*)(r.first), r.second);
+        }
     };
 
     template <template <typename> class Allocator, class T, class U>
@@ -197,10 +249,17 @@ namespace amrex {
     {
     public:
         using value_type = T;
+
         inline std::pair<value_type*, std::size_t>
         grow (value_type* ptr, std::size_t /*min_size*/, std::size_t max_size)
         {
             return std::make_pair(std::allocator<T>::allocate(max_size), max_size);
+        }
+
+        inline std::pair<value_type*, std::size_t>
+        shrink (value_type* ptr, std::size_t desired_size)
+        {
+            return std::make_pair(std::allocator<T>::allocate(desired_size), desired_size);
         }
     };
 
