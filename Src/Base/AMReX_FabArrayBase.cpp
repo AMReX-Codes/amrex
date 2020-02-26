@@ -47,7 +47,7 @@ IntVect FabArrayBase::mfiter_tile_size(1024000,8,8);
 
 #endif
 
-#ifdef AMREX_USE_GPU
+#if defined(AMREX_USE_GPU) || !defined(_OPENMP)
 IntVect FabArrayBase::comm_tile_size(AMREX_D_DECL(1024000, 1024000, 1024000));
 IntVect FabArrayBase::mfghostiter_tile_size(AMREX_D_DECL(1024000, 1024000, 1024000));
 #else
@@ -390,7 +390,10 @@ FabArrayBase::CPC::define (const BoxArray& ba_dst, const DistributionMapping& dm
 	if (ParallelDescriptor::TeamSize() > 1) {
 	    check_local = true;
 	}
-	
+
+        m_threadsafe_loc = not check_local;
+        m_threadsafe_rcv = not check_remote;
+
 	for (int i = 0; i < nlocal_dst; ++i)
 	{
 	    const int   k_dst = imap_dst[i];
@@ -703,6 +706,9 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
 	check_local = true;
     }
 
+    m_threadsafe_loc = not check_local;
+    m_threadsafe_rcv = not check_remote;
+
     for (int i = 0; i < nlocal; ++i)
     {
 	const int   krcv = imap[i];
@@ -909,6 +915,9 @@ FabArrayBase::FB::define_epo (const FabArrayBase& fa)
     if (ParallelDescriptor::TeamSize() > 1) {
 	check_local = true;
     }
+
+    m_threadsafe_loc = not check_local;
+    m_threadsafe_rcv = not check_remote;
 
     for (int i = 0; i < nlocal; ++i)
     {
