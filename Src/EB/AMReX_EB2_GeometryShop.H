@@ -26,7 +26,7 @@ AMREX_GPU_HOST_DEVICE
 Real
 IF_f (F const& f, GpuArray<Real,AMREX_SPACEDIM> const& p) noexcept
 {
-#if AMREX_DEVICE_COMPILE()
+#if AMREX_DEVICE_COMPILE
     amrex::Error("EB2::GeometryShop: how did this happen?");
     return 0.0;
 #else

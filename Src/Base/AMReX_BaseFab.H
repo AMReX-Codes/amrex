@@ -1534,7 +1534,7 @@ template <class T>
 AMREX_GPU_HOST_DEVICE
 BaseFab<T>::~BaseFab () noexcept
 {
-#if AMREX_DEVICE_COMPILE()
+#if AMREX_DEVICE_COMPILE
     ;
 #else
     clear();
@@ -2525,7 +2525,7 @@ BaseFab<T>::atomicAdd (const BaseFab<T>& src, const Box& srcbox, const Box& dest
     amrex::Loop(destbox, numcomp, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT 
     {
         T* p = d.ptr(i,j,k,n+destcomp);
-#if AMREX_DEVICE_COMPILE()
+#if AMREX_DEVICE_COMPILE
         amrex::Gpu::Atomic::Add(p, s(i+offset.x,j+offset.y,k+offset.z,n+srccomp));
 #else
 #ifdef _OPENMP
