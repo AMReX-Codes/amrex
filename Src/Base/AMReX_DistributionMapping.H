@@ -164,6 +164,8 @@ class DistributionMapping
 
     static DistributionMapping makeRoundRobin (const MultiFab& weight);
     static DistributionMapping makeSFC        (const MultiFab& weight, bool sort=true);
+    static DistributionMapping makeSFC        (const Vector<Real>& rcost,
+                                               const BoxArray& ba, bool sort=true);
 
     /**
     * if use_box_vol is true, weight boxes by their volume in Distribute
