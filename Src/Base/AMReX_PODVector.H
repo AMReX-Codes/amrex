@@ -525,8 +525,8 @@ namespace amrex
             pointer new_data = r.first;
             std::size_t new_capacity = r.second;
             if (new_data == m_data) {
-                memCopyImpl<Allocator>(m_data+a_index+a_count, m_data+a_index,
-                                       (size() - a_index)*sizeof(T));
+                memMoveImpl<Allocator>(m_data+a_index+a_count, m_data+a_index,
+                                       (size() - a_index)*sizeof(T), *this);
             } else {
                 memCopyImpl<Allocator>(new_data, m_data, a_index * sizeof(T));
                 memCopyImpl<Allocator>(new_data + a_index + a_count, m_data + a_index,
