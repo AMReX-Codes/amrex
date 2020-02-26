@@ -506,7 +506,15 @@ namespace amrex
         
         void ShrinkBuffer (size_type a_capacity) noexcept
         {
-            // xxxxx todo
+            auto r = shrink(m_data, a_capacity);
+            pointer new_data = r.first;
+            size_type new_capacity = r.second;
+            if (new_data != m_data) {
+                detail::memCopyImpl<Allocator>(new_data, m_data, size() * sizeof(T));
+                deallocate(m_data, capacity());
+                m_data = new_data;
+            }
+            m_capacity = new_capacity;
         }
 
         // need to have this version too
