@@ -8,9 +8,9 @@
 #ifndef INJECTOR_DENSITY_H_
 #define INJECTOR_DENSITY_H_
 
-#include <GpuParser.H>
-#include <CustomDensityProb.H>
-#include <WarpXConst.H>
+#include "Parser/GpuParser.H"
+#include "CustomDensityProb.H"
+#include "Utils/WarpXConst.H"
 
 #include <AMReX_Gpu.H>
 #include <AMReX_Dim3.H>

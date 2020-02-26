@@ -6,18 +6,19 @@
  *
  * License: BSD-3-Clause-LBNL
  */
-#include <PML.H>
-#include <WarpX.H>
-#include <WarpXConst.H>
+#include "PML.H"
+#include "WarpX.H"
+#include "Utils/WarpXConst.H"
 
 #include <AMReX_Print.H>
 #include <AMReX_VisMF.H>
 
+#ifdef _OPENMP
+#   include <omp.h>
+#endif
+
 #include <algorithm>
 
-#ifdef _OPENMP
-#include <omp.h>
-#endif
 
 using namespace amrex;
 

@@ -7,7 +7,7 @@
 #ifndef WARPX_PARTICLES_COLLISION_COLLISIONTYPE_H_
 #define WARPX_PARTICLES_COLLISION_COLLISIONTYPE_H_
 
-#include "WarpXParticleContainer.H"
+#include "Particles/WarpXParticleContainer.H"
 #include <AMReX_DenseBins.H>
 #include <AMReX_REAL.H>
 #include <AMReX_ParmParse.H>

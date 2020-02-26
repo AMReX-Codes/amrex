@@ -1,6 +1,10 @@
-#include <GalileanAlgorithm.H>
-#include <WarpXConst.H>
+#include "GalileanAlgorithm.H"
+#include "Utils/WarpXConst.H"
+
 #include <cmath>
+
+
+#if WARPX_USE_PSATD
 
 using namespace amrex;
 
@@ -237,3 +241,4 @@ void GalileanAlgorithm::InitializeSpectralCoefficients(const SpectralKSpace& spe
         });
     }
 }
+#endif // WARPX_USE_PSATD

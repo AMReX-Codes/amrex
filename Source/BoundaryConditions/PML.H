@@ -6,19 +6,20 @@
  *
  * License: BSD-3-Clause-LBNL
  */
-#include <array>
-
 #ifndef WARPX_PML_H_
 #define WARPX_PML_H_
 
-#include "WarpXProfilerWrapper.H"
+#include "Utils/WarpXProfilerWrapper.H"
+
+#ifdef WARPX_USE_PSATD
+#   include "FieldSolver/SpectralSolver/SpectralSolver.H"
+#endif
 
 #include <AMReX_MultiFab.H>
 #include <AMReX_Geometry.H>
 
-#ifdef WARPX_USE_PSATD
-#include <SpectralSolver.H>
-#endif
+#include <array>
+
 
 struct Sigma : amrex::Gpu::ManagedVector<amrex::Real>
 {

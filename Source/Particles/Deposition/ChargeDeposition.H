@@ -8,8 +8,9 @@
 #ifndef CHARGEDEPOSITION_H_
 #define CHARGEDEPOSITION_H_
 
-#include "GetAndSetPosition.H"
-#include "ShapeFactors.H"
+#include "Particles/Pusher/GetAndSetPosition.H"
+#include "Particles/ShapeFactors.H"
+
 
 /* \brief Charge Deposition for thread thread_num
  * /param GetPosition : A functor for returning the particle position.

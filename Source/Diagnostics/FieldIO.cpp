@@ -6,15 +6,16 @@
  *
  * License: BSD-3-Clause-LBNL
  */
+#include "FieldIO.H"
+#include "WarpX.H"
 
-#include <WarpX.H>
-#include <FieldIO.H>
+#include <AMReX_FillPatchUtil_F.H>
+#include <AMReX_Interpolater.H>
+
 #ifdef WARPX_USE_OPENPMD
 #   include <openPMD/openPMD.hpp>
 #endif
 
-#include <AMReX_FillPatchUtil_F.H>
-#include <AMReX_Interpolater.H>
 
 using namespace amrex;
 

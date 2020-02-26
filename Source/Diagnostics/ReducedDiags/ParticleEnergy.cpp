@@ -7,12 +7,15 @@
 
 #include "ParticleEnergy.H"
 #include "WarpX.H"
-#include "WarpXConst.H"
-#include "AMReX_REAL.H"
-#include "AMReX_ParticleReduce.H"
+#include "Utils/WarpXConst.H"
+
+#include <AMReX_REAL.H>
+#include <AMReX_ParticleReduce.H>
+
 #include <iostream>
 #include <cmath>
 #include <limits>
+
 
 using namespace amrex;
 

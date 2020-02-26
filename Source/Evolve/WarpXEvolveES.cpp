@@ -6,14 +6,16 @@
  *
  * License: BSD-3-Clause-LBNL
  */
-#include <WarpX.H>
-#include <WarpX_f.H>
+#include "WarpX.H"
+#include "FortranInterface/WarpX_f.H"
+
 
 namespace
 {
     const std::string level_prefix {"Level_"};
 }
 
+#ifdef WARPX_DO_ELECTROSTATIC
 using namespace amrex;
 
 void
@@ -213,3 +215,4 @@ void WarpX::getLevelMasks(Vector<std::unique_ptr<FabArray<BaseFab<int> > > >& ma
         }
     }
 }
+#endif // WARPX_DO_ELECTROSTATIC

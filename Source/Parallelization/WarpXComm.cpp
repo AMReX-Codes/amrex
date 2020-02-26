@@ -6,12 +6,12 @@
  *
  * License: BSD-3-Clause-LBNL
  */
-#include <WarpXComm.H>
-#include <WarpXComm_K.H>
-#include <WarpX.H>
-#include <WarpXSumGuardCells.H>
-#include <InterpolateCurrentFineToCoarse.H>
-#include <InterpolateDensityFineToCoarse.H>
+#include "WarpXComm.H"
+#include "WarpXComm_K.H"
+#include "WarpX.H"
+#include "WarpXSumGuardCells.H"
+#include "InterpolateCurrentFineToCoarse.H"
+#include "InterpolateDensityFineToCoarse.H"
 
 #include <algorithm>
 #include <cstdlib>

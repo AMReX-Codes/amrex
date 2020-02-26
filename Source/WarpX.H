@@ -1,9 +1,8 @@
 /* Copyright 2016-2020 Andrew Myers, Ann Almgren, Aurore Blelly
- * Axel Huebl, Burlen Loring, David Grote
- * Glenn Richardson, Junmin Gu, Luca Fedeli
- * Mathieu Lobet, Maxence Thevenet, Remi Lehe
- * Revathi Jambunathan, Weiqun Zhang, Yinjian Zhao
- *
+ *                     Axel Huebl, Burlen Loring, David Grote
+ *                     Glenn Richardson, Junmin Gu, Luca Fedeli
+ *                     Mathieu Lobet, Maxence Thevenet, Remi Lehe
+ *                     Revathi Jambunathan, Weiqun Zhang, Yinjian Zhao
  *
  * This file is part of WarpX.
  *
@@ -12,21 +11,28 @@
 #ifndef WARPX_H_
 #define WARPX_H_
 
-#include "WarpXDtType.H"
-#include <MultiParticleContainer.H>
-#include <PML.H>
-#include <BackTransformedDiagnostic.H>
-#include <BilinearFilter.H>
-#include <NCIGodfreyFilter.H>
-#include "MultiReducedDiags.H"
+#include "Evolve/WarpXDtType.H"
+#include "Particles/MultiParticleContainer.H"
+#include "BoundaryConditions/PML.H"
+#include "Diagnostics/BackTransformedDiagnostic.H"
+#include "Filter/BilinearFilter.H"
+#include "Filter/NCIGodfreyFilter.H"
+#include "Diagnostics/ReducedDiags/MultiReducedDiags.H"
 
-#include <FiniteDifferenceSolver.H>
+#include "FieldSolver/FiniteDifferenceSolver/FiniteDifferenceSolver.H"
 #ifdef WARPX_USE_PSATD
-#   include <SpectralSolver.H>
+#   include "FieldSolver/SpectralSolver/SpectralSolver.H"
 #endif
 #ifdef WARPX_USE_PSATD_HYBRID
-#   include <PicsarHybridFFTData.H>
+#   include "FieldSolver/PicsarHybridSpectralSolver/PicsarHybridFFTData.H"
 #endif
+
+#include "Parallelization/GuardCellManager.H"
+
+#ifdef WARPX_USE_OPENPMD
+#   include "Diagnostics/WarpXOpenPMD.H"
+#endif
+#include "Parser/WarpXParserWrapper.H"
 
 #include <AMReX_AmrCore.H>
 #include <AMReX_BLProfiler.H>
@@ -37,21 +43,15 @@
 #include <AMReX_LayoutData.H>
 #include <AMReX_Interpolater.H>
 #include <AMReX_FillPatchUtil.H>
-#include <WarpXParserWrapper.H>
-
-#include "GuardCellManager.H"
 
 #ifdef _OPENMP
 #   include <omp.h>
 #endif
 
-#ifdef WARPX_USE_OPENPMD
-#   include <WarpXOpenPMD.H>
-#endif
-
 #include <iostream>
 #include <memory>
 #include <array>
+
 
 #if defined(BL_USE_SENSEI_INSITU)
 namespace amrex {

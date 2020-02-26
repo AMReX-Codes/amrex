@@ -7,20 +7,21 @@
  *
  * License: BSD-3-Clause-LBNL
  */
+#include "MultiParticleContainer.H"
+#include "WarpXParticleContainer.H"
+#include "WarpX.H"
+#include "Utils/WarpXAlgorithmSelection.H"
+#include "Parallelization/WarpXComm.H"
+// Import low-level single-particle kernels
+#include "Pusher/GetAndSetPosition.H"
+#include "Pusher/UpdatePosition.H"
+#include "Deposition/CurrentDeposition.H"
+#include "Deposition/ChargeDeposition.H"
+
+#include <AMReX_AmrParGDB.H>
+
 #include <limits>
 
-#include <MultiParticleContainer.H>
-#include <WarpXParticleContainer.H>
-#include <AMReX_AmrParGDB.H>
-#include <WarpXComm.H>
-#include <WarpX.H>
-#include <WarpXAlgorithmSelection.H>
-#include <WarpXComm.H>
-// Import low-level single-particle kernels
-#include <GetAndSetPosition.H>
-#include <UpdatePosition.H>
-#include <CurrentDeposition.H>
-#include <ChargeDeposition.H>
 
 using namespace amrex;
 

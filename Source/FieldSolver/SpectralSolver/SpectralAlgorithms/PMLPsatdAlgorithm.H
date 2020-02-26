@@ -7,7 +7,9 @@
 #ifndef WARPX_PML_PSATD_ALGORITHM_H_
 #define WARPX_PML_PSATD_ALGORITHM_H_
 
-#include <SpectralBaseAlgorithm.H>
+#include "SpectralBaseAlgorithm.H"
+
+#if WARPX_USE_PSATD
 
 /* \brief Class that updates the field in spectral space
  * and stores the coefficients of the corresponding update equation.
@@ -37,4 +39,5 @@ class PMLPsatdAlgorithm : public SpectralBaseAlgorithm
 
 };
 
+#endif // WARPX_USE_PSATD
 #endif // WARPX_PML_PSATD_ALGORITHM_H_

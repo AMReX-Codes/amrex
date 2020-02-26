@@ -8,9 +8,10 @@
 #ifndef FIELDGATHER_H_
 #define FIELDGATHER_H_
 
-#include "GetAndSetPosition.H"
-#include "ShapeFactors.H"
-#include <WarpX_Complex.H>
+#include "Particles/Pusher/GetAndSetPosition.H"
+#include "Particles/ShapeFactors.H"
+#include "Utils/WarpX_Complex.H"
+
 
 /**
  * \brief Field gather for particles handled by thread thread_num

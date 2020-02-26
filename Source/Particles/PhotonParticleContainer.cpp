@@ -5,22 +5,22 @@
  *
  * License: BSD-3-Clause-LBNL
  */
+#include "PhotonParticleContainer.H"
+#include "Utils/WarpXConst.H"
+#include "WarpX.H"
+
+// Import low-level single-particle kernels
+#include "Particles/Pusher/UpdatePositionPhoton.H"
+#include "Particles/Pusher/GetAndSetPosition.H"
+
+#ifdef _OPENMP
+#   include <omp.h>
+#endif
+
 #include <limits>
 #include <sstream>
 #include <algorithm>
 
-#ifdef _OPENMP
-#include <omp.h>
-#endif
-
-#include <PhotonParticleContainer.H>
-#include <WarpX.H>
-#include <WarpXConst.H>
-
-
-// Import low-level single-particle kernels
-#include <UpdatePositionPhoton.H>
-#include <GetAndSetPosition.H>
 
 using namespace amrex;
 

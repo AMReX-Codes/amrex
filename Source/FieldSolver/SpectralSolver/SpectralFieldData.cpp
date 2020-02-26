@@ -5,9 +5,12 @@
  *
  * License: BSD-3-Clause-LBNL
  */
-#include <SpectralFieldData.H>
+#include "SpectralFieldData.H"
 
 #include <map>
+
+
+#if WARPX_USE_PSATD
 
 using namespace amrex;
 
@@ -351,3 +354,4 @@ SpectralFieldData::cufftErrorToString (const cufftResult& err)
     }
 }
 #endif
+#endif // WARPX_USE_PSATD

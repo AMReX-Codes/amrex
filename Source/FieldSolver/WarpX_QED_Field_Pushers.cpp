@@ -4,25 +4,24 @@
  *
  * License: BSD-3-Clause-LBNL
  */
+#include "WarpX.H"
+#include "Utils/WarpXConst.H"
+#include "WarpX_K.H"
+#include "WarpX_QED_K.H"
+#include "BoundaryConditions/WarpX_PML_kernels.H"
+#include "BoundaryConditions/PML_current.H"
+#include "WarpX_FDTD.H"
+#ifdef WARPX_USE_PY
+#   include "Python/WarpX_py.H"
+#endif
+
+#ifdef BL_USE_SENSEI_INSITU
+#   include <AMReX_AmrMeshInSituBridge.H>
+#endif
+
 #include <cmath>
 #include <limits>
 
-#include <WarpX.H>
-#include <WarpXConst.H>
-#include <WarpX_K.H>
-#include <WarpX_PML_kernels.H>
-#include <WarpX_FDTD.H>
-#ifdef WARPX_USE_PY
-#include <WarpX_py.H>
-#endif
-
-#include <WarpX_QED_K.H>
-
-#include <PML_current.H>
-
-#ifdef BL_USE_SENSEI_INSITU
-#include <AMReX_AmrMeshInSituBridge.H>
-#endif
 
 using namespace amrex;
 

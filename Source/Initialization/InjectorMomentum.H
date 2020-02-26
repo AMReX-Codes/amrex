@@ -8,8 +8,8 @@
 #ifndef INJECTOR_MOMENTUM_H_
 #define INJECTOR_MOMENTUM_H_
 
-#include <CustomMomentumProb.H>
-#include <GpuParser.H>
+#include "CustomMomentumProb.H"
+#include "Parser/GpuParser.H"
 
 #include <AMReX_Gpu.H>
 #include <AMReX_Dim3.H>

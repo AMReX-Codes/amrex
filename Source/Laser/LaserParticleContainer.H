@@ -9,11 +9,11 @@
 #ifndef WARPX_LaserParticleContainer_H_
 #define WARPX_LaserParticleContainer_H_
 
-#include <LaserProfiles.H>
+#include "LaserProfiles.H"
 
-#include <WarpXParticleContainer.H>
-#include <WarpXConst.H>
-#include <WarpXParser.H>
+#include "Particles/WarpXParticleContainer.H"
+#include "Utils/WarpXConst.H"
+#include "Parser/WarpXParser.H"
 
 #include <memory>
 #include <limits>

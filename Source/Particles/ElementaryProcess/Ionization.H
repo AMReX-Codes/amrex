@@ -8,8 +8,8 @@
 #ifndef IONIZATION_H_
 #define IONIZATION_H_
 
-#include "WarpXConst.H"
-#include "WarpXParticleContainer.H"
+#include "Utils/WarpXConst.H"
+#include "Particles/WarpXParticleContainer.H"
 
 struct IonizationFilterFunc
 {

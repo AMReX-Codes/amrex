@@ -4,13 +4,16 @@
  *
  * License: BSD-3-Clause-LBNL
  */
-#include <SpectralKSpace.H>
-#include <SpectralSolver.H>
-#include <PsatdAlgorithm.H>
-#include <GalileanAlgorithm.H>
-#include <PMLPsatdAlgorithm.H>
+#include "SpectralKSpace.H"
+#include "SpectralSolver.H"
+#include "SpectralAlgorithms/PsatdAlgorithm.H"
+#include "SpectralAlgorithms/GalileanAlgorithm.H"
+#include "SpectralAlgorithms/PMLPsatdAlgorithm.H"
 #include "WarpX.H"
-#include "WarpXProfilerWrapper.H"
+#include "Utils/WarpXProfilerWrapper.H"
+
+
+#if WARPX_USE_PSATD
 
 /* \brief Initialize the spectral Maxwell solver
  *
@@ -91,3 +94,4 @@ SpectralSolver::pushSpectralFields(){
     // initialized in the constructor of `SpectralSolver`
     algorithm->pushSpectralFields( field_data );
 }
+#endif // WARPX_USE_PSATD

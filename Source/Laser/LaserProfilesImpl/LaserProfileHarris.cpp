@@ -4,16 +4,15 @@
  *
  * License: BSD-3-Clause-LBNL
  */
-#include <LaserProfiles.H>
+#include "Laser/LaserProfiles.H"
+#include "Utils/WarpX_Complex.H"
+#include "Utils/WarpXConst.H"
 
-#include <WarpX_Complex.H>
-#include <WarpXConst.H>
 
 using namespace amrex;
-using namespace WarpXLaserProfiles;
 
 void
-HarrisLaserProfile::init (
+WarpXLaserProfiles::HarrisLaserProfile::init (
     const amrex::ParmParse& ppl,
     const amrex::ParmParse& /* ppc */,
     CommonLaserParameters params)
@@ -39,7 +38,7 @@ HarrisLaserProfile::init (
  * \param amplitude: pointer to array of field amplitude.
  */
 void
-HarrisLaserProfile::fill_amplitude (
+WarpXLaserProfiles::HarrisLaserProfile::fill_amplitude (
     const int np, Real const * AMREX_RESTRICT const Xp, Real const * AMREX_RESTRICT const Yp,
     Real t, Real * AMREX_RESTRICT const amplitude) const
 {

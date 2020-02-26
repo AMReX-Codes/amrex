@@ -8,18 +8,16 @@
  *
  * License: BSD-3-Clause-LBNL
  */
-#include <MultiParticleContainer.H>
+#include "MultiParticleContainer.H"
+#include "Utils/WarpXUtil.H"
+#include "WarpX.H"
 
 #include <AMReX_Vector.H>
-
-#include <WarpX.H>
-
-//This is now needed for writing a binary file on disk.
-#include <WarpXUtil.H>
 
 #include <limits>
 #include <algorithm>
 #include <string>
+
 
 using namespace amrex;
 

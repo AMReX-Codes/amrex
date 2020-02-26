@@ -8,7 +8,7 @@
 #ifndef WARPX_PhotonParticleContainer_H_
 #define WARPX_PhotonParticleContainer_H_
 
-#include <PhysicalParticleContainer.H>
+#include "PhysicalParticleContainer.H"
 #include <AMReX_Vector.H>
 
 /**

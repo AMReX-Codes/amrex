@@ -1,5 +1,5 @@
 /* Copyright 2019-2020 Andrew Myers, Axel Huebl,
- * Maxence Thevenet
+ *                     Maxence Thevenet
  *
  * This file is part of WarpX.
  *
@@ -8,7 +8,7 @@
 #ifndef SMART_COPY_H_
 #define SMART_COPY_H_
 
-#include <DefaultInitialization.H>
+#include "DefaultInitialization.H"
 
 #include <AMReX_GpuContainers.H>
 #include <AMReX_ParallelDescriptor.H>

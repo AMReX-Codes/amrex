@@ -5,9 +5,11 @@
  *
  * License: BSD-3-Clause-LBNL
  */
-#include <WarpXConst.H>
-#include <SpectralKSpace.H>
+#include "Utils/WarpXConst.H"
+#include "SpectralKSpace.H"
+
 #include <cmath>
+
 
 using namespace amrex;
 using namespace Gpu;

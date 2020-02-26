@@ -9,13 +9,13 @@
  *
  * License: BSD-3-Clause-LBNL
  */
-#include <WarpX.H>
-#include <WarpXConst.H>
-#include <WarpXWrappers.h>
-#include <WarpXUtil.H>
-#include <WarpXAlgorithmSelection.H>
-#include <WarpX_FDTD.H>
-#include "WarpXProfilerWrapper.H"
+#include "WarpX.H"
+#include "FieldSolver/WarpX_FDTD.H"
+#include "Python/WarpXWrappers.h"
+#include "Utils/WarpXConst.H"
+#include "Utils/WarpXUtil.H"
+#include "Utils/WarpXAlgorithmSelection.H"
+#include "Utils/WarpXProfilerWrapper.H"
 
 #include <AMReX_ParmParse.H>
 #include <AMReX_MultiFabUtil.H>

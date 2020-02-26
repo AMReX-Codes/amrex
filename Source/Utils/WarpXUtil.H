@@ -8,13 +8,15 @@
 #ifndef WARPX_UTILS_H_
 #define WARPX_UTILS_H_
 
+#include "Parser/WarpXParser.H"
+
 #include <AMReX_REAL.H>
 #include <AMReX_Vector.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_ParmParse.H>
-#include <WarpXParser.H>
 
 #include <string>
+
 
 void ReadBoostedFrameParameters(amrex::Real& gamma_boost, amrex::Real& beta_boost,
                                 amrex::Vector<int>& boost_direction);

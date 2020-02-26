@@ -5,9 +5,12 @@
  *
  * License: BSD-3-Clause-LBNL
  */
-
-#include <WarpX.H>
+#include "PicsarHybridFFTData.H"
+#include "WarpX.H"
 #include <AMReX_iMultiFab.H>
+
+
+#ifdef WARPX_USE_PSATD
 
 using namespace amrex;
 
@@ -451,3 +454,5 @@ WarpX::PushPSATD_hybridFFT (int lev, amrex::Real /* dt */)
         amrex::Abort("WarpX::PushPSATD: TODO");
     }
 }
+
+#endif // WARPX_USE_PSATD

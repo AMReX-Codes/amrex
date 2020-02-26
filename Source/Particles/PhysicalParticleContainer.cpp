@@ -8,28 +8,29 @@
  *
  * License: BSD-3-Clause-LBNL
  */
+#include "PhysicalParticleContainer.H"
+
+#include "MultiParticleContainer.H"
+#include "FortranInterface/WarpX_f.H"
+#include "WarpX.H"
+#include "Utils/WarpXConst.H"
+#include "Python/WarpXWrappers.h"
+#include "Utils/IonizationEnergiesTable.H"
+#include "Particles/Gather/FieldGather.H"
+#include "Particles/Pusher/GetAndSetPosition.H"
+
+#include "Utils/WarpXAlgorithmSelection.H"
+
+// Import low-level single-particle kernels
+#include "Particles/Pusher/UpdatePosition.H"
+#include "Particles/Pusher/UpdateMomentumBoris.H"
+#include "Particles/Pusher/UpdateMomentumVay.H"
+#include "Particles/Pusher/UpdateMomentumBorisWithRadiationReaction.H"
+#include "Particles/Pusher/UpdateMomentumHigueraCary.H"
+
 #include <limits>
 #include <sstream>
 
-#include <PhysicalParticleContainer.H>
-
-#include <MultiParticleContainer.H>
-#include <WarpX_f.H>
-#include <WarpX.H>
-#include <WarpXConst.H>
-#include <WarpXWrappers.h>
-#include <IonizationEnergiesTable.H>
-#include <FieldGather.H>
-#include <GetAndSetPosition.H>
-
-#include <WarpXAlgorithmSelection.H>
-
-// Import low-level single-particle kernels
-#include <UpdatePosition.H>
-#include <UpdateMomentumBoris.H>
-#include <UpdateMomentumVay.H>
-#include <UpdateMomentumBorisWithRadiationReaction.H>
-#include <UpdateMomentumHigueraCary.H>
 
 using namespace amrex;
 

@@ -7,9 +7,11 @@
 #ifndef WarpX_QED_K_h
 #define WarpX_QED_K_h
 
+#include "Utils/WarpXConst.H"
 #include <AMReX_FArrayBox.H>
-#include <WarpXConst.H>
+
 #include <cmath>
+
 
 using namespace amrex;
 
@@ -33,7 +35,7 @@ void calc_M(Real arr [], Real ex, Real ey, Real ez, Real bx, Real by, Real bz, R
     arr[0] = -2._rt*xi_c2*( 2._rt*bx*(ee-bb_c2) - 7._rt*ex*eb );
     arr[1] = -2._rt*xi_c2*( 2._rt*by*(ee-bb_c2) - 7._rt*ey*eb );
     arr[2] = -2._rt*xi_c2*( 2._rt*bz*(ee-bb_c2) - 7._rt*ez*eb );
-};
+}
 
 
 /**

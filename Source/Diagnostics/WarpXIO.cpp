@@ -7,28 +7,26 @@
  *
  * License: BSD-3-Clause-LBNL
  */
+#include "WarpX.H"
+#include "FieldIO.H"
+#include "SliceDiagnostic.H"
+
+#ifdef WARPX_USE_OPENPMD
+#   include "Diagnostics/WarpXOpenPMD.H"
+#endif
+
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_FillPatchUtil_F.H>
-
-#include <WarpX.H>
-#include <FieldIO.H>
-
-#include "AMReX_buildInfo.H"
+#include <AMReX_buildInfo.H>
 
 #ifdef BL_USE_SENSEI_INSITU
-#include <AMReX_AmrMeshInSituBridge.H>
+#   include <AMReX_AmrMeshInSituBridge.H>
 #endif
-
-#include "SliceDiagnostic.H"
 
 #ifdef AMREX_USE_ASCENT
-#include <ascent.hpp>
-#include <AMReX_Conduit_Blueprint.H>
-#endif
-
-#ifdef WARPX_USE_OPENPMD
-#   include "WarpXOpenPMD.H"
+#   include <ascent.hpp>
+#   include <AMReX_Conduit_Blueprint.H>
 #endif
 
 

@@ -10,10 +10,10 @@
 #ifndef WARPX_PhysicalParticleContainer_H_
 #define WARPX_PhysicalParticleContainer_H_
 
-#include <PlasmaInjector.H>
-#include <WarpXParticleContainer.H>
-#include <NCIGodfreyFilter.H>
-#include <Ionization.H>
+#include "Initialization/PlasmaInjector.H"
+#include "WarpXParticleContainer.H"
+#include "Filter/NCIGodfreyFilter.H"
+#include "Particles/ElementaryProcess/Ionization.H"
 
 #include <AMReX_IArrayBox.H>
 

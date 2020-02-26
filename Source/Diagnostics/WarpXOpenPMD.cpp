@@ -5,7 +5,7 @@
  * License: BSD-3-Clause-LBNL
  */
 #include "WarpXOpenPMD.H"
-#include "WarpXAlgorithmSelection.H"
+#include "Utils/WarpXAlgorithmSelection.H"
 #include "FieldIO.H"  // for getReversedVec
 
 #include <algorithm>
@@ -18,6 +18,7 @@
 #include <utility>
 #include <iostream>
 
+
 namespace detail
 {
 
@@ -29,6 +30,7 @@ namespace detail
     };
     static_assert(sizeof(int) * 2u <= sizeof(uint64_t), "int size might cause collisions in global IDs");
 
+#ifdef WARPX_USE_OPENPMD
     /** Unclutter a real_names to openPMD record
      *
      * @param fullName name as in real_names variable
@@ -88,8 +90,10 @@ namespace detail
         };
         else return {};
     }
+#endif // WARPX_USE_OPENPMD
 }
 
+#ifdef WARPX_USE_OPENPMD
 WarpXOpenPMDPlot::WarpXOpenPMDPlot(bool oneFilePerTS,
     std::string openPMDFileType, std::vector<bool> fieldPMLdirections)
   :m_Series(nullptr),
@@ -684,7 +688,7 @@ WarpXOpenPMDPlot::WriteOpenPMDFields( //const std::string& filename,
   // Flush data to disk after looping over all components
   m_Series->flush();
 }
-
+#endif // WARPX_USE_OPENPMD
 
 
 

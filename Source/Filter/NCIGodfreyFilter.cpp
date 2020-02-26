@@ -4,13 +4,14 @@
  *
  * License: BSD-3-Clause-LBNL
  */
-#include <WarpX.H>
-#include <NCIGodfreyFilter.H>
-#include <NCIGodfreyTables.H>
+#include "NCIGodfreyFilter.H"
+#include "Utils/NCIGodfreyTables.H"
+#include "WarpX.H"
 
 #ifdef _OPENMP
-#include <omp.h>
+#   include <omp.h>
 #endif
+
 
 using namespace amrex;
 

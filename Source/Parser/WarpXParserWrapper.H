@@ -7,9 +7,11 @@
 #ifndef WARPX_PARSER_WRAPPER_H_
 #define WARPX_PARSER_WRAPPER_H_
 
-#include <WarpXParser.H>
+#include "Parser/WarpXParser.H"
+#include "Parser/GpuParser.H"
+
 #include <AMReX_Gpu.H>
-#include <GpuParser.H>
+
 /**
  * \brief
  *  The ParserWrapper struct is constructed to safely use the GpuParser class

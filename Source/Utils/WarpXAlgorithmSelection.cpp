@@ -6,11 +6,12 @@
  *
  * License: BSD-3-Clause-LBNL
  */
-#include <WarpXAlgorithmSelection.H>
+#include "WarpXAlgorithmSelection.H"
 
-#include <map>
 #include <algorithm>
 #include <cstring>
+#include <map>
+
 
 // Define dictionary with correspondance between user-input strings,
 // and corresponding integer for use inside the code

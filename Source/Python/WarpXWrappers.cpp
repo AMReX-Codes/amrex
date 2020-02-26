@@ -6,14 +6,15 @@
  *
  * License: BSD-3-Clause-LBNL
  */
-#include <WarpXWrappers.h>
-#include <WarpXParticleContainer.H>
-#include <WarpX.H>
-#include <WarpXUtil.H>
-#include <WarpX_py.H>
+#include "WarpXWrappers.h"
+#include "Particles/WarpXParticleContainer.H"
+#include "WarpX.H"
+#include "Utils/WarpXUtil.H"
+#include "WarpX_py.H"
 
 #include <AMReX.H>
 #include <AMReX_BLProfiler.H>
+
 
 namespace
 {

@@ -4,11 +4,10 @@
  *
  * License: BSD-3-Clause-LBNL
  */
-#include <LaserProfiles.H>
-
-#include <WarpX_Complex.H>
-#include <WarpXConst.H>
-#include <WarpXUtil.H>
+#include "Laser/LaserProfiles.H"
+#include "Utils/WarpX_Complex.H"
+#include "Utils/WarpXConst.H"
+#include "Utils/WarpXUtil.H"
 
 #include <AMReX_Print.H>
 #include <AMReX_ParallelDescriptor.H>
@@ -19,11 +18,11 @@
 #include <cstdint>
 #include <algorithm>
 
+
 using namespace amrex;
-using namespace WarpXLaserProfiles;
 
 void
-FromTXYEFileLaserProfile::init (
+WarpXLaserProfiles::FromTXYEFileLaserProfile::init (
     const amrex::ParmParse& ppl,
     const amrex::ParmParse& /* ppc */,
     CommonLaserParameters params)
@@ -66,7 +65,7 @@ FromTXYEFileLaserProfile::init (
 }
 
 void
-FromTXYEFileLaserProfile::update (amrex::Real t)
+WarpXLaserProfiles::FromTXYEFileLaserProfile::update (amrex::Real t)
 {
     if(t >= m_params.t_coords.back())
         return;
@@ -82,7 +81,7 @@ FromTXYEFileLaserProfile::update (amrex::Real t)
 }
 
 void
-FromTXYEFileLaserProfile::fill_amplitude (
+WarpXLaserProfiles::FromTXYEFileLaserProfile::fill_amplitude (
     const int np,
     Real const * AMREX_RESTRICT const Xp, Real const * AMREX_RESTRICT const Yp,
     Real t, Real * AMREX_RESTRICT const amplitude) const
@@ -114,7 +113,7 @@ FromTXYEFileLaserProfile::fill_amplitude (
 }
 
 void
-FromTXYEFileLaserProfile::parse_txye_file(std::string txye_file_name)
+WarpXLaserProfiles::FromTXYEFileLaserProfile::parse_txye_file(std::string txye_file_name)
 {
     if(ParallelDescriptor::IOProcessor()){
         std::ifstream inp(txye_file_name, std::ios::binary);
@@ -227,7 +226,7 @@ FromTXYEFileLaserProfile::parse_txye_file(std::string txye_file_name)
 }
 
 std::pair<int,int>
-FromTXYEFileLaserProfile::find_left_right_time_indices(amrex::Real t) const
+WarpXLaserProfiles::FromTXYEFileLaserProfile::find_left_right_time_indices(amrex::Real t) const
 {
     int idx_t_right;
     if(m_params.is_grid_uniform){
@@ -246,7 +245,7 @@ FromTXYEFileLaserProfile::find_left_right_time_indices(amrex::Real t) const
 }
 
 void
-FromTXYEFileLaserProfile::read_data_t_chuck(int t_begin, int t_end)
+WarpXLaserProfiles::FromTXYEFileLaserProfile::read_data_t_chuck(int t_begin, int t_end)
 {
     amrex::Print() <<
         "Reading [" << t_begin << ", " << t_end <<
@@ -290,7 +289,7 @@ FromTXYEFileLaserProfile::read_data_t_chuck(int t_begin, int t_end)
 }
 
 void
-FromTXYEFileLaserProfile::internal_fill_amplitude_uniform(
+WarpXLaserProfiles::FromTXYEFileLaserProfile::internal_fill_amplitude_uniform(
     const int idx_t_left,
     const int np,
     Real const * AMREX_RESTRICT const Xp, Real const * AMREX_RESTRICT const Yp,
@@ -394,7 +393,7 @@ FromTXYEFileLaserProfile::internal_fill_amplitude_uniform(
 }
 
 void
-FromTXYEFileLaserProfile::internal_fill_amplitude_nonuniform(
+WarpXLaserProfiles::FromTXYEFileLaserProfile::internal_fill_amplitude_nonuniform(
     const int idx_t_left,
     const int np,
     Real const * AMREX_RESTRICT const Xp, Real const * AMREX_RESTRICT const Yp,

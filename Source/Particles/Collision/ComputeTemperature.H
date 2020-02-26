@@ -7,7 +7,8 @@
 #ifndef WARPX_PARTICLES_COLLISION_COMPUTE_TEMPERATURE_H_
 #define WARPX_PARTICLES_COLLISION_COMPUTE_TEMPERATURE_H_
 
-#include <WarpXConst.H>
+#include "Utils/WarpXConst.H"
+
 
 template <typename T_index, typename T_R>
 AMREX_GPU_HOST_DEVICE

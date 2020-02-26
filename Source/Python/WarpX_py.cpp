@@ -5,7 +5,8 @@
  *
  * License: BSD-3-Clause-LBNL
  */
-#include <WarpX_py.H>
+#include "WarpX_py.H"
+
 
 extern "C" {
 

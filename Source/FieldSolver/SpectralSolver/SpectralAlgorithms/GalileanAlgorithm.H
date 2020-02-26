@@ -1,8 +1,9 @@
 #ifndef WARPX_GALILEAN_ALGORITHM_H_
 #define WARPX_GALILEAN_ALGORITHM_H_
 
-#include <SpectralBaseAlgorithm.H>
+#include "SpectralBaseAlgorithm.H"
 
+#if WARPX_USE_PSATD
 /* \brief Class that updates the field in spectral space
  * and stores the coefficients of the corresponding update equation.
  */
@@ -29,5 +30,5 @@ class GalileanAlgorithm : public SpectralBaseAlgorithm
         SpectralRealCoefficients C_coef, S_ck_coef;
         SpectralComplexCoefficients Theta2_coef, X1_coef, X2_coef, X3_coef, X4_coef;
 };
-
+#endif // WARPX_USE_PSATD
 #endif // WARPX_GALILEAN_ALGORITHM_H_

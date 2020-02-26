@@ -7,23 +7,24 @@
  *
  * License: BSD-3-Clause-LBNL
  */
+#ifdef _OPENMP
+#   include <omp.h>
+#endif
+
+#include "RigidInjectedParticleContainer.H"
+#include "WarpX.H"
+#include "Utils/WarpXConst.H"
+#include "Utils/WarpXAlgorithmSelection.H"
+#include "Pusher/UpdateMomentumBoris.H"
+#include "Pusher/UpdateMomentumVay.H"
+#include "Pusher/UpdateMomentumBorisWithRadiationReaction.H"
+#include "Pusher/UpdateMomentumHigueraCary.H"
+#include "Pusher/GetAndSetPosition.H"
+
 #include <limits>
 #include <sstream>
 #include <algorithm>
 
-#ifdef _OPENMP
-#include <omp.h>
-#endif
-
-#include <RigidInjectedParticleContainer.H>
-#include <WarpX.H>
-#include <WarpXConst.H>
-#include <WarpXAlgorithmSelection.H>
-#include <UpdateMomentumBoris.H>
-#include <UpdateMomentumVay.H>
-#include <UpdateMomentumBorisWithRadiationReaction.H>
-#include <UpdateMomentumHigueraCary.H>
-#include <GetAndSetPosition.H>
 
 using namespace amrex;
 

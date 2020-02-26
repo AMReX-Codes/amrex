@@ -8,9 +8,11 @@
 #ifndef WARPX_SPECTRAL_K_SPACE_H_
 #define WARPX_SPECTRAL_K_SPACE_H_
 
-#include <WarpX_ComplexForFFT.H>
+#include "WarpX_ComplexForFFT.H"
+
 #include <AMReX_BoxArray.H>
 #include <AMReX_LayoutData.H>
+
 
 // `KVectorComponent` and `SpectralShiftFactor` hold one 1D array
 // ("ManagedVector") for each box ("LayoutData"). The arrays are

@@ -5,8 +5,10 @@
  * License: BSD-3-Clause-LBNL
  */
 #include "GuardCellManager.H"
-#include "NCIGodfreyFilter.H"
+#include "Filter/NCIGodfreyFilter.H"
+
 #include <AMReX_Print.H>
+
 
 using namespace amrex;
 

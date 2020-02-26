@@ -8,16 +8,17 @@
 #ifndef WARPX_BackTransformedDiagnostic_H_
 #define WARPX_BackTransformedDiagnostic_H_
 
-#include <vector>
-#include <map>
+#include "Particles/MultiParticleContainer.H"
+#include "Utils/WarpXConst.H"
 
-#include <AMReX_VisMF.H>
-#include <AMReX_PlotFileUtil.H>
-#include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Geometry.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_PlotFileUtil.H>
+#include <AMReX_VisMF.H>
 
-#include "MultiParticleContainer.H"
-#include "WarpXConst.H"
+#include <map>
+#include <vector>
+
 
 /** \brief
  * The capability for back-transformed lab-frame data is implemented to generate
@@ -39,7 +40,6 @@
  * instead of re-generating the backtransformed slice data at z_lab for a given
  * t_lab for each diagnostic.
  */
-
 class LabFrameDiag {
     public:
     std::string m_file_name;

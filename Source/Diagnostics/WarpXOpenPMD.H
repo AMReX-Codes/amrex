@@ -8,14 +8,16 @@
 #ifndef WARPX_OPEN_PMD_H_
 #define WARPX_OPEN_PMD_H_
 
-#include "WarpXParticleContainer.H"
-#include "MultiParticleContainer.H" // PIdx
+#include "Particles/WarpXParticleContainer.H"
+#include "Particles/MultiParticleContainer.H" // PIdx
 
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_REAL.H>
 #include <AMReX_Utility.H>
 
-#include <openPMD/openPMD.hpp>
+#ifdef WARPX_USE_OPENPMD
+#   include <openPMD/openPMD.hpp>
+#endif
 
 #include <memory>
 #include <string>
@@ -72,6 +74,7 @@ private:
 };
 
 
+#ifdef WARPX_USE_OPENPMD
 //
 //
 /** Writer logic for openPMD particles and fields */
@@ -181,6 +184,6 @@ private:
   // meta data
   std::vector< bool > m_fieldPMLdirections; //! @see WarpX::getPMLdirections()
 };
-
+#endif // WARPX_USE_OPENPMD
 
 #endif // WARPX_OPEN_PMD_H

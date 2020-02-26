@@ -7,9 +7,11 @@
 #ifndef WARPX_SPECTRAL_SOLVER_H_
 #define WARPX_SPECTRAL_SOLVER_H_
 
-#include <SpectralBaseAlgorithm.H>
-#include <SpectralFieldData.H>
+#include "SpectralAlgorithms/SpectralBaseAlgorithm.H"
+#include "SpectralFieldData.H"
 
+
+#ifdef WARPX_USE_PSATD
 /**
  * \brief Top-level class for the electromagnetic spectral solver
  *
@@ -64,5 +66,5 @@ class SpectralSolver
         // SpectralBaseAlgorithm is a base class ; this pointer is meant
         // to point an instance of a *sub-class* defining a specific algorithm
 };
-
+#endif // WARPX_USE_PSATD
 #endif // WARPX_SPECTRAL_SOLVER_H_

@@ -4,12 +4,13 @@
  *
  * License: BSD-3-Clause-LBNL
  */
-
 #ifndef WARPX_PARTICLES_PUSHER_UPDATEMOMENTUM_BORIS_WITHRR_H_
 #define WARPX_PARTICLES_PUSHER_UPDATEMOMENTUM_BORIS_WITHRR_H_
 
+#include "UpdateMomentumBoris.H"
+
 #include <AMReX_REAL.H>
-#include <UpdateMomentumBoris.H>
+
 
 /**
  * Push the particle's positions over one timestep,

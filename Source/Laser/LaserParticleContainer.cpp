@@ -6,16 +6,17 @@
  *
  * License: BSD-3-Clause-LBNL
  */
+#include "WarpX.H"
+#include "Utils/WarpXConst.H"
+#include "Utils/WarpX_Complex.H"
+#include "Particles/MultiParticleContainer.H"
+#include "Particles/Pusher/GetAndSetPosition.H"
+
 #include <limits>
 #include <cmath>
 #include <algorithm>
 #include <numeric>
 
-#include <WarpX.H>
-#include <WarpXConst.H>
-#include <WarpX_Complex.H>
-#include <MultiParticleContainer.H>
-#include <GetAndSetPosition.H>
 
 using namespace amrex;
 using namespace WarpXLaserProfiles;

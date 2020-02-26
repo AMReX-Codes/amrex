@@ -7,8 +7,11 @@
 #ifndef WARPX_SPECTRAL_BASE_ALGORITHM_H_
 #define WARPX_SPECTRAL_BASE_ALGORITHM_H_
 
-#include <SpectralKSpace.H>
-#include <SpectralFieldData.H>
+#include "FieldSolver/SpectralSolver/SpectralKSpace.H"
+#include "FieldSolver/SpectralSolver/SpectralFieldData.H"
+
+
+#if WARPX_USE_PSATD
 
 /* \brief Class that updates the field in spectral space
  * and stores the coefficients of the corresponding update equation.
@@ -57,4 +60,5 @@ class SpectralBaseAlgorithm
 #endif
 };
 
+#endif // WARPX_USE_PSATD
 #endif // WARPX_SPECTRAL_BASE_ALGORITHM_H_

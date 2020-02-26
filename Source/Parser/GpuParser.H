@@ -1,6 +1,5 @@
 /* Copyright 2019-2020 Maxence Thevenet, Revathi Jambunathan, Weiqun Zhang
  *
- *
  * This file is part of WarpX.
  *
  * License: BSD-3-Clause-LBNL
@@ -8,10 +7,12 @@
 #ifndef WARPX_GPU_PARSER_H_
 #define WARPX_GPU_PARSER_H_
 
-#include <WarpXParser.H>
+#include "Parser/WarpXParser.H"
+
 #include <AMReX_Gpu.H>
 #include <AMReX_Array.H>
 #include <AMReX_TypeTraits.H>
+
 
 // When compiled for CPU, wrap WarpXParser and enable threading.
 // When compiled for GPU, store one copy of the parser in

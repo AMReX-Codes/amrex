@@ -5,10 +5,11 @@
  *
  * License: BSD-3-Clause-LBNL
  */
-#include <Filter.H>
-
 #ifndef WARPX_BILIN_FILTER_H_
 #define WARPX_BILIN_FILTER_H_
+
+#include "Filter.H"
+
 
 class BilinearFilter : public Filter
 {

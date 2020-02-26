@@ -8,9 +8,12 @@
 #ifndef WARPX_PARTICLES_PUSHER_GETANDSETPOSITION_H_
 #define WARPX_PARTICLES_PUSHER_GETANDSETPOSITION_H_
 
-#include <limits>
-#include <WarpXParticleContainer.H>
+#include "Particles/WarpXParticleContainer.H"
+
 #include <AMReX_REAL.H>
+
+#include <limits>
+
 
 /** \brief Functor that can be used to extract the positions of the macroparticles
  *         inside a ParallelFor kernel

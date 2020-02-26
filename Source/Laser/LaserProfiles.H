@@ -7,13 +7,12 @@
 #ifndef WARPX_LaserProfiles_H_
 #define WARPX_LaserProfiles_H_
 
+#include "Parser/WarpXParser.H"
+
 #include <AMReX_REAL.H>
-#include <WarpXParser.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_Vector.H>
 #include <AMReX_Gpu.H>
-
-#include <WarpXParser.H>
 
 #include <map>
 #include <string>
@@ -21,6 +20,7 @@
 #include <functional>
 #include <limits>
 #include <utility>
+
 
 namespace WarpXLaserProfiles {
 

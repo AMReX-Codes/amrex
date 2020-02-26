@@ -1,29 +1,29 @@
 /* Copyright 2019-2020 Andrew Myers, Ann Almgren, Aurore Blelly
- * Axel Huebl, Burlen Loring, David Grote
- * Glenn Richardson, Jean-Luc Vay, Luca Fedeli
- * Maxence Thevenet, Remi Lehe, Revathi Jambunathan
- * Weiqun Zhang, Yinjian Zhao
+ *                     Axel Huebl, Burlen Loring, David Grote
+ *                     Glenn Richardson, Jean-Luc Vay, Luca Fedeli
+ *                     Maxence Thevenet, Remi Lehe, Revathi Jambunathan
+ *                     Weiqun Zhang, Yinjian Zhao
  *
  * This file is part of WarpX.
  *
  * License: BSD-3-Clause-LBNL
  */
-#include <cmath>
-#include <limits>
-
-#include <WarpX.H>
-#include <WarpX_QED_K.H>
-#include <WarpX_QED_Field_Pushers.cpp>
-#include <WarpXConst.H>
-#include <WarpXUtil.H>
-#include <WarpXAlgorithmSelection.H>
+#include "WarpX.H"
+#include "FieldSolver/WarpX_QED_K.H"
+#include "Utils/WarpXConst.H"
+#include "Utils/WarpXUtil.H"
+#include "Utils/WarpXAlgorithmSelection.H"
 #ifdef WARPX_USE_PY
-#include <WarpX_py.H>
+#   include "Python/WarpX_py.H"
 #endif
 
 #ifdef BL_USE_SENSEI_INSITU
-#include <AMReX_AmrMeshInSituBridge.H>
+#   include <AMReX_AmrMeshInSituBridge.H>
 #endif
+
+#include <cmath>
+#include <limits>
+
 
 using namespace amrex;
 

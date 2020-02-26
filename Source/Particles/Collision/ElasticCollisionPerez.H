@@ -9,8 +9,10 @@
 
 #include "UpdateMomentumPerezElastic.H"
 #include "ComputeTemperature.H"
-#include <WarpXConst.H>
+#include "Utils/WarpXConst.H"
+
 #include <AMReX_Random.H>
+
 
 /** \brief Prepare information for and call
  *        UpdateMomentumPerezElastic().

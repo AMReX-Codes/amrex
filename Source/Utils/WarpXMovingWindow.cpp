@@ -6,10 +6,11 @@
  *
  * License: BSD-3-Clause-LBNL
  */
-#include "GuardCellManager.H"
-#include <WarpX.H>
-#include <WarpXUtil.H>
-#include <WarpXConst.H>
+#include "Parallelization/GuardCellManager.H"
+#include "WarpX.H"
+#include "Utils/WarpXUtil.H"
+#include "Utils/WarpXConst.H"
+
 
 using namespace amrex;
 
