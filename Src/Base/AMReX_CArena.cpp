@@ -222,6 +222,7 @@ CArena::grow (void* pt, std::size_t min_size, std::size_t max_size)
         auto free_it = m_freelist.find(Node(pt2,0,0));
         if (free_it == m_freelist.end() or not busy_it->coalescable(*free_it))
         {
+            lock.~lock_guard();
             return std::make_pair(alloc(max_size), max_size);
         }
         else
@@ -230,6 +231,7 @@ CArena::grow (void* pt, std::size_t min_size, std::size_t max_size)
             std::size_t new_size = current_size + next_block_size;
             if (new_size < min_size)
             {
+                lock.~lock_guard();
                 return std::make_pair(alloc(max_size), max_size);
             }
             else if (new_size <= max_size)
