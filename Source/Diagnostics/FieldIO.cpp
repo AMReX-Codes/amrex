@@ -1,6 +1,5 @@
-/* Copyright 2019-2020 Andrew Myers, Axel Huebl, David Grote
- * Maxence Thevenet, Remi Lehe, Revathi Jambunathan
- * Weiqun Zhang
+/* Copyright 2019-2020 Andrew Myers, Axel Huebl, David Grote, Maxence Thevenet,
+ * Remi Lehe, Revathi Jambunathan, Weiqun Zhang, Edoardo Zoni
  *
  * This file is part of WarpX.
  *
@@ -13,7 +12,10 @@
 #include <AMReX_Interpolater.H>
 
 #ifdef WARPX_USE_OPENPMD
-#   include <openPMD/openPMD.hpp>
+#include <openPMD/openPMD.hpp>
+#endif
+#ifdef WARPX_USE_PSATD
+#include <SpectralSolver.H>
 #endif
 
 
@@ -643,15 +645,16 @@ WarpX::AverageAndPackFields ( Vector<std::string>& varnames,
                                     Bfield_aux[lev][2].get()},
                             WarpX::CellSize(lev) );
             } else if (fieldname == "divE"){
-                if (do_nodal) amrex::Abort("TODO: do_nodal && plot dive");
+                if (do_nodal) amrex::Abort("TODO: do_nodal && plot divE");
                 const BoxArray& ba = amrex::convert(boxArray(lev),IntVect::TheUnitVector());
-                MultiFab dive(ba,DistributionMap(lev),1,0);
-                ComputeDivE( dive, 0,
-                             {Efield_aux[lev][0].get(),
-                                     Efield_aux[lev][1].get(),
-                                     Efield_aux[lev][2].get()},
-                             WarpX::CellSize(lev) );
-                AverageAndPackScalarField( mf_avg[lev], dive, dcomp++, ngrow );
+                MultiFab divE( ba, DistributionMap(lev), 1, 0 );
+#ifdef WARPX_USE_PSATD
+                spectral_solver_fp[lev]->ComputeSpectralDivE( Efield_aux[lev], divE );
+#else
+                ComputeDivE( divE, 0, {Efield_aux[lev][0].get(), Efield_aux[lev][1].get(),
+                             Efield_aux[lev][2].get()}, WarpX::CellSize(lev) );
+#endif
+                AverageAndPackScalarField( mf_avg[lev], divE, dcomp++, ngrow );
             } else {
                 amrex::Abort("unknown field in fields_to_plot: " + fieldname);
             }

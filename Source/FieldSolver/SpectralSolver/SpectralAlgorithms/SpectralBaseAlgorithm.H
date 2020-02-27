@@ -1,4 +1,4 @@
-/* Copyright 2019 Remi Lehe
+/* Copyright 2019 Remi Lehe, Edoardo Zoni
  *
  * This file is part of WarpX.
  *
@@ -30,6 +30,13 @@ class SpectralBaseAlgorithm
         // a pointer to subclass of `SpectraBaseAlgorithm` actually
         // calls the subclass's destructor.
         virtual ~SpectralBaseAlgorithm() {};
+
+        /**
+         * \brief Compute spectral divergence of E
+         */
+        void ComputeSpectralDivE ( SpectralFieldData& field_data,
+                                   const std::array<std::unique_ptr<amrex::MultiFab>,3>& Efield,
+                                   amrex::MultiFab& divE );
 
     protected: // Meant to be used in the subclasses
 
