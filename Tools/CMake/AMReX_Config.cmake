@@ -155,11 +155,11 @@ function (configure_amrex)
    #
    # GNU-specific defines
    #
-   if ( ${CMAKE_C_COMPILER_ID} STREQUAL "GNU" )
+   if ( ${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU" )
 
       if ( CMAKE_CXX_COMPILER_VERSION VERSION_LESS "4.8" )
          message( WARNING
-            " Your default GCC is version ${CMAKE_CXX_COMPILER_VERSION}.This might break during build. GCC>=4.8 is recommended.")
+            " Your default GCC is version ${CMAKE_CXX_COMPILER_VERSION}. This might break during build. GCC>=4.8 is recommended.")
       endif ()
 
       string( REPLACE "." ";" VERSION_LIST ${CMAKE_CXX_COMPILER_VERSION})
