@@ -97,12 +97,12 @@ WarpXParticleContainer::AllocData ()
 }
 
 void
-WarpXParticleContainer::AddNParticles (int lev,
+WarpXParticleContainer::AddNParticles (int /*lev*/,
                                        int n, const ParticleReal* x, const ParticleReal* y, const ParticleReal* z,
                                        const ParticleReal* vx, const ParticleReal* vy, const ParticleReal* vz,
                                        int nattr, const ParticleReal* attr, int uniqueparticles, int id)
 {
-    BL_ASSERT(nattr == 1);
+    BL_ASSERT(nattr == 1); //! @fixme nattr is unused below: false sense of safety
     const ParticleReal* weight = attr;
 
     int ibegin, iend;
@@ -493,6 +493,9 @@ WarpXParticleContainer::DepositCharge (amrex::Vector<std::unique_ptr<amrex::Mult
                                         bool local, bool reset,
                                         bool do_rz_volume_scaling)
 {
+#ifdef WARPX_DIM_RZ
+    (void)do_rz_volume_scaling;
+#endif
     // Loop over the refinement levels
     int const finest_level = rho.size() - 1;
     for (int lev = 0; lev <= finest_level; ++lev) {

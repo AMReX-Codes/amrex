@@ -249,7 +249,7 @@ WarpX::PostRestart ()
 
 
 void
-WarpX::InitLevelData (int lev, Real time)
+WarpX::InitLevelData (int lev, Real /*time*/)
 {
 
     ParmParse pp("warpx");

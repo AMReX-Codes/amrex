@@ -485,8 +485,8 @@ MultiParticleContainer::PostRestart ()
 
 void
 MultiParticleContainer
-::GetLabFrameData (const std::string& snapshot_name,
-                   const int i_lab, const int direction,
+::GetLabFrameData (const std::string& /*snapshot_name*/,
+                   const int /*i_lab*/, const int direction,
                    const Real z_old, const Real z_new,
                    const Real t_boost, const Real t_lab, const Real dt,
                    Vector<WarpXParticleContainer::DiagnosticParticleData>& parts) const

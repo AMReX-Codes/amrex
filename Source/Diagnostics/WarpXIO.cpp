@@ -508,7 +508,7 @@ WarpX::UpdateInSitu () const
 
 void
 WarpX::prepareFields(
-        int const step,
+        int const /*step*/,
         Vector<std::string>& varnames,
         Vector<MultiFab>& mf_avg,
         Vector<const MultiFab*>& output_mf,

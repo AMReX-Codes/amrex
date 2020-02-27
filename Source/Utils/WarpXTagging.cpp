@@ -14,7 +14,7 @@
 using namespace amrex;
 
 void
-WarpX::ErrorEst (int lev, TagBoxArray& tags, Real time, int /*ngrow*/)
+WarpX::ErrorEst (int lev, TagBoxArray& tags, Real /*time*/, int /*ngrow*/)
 {
     const Real* problo = Geom(lev).ProbLo();
     const Real* dx = Geom(lev).CellSize();

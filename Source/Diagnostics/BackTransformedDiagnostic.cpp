@@ -471,7 +471,7 @@ bool compare_tlab_uptr(const std::unique_ptr<LabFrameDiag>&a,
 namespace
 {
 void
-LorentzTransformZ(MultiFab& data, Real gamma_boost, Real beta_boost, int ncomp)
+LorentzTransformZ(MultiFab& data, Real gamma_boost, Real beta_boost)
 {
     // Loop over tiles/boxes and in-place convert each slice from boosted
     // frame to back-transformed lab frame.
@@ -683,7 +683,7 @@ BackTransformedDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
     AMREX_ALWAYS_ASSERT(m_max_box_size_ >= m_num_buffer_);
 }
 
-void BackTransformedDiagnostic::Flush(const Geometry& geom)
+void BackTransformedDiagnostic::Flush(const Geometry& /*geom*/)
 {
     WARPX_PROFILE("BackTransformedDiagnostic::Flush");
 
@@ -846,7 +846,7 @@ writeLabFrameData(const MultiFab* cell_centered_data,
                                              start_comp, ncomp,
                                              interpolate);
                // Back-transform data to the lab-frame
-               LorentzTransformZ(*slice, m_gamma_boost_, m_beta_boost_, ncomp);
+               LorentzTransformZ(*slice, m_gamma_boost_, m_beta_boost_);
              }
              // Create a 2D box for the slice in the boosted frame
              Real dx = geom.CellSize(m_boost_direction_);

@@ -1110,7 +1110,7 @@ PhysicalParticleContainer::Evolve (int lev,
                                    MultiFab* rho, MultiFab* crho,
                                    const MultiFab* cEx, const MultiFab* cEy, const MultiFab* cEz,
                                    const MultiFab* cBx, const MultiFab* cBy, const MultiFab* cBz,
-                                   Real t, Real dt, DtType a_dt_type)
+                                   Real /*t*/, Real dt, DtType a_dt_type)
 {
     WARPX_PROFILE("PPC::Evolve()");
     WARPX_PROFILE_VAR_NS("PPC::Evolve::Copy", blp_copy);
@@ -2178,7 +2178,7 @@ PhysicalParticleContainer::FieldGather (WarpXParIter& pti,
                                         amrex::FArrayBox const * bxfab,
                                         amrex::FArrayBox const * byfab,
                                         amrex::FArrayBox const * bzfab,
-                                        const int ngE, const int e_is_nodal,
+                                        const int ngE, const int /*e_is_nodal*/,
                                         const long offset,
                                         const long np_to_gather,
                                         int lev,

@@ -14,7 +14,7 @@ void
 WarpXLaserProfiles::FieldFunctionLaserProfile::init (
     const amrex::ParmParse& ppl,
     const amrex::ParmParse& ppc,
-    CommonLaserParameters params)
+    CommonLaserParameters /*params*/)
 {
     // Parse the properties of the parse_field_function profile
     ppl.get("field_function(X,Y,t)", m_params.field_function);

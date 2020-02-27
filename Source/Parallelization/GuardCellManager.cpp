@@ -29,6 +29,12 @@ guardCellManager::Init(
     const amrex::Array<amrex::Real,3> v_galilean,
     const bool safe_guard_cells)
 {
+#ifndef WARPX_USE_PSATD
+    (void)do_fft_mpi_dec;
+    (void)nox_fft;
+    (void)noy_fft;
+    (void)noz_fft;
+#endif
     // When using subcycling, the particles on the fine level perform two pushes
     // before being redistributed ; therefore, we need one extra guard cell
     // (the particles may move by 2*c*dt)

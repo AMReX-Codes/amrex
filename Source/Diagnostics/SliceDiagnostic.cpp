@@ -383,7 +383,7 @@ CheckSliceInput( const RealBox real_box, RealBox &slice_cc_nd_box,
 void
 InterpolateSliceValues(MultiFab& smf, IntVect interp_lo, RealBox slice_realbox,
                        Vector<Geometry> geom, int ncomp, int nghost,
-                       IntVect slice_lo, IntVect slice_hi, IntVect SliceType,
+                       IntVect slice_lo, IntVect /*slice_hi*/, IntVect SliceType,
                        const RealBox real_box)
 {
     for (MFIter mfi(smf); mfi.isValid(); ++mfi)
@@ -408,7 +408,7 @@ void
 InterpolateLo(const Box& bx, FArrayBox &fabox, IntVect slice_lo,
              Vector<Geometry> geom, int idir, IntVect IndType,
              RealBox slice_realbox, int srccomp, int ncomp,
-             int nghost, const RealBox real_box )
+             int /*nghost*/, const RealBox real_box )
 {
     auto fabarr = fabox.array();
     const auto lo = amrex::lbound(bx);

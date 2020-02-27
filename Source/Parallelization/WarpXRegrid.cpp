@@ -35,7 +35,7 @@ WarpX::LoadBalance ()
 }
 
 void
-WarpX::RemakeLevel (int lev, Real time, const BoxArray& ba, const DistributionMapping& dm)
+WarpX::RemakeLevel (int lev, Real /*time*/, const BoxArray& ba, const DistributionMapping& dm)
 {
     if (ba == boxArray(lev))
     {
