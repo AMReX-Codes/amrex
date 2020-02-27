@@ -204,7 +204,7 @@ CArena::grow (void* pt, std::size_t min_size, std::size_t max_size)
 
     max_size = Arena::align(max_size);
 
-    std::lock_guard<std::mutex> lock(carena_mutex);
+    carena_mutex.lock();
 
     auto busy_it = m_busylist.find(Node(pt,0,0));
 
@@ -214,6 +214,7 @@ CArena::grow (void* pt, std::size_t min_size, std::size_t max_size)
     std::size_t current_size = busy_it->size();
     if (current_size >= min_size)
     {
+        carena_mutex.unlock();
         return std::make_pair(pt, current_size);
     }
     else
@@ -222,7 +223,7 @@ CArena::grow (void* pt, std::size_t min_size, std::size_t max_size)
         auto free_it = m_freelist.find(Node(pt2,0,0));
         if (free_it == m_freelist.end() or not busy_it->coalescable(*free_it))
         {
-            lock.~lock_guard();
+            carena_mutex.unlock();
             return std::make_pair(alloc(max_size), max_size);
         }
         else
@@ -231,13 +232,14 @@ CArena::grow (void* pt, std::size_t min_size, std::size_t max_size)
             std::size_t new_size = current_size + next_block_size;
             if (new_size < min_size)
             {
-                lock.~lock_guard();
+                carena_mutex.unlock();
                 return std::make_pair(alloc(max_size), max_size);
             }
             else if (new_size <= max_size)
             {
                 m_actually_used += next_block_size;
                 m_freelist.erase(free_it);
+                carena_mutex.unlock();
                 return std::make_pair(pt, new_size);
             }
             else
@@ -246,6 +248,7 @@ CArena::grow (void* pt, std::size_t min_size, std::size_t max_size)
                 void* pt3 = (char*)pt + max_size;
                 m_freelist.insert(free_it, Node(pt3, free_it->owner(), new_size-max_size));
                 m_freelist.erase(free_it);
+                carena_mutex.unlock();
                 return std::make_pair(pt, max_size);
             }
         }
@@ -262,8 +265,8 @@ CArena::shrink (void* pt, std::size_t desired_size)
 
     desired_size = Arena::align(desired_size);
 
-    std::lock_guard<std::mutex> lock(carena_mutex);
-
+    carena_mutex.lock();
+    
     auto busy_it = m_busylist.find(Node(pt,0,0));
 
     BL_ASSERT(!(busy_it == m_busylist.end()));
@@ -287,6 +290,7 @@ CArena::shrink (void* pt, std::size_t desired_size)
         coalesce_freeblocks(free_it);
     }
 
+    carena_mutex.unlock();
     return std::make_pair(pt, desired_size);
 }
 
