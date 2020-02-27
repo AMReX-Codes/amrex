@@ -51,3 +51,24 @@ jobs:
         cmake ../Tutorials/Particles/CellSortedParticles
         make -j 2
         make test
+
+  # Build and use AMReX via `add_subdirectory()`
+  # Note - We build a CUDA-C++ project here.
+  #        In the future, this should compile without needing
+  #        gfortran.
+  subdirectory-CUDA-CXX:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Dependencies
+      run: .github/workflows/cmake/dependencies_nvcc.sh
+    - name: Build & Install
+      run: |
+        mkdir build
+        cd build
+        cmake ../Tutorials/GPU/ParallelReduce            \
+            -DCMAKE_CXX_COMPILER=$(which g++-5)          \
+            -DCMAKE_CUDA_HOST_COMPILER=$(which g++-5)    \
+            -DCMAKE_Fortran_COMPILER=$(which gfortran-5) \
+            -DCUDA_ARCH=6.0
+        make -j 2

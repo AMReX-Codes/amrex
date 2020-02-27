@@ -1,6 +1,7 @@
 
 #include <AMReX.H>
 #include <AMReX_Utility.H>
+#include <AMReX_Random.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_iMultiFab.H>
