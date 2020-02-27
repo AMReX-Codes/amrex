@@ -47,6 +47,7 @@ endforeach ()
 # C++ flags
 # 
 add_library(Flags_CXX INTERFACE)
+add_library(AMReX::Flags_CXX ALIAS Flags_CXX)
 
 target_compile_options( Flags_CXX
    INTERFACE
@@ -64,6 +65,7 @@ target_compile_options( Flags_CXX
 # Fortran flags
 # 
 add_library(Flags_Fortran INTERFACE)
+add_library(AMReX::Flags_Fortran ALIAS Flags_Fortran)
 
 target_compile_options( Flags_Fortran
    INTERFACE
@@ -82,6 +84,7 @@ target_compile_options( Flags_Fortran
 # Fortran REQUIRED flags -- This is for internal use only: it is useless to export it
 #
 add_library(Flags_Fortran_REQUIRED INTERFACE)
+add_library(AMReX::Flags_Fortran_REQUIRED ALIAS Flags_Fortran_REQUIRED)
 
 target_compile_options( Flags_Fortran_REQUIRED
    INTERFACE
@@ -96,6 +99,7 @@ target_compile_options( Flags_Fortran_REQUIRED
 # Floating point exceptions
 # 
 add_library(Flags_FPE INTERFACE)
+add_library(AMReX::Flags_FPE ALIAS Flags_FPE)
 
 target_compile_options ( Flags_FPE
    INTERFACE
