@@ -43,14 +43,6 @@ function (configure_amrex)
    #
    # Setup compilers
    #
-
-   # Exit if Cray compiler is in use -- Support for Cray is currently broken
-   if ( ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Cray") OR
-         ("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "Cray") )
-      message(FATAL_ERROR "Support for Cray compiler is currently broken")
-   endif()
-
-
    # Set C++ standard and disable compiler-specific extensions, like "-std=gnu++14" for GNU
    # This will also enforce the same standard with the CUDA compiler
    # Moreover, it will also enforce such standard on all the consuming targets
