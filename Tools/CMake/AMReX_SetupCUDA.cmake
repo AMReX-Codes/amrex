@@ -4,29 +4,25 @@
 #  Author: Michele Rosso
 #  Date  : April 4, 2019
 #
-# 
+#
 include_guard(GLOBAL)
+
+get_property(_lang GLOBAL PROPERTY ENABLED_LANGUAGES)
+if (NOT ("CUDA" IN_LIST _lang ))
+    message(WARNING "AMReX_SetupCUDA will not be processed because CUDA language has not been enabled.")
+    return()
+endif ()
 
 #
 # Makes sure the CUDA host compiler and CXX compiler are the same.
-# CMake let you decide which host compiler to use via the env variable
+# CMake lets you decide which host compiler to use via the env variable
 # CUDAHOSTCXX and the CMake variable CMAKE_CUDA_HOST_COMPILER.
 # For the time being we force the CUDA host compiler to be the C++ compiler.
 #
-# DO THIS BEFORE CALLING enable_language(CUDA)
-#
 if ( ( CMAKE_CUDA_HOST_COMPILER AND NOT ("${CMAKE_CUDA_HOST_COMPILER}" STREQUAL "${CMAKE_CXX_COMPILER}") )
       OR  ( NOT ("$ENV{CUDAHOSTCXX}" STREQUAL "") ) )
-   message(WARNING
-      "User-defined CUDA host compiler does not match C++ compiler: overwriting user setting.")
+   message(FATAl_ERROR "User-defined CUDA host compiler does not match C++ compiler")
 endif ()
-unset(ENV{CUDAHOSTCXX})
-set(CMAKE_CUDA_HOST_COMPILER ${CMAKE_CXX_COMPILER} CACHE FILEPATH "" FORCE)
-
-# 
-# Enable CUDA language here
-# 
-enable_language(CUDA)
 
 #
 #  CUDA-related options
@@ -46,7 +42,7 @@ set(CUDA_MAXREGCOUNT "255" CACHE STRING
    "Limit the maximum number of registers available" )
 message(STATUS "   CUDA_MAXREGCOUNT = ${CUDA_MAXREGCOUNT}")
 
-# 
+#
 # Error if NVCC is too old
 #
 If (CMAKE_CUDA_COMPILER_VERSION VERSION_LESS "8.0")
@@ -54,7 +50,7 @@ If (CMAKE_CUDA_COMPILER_VERSION VERSION_LESS "8.0")
       "This is unsupported. Please use CUDA toolkit version 8.0 or newer.")
 endif ()
 
-# 
+#
 # Find cuda flags for target architecture. If CUDA_ARCH is not set by the user,
 # autodetection is enabled
 #
@@ -63,19 +59,19 @@ cuda_select_nvcc_arch_flags(_nvcc_arch_flags ${CUDA_ARCH})
 
 #
 # Remove unsupported architecture: anything less the 6.0 must go
-# 
+#
 string(REPLACE "-gencode;" "-gencode " _nvcc_arch_flags "${_nvcc_arch_flags}")
 
 foreach (_item IN LISTS _nvcc_arch_flags)
    # Match one time the regex [0-9]+.
    # [0-9]+ means any number between 0 and 9 will be matched one or more times (option +)
    string(REGEX MATCH "[0-9]+" _cuda_compute_capability "${_item}")
-   
+
    if (_cuda_compute_capability LESS 60)
       message(STATUS "Ignoring unsupported CUDA architecture ${_cuda_compute_capability}")
       list(REMOVE_ITEM _nvcc_arch_flags ${_item})
    endif ()
-   
+
 endforeach ()
 
 if (NOT _nvcc_arch_flags)
@@ -84,7 +80,7 @@ endif ()
 
 #
 # Set architecture-dependent flags
-# 
+#
 string(REPLACE ";" " " _nvcc_arch_flags "${_nvcc_arch_flags}")
 set(NVCC_ARCH_FLAGS ${_nvcc_arch_flags} CACHE INTERNAL "CUDA architecture-dependent flags")
 unset(_nvcc_arch_flags)
@@ -116,4 +112,3 @@ set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -maxrregcount=${CUDA_MAXREGCOUNT}")
 if (ENABLE_CUDA_FASTMATH)
    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --use_fast_math")
 endif ()
-
