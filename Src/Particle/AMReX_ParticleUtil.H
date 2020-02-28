@@ -10,6 +10,7 @@
 #include <AMReX_ParticleTile.H>
 #include <AMReX_ParticleBufferMap.H>
 #include <AMReX_TypeTraits.H>
+#include <AMReX_Scan.H>
 
 #include <limits>
 
