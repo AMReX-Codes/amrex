@@ -506,7 +506,7 @@ namespace amrex
         
         void ShrinkBuffer (size_type a_capacity) noexcept
         {
-            auto r = shrink(m_data, a_capacity);
+            auto r = this->shrink(m_data, a_capacity);
             pointer new_data = r.first;
             size_type new_capacity = r.second;
             if (new_data != m_data) {
