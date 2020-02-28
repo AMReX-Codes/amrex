@@ -5,7 +5,7 @@ enable_language(CXX)
 enable_language(Fortran)
 
 #
-# Load required modules 
+# Load required modules
 #
 set( AMREX_CMAKE_MODULES_PATH "${CMAKE_CURRENT_LIST_DIR}/Tools/CMake" CACHE INTERNAL "" )
 set( CMAKE_MODULE_PATH ${AMREX_CMAKE_MODULES_PATH} )
@@ -20,7 +20,7 @@ endif ()
 
 #
 # Include options, utilities and other stuff we need
-# 
+#
 include( AMReX_Utils )
 include( AMReX_Options )
 include( AMReX_Machines )
@@ -29,15 +29,16 @@ include( AMReX_Machines )
 # Enable CUDA if requested
 #
 if (ENABLE_CUDA)
-   include(AMReX_SetupCUDA)
+    enable_language(CUDA)
+    include(AMReX_SetupCUDA)
 endif ()
 
 #
 # Set CMAKE_<LANG>_FLAGS_<CONFIG> if not already defined
-# 
+#
 set_default_config_flags ()
 
-# 
+#
 # Set variable for AMReX versioning
 #
 find_package (Git QUIET)
@@ -62,9 +63,9 @@ endif ()
 set ( AMREX_GIT_VERSION "${TMP}" CACHE INTERNAL "" )
 unset (TMP)
 
-# 
+#
 # Source files for all binaries and libraries found under src
-# 
+#
 add_subdirectory(Src)
 
 #
@@ -86,5 +87,3 @@ if (ENABLE_PLOTFILE_TOOLS)
    # because it needs to get installed
    add_subdirectory(Tools/Plotfile)
 endif ()
-
-
