@@ -30,6 +30,17 @@ CArena::~CArena ()
     }
 }
 
+std::size_t
+CArena::biggestFreeBlock () const noexcept
+{
+    std::size_t biggest_free = 0;
+    for (const auto& node : m_freelist)
+    {
+        biggest_free = std::max(biggest_free, node.size());
+    }
+    return biggest_free;
+}
+
 void*
 CArena::alloc (std::size_t nbytes)
 {
@@ -223,8 +234,11 @@ CArena::grow (void* pt, std::size_t min_size, std::size_t max_size)
         auto free_it = m_freelist.find(Node(pt2,0,0));
         if (free_it == m_freelist.end() or not busy_it->coalescable(*free_it))
         {
+            std::size_t biggest_free = biggestFreeBlock();
+            std::size_t new_alloc_size = max_size;
+            if ((biggest_free < max_size) and (biggest_free >= min_size)) new_alloc_size = biggest_free;
             carena_mutex.unlock();
-            return std::make_pair(alloc(max_size), max_size);
+            return std::make_pair(alloc(new_alloc_size), new_alloc_size);
         }
         else
         {
@@ -232,8 +246,11 @@ CArena::grow (void* pt, std::size_t min_size, std::size_t max_size)
             std::size_t new_size = current_size + next_block_size;
             if (new_size < min_size)
             {
+                std::size_t biggest_free = biggestFreeBlock();
+                std::size_t new_alloc_size = max_size;
+                if ((biggest_free < max_size) and (biggest_free >= min_size)) new_alloc_size = biggest_free;
                 carena_mutex.unlock();
-                return std::make_pair(alloc(max_size), max_size);
+                return std::make_pair(alloc(new_alloc_size), new_alloc_size);
             }
             else if (new_size <= max_size)
             {

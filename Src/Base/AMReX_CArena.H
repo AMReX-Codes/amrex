@@ -76,6 +76,9 @@ public:
     //! Return the amount of memory in this pointer.  Return 0 for unknown pointer.
     std::size_t sizeOf (void* p) const noexcept;
 
+    //! Return the size of the biggest block in the free list
+    std::size_t biggestFreeBlock () const noexcept;
+
     void PrintUsage (std::string const& name) const;
 
     //! The default memory hunk size to grab from the heap.
