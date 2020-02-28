@@ -139,7 +139,7 @@ InitParticles(const IntVect& a_num_particles_per_cell,
             unsigned int uiz = amrex::min(nz-1,amrex::max(0,iz));
             unsigned int cellid = (uix * ny + uiy) * nz + uiz;
 
-            int pidx = poffset[cellid]-1;
+            int pidx = poffset[cellid] - poffset[0];
 
             for (int i_part=0; i_part<num_ppc;i_part++)
             {
