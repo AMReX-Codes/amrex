@@ -230,6 +230,8 @@ void enforcePeriodic (P& p,
     }
 }
 
+#if defined(AMREX_USE_GPU) && !defined(AMREX_USE_DPCPP)
+
 template <typename PTile, typename PLocator>
 int
 partitionParticlesByDest (PTile& ptile, const PLocator& ploc, const ParticleBufferMap& pmap,
@@ -301,6 +303,8 @@ partitionParticlesByDest (PTile& ptile, const PLocator& ploc, const ParticleBuff
 
     return num_stay;
 }
+
+#endif
 
 IntVect computeRefFac (const ParGDBBase* a_gdb, int src_lev, int lev);
 
