@@ -4,6 +4,7 @@
  *
  * License: BSD-3-Clause-LBNL
  */
+
 #ifndef WarpX_QED_K_h
 #define WarpX_QED_K_h
 
@@ -11,9 +12,6 @@
 #include <AMReX_FArrayBox.H>
 
 #include <cmath>
-
-
-using namespace amrex;
 
 /**
  * calc_M calculates the Magnetization field of the vacuum at a specific point and returns it as a three component vector
@@ -27,8 +25,11 @@ using namespace amrex;
  * \param[in] xi_c2 The quantum parameter * c2 being used for the simulation
  */
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void calc_M(Real arr [], Real ex, Real ey, Real ez, Real bx, Real by, Real bz, Real xi_c2, Real c2)
+void calc_M(amrex::Real arr [], amrex::Real ex, amrex::Real ey, amrex::Real ez,
+            amrex::Real bx, amrex::Real by, amrex::Real bz,
+            amrex::Real xi_c2, amrex::Real c2)
 {
+    using namespace amrex;
     const Real ee = ex*ex+ey*ey+ez*ez;
     const Real bb_c2 = c2*(bx*bx+by*by+bz*bz);
     const Real eb = ex*bx+ey*by+ez*bz;
@@ -67,14 +68,17 @@ void calc_M(Real arr [], Real ex, Real ey, Real ez, Real bx, Real by, Real bz, R
  * \param[in] xi_c2 Quantum parameter * c**2
  */
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void warpx_hybrid_QED_push (int j, int k, int l, Array4<Real> const& Ex, Array4<Real>
-                            const& Ey, Array4<Real> const& Ez, Array4<Real> const& Bx,
-                            Array4<Real> const& By, Array4<Real const> const& Bz,
-                            Array4<Real> const& tmpEx, Array4<Real> const& tmpEy,
-                            Array4<Real> const& tmpEz, Real dx, Real dy, Real dz, Real dt,
-                            const Real xi_c2)
+void warpx_hybrid_QED_push (
+    int j, int k, int l, amrex::Array4<amrex::Real> const& Ex,
+    amrex::Array4<amrex::Real> const& Ey, amrex::Array4<amrex::Real> const& Ez,
+    amrex::Array4<amrex::Real> const& Bx, amrex::Array4<amrex::Real> const& By,
+    amrex::Array4<amrex::Real const> const& Bz, amrex::Array4<amrex::Real> const& tmpEx,
+    amrex::Array4<amrex::Real> const& tmpEy, amrex::Array4<amrex::Real> const& tmpEz,
+    amrex::Real dx, amrex::Real dy, amrex::Real dz, amrex::Real dt,
+    const amrex::Real xi_c2)
 {
 
+using namespace amrex;
 
 // Defining constants to be used in the calculations
 
