@@ -91,7 +91,7 @@ namespace amrex
     namespace detail { void Error_host_doit (const char * msg); }
     AMREX_GPU_HOST_DEVICE inline
     void Error (const char * msg = 0) {
-#if AMREX_DEVICE_COMPILE()
+#if AMREX_DEVICE_COMPILE
         if (msg) AMREX_DEVICE_PRINTF("Error %s\n", msg);
         AMREX_DEVICE_ASSERT(0);
 #else
@@ -104,7 +104,7 @@ namespace amrex
     namespace detail { void Warning_host_doit (const char * msg); }
     AMREX_GPU_HOST_DEVICE inline
     void Warning (const char * msg) {
-#if AMREX_DEVICE_COMPILE()
+#if AMREX_DEVICE_COMPILE
         if (msg) AMREX_DEVICE_PRINTF("Warning %s\n", msg);
 #else
         detail::Warning_host_doit(msg);
@@ -116,7 +116,7 @@ namespace amrex
     namespace detail { void Abort_host_doit (const char * msg); }
     AMREX_GPU_HOST_DEVICE inline
     void Abort (const char * msg = 0) {
-#if AMREX_DEVICE_COMPILE()
+#if AMREX_DEVICE_COMPILE
         if (msg) AMREX_DEVICE_PRINTF("Abort %s\n", msg);
         AMREX_DEVICE_ASSERT(0);
 #else
@@ -133,7 +133,7 @@ namespace amrex
                                               const char* msg); }
     AMREX_GPU_HOST_DEVICE inline
     void Assert (const char* EX, const char* file, int line, const char* msg = nullptr) {
-#if AMREX_DEVICE_COMPILE()
+#if AMREX_DEVICE_COMPILE
         if (msg) {
             AMREX_DEVICE_PRINTF("Assertion `%s' failed, file \"%s\", line %d, Msg: %s",
                                 EX, file, line, msg);

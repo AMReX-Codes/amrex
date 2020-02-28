@@ -169,7 +169,7 @@ namespace amrex {
         {
             if (i<begin.x || i>=end.x || j<begin.y || j>=end.y || k<begin.z || k>=end.z
                 || n < 0 || n >= ncomp) {
-#if AMREX_DEVICE_COMPILE()
+#if AMREX_DEVICE_COMPILE
                 AMREX_DEVICE_PRINTF(" (%d,%d,%d,%d) is out of bound (%d:%d,%d:%d,%d:%d,0:%d)\n",
                                     i, j, k, n, begin.x, end.x-1, begin.y, end.y-1,
                                     begin.z, end.z-1, ncomp-1);
