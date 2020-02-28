@@ -8,6 +8,7 @@
 #include <AMReX_MFIter.H>
 #include <AMReX_ParGDB.H>
 #include <AMReX_ParticleTile.H>
+#include <AMReX_ParticleBufferMap.H>
 #include <AMReX_TypeTraits.H>
 
 #include <limits>
@@ -226,6 +227,78 @@ void enforcePeriodic (P& p,
             if (p.pos(idim) > phi[idim]) p.pos(idim) = phi[idim]-eps; // clamp to avoid precision issues;
         }
     }
+}
+
+template <typename PTile, typename PLocator>
+int
+partitionParticlesByDest (PTile& ptile, const PLocator& ploc, const ParticleBufferMap& pmap,
+                          const Geometry& geom, int lev, int gid, int tid)
+{
+    const auto plo    = geom.ProbLoArray();
+    const auto phi    = geom.ProbHiArray();
+    const auto is_per = geom.isPeriodicArray();
+
+    auto& aos = ptile.GetArrayOfStructs();
+    const size_t np = aos.numParticles();
+
+    PTile ptile_tmp;
+    ptile_tmp.define(ptile.NumRuntimeRealComps(), ptile.NumRuntimeIntComps());
+    ptile_tmp.resize(np);
+
+    auto p_lev_offsets = pmap.levelOffsetsPtr();
+    auto p_box_perm = pmap.levGridToBucketPtr();
+    auto p_pids = pmap.bucketToPIDPtr();
+    auto p_ptr = &(aos[0]);
+    
+    int pid = ParallelDescriptor::MyProc();
+    auto particle_stays = [=] AMREX_GPU_DEVICE (int i) -> int
+    {
+        int assigned_grid;
+        int assigned_lev;
+        
+        auto& p = p_ptr[i];
+        
+        if (p.id() < 0 )
+        {
+            assigned_grid = -1;
+            assigned_lev  = -1;
+        }
+        else
+            {
+                enforcePeriodic(p, plo, phi, is_per);
+                auto tup = ploc(p);
+                assigned_grid = amrex::get<0>(tup);
+                assigned_lev  = amrex::get<1>(tup);                        
+            }
+        
+        return ((assigned_grid == gid) && (assigned_lev == lev)
+                && (p_pids[p_box_perm[p_lev_offsets[lev]+gid]] == pid));
+    };
+            
+    const auto src_data = ptile.getConstParticleTileData();
+    auto dst_data = ptile_tmp.getParticleTileData();
+    
+    auto num_stay = Scan::PrefixSum<int> (np, 
+               [=] AMREX_GPU_DEVICE (int i) -> int 
+               {
+                   return particle_stays(i);
+               },
+               [=] AMREX_GPU_DEVICE (int i, int const& s)
+               {
+                   if ( particle_stays(i) )
+                   {
+                       copyParticle(dst_data, src_data, i, s);
+                   }
+                   else
+                   {
+                       copyParticle(dst_data, src_data, i, np-1-(i-s));
+                   }
+               }, 
+               Scan::Type::exclusive);
+
+    ptile.swap(ptile_tmp);
+
+    return num_stay;
 }
 
 IntVect computeRefFac (const ParGDBBase* a_gdb, int src_lev, int lev);
