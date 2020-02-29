@@ -46,13 +46,13 @@ struct CartesianCKCAlgorithm {
         Real const betayz = rz*beta*inv_dy;
         Real const betazx = rx*beta*inv_dz;
         Real const betazy = ry*beta*inv_dz;
-        Real const gamma = (0.0625_rt - 0.125_rt*ry*rz/(ry*rz + rz*rx + rx*ry));
-        Real const gammax = ry*rz*gamma;
-        Real const gammay = rx*rz*gamma;
-        Real const gammaz = rx*ry*gamma;
-        Real const alphax = (1._rt - 2._rt*ry*beta - 2._rt*rz*beta - 4._rt*ry*rz*gamma)*inv_dx;
-        Real const alphay = (1._rt - 2._rt*rx*beta - 2._rt*rz*beta - 4._rt*rx*rz*gamma)*inv_dy;
-        Real const alphaz = (1._rt - 2._rt*rx*beta - 2._rt*ry*beta - 4._rt*rx*ry*gamma)*inv_dz;
+        Real const inv_r_fac = (1._rt/(ry*rz + rz*rx + rx*ry));
+        Real const gammax = ry*rz*(0.0625_rt - 0.125_rt*ry*rz*inv_r_fac);
+        Real const gammay = rx*rz*(0.0625_rt - 0.125_rt*rx*rz*inv_r_fac);
+        Real const gammaz = rx*ry*(0.0625_rt - 0.125_rt*rx*ry*inv_r_fac);
+        Real const alphax = (1._rt - 2._rt*ry*beta - 2._rt*rz*beta - 4._rt*gammax)*inv_dx;
+        Real const alphay = (1._rt - 2._rt*rx*beta - 2._rt*rz*beta - 4._rt*gammay)*inv_dy;
+        Real const alphaz = (1._rt - 2._rt*rx*beta - 2._rt*ry*beta - 4._rt*gammaz)*inv_dz;
 #elif defined WARPX_DIM_XZ
         Real const delta = std::max(inv_dx,inv_dz);
         Real const rx = (inv_dx/delta)*(inv_dx/delta);
@@ -75,19 +75,19 @@ struct CartesianCKCAlgorithm {
         stencil_coefs_x[1] = alphax;
         stencil_coefs_x[2] = betaxy;
         stencil_coefs_x[3] = betaxz;
-        stencil_coefs_x[4] = gammax;
+        stencil_coefs_x[4] = gammax*inv_dx;
         stencil_coefs_y.resize(6);
         stencil_coefs_y[0] = inv_dy;
         stencil_coefs_y[1] = alphay;
         stencil_coefs_y[2] = betayz;
         stencil_coefs_y[3] = betayx;
-        stencil_coefs_y[4] = gammay;
+        stencil_coefs_y[4] = gammay*inv_dy;
         stencil_coefs_z.resize(6);
         stencil_coefs_z[0] = inv_dz;
         stencil_coefs_z[1] = alphaz;
         stencil_coefs_z[2] = betazx;
         stencil_coefs_z[3] = betazy;
-        stencil_coefs_z[4] = gammaz;
+        stencil_coefs_z[4] = gammaz*inv_dz;
     }
 
     /**
