@@ -225,20 +225,15 @@ public:
 
     FArrayBox (const Box& b, int ncomp, Real* p) noexcept;
 
-    AMREX_GPU_HOST_DEVICE
     explicit FArrayBox (Array4<Real> const& a) noexcept : BaseFab<Real>(a) {}
 
-    AMREX_GPU_HOST_DEVICE
     explicit FArrayBox (Array4<Real> const& a, IndexType t) noexcept : BaseFab<Real>(a,t) {}
 
-    AMREX_GPU_HOST_DEVICE
     explicit FArrayBox (Array4<Real const> const& a) noexcept : BaseFab<Real>(a) {}
 
-    AMREX_GPU_HOST_DEVICE
     explicit FArrayBox (Array4<Real const> const& a, IndexType t) noexcept : BaseFab<Real>(a,t) {}
 
     //!  The destructor.
-    AMREX_GPU_HOST_DEVICE
     ~FArrayBox () noexcept {}
 
     FArrayBox (FArrayBox&& rhs) noexcept = default;
@@ -248,6 +243,7 @@ public:
     FArrayBox& operator= (FArrayBox&&) = delete;
 
     //! Set the fab to the value r.
+    template <RunOn run_on>
     FArrayBox& operator= (Real r) noexcept;
     //
     void initVal () noexcept;
@@ -258,7 +254,6 @@ public:
     */
     bool contains_nan () const noexcept;
 
-    AMREX_GPU_HOST_DEVICE
     bool contains_nan (const Box& bx, int scomp, int ncomp) const noexcept;
     /**
     * \brief These versions return the cell index (though not the component) of
@@ -274,7 +269,6 @@ public:
     */
     bool contains_inf () const noexcept;
 
-    AMREX_GPU_HOST_DEVICE
     bool contains_inf (const Box& bx, int scomp, int ncomp) const noexcept;
     /**
     * \brief These versions return the cell index (though not the component) of
@@ -439,7 +433,6 @@ FArrayBox::contains_nan () const noexcept
     return false;
 }
 
-AMREX_GPU_HOST_DEVICE
 inline
 bool
 FArrayBox::contains_nan (const Box& bx, int scomp, int ncomp) const noexcept
@@ -518,7 +511,6 @@ FArrayBox::contains_inf () const noexcept
     return false;
 }
 
-AMREX_GPU_HOST_DEVICE
 inline
 bool
 FArrayBox::contains_inf (const Box& bx, int scomp, int ncomp) const noexcept
