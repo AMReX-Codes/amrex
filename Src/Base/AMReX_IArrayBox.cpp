@@ -76,10 +76,11 @@ IArrayBox::IArrayBox (const IArrayBox& rhs, MakeType make_type, int scomp, int n
 {
 }
 
+template <RunOn run_on>
 IArrayBox&
 IArrayBox::operator= (int v) noexcept
 {
-    BaseFab<int>::operator=(v);
+    BaseFab<int>::operator=<run_on>(v);
     return *this;
 }
 

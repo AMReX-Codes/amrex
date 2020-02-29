@@ -184,10 +184,11 @@ FArrayBox::FArrayBox (const Box& b, int ncomp, Real const* p) noexcept
 {
 }
 
+template <RunOn run_on>
 FArrayBox&
 FArrayBox::operator= (Real v) noexcept
 {
-    BaseFab<Real>::operator=(v);
+    BaseFab<Real>::operator=<run_on>(v);
     return *this;
 }
 
