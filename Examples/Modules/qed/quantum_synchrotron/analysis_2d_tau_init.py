@@ -23,8 +23,8 @@ def check():
     data_set = yt.load(filename)
 
     all_data = data_set.all_data()
-    res_ele_tau = all_data["electrons", 'particle_tau']
-    res_pos_tau = all_data["positrons", 'particle_tau']
+    res_ele_tau = all_data["electrons", 'particle_optical_depth_QSR']
+    res_pos_tau = all_data["positrons", 'particle_optical_depth_QSR']
 
     loc_ele, scale_ele = st.expon.fit(res_ele_tau)
     loc_pos, scale_pos = st.expon.fit(res_pos_tau)

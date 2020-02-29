@@ -22,7 +22,7 @@ def check():
     data_set = yt.load(filename)
 
     all_data = data_set.all_data()
-    res_tau = all_data["photons", 'particle_tau']
+    res_tau = all_data["photons", 'particle_optical_depth_BW']
 
     loc, scale = st.expon.fit(res_tau)
 

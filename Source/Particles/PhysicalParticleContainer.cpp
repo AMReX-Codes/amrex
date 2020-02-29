@@ -80,14 +80,16 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
     //_____________________________
 
 #ifdef WARPX_QED
-    //Add real component if QED is enabled
     pp.query("do_qed", m_do_qed);
-    if(m_do_qed)
-        AddRealComp("tau");
-
-    //IF do_qed is enabled, find out if Quantum Synchrotron process is enabled
-    if(m_do_qed)
+    if(m_do_qed){
+        //If do_qed is enabled, find out if Quantum Synchrotron process is enabled
         pp.query("do_qed_quantum_sync", m_do_qed_quantum_sync);
+        if (m_do_qed_quantum_sync)
+            AddRealComp("optical_depth_QSR");
+        pp.query("do_qed_breit_wheeler", m_do_qed_breit_wheeler);
+        if (m_do_qed_breit_wheeler)
+            AddRealComp("optical_depth_BW");
+    }
 
     //TODO: SHOULD CHECK IF SPECIES IS EITHER ELECTRONS OR POSITRONS!!
 #endif
@@ -534,14 +536,19 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
 
 #ifdef WARPX_QED
         //Pointer to the optical depth component
-        amrex::Real* p_tau;
+        amrex::Real* p_optical_depth_QSR;
+        amrex::Real* p_optical_depth_BW;
 
-        //If a QED effect is enabled, tau has to be initialized
+        // If a QED effect is enabled, the corresponding optical depth
+        // has to be initialized
         bool loc_has_quantum_sync = has_quantum_sync();
         bool loc_has_breit_wheeler = has_breit_wheeler();
-        if(loc_has_quantum_sync || loc_has_breit_wheeler){
-            p_tau = soa.GetRealData(particle_comps["tau"]).data() + old_size;
-        }
+        if (loc_has_quantum_sync)
+            p_optical_depth_QSR = soa.GetRealData(
+                particle_comps["optical_depth_QSR"]).data() + old_size;
+        if(loc_has_breit_wheeler)
+            p_optical_depth_BW = soa.GetRealData(
+                particle_comps["optical_depth_BW"]).data() + old_size;
 
         //If needed, get the appropriate functors from the engines
         QuantumSynchrotronGetOpticalDepth quantum_sync_get_opt;
@@ -705,11 +712,11 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
 
 #ifdef WARPX_QED
             if(loc_has_quantum_sync){
-                p_tau[ip] = quantum_sync_get_opt();
+                p_optical_depth_QSR[ip] = quantum_sync_get_opt();
             }
 
             if(loc_has_breit_wheeler){
-                p_tau[ip] = breit_wheeler_get_opt();
+                p_optical_depth_BW[ip] = breit_wheeler_get_opt();
             }
 #endif
 
@@ -1771,8 +1778,8 @@ void PhysicalParticleContainer::EvolveOpticalDepth(
     const ParticleReal* const AMREX_RESTRICT By = attribs[PIdx::By].dataPtr();
     const ParticleReal* const AMREX_RESTRICT Bz = attribs[PIdx::Bz].dataPtr();
 
-    ParticleReal* const AMREX_RESTRICT p_tau =
-        pti.GetAttribs(particle_comps["tau"]).dataPtr();
+    ParticleReal* const AMREX_RESTRICT p_optical_depth_QSR =
+        pti.GetAttribs(particle_comps["optical_depth_QSR"]).dataPtr();
 
     const ParticleReal m = this->mass;
 
@@ -1786,7 +1793,7 @@ void PhysicalParticleContainer::EvolveOpticalDepth(
                     px, py, pz,
                     Ex[i], Ey[i], Ez[i],
                     Bx[i], By[i], Bz[i],
-                    dt, p_tau[i]);
+                    dt, p_optical_depth_QSR[i]);
             }
     );
 

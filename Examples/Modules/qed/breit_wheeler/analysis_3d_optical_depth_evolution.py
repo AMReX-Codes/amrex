@@ -104,7 +104,7 @@ def check():
     all_data_end = data_set_end.all_data()
 
     tau_end_avg = np.array([
-       np.average(all_data_end[name, 'particle_tau'])
+       np.average(all_data_end[name, 'particle_optical_depth_BW'])
        for name in spec_names])
 
     dNBW_dt_sim = (tau_begin_avg - tau_end_avg)/sim_time
