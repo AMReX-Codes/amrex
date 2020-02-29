@@ -235,7 +235,8 @@ public:
 
     BaseFab (BaseFab<T>&& rhs) noexcept;
 
-    BaseFab& operator= (T) noexcept;
+    template <RunOn run_on>
+    BaseFab& operator= (T const&) noexcept;
 
     static void Initialize();
     static void Finalize();
@@ -1374,8 +1375,9 @@ BaseFab<T>::BaseFab (BaseFab<T>&& rhs) noexcept
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
-BaseFab<T>::operator= (T t) noexcept
+BaseFab<T>::operator= (T const& t) noexcept
 {
     setVal(t);
     return *this;
