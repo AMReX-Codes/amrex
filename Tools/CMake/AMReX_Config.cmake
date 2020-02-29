@@ -43,14 +43,6 @@ function (configure_amrex)
    #
    # Setup compilers
    #
-
-   # Exit if Cray compiler is in use -- Support for Cray is currently broken
-   if ( ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Cray") OR
-         ("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "Cray") )
-      message(FATAL_ERROR "Support for Cray compiler is currently broken")
-   endif()
-
-
    # Set C++ standard and disable compiler-specific extensions, like "-std=gnu++14" for GNU
    # This will also enforce the same standard with the CUDA compiler
    # Moreover, it will also enforce such standard on all the consuming targets
@@ -153,8 +145,12 @@ function (configure_amrex)
    endif ()
 
    #
-   # GNU-specific defines
+   # Add compiler version defines
    #
+   string( REPLACE "." ";" VERSION_LIST ${CMAKE_CXX_COMPILER_VERSION})
+   list( GET VERSION_LIST 0 COMP_VERSION_MAJOR )
+   list( GET VERSION_LIST 1 COMP_VERSION_MINOR )
+
    if ( ${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU" )
 
       if ( CMAKE_CXX_COMPILER_VERSION VERSION_LESS "4.8" )
@@ -162,17 +158,20 @@ function (configure_amrex)
             " Your default GCC is version ${CMAKE_CXX_COMPILER_VERSION}. This might break during build. GCC>=4.8 is recommended.")
       endif ()
 
-      string( REPLACE "." ";" VERSION_LIST ${CMAKE_CXX_COMPILER_VERSION})
-      list( GET VERSION_LIST 0 GCC_VERSION_MAJOR )
-      list( GET VERSION_LIST 1 GCC_VERSION_MINOR )
-
       target_compile_definitions( amrex PUBLIC $<BUILD_INTERFACE:
-         BL_GCC_VERSION=${CMAKE_CXX_COMPILER_VERSION}
-         BL_GCC_MAJOR_VERSION=${GCC_VERSION_MAJOR}
-         BL_GCC_MINOR_VERSION=${GCC_VERSION_MINOR}
-         >
-         )
-   endif ()
+          BL_GCC_VERSION=${CMAKE_CXX_COMPILER_VERSION}
+          BL_GCC_MAJOR_VERSION=${COMP_VERSION_MAJOR}
+          BL_GCC_MINOR_VERSION=${COMP_VERSION_MINOR}
+          >
+          )
+  elseif ( ${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang" )
+     target_compile_definitions( amrex PUBLIC $<BUILD_INTERFACE:
+          BL_CLANG_VERSION=${CMAKE_CXX_COMPILER_VERSION}
+          BL_CLANG_MAJOR_VERSION=${COMP_VERSION_MAJOR}
+          BL_CLANG_MINOR_VERSION=${COMP_VERSION_MINOR}
+          >
+          )
+  endif ()
 
    if ( ENABLE_PIC OR BUILD_SHARED_LIBS )
       set_target_properties ( amrex PROPERTIES POSITION_INDEPENDENT_CODE True )
