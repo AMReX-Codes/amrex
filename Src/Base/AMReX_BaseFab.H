@@ -159,6 +159,21 @@ placementNew (T* const ptr, long n)
     });
 }
 
+template <typename T>
+typename std::enable_if<std::is_trivially_destructible<T>::value>::type
+placementDelete (T* const ptr, long n)
+{}
+
+template <typename T>
+typename std::enable_if<!std::is_trivially_destructible<T>::value>::type
+placementDelete (T* const ptr, long n)
+{
+    AMREX_HOST_DEVICE_FOR_1D (n, i,
+    {
+        (ptr+i)->~T();
+    });
+}
+
 struct DataAllocator {
     Arena* m_arena = nullptr;
 
@@ -1447,16 +1462,7 @@ BaseFab<T>::clear () noexcept
 		amrex::Abort("BaseFab::clear: BaseFab cannot be owner of shared memory");
 	    }
 
-#ifdef AMREX_USE_GPU
-            static_assert(std::is_trivially_destructible<T>::value,
-                          "BaseFab's T must be trivially destructible");
-#else
-	    T* ptr = this->dptr;
-	    for (long i = 0; i < this->truesize; i++, ptr++)
-	    {
-		ptr->~T();
-	    }
-#endif
+            placementDelete(this->dptr, this->truesize);
 
 	    this->free(this->dptr);
 
