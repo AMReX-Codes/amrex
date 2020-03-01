@@ -605,12 +605,6 @@ public:
     T maxabs (const Box& subbox, int comp = 0) const noexcept;
 
     /**
-    * \return location of a cell containing the specified value
-    * given subbox. Returns IntVect outside box if value not present.
-    */
-    IntVect indexFromValue (Real value, const Box& subbox, int comp = 0) const noexcept;
-
-    /**
     * \return location of minimum value in given component.
     */
     IntVect minIndex (int comp = 0) const noexcept;
@@ -1972,29 +1966,6 @@ BaseFab<T>::minIndex (const Box& subbox, int comp) const noexcept
         if (a(i,j,k,comp) < min_val) {
             min_val = a(i,j,k,comp);
             AMREX_D_TERM(imin = i;,  jmin = j;,  kmin = k;)
-        }
-    });
-
-    return IntVect(AMREX_D_DECL(imin,jmin,kmin));
-}
-
-template <class T>
-IntVect
-BaseFab<T>::indexFromValue (Real value, const Box& subbox, int comp) const noexcept
-{
-#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
-    AMREX_D_DECL(int imin = std::numeric_limits<int>::lowest(),
-                     jmin = std::numeric_limits<int>::lowest(),
-                     kmin = std::numeric_limits<int>::lowest());
-#else
-    AMREX_D_DECL(int imin = INT_MIN, jmin = INT_MIN, kmin = INT_MIN);
-#endif
-    Array4<T const> const& a = this->const_array();
-    amrex::Loop(subbox, [=,AMREX_D_DECL(&imin,&jmin,&kmin)]
-                (int i, int j, int k) AMREX_NOEXCEPT
-    {
-        if (a(i,j,k,comp) == value) {
-            AMREX_D_TERM(imin = i;,  jmin = j;,  kmin = k;);
         }
     });
 
