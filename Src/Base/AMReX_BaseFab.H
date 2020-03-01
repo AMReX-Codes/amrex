@@ -1952,16 +1952,10 @@ IntVect
 BaseFab<T>::minIndex (const Box& subbox, int comp) const noexcept
 {
     Array4<T const> const& a = this->const_array();
-#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
     AMREX_D_DECL(int imin, jmin, kmin);
     T min_val = std::numeric_limits<T>::max();
-#else
-    const auto lo = amrex::lbound(subbox);
-    AMREX_D_DECL(int imin=lo.x, jmin=lo.y, kmin=lo.z);
-    T min_val = a(lo.x,lo.y,lo.z,comp);
-#endif
-    amrex::Loop(subbox,[=,AMREX_D_DECL(&imin,&jmin,&kmin),&min_val]
-                (int i, int j, int k) AMREX_NOEXCEPT
+    amrex::LoopOnCpu(subbox,[=,AMREX_D_DECL(&imin,&jmin,&kmin),&min_val]
+                     (int i, int j, int k) AMREX_NOEXCEPT
     {
         if (a(i,j,k,comp) < min_val) {
             min_val = a(i,j,k,comp);
@@ -1977,7 +1971,7 @@ void
 BaseFab<T>::minIndex (const Box& subbox, Real& min_val, IntVect& min_idx, int comp) const noexcept
 {
     Array4<T const> const& a = this->const_array();
-    amrex::Loop(subbox, [=,&min_val,&min_idx] (int i, int j, int k) AMREX_NOEXCEPT 
+    amrex::LoopOnCpu(subbox, [=,&min_val,&min_idx] (int i, int j, int k) AMREX_NOEXCEPT 
     {
         if (a(i,j,k,comp) < min_val) {
             min_val = a(i,j,k,comp);
@@ -1998,15 +1992,10 @@ IntVect
 BaseFab<T>::maxIndex (const Box& subbox, int comp) const noexcept
 {
     Array4<T const> const& a = this->const_array();
-#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
-    AMREX_D_DECL(int imax, jmax, kmax);
-    T max_val = std::numeric_limits<T>::lowest();
-#else
     const auto lo = amrex::lbound(subbox);
     AMREX_D_DECL(int imax=lo.x, jmax=lo.y, kmax=lo.z);
     T max_val = a(lo.x,lo.y,lo.z,comp);
-#endif
-    amrex::Loop(subbox, [=,AMREX_D_DECL(&imax,&jmax,&kmax),&max_val] (int i, int j, int k) AMREX_NOEXCEPT
+    amrex::LoopOnCpu(subbox, [=,AMREX_D_DECL(&imax,&jmax,&kmax),&max_val] (int i, int j, int k) AMREX_NOEXCEPT
     {
         if (a(i,j,k,comp) > max_val) {
             max_val = a(i,j,k,comp);
@@ -2022,7 +2011,7 @@ void
 BaseFab<T>::maxIndex (const Box& subbox, Real& max_val, IntVect& max_idx, int comp) const noexcept
 {
     Array4<T const> const& a = this->const_array();
-    amrex::Loop(subbox,[=,&max_val,&max_idx] (int i, int j, int k) AMREX_NOEXCEPT 
+    amrex::LoopOnCpu(subbox,[=,&max_val,&max_idx] (int i, int j, int k) AMREX_NOEXCEPT 
     {
         if (a(i,j,k,comp) > max_val) {
             max_val = a(i,j,k,comp);
@@ -2058,7 +2047,7 @@ BaseFab<T>::maskLE (BaseFab<int>& mask, T val, int comp) const noexcept
     int cnt = 0;
     Array4<int> const& m = mask.array();
     Array4<T const> const& a = this->const_array();
-    amrex::Loop(this->domain, [=,&cnt] (int i, int j, int k) noexcept
+    amrex::LoopOnCpu(this->domain, [=,&cnt] (int i, int j, int k) noexcept
     {
         if (a(i,j,k,comp) <= val) {
             m(i,j,k) = 1;
@@ -2076,7 +2065,7 @@ BaseFab<T>::maskEQ (BaseFab<int>& mask, T val, int comp) const noexcept
     int cnt = 0;
     Array4<int> const& m = mask.array();
     Array4<T const> const& a = this->const_array();
-    amrex::Loop(this->domain, [=,&cnt] (int i, int j, int k) noexcept
+    amrex::LoopOnCpu(this->domain, [=,&cnt] (int i, int j, int k) noexcept
     {
         if (a(i,j,k,comp) == val) {
             m(i,j,k) = 1;
@@ -2094,7 +2083,7 @@ BaseFab<T>::maskGT (BaseFab<int>& mask, T val, int comp) const noexcept
     int cnt = 0;
     Array4<int> const& m = mask.array();
     Array4<T const> const& a = this->const_array();
-    amrex::Loop(this->domain, [=,&cnt] (int i, int j, int k) noexcept
+    amrex::LoopOnCpu(this->domain, [=,&cnt] (int i, int j, int k) noexcept
     {
         if (a(i,j,k,comp) > val) {
             m(i,j,k) = 1;
@@ -2112,7 +2101,7 @@ BaseFab<T>::maskGE (BaseFab<int>& mask, T val, int comp) const noexcept
     int cnt = 0;
     Array4<int> const& m = mask.array();
     Array4<T const> const& a = this->const_array();
-    amrex::Loop(this->domain, [=,&cnt] (int i, int j, int k) noexcept
+    amrex::LoopOnCpu(this->domain, [=,&cnt] (int i, int j, int k) noexcept
     {
         if (a(i,j,k,comp) >= val) {
             m(i,j,k) = 1;
