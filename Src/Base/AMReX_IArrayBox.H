@@ -77,8 +77,7 @@ public:
     IArrayBox& operator= (int r) noexcept;
 
     //! For debugging purposes we hide BaseFab version and do some extra work.
-    void resize (const Box& b,
-                 int        N = 1);
+    void resize (const Box& b, int N = 1);
 
     //! Initialize from ParmParse with "fab" prefix.
     static void Initialize ();
