@@ -35,19 +35,19 @@ public:
     CutFab& operator= (const CutFab&) = delete;
     CutFab& operator= (CutFab&&) = delete;
 
-    AMREX_GPU_HOST_DEVICE
+    template <RunOn run_on>
     std::size_t copyFromMem (const void* src) {
-        return copyFromMem (box(), 0, nComp(), src);
+        return copyFromMem<run_on>(box(), 0, nComp(), src);
     }
 
-    AMREX_GPU_HOST_DEVICE
+    template <RunOn run_on>
     std::size_t copyFromMem (const Box&  dstbox,
                              int         dstcomp,
                              int         numcomp,
                              const void* src)
     {
         if (dptr != nullptr) {
-            return FArrayBox::copyFromMem(dstbox, dstcomp, numcomp, src);
+            return FArrayBox::copyFromMem<run_on>(dstbox, dstcomp, numcomp, src);
         } else {
             return sizeof(CutFab::value_type)*static_cast<std::size_t>(dstbox.numPts()*numcomp);
         }

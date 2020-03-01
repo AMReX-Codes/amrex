@@ -511,14 +511,17 @@ public:
     BaseFab<T>& copy (const BaseFab<T>& src, const Box& destbox) noexcept;
 
     //! Copy from the srcbox of this Fab to raw memory and return the number of bytes copied
+    template <RunOn run_on>
     std::size_t copyToMem (const Box& srcbox, int srccomp,
                            int numcomp, void* dst) const noexcept;
 
     //! Copy from raw memory to the dstbox of this Fab and return the number of bytes copied
+    template <RunOn run_on>
     std::size_t copyFromMem (const Box& dstbox, int dstcomp,
                              int numcomp, const void* src) noexcept;
 
     //! Add from raw memory to the dstbox of this Fab and return the number of bytes copied
+    template <RunOn run_on>
     std::size_t addFromMem (const Box& dstbox, int dstcomp,
                             int numcomp, const void* src) noexcept;
 
@@ -1524,6 +1527,7 @@ BaseFab<T>::release () noexcept
 }
 
 template <class T>
+template <RunOn run_on>
 std::size_t
 BaseFab<T>::copyToMem (const Box& srcbox,
                        int        srccomp,
@@ -1537,7 +1541,8 @@ BaseFab<T>::copyToMem (const Box& srcbox,
     {
         Array4<T> d(static_cast<T*>(dst),amrex::begin(srcbox),amrex::end(srcbox),numcomp);
         Array4<T const> const& s = this->const_array();
-        amrex::LoopConcurrent(srcbox, numcomp, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT 
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on == RunOn::Device and Gpu::inLaunchRegion(),
+                                               srcbox, numcomp, i, j, k, n,
         {
             d(i,j,k,n) = s(i,j,k,n+srccomp);
         });
@@ -1550,6 +1555,7 @@ BaseFab<T>::copyToMem (const Box& srcbox,
 }
 
 template <class T>
+template <RunOn run_on>
 std::size_t
 BaseFab<T>::copyFromMem (const Box&  dstbox,
                          int         dstcomp,
@@ -1564,7 +1570,8 @@ BaseFab<T>::copyFromMem (const Box&  dstbox,
         Array4<T const> s(static_cast<T const*>(src), amrex::begin(dstbox),
                           amrex::end(dstbox), numcomp);
         Array4<T> const& d = this->array();
-        amrex::LoopConcurrent(dstbox, numcomp, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT 
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on == RunOn::Device and Gpu::inLaunchRegion(),
+                                               dstbox, numcomp, i, j, k, n,
         {
             d(i,j,k,n+dstcomp) = s(i,j,k,n);
         });
@@ -1577,6 +1584,7 @@ BaseFab<T>::copyFromMem (const Box&  dstbox,
 }
 
 template <class T>
+template <RunOn run_on>
 std::size_t
 BaseFab<T>::addFromMem (const Box&  dstbox,
                         int         dstcomp,
@@ -1591,7 +1599,8 @@ BaseFab<T>::addFromMem (const Box&  dstbox,
         Array4<T const> s(static_cast<T const*>(src), amrex::begin(dstbox),
                           amrex::end(dstbox), numcomp);
         Array4<T> const& d = this->array();
-        amrex::LoopConcurrent(dstbox, numcomp, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT 
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on == RunOn::Device and Gpu::inLaunchRegion(),
+                                               dstbox, numcomp, i, j, k, n,
         {
             d(i,j,k,n+dstcomp) += s(i,j,k,n);
         });
