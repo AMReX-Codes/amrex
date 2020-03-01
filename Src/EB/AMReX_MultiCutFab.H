@@ -53,7 +53,7 @@ public:
         }
     }
 
-    AMREX_GPU_HOST_DEVICE
+    template <RunOn run_on>
     CutFab& copy (const CutFab & src,
                   const Box&     srcbox,
                   int            srccomp,
@@ -62,16 +62,16 @@ public:
                   int            numcomp)
     {
         if (dptr != nullptr) {
-            FArrayBox::copy(src,srcbox,srccomp,destbox,destcomp,numcomp);
+            FArrayBox::copy<run_on>(src,srcbox,srccomp,destbox,destcomp,numcomp);
         }
         return *this;
     }
 
-    AMREX_GPU_HOST_DEVICE
+    template <RunOn run_on>
     CutFab& copy (const CutFab & src, const Box& bx, SrcComp scomp, DestComp dcomp, NumComps ncomp)
     {
         if (dptr != nullptr) {
-            FArrayBox::copy(src, bx, scomp, dcomp, ncomp);
+            FArrayBox::copy<run_on>(src, bx, scomp, dcomp, ncomp);
         }
         return *this;
     }

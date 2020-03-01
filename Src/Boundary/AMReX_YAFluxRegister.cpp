@@ -295,7 +295,7 @@ YAFluxRegister::FineAdd (const MFIter& mfi,
             const Box& b = amrex::surroundingNodes(fbx,idim);
             ftmp[idim].resize(b,nc);
             ftmp[idim].setVal<RunOn::Host>(0.0);
-            ftmp[idim].copy(*a_flux[idim]);
+            ftmp[idim].copy<RunOn::Host>(*a_flux[idim]);
             flux[idim] = &ftmp[idim];
         }
     }

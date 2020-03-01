@@ -24,7 +24,7 @@ FabArray<FAB>::PC_local_cpu (const CPC& thecpc, FabArray<FAB> const& src,
                       FAB* dfab = &(get(tag.dstIndex));
                 if (op == FabArrayBase::COPY)
                 {
-                    dfab->copy(*sfab, tag.sbox, scomp, tag.dbox, dcomp, ncomp);
+                    dfab->template copy<RunOn::Host>(*sfab, tag.sbox, scomp, tag.dbox, dcomp, ncomp);
                 }
                 else
                 {

@@ -100,6 +100,9 @@ makeArray4 (T* p, Box const& bx, int ncomp) noexcept
 *  real*4s, or real*8s.  Most applications do not use BaseFabs
 *  directly, but utilize specialized classes derived from BaseFab.
 
+*  Classes derived from BaseFab include FArrayBox, IArrayBox, TagBox,
+*  Mask, EBFArrayBox, EBCellFlag and CutFab.
+
 *  BaseFab objects depend on the dimensionality of space
 *  (indirectly through the DOMAIN Box member).  It is
 *  typical to define the macro SPACEDIM to be 1, 2, or 3 to indicate
@@ -124,9 +127,6 @@ makeArray4 (T* p, Box const& bx, int ncomp) noexcept
 *  parent BaseFabs domain, nor will the number of components.
 *  BaseFab is a dimension dependent class, so SPACEDIM must be
 *  defined as either 1, 2, or 3 when compiling.
-
-*  Classes derived from BaseFab include FArrayBox, IArrayBox, TagBox,
-*  Mask, and EBCellFlag.
 
 *  This is NOT a polymorphic class.
 
@@ -488,6 +488,7 @@ public:
     * destcomp. The results are UNDEFINED if the src and dest are the
     * same and the srcbox and destbox overlap.
     */
+    template <RunOn run_on>
     BaseFab<T>& copy (const BaseFab<T>& src, const Box& srcbox, int srccomp,
                       const Box& destbox, int destcomp, int numcomp) noexcept;
 
@@ -497,6 +498,7 @@ public:
     * of the intersecting region is performed.
     * class.
     */
+    template <RunOn run_on>
     BaseFab<T>& copy (const BaseFab<T>& src, int srccomp, int destcomp,
                       int numcomp = 1) noexcept;
     /**
@@ -505,6 +507,7 @@ public:
     * Box, and all components of the destination BaseFab are
     * copied.
     */
+    template <RunOn run_on>
     BaseFab<T>& copy (const BaseFab<T>& src, const Box& destbox) noexcept;
 
     //! Copy from the srcbox of this Fab to raw memory and return the number of bytes copied
@@ -835,12 +838,14 @@ public:
     * and stored in component comp of this FAB.
     * This FAB is returned as a reference for chaining.
     */
+    template <RunOn run_on>
     BaseFab<T>& linInterp (const BaseFab<T>& f1, const Box& b1, int comp1,
                            const BaseFab<T>& f2, const Box& b2, int comp2,
                            Real t1, Real t2, Real t,
                            const Box& b, int comp, int numcomp = 1) noexcept;
 
     //! Version of linInterp() in which b, b1, & b2 are the same.
+    template <RunOn run_on>
     BaseFab<T>& linInterp (const BaseFab<T>& f1, int comp1,
                            const BaseFab<T>& f2, int comp2,
                            Real t1, Real t2, Real t,
@@ -855,6 +860,7 @@ public:
     * and stored in component comp of this FAB.
     * This FAB is returned as a reference for chaining.
     */
+    template <RunOn run_on>
     BaseFab<T>& linComb (const BaseFab<T>& f1, const Box& b1, int comp1,
                          const BaseFab<T>& f2, const Box& b2, int comp2,
                          Real alpha, Real beta, const Box& b,
@@ -906,9 +912,11 @@ public:
     * All components of dest fab are copied. src fab must have enough
     * components (more is OK).
     */
+    template <RunOn run_on>
     BaseFab<T>& copy (const BaseFab<T>& src) noexcept;
     //
     //! Do nothing if bx does not intersect with src fab.
+    template <RunOn run_on>
     BaseFab<T>& copy (const BaseFab<T>& src, Box bx, SrcComp scomp, DestComp dcomp, NumComps ncomp) noexcept;
 
     //! Scalar addition on the whole domain and all components
@@ -1226,6 +1234,7 @@ BaseFab<T>::setValIfNot (T const& val, const Box& bx, const BaseFab<int>& mask, 
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::copy (const BaseFab<T>& src, const Box& srcbox, int srccomp,
                   const Box& destbox, int destcomp, int numcomp) noexcept
@@ -1251,7 +1260,8 @@ BaseFab<T>::copy (const BaseFab<T>& src, const Box& srcbox, int srccomp,
     const Dim3 offset{slo.x-dlo.x,slo.y-dlo.y,slo.z-dlo.z};
 #endif
 
-    amrex::LoopConcurrent(destbox, numcomp, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT 
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on == RunOn::Device and Gpu::inLaunchRegion(),
+                                           destbox, numcomp, i, j, k, n,
     {
         d(i,j,k,n+destcomp) = s(i+offset.x,j+offset.y,k+offset.z,n+srccomp);
     });
@@ -1260,17 +1270,19 @@ BaseFab<T>::copy (const BaseFab<T>& src, const Box& srcbox, int srccomp,
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::copy (const BaseFab<T>& src, const Box& destbox) noexcept
 {
-    return this->copy(src, destbox, SrcComp{0}, DestComp{0}, NumComps{this->nvar});
+    return this->copy<run_on>(src, destbox, SrcComp{0}, DestComp{0}, NumComps{this->nvar});
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::copy (const BaseFab<T>& src, int srccomp, int destcomp, int numcomp) noexcept
 {
-    return copy(src, this->domain, SrcComp{srccomp}, DestComp{destcomp}, NumComps{numcomp});
+    return copy<run_on>(src, this->domain, SrcComp{srccomp}, DestComp{destcomp}, NumComps{numcomp});
 }
 
 template <class T>
@@ -1332,7 +1344,7 @@ BaseFab<T>::BaseFab (const BaseFab<T>& rhs, MakeType make_type, int scomp, int n
     {
         this->dptr = nullptr;
         define();
-        this->copy(rhs, this->domain, scomp, this->domain, 0, ncomp);
+        this->copy<RunOn::Device>(rhs, this->domain, scomp, this->domain, 0, ncomp);
     } else if (make_type == amrex::make_alias) {
         ; // nothing to do
     } else {
@@ -2058,6 +2070,7 @@ BaseFab<T>::addproduct (const Box& destbox, int destcomp, int numcomp,
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::linComb (const BaseFab<T>& f1, const Box& b1, int comp1,
                      const BaseFab<T>& f2, const Box& b2, int comp2,
@@ -2097,7 +2110,8 @@ BaseFab<T>::linComb (const BaseFab<T>& f1, const Box& b1, int comp1,
     const Dim3 off2{slo2.x-dlo.x,slo2.y-dlo.y,slo2.z-dlo.z};    
 #endif
 
-    amrex::LoopConcurrent(b, numcomp, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT 
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on == RunOn::Device and Gpu::inLaunchRegion(),
+                                           b, numcomp, i, j, k, n,
     {
         d(i,j,k,n+comp) = alpha*s1(i+off1.x,j+off1.y,k+off1.z,n+comp1)
                          + beta*s2(i+off2.x,j+off2.y,k+off2.z,n+comp2);
@@ -2552,6 +2566,7 @@ BaseFab<T>::protected_divide (const BaseFab<T>& src, const Box& srcbox, const Bo
 */
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::linInterp (const BaseFab<T>& f1, const Box& b1, int comp1,
                        const BaseFab<T>& f2, const Box& b2, int comp2,
@@ -2560,10 +2575,11 @@ BaseFab<T>::linInterp (const BaseFab<T>& f1, const Box& b1, int comp1,
 {
     Real alpha = (t2-t)/(t2-t1);
     Real beta = (t-t1)/(t2-t1);
-    return linComb(f1,b1,comp1,f2,b2,comp2,alpha,beta,b,comp,numcomp);
+    return linComb<run_on>(f1,b1,comp1,f2,b2,comp2,alpha,beta,b,comp,numcomp);
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::linInterp (const BaseFab<T>& f1, int comp1,
                        const BaseFab<T>& f2, int comp2,
@@ -2576,11 +2592,11 @@ BaseFab<T>::linInterp (const BaseFab<T>& f1, int comp1,
         Real alpha = (t2-t)/(t2-t1);
         Real beta = (t-t1)/(t2-t1);
 
-        return linComb(f1,b,comp1,f2,b,comp2,alpha,beta,b,comp,numcomp);
+        return linComb<run_on>(f1,b,comp1,f2,b,comp2,alpha,beta,b,comp,numcomp);
     }
     else
     {
-        copy(f1,b,comp1,b,comp,numcomp);
+        copy<run_on>(f1,b,comp1,b,comp,numcomp);
     }
     return *this;
 }
@@ -2684,14 +2700,16 @@ BaseFab<T>::setComplement (T const& x, const Box& bx, DestComp dcomp, NumComps n
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::copy (const BaseFab<T>& src) noexcept
 {
-    this->copy(src, this->domain, SrcComp{0}, DestComp{0}, NumComps{this->nvar});
+    this->copy<run_on>(src, this->domain, SrcComp{0}, DestComp{0}, NumComps{this->nvar});
     return *this;
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::copy (const BaseFab<T>& src, Box bx,
                   SrcComp scomp, DestComp dcomp, NumComps ncomp) noexcept
@@ -2704,7 +2722,8 @@ BaseFab<T>::copy (const BaseFab<T>& src, Box bx,
 
     Array4<T> const& d = this->array();
     Array4<T const> const& s = src.const_array();
-    amrex::LoopConcurrent(bx, ncomp.n, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT 
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on == RunOn::Device and Gpu::inLaunchRegion(),
+                                           bx, ncomp.n, i, j, k, n,
     {
         d(i,j,k,n+dcomp.i) = s(i,j,k,n+scomp.i);
     });

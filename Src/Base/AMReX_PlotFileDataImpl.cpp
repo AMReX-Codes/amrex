@@ -136,7 +136,7 @@ PlotFileDataImpl::get (int level, std::string const& varname) noexcept
             int gid = mfi.index();
             FArrayBox& dstfab = mf[mfi];
             std::unique_ptr<FArrayBox> srcfab(m_vismf[level]->readFAB(gid, icomp));
-            dstfab.copy(*srcfab);
+            dstfab.copy<RunOn::Host>(*srcfab);
         }
     }
     return mf;

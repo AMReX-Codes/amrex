@@ -804,7 +804,8 @@ FabArrayCopyDescriptor<FAB>::FillFab (FabArrayId       faid,
 
         BL_ASSERT(fcdp->fillBoxId == fillboxid.Id());
 
-        destFab.copy(*fcdp->localFabSource,
+        destFab.template copy<RunOn::Host>
+                   (*fcdp->localFabSource,
                      fcdp->subBox,
                      fcdp->fillType == FillLocally ? fcdp->srcComp : 0,
                      fcdp->subBox,

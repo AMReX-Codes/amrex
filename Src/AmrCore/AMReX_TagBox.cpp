@@ -232,7 +232,7 @@ long
 TagBox::numTags (const Box& b) const noexcept
 {
    TagBox tempTagBox(b,1);
-   tempTagBox.copy(*this);
+   tempTagBox.copy<RunOn::Host>(*this);
    return tempTagBox.numTags();
 }
 

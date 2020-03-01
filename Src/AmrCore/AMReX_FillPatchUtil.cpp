@@ -572,7 +572,7 @@ namespace amrex
                         FArrayBox& fine_fab = (*fine[idim])[fi];
                         for (const auto& x : diff)
                         {
-                            fine_fab.copy(bfab[idim], x, 0, x, 0, 1);
+                            fine_fab.copy<RunOn::Host>(bfab[idim], x, 0, x, 0, 1);
                         }
                     }
                 }

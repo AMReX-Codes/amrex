@@ -107,7 +107,8 @@ InterpFillFab (MultiFabCopyDescriptor& fabCopyDesc,
 	dest2.setVal<RunOn::Host>(std::numeric_limits<Real>::quiet_NaN());
         fabCopyDesc.FillFab(faid1, fillBoxIds[0], dest1);
         fabCopyDesc.FillFab(faid2, fillBoxIds[1], dest2);
-        dest.linInterp(dest1,
+        dest.linInterp<RunOn::Host>
+                      (dest1,
                        src_comp,
                        dest2,
                        src_comp,
