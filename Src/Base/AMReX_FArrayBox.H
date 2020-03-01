@@ -279,17 +279,14 @@ public:
     bool contains_inf (const Box& bx, int scomp, int ncomp, IntVect& where) const noexcept;
 
     //! For debugging purposes we hide BaseFab version and do some extra work.
-    void resize (const Box& b,
-                 int        N = 1);
+    void resize (const Box& b, int N = 1);
 
     FabType getType () const noexcept { return m_type; }
 
     //! Write FABs in ASCII form.
-    friend std::ostream& operator<< (std::ostream&    os,
-                                     const FArrayBox& fb);
+    friend std::ostream& operator<< (std::ostream& os, const FArrayBox& fb);
     //! Read FABs in ASCII form.
-    friend std::istream& operator>> (std::istream& is,
-                                     FArrayBox&    fb);
+    friend std::istream& operator>> (std::istream& is, FArrayBox& fb);
     /**
     * \brief Writes out the FAB in whatever format you've set.
     * The default format is ASCII.
