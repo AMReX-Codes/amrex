@@ -442,11 +442,11 @@ FabArrayBase::CPC::define (const BoxArray& ba_dst, const DistributionMapping& dm
 	    if (check_local) {  
 		// safe if a cell is touched no more than once 
 		// keep checking thread safety if it is safe so far
-		check_local = m_threadsafe_loc = localtouch.max() <= 1;
+		check_local = m_threadsafe_loc = localtouch.max<RunOn::Host>() <= 1;
 	    }
 	    
 	    if (check_remote) {
-		check_remote = m_threadsafe_rcv = remotetouch.max() <= 1;
+		check_remote = m_threadsafe_rcv = remotetouch.max<RunOn::Host>() <= 1;
 	    }
 	}
 	
@@ -764,11 +764,11 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
 	if (check_local) {  
 	    // safe if a cell is touched no more than once 
 	    // keep checking thread safety if it is safe so far
-	    check_local = m_threadsafe_loc = localtouch.max() <= 1;
+	    check_local = m_threadsafe_loc = localtouch.max<RunOn::Host>() <= 1;
 	}
 
 	if (check_remote) {
-	    check_remote = m_threadsafe_rcv = remotetouch.max() <= 1;
+	    check_remote = m_threadsafe_rcv = remotetouch.max<RunOn::Host>() <= 1;
 	}
     }
 
@@ -984,11 +984,11 @@ FabArrayBase::FB::define_epo (const FabArrayBase& fa)
 	if (check_local) {  
 	    // safe if a cell is touched no more than once 
 	    // keep checking thread safety if it is safe so far
-	    check_local = m_threadsafe_loc = localtouch.max() <= 1;
+	    check_local = m_threadsafe_loc = localtouch.max<RunOn::Host>() <= 1;
 	}
 
 	if (check_remote) {
-	    check_remote = m_threadsafe_rcv = remotetouch.max() <= 1;
+	    check_remote = m_threadsafe_rcv = remotetouch.max<RunOn::Host>() <= 1;
 	}
     }
 

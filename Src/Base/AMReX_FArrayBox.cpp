@@ -778,8 +778,8 @@ FABio_8bit::write (std::ostream&    os,
     unsigned char *c = new unsigned char[siz];
 
     for(int k(0); k < num_comp; ++k) {
-        const Real mn   = f.min(k+comp);
-        const Real mx   = f.max(k+comp);
+        const Real mn   = f.min<RunOn::Host>(k+comp);
+        const Real mx   = f.max<RunOn::Host>(k+comp);
         const Real* dat = f.dataPtr(k+comp);
         Real rng = std::fabs(mx-mn);
         rng = (rng < eps) ? 0.0 : 255.0/(mx-mn);

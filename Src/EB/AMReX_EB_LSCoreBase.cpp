@@ -400,7 +400,7 @@ Box LSCoreBase::EBSearchBox( const Box & tilebox, const FArrayBox & ls_crse,
     }
 
 
-    Real max_ls = std::max(std::abs(ls_crse.max()), std::abs(ls_crse.min()));
+    Real max_ls = std::max(std::abs(ls_crse.max<RunOn::Host>()), std::abs(ls_crse.min<RunOn::Host>()));
 
     IntVect n_grow_ls(AMREX_D_DECL(geom_fine.InvCellSize(0)*max_ls,
                                    geom_fine.InvCellSize(1)*max_ls,

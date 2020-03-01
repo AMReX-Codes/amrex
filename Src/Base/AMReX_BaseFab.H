@@ -550,6 +550,7 @@ public:
     */
     BaseFab<T>& shiftHalf (const IntVect& num_halfs) noexcept;
 
+    template <RunOn run_on>
     Real norminfmask (const Box& subbox, const BaseFab<int>& mask, int scomp=0, int ncomp=1) const noexcept;
 
     /**
@@ -558,9 +559,11 @@ public:
     *   p = 0  -> infinity norm (max norm)
     *   p = 1  -> sum of ABS(FAB)
     */
+    template <RunOn run_on>
     Real norm (int p, int scomp = 0, int ncomp = 1) const noexcept;
 
     //! Same as above except only on given subbox.
+    template <RunOn run_on>
     Real norm (const Box& subbox, int p, int scomp = 0, int ncomp = 1) const noexcept;
     //!Compute absolute value for all components of this FAB.
     void abs () noexcept;
@@ -573,26 +576,32 @@ public:
     /**
     * \return Minimum value of given component.
     */
+    template <RunOn run_on>
     T min (int comp = 0) const noexcept;
     /**
     * \return Minimum value of given component in given subbox.
     */
+    template <RunOn run_on>
     T min (const Box& subbox, int comp = 0) const noexcept;
     /**
     * \return Maximum value of given component.
     */
+    template <RunOn run_on>
     T max (int comp = 0) const noexcept;
     /**
     * \return Maximum value of given component in given subbox.
     */
+    template <RunOn run_on>
     T max (const Box& subbox, int comp = 0) const noexcept;
     /**
     * \return Maximum of the absolute value of given component.
     */
+    template <RunOn run_on>
     T maxabs (int comp = 0) const noexcept;
     /**
     * \return Maximum of the absolute value of given component in given subbox.
     */
+    template <RunOn run_on>
     T maxabs (const Box& subbox, int comp = 0) const noexcept;
 
     /**
@@ -1646,6 +1655,7 @@ BaseFab<T>::abs (const Box& subbox, int comp, int numcomp) noexcept
 }
 
 template <class T>
+template <RunOn run_on>
 Real
 BaseFab<T>::norminfmask (const Box& subbox, const BaseFab<int>& mask,
                          int scomp, int ncomp) const noexcept
@@ -1656,24 +1666,51 @@ BaseFab<T>::norminfmask (const Box& subbox, const BaseFab<int>& mask,
     Array4<T const> const& a = this->const_array();
     Array4<int const> const& m = mask.const_array();
     Real r = 0.0;
-    amrex::Loop(subbox, ncomp, [=,&r] (int i, int j, int k, int n) AMREX_NOEXCEPT 
+#ifdef AMREX_USE_GPU
+    if (run_on == RunOn::Device and Gpu::inLaunchRegion()) {
+        ReduceOps<ReduceOpMax> reduce_op;
+        ReduceData<Real> reduce_data(reduce_op);
+        using ReduceTuple = ReduceData<Real>::Type;
+        reduce_op.eval(subbox, reduce_data,
+        [=] AMREX_GPU_DEVICE (Box const& b) -> ReduceTuple
+        {
+            Real t = 0.0;
+            AMREX_LOOP_3D(b, i, j, k,
+            {
+                if (m(i,j,k)) {
+                    for (int n = 0; n < ncomp; ++n) {
+                        t = amrex::max(t,static_cast<Real>(amrex::Math::abs(a(i,j,k,n+scomp))));
+                    }
+                }
+            });
+            return {t};
+        });
+        ReduceTuple hv = reduce_data.value();
+        r = amrex::get<0>(hv);
+    } else
+#endif
     {
-        if (m(i,j,k)) {
-            Real t = static_cast<Real>(amrex::Math::abs(a(i,j,k,n+scomp)));
-            r = amrex::max(r,t);
-        }
-    });
+        amrex::LoopOnCpu(subbox, ncomp, [=,&r] (int i, int j, int k, int n) noexcept
+        {
+            if (m(i,j,k)) {
+                Real t = static_cast<Real>(amrex::Math::abs(a(i,j,k,n+scomp)));
+                r = amrex::max(r,t);
+            }
+        });
+    }
     return r;
 }
 
 template <class T>
+template <RunOn run_on>
 Real
 BaseFab<T>::norm (int p, int comp, int numcomp) const noexcept
 {
-    return norm(this->domain,p,comp,numcomp);
+    return norm<run_on>(this->domain,p,comp,numcomp);
 }
 
 template <class T>
+template <RunOn run_on>
 Real
 BaseFab<T>::norm (const Box& subbox, int p, int comp, int numcomp) const noexcept
 {
@@ -1682,100 +1719,230 @@ BaseFab<T>::norm (const Box& subbox, int p, int comp, int numcomp) const noexcep
 
     Array4<T const> const& a = this->const_array();
     Real nrm = 0.;
-    if (p == 0) {
-        amrex::Loop(subbox, numcomp, [=,&nrm] (int i, int j, int k, int n) AMREX_NOEXCEPT 
-        {
-            Real t = static_cast<Real>(amrex::Math::abs(a(i,j,k,n+comp)));
-            nrm = amrex::max(nrm,t);
-        });
-    } else if (p == 1) {
-        amrex::Loop(subbox, numcomp, [=,&nrm] (int i, int j, int k, int n) AMREX_NOEXCEPT 
-        {
-            nrm += amrex::Math::abs(a(i,j,k,n+comp));
-        });
-    } else if (p == 2) {
-        amrex::Loop(subbox, numcomp, [=,&nrm] (int i, int j, int k, int n) AMREX_NOEXCEPT
-        {
-            nrm += a(i,j,k,n+comp)*a(i,j,k,n+comp);
-        });
-    } else {
-        amrex::Error("BaseFab<T>::norm: wrong p");
+#ifdef AMREX_USE_GPU
+    if (run_on == RunOn::Device and Gpu::inLaunchRegion()) {
+        if (p == 0) {
+            ReduceOps<ReduceOpMax> reduce_op;
+            ReduceData<Real> reduce_data(reduce_op);
+            using ReduceTuple = ReduceData<Real>::Type;
+            reduce_op.eval(subbox, reduce_data,
+            [=] AMREX_GPU_DEVICE (Box const& b) -> ReduceTuple
+            {
+                Real t = 0.0;
+                AMREX_LOOP_3D(b, i, j, k,
+                {
+                    for (int n = 0; n < numcomp; ++n) {
+                        t = amrex::max(t, static_cast<Real>(amrex::Math::abs(a(i,j,k,n+comp))));
+                    }
+                });
+                return {t};
+            });
+            ReduceTuple hv = reduce_data.value();
+            nrm = amrex::get<0>(hv);
+        } else if (p == 1) {
+            ReduceOps<ReduceOpSum> reduce_op;
+            ReduceData<Real> reduce_data(reduce_op);
+            using ReduceTuple = ReduceData<Real>::Type;
+            reduce_op.eval(subbox, reduce_data,
+            [=] AMREX_GPU_DEVICE (Box const& b) -> ReduceTuple
+            {
+                Real t = 0.0;
+                AMREX_LOOP_3D(b, i, j, k,
+                {
+                    for (int n = 0; n < numcomp; ++n) {
+                        t += static_cast<Real>(amrex::Math::abs(a(i,j,k,n+comp)));
+                    }
+                });
+                return {t};
+            });
+            ReduceTuple hv = reduce_data.value();
+            nrm = amrex::get<0>(hv);
+        } else if (p == 2) {
+            ReduceOps<ReduceOpSum> reduce_op;
+            ReduceData<Real> reduce_data(reduce_op);
+            using ReduceTuple = ReduceData<Real>::Type;
+            reduce_op.eval(subbox, reduce_data,
+            [=] AMREX_GPU_DEVICE (Box const& b) -> ReduceTuple
+            {
+                Real t = 0.0;
+                AMREX_LOOP_3D(b, i, j, k,
+                {
+                    for (int n = 0; n < numcomp; ++n) {
+                        t += static_cast<Real>(a(i,j,k,n+comp)*a(i,j,k,n+comp));
+                    }
+                });
+                return {t};
+            });
+            ReduceTuple hv = reduce_data.value();
+            nrm = amrex::get<0>(hv);
+        } else {
+            amrex::Error("BaseFab<T>::norm: wrong p");
+        }
+    } else
+#endif
+    {
+        if (p == 0) {
+            amrex::LoopOnCpu(subbox, numcomp, [=,&nrm] (int i, int j, int k, int n) noexcept
+            {
+                Real t = static_cast<Real>(amrex::Math::abs(a(i,j,k,n+comp)));
+                nrm = amrex::max(nrm,t);
+            });
+        } else if (p == 1) {
+            amrex::LoopOnCpu(subbox, numcomp, [=,&nrm] (int i, int j, int k, int n) noexcept
+            {
+                nrm += amrex::Math::abs(a(i,j,k,n+comp));
+            });
+        } else if (p == 2) {
+            amrex::LoopOnCpu(subbox, numcomp, [=,&nrm] (int i, int j, int k, int n) noexcept
+            {
+                nrm += a(i,j,k,n+comp)*a(i,j,k,n+comp);
+            });
+        } else {
+            amrex::Error("BaseFab<T>::norm: wrong p");
+        }
     }
 
     return nrm;
 }
 
 template <class T>
+template <RunOn run_on>
 T
 BaseFab<T>::min (int comp) const noexcept
 {
-    return this->min(this->domain,comp);
+    return this->min<run_on>(this->domain,comp);
 }
 
 template <class T>
+template <RunOn run_on>
 T
 BaseFab<T>::min (const Box& subbox, int comp) const noexcept
 {
     Array4<T const> const& a = this->const_array();
+#ifdef AMREX_USE_GPU
+    if (run_on == RunOn::Device and Gpu::inLaunchRegion()) {
+        ReduceOps<ReduceMin> reduce_op;
+        ReduceData<T> reduce_data(reduce_op);
+        using ReduceTuple = typename decltype(reduce_data)::Type;
+        reduce_op.eval(subbox, reduce_data,
+        [=] AMREX_GPU_DEVICE (Box const& b) -> ReduceTuple
+        {
 #if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
-    T r = std::numeric_limits<T>::max();
+            T t = std::numeric_limits<T>::max();
 #else
-    const auto lo = amrex::lbound(subbox);
-    T r = a(lo.x,lo.y,lo.z,comp);
+            const auto lo = amrex::lbound(b);
+            T t = a(lo.x,lo.y,lo.z,comp);
 #endif
-    amrex::Loop(subbox, [=,&r] (int i, int j, int k) AMREX_NOEXCEPT
+            AMREX_LOOP_3D(b, i, j, k,
+            {
+                t = amrex::min(t, a(i,j,k,comp));
+            });
+            return {t};
+        });
+        ReduceTuple hv = reduce_data.value();
+        return amrex::get<0>(hv);
+    } else
+#endif
     {
-        r = amrex::min(r, a(i,j,k,comp));
-    });
-
-    return r;
+        T r = std::numeric_limits<T>::max();
+        amrex::LoopOnCpu(subbox, [=,&r] (int i, int j, int k) noexcept
+        {
+            r = amrex::min(r, a(i,j,k,comp));
+        });
+        return r;
+    }
 }
 
 template <class T>
+template <RunOn run_on>
 T
 BaseFab<T>::max (int comp) const noexcept
 {
-    return this->max(this->domain,comp);
+    return this->max<run_on>(this->domain,comp);
 }
 
 template <class T>
+template <RunOn run_on>
 T
 BaseFab<T>::max (const Box& subbox, int comp) const noexcept
 {
     Array4<T const> const& a = this->const_array();
-#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
-    T r = std::numeric_limits<T>::lowest();
-#else
-    const auto lo = amrex::lbound(subbox);
-    T r = a(lo.x,lo.y,lo.z,comp);
-#endif
-    amrex::Loop(subbox, [=,&r] (int i, int j, int k) AMREX_NOEXCEPT
-    {
-        r = amrex::max(r, a(i,j,k,comp));
-    });
 
-    return r;
+#ifdef AMREX_USE_GPU
+    if (run_on == RunOn::Device and Gpu::inLaunchRegion()) {
+        ReduceOps<ReduceMax> reduce_op;
+        ReduceData<T> reduce_data(reduce_op);
+        using ReduceTuple = typename decltype(reduce_data)::Type;
+        reduce_op.eval(subbox, reduce_data,
+        [=] AMREX_GPU_DEVICE (Box const& b) -> ReduceTuple
+        {
+#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
+            T t = std::numeric_limits<T>::lowest();
+#else
+            const auto lo = amrex::lbound(subbox);
+            T t = a(lo.x,lo.y,lo.z,comp);
+#endif
+            AMREX_LOOP_3D(b, i, j, k,
+            {
+                t = amrex::max(t, a(i,j,k,comp));
+            });
+            return {t};
+        });
+        ReduceTuple hv = reduce_data.value();
+        return amrex::get<0>(hv);
+    } else
+#endif
+    {
+        T r = std::numeric_limits<T>::lowest();
+        amrex::LoopOnCpu(subbox, [=,&r] (int i, int j, int k) noexcept
+        {
+            r = amrex::max(r, a(i,j,k,comp));
+        });
+        return r;
+    }
 }
 
 template <class T>
+template <RunOn run_on>
 T
 BaseFab<T>::maxabs (int comp) const noexcept
 {
-    return this->maxabs(this->domain,comp);
+    return this->maxabs<run_on>(this->domain,comp);
 }
 
 template <class T>
+template <RunOn run_on>
 T
 BaseFab<T>::maxabs (const Box& subbox, int comp) const noexcept
 {
     Array4<T const> const& a = this->const_array();
-    T r = 0;
-    amrex::Loop(subbox, [=,&r] (int i, int j, int k) AMREX_NOEXCEPT
+#ifdef AMREX_USE_GPU
+    if (run_on == RunOn::Device and Gpu::inLaunchRegion()) {
+        ReduceOps<ReduceMax> reduce_op;
+        ReduceData<T> reduce_data(reduce_op);
+        using ReduceTuple = typename decltype(reduce_data)::Type;
+        reduce_op.eval(subbox, reduce_data,
+        [=] AMREX_GPU_DEVICE (Box const& b) -> ReduceTuple
+        {
+            T t = 0;
+            AMREX_LOOP_3D(b, i, j, k,
+            {
+                t = amrex::max(t, amrex::Math::abs(a(i,j,k,comp)));
+            });
+            return {t};
+        });
+        ReduceTuple hv = reduce_data.value();
+        retrun amrex::get<0>(hv);
+    } else
+#endif
     {
-        r = amrex::max(r, amrex::Math::abs(a(i,j,k,comp)));
-    });
-
-    return r;
+        T r = 0;
+        amrex::Loop(subbox, [=,&r] (int i, int j, int k) AMREX_NOEXCEPT
+        {
+            r = amrex::max(r, amrex::Math::abs(a(i,j,k,comp)));
+        });
+        return r;
+    }
 }
 
 
