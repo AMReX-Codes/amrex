@@ -242,11 +242,7 @@ partitionParticlesByDest (PTile& ptile, const PLocator& ploc, const ParticleBuff
     const auto is_per = geom.isPeriodicArray();
 
     auto& aos = ptile.GetArrayOfStructs();
-    const size_t np = aos.numParticles();
-
-    PTile ptile_tmp;
-    ptile_tmp.define(ptile.NumRuntimeRealComps(), ptile.NumRuntimeIntComps());
-    ptile_tmp.resize(np);
+    const int np = aos.numParticles();
 
     auto p_lev_offsets = pmap.levelOffsetsPtr();
     auto p_box_perm = pmap.levGridToBucketPtr();
@@ -254,54 +250,93 @@ partitionParticlesByDest (PTile& ptile, const PLocator& ploc, const ParticleBuff
     auto p_ptr = &(aos[0]);
     
     int pid = ParallelDescriptor::MyProc();
-    auto particle_stays = [=] AMREX_GPU_DEVICE (int i) -> int
+    int chunk_size = std::numeric_limits<int>::max();
+    int num_chunks = std::max(1, (np + (chunk_size - 1)) / chunk_size);
+    
+    PTile ptile_tmp;
+    ptile_tmp.define(ptile.NumRuntimeRealComps(), ptile.NumRuntimeIntComps());
+    ptile_tmp.resize(std::min(np, chunk_size));
+
+    auto src_data = ptile.getParticleTileData();
+    auto dst_data = ptile_tmp.getParticleTileData();
+
+    int last_offset = 0;
+    for (int ichunk = 0; ichunk < num_chunks; ++ichunk)
     {
-        int assigned_grid;
-        int assigned_lev;
+        int this_offset = ichunk*chunk_size;
+        int this_chunk_size = std::min(chunk_size, np - this_offset);
         
-        auto& p = p_ptr[i];
-        
-        if (p.id() < 0 )
+        int num_stay;
         {
-            assigned_grid = -1;
-            assigned_lev  = -1;
+            auto particle_stays = [=] AMREX_GPU_DEVICE (int i) -> int
+            {
+                int assigned_grid;
+                int assigned_lev;
+        
+                auto& p = p_ptr[i+this_offset];
+                
+                if (p.id() < 0 )
+                {
+                    assigned_grid = -1;
+                    assigned_lev  = -1;
+                }
+                else
+                {
+                    enforcePeriodic(p, plo, phi, is_per);
+                    auto tup = ploc(p);
+                    assigned_grid = amrex::get<0>(tup);
+                    assigned_lev  = amrex::get<1>(tup);
+                }
+        
+                return ((assigned_grid == gid) && (assigned_lev == lev)
+                        && (p_pids[p_box_perm[p_lev_offsets[lev]+gid]] == pid));
+            };
+        
+            num_stay = Scan::PrefixSum<int> (this_chunk_size, 
+                          [=] AMREX_GPU_DEVICE (int i) -> int 
+                          {
+                              return particle_stays(i);
+                          },
+                          [=] AMREX_GPU_DEVICE (int i, int const& s)
+                          {
+                              if ( particle_stays(i) )
+                              {
+                                  copyParticle(dst_data, src_data, i + this_offset, s);
+                              }
+                              else
+                              {
+                                  copyParticle(dst_data, src_data, i + this_offset, this_chunk_size-1-(i-s));
+                              }
+                          }, 
+                          Scan::Type::exclusive);
+        }
+
+        if (num_chunks == 1)
+        {
+            ptile.swap(ptile_tmp);
         }
         else
-            {
-                enforcePeriodic(p, plo, phi, is_per);
-                auto tup = ploc(p);
-                assigned_grid = amrex::get<0>(tup);
-                assigned_lev  = amrex::get<1>(tup);                        
-            }
+        {
+            AMREX_FOR_1D(this_chunk_size, i,
+                         {
+                             copyParticle(src_data, dst_data, i, i + this_offset);
+                         });
+        }
         
-        return ((assigned_grid == gid) && (assigned_lev == lev)
-                && (p_pids[p_box_perm[p_lev_offsets[lev]+gid]] == pid));
-    };
-            
-    const auto src_data = ptile.getConstParticleTileData();
-    auto dst_data = ptile_tmp.getParticleTileData();
-    
-    auto num_stay = Scan::PrefixSum<int> (np, 
-               [=] AMREX_GPU_DEVICE (int i) -> int 
-               {
-                   return particle_stays(i);
-               },
-               [=] AMREX_GPU_DEVICE (int i, int const& s)
-               {
-                   if ( particle_stays(i) )
-                   {
-                       copyParticle(dst_data, src_data, i, s);
-                   }
-                   else
-                   {
-                       copyParticle(dst_data, src_data, i, np-1-(i-s));
-                   }
-               }, 
-               Scan::Type::exclusive);
+        if ( ichunk > 0 )
+        {
+            int num_swap = std::min(this_offset - last_offset, num_stay);
+            AMREX_FOR_1D( num_swap, i,
+            {
+                swapParticle(src_data, src_data, last_offset + i,
+                             this_offset + num_stay - 1 - i);
+            });
+        }
 
-    ptile.swap(ptile_tmp);
+        last_offset += num_stay;
+    }
 
-    return num_stay;
+    return last_offset;
 }
 
 #endif
