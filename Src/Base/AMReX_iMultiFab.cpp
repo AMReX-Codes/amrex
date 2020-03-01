@@ -387,17 +387,15 @@ indexFromValue (iMultiFab const& mf, int comp, int nghost, int value, MPI_Op mml
         for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
             const Box& bx = amrex::grow(mfi.validbox(), nghost);
             const Array4<int const> arr = mf.array(mfi);
-            AMREX_LAUNCH_DEVICE_LAMBDA(bx, tbx,
+            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 int* flag = p;
                 if (*flag == 0) {
-                    const IArrayBox fab(arr);
-                    IntVect t_loc = fab.indexFromValue(value, tbx, comp);
-                    if (tbx.contains(t_loc)) {
+                    if (arr(i,j,k,comp) == value) {
                         if (Gpu::Atomic::Exch(flag,1) == 0) {
-                            AMREX_D_TERM(p[1] = t_loc[0];,
-                                         p[2] = t_loc[1];,
-                                         p[3] = t_loc[2];);
+                            AMREX_D_TERM(p[1] = i;,
+                                         p[2] = j;,
+                                         p[3] = k;);
                         }
                     }
                 }
@@ -420,11 +418,11 @@ indexFromValue (iMultiFab const& mf, int comp, int nghost, int value, MPI_Op mml
             for (MFIter mfi(mf,true); mfi.isValid(); ++mfi)
             {
                 const Box& bx = mfi.growntilebox(nghost);
-                const IArrayBox& fab = mf[mfi];
-                IntVect t_loc = fab.indexFromValue(value, bx, comp);
-                if (bx.contains(t_loc)) {
-                    priv_loc = t_loc;
-                };
+                const Array4<int const>& fab = mf.const_array(mfi);
+                AMREX_LOOP_3D(bx, i, j, k,
+                {
+                    if (fab(i,j,k,comp) == value) priv_loc = IntVect(AMREX_D_DECL(i,j,k));
+                });
             }
 
             if (priv_loc.allGT(IntVect::TheMinVector())) {
