@@ -112,12 +112,27 @@ FluxRegister::SumReg (int comp) const
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion())
         {
-            sum += amrex::ReduceSum(lofabs.m_mf, hifabs.m_mf, 0,
-                   [] AMREX_GPU_HOST_DEVICE (Box const& tbx,
-                                             FArrayBox const& lofab,
-                                             FArrayBox const& hifab) -> Real
+            sum += amrex::ReduceSum(lofabs.m_mf, 0,
+                   [=] AMREX_GPU_HOST_DEVICE (Box const& tbx,
+                                              Array4<Real const> const& lofab) -> Real
                    {
-                       return lofab.sum(tbx,0) - hifab.sum(tbx,0);
+                       Real r = 0.0;
+                       AMREX_LOOP_3D(tbx, i, j, k,
+                       {
+                           r += lofab(i,j,k,comp);
+                       });
+                       return r;
+                   });
+            sum += amrex::ReduceSum(hifabs.m_mf, 0,
+                   [=] AMREX_GPU_HOST_DEVICE (Box const& tbx,
+                                              Array4<Real const> const& hifab) -> Real
+                   {
+                       Real r = 0.0;
+                       AMREX_LOOP_3D(tbx, i, j, k,
+                       {
+                           r -= hifab(i,j,k,comp);
+                       });
+                       return r;
                    });
         }
         else
@@ -128,7 +143,18 @@ FluxRegister::SumReg (int comp) const
 #endif
             for (FabSetIter fsi(lofabs); fsi.isValid(); ++fsi)
             {
-                sum += (lofabs[fsi].sum(comp) - hifabs[fsi].sum(comp));
+                Array4<Real const> const& lofab = lofabs.const_array(fsi);
+                Box lobx(lofab);
+                AMREX_LOOP_3D(lobx, i, j, k,
+                {
+                    sum += lofab(i,j,k,comp);
+                });
+                Array4<Real const> const& hifab = hifabs.const_array(fsi);
+                Box hibx(lofab);
+                AMREX_LOOP_3D(hibx, i, j, k,
+                {
+                    sum -= hifab(i,j,k,comp);
+                });
             }
         }
     }
@@ -194,7 +220,7 @@ FluxRegister::CrseInit (const MultiFab& mflx,
             for (FabSetIter mfi(fs); mfi.isValid(); ++mfi)
             {
                 const Box& bx = mfi.validbox();
-                auto const sfab =          fs.const_array(mfi);
+                auto const sfab = fs.const_array(mfi);
                 auto       dfab = bndry[face].array(mfi);
                 AMREX_HOST_DEVICE_PARALLEL_FOR_4D (bx, numcomp, i, j, k, n,
                 {
