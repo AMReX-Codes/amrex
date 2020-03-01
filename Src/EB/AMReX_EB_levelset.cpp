@@ -648,7 +648,7 @@ void LSFactory::fill_data (MultiFab & data, iMultiFab & valid,
         // Don't do anything for the current tile if EB facets are ill-defined
         if (! bndrycent.ok(mfi)){
             auto & ls_tile = data[mfi];
-            ls_tile.setVal( min_dx *( eb_pad + 1), tile_box );
+            ls_tile.setVal<RunOn::Host>( min_dx *( eb_pad + 1), tile_box );
 
             // Ensure that tile-wise assignment is validated
             const auto & if_tile = eb_impfunc[mfi];
@@ -704,9 +704,9 @@ void LSFactory::fill_data (MultiFab & data, iMultiFab & valid,
                                    BL_TO_FORTRAN_3D(ls_tile),
                                    dx.dataPtr(), dx_eb.dataPtr() );
 
-            region_tile.setVal(1);
+            region_tile.setVal<RunOn::Host>(1);
         } else {
-            ls_tile.setVal( min_dx * ( eb_pad + 1 ) , tile_box );
+            ls_tile.setVal<RunOn::Host>( min_dx * ( eb_pad + 1 ) , tile_box );
         }
 
 
@@ -805,7 +805,7 @@ void LSFactory::fill_data (MultiFab & data, iMultiFab & valid,
             // +/- ls_threshold
             for (BoxIterator bit(mfi.growntilebox()); bit.ok(); ++ bit) {
                 if (std::abs(ls_tile(bit(), 0)) <= ls_threshold) {
-                    v_tile.setVal(1, tile_box);
+                    v_tile.setVal<RunOn::Host>(1, tile_box);
                     break;
                 }
             }

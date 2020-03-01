@@ -550,7 +550,6 @@ MLCellLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
                 Real bcl = bdl[ori];
                 int  bct = bdc[ori];
 
-                foofab.setVal(10.0);
                 const FArrayBox& fsfab = (bndry != nullptr) ? bndry->bndryValues(ori)[mfi] : foofab;
 
                 const Mask& m = maskvals[ori][mfi];

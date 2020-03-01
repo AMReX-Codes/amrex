@@ -96,6 +96,7 @@ public:
     *
     * \param src
     */
+    inline
     Mask& And (const Mask& src) noexcept;
 
     /**
@@ -106,6 +107,7 @@ public:
     * \param destcomp
     * \param numcomp
     */
+    inline
     Mask& And (const Mask& src,
                int         srccomp,
                int         destcomp,
@@ -119,6 +121,7 @@ public:
     * \param destcomp
     * \param numcomp
     */
+    inline
     Mask& And (const Mask& src,
                const Box&  subbox,
                int         srccomp,
@@ -135,6 +138,7 @@ public:
     * \param destcomp
     * \param numcomp
     */
+    inline
     Mask& And (const Mask& src,
                const Box&  srcbox,
                const Box&  destbox,
@@ -149,6 +153,7 @@ public:
     *
     * \param src
     */
+    inline
     Mask& Or (const Mask& src) noexcept;
 
     /**
@@ -159,6 +164,7 @@ public:
     * \param destcomp
     * \param numcomp
     */
+    inline
     Mask& Or (const Mask& src,
               int         srccomp,
               int         destcomp,
@@ -172,6 +178,7 @@ public:
     * \param destcomp
     * \param numcomp
     */
+    inline
     Mask& Or (const Mask& src,
               const Box&  subbox,
               int         srccomp,
@@ -188,6 +195,7 @@ public:
     * \param destcomp
     * \param numcomp
     */
+    inline
     Mask& Or (const Mask& src,
               const Box&  srcbox,
               const Box&  destbox,

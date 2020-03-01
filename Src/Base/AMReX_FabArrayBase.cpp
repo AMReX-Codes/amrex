@@ -401,12 +401,12 @@ FabArrayBase::CPC::define (const BoxArray& ba_dst, const DistributionMapping& dm
 	    
 	    if (check_local) {
 		localtouch.resize(bx_dst);
-		localtouch.setVal(0);
+		localtouch.setVal<RunOn::Host>(0);
 	    }
 	    
 	    if (check_remote) {
 		remotetouch.resize(bx_dst);
-		remotetouch.setVal(0);
+		remotetouch.setVal<RunOn::Host>(0);
 	    }
 	    
 	    for (std::vector<IntVect>::const_iterator pit=pshifts.begin(); pit!=pshifts.end(); ++pit)
@@ -717,12 +717,12 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
 	
 	if (check_local) {
 	    localtouch.resize(bxrcv);
-	    localtouch.setVal(0);
+	    localtouch.setVal<RunOn::Host>(0);
 	}
 	
 	if (check_remote) {
 	    remotetouch.resize(bxrcv);
-	    remotetouch.setVal(0);
+	    remotetouch.setVal<RunOn::Host>(0);
 	}
 	
 	for (auto pit=pshifts.cbegin(); pit!=pshifts.cend(); ++pit)
@@ -929,12 +929,12 @@ FabArrayBase::FB::define_epo (const FabArrayBase& fa)
 
 	if (check_local) {
 	    localtouch.resize(bxrcv);
-	    localtouch.setVal(0);
+	    localtouch.setVal<RunOn::Host>(0);
 	}
 	
 	if (check_remote) {
 	    remotetouch.resize(bxrcv);
-	    remotetouch.setVal(0);
+	    remotetouch.setVal<RunOn::Host>(0);
 	}
 	
 	for (std::vector<IntVect>::const_iterator pit=pshifts.begin(); pit!=pshifts.end(); ++pit)

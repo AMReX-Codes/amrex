@@ -947,7 +947,7 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
                 const Real valMax(mf[mfi].max(mf.box(idx), j));
                 const Real val((valMin + valMax) / 2.0);
 
-                the_mf->get(mfi).setComplement(val, mf.box(idx), j, 1);
+                the_mf->get(mfi).setComplement<RunOn::Host>(val, mf.box(idx), j, 1);
             }
         }
     }
