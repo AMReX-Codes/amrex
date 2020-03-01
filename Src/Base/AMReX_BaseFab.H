@@ -452,12 +452,16 @@ public:
     * the starting component number, and the number of components
     * to be set.
     */
+    template <RunOn run_on>
     void setVal (T x, const Box& bx, int nstart, int ncomp) noexcept;
     //! Same as above, except the number of modified components is one. N is the component to be modified.
+    template <RunOn run_on>
     void setVal (T x, const Box& bx, int N = 0) noexcept;
     //! Same as above, except the sub-box defaults to the entire domain.
+    template <RunOn run_on>
     void setVal (T x, int N) noexcept;
 
+    template <RunOn run_on>
     void setValIfNot (T x, const Box& bx, const BaseFab<int>& mask, int nstart, int ncomp) noexcept;
 
     /**
@@ -465,6 +469,7 @@ public:
     * setVal above, except that instead of setting values on the
     * Box b, values are set on the complement of b in the domain.
     */
+    template <RunOn run_on>
     void setComplement (T x, const Box& b, int ns, int num) noexcept;
 
     /**
@@ -871,22 +876,29 @@ public:
     //
 
     //! Set value on the whole domain and all components
+    template <RunOn run_on>
     void setVal (T val) noexcept;
     //
     //! Do nothing if bx is empty.
+    template <RunOn run_on>
     void setVal (T val, Box const& bx, DestComp dcomp, NumComps ncomp) noexcept;
 
+    template <RunOn run_on>
     void setValIf (T val, const BaseFab<int>& mask) noexcept;
     //
     //! Do nothing if bx is empty.
+    template <RunOn run_on>
     void setValIf (T val, Box const& bx, const BaseFab<int>& mask, DestComp dcomp, NumComps ncomp) noexcept;
 
+    template <RunOn run_on>
     void setValIfNot (T val, const BaseFab<int>& mask) noexcept;
     //
     //! Do nothing if bx is empty.
+    template <RunOn run_on>
     void setValIfNot (T val, Box const& bx, const BaseFab<int>& mask, DestComp dcomp, NumComps ncomp) noexcept;
 
     //! setVal on the complement of bx in the fab's domain
+    template <RunOn run_on>
     void setComplement (T val, Box const& bx, DestComp dcomp, NumComps ncomp) noexcept;
 
     /**
@@ -1182,31 +1194,35 @@ BaseFab<T>::shiftHalf (int idir, int n_cell) noexcept
 }
 
 template <class T>
+template <RunOn run_on>
 void
 BaseFab<T>::setVal (T x, const Box& bx, int n) noexcept
 {
-    this->setVal(x, bx, DestComp{n}, NumComps{1});
+    this->setVal<run_on>(x, bx, DestComp{n}, NumComps{1});
 }
 
 template <class T>
+template <RunOn run_on>
 void
 BaseFab<T>::setVal (T x, int n) noexcept
 {
-    this->setVal(x, this->domain, DestComp{n}, NumComps{1});
+    this->setVal<run_on>(x, this->domain, DestComp{n}, NumComps{1});
 }
 
 template <class T>
+template <RunOn run_on>
 void
 BaseFab<T>::setVal (T x, const Box& bx, int dcomp, int ncomp) noexcept
 {
-    this->setVal(x, bx, DestComp{dcomp}, NumComps{ncomp});
+    this->setVal<run_on>(x, bx, DestComp{dcomp}, NumComps{ncomp});
 }
 
 template <class T>
+template <RunOn run_on>
 void
 BaseFab<T>::setValIfNot (T val, const Box& bx, const BaseFab<int>& mask, int ns, int num) noexcept
 {
-    this->setValIfNot(val, bx, mask, DestComp{ns}, NumComps{num});
+    this->setValIfNot<run_on>(val, bx, mask, DestComp{ns}, NumComps{num});
 }
 
 template <class T>
@@ -1394,7 +1410,7 @@ template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::operator= (T const& t) noexcept
 {
-    setVal(t);
+    setVal<run_on>(t);
     return *this;
 }
 
@@ -1576,10 +1592,11 @@ BaseFab<T>::addFromMem (const Box&  dstbox,
 }
 
 template <class T>
+template <RunOn run_on>
 void
 BaseFab<T>::setComplement (T x, const Box& b, int ns, int num) noexcept
 {
-    setComplement(x, b, DestComp{ns}, NumComps{num});
+    setComplement<run_on>(x, b, DestComp{ns}, NumComps{num});
 }
 
 template <class T>
@@ -2573,74 +2590,96 @@ BaseFab<T>::linInterp (const BaseFab<T>& f1, int comp1,
 //
 
 template <class T>
+template <RunOn run_on>
 void
 BaseFab<T>::setVal (T val) noexcept
 {
-    this->setVal(val, this->domain, DestComp{0}, NumComps{this->nvar});
+    this->setVal<run_on>(val, this->domain, DestComp{0}, NumComps{this->nvar});
 }
 
 template <class T>
+template <RunOn run_on>
 void
 BaseFab<T>::setVal (T x, Box const& bx, DestComp dcomp, NumComps ncomp) noexcept
 {
     AMREX_ASSERT(dcomp.i >= 0 && dcomp.i + ncomp.n <= this->nvar);
-
     Array4<T> const& a = this->array();
-    amrex::LoopConcurrent(bx, ncomp.n, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT 
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG (run_on == RunOn::Device and Gpu::inLaunchRegion(),
+                                            bx, ncomp.n, i, j, k, n,
     {
         a(i,j,k,n+dcomp.i) = x;
     });
 }
 
 template <class T>
+template <RunOn run_on>
 void
 BaseFab<T>::setValIf (T val, const BaseFab<int>& mask) noexcept
 {
-    this->setValIf(val, this->domain, mask, DestComp{0}, NumComps{this->nvar});
+    this->setValIf<run_on>(val, this->domain, mask, DestComp{0}, NumComps{this->nvar});
 }
 
 template <class T>
+template <RunOn run_on>
 void
 BaseFab<T>::setValIf (T val, Box const& bx, const BaseFab<int>& mask, DestComp dcomp, NumComps ncomp) noexcept
 {
     AMREX_ASSERT(dcomp.i >= 0 && dcomp.i + ncomp.n <= this->nvar);
-
     Array4<T> const& a = this->array();
     Array4<int const> const& m = mask.const_array();
-    amrex::LoopConcurrent(bx, ncomp.n, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT 
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG (run_on == RunOn::Device and Gpu::inLaunchRegion(),
+                                            bx, ncomp.n, i, j, k, n,
     {
         if (m(i,j,k)) { a(i,j,k,n+dcomp.i) = val; }
     });
 }
 
 template <class T>
+template <RunOn run_on>
 void
 BaseFab<T>::setValIfNot (T val, const BaseFab<int>& mask) noexcept
 {
-    this->setValIfNot(val, this->domain, mask, DestComp{0}, NumComps{this->nvar});
+    this->setValIfNot<run_on>(val, this->domain, mask, DestComp{0}, NumComps{this->nvar});
 }
 
 template <class T>
+template <RunOn run_on>
 void
 BaseFab<T>::setValIfNot (T val, Box const& bx, const BaseFab<int>& mask, DestComp dcomp, NumComps ncomp) noexcept
 {
     AMREX_ASSERT(dcomp.i >= 0 && dcomp.i + ncomp.n <= this->nvar);
-
     Array4<T> const& a = this->array();
     Array4<int const> const& m = mask.const_array();
-    amrex::LoopConcurrent(bx, ncomp.n, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT 
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG (run_on == RunOn::Device and Gpu::inLaunchRegion(),
+                                            bx, ncomp.n, i, j, k, n,
     {
         if (!m(i,j,k)) { a(i,j,k,n+dcomp.i) = val; }
     });
 }
 
 template <class T>
+template <RunOn run_on>
 void
 BaseFab<T>::setComplement (T x, const Box& bx, DestComp dcomp, NumComps ncomp) noexcept
 {
-    const BoxList b_lst = amrex::boxDiff(this->domain,bx);
-    for (auto const& b : b_lst) {
-        this->setVal(x, b, dcomp, ncomp);
+#ifdef AMREX_USE_GPU
+    if (run_on == RunOn::Device and Gpu::inLaunchRegion()) {
+        Array4<T> const& a = this->array();
+        amrex::ParallelFor(this->domain, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            if (not bx.contains(IntVect(i,j,k))) {
+                for (int n = dcomp; n < ncomp+dcomp; ++n) {
+                    a(i,j,k,n) = x;
+                }
+            }
+        });
+    } else
+#endif
+    {
+        const BoxList b_lst = amrex::boxDiff(this->domain,bx);
+        for (auto const& b : b_lst) {
+            this->setVal<RunOn::Host>(x, b, dcomp, ncomp);
+        }
     }
 }
 

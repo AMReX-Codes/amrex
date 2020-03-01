@@ -449,7 +449,7 @@ NodalProjector::setCoarseBoundaryVelocityForSync ()
                     Box ovlp = *it & v_fab.box();
                     if (ovlp.ok())
                     {
-                        v_fab.setVal(0.0, ovlp, idir, 1);
+                        v_fab.setVal<RunOn::Host>(0.0, ovlp, idir, 1);
                     }
                 }
             }

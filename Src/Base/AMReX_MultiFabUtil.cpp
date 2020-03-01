@@ -671,7 +671,7 @@ namespace amrex
                         if (run_on_gpu) {
                             tags.push_back({arr,b});
                         } else {
-                            fab.setVal(fine_value, b);
+                            fab.setVal<RunOn::Host>(fine_value, b);
                         }
                     }
                 }

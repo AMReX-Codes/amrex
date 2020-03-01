@@ -1252,7 +1252,7 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
         {
             BL_ASSERT(CrseBoxes[i].ok());
             CrseFabs[i].reset(new FArrayBox(CrseBoxes[i],m_ncomp));
-            CrseFabs[i]->setComplement(std::numeric_limits<Real>::quiet_NaN(), domain_box, 0, m_ncomp);
+            CrseFabs[i]->setComplement<RunOn::Host>(std::numeric_limits<Real>::quiet_NaN(), domain_box, 0, m_ncomp);
 	}
 
         for (int i = 0; i < NC; i++)
