@@ -40,6 +40,7 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
       species_name(name)
 {
     plasma_injector.reset(new PlasmaInjector(species_id, species_name));
+    physical_species = plasma_injector->getPhysicalSpecies();
     charge = plasma_injector->getCharge();
     mass = plasma_injector->getMass();
 

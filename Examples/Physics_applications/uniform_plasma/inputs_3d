@@ -25,8 +25,7 @@ amr.plot_int = 10
 particles.nspecies = 1
 particles.species_names = electrons
 
-electrons.charge = -q_e
-electrons.mass = m_e
+electrons.species_type = electron
 electrons.injection_style = "NUniformPerCell"
 electrons.num_particles_per_cell_each_dim = 2 2 2
 electrons.profile = constant

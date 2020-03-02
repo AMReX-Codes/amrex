@@ -210,11 +210,17 @@ Particle initialization
     particles are pushed in a standard way, using the specified pusher.
     (see the parameter ``<species_name>.zinject_plane`` below)
 
-* ``<species_name>.charge`` (`float`)
-    The charge of one `physical` particle of this species.
+* ``<species_name>.species_type`` (`string`) optional (default `unspecified`)
+    Type of physical species, ``"electron"``, ``"positron"``, ``"photon"``, ``"hydrogen"``.
+    Either this or both ``mass`` and ``charge`` have to be specified.
 
-* ``<species_name>.mass`` (`float`)
+* ``<species_name>.charge`` (`float`) optional (default `NaN`)
+    The charge of one `physical` particle of this species.
+    If ``species_type`` is specified, the charge will be set to the physical value and ``charge`` is optional.
+
+* ``<species_name>.mass`` (`float`) optional (default `NaN`)
     The mass of one `physical` particle of this species.
+    If ``species_type`` is specified, the mass will be set to the physical value and ``mass`` is optional.
 
 * ``<species_name>.injection_style`` (`string`)
     Determines how the particles will be injected in the simulation.
