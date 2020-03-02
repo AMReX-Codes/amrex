@@ -18,6 +18,8 @@
 #include "Filter/BilinearFilter.H"
 #include "Filter/NCIGodfreyFilter.H"
 #include "Diagnostics/ReducedDiags/MultiReducedDiags.H"
+#include "Utils/WarpXUtil.H"
+#include "Utils/WarpXAlgorithmSelection.H"
 
 #include "FieldSolver/FiniteDifferenceSolver/FiniteDifferenceSolver.H"
 #ifdef WARPX_USE_PSATD
@@ -131,6 +133,7 @@ public:
     static long field_gathering_algo;
     static long particle_pusher_algo;
     static int maxwell_fdtd_solver_id;
+    static long load_balance_costs_update_algo;
 
     // div E cleaning
     static int do_dive_cleaning;
@@ -199,8 +202,24 @@ public:
     std::vector<bool> getPMLdirections() const;
 
     static amrex::MultiFab* getCosts (int lev) {
-        if (m_instance) {
+        if (WarpX::load_balance_costs_update_algo == LoadBalanceCostsUpdateAlgo::Timers) {
+            if (m_instance) {
             return m_instance->costs[lev].get();
+            } else {
+                return nullptr;
+            }
+        } else {
+            return nullptr;
+        }
+    }
+
+    static amrex::Vector<amrex::Real>* getCostsHeuristic (int lev) {
+        if (WarpX::load_balance_costs_update_algo == LoadBalanceCostsUpdateAlgo::Heuristic) {
+            if (m_instance) {
+                return m_instance->costs_heuristic[lev].get();
+            } else {
+                return nullptr;
+            }
         } else {
             return nullptr;
         }
@@ -266,6 +285,12 @@ public:
     void Hybrid_QED_Push (int lev, PatchType patch_type, amrex::Real dt);
 
     static amrex::Real quantum_xi_c2;
+
+    /** \brief perform load balance; compute and communicate new `amrex::DistributionMapping`
+     */
+    void LoadBalance ();
+    void LoadBalanceTimers ();
+    void LoadBalanceHeuristic ();
 
 #ifdef WARPX_DIM_RZ
     void ApplyInverseVolumeScalingToCurrentDensity(amrex::MultiFab* Jx,
@@ -425,6 +450,10 @@ public:
          amrex::IntVect y_nodal_flag, amrex::IntVect z_nodal_flag,
          const int lev);
 
+    /** \brief add particle and cell contributions to multifabs in `costs_heuristic`
+     */
+    void ComputeCostsHeuristic ();
+
 protected:
 
     /**
@@ -567,8 +596,6 @@ private:
     void ExchangeWithPmlE (int lev);
     void ExchangeWithPmlF (int lev);
 
-    void LoadBalance ();
-
     void BuildBufferMasks ();
     void BuildBufferMasksInBox ( const amrex::Box tbx, amrex::IArrayBox &buffer_mask,
                                  const amrex::IArrayBox &guard_mask, const int ng );
@@ -655,10 +682,27 @@ private:
     int n_buffer = 4;
     amrex::Real const_dt = 0.5e-11;
 
+    // Load balancing
+    /** Interval to perform load balance; `load_balance_int=5`, e.g., will load
+     * balance during steps 5, 10, 15, etc. */
     int load_balance_int = -1;
+    /** Collection of multifabs to keep track of weights, based on in-code timers,
+     * for use in load balancing routines. */
     amrex::Vector<std::unique_ptr<amrex::MultiFab> > costs;
+    /** Collection of multifabs to keep track of weights, based on number of cells
+     * and number of particles per box; for use in load balancing routines. */
+    amrex::Vector<std::unique_ptr<amrex::Vector<amrex::Real> > > costs_heuristic;
+    /** Load balance with 'space filling curve' strategy. */
     int load_balance_with_sfc = 0;
+    /** Controls the maximum number of boxes that can be assigned to a rank during
+     * load balance via the 'knapsack' strategy; e.g., if there are 4 boxes per rank,
+     * `load_balance_knapsack_factor=2` limits the maximum number of boxes that can
+     * be assigned to a rank to 8. */
     amrex::Real load_balance_knapsack_factor = 1.24;
+    /** Weight factor for cells in updating `costs_heuristic`. */
+    amrex::Real costs_heuristic_cells_wt = 0.1;
+    /** Weight factor for particles in updating `costs_heuristic`. */
+    amrex::Real costs_heuristic_particles_wt = 0.9;
 
     // Override sync every ? steps
     int override_sync_int = 1;
@@ -766,7 +810,7 @@ private:
     amrex::Vector<std::unique_ptr<amrex::LayoutData<FFTData> > > dataptr_fp_fft;
     amrex::Vector<std::unique_ptr<amrex::LayoutData<FFTData> > > dataptr_cp_fft;
 
-  // Domain decomposition containing the valid part of the dual grids (i.e. without FFT guard cells)
+    // Domain decomposition containing the valid part of the dual grids (i.e. without FFT guard cells)
     amrex::Vector<amrex::BoxArray> ba_valid_fp_fft;
     amrex::Vector<amrex::BoxArray> ba_valid_cp_fft;
 
@@ -796,6 +840,5 @@ private:
     std::string insitu_config;
     int insitu_pin_mesh;
 };
-
 
 #endif

@@ -506,10 +506,11 @@ WarpX::AverageAndPackFields ( Vector<std::string>& varnames,
                               amrex::Vector<MultiFab>& mf_avg, const int ngrow) const
 {
     // Count how many different fields should be written (ncomp)
+    MultiFab* cost = WarpX::getCosts(0);
     int ncomp = fields_to_plot.size()
         + static_cast<int>(plot_finepatch)*6
         + static_cast<int>(plot_crsepatch)*6
-        + static_cast<int>(costs[0] != nullptr and plot_costs);
+        + static_cast<int>(cost != nullptr and plot_costs);
 
     // Add in the RZ modes
     if (n_rz_azimuthal_modes > 1) {
@@ -723,13 +724,15 @@ WarpX::AverageAndPackFields ( Vector<std::string>& varnames,
             dcomp += 3;
         }
 
-        if (costs[0] != nullptr and plot_costs)
+        if (WarpX::load_balance_costs_update_algo == LoadBalanceCostsUpdateAlgo::Timers)
         {
-            AverageAndPackScalarField( mf_avg[lev], *costs[lev], dcomp, ngrow );
-            if(lev==0) varnames.push_back("costs");
-            dcomp += 1;
+            if (costs[0] != nullptr and plot_costs)
+            {
+                AverageAndPackScalarField( mf_avg[lev], *costs[lev], dcomp, ngrow );
+                if(lev==0) varnames.push_back("costs");
+                dcomp += 1;
+            }
         }
-
         BL_ASSERT(dcomp == ncomp);
     } // end loop over levels of refinement
 

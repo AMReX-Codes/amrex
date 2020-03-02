@@ -83,7 +83,7 @@ WarpX::Hybrid_QED_Push (int lev, PatchType patch_type, Real a_dt)
         Bz = Bfield_cp[lev][2].get();
     }
 
-    MultiFab* cost = costs[lev].get();
+    MultiFab* cost = WarpX::getCosts(lev);
     const IntVect& rr = (lev > 0) ? refRatio(lev-1) : IntVect::TheUnitVector();
 
     // xmin is only used by the kernel for cylindrical geometry,

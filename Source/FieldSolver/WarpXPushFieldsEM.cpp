@@ -262,7 +262,7 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real a_dt)
         F  = F_cp[lev].get();
     }
 
-    MultiFab* cost = costs[lev].get();
+    MultiFab* cost = WarpX::getCosts(lev);
     const IntVect& rr = (lev > 0) ? refRatio(lev-1) : IntVect::TheUnitVector();
 
     // xmin is only used by the kernel for cylindrical geometry,
