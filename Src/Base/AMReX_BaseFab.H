@@ -1807,7 +1807,7 @@ BaseFab<T>::min (const Box& subbox, int comp) const noexcept
     Array4<T const> const& a = this->const_array();
 #ifdef AMREX_USE_GPU
     if (run_on == RunOn::Device and Gpu::inLaunchRegion()) {
-        ReduceOps<ReduceMin> reduce_op;
+        ReduceOps<ReduceOpMin> reduce_op;
         ReduceData<T> reduce_data(reduce_op);
         using ReduceTuple = typename decltype(reduce_data)::Type;
         reduce_op.eval(subbox, reduce_data,
@@ -1846,7 +1846,7 @@ BaseFab<T>::max (const Box& subbox, int comp) const noexcept
 
 #ifdef AMREX_USE_GPU
     if (run_on == RunOn::Device and Gpu::inLaunchRegion()) {
-        ReduceOps<ReduceMax> reduce_op;
+        ReduceOps<ReduceOpMax> reduce_op;
         ReduceData<T> reduce_data(reduce_op);
         using ReduceTuple = typename decltype(reduce_data)::Type;
         reduce_op.eval(subbox, reduce_data,
@@ -1884,7 +1884,7 @@ BaseFab<T>::maxabs (const Box& subbox, int comp) const noexcept
     Array4<T const> const& a = this->const_array();
 #ifdef AMREX_USE_GPU
     if (run_on == RunOn::Device and Gpu::inLaunchRegion()) {
-        ReduceOps<ReduceMax> reduce_op;
+        ReduceOps<ReduceOpMax> reduce_op;
         ReduceData<T> reduce_data(reduce_op);
         using ReduceTuple = typename decltype(reduce_data)::Type;
         reduce_op.eval(subbox, reduce_data,
@@ -1893,7 +1893,7 @@ BaseFab<T>::maxabs (const Box& subbox, int comp) const noexcept
             return { amrex::Math::abs(a(i,j,k,comp)) };
         });
         ReduceTuple hv = reduce_data.value();
-        retrun amrex::get<0>(hv);
+        return amrex::get<0>(hv);
     } else
 #endif
     {
@@ -2789,7 +2789,7 @@ BaseFab<T>::setComplement (T const& x, const Box& bx, DestComp dcomp, NumComps n
         amrex::ParallelFor(this->domain, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             if (not bx.contains(IntVect(i,j,k))) {
-                for (int n = dcomp; n < ncomp+dcomp; ++n) {
+                for (int n = dcomp.i; n < ncomp.n+dcomp.i; ++n) {
                     a(i,j,k,n) = x;
                 }
             }
