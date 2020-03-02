@@ -1080,7 +1080,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     ParticleCopyOp op;
     op.setNumLevels(num_levels);
     Vector<std::map<int, int> > new_sizes(num_levels);    
-    int pid = ParallelDescriptor::MyProc();
     for (int lev = lev_min; lev <= lev_max; ++lev)
     {
         const Geometry& geom = Geom(lev);
@@ -1088,12 +1087,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         const DistributionMapping& dmap = ParticleDistributionMap(lev);
 
         auto& plev = m_particles[lev];
-        const auto plo = Geom(lev).ProbLoArray();
-        const auto dxi = Geom(lev).InvCellSizeArray();
-        const auto phi = Geom(lev).ProbHiArray();
-        const auto is_per = Geom(lev).isPeriodicArray();
-        const Box domain = Geom(lev).Domain();
-
         for (auto& kv : plev)
         {
             int gid = kv.first.first;
@@ -1104,83 +1097,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             auto& aos = src_tile.GetArrayOfStructs();
             const size_t np = aos.numParticles();
 
-            ParticleTileType ptile_tmp;
-            ptile_tmp.define(m_num_runtime_real, m_num_runtime_int);
-            ptile_tmp.resize(np);
-            
-            Gpu::DeviceVector<int> grids_r;
-            Gpu::DeviceVector<int> levs_r;
-            Gpu::DeviceVector<int> grids_tmp;
-            Gpu::DeviceVector<int> levs_tmp;
-
-            grids_tmp.resize(np);
-            grids_r.resize(np);
-            levs_r.resize(np);
-            levs_tmp.resize(np);
-
-            auto grids_ptr = grids_tmp.dataPtr();
-            auto levs_ptr = levs_tmp.dataPtr();
-            ParticleType* p_ptr = &(aos[0]);
-            amrex::ParallelFor(np, [=] AMREX_GPU_DEVICE (int i) noexcept
-            {
-                auto& p = p_ptr[i];
-                
-                if (p.id() < 0) 
-                {    
-                    grids_ptr[i] = -1;
-                    levs_ptr[i] = -1;
-                }
-                else
-                {
-                    enforcePeriodic(p, plo, phi, is_per);
-                    auto tup = assign_grid(p);
-                    grids_ptr[i] = amrex::get<0>(tup);
-                    levs_ptr[i] = amrex::get<1>(tup);
-                }
-            });
-
-            int num_stay;
-            {
-                auto p_lev_offsets = BufferMap().levelOffsetsPtr();
-                auto p_box_perm = BufferMap().levGridToBucketPtr();
-                auto p_pids = BufferMap().bucketToPIDPtr();
-
-                auto particle_stays = [=] AMREX_GPU_DEVICE (int i) -> int
-                {
-                    return ((grids_ptr[i] == gid) && (levs_ptr[i] == lev)
-                            && (p_pids[p_box_perm[p_lev_offsets[lev]+gid]] == pid));
-                };
-            
-                const auto src_data = src_tile.getConstParticleTileData();
-                auto dst_data = ptile_tmp.getParticleTileData();
-
-                auto dst_grids_ptr = grids_r.dataPtr();
-                auto dst_levs_ptr = levs_r.dataPtr();
-                
-                num_stay = Scan::PrefixSum<int> (np, 
-                    [=] AMREX_GPU_DEVICE (int i) -> int 
-                    {
-                        return particle_stays(i);
-                    },
-                    [=] AMREX_GPU_DEVICE (int i, int const& s)
-                    {
-                        if ( particle_stays(i) )
-                        {
-                            copyParticle(dst_data, src_data, i, s);
-                            dst_grids_ptr[s] = grids_ptr[i];
-                            dst_levs_ptr[s] = levs_ptr[i];
-                        }
-                        else
-                        {
-                            copyParticle(dst_data, src_data, i, np-1-(i-s));
-                            dst_grids_ptr[np-1-(i-s)] = grids_ptr[i];
-                            dst_levs_ptr[np-1-(i-s)] = levs_ptr[i];
-                        }
-                    }, 
-                    Scan::Type::exclusive);
-
-                src_tile.swap(ptile_tmp);
-            }
+            int num_stay = partitionParticlesByDest(src_tile, assign_grid, BufferMap(), geom, lev, gid, tid);
 
             int num_move = np - num_stay;
             new_sizes[lev][gid] = num_stay;
@@ -1190,13 +1107,14 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             auto p_levs = op.m_levels[lev][gid].dataPtr();
             auto p_src_indices = op.m_src_indices[lev][gid].dataPtr();
             auto p_periodic_shift = op.m_periodic_shift[lev][gid].dataPtr();
-            auto dst_grids_ptr = grids_r.dataPtr();
-            auto dst_levs_ptr  = levs_r.dataPtr();
+            auto p_ptr = &(aos[0]);
             
 	    AMREX_FOR_1D ( num_move, i,
             {
-                p_boxes[i] = dst_grids_ptr[i + num_stay];
-                p_levs[i] = dst_levs_ptr[i + num_stay];
+                const auto& p = p_ptr[i + num_stay];
+                const auto tup = assign_grid(p);
+                p_boxes[i] = amrex::get<0>(tup);
+                p_levs[i]  = amrex::get<1>(tup);
                 p_periodic_shift[i] = IntVect(AMREX_D_DECL(0,0,0));
                 p_src_indices[i] = i+num_stay;
             });
