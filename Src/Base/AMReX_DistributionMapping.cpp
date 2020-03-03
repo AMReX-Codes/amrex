@@ -630,11 +630,18 @@ knapsack (const std::vector<long>&         wgts,
 
     std::sort(wblv.begin(), wblv.end());
 
+    // amrex::Print() << "wblv: ";
+    // for (auto const& x : wblv) {
+    //   amrex::Print() << x.weight() << " ";
+    // }
+    // amrex::Print() << "\n";
+    // amrex::Print() << "Doing a load balance" << "\n";
+    amrex::Print() << "efficiency (amrex): " << efficiency<< ", max_efficiency: "<< max_efficiency<<"\n";
+	
     if (efficiency < max_efficiency && do_full_knapsack
         && wblv.size() > 1 && wblv.begin()->size() > 1)
     {
         BL_PROFILE_VAR("knapsack()swap", swap);
-
 top: ;
 
         if (efficiency < max_efficiency && wblv.begin()->size() > 1)
@@ -1003,7 +1010,8 @@ void
 DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
                                           const std::vector<long>& wgts,
                                           int                   /*   nprocs */,
-                                          bool                     sort)
+                                          bool                     sort,
+					  Real*                    eff)
 {
     if (flag_verbose_mapper) {
         Print() << "DM: SFCProcessorMapDoIt called..." << std::endl;
@@ -1196,18 +1204,20 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
 	}
     }
 
-    if (verbose)
+    if (eff || verbose)
     {
         Real sum_wgt = 0, max_wgt = 0;
         for (int i = 0; i < nteams; ++i)
         {
-            const long W = LIpairV[i].first;
-            if (W > max_wgt)
-                max_wgt = W;
+	    const long W = LIpairV[i].first;
+            if (W > max_wgt) max_wgt = W;
             sum_wgt += W;
         }
-
-        amrex::Print() << "SFC efficiency: " << (sum_wgt/(nteams*max_wgt)) << '\n';
+        *eff = (sum_wgt/(nteams*max_wgt));
+	if (verbose)
+        {
+            amrex::Print() << "SFC efficiency: " << *eff << '\n';
+        }
     }
 }
 
@@ -1258,6 +1268,29 @@ DistributionMapping::SFCProcessorMap (const BoxArray&          boxes,
     else
     {
         SFCProcessorMapDoIt(boxes,wgts,nprocs,sort);
+    }
+}
+
+void
+DistributionMapping::SFCProcessorMap (const BoxArray&          boxes,
+                                      const std::vector<long>& wgts,
+                                      int                      nprocs,
+                                      Real&                    eff,
+                                      bool                     sort)
+{
+    BL_ASSERT(boxes.size() > 0);
+    BL_ASSERT(boxes.size() == static_cast<int>(wgts.size()));
+
+    m_ref->clear();
+    m_ref->m_pmap.resize(wgts.size());
+
+    if (boxes.size() < sfc_threshold*nprocs)
+    {
+        KnapSackProcessorMap(wgts,nprocs,&eff);
+    }
+    else
+    {
+        SFCProcessorMapDoIt(boxes,wgts,nprocs,sort,&eff);
     }
 }
 
@@ -1350,6 +1383,29 @@ DistributionMapping::makeKnapSack (const Vector<Real>& rcost, int nmax)
 }
 
 DistributionMapping
+DistributionMapping::makeKnapSack (const Vector<Real>& rcost, Real& eff, int nmax)
+{
+    BL_PROFILE("makeKnapSack");
+
+    DistributionMapping r;
+
+    Vector<long> cost(rcost.size());
+
+    Real wmax = *std::max_element(rcost.begin(), rcost.end());
+    Real scale = (wmax == 0) ? 1.e9 : 1.e9/wmax;
+
+    for (int i = 0; i < rcost.size(); ++i) {
+        cost[i] = long(rcost[i]*scale) + 1L;
+    }
+
+    int nprocs = ParallelContext::NProcsSub();
+
+    r.KnapSackProcessorMap(cost, nprocs, &eff, true, nmax);
+
+    return r;
+}
+  
+DistributionMapping
 DistributionMapping::makeKnapSack (const MultiFab& weight, int nmax)
 {
     BL_PROFILE("makeKnapSack");
@@ -1387,6 +1443,43 @@ DistributionMapping::makeKnapSack (const MultiFab& weight, int nmax)
     return r;
 }
 
+DistributionMapping
+DistributionMapping::makeKnapSack (const MultiFab& weight, Real& eff, int nmax)
+{
+    BL_PROFILE("makeKnapSack");
+
+    DistributionMapping r;
+
+    Vector<long> cost(weight.size());
+#ifdef BL_USE_MPI
+    {
+	Vector<Real> rcost(cost.size(), 0.0);
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+	for (MFIter mfi(weight); mfi.isValid(); ++mfi) {
+	    int i = mfi.index();
+	    rcost[i] = weight[mfi].sum(mfi.validbox(),0);
+	}
+
+	ParallelAllReduce::Sum(&rcost[0], rcost.size(), ParallelContext::CommunicatorSub());
+
+	Real wmax = *std::max_element(rcost.begin(), rcost.end());
+	Real scale = (wmax == 0) ? 1.e9 : 1.e9/wmax;
+
+	for (int i = 0; i < rcost.size(); ++i) {
+	    cost[i] = long(rcost[i]*scale) + 1L;
+	}
+    }
+#endif
+
+    int nprocs = ParallelContext::NProcsSub();
+
+    r.KnapSackProcessorMap(cost, nprocs, &eff, true, nmax);
+
+    return r;
+}
+  
 DistributionMapping
 DistributionMapping::makeRoundRobin (const MultiFab& weight)
 {
@@ -1458,6 +1551,41 @@ DistributionMapping::makeSFC (const MultiFab& weight, bool sort)
 }
 
 DistributionMapping
+DistributionMapping::makeSFC (const MultiFab& weight, Real& eff, bool sort)
+{
+    DistributionMapping r;
+
+    Vector<long> cost(weight.size());
+#ifdef BL_USE_MPI
+    {
+	Vector<Real> rcost(cost.size(), 0.0);
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+	for (MFIter mfi(weight); mfi.isValid(); ++mfi) {
+	    int i = mfi.index();
+	    rcost[i] = weight[mfi].sum(mfi.validbox(),0);
+	}
+
+	ParallelAllReduce::Sum(&rcost[0], rcost.size(), ParallelContext::CommunicatorSub());
+
+	Real wmax = *std::max_element(rcost.begin(), rcost.end());
+        Real scale = (wmax == 0) ? 1.e9 : 1.e9/wmax;
+
+	for (int i = 0; i < rcost.size(); ++i) {
+	    cost[i] = long(rcost[i]*scale) + 1L;
+	}
+    }
+#endif
+
+    int nprocs = ParallelContext::NProcsSub();
+
+    r.SFCProcessorMap(weight.boxArray(), cost, nprocs, eff, sort);
+
+    return r;
+}
+
+DistributionMapping
 DistributionMapping::makeSFC (const Vector<Real>& rcost, const BoxArray& ba, bool sort)
 {
     DistributionMapping r;
@@ -1477,6 +1605,28 @@ DistributionMapping::makeSFC (const Vector<Real>& rcost, const BoxArray& ba, boo
 
     return r;
 }
+
+DistributionMapping
+DistributionMapping::makeSFC (const Vector<Real>& rcost, const BoxArray& ba, Real& eff, bool sort)
+{
+    DistributionMapping r;
+
+    Vector<long> cost(rcost.size());
+    
+    Real wmax = *std::max_element(rcost.begin(), rcost.end());
+    Real scale = (wmax == 0) ? 1.e9 : 1.e9/wmax;
+
+    for (int i = 0; i < rcost.size(); ++i) {
+        cost[i] = long(rcost[i]*scale) + 1L;
+    }
+
+    int nprocs = ParallelContext::NProcsSub();
+
+    r.SFCProcessorMap(ba, cost, nprocs, eff, sort);
+
+    return r;
+}
+
 
 std::vector<std::vector<int> >
 DistributionMapping::makeSFC (const BoxArray& ba, bool use_box_vol)
