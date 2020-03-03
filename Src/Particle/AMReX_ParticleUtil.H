@@ -252,7 +252,7 @@ partitionParticlesByDest (PTile& ptile, const PLocator& ploc, const ParticleBuff
     auto p_ptr = &(aos[0]);
     
     int pid = ParallelDescriptor::MyProc();
-    int chunk_size = 512*512*512;
+    int chunk_size = 256*256*256;
     int num_chunks = std::max(1, (np + (chunk_size - 1)) / chunk_size);
     
     PTile ptile_tmp;
