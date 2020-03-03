@@ -229,7 +229,7 @@ private:
                               const std::vector<long>& wgts,
                               int                      nprocs,
                               bool                     sort=true,
-			      Real*                    efficiency=nullptr);
+                              Real*                    efficiency=nullptr);
 
     void RRSFCDoIt           (const BoxArray&          boxes,
                               int                      nprocs);
