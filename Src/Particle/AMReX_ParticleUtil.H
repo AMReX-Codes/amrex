@@ -244,6 +244,8 @@ partitionParticlesByDest (PTile& ptile, const PLocator& ploc, const ParticleBuff
     auto& aos = ptile.GetArrayOfStructs();
     const int np = aos.numParticles();
 
+    if (np == 0) return 0;
+    
     auto p_lev_offsets = pmap.levelOffsetsPtr();
     auto p_box_perm = pmap.levGridToBucketPtr();
     auto p_pids = pmap.bucketToPIDPtr();
