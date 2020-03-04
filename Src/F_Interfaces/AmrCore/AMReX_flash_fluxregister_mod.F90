@@ -29,7 +29,8 @@ module amrex_flash_fluxregister_module
      procedure, private :: amrex_flash_fluxregister_assign
      procedure, private :: amrex_flash_fluxregister_load_1
      procedure, private :: amrex_flash_fluxregister_load_2
-     procedure, private :: amrex_flash_fluxregister_load_area
+     procedure, private :: amrex_flash_fluxregister_load_1_area
+     procedure, private :: amrex_flash_fluxregister_load_2_area
      procedure, private :: amrex_flash_fluxregister_load_area_ifd
      procedure, private :: amrex_flash_fluxregister_store
      procedure, private :: amrex_flash_fluxregister_store_area
