@@ -160,12 +160,14 @@ amrex::Random ()
               + (threadIdx.y * blockDim.x) + threadIdx.x ;
     int i = get_state(tid);
 
+    // curand_uniform generates numbers in (0.0,1], while
+    // std::uniform_real_distribution in [0.0, 1.0)
 #ifdef BL_USE_FLOAT
-    AMREX_HIP_OR_CUDA( rand = hiprand_uniform(&d_states_d_ptr[i]);,
-                       rand =  curand_uniform(&d_states_d_ptr[i]); );
+    AMREX_HIP_OR_CUDA( rand = 1.0f - hiprand_uniform(&d_states_d_ptr[i]);,
+                       rand = 1.0f - curand_uniform(&d_states_d_ptr[i]); );
 #else
-    AMREX_HIP_OR_CUDA( rand = hiprand_uniform_double(&d_states_d_ptr[i]);,
-                       rand =  curand_uniform_double(&d_states_d_ptr[i]); );
+    AMREX_HIP_OR_CUDA( rand = 1.0 - hiprand_uniform_double(&d_states_d_ptr[i]);,
+                       rand = 1.0 - curand_uniform_double(&d_states_d_ptr[i]); );
 #endif
 
     __threadfence();
@@ -370,7 +372,7 @@ amrex::ResizeRandomSeed (int N)
     amrex::BlockMutex* d_mutex_h_ptr_local = d_mutex_h_ptr;
 
     // HIP FIX HERE - hipMemcpyToSymbol doesn't work with pointers.
-    amrex::ParallelFor(1, [=] AMREX_GPU_DEVICE (int) 
+    amrex::ParallelFor(1, [=] AMREX_GPU_DEVICE (int)
     {
         d_states_d_ptr = new_data;
         d_mutex_d_ptr = d_mutex_h_ptr_local;
