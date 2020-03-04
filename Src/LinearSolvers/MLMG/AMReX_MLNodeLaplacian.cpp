@@ -432,6 +432,8 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
         const iMultiFab& c_cc_mask = *m_cc_fine_mask[ilev];
         const auto& has_fine_bndry = *m_has_fine_bndry[ilev];
 
+        bool neumann_doubling = m_coarsening_strategy == CoarseningStrategy::sigma;
+
         MFItInfo mfi_info;
         if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
 #ifdef _OPENMP
@@ -460,7 +462,7 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
 #if (AMREX_SPACEDIM == 2)
                                             is_rz,
 #endif
-                                            cdxinv,cnddom,lobc,hibc);
+                                            cdxinv,cnddom,lobc,hibc, neumann_doubling);
                 });
             }
         }
@@ -1672,6 +1674,8 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
     const MultiFab* vfrac = (factory) ? &(factory->getVolFrac()) : nullptr;
 #endif
 
+    bool neumann_doubling = m_coarsening_strategy == CoarseningStrategy::sigma;
+
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
 #ifdef _OPENMP
@@ -1861,7 +1865,7 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
                         {
                             mlndlap_set_stencil_s0(i, j, k, stenarr);
                             mlndlap_adotx_sten(i, j, k, sync_resid_a, phiarr, stenarr, dmskarr);
-                            mlndlap_crse_resid(i, j, k, sync_resid_a, rhsarr, cccmsk, nddom, lobc, hibc);
+                            mlndlap_crse_resid(i, j, k, sync_resid_a, rhsarr, cccmsk, nddom, lobc, hibc, neumann_doubling);
                         });
                     }
                     else
@@ -1885,7 +1889,7 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
                                              is_rz,
 #endif
                                              dxinv);
-                            mlndlap_crse_resid(i, j, k, sync_resid_a, rhsarr, cccmsk, nddom, lobc, hibc);
+                            mlndlap_crse_resid(i, j, k, sync_resid_a, rhsarr, cccmsk, nddom, lobc, hibc, neumann_doubling);
                         });
                     }
                 }
@@ -2155,9 +2159,8 @@ MLNodeLaplacian::reflux (int crse_amrlev,
     const auto fdxinv = fgeom.InvCellSizeArray();
     const Box& c_cc_domain = cgeom.Domain();
     Box c_nd_domain = amrex::surroundingNodes(c_cc_domain);
-    if (m_coarsening_strategy == CoarseningStrategy::RAP) {
-        c_nd_domain.grow(1); // to avoid *=2 at Neumann BC
-    }
+
+    bool neumann_doubling = m_coarsening_strategy == CoarseningStrategy::sigma;
 
 #if (AMREX_SPACEDIM == 2)
     bool is_rz = m_is_rz;
@@ -2305,7 +2308,7 @@ MLNodeLaplacian::reflux (int crse_amrlev,
 #if (AMREX_SPACEDIM == 2)
                                        is_rz,
 #endif
-                                       lobc,hibc);
+                                       lobc,hibc, neumann_doubling);
             });
         }
     }
