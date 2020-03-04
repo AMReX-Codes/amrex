@@ -1189,6 +1189,8 @@ MLNodeLaplacian::restrictInteriorNodes (int camrlev, MultiFab& crhs, MultiFab& a
 
     MultiFab cfine(amrex::coarsen(fba, 2), fdm, 1, 0);
 
+    frhs->setBndry(0.0);
+
     applyBC(camrlev+1, 0, *frhs, BCMode::Inhomogeneous, StateMode::Solution);
 
 #ifdef _OPENMP
@@ -2152,7 +2154,11 @@ MLNodeLaplacian::reflux (int crse_amrlev,
     const auto cdxinv = cgeom.InvCellSizeArray();
     const auto fdxinv = fgeom.InvCellSizeArray();
     const Box& c_cc_domain = cgeom.Domain();
-    const Box& c_nd_domain = amrex::surroundingNodes(c_cc_domain);
+    Box c_nd_domain = amrex::surroundingNodes(c_cc_domain);
+    if (m_coarsening_strategy == CoarseningStrategy::RAP) {
+        c_nd_domain.grow(1); // to avoid *=2 at Neumann BC
+    }
+
 #if (AMREX_SPACEDIM == 2)
     bool is_rz = m_is_rz;
 #endif
