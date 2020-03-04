@@ -1112,9 +1112,17 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 	    AMREX_FOR_1D ( num_move, i,
             {
                 const auto& p = p_ptr[i + num_stay];
-                const auto tup = assign_grid(p);
-                p_boxes[i] = amrex::get<0>(tup);
-                p_levs[i]  = amrex::get<1>(tup);
+                if (p.id() < 0)
+                {
+                    p_boxes[i] = -1;
+                    p_levs[i]  = -1;                    
+                }
+                else
+                {
+                    const auto tup = assign_grid(p);
+                    p_boxes[i] = amrex::get<0>(tup);
+                    p_levs[i]  = amrex::get<1>(tup);
+                }
                 p_periodic_shift[i] = IntVect(AMREX_D_DECL(0,0,0));
                 p_src_indices[i] = i+num_stay;
             });
