@@ -7,6 +7,7 @@
 #include <mutex>
 #include <unordered_set>
 #include <functional>
+#include <string>
 
 #include <AMReX_Arena.H>
 
@@ -48,6 +49,14 @@ public:
 
     //! The current amount of heap space used by the CArena object.
     std::size_t heap_space_used () const noexcept;
+
+    //! Return the total amount of memory given out via alloc.
+    std::size_t heap_space_actually_used () const noexcept;
+
+    //! Return the amount of memory in this pointer.  Return 0 for unknown pointer.
+    std::size_t sizeOf (void* p) const noexcept;
+
+    void PrintUsage (std::string const& name) const;
 
     //! The default memory hunk size to grab from the heap.
     enum { DefaultHunkSize = 1024*1024*8 };
@@ -131,6 +140,8 @@ protected:
     std::size_t m_hunk;
     //! The amount of heap space currently allocated.
     std::size_t m_used;
+    //! The amount of memory given out via alloc().
+    std::size_t m_actually_used;
 
     std::mutex carena_mutex;
 };

@@ -43,10 +43,7 @@ void yafluxreg_fineadd (Box const& bx, Array4<Real> const& d, Array4<Real const>
             const int ii = (i+1)*rr.x;
             Real* AMREX_RESTRICT dp = &(d(i,0,0,n));
             Real tmp = -dtdx*f(ii,0,0,n);
-#ifdef _OPENMP
-#pragma omp atomic
-#endif
-            *dp += tmp;
+            HostDevice::Atomic::Add(dp, tmp);
         }
         break;
     }
@@ -57,10 +54,7 @@ void yafluxreg_fineadd (Box const& bx, Array4<Real> const& d, Array4<Real const>
             const int ii = i*rr.x;
             Real* AMREX_RESTRICT dp = &(d(i,0,0,n));
             Real tmp = dtdx*f(ii,0,0,n);
-#ifdef _OPENMP
-#pragma omp atomic
-#endif
-            *dp += tmp;
+            HostDevice::Atomic::Add(dp, tmp);
         }
     }
     }

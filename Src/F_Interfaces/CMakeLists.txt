@@ -56,6 +56,7 @@ target_sources(amrex PRIVATE
    AmrCore/AMReX_tagbox_mod.F90
    AmrCore/AMReX_fillpatch_mod.F90
    AmrCore/AMReX_fluxregister_mod.F90
+   AmrCore/AMReX_flash_fluxregister_mod.F90
    AmrCore/AMReX_interpolater_mod.F90
    AmrCore/AMReX_amrcore_fi.cpp
    AmrCore/AMReX_tagbox_fi.cpp

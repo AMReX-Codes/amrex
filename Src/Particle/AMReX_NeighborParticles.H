@@ -427,8 +427,8 @@ protected:
     std::unique_ptr<amrex::iMultiFab> m_neighbor_mask_ptr;
     std::map<int, std::vector<std::vector<NeighborCode> > > m_grid_map;
 
-    std::map<int, amrex::Gpu::ManagedVector<NeighborCode> > m_code_array;
-    std::map<int, amrex::Gpu::ManagedVector<int> > m_code_offsets;
+    std::map<int, amrex::Gpu::DeviceVector<NeighborCode> > m_code_array;
+    std::map<int, amrex::Gpu::DeviceVector<int> > m_code_offsets;
 
     ParticleCopyOp neighbor_copy_op;
     ParticleCopyPlan neighbor_copy_plan;

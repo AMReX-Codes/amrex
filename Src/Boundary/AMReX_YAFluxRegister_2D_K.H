@@ -58,10 +58,7 @@ void yafluxreg_fineadd (Box const& bx, Array4<Real> const& d, Array4<Real const>
                 for (int joff = 0; joff < rr.y; ++joff) {
                     const int jj =      j*rr.y  + joff;
                     Real tmp = -dtdx*f(ii,jj,0,n);
-#ifdef _OPENMP
-#pragma omp atomic
-#endif
-                    *dp += tmp;
+                    HostDevice::Atomic::Add(dp, tmp);
                 }
             }
         }
@@ -77,10 +74,7 @@ void yafluxreg_fineadd (Box const& bx, Array4<Real> const& d, Array4<Real const>
                 for (int joff = 0; joff < rr.y; ++joff) {
                     const int jj =      j*rr.y  + joff;
                     Real tmp = dtdx*f(ii,jj,0,n);
-#ifdef _OPENMP
-#pragma omp atomic
-#endif
-                    *dp += tmp;
+                    HostDevice::Atomic::Add(dp, tmp);
                 }
             }
         }
@@ -96,10 +90,7 @@ void yafluxreg_fineadd (Box const& bx, Array4<Real> const& d, Array4<Real const>
                 for (int ioff = 0; ioff < rr.x; ++ioff) {
                     const int ii =      i*rr.x  + ioff;
                     Real tmp = -dtdx*f(ii,jj,0,n);
-#ifdef _OPENMP
-#pragma omp atomic
-#endif
-                    *dp += tmp;
+                    HostDevice::Atomic::Add(dp, tmp);
                 }
             }
         }
@@ -115,10 +106,7 @@ void yafluxreg_fineadd (Box const& bx, Array4<Real> const& d, Array4<Real const>
                 for (int ioff = 0; ioff < rr.x; ++ioff) {
                     const int ii =      i*rr.x  + ioff;
                     Real tmp = dtdx*f(ii,jj,0,n);
-#ifdef _OPENMP
-#pragma omp atomic
-#endif
-                    *dp += tmp;
+                    HostDevice::Atomic::Add(dp, tmp);
                 }
             }
         }

@@ -123,15 +123,33 @@ template <typename... Ps> class ReduceOps;
 
 namespace Reduce {
 namespace detail {
+#ifdef AMREX_USE_DPCPP
+    // xxxxx DPCPP todo: the compiler seems to have a bug.  It cannot capture
+    //                   GpuTuple<T> correctly even if it's standard layout.
     template <typename T>
-    void init_tuple_on_device (T* p, T const& v)
+    void
+    init_tuple_on_device (T* p, T const& v)
     {
-        AMREX_LAUNCH_KERNEL(1,1,0,Gpu::gpuStream(),
-        [=] AMREX_GPU_DEVICE () noexcept
+        amrex::single_task(Gpu::nullStream(), [=] AMREX_GPU_DEVICE () noexcept
+        {
+            new (p) T();
+            new (p+1) T();
+        });
+        Array<T,2> tmp{v,v};
+        Gpu::htod_memcpy(p, tmp.data(), sizeof(T)*2);
+    }
+#else
+    template <typename T>
+    void
+    init_tuple_on_device (T* p, T const& v)
+    {
+        amrex::single_task(Gpu::nullStream(), [=] AMREX_GPU_DEVICE () noexcept
         {
             new (p) T(v);
+            new (p+1) T(v);
         });
     }
+#endif
 }}
 
 template <typename... Ts>
@@ -143,7 +161,7 @@ public:
     template <typename... Ps>
     explicit ReduceData (ReduceOps<Ps...> const& ops)
         : m_host_tuple(),
-          m_device_tuple((Type*)(The_Device_Arena()->alloc(sizeof(m_host_tuple))))
+          m_device_tuple((Type*)(The_Device_Arena()->alloc(2*sizeof(m_host_tuple))))
     {
         static_assert(AMREX_IS_TRIVIALLY_COPYABLE(Type),
                       "ReduceData::Type must be trivially copyable");
@@ -151,8 +169,8 @@ public:
                       "ReduceData::Type must be trivially destructible");
 
         Reduce::detail::for_each_init<0, Type, Ps...>(m_host_tuple);
-
         Reduce::detail::init_tuple_on_device(m_device_tuple, m_host_tuple);
+        Gpu::synchronize();
     }
 
     ~ReduceData () { The_Device_Arena()->free(m_device_tuple); }
@@ -203,11 +221,9 @@ class ReduceOps
 public:
 
     template <typename D, typename F>
-    void eval (Box const& box, D & reduce_data, F&& f, std::size_t shared_mem_bytes = 0)
+    void eval (Box const& box, D & reduce_data, F&& f)
     {
         using ReduceTuple = typename D::Type;
-        ReduceTuple init_val;
-        Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(init_val);
         auto dp = reduce_data.devicePtr();
         int ncells = box.numPts();
         const auto lo  = amrex::lbound(box);
@@ -215,10 +231,29 @@ public:
         IndexType ixtype = box.ixType();
         auto ec = Gpu::ExecutionConfig(ncells);
         ec.numBlocks.x = std::min(ec.numBlocks.x, static_cast<unsigned int>(Gpu::Device::maxBlocksPerLaunch()));
-        std::size_t sm = std::max(ec.sharedMem, shared_mem_bytes);
-        AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, sm, amrex::Gpu::gpuStream(),
+#ifdef AMREX_USE_DPCPP
+        amrex::launch(ec.numBlocks.x, ec.numThreads.x, Gpu::gpuStream(),
+        [=] AMREX_GPU_DEVICE (sycl::nd_item<1> const& item) noexcept
+        AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size)
+        {
+            ReduceTuple r = *(dp+1);
+            for (int icell = item.get_global_id(0), stride = item.get_global_range(0);
+                 icell < ncells; icell += stride) {
+                int k =  icell /   (len.x*len.y);
+                int j = (icell - k*(len.x*len.y)) /   len.x;
+                int i = (icell - k*(len.x*len.y)) - j*len.x;
+                i += lo.x;
+                j += lo.y;
+                k += lo.z;
+                auto pr = Reduce::detail::call_f(f,i,j,k,ixtype);
+                Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r, pr);
+            }
+            Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(*dp,r);
+        });
+#else
+        amrex::launch(ec.numBlocks.x, ec.numThreads.x, 0, Gpu::gpuStream(),
         [=] AMREX_GPU_DEVICE () noexcept {
-            ReduceTuple r = init_val;
+            ReduceTuple r = *(dp+1);
             for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
                  icell < ncells; icell += stride) {
                 int k =  icell /   (len.x*len.y);
@@ -232,26 +267,45 @@ public:
             }
             Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(*dp,r);
         });
-        AMREX_GPU_ERROR_CHECK();
+#endif
     }
 
     template <typename N, typename D, typename F,
               typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
-    void eval (Box const& box, N ncomp, D & reduce_data, F&& f, std::size_t shared_mem_bytes = 0)
+    void eval (Box const& box, N ncomp, D & reduce_data, F&& f)
     {
         using ReduceTuple = typename D::Type;
-        ReduceTuple init_val;
-        Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(init_val);
         auto dp = reduce_data.devicePtr();
         int ncells = box.numPts();
         const auto lo  = amrex::lbound(box);
         const auto len = amrex::length(box);
         auto ec = Gpu::ExecutionConfig(ncells);
         ec.numBlocks.x = std::min(ec.numBlocks.x, static_cast<unsigned int>(Gpu::Device::maxBlocksPerLaunch()));
-        std::size_t sm = std::max(ec.sharedMem, shared_mem_bytes);
-        AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, sm, amrex::Gpu::gpuStream(),
+#ifdef AMREX_USE_DPCPP
+        amrex::launch(ec.numBlocks.x, ec.numThreads.x, Gpu::gpuStream(),
+        [=] AMREX_GPU_DEVICE (sycl::nd_item<1> const& item) noexcept
+        AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size)
+        {
+            ReduceTuple r = *(dp+1);
+            for (int icell = item.get_global_id(0), stride = item.get_global_range(0);
+                 icell < ncells; icell += stride) {
+                int k =  icell /   (len.x*len.y);
+                int j = (icell - k*(len.x*len.y)) /   len.x;
+                int i = (icell - k*(len.x*len.y)) - j*len.x;
+                i += lo.x;
+                j += lo.y;
+                k += lo.z;
+                for (N n = 0; n < ncomp; ++n) {
+                    auto pr = f(i,j,k,n);
+                    Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r, pr);
+                }
+            }
+            Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(*dp,r);
+        });
+#else
+        amrex::launch(ec.numBlocks.x, ec.numThreads.x, 0, Gpu::gpuStream(),
         [=] AMREX_GPU_DEVICE () noexcept {
-            ReduceTuple r = init_val;
+            ReduceTuple r = *(dp+1);
             for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
                  icell < ncells; icell += stride) {
                 int k =  icell /   (len.x*len.y);
@@ -267,23 +321,34 @@ public:
             }
             Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(*dp,r);
         });
-        AMREX_GPU_ERROR_CHECK();
+#endif
     }
 
     template <typename N, typename D, typename F,
               typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
-    void eval (N n, D & reduce_data, F&& f, std::size_t shared_mem_bytes = 0)
+    void eval (N n, D & reduce_data, F&& f)
     {
         using ReduceTuple = typename D::Type;
-        ReduceTuple init_val;
-        Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(init_val);
         auto dp = reduce_data.devicePtr();
         auto ec = Gpu::ExecutionConfig(n);
         ec.numBlocks.x = std::min(ec.numBlocks.x, static_cast<unsigned int>(Gpu::Device::maxBlocksPerLaunch()));
-        std::size_t sm = std::max(ec.sharedMem, shared_mem_bytes);
-        AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, sm, amrex::Gpu::gpuStream(),
+#ifdef AMREX_USE_DPCPP
+        amrex::launch(ec.numBlocks.x, ec.numThreads.x, Gpu::gpuStream(),
+        [=] AMREX_GPU_DEVICE (sycl::nd_item<1> const& item) noexcept
+        AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size)
+        {
+            ReduceTuple r = *(dp+1);
+            for (N i = item.get_global_id(0), stride = item.get_global_range(0);
+                 i < n; i += stride) {
+                auto pr = f(i);
+                Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r,pr);
+            }
+            Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(*dp,r);
+        });
+#else
+        amrex::launch(ec.numBlocks.x, ec.numThreads.x, 0, Gpu::gpuStream(),
         [=] AMREX_GPU_DEVICE () noexcept {
-            auto r = init_val;
+            auto r = *(dp+1);
             for (N i = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
                  i < n; i += stride) {
                 auto pr = f(i);
@@ -291,7 +356,7 @@ public:
             }
             Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(*dp,r);
         });
-        AMREX_GPU_ERROR_CHECK();
+#endif
     }
 };
 
@@ -405,9 +470,17 @@ bool AnyOf (N n, T const* v, P&& pred)
     Gpu::LaunchSafeGuard lsg(true);
     Gpu::DeviceScalar<int> ds(0);
     int* dp = ds.dataPtr();
+#ifdef AMREX_USE_DPCPP
+    // xxxxx DPCPP todo: Anyof N: better version
+    amrex::ParallelFor(n, [=] (int i) noexcept
+    {
+        int r = pred(v[i]) ? 1 : 0;
+        Gpu::Atomic::LogicalOr(dp, r);
+    });
+#else
     auto ec = Gpu::ExecutionConfig(n);
     ec.numBlocks.x = std::min(ec.numBlocks.x, static_cast<unsigned int>(Gpu::Device::maxBlocksPerLaunch()));
-    AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, 0, 0,
+    amrex::launch(ec.numBlocks.x, ec.numThreads.x, 0, 0,
     [=] AMREX_GPU_DEVICE () noexcept {
         __shared__ int has_any;
         if (threadIdx.x == 0) has_any = *dp;
@@ -426,6 +499,7 @@ bool AnyOf (N n, T const* v, P&& pred)
             if (threadIdx.x == 0 and r) *dp = 1;
         }
     });
+#endif
     return ds.dataValue();
 }
 
@@ -438,6 +512,14 @@ bool AnyOf (Box const& box, P&& pred)
     int ncells = box.numPts();
     const auto lo  = amrex::lbound(box);
     const auto len = amrex::length(box);
+#ifdef AMREX_USE_DPCPP
+    // xxxxx DPCPP todo: Anyof Box: better version
+    amrex::ParallelFor(box, [=] (int i, int j, int k) noexcept
+    {
+        int r = pred(i,j,k) ? 1 : 0;
+        Gpu::Atomic::LogicalOr(dp, r);
+    });
+#else
     auto ec = Gpu::ExecutionConfig(ncells);
     ec.numBlocks.x = std::min(ec.numBlocks.x, static_cast<unsigned int>(Gpu::Device::maxBlocksPerLaunch()));
     AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, 0, 0,
@@ -464,6 +546,7 @@ bool AnyOf (Box const& box, P&& pred)
             if (threadIdx.x == 0 and r) *dp = 1;
         }
     });
+#endif
     return ds.dataValue();
 }
 
@@ -479,10 +562,9 @@ public:
 
     template <typename... Ps>
     explicit ReduceData (ReduceOps<Ps...> const& ops)
-        : m_init_val(), m_tuple()
+        : m_tuple()
     {
-        Reduce::detail::for_each_init<0, Type, Ps...>(m_init_val);
-        m_tuple = m_init_val;
+        Reduce::detail::for_each_init<0, Type, Ps...>(m_tuple);
     }
 
     ReduceData (ReduceData<Ts...> const&) = delete;
@@ -498,7 +580,6 @@ public:
     Type& reference () { return m_tuple; }
 
 private:
-    Type m_init_val;
     Type m_tuple;
 };
 
@@ -537,7 +618,7 @@ private:
 public:
 
     template <typename D, typename F>
-    void eval (Box const& box, D & reduce_data, F&& f, std::size_t shared_mem_bytes = 0)
+    void eval (Box const& box, D & reduce_data, F&& f)
     {
         using ReduceTuple = typename D::Type;
         ReduceTuple& rr = reduce_data.reference();
@@ -547,7 +628,7 @@ public:
 
     template <typename N, typename D, typename F,
               typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
-    void eval (Box const& box, N ncomp, D & reduce_data, F&& f, std::size_t shared_mem_bytes = 0)
+    void eval (Box const& box, N ncomp, D & reduce_data, F&& f)
     {
         using ReduceTuple = typename D::Type;
         ReduceTuple r;
@@ -567,7 +648,7 @@ public:
 
     template <typename N, typename D, typename F,
               typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
-    void eval (N n, D & reduce_data, F&& f, std::size_t shared_mem_bytes = 0)
+    void eval (N n, D & reduce_data, F&& f)
     {
         using ReduceTuple = typename D::Type;
         ReduceTuple r;

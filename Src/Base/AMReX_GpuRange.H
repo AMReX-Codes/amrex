@@ -31,7 +31,7 @@ long at (T const& b, long offset) noexcept { return offset; }
 AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE long size (Box const& b) noexcept
 {
-#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+#if AMREX_DEVICE_COMPILE
     return b.numPts();
 #else
     return 1;
@@ -41,7 +41,7 @@ AMREX_FORCE_INLINE long size (Box const& b) noexcept
 AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE Box at (Box const& b, long offset) noexcept
 {
-#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+#if AMREX_DEVICE_COMPILE
     auto len = b.length3d();
     long k = offset / (len[0]*len[1]);
     long j = (offset - k*(len[0]*len[1])) / len[0];
@@ -61,6 +61,11 @@ struct range_impl
 {
     AMREX_GPU_HOST_DEVICE
     explicit range_impl (T const& b) noexcept : m_b(b), m_n(range_detail::size(b)) {}
+
+#ifdef AMREX_USE_DPCPP
+    range_impl (T const& b, long gid, long grange) noexcept
+        : m_b(b), m_n(range_detail::size(b)), m_gid(gid), m_grange(grange) {}
+#endif
 
     struct iterator
     {
@@ -86,6 +91,8 @@ struct range_impl
     iterator begin () const noexcept {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
         return iterator(m_b, blockDim.x*blockIdx.x+threadIdx.x, blockDim.x*gridDim.x);
+#elif defined (__SYCL_DEVICE_ONLY__)
+        return iterator(m_b, m_gid, m_grange);
 #else
         return iterator(m_b,0,1);
 #endif
@@ -97,12 +104,23 @@ struct range_impl
 private:
     T m_b;
     long m_n;
+#ifdef AMREX_USE_DPCPP
+    long m_gid;
+    long m_grange;
+#endif
 };
 }
 
+#ifdef AMREX_USE_DPCPP
+template <typename T>
+range_detail::range_impl<T> Range (T const& b, long gid, long grange) noexcept {
+    return range_detail::range_impl<T>(b,gid,grange);
+}
+#endif
+
 template <typename T>
 AMREX_GPU_HOST_DEVICE
-range_detail::range_impl<T> Range(T const& b) noexcept { return range_detail::range_impl<T>(b); }
+range_detail::range_impl<T> Range (T const& b) noexcept { return range_detail::range_impl<T>(b); }
 
 }}
 

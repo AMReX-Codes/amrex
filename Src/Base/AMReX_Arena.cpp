@@ -49,20 +49,19 @@ Arena::align (std::size_t s)
 void*
 Arena::allocate_system (std::size_t nbytes)
 {
-#ifdef AMREX_USE_GPU
     void * p;
+#ifdef AMREX_USE_GPU
     if (arena_info.use_cpu_memory)
     {
-        void* p = std::malloc(nbytes);
+        p = std::malloc(nbytes);
         if (p && arena_info.device_use_hostalloc) mlock(p, nbytes);
-        if (p == nullptr) amrex::Abort("Sorry, malloc failed");
-        return p;
     }
     else if (arena_info.device_use_hostalloc)
     {
-        AMREX_HIP_OR_CUDA(
+        AMREX_HIP_OR_CUDA_OR_DPCPP(
             AMREX_HIP_SAFE_CALL (hipHostMalloc(&p, nbytes, hipHostMallocMapped));,
-            AMREX_CUDA_SAFE_CALL(cudaHostAlloc(&p, nbytes, cudaHostAllocMapped)););
+            AMREX_CUDA_SAFE_CALL(cudaHostAlloc(&p, nbytes, cudaHostAllocMapped));,
+            p = sycl::malloc_host(nbytes, Gpu::Device::syclContext()));
     }
     else
     {
@@ -76,11 +75,10 @@ Arena::allocate_system (std::size_t nbytes)
 
         if (arena_info.device_use_managed_memory)
         {
-#if defined(__CUDACC__)
-            AMREX_CUDA_SAFE_CALL(cudaMallocManaged(&p, nbytes));
-#else
-            AMREX_HIP_SAFE_CALL(hipMalloc(&p, nbytes));
-#endif
+            AMREX_HIP_OR_CUDA_OR_DPCPP
+                (AMREX_HIP_SAFE_CALL(hipMalloc(&p, nbytes));,
+                 AMREX_CUDA_SAFE_CALL(cudaMallocManaged(&p, nbytes));,
+                 p = sycl::malloc_shared(nbytes, Gpu::Device::syclDevice(), Gpu::Device::syclContext()););
             if (arena_info.device_set_readonly)
             {
                 Gpu::Device::mem_advise_set_readonly(p, nbytes);
@@ -93,17 +91,18 @@ Arena::allocate_system (std::size_t nbytes)
         }
         else
         {
-            AMREX_HIP_OR_CUDA(AMREX_HIP_SAFE_CALL ( hipMalloc(&p, nbytes));,
-                              AMREX_CUDA_SAFE_CALL(cudaMalloc(&p, nbytes)););
+            AMREX_HIP_OR_CUDA_OR_DPCPP
+                (AMREX_HIP_SAFE_CALL ( hipMalloc(&p, nbytes));,
+                 AMREX_CUDA_SAFE_CALL(cudaMalloc(&p, nbytes));,
+                 p = sycl::malloc_device(nbytes, Gpu::Device::syclDevice(), Gpu::Device::syclContext()););
         }
     }
-    return p;
 #else
-    void* p = std::malloc(nbytes);
+    p = std::malloc(nbytes);
     if (p && arena_info.device_use_hostalloc) mlock(p, nbytes);
+#endif
     if (p == nullptr) amrex::Abort("Sorry, malloc failed");
     return p;
-#endif
 }
 
 void
@@ -117,13 +116,17 @@ Arena::deallocate_system (void* p, std::size_t nbytes)
     }
     else if (arena_info.device_use_hostalloc)
     {
-        AMREX_HIP_OR_CUDA(AMREX_HIP_SAFE_CALL ( hipHostFree(p));,
-                          AMREX_CUDA_SAFE_CALL(cudaFreeHost(p)););
+        AMREX_HIP_OR_CUDA_OR_DPCPP
+            (AMREX_HIP_SAFE_CALL ( hipHostFree(p));,
+             AMREX_CUDA_SAFE_CALL(cudaFreeHost(p));,
+             sycl::free(p,Gpu::Device::syclContext()));
     }
     else
     {
-        AMREX_HIP_OR_CUDA(AMREX_HIP_SAFE_CALL ( hipFree(p));,
-                          AMREX_CUDA_SAFE_CALL(cudaFree(p)););
+        AMREX_HIP_OR_CUDA_OR_DPCPP
+            (AMREX_HIP_SAFE_CALL ( hipFree(p));,
+             AMREX_CUDA_SAFE_CALL(cudaFree(p));,
+             sycl::free(p,Gpu::Device::syclContext()););
     }
 #else
     if (p && arena_info.device_use_hostalloc) munlock(p, nbytes);
@@ -154,6 +157,9 @@ Arena::Initialize ()
     {
         if (buddy_allocator_size <= 0) {
             buddy_allocator_size = Gpu::Device::totalGlobalMem() / 4 * 3;
+#ifdef AMREX_USE_DPCPP
+            buddy_allocator_size = std::min(buddy_allocator_size,Gpu::Device::maxMemAllocSize());
+#endif
         }
         std::size_t chunk = 512*1024*1024;
         buddy_allocator_size = (buddy_allocator_size/chunk) * chunk;
@@ -167,6 +173,9 @@ Arena::Initialize ()
 #ifdef AMREX_USE_GPU
         if (the_arena_init_size <= 0) {
             the_arena_init_size = Gpu::Device::totalGlobalMem() / 4L * 3L;
+#ifdef AMREX_USE_DPCPP
+            the_arena_init_size = std::min(the_arena_init_size,Gpu::Device::maxMemAllocSize());
+#endif
         }
         void *p = the_arena->alloc(static_cast<std::size_t>(the_arena_init_size));
         the_arena->free(p);
@@ -239,61 +248,25 @@ Arena::PrintUsage ()
     if (The_Arena()) {
         CArena* p = dynamic_cast<CArena*>(The_Arena());
         if (p) {
-            long min_megabytes = p->heap_space_used() / (1024*1024);
-            long max_megabytes = min_megabytes;
-            ParallelDescriptor::ReduceLongMin(min_megabytes, IOProc);
-            ParallelDescriptor::ReduceLongMax(max_megabytes, IOProc);
-#ifdef AMREX_USE_MPI
-            amrex::Print() << "[The         Arena] space (MB) used spread across MPI: ["
-                           << min_megabytes << " ... " << max_megabytes << "]\n";
-#else
-            amrex::Print() << "[The         Arena] space (MB): " << min_megabytes << "\n";
-#endif
+            p->PrintUsage("The         Arena");
         }
     }
     if (The_Device_Arena()) {
         CArena* p = dynamic_cast<CArena*>(The_Device_Arena());
         if (p) {
-            long min_megabytes = p->heap_space_used() / (1024*1024);
-            long max_megabytes = min_megabytes;
-            ParallelDescriptor::ReduceLongMin(min_megabytes, IOProc);
-            ParallelDescriptor::ReduceLongMax(max_megabytes, IOProc);
-#ifdef AMREX_USE_MPI
-            amrex::Print() << "[The  Device Arena] space (MB) used spread across MPI: ["
-                           << min_megabytes << " ... " << max_megabytes << "]\n";
-#else
-            amrex::Print() << "[The  Device Arena] space (MB): " << min_megabytes << "\n";
-#endif
+            p->PrintUsage("The  Device Arena");
         }
     }
     if (The_Managed_Arena()) {
         CArena* p = dynamic_cast<CArena*>(The_Managed_Arena());
         if (p) {
-            long min_megabytes = p->heap_space_used() / (1024*1024);
-            long max_megabytes = min_megabytes;
-            ParallelDescriptor::ReduceLongMin(min_megabytes, IOProc);
-            ParallelDescriptor::ReduceLongMax(max_megabytes, IOProc);
-#ifdef AMREX_USE_MPI
-            amrex::Print() << "[The Managed Arena] space (MB) used spread across MPI: ["
-                           << min_megabytes << " ... " << max_megabytes << "]\n";
-#else
-            amrex::Print() << "[The Managed Arena] space (MB): " << min_megabytes << "\n";
-#endif
+            p->PrintUsage("The Managed Arena");
         }
     }
     if (The_Pinned_Arena()) {
         CArena* p = dynamic_cast<CArena*>(The_Pinned_Arena());
         if (p) {
-            long min_megabytes = p->heap_space_used() / (1024*1024);
-            long max_megabytes = min_megabytes;
-            ParallelDescriptor::ReduceLongMin(min_megabytes, IOProc);
-            ParallelDescriptor::ReduceLongMax(max_megabytes, IOProc);
-#ifdef AMREX_USE_MPI
-            amrex::Print() << "[The  Pinned Arena] space (MB) used spread across MPI: ["
-                           << min_megabytes << " ... " << max_megabytes << "]\n";
-#else
-            amrex::Print() << "[The  Pinned Arena] space (MB): " << min_megabytes << "\n";
-#endif
+            p->PrintUsage("The  Pinned Arena");
         }
     }
 }

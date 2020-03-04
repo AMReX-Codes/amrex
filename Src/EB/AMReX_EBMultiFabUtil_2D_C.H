@@ -178,29 +178,29 @@ void eb_compute_divergence (int i, int j, int k, int n, Array4<Real> const& divu
     {
         Real fxm = u(i,j,k,n);
         if (apx(i,j,k) != 0.0 and apx(i,j,k) != 1.0) {
-            int jj = j + static_cast<int>(std::copysign(1.0,fcx(i,j,k)));
-            Real fracy = (ccm(i-1,jj,k) || ccm(i,jj,k)) ? std::abs(fcx(i,j,k)) : 0.0;
+            int jj = j + static_cast<int>(amrex::Math::copysign(1.0,fcx(i,j,k)));
+            Real fracy = (ccm(i-1,jj,k) || ccm(i,jj,k)) ? amrex::Math::abs(fcx(i,j,k)) : 0.0;
             fxm = (1.0-fracy)*fxm + fracy*u(i,jj,k,n);
         }
 
         Real fxp = u(i+1,j,k,n);
         if (apx(i+1,j,k) != 0.0 and apx(i+1,j,k) != 1.0) {
-            int jj = j + static_cast<int>(std::copysign(1.0,fcx(i+1,j,k)));
-            Real fracy = (ccm(i,jj,k) || ccm(i+1,jj,k)) ? std::abs(fcx(i+1,j,k)) : 0.0;
+            int jj = j + static_cast<int>(amrex::Math::copysign(1.0,fcx(i+1,j,k)));
+            Real fracy = (ccm(i,jj,k) || ccm(i+1,jj,k)) ? amrex::Math::abs(fcx(i+1,j,k)) : 0.0;
             fxp = (1.0-fracy)*fxp + fracy*u(i+1,jj,k,n);
         }
 
         Real fym = v(i,j,k,n);
         if (apy(i,j,k) != 0.0 and apy(i,j,k) != 1.0) {
-            int ii = i + static_cast<int>(std::copysign(1.0,fcy(i,j,k)));
-            Real fracx = (ccm(ii,j-1,k) || ccm(ii,j,k)) ? std::abs(fcy(i,j,k)) : 0.0;
+            int ii = i + static_cast<int>(amrex::Math::copysign(1.0,fcy(i,j,k)));
+            Real fracx = (ccm(ii,j-1,k) || ccm(ii,j,k)) ? amrex::Math::abs(fcy(i,j,k)) : 0.0;
             fym = (1.0-fracx)*fym + fracx*v(ii,j,k,n);
         }
 
         Real fyp = v(i,j+1,k,n);
         if (apy(i,j+1,k) != 0.0 and apy(i,j+1,k) != 1.0) {
-            int ii = i + static_cast<int>(std::copysign(1.0,fcy(i,j+1,k)));
-            Real fracx = (ccm(ii,j,k) || ccm(ii,j+1,k)) ? std::abs(fcy(i,j+1,k)) : 0.0;
+            int ii = i + static_cast<int>(amrex::Math::copysign(1.0,fcy(i,j+1,k)));
+            Real fracx = (ccm(ii,j,k) || ccm(ii,j+1,k)) ? amrex::Math::abs(fcy(i,j+1,k)) : 0.0;
             fyp = (1.0-fracx)*fyp + fracx*v(ii,j+1,k,n);
         }
 
@@ -264,8 +264,8 @@ void eb_interp_cc2cent (Box const& box,
         Real gy = cent(i,j,k,1);
         int ii = (gx < 0.0) ? i - 1 : i + 1;
         int jj = (gy < 0.0) ? j - 1 : j + 1;
-        gx = std::abs(gx);
-        gy = std::abs(gy);
+        gx = amrex::Math::abs(gx);
+        gy = amrex::Math::abs(gy);
         Real gxy = gx*gy;
 
         phicent(i,j,k,n) = ( 1.0 - gx - gy + gxy ) * phicc(i ,j ,k ,n)

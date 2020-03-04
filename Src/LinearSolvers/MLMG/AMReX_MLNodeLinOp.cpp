@@ -38,6 +38,7 @@ MLNodeLinOp::define (const Vector<Geometry>& a_geom,
             m_dirichlet_mask[amrlev][mglev].reset
                 (new iMultiFab(amrex::convert(m_grids[amrlev][mglev],IntVect::TheNodeVector()),
                                m_dmap[amrlev][mglev], 1, 0));
+            m_dirichlet_mask[amrlev][mglev]->setVal(0); // non-Dirichlet by default
         }
     }
 
@@ -235,6 +236,11 @@ MLNodeLinOp::buildMasks ()
 
             MFItInfo mfi_info;
             if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
+
+            if (m_overset_dirichlet_mask and mglev > 0) {
+                const auto& dmask_fine = *m_dirichlet_mask[amrlev][mglev-1];
+                amrex::average_down_nodal(dmask_fine, dmask, IntVect(2));
+            }
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -316,6 +322,13 @@ MLNodeLinOp::buildMasks ()
         m_coarse_dot_mask.define(omask.boxArray(), omask.DistributionMap(), 1, 0);
         MLNodeLinOp_set_dot_mask(m_coarse_dot_mask, omask, geom, lobc, hibc, m_coarsening_strategy);
     }
+}
+
+void
+MLNodeLinOp::setDirichletMask (int amrlev, const iMultiFab& a_dmask)
+{
+    iMultiFab::Copy(*m_dirichlet_mask[amrlev][0], a_dmask, 0, 0, 1, 0);
+    m_overset_dirichlet_mask = true;
 }
 
 void

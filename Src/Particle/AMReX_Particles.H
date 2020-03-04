@@ -172,7 +172,7 @@ public:
     using RealVector       = typename SoA::RealVector;
     using IntVector        = typename SoA::IntVector;
     using ParticleVector   = typename AoS::ParticleVector;
-    using CharVector       = Gpu::ManagedVector<char>;
+    using CharVector       = Gpu::DeviceVector<char>;
     using SendBuffer       = Gpu::PolymorphicVector<char>;
     using ParIterType      = ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
     using ParConstIterType = ParConstIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
@@ -550,8 +550,13 @@ public:
     /**
      * \brief Sort the particles on each tile by cell, using Fortran ordering.
      */
-    void SortParticlesByCell();
+    void SortParticlesByCell ();
 
+    /**
+     * \brief Sort the particles on each tile by groups of cells, given an IntVect bin_size
+     */
+    void SortParticlesByBin (IntVect bin_size);
+	
     /**
     * \brief OK checks that all particles are in the right places (for some value of right)
     *
@@ -565,6 +570,10 @@ public:
     bool OK (int lev_min = 0, int lev_max = -1, int nGrow = 0) const;
 
     void ByteSpread () const;
+
+    void PrintCapacity () const;
+    
+    void ShrinkToFit ();
 
     /**
     * \brief Returns # of particles at specified the level.
@@ -1058,8 +1067,8 @@ public:
 
 
     //! struct-of-array stuff
-    Gpu::ManagedVector<int> communicate_real_comp;
-    Gpu::ManagedVector<int> communicate_int_comp;
+    Gpu::DeviceVector<int> communicate_real_comp;
+    Gpu::DeviceVector<int> communicate_int_comp;
 
     static bool do_tiling;
     static IntVect tile_size;
@@ -1201,23 +1210,9 @@ void ReadParticlesHDF5 (hsize_t offset, hsize_t cnt, int grd, int lev, hid_t int
     mutable std::string HdrFileNamePrePost;
     mutable Vector<std::string> filePrefixPrePost;
 
-    ParticleTileType m_ptile_r;
     DenseBins<ParticleType> m_bins;
     
 #ifdef AMREX_USE_GPU
-    Gpu::ManagedVector<int> m_grids_r;
-    Gpu::ManagedVector<int> m_levs_r;
-    Gpu::ManagedVector<int> m_grids_tmp;
-    Gpu::ManagedVector<int> m_levs_tmp;
-
-    ParticleCopyOp redistribute_copy_op;
-    ParticleCopyPlan redistribute_copy_plan;
-
-    Gpu::DeviceVector<char> redistribute_snd_buffer;
-    Gpu::DeviceVector<char> redistribute_rcv_buffer;
-    Gpu::PinnedVector<char> pinned_snd_buffer;
-    Gpu::PinnedVector<char> pinned_rcv_buffer;
-
     mutable AmrParticleLocator<DenseBins<Box> > m_particle_locator;
 #endif
 

@@ -38,6 +38,7 @@ namespace amrex {
 // ************************************************
 //  Variadic lambda function wrappers for C++ CUDA/HIP Kernel calls.
 
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
     template<class L>
     AMREX_GPU_GLOBAL void launch_global (L f0) { f0(); }
 
@@ -52,6 +53,7 @@ namespace amrex {
         f0();
         call_device(std::forward<Lambdas>(fs)...);
     }
+#endif
     
 // CPU variation
 
@@ -100,7 +102,7 @@ namespace Gpu {
     inline
     Box getThreadBox (const Box& bx, long offset) noexcept
     {
-#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+#if AMREX_DEVICE_COMPILE
         const auto len = bx.length3d();
         long k = offset / (len[0]*len[1]);
         long j = (offset - k*(len[0]*len[1])) / len[0];
@@ -160,10 +162,6 @@ namespace Gpu {
 #include <AMReX_GpuLaunchMacrosC.H>
 #include <AMReX_GpuLaunchFunctsC.H>
 #endif
-
-#define AMREX_LAUNCH_HOST_DEVICE_LAMBDA_BOXIV(...) AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_BOXIV(__VA_ARGS__)
-#define AMREX_LAUNCH_DEVICE_LAMBDA_BOXIV(...) AMREX_GPU_LAUNCH_DEVICE_LAMBDA_BOXIV(__VA_ARGS__)
-
 
 #define AMREX_WRONG_NUM_ARGS(...) static_assert(false,"Wrong number of arguments to macro")
 #define AMREX_GET_MACRO(_1,_2,_3,_4,_5,_6,_7,_8,_9,NAME,...) NAME

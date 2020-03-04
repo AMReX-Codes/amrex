@@ -16,6 +16,53 @@ endif
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.machines
 
+ifdef USE_DPCPP
+  USE_DPCPP := $(strip $(USE_DPCPP))
+else
+  USE_DPCPP := FALSE
+endif
+
+ifeq ($(USE_DPCPP),TRUE)
+  DPCPP_DIR ?= /opt/intel/inteloneapi/compiler/latest/linux
+  COMP := dpcpp
+  DEFINES += -DAMREX_USE_DPCPP -DAMREX_USE_GPU
+  USE_CUDA := FALSE
+  USE_HIP := FALSE
+  # disable mpi, fortran and ccache for now
+  USE_MPI := FALSE
+  BL_NO_FORT := TRUE
+  USE_CCACHE := FALSE
+endif
+
+ifdef USE_HIP
+  USE_HIP := $(strip $(USE_HIP))
+else
+  USE_HIP := FALSE
+endif
+
+ifeq ($(USE_HIP),TRUE)
+  USE_CUDA := FALSE
+  COMP := hip
+  HIP_PLATFORM = $(shell hipconfig --compiler)
+  ifeq ($(HIP_PLATFORM),nvcc)
+  $(error HIP_PLATFORM nvcc is not supported at this time. Use USE_CUDA to compile for NVIDIA platforms)
+#    If nvcc is supported, put this back.
+#    CUDA_ARCH ?= 60
+#    CUDA_MAX_THREADS ?= 256
+#    CUDA_MAXREGCOUNT ?= 255
+  else ifeq ($(HIP_PLATFORM),hcc)
+# do nothing special for now, but also don't abort
+  else
+    $(error only HIP_PLATFORM=hcc is supported)
+  endif
+endif
+
+ifdef USE_CUDA
+  USE_CUDA := $(strip $(USE_CUDA))
+else
+  USE_CUDA := FALSE
+endif
+
 ifdef BL_NO_FORT
   BL_NO_FORT := $(strip $(BL_NO_FORT))
   ifeq ($(BL_NO_FORT),TRUE)
@@ -179,13 +226,6 @@ ifeq ($(USE_MPI3),TRUE)
   USE_MPI := TRUE
 endif
 
-
-ifdef USE_CUDA
-  USE_CUDA := $(strip $(USE_CUDA))
-else
-  USE_CUDA := FALSE
-endif
-
 ifdef USE_CUDA_FAST_MATH
   USE_CUDA_FAST_MATH := $(strip $(USE_CUDA_FAST_MATH))
 else
@@ -204,31 +244,6 @@ ifeq ($(USE_CUDA),TRUE)
 
   # Enable verbosity in the CUDA compilation.
   CUDA_VERBOSE ?= TRUE
-endif
-
-ifdef USE_HIP
-  USE_HIP := $(strip $(USE_HIP))
-else
-  USE_HIP := FALSE
-endif
-
-ifeq ($(USE_HIP),TRUE)
-  ifeq ($(USE_CUDA),TRUE)
-    $(error HIP-nvcc based builds are currently unsupported. Both USE_CUDA and USE_HIP cannot be TRUE)
-  endif
-
-  HIP_PLATFORM = $(shell hipconfig --compiler)
-  ifeq ($(HIP_PLATFORM),nvcc)
-  $(error HIP_PLATFORM nvcc is not supported at this time. Use USE_CUDA to compile for NVIDIA platforms)
-#    If nvcc is supported, put this back.
-#    CUDA_ARCH ?= 60
-#    CUDA_MAX_THREADS ?= 256
-#    CUDA_MAXREGCOUNT ?= 255
-  else ifeq ($(HIP_PLATFORM),hcc)
-# do nothing special for now, but also don't abort
-  else
-    $(error only HIP_PLATFORM=hcc is supported)
-  endif
 endif
 
 ifdef DIMENSION_AGNOSTIC
@@ -330,6 +345,8 @@ ifdef AMREX_CCOMP
     AMREX_CCOMP = gnu
   else ifeq ($(lowercase_amrex_comp),intel)
     AMREX_CCOMP = intel
+  else ifeq ($(lowercase_amrex_comp),dpcpp)
+    AMREX_CCOMP = dpcpp
   else ifeq ($(lowercase_amrex_comp),cray)
     AMREX_CCOMP = cray
   else ifeq ($(lowercase_amrex_comp),pgi)
@@ -345,7 +362,7 @@ ifdef AMREX_CCOMP
   else ifeq ($(lowercase_amrex_comp),nec)
     AMREX_CCOMP = nec
   else
-    $(error Unknown compiler $(AMREX_CCOMP). Supported compilers are gnu, intel, cray, pgi, ibm, llvm, nag, and nec)
+    $(error Unknown compiler $(AMREX_CCOMP). Supported compilers are gnu, intel, dpcpp, cray, pgi, ibm, llvm, nag, and nec)
   endif
 endif
 
@@ -362,6 +379,11 @@ else ifeq ($(lowercase_comp),intel)
   AMREX_CCOMP ?= intel
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/intel.mak...)
   include        $(AMREX_HOME)/Tools/GNUMake/comps/intel.mak
+else ifeq ($(lowercase_comp),dpcpp)
+  AMREX_FCOMP ?= none
+  AMREX_CCOMP ?= dpcpp
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/dpcpp.mak...)
+  include        $(AMREX_HOME)/Tools/GNUMake/comps/dpcpp.mak
 else ifeq ($(lowercase_comp),cray)
   AMREX_FCOMP ?= cray
   AMREX_CCOMP ?= cray
@@ -405,7 +427,7 @@ else ifeq ($(lowercase_comp),hip)
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/hip.mak...)
   include        $(AMREX_HOME)/Tools/GNUMake/comps/hip.mak
 else
-  $(error Unknown compiler $(COMP). Supported compilers are gnu, intel, cray, pgi, ibm, llvm, nag, and nec)
+  $(error Unknown compiler $(COMP). Supported compilers are gnu, intel, dpcpp, cray, pgi, ibm, llvm, nag, and nec)
 endif
 
 CXXFLAGS += $(XTRA_CXXFLAGS)
@@ -423,9 +445,6 @@ ifeq ($(DEBUG),TRUE)
     CPPFLAGS	+= -DAMREX_DEBUG
     DebugSuffix := .DEBUG
 else
-    ifneq ($(AMREX_XSDK),TRUE)
-        CPPFLAGS += -DNDEBUG
-    endif
     DebugSuffix :=
 endif
 
@@ -597,7 +616,6 @@ ifeq ($(USE_HIP),TRUE)
     else ifeq ($(HIP_PLATFORM),hcc)
         DEFINES += -DAMREX_HIP_PLATFORM_HCC
     endif
-   
 
     GPUSuffix := .HIP
 
@@ -773,7 +791,7 @@ endif
 
 CPPFLAGS	+= $(DEFINES)
 
-libraries	= $(LIBRARIES) $(XTRALIBS)
+libraries	= $(XTRAOBJS) $(LIBRARIES) $(XTRALIBS)
 
 ifeq ($(USE_RPATH),TRUE)
   LDFLAGS	+= -Xlinker -rpath -Xlinker '$(abspath .)' $(addprefix -Xlinker -rpath -Xlinker , $(abspath $(LIBRARY_LOCATIONS)))
