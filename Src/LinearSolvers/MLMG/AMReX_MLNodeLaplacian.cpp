@@ -432,7 +432,7 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
         const iMultiFab& c_cc_mask = *m_cc_fine_mask[ilev];
         const auto& has_fine_bndry = *m_has_fine_bndry[ilev];
 
-        bool neumann_doubling = m_coarsening_strategy == CoarseningStrategy::Sigma;
+        bool neumann_doubling = true; // yes even for RAP, because unimposeNeumannBC will be called on rhs
 
         MFItInfo mfi_info;
         if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
@@ -1674,7 +1674,7 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
     const MultiFab* vfrac = (factory) ? &(factory->getVolFrac()) : nullptr;
 #endif
 
-    bool neumann_doubling = m_coarsening_strategy == CoarseningStrategy::Sigma;
+    bool neumann_doubling = true; // yes even for RAP, because unimposeNeumannBC will be called on rhs
 
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
