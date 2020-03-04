@@ -30,6 +30,7 @@
 #include <AMReX_Reduce.H>
 //#include <AMReX_Scan.H>
 #include <AMReX_Gpu.H>
+#include <AMReX_Math.H>
 
 #ifdef USE_PERILLA
 #include <LocalConnection.H>
@@ -164,14 +165,17 @@ struct DataAllocator {
     AMREX_GPU_HOST_DEVICE
     DataAllocator (Arena* ar) noexcept : m_arena(ar) {}
 
+    AMREX_GPU_HOST
     void* alloc (std::size_t sz) const noexcept {
         return arena()->alloc(sz);
     }
 
+    AMREX_GPU_HOST
     void free (void* pt) const noexcept {
         arena()->free(pt);
     }
 
+    AMREX_GPU_HOST
     Arena* arena () const noexcept {
         return (m_arena) ? m_arena : The_Arena();
     }
@@ -1189,8 +1193,10 @@ template <class T>
 void
 BaseFab<T>::prefetchToHost () const noexcept
 {
-#ifdef AMREX_USE_CUDA
     std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
+#if defined(AMREX_USE_DPCPP)
+    // xxxxx DPCPP todo: how to prefetchToHost
+#elif defined(AMREX_USE_CUDA)
     AMREX_CUDA_SAFE_CALL(cudaMemPrefetchAsync(this->dptr, s,
                                               cudaCpuDeviceId,
                                               Gpu::gpuStream()));
@@ -1201,8 +1207,10 @@ template <class T>
 void
 BaseFab<T>::prefetchToDevice () const noexcept
 {
-#ifdef AMREX_USE_CUDA
     std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
+#if defined(AMREX_USE_DPCPP)
+    // xxxxx DPCPP todo: how to prefetchToDevice
+#elif defined(AMREX_USE_CUDA)
     AMREX_CUDA_SAFE_CALL(cudaMemPrefetchAsync(this->dptr, s,
                                               Gpu::Device::deviceId(),
                                               Gpu::gpuStream()));
@@ -1526,7 +1534,9 @@ template <class T>
 AMREX_GPU_HOST_DEVICE
 BaseFab<T>::~BaseFab () noexcept
 {
-#if !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
+#if AMREX_DEVICE_COMPILE
+    ;
+#else
     clear();
 #endif
 }
@@ -1771,7 +1781,7 @@ BaseFab<T>::abs (const Box& subbox, int comp, int numcomp) noexcept
     Array4<T> const& a = this->array();
     amrex::LoopConcurrent(subbox, numcomp, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT 
     {
-        a(i,j,k,n+comp) = std::abs(a(i,j,k,n+comp));
+        a(i,j,k,n+comp) = amrex::Math::abs(a(i,j,k,n+comp));
     });
 }
 
@@ -1790,7 +1800,7 @@ BaseFab<T>::norminfmask (const Box& subbox, const BaseFab<int>& mask,
     amrex::Loop(subbox, ncomp, [=,&r] (int i, int j, int k, int n) AMREX_NOEXCEPT 
     {
         if (m(i,j,k)) {
-            Real t = static_cast<Real>(std::abs(a(i,j,k,n+scomp)));
+            Real t = static_cast<Real>(amrex::Math::abs(a(i,j,k,n+scomp)));
             r = amrex::max(r,t);
         }
     });
@@ -1818,13 +1828,13 @@ BaseFab<T>::norm (const Box& subbox, int p, int comp, int numcomp) const noexcep
     if (p == 0) {
         amrex::Loop(subbox, numcomp, [=,&nrm] (int i, int j, int k, int n) AMREX_NOEXCEPT 
         {
-            Real t = static_cast<Real>(std::abs(a(i,j,k,n+comp)));
+            Real t = static_cast<Real>(amrex::Math::abs(a(i,j,k,n+comp)));
             nrm = amrex::max(nrm,t);
         });
     } else if (p == 1) {
         amrex::Loop(subbox, numcomp, [=,&nrm] (int i, int j, int k, int n) AMREX_NOEXCEPT 
         {
-            nrm += std::abs(a(i,j,k,n+comp));
+            nrm += amrex::Math::abs(a(i,j,k,n+comp));
         });
     } else if (p == 2) {
         amrex::Loop(subbox, numcomp, [=,&nrm] (int i, int j, int k, int n) AMREX_NOEXCEPT
@@ -1911,7 +1921,7 @@ BaseFab<T>::maxabs (const Box& subbox, int comp) const noexcept
     T r = 0;
     amrex::Loop(subbox, [=,&r] (int i, int j, int k) AMREX_NOEXCEPT
     {
-        r = amrex::max(r, std::abs(a(i,j,k,comp)));
+        r = amrex::max(r, amrex::Math::abs(a(i,j,k,comp)));
     });
 
     return r;
@@ -2515,13 +2525,13 @@ BaseFab<T>::atomicAdd (const BaseFab<T>& src, const Box& srcbox, const Box& dest
     amrex::Loop(destbox, numcomp, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT 
     {
         T* p = d.ptr(i,j,k,n+destcomp);
-#if !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
+#if AMREX_DEVICE_COMPILE
+        amrex::Gpu::Atomic::Add(p, s(i+offset.x,j+offset.y,k+offset.z,n+srccomp));
+#else
 #ifdef _OPENMP
 _Pragma("omp atomic update")
 #endif
         *p += s(i+offset.x,j+offset.y,k+offset.z,n+srccomp);
-#else
-        amrex::Gpu::Atomic::Add(p, s(i+offset.x,j+offset.y,k+offset.z,n+srccomp));
 #endif
     });
 
@@ -2779,7 +2789,7 @@ BaseFab<T>::linInterp (const BaseFab<T>& f1, int comp1,
                        const Box& b, int comp, int numcomp) noexcept
 {
     Real tol = 1.0e-16;
-    if(std::abs(t2-t1) > tol)
+    if(amrex::Math::abs(t2-t1) > tol)
     {
         Real alpha = (t2-t)/(t2-t1);
         Real beta = (t-t1)/(t2-t1);

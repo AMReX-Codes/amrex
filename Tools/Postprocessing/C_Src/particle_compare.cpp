@@ -19,6 +19,7 @@
 #include <AMReX.H>
 #include <AMReX_Print.H>
 #include <AMReX_Utility.H>
+#include <AMReX_REAL.H>
 
 #include <iostream>
 #include <fstream> 
@@ -316,8 +317,16 @@ void compare_particle_chunk(const ParticleHeader& header1,
     std::string read_file1 = getDataFileName(header1.par_file_name, level, file_num);
     std::string read_file2 = getDataFileName(header2.par_file_name, level, file_num);
 
+    int single_precision = 0;
+    std::size_t found = header1.version.find("single");
+    if (found!=std::string::npos) {
+        single_precision = 1;
+    }
+    std::size_t rsize = single_precision ? sizeof(float) : sizeof(double);
+    
     int idata_size = header1.num_int*sizeof(int);
-    int rdata_size = header1.num_real*sizeof(double);
+    int rdata_size = header1.num_real*rsize;
+
     int pdata_size = rdata_size + idata_size;    
     size_t buffer_size = pdata_size * np;
 
@@ -374,17 +383,32 @@ void compare_particle_chunk(const ParticleHeader& header1,
         }
 
         for (int j = 0; j < header1.num_real; ++j) {
-            double val1, val2;
-            std::memcpy(&val1, tmp1, sizeof(double));
-            std::memcpy(&val2, tmp2, sizeof(double));
-            norms[j] = std::max(std::abs(val2 - val1), norms[j]);
-            if (val1 == 0) {
-                norms[header1.num_comp+j] = norms[j];
-            } else {
-                norms[header1.num_comp+j] = norms[j] / std::abs(val1);
+            if (single_precision)
+            {
+                float val1, val2;
+                std::memcpy(&val1, tmp1, rsize);
+                std::memcpy(&val2, tmp2, rsize);
+                norms[j] = std::max((double) std::abs(val2 - val1), norms[j]);
+                if (val1 == 0) {
+                    norms[header1.num_comp+j] = norms[j];
+                } else {
+                    norms[header1.num_comp+j] = norms[j] / std::abs(val1);
+                }
             }
-            tmp1 += sizeof(double);
-            tmp2 += sizeof(double);
+            else
+            {
+                double val1, val2;
+                std::memcpy(&val1, tmp1, rsize);
+                std::memcpy(&val2, tmp2, rsize);
+                norms[j] = std::max(std::abs(val2 - val1), norms[j]);
+                if (val1 == 0) {
+                    norms[header1.num_comp+j] = norms[j];
+                } else {
+                    norms[header1.num_comp+j] = norms[j] / std::abs(val1);
+                }
+            }
+            tmp1 += rsize;
+            tmp2 += rsize;
         }
     }
 }

@@ -31,6 +31,7 @@ target_sources( amrex
    PRIVATE 
    # Utility classes ---------------------------------------------------------
    AMReX_ccse-mpi.H
+   AMReX_Math.H
    AMReX_Algorithm.H
    AMReX_Array.H
    AMReX_BlockMutex.H
@@ -208,6 +209,9 @@ target_sources( amrex
    # GPU --------------------------------------------------------------------
    AMReX_Gpu.H
    AMReX_GpuQualifiers.H
+   AMReX_GpuPrint.H
+   AMReX_GpuAssert.H
+   AMReX_GpuTypes.H
    AMReX_GpuControl.H
    AMReX_GpuControl.cpp
    AMReX_GpuLaunch.H
@@ -219,6 +223,7 @@ target_sources( amrex
    AMReX_GpuError.H
    AMReX_GpuDevice.H
    AMReX_GpuDevice.cpp
+   AMReX_GpuAtomic.H
    AMReX_GpuUtility.H
    AMReX_GpuUtility.cpp
    AMReX_GpuAsyncArray.H

@@ -213,7 +213,7 @@ public:
     
 private:
     Vector<ParticleLocator<Bins> > m_locators;
-    Gpu::ManagedVector<AssignGrid<BinIteratorFactory> > m_grid_assignors;
+    Gpu::DeviceVector<AssignGrid<BinIteratorFactory> > m_grid_assignors;
     bool m_defined = false;
 
 public:

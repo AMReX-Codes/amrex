@@ -98,28 +98,9 @@ void main_main ()
     // Write a plotfile of the initial data if plot_int > 0 (plot_int was defined in the inputs file)
     if (plot_int > 0)
     {
-        // Make a copy of the data on the CPU for I/O.
-        // Write the plotfile, free the data when done.
-        MultiFab plot_mf(phi_new.boxArray(), phi_new.DistributionMap(),
-                         phi_new.nComp(), phi_new.nGrow(),
-                         MFInfo().SetArena(The_Pinned_Arena()));
-
-        for (MFIter mfi(plot_mf); mfi.isValid(); ++mfi)
-        {
-            const FArrayBox& phi_fab  = phi_new[mfi];
-            const FArrayBox& plot_fab = plot_mf[mfi];
-            size_t size_fab = phi_fab.size() * sizeof(Real);
-
-#ifdef AMREX_USE_GPU
-            Gpu::dtoh_memcpy((void*)plot_fab.dataPtr(), phi_fab.dataPtr(), size_fab); 
-#else
-            std::memcpy((void*)plot_fab.dataPtr(), phi_fab.dataPtr(), size_fab);
-#endif
-        }
-
         int n = 0;
         const std::string& pltfile = amrex::Concatenate("plt",n,5);
-        WriteSingleLevelPlotfile(pltfile, plot_mf, {"phi"}, geom, time, 0);
+        WriteSingleLevelPlotfile(pltfile, phi_new, {"phi"}, geom, time, 0);
     }
 
     // build the flux multifabs
@@ -146,27 +127,8 @@ void main_main ()
         // Write a plotfile of the current data (plot_int was defined in the inputs file)
         if (plot_int > 0 && n%plot_int == 0)
         {
-            // If it's time to write, make a copy of the data on the CPU for I/O.
-            // Write the plotfile, free the data when done.
-            MultiFab plot_mf(phi_new.boxArray(), phi_new.DistributionMap(),
-                             phi_new.nComp(), phi_new.nGrow(),
-                             MFInfo().SetArena(The_Pinned_Arena()));
-
-            for (MFIter mfi(plot_mf); mfi.isValid(); ++mfi)
-            {
-                const FArrayBox& phi_fab  = phi_new[mfi];
-                const FArrayBox& plot_fab = plot_mf[mfi];
-                size_t size_fab = phi_fab.size() * sizeof(Real);
-
-#ifdef AMREX_USE_GPU
-                Gpu::dtoh_memcpy((void*)plot_fab.dataPtr(), phi_fab.dataPtr(), size_fab); 
-#else
-                std::memcpy((void*)plot_fab.dataPtr(), phi_fab.dataPtr(), size_fab);
-#endif
-            }
-
             const std::string& pltfile = amrex::Concatenate("plt",n,5);
-            WriteSingleLevelPlotfile(pltfile, plot_mf, {"phi"}, geom, time, n);
+            WriteSingleLevelPlotfile(pltfile, phi_new, {"phi"}, geom, time, n);
         }
     }
 

@@ -26,7 +26,7 @@ AMREX_GPU_HOST_DEVICE
 Real
 IF_f (F const& f, GpuArray<Real,AMREX_SPACEDIM> const& p) noexcept
 {
-#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+#if AMREX_DEVICE_COMPILE
     amrex::Error("EB2::GeometryShop: how did this happen?");
     return 0.0;
 #else
@@ -78,7 +78,7 @@ BrentRootFinder (GpuArray<Real,AMREX_SPACEDIM> const& lo,
             e = d;
         }
 
-        if (std::abs(fc) < std::abs(fb))
+        if (amrex::Math::abs(fc) < amrex::Math::abs(fb))
         {
             aPt[rangedir] = bPt[rangedir];
             bPt[rangedir] = c;
@@ -89,15 +89,15 @@ BrentRootFinder (GpuArray<Real,AMREX_SPACEDIM> const& lo,
         }
 
         //  Convergence check
-        Real tol1  = 2.0 * EPS * std::abs(bPt[rangedir]) + 0.5 * tol;
+        Real tol1  = 2.0 * EPS * amrex::Math::abs(bPt[rangedir]) + 0.5 * tol;
         Real xm    = 0.5 * (c - bPt[rangedir]);
 
-        if (std::abs(xm) <= tol1 || fb == 0.0)
+        if (amrex::Math::abs(xm) <= tol1 || fb == 0.0)
         {
             break;
         }
 
-        if (std::abs(e) >= tol1 && std::abs(fa) > std::abs(fb))
+        if (amrex::Math::abs(e) >= tol1 && amrex::Math::abs(fa) > amrex::Math::abs(fb))
         {
             //  Attempt inverse quadratic interpolation
             s = fb / fa;
@@ -117,9 +117,9 @@ BrentRootFinder (GpuArray<Real,AMREX_SPACEDIM> const& lo,
             //  Check whether in bounds
             if (p > 0) q = -q;
 
-            p = std::abs(p);
+            p = amrex::Math::abs(p);
 
-            if (2.0 * p < amrex::min(3.0*xm*q-std::abs(tol1*q), 1.0*std::abs(e*q)))
+            if (2.0 * p < amrex::min(3.0*xm*q-amrex::Math::abs(tol1*q), 1.0*amrex::Math::abs(e*q)))
             {
                 //  Accept interpolation
                 e = d;
@@ -144,7 +144,7 @@ BrentRootFinder (GpuArray<Real,AMREX_SPACEDIM> const& lo,
         fa  = fb;
 
         //  Evaluate new trial root
-        if (std::abs(d) > tol1)
+        if (amrex::Math::abs(d) > tol1)
         {
             bPt[rangedir] = bPt[rangedir] + d;
         }

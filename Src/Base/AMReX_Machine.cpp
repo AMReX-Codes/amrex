@@ -3,7 +3,6 @@
 #include <vector>
 #include <array>
 #include <fstream>
-#include <cassert>
 #include <sstream>
 #include <map>
 #include <unordered_map>
@@ -15,9 +14,6 @@
 #include <AMReX_Machine.H>
 
 using namespace amrex;
-
-// HIP FIX HERE - std::abort
-using std::abort;
 
 namespace {
 
@@ -41,33 +37,31 @@ Coord read_df_node_coord (const std::string & name)
         }
         char t0, t1, t2, t3, t4;
         ifs >> t0 >> cabx >> t1 >> caby >> t2 >> cab_chas >> t3 >> slot >> t4 >> node;
-        assert(t0 == 'c' && t1 == '-' && t2 == 'c' && t3 == 's' && t4 == 'n');
+        AMREX_ALWAYS_ASSERT(t0 == 'c' && t1 == '-' && t2 == 'c' && t3 == 's' && t4 == 'n');
     }
 
     int group = 0;
     if (name == "cori") {
         group = cabx / 2 + caby * 6; // 2 cabinets per group, 6 groups per row
     } else {
-        amrex::Print() << "Could not determine group!";
-        // HIP FIX HERE - abort implementation
-        abort();
+        amrex::Abort("Could not determine group!");
     }
     int chas = cab_chas + 3*(cabx & 1); // 2 cabinets per group (6 chassis per group)
 
     return Coord {node, slot, chas, group};
 }
 
+#ifdef BL_USE_MPI
 std::string get_mpi_processor_name ()
 {
     std::string result;
-#ifdef BL_USE_MPI
     int len;
     char name[MPI_MAX_PROCESSOR_NAME];
     MPI_Get_processor_name(name, &len);
     result = std::string(name);
-#endif
     return result;
 }
+#endif
 
 // assumes groups are in 4x16x6 configuration
 int df_coord_to_id (const Coord & c)
@@ -115,6 +109,7 @@ std::string to_str(const Vector<T> & v)
     return oss.str();
 }
 
+#if AMREX_USE_MPI
 Vector<int> get_subgroup_ranks ()
 {
     int rank_n = ParallelContext::NProcsSub();
@@ -127,6 +122,7 @@ Vector<int> get_subgroup_ranks ()
     ParallelContext::local_to_global_rank(granks.data(), lranks.data(), rank_n);
     return granks;
 }
+#endif
 
 int pair_n (int x) {
     return x*(x-1)/2;
@@ -317,7 +313,7 @@ class Machine
     int flag_verbose = 0;
     int flag_very_verbose = 0;
     bool flag_nersc_df;
-    int my_node_id;
+    // int my_node_id;
     Vector<int> node_ids;
 
     NeighborhoodCache nbh_cache;
@@ -393,10 +389,10 @@ class Machine
 
             // check result
             AMREX_ALWAYS_ASSERT(result != -1);
-#ifndef NDEBUG
+#ifdef AMREX_DEBUG
             auto coord = read_df_node_coord(nersc_host);
             int id_from_coord = df_coord_to_id(coord);
-            AMREX_ASSERT(id_from_coord == result);
+            AMREX_ALWAYS_ASSERT(id_from_coord == result);
 #endif
         } else {
             result = 0;

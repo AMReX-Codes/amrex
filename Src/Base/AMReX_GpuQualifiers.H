@@ -1,7 +1,7 @@
 #ifndef AMREX_GPU_QUALIFIERS_H_
 #define AMREX_GPU_QUALIFIERS_H_
 
-#if defined(AMREX_USE_GPU)
+#if defined(AMREX_USE_GPU) && !defined(AMREX_USE_DPCPP)
 
 #if defined(AMREX_USE_HIP)
 #include <hip/hip_runtime.h>
@@ -21,11 +21,6 @@
 #define AMREX_GPU_DEVICE_MANAGED __device__ __managed__
 #endif
 
-// Put in this header because it is included everywhere
-#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-#define AMREX_DEVICE_COMPILE 1
-#endif
-
 #else
 
 #define AMREX_GPU_HOST
@@ -36,6 +31,16 @@
 #define AMREX_GPU_MANAGED
 #define AMREX_GPU_DEVICE_MANAGED
 
+#endif
+
+#define AMREX_DEVICE_COMPILE (__CUDA_ARCH__ || __HIP_DEVICE_COMPILE__ || __SYCL_DEVICE_ONLY__)
+
+#ifdef AMREX_USE_DPCPP
+#define AMREX_REQUIRE_SUBGROUP_SIZE(x) \
+  _Pragma("clang diagnostic push") \
+  _Pragma("clang diagnostic ignored \"-Wattributes\"") \
+  [[cl::intel_reqd_sub_group_size(x)]] \
+  _Pragma("clang diagnostic pop")
 #endif
 
 #endif

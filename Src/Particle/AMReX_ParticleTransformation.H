@@ -45,6 +45,74 @@ void copyParticle (const      ParticleTileData<NSR, NSI, NAR, NAI>& dst,
 }
 
 /**
+ * \brief A general single particle copying routine that can run on the GPU. 
+ *
+ * \tparam NSR number of extra reals in the particle struct
+ * \tparam NSI number of extra ints in the particle struct
+ * \tparam NAR number of reals in the struct-of-arrays
+ * \tparam NAI number of ints in the struct-of-arrays
+ *
+ * \param dst the destination tile
+ * \param src the source tile
+ * \param src_i the index in the source to read from
+ * \param dst_i the index in the destination to write to
+ *
+ */
+template <int NSR, int NSI, int NAR, int NAI>
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+void copyParticle (const ParticleTileData<NSR, NSI, NAR, NAI>& dst, 
+                   const ParticleTileData<NSR, NSI, NAR, NAI>& src, 
+                   int src_i, int dst_i) noexcept
+{
+    AMREX_ASSERT(dst.m_num_runtime_real == src.m_num_runtime_real);
+    AMREX_ASSERT(dst.m_num_runtime_int  == src.m_num_runtime_int );
+
+    dst.m_aos[dst_i] = src.m_aos[src_i];
+    for (int j = 0; j < NAR; ++j)
+        dst.m_rdata[j][dst_i] = src.m_rdata[j][src_i];
+    for (int j = 0; j < dst.m_num_runtime_real; ++j)
+        dst.m_runtime_rdata[j][dst_i] = src.m_runtime_rdata[j][src_i];
+    for (int j = 0; j < NAI; ++j)
+        dst.m_idata[j][dst_i] = src.m_idata[j][src_i];
+    for (int j = 0; j < dst.m_num_runtime_int; ++j)
+        dst.m_runtime_idata[j][dst_i] = src.m_runtime_idata[j][src_i];
+}
+    
+/**
+ * \brief A general single particle swapping routine that can run on the GPU. 
+ *
+ * \tparam NSR number of extra reals in the particle struct
+ * \tparam NSI number of extra ints in the particle struct
+ * \tparam NAR number of reals in the struct-of-arrays
+ * \tparam NAI number of ints in the struct-of-arrays
+ *
+ * \param dst the destination tile
+ * \param src the source tile
+ * \param src_i the index in the source to read from
+ * \param dst_i the index in the destination to write to
+ *
+ */
+template <int NSR, int NSI, int NAR, int NAI>
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+void swapParticle (const ParticleTileData<NSR, NSI, NAR, NAI>& dst, 
+                   const ParticleTileData<NSR, NSI, NAR, NAI>& src, 
+                   int src_i, int dst_i) noexcept
+{
+    AMREX_ASSERT(dst.m_num_runtime_real == src.m_num_runtime_real);
+    AMREX_ASSERT(dst.m_num_runtime_int  == src.m_num_runtime_int );
+
+    amrex::Swap(src.m_aos[src_i], dst.m_aos[dst_i]);
+    for (int j = 0; j < NAR; ++j)
+        amrex::Swap(dst.m_rdata[j][dst_i], src.m_rdata[j][src_i]);
+    for (int j = 0; j < dst.m_num_runtime_real; ++j)
+        amrex::Swap(dst.m_runtime_rdata[j][dst_i], src.m_runtime_rdata[j][src_i]);
+    for (int j = 0; j < NAI; ++j)
+        amrex::Swap(dst.m_idata[j][dst_i], src.m_idata[j][src_i]);
+    for (int j = 0; j < dst.m_num_runtime_int; ++j)
+        amrex::Swap(dst.m_runtime_idata[j][dst_i], src.m_runtime_idata[j][src_i]);
+}
+    
+/**
  * \brief Copy particles from src to dst. This version copies all the 
  * particles, writing them to the beginning of dst.
  * 
