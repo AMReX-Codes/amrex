@@ -28,7 +28,7 @@ FabArray<FAB>::PC_local_cpu (const CPC& thecpc, FabArray<FAB> const& src,
                 }
                 else
                 {
-                    dfab->plus(*sfab, tag.sbox, tag.dbox, scomp, dcomp, ncomp);
+                    dfab->template plus<RunOn::Host>(*sfab, tag.sbox, tag.dbox, scomp, dcomp, ncomp);
                 }
             }
         }

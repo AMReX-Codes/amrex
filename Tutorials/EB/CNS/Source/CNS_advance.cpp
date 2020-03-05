@@ -181,7 +181,7 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
             }
 
             wt = (amrex::second() - wt) / bx.d_numPts();
-            cost[mfi].plus(wt, bx);
+            cost[mfi].plus<RunOn::Host>(wt, bx);
         }
     }
 }
