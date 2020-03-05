@@ -89,14 +89,23 @@ public:
     void writeOn (std::ostream&) const;
     //
     //! in-place And operator
-    Mask& operator&= (const Mask& src) noexcept { return And(src); }
+#if defined(AMREX_USE_GPU)
+    template <RunOn run_on>
+#else
+    template < RunOn run_on >
+#endif
+    Mask& operator&= (const Mask& src) noexcept { return And<run_on>(src); }
 
     /**
     * \brief in-place And
     *
     * \param src
     */
-    inline
+#if defined(AMREX_USE_GPU)
+    template <RunOn run_on>
+#else
+    template < RunOn run_on >
+#endif
     Mask& And (const Mask& src) noexcept;
 
     /**
@@ -107,7 +116,11 @@ public:
     * \param destcomp
     * \param numcomp
     */
-    inline
+#if defined(AMREX_USE_GPU)
+    template <RunOn run_on>
+#else
+    template < RunOn run_on >
+#endif
     Mask& And (const Mask& src,
                int         srccomp,
                int         destcomp,
@@ -121,7 +134,11 @@ public:
     * \param destcomp
     * \param numcomp
     */
-    inline
+#if defined(AMREX_USE_GPU)
+    template <RunOn run_on>
+#else
+    template < RunOn run_on >
+#endif
     Mask& And (const Mask& src,
                const Box&  subbox,
                int         srccomp,
@@ -138,22 +155,36 @@ public:
     * \param destcomp
     * \param numcomp
     */
-    inline
+#if defined(AMREX_USE_GPU)
+    template <RunOn run_on>
+#else
+    template < RunOn run_on >
+#endif
     Mask& And (const Mask& src,
                const Box&  srcbox,
                const Box&  destbox,
                int         srccomp,
                int         destcomp,
                int         numcomp = 1) noexcept;
+
     //! in-place Or operator
-    Mask& operator|= (const Mask& src) noexcept { return Or(src); }
+#if defined(AMREX_USE_GPU)
+    template <RunOn run_on>
+#else
+    template < RunOn run_on >
+#endif
+    Mask& operator|= (const Mask& src) noexcept { return Or<run_on>(src); }
 
     /**
     * \brief in-place Or
     *
     * \param src
     */
-    inline
+#if defined(AMREX_USE_GPU)
+    template <RunOn run_on>
+#else
+    template < RunOn run_on >
+#endif
     Mask& Or (const Mask& src) noexcept;
 
     /**
@@ -164,7 +195,11 @@ public:
     * \param destcomp
     * \param numcomp
     */
-    inline
+#if defined(AMREX_USE_GPU)
+    template <RunOn run_on>
+#else
+    template < RunOn run_on >
+#endif
     Mask& Or (const Mask& src,
               int         srccomp,
               int         destcomp,
@@ -178,7 +213,11 @@ public:
     * \param destcomp
     * \param numcomp
     */
-    inline
+#if defined(AMREX_USE_GPU)
+    template <RunOn run_on>
+#else
+    template < RunOn run_on >
+#endif
     Mask& Or (const Mask& src,
               const Box&  subbox,
               int         srccomp,
@@ -195,7 +234,11 @@ public:
     * \param destcomp
     * \param numcomp
     */
-    inline
+#if defined(AMREX_USE_GPU)
+    template <RunOn run_on>
+#else
+    template < RunOn run_on >
+#endif
     Mask& Or (const Mask& src,
               const Box&  srcbox,
               const Box&  destbox,
@@ -204,21 +247,24 @@ public:
               int         numcomp = 1) noexcept;
 };
 
+template <RunOn run_on>
 Mask&
 Mask::And (const Mask& src) noexcept
 {
-    return this->And(src,domain,domain,0,0,nvar);
+    return this->And<run_on>(src,domain,domain,0,0,nvar);
 }
 
+template <RunOn run_on>
 Mask&
 Mask::And (const Mask& src,
            int         srccomp,
            int         destcomp,
            int         numcomp) noexcept
 {
-    return this->And(src,domain,domain,srccomp,destcomp,numcomp);
+    return this->And<run_on>(src,domain,domain,srccomp,destcomp,numcomp);
 }
 
+template <RunOn run_on>
 Mask&
 Mask::And (const Mask& src,
            const Box&  subbox,
@@ -226,9 +272,10 @@ Mask::And (const Mask& src,
            int         destcomp,
            int         numcomp) noexcept
 {
-    return this->And(src,subbox,subbox,srccomp,destcomp,numcomp);
+    return this->And<run_on>(src,subbox,subbox,srccomp,destcomp,numcomp);
 }
 
+template <RunOn run_on>
 Mask&
 Mask::And (const Mask& src,
            const Box&  srcbox,
@@ -242,28 +289,32 @@ Mask::And (const Mask& src,
     const auto dlo = amrex::lbound(destbox);
     const auto slo = amrex::lbound(srcbox);
     const Dim3 offset{slo.x-dlo.x,slo.y-dlo.y,slo.z-dlo.z};
-    amrex::LoopConcurrent(destbox, numcomp, [=] (int i, int j, int k, int n) noexcept
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on == RunOn::Device and Gpu::inLaunchRegion(),
+                                           destbox, numcomp, i, j, k, n,
     {
         d(i,j,k,n+destcomp) = d(i,j,k,n+destcomp) ? s(i+offset.x,j+offset.y,k+offset.z,n+srccomp) : 0;
     });
     return *this;
 }
 
+template <RunOn run_on>
 Mask&
 Mask::Or (const Mask& src) noexcept
 {
-    return this->Or(src,domain,domain,0,0,nvar);
+    return this->Or<run_on>(src,domain,domain,0,0,nvar);
 }
 
+template <RunOn run_on>
 Mask&
 Mask::Or (const Mask& src,
           int         srccomp,
           int         destcomp,
           int         numcomp) noexcept
 {
-    return this->Or(src,domain,domain,srccomp,destcomp,numcomp);
+    return this->Or<run_on>(src,domain,domain,srccomp,destcomp,numcomp);
 }
 
+template <RunOn run_on>
 Mask&
 Mask::Or (const Mask& src,
           const Box&  subbox,
@@ -271,9 +322,10 @@ Mask::Or (const Mask& src,
           int         destcomp,
           int         numcomp) noexcept
 {
-    return this->Or(src,subbox,subbox,srccomp,destcomp,numcomp);
+    return this->Or<run_on>(src,subbox,subbox,srccomp,destcomp,numcomp);
 }
 
+template <RunOn run_on>
 Mask&
 Mask::Or (const Mask& src,
           const Box&  srcbox,
@@ -287,7 +339,8 @@ Mask::Or (const Mask& src,
     const auto dlo = amrex::lbound(destbox);
     const auto slo = amrex::lbound(srcbox);
     const Dim3 offset{slo.x-dlo.x,slo.y-dlo.y,slo.z-dlo.z};
-    amrex::LoopConcurrent(destbox, numcomp, [=] (int i, int j, int k, int n) noexcept
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on == RunOn::Device and Gpu::inLaunchRegion(),
+                                           destbox, numcomp, i, j, k, n,
     {
         d(i,j,k,n+destcomp) = d(i,j,k,n+destcomp) ? 1: s(i+offset.x,j+offset.y,k+offset.z,n+srccomp);
     });
