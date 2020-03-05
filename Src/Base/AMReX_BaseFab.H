@@ -2188,7 +2188,7 @@ template <RunOn run_on>
 void
 BaseFab<T>::setComplement (T const& x, const Box& b, int ns, int num) noexcept
 {
-    setComplement<run_on>(x, b, DestComp{ns}, NumComps{num});
+    this->setComplement<run_on>(x, b, DestComp{ns}, NumComps{num});
 }
 
 template <class T>
@@ -2581,7 +2581,7 @@ BaseFab<T>::maskLT (BaseFab<int>& mask, T const& val, int comp) const noexcept
         ReduceOps<ReduceOpSum> reduce_op;
         ReduceData<int> reduce_data(reduce_op);
         using ReduceTuple = typename decltype(reduce_data)::Type;
-        reduce_op.eval(this->domain(), reduce_data,
+        reduce_op.eval(this->domain, reduce_data,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
         {
             int t;
@@ -2627,7 +2627,7 @@ BaseFab<T>::maskLE (BaseFab<int>& mask, T const& val, int comp) const noexcept
         ReduceOps<ReduceOpSum> reduce_op;
         ReduceData<int> reduce_data(reduce_op);
         using ReduceTuple = typename decltype(reduce_data)::Type;
-        reduce_op.eval(this->domain(), reduce_data,
+        reduce_op.eval(this->domain, reduce_data,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
         {
             int t;
@@ -2673,7 +2673,7 @@ BaseFab<T>::maskEQ (BaseFab<int>& mask, T const& val, int comp) const noexcept
         ReduceOps<ReduceOpSum> reduce_op;
         ReduceData<int> reduce_data(reduce_op);
         using ReduceTuple = typename decltype(reduce_data)::Type;
-        reduce_op.eval(this->domain(), reduce_data,
+        reduce_op.eval(this->domain, reduce_data,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
         {
             int t;
@@ -2719,7 +2719,7 @@ BaseFab<T>::maskGT (BaseFab<int>& mask, T const& val, int comp) const noexcept
         ReduceOps<ReduceOpSum> reduce_op;
         ReduceData<int> reduce_data(reduce_op);
         using ReduceTuple = typename decltype(reduce_data)::Type;
-        reduce_op.eval(this->domain(), reduce_data,
+        reduce_op.eval(this->domain, reduce_data,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
         {
             int t;
@@ -2765,7 +2765,7 @@ BaseFab<T>::maskGE (BaseFab<int>& mask, T const& val, int comp) const noexcept
         ReduceOps<ReduceOpSum> reduce_op;
         ReduceData<int> reduce_data(reduce_op);
         using ReduceTuple = typename decltype(reduce_data)::Type;
-        reduce_op.eval(this->domain(), reduce_data,
+        reduce_op.eval(this->domain, reduce_data,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
         {
             int t;
@@ -2987,7 +2987,11 @@ BaseFab<T>::dot (const Box& xbx, int xcomp,
         reduce_op.eval(xbx, reduce_data,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
         {
-            return { xa(i,j,k,n+xcomp) * ya(i+offset.x,j+offset.y,k+offset.z,n+ycomp) };
+            T t = 0;
+            for (int n = 0; n < numcomp; ++n) {
+                t += xa(i,j,k,n+xcomp) * ya(i+offset.x,j+offset.y,k+offset.z,n+ycomp);
+            }
+            return {t};
         });
         ReduceTuple hv = reduce_data.value();
         r = amrex::get<0>(hv);
@@ -3044,7 +3048,11 @@ BaseFab<T>::dotmask (const BaseFab<int>& mask, const Box& xbx, int xcomp,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
         {
             int m = static_cast<int>(static_cast<bool>(ma(i,j,k)));
-            return { xa(i,j,k,n+xcomp) * ya(i+offset.x,j+offset.y,k+offset.z,n+ycomp) * m };
+            T t = 0;
+            for (int n = 0; n < numcomp; ++n) {
+                t += xa(i,j,k,n+xcomp) * ya(i+offset.x,j+offset.y,k+offset.z,n+ycomp) * m;
+            }
+            return {t};
         });
         ReduceTuple hv = reduce_data.value();
         r = amrex::get<0>(hv);
@@ -3578,7 +3586,7 @@ BaseFab<T>::setComplement (T const& x, const Box& bx, DestComp dcomp, NumComps n
         Array4<T> const& a = this->array();
         amrex::ParallelFor(this->domain, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            if (not bx.contains(IntVect(i,j,k))) {
+            if (not bx.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
                 for (int n = dcomp.i; n < ncomp.n+dcomp.i; ++n) {
                     a(i,j,k,n) = x;
                 }
