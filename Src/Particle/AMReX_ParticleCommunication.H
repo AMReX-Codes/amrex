@@ -109,6 +109,9 @@ struct ParticleCopyPlan
     Vector<std::size_t> m_snd_pad_correction_h;
     Gpu::DeviceVector<std::size_t> m_snd_pad_correction_d;
 
+    Vector<std::size_t> m_rcv_pad_correction_h;
+    Gpu::DeviceVector<std::size_t> m_rcv_pad_correction_d;
+    
     template <class PC, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
     void build (const PC& pc, const ParticleCopyOp& op, bool local)
     {
@@ -395,15 +398,26 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buff
 
     Vector<int> RcvProc;
     Vector<long> rOffset;
-    long TotRcvParticles = 0;
+
+    plan.m_rcv_pad_correction_h.resize(0);
+    plan.m_rcv_pad_correction_h.push_back(0);
+
+    long TotRcvBytes = 0;
     for (int i = 0; i < NProcs; ++i) {
         if (plan.m_rcv_num_particles[i] > 0) {
             RcvProc.push_back(i);
-            rOffset.push_back(TotRcvParticles);
-            TotRcvParticles += plan.m_rcv_num_particles[i];
+            rOffset.push_back(TotRcvBytes);
+            TotRcvBytes += plan.m_rcv_num_particles[i]*psize;
+            plan.m_rcv_pad_correction_h.push_back(plan.m_rcv_pad_correction_h.back() + plan.m_rcv_num_particles[i]*psize);
         }
     }
-    rcv_buffer.resize(TotRcvParticles*psize);
+
+    for (int i = 0; i < plan.m_nrcvs; ++i)
+    {
+        plan.m_rcv_pad_correction_h[i] -= rOffset[i];
+    }
+    
+    rcv_buffer.resize(TotRcvBytes);
 
     plan.m_nrcvs = RcvProc.size();
 
@@ -418,7 +432,7 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buff
     // Post receives.
     for (int i = 0; i < plan.m_nrcvs; ++i) {
         const auto Who    = RcvProc[i];
-        const auto offset = rOffset[i]*psize;
+        const auto offset = rOffset[i];
         const auto Cnt    = plan.m_rcv_num_particles[Who]*psize;
 
         AMREX_ASSERT(Cnt > 0);
