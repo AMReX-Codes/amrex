@@ -1464,7 +1464,7 @@ FabArray<FAB>::setBndry (value_type val,
     if (n_grow.max() > 0)
     {
 #ifdef _OPENMP
-#pragma omp parallel (Gpu::notInLaunchRegion())
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter fai(*this); fai.isValid(); ++fai)
         {

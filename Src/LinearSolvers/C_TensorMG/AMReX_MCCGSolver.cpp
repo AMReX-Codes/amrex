@@ -103,7 +103,7 @@ MCCGSolver::norm (const MultiFab& res)
 #endif
     for (MFIter mfi(res,true); mfi.isValid(); ++mfi)
     {
-	restot = std::max(restot, res[mfi].norm(mfi.tilebox(), p, 0, ncomp));
+	restot = std::max(restot, res[mfi].norm<RunOn::Host>(mfi.tilebox(), p, 0, ncomp));
     }
     ParallelDescriptor::ReduceRealMax(restot);
     return restot;

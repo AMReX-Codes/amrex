@@ -779,9 +779,9 @@ BuildGramMatrix (Real*           Gg,
 	    int cnt = 0;
 	    for (int mm = 0; mm < Nrows; mm++) {
 		for (int nn = mm; nn < Nrows; nn++) {
-		    tmp[tid][cnt++] = rfab.dot(bx,nn,rfab,bx,mm);
+		    tmp[tid][cnt++] = rfab.dot<RunOn::Host>(bx,nn,rfab,bx,mm);
 		}
-		tmp[tid][cnt++] = tfab.dot(bx,0,rfab,bx,mm);
+		tmp[tid][cnt++] = tfab.dot<RunOn::Host>(bx,0,rfab,bx,mm);
 	    }
 	}
 #ifdef _OPENMP
