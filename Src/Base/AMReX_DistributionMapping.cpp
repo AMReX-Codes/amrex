@@ -629,7 +629,7 @@ knapsack (const std::vector<long>&         wgts,
     efficiency = sum_weight/(nprocs*max_weight);
 
     std::sort(wblv.begin(), wblv.end());
-	
+
     if (efficiency < max_efficiency && do_full_knapsack
         && wblv.size() > 1 && wblv.begin()->size() > 1)
     {
