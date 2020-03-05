@@ -5,7 +5,7 @@ namespace amrex {
 int KDTree::min_box_size = 4;
 
 KDTree::KDTree(const Box& domain, const FArrayBox& cost, int num_procs) {
-    Real total_cost = cost.sum(0);
+    Real total_cost = cost.sum<RunOn::Host>(0);
     root = new KDNode(domain, total_cost, num_procs);
     buildKDTree(root, cost);
 }

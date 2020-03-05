@@ -523,15 +523,17 @@ main (int argc, char* argv[])
       if (false)
       {
           double mean = 0;
-          for (MFIter mfi(soln); mfi.isValid(); ++mfi)
-              mean += soln[mfi].sum(0);
+          for (MFIter mfi(soln); mfi.isValid(); ++mfi) {
+              mean += soln[mfi].sum<RunOn::Host>(0);
+          }
 
           ParallelDescriptor::ReduceRealSum(mean);
 
           mean /= soln.boxArray().numPts();
 
-          for (MFIter mfi(soln); mfi.isValid(); ++mfi)
-              soln[mfi].plus(-mean);
+          for (MFIter mfi(soln); mfi.isValid(); ++mfi) {
+              soln[mfi].plus<RunOn::Host>(-mean);
+          }
 
           d1 = soln.norm2();
           d2 = soln.norm0();

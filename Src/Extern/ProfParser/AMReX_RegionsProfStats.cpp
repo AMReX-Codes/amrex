@@ -215,7 +215,7 @@ BLProfStats::TimeRange RegionsProfStats::MakeRegionPlt(FArrayBox &rFab, int nore
   Real notInRegionValue(-1.0);
   Box b(IntVect(0, 0), IntVect(xLength - 1, (yHeight * nRegions) - 1));
   rFab.resize(b, 1);
-  rFab.setVal(notInRegionValue);
+  rFab.setVal<RunOn::Host>(notInRegionValue);
 
   Vector<Real> rStartTime(nRegions, -1.0);
   regionBoxes.clear();
@@ -261,7 +261,7 @@ BLProfStats::TimeRange RegionsProfStats::MakeRegionPlt(FArrayBox &rFab, int nore
           int yLo(rss.rssRNumber * yHeight), yHi(((rss.rssRNumber + 1) *  yHeight) - 1);
           Box rBox(IntVect(xStart, yLo), IntVect(xStop, yHi));
 	  regionBoxes[rss.rssRNumber].push_back(rBox);
-          rFab.setVal(rss.rssRNumber, rBox, 0);
+          rFab.setVal<RunOn::Host>(rss.rssRNumber, rBox, 0);
         }
       }
     }
@@ -569,7 +569,7 @@ bool RegionsProfStats::AllCallTimesFAB(FArrayBox &actFab,
   if(bSameNCalls) {
     Box actBox(IntVect(0,0), IntVect(dataNProcs - 1, whichFuncNCalls - 1));
     actFab.resize(actBox, 1);
-    actFab.setVal(0.0);
+    actFab.setVal<RunOn::Host>(0.0);
     Real *dptr = actFab.dataPtr(0);
     int nX(actBox.length(XDIR)), nY(actBox.length(YDIR));
     for(int p(0); p < nX; ++p) {

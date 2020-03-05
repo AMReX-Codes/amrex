@@ -1516,7 +1516,7 @@ bool DataServices::WriteFab(const string &fname, const Box &region, int lev) {
     int destcomp(ivar);
     int ncomp(1);
     if(ParallelDescriptor::IOProcessor()) {
-      data.copy(tempdata, srccomp, destcomp, ncomp);
+      data.copy<RunOn::Host>(tempdata, srccomp, destcomp, ncomp);
     }
     amrData.FlushGrids(ivar);
   }
@@ -2675,7 +2675,7 @@ void DataServices::MakeRegionPlt(std::string &plotfileName)
     state[finestLevel].define(dnpBoxArray, dnpDM, numState, nGrow);
     MultiFab &regionsMF = state[finestLevel];
     if(bIOP) {
-      regionsMF[0].copy(rFab);
+      regionsMF[0].copy<RunOn::Host>(rFab);
     }
     if(bIOP) { cout << "Writing plotfile:  " << plotfileName << endl; }
 
@@ -2863,7 +2863,7 @@ void DataServices::RunACTPF(std::string &plotfileName,
     DistributionMapping myDMap(myMap);
     MultiFab mfWFN(wfnBoxArray, myDMap, 1, 0);
     for(MFIter mfi(mfWFN); mfi.isValid(); ++mfi) {
-      mfWFN[mfi.index()].copy(myFab);
+      mfWFN[mfi.index()].copy<RunOn::Host>(myFab);
     }
 
 
@@ -2909,7 +2909,7 @@ void DataServices::RunACTPF(std::string &plotfileName,
         cBox.setBig(XDIR, c);
         FArrayBox cFab(cBox, 1);
         int np(cFab.box().numPts());
-        cFab.copy(fab);
+        cFab.copy<RunOn::Host>(fab);
         Real cAvg(cFab.sum(0) / static_cast<Real>(np));
         Real variance(0.0);
         Real *ptr = cFab.dataPtr(0);

@@ -353,7 +353,7 @@ void CommProfStats::WriteTopoFab() {
   cout << "tDomain = " << tDomain << "  npts = " << tDomain.numPts()
        << "  nTopPts = " << nTopPts << "  maxTopNodeNum = " << maxTopNodeNum << endl;
   FArrayBox tFab(tDomain, maxTopNodeNum + 1);
-  tFab.setVal(-1);
+  tFab.setVal<RunOn::Host>(-1);
   for(int i(0); i < TopoMap.size(); ++i) {
     for(it = TopoMap[i].begin(); it != TopoMap[i].end(); ++it) {
       tFab(it->second, i) = it->first;
