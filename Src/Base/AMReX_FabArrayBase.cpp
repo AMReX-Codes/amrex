@@ -428,12 +428,12 @@ FabArrayBase::CPC::define (const BoxArray& ba_dst, const DistributionMapping& dm
 			    m_LocTags->push_back(CopyComTag(*it_tile, (*it_tile)+(*pit), k_dst, k_src));
 			}
 			if (check_local) {
-			    localtouch.plus(1, bx);
+			    localtouch.plus<RunOn::Host>(1, bx);
 			}
 		    } else if (MyProc == dm_dst[k_dst]) {
 			recv_tags[src_owner].push_back(CopyComTag(bx, bx+(*pit), k_dst, k_src));
 			if (check_remote) {
-			    remotetouch.plus(1, bx);
+			    remotetouch.plus<RunOn::Host>(1, bx);
 			}
 		    }
 		}
@@ -749,12 +749,12 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
 			    m_LocTags->push_back(CopyComTag(*it_tile, (*it_tile)+(*pit), krcv, ksnd));
 			}
 			if (check_local) {
-			    localtouch.plus(1, blbx);
+			    localtouch.plus<RunOn::Host>(1, blbx);
 			}
 		    } else if (MyProc == dm[krcv]) {
 			recv_tags[src_owner].push_back(CopyComTag(blbx, blbx+(*pit), krcv, ksnd));
 			if (check_remote) {
-			    remotetouch.plus(1, blbx);
+			    remotetouch.plus<RunOn::Host>(1, blbx);
 			}
 		    }
 		}
@@ -967,12 +967,12 @@ FabArrayBase::FB::define_epo (const FabArrayBase& fa)
 				    m_LocTags->push_back(CopyComTag(*it_tile, (*it_tile)+(*pit), krcv, ksnd));
 				}
 				if (check_local) {
-				    localtouch.plus(1, dbx);
+				    localtouch.plus<RunOn::Host>(1, dbx);
 				}
 			    } else if (MyProc == dm[krcv]) {
 				recv_tags[src_owner].push_back(CopyComTag(dbx, sbx, krcv, ksnd));
 				if (check_remote) {
-				    remotetouch.plus(1, dbx);
+				    remotetouch.plus<RunOn::Host>(1, dbx);
 				}
 			    }
 			}

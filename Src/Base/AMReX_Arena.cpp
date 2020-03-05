@@ -218,8 +218,8 @@ Arena::Initialize ()
 void
 Arena::PrintUsage ()
 {
-    const int IOProc = ParallelDescriptor::IOProcessorNumber();
 #ifdef AMREX_USE_GPU
+    const int IOProc = ParallelDescriptor::IOProcessorNumber();
     {
         long min_megabytes = Gpu::Device::totalGlobalMem() / (1024*1024);
         long max_megabytes = min_megabytes;

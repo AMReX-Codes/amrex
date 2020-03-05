@@ -566,12 +566,15 @@ public:
     template <RunOn run_on>
     Real norm (const Box& subbox, int p, int scomp = 0, int ncomp = 1) const noexcept;
     //!Compute absolute value for all components of this FAB.
+    template <RunOn run_on>
     void abs () noexcept;
     //! Same as above except only for components (comp: comp+numcomp-1)
+    template <RunOn run_on>
     void abs (int comp, int numcomp=1) noexcept;
     /**
     * \brief Calculate abs() on subbox for given component range.
     */
+    template <RunOn run_on>
     void abs (const Box& subbox, int comp = 0, int numcomp=1) noexcept;
     /**
     * \return Minimum value of given component.
@@ -604,34 +607,46 @@ public:
     template <RunOn run_on>
     T maxabs (const Box& subbox, int comp = 0) const noexcept;
 
+    /*(
+    * \return location of given value
+    */
+    template <RunOn run_on>
+    IntVect indexFromValue (const Box& subbox, int comp, T const& value) const noexcept;
+
     /**
     * \return location of minimum value in given component.
     */
+    template <RunOn run_on>
     IntVect minIndex (int comp = 0) const noexcept;
     /**
     * \return location of minimum value in given component in
     * given subbox.
     */
+    template <RunOn run_on>
     IntVect minIndex (const Box& subbox, int comp = 0) const noexcept;
     /**
     * \return return mininum value and location to allow
     * efficient looping over multiple boxes.
     */
+    template <RunOn run_on>
     void  minIndex (const Box& subbox, Real& min_val, IntVect& min_idx, int comp = 0) const noexcept;
 
     /**
     * \return location of maximum value in given component.
     */
+    template <RunOn run_on>
     IntVect maxIndex (int comp = 0) const noexcept;
     /**
     * \return location of maximum value in given component in given
     * subbox.
     */
+    template <RunOn run_on>
     IntVect maxIndex (const Box& subbox, int comp = 0) const noexcept;
     /**
     * \return return maximum value and location to allow
     * efficient looping over multiple boxes.
     */
+    template <RunOn run_on>
     void  maxIndex (const Box& subbox, Real& max_value, IntVect& max_index, int comp = 0) const noexcept;
 
     /**
@@ -640,16 +655,21 @@ public:
     * mask is resized by this function.
     * The number of cells marked with 1 returned.
     */
-    int maskLT (BaseFab<int>& mask, T val, int comp = 0) const noexcept;
+    template <RunOn run_on>
+    int maskLT (BaseFab<int>& mask, T const& val, int comp = 0) const noexcept;
     //! Same as above except mark cells with value less than or equal to val.
-    int maskLE (BaseFab<int>& mask, T val, int comp = 0) const noexcept;
+    template <RunOn run_on>
+    int maskLE (BaseFab<int>& mask, T const& val, int comp = 0) const noexcept;
 
     //! Same as above except mark cells with value equal to val.
-    int maskEQ (BaseFab<int>& mask, T val, int comp = 0) const noexcept;
+    template <RunOn run_on>
+    int maskEQ (BaseFab<int>& mask, T const& val, int comp = 0) const noexcept;
     //! Same as above except mark cells with value greater than val.
-    int maskGT (BaseFab<int>& mask, T val, int comp = 0) const noexcept;
+    template <RunOn run_on>
+    int maskGT (BaseFab<int>& mask, T const& val, int comp = 0) const noexcept;
     //! Same as above except mark cells with value greater than or equal to val.
-    int maskGE (BaseFab<int>& mask, T val, int comp = 0) const noexcept;
+    template <RunOn run_on>
+    int maskGE (BaseFab<int>& mask, T const& val, int comp = 0) const noexcept;
 
     //! Returns sum of given component of FAB state vector.
     template <RunOn run_on>
@@ -659,41 +679,51 @@ public:
     T sum (const Box& subbox, int comp, int numcomp = 1) const noexcept;
 
     //! Most general version, specify subbox and which components.
-    BaseFab<T>& invert (T v, const Box& subbox, int comp=0, int numcomp=1) noexcept;
+    template <RunOn run_on>
+    BaseFab<T>& invert (T const& v, const Box& subbox, int comp=0, int numcomp=1) noexcept;
     //! As above except on entire domain.
-    BaseFab<T>& invert (T v, int comp, int numcomp=1) noexcept;
+    template <RunOn run_on>
+    BaseFab<T>& invert (T const& v, int comp, int numcomp=1) noexcept;
 
     //! Negate BaseFab, most general.
+    template <RunOn run_on>
     BaseFab<T>& negate (const Box& subbox, int comp=0, int numcomp=1) noexcept;
     //! As above, except on entire domain.
+    template <RunOn run_on>
     BaseFab<T>& negate (int comp, int numcomp=1) noexcept;
 
     //! Scalar addition (a[i] <- a[i] + r), most general.
-    BaseFab<T>& plus (T r, const Box& b, int comp=0, int numcomp=1) noexcept;
+    template <RunOn run_on>
+    BaseFab<T>& plus (T const& r, const Box& b, int comp=0, int numcomp=1) noexcept;
 
     //! As above, except on entire domain.
-    BaseFab<T>& plus (T r, int comp, int numcomp=1) noexcept;
+    template <RunOn run_on>
+    BaseFab<T>& plus (T const& r, int comp, int numcomp=1) noexcept;
 
     /**
     * \brief Add src components (srccomp:srccomp+numcomp-1) to
     * this FABs components (destcomp:destcomp+numcomp-1)
     * where the two FABs intersect.
     */
+    template <RunOn run_on>
     BaseFab<T>& plus (const BaseFab<T>& src, int srccomp, int destcomp, int numcomp=1) noexcept;
     /**
     * \brief Same as above except addition is restricted to intersection
     * of subbox and src FAB. NOTE: subbox must be contained in this
     * FAB.
     */
+    template <RunOn run_on>
     BaseFab<T>& plus (const BaseFab<T>& src, const Box& subbox, int srccomp, int destcomp, int numcomp=1) noexcept;
     /**
     * \brief Add srcbox region of src FAB to destbox region of this FAB.
     * The srcbox and destbox must be same size.
     */
+    template <RunOn run_on>
     BaseFab<T>& plus (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
                       int srccomp, int destcomp, int numcomp=1) noexcept;
 
     //! Atomic FAB addition (a[i] <- a[i] + b[i]).
+    template <RunOn run_on>
     BaseFab<T>& atomicAdd (const BaseFab<T>& src) noexcept;
 
     /**
@@ -701,32 +731,39 @@ public:
     * this FABs components (destcomp:destcomp+numcomp-1)
     * where the two FABs intersect.
     */
+    template <RunOn run_on>
     BaseFab<T>& atomicAdd (const BaseFab<T>& src, int srccomp, int destcomp, int numcomp=1) noexcept;
     /**
     * \brief Same as above except addition is restricted to intersection
     * of subbox and src FAB. NOTE: subbox must be contained in this
     * FAB.
     */
+    template <RunOn run_on>
     BaseFab<T>& atomicAdd (const BaseFab<T>& src, const Box& subbox, int srccomp, int destcomp,
                            int numcomp=1) noexcept;
     /**
     * \brief Atomically add srcbox region of src FAB to destbox region of this FAB.
     * The srcbox and destbox must be same size.
     */
+    template <RunOn run_on>
     BaseFab<T>& atomicAdd (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
                            int srccomp, int destcomp, int numcomp=1) noexcept;
 
     //! FAB SAXPY (y[i] <- y[i] + a * x[i]), in place.
+    template <RunOn run_on>
     BaseFab<T>& saxpy (T a, const BaseFab<T>& x, const Box& srcbox, const Box& destbox,
                        int srccomp, int destcomp, int numcomp=1) noexcept;
     //! FAB SAXPY (y[i] <- y[i] + a * x[i]), in place.  All components.
+    template <RunOn run_on>
     BaseFab<T>& saxpy (T a, const BaseFab<T>& x) noexcept;
 
     //! FAB XPAY (y[i] <- x[i] + a * y[i])
+    template <RunOn run_on>
     BaseFab<T>& xpay (T a, const BaseFab<T>& x, const Box& srcbox, const Box& destbox,
                       int srccomp, int destcomp, int numcomp=1) noexcept;
 
     //! y[i] <- y[i] + x1[i] * x2[i])
+    template <RunOn run_on>
     BaseFab<T>& addproduct (const Box& destbox, int destcomp, int numcomp,
                             const BaseFab<T>& src1, int comp1,
                             const BaseFab<T>& src2, int comp2) noexcept;
@@ -736,33 +773,39 @@ public:
     * this FABs components (destcomp:destcomp+numcomp-1) where
     * the two FABs intersect.
     */
+    template <RunOn run_on>
     BaseFab<T>& minus (const BaseFab<T>& src, int srccomp, int destcomp, int numcomp=1) noexcept;
     /**
     * \brief Same as above except subtraction is restricted to intersection
     * of subbox and src FAB.  NOTE: subbox must be contained in
     * this FAB.
     */
+    template <RunOn run_on>
     BaseFab<T>& minus (const BaseFab<T>& src, const Box& subbox, int srccomp, int destcomp,
                        int numcomp=1) noexcept;
     /**
     * \brief Subtract srcbox region of src FAB from destbox region
     * of this FAB. srcbox and destbox must be same size.
     */
+    template <RunOn run_on>
     BaseFab<T>& minus (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
                        int srccomp, int destcomp, int numcomp=1) noexcept;
 
     //! Scalar multiplication, except control which components are multiplied.
-    BaseFab<T>& mult (T r, int comp, int numcomp=1) noexcept;
+    template <RunOn run_on>
+    BaseFab<T>& mult (T const& r, int comp, int numcomp=1) noexcept;
     /**
     * \brief As above, except specify sub-box.
     */
-    BaseFab<T>& mult (T r, const Box& b, int comp=0, int numcomp=1) noexcept;
+    template <RunOn run_on>
+    BaseFab<T>& mult (T const& r, const Box& b, int comp=0, int numcomp=1) noexcept;
 
     /**
     * \brief Multiply src components (srccomp:srccomp+numcomp-1) with
     * this FABs components (destcomp:destcomp+numcomp-1) where
     * the two FABs intersect.
     */
+    template <RunOn run_on>
     BaseFab<T>& mult (const BaseFab<T>& src, int srccomp, int destcomp, int numcomp=1) noexcept;
 
     /**
@@ -770,6 +813,7 @@ public:
     * intersection of subbox and src FAB.  NOTE: subbox must be
     * contained in this FAB.
     */
+    template <RunOn run_on>
     BaseFab<T>& mult (const BaseFab<T>& src, const Box& subbox, int srccomp, int destcomp,
                       int numcomp=1) noexcept;
 
@@ -777,14 +821,17 @@ public:
     * \brief Multiply srcbox region of src FAB with destbox region
     * of this FAB. The srcbox and destbox must be same size.
     */
+    template <RunOn run_on>
     BaseFab<T>& mult (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
                       int srccomp, int destcomp, int numcomp=1) noexcept;
 
     //! As above except specify which components.
-    BaseFab<T>& divide (T r, int comp, int numcomp=1) noexcept;
+    template <RunOn run_on>
+    BaseFab<T>& divide (T const& r, int comp, int numcomp=1) noexcept;
 
     //! As above except specify sub-box.
-    BaseFab<T>& divide (T r, const Box& b, int comp=0, int numcomp=1) noexcept;
+    template <RunOn run_on>
+    BaseFab<T>& divide (T const& r, const Box& b, int comp=0, int numcomp=1) noexcept;
 
     /**
     * \brief This FAB is numerator, src FAB is denominator
@@ -792,23 +839,27 @@ public:
     * this FABs components (destcomp:destcomp+numcomp-1)
     * where the two FABs intersect.
     */
+    template <RunOn run_on>
     BaseFab<T>& divide (const BaseFab<T>& src, int srccomp, int destcomp, int numcomp=1) noexcept;
     /**
     * \brief Same as above except division is restricted to
     * intersection of subbox and src FAB.  NOTE: subbox must be
     * contained in this FAB.
     */
+    template <RunOn run_on>
     BaseFab<T>& divide (const BaseFab<T>& src, const Box& subbox, int srccomp, int destcomp,
                         int numcomp=1) noexcept;
     /**
     * \brief destbox region of this FAB is numerator. srcbox regions of
     * src FAB is denominator. srcbox and destbox must be same size.
     */
+    template <RunOn run_on>
     BaseFab<T>& divide (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
                         int srccomp, int destcomp, int numcomp=1) noexcept;
     /**
     * \brief Divide wherever "src" is "true" or "non-zero".
     */
+    template <RunOn run_on>
     BaseFab<T>& protected_divide (const BaseFab<T>& src) noexcept;
 
     /**
@@ -818,6 +869,7 @@ public:
     * this FABs components (destcomp:destcomp+numcomp-1)
     * where the two FABs intersect.
     */
+    template <RunOn run_on>
     BaseFab<T>& protected_divide (const BaseFab<T>& src, int srccomp, int destcomp, int numcomp=1) noexcept;
 
     /**
@@ -826,6 +878,7 @@ public:
     * intersection of subbox and src FAB.  NOTE: subbox must be
     * contained in this FAB.
     */
+    template <RunOn run_on>
     BaseFab<T>& protected_divide (const BaseFab<T>& src, const Box& subbox, int srccomp, int destcomp,
                                   int numcomp=1) noexcept;
 
@@ -834,6 +887,7 @@ public:
     * destbox region of this FAB is numerator. srcbox regions of
     * src FAB is denominator. srcbox and destbox must be same size.
     */
+    template <RunOn run_on>
     BaseFab<T>& protected_divide (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
                                   int srccomp, int destcomp, int numcomp=1) noexcept;
 
@@ -876,9 +930,11 @@ public:
                          int comp, int numcomp = 1) noexcept;
 
     //! Dot product of x (i.e.,this) and y
+    template <RunOn run_on>
     T dot (const Box& xbx, int xcomp, const BaseFab<T>& y, const Box& ybx, int ycomp,
 	   int numcomp = 1) const noexcept;
 
+    template <RunOn run_on>
     T dotmask (const BaseFab<int>& mask, const Box& xbx, int xcomp,
                const BaseFab<T>& y, const Box& ybx, int ycomp,
                int numcomp) const noexcept;
@@ -929,105 +985,137 @@ public:
     BaseFab<T>& copy (const BaseFab<T>& src, Box bx, SrcComp scomp, DestComp dcomp, NumComps ncomp) noexcept;
 
     //! Scalar addition on the whole domain and all components
-    BaseFab<T>& plus (T val) noexcept;
+    template <RunOn run_on>
+    BaseFab<T>& plus (T const& val) noexcept;
     //
-    BaseFab<T>& operator+= (T val) noexcept;
+    template <RunOn run_on>
+    BaseFab<T>& operator+= (T const& val) noexcept;
     //
     //! Do nothing if bx is empty.
-    BaseFab<T>& plus (T val, Box const& bx, DestComp dcomp, NumComps ncomp) noexcept;
+    template <RunOn run_on>
+    BaseFab<T>& plus (T const& val, Box const& bx, DestComp dcomp, NumComps ncomp) noexcept;
     /**
     * Fab addition is performed on the intersection of dest and src fabs.
     * All components of dest fab are copied. src fab must have enough
     * components (more is OK).
     */
+    template <RunOn run_on>
     BaseFab<T>& plus (const BaseFab<T>& src) noexcept;
     //
+    template <RunOn run_on>
     BaseFab<T>& operator+= (const BaseFab<T>& src) noexcept;
     //
     //! Do nothing if bx does not intersect with src fab.
+    template <RunOn run_on>
     BaseFab<T>& plus (const BaseFab<T>& src, Box bx, SrcComp scomp, DestComp dcomp, NumComps ncomp) noexcept;
 
     //! Scalar subtraction on the whole domain and all components
-    BaseFab<T>& minus (T val) noexcept;
+    template <RunOn run_on>
+    BaseFab<T>& minus (T const& val) noexcept;
     //
-    BaseFab<T>& operator-= (T val) noexcept;
+    template <RunOn run_on>
+    BaseFab<T>& operator-= (T const& val) noexcept;
     //
     //! Do nothing if bx is empty.
-    BaseFab<T>& minus (T val, Box const& bx, DestComp dcomp, NumComps ncomp) noexcept;
+    template <RunOn run_on>
+    BaseFab<T>& minus (T const& val, Box const& bx, DestComp dcomp, NumComps ncomp) noexcept;
     /**
     * Fab subtraction is performed on the intersection of dest and src fabs.
     * All components of dest fab are copied. src fab must have enough
     * components (more is OK).
     */
+    template <RunOn run_on>
     BaseFab<T>& minus (const BaseFab<T>& src) noexcept;
     //
+    template <RunOn run_on>
     BaseFab<T>& operator-= (const BaseFab<T>& src) noexcept;
     //
     //! Do nothing if bx does not intersect with src fab.
+    template <RunOn run_on>
     BaseFab<T>& minus (const BaseFab<T>& src, Box bx, SrcComp scomp, DestComp dcomp, NumComps ncomp) noexcept;
 
     //! Scalar multiplication on the whole domain and all components
-    BaseFab<T>& mult (T val) noexcept;
+    template <RunOn run_on>
+    BaseFab<T>& mult (T const& val) noexcept;
     //
-    BaseFab<T>& operator*= (T val) noexcept;
+    template <RunOn run_on>
+    BaseFab<T>& operator*= (T const& val) noexcept;
     //
     //! Do nothing if bx is empty.
-    BaseFab<T>& mult (T val, Box const& bx, DestComp dcomp, NumComps ncomp) noexcept;
+    template <RunOn run_on>
+    BaseFab<T>& mult (T const& val, Box const& bx, DestComp dcomp, NumComps ncomp) noexcept;
     /**
     * Fab multiplication is performed on the intersection of dest and src fabs.
     * All components of dest fab are copied. src fab must have enough
     * components (more is OK).
     */
+    template <RunOn run_on>
     BaseFab<T>& mult (const BaseFab<T>& src) noexcept;
     //
+    template <RunOn run_on>
     BaseFab<T>& operator*= (const BaseFab<T>& src) noexcept;
     //
     //! Do nothing if bx does not intersect with src fab.
+    template <RunOn run_on>
     BaseFab<T>& mult (const BaseFab<T>& src, Box bx, SrcComp scomp, DestComp dcomp, NumComps ncomp) noexcept;
 
     //! Scalar division on the whole domain and all components
-    BaseFab<T>& divide (T val) noexcept;
+    template <RunOn run_on>
+    BaseFab<T>& divide (T const& val) noexcept;
     //
-    BaseFab<T>& operator/= (T val) noexcept;
+    template <RunOn run_on>
+    BaseFab<T>& operator/= (T const& val) noexcept;
     //
     //! Do nothing if bx is empty.
-    BaseFab<T>& divide (T val, Box const& bx, DestComp dcomp, NumComps ncomp) noexcept;
+    template <RunOn run_on>
+    BaseFab<T>& divide (T const& val, Box const& bx, DestComp dcomp, NumComps ncomp) noexcept;
     /**
     * Fab division is performed on the intersection of dest and src fabs.
     * All components of dest fab are copied. src fab must have enough
     * components (more is OK).
     */
+    template <RunOn run_on>
     BaseFab<T>& divide (const BaseFab<T>& src) noexcept;
     //
+    template <RunOn run_on>
     BaseFab<T>& operator/= (const BaseFab<T>& src) noexcept;
     //
     //! Do nothing if bx does not intersect with src fab.
+    template <RunOn run_on>
     BaseFab<T>& divide (const BaseFab<T>& src, Box bx, SrcComp scomp, DestComp dcomp, NumComps ncomp) noexcept;
 
     //! on the whole domain and all components
+    template <RunOn run_on>
     BaseFab<T>& negate () noexcept;
     //
+    template <RunOn run_on>
     BaseFab<T>& negate (const Box& bx, DestComp dcomp, NumComps ncomp) noexcept;
 
     //! Fab <- Fab/r on the whole domain and all components
-    BaseFab<T>& invert (T r) noexcept;
+    template <RunOn run_on>
+    BaseFab<T>& invert (T const& r) noexcept;
     //
-    BaseFab<T>& invert (T r, const Box& bx, DestComp dcomp, NumComps ncomp) noexcept;
+    template <RunOn run_on>
+    BaseFab<T>& invert (T const& r, const Box& bx, DestComp dcomp, NumComps ncomp) noexcept;
 
     //! Sum
     template <RunOn run_on>
     T sum (const Box& bx, DestComp dcomp, NumComps ncomp) const noexcept;
 
     //! Dot product of two Fabs
+    template <RunOn run_on>
     T dot (const BaseFab<T>& src, const Box& bx, SrcComp scomp, DestComp dcomp, NumComps ncomp) const noexcept;
 
     //! Int wrapper for dot.
+    template <RunOn run_on>
     T dot (const Box& bx, int destcomp, int numcomp) const noexcept;
 
     //! Dot product
+    template <RunOn run_on>
     T dot (const Box& bx, DestComp dcomp, NumComps ncomp) const noexcept;
 
     //! Dot product of two Fabs with mask
+    template <RunOn run_on>
     T dotmask (const BaseFab<T>& src, const Box& bx, const BaseFab<int>& mask,
                SrcComp scomp, DestComp dcomp, NumComps ncomp) const noexcept;
 
@@ -1628,25 +1716,29 @@ BaseFab<T>::setComplement (T const& x, const Box& b, int ns, int num) noexcept
 }
 
 template <class T>
+template <RunOn run_on>
 void
 BaseFab<T>::abs () noexcept
 {
-    this->abs(this->domain,0,this->nvar);
+    this->abs<run_on>(this->domain,0,this->nvar);
 }
 
 template <class T>
+template <RunOn run_on>
 void
 BaseFab<T>::abs (int comp, int numcomp) noexcept
 {
-    this->abs(this->domain,comp,numcomp);
+    this->abs<run_on>(this->domain,comp,numcomp);
 }
 
 template <class T>
+template <RunOn run_on>
 void
 BaseFab<T>::abs (const Box& subbox, int comp, int numcomp) noexcept
 {
     Array4<T> const& a = this->array();
-    amrex::LoopConcurrent(subbox, numcomp, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT 
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG (run_on == RunOn::Device and Gpu::inLaunchRegion(),
+                                            subbox, numcomp, i, j, k, n,
     {
         a(i,j,k,n+comp) = amrex::Math::abs(a(i,j,k,n+comp));
     });
@@ -1804,7 +1896,7 @@ template <RunOn run_on>
 T
 BaseFab<T>::min (const Box& subbox, int comp) const noexcept
 {
-    Array4<T const> const& a = this->const_array();
+    Array4<T const> const& a = this->const_array(comp);
 #ifdef AMREX_USE_GPU
     if (run_on == RunOn::Device and Gpu::inLaunchRegion()) {
         ReduceOps<ReduceOpMin> reduce_op;
@@ -1813,7 +1905,7 @@ BaseFab<T>::min (const Box& subbox, int comp) const noexcept
         reduce_op.eval(subbox, reduce_data,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
         {
-            return { a(i,j,k,comp) };
+            return { a(i,j,k) };
         });
         ReduceTuple hv = reduce_data.value();
         return amrex::get<0>(hv);
@@ -1823,7 +1915,7 @@ BaseFab<T>::min (const Box& subbox, int comp) const noexcept
         T r = std::numeric_limits<T>::max();
         amrex::LoopOnCpu(subbox, [=,&r] (int i, int j, int k) noexcept
         {
-            r = amrex::min(r, a(i,j,k,comp));
+            r = amrex::min(r, a(i,j,k));
         });
         return r;
     }
@@ -1842,8 +1934,7 @@ template <RunOn run_on>
 T
 BaseFab<T>::max (const Box& subbox, int comp) const noexcept
 {
-    Array4<T const> const& a = this->const_array();
-
+    Array4<T const> const& a = this->const_array(comp);
 #ifdef AMREX_USE_GPU
     if (run_on == RunOn::Device and Gpu::inLaunchRegion()) {
         ReduceOps<ReduceOpMax> reduce_op;
@@ -1852,7 +1943,7 @@ BaseFab<T>::max (const Box& subbox, int comp) const noexcept
         reduce_op.eval(subbox, reduce_data,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
         {
-            return { a(i,j,k,comp) };
+            return { a(i,j,k) };
         });
         ReduceTuple hv = reduce_data.value();
         return amrex::get<0>(hv);
@@ -1862,7 +1953,7 @@ BaseFab<T>::max (const Box& subbox, int comp) const noexcept
         T r = std::numeric_limits<T>::lowest();
         amrex::LoopOnCpu(subbox, [=,&r] (int i, int j, int k) noexcept
         {
-            r = amrex::max(r, a(i,j,k,comp));
+            r = amrex::max(r, a(i,j,k));
         });
         return r;
     }
@@ -1881,7 +1972,7 @@ template <RunOn run_on>
 T
 BaseFab<T>::maxabs (const Box& subbox, int comp) const noexcept
 {
-    Array4<T const> const& a = this->const_array();
+    Array4<T const> const& a = this->const_array(comp);
 #ifdef AMREX_USE_GPU
     if (run_on == RunOn::Device and Gpu::inLaunchRegion()) {
         ReduceOps<ReduceOpMax> reduce_op;
@@ -1890,7 +1981,7 @@ BaseFab<T>::maxabs (const Box& subbox, int comp) const noexcept
         reduce_op.eval(subbox, reduce_data,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
         {
-            return { amrex::Math::abs(a(i,j,k,comp)) };
+            return { amrex::Math::abs(a(i,j,k)) };
         });
         ReduceTuple hv = reduce_data.value();
         return amrex::get<0>(hv);
@@ -1900,7 +1991,7 @@ BaseFab<T>::maxabs (const Box& subbox, int comp) const noexcept
         T r = 0;
         amrex::Loop(subbox, [=,&r] (int i, int j, int k) AMREX_NOEXCEPT
         {
-            r = amrex::max(r, amrex::Math::abs(a(i,j,k,comp)));
+            r = amrex::max(r, amrex::Math::abs(a(i,j,k)));
         });
         return r;
     }
@@ -1908,186 +1999,340 @@ BaseFab<T>::maxabs (const Box& subbox, int comp) const noexcept
 
 
 template <class T>
+template <RunOn run_on>
+IntVect
+BaseFab<T>::indexFromValue (Box const& subbox, int comp, T const& value) const noexcept
+{
+    Array4<T const> const& a = this->const_array(comp);
+#ifdef AMREX_USE_GPU
+    if (run_on == RunOn::Device and Gpu::inLaunchRegion()) {
+        Array<int,1+AMREX_SPACEDIM> ha{0,AMREX_D_DECL(std::numeric_limits<int>::lowest(),
+                                                      std::numeric_limits<int>::lowest(),
+                                                      std::numeric_limits<int>::lowest())};
+        Gpu::DeviceVector<int> dv(1+AMREX_SPACEDIM);
+        int* p = dv.data();
+        Gpu::htod_memcpy_async(p, ha.data(), sizeof(int)*ha.size());
+        amrex::ParallelFor(subbox, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            int* flag = p;
+            if (*flag == 0) {
+                if (a(i,j,k) == value) {
+                    if (Gpu::Atomic::Exch(flag,1) == 0) {
+                        AMREX_D_TERM(p[1] = i;,
+                                     p[2] = j;,
+                                     p[3] = k;);
+                    }
+                }
+            }
+        });
+        Gpu::dtoh_memcpy_async(ha.data(), p, sizeof(int)*ha.size());
+        Gpu::streamSynchronize();
+        return IntVect(AMREX_D_DECL(ha[1],ha[2],ha[2]));
+    } else
+#endif
+    {
+        AMREX_LOOP_3D(subbox, i, j, k,
+        {
+            if (a(i,j,k) == value) return IntVect(AMREX_D_DECL(i,j,k));
+        });
+        return IntVect::TheMinVector();
+    }
+}
+
+template <class T>
+template <RunOn run_on>
 IntVect
 BaseFab<T>::minIndex (int comp) const noexcept
 {
-    return this->minIndex(this->domain,comp);
+    return this->minIndex<run_on>(this->domain,comp);
 }
 
 template <class T>
+template <RunOn run_on>
 IntVect
 BaseFab<T>::minIndex (const Box& subbox, int comp) const noexcept
 {
-    Array4<T const> const& a = this->const_array();
-    AMREX_D_DECL(int imin, jmin, kmin);
-    T min_val = std::numeric_limits<T>::max();
-    amrex::LoopOnCpu(subbox,[=,AMREX_D_DECL(&imin,&jmin,&kmin),&min_val]
-                     (int i, int j, int k) AMREX_NOEXCEPT
-    {
-        if (a(i,j,k,comp) < min_val) {
-            min_val = a(i,j,k,comp);
-            AMREX_D_TERM(imin = i;,  jmin = j;,  kmin = k;)
-        }
-    });
-
-    return IntVect(AMREX_D_DECL(imin,jmin,kmin));
+    T min_val = this->min<run_on>(subbox, comp);
+    return this->indexFromValue<run_on>(subbox, comp, min_val);
 }
 
 template <class T>
+template <RunOn run_on>
 void
 BaseFab<T>::minIndex (const Box& subbox, Real& min_val, IntVect& min_idx, int comp) const noexcept
 {
-    Array4<T const> const& a = this->const_array();
-    amrex::LoopOnCpu(subbox, [=,&min_val,&min_idx] (int i, int j, int k) AMREX_NOEXCEPT 
-    {
-        if (a(i,j,k,comp) < min_val) {
-            min_val = a(i,j,k,comp);
-            min_idx = IntVect(AMREX_D_DECL(i,j,k));
-        }
-    });
+    min_val = this->min<run_on>(subbox, comp);
+    min_idx = this->indexFromValue<run_on>(subbox, comp, min_val);
 }
 
 template <class T>
+template <RunOn run_on>
 IntVect
 BaseFab<T>::maxIndex (int comp) const noexcept
 {
-    return this->maxIndex(this->domain,comp);
+    return this->maxIndex<run_on>(this->domain,comp);
 }
 
 template <class T>
+template <RunOn run_on>
 IntVect
 BaseFab<T>::maxIndex (const Box& subbox, int comp) const noexcept
 {
-    Array4<T const> const& a = this->const_array();
-    const auto lo = amrex::lbound(subbox);
-    AMREX_D_DECL(int imax=lo.x, jmax=lo.y, kmax=lo.z);
-    T max_val = a(lo.x,lo.y,lo.z,comp);
-    amrex::LoopOnCpu(subbox, [=,AMREX_D_DECL(&imax,&jmax,&kmax),&max_val] (int i, int j, int k) AMREX_NOEXCEPT
-    {
-        if (a(i,j,k,comp) > max_val) {
-            max_val = a(i,j,k,comp);
-            AMREX_D_TERM(imax = i;, jmax = j;, kmax = k;);
-        }
-    });
-
-    return IntVect(AMREX_D_DECL(imax,jmax,kmax));
+    T max_val = this->max<run_on>(subbox, comp);
+    return this->indexFromValue<run_on>(subbox, comp, max_val);
 }
 
 template <class T>
+template <RunOn run_on>
 void
 BaseFab<T>::maxIndex (const Box& subbox, Real& max_val, IntVect& max_idx, int comp) const noexcept
 {
-    Array4<T const> const& a = this->const_array();
-    amrex::LoopOnCpu(subbox,[=,&max_val,&max_idx] (int i, int j, int k) AMREX_NOEXCEPT 
-    {
-        if (a(i,j,k,comp) > max_val) {
-            max_val = a(i,j,k,comp);
-            max_idx = IntVect(AMREX_D_DECL(i,j,k));
-        }
-    });
+    max_val = this->max<run_on>(subbox, comp);
+    max_idx = this->indexFromValue<run_on>(subbox, comp, max_val);
 }
 
 template <class T>
+template <RunOn run_on>
 int
-BaseFab<T>::maskLT (BaseFab<int>& mask, T val, int comp) const noexcept
+BaseFab<T>::maskLT (BaseFab<int>& mask, T const& val, int comp) const noexcept
 {
     mask.resize(this->domain,1);
     int cnt = 0;
     Array4<int> const& m = mask.array();
-    Array4<T const> const& a = this->const_array();
-    amrex::Loop(this->domain, [=,&cnt] (int i, int j, int k) noexcept
+    Array4<T const> const& a = this->const_array(comp);
+#ifdef AMREX_USE_GPU
+    if (run_on == RunOn::Device and Gpu::inLaunchRegion()) {
+        ReduceOps<ReduceOpSum> reduce_op;
+        ReduceData<int> reduce_data(reduce_op);
+        using ReduceTuple = typename decltype(reduce_data)::Type;
+        reduce_op.eval(this->domain(), reduce_data,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
+        {
+            int t;
+            if (a(i,j,k) < val) {
+                m(i,j,k) = 1;
+                t = 1;
+            } else {
+                m(i,j,k) = 0;
+                t = 0;
+            }
+            return {t};
+        });
+        ReduceTuple hv = reduce_data.value();
+        cnt = amrex::get<0>(hv);
+    } else
+#endif
     {
-        if (a(i,j,k,comp) < val) {
-            m(i,j,k) = 1;
-            ++cnt;
-        }
-    });
+        AMREX_LOOP_3D(this->domain, i, j, k,
+        {
+            if (a(i,j,k) < val) {
+                m(i,j,k) = 1;
+                ++cnt;
+            } else {
+                m(i,j,k) = 0;
+            }
+        });
+    }
 
     return cnt;
 }
 
 template <class T>
+template <RunOn run_on>
 int
-BaseFab<T>::maskLE (BaseFab<int>& mask, T val, int comp) const noexcept
+BaseFab<T>::maskLE (BaseFab<int>& mask, T const& val, int comp) const noexcept
 {
     mask.resize(this->domain,1);
     int cnt = 0;
     Array4<int> const& m = mask.array();
-    Array4<T const> const& a = this->const_array();
-    amrex::LoopOnCpu(this->domain, [=,&cnt] (int i, int j, int k) noexcept
+    Array4<T const> const& a = this->const_array(comp);
+#ifdef AMREX_USE_GPU
+    if (run_on == RunOn::Device and Gpu::inLaunchRegion()) {
+        ReduceOps<ReduceOpSum> reduce_op;
+        ReduceData<int> reduce_data(reduce_op);
+        using ReduceTuple = typename decltype(reduce_data)::Type;
+        reduce_op.eval(this->domain(), reduce_data,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
+        {
+            int t;
+            if (a(i,j,k) <= val) {
+                m(i,j,k) = 1;
+                t = 1;
+            } else {
+                m(i,j,k) = 0;
+                t = 0;
+            }
+            return {t};
+        });
+        ReduceTuple hv = reduce_data.value();
+        cnt = amrex::get<0>(hv);
+    } else
+#endif
     {
-        if (a(i,j,k,comp) <= val) {
-            m(i,j,k) = 1;
-            ++cnt;
-        }
-    });
+        AMREX_LOOP_3D(this->domain, i, j, k,
+        {
+            if (a(i,j,k) <= val) {
+                m(i,j,k) = 1;
+                ++cnt;
+            } else {
+                m(i,j,k) = 0;
+            }
+        });
+    }
+
     return cnt;
 }
 
 template <class T>
+template <RunOn run_on>
 int
-BaseFab<T>::maskEQ (BaseFab<int>& mask, T val, int comp) const noexcept
+BaseFab<T>::maskEQ (BaseFab<int>& mask, T const& val, int comp) const noexcept
 {
     mask.resize(this->domain,1);
     int cnt = 0;
     Array4<int> const& m = mask.array();
-    Array4<T const> const& a = this->const_array();
-    amrex::LoopOnCpu(this->domain, [=,&cnt] (int i, int j, int k) noexcept
+    Array4<T const> const& a = this->const_array(comp);
+#ifdef AMREX_USE_GPU
+    if (run_on == RunOn::Device and Gpu::inLaunchRegion()) {
+        ReduceOps<ReduceOpSum> reduce_op;
+        ReduceData<int> reduce_data(reduce_op);
+        using ReduceTuple = typename decltype(reduce_data)::Type;
+        reduce_op.eval(this->domain(), reduce_data,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
+        {
+            int t;
+            if (a(i,j,k) == val) {
+                m(i,j,k) = 1;
+                t = 1;
+            } else {
+                m(i,j,k) = 0;
+                t = 0;
+            }
+            return {t};
+        });
+        ReduceTuple hv = reduce_data.value();
+        cnt = amrex::get<0>(hv);
+    } else
+#endif
     {
-        if (a(i,j,k,comp) == val) {
-            m(i,j,k) = 1;
-            ++cnt;
-        }
-    });
+        AMREX_LOOP_3D(this->domain, i, j, k,
+        {
+            if (a(i,j,k) == val) {
+                m(i,j,k) = 1;
+                ++cnt;
+            } else {
+                m(i,j,k) = 0;
+            }
+        });
+    }
+
     return cnt;
 }
 
 template <class T>
+template <RunOn run_on>
 int
-BaseFab<T>::maskGT (BaseFab<int>& mask, T val, int comp) const noexcept
+BaseFab<T>::maskGT (BaseFab<int>& mask, T const& val, int comp) const noexcept
 {
     mask.resize(this->domain,1);
     int cnt = 0;
     Array4<int> const& m = mask.array();
-    Array4<T const> const& a = this->const_array();
-    amrex::LoopOnCpu(this->domain, [=,&cnt] (int i, int j, int k) noexcept
+    Array4<T const> const& a = this->const_array(comp);
+#ifdef AMREX_USE_GPU
+    if (run_on == RunOn::Device and Gpu::inLaunchRegion()) {
+        ReduceOps<ReduceOpSum> reduce_op;
+        ReduceData<int> reduce_data(reduce_op);
+        using ReduceTuple = typename decltype(reduce_data)::Type;
+        reduce_op.eval(this->domain(), reduce_data,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
+        {
+            int t;
+            if (a(i,j,k) > val) {
+                m(i,j,k) = 1;
+                t = 1;
+            } else {
+                m(i,j,k) = 0;
+                t = 0;
+            }
+            return {t};
+        });
+        ReduceTuple hv = reduce_data.value();
+        cnt = amrex::get<0>(hv);
+    } else
+#endif
     {
-        if (a(i,j,k,comp) > val) {
-            m(i,j,k) = 1;
-            ++cnt;
-        }
-    });
+        AMREX_LOOP_3D(this->domain, i, j, k,
+        {
+            if (a(i,j,k) > val) {
+                m(i,j,k) = 1;
+                ++cnt;
+            } else {
+                m(i,j,k) = 0;
+            }
+        });
+    }
+
     return cnt;
 }
 
 template <class T>
+template <RunOn run_on>
 int
-BaseFab<T>::maskGE (BaseFab<int>& mask, T val, int comp) const noexcept
+BaseFab<T>::maskGE (BaseFab<int>& mask, T const& val, int comp) const noexcept
 {
     mask.resize(this->domain,1);
     int cnt = 0;
     Array4<int> const& m = mask.array();
-    Array4<T const> const& a = this->const_array();
-    amrex::LoopOnCpu(this->domain, [=,&cnt] (int i, int j, int k) noexcept
+    Array4<T const> const& a = this->const_array(comp);
+#ifdef AMREX_USE_GPU
+    if (run_on == RunOn::Device and Gpu::inLaunchRegion()) {
+        ReduceOps<ReduceOpSum> reduce_op;
+        ReduceData<int> reduce_data(reduce_op);
+        using ReduceTuple = typename decltype(reduce_data)::Type;
+        reduce_op.eval(this->domain(), reduce_data,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
+        {
+            int t;
+            if (a(i,j,k) >= val) {
+                m(i,j,k) = 1;
+                t = 1;
+            } else {
+                m(i,j,k) = 0;
+                t = 0;
+            }
+            return {t};
+        });
+        ReduceTuple hv = reduce_data.value();
+        cnt = amrex::get<0>(hv);
+    } else
+#endif
     {
-        if (a(i,j,k,comp) >= val) {
-            m(i,j,k) = 1;
-            ++cnt;
-        }
-    });
+        AMREX_LOOP_3D(this->domain, i, j, k,
+        {
+            if (a(i,j,k) >= val) {
+                m(i,j,k) = 1;
+                ++cnt;
+            } else {
+                m(i,j,k) = 0;
+            }
+        });
+    }
+
     return cnt;
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::atomicAdd (const BaseFab<T>& x) noexcept
 {
     Box ovlp(this->domain);
     ovlp &= x.domain;
-    return ovlp.ok() ? this->atomicAdd(x,ovlp,ovlp,0,0,this->nvar) : *this;
+    return ovlp.ok() ? this->atomicAdd<run_on>(x,ovlp,ovlp,0,0,this->nvar) : *this;
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::saxpy (T a, const BaseFab<T>& x, const Box& srcbox, const Box& destbox,
                    int srccomp, int destcomp, int numcomp) noexcept
@@ -2105,7 +2350,8 @@ BaseFab<T>::saxpy (T a, const BaseFab<T>& x, const Box& srcbox, const Box& destb
     const auto dlo = amrex::lbound(destbox);
     const auto slo = amrex::lbound(srcbox);
     const Dim3 offset{slo.x-dlo.x,slo.y-dlo.y,slo.z-dlo.z};
-    amrex::LoopConcurrent(destbox, numcomp, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT 
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on == RunOn::Device and Gpu::inLaunchRegion(),
+                                           destbox, numcomp, i, j, k, n,
     {
         d(i,j,k,n+destcomp) += a * s(i+offset.x,j+offset.y,k+offset.z,n+srccomp);
     });
@@ -2114,15 +2360,17 @@ BaseFab<T>::saxpy (T a, const BaseFab<T>& x, const Box& srcbox, const Box& destb
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::saxpy (T a, const BaseFab<T>& x) noexcept
 {
     Box ovlp(this->domain);
     ovlp &= x.domain;
-    return ovlp.ok() ? saxpy(a,x,ovlp,ovlp,0,0,this->nvar) : *this;
+    return ovlp.ok() ? saxpy<run_on>(a,x,ovlp,ovlp,0,0,this->nvar) : *this;
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::xpay (T a, const BaseFab<T>& x,
                   const Box& srcbox, const Box& destbox,
@@ -2141,7 +2389,8 @@ BaseFab<T>::xpay (T a, const BaseFab<T>& x,
     const auto dlo = amrex::lbound(destbox);
     const auto slo = amrex::lbound(srcbox);
     const Dim3 offset{slo.x-dlo.x,slo.y-dlo.y,slo.z-dlo.z};
-    amrex::LoopConcurrent(destbox, numcomp, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT 
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on == RunOn::Device and Gpu::inLaunchRegion(),
+                                           destbox, numcomp, i, j, k, n,
     {
         d(i,j,k,n+destcomp) = s(i+offset.x,j+offset.y,k+offset.z,n+srccomp) + a*d(i,j,k,n+destcomp);
     });
@@ -2150,6 +2399,7 @@ BaseFab<T>::xpay (T a, const BaseFab<T>& x,
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::addproduct (const Box& destbox, int destcomp, int numcomp,
                         const BaseFab<T>& src1, int comp1,
@@ -2164,7 +2414,8 @@ BaseFab<T>::addproduct (const Box& destbox, int destcomp, int numcomp,
     Array4<T> const& d = this->array();
     Array4<T const> const& s1 = src1.const_array();
     Array4<T const> const& s2 = src2.const_array();
-    amrex::LoopConcurrent(destbox, numcomp, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT 
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on == RunOn::Device and Gpu::inLaunchRegion(),
+                                           destbox, numcomp, i, j, k, n,
     {
         d(i,j,k,n+destcomp) += s1(i,j,k,n+comp1) * s2(i,j,k,n+comp2);
     });
@@ -2223,6 +2474,7 @@ BaseFab<T>::linComb (const BaseFab<T>& f1, const Box& b1, int comp1,
 }
 
 template <class T>
+template <RunOn run_on>
 T
 BaseFab<T>::dot (const Box& xbx, int xcomp,
                  const BaseFab<T>& y, const Box& ybx, int ycomp,
@@ -2251,15 +2503,32 @@ BaseFab<T>::dot (const Box& xbx, int xcomp,
     Array4<T const> const& xa = this->const_array();
     Array4<T const> const& ya = y.const_array();
 
-    amrex::Loop(xbx, numcomp, [=,&r] (int i, int j, int k, int n) AMREX_NOEXCEPT 
+#ifdef AMREX_USE_GPU
+    if (run_on == RunOn::Device and Gpu::inLaunchRegion()) {
+        ReduceOps<ReduceOpSum> reduce_op;
+        ReduceData<T> reduce_data(reduce_op);
+        using ReduceTuple = typename decltype(reduce_data)::Type;
+        reduce_op.eval(xbx, reduce_data,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
+        {
+            return { xa(i,j,k,n+xcomp) * ya(i+offset.x,j+offset.y,k+offset.z,n+ycomp) };
+        });
+        ReduceTuple hv = reduce_data.value();
+        r = amrex::get<0>(hv);
+    } else
+#endif
     {
-        r += xa(i,j,k,n+xcomp) * ya(i+offset.x,j+offset.y,k+offset.z,n+ycomp);
-    });
+        AMREX_LOOP_4D(xbx, numcomp, i, j, k, n,
+        {
+            r += xa(i,j,k,n+xcomp) * ya(i+offset.x,j+offset.y,k+offset.z,n+ycomp);
+        });
+    }
 
     return r;
 }
 
 template <class T>
+template <RunOn run_on>
 T
 BaseFab<T>::dotmask (const BaseFab<int>& mask, const Box& xbx, int xcomp,
                      const BaseFab<T>& y, const Box& ybx, int ycomp,
@@ -2290,11 +2559,28 @@ BaseFab<T>::dotmask (const BaseFab<int>& mask, const Box& xbx, int xcomp,
     Array4<T const> const& ya = y.const_array();
     Array4<int const> const& ma = mask.const_array();
 
-    amrex::Loop(xbx, numcomp, [=,&r] (int i, int j, int k, int n) AMREX_NOEXCEPT 
+#ifdef AMREX_USE_GPU
+    if (run_on == RunOn::Device and Gpu::inLaunchRegion()) {
+        ReduceOps<ReduceOpSum> reduce_op;
+        ReduceData<T> reduce_data(reduce_op);
+        using ReduceTuple = typename decltype(reduce_data)::Type;
+        reduce_op.eval(xbx, reduce_data,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
+        {
+            int m = static_cast<int>(static_cast<bool>(ma(i,j,k)));
+            return { xa(i,j,k,n+xcomp) * ya(i+offset.x,j+offset.y,k+offset.z,n+ycomp) * m };
+        });
+        ReduceTuple hv = reduce_data.value();
+        r = amrex::get<0>(hv);
+    } else
+#endif
     {
-        int m = static_cast<int>(static_cast<bool>(ma(i,j,k)));
-        r += xa(i,j,k,n+xcomp) * ya(i+offset.x,j+offset.y,k+offset.z,n+ycomp) * m;
-    });
+        AMREX_LOOP_4D(xbx, numcomp, i, j, k, n,
+        {
+            int m = static_cast<int>(static_cast<bool>(ma(i,j,k)));
+            r += xa(i,j,k,n+xcomp) * ya(i+offset.x,j+offset.y,k+offset.z,n+ycomp) * m;
+        });
+    }
 
     return r;
 }
@@ -2316,72 +2602,82 @@ BaseFab<T>::sum (const Box& subbox, int comp, int numcomp) const noexcept
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::negate (int comp, int numcomp) noexcept
 {
-    return this->negate(this->domain, DestComp{comp}, NumComps{numcomp});
+    return this->negate<run_on>(this->domain, DestComp{comp}, NumComps{numcomp});
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::negate (const Box& b, int comp, int numcomp) noexcept
 {
-    return this->negate(b, DestComp{comp}, NumComps{numcomp});
+    return this->negate<run_on>(b, DestComp{comp}, NumComps{numcomp});
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
-BaseFab<T>::invert (T r, int comp, int numcomp) noexcept
+BaseFab<T>::invert (T const& r, int comp, int numcomp) noexcept
 {
-    return this->invert(r, this->domain, DestComp{comp}, NumComps{numcomp});
+    return this->invert<run_on>(r, this->domain, DestComp{comp}, NumComps{numcomp});
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
-BaseFab<T>::invert (T r, const Box& b, int comp, int numcomp) noexcept
+BaseFab<T>::invert (T const& r, const Box& b, int comp, int numcomp) noexcept
 {
-    return this->invert(r, b, DestComp{comp}, NumComps{numcomp});
+    return this->invert<run_on>(r, b, DestComp{comp}, NumComps{numcomp});
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
-BaseFab<T>::plus (T r, int comp, int numcomp) noexcept
+BaseFab<T>::plus (T const& r, int comp, int numcomp) noexcept
 {
-    return this->plus(r, this->domain, DestComp{comp}, NumComps{numcomp});
+    return this->plus<run_on>(r, this->domain, DestComp{comp}, NumComps{numcomp});
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
-BaseFab<T>::plus (T r, const Box& b, int comp, int numcomp) noexcept
+BaseFab<T>::plus (T const& r, const Box& b, int comp, int numcomp) noexcept
 {
-    return this->plus(r, b, DestComp{comp}, NumComps{numcomp});
+    return this->plus<run_on>(r, b, DestComp{comp}, NumComps{numcomp});
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::plus (const BaseFab<T>& src, int srccomp, int destcomp, int numcomp) noexcept
 {
-    return this->plus(src, this->domain, SrcComp{srccomp}, DestComp{destcomp}, NumComps{numcomp});
+    return this->plus<run_on>(src, this->domain, SrcComp{srccomp}, DestComp{destcomp}, NumComps{numcomp});
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::atomicAdd (const BaseFab<T>& src, int srccomp, int destcomp, int numcomp) noexcept
 {
     Box ovlp(this->domain);
     ovlp &= src.domain;
-    return ovlp.ok() ? this->atomicAdd(src,ovlp,ovlp,srccomp,destcomp,numcomp) : *this;
+    return ovlp.ok() ? this->atomicAdd<run_on>(src,ovlp,ovlp,srccomp,destcomp,numcomp) : *this;
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::plus (const BaseFab<T>& src, const Box& subbox, int srccomp, int destcomp,
                   int numcomp) noexcept
 {
-    return this->plus(src, subbox, SrcComp{srccomp}, DestComp{destcomp}, NumComps{numcomp});
+    return this->plus<run_on>(src, subbox, SrcComp{srccomp}, DestComp{destcomp}, NumComps{numcomp});
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::atomicAdd (const BaseFab<T>& src, const Box& subbox, int srccomp, int destcomp,
                        int numcomp) noexcept
@@ -2389,10 +2685,11 @@ BaseFab<T>::atomicAdd (const BaseFab<T>& src, const Box& subbox, int srccomp, in
     Box ovlp(this->domain);
     ovlp &= src.domain;
     ovlp &= subbox;
-    return ovlp.ok() ? this->atomicAdd(src,ovlp,ovlp,srccomp,destcomp,numcomp) : *this;
+    return ovlp.ok() ? this->atomicAdd<run_on>(src,ovlp,ovlp,srccomp,destcomp,numcomp) : *this;
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::plus (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
                   int srccomp, int destcomp, int numcomp) noexcept
@@ -2417,7 +2714,8 @@ BaseFab<T>::plus (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
 #else
     const Dim3 offset{slo.x-dlo.x,slo.y-dlo.y,slo.z-dlo.z};
 #endif
-    amrex::LoopConcurrent(destbox, numcomp, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT 
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on == RunOn::Device and Gpu::inLaunchRegion(),
+                                           destbox, numcomp, i, j, k, n,
     {
         d(i,j,k,n+destcomp) += s(i+offset.x,j+offset.y,k+offset.z,n+srccomp);
     });
@@ -2426,6 +2724,7 @@ BaseFab<T>::plus (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::atomicAdd (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
                        int srccomp, int destcomp, int numcomp) noexcept
@@ -2442,37 +2741,34 @@ BaseFab<T>::atomicAdd (const BaseFab<T>& src, const Box& srcbox, const Box& dest
     const auto dlo = amrex::lbound(destbox);
     const auto slo = amrex::lbound(srcbox);
     const Dim3 offset{slo.x-dlo.x,slo.y-dlo.y,slo.z-dlo.z};
-    amrex::Loop(destbox, numcomp, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT 
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on == RunOn::Device and Gpu::inLaunchRegion(),
+                                           destbox, numcomp, i, j, k, n,
     {
         T* p = d.ptr(i,j,k,n+destcomp);
-#if AMREX_DEVICE_COMPILE
-        amrex::Gpu::Atomic::Add(p, s(i+offset.x,j+offset.y,k+offset.z,n+srccomp));
-#else
-#ifdef _OPENMP
-_Pragma("omp atomic update")
-#endif
-        *p += s(i+offset.x,j+offset.y,k+offset.z,n+srccomp);
-#endif
+        HostDevice::Atomic::Add(p, s(i+offset.x,j+offset.y,k+offset.z,n+srccomp));
     });
 
     return *this;
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::minus (const BaseFab<T>& src, int srccomp, int destcomp, int numcomp) noexcept
 {
-    return this->minus(src, this->domain, SrcComp{srccomp}, DestComp{destcomp}, NumComps{numcomp});
+    return this->minus<run_on>(src, this->domain, SrcComp{srccomp}, DestComp{destcomp}, NumComps{numcomp});
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::minus (const BaseFab<T>& src, const Box& subbox, int srccomp, int destcomp, int numcomp) noexcept
 {
-    return this->minus(src, subbox, SrcComp{srccomp}, DestComp{destcomp}, NumComps{numcomp});
+    return this->minus<run_on>(src, subbox, SrcComp{srccomp}, DestComp{destcomp}, NumComps{numcomp});
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::minus (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
                    int srccomp, int destcomp, int numcomp) noexcept
@@ -2489,7 +2785,8 @@ BaseFab<T>::minus (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
     const auto dlo = amrex::lbound(destbox);
     const auto slo = amrex::lbound(srcbox);
     const Dim3 offset{slo.x-dlo.x,slo.y-dlo.y,slo.z-dlo.z};
-    amrex::LoopConcurrent(destbox, numcomp, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT 
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on == RunOn::Device and Gpu::inLaunchRegion(),
+                                           destbox, numcomp, i, j, k, n,
     {
         d(i,j,k,n+destcomp) -= s(i+offset.x,j+offset.y,k+offset.z,n+srccomp);
     });
@@ -2498,20 +2795,23 @@ BaseFab<T>::minus (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
-BaseFab<T>::mult (T r, int comp, int numcomp) noexcept
+BaseFab<T>::mult (T const& r, int comp, int numcomp) noexcept
 {
     return this->mult(r, this->domain, DestComp{comp}, NumComps{numcomp});
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
-BaseFab<T>::mult (T r, const Box& b, int comp, int numcomp) noexcept
+BaseFab<T>::mult (T const& r, const Box& b, int comp, int numcomp) noexcept
 {
     return this->mult(r, b, DestComp{comp}, NumComps{numcomp});
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::mult (const BaseFab<T>& src, int srccomp, int destcomp, int numcomp) noexcept
 {
@@ -2519,6 +2819,7 @@ BaseFab<T>::mult (const BaseFab<T>& src, int srccomp, int destcomp, int numcomp)
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::mult (const BaseFab<T>& src, const Box& subbox, int srccomp, int destcomp, int numcomp) noexcept
 {
@@ -2526,6 +2827,7 @@ BaseFab<T>::mult (const BaseFab<T>& src, const Box& subbox, int srccomp, int des
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::mult (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
                   int srccomp, int destcomp, int numcomp) noexcept
@@ -2542,7 +2844,8 @@ BaseFab<T>::mult (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
     const auto dlo = amrex::lbound(destbox);
     const auto slo = amrex::lbound(srcbox);
     const Dim3 offset{slo.x-dlo.x,slo.y-dlo.y,slo.z-dlo.z};
-    amrex::LoopConcurrent(destbox, numcomp, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT 
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on == RunOn::Device and Gpu::inLaunchRegion(),
+                                           destbox, numcomp, i, j, k, n,
     {
         d(i,j,k,n+destcomp) *= s(i+offset.x,j+offset.y,k+offset.z,n+srccomp);
     });
@@ -2551,20 +2854,23 @@ BaseFab<T>::mult (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
-BaseFab<T>::divide (T r, int comp, int numcomp) noexcept
+BaseFab<T>::divide (T const& r, int comp, int numcomp) noexcept
 {
     return this->divide(r, this->domain, DestComp{comp}, NumComps{numcomp});
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
-BaseFab<T>::divide (T r, const Box& b, int comp, int numcomp) noexcept
+BaseFab<T>::divide (T const& r, const Box& b, int comp, int numcomp) noexcept
 {
     return this->divide(r, b, DestComp{comp}, NumComps{numcomp});
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::divide (const BaseFab<T>& src, int srccomp, int destcomp, int numcomp) noexcept
 {
@@ -2572,6 +2878,7 @@ BaseFab<T>::divide (const BaseFab<T>& src, int srccomp, int destcomp, int numcom
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::divide (const BaseFab<T>& src, const Box& subbox, int srccomp, int destcomp, int numcomp) noexcept
 {
@@ -2579,6 +2886,7 @@ BaseFab<T>::divide (const BaseFab<T>& src, const Box& subbox, int srccomp, int d
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::divide (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
                     int srccomp, int destcomp, int numcomp) noexcept
@@ -2595,7 +2903,8 @@ BaseFab<T>::divide (const BaseFab<T>& src, const Box& srcbox, const Box& destbox
     const auto dlo = amrex::lbound(destbox);
     const auto slo = amrex::lbound(srcbox);
     const Dim3 offset{slo.x-dlo.x,slo.y-dlo.y,slo.z-dlo.z};
-    amrex::LoopConcurrent(destbox, numcomp, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT 
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on == RunOn::Device and Gpu::inLaunchRegion(),
+                                           destbox, numcomp, i, j, k, n,
     {
         d(i,j,k,n+destcomp) /= s(i+offset.x,j+offset.y,k+offset.z,n+srccomp);
     });
@@ -2604,24 +2913,27 @@ BaseFab<T>::divide (const BaseFab<T>& src, const Box& srcbox, const Box& destbox
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::protected_divide (const BaseFab<T>& src) noexcept
 {
     Box ovlp(this->domain);
     ovlp &= src.domain;
-    return ovlp.ok() ? this->protected_divide(src,ovlp,ovlp,0,0,this->nvar) : *this;
+    return ovlp.ok() ? this->protected_divide<run_on>(src,ovlp,ovlp,0,0,this->nvar) : *this;
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::protected_divide (const BaseFab<T>& src, int srccomp, int destcomp, int numcomp) noexcept
 {
     Box ovlp(this->domain);
     ovlp &= src.domain;
-    return ovlp.ok() ? this->protected_divide(src,ovlp,ovlp,srccomp,destcomp,numcomp) : *this;
+    return ovlp.ok() ? this->protected_divide<run_on>(src,ovlp,ovlp,srccomp,destcomp,numcomp) : *this;
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::protected_divide (const BaseFab<T>& src, const Box& subbox, int srccomp, int destcomp,
                               int numcomp) noexcept
@@ -2629,10 +2941,11 @@ BaseFab<T>::protected_divide (const BaseFab<T>& src, const Box& subbox, int srcc
     Box ovlp(this->domain);
     ovlp &= src.domain;
     ovlp &= subbox;
-    return ovlp.ok() ? this->protected_divide(src,ovlp,ovlp,srccomp,destcomp,numcomp) : *this;
+    return ovlp.ok() ? this->protected_divide<run_on>(src,ovlp,ovlp,srccomp,destcomp,numcomp) : *this;
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::protected_divide (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
                               int srccomp, int destcomp, int numcomp) noexcept
@@ -2649,7 +2962,8 @@ BaseFab<T>::protected_divide (const BaseFab<T>& src, const Box& srcbox, const Bo
     const auto dlo = amrex::lbound(destbox);
     const auto slo = amrex::lbound(srcbox);
     const Dim3 offset{slo.x-dlo.x,slo.y-dlo.y,slo.z-dlo.z};
-    amrex::LoopConcurrent(destbox, numcomp, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT 
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on == RunOn::Device and Gpu::inLaunchRegion(),
+                                           destbox, numcomp, i, j, k, n,
     {
         if (s(i+offset.x,j+offset.y,k+offset.z,n+srccomp) != 0) {
             d(i,j,k,n+destcomp) /= s(i+offset.x,j+offset.y,k+offset.z,n+srccomp);
@@ -2837,27 +3151,31 @@ BaseFab<T>::copy (const BaseFab<T>& src, Box bx,
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
-BaseFab<T>::plus (T val) noexcept
+BaseFab<T>::plus (T const& val) noexcept
 {
-    return this->plus(val, this->domain, DestComp{0}, NumComps{this->nvar});
+    return this->plus<run_on>(val, this->domain, DestComp{0}, NumComps{this->nvar});
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
-BaseFab<T>::operator+= (T val) noexcept
+BaseFab<T>::operator+= (T const& val) noexcept
 {
-    return this->plus(val, this->domain,  DestComp{0}, NumComps{this->nvar});
+    return this->plus<run_on>(val, this->domain,  DestComp{0}, NumComps{this->nvar});
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
-BaseFab<T>::plus (T val, Box const& bx, DestComp dcomp, NumComps ncomp) noexcept
+BaseFab<T>::plus (T const& val, Box const& bx, DestComp dcomp, NumComps ncomp) noexcept
 {
     BL_ASSERT(dcomp.i >= 0 && dcomp.i + ncomp.n <= this->nvar);
 
     Array4<T> const& a = this->array();
-    amrex::LoopConcurrent(bx, ncomp.n, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT 
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on == RunOn::Device and Gpu::inLaunchRegion(),
+                                           bx, ncomp.n, i, j, k, n,
     {
         a(i,j,k,n+dcomp.i) += val;
     });
@@ -2866,20 +3184,23 @@ BaseFab<T>::plus (T val, Box const& bx, DestComp dcomp, NumComps ncomp) noexcept
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::plus (const BaseFab<T>& src) noexcept
 {
-    return this->plus(src, this->domain, SrcComp{0}, DestComp{0}, NumComps{this->nvar});
+    return this->plus<run_on>(src, this->domain, SrcComp{0}, DestComp{0}, NumComps{this->nvar});
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::operator+= (const BaseFab<T>& src) noexcept
 {
-    return this->plus(src, this->domain, SrcComp{0}, DestComp{0}, NumComps{this->nvar});
+    return this->plus<run_on>(src, this->domain, SrcComp{0}, DestComp{0}, NumComps{this->nvar});
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::plus (const BaseFab<T>& src, Box bx,
                   SrcComp scomp, DestComp dcomp, NumComps ncomp) noexcept
@@ -2892,7 +3213,8 @@ BaseFab<T>::plus (const BaseFab<T>& src, Box bx,
 
     Array4<T> const& d = this->array();
     Array4<T const> const& s = src.const_array();
-    amrex::LoopConcurrent(bx, ncomp.n, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT 
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on == RunOn::Device and Gpu::inLaunchRegion(),
+                                           bx, ncomp.n, i, j, k, n,
     {
         d(i,j,k,n+dcomp.i) += s(i,j,k,n+scomp.i);
     });
@@ -2901,27 +3223,31 @@ BaseFab<T>::plus (const BaseFab<T>& src, Box bx,
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
-BaseFab<T>::minus (T val) noexcept
+BaseFab<T>::minus (T const& val) noexcept
 {
-    return this->minus(val, this->domain, DestComp{0}, NumComps{this->nvar});
+    return this->minus<run_on>(val, this->domain, DestComp{0}, NumComps{this->nvar});
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
-BaseFab<T>::operator-= (T val) noexcept
+BaseFab<T>::operator-= (T const& val) noexcept
 {
-    return this->minus(val, this->domain,  DestComp{0}, NumComps{this->nvar});
+    return this->minus<run_on>(val, this->domain,  DestComp{0}, NumComps{this->nvar});
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
-BaseFab<T>::minus (T val, Box const& bx, DestComp dcomp, NumComps ncomp) noexcept
+BaseFab<T>::minus (T const& val, Box const& bx, DestComp dcomp, NumComps ncomp) noexcept
 {
     BL_ASSERT(dcomp.i >= 0 && dcomp.i + ncomp.n <= this->nvar);
 
     Array4<T> const& a = this->array();
-    amrex::LoopConcurrent(bx, ncomp.n, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT 
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on == RunOn::Device and Gpu::inLaunchRegion(),
+                                           bx, ncomp.n, i, j, k, n,
     {
         a(i,j,k,n+dcomp.i) -= val;
     });
@@ -2930,20 +3256,23 @@ BaseFab<T>::minus (T val, Box const& bx, DestComp dcomp, NumComps ncomp) noexcep
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::minus (const BaseFab<T>& src) noexcept
 {
-    return this->minus(src, this->domain, SrcComp{0}, DestComp{0}, NumComps{this->nvar});
+    return this->minus<run_on>(src, this->domain, SrcComp{0}, DestComp{0}, NumComps{this->nvar});
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::operator-= (const BaseFab<T>& src) noexcept
 {
-    return this->minus(src, this->domain, SrcComp{0}, DestComp{0}, NumComps{this->nvar});
+    return this->minus<run_on>(src, this->domain, SrcComp{0}, DestComp{0}, NumComps{this->nvar});
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::minus (const BaseFab<T>& src, Box bx,
                    SrcComp scomp, DestComp dcomp, NumComps ncomp) noexcept
@@ -2956,7 +3285,8 @@ BaseFab<T>::minus (const BaseFab<T>& src, Box bx,
 
     Array4<T> const& d = this->array();
     Array4<T const> const& s = src.const_array();
-    amrex::LoopConcurrent(bx, ncomp.n, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT 
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on == RunOn::Device and Gpu::inLaunchRegion(),
+                                           bx, ncomp.n, i, j, k, n,
     {
         d(i,j,k,n+dcomp.i) -= s(i,j,k,n+scomp.i);
     });
@@ -2965,27 +3295,31 @@ BaseFab<T>::minus (const BaseFab<T>& src, Box bx,
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
-BaseFab<T>::mult (T val) noexcept
+BaseFab<T>::mult (T const& val) noexcept
 {
-    return this->mult(val, this->domain, DestComp{0}, NumComps{this->nvar});
+    return this->mult<run_on>(val, this->domain, DestComp{0}, NumComps{this->nvar});
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
-BaseFab<T>::operator*= (T val) noexcept
+BaseFab<T>::operator*= (T const& val) noexcept
 {
-    return this->mult(val, this->domain,  DestComp{0}, NumComps{this->nvar});
+    return this->mult<run_on>(val, this->domain,  DestComp{0}, NumComps{this->nvar});
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
-BaseFab<T>::mult (T val, Box const& bx, DestComp dcomp, NumComps ncomp) noexcept
+BaseFab<T>::mult (T const& val, Box const& bx, DestComp dcomp, NumComps ncomp) noexcept
 {
     BL_ASSERT(dcomp.i >= 0 && dcomp.i + ncomp.n <= this->nvar);
 
     Array4<T> const& a = this->array();
-    amrex::LoopConcurrent(bx, ncomp.n, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT 
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on == RunOn::Device and Gpu::inLaunchRegion(),
+                                           bx, ncomp.n, i, j, k, n,
     {
         a(i,j,k,n+dcomp.i) *= val;
     });
@@ -2994,20 +3328,23 @@ BaseFab<T>::mult (T val, Box const& bx, DestComp dcomp, NumComps ncomp) noexcept
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::mult (const BaseFab<T>& src) noexcept
 {
-    return this->mult(src, this->domain, SrcComp{0}, DestComp{0}, NumComps{this->nvar});
+    return this->mult<run_on>(src, this->domain, SrcComp{0}, DestComp{0}, NumComps{this->nvar});
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::operator*= (const BaseFab<T>& src) noexcept
 {
-    return this->mult(src, this->domain, SrcComp{0}, DestComp{0}, NumComps{this->nvar});
+    return this->mult<run_on>(src, this->domain, SrcComp{0}, DestComp{0}, NumComps{this->nvar});
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::mult (const BaseFab<T>& src, Box bx,
                   SrcComp scomp, DestComp dcomp, NumComps ncomp) noexcept
@@ -3020,7 +3357,8 @@ BaseFab<T>::mult (const BaseFab<T>& src, Box bx,
 
     Array4<T> const& d = this->array();
     Array4<T const> const& s = src.const_array();
-    amrex::LoopConcurrent(bx, ncomp.n, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT 
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on == RunOn::Device and Gpu::inLaunchRegion(),
+                                           bx, ncomp.n, i, j, k, n,
     {
         d(i,j,k,n+dcomp.i) *= s(i,j,k,n+scomp.i);
     });
@@ -3029,27 +3367,31 @@ BaseFab<T>::mult (const BaseFab<T>& src, Box bx,
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
-BaseFab<T>::divide (T val) noexcept
+BaseFab<T>::divide (T const& val) noexcept
 {
-    return this->divide(val, this->domain, DestComp{0}, NumComps{this->nvar});
+    return this->divide<run_on>(val, this->domain, DestComp{0}, NumComps{this->nvar});
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
-BaseFab<T>::operator/= (T val) noexcept
+BaseFab<T>::operator/= (T const& val) noexcept
 {
-    return this->divide(val, this->domain,  DestComp{0}, NumComps{this->nvar});
+    return this->divide<run_on>(val, this->domain,  DestComp{0}, NumComps{this->nvar});
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
-BaseFab<T>::divide (T val, Box const& bx, DestComp dcomp, NumComps ncomp) noexcept
+BaseFab<T>::divide (T const& val, Box const& bx, DestComp dcomp, NumComps ncomp) noexcept
 {
     BL_ASSERT(dcomp.i >= 0 && dcomp.i + ncomp.n <= this->nvar);
 
     Array4<T> const& a = this->array();
-    amrex::LoopConcurrent(bx, ncomp.n, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT 
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on == RunOn::Device and Gpu::inLaunchRegion(),
+                                           bx, ncomp.n, i, j, k, n,
     {
         a(i,j,k,n+dcomp.i) /= val;
     });
@@ -3058,20 +3400,23 @@ BaseFab<T>::divide (T val, Box const& bx, DestComp dcomp, NumComps ncomp) noexce
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::divide (const BaseFab<T>& src) noexcept
 {
-    return this->divide(src, this->domain, SrcComp{0}, DestComp{0}, NumComps{this->nvar});
+    return this->divide<run_on>(src, this->domain, SrcComp{0}, DestComp{0}, NumComps{this->nvar});
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::operator/= (const BaseFab<T>& src) noexcept
 {
-    return this->divide(src, this->domain, SrcComp{0}, DestComp{0}, NumComps{this->nvar});
+    return this->divide<run_on>(src, this->domain, SrcComp{0}, DestComp{0}, NumComps{this->nvar});
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::divide (const BaseFab<T>& src, Box bx,
                     SrcComp scomp, DestComp dcomp, NumComps ncomp) noexcept
@@ -3084,7 +3429,8 @@ BaseFab<T>::divide (const BaseFab<T>& src, Box bx,
 
     Array4<T> const& d = this->array();
     Array4<T const> const& s = src.const_array();
-    amrex::LoopConcurrent(bx, ncomp.n, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT 
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on == RunOn::Device and Gpu::inLaunchRegion(),
+                                           bx, ncomp.n, i, j, k, n,
     {
         d(i,j,k,n+dcomp.i) /= s(i,j,k,n+scomp.i);
     });
@@ -3093,20 +3439,23 @@ BaseFab<T>::divide (const BaseFab<T>& src, Box bx,
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::negate () noexcept
 {
-    return this->negate(this->domain, DestComp{0}, NumComps{this->nvar});
+    return this->negate<run_on>(this->domain, DestComp{0}, NumComps{this->nvar});
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::negate (const Box& bx, DestComp dcomp, NumComps ncomp) noexcept
 {
     BL_ASSERT(dcomp.i >= 0 && dcomp.i + ncomp.n <= this->nvar);
 
     Array4<T> const& a = this->array();
-    amrex::LoopConcurrent(bx, ncomp.n, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT 
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on == RunOn::Device and Gpu::inLaunchRegion(),
+                                           bx, ncomp.n, i, j, k, n,
     {
         a(i,j,k,n+dcomp.i) = -a(i,j,k,n+dcomp.i);
     });
@@ -3115,20 +3464,23 @@ BaseFab<T>::negate (const Box& bx, DestComp dcomp, NumComps ncomp) noexcept
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
-BaseFab<T>::invert (T r) noexcept
+BaseFab<T>::invert (T const& r) noexcept
 {
-    return this->invert(r, this->domain, DestComp{0}, NumComps{this->nvar});
+    return this->invert<run_on>(r, this->domain, DestComp{0}, NumComps{this->nvar});
 }
 
 template <class T>
+template <RunOn run_on>
 BaseFab<T>&
-BaseFab<T>::invert (T r, const Box& bx, DestComp dcomp, NumComps ncomp) noexcept
+BaseFab<T>::invert (T const& r, const Box& bx, DestComp dcomp, NumComps ncomp) noexcept
 {
     BL_ASSERT(dcomp.i >= 0 && dcomp.i + ncomp.n <= this->nvar);
 
     Array4<T> const& a = this->array();
-    amrex::LoopConcurrent(bx, ncomp.n, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT 
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on == RunOn::Device and Gpu::inLaunchRegion(),
+                                           bx, ncomp.n, i, j, k, n,
     {
         a(i,j,k,n+dcomp.i) = r / a(i,j,k,n+dcomp.i);
     });
@@ -3160,11 +3512,11 @@ BaseFab<T>::sum (const Box& bx, DestComp dcomp, NumComps ncomp) const noexcept
             return { t };
         });
         ReduceTuple hv = reduce_data.value();
-        return amrex::get<0>(hv);
+        r = amrex::get<0>(hv);
     } else
 #endif
     {
-        amrex::LoopOnCpu(bx, ncomp.n, [=,&r] (int i, int j, int k, int n) AMREX_NOEXCEPT 
+        amrex::LoopOnCpu(bx, ncomp.n, [=,&r] (int i, int j, int k, int n) AMREX_NOEXCEPT
         {
             r += a(i,j,k,n+dcomp.i);
         });
@@ -3174,6 +3526,7 @@ BaseFab<T>::sum (const Box& bx, DestComp dcomp, NumComps ncomp) const noexcept
 }
 
 template <class T>
+template <RunOn run_on>
 T
 BaseFab<T>::dot (const BaseFab<T>& src, const Box& bx, SrcComp scomp, DestComp dcomp, NumComps ncomp) const noexcept
 {
@@ -3184,23 +3537,45 @@ BaseFab<T>::dot (const BaseFab<T>& src, const Box& bx, SrcComp scomp, DestComp d
     T r = 0;
     Array4<T const> const& d = this->const_array();
     Array4<T const> const& s = src.const_array();
-    amrex::Loop(bx, ncomp.n, [=,&r] (int i, int j, int k, int n) AMREX_NOEXCEPT 
+#ifdef AMREX_USE_GPU
+    if (run_on == RunOn::Device and Gpu::inLaunchRegion()) {
+        ReduceOps<ReduceOpSum> reduce_op;
+        ReduceData<T> reduce_data(reduce_op);
+        using ReduceTuple = typename decltype(reduce_data)::Type;
+        reduce_op.eval(bx, reduce_data,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
+        {
+            T t = 0;
+            for (int n = 0; n < ncomp.n; ++n) {
+                t += d(i,j,k,n+dcomp.i) * s(i,j,k,n+scomp.i);
+            }
+            return { t };
+        });
+        ReduceTuple hv = reduce_data.value();
+        r = amrex::get<0>(hv);
+    } else
+#endif
     {
-        r += s(i,j,k,n+dcomp.i) * s(i,j,k,n+scomp.i);
-    });
+        amrex::LoopOnCpu(bx, ncomp.n, [=,&r] (int i, int j, int k, int n) AMREX_NOEXCEPT
+        {
+            r += d(i,j,k,n+dcomp.i) * s(i,j,k,n+scomp.i);
+        });
+    }
 
     return r;
 }
 
 template <class T>
+template <RunOn run_on>
 T
 BaseFab<T>::dot (const Box& bx, int destcomp, int numcomp) const noexcept
 {
-    return dot(bx, DestComp{destcomp}, NumComps{numcomp});
+    return dot<run_on>(bx, DestComp{destcomp}, NumComps{numcomp});
 }
 
 
 template <class T>
+template <RunOn run_on>
 T
 BaseFab<T>::dot (const Box& bx, DestComp dcomp, NumComps ncomp) const noexcept
 {
@@ -3208,15 +3583,36 @@ BaseFab<T>::dot (const Box& bx, DestComp dcomp, NumComps ncomp) const noexcept
 
     T r = 0;
     Array4<T const> const& a = this->const_array();
-    amrex::Loop(bx, ncomp.n, [=,&r] (int i, int j, int k, int n) AMREX_NOEXCEPT 
+#ifdef AMREX_USE_GPU
+    if (run_on == RunOn::Device and Gpu::inLaunchRegion()) {
+        ReduceOps<ReduceOpSum> reduce_op;
+        ReduceData<T> reduce_data(reduce_op);
+        using ReduceTuple = typename decltype(reduce_data)::Type;
+        reduce_op.eval(bx, reduce_data,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
+        {
+            T t = 0;
+            for (int n = 0; n < ncomp.n; ++n) {
+                t += a(i,j,k,n+dcomp.i)*a(i,j,k,n+dcomp.i);
+            }
+            return { t };
+        });
+        ReduceTuple hv = reduce_data.value();
+        r = amrex::get<0>(hv);
+    } else
+#endif
     {
-        r += a(i,j,k,n+dcomp.i)*a(i,j,k,n+dcomp.i);
-    });
+        amrex::LoopOnCpu(bx, ncomp.n, [=,&r] (int i, int j, int k, int n) AMREX_NOEXCEPT
+        {
+            r += a(i,j,k,n+dcomp.i)*a(i,j,k,n+dcomp.i);
+        });
+    }
 
     return r;
 }
 
 template <class T>
+template <RunOn run_on>
 T
 BaseFab<T>::dotmask (const BaseFab<T>& src, const Box& bx, const BaseFab<int>& mask,
                      SrcComp scomp, DestComp dcomp, NumComps ncomp) const noexcept
@@ -3230,11 +3626,32 @@ BaseFab<T>::dotmask (const BaseFab<T>& src, const Box& bx, const BaseFab<int>& m
     Array4<T const> const& d = this->const_array();
     Array4<T const> const& s = src.const_array();
     Array4<int const> const& m = mask.const_array();
-    amrex::Loop(bx, ncomp.n, [=,&r] (int i, int j, int k, int n) AMREX_NOEXCEPT 
+#ifdef AMREX_USE_GPU
+    if (run_on == RunOn::Device and Gpu::inLaunchRegion()) {
+        ReduceOps<ReduceOpSum> reduce_op;
+        ReduceData<T> reduce_data(reduce_op);
+        using ReduceTuple = typename decltype(reduce_data)::Type;
+        reduce_op.eval(bx, reduce_data,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
+        {
+            T t = 0;
+            T mi = static_cast<T>(static_cast<int>(static_cast<bool>(m(i,j,k))));
+            for (int n = 0; n < ncomp.n; ++n) {
+                t += d(i,j,k,n+dcomp.i)*s(i,j,k,n+scomp.i)*mi;
+            }
+            return { t };
+        });
+        ReduceTuple hv = reduce_data.value();
+        r = amrex::get<0>(hv);
+    } else
+#endif
     {
-        int mi = static_cast<int>(static_cast<bool>(m(i,j,k)));
-        r += s(i,j,k,n+dcomp.i) * s(i,j,k,n+scomp.i) * mi;
-    });
+        amrex::LoopOnCpu(bx, ncomp.n, [=,&r] (int i, int j, int k, int n) AMREX_NOEXCEPT
+        {
+            int mi = static_cast<int>(static_cast<bool>(m(i,j,k)));
+            r += d(i,j,k,n+dcomp.i)*s(i,j,k,n+scomp.i)*mi;
+        });
+    }
 
     return r;
 }
