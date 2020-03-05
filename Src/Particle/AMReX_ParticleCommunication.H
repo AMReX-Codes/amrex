@@ -401,18 +401,19 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buff
             ParallelDescriptor::Arecv((char*) (rcv_buffer.dataPtr() + offset), Cnt, Who, SeqNum).req();
     }
 
+    if (plan.m_NumSnds == 0) return;
+    
     // Send.
     for (int i = 0; i < NProcs; ++i)
     {
         if (i == MyProc) continue;
         const auto Who = i;
-        const auto Cnt = (plan.m_NumSnds == 0) ? 0 : plan.m_snd_counts_h[i];
-
+        const auto Cnt = plan.m_snd_counts_h[i];
         if (Cnt == 0) continue;
-
+        
         AMREX_ASSERT(Who >= 0 && Who < NProcs);
         AMREX_ASSERT(Cnt < std::numeric_limits<int>::max());
-
+        
         auto snd_offset = plan.m_snd_offsets_h[i];
         ParallelDescriptor::Send((char*)(snd_buffer.dataPtr()+snd_offset), Cnt, Who, SeqNum);
     }

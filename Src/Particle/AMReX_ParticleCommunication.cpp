@@ -175,8 +175,9 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, long psize)
     m_snd_offsets_h.push_back(0);
     for (int i = 0; i < NProcs; ++i)
     {
-        long Cnt = (i == MyProc) ? 0 : Cnt = m_snd_num_particles[i]*psize;
-        m_snd_counts_h.push_back(Cnt);
+        long Cnt = m_snd_num_particles[i]*psize;
+        long bytes_to_send = (i == MyProc) ? 0 : Cnt;
+        m_snd_counts_h.push_back(bytes_to_send);
         m_snd_offsets_h.push_back(m_snd_offsets_h.back() + Cnt);
     }
 
