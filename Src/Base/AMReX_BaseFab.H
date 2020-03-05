@@ -2491,13 +2491,11 @@ BaseFab<T>::indexFromValue (Box const& subbox, int comp, T const& value) const n
         amrex::ParallelFor(subbox, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             int* flag = p;
-            if (*flag == 0) {
-                if (a(i,j,k) == value) {
-                    if (Gpu::Atomic::Exch(flag,1) == 0) {
-                        AMREX_D_TERM(p[1] = i;,
-                                     p[2] = j;,
-                                     p[3] = k;);
-                    }
+            if ((*flag == 0) and (a(i,j,k) == value)) {
+                if (Gpu::Atomic::Exch(flag,1) == 0) {
+                    AMREX_D_TERM(p[1] = i;,
+                                 p[2] = j;,
+                                 p[3] = k;);
                 }
             }
         });

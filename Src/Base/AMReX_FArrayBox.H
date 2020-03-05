@@ -243,7 +243,11 @@ public:
     FArrayBox& operator= (FArrayBox&&) = delete;
 
     //! Set the fab to the value r.
+#if defined(AMREX_USE_GPU)
     template <RunOn run_on>
+#else
+    template < RunOn run_on >
+#endif
     FArrayBox& operator= (Real r) noexcept;
     //
     void initVal () noexcept;
@@ -252,30 +256,70 @@ public:
     * This may return false, even if the FAB contains NaNs, if the machine
     * doesn't support the appropriate NaN testing functions.
     */
+#if defined(AMREX_USE_GPU)
+    template <RunOn run_on>
+#else
+    template < RunOn run_on >
+#endif
     bool contains_nan () const noexcept;
 
+#if defined(AMREX_USE_GPU)
+    template <RunOn run_on>
+#else
+    template < RunOn run_on >
+#endif
     bool contains_nan (const Box& bx, int scomp, int ncomp) const noexcept;
     /**
     * \brief These versions return the cell index (though not the component) of
     * the first location of a NaN if there is one.
     */
+#if defined(AMREX_USE_GPU)
+    template <RunOn run_on>
+#else
+    template < RunOn run_on >
+#endif
     bool contains_nan (IntVect& where) const noexcept;
 
+#if defined(AMREX_USE_GPU)
+    template <RunOn run_on>
+#else
+    template < RunOn run_on >
+#endif
     bool contains_nan (const Box& bx, int scomp, int ncomp, IntVect& where) const noexcept;
     /**
     * \brief Are there any Infs in the FAB?
     * This may return false, even if the FAB contains Infs, if the machine
     * doesn't support the appropriate Inf testing functions.
     */
+#if defined(AMREX_USE_GPU)
+    template <RunOn run_on>
+#else
+    template < RunOn run_on >
+#endif
     bool contains_inf () const noexcept;
 
+#if defined(AMREX_USE_GPU)
+    template <RunOn run_on>
+#else
+    template < RunOn run_on >
+#endif
     bool contains_inf (const Box& bx, int scomp, int ncomp) const noexcept;
     /**
     * \brief These versions return the cell index (though not the component) of
     * the first location of an Inf if there is one.
     */
+#if defined(AMREX_USE_GPU)
+    template <RunOn run_on>
+#else
+    template < RunOn run_on >
+#endif
     bool contains_inf (IntVect& where) const noexcept;
 
+#if defined(AMREX_USE_GPU)
+    template <RunOn run_on>
+#else
+    template < RunOn run_on >
+#endif
     bool contains_inf (const Box& bx, int scomp, int ncomp, IntVect& where) const noexcept;
 
     //! For debugging purposes we hide BaseFab version and do some extra work.
@@ -415,22 +459,37 @@ protected:
 
 using FArrayBoxFactory = DefaultFabFactory<FArrayBox>;
 
-
-inline
+template <RunOn run_on>
 bool
 FArrayBox::contains_nan () const noexcept
 {
     const Real* dp = dptr;
     const long n = numPts()*nvar;
-    for (long i = 0; i < n; i++) {
-        if (amrex::isnan(*dp++)) {
-            return true;
+#ifdef AMREX_USE_GPU
+    if (run_on == RunOn::Device and Gpu::inLaunchRegion()) {
+        ReduceOps<ReduceOpLogicalOr> reduce_op;
+        ReduceData<int> reduce_data(reduce_op);
+        using ReduceTuple = ReduceData<int>::Type;
+        reduce_op.eval(n, reduce_data,
+        [=] AMREX_GPU_DEVICE (long i) -> ReduceTuple
+        {
+            return { static_cast<int>(amrex::isnan(dp[i])) };
+        });
+        ReduceTuple hv = reduce_data.value();
+        return amrex::get<0>(hv);
+    } else
+#endif
+    {
+        for (long i = 0; i < n; i++) {
+            if (amrex::isnan(*dp++)) {
+                return true;
+            }
         }
+        return false;
     }
-    return false;
 }
 
-inline
+template <RunOn run_on>
 bool
 FArrayBox::contains_nan (const Box& bx, int scomp, int ncomp) const noexcept
 {
@@ -440,32 +499,52 @@ FArrayBox::contains_nan (const Box& bx, int scomp, int ncomp) const noexcept
     BL_ASSERT(ncomp <= nComp());
     BL_ASSERT(domain.contains(bx));
 
-    const auto lo = amrex::lbound(bx);
-    const auto hi = amrex::ubound(bx);
     const auto& a = this->array();
 
-    for (int n = scomp; n < scomp+ncomp; ++n) {
-        for         (int k = lo.z; k <= hi.z; ++k) {
-            for     (int j = lo.y; j <= hi.y; ++j) {
-                for (int i = lo.x; i <= hi.x; ++i) {
-                    if (amrex::isnan(a(i,j,k,n))) {
-                        return true;
+#ifdef AMREX_USE_GPU
+    if (run_on == RunOn::Device and Gpu::inLaunchRegion()) {
+        ReduceOps<ReduceOpLogicalOr> reduce_op;
+        ReduceData<int> reduce_data(reduce_op);
+        using ReduceTuple = ReduceData<int>::Type;
+        reduce_op.eval(bx, reduce_data,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
+        {
+            bool t = false;
+            for (int n = scomp; n < scomp+ncomp; ++n) {
+                t = t or amrex::isnan(a(i,j,k,n));
+            }
+            return { static_cast<int>(t) };
+        });
+        ReduceTuple hv = reduce_data.value();
+        return amrex::get<0>(hv);
+    } else
+#endif
+    {
+        const auto lo = amrex::lbound(bx);
+        const auto hi = amrex::ubound(bx);
+        for (int n = scomp; n < scomp+ncomp; ++n) {
+            for         (int k = lo.z; k <= hi.z; ++k) {
+                for     (int j = lo.y; j <= hi.y; ++j) {
+                    for (int i = lo.x; i <= hi.x; ++i) {
+                        if (amrex::isnan(a(i,j,k,n))) {
+                            return true;
+                        }
                     }
                 }
             }
         }
+        return false;
     }
-    return false;
 }
 
-inline
+template <RunOn run_on>
 bool
 FArrayBox::contains_nan (IntVect& where) const noexcept
 {
-    return contains_nan(domain, 0, nComp(), where);
+    return contains_nan<run_on>(domain, 0, nComp(), where);
 }
 
-inline
+template <RunOn run_on>
 bool
 FArrayBox::contains_nan (const Box& bx, int scomp, int ncomp, IntVect& where) const noexcept
 {
@@ -475,40 +554,86 @@ FArrayBox::contains_nan (const Box& bx, int scomp, int ncomp, IntVect& where) co
     BL_ASSERT(ncomp <= nComp());
     BL_ASSERT(domain.contains(bx));
 
-    const auto lo = amrex::lbound(bx);
-    const auto hi = amrex::ubound(bx);
     const auto& a = this->array();
-
-    for (int n = scomp; n < scomp+ncomp; ++n) {
-        for         (int k = lo.z; k <= hi.z; ++k) {
-            for     (int j = lo.y; j <= hi.y; ++j) {
-                for (int i = lo.x; i <= hi.x; ++i) {
-                    if (amrex::isnan(a(i,j,k,n))) {
-                        where = IntVect(AMREX_D_DECL(i,j,k));
-                        return true;
+#ifdef AMREX_USE_GPU
+    if (run_on == RunOn::Device and Gpu::inLaunchRegion()) {
+        Array<int,1+AMREX_SPACEDIM> ha{0,AMREX_D_DECL(std::numeric_limits<int>::lowest(),
+                                                      std::numeric_limits<int>::lowest(),
+                                                      std::numeric_limits<int>::lowest())};
+        Gpu::DeviceVector<int> dv(1+AMREX_SPACEDIM);
+        int* p = dv.data();
+        Gpu::htod_memcpy_async(p, ha.data(), sizeof(int)*ha.size());
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            int* flag = p;
+            bool t = false;
+            for (int n = scomp; n < scomp+ncomp; ++n) {
+                t = t or amrex::isnan(a(i,j,k,n));
+            }
+            if (t and (*flag == 0)) {
+                if (Gpu::Atomic::Exch(flag,1) == 0) {
+                    AMREX_D_TERM(p[1] = i;,
+                                 p[2] = j;,
+                                 p[3] = k;);
+                }
+            }
+        });
+        Gpu::dtoh_memcpy_async(ha.data(), p, sizeof(int)*ha.size());
+        Gpu::streamSynchronize();
+        where = IntVect(AMREX_D_DECL(ha[1],ha[2],ha[3]));
+        return ha[0];
+    } else
+#endif
+    {
+        const auto lo = amrex::lbound(bx);
+        const auto hi = amrex::ubound(bx);
+        for (int n = scomp; n < scomp+ncomp; ++n) {
+            for         (int k = lo.z; k <= hi.z; ++k) {
+                for     (int j = lo.y; j <= hi.y; ++j) {
+                    for (int i = lo.x; i <= hi.x; ++i) {
+                        if (amrex::isnan(a(i,j,k,n))) {
+                            where = IntVect(AMREX_D_DECL(i,j,k));
+                            return true;
+                        }
                     }
                 }
             }
         }
+        return false;
     }
-    return false;
 }
 
-inline
+template <RunOn run_on>
 bool
 FArrayBox::contains_inf () const noexcept
 {
     const Real* dp = dptr;
     const long n = numPts()*nvar;
-    for (long i = 0; i < n; i++) {
-        if (amrex::isinf(*dp++)) {
-            return true;
+#ifdef AMREX_USE_GPU
+    if (run_on == RunOn::Device and Gpu::inLaunchRegion()) {
+        ReduceOps<ReduceOpLogicalOr> reduce_op;
+        ReduceData<int> reduce_data(reduce_op);
+        using ReduceTuple = ReduceData<int>::Type;
+        reduce_op.eval(n, reduce_data,
+        [=] AMREX_GPU_DEVICE (long i) -> ReduceTuple
+        {
+            return { static_cast<int>(amrex::isinf(dp[i])) };
+        });
+        ReduceTuple hv = reduce_data.value();
+        return amrex::get<0>(hv);
+    } else
+#endif
+    {
+        for (long i = 0; i < n; i++) {
+            if (amrex::isinf(*dp++)) {
+                return true;
+            }
         }
+        return false;
     }
-    return false;
 }
 
-inline
+template <RunOn run_on>
 bool
 FArrayBox::contains_inf (const Box& bx, int scomp, int ncomp) const noexcept
 {
@@ -518,32 +643,52 @@ FArrayBox::contains_inf (const Box& bx, int scomp, int ncomp) const noexcept
     BL_ASSERT(ncomp <= nComp());
     BL_ASSERT(domain.contains(bx));
 
-    const auto lo = amrex::lbound(bx);
-    const auto hi = amrex::ubound(bx);
     const auto& a = this->array();
 
-    for (int n = scomp; n < scomp+ncomp; ++n) {
-        for         (int k = lo.z; k <= hi.z; ++k) {
-            for     (int j = lo.y; j <= hi.y; ++j) {
-                for (int i = lo.x; i <= hi.x; ++i) {
-                    if (amrex::isinf(a(i,j,k,n))) {
-                        return true;
+#ifdef AMREX_USE_GPU
+    if (run_on == RunOn::Device and Gpu::inLaunchRegion()) {
+        ReduceOps<ReduceOpLogicalOr> reduce_op;
+        ReduceData<int> reduce_data(reduce_op);
+        using ReduceTuple = ReduceData<int>::Type;
+        reduce_op.eval(bx, reduce_data,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) ->ReduceTuple
+        {
+            bool t = false;
+            for (int n = scomp; n < scomp+ncomp; ++n) {
+                t = t or amrex::isinf(a(i,j,k,n));
+            }
+            return { static_cast<int>(t) };
+        });
+        ReduceTuple hv = reduce_data.value();
+        return amrex::get<0>(hv);
+    } else
+#endif
+    {
+        const auto lo = amrex::lbound(bx);
+        const auto hi = amrex::ubound(bx);
+        for (int n = scomp; n < scomp+ncomp; ++n) {
+            for         (int k = lo.z; k <= hi.z; ++k) {
+                for     (int j = lo.y; j <= hi.y; ++j) {
+                    for (int i = lo.x; i <= hi.x; ++i) {
+                        if (amrex::isinf(a(i,j,k,n))) {
+                            return true;
+                        }
                     }
                 }
             }
         }
+        return false;
     }
-    return false;
 }
 
-inline
+template <RunOn run_on>
 bool
 FArrayBox::contains_inf (IntVect& where) const noexcept
 {
-    return contains_inf(domain,0,nComp(),where);
+    return contains_inf<run_on>(domain,0,nComp(),where);
 }
 
-inline
+template <RunOn run_on>
 bool
 FArrayBox::contains_inf (const Box& bx, int scomp, int ncomp, IntVect& where) const noexcept
 {
@@ -553,23 +698,53 @@ FArrayBox::contains_inf (const Box& bx, int scomp, int ncomp, IntVect& where) co
     BL_ASSERT(ncomp <= nComp());
     BL_ASSERT(domain.contains(bx));
 
-    const auto lo = amrex::lbound(bx);
-    const auto hi = amrex::ubound(bx);
     const auto& a = this->array();
-
-    for (int n = scomp; n < scomp+ncomp; ++n) {
-        for         (int k = lo.z; k <= hi.z; ++k) {
-            for     (int j = lo.y; j <= hi.y; ++j) {
-                for (int i = lo.x; i <= hi.x; ++i) {
-                    if (amrex::isinf(a(i,j,k,n))) {
-                        where = IntVect(AMREX_D_DECL(i,j,k));
-                        return true;
+#ifdef AMREX_USE_GPU
+    if (run_on == RunOn::Device and Gpu::inLaunchRegion()) {
+        Array<int,1+AMREX_SPACEDIM> ha{0,AMREX_D_DECL(std::numeric_limits<int>::lowest(),
+                                                      std::numeric_limits<int>::lowest(),
+                                                      std::numeric_limits<int>::lowest())};
+        Gpu::DeviceVector<int> dv(1+AMREX_SPACEDIM);
+        int* p = dv.data();
+        Gpu::htod_memcpy_async(p, ha.data(), sizeof(int)*ha.size());
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            int* flag = p;
+            bool t = false;
+            for (int n = scomp; n < scomp+ncomp; ++n) {
+                t = t or amrex::isinf(a(i,j,k,n));
+            }
+            if (t and (*flag == 0)) {
+                if (Gpu::Atomic::Exch(flag,1) == 0) {
+                    AMREX_D_TERM(p[1] = i;,
+                                 p[2] = j;,
+                                 p[3] = k;);
+                }
+            }
+        });
+        Gpu::dtoh_memcpy_async(ha.data(), p, sizeof(int)*ha.size());
+        Gpu::streamSynchronize();
+        where = IntVect(AMREX_D_DECL(ha[1],ha[2],ha[3]));
+        return ha[0];
+    } else
+#endif
+    {
+        const auto lo = amrex::lbound(bx);
+        const auto hi = amrex::ubound(bx);
+        for (int n = scomp; n < scomp+ncomp; ++n) {
+            for         (int k = lo.z; k <= hi.z; ++k) {
+                for     (int j = lo.y; j <= hi.y; ++j) {
+                    for (int i = lo.x; i <= hi.x; ++i) {
+                        if (amrex::isinf(a(i,j,k,n))) {
+                            where = IntVect(AMREX_D_DECL(i,j,k));
+                            return true;
+                        }
                     }
                 }
             }
         }
+        return false;
     }
-    return false;
 }
 
 }
