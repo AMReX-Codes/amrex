@@ -29,11 +29,11 @@ struct ParticleTileData
     int* AMREX_RESTRICT * AMREX_RESTRICT m_runtime_idata;
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    void packParticleData (char* buffer, int src_index, int dst_index,
-                           const int* comm_real, const int * comm_int, long psize) const noexcept
+    void packParticleData (char* buffer, int src_index, std::size_t dst_offset,
+                           const int* comm_real, const int * comm_int) const noexcept
     {
         AMREX_ASSERT(src_index < m_size);
-        auto dst = buffer + dst_index*psize;
+        auto dst = buffer + dst_offset;
         memcpy(dst, m_aos + src_index, sizeof(ParticleType));
         dst += sizeof(ParticleType);
         for (int i = 0; i < NArrayReal; ++i)
@@ -161,11 +161,11 @@ struct ConstParticleTileData
     const int* AMREX_RESTRICT * AMREX_RESTRICT m_runtime_idata;
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    void packParticleData(char* buffer, int src_index, int dst_index,
-                          const int* comm_real, const int * comm_int, long psize) const noexcept
+    void packParticleData(char* buffer, int src_index, int dst_offset,
+                          const int* comm_real, const int * comm_int) const noexcept
     {
         AMREX_ASSERT(src_index < m_size);
-        auto dst = buffer + dst_index*psize;
+        auto dst = buffer + dst_offset;
         memcpy(dst, m_aos + src_index, sizeof(ParticleType));
         dst += sizeof(ParticleType);
         for (int i = 0; i < NArrayReal; ++i)

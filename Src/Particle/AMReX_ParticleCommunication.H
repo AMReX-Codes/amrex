@@ -68,7 +68,7 @@ struct ParticleCopyOp
         return m_boxes[lev].at(gid).size(); 
     }
 };
-
+    
 struct ParticleCopyPlan 
 {
     Vector<std::map<int, Gpu::DeviceVector<int> > > m_dst_indices;
@@ -259,12 +259,11 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
                 int dst_box = p_boxes[i];
                 int dst_lev = p_levels[i];
                 if (dst_box < 0) continue;
-                int box_offset = p_box_offsets[p_box_perm[p_lev_offsets[dst_lev]+dst_box]];
-                int dst_index = box_offset + p_dst_indices[i];
+                int dst_offset = psize*(p_box_offsets[p_box_perm[p_lev_offsets[dst_lev]+dst_box]] + p_dst_indices[i]);
                 int src_index = p_src_indices[i];
-                ptd.packParticleData(p_snd_buffer, src_index, dst_index, p_comm_real, p_comm_int, psize);
+                ptd.packParticleData(p_snd_buffer, src_index, dst_offset, p_comm_real, p_comm_int);
                 
-                ParticleType* p = (ParticleType*) &p_snd_buffer[dst_index*psize];
+                ParticleType* p = (ParticleType*) &p_snd_buffer[dst_offset];
                 const IntVect& pshift = p_periodic_shift[i];
                 for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
                 {
