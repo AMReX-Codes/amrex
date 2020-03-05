@@ -198,9 +198,13 @@ FArrayBox::initVal () noexcept
     Real * p = dataPtr();
     long s = size();
     if (p and s > 0) {
+        bool run_on_device = Gpu::inLaunchRegion() and
+            (m_arena == The_Arena() ||
+             m_arena == The_Device_Arena() ||
+             m_arena == The_Managed_Arena());
         if (init_snan) {
 #if defined(AMREX_USE_GPU)
-            if (Gpu::inLaunchRegion())
+            if (run_on_device)
             {
 #if (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
                 amrex::ParallelFor(s, [=] AMREX_GPU_DEVICE (long i) noexcept
@@ -208,6 +212,7 @@ FArrayBox::initVal () noexcept
                     p[i] = std::numeric_limits<Real>::signaling_NaN();
                 });
 #endif
+                Gpu::streamSynchronize();
             }
             else
 #endif
@@ -216,10 +221,11 @@ FArrayBox::initVal () noexcept
             }
         } else if (do_initval) {
             const Real x = initval;
-            AMREX_HOST_DEVICE_PARALLEL_FOR_1D( s, i,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_1D_FLAG (run_on_device, s, i,
             {
                 p[i] = x;
             });
+            if (run_on_device) Gpu::streamSynchronize();
         }
     }
 }
