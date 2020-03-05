@@ -181,9 +181,14 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, long psize)
         long bytes_to_send = (i == MyProc) ? 0 : Cnt;
         m_snd_counts_h.push_back(bytes_to_send);
         m_snd_offsets_h.push_back(m_snd_offsets_h.back() + Cnt);
-        m_snd_pad_correction_h.push_back(m_snd_pad_correction_h.back() + (Cnt - m_snd_num_particles[i]*psize));
+        m_snd_pad_correction_h.push_back(m_snd_pad_correction_h.back() + m_snd_num_particles[i]*psize);
     }
 
+    for (int i = 0; i < NProcs; ++i)
+    {
+        m_snd_pad_correction_h[i] -= m_snd_offsets_h[i];
+    }
+    
     m_snd_counts_d.resize(m_snd_counts_h.size());
     Gpu::copy(Gpu::hostToDevice, m_snd_counts_h.begin(), m_snd_counts_h.end(),
               m_snd_counts_d.begin());
