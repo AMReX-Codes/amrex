@@ -42,7 +42,7 @@ void ParticleCopyPlan::clear ()
     m_rcv_box_ids.clear();
 }
 
-void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map)
+void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, long psize)
 {
     BL_PROFILE("ParticleCopyPlan::buildMPIStart");
 
@@ -72,7 +72,6 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map)
     m_NumSnds = 0;
     for (auto i : m_neighbor_procs)
     {
-        if (i == MyProc) continue;
         auto box_buffer_indices = map.allBucketsOnProc(i);
         long nbytes = 0;
         for (auto bucket : box_buffer_indices)
@@ -82,6 +81,7 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map)
             int npart = box_counts[bucket];
             if (npart == 0) continue;
             m_snd_num_particles[i] += npart;
+            if (i == MyProc) continue;
             snd_data[i].push_back(npart);
             snd_data[i].push_back(dst);
             snd_data[i].push_back(lev);
@@ -115,6 +115,7 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map)
     if ( (tot_snds_this_proc == 0) and (tot_rcvs_this_proc == 0) )
     {
         m_nrcvs = 0;
+        m_NumSnds = 0;
         return;
     }
 
@@ -168,6 +169,24 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map)
         ParallelDescriptor::Send((char*) snd_data[i].data(), Cnt, Who, SeqNum);
     }
 
+    m_snd_counts_h.resize(0);
+    m_snd_offsets_h.resize(0);
+        
+    m_snd_offsets_h.push_back(0);
+    for (int i = 0; i < NProcs; ++i)
+    {
+        long Cnt = (i == MyProc) ? 0 : Cnt = m_snd_num_particles[i]*psize;
+        m_snd_counts_h.push_back(Cnt);
+        m_snd_offsets_h.push_back(m_snd_offsets_h.back() + Cnt);
+    }
+
+    m_snd_counts_d.resize(m_snd_counts_h.size());
+    Gpu::copy(Gpu::hostToDevice, m_snd_counts_h.begin(), m_snd_counts_h.end(),
+              m_snd_counts_d.begin());
+
+    m_snd_offsets_d.resize(m_snd_offsets_h.size());
+    Gpu::copy(Gpu::hostToDevice, m_snd_offsets_h.begin(), m_snd_offsets_h.end(),
+              m_snd_offsets_d.begin());
 #endif
 }
 
