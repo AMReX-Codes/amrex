@@ -382,7 +382,7 @@ Box LSCoreBase::EBSearchBox( const Box & tilebox, const FArrayBox & ls_crse,
 
     // Infinities don't work well with std::max, so just bail and construct the
     // maximum box.
-    if (ls_crse.contains_inf()){
+    if (ls_crse.contains_inf<RunOn::Host>()){
         Box bx = amrex::convert(ls_crse.box(), IntVect::TheZeroVector());
         bx.grow(max_grow);
 
@@ -391,7 +391,7 @@ Box LSCoreBase::EBSearchBox( const Box & tilebox, const FArrayBox & ls_crse,
     }
 
     // Something's gone wrong :( ... so just bail and construct the maximum box.
-    if (ls_crse.contains_nan()){
+    if (ls_crse.contains_nan<RunOn::Host>()){
         Box bx = amrex::convert(ls_crse.box(), IntVect::TheZeroVector());
         bx.grow(max_grow);
 
