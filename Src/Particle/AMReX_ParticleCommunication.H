@@ -212,7 +212,6 @@ private:
 
 struct GetSendBufferOffset
 {
-    const int* m_dst_indices;
     const unsigned int* m_box_offsets;        
     const std::size_t* m_pad_correction;
 
@@ -220,9 +219,8 @@ struct GetSendBufferOffset
     const int* m_box_perm;
     const int* m_buck_to_pid;
 
-    GetSendBufferOffset (const ParticleCopyPlan& plan, const ParticleBufferMap& map, int lev, int gid)
-        : m_dst_indices(plan.m_dst_indices[lev].at(gid).dataPtr()),
-          m_box_offsets(plan.m_box_offsets.dataPtr()),
+    GetSendBufferOffset (const ParticleCopyPlan& plan, const ParticleBufferMap& map)
+        : m_box_offsets(plan.m_box_offsets.dataPtr()),
           m_pad_correction(plan.m_snd_pad_correction_d.dataPtr()),
           m_lev_offsets(map.levelOffsetsPtr()),
           m_box_perm(map.levGridToBucketPtr()),
@@ -233,7 +231,7 @@ struct GetSendBufferOffset
     int operator() (int dst_box, int dst_lev, std::size_t psize, int i) const
     {
         int dst_pid = m_buck_to_pid[m_box_perm[m_lev_offsets[dst_lev]+dst_box]];
-        int dst_offset = psize*(m_box_offsets[m_box_perm[m_lev_offsets[dst_lev]+dst_box]] + m_dst_indices[i]);
+        int dst_offset = psize*(m_box_offsets[m_box_perm[m_lev_offsets[dst_lev]+dst_box]] + i);
         dst_offset += m_pad_correction[dst_pid];
         return dst_offset;
     }
@@ -283,15 +281,16 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
             auto p_levels = op.m_levels[lev].at(gid).dataPtr();
             auto p_src_indices = op.m_src_indices[lev].at(gid).dataPtr();
             auto p_periodic_shift = op.m_periodic_shift[lev].at(gid).dataPtr();
+            auto p_dst_indices = plan.m_dst_indices[lev].at(gid).dataPtr();           
             auto p_snd_buffer = snd_buffer.dataPtr();
-            GetSendBufferOffset get_offset(plan, pc.BufferMap(), lev, gid);
+            GetSendBufferOffset get_offset(plan, pc.BufferMap());
             
             AMREX_FOR_1D ( num_copies, i,
             {
                 int dst_box = p_boxes[i];
                 if (dst_box < 0) continue;
                 int dst_lev = p_levels[i];
-                int dst_offset = get_offset(dst_box, dst_lev, psize, i);
+                int dst_offset = get_offset(dst_box, dst_lev, psize, p_dst_indices[i]);
                 int src_index = p_src_indices[i];
                 ptd.packParticleData(p_snd_buffer, src_index, dst_offset, p_comm_real, p_comm_int);
                 
@@ -361,9 +360,10 @@ void unpackBuffer (PC& pc, const ParticleCopyPlan& plan, const Buffer& snd_buffe
             auto& tile = plev[index];
             auto& aos   = tile.GetArrayOfStructs();
 
-            auto p_box_offsets = plan.m_box_offsets.dataPtr();
-            auto p_lev_offsets = pc.BufferMap().levelOffsetsPtr();
-            auto p_box_perm = pc.BufferMap().levGridToBucketPtr();
+            GetSendBufferOffset get_offset(plan, pc.BufferMap());
+            // auto p_box_offsets = plan.m_box_offsets.dataPtr();
+            // auto p_lev_offsets = pc.BufferMap().levelOffsetsPtr();
+            // auto p_box_perm = pc.BufferMap().levGridToBucketPtr();
             auto p_snd_buffer = snd_buffer.dataPtr();
             
             int offset = offsets[uindex];
@@ -373,10 +373,9 @@ void unpackBuffer (PC& pc, const ParticleCopyPlan& plan, const Buffer& snd_buffe
             auto ptd = tile.getParticleTileData();
             AMREX_FOR_1D ( size, i,
             {
-                int box_offset = p_box_offsets[p_box_perm[p_lev_offsets[lev]+gid]];
-                int src_index = box_offset + i;
+                int src_offset = get_offset(gid, lev, psize, i);
                 int dst_index = offset + i;
-                ptd.unpackParticleData(p_snd_buffer, src_index, dst_index, p_comm_real, p_comm_int, psize);
+                ptd.unpackParticleData(p_snd_buffer, src_offset, dst_index, p_comm_real, p_comm_int);
             });
         }
     }
@@ -528,10 +527,10 @@ void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, co
 
             AMREX_FOR_1D ( size, ip,
 	    {
-                int src_index = offset + ip;
+                int src_offset = psize*(offset + ip);
                 int dst_index = dst_offset + ip;
-                ptd.unpackParticleData(p_rcv_buffer, src_index, dst_index,
-                                       p_comm_real, p_comm_int, psize);
+                ptd.unpackParticleData(p_rcv_buffer, src_offset, dst_index,
+                                       p_comm_real, p_comm_int);
             });
 	}
     }    
