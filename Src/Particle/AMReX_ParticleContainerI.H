@@ -1097,7 +1097,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             auto& aos = src_tile.GetArrayOfStructs();
             const size_t np = aos.numParticles();
 
-            int num_stay = partitionParticlesByDest(src_tile, assign_grid, BufferMap(), geom, lev, gid, tid);
+            int num_stay = partitionParticlesByDest(src_tile, assign_grid, BufferMap(),
+                                                    geom, lev, gid, tid);
 
             int num_move = np - num_stay;
             new_sizes[lev][gid] = num_stay;

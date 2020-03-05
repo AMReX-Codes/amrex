@@ -100,6 +100,12 @@ struct ParticleCopyPlan
     Vector<std::size_t> m_rOffset;
     Gpu::HostVector<int> m_rcv_data;
 
+    Vector<std::size_t> m_snd_offsets_h;
+    Gpu::DeviceVector<std::size_t> m_snd_offsets_d;
+
+    Vector<std::size_t> m_snd_counts_h;
+    Gpu::DeviceVector<std::size_t> m_snd_counts_d;
+    
     template <class PC, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
     void build (const PC& pc, const ParticleCopyOp& op, bool local)
     {
@@ -159,7 +165,7 @@ struct ParticleCopyPlan
 
         amrex::Gpu::exclusive_scan(m_box_counts.begin(), m_box_counts.end(), m_box_offsets.begin());
         
-        buildMPIStart(pc.BufferMap());
+        buildMPIStart(pc.BufferMap(), pc.superParticleSize());
     }
 
     void clear ();
@@ -168,7 +174,7 @@ struct ParticleCopyPlan
 
 private:
     
-    void buildMPIStart (const ParticleBufferMap& map);
+    void buildMPIStart (const ParticleBufferMap& map, long psize);
 
     //
     // Snds - a Vector with the number of bytes that is process will send to each proc.
@@ -199,7 +205,8 @@ private:
 };
 
 template <class PC, class Buffer, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
-void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan& plan, Buffer& snd_buffer)
+void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan& plan,
+                 Buffer& snd_buffer)
 {
     BL_PROFILE("amrex::packBuffer");
 
@@ -359,7 +366,7 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buff
     if (NProcs == 1) return;
 
     Vector<int> RcvProc;
-    Vector<long> rOffset;    
+    Vector<long> rOffset;
     long TotRcvParticles = 0;
     for (int i = 0; i < NProcs; ++i) {
         if (plan.m_rcv_num_particles[i] > 0) {
@@ -393,22 +400,21 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buff
         plan.m_particle_rreqs[i] = 
             ParallelDescriptor::Arecv((char*) (rcv_buffer.dataPtr() + offset), Cnt, Who, SeqNum).req();
     }
-    
+
     // Send.
     for (int i = 0; i < NProcs; ++i)
     {
         if (i == MyProc) continue;
         const auto Who = i;
-        const auto Cnt = plan.m_snd_num_particles[i]*psize;
+        const auto Cnt = (plan.m_NumSnds == 0) ? 0 : plan.m_snd_counts_h[i];
+
         if (Cnt == 0) continue;
 
         AMREX_ASSERT(Who >= 0 && Who < NProcs);
         AMREX_ASSERT(Cnt < std::numeric_limits<int>::max());
-        
-        int bucket = pc.BufferMap().firstBucketOnProc(i);
-        const auto snd_offset = plan.m_box_offsets[bucket]*psize;
 
-        ParallelDescriptor::Send( (char*) (snd_buffer.dataPtr() + snd_offset), Cnt, Who, SeqNum);
+        auto snd_offset = plan.m_snd_offsets_h[i];
+        ParallelDescriptor::Send((char*)(snd_buffer.dataPtr()+snd_offset), Cnt, Who, SeqNum);
     }
 #endif // MPI
 }
