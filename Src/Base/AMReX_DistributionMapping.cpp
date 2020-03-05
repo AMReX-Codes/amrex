@@ -629,14 +629,6 @@ knapsack (const std::vector<long>&         wgts,
     efficiency = sum_weight/(nprocs*max_weight);
 
     std::sort(wblv.begin(), wblv.end());
-
-    // amrex::Print() << "wblv: ";
-    // for (auto const& x : wblv) {
-    //   amrex::Print() << x.weight() << " ";
-    // }
-    // amrex::Print() << "\n";
-    // amrex::Print() << "Doing a load balance" << "\n";
-    amrex::Print() << "efficiency (amrex): " << efficiency<< ", max_efficiency: "<< max_efficiency<<"\n";
 	
     if (efficiency < max_efficiency && do_full_knapsack
         && wblv.size() > 1 && wblv.begin()->size() > 1)
