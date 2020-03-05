@@ -171,17 +171,17 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, long psize)
 
     m_snd_counts_h.resize(0);
     m_snd_offsets_h.resize(0);
-    //    m_snd_pad_correction_h.resize(0);
+    m_snd_pad_correction_h.resize(0);
     
     m_snd_offsets_h.push_back(0);
-    //    m_snd_pad_correction_h.push_back(0);
+    m_snd_pad_correction_h.push_back(0);
     for (int i = 0; i < NProcs; ++i)
     {
         long Cnt = m_snd_num_particles[i]*psize;
         long bytes_to_send = (i == MyProc) ? 0 : Cnt;
         m_snd_counts_h.push_back(bytes_to_send);
         m_snd_offsets_h.push_back(m_snd_offsets_h.back() + Cnt);
-        //        m_snd_pad_correction_h.push_back(m_snd_pad_correction_h.back() + (Cnt - m_snd_num_particles[i]*psize));
+        m_snd_pad_correction_h.push_back(m_snd_pad_correction_h.back() + (Cnt - m_snd_num_particles[i]*psize));
     }
 
     m_snd_counts_d.resize(m_snd_counts_h.size());
@@ -191,6 +191,11 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, long psize)
     m_snd_offsets_d.resize(m_snd_offsets_h.size());
     Gpu::copy(Gpu::hostToDevice, m_snd_offsets_h.begin(), m_snd_offsets_h.end(),
               m_snd_offsets_d.begin());
+
+    m_snd_pad_correction_d.resize(m_snd_pad_correction_h.size());
+    Gpu::copy(Gpu::hostToDevice, m_snd_pad_correction_h.begin(), m_snd_pad_correction_h.end(),
+              m_snd_pad_correction_d.begin());
+
 #endif
 }
 
