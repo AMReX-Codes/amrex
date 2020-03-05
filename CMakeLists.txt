@@ -9,14 +9,14 @@ find_package (Git QUIET)
 
 set( _tmp "" )
 
-if ( EXISTS ${CMAKE_SOURCE_DIR}/.git AND ${GIT_FOUND} )
+if ( EXISTS ${CMAKE_CURRENT_LIST_DIR}/.git AND ${GIT_FOUND} )
    execute_process ( COMMAND git describe --abbrev=12 --dirty --always --tags
-      WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+      WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
       OUTPUT_VARIABLE _tmp )
    string( STRIP ${_tmp} _tmp )
 else ()
    # Grep first line from file CHANGES if cannot find version from Git
-   file(STRINGS ${CMAKE_SOURCE_DIR}/CHANGES ALL_VERSIONS REGEX "#")
+   file(STRINGS ${CMAKE_CURRENT_LIST_DIR}/CHANGES ALL_VERSIONS REGEX "#")
    list(GET ALL_VERSIONS 0 _tmp)
    string(REPLACE "#" "" _tmp "${_tmp}")
    string(STRIP "${_tmp}" _tmp )
@@ -37,6 +37,7 @@ endif ()
 
 set( AMREX_PKG_VERSION "${_pkg_version}" CACHE INTERNAL "" )
 unset(_pkg_version)
+
 
 ########################################################################
 #
