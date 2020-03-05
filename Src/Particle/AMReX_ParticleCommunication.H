@@ -105,7 +105,10 @@ struct ParticleCopyPlan
 
     Vector<std::size_t> m_snd_counts_h;
     Gpu::DeviceVector<std::size_t> m_snd_counts_d;
-    
+
+    Vector<std::size_t> m_snd_pad_correction_h;
+    Gpu::DeviceVector<std::size_t> m_snd_pad_correction_d;
+
     template <class PC, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
     void build (const PC& pc, const ParticleCopyOp& op, bool local)
     {
@@ -204,6 +207,35 @@ private:
     bool m_local;
 };
 
+struct GetSendBufferOffset
+{
+    const int* m_dst_indices;
+    const unsigned int* m_box_offsets;        
+    const std::size_t* m_pad_correction;
+
+    const int* m_lev_offsets;
+    const int* m_box_perm;
+    const int* m_buck_to_pid;
+
+    GetSendBufferOffset (const ParticleCopyPlan& plan, const ParticleBufferMap& map, int lev, int gid)
+        : m_dst_indices(plan.m_dst_indices[lev].at(gid).dataPtr()),
+          m_box_offsets(plan.m_box_offsets.dataPtr()),
+          m_pad_correction(plan.m_snd_pad_correction_d.dataPtr()),
+          m_lev_offsets(map.levelOffsetsPtr()),
+          m_box_perm(map.levGridToBucketPtr()),
+          m_buck_to_pid(map.bucketToPIDPtr())
+    {}
+
+    AMREX_FORCE_INLINE AMREX_GPU_HOST_DEVICE
+    int operator() (int dst_box, int dst_lev, std::size_t psize, int i) const
+    {
+        int dst_pid = m_buck_to_pid[m_box_perm[m_lev_offsets[dst_lev]+dst_box]];
+        int dst_offset = psize*(m_box_offsets[m_box_perm[m_lev_offsets[dst_lev]+dst_box]] + m_dst_indices[i]);
+        dst_offset += m_pad_correction[dst_pid];
+        return dst_offset;
+    }
+};
+
 template <class PC, class Buffer, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
 void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan& plan,
                  Buffer& snd_buffer)
@@ -247,19 +279,16 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
             auto p_boxes = op.m_boxes[lev].at(gid).dataPtr();
             auto p_levels = op.m_levels[lev].at(gid).dataPtr();
             auto p_src_indices = op.m_src_indices[lev].at(gid).dataPtr();
-            auto p_dst_indices = plan.m_dst_indices[lev].at(gid).dataPtr();
             auto p_periodic_shift = op.m_periodic_shift[lev].at(gid).dataPtr();
-            auto p_box_offsets = plan.m_box_offsets.dataPtr();
-            auto p_lev_offsets = pc.BufferMap().levelOffsetsPtr();
-            auto p_box_perm = pc.BufferMap().levGridToBucketPtr();
             auto p_snd_buffer = snd_buffer.dataPtr();
+            GetSendBufferOffset get_offset(plan, pc.BufferMap(), lev, gid);
             
             AMREX_FOR_1D ( num_copies, i,
             {
                 int dst_box = p_boxes[i];
-                int dst_lev = p_levels[i];
                 if (dst_box < 0) continue;
-                int dst_offset = psize*(p_box_offsets[p_box_perm[p_lev_offsets[dst_lev]+dst_box]] + p_dst_indices[i]);
+                int dst_lev = p_levels[i];
+                int dst_offset = get_offset(dst_box, dst_lev, psize, i);
                 int src_index = p_src_indices[i];
                 ptd.packParticleData(p_snd_buffer, src_index, dst_offset, p_comm_real, p_comm_int);
                 
