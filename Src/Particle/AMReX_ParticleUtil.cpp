@@ -53,8 +53,7 @@ Vector<int> computeNeighborProcs (const ParGDBBase* a_gdb, int ngrow)
                     {
                         const int grid = isec.first;
                         const int proc = a_gdb->ParticleDistributionMap(lev)[grid];
-                        if (proc != ParallelDescriptor::MyProc())
-                            neighbor_procs.push_back(proc);
+                        neighbor_procs.push_back(proc);
                     }
                 }
             }
