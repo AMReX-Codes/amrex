@@ -71,11 +71,11 @@ struct ParticleTileData
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    void unpackParticleData (const char* buffer, int src_index, int dst_index,
-                             const int* comm_real, const int * comm_int, long psize) const noexcept
+    void unpackParticleData (const char* buffer, int src_offset, int dst_index,
+                             const int* comm_real, const int* comm_int) const noexcept
     {
         AMREX_ASSERT(dst_index < m_size);
-        auto src = buffer + src_index*psize;
+        auto src = buffer + src_offset;
         memcpy(m_aos + dst_index, src, sizeof(ParticleType));
         src += sizeof(ParticleType);
         for (int i = 0; i < NArrayReal; ++i)
