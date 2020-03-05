@@ -416,6 +416,10 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buff
     {
         plan.m_rcv_pad_correction_h[i] -= rOffset[i];
     }
+
+    plan.m_rcv_pad_correction_d.resize(plan.m_rcv_pad_correction_h.size());
+    Gpu::copy(Gpu::hostToDevice, plan.m_rcv_pad_correction_h.begin(), plan.m_rcv_pad_correction_h.end(),
+              plan.m_rcv_pad_correction_d.begin());
     
     rcv_buffer.resize(TotRcvBytes);
 
