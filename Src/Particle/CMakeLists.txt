@@ -9,7 +9,6 @@ target_include_directories(amrex PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_D
 target_sources( amrex
    PRIVATE
    AMReX_TracerParticles.cpp
-   AMReX_LoadBalanceKD.cpp
    AMReX_ParticleMPIUtil.cpp
    AMReX_Particles.H
    AMReX_SparseBins.H
@@ -22,8 +21,6 @@ target_sources( amrex
    AMReX_Particle.H
    AMReX_ParticleInit.H
    AMReX_ParticleContainerI.H
-   AMReX_LoadBalanceKD.H
-   AMReX_KDTree_F.H
    AMReX_ParIter.H
    AMReX_ParticleMPIUtil.H
    AMReX_ParticleUtil.H
@@ -33,7 +30,6 @@ target_sources( amrex
    AMReX_ParticleTile.H
    AMReX_NeighborParticlesCPUImpl.H
    AMReX_NeighborParticlesGPUImpl.H
-   AMReX_KDTree_${DIM}d.F90
    AMReX_ParticleBufferMap.H
    AMReX_ParticleBufferMap.cpp
    AMReX_ParticleCommunication.H
