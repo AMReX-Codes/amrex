@@ -418,7 +418,6 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buff
     for (int i = 0; i < plan.m_nrcvs; ++i)
     {
         plan.m_rcv_pad_correction_h[i] -= rOffset[i];
-        amrex::AllPrintToFile("correction") <<  plan.m_rcv_pad_correction_h[i] << "\n";
     }
 
     plan.m_rcv_pad_correction_d.resize(plan.m_rcv_pad_correction_h.size());
@@ -486,12 +485,6 @@ void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, co
     const int MyProc = ParallelDescriptor::MyProc();
     using PTile = typename PC::ParticleTileType;
 
-    for (auto val : plan.m_rcv_pad_correction_d)
-    {
-        amrex::AllPrintToFile("val") << val << " ";
-    }
-    amrex::AllPrintToFile("val") << "\n";
-    
     if (plan.m_nrcvs > 0)
     {
         auto p_comm_real = pc.communicate_real_comp.dataPtr();
