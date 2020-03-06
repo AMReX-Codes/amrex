@@ -17,6 +17,7 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Print.H>
 #include <AMReX_TypeTraits.H>
+#include <AMReX_Arena.H>
 
 #ifdef BL_USE_MPI
 #include <AMReX_ccse-mpi.H>
