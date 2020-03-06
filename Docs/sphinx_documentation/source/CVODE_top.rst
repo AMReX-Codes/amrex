@@ -26,8 +26,8 @@ CVODE tutorials provided in AMReX use this new interface.
 .. toctree::
    :maxdepth: 1
 
+   SUNDIALS
    CVODE
-   SUNDIALS3
 
 
 .. [1]
