@@ -136,7 +136,7 @@ if (ENABLE_SENSEI_INSITU)
 endif ()
 
 if (ENABLE_SUNDIALS)
-   add_subdirectory(Extern/SUNDIALS4)
+   add_subdirectory(Extern/SUNDIALS)
 endif ()
 
 if (ENABLE_CONDUIT)
