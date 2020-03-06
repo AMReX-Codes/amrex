@@ -14,9 +14,6 @@
 
 #include <string>
 
-#ifdef WARPX_USE_PSATD
-#   include <fftw3.h>
-
 // Declare type for spectral fields
 using SpectralField = amrex::FabArray< amrex::BaseFab <Complex> >;
 
@@ -90,5 +87,4 @@ class SpectralFieldData
 #endif
 };
 
-#endif // WARPX_USE_PSATD
 #endif // WARPX_SPECTRAL_FIELD_DATA_H_
