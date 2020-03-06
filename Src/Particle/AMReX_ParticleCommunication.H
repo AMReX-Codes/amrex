@@ -171,6 +171,13 @@ struct ParticleCopyPlan
         }
 
         amrex::Gpu::exclusive_scan(m_box_counts.begin(), m_box_counts.end(), m_box_offsets.begin());
+
+        m_snd_pad_correction_h.resize(0);
+        m_snd_pad_correction_h.push_back(0);
+
+        m_snd_pad_correction_d.resize(m_snd_pad_correction_h.size());
+        Gpu::copy(Gpu::hostToDevice, m_snd_pad_correction_h.begin(), m_snd_pad_correction_h.end(),
+                  m_snd_pad_correction_d.begin());
         
         buildMPIStart(pc.BufferMap(), pc.superParticleSize());
     }
