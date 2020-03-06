@@ -79,6 +79,7 @@ struct ParticleCopyPlan
     Gpu::DeviceVector<int> m_rcv_box_counts;
     Gpu::DeviceVector<int> m_rcv_box_offsets;
     Gpu::DeviceVector<int> m_rcv_box_ids;
+    Gpu::DeviceVector<int> m_rcv_box_pids;
     Gpu::DeviceVector<int> m_rcv_box_levs;
 
     long m_NumSnds;
@@ -414,6 +415,7 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buff
     for (int i = 0; i < plan.m_nrcvs; ++i)
     {
         plan.m_rcv_pad_correction_h[i] -= rOffset[i];
+        amrex::AllPrintToFile("correction") <<  plan.m_rcv_pad_correction_h[i] << "\n";
     }
 
     plan.m_rcv_pad_correction_d.resize(plan.m_rcv_pad_correction_h.size());
@@ -480,14 +482,18 @@ void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, co
     const int MyProc = ParallelDescriptor::MyProc();
     using PTile = typename PC::ParticleTileType;
 
+    for (auto val : plan.m_rcv_pad_correction_d)
+    {
+        amrex::AllPrintToFile("val") << val << " ";
+    }
+    amrex::AllPrintToFile("val") << "\n";
+    
     if (plan.m_nrcvs > 0)
     {
         auto p_comm_real = pc.communicate_real_comp.dataPtr();
         auto p_comm_int  = pc.communicate_int_comp.dataPtr();
 
-	auto p_rcv_box_counts = plan.m_rcv_box_counts.dataPtr();
-	auto p_rcv_box_offsets = plan.m_rcv_box_offsets.dataPtr();
-	auto p_rcv_box_ids = plan.m_rcv_box_ids.dataPtr();
+	auto p_rcv_box_pids = plan.m_rcv_box_pids.dataPtr();
 	auto p_rcv_buffer = rcv_buffer.dataPtr();
 
         std::vector<int> sizes;
@@ -507,12 +513,15 @@ void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, co
         policy.resizeTiles(tiles, sizes, offsets);
         Gpu::Device::synchronize();
         int uindex = 0;
+        int procindex = 0, rproc = plan.m_rcv_box_pids[0];
 	for (int i = 0; i < plan.m_rcv_box_counts.size(); ++i)
 	{
             int lev = plan.m_rcv_box_levs[i];
             int gid = plan.m_rcv_box_ids[i];
             int tid = 0;
             int offset = plan.m_rcv_box_offsets[i];
+            procindex = (rproc == plan.m_rcv_box_pids[i]) ? procindex : procindex+1;
+            rproc = plan.m_rcv_box_pids[i];
 
             auto& tile = pc.DefineAndReturnParticleTile(lev, gid, tid);
             auto ptd = tile.getParticleTileData();
@@ -525,9 +534,13 @@ void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, co
 
             long psize = pc.superParticleSize();
 
+            auto p_pad_adjust = plan.m_rcv_pad_correction_d.dataPtr();            
+            
             AMREX_FOR_1D ( size, ip,
 	    {
-                int src_offset = psize*(offset + ip);
+                AMREX_ALWAYS_ASSERT(p_rcv_box_pids[i] >= 0);
+                AMREX_ALWAYS_ASSERT(p_rcv_box_pids[i] <= 3);
+                int src_offset = psize*(offset + ip) + p_pad_adjust[procindex];
                 int dst_index = dst_offset + ip;
                 ptd.unpackParticleData(p_rcv_buffer, src_offset, dst_index,
                                        p_comm_real, p_comm_int);
