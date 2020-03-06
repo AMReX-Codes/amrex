@@ -416,7 +416,7 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buff
 
     for (int i = 0; i < plan.m_nrcvs; ++i)
     {
-        plan.m_rcv_pad_correction_h[i] -= rOffset[i];
+        plan.m_rcv_pad_correction_h[i] = rOffset[i] - plan.m_rcv_pad_correction_h[i];
     }
 
     plan.m_rcv_pad_correction_d.resize(plan.m_rcv_pad_correction_h.size());
@@ -445,6 +445,7 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buff
         AMREX_ASSERT(Cnt > 0);
         AMREX_ASSERT(Cnt < std::numeric_limits<int>::max());
         AMREX_ASSERT(Who >= 0 && Who < NProcs);
+        AMREX_ASSERT(amrex::aligned_size(sizeof(unsigned long long), nbytes) % sizeof(unsigned long long) == 0);
         
         plan.m_particle_rreqs[i] = 
             ParallelDescriptor::Arecv((unsigned long long*) (rcv_buffer.dataPtr() + offset), Cnt, Who, SeqNum).req();
@@ -459,11 +460,14 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buff
         const auto Who = i;
         const auto Cnt = plan.m_snd_counts[i] / sizeof(unsigned long long);
         if (Cnt == 0) continue;
-        
+
+        AMREX_ASSERT(plan.m_snd_counts[i] % sizeof(unsigned long long) == 0);
         AMREX_ASSERT(Who >= 0 && Who < NProcs);
         AMREX_ASSERT(Cnt < std::numeric_limits<int>::max());
         
         auto snd_offset = plan.m_snd_offsets[i];
+
+        AMREX_ASSERT(snd_offset % sizeof(unsigned long long) == 0);
         ParallelDescriptor::Send((unsigned long long*)(snd_buffer.dataPtr()+snd_offset), Cnt, Who, SeqNum);
     }
 #endif // MPI
@@ -529,7 +533,6 @@ void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, co
             ++uindex;
 
             long psize = pc.superParticleSize();
-
             auto p_pad_adjust = plan.m_rcv_pad_correction_d.dataPtr();            
             
             AMREX_FOR_1D ( size, ip,
