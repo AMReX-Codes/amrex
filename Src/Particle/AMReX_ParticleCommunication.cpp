@@ -178,7 +178,6 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, long psize)
     m_snd_pad_correction_h.push_back(0);
     for (int i = 0; i < NProcs; ++i)
     {
-        //        long Cnt = m_snd_num_particles[i]*psize;
         long nbytes = m_snd_num_particles[i]*psize;
         long Cnt = amrex::aligned_size(sizeof(unsigned long long), nbytes);
         long bytes_to_send = (i == MyProc) ? 0 : Cnt;
