@@ -101,11 +101,8 @@ struct ParticleCopyPlan
     Vector<std::size_t> m_rOffset;
     Gpu::HostVector<int> m_rcv_data;
 
-    Vector<std::size_t> m_snd_offsets_h;
-    Gpu::DeviceVector<std::size_t> m_snd_offsets_d;
-
-    Vector<std::size_t> m_snd_counts_h;
-    Gpu::DeviceVector<std::size_t> m_snd_counts_d;
+    Vector<std::size_t> m_snd_offsets;
+    Vector<std::size_t> m_snd_counts;
 
     Vector<std::size_t> m_snd_pad_correction_h;
     Gpu::DeviceVector<std::size_t> m_snd_pad_correction_d;
@@ -462,13 +459,13 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buff
     {
         if (i == MyProc) continue;
         const auto Who = i;
-        const auto Cnt = plan.m_snd_counts_h[i];
+        const auto Cnt = plan.m_snd_counts[i];
         if (Cnt == 0) continue;
         
         AMREX_ASSERT(Who >= 0 && Who < NProcs);
         AMREX_ASSERT(Cnt < std::numeric_limits<int>::max());
         
-        auto snd_offset = plan.m_snd_offsets_h[i];
+        auto snd_offset = plan.m_snd_offsets[i];
         ParallelDescriptor::Send((char*)(snd_buffer.dataPtr()+snd_offset), Cnt, Who, SeqNum);
     }
 #endif // MPI
