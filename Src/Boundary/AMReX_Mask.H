@@ -92,7 +92,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     Mask& operator&= (const Mask& src) noexcept { return And<run_on>(src); }
 
@@ -104,7 +104,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     Mask& And (const Mask& src) noexcept;
 
@@ -119,7 +119,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     Mask& And (const Mask& src,
                int         srccomp,
@@ -137,7 +137,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     Mask& And (const Mask& src,
                const Box&  subbox,
@@ -158,7 +158,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     Mask& And (const Mask& src,
                const Box&  srcbox,
@@ -171,7 +171,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     Mask& operator|= (const Mask& src) noexcept { return Or<run_on>(src); }
 
@@ -183,7 +183,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     Mask& Or (const Mask& src) noexcept;
 
@@ -198,7 +198,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     Mask& Or (const Mask& src,
               int         srccomp,
@@ -216,7 +216,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     Mask& Or (const Mask& src,
               const Box&  subbox,
@@ -237,7 +237,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     Mask& Or (const Mask& src,
               const Box&  srcbox,

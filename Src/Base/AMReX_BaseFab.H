@@ -253,7 +253,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab& operator= (T const&) noexcept;
 
@@ -459,28 +459,28 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     void setVal (T const& x, const Box& bx, int nstart, int ncomp) noexcept;
     //! Same as above, except the number of modified components is one. N is the component to be modified.
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     void setVal (T const& x, const Box& bx, int N = 0) noexcept;
     //! Same as above, except the sub-box defaults to the entire domain.
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     void setVal (T const& x, int N) noexcept;
 
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     void setValIfNot (T const& x, const Box& bx, const BaseFab<int>& mask, int nstart, int ncomp) noexcept;
 
@@ -492,7 +492,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     void setComplement (T const& x, const Box& b, int ns, int num) noexcept;
 
@@ -515,7 +515,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& copy (const BaseFab<T>& src, const Box& srcbox, int srccomp,
                       const Box& destbox, int destcomp, int numcomp) noexcept;
@@ -529,7 +529,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& copy (const BaseFab<T>& src, int srccomp, int destcomp,
                       int numcomp = 1) noexcept;
@@ -542,7 +542,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& copy (const BaseFab<T>& src, const Box& destbox) noexcept;
 
@@ -550,7 +550,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     std::size_t copyToMem (const Box& srcbox, int srccomp,
                            int numcomp, void* dst) const noexcept;
@@ -559,7 +559,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     std::size_t copyFromMem (const Box& dstbox, int dstcomp,
                              int numcomp, const void* src) noexcept;
@@ -568,7 +568,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     std::size_t addFromMem (const Box& dstbox, int dstcomp,
                             int numcomp, const void* src) noexcept;
@@ -601,7 +601,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     Real norminfmask (const Box& subbox, const BaseFab<int>& mask, int scomp=0, int ncomp=1) const noexcept;
 
@@ -614,7 +614,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     Real norm (int p, int scomp = 0, int ncomp = 1) const noexcept;
 
@@ -622,21 +622,21 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     Real norm (const Box& subbox, int p, int scomp = 0, int ncomp = 1) const noexcept;
     //!Compute absolute value for all components of this FAB.
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     void abs () noexcept;
     //! Same as above except only for components (comp: comp+numcomp-1)
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     void abs (int comp, int numcomp=1) noexcept;
     /**
@@ -645,7 +645,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     void abs (const Box& subbox, int comp = 0, int numcomp=1) noexcept;
     /**
@@ -654,7 +654,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     T min (int comp = 0) const noexcept;
     /**
@@ -663,7 +663,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     T min (const Box& subbox, int comp = 0) const noexcept;
     /**
@@ -672,7 +672,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     T max (int comp = 0) const noexcept;
     /**
@@ -681,7 +681,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     T max (const Box& subbox, int comp = 0) const noexcept;
     /**
@@ -690,7 +690,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     T maxabs (int comp = 0) const noexcept;
     /**
@@ -699,7 +699,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     T maxabs (const Box& subbox, int comp = 0) const noexcept;
 
@@ -709,7 +709,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     IntVect indexFromValue (const Box& subbox, int comp, T const& value) const noexcept;
 
@@ -719,7 +719,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     IntVect minIndex (int comp = 0) const noexcept;
     /**
@@ -729,7 +729,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     IntVect minIndex (const Box& subbox, int comp = 0) const noexcept;
     /**
@@ -739,7 +739,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     void  minIndex (const Box& subbox, Real& min_val, IntVect& min_idx, int comp = 0) const noexcept;
 
@@ -749,7 +749,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     IntVect maxIndex (int comp = 0) const noexcept;
     /**
@@ -759,7 +759,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     IntVect maxIndex (const Box& subbox, int comp = 0) const noexcept;
     /**
@@ -769,7 +769,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     void  maxIndex (const Box& subbox, Real& max_value, IntVect& max_index, int comp = 0) const noexcept;
 
@@ -782,14 +782,14 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     int maskLT (BaseFab<int>& mask, T const& val, int comp = 0) const noexcept;
     //! Same as above except mark cells with value less than or equal to val.
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     int maskLE (BaseFab<int>& mask, T const& val, int comp = 0) const noexcept;
 
@@ -797,21 +797,21 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     int maskEQ (BaseFab<int>& mask, T const& val, int comp = 0) const noexcept;
     //! Same as above except mark cells with value greater than val.
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     int maskGT (BaseFab<int>& mask, T const& val, int comp = 0) const noexcept;
     //! Same as above except mark cells with value greater than or equal to val.
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     int maskGE (BaseFab<int>& mask, T const& val, int comp = 0) const noexcept;
 
@@ -819,14 +819,14 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     T sum (int comp, int numcomp = 1) const noexcept;
     //! Compute sum of given component of FAB state vector in given subbox.
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     T sum (const Box& subbox, int comp, int numcomp = 1) const noexcept;
 
@@ -834,14 +834,14 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& invert (T const& v, const Box& subbox, int comp=0, int numcomp=1) noexcept;
     //! As above except on entire domain.
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& invert (T const& v, int comp, int numcomp=1) noexcept;
 
@@ -849,14 +849,14 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& negate (const Box& subbox, int comp=0, int numcomp=1) noexcept;
     //! As above, except on entire domain.
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& negate (int comp, int numcomp=1) noexcept;
 
@@ -864,7 +864,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& plus (T const& r, const Box& b, int comp=0, int numcomp=1) noexcept;
 
@@ -872,7 +872,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& plus (T const& r, int comp, int numcomp=1) noexcept;
 
@@ -884,7 +884,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& plus (const BaseFab<T>& src, int srccomp, int destcomp, int numcomp=1) noexcept;
     /**
@@ -895,7 +895,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& plus (const BaseFab<T>& src, const Box& subbox, int srccomp, int destcomp, int numcomp=1) noexcept;
     /**
@@ -905,7 +905,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& plus (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
                       int srccomp, int destcomp, int numcomp=1) noexcept;
@@ -914,7 +914,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& atomicAdd (const BaseFab<T>& src) noexcept;
 
@@ -926,7 +926,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& atomicAdd (const BaseFab<T>& src, int srccomp, int destcomp, int numcomp=1) noexcept;
     /**
@@ -937,7 +937,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& atomicAdd (const BaseFab<T>& src, const Box& subbox, int srccomp, int destcomp,
                            int numcomp=1) noexcept;
@@ -948,7 +948,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& atomicAdd (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
                            int srccomp, int destcomp, int numcomp=1) noexcept;
@@ -957,7 +957,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& saxpy (T a, const BaseFab<T>& x, const Box& srcbox, const Box& destbox,
                        int srccomp, int destcomp, int numcomp=1) noexcept;
@@ -965,7 +965,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& saxpy (T a, const BaseFab<T>& x) noexcept;
 
@@ -973,7 +973,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& xpay (T a, const BaseFab<T>& x, const Box& srcbox, const Box& destbox,
                       int srccomp, int destcomp, int numcomp=1) noexcept;
@@ -982,7 +982,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& addproduct (const Box& destbox, int destcomp, int numcomp,
                             const BaseFab<T>& src1, int comp1,
@@ -996,7 +996,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& minus (const BaseFab<T>& src, int srccomp, int destcomp, int numcomp=1) noexcept;
     /**
@@ -1007,7 +1007,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& minus (const BaseFab<T>& src, const Box& subbox, int srccomp, int destcomp,
                        int numcomp=1) noexcept;
@@ -1018,7 +1018,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& minus (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
                        int srccomp, int destcomp, int numcomp=1) noexcept;
@@ -1027,7 +1027,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& mult (T const& r, int comp, int numcomp=1) noexcept;
     /**
@@ -1036,7 +1036,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& mult (T const& r, const Box& b, int comp=0, int numcomp=1) noexcept;
 
@@ -1048,7 +1048,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& mult (const BaseFab<T>& src, int srccomp, int destcomp, int numcomp=1) noexcept;
 
@@ -1060,7 +1060,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& mult (const BaseFab<T>& src, const Box& subbox, int srccomp, int destcomp,
                       int numcomp=1) noexcept;
@@ -1072,7 +1072,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& mult (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
                       int srccomp, int destcomp, int numcomp=1) noexcept;
@@ -1081,7 +1081,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& divide (T const& r, int comp, int numcomp=1) noexcept;
 
@@ -1089,7 +1089,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& divide (T const& r, const Box& b, int comp=0, int numcomp=1) noexcept;
 
@@ -1102,7 +1102,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& divide (const BaseFab<T>& src, int srccomp, int destcomp, int numcomp=1) noexcept;
     /**
@@ -1113,7 +1113,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& divide (const BaseFab<T>& src, const Box& subbox, int srccomp, int destcomp,
                         int numcomp=1) noexcept;
@@ -1124,7 +1124,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& divide (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
                         int srccomp, int destcomp, int numcomp=1) noexcept;
@@ -1134,7 +1134,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& protected_divide (const BaseFab<T>& src) noexcept;
 
@@ -1148,7 +1148,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& protected_divide (const BaseFab<T>& src, int srccomp, int destcomp, int numcomp=1) noexcept;
 
@@ -1161,7 +1161,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& protected_divide (const BaseFab<T>& src, const Box& subbox, int srccomp, int destcomp,
                                   int numcomp=1) noexcept;
@@ -1174,7 +1174,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& protected_divide (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
                                   int srccomp, int destcomp, int numcomp=1) noexcept;
@@ -1192,7 +1192,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& linInterp (const BaseFab<T>& f1, const Box& b1, int comp1,
                            const BaseFab<T>& f2, const Box& b2, int comp2,
@@ -1203,7 +1203,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& linInterp (const BaseFab<T>& f1, int comp1,
                            const BaseFab<T>& f2, int comp2,
@@ -1222,7 +1222,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& linComb (const BaseFab<T>& f1, const Box& b1, int comp1,
                          const BaseFab<T>& f2, const Box& b2, int comp2,
@@ -1233,7 +1233,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     T dot (const Box& xbx, int xcomp, const BaseFab<T>& y, const Box& ybx, int ycomp,
 	   int numcomp = 1) const noexcept;
@@ -1241,7 +1241,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     T dotmask (const BaseFab<int>& mask, const Box& xbx, int xcomp,
                const BaseFab<T>& y, const Box& ybx, int ycomp,
@@ -1258,7 +1258,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     void setVal (T const& val) noexcept;
     //
@@ -1266,14 +1266,14 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     void setVal (T const& val, Box const& bx, DestComp dcomp, NumComps ncomp) noexcept;
 
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     void setValIf (T const& val, const BaseFab<int>& mask) noexcept;
     //
@@ -1281,14 +1281,14 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     void setValIf (T const& val, Box const& bx, const BaseFab<int>& mask, DestComp dcomp, NumComps ncomp) noexcept;
 
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     void setValIfNot (T const& val, const BaseFab<int>& mask) noexcept;
     //
@@ -1296,7 +1296,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     void setValIfNot (T const& val, Box const& bx, const BaseFab<int>& mask, DestComp dcomp, NumComps ncomp) noexcept;
 
@@ -1304,7 +1304,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     void setComplement (T const& val, Box const& bx, DestComp dcomp, NumComps ncomp) noexcept;
 
@@ -1316,7 +1316,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& copy (const BaseFab<T>& src) noexcept;
     //
@@ -1324,7 +1324,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& copy (const BaseFab<T>& src, Box bx, SrcComp scomp, DestComp dcomp, NumComps ncomp) noexcept;
 
@@ -1332,14 +1332,14 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& plus (T const& val) noexcept;
     //
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& operator+= (T const& val) noexcept;
     //
@@ -1347,7 +1347,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& plus (T const& val, Box const& bx, DestComp dcomp, NumComps ncomp) noexcept;
     /**
@@ -1358,14 +1358,14 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& plus (const BaseFab<T>& src) noexcept;
     //
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& operator+= (const BaseFab<T>& src) noexcept;
     //
@@ -1373,7 +1373,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& plus (const BaseFab<T>& src, Box bx, SrcComp scomp, DestComp dcomp, NumComps ncomp) noexcept;
 
@@ -1381,14 +1381,14 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& minus (T const& val) noexcept;
     //
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& operator-= (T const& val) noexcept;
     //
@@ -1396,7 +1396,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& minus (T const& val, Box const& bx, DestComp dcomp, NumComps ncomp) noexcept;
     /**
@@ -1407,14 +1407,14 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& minus (const BaseFab<T>& src) noexcept;
     //
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& operator-= (const BaseFab<T>& src) noexcept;
     //
@@ -1422,7 +1422,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& minus (const BaseFab<T>& src, Box bx, SrcComp scomp, DestComp dcomp, NumComps ncomp) noexcept;
 
@@ -1430,14 +1430,14 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& mult (T const& val) noexcept;
     //
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& operator*= (T const& val) noexcept;
     //
@@ -1445,7 +1445,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& mult (T const& val, Box const& bx, DestComp dcomp, NumComps ncomp) noexcept;
     /**
@@ -1456,14 +1456,14 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& mult (const BaseFab<T>& src) noexcept;
     //
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& operator*= (const BaseFab<T>& src) noexcept;
     //
@@ -1471,7 +1471,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& mult (const BaseFab<T>& src, Box bx, SrcComp scomp, DestComp dcomp, NumComps ncomp) noexcept;
 
@@ -1479,14 +1479,14 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& divide (T const& val) noexcept;
     //
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& operator/= (T const& val) noexcept;
     //
@@ -1494,7 +1494,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& divide (T const& val, Box const& bx, DestComp dcomp, NumComps ncomp) noexcept;
     /**
@@ -1505,14 +1505,14 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& divide (const BaseFab<T>& src) noexcept;
     //
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& operator/= (const BaseFab<T>& src) noexcept;
     //
@@ -1520,7 +1520,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& divide (const BaseFab<T>& src, Box bx, SrcComp scomp, DestComp dcomp, NumComps ncomp) noexcept;
 
@@ -1528,14 +1528,14 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& negate () noexcept;
     //
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& negate (const Box& bx, DestComp dcomp, NumComps ncomp) noexcept;
 
@@ -1543,14 +1543,14 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& invert (T const& r) noexcept;
     //
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     BaseFab<T>& invert (T const& r, const Box& bx, DestComp dcomp, NumComps ncomp) noexcept;
 
@@ -1558,7 +1558,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     T sum (const Box& bx, DestComp dcomp, NumComps ncomp) const noexcept;
 
@@ -1566,7 +1566,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     T dot (const BaseFab<T>& src, const Box& bx, SrcComp scomp, DestComp dcomp, NumComps ncomp) const noexcept;
 
@@ -1574,7 +1574,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     T dot (const Box& bx, int destcomp, int numcomp) const noexcept;
 
@@ -1582,7 +1582,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     T dot (const Box& bx, DestComp dcomp, NumComps ncomp) const noexcept;
 
@@ -1590,7 +1590,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     T dotmask (const BaseFab<T>& src, const Box& bx, const BaseFab<int>& mask,
                SrcComp scomp, DestComp dcomp, NumComps ncomp) const noexcept;
