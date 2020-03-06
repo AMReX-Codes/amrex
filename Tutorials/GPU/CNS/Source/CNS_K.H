@@ -12,12 +12,11 @@
 AMREX_GPU_HOST_DEVICE
 inline
 amrex::Real
-cns_estdt (amrex::Box const& bx, amrex::FArrayBox const& statefab,
+cns_estdt (amrex::Box const& bx, amrex::Array4<Real const> const& state,
            amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dx) noexcept
 {
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
-    const auto state = statefab.array();
 #if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
     amrex::Real dt = std::numeric_limits<amrex::Real>::max();
 #else
