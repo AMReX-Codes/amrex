@@ -699,10 +699,18 @@ private:
      * `load_balance_knapsack_factor=2` limits the maximum number of boxes that can
      * be assigned to a rank to 8. */
     amrex::Real load_balance_knapsack_factor = 1.24;
-    /** Weight factor for cells in updating `costs_heuristic`. */
-    amrex::Real costs_heuristic_cells_wt = 0.1;
-    /** Weight factor for particles in updating `costs_heuristic`. */
-    amrex::Real costs_heuristic_particles_wt = 0.9;
+    /** Weight factor for cells in updating `costs_heuristic`.
+     * Default values on GPU are determined from single-GPU tests on Summit.
+     * The problem setup for these tests is an empty (i.e. no particles) domain
+     * of size 256 by 256 by 256 cells, from which the average time per iteration
+     * per cell is computed. */
+    amrex::Real costs_heuristic_cells_wt = -1;
+    /** Weight factor for particles in updating `costs_heuristic`.
+     * Default values on GPU are determined from single-GPU tests on Summit.
+     * The problem setup for these tests is a high-ppc (27 particles per cell)
+     * uniform plasma on a domain of size 128 by 128 by 128, from which the approximate
+     * time per iteration per particle is computed. */
+    amrex::Real costs_heuristic_particles_wt = -1;
 
     // Override sync every ? steps
     int override_sync_int = 1;
