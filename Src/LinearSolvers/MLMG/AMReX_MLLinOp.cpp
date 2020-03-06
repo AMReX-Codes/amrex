@@ -127,7 +127,8 @@ MLLinOp::define (const Vector<Geometry>& a_geom,
                  const Vector<BoxArray>& a_grids,
                  const Vector<DistributionMapping>& a_dmap,
                  const LPInfo& a_info,
-                 const Vector<FabFactory<FArrayBox> const*>& a_factory)
+                 const Vector<FabFactory<FArrayBox> const*>& a_factory,
+                 bool eb_limit_coarsening)
 {
     BL_PROFILE("MLLinOp::define()");
 
@@ -150,7 +151,7 @@ MLLinOp::define (const Vector<Geometry>& a_geom,
     }
 
 #ifdef AMREX_USE_EB
-    if (!a_factory.empty()){
+    if (!a_factory.empty() and eb_limit_coarsening) {
         auto f = dynamic_cast<EBFArrayBoxFactory const*>(a_factory[0]);
         if (f) {
             info.max_coarsening_level = std::min(info.max_coarsening_level,

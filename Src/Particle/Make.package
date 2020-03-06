@@ -11,11 +11,5 @@ C$(AMREX_PARTICLE)_headers += AMReX_ParticleUtil.H AMReX_NeighborList.H AMReX_Pa
 C$(AMREX_PARTICLE)_headers += AMReX_NeighborParticlesCPUImpl.H AMReX_NeighborParticlesGPUImpl.H
 C$(AMREX_PARTICLE)_headers += AMReX_Particle_mod_K.H AMReX_TracerParticle_mod_K.H AMReX_ParticleMesh.H AMReX_ParticleIO.H AMReX_DenseBins.H AMReX_ParticleTransformation.H AMReX_SparseBins.H AMReX_BinIterator.H
 
-ifneq ($(BL_NO_FORT),TRUE)
-  C$(AMREX_PARTICLE)_sources += AMReX_LoadBalanceKD.cpp
-  C$(AMREX_PARTICLE)_headers +=  AMReX_LoadBalanceKD.H AMReX_KDTree_F.H
-  F90$(AMREX_PARTICLE)_sources += AMReX_KDTree_$(DIM)d.F90
-endif
-
 VPATH_LOCATIONS += $(AMREX_HOME)/Src/Particle
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Particle
