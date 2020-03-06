@@ -144,7 +144,7 @@ HypreABecLap3::getSolution (MultiFab& soln)
 
             if (fabtyp == FabType::regular && soln.nGrow() != 0)
             {
-                soln[mfi].copy(*xfab,bx);
+                soln[mfi].copy<RunOn::Host>(*xfab,bx);
             }
 #ifdef AMREX_USE_EB
             else if (fabtyp != FabType::regular)
@@ -205,7 +205,7 @@ HypreABecLap3::prepareSolver ()
     {
         const Box& bx = mfi.validbox();
         BaseFab<HYPRE_Int>& cid_fab = cell_id[mfi];
-        cid_fab.setVal(std::numeric_limits<HYPRE_Int>::lowest());
+        cid_fab.setVal<RunOn::Host>(std::numeric_limits<HYPRE_Int>::lowest());
 #ifdef AMREX_USE_EB
         auto fabtyp = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
         if (fabtyp == FabType::covered)
@@ -232,7 +232,7 @@ HypreABecLap3::prepareSolver ()
             for (long i = 0; i < npts; ++i) {
                 *p++ = i;
             }
-            cid_fab.copy(ifab,bx);
+            cid_fab.copy<RunOn::Host>(ifab,bx);
         }
     }}
 
@@ -267,7 +267,7 @@ HypreABecLap3::prepareSolver ()
 #endif
     for (MFIter mfi(cell_id,true); mfi.isValid(); ++mfi)
     {
-        cell_id[mfi].plus(offset[mfi], mfi.tilebox());
+        cell_id[mfi].plus<RunOn::Host>(offset[mfi], mfi.tilebox());
     }    
 
     cell_id.FillBoundary(geom.periodicity());
@@ -438,8 +438,8 @@ HypreABecLap3::loadVectors (MultiFab& soln, const MultiFab& rhs)
             HYPRE_IJVectorSetValues(x, nrows, cell_id_vec[mfi].data(), soln[mfi].dataPtr());
 
             rhsfab.resize(bx);
-            rhsfab.copy(rhs[mfi],bx);
-            rhsfab.mult(diaginv[mfi]);
+            rhsfab.copy<RunOn::Host>(rhs[mfi],bx);
+            rhsfab.mult<RunOn::Host>(diaginv[mfi]);
             
             FArrayBox* bfab;                            
 #ifdef AMREX_USE_EB
