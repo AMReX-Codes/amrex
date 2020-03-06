@@ -1973,11 +1973,7 @@ BaseFab<T>::BaseFab (Array4<T const> const& a, IndexType t) noexcept
 template <class T>
 BaseFab<T>::~BaseFab () noexcept
 {
-#if AMREX_DEVICE_COMPILE
-    ;
-#else
     clear();
-#endif
 }
 
 template <class T>
