@@ -254,7 +254,6 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
 
     int num_levels = pc.BufferMap().numLevels();
     int num_buckets = pc.BufferMap().numBuckets();
-//    long total_buffer_size = plan.m_box_offsets[num_buckets]*psize;
     long total_buffer_size = (plan.m_snd_offsets.size() == 0) ? plan.m_box_offsets[num_buckets]*psize : plan.m_snd_offsets.back();
     snd_buffer.resize(total_buffer_size);
 
@@ -368,9 +367,6 @@ void unpackBuffer (PC& pc, const ParticleCopyPlan& plan, const Buffer& snd_buffe
             auto& aos   = tile.GetArrayOfStructs();
 
             GetSendBufferOffset get_offset(plan, pc.BufferMap());
-            // auto p_box_offsets = plan.m_box_offsets.dataPtr();
-            // auto p_lev_offsets = pc.BufferMap().levelOffsetsPtr();
-            // auto p_box_perm = pc.BufferMap().levGridToBucketPtr();
             auto p_snd_buffer = snd_buffer.dataPtr();
             
             int offset = offsets[uindex];
