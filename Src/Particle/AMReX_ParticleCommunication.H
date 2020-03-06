@@ -254,7 +254,8 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
 
     int num_levels = pc.BufferMap().numLevels();
     int num_buckets = pc.BufferMap().numBuckets();
-    long total_buffer_size = plan.m_box_offsets[num_buckets]*psize;
+//    long total_buffer_size = plan.m_box_offsets[num_buckets]*psize;
+    long total_buffer_size = (plan.m_snd_offsets.size() == 0) ? plan.m_box_offsets[num_buckets]*psize : plan.m_snd_offsets.back();
     snd_buffer.resize(total_buffer_size);
 
     auto p_comm_real = pc.communicate_real_comp.dataPtr();
@@ -296,6 +297,7 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
                 if (dst_box < 0) continue;
                 int dst_lev = p_levels[i];
                 int dst_offset = get_offset(dst_box, dst_lev, psize, p_dst_indices[i]);
+                AMREX_ASSERT(dst_offset <= total_buffer_size);
                 int src_index = p_src_indices[i];
                 ptd.packParticleData(p_snd_buffer, src_index, dst_offset, p_comm_real, p_comm_int);
                 
@@ -411,8 +413,9 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buff
         if (plan.m_rcv_num_particles[i] > 0) {
             RcvProc.push_back(i);
             rOffset.push_back(TotRcvBytes);
-            TotRcvBytes += plan.m_rcv_num_particles[i]*psize;
-            plan.m_rcv_pad_correction_h.push_back(plan.m_rcv_pad_correction_h.back() + plan.m_rcv_num_particles[i]*psize);
+            long nbytes = plan.m_rcv_num_particles[i]*psize;
+            TotRcvBytes += amrex::aligned_size(sizeof(unsigned long long), nbytes);;
+            plan.m_rcv_pad_correction_h.push_back(plan.m_rcv_pad_correction_h.back() + nbytes);
         }
     }
 
