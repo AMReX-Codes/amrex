@@ -98,7 +98,8 @@ namespace amrex
                                                                NArrayInt> &pc,
                                        const Vector<std::string> &real_comp_names,
                                        const Vector<std::string> &int_comp_names,
-                                       conduit::Node &bp_mesh);
+                                       conduit::Node &bp_mesh,
+                                       const std::string &topology_name="particles");
 #endif
 
     // Writes a Mesh Blueprint representation to a set of files that
