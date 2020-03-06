@@ -121,7 +121,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                 nbytes += (*this)[cct.srcIndex].nBytes(cct.sbox,scomp,ncomp);
             }
 
-            std::size_t acd = alignof_comm_data(nbytes);
+            std::size_t acd = ParallelDescriptor::alignof_comm_data(nbytes);
             nbytes = amrex::aligned_size(acd, nbytes); // so that bytes are aligned
 
             // Also need to align the offset properly
@@ -176,7 +176,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
         {
             if (send_size[j] > 0) {
                 const int rank = ParallelContext::global_to_local_rank(send_rank[j]);
-                const int comm_data_type = select_comm_data_type(send_size[j]);
+                const int comm_data_type = ParallelDescriptor::select_comm_data_type(send_size[j]);
                 if (comm_data_type == 1) {
                     send_reqs[j] = ParallelDescriptor::Asend
                         (send_data[j],
@@ -474,7 +474,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                     nbytes += src[cct.srcIndex].nBytes(cct.sbox,SC,NC);
                 }
 
-                std::size_t acd = alignof_comm_data(nbytes);
+                std::size_t acd = ParallelDescriptor::alignof_comm_data(nbytes);
                 nbytes = amrex::aligned_size(acd, nbytes); // so that bytes are aligned
 
                 // Also need to align the offset properly
@@ -518,7 +518,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
             {
                 if (send_size[j] > 0) {
                     const int rank = ParallelContext::global_to_local_rank(send_rank[j]);
-                    const int comm_data_type = select_comm_data_type(send_size[j]);
+                    const int comm_data_type = ParallelDescriptor::select_comm_data_type(send_size[j]);
                     if (comm_data_type == 1) {
                         send_reqs[j] = ParallelDescriptor::Asend
                             (send_data[j],
@@ -720,7 +720,7 @@ FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&  m_RcvTags,
             nbytes += (*this)[cct.dstIndex].nBytes(cct.dbox,icomp,ncomp);
         }
 
-        std::size_t acd = alignof_comm_data(nbytes);
+        std::size_t acd = ParallelDescriptor::alignof_comm_data(nbytes);
         nbytes = amrex::aligned_size(acd, nbytes);  // so that nbytes are aligned
 
         // Also need to align the offset properly
@@ -754,7 +754,7 @@ FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&  m_RcvTags,
             {
                 recv_data[i] = the_recv_data + offset[i];
                 const int rank = ParallelContext::global_to_local_rank(recv_from[i]);
-                const int comm_data_type = select_comm_data_type(recv_size[i]);
+                const int comm_data_type = ParallelDescriptor::select_comm_data_type(recv_size[i]);
                 if (comm_data_type == 1) {
                     recv_reqs[i] = ParallelDescriptor::Arecv
                         (recv_data[i],

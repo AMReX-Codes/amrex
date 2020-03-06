@@ -1673,44 +1673,6 @@ FabArrayBase::WaitForAsyncSends (int                 N_snds,
 
 #ifdef BL_USE_MPI
 
-int
-FabArrayBase::select_comm_data_type (std::size_t nbytes)
-{
-    if (nbytes <= std::size_t(std::numeric_limits<int>::max()))
-    {
-        return 1;
-    }
-    else if (amrex::aligned_size(sizeof(unsigned long long), nbytes) <=
-             sizeof(unsigned long long)*std::size_t(std::numeric_limits<int>::max()))
-    {
-        return 2;
-    } else if (amrex::aligned_size(sizeof(ParallelDescriptor::lull_t), nbytes) <=
-               sizeof(ParallelDescriptor::lull_t)*std::size_t(std::numeric_limits<int>::max()))
-    {
-        return 3;
-    }
-    else
-    {
-        return 0;
-    }
-}
-
-std::size_t
-FabArrayBase::alignof_comm_data (std::size_t nbytes)
-{
-    const int t = select_comm_data_type(nbytes);
-    if (t == 1) {
-        return 1;
-    } else if (t == 2) {
-        return sizeof(unsigned long long);
-    } else if (t == 3) {
-        return sizeof(ParallelDescriptor::lull_t);
-    } else {
-        amrex::Abort("TODO: message size is too big");
-        return 0;
-    }
-}
-
 bool
 FabArrayBase::CheckRcvStats(Vector<MPI_Status>& recv_stats,
 			    const Vector<std::size_t>& recv_size,
@@ -1721,7 +1683,7 @@ FabArrayBase::CheckRcvStats(Vector<MPI_Status>& recv_stats,
 	    std::size_t count;
             int tmp_count;
 
-            const int comm_data_type = select_comm_data_type(recv_size[i]);
+            const int comm_data_type = ParallelDescriptor::select_comm_data_type(recv_size[i]);
             if (comm_data_type == 1) {
                 MPI_Get_count(&recv_stats[i],
                               ParallelDescriptor::Mpi_typemap<char>::type(),

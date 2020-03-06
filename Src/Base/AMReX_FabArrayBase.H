@@ -634,9 +634,6 @@ public:
     static bool CheckRcvStats(Vector<MPI_Status>& recv_stats,
 			      const Vector<std::size_t>& recv_size,
                               int tag);
-
-    static int select_comm_data_type (std::size_t nbytes);
-    static std::size_t alignof_comm_data (std::size_t nbytes);
 #endif
 
 };

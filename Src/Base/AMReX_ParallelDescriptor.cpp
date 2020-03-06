@@ -2152,6 +2152,48 @@ ParallelDescriptor::EndTeams ()
     m_Team.clear();
 }
 
+#ifdef BL_USE_MPI
+
+int
+ParallelDescriptor::select_comm_data_type (std::size_t nbytes)
+{
+    if (nbytes <= std::size_t(std::numeric_limits<int>::max()))
+    {
+        return 1;
+    }
+    else if (amrex::aligned_size(sizeof(unsigned long long), nbytes) <=
+             sizeof(unsigned long long)*std::size_t(std::numeric_limits<int>::max()))
+    {
+        return 2;
+    } else if (amrex::aligned_size(sizeof(ParallelDescriptor::lull_t), nbytes) <=
+               sizeof(ParallelDescriptor::lull_t)*std::size_t(std::numeric_limits<int>::max()))
+    {
+        return 3;
+    }
+    else
+    {
+        return 0;
+    }
+}
+
+std::size_t
+ParallelDescriptor::alignof_comm_data (std::size_t nbytes)
+{
+    const int t = select_comm_data_type(nbytes);
+    if (t == 1) {
+        return 1;
+    } else if (t == 2) {
+        return sizeof(unsigned long long);
+    } else if (t == 3) {
+        return sizeof(ParallelDescriptor::lull_t);
+    } else {
+        amrex::Abort("TODO: message size is too big");
+        return 0;
+    }
+}
+
+#endif
+
 }
 
 
