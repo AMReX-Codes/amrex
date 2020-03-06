@@ -106,6 +106,7 @@ Real WarpX::particle_slice_width_lab = 0.0;
 
 bool WarpX::do_dynamic_scheduling = true;
 
+int WarpX::do_electrostatic = 0;
 int WarpX::do_subcycling = 0;
 bool WarpX::safe_guard_cells = 0;
 
@@ -1136,21 +1137,6 @@ IntVect
 WarpX::RefRatio (int lev)
 {
     return GetInstance().refRatio(lev);
-}
-
-void
-WarpX::Evolve (int numsteps) {
-    WARPX_PROFILE_REGION("WarpX::Evolve()");
-
-#ifdef WARPX_DO_ELECTROSTATIC
-    if (do_electrostatic) {
-        EvolveES(numsteps);
-    } else {
-      EvolveEM(numsteps);
-    }
-#else
-    EvolveEM(numsteps);
-#endif // WARPX_DO_ELECTROSTATIC
 }
 
 void

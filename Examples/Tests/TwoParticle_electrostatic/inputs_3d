@@ -1,18 +1,23 @@
 max_step = 30
-amr.n_cell = 128 128 128
+amr.n_cell = 64 64 64
 amr.max_level = 0
 amr.blocking_factor = 8
 amr.max_grid_size = 128
 amr.plot_int = 30
+warpx.openpmd_int = 1
 geometry.coord_sys   = 0
 geometry.is_periodic = 0 0 0
 geometry.prob_lo     = -1 -1 -1
 geometry.prob_hi     = 1 1 1
 warpx.do_pml = 0
-warpx.dt = 2e-4
+warpx.const_dt = 2e-4
+warpx.do_electrostatic = 1
+warpx.fields_to_plot = Ex Ey Ez rho
 
 particles.nspecies = 2
 particles.species_names = electron1 electron2
+
+algo.field_gathering = momentum-conserving
 
 electron1.charge = -q_e
 electron1.mass = m_e

@@ -57,6 +57,14 @@ Overall simulation parameters
     one should not expect to obtain the same random numbers,
     even if a fixed ``warpx.random_seed`` is provided.
 
+* ``warpx.do_electrostatic`` (`0` or `1`; default is `0`)
+    Run WarpX in electrostatic mode. Instead of updating the fields
+    at each iteration with the full Maxwell equations, the fields are
+    instead recomputed at each iteration from the (relativistic) Poisson
+    equation. There is no limitation on the timestep in this case, but
+    electromagnetic effects (e.g. propagation of radiation, lasers, etc.)
+    are not captured.
+
 Setting up the field mesh
 -------------------------
 

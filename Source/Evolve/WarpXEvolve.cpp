@@ -28,9 +28,9 @@
 using namespace amrex;
 
 void
-WarpX::EvolveEM (int numsteps)
+WarpX::Evolve (int numsteps)
 {
-    WARPX_PROFILE("WarpX::EvolveEM()");
+    WARPX_PROFILE("WarpX::Evolve()");
 
     Real cur_time = t_new[0];
     static int last_plot_file_step = 0;
@@ -355,6 +355,17 @@ WarpX::EvolveEM (int numsteps)
 void
 WarpX::OneStep_nosub (Real cur_time)
 {
+
+    if (do_electrostatic) {
+        // Electrostatic solver:
+        // For each species: deposit charge and add the associated space-charge
+        // E and B field to the grid ; this is done at the beginning of the PIC
+        // loop (i.e. immediately after a `Redistribute` and before particle
+        // positions are pushed) so that the particles do not deposit out of bound
+        bool const reset_fields = true;
+        ComputeSpaceChargeField( reset_fields );
+    }
+
     // Loop over species. For each ionizable species, create particles in
     // product species.
     mypc->doFieldIonization();
@@ -386,50 +397,51 @@ WarpX::OneStep_nosub (Real cur_time)
     if (do_pml && pml_has_particles) CopyJPML();
     if (do_pml && do_pml_j_damping) DampJPML();
 
+    if (!do_electrostatic) {
+    // Electromagnetic solver:
     // Push E and B from {n} to {n+1}
     // (And update guard cells immediately afterwards)
 #ifdef WARPX_USE_PSATD
-    if (use_hybrid_QED)
-    {
-        WarpX::Hybrid_QED_Push(dt);
+        if (use_hybrid_QED)
+        {
+            WarpX::Hybrid_QED_Push(dt);
+            FillBoundaryE(guard_cells.ng_alloc_EB, guard_cells.ng_Extra);
+        }
+        PushPSATD(dt[0]);
         FillBoundaryE(guard_cells.ng_alloc_EB, guard_cells.ng_Extra);
-    }
-    PushPSATD(dt[0]);
-    FillBoundaryE(guard_cells.ng_alloc_EB, guard_cells.ng_Extra);
-    FillBoundaryB(guard_cells.ng_alloc_EB, guard_cells.ng_Extra);
-
-    if (use_hybrid_QED)
-    {
-        WarpX::Hybrid_QED_Push(dt);
-        FillBoundaryE(guard_cells.ng_alloc_EB, guard_cells.ng_Extra);
-
-    }
-    if (do_pml) DampPML();
-
-;
-#else
-    EvolveF(0.5*dt[0], DtType::FirstHalf);
-    FillBoundaryF(guard_cells.ng_FieldSolverF);
-    EvolveB(0.5*dt[0]); // We now have B^{n+1/2}
-
-    FillBoundaryB(guard_cells.ng_FieldSolver, IntVect::TheZeroVector());
-    EvolveE(dt[0]); // We now have E^{n+1}
-
-    FillBoundaryE(guard_cells.ng_FieldSolver, IntVect::TheZeroVector());
-    EvolveF(0.5*dt[0], DtType::SecondHalf);
-    EvolveB(0.5*dt[0]); // We now have B^{n+1}
-    if (do_pml) {
-        FillBoundaryF(guard_cells.ng_alloc_F);
-        DampPML();
-        FillBoundaryE(guard_cells.ng_MovingWindow, IntVect::TheZeroVector());
-        FillBoundaryF(guard_cells.ng_MovingWindow);
-        FillBoundaryB(guard_cells.ng_MovingWindow, IntVect::TheZeroVector());
-    }
-    // E and B are up-to-date in the domain, but all guard cells are
-    // outdated.
-    if ( safe_guard_cells )
         FillBoundaryB(guard_cells.ng_alloc_EB, guard_cells.ng_Extra);
+
+        if (use_hybrid_QED)
+        {
+            WarpX::Hybrid_QED_Push(dt);
+            FillBoundaryE(guard_cells.ng_alloc_EB, guard_cells.ng_Extra);
+
+        }
+        if (do_pml) DampPML();
+#else
+        EvolveF(0.5*dt[0], DtType::FirstHalf);
+        FillBoundaryF(guard_cells.ng_FieldSolverF);
+        EvolveB(0.5*dt[0]); // We now have B^{n+1/2}
+
+        FillBoundaryB(guard_cells.ng_FieldSolver, IntVect::TheZeroVector());
+        EvolveE(dt[0]); // We now have E^{n+1}
+
+        FillBoundaryE(guard_cells.ng_FieldSolver, IntVect::TheZeroVector());
+        EvolveF(0.5*dt[0], DtType::SecondHalf);
+        EvolveB(0.5*dt[0]); // We now have B^{n+1}
+        if (do_pml) {
+            FillBoundaryF(guard_cells.ng_alloc_F);
+            DampPML();
+            FillBoundaryE(guard_cells.ng_MovingWindow, IntVect::TheZeroVector());
+            FillBoundaryF(guard_cells.ng_MovingWindow);
+            FillBoundaryB(guard_cells.ng_MovingWindow, IntVect::TheZeroVector());
+        }
+        // E and B are up-to-date in the domain, but all guard cells are
+        // outdated.
+        if ( safe_guard_cells )
+            FillBoundaryB(guard_cells.ng_alloc_EB, guard_cells.ng_Extra);
 #endif
+    }
 }
 
 /* /brief Perform one PIC iteration, with subcycling
@@ -452,6 +464,10 @@ WarpX::OneStep_nosub (Real cur_time)
 void
 WarpX::OneStep_sub1 (Real curtime)
 {
+#ifdef WARPX_DO_ELECTROSTATIC
+    amrex::Abort("Electrostatic solver cannot be used with sub-cycling.");
+#endif
+
     // TODO: we could save some charge depositions
     // Loop over species. For each ionizable species, create particles in
     // product species.

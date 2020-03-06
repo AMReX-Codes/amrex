@@ -388,6 +388,7 @@ public:
     static amrex::IntVect jy_nodal_flag;
     static amrex::IntVect jz_nodal_flag;
 
+    static int do_electrostatic;
     static int do_moving_window;
     static int moving_window_dir;
     static amrex::Real moving_window_v;
@@ -678,7 +679,6 @@ private:
     int num_injected_species = -1;
     amrex::Vector<int> injected_plasma_species;
 
-    int do_electrostatic = 0;
     int n_buffer = 4;
     amrex::Real const_dt = 0.5e-11;
 
