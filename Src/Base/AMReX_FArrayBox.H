@@ -246,7 +246,7 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     FArrayBox& operator= (Real r) noexcept;
     //
@@ -259,14 +259,14 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     bool contains_nan () const noexcept;
 
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     bool contains_nan (const Box& bx, int scomp, int ncomp) const noexcept;
     /**
@@ -276,14 +276,14 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     bool contains_nan (IntVect& where) const noexcept;
 
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     bool contains_nan (const Box& bx, int scomp, int ncomp, IntVect& where) const noexcept;
     /**
@@ -294,14 +294,14 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     bool contains_inf () const noexcept;
 
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     bool contains_inf (const Box& bx, int scomp, int ncomp) const noexcept;
     /**
@@ -311,14 +311,14 @@ public:
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     bool contains_inf (IntVect& where) const noexcept;
 
 #if defined(AMREX_USE_GPU)
     template <RunOn run_on>
 #else
-    template < RunOn run_on >
+    template <RunOn run_on=RunOn::Host>
 #endif
     bool contains_inf (const Box& bx, int scomp, int ncomp, IntVect& where) const noexcept;
 
