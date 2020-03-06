@@ -410,7 +410,7 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buff
             RcvProc.push_back(i);
             rOffset.push_back(TotRcvBytes);
             long nbytes = plan.m_rcv_num_particles[i]*psize;
-            TotRcvBytes += amrex::aligned_size(sizeof(unsigned long long), nbytes);;
+            TotRcvBytes += amrex::aligned_size(sizeof(unsigned long long), nbytes);
             plan.m_rcv_pad_correction_h.push_back(plan.m_rcv_pad_correction_h.back() + nbytes);
         }
     }
@@ -441,14 +441,15 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buff
     for (int i = 0; i < plan.m_nrcvs; ++i) {
         const auto Who    = RcvProc[i];
         const auto offset = rOffset[i];
-        const auto Cnt    = plan.m_rcv_num_particles[Who]*psize;
+        long nbytes       = plan.m_rcv_num_particles[Who]*psize;
+        const auto Cnt    = amrex::aligned_size(sizeof(unsigned long long), nbytes) / sizeof(unsigned long long);
 
         AMREX_ASSERT(Cnt > 0);
         AMREX_ASSERT(Cnt < std::numeric_limits<int>::max());
         AMREX_ASSERT(Who >= 0 && Who < NProcs);
         
         plan.m_particle_rreqs[i] = 
-            ParallelDescriptor::Arecv((char*) (rcv_buffer.dataPtr() + offset), Cnt, Who, SeqNum).req();
+            ParallelDescriptor::Arecv((unsigned long long*) (rcv_buffer.dataPtr() + offset), Cnt, Who, SeqNum).req();
     }
 
     if (plan.m_NumSnds == 0) return;
@@ -458,14 +459,14 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buff
     {
         if (i == MyProc) continue;
         const auto Who = i;
-        const auto Cnt = plan.m_snd_counts[i];
+        const auto Cnt = plan.m_snd_counts[i] / sizeof(unsigned long long);
         if (Cnt == 0) continue;
         
         AMREX_ASSERT(Who >= 0 && Who < NProcs);
         AMREX_ASSERT(Cnt < std::numeric_limits<int>::max());
         
         auto snd_offset = plan.m_snd_offsets[i];
-        ParallelDescriptor::Send((char*)(snd_buffer.dataPtr()+snd_offset), Cnt, Who, SeqNum);
+        ParallelDescriptor::Send((unsigned long long*)(snd_buffer.dataPtr()+snd_offset), Cnt, Who, SeqNum);
     }
 #endif // MPI
 }
