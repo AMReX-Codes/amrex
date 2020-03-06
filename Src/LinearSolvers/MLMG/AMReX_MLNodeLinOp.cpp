@@ -23,7 +23,8 @@ MLNodeLinOp::define (const Vector<Geometry>& a_geom,
                      const LPInfo& a_info,
                      const Vector<FabFactory<FArrayBox> const*>& a_factory)
 {
-    MLLinOp::define(a_geom, a_grids, a_dmap, a_info, a_factory);
+    bool eb_limit_coarsening = false;
+    MLLinOp::define(a_geom, a_grids, a_dmap, a_info, a_factory, eb_limit_coarsening);
 
     m_owner_mask.resize(m_num_amr_levels);
     m_dirichlet_mask.resize(m_num_amr_levels);

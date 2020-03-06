@@ -432,6 +432,8 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
         const iMultiFab& c_cc_mask = *m_cc_fine_mask[ilev];
         const auto& has_fine_bndry = *m_has_fine_bndry[ilev];
 
+        bool neumann_doubling = true; // yes even for RAP, because unimposeNeumannBC will be called on rhs
+
         MFItInfo mfi_info;
         if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
 #ifdef _OPENMP
@@ -460,7 +462,7 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
 #if (AMREX_SPACEDIM == 2)
                                             is_rz,
 #endif
-                                            cdxinv,cnddom,lobc,hibc);
+                                            cdxinv,cnddom,lobc,hibc, neumann_doubling);
                 });
             }
         }
@@ -1190,7 +1192,7 @@ MLNodeLaplacian::restrictInteriorNodes (int camrlev, MultiFab& crhs, MultiFab& a
     MultiFab cfine(amrex::coarsen(fba, 2), fdm, 1, 0);
 
     if (m_coarsening_strategy == CoarseningStrategy::RAP) {
-        frhs->setBndry(0.0);
+        frhs->setDomainBndry(0.0,m_geom[camrlev+1][0]);
     }
 
     applyBC(camrlev+1, 0, *frhs, BCMode::Inhomogeneous, StateMode::Solution);
@@ -1674,6 +1676,8 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
     const MultiFab* vfrac = (factory) ? &(factory->getVolFrac()) : nullptr;
 #endif
 
+    bool neumann_doubling = true; // yes even for RAP, because unimposeNeumannBC will be called on rhs
+
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
 #ifdef _OPENMP
@@ -1863,7 +1867,7 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
                         {
                             mlndlap_set_stencil_s0(i, j, k, stenarr);
                             mlndlap_adotx_sten(i, j, k, sync_resid_a, phiarr, stenarr, dmskarr);
-                            mlndlap_crse_resid(i, j, k, sync_resid_a, rhsarr, cccmsk, nddom, lobc, hibc);
+                            mlndlap_crse_resid(i, j, k, sync_resid_a, rhsarr, cccmsk, nddom, lobc, hibc, neumann_doubling);
                         });
                     }
                     else
@@ -1887,7 +1891,7 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
                                              is_rz,
 #endif
                                              dxinv);
-                            mlndlap_crse_resid(i, j, k, sync_resid_a, rhsarr, cccmsk, nddom, lobc, hibc);
+                            mlndlap_crse_resid(i, j, k, sync_resid_a, rhsarr, cccmsk, nddom, lobc, hibc, neumann_doubling);
                         });
                     }
                 }
@@ -2156,7 +2160,10 @@ MLNodeLaplacian::reflux (int crse_amrlev,
     const auto cdxinv = cgeom.InvCellSizeArray();
     const auto fdxinv = fgeom.InvCellSizeArray();
     const Box& c_cc_domain = cgeom.Domain();
-    const Box& c_nd_domain = amrex::surroundingNodes(c_cc_domain);
+    Box c_nd_domain = amrex::surroundingNodes(c_cc_domain);
+
+    bool neumann_doubling = m_coarsening_strategy == CoarseningStrategy::Sigma;
+
 #if (AMREX_SPACEDIM == 2)
     bool is_rz = m_is_rz;
 #endif
@@ -2303,7 +2310,7 @@ MLNodeLaplacian::reflux (int crse_amrlev,
 #if (AMREX_SPACEDIM == 2)
                                        is_rz,
 #endif
-                                       lobc,hibc);
+                                       lobc,hibc, neumann_doubling);
             });
         }
     }

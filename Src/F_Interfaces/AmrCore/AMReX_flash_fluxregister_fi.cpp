@@ -44,7 +44,19 @@ extern "C" {
         flux_reg->load(cgid, dir, fab, cfab, sf_f, sf_c);
     }
 
-    void amrex_fi_flash_fluxregister_load_area (FlashFluxRegister const* flux_reg, int cgid, int dir,
+    void amrex_fi_flash_fluxregister_load_1_area (FlashFluxRegister const* flux_reg, int cgid, int dir,
+                                                Real* flux, const int* flo, const int* fhi, int nc,
+                                                Real const* area)
+    {
+        Box bx;
+        bx = Box(IntVect(flo), IntVect(fhi));
+        bx.shiftHalf(dir,-1);
+        FArrayBox fab(bx,nc,flux);
+        const FArrayBox areafab(bx,1,const_cast<Real*>(area));
+        flux_reg->load(cgid, dir, fab, areafab);
+    }
+
+    void amrex_fi_flash_fluxregister_load_2_area (FlashFluxRegister const* flux_reg, int cgid, int dir,
                                                 Real* flux, const int* flo, const int* fhi, int nc,
                                                 Real const* cflux, Real const* area,
                                                 Real sf_f, Real sf_c)

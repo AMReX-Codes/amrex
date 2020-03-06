@@ -68,12 +68,13 @@ ParallelFor (Vector<Array4BoxTag<T> > const& tags, int ncomp, F && f)
 #ifdef AMREX_USE_DPCPP
     amrex::launch(nblocks, nthreads, Gpu::nullStream(),
     [=] AMREX_GPU_DEVICE (sycl::nd_item<1> const& item) noexcept
+    AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size)
     {
         int g_tid = item.get_global_id(0);
         int g_wid = g_tid / Gpu::Device::warp_size;
         if (g_wid >= ntotwarps) return;
 
-        int tag_id;
+        int tag_id = 0;
         {
             int lo = 0;
             int hi = ntags;
@@ -234,12 +235,13 @@ fab_to_fab (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, in
 #ifdef AMREX_USE_DPCPP
     amrex::launch(nblocks, nthreads, Gpu::nullStream(),
     [=] AMREX_GPU_DEVICE (sycl::nd_item<1> const& item) noexcept
+    AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size)
     {
         int g_tid = item.get_global_id(0);
         int g_wid = g_tid / Gpu::Device::warp_size;
         if (g_wid >= ntotwarps) return;
 
-        int tag_id;
+        int tag_id = 0;
         {
             int lo = 0;
             int hi = N_locs;
