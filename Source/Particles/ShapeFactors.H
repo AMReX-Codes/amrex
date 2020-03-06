@@ -27,8 +27,11 @@ int compute_shape_factor(amrex::Real* const sx, amrex::Real xint)
 template <>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int compute_shape_factor <0> (amrex::Real* const sx, amrex::Real xmid){
-    const auto j = static_cast<int>(xmid+0.5);
-    sx[0] = 1.0;
+
+    using namespace amrex;
+
+    const auto j = static_cast<int>(xmid+0.5_rt);
+    sx[0] = 1.0_rt;
     return j;
 }
 
@@ -40,9 +43,12 @@ int compute_shape_factor <0> (amrex::Real* const sx, amrex::Real xmid){
 template <>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int compute_shape_factor <1> (amrex::Real* const sx, amrex::Real xmid){
+
+    using namespace amrex;
+
     const auto j = static_cast<int>(xmid);
     const amrex::Real xint = xmid-j;
-    sx[0] = 1.0 - xint;
+    sx[0] = 1.0_rt - xint;
     sx[1] = xint;
     return j;
 }
@@ -55,11 +61,14 @@ int compute_shape_factor <1> (amrex::Real* const sx, amrex::Real xmid){
 template <>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int compute_shape_factor <2> (amrex::Real* const sx, amrex::Real xmid){
-    const auto j = static_cast<int>(xmid+0.5);
+
+    using namespace amrex;
+
+    const auto j = static_cast<int>(xmid+0.5_rt);
     const amrex::Real xint = xmid-j;
-    sx[0] = 0.5*(0.5-xint)*(0.5-xint);
-    sx[1] = 0.75-xint*xint;
-    sx[2] = 0.5*(0.5+xint)*(0.5+xint);
+    sx[0] = 0.5_rt*(0.5_rt-xint)*(0.5_rt-xint);
+    sx[1] = 0.75_rt-xint*xint;
+    sx[2] = 0.5_rt*(0.5_rt+xint)*(0.5_rt+xint);
     // index of the leftmost cell where particle deposits
     return j-1;
 }
@@ -72,12 +81,15 @@ int compute_shape_factor <2> (amrex::Real* const sx, amrex::Real xmid){
 template <>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int compute_shape_factor <3> (amrex::Real* const sx, amrex::Real xmid){
+
+    using namespace amrex;
+
     const auto j = static_cast<int>(xmid);
     const amrex::Real xint = xmid-j;
-    sx[0] = 1.0/6.0*(1.0-xint)*(1.0-xint)*(1.0-xint);
-    sx[1] = 2.0/3.0-xint*xint*(1-xint/2.0);
-    sx[2] = 2.0/3.0-(1-xint)*(1-xint)*(1.0-0.5*(1-xint));
-    sx[3] = 1.0/6.0*xint*xint*xint;
+    sx[0] = 1.0_rt/6.0_rt*(1.0_rt-xint)*(1.0_rt-xint)*(1.0_rt-xint);
+    sx[1] = 2.0_rt/3.0_rt-xint*xint*(1.0_rt-xint/2.0_rt);
+    sx[2] = 2.0_rt/3.0_rt-(1.0_rt-xint)*(1.0_rt-xint)*(1.0_rt-0.5_rt*(1.0_rt-xint));
+    sx[3] = 1.0_rt/6.0_rt*xint*xint*xint;
     // index of the leftmost cell where particle deposits
     return j-1;
 }
@@ -103,10 +115,13 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int compute_shifted_shape_factor <1> (amrex::Real* const sx,
                                       const amrex::Real x_old,
                                       const int i_new){
+
+    using namespace amrex;
+
     const auto i = static_cast<int>(x_old);
     const int i_shift = i - i_new;
     const amrex::Real xint = x_old - i;
-    sx[1+i_shift] = 1.0 - xint;
+    sx[1+i_shift] = 1.0_rt - xint;
     sx[2+i_shift] = xint;
     return i;
 }
@@ -121,12 +136,15 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int compute_shifted_shape_factor <2> (amrex::Real* const sx,
                                       const amrex::Real x_old,
                                       const int i_new){
-    const auto i = static_cast<int>(x_old+0.5);
+
+    using namespace amrex;
+
+    const auto i = static_cast<int>(x_old+0.5_rt);
     const int i_shift = i - (i_new + 1);
     const amrex::Real xint = x_old - i;
-    sx[1+i_shift] = 0.5*(0.5-xint)*(0.5-xint);
-    sx[2+i_shift] = 0.75-xint*xint;
-    sx[3+i_shift] = 0.5*(0.5+xint)*(0.5+xint);
+    sx[1+i_shift] = 0.5_rt*(0.5_rt-xint)*(0.5_rt-xint);
+    sx[2+i_shift] = 0.75_rt-xint*xint;
+    sx[3+i_shift] = 0.5_rt*(0.5_rt+xint)*(0.5_rt+xint);
     // index of the leftmost cell where particle deposits
     return i-1;
 }
@@ -141,13 +159,16 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int compute_shifted_shape_factor <3> (amrex::Real* const sx,
                                       const amrex::Real x_old,
                                       const int i_new){
+
+    using namespace amrex;
+
     const auto i = static_cast<int>(x_old);
     const int i_shift = i - (i_new + 1);
     const amrex::Real xint = x_old - i;
-    sx[1+i_shift] = 1.0/6.0*(1.0-xint)*(1.0-xint)*(1.0-xint);
-    sx[2+i_shift] = 2.0/3.0-xint*xint*(1-xint/2.0);
-    sx[3+i_shift] = 2.0/3.0-(1-xint)*(1-xint)*(1.0-0.5*(1-xint));
-    sx[4+i_shift] = 1.0/6.0*xint*xint*xint;
+    sx[1+i_shift] = 1.0_rt/6.0_rt*(1.0_rt-xint)*(1.0_rt-xint)*(1.0_rt-xint);
+    sx[2+i_shift] = 2.0_rt/3.0_rt-xint*xint*(1.0_rt-xint/2.0_rt);
+    sx[3+i_shift] = 2.0_rt/3.0_rt-(1.0_rt-xint)*(1.0_rt-xint)*(1.0_rt-0.5_rt*(1.0_rt-xint));
+    sx[4+i_shift] = 1.0_rt/6.0_rt*xint*xint*xint;
     // index of the leftmost cell where particle deposits
     return i-1;
 }
