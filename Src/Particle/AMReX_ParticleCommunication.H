@@ -296,7 +296,6 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
                 if (dst_box < 0) continue;
                 int dst_lev = p_levels[i];
                 int dst_offset = get_offset(dst_box, dst_lev, psize, p_dst_indices[i]);
-                AMREX_ASSERT(dst_offset <= total_buffer_size);
                 int src_index = p_src_indices[i];
                 ptd.packParticleData(p_snd_buffer, src_index, dst_offset, p_comm_real, p_comm_int);
                 
@@ -535,8 +534,6 @@ void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, co
             
             AMREX_FOR_1D ( size, ip,
 	    {
-                AMREX_ALWAYS_ASSERT(p_rcv_box_pids[i] >= 0);
-                AMREX_ALWAYS_ASSERT(p_rcv_box_pids[i] <= 3);
                 int src_offset = psize*(offset + ip) + p_pad_adjust[procindex];
                 int dst_index = dst_offset + ip;
                 ptd.unpackParticleData(p_rcv_buffer, src_offset, dst_index,
