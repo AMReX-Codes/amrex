@@ -51,17 +51,17 @@ Coord read_df_node_coord (const std::string & name)
     return Coord {node, slot, chas, group};
 }
 
+#ifdef BL_USE_MPI
 std::string get_mpi_processor_name ()
 {
     std::string result;
-#ifdef BL_USE_MPI
     int len;
     char name[MPI_MAX_PROCESSOR_NAME];
     MPI_Get_processor_name(name, &len);
     result = std::string(name);
-#endif
     return result;
 }
+#endif
 
 // assumes groups are in 4x16x6 configuration
 int df_coord_to_id (const Coord & c)
@@ -109,6 +109,7 @@ std::string to_str(const Vector<T> & v)
     return oss.str();
 }
 
+#if AMREX_USE_MPI
 Vector<int> get_subgroup_ranks ()
 {
     int rank_n = ParallelContext::NProcsSub();
@@ -121,6 +122,7 @@ Vector<int> get_subgroup_ranks ()
     ParallelContext::local_to_global_rank(granks.data(), lranks.data(), rank_n);
     return granks;
 }
+#endif
 
 int pair_n (int x) {
     return x*(x-1)/2;
@@ -311,7 +313,7 @@ class Machine
     int flag_verbose = 0;
     int flag_very_verbose = 0;
     bool flag_nersc_df;
-    int my_node_id;
+    // int my_node_id;
     Vector<int> node_ids;
 
     NeighborhoodCache nbh_cache;

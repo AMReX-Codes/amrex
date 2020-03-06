@@ -17,6 +17,7 @@
                 amrex_i_h.parallel_for(sycl::nd_range<1>(sycl::range<1>(amrex_i_nthreads_total), \
                                                          sycl::range<1>(amrex_i_nthreads_per_block)), \
                 [=] (sycl::nd_item<1> amrex_i_item) \
+                AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size) \
                 { \
                     for (auto const TI : amrex::Gpu::Range(amrex_i_tn,amrex_i_item.get_global_id(0),amrex_i_item.get_global_range(0))) { \
                         block \
@@ -75,6 +76,7 @@
                 amrex_i_h.parallel_for(sycl::nd_range<2>(sycl::range<2>(amrex_i_nthreads_total,2), \
                                                          sycl::range<2>(amrex_i_nthreads_per_block,1)), \
                 [=] (sycl::nd_item<2> amrex_i_item) \
+                AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size) \
                 { \
                     switch (amrex_i_item.get_group(1)) { \
                     case 0: for (auto const TI1 : amrex::Gpu::Range(amrex_i_tn1,amrex_i_item.get_global_id(0),amrex_i_item.get_global_range(0))) { \
@@ -157,6 +159,7 @@
                 amrex_i_h.parallel_for(sycl::nd_range<2>(sycl::range<2>(amrex_i_nthreads_total,3), \
                                                          sycl::range<2>(amrex_i_nthreads_per_block,1)), \
                 [=] (sycl::nd_item<2> amrex_i_item) \
+                AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size) \
                 { \
                     switch (amrex_i_item.get_group(1)) { \
                     case 0: for (auto const TI1 : amrex::Gpu::Range(amrex_i_tn1,amrex_i_item.get_global_id(0),amrex_i_item.get_global_range(0))) { \
@@ -248,6 +251,7 @@
                 amrex_i_h.parallel_for(sycl::nd_range<1>(sycl::range<1>(amrex_i_nthreads_total), \
                                                          sycl::range<1>(amrex_i_nthreads_per_block)), \
                 [=] (sycl::nd_item<1> amrex_i_item) \
+                AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size) \
                 { \
                     for (auto const TI : amrex::Gpu::Range(amrex_i_tn,amrex_i_item.get_global_id(0),amrex_i_item.get_global_range(0))) { \
                         block \
@@ -302,6 +306,7 @@
                 amrex_i_h.parallel_for(sycl::nd_range<2>(sycl::range<2>(amrex_i_nthreads_total,2), \
                                                          sycl::range<2>(amrex_i_nthreads_per_block,1)), \
                 [=] (sycl::nd_item<2> amrex_i_item) \
+                AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size) \
                 { \
                     switch (amrex_i_item.get_group(1)) { \
                     case 0: for (auto const TI1 : amrex::Gpu::Range(amrex_i_tn1,amrex_i_item.get_global_id(0),amrex_i_item.get_global_range(0))) { \
@@ -374,6 +379,7 @@
                 amrex_i_h.parallel_for(sycl::nd_range<2>(sycl::range<2>(amrex_i_nthreads_total,3), \
                                                          sycl::range<2>(amrex_i_nthreads_per_block,1)), \
                 [=] (sycl::nd_item<2> amrex_i_item) \
+                AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size) \
                 { \
                     switch (amrex_i_item.get_group(1)) { \
                     case 0: for (auto const TI1 : amrex::Gpu::Range(amrex_i_tn1,amrex_i_item.get_global_id(0),amrex_i_item.get_global_range(0))) { \
@@ -449,7 +455,9 @@
             amrex_i_q.submit([&] (sycl::handler& amrex_i_h) { \
                 amrex_i_h.parallel_for(sycl::nd_range<1>(sycl::range<1>(amrex_i_nthreads_total), \
                                                          sycl::range<1>(amrex_i_nthreads_per_block)), \
-                [=] (sycl::nd_item<1> amrex_i_item) { \
+                [=] (sycl::nd_item<1> amrex_i_item) \
+                AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size) \
+                { \
                     for (amrex_i_inttype i = amrex_i_item.get_global_id(0), amrex_i_stride = amrex_i_item.get_global_range(0); \
                          i < amrex_i_n; i += amrex_i_stride) { \
                         block \
@@ -501,7 +509,9 @@
             amrex_i_q.submit([&] (sycl::handler& amrex_i_h) { \
                 amrex_i_h.parallel_for(sycl::nd_range<1>(sycl::range<1>(amrex_i_nthreads_total), \
                                                          sycl::range<1>(amrex_i_nthreads_per_block)), \
-                [=] (sycl::nd_item<1> amrex_i_item) { \
+                [=] (sycl::nd_item<1> amrex_i_item) \
+                AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size) \
+                { \
                     for (amrex_i_inttype i = amrex_i_item.get_global_id(0), amrex_i_stride = amrex_i_item.get_global_range(0); \
                          i < amrex_i_n; i += amrex_i_stride) { \
                         block \
@@ -549,7 +559,9 @@
             amrex_i_q.submit([&] (sycl::handler& amrex_i_h) { \
                 amrex_i_h.parallel_for(sycl::nd_range<1>(sycl::range<1>(amrex_i_nthreads_total), \
                                                          sycl::range<1>(amrex_i_nthreads_per_block)), \
-                [=] (sycl::nd_item<1> amrex_i_item) { \
+                [=] (sycl::nd_item<1> amrex_i_item) \
+                AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size) \
+                { \
                     for (int amrex_i_icell = amrex_i_item.get_global_id(0), amrex_i_stride = amrex_i_item.get_global_range(0); \
                          amrex_i_icell < amrex_i_ncells; amrex_i_icell += amrex_i_stride) { \
                         int k =  amrex_i_icell /   (amrex_i_len.x*amrex_i_len.y); \
@@ -629,7 +641,9 @@
             amrex_i_q.submit([&] (sycl::handler& amrex_i_h) { \
                 amrex_i_h.parallel_for(sycl::nd_range<1>(sycl::range<1>(amrex_i_nthreads_total), \
                                                          sycl::range<1>(amrex_i_nthreads_per_block)), \
-                [=] (sycl::nd_item<1> amrex_i_item) { \
+                [=] (sycl::nd_item<1> amrex_i_item) \
+                AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size) \
+                { \
                     for (int amrex_i_icell = amrex_i_item.get_global_id(0), amrex_i_stride = amrex_i_item.get_global_range(0); \
                          amrex_i_icell < amrex_i_ncells; amrex_i_icell += amrex_i_stride) { \
                         int k =  amrex_i_icell /   (amrex_i_len.x*amrex_i_len.y); \
@@ -691,7 +705,9 @@
             amrex_i_q.submit([&] (sycl::handler& amrex_i_h) { \
                 amrex_i_h.parallel_for(sycl::nd_range<1>(sycl::range<1>(amrex_i_nthreads_total), \
                                                          sycl::range<1>(amrex_i_nthreads_per_block)), \
-                [=] (sycl::nd_item<1> amrex_i_item) { \
+                [=] (sycl::nd_item<1> amrex_i_item) \
+                AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size) \
+                { \
                     for (int amrex_i_icell = amrex_i_item.get_global_id(0), amrex_i_stride = amrex_i_item.get_global_range(0); \
                          amrex_i_icell < amrex_i_ncells; amrex_i_icell += amrex_i_stride) { \
                         int k =  amrex_i_icell /   (amrex_i_len.x*amrex_i_len.y); \
@@ -773,7 +789,9 @@
             amrex_i_q.submit([&] (sycl::handler& amrex_i_h) { \
                 amrex_i_h.parallel_for(sycl::nd_range<1>(sycl::range<1>(amrex_i_nthreads_total), \
                                                          sycl::range<1>(amrex_i_nthreads_per_block)), \
-                [=] (sycl::nd_item<1> amrex_i_item) { \
+                [=] (sycl::nd_item<1> amrex_i_item) \
+                AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size) \
+                { \
                     for (int amrex_i_icell = amrex_i_item.get_global_id(0), amrex_i_stride = amrex_i_item.get_global_range(0); \
                          amrex_i_icell < amrex_i_ncells; amrex_i_icell += amrex_i_stride) { \
                         int k =  amrex_i_icell /   (amrex_i_len.x*amrex_i_len.y); \

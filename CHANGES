@@ -1,4 +1,4 @@
-# Changes since latest release
+# 20.03
 
   -- AmrCore can now be built without using ParmParse.
 
@@ -6,6 +6,12 @@
 
   -- Fix OMP bug in MFIter constructors taking BoxArray and
      DistributionMapping.
+
+  -- Cray compiler has been re-enabled in CMake.
+
+  -- For device only code, the users can now use #if AMREX_DIVICE_COMPILE.
+
+  -- Fix an integer overflow issue in TileArray cache.
 
 # 20.02
 

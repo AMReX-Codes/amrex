@@ -1,3 +1,6 @@
+* Recursive function is not supported by SYCL/OpenCL.  Hopefully DPC++
+  will support it.  It's crucial to the WarpX code.
+
 * In AMReX, we have GpuTuple that we successfully use it on device
   with CUDA.  But GpuTuple is not standard layout type.  So SYCL does
   not like.  It is however trivially copyable (i.e., memcpy safe).
@@ -10,7 +13,8 @@
   will be handled by the async error handler we give to the queue.
   See `amrex_sync_error_handler` and how it is used in
   `amrex/Src/Base/AMReX_GpuDevice.cpp`, and how `wait_and_throw` is
-  called to try to catch the async error.
+  called to try to catch the async error. Update: It appears that assert
+  is not supposed to throw any errors.
 
 * SYCL_EXTERNAL works on functions.  Does Intel have plan to support
   it for variables?
@@ -23,10 +27,6 @@
   https://github.com/intel/llvm/blob/sycl/sycl/doc/extensions/C-CXX-StandardLibrary/C-CXX-StandardLibrary.rst
 
 * How to prefetch USM from host to device and from device to host?
-
-* [[sycl::intel_reqd_sub_group_size(32)]] doesn't seem to exist in
-  beta4 yet.  So we will wait.  Question.  Is there a function to
-  query the hardware sub group size?
 
 * Device properties.  How to get the maximal number of work items
   allowed on a compute unit?  In the intel/llvm github repo, there is
@@ -77,3 +77,9 @@
 
 * GpuTuple.  GpuTuple<int> is standard layout and the compiler doesn't
   complain when it's captured by value.  But it's value seems wrong.
+
+* DONE [[sycl::intel_reqd_sub_group_size(32)]] doesn't seem to exist in
+  beta4 yet.  So we will wait.  Question.  Is there a function to
+  query the hardware sub group size? Update:
+  `cl::intel_reqd_sub_group_size()` works.  We use clang diagnostic
+  ignored, push and pop to suppress the warning on unknown attribute.

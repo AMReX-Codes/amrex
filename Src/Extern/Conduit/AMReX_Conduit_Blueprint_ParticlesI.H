@@ -156,7 +156,7 @@ ParticleTileToBlueprint(const ParticleTile<NStructReal,
         conduit::Node &n_f = n_fields[real_comp_names[vname_real_idx]];
         n_f["topology"] = "particles";
         n_f["association"] = "element";
-        n_f["values"].set_external(const_cast<Real*>(&soa.GetRealData(i)[0]),
+        n_f["values"].set_external(const_cast<ParticleReal*>(&soa.GetRealData(i)[0]),
                                    num_particles);
 
         vname_real_idx++;
