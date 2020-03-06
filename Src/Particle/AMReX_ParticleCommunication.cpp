@@ -85,7 +85,8 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, long psize)
             snd_data[i].push_back(npart);
             snd_data[i].push_back(dst);
             snd_data[i].push_back(lev);
-            nbytes += 3*sizeof(int);
+            snd_data[i].push_back(MyProc);
+            nbytes += 4*sizeof(int);
 	}
 	m_Snds[i] = nbytes;
 	m_NumSnds += nbytes;
@@ -221,14 +222,16 @@ void ParticleCopyPlan::buildMPIFinish (const ParticleBufferMap& map)
         Gpu::HostVector<int> rcv_box_counts;
         Gpu::HostVector<int> rcv_box_ids;        
         Gpu::HostVector<int> rcv_box_levs;
-
+        Gpu::HostVector<int> rcv_box_pids;        
+        
         rcv_box_offsets.push_back(0);
-        for (int i = 0; i < m_rcv_data.size(); i+=3)
+        for (int i = 0; i < m_rcv_data.size(); i+=4)
         {
             rcv_box_counts.push_back(m_rcv_data[i]);
             AMREX_ASSERT(ParallelDescriptor::MyProc() == map.procID(m_rcv_data[i+1], m_rcv_data[i+2]));
             rcv_box_ids.push_back(m_rcv_data[i+1]);
             rcv_box_levs.push_back(m_rcv_data[i+2]);
+            rcv_box_pids.push_back(m_rcv_data[i+3]);
             rcv_box_offsets.push_back(rcv_box_offsets.back() + rcv_box_counts.back());
         }
         
@@ -243,6 +246,9 @@ void ParticleCopyPlan::buildMPIFinish (const ParticleBufferMap& map)
 
         m_rcv_box_levs.resize(rcv_box_levs.size());
         Gpu::copy(Gpu::hostToDevice, rcv_box_levs.begin(), rcv_box_levs.end(), m_rcv_box_levs.begin());
+
+        m_rcv_box_pids.resize(rcv_box_pids.size());
+        Gpu::copy(Gpu::hostToDevice, rcv_box_pids.begin(), rcv_box_pids.end(), m_rcv_box_pids.begin());
     }
     
     for (int j = 0; j < m_nrcvs; ++j)
@@ -252,7 +258,7 @@ void ParticleCopyPlan::buildMPIFinish (const ParticleBufferMap& map)
         const auto Cnt    = m_Rcvs[Who]/sizeof(int);
         
         long nparticles = 0;
-        for (int i = offset; i < offset + Cnt; i +=3)
+        for (int i = offset; i < offset + Cnt; i +=4)
         {
             nparticles += m_rcv_data[i];
         }
