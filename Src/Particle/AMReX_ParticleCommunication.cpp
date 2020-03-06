@@ -188,7 +188,7 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, long psize)
 
     for (int i = 0; i < NProcs; ++i)
     {
-        m_snd_pad_correction_h[i] -= m_snd_offsets[i];
+        m_snd_pad_correction_h[i] = m_snd_offsets[i] - m_snd_pad_correction_h[i];
     }
     
     m_snd_pad_correction_d.resize(m_snd_pad_correction_h.size());
