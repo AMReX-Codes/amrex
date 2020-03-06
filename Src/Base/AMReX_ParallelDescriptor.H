@@ -560,6 +560,11 @@ while ( false )
     void PMI_Initialize();
     void PMI_PrintMeshcoords(const pmi_mesh_coord_t *pmi_mesh_coord);
 #endif
+
+#ifdef BL_USE_MPI
+    int select_comm_data_type (std::size_t nbytes);
+    std::size_t alignof_comm_data (std::size_t nbytes);
+#endif
 }
 }
 
