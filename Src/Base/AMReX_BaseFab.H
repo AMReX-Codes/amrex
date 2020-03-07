@@ -1193,13 +1193,15 @@ template <class T>
 void
 BaseFab<T>::prefetchToHost () const noexcept
 {
-    std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
 #if defined(AMREX_USE_DPCPP)
     // xxxxx DPCPP todo: how to prefetchToHost
 #elif defined(AMREX_USE_CUDA)
+    std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
     AMREX_CUDA_SAFE_CALL(cudaMemPrefetchAsync(this->dptr, s,
                                               cudaCpuDeviceId,
                                               Gpu::gpuStream()));
+#elif defined(AMREX_USE_HIP)
+    // HIP FIX HERE
 #endif
 }
 
@@ -1207,13 +1209,15 @@ template <class T>
 void
 BaseFab<T>::prefetchToDevice () const noexcept
 {
-    std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
 #if defined(AMREX_USE_DPCPP)
     // xxxxx DPCPP todo: how to prefetchToDevice
 #elif defined(AMREX_USE_CUDA)
+    std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
     AMREX_CUDA_SAFE_CALL(cudaMemPrefetchAsync(this->dptr, s,
                                               Gpu::Device::deviceId(),
                                               Gpu::gpuStream()));
+#elif defined(AMREX_USE_HIP)
+    // HIP FIX HERE
 #endif
 }
 

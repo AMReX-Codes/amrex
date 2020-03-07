@@ -989,7 +989,7 @@ amrex::Vector<std::string> amrex::UnSerializeStringArray(const Vector<char> &cha
 
 void amrex::BroadcastBool(bool &bBool, int myLocalId, int rootId, const MPI_Comm &localComm)
 {
-  int numBool;
+  int numBool = 0;
   if (myLocalId == rootId) {
     numBool = bBool;
   }
