@@ -369,4 +369,91 @@ MLTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
 }
 
 
+
+void
+MLTensorOp::compVelGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
+                       MultiFab& sol, Location loc) const
+{
+#if (AMREX_SPACEDIM > 1)
+    BL_PROFILE("MLTensorOp::compVelGrad()");
+
+    const int mglev = 0;
+
+
+//    MLABecLaplacian::compFlux(amrlev, fluxes, sol, loc);
+
+    applyBCTensor(amrlev, mglev, sol, BCMode::Inhomogeneous, StateMode::Solution, m_bndry_sol[amrlev].get());
+
+    const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
+    const int dim_fluxes = pow(AMREX_SPACEDIM,2);
+
+amrex::Print() << "\n DEBUG IN compVelGrad \n" << " dim_fluxes = " << dim_fluxes << "\n";
+
+
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    {
+        Array<FArrayBox,AMREX_SPACEDIM> fluxfab_tmp;
+
+        for (MFIter mfi(sol, TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            Array4<Real const> const vfab = sol.const_array(mfi);
+            AMREX_D_TERM(Box const xbx = mfi.nodaltilebox(0);,
+                         Box const ybx = mfi.nodaltilebox(1);,
+                         Box const zbx = mfi.nodaltilebox(2););
+            AMREX_D_TERM(fluxfab_tmp[0].resize(xbx,dim_fluxes);,
+                         fluxfab_tmp[1].resize(ybx,dim_fluxes);,
+                         fluxfab_tmp[2].resize(zbx,dim_fluxes););
+            AMREX_D_TERM(Elixir fxeli = fluxfab_tmp[0].elixir();,
+                         Elixir fyeli = fluxfab_tmp[1].elixir();,
+                         Elixir fzeli = fluxfab_tmp[2].elixir(););
+            AMREX_D_TERM(Array4<Real> const fxfab = fluxfab_tmp[0].array();,
+                         Array4<Real> const fyfab = fluxfab_tmp[1].array();,
+                         Array4<Real> const fzfab = fluxfab_tmp[2].array(););
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA
+            ( xbx, txbx,
+              {
+                  mltensor_vel_grads_fx(txbx,fxfab,vfab,dxinv);
+
+//  amrex::Print() << fxfab;
+//  amrex::Print() << fluxfab_tmp[0];
+              }
+            , ybx, tybx,
+              {
+                  mltensor_vel_grads_fy(tybx,fyfab,vfab,dxinv);
+
+
+//amrex::Print() << fyfab;
+//amrex::Print() << fluxfab_tmp[1];
+
+              }
+#if (AMREX_SPACEDIM == 3)
+            , zbx, tzbx,
+              {
+  //                mltensor_cross_terms_fz(tzbx,fzfab,vfab,etazfab,kapzfab,dxinv);
+              }
+#endif
+            );
+
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                const Box& nbx = mfi.nodaltilebox(idim);
+                Array4<Real      > dst = fluxes[idim]->array(mfi);
+                Array4<Real const> src = fluxfab_tmp[idim].const_array();
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D (nbx, dim_fluxes, i, j, k, n,
+                {
+                    dst(i,j,k,n) = src(i,j,k,n);
+                });
+            }
+
+        }
+    }
+#endif
+}
+
+
+
+
+
+
 }
