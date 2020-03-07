@@ -538,33 +538,6 @@ private:
     void AddRhoFromFineLevelandSumBoundary (int lev, int icomp, int ncomp);
     void NodalSyncRho (int lev, PatchType patch_type, int icomp, int ncomp);
 
-#ifdef WARPX_DO_ELECTROSTATIC
-    ///
-    /// Advance the simulation by numsteps steps, electrostatic case.
-    ///
-    void EvolveES(int numsteps);
-
-    //
-    // This stuff is needed by the nodal multigrid solver when running in
-    // electrostatic mode.
-    //
-    void zeroOutBoundary(amrex::MultiFab& input_data, amrex::MultiFab& bndry_data,
-                         const amrex::FabArray<amrex::BaseFab<int> >& mask) const;
-
-    void fixRHSForSolve(amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhs,
-                        const amrex::Vector<std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > >& masks) const ;
-
-    void getLevelMasks(amrex::Vector<std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > >& masks,
-                       const int nnodes = 1);
-
-    // used to zero out fine level data on points shared with the coarse grid
-    // in electrostatic mode
-    amrex::Vector<std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > > masks;
-
-    // used to gather the field from the coarse level in electrostatic mode.
-    amrex::Vector<std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > > gather_masks;
-#endif // WARPX_DO_ELECTROSTATIC
-
     void ReadParameters ();
 
     void InitFromScratch ();

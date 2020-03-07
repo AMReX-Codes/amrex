@@ -409,14 +409,6 @@ WarpX::InitFromCheckpoint ()
     mypc->AllocData();
     mypc->Restart(restart_chkfile);
 
-#ifdef WARPX_DO_ELECTROSTATIC
-    if (do_electrostatic) {
-        getLevelMasks(masks);
-
-        // the plus one is to convert from num_cells to num_nodes
-        getLevelMasks(gather_masks, 4 + 1);
-    }
-#endif // WARPX_DO_ELECTROSTATIC
 }
 
 

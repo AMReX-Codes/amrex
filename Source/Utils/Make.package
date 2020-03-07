@@ -1,6 +1,3 @@
-ifeq ($(DO_ELECTROSTATIC),TRUE)
-    F90EXE_sources += utils_ES.F90
-endif    
 CEXE_headers += WarpX_Complex.H
 CEXE_sources += WarpXMovingWindow.cpp
 CEXE_sources += WarpXTagging.cpp

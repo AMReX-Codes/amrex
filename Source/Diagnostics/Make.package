@@ -3,10 +3,6 @@ CEXE_sources += BackTransformedDiagnostic.cpp
 CEXE_sources += ParticleIO.cpp
 CEXE_sources += FieldIO.cpp
 CEXE_sources += SliceDiagnostic.cpp
-ifeq ($(DO_ELECTROSTATIC),TRUE)
-     CEXE_sources += ElectrostaticIO.cpp
-endif
-
 CEXE_headers += FieldIO.H
 CEXE_headers += BackTransformedDiagnostic.H
 CEXE_headers += SliceDiagnostic.H

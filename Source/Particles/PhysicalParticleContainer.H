@@ -48,15 +48,6 @@ public:
 
     void InitIonizationModule ();
 
-#ifdef WARPX_DO_ELECTROSTATIC
-    virtual void FieldGatherES(const amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
-                               const amrex::Vector<std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > >& masks) override;
-
-    virtual void EvolveES (const amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
-                           amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
-                           amrex::Real t, amrex::Real dt) override;
-#endif // WARPX_DO_ELECTROSTATIC
-
     /**
      * \brief Apply external E and B fields on the particles. The E and B
      * fields could be defined as a constant or using a parser for reading

@@ -1,8 +1,3 @@
-ifeq ($(DO_ELECTROSTATIC),TRUE)
-    F90EXE_sources += interpolate_cic.F90
-    F90EXE_sources += push_particles_ES.F90
-endif
-
 CEXE_sources += MultiParticleContainer.cpp
 CEXE_sources += WarpXParticleContainer.cpp
 CEXE_sources += RigidInjectedParticleContainer.cpp

@@ -138,15 +138,6 @@ WarpX::InitFromScratch ()
     ComputeSpaceChargeField(reset_fields);
 
     InitPML();
-
-#ifdef WARPX_DO_ELECTROSTATIC
-    if (do_electrostatic) {
-        getLevelMasks(masks);
-
-        // the plus one is to convert from num_cells to num_nodes
-        getLevelMasks(gather_masks, n_buffer + 1);
-    }
-#endif // WARPX_DO_ELECTROSTATIC
 }
 
 void

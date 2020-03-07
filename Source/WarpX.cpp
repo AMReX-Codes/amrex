@@ -244,11 +244,6 @@ WarpX::WarpX ()
 
     pml.resize(nlevs_max);
 
-#ifdef WARPX_DO_ELECTROSTATIC
-    masks.resize(nlevs_max);
-    gather_masks.resize(nlevs_max);
-#endif // WARPX_DO_ELECTROSTATIC
-
     switch (WarpX::load_balance_costs_update_algo)
     {
         case LoadBalanceCostsUpdateAlgo::Timers: costs.resize(nlevs_max);

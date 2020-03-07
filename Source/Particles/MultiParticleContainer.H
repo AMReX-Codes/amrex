@@ -74,37 +74,6 @@ public:
 
     void InitData ();
 
-#ifdef WARPX_DO_ELECTROSTATIC
-    ///
-    /// Performs the field gather operation using the input field E, for all the species
-    /// in the MultiParticleContainer. This is the electrostatic version of the field gather.
-    ///
-    void FieldGatherES (const amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
-                        const amrex::Vector<std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > >& masks);
-
-    ///
-    /// This evolves all the particles by one PIC time step, including charge deposition, the
-    /// field solve, and pushing the particles, for all the species in the MultiParticleContainer.
-    /// This is the electrostatic version.
-    ///
-    void EvolveES (const amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
-                         amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
-                   amrex::Real t, amrex::Real dt);
-
-    ///
-    /// This deposits the particle charge onto rho, accumulating the value for all the species
-    /// in the MultiParticleContainer. rho is assumed to contain node-centered multifabs.
-    /// This version is hard-coded for CIC deposition.
-    ///
-    void DepositCharge(amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho, bool local = false);
-
-    ///
-    /// This returns the total particle charge for all the species in this MultiParticleContainer.
-    /// This is needed to subtract the offset for periodic boundary conditions.
-    ///
-    amrex::Real sumParticleCharge(bool local = false);
-#endif // WARPX_DO_ELECTROSTATIC
-
     ///
     /// Performs the field gather operation using the input fields E and B, for all the species
     /// in the MultiParticleContainer. This is the electromagnetic version of the field gather.
