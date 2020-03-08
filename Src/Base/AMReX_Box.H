@@ -912,7 +912,7 @@ Box::linearOut(void* a_buffer ) const noexcept
     ivlo.linearOut(buf);
     buf += ivlo.linearSize();
     ivhi.linearOut(buf);
-    buf += ivhi.linearSize();
+//    buf += ivhi.linearSize();
 }
 
 inline
@@ -925,7 +925,7 @@ Box::linearIn(void* a_buffer ) noexcept
     ivlo.linearIn(buf);
     buf += ivlo.linearSize();
     ivhi.linearIn(buf);
-    buf += ivhi.linearSize();
+//    buf += ivhi.linearSize();
 
     *this = Box(ivlo, ivhi);
 }

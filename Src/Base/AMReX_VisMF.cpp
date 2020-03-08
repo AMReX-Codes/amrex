@@ -932,6 +932,7 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
     } else if(FArrayBox::getFormat() == FABio::FAB_IEEE_32) {
       whichRD = FPC::Ieee32NormalRealDescriptor().clone();
     } else {
+      whichRD = FPC::NativeRealDescriptor().clone(); // to quiet clang static analyzer
       Abort("VisMF::Write unable to execute with the current fab.format setting.  Use NATIVE, NATIVE_32 or IEEE_32");
     }
     bool doConvert(*whichRD != FPC::NativeRealDescriptor());
@@ -1903,7 +1904,7 @@ bool
 VisMF::Exist (const std::string& mf_name)
 {
     std::string FullHdrFileName(mf_name + TheMultiFabHdrFileSuffix);
-    int exist;
+    int exist = 0;
     if (ParallelDescriptor::IOProcessor()) {
         std::ifstream iss;
         iss.open(FullHdrFileName.c_str(), std::ios::in);

@@ -27,9 +27,9 @@ std::map<std::string, Vector<char> > *StateData::faHeaderMap;
 
 StateData::StateData () 
     : desc(nullptr),
-      arena(nullptr),
       new_time{INVALID_TIME,INVALID_TIME},
-      old_time{INVALID_TIME,INVALID_TIME}
+      old_time{INVALID_TIME,INVALID_TIME},
+      arena(nullptr)
 {
 }
 
@@ -47,14 +47,14 @@ StateData::StateData (const Box&             p_domain,
 StateData::StateData (StateData&& rhs) noexcept
     : m_factory(std::move(rhs.m_factory)),
       desc(rhs.desc),
-      arena(rhs.arena),
       domain(rhs.domain),
       grids(std::move(rhs.grids)),
       dmap(std::move(rhs.dmap)),
       new_time(rhs.new_time),
       old_time(rhs.old_time),
       new_data(std::move(rhs.new_data)),
-      old_data(std::move(rhs.old_data))
+      old_data(std::move(rhs.old_data)),
+      arena(rhs.arena)
 {   
 }
 
