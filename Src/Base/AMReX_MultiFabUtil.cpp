@@ -636,13 +636,15 @@ namespace amrex
                             crse_value, fine_value);
     }
 
-    iMultiFab makeFineMask (const BoxArray& cba, const DistributionMapping& cdm,
-                            const IntVect& cnghost, const BoxArray& fba, const IntVect& ratio,
-                            Periodicity const& period, int crse_value, int fine_value)
+    template <typename FAB>
+    void makeFineMask_doit (FabArray<FAB>& mask, const BoxArray& fba,
+                            const IntVect& ratio, Periodicity const& period,
+                            typename FAB::value_type crse_value,
+                            typename FAB::value_type fine_value)
     {
-        iMultiFab mask(cba, cdm, 1, cnghost);
+        using value_type = typename FAB::value_type;
 
-        Vector<Array4BoxTag<int> > tags;
+        Vector<Array4BoxTag<value_type> > tags;
 
         bool run_on_gpu = Gpu::inLaunchRegion();
 
@@ -656,8 +658,8 @@ namespace amrex
             for (MFIter mfi(mask); mfi.isValid(); ++mfi)
             {
                 const Box& bx = mfi.fabbox();
-                Array4<int> const& arr = mask.array(mfi);
-                IArrayBox& fab = mask[mfi];
+                Array4<value_type> const& arr = mask.array(mfi);
+                auto& fab = mask[mfi];
 
                 AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
                 {
@@ -680,12 +682,28 @@ namespace amrex
 
 #ifdef AMREX_USE_GPU
         amrex::ParallelFor(tags, 1,
-        [=] AMREX_GPU_DEVICE (int i, int j, int k, int n, Array4<int> const& a) noexcept
+        [=] AMREX_GPU_DEVICE (int i, int j, int k, int n, Array4<value_type> const& a) noexcept
         {
             a(i,j,k,n) = fine_value;
         });
 #endif
+    }
 
+    iMultiFab makeFineMask (const BoxArray& cba, const DistributionMapping& cdm,
+                            const IntVect& cnghost, const BoxArray& fba, const IntVect& ratio,
+                            Periodicity const& period, int crse_value, int fine_value)
+    {
+        iMultiFab mask(cba, cdm, 1, cnghost);
+        makeFineMask_doit(mask, fba, ratio, period, crse_value, fine_value);
+        return mask;
+    }
+
+    MultiFab makeFineMask (const BoxArray& cba, const DistributionMapping& cdm,
+                           const BoxArray& fba, const IntVect& ratio,
+                           Real crse_value, Real fine_value)
+    {
+        MultiFab mask(cba, cdm, 1, 0);
+        makeFineMask_doit(mask, fba, ratio, Periodicity::NonPeriodic(), crse_value, fine_value);
         return mask;
     }
 
