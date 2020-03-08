@@ -89,6 +89,14 @@ private:
 
 };
 
+template <RunOn run_on>
+IArrayBox&
+IArrayBox::operator= (int v) noexcept
+{
+    BaseFab<int>::operator=<run_on>(v);
+    return *this;
+}
+
 }
 
 #endif /*BL_IFARRAYBOX_H*/

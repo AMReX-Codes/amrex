@@ -2052,7 +2052,7 @@ AssignCellDensitySingleLevel (int rho_index,
                 tile_box = pti.tilebox();
                 tile_box.grow(mf_pointer->nGrow());
                 local_rho.resize(tile_box,ncomp);
-                local_rho = 0.0;
+                local_rho.setVal<RunOn::Host>(0.0);
                 rhoarr = local_rho.array();
             }
 #endif
