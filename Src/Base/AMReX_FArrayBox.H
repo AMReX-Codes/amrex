@@ -249,8 +249,7 @@ public:
     template <RunOn run_on=RunOn::Host>
 #endif
     FArrayBox& operator= (Real r) noexcept;
-    //
-    void initVal () noexcept;
+
     /**
     * \brief Are there any NaNs in the FAB?
     * This may return false, even if the FAB contains NaNs, if the machine
@@ -326,6 +325,8 @@ public:
     void resize (const Box& b, int N = 1);
 
     FabType getType () const noexcept { return m_type; }
+
+    void initVal () noexcept; // public for cuda
 
     //! Write FABs in ASCII form.
     friend std::ostream& operator<< (std::ostream& os, const FArrayBox& fb);
@@ -458,6 +459,14 @@ protected:
 };
 
 using FArrayBoxFactory = DefaultFabFactory<FArrayBox>;
+
+template <RunOn run_on>
+FArrayBox&
+FArrayBox::operator= (Real v) noexcept
+{
+    BaseFab<Real>::operator=<run_on>(v);
+    return *this;
+}
 
 template <RunOn run_on>
 bool
