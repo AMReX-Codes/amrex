@@ -170,7 +170,7 @@ struct ParticleCopyPlan
         amrex::Gpu::exclusive_scan(m_box_counts.begin(), m_box_counts.end(), m_box_offsets.begin());
 
         m_snd_pad_correction_h.resize(0);
-        m_snd_pad_correction_h.push_back(0);
+        m_snd_pad_correction_h.resize(ParallelDescriptor::NProcs(), 0);
 
         m_snd_pad_correction_d.resize(m_snd_pad_correction_h.size());
         Gpu::copy(Gpu::hostToDevice, m_snd_pad_correction_h.begin(), m_snd_pad_correction_h.end(),
@@ -237,7 +237,7 @@ struct GetSendBufferOffset
     {
         int dst_pid = m_buck_to_pid[m_box_perm[m_lev_offsets[dst_lev]+dst_box]];
         int dst_offset = psize*(m_box_offsets[m_box_perm[m_lev_offsets[dst_lev]+dst_box]] + i);
-        dst_offset += m_pad_correction[dst_pid];
+        dst_offset += m_pad_correction[dst_pid];        
         return dst_offset;
     }
 };
