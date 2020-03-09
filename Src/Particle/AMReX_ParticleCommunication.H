@@ -409,7 +409,9 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buff
             RcvProc.push_back(i);
             rOffset.push_back(TotRcvBytes);
             long nbytes = plan.m_rcv_num_particles[i]*psize;
-            TotRcvBytes += amrex::aligned_size(sizeof(unsigned long long), nbytes);
+            std::size_t acd = ParallelDescriptor::alignof_comm_data(nbytes);
+            TotRcvBytes = amrex::aligned_size(acd, TotRcvBytes);
+            TotRcvBytes += amrex::aligned_size(acd, nbytes);
             plan.m_rcv_pad_correction_h.push_back(plan.m_rcv_pad_correction_h.back() + nbytes);
         }
     }
@@ -440,15 +442,27 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buff
         const auto Who    = RcvProc[i];
         const auto offset = rOffset[i];
         long nbytes       = plan.m_rcv_num_particles[Who]*psize;
-        const auto Cnt    = amrex::aligned_size(sizeof(unsigned long long), nbytes) / sizeof(unsigned long long);
+        std::size_t acd   = ParallelDescriptor::alignof_comm_data(nbytes);
+        const auto Cnt    = amrex::aligned_size(acd, nbytes) / acd;
 
         AMREX_ASSERT(Cnt > 0);
         AMREX_ASSERT(Cnt < std::numeric_limits<int>::max());
         AMREX_ASSERT(Who >= 0 && Who < NProcs);
-        AMREX_ASSERT(amrex::aligned_size(sizeof(unsigned long long), nbytes) % sizeof(unsigned long long) == 0);
-        
-        plan.m_particle_rreqs[i] = 
-            ParallelDescriptor::Arecv((unsigned long long*) (rcv_buffer.dataPtr() + offset), Cnt, Who, SeqNum).req();
+        AMREX_ASSERT(amrex::aligned_size(acd, nbytes) % acd == 0);
+
+        const int comm_data_type = ParallelDescriptor::select_comm_data_type(nbytes);
+        if (comm_data_type == 1) {
+            plan.m_particle_rreqs[i] = 
+                ParallelDescriptor::Arecv((char*) (rcv_buffer.dataPtr() + offset), Cnt, Who, SeqNum).req();
+        } else if (comm_data_type == 2) {
+            plan.m_particle_rreqs[i] = 
+                ParallelDescriptor::Arecv((unsigned long long*) (rcv_buffer.dataPtr() + offset), Cnt, Who, SeqNum).req();
+        } else if (comm_data_type == 3) {
+            plan.m_particle_rreqs[i] = 
+                ParallelDescriptor::Arecv((ParallelDescriptor::lull_t *) (rcv_buffer.dataPtr() + offset), Cnt, Who, SeqNum).req();
+        } else {
+            amrex::Abort("TODO: message size is too big");
+        }
     }
 
     if (plan.m_NumSnds == 0) return;
@@ -457,18 +471,28 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buff
     for (int i = 0; i < NProcs; ++i)
     {
         if (i == MyProc) continue;
-        const auto Who = i;
-        const auto Cnt = plan.m_snd_counts[i] / sizeof(unsigned long long);
+        const auto Who  = i;
+        long nbytes     = plan.m_snd_num_particles[i]*psize;
+        std::size_t acd = ParallelDescriptor::alignof_comm_data(nbytes);
+        const auto Cnt  = plan.m_snd_counts[i] / acd;
         if (Cnt == 0) continue;
 
-        AMREX_ASSERT(plan.m_snd_counts[i] % sizeof(unsigned long long) == 0);
+        auto snd_offset = plan.m_snd_offsets[i];
+        AMREX_ASSERT(plan.m_snd_counts[i] % acd == 0);
         AMREX_ASSERT(Who >= 0 && Who < NProcs);
         AMREX_ASSERT(Cnt < std::numeric_limits<int>::max());
+        AMREX_ASSERT(snd_offset % acd == 0);
         
-        auto snd_offset = plan.m_snd_offsets[i];
-
-        AMREX_ASSERT(snd_offset % sizeof(unsigned long long) == 0);
-        ParallelDescriptor::Send((unsigned long long*)(snd_buffer.dataPtr()+snd_offset), Cnt, Who, SeqNum);
+        const int comm_data_type = ParallelDescriptor::select_comm_data_type(nbytes);
+        if (comm_data_type == 1) {
+            ParallelDescriptor::Send((char*)(snd_buffer.dataPtr()+snd_offset), Cnt, Who, SeqNum);
+        } else if (comm_data_type == 2) {
+            ParallelDescriptor::Send((unsigned long long*)(snd_buffer.dataPtr()+snd_offset), Cnt, Who, SeqNum);
+        } else if (comm_data_type == 3) {
+            ParallelDescriptor::Send((ParallelDescriptor::lull_t *)(snd_buffer.dataPtr()+snd_offset), Cnt, Who, SeqNum);
+        } else {
+            amrex::Abort("TODO: message size is too big");
+        }
     }
 #endif // MPI
 }
