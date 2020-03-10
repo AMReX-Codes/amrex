@@ -11,7 +11,6 @@
 #include "Particles/Pusher/GetAndSetPosition.H"
 #include "Particles/ShapeFactors.H"
 
-
 /* \brief Charge Deposition for thread thread_num
  * /param GetPosition : A functor for returning the particle position.
  * \param wp           : Pointer to array of particle weights.
@@ -19,7 +18,7 @@
                          required to have the charge of each macroparticle
                          since q is a scalar. For non-ionizable species,
                          ion_lev is a null pointer.
- * \param rho_arr      : Array4 of charge density, either full array or tile.
+ * \param rho_fab      : FArrayBox of charge density, either full array or tile.
  * \param np_to_depose : Number of particles for which current is deposited.
  * \param dx           : 3D cell size
  * \param xyzmin       : Physical lower bounds of domain.
@@ -30,7 +29,7 @@ template <int depos_order>
 void doChargeDepositionShapeN(const GetParticlePosition& GetPosition,
                               const amrex::ParticleReal * const wp,
                               const int * const ion_lev,
-                              const amrex::Array4<amrex::Real>& rho_arr,
+                              amrex::FArrayBox& rho_fab,
                               const long np_to_depose,
                               const std::array<amrex::Real,3>& dx,
                               const std::array<amrex::Real, 3> xyzmin,
@@ -53,7 +52,14 @@ void doChargeDepositionShapeN(const GetParticlePosition& GetPosition,
     const amrex::Real ymin = xyzmin[1];
     const amrex::Real zmin = xyzmin[2];
 
-    // Loop over particles and deposit into rho_arr
+    amrex::Array4<amrex::Real> const& rho_arr = rho_fab.array();
+    amrex::IntVect const rho_type = rho_fab.box().type();
+
+    constexpr int zdir = (AMREX_SPACEDIM - 1);
+    constexpr int NODE = amrex::IndexType::NODE;
+    constexpr int CELL = amrex::IndexType::CELL;
+
+    // Loop over particles and deposit into rho_fab
     amrex::ParallelFor(
         np_to_depose,
         [=] AMREX_GPU_DEVICE (long ip) {
@@ -70,26 +76,42 @@ void doChargeDepositionShapeN(const GetParticlePosition& GetPosition,
             // x direction
             // Get particle position in grid coordinates
 #if (defined WARPX_DIM_RZ)
-            const amrex::Real r = std::sqrt(xp*xp + yp*yp);
-            const amrex::Real x = (r - xmin)*dxi;
+            const amrex::Real rp = std::sqrt(xp*xp + yp*yp);
+            const amrex::Real x = (rp - xmin)*dxi;
 #else
             const amrex::Real x = (xp - xmin)*dxi;
 #endif
-            // Compute shape factors for node-centered quantities
+
+            // Compute shape factor along x
+            // i: leftmost grid point that the particle touches
             amrex::Real sx[depos_order + 1];
-            // i: leftmost grid point (node-centered) that the particle touches
-            const int i = compute_shape_factor<depos_order>(sx,  x);
+            int i;
+            if (rho_type[0] == NODE) {
+                i = compute_shape_factor<depos_order>(sx, x);
+            } else if (rho_type[0] == CELL) {
+                i = compute_shape_factor<depos_order>(sx, x - 0.5);
+            }
 
 #if (defined WARPX_DIM_3D)
             // y direction
             const amrex::Real y = (yp - ymin)*dyi;
             amrex::Real sy[depos_order + 1];
-            const int j = compute_shape_factor<depos_order>(sy,  y);
+            int j;
+            if (rho_type[1] == NODE) {
+                j = compute_shape_factor<depos_order>(sy, y);
+            } else if (rho_type[1] == CELL) {
+                j = compute_shape_factor<depos_order>(sy, y - 0.5);
+            }
 #endif
             // z direction
             const amrex::Real z = (zp - zmin)*dzi;
             amrex::Real sz[depos_order + 1];
-            const int k = compute_shape_factor<depos_order>(sz,  z);
+            int k;
+            if (rho_type[zdir] == NODE) {
+                k = compute_shape_factor<depos_order>(sz, z);
+            } else if (rho_type[zdir] == CELL) {
+                k = compute_shape_factor<depos_order>(sz, z - 0.5);
+            }
 
             // Deposit charge into rho_arr
 #if (defined WARPX_DIM_XZ) || (defined WARPX_DIM_RZ)

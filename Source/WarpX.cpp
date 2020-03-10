@@ -140,6 +140,8 @@ IntVect WarpX::jy_nodal_flag(1,1);// y is the missing dimension to 2D AMReX
 IntVect WarpX::jz_nodal_flag(1,0);// z is the second dimension to 2D AMReX
 #endif
 
+IntVect WarpX::rho_nodal_flag(AMREX_D_DECL(1, 1, 1));
+
 IntVect WarpX::filter_npass_each_dir(1);
 
 int WarpX::n_field_gather_buffer = -1;
@@ -681,6 +683,7 @@ WarpX::ReadParameters ()
             jx_nodal_flag = IntVect::TheNodeVector();
             jy_nodal_flag = IntVect::TheNodeVector();
             jz_nodal_flag = IntVect::TheNodeVector();
+            rho_nodal_flag = IntVect::TheNodeVector();
             // Use same shape factors in all directions, for gathering
             l_lower_order_in_v = false;
         }
@@ -939,7 +942,7 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
 
     if (do_dive_cleaning || plot_rho)
     {
-        rho_fp[lev].reset(new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,2*ncomps,ngRho));
+        rho_fp[lev].reset(new MultiFab(amrex::convert(ba,rho_nodal_flag),dm,2*ncomps,ngRho));
     }
 
     if (do_subcycling == 1 && lev == 0)
@@ -956,7 +959,7 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
 #ifdef WARPX_USE_PSATD
     else
     {
-        rho_fp[lev].reset(new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,2*ncomps,ngRho));
+        rho_fp[lev].reset(new MultiFab(amrex::convert(ba,rho_nodal_flag),dm,2*ncomps,ngRho));
     }
     if (fft_hybrid_mpi_decomposition == false){
         // Allocate and initialize the spectral solver
@@ -1034,7 +1037,7 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
         current_cp[lev][2].reset( new MultiFab(amrex::convert(cba,jz_nodal_flag),dm,ncomps,ngJ));
 
         if (do_dive_cleaning || plot_rho){
-            rho_cp[lev].reset(new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,2*ncomps,ngRho));
+            rho_cp[lev].reset(new MultiFab(amrex::convert(cba,rho_nodal_flag),dm,2*ncomps,ngRho));
         }
         if (do_dive_cleaning)
         {
@@ -1043,7 +1046,7 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
 #ifdef WARPX_USE_PSATD
         else
         {
-            rho_cp[lev].reset(new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,2*ncomps,ngRho));
+            rho_cp[lev].reset(new MultiFab(amrex::convert(cba,rho_nodal_flag),dm,2*ncomps,ngRho));
         }
         if (fft_hybrid_mpi_decomposition == false){
             // Allocate and initialize the spectral solver
@@ -1106,7 +1109,7 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
             current_buf[lev][1].reset( new MultiFab(amrex::convert(cba,jy_nodal_flag),dm,ncomps,ngJ));
             current_buf[lev][2].reset( new MultiFab(amrex::convert(cba,jz_nodal_flag),dm,ncomps,ngJ));
             if (rho_cp[lev]) {
-                charge_buf[lev].reset( new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,2*ncomps,ngRho));
+                charge_buf[lev].reset( new MultiFab(amrex::convert(cba,rho_nodal_flag),dm,2*ncomps,ngRho));
             }
             current_buffer_masks[lev].reset( new iMultiFab(ba, dm, ncomps, 1) );
             // Current buffer masks have 1 ghost cell, because of the fact

@@ -647,7 +647,7 @@ WarpX::ApplyInverseVolumeScalingToChargeDensity (MultiFab* Rho, int lev)
         Array4<Real> const& Rho_arr = Rho->array(mfi);
 
         tilebox = mfi.tilebox();
-        Box tb = convert(tilebox, IntVect::TheUnitVector());
+        Box tb = convert(tilebox, rho_nodal_flag);
 
         // Lower corner of tile box physical domain
         // Note that this is done before the tilebox.grow so that

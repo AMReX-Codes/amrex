@@ -423,23 +423,23 @@ WarpXParticleContainer::DepositCharge (WarpXParIter& pti, RealVector& wp,
     }
 
     tilebox.grow(ngRho);
+    const Box tb = amrex::convert(tilebox, WarpX::rho_nodal_flag);
 
     const int nc = (rho->nComp() == 1 ? 1 : rho->nComp()/2);
 
 #ifdef AMREX_USE_GPU
-    // No tiling on GPU: rho_arr points to the full rho array.
+    // No tiling on GPU: rho_fab points to the full rho array.
     MultiFab rhoi(*rho, amrex::make_alias, icomp*nc, nc);
-    Array4<Real> const& rho_arr = rhoi.array(pti);
+    auto & rho_fab = rhoi.get(pti);
 #else
-    // Tiling is on: rho_arr points to local_rho[thread_num]
-    const Box tb = amrex::convert(tilebox, IntVect::TheUnitVector());
+    // Tiling is on: rho_fab points to local_rho[thread_num]
 
     local_rho[thread_num].resize(tb, nc);
 
     // local_rho[thread_num] is set to zero
     local_rho[thread_num].setVal(0.0);
 
-    Array4<Real> const& rho_arr = local_rho[thread_num].array();
+    auto & rho_fab = local_rho[thread_num];
 #endif
     // GPU, no tiling: deposit directly in rho
     // CPU, tiling: deposit into local_rho
@@ -469,13 +469,13 @@ WarpXParticleContainer::DepositCharge (WarpXParIter& pti, RealVector& wp,
     WARPX_PROFILE_VAR_START(blp_ppc_chd);
     if        (WarpX::nox == 1){
         doChargeDepositionShapeN<1>(GetPosition, wp.dataPtr()+offset, ion_lev,
-                                    rho_arr, np_to_depose, dx, xyzmin, lo, q);
+                                    rho_fab, np_to_depose, dx, xyzmin, lo, q);
     } else if (WarpX::nox == 2){
         doChargeDepositionShapeN<2>(GetPosition, wp.dataPtr()+offset, ion_lev,
-                                    rho_arr, np_to_depose, dx, xyzmin, lo, q);
+                                    rho_fab, np_to_depose, dx, xyzmin, lo, q);
     } else if (WarpX::nox == 3){
         doChargeDepositionShapeN<3>(GetPosition, wp.dataPtr()+offset, ion_lev,
-                                    rho_arr, np_to_depose, dx, xyzmin, lo, q);
+                                    rho_fab, np_to_depose, dx, xyzmin, lo, q);
     }
     WARPX_PROFILE_VAR_STOP(blp_ppc_chd);
 

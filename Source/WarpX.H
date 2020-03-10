@@ -388,6 +388,8 @@ public:
     static amrex::IntVect jy_nodal_flag;
     static amrex::IntVect jz_nodal_flag;
 
+    static amrex::IntVect rho_nodal_flag;
+
     static int do_electrostatic;
     static int do_moving_window;
     static int moving_window_dir;
