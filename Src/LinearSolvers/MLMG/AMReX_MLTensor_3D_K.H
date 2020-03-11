@@ -1183,8 +1183,6 @@ void mltensor_cross_terms (Box const& box, Array4<Real> const& Ax,
 }
 
 
-
-
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mltensor_vel_grads_fx (Box const& box, Array4<Real> const& fx,
                             Array4<Real const> const& vel,
@@ -1248,9 +1246,9 @@ void mltensor_vel_grads_fy (Box const& box, Array4<Real> const& fy,
                 Real dvdx = (vel(i+1,j,k,1)+vel(i+1,j-1,k,1)-vel(i-1,j,k,1)-vel(i-1,j-1,k,1))*(0.25*dxi);
                 Real dwdx = (vel(i+1,j,k,2)+vel(i+1,j-1,k,2)-vel(i-1,j,k,2)-vel(i-1,j-1,k,2))*(0.25*dxi);
                 
-                Real dudy = (vel(i,j,0,0) - vel(i,j-1,0,0))*dyi;
-                Real dvdy = (vel(i,j,0,1) - vel(i,j-1,0,1))*dyi;
-                Real dwdy = (vel(i,j,0,2) - vel(i,j-1,0,2))*dyi;
+                Real dudy = (vel(i,j,k,0) - vel(i,j-1,k,0))*dyi;
+                Real dvdy = (vel(i,j,k,1) - vel(i,j-1,k,1))*dyi;
+                Real dwdy = (vel(i,j,k,2) - vel(i,j-1,k,2))*dyi;
                 
                 Real dudz = (vel(i,j,k+1,0)+vel(i,j-1,k+1,0)-vel(i,j,k-1,0)-vel(i,j-1,k-1,0))*(0.25*dzi);
                 Real dvdz = (vel(i,j,k+1,1)+vel(i,j-1,k+1,1)-vel(i,j,k-1,1)-vel(i,j-1,k-1,1))*(0.25*dzi);
@@ -1313,7 +1311,6 @@ void mltensor_vel_grads_fz (Box const& box, Array4<Real> const& fz,
         }
     } 
 }
-
 
 }
 
