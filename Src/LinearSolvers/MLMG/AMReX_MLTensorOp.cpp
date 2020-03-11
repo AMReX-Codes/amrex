@@ -379,16 +379,10 @@ MLTensorOp::compVelGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& flux
 
     const int mglev = 0;
 
-
-//    MLABecLaplacian::compFlux(amrlev, fluxes, sol, loc);
-
     applyBCTensor(amrlev, mglev, sol, BCMode::Inhomogeneous, StateMode::Solution, m_bndry_sol[amrlev].get());
 
     const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
     const int dim_fluxes = pow(AMREX_SPACEDIM,2);
-
-amrex::Print() << "\n DEBUG IN compVelGrad \n" << " dim_fluxes = " << dim_fluxes << "\n";
-
 
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -415,18 +409,10 @@ amrex::Print() << "\n DEBUG IN compVelGrad \n" << " dim_fluxes = " << dim_fluxes
             ( xbx, txbx,
               {
                   mltensor_vel_grads_fx(txbx,fxfab,vfab,dxinv);
-
-//  amrex::Print() << fxfab;
-//  amrex::Print() << fluxfab_tmp[0];
               }
             , ybx, tybx,
               {
                   mltensor_vel_grads_fy(tybx,fyfab,vfab,dxinv);
-
-
-//amrex::Print() << fyfab;
-//amrex::Print() << fluxfab_tmp[1];
-
               }
 #if (AMREX_SPACEDIM == 3)
             , zbx, tzbx,
@@ -456,10 +442,6 @@ amrex::Print() << "\n DEBUG IN compVelGrad \n" << " dim_fluxes = " << dim_fluxes
     }
 #endif
 }
-
-
-
-
 
 
 }
