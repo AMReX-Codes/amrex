@@ -201,8 +201,6 @@ void mltensor_cross_terms (Box const& box, Array4<Real> const& Ax,
     }
 }
 
-
-
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mltensor_vel_grads_fx (Box const& box, Array4<Real> const& fx,
                               Array4<Real const> const& vel,
@@ -252,8 +250,6 @@ void mltensor_vel_grads_fy (Box const& box, Array4<Real> const& fy,
         }
     }
 }
-
-
 
 }
 
