@@ -431,11 +431,17 @@ amrex::Print() << "\n DEBUG IN compVelGrad \n" << " dim_fluxes = " << dim_fluxes
 #if (AMREX_SPACEDIM == 3)
             , zbx, tzbx,
               {
-  //                mltensor_cross_terms_fz(tzbx,fzfab,vfab,etazfab,kapzfab,dxinv);
+                  mltensor_vel_grads_fz(tzbx,fzfab,vfab,dxinv);
               }
 #endif
             );
 
+// The derivatives are put in the array with the following order:
+// component: 0    ,  1    ,  2    ,  3    ,  4    , 5    ,  6    ,  7    ,  8   
+// in 2D:     dU/dx,  dV/dx,  dU/dy,  dV/dy 
+// in 3D:     dU/dx,  dV/dx,  dW/dx,  dU/dy,  dV/dy, dW/dy,  dU/dz,  dV/dz,  dW/dz      
+            
+            
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                 const Box& nbx = mfi.nodaltilebox(idim);
                 Array4<Real      > dst = fluxes[idim]->array(mfi);
