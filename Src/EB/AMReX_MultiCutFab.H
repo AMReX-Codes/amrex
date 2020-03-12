@@ -22,10 +22,8 @@ public:
             bool shared=false, Arena* ar = nullptr)
         : FArrayBox(b, ncomps, alloc, shared, ar) {}
 
-#ifdef AMREX_USE_GPU
     CutFab (CutFab const& rhs, MakeType make_type, int scomp, int ncomp)
         : FArrayBox(rhs, make_type, scomp, ncomp) {}
-#endif
 
     ~CutFab () = default;
 
