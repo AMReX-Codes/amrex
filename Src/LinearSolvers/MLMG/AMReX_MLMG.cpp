@@ -1715,6 +1715,9 @@ MLMG::makeSolvable ()
     {
         AMREX_ASSERT_WITH_MESSAGE(ncomp==1, "ncomp > 1 not supported for singular nodal problem");
         Real offset = getNodalSum(0, 0, rhs[0]);
+        if (verbose >= 4) {
+            amrex::Print() << "MLMG: Subtracting " << offset << " from rhs\n";
+        }
         for (int alev = 0; alev < namrlevs; ++alev) {
             rhs[alev].plus(-offset, 0, 1);
         }
@@ -1762,6 +1765,10 @@ MLMG::makeSolvable (int amrlev, int mglev, MultiFab& mf)
     {
         AMREX_ASSERT_WITH_MESSAGE(ncomp==1, "ncomp > 1 not supported for singular nodal problem");
         Real offset = getNodalSum(amrlev, mglev, mf);
+        if (verbose >= 4) {
+            amrex::Print() << "MLMG: Subtracting " << offset << " on level (" << amrlev << ", "
+                           << mglev << ")\n";
+        }
         mf.plus(-offset, 0, 1);
     }
 }

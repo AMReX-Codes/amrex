@@ -37,6 +37,20 @@ EBFArrayBoxFactory::create (const Box& box, int ncomps,
     }
 }
 
+FArrayBox*
+EBFArrayBoxFactory::create_alias (FArrayBox const& rhs, int scomp, int ncomp) const
+{
+    if (m_support == EBSupport::none)
+    {
+        return new FArrayBox(rhs, amrex::make_alias, scomp, ncomp);
+    }
+    else
+    {
+        EBFArrayBox const& ebrhs = static_cast<EBFArrayBox const&>(rhs);
+        return new EBFArrayBox(ebrhs, amrex::make_alias, scomp, ncomp);
+    }
+}
+
 void
 EBFArrayBoxFactory::destroy (FArrayBox* fab) const
 {
