@@ -97,31 +97,25 @@ iMultiFab::Divide (iMultiFab&       dst,
 }
 
 void
-iMultiFab::plus (int val,
-                 int  nghost)
+iMultiFab::plus (int val, int nghost)
 {
     plus(val,0,n_comp,nghost);
 }
 
 void
-iMultiFab::plus (int       val,
-                 const Box& region,
-                 int        nghost)
+iMultiFab::plus (int val, const Box& region, int nghost)
 {
     plus(val,region,0,n_comp,nghost);
 }
 
 void
-iMultiFab::mult (int val,
-                 int  nghost)
+iMultiFab::mult (int val, int nghost)
 {
     mult(val,0,n_comp,nghost);
 }
 
 void
-iMultiFab::mult (int       val,
-                 const Box& region,
-                 int        nghost)
+iMultiFab::mult (int val, const Box& region, int nghost)
 {
     mult(val,region,0,n_comp,nghost);
 }
@@ -133,8 +127,7 @@ iMultiFab::negate (int nghost)
 }
 
 void
-iMultiFab::negate (const Box& region,
-                  int        nghost)
+iMultiFab::negate (const Box& region, int nghost)
 {
     negate(region,0,n_comp,nghost);
 }
@@ -217,16 +210,23 @@ iMultiFab::define (const BoxArray&            bxs,
 }
 
 int
-iMultiFab::min (int comp,
-		int nghost,
-		bool local) const
+iMultiFab::min (int comp, int nghost, bool local) const
 {
     BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
 
     int mn = amrex::ReduceMin(*this, nghost,
-    [=] AMREX_GPU_HOST_DEVICE (Box const& bx, IArrayBox const& fab) -> int
+    [=] AMREX_GPU_HOST_DEVICE (Box const& bx, Array4<int const> const& fab) -> int
     {
-        return fab.min(bx,comp);
+#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
+        int r = std::numeric_limits<int>::max();
+#else
+        int r = INT_MAX;
+#endif
+        AMREX_LOOP_3D(bx, i, j, k,
+        {
+            r = amrex::min(r, fab(i,j,k,comp));
+        });
+        return r;
     });                          
 
     if (!local)
@@ -236,26 +236,24 @@ iMultiFab::min (int comp,
 }
 
 int
-iMultiFab::min (const Box& region,
-                int        comp,
-                int        nghost,
-		bool       local) const
+iMultiFab::min (const Box& region, int comp, int nghost, bool local) const
 {
     BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
 
     int mn = amrex::ReduceMin(*this, nghost,
-    [=] AMREX_GPU_HOST_DEVICE (Box const& bx, IArrayBox const& fab) -> int
+    [=] AMREX_GPU_HOST_DEVICE (Box const& bx, Array4<int const> const& fab) -> int
     {
-        const Box& b = bx & region;
-        if (b.ok()) {
-            return fab.min(b,comp);
-        } else {
 #if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
-            return std::numeric_limits<int>::max();
+        int r = std::numeric_limits<int>::max();
 #else
-            return INT_MAX;
+        int r = INT_MAX;
 #endif
-        }
+        const Box& b = bx & region;
+        AMREX_LOOP_3D(b, i, j, k,
+        {
+            r = amrex::min(r, fab(i,j,k,comp));
+        });
+        return r;
     });
 
     if (!local)
@@ -272,9 +270,18 @@ iMultiFab::max (int comp,
     BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
 
     int mx = amrex::ReduceMax(*this, nghost,
-    [=] AMREX_GPU_HOST_DEVICE (Box const& bx, IArrayBox const& fab) -> int
+    [=] AMREX_GPU_HOST_DEVICE (Box const& bx, Array4<int const> const& fab) -> int
     {
-        return fab.max(bx,comp);
+#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
+        int r = std::numeric_limits<int>::lowest();
+#else
+        int r = INT_MIN;
+#endif
+        AMREX_LOOP_3D(bx, i, j, k,
+        {
+            r = amrex::max(r, fab(i,j,k,comp));
+        });
+        return r;
     });                          
 
     if (!local)
@@ -284,26 +291,24 @@ iMultiFab::max (int comp,
 }
 
 int
-iMultiFab::max (const Box& region,
-		int        comp,
-		int        nghost,
-		bool       local) const
+iMultiFab::max (const Box& region, int comp, int nghost, bool local) const
 {
     BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
 
     int mx = amrex::ReduceMax(*this, nghost,
-    [=] AMREX_GPU_HOST_DEVICE (Box const& bx, IArrayBox const& fab) -> int
+    [=] AMREX_GPU_HOST_DEVICE (Box const& bx, Array4<int const> const& fab) -> int
     {
         const Box& b = bx & region;
-        if (b.ok()) {
-            return fab.max(b,comp);
-        } else {
 #if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
-            return std::numeric_limits<int>::lowest();
+        int r = std::numeric_limits<int>::lowest();
 #else
-            return INT_MIN;
+        int r = INT_MIN;
 #endif
-        }
+        AMREX_LOOP_3D(b, i, j, k,
+        {
+            r = amrex::max(r, fab(i,j,k,comp));
+        });
+        return r;
     });
 
     if (!local)
@@ -331,7 +336,7 @@ iMultiFab::sum (int comp, int nghost, bool local) const
         for (MFIter mfi(*this); mfi.isValid(); ++mfi)
         {
             const Box& bx = amrex::grow(mfi.validbox(),nghost);
-            const auto& arr = this->array(mfi);
+            const auto& arr = this->const_array(mfi);
             reduce_op.eval(bx, reduce_data,
             [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
             {
@@ -351,7 +356,11 @@ iMultiFab::sum (int comp, int nghost, bool local) const
         for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.growntilebox(nghost);
-            sm += (*this)[mfi].sum(bx,comp);
+            Array4<int const> const& fab = this->const_array(mfi);
+            AMREX_LOOP_3D(bx, i, j, k,
+            {
+                sm += fab(i,j,k,comp);
+            });
         }
     }
 
@@ -378,17 +387,15 @@ indexFromValue (iMultiFab const& mf, int comp, int nghost, int value, MPI_Op mml
         for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
             const Box& bx = amrex::grow(mfi.validbox(), nghost);
             const Array4<int const> arr = mf.array(mfi);
-            AMREX_LAUNCH_DEVICE_LAMBDA(bx, tbx,
+            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 int* flag = p;
                 if (*flag == 0) {
-                    const IArrayBox fab(arr);
-                    IntVect t_loc = fab.indexFromValue(value, tbx, comp);
-                    if (tbx.contains(t_loc)) {
+                    if (arr(i,j,k,comp) == value) {
                         if (Gpu::Atomic::Exch(flag,1) == 0) {
-                            AMREX_D_TERM(p[1] = t_loc[0];,
-                                         p[2] = t_loc[1];,
-                                         p[3] = t_loc[2];);
+                            AMREX_D_TERM(p[1] = i;,
+                                         p[2] = j;,
+                                         p[3] = k;);
                         }
                     }
                 }
@@ -411,11 +418,11 @@ indexFromValue (iMultiFab const& mf, int comp, int nghost, int value, MPI_Op mml
             for (MFIter mfi(mf,true); mfi.isValid(); ++mfi)
             {
                 const Box& bx = mfi.growntilebox(nghost);
-                const IArrayBox& fab = mf[mfi];
-                IntVect t_loc = fab.indexFromValue(value, bx, comp);
-                if (bx.contains(t_loc)) {
-                    priv_loc = t_loc;
-                };
+                const Array4<int const>& fab = mf.const_array(mfi);
+                AMREX_LOOP_3D(bx, i, j, k,
+                {
+                    if (fab(i,j,k,comp) == value) priv_loc = IntVect(AMREX_D_DECL(i,j,k));
+                });
             }
 
             if (priv_loc.allGT(IntVect::TheMinVector())) {

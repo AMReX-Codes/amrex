@@ -200,7 +200,7 @@ YAFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
                                 if (run_on_gpu) {
                                     tags.push_back({arr,ibx});
                                 } else {
-                                    fab.setVal(0.0, ibx);
+                                    fab.setVal<RunOn::Host>(0.0, ibx);
                                 }
                             }
                         }
@@ -294,8 +294,8 @@ YAFluxRegister::FineAdd (const MFIter& mfi,
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             const Box& b = amrex::surroundingNodes(fbx,idim);
             ftmp[idim].resize(b,nc);
-            ftmp[idim].setVal(0.0);
-            ftmp[idim].copy(*a_flux[idim]);
+            ftmp[idim].setVal<RunOn::Host>(0.0);
+            ftmp[idim].copy<RunOn::Host>(*a_flux[idim]);
             flux[idim] = &ftmp[idim];
         }
     }

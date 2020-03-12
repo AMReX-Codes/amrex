@@ -383,14 +383,29 @@ void compare_particle_chunk(const ParticleHeader& header1,
         }
 
         for (int j = 0; j < header1.num_real; ++j) {
-            double val1, val2;
-            std::memcpy(&val1, tmp1, rsize);
-            std::memcpy(&val2, tmp2, rsize);
-            norms[j] = std::max(std::abs(val2 - val1), norms[j]);
-            if (val1 == 0) {
-                norms[header1.num_comp+j] = norms[j];
-            } else {
-                norms[header1.num_comp+j] = norms[j] / std::abs(val1);
+            if (single_precision)
+            {
+                float val1, val2;
+                std::memcpy(&val1, tmp1, rsize);
+                std::memcpy(&val2, tmp2, rsize);
+                norms[j] = std::max((double) std::abs(val2 - val1), norms[j]);
+                if (val1 == 0) {
+                    norms[header1.num_comp+j] = norms[j];
+                } else {
+                    norms[header1.num_comp+j] = norms[j] / std::abs(val1);
+                }
+            }
+            else
+            {
+                double val1, val2;
+                std::memcpy(&val1, tmp1, rsize);
+                std::memcpy(&val2, tmp2, rsize);
+                norms[j] = std::max(std::abs(val2 - val1), norms[j]);
+                if (val1 == 0) {
+                    norms[header1.num_comp+j] = norms[j];
+                } else {
+                    norms[header1.num_comp+j] = norms[j] / std::abs(val1);
+                }
             }
             tmp1 += rsize;
             tmp2 += rsize;

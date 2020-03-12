@@ -193,7 +193,7 @@ void main_main ()
     {
         long gidi = mfi.index();
         auto& phi_psum_fab = phi_psum[mfi];
-        phi_psum_fab.plus(grids[grid_inv[gidi]].exclusive_sum, 0, 1);
+        phi_psum_fab.plus<RunOn::Host>(grids[grid_inv[gidi]].exclusive_sum, 0, 1);
     }
 
     // Write a plotfile of the prefix sum data

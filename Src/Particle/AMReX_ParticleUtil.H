@@ -244,13 +244,15 @@ partitionParticlesByDest (PTile& ptile, const PLocator& ploc, const ParticleBuff
     auto& aos = ptile.GetArrayOfStructs();
     const int np = aos.numParticles();
 
+    if (np == 0) return 0;
+    
     auto p_lev_offsets = pmap.levelOffsetsPtr();
     auto p_box_perm = pmap.levGridToBucketPtr();
     auto p_pids = pmap.bucketToPIDPtr();
     auto p_ptr = &(aos[0]);
     
     int pid = ParallelDescriptor::MyProc();
-    int chunk_size = std::numeric_limits<int>::max();
+    int chunk_size = 256*256*256;
     int num_chunks = std::max(1, (np + (chunk_size - 1)) / chunk_size);
     
     PTile ptile_tmp;

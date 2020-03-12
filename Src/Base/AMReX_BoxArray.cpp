@@ -905,7 +905,7 @@ BoxArray::contains (const Box& b, bool assume_disjoint_ba) const
                 Vector<char> vflag(b.numPts(), 1);
                 BaseFab<char> fabflag(b, 1, vflag.data());
                 for (int i = 0, N = isects.size(); i < N; i++) {
-                    fabflag.setVal(0, isects[i].second, 0, 1);
+                    fabflag.setVal<RunOn::Host>(0, isects[i].second, 0, 1);
                 }
                 for (const auto& x : vflag) {
                     if (x == 1) return false;

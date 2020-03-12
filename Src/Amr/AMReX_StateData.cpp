@@ -27,9 +27,9 @@ std::map<std::string, Vector<char> > *StateData::faHeaderMap;
 
 StateData::StateData () 
     : desc(nullptr),
-      arena(nullptr),
       new_time{INVALID_TIME,INVALID_TIME},
-      old_time{INVALID_TIME,INVALID_TIME}
+      old_time{INVALID_TIME,INVALID_TIME},
+      arena(nullptr)
 {
 }
 
@@ -47,14 +47,14 @@ StateData::StateData (const Box&             p_domain,
 StateData::StateData (StateData&& rhs) noexcept
     : m_factory(std::move(rhs.m_factory)),
       desc(rhs.desc),
-      arena(rhs.arena),
       domain(rhs.domain),
       grids(std::move(rhs.grids)),
       dmap(std::move(rhs.dmap)),
       new_time(rhs.new_time),
       old_time(rhs.old_time),
       new_data(std::move(rhs.new_data)),
-      old_data(std::move(rhs.old_data))
+      old_data(std::move(rhs.old_data)),
+      arena(rhs.arena)
 {   
 }
 
@@ -982,13 +982,13 @@ StateDataPhysBCFunct::FillBoundary (MultiFab& mf, int dest_comp, int num_comp, I
                             {
                                 tmp.resize(lo_slab,num_comp);
                                 const Box db = amrex::shift(lo_slab, dir, -domain.length(dir));
-                                tmp.copy(dest, db, dest_comp, lo_slab, 0, num_comp);
+                                tmp.copy<RunOn::Host>(dest, db, dest_comp, lo_slab, 0, num_comp);
                                 if (has_bndryfunc_fab) {
                                     statedata->FillBoundary(lo_slab, tmp, time, geom, 0, src_comp, num_comp);
                                 } else {
                                     statedata->FillBoundary(tmp, time, dx, prob_domain, 0, src_comp, num_comp);
                                 }
-                                dest.copy(tmp, lo_slab, 0, db, dest_comp, num_comp);
+                                dest.copy<RunOn::Host>(tmp, lo_slab, 0, db, dest_comp, num_comp);
                             }
 			}
 			
@@ -1048,13 +1048,13 @@ StateDataPhysBCFunct::FillBoundary (MultiFab& mf, int dest_comp, int num_comp, I
                             {
                                 tmp.resize(hi_slab,num_comp);
                                 const Box db = amrex::shift(hi_slab, dir, domain.length(dir));
-                                tmp.copy(dest, db, dest_comp, hi_slab, 0, num_comp);
+                                tmp.copy<RunOn::Host>(dest, db, dest_comp, hi_slab, 0, num_comp);
                                 if (has_bndryfunc_fab) {
                                     statedata->FillBoundary(hi_slab, tmp, time, geom, 0, src_comp, num_comp);
                                 } else {
                                     statedata->FillBoundary(tmp, time, dx, prob_domain, 0, src_comp, num_comp);
                                 }
-                                dest.copy(tmp, hi_slab, 0, db, dest_comp, num_comp);
+                                dest.copy<RunOn::Host>(tmp, hi_slab, 0, db, dest_comp, num_comp);
                             }
 			}
 		    }

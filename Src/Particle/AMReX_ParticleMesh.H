@@ -60,7 +60,7 @@ ParticleToMesh (PC const& pc, MF& mf, int lev, F&& f)
                 Box tile_box = pti.tilebox();
                 tile_box.grow(mf_pointer->nGrow());
                 local_fab.resize(tile_box,mf_pointer->nComp());
-                local_fab = 0.0;
+                local_fab.setVal<RunOn::Host>(0.0);
                 auto fabarr = local_fab.array();
                 
                 AMREX_FOR_1D( np, i,
@@ -68,7 +68,7 @@ ParticleToMesh (PC const& pc, MF& mf, int lev, F&& f)
                     f(pstruct[i], fabarr);
                 });
                 
-                fab.atomicAdd(local_fab, tile_box, tile_box, 0, 0, mf_pointer->nComp());
+                fab.atomicAdd<RunOn::Host>(local_fab, tile_box, tile_box, 0, 0, mf_pointer->nComp());
             }
         }
     }
