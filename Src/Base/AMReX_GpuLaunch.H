@@ -206,6 +206,61 @@ namespace Gpu {
 
 #ifdef AMREX_USE_GPU
 
+#define AMREX_HOST_DEVICE_PARALLEL_FOR_1D_FLAG(flag,n,i,block) \
+    {  using amrex_i_inttype = typename std::remove_const<decltype(n)>::type; \
+    if (flag) \
+    { \
+        amrex::ParallelFor(n, [=] AMREX_GPU_DEVICE (amrex_i_inttype i) noexcept \
+            block \
+        ); \
+    } \
+    else { \
+        AMREX_PRAGMA_SIMD \
+        for (amrex_i_inttype i = 0; i < n; ++i) { \
+            block \
+        } \
+    }}
+
+#define AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FLAG(flag,box,i,j,k,block) \
+    if (flag) \
+    { \
+        amrex::ParallelFor(box, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept \
+            block \
+        ); \
+    } \
+    else { \
+        amrex::LoopConcurrentOnCpu(box, [=] (int i, int j, int k) noexcept \
+            block \
+        ); \
+    }
+
+#define AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(flag,box,nc,i,j,k,n,block) \
+    if (flag) \
+    { \
+        amrex::ParallelFor(box, nc, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) AMREX_NOEXCEPT \
+            block \
+        ); \
+    } \
+    else { \
+        amrex::LoopConcurrentOnCpu(box, nc, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT \
+            block \
+        ); \
+    }
+
+#define AMREX_HOST_DEVICE_FOR_1D_FLAG(flag,n,i,block) \
+    {  using amrex_i_inttype = typename std::remove_const<decltype(n)>::type; \
+    if (flag) \
+    { \
+        amrex::ParallelFor(n, [=] AMREX_GPU_DEVICE (amrex_i_inttype i) noexcept \
+            block \
+        ); \
+    } \
+    else { \
+        for (amrex_i_inttype i = 0; i < n; ++i) { \
+            block \
+        } \
+    }}
+
 #define AMREX_HOST_DEVICE_FOR_3D_FLAG(flag,box,i,j,k,block) \
     if (flag) \
     { \
@@ -241,6 +296,33 @@ namespace Gpu {
     }
 
 #else
+
+#define AMREX_HOST_DEVICE_PARALLEL_FOR_1D_FLAG(flag,n,i,block) \
+    {  using amrex_i_inttype = typename std::remove_const<decltype(n)>::type; \
+    amrex::ignore_unused(flag); \
+    AMREX_PRAGMA_SIMD \
+    for (amrex_i_inttype i = 0; i < n; ++i) { \
+        block \
+    }}
+
+#define AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FLAG(flag,box,i,j,k,block) \
+    amrex::ignore_unused(flag); \
+    amrex::LoopConcurrentOnCpu(box, [=] (int i, int j, int k) noexcept \
+        block \
+    );
+
+#define AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(flag,box,nc,i,j,k,n,block) \
+    amrex::ignore_unused(flag); \
+    amrex::LoopConcurrentOnCpu(box, nc, [=] (int i, int j, int k, int n) noexcept \
+        block \
+    );
+
+#define AMREX_HOST_DEVICE_FOR_1D_FLAG(flag,n,i,block) \
+    {  using amrex_i_inttype = typename std::remove_const<decltype(n)>::type; \
+    amrex::ignore_unused(flag); \
+    for (amrex_i_inttype i = 0; i < n; ++i) { \
+        block \
+    }}
 
 #define AMREX_HOST_DEVICE_FOR_3D_FLAG(flag,box,i,j,k,block) \
     amrex::ignore_unused(flag); \

@@ -1151,8 +1151,9 @@ FabArray<FAB>::FabArray (const FabArray<FAB>& rhs, MakeType maketype, int scomp,
 
     if (maketype == amrex::make_alias)
     {
-        for (const auto& rhsfab : rhs.m_fabs_v) {
-            m_fabs_v.push_back(new FAB(*rhsfab, amrex::make_alias, scomp, ncomp));
+        for (int i = 0, n = indexArray.size(); i < n; ++i) {
+            auto const& rhsfab = *(rhs.m_fabs_v[i]);
+            m_fabs_v.push_back(m_factory->create_alias(rhsfab, scomp, ncomp));
         }
     }
     else
@@ -1463,33 +1464,12 @@ FabArray<FAB>::setBndry (value_type val,
 {
     if (n_grow.max() > 0)
     {
-        if (Gpu::inLaunchRegion())
-        {
-            for (MFIter fai(*this); fai.isValid(); ++fai)
-            {
-                const Box& gbx = fai.fabbox();
-                const Box& vbx = fai.validbox();
-                auto fab = this->array(fai);
-
-                amrex::ParallelFor(gbx, ncomp,
-                [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
-                {
-                    if ( !(vbx.contains(IntVect(AMREX_D_DECL(i,j,k)))) )
-                    {
-                        fab(i,j,k,strt_comp+n) = val;
-                    }
-                });
-            }
-        }
-        else
-        {
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-            for (MFIter fai(*this); fai.isValid(); ++fai)
-            {
-                get(fai).setComplement(val, fai.validbox(), strt_comp, ncomp);
-            }
+        for (MFIter fai(*this); fai.isValid(); ++fai)
+        {
+            get(fai).template setComplement<RunOn::Device>(val, fai.validbox(), strt_comp, ncomp);
         }
     }
 }
@@ -1518,33 +1498,15 @@ FabArray<FAB>::setDomainBndry (value_type val,
         }
     }
 
-    if (Gpu::inLaunchRegion())
-    {
-        for (MFIter fai(*this); fai.isValid(); ++fai)
-        {
-            const Box& gbx = fai.fabbox();
-            if (not domain_box.contains(gbx))
-            {
-                auto fab = this->array(fai);
-                amrex::ParallelFor(gbx, ncomp,
-                [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
-                {
-                    if (not domain_box.contains(IntVect(AMREX_D_DECL(i,j,k))))
-                    {
-                        fab(i,j,k,strt_comp+n) = val;
-                    }
-                });
-            }
-        }
-    }
-    else
-    {
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        for (MFIter fai(*this); fai.isValid(); ++fai)
+    for (MFIter fai(*this); fai.isValid(); ++fai)
+    {
+        const Box& gbx = fai.fabbox();
+        if (not domain_box.contains(gbx))
         {
-            get(fai).setComplement(val, domain_box, strt_comp, ncomp);
+            get(fai).template setComplement<RunOn::Device>(val, domain_box, strt_comp, ncomp);
         }
     }
 }
@@ -2055,7 +2017,7 @@ FabArray<FAB>::setVal (value_type val, const CommMetaData& thecmd, int scomp, in
 #endif
         for (int i = 0; i < N_locs; ++i) {
             const CopyComTag& tag = LocTags[i];
-            (*this)[tag.dstIndex].setVal(val, tag.dbox, 0, ncomp);
+            (*this)[tag.dstIndex].template setVal<RunOn::Host>(val, tag.dbox, 0, ncomp);
         }
 
         for (auto it = RcvTags.begin(); it != RcvTags.end(); ++it) {
@@ -2065,7 +2027,7 @@ FabArray<FAB>::setVal (value_type val, const CommMetaData& thecmd, int scomp, in
 #endif
             for (int i = 0; i < N; ++i) {
                 const CopyComTag& tag = it->second[i];
-                (*this)[tag.dstIndex].setVal(val, tag.dbox, 0, ncomp);
+                (*this)[tag.dstIndex].template setVal<RunOn::Host>(val, tag.dbox, 0, ncomp);
             }
         }
     }

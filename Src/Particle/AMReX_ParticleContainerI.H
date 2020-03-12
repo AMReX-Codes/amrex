@@ -232,22 +232,22 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
         if (iv[i] > dmn.bigEnd(i))
         {
-            while (p.m_rdata.pos[i] >= geom.ProbHi(i)) p.m_rdata.pos[i] -= geom.ProbLength(i);
-            if (p.m_rdata.pos[i] < geom.ProbLo(i)) p.m_rdata.pos[i] = geom.ProbLo(i); // clamp to avoid precision issues;
-            shifted = true;
+            while (p.m_rdata.pos[i] >= (typename ParticleType::RealType) geom.ProbHi(i)) p.m_rdata.pos[i] -= (typename ParticleType::RealType) geom.ProbLength(i);
+            if (p.m_rdata.pos[i] < (typename ParticleType::RealType) geom.ProbLo(i)) p.m_rdata.pos[i] = (typename ParticleType::RealType) geom.ProbLo(i); // clamp to avoid precision issues;
+	            shifted = true;
         }
         else if (iv[i] < dmn.smallEnd(i))
         {
-            while (p.m_rdata.pos[i] <  geom.ProbLo(i)) p.m_rdata.pos[i] += geom.ProbLength(i);
+            while (p.m_rdata.pos[i] <  (typename ParticleType::RealType) geom.ProbLo(i)) p.m_rdata.pos[i] += (typename ParticleType::RealType) geom.ProbLength(i);
 
             // clamp to avoid precision issues
-            if ( p.m_rdata.pos[i] == geom.ProbHi(i)) p.m_rdata.pos[i] = geom.ProbLo(i);
-            if ((p.m_rdata.pos[i] > geom.ProbHi(i))) 
-                p.m_rdata.pos[i] = geom.ProbHi(i) - std::numeric_limits<typename ParticleType::RealType>::epsilon();
+            if ( p.m_rdata.pos[i] == (typename ParticleType::RealType) geom.ProbHi(i)) p.m_rdata.pos[i] = (typename ParticleType::RealType) geom.ProbLo(i);
+            if ((p.m_rdata.pos[i] > (typename ParticleType::RealType) geom.ProbHi(i))) 
+                p.m_rdata.pos[i] = (typename ParticleType::RealType) geom.ProbHi(i) - std::numeric_limits<typename ParticleType::RealType>::epsilon();
 
             shifted = true;
-        }
-        AMREX_ASSERT( (p.m_rdata.pos[i] >= geom.ProbLo(i) ) and ( p.m_rdata.pos[i] < geom.ProbHi(i) ));
+	    }
+        AMREX_ASSERT( (p.m_rdata.pos[i] >= (typename ParticleType::RealType) geom.ProbLo(i) ) and ( p.m_rdata.pos[i] < (typename ParticleType::RealType) geom.ProbHi(i) ));
     }
 
     return shifted;
@@ -1112,9 +1112,17 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 	    AMREX_FOR_1D ( num_move, i,
             {
                 const auto& p = p_ptr[i + num_stay];
-                const auto tup = assign_grid(p);
-                p_boxes[i] = amrex::get<0>(tup);
-                p_levs[i]  = amrex::get<1>(tup);
+                if (p.id() < 0)
+                {
+                    p_boxes[i] = -1;
+                    p_levs[i]  = -1;                    
+                }
+                else
+                {
+                    const auto tup = assign_grid(p);
+                    p_boxes[i] = amrex::get<0>(tup);
+                    p_levs[i]  = amrex::get<1>(tup);
+                }
                 p_periodic_shift[i] = IntVect(AMREX_D_DECL(0,0,0));
                 p_src_indices[i] = i+num_stay;
             });
@@ -1615,8 +1623,8 @@ BuildRedistributeMask (int lev, int nghost) const
             const Box& box = mfi.tilebox();
             const int grid_id = mfi.index();
             const int tile_id = mfi.LocalTileIndex();
-            (*redistribute_mask_ptr)[mfi].setVal(grid_id, box, 0, 1);
-            (*redistribute_mask_ptr)[mfi].setVal(tile_id, box, 1, 1);
+            (*redistribute_mask_ptr)[mfi].setVal<RunOn::Host>(grid_id, box, 0, 1);
+            (*redistribute_mask_ptr)[mfi].setVal<RunOn::Host>(tile_id, box, 1, 1);
         }
         
         redistribute_mask_ptr->FillBoundary(geom.periodicity());
@@ -2044,7 +2052,7 @@ AssignCellDensitySingleLevel (int rho_index,
                 tile_box = pti.tilebox();
                 tile_box.grow(mf_pointer->nGrow());
                 local_rho.resize(tile_box,ncomp);
-                local_rho = 0.0;
+                local_rho.setVal<RunOn::Host>(0.0);
                 rhoarr = local_rho.array();
             }
 #endif
@@ -2067,7 +2075,7 @@ AssignCellDensitySingleLevel (int rho_index,
 #ifdef _OPENMP
             if (Gpu::notInLaunchRegion())
             {
-                fab.atomicAdd(local_rho, tile_box, tile_box, 0, 0, ncomp);
+                fab.atomicAdd<RunOn::Device>(local_rho, tile_box, tile_box, 0, 0, ncomp);
             }
 #endif
         }
@@ -2082,7 +2090,7 @@ AssignCellDensitySingleLevel (int rho_index,
     {
         for (MFIter mfi(*mf_pointer); mfi.isValid(); ++mfi)
         {
-            (*mf_pointer)[mfi].protected_divide((*mf_pointer)[mfi],0,n,1);
+            (*mf_pointer)[mfi].protected_divide<RunOn::Device>((*mf_pointer)[mfi],0,n,1);
         }
     }
     

@@ -55,20 +55,15 @@ public:
 
     IArrayBox (const IArrayBox& rhs, MakeType make_type, int scomp, int ncomp);
 
-    AMREX_GPU_HOST_DEVICE
     explicit IArrayBox (Array4<int> const& a) noexcept : BaseFab<int>(a) {}
 
-    AMREX_GPU_HOST_DEVICE
     explicit IArrayBox (Array4<int> const& a, IndexType t) noexcept : BaseFab<int>(a,t) {}
 
-    AMREX_GPU_HOST_DEVICE
     explicit IArrayBox (Array4<int const> const& a) noexcept : BaseFab<int>(a) {}
 
-    AMREX_GPU_HOST_DEVICE
     explicit IArrayBox (Array4<int const> const& a, IndexType t) noexcept : BaseFab<int>(a,t) {}
 
     //!  The destructor.
-    AMREX_GPU_HOST_DEVICE
     ~IArrayBox () noexcept {}
 
     IArrayBox (IArrayBox&& rhs) noexcept = default;
@@ -78,11 +73,11 @@ public:
     IArrayBox& operator= (IArrayBox&&) = delete;
 
     //! Set the fab to the value r.
+    template <RunOn run_on>
     IArrayBox& operator= (int r) noexcept;
 
     //! For debugging purposes we hide BaseFab version and do some extra work.
-    void resize (const Box& b,
-                 int        N = 1);
+    void resize (const Box& b, int N = 1);
 
     //! Initialize from ParmParse with "fab" prefix.
     static void Initialize ();
@@ -93,6 +88,14 @@ private:
     static bool do_initval;
 
 };
+
+template <RunOn run_on>
+IArrayBox&
+IArrayBox::operator= (int v) noexcept
+{
+    BaseFab<int>::operator=<run_on>(v);
+    return *this;
+}
 
 }
 

@@ -415,16 +415,25 @@ MLEBTensorOp::compCrossTerms(int amrlev, int mglev, MultiFab const& mf) const
 	  AMREX_LAUNCH_HOST_DEVICE_LAMBDA
 	  ( xbx, txbx,
 	    {
-	      FArrayBox(fxfab,txbx.ixType()).setVal(0.0, txbx, 0, AMREX_SPACEDIM);
+                AMREX_LOOP_4D(txbx, AMREX_SPACEDIM, i, j, k, n,
+                {
+                    fxfab(i,j,k,n) = 0.0;
+                });
 	    }
 	    , ybx, tybx,
 	    {
-	      FArrayBox(fyfab,tybx.ixType()).setVal(0.0, tybx, 0, AMREX_SPACEDIM);
+                AMREX_LOOP_4D(tybx, AMREX_SPACEDIM, i, j, k, n,
+                {
+                    fyfab(i,j,k,n) = 0.0;
+                });
 	    }
 #if (AMREX_SPACEDIM == 3)
 	    , zbx, tzbx,
 	    {
-	      FArrayBox(fzfab,tzbx.ixType()).setVal(0.0, tzbx, 0, AMREX_SPACEDIM);
+                AMREX_LOOP_4D(tzbx, AMREX_SPACEDIM, i, j, k, n,
+                {
+                    fzfab(i,j,k,n) = 0.0;
+                });
 	    }
 #endif
 	  );

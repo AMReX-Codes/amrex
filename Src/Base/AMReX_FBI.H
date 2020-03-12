@@ -512,7 +512,7 @@ FabArray<FAB>::FB_local_copy_cpu (const FB& TheFB, int scomp, int ncomp)
 
             const FAB* sfab = &(get(tag.srcIndex));
                   FAB* dfab = &(get(tag.dstIndex));
-            dfab->copy(*sfab, tag.sbox, scomp, tag.dbox, scomp, ncomp);
+            dfab->template copy<RunOn::Host>(*sfab, tag.sbox, scomp, tag.dbox, scomp, ncomp);
         }
     }
     else
@@ -1206,11 +1206,11 @@ FabArray<FAB>::unpack_recv_buffer_cpu (FabArray<FAB>& dst, int dcomp, int ncomp,
                     FAB& dfab = dst[tag.dstIndex];
                     if (op == FabArrayBase::COPY)
                     {
-                        dfab.copyFromMem(bx, dcomp, ncomp, dptr);
+                        dfab.template copyFromMem<RunOn::Host>(bx, dcomp, ncomp, dptr);
                     }
                     else
                     {
-                        dfab.addFromMem(tag.dbox, dcomp, ncomp, dptr);
+                        dfab.template addFromMem<RunOn::Host>(tag.dbox, dcomp, ncomp, dptr);
                     }
                     dptr += bx.numPts() * ncomp * sizeof(value_type);
                 }

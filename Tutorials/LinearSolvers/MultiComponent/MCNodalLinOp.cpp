@@ -235,15 +235,15 @@ void MCNodalLinOp::buildMasks ()
 						const Box& ccbxg1 = amrex::grow(ccbx,1);
                         
 						ccfab.resize(ccbxg1);
-						ccfab.setVal(1);
-						ccfab.setComplement(2,ccdomain_p,0,1);
+						ccfab.setVal<RunOn::Host>(1);
+						ccfab.setComplement<RunOn::Host>(2,ccdomain_p,0,1);
 
 						for (const auto& iv : pshifts)
 						{
 							ccba.intersections(ccbxg1+iv, isects);
 							for (const auto& is : isects)
 							{
-								ccfab.setVal(0, is.second-iv, 0, 1);
+								ccfab.setVal<RunOn::Host>(0, is.second-iv, 0, 1);
 							}
 						}
 					}
@@ -281,7 +281,7 @@ void MCNodalLinOp::buildMasks ()
 					cfba.intersections(bx+iv, isects);
 					for (const auto& is : isects)
 					{
-						fab.setVal(1, is.second-iv, 0, 1);
+						fab.setVal<RunOn::Host>(1, is.second-iv, 0, 1);
 					}
 					if (!isects.empty()) has_cf[mfi] = 1;
 				}
@@ -442,7 +442,7 @@ void MCNodalLinOp::interpolation (int amrlev, int fmglev, MultiFab& fine, const 
 		const Box& tmpbx = amrex::refine(course_bx,2);
 		FArrayBox tmpfab;
 		tmpfab.resize(tmpbx,fine.nComp());
-		tmpfab.setVal(0.0);
+		tmpfab.setVal<RunOn::Host>(0.0);
 		const amrex::FArrayBox &crsefab = (*cmf)[mfi];
 
 		amrex::Array4<const amrex::Real> const& cdata = crsefab.const_array();
@@ -480,7 +480,7 @@ void MCNodalLinOp::interpolation (int amrlev, int fmglev, MultiFab& fine, const 
 									  cdata(I+1,J+1,K+1,n));
 				});
 		}
-		fine[mfi].plus(tmpfab,fine_bx,fine_bx,0,0,fine.nComp());
+		fine[mfi].plus<RunOn::Host>(tmpfab,fine_bx,fine_bx,0,0,fine.nComp());
 	}
 	amrex::Geometry geom = m_geom[amrlev][fmglev];
 	realFillBoundary(fine,geom);
