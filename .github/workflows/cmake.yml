@@ -18,11 +18,8 @@ jobs:
         make -j 2
         make install
 
-  # Build and use AMReX via `add_subdirectory()`
-  # Note - We build a pure C++ project here.
-  #        In the future, this should compile without needing
-  #        gfortran.
-  subdirectory-CXX:
+  # Build libamrex and all tutorials
+  tutorials:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
@@ -32,22 +29,25 @@ jobs:
       run: |
         mkdir build
         cd build
-        cmake ../Tutorials/Basic/HelloWorld_C
+        cmake .. -DENABLE_TUTORIALS=ON
         make -j 2
-        ./hello_amrex
 
-  # Build and use AMReX via `add_subdirectory()`
-  # Note - We build a mixed Fortran-C++ project here.
-  subdirectory-Fortran-CXX:
+  # Build libamrex and all tutorials with CUDA
+  tutorials-cuda:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
     - name: Dependencies
-      run: .github/workflows/cmake/dependencies.sh
+      run: .github/workflows/cmake/dependencies_nvcc.sh
     - name: Build & Install
       run: |
         mkdir build
         cd build
-        cmake ../Tutorials/Particles/CellSortedParticles
+        cmake ..                                         \
+            -DENABLE_TUTORIALS=ON                        \
+            -DENABLE_CUDA=ON                             \
+            -DCMAKE_CXX_COMPILER=$(which g++-5)          \
+            -DCMAKE_CUDA_HOST_COMPILER=$(which g++-5)    \
+            -DCMAKE_Fortran_COMPILER=$(which gfortran-5) \
+            -DCUDA_ARCH=6.0
         make -j 2
-        make test

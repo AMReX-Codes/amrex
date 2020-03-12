@@ -158,6 +158,10 @@ namespace amrex
                             Periodicity const& period, int crse_value, int fine_value,
                             LayoutData<int>& has_cf);
 
+    MultiFab makeFineMask (const BoxArray& cba, const DistributionMapping& cdm,
+                           const BoxArray& fba, const IntVect& ratio,
+                           Real crse_value, Real fine_value);
+
     //! Computes divergence of face-data stored in the umac MultiFab.
     void computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPACEDIM>& umac,
                             const Geometry& geom);
@@ -211,7 +215,7 @@ makeFineMask (const FabArray<FAB>& cmf, const BoxArray& fba, const IntVect& rati
 
 template <typename FAB>
 iMultiFab
-makeFineMask (const MultiFab& cmf, const BoxArray& fba, const IntVect& ratio,
+makeFineMask (const FabArray<FAB>& cmf, const BoxArray& fba, const IntVect& ratio,
               Periodicity const& period, int crse_value, int fine_value)
 {
     return makeFineMask(cmf.boxArray(), cmf.DistributionMap(), cmf.nGrowVect(),

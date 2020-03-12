@@ -1541,14 +1541,13 @@ void mlndlap_divu_cf_contrib (int i, int j, int k, Array4<Real> const& rhs,
                               Array4<int const> const& ndmsk, Array4<int const> const& ccmsk,
                               GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
                               Box const& nddom, GpuArray<LinOpBCType,AMREX_SPACEDIM> const& bclo,
-                              GpuArray<LinOpBCType,AMREX_SPACEDIM> const& bchi) noexcept
+                              GpuArray<LinOpBCType,AMREX_SPACEDIM> const& bchi,
+                              bool neumann_doubling) noexcept
 {
     if (!dmsk(i,j,k) and ndmsk(i,j,k) == crse_fine_node) {
         Real facx = 0.25_rt * dxinv[0];
         Real facy = 0.25_rt * dxinv[1];
         Real facz = 0.25_rt * dxinv[2];
-        const auto ndlo = amrex::lbound(nddom);
-        const auto ndhi = amrex::ubound(nddom);
         Real r = fc(i,j,k);
         if (rhcc) {
             r += 0.125_rt*((1._rt-ccmsk(i-1,j-1,k-1)) * rhcc(i-1,j-1,k-1)
@@ -1601,28 +1600,32 @@ void mlndlap_divu_cf_contrib (int i, int j, int k, Array4<Real> const& rhs,
                  + facz*vel(i  ,j  ,k  ,2);
         }
 
-        if (i == ndlo.x and ( bclo[0] == LinOpBCType::Neumann or
-                              bclo[0] == LinOpBCType::inflow)) {
-            r *= 2._rt;
-        } else if (i== ndhi.x and ( bchi[0] == LinOpBCType::Neumann or
-                                    bchi[0] == LinOpBCType::inflow)) {
-            r *= 2._rt;
-        }
+        if (neumann_doubling) {
+            const auto ndlo = amrex::lbound(nddom);
+            const auto ndhi = amrex::ubound(nddom);
+            if (i == ndlo.x and ( bclo[0] == LinOpBCType::Neumann or
+                                  bclo[0] == LinOpBCType::inflow)) {
+                r *= 2._rt;
+            } else if (i== ndhi.x and ( bchi[0] == LinOpBCType::Neumann or
+                                        bchi[0] == LinOpBCType::inflow)) {
+                r *= 2._rt;
+            }
 
-        if (j == ndlo.y and ( bclo[1] == LinOpBCType::Neumann or
-                              bclo[1] == LinOpBCType::inflow)) {
-            r *= 2._rt;
-        } else if (j == ndhi.y and ( bchi[1] == LinOpBCType::Neumann or
-                                     bchi[1] == LinOpBCType::inflow)) {
-            r *= 2._rt;
-        }
+            if (j == ndlo.y and ( bclo[1] == LinOpBCType::Neumann or
+                                  bclo[1] == LinOpBCType::inflow)) {
+                r *= 2._rt;
+            } else if (j == ndhi.y and ( bchi[1] == LinOpBCType::Neumann or
+                                         bchi[1] == LinOpBCType::inflow)) {
+                r *= 2._rt;
+            }
 
-        if (k == ndlo.z and ( bclo[2] == LinOpBCType::Neumann or
-                              bclo[2] == LinOpBCType::inflow)) {
-            r *= 2._rt;
-        } else if (k == ndhi.z and ( bchi[2] == LinOpBCType::Neumann or
-                                     bchi[2] == LinOpBCType::inflow)) {
-            r *= 2._rt;
+            if (k == ndlo.z and ( bclo[2] == LinOpBCType::Neumann or
+                                  bclo[2] == LinOpBCType::inflow)) {
+                r *= 2._rt;
+            } else if (k == ndhi.z and ( bchi[2] == LinOpBCType::Neumann or
+                                         bchi[2] == LinOpBCType::inflow)) {
+                r *= 2._rt;
+            }
         }
 
         rhs(i,j,k) = r;
@@ -1637,7 +1640,8 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_crse_resid (int i, int j, int k, Array4<Real> const& resid,
                          Array4<Real const> const& rhs, Array4<int const> const& msk,
                          Box const& nddom, GpuArray<LinOpBCType,AMREX_SPACEDIM> const& bclo,
-                         GpuArray<LinOpBCType,AMREX_SPACEDIM> const& bchi) noexcept
+                         GpuArray<LinOpBCType,AMREX_SPACEDIM> const& bchi,
+                         bool neumann_doubling) noexcept
 {
     if ((msk(i-1,j-1,k-1) == 0 or
          msk(i  ,j-1,k-1) == 0 or
@@ -1656,29 +1660,31 @@ void mlndlap_crse_resid (int i, int j, int k, Array4<Real> const& resid,
          msk(i-1,j  ,k  ) == 0 or
          msk(i  ,j  ,k  ) == 0))
     {
-        const auto ndlo = amrex::lbound(nddom);
-        const auto ndhi = amrex::ubound(nddom);
         Real fac = 1.0_rt;
-        if (i == ndlo.x and ( bclo[0] == LinOpBCType::Neumann or
-                              bclo[0] == LinOpBCType::inflow)) {
-            fac *= 2._rt;
-        } else if (i== ndhi.x and ( bchi[0] == LinOpBCType::Neumann or
-                                    bchi[0] == LinOpBCType::inflow)) {
-            fac *= 2._rt;
-        }
-        if (j == ndlo.y and ( bclo[1] == LinOpBCType::Neumann or
-                              bclo[1] == LinOpBCType::inflow)) {
-            fac *= 2._rt;
-        } else if (j == ndhi.y and ( bchi[1] == LinOpBCType::Neumann or
-                                     bchi[1] == LinOpBCType::inflow)) {
-            fac *= 2._rt;
-        }
-        if (k == ndlo.z and ( bclo[2] == LinOpBCType::Neumann or
-                              bclo[2] == LinOpBCType::inflow)) {
-            fac *= 2._rt;
-        } else if (k == ndhi.z and ( bchi[2] == LinOpBCType::Neumann or
-                                     bchi[2] == LinOpBCType::inflow)) {
-            fac *= 2._rt;
+        if (neumann_doubling) {
+            const auto ndlo = amrex::lbound(nddom);
+            const auto ndhi = amrex::ubound(nddom);
+            if (i == ndlo.x and ( bclo[0] == LinOpBCType::Neumann or
+                                  bclo[0] == LinOpBCType::inflow)) {
+                fac *= 2._rt;
+            } else if (i== ndhi.x and ( bchi[0] == LinOpBCType::Neumann or
+                                        bchi[0] == LinOpBCType::inflow)) {
+                fac *= 2._rt;
+            }
+            if (j == ndlo.y and ( bclo[1] == LinOpBCType::Neumann or
+                                  bclo[1] == LinOpBCType::inflow)) {
+                fac *= 2._rt;
+            } else if (j == ndhi.y and ( bchi[1] == LinOpBCType::Neumann or
+                                         bchi[1] == LinOpBCType::inflow)) {
+                fac *= 2._rt;
+            }
+            if (k == ndlo.z and ( bclo[2] == LinOpBCType::Neumann or
+                                  bclo[2] == LinOpBCType::inflow)) {
+                fac *= 2._rt;
+            } else if (k == ndhi.z and ( bchi[2] == LinOpBCType::Neumann or
+                                         bchi[2] == LinOpBCType::inflow)) {
+                fac *= 2._rt;
+            }
         }
         resid(i,j,k) = (rhs(i,j,k) - resid(i,j,k)) * fac;
     } else {
@@ -1776,7 +1782,8 @@ void mlndlap_res_cf_contrib (int i, int j, int k, Array4<Real> const& res,
                              Array4<Real const> const& fc,
                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv, Box const& nddom,
                              GpuArray<LinOpBCType, AMREX_SPACEDIM> const& bclo,
-                             GpuArray<LinOpBCType, AMREX_SPACEDIM> const& bchi) noexcept
+                             GpuArray<LinOpBCType, AMREX_SPACEDIM> const& bchi,
+                             bool neumann_doubling) noexcept
 {
     if (!dmsk(i,j,k) and ndmsk(i,j,k) == crse_fine_node) {
 
@@ -1899,31 +1906,33 @@ void mlndlap_res_cf_contrib (int i, int j, int k, Array4<Real> const& res,
         }
 
         Real Axf = fc(i,j,k);
-        const auto ndlo = amrex::lbound(nddom);
-        const auto ndhi = amrex::ubound(nddom);
+        if (neumann_doubling) {
+            const auto ndlo = amrex::lbound(nddom);
+            const auto ndhi = amrex::ubound(nddom);
 
-        if (i == ndlo.x and (bclo[0] == LinOpBCType::Neumann or
-                             bclo[0] == LinOpBCType::inflow)) {
-            Axf *= 2._rt;
-        } else if (i== ndhi.x and (bchi[0] == LinOpBCType::Neumann or
-                                   bchi[0] == LinOpBCType::inflow)) {
-            Axf *= 2._rt;
-        }
+            if (i == ndlo.x and (bclo[0] == LinOpBCType::Neumann or
+                                 bclo[0] == LinOpBCType::inflow)) {
+                Axf *= 2._rt;
+            } else if (i== ndhi.x and (bchi[0] == LinOpBCType::Neumann or
+                                       bchi[0] == LinOpBCType::inflow)) {
+                Axf *= 2._rt;
+            }
 
-        if (j == ndlo.y and ( bclo[1] == LinOpBCType::Neumann or
-                              bclo[1] == LinOpBCType::inflow)) {
-            Axf *= 2._rt;
-        } else if (j == ndhi.y and (bchi[1] == LinOpBCType::Neumann or
-                                    bchi[1] == LinOpBCType::inflow)) {
-            Axf *= 2._rt;
-        }
+            if (j == ndlo.y and ( bclo[1] == LinOpBCType::Neumann or
+                                  bclo[1] == LinOpBCType::inflow)) {
+                Axf *= 2._rt;
+            } else if (j == ndhi.y and (bchi[1] == LinOpBCType::Neumann or
+                                        bchi[1] == LinOpBCType::inflow)) {
+                Axf *= 2._rt;
+            }
 
-        if (k == ndlo.z and (bclo[2] == LinOpBCType::Neumann or
-                             bclo[2] == LinOpBCType::inflow)) {
-            Axf *= 2._rt;
-        } else if (k == ndhi.z and (bchi[2] == LinOpBCType::Neumann or
-                                    bchi[2] == LinOpBCType::inflow)) {
-            Axf *= 2._rt;
+            if (k == ndlo.z and (bclo[2] == LinOpBCType::Neumann or
+                                 bclo[2] == LinOpBCType::inflow)) {
+                Axf *= 2._rt;
+            } else if (k == ndhi.z and (bchi[2] == LinOpBCType::Neumann or
+                                        bchi[2] == LinOpBCType::inflow)) {
+                Axf *= 2._rt;
+            }
         }
 
         res(i,j,k) = rhs(i,j,k) - (Ax + Axf);
