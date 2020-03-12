@@ -138,6 +138,13 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies,
     }
 
     //Init laser profile
+
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(e_max > 0.,
+        "Laser amplitude (e_max) must be positive.");
+
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(wavelength > 0.,
+        "Laser wavelength must be positive.");
+
     CommonLaserParameters common_params;
     common_params.wavelength = wavelength;
     common_params.e_max = e_max;
