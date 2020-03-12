@@ -166,12 +166,12 @@ MultiParticleContainer::ReadParameters ()
 
 
         pp.query("nspecies", nspecies);
-        BL_ASSERT(nspecies >= 0);
+        AMREX_ALWAYS_ASSERT(nspecies >= 0);
 
         if (nspecies > 0) {
             // Get species names
             pp.getarr("species_names", species_names);
-            BL_ASSERT(species_names.size() == nspecies);
+            AMREX_ALWAYS_ASSERT(species_names.size() == nspecies);
 
             // Get species to deposit on main grid
             m_deposit_on_main_grid.resize(nspecies, false);
@@ -224,10 +224,10 @@ MultiParticleContainer::ReadParameters ()
             // collision
             ParmParse pc("collisions");
             pc.query("ncollisions", ncollisions);
-            BL_ASSERT(ncollisions >= 0);
+            AMREX_ALWAYS_ASSERT(ncollisions >= 0);
             if (ncollisions > 0) {
                 pc.getarr("collision_names", collision_names);
-                BL_ASSERT(collision_names.size() == ncollisions);
+                AMREX_ALWAYS_ASSERT(collision_names.size() == ncollisions);
             }
 
         }
@@ -237,10 +237,10 @@ MultiParticleContainer::ReadParameters ()
 
         ParmParse ppl("lasers");
         ppl.query("nlasers", nlasers);
-        BL_ASSERT(nlasers >= 0);
+        AMREX_ALWAYS_ASSERT(nlasers >= 0);
         if (nlasers > 0) {
             ppl.getarr("names", lasers_names);
-            BL_ASSERT(lasers_names.size() == nlasers);
+            AMREX_ALWAYS_ASSERT(lasers_names.size() == nlasers);
         }
 
         initialized = true;
