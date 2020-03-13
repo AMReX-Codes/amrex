@@ -24,12 +24,13 @@ void amrex_deposit_cic (P const& p, int nc, amrex::Array4<amrex::Real> const& rh
     amrex::Real sx[2] = {1.0_rt - xint, xint};
     
     for (int ii = 0; ii <= 1; ++ii) { 
-        amrex::Gpu::Atomic::Add(&rho(i+ii-1, 0, 0, 0), sx[ii]*p.rdata(0));
+        amrex::Gpu::Atomic::Add(&rho(i+ii-1, 0, 0, 0), static_cast<Real>(sx[ii]*p.rdata(0)));
     }
     
     for (int comp=1; comp < nc; ++comp) {
         for (int ii = 0; ii <= 1; ++ii) { 
-            amrex::Gpu::Atomic::Add(&rho(i+ii-1, 0, 0, comp), sx[ii]*p.rdata(0)*p.rdata(comp));
+            amrex::Gpu::Atomic::Add(&rho(i+ii-1, 0, 0, comp), 
+                                    static_cast<Real>(sx[ii]*p.rdata(0)*p.rdata(comp)));
         }
     }
 #elif (AMREX_SPACEDIM == 2)
@@ -48,7 +49,7 @@ void amrex_deposit_cic (P const& p, int nc, amrex::Array4<amrex::Real> const& rh
     for (int jj = 0; jj <= 1; ++jj) { 
         for (int ii = 0; ii <= 1; ++ii) { 
             amrex::Gpu::Atomic::Add(&rho(i+ii-1, j+jj-1, 0, 0),
-                                    sx[ii]*sy[jj]*p.rdata(0));
+                                    static_cast<Real>(sx[ii]*sy[jj]*p.rdata(0)));
         }
     }
 
@@ -56,7 +57,7 @@ void amrex_deposit_cic (P const& p, int nc, amrex::Array4<amrex::Real> const& rh
         for (int jj = 0; jj <= 1; ++jj) { 
             for (int ii = 0; ii <= 1; ++ii) {                 
                 amrex::Gpu::Atomic::Add(&rho(i+ii-1, j+jj-1, 0, comp),
-                                        sx[ii]*sy[jj]*p.rdata(0)*p.rdata(comp));
+                                        static_cast<Real>(sx[ii]*sy[jj]*p.rdata(0)*p.rdata(comp)));
             }
         }
     }
@@ -82,7 +83,7 @@ void amrex_deposit_cic (P const& p, int nc, amrex::Array4<amrex::Real> const& rh
         for (int jj = 0; jj <= 1; ++jj) { 
             for (int ii = 0; ii <= 1; ++ii) {
                 amrex::Gpu::Atomic::Add(&rho(i+ii-1, j+jj-1, k+kk-1, 0),
-                                        sx[ii]*sy[jj]*sz[kk]*p.rdata(0));
+                                        static_cast<Real>(sx[ii]*sy[jj]*sz[kk]*p.rdata(0)));
             }
         }
     }
@@ -92,7 +93,7 @@ void amrex_deposit_cic (P const& p, int nc, amrex::Array4<amrex::Real> const& rh
             for (int jj = 0; jj <= 1; ++jj) { 
                 for (int ii = 0; ii <= 1; ++ii) {
                     amrex::Gpu::Atomic::Add(&rho(i+ii-1, j+jj-1, k+kk-1, comp),
-                                            sx[ii]*sy[jj]*sz[kk]*p.rdata(0)*p.rdata(comp));
+                                            static_cast<Real>(sx[ii]*sy[jj]*sz[kk]*p.rdata(0)*p.rdata(comp)));
                 }
             }
         }
