@@ -375,9 +375,9 @@ Particle<NReal, NInt>::CIC_Cells_Fracs_Basic (const Particle<NReal, NInt>& p,
     //
     // "cells" should be dimensioned: IntVect cells[AMREX_D_TERM(2,+2,+4)]
     //
-    const Real len[AMREX_SPACEDIM] = { AMREX_D_DECL((p.m_rdata.pos[0]-plo[0])/dx[0] + 0.5_rt,
-                                           (p.m_rdata.pos[1]-plo[1])/dx[1] + 0.5_rt,
-                                           (p.m_rdata.pos[2]-plo[2])/dx[2] + 0.5_rt) };
+    const Real len[AMREX_SPACEDIM] = { AMREX_D_DECL(static_cast<Real>((p.m_rdata.pos[0]-plo[0])/dx[0] + 0.5_rt),
+                                                    static_cast<Real>((p.m_rdata.pos[1]-plo[1])/dx[1] + 0.5_rt),
+                                                    static_cast<Real>((p.m_rdata.pos[2]-plo[2])/dx[2] + 0.5_rt)) };
 
     const IntVect cell(AMREX_D_DECL(floor(len[0]), floor(len[1]), floor(len[2])));
 
