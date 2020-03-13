@@ -1191,9 +1191,7 @@ MLNodeLaplacian::restrictInteriorNodes (int camrlev, MultiFab& crhs, MultiFab& a
 
     MultiFab cfine(amrex::coarsen(fba, 2), fdm, 1, 0);
 
-    if (m_coarsening_strategy == CoarseningStrategy::RAP) {
-        frhs->setDomainBndry(0.0,m_geom[camrlev+1][0]);
-    }
+    frhs->setBndry(0.0);
 
     applyBC(camrlev+1, 0, *frhs, BCMode::Inhomogeneous, StateMode::Solution);
 
