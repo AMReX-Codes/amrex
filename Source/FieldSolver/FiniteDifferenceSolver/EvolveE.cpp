@@ -137,13 +137,13 @@ void FiniteDifferenceSolver::EvolveECartesian (
             amrex::ParallelFor(tex, tey, tez,
 
                 [=] AMREX_GPU_DEVICE (int i, int j, int k){
-                    Ex(i, j, k) += T_Algo::UpwardDx(F, coefs_x, n_coefs_x, i, j, k);
+                    Ex(i, j, k) += c2 * dt * T_Algo::UpwardDx(F, coefs_x, n_coefs_x, i, j, k);
                 },
                 [=] AMREX_GPU_DEVICE (int i, int j, int k){
-                    Ey(i, j, k) += T_Algo::UpwardDy(F, coefs_y, n_coefs_y, i, j, k);
+                    Ey(i, j, k) += c2 * dt * T_Algo::UpwardDy(F, coefs_y, n_coefs_y, i, j, k);
                 },
                 [=] AMREX_GPU_DEVICE (int i, int j, int k){
-                    Ez(i, j, k) += T_Algo::UpwardDz(F, coefs_z, n_coefs_z, i, j, k);
+                    Ez(i, j, k) += c2 * dt * T_Algo::UpwardDz(F, coefs_z, n_coefs_z, i, j, k);
                 }
 
             );
@@ -303,10 +303,10 @@ void FiniteDifferenceSolver::EvolveECylindrical (
             amrex::ParallelFor(ter, tet, tez,
 
                 [=] AMREX_GPU_DEVICE (int i, int j, int k){
-                    Er(i, j, 0, 0) += T_Algo::UpwardDr(F, coefs_r, n_coefs_r, i, j, 0, 0);
+                    Er(i, j, 0, 0) += c2 * dt * T_Algo::UpwardDr(F, coefs_r, n_coefs_r, i, j, 0, 0);
                     for (int m=1; m<nmodes; m++) { // Higher-order modes
-                        Er(i, j, 0, 2*m-1) += T_Algo::UpwardDr(F, coefs_r, n_coefs_r, i, j, 0, 2*m-1); // Real part
-                        Er(i, j, 0, 2*m  ) += T_Algo::UpwardDr(F, coefs_r, n_coefs_r, i, j, 0, 2*m  ); // Imaginary part
+                        Er(i, j, 0, 2*m-1) += c2 * dt * T_Algo::UpwardDr(F, coefs_r, n_coefs_r, i, j, 0, 2*m-1); // Real part
+                        Er(i, j, 0, 2*m  ) += c2 * dt * T_Algo::UpwardDr(F, coefs_r, n_coefs_r, i, j, 0, 2*m  ); // Imaginary part
                     }
                 },
                 [=] AMREX_GPU_DEVICE (int i, int j, int k){
@@ -314,24 +314,24 @@ void FiniteDifferenceSolver::EvolveECylindrical (
                     Real const r = rmin + i*dr; // r on a nodal grid (Et is nodal in r)
                     if (r != 0){ // Off-axis, regular Maxwell equations
                         for (int m=1; m<nmodes; m++) { // Higher-order modes
-                            Et(i, j, 0, 2*m-1) +=  m * F(i, j, 0, 2*m  )/r; // Real part
-                            Et(i, j, 0, 2*m  ) += -m * F(i, j, 0, 2*m-1)/r; // Imaginary part
+                            Et(i, j, 0, 2*m-1) += c2 * dt *  m * F(i, j, 0, 2*m  )/r; // Real part
+                            Et(i, j, 0, 2*m  ) += c2 * dt * -m * F(i, j, 0, 2*m-1)/r; // Imaginary part
                         }
                     } else { // r==0: on-axis corrections
                         // For m==1, F is linear in r, for small r
                         // Therefore, the formula below regularizes the singularity
                         if (nmodes >= 2) { // needs to have at least m=0 and m=1
                             int const m=1;
-                            Et(i, j, 0, 2*m-1) +=  m * F(i+1, j, 0, 2*m  )/dr; // Real part
-                            Et(i, j, 0, 2*m  ) += -m * F(i+1, j, 0, 2*m-1)/dr; // Imaginary part
+                            Et(i, j, 0, 2*m-1) += c2 * dt *  m * F(i+1, j, 0, 2*m  )/dr; // Real part
+                            Et(i, j, 0, 2*m  ) += c2 * dt * -m * F(i+1, j, 0, 2*m-1)/dr; // Imaginary part
                         }
                     }
                 },
                 [=] AMREX_GPU_DEVICE (int i, int j, int k){
-                    Ez(i, j, 0, 0) += T_Algo::UpwardDz(F, coefs_z, n_coefs_z, i, j, 0, 0);
+                    Ez(i, j, 0, 0) += c2 * dt * T_Algo::UpwardDz(F, coefs_z, n_coefs_z, i, j, 0, 0);
                     for (int m=1; m<nmodes; m++) { // Higher-order modes
-                        Ez(i, j, 0, 2*m-1) += T_Algo::UpwardDz(F, coefs_z, n_coefs_z, i, j, 0, 2*m-1); // Real part
-                        Ez(i, j, 0, 2*m  ) += T_Algo::UpwardDz(F, coefs_z, n_coefs_z, i, j, 0, 2*m  ); // Imaginary part
+                        Ez(i, j, 0, 2*m-1) += c2 * dt * T_Algo::UpwardDz(F, coefs_z, n_coefs_z, i, j, 0, 2*m-1); // Real part
+                        Ez(i, j, 0, 2*m  ) += c2 * dt * T_Algo::UpwardDz(F, coefs_z, n_coefs_z, i, j, 0, 2*m  ); // Imaginary part
                     }
                 }
 
