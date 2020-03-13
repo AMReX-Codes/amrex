@@ -11,6 +11,7 @@ target_sources(amrex
    AMReX_FillPatchUtil.cpp
    AMReX_FluxRegister.cpp
    AMReX_FillPatchUtil.H
+   AMReX_FillPatchUtil_I.H
    AMReX_FluxRegister.H
    AMReX_Interpolater.cpp
    AMReX_TagBox.cpp

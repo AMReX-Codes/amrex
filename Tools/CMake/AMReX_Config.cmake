@@ -46,8 +46,14 @@ function (configure_amrex)
    # Set C++ standard and disable compiler-specific extensions, like "-std=gnu++14" for GNU
    # This will also enforce the same standard with the CUDA compiler
    # Moreover, it will also enforce such standard on all the consuming targets
-   target_compile_features(amrex PUBLIC cxx_std_14)
-   set_target_properties(amrex PROPERTIES CXX_EXTENSIONS OFF) # This disable C++ standard extension
+   #
+   set_target_properties(amrex
+       PROPERTIES
+       CXX_STANDARD 11 # This requires C++11 as minimum
+       CXX_STANDARD_REQUIRED ON
+       CXX_EXTENSIONS OFF )
+
+   target_compile_features(amrex PUBLIC cxx_std_${AMREX_CXX_STANDARD})
 
    #
    # Setup OpenMP
