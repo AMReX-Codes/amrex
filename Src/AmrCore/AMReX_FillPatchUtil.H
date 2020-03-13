@@ -6,118 +6,146 @@
 #include <AMReX_PhysBCFunct.H>
 #include <AMReX_Interpolater.H>
 #include <AMReX_Array.H>
+#include <AMReX_Utility.H>
 
 #ifdef AMREX_USE_EB
 #include <AMReX_EB2.H>
+#include <AMReX_EBFabFactory.H>
+#endif
+
+#include <cmath>
+#include <limits>
+
+#ifdef _OPENMP
+#include <omp.h>
 #endif
 
 namespace amrex
 {
-    class InterpHook {
-    public:
-        virtual ~InterpHook () {}
-        virtual void operator() (FArrayBox& fab, const Box& bx, int icomp, int ncomp) const = 0;
-    };
 
-    class NullInterpHook final
-        : public InterpHook
+    template <typename FAB>
+    struct NullInterpHook
     {
-    public:
-        virtual void operator() (FArrayBox& fab, const Box& bx, int icomp, int ncomp) const final {}
+        void operator() (FAB& fab, const Box& bx, int icomp, int ncomp) const {}
     };
 
-    bool ProperlyNested (const IntVect& ratio, const IntVect& blockint_factor, int ngrow,
-			 const IndexType& boxType, Interpolater* mapper);
+    template <typename Interp>
+    bool ProperlyNested (const IntVect& ratio, const IntVect& blocking_factor, int ngrow,
+			 const IndexType& boxType, Interp* mapper);
 
-    void FillPatchSingleLevel (MultiFab& mf, IntVect const& nghost, Real time,
-			       const Vector<MultiFab*>& smf, const Vector<Real>& stime,
-			       int scomp, int dcomp, int ncomp,
-			       const Geometry& geom,
-                               PhysBCFunctBase& physbcf, int bcfcomp);
+    template <typename MF>
+    EnableIf_t<IsFabArray<MF>::value>
+    FillPatchSingleLevel (MF& mf, IntVect const& nghost, Real time,
+                          const Vector<MF*>& smf, const Vector<Real>& stime,
+                          int scomp, int dcomp, int ncomp,
+                          const Geometry& geom,
+                          PhysBCFunctBase& physbcf, int bcfcomp);
 
-    void FillPatchSingleLevel (MultiFab& mf, Real time,
-			       const Vector<MultiFab*>& smf, const Vector<Real>& stime,
-			       int scomp, int dcomp, int ncomp,
-			       const Geometry& geom,
-                               PhysBCFunctBase& physbcf, int bcfcomp);
+    template <typename MF>
+    EnableIf_t<IsFabArray<MF>::value>
+    FillPatchSingleLevel (MF& mf, Real time,
+                          const Vector<MF*>& smf, const Vector<Real>& stime,
+                          int scomp, int dcomp, int ncomp,
+                          const Geometry& geom,
+                          PhysBCFunctBase& physbcf, int bcfcomp);
 
-    void FillPatchTwoLevels (MultiFab& mf, IntVect const& nghost, Real time,
-                             const Vector<MultiFab*>& cmf, const Vector<Real>& ct,
-                             const Vector<MultiFab*>& fmf, const Vector<Real>& ft,
-                             int scomp, int dcomp, int ncomp,
-                             const Geometry& cgeom, const Geometry& fgeom,
-                             PhysBCFunctBase& cbc, int cbccomp,
-                             PhysBCFunctBase& fbc, int fbccomp,
-                             const IntVect& ratio,
-                             Interpolater* mapper,
-                             const Vector<BCRec>& bcs, int bcscomp,
-                             const InterpHook& pre_interp = NullInterpHook(),
-                             const InterpHook& post_interp = NullInterpHook());
+    template <typename MF, typename Interp,
+              typename PreInterpHook=NullInterpHook<typename MF::FABType::value_type>,
+              typename PostInterpHook=NullInterpHook<typename MF::FABType::value_type> >
+    EnableIf_t<IsFabArray<MF>::value>
+    FillPatchTwoLevels (MF& mf, IntVect const& nghost, Real time,
+                        const Vector<MF*>& cmf, const Vector<Real>& ct,
+                        const Vector<MF*>& fmf, const Vector<Real>& ft,
+                        int scomp, int dcomp, int ncomp,
+                        const Geometry& cgeom, const Geometry& fgeom,
+                        PhysBCFunctBase& cbc, int cbccomp,
+                        PhysBCFunctBase& fbc, int fbccomp,
+                        const IntVect& ratio,
+                        Interp* mapper,
+                        const Vector<BCRec>& bcs, int bcscomp,
+                        const PreInterpHook& pre_interp = {},
+                        const PostInterpHook& post_interp = {});
 
-    void FillPatchTwoLevels (MultiFab& mf, Real time,
-                             const Vector<MultiFab*>& cmf, const Vector<Real>& ct,
-                             const Vector<MultiFab*>& fmf, const Vector<Real>& ft,
-                             int scomp, int dcomp, int ncomp,
-                             const Geometry& cgeom, const Geometry& fgeom,
-                             PhysBCFunctBase& cbc, int cbccomp,
-                             PhysBCFunctBase& fbc, int fbccomp,
-                             const IntVect& ratio,
-                             Interpolater* mapper,
-                             const Vector<BCRec>& bcs, int bcscomp,
-                             const InterpHook& pre_interp = NullInterpHook(),
-                             const InterpHook& post_interp = NullInterpHook());
+    template <typename MF, typename Interp,
+              typename PreInterpHook=NullInterpHook<typename MF::FABType::value_type>,
+              typename PostInterpHook=NullInterpHook<typename MF::FABType::value_type> >
+    EnableIf_t<IsFabArray<MF>::value>
+    FillPatchTwoLevels (MF& mf, Real time,
+                        const Vector<MF*>& cmf, const Vector<Real>& ct,
+                        const Vector<MF*>& fmf, const Vector<Real>& ft,
+                        int scomp, int dcomp, int ncomp,
+                        const Geometry& cgeom, const Geometry& fgeom,
+                        PhysBCFunctBase& cbc, int cbccomp,
+                        PhysBCFunctBase& fbc, int fbccomp,
+                        const IntVect& ratio,
+                        Interp* mapper,
+                        const Vector<BCRec>& bcs, int bcscomp,
+                        const PreInterpHook& pre_interp = {},
+                        const PostInterpHook& post_interp = {});
 
 #ifdef AMREX_USE_EB
-    void FillPatchTwoLevels (MultiFab& mf, IntVect const& nghost, Real time,
-                             const EB2::IndexSpace& index_space,
-                             const Vector<MultiFab*>& cmf, const Vector<Real>& ct,
-                             const Vector<MultiFab*>& fmf, const Vector<Real>& ft,
-                             int scomp, int dcomp, int ncomp,
-                             const Geometry& cgeom, const Geometry& fgeom,
-                             PhysBCFunctBase& cbc, int cbccomp,
-                             PhysBCFunctBase& fbc, int fbccomp,
-                             const IntVect& ratio,
-                             Interpolater* mapper,
-                             const Vector<BCRec>& bcs, int bcscomp,
-                             const InterpHook& pre_interp,
-                             const InterpHook& post_interp);
+    template <typename MF, typename Interp, typename PreInterpHook, typename PostInterpHook>
+    EnableIf_t<IsFabArray<MF>::value>
+    FillPatchTwoLevels (MF& mf, IntVect const& nghost, Real time,
+                        const EB2::IndexSpace& index_space,
+                        const Vector<MF*>& cmf, const Vector<Real>& ct,
+                        const Vector<MF*>& fmf, const Vector<Real>& ft,
+                        int scomp, int dcomp, int ncomp,
+                        const Geometry& cgeom, const Geometry& fgeom,
+                        PhysBCFunctBase& cbc, int cbccomp,
+                        PhysBCFunctBase& fbc, int fbccomp,
+                        const IntVect& ratio,
+                        Interp* mapper,
+                        const Vector<BCRec>& bcs, int bcscomp,
+                        const PreInterpHook& pre_interp,
+                        const PostInterpHook& post_interp);
 
-    void FillPatchTwoLevels (MultiFab& mf, Real time,
-                             const EB2::IndexSpace& index_space,
-                             const Vector<MultiFab*>& cmf, const Vector<Real>& ct,
-                             const Vector<MultiFab*>& fmf, const Vector<Real>& ft,
-                             int scomp, int dcomp, int ncomp,
-                             const Geometry& cgeom, const Geometry& fgeom,
-                             PhysBCFunctBase& cbc, int cbccomp,
-                             PhysBCFunctBase& fbc, int fbccomp,
-                             const IntVect& ratio,
-                             Interpolater* mapper,
-                             const Vector<BCRec>& bcs, int bcscomp,
-                             const InterpHook& pre_interp,
-                             const InterpHook& post_interp);
+    template <typename MF, typename Interp, typename PreInterpHook, typename PostInterpHook>
+    EnableIf_t<IsFabArray<MF>::value>
+    FillPatchTwoLevels (MF& mf, Real time,
+                        const EB2::IndexSpace& index_space,
+                        const Vector<MF*>& cmf, const Vector<Real>& ct,
+                        const Vector<MF*>& fmf, const Vector<Real>& ft,
+                        int scomp, int dcomp, int ncomp,
+                        const Geometry& cgeom, const Geometry& fgeom,
+                        PhysBCFunctBase& cbc, int cbccomp,
+                        PhysBCFunctBase& fbc, int fbccomp,
+                        const IntVect& ratio,
+                        Interp* mapper,
+                        const Vector<BCRec>& bcs, int bcscomp,
+                        const PreInterpHook& pre_interp,
+                        const PostInterpHook& post_interp);
 #endif
 
-    void InterpFromCoarseLevel (MultiFab& mf, Real time,
-                                const MultiFab& cmf, int scomp, int dcomp, int ncomp,
-                                const Geometry& cgeom, const Geometry& fgeom,
-                                PhysBCFunctBase& cbc, int cbccomp,
-                                PhysBCFunctBase& fbc, int fbccomp,
-                                const IntVect& ratio,
-                                Interpolater* mapper,
-                                const Vector<BCRec>& bcs, int bcscomp,
-                                const InterpHook& pre_interp = NullInterpHook(),
-                                const InterpHook& post_interp = NullInterpHook());
+    template <typename MF, typename Interp,
+              typename PreInterpHook=NullInterpHook<typename MF::FABType::value_type>,
+              typename PostInterpHook=NullInterpHook<typename MF::FABType::value_type> >
+    EnableIf_t<IsFabArray<MF>::value>
+    InterpFromCoarseLevel (MF& mf, Real time,
+                           const MF& cmf, int scomp, int dcomp, int ncomp,
+                           const Geometry& cgeom, const Geometry& fgeom,
+                           PhysBCFunctBase& cbc, int cbccomp,
+                           PhysBCFunctBase& fbc, int fbccomp,
+                           const IntVect& ratio,
+                           Interp* mapper,
+                           const Vector<BCRec>& bcs, int bcscomp,
+                           const PreInterpHook& pre_interp = {},
+                           const PostInterpHook& post_interp = {});
 
-    void InterpFromCoarseLevel (MultiFab& mf, IntVect const& nghost, Real time,
-                                const MultiFab& cmf, int scomp, int dcomp, int ncomp,
-                                const Geometry& cgeom, const Geometry& fgeom,
-                                PhysBCFunctBase& cbc, int cbccomp,
-                                PhysBCFunctBase& fbc, int fbccomp,
-                                const IntVect& ratio,
-                                Interpolater* mapper,
-                                const Vector<BCRec>& bcs, int bcscomp,
-                                const InterpHook& pre_interp = NullInterpHook(),
-                                const InterpHook& post_interp = NullInterpHook());
+    template <typename MF, typename Interp,
+              typename PreInterpHook=NullInterpHook<typename MF::FABType::value_type>,
+              typename PostInterpHook=NullInterpHook<typename MF::FABType::value_type> >
+    EnableIf_t<IsFabArray<MF>::value>
+    InterpFromCoarseLevel (MF& mf, IntVect const& nghost, Real time,
+                           const MF& cmf, int scomp, int dcomp, int ncomp,
+                           const Geometry& cgeom, const Geometry& fgeom,
+                           PhysBCFunctBase& cbc, int cbccomp,
+                           PhysBCFunctBase& fbc, int fbccomp,
+                           const IntVect& ratio,
+                           Interp* mapper,
+                           const Vector<BCRec>& bcs, int bcscomp,
+                           const PreInterpHook& pre_interp = {},
+                           const PostInterpHook& post_interp = {});
 
 #ifndef BL_NO_FORT
     enum InterpEM_t { InterpE, InterpB};
@@ -135,5 +163,7 @@ namespace amrex
                                      int ref_ratio);
 #endif
 }
+
+#include <AMReX_FillPatchUtil_I.H>
 
 #endif

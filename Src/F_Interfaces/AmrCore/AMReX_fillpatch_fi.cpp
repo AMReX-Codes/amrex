@@ -24,12 +24,11 @@ namespace {
                                  Real* d, const int* dlo, const int* dhi, const int nd,
                                  const int icomp, const int ncomp);
 
-    class FIInterpHook final
-        : public InterpHook
+    class FIInterpHook
     {
     public:
         explicit FIInterpHook (INTERP_HOOK a_f) : m_f(a_f) {}
-        virtual void operator() (FArrayBox& fab, const Box& bx, int icomp, int ncomp) const final
+        void operator() (FArrayBox& fab, const Box& bx, int icomp, int ncomp) const
         {
             if (m_f) {
                 m_f(BL_TO_FORTRAN_BOX(bx),

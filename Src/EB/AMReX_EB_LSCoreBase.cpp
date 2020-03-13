@@ -488,7 +488,7 @@ void LSCoreBase::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int nco
 
         // NOTE: if source MultiFab vector as size = 1 => no interpolation
         amrex::FillPatchSingleLevel(mf, time, {& level_set[0]}, {0.}, 0, icomp, ncomp,
-                                    geom[lev], physbc, 0);
+                                              geom[lev], physbc, 0);
 
     } else {
 
