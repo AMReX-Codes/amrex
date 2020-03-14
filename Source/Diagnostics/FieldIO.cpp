@@ -224,17 +224,28 @@ WriteOpenPMDFields( const std::string& filename,
 
 #ifdef WARPX_DIM_RZ
 void
-ConstructTotalRZField(std::array< std::unique_ptr<MultiFab>, 3 >& mf_total,
-                      const std::array< std::unique_ptr<MultiFab>, 3 >& vector_field)
+ConstructTotalRZVectorField (const std::array< std::unique_ptr<MultiFab>, 3 >& vector_total,
+                             const std::array< std::unique_ptr<MultiFab>, 3 >& vector_field)
 {
     // Sum over the real components, giving quantity at theta=0
-    MultiFab::Copy(*mf_total[0], *vector_field[0], 0, 0, 1, vector_field[0]->nGrowVect());
-    MultiFab::Copy(*mf_total[1], *vector_field[1], 0, 0, 1, vector_field[1]->nGrowVect());
-    MultiFab::Copy(*mf_total[2], *vector_field[2], 0, 0, 1, vector_field[2]->nGrowVect());
+    MultiFab::Copy(*vector_total[0], *vector_field[0], 0, 0, 1, vector_field[0]->nGrowVect());
+    MultiFab::Copy(*vector_total[1], *vector_field[1], 0, 0, 1, vector_field[1]->nGrowVect());
+    MultiFab::Copy(*vector_total[2], *vector_field[2], 0, 0, 1, vector_field[2]->nGrowVect());
     for (int ic=1 ; ic < vector_field[0]->nComp() ; ic += 2) {
-        MultiFab::Add(*mf_total[0], *vector_field[0], ic, 0, 1, vector_field[0]->nGrowVect());
-        MultiFab::Add(*mf_total[1], *vector_field[1], ic, 0, 1, vector_field[1]->nGrowVect());
-        MultiFab::Add(*mf_total[2], *vector_field[2], ic, 0, 1, vector_field[2]->nGrowVect());
+        MultiFab::Add(*vector_total[0], *vector_field[0], ic, 0, 1, vector_field[0]->nGrowVect());
+        MultiFab::Add(*vector_total[1], *vector_field[1], ic, 0, 1, vector_field[1]->nGrowVect());
+        MultiFab::Add(*vector_total[2], *vector_field[2], ic, 0, 1, vector_field[2]->nGrowVect());
+    }
+}
+
+void
+ConstructTotalRZScalarField (MultiFab& scalar_total,
+                            const MultiFab& scalar_field)
+{
+    // Sum over the real components, giving quantity at theta=0
+    MultiFab::Copy(scalar_total, scalar_field, 0, 0, 1, scalar_field.nGrowVect());
+    for (int ic=1 ; ic < scalar_field.nComp() ; ic += 2) {
+        MultiFab::Add(scalar_total, scalar_field, ic, 0, 1, scalar_field.nGrowVect());
     }
 }
 #endif
@@ -272,27 +283,48 @@ AverageAndPackVectorField( MultiFab& mf_avg,
     // `average_edge_to_cellcenter` requires fields to be passed as Vector
     Vector<const MultiFab*> srcmf(AMREX_SPACEDIM);
 
+#ifdef WARPX_DIM_RZ
+    // Note that vector_total is declared in the same way as
+    // vector_field so that it can be handled the same way.
+    std::array<std::unique_ptr<MultiFab>,3> vector_total;
+    if (vector_field[0]->nComp() > 1) {
+        // With the RZ solver, if there are more than one component, the total
+        // fields needs to be constructed in temporary MultiFabs.
+        vector_total[0].reset(new MultiFab(vector_field[0]->boxArray(), dm, 1, vector_field[0]->nGrowVect()));
+        vector_total[1].reset(new MultiFab(vector_field[1]->boxArray(), dm, 1, vector_field[1]->nGrowVect()));
+        vector_total[2].reset(new MultiFab(vector_field[2]->boxArray(), dm, 1, vector_field[2]->nGrowVect()));
+        ConstructTotalRZVectorField(vector_total, vector_field);
+    } else {
+        // Create aliases of the MultiFabs
+        vector_total[0].reset(new MultiFab(*vector_field[0], amrex::make_alias, 0, 1));
+        vector_total[1].reset(new MultiFab(*vector_field[1], amrex::make_alias, 0, 1));
+        vector_total[2].reset(new MultiFab(*vector_field[2], amrex::make_alias, 0, 1));
+    }
+#else
+    const std::array<std::unique_ptr<MultiFab>,3> &vector_total = vector_field;
+#endif
+
     // Check the type of staggering of the 3-component `vector_field`
     // and average accordingly:
     // - Fully cell-centered field (no average needed; simply copy)
-    if ( vector_field[0]->is_cell_centered() ){
+    if ( vector_total[0]->is_cell_centered() ){
 
-        MultiFab::Copy( mf_avg, *vector_field[0], 0, dcomp  , 1, ngrow);
-        MultiFab::Copy( mf_avg, *vector_field[1], 0, dcomp+1, 1, ngrow);
-        MultiFab::Copy( mf_avg, *vector_field[2], 0, dcomp+2, 1, ngrow);
+        MultiFab::Copy( mf_avg, *vector_total[0], 0, dcomp  , 1, ngrow);
+        MultiFab::Copy( mf_avg, *vector_total[1], 0, dcomp+1, 1, ngrow);
+        MultiFab::Copy( mf_avg, *vector_total[2], 0, dcomp+2, 1, ngrow);
 
         // - Fully nodal
-    } else if ( vector_field[0]->is_nodal() ){
+    } else if ( vector_total[0]->is_nodal() ){
 
         amrex::average_node_to_cellcenter( mf_avg, dcomp  ,
-                                          *vector_field[0], 0, 1, ngrow);
+                                          *vector_total[0], 0, 1, ngrow);
         amrex::average_node_to_cellcenter( mf_avg, dcomp+1,
-                                          *vector_field[1], 0, 1, ngrow);
+                                          *vector_total[1], 0, 1, ngrow);
         amrex::average_node_to_cellcenter( mf_avg, dcomp+2,
-                                          *vector_field[2], 0, 1, ngrow);
+                                          *vector_total[2], 0, 1, ngrow);
 
         // - Face centered, in the same way as B on a Yee grid
-    } else if ( vector_field[0]->is_nodal(0) ){
+    } else if ( vector_total[0]->is_nodal(0) ){
 
         // Note that average_face_to_cellcenter operates only on the number of
         // arrays equal to the number of dimensions. So, for 2D, PackPlotDataPtrs
@@ -300,66 +332,25 @@ AverageAndPackVectorField( MultiFab& mf_avg,
         // The Copy code then copies the z from the 2nd to the 3rd field,
         // and copies over directly the y (or theta) component (which is
         // already cell centered).
-        if (vector_field[0]->nComp() > 1) {
-#ifdef WARPX_DIM_RZ
-            // When there are more than one components, the total
-            // fields needs to be constructed in temporary MultiFabs.
-            // Note that mf_total is declared in the same way as
-            // vector_field so that it can be passed into PackPlotDataPtrs.
-            std::array<std::unique_ptr<MultiFab>,3> mf_total;
-            mf_total[0].reset(new MultiFab(vector_field[0]->boxArray(), dm, 1, vector_field[0]->nGrowVect()));
-            mf_total[1].reset(new MultiFab(vector_field[1]->boxArray(), dm, 1, vector_field[1]->nGrowVect()));
-            mf_total[2].reset(new MultiFab(vector_field[2]->boxArray(), dm, 1, vector_field[2]->nGrowVect()));
-            ConstructTotalRZField(mf_total, vector_field);
-            PackPlotDataPtrs(srcmf, mf_total);
-            amrex::average_face_to_cellcenter( mf_avg, dcomp, srcmf, ngrow);
-            MultiFab::Copy( mf_avg, mf_avg, dcomp+1, dcomp+2, 1, ngrow);
-            MultiFab::Copy( mf_avg, *mf_total[1], 0, dcomp+1, 1, ngrow);
-#else
-           amrex::Abort("AverageAndPackVectorField not implemented for ncomp > 1");
-#endif
-        } else {
-            PackPlotDataPtrs(srcmf, vector_field);
-            amrex::average_face_to_cellcenter( mf_avg, dcomp, srcmf, ngrow);
+        PackPlotDataPtrs(srcmf, vector_total);
+        amrex::average_face_to_cellcenter( mf_avg, dcomp, srcmf, ngrow);
 #if (AMREX_SPACEDIM == 2)
-            MultiFab::Copy( mf_avg, mf_avg, dcomp+1, dcomp+2, 1, ngrow);
-            MultiFab::Copy( mf_avg, *vector_field[1], 0, dcomp+1, 1, ngrow);
+        MultiFab::Copy( mf_avg, mf_avg, dcomp+1, dcomp+2, 1, ngrow);
+        MultiFab::Copy( mf_avg, *vector_total[1], 0, dcomp+1, 1, ngrow);
 #endif
-        }
 
         // - Edge centered, in the same way as E on a Yee grid
-    } else if ( !vector_field[0]->is_nodal(0) ){
+    } else if ( !vector_total[0]->is_nodal(0) ){
 
         // See comment above, though here, the y (or theta) component
         // has node centering.
-        if (vector_field[0]->nComp() > 1) {
-#ifdef WARPX_DIM_RZ
-            // When there are more than one components, the total
-            // fields needs to be constructed in temporary MultiFabs
-            // Note that mf_total is declared in the same way as
-            // vector_field so that it can be passed into PackPlotDataPtrs.
-            std::array<std::unique_ptr<MultiFab>,3> mf_total;
-            mf_total[0].reset(new MultiFab(vector_field[0]->boxArray(), dm, 1, vector_field[0]->nGrowVect()));
-            mf_total[1].reset(new MultiFab(vector_field[1]->boxArray(), dm, 1, vector_field[1]->nGrowVect()));
-            mf_total[2].reset(new MultiFab(vector_field[2]->boxArray(), dm, 1, vector_field[2]->nGrowVect()));
-            ConstructTotalRZField(mf_total, vector_field);
-            PackPlotDataPtrs(srcmf, mf_total);
-            amrex::average_edge_to_cellcenter( mf_avg, dcomp, srcmf, ngrow);
-            MultiFab::Copy( mf_avg, mf_avg, dcomp+1, dcomp+2, 1, ngrow);
-            amrex::average_node_to_cellcenter( mf_avg, dcomp+1,
-                                              *mf_total[1], 0, 1, ngrow);
-#else
-           amrex::Abort("AverageAndPackVectorField not implemented for ncomp > 1");
-#endif
-        } else {
-            PackPlotDataPtrs(srcmf, vector_field);
-            amrex::average_edge_to_cellcenter( mf_avg, dcomp, srcmf, ngrow);
+        PackPlotDataPtrs(srcmf, vector_total);
+        amrex::average_edge_to_cellcenter( mf_avg, dcomp, srcmf, ngrow);
 #if (AMREX_SPACEDIM == 2)
-            MultiFab::Copy( mf_avg, mf_avg, dcomp+1, dcomp+2, 1, ngrow);
-            amrex::average_node_to_cellcenter( mf_avg, dcomp+1,
-                                              *vector_field[1], 0, 1, ngrow);
+        MultiFab::Copy( mf_avg, mf_avg, dcomp+1, dcomp+2, 1, ngrow);
+        amrex::average_node_to_cellcenter( mf_avg, dcomp+1,
+                                              *vector_total[1], 0, 1, ngrow);
 #endif
-        }
 
     } else {
         amrex::Abort("Unknown staggering.");
@@ -392,20 +383,34 @@ AverageAndPackVectorFieldComponents (MultiFab& mf_avg,
  * resulting MultiFab in mf_avg (in the components dcomp)
  */
 void
-AverageAndPackScalarField( MultiFab& mf_avg,
+AverageAndPackScalarField (MultiFab& mf_avg,
                            const MultiFab & scalar_field,
+                           const DistributionMapping& dm,
                            const int dcomp, const int ngrow )
 {
+
+#ifdef WARPX_DIM_RZ
+    MultiFab *scalar_total;
+    if (scalar_field.nComp() > 1) {
+        // With the RZ solver, there are more than one component, so the total
+        // fields needs to be constructed in temporary a MultiFab.
+        scalar_total = new MultiFab(scalar_field.boxArray(), dm, 1, scalar_field.nGrowVect());
+        ConstructTotalRZScalarField(*scalar_total, scalar_field);
+    } else {
+        scalar_total = new MultiFab(scalar_field, amrex::make_alias, 0, 1);
+    }
+#else
+    const MultiFab *scalar_total = &scalar_field;
+#endif
+
     // Check the type of staggering of the 3-component `vector_field`
     // and average accordingly:
     // - Fully cell-centered field (no average needed; simply copy)
-    if ( scalar_field.is_cell_centered() ){
-        MultiFab::Copy( mf_avg, scalar_field, 0, dcomp, 1, ngrow);
+    if ( scalar_total->is_cell_centered() ){
+        MultiFab::Copy( mf_avg, *scalar_total, 0, dcomp, 1, ngrow);
+    } else if ( scalar_total->is_nodal() ){
         // - Fully nodal
-    } else if ( scalar_field.is_nodal() ){
-
-        amrex::average_node_to_cellcenter( mf_avg, dcomp, scalar_field, 0, 1, ngrow);
-
+        amrex::average_node_to_cellcenter( mf_avg, dcomp, *scalar_total, 0, 1, ngrow);
     } else {
         amrex::Abort("Unknown staggering.");
     }
@@ -417,17 +422,18 @@ AverageAndPackScalarField( MultiFab& mf_avg,
 void
 AverageAndPackScalarFieldComponent (MultiFab& mf_avg,
                                     const MultiFab& scalar_field,
+                                    const DistributionMapping& dm,
                                     const int icomp,
                                     const int dcomp, const int ngrow )
 {
     MultiFab scalar_field_component(scalar_field, amrex::make_alias, icomp, 1);
-    AverageAndPackScalarField(mf_avg, scalar_field_component, dcomp, ngrow);
+    AverageAndPackScalarField(mf_avg, scalar_field_component, dm, dcomp, ngrow);
 }
 
 /** \brief Generate mode variable name
  */
 std::string
-ComponentName(std::string fieldname, int mode, std::string type)
+ComponentName (std::string fieldname, int mode, std::string type)
 {
     if (type == "real") {
         return fieldname + "_" + std::to_string(mode) + "_" + "real";
@@ -464,17 +470,18 @@ CopyVectorFieldComponentsToMultiFab (int lev, amrex::Vector<MultiFab>& mf_avg, M
  */
 void
 CopyScalarFieldComponentsToMultiFab (int lev, amrex::Vector<MultiFab>& mf_avg, MultiFab& mf_tmp,
+                                     const DistributionMapping& dm,
                                      int& dcomp, int ngrow, int n_rz_azimuthal_modes,
                                      std::string fieldname, Vector<std::string>& varnames)
 {
     if (n_rz_azimuthal_modes > 1) {
         if (lev==0) varnames.push_back(ComponentName(fieldname, 0, "real"));
-        AverageAndPackScalarFieldComponent(mf_avg[lev], mf_tmp, 0, dcomp++, ngrow);
+        AverageAndPackScalarFieldComponent(mf_avg[lev], mf_tmp, dm, 0, dcomp++, ngrow);
         for (int mode=1 ; mode < n_rz_azimuthal_modes ; mode++) {
             if (lev==0) varnames.push_back(ComponentName(fieldname, mode, "real"));
-            AverageAndPackScalarFieldComponent(mf_avg[lev], mf_tmp, 2*mode-1, dcomp++, ngrow);
+            AverageAndPackScalarFieldComponent(mf_avg[lev], mf_tmp, dm, 2*mode-1, dcomp++, ngrow);
             if (lev==0) varnames.push_back(ComponentName(fieldname, mode, "imag"));
-            AverageAndPackScalarFieldComponent(mf_avg[lev], mf_tmp, 2*mode  , dcomp++, ngrow);
+            AverageAndPackScalarFieldComponent(mf_avg[lev], mf_tmp, dm, 2*mode  , dcomp++, ngrow);
         }
     }
 }
@@ -599,19 +606,19 @@ WarpX::AverageAndPackFields ( Vector<std::string>& varnames,
                 MultiFab::Copy( mf_avg[lev], mf_tmp_J, 2, dcomp++, 1, ngrow);
                 CopyVectorFieldComponentsToMultiFab(lev, mf_avg, mf_tmp_J, 2, dcomp, ngrow, "jz", varnames);
             } else if (fieldname == "rho"){
-                AverageAndPackScalarField( mf_avg[lev], *rho_fp[lev], dcomp++, ngrow );
-                CopyScalarFieldComponentsToMultiFab(lev, mf_avg, *rho_fp[lev], dcomp, ngrow, n_rz_azimuthal_modes,
+                AverageAndPackScalarField( mf_avg[lev], *rho_fp[lev], dmap[lev], dcomp++, ngrow );
+                CopyScalarFieldComponentsToMultiFab(lev, mf_avg, *rho_fp[lev], dmap[lev], dcomp, ngrow, n_rz_azimuthal_modes,
                                                     fieldname, varnames);
             } else if (fieldname == "F"){
-                AverageAndPackScalarField( mf_avg[lev], *F_fp[lev], dcomp++, ngrow );
-                CopyScalarFieldComponentsToMultiFab(lev, mf_avg, *F_fp[lev], dcomp, ngrow, n_rz_azimuthal_modes,
+                AverageAndPackScalarField( mf_avg[lev], *F_fp[lev], dmap[lev], dcomp++, ngrow);
+                CopyScalarFieldComponentsToMultiFab(lev, mf_avg, *F_fp[lev], dmap[lev], dcomp, ngrow, n_rz_azimuthal_modes,
                                                     fieldname, varnames);
             } else if (fieldname == "part_per_cell") {
                 MultiFab temp_dat(grids[lev],mf_avg[lev].DistributionMap(),1,0);
                 temp_dat.setVal(0);
                 // MultiFab containing number of particles in each cell
                 mypc->Increment(temp_dat, lev);
-                AverageAndPackScalarField( mf_avg[lev], temp_dat, dcomp++, ngrow );
+                AverageAndPackScalarField( mf_avg[lev], temp_dat, dmap[lev], dcomp++, ngrow );
             } else if (fieldname == "part_per_grid"){
                 const Vector<long>& npart_in_grid = mypc->NumberOfParticlesInGrid(lev);
                 // MultiFab containing number of particles per grid
@@ -658,7 +665,7 @@ WarpX::AverageAndPackFields ( Vector<std::string>& varnames,
                 ComputeDivE( divE, 0, {Efield_aux[lev][0].get(), Efield_aux[lev][1].get(),
                              Efield_aux[lev][2].get()}, WarpX::CellSize(lev) );
 #endif
-                AverageAndPackScalarField( mf_avg[lev], divE, dcomp++, ngrow );
+                AverageAndPackScalarField( mf_avg[lev], divE, dmap[lev], dcomp++, ngrow );
             } else {
                 amrex::Abort("unknown field in fields_to_plot: " + fieldname);
             }
@@ -728,7 +735,7 @@ WarpX::AverageAndPackFields ( Vector<std::string>& varnames,
         {
             if (costs[0] != nullptr and plot_costs)
             {
-                AverageAndPackScalarField( mf_avg[lev], *costs[lev], dcomp, ngrow );
+                AverageAndPackScalarField( mf_avg[lev], *costs[lev], dmap[lev], dcomp, ngrow );
                 if(lev==0) varnames.push_back("costs");
                 dcomp += 1;
             }
