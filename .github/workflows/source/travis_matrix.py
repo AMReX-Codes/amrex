@@ -18,5 +18,9 @@ for element in elements_to_remove:
 # Sort lists, and make sure they are equal
 matrix_elements.sort()
 all_tests.sort()
+print("Tests in matrix, but not in initial list (typically if a test is done twice):")
+print(list(set(matrix_elements) - set(all_tests)))
+print("Tests in initial list but not in the matrix:")
+print(list(set(all_tests) - set(matrix_elements)))
 
 assert( matrix_elements == all_tests )

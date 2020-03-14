@@ -22,3 +22,4 @@ In order to run the code with a spectral solver, you need to:
            make -j 4 USE_PSATD=TRUE
 
 Note that this is not compatible with USE_RZ yet.
+PSATD is compatible with single precision, but please note that, on CPU, FFTW needs to be compiled with option ``--enable-float``.

@@ -191,8 +191,8 @@ void GalileanAlgorithm::InitializeSpectralCoefficients(const SpectralKSpace& spe
     #endif
 
                 const Real nu = kv/(k_norm*c);
-                const Complex theta = MathFunc::exp( 0.5*I*kv*dt );
-                const Complex theta_star = MathFunc::exp( -0.5*I*kv*dt );
+                const Complex theta = MathFunc::exp( 0.5_rt*I*kv*dt );
+                const Complex theta_star = MathFunc::exp( -0.5_rt*I*kv*dt );
                 const Complex e_theta = MathFunc::exp( I*c*k_norm*dt );
 
                 Theta2(i,j,k) = theta*theta;
@@ -204,39 +204,39 @@ void GalileanAlgorithm::InitializeSpectralCoefficients(const SpectralKSpace& spe
                     // update equation have been modified accordingly so that
                     // the expressions/ below (with the update equations)
                     // are mathematically equivalent to those of the paper.
-                    Complex x1 = 1./(1.-nu*nu) *
+                    Complex x1 = 1._rt/(1._rt-nu*nu) *
                         (theta_star - C(i,j,k)*theta + I*kv*S_ck(i,j,k)*theta);
                     // x1, above, is identical to the original paper
                     X1(i,j,k) = theta*x1/(ep0*c*c*k_norm*k_norm);
                     // The difference betwen X2 and X3 below, and those
                     // from the original paper is the factor ep0*k_norm*k_norm
-                    X2(i,j,k) = (x1 - theta*(1 - C(i,j,k)))
+                    X2(i,j,k) = (x1 - theta*(1._rt - C(i,j,k)))
                                 /(theta_star-theta)/(ep0*k_norm*k_norm);
-                    X3(i,j,k) = (x1 - theta_star*(1 - C(i,j,k)))
+                    X3(i,j,k) = (x1 - theta_star*(1._rt - C(i,j,k)))
                                 /(theta_star-theta)/(ep0*k_norm*k_norm);
                     X4(i,j,k) = I*kv*X1(i,j,k) - theta*theta*S_ck(i,j,k)/ep0;
                 }
                 if ( nu == 0) {
-                    X1(i,j,k) = (1. - C(i,j,k)) / (ep0*c*c*k_norm*k_norm);
-                    X2(i,j,k) = (1. - S_ck(i,j,k)/dt) / (ep0*k_norm*k_norm);
+                    X1(i,j,k) = (1._rt - C(i,j,k)) / (ep0*c*c*k_norm*k_norm);
+                    X2(i,j,k) = (1._rt - S_ck(i,j,k)/dt) / (ep0*k_norm*k_norm);
                     X3(i,j,k) = (C(i,j,k) - S_ck(i,j,k)/dt) / (ep0*k_norm*k_norm);
                     X4(i,j,k) = -S_ck(i,j,k)/ep0;
                 }
                 if ( nu == 1.) {
-                    X1(i,j,k) = (1. - e_theta*e_theta + 2.*I*c*k_norm*dt) / (4.*c*c*ep0*k_norm*k_norm);
-                    X2(i,j,k) = (3. - 4.*e_theta + e_theta*e_theta + 2.*I*c*k_norm*dt) / (4.*ep0*k_norm*k_norm*(1.- e_theta));
-                    X3(i,j,k) = (3. - 2./e_theta - 2.*e_theta + e_theta*e_theta - 2.*I*c*k_norm*dt) / (4.*ep0*(e_theta - 1.)*k_norm*k_norm);
-                    X4(i,j,k) = I*(-1. + e_theta*e_theta + 2.*I*c*k_norm*dt) / (4.*ep0*c*k_norm);
+                    X1(i,j,k) = (1._rt - e_theta*e_theta + 2._rt*I*c*k_norm*dt) / (4._rt*c*c*ep0*k_norm*k_norm);
+                    X2(i,j,k) = (3._rt - 4._rt*e_theta + e_theta*e_theta + 2._rt*I*c*k_norm*dt) / (4._rt*ep0*k_norm*k_norm*(1._rt - e_theta));
+                    X3(i,j,k) = (3._rt - 2._rt/e_theta - 2._rt*e_theta + e_theta*e_theta - 2._rt*I*c*k_norm*dt) / (4._rt*ep0*(e_theta - 1._rt)*k_norm*k_norm);
+                    X4(i,j,k) = I*(-1._rt + e_theta*e_theta + 2._rt*I*c*k_norm*dt) / (4._rt*ep0*c*k_norm);
                 }
 
             } else { // Handle k_norm = 0, by using the analytical limit
-                C(i,j,k) = 1.;
+                C(i,j,k) = 1._rt;
                 S_ck(i,j,k) = dt;
-                X1(i,j,k) = dt*dt/(2. * ep0);
-                X2(i,j,k) = c*c*dt*dt/(6. * ep0);
-                X3(i,j,k) = - c*c*dt*dt/(3. * ep0);
+                X1(i,j,k) = dt*dt/(2._rt * ep0);
+                X2(i,j,k) = c*c*dt*dt/(6._rt * ep0);
+                X3(i,j,k) = - c*c*dt*dt/(3._rt * ep0);
                 X4(i,j,k) = -dt/ep0;
-                Theta2(i,j,k) = 1.;
+                Theta2(i,j,k) = 1._rt;
             }
         });
     }

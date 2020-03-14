@@ -19,21 +19,31 @@
 
 using Complex = amrex::GpuComplex<amrex::Real>;
 
-#ifdef WARPX_USE_PSATD
-#include <cufft.h>
+#    ifdef WARPX_USE_PSATD
+#    include <cufft.h>
+#        ifdef AMREX_USE_FLOAT
+static_assert( sizeof(Complex) == sizeof(cuComplex),
+    "The complex types in WarpX and cuFFT do not match.");
+#        else
 static_assert( sizeof(Complex) == sizeof(cuDoubleComplex),
     "The complex types in WarpX and cuFFT do not match.");
-#endif // WARPX_USE_PSATD
+#        endif
+#    endif // WARPX_USE_PSATD
 
 #else
 
 using Complex = std::complex<amrex::Real>;
 
-#ifdef WARPX_USE_PSATD
-#include <fftw3.h>
+#    ifdef WARPX_USE_PSATD
+#    include <fftw3.h>
+#        ifdef AMREX_USE_FLOAT
+static_assert( sizeof(Complex) == sizeof(fftwf_complex),
+    "The complex types in WarpX and FFTW do not match.");
+#        else
 static_assert( sizeof(Complex) == sizeof(fftw_complex),
     "The complex types in WarpX and FFTW do not match.");
-#endif // WARPX_USE_PSATD
+#        endif
+#    endif // WARPX_USE_PSATD
 
 #endif // AMREX_USE_GPU
 static_assert(sizeof(Complex) == sizeof(amrex::Real[2]),

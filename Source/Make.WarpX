@@ -156,7 +156,11 @@ ifeq ($(USE_PSATD),TRUE)
   DEFINES += -DWARPX_USE_PSATD
   ifeq ($(USE_CUDA),FALSE) # Running on CPU
      # Use FFTW
-     libraries += -lfftw3_mpi -lfftw3 -lfftw3_threads
+     ifeq ($(PRECISION),FLOAT)
+          libraries += -lfftw3f_mpi -lfftw3f -lfftw3f_threads
+     else
+          libraries += -lfftw3_mpi -lfftw3 -lfftw3_threads
+     endif
      FFTW_HOME ?= NOT_SET
      ifneq ($(FFTW_HOME),NOT_SET)
        VPATH_LOCATIONS += $(FFTW_HOME)/include
