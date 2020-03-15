@@ -544,6 +544,7 @@ MLCellLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
 
             for (OrientationIter oitr; oitr; ++oitr)
             {
+#ifndef BL_NO_FORT
                 const Orientation ori = oitr();
 
                 int  cdr = ori;
@@ -555,7 +556,6 @@ MLCellLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
 
                 const Mask& m = maskvals[ori][mfi];
 
-#ifndef BL_NO_FORT
                 amrex_mllinop_apply_bc(BL_TO_FORTRAN_BOX(vbx),
                                        BL_TO_FORTRAN_ANYD(in[mfi]),
                                        BL_TO_FORTRAN_ANYD(m),
