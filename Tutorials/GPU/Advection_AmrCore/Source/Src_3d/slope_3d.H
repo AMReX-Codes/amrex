@@ -1,19 +1,16 @@
-#ifndef _slope_3d_H_
-#define _slope_3d_H_
-
+#ifndef SLOPE_3D_H_
+#define SLOPE_3D_H_
 
 #include <AMReX_Box.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_Gpu.H>
 #include <AmrCoreAdv_F.H>
 
-using namespace amrex;
-
 AMREX_GPU_DEVICE
 AMREX_FORCE_INLINE
-void slopex2(Box const& bx,
-             Array4<Real> const& q,
-             Array4<Real> const& dq)
+void slopex2(amrex::Box const& bx,
+             amrex::Array4<amrex::Real> const& q,
+             amrex::Array4<amrex::Real> const& dq)
 {
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
@@ -24,7 +21,7 @@ void slopex2(Box const& bx,
                 Real dlft = q(i,j,k) - q(i-1,j,k);
                 Real drgt = q(i+1,j,k) - q(i,j,k);
                 Real dcen = 0.5*(dlft+drgt);
-                Real dsgn = copysign(1.0, dcen);
+                Real dsgn = amrex::Math::copysign(1.0, dcen);
                 Real dslop = 2.0 * ((amrex::Math::abs(dlft) < amrex::Math::abs(drgt)) ?
                                      amrex::Math::abs(dlft) : amrex::Math::abs(drgt));
                 Real dlim = (dlft*drgt >= 0.0) ? dslop : 0.0;
@@ -36,10 +33,10 @@ void slopex2(Box const& bx,
 
 AMREX_GPU_DEVICE
 AMREX_FORCE_INLINE
-void slopex4(Box const& bx,
-             Array4<Real> const& q,
-             Array4<Real> const& dq,
-             Array4<Real> const& dq4)
+void slopex4(amrex::Box const& bx,
+             amrex::Array4<amrex::Real> const& q,
+             amrex::Array4<amrex::Real> const& dq,
+             amrex::Array4<amrex::Real> const& dq4)
 {
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
@@ -50,7 +47,7 @@ void slopex4(Box const& bx,
                 Real dlft = q(i,j,k) - q(i-1,j,k);
                 Real drgt = q(i+1,j,k) - q(i,j,k);
                 Real dcen = 0.5*(dlft+drgt);
-                Real dsgn = copysign(1.0, dcen);
+                Real dsgn = amrex::Math::copysign(1.0, dcen);
                 Real dslop = 2.0 * ((amrex::Math::abs(dlft) < amrex::Math::abs(drgt)) ?
                                      amrex::Math::abs(dlft) : amrex::Math::abs(drgt));
                 Real dlim = (dlft*drgt >= 0.0) ? dslop : 0.0;
@@ -65,9 +62,9 @@ void slopex4(Box const& bx,
 
 AMREX_GPU_DEVICE
 AMREX_FORCE_INLINE
-void slopey2(Box const& bx,
-             Array4<Real> const& q,
-             Array4<Real> const& dq)
+void slopey2(amrex::Box const& bx,
+             amrex::Array4<amrex::Real> const& q,
+             amrex::Array4<amrex::Real> const& dq)
 {
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
@@ -78,7 +75,7 @@ void slopey2(Box const& bx,
                 Real dlft = q(i,j,k) - q(i,j-1,k);
                 Real drgt = q(i,j+1,k) - q(i,j,k);
                 Real dcen = 0.5*(dlft+drgt);
-                Real dsgn = copysign(1.0, dcen);
+                Real dsgn = amrex::Math::copysign(1.0, dcen);
                 Real dslop = 2.0 * ((amrex::Math::abs(dlft) < amrex::Math::abs(drgt)) ?
                                      amrex::Math::abs(dlft) : amrex::Math::abs(drgt));
                 Real dlim = (dlft*drgt >= 0.0) ? dslop : 0.0;
@@ -90,10 +87,10 @@ void slopey2(Box const& bx,
 
 AMREX_GPU_DEVICE
 AMREX_FORCE_INLINE
-void slopey4(Box const& bx,
-             Array4<Real> const& q,
-             Array4<Real> const& dq,
-             Array4<Real> const& dq4)
+void slopey4(amrex::Box const& bx,
+             amrex::Array4<amrex::Real> const& q,
+             amrex::Array4<amrex::Real> const& dq,
+             amrex::Array4<amrex::Real> const& dq4)
 {
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
@@ -104,7 +101,7 @@ void slopey4(Box const& bx,
                 Real dlft = q(i,j,k) - q(i,j-1,k);
                 Real drgt = q(i,j+1,k) - q(i,j,k);
                 Real dcen = 0.5*(dlft+drgt);
-                Real dsgn = copysign(1.0, dcen);
+                Real dsgn = amrex::Math::copysign(1.0, dcen);
                 Real dslop = 2.0 * ((amrex::Math::abs(dlft) < amrex::Math::abs(drgt)) ?
                                      amrex::Math::abs(dlft) : amrex::Math::abs(drgt));
                 Real dlim = (dlft*drgt >= 0.0) ? dslop : 0.0;
@@ -119,9 +116,9 @@ void slopey4(Box const& bx,
 
 AMREX_GPU_DEVICE
 AMREX_FORCE_INLINE
-void slopez2(Box const& bx,
-             Array4<Real> const&  q,
-             Array4<Real> const& dq)
+void slopez2(amrex::Box const& bx,
+             amrex::Array4<amrex::Real> const&  q,
+             amrex::Array4<amrex::Real> const& dq)
 {
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
@@ -132,7 +129,7 @@ void slopez2(Box const& bx,
                 Real dlft = q(i,j,k) - q(i,j,k-1);
                 Real drgt = q(i,j,k+1) - q(i,j,k);
                 Real dcen = 0.5*(dlft+drgt);
-                Real dsgn = copysign(1.0, dcen);
+                Real dsgn = amrex::Math::copysign(1.0, dcen);
                 Real dslop = 2.0 * ((amrex::Math::abs(dlft) < amrex::Math::abs(drgt)) ?
                                      amrex::Math::abs(dlft) : amrex::Math::abs(drgt));
                 Real dlim = (dlft*drgt >= 0.0) ? dslop : 0.0;
@@ -144,10 +141,10 @@ void slopez2(Box const& bx,
 
 AMREX_GPU_DEVICE
 AMREX_FORCE_INLINE
-void slopez4(Box const& bx,
-             Array4<Real> const& q,
-             Array4<Real> const& dq,
-             Array4<Real> const& dq4)
+void slopez4(amrex::Box const& bx,
+             amrex::Array4<amrex::Real> const& q,
+             amrex::Array4<amrex::Real> const& dq,
+             amrex::Array4<amrex::Real> const& dq4)
 {
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
@@ -158,7 +155,7 @@ void slopez4(Box const& bx,
                 Real dlft = q(i,j,k) - q(i,j,k-1);
                 Real drgt = q(i,j,k+1) - q(i,j,k);
                 Real dcen = 0.5*(dlft+drgt);
-                Real dsgn = copysign(1.0, dcen);
+                Real dsgn = amrex::Math::copysign(1.0, dcen);
                 Real dslop = 2.0 * ((amrex::Math::abs(dlft) < amrex::Math::abs(drgt)) ?
                                      amrex::Math::abs(dlft) : amrex::Math::abs(drgt));
                 Real dlim = (dlft*drgt >= 0.0) ? dslop : 0.0;

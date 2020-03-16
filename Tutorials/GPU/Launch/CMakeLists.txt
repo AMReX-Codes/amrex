@@ -16,7 +16,6 @@ add_executable( ${EXENAME} EXCLUDE_FROM_ALL "")
 
 target_sources( ${EXENAME}
    PRIVATE
-   ${SRC_DIR}/MyKernel.H
    ${SRC_DIR}/MyKernel_F.F90
    ${SRC_DIR}/MyKernel_F.H
    ${SRC_DIR}/main.cpp)
