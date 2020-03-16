@@ -1,3 +1,6 @@
+#ifndef AMREX_PARITER_H_
+#define AMREX_PARITER_H_
+
 #include <AMReX_MFIter.H>
 #include <AMReX_Gpu.H>
 
@@ -284,3 +287,5 @@ ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>::SetPosition
 }
 
 }
+
+#endif

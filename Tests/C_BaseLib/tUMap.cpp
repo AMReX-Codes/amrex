@@ -28,7 +28,7 @@ main (int argc, char** argv)
     Box bx(IntVect::TheZeroVector(),IntVect(AMREX_D_DECL(NX-1,NY-1,NZ-1)));
 
     FArrayBox fab(bx,2);
-    fab.setVal(1.e200);
+    fab.setVal<RunOn::Host>(1.e200);
 
     BaseUmap<Real> umap(bx, 2);
 

@@ -88,9 +88,9 @@ namespace Gpu {
     struct HostToDevice {};
     struct DeviceToHost {};
     struct DeviceToDevice {};
-    static constexpr HostToDevice   hostToDevice;
-    static constexpr DeviceToHost   deviceToHost;
-    static constexpr DeviceToDevice deviceToDevice;
+    static constexpr HostToDevice   hostToDevice{};
+    static constexpr DeviceToHost   deviceToHost{};
+    static constexpr DeviceToDevice deviceToDevice{};
 
     /**
      * \brief A host-to-device copy routine. Note this is just a wrapper around

@@ -382,7 +382,7 @@ Box LSCoreBase::EBSearchBox( const Box & tilebox, const FArrayBox & ls_crse,
 
     // Infinities don't work well with std::max, so just bail and construct the
     // maximum box.
-    if (ls_crse.contains_inf()){
+    if (ls_crse.contains_inf<RunOn::Host>()){
         Box bx = amrex::convert(ls_crse.box(), IntVect::TheZeroVector());
         bx.grow(max_grow);
 
@@ -391,7 +391,7 @@ Box LSCoreBase::EBSearchBox( const Box & tilebox, const FArrayBox & ls_crse,
     }
 
     // Something's gone wrong :( ... so just bail and construct the maximum box.
-    if (ls_crse.contains_nan()){
+    if (ls_crse.contains_nan<RunOn::Host>()){
         Box bx = amrex::convert(ls_crse.box(), IntVect::TheZeroVector());
         bx.grow(max_grow);
 
@@ -400,7 +400,7 @@ Box LSCoreBase::EBSearchBox( const Box & tilebox, const FArrayBox & ls_crse,
     }
 
 
-    Real max_ls = std::max(std::abs(ls_crse.max()), std::abs(ls_crse.min()));
+    Real max_ls = std::max(std::abs(ls_crse.max<RunOn::Host>()), std::abs(ls_crse.min<RunOn::Host>()));
 
     IntVect n_grow_ls(AMREX_D_DECL(geom_fine.InvCellSize(0)*max_ls,
                                    geom_fine.InvCellSize(1)*max_ls,
@@ -488,7 +488,7 @@ void LSCoreBase::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int nco
 
         // NOTE: if source MultiFab vector as size = 1 => no interpolation
         amrex::FillPatchSingleLevel(mf, time, {& level_set[0]}, {0.}, 0, icomp, ncomp,
-                                    geom[lev], physbc, 0);
+                                              geom[lev], physbc, 0);
 
     } else {
 

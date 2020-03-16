@@ -71,7 +71,10 @@ public:
 
     virtual void compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
                            MultiFab& sol, Location loc) const override;
-  
+ 
+    void compVelGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
+                      MultiFab& sol, Location loc) const;
+ 
 protected:
 
     bool m_needs_update = true;

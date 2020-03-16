@@ -621,7 +621,7 @@ buildNeighborListCPU (CheckPair check_pair, bool sort) {
             box.coarsen(ref_fac);
             box.grow(m_num_neighbor_cells+1); // need an extra cell to account for roundoff errors.
             head.resize(box);
-            head.setVal(-1);
+            head.setVal<RunOn::Host>(-1);
             list.resize(N, -1);
 
             for (int i = 0; i < N; ++i) {

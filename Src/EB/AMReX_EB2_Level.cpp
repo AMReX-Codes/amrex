@@ -693,7 +693,7 @@ Level::fillAreaFrac (Array<MultiCutFab*,AMREX_SPACEDIM> const& a_areafrac, const
                         } else {
                             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                                 const Box& fbx = amrex::surroundingNodes(is.second-iv,idim);
-                                (*a_areafrac[idim])[mfi].setVal(0.0, fbx, 0, 1);
+                                (*a_areafrac[idim])[mfi].setVal<RunOn::Host>(0.0, fbx, 0, 1);
                             }
                         }
                     }
@@ -763,7 +763,7 @@ Level::fillAreaFrac (Array<MultiFab*,AMREX_SPACEDIM> const& a_areafrac, const Ge
                     } else {
                         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                             const Box& fbx = amrex::surroundingNodes(is.second-iv,idim);
-                            (*a_areafrac[idim])[mfi].setVal(0.0, fbx, 0, 1);
+                            (*a_areafrac[idim])[mfi].setVal<RunOn::Host>(0.0, fbx, 0, 1);
                         }
                     }
                 }

@@ -1415,7 +1415,7 @@ DistributionMapping::makeKnapSack (const MultiFab& weight, int nmax)
 #endif
 	for (MFIter mfi(weight); mfi.isValid(); ++mfi) {
 	    int i = mfi.index();
-	    rcost[i] = weight[mfi].sum(mfi.validbox(),0);
+	    rcost[i] = weight[mfi].sum<RunOn::Device>(mfi.validbox(),0);
 	}
 
 	ParallelAllReduce::Sum(&rcost[0], rcost.size(), ParallelContext::CommunicatorSub());
@@ -1453,7 +1453,7 @@ DistributionMapping::makeKnapSack (const MultiFab& weight, Real& eff, int nmax)
 #endif
         for (MFIter mfi(weight); mfi.isValid(); ++mfi) {
             int i = mfi.index();
-            rcost[i] = weight[mfi].sum(mfi.validbox(),0);
+            rcost[i] = weight[mfi].sum<RunOn::Device>(mfi.validbox(),0);
         }
 
         ParallelAllReduce::Sum(&rcost[0], rcost.size(), ParallelContext::CommunicatorSub());
@@ -1488,7 +1488,7 @@ DistributionMapping::makeRoundRobin (const MultiFab& weight)
 #endif
 	for (MFIter mfi(weight); mfi.isValid(); ++mfi) {
 	    int i = mfi.index();
-	    rcost[i] = weight[mfi].sum(mfi.validbox(),0);
+	    rcost[i] = weight[mfi].sum<RunOn::Device>(mfi.validbox(),0);
 	}
 
 	ParallelAllReduce::Sum(&rcost[0], rcost.size(), ParallelContext::CommunicatorSub());
@@ -1523,7 +1523,7 @@ DistributionMapping::makeSFC (const MultiFab& weight, bool sort)
 #endif
 	for (MFIter mfi(weight); mfi.isValid(); ++mfi) {
 	    int i = mfi.index();
-	    rcost[i] = weight[mfi].sum(mfi.validbox(),0);
+	    rcost[i] = weight[mfi].sum<RunOn::Device>(mfi.validbox(),0);
 	}
 
 	ParallelAllReduce::Sum(&rcost[0], rcost.size(), ParallelContext::CommunicatorSub());
@@ -1558,7 +1558,7 @@ DistributionMapping::makeSFC (const MultiFab& weight, Real& eff, bool sort)
 #endif
         for (MFIter mfi(weight); mfi.isValid(); ++mfi) {
             int i = mfi.index();
-            rcost[i] = weight[mfi].sum(mfi.validbox(),0);
+            rcost[i] = weight[mfi].sum<RunOn::Device>(mfi.validbox(),0);
         }
 
 	ParallelAllReduce::Sum(&rcost[0], rcost.size(), ParallelContext::CommunicatorSub());
