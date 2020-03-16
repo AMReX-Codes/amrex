@@ -3,7 +3,7 @@ template <typename G>
 IndexSpaceImp<G>::IndexSpaceImp (const G& gshop, const Geometry& geom,
                                  int required_coarsening_level,
                                  int max_coarsening_level,
-                                 int ngrow)
+                                 int ngrow, bool build_coarse_level_by_coarsening)
 {
     // build finest level (i.e., level 0) first
     AMREX_ALWAYS_ASSERT(required_coarsening_level >= 0 && required_coarsening_level <= 30);
@@ -40,7 +40,11 @@ IndexSpaceImp<G>::IndexSpaceImp (const G& gshop, const Geometry& geom,
         if (!m_gslevel.back().isOK()) {
             m_gslevel.pop_back();
             if (ilev <= required_coarsening_level) {
-                amrex::Abort("Failed to build required coarse EB level "+std::to_string(ilev));
+                if (build_coarse_level_by_coarsening) {
+                    amrex::Abort("Failed to build required coarse EB level "+std::to_string(ilev));
+                } else {
+                    m_gslevel.emplace_back(this, gshop, cgeom, EB2::max_grid_size, ng);
+                }
             } else {
                 break;
             }
