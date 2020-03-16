@@ -627,7 +627,7 @@ WarpX::AverageAndPackFields ( Vector<std::string>& varnames,
 #pragma omp parallel
 #endif
                 for (MFIter mfi(mf_avg[lev]); mfi.isValid(); ++mfi) {
-                    (mf_avg[lev])[mfi].setVal(static_cast<Real>(npart_in_grid[mfi.index()]));
+                    (mf_avg[lev])[mfi].setVal<RunOn::Host>(static_cast<Real>(npart_in_grid[mfi.index()]));
                 }
                 dcomp++;
             } else if (fieldname == "part_per_proc"){
@@ -933,7 +933,7 @@ getInterpolatedScalar(
 
             // Add temporary array to the returned structure
             const Box& bx = (*interpolated_F)[mfi].box();
-            (*interpolated_F)[mfi].plus(ffab, bx, bx, 0, 0, 1);
+            (*interpolated_F)[mfi].plus<RunOn::Host>(ffab, bx, bx, 0, 0, 1);
         }
     }
     return interpolated_F;
@@ -1034,7 +1034,7 @@ getInterpolatedVector(
             // Add temporary array to the returned structure
             for (int i = 0; i < 3; ++i) {
                 const Box& bx = (*interpolated_F[i])[mfi].box();
-                (*interpolated_F[i])[mfi].plus(ffab[i], bx, bx, 0, 0, 1);
+                (*interpolated_F[i])[mfi].plus<RunOn::Host>(ffab[i], bx, bx, 0, 0, 1);
             }
         }
     }
