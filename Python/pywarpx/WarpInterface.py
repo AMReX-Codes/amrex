@@ -8,6 +8,8 @@ import warp
 from . import fields
 from pywarpx import PGroup
 
+# The particle weight is always the first pid
+warp.top.wpid = 1
 
 def warp_species(warp_type, picmi_species, level=0):
     """Returns a Warp species that has a reference to the WarpX particles.

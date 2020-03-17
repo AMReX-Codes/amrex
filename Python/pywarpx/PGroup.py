@@ -28,7 +28,7 @@ class PGroup(object):
 
         self.sm = np.zeros(self.ns) # Species mass [kg]
         self.sq = np.zeros(self.ns) # Species charge [C]
-        self.sw = np.zeros(self.ns) # Species weight, (real particles per simulation particles)
+        self.sw = np.ones(self.ns) # Species weight, (real particles per simulation particles)
 
         self.sid = np.arange(self.ns, dtype=int) # Global species index for each species
         self.ndts = np.ones(self.ns, dtype=int) # Stride for time step advance for each species
@@ -110,11 +110,12 @@ class PGroup(object):
         return _libwarpx.get_particle_uz(self.ispecie, self.level)[self.igroup]
     uzp = property(getuzp)
 
-    def getpid(self):
-        id = _libwarpx.get_particle_id(self.ispecie, self.level)[self.igroup]
-        pid = np.array([id]).T
-        return pid
-    pid = property(getpid)
+    def getw(self):
+        return _libwarpx.get_particle_weight(self.ispecie, self.level)[self.igroup]
+
+    def getpid(self, id):
+        pid = _libwarpx.get_particle_arrays(self.ispecie, id, self.level)[self.igroup]
+        return np.array([pid]).T
 
     def getgaminv(self):
         uxp = self.getuxp()
