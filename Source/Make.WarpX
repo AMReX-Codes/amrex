@@ -90,7 +90,6 @@ ifeq ($(QED),TRUE)
   CFLAGS   += -DWARPX_QED
   FFLAGS   += -DWARPX_QED
   F90FLAGS += -DWARPX_QED
-  include $(WARPX_HOME)/Source/QED/Make.package
   USERSuffix := $(USERSuffix).QED
 
   ifeq ($(QED_TABLE_GEN),TRUE)

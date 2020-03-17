@@ -28,13 +28,19 @@ PhotonParticleContainer::PhotonParticleContainer (AmrCore* amr_core, int ispecie
                                                   const std::string& name)
     : PhysicalParticleContainer(amr_core, ispecies, name)
 {
-
     ParmParse pp(species_name);
 
 #ifdef WARPX_QED
         //IF m_do_qed is enabled, find out if Breit Wheeler process is enabled
         if(m_do_qed)
             pp.query("do_qed_breit_wheeler", m_do_qed_breit_wheeler);
+
+        //If Breit Wheeler process is enabled, look for the target electron and positron
+        //species
+        if(m_do_qed_breit_wheeler){
+            pp.get("qed_breit_wheeler_ele_product_species", m_qed_breit_wheeler_ele_product_name);
+            pp.get("qed_breit_wheeler_pos_product_species", m_qed_breit_wheeler_pos_product_name);
+        }
 
         //Check for processes which do not make sense for photons
         bool test_quantum_sync = false;
@@ -161,4 +167,5 @@ PhotonParticleContainer::EvolveOpticalDepth(
         }
         );
 }
+
 #endif

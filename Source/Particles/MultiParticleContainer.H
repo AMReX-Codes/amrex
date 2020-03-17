@@ -22,9 +22,9 @@
 #include "Particles/RigidInjectedParticleContainer.H"
 
 #ifdef WARPX_QED
-#   include "QED/QedChiFunctions.H"
-#   include "QED/BreitWheelerEngineWrapper.H"
-#   include "QED/QuantumSyncEngineWrapper.H"
+#   include "Particles/ElementaryProcess/QEDInternals/QedChiFunctions.H"
+#   include "Particles/ElementaryProcess/QEDInternals/BreitWheelerEngineWrapper.H"
+#   include "Particles/ElementaryProcess/QEDInternals/QuantumSyncEngineWrapper.H"
 #endif
 
 #include <AMReX_Particles.H>
@@ -200,8 +200,28 @@ public:
     std::unique_ptr<ParserWrapper<4> > m_Ey_particle_parser;
     std::unique_ptr<ParserWrapper<4> > m_Ez_particle_parser;
 
+#ifdef WARPX_QED
+    /**
+    * \brief Performs QED events (Breit-Wheeler process and photon emission)
+    */
+    void doQedEvents();
+#endif
+
+
 
 protected:
+
+#ifdef WARPX_QED
+    /**
+    * \brief Performs Breit-Wheeler process for the species for which it is enabled
+    */
+    void doQedBreitWheeler();
+
+    /**
+    * \brief Performs QED photon emission for the species for which it is enabled
+    */
+    void doQedQuantumSync();
+#endif
 
     // Particle container types
     enum struct PCTypes {Physical, RigidInjected, Photon};
@@ -222,8 +242,25 @@ protected:
 
     std::vector<PCTypes> species_types;
 
+    template<typename ...Args>
     amrex::MFItInfo getMFItInfo (const WarpXParticleContainer& pc_src,
-                                 const WarpXParticleContainer& pc_dst) const noexcept;
+                                 Args const&... pc_dsts) const noexcept
+    {
+        amrex::MFItInfo info;
+
+        MFItInfoCheckTiling(pc_src, pc_dsts...);
+
+        if (pc_src.do_tiling && amrex::Gpu::notInLaunchRegion()) {
+            info.EnableTiling(pc_src.tile_size);
+        }
+
+#ifdef _OPENMP
+        info.SetDynamic(true);
+#endif
+
+        return info;
+    }
+
 
 #ifdef WARPX_QED
     // The QED engines
@@ -241,6 +278,10 @@ protected:
     int m_nspecies_quantum_sync = 0;
     int m_nspecies_breit_wheeler = 0;
     //________
+
+    amrex::ParticleReal m_quantum_sync_photon_creation_energy_threshold =
+      static_cast<amrex::ParticleReal>(
+        2.0 * PhysConst::m_e * PhysConst::c * PhysConst::c );  /*!< Energy threshold for photon creation in Quantum Synchrotron process.*/
 
     /**
      * Returns the number of species having Quantum Synchrotron process enabled
@@ -299,5 +340,41 @@ private:
     int nlasers = 0;
     int nspecies = 1;   // physical particles only. nspecies+nlasers == allcontainers.size().
     int ncollisions = 0;
+
+    void MFItInfoCheckTiling(const WarpXParticleContainer& pc_src) const noexcept
+    {
+        return;
+    }
+
+    template<typename First, typename ...Args>
+    void MFItInfoCheckTiling(const WarpXParticleContainer& pc_src,
+                             First const& pc_dst, Args const&... others) const noexcept
+    {
+        if (pc_src.do_tiling && amrex::Gpu::notInLaunchRegion()) {
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(pc_dst.do_tiling,
+                "For particle creation processes, either all or none of the "
+                "particle species must use tiling.");
+        }
+
+        MFItInfoCheckTiling(pc_src, others...);
+    }
+
+    /**
+    * Should be called right after mapSpeciesProduct in InitData.
+    * It checks the physical correctness of product particle species
+    * selected by the user for ionization process.
+    */
+    void CheckIonizationProductSpecies();
+
+#ifdef WARPX_QED
+    /**
+    * Should be called right after mapSpeciesProduct in InitData.
+    * It checks the physical correctness of product particle species
+    * selected by the user for QED processes.
+    */
+    void CheckQEDProductSpecies();
+#endif
+
+
 };
 #endif /*WARPX_ParticleContainer_H_*/

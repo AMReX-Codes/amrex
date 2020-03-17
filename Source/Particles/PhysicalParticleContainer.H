@@ -21,6 +21,9 @@
     #include <QuantumSyncEngineWrapper.H>
     #include <BreitWheelerEngineWrapper.H>
     #include <QedChiFunctions.H>
+
+    #include <Particles/ElementaryProcess/QEDPairGeneration.H>
+    #include <Particles/ElementaryProcess/QEDPhotonEmission.H>
 #endif
 
 #include <map>
@@ -36,6 +39,14 @@ class PhysicalParticleContainer
     : public WarpXParticleContainer
 {
 public:
+
+    enum PhysicalParticleType{
+        electron,
+        positron,
+        photon,
+        other
+    };
+
     PhysicalParticleContainer (amrex::AmrCore* amr_core,
                                int ispecies,
                                const std::string& name);
@@ -305,6 +316,10 @@ public:
      */
     virtual void EvolveOpticalDepth(WarpXParIter& pti,
         amrex::Real dt);
+
+    PhotonEmissionFilterFunc getPhotonEmissionFilterFunc ();
+
+    PairGenerationFilterFunc getPairGenerationFilterFunc ();
 #endif
 
 protected:
@@ -322,12 +337,10 @@ protected:
 
     //This function return true if the PhysicalParticleContainer contains electrons
     //or positrons, false otherwise
-    virtual bool AmIALepton ();
 
     //When true PhysicalParticleContainer tries to use a pusher including
     //radiation reaction
     bool do_classical_radiation_reaction = false;
-
 
 #ifdef WARPX_QED
     // A flag to enable quantum_synchrotron process for leptons
@@ -341,6 +354,7 @@ protected:
 
     // A smart pointer to an instance of a Breit Wheeler engine [photons only!]
     std::shared_ptr<BreitWheelerEngine> m_shr_p_bw_engine;
+
 #endif
 
 };

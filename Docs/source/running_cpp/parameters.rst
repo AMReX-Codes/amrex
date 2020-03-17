@@ -476,19 +476,36 @@ Particle initialization
 * ``<species>.do_qed`` (`int`) optional (default `0`)
     If `<species>.do_qed = 0` all the QED effects are disabled for this species.
     If `<species>.do_qed = 1` QED effects can be enabled for this species (see below).
-    **Implementation of this feature is in progress. It requires to compile with QED=TRUE**
+    **Implementation of this feature is in progress. It requires `picsar` on the `QED` branch and to compile with QED=TRUE**
 
 * ``<species>.do_qed_quantum_sync`` (`int`) optional (default `0`)
     It only works if `<species>.do_qed = 1`. Enables Quantum synchrotron emission for this species.
     Quantum synchrotron lookup table should be either generated or loaded from disk to enable
     this process (see "Lookup tables for QED modules" section below).
-    **Implementation of this feature is in progress. It requires to compile with QED=TRUE**
+    `<species>` must be either an electron or a positron species.
+    **Implementation of this feature is in progress. It requires `picsar` on the `QED` branch and to compile with QED=TRUE**
 
 * ``<species>.do_qed_breit_wheeler`` (`int`) optional (default `0`)
     It only works if `<species>.do_qed = 1`. Enables non-linear Breit-Wheeler process for this species.
     Breit-Wheeler lookup table should be either generated or loaded from disk to enable
     this process (see "Lookup tables for QED modules" section below).
-    **Implementation of this feature is in progress. It requires to compile with QED=TRUE**
+    `<species>` must be a photon species.
+    **Implementation of this feature is in progress. It requires `picsar` on the `QED` branch and to compile with QED=TRUE**
+
+* ``<species>.qed_quantum_sync_phot_product_species`` (`string`)
+    If an electron or a positron species has the Quantum synchrotron process, a photon product species must be specified
+    (the name of an existing photon species must be provided)
+    **Implementation of this feature is in progress. It requires `picsar` on the `QED` branch and to compile with QED=TRUE**
+
+* ``<species>.qed_breit_wheeler_ele_product_species`` (`string`)
+    If a photon species has the Breit-Wheeler process, an electron product species must be specified
+    (the name of an existing electron species must be provided)
+    **Implementation of this feature is in progress. It requires `picsar` on the `QED` branch and to compile with QED=TRUE**
+
+* ``<species>.qed_breit_wheeler_pos_product_species`` (`string`)
+    If a photon species has the Breit-Wheeler process, a positron product species must be specified
+    (the name of an existing positron species must be provided).
+    **Implementation of this feature is in progress. It requires `picsar` on the `QED` branch and to compile with QED=TRUE**
 
 
 Laser initialization
@@ -1333,10 +1350,10 @@ Diagnostics and output
     The separator between row values in the output file.
     The default separator is a whitespace.
 
-Lookup tables for QED modules (implementation in progress)
+Lookup tables and other settings for QED modules (implementation in progress)
 ----------------------------------------------------------
 Lookup tables store pre-computed values for functions used by the QED modules.
-**Implementation of this feature is in progress. It requires to compile with QED=TRUE**
+**Implementation of this feature is in progress. It requires `picsar` on the `QED` branch and to compile with QED=TRUE**
 
 * ``qed_bw.lookup_table_mode`` (`string`)
     There are three options to prepare the lookup table required by the Breit-Wheeler module:
@@ -1411,6 +1428,8 @@ Lookup tables store pre-computed values for functions used by the QED modules.
 
         * ``qed_qs.load_table_from`` (`string`): name of the lookup table file to read from.
 
+* ``qed_qs.photon_creation_energy_threshold`` (`float`) optional (default `2*me*c^2`)
+    Energy threshold for photon particle creation in SI units.
 
 Checkpoints and restart
 -----------------------

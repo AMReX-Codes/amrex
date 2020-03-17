@@ -169,17 +169,25 @@ MultiParticleContainer::WriteHeader (std::ostream& os) const
 // SI mass*gamma*velocity nor normalized gamma*velocity/c.
 // This converts momentum to SI units (or vice-versa) to write SI data
 // to file.
+// Photons are a special case, since particle momentum is defined as
+// (photon_energy/(m_e * c) ) * u, where u is the photon direction (a
+// unit vector).
 void
 PhysicalParticleContainer::ConvertUnits(ConvertDirection convert_direction)
 {
     WARPX_PROFILE("PPC::ConvertUnits()");
 
     // Compute conversion factor
-    Real factor = 1;
+    auto factor = 1_rt;
+
+    // Account for the special case of photons
+    const auto t_mass =
+        AmIA<PhysicalSpecies::photon>() ? PhysConst::m_e : mass;
+
     if (convert_direction == ConvertDirection::WarpX_to_SI){
-        factor = mass;
+        factor = t_mass;
     } else if (convert_direction == ConvertDirection::SI_to_WarpX){
-        factor = 1./mass;
+        factor = 1._rt/t_mass;
     }
 
     const int nLevels = finestLevel();

@@ -139,8 +139,7 @@ def generate():
         for case in data:
             name = case[0]
             velx, vely ,velz = case[1]
-            f.write("{}.charge = -q_e\n".format(name))
-            f.write("{}.mass = m_e\n".format(name))
+            f.write("{}.species_type = photon\n".format(name))
             f.write('{}.injection_style = "SingleParticle"\n'.format(name))
             f.write("{}.single_particle_pos = {} {} {}\n".
                 format(name, init_pos[0], init_pos[1], init_pos[2]))

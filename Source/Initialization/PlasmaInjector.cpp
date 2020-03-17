@@ -116,7 +116,7 @@ PlasmaInjector::PlasmaInjector (int ispecies, const std::string& name)
         charge = parseChargeString(pp, charge_s);
     }
     if ( charge_is_specified && species_is_specified ){
-        Print()<<"WARNING: Both <species>.charge and <species>species_type specified\n";
+        Print()<<"WARNING: Both <species>.charge and <species>.species_type specified\n";
         Print()<<"         The charge in <species>.mass overwrite the one from <species>.species_type\n";
     }
     if (!charge_is_specified && !species_is_specified){

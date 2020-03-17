@@ -385,6 +385,11 @@ WarpX::OneStep_nosub (Real cur_time)
     if (warpx_py_afterdeposition) warpx_py_afterdeposition();
 #endif
 
+#ifdef WARPX_QED
+    //Do QED processes
+    mypc->doQedEvents();
+#endif
+
     SyncCurrent();
 
     SyncRho();
@@ -472,6 +477,11 @@ WarpX::OneStep_sub1 (Real curtime)
     // Loop over species. For each ionizable species, create particles in
     // product species.
     mypc->doFieldIonization();
+
+#ifdef WARPX_QED
+    //Do QED processes
+    mypc->doQedEvents();
+#endif
 
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(finest_level == 1, "Must have exactly two levels");
     const int fine_lev = 1;

@@ -13,6 +13,7 @@
 
 #include <map>
 #include <string>
+#include <cmath>
 
 /**
  * \brief This set of initialization policies describes what happens
@@ -24,11 +25,12 @@
  * The specific meanings are as follows:
  *     Zero         - set the component to zero
  *     One          - set the component to one
- *     RandomTau    - a special flag for the "tau" component used by certain
- *                    QED processes, which gets a random initial value.
+ *     RandomExp    - a special flag for the optical depth component used by
+ *                    certain QED processes, which gets a random initial value
+ *                    extracted from an exponential distribution
  *
  */
-enum struct InitializationPolicy {Zero=0, One, RandomTau};
+enum struct InitializationPolicy {Zero=0, One, RandomExp};
 
 /**
  * \brief This map sets the initialization policy for each particle component
@@ -48,7 +50,12 @@ static std::map<std::string, InitializationPolicy> initialization_policies = {
 #ifdef WARPX_DIM_RZ
     {"theta", InitializationPolicy::Zero},
 #endif
-    {"tau",   InitializationPolicy::RandomTau}
+
+#ifdef WARPX_QED
+    {"optical_depth_BW",   InitializationPolicy::RandomExp},
+    {"optical_depth_QSR",   InitializationPolicy::RandomExp}
+#endif
+
 };
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -57,8 +64,8 @@ amrex::ParticleReal initializeRealValue (const InitializationPolicy policy) noex
     switch (policy) {
         case InitializationPolicy::Zero : return 0.0;
         case InitializationPolicy::One  : return 1.0;
-        case InitializationPolicy::RandomTau : {
-            return amrex::Random();
+        case InitializationPolicy::RandomExp : {
+            return -log(amrex::Random());
         }
         default : {
             amrex::Abort("Initialization Policy not recognized");

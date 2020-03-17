@@ -156,7 +156,8 @@ Index filterCopyTransformParticles (DstTile& dst, SrcTile& src, Index dst_index,
  * \tparam SrcTile the src particle tile type
  * \tparam Index the index type, e.g. unsigned int
  * \tparam TransFunc the transform function type
- * \tparam CopyFunc the copy function type
+ * \tparam CopyFunc1 the copy function type for src-->dst1
+ * \tparam CopyFunc2 the copy function type for src-->dst2
  *
  * \param dst1 the destination tile
  * \param dst2 the destination tile
@@ -164,7 +165,8 @@ Index filterCopyTransformParticles (DstTile& dst, SrcTile& src, Index dst_index,
  * \param mask pointer to the mask - 1 means copy, 0 means don't copy
  * \param dst1_index the location at which to starting writing the result to dst1
  * \param dst2_index the location at which to starting writing the result to dst2
- * \param copy callable that defines what will be done for the "copy" step.
+ * \param copy1 callable that defines what will be done for the "copy" step for src-->dst1.
+ * \param copy2 callable that defines what will be done for the "copy" step for src-->dst2.
  * \param transform callable that defines the transformation to apply on dst and src.
  *
  *        The form of the callable should model:
@@ -178,11 +180,12 @@ Index filterCopyTransformParticles (DstTile& dst, SrcTile& src, Index dst_index,
  * \return num_added the number of particles that were written to dst.
  */
 template <int N, typename DstTile, typename SrcTile, typename Index,
-          typename TransFunc, typename CopyFunc,
+          typename TransFunc, typename CopyFunc1, typename CopyFunc2,
           amrex::EnableIf_t<std::is_integral<Index>::value, int> foo = 0>
 Index filterCopyTransformParticles (DstTile& dst1, DstTile& dst2, SrcTile& src, Index* mask,
                                     Index dst1_index, Index dst2_index,
-                                    CopyFunc&& copy, TransFunc&& transform) noexcept
+                                    CopyFunc1&& copy1, CopyFunc2&& copy2,
+                                    TransFunc&& transform) noexcept
 {
     using namespace amrex;
 
@@ -213,8 +216,8 @@ Index filterCopyTransformParticles (DstTile& dst1, DstTile& dst2, SrcTile& src, 
         {
             for (int j = 0; j < N; ++j)
             {
-                copy(dst1_data, src_data, i, N*p_offsets[i] + dst1_index + j);
-                copy(dst2_data, src_data, i, N*p_offsets[i] + dst2_index + j);
+                copy1(dst1_data, src_data, i, N*p_offsets[i] + dst1_index + j);
+                copy2(dst2_data, src_data, i, N*p_offsets[i] + dst2_index + j);
             }
             transform(dst1_data, dst2_data, src_data, i,
                       N*p_offsets[i] + dst1_index,
@@ -241,7 +244,8 @@ Index filterCopyTransformParticles (DstTile& dst1, DstTile& dst2, SrcTile& src, 
  * \tparam Index the index type, e.g. unsigned int
  * \tparam Filter the filter function type
  * \tparam TransFunc the transform function type
- * \tparam CopyFunc the copy function type
+ * \tparam CopyFunc1 the copy function type for src-->dst1
+ * \tparam CopyFunc2 the copy function type for src-->dst2
  *
  * \param dst1 the destination tile
  * \param dst2 the destination tile
@@ -249,7 +253,8 @@ Index filterCopyTransformParticles (DstTile& dst1, DstTile& dst2, SrcTile& src, 
  * \param dst1_index the location at which to starting writing the result to dst1
  * \param dst2_index the location at which to starting writing the result to dst2
  * \param filter a callable returning true if that particle is to be copied and transformed
- * \param copy callable that defines what will be done for the "copy" step.
+ * \param copy1 callable that defines what will be done for the "copy" step for src-->dst1.
+ * \param copy2 callable that defines what will be done for the "copy" step for src-->dst2.
  * \param transform callable that defines the transformation to apply on dst and src.
  *
  *        The form of the callable should model:
@@ -263,10 +268,11 @@ Index filterCopyTransformParticles (DstTile& dst1, DstTile& dst2, SrcTile& src, 
  * \return num_added the number of particles that were written to dst.
  */
 template <int N, typename DstTile, typename SrcTile, typename Index,
-          typename PredFunc, typename TransFunc, typename CopyFunc>
+          typename PredFunc, typename TransFunc, typename CopyFunc1, typename CopyFunc2>
 Index filterCopyTransformParticles (DstTile& dst1, DstTile& dst2, SrcTile& src,
                                     Index dst1_index, Index dst2_index,
-                                    PredFunc&& filter, CopyFunc&& copy, TransFunc&& transform) noexcept
+                                    PredFunc&& filter, CopyFunc1&& copy1, CopyFunc2&& copy2,
+                                    TransFunc&& transform) noexcept
 {
     using namespace amrex;
 
@@ -285,7 +291,8 @@ Index filterCopyTransformParticles (DstTile& dst1, DstTile& dst2, SrcTile& src,
 
     return filterCopyTransformParticles<N>(dst1, dst2, src, mask.dataPtr(),
                                         dst1_index, dst2_index,
-                                        std::forward<CopyFunc>(copy),
+                                        std::forward<CopyFunc1>(copy1),
+                                        std::forward<CopyFunc2>(copy2),
                                         std::forward<TransFunc>(transform));
 }
 
