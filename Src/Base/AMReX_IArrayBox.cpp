@@ -84,9 +84,9 @@ IArrayBox::resize (const Box& b, int N)
     if ( do_initval ) {
 #if defined(AMREX_USE_GPU)
         bool run_on_device = Gpu::inLaunchRegion() and
-            (m_arena == The_Arena() ||
-             m_arena == The_Device_Arena() ||
-             m_arena == The_Managed_Arena());
+            (arena() == The_Arena() ||
+             arena() == The_Device_Arena() ||
+             arena() == The_Managed_Arena());
         if (run_on_device) {
             setVal<RunOn::Device>(std::numeric_limits<int>::max());
             Gpu::streamSynchronize();

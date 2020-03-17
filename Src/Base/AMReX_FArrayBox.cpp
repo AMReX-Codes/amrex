@@ -192,9 +192,9 @@ FArrayBox::initVal () noexcept
     if (p and s > 0) {
 #if defined(AMREX_USE_GPU)
         bool run_on_device = Gpu::inLaunchRegion() and
-            (m_arena == The_Arena() ||
-             m_arena == The_Device_Arena() ||
-             m_arena == The_Managed_Arena());
+            (arena() == The_Arena() ||
+             arena() == The_Device_Arena() ||
+             arena() == The_Managed_Arena());
 #else
         bool run_on_device = false;
 #endif

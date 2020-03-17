@@ -150,7 +150,7 @@ FluxRegister::SumReg (int comp) const
                     sum += lofab(i,j,k,comp);
                 });
                 Array4<Real const> const& hifab = hifabs.const_array(fsi);
-                Box hibx(lofab);
+                Box hibx(hifab);
                 AMREX_LOOP_3D(hibx, i, j, k,
                 {
                     sum -= hifab(i,j,k,comp);
