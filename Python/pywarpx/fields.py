@@ -28,7 +28,7 @@ class _MultiFABWrapper(object):
     """Wrapper around field arrays at level 0
     This provides a convenient way to query and set fields that are broken up into FABs.
     The indexing is based on global indices.
-     - direction: component to access, one of the values (0, 1, 2)
+     - direction: component to access, one of the values (0, 1, 2) or None
      - overlaps: is one along the axes where the grid boundaries overlap the neighboring grid
      - get_lovects: routine that returns the list of lo vectors
      - get_fabs: routine that returns the list of FABs
@@ -48,7 +48,10 @@ class _MultiFABWrapper(object):
             self.overlaps = self.overlaps[::2]
 
     def _getlovects(self):
-        lovects = self.get_lovects(self.level, self.direction, self.include_ghosts)
+        if self.direction is None:
+            lovects = self.get_lovects(self.level, self.include_ghosts)
+        else:
+            lovects = self.get_lovects(self.level, self.direction, self.include_ghosts)
         self.nghosts = -lovects.min()
         return lovects
 
@@ -63,7 +66,10 @@ class _MultiFABWrapper(object):
         return hivects
 
     def _getfields(self):
-        return self.get_fabs(self.level, self.direction, self.include_ghosts)
+        if self.direction is None:
+            return self.get_fabs(self.level, self.include_ghosts)
+        else:
+            return self.get_fabs(self.level, self.direction, self.include_ghosts)
 
     def __len__(self):
         return lend(self._getlovects())
@@ -575,6 +581,13 @@ def JzCPWrapper(level=1, include_ghosts=False):
                             get_fabs=_libwarpx.get_mesh_current_density_cp,
                             level=level, include_ghosts=include_ghosts)
 
+def RhoCPWrapper(level=1, include_ghosts=False):
+    assert level>0, Exception('Coarse patch only available on levels > 0')
+    return _MultiFABWrapper(direction=None, overlaps=[1,1,0],
+                            get_lovects=_libwarpx.get_mesh_charge_density_cp_lovects,
+                            get_fabs=_libwarpx.get_mesh_charge_density_cp,
+                            level=level, include_ghosts=include_ghosts)
+
 def ExFPWrapper(level=0, include_ghosts=False):
     return _MultiFABWrapper(direction=0, overlaps=[0,1,1],
                             get_lovects=_libwarpx.get_mesh_electric_field_fp_lovects,
@@ -627,6 +640,12 @@ def JzFPWrapper(level=0, include_ghosts=False):
     return _MultiFABWrapper(direction=2, overlaps=[1,1,0],
                             get_lovects=_libwarpx.get_mesh_current_density_fp_lovects,
                             get_fabs=_libwarpx.get_mesh_current_density_fp,
+                            level=level, include_ghosts=include_ghosts)
+
+def RhoFPWrapper(level=0, include_ghosts=False):
+    return _MultiFABWrapper(direction=None, overlaps=[1,1,1],
+                            get_lovects=_libwarpx.get_mesh_charge_density_fp_lovects,
+                            get_fabs=_libwarpx.get_mesh_charge_density_fp,
                             level=level, include_ghosts=include_ghosts)
 def ExCPPMLWrapper(level=1, include_ghosts=False):
     assert level>0, Exception('Coarse patch only available on levels > 0')
