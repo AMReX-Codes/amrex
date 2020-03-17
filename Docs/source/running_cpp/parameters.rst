@@ -1227,7 +1227,7 @@ Diagnostics and output
         This type computes properties of a particle beam relevant for particle accelerators,
         like position, momentum, emittance, etc.
 
-        `<reduced_diags_name>.species` must be provided,
+        ``<reduced_diags_name>.species`` must be provided,
         such that the diagnostics are done for this (beam-like) species only.
 
         The output columns (for 3D-XYZ) are the following, where the average is done over
@@ -1268,6 +1268,57 @@ Diagnostics and output
         :math:`\langle y \rangle`,
         :math:`\delta_y`, and
         :math:`\epsilon_y` will not be outputed.
+
+    * ``ParticleHistogram``
+        This type computes a user defined particle histogram.
+
+        * ``<reduced_diags_name>.species`` (`string`)
+            A species name must be provided,
+            such that the diagnostics are done for this species.
+
+        * ``<reduced_diags_name>.histogram_function(t,x,y,z,ux,uy,uz)`` (`string`)
+            A histogram function must be provided.
+            `t` represents the physical time in seconds during the simulation.
+            `x, y, z` represent particle positions in the unit of meter.
+            `ux, uy, uz` represent the particle velocities in the unit of
+            :math:`\gamma v/c`, where
+            :math:`\gamma` is the Lorentz factor,
+            :math:`v/c` is the particle velocity normalized by the speed of light.
+            E.g.
+            ``x`` produces the position (density) distribution in `x`.
+            ``ux`` produces the velocity distribution in `x`,
+            ``sqrt(ux*ux+uy*uy+uz*uz)`` produces the speed distribution.
+
+        * ``<reduced_diags_name>.bin_number`` (`int` > 0)
+            This is the number of bins used for the histogram.
+
+        * ``<reduced_diags_name>.bin_max`` (`float`)
+            This is the maximum value of the bins.
+
+        * ``<reduced_diags_name>.bin_min`` (`float`)
+            This is the minimum value of the bins.
+
+        * ``<reduced_diags_name>.normalization`` (optional)
+            This provides options to normalize the histogram:
+
+            ``unity_particle_weight``
+            uses unity particle weight to compute the histogram,
+            such that the values of the histogram are
+            the number of counted macroparticles in that bin.
+
+            ``max_to_unity`` will normalize the histogram such that
+            its maximum value is one.
+
+            ``area_to_unity`` will normalize the histogram such that
+            the area under the histogram is one,
+            so the histogram is also the probability density function.
+
+            If nothing is provided,
+            the macroparticle weight will be used to compute
+            the histogram, and no normalization will be done.
+
+        The output columns are
+        values of the 1st bin, the 2nd bin, ..., the nth bin.
 
 * ``<reduced_diags_name>.frequency`` (`int`)
     The output frequency (every # time steps).

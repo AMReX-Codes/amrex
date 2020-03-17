@@ -327,5 +327,31 @@ def read_reduced_diags(filename, delimiter=' '):
     metadata_dict['column'] = {key: field_column[i] for i, key in enumerate(field_names)}
     return metadata_dict, data_dict
 
+def read_reduced_diags_histogram(filename, delimiter=' '):
+    '''
+    Modified based on read_reduced_diags
+    Two extra return objects:
+    - bin_value: the values of bins
+    - bin_data: the histogram data values of bins
+    '''
+    # Read header line
+    unformatted_header = list( np.genfromtxt( filename, comments="@", max_rows=1, dtype="str", delimiter=delimiter) )
+    # From header line, get field name, units and column number
+    field_names  = [s[s.find("]")+1:s.find("=")] for s in unformatted_header]
+    field_units  = [s[s.find("(")+1:s.find(")")] for s in unformatted_header]
+    field_column = [s[s.find("[")+1:s.find("]")] for s in unformatted_header]
+    field_bin    = [s[s.find("=")+1:s.find("(")] for s in unformatted_header]
+    # Load data and re-format to a dictionary
+    data = np.loadtxt( filename, delimiter=delimiter )
+    data_dict = {key: data[:,i] for i, key in enumerate(field_names)}
+    # Put header data into a dictionary
+    metadata_dict = {}
+    metadata_dict['units']  = {key: field_units[i]  for i, key in enumerate(field_names)}
+    metadata_dict['column'] = {key: field_column[i] for i, key in enumerate(field_names)}
+    # Save bin values
+    bin_value = field_bin[2:]
+    bin_data  = data[:,2:]
+    return metadata_dict, data_dict, bin_value, bin_data
+
 if __name__ == "__main__":
     data = read_lab_snapshot("lab_frame_data/snapshot00012", "lab_frame_data/Header");
