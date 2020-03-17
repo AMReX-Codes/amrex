@@ -213,3 +213,14 @@ WarpXParser makeParser (std::string const& parse_function, std::vector<std::stri
     }
     return parser;
 }
+
+namespace WarpXUtilMsg{
+
+void AlwaysAssert(bool is_expression_true, const std::string& msg = "ERROR!")
+{
+    if(is_expression_true) return;
+
+    amrex::Abort(msg);
+}
+
+}

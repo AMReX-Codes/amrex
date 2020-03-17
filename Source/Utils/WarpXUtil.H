@@ -130,4 +130,15 @@ T trilinear_interp(T x0, T x1,T y0, T y1, T z0, T z1,
 */
 WarpXParser makeParser (std::string const& parse_function, std::vector<std::string> const& varnames);
 
+namespace WarpXUtilMsg{
+
+/** \brief If is_expression_true is false, this function prints msg and calls amrex::abort()
+ *
+ * @param[in] is_expression_true
+ * @param[in] msg the string to be printed if is_expression_true is false (default value is "ERROR!")
+ */
+void AlwaysAssert(bool is_expression_true, const std::string& msg);
+
+}
+
 #endif //WARPX_UTILS_H_
