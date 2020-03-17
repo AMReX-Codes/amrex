@@ -14,6 +14,7 @@
 #include "FortranInterface/WarpX_f.H"
 #include "WarpX.H"
 #include "Utils/WarpXConst.H"
+#include "Utils/WarpXUtil.H"
 #include "Python/WarpXWrappers.h"
 #include "Utils/IonizationEnergiesTable.H"
 #include "Particles/Gather/FieldGather.H"
@@ -30,6 +31,7 @@
 
 #include <limits>
 #include <sstream>
+#include <string>
 
 
 using namespace amrex;
@@ -69,11 +71,13 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
     pp.query("do_classical_radiation_reaction", do_classical_radiation_reaction);
     //if the species is not a lepton, do_classical_radiation_reaction
     //should be false
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+    WarpXUtilMsg::AlwaysAssert(
         !(do_classical_radiation_reaction &&
         !(AmIA<PhysicalSpecies::electron>() ||
         AmIA<PhysicalSpecies::positron>() )),
-        "Can't enable classical radiation reaction for non lepton species. ");
+        "ERROR: can't enable classical radiation reaction for non lepton species '"
+        + species_name + "'."
+    );
 
     //Only Boris pusher is compatible with radiation reaction
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
@@ -131,9 +135,11 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
         if (plot_vars[0] != "none"){
             for (const auto& var : plot_vars){
                 // Return error if var not in PIdx.
-                AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+                WarpXUtilMsg::AlwaysAssert(
                     ParticleStringNames::to_index.count(var),
-                    "plot_vars argument not in ParticleStringNames");
+                    "ERROR: plot_vars argument '" + var +
+                    "' not in ParticleStringNames"
+                );
                 plot_flags[ParticleStringNames::to_index.at(var)] = 1;
             }
         }
