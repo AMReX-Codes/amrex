@@ -196,12 +196,7 @@ WarpXOpenPMDPlot::Init(openPMD::AccessType accessType)
     uint32_t const openPMD_ED_PIC = 1u;
     m_Series->setOpenPMDextension( openPMD_ED_PIC );
     // meta info
-#if (OPENPMDAPI_VERSION_MAJOR>=0) && (OPENPMDAPI_VERSION_MINOR>=11)
     m_Series->setSoftware( "WarpX", WarpX::Version() );
-#else
-    m_Series->setSoftware( "WarpX" );
-    m_Series->setSoftwareVersion( WarpX::Version() );
-#endif
 }
 
 
