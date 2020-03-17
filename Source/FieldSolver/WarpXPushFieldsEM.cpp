@@ -421,36 +421,19 @@ WarpX::EvolveF (int lev, PatchType patch_type, amrex::Real a_dt, DtType a_dt_typ
 
     WARPX_PROFILE("WarpX::EvolveF()");
 
-    static constexpr Real mu_c2 = PhysConst::mu0*PhysConst::c*PhysConst::c;
+    const int rhocomp = (a_dt_type == DtType::FirstHalf) ? 0 : 1;
+
+    if (patch_type == PatchType::fine) {
+        m_fdtd_solver_fp[lev]->EvolveF( F_fp[lev], Efield_fp[lev],
+                                        rho_fp[lev], rhocomp, a_dt );
+    } else {
+        m_fdtd_solver_cp[lev]->EvolveF( F_cp[lev], Efield_cp[lev],
+                                        rho_cp[lev], rhocomp, a_dt );
+    }
 
     const int patch_level = (patch_type == PatchType::fine) ? lev : lev-1;
     const auto& dx = WarpX::CellSize(patch_level);
     const std::array<Real,3> dtsdx {a_dt/dx[0], a_dt/dx[1], a_dt/dx[2]};
-
-    MultiFab *Ex, *Ey, *Ez, *rho, *F;
-    if (patch_type == PatchType::fine)
-    {
-        Ex = Efield_fp[lev][0].get();
-        Ey = Efield_fp[lev][1].get();
-        Ez = Efield_fp[lev][2].get();
-        rho = rho_fp[lev].get();
-        F = F_fp[lev].get();
-    }
-    else
-    {
-        Ex = Efield_cp[lev][0].get();
-        Ey = Efield_cp[lev][1].get();
-        Ez = Efield_cp[lev][2].get();
-        rho = rho_cp[lev].get();
-        F = F_cp[lev].get();
-    }
-
-    const int rhocomp = (a_dt_type == DtType::FirstHalf) ? 0 : 1;
-
-    MultiFab src(rho->boxArray(), rho->DistributionMap(), 1, 0);
-    ComputeDivE(src, 0, {Ex,Ey,Ez}, dx);
-    MultiFab::Saxpy(src, -mu_c2, *rho, rhocomp, 0, 1, 0);
-    MultiFab::Saxpy(*F, a_dt, src, 0, 0, 1, 0);
 
     if (do_pml && pml[lev]->ok())
     {

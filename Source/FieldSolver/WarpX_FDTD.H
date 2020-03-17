@@ -95,40 +95,4 @@ void warpx_computedivb(int i, int j, int k, int dcomp,
 #endif
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void warpx_computedive(int i, int j, int k, int dcomp,
-                       amrex::Array4<amrex::Real> const& divE,
-                       amrex::Array4<amrex::Real const> const& Ex,
-                       amrex::Array4<amrex::Real const> const& Ey,
-                       amrex::Array4<amrex::Real const> const& Ez,
-                       amrex::Real dxinv, amrex::Real dyinv,
-                       amrex::Real dzinv
-#ifdef WARPX_DIM_RZ
-                       , amrex::Real const rmin
-#endif
-                       )
-{
-#if defined WARPX_DIM_3D
-    divE(i,j,k,dcomp) = (Ex(i,j,k) - Ex(i-1,j,k))*dxinv
-               +        (Ey(i,j,k) - Ey(i,j-1,k))*dyinv
-               +        (Ez(i,j,k) - Ez(i,j,k-1))*dzinv;
-#elif defined WARPX_DIM_XZ
-    divE(i,j,0,dcomp) = (Ex(i,j,0) - Ex(i-1,j,0))*dxinv
-                 +      (Ez(i,j,0) - Ez(i,j-1,0))*dzinv;
-#elif defined WARPX_DIM_RZ
-    if (i == 0 && rmin == 0.) {
-        // the bulk equation diverges on axis
-        // (due to the 1/r terms). The following expressions regularize
-        // these divergences.
-        divE(i,j,0,dcomp) = 4.*Ex(i,j,0)*dxinv
-                            + (Ez(i,j,0) - Ez(i,j-1,0))*dzinv;
-    } else {
-        const amrex::Real ru = 1. + 0.5/(rmin*dxinv + i);
-        const amrex::Real rd = 1. - 0.5/(rmin*dxinv + i);
-        divE(i,j,0,dcomp) = (ru*Ex(i,j,0) - rd*Ex(i-1,j,0))*dxinv
-                           + (Ez(i,j,0) - Ez(i,j-1,0))*dzinv;
-    }
-#endif
-}
-
 #endif
