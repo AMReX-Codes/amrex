@@ -273,28 +273,19 @@ BoxArray::Finalize ()
 
 BoxArray::BoxArray ()
     :
-    m_transformer(new DefaultBATransformer()),
-    m_typ(),
-    m_crse_ratio(IntVect::TheUnitVector()),
-    m_simple(true),
+    m_bat(),
     m_ref(std::make_shared<BARef>())
 {}
 
 BoxArray::BoxArray (const Box& bx)
     :
-    m_transformer(new DefaultBATransformer(bx.ixType())),
-    m_typ(bx.ixType()),
-    m_crse_ratio(IntVect::TheUnitVector()),
-    m_simple(true),
+    m_bat(bx.ixType()),
     m_ref(std::make_shared<BARef>(amrex::enclosedCells(bx)))
 {}
 
 BoxArray::BoxArray (const BoxList& bl)
     :
-    m_transformer(new DefaultBATransformer(bl.ixType())),
-    m_typ(bl.ixType()),
-    m_crse_ratio(IntVect::TheUnitVector()),
-    m_simple(true),
+    m_bat(bl.ixType()),
     m_ref(std::make_shared<BARef>(bl))
 {
     type_update();
@@ -302,10 +293,7 @@ BoxArray::BoxArray (const BoxList& bl)
 
 BoxArray::BoxArray (BoxList&& bl) noexcept
     :
-    m_transformer(new DefaultBATransformer(bl.ixType())),
-    m_typ(bl.ixType()),
-    m_crse_ratio(IntVect::TheUnitVector()),
-    m_simple(true),
+    m_bat(bl.ixType()),
     m_ref(std::make_shared<BARef>(std::move(bl)))
 {
     type_update();
@@ -313,20 +301,13 @@ BoxArray::BoxArray (BoxList&& bl) noexcept
 
 BoxArray::BoxArray (size_t n)
     :
-    m_transformer(new DefaultBATransformer()),
-    m_typ(),
-    m_crse_ratio(IntVect::TheUnitVector()),
-    m_simple(true),
+    m_bat(),
     m_ref(std::make_shared<BARef>(n))
 {}
 
-BoxArray::BoxArray (const Box* bxvec,
-                    int        nbox)
+BoxArray::BoxArray (const Box* bxvec, int nbox)
     :
-    m_transformer(new DefaultBATransformer(bxvec->ixType())),
-    m_typ(bxvec->ixType()),
-    m_crse_ratio(IntVect::TheUnitVector()),
-    m_simple(true),
+    m_bat(bxvec->ixType()),
     m_ref(std::make_shared<BARef>(nbox))
 {
     for (int i = 0; i < nbox; i++) {
@@ -336,46 +317,24 @@ BoxArray::BoxArray (const Box* bxvec,
 
 BoxArray::BoxArray (const BoxArray& rhs, const BATransformer& trans)
     :
-    m_transformer(trans.clone()),
-    m_typ(trans.ixType()),
-    m_crse_ratio(rhs.m_crse_ratio * trans.crseRatio()),
-    m_simple(trans.simple()),
+    m_bat(trans),
     m_ref(rhs.m_ref)
 {
-    BL_ASSERT(rhs.m_typ.cellCentered());  // rhs must be cell-centered.
-    BL_ASSERT(rhs.m_simple);              // rhs must be simple!
-    // But it's OK to have non-unit crse ratio. In that case we need to update the transformer
-    m_transformer->setCrseRatio(m_crse_ratio);
+    BL_ASSERT(rhs.ixType().cellCentered());  // rhs must be cell-centered.
+    m_bat.set_coarsen_ratio(rhs.crseRatio() * trans.coarsen_ratio());
 }
 
 BoxArray::BoxArray (const BoxArray& rhs)
     :
-    m_transformer(rhs.m_transformer->clone()),
-    m_typ(rhs.m_typ),
-    m_crse_ratio(rhs.m_crse_ratio),
-    m_simple(rhs.m_simple),
+    m_bat(rhs.m_bat),
     m_ref(rhs.m_ref)
 {}
-
-BoxArray&
-BoxArray::operator= (const BoxArray& rhs)
-{
-    m_transformer.reset(rhs.m_transformer->clone());
-    m_typ = rhs.m_typ;
-    m_crse_ratio = rhs.m_crse_ratio;
-    m_simple = rhs.m_simple;
-    m_ref = rhs.m_ref;
-    return *this;
-}
 
 void
 BoxArray::define (const Box& bx)
 {
     clear();
-    m_transformer->setIxType(bx.ixType());
-    m_typ = bx.ixType();
-    m_crse_ratio = IntVect::TheUnitVector();
-    m_simple = true;
+    m_bat = BATransformer(bx.ixType());
     m_ref->define(amrex::enclosedCells(bx));
 }
 
@@ -383,9 +342,8 @@ void
 BoxArray::define (const BoxList& bl)
 {
     clear();
+    m_bat = BATransformer(bl.ixType());
     m_ref->define(bl);
-    m_crse_ratio = IntVect::TheUnitVector();
-    m_simple = true;
     type_update();
 }
 
@@ -393,16 +351,15 @@ void
 BoxArray::define (BoxList&& bl) noexcept
 {
     clear();
+    m_bat = BATransformer(bl.ixType());
     m_ref->define(std::move(bl));
-    m_crse_ratio = IntVect::TheUnitVector();
-    m_simple = true;
     type_update();
 }
 
 void
 BoxArray::clear ()
 {
-    m_transformer.reset(new DefaultBATransformer());
+    m_bat = BATransformer();
     m_ref.reset(new BARef());
 }
 
@@ -448,11 +405,12 @@ BoxArray::readFrom (std::istream& is)
 {
     BL_ASSERT(size() == 0);
     clear();
-    m_simple = true;
-    m_crse_ratio = IntVect::TheUnitVector();
     int ndims;
     m_ref->define(is, ndims);
-    type_update();
+    if (not m_ref->m_abox.empty()) {
+        m_bat = BATransformer(m_ref->m_abox[0].ixType());
+        type_update();
+    }
     return ndims;
 }
 
@@ -480,16 +438,8 @@ BoxArray::writeOn (std::ostream& os) const
 bool
 BoxArray::operator== (const BoxArray& rhs) const noexcept
 {
-    if (m_simple && rhs.m_simple) {
-        return m_typ == rhs.m_typ && m_crse_ratio == rhs.m_crse_ratio &&
-            (m_ref == rhs.m_ref || m_ref->m_abox == rhs.m_ref->m_abox);
-    } else {
-        return m_simple == rhs.m_simple
-            && m_typ == rhs.m_typ
-            && m_crse_ratio == rhs.m_crse_ratio
-            && m_transformer->equal(*rhs.m_transformer)
-            && (m_ref == rhs.m_ref || m_ref->m_abox == rhs.m_ref->m_abox);
-    }
+    return m_bat == rhs.m_bat and
+        (m_ref == rhs.m_ref || m_ref->m_abox == rhs.m_ref->m_abox);
 }
 
 bool
@@ -517,7 +467,7 @@ BoxArray::operator!= (const Vector<Box>& bv) const noexcept
 bool
 BoxArray::CellEqual (const BoxArray& rhs) const noexcept
 {
-    return m_crse_ratio == rhs.m_crse_ratio
+    return crseRatio() == rhs.crseRatio()
         && (m_ref == rhs.m_ref || m_ref->m_abox == rhs.m_ref->m_abox);
 }
 
@@ -530,7 +480,7 @@ BoxArray::maxSize (int block_size)
 BoxArray&
 BoxArray::maxSize (const IntVect& block_size)
 {
-    if (!m_simple || m_crse_ratio != IntVect::TheUnitVector()) {
+    if ((not m_bat.is_simple()) or (crseRatio() != IntVect::TheUnitVector())) {
         uniqify();
     }
     BoxList blst(*this);
@@ -601,8 +551,7 @@ BoxArray::coarsen (int refinement_ratio)
 BoxArray&
 BoxArray::coarsen (const IntVect& iv)
 {
-    m_crse_ratio *= iv;
-    m_transformer->setCrseRatio(m_crse_ratio);
+    m_bat.set_coarsen_ratio(crseRatio()*iv);
     return *this;
 }
 
@@ -737,8 +686,7 @@ BoxArray::enclosedCells (int dir)
 BoxArray&
 BoxArray::convert (IndexType typ)
 {
-    m_transformer->setIxType(typ);
-    m_typ = typ;
+    m_bat.set_index_type(typ);
     return *this;
 }
 
@@ -746,8 +694,7 @@ BoxArray&
 BoxArray::convert (const IntVect& iv)
 {
     IndexType typ(iv);
-    m_transformer->setIxType(typ);
-    m_typ = typ;
+    m_bat.set_index_type(typ);
     return *this;
 }
 
@@ -802,13 +749,11 @@ BoxArray::shift (const IntVect& iv)
 }
 
 void
-BoxArray::set (int        i,
-               const Box& ibox)
+BoxArray::set (int i, const Box& ibox)
 {
-    BL_ASSERT(m_simple && m_crse_ratio == IntVect::TheUnitVector());
+    BL_ASSERT(m_bat.is_simple() && crseRatio() == IntVect::TheUnitVector());
     if (i == 0) {
-        m_typ = ibox.ixType();
-        m_transformer->setIxType(m_typ);
+        m_bat.set_index_type(ibox.ixType());
     }
     m_ref->m_abox[i] = amrex::enclosedCells(ibox);
 }
@@ -937,7 +882,7 @@ BoxArray::contains (const BoxArray& ba, bool assume_disjoint_ba) const
 Box
 BoxArray::minimalBox () const
 {
-    BL_ASSERT(m_simple);
+    BL_ASSERT(m_bat.is_simple());
     Box minbox;
     const int N = size();
     if (N > 0)
@@ -979,14 +924,14 @@ BoxArray::minimalBox () const
 	    }
 	}
     }
-    minbox.coarsen(m_crse_ratio).convert(ixType());
+    minbox.coarsen(crseRatio()).convert(ixType());
     return minbox;
 }
 
 Box
 BoxArray::minimalBox (long& npts_avg_box) const
 {
-    BL_ASSERT(m_simple);
+    BL_ASSERT(m_bat.is_simple());
     Box minbox;
     const int N = size();
     long npts_tot = 0;
@@ -1033,8 +978,9 @@ BoxArray::minimalBox (long& npts_avg_box) const
 	    }
 	}
     }
-    minbox.coarsen(m_crse_ratio).convert(ixType());
-    npts_tot /= AMREX_D_TERM(m_crse_ratio[0],*m_crse_ratio[1],*m_crse_ratio[2]);
+    auto cr = crseRatio();
+    minbox.coarsen(cr).convert(ixType());
+    npts_tot /= AMREX_D_TERM(cr[0],*cr[1],*cr[2]);
     npts_avg_box = npts_tot / N;
     return minbox;
 }
@@ -1120,7 +1066,7 @@ BoxArray::intersections (const Box&                         bx,
 	const IntVect& doihi = getDoiHi();
 
 	gbx.setSmall(glo - doihi).setBig(ghi + doilo);
-        gbx.refine(m_crse_ratio).coarsen(m_ref->crsn);
+        gbx.refine(crseRatio()).coarsen(m_ref->crsn);
 	
         const IntVect& sm = amrex::max(gbx.smallEnd()-1, m_ref->bbox.smallEnd());
         const IntVect& bg = amrex::min(gbx.bigEnd(),     m_ref->bbox.bigEnd());
@@ -1132,7 +1078,7 @@ BoxArray::intersections (const Box&                         bx,
 
 	auto TheEnd = BoxHashMap.cend();
 
-        bool super_simple = m_simple && m_crse_ratio==1 && m_typ.cellCentered();
+        bool super_simple = m_bat.is_null();
         auto& abox = m_ref->m_abox;
 
         for (IntVect iv = cbx.smallEnd(), End = cbx.bigEnd(); iv <= End; cbx.next(iv))
@@ -1186,7 +1132,7 @@ BoxArray::complementIn (BoxList& bl, const Box& bx) const
 	const IntVect& doihi = getDoiHi();
 
 	gbx.setSmall(glo - doihi).setBig(ghi + doilo);
-        gbx.refine(m_crse_ratio).coarsen(m_ref->crsn);
+        gbx.refine(crseRatio()).coarsen(m_ref->crsn);
 	
         const IntVect& sm = amrex::max(gbx.smallEnd()-1, m_ref->bbox.smallEnd());
         const IntVect& bg = amrex::min(gbx.bigEnd(),     m_ref->bbox.bigEnd());
@@ -1202,7 +1148,7 @@ BoxArray::complementIn (BoxList& bl, const Box& bx) const
         newbl.reserve(bl.capacity());
         BoxList newdiff(bl.ixType());
 
-        bool super_simple = m_simple && m_crse_ratio==1 && m_typ.cellCentered();
+        bool super_simple = m_bat.is_null();
         auto& abox = m_ref->m_abox;
 
 	for (IntVect iv = cbx.smallEnd(), End = cbx.bigEnd(); 
@@ -1257,7 +1203,7 @@ BoxArray::removeOverlap (bool simplify)
         amrex::Abort("BoxArray::removeOverlap() supports cell-centered only");
     }
 
-    if (m_crse_ratio != 1) {
+    if (crseRatio() != IntVect::TheUnitVector()) {
         amrex::Abort("BoxArray::removeOverlap() must have m_crse_ratio == 1");
     }
 
@@ -1336,9 +1282,7 @@ BoxArray::type_update ()
 {
     if (!empty())
     {
-	m_typ = m_ref->m_abox[0].ixType();
-        m_transformer->setIxType(m_typ);
-	if (!m_typ.cellCentered())
+	if (not ixType().cellCentered())
 	{
             for (auto& bx : m_ref->m_abox) {
 		bx.enclosedCells();
@@ -1350,13 +1294,13 @@ BoxArray::type_update ()
 IntVect
 BoxArray::getDoiLo () const noexcept
 {
-    return m_simple ? IntVect::TheZeroVector() : m_transformer->doiLo();
+    return m_bat.doiLo();
 }
 
 IntVect
 BoxArray::getDoiHi () const noexcept
 {
-    return m_simple ?           m_typ.ixType() : m_transformer->doiHi();
+    return m_bat.doiHi();
 }
 
 BARef::HashType&
@@ -1422,16 +1366,16 @@ BoxArray::uniqify ()
 	auto p = std::make_shared<BARef>(*m_ref);
 	std::swap(m_ref,p);
     }
-    if (m_crse_ratio != 1) {
+    IntVect cr = crseRatio();
+    if (cr != IntVect::TheUnitVector()) {
         const int N = m_ref->m_abox.size();
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
         for (int i = 0; i < N; i++) {
-            m_ref->m_abox[i].coarsen(m_crse_ratio);
+            m_ref->m_abox[i].coarsen(cr);
         }
-        m_crse_ratio = IntVect::TheUnitVector();
-        m_transformer->setCrseRatio(m_crse_ratio);
+        m_bat.set_coarsen_ratio(IntVect::TheUnitVector());
     }
 }
 
