@@ -283,7 +283,7 @@ Particle initialization
       It requires additional argument ``<species_name>.density_function(x,y,z)``, which is a
       mathematical expression for the density of the species, e.g.
       ``electrons.density_function(x,y,z) = "n0+n0*x**2*1.e12"`` where ``n0`` is a
-      user-defined constant, see above.
+      user-defined constant, see above. WARNING: where ``density_function(x,y,z)`` is close to zero, particles will still be injected between ``xmin`` and ``xmax`` etc., with a null weight. This is undesirable because it results in useless computing. To avoid this, see option ``density_min`` below.
 
 * ``<species_name>.density_min`` (`float`) optional (default `0.`)
     Minimum plasma density. No particle is injected where the density is below
