@@ -27,8 +27,7 @@ MultiMask::define (const BoxArray& regba, const DistributionMapping& dm, const G
 {
     BL_ASSERT(m_fa.size() == 0);
 
-    BndryBATransformer bbatrans(face,IndexType::TheCellType(),in_rad,out_rad,extent_rad);
-    BoxArray mskba(regba, bbatrans);
+    BoxArray mskba(regba, BATransformer(face,IndexType::TheCellType(),in_rad,out_rad,extent_rad));
     m_fa.define(mskba, dm, ncomp, 0, MFInfo(), DefaultFabFactory<Mask>());
 
     if (initval)
