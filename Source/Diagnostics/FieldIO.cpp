@@ -484,7 +484,7 @@ WarpX::AverageAndPackFields ( Vector<std::string>& varnames,
             // Allocate temp MultiFab with 3 components
             mf_tmp_E = MultiFab(grids[lev], dmap[lev], nvecs, ngrow);
             // Fill MultiFab mf_tmp_E with averaged E
-            AverageAndPackVectorField(mf_tmp_E, Efield_aux[lev], dmap[lev], 0, ngrow);
+            AverageAndPackVectorField          (mf_tmp_E, Efield_aux[lev], dmap[lev], 0, ngrow);
             int dcomp = 3;
             AverageAndPackVectorFieldComponents(mf_tmp_E, Efield_aux[lev], dmap[lev], dcomp, ngrow);
         }

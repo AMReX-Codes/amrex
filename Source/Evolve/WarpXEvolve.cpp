@@ -168,6 +168,8 @@ WarpX::Evolve (int numsteps)
 
         cur_time += dt[0];
 
+        multi_diags->FilterComputePackFlush();
+
         bool to_make_plot = ( (plot_int > 0) && ((step+1) % plot_int == 0) );
         bool to_write_openPMD = ( (openpmd_int > 0) && ((step+1) % openpmd_int == 0) );
 

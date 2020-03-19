@@ -103,6 +103,7 @@ WarpX::InitData ()
 
 void
 WarpX::InitDiagnostics () {
+    multi_diags->InitData();
     if (do_back_transformed_diagnostics) {
         const Real* current_lo = geom[0].ProbLo();
         const Real* current_hi = geom[0].ProbHi();
