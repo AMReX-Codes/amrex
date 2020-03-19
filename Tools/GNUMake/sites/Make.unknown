@@ -113,3 +113,5 @@ ifeq ($(USE_CUDA),TRUE)
   endif
 endif
 endif
+
+FIX_NVCC_PTHREAD=TRUE
