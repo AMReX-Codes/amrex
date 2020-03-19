@@ -1,0 +1,64 @@
+# Maximum number of time steps
+max_step = 3
+
+# number of grid points
+amr.n_cell =   128 32 128
+
+# Maximum allowable size of each subdomain in the problem domain;
+# this is used to decompose the domain for parallel calculations.
+amr.max_grid_size = 32
+
+# Maximum level in hierarchy
+amr.max_level = 0
+
+# Geometry
+geometry.coord_sys   =  0            # 0: Cartesian
+geometry.is_periodic =  1    1    1  # Is periodic?
+geometry.prob_lo     =  0.   0.   0. # physical domain
+geometry.prob_hi     =  4.   4.   4.
+
+# Algorithms
+algo.current_deposition = esirkepov
+algo.field_gathering = energy-conserving # or momentum-conserving
+warpx.use_filter = 1
+algo.maxwell_fdtd_solver = yee # or ckc
+
+# Load balancing
+warpx.load_balance_int = 2
+algo.load_balance_costs_update = Heuristic
+
+# Interpolation
+# 1: Linear; 2: Quadratic; 3: Cubic.
+interpolation.nox = 1
+interpolation.noy = 1
+interpolation.noz = 1
+
+# CFL
+warpx.cfl = 0.99999
+
+# plot frequency
+amr.plot_int = 3
+
+# Particles
+particles.nspecies = 1
+particles.species_names = electrons
+
+electrons.charge = -q_e
+electrons.mass = m_e
+electrons.injection_style = "NUniformPerCell"
+electrons.num_particles_per_cell_each_dim = 1 1 1
+electrons.profile = constant
+electrons.density = 1.e14   # number of electrons per m^3
+electrons.momentum_distribution_type = gaussian
+electrons.zmin = 0.
+electrons.zmax = 1.
+electrons.ux_th = 0.0
+electrons.uy_th = 0.0
+electrons.uz_th = 0.0
+
+#################################
+###### REDUCED DIAGS ############
+#################################
+warpx.reduced_diags_names = LBC
+LBC.type = LoadBalanceCosts
+LBC.frequency = 1

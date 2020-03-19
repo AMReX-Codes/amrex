@@ -13,6 +13,9 @@ CEXE_sources += FieldEnergy.cpp
 CEXE_headers += BeamRelevant.H
 CEXE_sources += BeamRelevant.cpp
 
+CEXE_headers += LoadBalanceCosts.H
+CEXE_sources += LoadBalanceCosts.cpp
+
 CEXE_headers += ParticleHistogram.H
 CEXE_sources += ParticleHistogram.cpp
 

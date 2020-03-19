@@ -299,6 +299,13 @@ public:
     void LoadBalance ();
     void LoadBalanceTimers ();
     void LoadBalanceHeuristic ();
+    /** \brief resets costs to zero
+     */
+    void ResetCosts ();
+
+    /** \brief returns the load balance interval
+     */
+    int get_load_balance_int () const {return load_balance_int;}
 
 #ifdef WARPX_DIM_RZ
     void ApplyInverseVolumeScalingToCurrentDensity(amrex::MultiFab* Jx,
@@ -461,9 +468,12 @@ public:
          amrex::IntVect y_nodal_flag, amrex::IntVect z_nodal_flag,
          const int lev);
 
-    /** \brief add particle and cell contributions to multifabs in `costs_heuristic`
+    /** \brief adds particle and cell contributions in cells to compute heuristic
+     * cost in each box on each level, and records in `costs`
+     * @param[in] costs vector of (`unique_ptr` to) vectors; expected to be initialized
+     * to correct number of boxes and boxes per level
      */
-    void ComputeCostsHeuristic ();
+    void ComputeCostsHeuristic (amrex::Vector<std::unique_ptr<amrex::Vector<amrex::Real> > >& costs);
 
 protected:
 
@@ -673,7 +683,7 @@ private:
     /** Collection of multifabs to keep track of weights, based on in-code timers,
      * for use in load balancing routines. */
     amrex::Vector<std::unique_ptr<amrex::MultiFab> > costs;
-    /** Collection of multifabs to keep track of weights, based on number of cells
+    /** Collection of vectors to keep track of weights, based on number of cells
      * and number of particles per box; for use in load balancing routines. */
     amrex::Vector<std::unique_ptr<amrex::Vector<amrex::Real> > > costs_heuristic;
     /** Load balance with 'space filling curve' strategy. */

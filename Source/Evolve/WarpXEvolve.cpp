@@ -70,17 +70,9 @@ WarpX::Evolve (int numsteps)
             if (step > 0 && (step+1) % load_balance_int == 0)
             {
                 LoadBalance();
+
                 // Reset the costs to 0
-                for (int lev = 0; lev <= finest_level; ++lev)
-                {
-                    if (WarpX::load_balance_costs_update_algo == LoadBalanceCostsUpdateAlgo::Timers)
-                    {
-                        costs[lev]->setVal(0.0);
-                    } else if (WarpX::load_balance_costs_update_algo == LoadBalanceCostsUpdateAlgo::Heuristic)
-                    {
-                        costs_heuristic[lev]->assign((*costs_heuristic[lev]).size(), 0.0);
-                    }
-                }
+                ResetCosts();
             }
             for (int lev = 0; lev <= finest_level; ++lev)
             {

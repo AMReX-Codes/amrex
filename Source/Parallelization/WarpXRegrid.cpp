@@ -50,7 +50,7 @@ void
 WarpX::LoadBalanceHeuristic ()
 {
     AMREX_ALWAYS_ASSERT(costs_heuristic[0] != nullptr);
-    WarpX::ComputeCostsHeuristic();
+    WarpX::ComputeCostsHeuristic(costs_heuristic);
 
     const int nLevels = finestLevel();
     for (int lev = 0; lev <= nLevels; ++lev)
@@ -284,7 +284,7 @@ WarpX::RemakeLevel (int lev, Real /*time*/, const BoxArray& ba, const Distributi
 }
 
 void
-WarpX::ComputeCostsHeuristic ()
+WarpX::ComputeCostsHeuristic (amrex::Vector<std::unique_ptr<amrex::Vector<amrex::Real> > >& costs)
 {
     for (int lev = 0; lev <= finest_level; ++lev)
     {
@@ -299,7 +299,7 @@ WarpX::ComputeCostsHeuristic ()
             // Particle loop
             for (WarpXParIter pti(myspc, lev); pti.isValid(); ++pti)
             {
-                (*costs_heuristic[lev])[pti.index()] += costs_heuristic_particles_wt*pti.numParticles();
+                (*costs[lev])[pti.index()] += costs_heuristic_particles_wt*pti.numParticles();
             }
         }
 
@@ -308,7 +308,22 @@ WarpX::ComputeCostsHeuristic ()
         for (MFIter mfi(*Ex, false); mfi.isValid(); ++mfi)
         {
             const Box& gbx = mfi.growntilebox();
-            (*costs_heuristic[lev])[mfi.index()] += costs_heuristic_cells_wt*gbx.numPts();
+            (*costs[lev])[mfi.index()] += costs_heuristic_cells_wt*gbx.numPts();
         }
-    } // for (int lev ...)
-} // WarpX::ComputeCostsHeuristic
+    }
+}
+
+void
+WarpX::ResetCosts ()
+{
+    for (int lev = 0; lev <= finest_level; ++lev)
+    {
+        if (WarpX::load_balance_costs_update_algo == LoadBalanceCostsUpdateAlgo::Timers)
+        {
+            costs[lev]->setVal(0.0);
+        } else if (WarpX::load_balance_costs_update_algo == LoadBalanceCostsUpdateAlgo::Heuristic)
+        {
+            costs_heuristic[lev]->assign((*costs_heuristic[lev]).size(), 0.0);
+        }
+    }
+}
