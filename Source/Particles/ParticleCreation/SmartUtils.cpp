@@ -5,7 +5,7 @@
  *
  * License: BSD-3-Clause-LBNL
  */
-#include "SmartCopy.H"
+#include "SmartUtils.H"
 
 PolicyVec getPolicies (const NameMap& names) noexcept
 {

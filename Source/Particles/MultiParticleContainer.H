@@ -17,7 +17,9 @@
 #include "Laser/LaserParticleContainer.H"
 #include "Parser/WarpXParserWrapper.H"
 #include "Particles/Collision/CollisionType.H"
+#include "Particles/ParticleCreation/SmartUtils.H"
 #include "Particles/ParticleCreation/SmartCopy.H"
+#include "Particles/ParticleCreation/SmartCreate.H"
 #include "Particles/ParticleCreation/FilterCopyTransform.H"
 #include "Particles/RigidInjectedParticleContainer.H"
 
