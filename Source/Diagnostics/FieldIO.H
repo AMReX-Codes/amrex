@@ -14,10 +14,6 @@
 #endif
 
 void
-PackPlotDataPtrs (amrex::Vector<const amrex::MultiFab*>& pmf,
-          const std::array<std::unique_ptr<amrex::MultiFab>,3>& data);
-
-void
 AverageAndPackVectorField( amrex::MultiFab& mf_avg,
                          const std::array< std::unique_ptr<amrex::MultiFab>, 3 >& vector_field,
                          const amrex::DistributionMapping& dm,

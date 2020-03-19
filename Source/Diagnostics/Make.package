@@ -6,6 +6,8 @@ CEXE_sources += SliceDiagnostic.cpp
 CEXE_headers += FieldIO.H
 CEXE_headers += BackTransformedDiagnostic.H
 CEXE_headers += SliceDiagnostic.H
+CEXE_headers += Average.H
+CEXE_sources += Average.cpp
 
 ifeq ($(USE_OPENPMD), TRUE)
   CEXE_sources += WarpXOpenPMD.cpp

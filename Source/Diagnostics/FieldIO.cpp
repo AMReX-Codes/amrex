@@ -7,6 +7,7 @@
  */
 #include "FieldIO.H"
 #include "WarpX.H"
+#include "Average.H"
 
 #include <AMReX_FillPatchUtil_F.H>
 #include <AMReX_Interpolater.H>
@@ -17,7 +18,6 @@
 #ifdef WARPX_USE_PSATD
 #include <SpectralSolver.H>
 #endif
-
 
 using namespace amrex;
 
@@ -250,21 +250,6 @@ ConstructTotalRZScalarField (MultiFab& scalar_total,
 }
 #endif
 
-void
-PackPlotDataPtrs (Vector<const MultiFab*>& pmf,
-                  const std::array<std::unique_ptr<MultiFab>,3>& data)
-{
-    BL_ASSERT(pmf.size() == AMREX_SPACEDIM);
-#if (AMREX_SPACEDIM == 3)
-    pmf[0] = data[0].get();
-    pmf[1] = data[1].get();
-    pmf[2] = data[2].get();
-#elif (AMREX_SPACEDIM == 2)
-    pmf[0] = data[0].get();
-    pmf[1] = data[2].get();
-#endif
-}
-
 /** \brief Takes an array of 3 MultiFab `vector_field`
  * (representing the x, y, z components of a vector),
  * averages it to the cell center, and stores the
@@ -279,9 +264,6 @@ AverageAndPackVectorField( MultiFab& mf_avg,
 #ifndef WARPX_DIM_RZ
     (void)dm;
 #endif
-    // The object below is temporary, and is needed because
-    // `average_edge_to_cellcenter` requires fields to be passed as Vector
-    Vector<const MultiFab*> srcmf(AMREX_SPACEDIM);
 
 #ifdef WARPX_DIM_RZ
     // Note that vector_total is declared in the same way as
@@ -304,57 +286,9 @@ AverageAndPackVectorField( MultiFab& mf_avg,
     const std::array<std::unique_ptr<MultiFab>,3> &vector_total = vector_field;
 #endif
 
-    // Check the type of staggering of the 3-component `vector_field`
-    // and average accordingly:
-    // - Fully cell-centered field (no average needed; simply copy)
-    if ( vector_total[0]->is_cell_centered() ){
-
-        MultiFab::Copy( mf_avg, *vector_total[0], 0, dcomp  , 1, ngrow);
-        MultiFab::Copy( mf_avg, *vector_total[1], 0, dcomp+1, 1, ngrow);
-        MultiFab::Copy( mf_avg, *vector_total[2], 0, dcomp+2, 1, ngrow);
-
-        // - Fully nodal
-    } else if ( vector_total[0]->is_nodal() ){
-
-        amrex::average_node_to_cellcenter( mf_avg, dcomp  ,
-                                          *vector_total[0], 0, 1, ngrow);
-        amrex::average_node_to_cellcenter( mf_avg, dcomp+1,
-                                          *vector_total[1], 0, 1, ngrow);
-        amrex::average_node_to_cellcenter( mf_avg, dcomp+2,
-                                          *vector_total[2], 0, 1, ngrow);
-
-        // - Face centered, in the same way as B on a Yee grid
-    } else if ( vector_total[0]->is_nodal(0) ){
-
-        // Note that average_face_to_cellcenter operates only on the number of
-        // arrays equal to the number of dimensions. So, for 2D, PackPlotDataPtrs
-        // packs in the x and z (or r and z) arrays, which are then cell averaged.
-        // The Copy code then copies the z from the 2nd to the 3rd field,
-        // and copies over directly the y (or theta) component (which is
-        // already cell centered).
-        PackPlotDataPtrs(srcmf, vector_total);
-        amrex::average_face_to_cellcenter( mf_avg, dcomp, srcmf, ngrow);
-#if (AMREX_SPACEDIM == 2)
-        MultiFab::Copy( mf_avg, mf_avg, dcomp+1, dcomp+2, 1, ngrow);
-        MultiFab::Copy( mf_avg, *vector_total[1], 0, dcomp+1, 1, ngrow);
-#endif
-
-        // - Edge centered, in the same way as E on a Yee grid
-    } else if ( !vector_total[0]->is_nodal(0) ){
-
-        // See comment above, though here, the y (or theta) component
-        // has node centering.
-        PackPlotDataPtrs(srcmf, vector_total);
-        amrex::average_edge_to_cellcenter( mf_avg, dcomp, srcmf, ngrow);
-#if (AMREX_SPACEDIM == 2)
-        MultiFab::Copy( mf_avg, mf_avg, dcomp+1, dcomp+2, 1, ngrow);
-        amrex::average_node_to_cellcenter( mf_avg, dcomp+1,
-                                              *vector_total[1], 0, 1, ngrow);
-#endif
-
-    } else {
-        amrex::Abort("Unknown staggering.");
-    }
+    Average::ToCellCenter( mf_avg, *(vector_total[0]), dcomp  , ngrow );
+    Average::ToCellCenter( mf_avg, *(vector_total[1]), dcomp+1, ngrow );
+    Average::ToCellCenter( mf_avg, *(vector_total[2]), dcomp+2, ngrow );
 }
 
 /** \brief Takes all of the components of the three fields and
@@ -410,7 +344,7 @@ AverageAndPackScalarField (MultiFab& mf_avg,
         MultiFab::Copy( mf_avg, *scalar_total, 0, dcomp, 1, ngrow);
     } else if ( scalar_total->is_nodal() ){
         // - Fully nodal
-        amrex::average_node_to_cellcenter( mf_avg, dcomp, *scalar_total, 0, 1, ngrow);
+        Average::ToCellCenter( mf_avg, *scalar_total, dcomp, ngrow, 0, 1 );
     } else {
         amrex::Abort("Unknown staggering.");
     }
