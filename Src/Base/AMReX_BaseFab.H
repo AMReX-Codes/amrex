@@ -3281,7 +3281,7 @@ template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::mult (T const& r, int comp, int numcomp) noexcept
 {
-    return this->mult(r, this->domain, DestComp{comp}, NumComps{numcomp});
+    return this->mult<run_on>(r, this->domain, DestComp{comp}, NumComps{numcomp});
 }
 
 template <class T>
@@ -3289,7 +3289,7 @@ template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::mult (T const& r, const Box& b, int comp, int numcomp) noexcept
 {
-    return this->mult(r, b, DestComp{comp}, NumComps{numcomp});
+    return this->mult<run_on>(r, b, DestComp{comp}, NumComps{numcomp});
 }
 
 template <class T>
@@ -3297,7 +3297,7 @@ template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::mult (const BaseFab<T>& src, int srccomp, int destcomp, int numcomp) noexcept
 {
-    return this->mult(src, this->domain, SrcComp{srccomp}, DestComp{destcomp}, NumComps{numcomp});
+    return this->mult<run_on>(src, this->domain, SrcComp{srccomp}, DestComp{destcomp}, NumComps{numcomp});
 }
 
 template <class T>
@@ -3305,7 +3305,7 @@ template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::mult (const BaseFab<T>& src, const Box& subbox, int srccomp, int destcomp, int numcomp) noexcept
 {
-    return this->mult(src, subbox, SrcComp{srccomp}, DestComp{destcomp}, NumComps{numcomp});
+    return this->mult<run_on>(src, subbox, SrcComp{srccomp}, DestComp{destcomp}, NumComps{numcomp});
 }
 
 template <class T>
@@ -3340,7 +3340,7 @@ template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::divide (T const& r, int comp, int numcomp) noexcept
 {
-    return this->divide(r, this->domain, DestComp{comp}, NumComps{numcomp});
+    return this->divide<run_on>(r, this->domain, DestComp{comp}, NumComps{numcomp});
 }
 
 template <class T>
@@ -3348,7 +3348,7 @@ template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::divide (T const& r, const Box& b, int comp, int numcomp) noexcept
 {
-    return this->divide(r, b, DestComp{comp}, NumComps{numcomp});
+    return this->divide<run_on>(r, b, DestComp{comp}, NumComps{numcomp});
 }
 
 template <class T>
@@ -3356,7 +3356,7 @@ template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::divide (const BaseFab<T>& src, int srccomp, int destcomp, int numcomp) noexcept
 {
-    return this->divide(src, this->domain, SrcComp{srccomp}, DestComp{destcomp}, NumComps{numcomp});
+    return this->divide<run_on>(src, this->domain, SrcComp{srccomp}, DestComp{destcomp}, NumComps{numcomp});
 }
 
 template <class T>
@@ -3364,7 +3364,7 @@ template <RunOn run_on>
 BaseFab<T>&
 BaseFab<T>::divide (const BaseFab<T>& src, const Box& subbox, int srccomp, int destcomp, int numcomp) noexcept
 {
-    return this->divide(src, subbox, SrcComp{srccomp}, DestComp{destcomp}, NumComps{numcomp});
+    return this->divide<run_on>(src, subbox, SrcComp{srccomp}, DestComp{destcomp}, NumComps{numcomp});
 }
 
 template <class T>
