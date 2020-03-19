@@ -186,13 +186,6 @@ WarpX::WriteCheckPointFile() const
         if (do_pml && pml[lev]) {
             pml[lev]->CheckPoint(amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "pml"));
         }
-
-        if (WarpX::load_balance_costs_update_algo == LoadBalanceCostsUpdateAlgo::Timers) {
-            if (costs[lev]) {
-                VisMF::Write(*costs[lev],
-                             amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "costs"));
-            }
-        }
     }
 
     mypc->Checkpoint(checkpointname);
@@ -381,18 +374,6 @@ WarpX::InitFromCheckpoint ()
                             amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "jy_cp"));
                 VisMF::Read(*current_cp[lev][2],
                             amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "jz_cp"));
-            }
-        }
-
-        if (WarpX::load_balance_costs_update_algo == LoadBalanceCostsUpdateAlgo::Timers) {
-            if (costs[lev]) {
-                const auto& cost_mf_name =
-                amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "costs");
-                if (VisMF::Exist(cost_mf_name)) {
-                    VisMF::Read(*costs[lev], cost_mf_name);
-                } else {
-                    costs[lev]->setVal(0.0);
-                }
             }
         }
     }

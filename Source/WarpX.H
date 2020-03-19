@@ -727,7 +727,6 @@ private:
 #endif
 
     bool plot_rho           = false;
-    bool plot_costs         = true;
     bool plot_finepatch     = false;
     bool plot_crsepatch     = false;
     bool plot_raw_fields    = false;
