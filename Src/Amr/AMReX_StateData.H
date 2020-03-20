@@ -17,6 +17,11 @@
 #include <AMReX_Geometry.H>
 #include <AMReX_RealBox.H>
 #include <AMReX_StateDescriptor.H>
+#include <AMReX_HDF5.H>
+
+#ifdef AMREX_USE_HDF5
+#include <AMReX_HDF5.H>
+#endif
 
 namespace amrex {
 
@@ -273,6 +278,17 @@ public:
                   const FabFactory<FArrayBox>& factroy,
                   const StateDescriptor& d,
                   const std::string&     restart_file);
+
+#ifdef AMREX_USE_HDF5
+    void checkPointHDF5 (H5& h5, bool dump_old = true);
+
+    void restartHDF5 (H5&                    h5,
+                      const Box&             p_domain,
+                      const BoxArray&        grds,
+                      const DistributionMapping& dm,
+                      const FabFactory<FArrayBox>& factroy,
+                      const StateDescriptor& d);
+#endif
 
     /**
     * \brief or from another similar state

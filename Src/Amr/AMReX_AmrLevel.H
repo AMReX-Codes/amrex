@@ -80,6 +80,15 @@ public:
         static const std::string the_plot_file_type("HyperCLaw-V1.1");
         return the_plot_file_type;
     }
+
+    /**
+     * \brief Get data we want to plot.  This is a
+     * pure virtual function and hence MUST be implemented by
+     * derived classes.
+     */
+    virtual void getPlotData(MultiFab& plot_data,
+                             std::vector<std::string>& plot_names);
+
     /**
     * \brief Write plot file stuff to specified directory.  This is a
     * pure virtual function and hence MUST be implemented by
@@ -89,11 +98,22 @@ public:
                                 std::ostream&      os,
                                 VisMF::How         how = VisMF::NFiles);
 
+    void writePlotFile(MultiFab& plot_data, std::vector<std::string>& plot_names);
+
+#ifdef AMREX_USE_HDF5
+    void writeLevelAttrHDF5(H5& h5);
+    void writePlotHDF5(MultiFab& data_mf, const std::vector<std::string> data_names);
+    virtual void writePlotHDF5Pre ();
+    virtual void writePlotHDF5Post ();
+#endif
+
     //! Do pre-plotfile work to avoid synchronizations while writing the amr hierarchy
+    virtual void writePlotFilePre ();
     virtual void writePlotFilePre (const std::string& dir,
                                    std::ostream&      os);
 
     //! Do post-plotfile work to avoid synchronizations while writing the amr hierarchy
+    virtual void writePlotFilePost ();
     virtual void writePlotFilePost (const std::string& dir,
                                     std::ostream&      os);
 
@@ -110,10 +130,19 @@ public:
                              std::ostream&      os,
                              VisMF::How         how = VisMF::NFiles,
                              bool               dump_old = true);
+#ifdef AMREX_USE_HDF5
+    virtual void checkPointHDF5 (H5& h5, bool dump_old=true);
+    virtual void checkPointHDF5Pre();
+    virtual void checkPointHDF5Post();
+    virtual void restartHDF5 (Amr& papa, H5& h5);
+#endif
+
     //! Do pre-checkpoint work to avoid synchronizations while writing the amr hierarchy
+    virtual void checkPointPre ();
     virtual void checkPointPre (const std::string& dir,
                                 std::ostream&      os);
     //! Do post-checkpoint work to avoid synchronizations while writing the amr hierarchy
+    virtual void checkPointPost ();
     virtual void checkPointPost (const std::string& dir,
                                  std::ostream&      os);
     //! Restart from a checkpoint file.

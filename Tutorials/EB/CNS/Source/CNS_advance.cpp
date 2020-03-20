@@ -94,7 +94,7 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
 
             const Box& bx = mfi.tilebox();
 
-            const auto& sfab = S[mfi];
+//            const auto& sfab = S[mfi];
             const auto& flag = flags[mfi];
 
             //if (1){

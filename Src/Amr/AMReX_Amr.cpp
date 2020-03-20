@@ -36,6 +36,10 @@
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_Print.H>
 
+#ifdef AMREX_USE_HDF5
+#include <hdf5.h>
+#endif
+
 #ifdef BL_LAZY
 #include <AMReX_Lazy.H>
 #endif
@@ -872,6 +876,13 @@ Amr::writePlotFile ()
       return;
     }
 
+#ifdef AMREX_USE_HDF5
+    if (plot_file_type == "HDF5") {
+      writePlotFileHDF5();
+      return;
+    }
+#endif
+
     BL_PROFILE_REGION_START("Amr::writePlotFile()");
     BL_PROFILE("Amr::writePlotFile()");
 
@@ -905,7 +916,7 @@ Amr::writePlotFile ()
   amrex::StreamRetry sretry(pltfile, abort_on_stream_retry_failure,
                              stream_max_tries);
 
-  const std::string pltfileTemp(pltfile + ".temp");
+  output_name = pltfile + ".temp";
 
   while(sretry.TryFileOutput()) {
     //
@@ -918,24 +929,22 @@ Amr::writePlotFile ()
 
     if (precreateDirectories) {    // ---- make all directories at once
       amrex::UtilRenameDirectoryToOld(pltfile, false);      // dont call barrier
-      amrex::UtilCreateCleanDirectory(pltfileTemp, false);  // dont call barrier
+      amrex::UtilCreateCleanDirectory(output_name, false);  // dont call barrier
       for(int i(0); i <= finest_level; ++i) {
-	amr_level[i]->CreateLevelDirectory(pltfileTemp);
+        amr_level[i]->CreateLevelDirectory(output_name);
       }
       ParallelDescriptor::Barrier("Amr::writePlotFile:PCD");
 
     } else {
       amrex::UtilRenameDirectoryToOld(pltfile, false);     // dont call barrier
-      amrex::UtilCreateCleanDirectory(pltfileTemp, true);  // call barrier
+      amrex::UtilCreateCleanDirectory(output_name, true);  // call barrier
     }
 
-    std::string HeaderFileName(pltfileTemp + "/Header");
+    std::string HeaderFileName(output_name + "/Header");
 
     VisMF::IO_Buffer io_buffer(VisMF::GetIOBufferSize());
 
-    std::ofstream HeaderFile;
-
-    HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
+    output_stream.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
 
     int old_prec(0);
 
@@ -943,32 +952,34 @@ Amr::writePlotFile ()
         //
         // Only the IOProcessor() writes to the header file.
         //
-        HeaderFile.open(HeaderFileName.c_str(), std::ios::out | std::ios::trunc |
+        output_stream.open(HeaderFileName.c_str(), std::ios::out | std::ios::trunc |
 	                                        std::ios::binary);
-        if ( ! HeaderFile.good()) {
+	if ( ! output_stream.good()) {
             amrex::FileOpenFailed(HeaderFileName);
 	}
-        old_prec = HeaderFile.precision(15);
+	old_prec = output_stream.precision(15);
     }
 
     for (int k(0); k <= finest_level; ++k) {
-        amr_level[k]->writePlotFilePre(pltfileTemp, HeaderFile);
+        amr_level[k]->writePlotFilePre(output_name, output_stream);
     }
 
     for (int k(0); k <= finest_level; ++k) {
-        amr_level[k]->writePlotFile(pltfileTemp, HeaderFile);
+        amr_level[k]->writePlotFile(output_name, output_stream);
     }
 
     for (int k(0); k <= finest_level; ++k) {
-        amr_level[k]->writePlotFilePost(pltfileTemp, HeaderFile);
+        amr_level[k]->writePlotFilePost(output_name, output_stream);
     }
 
     if (ParallelDescriptor::IOProcessor()) {
-        HeaderFile.precision(old_prec);
-        if ( ! HeaderFile.good()) {
+        output_stream.precision(old_prec);
+        if ( ! output_stream.good()) {
             amrex::Error("Amr::writePlotFile() failed");
 	}
     }
+
+    output_stream.close();
 
     last_plotfile = level_steps[0];
 
@@ -983,7 +994,7 @@ Amr::writePlotFile ()
     ParallelDescriptor::Barrier("Amr::writePlotFile::end");
 
     if(ParallelDescriptor::IOProcessor()) {
-      std::rename(pltfileTemp.c_str(), pltfile.c_str());
+      std::rename(output_name.c_str(), pltfile.c_str());
     }
     ParallelDescriptor::Barrier("Renaming temporary plotfile.");
     //
@@ -996,6 +1007,74 @@ Amr::writePlotFile ()
   
   BL_PROFILE_REGION_STOP("Amr::writePlotFile()");
 }
+
+#ifdef AMREX_USE_HDF5
+void Amr::writePlotFileHDF5() {
+  BL_PROFILE_REGION_START("Amr::writePlotFileHDF5()");
+  BL_PROFILE("Amr::writePlotFileHDF5()");
+
+  if (first_plotfile) {
+    first_plotfile = false;
+    amr_level[0]->setPlotVariables();
+  }
+
+  Real dPlotFileTime0 = ParallelDescriptor::second();
+
+  const std::string& pltfile =
+      amrex::Concatenate(plot_file_root, level_steps[0], file_name_digits);
+
+  if (verbose > 0) {
+    amrex::Print() << "PLOTFILE: file = " << pltfile << '\n';
+  }
+
+  if (record_run_info && ParallelDescriptor::IOProcessor()) {
+    runlog << "PLOTFILE: file = " << pltfile << '\n';
+  }
+
+  output_name = pltfile + ".hdf5";
+
+  // open a hdf5 file
+  output_h5.createFile(output_name, ParallelDescriptor::Communicator());
+
+  for (int k(0); k <= finest_level; ++k) {
+    amr_level[k]->writePlotHDF5Pre();
+  }
+
+  MultiFab plot_data;
+  std::vector<std::string> plot_names;
+  for (int k(0); k <= finest_level; ++k) {
+    amr_level[k]->getPlotData(plot_data, plot_names);
+    amr_level[k]->writePlotHDF5(plot_data, plot_names);
+  }
+
+#ifdef AMREX_PARTICLES
+  // save any particle data
+  amr_level[0]->checkPointParticlesHDF5(output_h5);
+#endif
+
+  for (int k(0); k <= finest_level; ++k) {
+    amr_level[k]->writePlotHDF5Post();
+  }
+
+  last_plotfile = level_steps[0];
+
+  if (verbose > 0) {
+    const int IOProc = ParallelDescriptor::IOProcessorNumber();
+    Real dPlotFileTime = ParallelDescriptor::second() - dPlotFileTime0;
+
+    ParallelDescriptor::ReduceRealMax(dPlotFileTime, IOProc);
+
+    amrex::Print() << "Write plotfile time = " << dPlotFileTime << "  seconds"
+                   << "\n\n";
+  }
+  ParallelDescriptor::Barrier("Amr::writePlotFile::end");
+
+  output_h5.closeFile();
+
+  BL_PROFILE_REGION_STOP("Amr::writePlotFileHDF5()");
+}
+
+#endif
 
 void
 Amr::writeSmallPlotFile ()
@@ -1442,6 +1521,19 @@ Amr::FinalizeInit (Real              strt_time,
 void
 Amr::restart (const std::string& filename)
 {
+
+  std::vector<std::string> exts = {".hdf5", ".h5"};
+  for (auto& ext : exts) {
+    if (filename.find(ext) != std::string::npos) {
+#ifdef AMREX_USE_HDF5
+      restartHDF5(filename);
+      return;
+#else
+      amrex::Abort("Amr::restart() not compiled with HDF5 capability");
+#endif
+    }
+  }
+
     BL_PROFILE_REGION_START("Amr::restart()");
     BL_PROFILE("Amr::restart()");
 
@@ -1761,6 +1853,13 @@ Amr::checkPoint ()
       return;
     }
 
+#ifdef AMREX_USE_HDF5
+    if (check_file_type == "HDF5") {
+      checkPointHDF5();
+      return;
+    }
+#endif
+
     BL_PROFILE_REGION_START("Amr::checkPoint()");
     BL_PROFILE("Amr::checkPoint()");
 
@@ -1791,7 +1890,7 @@ Amr::checkPoint ()
   amrex::StreamRetry sretry(ckfile, abort_on_stream_retry_failure,
                              stream_max_tries);
 
-  const std::string ckfileTemp(ckfile + ".temp");
+  output_name = ckfile + ".temp";
 
   while(sretry.TryFileOutput()) {
 
@@ -1807,24 +1906,22 @@ Amr::checkPoint ()
 
     if (precreateDirectories) {    // ---- make all directories at once
       amrex::UtilRenameDirectoryToOld(ckfile, false);      // dont call barrier
-      amrex::UtilCreateCleanDirectory(ckfileTemp, false);  // dont call barrier
+      amrex::UtilCreateCleanDirectory(output_name, false);  // dont call barrier
       for (int i(0); i <= finest_level; ++i) 
       {
-        amr_level[i]->CreateLevelDirectory(ckfileTemp);
+        amr_level[i]->CreateLevelDirectory(output_name);
       }
       ParallelDescriptor::Barrier("Amr::precreateDirectories");
     } else {
       amrex::UtilRenameDirectoryToOld(ckfile, false);     // dont call barrier
-      amrex::UtilCreateCleanDirectory(ckfileTemp, true);  // call barrier
+      amrex::UtilCreateCleanDirectory(output_name, true);  // call barrier
     }
 
-    std::string HeaderFileName = ckfileTemp + "/Header";
+    std::string HeaderFileName = output_name + "/Header";
 
     VisMF::IO_Buffer io_buffer(VisMF::GetIOBufferSize());
 
-    std::ofstream HeaderFile;
-
-    HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
+    output_stream.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
 
     int old_prec = 0;
 
@@ -1833,16 +1930,16 @@ Amr::checkPoint ()
         //
         // Only the IOProcessor() writes to the header file.
         //
-        HeaderFile.open(HeaderFileName.c_str(), std::ios::out | std::ios::trunc |
+        output_stream.open(HeaderFileName.c_str(), std::ios::out | std::ios::trunc |
 	                                        std::ios::binary);
 
-        if ( ! HeaderFile.good()) {
+        if ( ! output_stream.good()) {
             amrex::FileOpenFailed(HeaderFileName);
 	}
 
-        old_prec = HeaderFile.precision(17);
+	old_prec = output_stream.precision(17);
 
-        HeaderFile << CheckPointVersion << '\n'
+        output_stream << CheckPointVersion << '\n'
                    << AMREX_SPACEDIM       << '\n'
                    << cumtime           << '\n'
                    << max_level         << '\n'
@@ -1850,38 +1947,38 @@ Amr::checkPoint ()
         //
         // Write out problem domain.
         //
-        for (int i(0); i <= max_level; ++i) { HeaderFile << Geom(i)        << ' '; }
-        HeaderFile << '\n';
-        for (int i(0); i < max_level; ++i)  { HeaderFile << ref_ratio[i]   << ' '; }
-        HeaderFile << '\n';
-        for (int i(0); i <= max_level; ++i) { HeaderFile << dt_level[i]    << ' '; }
-        HeaderFile << '\n';
-        for (int i(0); i <= max_level; ++i) { HeaderFile << dt_min[i]      << ' '; }
-        HeaderFile << '\n';
-        for (int i(0); i <= max_level; ++i) { HeaderFile << n_cycle[i]     << ' '; }
-        HeaderFile << '\n';
-        for (int i(0); i <= max_level; ++i) { HeaderFile << level_steps[i] << ' '; }
-        HeaderFile << '\n';
-        for (int i(0); i <= max_level; ++i) { HeaderFile << level_count[i] << ' '; }
-        HeaderFile << '\n';
+        for (int i(0); i <= max_level; ++i) { output_stream << Geom(i)        << ' '; }
+        output_stream << '\n';
+        for (int i(0); i < max_level; ++i)  { output_stream << ref_ratio[i]   << ' '; }
+        output_stream << '\n';
+        for (int i(0); i <= max_level; ++i) { output_stream << dt_level[i]    << ' '; }
+        output_stream << '\n';
+        for (int i(0); i <= max_level; ++i) { output_stream << dt_min[i]      << ' '; }
+        output_stream << '\n';
+        for (int i(0); i <= max_level; ++i) { output_stream << n_cycle[i]     << ' '; }
+        output_stream << '\n';
+        for (int i(0); i <= max_level; ++i) { output_stream << level_steps[i] << ' '; }
+        output_stream << '\n';
+        for (int i(0); i <= max_level; ++i) { output_stream << level_count[i] << ' '; }
+        output_stream << '\n';
     }
 
     for (int i = 0; i <= finest_level; ++i) {
-        amr_level[i]->checkPointPre(ckfileTemp, HeaderFile);
+        amr_level[i]->checkPointPre(output_name, output_stream);
     }
 
     for (int i = 0; i <= finest_level; ++i) {
-        amr_level[i]->checkPoint(ckfileTemp, HeaderFile);
+        amr_level[i]->checkPoint(output_name, output_stream);
     }
 
     for (int i = 0; i <= finest_level; ++i) {
-        amr_level[i]->checkPointPost(ckfileTemp, HeaderFile);
+        amr_level[i]->checkPointPost(output_name, output_stream);
     }
 
     if (ParallelDescriptor::IOProcessor()) {
 	const Vector<std::string> &FAHeaderNames = StateData::FabArrayHeaderNames();
 	if(FAHeaderNames.size() > 0) {
-          std::string FAHeaderFilesName = ckfileTemp + "/FabArrayHeaders.txt";
+          std::string FAHeaderFilesName = output_name + "/FabArrayHeaders.txt";
           std::ofstream FAHeaderFile(FAHeaderFilesName.c_str(),
 	                             std::ios::out | std::ios::trunc |
 	                             std::ios::binary);
@@ -1896,12 +1993,14 @@ Amr::checkPoint ()
     }
 
     if(ParallelDescriptor::IOProcessor()) {
-        HeaderFile.precision(old_prec);
+        output_stream.precision(old_prec);
 
-        if( ! HeaderFile.good()) {
+        if( ! output_stream.good()) {
             amrex::Error("Amr::checkpoint() failed");
 	}
     }
+
+    output_stream.close();
 
     last_checkpoint = level_steps[0];
 
@@ -1917,7 +2016,7 @@ Amr::checkPoint ()
     ParallelDescriptor::Barrier("Amr::checkPoint::end");
 
     if(ParallelDescriptor::IOProcessor()) {
-      std::rename(ckfileTemp.c_str(), ckfile.c_str());
+      std::rename(output_name.c_str(), ckfile.c_str());
     }
     ParallelDescriptor::Barrier("Renaming temporary checkPoint file.");
 
@@ -1932,6 +2031,282 @@ Amr::checkPoint ()
 
   BL_PROFILE_REGION_STOP("Amr::checkPoint()");
 }
+
+#ifdef AMREX_USE_HDF5
+
+void
+Amr::checkPointHDF5 (bool dump_old)
+{
+
+    BL_PROFILE_REGION_START("Amr::checkPointHDF5()");
+    BL_PROFILE("Amr::checkPointHDF5()");
+
+    Real dCheckPointTime0 = amrex::second();
+
+    const std::string& ckfile = amrex::Concatenate(check_file_root,level_steps[0],file_name_digits);
+
+    if(verbose > 0) {
+        amrex::Print() << "CHECKPOINT: file = " << ckfile << "\n";
+    }
+
+    if(record_run_info && ParallelDescriptor::IOProcessor()) {
+        runlog << "CHECKPOINT: file = " << ckfile << '\n';
+    }
+
+
+  output_name = ckfile + ".hdf5";
+
+  // open a hdf5 file
+  output_h5.createFile(output_name, ParallelDescriptor::Communicator());
+
+  for (int i = 0; i <= finest_level; ++i) {
+      amr_level[i]->checkPointHDF5Pre();
+  }
+
+  for (int i = 0; i <= finest_level; ++i) {
+      amr_level[i]->checkPointHDF5(output_h5, dump_old);
+  }
+
+#ifdef AMREX_PARTICLES
+  // save any particle data
+  amr_level[0]->checkPointParticlesHDF5(output_h5);
+#endif
+
+  for (int i = 0; i <= finest_level; ++i) {
+      amr_level[i]->checkPointHDF5Post();
+  }
+
+  last_checkpoint = level_steps[0];
+
+  if (verbose > 0)
+  {
+      Real dCheckPointTime = amrex::second() - dCheckPointTime0;
+
+      ParallelDescriptor::ReduceRealMax(dCheckPointTime,
+                                  ParallelDescriptor::IOProcessorNumber());
+
+      amrex::Print() << "checkPoint() time = " << dCheckPointTime << " secs." << '\n';
+  }
+  ParallelDescriptor::Barrier("Amr::checkPoint::end");
+
+  output_h5.closeFile();
+
+
+  BL_PROFILE_REGION_STOP("Amr::checkPoint()");
+}
+
+void
+Amr::restartHDF5 (const std::string& filename) {
+  BL_PROFILE_REGION_START("Amr::restartHDF5()");
+  BL_PROFILE("Amr::restartHDF5()");
+
+  which_level_being_advanced = -1;
+
+  Real dRestartTime0 = amrex::second();
+
+  if (verbose > 0) {
+      amrex::Print() << "restarting calculation from file: " << filename << "\n";
+  }
+
+  if (record_run_info && ParallelDescriptor::IOProcessor()) {
+      runlog << "RESTART from file = " << filename << '\n';
+  }
+  //
+  // Init problem dependent data.
+  //
+  int linit = false;
+
+  readProbinFile(linit);
+  //
+  // Start calculation from given restart file.
+  //
+  if (record_run_info && ParallelDescriptor::IOProcessor()) {
+      runlog << "RESTART from file = " << filename << '\n';
+  }
+
+  //
+  // Open the checkpoint header file for reading.
+  //
+
+  restart_h5.openFile(filename, ParallelDescriptor::Communicator());
+
+  //
+  // Read global data.
+  //
+
+  // spatial dimensions
+  int spdim;
+  restart_h5.readAttribute("SpaceDim", spdim);
+
+  if (spdim != AMREX_SPACEDIM)
+  {
+      amrex::ErrorStream() << "Amr::restart(): bad spacedim = " << spdim << '\n';
+      amrex::Abort();
+  }
+
+  restart_h5.readAttribute("time", cumtime);
+  restart_h5.readAttribute("max_level", finest_level);
+
+  finest_level = std::min(max_level, finest_level);
+
+  Vector<Box> inputs_domain(max_level+1);
+  for (int lev = 0; lev <= max_level; ++lev) {
+      Box bx(Geom(lev).Domain().smallEnd(),Geom(lev).Domain().bigEnd());
+     inputs_domain[lev] = bx;
+  }
+
+  bool any_changed = false;
+
+  for (int i=0; i<= finest_level; ++i) {
+    H5 level_grp = restart_h5.openGroup("level_"+num2str(i));
+
+    // problem domain (logical)
+    box_h5_t box;
+    level_grp.readAttribute("prob_domain", box);
+    Box bx = readH5Box(box);
+
+    // problem domain (real)
+    rbox_h5_t rbox;
+    level_grp.readAttribute("real_domain", rbox);
+    RealBox rb = readH5RealBox(rbox);
+
+    Geometry& gm = Geom(i);
+    gm.define(bx, &rb);
+
+    // refinement ratio
+    if (i < finest_level) {
+      int_h5_t rr;
+      level_grp.readAttribute("vec_ref_ratio", rr);
+      readH5IntVec(rr, ref_ratio[i].getVect());
+    }
+
+    // dt
+    level_grp.readAttribute("dt", dt_level[i]);
+
+    // dt min
+    level_grp.readAttribute("min_dt", dt_min[i]);
+
+    // ncycle
+    int n_cycle_in;
+    level_grp.readAttribute("n_cycle", n_cycle_in);
+
+    if (n_cycle[i] != n_cycle_in) {
+        any_changed = true;
+        if (verbose > 0) {
+            amrex::Print() << "Warning: n_cycle has changed at level " << i <<
+                              " from " << n_cycle_in << " to " << n_cycle[i] << "\n";
+        }
+        // If we change n_cycle then force a full regrid from level 0 up
+        if (max_level > 0 && any_changed) {
+            level_count[0] = regrid_int[0];
+            if (verbose > 0) {
+                amrex::Print() << "Warning: This forces a full regrid \n";
+              }
+          }
+      }
+
+    // steps
+    level_grp.readAttribute("level_steps", level_steps[i]);
+
+    // count
+    level_grp.readAttribute("level_count", level_count[i]);
+
+    level_grp.closeGroup();
+
+  }
+
+
+   //
+   // Set bndry conditions.
+   //
+   if (max_level > finest_level) {
+       for (int i(finest_level + 1); i <= max_level; ++i)
+       {
+           dt_level[i]    = dt_level[i-1]/n_cycle[i];
+           level_steps[i] = n_cycle[i]*level_steps[i-1];
+           level_count[i] = 0;
+       }
+
+       // This is just an error check
+       if ( ! sub_cycle)
+       {
+           for (int i(1); i <= finest_level; ++i)
+           {
+               if (dt_level[i] != dt_level[i-1]) {
+                  amrex::Error("restart: must have same dt at all levels if not subcycling");
+               }
+           }
+       }
+   }
+
+   if (regrid_on_restart && max_level > 0) {
+       if (regrid_int[0] > 0) {
+           level_count[0] = regrid_int[0];
+       } else {
+           amrex::Error("restart: can't have regrid_on_restart and regrid_int <= 0");
+       }
+   }
+
+   checkInput();
+   //
+   // Read levels.
+   //
+   for (int lev(0); lev <= finest_level; ++lev) {
+       amr_level[lev].reset((*levelbld)());
+       H5 level_grp = restart_h5.openGroup("level_"+num2str(lev));
+       amr_level[lev]->restartHDF5(*this, level_grp);
+       level_grp.closeGroup();
+       this->SetBoxArray(lev, amr_level[lev]->boxArray());
+       this->SetDistributionMap(lev, amr_level[lev]->DistributionMap());
+   }
+
+   //
+   // Build any additional data structures.
+   //
+   for (int lev = 0; lev <= finest_level; lev++) {
+       amr_level[lev]->post_restart();
+   }
+
+  // Save the number of steps taken so far. This mainly
+  // helps in the edge case where we end up not taking
+  // any timesteps before the run terminates, so that
+  // we know not to unnecessarily overwrite the old file.
+  last_checkpoint = level_steps[0];
+  last_plotfile = level_steps[0];
+
+  for (int lev = 0; lev <= finest_level; ++lev)
+  {
+      Box restart_domain(Geom(lev).Domain());
+     if ( ! (inputs_domain[lev] == restart_domain) )
+     {
+         std::ostringstream ss;
+         ss  << "Problem at level " << lev << '\n'
+             << "Domain according to     inputs file is " <<  inputs_domain[lev] << '\n'
+             << "Domain according to checkpoint file is " << restart_domain      << '\n'
+             << "Amr::restart() failed -- box from inputs file does not "
+             << "equal box from restart file. \n";
+         amrex::Abort(ss.str());
+     }
+  }
+
+  if (verbose > 0)
+  {
+      Real dRestartTime = amrex::second() - dRestartTime0;
+
+      ParallelDescriptor::ReduceRealMax(dRestartTime,ParallelDescriptor::IOProcessorNumber());
+
+      amrex::Print() << "Restart time = " << dRestartTime << " seconds." << '\n';
+  }
+
+  ParallelDescriptor::Barrier("Amr::restartHDF5::end");
+
+  restart_h5.closeFile();
+
+  BL_PROFILE_REGION_STOP("Amr::restart()");
+
+}
+
+#endif
 
 void
 Amr::RegridOnly (Real time, bool do_io)
@@ -3492,6 +3867,9 @@ Amr::initPltAndChk ()
     pp.query("checkpoint_files_output", checkpoint_files_output);
     pp.query("plot_files_output", plot_files_output);
 
+
+    pp.query("plot_files_type", plot_files_output);
+
     pp.query("plot_nfiles", plot_nfiles);
     pp.query("checkpoint_nfiles", checkpoint_nfiles);
     //
@@ -3502,6 +3880,9 @@ Amr::initPltAndChk ()
     
     check_file_root = "chk";
     pp.query("check_file",check_file_root);
+
+    check_file_type = "DEFAULT";
+    pp.query("check_file_type",check_file_type);
 
     check_int = -1;
     pp.query("check_int",check_int);
@@ -3517,6 +3898,9 @@ Amr::initPltAndChk ()
 
     plot_file_root = "plt";
     pp.query("plot_file",plot_file_root);
+
+    plot_file_type = "DEFAULT";
+    pp.query("plot_file_type",plot_file_type);
 
     plot_int = -1;
     pp.query("plot_int",plot_int);

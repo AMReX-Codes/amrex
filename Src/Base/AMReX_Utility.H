@@ -396,4 +396,13 @@ amrex::hash_vector (const Vector<T> & vec, uint64_t seed) noexcept
     return seed;
 }
 
+//! Convert a number to a string
+template <typename T>
+std::string num2str(const T Number) {
+  std::ostringstream ss;
+  ss.precision(16);
+  ss << Number;
+  return ss.str();
+}
+
 #endif /*BL_UTILITY_H*/

@@ -25,6 +25,10 @@
 #include <WorkerThread.H>
 #endif
 
+#ifdef AMREX_USE_HDF5
+#include <AMReX_HDF5.H>
+#endif
+
 namespace amrex {
 #ifdef USE_PERILLA
 using namespace perilla;
@@ -145,47 +149,76 @@ AmrLevel::AmrLevel (Amr&            papa,
     finishConstructor();
 }
 
+void AmrLevel::getPlotData(MultiFab& plot_data,
+                           std::vector<std::string>& plot_names) {
+  plot_names.resize(0);
+
+  std::vector<std::pair<int, int> > plot_var_map;
+
+  for (int typ = 0; typ < desc_lst.size(); typ++) {
+    for (int comp = 0; comp < desc_lst[typ].nComp(); comp++) {
+      if (parent->isStatePlotVar(desc_lst[typ].name(comp)) &&
+          desc_lst[typ].getType() == IndexType::TheCellType()) {
+        plot_var_map.push_back(std::pair<int, int>(typ, comp));
+        plot_names.push_back(desc_lst[typ].name(comp));
+      }
+    }
+  }
+
+  std::vector<std::string> derive_names;
+  const std::list<DeriveRec>& dlist = derive_lst.dlist();
+  for (std::list<DeriveRec>::const_iterator it = dlist.begin();
+       it != dlist.end(); ++it) {
+    if (parent->isDerivePlotVar(it->name())) {
+      derive_names.push_back(it->name());
+      plot_names.push_back(it->name());
+    }
+  }
+
+  int n_data_items = plot_names.size();
+
+  int cnt = 0;
+  const int nGrow = 0;
+  plot_data.define(grids, dmap, n_data_items, nGrow, MFInfo(), Factory());
+
+  MultiFab* this_dat = nullptr;
+  for (int i = 0; i < plot_var_map.size(); i++) {
+    int typ = plot_var_map[i].first;
+    int comp = plot_var_map[i].second;
+    this_dat = &state[typ].newData();
+    MultiFab::Copy(plot_data, *this_dat, comp, cnt, 1, nGrow);
+    cnt++;
+  }
+
+  // derived
+  Real cur_time = state[0].curTime();
+  if (derive_names.size() > 0) {
+    for (auto const& dname : derive_names) {
+      derive(dname, cur_time, plot_data, cnt);
+      cnt++;
+    }
+  }
+
+  return;
+}
+
 void
 AmrLevel::writePlotFile (const std::string& dir,
                          std::ostream&      os,
                          VisMF::How         how)
 {
-    int i, n;
-    //
-    // The list of indices of State to write to plotfile.
-    // first component of pair is state_type,
-    // second component of pair is component # within the state_type
-    //
-    std::vector<std::pair<int,int> > plot_var_map;
-    for (int typ = 0; typ < desc_lst.size(); typ++)
-    {
-        for (int comp = 0; comp < desc_lst[typ].nComp();comp++)
-	{
-            if (parent->isStatePlotVar(desc_lst[typ].name(comp)) &&
-                desc_lst[typ].getType() == IndexType::TheCellType())
-	    {
-                plot_var_map.push_back(std::pair<int,int>(typ,comp));
-	    }
-	}
-    }
+    // get the data to be plotted along with the associated names
+    std::vector<std::string> plot_names;
+    MultiFab plotMF;
+    getPlotData(plotMF, plot_names);
 
-    std::vector<std::string> derive_names;
-    const std::list<DeriveRec>& dlist = derive_lst.dlist();
-    for (std::list<DeriveRec>::const_iterator it = dlist.begin();
-	 it != dlist.end();
-	 ++it)
-    {
-        if (parent->isDerivePlotVar(it->name()))
-        {
-            derive_names.push_back(it->name());
-	}
-    }
-
-    int n_data_items = plot_var_map.size() + derive_names.size();
+    int n_data_items = plot_names.size();
 
     // get the time from the first State_Type
     // if the State_Type is ::Interval, this will get t^{n+1/2} instead of t^n
     Real cur_time = state[0].curTime();
+
+    int i, n;
 
     if (level == 0 && ParallelDescriptor::IOProcessor())
     {
@@ -199,19 +232,12 @@ AmrLevel::writePlotFile (const std::string& dir,
 
         os << n_data_items << '\n';
 
-	//
-	// Names of variables
-	//
-	for (i =0; i < static_cast<int>(plot_var_map.size()); i++)
+        //
+        // Names of variables
+        //
+        for (i =0; i < (n_data_items); i++)
         {
-	    int typ = plot_var_map[i].first;
-	    int comp = plot_var_map[i].second;
-	    os << desc_lst[typ].name(comp) << '\n';
-        }
-
-        // derived
-        for (auto const& dname : derive_names) {
-            os << derive_lst.get(dname)->variableName(0) << '\n';
+        os << plot_names[i] << '\n';
         }
 
         os << AMREX_SPACEDIM << '\n';
@@ -296,33 +322,6 @@ AmrLevel::writePlotFile (const std::string& dir,
         }
     }
     //
-    // We combine all of the multifabs -- state, derived, etc -- into one
-    // multifab -- plotMF.
-    int       cnt   = 0;
-    const int nGrow = 0;
-    MultiFab  plotMF(grids,dmap,n_data_items,nGrow,MFInfo(),Factory());
-    MultiFab* this_dat = 0;
-    //
-    // Cull data from state variables -- use no ghost cells.
-    //
-    for (i = 0; i < static_cast<int>(plot_var_map.size()); i++)
-    {
-	int typ  = plot_var_map[i].first;
-	int comp = plot_var_map[i].second;
-	this_dat = &state[typ].newData();
-	MultiFab::Copy(plotMF,*this_dat,comp,cnt,1,nGrow);
-	cnt++;
-    }
-
-    // derived
-    if (derive_names.size() > 0)
-    {
-	for (auto const& dname : derive_names)
-	{
-            derive(dname, cur_time, plotMF, cnt);
-	    cnt++;
-	}
-    }
 
     amrex::prefetchToHost(plotMF);
 
@@ -338,6 +337,144 @@ AmrLevel::writePlotFile (const std::string& dir,
     levelDirectoryCreated = false;  // ---- now that the plotfile is finished
 }
 
+#ifdef AMREX_USE_HDF5
+
+void AmrLevel::writeLevelAttrHDF5(H5& h5)
+{
+
+  // level
+  h5.writeAttribute("level", level, H5T_NATIVE_INT);
+
+  // cell spacing
+  const Real* a_dx = geom.CellSize();
+  hid_t realvect_id = makeH5RealVec();
+  real_h5_t vec_dx = writeH5RealVec(a_dx);
+  h5.writeAttribute("vec_dx", vec_dx, realvect_id);
+  h5.writeAttribute("dx", vec_dx.x, H5T_NATIVE_DOUBLE);
+  H5Tclose(realvect_id);
+
+  // refinement ratio
+  hid_t intvect_id = makeH5IntVec();
+  int rr[BL_SPACEDIM];
+  if (level < parent->finestLevel()) {
+    IntVect ref_ratio = parent->refRatio(level);
+    int* vrr = ref_ratio.getVect();
+    for (int i = 0; i < BL_SPACEDIM; ++i) {
+      rr[i] = vrr[i];
+    }
+  } else {
+    for (int i = 0; i < BL_SPACEDIM; ++i) {
+      rr[i] = 1;
+    }
+  }
+  h5.writeAttribute("vec_ref_ratio", rr, intvect_id);
+  h5.writeAttribute("ref_ratio", rr[0], H5T_NATIVE_INT);
+
+  // data time stamp
+  double time = parent->cumTime();
+  h5.writeAttribute("time", time, H5T_NATIVE_DOUBLE);
+
+  // time step for level
+  h5.writeAttribute("time", time, H5T_NATIVE_DOUBLE);
+
+  // time step size
+  Real a_dt(parent->dtLevel(level));
+  h5.writeAttribute("dt", a_dt, H5T_NATIVE_DOUBLE);
+
+  Real a_min_dt(parent->dtMin(level));
+  h5.writeAttribute("min_dt", a_min_dt, H5T_NATIVE_DOUBLE);
+
+  // cycles
+  int nc = parent->nCycle(level);
+  h5.writeAttribute("n_cycle", nc, H5T_NATIVE_INT);
+
+  // steps
+  int steps = parent->levelSteps(level);
+  h5.writeAttribute("level_steps", steps, H5T_NATIVE_INT);
+
+  // count
+  int count = parent->levelCount(level);
+  h5.writeAttribute("level_count", count, H5T_NATIVE_INT);
+
+  // logical problem domain
+  writeBoxOnHDF5(geom.Domain(), h5, "prob_domain");
+
+  // real problem domain
+  writeRealBoxOnHDF5(geom.ProbDomain(), h5, "real_domain");
+
+  // box layout etc
+  SortedGrids sg(grids, dmap);
+  sg.sortedGrids.writeOnHDF5(h5, "boxes");
+
+  // data_attributes (for yt)
+  H5 attr = h5.createGroup("data_attributes");
+  IntVect nGrow(0);
+  int_h5_t gint = writeH5IntVec(nGrow.getVect());
+  attr.writeAttribute("outputGhost", gint, intvect_id);
+  H5Tclose(intvect_id);
+  attr.closeGroup();
+
+}
+
+void AmrLevel::writePlotHDF5(MultiFab& data_mf,
+                                 const std::vector<std::string> data_names) {
+  // generate an H5 instance from the parents file object
+  H5& h5 = parent->getOutputHDF5();
+
+  Real a_time(parent->cumTime());
+  int a_numLevels(parent->finestLevel() + 1);
+  int nComp = data_names.size();
+
+  if (level == 0) {
+    std::map<std::string, int> vMInt;
+    std::map<std::string, Real> vMReal;
+    std::map<std::string, std::string> vMString;
+
+    // generate and populate Chombo_global (required for visIt)
+    vMInt["SpaceDim"] = amrex::SpaceDim;
+    vMReal["testReal"] = 0.0;
+    vMString["testString"] = "test string";
+    H5 global = h5.createGroup("Chombo_global");
+    global.writeAttribute(vMInt, vMReal, vMString);
+    global.closeGroup();
+
+    vMInt.clear();
+    vMReal.clear();
+    vMString.clear();
+
+    // populate the root folder
+    vMReal["time"] = a_time;
+    vMInt["iteration"] = parent->levelSteps(level);
+    vMInt["max_level"] = parent->finestLevel();
+    vMInt["num_levels"] = parent->maxLevel();
+
+    vMString["filetype"] = "VanillaAMRFileType";
+    vMInt["num_levels"] = a_numLevels;
+    vMInt["num_components"] = nComp;
+    for (int ivar(0); ivar < nComp; ++ivar) {
+      char labelChSt[100];
+      sprintf(labelChSt, "component_%d", ivar);
+      std::string label(labelChSt);
+      vMString[label] = data_names[ivar];
+    }
+    h5.writeAttribute(vMInt, vMReal, vMString);
+  }
+
+  // create a group for all of the levels data
+  H5 level_grp = h5.createGroup("/level_" + num2str(level));
+
+  writeLevelAttrHDF5(level_grp);
+  writeMultiFab(level_grp, &data_mf, parent->cumTime());
+  level_grp.closeGroup();
+}
+
+void AmrLevel::writePlotHDF5Pre() {}
+
+void AmrLevel::writePlotHDF5Post() {}
+
+#endif
+
+void AmrLevel::writePlotFilePre() {}
 
 void
 AmrLevel::writePlotFilePre (const std::string& dir,
@@ -345,12 +482,12 @@ AmrLevel::writePlotFilePre (const std::string& dir,
 {
 }
 
+void AmrLevel::writePlotFilePost() {}
 
 void
 AmrLevel::writePlotFilePost (const std::string& dir,
                              std::ostream&      os)
-{
-}
+{}
 
 
 void
@@ -513,6 +650,190 @@ AmrLevel::checkPoint (const std::string& dir,
     levelDirectoryCreated = false;  // ---- now that the checkpoint is finished
 }
 
+#ifdef AMREX_USE_HDF5
+void
+AmrLevel::checkPointHDF5 (H5& h5, bool dump_old)
+{
+  BL_PROFILE("AmrLevel::checkPointHDF5()");
+
+  std::map<std::string, int> vMInt;
+  std::map<std::string, Real> vMReal;
+  std::map<std::string, std::string> vMString;
+
+  // header stuff
+  if (level == 0) {
+
+    vMInt.clear();
+    vMReal.clear();
+    vMString.clear();
+
+    // populate the root folder
+    vMInt["SpaceDim"] = amrex::SpaceDim;
+    vMReal["time"] = parent->cumTime();
+    vMInt["iteration"] = parent->levelSteps(level);
+    vMInt["max_level"] = parent->finestLevel();
+    vMInt["num_levels"] = parent->maxLevel();
+
+    vMInt["num_levels"] = parent->maxLevel();
+    vMInt["num_state"] = desc_lst.size();
+    h5.writeAttribute(vMInt, vMReal, vMString);
+  }
+
+
+  // create a group for all of the levels data
+  H5 level_grp = h5.createGroup("level_" + num2str(level));
+  writeLevelAttrHDF5(level_grp);
+
+  int num_state = (int) desc_lst.size();
+  level_grp.writeAttribute("num_state", num_state, H5T_NATIVE_INT);
+
+  // now go through each multifab associated with the state variables and save them out
+
+  for (int typ = 0; typ < desc_lst.size(); ++typ) {
+
+    H5 state_grp = level_grp.createGroup("state_" + num2str(typ));
+    state[typ].checkPointHDF5(state_grp, dump_old);
+    int nComp = desc_lst[typ].nComp();
+
+    vMInt.clear();
+    vMReal.clear();
+    vMString.clear();
+    vMInt["comps"] = nComp;
+    for (int comp=0; comp < nComp; ++comp) {
+      vMString["component_"+num2str(comp)] = desc_lst[typ].name(comp);
+    }
+    vMInt["num_names"] = vMString.size();
+
+    state_grp.writeAttribute(vMInt, vMReal, vMString);
+
+    state_grp.closeGroup();
+  }
+
+  level_grp.closeGroup();
+
+  return;
+}
+
+void
+AmrLevel::checkPointHDF5Pre ()
+{
+    BL_PROFILE("AmrLevel::checkPointHDF5Pre()");
+}
+
+
+void
+AmrLevel::checkPointHDF5Post ()
+{
+    BL_PROFILE("AmrLevel::checkPointHDF5Post()");
+}
+
+#ifdef AMREX_PARTICLES
+void AmrLevel::checkPointParticlesHDF5(H5& h5)
+{
+  if (level > 0) {
+    return;
+  }
+
+  std::map<std::string, int> aInt;
+  std::map<std::string, double> aReal;
+  std::map<std::string, std::string> aString;
+
+  H5 prt = h5.createGroup("Particles");
+
+  for (int pi=0; pi<particles.size(); ++pi) {
+    AmrTracerParticleContainer* TracerPC = particles[pi];
+    std::string& name = particle_names[pi];
+    TracerPC->CheckpointHDF5(prt, name);
+    aString["collection_"+num2str(pi)] = name;
+  }
+
+  aInt["num_collections"] = (int) particles.size();
+  prt.writeAttribute(aInt, aReal, aString);
+
+  prt.closeGroup();
+}
+
+#endif
+
+void AmrLevel::restartHDF5 (Amr& papa, H5& h5)
+{
+    BL_PROFILE("AmrLevel::restartHDF5()");
+    parent = &papa;
+
+    h5.readAttribute("level", level);
+
+
+    // problem domain (logical)
+    Box bx = readBoxFromHDF5(h5, "prob_domain");
+    RealBox rb = readRealBoxFromHDF5(h5, "real_domain");
+    geom.define(bx, &rb);
+
+
+    fine_ratio = IntVect::TheUnitVector(); fine_ratio.scale(-1);
+    crse_ratio = IntVect::TheUnitVector(); crse_ratio.scale(-1);
+
+    if (level > 0)
+    {
+        crse_ratio = parent->refRatio(level-1);
+    }
+    if (level < parent->maxLevel())
+    {
+        fine_ratio = parent->refRatio(level);
+    }
+
+    // read in the boxes from file
+    grids.readFromHDF5(h5, "boxes");
+
+    int nstate;
+    h5.readAttribute("num_state", nstate);
+    int ndesc = desc_lst.size();
+
+    Vector<int> state_in_checkpoint(ndesc, 1);
+    if (ndesc > nstate) {
+        set_state_in_checkpoint(state_in_checkpoint);
+    } else {
+        BL_ASSERT(nstate == ndesc);
+    }
+
+    dmap.define(grids);
+
+    parent->SetBoxArray(level, grids);
+    parent->SetDistributionMap(level, dmap);
+
+#ifdef AMREX_USE_EB
+    m_factory = makeEBFabFactory(geom, grids, dmap,
+                                 {m_eb_basic_grow_cells, m_eb_volume_grow_cells, m_eb_full_grow_cells},
+                                 m_eb_support_level);
+#else
+    m_factory.reset(new FArrayBoxFactory());
+#endif
+
+    state.resize(ndesc);
+    for (int i = 0; i < ndesc; ++i)
+    {
+        if (state_in_checkpoint[i]) {
+            H5 state_grp = h5.openGroup("state_"+num2str(i));
+            state[i].restartHDF5(state_grp, geom.Domain(), grids, dmap, *m_factory,
+                             desc_lst[i]);
+            state_grp.closeGroup();
+        }
+    }
+
+    if (parent->useFixedCoarseGrids()) constructAreaNotToTag();
+
+    post_step_regrid = 0;
+
+    finishConstructor();
+}
+
+
+#endif
+
+void
+AmrLevel::checkPointPre ()
+{
+    BL_PROFILE("AmrLevel::checkPointPre()");
+}
 
 void
 AmrLevel::checkPointPre (const std::string& dir,
@@ -521,6 +842,12 @@ AmrLevel::checkPointPre (const std::string& dir,
     BL_PROFILE("AmrLevel::checkPointPre()");
 }
 
+
+void
+AmrLevel::checkPointPost ()
+{
+    BL_PROFILE("AmrLevel::checkPointPost()");
+}
 
 void
 AmrLevel::checkPointPost (const std::string& dir,

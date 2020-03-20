@@ -829,4 +829,229 @@ namespace amrex
         return r;
     }
 
+#ifdef AMREX_USE_HDF5
+
+    SortedGrids::SortedGrids()
+    {
+      return;
+    }
+
+    SortedGrids::SortedGrids(const BoxArray &grids, const DistributionMapping &dmap)
+    {
+      update(grids, dmap);
+      return;
+    }
+
+    void SortedGrids::update(const BoxArray &grids, const DistributionMapping &dmap)
+    {
+      const Vector<int>& pMap = dmap.ProcessorMap();
+
+      gridMap.clear();
+      for (int i = 0; i < grids.size(); ++i) {
+        int gridProc = pMap[i];
+        Vector<std::pair<int, Box> >& boxesAtProc = gridMap[gridProc];
+        boxesAtProc.push_back(std::pair<int, Box>(i, grids[i]));
+      }
+
+      // sorted grids and processor ids
+      sortedGrids.resize(grids.size());
+      sortedProcs.resize(grids.size());
+      int bIndex = 0;
+      for (auto it = gridMap.begin(); it != gridMap.end(); ++it) {
+        int proc = it->first;
+        Vector<std::pair<int, Box> >& boxesAtProc = it->second;
+        for (int ii = 0; ii < boxesAtProc.size(); ++ii) {
+          sortedGrids.set(bIndex, boxesAtProc[ii].second);
+          sortedProcs[bIndex] = proc;
+          ++bIndex;
+        }
+      }
+      return;
+    }
+
+    void SortedGrids::update(MultiFab* data_mf)
+    {
+      int nComp = data_mf->nComp();
+
+      // offset of data for each grid
+      offsets.resize(sortedGrids.size() + 1);
+      unsigned long long currentOffset = 0L;
+      for (int b = 0; b < sortedGrids.size(); ++b) {
+        offsets[b] = currentOffset;
+        currentOffset += sortedGrids[b].numPts() * nComp;
+      }
+      offsets[sortedGrids.size()] = currentOffset;
+
+      int nProcs(ParallelDescriptor::NProcs());
+
+      // processor offsets
+      procOffsets.resize(nProcs);
+      procBufferSize.resize(nProcs);
+      unsigned long long totalOffset = 0L;
+      for (auto it = gridMap.begin(); it != gridMap.end(); ++it) {
+        int proc = it->first;
+        Vector<std::pair<int, Box> >& boxesAtProc = it->second;
+        procOffsets[proc] = totalOffset;
+        procBufferSize[proc] = 0L;
+        for (int b = 0; b < boxesAtProc.size(); ++b) {
+          procBufferSize[proc] += boxesAtProc[b].second.numPts() * nComp;
+        }
+        totalOffset += procBufferSize[proc];
+      }
+      return;
+    }
+
+    void SortedGrids::update(const Vector<long> count, const int size)
+    {
+      // offset of data for each grid
+      offsets.resize(sortedGrids.size() + 1);
+      unsigned long long currentOffset = 0L;
+      for (int b = 0; b < sortedGrids.size(); ++b) {
+        offsets[b] = currentOffset;
+        currentOffset += count[b] * size;
+      }
+      offsets[sortedGrids.size()] = currentOffset;
+
+      int nProcs(ParallelDescriptor::NProcs());
+
+      // processor offsets
+      procOffsets.resize(nProcs);
+      procBufferSize.resize(nProcs);
+      unsigned long long totalOffset = 0L;
+      for (auto it = gridMap.begin(); it != gridMap.end(); ++it) {
+        int proc = it->first;
+        Vector<std::pair<int, Box> >& boxesAtProc = it->second;
+        procOffsets[proc] = totalOffset;
+        procBufferSize[proc] = 0L;
+        for (int b = 0; b < boxesAtProc.size(); ++b) {
+          procBufferSize[proc] += count[boxesAtProc[b].first] * size;
+        }
+        totalOffset += procBufferSize[proc];
+      }
+      return;
+    }
+
+    void writeMultiFab(H5& h5, MultiFab* data_mf, const Real time,
+                           const std::vector<std::string> data_names)
+    {
+
+      int myProc(ParallelDescriptor::MyProc());
+      int nComp = data_mf->nComp();
+
+      const BoxArray& grids = data_mf->boxArray();
+      const DistributionMapping& dmap = data_mf->DistributionMap();
+
+      // make sure our multifab doesn't have any ghost cells
+      MultiFab tmp_fab(data_mf->boxArray(), data_mf->DistributionMap(), nComp, 0, MFInfo(), data_mf->Factory());
+      MultiFab::Copy(tmp_fab, *data_mf, 0, 0, nComp, 0);
+
+      //-----------------------------------------------------------------------------------
+      // multifabs data attributes
+
+      std::map<std::string, int> vMInt;
+      std::map<std::string, Real> vMReal;
+      std::map<std::string, std::string> vMString;
+
+      vMInt["comps"] = nComp;
+      vMInt["num_names"] = data_names.size();
+      for (size_t i=0; i<data_names.size(); ++i) {
+          vMString["component_"+num2str(i)] = data_names[i];
+        }
+      vMReal["time"] = time;
+
+      h5.writeAttribute(vMInt, vMReal, vMString);
+
+      // the number of ghost cells saved and output
+      IntVect nGrow = tmp_fab.nGrowVect();
+      hid_t intvect_id = makeH5IntVec();
+      int_h5_t gint = writeH5IntVec(nGrow.getVect());
+      h5.writeAttribute("ghost", gint, intvect_id);
+      h5.writeAttribute("outputGhost", gint, intvect_id);
+      H5Tclose(intvect_id);
+
+      // box layout etc
+      SortedGrids sg(grids, dmap);
+      sg.update(&tmp_fab);
+      sg.sortedGrids.writeOnHDF5(h5, "boxes");
+
+      // offsets
+      h5.writeType("data:offsets=0", {(hsize_t)sg.offsets.size()}, sg.offsets,
+                   H5T_NATIVE_LLONG);
+
+      // first gather
+      std::vector<Real> a_buffer(sg.procBufferSize[myProc], -1.0);
+      long dataCount(0);
+      for (MFIter mfi(tmp_fab); mfi.isValid(); ++mfi) {
+          const Box& vbox = mfi.validbox();
+
+          const Real* dataPtr = (tmp_fab)[mfi].dataPtr();
+          for (int i(0); i < vbox.numPts() * nComp; ++i) {
+              a_buffer[dataCount++] = dataPtr[i];
+            }
+        }
+
+      // define how big and where
+      std::vector<hsize_t> full_dims = {(hsize_t)sg.offsets.back()};
+      std::vector<hsize_t> local_dims = {(hsize_t)sg.procBufferSize[myProc]};
+      std::vector<hsize_t> offset = {(hsize_t)sg.procOffsets[myProc]};
+
+      // then write
+      h5.writeSlab("data:datatype=0", full_dims, local_dims, offset, a_buffer,
+                   H5T_NATIVE_DOUBLE);
+
+      return;
+
+    }
+
+    void readMultiFab(H5& h5, MultiFab* data_mf) {
+
+      // get the boxes
+      BoxArray boxes;
+      boxes.readFromHDF5(h5, "boxes");
+
+      // get the data offsets
+      Vector<unsigned long long> offsets;
+      h5.readType("data:offsets=0", offsets);
+
+      int nComp = data_mf->nComp();
+
+      std::vector<Real> buffer;
+      std::vector<hsize_t> local_dims(1);
+      std::vector<hsize_t> offset(1);
+
+      // make a temporary multifab
+      MultiFab tmp_fab(data_mf->boxArray(), data_mf->DistributionMap(), nComp, 0, MFInfo(), data_mf->Factory());
+
+      // retrieve data and load into multifab
+      for (MFIter mfi(tmp_fab); mfi.isValid(); ++mfi) {
+          const Box& vbox = mfi.validbox();
+
+          // get offset in the hdf5 file for the current box
+          for (int i=0; i<boxes.size(); ++i) {
+            if (boxes.get(i) == vbox) {
+              offset[0] = offsets[i];
+              local_dims[0] = offsets[i+1] - offsets[i];
+              break;
+            }
+            if (i == boxes.size()-1) {
+              amrex::Abort("Error: readMultiFab() unable to find correct box in hdf5 file");
+            }
+          }
+
+          // get the data from the hdf5 file
+          h5.readSlab("data:datatype=0", local_dims, offset, buffer);
+
+          // load the data into the temporary multifab
+          Real* dataPtr = tmp_fab[mfi].dataPtr();
+          for (int i(0); i < vbox.numPts() * nComp; ++i) {
+              dataPtr[i] = buffer[i];
+            }
+        }
+
+        // now copy to the real fab
+        MultiFab::Copy(*data_mf, tmp_fab, 0, 0, nComp, 0);
+    }
+
+#endif
+
 }

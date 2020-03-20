@@ -12,6 +12,10 @@
 
 #include <AMReX_MultiFabUtilI.H>
 
+#ifdef AMREX_USE_HDF5
+#include <AMReX_HDF5.H>
+#endif
+
 namespace amrex
 {
     //! Average nodal-based MultiFab onto cell-centered MultiFab.
@@ -298,6 +302,33 @@ void average_down_nodal (const FabArray<FAB>& fine, FabArray<FAB>& crse,
     }
 }
 
+
+
+#ifdef AMREX_USE_HDF5
+    //! Get a sorted list of grids and processors to aid in saving to HDF5
+    class SortedGrids
+    {
+      public:
+      std::map<int, Vector<std::pair<int,Box> > > gridMap; // = {proc_id:[(index,box),..], ...}
+      BoxArray sortedGrids;
+      Vector<int> sortedProcs;
+      Vector<unsigned long long> offsets;
+      Vector<unsigned long long> procOffsets;
+      Vector<unsigned long long> procBufferSize;
+
+      SortedGrids();
+      SortedGrids(const BoxArray& grids, const DistributionMapping& dmap);
+      void update(const BoxArray& grids, const DistributionMapping& dmap);
+      void update(MultiFab* data_mf);
+      void update(const Vector<long> count, const int size);
+
+    };
+
+    void writeMultiFab(H5& obj, MultiFab* data_mf, const Real time,
+                       const std::vector<std::string> data_names=std::vector<std::string>());
+
+    void readMultiFab(H5& obj, MultiFab* data_mf);
+#endif
 }
 
 #endif

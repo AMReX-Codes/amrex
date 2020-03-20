@@ -12,12 +12,17 @@
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
 #include <AMReX_BCRec.H>
+#include <AMReX_VisMF.H>
 
 #include <AMReX_AmrCore.H>
 
 #ifdef USE_PERILLA
 #include <RegionGraph.H>
 #include <Perilla.H>
+#endif
+
+#ifdef AMREX_USE_HDF5
+#include <AMReX_HDF5.H>
 #endif
 
 namespace amrex {
@@ -249,12 +254,18 @@ public:
 
     //! Write the plot file to be used for visualization.
     virtual void writePlotFile ();
+#ifdef AMREX_USE_HDF5
+    virtual void writePlotFileHDF5();
+#endif
     int stepOfLastPlotFile () const noexcept {return last_plotfile;}
     //! Write the small plot file to be used for visualization.
     virtual void writeSmallPlotFile ();
     int stepOfLastSmallPlotFile () const noexcept {return last_smallplotfile;}
     //! Write current state into a chk* file.
     virtual void checkPoint ();
+#ifdef AMREX_USE_HDF5
+    virtual void checkPointHDF5 (bool dump_old=true);
+#endif
     int stepOfLastCheckPoint () const noexcept {return last_checkpoint;}
 
     const Vector<BoxArray>& getInitialBA() noexcept;
@@ -332,6 +343,18 @@ public:
 
     bool UsingPrecreateDirectories () noexcept;
 
+    std::string& getPlotRoot() { return plot_file_root; }
+    std::string& getCheckpointRoot() { return check_file_root; }
+
+    std::string& getOutputName() { return output_name; }
+    std::ofstream& getOutputStream() { return output_stream; }
+    VisMF::How& getOutputHow() { return output_how; }
+
+#ifdef AMREX_USE_HDF5
+  H5& getOutputHDF5() { return output_h5; }
+  H5& getRestartHDF5() { return restart_h5; }
+#endif
+
 protected:
 
     //! Initialize grid hierarchy -- called by Amr::init.
@@ -343,6 +366,7 @@ protected:
     void checkInput ();
     //! Restart from a checkpoint file.
     void restart (const std::string& filename);
+    void restartHDF5 (const std::string& filename);
     //! Define and initialize coarsest level.
     void defBaseLevel (Real start_time, const BoxArray* lev0_grids = 0, const Vector<int>* pmap = 0);
     //! Define and initialize refined levels.
@@ -426,6 +450,7 @@ protected:
     int              check_int;       //!< How often checkpoint (# time steps).
     Real             check_per;       //!< How often checkpoint (units of time).
     std::string      check_file_root; //!< Root name of checkpoint file.
+    std::string      check_file_type; //!< Type of file output
     int              last_plotfile;   //!< Step number of previous plotfile.
     int              last_smallplotfile;   //!< Step number of previous small plotfile.
     int              plot_int;        //!< How often plotfile (# of time steps)
@@ -438,6 +463,7 @@ protected:
     int              file_name_digits; //!< How many digits to use in the plotfile and checkpoint names
     int              message_int;     //!< How often checking messages touched by user, such as "stop_run"
     std::string      plot_file_root;  //!< Root name of plotfile.
+    std::string      plot_file_type;  //!< Type of file output
     std::string      small_plot_file_root;  //!< Root name of small plotfile.
 
     int              which_level_being_advanced; //!< Only >=0 if we are in Amr::timeStep(level,...)
@@ -462,6 +488,16 @@ protected:
     Real             loadbalance_max_fac;
 
     bool             bUserStopRequest;
+
+    // output parameters
+    std::string output_name;
+    std::ofstream output_stream;
+    VisMF::How output_how;
+
+#ifdef AMREX_USE_HDF5
+    H5 output_h5;
+    H5 restart_h5;
+#endif
 
     //
     // The static data ...

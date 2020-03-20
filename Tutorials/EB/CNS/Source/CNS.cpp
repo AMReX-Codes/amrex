@@ -300,6 +300,14 @@ CNS::post_init (Real)
 void
 CNS::post_restart ()
 {
+    if (do_reflux && level > 0) {
+        flux_reg.define(grids, parent->boxArray(level-1), dmap, 
+                        parent->DistributionMap(level-1), geom, 
+                        parent->Geom(level-1), parent->refRatio(level-1), 
+                        level, NUM_STATE);
+    }
+
+    buildMetrics();
 }
 
 void
@@ -358,7 +366,7 @@ CNS::errorEst (TagBoxArray& tags, int, int, Real time, int, int)
         {
             const Box& bx = mfi.tilebox();
 
-            const auto& sfab = S_new[mfi];
+//            const auto& sfab = S_new[mfi];
             const auto& flag = flags[mfi];
 
             const FabType typ = flag.getType(bx);
@@ -484,7 +492,7 @@ CNS::estTimeStep ()
         {
             const Box& box = mfi.tilebox();
 
-            const auto& sfab = S[mfi];
+//            const auto& sfab = S[mfi];
             const auto& flag = flags[mfi];
 
             if (flag.getType(box) != FabType::covered) {
@@ -523,7 +531,7 @@ CNS::computeTemp (MultiFab& State, int ng)
     {
         const Box& bx = mfi.growntilebox(ng);
 
-        const auto& sfab = State[mfi];
+//        const auto& sfab = State[mfi];
         const auto& flag = flags[mfi];
 
         if (flag.getType(bx) != FabType::covered) {

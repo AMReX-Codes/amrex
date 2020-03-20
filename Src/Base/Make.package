@@ -231,6 +231,12 @@ endif
 CEXE_headers += AMReX_Machine.H
 CEXE_sources += AMReX_Machine.cpp
 
+# HDF5
+ifeq ($(USE_HDF5),TRUE)
+  C$(AMREX_BASE)_headers += AMReX_HDF5.H
+  C$(AMREX_BASE)_sources += AMReX_HDF5.cpp
+endif
+
 VPATH_LOCATIONS += $(AMREX_HOME)/Src/Base
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Base
 

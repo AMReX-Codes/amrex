@@ -9,6 +9,7 @@
 #include <AMReX_StateDescriptor.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Utility.H>
+#include <AMReX_MultiFabUtil.H>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -203,6 +204,123 @@ StateData::restart (std::istream&          is,
 
     restartDoit(is, chkfile);
 }
+
+#ifdef AMREX_USE_HDF5
+
+void
+StateData::checkPointHDF5 (H5& h5, bool dump_old)
+{
+    BL_PROFILE("StateData::checkPointHDF5()");
+
+    if (dump_old == true && old_data == nullptr)
+    {
+        dump_old = false;
+    }
+
+    writeBoxOnHDF5(domain, h5, "domain");
+
+    SortedGrids sg(grids, dmap);
+    sg.sortedGrids.writeOnHDF5(h5, "boxes");
+
+    h5.writeAttribute("old_time_start", old_time.start, H5T_NATIVE_DOUBLE);
+    h5.writeAttribute("old_time_stop", old_time.stop, H5T_NATIVE_DOUBLE);
+    h5.writeAttribute("new_time_start", new_time.start, H5T_NATIVE_DOUBLE);
+    h5.writeAttribute("new_time_stop", new_time.stop, H5T_NATIVE_DOUBLE);
+
+    bool dump_new = false;
+    if (desc->store_in_checkpoint()) {
+       BL_ASSERT(new_data);
+       H5 new_grp = h5.createGroup("new");
+       writeMultiFab(new_grp, new_data.get(), new_time.stop);
+       new_grp.closeGroup();
+       dump_new = true;
+
+       if (dump_old) {
+            BL_ASSERT(old_data);
+            H5 old_grp = h5.createGroup("old");
+           writeMultiFab(old_grp, old_data.get(), old_time.stop);
+           old_grp.closeGroup();
+       }
+
+    } else {
+      dump_old = false;
+    }
+
+    // convert to int for writing, using int for legacy reasons
+    int d_o =  (int)dump_old;
+    int d_n =  (int)dump_new;
+
+    h5.writeAttribute("has_old", d_o, H5T_NATIVE_INT);
+    h5.writeAttribute("has_new", d_n, H5T_NATIVE_INT);
+
+}
+
+void
+StateData::restartHDF5 (H5& h5,
+			const Box&             p_domain,
+			const BoxArray&        grds,
+			const DistributionMapping& dm,
+			const FabFactory<FArrayBox>& factory,
+			const StateDescriptor& d)
+{
+    desc = &d;
+    domain = p_domain;
+    grids = grds;
+    dmap = dm;
+    m_factory.reset(factory.clone());
+
+    // Convert to proper type.
+    IndexType typ(desc->getType());
+    if (!typ.cellCentered()) {
+        domain.convert(typ);
+        grids.convert(typ);
+    }
+
+    {
+        Box domain_in = readBoxFromHDF5(h5, "domain");
+        BoxArray grids_in;
+        grids_in.readFromHDF5(h5, "boxes");
+        BL_ASSERT(domain_in == domain);
+        BL_ASSERT(amrex::match(grids_in,grids));
+    }
+
+    h5.readAttribute("old_time_start", old_time.start);
+    h5.readAttribute("old_time_stop", old_time.stop);
+    h5.readAttribute("new_time_start", new_time.start);
+    h5.readAttribute("new_time_stop", new_time.stop);
+
+    int has_old, has_new;
+    h5.readAttribute("has_old", has_old);
+    h5.readAttribute("has_new", has_new);
+
+    new_data.reset(new MultiFab(grids,dmap,desc->nComp(),desc->nExtra(),
+                                MFInfo(), *m_factory));
+    old_data.reset();
+    if (has_old) {
+        old_data.reset(new MultiFab(grids,dmap,desc->nComp(),desc->nExtra(),
+                                    MFInfo(), *m_factory));
+    }
+    //
+    // If no data is written then we just allocate the MF instead of reading it in.
+    // This assumes that the application will do something with it.
+    // We set it to zero in case a compiler complains about uninitialized data.
+    //
+    if (has_new) {
+      H5 new_grp = h5.openGroup("new");
+      readMultiFab(new_grp, new_data.get());
+      new_grp.closeGroup();
+    } else {
+      new_data->setVal(0.0);
+    }
+
+    if (has_old) {
+      H5 old_grp = h5.openGroup("old");
+      readMultiFab(old_grp, old_data.get());
+      old_grp.closeGroup();
+    }
+
+}
+#endif
 
 void 
 StateData::restartDoit (std::istream& is, const std::string& chkfile)
