@@ -1,19 +1,8 @@
-ifneq ($(which_computer),$(filter $(which_computer),peregrine eagle rhodes))
+ifneq ($(which_computer),$(filter $(which_computer),eagle rhodes))
   $(error Unknown NREL computer, $(which_computer))
 endif
 
-ifeq ($(which_computer), peregrine)
-# Use automatic CPU dispatch for max 
-# vectorization with Intel compilers
-# since Peregrine has haswell and
-# ivybridge nodes.
-  ifeq ($(COMP), intel)
-    CXXFLAGS += -axCORE-AVX2,CORE-AVX-I
-    CFLAGS   += -axCORE-AVX2,CORE-AVX-I
-    FFLAGS   += -axCORE-AVX2,CORE-AVX-I
-    F90FLAGS += -axCORE-AVX2,CORE-AVX-I
-  endif
-else ifeq ($(which_computer), eagle)
+ifeq ($(which_computer), eagle)
 # Eagle is homogeneous at the moment
 # so we can be very specific about arch.
 # We are not accomodating older compilers
@@ -24,10 +13,13 @@ else ifeq ($(which_computer), eagle)
     FFLAGS   += -xSKYLAKE-AVX512
     F90FLAGS += -xSKYLAKE-AVX512
   else ifeq ($(COMP), $(filter $(COMP),gnu gcc llvm))
-    CXXFLAGS += -march=skylake-avx512 -mtune=skylake-avx512
-    CFLAGS   += -march=skylake-avx512 -mtune=skylake-avx512
-    FFLAGS   += -march=skylake-avx512 -mtune=skylake-avx512
-    F90FLAGS += -march=skylake-avx512 -mtune=skylake-avx512
+    # CUDA fails with "machine" redefinition error with these flags
+    ifneq ($(USE_CUDA), TRUE)
+      CXXFLAGS += -march=skylake-avx512 -mtune=skylake-avx512
+      CFLAGS   += -march=skylake-avx512 -mtune=skylake-avx512
+      FFLAGS   += -march=skylake-avx512 -mtune=skylake-avx512
+      F90FLAGS += -march=skylake-avx512 -mtune=skylake-avx512
+    endif
   endif
 else ifeq ($(which_computer), rhodes)
 # Rhodes is dedicated single node machine for testing
