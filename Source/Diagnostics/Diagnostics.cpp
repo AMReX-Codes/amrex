@@ -23,6 +23,8 @@ Diagnostics::ReadParameters ()
     auto & warpx = WarpX::GetInstance();
     // Read list of fields requested by the user.
     ParmParse pp(diag_name);
+    pp.query("file_prefix", file_prefix);
+    pp.query("period", m_period);
     if (!pp.queryarr("fields_to_plot", varnames)){
         varnames = {"Ex", "Ey", "Ez", "Bx", "By", "Bz", "jx", "jy", "jz"};
     }
@@ -110,10 +112,19 @@ void
 Diagnostics::Flush ()
 {
     auto & warpx = WarpX::GetInstance();
-    m_flush_format->WriteToFile(varnames, GetVecOfConstPtrs(mf_avg),
-                                warpx.Geom(), warpx.getistep(), 0.,
-                                warpx.GetPartContainer(), nlev);
+    m_flush_format->WriteToFile(
+        varnames, GetVecOfConstPtrs(mf_avg), warpx.Geom(),
+        warpx.getistep(), warpx.gett_new(0), warpx.GetPartContainer(), nlev,
+        file_prefix);
 }
 
 void
 Diagnostics::FlushRaw () {}
+
+bool
+Diagnostics::DoDump (int step, bool force_flush)
+{
+    if (force_flush) return true;
+    if ( m_period>0 && (step+1)%m_period==0 ) return true;
+    return false;
+}

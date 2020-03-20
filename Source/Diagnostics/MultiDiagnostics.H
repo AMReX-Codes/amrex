@@ -18,7 +18,7 @@ public:
     /** \brief Loop over diags in alldiags and call their InitDiags */
     void InitData ();
     /** \brief Called at each iteration. Compute diags and flush. */
-    void FilterComputePackFlush ();
+    void FilterComputePackFlush (int step, bool force_flush=false);
 private:
     /** Vector of pointers to all diagnostics */
     amrex::Vector<std::unique_ptr<Diagnostics> > alldiags;

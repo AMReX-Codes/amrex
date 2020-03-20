@@ -6,20 +6,23 @@
 using namespace amrex;
 
 void
-FlushFormatPlotfile::WriteToFile (const amrex::Vector<std::string> varnames,
-                                  const amrex::Vector<const amrex::MultiFab*> mf,
-                                  amrex::Vector<amrex::Geometry>& geom,
-                                  const amrex::Vector<int> iteration, const double time,
-                                  MultiParticleContainer& mpc, int nlev) const
+FlushFormatPlotfile::WriteToFile (
+    const amrex::Vector<std::string> varnames,
+    const amrex::Vector<const amrex::MultiFab*> mf,
+    amrex::Vector<amrex::Geometry>& geom,
+    const amrex::Vector<int> iteration, const double time,
+    MultiParticleContainer& mpc, int nlev,
+    const std::string prefix) const
 {
     auto & warpx = WarpX::GetInstance();
-    const std::string& plotfilename = "toto";
-    amrex::Print() << "  Writing plotfile " << plotfilename << "\n";
+    const auto step = iteration[0];
+    const std::string& filename = amrex::Concatenate(prefix, step);
+    amrex::Print() << "  Writing plotfile " << filename << "\n";
 
     Vector<std::string> rfs;
     VisMF::Header::Version current_version = VisMF::GetHeaderVersion();
     VisMF::SetHeaderVersion(amrex::VisMF::Header::Version_v1);
-    amrex::WriteMultiLevelPlotfile(plotfilename, nlev,
+    amrex::WriteMultiLevelPlotfile(filename, nlev,
                                    mf,
                                    varnames, geom,
                                    time, iteration, warpx.refRatio(),
@@ -29,11 +32,11 @@ FlushFormatPlotfile::WriteToFile (const amrex::Vector<std::string> varnames,
                                    rfs
                                    );
 
-    mpc.WritePlotFile(plotfilename);
+    mpc.WritePlotFile(filename);
 
-    WriteJobInfo(plotfilename);
+    WriteJobInfo(filename);
 
-    WriteWarpXHeader(plotfilename);
+    WriteWarpXHeader(filename);
 
     VisMF::SetHeaderVersion(current_version);
 }

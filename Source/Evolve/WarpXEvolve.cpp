@@ -160,8 +160,6 @@ WarpX::Evolve (int numsteps)
 
         cur_time += dt[0];
 
-        multi_diags->FilterComputePackFlush();
-
         bool to_make_plot = ( (plot_int > 0) && ((step+1) % plot_int == 0) );
         bool to_write_openPMD = ( (openpmd_int > 0) && ((step+1) % openpmd_int == 0) );
 
@@ -234,6 +232,8 @@ WarpX::Evolve (int numsteps)
             reduced_diags->ComputeDiags(step);
             reduced_diags->WriteToFile(step);
         }
+
+        multi_diags->FilterComputePackFlush( step );
 
         // slice gen //
         if (to_make_plot || to_write_openPMD || do_insitu || to_make_slice_plot)
@@ -318,6 +318,8 @@ WarpX::Evolve (int numsteps)
                               *Bfield_aux[lev][0],*Bfield_aux[lev][1],
                               *Bfield_aux[lev][2]);
         }
+
+        multi_diags->FilterComputePackFlush( istep[0], true );
 
         if (write_plot_file)
             WritePlotFile();
