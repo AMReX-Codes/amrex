@@ -365,6 +365,7 @@ public:
     amrex::Real getdt (int lev) const {return dt[lev];}
     amrex::Real getmoving_window_x() const {return moving_window_x;};
     bool getis_synchronized() const {return is_synchronized;};
+    void setplot_rho (bool a_plot_rho) {plot_rho = a_plot_rho;};
 
     int maxStep () const {return max_step;}
     amrex::Real stopTime () const {return stop_time;}

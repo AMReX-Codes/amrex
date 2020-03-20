@@ -8,6 +8,7 @@
 #include "FieldIO.H"
 #include "WarpX.H"
 #include "Average.H"
+#include "Utils/WarpXUtil.H"
 
 #include <AMReX_FillPatchUtil_F.H>
 #include <AMReX_Interpolater.H>
@@ -20,21 +21,6 @@
 #endif
 
 using namespace amrex;
-
-namespace
-{
-    // Return true if any element in elems is in vect, false otherwise
-    static bool is_in_vector(std::vector<std::string> vect,
-                             std::vector<std::string> elems)
-    {
-        bool value = false;
-        for (std::string elem : elems){
-            if (std::find(vect.begin(), vect.end(), elem) != vect.end())
-                value = true;
-        }
-        return value;
-    }
-}
 
 #ifdef WARPX_USE_OPENPMD
 /** \brief For a given field that is to be written to an openPMD file,
@@ -454,7 +440,7 @@ WarpX::AverageAndPackFields ( Vector<std::string>& varnames,
     // Add in the RZ modes
     if (n_rz_azimuthal_modes > 1) {
         for (std::string field : fields_to_plot) {
-            if (is_in_vector({"Ex", "Ey", "Ez", "Bx", "By", "Bz", "jx", "jy", "jz", "rho", "F"}, {field})) {
+            if (WarpXUtilStr::is_in({"Ex", "Ey", "Ez", "Bx", "By", "Bz", "jx", "jy", "jz", "rho", "F"}, field)) {
                 ncomp += 2*n_rz_azimuthal_modes - 1;
             }
         }
@@ -478,7 +464,7 @@ WarpX::AverageAndPackFields ( Vector<std::string>& varnames,
         // build cell-centered temporary MultiFab with 3 comps
         MultiFab mf_tmp_E, mf_tmp_B, mf_tmp_J;
         // Build mf_tmp_E is at least one component of E is requested
-        if (is_in_vector(fields_to_plot, {"Ex", "Ey", "Ez"} )){
+        if (WarpXUtilStr::is_in(fields_to_plot, {"Ex", "Ey", "Ez"} )){
             // Allocate temp MultiFab with 3 components
             mf_tmp_E = MultiFab(grids[lev], dmap[lev], nvecs, ngrow);
             // Fill MultiFab mf_tmp_E with averaged E
@@ -487,14 +473,14 @@ WarpX::AverageAndPackFields ( Vector<std::string>& varnames,
             AverageAndPackVectorFieldComponents(mf_tmp_E, Efield_aux[lev], dmap[lev], dcomp, ngrow);
         }
         // Same for B
-        if (is_in_vector(fields_to_plot, {"Bx", "By", "Bz"} )){
+        if (WarpXUtilStr::is_in(fields_to_plot, {"Bx", "By", "Bz"} )){
             mf_tmp_B = MultiFab(grids[lev], dmap[lev], nvecs, ngrow);
             AverageAndPackVectorField(mf_tmp_B, Bfield_aux[lev], dmap[lev], 0, ngrow);
             int dcomp = 3;
             AverageAndPackVectorFieldComponents(mf_tmp_B, Bfield_aux[lev], dmap[lev], dcomp, ngrow);
         }
         // Same for J
-        if (is_in_vector(fields_to_plot, {"jx", "jy", "jz"} )){
+        if (WarpXUtilStr::is_in(fields_to_plot, {"jx", "jy", "jz"} )){
             mf_tmp_J = MultiFab(grids[lev], dmap[lev], nvecs, ngrow);
             AverageAndPackVectorField(mf_tmp_J, current_fp[lev], dmap[lev], 0, ngrow);
             int dcomp = 3;

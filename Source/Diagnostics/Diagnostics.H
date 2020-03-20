@@ -16,6 +16,7 @@ class Diagnostics
 public:
     Diagnostics (int i, std::string name);
     ~Diagnostics ();
+    void ReadParameters ();
     /** Pack (stack) all fields in the cell-centered output MultiFab mf_avg */
     void FilterAndPack ();
     /** Flush mf_avg and particles to file. */
@@ -24,20 +25,18 @@ public:
     void FlushRaw ();
     /** Initialize pointers to main fields and allocate output multifab
      * mf_avg*/
-    void InitData();
+    void InitData ();
 private:
     /** Name of diagnostics: runtime parameter given in the input file. */
     std::string diag_name;
     /** Index of diagnostics in MultiDiagnostics::alldiags */
     int diag_index;
     /** Number of scalar components requested by the user */
-    int const ncomp = 9; // E, B, J * x, y, z
+    int ncomp {9};
     /** Names of  each component requested by the user */
-    amrex::Vector< std::string > varnames
-    {"Ex", "Ey", "Ez", "Bx", "By", "Bz", "jx", "jy", "jz"};
+    amrex::Vector< std::string > varnames;
     /** Pointer to all fields, per level
-     * levels    < Ex Ey Ez Bx etc.                 >
-     */
+     * levels    < Ex Ey Ez Bx etc.                 > */
     amrex::Vector< amrex::Vector <amrex::MultiFab const *> > allfields;
     /** output multifab, where all fields are cell-centered and stacked */
     amrex::Vector< amrex::MultiFab > mf_avg;
