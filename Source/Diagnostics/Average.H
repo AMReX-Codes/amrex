@@ -29,12 +29,31 @@ namespace Average{
      *                      \c mf_in_arr containing the data to be averaged
      * \return averaged field at cell (i,j,k)
      */
+    AMREX_GPU_HOST_DEVICE
+    AMREX_FORCE_INLINE
     Real ToCellCenter ( Array4<Real const> const& mf_in_arr,
                         const IntVect stag,
-                        int i,
-                        int j,
-                        int k,
-                        const int comp=0 );
+                        const int i,
+                        const int j,
+                        const int k,
+                        const int comp=0 )
+    {
+        const int sx = stag[0];
+        const int sy = stag[1];
+#if   (AMREX_SPACEDIM == 2)
+        constexpr int sz = 0;
+#elif (AMREX_SPACEDIM == 3)
+        const int sz = stag[2];
+#endif
+        return 0.125_rt * (   mf_in_arr(i   ,j   ,k   ,comp)
+                            + mf_in_arr(i+sx,j   ,k   ,comp)
+                            + mf_in_arr(i   ,j+sy,k   ,comp)
+                            + mf_in_arr(i   ,j   ,k+sz,comp)
+                            + mf_in_arr(i+sx,j+sy,k   ,comp)
+                            + mf_in_arr(i   ,j+sy,k+sz,comp)
+                            + mf_in_arr(i+sx,j   ,k+sz,comp)
+                            + mf_in_arr(i+sx,j+sy,k+sz,comp) );
+    };
 
     /**
      * \brief Stores the cell-centered average of the floating point data contained
