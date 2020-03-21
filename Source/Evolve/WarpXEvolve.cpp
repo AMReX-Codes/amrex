@@ -185,27 +185,29 @@ WarpX::Evolve (int numsteps)
 
         int num_moved = MoveWindow(move_j);
 
-#ifdef WARPX_DO_ELECTROSTATIC
         // Electrostatic solver: particles can move by an arbitrary number of cells
-        mypc->Redistribute();
-#else
-        // Electromagnetic solver: due to CFL condition, particles can
-        // only move by one or two cells per time step
-        if (max_level == 0) {
-            int num_redistribute_ghost = num_moved;
-            if ((v_galilean[0]!=0) or (v_galilean[1]!=0) or (v_galilean[2]!=0)) {
-                // Galilean algorithm ; particles can move by up to 2 cells
-                num_redistribute_ghost += 2;
-            } else {
-                // Standard algorithm ; particles can move by up to 1 cell
-                num_redistribute_ghost += 1;
-            }
-            mypc->RedistributeLocal(num_redistribute_ghost);
-        }
-        else {
+        if( do_electrostatic )
+        {
             mypc->Redistribute();
+        } else
+        {
+            // Electromagnetic solver: due to CFL condition, particles can
+            // only move by one or two cells per time step
+            if (max_level == 0) {
+                int num_redistribute_ghost = num_moved;
+                if ((v_galilean[0]!=0) or (v_galilean[1]!=0) or (v_galilean[2]!=0)) {
+                    // Galilean algorithm ; particles can move by up to 2 cells
+                    num_redistribute_ghost += 2;
+                } else {
+                    // Standard algorithm ; particles can move by up to 1 cell
+                    num_redistribute_ghost += 1;
+                }
+                mypc->RedistributeLocal(num_redistribute_ghost);
+            }
+            else {
+                mypc->Redistribute();
+            }
         }
-#endif
 
         bool to_sort = (sort_int > 0) && ((step+1) % sort_int == 0);
         if (to_sort) {
@@ -465,9 +467,10 @@ WarpX::OneStep_nosub (Real cur_time)
 void
 WarpX::OneStep_sub1 (Real curtime)
 {
-#ifdef WARPX_DO_ELECTROSTATIC
-    amrex::Abort("Electrostatic solver cannot be used with sub-cycling.");
-#endif
+    if( do_electrostatic )
+    {
+        amrex::Abort("Electrostatic solver cannot be used with sub-cycling.");
+    }
 
     // TODO: we could save some charge depositions
     // Loop over species. For each ionizable species, create particles in

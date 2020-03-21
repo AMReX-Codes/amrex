@@ -2059,7 +2059,6 @@ PREDEFINED             = AMREX_Linux=1            \
                          WARPX=1                  \
                          WARPX_DIM_RZ=1           \
                          WARPX_DIM_XZ=1           \
-                         WARPX_DO_ELECTROSTATIC=1 \
                          WARPX_USE_GPU=1          \
                          WARPX_USE_OPENPMD=1      \
                          WARPX_USE_PSATD=1        \
