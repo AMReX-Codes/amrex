@@ -612,8 +612,14 @@ AmrLevel::setPhysBoundaryValues (FArrayBox& dest,
                                  int        src_comp,
                                  int        num_comp)
 {
-    state[state_indx].FillBoundary(dest,time,geom.CellSize(),
-                                   geom.ProbDomain(),dest_comp,src_comp,num_comp);
+    // Call the Fab interface if available.
+    if (state[state_indx].descriptor()->hasBndryFuncFab()) {
+        state[state_indx].FillBoundary(dest.box(), dest, time, geom, dest_comp, src_comp, num_comp);
+    }
+    else {
+        state[state_indx].FillBoundary(dest,time,geom.CellSize(),
+                                       geom.ProbDomain(),dest_comp,src_comp,num_comp);
+    }
 }
 
 FillPatchIteratorHelper::FillPatchIteratorHelper (AmrLevel& amrlevel,
