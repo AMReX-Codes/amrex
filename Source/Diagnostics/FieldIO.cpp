@@ -532,7 +532,7 @@ WarpX::AverageAndPackFields ( Vector<std::string>& varnames,
                 CopyScalarFieldComponentsToMultiFab(lev, mf_avg, *F_fp[lev], dmap[lev], dcomp, ngrow, n_rz_azimuthal_modes,
                                                     fieldname, varnames);
             } else if (fieldname == "part_per_cell") {
-                MultiFab temp_dat(grids[lev],mf_avg[lev].DistributionMap(),1,0);
+                MultiFab temp_dat(grids[lev],mf_avg[lev].DistributionMap(),1,ngrow);
                 temp_dat.setVal(0);
                 // MultiFab containing number of particles in each cell
                 mypc->Increment(temp_dat, lev);
