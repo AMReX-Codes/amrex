@@ -129,44 +129,62 @@ def calcEz( z, r, k0, w0, wp, t, epsilons) :
             np.exp( -r**2/w0**2 ) * np.cos( k0*z ) * np.sin( wp*t ))
     return( Ez_array )
 
-# Get node centered coordinates
-dr = (rmax - rmin)/nr
-dz = (zmax - zmin)/nz
-coords = np.indices([nr+1, nz+1], 'd')
-rr = rmin + coords[0]*dr
-zz = zmin + coords[1]*dz
-
 # Current time of the simulation
 t0 = pywarpx._libwarpx.libwarpx.warpx_gett_new(0)
 
 # Get the raw field data. Note that these are the real and imaginary
 # parts of the fields for each azimuthal mode.
-Ex_sim_modes = ExWrapper()[...]
-Ez_sim_modes = EzWrapper()[...]
+Ex_sim_wrap = ExWrapper()
+Ez_sim_wrap = EzWrapper()
+Ex_sim_modes = Ex_sim_wrap[...]
+Ez_sim_modes = Ez_sim_wrap[...]
+
+rr_Er = Ex_sim_wrap.mesh('r')
+zz_Er = Ex_sim_wrap.mesh('z')
+rr_Ez = Ez_sim_wrap.mesh('r')
+zz_Ez = Ez_sim_wrap.mesh('z')
+
+rr_Er = rr_Er[:,np.newaxis]*np.ones(zz_Er.shape[0])[np.newaxis,:]
+zz_Er = zz_Er[np.newaxis,:]*np.ones(rr_Er.shape[0])[:,np.newaxis]
+rr_Ez = rr_Ez[:,np.newaxis]*np.ones(zz_Ez.shape[0])[np.newaxis,:]
+zz_Ez = zz_Ez[np.newaxis,:]*np.ones(rr_Ez.shape[0])[:,np.newaxis]
 
 # Sum the real components to get the field along x-axis (theta = 0)
 Er_sim = Ex_sim_modes[:,:,0] + np.sum(Ex_sim_modes[:,:,1::2], axis=2)
 Ez_sim = Ez_sim_modes[:,:,0] + np.sum(Ez_sim_modes[:,:,1::2], axis=2)
 
 # The analytical solutions
-Er_th = calcEr(zz[:-1,:], rr[:-1,:] + dr/2., k0, w0, wp, t0, [epsilon0, epsilon1, epsilon2])
-Ez_th = calcEz(zz[:,:-1] + dz/2., rr[:,:-1], k0, w0, wp, t0, [epsilon0, epsilon1, epsilon2])
+Er_th = calcEr(zz_Er, rr_Er, k0, w0, wp, t0, [epsilon0, epsilon1, epsilon2])
+Ez_th = calcEz(zz_Ez, rr_Ez, k0, w0, wp, t0, [epsilon0, epsilon1, epsilon2])
 
 max_error_Er = abs(Er_sim - Er_th).max()/abs(Er_th).max()
 max_error_Ez = abs(Ez_sim - Ez_th).max()/abs(Ez_th).max()
 print("Max error Er %e"%max_error_Er)
 print("Max error Ez %e"%max_error_Ez)
 
-# Plot the last field from the loop (Ez at iteration 40)
-plt.subplot2grid( (1,2), (0,0) )
-plt.imshow( Ez_sim )
-plt.colorbar()
-plt.title('Ez, last iteration\n(simulation)')
-plt.subplot2grid( (1,2), (0,1) )
-plt.imshow( Ez_th )
-plt.colorbar()
-plt.title('Ez, last iteration\n(theory)')
-plt.tight_layout()
-plt.savefig('langmuir_multi_rz_multimode_analysis.png')
+# Plot the last field from the loop (Er at iteration 40)
+fig, ax = plt.subplots(3)
+im = ax[0].imshow( Er_sim, aspect='auto', origin='lower' )
+fig.colorbar(im, ax=ax[0], orientation='vertical')
+ax[0].set_title('Er, last iteration (simulation)')
+ax[1].imshow( Er_th, aspect='auto', origin='lower' )
+fig.colorbar(im, ax=ax[1], orientation='vertical')
+ax[1].set_title('Er, last iteration (theory)')
+im = ax[2].imshow( (Er_sim - Er_th)/abs(Er_th).max(), aspect='auto', origin='lower' )
+fig.colorbar(im, ax=ax[2], orientation='vertical')
+ax[2].set_title('Er, last iteration (difference)')
+plt.savefig('langmuir_multi_rz_multimode_analysis_Er.png')
+
+fig, ax = plt.subplots(3)
+im = ax[0].imshow( Ez_sim, aspect='auto', origin='lower' )
+fig.colorbar(im, ax=ax[0], orientation='vertical')
+ax[0].set_title('Ez, last iteration (simulation)')
+ax[1].imshow( Ez_th, aspect='auto', origin='lower' )
+fig.colorbar(im, ax=ax[1], orientation='vertical')
+ax[1].set_title('Ez, last iteration (theory)')
+im = ax[2].imshow( (Ez_sim - Ez_th)/abs(Ez_th).max(), aspect='auto', origin='lower' )
+fig.colorbar(im, ax=ax[2], orientation='vertical')
+ax[2].set_title('Ez, last iteration (difference)')
+plt.savefig('langmuir_multi_rz_multimode_analysis_Ez.png')
 
 assert max(max_error_Er, max_error_Ez) < 0.02
