@@ -28,6 +28,14 @@ struct InjectorMomentumCustom
         return {0., 0., 0.};
     }
 
+    // Return momentum at given position (illustration: momentum=0).
+    AMREX_GPU_HOST_DEVICE
+    amrex::XDim3
+    getBulkMomentum (amrex::Real, amrex::Real, amrex::Real) const noexcept
+    {
+        return {0., 0., 0.};
+    }
+
     // Note that we are not allowed to have non-trivial destructor.
     // So we rely on clear() to free memory if needed.
     void clear () { }

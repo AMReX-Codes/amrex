@@ -1,5 +1,5 @@
-/* Copyright 2019 Axel Huebl, Cameron Yang, Maxence Thevenet
- * Weiqun Zhang
+/* Copyright 2019-2020 Andrew Myers, Axel Huebl, Cameron Yang,
+ * Maxence Thevenet, Weiqun Zhang
  *
  * This file is part of WarpX.
  *
@@ -10,6 +10,7 @@
 
 #include "CustomMomentumProb.H"
 #include "Parser/GpuParser.H"
+#include "Utils/WarpXConst.H"
 
 #include <AMReX_Gpu.H>
 #include <AMReX_Dim3.H>
@@ -26,6 +27,14 @@ struct InjectorMomentumConstant
     {
         return amrex::XDim3{m_ux,m_uy,m_uz};
     }
+
+    AMREX_GPU_HOST_DEVICE
+    amrex::XDim3
+    getBulkMomentum (amrex::Real, amrex::Real, amrex::Real) const noexcept
+    {
+        return amrex::XDim3{m_ux,m_uy,m_uz};
+    }
+
 private:
     amrex::Real m_ux, m_uy, m_uz;
 };
@@ -49,6 +58,14 @@ struct InjectorMomentumGaussian
                             amrex::RandomNormal(m_uy_m, m_uy_th),
                             amrex::RandomNormal(m_uz_m, m_uz_th)};
     }
+
+    AMREX_GPU_HOST_DEVICE
+    amrex::XDim3
+    getBulkMomentum (amrex::Real x, amrex::Real y, amrex::Real z) const noexcept
+    {
+        return amrex::XDim3{m_ux_m, m_uy_m, m_uz_m};
+    }
+
 private:
     amrex::Real m_ux_m, m_uy_m, m_uz_m;
     amrex::Real m_ux_th, m_uy_th, m_uz_th;
@@ -106,6 +123,18 @@ struct InjectorMomentumBoltzmann
         // Note that if beta = 0 then the flipping method and Lorentz transform
         // have no effect on the u[dir] direction.
         return amrex::XDim3 {u[0],u[1],u[2]};
+    }
+
+    AMREX_GPU_HOST_DEVICE
+    amrex::XDim3
+    getBulkMomentum (amrex::Real x, amrex::Real y, amrex::Real z) const noexcept
+    {
+        using namespace amrex;
+        Real u[3];
+        for (int idim = 0; idim < 3; ++idim) u[idim] = 0.0_rt;
+        const Real gamma = 1./sqrt(1+beta*beta);
+        u[dir] = gamma*beta;
+        return XDim3 {u[0],u[1],u[2]};
     }
 
 private:
@@ -182,14 +211,30 @@ struct InjectorMomentumJuttner
         return amrex::XDim3 {u[0],u[1],u[2]};
     }
 
+    AMREX_GPU_HOST_DEVICE
+    amrex::XDim3
+    getBulkMomentum (amrex::Real x, amrex::Real y, amrex::Real z) const noexcept
+    {
+        using namespace amrex;
+        Real u[3];
+        for (int idim = 0; idim < 3; ++idim) u[idim] = 0.0_rt;
+        const Real gamma = 1./sqrt(1+beta*beta);
+        u[dir] = gamma*beta;
+        return XDim3 {u[0],u[1],u[2]};
+    }
+
 private:
     int dir;
     amrex::Real beta, theta;
 };
 
-
-// struct whose getMomentum returns momentum for 1 particle, for
-// radial expansion
+/**
+ * \brief struct whose getMomentum returns momentum for 1 particle, for
+ * radial expansion.
+ *
+ * Note - u_over_r is expected to be the normalized momentum gamma*beta
+ * divided by the physical position in SI units.
+**/
 struct InjectorMomentumRadialExpansion
 {
     InjectorMomentumRadialExpansion (amrex::Real a_u_over_r) noexcept
@@ -199,6 +244,13 @@ struct InjectorMomentumRadialExpansion
     AMREX_GPU_HOST_DEVICE
     amrex::XDim3
     getMomentum (amrex::Real x, amrex::Real y, amrex::Real z) const noexcept
+    {
+        return {x*u_over_r, y*u_over_r, z*u_over_r};
+    }
+
+    AMREX_GPU_HOST_DEVICE
+    amrex::XDim3
+    getBulkMomentum (amrex::Real x, amrex::Real y, amrex::Real z) const noexcept
     {
         return {x*u_over_r, y*u_over_r, z*u_over_r};
     }
@@ -219,6 +271,13 @@ struct InjectorMomentumParser
     AMREX_GPU_HOST_DEVICE
     amrex::XDim3
     getMomentum (amrex::Real x, amrex::Real y, amrex::Real z) const noexcept
+    {
+        return amrex::XDim3{m_ux_parser(x,y,z),m_uy_parser(x,y,z),m_uz_parser(x,y,z)};
+    }
+
+    AMREX_GPU_HOST_DEVICE
+    amrex::XDim3
+    getBulkMomentum (amrex::Real x, amrex::Real y, amrex::Real z) const noexcept
     {
         return amrex::XDim3{m_ux_parser(x,y,z),m_uy_parser(x,y,z),m_uz_parser(x,y,z)};
     }
@@ -336,6 +395,50 @@ struct InjectorMomentum
         case Type::custom:
         {
             return object.custom.getMomentum(x,y,z);
+        }
+        default:
+        {
+            amrex::Abort("InjectorMomentum: unknown type");
+            return {0.0,0.0,0.0};
+        }
+        }
+    }
+
+    // call getBulkMomentum from the object stored in the union
+    // (the union is called Object, and the instance is called object).
+    AMREX_GPU_HOST_DEVICE
+    amrex::XDim3
+    getBulkMomentum (amrex::Real x, amrex::Real y, amrex::Real z) const noexcept
+    {
+        switch (type)
+        {
+        case Type::parser:
+        {
+            return object.parser.getBulkMomentum(x,y,z);
+        }
+        case Type::gaussian:
+        {
+            return object.gaussian.getBulkMomentum(x,y,z);
+        }
+        case Type::boltzmann:
+        {
+            return object.boltzmann.getBulkMomentum(x,y,z);
+        }
+        case Type::juttner:
+        {
+            return object.juttner.getBulkMomentum(x,y,z);
+        }
+        case Type::constant:
+        {
+            return object.constant.getBulkMomentum(x,y,z);
+        }
+        case Type::radial_expansion:
+        {
+            return object.radial_expansion.getBulkMomentum(x,y,z);
+        }
+        case Type::custom:
+        {
+            return object.custom.getBulkMomentum(x,y,z);
         }
         default:
         {

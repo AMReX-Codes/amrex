@@ -672,12 +672,20 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
                 // If the particle is not within the species's
                 // xmin, xmax, ymin, ymax, zmin, zmax, go to
                 // the next generated particle.
-                if (!inj_pos->insideBounds(xb, yb, z)) {
+
+                // include ballistic correction for plasma species with bulk motion
+                const XDim3 u_bulk = inj_mom->getBulkMomentum(x, y, z);
+                const Real gamma_bulk = std::sqrt(1.+(u_bulk.x*u_bulk.x+u_bulk.y*u_bulk.y+u_bulk.z*u_bulk.z));
+                const Real betaz_bulk = u.z/gamma_bulk;
+                const Real z0 = z - PhysConst::c*t*betaz_bulk;
+
+                if (!inj_pos->insideBounds(xb, yb, z0)) {
                     p.id() = -1;
                     return;
                 }
-                u = inj_mom->getMomentum(x, y, z);
-                dens = inj_rho->getDensity(x, y, z);
+
+                u = inj_mom->getMomentum(x, y, z0);
+                dens = inj_rho->getDensity(x, y, z0);
                 // Remove particle if density below threshold
                 if ( dens < density_min ){
                     p.id() = -1;
@@ -697,13 +705,15 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
                 //
                 // In order for this equation to be solvable, betaz_lab
                 // is explicitly assumed to have no dependency on z0_lab
-                u = inj_mom->getMomentum(x, y, 0.); // No z0_lab dependency
+                //
+                // Note that we use the bulk momentum to perform the ballastic correction
+                const XDim3 u_bulk = inj_mom->getBulkMomentum(x, y, 0.); // No z0_lab dependency
                 // At this point u is the lab-frame momentum
                 // => Apply the above formula for z0_lab
-                Real gamma_lab = std::sqrt( 1.+(u.x*u.x+u.y*u.y+u.z*u.z) );
-                Real betaz_lab = u.z/(gamma_lab);
-                Real z0_lab = gamma_boost * ( z*(1-beta_boost*betaz_lab)
-                                              - PhysConst::c*t*(betaz_lab-beta_boost) );
+                const Real gamma_lab_bulk = std::sqrt(1.+(u_bulk.x*u_bulk.x+u_bulk.y*u_bulk.y+u_bulk.z*u_bulk.z));
+                const Real betaz_lab_bulk = u.z/(gamma_lab_bulk);
+                const Real z0_lab = gamma_boost * ( z*(1-beta_boost*betaz_lab_bulk)
+                                              - PhysConst::c*t*(betaz_lab_bulk-beta_boost) );
                 // If the particle is not within the lab-frame zmin, zmax, etc.
                 // go to the next generated particle.
                 if (!inj_pos->insideBounds(xb, yb, z0_lab)) {
@@ -719,6 +729,12 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
                 }
                 // Cut density if above threshold
                 dens = amrex::min(dens, density_max);
+
+                // get the full momentum, including thermal motion
+                u = inj_mom->getMomentum(x, y, 0.);
+                const Real gamma_lab = std::sqrt( 1.+(u.x*u.x+u.y*u.y+u.z*u.z) );
+                const Real betaz_lab = u.z/(gamma_lab);
+
                 // At this point u and dens are the lab-frame quantities
                 // => Perform Lorentz transform
                 dens = gamma_boost * dens * ( 1.0 - beta_boost*betaz_lab );
