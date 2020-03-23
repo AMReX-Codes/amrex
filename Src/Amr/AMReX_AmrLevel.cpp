@@ -149,8 +149,9 @@ AmrLevel::AmrLevel (Amr&            papa,
     finishConstructor();
 }
 
-void AmrLevel::getPlotData(MultiFab& plot_data,
-                           std::vector<std::string>& plot_names) {
+void
+AmrLevel::getPlotData(MultiFab&                 plot_data,
+                      std::vector<std::string>& plot_names) {
   plot_names.resize(0);
 
   std::vector<std::pair<int, int> > plot_var_map;
@@ -474,15 +475,10 @@ void AmrLevel::writePlotHDF5Post() {}
 
 #endif
 
-void AmrLevel::writePlotFilePre() {}
-
 void
 AmrLevel::writePlotFilePre (const std::string& dir,
                             std::ostream&      os)
-{
-}
-
-void AmrLevel::writePlotFilePost() {}
+{}
 
 void
 AmrLevel::writePlotFilePost (const std::string& dir,
@@ -727,34 +723,6 @@ AmrLevel::checkPointHDF5Post ()
     BL_PROFILE("AmrLevel::checkPointHDF5Post()");
 }
 
-#ifdef AMREX_PARTICLES
-void AmrLevel::checkPointParticlesHDF5(H5& h5)
-{
-  if (level > 0) {
-    return;
-  }
-
-  std::map<std::string, int> aInt;
-  std::map<std::string, double> aReal;
-  std::map<std::string, std::string> aString;
-
-  H5 prt = h5.createGroup("Particles");
-
-  for (int pi=0; pi<particles.size(); ++pi) {
-    AmrTracerParticleContainer* TracerPC = particles[pi];
-    std::string& name = particle_names[pi];
-    TracerPC->CheckpointHDF5(prt, name);
-    aString["collection_"+num2str(pi)] = name;
-  }
-
-  aInt["num_collections"] = (int) particles.size();
-  prt.writeAttribute(aInt, aReal, aString);
-
-  prt.closeGroup();
-}
-
-#endif
-
 void AmrLevel::restartHDF5 (Amr& papa, H5& h5)
 {
     BL_PROFILE("AmrLevel::restartHDF5()");
@@ -830,23 +798,18 @@ void AmrLevel::restartHDF5 (Amr& papa, H5& h5)
 #endif
 
 void
-AmrLevel::checkPointPre ()
-{
-    BL_PROFILE("AmrLevel::checkPointPre()");
-}
-
-void
 AmrLevel::checkPointPre (const std::string& dir,
                          std::ostream&      os)
 {
     BL_PROFILE("AmrLevel::checkPointPre()");
-}
 
-
-void
-AmrLevel::checkPointPost ()
-{
-    BL_PROFILE("AmrLevel::checkPointPost()");
+#ifdef AMREX_USE_HDF5
+    if (parent->getCheckType() == "HDF5")
+    {
+        checkPointHDF5Pre();
+        return;
+    }
+#endif
 }
 
 void
@@ -854,6 +817,13 @@ AmrLevel::checkPointPost (const std::string& dir,
                           std::ostream&      os)
 {
     BL_PROFILE("AmrLevel::checkPointPost()");
+#ifdef AMREX_USE_HDF5
+    if (parent->getCheckType() == "HDF5")
+    {
+        checkPointHDF5Post();
+        return;
+    }
+#endif
 }
 
 

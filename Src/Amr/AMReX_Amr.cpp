@@ -1047,11 +1047,6 @@ void Amr::writePlotFileHDF5() {
     amr_level[k]->writePlotHDF5(plot_data, plot_names);
   }
 
-#ifdef AMREX_PARTICLES
-  // save any particle data
-  amr_level[0]->checkPointParticlesHDF5(output_h5);
-#endif
-
   for (int k(0); k <= finest_level; ++k) {
     amr_level[k]->writePlotHDF5Post();
   }
@@ -2066,11 +2061,6 @@ Amr::checkPointHDF5 (bool dump_old)
   for (int i = 0; i <= finest_level; ++i) {
       amr_level[i]->checkPointHDF5(output_h5, dump_old);
   }
-
-#ifdef AMREX_PARTICLES
-  // save any particle data
-  amr_level[0]->checkPointParticlesHDF5(output_h5);
-#endif
 
   for (int i = 0; i <= finest_level; ++i) {
       amr_level[i]->checkPointHDF5Post();
@@ -3867,8 +3857,8 @@ Amr::initPltAndChk ()
     pp.query("checkpoint_files_output", checkpoint_files_output);
     pp.query("plot_files_output", plot_files_output);
 
-
-    pp.query("plot_files_type", plot_files_output);
+    plot_file_type = "DEFAULT";
+    pp.query("plot_file_type", plot_file_type);
 
     pp.query("plot_nfiles", plot_nfiles);
     pp.query("checkpoint_nfiles", checkpoint_nfiles);

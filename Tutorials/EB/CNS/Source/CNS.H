@@ -35,14 +35,19 @@ public:
                             amrex::VisMF::How  how = amrex::VisMF::NFiles,
                             bool               dump_old = true) override;
 
-    virtual std::string thePlotFileType () const override {
-        return {"HyperCLaw-V1.1"};
-    }
+    // get the data for the plot file
+    virtual void getPlotData(MultiFab&                 plot_data,
+                             std::vector<std::string>& plot_names) override;
 
-    // Write a plotfile to specified directory.
-    virtual void writePlotFile (const std::string& dir,
-                                std::ostream&      os,
-                                amrex::VisMF::How  how) override;
+
+    // some extra information for the plot file
+    virtual void writePlotFilePost (const std::string& dir,
+                                    std::ostream&      os) override;
+
+#ifdef AMREX_USE_HDF5
+    virtual void checkPointHDF5Post() override;
+    virtual void writePlotHDF5Post() override;
+#endif
 
     // Initialize data on this level from another CNS (during regrid).
     virtual void init (amrex::AmrLevel& old) override;

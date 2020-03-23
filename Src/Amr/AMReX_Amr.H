@@ -355,6 +355,9 @@ public:
   H5& getRestartHDF5() { return restart_h5; }
 #endif
 
+  std::string& getPlotType() {return plot_file_type;}
+  std::string& getCheckType() {return check_file_type;}
+
 protected:
 
     //! Initialize grid hierarchy -- called by Amr::init.
