@@ -12,67 +12,67 @@
 namespace amrex {
 
 typedef struct {
-#if BL_SPACEDIM >= 1
+#if AMREX_SPACEDIM >= 1
   double x;
 #endif
-#if BL_SPACEDIM >= 2
+#if AMREX_SPACEDIM >= 2
   double y;
 #endif
-#if BL_SPACEDIM >= 3
+#if AMREX_SPACEDIM >= 3
   double z;
 #endif
 } real_h5_t;
 
 typedef struct {
-#if BL_SPACEDIM >= 1
+#if AMREX_SPACEDIM >= 1
   int i;
 #endif
-#if BL_SPACEDIM >= 2
+#if AMREX_SPACEDIM >= 2
   int j;
 #endif
-#if BL_SPACEDIM >= 3
+#if AMREX_SPACEDIM >= 3
   int k;
 #endif
 } int_h5_t;
 
 typedef struct {
-#if BL_SPACEDIM >= 1
+#if AMREX_SPACEDIM >= 1
   int lo_i;
 #endif
-#if BL_SPACEDIM >= 2
+#if AMREX_SPACEDIM >= 2
   int lo_j;
 #endif
-#if BL_SPACEDIM >= 3
+#if AMREX_SPACEDIM >= 3
   int lo_k;
 #endif
-#if BL_SPACEDIM >= 1
+#if AMREX_SPACEDIM >= 1
   int hi_i;
 #endif
-#if BL_SPACEDIM >= 2
+#if AMREX_SPACEDIM >= 2
   int hi_j;
 #endif
-#if BL_SPACEDIM >= 3
+#if AMREX_SPACEDIM >= 3
   int hi_k;
 #endif
 } box_h5_t;
 
 typedef struct {
-#if BL_SPACEDIM >= 1
+#if AMREX_SPACEDIM >= 1
   double lo_x;
 #endif
-#if BL_SPACEDIM >= 2
+#if AMREX_SPACEDIM >= 2
   double lo_y;
 #endif
-#if BL_SPACEDIM >= 3
+#if AMREX_SPACEDIM >= 3
   double lo_z;
 #endif
-#if BL_SPACEDIM >= 1
+#if AMREX_SPACEDIM >= 1
   double hi_x;
 #endif
-#if BL_SPACEDIM >= 2
+#if AMREX_SPACEDIM >= 2
   double hi_y;
 #endif
-#if BL_SPACEDIM >= 3
+#if AMREX_SPACEDIM >= 3
   double hi_z;
 #endif
 } rbox_h5_t;
@@ -172,7 +172,7 @@ class H5 {
     herr_t ret;
     // check if the attribute exists
     ret = H5Aexists(m_obj, vName.c_str());
-    if (ret = 0) {
+    if (ret == 0) {
       amrex::Abort(" Attribute " + vName + "does not exist");
     }
     if (ret < 0) {

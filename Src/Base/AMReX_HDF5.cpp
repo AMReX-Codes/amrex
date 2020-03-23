@@ -8,22 +8,22 @@ namespace amrex
 
 hid_t makeH5Box() {
   hid_t box_id = H5Tcreate(H5T_COMPOUND, sizeof(box_h5_t));
-#if BL_SPACEDIM >= 1
+#if AMREX_SPACEDIM >= 1
   H5Tinsert(box_id, "lo_i", HOFFSET(box_h5_t, lo_i), H5T_NATIVE_INT);
 #endif
-#if BL_SPACEDIM >= 2
+#if AMREX_SPACEDIM >= 2
   H5Tinsert(box_id, "lo_j", HOFFSET(box_h5_t, lo_j), H5T_NATIVE_INT);
 #endif
-#if BL_SPACEDIM >= 3
+#if AMREX_SPACEDIM >= 3
   H5Tinsert(box_id, "lo_k", HOFFSET(box_h5_t, lo_k), H5T_NATIVE_INT);
 #endif
-#if BL_SPACEDIM >= 1
+#if AMREX_SPACEDIM >= 1
   H5Tinsert(box_id, "hi_i", HOFFSET(box_h5_t, hi_i), H5T_NATIVE_INT);
 #endif
-#if BL_SPACEDIM >= 2
+#if AMREX_SPACEDIM >= 2
   H5Tinsert(box_id, "hi_j", HOFFSET(box_h5_t, hi_j), H5T_NATIVE_INT);
 #endif
-#if BL_SPACEDIM >= 3
+#if AMREX_SPACEDIM >= 3
   H5Tinsert(box_id, "hi_k", HOFFSET(box_h5_t, hi_k), H5T_NATIVE_INT);
 #endif
 
@@ -32,15 +32,15 @@ hid_t makeH5Box() {
 
 box_h5_t writeH5Box(const Box &b) {
   box_h5_t box;
-#if BL_SPACEDIM >= 1
+#if AMREX_SPACEDIM >= 1
   box.lo_i = b.smallEnd(0);
   box.hi_i = b.bigEnd(0);
 #endif
-#if BL_SPACEDIM >= 2
+#if AMREX_SPACEDIM >= 2
   box.lo_j = b.smallEnd(1);
   box.hi_j = b.bigEnd(1);
 #endif
-#if BL_SPACEDIM >= 3
+#if AMREX_SPACEDIM >= 3
   box.lo_k = b.smallEnd(2);
   box.hi_k = b.bigEnd(2);
 #endif
@@ -48,15 +48,15 @@ box_h5_t writeH5Box(const Box &b) {
 }
 
 void writeH5Box(const Box &b, box_h5_t &box) {
-#if BL_SPACEDIM >= 1
+#if AMREX_SPACEDIM >= 1
   box.lo_i = b.smallEnd(0);
   box.hi_i = b.bigEnd(0);
 #endif
-#if BL_SPACEDIM >= 2
+#if AMREX_SPACEDIM >= 2
   box.lo_j = b.smallEnd(1);
   box.hi_j = b.bigEnd(1);
 #endif
-#if BL_SPACEDIM >= 3
+#if AMREX_SPACEDIM >= 3
   box.lo_k = b.smallEnd(2);
   box.hi_k = b.bigEnd(2);
 #endif
@@ -90,22 +90,22 @@ Box readBoxFromHDF5(H5& h5, const std::string name)
 
 hid_t makeH5RealBox() {
   hid_t box_id = H5Tcreate(H5T_COMPOUND, sizeof(rbox_h5_t));
-#if BL_SPACEDIM >= 1
+#if AMREX_SPACEDIM >= 1
   H5Tinsert(box_id, "lo_x", HOFFSET(rbox_h5_t, lo_x), H5T_NATIVE_DOUBLE);
 #endif
-#if BL_SPACEDIM >= 2
+#if AMREX_SPACEDIM >= 2
   H5Tinsert(box_id, "lo_y", HOFFSET(rbox_h5_t, lo_y), H5T_NATIVE_DOUBLE);
 #endif
-#if BL_SPACEDIM >= 3
+#if AMREX_SPACEDIM >= 3
   H5Tinsert(box_id, "lo_z", HOFFSET(rbox_h5_t, lo_z), H5T_NATIVE_DOUBLE);
 #endif
-#if BL_SPACEDIM >= 1
+#if AMREX_SPACEDIM >= 1
   H5Tinsert(box_id, "hi_x", HOFFSET(rbox_h5_t, hi_x), H5T_NATIVE_DOUBLE);
 #endif
-#if BL_SPACEDIM >= 2
+#if AMREX_SPACEDIM >= 2
   H5Tinsert(box_id, "hi_y", HOFFSET(rbox_h5_t, hi_y), H5T_NATIVE_DOUBLE);
 #endif
-#if BL_SPACEDIM >= 3
+#if AMREX_SPACEDIM >= 3
   H5Tinsert(box_id, "hi_z", HOFFSET(rbox_h5_t, hi_z), H5T_NATIVE_DOUBLE);
 #endif
 
@@ -114,15 +114,15 @@ hid_t makeH5RealBox() {
 
 rbox_h5_t writeH5RealBox(const RealBox &b) {
   rbox_h5_t box;
-#if BL_SPACEDIM >= 1
+#if AMREX_SPACEDIM >= 1
   box.lo_x = b.lo(0);
   box.hi_x = b.hi(0);
 #endif
-#if BL_SPACEDIM >= 2
+#if AMREX_SPACEDIM >= 2
   box.lo_y = b.lo(1);
   box.hi_y = b.hi(1);
 #endif
-#if BL_SPACEDIM >= 3
+#if AMREX_SPACEDIM >= 3
   box.lo_z = b.lo(2);
   box.hi_z = b.hi(2);
 #endif
@@ -155,13 +155,13 @@ RealBox readRealBoxFromHDF5(H5& h5, const std::string name)
 
 hid_t makeH5IntVec() {
   hid_t intvect_id = H5Tcreate(H5T_COMPOUND, sizeof(int_h5_t));
-#if BL_SPACEDIM >= 1
+#if AMREX_SPACEDIM >= 1
   H5Tinsert(intvect_id, "intvecti", HOFFSET(int_h5_t, i), H5T_NATIVE_INT);
 #endif
-#if BL_SPACEDIM >= 2
+#if AMREX_SPACEDIM >= 2
   H5Tinsert(intvect_id, "intvectj", HOFFSET(int_h5_t, j), H5T_NATIVE_INT);
 #endif
-#if BL_SPACEDIM >= 3
+#if AMREX_SPACEDIM >= 3
   H5Tinsert(intvect_id, "intvectk", HOFFSET(int_h5_t, k), H5T_NATIVE_INT);
 #endif
   return intvect_id;
@@ -169,39 +169,39 @@ hid_t makeH5IntVec() {
 
 int_h5_t writeH5IntVec(const int* in) {
   int_h5_t i;
-#if BL_SPACEDIM >= 1
+#if AMREX_SPACEDIM >= 1
   i.i = in[0];
 #endif
-#if BL_SPACEDIM >= 2
+#if AMREX_SPACEDIM >= 2
   i.j = in[1];
 #endif
-#if BL_SPACEDIM >= 3
+#if AMREX_SPACEDIM >= 3
   i.k = in[2];
 #endif
   return i;
 }
 
 void readH5IntVec(int_h5_t &in, int *out) {
-#if BL_SPACEDIM >= 1
+#if AMREX_SPACEDIM >= 1
   out[0] = in.i;
 #endif
-#if BL_SPACEDIM >= 2
+#if AMREX_SPACEDIM >= 2
   out[1] = in.j;
 #endif
-#if BL_SPACEDIM >= 3
+#if AMREX_SPACEDIM >= 3
   out[2] = in.k;
 #endif
 }
 
 hid_t makeH5RealVec() {
 hid_t realvect_id = H5Tcreate(H5T_COMPOUND, sizeof(real_h5_t));
-#if BL_SPACEDIM >= 1
+#if AMREX_SPACEDIM >= 1
   H5Tinsert(realvect_id, "x", HOFFSET(real_h5_t, x), H5T_NATIVE_DOUBLE);
 #endif
-#if BL_SPACEDIM >= 2
+#if AMREX_SPACEDIM >= 2
   H5Tinsert(realvect_id, "y", HOFFSET(real_h5_t, y), H5T_NATIVE_DOUBLE);
 #endif
-#if BL_SPACEDIM >= 3
+#if AMREX_SPACEDIM >= 3
   H5Tinsert(realvect_id, "z", HOFFSET(real_h5_t, z), H5T_NATIVE_DOUBLE);
 #endif
   return realvect_id;
@@ -209,26 +209,26 @@ hid_t realvect_id = H5Tcreate(H5T_COMPOUND, sizeof(real_h5_t));
 
 real_h5_t writeH5RealVec(const Real *in) {
   real_h5_t vec;
-#if BL_SPACEDIM >= 1
+#if AMREX_SPACEDIM >= 1
   vec.x = in[0];
 #endif
-#if BL_SPACEDIM >= 2
+#if AMREX_SPACEDIM >= 2
   vec.y = in[1];
 #endif
-#if BL_SPACEDIM >= 3
+#if AMREX_SPACEDIM >= 3
   vec.z = in[2];
 #endif
   return vec;
 }
 
 void readH5RealVec(real_h5_t &in, double *out) {
-#if BL_SPACEDIM >= 1
+#if AMREX_SPACEDIM >= 1
   out[0] = in.x;
 #endif
-#if BL_SPACEDIM >= 2
+#if AMREX_SPACEDIM >= 2
   out[1] = in.y;
 #endif
-#if BL_SPACEDIM >= 3
+#if AMREX_SPACEDIM >= 3
   out[2] = in.z;
 #endif
 }

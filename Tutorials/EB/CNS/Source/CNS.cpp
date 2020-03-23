@@ -301,10 +301,10 @@ void
 CNS::post_restart ()
 {
     if (do_reflux && level > 0) {
-        flux_reg.define(grids, parent->boxArray(level-1), dmap, 
-                        parent->DistributionMap(level-1), geom, 
-                        parent->Geom(level-1), parent->refRatio(level-1), 
-                        level, NUM_STATE);
+        flux_reg.define(grids, parent->boxArray(level-1),
+                        dmap,  parent->DistributionMap(level-1),
+                        geom,  parent->Geom(level-1),
+                        parent->refRatio(level-1), level, NUM_STATE);
     }
 
     buildMetrics();

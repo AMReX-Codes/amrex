@@ -39,17 +39,14 @@ amr.grid_eff        = 0.99     # what constitutes an efficient grid
 amr.checkpoint_files_output = 1
 amr.check_file              = chk    # root name of checkpoint file
 amr.check_int               = 1    # number of timesteps between checkpoints
-amr.check_file_type         = HDF5
-amr.check_file_type         = DEFAULT
-
-amr.restart = restart.hdf5
+amr.check_file_type         = DEFAULT # choice of file type, HDF5 or DEFAULT
 
 # PLOTFILES
 amr.plot_files_output = 1
 amr.plot_file         = plt     # root name of plotfile
 amr.plot_int          = 1      # number of timesteps between plotfiles
 amr.derive_plot_vars  = pressure x_velocity y_velocity z_velocity
-amr.plot_file_type    = HDF5
+amr.plot_file_type    = HDF5 # choice of file type, HDF5 or DEFAULT
 
 # EB
 eb2.sphere_radius = 0.125
