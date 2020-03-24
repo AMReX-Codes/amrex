@@ -408,13 +408,25 @@ struct BATransformer
         }
         case BATType::coarsenRatio:
         {
-            m_op.m_coarsenRatio.m_crse_ratio = a_ratio;
-            return;
+            if (a_ratio == IntVect::TheUnitVector()) {
+                m_bat_type = BATType::null;
+                return;
+            } else {
+                m_op.m_coarsenRatio.m_crse_ratio = a_ratio;
+                return;
+            }
         }
         case BATType::indexType_coarsenRatio:
         {
-            m_op.m_indexType_coarsenRatio.m_crse_ratio = a_ratio;
-            return;
+            if (a_ratio == IntVect::TheUnitVector()) {
+                m_bat_type = BATType::indexType;
+                auto t = m_op.m_indexType_coarsenRatio.m_typ;
+                m_op.m_indexType.m_typ = t;
+                return;
+            } else {
+                m_op.m_indexType_coarsenRatio.m_crse_ratio = a_ratio;
+                return;
+            }
         }
         case BATType::bndryReg:
         {
@@ -441,8 +453,13 @@ struct BATransformer
         }
         case BATType::indexType:
         {
-            m_op.m_indexType.m_typ = typ;
-            return;
+            if (typ.cellCentered()) {
+                m_bat_type = BATType::null;
+                return;
+            } else {
+                m_op.m_indexType.m_typ = typ;
+                return;
+            }
         }
         case BATType::coarsenRatio:
         {
@@ -450,7 +467,9 @@ struct BATransformer
                 return;
             } else {
                 m_bat_type = BATType::indexType_coarsenRatio;
+                auto r = m_op.m_coarsenRatio.m_crse_ratio;
                 m_op.m_indexType_coarsenRatio.m_typ = typ;
+                m_op.m_indexType_coarsenRatio.m_crse_ratio = r;
                 return;
             }
         }
@@ -618,7 +637,6 @@ public:
 
     //! Coarsen each Box in the BoxArray to the specified ratio.
     BoxArray& coarsen (int refinement_ratio);
-
 
     //! Coarsen each Box in the BoxArray to the specified ratio.
     bool coarsenable(int refinement_ratio, int min_width=1) const;
