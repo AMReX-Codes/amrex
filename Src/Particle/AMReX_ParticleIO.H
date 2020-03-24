@@ -1424,7 +1424,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 {
     Vector<int> write_real_comp;
     Vector<std::string> real_comp_names;
-    for (int i = 0; i < NStructReal + NArrayReal; ++i )
+    for (int i = 0; i < NStructReal + NumRealComps(); ++i )
     {
         write_real_comp.push_back(1);
         std::stringstream ss;
@@ -1434,7 +1434,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     
     Vector<int> write_int_comp;
     Vector<std::string> int_comp_names;
-    for (int i = 0; i < NStructInt + NArrayInt; ++i )
+    for (int i = 0; i < NStructInt + NumIntComps(); ++i )
     {
         write_int_comp.push_back(1);
         std::stringstream ss;
@@ -1454,14 +1454,14 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                  const Vector<std::string>& real_comp_names,
                  const Vector<std::string>& int_comp_names) const
 {    
-    AMREX_ASSERT(real_comp_names.size() == NStructReal + NArrayReal);
-    AMREX_ASSERT( int_comp_names.size() == NStructInt  + NArrayInt );
+    AMREX_ASSERT(real_comp_names.size() == NStructReal + NumRealComps());
+    AMREX_ASSERT( int_comp_names.size() == NStructInt  + NumIntComps() );
 
     Vector<int> write_real_comp;
-    for (int i = 0; i < NStructReal + NArrayReal; ++i) write_real_comp.push_back(1);
+    for (int i = 0; i < NStructReal + NumRealComps(); ++i) write_real_comp.push_back(1);
 
     Vector<int> write_int_comp;
-    for (int i = 0; i < NStructInt + NArrayInt; ++i) write_int_comp.push_back(1);
+    for (int i = 0; i < NStructInt + NumIntComps(); ++i) write_int_comp.push_back(1);
 
     WriteBinaryParticleData(dir, name,
                             write_real_comp, write_int_comp,
@@ -1475,16 +1475,16 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::WritePlotFile (const std::string& dir, const std::string& name,
                  const Vector<std::string>& real_comp_names) const
 {    
-    AMREX_ASSERT(real_comp_names.size() == NStructReal + NArrayReal);
+    AMREX_ASSERT(real_comp_names.size() == NStructReal + NumRealComps());
 
     Vector<int> write_real_comp;
-    for (int i = 0; i < NStructReal + NArrayReal; ++i) write_real_comp.push_back(1);
+    for (int i = 0; i < NStructReal + NumRealComps(); ++i) write_real_comp.push_back(1);
 
     Vector<int> write_int_comp;
-    for (int i = 0; i < NStructInt + NArrayInt; ++i) write_int_comp.push_back(1);
+    for (int i = 0; i < NStructInt + NumIntComps(); ++i) write_int_comp.push_back(1);
 
     Vector<std::string> int_comp_names;
-    for (int i = 0; i < NStructInt + NArrayInt; ++i )
+    for (int i = 0; i < NStructInt + NumIntComps(); ++i )
     {
         std::stringstream ss;
         ss << "int_comp" << i;
@@ -1505,11 +1505,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                  const Vector<int>& write_real_comp,
                  const Vector<int>& write_int_comp) const
 {    
-    AMREX_ASSERT(write_real_comp.size() == NStructReal + NArrayReal);
+    AMREX_ASSERT(write_real_comp.size() == NStructReal + NumRealComps());
     AMREX_ASSERT(write_int_comp.size()  == NStructInt  + NArrayInt );
     
     Vector<std::string> real_comp_names;
-    for (int i = 0; i < NStructReal + NArrayReal; ++i )
+    for (int i = 0; i < NStructReal + NumRealComps(); ++i )
     {
         std::stringstream ss;
         ss << "real_comp" << i;
@@ -1517,7 +1517,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     }
 
     Vector<std::string> int_comp_names;
-    for (int i = 0; i < NStructInt + NArrayInt; ++i )
+    for (int i = 0; i < NStructInt + NumIntComps(); ++i )
     {
         std::stringstream ss;
         ss << "int_comp" << i;
@@ -1554,7 +1554,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 {
     Vector<int> write_real_comp;
     Vector<std::string> real_comp_names;
-    for (int i = 0; i < NStructReal + NArrayReal; ++i )
+    for (int i = 0; i < NStructReal + NumRealComps(); ++i )
     {
         write_real_comp.push_back(1);
         std::stringstream ss;
@@ -1564,7 +1564,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     
     Vector<int> write_int_comp;
     Vector<std::string> int_comp_names;
-    for (int i = 0; i < NStructInt + NArrayInt; ++i )
+    for (int i = 0; i < NStructInt + NumIntComps(); ++i )
     {
         write_int_comp.push_back(1);
         std::stringstream ss;
@@ -1585,14 +1585,14 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                  const Vector<std::string>& real_comp_names,
                  const Vector<std::string>& int_comp_names, F&& f) const
 {    
-    AMREX_ASSERT(real_comp_names.size() == NStructReal + NArrayReal);
+    AMREX_ASSERT(real_comp_names.size() == NStructReal + NumRealComps());
     AMREX_ASSERT( int_comp_names.size() == NStructInt  + NArrayInt );
 
     Vector<int> write_real_comp;
-    for (int i = 0; i < NStructReal + NArrayReal; ++i) write_real_comp.push_back(1);
+    for (int i = 0; i < NStructReal + NumRealComps(); ++i) write_real_comp.push_back(1);
 
     Vector<int> write_int_comp;
-    for (int i = 0; i < NStructInt + NArrayInt; ++i) write_int_comp.push_back(1);
+    for (int i = 0; i < NStructInt + NumIntComps(); ++i) write_int_comp.push_back(1);
 
     WriteBinaryParticleData(dir, name,
                             write_real_comp, write_int_comp,
@@ -1607,16 +1607,16 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::WritePlotFile (const std::string& dir, const std::string& name,
                  const Vector<std::string>& real_comp_names, F&& f) const
 {    
-    AMREX_ASSERT(real_comp_names.size() == NStructReal + NArrayReal);
+    AMREX_ASSERT(real_comp_names.size() == NStructReal + NumRealComps());
 
     Vector<int> write_real_comp;
-    for (int i = 0; i < NStructReal + NArrayReal; ++i) write_real_comp.push_back(1);
+    for (int i = 0; i < NStructReal + NumRealComps(); ++i) write_real_comp.push_back(1);
 
     Vector<int> write_int_comp;
-    for (int i = 0; i < NStructInt + NArrayInt; ++i) write_int_comp.push_back(1);
+    for (int i = 0; i < NStructInt + NumIntComps(); ++i) write_int_comp.push_back(1);
 
     Vector<std::string> int_comp_names;
-    for (int i = 0; i < NStructInt + NArrayInt; ++i )
+    for (int i = 0; i < NStructInt + NumIntComps(); ++i )
     {
         std::stringstream ss;
         ss << "int_comp" << i;
@@ -1638,11 +1638,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                  const Vector<int>& write_real_comp,
                  const Vector<int>& write_int_comp, F&& f) const
 {    
-    AMREX_ASSERT(write_real_comp.size() == NStructReal + NArrayReal);
-    AMREX_ASSERT(write_int_comp.size()  == NStructInt  + NArrayInt );
+    AMREX_ASSERT(write_real_comp.size() == NStructReal + NumRealComps());
+    AMREX_ASSERT(write_int_comp.size()  == NStructInt  + NumIntComps() );
     
     Vector<std::string> real_comp_names;
-    for (int i = 0; i < NStructReal + NArrayReal; ++i )
+    for (int i = 0; i < NStructReal + NumRealComps(); ++i )
     {
         std::stringstream ss;
         ss << "real_comp" << i;
@@ -1650,7 +1650,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     }
 
     Vector<std::string> int_comp_names;
-    for (int i = 0; i < NStructInt + NArrayInt; ++i )
+    for (int i = 0; i < NStructInt + NumIntComps(); ++i )
     {
         std::stringstream ss;
         ss << "int_comp" << i;
@@ -2119,7 +2119,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                   Vector<int>& which, Vector<int>& count, Vector<long>& where,
                   const Vector<int>& write_real_comp,
                   const Vector<int>& write_int_comp,
-				  const Vector<std::map<std::pair<int, int>, Vector<int>>>& particle_io_flags) const
+                  const Vector<std::map<std::pair<int, int>, Vector<int>>>& particle_io_flags) const
 {
     BL_PROFILE("ParticleContainer::WriteParticles()");
 
