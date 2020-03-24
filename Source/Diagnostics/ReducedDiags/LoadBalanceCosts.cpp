@@ -49,8 +49,9 @@ void LoadBalanceCosts::ComputeDiags (int step)
     m_nBoxesMax = std::max(m_nBoxesMax, nBoxes);
 
     // resize and clear data array
-    m_data.resize(m_nDataFields*nBoxes, 0.0);
-    m_data.assign(m_nDataFields*nBoxes, 0.0);
+    const size_t dataSize = m_nDataFields*nBoxes;
+    m_data.resize(dataSize, 0.0);
+    m_data.assign(dataSize, 0.0);
 
     // read in WarpX costs_heuristic to local copy
     amrex::Vector<std::unique_ptr<amrex::Vector<amrex::Real> > > costs_heuristic;
