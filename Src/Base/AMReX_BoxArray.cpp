@@ -375,13 +375,35 @@ BoxArray::numPts () const noexcept
 {
     long result = 0;
     const int N = size();
+    auto const& bxs = this->m_ref->m_abox;
+    if (m_bat.is_null()) {
 #ifdef _OPENMP
 #pragma omp parallel for reduction(+:result)
 #endif
-    for (int i = 0; i < N; ++i)
-    {
-        result += (*this)[i].numPts();
+        for (int i = 0; i < N; ++i)
+        {
+            result += bxs[i].numPts();
+        }
+    } else if (m_bat.is_simple()) {
+        IndexType t = ixType();
+        IntVect cr = crseRatio();
+#ifdef _OPENMP
+#pragma omp parallel for reduction(+:result)
+#endif
+        for (int i = 0; i < N; ++i)
+        {
+            result += amrex::convert(amrex::coarsen(bxs[i],cr),t).numPts();
+        }
+    } else {
+#ifdef _OPENMP
+#pragma omp parallel for reduction(+:result)
+#endif
+        for (int i = 0; i < N; ++i)
+        {
+            result += m_bat.m_op.m_bndryReg(bxs[i]).numPts();
+        }
     }
+
     return result;
 }
 
@@ -390,13 +412,35 @@ BoxArray::d_numPts () const noexcept
 {
     double result = 0;
     const int N = size();
+    auto const& bxs = this->m_ref->m_abox;
+    if (m_bat.is_null()) {
 #ifdef _OPENMP
 #pragma omp parallel for reduction(+:result)
 #endif
-    for (int i = 0; i < N; ++i)
-    {
-        result += (*this)[i].d_numPts();
+        for (int i = 0; i < N; ++i)
+        {
+            result += bxs[i].d_numPts();
+        }
+    } else if (m_bat.is_simple()) {
+        IndexType t = ixType();
+        IntVect cr = crseRatio();
+#ifdef _OPENMP
+#pragma omp parallel for reduction(+:result)
+#endif
+        for (int i = 0; i < N; ++i)
+        {
+            result += amrex::convert(amrex::coarsen(bxs[i],cr),t).d_numPts();
+        }
+    } else {
+#ifdef _OPENMP
+#pragma omp parallel for reduction(+:result)
+#endif
+        for (int i = 0; i < N; ++i)
+        {
+            result += m_bat.m_op.m_bndryReg(bxs[i]).d_numPts();
+        }
     }
+
     return result;
 }
 
@@ -423,8 +467,21 @@ BoxArray::writeOn (std::ostream& os) const
     os << '(' << size() << ' ' << 0 << '\n';
 
     const int N = size();
-    for (int i = 0; i < N; ++i) {
-        os << (*this)[i] << '\n';
+    auto const& bxs = this->m_ref->m_abox;
+    if (m_bat.is_null()) {
+        for (int i = 0; i < N; ++i) {
+            os << bxs[i] << '\n';
+        }
+    } else if (m_bat.is_simple()) {
+        IndexType t = ixType();
+        IntVect cr = crseRatio();
+        for (int i = 0; i < N; ++i) {
+            os << amrex::convert(amrex::coarsen(bxs[i],cr),t) << '\n';
+        }
+    } else {
+        for (int i = 0; i < N; ++i) {
+            os << m_bat.m_op.m_bndryReg(bxs[i]) << '\n';
+        }
     }
 
     os << ')';
@@ -530,14 +587,37 @@ BoxArray::coarsenable(const IntVect& refinement_ratio, int min_width) const
     bool res = first.coarsenable(refinement_ratio,min_width);
     if (res == false) return false;
 
+    auto const& bxs = this->m_ref->m_abox;
+    if (m_bat.is_null()) {
 #ifdef _OPENMP
 #pragma omp parallel for reduction(&&:res)
 #endif
-    for (long ibox = 0; ibox < sz; ++ibox)
-    {
-        const Box& thisbox = (*this)[ibox];        
-        res = res && thisbox.coarsenable(refinement_ratio,min_width);
-    }        
+        for (long ibox = 0; ibox < sz; ++ibox)
+        {
+            const Box& thisbox = bxs[ibox];
+            res = res && thisbox.coarsenable(refinement_ratio,min_width);
+        }
+    } else if (m_bat.is_simple()) {
+        IndexType t = ixType();
+        IntVect cr = crseRatio();
+#ifdef _OPENMP
+#pragma omp parallel for reduction(&&:res)
+#endif
+        for (long ibox = 0; ibox < sz; ++ibox)
+        {
+            const Box& thisbox = amrex::convert(amrex::coarsen(bxs[ibox],cr),t);
+            res = res && thisbox.coarsenable(refinement_ratio,min_width);
+        }
+    } else {
+#ifdef _OPENMP
+#pragma omp parallel for reduction(&&:res)
+#endif
+        for (long ibox = 0; ibox < sz; ++ibox)
+        {
+            const Box& thisbox = m_bat.m_op.m_bndryReg(bxs[ibox]);
+            res = res && thisbox.coarsenable(refinement_ratio,min_width);
+        }
+    }
 
     return res;
 }
@@ -770,10 +850,20 @@ BoxArray::ok () const
     const int N = size();
     if (N > 0)
     {
-        for (int i = 0; i < N; ++i)
-        {
-            if(!(*this)[i].ok()) {
-                return false;
+        auto const& bxs = this->m_ref->m_abox;
+        if (m_bat.is_null()) {
+            for (int i = 0; i < N; ++i) {
+                if (not bxs[i].ok()) return false;
+            }
+        } else if (m_bat.is_simple()) {
+            IndexType t = ixType();
+            IntVect cr = crseRatio();
+            for (int i = 0; i < N; ++i) {
+                if (not amrex::convert(amrex::coarsen(bxs[i],cr),t).ok()) return false;
+            }
+        } else {
+            for (int i = 0; i < N; ++i) {
+                if (not m_bat.m_op.m_bndryReg(bxs[i]).ok()) return false;
             }
         }
     }
@@ -788,11 +878,23 @@ BoxArray::isDisjoint () const
     std::vector< std::pair<int,Box> > isects;
 
     const int N = size();
-    for (int i = 0; i < N; ++i)
-    {
-	intersections((*this)[i],isects);
-        if ( isects.size() > 1 ) {
-            return false;
+    auto const& bxs = this->m_ref->m_abox;
+    if (m_bat.is_null()) {
+        for (int i = 0; i < N; ++i) {
+            intersections(bxs[i],isects);
+            if ( isects.size() > 1 ) return false;
+        }
+    } else if (m_bat.is_simple()) {
+        IndexType t = ixType();
+        IntVect cr = crseRatio();
+        for (int i = 0; i < N; ++i) {
+            intersections(amrex::convert(amrex::coarsen(bxs[i],cr),t), isects);
+            if ( isects.size() > 1 ) return false;
+        }
+    } else {
+        for (int i = 0; i < N; ++i) {
+            intersections(m_bat.m_op.m_bndryReg(bxs[i]), isects);
+            if ( isects.size() > 1 ) return false;
         }
     }
 
@@ -807,8 +909,21 @@ BoxArray::boxList () const
     newb.data().reserve(N);
     if (N > 0) {
 	newb.set(ixType());
-	for (int i = 0; i < N; ++i) {
-	    newb.push_back((*this)[i]);
+        auto const& bxs = this->m_ref->m_abox;
+        if (m_bat.is_null()) {
+            for (int i = 0; i < N; ++i) {
+                newb.push_back(bxs[i]);
+            }
+        } else if (m_bat.is_simple()) {
+            IndexType t = ixType();
+            IntVect cr = crseRatio();
+            for (int i = 0; i < N; ++i) {
+                newb.push_back(amrex::convert(amrex::coarsen(bxs[i],cr),t));
+            }
+        } else {
+            for (int i = 0; i < N; ++i) {
+                newb.push_back(m_bat.m_op.m_bndryReg(bxs[i]));
+            }
         }
     }
     return newb;
@@ -1078,7 +1193,6 @@ BoxArray::intersections (const Box&                         bx,
 
 	auto TheEnd = BoxHashMap.cend();
 
-        bool super_simple = m_bat.is_null();
         auto& abox = m_ref->m_abox;
 
         for (IntVect iv = cbx.smallEnd(), End = cbx.bigEnd(); iv <= End; cbx.next(iv))
@@ -1087,15 +1201,43 @@ BoxArray::intersections (const Box&                         bx,
 
             if (it != TheEnd)
             {
-                for (const int index : it->second)
-                {
-                    const Box& ibox = super_simple ? abox[index] : (*this)[index];
-                    const Box& isect = bx & amrex::grow(ibox,ng);
-
-                    if (isect.ok())
+                if (m_bat.is_null()) {
+                    for (const int index : it->second)
                     {
-                        isects.push_back(std::pair<int,Box>(index,isect));
-			if (first_only) return;
+                        const Box& ibox = abox[index];
+                        const Box& isect = bx & amrex::grow(ibox,ng);
+
+                        if (isect.ok())
+                        {
+                            isects.push_back(std::pair<int,Box>(index,isect));
+                            if (first_only) return;
+                        }
+                    }
+                } else if (m_bat.is_simple()) {
+                    IndexType t = ixType();
+                    IntVect cr = crseRatio();
+                    for (const int index : it->second)
+                    {
+                        const Box& ibox = amrex::convert(amrex::coarsen(abox[index],cr),t);
+                        const Box& isect = bx & amrex::grow(ibox,ng);
+
+                        if (isect.ok())
+                        {
+                            isects.push_back(std::pair<int,Box>(index,isect));
+                            if (first_only) return;
+                        }
+                    }
+                } else {
+                    for (const int index : it->second)
+                    {
+                        const Box& ibox = m_bat.m_op.m_bndryReg(abox[index]);
+                        const Box& isect = bx & amrex::grow(ibox,ng);
+
+                        if (isect.ok())
+                        {
+                            isects.push_back(std::pair<int,Box>(index,isect));
+                            if (first_only) return;
+                        }
                     }
                 }
             }
@@ -1148,7 +1290,6 @@ BoxArray::complementIn (BoxList& bl, const Box& bx) const
         newbl.reserve(bl.capacity());
         BoxList newdiff(bl.ixType());
 
-        bool super_simple = m_bat.is_null();
         auto& abox = m_ref->m_abox;
 
 	for (IntVect iv = cbx.smallEnd(), End = cbx.bigEnd(); 
@@ -1159,20 +1300,55 @@ BoxArray::complementIn (BoxList& bl, const Box& bx) const
 
             if (it != TheEnd)
             {
-                for (const int index : it->second)
-                {
-                    const Box& isect = (super_simple)
-                        ? (bx & abox[index])
-                        : (bx & (*this)[index]);
-
-                    if (isect.ok())
+                if (m_bat.is_null()) {
+                    for (const int index : it->second)
                     {
-                        newbl.clear();
-                        for (const Box& b : bl) {
-                            amrex::boxDiff(newdiff, b, isect);
-                            newbl.join(newdiff);
+                        const Box& ibox = abox[index];
+                        const Box& isect = bx & ibox;
+
+                        if (isect.ok())
+                        {
+                            newbl.clear();
+                            for (const Box& b : bl) {
+                                amrex::boxDiff(newdiff, b, isect);
+                                newbl.join(newdiff);
+                            }
+                            bl.swap(newbl);
                         }
-                        bl.swap(newbl);
+                    }
+                } else if (m_bat.is_simple()) {
+                    IndexType t = ixType();
+                    IntVect cr = crseRatio();
+                    for (const int index : it->second)
+                    {
+                        const Box& ibox = amrex::convert(amrex::coarsen(abox[index],cr),t);
+                        const Box& isect = bx & ibox;
+
+                        if (isect.ok())
+                        {
+                            newbl.clear();
+                            for (const Box& b : bl) {
+                                amrex::boxDiff(newdiff, b, isect);
+                                newbl.join(newdiff);
+                            }
+                            bl.swap(newbl);
+                        }
+                    }
+                } else {
+                    for (const int index : it->second)
+                    {
+                        const Box& ibox = m_bat.m_op.m_bndryReg(abox[index]);
+                        const Box& isect = bx & ibox;
+
+                        if (isect.ok())
+                        {
+                            newbl.clear();
+                            for (const Box& b : bl) {
+                                amrex::boxDiff(newdiff, b, isect);
+                                newbl.join(newdiff);
+                            }
+                            bl.swap(newbl);
+                        }
                     }
                 }
             }
