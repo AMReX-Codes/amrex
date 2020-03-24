@@ -276,10 +276,8 @@ struct BATransformer
             return m_op.m_coarsenRatio(ab);
         case     BATType::indexType_coarsenRatio:
             return m_op.m_indexType_coarsenRatio(ab);
-        case     BATType::bndryReg:
-            return m_op.m_bndryReg(ab);
         default:
-            return ab;
+            return m_op.m_bndryReg(ab);
         }
     }
 
@@ -294,10 +292,8 @@ struct BATransformer
             return m_op.m_coarsenRatio.coarsen(a_box);
         case     BATType::indexType_coarsenRatio:
             return m_op.m_indexType_coarsenRatio.coarsen(a_box);
-        case     BATType::bndryReg:
-            return m_op.m_bndryReg.coarsen(a_box);
         default:
-            return a_box;
+            return m_op.m_bndryReg.coarsen(a_box);
         }
     }
 
@@ -312,10 +308,8 @@ struct BATransformer
             return m_op.m_coarsenRatio.doiLo();
         case     BATType::indexType_coarsenRatio:
             return m_op.m_indexType_coarsenRatio.doiLo();
-        case     BATType::bndryReg:
-            return m_op.m_bndryReg.doiLo();
         default:
-            return IntVect::TheZeroVector();
+            return m_op.m_bndryReg.doiLo();
         }
     }
 
@@ -330,10 +324,8 @@ struct BATransformer
             return m_op.m_coarsenRatio.doiHi();
         case     BATType::indexType_coarsenRatio:
             return m_op.m_indexType_coarsenRatio.doiHi();
-        case     BATType::bndryReg:
-            return m_op.m_bndryReg.doiHi();
         default:
-            return IntVect::TheZeroVector();
+            return m_op.m_bndryReg.doiHi();
         }
     }
 
@@ -348,10 +340,8 @@ struct BATransformer
             return m_op.m_coarsenRatio.index_type();
         case     BATType::indexType_coarsenRatio:
             return m_op.m_indexType_coarsenRatio.index_type();
-        case     BATType::bndryReg:
-            return m_op.m_bndryReg.index_type();
         default:
-            return IndexType();
+            return m_op.m_bndryReg.index_type();
         }
     }
 
@@ -366,10 +356,8 @@ struct BATransformer
             return m_op.m_coarsenRatio.coarsen_ratio();
         case     BATType::indexType_coarsenRatio:
             return m_op.m_indexType_coarsenRatio.coarsen_ratio();
-        case     BATType::bndryReg:
-            return m_op.m_bndryReg.coarsen_ratio();
         default:
-            return IntVect::TheUnitVector();
+            return m_op.m_bndryReg.coarsen_ratio();
         }
     }
 
@@ -428,13 +416,11 @@ struct BATransformer
                 return;
             }
         }
-        case BATType::bndryReg:
+        default:
         {
             m_op.m_bndryReg.m_crse_ratio = a_ratio;
             return;
         }
-        default:
-            return;
         }
     }
 
@@ -485,13 +471,11 @@ struct BATransformer
                 return;
             }
         }
-        case BATType::bndryReg:
+        default:
         {
             m_op.m_bndryReg.m_typ = typ;
             return;
         }
-        default:
-            return;
         }
     }
 
@@ -518,7 +502,6 @@ struct BATransformer
         }
     }
 
-private:
     BATType m_bat_type;
     BATOp m_op;
 };
