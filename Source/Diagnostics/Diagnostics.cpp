@@ -25,6 +25,12 @@ Diagnostics::ReadParameters ()
     ParmParse pp(diag_name);
     pp.query("file_prefix", file_prefix);
     pp.query("period", m_period);
+    pp.query("plot_raw_fields", m_plot_raw_fields);
+    pp.query("plot_raw_fields_guards", m_plot_raw_fields_guards);
+    pp.query("plot_rho", m_plot_rho);
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_plot_rho==false, "cannot plot_rho yet");
+    pp.query("plot_F", m_plot_F);
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_plot_F==false, "cannot plot_F yet");
     if (!pp.queryarr("fields_to_plot", varnames)){
         varnames = {"Ex", "Ey", "Ez", "Bx", "By", "Bz", "jx", "jy", "jz"};
     }
@@ -113,9 +119,9 @@ Diagnostics::Flush ()
 {
     auto & warpx = WarpX::GetInstance();
     m_flush_format->WriteToFile(
-        varnames, GetVecOfConstPtrs(mf_avg), warpx.Geom(),
-        warpx.getistep(), warpx.gett_new(0), warpx.GetPartContainer(), nlev,
-        file_prefix);
+        varnames, GetVecOfConstPtrs(mf_avg), warpx.Geom(), warpx.getistep(),
+        warpx.gett_new(0), warpx.GetPartContainer(), nlev, file_prefix,
+        m_plot_raw_fields, m_plot_raw_fields_guards, m_plot_rho, m_plot_F);
 }
 
 void
@@ -127,4 +133,11 @@ Diagnostics::DoDump (int step, bool force_flush)
     if (force_flush) return true;
     if ( m_period>0 && (step+1)%m_period==0 ) return true;
     return false;
+}
+
+void
+Diagnostics::AddToVarNames (std::string name, std::string suffix) {
+    auto coords = {"x", "y", "z"};
+    for(auto coord:coords) varnames.push_back(name+coord+suffix);
+    ncomp += 1;
 }

@@ -32,6 +32,10 @@ public:
      * \return bool, whether to flush
      */
     bool DoDump (int step, bool force_flush=false);
+    /** \brief Add variable names to the list.
+     */
+    void AddToVarNames (std::string name, std::string suffix);
+
 private:
     /** Name of diagnostics: runtime parameter given in the input file. */
     std::string diag_name;
@@ -54,6 +58,14 @@ private:
     int nlev;
     /** This class is responsible for flushing the data to file */
     FlushFormat* m_flush_format;
+    /** Whether to plot raw (i.e., NOT cell-centered) fields */
+    bool m_plot_raw_fields = false;
+    /** Whether to plot guard cells of raw fields */
+    bool m_plot_raw_fields_guards = false;
+    /** Whether to plot charge density rho */
+    bool m_plot_rho = false;
+    /** Whether to plot F (charge conservation error) */
+    bool m_plot_F = false;
 };
 
 #endif // WARPX_DIAGNOSTICS_H_

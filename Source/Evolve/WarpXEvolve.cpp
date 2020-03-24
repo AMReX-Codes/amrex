@@ -235,6 +235,10 @@ WarpX::Evolve (int numsteps)
             reduced_diags->WriteToFile(step);
         }
 
+        // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        // WARNING! This is WIP:
+        // - fields on particles is NOT synchronized with other quantities
+        // - plot_rho and plot_F are not supported with these diagnostics
         multi_diags->FilterComputePackFlush( step );
 
         // slice gen //
