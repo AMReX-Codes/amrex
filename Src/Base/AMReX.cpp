@@ -155,14 +155,8 @@ write_lib_id(const char* msg)
 }
 
 void
-amrex::Error (const char* msg)
+amrex::detail::Error_host_doit (const char* msg)
 {
-#ifdef AMREX_DEVICE_COMPILE
-#if !defined(__APPLE__)
-    if (msg) printf("%s\n", msg);
-    assert(0);
-#endif
-#else
     if (system::error_handler) {
         system::error_handler(msg);
     } else if (system::throw_exception) {
@@ -172,7 +166,6 @@ amrex::Error (const char* msg)
         write_to_stderr_without_buffering(msg);
         ParallelDescriptor::Abort();
     }
-#endif
 }
 
 void
@@ -182,14 +175,8 @@ amrex::Error (const std::string& msg)
 }
 
 void
-amrex::Abort (const char* msg)
+amrex::detail::Abort_host_doit (const char* msg)
 {
-#ifdef AMREX_DEVICE_COMPILE
-#if !defined(__APPLE__)
-    if (msg) printf("Abort %s\n", msg);
-    assert(0);
-#endif
-#else
     if (system::error_handler) {
         system::error_handler(msg);
     } else if (system::throw_exception) {
@@ -202,7 +189,6 @@ amrex::Abort (const char* msg)
 #endif
        ParallelDescriptor::Abort();
    }
-#endif
 }
 
 void
@@ -212,18 +198,12 @@ amrex::Abort (const std::string& msg)
 }
 
 void
-amrex::Warning (const char* msg)
+amrex::detail::Warning_host_doit (const char* msg)
 {
-#ifdef AMREX_DEVICE_COMPILE
-#if !defined(__APPLE__)
-    if (msg) printf("%s\n", msg);
-#endif
-#else
     if (msg)
     {
 	amrex::Print(Print::AllProcs,amrex::ErrorStream()) << msg << '!' << '\n';
     }
-#endif
 }
 
 void
@@ -233,24 +213,8 @@ amrex::Warning (const std::string& msg)
 }
 
 void
-amrex::Assert (const char* EX,
-               const char* file,
-               int         line,
-               const char* msg)
+amrex::detail::Assert_host_doit (const char* EX, const char* file, int line, const char* msg)
 {
-#ifdef AMREX_DEVICE_COMPILE
-#if !defined(__APPLE__)
-    if (msg) {
-        printf("Assertion `%s' failed, file \"%s\", line %d, Msg: %s",
-               EX, file, line, msg);
-    } else {
-        printf("Assertion `%s' failed, file \"%s\", line %d",
-               EX, file, line);
-    }
-
-    assert(0);
-#endif
-#else
     const int N = 512;
 
     char buf[N];
@@ -280,7 +244,6 @@ amrex::Assert (const char* EX,
        write_to_stderr_without_buffering(buf);
        ParallelDescriptor::Abort();
    }
-#endif
 }
 
 namespace
@@ -482,13 +445,13 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 
     ParallelDescriptor::Initialize();
 
+    Arena::Initialize();
+    amrex_mempool_init();
+
     //
     // Initialize random seed after we're running in parallel.
     //
     amrex::InitRandom(ParallelDescriptor::MyProc()+1, ParallelDescriptor::NProcs());
-
-    Arena::Initialize();
-    amrex_mempool_init();
 
     // For thread safety, we should do these initializations here.
     BaseFab_Initialize();

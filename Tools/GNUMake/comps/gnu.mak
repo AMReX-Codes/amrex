@@ -12,10 +12,12 @@ endif
 
 ########################################################################
 
-ifeq ($(USE_HIP),TRUE)
-  GCC_VERSION_COMP = g++
-else ifeq ($(USE_CUDA),TRUE)
-  GCC_VERSION_COMP = g++
+ifeq ($(USE_CUDA),TRUE)
+  ifdef NVCC_CCBIN
+    GCC_VERSION_COMP = $(NVCC_CCBIN)
+  else
+    GCC_VERSION_COMP = g++
+  endif
 else
   GCC_VERSION_COMP = $(CXX)
 endif
@@ -190,6 +192,8 @@ FMODULES =  -J$(fmoddir) -I $(fmoddir)
 
 ########################################################################
 
+ifneq ($(BL_NO_FORT),TRUE)
+
 # ask gfortran the name of the library to link in.  First check for the
 # static version.  If it returns only the name w/o a path, then it
 # was not found.  In that case, ask for the shared-object version.
@@ -206,6 +210,8 @@ override XTRALIBS += -lgfortran -lquadmath
 
 FFLAGS   += $(GENERIC_GNU_FLAGS)
 F90FLAGS += $(GENERIC_GNU_FLAGS)
+
+endif  # BL_NO_FORT
 
 endif # AMREX_FCOMP == gnu
 

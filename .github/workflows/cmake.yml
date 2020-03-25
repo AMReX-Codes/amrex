@@ -1,0 +1,53 @@
+name: cmake
+
+on: [push, pull_request]
+
+jobs:
+  # Build and install libamrex as AMReX CMake project
+  library:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Dependencies
+      run: .github/workflows/cmake/dependencies.sh
+    - name: Build & Install
+      run: |
+        mkdir build
+        cd build
+        cmake .. -DCMAKE_INSTALL_PREFIX=/tmp/my-amrex
+        make -j 2
+        make install
+
+  # Build libamrex and all tutorials
+  tutorials:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Dependencies
+      run: .github/workflows/cmake/dependencies.sh
+    - name: Build & Install
+      run: |
+        mkdir build
+        cd build
+        cmake .. -DENABLE_TUTORIALS=ON
+        make -j 2
+
+  # Build libamrex and all tutorials with CUDA
+  tutorials-cuda:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Dependencies
+      run: .github/workflows/cmake/dependencies_nvcc.sh
+    - name: Build & Install
+      run: |
+        mkdir build
+        cd build
+        cmake ..                                         \
+            -DENABLE_TUTORIALS=ON                        \
+            -DENABLE_CUDA=ON                             \
+            -DCMAKE_CXX_COMPILER=$(which g++-5)          \
+            -DCMAKE_CUDA_HOST_COMPILER=$(which g++-5)    \
+            -DCMAKE_Fortran_COMPILER=$(which gfortran-5) \
+            -DCUDA_ARCH=6.0
+        make -j 2

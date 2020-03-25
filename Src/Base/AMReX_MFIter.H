@@ -190,7 +190,7 @@ public:
 
 protected:
 
-    std::unique_ptr<FabArray<FArrayBox> > m_fa;  //!< This must be the first memeber!
+    std::unique_ptr<FabArrayBase> m_fa;  //!< This must be the first memeber!
 
     const FabArrayBase& fabArray;
 

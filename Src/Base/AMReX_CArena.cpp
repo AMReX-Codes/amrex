@@ -5,6 +5,7 @@
 #include <AMReX_CArena.H>
 #include <AMReX_BLassert.H>
 #include <AMReX_Gpu.H>
+#include <AMReX_ParallelReduce.H>
 
 namespace amrex {
 
@@ -16,6 +17,7 @@ CArena::CArena (std::size_t hunk_size, ArenaInfo info)
     //
     m_hunk = Arena::align(hunk_size == 0 ? DefaultHunkSize : hunk_size);
     m_used = 0;
+    m_actually_used = 0;
 
     BL_ASSERT(m_hunk >= hunk_size);
     BL_ASSERT(m_hunk%Arena::align_size == 0);
@@ -98,6 +100,8 @@ CArena::alloc (std::size_t nbytes)
         m_freelist.erase(free_it);
     }
 
+    m_actually_used += nbytes;
+
     BL_ASSERT(!(vp == 0));
 
     return vp;
@@ -120,6 +124,9 @@ CArena::free (void* vp)
 
     BL_ASSERT(!(busy_it == m_busylist.end()));
     BL_ASSERT(m_freelist.find(*busy_it) == m_freelist.end());
+
+    m_actually_used -= busy_it->size();
+
     //
     // Put free'd block on free list and save iterator to insert()ed position.
     //
@@ -186,6 +193,50 @@ std::size_t
 CArena::heap_space_used () const noexcept
 {
     return m_used;
+}
+
+std::size_t
+CArena::heap_space_actually_used () const noexcept
+{
+    return m_actually_used;
+}
+
+std::size_t
+CArena::sizeOf (void* p) const noexcept
+{
+    if (p == nullptr) {
+        return 0;
+    } else {
+        auto it = m_busylist.find(Node(p,0,0));
+        if (it == m_busylist.end()) {
+            return 0;
+        } else {
+            return it->size();
+        }
+    }
+}
+
+void
+CArena::PrintUsage (std::string const& name) const
+{
+    long min_megabytes = heap_space_used() / (1024*1024);
+    long max_megabytes = min_megabytes;
+    long actual_min_megabytes = heap_space_actually_used() / (1024*1024);
+    long actual_max_megabytes = actual_min_megabytes;
+    const int IOProc = ParallelDescriptor::IOProcessorNumber();
+    ParallelReduce::Min<long>({min_megabytes, actual_min_megabytes},
+                              IOProc, ParallelDescriptor::Communicator());
+    ParallelReduce::Max<long>({max_megabytes, actual_max_megabytes},
+                              IOProc, ParallelDescriptor::Communicator());
+#ifdef AMREX_USE_MPI
+    amrex::Print() << "[" << name << "]" << " space (MB) allocated spread across MPI: ["
+                   << min_megabytes << " ... " << max_megabytes << "]\n"
+                   << "[" << name << "]" << " space (MB) used      spread across MPI: ["
+                   << actual_min_megabytes << " ... " << actual_max_megabytes << "]\n";
+#else
+    amrex::Print() << "[" << name << "]" << " space allocated (MB): " << min_megabytes << "\n";
+    amrex::Print() << "[" << name << "]" << " space used      (MB): " << actual_min_megabytes << "\n";
+#endif
 }
 
 }

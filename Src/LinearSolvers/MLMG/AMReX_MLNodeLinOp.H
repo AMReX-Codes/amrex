@@ -91,6 +91,8 @@ public:
 
     void buildMasks ();
 
+    void setDirichletMask (int amrlev, const iMultiFab& a_dmask);
+
 #ifdef AMREX_USE_HYPRE
     virtual std::unique_ptr<HypreNodeLap> makeHypreNodeLap (int bottom_verbose) const override;
 
@@ -121,6 +123,7 @@ protected:
 
     bool m_is_bottom_singular = false;
     bool m_masks_built = false;
+    bool m_overset_dirichlet_mask = false;
 };
 
 }

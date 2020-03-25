@@ -37,6 +37,8 @@ public:
              Vector<IntVect> const& ref_ratios,
              Array<int,AMREX_SPACEDIM> const& is_per);
 
+    AmrCore (Geometry const& level_0_geom, AmrInfo const& amr_info);
+
     AmrCore (AmrCore&& rhs) = default;
     AmrCore& operator= (AmrCore&& rhs) = default;
 
@@ -60,12 +62,7 @@ public:
     //! Rebuild levels finer than lbase
     virtual void regrid (int lbase, Real time, bool initial=false);
 
-    static void Initialize ();
-    static void Finalize ();
-
     void printGridSummary (std::ostream& os, int min_lev, int max_lev) const noexcept;
-
-    int Verbose () const noexcept { return verbose; }
 
 protected:
 
@@ -84,8 +81,6 @@ protected:
 
     //! Delete level data
     virtual void ClearLevel (int lev) = 0;
-
-    int              verbose;
 
 #ifdef AMREX_PARTICLES
     std::unique_ptr<AmrParGDB> m_gdb;

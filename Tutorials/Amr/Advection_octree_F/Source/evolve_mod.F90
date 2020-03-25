@@ -107,8 +107,7 @@ contains
     type(amrex_multifab), allocatable :: phiborder(:)
     type(amrex_octree_iter) :: oti
     type(amrex_box) :: bx, tbx
-    real(amrex_real), contiguous, pointer, dimension(:,:,:,:) :: pin,pout,pux,puy,puz,pfx,pfy,pfz, &
-         pf, pfab
+    real(amrex_real), contiguous, pointer, dimension(:,:,:,:) :: pin,pout,pux,puy,puz,pfx,pfy,pfz
     type(amrex_fab) :: uface(amrex_spacedim)
     type(amrex_multifab), allocatable :: fluxes(:,:)
 
@@ -137,7 +136,7 @@ contains
        call fillpatch(ilev, time, phiborder(ilev))
     end do
 
-    !$omp parallel private(oti,ilev,igrd,bx,tbx,pin,pout,pux,puy,puz,pfx,pfy,pfz,pf,pfab,uface)
+    !$omp parallel private(idim,oti,ilev,igrd,bx,tbx,pin,pout,pux,puy,puz,pfx,pfy,pfz,uface)
     do idim = 1, amrex_spacedim
        call uface(idim)%reset_omp_private()
     end do

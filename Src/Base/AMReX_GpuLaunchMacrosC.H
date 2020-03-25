@@ -1,17 +1,6 @@
 #ifndef AMREX_GPU_LAUNCH_MACROS_C_H_
 #define AMREX_GPU_LAUNCH_MACROS_C_H_
 
-#define AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_BOXIV(BX,IV,block) \
-    { \
-        long amrex_i_npts = BX.numPts(); \
-        for (auto const amrex_i_i : amrex::Gpu::Range(amrex_i_npts)) { \
-            const auto IV = BX.atOffset(amrex_i_i); \
-            block \
-        } \
-    }
-
-#define AMREX_GPU_LAUNCH_DEVICE_LAMBDA_BOXIV(...) AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_BOXIV(__VA_ARGS__)
-
 #define AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE(TN,TI,block) \
     { \
         for (auto const TI : amrex::Gpu::Range(TN)) { \
@@ -45,24 +34,6 @@
 #define AMREX_GPU_LAUNCH_DEVICE_LAMBDA_RANGE(...) AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE(__VA_ARGS__)
 #define AMREX_GPU_LAUNCH_DEVICE_LAMBDA_RANGE_2(...) AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_2(__VA_ARGS__)
 #define AMREX_GPU_LAUNCH_DEVICE_LAMBDA_RANGE_3(...) AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_3(__VA_ARGS__)
-
-#define AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_BOX(bbb,tbb,block) \
-    { \
-        const amrex::Box& tbb = bbb; \
-        block \
-    }
-
-#define AMREX_GPU_LAUNCH_DEVICE_LAMBDA_BOX(...) AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_BOX(__VA_ARGS__)
-
-#define AMREX_GPU_LAUNCH_HOST_DEVICE_XYZ(bbx,bby,bbz,tbx,tby,tbz,blockx,blocky,blockz) \
-    { \
-        const amrex::Box& tbx = bbx; \
-        blockx \
-        const amrex::Box& tby = bby; \
-        blocky \
-        const amrex::Box& tbz = bbz; \
-        blockz \
-    }
 
 #define AMREX_GPU_FOR_1D_IMPL(n,i,block) \
         for (auto i = decltype(n){0}; i < n; ++i) {     \
@@ -139,9 +110,5 @@
 #define AMREX_GPU_HOST_DEVICE_PARALLEL_FOR_1D(...) AMREX_GPU_PARALLEL_FOR_1D_IMPL(__VA_ARGS__);
 #define AMREX_GPU_HOST_DEVICE_PARALLEL_FOR_3D(...) AMREX_GPU_PARALLEL_FOR_3D_IMPL(__VA_ARGS__);
 #define AMREX_GPU_HOST_DEVICE_PARALLEL_FOR_4D(...) AMREX_GPU_PARALLEL_FOR_4D_IMPL(__VA_ARGS__);
-
-#define AMREX_GPU_LAUNCH_HOST_DEVICE(strategy, ...) amrex::launch_host(__VA_ARGS__);
-#define AMREX_GPU_LAUNCH_DEVICE(strategy, ...) amrex::launch_host(__VA_ARGS__);
-#define AMREX_GPU_LAUNCH_GLOBAL(strategy, function, ...) function(__VA_ARGS__);
 
 #endif

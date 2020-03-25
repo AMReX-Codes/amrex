@@ -5,9 +5,12 @@ AMREX_HOME ?= ../../../../../
 DEBUG     = FALSE
 USE_MPI   = TRUE 
 USE_OMP   = FALSE
-USE_CUDA  = TRUE 
-COMP      = pgi
 DIM       = 3 
+COMP      = gcc
+
+USE_CUDA  = TRUE 
+USE_HIP   = FALSE
+USE_DPCPP = FALSE
 
 Bpack   := ./Make.package
 Blocs   := .

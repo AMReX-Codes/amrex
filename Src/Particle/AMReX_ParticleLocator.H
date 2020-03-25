@@ -1,7 +1,7 @@
 #ifndef AMREX_PARTICLE_LOCATOR_H_
 #define AMREX_PARTICLE_LOCATOR_H_
 
-#include <AMReX_Particles.H>
+#include <AMReX_ParGDB.H>
 #include <AMReX_GpuContainers.H>
 #include <AMReX_Tuple.H>
 
@@ -213,7 +213,7 @@ public:
     
 private:
     Vector<ParticleLocator<Bins> > m_locators;
-    Gpu::ManagedVector<AssignGrid<BinIteratorFactory> > m_grid_assignors;
+    Gpu::DeviceVector<AssignGrid<BinIteratorFactory> > m_grid_assignors;
     bool m_defined = false;
 
 public:

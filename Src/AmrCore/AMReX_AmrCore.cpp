@@ -2,7 +2,6 @@
 #include <algorithm>
 
 #include <AMReX_AmrCore.H>
-#include <AMReX_ParmParse.H>
 #include <AMReX_Print.H>
 
 #ifdef AMREX_PARTICLES
@@ -15,28 +14,9 @@
 
 namespace amrex {
 
-namespace
-{
-    bool initialized = false;
-}
-
-void
-AmrCore::Initialize ()
-{
-    if (initialized) return;
-    initialized = true;
-}
-
-void
-AmrCore::Finalize ()
-{
-    initialized = false;
-}
-
 AmrCore::AmrCore ()
     : AmrMesh()
 {
-    Initialize();
     InitAmrCore();
 }
 
@@ -45,7 +25,6 @@ AmrCore::AmrCore (const RealBox* rb, int max_level_in,
                   Vector<IntVect> ref_ratios, const int* is_per)
     : AmrMesh(rb, max_level_in, n_cell_in, coord, std::move(ref_ratios), is_per)
 {
-    Initialize();
     InitAmrCore();
 }
 
@@ -55,22 +34,24 @@ AmrCore::AmrCore (const RealBox& rb, int max_level_in,
                   Array<int,AMREX_SPACEDIM> const& is_per)
     : AmrMesh(rb, max_level_in, n_cell_in, coord, ref_ratios, is_per)
 {
-    Initialize();
     InitAmrCore();
+}
+
+AmrCore::AmrCore (Geometry const& level_0_gome, AmrInfo const& amr_info)
+    : AmrMesh(level_0_gome,amr_info)
+{
+#ifdef AMREX_PARTICLES
+    m_gdb.reset(new AmrParGDB(this));
+#endif
 }
 
 AmrCore::~AmrCore ()
 {
-    Finalize();
 }
 
 void
 AmrCore::InitAmrCore ()
 {
-    verbose   = 0;
-    ParmParse pp("amr");
-    pp.query("v",verbose);
-
 #ifdef AMREX_PARTICLES
     m_gdb.reset(new AmrParGDB(this));
 #endif
@@ -93,20 +74,27 @@ AmrCore::regrid (int lbase, Real time, bool)
 
     BL_ASSERT(new_finest <= finest_level+1);
 
+    bool coarse_ba_changed = false;
     for (int lev = lbase+1; lev <= new_finest; ++lev)
     {
-	if (lev <= finest_level) // an old level
-	{
-	    if (new_grids[lev] != grids[lev]) // otherwise nothing
-	    {
-                DistributionMapping new_dmap(new_grids[lev]);
-                const auto old_num_setdm = num_setdm;
-                RemakeLevel(lev, time, new_grids[lev], new_dmap);
-                SetBoxArray(lev, new_grids[lev]);
-                if (old_num_setdm == num_setdm) {
-                    SetDistributionMap(lev, new_dmap);
+        if (lev <= finest_level) // an old level
+        {
+            bool ba_changed = (new_grids[lev] != grids[lev]);
+	    if (ba_changed or coarse_ba_changed) {
+                BoxArray level_grids = grids[lev];
+                DistributionMapping level_dmap = dmap[lev];
+                if (ba_changed) {
+                    level_grids = new_grids[lev];
+                    level_dmap = DistributionMapping(level_grids);
                 }
-	    }
+                const auto old_num_setdm = num_setdm;
+                RemakeLevel(lev, time, level_grids, level_dmap);
+                SetBoxArray(lev, level_grids);
+                if (old_num_setdm == num_setdm) {
+                    SetDistributionMap(lev, level_dmap);
+                }
+            }
+            coarse_ba_changed = ba_changed;;
 	}
 	else  // a new level
 	{

@@ -47,7 +47,7 @@ IntVect FabArrayBase::mfiter_tile_size(1024000,8,8);
 
 #endif
 
-#ifdef AMREX_USE_GPU
+#if defined(AMREX_USE_GPU) || !defined(_OPENMP)
 IntVect FabArrayBase::comm_tile_size(AMREX_D_DECL(1024000, 1024000, 1024000));
 IntVect FabArrayBase::mfghostiter_tile_size(AMREX_D_DECL(1024000, 1024000, 1024000));
 #else
@@ -156,6 +156,22 @@ The_FA_Arena ()
 
 FabArrayBase::FabArrayBase ()
 {
+}
+
+FabArrayBase::FabArrayBase (const BoxArray&            bxs,
+                            const DistributionMapping& dm,
+                            int                        nvar,
+                            int                        ngrow)
+    : FabArrayBase(bxs,dm,nvar,IntVect(ngrow))
+{}
+
+FabArrayBase::FabArrayBase (const BoxArray&            bxs,
+                            const DistributionMapping& dm,
+                            int                        nvar,
+                            const IntVect&             ngrow)
+{
+    define(bxs,dm,nvar,ngrow);
+    m_bdkey = getBDKey();
 }
 
 FabArrayBase::~FabArrayBase () {}
@@ -374,7 +390,10 @@ FabArrayBase::CPC::define (const BoxArray& ba_dst, const DistributionMapping& dm
 	if (ParallelDescriptor::TeamSize() > 1) {
 	    check_local = true;
 	}
-	
+
+        m_threadsafe_loc = not check_local;
+        m_threadsafe_rcv = not check_remote;
+
 	for (int i = 0; i < nlocal_dst; ++i)
 	{
 	    const int   k_dst = imap_dst[i];
@@ -687,6 +706,9 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
 	check_local = true;
     }
 
+    m_threadsafe_loc = not check_local;
+    m_threadsafe_rcv = not check_remote;
+
     for (int i = 0; i < nlocal; ++i)
     {
 	const int   krcv = imap[i];
@@ -893,6 +915,9 @@ FabArrayBase::FB::define_epo (const FabArrayBase& fa)
     if (ParallelDescriptor::TeamSize() > 1) {
 	check_local = true;
     }
+
+    m_threadsafe_loc = not check_local;
+    m_threadsafe_rcv = not check_remote;
 
     for (int i = 0; i < nlocal; ++i)
     {
@@ -1280,7 +1305,6 @@ Box
 FabArrayBase::CFinfo::Domain (const Geometry& geom, const IntVect& ng,
                               bool include_periodic, bool include_physbndry)
 {
-#if !defined(BL_NO_FORT)
     Box bx = geom.Domain();
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         if (geom.isPeriodic(idim)) {
@@ -1294,9 +1318,6 @@ FabArrayBase::CFinfo::Domain (const Geometry& geom, const IntVect& ng,
         }
     }
     return bx;
-#else
-    return Box();
-#endif
 }
 
 long
@@ -1802,6 +1823,24 @@ void
 FabArrayBase::popRegionTag ()
 {
     m_region_tag.pop_back();
+}
+
+bool
+FabArrayBase::is_nodal () const noexcept
+{
+    return boxArray().ixType().nodeCentered();
+}
+
+bool
+FabArrayBase::is_nodal (int dir) const noexcept
+{
+    return boxArray().ixType().nodeCentered(dir);
+}
+
+bool
+FabArrayBase::is_cell_centered () const noexcept
+{
+    return boxArray().ixType().cellCentered();
 }
 
 }
