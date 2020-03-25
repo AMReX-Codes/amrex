@@ -22,8 +22,8 @@ void set_eb_data (const int i, const int j, Array4<EBCellFlag> const& cell,
     const Real nx = (axm-axp) * (1.0/apnorm);
     const Real ny = (aym-ayp) * (1.0/apnorm);
 
-    const Real nxabs = std::abs(nx);
-    const Real nyabs = std::abs(ny);
+    const Real nxabs = amrex::Math::abs(nx);
+    const Real nyabs = amrex::Math::abs(ny);
 
     Real x_ym;
     Real x_yp;

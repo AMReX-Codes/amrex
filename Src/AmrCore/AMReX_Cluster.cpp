@@ -3,6 +3,8 @@
 #include <cmath>
 #include <AMReX_Cluster.H>
 #include <AMReX_BoxDomain.H>
+#include <AMReX_Vector.H>
+#include <AMReX_Array.H>
 
 namespace amrex {
 
@@ -260,20 +262,16 @@ Cluster::chop ()
     BL_ASSERT(m_len > 1);
     BL_ASSERT(!(m_ar == 0));
 
-    const int* lo       = m_bx.loVect();
-    const int* hi       = m_bx.hiVect();
-    IntVect m_bx_length = m_bx.size();
-    const int* len      = m_bx_length.getVect();
+    const int*    lo  = m_bx.loVect();
+    const int*    hi  = m_bx.hiVect();
+    const IntVect len = m_bx.size();
     //
     // Compute histogram.
     //
-    int* hist[AMREX_SPACEDIM];
-    for (int n = 0; n < AMREX_SPACEDIM; n++)
-    {
-        hist[n] = new int[len[n]];
-        for (int i = 0; i < len[n]; i++)
-            hist[n][i] = 0;
-    }
+    Array<Vector<int>,AMREX_SPACEDIM> hist;
+    AMREX_D_TERM(hist[0].resize(len[0], 0);,
+                 hist[1].resize(len[1], 0);,
+                 hist[2].resize(len[2], 0);)
     for (int n = 0; n < m_len; n++)
     {
         const int* p = m_ar[n].getVect();
@@ -289,7 +287,7 @@ Cluster::chop ()
     IntVect cut;
     for (int n = 0; n < AMREX_SPACEDIM; n++)
     {
-        cut[n] = FindCut(hist[n], lo[n], hi[n], status[n]);
+        cut[n] = FindCut(hist[n].data(), lo[n], hi[n], status[n]);
         if (status[n] < mincut)
         {
             mincut = status[n];
@@ -315,15 +313,13 @@ Cluster::chop ()
     BL_ASSERT(dir >= 0 && dir < AMREX_SPACEDIM);
 
     int nlo = 0;
-    for (int i = lo[dir]; i < cut[dir]; i++)
+    for (int i = lo[dir]; i < cut[dir]; i++) {
         nlo += hist[dir][i-lo[dir]];
+    }
 
     BL_ASSERT(nlo > 0 && nlo < m_len);
 
     int nhi = m_len - nlo;
-
-    for (int i = 0; i < AMREX_SPACEDIM; i++)
-        delete [] hist[i];
 
     IntVect* prt_it = std::partition(m_ar, m_ar+m_len, Cut(cut,dir));
 
@@ -342,27 +338,23 @@ Cluster::new_chop ()
     BL_ASSERT(m_len > 1);
     BL_ASSERT(!(m_ar == 0));
 
-    const int* lo       = m_bx.loVect();
-    const int* hi       = m_bx.hiVect();
-    IntVect m_bx_length = m_bx.size();
-    const int* len      = m_bx_length.getVect();
+    const int*    lo  = m_bx.loVect();
+    const int*    hi  = m_bx.hiVect();
+    const IntVect len = m_bx.size();
     //
     // Compute histogram.
     //
-    int* hist[AMREX_SPACEDIM];
-    for (int n = 0; n < AMREX_SPACEDIM; n++)
-    {
-        hist[n] = new int[len[n]];
-        for (int i = 0; i < len[n]; i++)
-            hist[n][i] = 0;
-    }
+    Array<Vector<int>,AMREX_SPACEDIM> hist;
+    AMREX_D_TERM(hist[0].resize(len[0], 0);,
+                 hist[1].resize(len[1], 0);,
+                 hist[2].resize(len[2], 0);)
     for (int n = 0; n < m_len; n++)
     {
         const int* p = m_ar[n].getVect();
         AMREX_D_TERM( hist[0][p[0]-lo[0]]++;,
-             hist[1][p[1]-lo[1]]++;,
-             hist[2][p[2]-lo[2]]++; )
-   }
+                      hist[1][p[1]-lo[1]]++;,
+                      hist[2][p[2]-lo[2]]++; )
+    }
 
     int invalid_dir = -1;
     for (int n_try = 0; n_try < 2; n_try++)
@@ -377,7 +369,7 @@ Cluster::new_chop ()
        {
            if (n != invalid_dir)
            {
-              cut[n] = FindCut(hist[n], lo[n], hi[n], status[n]);
+              cut[n] = FindCut(hist[n].data(), lo[n], hi[n], status[n]);
               if (status[n] < mincut)
               {
                   mincut = status[n];
@@ -404,10 +396,11 @@ Cluster::new_chop ()
        BL_ASSERT(dir >= 0 && dir < AMREX_SPACEDIM);
    
        int nlo = 0;
-       for (int i = lo[dir]; i < cut[dir]; i++)
+       for (int i = lo[dir]; i < cut[dir]; i++) {
            nlo += hist[dir][i-lo[dir]];
+       }
 
-       BL_ASSERT(nlo > 0 && nlo < m_len);
+       if (nlo <= 0 or nlo >= m_len) return chop();
 
        int nhi = m_len - nlo;
 
@@ -430,9 +423,6 @@ Cluster::new_chop ()
    
        if ( (eff() > oldeff) || (neweff > oldeff) || n_try > 0)
        {
-          for (int i = 0; i < AMREX_SPACEDIM; i++)
-              delete [] hist[i];
-
           return newbox.release();
 
        } else {

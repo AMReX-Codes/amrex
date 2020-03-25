@@ -23,6 +23,7 @@ Arena* The_Cpu_Arena ();
 
 struct ArenaInfo
 {
+    bool use_cpu_memory = false;
     bool device_use_managed_memory = true;
     bool device_set_readonly = false;
     bool device_set_preferred = false;
@@ -46,6 +47,14 @@ struct ArenaInfo
         device_use_hostalloc = true;
         device_use_managed_memory = false;
         return *this;
+    }
+    ArenaInfo& SetCpuMemory () noexcept {
+        use_cpu_memory = true;
+        device_use_managed_memory = false;
+        device_set_readonly = false;
+        device_set_preferred = false;
+        device_use_hostalloc = false;
+        return *this; 
     }
 };
 

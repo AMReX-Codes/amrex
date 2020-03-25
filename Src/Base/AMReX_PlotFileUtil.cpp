@@ -501,8 +501,8 @@ static int CreateWriteHDF5AttrString(hid_t loc, const char *name, const char* st
     hid_t attr, atype, space;
     herr_t ret;
 
-    assert(name);
-    assert(str);
+    BL_ASSERT(name);
+    BL_ASSERT(str);
 
     space = H5Screate(H5S_SCALAR);
     atype = H5Tcopy(H5T_C_S1);
@@ -790,20 +790,6 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
             std::cout << "H5Gopen [" << level_name << "] failed!" << std::endl;
             continue;
         }
-
-        /* const MultiFab* data; */
-        /* std::unique_ptr<MultiFab> mf_tmp; */
-        /* if (mf[level]->nGrow() > 0) { */
-        /*     mf_tmp.reset(new MultiFab(mf[level]->boxArray(), */
-        /*                               mf[level]->DistributionMap(), */
-        /*                               mf[level]->nComp(), 0, MFInfo(), */
-        /*                               mf[level]->Factory())); */
-        /*     MultiFab::Copy(*mf_tmp, *mf[level], 0, 0, mf[level]->nComp(), 0); */
-        /*     data = mf_tmp.get(); */
-        /* } else { */
-        /*     data = mf[level]; */
-        /* } */
-	/* VisMF::Write(*data, MultiFabFileFullPrefix(level, plotfilename, levelPrefix, mfPrefix)); */
 
         // Get the boxes assigned to all ranks and calculate their offsets and sizes
         Vector<int> procMap = mf[level]->DistributionMap().ProcessorMap();

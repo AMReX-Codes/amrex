@@ -129,6 +129,9 @@ struct SharedMemory
     }
 };
 
+#ifndef AMREX_USE_DPCPP
+// xxxxx DPCPP todo: extern __shared__
+
 template <>
 struct SharedMemory<double>
 {
@@ -238,6 +241,8 @@ struct SharedMemory<bool>
         return amrex_sm_bool;
     }
 };
+
+#endif
 
 #endif
 

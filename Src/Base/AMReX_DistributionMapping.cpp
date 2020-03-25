@@ -5,9 +5,7 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_FArrayBox.H>
-#if !defined(BL_NO_FORT)
 #include <AMReX_Geometry.H>
-#endif
 #include <AMReX_VisMF.H>
 #include <AMReX_Utility.H>
 
@@ -1328,7 +1326,7 @@ DistributionMapping::RRSFCProcessorMap (const BoxArray&          boxes,
 }
 
 DistributionMapping
-DistributionMapping::makeKnapSack (const Vector<Real>& rcost)
+DistributionMapping::makeKnapSack (const Vector<Real>& rcost, int nmax)
 {
     BL_PROFILE("makeKnapSack");
 
@@ -1346,7 +1344,7 @@ DistributionMapping::makeKnapSack (const Vector<Real>& rcost)
     int nprocs = ParallelContext::NProcsSub();
     Real eff;
 
-    r.KnapSackProcessorMap(cost, nprocs, &eff, true);
+    r.KnapSackProcessorMap(cost, nprocs, &eff, true, nmax);
 
     return r;
 }
@@ -1455,6 +1453,27 @@ DistributionMapping::makeSFC (const MultiFab& weight, bool sort)
     int nprocs = ParallelContext::NProcsSub();
 
     r.SFCProcessorMap(weight.boxArray(), cost, nprocs, sort);
+
+    return r;
+}
+
+DistributionMapping
+DistributionMapping::makeSFC (const Vector<Real>& rcost, const BoxArray& ba, bool sort)
+{
+    DistributionMapping r;
+
+    Vector<long> cost(rcost.size());
+    
+    Real wmax = *std::max_element(rcost.begin(), rcost.end());
+    Real scale = (wmax == 0) ? 1.e9 : 1.e9/wmax;
+
+    for (int i = 0; i < rcost.size(); ++i) {
+        cost[i] = long(rcost[i]*scale) + 1L;
+    }
+
+    int nprocs = ParallelContext::NProcsSub();
+
+    r.SFCProcessorMap(ba, cost, nprocs, sort);
 
     return r;
 }

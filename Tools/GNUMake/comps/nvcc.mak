@@ -53,7 +53,9 @@ ifeq ($(lowercase_nvcc_host_comp),gnu)
 
   CXXFLAGS += -std=$(CXXSTD)
 
-  CXXFLAGS_FROM_HOST := -ccbin=g++ -Xcompiler='$(CXXFLAGS) --std=$(CXXSTD)' --std=$(CXXSTD)
+  NVCC_CCBIN ?= g++
+
+  CXXFLAGS_FROM_HOST := -ccbin=$(NVCC_CCBIN) -Xcompiler='$(CXXFLAGS) --std=$(CXXSTD)' --std=$(CXXSTD)
   CFLAGS_FROM_HOST := $(CXXFLAGS_FROM_HOST)
   ifeq ($(USE_OMP),TRUE)
      LIBRARIES += -lgomp
@@ -78,8 +80,10 @@ else ifeq ($(lowercase_nvcc_host_comp),pgi)
 
   CXXFLAGS += -std=$(CXXSTD)
 
+  NVCC_CCBIN ?= pgc++
+
   # In pgi.make, we use gcc_major_version to handle c++11/c++14 flag.
-  CXXFLAGS_FROM_HOST := -ccbin=pgc++ -Xcompiler='$(CXXFLAGS)' --std=$(CXXSTD)
+  CXXFLAGS_FROM_HOST := -ccbin=$(NVCC_CCBIN) -Xcompiler='$(CXXFLAGS)' --std=$(CXXSTD)
   CFLAGS_FROM_HOST := $(CXXFLAGS_FROM_HOST)
 else
   ifdef CXXSTD
@@ -87,7 +91,10 @@ else
   else
     CXXSTD := c++11
   endif
-  CXXFLAGS_FROM_HOST := -ccbin=$(CXX) -Xcompiler='$(CXXFLAGS)' --std=$(CXXSTD)
+
+  NVCC_CCBIN ?= $(CXX)
+
+  CXXFLAGS_FROM_HOST := -ccbin=$(NVCC_CCBIN) -Xcompiler='$(CXXFLAGS)' --std=$(CXXSTD)
   CFLAGS_FROM_HOST := $(CXXFLAGS_FROM_HOST)
 endif
 

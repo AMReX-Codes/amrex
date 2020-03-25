@@ -3,7 +3,6 @@
 #include <vector>
 #include <array>
 #include <fstream>
-#include <cassert>
 #include <sstream>
 #include <map>
 #include <unordered_map>
@@ -38,20 +37,14 @@ Coord read_df_node_coord (const std::string & name)
         }
         char t0, t1, t2, t3, t4;
         ifs >> t0 >> cabx >> t1 >> caby >> t2 >> cab_chas >> t3 >> slot >> t4 >> node;
-        assert(t0 == 'c' && t1 == '-' && t2 == 'c' && t3 == 's' && t4 == 'n');
+        AMREX_ALWAYS_ASSERT(t0 == 'c' && t1 == '-' && t2 == 'c' && t3 == 's' && t4 == 'n');
     }
 
     int group = 0;
     if (name == "cori") {
         group = cabx / 2 + caby * 6; // 2 cabinets per group, 6 groups per row
     } else {
-        amrex::Print() << "Could not determine group!";
-// HIP FIX HERE
-#ifdef AMREX_USE_HIP
-        abort();
-#else
-        std::abort();
-#endif
+        amrex::Abort("Could not determine group!");
     }
     int chas = cab_chas + 3*(cabx & 1); // 2 cabinets per group (6 chassis per group)
 
@@ -394,10 +387,10 @@ class Machine
 
             // check result
             AMREX_ALWAYS_ASSERT(result != -1);
-#ifndef NDEBUG
+#ifdef AMREX_DEBUG
             auto coord = read_df_node_coord(nersc_host);
             int id_from_coord = df_coord_to_id(coord);
-            AMREX_ASSERT(id_from_coord == result);
+            AMREX_ALWAYS_ASSERT(id_from_coord == result);
 #endif
         } else {
             result = 0;

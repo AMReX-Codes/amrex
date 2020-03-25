@@ -28,6 +28,7 @@ module amrex_octree_module
   end type node
 
   type(node), allocatable :: leaf_nodes(:)
+  integer, allocatable :: leaf_nodes_level_offset(:)
 
   interface amrex_octree_average_down_leaves
      module procedure amrex_octree_average_down_leaves_all
@@ -40,12 +41,13 @@ module amrex_octree_module
      subroutine amrex_fi_init_octree () bind(c)
      end subroutine amrex_fi_init_octree
 
-     subroutine amrex_fi_build_octree_leaves (amr, nleaves, leaves) bind(c)
+     subroutine amrex_fi_build_octree_leaves (amr, nleaves, leaves, level_offset) bind(c)
        import
        implicit none
        integer, intent(out) :: nleaves
        type(c_ptr), intent(in), value :: amr
        type(c_ptr), intent(out) :: leaves
+       integer, intent(inout) :: level_offset(*)
      end subroutine amrex_fi_build_octree_leaves
 
      subroutine amrex_fi_copy_octree_leaves (leaves, leaves_copy) bind(c)
@@ -73,22 +75,32 @@ contains
 
   subroutine amrex_octree_finalize ()
     if (allocated(leaf_nodes)) deallocate(leaf_nodes)
+    if (allocated(leaf_nodes_level_offset)) deallocate(leaf_nodes_level_offset)
   end subroutine amrex_octree_finalize
 
   subroutine amrex_octree_post_regrid ()
     type(c_ptr) :: amrcore, leaves
     integer :: nleaves
     amrcore = amrex_get_amrcore()
-    call amrex_fi_build_octree_leaves(amrcore, nleaves, leaves)
+    if (allocated(leaf_nodes_level_offset)) deallocate(leaf_nodes_level_offset)
+    allocate(leaf_nodes_level_offset(0:amrex_max_level+1))
+    call amrex_fi_build_octree_leaves(amrcore, nleaves, leaves, leaf_nodes_level_offset)
     if (allocated(leaf_nodes)) deallocate(leaf_nodes)
     allocate(leaf_nodes(nleaves));
     call amrex_fi_copy_octree_leaves(leaves, leaf_nodes);
   end subroutine amrex_octree_post_regrid
 
-  subroutine amrex_octree_iter_build (oti)
+  subroutine amrex_octree_iter_build (oti, level)
     type(amrex_octree_iter) :: oti
-    integer :: nnodes, tid, nthreads, n_per_thread, nlft
-    nnodes = size(leaf_nodes)
+    integer, intent(in), optional :: level
+    integer :: nnodes, lev_offset, tid, nthreads, n_per_thread, nlft
+    if (present(level)) then
+       lev_offset = leaf_nodes_level_offset(level)
+       nnodes = leaf_nodes_level_offset(level+1) - lev_offset
+    else
+       lev_offset = 0
+       nnodes = size(leaf_nodes)
+    end if
     tid = omp_get_thread_num()
     nthreads = omp_get_num_threads()
     if (nnodes < nthreads) then  ! there are more threads than nodes
@@ -110,8 +122,8 @@ contains
           oti%end_index   = oti%begin_index + n_per_thread
        end if
     end if
-    oti%begin_index   = oti%begin_index + 1  ! because this is Fortran
-    oti%end_index     = oti%end_index   + 1
+    oti%begin_index   = oti%begin_index + lev_offset + 1 ! because this is Fortran
+    oti%end_index     = oti%end_index   + lev_offset + 1
     oti%current_index = oti%begin_index - 1
   end subroutine amrex_octree_iter_build
 
