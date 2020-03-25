@@ -235,10 +235,6 @@ WarpX::Evolve (int numsteps)
             reduced_diags->WriteToFile(step);
         }
 
-        // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        // WARNING! This is WIP:
-        // - fields on particles is NOT synchronized with other quantities
-        // - plot_rho and plot_F are not supported with these diagnostics
         multi_diags->FilterComputePackFlush( step );
 
         // slice gen //
@@ -254,11 +250,7 @@ WarpX::Evolve (int numsteps)
 #endif
             UpdateAuxilaryData();
 
-            for (int lev = 0; lev <= finest_level; ++lev) {
-                mypc->FieldGather(lev,
-                                  *Efield_aux[lev][0],*Efield_aux[lev][1],*Efield_aux[lev][2],
-                                  *Bfield_aux[lev][0],*Bfield_aux[lev][1],*Bfield_aux[lev][2]);
-            }
+            FieldGather();
 
             last_plot_file_step = step+1;
             last_openPMD_step = step+1;

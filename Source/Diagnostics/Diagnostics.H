@@ -3,8 +3,11 @@
 
 #include "FlushFormat.H"
 #include "FlushFormatPlotfile.H"
+#include "ComputeDiagFunctor.H"
+#include "CellCenterFunctor.H"
 #include <AMReX_Vector.H>
 #include <AMReX_MultiFab.H>
+
 /**
  * \brief base class for diagnostics.
  * Contains main routines to filter, compute and flush diagnostics.
@@ -16,9 +19,9 @@ class Diagnostics
 public:
     Diagnostics (int i, std::string name);
     ~Diagnostics ();
-    void ReadParameters ();
-    /** Pack (stack) all fields in the cell-centered output MultiFab mf_avg */
-    void FilterAndPack ();
+    /** Pack (stack) all fields in the cell-centered output MultiFab mf_avg.
+     * Fields are computed (e.g., cell-centered) on-the-fly using a functor.*/
+    void ComputeAndPack ();
     /** Flush mf_avg and particles to file. */
     void Flush ();
     /** Flush raw data */
@@ -32,30 +35,39 @@ public:
      * \return bool, whether to flush
      */
     bool DoDump (int step, bool force_flush=false);
-    /** \brief Add variable names to the list.
-     */
-    void AddToVarNames (std::string name, std::string suffix);
-
 private:
+    void ReadParameters ();
+    /** Append varnames with names for all modes of a field
+     * \param[in] field field name (includes component, e.g., Er)
+     * \param[in] ncomp number of components (modes, real and imag)
+     */
+    void AddRZModesToOutputNames (const std::string& field, int ncomp);
+    /** Append all_field_functors[lev] with all modes of all components of E B and j
+     * and add name to varnames.
+     * \param[in] lev level on which source multifabs are defined.
+     */
+    void AddRZModesToDiags (int lev);
     /** Name of diagnostics: runtime parameter given in the input file. */
     std::string diag_name;
     /** Prefix for output directories */
-    std::string file_prefix = "diags/diag";
+    std::string file_prefix;
     /** Index of diagnostics in MultiDiagnostics::alldiags */
     int diag_index;
     /** Period at which diagnostics is writte to file */
     int m_period = -1;
-    /** Number of scalar components requested by the user */
-    int ncomp {9};
-    /** Names of  each component requested by the user */
+    /** Names of  each component requested by the user.
+     * in cylindrical geometry, this list is appended with
+     * automatically-constructed names for all modes of all fields */
     amrex::Vector< std::string > varnames;
-    /** Pointer to all fields, per level
-     * levels    < Ex Ey Ez Bx etc.                 > */
-    amrex::Vector< amrex::Vector <amrex::MultiFab const *> > allfields;
+    /** Vector of (pointers to) functors to compute output fields, per level,
+     * per component. This allows for simple operations (averaging to
+     * cell-center for standard EB fields) as well as more involved operations
+     * (back-transformed diagnostics, filtering, reconstructing cartesian
+     * fields in cylindrical). */
+    amrex::Vector< amrex::Vector <ComputeDiagFunctor const *> > all_field_functors;
     /** output multifab, where all fields are cell-centered and stacked */
     amrex::Vector< amrex::MultiFab > mf_avg;
-    /** number of levels to output */
-    int nlev;
+    int nlev; /**< number of levels to output */
     /** This class is responsible for flushing the data to file */
     FlushFormat* m_flush_format;
     /** Whether to plot raw (i.e., NOT cell-centered) fields */
