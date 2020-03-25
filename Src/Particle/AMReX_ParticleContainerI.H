@@ -1623,8 +1623,8 @@ BuildRedistributeMask (int lev, int nghost) const
             const Box& box = mfi.tilebox();
             const int grid_id = mfi.index();
             const int tile_id = mfi.LocalTileIndex();
-            (*redistribute_mask_ptr)[mfi].setVal<RunOn::Host>(grid_id, box, 0, 1);
-            (*redistribute_mask_ptr)[mfi].setVal<RunOn::Host>(tile_id, box, 1, 1);
+            (*redistribute_mask_ptr)[mfi].template setVal<RunOn::Host>(grid_id, box, 0, 1);
+            (*redistribute_mask_ptr)[mfi].template setVal<RunOn::Host>(tile_id, box, 1, 1);
         }
         
         redistribute_mask_ptr->FillBoundary(geom.periodicity());

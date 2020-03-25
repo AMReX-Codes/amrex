@@ -9,38 +9,6 @@ namespace amrex {
 
 class Orientation;
 
-
-// \cond GENCODE
-struct BndryBATransformer
-    : public BATBase<BndryBATransformer>
-{
-    BndryBATransformer (Orientation face, IndexType typ,
-			int in_rad, int out_rad, int extent_rad);
-
-    virtual ~BndryBATransformer () override {}
-
-    virtual IntVect doiLo () const override { return m_doilo; }
-    virtual IntVect doiHi () const override { return m_doihi; }
-
-    virtual Box operator() (const Box& bx) const override;
-
-    bool operator== (const BndryBATransformer& rhs) const noexcept;
-
-private:
-    int     m_dir;
-    bool    m_lo_face;
-    int     m_in_rad;
-    int     m_out_rad;
-    int     m_extent_rad;
-    // The variables below are derived from the variables above.
-    IntVect m_nodal;
-    IntVect m_loshft;
-    IntVect m_hishft;
-    IntVect m_doilo;
-    IntVect m_doihi;
-};
-// \endcond
-
 /**
 * \brief A BndryRegister organizes FabSets bounding each grid in a BoxArray.
 *        A FabSet is maintained for each boundary orientation, as well as
