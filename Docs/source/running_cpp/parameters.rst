@@ -1348,6 +1348,11 @@ Diagnostics and output
             ``x`` produces the position (density) distribution in `x`.
             ``ux`` produces the velocity distribution in `x`,
             ``sqrt(ux*ux+uy*uy+uz*uz)`` produces the speed distribution.
+            The default value of the histogram without normalization is
+            :math:`f = \sum\limits_{i=1}^N w_i`, where
+            :math:`\sum\limits_{i=1}^N` is the sum over :math:`N` particles
+            in that bin,
+            :math:`w_i` denotes the weight of the ith particle.
 
         * ``<reduced_diags_name>.bin_number`` (`int` > 0)
             This is the number of bins used for the histogram.
@@ -1364,7 +1369,9 @@ Diagnostics and output
             ``unity_particle_weight``
             uses unity particle weight to compute the histogram,
             such that the values of the histogram are
-            the number of counted macroparticles in that bin.
+            the number of counted macroparticles in that bin,
+            i.e.  :math:`f = \sum\limits_{i=1}^N 1`,
+            :math:`N` is the number of particles in that bin.
 
             ``max_to_unity`` will normalize the histogram such that
             its maximum value is one.
@@ -1379,6 +1386,9 @@ Diagnostics and output
 
         The output columns are
         values of the 1st bin, the 2nd bin, ..., the nth bin.
+        An example input file and a loading pything script of
+        using the histogram reduced diagnostics
+        are given in ``Examples/Tests/initial_distribution/``.
 
 * ``<reduced_diags_name>.frequency`` (`int`)
     The output frequency (every # time steps).

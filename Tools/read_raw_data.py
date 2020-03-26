@@ -337,20 +337,27 @@ def read_reduced_diags_histogram(filename, delimiter=' '):
     # Read header line
     unformatted_header = list( np.genfromtxt( filename, comments="@", max_rows=1, dtype="str", delimiter=delimiter) )
     # From header line, get field name, units and column number
-    field_names  = [s[s.find("]")+1:s.find("=")] for s in unformatted_header]
-    field_units  = [s[s.find("(")+1:s.find(")")] for s in unformatted_header]
-    field_column = [s[s.find("[")+1:s.find("]")] for s in unformatted_header]
-    field_bin    = [s[s.find("=")+1:s.find("(")] for s in unformatted_header]
+    field_names     = [s[s.find("]")+1:s.find("(")] for s in unformatted_header]
+    field_names[2:] = [s[s.find("b"):s.find("=")] for s in field_names[2:]]
+    field_units     = [s[s.find("(")+1:s.find(")")] for s in unformatted_header]
+    field_column    = [s[s.find("[")+1:s.find("]")] for s in unformatted_header]
+    field_bin       = [s[s.find("=")+1:s.find("(")] for s in unformatted_header]
     # Load data and re-format to a dictionary
     data = np.loadtxt( filename, delimiter=delimiter )
-    data_dict = {key: data[:,i] for i, key in enumerate(field_names)}
+    if data.ndim == 1:
+        data_dict = {key: data[i] for i, key in enumerate(field_names)}
+    else:
+        data_dict = {key: data[:,i] for i, key in enumerate(field_names)}
     # Put header data into a dictionary
     metadata_dict = {}
     metadata_dict['units']  = {key: field_units[i]  for i, key in enumerate(field_names)}
     metadata_dict['column'] = {key: field_column[i] for i, key in enumerate(field_names)}
     # Save bin values
-    bin_value = field_bin[2:]
-    bin_data  = data[:,2:]
+    bin_value = np.asarray(field_bin[2:], dtype=np.float64, order='C')
+    if data.ndim == 1:
+        bin_data  = data[2:]
+    else:
+        bin_data  = data[:,2:]
     return metadata_dict, data_dict, bin_value, bin_data
 
 if __name__ == "__main__":

@@ -1,0 +1,177 @@
+#################################
+####### GENERAL PARAMETERS ######
+#################################
+max_step             = 0
+amr.n_cell           = 8 8 8
+amr.max_grid_size    = 8
+amr.blocking_factor  = 8
+amr.max_level        = 0
+geometry.coord_sys   = 0
+geometry.is_periodic = 1 1 1
+geometry.prob_lo     = -1.0 -1.0 -1.0
+geometry.prob_hi     =  1.0  1.0  1.0
+warpx.do_pml         = 0
+amr.plot_int         = 1000
+
+#################################
+############ NUMERICS ###########
+#################################
+warpx.verbose = 1
+warpx.cfl     = 1.0
+
+#################################
+############ PLASMA #############
+#################################
+particles.nspecies      = 4
+particles.species_names = gaussian maxwell_boltzmann maxwell_juttner beam
+
+gaussian.charge                     = -q_e
+gaussian.mass                       = m_e
+gaussian.injection_style            = "NRandomPerCell"
+gaussian.num_particles_per_cell     = 1000
+gaussian.profile                    = constant
+gaussian.density                    = 1.0e21
+gaussian.momentum_distribution_type = "gaussian"
+gaussian.ux_th                      = 0.01
+gaussian.uy_th                      = 0.01
+gaussian.uz_th                      = 0.01
+
+maxwell_boltzmann.charge                     = -q_e
+maxwell_boltzmann.mass                       = m_e
+maxwell_boltzmann.injection_style            = "NRandomPerCell"
+maxwell_boltzmann.num_particles_per_cell     = 1000
+maxwell_boltzmann.profile                    = constant
+maxwell_boltzmann.density                    = 1.0e21
+maxwell_boltzmann.momentum_distribution_type = "maxwell_boltzmann"
+maxwell_boltzmann.theta                      = 9.99900009999001e-5
+
+maxwell_juttner.charge                     = -q_e
+maxwell_juttner.mass                       = m_e
+maxwell_juttner.injection_style            = "NRandomPerCell"
+maxwell_juttner.num_particles_per_cell     = 1000
+maxwell_juttner.profile                    = constant
+maxwell_juttner.density                    = 1.0e21
+maxwell_juttner.momentum_distribution_type = "maxwell_juttner"
+maxwell_juttner.theta                      = 1.0
+
+beam.charge                     = -q_e
+beam.mass                       = m_e
+beam.injection_style            = "gaussian_beam"
+beam.x_rms                      = 0.25
+beam.y_rms                      = 0.25
+beam.z_rms                      = 0.25
+beam.x_m                        = 0.0
+beam.y_m                        = 0.0
+beam.z_m                        = 0.0
+beam.npart                      = 512000
+beam.q_tot                      = -1.e-20
+beam.momentum_distribution_type = "gaussian"
+beam.ux_m                       = 0.0
+beam.uy_m                       = 0.0
+beam.uz_m                       = 0.0
+beam.ux_th                      = 1.0
+beam.uy_th                      = 1.0
+beam.uz_th                      = 1.0
+beam.zinject_plane              = 0.0
+beam.rigid_advance              = true
+beam.projected                  = true
+beam.focused                    = false
+
+#################################
+########## DIAGNOSTIC ###########
+#################################
+# 1 for gaussian
+# 2 for maxwell-boltzmann
+# 3 for maxwell-juttner
+# 4 for beam
+warpx.reduced_diags_names              = h1x h1y h1z h2x h2y h2z h3 h4x h4y h4z
+
+h1x.type                                 = ParticleHistogram
+h1x.frequency                            = 1
+h1x.path                                 = "./"
+h1x.species                              = gaussian
+h1x.bin_number                           = 50
+h1x.bin_min                              = -4.0e-2
+h1x.bin_max                              = +4.0e-2
+h1x.histogram_function(t,x,y,z,ux,uy,uz) = "ux"
+
+h1y.type                                 = ParticleHistogram
+h1y.frequency                            = 1
+h1y.path                                 = "./"
+h1y.species                              = gaussian
+h1y.bin_number                           = 50
+h1y.bin_min                              = -4.0e-2
+h1y.bin_max                              = +4.0e-2
+h1y.histogram_function(t,x,y,z,ux,uy,uz) = "uy"
+
+h1z.type                                 = ParticleHistogram
+h1z.frequency                            = 1
+h1z.path                                 = "./"
+h1z.species                              = gaussian
+h1z.bin_number                           = 50
+h1z.bin_min                              = -4.0e-2
+h1z.bin_max                              = +4.0e-2
+h1z.histogram_function(t,x,y,z,ux,uy,uz) = "uz"
+
+h2x.type                                 = ParticleHistogram
+h2x.frequency                            = 1
+h2x.path                                 = "./"
+h2x.species                              = maxwell_boltzmann
+h2x.bin_number                           = 50
+h2x.bin_min                              = -4.0e-2
+h2x.bin_max                              = +4.0e-2
+h2x.histogram_function(t,x,y,z,ux,uy,uz) = "ux"
+
+h2y.type                                 = ParticleHistogram
+h2y.frequency                            = 1
+h2y.path                                 = "./"
+h2y.species                              = maxwell_boltzmann
+h2y.bin_number                           = 50
+h2y.bin_min                              = -4.0e-2
+h2y.bin_max                              = +4.0e-2
+h2y.histogram_function(t,x,y,z,ux,uy,uz) = "uy"
+
+h2z.type                                 = ParticleHistogram
+h2z.frequency                            = 1
+h2z.path                                 = "./"
+h2z.species                              = maxwell_boltzmann
+h2z.bin_number                           = 50
+h2z.bin_min                              = -4.0e-2
+h2z.bin_max                              = +4.0e-2
+h2z.histogram_function(t,x,y,z,ux,uy,uz) = "uz"
+
+h3.type                                  = ParticleHistogram
+h3.frequency                             = 1
+h3.path                                  = "./"
+h3.species                               = maxwell_juttner
+h3.bin_number                            = 50
+h3.bin_min                               = 1.0
+h3.bin_max                               = 12.0
+h3.histogram_function(t,x,y,z,ux,uy,uz)  = "sqrt(1.0+(ux*ux+uy*uy+uz*uz))"
+
+h4x.type                                 = ParticleHistogram
+h4x.frequency                            = 1
+h4x.path                                 = "./"
+h4x.species                              = beam
+h4x.bin_number                           = 50
+h4x.bin_min                              = -1.0
+h4x.bin_max                              = +1.0
+h4x.histogram_function(t,x,y,z,ux,uy,uz) = "x"
+
+h4y.type                                 = ParticleHistogram
+h4y.frequency                            = 1
+h4y.path                                 = "./"
+h4y.species                              = beam
+h4y.bin_number                           = 50
+h4y.bin_min                              = -1.0
+h4y.bin_max                              = +1.0
+h4y.histogram_function(t,x,y,z,ux,uy,uz) = "y"
+
+h4z.type                                 = ParticleHistogram
+h4z.frequency                            = 1
+h4z.path                                 = "./"
+h4z.species                              = beam
+h4z.bin_number                           = 50
+h4z.bin_min                              = -1.0
+h4z.bin_max                              = +1.0
+h4z.histogram_function(t,x,y,z,ux,uy,uz) = "z"
