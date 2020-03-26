@@ -8,7 +8,9 @@
 #include <AMReX_MFIter.H>
 #include <AMReX_ParGDB.H>
 #include <AMReX_ParticleTile.H>
+#include <AMReX_ParticleBufferMap.H>
 #include <AMReX_TypeTraits.H>
+#include <AMReX_Scan.H>
 
 #include <limits>
 
@@ -227,6 +229,119 @@ void enforcePeriodic (P& p,
         }
     }
 }
+
+#if defined(AMREX_USE_GPU) && !defined(AMREX_USE_DPCPP)
+
+template <typename PTile, typename PLocator>
+int
+partitionParticlesByDest (PTile& ptile, const PLocator& ploc, const ParticleBufferMap& pmap,
+                          const Geometry& geom, int lev, int gid, int tid)
+{
+    const auto plo    = geom.ProbLoArray();
+    const auto phi    = geom.ProbHiArray();
+    const auto is_per = geom.isPeriodicArray();
+
+    auto& aos = ptile.GetArrayOfStructs();
+    const int np = aos.numParticles();
+
+    if (np == 0) return 0;
+    
+    auto p_lev_offsets = pmap.levelOffsetsPtr();
+    auto p_box_perm = pmap.levGridToBucketPtr();
+    auto p_pids = pmap.bucketToPIDPtr();
+    auto p_ptr = &(aos[0]);
+    
+    int pid = ParallelDescriptor::MyProc();
+    int chunk_size = 256*256*256;
+    int num_chunks = std::max(1, (np + (chunk_size - 1)) / chunk_size);
+    
+    PTile ptile_tmp;
+    ptile_tmp.define(ptile.NumRuntimeRealComps(), ptile.NumRuntimeIntComps());
+    ptile_tmp.resize(std::min(np, chunk_size));
+
+    auto src_data = ptile.getParticleTileData();
+    auto dst_data = ptile_tmp.getParticleTileData();
+
+    int last_offset = 0;
+    for (int ichunk = 0; ichunk < num_chunks; ++ichunk)
+    {
+        int this_offset = ichunk*chunk_size;
+        int this_chunk_size = std::min(chunk_size, np - this_offset);
+        
+        int num_stay;
+        {
+            auto particle_stays = [=] AMREX_GPU_DEVICE (int i) -> int
+            {
+                int assigned_grid;
+                int assigned_lev;
+        
+                auto& p = p_ptr[i+this_offset];
+                
+                if (p.id() < 0 )
+                {
+                    assigned_grid = -1;
+                    assigned_lev  = -1;
+                }
+                else
+                {
+                    enforcePeriodic(p, plo, phi, is_per);
+                    auto tup = ploc(p);
+                    assigned_grid = amrex::get<0>(tup);
+                    assigned_lev  = amrex::get<1>(tup);
+                }
+        
+                return ((assigned_grid == gid) && (assigned_lev == lev)
+                        && (p_pids[p_box_perm[p_lev_offsets[lev]+gid]] == pid));
+            };
+        
+            num_stay = Scan::PrefixSum<int> (this_chunk_size, 
+                          [=] AMREX_GPU_DEVICE (int i) -> int 
+                          {
+                              return particle_stays(i);
+                          },
+                          [=] AMREX_GPU_DEVICE (int i, int const& s)
+                          {
+                              if ( particle_stays(i) )
+                              {
+                                  copyParticle(dst_data, src_data, i + this_offset, s);
+                              }
+                              else
+                              {
+                                  copyParticle(dst_data, src_data, i + this_offset, this_chunk_size-1-(i-s));
+                              }
+                          }, 
+                          Scan::Type::exclusive);
+        }
+
+        if (num_chunks == 1)
+        {
+            ptile.swap(ptile_tmp);
+        }
+        else
+        {
+            AMREX_FOR_1D(this_chunk_size, i,
+                         {
+                             copyParticle(src_data, dst_data, i, i + this_offset);
+                         });
+        }
+        
+        if ( ichunk > 0 )
+        {
+            int num_swap = std::min(this_offset - last_offset, num_stay);
+            AMREX_FOR_1D( num_swap, i,
+            {
+                swapParticle(src_data, src_data, last_offset + i,
+                             this_offset + num_stay - 1 - i);
+            });
+        }
+
+        last_offset += num_stay;
+    }
+
+    return last_offset;
+}
+
+#endif
 
 IntVect computeRefFac (const ParGDBBase* a_gdb, int src_lev, int lev);
 

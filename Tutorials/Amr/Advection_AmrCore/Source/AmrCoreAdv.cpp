@@ -623,7 +623,7 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
 
 	    if (do_reflux) {
 		for (int i = 0; i < BL_SPACEDIM ; i++) {
-		    fluxes[i][mfi].copy(flux[i],mfi.nodaltilebox(i));
+		    fluxes[i][mfi].copy<RunOn::Host>(flux[i],mfi.nodaltilebox(i));
 		}
 	    }
 	}
@@ -719,7 +719,7 @@ AmrCoreAdv::EstTimeStep (int lev, bool local) const
 			      dx, prob_lo);
 
 	    for (int i = 0; i < BL_SPACEDIM; ++i) {
-		Real umax = uface[i].norm(0);
+		Real umax = uface[i].norm<RunOn::Host>(0);
 		if (umax > 1.e-100) {
 		    dt_est = std::min(dt_est, dx[i] / umax);
 		}

@@ -50,8 +50,8 @@ else
   CXXSTD := c++14
 endif
 
-CXXFLAGS += -std=$(CXXSTD)
-CFLAGS   += -std=c99
+CXXFLAGS += -std=$(CXXSTD) -Wno-error=sycl-strict
+CFLAGS   += -std=c99 -Wno-error=sycl-strict
 
 EXTRACXXFLAGS += -fsycl-unnamed-lambda
 

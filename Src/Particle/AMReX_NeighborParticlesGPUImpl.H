@@ -115,7 +115,7 @@ buildNeighborMask ()
                 const bool first_only = false;
                 auto isecs = isec_ba.intersections(box, first_only, nGrow);
                 
-                if (! isecs.empty() ) (*m_neighbor_mask_ptr)[mfi].setVal(i, box);
+                if (! isecs.empty() ) (*m_neighbor_mask_ptr)[mfi].setVal<RunOn::Host>(i, box);
 
                 for (auto& isec : isecs)
                 {

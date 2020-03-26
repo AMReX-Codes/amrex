@@ -657,14 +657,14 @@ bool AmrData::ReadData(const string &filename, Amrvis::FileType filetype) {
 	    FillInterior(tmpreg,lev,reg_bx);
 	    br.shift(idir,-1);
 	    FArrayBox tmpreg_lo(br,nComp);
-	    tmpreg_lo.copy(tmpreg,tmpreg.box(),0,tmpreg_lo.box(),0,nComp);
+	    tmpreg_lo.copy<RunOn::Host>(tmpreg,tmpreg.box(),0,tmpreg_lo.box(),0,nComp);
 
             // now fill out tmp region along idir direction
 	    Box b_lo(amrex::adjCellLo(inbox,idir,1));
 	    for(k = 1; k < boundaryWidth; ++k) {
 	       Box btmp(b_lo);
 	       btmp.shift(idir, -k);
-	       tmpreg_lo.copy(tmpreg_lo,b_lo,0,btmp,0,nComp);
+	       tmpreg_lo.copy<RunOn::Host>(tmpreg_lo,b_lo,0,btmp,0,nComp);
 	    }
 
 	    // now fill out temp bndry region
@@ -676,7 +676,7 @@ bool AmrData::ReadData(const string &filename, Amrvis::FileType filetype) {
 	       b_src  = b_dest;
 	       b_src  = b_src.shift(kdir, 1);
                for(n = 1; n <= boundaryWidth; ++n) {
-	          tmpreg_lo.copy(tmpreg_lo, b_src, 0, b_dest, 0, nComp);
+	          tmpreg_lo.copy<RunOn::Host>(tmpreg_lo, b_src, 0, b_dest, 0, nComp);
 	          b_dest.shift(kdir, -1);
 	       }
 
@@ -684,7 +684,7 @@ bool AmrData::ReadData(const string &filename, Amrvis::FileType filetype) {
 	       b_src = b_dest;
 	       b_src.shift(kdir,-1);
                for(n = 1; n <= boundaryWidth; ++n) {
-	          tmpreg_lo.copy(tmpreg_lo,b_src,0,b_dest,0,nComp);
+	          tmpreg_lo.copy<RunOn::Host>(tmpreg_lo,b_src,0,b_dest,0,nComp);
 	          b_dest.shift(kdir,1);
 	       }
 	       bx.grow(kdir,boundaryWidth);
@@ -700,7 +700,7 @@ bool AmrData::ReadData(const string &filename, Amrvis::FileType filetype) {
 		 ovlp &= *bli;
 		 ovlp &= br;
 		 if(ovlp.ok()) {
-  		   p->copy(tmpreg_lo, ovlp);
+  		   p->copy<RunOn::Host>(tmpreg_lo, ovlp);
 		 }
 		 ++bli;
                }
@@ -720,14 +720,14 @@ bool AmrData::ReadData(const string &filename, Amrvis::FileType filetype) {
 	    FillInterior(tmpreg2,lev,reg_bx);
 	    br.shift(idir,1);
 	    FArrayBox tmpreg_hi(br,nComp);
-	    tmpreg_hi.copy(tmpreg2,tmpreg2.box(),0,tmpreg_hi.box(),0,nComp);
+	    tmpreg_hi.copy<RunOn::Host>(tmpreg2,tmpreg2.box(),0,tmpreg_hi.box(),0,nComp);
 
             // now fill out tmp region along idir direction
 	    Box b_hi(amrex::adjCellHi(inbox,idir,1));
 	    for(k = 1; k < boundaryWidth; ++k) {
 	       Box btmp(b_hi);
 	       btmp.shift(idir,k);
-	       tmpreg_hi.copy(tmpreg_hi,b_hi,0,btmp,0,nComp);
+	       tmpreg_hi.copy<RunOn::Host>(tmpreg_hi,b_hi,0,btmp,0,nComp);
 	    }
 
 	    // now fill out temp bndry region
@@ -737,7 +737,7 @@ bool AmrData::ReadData(const string &filename, Amrvis::FileType filetype) {
 	       b_src  = b_dest;
 	       b_src.shift(kdir, 1);
                for(n = 1; n <= boundaryWidth; ++n) {
-	          tmpreg_hi.copy(tmpreg_hi, b_src, 0, b_dest, 0, nComp);
+	          tmpreg_hi.copy<RunOn::Host>(tmpreg_hi, b_src, 0, b_dest, 0, nComp);
 	          b_dest.shift(kdir,-1);
 	       }
 
@@ -745,7 +745,7 @@ bool AmrData::ReadData(const string &filename, Amrvis::FileType filetype) {
 	       b_src  = b_dest;
 	       b_src.shift(kdir, -1);
                for(n = 1; n <= boundaryWidth; ++n) {
-	          tmpreg_hi.copy(tmpreg_hi, b_src, 0, b_dest, 0, nComp);
+	          tmpreg_hi.copy<RunOn::Host>(tmpreg_hi, b_src, 0, b_dest, 0, nComp);
 	          b_dest.shift(kdir, 1);
 	       }
 	       bx.grow(kdir, boundaryWidth);
@@ -761,7 +761,7 @@ bool AmrData::ReadData(const string &filename, Amrvis::FileType filetype) {
 		 ovlp &= *bli;
 		 ovlp &= br;
 		 if(ovlp.ok()) {
-  		   p->copy(tmpreg_hi, ovlp);
+  		   p->copy<RunOn::Host>(tmpreg_hi, ovlp);
 		 }
 		 ++bli;
                }
@@ -965,7 +965,7 @@ bool AmrData::ReadNonPlotfileData(const string &filename, Amrvis::FileType filet
 	    zvMax = std::max(zvMax, tempVisMF.max(ic, iComp));
         }
         levelZeroValue = zvMin;
-        newfab->setVal(levelZeroValue);
+        newfab->setVal<RunOn::Host>(levelZeroValue);
 #if(BL_SPACEDIM == 2)
 #ifdef BL_SETMFBACKGROUND
         Real *dptr = newfab->dataPtr();
@@ -1294,7 +1294,7 @@ void AmrData::FillVar(MultiFab &destMultiFab, int finestFillLevel,
             Box tempCoarseBox(
 		       fillBoxId[currentIndex][currLevel][currentBox][0].box());
             FArrayBox tempCoarseDestFab(tempCoarseBox, 1);
-            tempCoarseDestFab.setVal(1.e30);
+            tempCoarseDestFab.setVal<RunOn::Host>(1.e30);
             multiFabCopyDesc.FillFab(stateDataMFId[currLevel],
 			  fillBoxId[currentIndex][currLevel][currentBox][0],
 			  tempCoarseDestFab);
@@ -1314,7 +1314,7 @@ void AmrData::FillVar(MultiFab &destMultiFab, int finestFillLevel,
                 fboxes.refine(cumulativeRefRatios[currLevel]);
                 // Interpolate up to fine patch.
                 tempCurrentFillPatchedFab.resize(intersectDestBox, nFillComps);
-                tempCurrentFillPatchedFab.setVal(1.e30);
+                tempCurrentFillPatchedFab.setVal<RunOn::Host>(1.e30);
 		BL_ASSERT(intersectDestBox.ok());
 		BL_ASSERT(tempCoarseDestFab.box().ok());
 		PcInterp(tempCurrentFillPatchedFab,
@@ -1333,7 +1333,7 @@ void AmrData::FillVar(MultiFab &destMultiFab, int finestFillLevel,
                 srcdestBox &= destMultiFab[currentIndex].box();
                 srcdestBox &= intersectDestBox;
                 if(srcdestBox.ok()) {
-                  destMultiFab[currentIndex].copy(*copyFromThisFab,
+                  destMultiFab[currentIndex].copy<RunOn::Host>(*copyFromThisFab,
                                                   srcdestBox, 0, srcdestBox,
                                                   destComp, nFillComps);
                 }
@@ -1519,7 +1519,7 @@ void AmrData::FillVar(Vector<FArrayBox *> &destFabs, const Vector<Box> &destBoxe
             Box tempCoarseBox(
 		       fillBoxId[currentIndex][currLevel][currentBox][0].box());
             FArrayBox tempCoarseDestFab(tempCoarseBox, numFillComps);
-            tempCoarseDestFab.setVal(1.e30);
+            tempCoarseDestFab.setVal<RunOn::Host>(1.e30);
             multiFabCopyDesc.FillFab(stateDataMFId[currLevel],
 			  fillBoxId[currentIndex][currLevel][currentBox][0],
 			  tempCoarseDestFab);
@@ -1539,7 +1539,7 @@ void AmrData::FillVar(Vector<FArrayBox *> &destFabs, const Vector<Box> &destBoxe
                     fboxes.refine(cumulativeRefRatios[currLevel]);
                     // Interpolate up to fine patch.
                     tempCurrentFillPatchedFab.resize(intersectDestBox, numFillComps);
-                    tempCurrentFillPatchedFab.setVal(1.e30);
+                    tempCurrentFillPatchedFab.setVal<RunOn::Host>(1.e30);
 		    BL_ASSERT(intersectDestBox.ok());
 		    BL_ASSERT( tempCoarseDestFab.box().ok());
 		    PcInterp(tempCurrentFillPatchedFab,
@@ -1559,7 +1559,7 @@ void AmrData::FillVar(Vector<FArrayBox *> &destFabs, const Vector<Box> &destBoxe
                     srcdestBox &= destFabs[currentIndex]->box();
                     srcdestBox &= intersectDestBox;
                     if(srcdestBox.ok()) {
-                        destFabs[currentIndex]->copy(*copyFromThisFab,
+                        destFabs[currentIndex]->copy<RunOn::Host>(*copyFromThisFab,
                                                    srcdestBox, 0, srcdestBox,
                                                    destComp, numFillComps);
                     }
@@ -1789,8 +1789,8 @@ bool AmrData::MinMax(const Box &onBox, const string &derived, int level,
           valid = true;
           overlap = onBox;
           overlap &= gpli.validbox();
-          minVal = (*dataGrids[level][compIndex])[gpli].min(overlap, 0);
-          maxVal = (*dataGrids[level][compIndex])[gpli].max(overlap, 0);
+          minVal = (*dataGrids[level][compIndex])[gpli].min<RunOn::Host>(overlap, 0);
+          maxVal = (*dataGrids[level][compIndex])[gpli].max<RunOn::Host>(overlap, 0);
 
           dataMin = std::min(dataMin, minVal);
           dataMax = std::max(dataMax, maxVal);
@@ -1837,7 +1837,7 @@ bool AmrData::MinMax(const Box &onBox, const string &derived, int level,
 
             overlap = onBox;
             overlap &= gpli.validbox();
-            Real vfMaxVal = (*dataGrids[level][vfIndex])[gpli].max(overlap, 0);
+            Real vfMaxVal = (*dataGrids[level][vfIndex])[gpli].max<RunOn::Host>(overlap, 0);
             if(vfMaxVal >= vfEps[level]) {
 	      ++cCountMixedFort;
               valid = true;
@@ -1865,7 +1865,7 @@ bool AmrData::MinMax(const Box &onBox, const string &derived, int level,
 
           overlap = onBox;
           overlap &= gpli.validbox();
-          Real vfMaxVal = (*dataGrids[level][vfIndex])[gpli].max(overlap, 0);
+          Real vfMaxVal = (*dataGrids[level][vfIndex])[gpli].max<RunOn::Host>(overlap, 0);
           if(vfMaxVal >= vfEps[level]) {
 	    ++iCountMixedFort;
             valid = true;
@@ -1928,8 +1928,8 @@ bool AmrData::MinMax(const Box &onBox, const string &derived, int level,
           valid = true;
           overlap = onBox;
           overlap &= gpli.validbox();
-          minVal = (*dataGrids[level][compIndex])[gpli].min(overlap, 0);
-          maxVal = (*dataGrids[level][compIndex])[gpli].max(overlap, 0);
+          minVal = (*dataGrids[level][compIndex])[gpli].min<RunOn::Host>(overlap, 0);
+          maxVal = (*dataGrids[level][compIndex])[gpli].max<RunOn::Host>(overlap, 0);
 
           dataMin = std::min(dataMin, minVal);
           dataMax = std::max(dataMax, maxVal);
@@ -2085,7 +2085,7 @@ FArrayBox *AmrData::ReadGrid(std::istream &is, int numVar) {
      //FArrayBox tempfab(is);
      FArrayBox tempfab;
      tempfab.readFrom(is);
-     fabPtr->copy(tempfab, 0, ivar, tempfab.nComp());
+     fabPtr->copy<RunOn::Host>(tempfab, 0, ivar, tempfab.nComp());
      ivar += tempfab.nComp();
      if(++whileTrap > 256) {   // an arbitrarily large number
        cerr << "Error in GridPlot:  whileTrap caught loop." << endl;

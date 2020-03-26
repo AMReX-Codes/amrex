@@ -612,8 +612,14 @@ AmrLevel::setPhysBoundaryValues (FArrayBox& dest,
                                  int        src_comp,
                                  int        num_comp)
 {
-    state[state_indx].FillBoundary(dest,time,geom.CellSize(),
-                                   geom.ProbDomain(),dest_comp,src_comp,num_comp);
+    // Call the Fab interface if available.
+    if (state[state_indx].descriptor()->hasBndryFuncFab()) {
+        state[state_indx].FillBoundary(dest.box(), dest, time, geom, dest_comp, src_comp, num_comp);
+    }
+    else {
+        state[state_indx].FillBoundary(dest,time,geom.CellSize(),
+                                       geom.ProbDomain(),dest_comp,src_comp,num_comp);
+    }
 }
 
 FillPatchIteratorHelper::FillPatchIteratorHelper (AmrLevel& amrlevel,
@@ -1176,7 +1182,7 @@ FixUpPhysCorners (FArrayBox&      fab,
             BL_ASSERT(HasPhysBndry(lo_slab,ProbDomain,TheGeom));
 
             tmp.resize(lo_slab,ncomp);
-            tmp.copy(fab,dcomp,0,ncomp);
+            tmp.copy<RunOn::Host>(fab,dcomp,0,ncomp);
             tmp.shift(dir,ProbDomain.length(dir));
             TheLevel.setPhysBoundaryValues(tmp,
                                            state_indx,
@@ -1185,7 +1191,7 @@ FixUpPhysCorners (FArrayBox&      fab,
                                            scomp,
                                            ncomp);
             tmp.shift(dir,-ProbDomain.length(dir));
-            fab.copy(tmp,0,dcomp,ncomp);
+            fab.copy<RunOn::Host>(tmp,0,dcomp,ncomp);
         }
 
         if (hi_slab.ok())
@@ -1196,7 +1202,7 @@ FixUpPhysCorners (FArrayBox&      fab,
             BL_ASSERT(HasPhysBndry(hi_slab,ProbDomain,TheGeom));
 
             tmp.resize(hi_slab,ncomp);
-            tmp.copy(fab,dcomp,0,ncomp);
+            tmp.copy<RunOn::Host>(fab,dcomp,0,ncomp);
             tmp.shift(dir,-ProbDomain.length(dir));
             TheLevel.setPhysBoundaryValues(tmp,
                                            state_indx,
@@ -1205,7 +1211,7 @@ FixUpPhysCorners (FArrayBox&      fab,
                                            scomp,
                                            ncomp);
             tmp.shift(dir,ProbDomain.length(dir));
-            fab.copy(tmp,0,dcomp,ncomp);
+            fab.copy<RunOn::Host>(tmp,0,dcomp,ncomp);
         }
     }
 }
@@ -1252,7 +1258,7 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
         {
             BL_ASSERT(CrseBoxes[i].ok());
             CrseFabs[i].reset(new FArrayBox(CrseBoxes[i],m_ncomp));
-            CrseFabs[i]->setComplement(std::numeric_limits<Real>::quiet_NaN(), domain_box, 0, m_ncomp);
+            CrseFabs[i]->setComplement<RunOn::Host>(std::numeric_limits<Real>::quiet_NaN(), domain_box, 0, m_ncomp);
 	}
 
         for (int i = 0; i < NC; i++)
@@ -1312,7 +1318,7 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
                         {
                             const Box& dstbox = srcbox - iv;
 
-                            dstfab.copy(srcfab,srcbox,0,dstbox,0,m_ncomp);
+                            dstfab.copy<RunOn::Host>(srcfab,srcbox,0,dstbox,0,m_ncomp);
                         }
                     }
                 }
@@ -1363,7 +1369,7 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
             // Fill crsefab from m_cbox via copy on intersect.
             //
             for (int j = 0; j < NC; j++) {
-                crsefab.copy(*CrseFabs[j]);
+                crsefab.copy<RunOn::Host>(*CrseFabs[j]);
 	    }
             //
             // Get boundary conditions for the fine patch.
@@ -1395,7 +1401,7 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
             // Copy intersect finefab into next level m_cboxes.
             //
 	    for (int j = 0, K = FinerCrseFabs.size(); j < K; ++j) {
-		FinerCrseFabs[j]->copy(finefab);
+		FinerCrseFabs[j]->copy<RunOn::Host>(finefab);
 	    }
         }
 
@@ -1412,7 +1418,7 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
     // Copy intersect coarse into destination fab.
     //
     for (int i = 0, N = FinestCrseFabs.size(); i < N; ++i) {
-        fab.copy(*FinestCrseFabs[i],0,dcomp,m_ncomp);
+        fab.copy<RunOn::Host>(*FinestCrseFabs[i],0,dcomp,m_ncomp);
     }
 
     if (FineGeom.isAnyPeriodic() && !FineDomain.contains(fab.box()))
@@ -1431,7 +1437,7 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
                 src_dst    &= FineDomain;
 
                 if (src_dst.ok())
-                    fab.copy(*FinestCrseFabs[i],src_dst,0,src_dst,dcomp,m_ncomp);
+                    fab.copy<RunOn::Host>(*FinestCrseFabs[i],src_dst,0,src_dst,dcomp,m_ncomp);
 
                 fab.shift(-iv);
             }
@@ -2278,7 +2284,8 @@ AmrLevel::CreateLevelDirectory (const std::string &dir)
                 int fis = smf[0]->IndexArray()[f];
                 int fid = mf.IndexArray()[f];
                 const Box& bx = mf[fid].box();
-                mf[fid].linInterp((*smf[0])[fis],
+                mf[fid].linInterp<RunOn::Host>
+                               ((*smf[0])[fis],
                                 scomp,
                                 (*smf[1])[fis],
                                 scomp,
@@ -2311,7 +2318,8 @@ AmrLevel::CreateLevelDirectory (const std::string &dir)
                       const Box& bx = *(srcGraph->fabTiles[f]->tileBx[t]);
 
                       //const Box& bx = (*dmf)[fid].box();
-                      (*dmf)[fid].linInterp((*smf[0])[fis],
+                      (*dmf)[fid].linInterp<RunOn::Host>
+                                           ((*smf[0])[fis],
                                             scomp,
                                             (*smf[1])[fis],
                                             scomp,

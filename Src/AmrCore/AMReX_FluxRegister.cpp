@@ -112,12 +112,27 @@ FluxRegister::SumReg (int comp) const
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion())
         {
-            sum += amrex::ReduceSum(lofabs.m_mf, hifabs.m_mf, 0,
-                   [] AMREX_GPU_HOST_DEVICE (Box const& tbx,
-                                             FArrayBox const& lofab,
-                                             FArrayBox const& hifab) -> Real
+            sum += amrex::ReduceSum(lofabs.m_mf, 0,
+                   [=] AMREX_GPU_HOST_DEVICE (Box const& tbx,
+                                              Array4<Real const> const& lofab) -> Real
                    {
-                       return lofab.sum(tbx,0) - hifab.sum(tbx,0);
+                       Real r = 0.0;
+                       AMREX_LOOP_3D(tbx, i, j, k,
+                       {
+                           r += lofab(i,j,k,comp);
+                       });
+                       return r;
+                   });
+            sum += amrex::ReduceSum(hifabs.m_mf, 0,
+                   [=] AMREX_GPU_HOST_DEVICE (Box const& tbx,
+                                              Array4<Real const> const& hifab) -> Real
+                   {
+                       Real r = 0.0;
+                       AMREX_LOOP_3D(tbx, i, j, k,
+                       {
+                           r -= hifab(i,j,k,comp);
+                       });
+                       return r;
                    });
         }
         else
@@ -128,7 +143,18 @@ FluxRegister::SumReg (int comp) const
 #endif
             for (FabSetIter fsi(lofabs); fsi.isValid(); ++fsi)
             {
-                sum += (lofabs[fsi].sum(comp) - hifabs[fsi].sum(comp));
+                Array4<Real const> const& lofab = lofabs.const_array(fsi);
+                Box lobx(lofab);
+                AMREX_LOOP_3D(lobx, i, j, k,
+                {
+                    sum += lofab(i,j,k,comp);
+                });
+                Array4<Real const> const& hifab = hifabs.const_array(fsi);
+                Box hibx(hifab);
+                AMREX_LOOP_3D(hibx, i, j, k,
+                {
+                    sum -= hifab(i,j,k,comp);
+                });
             }
         }
     }
@@ -194,7 +220,7 @@ FluxRegister::CrseInit (const MultiFab& mflx,
             for (FabSetIter mfi(fs); mfi.isValid(); ++mfi)
             {
                 const Box& bx = mfi.validbox();
-                auto const sfab =          fs.const_array(mfi);
+                auto const sfab = fs.const_array(mfi);
                 auto       dfab = bndry[face].array(mfi);
                 AMREX_HOST_DEVICE_PARALLEL_FOR_4D (bx, numcomp, i, j, k, n,
                 {
@@ -439,11 +465,11 @@ FluxRegister::FineSetVal (int              dir,
 
     FArrayBox& loreg = bndry[Orientation(dir,Orientation::low)][boxno];
     BL_ASSERT(numcomp <= loreg.nComp());
-    loreg.setVal(val, loreg.box(), destcomp, numcomp);
+    loreg.setVal<RunOn::Host>(val, loreg.box(), destcomp, numcomp);
 
     FArrayBox& hireg = bndry[Orientation(dir,Orientation::high)][boxno];
     BL_ASSERT(numcomp <= hireg.nComp());
-    hireg.setVal(val, hireg.box(), destcomp, numcomp);
+    hireg.setVal<RunOn::Host>(val, hireg.box(), destcomp, numcomp);
 }
 
 void
@@ -573,7 +599,7 @@ FluxRegister::ClearInternalBorders (const Geometry& geom)
 		const Box& bx = fsi.validbox();
 		const std::vector< std::pair<int,Box> >& isects = bahi.intersections(bx);
 		for (int ii = 0; ii < static_cast<int>(isects.size()); ++ii) {
-		    frlo[fsi].setVal(0.0, isects[ii].second, 0, nc);
+		    frlo[fsi].setVal<RunOn::Host>(0.0, isects[ii].second, 0, nc);
 		}
 		if (geom.isPeriodic(dir)) {
 		    if (bx.smallEnd(dir) == domain.smallEnd(dir)) {
@@ -581,7 +607,7 @@ FluxRegister::ClearInternalBorders (const Geometry& geom)
 			const std::vector<std::pair<int,Box> >& isects2 = bahi.intersections(sbx);
 			for (int ii = 0; ii < static_cast<int>(isects2.size()); ++ii) {
 			    const Box& bx2 = amrex::shift(isects2[ii].second, dir, -domain.length(dir));
-			    frlo[fsi].setVal(0.0, bx2, 0, nc);
+			    frlo[fsi].setVal<RunOn::Host>(0.0, bx2, 0, nc);
 			}		      
 		    }
                 }
@@ -591,7 +617,7 @@ FluxRegister::ClearInternalBorders (const Geometry& geom)
 		const Box& bx = fsi.validbox();
 		const std::vector< std::pair<int,Box> >& isects = balo.intersections(bx);
 		for (int ii = 0; ii < static_cast<int>(isects.size()); ++ii) {
-		    frhi[fsi].setVal(0.0, isects[ii].second, 0, nc);
+		    frhi[fsi].setVal<RunOn::Host>(0.0, isects[ii].second, 0, nc);
 		}
 		if (geom.isPeriodic(dir)) {
 		    if (bx.bigEnd(dir) == domain.bigEnd(dir)) {
@@ -599,7 +625,7 @@ FluxRegister::ClearInternalBorders (const Geometry& geom)
 			const std::vector<std::pair<int,Box> >& isects2 = balo.intersections(sbx);
 			for (int ii = 0; ii < static_cast<int>(isects2.size()); ++ii) {
 			    const Box& bx2 = amrex::shift(isects2[ii].second, dir, domain.length(dir));
-			    frhi[fsi].setVal(0.0, bx2, 0, nc);
+			    frhi[fsi].setVal<RunOn::Host>(0.0, bx2, 0, nc);
 			}		      
 		    }
 		}
@@ -640,8 +666,8 @@ FluxRegister::OverwriteFlux (Array<MultiFab*,AMREX_SPACEDIM> const& crse_fluxes,
             for (MFIter mfi(cc_mask); mfi.isValid(); ++mfi)
             {
                 IArrayBox& fab = cc_mask[mfi];
-                fab.setVal(0);  // coarse by default
-                fab.setComplement(2, cdomain, 0, 1); // phys bc
+                fab.setVal<RunOn::Host>(0);  // coarse by default
+                fab.setComplement<RunOn::Host>(2, cdomain, 0, 1); // phys bc
 
                 const Box& bx = fab.box();
                 for (const auto& iv : pshifts)
@@ -649,7 +675,7 @@ FluxRegister::OverwriteFlux (Array<MultiFab*,AMREX_SPACEDIM> const& crse_fluxes,
                     grids.intersections(bx+iv, isects);
                     for (const auto& is : isects)
                     {
-                        fab.setVal(1, is.second-iv, 0, 1);
+                        fab.setVal<RunOn::Host>(1, is.second-iv, 0, 1);
                     }
                 }
             }

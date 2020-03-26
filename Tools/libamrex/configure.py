@@ -103,9 +103,9 @@ def configure(argv):
     if args.with_fortran == "no":
         args.enable_fortran_api = "no";
         if args.enable_hypre == "yes":
-            sys.exit("ERRROR: must have --with-fortran=yes to use hypre")
+            sys.exit("ERROR: must have --with-fortran=yes to use hypre")
         if args.enable_petsc == "yes":
-            sys.exit("ERRROR: must have --with-fortran=yes to use petsc")
+            sys.exit("ERROR: must have --with-fortran=yes to use petsc")
 
     f = open("GNUmakefile","w")
     f.write("AMREX_INSTALL_DIR = " + args.prefix.strip() + "\n")
