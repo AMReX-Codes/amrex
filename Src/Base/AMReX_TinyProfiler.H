@@ -23,9 +23,9 @@ class TinyProfiler
 {
 public:
     explicit TinyProfiler (std::string funcname) noexcept;
-    TinyProfiler (std::string funcname, bool start_, bool useCUPTI) noexcept;
+    TinyProfiler (std::string funcname, bool start_, bool useCUPTI=false) noexcept;
     explicit TinyProfiler (const char* funcname) noexcept;
-    TinyProfiler (const char* funcname, bool start_, bool useCUPTI) noexcept;
+    TinyProfiler (const char* funcname, bool start_, bool useCUPTI=false) noexcept;
     ~TinyProfiler ();
 
     void start () noexcept;
