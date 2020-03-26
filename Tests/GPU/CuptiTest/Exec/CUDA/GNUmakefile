@@ -7,7 +7,7 @@ USE_MPI   = TRUE
 USE_OMP   = FALSE
 USE_CUDA  = TRUE
 USE_CUPTI = TRUE
-COMP      = pgi
+COMP      = gcc
 DIM       = 3 
 
 TINY_PROFILE   = TRUE
