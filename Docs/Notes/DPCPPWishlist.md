@@ -33,7 +33,7 @@
 * Compiler flag to make implicit capture of this pointer via `[=]` an
   error.  [Implicit capture of this pointer](http://eel.is/c++draft/depr#capture.this)
   has been deprecated in C++ 20.  For many codes, it's almost always a
-  bug when `this` is implicitly captured via `[=]`.
+  bug when `this` is implicitly captured onto device via `[=]`.
 
 * `assert(0)`. `assert(0)` when called on device does not throw any
   errors or abort the run.  Is it possible to make it abort?
