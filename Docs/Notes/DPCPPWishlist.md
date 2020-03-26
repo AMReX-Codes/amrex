@@ -31,18 +31,17 @@
   anywhere in device code?
 
 * Compiler flag to make implicit capture of this pointer via `[=]` an
-  error.  [Implicit capture of this pointer]
-  (http://eel.is/c++draft/depr#capture.this) has been deprecated in
-  C++ 20.  For many codes, it's almost always a bug when `this` is
-  implicitly captured via `[=]`.
+  error.  [Implicit capture of this pointer](http://eel.is/c++draft/depr#capture.this)
+  has been deprecated in C++ 20.  For many codes, it's almost always a
+  bug when `this` is implicitly captured via `[=]`.
 
-* assert(0). assert(0) when called on device does not throw any errors
-  or abort the run.  Is it possible to make it abort?
+* `assert(0)`. `assert(0)` when called on device does not throw any
+  errors or abort the run.  Is it possible to make it abort?
 
-* sycl::abs. sycl::abs(int) returns an unsigned int in contrast to int
-  std::abs(int).  Currently std::abs does not work on device.  If
-  std::abs is made to work on device, could we make sure it has the
-  signature of `int std::abs(in)`?
+* `sycl::abs`. `sycl::abs(int)` returns an `unsigned int` in contrast to
+  `int std::abs(int)`.  Currently `std::abs` does not work on device.  If
+  `std::abs` is made to work on device, could it return the same type
+  as the C++ standard?
 
 * Memory fence.  Could DPC++ privode a memory fence function for the
   whole device (not just group)?  Or is the CUDA distinction between
