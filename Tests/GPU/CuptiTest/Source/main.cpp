@@ -1,7 +1,7 @@
 #include <AMReX_Gpu.H>
 #include <AMReX_Print.H>
 #ifdef AMREX_USE_CUPTI
-  #include <AMReX_ActivityTraceAsync.H>
+#include <AMReX_CuptiTrace.H>
 #endif // AMREX_USE_CUPTI
 
 #include "myfunc.H"

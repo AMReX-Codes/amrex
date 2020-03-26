@@ -229,8 +229,8 @@ endif
 
 # CUPTI Trace
 ifeq ($(USE_CUPTI),TRUE)
-  C$(AMREX_BASE)_headers += AMReX_ActivityTraceAsync.H
-  C$(AMREX_BASE)_sources += AMReX_ActivityTraceAsync.cpp
+  C$(AMREX_BASE)_headers += AMReX_CuptiTrace.H
+  C$(AMREX_BASE)_sources += AMReX_CuptiTrace.cpp
 endif
 
 # Machine model

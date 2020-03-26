@@ -3,8 +3,8 @@
 
 #ifdef AMREX_USE_CUPTI
   #ifndef AMREX_TINY_PROFILING
-    #include <AMReX_ActivityTraceAsync.H> // No need to import if using only
-  #endif                                  // the CUPTI profiling macros
+    #include <AMReX_CuptiTrace.H> // No need to import if using only
+  #endif                          // the CUPTI profiling macros
 #endif // AMREX_USE_CUPTI
 
 void doDeviceSleep (MultiFab& mf, int& n) {
@@ -62,22 +62,25 @@ void doDeviceSleep (MultiFab& mf, int& n) {
   #endif // AMREX_TINY_PROFILING
   
   if (true) {
+    amrex::Print() << "Average time per box (s): "
+		   << computeElapsedTimeUserdata(activityRecordUserdata) << "\n";
+    
     unsigned long long t_start = 0;
     unsigned long long t_stop = 0;
     for (auto record : activityRecordUserdata) {
       CUpti_ActivityKernel4 *kernel = (CUpti_ActivityKernel4 *) record->getRecord();
-      t_start = (unsigned long long) (kernel->start - startTimestamp);
-      t_stop = (unsigned long long) (kernel->end - startTimestamp);
+      t_start = (unsigned long long) kernel->start;
+      t_stop = (unsigned long long) kernel->end;
       
       unsigned long long dt = 0;
       dt = (((unsigned long long)t_stop) - ((unsigned long long)t_start));
 
       // Kernel data captured in a vector `activityRecordUserdata`
       // Print here some information from the captured records
-      amrex::AllPrint() << "  t_elapsed:  " << dt
-  			<< "; n_step:     " << n
-  			<< "; Proc.:      " << ParallelContext::MyProcSub()
-  			<< "; Act. Size:  " << activityRecordUserdata.size()
+      amrex::AllPrint() << "  t_elapsed (ns):  " << dt
+  			<< "; n_step: " << n
+  			<< "; Proc.: " << ParallelContext::MyProcSub()
+  			<< "; Act. Size: " << activityRecordUserdata.size()
 	                // In this example, random unsigned flag is assigned
 	                // for all records captured outside same MFIter loop,
 	                // but if instrumenting kernel launch within an

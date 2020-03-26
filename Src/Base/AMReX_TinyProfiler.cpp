@@ -14,7 +14,7 @@
 #include <AMReX_Print.H>
 
 #ifdef AMREX_USE_CUPTI
-#include <AMReX_ActivityTraceAsync.H>
+#include <AMReX_CuptiTrace.H>
 #include <cupti.h>
 #endif // AMREX_USE_CUPTI
 
@@ -74,13 +74,13 @@ TinyProfiler::start () noexcept
     {
         double t;
 	if (!uCUPTI) {
-	  t = amrex::second();
+	    t = amrex::second();
 	} else {
 #ifdef AMREX_USE_CUPTI
-	  cudaDeviceSynchronize();
-	  cuptiActivityFlushAll(0);
-	  activityRecordUserdata.clear();
-	  t = amrex::second();
+	    cudaDeviceSynchronize();
+	    cuptiActivityFlushAll(0);
+	    activityRecordUserdata.clear();
+	    t = amrex::second();
 #endif // AMREX_USE_CUPTI
 	}
 	  
@@ -111,13 +111,13 @@ TinyProfiler::stop () noexcept
         double t;
 	int nKernelCalls = 0;
 	if (!uCUPTI) {
-	  t = amrex::second();
+	    t = amrex::second();
 	} else {
 #ifdef AMREX_USE_CUPTI
-	  cudaDeviceSynchronize();
-	  cuptiActivityFlushAll(0);
-	  t = computeElapsedTimeUserdata(activityRecordUserdata);
-	  nKernelCalls = activityRecordUserdata.size();
+	    cudaDeviceSynchronize();
+	    cuptiActivityFlushAll(0);
+	    t = computeElapsedTimeUserdata(activityRecordUserdata);
+	    nKernelCalls = activityRecordUserdata.size();
 #endif // AMREX_USE_CUPTI
 	}
 	
@@ -134,44 +134,44 @@ TinyProfiler::stop () noexcept
 	    double dtin;
 	    double dtex;
 	    if (!uCUPTI) {
-	      dtin = t - std::get<0>(tt); // elapsed time since start() is called.
-	      dtex = dtin - std::get<1>(tt);
+	        dtin = t - std::get<0>(tt); // elapsed time since start() is called.
+	        dtex = dtin - std::get<1>(tt);
 	    } else {
-	      dtin = t;
-	      dtex = dtin - std::get<1>(tt); 
+	        dtin = t;
+	        dtex = dtin - std::get<1>(tt); 
 	    }
-	      
-            for (Stats* st : stats)
-            {
-                --(st->depth);
-                ++(st->n);
-                if (st->depth == 0) {
-                  st->dtin += dtin;
-                }
-                st->dtex += dtex;
-                st->usesCUPTI = uCUPTI;
-		if (uCUPTI) {
-		  st->nk += nKernelCalls;
-		}
-	    }
-                
-	    ttstack.pop_back();
-	    if (!ttstack.empty()) {
-		std::tuple<double,double,std::string*>& parent = ttstack.back();
-		std::get<1>(parent) += dtin;
-	    }
-
+        
+        for (Stats* st : stats)
+        {
+            --(st->depth);
+            ++(st->n);
+            if (st->depth == 0) {
+                st->dtin += dtin;
+            }
+            st->dtex += dtex;
+            st->usesCUPTI = uCUPTI;
+            if (uCUPTI) {
+                st->nk += nKernelCalls;
+            }
+        }
+        
+        ttstack.pop_back();
+        if (!ttstack.empty()) {
+            std::tuple<double,double,std::string*>& parent = ttstack.back();
+            std::get<1>(parent) += dtin;
+        }
+        
 #ifdef AMREX_USE_CUDA
-	    nvtxRangeEnd(nvtx_id);
+        nvtxRangeEnd(nvtx_id);
 #endif
 	} else {
 	    improperly_nested_timers.insert(fname);
 	} 
-
-        stats.clear();
+    
+    stats.clear();
     }
 }
-
+    
 #ifdef AMREX_USE_CUPTI
 void
 TinyProfiler::stop (unsigned boxUintID) noexcept
@@ -181,58 +181,63 @@ TinyProfiler::stop (unsigned boxUintID) noexcept
 #endif
     if (!stats.empty()) 
     {
-      double t;
-      cudaDeviceSynchronize();
-      cuptiActivityFlushAll(0);
-      t = computeElapsedTimeUserdata(activityRecordUserdata);
-      int nKernelCalls = activityRecordUserdata.size();
-      
-      for (auto record : activityRecordUserdata) {
-	record->setUintID(boxUintID);
-      }
-      
-      while (static_cast<int>(ttstack.size()) > global_depth) {
-	ttstack.pop_back();
-      };
+        double t;
+        cudaDeviceSynchronize();
+        cuptiActivityFlushAll(0);
+        t = computeElapsedTimeUserdata(activityRecordUserdata);
+        int nKernelCalls = activityRecordUserdata.size();
 
-      if (static_cast<int>(ttstack.size()) == global_depth)
-	{
-	  const std::tuple<double,double,std::string*>& tt = ttstack.back();
-	    
-	  // first: wall time when the pair is pushed into the stack
-	  // second: accumulated dt of children
-	  double dtin;
-	  double dtex;
+        for (auto record : activityRecordUserdata) 
+        {
+            record->setUintID(boxUintID);
+        }
+      
+        while (static_cast<int>(ttstack.size()) > global_depth) 
+        {
+            ttstack.pop_back();
+        };
+
+        if (static_cast<int>(ttstack.size()) == global_depth)
+        {
+	    const std::tuple<double,double,std::string*>& tt = ttstack.back();
+    
+	    // first: wall time when the pair is pushed into the stack
+	    // second: accumulated dt of children
+	    double dtin;
+	    double dtex;
+
+            dtin = t;
+            dtex = dtin - std::get<1>(tt); 
 	  
-	  dtin = t;
-	  dtex = dtin - std::get<1>(tt); 
-	  
-	  for (Stats* st : stats)
+            for (Stats* st : stats)
             {
-	      --(st->depth);
-	      ++(st->n);
-	      if (st->depth == 0) {
-		st->dtin += dtin;
-	      }
-	      st->dtex += dtex;
-	      st->usesCUPTI = uCUPTI;
-	      st->nk += nKernelCalls;		
+                --(st->depth);
+                ++(st->n);
+                if (st->depth == 0) 
+                {
+                    st->dtin += dtin;
+                }
+                st->dtex += dtex;
+                st->usesCUPTI = uCUPTI;
+                st->nk += nKernelCalls;		
             }
-	  
-	  ttstack.pop_back();
-	  if (!ttstack.empty()) {
-	    std::tuple<double,double,std::string*>& parent = ttstack.back();
-	    std::get<1>(parent) += dtin;
-	  }
+
+	    ttstack.pop_back();
+	    if (!ttstack.empty()) 
+            {
+                std::tuple<double,double,std::string*>& parent = ttstack.back();
+                std::get<1>(parent) += dtin;
+            }
 
 #ifdef AMREX_USE_CUDA
-	  nvtxRangeEnd(nvtx_id);
+            nvtxRangeEnd(nvtx_id);
 #endif
-	} else {
-	improperly_nested_timers.insert(fname);
-      } 
-      
-      stats.clear();
+        } else 
+        {
+            improperly_nested_timers.insert(fname);
+        } 
+
+        stats.clear();
     }
 }
 #endif // AMREX_USE_CUPTI
@@ -395,135 +400,135 @@ TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, double dt_max)
 		pst.dtexavg +=                       dtdt[2*i+1];
 		pst.dtexmax  = std::max(pst.dtexmax, dtdt[2*i+1]);
 	    }
-	    pst.navg /= nprocs;
-	    pst.dtinavg /= nprocs;
-	    pst.dtexavg /= nprocs;
-	    pst.fname = it->first;
+            pst.navg /= nprocs;
+            pst.dtinavg /= nprocs;
+            pst.dtexavg /= nprocs;
+            pst.fname = it->first;
 #ifdef AMREX_USE_CUPTI
             pst.usesCUPTI = it->second.usesCUPTI;
 #endif // AMREX_USE_CUPTI
-	    allprocstats.push_back(pst);
-	    maxfnamelen = std::max(maxfnamelen, int(pst.fname.size()));
-	    maxncalls = std::max(maxncalls, pst.nmax);
-	}
+            allprocstats.push_back(pst);
+            maxfnamelen = std::max(maxfnamelen, int(pst.fname.size()));
+            maxncalls = std::max(maxncalls, pst.nmax);
+        }
     }
 
     if (ParallelDescriptor::IOProcessor())
     {
         amrex::OutStream() << std::setfill(' ') << std::setprecision(4);
-	int wt = 9;
+        int wt = 9;
 
-	int wnc = (int) std::log10 ((double) maxncalls) + 1;
-	wnc = std::max(wnc, int(std::string("NCalls").size()));
-	wt  = std::max(wt,  int(std::string("Excl. Min").size()));
-	int wp = 6;
-	wp  = std::max(wp,  int(std::string("Max %").size()));
+        int wnc = (int) std::log10 ((double) maxncalls) + 1;
+        wnc = std::max(wnc, int(std::string("NCalls").size()));
+        wt  = std::max(wt,  int(std::string("Excl. Min").size()));
+        int wp = 6;
+        wp  = std::max(wp,  int(std::string("Max %").size()));
 
-	const std::string hline(maxfnamelen+wnc+2+(wt+2)*3+wp+2,'-');
+        const std::string hline(maxfnamelen+wnc+2+(wt+2)*3+wp+2,'-');
 #ifdef AMREX_USE_CUPTI
-	const std::string hlinehlf((maxfnamelen+wnc+2+(wt+2)*3+wp+2)/2-12,'-');
+        const std::string hlinehlf((maxfnamelen+wnc+2+(wt+2)*3+wp+2)/2-12,'-');
 #endif // AMREX_USE_CUPTI
-	// Exclusive time
-	std::sort(allprocstats.begin(), allprocstats.end(), ProcStats::compex);
-	amrex::OutStream() << "\n" << hline << "\n";
-	amrex::OutStream() << std::left
-		  << std::setw(maxfnamelen) << "Name"
-		  << std::right
-		  << std::setw(wnc+2) << "NCalls"
-		  << std::setw(wt+2) << "Excl. Min"
-		  << std::setw(wt+2) << "Excl. Avg"
-		  << std::setw(wt+2) << "Excl. Max"
-		  << std::setw(wp+2)  << "Max %"
-		  << "\n" << hline << "\n";
-	for (auto it = allprocstats.cbegin(); it != allprocstats.cend(); ++it)
-	{
+        // Exclusive time
+        std::sort(allprocstats.begin(), allprocstats.end(), ProcStats::compex);
+        amrex::OutStream() << "\n" << hline << "\n";
+        amrex::OutStream() << std::left
+                           << std::setw(maxfnamelen) << "Name"
+                           << std::right
+                           << std::setw(wnc+2) << "NCalls"
+                           << std::setw(wt+2) << "Excl. Min"
+                           << std::setw(wt+2) << "Excl. Avg"
+                           << std::setw(wt+2) << "Excl. Max"
+                           << std::setw(wp+2)  << "Max %"
+                           << "\n" << hline << "\n";
+        for (auto it = allprocstats.cbegin(); it != allprocstats.cend(); ++it)
+        {
 #ifdef AMREX_USE_CUPTI
-            if (it->usesCUPTI) {
-              amrex::OutStream() << hlinehlf << "START CUPTI Trace Stats-"
-                                 << hlinehlf << "\n";
+            if (it->usesCUPTI) 
+            {
+                amrex::OutStream() << hlinehlf << "START CUPTI Trace Stats-"
+                                   << hlinehlf << "\n";
             }
 #endif // AMREX_USE_CUPTI
-	    amrex::OutStream() << std::setprecision(4) << std::left
-		      << std::setw(maxfnamelen) << it->fname
-		      << std::right
-		      << std::setw(wnc+2) << it->navg
-		      << std::setw(wt+2) << it->dtexmin
-		      << std::setw(wt+2) << it->dtexavg
-		      << std::setw(wt+2) << it->dtexmax
-		      << std::setprecision(2) << std::setw(wp+1) << std::fixed 
-		      << it->dtexmax*(100.0/dt_max) << "%";
-	    amrex::OutStream().unsetf(std::ios_base::fixed);
-	    amrex::OutStream() << "\n";	    
-#ifdef AMREX_USE_CUPTI	    
-            if (it->usesCUPTI) {
-              amrex::OutStream() << std::setprecision(4) << std::left
-                                 << std::setw(maxfnamelen) //<< it->fname
-                                 << std::right
-                                 << std::setw(wnc+2) //<< it->navg
-                                 << std::setw(wt+2) //<< it->dtexmin
-                                 << std::setw(wt+2) //<< it->dtexavg
-                                 << std::setw(wt+2) //<< it->dtexmax
-                                 << std::setprecision(2) << std::setw(wp+1) << std::fixed; //<< it->dtexmax*(100.0/dt_max)
-              amrex::OutStream().unsetf(std::ios_base::fixed);
-              amrex::OutStream();
-              amrex::OutStream() << hlinehlf << "--END CUPTI Trace Stats-"
-                                 << hlinehlf << "\n";
-	  }
-#endif // AMREX_USE_CUPTI
-	}
-	amrex::OutStream() << hline << "\n";
-
-	// Inclusive time
-	std::sort(allprocstats.begin(), allprocstats.end(), ProcStats::compin);
-	amrex::OutStream() << "\n" << hline << "\n";
-	amrex::OutStream() << std::left
-		  << std::setw(maxfnamelen) << "Name"
-		  << std::right
-		  << std::setw(wnc+2) << "NCalls"
-		  << std::setw(wt+2) << "Incl. Min"
-		  << std::setw(wt+2) << "Incl. Avg"
-		  << std::setw(wt+2) << "Incl. Max"
-		  << std::setw(wp+2)  << "Max %"
-		  << "\n" << hline << "\n";
-	for (auto it = allprocstats.cbegin(); it != allprocstats.cend(); ++it)
-	{
-#ifdef AMREX_USE_CUPTI
-          if (it->usesCUPTI) {
-            amrex::OutStream() << hlinehlf << "START CUPTI Trace Stats-"
-                               << hlinehlf << "\n";
-          }
-#endif // AMREX_USE_CUPTI
-	    amrex::OutStream() << std::setprecision(4) << std::left
-		      << std::setw(maxfnamelen) << it->fname
-		      << std::right
-		      << std::setw(wnc+2) << it->navg
-		      << std::setw(wt+2) << it->dtinmin
-		      << std::setw(wt+2) << it->dtinavg
-		      << std::setw(wt+2) << it->dtinmax
-		      << std::setprecision(2) << std::setw(wp+1) << std::fixed 
-		      << it->dtinmax*(100.0/dt_max) << "%";
-	    amrex::OutStream().unsetf(std::ios_base::fixed);
-	    amrex::OutStream() << "\n";
-#ifdef AMREX_USE_CUPTI
-          if (it->usesCUPTI) {
             amrex::OutStream() << std::setprecision(4) << std::left
-                               << std::setw(maxfnamelen) //<< it->fname
+                               << std::setw(maxfnamelen) << it->fname
                                << std::right
-                               << std::setw(wnc+2) //<< it->navg
-                               << std::setw(wt+2) //<< it->dtexmin
-                               << std::setw(wt+2) //<< it->dtexavg
-                               << std::setw(wt+2) //<< it->dtexmax
-                               << std::setprecision(2) << std::setw(wp+1) << std::fixed; //<< it->dtexmax*(100.0/dt_max)
+                               << std::setw(wnc+2) << it->navg
+                               << std::setw(wt+2) << it->dtexmin
+                               << std::setw(wt+2) << it->dtexavg
+                               << std::setw(wt+2) << it->dtexmax
+                               << std::setprecision(2) << std::setw(wp+1) << std::fixed 
+                               << it->dtexmax*(100.0/dt_max) << "%";
             amrex::OutStream().unsetf(std::ios_base::fixed);
-            amrex::OutStream();
-            amrex::OutStream() << hlinehlf << "--END CUPTI Trace Stats-"
-                               << hlinehlf << "\n";
-          }
+            amrex::OutStream() << "\n";	    
+#ifdef AMREX_USE_CUPTI	    
+            if (it->usesCUPTI) 
+            {
+                amrex::OutStream() << std::setprecision(4) << std::left
+                                   << std::setw(maxfnamelen) //<< it->fname
+                                   << std::right
+                                   << std::setw(wnc+2) //<< it->navg
+                                   << std::setw(wt+2) //<< it->dtexmin
+                                   << std::setw(wt+2) //<< it->dtexavg
+                                   << std::setw(wt+2) //<< it->dtexmax
+                                   << std::setprecision(2) << std::setw(wp+1) << std::fixed; //<< it->dtexmax*(100.0/dt_max)
+                amrex::OutStream().unsetf(std::ios_base::fixed);
+                amrex::OutStream();
+                amrex::OutStream() << hlinehlf << "--END CUPTI Trace Stats-" << hlinehlf << "\n";
+            }
 #endif // AMREX_USE_CUPTI
-	}
-	amrex::OutStream() << hline << "\n";
+        }
+        amrex::OutStream() << hline << "\n";
 
-	amrex::OutStream() << std::endl;
+        // Inclusive time
+        std::sort(allprocstats.begin(), allprocstats.end(), ProcStats::compin);
+        amrex::OutStream() << "\n" << hline << "\n";
+        amrex::OutStream() << std::left
+                           << std::setw(maxfnamelen) << "Name"
+                           << std::right
+                           << std::setw(wnc+2) << "NCalls"
+                           << std::setw(wt+2) << "Incl. Min"
+                           << std::setw(wt+2) << "Incl. Avg"
+                           << std::setw(wt+2) << "Incl. Max"
+                           << std::setw(wp+2)  << "Max %"
+                           << "\n" << hline << "\n";
+        for (auto it = allprocstats.cbegin(); it != allprocstats.cend(); ++it)
+        {
+#ifdef AMREX_USE_CUPTI
+            if (it->usesCUPTI) 
+            {
+                amrex::OutStream() << hlinehlf << "START CUPTI Trace Stats-" << hlinehlf << "\n";
+            }
+#endif // AMREX_USE_CUPTI
+            amrex::OutStream() << std::setprecision(4) << std::left
+                               << std::setw(maxfnamelen) << it->fname
+                               << std::right
+                               << std::setw(wnc+2) << it->navg
+                               << std::setw(wt+2) << it->dtinmin
+                               << std::setw(wt+2) << it->dtinavg
+                               << std::setw(wt+2) << it->dtinmax
+                               << std::setprecision(2) << std::setw(wp+1) << std::fixed 
+                               << it->dtinmax*(100.0/dt_max) << "%";
+            amrex::OutStream().unsetf(std::ios_base::fixed);
+            amrex::OutStream() << "\n";
+#ifdef AMREX_USE_CUPTI
+            if (it->usesCUPTI) 
+            {
+                amrex::OutStream() << std::setprecision(4) << std::left
+                                   << std::setw(maxfnamelen) //<< it->fname
+                                   << std::right
+                                   << std::setw(wnc+2) //<< it->navg
+                                   << std::setw(wt+2) //<< it->dtexmin
+                                   << std::setw(wt+2) //<< it->dtexavg
+                                   << std::setw(wt+2) //<< it->dtexmax
+                                   << std::setprecision(2) << std::setw(wp+1) << std::fixed; //<< it->dtexmax*(100.0/dt_max)
+                amrex::OutStream().unsetf(std::ios_base::fixed);
+                amrex::OutStream();
+                amrex::OutStream() << hlinehlf << "--END CUPTI Trace Stats-" << hlinehlf << "\n";
+            }
+#endif // AMREX_USE_CUPTI
+        }
+        amrex::OutStream() << hline << "\n";
+        amrex::OutStream() << std::endl;
     }
 }
 
