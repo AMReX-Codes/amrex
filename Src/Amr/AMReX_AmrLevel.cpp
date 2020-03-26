@@ -218,7 +218,7 @@ AmrLevel::writePlotFile (const std::string& dir,
             os << derive_lst.get(dname)->variableName(0) << '\n';
         }
 
-#ifdef AMREX_USE_EB=TRUE
+#ifdef AMREX_USE_EB
         os << "vfrac\n";
 #endif
 
@@ -340,6 +340,12 @@ AmrLevel::writePlotFile (const std::string& dir,
 	    cnt++;
 	}
     }
+
+#ifdef AMREX_USE_EB
+    plotMF.setVal(0.0, cnt, 1, nGrow);
+    auto factory = static_cast<EBFArrayBoxFactory*>(m_factory.get());
+    MultiFab::Copy(plotMF,factory->getVolFrac(),0,cnt,1,nGrow);
+#endif
 
     amrex::prefetchToHost(plotMF);
 
