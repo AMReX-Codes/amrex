@@ -102,10 +102,6 @@ ifeq ($(findstring aurora, $(host_name)), aurora)
   which_computer := aurora
 endif
 
-ifeq ($(findstring peregrine, $(NREL_CLUSTER)), peregrine)
-  which_site := nrel
-  which_computer := peregrine
-endif
 ifeq ($(findstring eagle, $(NREL_CLUSTER)), eagle)
   which_site := nrel
   which_computer := eagle

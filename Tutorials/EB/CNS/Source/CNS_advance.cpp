@@ -99,7 +99,7 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
 
             //if (1){
             if (flag.getType(bx) == FabType::covered) {
-                dSdt[mfi].setVal(0.0, bx, 0, ncomp);
+                dSdt[mfi].setVal<RunOn::Host>(0.0, bx, 0, ncomp);
             } else {
 
                 // flux is used to store centroid flux needed for reflux
@@ -181,7 +181,7 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
             }
 
             wt = (amrex::second() - wt) / bx.d_numPts();
-            cost[mfi].plus(wt, bx);
+            cost[mfi].plus<RunOn::Host>(wt, bx);
         }
     }
 }

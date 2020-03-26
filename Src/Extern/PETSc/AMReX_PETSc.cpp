@@ -198,7 +198,7 @@ PETScABecLap::prepareSolver ()
     {
         const Box& bx = mfi.validbox();
         BaseFab<PetscInt>& cid_fab = cell_id[mfi];
-        cid_fab.setVal(std::numeric_limits<PetscInt>::lowest());
+        cid_fab.setVal<RunOn::Host>(std::numeric_limits<PetscInt>::lowest());
 #ifdef AMREX_USE_EB
         auto fabtyp = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
         if (fabtyp == FabType::covered)
@@ -225,7 +225,7 @@ PETScABecLap::prepareSolver ()
             for (long i = 0; i < npts; ++i) {
                 *p++ = i;
             }
-            cid_fab.copy(ifab,bx);
+            cid_fab.copy<RunOn::Host>(ifab,bx);
         }
     }
     }
@@ -258,7 +258,7 @@ PETScABecLap::prepareSolver ()
 #endif
     for (MFIter mfi(cell_id,true); mfi.isValid(); ++mfi)
     {
-        cell_id[mfi].plus(offset[mfi], mfi.tilebox());
+        cell_id[mfi].plus<RunOn::Host>(offset[mfi], mfi.tilebox());
     }    
 
     cell_id.FillBoundary(geom.periodicity());
@@ -419,8 +419,8 @@ PETScABecLap::loadVectors (MultiFab& soln, const MultiFab& rhs)
             // soln has been set to zero.
             VecSetValues(x, nrows, cell_id_vec[mfi].data(), soln[mfi].dataPtr(), INSERT_VALUES); 
             rhsfab.resize(bx);
-            rhsfab.copy(rhs[mfi],bx);
-            rhsfab.mult(diaginv[mfi]);
+            rhsfab.copy<RunOn::Host>(rhs[mfi],bx);
+            rhsfab.mult<RunOn::Host>(diaginv[mfi]);
 
             FArrayBox* bfab;
 #ifdef AMREX_USE_EB
@@ -485,7 +485,7 @@ PETScABecLap::getSolution (MultiFab& soln)
             VecGetValues(x, nrows, cell_id_vec[mfi].data(), xfab->dataPtr()); 
             if (fabtyp == FabType::regular && soln.nGrow() != 0)
             {
-                soln[mfi].copy(*xfab,bx);
+                soln[mfi].copy<RunOn::Host>(*xfab,bx);
             }
 #ifdef AMREX_USE_EB
             else if (fabtyp != FabType::regular)

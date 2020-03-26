@@ -142,14 +142,16 @@ void mlndlap_divu_cf_contrib (int i, int j, int, Array4<Real> const& rhs,
                               Array4<int const> const& ndmsk, Array4<int const> const& ccmsk,
                               GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
                               Box const& nddom, GpuArray<LinOpBCType,AMREX_SPACEDIM> const& lobc,
-                              GpuArray<LinOpBCType,AMREX_SPACEDIM> const& hibc) noexcept
+                              GpuArray<LinOpBCType,AMREX_SPACEDIM> const& hibc,
+                              bool neumann_doubling) noexcept
 {}
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_crse_resid (int i, int j, int k, Array4<Real> const& resid,
                          Array4<Real const> const& rhs, Array4<int const> const& msk,
                          Box const& nddom, GpuArray<LinOpBCType,AMREX_SPACEDIM> const& bclo,
-                         GpuArray<LinOpBCType,AMREX_SPACEDIM> const& bchi) noexcept
+                         GpuArray<LinOpBCType,AMREX_SPACEDIM> const& bchi,
+                         bool neumann_doubling) noexcept
 {}
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -171,7 +173,8 @@ void mlndlap_res_cf_contrib (int i, int j, int k, Array4<Real> const& res,
                              Array4<Real const> const& fc,
                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv, Box const& nddom,
                              GpuArray<LinOpBCType, AMREX_SPACEDIM> const& lobc,
-                             GpuArray<LinOpBCType, AMREX_SPACEDIM> const& hibc) noexcept
+                             GpuArray<LinOpBCType, AMREX_SPACEDIM> const& hibc,
+                             bool neumann_doubling) noexcept
 {}
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE

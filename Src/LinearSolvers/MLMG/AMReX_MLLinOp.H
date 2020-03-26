@@ -94,7 +94,8 @@ public:
                  const Vector<BoxArray>& a_grids,
                  const Vector<DistributionMapping>& a_dmap,
                  const LPInfo& a_info,
-                 const Vector<FabFactory<FArrayBox> const*>& a_factory);
+                 const Vector<FabFactory<FArrayBox> const*>& a_factory,
+                 bool eb_limit_coarsening = true);
 
     virtual std::string name () const { return std::string("Unspecified"); }
 

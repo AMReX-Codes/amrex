@@ -55,7 +55,7 @@ IArrayBox::IArrayBox (const Box& b, int n, Arena* ar)
 #ifndef AMREX_USE_GPU
     // For debugging purposes
     if ( do_initval ) {
-	setVal(std::numeric_limits<int>::max());
+	setVal<RunOn::Host>(std::numeric_limits<int>::max());
     }
 #endif
 }
@@ -66,7 +66,7 @@ IArrayBox::IArrayBox (const Box& b, int n, bool alloc, bool shared, Arena* ar)
 #ifndef AMREX_USE_GPU
     // For debugging purposes
     if ( alloc && do_initval ) {
-	setVal(std::numeric_limits<int>::max());
+	setVal<RunOn::Host>(std::numeric_limits<int>::max());
     }
 #endif
 }
@@ -76,23 +76,26 @@ IArrayBox::IArrayBox (const IArrayBox& rhs, MakeType make_type, int scomp, int n
 {
 }
 
-IArrayBox&
-IArrayBox::operator= (int v) noexcept
-{
-    BaseFab<int>::operator=(v);
-    return *this;
-}
-
 void
 IArrayBox::resize (const Box& b, int N)
 {
     BaseFab<int>::resize(b,N);
-#ifndef AMREX_USE_GPU
     // For debugging purposes
     if ( do_initval ) {
-        setVal(std::numeric_limits<int>::max());
-    }
+#if defined(AMREX_USE_GPU)
+        bool run_on_device = Gpu::inLaunchRegion() and
+            (arena() == The_Arena() ||
+             arena() == The_Device_Arena() ||
+             arena() == The_Managed_Arena());
+        if (run_on_device) {
+            setVal<RunOn::Device>(std::numeric_limits<int>::max());
+            Gpu::streamSynchronize();
+        } else
 #endif
+        {
+            setVal<RunOn::Host>(std::numeric_limits<int>::max());
+        }
+    }
 }
 
 }

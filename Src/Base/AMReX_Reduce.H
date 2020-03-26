@@ -233,7 +233,9 @@ public:
         ec.numBlocks.x = std::min(ec.numBlocks.x, static_cast<unsigned int>(Gpu::Device::maxBlocksPerLaunch()));
 #ifdef AMREX_USE_DPCPP
         amrex::launch(ec.numBlocks.x, ec.numThreads.x, Gpu::gpuStream(),
-        [=] AMREX_GPU_DEVICE (sycl::nd_item<1> const& item) noexcept {
+        [=] AMREX_GPU_DEVICE (sycl::nd_item<1> const& item) noexcept
+        AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size)
+        {
             ReduceTuple r = *(dp+1);
             for (int icell = item.get_global_id(0), stride = item.get_global_range(0);
                  icell < ncells; icell += stride) {
@@ -281,7 +283,9 @@ public:
         ec.numBlocks.x = std::min(ec.numBlocks.x, static_cast<unsigned int>(Gpu::Device::maxBlocksPerLaunch()));
 #ifdef AMREX_USE_DPCPP
         amrex::launch(ec.numBlocks.x, ec.numThreads.x, Gpu::gpuStream(),
-        [=] AMREX_GPU_DEVICE (sycl::nd_item<1> const& item) noexcept {
+        [=] AMREX_GPU_DEVICE (sycl::nd_item<1> const& item) noexcept
+        AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size)
+        {
             ReduceTuple r = *(dp+1);
             for (int icell = item.get_global_id(0), stride = item.get_global_range(0);
                  icell < ncells; icell += stride) {
@@ -330,7 +334,9 @@ public:
         ec.numBlocks.x = std::min(ec.numBlocks.x, static_cast<unsigned int>(Gpu::Device::maxBlocksPerLaunch()));
 #ifdef AMREX_USE_DPCPP
         amrex::launch(ec.numBlocks.x, ec.numThreads.x, Gpu::gpuStream(),
-        [=] AMREX_GPU_DEVICE (sycl::nd_item<1> const& item) noexcept {
+        [=] AMREX_GPU_DEVICE (sycl::nd_item<1> const& item) noexcept
+        AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size)
+        {
             ReduceTuple r = *(dp+1);
             for (N i = item.get_global_id(0), stride = item.get_global_range(0);
                  i < n; i += stride) {

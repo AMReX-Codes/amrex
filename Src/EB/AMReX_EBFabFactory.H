@@ -35,6 +35,8 @@ public:
 
     virtual FArrayBox* create (const Box& box, int ncomps, const FabInfo& info, int box_index) const final;
 
+    virtual FArrayBox* create_alias (FArrayBox const& rhs, int scomp, int ncomp) const final;
+
     virtual void destroy (FArrayBox* fab) const final;
 
     virtual EBFArrayBoxFactory* clone () const final;

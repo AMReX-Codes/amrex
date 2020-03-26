@@ -1,5 +1,0 @@
-CEXE_sources += main.cpp TestParticleContainer.cpp
-CEXE_headers += TestParticleContainer.H Constants.H
-
-CEXE_headers += test_F.H
-F90EXE_sources += test_$(DIM)d.F90

@@ -44,9 +44,14 @@ MultiFab::Dot (const MultiFab& x, int xcomp,
     BL_PROFILE("MultiFab::Dot()");
 
     Real sm = amrex::ReduceSum(x, y, nghost,
-    [=] AMREX_GPU_HOST_DEVICE (Box const& bx, FArrayBox const& xfab, FArrayBox const& yfab) -> Real
+    [=] AMREX_GPU_HOST_DEVICE (Box const& bx, Array4<Real const> const& xfab, Array4<Real const> const& yfab) -> Real
     {
-        return xfab.dot(bx,xcomp,yfab,bx,ycomp,numcomp);
+        Real t = 0.0;
+        AMREX_LOOP_4D(bx, numcomp, i, j, k, n,
+        {
+            t += xfab(i,j,k,xcomp+n) * yfab(i,j,k,ycomp+n);
+        });
+        return t;
     });
 
     if (!local) ParallelAllReduce::Sum(sm, ParallelContext::CommunicatorSub());
@@ -60,9 +65,15 @@ MultiFab::Dot (const MultiFab& x, int xcomp, int numcomp, int nghost, bool local
     BL_ASSERT(x.nGrow() >= nghost); 
 
     Real sm = amrex::ReduceSum(x, nghost,
-    [=] AMREX_GPU_HOST_DEVICE (Box const& bx, FArrayBox const& xfab) -> Real
+    [=] AMREX_GPU_HOST_DEVICE (Box const& bx, Array4<Real const> const& xfab) -> Real
     {
-        return xfab.dot(bx,xcomp,numcomp);
+        Real t = 0.0;
+        AMREX_LOOP_4D(bx, numcomp, i, j, k, n,
+        {
+            Real tmp = xfab(i,j,k,xcomp+n);
+            t += tmp*tmp;
+        });
+        return t;
     });
 
     if (!local) ParallelAllReduce::Sum(sm, ParallelContext::CommunicatorSub());
@@ -85,10 +96,17 @@ MultiFab::Dot (const iMultiFab& mask,
     BL_ASSERT(mask.nGrow() >= nghost);
 
     Real sm = amrex::ReduceSum(x, y, mask, nghost,
-    [=] AMREX_GPU_HOST_DEVICE (Box const& bx, FArrayBox const& xfab, FArrayBox const& yfab,
-                               IArrayBox const& mskfab) -> Real
+    [=] AMREX_GPU_HOST_DEVICE (Box const& bx, Array4<Real const> const& xfab,
+                               Array4<Real const> const& yfab,
+                               Array4<int const> const& mskfab) -> Real
     {
-        return xfab.dotmask(mskfab, bx, xcomp, yfab, bx, ycomp, numcomp);
+        Real t = 0.0;
+        AMREX_LOOP_4D(bx, numcomp, i, j, k, n,
+        {
+            int mi = static_cast<int>(static_cast<bool>(mskfab(i,j,k)));
+            t += xfab(i,j,k,xcomp+n) * yfab(i,j,k,ycomp+n) * mi;
+        });
+        return t;
     });
 
     if (!local)
@@ -625,9 +643,13 @@ MultiFab::contains_nan (int scomp,
     BL_ASSERT(IntVect::TheZeroVector().allLE(ngrow) and ngrow.allLE(nGrowVect()));
 
     bool r = amrex::ReduceLogicalOr(*this, ngrow,
-    [=] AMREX_GPU_HOST_DEVICE (Box const& bx, FArrayBox const& fab) -> bool
+    [=] AMREX_GPU_HOST_DEVICE (Box const& bx, Array4<Real const> const& fab) -> bool
     {
-        return fab.contains_nan(bx,scomp,ncomp);
+        AMREX_LOOP_4D(bx, ncomp, i, j, k, n,
+        {
+            if (amrex::isnan(fab(i,j,k,n+scomp))) return true;
+        });
+        return false;
     });
 
     if (!local) {
@@ -652,9 +674,13 @@ MultiFab::contains_inf (int scomp, int ncomp, IntVect const& ngrow, bool local) 
     BL_ASSERT(IntVect::TheZeroVector().allLE(ngrow) and ngrow.allLE(nGrowVect()));
 
     bool r = amrex::ReduceLogicalOr(*this, ngrow,
-    [=] AMREX_GPU_HOST_DEVICE (Box const& bx, FArrayBox const& fab) -> bool
+    [=] AMREX_GPU_HOST_DEVICE (Box const& bx, Array4<Real const> const& fab) -> bool
     {
-        return fab.contains_inf(bx,scomp,ncomp);
+        AMREX_LOOP_4D(bx, ncomp, i, j, k, n,
+        {
+            if (amrex::isinf(fab(i,j,k,n+scomp))) return true;
+        });
+        return false;
     });
 
     if (!local)
@@ -692,7 +718,7 @@ MultiFab::min (int comp, int nghost, bool local) const
                                    Array4<EBCellFlag const> const& flag) -> Real
         {
             Real r = AMREX_REAL_MAX;
-            amrex::Loop(bx, [=,&r] (int i, int j, int k) noexcept
+            AMREX_LOOP_3D(bx, i, j, k,
             {
                 if (!flag(i,j,k).isCovered()) r = amrex::min(r, a(i,j,k,comp));
             });
@@ -703,9 +729,14 @@ MultiFab::min (int comp, int nghost, bool local) const
 #endif
     {
         mn = amrex::ReduceMin(*this, nghost,
-        [=] AMREX_GPU_HOST_DEVICE (Box const& bx, FArrayBox const& fab) -> Real
+        [=] AMREX_GPU_HOST_DEVICE (Box const& bx, Array4<Real const> const& fab) -> Real
         {
-            return fab.min(bx,comp);
+            Real r = AMREX_REAL_MAX;
+            AMREX_LOOP_3D(bx, i, j, k,
+            {
+                r = amrex::min(r, fab(i,j,k,comp));
+            });
+            return r;
         });
     }
 
@@ -721,14 +752,15 @@ MultiFab::min (const Box& region, int comp, int nghost, bool local) const
     BL_ASSERT(nghost >= 0 and nghost <= n_grow.min());
 
     Real mn = amrex::ReduceMin(*this, nghost,
-    [=] AMREX_GPU_HOST_DEVICE (Box const& bx, FArrayBox const& fab) -> Real
+    [=] AMREX_GPU_HOST_DEVICE (Box const& bx, Array4<Real const> const& fab) -> Real
     {
         const Box& b = bx & region;
-        if (b.ok()) {
-            return fab.min(b,comp);
-        } else {
-            return AMREX_REAL_MAX;
-        }
+        Real r = AMREX_REAL_MAX;
+        AMREX_LOOP_3D(b, i, j, k,
+        {
+            r = amrex::min(r, fab(i,j,k,comp));
+        });
+        return r;
     });
 
     if (!local)
@@ -755,7 +787,7 @@ MultiFab::max (int comp, int nghost, bool local) const
                                    Array4<EBCellFlag const> const& flag) -> Real
         {
             Real r = AMREX_REAL_LOWEST;
-            amrex::Loop(bx, [=,&r] (int i, int j, int k) noexcept
+            AMREX_LOOP_3D(bx, i, j, k,
             {
                 if (!flag(i,j,k).isCovered()) r = amrex::max(r, a(i,j,k,comp));
             });
@@ -766,9 +798,14 @@ MultiFab::max (int comp, int nghost, bool local) const
 #endif
     {
         mx = amrex::ReduceMax(*this, nghost,
-        [=] AMREX_GPU_HOST_DEVICE (Box const& bx, FArrayBox const& fab) -> Real
+        [=] AMREX_GPU_HOST_DEVICE (Box const& bx, Array4<Real const> const& fab) -> Real
         {
-            return fab.max(bx,comp);
+            Real r = AMREX_REAL_LOWEST;
+            AMREX_LOOP_3D(bx, i, j, k,
+            {
+                r = amrex::max(r, fab(i,j,k,comp));
+            });
+            return r;
         });
     }
 
@@ -784,14 +821,15 @@ MultiFab::max (const Box& region, int comp, int nghost, bool local) const
     BL_ASSERT(nghost >= 0 and nghost <= n_grow.min());
 
     Real mx = amrex::ReduceMax(*this, nghost,
-    [=] AMREX_GPU_HOST_DEVICE (Box const& bx, FArrayBox const& fab) -> Real
+    [=] AMREX_GPU_HOST_DEVICE (Box const& bx, Array4<Real const> const& fab) -> Real
     {
         const Box& b = bx & region;
-        if (b.ok()) {
-            return fab.max(b,comp);
-        } else {
-            return AMREX_REAL_LOWEST;
-        }
+        Real r = AMREX_REAL_LOWEST;
+        AMREX_LOOP_3D(b, i, j, k,
+        {
+            r = amrex::max(r, fab(i,j,k,comp));
+        });
+        return r;
     });
 
     if (!local)
@@ -818,17 +856,15 @@ indexFromValue (MultiFab const& mf, int comp, int nghost, Real value, MPI_Op mml
         for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
             const Box& bx = amrex::grow(mfi.validbox(), nghost);
             const Array4<Real const> arr = mf.const_array(mfi);
-            AMREX_LAUNCH_DEVICE_LAMBDA(bx, tbx,
+            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 int* flag = p;
                 if (*flag == 0) {
-                    const FArrayBox fab(arr);
-                    IntVect t_loc = fab.indexFromValue(value, tbx, comp);
-                    if (tbx.contains(t_loc)) {
+                    if (arr(i,j,k,comp) == value) {
                         if (Gpu::Atomic::Exch(flag,1) == 0) {
-                            AMREX_D_TERM(p[1] = t_loc[0];,
-                                         p[2] = t_loc[1];,
-                                         p[3] = t_loc[2];);
+                            AMREX_D_TERM(p[1] = i;,
+                                         p[2] = j;,
+                                         p[3] = k;);
                         }
                     }
                 }
@@ -851,11 +887,11 @@ indexFromValue (MultiFab const& mf, int comp, int nghost, Real value, MPI_Op mml
             for (MFIter mfi(mf,true); mfi.isValid(); ++mfi)
             {
                 const Box& bx = mfi.growntilebox(nghost);
-                const FArrayBox& fab = mf[mfi];
-                IntVect t_loc = fab.indexFromValue(value, bx, comp);
-                if (bx.contains(t_loc)) {
-                    priv_loc = t_loc;
-                };
+                const Array4<Real const>& fab = mf.const_array(mfi);
+                AMREX_LOOP_3D(bx, i, j, k,
+                {
+                    if (fab(i,j,k,comp) == value) priv_loc = IntVect(AMREX_D_DECL(i,j,k));
+                });
             }
 
             if (priv_loc.allGT(IntVect::TheMinVector())) {
@@ -920,10 +956,15 @@ Real
 MultiFab::norm0 (const iMultiFab& mask, int comp, int nghost, bool local) const
 {
     Real nm0 = amrex::ReduceMax(*this, mask, nghost,
-    [=] AMREX_GPU_HOST_DEVICE (Box const& bx, FArrayBox const& fab, IArrayBox const& mskfab)
-                                -> Real
+    [=] AMREX_GPU_HOST_DEVICE (Box const& bx, Array4<Real const> const& fab,
+                               Array4<int const> const& mskfab) -> Real
     {
-        return fab.norminfmask(bx, mskfab, comp, 1);
+        Real r = 0.0;
+        AMREX_LOOP_3D(bx, i, j, k,
+        {
+            if (mskfab(i,j,k)) r = amrex::max(r, amrex::Math::abs(fab(i,j,k,comp)));
+        });
+        return r;
     });
 
     if (!local)	ParallelAllReduce::Max(nm0, ParallelContext::CommunicatorSub());
@@ -946,7 +987,7 @@ MultiFab::norm0 (int comp, int nghost, bool local, bool ignore_covered ) const
                                    Array4<EBCellFlag const> const& flag) -> Real
         {
             Real r = 0.;
-            amrex::Loop(bx, [=,&r] (int i, int j, int k) noexcept
+            AMREX_LOOP_3D(bx, i, j, k,
             {
                 if (!flag(i,j,k).isCovered()) r = amrex::max(r, amrex::Math::abs(a(i,j,k,comp)));
             });
@@ -957,9 +998,14 @@ MultiFab::norm0 (int comp, int nghost, bool local, bool ignore_covered ) const
 #endif
     {
         nm0 = amrex::ReduceMax(*this, nghost,
-        [=] AMREX_GPU_HOST_DEVICE (Box const& bx, FArrayBox const& fab) -> Real
+        [=] AMREX_GPU_HOST_DEVICE (Box const& bx, Array4<Real const> const& fab) -> Real
         {
-            return fab.norm(bx, 0, comp, 1);
+            Real r = 0.;
+            AMREX_LOOP_3D(bx, i, j, k,
+            {
+                r = amrex::max(r, amrex::Math::abs(fab(i,j,k,comp)));
+            });
+            return r;
         });
 
     }
@@ -1049,9 +1095,14 @@ Real
 MultiFab::norm1 (int comp, int ngrow, bool local) const
 {
     Real nm1 = amrex::ReduceSum(*this, ngrow,
-    [=] AMREX_GPU_HOST_DEVICE (Box const& bx, FArrayBox const& fab) -> Real
+    [=] AMREX_GPU_HOST_DEVICE (Box const& bx, Array4<Real const> const& fab) -> Real
     {
-        return fab.norm(bx,1,comp,1);
+        Real r = 0.0;
+        AMREX_LOOP_3D(bx, i, j, k,
+        {
+            r += amrex::Math::abs(fab(i,j,k,comp));
+        });
+        return r;
     });
 
     if (!local)
@@ -1084,9 +1135,14 @@ MultiFab::sum (int comp, bool local) const
 {
     // 0 ghost cells
     Real sm = amrex::ReduceSum(*this, 0,
-    [=] AMREX_GPU_HOST_DEVICE (Box const& bx, FArrayBox const& fab) -> Real
+    [=] AMREX_GPU_HOST_DEVICE (Box const& bx, Array4<Real const> const& fab) -> Real
     {
-        return fab.sum(bx,comp,1);
+        Real r = 0.0;
+        AMREX_LOOP_3D(bx, i, j, k,
+        {
+            r += fab(i,j,k,comp);
+        });
+        return r;
     });
 
     if (!local)

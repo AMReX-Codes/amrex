@@ -1422,11 +1422,8 @@ Limitations
 GPU support in AMReX is still under development.  There are some known
 limitations:
 
-- OpenMP is currently not compatible with building AMReX with CUDA.
-  ``USE_CUDA=TRUE`` and ``USE_OMP=TRUE`` will fail to compile.
+- HIP backend is not fully functional.
 
-- Non-cell-centered Linear solvers have not been fully ported to GPUs.
-
-- Embedded boundary capability has not been ported to GPUs.
+- DPC++ backend is not fully functional.
 
 - The Fortran interface of AMReX does not currently have GPU support.

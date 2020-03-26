@@ -132,6 +132,8 @@ class DistributionMapping
 
     void SFCProcessorMap(const BoxArray& boxes, const std::vector<long>& wgts, int nprocs,
                          bool sort=true);
+    void SFCProcessorMap(const BoxArray& boxes, const std::vector<long>& wgts, int nprocs,
+                         Real& efficiency, bool sort=true);
     void KnapSackProcessorMap(const std::vector<long>& wgts, int nprocs,
                               Real* efficiency = 0,
 			      bool do_full_knapsack = true,
@@ -159,13 +161,20 @@ class DistributionMapping
 
     static DistributionMapping makeKnapSack   (const MultiFab& weight,
                                                int nmax=std::numeric_limits<int>::max());
+    static DistributionMapping makeKnapSack   (const MultiFab& weight, Real& eff,
+                                               int nmax=std::numeric_limits<int>::max());
     static DistributionMapping makeKnapSack   (const Vector<Real>& rcost,
+                                               int nmax=std::numeric_limits<int>::max());
+    static DistributionMapping makeKnapSack   (const Vector<Real>& rcost, Real& eff,
                                                int nmax=std::numeric_limits<int>::max());
 
     static DistributionMapping makeRoundRobin (const MultiFab& weight);
     static DistributionMapping makeSFC        (const MultiFab& weight, bool sort=true);
+    static DistributionMapping makeSFC        (const MultiFab& weight, Real& eff, bool sort=true);
     static DistributionMapping makeSFC        (const Vector<Real>& rcost,
                                                const BoxArray& ba, bool sort=true);
+    static DistributionMapping makeSFC        (const Vector<Real>& rcost,
+                                               const BoxArray& ba, Real& eff, bool sort=true);
 
     /**
     * if use_box_vol is true, weight boxes by their volume in Distribute
@@ -219,7 +228,8 @@ private:
     void SFCProcessorMapDoIt (const BoxArray&          boxes,
                               const std::vector<long>& wgts,
                               int                      nprocs,
-                              bool                     sort=true);
+                              bool                     sort=true,
+                              Real*                    efficiency=nullptr);
 
     void RRSFCDoIt           (const BoxArray&          boxes,
                               int                      nprocs);
