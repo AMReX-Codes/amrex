@@ -71,10 +71,10 @@ bfrCompleteCallback (CUcontext ctx, uint32_t streamId, uint8_t* bfr,
             else if (status != CUPTI_SUCCESS) {
                 const char* err;
                 cuptiGetResultString(status, &err);
-                amrex::Abort("Error: " + testerr);
+                amrex::Abort(err);
             }
         } while (true);
-        
+
         size_t dropped;
         cuptiActivityGetNumDroppedRecords(ctx, streamId, &dropped);
         if (dropped != 0) {
