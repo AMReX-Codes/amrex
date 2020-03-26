@@ -187,6 +187,23 @@ public:
     // do nodal
     static int do_nodal;
 
+    std::array<const amrex::MultiFab* const, 3>
+    get_array_Bfield_aux  (const int lev) const {
+        return {
+            Bfield_aux[lev][0].get(),
+            Bfield_aux[lev][1].get(),
+            Bfield_aux[lev][2].get()
+        };
+    }
+    std::array<const amrex::MultiFab* const, 3>
+    get_array_Efield_aux  (const int lev) const {
+        return {
+            Efield_aux[lev][0].get(),
+            Efield_aux[lev][1].get(),
+            Efield_aux[lev][2].get()
+        };
+    }
+
     amrex::MultiFab * get_pointer_Efield_aux  (int lev, int direction) const { return Efield_aux[lev][direction].get(); }
     amrex::MultiFab * get_pointer_Bfield_aux  (int lev, int direction) const { return Bfield_aux[lev][direction].get(); }
 
@@ -442,13 +459,15 @@ public:
     amrex::RealBox getSliceRealBox() const {return slice_realbox;}
 
     // these should be private, but can't due to Cuda limitations
-    static void ComputeDivB (amrex::MultiFab& divB, int dcomp,
-                             const std::array<const amrex::MultiFab*, 3>& B,
+    static void ComputeDivB (amrex::MultiFab& divB, int const dcomp,
+                             const std::array<const amrex::MultiFab* const, 3>& B,
                              const std::array<amrex::Real,3>& dx);
 
-    static void ComputeDivB (amrex::MultiFab& divB, int dcomp,
-                             const std::array<const amrex::MultiFab*, 3>& B,
-                             const std::array<amrex::Real,3>& dx, int ngrow);
+    static void ComputeDivB (amrex::MultiFab& divB, int const dcomp,
+                             const std::array<const amrex::MultiFab* const, 3>& B,
+                             const std::array<amrex::Real,3>& dx, int const ngrow);
+
+    void ComputeDivE(amrex::MultiFab& divE, const int lev);
 
     const amrex::IntVect getngE() const { return guard_cells.ng_alloc_EB; };
     const amrex::IntVect getngF() const { return guard_cells.ng_alloc_F; };

@@ -1,6 +1,11 @@
 #include "Diagnostics.H"
+#include "ComputeDiagFunctors/CellCenterFunctor.H"
+#include "ComputeDiagFunctors/PartPerCellFunctor.H"
+#include "ComputeDiagFunctors/PartPerGridFunctor.H"
+#include "ComputeDiagFunctors/DivBFunctor.H"
+#include "ComputeDiagFunctors/DivEFunctor.H"
 #include "WarpX.H"
-#include "Average.H"
+#include "Utils/Average.H"
 #include "Utils/WarpXUtil.H"
 
 using namespace amrex;
@@ -83,9 +88,23 @@ Diagnostics::InitData ()
             } else if ( varnames[comp] == "jz" ){
                 all_field_functors[lev][comp] = new CellCenterFunctor(warpx.get_pointer_current_fp(lev, 2), lev);
             } else if ( varnames[comp] == "rho" ){
+                // rho_new is stored in component 1 of rho_fp when using PSATD
+#ifdef WARPX_USE_PSATD
+                MultiFab* rho_new = new MultiFab(*warpx.get_pointer_rho_fp(lev), amrex::make_alias, 1, 1);
+                all_field_functors[lev][comp] = new CellCenterFunctor(rho_new, lev);
+#else
                 all_field_functors[lev][comp] = new CellCenterFunctor(warpx.get_pointer_rho_fp(lev), lev);
+#endif
+            } else if ( varnames[comp] == "F" ){
+                all_field_functors[lev][comp] = new CellCenterFunctor(warpx.get_pointer_F_fp(lev), lev);
             } else if ( varnames[comp] == "part_per_cell" ){
-                amrex::Abort("plotting part_per_cell is not supported");
+                all_field_functors[lev][comp] = new PartPerCellFunctor(nullptr, lev);
+            } else if ( varnames[comp] == "part_per_grid" ){
+                all_field_functors[lev][comp] = new PartPerGridFunctor(nullptr, lev);
+            } else if ( varnames[comp] == "divB" ){
+                all_field_functors[lev][comp] = new DivBFunctor(warpx.get_array_Bfield_aux(lev), lev);
+            } else if ( varnames[comp] == "divE" ){
+                all_field_functors[lev][comp] = new DivEFunctor(warpx.get_array_Efield_aux(lev), lev);
             }
         }
 

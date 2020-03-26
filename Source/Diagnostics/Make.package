@@ -4,18 +4,6 @@ CEXE_sources += FullDiagnostics.cpp
 CEXE_headers += Diagnostics.H
 CEXE_headers += FullDiagnostics.H
 CEXE_headers += MultiDiagnostics.H
-CEXE_headers += Average.H
-CEXE_sources += Average.cpp
-CEXE_headers += Interpolate.H
-CEXE_sources += Interpolate.cpp
-CEXE_headers += FlushFormat.H
-CEXE_headers += FlushFormatPlotfile.H
-CEXE_sources += FlushFormatPlotfile.cpp
-
-CEXE_headers += ComputeDiagFunctor.H
-CEXE_headers += CellCenterFunctor.H
-CEXE_sources += CellCenterFunctor.cpp
-
 CEXE_sources += WarpXIO.cpp
 CEXE_sources += BackTransformedDiagnostic.cpp
 CEXE_sources += ParticleIO.cpp
@@ -24,14 +12,14 @@ CEXE_sources += SliceDiagnostic.cpp
 CEXE_headers += FieldIO.H
 CEXE_headers += BackTransformedDiagnostic.H
 CEXE_headers += SliceDiagnostic.H
-CEXE_headers += Average.H
-CEXE_sources += Average.cpp
 
 ifeq ($(USE_OPENPMD), TRUE)
   CEXE_sources += WarpXOpenPMD.cpp
 endif
 
 include $(WARPX_HOME)/Source/Diagnostics/ReducedDiags/Make.package
+include $(WARPX_HOME)/Source/Diagnostics/ComputeDiagFunctors/Make.package
+include $(WARPX_HOME)/Source/Diagnostics/FlushFormats/Make.package
 
 INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/Diagnostics
 VPATH_LOCATIONS   += $(WARPX_HOME)/Source/Diagnostics

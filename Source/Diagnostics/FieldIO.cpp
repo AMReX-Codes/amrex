@@ -7,7 +7,7 @@
  */
 #include "FieldIO.H"
 #include "WarpX.H"
-#include "Average.H"
+#include "Utils/Average.H"
 #include "Utils/WarpXUtil.H"
 
 #include <AMReX_FillPatchUtil_F.H>

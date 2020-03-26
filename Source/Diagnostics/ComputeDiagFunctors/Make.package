@@ -1,0 +1,19 @@
+CEXE_headers += ComputeDiagFunctor.H
+
+CEXE_headers += CellCenterFunctor.H
+CEXE_sources += CellCenterFunctor.cpp
+
+CEXE_headers += PartPerCellFunctor.H
+CEXE_sources += PartPerCellFunctor.cpp
+
+CEXE_headers += PartPerGridFunctor.H
+CEXE_sources += PartPerGridFunctor.cpp
+
+CEXE_headers += DivBFunctor.H
+CEXE_sources += DivBFunctor.cpp
+
+CEXE_headers += DivEFunctor.H
+CEXE_sources += DivEFunctor.cpp
+
+INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/Diagnostics/ComputeDiagFunctors
+VPATH_LOCATIONS   += $(WARPX_HOME)/Source/Diagnostics/ComputeDiagFunctors
