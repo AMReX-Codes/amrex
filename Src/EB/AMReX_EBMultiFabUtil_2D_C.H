@@ -327,7 +327,7 @@ void eb_interp_cc2facecent (Box const& box,
           int ii = i - 1;
           int jj = (fcx(i,j,k) < 0.0) ? j - 1 : j + 1;
           Real gx = 0.5;
-          Real gy = abs(fcx(i,j,k));
+          Real gy = amrex::Math::abs(fcx(i,j,k));
           Real gxy = gx*gy;
           edg_x(i,j,k,n) = ( 1.0 - gx - gy + gxy ) * phi(i ,j ,k ,n)
            +               (            gy - gxy ) * phi(i ,jj,k ,n)
@@ -368,7 +368,7 @@ void eb_interp_cc2facecent (Box const& box,
         {
           int ii = (fcy(i,j,k) < 0.0) ? i - 1 : i + 1;
           int jj = j - 1;
-          Real gx = abs(fcy(i,j,k));
+          Real gx = amrex::Math::abs(fcy(i,j,k));
           Real gy = 0.5;
           Real gxy = gx*gy;
           edg_y(i,j,k,n) = ( 1.0 - gx - gy + gxy ) * phi(i ,j ,k ,n)
