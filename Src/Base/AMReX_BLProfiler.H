@@ -489,11 +489,11 @@ inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
 #define BL_PROFILE_VAR_START(vname)                       tiny_profiler__##vname.start();                                                                                                                               
 #define BL_PROFILE_VAR_STOP(vname)                        tiny_profiler__##vname.stop(); 
 #ifdef AMREX_USE_CUPTI
-  #include <AMReX_CuptiTrace.H>
-  #define BL_PROFILE_VAR_NS_CUPTI(fname, vname)             amrex::TinyProfiler tiny_profiler__##vname(fname, false, true);
-  #define BL_PROFILE_VAR_START_CUPTI(vname)                 tiny_profiler__##vname.start();
-  #define BL_PROFILE_VAR_STOP_CUPTI(vname)                  tiny_profiler__##vname.stop();
-  #define BL_PROFILE_VAR_STOP_CUPTI_ID(vname, uintID)       tiny_profiler__##vname.stop(uintID);
+#include <AMReX_CuptiTrace.H>
+#define BL_PROFILE_VAR_NS_CUPTI(fname, vname)             amrex::TinyProfiler tiny_profiler__##vname(fname, false, true);
+#define BL_PROFILE_VAR_START_CUPTI(vname)                 tiny_profiler__##vname.start();
+#define BL_PROFILE_VAR_STOP_CUPTI(vname)                  tiny_profiler__##vname.stop();
+#define BL_PROFILE_VAR_STOP_CUPTI_ID(vname, uintID)       tiny_profiler__##vname.stop(uintID);
 #endif // AMREX_USE_CUPTI
 #define BL_PROFILE_INIT_PARAMS(ptl,wall,wfabs)
 #define BL_PROFILE_ADD_STEP(snum)

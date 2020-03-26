@@ -113,9 +113,9 @@ ifeq ($(CUDA_VERBOSE),TRUE)
 endif
 
 ifeq ($(USE_CUPTI),TRUE)
-  INCLUDE_LOCATIONS += $(SYSTEM_CUDA_PATH)/extras/CUPTI/include
-  LIBRARY_LOCATIONS += ${SYSTEM_CUDA_PATH}/extras/CUPTI/lib64 
-  LIBRARIES += -Wl,-rpath,${SYSTEM_CUDA_PATH}/extras/CUPTI/lib64 -lcupti
+  INCLUDE_LOCATIONS += $(MAKE_CUDA_PATH)/extras/CUPTI/include
+  LIBRARY_LOCATIONS += ${MAKE_CUDA_PATH}/extras/CUPTI/lib64 
+  LIBRARIES += -Wl,-rpath,${MAKE_CUDA_PATH}/extras/CUPTI/lib64 -lcupti
 endif
 
 ifneq ($(USE_CUDA_FAST_MATH),FALSE)

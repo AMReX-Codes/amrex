@@ -6,6 +6,16 @@
 #include <cuda.h>
 #include <cupti.h>
 
+// CUPTI buffer size, enough for 4096 activity records in a single buffer;
+// `CUpti_Activity` objects are 8 bytes long
+#define BFR_SIZE (32768)
+
+// 8-byte alignment
+#define ALIGNMENT (8)
+
+// Round down to `align` boundary; mask out last 3 bits (address therefore ends in a 0 or 8)
+#define ALIGN_BFR(bfr, align) ( (uint8_t*) (((uintptr_t)bfr + (align - 1)) & ~ (uintptr_t)(align - 1)) )
+
 
 namespace amrex {
 
@@ -15,244 +25,241 @@ std::vector<CUpti_Activity_Userdata*> activityRecordUserdata;
 void CUPTIAPI
 bfrRequestCallback (uint8_t* *bfr, size_t* size, size_t* maxNumRecords) noexcept
 {
-  // Allocate a buffer for use by CUPTI; activity records are stored in the buffer
-  uint8_t* buffer = (uint8_t*) malloc(BFR_SIZE + ALIGNMENT);
-  if (buffer == NULL) {
-    amrex::Print() << "Error: CUPTI requested a buffer but memory cannot be allocated\n";
-    exit(EXIT_FAILURE);
-  }
+    // Allocate a buffer for use by CUPTI; activity records are stored in the buffer
+    uint8_t* buffer = (uint8_t*) malloc(BFR_SIZE + ALIGNMENT);
+    if (buffer == NULL) {
+        amrex::Abort("Error: CUPTI requested a buffer but memory cannot be allocated.");
+    }
 
-  // Return buffer and buffer size
-  *bfr = ALIGN_BFR(buffer, ALIGNMENT);
-  *size = BFR_SIZE;
+    // Return buffer and buffer size
+    *bfr = ALIGN_BFR(buffer, ALIGNMENT);
+    *size = BFR_SIZE;
 
-  // Controls maximum number of records to be placed in buffer; setting to zero
-  // fills the buffer with as many records as possible, setting to n > 0 fills
-  // with n records before buffer is returned
-  *maxNumRecords = 0;
+    // Controls maximum number of records to be placed in buffer; setting to zero
+    // fills the buffer with as many records as possible, setting to n > 0 fills
+    // with n records before buffer is returned
+    *maxNumRecords = 0;
 }
 
 void CUPTIAPI
 bfrCompleteCallback (CUcontext ctx, uint32_t streamId, uint8_t* bfr,
-		     size_t size, size_t validSize) noexcept
+                     size_t size, size_t validSize) noexcept
 { 
-  CUptiResult status;
-  CUpti_Activity* record = NULL;
-
-  if (validSize > 0) {
-    do {
-      status = cuptiActivityGetNextRecord(bfr, validSize, &record);
-      if (status == CUPTI_SUCCESS) {
-	CUpti_Activity_Userdata* recordUserData = new CUpti_Activity_Userdata();
-	CUpti_ActivityKernel4* kernel = (CUpti_ActivityKernel4*) record;
-
-	// Save record data
-	recordUserData->setRecord(record);
-	recordUserData->setStartTime(kernel->start);
-	recordUserData->setEndTime(kernel->end);
-	recordUserData->setTimeElapsed(kernel->end - kernel->start);
-	recordUserData->setStreamID(kernel->streamId);
-	recordUserData->setName(kernel->name);
-	activityRecordUserdata.push_back(recordUserData);
-      }
-      else if (status == CUPTI_ERROR_MAX_LIMIT_REACHED) {
-	// No more records in the buffer
-        break;
-      }
-      else if (status != CUPTI_SUCCESS) {
-        const char* err;
-	cuptiGetResultString(status, &err);
-	amrex::Print() << "Error: " << err <<  "\n";
-	exit(EXIT_FAILURE);
-      }
-    } while (true);
+    CUptiResult status;
+    CUpti_Activity* record = NULL;
     
-    size_t dropped;
-    cuptiActivityGetNumDroppedRecords(ctx, streamId, &dropped);
-    if (dropped != 0) {
-      amrex::Print() << (unsigned int) dropped
-		     << " activity records were dropped due to insufficient buffer space\n";
+    if (validSize > 0) {
+        do {
+            status = cuptiActivityGetNextRecord(bfr, validSize, &record);
+            if (status == CUPTI_SUCCESS) {
+                CUpti_Activity_Userdata* recordUserData = new CUpti_Activity_Userdata();
+                CUpti_ActivityKernel4* kernel = (CUpti_ActivityKernel4*) record;
+                
+                // Save record data
+                recordUserData->setRecord(record);
+                recordUserData->setStartTime(kernel->start);
+                recordUserData->setEndTime(kernel->end);
+                recordUserData->setTimeElapsed(kernel->end - kernel->start);
+                recordUserData->setStreamID(kernel->streamId);
+                recordUserData->setName(kernel->name);
+                activityRecordUserdata.push_back(recordUserData);
+            }
+            else if (status == CUPTI_ERROR_MAX_LIMIT_REACHED) {
+                // No more records in the buffer
+                break;
+            }
+            else if (status != CUPTI_SUCCESS) {
+                const char* err;
+                cuptiGetResultString(status, &err);
+                amrex::Abort("Error: " + testerr);
+            }
+        } while (true);
+        
+        size_t dropped;
+        cuptiActivityGetNumDroppedRecords(ctx, streamId, &dropped);
+        if (dropped != 0) {
+            amrex::Print() << (unsigned int) dropped
+                           << " activity records were dropped due to insufficient buffer space\n";
+        }
     }
-  }
-  free(bfr);
+    free(bfr);
 }
 
 void
 initCuptiTrace () noexcept
 {
-  // Enable collection of kernel activity records
-  cuptiActivityEnable(CUPTI_ACTIVITY_KIND_CONCURRENT_KERNEL);
-  
-  // Register callback functions to handle request of buffers to store
-  // activity records and delivery of completed buffers to CUPTI client
-  cuptiActivityRegisterCallbacks(bfrRequestCallback, bfrCompleteCallback);
-
-  amrex::Print() << "CUPTI initialized\n";
+    // Enable collection of kernel activity records
+    cuptiActivityEnable(CUPTI_ACTIVITY_KIND_CONCURRENT_KERNEL);
+    
+    // Register callback functions to handle request of buffers to store
+    // activity records and delivery of completed buffers to CUPTI client
+    cuptiActivityRegisterCallbacks(bfrRequestCallback, bfrCompleteCallback);
+    
+    amrex::Print() << "CUPTI initialized\n";
 }
-
+    
 void
 cuptiTraceStart () noexcept
 {
-  cudaDeviceSynchronize();
-  cuptiActivityFlushAll(0);  
-  activityRecordUserdata.clear();
+    cudaDeviceSynchronize();
+    cuptiActivityFlushAll(0);  
+    activityRecordUserdata.clear();
 }
 
 void
 cuptiTraceStop () noexcept
 {
-  cudaDeviceSynchronize();
-  cuptiActivityFlushAll(0);
+    cudaDeviceSynchronize();
+    cuptiActivityFlushAll(0);
 }
 
 void
 cuptiTraceStop (unsigned boxUintID) noexcept
 {
-  cudaDeviceSynchronize();
-  cuptiActivityFlushAll(0);
-  for (auto record : activityRecordUserdata) {
-    record->setUintID(boxUintID);
-    record->setCharID(("CharID_" + std::to_string(boxUintID)).c_str());
-  }
+    cudaDeviceSynchronize();
+    cuptiActivityFlushAll(0);
+    for (auto record : activityRecordUserdata) {
+        record->setUintID(boxUintID);
+        record->setCharID(("CharID_" + std::to_string(boxUintID)).c_str());
+    }
 }
 
 double
 computeElapsedTimeUserdata (std::vector<CUpti_Activity_Userdata*>
-			    activityRecordUserdata) noexcept
+                            activityRecordUserdata) noexcept
 {
-  if (activityRecordUserdata.size() == 0) {
-    return 0.0;
-  }
-  
-  std::map<int, unsigned long long> streamIDToElapsedTimeMap;
-  
-  // Initialize tally of unique streams
-  for (auto record : activityRecordUserdata) {
-    if (streamIDToElapsedTimeMap.find(record->getStreamID())
-	== streamIDToElapsedTimeMap.end()) {
-      // Not found
-      streamIDToElapsedTimeMap[record->getStreamID()] = 0;
-    } else {
-      // Found
+    if (activityRecordUserdata.size() == 0) {
+        return 0.0;
     }
-  }
-
-  // Sum kernel times in each stream
-  for (auto record : activityRecordUserdata) {
-    streamIDToElapsedTimeMap[record->getStreamID()] += record->getTimeElapsed();
-  }
-
-  // Sum over streams
-  unsigned long long res = 0;
-  for (auto const& kv : streamIDToElapsedTimeMap) {
-    res += kv.second;
-  }  
-
-  // Average time per kernel
-  res /= (1.*activityRecordUserdata.size());
-
-  // Alternative: average time per stream
-  //res /= streamIDToElapsedTimeMap.size();
   
-  // Default is ns, convert to sec
-  return (double) res*1e-9;
+    std::map<int, unsigned long long> streamIDToElapsedTimeMap;
     
+    // Initialize tally of unique streams
+    for (auto record : activityRecordUserdata) {
+        if (streamIDToElapsedTimeMap.find(record->getStreamID())
+            == streamIDToElapsedTimeMap.end()) {
+            // Not found
+            streamIDToElapsedTimeMap[record->getStreamID()] = 0;
+        } else {
+            // Found
+        }
+    }
+
+    // Sum kernel times in each stream
+    for (auto record : activityRecordUserdata) {
+        streamIDToElapsedTimeMap[record->getStreamID()] += record->getTimeElapsed();
+    }
+
+    // Sum over streams
+    unsigned long long res = 0;
+    for (auto const& kv : streamIDToElapsedTimeMap) {
+        res += kv.second;
+    }  
+
+    // Average time per kernel
+    res /= (1.*activityRecordUserdata.size());
+
+    // Alternative: average time per stream
+    //res /= streamIDToElapsedTimeMap.size();
+  
+    // Default is ns, convert to sec
+    return (double) res*1e-9;
 }
 
 void
 CUpti_Activity_Userdata::setRecord (CUpti_Activity* record) noexcept
 {
-  record_ = record;
+    record_ = record;
 }
 
 CUpti_Activity*
 CUpti_Activity_Userdata::getRecord () noexcept
 { 
-  return record_;
+    return record_;
 }
 
 void
 CUpti_Activity_Userdata::setUintID (unsigned uintID) noexcept
 {
-  uintID_ = uintID;
+    uintID_ = uintID;
 }
 
 void
 CUpti_Activity_Userdata::setStartTime (unsigned long long startTime) noexcept
 {
-  startTime_ = startTime;
+    startTime_ = startTime;
 }
 
 void
 CUpti_Activity_Userdata::setEndTime (unsigned long long endTime) noexcept
 {
-  endTime_ = endTime;
+    endTime_ = endTime;
 }
 
 void
 CUpti_Activity_Userdata::setTimeElapsed (unsigned long long timeElapsed) noexcept
 {
-  timeElapsed_ = timeElapsed;
+    timeElapsed_ = timeElapsed;
 }
 
 void
 CUpti_Activity_Userdata::setStreamID (int streamID) noexcept
 {
-  streamID_ = streamID;
+    streamID_ = streamID;
 }
 
 void
 CUpti_Activity_Userdata::setName (const char* name) noexcept
 {
-  name_ = name;
+    name_ = name;
 }
 
 unsigned
 CUpti_Activity_Userdata::getUintID () noexcept
 { 
-  return uintID_;
+    return uintID_;
 }
 
 void
 CUpti_Activity_Userdata::setCharID (const char* charID) noexcept
 {
-  charID_ = charID;
+    charID_ = charID;
 }
 
 const char*
 CUpti_Activity_Userdata::getCharID () noexcept
 { 
-  return charID_;
+    return charID_;
 }
 
 unsigned long long
 CUpti_Activity_Userdata::getStartTime () noexcept
 {
-  return startTime_;
+    return startTime_;
 }
 
 unsigned long long
 CUpti_Activity_Userdata::getEndTime () noexcept
 {
-  return endTime_;
+    return endTime_;
 }
 
 unsigned long long
 CUpti_Activity_Userdata::getTimeElapsed () noexcept
 {
-  return timeElapsed_;
+    return timeElapsed_;
 }
 
 int
 CUpti_Activity_Userdata::getStreamID () noexcept
 {
-  return streamID_;
+    return streamID_;
 }
 
 const char*
 CUpti_Activity_Userdata::getName () noexcept
 {
-  return name_;
+    return name_;
 }
   
 CuptiTrace::CuptiTrace () noexcept
@@ -261,33 +268,33 @@ CuptiTrace::CuptiTrace () noexcept
 
 CuptiTrace::~CuptiTrace () noexcept
 {
-  this->cleanup();
+    this->cleanup();
 }
  
 void
 CuptiTrace::start () noexcept
 {
-  cuptiTraceStart();
+    cuptiTraceStart();
 }
 
 void
 CuptiTrace::stop () noexcept
 {
-  cuptiTraceStop();
+    cuptiTraceStop();
 }
 
 void
 CuptiTrace::stop (unsigned boxUintID) noexcept
 {
-  cuptiTraceStop(boxUintID);
+    cuptiTraceStop(boxUintID);
 }
 
 void
 CuptiTrace::cleanup () noexcept
 {
-  for (auto record : activityRecordUserdata) {
-   delete[] record;
-  }
+    for (auto record : activityRecordUserdata) {
+        delete[] record;
+    }
 }
 
 }
