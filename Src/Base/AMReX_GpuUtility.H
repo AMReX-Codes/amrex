@@ -144,6 +144,8 @@ namespace Gpu {
     {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
         return ::isnan(m);
+#elif defined(__SYCL_DEVICE_ONLY__)
+        return sycl::isnan(m);
 #else
         return std::isnan(m);
 #endif
