@@ -1,8 +1,9 @@
 /* Copyright 2016-2020 Andrew Myers, Ann Almgren, Aurore Blelly
  *                     Axel Huebl, Burlen Loring, David Grote
  *                     Glenn Richardson, Junmin Gu, Luca Fedeli
- *                     Mathieu Lobet, Maxence Thevenet, Remi Lehe
- *                     Revathi Jambunathan, Weiqun Zhang, Yinjian Zhao
+ *                     Mathieu Lobet, Maxence Thevenet, Michael Rowan
+ *                     Remi Lehe, Revathi Jambunathan, Weiqun Zhang
+ *                     Yinjian Zhao
  *
  * This file is part of WarpX.
  *
@@ -237,26 +238,11 @@ public:
     /** get low-high-low-high-... vector for each direction indicating if mother grid PMLs are enabled */
     std::vector<bool> getPMLdirections() const;
 
-    static amrex::MultiFab* getCosts (int lev) {
-        if (WarpX::load_balance_costs_update_algo == LoadBalanceCostsUpdateAlgo::Timers) {
-            if (m_instance) {
+    static amrex::Vector<amrex::Real>* getCosts (int lev) {
+        if (m_instance) {
             return m_instance->costs[lev].get();
-            } else {
-                return nullptr;
-            }
-        } else {
-            return nullptr;
-        }
-    }
-
-    static amrex::Vector<amrex::Real>* getCostsHeuristic (int lev) {
-        if (WarpX::load_balance_costs_update_algo == LoadBalanceCostsUpdateAlgo::Heuristic) {
-            if (m_instance) {
-                return m_instance->costs_heuristic[lev].get();
-            } else {
-                return nullptr;
-            }
-        } else {
+        } else
+        {
             return nullptr;
         }
     }
@@ -326,8 +312,6 @@ public:
     /** \brief perform load balance; compute and communicate new `amrex::DistributionMapping`
      */
     void LoadBalance ();
-    void LoadBalanceTimers ();
-    void LoadBalanceHeuristic ();
     /** \brief resets costs to zero
      */
     void ResetCosts ();
@@ -714,12 +698,9 @@ private:
     /** Interval to perform load balance; `load_balance_int=5`, e.g., will load
      * balance during steps 5, 10, 15, etc. */
     int load_balance_int = -1;
-    /** Collection of multifabs to keep track of weights, based on in-code timers,
-     * for use in load balancing routines. */
-    amrex::Vector<std::unique_ptr<amrex::MultiFab> > costs;
-    /** Collection of vectors to keep track of weights, based on number of cells
-     * and number of particles per box; for use in load balancing routines. */
-    amrex::Vector<std::unique_ptr<amrex::Vector<amrex::Real> > > costs_heuristic;
+    /** Collection of vectors to keep track of weights used in load balancing
+     * routines. Contains timer-based or heuristic-based costs depending on input option */
+    amrex::Vector<std::unique_ptr<amrex::Vector<amrex::Real> > > costs;
     /** Load balance with 'space filling curve' strategy. */
     int load_balance_with_sfc = 0;
     /** Controls the maximum number of boxes that can be assigned to a rank during
@@ -727,13 +708,13 @@ private:
      * `load_balance_knapsack_factor=2` limits the maximum number of boxes that can
      * be assigned to a rank to 8. */
     amrex::Real load_balance_knapsack_factor = 1.24;
-    /** Weight factor for cells in updating `costs_heuristic`.
+    /** Weight factor for cells in `Heuristic` costs update.
      * Default values on GPU are determined from single-GPU tests on Summit.
      * The problem setup for these tests is an empty (i.e. no particles) domain
      * of size 256 by 256 by 256 cells, from which the average time per iteration
      * per cell is computed. */
     amrex::Real costs_heuristic_cells_wt = -1;
-    /** Weight factor for particles in updating `costs_heuristic`.
+    /** Weight factor for particles in `Heuristic` costs update.
      * Default values on GPU are determined from single-GPU tests on Summit.
      * The problem setup for these tests is a high-ppc (27 particles per cell)
      * uniform plasma on a domain of size 128 by 128 by 128, from which the approximate

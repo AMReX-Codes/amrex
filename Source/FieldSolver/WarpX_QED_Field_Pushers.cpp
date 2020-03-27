@@ -83,7 +83,7 @@ WarpX::Hybrid_QED_Push (int lev, PatchType patch_type, Real a_dt)
         Bz = Bfield_cp[lev][2].get();
     }
 
-    MultiFab* cost = WarpX::getCosts(lev);
+    amrex::Vector<amrex::Real>* cost = WarpX::getCosts(lev);
     const IntVect& rr = (lev > 0) ? refRatio(lev-1) : IntVect::TheUnitVector();
 
     // xmin is only used by the kernel for cylindrical geometry,
@@ -96,6 +96,10 @@ WarpX::Hybrid_QED_Push (int lev, PatchType patch_type, Real a_dt)
 #endif
     for ( MFIter mfi(*Bx, TilingIfNotGPU()); mfi.isValid(); ++mfi )
     {
+        if (cost && WarpX::load_balance_costs_update_algo == LoadBalanceCostsUpdateAlgo::Timers)
+        {
+            amrex::Gpu::synchronize();
+        }
         Real wt = amrex::second();
 
         // Get boxes for E and B
@@ -162,19 +166,11 @@ WarpX::Hybrid_QED_Push (int lev, PatchType patch_type, Real a_dt)
             }
         );
 
-        if (cost) {
-            Box cbx = mfi.tilebox(IntVect{AMREX_D_DECL(0,0,0)});
-            if (patch_type == PatchType::coarse) cbx.refine(rr);
-            wt = (amrex::second() - wt) / cbx.d_numPts();
-            auto costfab = cost->array(mfi);
-
-            amrex::ParallelFor(
-                cbx,
-                [=] AMREX_GPU_DEVICE (int i, int j, int k)
-                {
-                    costfab(i,j,k) += wt;
-                }
-            );
+        if (cost && WarpX::load_balance_costs_update_algo == LoadBalanceCostsUpdateAlgo::Timers)
+        {
+            amrex::Gpu::synchronize();
+            wt = amrex::second() - wt;
+            amrex::HostDevice::Atomic::Add( &(*cost)[mfi.index()], wt);
         }
     }
 }

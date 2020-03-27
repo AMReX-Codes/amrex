@@ -1,9 +1,9 @@
 /* Copyright 2016-2020 Andrew Myers, Ann Almgren, Aurore Blelly
  * Axel Huebl, Burlen Loring, David Grote
  * Glenn Richardson, Jean-Luc Vay, Junmin Gu
- * Mathieu Lobet, Maxence Thevenet, Remi Lehe
- * Revathi Jambunathan, Weiqun Zhang, Yinjian Zhao
- * levinem
+ * Mathieu Lobet, Maxence Thevenet, Michael Rowan
+ * Remi Lehe, Revathi Jambunathan, Weiqun Zhang
+ * Yinjian Zhao, levinem
  *
  * This file is part of WarpX.
  *
@@ -248,15 +248,7 @@ WarpX::WarpX ()
     charge_buf.resize(nlevs_max);
 
     pml.resize(nlevs_max);
-
-    switch (WarpX::load_balance_costs_update_algo)
-    {
-        case LoadBalanceCostsUpdateAlgo::Timers: costs.resize(nlevs_max);
-            break;
-        case LoadBalanceCostsUpdateAlgo::Heuristic: costs_heuristic.resize(nlevs_max);
-            break;
-        default: amrex::Abort("unknown load balance type");
-    }
+    costs.resize(nlevs_max);
 
     // Set default values for particle and cell weights for costs update;
     // Default values listed here for the case AMREX_USE_GPU are determined
@@ -838,11 +830,7 @@ WarpX::ClearLevel (int lev)
     F_cp  [lev].reset();
     rho_cp[lev].reset();
 
-    if (WarpX::load_balance_costs_update_algo == LoadBalanceCostsUpdateAlgo::Timers) {
-        costs[lev].reset();
-    } else if (WarpX::load_balance_costs_update_algo == LoadBalanceCostsUpdateAlgo::Heuristic) {
-        costs_heuristic[lev].reset();
-    }
+    costs[lev].reset();
 
 
 #ifdef WARPX_USE_PSATD_HYBRID
@@ -1119,14 +1107,11 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
         }
     }
 
-    if (load_balance_int > 0) {
-        if (WarpX::load_balance_costs_update_algo == LoadBalanceCostsUpdateAlgo::Timers) {
-            costs[lev].reset(new MultiFab(ba, dm, 1, 0));
-        } else if (WarpX::load_balance_costs_update_algo == LoadBalanceCostsUpdateAlgo::Heuristic) {
-            costs_heuristic[lev].reset(new amrex::Vector<Real>);
-            const int nboxes = Efield_fp[lev][0].get()->size();
-            costs_heuristic[lev]->resize(nboxes);
-        }
+    if (load_balance_int > 0)
+    {
+        costs[lev].reset(new amrex::Vector<Real>);
+        const int nboxes = Efield_fp[lev][0].get()->size();
+        costs[lev]->resize(nboxes);
     }
 }
 

@@ -24,12 +24,7 @@ void LoadBalanceCosts::ComputeDiags (int step)
     // get WarpX class object
     auto& warpx = WarpX::GetInstance();
 
-    // for now, costs reduced diagnostic only works with `costs_heuristic`,
-    // but this will work for timer based costs as well after changing from
-    // multifab to vector
-    const amrex::Vector<amrex::Real>* cost_heuristic = warpx.getCostsHeuristic(0);
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(cost_heuristic != nullptr,
-        "LoadBalanceCosts reduced diagnostic works only with heuristic costs update.");
+    const amrex::Vector<amrex::Real>* cost = warpx.getCosts(0);
 
     // judge if the diags should be done
     // costs is initialized only if we're doing load balance
@@ -40,8 +35,8 @@ void LoadBalanceCosts::ComputeDiags (int step)
     int nBoxes = 0;
     for (int lev = 0; lev < nLevels; ++lev)
     {
-        const amrex::Vector<amrex::Real>* cost_heuristic = warpx.getCostsHeuristic(lev);
-        nBoxes += cost_heuristic->size();
+        const amrex::Vector<amrex::Real>* cost = warpx.getCosts(lev);
+        nBoxes += cost->size();
     }
 
     // keep track of the max number of boxes, this is needed later on to fill
@@ -53,18 +48,26 @@ void LoadBalanceCosts::ComputeDiags (int step)
     m_data.resize(dataSize, 0.0);
     m_data.assign(dataSize, 0.0);
 
-    // read in WarpX costs_heuristic to local copy
-    amrex::Vector<std::unique_ptr<amrex::Vector<amrex::Real> > > costs_heuristic;
+    // read in WarpX costs to local copy; compute if using `Heuristic` update
+    amrex::Vector<std::unique_ptr<amrex::Vector<amrex::Real> > > costs;
+
+    costs.resize(nLevels);
+    for (int lev = 0; lev < nLevels; ++lev)
+    {
+        costs[lev].reset(new amrex::Vector<Real>);
+        const int nBoxesLev = warpx.getCosts(lev)->size();
+        costs[lev]->resize(nBoxesLev);
+        for (int i = 0; i < nBoxesLev; ++i)
+        {
+            // If `Heuristic` update, this fills with zeros;
+            // if `Timers` update, this fills with timer-based costs
+            (*costs[lev])[i] = (*warpx.getCosts(lev))[i];
+        }
+    }
+
     if (warpx.load_balance_costs_update_algo == LoadBalanceCostsUpdateAlgo::Heuristic)
     {
-        costs_heuristic.resize(nLevels);
-        for (int lev = 0; lev < nLevels; ++lev)
-        {
-            costs_heuristic[lev].reset(new amrex::Vector<Real>);
-            const int nBoxesLev = warpx.getCostsHeuristic(lev)->size();
-            costs_heuristic[lev]->resize(nBoxesLev);
-        }
-        warpx.ComputeCostsHeuristic(costs_heuristic);
+        warpx.ComputeCostsHeuristic(costs);
     }
 
     // keeps track of correct index in array over all boxes on all levels
@@ -78,7 +81,7 @@ void LoadBalanceCosts::ComputeDiags (int step)
         for (MFIter mfi(Ex, false); mfi.isValid(); ++mfi)
         {
             const Box& tbx = mfi.tilebox();
-            m_data[shift + mfi.index()*m_nDataFields + 0] = (*costs_heuristic[lev])[mfi.index()];
+            m_data[shift + mfi.index()*m_nDataFields + 0] = (*costs[lev])[mfi.index()];
             m_data[shift + mfi.index()*m_nDataFields + 1] = dm[mfi.index()];
             m_data[shift + mfi.index()*m_nDataFields + 2] = lev;
             m_data[shift + mfi.index()*m_nDataFields + 3] = tbx.loVect()[0];
@@ -87,7 +90,7 @@ void LoadBalanceCosts::ComputeDiags (int step)
         }
 
         // we looped through all the boxes on level lev, update the shift index
-        shift += m_nDataFields*(costs_heuristic[lev]->size());
+        shift += m_nDataFields*(costs[lev]->size());
     }
 
     // parallel reduce to IO proc and get data over all procs

@@ -1,6 +1,7 @@
 /* Copyright 2019-2020 Andrew Myers, Ann Almgren, Aurore Blelly
  * Axel Huebl, Burlen Loring, Maxence Thevenet
- * Remi Lehe, Revathi Jambunathan, Weiqun Zhang
+ * Michael Rowan, Remi Lehe, Revathi Jambunathan
+ * Weiqun Zhang
  *
  *
  * This file is part of WarpX.
@@ -414,16 +415,10 @@ WarpX::InitLevelData (int lev, Real /*time*/)
         rho_cp[lev]->setVal(0.0);
     }
 
-    if (WarpX::load_balance_costs_update_algo == LoadBalanceCostsUpdateAlgo::Timers) {
-        if (costs[lev]) {
-            costs[lev]->setVal(0.0);
-        }
-    } else if (WarpX::load_balance_costs_update_algo == LoadBalanceCostsUpdateAlgo::Heuristic) {
-        if (costs_heuristic[lev]) {
-            std::fill((*costs_heuristic[lev]).begin(),
-                      (*costs_heuristic[lev]).end(),
-                      0.0);
-        }
+    if (costs[lev]) {
+        std::fill((*costs[lev]).begin(),
+                  (*costs[lev]).end(),
+                  0.0);
     }
 }
 

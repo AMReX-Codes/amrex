@@ -8,11 +8,12 @@
 
 # This script tests the reduced diagnostics `LoadBalanceCosts`.
 # The setup is a uniform plasma with electrons.
-# An heuristic measure of the cost diagnostic is output in the reduced diagnostic.
-# The efficiency (mean of cost per rank, normalized to the maximum cost over all
-# ranks) extracted from the reduced diagnostic is compared before and after the
-# load balance step; the test ensures that efficiency, measured via the reduced
-# diagnostic, improves after the load balance step.
+# A measure of cost (based on timers or heuristic measure from cell and particles)
+# diagnostic is output in the reduced diagnostic.  The efficiency (mean of cost
+# per rank, normalized to the maximum cost over all ranks) extracted from the
+# reduced diagnostic is compared before and after the load balance step; the test
+# ensures that efficiency, measured via the reduced diagnostic, improves after
+# the load balance step.
 
 # Possible running time: ~ 1 s
 
