@@ -23,6 +23,9 @@ chk*
 ##########
 *.pyc
 __pycache__
+Python/build/
+Python/dist/
+Python/pywarpx.egg-info/
 
 ##########
 # Sphinx #
