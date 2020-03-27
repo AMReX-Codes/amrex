@@ -23,7 +23,11 @@ else
 endif
 
 ifeq ($(USE_DPCPP),TRUE)
-  DPCPP_DIR ?= /opt/intel/inteloneapi/compiler/latest/linux
+  ifdef DPCPPROOT
+    DPCPP_DIR ?= $(DPCPPROOT)
+  else
+    DPCPP_DIR ?= /opt/intel/inteloneapi/compiler/latest/linux
+  endif
   COMP := dpcpp
   DEFINES += -DAMREX_USE_DPCPP -DAMREX_USE_GPU
   USE_CUDA := FALSE
