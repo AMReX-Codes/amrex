@@ -6,5 +6,5 @@ External Frameworks
 .. toctree::
    :maxdepth: 1
 
-   CVODE_top
+   SUNDIALS_top
    SWFFT

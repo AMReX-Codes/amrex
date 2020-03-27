@@ -5,11 +5,11 @@
    :language: fortran
 
 
-Compiling AMReX with Sundials (Version 5.1.0)
+Compiling AMReX with SUNDIALS 5
 ---------------------------------------------
 
-The following steps describe how to compile an AMReX application with
-SUNDIALS_5 support.
+The following steps describe how to compile an AMReX application with
+SUNDIALS 5 support.
 
 In order to use Sundials 5.1.0:
 
@@ -39,34 +39,38 @@ In order to use Sundials 5.1.0:
       -DCUDA_ENABLE=ON     \
       -DMPI_ENABLE=OFF     \
       -DOPENMP_ENABLE=ON     \
-      -DEXAMPLES_ENABLE=ON      \
+      -DF2003_INTERFACE_ENABLE=ON \
       -DCUDA_ARCH=sm_70 ../
       make -j8
       make install -j8
 
-#. Note that CMAKE_C_COMPILER and CMAKE_CXX_COMPILER need to be
-   consistent with the AMReX make variable COMP to ensure
-   matching OMP runtime libraries for use with the OpenMP NVector. 
+#. Note that ``CMAKE_C_COMPILER`` and ``CMAKE_CXX_COMPILER`` need to be consistent with the AMReX
+   make variable COMP to ensure matching OMP runtime libraries for use with the OpenMP NVector. 
 
-#. For more detailed instructions for installing Sundials with different flags and versions see :ref:`CVODE`.
+#. For more detailed instructions for installing SUNDIALS with different flags and versions see
+   the `SUNDIALS documentation <https://computing.llnl.gov/projects/sundials/sundials-software>`_.
 
-#. In the ``GNUmakefile`` for the  application which uses the Fortran 2003
-   interface to CVODE or ARKODE, add ``USE_SUNDIALS = TRUE``, which will compile the Fortran 2003
-   interfaces and link the  libraries.  Note that one must define the
-   ``CVODE_LIB_DIR`` environment variable to point to the location where the
-   libraries are installed. This should be an absolute path, such as ``$(pwd)/../sundials/instdir/lib64``.
+#. In the ``GNUmakefile`` for the application which uses the interface to SUNDIALS, add
+   ``USE_SUNDIALS = TRUE`` and ``SUNDIALS_ROOT=${INSTALL_PREFIX}``. Note that one must define the
+   ``SUNDIALS_LIB_DIR`` make variable to point to the location where the libraries are installed
+   if they are not installed in the default location which is ``${INSTALL_PREFIX}/lib64``.
 
-#. In the ``GNUmakefile`` for the  application which uses the Fortran 2003
-   interface to ARKODE, also add ``USE_ARKODE_LIBS = TRUE``. It is assumed that the
-   ``CVODE_LIB_DIR`` environment variable points to the location where the ARKODE
-   libraries are installed as well.
+#. If the application uses the SUNDIALS CVODE time integrator package, then the variable
+   ``USE_CVODE_LIBS = TRUE`` should also be added in the ``GNUmakefile`` for the application.
+   If the application used the SUNDIALS ARKode time integrator package, then the variable
+   ``USE_ARKODE_LIBS = TRUE`` should be added.
 
 #. Fortran 2003 interfaces for the pgi compilers are currently not supported.
+
+
+Note that SUNDIALS can also be installed via Spack:
+
+   ::
+      
+      spack install sundials+cuda+f2003+openmp
+  
 
 SUNDIALS 5 Tutorials
 --------------------------
 
-AMReX provides six tutorials in the ``amrex/Tutorials/CVODE/SUNDIALS3_finterface`` directory and
-five tutorials in the ``amrex/Tutorials/SUNDIALS`` directory. See the Tutorials SUNDIALS_ documentation for more detail.
-
-.. _SUNDIALS: https://amrex-codes.github.io/amrex/tutorials_html/SUNDIALS_Tutorial.html
+AMReX provides in the ``amrex/Tutorials/SUNDIALS`` directory.
