@@ -353,9 +353,9 @@ void eb_interp_cc2cent (Box const& box,
         int ii = (gx < 0.0) ? i - 1 : i + 1;
         int jj = (gy < 0.0) ? j - 1 : j + 1;
         int kk = (gz < 0.0) ? k - 1 : k + 1;
-        gx = abs(gx);
-        gy = abs(gy);
-        gz = abs(gz);
+        gx = amrex::Math::abs(gx);
+        gy = amrex::Math::abs(gy);
+        gz = amrex::Math::abs(gz);
         Real gxy = gx*gy;
         Real gxz = gx*gz;
         Real gyz = gy*gz;
@@ -432,8 +432,8 @@ void eb_interp_cc2facecent (Box const& box,
         int ii = i - 1;
         int jj = (gy < 0.0) ? j - 1 : j + 1;
         int kk = (gz < 0.0) ? k - 1 : k + 1;
-        gy = abs(gy);
-        gz = abs(gz);
+        gy = amrex::Math::abs(gy);
+        gz = amrex::Math::abs(gz);
         Real gxy = gx*gy;
         Real gxz = gx*gz;
         Real gyz = gy*gz;
@@ -485,8 +485,8 @@ void eb_interp_cc2facecent (Box const& box,
         int ii = (gx < 0.0) ? i - 1 : i + 1;
         int jj = j - 1;
         int kk = (gz < 0.0) ? k - 1 : k + 1;
-        gx = abs(gx);
-        gz = abs(gz);
+        gx = amrex::Math::abs(gx);
+        gz = amrex::Math::abs(gz);
         Real gxy = gx*gy;
         Real gxz = gx*gz;
         Real gyz = gy*gz;
@@ -538,8 +538,8 @@ void eb_interp_cc2facecent (Box const& box,
         int ii = (gx < 0.0) ? i - 1 : i + 1;
         int jj = (gy < 0.0) ? j - 1 : j + 1;
         int kk = k -1;
-        gx = abs(gx);
-        gy = abs(gy);
+        gx = amrex::Math::abs(gx);
+        gy = amrex::Math::abs(gy);
         Real gxy = gx*gy;
         Real gxz = gx*gz;
         Real gyz = gy*gz;
