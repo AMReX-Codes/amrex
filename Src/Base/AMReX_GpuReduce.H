@@ -22,10 +22,14 @@ struct warpReduce
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     T operator() (T x, sycl::intel::sub_group const& sg) const noexcept
     {
+#if 0
+        // xxxxx DPCPP todo: error: Shuffle Down not supported in SIMD32
+        // xxxxx             error: backend compiler failed build.
         for (int offset = warpSize/2; offset > 0; offset /= 2) {
             T y = sg.shuffle_down(x, offset);
             x = F()(x,y);
         }
+#endif
         return x;
     }
 };
@@ -36,10 +40,10 @@ T blockReduce (T x, WARPREDUCE && warp_reduce, T x0, Gpu::Handler const& h)
 {
     T* shared = (T*)h.local;
     int tid = h.item.get_local_id(0);
-    int block_dim = h.item.get_local_range(0);
-    int lane = tid % warpSize;
-    int wid = tid / warpSize;
     sycl::intel::sub_group const& sg = h.item.get_sub_group();
+    int lane = sg.get_local_id();
+    int wid = sg.get_group_id();
+    int numwarps = sg.get_group_range();
     x = warp_reduce(x, sg);
     // __syncthreads() prior to writing to shared memory is necessary
     // if this reduction call is occurring multiple times in a kernel,
@@ -48,7 +52,7 @@ T blockReduce (T x, WARPREDUCE && warp_reduce, T x0, Gpu::Handler const& h)
     h.item.barrier(sycl::access::fence_space::local_space);
     if (lane == 0) shared[wid] = x;
     h.item.barrier(sycl::access::fence_space::local_space);
-    bool b = (tid == 0) or (tid < block_dim / warpSize);
+    bool b = (tid == 0) or (tid < numwarps);
     x =  b ? shared[lane] : x0;
     if (wid == 0) x = warp_reduce(x, sg);
     return x;
