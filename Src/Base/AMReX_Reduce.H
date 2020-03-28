@@ -287,12 +287,13 @@ public:
         auto ec = Gpu::ExecutionConfig(ncells);
         ec.numBlocks.x = std::min(ec.numBlocks.x, static_cast<unsigned int>(Gpu::Device::maxBlocksPerLaunch()));
 #ifdef AMREX_USE_DPCPP
-        amrex::launch(ec.numBlocks.x, ec.numThreads.x, Gpu::gpuStream(),
-        [=] AMREX_GPU_DEVICE (sycl::nd_item<1> const& item) noexcept
-        AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size)
+        // device reduce needs local(i.e., shared) memory
+        constexpr std::size_t shared_mem_bytes = sizeof(unsigned long long)*Gpu::Device::warp_size;
+        amrex::launch(ec.numBlocks.x, ec.numThreads.x, shared_mem_bytes, Gpu::gpuStream(),
+        [=] AMREX_GPU_DEVICE (Gpu::Handler const& gh) noexcept
         {
             ReduceTuple r = *(dp+1);
-            for (int icell = item.get_global_id(0), stride = item.get_global_range(0);
+            for (int icell = gh.item.get_global_id(0), stride = gh.item.get_global_range(0);
                  icell < ncells; icell += stride) {
                 int k =  icell /   (len.x*len.y);
                 int j = (icell - k*(len.x*len.y)) /   len.x;
@@ -303,7 +304,7 @@ public:
                 auto pr = Reduce::detail::call_f(f,i,j,k,ixtype);
                 Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r, pr);
             }
-            Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(*dp,r, Gpu::Handler{item});
+            Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(*dp,r, gh);
         });
 #else
         amrex::launch(ec.numBlocks.x, ec.numThreads.x, 0, Gpu::gpuStream(),
@@ -337,12 +338,13 @@ public:
         auto ec = Gpu::ExecutionConfig(ncells);
         ec.numBlocks.x = std::min(ec.numBlocks.x, static_cast<unsigned int>(Gpu::Device::maxBlocksPerLaunch()));
 #ifdef AMREX_USE_DPCPP
-        amrex::launch(ec.numBlocks.x, ec.numThreads.x, Gpu::gpuStream(),
-        [=] AMREX_GPU_DEVICE (sycl::nd_item<1> const& item) noexcept
-        AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size)
+        // device reduce needs local(i.e., shared) memory
+        constexpr std::size_t shared_mem_bytes = sizeof(unsigned long long)*Gpu::Device::warp_size;
+        amrex::launch(ec.numBlocks.x, ec.numThreads.x, shared_mem_bytes, Gpu::gpuStream(),
+        [=] AMREX_GPU_DEVICE (Gpu::Handler const& gh) noexcept
         {
             ReduceTuple r = *(dp+1);
-            for (int icell = item.get_global_id(0), stride = item.get_global_range(0);
+            for (int icell = gh.item.get_global_id(0), stride = gh.item.get_global_range(0);
                  icell < ncells; icell += stride) {
                 int k =  icell /   (len.x*len.y);
                 int j = (icell - k*(len.x*len.y)) /   len.x;
@@ -355,7 +357,7 @@ public:
                     Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r, pr);
                 }
             }
-            Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(*dp,r, Gpu::Handler{item});
+            Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(*dp,r, gh);
         });
 #else
         amrex::launch(ec.numBlocks.x, ec.numThreads.x, 0, Gpu::gpuStream(),
@@ -388,17 +390,18 @@ public:
         auto ec = Gpu::ExecutionConfig(n);
         ec.numBlocks.x = std::min(ec.numBlocks.x, static_cast<unsigned int>(Gpu::Device::maxBlocksPerLaunch()));
 #ifdef AMREX_USE_DPCPP
-        amrex::launch(ec.numBlocks.x, ec.numThreads.x, Gpu::gpuStream(),
-        [=] AMREX_GPU_DEVICE (sycl::nd_item<1> const& item) noexcept
-        AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size)
+        // device reduce needs local(i.e., shared) memory
+        constexpr std::size_t shared_mem_bytes = sizeof(unsigned long long)*Gpu::Device::warp_size;
+        amrex::launch(ec.numBlocks.x, ec.numThreads.x, shared_mem_bytes, Gpu::gpuStream(),
+        [=] AMREX_GPU_DEVICE (Gpu::Handler const& gh) noexcept
         {
             ReduceTuple r = *(dp+1);
-            for (N i = item.get_global_id(0), stride = item.get_global_range(0);
+            for (N i = gh.item.get_global_id(0), stride = gh.item.get_global_range(0);
                  i < n; i += stride) {
                 auto pr = f(i);
                 Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r,pr);
             }
-            Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(*dp,r, Gpu::Handler{item});
+            Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(*dp,r, gh);
         });
 #else
         amrex::launch(ec.numBlocks.x, ec.numThreads.x, 0, Gpu::gpuStream(),
