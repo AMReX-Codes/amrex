@@ -3,6 +3,7 @@
 
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_GpuControl.H>
+#include <AMReX_GpuTypes.H>
 #include <AMReX_GpuAtomic.H>
 #include <AMReX_GpuUtility.H>
 #include <AMReX_Functional.H>
@@ -15,37 +16,35 @@ namespace amrex { namespace Gpu {
 
 #ifdef AMREX_USE_DPCPP
 
-// xxxxx DPCPP todo: better deviceReduce*
-
 template <typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-void deviceReduceSum (T * dest, T source) noexcept
+void deviceReduceSum (T * dest, T source, Gpu::Handler const& h) noexcept
 {
     Gpu::Atomic::Add(dest, source);
 }
 
 template <typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-void deviceReduceMin (T * dest, T source) noexcept
+void deviceReduceMin (T * dest, T source, Gpu::Handler const& h) noexcept
 {
     Gpu::Atomic::Min(dest, source);
 }
 
 template <typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-void deviceReduceMax (T * dest, T source) noexcept
+void deviceReduceMax (T * dest, T source, Gpu::Handler const& h) noexcept
 {
     Gpu::Atomic::Max(dest, source);
 }
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-void deviceReduceLogicalAnd (int * dest, int source) noexcept
+void deviceReduceLogicalAnd (int * dest, int source, Gpu::Handler const& h) noexcept
 {
     Gpu::Atomic::LogicalAnd(dest, source);
 }
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-void deviceReduceLogicalOr (int * dest, int source) noexcept
+void deviceReduceLogicalOr (int * dest, int source, Gpu::Handler const& h) noexcept
 {
     Gpu::Atomic::LogicalOr(dest, source);
 }
