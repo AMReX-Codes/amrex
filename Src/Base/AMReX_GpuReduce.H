@@ -22,14 +22,10 @@ struct warpReduce
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     T operator() (T x, sycl::intel::sub_group const& sg) const noexcept
     {
-#if 0
-        // xxxxx DPCPP todo: error: Shuffle Down not supported in SIMD32
-        // xxxxx             error: backend compiler failed build.
         for (int offset = warpSize/2; offset > 0; offset /= 2) {
             T y = sg.shuffle_down(x, offset);
             x = F()(x,y);
         }
-#endif
         return x;
     }
 };
