@@ -854,6 +854,7 @@ void VecReduce (N n, T const& init_val, L1&& f1, L2&& f2) noexcept
     auto ec = Gpu::ExecutionConfig(n);
     ec.numBlocks.x = std::min(ec.numBlocks.x, static_cast<unsigned int>(Gpu::Device::maxBlocksPerLaunch()));
 #ifdef AMREX_USE_DPCPP
+    // xxxxx DPCPP todo: local memory. This should take a hint of shared memory size
     // If we are on default queue, block all other streams
     if (Gpu::onNullStream()) Gpu::nonNullStreamSynchronize();
     int nthreads_per_block = ec.numThreads.x;
@@ -871,7 +872,7 @@ void VecReduce (N n, T const& init_val, L1&& f1, L2&& f2) noexcept
                      i < n; i += stride) {
                     f1(i,&r);
                 }
-                f2(r);
+                f2(r,Gpu::Handler{item});
             });
         });
     } catch (sycl::exception const& ex) {
