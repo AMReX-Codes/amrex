@@ -4,7 +4,6 @@
 #include <AMReX_Array.H>
 #include <AMReX_EB2_IF_Base.H>
 
-#include <cmath>
 #include <algorithm>
 
 // For all implicit functions, >0: body; =0: boundary; <0: fluid
@@ -35,9 +34,9 @@ public:
     {
         amrex::Real posx = x - m_center.x;
         amrex::Real posy = y - m_center.y;
-        amrex::Real r = std::hypot(posx, posy);
-        amrex::Real theta = std::atan2(posy, posx);
-        return m_sign*(r - m_r - m_dr * std::cos(m_npetals*theta));
+        amrex::Real r = amrex::Math::hypot(posx, posy);
+        amrex::Real theta = amrex::Math::atan2(posy, posx);
+        return m_sign*(r - m_r - m_dr * amrex::Math::cos(m_npetals*theta));
     }
 
     inline amrex::Real operator() (const amrex::RealArray& p) const noexcept

@@ -4,6 +4,7 @@
 #include <type_traits>
 #include <AMReX_Gpu.H>
 #include <AMReX_Utility.H>
+#include <AMReX_Math.H>
 
 namespace amrex {
 
