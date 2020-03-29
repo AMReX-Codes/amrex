@@ -49,7 +49,6 @@ public:
         Gpu::htod_memcpy(m_dp, m_polynomial.data(), m_size*sizeof(PolyTerm));
     }
 
-    ~PolynomialIF () {}
 
     PolynomialIF (const PolynomialIF& rhs) = default;
     PolynomialIF (PolynomialIF&& rhs) = default;

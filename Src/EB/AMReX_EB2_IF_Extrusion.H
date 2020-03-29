@@ -23,7 +23,6 @@ public:
         : m_f(a_f),
           m_direction(direction)
     {}
-    ~ExtrusionIF () {}
 
     ExtrusionIF (const ExtrusionIF& rhs) = default;
     ExtrusionIF (ExtrusionIF&& rhs) = default;
