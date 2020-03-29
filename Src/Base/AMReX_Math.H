@@ -2,6 +2,7 @@
 #define AMREX_MATH_H_
 
 #include <cmath>
+#include <type_traits>
 
 #ifdef AMREX_USE_DPCPP
 #include <CL/sycl.hpp>
@@ -15,6 +16,10 @@ namespace amrex { namespace Math {
 //using sycl::abs;
 // We have to do this because somehow sycl::abs(int) return unsigned int.
 template <typename T> T abs (T a) { return sycl::abs(a); }
+
+template <typename T, typename I>
+typename std::enable_if<std::is_integral<I>::value,double>::type
+pow (T a, I b) { return sycl::pow(a,static_cast<double>(b)); }
 
 using sycl::ceil;
 using sycl::copysign;
