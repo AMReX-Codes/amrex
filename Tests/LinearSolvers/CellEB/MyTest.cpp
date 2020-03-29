@@ -213,7 +213,7 @@ MyTest::initData ()
 
         if (is_periodic)
         {
-            const Real pi = 4.0*amrex::Math::atan(1.0);
+            const Real pi = 4.0*std::atan(1.0);
 
             for (MFIter mfi(rhs[ilev]); mfi.isValid(); ++mfi)
             {
@@ -224,7 +224,7 @@ MyTest::initData ()
                 {
                     Real rx = (i+0.5)*dx[0];
                     Real ry = (j+0.5)*dx[1];
-                    fab(i,j,k) = amrex::Math::sin(rx*2.*pi + 43.5)*amrex::Math::sin(ry*2.*pi + 89.);
+                    fab(i,j,k) = std::sin(rx*2.*pi + 43.5)*std::sin(ry*2.*pi + 89.);
                 });
             }
         }
@@ -245,7 +245,7 @@ MyTest::initData ()
                 {
                     Real rx = (i+0.5)*dx[0];
                     Real ry = (j+0.5)*dx[1];
-                    fab(i,j,k) = amrex::Math::sqrt(0.5)*(rx + ry);
+                    fab(i,j,k) = std::sqrt(0.5)*(rx + ry);
                 });
             }
             phi[ilev].setVal(0.0, 0, 1, 0); // set interior to zero

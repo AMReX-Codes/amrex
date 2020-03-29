@@ -446,7 +446,7 @@ int coarsen_from_fine (int i, int j, int k, Box const& bx, Box const& gbx,
                 +     fbn(ii+1,jj  ,kk+1,2)*fba(ii+1,jj  ,kk+1)
                 +     fbn(ii  ,jj+1,kk+1,2)*fba(ii  ,jj+1,kk+1)
                 +     fbn(ii+1,jj+1,kk+1,2)*fba(ii+1,jj+1,kk+1);
-            Real nfac = 1.0 / amrex::Math::sqrt(nx*nx+ny*ny+nz*nz+1.e-50);
+            Real nfac = 1.0 / std::sqrt(nx*nx+ny*ny+nz*nz+1.e-50);
             cbn(i,j,k,0) = nx*nfac;
             cbn(i,j,k,1) = ny*nfac;
             cbn(i,j,k,2) = nz*nfac;

@@ -65,9 +65,9 @@ public:
 #endif
         Real retval = 0.0;
         for (int iterm = 0; iterm < m_size; ++iterm) {
-            retval += pt[iterm].coef * AMREX_D_TERM(  amrex::Math::pow(x, pt[iterm].powers[0]),
-                                                    * amrex::Math::pow(y, pt[iterm].powers[1]),
-                                                    * amrex::Math::pow(z, pt[iterm].powers[2]));
+            retval += pt[iterm].coef * AMREX_D_TERM(  std::pow(x, pt[iterm].powers[0]),
+                                                    * std::pow(y, pt[iterm].powers[1]),
+                                                    * std::pow(z, pt[iterm].powers[2]));
         }
         return m_sign*retval;
     }
