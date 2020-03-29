@@ -289,6 +289,7 @@ namespace Gpu {
 
 #define AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG(where_to_run,box,tbox,block) \
     if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
+    { \
         AMREX_LAUNCH_DEVICE_LAMBDA(box,tbox,block); \
     } else { \
         auto tbox = box; \
