@@ -29,7 +29,7 @@ public:
 
     AMREX_GPU_HOST_DEVICE inline
     Real operator() (AMREX_D_DECL(Real x, Real y, Real z)) const noexcept {
-        Real d = std::hypot(x-m_center.x, y-m_center.y);
+        Real d = amrex::Math::hypot(x-m_center.x, y-m_center.y);
 #if (AMREX_SPACEDIM == 2)
         return m_sign*((m_large_radius-d)*(m_large_radius-d)
                        - m_small_radius*m_small_radius);

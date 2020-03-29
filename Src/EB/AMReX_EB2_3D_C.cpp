@@ -36,8 +36,8 @@ void set_eb_data (const int i, const int j, const int k,
 
     Real dapx = axm - axp;
     Real dapy = aym - ayp;
-            Real dapz = azm - azp;
-    Real apnorm = std::sqrt(dapx*dapx+dapy*dapy+dapz*dapz);
+    Real dapz = azm - azp;
+    Real apnorm = amrex::Math::sqrt(dapx*dapx+dapy*dapy+dapz*dapz);
             AMREX_ALWAYS_ASSERT_WITH_MESSAGE(apnorm != 0.0,
                                      "amrex::EB2:build_cells: apnorm==0");
     Real apnorminv = 1.0/apnorm;
@@ -131,7 +131,7 @@ void cut_face_2d (Real& areafrac, Real& centx, Real& centy,
 {
     constexpr Real small = 1.e-14;
     constexpr Real tiny  = 1.e-15;
-    Real apnorm = std::hypot(axm-axp,aym-ayp);
+    Real apnorm = amrex::Math::hypot(axm-axp,aym-ayp);
     Real nx = (axm-axp) * (1./apnorm); // pointing to the wall
     Real ny = (aym-ayp) * (1./apnorm);
 
