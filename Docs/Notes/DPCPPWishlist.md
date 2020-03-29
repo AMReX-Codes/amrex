@@ -2,17 +2,19 @@
 * Recursive function call on device.  This is very important for ECP
   WarpX code.
 
-* Classes that are not standard layout.  The current specification of
+* ~~Classes that are not standard layout.  The current specification of
   oneAPI does not support the capture of objects that are not standard
-  layout.  This includes the following example,
+  layout.  This includes the following example,~~
 
   ```
   class A {int a;}; class B {long B;}; class C : A, B {};
   ```
 
-  AMReX has a data structure called GpuTuple that is built with a
+  ~~AMReX has a data structure called GpuTuple that is built with a
   pattern like the example shown above.  It works in CUDA, but not in
-  DPC++.  We wish this requirement can be relaxed.
+  DPC++.  We wish this requirement can be relaxed.~~
+
+  This restriction has been relaxed since beta5.
 
 * Host callback.  Could DPC++ support appending a host callback
   function to an ordered queue?
