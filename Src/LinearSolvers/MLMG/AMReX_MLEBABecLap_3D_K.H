@@ -125,7 +125,7 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
                 Real dapx = apxm-apxp;
                 Real dapy = apym-apyp;
                 Real dapz = apzm-apzp;
-                Real anorm = std::sqrt(dapx*dapx+dapy*dapy+dapz*dapz);
+                Real anorm = amrex::Math::sqrt(dapx*dapx+dapy*dapy+dapz*dapz);
                 Real anorminv = 1.0/anorm;
                 Real anrmx = dapx * anorminv;
                 Real anrmy = dapy * anorminv;
@@ -213,7 +213,7 @@ void mlebabeclap_ebflux (int i, int j, int k, int n,
         Real dapx = apxm-apxp;
         Real dapy = apym-apyp;
         Real dapz = apzm-apzp;
-        Real anorm = std::sqrt(dapx*dapx+dapy*dapy+dapz*dapz);
+        Real anorm = amrex::Math::sqrt(dapx*dapx+dapy*dapy+dapz*dapz);
         Real anorminv = 1.0/anorm;
         Real anrmx = dapx * anorminv;
         Real anrmy = dapy * anorminv;
@@ -477,7 +477,7 @@ void mlebabeclap_gsrb (Box const& box,
                         Real dapx = apxm-apxp;
                         Real dapy = apym-apyp;
                         Real dapz = apzm-apzp;
-                        Real anorm = std::sqrt(dapx*dapx+dapy*dapy+dapz*dapz);
+                        Real anorm = amrex::Math::sqrt(dapx*dapx+dapy*dapy+dapz*dapz);
                         Real anorminv = 1.0/anorm;
                         Real anrmx = dapx * anorminv;
                         Real anrmy = dapy * anorminv;
@@ -915,7 +915,7 @@ void mlebabeclap_normalize (Box const& box, Array4<Real> const& phi,
                 Real dapx = apxm-apxp;
                 Real dapy = apym-apyp;
                 Real dapz = apzm-apzp;
-                Real anorm = std::sqrt(dapx*dapx+dapy*dapy+dapz*dapz);
+                Real anorm = amrex::Math::sqrt(dapx*dapx+dapy*dapy+dapz*dapz);
                 Real anorminv = 1.0/anorm;
                 Real anrmx = dapx * anorminv;
                 Real anrmy = dapy * anorminv;
