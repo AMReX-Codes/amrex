@@ -68,8 +68,7 @@ EBCellConservativeLinear::interp (const FArrayBox& crse,
             const auto& cflag = crse_flag.const_array();
             auto const& fa = fine.array();
             auto const& ca = crse.const_array();
-            bool run_on_gpu = (Gpu::inLaunchRegion() && runon == RunOn::Gpu);
-            AMREX_HOST_DEVICE_FOR_4D_FLAG(run_on_gpu, target_fine_region, ncomp, i, j, k, n,
+            AMREX_HOST_DEVICE_FOR_4D_FLAG(runon, target_fine_region, ncomp, i, j, k, n,
             {
                 Dim3 cxyz = amrex::coarsen(Dim3{i,j,k}, ratio);
                 if (cflag(cxyz.x,cxyz.y,cxyz.z).numNeighbors() < AMREX_D_TERM(3,*3,*3)) {
