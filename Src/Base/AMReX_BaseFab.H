@@ -1838,8 +1838,7 @@ BaseFab<T>::copy (const BaseFab<T>& src, const Box& srcbox, int srccomp,
     const Dim3 offset{slo.x-dlo.x,slo.y-dlo.y,slo.z-dlo.z};
 #endif
 
-    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on == RunOn::Device and Gpu::inLaunchRegion(),
-                                           destbox, numcomp, i, j, k, n,
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on, destbox, numcomp, i, j, k, n,
     {
         d(i,j,k,n+destcomp) = s(i+offset.x,j+offset.y,k+offset.z,n+srccomp);
     });
@@ -2112,8 +2111,7 @@ BaseFab<T>::copyToMem (const Box& srcbox,
     {
         Array4<T> d(static_cast<T*>(dst),amrex::begin(srcbox),amrex::end(srcbox),numcomp);
         Array4<T const> const& s = this->const_array();
-        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on == RunOn::Device and Gpu::inLaunchRegion(),
-                                               srcbox, numcomp, i, j, k, n,
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on, srcbox, numcomp, i, j, k, n,
         {
             d(i,j,k,n) = s(i,j,k,n+srccomp);
         });
@@ -2141,8 +2139,7 @@ BaseFab<T>::copyFromMem (const Box&  dstbox,
         Array4<T const> s(static_cast<T const*>(src), amrex::begin(dstbox),
                           amrex::end(dstbox), numcomp);
         Array4<T> const& d = this->array();
-        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on == RunOn::Device and Gpu::inLaunchRegion(),
-                                               dstbox, numcomp, i, j, k, n,
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on, dstbox, numcomp, i, j, k, n,
         {
             d(i,j,k,n+dstcomp) = s(i,j,k,n);
         });
@@ -2170,8 +2167,7 @@ BaseFab<T>::addFromMem (const Box&  dstbox,
         Array4<T const> s(static_cast<T const*>(src), amrex::begin(dstbox),
                           amrex::end(dstbox), numcomp);
         Array4<T> const& d = this->array();
-        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on == RunOn::Device and Gpu::inLaunchRegion(),
-                                               dstbox, numcomp, i, j, k, n,
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on, dstbox, numcomp, i, j, k, n,
         {
             d(i,j,k,n+dstcomp) += s(i,j,k,n);
         });
@@ -2213,8 +2209,7 @@ void
 BaseFab<T>::abs (const Box& subbox, int comp, int numcomp) noexcept
 {
     Array4<T> const& a = this->array();
-    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG (run_on == RunOn::Device and Gpu::inLaunchRegion(),
-                                            subbox, numcomp, i, j, k, n,
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG (run_on, subbox, numcomp, i, j, k, n,
     {
         a(i,j,k,n+comp) = amrex::Math::abs(a(i,j,k,n+comp));
     });
@@ -2824,8 +2819,7 @@ BaseFab<T>::saxpy (T a, const BaseFab<T>& x, const Box& srcbox, const Box& destb
     const auto dlo = amrex::lbound(destbox);
     const auto slo = amrex::lbound(srcbox);
     const Dim3 offset{slo.x-dlo.x,slo.y-dlo.y,slo.z-dlo.z};
-    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on == RunOn::Device and Gpu::inLaunchRegion(),
-                                           destbox, numcomp, i, j, k, n,
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on, destbox, numcomp, i, j, k, n,
     {
         d(i,j,k,n+destcomp) += a * s(i+offset.x,j+offset.y,k+offset.z,n+srccomp);
     });
@@ -2863,8 +2857,7 @@ BaseFab<T>::xpay (T a, const BaseFab<T>& x,
     const auto dlo = amrex::lbound(destbox);
     const auto slo = amrex::lbound(srcbox);
     const Dim3 offset{slo.x-dlo.x,slo.y-dlo.y,slo.z-dlo.z};
-    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on == RunOn::Device and Gpu::inLaunchRegion(),
-                                           destbox, numcomp, i, j, k, n,
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on, destbox, numcomp, i, j, k, n,
     {
         d(i,j,k,n+destcomp) = s(i+offset.x,j+offset.y,k+offset.z,n+srccomp) + a*d(i,j,k,n+destcomp);
     });
@@ -2888,8 +2881,7 @@ BaseFab<T>::addproduct (const Box& destbox, int destcomp, int numcomp,
     Array4<T> const& d = this->array();
     Array4<T const> const& s1 = src1.const_array();
     Array4<T const> const& s2 = src2.const_array();
-    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on == RunOn::Device and Gpu::inLaunchRegion(),
-                                           destbox, numcomp, i, j, k, n,
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on, destbox, numcomp, i, j, k, n,
     {
         d(i,j,k,n+destcomp) += s1(i,j,k,n+comp1) * s2(i,j,k,n+comp2);
     });
@@ -2938,8 +2930,7 @@ BaseFab<T>::linComb (const BaseFab<T>& f1, const Box& b1, int comp1,
     const Dim3 off2{slo2.x-dlo.x,slo2.y-dlo.y,slo2.z-dlo.z};    
 #endif
 
-    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on == RunOn::Device and Gpu::inLaunchRegion(),
-                                           b, numcomp, i, j, k, n,
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on, b, numcomp, i, j, k, n,
     {
         d(i,j,k,n+comp) = alpha*s1(i+off1.x,j+off1.y,k+off1.z,n+comp1)
                          + beta*s2(i+off2.x,j+off2.y,k+off2.z,n+comp2);
@@ -3196,8 +3187,7 @@ BaseFab<T>::plus (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
 #else
     const Dim3 offset{slo.x-dlo.x,slo.y-dlo.y,slo.z-dlo.z};
 #endif
-    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on == RunOn::Device and Gpu::inLaunchRegion(),
-                                           destbox, numcomp, i, j, k, n,
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on, destbox, numcomp, i, j, k, n,
     {
         d(i,j,k,n+destcomp) += s(i+offset.x,j+offset.y,k+offset.z,n+srccomp);
     });
@@ -3223,8 +3213,7 @@ BaseFab<T>::atomicAdd (const BaseFab<T>& src, const Box& srcbox, const Box& dest
     const auto dlo = amrex::lbound(destbox);
     const auto slo = amrex::lbound(srcbox);
     const Dim3 offset{slo.x-dlo.x,slo.y-dlo.y,slo.z-dlo.z};
-    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on == RunOn::Device and Gpu::inLaunchRegion(),
-                                           destbox, numcomp, i, j, k, n,
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on, destbox, numcomp, i, j, k, n,
     {
         T* p = d.ptr(i,j,k,n+destcomp);
         HostDevice::Atomic::Add(p, s(i+offset.x,j+offset.y,k+offset.z,n+srccomp));
@@ -3267,8 +3256,7 @@ BaseFab<T>::minus (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
     const auto dlo = amrex::lbound(destbox);
     const auto slo = amrex::lbound(srcbox);
     const Dim3 offset{slo.x-dlo.x,slo.y-dlo.y,slo.z-dlo.z};
-    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on == RunOn::Device and Gpu::inLaunchRegion(),
-                                           destbox, numcomp, i, j, k, n,
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on, destbox, numcomp, i, j, k, n,
     {
         d(i,j,k,n+destcomp) -= s(i+offset.x,j+offset.y,k+offset.z,n+srccomp);
     });
@@ -3326,8 +3314,7 @@ BaseFab<T>::mult (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
     const auto dlo = amrex::lbound(destbox);
     const auto slo = amrex::lbound(srcbox);
     const Dim3 offset{slo.x-dlo.x,slo.y-dlo.y,slo.z-dlo.z};
-    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on == RunOn::Device and Gpu::inLaunchRegion(),
-                                           destbox, numcomp, i, j, k, n,
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on, destbox, numcomp, i, j, k, n,
     {
         d(i,j,k,n+destcomp) *= s(i+offset.x,j+offset.y,k+offset.z,n+srccomp);
     });
@@ -3385,8 +3372,7 @@ BaseFab<T>::divide (const BaseFab<T>& src, const Box& srcbox, const Box& destbox
     const auto dlo = amrex::lbound(destbox);
     const auto slo = amrex::lbound(srcbox);
     const Dim3 offset{slo.x-dlo.x,slo.y-dlo.y,slo.z-dlo.z};
-    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on == RunOn::Device and Gpu::inLaunchRegion(),
-                                           destbox, numcomp, i, j, k, n,
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on, destbox, numcomp, i, j, k, n,
     {
         d(i,j,k,n+destcomp) /= s(i+offset.x,j+offset.y,k+offset.z,n+srccomp);
     });
@@ -3444,8 +3430,7 @@ BaseFab<T>::protected_divide (const BaseFab<T>& src, const Box& srcbox, const Bo
     const auto dlo = amrex::lbound(destbox);
     const auto slo = amrex::lbound(srcbox);
     const Dim3 offset{slo.x-dlo.x,slo.y-dlo.y,slo.z-dlo.z};
-    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on == RunOn::Device and Gpu::inLaunchRegion(),
-                                           destbox, numcomp, i, j, k, n,
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on, destbox, numcomp, i, j, k, n,
     {
         if (s(i+offset.x,j+offset.y,k+offset.z,n+srccomp) != 0) {
             d(i,j,k,n+destcomp) /= s(i+offset.x,j+offset.y,k+offset.z,n+srccomp);
@@ -3521,8 +3506,7 @@ BaseFab<T>::setVal (T const& x, Box const& bx, DestComp dcomp, NumComps ncomp) n
 {
     AMREX_ASSERT(dcomp.i >= 0 && dcomp.i + ncomp.n <= this->nvar);
     Array4<T> const& a = this->array();
-    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG (run_on == RunOn::Device and Gpu::inLaunchRegion(),
-                                            bx, ncomp.n, i, j, k, n,
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG (run_on, bx, ncomp.n, i, j, k, n,
     {
         a(i,j,k,n+dcomp.i) = x;
     });
@@ -3544,8 +3528,7 @@ BaseFab<T>::setValIf (T const& val, Box const& bx, const BaseFab<int>& mask, Des
     AMREX_ASSERT(dcomp.i >= 0 && dcomp.i + ncomp.n <= this->nvar);
     Array4<T> const& a = this->array();
     Array4<int const> const& m = mask.const_array();
-    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG (run_on == RunOn::Device and Gpu::inLaunchRegion(),
-                                            bx, ncomp.n, i, j, k, n,
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG (run_on, bx, ncomp.n, i, j, k, n,
     {
         if (m(i,j,k)) { a(i,j,k,n+dcomp.i) = val; }
     });
@@ -3567,8 +3550,7 @@ BaseFab<T>::setValIfNot (T const& val, Box const& bx, const BaseFab<int>& mask, 
     AMREX_ASSERT(dcomp.i >= 0 && dcomp.i + ncomp.n <= this->nvar);
     Array4<T> const& a = this->array();
     Array4<int const> const& m = mask.const_array();
-    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG (run_on == RunOn::Device and Gpu::inLaunchRegion(),
-                                            bx, ncomp.n, i, j, k, n,
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG (run_on, bx, ncomp.n, i, j, k, n,
     {
         if (!m(i,j,k)) { a(i,j,k,n+dcomp.i) = val; }
     });
@@ -3623,8 +3605,7 @@ BaseFab<T>::copy (const BaseFab<T>& src, Box bx,
 
     Array4<T> const& d = this->array();
     Array4<T const> const& s = src.const_array();
-    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on == RunOn::Device and Gpu::inLaunchRegion(),
-                                           bx, ncomp.n, i, j, k, n,
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on, bx, ncomp.n, i, j, k, n,
     {
         d(i,j,k,n+dcomp.i) = s(i,j,k,n+scomp.i);
     });
@@ -3656,8 +3637,7 @@ BaseFab<T>::plus (T const& val, Box const& bx, DestComp dcomp, NumComps ncomp) n
     BL_ASSERT(dcomp.i >= 0 && dcomp.i + ncomp.n <= this->nvar);
 
     Array4<T> const& a = this->array();
-    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on == RunOn::Device and Gpu::inLaunchRegion(),
-                                           bx, ncomp.n, i, j, k, n,
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on, bx, ncomp.n, i, j, k, n,
     {
         a(i,j,k,n+dcomp.i) += val;
     });
@@ -3695,8 +3675,7 @@ BaseFab<T>::plus (const BaseFab<T>& src, Box bx,
 
     Array4<T> const& d = this->array();
     Array4<T const> const& s = src.const_array();
-    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on == RunOn::Device and Gpu::inLaunchRegion(),
-                                           bx, ncomp.n, i, j, k, n,
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on, bx, ncomp.n, i, j, k, n,
     {
         d(i,j,k,n+dcomp.i) += s(i,j,k,n+scomp.i);
     });
@@ -3728,8 +3707,7 @@ BaseFab<T>::minus (T const& val, Box const& bx, DestComp dcomp, NumComps ncomp) 
     BL_ASSERT(dcomp.i >= 0 && dcomp.i + ncomp.n <= this->nvar);
 
     Array4<T> const& a = this->array();
-    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on == RunOn::Device and Gpu::inLaunchRegion(),
-                                           bx, ncomp.n, i, j, k, n,
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on, bx, ncomp.n, i, j, k, n,
     {
         a(i,j,k,n+dcomp.i) -= val;
     });
@@ -3767,8 +3745,7 @@ BaseFab<T>::minus (const BaseFab<T>& src, Box bx,
 
     Array4<T> const& d = this->array();
     Array4<T const> const& s = src.const_array();
-    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on == RunOn::Device and Gpu::inLaunchRegion(),
-                                           bx, ncomp.n, i, j, k, n,
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on, bx, ncomp.n, i, j, k, n,
     {
         d(i,j,k,n+dcomp.i) -= s(i,j,k,n+scomp.i);
     });
@@ -3800,8 +3777,7 @@ BaseFab<T>::mult (T const& val, Box const& bx, DestComp dcomp, NumComps ncomp) n
     BL_ASSERT(dcomp.i >= 0 && dcomp.i + ncomp.n <= this->nvar);
 
     Array4<T> const& a = this->array();
-    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on == RunOn::Device and Gpu::inLaunchRegion(),
-                                           bx, ncomp.n, i, j, k, n,
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on, bx, ncomp.n, i, j, k, n,
     {
         a(i,j,k,n+dcomp.i) *= val;
     });
@@ -3839,8 +3815,7 @@ BaseFab<T>::mult (const BaseFab<T>& src, Box bx,
 
     Array4<T> const& d = this->array();
     Array4<T const> const& s = src.const_array();
-    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on == RunOn::Device and Gpu::inLaunchRegion(),
-                                           bx, ncomp.n, i, j, k, n,
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on, bx, ncomp.n, i, j, k, n,
     {
         d(i,j,k,n+dcomp.i) *= s(i,j,k,n+scomp.i);
     });
@@ -3872,8 +3847,7 @@ BaseFab<T>::divide (T const& val, Box const& bx, DestComp dcomp, NumComps ncomp)
     BL_ASSERT(dcomp.i >= 0 && dcomp.i + ncomp.n <= this->nvar);
 
     Array4<T> const& a = this->array();
-    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on == RunOn::Device and Gpu::inLaunchRegion(),
-                                           bx, ncomp.n, i, j, k, n,
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on, bx, ncomp.n, i, j, k, n,
     {
         a(i,j,k,n+dcomp.i) /= val;
     });
@@ -3911,8 +3885,7 @@ BaseFab<T>::divide (const BaseFab<T>& src, Box bx,
 
     Array4<T> const& d = this->array();
     Array4<T const> const& s = src.const_array();
-    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on == RunOn::Device and Gpu::inLaunchRegion(),
-                                           bx, ncomp.n, i, j, k, n,
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on, bx, ncomp.n, i, j, k, n,
     {
         d(i,j,k,n+dcomp.i) /= s(i,j,k,n+scomp.i);
     });
@@ -3936,8 +3909,7 @@ BaseFab<T>::negate (const Box& bx, DestComp dcomp, NumComps ncomp) noexcept
     BL_ASSERT(dcomp.i >= 0 && dcomp.i + ncomp.n <= this->nvar);
 
     Array4<T> const& a = this->array();
-    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on == RunOn::Device and Gpu::inLaunchRegion(),
-                                           bx, ncomp.n, i, j, k, n,
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on, bx, ncomp.n, i, j, k, n,
     {
         a(i,j,k,n+dcomp.i) = -a(i,j,k,n+dcomp.i);
     });
@@ -3961,8 +3933,7 @@ BaseFab<T>::invert (T const& r, const Box& bx, DestComp dcomp, NumComps ncomp) n
     BL_ASSERT(dcomp.i >= 0 && dcomp.i + ncomp.n <= this->nvar);
 
     Array4<T> const& a = this->array();
-    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on == RunOn::Device and Gpu::inLaunchRegion(),
-                                           bx, ncomp.n, i, j, k, n,
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on, bx, ncomp.n, i, j, k, n,
     {
         a(i,j,k,n+dcomp.i) = r / a(i,j,k,n+dcomp.i);
     });
