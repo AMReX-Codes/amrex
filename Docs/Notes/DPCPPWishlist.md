@@ -2,6 +2,15 @@
 * Recursive function call on device.  This is very important for ECP
   WarpX code.
 
+* Subgrourp size.  Querying `sycl::info::device::sub_group_size` gives
+  several numbers.  For example, we get 8, 16 and 32 for Gen9.  We
+  would like to specify the sub group size and this feature is
+  supported.  All three sizes seem to work except that subgroup
+  primitives such as shuffle_down do not work for sizes.  By try and
+  error, we have found that shuffle_down works for 16.  Could oneAPI
+  provide a query function for returning the "primitive" subgroup
+  size?
+
 * ~~Classes that are not standard layout.  The current specification of
   oneAPI does not support the capture of objects that are not standard
   layout.  This includes the following example,~~
