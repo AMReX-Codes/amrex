@@ -118,8 +118,6 @@ NodeBilinear::interp (const FArrayBox&  crse,
 {
     BL_PROFILE("NodeBilinear::interp()");
 
-    bool run_on_gpu = (runon == RunOn::Gpu && Gpu::inLaunchRegion());
-
     int num_slope  = ncomp*(AMREX_D_TERM(2,*2,*2)-1);
     const Box cslope_bx = amrex::enclosedCells(CoarseBox(fine_region, ratio));
     FArrayBox slopefab(cslope_bx, num_slope);
@@ -130,12 +128,12 @@ NodeBilinear::interp (const FArrayBox&  crse,
     Array4<Real> const& finearr = fine.array();
     Array4<Real> const& slopearr = slopefab.array();
 
-    AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG (run_on_gpu, cslope_bx, tbx,
+    AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG (runon, cslope_bx, tbx,
     {
         amrex::nodebilin_slopes(tbx, slopearr, crsearr, crse_comp, ncomp, ratio);
     });
 
-    AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG (run_on_gpu, fine_region, tbx,
+    AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG (runon, fine_region, tbx,
     {
         amrex::nodebilin_interp(tbx, finearr, fine_comp, ncomp, slopearr, crsearr, crse_comp, ratio);
     });
@@ -320,12 +318,12 @@ CellConservativeLinear::interp (const FArrayBox& crse,
     Real const* voff = (run_on_gpu) ? async_voff.data() : vec_voff.data();
 
     if (do_linear_limiting) {
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG ( run_on_gpu, cslope_bx, tbx,
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG ( runon, cslope_bx, tbx,
         {
             amrex::cellconslin_slopes_linlim(tbx, ccarr, crsearr, crse_comp, ncomp, bcrp);
         });
 
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG ( run_on_gpu, fine_region, tbx,
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG ( runon, fine_region, tbx,
         {
             amrex::cellconslin_interp(tbx, finearr, fine_comp, ncomp, ccarr, crsearr, crse_comp,
                                       voff, ratio);
@@ -337,22 +335,22 @@ CellConservativeLinear::interp (const FArrayBox& crse,
         if (run_on_gpu) faeli = fafab.elixir();
         Array4<Real> const& faarr = fafab.array();
 
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG (run_on_gpu, cslope_bx, tbx,
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG (runon, cslope_bx, tbx,
         {
             amrex::cellconslin_slopes_mclim(tbx, ccarr, crsearr, crse_comp, ncomp, bcrp);
         });
 
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG (run_on_gpu, fslope_bx, tbx,
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG (runon, fslope_bx, tbx,
         {
             amrex::cellconslin_fine_alpha(tbx, faarr, ccarr, ncomp, voff, ratio);
         });
 
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG (run_on_gpu, cslope_bx, tbx,
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG (runon, cslope_bx, tbx,
         {
             amrex::cellconslin_slopes_mmlim(tbx, ccarr, faarr, ncomp, ratio);
         });
 
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG (run_on_gpu, fine_region, tbx,
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG (runon, fine_region, tbx,
         {
             amrex::cellconslin_interp(tbx, finearr, fine_comp, ncomp, ccarr, crsearr, crse_comp,
                                       voff, ratio);
@@ -526,8 +524,7 @@ PCInterp::interp (const FArrayBox& crse,
     Array4<Real const> const& crsearr = crse.const_array();
     Array4<Real> const& finearr = fine.array();;
 
-    bool run_on_gpu = (runon == RunOn::Gpu && Gpu::inLaunchRegion());
-    AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG ( run_on_gpu, fine_region, tbx,
+    AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG ( runon, fine_region, tbx,
     {
         amrex::pcinterp_interp(tbx,finearr,fine_comp,ncomp,crsearr,crse_comp,ratio);
     });
@@ -606,12 +603,12 @@ CellConservativeProtected::interp (const FArrayBox& crse,
     AsyncArray<Real> async_voff(vec_voff.data(), (run_on_gpu) ? vec_voff.size() : 0);
     Real const* voff = (run_on_gpu) ? async_voff.data() : vec_voff.data();
 
-    AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG (run_on_gpu, cslope_bx, tbx,
+    AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG (runon, cslope_bx, tbx,
     {
         amrex::cellconslin_slopes_linlim(tbx, ccarr, crsearr, crse_comp, ncomp, bcrp);
     });
 
-    AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG (run_on_gpu, fine_region, tbx,
+    AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG (runon, fine_region, tbx,
     {
         amrex::cellconslin_interp(tbx, finearr, fine_comp, ncomp, ccarr, crsearr, crse_comp,
                                   voff, ratio);
