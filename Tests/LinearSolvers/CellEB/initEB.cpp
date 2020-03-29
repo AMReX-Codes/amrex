@@ -30,7 +30,7 @@ MyTest::initializeEB ()
         auto gshop = EB2::makeShop(EB2::translate(
                                        EB2::rotate(
                                            EB2::translate(box, {AMREX_D_DECL(-0.5,-0.5,-0.5)}),
-                                           amrex::Math::atan(1.0)*0.3, 2),
+                                           std::atan(1.0)*0.3, 2),
                                        {AMREX_D_DECL(0.5,0.5,0.5)}));
         EB2::Build(gshop, geom.back(), max_level, max_level+max_coarsening_level);        
     }

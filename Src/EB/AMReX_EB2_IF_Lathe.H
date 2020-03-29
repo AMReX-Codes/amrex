@@ -26,7 +26,7 @@ public:
 
     inline Real operator() (const RealArray& p) const noexcept
     {
-        Real r = amrex::Math::hypot(p[0],p[1]);
+        Real r = std::hypot(p[0],p[1]);
 #if (AMREX_SPACEDIM == 2)
         return m_f({r,0.0});
 #else
@@ -38,7 +38,7 @@ public:
     AMREX_GPU_HOST_DEVICE inline
     Real operator() (AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
     {
-        Real r = amrex::Math::hypot(x,y);
+        Real r = std::hypot(x,y);
 #if (AMREX_SPACEDIM == 2)
         return m_f(r,0.0);
 #else

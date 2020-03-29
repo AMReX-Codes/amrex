@@ -18,7 +18,7 @@ void set_eb_data (const int i, const int j, Array4<EBCellFlag> const& cell,
     const Real axp = apx(i+1,j  ,0);
     const Real aym = apy(i  ,j  ,0);
     const Real ayp = apy(i  ,j+1,0);
-    const Real apnorm = amrex::Math::hypot(axm-axp,aym-ayp);
+    const Real apnorm = std::hypot(axm-axp,aym-ayp);
     const Real nx = (axm-axp) * (1.0/apnorm);
     const Real ny = (aym-ayp) * (1.0/apnorm);
 

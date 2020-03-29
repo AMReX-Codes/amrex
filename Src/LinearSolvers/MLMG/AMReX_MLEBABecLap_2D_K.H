@@ -73,7 +73,7 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
             if (is_dirichlet) {
                 Real dapx = apxm-apxp;
                 Real dapy = apym-apyp;
-                Real anorm = amrex::Math::hypot(dapx,dapy);
+                Real anorm = std::hypot(dapx,dapy);
                 Real anorminv = 1.0/anorm;
                 Real anrmx = dapx * anorminv;
                 Real anrmy = dapy * anorminv;
@@ -149,7 +149,7 @@ void mlebabeclap_ebflux (int i, int j, int k, int n,
 
         Real dapx = apxm-apxp;
         Real dapy = apym-apyp;
-        Real anorm = amrex::Math::hypot(dapx,dapy);
+        Real anorm = std::hypot(dapx,dapy);
         Real anorminv = 1.0/anorm;
         Real anrmx = dapx * anorminv;
         Real anrmy = dapy * anorminv;
@@ -320,7 +320,7 @@ void mlebabeclap_gsrb (Box const& box,
                     if (is_dirichlet) {
                         Real dapx = apxm-apxp;
                         Real dapy = apym-apyp;
-                        Real anorm = amrex::Math::hypot(dapx,dapy);
+                        Real anorm = std::hypot(dapx,dapy);
                         Real anorminv = 1.0/anorm;
                         Real anrmx = dapx * anorminv;
                         Real anrmy = dapy * anorminv;
@@ -600,7 +600,7 @@ void mlebabeclap_normalize (Box const& box, Array4<Real> const& phi,
             if (is_dirichlet) {
                 Real dapx = apxm-apxp;
                 Real dapy = apym-apyp;
-                Real anorm = amrex::Math::hypot(dapx,dapy);
+                Real anorm = std::hypot(dapx,dapy);
                 Real anorminv = 1.0/anorm;
                 Real anrmx = dapx * anorminv;
                 Real anrmy = dapy * anorminv;

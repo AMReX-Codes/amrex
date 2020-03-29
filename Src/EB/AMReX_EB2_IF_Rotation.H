@@ -17,14 +17,14 @@ public:
 
     RotationIF (F&& a_f, Real angle, int dir)
         : m_f(std::move(a_f)),
-          m_cos_angle(amrex::Math::cos(angle)),
-          m_sin_angle(amrex::Math::sin(angle)),
+          m_cos_angle(std::cos(angle)),
+          m_sin_angle(std::sin(angle)),
           m_dir(dir)
         {}
     RotationIF (F const& a_f, Real angle, int dir)
         : m_f(a_f),
-          m_cos_angle(amrex::Math::cos(angle)),
-          m_sin_angle(amrex::Math::sin(angle)),
+          m_cos_angle(std::cos(angle)),
+          m_sin_angle(std::sin(angle)),
           m_dir(dir)
         {}
 

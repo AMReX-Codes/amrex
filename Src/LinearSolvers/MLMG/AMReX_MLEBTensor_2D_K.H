@@ -183,7 +183,7 @@ void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
                 {
                     Real dapx = apx(i+1,j,0)-apx(i,j,0);
                     Real dapy = apy(i,j+1,0)-apy(i,j,0);
-                    Real anorminv = 1.0/amrex::Math::sqrt(dapx*dapx+dapy*dapy);
+                    Real anorminv = 1.0/std::sqrt(dapx*dapx+dapy*dapy);
                     Real anrmx = -dapx * anorminv;
                     Real anrmy = -dapy * anorminv;
 
