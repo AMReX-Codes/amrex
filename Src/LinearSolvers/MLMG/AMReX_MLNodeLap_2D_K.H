@@ -1542,7 +1542,7 @@ void mlndlap_set_integral_eb (int i, int j, int, Array4<Real> const& intg,
         Real aym = ay(i,j,0);
         Real ayp = ay(i,j+1,0);
 
-        Real apnorm = std::sqrt((axm-axp)*(axm-axp) + (aym-ayp)*(aym-ayp));
+        Real apnorm = amrex::Math::sqrt((axm-axp)*(axm-axp) + (aym-ayp)*(aym-ayp));
         if (apnorm == 0._rt) {
             amrex::Abort("amrex_mlndlap_set_integral: we are in trouble");
         }
