@@ -106,7 +106,7 @@ CFLAGS   += $(GENERIC_COMP_FLAGS)
 # 
 # endif
 
-override XTRAOBJS += $(DPCPP_DIR)/lib/libsycl-glibc.o $(DPCPP_DIR)/lib/libsycl-cmath.o
+override XTRAOBJS += $(DPCPP_DIR)/lib/libsycl-glibc.o $(DPCPP_DIR)/lib/libsycl-cmath.o $(DPCPP_DIR)/lib/libsycl-cmath-fp64.o
 
 ifeq ($(FSANITIZER),TRUE)
   override XTRALIBS += -lubsan
