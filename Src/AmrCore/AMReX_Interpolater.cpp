@@ -118,6 +118,8 @@ NodeBilinear::interp (const FArrayBox&  crse,
 {
     BL_PROFILE("NodeBilinear::interp()");
 
+    bool run_on_gpu = (runon == RunOn::Gpu && Gpu::inLaunchRegion());
+
     int num_slope  = ncomp*(AMREX_D_TERM(2,*2,*2)-1);
     const Box cslope_bx = amrex::enclosedCells(CoarseBox(fine_region, ratio));
     FArrayBox slopefab(cslope_bx, num_slope);
