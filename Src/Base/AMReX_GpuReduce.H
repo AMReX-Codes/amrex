@@ -37,8 +37,8 @@ T blockReduce (T x, WARPREDUCE && warp_reduce, T x0, Gpu::Handler const& h)
     T* shared = (T*)h.local;
     int tid = h.item.get_local_id(0);
     sycl::intel::sub_group const& sg = h.item.get_sub_group();
-    int lane = sg.get_local_id();
-    int wid = sg.get_group_id();
+    int lane = sg.get_local_id()[0];
+    int wid = sg.get_group_id()[0];
     int numwarps = sg.get_group_range();
     x = warp_reduce(x, sg);
     // __syncthreads() prior to writing to shared memory is necessary
