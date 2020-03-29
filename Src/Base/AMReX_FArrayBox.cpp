@@ -190,17 +190,24 @@ FArrayBox::initVal () noexcept
     Real * p = dataPtr();
     long s = size();
     if (p and s > 0) {
+        RunOn runon;
 #if defined(AMREX_USE_GPU)
-        bool run_on_device = Gpu::inLaunchRegion() and
-            (arena() == The_Arena() ||
-             arena() == The_Device_Arena() ||
-             arena() == The_Managed_Arena());
+        if ( Gpu::inLaunchRegion() && 
+             (arena() == The_Arena() ||
+              arena() == The_Device_Arena() ||
+              arena() == The_Managed_Arena()) )
+        {
+          runon = RunOn::Gpu;
+        } else {
+          runon = RunOn::Cpu;
+        } 
 #else
-        bool run_on_device = false;
+        runon = RunOn::Cpu;
 #endif
+
         if (init_snan) {
 #if defined(AMREX_USE_GPU)
-            if (run_on_device)
+            if (runon == RunOn::Gpu)
             {
 #if (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
                 amrex::ParallelFor(s, [=] AMREX_GPU_DEVICE (long i) noexcept
@@ -217,11 +224,11 @@ FArrayBox::initVal () noexcept
             }
         } else if (do_initval) {
             const Real x = initval;
-            AMREX_HOST_DEVICE_PARALLEL_FOR_1D_FLAG (run_on_device, s, i,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_1D_FLAG (runon, s, i,
             {
                 p[i] = x;
             });
-            if (run_on_device) Gpu::streamSynchronize();
+            if (runon == RunOn::Gpu) Gpu::streamSynchronize();
         }
     }
 }

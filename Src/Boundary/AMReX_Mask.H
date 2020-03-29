@@ -289,8 +289,7 @@ Mask::And (const Mask& src,
     const auto dlo = amrex::lbound(destbox);
     const auto slo = amrex::lbound(srcbox);
     const Dim3 offset{slo.x-dlo.x,slo.y-dlo.y,slo.z-dlo.z};
-    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on == RunOn::Device and Gpu::inLaunchRegion(),
-                                           destbox, numcomp, i, j, k, n,
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on, destbox, numcomp, i, j, k, n,
     {
         d(i,j,k,n+destcomp) = d(i,j,k,n+destcomp) ? s(i+offset.x,j+offset.y,k+offset.z,n+srccomp) : 0;
     });
@@ -339,8 +338,7 @@ Mask::Or (const Mask& src,
     const auto dlo = amrex::lbound(destbox);
     const auto slo = amrex::lbound(srcbox);
     const Dim3 offset{slo.x-dlo.x,slo.y-dlo.y,slo.z-dlo.z};
-    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on == RunOn::Device and Gpu::inLaunchRegion(),
-                                           destbox, numcomp, i, j, k, n,
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on, destbox, numcomp, i, j, k, n,
     {
         d(i,j,k,n+destcomp) = d(i,j,k,n+destcomp) ? 1: s(i+offset.x,j+offset.y,k+offset.z,n+srccomp);
     });
