@@ -9,7 +9,7 @@ returns cell-centered data for convenience, which involves an additional operati
 useful to access the raw data directly. Furthermore,
 the WarpX implementation for mesh refinement contains a number of grids for each level (coarse,
 fine and auxiliary, see
-:doc:`../theory/warpx_theory` for more details), and it is sometimes useful to access each of
+:doc:`../theory/theory` for more details), and it is sometimes useful to access each of
 them (regular output return the auxiliary grid only). This page provides information to read
 raw data of all grids.
 

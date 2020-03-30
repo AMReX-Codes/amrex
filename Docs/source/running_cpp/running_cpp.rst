@@ -10,3 +10,4 @@ Running WarpX as an executable
    profiling
    parallelization
    platforms
+   pwfa

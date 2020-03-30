@@ -665,7 +665,7 @@ Lehe, R, A Lifschitz, C Thaury, V Malka, and X Davoine. 2013. “Numerical growt
 
    <div id="ref-Liumotl1997">
 
-Liu, Qh. 1997. “The PSTD Algorithm: A Time-Domain Method Requiring Only Two Cells Per Wavelength.” *Microwave and Optical Technology Letters* 15 (3): 158–65. `https://doi.org/10.1002/(Sici)1098-2760(19970620)15:3<158::Aid-Mop11>3.3.Co;2-T <https://doi.org/10.1002/(Sici)1098-2760(19970620)15:3<158::Aid-Mop11>3.3.Co;2-T>`__.
+Liu, Qh. 1997. “The PSTD Algorithm: A Time-Domain Method Requiring Only Two Cells Per Wavelength.” *Microwave and Optical Technology Letters* 15 (3): 158–65. `https://doi.org/10.1002/(SICI)1098-2760(19970620)15\:3\<158\:\:AID-MOP11\>3.0.CO\;2-3 <https://doi.org/10.1002/(SICI)1098-2760(19970620)15\:3\<158\:\:AID-MOP11\>3.0.CO\;2-3>`_.
 
 .. raw:: html
 
