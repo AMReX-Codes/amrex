@@ -490,7 +490,7 @@ WarpX::ApplyInverseVolumeScalingToCurrentDensity (MultiFab* Jx, MultiFab* Jy, Mu
         // these do not include the guard cells.
         std::array<amrex::Real,3> galilean_shift = {0,0,0};
         const std::array<Real, 3>& xyzmin = WarpX::LowerCorner(tilebox, galilean_shift, lev);
-        const Real rmin  = xyzmin[0] + (tbr.type(0) == NODE ? 0. : 0.5*dx[0]);
+        const Real rmin  = xyzmin[0];
         const Real rminr = xyzmin[0] + (tbr.type(0) == NODE ? 0. : 0.5*dx[0]);
         const Real rmint = xyzmin[0] + (tbt.type(0) == NODE ? 0. : 0.5*dx[0]);
         const Real rminz = xyzmin[0] + (tbz.type(0) == NODE ? 0. : 0.5*dx[0]);
