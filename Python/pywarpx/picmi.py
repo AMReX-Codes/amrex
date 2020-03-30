@@ -91,6 +91,7 @@ class Species(picmistandard.PICMI_Species):
             self.species.physical_element=self.particle_type
             self.species.ionization_product_species = interaction[2].name
             self.species.ionization_initial_level = self.charge_state
+            self.species.charge = 'q_e'
 
 picmistandard.PICMI_MultiSpecies.Species_class = Species
 class MultiSpecies(picmistandard.PICMI_MultiSpecies):
