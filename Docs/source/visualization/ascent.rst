@@ -61,59 +61,61 @@ resulting images to :code:`levels_<nnnn>.png`. `Ascent Actions
 overview over all available analysis and visualization actions.
 
 .. code-block:: json
--
-  action: "add_pipelines"
-  pipelines:
-    p1:
-      f1:
-        type: "contour"
-        params:
-           field: "Ex"
-           levels: 15
--
-  action: "add_scenes"
-  scenes:
-    scene1:
-      image_prefix: "levels_%04d"
-      plots:
-        plot1:
-          type: "pseudocolor"
-          pipeline: "p1"
-          field: "Ex"
+
+    -
+      action: "add_pipelines"
+      pipelines:
+        p1:
+          f1:
+            type: "contour"
+            params:
+               field: "Ex"
+               levels: 15
+    -
+      action: "add_scenes"
+      scenes:
+        scene1:
+          image_prefix: "levels_%04d"
+          plots:
+            plot1:
+              type: "pseudocolor"
+              pipeline: "p1"
+              field: "Ex"
 
 Here is another :code:`ascent_actions.yaml` example that renders isosurfaces
 and particles:
 
 .. code-block:: json
--
-  action: "add_pipelines"
-  pipelines:
-    p1:
-      f1:
-        type: "contour"
-        params:
-           field: "Bx"
-           levels: 3
--
-  action: "add_scenes"
-  scenes:
-    scene1:
-      plots:
-        plot1:
-          type: "pseudocolor"
-          pipeline: "p1"
-          field: "Bx"
-        plot2:
-          type: "pseudocolor"
-          field: "particle_electrons_Bx"
-          points:
-            radius: 0.0000005
-      renders:
-        r1:
-          camera:
-            azimuth: 100
-            elevation: 10
-          image_prefix: "out_render_3d_%06d"
+
+    -
+      action: "add_pipelines"
+      pipelines:
+        p1:
+          f1:
+            type: "contour"
+            params:
+               field: "Bx"
+               levels: 3
+    -
+      action: "add_scenes"
+      scenes:
+        scene1:
+          plots:
+            plot1:
+              type: "pseudocolor"
+              pipeline: "p1"
+              field: "Bx"
+            plot2:
+              type: "pseudocolor"
+              field: "particle_electrons_Bx"
+              points:
+                radius: 0.0000005
+          renders:
+            r1:
+              camera:
+                azimuth: 100
+                elevation: 10
+              image_prefix: "out_render_3d_%06d"
 
 
 Finally, here is a more complex :code:`ascent_actions.yaml` example that
@@ -121,77 +123,79 @@ creates the same images as the prior example, but adds a trigger that
 creates a Cinema Database at cycle 300:
 
 .. code-block:: json
--
-  action: "add_triggers"
-  triggers:
-    t1:
-      params:
-        condition: "cycle() == 300"
-        actions_file: "trigger.yaml"
--
-  action: "add_pipelines"
-  pipelines:
-    p1:
-      f1:
-        type: "contour"
-        params:
-           field: "jy"
-           iso_values: [ 1000000000000.0, -1000000000000.0]
--
-  action: "add_scenes"
-  scenes:
-    scene1:
-      plots:
-        plot1:
-          type: "pseudocolor"
-          pipeline: "p1"
-          field: "jy"
-        plot2:
-          type: "pseudocolor"
-          field: "particle_electrons_w"
-          points:
-            radius: 0.0000002
-      renders:
-        r1:
-          camera:
-            azimuth: 100
-            elevation: 10
-          image_prefix: "out_render_jy_part_w_3d_%06d"
+
+    -
+      action: "add_triggers"
+      triggers:
+        t1:
+          params:
+            condition: "cycle() == 300"
+            actions_file: "trigger.yaml"
+    -
+      action: "add_pipelines"
+      pipelines:
+        p1:
+          f1:
+            type: "contour"
+            params:
+               field: "jy"
+               iso_values: [ 1000000000000.0, -1000000000000.0]
+    -
+      action: "add_scenes"
+      scenes:
+        scene1:
+          plots:
+            plot1:
+              type: "pseudocolor"
+              pipeline: "p1"
+              field: "jy"
+            plot2:
+              type: "pseudocolor"
+              field: "particle_electrons_w"
+              points:
+                radius: 0.0000002
+          renders:
+            r1:
+              camera:
+                azimuth: 100
+                elevation: 10
+              image_prefix: "out_render_jy_part_w_3d_%06d"
 
 
 When the trigger condition is meet, `cycle() == 300`, the actions in
 :code:`trigger.yaml` are also executed:
 
 .. code-block:: json
--
-  action: "add_pipelines"
-  pipelines:
-    p1:
-      f1:
-        type: "contour"
-        params:
-           field: "jy"
-           iso_values: [ 1000000000000.0, -1000000000000.0]
--
-  action: "add_scenes"
-  scenes:
-    scene1:
-      plots:
-        plot1:
-          type: "pseudocolor"
-          pipeline: "p1"
-          field: "jy"
-        plot2:
-          type: "pseudocolor"
-          field: "particle_electrons_w"
-          points:
-            radius: 0.0000001
-      renders:
-        r1:
-          type: "cinema"
-          phi: 10
-          theta: 10
-          db_name: "cinema_out"
+
+    -
+      action: "add_pipelines"
+      pipelines:
+        p1:
+          f1:
+            type: "contour"
+            params:
+               field: "jy"
+               iso_values: [ 1000000000000.0, -1000000000000.0]
+    -
+      action: "add_scenes"
+      scenes:
+        scene1:
+          plots:
+            plot1:
+              type: "pseudocolor"
+              pipeline: "p1"
+              field: "jy"
+            plot2:
+              type: "pseudocolor"
+              field: "particle_electrons_w"
+              points:
+                radius: 0.0000001
+          renders:
+            r1:
+              type: "cinema"
+              phi: 10
+              theta: 10
+              db_name: "cinema_out"
 
 You can view the Cinema Database result by opening
 :code:`cinema_databases/cinema_out/index.html`.
