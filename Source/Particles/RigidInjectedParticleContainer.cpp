@@ -74,14 +74,14 @@ RigidInjectedParticleContainer::RemapParticles()
         const Real t_lab = 0.;
 
         const Real uz_boost = WarpX::gamma_boost*WarpX::beta_boost*PhysConst::c;
-        const Real csq = PhysConst::c*PhysConst::c;
+        const Real csqi = 1./(PhysConst::c*PhysConst::c);
 
         vzbeam_ave_boosted = meanParticleVelocity(false)[2];
 
         for (int lev = 0; lev <= finestLevel(); lev++) {
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
             {
                 // Get the average beam velocity in the boosted frame.
@@ -90,43 +90,43 @@ RigidInjectedParticleContainer::RemapParticles()
 
                 for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
                 {
-                    auto& attribs = pti.GetAttribs();
-                    auto& uxp = attribs[PIdx::ux];
-                    auto& uyp = attribs[PIdx::uy];
-                    auto& uzp = attribs[PIdx::uz];
+                    const auto& attribs = pti.GetAttribs();
+                    const auto uxp = attribs[PIdx::ux].dataPtr();
+                    const auto uyp = attribs[PIdx::uy].dataPtr();
+                    const auto uzp = attribs[PIdx::uz].dataPtr();
 
                     const auto GetPosition = GetParticlePosition(pti);
                           auto SetPosition = SetParticlePosition(pti);
 
                     // Loop over particles
                     const long np = pti.numParticles();
-                    for (int i=0 ; i < np ; i++) {
-
+                    const Real lvzbeam_ave_boosted = vzbeam_ave_boosted;
+                    const Real gamma_boost = WarpX::gamma_boost;
+                    amrex::ParallelFor( np, [=] AMREX_GPU_DEVICE (long i)
+                    {
                         ParticleReal xp, yp, zp;
                         GetPosition(i, xp, yp, zp);
 
-                        const Real gammapr = std::sqrt(1. + (uxp[i]*uxp[i] + uyp[i]*uyp[i] + uzp[i]*uzp[i])/csq);
+                        const Real gammapr = std::sqrt(1. + (uxp[i]*uxp[i] + uyp[i]*uyp[i] + uzp[i]*uzp[i])*csqi);
                         const Real vzpr = uzp[i]/gammapr;
 
                         // Back out the value of z_lab
-                        const Real z_lab = (zp + uz_boost*t_lab + WarpX::gamma_boost*t_lab*vzpr)/(WarpX::gamma_boost + uz_boost*vzpr/csq);
+                        const Real z_lab = (zp + uz_boost*t_lab + gamma_boost*t_lab*vzpr)/(gamma_boost + uz_boost*vzpr*csqi);
 
                         // Time of the particle in the boosted frame given its position in the lab frame at t=0.
-                        const Real tpr = WarpX::gamma_boost*t_lab - uz_boost*z_lab/csq;
+                        const Real tpr = gamma_boost*t_lab - uz_boost*z_lab*csqi;
 
                         // Adjust the position, taking away its motion from its own velocity and adding
                         // the motion from the average velocity
-                        zp += tpr*vzpr - tpr*vzbeam_ave_boosted;
+                        zp += tpr*vzpr - tpr*lvzbeam_ave_boosted;
 
                         SetPosition(i, xp, yp, zp);
-
-                    }
+                    });
                 }
             }
         }
     }
 }
-
 
 void
 RigidInjectedParticleContainer::BoostandRemapParticles()
@@ -143,29 +143,38 @@ RigidInjectedParticleContainer::BoostandRemapParticles()
         vzbeam_ave_boosted = (vzbeam_ave_lab - WarpX::beta_boost*PhysConst::c)/(1. - vzbeam_ave_lab*WarpX::beta_boost/PhysConst::c);
     }
 
+    const Real csqi = 1./(PhysConst::c*PhysConst::c);
+
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
         for (WarpXParIter pti(*this, 0); pti.isValid(); ++pti)
         {
 
             auto& attribs = pti.GetAttribs();
-            auto& uxp = attribs[PIdx::ux];
-            auto& uyp = attribs[PIdx::uy];
-            auto& uzp = attribs[PIdx::uz];
+            const auto uxp = attribs[PIdx::ux].dataPtr();
+            const auto uyp = attribs[PIdx::uy].dataPtr();
+            const auto uzp = attribs[PIdx::uz].dataPtr();
 
             const auto GetPosition = GetParticlePosition(pti);
                   auto SetPosition = SetParticlePosition(pti);
 
             // Loop over particles
             const long np = pti.numParticles();
-            for (int i=0 ; i < np ; i++) {
-
+            const Real lvzbeam_ave_boosted = vzbeam_ave_boosted;
+            const Real gamma_boost = WarpX::gamma_boost;
+            const Real beta_boost = WarpX::beta_boost;
+            const bool lprojected = projected;
+            const bool lfocused = focused;
+            const bool lrigid_advance = rigid_advance;
+            const Real lzinject_plane = zinject_plane;
+            amrex::ParallelFor( np, [=] AMREX_GPU_DEVICE (long i)
+            {
                 ParticleReal xp, yp, zp;
                 GetPosition(i, xp, yp, zp);
 
-                const Real gamma_lab = std::sqrt(1. + (uxp[i]*uxp[i] + uyp[i]*uyp[i] + uzp[i]*uzp[i])/(PhysConst::c*PhysConst::c));
+                const Real gamma_lab = std::sqrt(1. + (uxp[i]*uxp[i] + uyp[i]*uyp[i] + uzp[i]*uzp[i])*csqi);
 
                 const Real vx_lab = uxp[i]/gamma_lab;
                 const Real vy_lab = uyp[i]/gamma_lab;
@@ -176,40 +185,40 @@ RigidInjectedParticleContainer::BoostandRemapParticles()
                 // lab and boosted frames.
                 const Real t0_lab = -zp/vz_lab;
 
-                if (!projected) {
+                if (!lprojected) {
                     xp += t0_lab*vx_lab;
                     yp += t0_lab*vy_lab;
                 }
-                if (focused) {
+                if (lfocused) {
                     // Correct for focusing effect from shift from z=0 to zinject
-                    const Real tfocus = -zinject_plane*WarpX::gamma_boost/vz_lab;
+                    const Real tfocus = -lzinject_plane*gamma_boost/vz_lab;
                     xp -= tfocus*vx_lab;
                     yp -= tfocus*vy_lab;
                 }
 
                 // Time of the particle in the boosted frame given its position in the lab frame at t=0.
-                const Real tpr = -WarpX::gamma_boost*WarpX::beta_boost*zp/PhysConst::c;
+                const Real tpr = -gamma_boost*beta_boost*zp/PhysConst::c;
 
                 // Position of the particle in the boosted frame given its position in the lab frame at t=0.
-                const Real zpr = WarpX::gamma_boost*zp;
+                const Real zpr = gamma_boost*zp;
 
                 // Momentum of the particle in the boosted frame (assuming that it is fixed).
-                uzp[i] = WarpX::gamma_boost*(uzp[i] - WarpX::beta_boost*PhysConst::c*gamma_lab);
+                uzp[i] = gamma_boost*(uzp[i] - beta_boost*PhysConst::c*gamma_lab);
 
                 // Put the particle at the location in the boosted frame at boost frame t=0,
-                if (rigid_advance) {
+                if (lrigid_advance) {
                     // with the particle moving at the average velocity
-                    zp = zpr - vzbeam_ave_boosted*tpr;
+                    zp = zpr - lvzbeam_ave_boosted*tpr;
                 }
                 else {
                     // with the particle moving with its own velocity
-                    const Real gammapr = std::sqrt(1. + (uxp[i]*uxp[i] + uyp[i]*uyp[i] + uzp[i]*uzp[i])/(PhysConst::c*PhysConst::c));
+                    const Real gammapr = std::sqrt(1. + (uxp[i]*uxp[i] + uyp[i]*uyp[i] + uzp[i]*uzp[i])*csqi);
                     const Real vzpr = uzp[i]/gammapr;
                     zp = zpr - vzpr*tpr;
                 }
 
                 SetPosition(i, xp, yp, zp);
-            }
+            });
         }
     }
 }

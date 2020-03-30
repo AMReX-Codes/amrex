@@ -646,25 +646,62 @@ std::array<Real, 3> WarpXParticleContainer::meanParticleVelocity(bool local) {
     amrex::Real inv_clight_sq = 1.0/PhysConst::c/PhysConst::c;
 
     const int nLevels = finestLevel();
-    for (int lev = 0; lev <= nLevels; ++lev) {
 
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion())
+    {
+        ReduceOps<ReduceOpSum, ReduceOpSum, ReduceOpSum> reduce_op;
+        ReduceData<Real, Real, Real> reduce_data(reduce_op);
+        using ReduceTuple = typename decltype(reduce_data)::Type;
+        for (int lev = 0; lev <= nLevels; ++lev) {
+            for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
+            {
+                const auto uxp = pti.GetAttribs(PIdx::ux).data();
+                const auto uyp = pti.GetAttribs(PIdx::uy).data();
+                const auto uzp = pti.GetAttribs(PIdx::uz).data();
+
+                const long np = pti.numParticles();
+                np_total += np;
+
+                reduce_op.eval(np, reduce_data,
+                               [=] AMREX_GPU_DEVICE (int i) -> ReduceTuple
+                               {
+                                   Real usq = (uxp[i]*uxp[i] +
+                                               uyp[i]*uyp[i] +
+                                               uzp[i]*uzp[i])*inv_clight_sq;
+                                   Real gaminv = 1.0_rt/std::sqrt(1.0_rt + usq);
+                                   return {uxp[i]*gaminv,  uyp[i]*gaminv, uzp[i]*gaminv};
+                               });
+            }
+        }
+
+        ReduceTuple hv = reduce_data.value();
+        vx_total = amrex::get<0>(hv);
+        vy_total = amrex::get<1>(hv);
+        vz_total = amrex::get<2>(hv);
+    }
+    else
+#endif
+    {
+        for (int lev = 0; lev <= nLevels; ++lev) {
 #ifdef _OPENMP
 #pragma omp parallel reduction(+:vx_total, vy_total, vz_total, np_total)
 #endif
-        for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
-        {
-            auto& ux = pti.GetAttribs(PIdx::ux);
-            auto& uy = pti.GetAttribs(PIdx::uy);
-            auto& uz = pti.GetAttribs(PIdx::uz);
+            for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
+            {
+                auto& ux = pti.GetAttribs(PIdx::ux);
+                auto& uy = pti.GetAttribs(PIdx::uy);
+                auto& uz = pti.GetAttribs(PIdx::uz);
 
-            np_total += pti.numParticles();
+                np_total += pti.numParticles();
 
-            for (unsigned long i = 0; i < ux.size(); i++) {
-                Real usq = (ux[i]*ux[i] + uy[i]*uy[i] + uz[i]*uz[i])*inv_clight_sq;
-                Real gaminv = 1.0/std::sqrt(1.0 + usq);
-                vx_total += ux[i]*gaminv;
-                vy_total += uy[i]*gaminv;
-                vz_total += uz[i]*gaminv;
+                for (unsigned long i = 0; i < ux.size(); i++) {
+                    Real usq = (ux[i]*ux[i] + uy[i]*uy[i] + uz[i]*uz[i])*inv_clight_sq;
+                    Real gaminv = 1.0_rt/std::sqrt(1.0_rt + usq);
+                    vx_total += ux[i]*gaminv;
+                    vy_total += uy[i]*gaminv;
+                    vz_total += uz[i]*gaminv;
+                }
             }
         }
     }
