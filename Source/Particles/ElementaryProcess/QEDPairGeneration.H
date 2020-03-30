@@ -80,7 +80,8 @@ public:
     {}
 
     /**
-    * \brief Functor call. It determines the properties of the generated pair.
+    * \brief Functor call. It determines the properties of the generated pair
+    * and it sets to -1 the id of the source photon
     *
     * @param[in,out] dst1 target species 1 (either electrons or positrons)
     * @param[in,out] dst2 target species 2 (either electrons or positrons)
@@ -91,7 +92,7 @@ public:
     */
     template <typename DstData, typename SrcData>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    void operator() (DstData& dst1, DstData& dst2, const SrcData& src,
+    void operator() (DstData& dst1, DstData& dst2, SrcData& src,
         int const i_src, int const i_dst1, int const i_dst2) const noexcept
     {
         using namespace amrex;
@@ -135,10 +136,6 @@ public:
             &p_px, &p_py, &p_pz,
             &e_w, &p_w);
 
-        src.m_rdata[PIdx::ux][i_src] = px*one_over_me;
-        src.m_rdata[PIdx::uy][i_src] = py*one_over_me;
-        src.m_rdata[PIdx::uz][i_src] = pz*one_over_me;
-
         dst1.m_rdata[PIdx::w][i_dst1] = e_w;
         dst1.m_rdata[PIdx::ux][i_dst1] = e_px*one_over_me;
         dst1.m_rdata[PIdx::uy][i_dst1] = e_py*one_over_me;
@@ -148,6 +145,9 @@ public:
         dst2.m_rdata[PIdx::ux][i_dst2] = p_px*one_over_me;
         dst2.m_rdata[PIdx::uy][i_dst2] = p_py*one_over_me;
         dst2.m_rdata[PIdx::uz][i_dst2] = p_pz*one_over_me;
+
+        src.m_aos[i_src].id() = -1; //destroy photon after pair generation
+
     }
 
 private:

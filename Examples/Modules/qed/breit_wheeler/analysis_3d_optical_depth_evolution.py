@@ -14,6 +14,7 @@ import sys
 import math as m
 import scipy.special as spe
 import scipy.integrate as integ
+import scipy.stats as st
 
 # This script checks if the optical depth of photons undergoing the
 # Breit Wheeler process behaves as expected. Four populations of photons
@@ -31,7 +32,7 @@ import scipy.integrate as integ
 
 
 # Tolerance
-tol = 2e-2
+tol = 7.e-2
 
 # EM fields
 E_f = np.array([-2433321316961438, 973328526784575, 1459992790176863])
@@ -53,15 +54,14 @@ schwinger_field_norm = electron_mass*speed_of_light*lambda_ref/(2.0*reduced_plan
 
 # Initial parameters
 spec_names = ["p1", "p2", "p3", "p4"]
- #Assumes average = 1 at t = 0 (ok for a large number of particles)
-tau_begin_avg = np.array([1.0, 1.0, 1.0, 1.0])
 mec = electron_mass*speed_of_light
-p_begin = [
-    np.array([2000.0,0,0])*mec,
-    np.array([0.0,5000.0,0.0])*mec,
-    np.array([0.0,0.0,10000.0])*mec,
-    np.array([57735.02691896, 57735.02691896, 57735.02691896])*mec
-]
+p_begin = {
+    "p1": np.array([2000.0,0,0])*mec,
+    "p2": np.array([0.0,5000.0,0.0])*mec,
+    "p3": np.array([0.0,0.0,10000.0])*mec,
+    "p4": np.array([57735.02691896, 57735.02691896, 57735.02691896])*mec
+}
+initial_particle_number = 16384
 #______________
 
 def calc_chi_gamma(p, E, B):
@@ -100,23 +100,37 @@ def check():
     data_set_end = yt.load(filename_end)
 
     sim_time = data_set_end.current_time.to_value()
-
     all_data_end = data_set_end.all_data()
 
-    tau_end_avg = np.array([
-       np.average(all_data_end[name, 'particle_optical_depth_BW'])
-       for name in spec_names])
+    for name in spec_names:
+        opt_depth = all_data_end[name, 'particle_optical_depth_BW']
 
-    dNBW_dt_sim = (tau_begin_avg - tau_end_avg)/sim_time
+        #check that the distribution is still exponential with scale 1 and loc 0
+        opt_depth_loc, opt_depth_scale = st.expon.fit(opt_depth)
+        exp_loc = 0.0
+        exp_scale = 1.0
+        loc_discrepancy = np.abs(opt_depth_loc-exp_loc)
+        scale_discrepancy = np.abs(opt_depth_scale-exp_scale)
+        print("species " + name)
+        print("exp distrib loc tol = " + str(tol))
+        print("exp distrib loc discrepancy = " + str(loc_discrepancy))
+        assert(loc_discrepancy < tol)
+        print("exp distrib scale tol = " + str(tol))
+        print("exp distrib scale discrepancy = " + str(scale_discrepancy/exp_scale))
+        assert(scale_discrepancy/exp_scale < tol)
+        ###
 
-    dNBW_dt_theo = [
-        dNBW_dt(calc_chi_gamma(p, E_f, B_f), np.linalg.norm(p*speed_of_light))
-        for p in p_begin
-    ]
-
-    discrepancy = np.abs(dNBW_dt_sim-dNBW_dt_theo)/dNBW_dt_theo
-
-    assert(np.all(discrepancy < tol))
+        #check if number of lost photons is (n0* (1 - exp(-rate*t)) )
+        dNBW_dt_theo = dNBW_dt(
+            calc_chi_gamma(p_begin[name], E_f, B_f),
+                np.linalg.norm(p_begin[name]*speed_of_light))
+        exp_lost= initial_particle_number*(1.0 - np.exp(-dNBW_dt_theo*sim_time))
+        lost =  initial_particle_number-np.size(opt_depth)
+        discrepancy_lost = np.abs(exp_lost-lost)
+        print("lost fraction tol = " + str(tol))
+        print("lost fraction discrepancy = " + str(discrepancy_lost/exp_lost))
+        assert(discrepancy_lost/exp_lost < tol)
+        ###
 
 def main():
     check()

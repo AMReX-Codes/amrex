@@ -1,15 +1,15 @@
 #################################
 ####### GENERAL PARAMETERS ######
 #################################
-max_step = 10
-amr.n_cell =  64 64 64
+max_step = 5
+amr.n_cell =  32 32 16
 amr.max_grid_size = 32   # maximum size of each AMReX box, used to decompose the domain
 amr.blocking_factor = 8 # minimum size of each AMReX box, used to decompose the domain
 amr.plot_int = 10
 geometry.coord_sys   = 0                  # 0: Cartesian
 geometry.is_periodic = 1  1  1      # Is periodic?
-geometry.prob_lo     =  -1.e-6   -1.e-6  -1e-6  # physical domain
-geometry.prob_hi     =  1.e-6   1.e-6   1e-6
+geometry.prob_lo     =  -0.5e-6   -0.5e-6  -0.25e-6  # physical domain
+geometry.prob_hi     =  0.5e-6   0.5e-6   0.25e-6
 amr.max_level = 0 # Maximum level in hierarchy (1 might be unstable, >1 is not supported)
 
 #################################
@@ -30,6 +30,7 @@ warpx.use_filter = 1
 warpx.cfl = 1. # if 1., the time step is set to its CFL limit
 warpx.do_pml = 1 # use Perfectly Matched Layer as boundary condition
 warpx.serialize_ics = 1
+warpx.fields_to_plot = Ex
 
 #################################
 ############ PLASMA #############
@@ -42,13 +43,13 @@ particles.photon_species = p1 p2 p3 p4
 p1.species_type = "photon"
 p1.injection_style = "NUniformPerCell"
 p1.profile = "constant"
-p1.xmin = -0.5e-6
-p1.ymin = -0.5e-6
-p1.zmin = -0.5e-6
-p1.xmax = 0.5e6
-p1.ymax = 0.5e6
-p1.zmax = 0.5e6
-p1.num_particles_per_cell_each_dim = 2 2 2
+p1.xmin = -0.6e-6
+p1.ymin = -0.6e-6
+p1.zmin = -0.6e-6
+p1.xmax = 0.6e6
+p1.ymax = 0.6e6
+p1.zmax = 0.6e6
+p1.num_particles_per_cell_each_dim = 1 1 1
 p1.density = 1e19
 p1.profile = "constant"
 p1.momentum_distribution_type = "gaussian"
@@ -58,6 +59,7 @@ p1.uz_m = 0.0
 p1.ux_th = 0.
 p1.uy_th = 0.
 p1.uz_th = 0.
+p1.plot_vars = ux uy uz
 ##########QED####################
 p1.do_qed = 1
 p1.do_qed_breit_wheeler = 1
@@ -68,13 +70,13 @@ p1.qed_breit_wheeler_pos_product_species = pos_bw
 p2.species_type = "photon"
 p2.injection_style = "NUniformPerCell"
 p2.profile = "constant"
-p2.xmin = -0.5e-6
-p2.ymin = -0.5e-6
-p2.zmin = -0.5e-6
-p2.xmax = 0.5e6
-p2.ymax = 0.5e6
-p2.zmax = 0.5e6
-p2.num_particles_per_cell_each_dim = 2 2 2
+p2.xmin = -0.6e-6
+p2.ymin = -0.6e-6
+p2.zmin = -0.6e-6
+p2.xmax = 0.6e6
+p2.ymax = 0.6e6
+p2.zmax = 0.6e6
+p2.num_particles_per_cell_each_dim = 1 1 1
 p2.density = 1e19
 p2.profile = "constant"
 p2.momentum_distribution_type = "gaussian"
@@ -84,6 +86,7 @@ p2.uz_m = 0.0
 p2.ux_th = 0.
 p2.uy_th = 0.
 p2.uz_th = 0.
+p2.plot_vars = ux uy uz
 ##########QED####################
 p2.do_qed = 1
 p2.do_qed_breit_wheeler = 1
@@ -94,13 +97,13 @@ p2.qed_breit_wheeler_pos_product_species = pos_bw
 p3.species_type = "photon"
 p3.injection_style = "NUniformPerCell"
 p3.profile = "constant"
-p3.xmin = -0.5e-6
-p3.ymin = -0.5e-6
-p3.zmin = -0.5e-6
-p3.xmax = 0.5e6
-p3.ymax = 0.5e6
-p3.zmax = 0.5e6
-p3.num_particles_per_cell_each_dim = 2 2 2
+p3.xmin = -0.6e-6
+p3.ymin = -0.6e-6
+p3.zmin = -0.6e-6
+p3.xmax = 0.6e6
+p3.ymax = 0.6e6
+p3.zmax = 0.6e6
+p3.num_particles_per_cell_each_dim = 1 1 1
 p3.density = 1e19
 p3.profile = "constant"
 p3.momentum_distribution_type = "gaussian"
@@ -110,6 +113,7 @@ p3.uz_m = 10000.0
 p3.ux_th = 0.
 p3.uy_th = 0.
 p3.uz_th = 0.
+p3.plot_vars = ux uy uz
 ##########QED####################
 p3.do_qed = 1
 p3.do_qed_breit_wheeler = 1
@@ -120,13 +124,13 @@ p3.qed_breit_wheeler_pos_product_species = pos_bw
 p4.species_type = "photon"
 p4.injection_style = "NUniformPerCell"
 p4.profile = "constant"
-p4.xmin = -0.5e-6
-p4.ymin = -0.5e-6
-p4.zmin = -0.5e-6
-p4.xmax = 0.5e6
-p4.ymax = 0.5e6
-p4.zmax = 0.5e6
-p4.num_particles_per_cell_each_dim = 2 2 2
+p4.xmin = -0.6e-6
+p4.ymin = -0.6e-6
+p4.zmin = -0.6e-6
+p4.xmax = 0.6e6
+p4.ymax = 0.6e6
+p4.zmax = 0.6e6
+p4.num_particles_per_cell_each_dim = 1 1 1
 p4.density = 1e19
 p4.profile = "constant"
 p4.momentum_distribution_type = "gaussian"
@@ -136,6 +140,7 @@ p4.uz_m = 57735.02691896
 p4.ux_th = 0.
 p4.uy_th = 0.
 p4.uz_th = 0.
+p4.plot_vars = ux uy uz
 ##########QED####################
 p4.do_qed = 1
 p4.do_qed_breit_wheeler = 1
@@ -153,6 +158,7 @@ ele_bw.momentum_distribution_type = "gaussian"
 ele_bw.xmin = 1 ## Ugly trick to avoid electrons at T=0
 ele_bw.xmax = -1 ##  Ugly trick to avoid electrons at T=0
 ele_bw.do_qed = 0
+ele_bw.plot_species = 1
 
 pos_bw.species_type = "positron"
 pos_bw.injection_style = nuniformpercell
@@ -163,6 +169,7 @@ pos_bw.momentum_distribution_type = "gaussian"
 pos_bw.xmin = 1 ## Ugly trick to avoid positrons at T=0
 pos_bw.xmax = -1 ##  Ugly trick to avoid positrons at T=0
 pos_bw.do_qed = 0
+pos_bw.plot_species = 1
 #################################
 
 ##########QED TABLES####################
