@@ -110,16 +110,34 @@ void ParticleEnergy::ComputeDiags (int step)
         // Use amex::ReduceSum to compute the sum of energies of all particles
         // held by the current MPI rank, for this species. This involves a loop over all
         // boxes held by this MPI rank.
-        auto Etot = ReduceSum( myspc,
-        [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real
-        {
-            auto w  = p.rdata(PIdx::w);
-            auto ux = p.rdata(PIdx::ux);
-            auto uy = p.rdata(PIdx::uy);
-            auto uz = p.rdata(PIdx::uz);
-            auto us = (ux*ux + uy*uy + uz*uz);
-            return ( std::sqrt(us*c2 + c2*c2) - c2 ) * m * w;
-        });
+        Real Etot = 0.0_rt;
+        if(myspc.AmIA<PhysicalSpecies::photon>()){
+            //Photons have m = 0, but ux,uy and uz are calculated assuming
+            //a mass equal to the electron mass. Therefore, photons need a special
+            //treatment to calculate the total energy.
+            constexpr auto me_c = PhysConst::m_e * PhysConst::c;
+            Etot = ReduceSum( myspc,
+            [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real
+            {
+                const auto w  = p.rdata(PIdx::w);
+                const auto ux = p.rdata(PIdx::ux);
+                const auto uy = p.rdata(PIdx::uy);
+                const auto uz = p.rdata(PIdx::uz);
+                const auto us = ux*ux + uy*uy + uz*uz;
+                return std::sqrt(us) * me_c * w;
+            });
+        } else {
+            Etot = ReduceSum( myspc,
+            [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real
+            {
+                const auto w  = p.rdata(PIdx::w);
+                const auto ux = p.rdata(PIdx::ux);
+                const auto uy = p.rdata(PIdx::uy);
+                const auto uz = p.rdata(PIdx::uz);
+                const auto us = ux*ux + uy*uy + uz*uz;
+                return ( std::sqrt(us*c2 + c2*c2) - c2 ) * m * w;
+            });
+        }
 
         // Same thing for the particles weights.
         auto Wtot = ReduceSum( myspc,
