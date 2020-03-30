@@ -29,9 +29,6 @@ FieldEnergy::FieldEnergy (std::string rd_name)
         "FieldEnergy reduced diagnostics does not work for RZ coordinate.");
     #endif
 
-    // get WarpX class object
-    auto & warpx = WarpX::GetInstance();
-
     // read number of levels
     int nLevel = 0;
     ParmParse pp("amr");

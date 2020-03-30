@@ -50,7 +50,9 @@ void doChargeDepositionShapeN(const GetParticlePosition& GetPosition,
 #endif
 
     const amrex::Real xmin = xyzmin[0];
+#if (defined WARPX_DIM_3D)
     const amrex::Real ymin = xyzmin[1];
+#endif
     const amrex::Real zmin = xyzmin[2];
 
     amrex::Array4<amrex::Real> const& rho_arr = rho_fab.array();

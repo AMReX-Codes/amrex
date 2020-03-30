@@ -9,7 +9,8 @@
 
 #include <AMReX_FArrayBox.H>
 
-static void warpx_calculate_ckc_coefficients(amrex::Real dtsdx, amrex::Real dtsdy, amrex::Real dtsdz,
+AMREX_FORCE_INLINE
+void warpx_calculate_ckc_coefficients(amrex::Real dtsdx, amrex::Real dtsdy, amrex::Real dtsdz,
                                              amrex::Real &betaxy, amrex::Real &betaxz, amrex::Real &betayx,
                                              amrex::Real &betayz, amrex::Real &betazx, amrex::Real &betazy,
                                              amrex::Real &gammax, amrex::Real &gammay, amrex::Real &gammaz,

@@ -61,10 +61,11 @@ class SpectralBaseAlgorithm
           {};
 
         // Modified finite-order vectors
-        KVectorComponent modified_kx_vec, modified_kz_vec;
+        KVectorComponent modified_kx_vec;
 #if (AMREX_SPACEDIM==3)
         KVectorComponent modified_ky_vec;
 #endif
+        KVectorComponent modified_kz_vec;
 };
 
 #endif // WARPX_USE_PSATD

@@ -35,11 +35,11 @@ MultiReducedDiags::MultiReducedDiags ()
     for (int i_rd = 0; i_rd < m_rd_names.size(); ++i_rd)
     {
 
-        ParmParse pp(m_rd_names[i_rd]);
+        ParmParse pp_rd(m_rd_names[i_rd]);
 
         // read reduced diags type
         std::string rd_type;
-        pp.query("type", rd_type);
+        pp_rd.query("type", rd_type);
 
         // match diags
         if (rd_type.compare("ParticleEnergy") == 0)

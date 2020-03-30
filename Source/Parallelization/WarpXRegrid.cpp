@@ -58,7 +58,6 @@ WarpX::RemakeLevel (int lev, Real /*time*/, const BoxArray& ba, const Distributi
         if (ParallelDescriptor::NProcs() == 1) return;
 
         // Fine patch
-        const auto& period = Geom(lev).periodicity();
         for (int idim=0; idim < 3; ++idim)
         {
             {
@@ -136,7 +135,6 @@ WarpX::RemakeLevel (int lev, Real /*time*/, const BoxArray& ba, const Distributi
 
         // Coarse patch
         if (lev > 0) {
-            const auto& cperiod = Geom(lev-1).periodicity();
             for (int idim=0; idim < 3; ++idim)
             {
                 {
@@ -248,22 +246,22 @@ WarpX::RemakeLevel (int lev, Real /*time*/, const BoxArray& ba, const Distributi
 }
 
 void
-WarpX::ComputeCostsHeuristic (amrex::Vector<std::unique_ptr<amrex::Vector<amrex::Real> > >& costs)
+WarpX::ComputeCostsHeuristic (amrex::Vector<std::unique_ptr<amrex::Vector<amrex::Real> > >& a_costs)
 {
     for (int lev = 0; lev <= finest_level; ++lev)
     {
-        auto & mypc = WarpX::GetInstance().GetPartContainer();
-        auto nSpecies = mypc.nSpecies();
+        auto & mypc_ref = WarpX::GetInstance().GetPartContainer();
+        auto nSpecies = mypc_ref.nSpecies();
 
         // Species loop
         for (int i_s = 0; i_s < nSpecies; ++i_s)
         {
-            auto & myspc = mypc.GetParticleContainer(i_s);
+            auto & myspc = mypc_ref.GetParticleContainer(i_s);
 
             // Particle loop
             for (WarpXParIter pti(myspc, lev); pti.isValid(); ++pti)
             {
-                (*costs[lev])[pti.index()] += costs_heuristic_particles_wt*pti.numParticles();
+                (*a_costs[lev])[pti.index()] += costs_heuristic_particles_wt*pti.numParticles();
             }
         }
 
@@ -272,7 +270,7 @@ WarpX::ComputeCostsHeuristic (amrex::Vector<std::unique_ptr<amrex::Vector<amrex:
         for (MFIter mfi(*Ex, false); mfi.isValid(); ++mfi)
         {
             const Box& gbx = mfi.growntilebox();
-            (*costs[lev])[mfi.index()] += costs_heuristic_cells_wt*gbx.numPts();
+            (*a_costs[lev])[mfi.index()] += costs_heuristic_cells_wt*gbx.numPts();
         }
     }
 }

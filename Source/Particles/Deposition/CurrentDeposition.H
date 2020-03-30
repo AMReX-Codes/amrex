@@ -56,7 +56,9 @@ void doDepositionShapeN(const GetParticlePosition& GetPosition,
     const bool do_ionization = ion_lev;
     const amrex::Real dxi = 1.0/dx[0];
     const amrex::Real dzi = 1.0/dx[2];
+#if !(defined WARPX_DIM_RZ)
     const amrex::Real dts2dx = 0.5*dt*dxi;
+#endif
     const amrex::Real dts2dz = 0.5*dt*dzi;
 #if (AMREX_SPACEDIM == 2)
     const amrex::Real invvol = dxi*dzi;
@@ -67,7 +69,9 @@ void doDepositionShapeN(const GetParticlePosition& GetPosition,
 #endif
 
     const amrex::Real xmin = xyzmin[0];
+#if (defined WARPX_DIM_3D)
     const amrex::Real ymin = xyzmin[1];
+#endif
     const amrex::Real zmin = xyzmin[2];
 
     const amrex::Real clightsq = 1.0/PhysConst::c/PhysConst::c;
@@ -290,7 +294,9 @@ void doEsirkepovDepositionShapeN (const GetParticlePosition& GetPosition,
     // (do_ionization=1)
     bool const do_ionization = ion_lev;
     Real const dxi = 1.0_rt / dx[0];
+#if !(defined WARPX_DIM_RZ)
     Real const dtsdx0 = dt*dxi;
+#endif
     Real const xmin = xyzmin[0];
 #if (defined WARPX_DIM_3D)
     Real const dyi = 1.0_rt / dx[1];

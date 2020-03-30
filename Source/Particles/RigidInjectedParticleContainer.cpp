@@ -386,16 +386,12 @@ RigidInjectedParticleContainer::PushP (int lev, Real dt,
 
     if (do_not_push) return;
 
-    const std::array<Real,3>& dx = WarpX::CellSize(lev);
-
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     {
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
         {
-            const Box& box = pti.validbox();
-
             auto& attribs = pti.GetAttribs();
 
             auto& uxp = attribs[PIdx::ux];

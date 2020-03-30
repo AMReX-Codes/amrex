@@ -49,7 +49,6 @@ void ElasticCollisionPerez (
     T_R const  dt, T_R const   L, T_R const dV)
 {
 
-    T_R constexpr inv_c2 = T_R(1.0)/(PhysConst::c*PhysConst::c);
     int NI1 = I1e - I1s;
     int NI2 = I2e - I2s;
 

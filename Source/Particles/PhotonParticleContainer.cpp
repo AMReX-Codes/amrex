@@ -72,12 +72,6 @@ PhotonParticleContainer::PushPX(WarpXParIter& pti, Real dt, DtType /*a_dt_type*/
     ParticleReal* const AMREX_RESTRICT ux = attribs[PIdx::ux].dataPtr();
     ParticleReal* const AMREX_RESTRICT uy = attribs[PIdx::uy].dataPtr();
     ParticleReal* const AMREX_RESTRICT uz = attribs[PIdx::uz].dataPtr();
-    const ParticleReal* const AMREX_RESTRICT Ex = attribs[PIdx::Ex].dataPtr();
-    const ParticleReal* const AMREX_RESTRICT Ey = attribs[PIdx::Ey].dataPtr();
-    const ParticleReal* const AMREX_RESTRICT Ez = attribs[PIdx::Ez].dataPtr();
-    const ParticleReal* const AMREX_RESTRICT Bx = attribs[PIdx::Bx].dataPtr();
-    const ParticleReal* const AMREX_RESTRICT By = attribs[PIdx::By].dataPtr();
-    const ParticleReal* const AMREX_RESTRICT Bz = attribs[PIdx::Bz].dataPtr();
 
     if (WarpX::do_back_transformed_diagnostics && do_back_transformed_diagnostics)
     {

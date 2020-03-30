@@ -104,7 +104,9 @@ void Filter::DoFilter (const Box& tbx,
                        int scomp, int dcomp, int ncomp)
 {
     amrex::Real const* AMREX_RESTRICT sx = stencil_x.data();
+#if (AMREX_SPACEDIM == 3)
     amrex::Real const* AMREX_RESTRICT sy = stencil_y.data();
+#endif
     amrex::Real const* AMREX_RESTRICT sz = stencil_z.data();
     Dim3 slen_local = slen;
     AMREX_PARALLEL_FOR_4D ( tbx, ncomp, i, j, k, n,
@@ -213,7 +215,9 @@ void Filter::DoFilter (const Box& tbx,
     const auto hi = amrex::ubound(tbx);
     // tmp and dst are of type Array4 (Fortran ordering)
     amrex::Real const* AMREX_RESTRICT sx = stencil_x.data();
+#if (AMREX_SPACEDIM == 3)
     amrex::Real const* AMREX_RESTRICT sy = stencil_y.data();
+#endif
     amrex::Real const* AMREX_RESTRICT sz = stencil_z.data();
     for (int n = 0; n < ncomp; ++n) {
         // Set dst value to 0.

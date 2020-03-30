@@ -11,7 +11,8 @@
 #include "AMReX_BLProfiler.H"
 #include "AMReX_GpuDevice.H"
 
-static void doDeviceSynchronize(int do_device_synchronize)
+AMREX_FORCE_INLINE
+void doDeviceSynchronize(int do_device_synchronize)
 {
     if ( do_device_synchronize )
         amrex::Gpu::synchronize();

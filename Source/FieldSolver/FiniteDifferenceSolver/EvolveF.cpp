@@ -68,8 +68,6 @@ void FiniteDifferenceSolver::EvolveFCartesian (
     int const rhocomp,
     amrex::Real const dt ) {
 
-    Real constexpr c2 = PhysConst::c * PhysConst::c;
-
     // Loop through the grids, and over the tiles within each grid
 #ifdef _OPENMP
 #pragma omp parallel if (amrex::Gpu::notInLaunchRegion())

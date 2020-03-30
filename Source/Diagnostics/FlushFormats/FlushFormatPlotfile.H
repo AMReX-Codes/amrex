@@ -25,6 +25,8 @@ public:
                             const std::string& plotfilename,
                             const bool plot_raw_fields_guards,
                             const bool plot_rho, bool plot_F) const;
+
+    ~FlushFormatPlotfile() {};
 };
 
 #endif // WARPX_FLUSHFORMATPLOTFILE_H_

@@ -99,9 +99,13 @@ struct CartesianCKCAlgorithm {
         int const i, int const j, int const k ) {
 
         amrex::Real const alphax = coefs_x[1];
+#if defined WARPX_DIM_3D
         amrex::Real const betaxy = coefs_x[2];
+#endif
         amrex::Real const betaxz = coefs_x[3];
+#if defined WARPX_DIM_3D
         amrex::Real const gammax = coefs_x[4];
+#endif
 #if defined WARPX_DIM_3D
         return alphax * (F(i+1,j  ,k  ) - F(i,  j,  k  ))
              + betaxy * (F(i+1,j+1,k  ) - F(i  ,j+1,k  )
@@ -187,8 +191,10 @@ struct CartesianCKCAlgorithm {
         using namespace amrex;
         Real const alphaz = coefs_z[1];
         Real const betazx = coefs_z[2];
+#if defined WARPX_DIM_3D
         Real const betazy = coefs_z[3];
         Real const gammaz = coefs_z[4];
+#endif
 #if defined WARPX_DIM_3D
         return alphaz * (F(i  ,j  ,k+1) - F(i  ,j  ,k  ))
              + betazx * (F(i+1,j  ,k+1) - F(i+1,j  ,k  )

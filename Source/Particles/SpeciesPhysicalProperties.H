@@ -20,7 +20,8 @@ enum struct PhysicalSpecies{unspecified=0, electron, positron, photon, hydrogen}
 
 namespace species
 {
-    static PhysicalSpecies from_string(std::string species)
+    AMREX_FORCE_INLINE
+    PhysicalSpecies from_string(std::string species)
     {
         if( species=="unspecified" )
             return PhysicalSpecies::unspecified;
@@ -36,7 +37,8 @@ namespace species
         return PhysicalSpecies::unspecified;
     }
 
-    static amrex::Real get_charge (PhysicalSpecies ps)
+    AMREX_FORCE_INLINE
+    amrex::Real get_charge (PhysicalSpecies ps)
     {
         switch(ps) {
         case PhysicalSpecies::unspecified:
@@ -55,7 +57,8 @@ namespace species
         }
     }
 
-    static amrex::Real get_mass (PhysicalSpecies ps)
+    AMREX_FORCE_INLINE
+    amrex::Real get_mass (PhysicalSpecies ps)
     {
         switch(ps) {
         case PhysicalSpecies::unspecified:

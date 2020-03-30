@@ -155,7 +155,9 @@ void GalileanAlgorithm::InitializeSpectralCoefficients(const SpectralKSpace& spe
         Array4<Complex> Theta2 = Theta2_coef[mfi].array();
         // Extract reals (for portability on GPU)
         Real vx = v_galilean[0];
+#if (AMREX_SPACEDIM==3)
         Real vy = v_galilean[1];
+#endif
         Real vz = v_galilean[2];
 
         // Loop over indices within one box

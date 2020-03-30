@@ -158,7 +158,7 @@ WarpXParticleContainer::AddNParticles (int /*lev*/,
 #endif
 
         if ( (NumRuntimeRealComps()>0) || (NumRuntimeIntComps()>0) ){
-            auto& ptile = DefineAndReturnParticleTile(0, 0, 0);
+            DefineAndReturnParticleTile(0, 0, 0);
         }
 
         particle_tile.push_back(p);
@@ -172,7 +172,7 @@ WarpXParticleContainer::AddNParticles (int /*lev*/,
         particle_tile.push_back_real(PIdx::uz,     vz + ibegin,     vz + iend);
 
         if ( (NumRuntimeRealComps()>0) || (NumRuntimeIntComps()>0) ){
-            auto& ptile = DefineAndReturnParticleTile(0, 0, 0);
+            DefineAndReturnParticleTile(0, 0, 0);
         }
 
         for (int comp = PIdx::uz+1; comp < PIdx::nattribs; ++comp)
@@ -755,11 +755,7 @@ WarpXParticleContainer::PushX (int lev, amrex::Real dt)
             ParticleReal* AMREX_RESTRICT ux = attribs[PIdx::ux].dataPtr();
             ParticleReal* AMREX_RESTRICT uy = attribs[PIdx::uy].dataPtr();
             ParticleReal* AMREX_RESTRICT uz = attribs[PIdx::uz].dataPtr();
-#ifdef WARPX_DIM_RZ
-            auto& aos = pti.GetArrayOfStructs();
-            ParticleType* AMREX_RESTRICT const pstruct = aos().dataPtr();
-            ParticleReal* AMREX_RESTRICT theta = attribs[PIdx::theta].dataPtr();
-#endif
+
             // Loop over the particles and update their position
             amrex::ParallelFor( pti.numParticles(),
                 [=] AMREX_GPU_DEVICE (long i) {
