@@ -74,8 +74,9 @@ void warpx_hybrid_QED_push (
     amrex::Array4<amrex::Real> const& Bx, amrex::Array4<amrex::Real> const& By,
     amrex::Array4<amrex::Real const> const& Bz, amrex::Array4<amrex::Real> const& tmpEx,
     amrex::Array4<amrex::Real> const& tmpEy, amrex::Array4<amrex::Real> const& tmpEz,
-    amrex::Real dx, amrex::Real dy, amrex::Real dz, amrex::Real dt,
-    const amrex::Real xi_c2)
+    amrex::Array4<amrex::Real> const& Jx, amrex::Array4<amrex::Real> const& Jy,
+    amrex::Array4<amrex::Real> const& Jz, const amrex::Real dx, const amrex::Real dy,
+    const amrex::Real dz, const amrex::Real dt, const amrex::Real xi_c2)
 {
 
 using namespace amrex;
@@ -142,6 +143,9 @@ const amrex::Real dyi = 1./dy;
     const amrex::Real bx = Bx(j,k,l);
     const amrex::Real by = By(j,k,l);
     const amrex::Real bz = Bz(j,k,l);
+    const amrex::Real mu0jx = PhysConst::mu0*Jx(j,k,l);
+    const amrex::Real mu0jy = PhysConst::mu0*Jy(j,k,l);
+    const amrex::Real mu0jz = PhysConst::mu0*Jz(j,k,l);
     const amrex::Real ee = ex*ex + ey*ey + ez*ez;
     const amrex::Real bb = bx*bx + by*by + bz*bz;
     const amrex::Real eb = ex*bx + ey*by + ez*bz;
@@ -149,6 +153,8 @@ const amrex::Real dyi = 1./dy;
     const amrex::Real BVxE = bx*VxE[0] + by*VxE[1] + bz*VxE[2];
     const amrex::Real EVxB = ex*VxB[0] + ey*VxB[1] + ez*VxB[2];
     const amrex::Real BVxB = bx*VxB[0] + by*VxB[1] + bz*VxB[2];
+    const amrex::Real Emu0J = ex*mu0jx + ey*mu0jy + ez*mu0jz;
+    const amrex::Real Bmu0J = bx*mu0jx + by*mu0jy + bz*mu0jz;
 
     const amrex::Real beta = 4._rt*xi_c2*( c2i*ee - bb ) + PhysConst::ep0;
 
@@ -159,9 +165,12 @@ const amrex::Real dyi = 1./dy;
     };
 
     const amrex::Real Omega[3] = {
-        Alpha[0] + 2._rt*xi_c2*( 4._rt*ex*EVxB + 2._rt*VxB[0]*( ee - c2*bb ) + 7._rt*c2*bx*BVxB ),
-        Alpha[1] + 2._rt*xi_c2*( 4._rt*ey*EVxB + 2._rt*VxB[1]*( ee - c2*bb ) + 7._rt*c2*by*BVxB ),
-        Alpha[2] + 2._rt*xi_c2*( 4._rt*ez*EVxB + 2._rt*VxB[2]*( ee - c2*bb ) + 7._rt*c2*bz*BVxB )
+      Alpha[0] + 2._rt*xi_c2*( 4._rt*ex*(EVxB + Emu0J) + 2._rt*(VxB[0] + mu0jx)*( ee - c2*bb )
+        + 7._rt*c2*bx*(BVxB +Bmu0J) ),
+      Alpha[1] + 2._rt*xi_c2*( 4._rt*ey*(EVxB + Emu0J) + 2._rt*(VxB[1] + mu0jy)*( ee - c2*bb )
+        + 7._rt*c2*by*(BVxB + Bmu0J) ),
+      Alpha[2] + 2._rt*xi_c2*( 4._rt*ez*(EVxB + Emu0J) + 2._rt*(VxB[2] + mu0jz)*( ee - c2*bb )
+        + 7._rt*c2*bz*(BVxB + Bmu0J) )
     };
 
     // Calcualting matrix values for the QED correction algorithm
@@ -260,6 +269,9 @@ const amrex::Real dyi = 1./dy;
     const amrex::Real bx = Bx(j,k,0);
     const amrex::Real by = By(j,k,0);
     const amrex::Real bz = Bz(j,k,0);
+    const amrex::Real mu0jx = PhysConst::mu0*Jx(j,k,0);
+    const amrex::Real mu0jy = PhysConst::mu0*Jy(j,k,0);
+    const amrex::Real mu0jz = PhysConst::mu0*Jz(j,k,0);
     const amrex::Real ee = ex*ex + ey*ey + ez*ez;
     const amrex::Real bb = bx*bx + by*by + bz*bz;
     const amrex::Real eb = ex*bx + ey*by + ez*bz;
@@ -267,6 +279,8 @@ const amrex::Real dyi = 1./dy;
     const amrex::Real BVxE = bx*VxE[0] + by*VxE[1] + bz*VxE[2];
     const amrex::Real EVxB = ex*VxB[0] + ey*VxB[1] + ez*VxB[2];
     const amrex::Real BVxB = bx*VxB[0] + by*VxB[1] + bz*VxB[2];
+    const amrex::Real Emu0J = ex*mu0jx + ey*mu0jy + ez*mu0jz;
+    const amrex::Real Bmu0J = bx*mu0jx + by*mu0jy + bz*mu0jz;
 
     const amrex::Real beta = 4._rt*xi_c2*( c2i*ee - bb ) + PhysConst::ep0;
 
@@ -277,9 +291,12 @@ const amrex::Real dyi = 1./dy;
     };
 
     const amrex::Real Omega[3] = {
-        Alpha[0] + 2._rt*xi_c2*( 4._rt*ex*EVxB + 2._rt*VxB[0]*( ee - c2*bb ) + 7._rt*c2*bx*BVxB ),
-        Alpha[1] + 2._rt*xi_c2*( 4._rt*ey*EVxB + 2._rt*VxB[1]*( ee - c2*bb ) + 7._rt*c2*by*BVxB ),
-        Alpha[2] + 2._rt*xi_c2*( 4._rt*ez*EVxB + 2._rt*VxB[2]*( ee - c2*bb ) + 7._rt*c2*bz*BVxB )
+      Alpha[0] + 2._rt*xi_c2*( 4._rt*ex*(EVxB + Emu0J) + 2._rt*(VxB[0] + mu0jx)*( ee - c2*bb )
+        + 7._rt*c2*bx*(BVxB + Bmu0J) ),
+      Alpha[1] + 2._rt*xi_c2*( 4._rt*ey*(EVxB + Emu0J) + 2._rt*(VxB[1] + mu0jy)*( ee - c2*bb )
+        + 7._rt*c2*by*(BVxB + Bmu0J) ),
+      Alpha[2] + 2._rt*xi_c2*( 4._rt*ez*(EVxB +Emu0J) + 2._rt*(VxB[2] + mu0jz)*( ee - c2*bb )
+        + 7._rt*c2*bz*(BVxB + Bmu0J) )
     };
 
     // Calcualting matrix values for the QED correction algorithm

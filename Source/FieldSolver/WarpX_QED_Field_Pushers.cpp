@@ -1,4 +1,4 @@
-/* Copyright 2019-2020 Glenn Richardson, Maxence Thevenet
+/* Copyright 2019-2020 Glenn Richardson, Maxence Thevenet, Revathi Jambunathan, Axel Huebl
  *
  * This file is part of WarpX.
  *
@@ -10,6 +10,7 @@
 #include "BoundaryConditions/WarpX_PML_kernels.H"
 #include "BoundaryConditions/PML_current.H"
 #include "WarpX_FDTD.H"
+
 #ifdef WARPX_USE_PY
 #   include "Python/WarpX_py.H"
 #endif
@@ -63,7 +64,7 @@ WarpX::Hybrid_QED_Push (int lev, PatchType patch_type, Real a_dt)
     const Real dy = dx_vec[1];
     const Real dz = dx_vec[2];
 
-    MultiFab *Ex, *Ey, *Ez, *Bx, *By, *Bz;
+    MultiFab *Ex, *Ey, *Ez, *Bx, *By, *Bz, *Jx, *Jy, *Jz;
     if (patch_type == PatchType::fine)
     {
         Ex = Efield_fp[lev][0].get();
@@ -72,6 +73,9 @@ WarpX::Hybrid_QED_Push (int lev, PatchType patch_type, Real a_dt)
         Bx = Bfield_fp[lev][0].get();
         By = Bfield_fp[lev][1].get();
         Bz = Bfield_fp[lev][2].get();
+        Jx = current_fp[lev][0].get();
+        Jy = current_fp[lev][1].get();
+        Jz = current_fp[lev][2].get();
     }
     else
     {
@@ -81,6 +85,9 @@ WarpX::Hybrid_QED_Push (int lev, PatchType patch_type, Real a_dt)
         Bx = Bfield_cp[lev][0].get();
         By = Bfield_cp[lev][1].get();
         Bz = Bfield_cp[lev][2].get();
+        Jx = current_cp[lev][0].get();
+        Jy = current_cp[lev][1].get();
+        Jz = current_cp[lev][2].get();
     }
 
     amrex::Vector<amrex::Real>* cost = WarpX::getCosts(lev);
@@ -97,12 +104,19 @@ WarpX::Hybrid_QED_Push (int lev, PatchType patch_type, Real a_dt)
         }
         Real wt = amrex::second();
 
-        // Get boxes for E and B
-        const Box& tbx  = mfi.tilebox(Bx_nodal_flag);
+        // Get boxes for E, B, and J
 
-        const Box& tex  = mfi.tilebox(Ex_nodal_flag);
-        const Box& tey  = mfi.tilebox(Ey_nodal_flag);
-        const Box& tez  = mfi.tilebox(Ez_nodal_flag);
+        const Box& tbx = mfi.tilebox(Bx->ixType().ixType());
+        const Box& tby = mfi.tilebox(By->ixType().ixType());
+        const Box& tbz = mfi.tilebox(Bz->ixType().ixType());
+
+        const Box& tex = mfi.tilebox(Ex->ixType().ixType());
+        const Box& tey = mfi.tilebox(Ey->ixType().ixType());
+        const Box& tez = mfi.tilebox(Ez->ixType().ixType());
+
+        const Box& tjx = mfi.tilebox(Jx->ixType().ixType());
+        const Box& tjy = mfi.tilebox(Jy->ixType().ixType());
+        const Box& tjz = mfi.tilebox(Jz->ixType().ixType());
 
         // Get field arrays
         auto const& Bxfab = Bx->array(mfi);
@@ -111,6 +125,9 @@ WarpX::Hybrid_QED_Push (int lev, PatchType patch_type, Real a_dt)
         auto const& Exfab = Ex->array(mfi);
         auto const& Eyfab = Ey->array(mfi);
         auto const& Ezfab = Ez->array(mfi);
+        auto const& Jxfab = Jx->array(mfi);
+        auto const& Jyfab = Jy->array(mfi);
+        auto const& Jzfab = Jz->array(mfi);
 
         // Define grown box with 1 ghost cell for finite difference stencil
         const Box& gex = amrex::grow(tex,1);
@@ -148,14 +165,15 @@ WarpX::Hybrid_QED_Push (int lev, PatchType patch_type, Real a_dt)
 
         // Make local copy of xi, to use on device.
         const Real xi_c2 = WarpX::quantum_xi_c2;
+
         // Apply QED correction to electric field, using temporary arrays.
         amrex::ParallelFor(
             tbx,
             [=] AMREX_GPU_DEVICE (int j, int k, int l)
             {
                 warpx_hybrid_QED_push(j,k,l, Exfab, Eyfab, Ezfab, Bxfab, Byfab,
-                                      Bzfab, tmpEx, tmpEy, tmpEz, dx, dy, dz,
-                                      a_dt, xi_c2);
+                    Bzfab, tmpEx, tmpEy, tmpEz, Jxfab, Jyfab, Jzfab, dx, dy, dz,
+                    a_dt, xi_c2);
             }
         );
 
