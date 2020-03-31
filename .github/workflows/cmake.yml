@@ -49,6 +49,7 @@ jobs:
         cmake ..                                         \
             -DENABLE_TUTORIALS=ON                        \
             -DENABLE_CUDA=ON                             \
+            -DCMAKE_C_COMPILER=$(which gcc-4.8)              \
             -DCMAKE_CXX_COMPILER=$(which g++-4.8)            \
             -DCMAKE_CUDA_HOST_COMPILER=$(which g++-4.8)      \
             -DCMAKE_Fortran_COMPILER=$(which gfortran-4.8)   \
