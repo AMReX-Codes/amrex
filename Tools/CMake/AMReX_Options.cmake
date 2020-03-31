@@ -37,7 +37,7 @@ else ()
 endif()
 
 
-set(AMREX_CXX_STANDARD 14 CACHE STRING "C++ standard to use" )
+set(AMREX_CXX_STANDARD 11 CACHE STRING "C++ standard to use" )
 if (  (  NOT ("${AMREX_CXX_STANDARD}" EQUAL "11") ) AND
       (  NOT ("${AMREX_CXX_STANDARD}" EQUAL "14") ) AND
       (  NOT ("${AMREX_CXX_STANDARD}" EQUAL "17") ) )
