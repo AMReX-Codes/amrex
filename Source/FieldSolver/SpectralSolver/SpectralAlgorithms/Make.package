@@ -1,12 +1,6 @@
-CEXE_headers += SpectralBaseAlgorithm.H
 CEXE_sources += SpectralBaseAlgorithm.cpp
-CEXE_headers += PsatdAlgorithm.H
 CEXE_sources += PsatdAlgorithm.cpp
-
-CEXE_headers += GalileanAlgorithm.H
 CEXE_sources += GalileanAlgorithm.cpp
-
-CEXE_headers += PMLPsatdAlgorithm.H
 CEXE_sources += PMLPsatdAlgorithm.cpp
 
 

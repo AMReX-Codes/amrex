@@ -1,18 +1,8 @@
-CEXE_headers += WarpX_Complex.H
 CEXE_sources += WarpXMovingWindow.cpp
 CEXE_sources += WarpXTagging.cpp
 CEXE_sources += WarpXUtil.cpp
-CEXE_headers += WarpXConst.H
-CEXE_headers += WarpXUtil.H
-CEXE_headers += WarpXAlgorithmSelection.H
 CEXE_sources += WarpXAlgorithmSelection.cpp
-CEXE_headers += NCIGodfreyTables.H
-CEXE_headers += WarpX_Complex.H
-CEXE_headers += IonizationEnergiesTable.H
-CEXE_headers += WarpXProfilerWrapper.H
-CEXE_headers += Average.H
 CEXE_sources += Average.cpp
-CEXE_headers += Interpolate.H
 CEXE_sources += Interpolate.cpp
 
 INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/Utils

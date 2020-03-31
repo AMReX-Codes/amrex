@@ -1,22 +1,9 @@
-CEXE_headers += MultiReducedDiags.H
 CEXE_sources += MultiReducedDiags.cpp
-
-CEXE_headers += ReducedDiags.H
 CEXE_sources += ReducedDiags.cpp
-
-CEXE_headers += ParticleEnergy.H
 CEXE_sources += ParticleEnergy.cpp
-
-CEXE_headers += FieldEnergy.H
 CEXE_sources += FieldEnergy.cpp
-
-CEXE_headers += BeamRelevant.H
 CEXE_sources += BeamRelevant.cpp
-
-CEXE_headers += LoadBalanceCosts.H
 CEXE_sources += LoadBalanceCosts.cpp
-
-CEXE_headers += ParticleHistogram.H
 CEXE_sources += ParticleHistogram.cpp
 
 INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/Diagnostics/ReducedDiags

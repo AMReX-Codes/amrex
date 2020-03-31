@@ -1,8 +1,3 @@
-CEXE_headers += DefaultInitialization.H
-CEXE_headers += FilterCopyTransform.H
-CEXE_headers += SmartUtils.H
-CEXE_headers += SmartCopy.H
-CEXE_headers += SmartCreate.H
 CEXE_sources += SmartUtils.cpp
 
 INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/Particles/ParticleCreation/

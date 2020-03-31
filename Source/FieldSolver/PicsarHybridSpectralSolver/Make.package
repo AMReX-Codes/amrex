@@ -1,4 +1,3 @@
-CEXE_headers += PicsarHybridFFTData.H
 CEXE_sources += PicsarHybridSpectralSolver.cpp
 F90EXE_sources += picsar_hybrid_spectral.F90
 

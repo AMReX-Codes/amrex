@@ -1,4 +1,2 @@
-CEXE_headers += CurrentDeposition.H
-CEXE_headers += ChargeDeposition.H
 INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/Particles/Deposition
 VPATH_LOCATIONS   += $(WARPX_HOME)/Source/Particles/Deposition
