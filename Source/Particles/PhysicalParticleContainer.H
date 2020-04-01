@@ -206,8 +206,9 @@ public:
     /** Load a particle beam from an external file
      *
      * @param[in] s_f path to an external file in openPMD markup
+     * @param[in] q_tot total charge of the particle species to be initialized
      */
-    void AddPlasmaFromFile(const std::string s_f);
+    void AddPlasmaFromFile(const std::string s_f, amrex::Real q_tot);
 
     void CheckAndAddParticle(amrex::Real x, amrex::Real y, amrex::Real z,
                              std::array<amrex::Real, 3> u,

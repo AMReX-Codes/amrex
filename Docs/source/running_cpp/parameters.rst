@@ -280,7 +280,7 @@ Particle initialization
       symmetrize the beam in the x and y directions).
 
     * ``external_file``: inject macroparticles with properties (charge, mass, position, and momentum) according to data in external file.
-      It requires the additional argument ``<species_name>.injection_file``, which is the string corresponding to the OpenPMD file name.
+      It requires the additional arguments ``<species_name>.injection_file`` and ``<species_name>.q_tot``, which are the string corresponding to the openPMD file name and the beam charge.
       When using this style, it is not necessary to add other ``<species_name>.(...)`` paramters, because they will be read directly from the file.
 
 * ``<species_name>.num_particles_per_cell_each_dim`` (`3 integers in 3D and RZ, 2 integers in 2D`)

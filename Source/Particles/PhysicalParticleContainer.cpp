@@ -307,17 +307,34 @@ PhysicalParticleContainer::AddGaussianBeam(Real x_m, Real y_m, Real z_m,
 }
 
 void
-PhysicalParticleContainer::AddPlasmaFromFile(const std::string s_f)
+PhysicalParticleContainer::AddPlasmaFromFile(const std::string s_f, amrex::Real q_tot)
 {
 #ifdef WARPX_USE_OPENPMD
     openPMD::Series series = openPMD::Series(s_f, openPMD::AccessType::READ_ONLY);
     amrex::Print() << "openPMD standard version " << series.openPMD() << "\n";
 
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(series.iterations.size() == 1u, "External "
+                                     "file should contain only one iteration\n");
     openPMD::Iteration& i = series.iterations[1];
-    amrex::Print()  << "File contains " << i.particles.size() << " specie(s):" << "\n";
-    for( auto const& ps : i.particles ) {
-        amrex::Print() << "\t" << ps.first << "\n";
-    }
+
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(i.particles.size() == 1u, "External file "
+                                     "should contain only one species\n");
+    std::pair<std::string,openPMD::ParticleSpecies> ps = *i.particles.begin();
+
+    //TODO: In future PRs will add AMREX_ALWAYS_ASSERT_WITH_MESSAGE to test if mass and charge are both const
+    amrex::Real p_m = ps.second["mass"][openPMD::RecordComponent::SCALAR].loadChunk<amrex::Real>().get()[0];
+    amrex::Real p_q = ps.second["charge"][openPMD::RecordComponent::SCALAR].loadChunk<amrex::Real>().get()[0];
+    int npart = ps.second["position"]["x"].getExtent()[0];
+    series.flush();
+
+    mass = p_m*PhysConst::mevpc2_kg;
+    charge = p_q*PhysConst::q_e;
+    Real const weight = q_tot/(charge*amrex::Real(npart));
+
+    amrex::Print() << npart << " parts of species " << ps.first << "\nWith"
+    << " mass = " << mass << " and charge = " << charge << "\nTo initialize "
+    << npart << " macroparticles with weight " << weight << "\n";
+
     amrex::Print()<<"WARNING: this is WIP, no particle has been injected!!";
 #endif
     return;
@@ -380,7 +397,8 @@ PhysicalParticleContainer::AddParticles (int lev)
     }
 
     if (plasma_injector->external_file) {
-        AddPlasmaFromFile(plasma_injector->str_injection_file);
+        AddPlasmaFromFile(plasma_injector->str_injection_file,
+                          plasma_injector->q_tot);
         return;
     }
 
