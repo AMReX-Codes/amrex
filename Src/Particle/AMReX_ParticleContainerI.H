@@ -1195,6 +1195,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         unpackRemotes(*this, plan, rcv_buffer, RedistributeUnpackPolicy());
     }
 
+    Gpu::Device::synchronize();    
     AMREX_ASSERT(numParticlesOutOfRange(*this, 0) == 0);
 #endif
 }
