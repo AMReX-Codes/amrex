@@ -56,4 +56,10 @@ echo ""
 echo "WARNING: Remaining occurences of $old_release_number are listed below."
 echo "         Is this expected? Or should these be updated too?"
 echo ""
-git grep "$old_release_number" .
+git grep "$old_release_number" . || echo ""
+echo "In order to get a list of PRs merged since date <date>, you can run:"
+echo "git log --since=<date> | grep -A 3 \"Author: \" | grep -B 1 \"\-\-\" | sed '/--/d' | sed -e 's/^    /- /'"
+echo "where <date> is replaced by the date since last relate, say 2020-02-02"
+# The actual command is below (commented), the one in echo above
+# has escape characters for printing purpose.
+# git log --since=<date> | grep -A 3 "Author: " | grep -B 1 "\-\-" | sed '/--/d' | sed -e 's/^    /- /'
