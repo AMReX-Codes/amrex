@@ -201,6 +201,56 @@ void mltensor_cross_terms (Box const& box, Array4<Real> const& Ax,
     }
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mltensor_vel_grads_fx (Box const& box, Array4<Real> const& fx,
+                              Array4<Real const> const& vel,
+                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+{
+    const Real dxi = dxinv[0];
+    const Real dyi = dxinv[1];
+    const auto lo = amrex::lbound(box);
+    const auto hi = amrex::ubound(box);
+
+    for     (int j = lo.y; j <= hi.y; ++j) {
+        AMREX_PRAGMA_SIMD
+        for (int i = lo.x; i <= hi.x; ++i) {
+            Real dudx = (vel(i,j,0,0) - vel(i-1,j,0,0))*dxi;
+            Real dvdx = (vel(i,j,0,1) - vel(i-1,j,0,1))*dxi;
+            Real dudy = (vel(i,j+1,0,0)+vel(i-1,j+1,0,0)-vel(i,j-1,0,0)-vel(i-1,j-1,0,0))*(0.25*dyi);
+            Real dvdy = (vel(i,j+1,0,1)+vel(i-1,j+1,0,1)-vel(i,j-1,0,1)-vel(i-1,j-1,0,1))*(0.25*dyi);
+            fx(i,j,0,0) = dudx;
+            fx(i,j,0,1) = dvdx;
+            fx(i,j,0,2) = dudy;
+            fx(i,j,0,3) = dvdy;
+        }
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mltensor_vel_grads_fy (Box const& box, Array4<Real> const& fy,
+                              Array4<Real const> const& vel,
+                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+{
+    const Real dxi = dxinv[0];
+    const Real dyi = dxinv[1];
+    const auto lo = amrex::lbound(box);
+    const auto hi = amrex::ubound(box);
+
+    for     (int j = lo.y; j <= hi.y; ++j) {
+        AMREX_PRAGMA_SIMD
+        for (int i = lo.x; i <= hi.x; ++i) {
+            Real dudx = (vel(i+1,j,0,0)+vel(i+1,j-1,0,0)-vel(i-1,j,0,0)-vel(i-1,j-1,0,0))*(0.25*dxi);
+            Real dvdx = (vel(i+1,j,0,1)+vel(i+1,j-1,0,1)-vel(i-1,j,0,1)-vel(i-1,j-1,0,1))*(0.25*dxi);
+            Real dudy = (vel(i,j,0,0) - vel(i,j-1,0,0))*dyi;
+            Real dvdy = (vel(i,j,0,1) - vel(i,j-1,0,1))*dyi;
+            fy(i,j,0,0) = dudx;
+            fy(i,j,0,1) = dvdx;
+            fy(i,j,0,2) = dudy;
+            fy(i,j,0,3) = dvdy;
+        }
+    }
+}
+
 }
 
 #endif

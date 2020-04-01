@@ -33,10 +33,10 @@ ifeq ($(USE_MPI),TRUE)
       LIBRARIES += $(wordlist 2,1024,$(mpif90_link_flags))
 #    endif
 
-    ifneq ($(CXX),$(filter $(CXX),mpicxx mpic++))
+#    ifneq ($(CXX),$(filter $(CXX),mpicxx mpic++))
       mpicxx_link_flags := $(shell mpicxx -link_info)
       LIBRARIES += $(filter -l%,$(mpicxx_link_flags))
-    endif
+#    endif
 
   else ifneq ($(findstring mvapich,$(shell $(MPI_OTHER_COMP) -show 2>&1 | tr A-Z a-z)),)
 
@@ -52,10 +52,10 @@ ifeq ($(USE_MPI),TRUE)
       LIBRARIES += $(wordlist 2,1024,$(mpif90_link_flags))
 #    endif
 
-    ifneq ($(CXX),$(filter $(CXX),mpicxx mpic++))
+#    ifneq ($(CXX),$(filter $(CXX),mpicxx mpic++))
       mpicxx_link_flags := $(shell mpicxx -link_info)
       LIBRARIES += $(filter -l%,$(mpicxx_link_flags))
-    endif
+#    endif
 
   else ifneq ($(findstring Open MPI, $(shell $(MPI_OTHER_COMP) -showme:version 2>&1)),)
 
@@ -68,10 +68,10 @@ ifeq ($(USE_MPI),TRUE)
       LIBRARIES += $(mpif90_link_flags)
 #    endif
 
-    ifneq ($(CXX),$(filter $(CXX),mpicxx mpic++))
+#    ifneq ($(CXX),$(filter $(CXX),mpicxx mpic++))
       mpicxx_link_flags := $(shell mpicxx -showme:link)
       LIBRARIES += $(filter -l%,$(mpicxx_link_flags))
-    endif
+#    endif
 
   else ifneq ($(findstring Spectrum MPI, $(shell $(MPI_OTHER_COMP) -showme:version 2>&1)),1)
 
@@ -113,3 +113,5 @@ ifeq ($(USE_CUDA),TRUE)
   endif
 endif
 endif
+
+FIX_NVCC_PTHREAD=TRUE

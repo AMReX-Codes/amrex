@@ -29,12 +29,6 @@ filcc_cell (const IntVect& iv, Array4<Real> const& q,
     const int ihi = domain_hi[0];
     const int jhi = domain_hi[1];
     const int khi = domain_hi[2];
-    const int is = amrex::max(q.begin.x,ilo);
-    const int js = amrex::max(q.begin.y,jlo);
-    const int ks = amrex::max(q.begin.z,klo);
-    const int ie = amrex::min(q.end.x-1,ihi);
-    const int je = amrex::min(q.end.y-1,jhi);
-    const int ke = amrex::min(q.end.z-1,khi);
 
     for (int n = dcomp; n < numcomp+dcomp; ++n)
     {
@@ -55,7 +49,7 @@ filcc_cell (const IntVect& iv, Array4<Real> const& q,
                     q(i,j,k,n) = q(ilo,j,k,n);
                 }
                 // i == ilo-1
-                else if (ilo+2 <= ie)
+                else if (ilo+2 <= amrex::min(q.end.x-1,ihi))
                 {
                     q(i,j,k,n) = 0.125*(15.*q(i+1,j,k,n) - 10.*q(i+2,j,k,n) + 3.*q(i+3,j,k,n));
                 }
@@ -97,7 +91,7 @@ filcc_cell (const IntVect& iv, Array4<Real> const& q,
                     q(i,j,k,n) = q(ihi,j,k,n);
                 }
                 // i == ihi+1
-                else if (ihi-2 >= is)
+                else if (ihi-2 >= amrex::max(q.begin.x,ilo))
                 {
                     q(i,j,k,n) = 0.125*(15.*q(i-1,j,k,n) - 10.*q(i-2,j,k,n) + 3.*q(i-3,j,k,n));
                 }
@@ -140,7 +134,7 @@ filcc_cell (const IntVect& iv, Array4<Real> const& q,
                     q(i,j,k,n) = q(i,jlo,k,n);
                 }
                 // j == jlo-1
-                else if (jlo+2 <= je)
+                else if (jlo+2 <= amrex::min(q.end.y-1,jhi))
                 {
                     q(i,j,k,n) = 0.125*(15.*q(i,j+1,k,n) - 10.*q(i,j+2,k,n) + 3.*q(i,j+3,k,n));
                 }
@@ -182,7 +176,7 @@ filcc_cell (const IntVect& iv, Array4<Real> const& q,
                     q(i,j,k,n) = q(i,jhi,k,n);
                 }
                 // j == jhi+1
-                else if (jhi-2 >= js)
+                else if (jhi-2 >= amrex::max(q.begin.y,jlo))
                 {
                     q(i,j,k,n) = 0.125*(15.*q(i,j-1,k,n) - 10.*q(i,j-2,k,n) + 3.*q(i,j-3,k,n));
                 }
@@ -225,7 +219,7 @@ filcc_cell (const IntVect& iv, Array4<Real> const& q,
                     q(i,j,k,n) = q(i,j,klo,n);
                 }
                 // k == klo-1
-                else if (klo+2 <= ke)
+                else if (klo+2 <= amrex::min(q.end.z-1,khi))
                 {
                     q(i,j,k,n) = 0.125*(15.*q(i,j,k+1,n) - 10.*q(i,j,k+2,n) + 3.*q(i,j,k+3,n));
                 }
@@ -267,7 +261,7 @@ filcc_cell (const IntVect& iv, Array4<Real> const& q,
                     q(i,j,k,n) = q(i,j,khi,n);
                 }
                 // k == khi+1
-                else if (khi-2 >= ks)
+                else if (khi-2 >= amrex::max(q.begin.z,klo))
                 {
                     q(i,j,k,n) = 0.125*(15.*q(i,j,k-1,n) - 10.*q(i,j,k-2,n) + 3.*q(i,j,k-3,n));
                 }

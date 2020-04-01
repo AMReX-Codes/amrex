@@ -305,8 +305,7 @@ public:
         const Box& bx = levelset.box();
         const auto& a = levelset.array();
         auto f = m_f;
-        bool run_on_gpu = (run_on == RunOn::Gpu && Gpu::inLaunchRegion());
-        AMREX_HOST_DEVICE_FOR_3D_FLAG(run_on_gpu, bx, i, j, k,
+        AMREX_HOST_DEVICE_FOR_3D_FLAG(run_on, bx, i, j, k,
         {
             a(i,j,k) = f(AMREX_D_DECL(problo[0]+i*dx[0],
                                       problo[1]+j*dx[1],
@@ -342,8 +341,7 @@ public:
             Array4<Type_t const> const& type = type_fab[idim].array();
             const Box& bx = inter_fab[idim].box();
             int dir = (AMREX_SPACEDIM==2) ? 1-idim : idim;
-            bool run_on_gpu = (run_on == RunOn::Gpu && Gpu::inLaunchRegion());
-            AMREX_HOST_DEVICE_FOR_3D_FLAG(run_on_gpu, bx, i, j, k,
+            AMREX_HOST_DEVICE_FOR_3D_FLAG(run_on, bx, i, j, k,
             {
                 if (type(i,j,k) == Type::irregular) {
                     IntVect ivlo(AMREX_D_DECL(i,j,k));

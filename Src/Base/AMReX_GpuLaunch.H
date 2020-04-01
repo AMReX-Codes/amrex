@@ -206,8 +206,63 @@ namespace Gpu {
 
 #ifdef AMREX_USE_GPU
 
-#define AMREX_HOST_DEVICE_FOR_3D_FLAG(flag,box,i,j,k,block) \
-    if (flag) \
+#define AMREX_HOST_DEVICE_PARALLEL_FOR_1D_FLAG(where_to_run,n,i,block) \
+    {  using amrex_i_inttype = typename std::remove_const<decltype(n)>::type; \
+    if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
+    { \
+        amrex::ParallelFor(n, [=] AMREX_GPU_DEVICE (amrex_i_inttype i) noexcept \
+            block \
+        ); \
+    } \
+    else { \
+        AMREX_PRAGMA_SIMD \
+        for (amrex_i_inttype i = 0; i < n; ++i) { \
+            block \
+        } \
+    }}
+
+#define AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FLAG(where_to_run,box,i,j,k,block) \
+    if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
+    { \
+        amrex::ParallelFor(box, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept \
+            block \
+        ); \
+    } \
+    else { \
+        amrex::LoopConcurrentOnCpu(box, [=] (int i, int j, int k) noexcept \
+            block \
+        ); \
+    }
+
+#define AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(where_to_run,box,nc,i,j,k,n,block) \
+    if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
+    { \
+        amrex::ParallelFor(box, nc, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) AMREX_NOEXCEPT \
+            block \
+        ); \
+    } \
+    else { \
+        amrex::LoopConcurrentOnCpu(box, nc, [=] (int i, int j, int k, int n) AMREX_NOEXCEPT \
+            block \
+        ); \
+    }
+
+#define AMREX_HOST_DEVICE_FOR_1D_FLAG(where_to_run,n,i,block) \
+    {  using amrex_i_inttype = typename std::remove_const<decltype(n)>::type; \
+    if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
+    { \
+        amrex::ParallelFor(n, [=] AMREX_GPU_DEVICE (amrex_i_inttype i) noexcept \
+            block \
+        ); \
+    } \
+    else { \
+        for (amrex_i_inttype i = 0; i < n; ++i) { \
+            block \
+        } \
+    }}
+
+#define AMREX_HOST_DEVICE_FOR_3D_FLAG(where_to_run,box,i,j,k,block) \
+    if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
     { \
         amrex::ParallelFor(box, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept \
             block \
@@ -219,8 +274,8 @@ namespace Gpu {
         ); \
     }
 
-#define AMREX_HOST_DEVICE_FOR_4D_FLAG(flag,box,nc,i,j,k,n,block) \
-    if (flag) \
+#define AMREX_HOST_DEVICE_FOR_4D_FLAG(where_to_run,box,nc,i,j,k,n,block) \
+    if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
     { \
         amrex::ParallelFor(box, nc, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) AMREX_NOEXCEPT \
             block \
@@ -232,8 +287,9 @@ namespace Gpu {
         ); \
     }
 
-#define AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG(flag,box,tbox,block) \
-    if (flag) { \
+#define AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG(where_to_run,box,tbox,block) \
+    if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
+    { \
         AMREX_LAUNCH_DEVICE_LAMBDA(box,tbox,block); \
     } else { \
         auto tbox = box; \
@@ -242,20 +298,47 @@ namespace Gpu {
 
 #else
 
-#define AMREX_HOST_DEVICE_FOR_3D_FLAG(flag,box,i,j,k,block) \
-    amrex::ignore_unused(flag); \
+#define AMREX_HOST_DEVICE_PARALLEL_FOR_1D_FLAG(where_to_run,n,i,block) \
+    {  using amrex_i_inttype = typename std::remove_const<decltype(n)>::type; \
+    amrex::ignore_unused(where_to_run); \
+    AMREX_PRAGMA_SIMD \
+    for (amrex_i_inttype i = 0; i < n; ++i) { \
+        block \
+    }}
+
+#define AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FLAG(where_to_run,box,i,j,k,block) \
+    amrex::ignore_unused(where_to_run); \
+    amrex::LoopConcurrentOnCpu(box, [=] (int i, int j, int k) noexcept \
+        block \
+    );
+
+#define AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(where_to_run,box,nc,i,j,k,n,block) \
+    amrex::ignore_unused(where_to_run); \
+    amrex::LoopConcurrentOnCpu(box, nc, [=] (int i, int j, int k, int n) noexcept \
+        block \
+    );
+
+#define AMREX_HOST_DEVICE_FOR_1D_FLAG(where_to_run,n,i,block) \
+    {  using amrex_i_inttype = typename std::remove_const<decltype(n)>::type; \
+    amrex::ignore_unused(where_to_run); \
+    for (amrex_i_inttype i = 0; i < n; ++i) { \
+        block \
+    }}
+
+#define AMREX_HOST_DEVICE_FOR_3D_FLAG(where_to_run,box,i,j,k,block) \
+    amrex::ignore_unused(where_to_run); \
     amrex::LoopOnCpu(box, [=] (int i, int j, int k) noexcept \
         block \
     );
 
-#define AMREX_HOST_DEVICE_FOR_4D_FLAG(flag,box,nc,i,j,k,n,block) \
-    amrex::ignore_unused(flag); \
+#define AMREX_HOST_DEVICE_FOR_4D_FLAG(where_to_run,box,nc,i,j,k,n,block) \
+    amrex::ignore_unused(where_to_run); \
     amrex::LoopOnCpu(box, nc, [=] (int i, int j, int k, int n) noexcept \
         block \
     );
 
-#define AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG(flag,box,tbox,block) \
-    amrex::ignore_unused(flag); \
+#define AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG(where_to_run,box,tbox,block) \
+    amrex::ignore_unused(where_to_run); \
     { \
         auto tbox = box; \
         block; \

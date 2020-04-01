@@ -13,11 +13,7 @@ void init_phi (int i, int j, int k,
     amrex::Real y = prob_lo[1] + (j+0.5) * dx[1];
     amrex::Real z = prob_lo[2] + (k+0.5) * dx[2];
     amrex::Real r2 = ((x-0.25)*(x-0.25)+(y-0.25)*(y-0.25)+(z-0.25)*(z-0.25))/0.01;
-#ifdef AMREX_USE_CUDA
-    phi(i,j,k) = 1. + exp(-r2);
-#else
     phi(i,j,k) = 1. + std::exp(-r2);
-#endif
 }
 
 

@@ -119,7 +119,7 @@ HypreABecLap::getSolution (MultiFab& soln)
         HYPRE_StructVectorGetBoxValues(x, reglo.data(), reghi.data(), xfab->dataPtr());
 
         if (soln.nGrow() != 0) {
-            soln[mfi].copy(*xfab, 0, 0, 1);
+            soln[mfi].copy<RunOn::Host>(*xfab, 0, 0, 1);
         }
     }
 }
@@ -277,8 +277,8 @@ HypreABecLap::loadVectors (MultiFab& soln, const MultiFab& rhs)
         HYPRE_StructVectorSetBoxValues(x, reglo.data(), reghi.data(), soln[mfi].dataPtr());
         
         rhsfab.resize(reg);
-        rhsfab.copy(rhs[mfi],reg);
-        rhsfab.mult(diaginv[mfi]);
+        rhsfab.copy<RunOn::Host>(rhs[mfi],reg);
+        rhsfab.mult<RunOn::Host>(diaginv[mfi]);
 
         HYPRE_StructVectorSetBoxValues(b, reglo.data(), reghi.data(), rhsfab.dataPtr());
     }

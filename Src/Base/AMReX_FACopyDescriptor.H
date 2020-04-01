@@ -703,7 +703,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
 
 	    for (int i = 0; i < numboxes; ++i)
 	    {
-		(*fabArrays[faid[i]])[fidx[i]].copyToMem(bxs[i],scomp[i],ncomp[i],dptr);
+		(*fabArrays[faid[i]])[fidx[i]].template copyToMem<RunOn::Host>(bxs[i],scomp[i],ncomp[i],dptr);
 		dptr += npts[i];
 	    }
 
@@ -762,7 +762,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
 			BL_ASSERT(fcdp->localFabSource->dataPtr() != 0);
 			BL_ASSERT(fcdp->localFabSource->box() == tag.box);
 			const int Cnt = tag.box.numPts()*tag.nComp;
-			fcdp->localFabSource->copyFromMem(tag.box,0,tag.nComp,dptr);
+			fcdp->localFabSource->template copyFromMem<RunOn::Host>(tag.box,0,tag.nComp,dptr);
 			dptr += Cnt;
 			break;
 		    }
@@ -804,7 +804,8 @@ FabArrayCopyDescriptor<FAB>::FillFab (FabArrayId       faid,
 
         BL_ASSERT(fcdp->fillBoxId == fillboxid.Id());
 
-        destFab.copy(*fcdp->localFabSource,
+        destFab.template copy<RunOn::Host>
+                   (*fcdp->localFabSource,
                      fcdp->subBox,
                      fcdp->fillType == FillLocally ? fcdp->srcComp : 0,
                      fcdp->subBox,

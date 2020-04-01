@@ -1,3 +1,34 @@
+# 20.04
+
+  -- BaseFab can no longer be used on device.  Many BaseFab functions
+     now requires RunOn::Device or RunOn::Host template parameter when
+     GPU support is enabled.
+
+  -- FillPatch* funcitons are now templated to support FabArray in
+     addition to MultiFab.
+
+  -- Fix -pthread for nvcc by default in Make.unknown
+
+  -- EB now has the option to build coarse level from GeometryShop
+     when coarsening from fine level fails.  This could be used for
+     hyperbolic system with EB resolved to the finest level
+
+  -- CMake: add C++ 17 among valid options for AMREX_CXX_STANDARD
+
+  -- Add option to set fixed number of iterations in the Fortran
+     interface of linear solver
+
+  -- Fabs in alias FabArray now carries EB information.
+
+  -- Add AMREX_LOOP_3D and 4D macros.
+
+  -- Make amrex::Random() return numbers in the same interval for both
+     CPU and GPU: [0:1)
+
+  -- More flux register functionality for flash
+
+  -- Chunked partition in particle redistribution to use less memory.
+
 # 20.03
 
   -- AmrCore can now be built without using ParmParse.
