@@ -64,6 +64,9 @@ public:
     amrex::Real x_rms;
     amrex::Real y_rms;
     amrex::Real z_rms;
+    amrex::Real x_cut = std::numeric_limits<amrex::Real>::max();
+    amrex::Real y_cut = std::numeric_limits<amrex::Real>::max();
+    amrex::Real z_cut = std::numeric_limits<amrex::Real>::max();
     amrex::Real q_tot;
     long npart;
     int do_symmetrize = 0;

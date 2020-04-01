@@ -60,6 +60,7 @@ beam.injection_style            = "gaussian_beam"
 beam.x_rms                      = 0.25
 beam.y_rms                      = 0.25
 beam.z_rms                      = 0.25
+beam.z_cut                      = 2.
 beam.x_m                        = 0.0
 beam.y_m                        = 0.0
 beam.z_m                        = 0.0

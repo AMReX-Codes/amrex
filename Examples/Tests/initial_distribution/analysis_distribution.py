@@ -19,7 +19,7 @@ import scipy.special as scs
 from read_raw_data import read_reduced_diags_histogram
 
 # print tolerance
-tolerance = 0.007
+tolerance = 0.01
 print('Tolerance:', tolerance)
 
 #===============================
@@ -96,17 +96,34 @@ h4z = read_reduced_diags_histogram("h4z.txt")[3]
 
 # parameters of theory
 x_rms = 0.25
+z_cut = 2.
 q_tot = -1.0e-20
 q_e   = -1.602176634e-19
 npart = q_tot/q_e
-db    = 0.04
+db    = bin_value[1]-bin_value[0]
 
 # compute the analytical solution
-f = npart*db * np.exp(-0.5*(bin_value/x_rms)**2)/(x_rms*np.sqrt(2.0*scc.pi))
-f_peak = np.amax(f)
+f_xy = npart*db * np.exp(-0.5*(bin_value/x_rms)**2)/(x_rms*np.sqrt(2.0*scc.pi)) * scs.erf(z_cut/np.sqrt(2.))
+f_z = npart*db * np.exp(-0.5*(bin_value/x_rms)**2)/(x_rms*np.sqrt(2.0*scc.pi))
+f_z[ np.absolute(bin_value) > z_cut * x_rms ] = 0.
+f_peak = np.amax(f_z)
 
 # compute error
-f4_error = np.sum(np.abs(f-h4x)+np.abs(f-h4y)+np.abs(f-h4z))/bin_value.size / f_peak
+f4_error = np.sum(np.abs(f_xy-h4x)+np.abs(f_xy-h4y)+np.abs(f_z-h4z))/bin_value.size / f_peak
+
+do_plot = False
+if do_plot:
+    import matplotlib.pyplot as plt
+    plt.figure()
+    plt.subplot(121)
+    plt.plot(bin_value, f_xy, '+-', label='ref')
+    plt.plot(bin_value, h4x, '+--', label='sim')
+    plt.legend()
+    plt.subplot(122)
+    plt.plot(bin_value, f_z, '+-', label='ref')
+    plt.plot(bin_value, h4z, '+--', label='sim')
+    plt.legend()
+    plt.savefig('toto.pdf', bbox_inches='tight')
 
 print('Gaussian position distribution difference:', f4_error)
 

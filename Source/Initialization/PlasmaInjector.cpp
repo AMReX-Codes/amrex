@@ -176,6 +176,9 @@ PlasmaInjector::PlasmaInjector (int ispecies, const std::string& name)
         pp.get("x_rms", x_rms);
         pp.get("y_rms", y_rms);
         pp.get("z_rms", z_rms);
+        pp.query("x_cut", x_cut);
+        pp.query("y_cut", y_cut);
+        pp.query("z_cut", z_cut);
         pp.get("q_tot", q_tot);
         pp.get("npart", npart);
         pp.query("do_symmetrize", do_symmetrize);
