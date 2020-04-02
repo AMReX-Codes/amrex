@@ -2,7 +2,7 @@
 #include <AMReX_Print.H>
 #ifdef AMREX_USE_CUPTI
 #include <AMReX_CuptiTrace.H>
-#endif // AMREX_USE_CUPTI
+#endif
 
 #include "myfunc.H"
 
