@@ -23,7 +23,6 @@ namespace amrex {
 
 std::vector<std::unique_ptr<CUpti_Activity_Userdata>> activityRecordUserdata;
 
-
 void CUPTIAPI
 bfrRequestCallback (uint8_t* *bfr, size_t* size, size_t* maxNumRecords) noexcept
 {
