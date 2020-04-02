@@ -2,10 +2,11 @@
 #ifdef AMREX_USE_CUPTI
 #include <AMReX_Print.H>
 #include <stdio.h>
-#include <cuda.h>
-#include <cupti.h>
 #include <map>
 #include <memory>
+#include <cuda.h>
+#include <cupti.h>
+
 
 // CUPTI buffer size, enough for 4096 activity records in a single buffer;
 // `CUpti_Activity` objects are 8 bytes long
@@ -84,8 +85,7 @@ bfrCompleteCallback (CUcontext ctx, uint32_t streamId, uint8_t* bfr,
         }
     }
     free(bfr);
-    record = NULL; // Cleanup dangling pointers
-    kernel = NULL; 
+    record = NULL; // Cleanup dangling pointer
 }
 
 void
@@ -168,18 +168,6 @@ computeElapsedTimeUserdata (const std::vector<std::unique_ptr<CUpti_Activity_Use
     // Default is ns, convert to sec
     return (double) res*1e-9;
 }
-
-// void
-// CUpti_Activity_Userdata::setRecord (CUpti_Activity* record) noexcept
-// {
-//     record_ = record;
-// }
-
-// CUpti_Activity*
-// CUpti_Activity_Userdata::getRecord () noexcept
-// { 
-//     return record_;
-// }
 
 void
 CUpti_Activity_Userdata::setUintID (unsigned uintID) noexcept
@@ -292,4 +280,4 @@ CuptiTrace::stop (unsigned boxUintID) noexcept
 }
 
 }
-#endif // AMREX_USE_CUPTI
+#endif

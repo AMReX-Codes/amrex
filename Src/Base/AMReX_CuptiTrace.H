@@ -4,9 +4,9 @@
 #ifdef AMREX_USE_CUPTI
 #include <stdio.h>
 #include <vector>
+#include <memory>
 #include <cuda.h>
 #include <cupti.h>
-#include <memory>
 
 
 namespace amrex {
