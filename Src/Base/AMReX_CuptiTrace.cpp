@@ -19,7 +19,7 @@
 
 namespace amrex {
 
-std::vector<CUpti_Activity_Userdata*> activityRecordUserdata;
+std::vector<std::unique_ptr<CUpti_Activity_Userdata>> activityRecordUserdata;
 
 
 void CUPTIAPI
@@ -52,16 +52,18 @@ bfrCompleteCallback (CUcontext ctx, uint32_t streamId, uint8_t* bfr,
         do {
             status = cuptiActivityGetNextRecord(bfr, validSize, &record);
             if (status == CUPTI_SUCCESS) {
-                CUpti_Activity_Userdata* recordUserData = new CUpti_Activity_Userdata();
-                CUpti_ActivityKernel4* kernel = (CUpti_ActivityKernel4*) record;
+                std::unique_ptr<CUpti_Activity_Userdata> recordUserData;
+                recordUserData.reset(new CUpti_Activity_Userdata());
+                std::unique_ptr<CUpti_Activity_Userdata4> kernel;
+                kernel.reset( (CUpti_ActivityKernel4*) record);
                 
                 // Save record data
-                recordUserData->setRecord(record);
+                //recordUserData->setRecord(record);
                 recordUserData->setStartTime(kernel->start);
                 recordUserData->setEndTime(kernel->end);
                 recordUserData->setTimeElapsed(kernel->end - kernel->start);
                 recordUserData->setStreamID(kernel->streamId);
-                recordUserData->setName(kernel->name);
+                recordUserData->setName((std::string)kernel->name);
                 activityRecordUserdata.push_back(recordUserData);
             }
             else if (status == CUPTI_ERROR_MAX_LIMIT_REACHED) {
@@ -82,6 +84,7 @@ bfrCompleteCallback (CUcontext ctx, uint32_t streamId, uint8_t* bfr,
                            << " activity records were dropped due to insufficient buffer space\n";
         }
     }
+    free(record);
     free(bfr);
 }
 
@@ -120,12 +123,12 @@ cuptiTraceStop (unsigned boxUintID) noexcept
     cuptiActivityFlushAll(0);
     for (auto record : activityRecordUserdata) {
         record->setUintID(boxUintID);
-        record->setCharID(("CharID_" + std::to_string(boxUintID)).c_str());
+        record->setCharID( ((std::string) "CharID_") + ((std::string) boxUintID) );
     }
 }
 
 double
-computeElapsedTimeUserdata (std::vector<CUpti_Activity_Userdata*>
+computeElapsedTimeUserdata (std::vector<std::unique_ptr<CUpti_Activity_Userdata>>
                             activityRecordUserdata) noexcept
 {
     if (activityRecordUserdata.size() == 0) {
@@ -166,17 +169,17 @@ computeElapsedTimeUserdata (std::vector<CUpti_Activity_Userdata*>
     return (double) res*1e-9;
 }
 
-void
-CUpti_Activity_Userdata::setRecord (CUpti_Activity* record) noexcept
-{
-    record_ = record;
-}
+// void
+// CUpti_Activity_Userdata::setRecord (CUpti_Activity* record) noexcept
+// {
+//     record_ = record;
+// }
 
-CUpti_Activity*
-CUpti_Activity_Userdata::getRecord () noexcept
-{ 
-    return record_;
-}
+// CUpti_Activity*
+// CUpti_Activity_Userdata::getRecord () noexcept
+// { 
+//     return record_;
+// }
 
 void
 CUpti_Activity_Userdata::setUintID (unsigned uintID) noexcept
@@ -209,7 +212,7 @@ CUpti_Activity_Userdata::setStreamID (int streamID) noexcept
 }
 
 void
-CUpti_Activity_Userdata::setName (const char* name) noexcept
+CUpti_Activity_Userdata::setName (std::string name) noexcept
 {
     name_ = name;
 }
@@ -221,12 +224,12 @@ CUpti_Activity_Userdata::getUintID () noexcept
 }
 
 void
-CUpti_Activity_Userdata::setCharID (const char* charID) noexcept
+CUpti_Activity_Userdata::setCharID (std::string charID) noexcept
 {
     charID_ = charID;
 }
 
-const char*
+std::string
 CUpti_Activity_Userdata::getCharID () noexcept
 { 
     return charID_;
@@ -256,7 +259,7 @@ CUpti_Activity_Userdata::getStreamID () noexcept
     return streamID_;
 }
 
-const char*
+std::string
 CUpti_Activity_Userdata::getName () noexcept
 {
     return name_;
@@ -268,7 +271,6 @@ CuptiTrace::CuptiTrace () noexcept
 
 CuptiTrace::~CuptiTrace () noexcept
 {
-    this->cleanup();
 }
  
 void
@@ -287,14 +289,6 @@ void
 CuptiTrace::stop (unsigned boxUintID) noexcept
 {
     cuptiTraceStop(boxUintID);
-}
-
-void
-CuptiTrace::cleanup () noexcept
-{
-    for (auto record : activityRecordUserdata) {
-        delete[] record;
-    }
 }
 
 }
