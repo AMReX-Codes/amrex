@@ -28,6 +28,7 @@
  * \param dx       Cell size along each dimension
  * \param dt       Time step
  * \param pml      Whether the boxes in which the solver is applied are PML boxes
+ * \param periodic_single_box Whether the full simulation domain consists of a single periodic box (i.e. the global domain is not MPI parallelized)
  */
 SpectralSolver::SpectralSolver(
                 const amrex::BoxArray& realspace_ba,
@@ -36,7 +37,7 @@ SpectralSolver::SpectralSolver(
                 const int norder_z, const bool nodal,
                 const amrex::Array<amrex::Real,3>& v_galilean,
                 const amrex::RealVect dx, const amrex::Real dt,
-                const bool pml ) {
+                const bool pml, const bool periodic_single_box ) {
 
     // Initialize all structures using the same distribution mapping dm
 
@@ -64,7 +65,7 @@ SpectralSolver::SpectralSolver(
 
     // - Initialize arrays for fields in spectral space + FFT plans
     field_data = SpectralFieldData( realspace_ba, k_space, dm,
-            algorithm->getRequiredNumberOfFields() );
+            algorithm->getRequiredNumberOfFields(), periodic_single_box );
 
 }
 

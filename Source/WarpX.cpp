@@ -716,6 +716,7 @@ WarpX::ReadParameters ()
     {
         ParmParse pp("psatd");
         pp.query("hybrid_mpi_decomposition", fft_hybrid_mpi_decomposition);
+        pp.query("periodic_single_box_fft", fft_periodic_single_box);
         pp.query("ngroups_fft", ngroups_fft);
         pp.query("fftw_plan_measure", fftw_plan_measure);
         pp.query("nox", nox_fft);
@@ -959,12 +960,24 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
 #elif (AMREX_SPACEDIM == 2)
         RealVect dx_vect(dx[0], dx[2]);
 #endif
+
+        // Check whether the option periodic, single box is valid here
+        if (fft_periodic_single_box) {
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE( geom[0].isAllPeriodic() && ba.size()==1 && lev==0,
+            "The option `psatd.periodic_single_box_fft` can only be used for a periodic domain, decomposed in a single box.");
+        }
+
         // Get the cell-centered box, with guard cells
         BoxArray realspace_ba = ba;  // Copy box
-        realspace_ba.enclosedCells().grow(ngE); // cell-centered + guard cells
+        realspace_ba.enclosedCells(); // cell-centered
+        if ( fft_periodic_single_box == false ) {
+            realspace_ba.grow(ngE); // add guard cells
+        }
         // Define spectral solver
+        bool const pml=false;
         spectral_solver_fp[lev].reset( new SpectralSolver( realspace_ba, dm,
-            nox_fft, noy_fft, noz_fft, do_nodal, v_galilean, dx_vect, dt[lev] ) );
+            nox_fft, noy_fft, noz_fft, do_nodal, v_galilean, dx_vect, dt[lev],
+            pml, fft_periodic_single_box ) );
     }
 #endif
     std::array<Real,3> const dx = CellSize(lev);

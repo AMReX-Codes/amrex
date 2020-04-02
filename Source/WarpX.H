@@ -802,6 +802,7 @@ private:
 #endif
 
     bool fft_hybrid_mpi_decomposition = false;
+    bool fft_periodic_single_box = false;
     int nox_fft = 16;
     int noy_fft = 16;
     int noz_fft = 16;

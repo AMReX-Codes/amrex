@@ -1000,6 +1000,13 @@ Numerics and algorithms
     If not set by users, these values are calculated automatically and determined *empirically* and
     would be equal the order of the solver for nodal grid, and half the order of the solver for staggered.
 
+* ``psatd.periodic_single_box_fft`` (`0` or `1`; default: 0)
+    If true, this will *not* incorporate the guard cells into the box over which FFTs are performed.
+    This is only valid when WarpX is run with periodic boundaries and a single box.
+    In this case, using `psatd.periodic_single_box_fft` is equivalent to using a global FFT over the whole domain.
+    Therefore, all the approximations that are usually made when using local FFTs with guard cells
+    (for problems with multiple boxes) become exact in the case of the periodic, single-box FFT without guard cells.
+
 * ``psatd.hybrid_mpi_decomposition`` (`0` or `1`; default: 0)
     Whether to use a different MPI decomposition for the particle-grid operations
     (deposition and gather) and for the PSATD solver. If `1`, the FFT will

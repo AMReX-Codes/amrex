@@ -55,7 +55,8 @@ class SpectralFieldData
         SpectralFieldData( const amrex::BoxArray& realspace_ba,
                            const SpectralKSpace& k_space,
                            const amrex::DistributionMapping& dm,
-                           const int n_field_required );
+                           const int n_field_required,
+                           const bool periodic_single_box );
         SpectralFieldData() = default; // Default constructor
         SpectralFieldData& operator=(SpectralFieldData&& field_data) = default;
         ~SpectralFieldData();
@@ -89,6 +90,8 @@ class SpectralFieldData
         */
         std::string cufftErrorToString (const cufftResult& err);
 #endif
+
+        bool m_periodic_single_box;
 };
 
 #endif // WARPX_SPECTRAL_FIELD_DATA_H_
