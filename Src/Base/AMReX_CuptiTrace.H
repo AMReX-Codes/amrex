@@ -6,6 +6,7 @@
 #include <vector>
 #include <cuda.h>
 #include <cupti.h>
+#include <memory>
 
 
 namespace amrex {
@@ -22,7 +23,6 @@ void cuptiTraceStop (unsigned boxUintID) noexcept;
 
 class CUpti_Activity_Userdata {
 private:
-    //CUpti_Activity* record_;
     unsigned uintID_;
     std::string charID_;
     unsigned long long startTime_;
@@ -32,7 +32,6 @@ private:
     std::string name_;
   
 public:
-    //void setRecord (CUpti_Activity*) noexcept;
     void setUintID (unsigned) noexcept;
     void setCharID (std::string) noexcept;
     void setStartTime (unsigned long long) noexcept;
@@ -40,7 +39,6 @@ public:
     void setTimeElapsed (unsigned long long) noexcept;
     void setStreamID (int) noexcept;
     void setName (std::string) noexcept;
-    CUpti_Activity* getRecord () noexcept;
     unsigned getUintID () noexcept;
     std::string getCharID () noexcept;
     unsigned long long getStartTime () noexcept;
@@ -60,7 +58,7 @@ public:
 };
 
 extern std::vector<std::unique_ptr<CUpti_Activity_Userdata>> activityRecordUserdata;
-double computeElapsedTimeUserdata(std::vector<std::unique_ptr<CUpti_Activity_Userdata>>
+double computeElapsedTimeUserdata(const std::vector<std::unique_ptr<CUpti_Activity_Userdata>>&
                                   activityRecordUserdata) noexcept;
 }
 

@@ -2,9 +2,10 @@
 #ifdef AMREX_USE_CUPTI
 #include <AMReX_Print.H>
 #include <stdio.h>
-#include <map>
 #include <cuda.h>
 #include <cupti.h>
+#include <map>
+#include <memory>
 
 // CUPTI buffer size, enough for 4096 activity records in a single buffer;
 // `CUpti_Activity` objects are 8 bytes long
@@ -54,17 +55,15 @@ bfrCompleteCallback (CUcontext ctx, uint32_t streamId, uint8_t* bfr,
             if (status == CUPTI_SUCCESS) {
                 std::unique_ptr<CUpti_Activity_Userdata> recordUserData;
                 recordUserData.reset(new CUpti_Activity_Userdata());
-                std::unique_ptr<CUpti_Activity_Userdata4> kernel;
-                kernel.reset( (CUpti_ActivityKernel4*) record);
+                CUpti_ActivityKernel4* kernel = (CUpti_ActivityKernel4*) record;
                 
                 // Save record data
-                //recordUserData->setRecord(record);
                 recordUserData->setStartTime(kernel->start);
                 recordUserData->setEndTime(kernel->end);
                 recordUserData->setTimeElapsed(kernel->end - kernel->start);
                 recordUserData->setStreamID(kernel->streamId);
                 recordUserData->setName((std::string)kernel->name);
-                activityRecordUserdata.push_back(recordUserData);
+                activityRecordUserdata.push_back( std::move(recordUserData) );
             }
             else if (status == CUPTI_ERROR_MAX_LIMIT_REACHED) {
                 // No more records in the buffer
@@ -84,8 +83,9 @@ bfrCompleteCallback (CUcontext ctx, uint32_t streamId, uint8_t* bfr,
                            << " activity records were dropped due to insufficient buffer space\n";
         }
     }
-    free(record);
     free(bfr);
+    record = NULL; // Cleanup dangling pointers
+    kernel = NULL; 
 }
 
 void
@@ -121,14 +121,14 @@ cuptiTraceStop (unsigned boxUintID) noexcept
 {
     cudaDeviceSynchronize();
     cuptiActivityFlushAll(0);
-    for (auto record : activityRecordUserdata) {
+    for (auto& record : activityRecordUserdata) {
         record->setUintID(boxUintID);
-        record->setCharID( ((std::string) "CharID_") + ((std::string) boxUintID) );
+        record->setCharID( ((std::string) "CharID_") + std::to_string(boxUintID) );
     }
 }
 
 double
-computeElapsedTimeUserdata (std::vector<std::unique_ptr<CUpti_Activity_Userdata>>
+computeElapsedTimeUserdata (const std::vector<std::unique_ptr<CUpti_Activity_Userdata>>&
                             activityRecordUserdata) noexcept
 {
     if (activityRecordUserdata.size() == 0) {
@@ -138,7 +138,7 @@ computeElapsedTimeUserdata (std::vector<std::unique_ptr<CUpti_Activity_Userdata>
     std::map<int, unsigned long long> streamIDToElapsedTimeMap;
     
     // Initialize tally of unique streams
-    for (auto record : activityRecordUserdata) {
+    for (auto& record : activityRecordUserdata) {
         if (streamIDToElapsedTimeMap.find(record->getStreamID())
             == streamIDToElapsedTimeMap.end()) {
             // Not found
@@ -149,7 +149,7 @@ computeElapsedTimeUserdata (std::vector<std::unique_ptr<CUpti_Activity_Userdata>
     }
 
     // Sum kernel times in each stream
-    for (auto record : activityRecordUserdata) {
+    for (auto& record : activityRecordUserdata) {
         streamIDToElapsedTimeMap[record->getStreamID()] += record->getTimeElapsed();
     }
 

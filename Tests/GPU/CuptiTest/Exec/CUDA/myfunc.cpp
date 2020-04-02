@@ -68,11 +68,11 @@ void doDeviceSleep (MultiFab& mf, int& n) {
         
         unsigned long long t_start = 0;
         unsigned long long t_stop = 0;
-        for (auto record : activityRecordUserdata) {
+        for (auto& record : activityRecordUserdata) {
             //std::unique_ptr<CUpti_ActivityKernel4> kernel; 
             //kernel.reset(record->getRecord());
-            t_start = (unsigned long long) record->getStartTime;//kernel->start;
-            t_stop = (unsigned long long) record->getEndTime;//kernel->end;
+            t_start = (unsigned long long) record->getStartTime();//kernel->start;
+            t_stop = (unsigned long long) record->getEndTime();   //kernel->end;
             
             unsigned long long dt = 0;
             dt = (((unsigned long long)t_stop) - ((unsigned long long)t_start));
