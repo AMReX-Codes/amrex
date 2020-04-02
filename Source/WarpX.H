@@ -493,6 +493,18 @@ public:
      */
     void ComputeCostsHeuristic (amrex::Vector<std::unique_ptr<amrex::Vector<amrex::Real> > >& costs);
 
+    /** \brief Computes the average cost per MPI rank given a distribution mapping
+     * and vector of cost for each FAB.
+     * @param[in] dm distribution mapping (mapping from FAB to MPI processes)
+     * @param[in] cost vector which gives mapping from FAB index space to the
+     * respective FAB's cost
+     * @param[out] efficiency average cost per MPI process computed from the
+     * given distribution mapping and and cost
+     */
+    void ComputeDistributionMappingEfficiency (const amrex::DistributionMapping& dm,
+                                               const amrex::Vector<amrex::Real>& cost,
+                                               amrex::Real& efficiency);
+
 protected:
 
     /**
@@ -708,6 +720,12 @@ private:
      * `load_balance_knapsack_factor=2` limits the maximum number of boxes that can
      * be assigned to a rank to 8. */
     amrex::Real load_balance_knapsack_factor = 1.24;
+    /** Threshold value that controls whether to adopt the proposed distribution
+     * mapping during load balancing.  The new distribution mapping is adopted
+     * if the ratio of proposed distribution mapping efficiency to current
+     * distribution mapping efficiency is larger than the threshold; 'efficiency'
+     * here means the average cost per MPI rank.  */
+    amrex::Real load_balance_efficiency_ratio_threshold = 0;
     /** Weight factor for cells in `Heuristic` costs update.
      * Default values on GPU are determined from single-GPU tests on Summit.
      * The problem setup for these tests is an empty (i.e. no particles) domain
