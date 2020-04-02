@@ -187,7 +187,7 @@ TinyProfiler::stop (unsigned boxUintID) noexcept
         t = computeElapsedTimeUserdata(activityRecordUserdata);
         int nKernelCalls = activityRecordUserdata.size();
 
-        for (auto record : activityRecordUserdata) 
+        for (auto& record : activityRecordUserdata) 
         {
             record->setUintID(boxUintID);
         }
