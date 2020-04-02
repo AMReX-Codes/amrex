@@ -11,10 +11,10 @@ Compiling AMReX with SUNDIALS 5
 The following steps describe how to compile an AMReX application with
 SUNDIALS 5 support.
 
-In order to use Sundials 5.1.0:
+In order to use SUNDIALS:
 
 #. AMReX suggests using the Github mirror:
-   https://github.com/LLNL/sundials/tree/v5.1.0
+   https://github.com/LLNL/sundials
 
    ::
 
@@ -22,7 +22,6 @@ In order to use Sundials 5.1.0:
       set -e
       git clone https://github.com/LLNL/sundials
       cd sundials
-      git checkout v5.1.0
       mkdir builddir instdir
       INSTALL_PREFIX=$(pwd)/instdir
       cd builddir
