@@ -239,4 +239,3 @@ CEXE_sources += AMReX_Machine.cpp
 
 VPATH_LOCATIONS += $(AMREX_HOME)/Src/Base
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Base
-
