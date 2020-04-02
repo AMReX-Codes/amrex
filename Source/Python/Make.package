@@ -1,5 +1,4 @@
 CEXE_sources += WarpXWrappers.cpp
 CEXE_sources += WarpX_py.cpp
 
-INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/Python
 VPATH_LOCATIONS   += $(WARPX_HOME)/Source/Python

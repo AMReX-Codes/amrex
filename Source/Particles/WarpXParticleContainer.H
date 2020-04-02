@@ -14,15 +14,16 @@
 #include "SpeciesPhysicalProperties.H"
 #include "Evolve/WarpXDtType.H"
 
+#ifdef WARPX_QED
+    #include "ElementaryProcess/QEDInternals/QuantumSyncEngineWrapper.H"
+    #include "ElementaryProcess/QEDInternals/BreitWheelerEngineWrapper.H"
+#endif
+
 #include <AMReX_Particles.H>
 #include <AMReX_AmrCore.H>
 
-#ifdef WARPX_QED
-    #include <QuantumSyncEngineWrapper.H>
-    #include <BreitWheelerEngineWrapper.H>
-#endif
-
 #include <memory>
+
 
 enum struct ConvertDirection{WarpX_to_SI, SI_to_WarpX};
 

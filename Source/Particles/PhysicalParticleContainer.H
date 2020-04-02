@@ -15,16 +15,16 @@
 #include "Filter/NCIGodfreyFilter.H"
 #include "Particles/ElementaryProcess/Ionization.H"
 
-#include <AMReX_IArrayBox.H>
-
 #ifdef WARPX_QED
-    #include <QuantumSyncEngineWrapper.H>
-    #include <BreitWheelerEngineWrapper.H>
-    #include <QedChiFunctions.H>
+    #include "Particles/ElementaryProcess/QEDInternals/QuantumSyncEngineWrapper.H"
+    #include "Particles/ElementaryProcess/QEDInternals/BreitWheelerEngineWrapper.H"
+    #include "Particles/ElementaryProcess/QEDInternals/QedChiFunctions.H"
 
-    #include <Particles/ElementaryProcess/QEDPairGeneration.H>
-    #include <Particles/ElementaryProcess/QEDPhotonEmission.H>
+    #include "Particles/ElementaryProcess/QEDPairGeneration.H"
+    #include "Particles/ElementaryProcess/QEDPhotonEmission.H"
 #endif
+
+#include <AMReX_IArrayBox.H>
 
 #include <map>
 

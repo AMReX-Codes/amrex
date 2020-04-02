@@ -11,7 +11,7 @@
 #include "Utils/WarpXConst.H"
 #include "Particles/WarpXParticleContainer.H"
 
-#include <QuantumSyncEngineWrapper.H>
+#include "QEDInternals/QuantumSyncEngineWrapper.H"
 
 /** @file
  *

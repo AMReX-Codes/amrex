@@ -11,7 +11,7 @@
 #include "Utils/WarpXConst.H"
 #include "Particles/WarpXParticleContainer.H"
 
-#include <BreitWheelerEngineWrapper.H>
+#include "QEDInternals/BreitWheelerEngineWrapper.H"
 
 /** @file
  *

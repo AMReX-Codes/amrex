@@ -1,6 +1,5 @@
 cEXE_sources += wp_parser_y.c wp_parser.tab.c wp_parser.lex.c wp_parser_c.c
 CEXE_sources += WarpXParser.cpp
 
-INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/Parser
 VPATH_LOCATIONS   += $(WARPX_HOME)/Source/Parser
 

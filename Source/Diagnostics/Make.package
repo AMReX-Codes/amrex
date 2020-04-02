@@ -15,5 +15,4 @@ include $(WARPX_HOME)/Source/Diagnostics/ReducedDiags/Make.package
 include $(WARPX_HOME)/Source/Diagnostics/ComputeDiagFunctors/Make.package
 include $(WARPX_HOME)/Source/Diagnostics/FlushFormats/Make.package
 
-INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/Diagnostics
 VPATH_LOCATIONS   += $(WARPX_HOME)/Source/Diagnostics

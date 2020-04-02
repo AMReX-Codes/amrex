@@ -6,5 +6,4 @@ CEXE_sources += BeamRelevant.cpp
 CEXE_sources += LoadBalanceCosts.cpp
 CEXE_sources += ParticleHistogram.cpp
 
-INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/Diagnostics/ReducedDiags
 VPATH_LOCATIONS   += $(WARPX_HOME)/Source/Diagnostics/ReducedDiags

@@ -8,7 +8,7 @@
  * License: BSD-3-Clause-LBNL
  */
 #include "PlasmaInjector.H"
-#include "SpeciesPhysicalProperties.H"
+#include "Particles/SpeciesPhysicalProperties.H"
 #include "Utils/WarpXConst.H"
 #include "Utils/WarpXUtil.H"
 #include "WarpX.H"

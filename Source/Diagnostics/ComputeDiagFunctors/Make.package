@@ -4,5 +4,4 @@ CEXE_sources += PartPerGridFunctor.cpp
 CEXE_sources += DivBFunctor.cpp
 CEXE_sources += DivEFunctor.cpp
 
-INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/Diagnostics/ComputeDiagFunctors
 VPATH_LOCATIONS   += $(WARPX_HOME)/Source/Diagnostics/ComputeDiagFunctors

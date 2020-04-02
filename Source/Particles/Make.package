@@ -12,5 +12,4 @@ include $(WARPX_HOME)/Source/Particles/ParticleCreation/Make.package
 include $(WARPX_HOME)/Source/Particles/ElementaryProcess/Make.package
 include $(WARPX_HOME)/Source/Particles/Collision/Make.package
 
-INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/Particles
 VPATH_LOCATIONS   += $(WARPX_HOME)/Source/Particles

@@ -6,8 +6,9 @@
  *
  * License: BSD-3-Clause-LBNL
  */
-#include <WarpX.H>
-#include <WarpXAlgorithmSelection.H>
+#include "WarpX.H"
+#include "Utils/WarpXAlgorithmSelection.H"
+
 #include <AMReX_BLProfiler.H>
 
 using namespace amrex;

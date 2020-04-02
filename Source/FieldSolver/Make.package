@@ -9,5 +9,4 @@ ifeq ($(USE_PSATD),TRUE)
 endif
 include $(WARPX_HOME)/Source/FieldSolver/FiniteDifferenceSolver/Make.package
 
-INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/FieldSolver
 VPATH_LOCATIONS   += $(WARPX_HOME)/Source/FieldSolver

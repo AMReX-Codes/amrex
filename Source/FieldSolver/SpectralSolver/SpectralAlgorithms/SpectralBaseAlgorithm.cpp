@@ -4,7 +4,7 @@
  *
  * License: BSD-3-Clause-LBNL
  */
-#include <SpectralBaseAlgorithm.H>
+#include "SpectralBaseAlgorithm.H"
 #include <cmath>
 
 using namespace amrex;

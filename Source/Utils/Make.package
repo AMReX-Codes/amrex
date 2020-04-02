@@ -5,5 +5,4 @@ CEXE_sources += WarpXAlgorithmSelection.cpp
 CEXE_sources += Average.cpp
 CEXE_sources += Interpolate.cpp
 
-INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/Utils
 VPATH_LOCATIONS   += $(WARPX_HOME)/Source/Utils

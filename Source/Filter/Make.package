@@ -2,5 +2,4 @@ CEXE_sources += Filter.cpp
 CEXE_sources += BilinearFilter.cpp
 CEXE_sources += NCIGodfreyFilter.cpp
 
-INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/Filter
 VPATH_LOCATIONS   += $(WARPX_HOME)/Source/Filter

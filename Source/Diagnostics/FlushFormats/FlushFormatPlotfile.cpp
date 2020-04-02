@@ -1,6 +1,6 @@
 #include "FlushFormatPlotfile.H"
 #include "WarpX.H"
-#include "Interpolate.H"
+#include "Utils/Interpolate.H"
 
 #include <AMReX_buildInfo.H>
 

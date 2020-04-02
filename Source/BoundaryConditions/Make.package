@@ -1,4 +1,3 @@
 CEXE_sources += PML.cpp WarpXEvolvePML.cpp
 
-INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/BoundaryConditions
 VPATH_LOCATIONS   += $(WARPX_HOME)/Source/BoundaryConditions

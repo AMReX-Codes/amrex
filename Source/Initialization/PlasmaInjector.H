@@ -9,7 +9,7 @@
 #ifndef PLASMA_INJECTOR_H_
 #define PLASMA_INJECTOR_H_
 
-#include "SpeciesPhysicalProperties.H"
+#include "Particles/SpeciesPhysicalProperties.H"
 #include "InjectorPosition.H"
 #include "InjectorDensity.H"
 #include "InjectorMomentum.H"
