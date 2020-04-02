@@ -9,7 +9,7 @@
 
 void doDeviceSleep (MultiFab& mf, int& n) {
     // Call device sleep function at each iteration of MFIter loop
-    
+
     // Code is instrumented here to capture CUPTI
     // kernel activity from outside MFIter loop
 #ifdef AMREX_USE_CUPTI
@@ -28,12 +28,12 @@ void doDeviceSleep (MultiFab& mf, int& n) {
     BL_PROFILE_VAR_START(blpCpuSleep);
 #endif
 #endif
-    
+
     for ( MFIter mfi(mf); mfi.isValid(); ++mfi )
     {
         // Test 1: launch kernel
         // deviceSleep<<<1, 1, 0, amrex::Gpu::Device::gpuStream()>>>();
-        
+
         // Test 2: launch kernel as inlined lambda      
         const Box& bx = mfi.tilebox();
         const Dim3 lo = amrex::lbound(bx);
@@ -60,23 +60,21 @@ void doDeviceSleep (MultiFab& mf, int& n) {
     cuptiTrace.stop(1729*amrex::Random());
     // cuptiTrace.stop();  // Alternatively, may call without unsigned flag
 #endif
-    
+
     if (true)
     {
         amrex::Print() << "Average time per box (s): "
                        << computeElapsedTimeUserdata(activityRecordUserdata) << "\n";
-        
+
         unsigned long long t_start = 0;
         unsigned long long t_stop = 0;
         for (auto& record : activityRecordUserdata) {
-            //std::unique_ptr<CUpti_ActivityKernel4> kernel; 
-            //kernel.reset(record->getRecord());
-            t_start = (unsigned long long) record->getStartTime();//kernel->start;
-            t_stop = (unsigned long long) record->getEndTime();   //kernel->end;
-            
+            t_start = (unsigned long long) record->getStartTime();
+            t_stop = (unsigned long long) record->getEndTime();
+
             unsigned long long dt = 0;
             dt = (((unsigned long long)t_stop) - ((unsigned long long)t_start));
-            
+
             // Kernel data captured in a vector `activityRecordUserdata`
             // Print here some information from the captured records
             amrex::AllPrint() << "  t_elapsed (ns):  " << dt
