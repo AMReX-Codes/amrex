@@ -9,6 +9,8 @@
 # @result 0 if no files are found, else 1
 #
 
+set -eu -o pipefail
+
 ok=0
 files=()
 
@@ -17,14 +19,17 @@ pattern="\.c$|\.cpp$|\.F90$|\.h$|\.H$|\.ini$|\.md$|\.py$|"\
 "CMakeLists\.txt|inputs"
 
 for i in $(find . \
-                -not -path "./.git/*"   \
-                -not -path "./.idea/*"  \
-                -not -path "*wp_parse*" \
+                -not -path "./.git/*"          \
+                -not -path "./.idea/*"         \
+                -not -path "*wp_parse*"        \
+                -not -path "./tmp_build_dir/*" \
+                -not -path "./Docs/build/*"    \
+                -not -path "./Docs/doxy*"      \
                 -type f | \
-           grep -P "${pattern}")
+           grep -E "${pattern}")
 do
-  grep -q -P "\t" $i
-  if [ $? -eq 0 ]
+  fileHasTabs=$(grep -q -E "$(printf '\t')" $i || echo "-FILE CLEAN-")
+  if [ "$fileHasTabs" != "-FILE CLEAN-" ]
   then
     files+=($i)
     echo "$i contains TABs instead of spaces!"

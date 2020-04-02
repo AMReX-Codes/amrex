@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#!/usr/bin/env python
 
 # Concatenation of tests in each of the 6 elements in Travis matrix
 f = open('./travis_matrix_elements.txt') ; matrix_elements = f.readlines() ; f.close()

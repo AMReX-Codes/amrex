@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
-
+#
 # Search inside Examples/ and check that file names start with
 # inputs
 # PICMI_inputs
 # analysis
 # README
+
+set -eu -o pipefail
 
 ok=0
 files=()

@@ -2,6 +2,8 @@
 
 # Search input files in Examples/ and verify if all input files are tested
 
+set -eu -o pipefail
+
 ok=0
 
 for file in $(find Examples -type f)

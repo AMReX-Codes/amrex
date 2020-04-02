@@ -12,24 +12,35 @@
 # @result 0 if no files are found, else 1
 #
 
+set -eu -o pipefail
+
 ok=0
 
 pattern="\.c$|\.cpp$|\.F90$|\.h$|\.H$|\.ini$|\.py$|"\
 "\.sh$|\.tex$|\.txt$|\.xml$|\.yml$|"\
 "CMakeLists\.txt|inputs"
 
+GNU_GREP=$(echo "a" | grep -P "a" >/dev/null 2>&1 && { echo 1; } || { echo 0; })
+
 for i in $(find . \
-                -not -path "./.git/*"   \
-                -not -path "./.idea/*"  \
-                -not -path "*wp_parse*" \
+                -not -path "./.git/*"          \
+                -not -path "./.idea/*"         \
+                -not -path "*wp_parse*"        \
+                -not -path "./tmp_build_dir/*" \
+                -not -path "./Docs/*"          \
                 -type f | \
-           grep -P "${pattern}")
+           grep -E "${pattern}")
 do
   # non-ASCII test regex via jerrymouse at stackoverflow under CC-By-SA 3.0:
   #   http://stackoverflow.com/questions/3001177/how-do-i-grep-for-all-non-ascii-characters-in-unix/9395552#9395552
-  result=$(grep --color='always' -P -n "[\x80-\xFF]" $i)
+  if [ ${GNU_GREP} -eq 1 ]; then
+    result=$(grep --color='always' -n -P "[\x80-\xF7]" $i || echo "")
+  else
+    # all OSX have perl
+    result=$(perl -ne 'print "$. $_" if m/[\x80-\xF7]/' $i)
+  fi
 
-  if [ $? -eq 0 ]
+  if [ "$result" != "" ]
   then
     echo "$i contains non-ASCII characters!"
     echo "$result"
