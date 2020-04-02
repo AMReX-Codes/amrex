@@ -184,22 +184,30 @@ FArrayBox::FArrayBox (const Box& b, int ncomp, Real const* p) noexcept
 {
 }
 
-FArrayBox&
-FArrayBox::operator= (Real v) noexcept
-{
-    BaseFab<Real>::operator=(v);
-    return *this;
-}
-
 void
 FArrayBox::initVal () noexcept
 {
     Real * p = dataPtr();
     long s = size();
     if (p and s > 0) {
+        RunOn runon;
+#if defined(AMREX_USE_GPU)
+        if ( Gpu::inLaunchRegion() && 
+             (arena() == The_Arena() ||
+              arena() == The_Device_Arena() ||
+              arena() == The_Managed_Arena()) )
+        {
+          runon = RunOn::Gpu;
+        } else {
+          runon = RunOn::Cpu;
+        } 
+#else
+        runon = RunOn::Cpu;
+#endif
+
         if (init_snan) {
 #if defined(AMREX_USE_GPU)
-            if (Gpu::inLaunchRegion())
+            if (runon == RunOn::Gpu)
             {
 #if (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
                 amrex::ParallelFor(s, [=] AMREX_GPU_DEVICE (long i) noexcept
@@ -207,6 +215,7 @@ FArrayBox::initVal () noexcept
                     p[i] = std::numeric_limits<Real>::signaling_NaN();
                 });
 #endif
+                Gpu::streamSynchronize();
             }
             else
 #endif
@@ -215,10 +224,11 @@ FArrayBox::initVal () noexcept
             }
         } else if (do_initval) {
             const Real x = initval;
-            AMREX_HOST_DEVICE_PARALLEL_FOR_1D( s, i,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_1D_FLAG (runon, s, i,
             {
                 p[i] = x;
             });
+            if (runon == RunOn::Gpu) Gpu::streamSynchronize();
         }
     }
 }
@@ -777,8 +787,8 @@ FABio_8bit::write (std::ostream&    os,
     unsigned char *c = new unsigned char[siz];
 
     for(int k(0); k < num_comp; ++k) {
-        const Real mn   = f.min(k+comp);
-        const Real mx   = f.max(k+comp);
+        const Real mn   = f.min<RunOn::Host>(k+comp);
+        const Real mx   = f.max<RunOn::Host>(k+comp);
         const Real* dat = f.dataPtr(k+comp);
         Real rng = std::fabs(mx-mn);
         rng = (rng < eps) ? 0.0 : 255.0/(mx-mn);

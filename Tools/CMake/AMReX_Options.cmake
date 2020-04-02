@@ -36,6 +36,16 @@ else ()
    message(STATUS "Build type set by user to '${CMAKE_BUILD_TYPE}'.")
 endif()
 
+
+set(AMREX_CXX_STANDARD 14 CACHE STRING "C++ standard to use" )
+if (  (  NOT ("${AMREX_CXX_STANDARD}" EQUAL "11") ) AND
+      (  NOT ("${AMREX_CXX_STANDARD}" EQUAL "14") ) AND
+      (  NOT ("${AMREX_CXX_STANDARD}" EQUAL "17") ) )
+    message(FATAL_ERROR "Wrong value for AMREX_CXX_STANDARD. Supported values are 11,14,17.")
+else()
+    message(STATUS "Building with C++ standard ${AMREX_CXX_STANDARD}")
+endif ()
+
 #
 # Populate the cache and check the value of the user-definable options
 #
@@ -79,9 +89,6 @@ print_option( ENABLE_MPI )
 
 option( ENABLE_OMP  "Enable OpenMP" OFF)
 print_option( ENABLE_OMP )
-
-option( ENABLE_CUDA  "Enable CUDA" OFF)
-print_option( ENABLE_CUDA )
 
 
 if ( USE_XSDK_DEFAULTS )

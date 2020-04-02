@@ -1,4 +1,4 @@
-AMREX_INSTALL_DIR ?= ../../tmp_install_dir
+AMREX_INSTALL_DIR ?= ../../../tmp_install_dir
 
 #CXX = CC
 #FC = ftn

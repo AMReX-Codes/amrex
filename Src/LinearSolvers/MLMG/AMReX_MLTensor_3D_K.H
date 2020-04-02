@@ -1182,6 +1182,136 @@ void mltensor_cross_terms (Box const& box, Array4<Real> const& Ax,
     }
 }
 
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mltensor_vel_grads_fx (Box const& box, Array4<Real> const& fx,
+                            Array4<Real const> const& vel,
+                            GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+{
+    const Real dxi = dxinv[0];
+    const Real dyi = dxinv[1];
+    const Real dzi = dxinv[2];
+    const auto lo = amrex::lbound(box);
+    const auto hi = amrex::ubound(box);
+
+    for         (int k = lo.z; k <= hi.z; ++k) {
+        for     (int j = lo.y; j <= hi.y; ++j) {
+            AMREX_PRAGMA_SIMD
+            for (int i = lo.x; i <= hi.x; ++i) {
+              
+                Real dudx = (vel(i,j,k,0) - vel(i-1,j,k,0))*dxi;
+                Real dvdx = (vel(i,j,k,1) - vel(i-1,j,k,1))*dxi;
+                Real dwdx = (vel(i,j,k,2) - vel(i-1,j,k,2))*dxi;
+              
+                Real dudy = (vel(i,j+1,k,0)+vel(i-1,j+1,k,0)-vel(i,j-1,k,0)-vel(i-1,j-1,k,0))*(0.25*dyi);
+                Real dvdy = (vel(i,j+1,k,1)+vel(i-1,j+1,k,1)-vel(i,j-1,k,1)-vel(i-1,j-1,k,1))*(0.25*dyi);
+                Real dwdy = (vel(i,j+1,k,2)+vel(i-1,j+1,k,2)-vel(i,j-1,k,2)-vel(i-1,j-1,k,2))*(0.25*dyi);
+                
+                Real dudz = (vel(i,j,k+1,0)+vel(i-1,j,k+1,0)-vel(i,j,k-1,0)-vel(i-1,j,k-1,0))*(0.25*dzi);
+                Real dvdz = (vel(i,j,k+1,1)+vel(i-1,j,k+1,1)-vel(i,j,k-1,1)-vel(i-1,j,k-1,1))*(0.25*dzi);
+                Real dwdz = (vel(i,j,k+1,2)+vel(i-1,j,k+1,2)-vel(i,j,k-1,2)-vel(i-1,j,k-1,2))*(0.25*dzi);
+                
+                fx(i,j,k,0) = dudx;
+                fx(i,j,k,1) = dvdx;
+                fx(i,j,k,2) = dwdx;
+                fx(i,j,k,3) = dudy;
+                fx(i,j,k,4) = dvdy;
+                fx(i,j,k,5) = dwdy;
+                fx(i,j,k,6) = dudz;
+                fx(i,j,k,7) = dvdz;
+                fx(i,j,k,8) = dwdz;
+                
+            }
+        }
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mltensor_vel_grads_fy (Box const& box, Array4<Real> const& fy,
+                              Array4<Real const> const& vel,
+                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+{
+    const Real dxi = dxinv[0];
+    const Real dyi = dxinv[1];
+    const Real dzi = dxinv[2];
+    const auto lo = amrex::lbound(box);
+    const auto hi = amrex::ubound(box);
+
+    for         (int k = lo.z; k <= hi.z; ++k) {
+        for     (int j = lo.y; j <= hi.y; ++j) {
+            AMREX_PRAGMA_SIMD
+            for (int i = lo.x; i <= hi.x; ++i) {
+              
+                Real dudx = (vel(i+1,j,k,0)+vel(i+1,j-1,k,0)-vel(i-1,j,k,0)-vel(i-1,j-1,k,0))*(0.25*dxi);
+                Real dvdx = (vel(i+1,j,k,1)+vel(i+1,j-1,k,1)-vel(i-1,j,k,1)-vel(i-1,j-1,k,1))*(0.25*dxi);
+                Real dwdx = (vel(i+1,j,k,2)+vel(i+1,j-1,k,2)-vel(i-1,j,k,2)-vel(i-1,j-1,k,2))*(0.25*dxi);
+                
+                Real dudy = (vel(i,j,k,0) - vel(i,j-1,k,0))*dyi;
+                Real dvdy = (vel(i,j,k,1) - vel(i,j-1,k,1))*dyi;
+                Real dwdy = (vel(i,j,k,2) - vel(i,j-1,k,2))*dyi;
+                
+                Real dudz = (vel(i,j,k+1,0)+vel(i,j-1,k+1,0)-vel(i,j,k-1,0)-vel(i,j-1,k-1,0))*(0.25*dzi);
+                Real dvdz = (vel(i,j,k+1,1)+vel(i,j-1,k+1,1)-vel(i,j,k-1,1)-vel(i,j-1,k-1,1))*(0.25*dzi);
+                Real dwdz = (vel(i,j,k+1,2)+vel(i,j-1,k+1,2)-vel(i,j,k-1,2)-vel(i,j-1,k-1,2))*(0.25*dzi);
+                
+                fy(i,j,k,0) = dudx;
+                fy(i,j,k,1) = dvdx;
+                fy(i,j,k,2) = dwdx;
+                fy(i,j,k,3) = dudy;
+                fy(i,j,k,4) = dvdy;
+                fy(i,j,k,5) = dwdy;
+                fy(i,j,k,6) = dudz;
+                fy(i,j,k,7) = dvdz;
+                fy(i,j,k,8) = dwdz;
+
+            }
+        }
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mltensor_vel_grads_fz (Box const& box, Array4<Real> const& fz,
+                              Array4<Real const> const& vel,
+                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+{
+    const Real dxi = dxinv[0];
+    const Real dyi = dxinv[1];
+    const Real dzi = dxinv[2];
+    const auto lo = amrex::lbound(box);
+    const auto hi = amrex::ubound(box);
+
+    for         (int k = lo.z; k <= hi.z; ++k) {
+        for     (int j = lo.y; j <= hi.y; ++j) {
+            AMREX_PRAGMA_SIMD
+            for (int i = lo.x; i <= hi.x; ++i) {
+              
+                Real dudx = (vel(i+1,j,k,0)+vel(i+1,j,k-1,0)-vel(i-1,j,k,0)-vel(i-1,j,k-1,0))*(0.25*dxi);
+                Real dvdx = (vel(i+1,j,k,1)+vel(i+1,j,k-1,1)-vel(i-1,j,k,1)-vel(i-1,j,k-1,1))*(0.25*dxi);
+                Real dwdx = (vel(i+1,j,k,2)+vel(i+1,j,k-1,2)-vel(i-1,j,k,2)-vel(i-1,j,k-1,2))*(0.25*dxi);
+                
+                Real dudy = (vel(i,j+1,k,0)+vel(i,j+1,k-1,0)-vel(i,j-1,k,0)-vel(i,j-1,k-1,0))*(0.25*dyi);
+                Real dvdy = (vel(i,j+1,k,1)+vel(i,j+1,k-1,1)-vel(i,j-1,k,1)-vel(i,j-1,k-1,1))*(0.25*dyi);
+                Real dwdy = (vel(i,j+1,k,2)+vel(i,j+1,k-1,2)-vel(i,j-1,k,2)-vel(i,j-1,k-1,2))*(0.25*dyi);
+                
+                Real dudz = (vel(i,j,k,0) - vel(i,j,k-1,0))*dzi;
+                Real dvdz = (vel(i,j,k,1) - vel(i,j,k-1,1))*dzi;
+                Real dwdz = (vel(i,j,k,2) - vel(i,j,k-1,2))*dzi;
+                
+                fz(i,j,k,0) = dudx;
+                fz(i,j,k,1) = dvdx;
+                fz(i,j,k,2) = dwdx;
+                fz(i,j,k,3) = dudy;
+                fz(i,j,k,4) = dvdy;
+                fz(i,j,k,5) = dwdy;
+                fz(i,j,k,6) = dudz;
+                fz(i,j,k,7) = dvdz;
+                fz(i,j,k,8) = dwdz;
+
+            }
+        }
+    } 
+}
+
 }
 
 #endif

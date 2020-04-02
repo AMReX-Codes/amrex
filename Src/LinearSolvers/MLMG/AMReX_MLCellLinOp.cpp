@@ -544,18 +544,17 @@ MLCellLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
 
             for (OrientationIter oitr; oitr; ++oitr)
             {
+#ifndef BL_NO_FORT
                 const Orientation ori = oitr();
 
                 int  cdr = ori;
                 Real bcl = bdl[ori];
                 int  bct = bdc[ori];
 
-                foofab.setVal(10.0);
                 const FArrayBox& fsfab = (bndry != nullptr) ? bndry->bndryValues(ori)[mfi] : foofab;
 
                 const Mask& m = maskvals[ori][mfi];
 
-#ifndef BL_NO_FORT
                 amrex_mllinop_apply_bc(BL_TO_FORTRAN_BOX(vbx),
                                        BL_TO_FORTRAN_ANYD(in[mfi]),
                                        BL_TO_FORTRAN_ANYD(m),

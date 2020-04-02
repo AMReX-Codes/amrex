@@ -28,6 +28,7 @@ module amrex_multigrid_module
      procedure :: set_verbose           => amrex_multigrid_set_verbose
      procedure :: set_max_iter          => amrex_multigrid_set_max_iter
      procedure :: set_max_fmg_iter      => amrex_multigrid_set_max_fmg_iter
+     procedure :: set_fixed_iter        => amrex_multigrid_set_fixed_iter
      procedure :: set_bottom_solver     => amrex_multigrid_set_bottom_solver
      procedure :: set_cg_verbose        => amrex_multigrid_set_cg_verbose
      procedure :: set_always_use_bnorm  => amrex_multigrid_set_always_use_bnorm
@@ -40,6 +41,7 @@ module amrex_multigrid_module
      procedure, private :: amrex_multigrid_set_verbose
      procedure, private :: amrex_multigrid_set_max_iter
      procedure, private :: amrex_multigrid_set_max_fmg_iter
+     procedure, private :: amrex_multigrid_set_fixed_iter
      procedure, private :: amrex_multigrid_set_cg_verbose
      procedure, private :: amrex_multigrid_set_always_use_bnorm
      procedure, private :: amrex_multigrid_set_final_fill_bc
@@ -115,6 +117,13 @@ module amrex_multigrid_module
        type(c_ptr), value :: mg
        integer(c_int), value :: n
      end subroutine amrex_fi_multigrid_set_max_fmg_iter
+
+     subroutine amrex_fi_multigrid_set_fixed_iter (mg, n) bind(c)
+       import
+       implicit none
+       type(c_ptr), value :: mg
+       integer(c_int), value :: n
+     end subroutine amrex_fi_multigrid_set_fixed_iter
 
      subroutine amrex_fi_multigrid_set_bottom_solver (mg, s) bind(c)
        import
@@ -258,6 +267,13 @@ contains
     integer, intent(in) :: n
     call amrex_fi_multigrid_set_max_fmg_iter(mg%p, n)
   end subroutine amrex_multigrid_set_max_fmg_iter
+
+
+  subroutine amrex_multigrid_set_fixed_iter (mg, n)
+    class(amrex_multigrid), intent(inout) :: mg
+    integer, intent(in) :: n
+    call amrex_fi_multigrid_set_fixed_iter(mg%p, n)
+  end subroutine amrex_multigrid_set_fixed_iter
 
 
   subroutine amrex_multigrid_set_bottom_solver (mg, s)

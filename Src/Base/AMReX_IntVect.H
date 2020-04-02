@@ -21,6 +21,17 @@
 
 namespace amrex {
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+int coarsen (int i, int ratio) noexcept
+{
+    switch (ratio) {
+    case  1: return i;
+    case  2: return (i<0) ? -amrex::Math::abs(i+1)/2    -1 : i/2;
+    case  4: return (i<0) ? -amrex::Math::abs(i+1)/4    -1 : i/4;
+    default: return (i<0) ? -amrex::Math::abs(i+1)/ratio-1 : i/ratio;
+    }
+}
+
 /**
 * An Integer Vector in SPACEDIM-Dimensional Space
 *
@@ -550,7 +561,25 @@ IntVect&
 IntVect::coarsen (int s) noexcept
 {
     BL_ASSERT(s > 0);
-    return this->coarsen(IntVect(AMREX_D_DECL(s,s,s)));
+    switch (s) {
+    case 1:
+        break;
+    case 2:
+        AMREX_D_TERM(vect[0] = (vect[0]<0) ? -amrex::Math::abs(vect[0]+1)/2-1 : vect[0]/2;,
+                     vect[1] = (vect[1]<0) ? -amrex::Math::abs(vect[1]+1)/2-1 : vect[1]/2;,
+                     vect[2] = (vect[2]<0) ? -amrex::Math::abs(vect[2]+1)/2-1 : vect[2]/2;);
+        break;
+    case 4:
+        AMREX_D_TERM(vect[0] = (vect[0]<0) ? -amrex::Math::abs(vect[0]+1)/4-1 : vect[0]/4;,
+                     vect[1] = (vect[1]<0) ? -amrex::Math::abs(vect[1]+1)/4-1 : vect[1]/4;,
+                     vect[2] = (vect[2]<0) ? -amrex::Math::abs(vect[2]+1)/4-1 : vect[2]/4;);
+        break;
+    default:
+        AMREX_D_TERM(vect[0] = (vect[0]<0) ? -amrex::Math::abs(vect[0]+1)/s-1 : vect[0]/s;,
+                     vect[1] = (vect[1]<0) ? -amrex::Math::abs(vect[1]+1)/s-1 : vect[1]/s;,
+                     vect[2] = (vect[2]<0) ? -amrex::Math::abs(vect[2]+1)/s-1 : vect[2]/s;);
+    }
+    return *this;
 }
 
 AMREX_GPU_HOST_DEVICE
@@ -559,13 +588,9 @@ IntVect&
 IntVect::coarsen (const IntVect& p) noexcept
 {
     BL_ASSERT(p.allGT(IntVect::TheZeroVector()));
-    if (p != 1) {
-        for (int i = 0; i <AMREX_SPACEDIM; ++i)
-        {
-            const int s = p.vect[i];
-            vect[i] = ((vect[i]<0) ? -amrex::Math::abs(vect[i]+1)/s-1 : vect[i]/s); 
-        }
-    }
+    AMREX_D_TERM(vect[0] = amrex::coarsen(vect[0], p.vect[0]);,
+                 vect[1] = amrex::coarsen(vect[1], p.vect[1]);,
+                 vect[2] = amrex::coarsen(vect[2], p.vect[2]););
     return *this;
 }
 
@@ -768,7 +793,7 @@ coarsen (const IntVect& p, int s) noexcept
 {
     BL_ASSERT(s > 0);
     IntVect v = p;
-    v.coarsen(IntVect(AMREX_D_DECL(s,s,s)));
+    v.coarsen(s);
     return v;
 }
 
@@ -796,12 +821,6 @@ Dim3 refine (Dim3 const& coarse, IntVect const& ratio) noexcept
 #else
     return {coarse.x*ratio[0], coarse.y*ratio[1], coarse.z*ratio[2]};
 #endif
-}
-
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-int coarsen (int i, int ratio) noexcept
-{
-    return (i<0) ? -amrex::Math::abs(i+1)/ratio-1 : i/ratio;
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE

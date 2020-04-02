@@ -64,5 +64,5 @@ MCViscBndry::setHomogValues()
 {
     for (int grd = 0; grd < boxes().size(); grd++)
         for (OrientationIter fi; fi; ++fi)
-	    bndry[fi()][grd].setVal(0.);
+	    bndry[fi()][grd].setVal<RunOn::Host>(0.);
 }

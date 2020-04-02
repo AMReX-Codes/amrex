@@ -1,5 +1,5 @@
 
-CEXE_headers += AMReX_AmrCore.H AMReX_Cluster.H AMReX_ErrorList.H AMReX_FillPatchUtil.H AMReX_FluxRegister.H \
+CEXE_headers += AMReX_AmrCore.H AMReX_Cluster.H AMReX_ErrorList.H AMReX_FillPatchUtil.H AMReX_FillPatchUtil_I.H AMReX_FluxRegister.H \
                 AMReX_Interpolater.H AMReX_TagBox.H AMReX_AmrMesh.H
 CEXE_sources += AMReX_AmrCore.cpp AMReX_Cluster.cpp AMReX_ErrorList.cpp AMReX_FillPatchUtil.cpp AMReX_FluxRegister.cpp \
                 AMReX_Interpolater.cpp AMReX_TagBox.cpp AMReX_AmrMesh.cpp

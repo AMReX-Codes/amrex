@@ -1,3 +1,0 @@
-ifeq ($(EBASE), mfreadwrite)
-  CEXE_sources += MultiFabReadWrite.cpp
-endif

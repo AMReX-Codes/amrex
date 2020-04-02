@@ -249,7 +249,7 @@ ABecLaplacian::bCoefficients (const FArrayBox& _b,
 {
     BL_ASSERT(_b.box().contains((bcoefs[0][dir])->boxArray()[gridno]));
     invalidate_b_to_level(0);
-    (*bcoefs[0][dir])[gridno].copy(_b,0,0,1);
+    (*bcoefs[0][dir])[gridno].copy<RunOn::Host>(_b,0,0,1);
 }
 
 const MultiFab&

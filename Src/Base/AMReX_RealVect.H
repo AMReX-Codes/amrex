@@ -656,6 +656,15 @@ RealVect::operator-= (Real s) noexcept
 AMREX_GPU_HOST_DEVICE
 inline
 RealVect&
+RealVect::operator*= (Real s) noexcept
+{
+  AMREX_D_EXPR(vect[0] *= s, vect[1] *= s, vect[2] *= s);
+  return *this;
+}
+
+AMREX_GPU_HOST_DEVICE
+inline
+RealVect&
 RealVect::operator-= (const RealVect& p) noexcept
 {
   AMREX_D_EXPR(vect[0] -= p[0], vect[1] -= p[1], vect[2] -= p[2]);
