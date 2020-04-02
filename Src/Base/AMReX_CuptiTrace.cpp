@@ -280,4 +280,5 @@ CuptiTrace::stop (unsigned boxUintID) noexcept
 }
 
 }
+
 #endif
