@@ -32,8 +32,6 @@ public:
 #endif
         {}
 
-    ~ScaleIF () {}
-
     ScaleIF (const ScaleIF& rhs) = default;
     ScaleIF (ScaleIF&& rhs) = default;
     ScaleIF& operator= (const ScaleIF& rhs) = delete;

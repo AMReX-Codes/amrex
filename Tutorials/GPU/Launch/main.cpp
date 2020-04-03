@@ -2,7 +2,6 @@
 #include <AMReX.H>
 #include <AMReX_MultiFab.H>
 
-#include "MyKernel.H"
 #include "MyKernel_F.H"
 
 using namespace amrex;
@@ -195,30 +194,8 @@ void main_main ()
         }
     }
 
-    // (9) C++ , amrex::launch function, Capture Array4 and then make a Fab on device
-    {
-        BL_PROFILE("9-amrex_launch_array4-fab-func");
-        for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-        {
-            // Tiling is off in case of gpu.
-            // In that case, tilebox simply return validbox
-            const Box& bx = mfi.tilebox();
-            // Get Array4 object
-            Array4<Real> const& arr = mf.array(mfi);
-            // Enough threads are launched to work over bx,
-            // and tbx is a thread's work box
-            amrex::launch(bx,
-            [=] AMREX_GPU_DEVICE (Box const& tbx)
-            {
-                // Array4<Real> arr is captured
-                FArrayBox fab(arr);
-                plusone_cudacpp(tbx, fab);
-            });
-        }
-    }
-
 #ifdef AMREX_USE_ACC
-    // (10) launch OpenACC kernel to add 1 if supported
+    // (9) launch OpenACC kernel to add 1 if supported
     {
         BL_PROFILE("10-acc");
         for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -234,7 +211,7 @@ void main_main ()
 #endif
 
 #ifdef AMREX_USE_OMP_OFFLOAD
-    // (11) launch OpenOMP kernel to add 1 if supported
+    // (10) launch OpenOMP kernel to add 1 if supported
     {
         BL_PROFILE("11-omp");
         for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)

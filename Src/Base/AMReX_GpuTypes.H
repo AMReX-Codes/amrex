@@ -11,6 +11,7 @@ namespace sycl = cl::sycl;
 namespace amrex {
 
 #ifdef AMREX_USE_DPCPP
+
 struct dim3 {
     unsigned int x = 1;
     unsigned int y = 1;
@@ -18,13 +19,21 @@ struct dim3 {
     dim3 () = default;
     constexpr dim3 (unsigned int x_, unsigned int y_=1, unsigned int z_=1) : x(x_),y(y_),z(z_) {}
 };
-#endif
 
-#if defined(AMREX_USE_DPCPP)
 struct gpuStream_t {
     sycl::ordered_queue* queue = nullptr;
     bool operator== (gpuStream_t const& rhs) noexcept { return queue == rhs.queue; }
 };
+
+namespace Gpu {
+struct Handler {
+    Handler (sycl::nd_item<1> const& a_item, void* a_local = nullptr)
+        : item(a_item), local(a_local) {}
+    sycl::nd_item<1> const& item;
+    void* local; // DPC++ local memory
+};
+}
+
 #endif
 
 }

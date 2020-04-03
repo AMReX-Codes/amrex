@@ -8,128 +8,6 @@
 
 namespace amrex {
 
-namespace fudetail {
-
-template <typename F, typename FAB,
-          amrex::EnableIf_t<IsBaseFab<FAB>::value,int> = 0>
-AMREX_FORCE_INLINE
-auto call_f (F const& f, Box const& b, FAB const& fab) noexcept
-    -> decltype(f(b,fab))
-{
-    return f(b,fab);
-}
-
-template <typename F, typename FAB,
-          amrex::EnableIf_t<IsBaseFab<FAB>::value,int> = 0>
-AMREX_FORCE_INLINE
-auto call_f (F const& f, Box const& b, FAB const& fab) noexcept
-    -> decltype(f(b,fab.const_array()))
-{
-    return f(b,fab.const_array());
-}
-
-template <typename F, typename FAB1, typename FAB2,
-          amrex::EnableIf_t<IsBaseFab<FAB1>::value && IsBaseFab<FAB2>::value, int> = 0>
-AMREX_FORCE_INLINE
-auto call_f (F const& f, Box const& b, FAB1 const& fab1, FAB2 const& fab2) noexcept
-    -> decltype(f(b,fab1,fab2))
-{
-    return f(b,fab1,fab2);
-}
-
-template <typename F, typename FAB1, typename FAB2,
-          amrex::EnableIf_t<IsBaseFab<FAB1>::value && IsBaseFab<FAB2>::value, int> = 0>
-AMREX_FORCE_INLINE
-auto call_f (F const& f, Box const& b, FAB1 const& fab1, FAB2 const& fab2) noexcept
-    -> decltype(f(b,fab1.const_array(), fab2.const_array()))
-{
-    return f(b,fab1.const_array(),fab2.const_array());
-}
-
-template <typename F, typename FAB1, typename FAB2, typename FAB3,
-          amrex::EnableIf_t<IsBaseFab<FAB1>::value && IsBaseFab<FAB2>::value
-                            && IsBaseFab<FAB3>::value, int> = 0>
-AMREX_FORCE_INLINE
-auto call_f (F const& f, Box const& b, FAB1 const& fab1, FAB2 const& fab2, FAB3 const& fab3) noexcept
-    -> decltype(f(b,fab1,fab2,fab3))
-{
-    return f(b,fab1,fab2,fab3);
-}
-
-template <typename F, typename FAB1, typename FAB2, typename FAB3,
-          amrex::EnableIf_t<IsBaseFab<FAB1>::value && IsBaseFab<FAB2>::value
-                            && IsBaseFab<FAB3>::value, int> = 0>
-AMREX_FORCE_INLINE
-auto call_f (F const& f, Box const& b, FAB1 const& fab1, FAB2 const& fab2, FAB3 const& fab3) noexcept
-    -> decltype(f(b,fab1.const_array(),fab2.const_array(),fab3.const_array()))
-{
-    return f(b,fab1.const_array(),fab2.const_array(),fab3.const_array());
-}
-
-#ifdef AMREX_USE_GPU
-
-template <typename FAB, typename F>
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-auto call_f (F const& f, Box const& b, Array4<typename FAB::value_type const> const& a) noexcept
-    -> decltype(f(b,a))
-{
-    return f(b,a);
-}
-
-template <typename FAB, typename F>
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-auto call_f (F const& f, Box const& b, Array4<typename FAB::value_type const> const& a) noexcept
-    -> decltype(f(b,FAB(a,b.ixType())))
-{
-    return f(b,FAB(a,b.ixType()));
-}
-
-template <typename FAB1, typename FAB2, typename F>
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-auto call_f (F const& f, Box const& b,
-             Array4<typename FAB1::value_type const> const& a1,
-             Array4<typename FAB2::value_type const> const& a2) noexcept
-    -> decltype(f(b,a1,a2))
-{
-    return f(b,a1,a2);
-}
-
-template <typename FAB1, typename FAB2, typename F>
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-auto call_f (F const& f, Box const& b,
-             Array4<typename FAB1::value_type const> const& a1,
-             Array4<typename FAB2::value_type const> const& a2) noexcept
-    -> decltype(f(b,FAB1(a1,b.ixType()),FAB2(a2,b.ixType())))
-{
-    return f(b,FAB1(a1,b.ixType()),FAB2(a2,b.ixType()));
-}
-
-template <typename FAB1, typename FAB2, typename FAB3, typename F>
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-auto call_f (F const& f, Box const& b,
-             Array4<typename FAB1::value_type const> const& a1,
-             Array4<typename FAB2::value_type const> const& a2,
-             Array4<typename FAB3::value_type const> const& a3) noexcept
-    -> decltype(f(b,a1,a2,a3))
-{
-    return f(b,a1,a2,a3);
-}
-
-template <typename FAB1, typename FAB2, typename FAB3, typename F>
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-auto call_f (F const& f, Box const& b,
-             Array4<typename FAB1::value_type const> const& a1,
-             Array4<typename FAB2::value_type const> const& a2,
-             Array4<typename FAB3::value_type const> const& a3) noexcept
-    -> decltype(f(b,FAB1(a1,b.ixType()),FAB2(a2,b.ixType()),FAB3(a3,b.ixType())))
-{
-    return f(b,FAB1(a1,b.ixType()),FAB2(a2,b.ixType()),FAB3(a3,b.ixType()));
-}
-
-#endif
-
-}
-
 template <class FAB, class F,
           class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
 typename FAB::value_type
@@ -152,7 +30,8 @@ ReduceSum_host (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
     for (MFIter mfi(fa,true); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
-        sm += fudetail::call_f(f, bx, fa[mfi]);
+        auto const& arr = fa.const_array(mfi);
+        sm += f(bx, arr);
     }
 
     return sm;
@@ -177,11 +56,11 @@ ReduceSum_device (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
         for (MFIter mfi(fa); mfi.isValid(); ++mfi)
         {
             const Box& bx = amrex::grow(mfi.validbox(),nghost);
-            const auto& arr = fa.array(mfi);
+            const auto& arr = fa.const_array(mfi);
             reduce_op.eval(bx, reduce_data,
             [=] AMREX_GPU_DEVICE (Box const& b) -> ReduceTuple
             {
-                return { call_f<FAB>(f,b,arr) };
+                return { f(b,arr) };
             });
         }
 
@@ -253,7 +132,9 @@ ReduceSum_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
     for (MFIter mfi(fa1,true); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
-        sm += fudetail::call_f(f, bx, fa1[mfi], fa2[mfi]);
+        const auto& arr1 = fa1.const_array(mfi);
+        const auto& arr2 = fa2.const_array(mfi);
+        sm += f(bx, arr1, arr2);
     }
 
     return sm;
@@ -279,12 +160,12 @@ ReduceSum_device (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
         for (MFIter mfi(fa1); mfi.isValid(); ++mfi)
         {
             const Box& bx = amrex::grow(mfi.validbox(),nghost);
-            const auto& arr1 = fa1.array(mfi);
-            const auto& arr2 = fa2.array(mfi);
+            const auto& arr1 = fa1.const_array(mfi);
+            const auto& arr2 = fa2.const_array(mfi);
             reduce_op.eval(bx, reduce_data,
             [=] AMREX_GPU_DEVICE (Box const& b) -> ReduceTuple
             {
-                return { call_f<FAB1,FAB2>(f, b, arr1, arr2) };
+                return { f(b, arr1, arr2) };
             });
         }
 
@@ -361,7 +242,10 @@ ReduceSum_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
     for (MFIter mfi(fa1,true); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
-        sm += fudetail::call_f(f, bx, fa1[mfi], fa2[mfi], fa3[mfi]);
+        const auto& arr1 = fa1.const_array(mfi);
+        const auto& arr2 = fa2.const_array(mfi);
+        const auto& arr3 = fa3.const_array(mfi);
+        sm += f(bx, arr1, arr2, arr3);
     }
 
     return sm;
@@ -387,13 +271,13 @@ ReduceSum_device (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
         for (MFIter mfi(fa1); mfi.isValid(); ++mfi)
         {
             const Box& bx = amrex::grow(mfi.validbox(),nghost);
-            const auto& arr1 = fa1.array(mfi);
-            const auto& arr2 = fa2.array(mfi);
-            const auto& arr3 = fa3.array(mfi);
+            const auto& arr1 = fa1.const_array(mfi);
+            const auto& arr2 = fa2.const_array(mfi);
+            const auto& arr3 = fa3.const_array(mfi);
             reduce_op.eval(bx, reduce_data,
             [=] AMREX_GPU_DEVICE (Box const& b) -> ReduceTuple
             {
-                return { call_f<FAB1,FAB2,FAB3>(f, b, arr1, arr2, arr3) };
+                return { f(b, arr1, arr2, arr3) };
             });
         }
 
@@ -469,7 +353,8 @@ ReduceMin_host (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
     for (MFIter mfi(fa,true); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
-        r = std::min(r, fudetail::call_f(f, bx, fa[mfi]));
+        const auto& arr = fa.const_array(mfi);
+        r = std::min(r, f(bx, arr));
     }
     return r;
 }
@@ -494,11 +379,11 @@ ReduceMin_device (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
         for (MFIter mfi(fa); mfi.isValid(); ++mfi)
         {
             const Box& bx = amrex::grow(mfi.validbox(),nghost);
-            const auto& arr = fa.array(mfi);
+            const auto& arr = fa.const_array(mfi);
             reduce_op.eval(bx, reduce_data,
             [=] AMREX_GPU_DEVICE (Box const& b) -> ReduceTuple
             {
-                return { call_f<FAB>(f, b, arr) };
+                return { f(b, arr) };
             });
         }
 
@@ -571,7 +456,9 @@ ReduceMin_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
     for (MFIter mfi(fa1,true); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
-        r = std::min(r, fudetail::call_f(f, bx, fa1[mfi], fa2[mfi]));
+        const auto& arr1 = fa1.const_array(mfi);
+        const auto& arr2 = fa2.const_array(mfi);
+        r = std::min(r, f(bx, arr1, arr2));
     }
 
     return r;
@@ -598,12 +485,12 @@ ReduceMin_device (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
         for (MFIter mfi(fa1); mfi.isValid(); ++mfi)
         {
             const Box& bx = amrex::grow(mfi.validbox(),nghost);
-            const auto& arr1 = fa1.array(mfi);
-            const auto& arr2 = fa2.array(mfi);
+            const auto& arr1 = fa1.const_array(mfi);
+            const auto& arr2 = fa2.const_array(mfi);
             reduce_op.eval(bx, reduce_data,
             [=] AMREX_GPU_DEVICE (Box const& b) -> ReduceTuple
             {
-                return { call_f<FAB1,FAB2>(f, b, arr1, arr2) };
+                return { f(b, arr1, arr2) };
             });
         }
 
@@ -681,7 +568,10 @@ ReduceMin_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
     for (MFIter mfi(fa1,true); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
-        r = std::min(r, fudetail::call_f(f, bx, fa1[mfi], fa2[mfi], fa3[mfi]));
+        const auto& arr1 = fa1.const_array(mfi);
+        const auto& arr2 = fa2.const_array(mfi);
+        const auto& arr3 = fa3.const_array(mfi);
+        r = std::min(r, f(bx, arr1, arr2, arr3));
     }
 
     return r;
@@ -708,13 +598,13 @@ ReduceMin_device (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
         for (MFIter mfi(fa1); mfi.isValid(); ++mfi)
         {
             const Box& bx = amrex::grow(mfi.validbox(),nghost);
-            const auto& arr1 = fa1.array(mfi);
-            const auto& arr2 = fa2.array(mfi);
-            const auto& arr3 = fa3.array(mfi);
+            const auto& arr1 = fa1.const_array(mfi);
+            const auto& arr2 = fa2.const_array(mfi);
+            const auto& arr3 = fa3.const_array(mfi);
             reduce_op.eval(bx, reduce_data,
             [=] AMREX_GPU_DEVICE (Box const& b) -> ReduceTuple
             {
-                return { call_f<FAB1,FAB2,FAB3>(f, b, arr1, arr2, arr3) };
+                return { f(b, arr1, arr2, arr3) };
             });
         }
 
@@ -790,7 +680,8 @@ ReduceMax_host (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
     for (MFIter mfi(fa,true); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
-        r = std::max(r, fudetail::call_f(f, bx, fa[mfi]));
+        const auto& arr = fa.const_array(mfi);
+        r = std::max(r, f(bx, arr));
     }
 
     return r;
@@ -816,11 +707,11 @@ ReduceMax_device (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
         for (MFIter mfi(fa); mfi.isValid(); ++mfi)
         {
             const Box& bx = amrex::grow(mfi.validbox(),nghost);
-            const auto& arr = fa.array(mfi);
+            const auto& arr = fa.const_array(mfi);
             reduce_op.eval(bx, reduce_data,
             [=] AMREX_GPU_DEVICE (Box const& b) -> ReduceTuple
             {
-                return { call_f<FAB>(f, b, arr) };
+                return { f(b, arr) };
             });
         }
 
@@ -893,7 +784,9 @@ ReduceMax_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
     for (MFIter mfi(fa1,true); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
-        r = std::max(r, fudetail::call_f(f, bx, fa1[mfi], fa2[mfi]));
+        const auto& arr1 = fa1.const_array(mfi);
+        const auto& arr2 = fa2.const_array(mfi);
+        r = std::max(r, f(bx, arr1, arr2));
     }
 
     return r;
@@ -920,12 +813,12 @@ ReduceMax_device (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
         for (MFIter mfi(fa1); mfi.isValid(); ++mfi)
         {
             const Box& bx = amrex::grow(mfi.validbox(),nghost);
-            const auto& arr1 = fa1.array(mfi);
-            const auto& arr2 = fa2.array(mfi);
+            const auto& arr1 = fa1.const_array(mfi);
+            const auto& arr2 = fa2.const_array(mfi);
             reduce_op.eval(bx, reduce_data,
             [=] AMREX_GPU_DEVICE (Box const& b) -> ReduceTuple
             {
-                return { call_f<FAB1,FAB2>(f, b, arr1, arr2) };
+                return { f(b, arr1, arr2) };
             });
         }
 
@@ -1003,7 +896,10 @@ ReduceMax_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
     for (MFIter mfi(fa1,true); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
-        r = std::max(r, fudetail::call_f(f, bx, fa1[mfi], fa2[mfi], fa3[mfi]));
+        const auto& arr1 = fa1.const_array(mfi);
+        const auto& arr2 = fa2.const_array(mfi);
+        const auto& arr3 = fa3.const_array(mfi);
+        r = std::max(r, f(bx, arr1, arr2, arr3));
     }
 
     return r;
@@ -1030,13 +926,13 @@ ReduceMax_device (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
         for (MFIter mfi(fa1); mfi.isValid(); ++mfi)
         {
             const Box& bx = amrex::grow(mfi.validbox(),nghost);
-            const auto& arr1 = fa1.array(mfi);
-            const auto& arr2 = fa2.array(mfi);
-            const auto& arr3 = fa3.array(mfi);
+            const auto& arr1 = fa1.const_array(mfi);
+            const auto& arr2 = fa2.const_array(mfi);
+            const auto& arr3 = fa3.const_array(mfi);
             reduce_op.eval(bx, reduce_data,
             [=] AMREX_GPU_DEVICE (Box const& b) -> ReduceTuple
             {
-                return { call_f<FAB1,FAB2,FAB3>(f, b, arr1, arr2, arr3) };
+                return { f(b, arr1, arr2, arr3) };
             });
         }
 
@@ -1110,7 +1006,8 @@ ReduceLogicalAnd_host (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
     for (MFIter mfi(fa,true); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
-        r = r && fudetail::call_f(f, bx, fa[mfi]);
+        const auto& arr = fa.const_array(mfi);
+        r = r && f(bx, arr);
     }
 
     return r;
@@ -1134,11 +1031,11 @@ ReduceLogicalAnd_device (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
         for (MFIter mfi(fa); mfi.isValid(); ++mfi)
         {
             const Box& bx = amrex::grow(mfi.validbox(),nghost);
-            const auto& arr = fa.array(mfi);
+            const auto& arr = fa.const_array(mfi);
             reduce_op.eval(bx, reduce_data,
             [=] AMREX_GPU_DEVICE (Box const& b) -> ReduceTuple
             {
-                int tr = call_f<FAB>(f,b,arr);
+                int tr = f(b,arr);
                 return {tr};
             });
         }
@@ -1211,7 +1108,9 @@ ReduceLogicalAnd_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
     for (MFIter mfi(fa1,true); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
-        r = r && fudetail::call_f(f, bx, fa1[mfi], fa2[mfi]);
+        const auto& arr1 = fa1.const_array(mfi);
+        const auto& arr2 = fa2.const_array(mfi);
+        r = r && f(bx, arr1, arr2);
     }
 
     return r;
@@ -1236,12 +1135,12 @@ ReduceLogicalAnd_device (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
         for (MFIter mfi(fa1); mfi.isValid(); ++mfi)
         {
             const Box& bx = amrex::grow(mfi.validbox(),nghost);
-            const auto& arr1 = fa1.array(mfi);
-            const auto& arr2 = fa2.array(mfi);
+            const auto& arr1 = fa1.const_array(mfi);
+            const auto& arr2 = fa2.const_array(mfi);
             reduce_op.eval(bx, reduce_data,
             [=] AMREX_GPU_DEVICE (Box const& b) -> ReduceTuple
             {
-                int tr = call_f<FAB1,FAB2>(f, b, arr1, arr2);
+                int tr = f(b, arr1, arr2);
                 return {tr};
             });
         }
@@ -1316,7 +1215,8 @@ ReduceLogicalOr_host (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
     for (MFIter mfi(fa,true); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
-        r = r || fudetail::call_f(f, bx, fa[mfi]);
+        const auto& arr = fa.const_array(mfi);
+        r = r || f(bx, arr);
     }
 
     return r;
@@ -1340,11 +1240,11 @@ ReduceLogicalOr_device (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
         for (MFIter mfi(fa); mfi.isValid(); ++mfi)
         {
             const Box& bx = amrex::grow(mfi.validbox(),nghost);
-            const auto& arr = fa.array(mfi);
+            const auto& arr = fa.const_array(mfi);
             reduce_op.eval(bx, reduce_data,
             [=] AMREX_GPU_DEVICE (Box const& b) -> ReduceTuple
             {
-                int tr = call_f<FAB>(f, b, arr);
+                int tr = f(b, arr);
                 return {tr};
             });
         }
@@ -1417,7 +1317,9 @@ ReduceLogicalOr_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
     for (MFIter mfi(fa1,true); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
-        r = r || fudetail::call_f(f, bx, fa1[mfi], fa2[mfi]);
+        const auto& arr1 = fa1.const_array(mfi);
+        const auto& arr2 = fa2.const_array(mfi);
+        r = r || f(bx, arr1, arr2);
     }
 
     return r;
@@ -1442,12 +1344,12 @@ ReduceLogicalOr_device (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
         for (MFIter mfi(fa1); mfi.isValid(); ++mfi)
         {
             const Box& bx = amrex::grow(mfi.validbox(),nghost);
-            const auto& arr1 = fa1.array(mfi);
-            const auto& arr2 = fa2.array(mfi);
+            const auto& arr1 = fa1.const_array(mfi);
+            const auto& arr2 = fa2.const_array(mfi);
             reduce_op.eval(bx, reduce_data,
             [=] AMREX_GPU_DEVICE (Box const& b) -> ReduceTuple
             {
-                int tr = call_f<FAB1,FAB2>(f, b, arr1, arr2);
+                int tr = f(b, arr1, arr2);
             });
         }
 

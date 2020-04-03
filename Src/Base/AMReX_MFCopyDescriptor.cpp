@@ -102,12 +102,13 @@ InterpFillFab (MultiFabCopyDescriptor& fabCopyDesc,
         BL_ASSERT(dest_comp + num_comp <= dest.nComp());
 
         FArrayBox dest1(dest.box(), dest.nComp());
-	dest1.setVal(std::numeric_limits<Real>::quiet_NaN());
+	dest1.setVal<RunOn::Host>(std::numeric_limits<Real>::quiet_NaN());
         FArrayBox dest2(dest.box(), dest.nComp());
-	dest2.setVal(std::numeric_limits<Real>::quiet_NaN());
+	dest2.setVal<RunOn::Host>(std::numeric_limits<Real>::quiet_NaN());
         fabCopyDesc.FillFab(faid1, fillBoxIds[0], dest1);
         fabCopyDesc.FillFab(faid2, fillBoxIds[1], dest2);
-        dest.linInterp(dest1,
+        dest.linInterp<RunOn::Host>
+                      (dest1,
                        src_comp,
                        dest2,
                        src_comp,

@@ -200,7 +200,7 @@ YAFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
                                 if (run_on_gpu) {
                                     tags.push_back({arr,ibx});
                                 } else {
-                                    fab.setVal(0.0, ibx);
+                                    fab.setVal<RunOn::Host>(0.0, ibx);
                                 }
                             }
                         }
@@ -255,8 +255,7 @@ YAFluxRegister::CrseAdd (const MFIter& mfi,
                  Array4<Real const> fyarr = fy->const_array();,
                  Array4<Real const> fzarr = fz->const_array(););
 
-    bool run_on_gpu = (runon == RunOn::Gpu && Gpu::inLaunchRegion());
-    AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG ( run_on_gpu, bx, tbx,
+    AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG ( runon, bx, tbx,
     {
         yafluxreg_crseadd(tbx, fab, flag, AMREX_D_DECL(fxarr,fyarr,fzarr),
                           AMREX_D_DECL(dtdx,dtdy,dtdz),nc);
@@ -294,8 +293,8 @@ YAFluxRegister::FineAdd (const MFIter& mfi,
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             const Box& b = amrex::surroundingNodes(fbx,idim);
             ftmp[idim].resize(b,nc);
-            ftmp[idim].setVal(0.0);
-            ftmp[idim].copy(*a_flux[idim]);
+            ftmp[idim].setVal<RunOn::Host>(0.0);
+            ftmp[idim].copy<RunOn::Host>(*a_flux[idim]);
             flux[idim] = &ftmp[idim];
         }
     }
@@ -318,7 +317,7 @@ YAFluxRegister::FineAdd (const MFIter& mfi,
                     Real dtdxs = dtdx[idim];
                     int dirside = idim*2+side;
                     Array4<Real const> farr = f->const_array();
-                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG(use_gpu, lobx_is, tmpbox,
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG(runon, lobx_is, tmpbox,
                     {
                         yafluxreg_fineadd(tmpbox, d, farr, dtdxs, nc, dirside, rr);
                     });
@@ -333,7 +332,7 @@ YAFluxRegister::FineAdd (const MFIter& mfi,
                     Real dtdxs = dtdx[idim];
                     int dirside = idim*2+side;
                     Array4<Real const> farr = f->const_array();
-                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG(use_gpu, hibx_is, tmpbox,
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG(runon, hibx_is, tmpbox,
                     {
                         yafluxreg_fineadd(tmpbox, d, farr, dtdxs, nc, dirside, rr);
                     });

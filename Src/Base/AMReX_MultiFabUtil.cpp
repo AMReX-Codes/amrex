@@ -600,8 +600,10 @@ namespace amrex
         {
             int slice_gid = mfi.index();
             int full_gid = slice_to_full_ba_map[slice_gid];
-            Array4<Real> const& slice_arr = slice->array(mfi);
-            Array4<Real const> const& full_arr = cc.const_array(full_gid);
+            auto& slice_fab = (*slice)[mfi];
+            auto const& full_fab = cc[full_gid];
+            Array4<Real> const& slice_arr = slice_fab.array();
+            Array4<Real const> const& full_arr = full_fab.const_array();
 
             const Box& tile_box  = mfi.tilebox();
 
@@ -616,12 +618,7 @@ namespace amrex
             }
             else
             {
-                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tile_box, thread_box,
-                {
-                    const FArrayBox full_fab(full_arr);
-                    FArrayBox slice_fab(slice_arr);
-                    slice_fab.copy(full_fab, thread_box, start_comp, thread_box, 0, ncomp);
-                });
+                slice_fab.copy<RunOn::Device>(full_fab, tile_box, start_comp, tile_box, 0, ncomp);
             }
         }
 
@@ -673,7 +670,7 @@ namespace amrex
                         if (run_on_gpu) {
                             tags.push_back({arr,b});
                         } else {
-                            fab.setVal(fine_value, b);
+                            fab.template setVal<RunOn::Host>(fine_value, b);
                         }
                     }
                 }

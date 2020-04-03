@@ -22,10 +22,8 @@ public:
             bool shared=false, Arena* ar = nullptr)
         : FArrayBox(b, ncomps, alloc, shared, ar) {}
 
-#ifdef AMREX_USE_GPU
     CutFab (CutFab const& rhs, MakeType make_type, int scomp, int ncomp)
         : FArrayBox(rhs, make_type, scomp, ncomp) {}
-#endif
 
     ~CutFab () = default;
 
@@ -35,25 +33,25 @@ public:
     CutFab& operator= (const CutFab&) = delete;
     CutFab& operator= (CutFab&&) = delete;
 
-    AMREX_GPU_HOST_DEVICE
+    template <RunOn run_on>
     std::size_t copyFromMem (const void* src) {
-        return copyFromMem (box(), 0, nComp(), src);
+        return copyFromMem<run_on>(box(), 0, nComp(), src);
     }
 
-    AMREX_GPU_HOST_DEVICE
+    template <RunOn run_on>
     std::size_t copyFromMem (const Box&  dstbox,
                              int         dstcomp,
                              int         numcomp,
                              const void* src)
     {
         if (dptr != nullptr) {
-            return FArrayBox::copyFromMem(dstbox, dstcomp, numcomp, src);
+            return FArrayBox::copyFromMem<run_on>(dstbox, dstcomp, numcomp, src);
         } else {
             return sizeof(CutFab::value_type)*static_cast<std::size_t>(dstbox.numPts()*numcomp);
         }
     }
 
-    AMREX_GPU_HOST_DEVICE
+    template <RunOn run_on>
     CutFab& copy (const CutFab & src,
                   const Box&     srcbox,
                   int            srccomp,
@@ -62,16 +60,16 @@ public:
                   int            numcomp)
     {
         if (dptr != nullptr) {
-            FArrayBox::copy(src,srcbox,srccomp,destbox,destcomp,numcomp);
+            FArrayBox::copy<run_on>(src,srcbox,srccomp,destbox,destcomp,numcomp);
         }
         return *this;
     }
 
-    AMREX_GPU_HOST_DEVICE
+    template <RunOn run_on>
     CutFab& copy (const CutFab & src, const Box& bx, SrcComp scomp, DestComp dcomp, NumComps ncomp)
     {
         if (dptr != nullptr) {
-            FArrayBox::copy(src, bx, scomp, dcomp, ncomp);
+            FArrayBox::copy<run_on>(src, bx, scomp, dcomp, ncomp);
         }
         return *this;
     }

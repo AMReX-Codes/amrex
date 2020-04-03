@@ -20,13 +20,13 @@ TagBox::TagBox (Arena* ar) noexcept
 TagBox::TagBox (const Box& bx, int n, Arena* ar)
     : BaseFab<TagBox::TagType>(bx,n,ar)
 {
-    setVal(TagBox::CLEAR);
+    setVal<RunOn::Host>(TagBox::CLEAR);
 }
 
 TagBox::TagBox (const Box& bx, int n, bool alloc, bool shared, Arena* ar)
     : BaseFab<TagBox::TagType>(bx,n,alloc,shared,ar)
 {
-    if (alloc) setVal(TagBox::CLEAR);
+    if (alloc) setVal<RunOn::Host>(TagBox::CLEAR);
 }
 
 TagBox::TagBox (const TagBox& rhs, MakeType make_type, int scomp, int ncomp)
@@ -232,7 +232,7 @@ long
 TagBox::numTags (const Box& b) const noexcept
 {
    TagBox tempTagBox(b,1);
-   tempTagBox.copy(*this);
+   tempTagBox.copy<RunOn::Host>(*this);
    return tempTagBox.numTags();
 }
 
@@ -653,7 +653,7 @@ TagBoxArray::setVal (const BoxArray& ba,
 
         for (int i = 0, N = isects.size(); i < N; i++)
         {
-            tags.setVal(val,isects[i].second,0);
+            tags.setVal<RunOn::Host>(val,isects[i].second,0);
         }
     }
 }

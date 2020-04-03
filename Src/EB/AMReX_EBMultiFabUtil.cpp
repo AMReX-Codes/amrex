@@ -76,8 +76,9 @@ EB_set_covered (MultiFab& mf, int icomp, int ncomp, int ngrow, const Vector<Real
     bool is_cell_centered = mf.ixType().cellCentered();
     int ng = std::min(mf.nGrow(),ngrow);
 
-    Gpu::AsyncArray<Real> vals_aa(a_vals.data(), ncomp);
-    Real const* AMREX_RESTRICT vals = vals_aa.data();
+    Gpu::DeviceVector<Real> vals_dv(a_vals.size());
+    Gpu::copy(Gpu::hostToDevice, a_vals.begin(), a_vals.end(), vals_dv.begin());
+    Real const* AMREX_RESTRICT vals = vals_dv.data();
 
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -230,8 +231,9 @@ EB_set_covered_faces (const Array<MultiFab*,AMREX_SPACEDIM>& umac, const int sco
 
     AMREX_ASSERT(umac[0]->nComp() >= scomp+ncomp);
 
-    Gpu::AsyncArray<Real> vals_aa(a_vals.data(), umac[0]->nComp());
-    Real const* AMREX_RESTRICT vals = vals_aa.data();
+    Gpu::DeviceVector<Real> vals_dv(a_vals.size());
+    Gpu::copy(Gpu::hostToDevice, a_vals.begin(), a_vals.end(), vals_dv.begin());
+    Real const* AMREX_RESTRICT vals = vals_dv.data();
 
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
