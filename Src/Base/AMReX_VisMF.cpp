@@ -679,8 +679,8 @@ VisMF::Header::Header (const FabArray<FArrayBox>& mf,
       for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
         const int idx = mfi.index();
         for(int i(0); i < m_ncomp; ++i) {
-          m_famin[i] = std::min(m_famin[i], mf[mfi].min(m_ba[idx],i));
-          m_famax[i] = std::max(m_famax[i], mf[mfi].max(m_ba[idx],i));
+          m_famin[i] = std::min(m_famin[i], mf[mfi].min<RunOn::Host>(m_ba[idx],i));
+          m_famax[i] = std::max(m_famax[i], mf[mfi].max<RunOn::Host>(m_ba[idx],i));
         }
       }
       ParallelAllReduce::Min(m_famin.dataPtr(), m_famin.size(), comm);
@@ -716,8 +716,8 @@ VisMF::Header::CalculateMinMax (const FabArray<FArrayBox>& mf,
         BL_ASSERT(mf[mfi].box().contains(m_ba[idx]));
 
         for(long j(0); j < m_ncomp; ++j) {
-            m_min[idx][j] = mf[mfi].min(m_ba[idx],j);
-            m_max[idx][j] = mf[mfi].max(m_ba[idx],j);
+            m_min[idx][j] = mf[mfi].min<RunOn::Host>(m_ba[idx],j);
+            m_max[idx][j] = mf[mfi].max<RunOn::Host>(m_ba[idx],j);
         }
     }
 
@@ -810,8 +810,8 @@ VisMF::Header::CalculateMinMax (const FabArray<FArrayBox>& mf,
         BL_ASSERT(mf[mfi].box().contains(m_ba[idx]));
 
         for(long j(0); j < m_ncomp; ++j) {
-            m_min[idx][j] = mf[mfi].min(m_ba[idx],j);
-            m_max[idx][j] = mf[mfi].max(m_ba[idx],j);
+            m_min[idx][j] = mf[mfi].min<RunOn::Host>(m_ba[idx],j);
+            m_max[idx][j] = mf[mfi].max<RunOn::Host>(m_ba[idx],j);
         }
     }
 #endif /*BL_USE_MPI*/
@@ -944,11 +944,11 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
             const int idx(mfi.index());
 
             for(int j(0); j < mf.nComp(); ++j) {
-                const Real valMin(mf[mfi].min(mf.box(idx), j));
-                const Real valMax(mf[mfi].max(mf.box(idx), j));
+                const Real valMin(mf[mfi].min<RunOn::Host>(mf.box(idx), j));
+                const Real valMax(mf[mfi].max<RunOn::Host>(mf.box(idx), j));
                 const Real val((valMin + valMax) / 2.0);
 
-                the_mf->get(mfi).setComplement(val, mf.box(idx), j, 1);
+                the_mf->get(mfi).setComplement<RunOn::Host>(val, mf.box(idx), j, 1);
             }
         }
     }
@@ -2254,8 +2254,8 @@ VisMF::WriteAsync (const FabArray<FArrayBox>& mf, const std::string& mf_name)
 
 #else
         for (int icomp = 0; icomp < ncomp; ++icomp) {
-            Real cmin = fab.min(bx,icomp);
-            Real cmax = fab.max(bx,icomp);
+            Real cmin = fab.min<RunOn::Host>(bx,icomp);
+            Real cmax = fab.max<RunOn::Host>(bx,icomp);
             std::memcpy(pld, &cmin, sizeof(Real));
             pld += sizeof(Real);
             std::memcpy(pld, &cmax, sizeof(Real));

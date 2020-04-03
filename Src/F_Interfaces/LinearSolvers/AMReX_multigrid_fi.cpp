@@ -74,6 +74,11 @@
          mlmg->setMaxFmgIter(n);
      }
 
+     void amrex_fi_multigrid_set_fixed_iter (MLMG* mlmg, int n)
+     {
+         mlmg->setFixedIter(n);
+     }
+
      void amrex_fi_multigrid_set_bottom_solver (MLMG* mlmg, int s)
      {
          if (s == 0) {

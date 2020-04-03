@@ -280,7 +280,7 @@ void TestWriteNFiles(int nfiles, int maxgrid, int ncomps, int nboxes,
 	    dp[i] = amrex::Random() + (1.0 + static_cast<Real> (invar));
 	  }
         } else {
-          (*multifabs[nmf])[mfiset].setVal((100.0 * mfiset.index()) + invar +
+          (*multifabs[nmf])[mfiset].setVal<RunOn::Host>((100.0 * mfiset.index()) + invar +
 	                                (static_cast<Real> (nmf) / 100.0), invar);
         }
       }

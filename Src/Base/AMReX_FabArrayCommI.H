@@ -446,7 +446,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 	//
 	// Post send's
 	//
-        char*                               the_send_data;
+        char*                               the_send_data = nullptr;
 	Vector<char*>                       send_data;
 	Vector<std::size_t>                 send_size;
 	Vector<int>                         send_rank;
@@ -645,7 +645,7 @@ FabArray<FAB>::copyTo (FAB&       dest,
 	    const Box& destbox = bx & subbox;
 	    if (destbox.ok())
             {
-                dest.copy(get(j),destbox,scomp,destbox,dcomp,ncomp);
+                dest.template copy<RunOn::Device>(get(j),destbox,scomp,destbox,dcomp,ncomp);
             }
         }
 
@@ -678,7 +678,7 @@ FabArray<FAB>::copyTo (FAB&       dest,
 
 	if (ParallelDescriptor::MyProc() == distributionMap[k])
 	{
-	    ovlp.copy(get(k),bx,scomp,bx,0,ncomp);
+	    ovlp.template copy<RunOn::Device>(get(k),bx,scomp,bx,0,ncomp);
 	}
 
 	const int N = bx.numPts()*ncomp;
@@ -687,7 +687,7 @@ FabArray<FAB>::copyTo (FAB&       dest,
                                   ParallelContext::global_to_local_rank(distributionMap[k]),
                                   ParallelContext::CommunicatorSub());
 
-	dest.copy(ovlp,bx,0,bx,dcomp,ncomp);
+	dest.template copy<RunOn::Device>(ovlp,bx,0,bx,dcomp,ncomp);
     }
 }
 

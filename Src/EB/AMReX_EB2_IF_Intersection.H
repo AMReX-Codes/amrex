@@ -50,8 +50,6 @@ class IntersectionIF
 public:
     using GpuTuple<Fs...>::GpuTuple;
 
-    ~IntersectionIF () {}
-
     inline Real operator() (const RealArray& p) const noexcept
     {
         return op_impl(p, makeIndexSequence<sizeof...(Fs)>());

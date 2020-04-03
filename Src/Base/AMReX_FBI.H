@@ -369,9 +369,75 @@ fab_to_fab (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, in
     constexpr int nwarps_per_block = nthreads/Gpu::Device::warp_size;
     int nblocks = (ntotwarps + nwarps_per_block-1) / nwarps_per_block;
 #ifdef AMREX_USE_DPCPP
-    amrex::Abort("xxxxx DPCPP todo: fabtofab2");
+    amrex::launch(nblocks, nthreads, Gpu::nullStream(),
+    [=] AMREX_GPU_DEVICE (sycl::nd_item<1> const& item) noexcept
+    {
+        int g_tid = item.get_global_id(0);
+        int g_wid = g_tid / Gpu::Device::warp_size;
+        if (g_wid >= ntotwarps) return;
+
+        int tag_id;
+        {
+            int lo = 0;
+            int hi = N_locs;
+            while (lo <= hi)
+            {
+                int mid = (lo+hi)/2;
+                if (g_wid >= d_nwarps[mid] and g_wid < d_nwarps[mid+1]) {
+                    tag_id = mid;
+                    break;
+                } else if (g_wid < d_nwarps[mid]) {
+                    hi = mid-1;
+                } else {
+                    lo = mid+1;
+                }
+            };
+        }
+
+        auto tag = d_tags[tag_id];
+        int ncells = tag.dbox.numPts();
+        int b_wid = g_wid - d_nwarps[tag_id]; // b_wid'th warp on this box
+        int lane = item.get_local_id(0) % Gpu::Device::warp_size;
+        int icell = b_wid*Gpu::Device::warp_size + lane;
+
+        const auto len = amrex::length(tag.dbox);
+        const auto lo  = amrex::lbound(tag.dbox);
+        int k =  icell /   (len.x*len.y);
+        int j = (icell - k*(len.x*len.y)) /   len.x;
+        int i = (icell - k*(len.x*len.y)) - j*len.x;
+        i += lo.x;
+        j += lo.y;
+        k += lo.z;
+
+        int* m = (icell < ncells) ? d_masks[tag_id].ptr(i,j,k) : nullptr;
+        int mypriority = g_wid+1;
+        int to_try  = 1;
+        while (true) {
+            int msk = (m && to_try) ? Gpu::Atomic::CAS(m, 0, mypriority) : 0;
+            if (item.get_sub_group().all(msk == 0)) {  // 0 means lock acquired
+                break; // all threads have acquired.
+            } else {
+                if (item.get_sub_group().any(msk > mypriority)) {
+                    if (m) *m = 0; // yield
+                    item.mem_fence(); // xxxxx DPCPP todo: Is this block or device level?
+                    to_try = 1;
+                } else {
+                    to_try = (msk > 0); // hold on to my lock
+                }
+            }
+        };
+
+        if (icell < ncells) {
+            for (int n = 0; n < ncomp; ++n) {
+                f(&(tag.dfab(i,j,k,n+dcomp)),
+                  tag.sfab(i+tag.offset.x,j+tag.offset.y,k+tag.offset.z,n+scomp));
+            }
+        }
+
+        if (m) *m = 0;
+    });
 #else
-    amrex::launch(nblocks, nthreads, Gpu::nullStream(), 
+    amrex::launch(nblocks, nthreads, Gpu::nullStream(),
     [=] AMREX_GPU_DEVICE () noexcept
     {
         int g_tid = blockDim.x*blockIdx.x + threadIdx.x;
@@ -512,7 +578,7 @@ FabArray<FAB>::FB_local_copy_cpu (const FB& TheFB, int scomp, int ncomp)
 
             const FAB* sfab = &(get(tag.srcIndex));
                   FAB* dfab = &(get(tag.dstIndex));
-            dfab->copy(*sfab, tag.sbox, scomp, tag.dbox, scomp, ncomp);
+            dfab->template copy<RunOn::Host>(*sfab, tag.sbox, scomp, tag.dbox, scomp, ncomp);
         }
     }
     else
@@ -1206,11 +1272,11 @@ FabArray<FAB>::unpack_recv_buffer_cpu (FabArray<FAB>& dst, int dcomp, int ncomp,
                     FAB& dfab = dst[tag.dstIndex];
                     if (op == FabArrayBase::COPY)
                     {
-                        dfab.copyFromMem(bx, dcomp, ncomp, dptr);
+                        dfab.template copyFromMem<RunOn::Host>(bx, dcomp, ncomp, dptr);
                     }
                     else
                     {
-                        dfab.addFromMem(tag.dbox, dcomp, ncomp, dptr);
+                        dfab.template addFromMem<RunOn::Host>(tag.dbox, dcomp, ncomp, dptr);
                     }
                     dptr += bx.numPts() * ncomp * sizeof(value_type);
                 }

@@ -141,7 +141,7 @@ HypreABecLap2::getSolution (MultiFab& soln)
                                         0, xfab->dataPtr());
 
         if (soln.nGrow() != 0) {
-            soln[mfi].copy(*xfab, 0, 0, 1);
+            soln[mfi].copy<RunOn::Host>(*xfab, 0, 0, 1);
         }
     }
 }
@@ -309,8 +309,8 @@ HypreABecLap2::loadVectors (MultiFab& soln, const MultiFab& rhs)
                                         0, soln[mfi].dataPtr());
 
         rhsfab.resize(reg);
-        rhsfab.copy(rhs[mfi],reg);
-        rhsfab.mult(diaginv[mfi]);
+        rhsfab.copy<RunOn::Host>(rhs[mfi],reg);
+        rhsfab.mult<RunOn::Host>(diaginv[mfi]);
 
         HYPRE_SStructVectorSetBoxValues(b, part, reglo.data(), reghi.data(),
                                         0, rhsfab.dataPtr());

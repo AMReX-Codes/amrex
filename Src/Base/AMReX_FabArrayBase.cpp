@@ -401,12 +401,12 @@ FabArrayBase::CPC::define (const BoxArray& ba_dst, const DistributionMapping& dm
 	    
 	    if (check_local) {
 		localtouch.resize(bx_dst);
-		localtouch.setVal(0);
+		localtouch.setVal<RunOn::Host>(0);
 	    }
 	    
 	    if (check_remote) {
 		remotetouch.resize(bx_dst);
-		remotetouch.setVal(0);
+		remotetouch.setVal<RunOn::Host>(0);
 	    }
 	    
 	    for (std::vector<IntVect>::const_iterator pit=pshifts.begin(); pit!=pshifts.end(); ++pit)
@@ -428,12 +428,12 @@ FabArrayBase::CPC::define (const BoxArray& ba_dst, const DistributionMapping& dm
 			    m_LocTags->push_back(CopyComTag(*it_tile, (*it_tile)+(*pit), k_dst, k_src));
 			}
 			if (check_local) {
-			    localtouch.plus(1, bx);
+			    localtouch.plus<RunOn::Host>(1, bx);
 			}
 		    } else if (MyProc == dm_dst[k_dst]) {
 			recv_tags[src_owner].push_back(CopyComTag(bx, bx+(*pit), k_dst, k_src));
 			if (check_remote) {
-			    remotetouch.plus(1, bx);
+			    remotetouch.plus<RunOn::Host>(1, bx);
 			}
 		    }
 		}
@@ -442,11 +442,11 @@ FabArrayBase::CPC::define (const BoxArray& ba_dst, const DistributionMapping& dm
 	    if (check_local) {  
 		// safe if a cell is touched no more than once 
 		// keep checking thread safety if it is safe so far
-		check_local = m_threadsafe_loc = localtouch.max() <= 1;
+		check_local = m_threadsafe_loc = localtouch.max<RunOn::Host>() <= 1;
 	    }
 	    
 	    if (check_remote) {
-		check_remote = m_threadsafe_rcv = remotetouch.max() <= 1;
+		check_remote = m_threadsafe_rcv = remotetouch.max<RunOn::Host>() <= 1;
 	    }
 	}
 	
@@ -717,12 +717,12 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
 	
 	if (check_local) {
 	    localtouch.resize(bxrcv);
-	    localtouch.setVal(0);
+	    localtouch.setVal<RunOn::Host>(0);
 	}
 	
 	if (check_remote) {
 	    remotetouch.resize(bxrcv);
-	    remotetouch.setVal(0);
+	    remotetouch.setVal<RunOn::Host>(0);
 	}
 	
 	for (auto pit=pshifts.cbegin(); pit!=pshifts.cend(); ++pit)
@@ -749,12 +749,12 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
 			    m_LocTags->push_back(CopyComTag(*it_tile, (*it_tile)+(*pit), krcv, ksnd));
 			}
 			if (check_local) {
-			    localtouch.plus(1, blbx);
+			    localtouch.plus<RunOn::Host>(1, blbx);
 			}
 		    } else if (MyProc == dm[krcv]) {
 			recv_tags[src_owner].push_back(CopyComTag(blbx, blbx+(*pit), krcv, ksnd));
 			if (check_remote) {
-			    remotetouch.plus(1, blbx);
+			    remotetouch.plus<RunOn::Host>(1, blbx);
 			}
 		    }
 		}
@@ -764,11 +764,11 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
 	if (check_local) {  
 	    // safe if a cell is touched no more than once 
 	    // keep checking thread safety if it is safe so far
-	    check_local = m_threadsafe_loc = localtouch.max() <= 1;
+	    check_local = m_threadsafe_loc = localtouch.max<RunOn::Host>() <= 1;
 	}
 
 	if (check_remote) {
-	    check_remote = m_threadsafe_rcv = remotetouch.max() <= 1;
+	    check_remote = m_threadsafe_rcv = remotetouch.max<RunOn::Host>() <= 1;
 	}
     }
 
@@ -929,12 +929,12 @@ FabArrayBase::FB::define_epo (const FabArrayBase& fa)
 
 	if (check_local) {
 	    localtouch.resize(bxrcv);
-	    localtouch.setVal(0);
+	    localtouch.setVal<RunOn::Host>(0);
 	}
 	
 	if (check_remote) {
 	    remotetouch.resize(bxrcv);
-	    remotetouch.setVal(0);
+	    remotetouch.setVal<RunOn::Host>(0);
 	}
 	
 	for (std::vector<IntVect>::const_iterator pit=pshifts.begin(); pit!=pshifts.end(); ++pit)
@@ -967,12 +967,12 @@ FabArrayBase::FB::define_epo (const FabArrayBase& fa)
 				    m_LocTags->push_back(CopyComTag(*it_tile, (*it_tile)+(*pit), krcv, ksnd));
 				}
 				if (check_local) {
-				    localtouch.plus(1, dbx);
+				    localtouch.plus<RunOn::Host>(1, dbx);
 				}
 			    } else if (MyProc == dm[krcv]) {
 				recv_tags[src_owner].push_back(CopyComTag(dbx, sbx, krcv, ksnd));
 				if (check_remote) {
-				    remotetouch.plus(1, dbx);
+				    remotetouch.plus<RunOn::Host>(1, dbx);
 				}
 			    }
 			}
@@ -984,11 +984,11 @@ FabArrayBase::FB::define_epo (const FabArrayBase& fa)
 	if (check_local) {  
 	    // safe if a cell is touched no more than once 
 	    // keep checking thread safety if it is safe so far
-	    check_local = m_threadsafe_loc = localtouch.max() <= 1;
+	    check_local = m_threadsafe_loc = localtouch.max<RunOn::Host>() <= 1;
 	}
 
 	if (check_remote) {
-	    check_remote = m_threadsafe_rcv = remotetouch.max() <= 1;
+	    check_remote = m_threadsafe_rcv = remotetouch.max<RunOn::Host>() <= 1;
 	}
     }
 

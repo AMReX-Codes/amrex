@@ -101,8 +101,7 @@ EBFluxRegister::CrseAdd (const MFIter& mfi,
                  Array4<Real const> const& apz = areafrac[2]->const_array(););
     Array4<Real const> const& vfrac = volfrac.const_array();
 
-    bool run_on_gpu = (runon == RunOn::Gpu && Gpu::inLaunchRegion());
-    AMREX_HOST_DEVICE_FOR_3D_FLAG(run_on_gpu, bx, i, j, k,
+    AMREX_HOST_DEVICE_FOR_3D_FLAG(runon, bx, i, j, k,
     {
         eb_flux_reg_crseadd_va(i,j,k,fab,amrflag,AMREX_D_DECL(fx,fy,fz),
                                vfrac,AMREX_D_DECL(apx,apy,apz),
@@ -126,10 +125,7 @@ EBFluxRegister::FineAdd (const MFIter& mfi,
     Vector<FArrayBox*>& cfp_fabs = m_cfp_fab[li];
     if (cfp_fabs.empty()) return;
 
-    bool run_on_gpu = (runon == RunOn::Gpu and Gpu::inLaunchRegion());
-
     const int nc = m_cfpatch.nComp();
-
     const Box& tbx = mfi.tilebox();
     BL_ASSERT(tbx.cellCentered());
     const Box& cbx = amrex::coarsen(tbx, m_ratio);
@@ -157,7 +153,7 @@ EBFluxRegister::FineAdd (const MFIter& mfi,
             if (lobx_is.ok()) {
                 if (idim == 0)
                 {
-                    AMREX_HOST_DEVICE_FOR_4D_FLAG(run_on_gpu,lobx_is,nc,i,j,k,n,
+                    AMREX_HOST_DEVICE_FOR_4D_FLAG(runon,lobx_is,nc,i,j,k,n,
                     {
                         eb_flux_reg_fineadd_va_xlo(i,j,k,n, cfa, fx, vfrac, apx, fac, ratio);
                     });
@@ -165,7 +161,7 @@ EBFluxRegister::FineAdd (const MFIter& mfi,
 #if (AMREX_SPACEDIM >= 2)
                 else if (idim == 1)
                 {
-                    AMREX_HOST_DEVICE_FOR_4D_FLAG(run_on_gpu,lobx_is,nc,i,j,k,n,
+                    AMREX_HOST_DEVICE_FOR_4D_FLAG(runon,lobx_is,nc,i,j,k,n,
                     {
                         eb_flux_reg_fineadd_va_ylo(i,j,k,n, cfa, fy, vfrac, apy, fac, ratio);
                     });
@@ -173,7 +169,7 @@ EBFluxRegister::FineAdd (const MFIter& mfi,
 #if (AMREX_SPACEDIM == 3)
                 else
                 {
-                    AMREX_HOST_DEVICE_FOR_4D_FLAG(run_on_gpu,lobx_is,nc,i,j,k,n,
+                    AMREX_HOST_DEVICE_FOR_4D_FLAG(runon,lobx_is,nc,i,j,k,n,
                     {
                         eb_flux_reg_fineadd_va_zlo(i,j,k,n, cfa, fz, vfrac, apz, fac, ratio);
                     });
@@ -185,7 +181,7 @@ EBFluxRegister::FineAdd (const MFIter& mfi,
             if (hibx_is.ok()) {
                 if (idim == 0)
                 {
-                    AMREX_HOST_DEVICE_FOR_4D_FLAG(run_on_gpu,hibx_is,nc,i,j,k,n,
+                    AMREX_HOST_DEVICE_FOR_4D_FLAG(runon,hibx_is,nc,i,j,k,n,
                     {
                         eb_flux_reg_fineadd_va_xhi(i,j,k,n, cfa, fx, vfrac, apx, fac, ratio);
                     });
@@ -193,7 +189,7 @@ EBFluxRegister::FineAdd (const MFIter& mfi,
 #if (AMREX_SPACEDIM >= 2)
                 else if (idim == 1)
                 {
-                    AMREX_HOST_DEVICE_FOR_4D_FLAG(run_on_gpu,hibx_is,nc,i,j,k,n,
+                    AMREX_HOST_DEVICE_FOR_4D_FLAG(runon,hibx_is,nc,i,j,k,n,
                     {
                         eb_flux_reg_fineadd_va_yhi(i,j,k,n, cfa, fy, vfrac, apy, fac, ratio);
                     });
@@ -201,7 +197,7 @@ EBFluxRegister::FineAdd (const MFIter& mfi,
 #if (AMREX_SPACEDIM == 3)
                 else
                 {
-                    AMREX_HOST_DEVICE_FOR_4D_FLAG(run_on_gpu,hibx_is,nc,i,j,k,n,
+                    AMREX_HOST_DEVICE_FOR_4D_FLAG(runon,hibx_is,nc,i,j,k,n,
                     {
                         eb_flux_reg_fineadd_va_zhi(i,j,k,n, cfa, fz, vfrac, apz, fac, ratio);
                     });
@@ -222,7 +218,7 @@ EBFluxRegister::FineAdd (const MFIter& mfi,
         if (wbx.ok())
         {
             Array4<Real> const& cfa = cfp->array();
-            AMREX_HOST_DEVICE_FOR_4D_FLAG(run_on_gpu, wbx, nc, i, j, k, n,
+            AMREX_HOST_DEVICE_FOR_4D_FLAG(runon, wbx, nc, i, j, k, n,
             {
                 eb_flux_reg_fineadd_dm(i,j,k,n,tbxg1, cfa, dma, vfrac, ratio, threshold);
             });

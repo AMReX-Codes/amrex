@@ -117,8 +117,11 @@ function (install_amrex)
    generate_amrex_config_header()
    
    # Install Tools directory
-   install(DIRECTORY ${PROJECT_SOURCE_DIR}/Tools/  DESTINATION Tools 
-      USE_SOURCE_PERMISSIONS )
+   install(DIRECTORY ${PROJECT_SOURCE_DIR}/Tools/CMake
+      ${PROJECT_SOURCE_DIR}/Tools/C_scripts
+      DESTINATION Tools
+      USE_SOURCE_PERMISSIONS
+      )
 
    # Modify installed headers by calling external script: add #include<AMReX_Config.H>
    install(SCRIPT "${AMREX_CMAKE_MODULES_PATH}/modify_installed_headers.cmake" )

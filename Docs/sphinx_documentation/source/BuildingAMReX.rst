@@ -370,10 +370,12 @@ below.
    | CMAKE_Fortran_COMPILER       |  User-defined Fortran compiler                  |             | user-defined    |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | CMAKE_CXX_COMPILER           |  User-defined C++ compiler                      |             | user-defined    |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+   
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
    | CMAKE_Fortran_FLAGS          |  User-defined Fortran flags                     |             | user-defined    |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | CMAKE_CXX_FLAGS              |  User-defined C++ flags                         |             | user-defined    |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | AMREX_CXX_STANDARD           |  C++ standard                                   | 14          | 11, 14, 17      |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | DIM                          |  Dimension of AMReX build                       | 3           | 1, 2, 3         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
@@ -403,7 +405,7 @@ below.
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | ENABLE_AMRDATA               |  Build data services                            | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_EB                    |  Build Embedded Boundary support                | NO          | YES, NO         |   
+   | ENABLE_EB                    |  Build Embedded Boundary support                | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | ENABLE_PARTICLES             |  Build particle classes                         | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
@@ -440,7 +442,7 @@ below.
    | ENABLE_PLOTFILE_TOOLS        |  Build and install plotfile postprocessing tools| NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | ENABLE_TUTORIALS             |  Build tutorials                                | NO          | YES, NO         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+   
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
 .. raw:: latex
 
    \end{center}
@@ -502,7 +504,7 @@ the following line in the appropriate CMakeLists.txt file:
 
     target_link_libraries( <your-target-name>  AMReX::<amrex-target-name> )
 
-    
+
 In the above snippet, ``<amrex-target-name>`` is any of the targets listed in the table below.
 
 .. raw:: latex
@@ -511,7 +513,7 @@ In the above snippet, ``<amrex-target-name>`` is any of the targets listed in th
 
 .. _tab:cmaketargets:
 
-.. table:: AMReX targets available for import. 
+.. table:: AMReX targets available for import.
 
    +-----------------------+-------------------------------------------------+
    | Target name           | Description                                     |
@@ -531,7 +533,7 @@ In the above snippet, ``<amrex-target-name>`` is any of the targets listed in th
 
 The options used to configure the AMReX build may result in certain parts, or ``components``, of the AMReX source code
 to be excluded from compilation. For example, setting ``-DENABLE_LINEAR_SOLVERS=no`` at configure time
-prevents the compilation of AMReX linear solvers code. 
+prevents the compilation of AMReX linear solvers code.
 Your CMake project can check which component is included in the AMReX library via `find_package`:
 
 
@@ -545,7 +547,7 @@ Your CMake project can check which component is included in the AMReX library vi
 The keyword ``REQUIRED`` in the snippet above will cause a fatal error if AMReX is not found, or
 if it is found but the components listed in ``<components-list>`` are not include in the installation.
 A list of AMReX component names and related configure options are shown in the table below.
-  
+
 
 .. raw:: latex
 
@@ -614,7 +616,7 @@ A list of AMReX component names and related configure options are shown in the t
 .. raw:: latex
 
    \end{center}
-   
+
 As an example, consider the following CMake code:
 
 
@@ -641,7 +643,7 @@ to compile ``Foo``'s C++ sources. If no AMReX installation is found or if the av
 You can tell CMake to look for the AMReX library in non-standard paths by setting the environmental variable
 ``AMReX_ROOT`` to point to the AMReX installation directory or by adding
 ``-DAMReX_ROOT=<path/to/amrex/installation/directory>`` to the ``cmake`` invocation.
-More details on ``find_package`` can be found 
+More details on ``find_package`` can be found
 `here <https://cmake.org/cmake/help/v3.14/command/find_package.html>`_.
 
 .. _sec:build:windows:
@@ -649,21 +651,21 @@ More details on ``find_package`` can be found
 AMReX on Windows
 ================
 
-The AMReX team does development on Linux machines, from desktop workstations to supercomputers. Many people also use AMReX on Macs without issues.  
+The AMReX team does development on Linux machines, from desktop workstations to supercomputers. Many people also use AMReX on Macs without issues.
 
-We do not officially support AMReX on Windows.  However, we believe there are no fundamental issues for making it work on Windows.  
+We do not officially support AMReX on Windows.  However, we believe there are no fundamental issues for making it work on Windows.
 AMReX mostly uses standard C++11,  and there are only a few places that are UNIX/Linux specific. These are:
 
-(1) File system:  We use some of the POSIX standard functions for operations like making a new directory, detecting if a file exists, etc.  
+(1) File system:  We use some of the POSIX standard functions for operations like making a new directory, detecting if a file exists, etc.
 C++17 now has a filesystem library that should work on any platform.  AMReX does not require C++17, but we are happy to provide a C++17 support for the file system part.
 
-(2) Signal handling:  We use POSIX handling when floating point exceptions, segmentation faults, etc. happen.  
-This capability allows us to print a backtrace of what leads to the error and is very useful for debugging but not required for using AMReX.  
+(2) Signal handling:  We use POSIX handling when floating point exceptions, segmentation faults, etc. happen.
+This capability allows us to print a backtrace of what leads to the error and is very useful for debugging but not required for using AMReX.
 Some of the POSIX handling is platform-dependent, and Windows does seem to have this capability.  If you need it, it should not be hard for you to make it work on Windows.
 
-(3) Memory profiling:  This is an optional feature in AMReX that is not enabled by default.  
+(3) Memory profiling:  This is an optional feature in AMReX that is not enabled by default.
 It reads memory system information from the OS to give us a summary of our memory usage.
 
-One other caveat is regarding the size of ``long``, which is 4 on Windows and 8 on other 64-bit systems.  
-This might cause integer overflow for really big runs (unlikely on Windows desktops as opposd to clusters). 
+One other caveat is regarding the size of ``long``, which is 4 on Windows and 8 on other 64-bit systems.
+This might cause integer overflow for really big runs (unlikely on Windows desktops as opposd to clusters).
 If this becomes an issue, please let us know and we could define amrex::Long that would be guaranteed to be 64 bits.

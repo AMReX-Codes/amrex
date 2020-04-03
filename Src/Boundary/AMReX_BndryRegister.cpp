@@ -105,78 +105,6 @@ BndryRegister::operator= (const BndryRegister& src)
     return *this;
 }
 
-// out_rad: grow outwards; for nodal, out_rad=1 means growing to the boundary face. 
-// in_rad: grow inwards; for nodal, in_rad=0 means on the boundary face.
-BndryBATransformer::BndryBATransformer (Orientation face, IndexType typ,
-					int in_rad, int out_rad, int extent_rad)
-    : BATBase<BndryBATransformer>(typ), 
-      m_dir(face.coordDir()), 
-      m_lo_face(face.isLow()),
-      m_in_rad(in_rad), 
-      m_out_rad(out_rad), 
-      m_extent_rad(extent_rad), 
-      m_nodal(typ.ixType())
-{ 
-    BL_ASSERT(in_rad >= 0 && out_rad >= 0);
-    BL_ASSERT(in_rad >  0 || out_rad >  0);
-    BL_ASSERT(extent_rad >=0);
-
-    m_loshft = IntVect(AMREX_D_DECL(-extent_rad,-extent_rad,-extent_rad));
-    m_hishft = IntVect(AMREX_D_DECL( extent_rad, extent_rad, extent_rad));
-    m_hishft += m_nodal;
-    if (m_lo_face) {
-    	m_loshft[m_dir] = m_nodal[m_dir] - out_rad;
-	m_hishft[m_dir] = m_nodal[m_dir] + in_rad - 1;
-    } else {
-	m_loshft[m_dir] = 1 - in_rad;
-	m_hishft[m_dir] = out_rad;
-    }
-
-    m_doilo = IntVect(AMREX_D_DECL(extent_rad, extent_rad, extent_rad));
-    m_doihi = IntVect(AMREX_D_DECL(extent_rad, extent_rad, extent_rad));
-    m_doihi += m_nodal;
-    if (m_lo_face) {  // domain of influence in index space
-	m_doilo[m_dir] = std::max(0, out_rad - m_nodal[m_dir]);
-	m_doihi[m_dir] = 0;
-    } else {
-	m_doilo[m_dir] = 0;
-	m_doihi[m_dir] = out_rad;
-    }
-}
-
-Box
-BndryBATransformer::operator() (const Box& a_bx) const
-{
-    BL_ASSERT(a_bx.cellCentered());
-    BL_ASSERT(a_bx.coarsenable(m_crse_ratio));
-    const Box& bx = amrex::coarsen(a_bx, m_crse_ratio);
-    IntVect lo(bx.loVect());
-    IntVect hi(bx.hiVect());
-    if (m_lo_face) {
-	hi[m_dir] = lo[m_dir];
-    } else {
-	lo[m_dir] = hi[m_dir];
-    }
-
-    lo += m_loshft;
-    hi += m_hishft;
-
-    return Box(lo, hi, m_typ);
-}
-
-bool 
-BndryBATransformer::operator== (const BndryBATransformer& rhs) const noexcept
-{
-    // Note that m_nodal_shft is computed form m_typ, so no need to compare it.
-    return m_typ == rhs.m_typ 
-        && m_crse_ratio == rhs.m_crse_ratio
-	&& m_dir == rhs.m_dir 
-	&& m_lo_face == rhs.m_lo_face
-	&& m_in_rad == rhs.m_in_rad 
-	&& m_out_rad == rhs.m_out_rad 
-	&& m_extent_rad == rhs.m_extent_rad; 
-}
-
 void
 BndryRegister::define (Orientation _face,
 		       IndexType   _typ,
@@ -186,8 +114,7 @@ BndryRegister::define (Orientation _face,
 		       int         _ncomp,
 		       const DistributionMapping& dmap)
 {
-    BndryBATransformer bbatrans(_face,_typ,_in_rad,_out_rad,_extent_rad);
-    BoxArray fsBA(grids, bbatrans);
+    BoxArray fsBA(grids, BATransformer(_face,_typ,_in_rad,_out_rad,_extent_rad));
 
     FabSet& fabs = bndry[_face];
 

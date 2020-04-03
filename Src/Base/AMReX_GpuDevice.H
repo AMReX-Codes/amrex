@@ -113,7 +113,7 @@ public:
     static std::size_t freeMemAvailable ();
 
 #ifdef AMREX_USE_GPU
-    static constexpr int warp_size = AMREX_HIP_OR_CUDA_OR_DPCPP(64,32,32);
+    static constexpr int warp_size = AMREX_HIP_OR_CUDA_OR_DPCPP(64,32,16);
 
     static int maxBlocksPerLaunch () noexcept { return max_blocks_per_launch; }
 

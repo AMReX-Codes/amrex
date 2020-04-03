@@ -110,92 +110,404 @@ struct BARef
     static bool initialized;
 };
 
+struct BATnull
+{
+    constexpr Box operator() (const Box& bx) const noexcept { return bx; }
+    constexpr Box coarsen (Box const& a_box) const noexcept { return a_box; }
+    constexpr IntVect doiLo () const noexcept { return IntVect::TheZeroVector(); }
+    constexpr IntVect doiHi () const noexcept { return IntVect::TheZeroVector(); }
+    constexpr IndexType index_type () const noexcept { return IndexType(); }
+    constexpr IntVect coarsen_ratio () const noexcept { return IntVect::TheUnitVector(); }
+};
+
+struct BATindexType
+{
+    explicit BATindexType (IndexType a_typ) : m_typ(a_typ) {}
+    Box operator() (const Box& bx) const noexcept { return amrex::convert(bx,m_typ); }
+    Box coarsen (Box const& a_box) const noexcept { return a_box; }
+    IntVect doiLo () const noexcept { return IntVect::TheZeroVector(); }
+    IntVect doiHi () const noexcept { return m_typ.ixType(); }
+    IndexType index_type () const noexcept { return m_typ; }
+    IntVect coarsen_ratio () const noexcept { return IntVect::TheUnitVector(); }
+    IndexType m_typ;
+};
+
+struct BATcoarsenRatio
+{
+    explicit BATcoarsenRatio (IntVect const& a_crse_ratio) : m_crse_ratio(a_crse_ratio) {}
+    Box operator() (const Box& bx) const noexcept { return amrex::coarsen(bx,m_crse_ratio); }
+    Box coarsen (Box const& a_box) const noexcept { return amrex::coarsen(a_box,m_crse_ratio); }
+    IntVect doiLo () const noexcept { return IntVect::TheZeroVector(); }
+    IntVect doiHi () const noexcept { return IntVect::TheZeroVector(); }
+    IndexType index_type () const noexcept { return IndexType(); }
+    IntVect coarsen_ratio () const noexcept { return m_crse_ratio; }
+    IntVect m_crse_ratio;
+};
+
+struct BATindexType_coarsenRatio
+{
+    BATindexType_coarsenRatio (IndexType a_typ, IntVect const& a_crse_ratio)
+        : m_typ(a_typ), m_crse_ratio(a_crse_ratio) {}
+
+    Box operator() (const Box& bx) const noexcept {
+        return amrex::convert(amrex::coarsen(bx,m_crse_ratio),m_typ);
+    }
+
+    Box coarsen (Box const& a_box) const noexcept { return amrex::coarsen(a_box,m_crse_ratio); }
+
+    IntVect doiLo () const noexcept { return IntVect::TheZeroVector(); }
+    IntVect doiHi () const noexcept { return m_typ.ixType(); }
+
+    IndexType index_type () const noexcept { return m_typ; }
+    IntVect coarsen_ratio () const noexcept { return m_crse_ratio; }
+
+    IndexType m_typ;
+    IntVect m_crse_ratio;
+};
+
+struct BATbndryReg
+{
+    BATbndryReg (Orientation a_face, IndexType a_typ,
+                 int a_in_rad, int a_out_rad, int a_extent_rad)
+        : m_face(a_face), m_typ(a_typ), m_crse_ratio(1)
+    {
+        m_loshft = IntVect(-a_extent_rad);
+        m_hishft = IntVect( a_extent_rad);
+        IntVect nodal = a_typ.ixType();
+        m_hishft += nodal;
+        const int d = a_face.coordDir();
+        if (m_face.isLow()) {
+            m_loshft[d] = nodal[d] - a_out_rad;
+            m_hishft[d] = nodal[d] + a_in_rad - 1;
+        } else {
+            m_loshft[d] = 1 - a_in_rad;
+            m_hishft[d] = a_out_rad;
+        }
+        m_doilo = IntVect(a_extent_rad);
+        m_doihi = IntVect(a_extent_rad);
+        m_doihi += nodal;
+        if (m_face.isLow()) {  // domain of influence in index space
+            m_doilo[d] = std::max(0, a_out_rad - nodal[d]);
+            m_doihi[d] = 0;
+        } else {
+            m_doilo[d] = 0;
+            m_doihi[d] = a_out_rad;
+        }
+    }
+
+    Box operator() (const Box& a_bx) const noexcept {
+        IntVect lo = amrex::coarsen(a_bx.smallEnd(), m_crse_ratio);
+        IntVect hi = amrex::coarsen(a_bx.bigEnd(), m_crse_ratio);
+        const int d = m_face.coordDir();
+        if (m_face.isLow()) {
+            hi[d] = lo[d];
+        } else {
+            lo[d] = hi[d];
+        }
+        lo += m_loshft;
+        hi += m_hishft;
+        return Box(lo,hi,m_typ);
+    }
+
+    Box coarsen (Box const& a_box) const noexcept { return amrex::coarsen(a_box,m_crse_ratio); }
+
+    IntVect doiLo () const noexcept { return m_doilo; }
+    IntVect doiHi () const noexcept { return m_doihi; }
+
+    IndexType index_type () const noexcept { return m_typ; }
+    IntVect coarsen_ratio () const noexcept { return m_crse_ratio; }
+
+    friend bool operator== (BATbndryReg const& a, BATbndryReg const& b) noexcept {
+        return a.m_face == b.m_face and a.m_typ == b.m_typ and a.m_crse_ratio == b.m_crse_ratio
+            and a.m_loshft == b.m_loshft and a.m_hishft == b.m_hishft
+            and a.m_doilo == b.m_doilo and a.m_doihi == b.m_doihi;
+    }
+
+    Orientation m_face;
+    IndexType m_typ;
+    IntVect m_crse_ratio;
+    IntVect m_loshft;
+    IntVect m_hishft;
+    IntVect m_doilo;
+    IntVect m_doihi;
+};
+
 struct BATransformer
 {
-    virtual ~BATransformer () {}
+    enum struct BATType { null, indexType, coarsenRatio, indexType_coarsenRatio, bndryReg};
 
-    virtual BATransformer* clone () const = 0;
-    virtual bool equal (const BATransformer& rhs) const = 0;
+    union BATOp {
+        BATOp () noexcept
+            : m_null() {}
+        BATOp (IndexType t) noexcept
+            : m_indexType(t) {}
+        BATOp (IntVect const& r) noexcept
+            : m_coarsenRatio(r) {}
+        BATOp (IndexType t, IntVect const& r) noexcept
+            : m_indexType_coarsenRatio(t,r) {}
+        BATOp (Orientation f, IndexType t, int in_rad, int out_rad, int extent_rad) noexcept
+            : m_bndryReg(f,t,in_rad,out_rad,extent_rad) {}
+        BATnull  m_null;
+        BATindexType m_indexType;
+        BATcoarsenRatio m_coarsenRatio;
+        BATindexType_coarsenRatio m_indexType_coarsenRatio;
+        BATbndryReg m_bndryReg;
+    };
 
-    virtual IndexType ixType () const = 0;
-    virtual void setIxType (IndexType typ) = 0;
+    BATransformer ()
+        : m_bat_type(BATType::null), m_op() {}
 
-    virtual IntVect crseRatio () const = 0;
-    virtual void setCrseRatio (const IntVect& crse_ratio) = 0;
+    BATransformer (IndexType t)
+        : m_bat_type(t.cellCentered() ? BATType::null : BATType::indexType),
+          m_op      (t.cellCentered() ? BATOp()       : BATOp(t)) {}
 
-    virtual IntVect doiLo () const = 0; //!< doi: Domain of Influence
-    virtual IntVect doiHi () const = 0; //!< doi: Domain of Influence
+    BATransformer (Orientation f, IndexType t, int in_rad, int out_rad, int extent_rad)
+        : m_bat_type(BATType::bndryReg),
+          m_op(f,t,in_rad,out_rad,extent_rad) {}
 
-    virtual bool simple () const = 0; //!< Is this simply a type transformer
+    Box operator() (Box const& ab) const noexcept {
+        switch (m_bat_type)
+        {
+        case     BATType::null:
+            return m_op.m_null(ab);
+        case     BATType::indexType:
+            return m_op.m_indexType(ab);
+        case     BATType::coarsenRatio:
+            return m_op.m_coarsenRatio(ab);
+        case     BATType::indexType_coarsenRatio:
+            return m_op.m_indexType_coarsenRatio(ab);
+        default:
+            return m_op.m_bndryReg(ab);
+        }
+    }
 
-    virtual Box operator() (const Box& bx) const = 0;
+    Box coarsen (Box const& a_box) const noexcept  {
+        switch (m_bat_type)
+        {
+        case     BATType::null:
+            return m_op.m_null.coarsen(a_box);
+        case     BATType::indexType:
+            return m_op.m_indexType.coarsen(a_box);
+        case     BATType::coarsenRatio:
+            return m_op.m_coarsenRatio.coarsen(a_box);
+        case     BATType::indexType_coarsenRatio:
+            return m_op.m_indexType_coarsenRatio.coarsen(a_box);
+        default:
+            return m_op.m_bndryReg.coarsen(a_box);
+        }
+    }
+
+    IntVect doiLo () const noexcept  {
+        switch (m_bat_type)
+        {
+        case     BATType::null:
+            return m_op.m_null.doiLo();
+        case     BATType::indexType:
+            return m_op.m_indexType.doiLo();
+        case     BATType::coarsenRatio:
+            return m_op.m_coarsenRatio.doiLo();
+        case     BATType::indexType_coarsenRatio:
+            return m_op.m_indexType_coarsenRatio.doiLo();
+        default:
+            return m_op.m_bndryReg.doiLo();
+        }
+    }
+
+    IntVect doiHi () const noexcept  {
+        switch (m_bat_type)
+        {
+        case     BATType::null:
+            return m_op.m_null.doiHi();
+        case     BATType::indexType:
+            return m_op.m_indexType.doiHi();
+        case     BATType::coarsenRatio:
+            return m_op.m_coarsenRatio.doiHi();
+        case     BATType::indexType_coarsenRatio:
+            return m_op.m_indexType_coarsenRatio.doiHi();
+        default:
+            return m_op.m_bndryReg.doiHi();
+        }
+    }
+
+    IndexType index_type () const noexcept  {
+        switch (m_bat_type)
+        {
+        case     BATType::null:
+            return m_op.m_null.index_type();
+        case     BATType::indexType:
+            return m_op.m_indexType.index_type();
+        case     BATType::coarsenRatio:
+            return m_op.m_coarsenRatio.index_type();
+        case     BATType::indexType_coarsenRatio:
+            return m_op.m_indexType_coarsenRatio.index_type();
+        default:
+            return m_op.m_bndryReg.index_type();
+        }
+    }
+
+    IntVect coarsen_ratio () const noexcept  {
+        switch (m_bat_type)
+        {
+        case     BATType::null:
+            return m_op.m_null.coarsen_ratio();
+        case     BATType::indexType:
+            return m_op.m_indexType.coarsen_ratio();
+        case     BATType::coarsenRatio:
+            return m_op.m_coarsenRatio.coarsen_ratio();
+        case     BATType::indexType_coarsenRatio:
+            return m_op.m_indexType_coarsenRatio.coarsen_ratio();
+        default:
+            return m_op.m_bndryReg.coarsen_ratio();
+        }
+    }
+
+    bool is_null () const noexcept {
+        return m_bat_type == BATType::null;
+    }
+
+    bool is_simple () const noexcept {
+        return m_bat_type != BATType::bndryReg;
+    }
+
+    void set_coarsen_ratio (IntVect const& a_ratio) noexcept {
+        switch (m_bat_type)
+        {
+        case BATType::null:
+        {
+            if (a_ratio == IntVect::TheUnitVector()) {
+                return;
+            } else {
+                m_bat_type = BATType::coarsenRatio;
+                m_op.m_coarsenRatio.m_crse_ratio = a_ratio;
+                return;
+            }
+        }
+        case BATType::indexType:
+        {
+            if (a_ratio == IntVect::TheUnitVector()) {
+                return;
+            } else {
+                m_bat_type = BATType::indexType_coarsenRatio;
+                auto t = m_op.m_indexType.m_typ;
+                m_op.m_indexType_coarsenRatio.m_typ = t;
+                m_op.m_indexType_coarsenRatio.m_crse_ratio = a_ratio;
+                return;
+            }
+        }
+        case BATType::coarsenRatio:
+        {
+            if (a_ratio == IntVect::TheUnitVector()) {
+                m_bat_type = BATType::null;
+                return;
+            } else {
+                m_op.m_coarsenRatio.m_crse_ratio = a_ratio;
+                return;
+            }
+        }
+        case BATType::indexType_coarsenRatio:
+        {
+            if (a_ratio == IntVect::TheUnitVector()) {
+                m_bat_type = BATType::indexType;
+                auto t = m_op.m_indexType_coarsenRatio.m_typ;
+                m_op.m_indexType.m_typ = t;
+                return;
+            } else {
+                m_op.m_indexType_coarsenRatio.m_crse_ratio = a_ratio;
+                return;
+            }
+        }
+        default:
+        {
+            m_op.m_bndryReg.m_crse_ratio = a_ratio;
+            return;
+        }
+        }
+    }
+
+    void set_index_type (IndexType typ) noexcept {
+        switch (m_bat_type)
+        {
+        case BATType::null:
+        {
+            if (typ.cellCentered()) {
+                return;
+            } else {
+                m_bat_type = BATType::indexType;
+                m_op.m_indexType.m_typ = typ;
+                return;
+            }
+        }
+        case BATType::indexType:
+        {
+            if (typ.cellCentered()) {
+                m_bat_type = BATType::null;
+                return;
+            } else {
+                m_op.m_indexType.m_typ = typ;
+                return;
+            }
+        }
+        case BATType::coarsenRatio:
+        {
+            if (typ.cellCentered()) {
+                return;
+            } else {
+                m_bat_type = BATType::indexType_coarsenRatio;
+                auto r = m_op.m_coarsenRatio.m_crse_ratio;
+                m_op.m_indexType_coarsenRatio.m_typ = typ;
+                m_op.m_indexType_coarsenRatio.m_crse_ratio = r;
+                return;
+            }
+        }
+        case BATType::indexType_coarsenRatio:
+        {
+            if (typ.cellCentered()) {
+                m_bat_type = BATType::coarsenRatio;
+                auto r = m_op.m_indexType_coarsenRatio.m_crse_ratio;
+                m_op.m_coarsenRatio.m_crse_ratio = r;
+                return;
+            } else {
+                m_op.m_indexType_coarsenRatio.m_typ = typ;
+                return;
+            }
+        }
+        default:
+        {
+            m_op.m_bndryReg.m_typ = typ;
+            return;
+        }
+        }
+    }
+
+    friend bool operator== (BATransformer const& a, BATransformer const& b) noexcept {
+        switch (a.m_bat_type)
+        {
+        case BATType::bndryReg:
+            switch (b.m_bat_type)
+            {
+            case BATType::bndryReg:
+                return a.m_op.m_bndryReg == b.m_op.m_bndryReg;
+            default:
+                return false;
+            }
+        default:
+            switch (b.m_bat_type)
+            {
+            case BATType::bndryReg:
+                return false;
+            default:
+                return a.index_type() == b.index_type()
+                    and a.coarsen_ratio() == b.coarsen_ratio();
+            }
+        }
+    }
+
+    BATType m_bat_type;
+    BATOp m_op;
 };
 
-template <class T>
-struct BATBase
-    : public BATransformer
-{
-    explicit BATBase (IndexType typ = IndexType(),
-                      const IntVect& crse_ratio = IntVect::TheUnitVector())
-	: m_typ(typ), m_crse_ratio(crse_ratio) {}
-    virtual ~BATBase () {}
-
-    virtual BATransformer* clone () const final {
-	return new T(dynamic_cast<const T&>(*this));
-    }
-
-    virtual bool equal (const BATransformer& rhs) const final {
-	const T* p = dynamic_cast<const T*>(&rhs);
-	return p && (*p) == (dynamic_cast<const T&>(*this));
-    }
-
-    virtual IndexType ixType () const final {
-	return m_typ;
-    }
-
-    virtual void setIxType (IndexType typ) final {
-	m_typ = typ;
-    }
-
-    virtual IntVect crseRatio () const final {
-        return m_crse_ratio;
-    }
-
-    virtual void setCrseRatio (const IntVect& crse_ratio) final {
-        m_crse_ratio = crse_ratio;
-    }
-
-    virtual bool simple () const override { return false; }
-
-protected:
-    IndexType m_typ;
-    IntVect   m_crse_ratio;
-};
-
-struct DefaultBATransformer final
-    : public BATBase<DefaultBATransformer>
-{
-    explicit DefaultBATransformer (IndexType typ = IndexType(),
-                                const IntVect& crse_ratio = IntVect::TheUnitVector())
-	: BATBase<DefaultBATransformer>(typ, crse_ratio) {}
-
-    virtual ~DefaultBATransformer () final {}
-
-    virtual IntVect doiLo () const final
-        { return IntVect::TheZeroVector(); }
-
-    virtual IntVect doiHi () const final
-        { return m_typ.ixType(); }
-
-    virtual bool simple () const final { return true; }
-
-    virtual Box operator() (const Box& bx) const final
-        { return amrex::convert(amrex::coarsen(bx,m_crse_ratio), m_typ); }
-
-    bool operator== (const DefaultBATransformer& rhs) const
-	{ return m_typ == rhs.m_typ and m_crse_ratio == rhs.m_crse_ratio; }
-};
-// \endcond
+// for backward compatibility
+using BndryBATransformer = BATransformer;
 
 /**
 * \brief A collection of Boxes stored in an Array.  It is a
@@ -214,14 +526,12 @@ public:
     //! The copy constructor.
     BoxArray (const BoxArray& rhs);
 
-    //! The assignment operator.
-    BoxArray& operator= (const BoxArray& rhs);
-
     //! The move constructor.
     BoxArray (BoxArray&& rhs) noexcept = default;
 
     //! The move assignment operator.
-    BoxArray& operator=(BoxArray&& rhs) noexcept = default;
+    BoxArray& operator= (BoxArray const& rhs) noexcept = default;
+    BoxArray& operator= (BoxArray&& rhs) noexcept = default;
 
     //! The destructor.
     ~BoxArray() noexcept = default;
@@ -241,7 +551,6 @@ public:
     explicit BoxArray (BoxList&& bl) noexcept;
 
     BoxArray (const BoxArray& rhs, const BATransformer& trans);
-
     
     /**
     * \brief Initialize the BoxArray from a single box.
@@ -312,7 +621,6 @@ public:
     //! Coarsen each Box in the BoxArray to the specified ratio.
     BoxArray& coarsen (int refinement_ratio);
 
-
     //! Coarsen each Box in the BoxArray to the specified ratio.
     bool coarsenable(int refinement_ratio, int min_width=1) const;
     bool coarsenable(const IntVect& refinement_ratio, int min_width=1) const;
@@ -380,13 +688,7 @@ public:
 
     //! Return element index of this BoxArray.
     Box operator[] (int index) const noexcept {
-        Box r = m_ref->m_abox[index];
-        if (m_simple) {
-            r.coarsen(m_crse_ratio).convert(m_typ);
-        } else {
-            r = (*m_transformer)(m_ref->m_abox[index]);
-        }
-        return r;
+        return m_bat(m_ref->m_abox[index]);
     }
 
     //! Return element index of this BoxArray.
@@ -397,7 +699,7 @@ public:
 
     //! Return cell-centered box at element index of this BoxArray.
     Box getCellCenteredBox (int index) const noexcept {
-        return amrex::coarsen(m_ref->m_abox[index],m_crse_ratio);
+        return m_bat.coarsen(m_ref->m_abox[index]);
     }
 
     /**
@@ -482,10 +784,10 @@ public:
     RefID getRefID () const noexcept { return RefID { m_ref.get() }; }
 
     //! Return index type of this BoxArray
-    IndexType ixType () const noexcept { return m_typ; }
+    IndexType ixType () const noexcept { return m_bat.index_type(); }
 
     //! Return crse ratio of this BoxArray
-    IntVect crseRatio () const noexcept { return m_crse_ratio; }
+    IntVect crseRatio () const noexcept { return m_bat.coarsen_ratio(); }
 
     static void Initialize ();
     static void Finalize ();
@@ -503,11 +805,7 @@ private:
     IntVect getDoiLo () const noexcept;
     IntVect getDoiHi () const noexcept;
 
-    std::unique_ptr<BATransformer> m_transformer;
-    IndexType m_typ;
-    IntVect   m_crse_ratio;
-    bool      m_simple;
-
+    BATransformer m_bat;
     //! The data -- a reference-counted pointer to a Ref.
     std::shared_ptr<BARef> m_ref;
 };

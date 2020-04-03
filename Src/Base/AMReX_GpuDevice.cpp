@@ -416,6 +416,8 @@ Device::initialize_gpu ()
 #endif
     }
 
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(warp_size == device_prop.warpSize, "Incorrect warp size");
+
 #elif defined(AMREX_USE_DPCPP)
     { // create device, context and queues
         sycl::gpu_selector device_selector;
@@ -442,8 +444,8 @@ Device::initialize_gpu ()
         device_prop.maxGridSize[0] = -1; // xxxxx DPCPP todo: unknown
         device_prop.maxGridSize[0] = -1; // unknown
         device_prop.maxGridSize[0] = -1; // unknown
+        device_prop.warpSize = warp_size;
         auto sgss = d.get_info<sycl::info::device::sub_group_sizes>();
-        device_prop.warpSize = sgss.back();
         device_prop.maxMemAllocSize = d.get_info<sycl::info::device::max_mem_alloc_size>();
         {
             amrex::Print() << "Device Properties:\n"
@@ -453,14 +455,18 @@ Device::initialize_gpu ()
                            << "  multiProcessorCount: " << device_prop.multiProcessorCount << "\n"
                            << "  maxThreadsPerBlock: " << device_prop.maxThreadsPerBlock << "\n"
                            << "  maxThreadsDim: (" << device_prop.maxThreadsDim[0] << ", " << device_prop.maxThreadsDim[1] << ", " << device_prop.maxThreadsDim[2] << ")\n"
-                           << "  warpSize: " << device_prop.warpSize << "\n"
+                           << "  warpSize:";
+            for (auto s : sgss) {
+                amrex::Print() << " " << s;
+            }
+            amrex::Print() << " (" << warp_size << " is used)\n"
                            << "  maxMemAllocSize: " << device_prop.maxMemAllocSize << "\n"
                            << std::endl;
         }
+        auto found = std::find(sgss.begin(), sgss.end(), static_cast<decltype(sgss)::value_type>(warp_size));
+        if (found == sgss.end()) amrex::Abort("Incorrect subgroup size");
     }
 #endif
-
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(warp_size == device_prop.warpSize, "Incorrect warp size");
 
     gpu_stream = gpu_default_stream;
 
