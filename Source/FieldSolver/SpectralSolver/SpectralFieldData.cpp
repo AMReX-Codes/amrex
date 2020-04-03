@@ -406,13 +406,18 @@ SpectralFieldData::BackwardTransform( MultiFab& mf,
 #if (AMREX_SPACEDIM == 3)
                 int const nz = realspace_bx.length(2);
 #else
-                int const nz = 1;
+                int constexpr nz = 1;
 #endif
-                ParallelFor( mfi.validbox(),
-                [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
-                    // Copy and normalize field
-                    mf_arr(i,j,k,i_comp) = inv_N*tmp_arr(i%nx,j%ny,k%nz);
-                });
+                ParallelFor(
+                    mfi.validbox(),
+                    /* GCC 8.1-8.2 work-around (ICE):
+                     *   named capture in nonexcept lambda needed for modulo operands
+                     *   https://godbolt.org/z/ppbAzd
+                     */
+                    [mf_arr, i_comp, inv_N, tmp_arr, nx, ny, nz]
+                    AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
+                        mf_arr(i,j,k,i_comp) = inv_N*tmp_arr(i%nx, j%ny, k%nz);
+                    });
             } else {
                 ParallelFor( mfi.validbox(),
                 [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
