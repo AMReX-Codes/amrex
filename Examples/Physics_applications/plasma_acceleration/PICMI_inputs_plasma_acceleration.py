@@ -18,6 +18,8 @@ moving_window_velocity = [0., 0., constants.c]
 
 number_per_cell_each_dim = [2, 2, 1]
 
+max_steps = 10
+
 grid = picmi.Cartesian3DGrid(number_of_cells = [nx, ny, nz],
                              lower_bound = [xmin, ymin, zmin],
                              upper_bound = [xmax, ymax, zmax],
@@ -42,13 +44,26 @@ beam = picmi.Species(particle_type='electron', name='beam', initial_distribution
 plasma = picmi.Species(particle_type='electron', name='plasma', initial_distribution=plasma_distribution)
 
 sim = picmi.Simulation(solver = solver,
-                       max_steps = 10,
+                       max_steps = max_steps,
                        verbose = 1,
-                       warpx_plot_int = 2,
+                       warpx_plot_int = max_steps,
                        warpx_current_deposition_algo = 'esirkepov')
 
 sim.add_species(beam, layout=picmi.GriddedLayout(grid=grid, n_macroparticle_per_cell=number_per_cell_each_dim))
 sim.add_species(plasma, layout=picmi.GriddedLayout(grid=grid, n_macroparticle_per_cell=number_per_cell_each_dim))
+
+field_diag = picmi.FieldDiagnostic(grid = grid,
+                                    period = max_steps,
+                                    data_list = ['Ex', 'Ey', 'Ez', 'Jx', 'Jy', 'Jz', 'part_per_cell'],
+                                    write_dir = 'diags')
+
+part_diag = picmi.ParticleDiagnostic(period = max_steps,
+                                      species = [beam, plasma],
+                                      data_list = ['ux', 'uy', 'uz', 'weighting', 'Ex', 'Ey', 'Ez'],
+                                      write_dir = 'diags')
+
+sim.add_diagnostic(field_diag)
+sim.add_diagnostic(part_diag)
 
 # write_inputs will create an inputs file that can be used to run
 # with the compiled version.
