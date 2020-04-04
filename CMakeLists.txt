@@ -50,6 +50,9 @@ project( AMReX
     HOMEPAGE_URL "https://amrex-codes.github.io/amrex/"
     LANGUAGES C CXX Fortran
     )
+
+message(STATUS "CMake version: ${CMAKE_VERSION}")
+
 #
 # Load required modules
 #
