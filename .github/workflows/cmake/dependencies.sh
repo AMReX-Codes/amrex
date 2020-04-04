@@ -15,7 +15,6 @@ sudo apt-get update
 
 sudo apt-get install -y --no-install-recommends\
     build-essential \
-    cmake           \
     g++ gfortran    \
     libopenmpi-dev  \
     openmpi-bin
