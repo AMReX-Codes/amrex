@@ -47,11 +47,9 @@ function (configure_amrex)
    # This will also enforce the same standard with the CUDA compiler
    # Moreover, it will also enforce such standard on all the consuming targets
    #
-   set_target_properties(amrex PROPERTIES
-#       CXX_STANDARD_REQUIRED ON
-       CXX_EXTENSIONS OFF )
+   set_target_properties(amrex PROPERTIES CXX_EXTENSIONS OFF)
 
-   target_compile_features(amrex PUBLIC cxx_std_${AMREX_CXX_STANDARD})  # minimum
+   target_compile_features(amrex PUBLIC cxx_std_11)  # minimum: C++11
 
    #
    # Setup OpenMP

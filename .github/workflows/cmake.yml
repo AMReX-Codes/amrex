@@ -15,8 +15,10 @@ jobs:
         cmake --version
         mkdir build
         cd build
-        cmake .. -DCMAKE_INSTALL_PREFIX=/tmp/my-amrex
-        make -j 2
+        cmake ..                                  \
+            -DCMAKE_INSTALL_PREFIX=/tmp/my-amrex  \
+            -DCMAKE_CXX_STANDARD=17
+        make -j 2 VERBOSE=ON
         make install
 
   # Build libamrex and all tutorials
