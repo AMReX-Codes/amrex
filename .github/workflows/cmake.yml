@@ -5,6 +5,7 @@ on: [push, pull_request]
 jobs:
   # Build and install libamrex as AMReX CMake project
   library:
+    name: GNU@7.5 C++17 [lib]
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
@@ -12,7 +13,6 @@ jobs:
       run: .github/workflows/cmake/dependencies.sh
     - name: Build & Install
       run: |
-        cmake --version
         mkdir build
         cd build
         cmake ..                                  \
@@ -23,6 +23,7 @@ jobs:
 
   # Build libamrex and all tutorials
   tutorials:
+    name: GNU@7.5 C++14 [tutorials]
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
@@ -30,7 +31,6 @@ jobs:
       run: .github/workflows/cmake/dependencies.sh
     - name: Build & Install
       run: |
-        cmake --version
         mkdir build
         cd build
         cmake .. -DENABLE_TUTORIALS=ON
@@ -38,6 +38,7 @@ jobs:
 
   # Build libamrex and all tutorials with CUDA
   tutorials-cuda:
+    name: CUDA@9.1.85 GNU@4.8.5 C++11 [tutorials]
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
@@ -45,7 +46,6 @@ jobs:
       run: .github/workflows/cmake/dependencies_nvcc.sh
     - name: Build & Install
       run: |
-        cmake --version
         mkdir build
         cd build
         cmake ..                                         \
