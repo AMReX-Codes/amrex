@@ -12,6 +12,7 @@ jobs:
       run: .github/workflows/cmake/dependencies.sh
     - name: Build & Install
       run: |
+        cmake --version
         mkdir build
         cd build
         cmake .. -DCMAKE_INSTALL_PREFIX=/tmp/my-amrex
@@ -27,6 +28,7 @@ jobs:
       run: .github/workflows/cmake/dependencies.sh
     - name: Build & Install
       run: |
+        cmake --version
         mkdir build
         cd build
         cmake .. -DENABLE_TUTORIALS=ON
@@ -41,6 +43,7 @@ jobs:
       run: .github/workflows/cmake/dependencies_nvcc.sh
     - name: Build & Install
       run: |
+        cmake --version
         mkdir build
         cd build
         cmake ..                                         \
