@@ -262,7 +262,7 @@ namespace amrex
 }
 
 template <typename T>
-bool is_it (std::string const& s, T& v)
+bool amrex::is_it (std::string const& s, T& v)
 {
     std::istringstream ss(s);
     if (ss >> v) {
