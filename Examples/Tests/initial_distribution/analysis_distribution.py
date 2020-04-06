@@ -16,7 +16,7 @@
 import numpy as np
 import scipy.constants as scc
 import scipy.special as scs
-from read_raw_data import read_reduced_diags_histogram
+from read_raw_data import read_reduced_diags_histogram, read_reduced_diags
 
 # print tolerance
 tolerance = 0.01
@@ -93,6 +93,8 @@ assert(f3_error < tolerance)
 bin_value, h4x = read_reduced_diags_histogram("h4x.txt")[2:]
 h4y = read_reduced_diags_histogram("h4y.txt")[3]
 h4z = read_reduced_diags_histogram("h4z.txt")[3]
+_, bmmntr = read_reduced_diags("bmmntr.txt")
+charge = bmmntr['charge'][0]
 
 # parameters of theory
 x_rms = 0.25
@@ -107,9 +109,11 @@ f_xy = npart*db * np.exp(-0.5*(bin_value/x_rms)**2)/(x_rms*np.sqrt(2.0*scc.pi)) 
 f_z = npart*db * np.exp(-0.5*(bin_value/x_rms)**2)/(x_rms*np.sqrt(2.0*scc.pi))
 f_z[ np.absolute(bin_value) > z_cut * x_rms ] = 0.
 f_peak = np.amax(f_z)
+q_tot_cut = q_tot * scs.erf(z_cut/np.sqrt(2.))
 
 # compute error
 f4_error = np.sum(np.abs(f_xy-h4x)+np.abs(f_xy-h4y)+np.abs(f_z-h4z))/bin_value.size / f_peak
+charge_error = np.abs((q_tot_cut - charge) / q_tot)
 
 do_plot = False
 if do_plot:
@@ -126,5 +130,7 @@ if do_plot:
     plt.savefig('toto.pdf', bbox_inches='tight')
 
 print('Gaussian position distribution difference:', f4_error)
-
 assert(f4_error < tolerance)
+
+print('Relative beam charge difference:', charge_error)
+assert(charge_error < tolerance)

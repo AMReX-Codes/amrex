@@ -42,7 +42,8 @@ BeamRelevant::BeamRelevant (std::string rd_name)
     // 10,11,12: rms px,py,pz
     //       13: rms gamma
     // 14,15,16: emittance x,y,z
-    m_data.resize(17,0.0);
+    //       17: charge
+    m_data.resize(18,0.0);
 #elif (AMREX_SPACEDIM == 2)
     //     0, 1: mean x,z
     //  2, 3, 4: mean px,py,pz
@@ -51,7 +52,8 @@ BeamRelevant::BeamRelevant (std::string rd_name)
     //  8, 9,10: rms px,py,pz
     //       11: rms gamma
     //    12,13: emittance x,z
-    m_data.resize(14,0.0);
+    //       14: charge
+    m_data.resize(15,0.0);
 #endif
 
     if (ParallelDescriptor::IOProcessor())
@@ -83,7 +85,8 @@ BeamRelevant::BeamRelevant (std::string rd_name)
             ofs << "[16]gamma_rms()";     ofs << m_sep;
             ofs << "[17]emittance_x(m)";  ofs << m_sep;
             ofs << "[18]emittance_y(m)";  ofs << m_sep;
-            ofs << "[19]emittance_z(m)";  ofs << std::endl;
+            ofs << "[19]emittance_z(m)";  ofs << m_sep;
+            ofs << "[20]charge(C)";       ofs << std::endl;
 #elif (AMREX_SPACEDIM == 2)
             ofs << "#";
             ofs << "[1]step()";           ofs << m_sep;
@@ -101,7 +104,8 @@ BeamRelevant::BeamRelevant (std::string rd_name)
             ofs << "[13]pz_rms(kg*m/s)";  ofs << m_sep;
             ofs << "[14]gamma_rms()";     ofs << m_sep;
             ofs << "[15]emittance_x(m)";  ofs << m_sep;
-            ofs << "[16]emittance_z(m)";  ofs << std::endl;
+            ofs << "[16]emittance_x(m)";  ofs << m_sep;
+            ofs << "[17]charge(C)";       ofs << std::endl;
 #endif
             // close file
             ofs.close();
@@ -147,8 +151,9 @@ void BeamRelevant::ComputeDiags (int step)
         // get WarpXParticleContainer class object
         auto const & myspc = mypc.GetParticleContainer(i_s);
 
-        // get mass (Real)
+        // get mass and charge (Real), FIXME actually all here are ParticleReal
         Real const m = myspc.getMass();
+        Real const q = myspc.getCharge();
 
         using PType = typename WarpXParticleContainer::SuperParticleType;
 
@@ -312,6 +317,14 @@ void BeamRelevant::ComputeDiags (int step)
             return a * p.rdata(PIdx::w);
         });
 
+        // charge
+        Real charge = ReduceSum( myspc,
+        [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real
+        {
+            Real const w = p.rdata(PIdx::w);
+            return q * w;
+        });
+
         // reduced sum over mpi ranks
         ParallelDescriptor::ReduceRealSum
             ( x_ms, ParallelDescriptor::IOProcessorNumber());
@@ -347,6 +360,8 @@ void BeamRelevant::ComputeDiags (int step)
         ParallelDescriptor::ReduceRealSum
             (   zuz, ParallelDescriptor::IOProcessorNumber());
         zuz /= w_sum;
+        ParallelDescriptor::ReduceRealSum
+            ( charge, ParallelDescriptor::IOProcessorNumber());
 
         // save data
 #if (AMREX_SPACEDIM == 3)
@@ -367,6 +382,7 @@ void BeamRelevant::ComputeDiags (int step)
         m_data[14] = std::sqrt(x_ms*ux_ms-xux*xux) / PhysConst::c;
         m_data[15] = std::sqrt(y_ms*uy_ms-yuy*yuy) / PhysConst::c;
         m_data[16] = std::sqrt(z_ms*uz_ms-zuz*zuz) / PhysConst::c;
+        m_data[17] = charge;
 #elif (AMREX_SPACEDIM == 2)
         m_data[0]  = x_mean;
         m_data[1]  = z_mean;
@@ -382,6 +398,7 @@ void BeamRelevant::ComputeDiags (int step)
         m_data[11] = std::sqrt(gm_ms);
         m_data[12] = std::sqrt(x_ms*ux_ms-xux*xux) / PhysConst::c;
         m_data[13] = std::sqrt(z_ms*uz_ms-zuz*zuz) / PhysConst::c;
+        m_data[14] = charge;
 #endif
 
     }
