@@ -19,7 +19,7 @@ Average::ToCellCenter ( MultiFab& mf_out,
         const Box bx = mfi.growntilebox( ngrow );
         Array4<Real> const& mf_out_arr = mf_out.array( mfi );
         Array4<Real const> const& mf_in_arr = mf_in.const_array( mfi );
-        const IntVect stag = mf_in.boxArray().ixType().ixType();
+        const IntVect stag = mf_in.boxArray().ixType().toIntVect();
         ParallelFor( bx, ncomp,
                      [=] AMREX_GPU_DEVICE( int i, int j, int k, int n )
                      {

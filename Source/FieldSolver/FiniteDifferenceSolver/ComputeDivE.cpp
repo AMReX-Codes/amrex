@@ -83,7 +83,7 @@ void FiniteDifferenceSolver::ComputeDivECartesian (
         int const n_coefs_z = m_stencil_coefs_z.size();
 
         // Extract tileboxes for which to loop
-        Box const& tdive = mfi.tilebox(divEfield.ixType().ixType());
+        Box const& tdive = mfi.tilebox(divEfield.ixType().toIntVect());
 
         // Loop over the cells and update the fields
         amrex::ParallelFor(tdive,
@@ -132,7 +132,7 @@ void FiniteDifferenceSolver::ComputeDivECylindrical (
         Real const rmin = m_rmin;
 
         // Extract tileboxes for which to loop
-        Box const& tdive  = mfi.tilebox(divEfield.ixType().ixType());
+        Box const& tdive  = mfi.tilebox(divEfield.ixType().toIntVect());
 
         // Loop over the cells and update the fields
         amrex::ParallelFor(tdive,

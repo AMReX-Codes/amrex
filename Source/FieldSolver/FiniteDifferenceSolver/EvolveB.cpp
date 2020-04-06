@@ -85,9 +85,9 @@ void FiniteDifferenceSolver::EvolveBCartesian (
         int const n_coefs_z = m_stencil_coefs_z.size();
 
         // Extract tileboxes for which to loop
-        Box const& tbx  = mfi.tilebox(Bfield[0]->ixType().ixType());
-        Box const& tby  = mfi.tilebox(Bfield[1]->ixType().ixType());
-        Box const& tbz  = mfi.tilebox(Bfield[2]->ixType().ixType());
+        Box const& tbx  = mfi.tilebox(Bfield[0]->ixType().toIntVect());
+        Box const& tby  = mfi.tilebox(Bfield[1]->ixType().toIntVect());
+        Box const& tbz  = mfi.tilebox(Bfield[2]->ixType().toIntVect());
 
         // Loop over the cells and update the fields
         amrex::ParallelFor(tbx, tby, tbz,
@@ -147,9 +147,9 @@ void FiniteDifferenceSolver::EvolveBCylindrical (
         Real const rmin = m_rmin;
 
         // Extract tileboxes for which to loop
-        Box const& tbr  = mfi.tilebox(Bfield[0]->ixType().ixType());
-        Box const& tbt  = mfi.tilebox(Bfield[1]->ixType().ixType());
-        Box const& tbz  = mfi.tilebox(Bfield[2]->ixType().ixType());
+        Box const& tbr  = mfi.tilebox(Bfield[0]->ixType().toIntVect());
+        Box const& tbt  = mfi.tilebox(Bfield[1]->ixType().toIntVect());
+        Box const& tbz  = mfi.tilebox(Bfield[2]->ixType().toIntVect());
 
         // Loop over the cells and update the fields
         amrex::ParallelFor(tbr, tbt, tbz,

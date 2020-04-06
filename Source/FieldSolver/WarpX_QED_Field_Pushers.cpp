@@ -106,17 +106,17 @@ WarpX::Hybrid_QED_Push (int lev, PatchType patch_type, Real a_dt)
 
         // Get boxes for E, B, and J
 
-        const Box& tbx = mfi.tilebox(Bx->ixType().ixType());
-        const Box& tby = mfi.tilebox(By->ixType().ixType());
-        const Box& tbz = mfi.tilebox(Bz->ixType().ixType());
+        const Box& tbx = mfi.tilebox(Bx->ixType().toIntVect());
+        const Box& tby = mfi.tilebox(By->ixType().toIntVect());
+        const Box& tbz = mfi.tilebox(Bz->ixType().toIntVect());
 
-        const Box& tex = mfi.tilebox(Ex->ixType().ixType());
-        const Box& tey = mfi.tilebox(Ey->ixType().ixType());
-        const Box& tez = mfi.tilebox(Ez->ixType().ixType());
+        const Box& tex = mfi.tilebox(Ex->ixType().toIntVect());
+        const Box& tey = mfi.tilebox(Ey->ixType().toIntVect());
+        const Box& tez = mfi.tilebox(Ez->ixType().toIntVect());
 
-        const Box& tjx = mfi.tilebox(Jx->ixType().ixType());
-        const Box& tjy = mfi.tilebox(Jy->ixType().ixType());
-        const Box& tjz = mfi.tilebox(Jz->ixType().ixType());
+        const Box& tjx = mfi.tilebox(Jx->ixType().toIntVect());
+        const Box& tjy = mfi.tilebox(Jy->ixType().toIntVect());
+        const Box& tjz = mfi.tilebox(Jz->ixType().toIntVect());
 
         // Get field arrays
         auto const& Bxfab = Bx->array(mfi);

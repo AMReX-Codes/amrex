@@ -90,7 +90,7 @@ void FiniteDifferenceSolver::EvolveFCartesian (
         int const n_coefs_z = m_stencil_coefs_z.size();
 
         // Extract tileboxes for which to loop
-        Box const& tf  = mfi.tilebox(Ffield->ixType().ixType());
+        Box const& tf  = mfi.tilebox(Ffield->ixType().toIntVect());
 
         Real constexpr inv_epsilon0 = 1./PhysConst::ep0;
 
@@ -146,7 +146,7 @@ void FiniteDifferenceSolver::EvolveFCylindrical (
         Real const rmin = m_rmin;
 
         // Extract tileboxes for which to loop
-        Box const& tf  = mfi.tilebox(Ffield->ixType().ixType());
+        Box const& tf  = mfi.tilebox(Ffield->ixType().toIntVect());
 
         Real constexpr inv_epsilon0 = 1./PhysConst::ep0;
         Real constexpr c2 = PhysConst::c * PhysConst::c;

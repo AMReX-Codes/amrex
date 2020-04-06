@@ -96,9 +96,9 @@ void FiniteDifferenceSolver::EvolveECartesian (
         int const n_coefs_z = m_stencil_coefs_z.size();
 
         // Extract tileboxes for which to loop
-        Box const& tex  = mfi.tilebox(Efield[0]->ixType().ixType());
-        Box const& tey  = mfi.tilebox(Efield[1]->ixType().ixType());
-        Box const& tez  = mfi.tilebox(Efield[2]->ixType().ixType());
+        Box const& tex  = mfi.tilebox(Efield[0]->ixType().toIntVect());
+        Box const& tey  = mfi.tilebox(Efield[1]->ixType().toIntVect());
+        Box const& tez  = mfi.tilebox(Efield[2]->ixType().toIntVect());
 
         // Loop over the cells and update the fields
         amrex::ParallelFor(tex, tey, tez,
@@ -193,9 +193,9 @@ void FiniteDifferenceSolver::EvolveECylindrical (
         Real const rmin = m_rmin;
 
         // Extract tileboxes for which to loop
-        Box const& ter  = mfi.tilebox(Efield[0]->ixType().ixType());
-        Box const& tet  = mfi.tilebox(Efield[1]->ixType().ixType());
-        Box const& tez  = mfi.tilebox(Efield[2]->ixType().ixType());
+        Box const& ter  = mfi.tilebox(Efield[0]->ixType().toIntVect());
+        Box const& tet  = mfi.tilebox(Efield[1]->ixType().toIntVect());
+        Box const& tez  = mfi.tilebox(Efield[2]->ixType().toIntVect());
 
         Real const c2 = PhysConst::c * PhysConst::c;
 
