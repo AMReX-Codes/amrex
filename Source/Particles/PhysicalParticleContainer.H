@@ -171,7 +171,7 @@ public:
                         const amrex::MultiFab& By,
                         const amrex::MultiFab& Bz) override;
 
-    void PartitionParticlesInBuffers(
+    void PartitionParticlesInBuffers (
                         long& nfine_current,
                         long& nfine_gather,
                         long const np,
@@ -188,44 +188,47 @@ public:
 
     virtual void PostRestart () final {}
 
-    void SplitParticles(int lev);
+    void SplitParticles (int lev);
 
     IonizationFilterFunc getIonizationFunc ();
 
     // Inject particles in Box 'part_box'
     virtual void AddParticles (int lev);
 
-    void AddPlasma(int lev, amrex::RealBox part_realbox = amrex::RealBox());
+    void AddPlasma (int lev, amrex::RealBox part_realbox = amrex::RealBox());
 
-    void MapParticletoBoostedFrame(amrex::Real& x, amrex::Real& y, amrex::Real& z, std::array<amrex::Real, 3>& u);
+    void MapParticletoBoostedFrame (amrex::Real& x, amrex::Real& y, amrex::Real& z, std::array<amrex::Real, 3>& u);
 
-    void AddGaussianBeam(const amrex::Real x_m, const amrex::Real y_m, const amrex::Real z_m,
-                         const amrex::Real x_rms, const amrex::Real y_rms, const amrex::Real z_rms,
-                         const amrex::Real x_cut, const amrex::Real y_cut, const amrex::Real z_cut,
-                         const amrex::Real q_tot, long npart, const int do_symmetrize);
+    void AddGaussianBeam (
+        const amrex::Real x_m, const amrex::Real y_m, const amrex::Real z_m,
+        const amrex::Real x_rms, const amrex::Real y_rms, const amrex::Real z_rms,
+        const amrex::Real x_cut, const amrex::Real y_cut, const amrex::Real z_cut,
+        const amrex::Real q_tot, long npart, const int do_symmetrize);
 
     /** Load a particle beam from an external file
      *
      * @param[in] s_f path to an external file in openPMD markup
      * @param[in] q_tot total charge of the particle species to be initialized
      */
-    void AddPlasmaFromFile(const std::string s_f, amrex::Real q_tot);
+    void AddPlasmaFromFile (const std::string s_f, amrex::Real q_tot);
 
-    void CheckAndAddParticle(amrex::Real x, amrex::Real y, amrex::Real z,
-                             std::array<amrex::Real, 3> u,
-                             amrex::Real weight,
-                             amrex::Gpu::HostVector<amrex::ParticleReal>& particle_x,
-                             amrex::Gpu::HostVector<amrex::ParticleReal>& particle_y,
-                             amrex::Gpu::HostVector<amrex::ParticleReal>& particle_z,
-                             amrex::Gpu::HostVector<amrex::ParticleReal>& particle_ux,
-                             amrex::Gpu::HostVector<amrex::ParticleReal>& particle_uy,
-                             amrex::Gpu::HostVector<amrex::ParticleReal>& particle_uz,
-                             amrex::Gpu::HostVector<amrex::ParticleReal>& particle_w);
+    void CheckAndAddParticle (
+        amrex::Real x, amrex::Real y, amrex::Real z,
+        std::array<amrex::Real, 3> u,
+        amrex::Real weight,
+        amrex::Gpu::HostVector<amrex::ParticleReal>& particle_x,
+        amrex::Gpu::HostVector<amrex::ParticleReal>& particle_y,
+        amrex::Gpu::HostVector<amrex::ParticleReal>& particle_z,
+        amrex::Gpu::HostVector<amrex::ParticleReal>& particle_ux,
+        amrex::Gpu::HostVector<amrex::ParticleReal>& particle_uy,
+        amrex::Gpu::HostVector<amrex::ParticleReal>& particle_uz,
+        amrex::Gpu::HostVector<amrex::ParticleReal>& particle_w);
 
-    virtual void GetParticleSlice(const int direction, const amrex::Real z_old,
-                                  const amrex::Real z_new, const amrex::Real t_boost,
-                                  const amrex::Real t_lab, const amrex::Real dt,
-                                  DiagnosticParticles& diagnostic_particles) final;
+    virtual void GetParticleSlice (
+        const int direction, const amrex::Real z_old,
+        const amrex::Real z_new, const amrex::Real t_boost,
+        const amrex::Real t_lab, const amrex::Real dt,
+        DiagnosticParticles& diagnostic_particles) final;
 
     virtual void ConvertUnits (ConvertDirection convert_dir) override;
 
@@ -292,14 +295,14 @@ public:
      * Synchrotron process enabled
      * @return true if process is enabled
      */
-    bool has_quantum_sync() override;
+    bool has_quantum_sync () override;
 
     /**
      * Tells if this PhysicalParticleContainer has Breit
      * Wheeler process enabled
      * @return true if process is enabled
      */
-    bool has_breit_wheeler() override;
+    bool has_breit_wheeler () override;
 
     /**
      * Acquires a shared smart pointer to a BreitWheelerEngine
@@ -322,7 +325,7 @@ public:
      * @param[in,out] pti particle iterator (optical depth will be modified)
      * @param[in] dt temporal step
      */
-    virtual void EvolveOpticalDepth(WarpXParIter& pti,
+    virtual void EvolveOpticalDepth (WarpXParIter& pti,
         amrex::Real dt);
 
     PhotonEmissionFilterFunc getPhotonEmissionFilterFunc ();

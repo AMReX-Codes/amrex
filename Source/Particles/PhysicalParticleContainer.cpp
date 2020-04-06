@@ -172,7 +172,7 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core)
     plasma_injector.reset(new PlasmaInjector());
 }
 
-void PhysicalParticleContainer::InitData()
+void PhysicalParticleContainer::InitData ()
 {
     // Init ionization module here instead of in the PhysicalParticleContainer
     // constructor because dt is required
@@ -181,7 +181,8 @@ void PhysicalParticleContainer::InitData()
     Redistribute();  // We then redistribute
 }
 
-void PhysicalParticleContainer::MapParticletoBoostedFrame(Real& x, Real& y, Real& z, std::array<Real, 3>& u)
+void PhysicalParticleContainer::MapParticletoBoostedFrame (
+    Real& x, Real& y, Real& z, std::array<Real, 3>& u)
 {
     // Map the particles from the lab frame to the boosted frame.
     // This boosts the particle to the lab frame and calculates
@@ -312,7 +313,7 @@ PhysicalParticleContainer::AddGaussianBeam (
 }
 
 void
-PhysicalParticleContainer::AddPlasmaFromFile(const std::string s_f, amrex::Real q_tot)
+PhysicalParticleContainer::AddPlasmaFromFile (const std::string s_f, amrex::Real q_tot)
 {
 #ifdef WARPX_USE_OPENPMD
     openPMD::Series series = openPMD::Series(s_f, openPMD::AccessType::READ_ONLY);
@@ -346,16 +347,17 @@ PhysicalParticleContainer::AddPlasmaFromFile(const std::string s_f, amrex::Real 
 }
 
 void
-PhysicalParticleContainer::CheckAndAddParticle(Real x, Real y, Real z,
-                                               std::array<Real, 3> u,
-                                               Real weight,
-                                               Gpu::HostVector<ParticleReal>& particle_x,
-                                               Gpu::HostVector<ParticleReal>& particle_y,
-                                               Gpu::HostVector<ParticleReal>& particle_z,
-                                               Gpu::HostVector<ParticleReal>& particle_ux,
-                                               Gpu::HostVector<ParticleReal>& particle_uy,
-                                               Gpu::HostVector<ParticleReal>& particle_uz,
-                                               Gpu::HostVector<ParticleReal>& particle_w)
+PhysicalParticleContainer::CheckAndAddParticle (
+    Real x, Real y, Real z,
+    std::array<Real, 3> u,
+    Real weight,
+    Gpu::HostVector<ParticleReal>& particle_x,
+    Gpu::HostVector<ParticleReal>& particle_y,
+    Gpu::HostVector<ParticleReal>& particle_z,
+    Gpu::HostVector<ParticleReal>& particle_ux,
+    Gpu::HostVector<ParticleReal>& particle_uy,
+    Gpu::HostVector<ParticleReal>& particle_uz,
+    Gpu::HostVector<ParticleReal>& particle_w)
 {
     if (WarpX::gamma_boost > 1.) {
         MapParticletoBoostedFrame(x, y, z, u);
@@ -850,9 +852,10 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
 }
 
 void
-PhysicalParticleContainer::AssignExternalFieldOnParticles(WarpXParIter& pti,
-                           RealVector& Exp, RealVector& Eyp, RealVector& Ezp,
-                           RealVector& Bxp, RealVector& Byp, RealVector& Bzp, int lev)
+PhysicalParticleContainer::AssignExternalFieldOnParticles (
+    WarpXParIter& pti,
+    RealVector& Exp, RealVector& Eyp, RealVector& Ezp,
+    RealVector& Bxp, RealVector& Byp, RealVector& Bzp, int lev)
 {
    const long np = pti.numParticles();
     /// get WarpX class object
@@ -1313,7 +1316,7 @@ PhysicalParticleContainer::applyNCIFilter (
 // Loop over all particles in the particle container and
 // split particles tagged with p.id()=DoSplitParticleID
 void
-PhysicalParticleContainer::SplitParticles(int lev)
+PhysicalParticleContainer::SplitParticles (int lev)
 {
     auto& mypc = WarpX::GetInstance().GetPartContainer();
     auto& pctmp_split = mypc.GetPCtmp();
@@ -1664,9 +1667,10 @@ void PhysicalParticleContainer::EvolveOpticalDepth(
 #endif
 
 void
-PhysicalParticleContainer::PushP (int lev, Real dt,
-                                  const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
-                                  const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz)
+PhysicalParticleContainer::PushP (
+    int lev, Real dt,
+    const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
+    const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz)
 {
     WARPX_PROFILE("PhysicalParticleContainer::PushP");
 
@@ -1778,7 +1782,8 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
     }
 }
 
-void PhysicalParticleContainer::copy_attribs (WarpXParIter& pti)
+void
+PhysicalParticleContainer::copy_attribs (WarpXParIter& pti)
 {
     auto& attribs = pti.GetAttribs();
     ParticleReal* AMREX_RESTRICT uxp = attribs[PIdx::ux].dataPtr();
@@ -1812,10 +1817,12 @@ void PhysicalParticleContainer::copy_attribs (WarpXParIter& pti)
         );
 }
 
-void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real z_old,
-                                                 const Real z_new, const Real t_boost,
-                                                 const Real t_lab, const Real dt,
-                                                 DiagnosticParticles& diagnostic_particles)
+void
+PhysicalParticleContainer::GetParticleSlice (
+    const int direction, const Real z_old,
+    const Real z_new, const Real t_boost,
+    const Real t_lab, const Real dt,
+    DiagnosticParticles& diagnostic_particles)
 {
     WARPX_PROFILE("PhysicalParticleContainer::GetParticleSlice");
 
@@ -2011,7 +2018,7 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
  * \param injection_box: domain where particles should be injected.
  */
 void
-PhysicalParticleContainer::ContinuousInjection(const RealBox& injection_box)
+PhysicalParticleContainer::ContinuousInjection (const RealBox& injection_box)
 {
     // Inject plasma on level 0. Paticles will be redistributed.
     const int lev=0;
@@ -2147,7 +2154,8 @@ PhysicalParticleContainer::FieldGather (WarpXParIter& pti,
 }
 
 
-void PhysicalParticleContainer::InitIonizationModule ()
+void
+PhysicalParticleContainer::InitIonizationModule ()
 {
     if (!do_field_ionization) return;
     ParmParse pp(species_name);
@@ -2211,26 +2219,26 @@ PhysicalParticleContainer::getIonizationFunc ()
 #ifdef WARPX_QED
 
 
-bool PhysicalParticleContainer::has_quantum_sync()
+bool PhysicalParticleContainer::has_quantum_sync ()
 {
     return m_do_qed_quantum_sync;
 }
 
-bool PhysicalParticleContainer::has_breit_wheeler()
+bool PhysicalParticleContainer::has_breit_wheeler ()
 {
     return m_do_qed_breit_wheeler;
 }
 
 void
 PhysicalParticleContainer::
-set_breit_wheeler_engine_ptr(std::shared_ptr<BreitWheelerEngine> ptr)
+set_breit_wheeler_engine_ptr (std::shared_ptr<BreitWheelerEngine> ptr)
 {
     m_shr_p_bw_engine = ptr;
 }
 
 void
 PhysicalParticleContainer::
-set_quantum_sync_engine_ptr(std::shared_ptr<QuantumSynchrotronEngine> ptr)
+set_quantum_sync_engine_ptr (std::shared_ptr<QuantumSynchrotronEngine> ptr)
 {
     m_shr_p_qs_engine = ptr;
 }
