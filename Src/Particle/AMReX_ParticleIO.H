@@ -77,8 +77,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
     WriteBinaryParticleData(dir, name, write_real_comp, write_int_comp,
                             tmp_real_comp_names, tmp_int_comp_names,
-							[=] (const SuperParticleType& p) {return p.id() > 0;});
-    
+                            [=] AMREX_GPU_HOST_DEVICE (const SuperParticleType& p) -> int
+                            {
+                                return p.id() > 0;
+                            });
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
@@ -108,7 +110,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     
     WriteBinaryParticleData(dir, name, write_real_comp, write_int_comp,
                             real_comp_names, int_comp_names,
-							[=] (const SuperParticleType& p) {return p.id() > 0;});
+                            [=] AMREX_GPU_HOST_DEVICE (const SuperParticleType& p) -> int
+                            {
+                                return p.id() > 0;
+                            });
 }
 
 #ifdef AMREX_USE_HDF5
@@ -1444,7 +1449,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     
     WriteBinaryParticleData(dir, name, write_real_comp, write_int_comp,
                             real_comp_names, int_comp_names,
-							[=] (const SuperParticleType& p) {return p.id() > 0;});
+                            [=] AMREX_GPU_HOST_DEVICE (const SuperParticleType& p)
+                            {
+                                return p.id() > 0;
+                            });
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
@@ -1466,7 +1474,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     WriteBinaryParticleData(dir, name,
                             write_real_comp, write_int_comp,
                             real_comp_names, int_comp_names,
-							[=] (const SuperParticleType& p) {return p.id() > 0;});
+                            [=] AMREX_GPU_HOST_DEVICE (const SuperParticleType& p)
+                            {
+                                return p.id() > 0;
+                            });
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
@@ -1494,7 +1505,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     WriteBinaryParticleData(dir, name,
                             write_real_comp, write_int_comp,
                             real_comp_names, int_comp_names,
-							[=] (const ParticleType& p) {return p.id() > 0;});
+                            [=] AMREX_GPU_HOST_DEVICE (const ParticleType& p)
+                            {
+                                return p.id() > 0;
+                            });
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
@@ -1526,7 +1540,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
     WriteBinaryParticleData(dir, name, write_real_comp, write_int_comp,
                             real_comp_names, int_comp_names,
-							[=] (const SuperParticleType& p) {return p.id() > 0;});
+                            [=] AMREX_GPU_HOST_DEVICE (const SuperParticleType& p)
+                            {
+                                return p.id() > 0;
+                            });
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
@@ -1543,7 +1560,10 @@ WritePlotFile (const std::string& dir, const std::string& name,
     WriteBinaryParticleData(dir, name,
                             write_real_comp, write_int_comp,
                             real_comp_names, int_comp_names,
-							[=] (const SuperParticleType& p) {return p.id() > 0;});
+                            [=] AMREX_GPU_HOST_DEVICE (const SuperParticleType& p)
+                            {
+                                return p.id() > 0;
+                            });
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
@@ -1574,7 +1594,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     
     WriteBinaryParticleData(dir, name, write_real_comp, write_int_comp,
                             real_comp_names, int_comp_names,
-							std::forward<F>(f));
+                            std::forward<F>(f));
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
@@ -1597,7 +1617,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     WriteBinaryParticleData(dir, name,
                             write_real_comp, write_int_comp,
                             real_comp_names, int_comp_names,
-							std::forward<F>(f));
+                            std::forward<F>(f));
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
@@ -1626,7 +1646,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     WriteBinaryParticleData(dir, name,
                             write_real_comp, write_int_comp,
                             real_comp_names, int_comp_names,
-							std::forward<F>(f));
+                            std::forward<F>(f));
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
@@ -1659,7 +1679,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
     WriteBinaryParticleData(dir, name, write_real_comp, write_int_comp,
                             real_comp_names, int_comp_names,
-							std::forward<F>(f));
+                            std::forward<F>(f));
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
@@ -1671,14 +1691,14 @@ WritePlotFile (const std::string& dir, const std::string& name,
                const Vector<int>& write_int_comp,    
                const Vector<std::string>& real_comp_names,
                const Vector<std::string>&  int_comp_names,
-			   F&& f) const
+               F&& f) const
 {
     BL_PROFILE("ParticleContainer::WritePlotFile()");
     
     WriteBinaryParticleData(dir, name,
                             write_real_comp, write_int_comp,
                             real_comp_names, int_comp_names,
-							std::forward<F>(f));
+                            std::forward<F>(f));
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
@@ -1690,13 +1710,13 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                            const Vector<int>& write_int_comp,
                            const Vector<std::string>& real_comp_names,
                            const Vector<std::string>& int_comp_names,
-						   F&& f) const
+                           F&& f) const
 {
     BL_PROFILE("ParticleContainer::WriteBinaryParticleData()");
     AMREX_ASSERT(OK());
     
     AMREX_ASSERT(sizeof(typename ParticleType::RealType) == 4 ||
-              sizeof(typename ParticleType::RealType) == 8);
+                 sizeof(typename ParticleType::RealType) == 8);
     
     const int NProcs = ParallelDescriptor::NProcs();
     const int IOProcNumber = ParallelDescriptor::IOProcessorNumber();
@@ -1722,28 +1742,33 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     long nparticles = 0;
     int maxnextid;
 
-	// evaluate f for every particle to determine which ones to output
-	Vector<std::map<std::pair<int, int>, Vector<int> > > particle_io_flags(m_particles.size());		
-	for (int lev = 0; lev < m_particles.size();  lev++)
-	{
-		const auto& pmap = m_particles[lev];
-		for (const auto& kv : pmap)
-		{
-			const auto ptd = kv.second.getConstParticleTileData();
-			for (int k = 0; k < kv.second.numParticles(); ++k) 
-			{
-				const auto p = ptd.getSuperParticle(k);
-				particle_io_flags[lev][kv.first].push_back(f(p));
-			}
-		}
-	}
-	
+    // evaluate f for every particle to determine which ones to output
+    Vector<std::map<std::pair<int, int>, Gpu::DeviceVector<int> > > particle_io_flags(m_particles.size());		
+    for (int lev = 0; lev < m_particles.size();  lev++)
+    {
+        const auto& pmap = m_particles[lev];
+        for (const auto& kv : pmap)
+        {
+            const auto ptd = kv.second.getConstParticleTileData();
+            const auto np = kv.second.numParticles();
+            particle_io_flags[lev][kv.first].resize(np, 0);
+            auto pflags = particle_io_flags[lev][kv.first].data();
+            AMREX_HOST_DEVICE_FOR_1D( np, k, 
+            {
+                const auto p = ptd.getSuperParticle(k);
+                pflags[k] = f(p);
+            });
+        }
+    }
+
+    Gpu::Device::synchronize();
+    
     if(usePrePost)
     {
         nparticles = nparticlesPrePost;
         maxnextid  = maxnextidPrePost;
     }
-	else
+    else
     {
         nparticles = 0;
         maxnextid  = ParticleType::NextID();
@@ -1753,7 +1778,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             const auto& pmap = m_particles[lev];
             for (const auto& kv : pmap)
             {
-				const auto& pflags = particle_io_flags[lev][kv.first];
+                const auto& pflags = particle_io_flags[lev][kv.first];
                 for (int k = 0; k < kv.second.numParticles(); ++k) 
                 {
                     if (pflags[k]) nparticles++;
@@ -1916,9 +1941,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 		{
 			for(NFilesIter nfi(nOutFiles, filePrefix, groupSets, setBuf); nfi.ReadyToWrite(); ++nfi)
 			{
-				std::ofstream& myStream = (std::ofstream&) nfi.Stream();
-				WriteParticles(lev, myStream, nfi.FileNumber(), which, count, where,
-							   write_real_comp, write_int_comp, particle_io_flags);
+                            std::ofstream& myStream = (std::ofstream&) nfi.Stream();
+                            WriteParticles(lev, myStream, nfi.FileNumber(), which, count, where,
+                                           write_real_comp, write_int_comp, particle_io_flags);
 			}
             
 			if(usePrePost) {
@@ -2119,7 +2144,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                   Vector<int>& which, Vector<int>& count, Vector<long>& where,
                   const Vector<int>& write_real_comp,
                   const Vector<int>& write_int_comp,
-                  const Vector<std::map<std::pair<int, int>, Vector<int>>>& particle_io_flags) const
+                  const Vector<std::map<std::pair<int, int>, Gpu::DeviceVector<int>>>& particle_io_flags) const
 {
     BL_PROFILE("ParticleContainer::WriteParticles()");
 
@@ -2131,18 +2156,18 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         const int grid = kv.first.first;
         const int tile = kv.first.second;
         tile_map[grid].push_back(tile);
-		const auto& pflags = particle_io_flags[lev].at(kv.first);
+        const auto& pflags = particle_io_flags[lev].at(kv.first);
 		
         // Only write out valid particles.
         int cnt = 0;	
-		for (int k = 0; k < kv.second.GetArrayOfStructs().size(); ++k)
-		{
-			if (pflags[k]) cnt++;
-		}
+        for (int k = 0; k < kv.second.GetArrayOfStructs().size(); ++k)
+        {
+            if (pflags[k]) cnt++;
+        }
 		
         count[grid] += cnt;
     }
-	
+    
     MFInfo info;
     info.SetAlloc(false);
     MultiFab state(ParticleBoxArray(lev), ParticleDistributionMap(lev), 1,0,info);
@@ -2166,12 +2191,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         int* iptr = istuff.dataPtr();
         
         for (unsigned i = 0; i < tile_map[grid].size(); i++) {
-			auto ptile_index = std::make_pair(grid, tile_map[grid][i]);
+            auto ptile_index = std::make_pair(grid, tile_map[grid][i]);
             const auto& pbox = m_particles[lev].at(ptile_index);
-			const auto& pflags = particle_io_flags[lev].at(ptile_index);
+            const auto& pflags = particle_io_flags[lev].at(ptile_index);
             for (int pindex = 0; pindex < pbox.GetArrayOfStructs().size(); ++pindex) {
-				const auto& aos = pbox.GetArrayOfStructs();
-				const auto& p = aos[pindex];
+                const auto& aos = pbox.GetArrayOfStructs();
+                const auto& p = aos[pindex];
                 if (pflags[pindex])
                 {
                     // always write these

@@ -1171,7 +1171,7 @@ protected:
 	WriteParticles (int level, std::ofstream& ofs, int fnum,
 					Vector<int>& which, Vector<int>& count, Vector<long>& where,
 					const Vector<int>& write_real_comp, const Vector<int>& write_int_comp,
-					const Vector<std::map<std::pair<int, int>, Vector<int>>>& particle_io_flags) const;
+                        const Vector<std::map<std::pair<int, int>, Gpu::DeviceVector<int>>>& particle_io_flags) const;
 #ifdef AMREX_USE_HDF5
 void WriteParticlesHDF5 ( hid_t grp, int level, Vector<int>& count, Vector<long>& where ) const;
 
