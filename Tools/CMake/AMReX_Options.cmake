@@ -4,20 +4,13 @@
 # that can be overwritten by the user         #
 
 ###############################################
+include_guard(GLOBAL)
 
 #
 # Include module
 #
 include (CMakeDependentOption)
 
-if (DEFINED __AMREX_OPTIONS__)
-   return ()
-endif ()
-
-# Define the following variable
-# so that other included files can check if this file has been
-# processed already
-set (__AMREX_OPTIONS__ "")
 
 #
 # Define a macro to check the value of the inputs integer options
