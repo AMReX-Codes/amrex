@@ -6,7 +6,8 @@
  *
  * License: BSD-3-Clause-LBNL
  */
-#include "PML.H"
+#include "BoundaryConditions/PML.H"
+#include "BoundaryConditions/PMLComponent.H"
 #include "WarpX.H"
 #include "Utils/WarpXConst.H"
 
@@ -1004,39 +1005,39 @@ PushPMLPSATDSinglePatch (
     std::array<std::unique_ptr<amrex::MultiFab>,3>& pml_E,
     std::array<std::unique_ptr<amrex::MultiFab>,3>& pml_B ) {
 
-    using Idx = SpectralPMLIndex;
+    using SpIdx = SpectralPMLIndex;
 
     // Perform forward Fourier transform
     // Note: the correspondance between the spectral PML index
-    // (Exy, Ezx, etc.) and the component (0 or 1) of the
-    // MultiFabs (e.g. pml_E) is dictated by the
+    // (Exy, Ezx, etc.) and the component (PMLComp::xy, PMComp::zx, etc.)
+    // of the MultiFabs (e.g. pml_E) is dictated by the
     // function that damps the PML
-    solver.ForwardTransform(*pml_E[0], Idx::Exy, 0);
-    solver.ForwardTransform(*pml_E[0], Idx::Exz, 1);
-    solver.ForwardTransform(*pml_E[1], Idx::Eyz, 0);
-    solver.ForwardTransform(*pml_E[1], Idx::Eyx, 1);
-    solver.ForwardTransform(*pml_E[2], Idx::Ezx, 0);
-    solver.ForwardTransform(*pml_E[2], Idx::Ezy, 1);
-    solver.ForwardTransform(*pml_B[0], Idx::Bxy, 0);
-    solver.ForwardTransform(*pml_B[0], Idx::Bxz, 1);
-    solver.ForwardTransform(*pml_B[1], Idx::Byz, 0);
-    solver.ForwardTransform(*pml_B[1], Idx::Byx, 1);
-    solver.ForwardTransform(*pml_B[2], Idx::Bzx, 0);
-    solver.ForwardTransform(*pml_B[2], Idx::Bzy, 1);
+    solver.ForwardTransform(*pml_E[0], SpIdx::Exy, PMLComp::xy);
+    solver.ForwardTransform(*pml_E[0], SpIdx::Exz, PMLComp::xz);
+    solver.ForwardTransform(*pml_E[1], SpIdx::Eyz, PMLComp::yz);
+    solver.ForwardTransform(*pml_E[1], SpIdx::Eyx, PMLComp::yx);
+    solver.ForwardTransform(*pml_E[2], SpIdx::Ezx, PMLComp::zx);
+    solver.ForwardTransform(*pml_E[2], SpIdx::Ezy, PMLComp::zy);
+    solver.ForwardTransform(*pml_B[0], SpIdx::Bxy, PMLComp::xy);
+    solver.ForwardTransform(*pml_B[0], SpIdx::Bxz, PMLComp::xz);
+    solver.ForwardTransform(*pml_B[1], SpIdx::Byz, PMLComp::yz);
+    solver.ForwardTransform(*pml_B[1], SpIdx::Byx, PMLComp::yx);
+    solver.ForwardTransform(*pml_B[2], SpIdx::Bzx, PMLComp::zx);
+    solver.ForwardTransform(*pml_B[2], SpIdx::Bzy, PMLComp::zy);
     // Advance fields in spectral space
     solver.pushSpectralFields();
     // Perform backward Fourier Transform
-    solver.BackwardTransform(*pml_E[0], Idx::Exy, 0);
-    solver.BackwardTransform(*pml_E[0], Idx::Exz, 1);
-    solver.BackwardTransform(*pml_E[1], Idx::Eyz, 0);
-    solver.BackwardTransform(*pml_E[1], Idx::Eyx, 1);
-    solver.BackwardTransform(*pml_E[2], Idx::Ezx, 0);
-    solver.BackwardTransform(*pml_E[2], Idx::Ezy, 1);
-    solver.BackwardTransform(*pml_B[0], Idx::Bxy, 0);
-    solver.BackwardTransform(*pml_B[0], Idx::Bxz, 1);
-    solver.BackwardTransform(*pml_B[1], Idx::Byz, 0);
-    solver.BackwardTransform(*pml_B[1], Idx::Byx, 1);
-    solver.BackwardTransform(*pml_B[2], Idx::Bzx, 0);
-    solver.BackwardTransform(*pml_B[2], Idx::Bzy, 1);
+    solver.BackwardTransform(*pml_E[0], SpIdx::Exy, PMLComp::xy);
+    solver.BackwardTransform(*pml_E[0], SpIdx::Exz, PMLComp::xz);
+    solver.BackwardTransform(*pml_E[1], SpIdx::Eyz, PMLComp::yz);
+    solver.BackwardTransform(*pml_E[1], SpIdx::Eyx, PMLComp::yx);
+    solver.BackwardTransform(*pml_E[2], SpIdx::Ezx, PMLComp::zx);
+    solver.BackwardTransform(*pml_E[2], SpIdx::Ezy, PMLComp::zy);
+    solver.BackwardTransform(*pml_B[0], SpIdx::Bxy, PMLComp::xy);
+    solver.BackwardTransform(*pml_B[0], SpIdx::Bxz, PMLComp::xz);
+    solver.BackwardTransform(*pml_B[1], SpIdx::Byz, PMLComp::yz);
+    solver.BackwardTransform(*pml_B[1], SpIdx::Byx, PMLComp::yx);
+    solver.BackwardTransform(*pml_B[2], SpIdx::Bzx, PMLComp::zx);
+    solver.BackwardTransform(*pml_B[2], SpIdx::Bzy, PMLComp::zy);
 }
 #endif
