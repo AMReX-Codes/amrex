@@ -817,7 +817,7 @@ getInterpolatedScalar(
     interpolated_F->setVal(0.);
 
     // Loop through the boxes and interpolate the values from the _cp data
-#ifdef _OPEMP
+#ifdef _OPENMP
 #pragma omp parallel
 #endif
     {
@@ -871,7 +871,7 @@ getInterpolatedVector(
 
     // Loop through the boxes and interpolate the values from the _cp data
     const int use_limiter = 0;
-#ifdef _OPEMP
+#ifdef _OPENMP
 #pragma omp parallel
 #endif
     {

@@ -294,7 +294,7 @@ WarpX::UpdateAuxilaryDataSameType ()
             MultiFab::Subtract(dEy, *Efield_cp[lev][1], 0, 0, Efield_cp[lev][1]->nComp(), ng);
             MultiFab::Subtract(dEz, *Efield_cp[lev][2], 0, 0, Efield_cp[lev][2]->nComp(), ng);
 
-#ifdef _OPEMP
+#ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
             for (MFIter mfi(*Efield_aux[lev][0]); mfi.isValid(); ++mfi)
@@ -589,7 +589,7 @@ interpolateCurrentFineToCoarse ( std::array< amrex::MultiFab const *, 3 > const 
     BL_ASSERT(refinement_ratio == 2);
     const IntVect& ng = (fine[0]->nGrowVect() + 1) / refinement_ratio; // add equivalent no. of guards to coarse patch
 
-#ifdef _OPEMP
+#ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
@@ -648,7 +648,7 @@ interpolateDensityFineToCoarse (const MultiFab& fine, MultiFab& coarse, int cons
     const IntVect& ng = (fine.nGrowVect() + 1) / refinement_ratio;  // add equivalent no. of guards to coarse patch
     const int nc = fine.nComp();
 
-#ifdef _OPEMP
+#ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
