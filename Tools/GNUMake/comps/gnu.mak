@@ -86,6 +86,11 @@ ifeq ($(DEBUG),TRUE)
     CFLAGS += -Wnull-dereference
   endif
 
+  ifneq ($(gcc_major_version),$(filter $(gcc_major_version),4))
+    CXXFLAGS += -Wfloat-conversion
+    CFLAGS += -Wfloat-conversion
+  endif
+
   ifneq ($(WARN_SHADOW),FALSE)
     CXXFLAGS += -Wshadow
     CFLAGS += -Wshadow

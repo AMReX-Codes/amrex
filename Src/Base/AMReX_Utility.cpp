@@ -1043,7 +1043,7 @@ void amrex::BroadcastStringArray(Vector<std::string> &bSA, int myLocalId, int ro
 
 void amrex::USleep(double sleepsec) {
   constexpr unsigned int msps = 1000000;
-  usleep(sleepsec * msps);
+  usleep(static_cast<useconds_t>(sleepsec * msps));
 }
 
 

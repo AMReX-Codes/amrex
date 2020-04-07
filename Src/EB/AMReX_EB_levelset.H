@@ -468,7 +468,7 @@ class LSUtility {
 
         const Real min_dx = LSUtility::min_dx(geom_eb);
 
-        return min_resolution/min_dx;
+        return static_cast<int>(min_resolution/min_dx);
     }
 
 
