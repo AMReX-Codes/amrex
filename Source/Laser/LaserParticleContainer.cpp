@@ -235,13 +235,13 @@ LaserParticleContainer::InitData (int lev)
                  position[2] + (S_X*(Real(i)+0.5_rt))*u_X[2] + (S_Y*(Real(j)+0.5_rt))*u_Y[2] };
 #else
 #   if (defined WARPX_DIM_RZ)
-        return { position[0] + (S_X*(Real(i)+0.5)),
-                 0.0,
+        return { position[0] + (S_X*(Real(i)+0.5_rt)),
+                 0.0_rt,
                  position[2]};
 #   else
-        return { position[0] + (S_X*(Real(i)+0.5))*u_X[0],
-                 0.0,
-                 position[2] + (S_X*(Real(i)+0.5))*u_X[2] };
+        return { position[0] + (S_X*(Real(i)+0.5_rt))*u_X[0],
+                 0.0_rt,
+                 position[2] + (S_X*(Real(i)+0.5_rt))*u_X[2] };
 #   endif
 #endif
     };
@@ -253,9 +253,9 @@ LaserParticleContainer::InitData (int lev)
                 u_Y[0]*(pos[0]-position[0])+u_Y[1]*(pos[1]-position[1])+u_Y[2]*(pos[2]-position[2])};
 #else
 #   if (defined WARPX_DIM_RZ)
-        return {pos[0]-position[0], 0.0};
+        return {pos[0]-position[0], 0.0_rt};
 #   else
-        return {u_X[0]*(pos[0]-position[0])+u_X[2]*(pos[2]-position[2]), 0.0};
+        return {u_X[0]*(pos[0]-position[0])+u_X[2]*(pos[2]-position[2]), 0.0_rt};
 #   endif
 #endif
     };
