@@ -358,7 +358,6 @@ CNS::errorEst (TagBoxArray& tags, int, int, Real time, int, int)
         {
             const Box& bx = mfi.tilebox();
 
-            const auto& sfab = S_new[mfi];
             const auto& flag = flags[mfi];
 
             const FabType typ = flag.getType(bx);
@@ -484,7 +483,6 @@ CNS::estTimeStep ()
         {
             const Box& box = mfi.tilebox();
 
-            const auto& sfab = S[mfi];
             const auto& flag = flags[mfi];
 
             if (flag.getType(box) != FabType::covered) {
@@ -523,7 +521,6 @@ CNS::computeTemp (MultiFab& State, int ng)
     {
         const Box& bx = mfi.growntilebox(ng);
 
-        const auto& sfab = State[mfi];
         const auto& flag = flags[mfi];
 
         if (flag.getType(bx) != FabType::covered) {

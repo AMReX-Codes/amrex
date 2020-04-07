@@ -933,7 +933,7 @@ PD_convert (void*                 out,
         Real x;
         float y;
         std::memcpy(&x, rIn, sizeof(Real));
-        y = x;
+        y = static_cast<float>(x);
         std::memcpy(rOut, &y, sizeof(float));
         rOut += sizeof(float);
         rIn += sizeof(Real);

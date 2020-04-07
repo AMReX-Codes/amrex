@@ -310,10 +310,11 @@ void SplineDistFcnElement2d::print_control_points() const {
 
 
 void SplineDistFcnElement2d::print_spline() const {
+#if 0
   int nsplines = Dx.size();
 
   amrex::Real dt = 0.01;
-  int nt = 1.0/dt;
+  int nt = static_cast<int>(1.0/dt);
   for (int i=0; i<nsplines-1; i++) {
     for (int j=0; j<nt; j++) {
       amrex::Real x = eval(j*dt, control_points_x[i],
@@ -323,7 +324,7 @@ void SplineDistFcnElement2d::print_spline() const {
 
     }
   }
-
+#endif
 }
 
 
