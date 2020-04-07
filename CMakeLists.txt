@@ -9,13 +9,20 @@ find_package (Git QUIET)
 
 set( _tmp "" )
 
+# Try to inquire software version from git
 if ( EXISTS ${CMAKE_CURRENT_LIST_DIR}/.git AND ${GIT_FOUND} )
    execute_process ( COMMAND git describe --abbrev=12 --dirty --always --tags
       WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
       OUTPUT_VARIABLE _tmp )
    string( STRIP ${_tmp} _tmp )
-else ()
-   # Grep first line from file CHANGES if cannot find version from Git
+   # filter invalid descriptions in shallow git clones
+   if (NOT _tmp VERSION_GREATER "0.0.0")
+       set( _tmp "")
+   endif ()
+endif()
+
+# Grep first line from file CHANGES if cannot find version from Git
+if (NOT _tmp)
    file(STRINGS ${CMAKE_CURRENT_LIST_DIR}/CHANGES ALL_VERSIONS REGEX "#")
    list(GET ALL_VERSIONS 0 _tmp)
    string(REPLACE "#" "" _tmp "${_tmp}")
@@ -50,6 +57,9 @@ project( AMReX
     HOMEPAGE_URL "https://amrex-codes.github.io/amrex/"
     LANGUAGES C CXX Fortran
     )
+
+message(STATUS "CMake version: ${CMAKE_VERSION}")
+
 #
 # Load required modules
 #

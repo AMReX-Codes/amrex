@@ -2515,8 +2515,8 @@ Amr::coarseTimeStep (Real stop_time)
         // the number of intervals that have elapsed for both the current
         // time and the time at the beginning of this timestep.
 
-        int num_per_old = (cumtime-dt_level[0]) / check_per;
-        int num_per_new = (cumtime            ) / check_per;
+        int num_per_old = static_cast<int>((cumtime-dt_level[0]) / check_per);
+        int num_per_new = static_cast<int>((cumtime            ) / check_per);
 
         // Before using these, however, we must test for the case where we're
         // within machine epsilon of the next interval. In that case, increment
@@ -2665,8 +2665,8 @@ Amr::writePlotNow() noexcept
         // the number of intervals that have elapsed for both the current
         // time and the time at the beginning of this timestep.
 
-        int num_per_old = (cumtime-dt_level[0]) / plot_per;
-        int num_per_new = (cumtime            ) / plot_per;
+        int num_per_old = static_cast<int>((cumtime-dt_level[0]) / plot_per);
+        int num_per_new = static_cast<int>((cumtime            ) / plot_per);
 
         // Before using these, however, we must test for the case where we're
         // within machine epsilon of the next interval. In that case, increment
@@ -2709,10 +2709,10 @@ Amr::writePlotNow() noexcept
         int num_per_new = 0;
 
         if (cumtime-dt_level[0] > 0.) {
-            num_per_old = log10(cumtime-dt_level[0]) / plot_log_per;
+            num_per_old = static_cast<int>(std::log10(cumtime-dt_level[0]) / plot_log_per);
         }
         if (cumtime > 0.) {
-            num_per_new = log10(cumtime) / plot_log_per;
+            num_per_new = static_cast<int>(std::log10(cumtime) / plot_log_per);
         }
 
         if (num_per_old != num_per_new)
@@ -2738,8 +2738,8 @@ Amr::writeSmallPlotNow() noexcept
         // the number of intervals that have elapsed for both the current
         // time and the time at the beginning of this timestep.
 
-        int num_per_old = (cumtime-dt_level[0]) / small_plot_per;
-        int num_per_new = (cumtime            ) / small_plot_per;
+        int num_per_old = static_cast<int>((cumtime-dt_level[0]) / small_plot_per);
+        int num_per_new = static_cast<int>((cumtime            ) / small_plot_per);
 
         // Before using these, however, we must test for the case where we're
         // within machine epsilon of the next interval. In that case, increment
@@ -2782,10 +2782,10 @@ Amr::writeSmallPlotNow() noexcept
         int num_per_new = 0;
 
         if (cumtime-dt_level[0] > 0.) {
-            num_per_old = log10(cumtime-dt_level[0]) / small_plot_log_per;
+            num_per_old = static_cast<int>(std::log10(cumtime-dt_level[0]) / small_plot_log_per);
         }
         if (cumtime > 0.) {
-            num_per_new = log10(cumtime) / small_plot_log_per;
+            num_per_new = static_cast<int>(std::log10(cumtime) / small_plot_log_per);
         }
 
         if (num_per_old != num_per_new)
@@ -3060,7 +3060,7 @@ Amr::makeLoadBalanceDistributionMap (int lev, Real time, const BoxArray& ba) con
         AmrLevel::FillPatch(*amr_level[lev], workest, 0, time, work_est_type, 0, 1, 0);
 
         Real navg = static_cast<Real>(ba.size()) / static_cast<Real>(ParallelDescriptor::NProcs());
-        int nmax = std::max(std::round(loadbalance_max_fac*navg), std::ceil(navg));
+        int nmax = static_cast<int>(std::max(std::round(loadbalance_max_fac*navg), std::ceil(navg)));
 
         newdm = DistributionMapping::makeKnapSack(workest, nmax);
     }
@@ -3078,7 +3078,7 @@ Amr::LoadBalanceLevel0 (Real time)
     BL_PROFILE("LoadBalanceLevel0()");
     const auto& dm = makeLoadBalanceDistributionMap(0, time, boxArray(0));
     InstallNewDistributionMap(0, dm);
-    amr_level[0]->post_regrid(0,time);
+    amr_level[0]->post_regrid(0,0);
 }
 
 void

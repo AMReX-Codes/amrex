@@ -140,6 +140,15 @@ amrex::toUpper (std::string s)
     return s;
 }
 
+std::string
+amrex::trim(std::string s, std::string const& space)
+{
+    const auto sbegin = s.find_first_not_of(space);
+    if (sbegin == std::string::npos) return std::string{};
+    const auto send = s.find_last_not_of(space);
+    s = s.substr(sbegin, send-sbegin+1);
+    return s;
+}
 
 std::string
 amrex::Concatenate (const std::string& root,
@@ -1034,7 +1043,7 @@ void amrex::BroadcastStringArray(Vector<std::string> &bSA, int myLocalId, int ro
 
 void amrex::USleep(double sleepsec) {
   constexpr unsigned int msps = 1000000;
-  usleep(sleepsec * msps);
+  usleep(static_cast<useconds_t>(sleepsec * msps));
 }
 
 

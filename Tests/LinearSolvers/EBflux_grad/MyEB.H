@@ -24,8 +24,6 @@ public:
           m_sign(a_inside ? 1.0 : -1.0)
         {}
 
-    ~FlowerIF () {}
-    
     FlowerIF (const FlowerIF& rhs) noexcept = default;
     FlowerIF (FlowerIF&& rhs) noexcept = default;
     FlowerIF& operator= (const FlowerIF& rhs) = delete;

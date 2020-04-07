@@ -191,7 +191,7 @@ amrex::Random ()
 AMREX_GPU_HOST_DEVICE unsigned int
 amrex::RandomPoisson (amrex::Real lambda)
 {
-    amrex::Real rand;
+    unsigned int rand;
 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
     const auto blockId = blockIdx.x + blockIdx.y * gridDim.x + gridDim.x * gridDim.y * blockIdx.z;

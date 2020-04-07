@@ -53,7 +53,7 @@ endif
 CXXFLAGS += -std=$(CXXSTD) -Wno-error=sycl-strict
 CFLAGS   += -std=c99 -Wno-error=sycl-strict
 
-EXTRACXXFLAGS += -fsycl-unnamed-lambda
+EXTRACXXFLAGS += -fsycl -fsycl-unnamed-lambda # -fsycl-targets=spir64_gen-unknown-unknown-sycldevice -Xsycl-target-backend '-device skl,cfl,glk,kbl'
 
 #FFLAGS   += -ffixed-line-length-none -fno-range-check -fno-second-underscore
 #F90FLAGS += -ffree-line-length-none -fno-range-check -fno-second-underscore -fimplicit-none
@@ -106,7 +106,7 @@ CFLAGS   += $(GENERIC_COMP_FLAGS)
 # 
 # endif
 
-override XTRAOBJS += $(DPCPP_DIR)/lib/libsycl-glibc.o $(DPCPP_DIR)/lib/libsycl-cmath.o
+override XTRAOBJS += $(DPCPP_DIR)/lib/libsycl-glibc.o $(DPCPP_DIR)/lib/libsycl-cmath.o $(DPCPP_DIR)/lib/libsycl-cmath-fp64.o
 
 ifeq ($(FSANITIZER),TRUE)
   override XTRALIBS += -lubsan

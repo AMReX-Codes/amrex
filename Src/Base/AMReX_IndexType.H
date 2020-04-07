@@ -101,6 +101,9 @@ public:
     //! Fill an IntVect of size AMREX_SPACEDIM with IndexTypes.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     IntVect ixType () const noexcept { return IntVect(AMREX_D_DECL(itype&1, (itype>>1)&1, (itype>>2)&1)); }
+    //! Fill an IntVect of size AMREX_SPACEDIM with IndexTypes.
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    IntVect toIntVect () const noexcept { return IntVect(AMREX_D_DECL(itype&1, (itype>>1)&1, (itype>>2)&1)); }
     /**
     * \brief This static member function returns an IndexType object of value
     * IndexType::CELL.  It is provided as a convenience to our users

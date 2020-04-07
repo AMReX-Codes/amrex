@@ -36,16 +36,11 @@
 #define AMREX_DEVICE_COMPILE (__CUDA_ARCH__ || __HIP_DEVICE_COMPILE__ || __SYCL_DEVICE_ONLY__)
 
 #ifdef AMREX_USE_DPCPP
-#if 0
-// xxxxx DPCPP todo: AMREX_REQUIRE_SUBGROUP_SIZE causes "OpenCL API failed. OpenCL API returns: -46 (CL_INVALID_KERNEL_NAME) -46 (CL_INVALID_KERNEL_NAME)"
 # define AMREX_REQUIRE_SUBGROUP_SIZE(x) \
   _Pragma("clang diagnostic push") \
   _Pragma("clang diagnostic ignored \"-Wattributes\"") \
   [[cl::intel_reqd_sub_group_size(x)]] \
   _Pragma("clang diagnostic pop")
-#else
-#define AMREX_REQUIRE_SUBGROUP_SIZE(x)
-#endif
 #endif // AMREX_USE_DPCPP
 
 #endif

@@ -3,6 +3,7 @@
 
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_GpuControl.H>
+#include <AMReX_GpuTypes.H>
 #include <AMReX_GpuAtomic.H>
 #include <AMReX_GpuUtility.H>
 #include <AMReX_Functional.H>
@@ -15,39 +16,85 @@ namespace amrex { namespace Gpu {
 
 #ifdef AMREX_USE_DPCPP
 
-// xxxxx DPCPP todo: better deviceReduce*
-
-template <typename T>
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-void deviceReduceSum (T * dest, T source) noexcept
+template <int warpSize, typename T, typename F>
+struct warpReduce
 {
-    Gpu::Atomic::Add(dest, source);
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    T operator() (T x, sycl::intel::sub_group const& sg) const noexcept
+    {
+        for (int offset = warpSize/2; offset > 0; offset /= 2) {
+            T y = sg.shuffle_down(x, offset);
+            x = F()(x,y);
+        }
+        return x;
+    }
+};
+
+template <int warpSize, typename T, typename WARPREDUCE>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+T blockReduce (T x, WARPREDUCE && warp_reduce, T x0, Gpu::Handler const& h)
+{
+    T* shared = (T*)h.local;
+    int tid = h.item.get_local_id(0);
+    sycl::intel::sub_group const& sg = h.item.get_sub_group();
+    int lane = sg.get_local_id()[0];
+    int wid = sg.get_group_id()[0];
+    int numwarps = sg.get_group_range();
+    x = warp_reduce(x, sg);
+    // __syncthreads() prior to writing to shared memory is necessary
+    // if this reduction call is occurring multiple times in a kernel,
+    // and since we don't know how many times the user is calling it,
+    // we do it always to be safe.
+    h.item.barrier(sycl::access::fence_space::local_space);
+    if (lane == 0) shared[wid] = x;
+    h.item.barrier(sycl::access::fence_space::local_space);
+    bool b = (tid == 0) or (tid < numwarps);
+    x =  b ? shared[lane] : x0;
+    if (wid == 0) x = warp_reduce(x, sg);
+    return x;
 }
 
 template <typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-void deviceReduceMin (T * dest, T source) noexcept
+void deviceReduceSum (T * dest, T source, Gpu::Handler const& h) noexcept
 {
-    Gpu::Atomic::Min(dest, source);
+    source = Gpu::blockReduce<Gpu::Device::warp_size>
+        (source, Gpu::warpReduce<Gpu::Device::warp_size,T,amrex::Plus<T> >(), (T)0, h);
+    if (h.item.get_local_id(0) == 0) Gpu::Atomic::Add(dest, source);
 }
 
 template <typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-void deviceReduceMax (T * dest, T source) noexcept
+void deviceReduceMin (T * dest, T source, Gpu::Handler const& h) noexcept
 {
-    Gpu::Atomic::Max(dest, source);
+    source = Gpu::blockReduce<Gpu::Device::warp_size>
+        (source, Gpu::warpReduce<Gpu::Device::warp_size,T,amrex::Less<T> >(), source, h);
+    if (h.item.get_local_id(0) == 0) Gpu::Atomic::Min(dest, source);
+}
+
+template <typename T>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+void deviceReduceMax (T * dest, T source, Gpu::Handler const& h) noexcept
+{
+    source = Gpu::blockReduce<Gpu::Device::warp_size>
+        (source, Gpu::warpReduce<Gpu::Device::warp_size,T,amrex::Greater<T> >(), source, h);
+    if (h.item.get_local_id(0) == 0) Gpu::Atomic::Max(dest, source);
 }
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-void deviceReduceLogicalAnd (int * dest, int source) noexcept
+void deviceReduceLogicalAnd (int * dest, int source, Gpu::Handler const& h) noexcept
 {
-    Gpu::Atomic::LogicalAnd(dest, source);
+    source = Gpu::blockReduce<Gpu::Device::warp_size>
+        (source, Gpu::warpReduce<Gpu::Device::warp_size,int,amrex::LogicalAnd<int> >(), 1, h);
+    if (h.item.get_local_id(0) == 0) Gpu::Atomic::LogicalAnd(dest, source);
 }
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-void deviceReduceLogicalOr (int * dest, int source) noexcept
+void deviceReduceLogicalOr (int * dest, int source, Gpu::Handler const& h) noexcept
 {
-    Gpu::Atomic::LogicalOr(dest, source);
+    source = Gpu::blockReduce<Gpu::Device::warp_size>
+        (source, Gpu::warpReduce<Gpu::Device::warp_size,int,amrex::LogicalOr<int> >(), 0, h);
+    if (h.item.get_local_id(0) == 0) Gpu::Atomic::LogicalOr(dest, source);
 }
 
 #elif defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)

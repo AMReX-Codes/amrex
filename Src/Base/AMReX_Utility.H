@@ -3,6 +3,7 @@
 
 #include <cstdlib>
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <map>
 #include <chrono>
@@ -39,6 +40,10 @@ namespace amrex
 
     //! Return true if argument is a non-zero length string of digits.
     bool is_integer (const char* str);
+
+    //! Return true and store value in v if string s is type T.
+    template <typename T> bool is_it (std::string const& s, T& v);
+
     //! Splits "instr" into separate pieces based on "separators".
     const std::vector<std::string>& Tokenize (const std::string& instr,
                                               const std::string& separators);
@@ -46,6 +51,9 @@ namespace amrex
     //! Converts all characters of the string into lower or uppercase based on std::locale 
     std::string toLower (std::string s);
     std::string toUpper (std::string s);
+
+    //! Trim leading and trailing white space
+    std::string trim (std::string s, std::string const& space = " \t");
 
     //! Returns rootNNNN where NNNN == num.
     std::string Concatenate (const std::string& root,
@@ -251,6 +259,19 @@ namespace amrex
     template<typename T> void hash_combine (uint64_t & seed, const T & val) noexcept;
     template<typename T> uint64_t hash_vector (const Vector<T> & vec, uint64_t seed = 0xDEADBEEFDEADBEEF) noexcept;
 
+}
+
+template <typename T>
+bool amrex::is_it (std::string const& s, T& v)
+{
+    std::istringstream ss(s);
+    if (ss >> v) {
+        std::string left;
+        std::getline(ss, left);
+        return left.empty();
+    } else {
+        return false;
+    }
 }
 
 template<class T> void amrex::BroadcastArray(Vector<T> &aT, int myLocalId, int rootId, const MPI_Comm &localComm)

@@ -27,7 +27,6 @@ public:
           m_sin_angle(std::sin(angle)),
           m_dir(dir)
         {}
-    ~RotationIF () {}
 
     RotationIF (const RotationIF& rhs) = default;
     RotationIF (RotationIF&& rhs) = default;

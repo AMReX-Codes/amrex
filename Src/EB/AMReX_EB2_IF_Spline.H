@@ -20,9 +20,6 @@ class SplineIF {
   //! Constructor
   SplineIF() {}
 
-  //! Destructor
-  ~SplineIF() {}
-
   void addSplineElement(std::vector<amrex::RealVect> pts) {
     SplineDistFcnElement2d * theSpline = new SplineDistFcnElement2d();
     theSpline->set_control_points(pts);

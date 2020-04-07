@@ -57,7 +57,7 @@ ForkJoin::ForkJoin (const Vector<double> &task_rank_pct)
     double accum = 0;
     for (int i = 0; i < ntasks; ++i) {
         accum += task_rank_pct[i];
-        int cur = std::round(rank_n * accum);
+        int cur = std::lround(rank_n * accum);
         task_rank_n[i] = cur - prev;
         prev = cur;
     }
