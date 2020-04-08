@@ -14,7 +14,7 @@
 #define AMREX_FORT_NAME(A,B) B
 #elif defined(BL_FORT_USE_UNDERSCORE)
 #define AMREX_FORT_NAME(A,B) B##_
-#else
+#elif !defined(BL_NO_FORT)
 #error "One of BL_FORT_USE_{UPPERCASE,LOWERCASE,UNDERSCORE} must be defined"
 #endif
 
