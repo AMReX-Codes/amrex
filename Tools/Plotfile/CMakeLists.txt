@@ -24,6 +24,9 @@ set(_exe_names
 foreach( _exe IN LISTS _exe_names)
    add_executable(${_exe} ${_exe}.cpp)
    target_link_libraries(${_exe} PRIVATE amrex)
+   if (ENABLE_CUDA)
+      set_source_files_properties(${_exe}.cpp PROPERTIES LANGUAGE CUDA)
+   endif()
    add_dependencies(plotfile_tools ${_exe})  
 endforeach()
 
@@ -31,6 +34,10 @@ endforeach()
 # target snapshot needs a special treatment
 target_include_directories(fsnapshot PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_sources(fsnapshot PRIVATE AMReX_PPMUtil.H AMReX_PPMUtil.cpp)
+if (ENABLE_CUDA)
+   set_source_files_properties(AMReX_PPMUtil.cpp PROPERTIES LANGUAGE CUDA)
+   target_compile_features(fsnapshot PUBLIC cxx_std_14) 
+endif()
 
 # Installation
 install(TARGETS ${_exe_names} RUNTIME DESTINATION bin)
