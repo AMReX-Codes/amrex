@@ -169,6 +169,22 @@ Distribution across MPI ranks and parallelization
     perform load-balancing of the simulation.
     If this is `0`: the Knapsack algorithm is used instead.
 
+* ``warpx.load_balance_efficiency_ratio_threshold`` (`float`) optional (default `1.1`)
+    Controls whether to adopt a proposed distribution mapping computed during a load balance.
+    If the the ratio of the proposed to current distribution mapping *efficiency* (i.e.,
+    average cost per MPI process; efficiency is a number in the range [0, 1]) is greater
+    than the threshold value, the proposed distribution mapping is adopted.  The suggested
+    range of values is ``warpx.load_balance_efficiency_ratio_threshold >= 1``, which ensures
+    that the new distribution mapping is adopted only if doing so would improve the load
+    balance efficiency. The higher the threshold value, the more conservative is the criterion
+    for adoption of a proposed distribution; for example, with
+    ``warpx.load_balance_efficiency_ratio_threshold = 1``, the proposed distribution is
+    adopted *any* time the proposed distribution improves load balancing; if instead
+    ``warpx.load_balance_efficiency_ratio_threshold = 2``, the proposed distribution is
+    adopted only if doing so would yield a 100% to the load balance efficiency (with this
+    threshold value, if the  current efficiency is ``0.45``, the new distribution would only be
+    adopted if the proposed efficiency were greater than ``0.9``).
+
 * ``algo.load_balance_costs_update`` (`Heuristic` or `Timers`) optional (default `Timers`)
     If this is `Heuristic`: load balance costs are updated according to a measure of
     particles and cells assigned to each box of the domain.  The cost :math:`c` is
