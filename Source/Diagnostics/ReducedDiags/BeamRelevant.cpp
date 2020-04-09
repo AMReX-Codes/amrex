@@ -104,7 +104,7 @@ BeamRelevant::BeamRelevant (std::string rd_name)
             ofs << "[13]pz_rms(kg*m/s)";  ofs << m_sep;
             ofs << "[14]gamma_rms()";     ofs << m_sep;
             ofs << "[15]emittance_x(m)";  ofs << m_sep;
-            ofs << "[16]emittance_x(m)";  ofs << m_sep;
+            ofs << "[16]emittance_z(m)";  ofs << m_sep;
             ofs << "[17]charge(C)";       ofs << std::endl;
 #endif
             // close file
