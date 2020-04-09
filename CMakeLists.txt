@@ -16,7 +16,7 @@ if ( EXISTS ${CMAKE_CURRENT_LIST_DIR}/.git AND ${GIT_FOUND} )
       OUTPUT_VARIABLE _tmp )
    string( STRIP ${_tmp} _tmp )
    # filter invalid descriptions in shallow git clones
-   if (NOT _tmp VERSION_GREATER "0.0.0")
+   if (NOT _tmp MATCHES "^([0-9]+)\\.([0-9]+)(\\.([0-9]+))*(-.*)*$")
        set( _tmp "")
    endif ()
 endif()
