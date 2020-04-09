@@ -573,8 +573,16 @@ PML::MakeBoxArray (const amrex::Geometry& geom, const amrex::BoxArray& grid_ba,
         if (do_pml_in_domain == 0) {
             // Make sure that, in the case of several distinct refinement patches,
             //  the PML cells surrounding these patches cannot overlap
-            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(grid_bx.shortside() > ncell,
-                            "Consider using larger amr.blocking_factor");
+            // The check is only needed along the axis where PMLs are being used.
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                if (! geom.isPeriodic(idim)) {
+                    if (do_pml_Lo[idim] || do_pml_Hi[idim]) {
+                        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+                            grid_bx.length(idim) > ncell,
+                            "Consider using larger amr.blocking_factor with PMLs");
+                    }
+                }
+            }
         }
 
         Box bx = grid_bx;
