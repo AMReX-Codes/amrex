@@ -18,7 +18,7 @@
 #error "One of BL_FORT_USE_{UPPERCASE,LOWERCASE,UNDERSCORE} must be defined"
 #endif
 
-#ifdef __cplusplus
+#if defined(__cplusplus) && !defined(BL_NO_FORT)
 #define BL_FORT_PROC_DECL(A,B) extern "C" void AMREX_FORT_NAME(A,B)
 #else
 #define BL_FORT_PROC_DECL(A,B) void AMREX_FORT_NAME(A,B)
