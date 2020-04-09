@@ -7,7 +7,7 @@ if (ENABLE_MPI)
    # Make imported target "global" so that it can be seen
    # from other directories in the project.
    # This is especially useful when get_target_properties_flattened()
-   # (see module AMReXTargetHelpers.cmake) is called to recover dependecy tree info 
+   # (see module AMReXTargetHelpers.cmake) is called to recover dependecy tree info
    # in projects that use amrex directly in the build (via add_subdirectory()).
    # Without this, get_target_properties_flattened() would not recognize
    # MPI::MPI_C and MPI::MPI_CXX as targets because they would be visibile only in this
@@ -20,7 +20,7 @@ if (ENABLE_MPI)
    target_link_libraries(amrex PUBLIC MPI::MPI_C MPI::MPI_CXX)
 endif ()
 
-# We need threads 
+# We need threads
 set( THREADS_PREFER_PTHREAD_FLAG on)
 find_package(Threads REQUIRED)
 set_target_properties( Threads::Threads PROPERTIES IMPORTED_GLOBAL True )
@@ -28,7 +28,7 @@ target_link_libraries(amrex PUBLIC Threads::Threads)
 
 
 target_sources( amrex
-   PRIVATE 
+   PRIVATE
    # Utility classes ---------------------------------------------------------
    AMReX_ccse-mpi.H
    AMReX_Math.H
@@ -75,7 +75,7 @@ target_sources( amrex
    AMReX_ParallelContext.H
    AMReX_ParallelContext.cpp
    AMReX_VisMF.H
-   AMReX_VisMF.cpp 
+   AMReX_VisMF.cpp
    AMReX_Arena.H
    AMReX_Arena.cpp
    AMReX_BArena.H
@@ -90,12 +90,12 @@ target_sources( amrex
    AMReX_BLBackTrace.H
    AMReX_BLFort.H
    AMReX_NFiles.H
-   AMReX_NFiles.cpp  
+   AMReX_NFiles.cpp
    AMReX_parstream.H
    AMReX_parstream.cpp
    # I/O stuff  --------------------------------------------------------------
-   AMReX_FabConv.H  
-   AMReX_FabConv.cpp  
+   AMReX_FabConv.H
+   AMReX_FabConv.cpp
    AMReX_FPC.H
    AMReX_FPC.cpp
    AMReX_VectorIO.H
@@ -106,7 +106,7 @@ target_sources( amrex
    # Index space -------------------------------------------------------------
    AMReX_Box.H
    AMReX_Box.cpp
-   AMReX_BoxIterator.H 
+   AMReX_BoxIterator.H
    AMReX_BoxIterator.cpp
    AMReX_Dim3.H
    AMReX_IntVect.H
@@ -114,9 +114,9 @@ target_sources( amrex
    AMReX_IndexType.H
    AMReX_IndexType.cpp
    AMReX_Loop.H
-   AMReX_Orientation.H 
+   AMReX_Orientation.H
    AMReX_Orientation.cpp
-   AMReX_Periodicity.H 
+   AMReX_Periodicity.H
    AMReX_Periodicity.cpp
    # Real space --------------------------------------------------------------
    AMReX_RealBox.H
@@ -125,8 +125,8 @@ target_sources( amrex
    AMReX_RealVect.cpp
    # Unions of rectangle -----------------------------------------------------
    AMReX_BoxList.H
-   AMReX_BoxList.cpp 
-   AMReX_BoxArray.H 
+   AMReX_BoxList.cpp
+   AMReX_BoxArray.H
    AMReX_BoxArray.cpp
    AMReX_BoxDomain.H
    AMReX_BoxDomain.cpp
@@ -134,7 +134,7 @@ target_sources( amrex
    AMReX_FArrayBox.H
    AMReX_FArrayBox.cpp
    AMReX_IArrayBox.H
-   AMReX_IArrayBox.cpp 
+   AMReX_IArrayBox.cpp
    AMReX_BaseFab.H
    AMReX_BaseFab.cpp
    AMReX_Array4.H
@@ -143,14 +143,14 @@ target_sources( amrex
    AMReX_FabFactory.H
    AMReX_BaseFabUtility.H
    # Fortran data defined on unions of rectangles ----------------------------
-   AMReX_MultiFab.cpp 
+   AMReX_MultiFab.cpp
    AMReX_MultiFab.H
    AMReX_MFCopyDescriptor.cpp
    AMReX_MFCopyDescriptor.H
    AMReX_iMultiFab.cpp
    AMReX_iMultiFab.H
    AMReX_FabArrayBase.cpp
-   AMReX_FabArrayBase.H 
+   AMReX_FabArrayBase.H
    AMReX_MFIter.cpp
    AMReX_MFIter.H
    AMReX_FabArray.H
@@ -161,51 +161,51 @@ target_sources( amrex
    AMReX_FabArrayUtility.H
    AMReX_LayoutData.H
    # Geometry / Coordinate system routines -----------------------------------
-   AMReX_CoordSys.cpp 
+   AMReX_CoordSys.cpp
    AMReX_CoordSys.H
-   AMReX_Geometry.cpp 
+   AMReX_Geometry.cpp
    AMReX_Geometry.H
    AMReX_MultiFabUtil.cpp
    AMReX_MultiFabUtil.H
    AMReX_MultiFabUtilI.H
    # Boundary-related --------------------------------------------------------
    AMReX_BCRec.cpp
-   AMReX_BCRec.H 
+   AMReX_BCRec.H
    AMReX_PhysBCFunct.cpp
-   AMReX_PhysBCFunct.H 
+   AMReX_PhysBCFunct.H
    AMReX_BCUtil.cpp
    AMReX_BCUtil.H
-   AMReX_BC_TYPES.H 
+   AMReX_BC_TYPES.H
    # Plotfile ----------------------------------------------------------------
    AMReX_PlotFileUtil.cpp
    AMReX_PlotFileUtil.H
    AMReX_PlotFileDataImpl.H
    AMReX_PlotFileDataImpl.cpp
-   # Fortran interface routines.
-   # In GNUMake system, this is included only if BL_NO_FORT=FALSE ------------
-   AMReX_COORDSYS_${DIM}D_C.H
-   AMReX_COORDSYS_C.H
-   AMReX_filcc_f.H
-   AMReX_BLutil_F.F90
-   AMReX_BLProfiler_F.F90
-   AMReX_FILCC_${DIM}D.F90
-   AMReX_MultiFabUtil_${DIM}D_C.H
-   AMReX_MultiFabUtil_nd_C.H
-   AMReX_MultiFabUtil_C.H
-   AMReX_FilCC_${DIM}D_C.H
-   AMReX_FilCC_C.H
-   AMReX_FilCC_C.cpp
-   AMReX_filcc_mod.F90
-   AMReX_omp_mod.F90
-   AMReX_acc_mod.F90
-   AMReX_fort_mod.F90
-   AMReX_constants_mod.f90
-   AMReX_error_mod.F90
-   AMReX_parmparse_mod.F90
-   AMReX_string_mod.F90
-   AMReX_bc_types_mod.F90
-   AMReX_ParallelDescriptor_F.F90
-   AMReX_io_mod.F90
+   # # Fortran interface routines.
+   # # In GNUMake system, this is included only if BL_NO_FORT=FALSE ------------
+   # AMReX_COORDSYS_${DIM}D_C.H
+   # AMReX_COORDSYS_C.H
+   # AMReX_filcc_f.H
+   # AMReX_BLutil_F.F90
+   # AMReX_BLProfiler_F.F90
+   # AMReX_FILCC_${DIM}D.F90
+   # AMReX_MultiFabUtil_${DIM}D_C.H
+   # AMReX_MultiFabUtil_nd_C.H
+   # AMReX_MultiFabUtil_C.H
+   # AMReX_FilCC_${DIM}D_C.H
+   # AMReX_FilCC_C.H
+   # AMReX_FilCC_C.cpp
+   # AMReX_filcc_mod.F90
+   # AMReX_omp_mod.F90
+   # AMReX_acc_mod.F90
+   # AMReX_fort_mod.F90
+   # AMReX_constants_mod.f90
+   # AMReX_error_mod.F90
+   # AMReX_parmparse_mod.F90
+   # AMReX_string_mod.F90
+   # AMReX_bc_types_mod.F90
+   # AMReX_ParallelDescriptor_F.F90
+   # AMReX_io_mod.F90
    # GPU --------------------------------------------------------------------
    AMReX_Gpu.H
    AMReX_GpuQualifiers.H
@@ -246,9 +246,38 @@ target_sources( amrex
    AMReX_mempool_mod.F90 # if BL_NO_FORT = FALSE
    # Profiling ---------------------------------------------------------------
    AMReX_BLProfiler.cpp
-   AMReX_BLBackTrace.cpp    
+   AMReX_BLBackTrace.cpp
    )
 
+# Fortran stuff
+if (ENABLE_FORTRAN)
+   target_sources( amrex
+      PRIVATE
+      AMReX_COORDSYS_${DIM}D_C.H
+      AMReX_COORDSYS_C.H
+      AMReX_filcc_f.H
+      AMReX_BLutil_F.F90
+      AMReX_BLProfiler_F.F90
+      AMReX_FILCC_${DIM}D.F90
+      AMReX_MultiFabUtil_${DIM}D_C.H
+      AMReX_MultiFabUtil_nd_C.H
+      AMReX_MultiFabUtil_C.H
+      AMReX_FilCC_${DIM}D_C.H
+      AMReX_FilCC_C.H
+      AMReX_FilCC_C.cpp
+      AMReX_filcc_mod.F90
+      AMReX_omp_mod.F90
+      AMReX_acc_mod.F90
+      AMReX_fort_mod.F90
+      AMReX_constants_mod.f90
+      AMReX_error_mod.F90
+      AMReX_parmparse_mod.F90
+      AMReX_string_mod.F90
+      AMReX_bc_types_mod.F90
+      AMReX_ParallelDescriptor_F.F90
+      AMReX_io_mod.F90
+      )
+endif ()
 # LAZY mode not supported in CMake yet
 # ifeq ($(LAZY),TRUE)
 # C$(AMREX_BASE)_sources += AMReX_Lazy.cpp
@@ -264,7 +293,3 @@ endif ()
 if (ENABLE_TINY_PROFILE)
    target_sources(amrex PRIVATE AMReX_TinyProfiler.cpp AMReX_TinyProfiler.H )
 endif ()
-
-
-
-
