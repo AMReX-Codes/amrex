@@ -43,7 +43,7 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: Dependencies
-      run: .github/workflows/cmake/dependencies.sh
+      run: .github/workflows/cmake/dependencies_nofortran.sh
     - name: Build & Install
       run: |
         mkdir build
