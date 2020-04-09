@@ -451,7 +451,7 @@ amrex::NItemsPerBin (int totalItems, Vector<int> &binCounts)
 // Fortran entry points for amrex::Random().
 //
 
-#ifndef AMREX_XSDK
+#if !defined(AMREX_XSDK) && !defined(BL_NO_FORT)
 BL_FORT_PROC_DECL(BLUTILINITRAND,blutilinitrand)(const int* sd)
 {
     unsigned long seed = *sd;
