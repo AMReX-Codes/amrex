@@ -306,6 +306,7 @@ class Machine
 
     std::string hostname;
     std::string nersc_host;
+    std::string cluster_name;
     std::string partition;
     std::string node_list;
     std::string topo_addr;
@@ -339,6 +340,7 @@ class Machine
     {
         hostname   = get_env_str("HOSTNAME");
         nersc_host = get_env_str("NERSC_HOST");
+        cluster_name = get_env_str("SLURM_CLUSTER_NAME");
 #ifdef AMREX_USE_CUDA
         flag_nersc_df = false;
 #else
@@ -375,6 +377,8 @@ class Machine
                 }
 #ifdef BL_USE_MPI
             } else {
+                if (cluster_name == "escori")
+		    tag = "cgpu";
                 auto mpi_proc_name = get_mpi_processor_name();
                 Print() << "MPI_Get_processor_name: " << mpi_proc_name << std::endl;
                 pos = mpi_proc_name.find(tag);
