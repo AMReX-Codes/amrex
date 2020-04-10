@@ -1,4 +1,4 @@
-if (DIM EQUAL 1)
+if ( (DIM EQUAL 1) OR NOT ENABLE_FORTRAN)
    return()
 endif ()
 
@@ -11,7 +11,7 @@ set ( EXE_DIR  ${CMAKE_CURRENT_LIST_DIR}/Exec )
 
 #
 # Create target (executable) for this tutorial
-# 
+#
 add_executable ( ${EXENAME} EXCLUDE_FROM_ALL "" )
 
 target_sources ( ${EXENAME}
@@ -23,7 +23,7 @@ target_sources ( ${EXENAME}
    ${SRC_DIR}/myfunc_F.H
    ${SRC_DIR}/myfunc.H )
 
-set_target_properties ( ${EXENAME} PROPERTIES      
+set_target_properties ( ${EXENAME} PROPERTIES
    INCLUDE_DIRECTORIES
    "${SRC_DIR};${CMAKE_CURRENT_BINARY_DIR}/mod_files"
    Fortran_MODULE_DIRECTORY
@@ -58,10 +58,6 @@ add_custom_target ( run_${EXENAME}
 
 #
 # Add to the "tutorial" target
-# 
-#add_tutorial (${EXENAME})  
+#
+#add_tutorial (${EXENAME})
 add_tutorial (run_${EXENAME})
-
-
-
-

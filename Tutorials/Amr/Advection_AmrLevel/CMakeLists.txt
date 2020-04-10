@@ -1,4 +1,4 @@
-if (DIM EQUAL 1)
+if ( (DIM EQUAL 1) OR NOT ENABLE_FORTRAN )
    return()
 endif ()
 
@@ -37,7 +37,7 @@ target_sources ( ${EXENAME}
    ${EXE_DIR}/Prob.f90 ${EXE_DIR}/face_velocity_${DIM}d.f90
    ${SRC1} ${SRC2} ${SRC3} )
 
-set_target_properties ( ${EXENAME} PROPERTIES      
+set_target_properties ( ${EXENAME} PROPERTIES
    INCLUDE_DIRECTORIES
    "${INC1};${INC2};${INC3};${CMAKE_CURRENT_BINARY_DIR}/mod_files"
    Fortran_MODULE_DIRECTORY
@@ -58,7 +58,7 @@ file ( GLOB_RECURSE inputs LIST_DIRECTORIES false
 #
 file ( COPY ${inputs} DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/SingleVortex )
 
-add_tutorial (${EXENAME})   
+add_tutorial (${EXENAME})
 
 
 ###############################################################################
@@ -79,7 +79,7 @@ target_sources ( ${EXENAME}
    ${SRC1} ${SRC2} ${SRC3} )
 
 
-set_target_properties ( ${EXENAME} PROPERTIES      
+set_target_properties ( ${EXENAME} PROPERTIES
    INCLUDE_DIRECTORIES
    "${INC1};${INC2};${INC3};${CMAKE_CURRENT_BINARY_DIR}/mod_files"
    Fortran_MODULE_DIRECTORY
