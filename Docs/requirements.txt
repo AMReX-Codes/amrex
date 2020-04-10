@@ -8,4 +8,4 @@ sphinx_rtd_theme>=0.3.1
 recommonmark
 sphinx>=2.0
 pygments
-breathe<4.15.0
+breathe
