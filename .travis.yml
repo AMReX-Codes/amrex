@@ -12,7 +12,7 @@ cache: pip
 
 env:
   matrix:
-    - WARPX_CI_REGULAR_CARTESIAN=TRUE
+    - WARPX_CI_REGULAR_CARTESIAN=TRUE WARPX_CI_OPENPMD=FALSE
     - WARPX_CI_PSATD=TRUE
     - WARPX_CI_PYTHON_MAIN=TRUE
     - WARPX_CI_SINGLE_PRECISION=TRUE
@@ -32,9 +32,15 @@ install:
     - export CEI_CMAKE="/home/travis/.local/bin/cmake"
     - python -m pip install --upgrade git+https://github.com/yt-project/yt.git
     - sudo curl -L -o /usr/local/bin/cmake-easyinstall https://git.io/JvLxY && sudo chmod a+x /usr/local/bin/cmake-easyinstall
+    - if [ "${WARPX_CI_OPENPMD}" != "FALSE" ]; then
+        sudo cmake-easyinstall git+https://github.com/openPMD/openPMD-api.git
+          -DopenPMD_USE_PYTHON=OFF -DBUILD_TESTING=OFF -DBUILD_EXAMPLES=OFF
+          -DCMAKE_INSTALL_PREFIX=/usr/local;
+      fi
 
 script:
     - export FFTW_HOME=/usr/
+    - if [ -z ${WARPX_CI_OPENPMD} ]; then WARPX_CI_OPENPMD=TRUE; fi
 
     # Run the tests on the current commit
     - export WARPX_TEST_COMMIT=$TRAVIS_COMMIT

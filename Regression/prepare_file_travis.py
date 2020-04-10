@@ -21,6 +21,7 @@ ci_python_main = os.environ.get('WARPX_CI_PYTHON_MAIN') == 'TRUE'
 ci_single_precision = os.environ.get('WARPX_CI_SINGLE_PRECISION') == 'TRUE'
 ci_rz_or_nompi = os.environ.get('WARPX_CI_RZ_OR_NOMPI') == 'TRUE'
 ci_qed = os.environ.get('WARPX_CI_QED') == 'TRUE'
+ci_openpmd = os.environ.get('WARPX_CI_OPENPMD') == 'TRUE'
 
 # Find the directory in which the tests should be run
 current_dir = os.getcwd()
@@ -44,6 +45,11 @@ if arch == 'GPU':
                     'addToCompileString = USE_GPU=TRUE USE_OMP=FALSE USE_ACC=TRUE ', text)
     text = re.sub( 'COMP\s*=.*', 'COMP = pgi', text )
 print('Compiling for %s' %arch)
+
+# Extra dependencies
+if ci_openpmd:
+    text = re.sub('addToCompileString =',
+                  'addToCompileString = USE_OPENPMD=TRUE ', text)
 
 # Add runtime option: crash for unused variables
 text = re.sub('runtime_params =',
