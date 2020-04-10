@@ -11,7 +11,7 @@ WarpX has one release per month. To make the release, you need to:
     * Update the version number in all source files. There is a script for that, so you can do:
 
       .. code-block:: sh
-          cd Tools/
+          cd Tools/DevUtils/
           ./update_release.sh
 
     * Optional: create a ``release-<version>`` branch, write a changelog, and backport bug-fixes for a few days.

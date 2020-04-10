@@ -33,13 +33,13 @@ pattern="\.c$|\.cpp$|\.F90$|\.h$|\.H$|\.ini$|\.md$|\.py$|"\
 "\.rst$|\.sh$|\.tex$|\.txt$|\.xml$|\.yml$|"\
 "CMakeLists\.txt|inputs"
 for i in $(find .. \
-                -not -path "../.git/*"   \
-                -not -path "../.idea/*"  \
-                -not -path "../Docs/source/api/*" \
-                -not -path "../Docs/build/*" \
-                -not -path "../Docs/doxyxml/*" \
+                -not -path "../../.git/*"   \
+                -not -path "../../.idea/*"  \
+                -not -path "../../Docs/source/api/*" \
+                -not -path "../../Docs/build/*" \
+                -not -path "../../Docs/doxyxml/*" \
                 -not -path "*wp_parse*" \
-                -not -path "../tmp_build_dir/*" \
+                -not -path "../../tmp_build_dir/*" \
                 -type f | \
            grep -P "${pattern}")
 do

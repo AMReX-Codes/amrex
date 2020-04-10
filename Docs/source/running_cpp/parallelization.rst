@@ -64,5 +64,5 @@ and MPI decomposition and computer architecture used for the run:
 Because these parameters put additional contraints on the domain size for a
 simulation, it can be cumbersome to calculate the number of cells and the
 physical size of the computational domain for a given resolution. This
-:download:`Python script<../../../Tools/compute_domain.py>` does it
+:download:`Python script<../../../Tools/DevUtils/compute_domain.py>` does it
 automatically.

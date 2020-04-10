@@ -2,7 +2,7 @@ Out-of-the-box plotting script
 ==============================
 
 A ready-to-use python script for plotting simulation results is available at
-:download:`plot_parallel.py<../../../Tools/plot_parallel.py>`. Feel free to
+:download:`plot_parallel.py<../../../Tools/PostProcessing/plot_parallel.py>`. Feel free to
 use it out-of-the-box or to modify it to suit your needs.
 
 Dependencies
@@ -59,5 +59,5 @@ If all dependencies are satisfied, the script can be used on Summit or Cori. For
 instance, the following batch script illustrates how to submit a post-processing
 batch job on Cori haswell with some options:
 
-.. literalinclude:: ../../../Tools/cori_postproc_script.sh
+.. literalinclude:: ../../../Tools/PostProcessing/cori_postproc_script.sh
     :language: bash

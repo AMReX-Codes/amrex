@@ -11,7 +11,7 @@ A simple and quick way to read the data using python is
 
 where ``data`` is a two dimensional array, ``data[i][j]`` gives the data in the ith row and the jth column.
 
-A Python function to read the data is available from module ``read_raw_data`` in ``WarpX/Tools/``:
+A Python function to read the data is available from module ``read_raw_data`` in ``WarpX/Tools/PostProcessing/``:
 
 .. code-block:: python
 

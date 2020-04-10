@@ -4,7 +4,7 @@ Advanced yt visualization, for developers (for plotfiles)
 This sections contains yt commands for advanced users. The Particle-In-Cell methods uses a
 staggered grid (see :doc:`../theory/picsar_theory`), so that the x, y, and z components of the
 electric and magnetic fields are all defined at different locations in space. Regular output
-(see the :doc:`yt` page, or the notebook at ``WarpX/Tools/Visualization.ipynb`` for an example)
+(see the :doc:`yt` page, or the notebook at ``WarpX/Tools/PostProcessing/Visualization.ipynb`` for an example)
 returns cell-centered data for convenience, which involves an additional operation. It is sometimes
 useful to access the raw data directly. Furthermore,
 the WarpX implementation for mesh refinement contains a number of grids for each level (coarse,
