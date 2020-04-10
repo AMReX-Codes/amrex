@@ -5,8 +5,9 @@
  * License: BSD-3-Clause-LBNL
  */
 #include "WarpXOpenPMD.H"
-#include "Utils/WarpXAlgorithmSelection.H"
 #include "FieldIO.H"  // for getReversedVec
+#include "Utils/WarpXAlgorithmSelection.H"
+#include "Utils/WarpXUtil.H"
 
 #include <algorithm>
 #include <cstdint>
@@ -21,15 +22,6 @@
 
 namespace detail
 {
-
-    /** Convert AMReX AoS .id and .cpu to a globally unique particle ID
-     */
-    union GlobalID {
-        struct { int id; int cpu; }; //! MPI-rank local ID (and rank/cpu)
-        uint64_t global_id; //! global ID that is unique in the whole simulation
-    };
-    static_assert(sizeof(int) * 2u <= sizeof(uint64_t), "int size might cause collisions in global IDs");
-
 #ifdef WARPX_USE_OPENPMD
     /** Unclutter a real_names to openPMD record
      *
@@ -359,8 +351,7 @@ WarpXOpenPMDPlot::SavePlotFile (const std::unique_ptr<WarpXParticleContainer>& p
                [](uint64_t const *p){ delete[] p; }
            );
            for (auto i=0; i<numParticleOnTile; i++) {
-               detail::GlobalID const nextID = { aos[i].m_idata.id, aos[i].m_idata.cpu };
-               ids.get()[i] = nextID.global_id;
+               ids.get()[i] = WarpXUtilIO::localIDtoGlobal( aos[i].m_idata.id, aos[i].m_idata.cpu );
            }
            auto const scalar = openPMD::RecordComponent::SCALAR;
            currSpecies["id"][scalar].storeChunk(ids, {offset}, {numParticleOnTile64});
