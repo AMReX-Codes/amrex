@@ -16,5 +16,5 @@ DivEFunctor::operator()(amrex::MultiFab& mf_dst, const int dcomp) const
     MultiFab divE( ba, warpx.DistributionMap(m_lev), 1, 0 );
 
     warpx.ComputeDivE(divE, m_lev);
-    Average::ToCellCenter ( mf_dst, divE, dcomp, 0, 0, 1 );
+    Average::CoarsenAndInterpolate( mf_dst, divE, dcomp, 0, 1, 0 );
 }
