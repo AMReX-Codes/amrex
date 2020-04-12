@@ -87,11 +87,19 @@ MLABecLaplacian::setBCoeffs (int amrlev,
                              const Array<MultiFab const*,AMREX_SPACEDIM>& beta)
 {
     const int ncomp = getNComp();
-    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        for (int icomp = 0; icomp < ncomp; ++icomp) {
-            MultiFab::Copy(m_b_coeffs[amrlev][0][idim], *beta[idim], 0, icomp, 1, 0);
+    AMREX_ALWAYS_ASSERT(beta[0]->nComp() == 1 or beta[0]->nComp() == ncomp);
+    if (beta[0]->nComp() == ncomp)
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            for (int icomp = 0; icomp < ncomp; ++icomp) {
+                MultiFab::Copy(m_b_coeffs[amrlev][0][idim], *beta[idim], icomp, icomp, 1, 0);
+            }
         }
-    }
+    else 
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            for (int icomp = 0; icomp < ncomp; ++icomp) {
+                MultiFab::Copy(m_b_coeffs[amrlev][0][idim], *beta[idim], 0, icomp, 1, 0);
+            }
+        }
     m_needs_update = true;
 }
 
@@ -103,6 +111,19 @@ MLABecLaplacian::setBCoeffs (int amrlev, Real beta)
     }
     m_needs_update = true;
 }
+
+void
+MLABecLaplacian::setBCoeffs (int amrlev, Vector<Real> const& beta)
+{
+    const int ncomp = getNComp();
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        for (int icomp = 0; icomp < ncomp; ++icomp) {
+            m_b_coeffs[amrlev][0][idim].setVal(beta[icomp]);
+        }
+    }
+    m_needs_update = true;
+}
+
 
 void
 MLABecLaplacian::averageDownCoeffs ()
