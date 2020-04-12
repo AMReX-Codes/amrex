@@ -293,7 +293,7 @@ MLEBABecLap::setEBDirichlet (int amrlev, const MultiFab& phi, Real beta)
 }
 
 void
-MLEBABecLap::setEBDirichlet (int amrlev, const MultiFab& phi, Vector<Real> const& beta)
+MLEBABecLap::setEBDirichlet (int amrlev, const MultiFab& phi, Vector<Real> const& hv_beta)
 {
     const int ncomp = getNComp();
     if (m_eb_phi[amrlev] == nullptr) {
@@ -312,6 +312,10 @@ MLEBABecLap::setEBDirichlet (int amrlev, const MultiFab& phi, Vector<Real> const
 
     auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
+
+    Gpu::DeviceVector<Real> dv_beta(hv_beta.size());
+    Gpu::copy(Gpu::hostToDevice, hv_beta.begin(), hv_beta.end(), dv_beta.begin());
+    Real const* beta = dv_beta.data();
 
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
@@ -472,7 +476,7 @@ MLEBABecLap::setEBHomogDirichlet (int amrlev, Real beta)
 }
 
 void
-MLEBABecLap::setEBHomogDirichlet (int amrlev, Vector<Real> const& beta)
+MLEBABecLap::setEBHomogDirichlet (int amrlev, Vector<Real> const& hv_beta)
 {
     const int ncomp = getNComp();
     if (m_eb_phi[amrlev] == nullptr) {
@@ -491,6 +495,10 @@ MLEBABecLap::setEBHomogDirichlet (int amrlev, Vector<Real> const& beta)
 
     auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
+
+    Gpu::DeviceVector<Real> dv_beta(hv_beta.size());
+    Gpu::copy(Gpu::hostToDevice, hv_beta.begin(), hv_beta.end(), dv_beta.begin());
+    Real const* beta = dv_beta.data();
 
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
