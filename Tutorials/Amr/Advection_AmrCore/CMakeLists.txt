@@ -34,6 +34,10 @@ set_target_properties ( ${EXENAME} PROPERTIES
    RUNTIME_OUTPUT_DIRECTORY
    ${CMAKE_CURRENT_BINARY_DIR} )
 
+if (ENABLE_CUDA)
+   set_cpp_sources_to_cuda_language( ${EXENAME} )
+endif ()
+
 target_link_libraries ( ${EXENAME} amrex ${AMREX_EXTRA_Fortran_LINK_LINE} )
 
 #

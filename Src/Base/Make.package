@@ -227,10 +227,15 @@ ifeq ($(TINY_PROFILE),TRUE)
   C$(AMREX_BASE)_sources += AMReX_TinyProfiler.cpp
 endif
 
+# CUPTI Trace
+ifeq ($(USE_CUPTI),TRUE)
+  C$(AMREX_BASE)_headers += AMReX_CuptiTrace.H
+  C$(AMREX_BASE)_sources += AMReX_CuptiTrace.cpp
+endif
+
 # Machine model
 CEXE_headers += AMReX_Machine.H
 CEXE_sources += AMReX_Machine.cpp
 
 VPATH_LOCATIONS += $(AMREX_HOME)/Src/Base
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Base
-

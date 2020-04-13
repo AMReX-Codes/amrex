@@ -22,9 +22,14 @@ ifeq ($(host_name), $(findstring $(host_name), $(CCSE_MACHINES)))
   which_computer := $(host_name)
 endif
 
-ifeq ($(findstring cori, $(NERSC_HOST)), cori)
+ifeq ($(findstring cori, $(host_name)), cori)
   which_site := nersc
   which_computer := cori
+endif
+
+ifeq ($(findstring cgpu, $(host_name)), cgpu)
+  which_site := nersc
+  which_computer := cgpu
 endif
 
 ifeq ($(findstring titan, $(host_name)), titan)
