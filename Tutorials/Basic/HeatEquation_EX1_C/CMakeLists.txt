@@ -44,23 +44,25 @@ set (INPUT_FILES ${EXE_DIR}/inputs_${DIM}d )
 
 file ( COPY ${INPUT_FILES} DESTINATION ${CMAKE_CURRENT_BINARY_DIR} )
 
-add_custom_target ( run_${EXENAME}
-   COMMAND
-   cp ${INPUT_FILES} ${CMAKE_CURRENT_BINARY_DIR}
-   COMMAND
-   ${EXENAME} inputs_${DIM}d  nsteps = 10
-   DEPENDS
-   ${INPUT_FILES}
-   WORKING_DIRECTORY
-   ${CMAKE_CURRENT_BINARY_DIR}
-   COMMENT
-   "Running ${EXENAME}"
-   VERBATIM
-   )
+if (NOT ENABLE_CUDA)
 
+   add_custom_target( run_${EXENAME}
+      COMMAND
+      cp ${INPUT_FILES} ${CMAKE_CURRENT_BINARY_DIR}
+      COMMAND
+      ${EXENAME} inputs_${DIM}d  nsteps = 10
+      DEPENDS
+      ${INPUT_FILES}
+      WORKING_DIRECTORY
+      ${CMAKE_CURRENT_BINARY_DIR}
+      COMMENT
+      "Running ${EXENAME}"
+      VERBATIM
+      )
 
-#
-# Add to the "tutorial" target
-#
-#add_tutorial (${EXENAME})
-add_tutorial (run_${EXENAME})
+   #
+   # Add to the "tutorial" target
+   #
+   add_tutorial (run_${EXENAME})
+
+endif ()
