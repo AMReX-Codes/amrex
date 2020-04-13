@@ -2,24 +2,25 @@
 #define CNS_PARM_H_
 
 #include <AMReX_REAL.H>
-#include <AMReX_GpuQualifiers.H>
+#include <AMReX_GpuMemory.H>
 
-namespace Parm
+struct Parm
+    : public amrex::Gpu::Managed
 {
-    extern AMREX_GPU_DEVICE_MANAGED amrex::Real eos_gamma;
-    extern AMREX_GPU_DEVICE_MANAGED amrex::Real eos_mu;
+    amrex::Real eos_gamma = 1.4;
+    amrex::Real eos_mu = 28.97;  // mean molecular weight
 
-    extern AMREX_GPU_DEVICE_MANAGED amrex::Real cv;
-    extern AMREX_GPU_DEVICE_MANAGED amrex::Real cp;
+    amrex::Real cv;
+    amrex::Real cp;
 
-    extern AMREX_GPU_DEVICE_MANAGED amrex::Real Pr;  // Prandtl number
-    extern AMREX_GPU_DEVICE_MANAGED amrex::Real C_S; // constant in Sutherland's law
-    extern AMREX_GPU_DEVICE_MANAGED amrex::Real T_S; // Sutherland temperature
+    amrex::Real Pr  = 0.72;     // Prandtl number
+    amrex::Real C_S = 1.458e-5; // constant in Sutherland's law
+    amrex::Real T_S = 110.4;    // Sutherland temperature
 
-    extern AMREX_GPU_DEVICE_MANAGED amrex::Real smallr;
-    extern AMREX_GPU_DEVICE_MANAGED amrex::Real smallp;
+    amrex::Real smallr = 1.e-19;
+    amrex::Real smallp = 1.e-10;
 
     void Initialize ();
-}
+};
 
 #endif

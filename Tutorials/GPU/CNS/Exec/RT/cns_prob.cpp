@@ -3,13 +3,6 @@
 #include "cns_prob_parm.H"
 #include <AMReX_ParmParse.H>
 
-namespace ProbParm
-{
-    AMREX_GPU_DEVICE_MANAGED amrex::Real rho_1 = 0.5;
-    AMREX_GPU_DEVICE_MANAGED amrex::Real rho_2 = 2.0;
-    AMREX_GPU_DEVICE_MANAGED amrex::Real p0_base = 5.0;
-}
-
 extern "C" {
     void amrex_probinit (const int* init,
                          const int* name,
