@@ -81,6 +81,9 @@ CNS::initData ()
     const auto geomdata = geom.data();
     MultiFab& S_new = get_new_data(State_Type);
 
+    Parm const* lparm = parm.get();
+    ProbParm const* lprobparm = prob_parm.get();
+
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -92,7 +95,7 @@ CNS::initData ()
         amrex::ParallelFor(box,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            cns_initdata(i, j, k, sfab, geomdata);
+            cns_initdata(i, j, k, sfab, geomdata, *lparm, *lprobparm);
         });
     }
 }
@@ -351,9 +354,9 @@ CNS::read_params ()
 
     pp.query("gravity", gravity);
 
-    pp.query("eos_gamma", Parm::eos_gamma);
+    pp.query("eos_gamma", parm->eos_gamma);
 
-    Parm::Initialize();
+    parm->Initialize();
 }
 
 void
@@ -392,11 +395,12 @@ CNS::estTimeStep ()
 
     const auto dx = geom.CellSizeArray();
     const MultiFab& S = get_new_data(State_Type);
+    Parm const* lparm = parm.get();
 
     Real estdt = amrex::ReduceMin(S, 0,
     [=] AMREX_GPU_DEVICE (Box const& bx, Array4<Real const> const& fab) noexcept -> Real
     {
-        return cns_estdt(bx, fab, dx);
+        return cns_estdt(bx, fab, dx, *lparm);
     });
 
     estdt *= cfl;
@@ -416,6 +420,8 @@ CNS::computeTemp (MultiFab& State, int ng)
 {
     BL_PROFILE("CNS::computeTemp()");
 
+    Parm const* lparm = parm.get();
+
     // This will reset Eint and compute Temperature 
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -428,7 +434,7 @@ CNS::computeTemp (MultiFab& State, int ng)
         amrex::ParallelFor(bx,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            cns_compute_temperature(i,j,k,sfab);
+            cns_compute_temperature(i,j,k,sfab,*lparm);
         });
     }
 }
