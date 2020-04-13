@@ -557,6 +557,10 @@ WarpX::ReadParameters ()
         pp.query("pml_has_particles", pml_has_particles);
         pp.query("do_pml_j_damping", do_pml_j_damping);
         pp.query("do_pml_in_domain", do_pml_in_domain);
+#ifdef WARPX_DIM_RZ
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE( do_pml==0,
+            "PML are not implemented in RZ geometry ; please set `warpx.do_pml=0`");
+#endif
 
         Vector<int> parse_do_pml_Lo(AMREX_SPACEDIM,1);
         pp.queryarr("do_pml_Lo", parse_do_pml_Lo);

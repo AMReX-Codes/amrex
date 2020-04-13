@@ -72,7 +72,7 @@ grid = picmi.CylindricalGrid(number_of_cells = [nr, nz],
                              moving_window_zvelocity = 0.,
                              warpx_max_grid_size=64)
 
-solver = picmi.ElectromagneticSolver(grid=grid, cfl=1.)
+solver = picmi.ElectromagneticSolver(grid=grid, cfl=1., warpx_do_pml=0)
 
 sim = picmi.Simulation(solver = solver,
                        max_steps = 40,
