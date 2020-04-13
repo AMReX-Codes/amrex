@@ -28,9 +28,8 @@ before_install:
 
 install:
     - python -m pip install --upgrade pip
-    - python -m pip install --upgrade cmake cython matplotlib mpi4py numpy scipy
+    - python -m pip install --upgrade cmake cython matplotlib mpi4py numpy scipy yt
     - export CEI_CMAKE="/home/travis/.local/bin/cmake"
-    - python -m pip install --upgrade git+https://github.com/yt-project/yt.git
     - sudo curl -L -o /usr/local/bin/cmake-easyinstall https://git.io/JvLxY && sudo chmod a+x /usr/local/bin/cmake-easyinstall
     - if [ "${WARPX_CI_OPENPMD}" != "FALSE" ]; then
         sudo cmake-easyinstall git+https://github.com/openPMD/openPMD-api.git
