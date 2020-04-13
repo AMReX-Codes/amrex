@@ -33,6 +33,9 @@ set_target_properties ( ${EXENAME} PROPERTIES
 
 target_link_libraries ( ${EXENAME} amrex )
 
+if (ENABLE_CUDA)
+   set_cpp_sources_to_cuda_language( ${EXENAME} )
+endif ()
 
 #
 # Copy input files to corresponding build dir

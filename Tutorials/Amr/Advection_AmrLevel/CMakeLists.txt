@@ -47,6 +47,10 @@ set_target_properties ( ${EXENAME} PROPERTIES
 
 target_link_libraries (${EXENAME} amrex)
 
+if (ENABLE_CUDA)
+   set_cpp_sources_to_cuda_language( ${EXENAME} )
+endif ()
+
 #
 # Find input files
 #
@@ -88,6 +92,10 @@ set_target_properties ( ${EXENAME} PROPERTIES
    ${CMAKE_CURRENT_BINARY_DIR}/UniformVelocity )
 
 target_link_libraries (${EXENAME} amrex)
+
+if (ENABLE_CUDA)
+   set_cpp_sources_to_cuda_language( ${EXENAME} )
+endif ()
 
 #
 # Find input files
