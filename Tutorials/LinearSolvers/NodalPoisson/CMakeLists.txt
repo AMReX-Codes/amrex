@@ -21,6 +21,10 @@ target_sources( ${exe_name}
     MyTestPlotfile.cpp
     )
 
+if (ENABLE_CUDA)
+   set_cpp_sources_to_cuda_language( ${exe_name} )
+endif ()
+
 target_include_directories(${exe_name} PRIVATE ${CMAKE_CURRENT_LIST_DIR})
 
 target_link_libraries( ${exe_name} PRIVATE amrex )
