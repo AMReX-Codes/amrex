@@ -1,5 +1,6 @@
 #include <AMReX_CuptiTrace.H>
 #ifdef AMREX_USE_CUPTI
+#include <AMReX.H>
 #include <AMReX_Print.H>
 #include <stdio.h>
 #include <map>
@@ -23,11 +24,22 @@ namespace amrex {
 
 std::vector<std::unique_ptr<CUpti_Activity_Userdata>> activityRecordUserdata;
 
+void CuptiInitialize ()
+{
+    initCuptiTrace();
+    amrex::ExecOnFinalize(CuptiFinalize);
+}
+
+void CuptiFinalize ()
+{
+    activityRecordUserdata.clear();
+}
+
 void CUPTIAPI
 bfrRequestCallback (uint8_t* *bfr, size_t* size, size_t* maxNumRecords) noexcept
 {
     // Allocate a buffer for use by CUPTI; activity records are stored in the buffer
-    uint8_t* buffer = (uint8_t*) malloc(BFR_SIZE + ALIGNMENT);
+    uint8_t* buffer = (uint8_t*) std::malloc(BFR_SIZE + ALIGNMENT);
     if (buffer == NULL) {
         amrex::Abort("Error: CUPTI requested a buffer but memory cannot be allocated.");
     }
@@ -62,7 +74,7 @@ bfrCompleteCallback (CUcontext ctx, uint32_t streamId, uint8_t* bfr,
                 recordUserData->setEndTime(kernel->end);
                 recordUserData->setTimeElapsed(kernel->end - kernel->start);
                 recordUserData->setStreamID(kernel->streamId);
-                recordUserData->setName((std::string)kernel->name);
+                recordUserData->setName(kernel->name);
                 activityRecordUserdata.push_back( std::move(recordUserData) );
             }
             else if (status == CUPTI_ERROR_MAX_LIMIT_REACHED) {
@@ -78,13 +90,12 @@ bfrCompleteCallback (CUcontext ctx, uint32_t streamId, uint8_t* bfr,
 
         size_t dropped;
         cuptiActivityGetNumDroppedRecords(ctx, streamId, &dropped);
-        if (dropped != 0) {
-            amrex::Print() << (unsigned int) dropped
-                           << " activity records were dropped due to insufficient buffer space\n";
+        if (dropped != 0 and amrex::Verbose() > 1) {
+            amrex::AllPrint() << (unsigned int) dropped
+                              << " activity records were dropped due to insufficient buffer space\n";
         }
     }
-    free(bfr);
-    record = NULL; // Cleanup dangling pointer
+    std::free(bfr);
 }
 
 void
@@ -92,12 +103,14 @@ initCuptiTrace () noexcept
 {
     // Enable collection of kernel activity records
     cuptiActivityEnable(CUPTI_ACTIVITY_KIND_CONCURRENT_KERNEL);
-    
+
     // Register callback functions to handle request of buffers to store
     // activity records and delivery of completed buffers to CUPTI client
     cuptiActivityRegisterCallbacks(bfrRequestCallback, bfrCompleteCallback);
-    
-    amrex::Print() << "CUPTI initialized\n";
+
+    if (amrex::Verbose() > 0) {
+        amrex::Print() << "CUPTI initialized\n";
+    }
 }
     
 void
@@ -122,7 +135,7 @@ cuptiTraceStop (unsigned boxUintID) noexcept
     cuptiActivityFlushAll(0);
     for (auto& record : activityRecordUserdata) {
         record->setUintID(boxUintID);
-        record->setCharID( ((std::string) "CharID_") + std::to_string(boxUintID) );
+        record->setCharID( std::string("CharID_") + std::to_string(boxUintID) );
     }
 }
 
@@ -201,11 +214,11 @@ CUpti_Activity_Userdata::setStreamID (int streamID) noexcept
 void
 CUpti_Activity_Userdata::setName (std::string name) noexcept
 {
-    name_ = name;
+    name_ = std::move(name);
 }
 
 unsigned
-CUpti_Activity_Userdata::getUintID () noexcept
+CUpti_Activity_Userdata::getUintID () const noexcept
 { 
     return uintID_;
 }
@@ -213,41 +226,41 @@ CUpti_Activity_Userdata::getUintID () noexcept
 void
 CUpti_Activity_Userdata::setCharID (std::string charID) noexcept
 {
-    charID_ = charID;
+    charID_ = std::move(charID);
 }
 
-std::string
-CUpti_Activity_Userdata::getCharID () noexcept
+std::string const&
+CUpti_Activity_Userdata::getCharID () const noexcept
 { 
     return charID_;
 }
 
 unsigned long long
-CUpti_Activity_Userdata::getStartTime () noexcept
+CUpti_Activity_Userdata::getStartTime () const noexcept
 {
     return startTime_;
 }
 
 unsigned long long
-CUpti_Activity_Userdata::getEndTime () noexcept
+CUpti_Activity_Userdata::getEndTime () const noexcept
 {
     return endTime_;
 }
 
 unsigned long long
-CUpti_Activity_Userdata::getTimeElapsed () noexcept
+CUpti_Activity_Userdata::getTimeElapsed () const noexcept
 {
     return timeElapsed_;
 }
 
 int
-CUpti_Activity_Userdata::getStreamID () noexcept
+CUpti_Activity_Userdata::getStreamID () const noexcept
 {
     return streamID_;
 }
 
-std::string
-CUpti_Activity_Userdata::getName () noexcept
+std::string const&
+CUpti_Activity_Userdata::getName () const noexcept
 {
     return name_;
 }

@@ -39,13 +39,13 @@ public:
     void setTimeElapsed (unsigned long long) noexcept;
     void setStreamID (int) noexcept;
     void setName (std::string) noexcept;
-    unsigned getUintID () noexcept;
-    std::string getCharID () noexcept;
-    unsigned long long getStartTime () noexcept;
-    unsigned long long getEndTime () noexcept;
-    unsigned long long getTimeElapsed () noexcept;
-    int getStreamID () noexcept;
-    std::string getName () noexcept;
+    unsigned getUintID () const noexcept;
+    std::string const& getCharID () const noexcept;
+    unsigned long long getStartTime () const noexcept;
+    unsigned long long getEndTime () const noexcept;
+    unsigned long long getTimeElapsed () const noexcept;
+    int getStreamID () const noexcept;
+    std::string const& getName () const noexcept;
 };
 
 class CuptiTrace {
@@ -60,6 +60,9 @@ public:
 extern std::vector<std::unique_ptr<CUpti_Activity_Userdata>> activityRecordUserdata;
 double computeElapsedTimeUserdata(const std::vector<std::unique_ptr<CUpti_Activity_Userdata>>&
                                   activityRecordUserdata) noexcept;
+
+void CuptiInitialize ();
+void CuptiFinalize ();
 }
 
 #endif
