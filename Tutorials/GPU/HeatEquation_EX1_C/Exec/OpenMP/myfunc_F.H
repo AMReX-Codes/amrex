@@ -1,5 +1,5 @@
-#ifndef MYFUNC_F_H__ 
-#define MUFUNC_F_H__ 
+#ifndef MYFUNC_F_H_
+#define MUFUNC_F_H_
 
 #include <AMReX_BLFort.H>
 
