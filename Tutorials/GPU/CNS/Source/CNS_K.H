@@ -13,7 +13,8 @@ AMREX_GPU_HOST_DEVICE
 inline
 amrex::Real
 cns_estdt (amrex::Box const& bx, amrex::Array4<Real const> const& state,
-           amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dx) noexcept
+           amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dx,
+           Parm const& parm) noexcept
 {
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
@@ -31,12 +32,12 @@ cns_estdt (amrex::Box const& bx, amrex::Array4<Real const> const& state,
                 amrex::Real my  = state(i,j,k,UMY);
                 amrex::Real mz  = state(i,j,k,UMY);
                 amrex::Real ei  = state(i,j,k,UEINT);
-                amrex::Real rhoinv = 1.0/amrex::max(rho,Parm::smallr);
+                amrex::Real rhoinv = 1.0/amrex::max(rho,parm.smallr);
                 amrex::Real vx = mx*rhoinv;
                 amrex::Real vy = my*rhoinv;
                 amrex::Real vz = mz*rhoinv;
-                amrex::Real p = amrex::max((Parm::eos_gamma-1.0)*ei, Parm::smallp);
-                amrex::Real cs = std::sqrt(Parm::eos_gamma*p*rhoinv);
+                amrex::Real p = amrex::max((parm.eos_gamma-1.0)*ei, parm.smallp);
+                amrex::Real cs = std::sqrt(parm.eos_gamma*p*rhoinv);
                 amrex::Real dtx = dx[0]/(amrex::Math::abs(vx)+cs);
                 amrex::Real dty = dx[1]/(amrex::Math::abs(vy)+cs);
                 amrex::Real dtz = dx[2]/(amrex::Math::abs(vz)+cs);
@@ -52,14 +53,15 @@ cns_estdt (amrex::Box const& bx, amrex::Array4<Real const> const& state,
 AMREX_GPU_DEVICE
 inline
 void
-cns_compute_temperature (int i, int j, int k, amrex::Array4<amrex::Real> const& u) noexcept
+cns_compute_temperature (int i, int j, int k, amrex::Array4<amrex::Real> const& u,
+                         Parm const& parm) noexcept
 {
     amrex::Real rhoinv = 1.0/u(i,j,k,URHO);
     amrex::Real mx = u(i,j,k,UMX);
     amrex::Real my = u(i,j,k,UMY);
     amrex::Real mz = u(i,j,k,UMZ);
     u(i,j,k,UEINT) = u(i,j,k,UEDEN) - 0.5 * rhoinv * (mx*mx+my*my+mz*mz);
-    u(i,j,k,UTEMP) = rhoinv * u(i,j,k,UEINT) * (1.0/Parm::cv);
+    u(i,j,k,UTEMP) = rhoinv * u(i,j,k,UEINT) * (1.0/parm.cv);
 }
 
 #endif
