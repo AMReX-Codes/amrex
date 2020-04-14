@@ -78,8 +78,8 @@ private:
 	}
     };
 
-    bool uCUPTI;
     std::string fname;
+    bool uCUPTI;
     int global_depth;
     std::vector<Stats*> stats;
 
