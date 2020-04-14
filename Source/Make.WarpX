@@ -175,6 +175,14 @@ ifeq ($(USE_PSATD),TRUE)
     # Use cuFFT
     libraries += -lcufft
   endif
+  ifeq ($(USE_RZ),TRUE)
+    # Use blas and lapack
+    INCLUDE_LOCATIONS += $(LAPACKPP_HOME)/include
+    INCLUDE_LOCATIONS += $(BLASPP_HOME)/include
+    LIBRARY_LOCATIONS += $(LAPACKPP_HOME)/lib
+    LIBRARY_LOCATIONS += $(BLASPP_HOME)/lib
+    libraries += -llapackpp -lblaspp
+  endif
 endif
 
 ifeq ($(USE_RZ),TRUE)

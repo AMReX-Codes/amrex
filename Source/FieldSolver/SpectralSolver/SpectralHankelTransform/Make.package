@@ -1,0 +1,6 @@
+ifeq ($(USE_RZ),TRUE)
+  CEXE_sources += SpectralHankelTransformer.cpp
+  CEXE_sources += HankelTransform.cpp
+
+  VPATH_LOCATIONS   += $(WARPX_HOME)/Source/FieldSolver/SpectralSolver/SpectralHankelTransform
+endif

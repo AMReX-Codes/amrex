@@ -25,7 +25,11 @@
 
 #include "FieldSolver/FiniteDifferenceSolver/FiniteDifferenceSolver.H"
 #ifdef WARPX_USE_PSATD
-#   include "FieldSolver/SpectralSolver/SpectralSolver.H"
+#   ifdef WARPX_DIM_RZ
+#       include "FieldSolver/SpectralSolver/SpectralSolverRZ.H"
+#   else
+#       include "FieldSolver/SpectralSolver/SpectralSolver.H"
+#   endif
 #endif
 #ifdef WARPX_USE_PSATD_HYBRID
 #   include "FieldSolver/PicsarHybridSpectralSolver/PicsarHybridFFTData.H"
@@ -834,8 +838,13 @@ private:
     int ngroups_fft = 4;
     int fftw_plan_measure = 1;
 
-    amrex::Vector<std::unique_ptr<SpectralSolver>> spectral_solver_fp;
-    amrex::Vector<std::unique_ptr<SpectralSolver>> spectral_solver_cp;
+#   ifdef WARPX_DIM_RZ
+        amrex::Vector<std::unique_ptr<SpectralSolverRZ>> spectral_solver_fp;
+        amrex::Vector<std::unique_ptr<SpectralSolverRZ>> spectral_solver_cp;
+#   else
+        amrex::Vector<std::unique_ptr<SpectralSolver>> spectral_solver_fp;
+        amrex::Vector<std::unique_ptr<SpectralSolver>> spectral_solver_cp;
+#   endif
 #endif
     amrex::Vector<std::unique_ptr<FiniteDifferenceSolver>> m_fdtd_solver_fp;
     amrex::Vector<std::unique_ptr<FiniteDifferenceSolver>> m_fdtd_solver_cp;

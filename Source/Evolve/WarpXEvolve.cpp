@@ -662,6 +662,9 @@ WarpX::ComputeDt ()
     if (maxwell_fdtd_solver_id == 0) {
         // CFL time step Yee solver
 #ifdef WARPX_DIM_RZ
+#    ifdef WARPX_USE_PSATD
+        deltat = cfl*dx[1]/PhysConst::c;
+#    else
         // In the rz case, the Courant limit has been evaluated
         // semi-analytically by R. Lehe, and resulted in the following
         // coefficients.
@@ -678,6 +681,7 @@ WarpX::ComputeDt ()
             multimode_alpha = (n_rz_azimuthal_modes - 1)*(n_rz_azimuthal_modes - 1) - 0.4;
         }
         deltat  = cfl * 1./( std::sqrt((1+multimode_alpha)/(dx[0]*dx[0]) + 1./(dx[1]*dx[1])) * PhysConst::c );
+#    endif
 #else
         deltat  = cfl * 1./( std::sqrt(AMREX_D_TERM(  1./(dx[0]*dx[0]),
                                                       + 1./(dx[1]*dx[1]),

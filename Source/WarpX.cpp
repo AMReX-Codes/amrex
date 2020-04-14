@@ -689,6 +689,24 @@ WarpX::ReadParameters ()
 
         // Only needs to be set with WARPX_DIM_RZ, otherwise defaults to 1.
         pp.query("n_rz_azimuthal_modes", n_rz_azimuthal_modes);
+#if (defined WARPX_DIM_RZ) && (defined WARPX_USE_PSATD)
+        // Force use of cell centered in r and z.
+        // Also, do_nodal is forced to be true. Here, do_nodal effectively
+        // means do_colocated (i.e. not staggered).
+        do_nodal = true;
+        Bx_nodal_flag = IntVect::TheCellVector();
+        By_nodal_flag = IntVect::TheCellVector();
+        Bz_nodal_flag = IntVect::TheCellVector();
+        Ex_nodal_flag = IntVect::TheCellVector();
+        Ey_nodal_flag = IntVect::TheCellVector();
+        Ez_nodal_flag = IntVect::TheCellVector();
+        jx_nodal_flag = IntVect::TheCellVector();
+        jy_nodal_flag = IntVect::TheCellVector();
+        jz_nodal_flag = IntVect::TheCellVector();
+        rho_nodal_flag = IntVect::TheCellVector();
+        // Use same shape factors in all directions, for gathering
+        l_lower_order_in_v = false;
+#endif
     }
 
     {
@@ -971,18 +989,23 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
             AMREX_ALWAYS_ASSERT_WITH_MESSAGE( geom[0].isAllPeriodic() && ba.size()==1 && lev==0,
             "The option `psatd.periodic_single_box_fft` can only be used for a periodic domain, decomposed in a single box.");
         }
-
-        // Get the cell-centered box, with guard cells
+        // Get the cell-centered box
         BoxArray realspace_ba = ba;  // Copy box
-        realspace_ba.enclosedCells(); // cell-centered
+        realspace_ba.enclosedCells(); // Make it cell-centered
+        // Define spectral solver
+#ifdef WARPX_DIM_RZ
+        realspace_ba.grow(1, ngE[1]); // add guard cells only in z
+        spectral_solver_fp[lev].reset( new SpectralSolverRZ( realspace_ba, dm,
+            n_rz_azimuthal_modes, noz_fft, do_nodal, dx_vect, dt[lev], lev ) );
+#else
         if ( fft_periodic_single_box == false ) {
             realspace_ba.grow(ngE); // add guard cells
         }
-        // Define spectral solver
         bool const pml=false;
         spectral_solver_fp[lev].reset( new SpectralSolver( realspace_ba, dm,
             nox_fft, noy_fft, noz_fft, do_nodal, v_galilean, dx_vect, dt[lev],
             pml, fft_periodic_single_box ) );
+#endif
     }
 #endif
     std::array<Real,3> const dx = CellSize(lev);
@@ -1066,10 +1089,18 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
 #endif
             // Get the cell-centered box, with guard cells
             BoxArray realspace_ba = cba;// Copy box
-            realspace_ba.enclosedCells().grow(ngE);// cell-centered + guard cells
+            realspace_ba.enclosedCells(); // Make it cell-centered
             // Define spectral solver
+#ifdef WARPX_DIM_RZ
+            realspace_ba.grow(1, ngE[1]); // add guard cells only in z
+            spectral_solver_cp[lev].reset( new SpectralSolverRZ( realspace_ba, dm,
+                n_rz_azimuthal_modes, noz_fft, do_nodal, cdx_vect, dt[lev], lev ) );
+
+#else
+            realspace_ba.grow(ngE); // add guard cells
             spectral_solver_cp[lev].reset( new SpectralSolver( realspace_ba, dm,
                 nox_fft, noy_fft, noz_fft, do_nodal, v_galilean, cdx_vect, dt[lev] ) );
+#endif
         }
 #endif
     std::array<Real,3> cdx = CellSize(lev-1);

@@ -21,5 +21,5 @@ In order to run the code with a spectral solver, you need to:
 
            make -j 4 USE_PSATD=TRUE
 
-Note that this is not compatible with USE_RZ yet.
+See :doc:`rzgeometry` for using the spectral solver with USE_RZ. Additional steps are needed.
 PSATD is compatible with single precision, but please note that, on CPU, FFTW needs to be compiled with option ``--enable-float``.

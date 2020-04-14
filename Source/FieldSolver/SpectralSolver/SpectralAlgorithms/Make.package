@@ -3,4 +3,9 @@ CEXE_sources += PsatdAlgorithm.cpp
 CEXE_sources += GalileanAlgorithm.cpp
 CEXE_sources += PMLPsatdAlgorithm.cpp
 
+ifeq ($(USE_RZ),TRUE)
+  CEXE_sources += SpectralBaseAlgorithmRZ.cpp
+  CEXE_sources += PsatdAlgorithmRZ.cpp
+endif
+
 VPATH_LOCATIONS   += $(WARPX_HOME)/Source/FieldSolver/SpectralSolver/SpectralAlgorithms
