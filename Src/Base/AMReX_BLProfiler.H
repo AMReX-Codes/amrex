@@ -1,6 +1,9 @@
 #ifndef BL_PROFILER_H_
 #define BL_PROFILER_H_
 
+#define BL_PROFILE_PASTE2(x, y) x##y
+#define BL_PROFILE_PASTE(x, y) BL_PROFILE_PASTE2(x, y)
+
 #ifdef BL_PROFILING
 
 #include <AMReX_REAL.H>
@@ -479,7 +482,7 @@ inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
 #define BL_TINY_PROFILE_INITIALIZE()   amrex::TinyProfiler::Initialize();
 #define BL_TINY_PROFILE_FINALIZE()     amrex::TinyProfiler::Finalize();
 
-#define BL_PROFILE(fname)         amrex::TinyProfiler tiny_profiler_((fname));
+#define BL_PROFILE(fname)         amrex::TinyProfiler BL_PROFILE_PASTE(tiny_profiler_,__COUNTER__)((fname));
 #define BL_PROFILE_T(a, T)
 #define BL_PROFILE_S(fname)
 #define BL_PROFILE_T_S(fname, T)
