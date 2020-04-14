@@ -10,7 +10,8 @@
 AMREX_GPU_DEVICE
 inline
 void
-cns_initdata (int i, int j, int k, amrex::Array4<amrex::Real> const& state, amrex::GeometryData const& geomdata)
+cns_initdata (int i, int j, int k, amrex::Array4<amrex::Real> const& state,
+              amrex::GeometryData const& geomdata, Parm const& parm, ProbParm const& prob_parm)
 {
     const amrex::Real* prob_lo = geomdata.ProbLo();
     const amrex::Real* dx      = geomdata.CellSize();
@@ -18,19 +19,19 @@ cns_initdata (int i, int j, int k, amrex::Array4<amrex::Real> const& state, amre
     amrex::Real x = prob_lo[0] + (i+0.5)*dx[0];
     amrex::Real Pt, rhot, uxt;
     if (x < 0.5) {
-        Pt = ProbParm::p_l;
-        rhot = ProbParm::rho_l;
-        uxt = ProbParm::u_l;
+        Pt = prob_parm.p_l;
+        rhot = prob_parm.rho_l;
+        uxt = prob_parm.u_l;
     } else {
-        Pt = ProbParm::p_r;
-        rhot = ProbParm::rho_r;
-        uxt = ProbParm::u_r;
+        Pt = prob_parm.p_r;
+        rhot = prob_parm.rho_r;
+        uxt = prob_parm.u_r;
     }
     state(i,j,k,URHO ) = rhot;
     state(i,j,k,UMX  ) = rhot*uxt;
     state(i,j,k,UMY  ) = 0.0;
     state(i,j,k,UMZ  ) = 0.0;
-    amrex::Real et = Pt/(Parm::eos_gamma-1.0);
+    amrex::Real et = Pt/(parm.eos_gamma-1.0);
     state(i,j,k,UEINT) = et;
     state(i,j,k,UEDEN) = et + 0.5*rhot*uxt*uxt;
     state(i,j,k,UTEMP) = 0.0;
