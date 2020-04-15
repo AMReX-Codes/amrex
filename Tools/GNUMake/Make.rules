@@ -9,6 +9,7 @@ vpath %.c    $(FINAL_VPATH_LOCATIONS)
 vpath %.cpp  $(FINAL_VPATH_LOCATIONS)
 vpath %.h    $(FINAL_VPATH_LOCATIONS)
 vpath %.H    $(FINAL_VPATH_LOCATIONS)
+vpath %.hpp  $(FINAL_VPATH_LOCATIONS)
 
 FCPPFLAGS := $(addprefix $(CPP_PREFIX), $(CPPFLAGS))
 
