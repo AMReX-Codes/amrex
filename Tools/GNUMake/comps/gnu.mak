@@ -105,18 +105,19 @@ endif
 
 
 ifeq ($(USE_GPROF),TRUE)
-
   CXXFLAGS += -pg
   CFLAGS += -pg
-
 endif
 
 
 ifeq ($(USE_COMPILE_PIC),TRUE)
-
   CXXFLAGS = -fPIC
   CFLAGS = -fPIC
+endif
 
+ifeq ($(ERROR_DEPRECATED),TRUE)
+  CXXFLAGS += -Werror=deprecated
+  CFLAGS += -Werror=deprecated
 endif
 
 ########################################################################
