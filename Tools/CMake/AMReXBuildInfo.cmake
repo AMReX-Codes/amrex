@@ -119,9 +119,15 @@ macro (generate_buildinfo _target _git_dir)
       
       unset(_ll)
 
-      string(TOUPPER ${CMAKE_BUILD_TYPE} _ubuild_type)
-      set(_cxx_flags "${CMAKE_CXX_FLAGS_${_ubuild_type}} ${CMAKE_CXX_FLAGS} ${_cxx_flags}")
-      set(_fortran_flags "${CMAKE_Fortran_FLAGS_${_ubuild_type}} ${CMAKE_Fortran_FLAGS} ${_fortran_flags}")     
+      if (CMAKE_BUILD_TYPE)
+         string(TOUPPER ${CMAKE_BUILD_TYPE} _ubuild_type)
+         set(_cxx_flags "${CMAKE_CXX_FLAGS_${_ubuild_type}} ${CMAKE_CXX_FLAGS} ${_cxx_flags}")
+         set(_fortran_flags "${CMAKE_Fortran_FLAGS_${_ubuild_type}} ${CMAKE_Fortran_FLAGS} ${_fortran_flags}")
+      else ()
+         set(_cxx_flags "${CMAKE_CXX_FLAGS} ${_cxx_flags}")
+         set(_fortran_flags "${CMAKE_Fortran_FLAGS} ${_fortran_flags}")
+      endif ()
+
 
       # Prep GIT info to feed to build info script
       set(_git_cmd)
