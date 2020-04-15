@@ -11,12 +11,13 @@
 
 using namespace amrex;
 
+#if __cplusplus < 201703L
 constexpr int CNS::level_mask_interior;
 constexpr int CNS::level_mask_covered;
 constexpr int CNS::level_mask_notcovered;
 constexpr int CNS::level_mask_physbnd;
-
 constexpr int CNS::NUM_GROW;
+#endif
 
 BCRec     CNS::phys_bc;
 
