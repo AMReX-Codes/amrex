@@ -578,6 +578,8 @@ WarpX::AverageAndPackFields ( Vector<std::string>& varnames,
                 const BoxArray& ba = amrex::convert(boxArray(lev),IntVect::TheUnitVector());
                 MultiFab divE( ba, DistributionMap(lev), 1, 0 );
 #ifdef WARPX_USE_PSATD
+                AMREX_ALWAYS_ASSERT_WITH_MESSAGE( fft_hybrid_mpi_decomposition == false,
+                    "Spectral computation of div(E) not implemented with PICSAR spectral solver" );
                 spectral_solver_fp[lev]->ComputeSpectralDivE( Efield_aux[lev], divE );
 #else
                 m_fdtd_solver_fp[lev]->ComputeDivE( Efield_aux[lev], divE );
