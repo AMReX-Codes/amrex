@@ -1,0 +1,232 @@
+#################################
+########## MESH PATCH ###########
+#################################
+amr.max_level = 0
+
+#################################
+######### BOX PARAMETERS ########
+#################################
+# warpx.zmax_plasma_to_compute_max_step = 0.33
+warpx.zmax_plasma_to_compute_max_step = -1.
+# max_step = 3150
+
+amr.n_cell = 32 2048 # 64 3072
+
+amr.max_grid_size = 4096
+amr.blocking_factor = 32
+
+amr.plot_int = 10000 # 100
+
+geometry.coord_sys   = 0
+geometry.is_periodic = 0 0
+# physical domain when running in the lab frame
+geometry.prob_lo = -0.00024190484157981564 -0.00016126989438654374
+geometry.prob_hi =  0.00024190484157981564  0.0
+
+#################################
+############ NUMERICS ###########
+#################################
+warpx.verbose = 1
+algo.current_deposition = esirkepov
+algo.charge_deposition = standard
+#algo.field_gathering = standard
+algo.field_gathering = momentum-conserving
+algo.particle_pusher = vay
+algo.maxwell_fdtd_solver = ckc
+interpolation.nox = 3
+interpolation.noy = 3
+interpolation.noz = 3
+warpx.use_filter = 1
+warpx.filter_npass_each_dir = 1 4
+warpx.cfl = .9999
+warpx.do_pml = 0
+warpx.do_dynamic_scheduling = 1
+warpx.load_balance_int = -1
+# Moving window
+warpx.do_moving_window = 1
+warpx.moving_window_dir = z
+warpx.moving_window_v = 1.0 # in units of the speed of light
+
+#################################
+####### BOOST PARAMETERS ########
+#################################
+warpx.gamma_boost = 30.0
+warpx.boost_direction = z
+warpx.do_back_transformed_diagnostics=0 # 1
+warpx.do_back_transformed_fields=0
+warpx.num_snapshots_lab=20
+warpx.dt_snapshots_lab=1.6678204759907604e-10
+
+#################################
+############ PLASMA #############
+#################################
+particles.nspecies = 5
+particles.species_names = electrons ions electrons2 ions2 beam
+
+particles.use_fdtd_nci_corr = 1
+particles.rigid_injected_species = beam
+
+electrons.charge = -q_e
+electrons.mass = m_e
+electrons.injection_style = NUniformPerCell
+electrons.num_particles_per_cell_each_dim = 1 1
+electrons.momentum_distribution_type = "gaussian"
+electrons.xmin = -150.e-6
+electrons.xmax =  150.e-6
+electrons.ymin = -150.e-6
+electrons.ymax =  150.e-6
+electrons.zmin = 0.0
+electrons.zmax = 0.32
+electrons.profile                 = "predefined"
+electrons.predefined_profile_name = "parabolic_channel"
+#         predefined_profile_params = z_start   ramp_up   plateau   ramp_down   rc       n0
+electrons.predefined_profile_params = 0.0       .02       .297      .003        40.e-6   1.7e23
+electrons.do_continuous_injection = 1
+electrons.plot_species=1
+electrons.plot_vars=w
+electrons.do_back_transformed_diagnostics=0
+
+ions.charge = q_e
+ions.mass = m_p
+ions.injection_style = NUniformPerCell
+ions.num_particles_per_cell_each_dim = 1 1
+ions.momentum_distribution_type = "gaussian"
+ions.xmin = -150.e-6
+ions.xmax =  150.e-6
+ions.ymin = -150.e-6
+ions.ymax =  150.e-6
+ions.zmin = 0.0
+ions.zmax = 0.32
+ions.profile                 = "predefined"
+ions.predefined_profile_name = "parabolic_channel"
+#    predefined_profile_params = z_start   ramp_up   plateau   ramp_down   rc       n0
+ions.predefined_profile_params = 0.0       .02       .297      .003        40.e-6   1.7e23
+ions.do_continuous_injection = 1
+ions.plot_species=0
+ions.do_back_transformed_diagnostics=0
+
+electrons2.charge = -q_e
+electrons2.mass = m_e
+electrons2.injection_style = NUniformPerCell
+electrons2.num_particles_per_cell_each_dim = 1 1 1
+electrons2.momentum_distribution_type = "gaussian"
+electrons2.xmin = -150.e-6
+electrons2.xmax =  150.e-6
+electrons2.ymin = -150.e-6
+electrons2.ymax =  150.e-6
+electrons2.zmin = 0.3485
+electrons2.zmax = 0.6685
+electrons2.profile                 = "predefined"
+electrons2.predefined_profile_name = "parabolic_channel"
+#         predefined_profile_params = z_start   ramp_up   plateau   ramp_down   rc       n0
+electrons2.predefined_profile_params = 0.3485       .02       .297       .003        40.e-6   1.7e23
+electrons2.do_continuous_injection = 1
+electrons2.plot_species=1
+electrons2.plot_vars=w
+electrons2.do_back_transformed_diagnostics=0
+
+ions2.charge = q_e
+ions2.mass = m_p
+ions2.injection_style = NUniformPerCell
+ions2.num_particles_per_cell_each_dim = 1 1 1
+ions2.momentum_distribution_type = "gaussian"
+ions2.xmin = -150.e-6
+ions2.xmax =  150.e-6
+ions2.ymin = -150.e-6
+ions2.ymax =  150.e-6
+ions2.zmin = 0.3485
+ions2.zmax = 0.6685
+ions2.profile                 = "predefined"
+ions2.predefined_profile_name = "parabolic_channel"
+#    predefined_profile_params = z_start   ramp_up   plateau   ramp_down   rc       n0
+ions2.predefined_profile_params = 0.3485       .02       .297       .003        40.e-6   1.7e23
+ions2.do_continuous_injection = 1
+ions2.plot_species=0
+ions2.do_back_transformed_diagnostics=0
+
+beam.charge = -q_e
+beam.mass = m_e
+beam.injection_style = "gaussian_beam"
+beam.x_rms = 6.e-7
+beam.y_rms = 6.e-7
+beam.z_rms = 3.e-6
+beam.x_cut = 3.
+beam.y_cut = 3.
+beam.z_cut = 2.
+beam.x_m = 0.
+beam.y_m = 0.
+beam.z_m = -98.e-6
+beam.npart = 10000
+beam.q_tot = -0.9e-12
+beam.momentum_distribution_type = "gaussian"
+beam.ux_m = 0.
+beam.uy_m = 0.
+beam.uz_m = 1956.9469069265976
+beam.ux_th = 0.4166666666666667
+beam.uy_th = 0.
+beam.uz_th = 39.138943248532286
+beam.zinject_plane = 0.02
+beam.rigid_advance = true
+beam.projected = true
+beam.focused = false
+beam.plot_species=1
+beam.plot_vars= w ux uy uz
+beam.do_back_transformed_diagnostics=1
+
+#################################
+######### Lens Mirror ###########
+#################################
+
+my_constants.ga = 13330
+my_constants.zlen = 0.3375
+my_constants.dlen = 0.019
+my_constants.wlen = 0.002
+my_constants.mcce = 510999.
+my_constants.gab = 30.0
+my_constants.vb = 299625860.344456
+my_constants.c = 299792458.
+my_constants.adjust_factor = 1.
+
+particles.E_ext_particle_init_style = parse_E_ext_particle_function
+particles.Ex_external_particle_function(x,y,z,t) = "( adjust_factor * gab * 2 * mcce * ga * x / (wlen * dlen) ) * ((gab*(z+vb*t))>=zlen) * ((gab*(z+vb*t))<=(zlen+wlen))"
+particles.Ey_external_particle_function(x,y,z,t) = "0."
+particles.Ez_external_particle_function(x,y,z,t) = "0."
+
+particles.B_ext_particle_init_style = parse_B_ext_particle_function
+particles.Bx_external_particle_function(x,y,z,t) = "0."
+particles.By_external_particle_function(x,y,z,t) = "( - adjust_factor * vb * gab * 2 * mcce * ga * x / (wlen * dlen * c * c) ) * ((gab*(z+vb*t))>=zlen) * ((gab*(z+vb*t))<=(zlen+wlen))"
+particles.Bz_external_particle_function(x,y,z,t) = "0."
+
+warpx.num_mirrors=2
+warpx.mirror_z = 0.321 0.6695
+warpx.mirror_z_width = 8.0e-6  8.0e-6
+warpx.mirror_z_npoints = 4 4
+
+#################################
+############# LASER #############
+#################################
+lasers.nlasers     = 2
+lasers.names        = laser1 laser2
+
+laser1.profile      = Gaussian
+laser1.position     = 0. 0. -1.e-9  # This point is on the laser plane
+laser1.direction    = 0. 0. 1.      # The plane normal direction
+laser1.polarization = 0. 1. 0.      # The main polarization vector
+laser1.e_max        = 6.82274e12       # Maximum amplitude of the laser field (in V/m)
+laser1.profile_waist = 50.e-6       # The waist of the laser (in meters)
+laser1.profile_duration = 7.33841e-14   # The duration of the laser (in seconds)
+laser1.profile_t_peak = 1.46764864e-13 # The time at which the laser reaches its peak (in seconds)
+laser1.profile_focal_distance = 0.00875  # Focal distance from the antenna (in meters)
+laser1.wavelength = 0.8e-6         # The wavelength of the laser (in meters)
+
+laser2.profile      = Gaussian
+laser2.position     = 0. 0. 0.348499999  # This point is on the laser plane
+laser2.direction    = 0. 0. 1.      # The plane normal direction
+laser2.polarization = 0. 1. 0.      # The main polarization vector
+laser2.e_max        = 6.82274e12       # Maximum amplitude of the laser field (in V/m)
+laser2.profile_waist = 50.e-6       # The waist of the laser (in meters)
+laser2.profile_duration = 7.33841e-14   # The duration of the laser (in seconds)
+laser2.profile_t_peak = 1.1626176366295598e-09  # The time at which the laser reaches its peak (in seconds)
+laser2.profile_focal_distance = 0.00875  # Focal distance from the antenna (in meters)
+laser2.wavelength = 0.8e-6         # The wavelength of the laser (in meters)
+laser2.do_continuous_injection = 1 # Lasers are initialized outside of initial box
