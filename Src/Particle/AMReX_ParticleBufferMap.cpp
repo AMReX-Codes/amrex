@@ -101,7 +101,7 @@ void ParticleBufferMap::define (const ParGDBBase* a_gdb)
     d_lev_gid_to_bucket.resize(num_buckets);    
 
     d_lev_offsets.resize(0);
-    d_lev_offsets.resize(num_levels);
+    d_lev_offsets.resize(m_lev_offsets.size());
 
     Gpu::copy(Gpu::hostToDevice, m_lev_gid_to_bucket.begin(),m_lev_gid_to_bucket.end(),d_lev_gid_to_bucket.begin());
     Gpu::copy(Gpu::hostToDevice, m_lev_offsets.begin(),m_lev_offsets.end(),d_lev_offsets.begin());
