@@ -274,7 +274,11 @@ Arena::PrintUsage ()
 void
 Arena::Finalize ()
 {
+#ifdef AMREX_USE_GPU
     if (amrex::Verbose() > 0) {
+#else
+    if (amrex::Verbose() > 1) {
+#endif
         PrintUsage();
     }
     
