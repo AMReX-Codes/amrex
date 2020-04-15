@@ -52,7 +52,7 @@ private:
     std::string file_prefix;
     /** Index of diagnostics in MultiDiagnostics::alldiags */
     int diag_index;
-    /** Period at which diagnostics is writte to file */
+    /** Period at which diagnostics is written to file */
     int m_period = -1;
     /** Names of  each component requested by the user.
      * in cylindrical geometry, this list is appended with
@@ -77,6 +77,20 @@ private:
     bool m_plot_rho = false;
     /** Whether to plot F (charge conservation error) */
     bool m_plot_F = false;
+    /** Coarsening ratio such that, fields are averaged to the coarsened grid.
+      * The ratio should render the grid to be coarsenable (as defined by AMReX). */
+    amrex::IntVect m_crse_ratio = amrex::IntVect(1);
+    /** Lower corner of the diagnostics output, in physical coordinates */
+    amrex::Vector< amrex::Real> m_lo;
+    /** Higher corner of the diagnostics output, in physical coordinates */
+    amrex::Vector< amrex::Real> m_hi;
+    /** Define the cell-centered multifab mf_avg depending on user-defined
+      * lo and hi and coarsening ratio. This MultiFab may have a different BoxArray and
+      * DistributionMap than field MultiFabs in the simulation.
+      *
+      * \param[in] lev level on which source multifabs are defined
+      */
+    void DefineDiagMultiFab ( int lev );
 };
 
 #endif // WARPX_DIAGNOSTICS_H_

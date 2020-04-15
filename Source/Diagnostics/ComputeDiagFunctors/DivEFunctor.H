@@ -13,9 +13,11 @@ public:
     /** Constructor.
      * \param[in] arr_mf_src source multifabs (3 elements for x y z).
      * \param[in] lev level of multifab.
+     * \param[in] crse_ratio for interpolating field values from simulation MultiFabs
+                  to the output diagnostic MultiFab mf_dst
      * \param[in] ncomp Number of component of mf_src to cell-center in dst multifab.
      */
-    DivEFunctor(const std::array<const amrex::MultiFab* const, 3> arr_mf_src, const int lev, const int ncomp=1);
+    DivEFunctor(const std::array<const amrex::MultiFab* const, 3> arr_mf_src, const int lev, const amrex::IntVect crse_ratio, const int ncomp=1);
 
     /** \brief Compute DivE directly into mf_dst.
      *

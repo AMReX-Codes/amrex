@@ -4,8 +4,9 @@
 using namespace amrex;
 
 CellCenterFunctor::CellCenterFunctor(amrex::MultiFab const * mf_src, int lev,
+                                     amrex::IntVect crse_ratio,
                                      bool convertRZmodes2cartesian, int ncomp)
-    : ComputeDiagFunctor(ncomp), m_mf_src(mf_src), m_lev(lev),
+    : ComputeDiagFunctor(ncomp, crse_ratio), m_mf_src(mf_src), m_lev(lev),
       m_convertRZmodes2cartesian(convertRZmodes2cartesian)
 {}
 
@@ -27,12 +28,13 @@ CellCenterFunctor::operator()(amrex::MultiFab& mf_dst, int dcomp) const
             // All modes > 0
             MultiFab::Add(mf_dst_stag, *m_mf_src, ic, 0, 1, m_mf_src->nGrowVect());
         }
-        Average::CoarsenAndInterpolate( mf_dst, mf_dst_stag, dcomp, 0, nComp(), 0 );
+        Average::CoarsenAndInterpolate( mf_dst, mf_dst_stag, dcomp, 0, nComp(), 0,  m_crse_ratio);
     } else {
-        Average::CoarsenAndInterpolate( mf_dst, *m_mf_src, dcomp, 0, nComp(), 0 );
+        Average::CoarsenAndInterpolate( mf_dst, *m_mf_src, dcomp, 0, nComp(), 0, m_crse_ratio);
     }
 #else
-    // In cartesian geometry, cell-center m_mf_src to mf_dst.
-    Average::CoarsenAndInterpolate( mf_dst, *m_mf_src, dcomp, 0, nComp(), 0 );
+    // In cartesian geometry, coarsen and interpolate from simulation MultiFab, m_mf_src,
+    // to output diagnostic MultiFab, mf_dst.
+    Average::CoarsenAndInterpolate( mf_dst, *m_mf_src, dcomp, 0, nComp(), 0, m_crse_ratio);
 #endif
 }
