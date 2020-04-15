@@ -90,7 +90,7 @@ supported compilers includes gnu, cray, ibm, intel, llvm, and pgi.
 
 One could set the ``DIM`` variable to either 1, 2, or 3, depending on
 the dimensionality of the problem.  The default dimensionality is 3.
-AMReX used double precision by default.  One can change to single
+AMReX uses double precision by default.  One can change to single
 precision by setting ``PRECISION=FLOAT``.
 
 Variables ``DEBUG``, ``USE_MPI`` and ``USE_OMP`` are optional with default set
@@ -493,7 +493,7 @@ they will be initialized with the value of the environmental variables ``FFLAGS`
 ``CXXFLAGS``. If neither ``FFLAGS``/ ``CXXFLAGS`` nor ``CMAKE_Fortran_FLAGS``/ ``CMAKE_CXX_FLAGS``
 are defined, AMReX default flags are used.
 
-For a detailed explanation of CUDA support in AMReX CMake, refer to section :ref:`sec:gpu:build`.
+For a detailed explanation of GPU support in AMReX CMake, refer to section :ref:`sec:gpu:build`.
 
 
 
@@ -697,5 +697,5 @@ Some of the POSIX handling is platform-dependent, and Windows does seem to have 
 It reads memory system information from the OS to give us a summary of our memory usage.
 
 One other caveat is regarding the size of ``long``, which is 4 on Windows and 8 on other 64-bit systems.
-This might cause integer overflow for really big runs (unlikely on Windows desktops as opposd to clusters).
+This might cause integer overflow for really big runs (unlikely on Windows desktops as opposed to clusters).
 If this becomes an issue, please let us know and we could define amrex::Long that would be guaranteed to be 64 bits.
