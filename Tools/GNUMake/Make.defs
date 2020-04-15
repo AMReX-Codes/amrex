@@ -99,7 +99,7 @@ endif
 ifdef DEBUG
   DEBUG := $(strip $(DEBUG))
 else
-  DEBUG := TRUE
+  DEBUG := FALSE
 endif
 
 ifdef PROFILE
