@@ -26,6 +26,10 @@ WarpX::LoadBalance ()
         WarpX::ComputeCostsHeuristic(costs);
     }
 
+    // By default, do not do a redistribute; this toggles to true if RemakeLevel
+    // is called for any level
+    bool doRedistribute = false;
+
     const int nLevels = finestLevel();
     for (int lev = 0; lev <= nLevels; ++lev)
     {
@@ -35,9 +39,12 @@ WarpX::LoadBalance ()
         amrex::Real* itAddr = &(*it);
         ParallelAllReduce::Sum(itAddr, costs[lev]->size(), ParallelContext::CommunicatorSub());
 #endif
+        // To store efficiency (meaning, the  average 'cost' over all ranks, normalized to the
+        // max cost) for current distribution mapping
+        amrex::Real currentEfficiency = 0.0;
+
         // Compute efficiency for the current distribution mapping
         const DistributionMapping& currentdm = DistributionMap(lev);
-        amrex::Real currentEfficiency = 0.0;
         if (load_balance_efficiency_ratio_threshold > 0.0)
         {
             ComputeDistributionMappingEfficiency(currentdm, *costs[lev],
@@ -48,7 +55,9 @@ WarpX::LoadBalance ()
         const amrex::Real nprocs = ParallelContext::NProcsSub();
         const int nmax = static_cast<int>(std::ceil(nboxes/nprocs*load_balance_knapsack_factor));
 
+        // To store efficiency for proposed distribution mapping
         amrex::Real proposedEfficiency = 0.0;
+
         const DistributionMapping newdm = (load_balance_with_sfc)
             ? DistributionMapping::makeSFC(*costs[lev], boxArray(lev), proposedEfficiency, false)
             : DistributionMapping::makeKnapSack(*costs[lev], proposedEfficiency, nmax);
@@ -56,9 +65,13 @@ WarpX::LoadBalance ()
         if (proposedEfficiency > load_balance_efficiency_ratio_threshold*currentEfficiency)
         {
             RemakeLevel(lev, t_new[lev], boxArray(lev), newdm);
+            doRedistribute = true;
         }
     }
-    mypc->Redistribute();
+    if (doRedistribute)
+    {
+        mypc->Redistribute();
+    }
 }
 
 
