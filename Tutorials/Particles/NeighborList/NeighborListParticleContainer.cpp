@@ -4,8 +4,10 @@
 
 using namespace amrex;
 
+#if __cplusplus < 201703L
 constexpr Real NeighborListParticleContainer::min_r;
 constexpr Real NeighborListParticleContainer::cutoff;
+#endif
 
 NeighborListParticleContainer::
 NeighborListParticleContainer(const Geometry            & geom,

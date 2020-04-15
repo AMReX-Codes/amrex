@@ -75,6 +75,8 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
                             S.DistributionMap(), ncomp, 0);
     }
 
+    Parm const* lparm = parm.get();
+
     FArrayBox qtmp, slopetmp;
     for (MFIter mfi(S); mfi.isValid(); ++mfi)
     {
@@ -94,7 +96,7 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
         amrex::ParallelFor(bxg2,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            cns_ctoprim(i, j, k, sfab, q);
+            cns_ctoprim(i, j, k, sfab, q, *lparm);
         });
 
         const Box& bxg1 = amrex::grow(bx,1);
@@ -114,7 +116,7 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
         amrex::ParallelFor(xflxbx,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            cns_riemann_x(i, j, k, fxfab, slope, q);
+            cns_riemann_x(i, j, k, fxfab, slope, q, *lparm);
             for (int n = neqns; n < ncons; ++n) fxfab(i,j,k,n) = 0.0;
         });
 
@@ -130,7 +132,7 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
         amrex::ParallelFor(yflxbx,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            cns_riemann_y(i, j, k, fyfab, slope, q);
+            cns_riemann_y(i, j, k, fyfab, slope, q, *lparm);
             for (int n = neqns; n < ncons; ++n) fyfab(i,j,k,n) = 0.0;
         });
 
@@ -146,7 +148,7 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
         amrex::ParallelFor(zflxbx,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            cns_riemann_z(i, j, k, fzfab, slope, q);
+            cns_riemann_z(i, j, k, fzfab, slope, q, *lparm);
             for (int n = neqns; n < ncons; ++n) fzfab(i,j,k,n) = 0.0;
         });
 

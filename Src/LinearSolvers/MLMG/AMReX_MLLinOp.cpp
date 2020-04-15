@@ -21,9 +21,11 @@
 
 namespace amrex {
 
+#if __cplusplus < 201703L
 constexpr int MLLinOp::mg_coarsen_ratio;
 constexpr int MLLinOp::mg_box_min_width;
 constexpr int MLLinOp::mg_domain_min_width;
+#endif
 
 namespace {
     // experimental features

@@ -4,20 +4,13 @@
 # that can be overwritten by the user         #
 
 ###############################################
+include_guard(GLOBAL)
 
 #
 # Include module
 #
-include (CMakeDependentOption)
+include(CMakeDependentOption)
 
-if (DEFINED __AMREX_OPTIONS__)
-   return ()
-endif ()
-
-# Define the following variable
-# so that other included files can check if this file has been
-# processed already
-set (__AMREX_OPTIONS__ "")
 
 #
 # Define a macro to check the value of the inputs integer options
@@ -40,7 +33,7 @@ endif()
 #
 # Populate the cache and check the value of the user-definable options
 #
-message (STATUS "Configuring AMReX with the following options: ")
+message(STATUS "Configuring AMReX with the following options: ")
 
 
 #
@@ -64,6 +57,19 @@ print_option( BUILD_SHARED_LIBS )
 # Print out info on install path
 #
 print_option( CMAKE_INSTALL_PREFIX )
+
+
+#
+# Option to control if Fortran must be enabled
+#
+if ( USE_XSDK_DEFAULTS )
+   option( XSDK_ENABLE_Fortran "Enable Fortran language" OFF )
+   set( ENABLE_FORTRAN ${XSDK_ENABLE_Fortran} CACHE INTERNAL)
+   print_option(XSDK_ENABLE_Fortran)
+else()
+   option( ENABLE_FORTRAN "Enable Fortran language" ON )
+   print_option( ENABLE_FORTRAN )
+endif ()
 
 
 set (DIM 3 CACHE STRING "Dimension of AMReX build")
@@ -106,14 +112,11 @@ endif ()
 option( ENABLE_EB "Build EB Code" OFF )
 print_option(ENABLE_EB)
 
-if ( USE_XSDK_DEFAULTS )
-   option( XSDK_ENABLE_Fortran "Build Fortran API" OFF )
-   print_option(XSDK_ENABLE_Fortran)
-   set ( ENABLE_FORTRAN_INTERFACES ${XSDK_ENABLE_Fortran} )
-   print_option(ENABLE_FORTRAN_INTERFACES)
-else()
+if (ENABLE_FORTRAN)
    option( ENABLE_FORTRAN_INTERFACES "Build Fortran API" OFF )
    print_option(ENABLE_FORTRAN_INTERFACES)
+else ()
+   set(ENABLE_FORTRAN_INTERFACES OFF CACHE INTERNAL "Build Fortran API")
 endif ()
 
 option( ENABLE_LINEAR_SOLVERS  "Build AMReX Linear solvers" ON )

@@ -665,7 +665,7 @@ namespace amrex
 
                 for (const auto& iv : pshifts) {
                     cfba.intersections(bx+iv, isects);
-                    for (const auto is : isects) {
+                    for (const auto& is : isects) {
                         Box const& b = is.second-iv;
                         if (run_on_gpu) {
                             tags.push_back({arr,b});

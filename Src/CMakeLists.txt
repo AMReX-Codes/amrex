@@ -167,12 +167,10 @@ list(FILTER AMREX_PUBLIC_HEADERS INCLUDE REGEX "\\.H")
 set_target_properties( amrex PROPERTIES PUBLIC_HEADER "${AMREX_PUBLIC_HEADERS}")
 
 #
-# If ENABLE_CUDA, make C++ files be compiled as CUDA sources
+# If ENABLE_CUDA, C++ files will be compiled as CUDA sources
 #
 if (ENABLE_CUDA)
-   set(AMREX_CUDA_SOURCES ${AMREX_SOURCES})
-   list(FILTER AMREX_CUDA_SOURCES INCLUDE REGEX "\\.cpp")
-   set_source_files_properties(${AMREX_CUDA_SOURCES} PROPERTIES LANGUAGE CUDA )
+   set_cpp_sources_to_cuda_language( amrex )
 endif ()
 
 

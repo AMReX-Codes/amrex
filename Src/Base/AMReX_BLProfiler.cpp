@@ -184,10 +184,10 @@ void BLProfiler::Initialize() {
   CommStats::cftExclude.insert(AllCFTypes);  // temporarily
 
   CommStats::cftNames["InvalidCFT"]     = InvalidCFT;
-  CommStats::cftNames["AllReduceT"]     = AllReduceT; 
-  CommStats::cftNames["AllReduceR"]     = AllReduceR; 
-  CommStats::cftNames["AllReduceL"]     = AllReduceL; 
-  CommStats::cftNames["AllReduceI"]     = AllReduceI; 
+  CommStats::cftNames["AllReduceT"]     = AllReduceT;
+  CommStats::cftNames["AllReduceR"]     = AllReduceR;
+  CommStats::cftNames["AllReduceL"]     = AllReduceL;
+  CommStats::cftNames["AllReduceI"]     = AllReduceI;
   CommStats::cftNames["AsendTsii"]      = AsendTsii;
   CommStats::cftNames["AsendTsiiM"]     = AsendTsiiM;
   CommStats::cftNames["AsendvTii"]      = AsendvTii;
@@ -199,15 +199,15 @@ void BLProfiler::Initialize() {
   CommStats::cftNames["ArecvvTii"]      = ArecvvTii;
   CommStats::cftNames["RecvTsii"]       = RecvTsii;
   CommStats::cftNames["RecvvTii"]       = RecvvTii;
-  CommStats::cftNames["ReduceT"]        = ReduceT; 
-  CommStats::cftNames["ReduceR"]        = ReduceR; 
-  CommStats::cftNames["ReduceL"]        = ReduceL; 
-  CommStats::cftNames["ReduceI"]        = ReduceI; 
-  CommStats::cftNames["BCastTsi"]       = BCastTsi; 
-  CommStats::cftNames["GatherTsT1Si"]   = GatherTsT1Si; 
-  CommStats::cftNames["GatherTi"]       = GatherTi; 
-  CommStats::cftNames["GatherRiRi"]     = GatherRiRi; 
-  CommStats::cftNames["ScatterTsT1si"]  = ScatterTsT1si; 
+  CommStats::cftNames["ReduceT"]        = ReduceT;
+  CommStats::cftNames["ReduceR"]        = ReduceR;
+  CommStats::cftNames["ReduceL"]        = ReduceL;
+  CommStats::cftNames["ReduceI"]        = ReduceI;
+  CommStats::cftNames["BCastTsi"]       = BCastTsi;
+  CommStats::cftNames["GatherTsT1Si"]   = GatherTsT1Si;
+  CommStats::cftNames["GatherTi"]       = GatherTi;
+  CommStats::cftNames["GatherRiRi"]     = GatherRiRi;
+  CommStats::cftNames["ScatterTsT1si"]  = ScatterTsT1si;
   CommStats::cftNames["Barrier"]        = Barrier;
   CommStats::cftNames["Waitsome"]       = Waitsome;
   CommStats::cftNames["NameTag"]        = NameTag;
@@ -346,7 +346,7 @@ void BLProfiler::start() {
 }
 }
 
-  
+
 void BLProfiler::stop() {
 #ifdef _OPENMP
 #pragma omp master
@@ -478,7 +478,7 @@ void BLProfiler::Finalize(bool bFlushing, bool memCheck) {
     return;
   }
 
-  WriteBaseProfile(bFlushing); 
+  WriteBaseProfile(bFlushing);
 
   BL_PROFILE_REGION_STOP(noRegionName);
 
@@ -1364,13 +1364,13 @@ void BLProfiler::WriteFortProfErrors() {
 
 
 bool BLProfiler::OnExcludeList(CommFuncType cft) {
-  // 
+  //
   // the idea for NoCFTypes is to allow local filtering/unfiltering
   // while preserving the users exclude list
   // possibly use a filter stack instead
   // might need caching if performance is a problem
   // what to do if both all and none are on the list?
-  // 
+  //
   if(CommStats::cftExclude.empty()) {  // nothing on the exclude list
     return false;
   }
@@ -1570,6 +1570,9 @@ namespace {
   }
 }
 
+
+#ifndef BL_NO_FORT
+
 BL_FORT_PROC_DECL(BL_PROFFORTFUNCSTART_CPP, bl_proffortfuncstart_cpp)
   (const int istr[], const int *NSTR)
 {
@@ -1642,10 +1645,15 @@ BL_FORT_PROC_DECL(BL_PROFFORTFUNCSTOP_CPP_INT, bl_proffortfuncstop_cpp_int)
 #endif
 }
 
+#endif
+
 }
+
+
 
 #else  // BL_PROFILING not defined
 
+#ifndef BL_NO_FORT
 namespace amrex {
 
 BL_FORT_PROC_DECL(BL_PROFFORTFUNCSTART_CPP,bl_proffortfuncstart_cpp)
@@ -1680,7 +1688,4 @@ BL_FORT_PROC_DECL(BL_PROFFORTFUNCSTOP_CPP_INT,bl_proffortfuncstop_cpp_int)
 
 #endif
 
-
-
-
-
+#endif

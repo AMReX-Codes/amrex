@@ -55,7 +55,7 @@ project( AMReX
     DESCRIPTION "A software framework for massively parallel, block-structured adaptive mesh refinement (AMR) applications"
     VERSION  ${AMREX_PKG_VERSION}
     HOMEPAGE_URL "https://amrex-codes.github.io/amrex/"
-    LANGUAGES C CXX Fortran
+    LANGUAGES C CXX
     )
 
 message(STATUS "CMake version: ${CMAKE_VERSION}")
@@ -82,6 +82,13 @@ include( AMReX_Options )
 include( AMReX_Machines )
 
 #
+# Enable Fortran if requested
+#
+if(ENABLE_FORTRAN)
+   enable_language(Fortran)
+endif ()
+
+#
 # Enable CUDA if requested
 #
 if (ENABLE_CUDA)
@@ -93,7 +100,6 @@ endif ()
 # Set CMAKE_<LANG>_FLAGS_<CONFIG> if not already defined
 #
 set_default_config_flags ()
-
 
 #
 # Source files for all binaries and libraries found under src

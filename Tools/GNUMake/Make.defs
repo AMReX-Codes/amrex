@@ -236,6 +236,12 @@ else
   USE_CUDA_FAST_MATH := TRUE
 endif
 
+ifdef USE_CUPTI
+  USE_CUPTI := $(strip $(USE_CUPTI))
+else
+  USE_CUPTI := FALSE
+endif
+
 ifeq ($(USE_CUDA),TRUE)
   # Set the default CUDA architecture version.
   CUDA_ARCH ?= 70
@@ -584,6 +590,15 @@ ifeq ($(USE_ACC),TRUE)
 
 endif
 
+ifeq ($(USE_CUPTI),TRUE)
+  ifeq ($(USE_CUDA),TRUE)	
+    DEFINES += -DAMREX_USE_CUPTI
+    CUPTISuffix := .CUPTI
+  else
+    $(error CUPTI can only be used with USE_CUDA=TRUE)
+  endif
+endif
+
 ifeq ($(USE_HIP),TRUE)
 
     USE_GPU := TRUE
@@ -802,7 +817,7 @@ ifeq ($(USE_RPATH),TRUE)
 endif
 LDFLAGS	+= -L. $(addprefix -L, $(LIBRARY_LOCATIONS))
 
-machineSuffix	= $(lowercase_comp)$(archSuffix)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(MProfSuffix)$(BTSuffix)$(MPISuffix)$(UPCXXSuffix)$(OMPSuffix)$(ACCSuffix)$(GPUSuffix)$(USERSuffix)
+machineSuffix	= $(lowercase_comp)$(archSuffix)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(MProfSuffix)$(BTSuffix)$(MPISuffix)$(UPCXXSuffix)$(OMPSuffix)$(ACCSuffix)$(GPUSuffix)$(CUPTISuffix)$(USERSuffix)
 
 optionsSuffix	= $(DIM)d.$(machineSuffix)
 

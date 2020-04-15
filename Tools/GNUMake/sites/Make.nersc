@@ -46,9 +46,19 @@ ifeq ($(which_computer),$(filter $(which_computer),cgpu))
     CXX = mpic++
     FC  = mpif90
     F90 = mpif90
-    
+
+    ifneq ($(LINK_WITH_FORTRAN_COMPILER),TRUE)
+      ifneq ($(findstring mvapich,$(shell mpif90 -show 2>&1 | tr A-Z a-z)),)
+        cori_mvapich_link_flags := $(shell mpif90 -link_info)
+        LIBRARIES += --compiler-options '-fPIC' $(wordlist 2,1024,$(filter-out -m64,$(filter-out -fPIC,$(cori_mvapich_link_flags))))
+      else ifneq ($(findstring Open MPI, $(shell mpif90 -showme:version 2>&1)),)
+        cori_openmpi_link_flags := $(shell mpif90 -showme:link)
+        LIBRARIES += $(cori_openmpi_link_flags)
+      endif
+    endif
+
   endif
-  
+
   ifeq ($(USE_CUDA),TRUE)
 
     FIX_NVCC_PTHREAD=TRUE

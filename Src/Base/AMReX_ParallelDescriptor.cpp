@@ -962,7 +962,7 @@ ParallelDescriptor::util::DoAllReduceReal (Real&  r,
 	    BL_MPI_REQUIRE( MPI_Allreduce(&recv_team, &recv, 1, Mpi_typemap<Real>::type(), op,
 					  MyTeam().get_lead_comm()) );
 	}
-	BL_MPI_REQUIRE( MPI_Bcast(&recv, 1, Mpi_typemap<Real>::type(), 
+	BL_MPI_REQUIRE( MPI_Bcast(&recv, 1, Mpi_typemap<Real>::type(),
 				  0, MyTeam().get_team_comm()) );
     }
     else
@@ -1001,11 +1001,11 @@ ParallelDescriptor::util::DoAllReduceReal (Real*  r,
 	BL_MPI_REQUIRE( MPI_Reduce(r, recv_team.dataPtr(), cnt, Mpi_typemap<Real>::type(), op,
 				   0, MyTeam().get_team_comm()) );
 	if (isTeamLead()) {
-	    BL_MPI_REQUIRE( MPI_Allreduce(recv_team.dataPtr(), recv.dataPtr(), cnt, 
+	    BL_MPI_REQUIRE( MPI_Allreduce(recv_team.dataPtr(), recv.dataPtr(), cnt,
 					  Mpi_typemap<Real>::type(), op,
 					  MyTeam().get_lead_comm()) );
 	}
-	BL_MPI_REQUIRE( MPI_Bcast(recv.dataPtr(), cnt, Mpi_typemap<Real>::type(), 
+	BL_MPI_REQUIRE( MPI_Bcast(recv.dataPtr(), cnt, Mpi_typemap<Real>::type(),
 				  0, MyTeam().get_team_comm()) );
     }
     else
@@ -1048,7 +1048,7 @@ ParallelDescriptor::util::DoReduceReal (Real&  r,
 				       RankInLeadComm(cpu), MyTeam().get_lead_comm()) );
 	}
 	if (sameTeam(cpu)) {
-	    BL_MPI_REQUIRE( MPI_Bcast(&recv, 1, Mpi_typemap<Real>::type(), 
+	    BL_MPI_REQUIRE( MPI_Bcast(&recv, 1, Mpi_typemap<Real>::type(),
 				      0, MyTeam().get_team_comm()) );
 	}
     }
@@ -1097,7 +1097,7 @@ ParallelDescriptor::util::DoReduceReal (Real*  r,
 				       RankInLeadComm(cpu), MyTeam().get_lead_comm()) );
 	}
 	if (sameTeam(cpu)) {
-	    BL_MPI_REQUIRE( MPI_Bcast(&recv[0], cnt, Mpi_typemap<Real>::type(), 
+	    BL_MPI_REQUIRE( MPI_Bcast(&recv[0], cnt, Mpi_typemap<Real>::type(),
 				      0, MyTeam().get_team_comm()) );
 	}
     }
@@ -1143,7 +1143,7 @@ ParallelDescriptor::util::DoAllReduceLong (long&  r,
 	    BL_MPI_REQUIRE( MPI_Allreduce(&recv_team, &recv, 1, MPI_LONG, op,
 					  MyTeam().get_lead_comm()) );
 	}
-	BL_MPI_REQUIRE( MPI_Bcast(&recv, 1, MPI_LONG, 
+	BL_MPI_REQUIRE( MPI_Bcast(&recv, 1, MPI_LONG,
 				  0, MyTeam().get_team_comm()) );
     }
     else
@@ -1182,7 +1182,7 @@ ParallelDescriptor::util::DoAllReduceLong (long*  r,
 	BL_MPI_REQUIRE( MPI_Reduce(r, recv_team.dataPtr(), cnt, MPI_LONG, op,
 				   0, MyTeam().get_team_comm()) );
 	if (isTeamLead()) {
-	    BL_MPI_REQUIRE( MPI_Allreduce(recv_team.dataPtr(), recv.dataPtr(), cnt, 
+	    BL_MPI_REQUIRE( MPI_Allreduce(recv_team.dataPtr(), recv.dataPtr(), cnt,
 					  MPI_LONG, op,
 					  MyTeam().get_lead_comm()) );
 	}
@@ -1278,7 +1278,7 @@ ParallelDescriptor::util::DoReduceLong (long*  r,
 				       RankInLeadComm(cpu), MyTeam().get_lead_comm()) );
 	}
 	if (sameTeam(cpu)) {
-	    BL_MPI_REQUIRE( MPI_Bcast(&recv[0], cnt, MPI_LONG, 
+	    BL_MPI_REQUIRE( MPI_Bcast(&recv[0], cnt, MPI_LONG,
 				      0, MyTeam().get_team_comm()) );
 	}
     }
@@ -1324,7 +1324,7 @@ ParallelDescriptor::util::DoAllReduceInt (int&   r,
 	    BL_MPI_REQUIRE( MPI_Allreduce(&recv_team, &recv, 1, MPI_INT, op,
 					  MyTeam().get_lead_comm()) );
 	}
-	BL_MPI_REQUIRE( MPI_Bcast(&recv, 1, MPI_INT, 
+	BL_MPI_REQUIRE( MPI_Bcast(&recv, 1, MPI_INT,
 				  0, MyTeam().get_team_comm()) );
     }
     else
@@ -1363,7 +1363,7 @@ ParallelDescriptor::util::DoAllReduceInt (int*   r,
 	BL_MPI_REQUIRE( MPI_Reduce(r, recv_team.dataPtr(), cnt, MPI_INT, op,
 				   0, MyTeam().get_team_comm()) );
 	if (isTeamLead()) {
-	    BL_MPI_REQUIRE( MPI_Allreduce(recv_team.dataPtr(), recv.dataPtr(), cnt, 
+	    BL_MPI_REQUIRE( MPI_Allreduce(recv_team.dataPtr(), recv.dataPtr(), cnt,
 					  MPI_INT, op,
 					  MyTeam().get_lead_comm()) );
 	}
@@ -1459,7 +1459,7 @@ ParallelDescriptor::util::DoReduceInt (int*   r,
 				       RankInLeadComm(cpu), MyTeam().get_lead_comm()) );
 	}
 	if (sameTeam(cpu)) {
-	    BL_MPI_REQUIRE( MPI_Bcast(&recv[0], cnt, MPI_LONG, 
+	    BL_MPI_REQUIRE( MPI_Bcast(&recv[0], cnt, MPI_LONG,
 				      0, MyTeam().get_team_comm()) );
 	}
     }
@@ -1572,7 +1572,7 @@ ParallelDescriptor::Mpi_typemap<unsigned long long>::type ()
 {
     return  MPI_UNSIGNED_LONG_LONG;
 }
-    
+
 template <>
 MPI_Datatype
 ParallelDescriptor::Mpi_typemap<float>::type ()
@@ -1722,13 +1722,13 @@ ParallelDescriptor::Message::test ()
     return m_finished;
 }
 
-void ParallelDescriptor::EndParallel () 
+void ParallelDescriptor::EndParallel ()
 {
     ParallelContext::pop();
 }
 
 void ParallelDescriptor::Abort (int s, bool backtrace)
-{ 
+{
     if (backtrace && amrex::system::signal_handling) {
 	BLBackTrace::handler(s);
     } else {
@@ -1864,6 +1864,8 @@ ParallelDescriptor::Waitsome (Vector<MPI_Request>& reqs,
 
 #endif
 
+#ifndef BL_NO_FORT
+
 BL_FORT_PROC_DECL(BL_PD_BARRIER,bl_pd_barrier)()
 {
     ParallelDescriptor::Barrier();
@@ -1927,6 +1929,8 @@ BL_FORT_PROC_DECL(BL_PD_ABORT,bl_pd_abort)()
 {
     ParallelDescriptor::Abort();
 }
+
+#endif
 
 #ifdef BL_USE_MPI
 namespace ParallelDescriptor
@@ -2127,7 +2131,7 @@ ParallelDescriptor::StartTeams ()
 	    team_ranks[i] = MyTeamLead() + i;
 	}
 	BL_MPI_REQUIRE( MPI_Group_incl(grp, team_size, team_ranks, &team_grp) );
-	BL_MPI_REQUIRE( MPI_Comm_create(ParallelDescriptor::Communicator(), 
+	BL_MPI_REQUIRE( MPI_Comm_create(ParallelDescriptor::Communicator(),
 					team_grp, &m_Team.m_team_comm) );
 
 	std::vector<int>lead_ranks(m_Team.m_numTeams);
@@ -2135,7 +2139,7 @@ ParallelDescriptor::StartTeams ()
 	    lead_ranks[i] = i * team_size;
 	}
 	BL_MPI_REQUIRE( MPI_Group_incl(grp, lead_ranks.size(), &lead_ranks[0], &lead_grp) );
-	BL_MPI_REQUIRE( MPI_Comm_create(ParallelDescriptor::Communicator(), 
+	BL_MPI_REQUIRE( MPI_Comm_create(ParallelDescriptor::Communicator(),
 					lead_grp, &m_Team.m_lead_comm) );
 
         BL_MPI_REQUIRE( MPI_Group_free(&grp) );

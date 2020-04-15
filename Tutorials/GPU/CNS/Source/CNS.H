@@ -1,6 +1,8 @@
 #ifndef CNS_H_
 #define CNS_H_
 
+#include <CNS_parm.H>
+#include <cns_prob_parm.H>
 #include <AMReX_AmrLevel.H>
 #include <AMReX_FluxRegister.H>
 #include <AMReX_LayoutData.H>
@@ -158,6 +160,10 @@ protected:
     static amrex::Real refine_dengrad;
 
     static amrex::Real gravity;
+
+public:
+    static std::unique_ptr<Parm> parm;
+    static std::unique_ptr<ProbParm> prob_parm;
 };
 
 void cns_bcfill (amrex::Box const& bx, amrex::FArrayBox& data,
