@@ -22,7 +22,8 @@ Key features of AMReX include:
 
 -  Support for embedded boundary (cut cell) representations of complex geometries
 
--  Parallelization via flat MPI, OpenMP, hybrid MPI/OpenMP, hybrid MPI/CUDA, or MPI/MPI
+-  Parallelization via flat MPI, OpenMP, hybrid MPI/OpenMP, hybrid
+   MPI/(CUDA or HIP or DPC++), or MPI/MPI
 
 -  Parallel I/O
 

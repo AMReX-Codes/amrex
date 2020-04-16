@@ -99,7 +99,7 @@ endif
 ifdef DEBUG
   DEBUG := $(strip $(DEBUG))
 else
-  DEBUG := TRUE
+  DEBUG := FALSE
 endif
 
 ifdef PROFILE
@@ -184,10 +184,10 @@ else
   LAZY := FALSE
 endif
 
-ifndef DIM
-  $(error DIM must be set)
-else
+ifdef DIM
   DIM := $(strip $(DIM))
+else
+  DIM := 3
 endif
 
 ifdef USE_MPI
