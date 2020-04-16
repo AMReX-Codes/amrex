@@ -2,7 +2,7 @@
 module amrex_box_module
 
   use iso_c_binding
-  use amrex_fort_module, only : ndims => amrex_spacedim, amrex_real, amrex_coarsen_intvect
+  use amrex_fort_module, only : ndims => amrex_spacedim, amrex_real, amrex_long, amrex_coarsen_intvect
   use amrex_error_module, only : amrex_error
 
   implicit none
@@ -77,11 +77,11 @@ contains
   end subroutine amrex_box_print
 
   function amrex_box_numpts (this) result(npts)
-    integer(c_long) :: npts
+    integer(amrex_long) :: npts
     class(amrex_box), intent(in) :: this
-    npts = (int(this%hi(1),c_long)-int(this%lo(1),c_long)+1_c_long) &
-         * (int(this%hi(2),c_long)-int(this%lo(2),c_long)+1_c_long) &
-         * (int(this%hi(3),c_long)-int(this%lo(3),c_long)+1_c_long)
+    npts = (int(this%hi(1),amrex_long)-int(this%lo(1),amrex_long)+1_amrex_long) &
+         * (int(this%hi(2),amrex_long)-int(this%lo(2),amrex_long)+1_amrex_long) &
+         * (int(this%hi(3),amrex_long)-int(this%lo(3),amrex_long)+1_amrex_long)
   end function amrex_box_numpts
 
   subroutine amrex_box_nodalize (this, dir)

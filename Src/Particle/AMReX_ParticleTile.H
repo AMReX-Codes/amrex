@@ -18,7 +18,7 @@ struct ParticleTileData
     using ParticleType = Particle<NStructReal, NStructInt>;
     using SuperParticleType = Particle<NStructReal+NArrayReal, NStructInt+NArrayInt>;
 
-    long m_size;
+    Long m_size;
     ParticleType* AMREX_RESTRICT m_aos;
     GpuArray<ParticleReal* AMREX_RESTRICT, NArrayReal> m_rdata;
     GpuArray<int* AMREX_RESTRICT, NArrayInt> m_idata;    
@@ -30,7 +30,7 @@ struct ParticleTileData
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void packParticleData (char* buffer, int src_index, int dst_index,
-                           const int* comm_real, const int * comm_int, long psize) const noexcept
+                           const int* comm_real, const int * comm_int, Long psize) const noexcept
     {
         AMREX_ASSERT(src_index < m_size);
         auto dst = buffer + dst_index*psize;
@@ -72,7 +72,7 @@ struct ParticleTileData
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void unpackParticleData (const char* buffer, int src_index, int dst_index,
-                             const int* comm_real, const int * comm_int, long psize) const noexcept
+                             const int* comm_real, const int * comm_int, Long psize) const noexcept
     {
         AMREX_ASSERT(dst_index < m_size);
         auto src = buffer + src_index*psize;
@@ -150,7 +150,7 @@ struct ConstParticleTileData
     using ParticleType = Particle<NStructReal, NStructInt>;
     using SuperParticleType = Particle<NStructReal+NArrayReal, NStructInt+NArrayInt>;
 
-    long m_size;
+    Long m_size;
     const ParticleType* AMREX_RESTRICT m_aos;
     GpuArray<const ParticleReal* AMREX_RESTRICT, NArrayReal> m_rdata;
     GpuArray<const int* AMREX_RESTRICT, NArrayInt > m_idata;    
@@ -162,7 +162,7 @@ struct ConstParticleTileData
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void packParticleData(char* buffer, int src_index, int dst_index,
-                          const int* comm_real, const int * comm_int, long psize) const noexcept
+                          const int* comm_real, const int * comm_int, Long psize) const noexcept
     {
         AMREX_ASSERT(src_index < m_size);
         auto dst = buffer + dst_index*psize;
@@ -408,9 +408,9 @@ struct ParticleTile
         }        
     }
 
-    long capacity () const
+    Long capacity () const
     {
-        long nbytes = 0;
+        Long nbytes = 0;
         nbytes += m_aos_tile().capacity() * sizeof(ParticleType);
         for (int j = 0; j < NumRealComps(); ++j)
         {
