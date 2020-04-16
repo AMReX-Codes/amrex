@@ -245,12 +245,12 @@ GpuBndryFuncFab<F>::operator() (Box const& bx, FArrayBox& dest,
         } else if (n_face_boxes > 1) {
             AsyncArray<Box> face_boxes_aa(face_boxes.data(), n_face_boxes);
             Box* boxes_p = face_boxes_aa.data();
-            long ncells = 0;
+            Long ncells = 0;
             for (const auto& b : face_boxes) {
                 ncells += b.numPts();
             }
             amrex::ParallelFor(ncells,
-            [=] AMREX_GPU_DEVICE (long icell) noexcept
+            [=] AMREX_GPU_DEVICE (Long icell) noexcept
             {
                 const auto& cell = getCell(boxes_p, n_face_boxes, icell);
                 filcc_cell(cell, fab, dcomp, numcomp, geomdata, time,
@@ -307,12 +307,12 @@ GpuBndryFuncFab<F>::operator() (Box const& bx, FArrayBox& dest,
         } else if (n_edge_boxes > 1) {
             AsyncArray<Box> edge_boxes_aa(edge_boxes.data(), n_edge_boxes);
             Box* boxes_p = edge_boxes_aa.data();
-            long ncells = 0;
+            Long ncells = 0;
             for (const auto& b : edge_boxes) {
                 ncells += b.numPts();
             }
             amrex::ParallelFor(ncells,
-            [=] AMREX_GPU_DEVICE (long icell) noexcept
+            [=] AMREX_GPU_DEVICE (Long icell) noexcept
             {
                 const auto& cell = getCell(boxes_p, n_edge_boxes, icell);
                 filcc_cell(cell, fab, dcomp, numcomp, geomdata, time,
@@ -356,12 +356,12 @@ GpuBndryFuncFab<F>::operator() (Box const& bx, FArrayBox& dest,
         } else if (n_corner_boxes > 1) {
             AsyncArray<Box> corner_boxes_aa(corner_boxes.data(), n_corner_boxes);
             Box* boxes_p = corner_boxes_aa.data();
-            long ncells = 0;
+            Long ncells = 0;
             for (const auto& b : corner_boxes) {
                 ncells += b.numPts();
             }
             amrex::ParallelFor(ncells,
-            [=] AMREX_GPU_DEVICE (long icell) noexcept
+            [=] AMREX_GPU_DEVICE (Long icell) noexcept
             {
                 const auto& cell = getCell(boxes_p, n_corner_boxes, icell);
                 filcc_cell(cell, fab, dcomp, numcomp, geomdata, time,

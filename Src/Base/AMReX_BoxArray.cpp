@@ -19,10 +19,10 @@ namespace amrex {
 #ifdef AMREX_MEM_PROFILING
 int  BARef::numboxarrays         = 0;
 int  BARef::numboxarrays_hwm     = 0;
-long BARef::total_box_bytes      = 0L;
-long BARef::total_box_bytes_hwm  = 0L;
-long BARef::total_hash_bytes     = 0L;
-long BARef::total_hash_bytes_hwm = 0L;
+Long BARef::total_box_bytes      = 0L;
+Long BARef::total_box_bytes_hwm  = 0L;
+Long BARef::total_hash_bytes     = 0L;
+Long BARef::total_hash_bytes_hwm = 0L;
 #endif
 
 bool    BARef::initialized = false;
@@ -97,8 +97,8 @@ BARef::define (std::istream& is, int& ndims)
     // TODO -- completely remove the fiction of a hash value.
     //
     BL_ASSERT(m_abox.size() == 0);
-    int           maxbox;
-    unsigned long tmphash;
+    int   maxbox;
+    ULong tmphash;
     is.ignore(bl_ignore_max, '(') >> maxbox >> tmphash;
     resize(maxbox);
     auto pos = is.tellg();
@@ -174,7 +174,7 @@ BARef::define (BoxList&& bl) noexcept
 }
 
 void 
-BARef::resize (long n) {
+BARef::resize (Long n) {
 #ifdef AMREX_MEM_PROFILING
     updateMemoryUsage_box(-1);
     updateMemoryUsage_hash(-1);
@@ -192,7 +192,7 @@ void
 BARef::updateMemoryUsage_box (int s)
 {
     if (m_abox.size() > 1) {
-	long b = amrex::bytesOf(m_abox);
+	Long b = amrex::bytesOf(m_abox);
 	if (s > 0) {
 	    total_box_bytes += b;
 	    total_box_bytes_hwm = std::max(total_box_bytes_hwm, total_box_bytes);
@@ -209,7 +209,7 @@ void
 BARef::updateMemoryUsage_hash (int s)
 {
     if (hash.size() > 0) {
-	long b = sizeof(hash);
+	Long b = sizeof(hash);
 	for (const auto& x: hash) {
 	    b += amrex::gcc_map_node_extra_bytes
 		+ sizeof(IntVect) + amrex::bytesOf(x.second);
@@ -364,16 +364,16 @@ BoxArray::clear ()
 }
 
 void
-BoxArray::resize (long len)
+BoxArray::resize (Long len)
 {
     uniqify();
     m_ref->resize(len);
 }
 
-long
+Long
 BoxArray::numPts () const noexcept
 {
-    long result = 0;
+    Long result = 0;
     const int N = size();
     auto const& bxs = this->m_ref->m_abox;
     if (m_bat.is_null()) {
@@ -509,7 +509,7 @@ bool
 BoxArray::operator== (const Vector<Box>& bv) const noexcept
 {
     if (size() != bv.size()) return false;
-    for (long i = 0; i < size(); ++i) {
+    for (Long i = 0; i < size(); ++i) {
         if (this->operator[](i) != bv[i]) return false;
     }
     return true;
@@ -580,7 +580,7 @@ BoxArray::coarsenable(int refinement_ratio, int min_width) const
 bool
 BoxArray::coarsenable(const IntVect& refinement_ratio, int min_width) const
 {
-    const long sz = size();
+    const Long sz = size();
     if(size() == 0) return false;
 
     const Box& first = (*this)[0];
@@ -592,7 +592,7 @@ BoxArray::coarsenable(const IntVect& refinement_ratio, int min_width) const
 #ifdef _OPENMP
 #pragma omp parallel for reduction(&&:res)
 #endif
-        for (long ibox = 0; ibox < sz; ++ibox)
+        for (Long ibox = 0; ibox < sz; ++ibox)
         {
             const Box& thisbox = bxs[ibox];
             res = res && thisbox.coarsenable(refinement_ratio,min_width);
@@ -603,7 +603,7 @@ BoxArray::coarsenable(const IntVect& refinement_ratio, int min_width) const
 #ifdef _OPENMP
 #pragma omp parallel for reduction(&&:res)
 #endif
-        for (long ibox = 0; ibox < sz; ++ibox)
+        for (Long ibox = 0; ibox < sz; ++ibox)
         {
             const Box& thisbox = amrex::convert(amrex::coarsen(bxs[ibox],cr),t);
             res = res && thisbox.coarsenable(refinement_ratio,min_width);
@@ -612,7 +612,7 @@ BoxArray::coarsenable(const IntVect& refinement_ratio, int min_width) const
 #ifdef _OPENMP
 #pragma omp parallel for reduction(&&:res)
 #endif
-        for (long ibox = 0; ibox < sz; ++ibox)
+        for (Long ibox = 0; ibox < sz; ++ibox)
         {
             const Box& thisbox = m_bat.m_op.m_bndryReg(bxs[ibox]);
             res = res && thisbox.coarsenable(refinement_ratio,min_width);
@@ -956,7 +956,7 @@ BoxArray::contains (const Box& b, bool assume_disjoint_ba) const
         {
 	    if (assume_disjoint_ba) {
                 BL_ASSERT(isDisjoint());
-		long nbx = b.numPts(), nisects = 0L;
+		Long nbx = b.numPts(), nisects = 0L;
 		for (int i = 0, N = isects.size(); i < N; i++) {
 		    nisects += isects[i].second.numPts();
 		}
@@ -1044,54 +1044,54 @@ BoxArray::minimalBox () const
 }
 
 Box
-BoxArray::minimalBox (long& npts_avg_box) const
+BoxArray::minimalBox (Long& npts_avg_box) const
 {
     BL_ASSERT(m_bat.is_simple());
     Box minbox;
     const int N = size();
-    long npts_tot = 0;
+    Long npts_tot = 0;
     if (N > 0)
     {
 #ifdef _OPENMP
-	bool use_single_thread = omp_in_parallel();
-	const int nthreads = use_single_thread ? 1 : omp_get_max_threads();
+        bool use_single_thread = omp_in_parallel();
+        const int nthreads = use_single_thread ? 1 : omp_get_max_threads();
 #else
-	bool use_single_thread = true;
-	const int nthreads = 1;
+        bool use_single_thread = true;
+        const int nthreads = 1;
 #endif
-	if (use_single_thread)
-	{
-	    minbox = m_ref->m_abox[0];
+        if (use_single_thread)
+        {
+            minbox = m_ref->m_abox[0];
             npts_tot += m_ref->m_abox[0].numPts();
-	    for (int i = 1; i < N; ++i) {
-		minbox.minBox(m_ref->m_abox[i]);
+            for (int i = 1; i < N; ++i) {
+                minbox.minBox(m_ref->m_abox[i]);
                 npts_tot += m_ref->m_abox[i].numPts();
-	    }
-	}
-	else
-	{
-	    Vector<Box> bxs(nthreads, m_ref->m_abox[0]);
+            }
+        }
+        else
+        {
+            Vector<Box> bxs(nthreads, m_ref->m_abox[0]);
 #ifdef _OPENMP
 #pragma omp parallel reduction(+:npts_tot)
 #endif
-	    {
+            {
 #ifndef _OPENMP
-		int tid = 0;
+                int tid = 0;
 #else
-		int tid = omp_get_thread_num();
+                int tid = omp_get_thread_num();
 #pragma omp for
 #endif
-		for (int i = 0; i < N; ++i) {
-		    bxs[tid].minBox(m_ref->m_abox[i]);
-                    long npts = m_ref->m_abox[i].numPts();
+                for (int i = 0; i < N; ++i) {
+                    bxs[tid].minBox(m_ref->m_abox[i]);
+                    Long npts = m_ref->m_abox[i].numPts();
                     npts_tot += npts;
-		}
-	    }
-	    minbox = bxs[0];
-	    for (int i = 1; i < nthreads; ++i) {
-		minbox.minBox(bxs[i]);
-	    }
-	}
+                }
+            }
+            minbox = bxs[0];
+            for (int i = 1; i < nthreads; ++i) {
+                minbox.minBox(bxs[i]);
+            }
+        }
     }
     auto cr = crseRatio();
     minbox.coarsen(cr).convert(ixType());
@@ -1396,7 +1396,7 @@ BoxArray::removeOverlap (bool simplify)
 #ifdef AMREX_MEM_PROFILING
     m_ref->updateMemoryUsage_box(-1);
     m_ref->updateMemoryUsage_hash(-1);
-    long total_hash_bytes_save = m_ref->total_hash_bytes;
+    Long total_hash_bytes_save = m_ref->total_hash_bytes;
 #endif
 
     BoxList bl_diff;
@@ -1773,7 +1773,7 @@ readBoxArray (BoxArray&     ba,
     {
         BL_ASSERT(ba.size() == 0);
         int maxbox;
-        unsigned long in_hash; // will be ignored
+        ULong in_hash; // will be ignored
         is.ignore(bl_ignore_max, '(') >> maxbox >> in_hash;
         ba.resize(maxbox);
         for (int i = 0; i < maxbox; i++)

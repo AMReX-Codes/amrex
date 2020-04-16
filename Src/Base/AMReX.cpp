@@ -481,15 +481,6 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 #endif
     machine::Initialize();
 
-    if (double(std::numeric_limits<long>::max()) < 9.e18)
-    {
-        if (system::verbose) {
-            amrex::Print() << "!\n! WARNING: Maximum of long int, "
-                           << std::numeric_limits<long>::max() 
-                           << ", might be too small for big runs.\n!\n";
-        }
-    }
-
     if (system::verbose > 0)
     {
 #ifdef BL_USE_MPI

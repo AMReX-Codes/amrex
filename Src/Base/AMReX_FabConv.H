@@ -8,6 +8,7 @@
 #include <AMReX_Vector.H>
 #include <AMReX_BLassert.H>
 #include <AMReX_REAL.H>
+#include <AMReX_INT.H>
 
 namespace amrex {
 
@@ -16,9 +17,9 @@ namespace amrex {
 
 /**
 * This class is meant to hold all information needed to completely
-* describe the "int" or "long" type on a machine.  To describe an integer both
+* describe the "int" or "Long" type on a machine.  To describe an integer both
 * the number of bytes and their ordering, relative to canonical
-* ordering 1 .. sizeof(long), needs to be specified.
+* ordering 1 .. sizeof(Long), needs to be specified.
 * This allows us to write out integers in the native format on a machine,
 * and then by also saving the IntDescriptor, we can read them back in on
 * another machine and have enough information to construct the exact same
@@ -44,7 +45,7 @@ public:
     */
     IntDescriptor ();
     //! Construct a specific IntDescriptor.
-    IntDescriptor (long     nb,
+    IntDescriptor (Long     nb,
                    Ordering ordering = NormalOrder);
     //! Returns the ordering.
     Ordering order () const;
@@ -57,7 +58,7 @@ public:
 
 private:
     friend std::istream& operator>> (std::istream& is, IntDescriptor& id);
-    long     numbytes;
+    Long     numbytes;
     Ordering ord;
 };
 
@@ -118,17 +119,17 @@ public:
     * of the Real, the order of the Real, and the length of the
     * array detailing the ordering.
     */
-    RealDescriptor (const long* format,
+    RealDescriptor (const Long* format,
                     const int*  order,
                     int         order_length);
-    //! Returns the format array as a const long*
-    const long* format () const&;
+    //! Returns the format array as a const Long*
+    const Long* format () const&;
 
-    const long* format () && = delete;
-    //! Returns const Vector<long> reference to the format array.
+    const Long* format () && = delete;
 
-    const Vector<long>& formatarray () const&;
-    const Vector<long>& formatarray () && = delete;
+    //! Returns const Vector<Long> reference to the format array.
+    const Vector<Long>& formatarray () const&;
+    const Vector<Long>& formatarray () && = delete;
 
     //! Returns the order array as a const int*
     const int* order () const&;
@@ -176,7 +177,7 @@ public:
     * resulting output.
     */
     static void convertToNativeFormat (Real*                 out,
-                                       long                  nitems,
+                                       Long                  nitems,
                                        void*                 in,
                                        const RealDescriptor& id);
 
@@ -186,7 +187,7 @@ public:
     * assumed to be large enough to hold the resulting output.
     */
     static void convertToNativeFormat (Real*                 out,
-                                       long                  nitems,
+                                       Long                  nitems,
                                        std::istream&         is,
                                        const RealDescriptor& id);
 
@@ -195,7 +196,7 @@ public:
     * and write them to the ostream.
     */
     static void convertFromNativeFormat (std::ostream&         os,
-                                         long                  nitems,
+                                         Long                  nitems,
                                          const Real*           in,
                                          const RealDescriptor& od);
     /**
@@ -204,7 +205,7 @@ public:
     * resulting output.
     */
     static void convertFromNativeFormat (void*                 out,
-                                         long                  nitems,
+                                         Long                  nitems,
                                          const void*           in,
                                          const RealDescriptor& od);
 
@@ -213,7 +214,7 @@ public:
     * and write them to the ostream.
     */
     static void convertFromNativeFloatFormat (std::ostream&         os,
-                                              long                  nitems,
+                                              Long                  nitems,
                                               const float*          in,
                                               const RealDescriptor& od);
 
@@ -222,7 +223,7 @@ public:
     * and write them to the ostream.
     */
     static void convertFromNativeDoubleFormat (std::ostream&         os,
-                                               long                  nitems,
+                                               Long                  nitems,
                                                const double*         in,
                                                const RealDescriptor& od);
 
@@ -232,7 +233,7 @@ public:
     * assumed to be large enough to hold the resulting output.
     */
     static void convertToNativeFloatFormat (float*                out,
-                                            long                  nitems,
+                                            Long                  nitems,
                                             std::istream&         is,
                                             const RealDescriptor& id);
 
@@ -242,13 +243,13 @@ public:
     * assumed to be large enough to hold the resulting output.
     */
     static void convertToNativeDoubleFormat (double*               out,
-                                             long                  nitems,
+                                             Long                  nitems,
                                              std::istream&         is,
                                              const RealDescriptor& id);
 
 private:
 
-    Vector<long> fr;
+    Vector<Long> fr;
     Vector<int>  ord;
     static bool bAlwaysFixDenormals;
     static int writeBufferSize;

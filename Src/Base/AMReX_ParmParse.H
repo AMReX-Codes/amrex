@@ -383,6 +383,41 @@ public:
               const long  val);
     /**
     * \brief Get the ival'th value of kth occurrence of the requested name.
+    * If successful, the value is converted to an int and stored
+    * in reference ref.  If the kth occurrence does not exist or
+    * ival'th value does not exist, or if the printed representation
+    * of the value cannot be converted to an int, an error message is
+    * output and the program halts.   Note that ival == 0 is the first
+    * value in the list.
+    */
+    void getkth (const char* name,
+                 int         k,
+                 long long&  ref,
+                 int         ival = FIRST) const;
+    //! Same as getkth() but searches for the last occurrence of name.
+    void get (const char* name,
+              long long&  ref,
+              int         ival = FIRST) const;
+    /**
+    * \brief Similar to getkth() but returns 0 if there is no kth occurrence
+    * of name.  If successful, it returns 1 and stores the value in
+    * ref.  If the kth occurrence exists, but ival'th value of that
+    * occurrence does not, or if there is a type mismatch, then the
+    * program signals an error and halts.
+    */
+    int querykth (const char* name,
+                  int         k,
+                  long long&  ref,
+                  int         ival = FIRST) const;
+    //! Same as querykth() but searches for the last occurrence of name.
+    int query (const char* name,
+               long long&  ref,
+               int         ival = FIRST) const;
+    //! Add a key 'name'with value 'ref' to the end of the PP table.
+    void add (const char* name,
+              const long long  val);
+    /**
+    * \brief Get the ival'th value of kth occurrence of the requested name.
     * If successful, the value is converted to a float and stored
     * in reference ref.  If the kth occurrence does not exist or
     * ival'th value does not exist, or if the printed representation
@@ -630,6 +665,43 @@ public:
     //! Add a key 'name' with vector of values 'ptr' to the end of the PP table.
     void addarr (const char* name,
                 const std::vector<long>&  ptr);
+
+    /**
+    * \brief Gets an std::vector\<long long\> of num_val values from kth occurrence of
+    * given name.  If successful, the values are converted to a long long
+    * and stored in the std::vector\<long long\> object ref.  ref is resized (if
+    * necessary) to hold num_val values.  The value in the list
+    * indexed by start_ix is copied into std::vector\<long long\>[0], std::vector\<long long\>[1]
+    * holds start_ix+1, etc.  If the kth occurrence does not exist
+    * or there are fewer than start_ix + num_val values associated
+    * with the kth occurrence, or if some of the values cannot be
+    * converted to a long long, an error message is reported and the
+    * program halts.
+    */
+    void getktharr (const char* name,
+                    int         k,
+                    std::vector<long long>& ref,
+                    int         start_ix = FIRST,
+                    int         num_val = ALL) const;
+    //! Same as getktharr() but searches for last occurrence of name.
+    void getarr (const char* name,
+                 std::vector<long long>& ref,
+                 int         start_ix = FIRST,
+                 int         num_val = ALL) const;
+    //! queryktharr() is to querykth() as getktharr() is to getkth().
+    int queryktharr (const char* name,
+                     int         k,
+                     std::vector<long long>& ref,
+                     int         start_ix = FIRST,
+                     int         num_val = ALL) const;
+    //! Same as queryktharr() but searches for last occurrence of name.
+    int queryarr (const char* name,
+                  std::vector<long long>& ref,
+                  int         start_ix = FIRST,
+                  int         num_val = ALL) const;
+    //! Add a key 'name' with vector of values 'ptr' to the end of the PP table.
+    void addarr (const char* name,
+                const std::vector<long long>&  ptr);
 
     /**
     * \brief Gets an std::vector\<float\> of num_val values from kth occurrence of

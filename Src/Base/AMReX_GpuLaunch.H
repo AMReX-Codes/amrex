@@ -101,13 +101,13 @@ namespace Gpu {
 
     AMREX_GPU_HOST_DEVICE
     inline
-    Box getThreadBox (const Box& bx, long offset) noexcept
+    Box getThreadBox (const Box& bx, Long offset) noexcept
     {
 #if AMREX_DEVICE_COMPILE
         const auto len = bx.length3d();
-        long k = offset / (len[0]*len[1]);
-        long j = (offset - k*(len[0]*len[1])) / len[0];
-        long i = (offset - k*(len[0]*len[1])) - j*len[0];
+        Long k = offset / (len[0]*len[1]);
+        Long j = (offset - k*(len[0]*len[1])) / len[0];
+        Long i = (offset - k*(len[0]*len[1])) - j*len[0];
         IntVect iv{AMREX_D_DECL(static_cast<int>(i),
                                 static_cast<int>(j),
                                 static_cast<int>(k))};
@@ -140,7 +140,7 @@ namespace Gpu {
             const Box& b = amrex::surroundingNodes(box);
             Gpu::Device::c_comps_threads_and_blocks(b.loVect(), b.hiVect(), comps, numBlocks, numThreads);
         }
-        ExecutionConfig (long N) noexcept {
+        ExecutionConfig (Long N) noexcept {
             Gpu::Device::n_threads_and_blocks(N, numBlocks, numThreads);
         }
         ExecutionConfig (dim3 nb, dim3 nt, std::size_t sm=0) noexcept

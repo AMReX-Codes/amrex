@@ -1,6 +1,6 @@
 module amrex_fort_module
 
-  use iso_c_binding, only : c_char, c_short, c_int, c_long, c_float, c_double, c_size_t, c_ptr
+  use iso_c_binding, only : c_char, c_short, c_int, c_long, c_long_long, c_float, c_double, c_size_t, c_ptr
 
   implicit none
 
@@ -23,6 +23,12 @@ module amrex_fort_module
   integer, parameter :: amrex_particle_real = c_double
 #endif
 
+#ifdef _WIN32
+  integer, parameter :: amrex_long = c_long_long
+#else
+  integer, parameter :: amrex_long = c_long;
+#endif
+
   interface
      function amrex_malloc (s) bind(c,name='amrex_malloc')
        import
@@ -42,8 +48,8 @@ module amrex_fort_module
 
      function amrex_random_int (n) bind(c,name='amrex_random_int')
        import
-       integer(c_long), intent(in), value :: n
-       integer(c_long) :: amrex_random_int
+       integer(amrex_long), intent(in), value :: n
+       integer(amrex_long) :: amrex_random_int
      end function amrex_random_int
   end interface
 
