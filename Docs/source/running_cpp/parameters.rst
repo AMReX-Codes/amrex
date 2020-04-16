@@ -288,6 +288,12 @@ Particle initialization
     * ``NRandomPerCell``: injection with a fixed number of randomly-distributed particles per cell.
       This requires the additional parameter ``<species_name>.num_particles_per_cell``.
 
+    * ``SingleParticle``: Inject a single macroparticle.
+      This requires the additional parameters:
+      ``<species_name>.single_particle_pos`` (`3 doubles`, particle 3D position [meter])
+      ``<species_name>.single_particle_vel`` (`3 doubles`, particle 3D normalized momentum, i.e. :math:`\gamma \beta`)
+      ``<species_name>.single_particle_weight`` ( `double`, macroparticle weight, i.e. number of physical particles it represents)
+
     * ``gaussian_beam``: Inject particle beam with gaussian distribution in
       space in all directions. This requires additional parameters:
       ``<species_name>.q_tot`` (beam charge),
