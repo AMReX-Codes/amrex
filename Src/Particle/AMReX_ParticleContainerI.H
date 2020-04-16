@@ -368,10 +368,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::locateParticl
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-long
+Long
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::TotalNumberOfParticles (bool only_valid, bool only_local) const
 {
-    long nparticles = 0;
+    Long nparticles = 0;
     for (int lev = 0; lev <= finestLevel(); lev++) {
         nparticles += NumberOfParticlesAtLevel(lev,only_valid,true);
     }
@@ -382,11 +382,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::TotalNumberOf
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-Vector<long>
+Vector<Long>
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::NumberOfParticlesInGrid (int lev, bool only_valid, bool only_local) const
 {
   auto ngrids = ParticleBoxArray(lev).size();
-  Vector<long> nparticles(ngrids, 0);
+  Vector<Long> nparticles(ngrids, 0);
 
   if (lev >= 0 && lev < int(m_particles.size())) {
     for (const auto& kv : GetParticles(lev)) {
@@ -410,10 +410,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::NumberOfParti
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-long
+Long
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::NumberOfParticlesAtLevel (int lev, bool only_valid, bool only_local) const
 {
-    long nparticles = 0;
+    Long nparticles = 0;
 
     if (lev >= 0 && lev < int(m_particles.size())) {
         for (const auto& kv : GetParticles(lev)) {
@@ -442,7 +442,7 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::ByteSpread () const
 {
-    long cnt = 0;
+    Long cnt = 0;
 
     for (unsigned lev = 0; lev < m_particles.size(); lev++) {
         const auto& pmap = m_particles[lev];
@@ -452,7 +452,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::ByteSpread ()
         }
     }
 
-    long mn = cnt, mx = mn;
+    Long mn = cnt, mx = mn;
 
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
     const std::size_t sz = sizeof(ParticleType)+NumRealComps()*sizeof(Real)+NumIntComps()*sizeof(int);
@@ -480,7 +480,7 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::PrintCapacity () const
 {
-    long cnt = 0;
+    Long cnt = 0;
 
     for (unsigned lev = 0; lev < m_particles.size(); lev++) {
         const auto& pmap = m_particles[lev];
@@ -490,7 +490,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::PrintCapacity
         }
     }
 
-    long mn = cnt, mx = mn;
+    Long mn = cnt, mx = mn;
 
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
 
@@ -585,7 +585,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Increment (Mu
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-long
+Long
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::IncrementWithTotal (MultiFab& mf, int lev, bool local)
 {
   BL_PROFILE("ParticleContainer::IncrementWithTotal(lev)");
@@ -599,7 +599,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::IncrementWith
 
   const auto& pmap = m_particles[lev];
   
-  long num_particles_in_domain = 0;
+  Long num_particles_in_domain = 0;
   
   MultiFab* mf_pointer;
   
@@ -694,7 +694,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::RemoveParticl
   BL_PROFILE("ParticleContainer::RemoveParticlesNotAtFinestLevel()");
   AMREX_ASSERT(this->finestLevel()+1 == int(this->m_particles.size()));
   
-  long cnt = 0;
+  Long cnt = 0;
   
   for (unsigned lev = 0; lev < m_particles.size() - 1; ++lev) {
       auto& pmap = m_particles[lev];
@@ -1342,7 +1342,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
           unsigned npart = aos.numParticles();              
           ParticleLocData pld;
           if (npart != 0) {
-              long last = npart - 1;
+              Long last = npart - 1;
               unsigned pindex = 0;
               while (pindex <= last) {
                   ParticleType& p = aos[pindex];
@@ -1675,9 +1675,9 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
     const int NNeighborProcs = neighbor_procs.size();
     
     // We may now have particles that are rightfully owned by another CPU.
-    Vector<long> Snds(NProcs, 0), Rcvs(NProcs, 0);  // bytes!
+    Vector<Long> Snds(NProcs, 0), Rcvs(NProcs, 0);  // bytes!
 
-    long NumSnds = 0;
+    Long NumSnds = 0;
     if (local > 0)
     {
         AMREX_ALWAYS_ASSERT(lev_min == 0);
@@ -1697,8 +1697,8 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
 
     if (local)
     {
-        long tot_snds_this_proc = 0;
-        long tot_rcvs_this_proc = 0;
+        Long tot_snds_this_proc = 0;
+        Long tot_rcvs_this_proc = 0;
         for (int i = 0; i < NNeighborProcs; ++i) {
             tot_snds_this_proc += Snds[neighbor_procs[i]];
             tot_rcvs_this_proc += Rcvs[neighbor_procs[i]];
@@ -2043,7 +2043,7 @@ AssignCellDensitySingleLevel (int rho_index,
         for (ParConstIter pti(*this, lev); pti.isValid(); ++pti) {
             const auto& particles = pti.GetArrayOfStructs();
             const auto pstruct = particles().data();
-            const long np = pti.numParticles();
+            const Long np = pti.numParticles();
             FArrayBox& fab = (*mf_pointer)[pti];
             auto rhoarr = fab.array();
 #ifdef _OPENMP
@@ -2160,7 +2160,7 @@ InterpolateSingleLevel (MultiFab& mesh_data, int lev)
         FArrayBox& fab = mesh_data[pti];
         const auto fabarr = fab.array();
         const Box& box = fab.box();
-        const long np = particles.size();
+        const Long np = particles.size();
         
         int nComp = fab.nComp();
         AMREX_FOR_1D( np, i,
