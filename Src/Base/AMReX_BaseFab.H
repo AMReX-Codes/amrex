@@ -40,10 +40,10 @@
 namespace amrex
 {
 
-extern long private_total_bytes_allocated_in_fabs;     //!< total bytes at any given time
-extern long private_total_bytes_allocated_in_fabs_hwm; //!< high-water-mark over a given interval
-extern long private_total_cells_allocated_in_fabs;     //!< total cells at any given time
-extern long private_total_cells_allocated_in_fabs_hwm; //!< high-water-mark over a given interval
+extern Long private_total_bytes_allocated_in_fabs;     //!< total bytes at any given time
+extern Long private_total_bytes_allocated_in_fabs_hwm; //!< high-water-mark over a given interval
+extern Long private_total_cells_allocated_in_fabs;     //!< total cells at any given time
+extern Long private_total_cells_allocated_in_fabs_hwm; //!< high-water-mark over a given interval
 #ifdef _OPENMP
 #pragma omp threadprivate(private_total_bytes_allocated_in_fabs)
 #pragma omp threadprivate(private_total_bytes_allocated_in_fabs_hwm)
@@ -51,12 +51,12 @@ extern long private_total_cells_allocated_in_fabs_hwm; //!< high-water-mark over
 #pragma omp threadprivate(private_total_cells_allocated_in_fabs_hwm)
 #endif
 
-long TotalBytesAllocatedInFabs () noexcept;
-long TotalBytesAllocatedInFabsHWM () noexcept;
-long TotalCellsAllocatedInFabs () noexcept;
-long TotalCellsAllocatedInFabsHWM () noexcept;
+Long TotalBytesAllocatedInFabs () noexcept;
+Long TotalBytesAllocatedInFabsHWM () noexcept;
+Long TotalCellsAllocatedInFabs () noexcept;
+Long TotalCellsAllocatedInFabsHWM () noexcept;
 void ResetTotalBytesAllocatedInFabsHWM () noexcept;
-void update_fab_stats (long n, long s, std::size_t szt) noexcept;
+void update_fab_stats (Long n, Long s, std::size_t szt) noexcept;
 
 void BaseFab_Initialize ();
 void BaseFab_Finalize ();
@@ -137,21 +137,21 @@ makeArray4 (T* p, Box const& bx, int ncomp) noexcept
 
 template <typename T>
 typename std::enable_if<std::is_arithmetic<T>::value>::type
-placementNew (T* const ptr, long n)
+placementNew (T* const ptr, Long n)
 {}
 
 template <typename T>
 typename std::enable_if< AMREX_IS_TRIVIALLY_DEFAULT_CONSTRUCTIBLE(T) && !std::is_arithmetic<T>::value >::type
-placementNew (T* const ptr, long n)
+placementNew (T* const ptr, Long n)
 {
-    for (long i = 0; i < n; ++i) {
+    for (Long i = 0; i < n; ++i) {
         new (ptr+i) T;
     }
 }
 
 template <typename T>
 typename std::enable_if<!AMREX_IS_TRIVIALLY_DEFAULT_CONSTRUCTIBLE(T)>::type
-placementNew (T* const ptr, long n)
+placementNew (T* const ptr, Long n)
 {
     AMREX_HOST_DEVICE_FOR_1D ( n, i,
     {
@@ -161,12 +161,12 @@ placementNew (T* const ptr, long n)
 
 template <typename T>
 typename std::enable_if<std::is_trivially_destructible<T>::value>::type
-placementDelete (T* const ptr, long n)
+placementDelete (T* const ptr, Long n)
 {}
 
 template <typename T>
 typename std::enable_if<!std::is_trivially_destructible<T>::value>::type
-placementDelete (T* const ptr, long n)
+placementDelete (T* const ptr, Long n)
 {
     AMREX_HOST_DEVICE_FOR_1D (n, i,
     {
@@ -305,10 +305,10 @@ public:
     }
 
     //! Returns the number of points
-    long numPts () const noexcept { return this->domain.numPts(); }
+    Long numPts () const noexcept { return this->domain.numPts(); }
 
     //! Returns the total number of points of all components
-    long size () const noexcept { return this->nvar*this->domain.numPts(); }
+    Long size () const noexcept { return this->nvar*this->domain.numPts(); }
 
     //! Returns the domain (box) where the array is defined
     const Box& box () const noexcept { return this->domain; }
@@ -381,7 +381,7 @@ public:
 
     const T* dataPtr (const IntVect& iv, int n = 0) const noexcept;
 
-    void setPtr (T* p, long sz) noexcept { AMREX_ASSERT(this->dptr == 0 && this->truesize == 0); this->dptr = p; this->truesize = sz; }
+    void setPtr (T* p, Long sz) noexcept { AMREX_ASSERT(this->dptr == 0 && this->truesize == 0); this->dptr = p; this->truesize = sz; }
 
     void prefetchToHost () const noexcept;
     void prefetchToDevice () const noexcept;
@@ -1602,7 +1602,7 @@ protected:
     T*   dptr = nullptr;        //!< The data pointer.
     Box  domain;                //!< My index space.
     int  nvar = 0;              //!< Number components.
-    long truesize = 0L;         //!< nvar*numpts that was allocated on heap.
+    Long truesize = 0L;         //!< nvar*numpts that was allocated on heap.
     bool ptr_owner = false;     //!< Owner of T*?
     bool shared_memory = false; //!< Is the memory allocated in shared memory?
 
@@ -1730,7 +1730,7 @@ BaseFab<T>::getVal  (T*             data,
                      int            numcomp) const noexcept
 {
     const int loc      = this->domain.index(pos);
-    const long sz    = this->domain.numPts();
+    const Long sz    = this->domain.numPts();
 
     AMREX_ASSERT(!(this->dptr == 0));
     AMREX_ASSERT(n >= 0 && n + numcomp <= this->nvar);
@@ -1869,7 +1869,7 @@ BaseFab<T>::define ()
     AMREX_ASSERT(this->dptr == 0);
     AMREX_ASSERT(this->domain.numPts() > 0);
 #if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
-    AMREX_ASSERT(std::numeric_limits<long>::max()/this->nvar > this->domain.numPts());
+    AMREX_ASSERT(std::numeric_limits<Long>::max()/this->nvar > this->domain.numPts());
 #else
     AMREX_ASSERT(LONG_MAX/this->nvar > this->domain.numPts());
 #endif

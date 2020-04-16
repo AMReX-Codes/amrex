@@ -293,15 +293,13 @@ public:
     bool cellCentered () const noexcept { return !btype.any(); }
 
     /**
-    * \brief Returns the number of points contained in the Box, else
-    * abort()s if the number cannot be represented in a long.
+    * \brief Returns the number of points contained in the Box.
     */
     AMREX_GPU_HOST_DEVICE
-    long numPts () const noexcept {
-        auto r = AMREX_D_TERM( static_cast<unsigned long>(length(0)),
-                              *static_cast<unsigned long>(length(1)),
-                              *static_cast<unsigned long>(length(2)));
-        return static_cast<long>(r);
+    Long numPts () const noexcept {
+        return AMREX_D_TERM( static_cast<Long>(length(0)),
+                            *static_cast<Long>(length(1)),
+                            *static_cast<Long>(length(2)));
     }
 
     /**
@@ -317,14 +315,13 @@ public:
     /**
     * \brief Return the volume, in indexing space, of region enclosed by
     * this Box.   This is identical to numPts() for CELL centered
-    * Box; otherwise, numPts() > volume().  Abort()s if the number
-    * cannot be represented in a long.
+    * Box; otherwise, numPts() > volume().
     */
     AMREX_GPU_HOST_DEVICE
-    long volume () const noexcept {
-        return AMREX_D_TERM( static_cast<long>(length(0)-btype[0]),
-                            *static_cast<long>(length(1)-btype[1]),
-                            *static_cast<long>(length(2)-btype[2]));
+    Long volume () const noexcept {
+        return AMREX_D_TERM( static_cast<Long>(length(0)-btype[0]),
+                            *static_cast<Long>(length(1)-btype[1]),
+                            *static_cast<Long>(length(2)-btype[2]));
     }
 
     /**
@@ -385,14 +382,14 @@ public:
     * Is used in accessing FArrayBox.
     */
     AMREX_GPU_HOST_DEVICE
-    long index (const IntVect& v) const noexcept;
+    Long index (const IntVect& v) const noexcept;
 
     //! Given the offset, compute IntVect
     AMREX_GPU_HOST_DEVICE
-    IntVect atOffset (long offset) const noexcept;
+    IntVect atOffset (Long offset) const noexcept;
 
     AMREX_GPU_HOST_DEVICE
-    GpuArray<int,3> atOffset3d (long offset) const noexcept;
+    GpuArray<int,3> atOffset3d (Long offset) const noexcept;
 
     //! Redefine the small end of the Box.
     AMREX_GPU_HOST_DEVICE
@@ -846,10 +843,10 @@ Box::enclosedCells () noexcept
 
 AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE
-long
+Long
 Box::index (const IntVect& v) const noexcept
 {
-    long result = v[0]-smallend[0];
+    Long result = v[0]-smallend[0];
 #if   AMREX_SPACEDIM==2
     result += length(0)*(v[1]-smallend[1]);
 #elif AMREX_SPACEDIM==3
@@ -862,13 +859,13 @@ Box::index (const IntVect& v) const noexcept
 AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE
 IntVect
-Box::atOffset (long offset) const noexcept
+Box::atOffset (Long offset) const noexcept
 {
     auto len = this->length3d();
     auto lo  = this->loVect3d();
-    long k = offset / (len[0]*len[1]);
-    long j = (offset - k*(len[0]*len[1])) / len[0];
-    long i = (offset - k*(len[0]*len[1])) - j*len[0];
+    Long k = offset / (len[0]*len[1]);
+    Long j = (offset - k*(len[0]*len[1])) / len[0];
+    Long i = (offset - k*(len[0]*len[1])) - j*len[0];
     return IntVect{AMREX_D_DECL(static_cast<int>(i+lo[0]),
                                 static_cast<int>(j+lo[1]),
                                 static_cast<int>(k+lo[2])) };
@@ -878,13 +875,13 @@ Box::atOffset (long offset) const noexcept
 AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE
 GpuArray<int,3>
-Box::atOffset3d (long offset) const noexcept
+Box::atOffset3d (Long offset) const noexcept
 {
     auto len = this->length3d();
     auto lo  = this->loVect3d();
-    long k = offset / (len[0]*len[1]);
-    long j = (offset - k*(len[0]*len[1])) / len[0];
-    long i = (offset - k*(len[0]*len[1])) - j*len[0];
+    Long k = offset / (len[0]*len[1]);
+    Long j = (offset - k*(len[0]*len[1])) / len[0];
+    Long i = (offset - k*(len[0]*len[1])) - j*len[0];
     return {{static_cast<int>(i+lo[0]),
              static_cast<int>(j+lo[1]),
              static_cast<int>(k+lo[2])}};
@@ -1660,13 +1657,13 @@ Box getIndexBounds (T const& b1, T const& b2, Ts const& ... b3) noexcept
 
 AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE
-IntVect getCell (Box const* boxes, int nboxes, long icell) noexcept
+IntVect getCell (Box const* boxes, int nboxes, Long icell) noexcept
 {
     int ibox;
-    long ncells_subtotal = 0;
-    long offset = 0;
+    Long ncells_subtotal = 0;
+    Long offset = 0;
     for (ibox = 0; ibox < nboxes; ++ibox) {
-        const long n = boxes[ibox].numPts();
+        const Long n = boxes[ibox].numPts();
         ncells_subtotal += n;
         if (icell < ncells_subtotal) {
             offset = icell - (ncells_subtotal - n);

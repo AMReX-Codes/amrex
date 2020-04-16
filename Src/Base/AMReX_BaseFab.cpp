@@ -10,10 +10,10 @@
 
 namespace amrex {
 
-long private_total_bytes_allocated_in_fabs     = 0L;
-long private_total_bytes_allocated_in_fabs_hwm = 0L;
-long private_total_cells_allocated_in_fabs     = 0L;
-long private_total_cells_allocated_in_fabs_hwm = 0L;
+Long private_total_bytes_allocated_in_fabs     = 0L;
+Long private_total_bytes_allocated_in_fabs_hwm = 0L;
+Long private_total_cells_allocated_in_fabs     = 0L;
+Long private_total_cells_allocated_in_fabs_hwm = 0L;
 
 namespace
 {
@@ -56,14 +56,14 @@ BaseFab_Finalize()
 }
 
 
-long 
+Long
 TotalBytesAllocatedInFabs () noexcept
 {
 #ifdef _OPENMP
-    long r=0;
+    Long r=0;
 #pragma omp parallel reduction(+:r)
     {
-	r += private_total_bytes_allocated_in_fabs;
+        r += private_total_bytes_allocated_in_fabs;
     }
     return r;
 #else
@@ -71,14 +71,14 @@ TotalBytesAllocatedInFabs () noexcept
 #endif
 }
 
-long 
+Long
 TotalBytesAllocatedInFabsHWM () noexcept
 {
 #ifdef _OPENMP
-    long r=0;
+    Long r=0;
 #pragma omp parallel reduction(+:r)
     {
-	r += private_total_bytes_allocated_in_fabs_hwm;
+        r += private_total_bytes_allocated_in_fabs_hwm;
     }
     return r;
 #else
@@ -86,14 +86,14 @@ TotalBytesAllocatedInFabsHWM () noexcept
 #endif
 }
 
-long 
+Long
 TotalCellsAllocatedInFabs () noexcept
 {
 #ifdef _OPENMP
-    long r=0;
+    Long r=0;
 #pragma omp parallel reduction(+:r)
     {
-	r += private_total_cells_allocated_in_fabs;
+        r += private_total_cells_allocated_in_fabs;
     }
     return r;
 #else
@@ -101,14 +101,14 @@ TotalCellsAllocatedInFabs () noexcept
 #endif
 }
 
-long 
+Long
 TotalCellsAllocatedInFabsHWM () noexcept
 {
 #ifdef _OPENMP
-    long r=0;
+    Long r=0;
 #pragma omp parallel reduction(+:r)
     {
-	r += private_total_cells_allocated_in_fabs_hwm;
+        r += private_total_cells_allocated_in_fabs_hwm;
     }
     return r;
 #else
@@ -123,24 +123,24 @@ ResetTotalBytesAllocatedInFabsHWM () noexcept
 #pragma omp parallel
 #endif
     {
-	private_total_bytes_allocated_in_fabs_hwm = 0;
+        private_total_bytes_allocated_in_fabs_hwm = 0;
     }
 }
 
 void
-update_fab_stats (long n, long s, size_t szt) noexcept
+update_fab_stats (Long n, Long s, size_t szt) noexcept
 {
-    long tst = s*szt;
+    Long tst = s*szt;
     amrex::private_total_bytes_allocated_in_fabs += tst;
     amrex::private_total_bytes_allocated_in_fabs_hwm 
-	= std::max(amrex::private_total_bytes_allocated_in_fabs_hwm,
-		   amrex::private_total_bytes_allocated_in_fabs);
+        = std::max(amrex::private_total_bytes_allocated_in_fabs_hwm,
+                   amrex::private_total_bytes_allocated_in_fabs);
 	
     if(szt == sizeof(Real)) {
 	amrex::private_total_cells_allocated_in_fabs += n;
 	amrex::private_total_cells_allocated_in_fabs_hwm 
 	    = std::max(amrex::private_total_cells_allocated_in_fabs_hwm,
-		       amrex::private_total_cells_allocated_in_fabs);
+                   amrex::private_total_cells_allocated_in_fabs);
     }
 }
 

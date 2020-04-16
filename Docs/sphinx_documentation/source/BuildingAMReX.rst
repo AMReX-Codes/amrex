@@ -695,7 +695,3 @@ Some of the POSIX handling is platform-dependent, and Windows does seem to have 
 
 (3) Memory profiling:  This is an optional feature in AMReX that is not enabled by default.
 It reads memory system information from the OS to give us a summary of our memory usage.
-
-One other caveat is regarding the size of ``long``, which is 4 on Windows and 8 on other 64-bit systems.
-This might cause integer overflow for really big runs (unlikely on Windows desktops as opposed to clusters).
-If this becomes an issue, please let us know and we could define amrex::Long that would be guaranteed to be 64 bits.
