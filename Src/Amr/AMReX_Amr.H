@@ -196,9 +196,9 @@ public:
     //! Array of AmrLevels.
     Vector<std::unique_ptr<AmrLevel> >& getAmrLevels () noexcept;
     //! Total number of cells.
-    long cellCount () noexcept;
+    Long cellCount () noexcept;
     //! Number of cells at given level.
-    long cellCount (int lev) noexcept;
+    Long cellCount (int lev) noexcept;
     //! Total number of grids.
     int numGrids () noexcept;
     //! Number of grids at given level.
