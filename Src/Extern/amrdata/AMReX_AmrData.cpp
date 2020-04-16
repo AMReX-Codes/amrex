@@ -1975,13 +1975,13 @@ void AmrData::Interp(FArrayBox &fine, FArrayBox &crse,
    BL_ASSERT(crse.box() == cslope_bx);
 
    // alloc temp space for coarse grid slopes
-   long cLen = cslope_bx.numPts();
+   Long cLen = cslope_bx.numPts();
    Real *cslope = new Real[BL_SPACEDIM*cLen];
-   long loslp    = cslope_bx.index(crse_bx.smallEnd());
-   long hislp    = cslope_bx.index(crse_bx.bigEnd());
-   long cslope_vol = cslope_bx.numPts();
-   long clo = 1 - loslp;
-   long chi = clo + cslope_vol - 1;
+   Long loslp    = cslope_bx.index(crse_bx.smallEnd());
+   Long hislp    = cslope_bx.index(crse_bx.bigEnd());
+   Long cslope_vol = cslope_bx.numPts();
+   Long clo = 1 - loslp;
+   Long chi = clo + cslope_vol - 1;
    cLen = hislp - loslp + 1;
 
    // alloc temp space for one strip of fine grid slopes
@@ -2049,7 +2049,7 @@ void AmrData::PcInterp(FArrayBox &fine, const FArrayBox &crse,
 
 // ---------------------------------------------------------------
 FArrayBox *AmrData::ReadGrid(std::istream &is, int numVar) {
-   long i, gstep;
+   Long i, gstep;
    Real timeIn;
    static int gridCount(0);
    Box gbox;
