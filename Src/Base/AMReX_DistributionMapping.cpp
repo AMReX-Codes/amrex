@@ -701,7 +701,8 @@ DistributionMapping::KnapSackDoIt (const std::vector<long>& wgts,
                                    int                    /*  nprocs */,
                                    Real&                    efficiency,
                                    bool                     do_full_knapsack,
-				   int                      nmax)
+                                   int                      nmax,
+                                   bool                     sort)
 {
     if (flag_verbose_mapper) {
         Print() << "DM: KnapSackDoIt called..." << std::endl;
@@ -754,7 +755,7 @@ DistributionMapping::KnapSackDoIt (const std::vector<long>& wgts,
         LIpairV.push_back(LIpair(wgt,i));
     }
 
-    Sort(LIpairV, true);
+    if (sort) {Sort(LIpairV, true);}
 
     if (flag_verbose_mapper) {
         for (const auto &p : LIpairV) {
@@ -766,14 +767,24 @@ DistributionMapping::KnapSackDoIt (const std::vector<long>& wgts,
     Vector<Vector<int> > wrkerord;
 
     if (nteams == nprocs) {
-	LeastUsedCPUs(nprocs,ord);
-	wrkerord.resize(nprocs);
-	for (int i = 0; i < nprocs; ++i) {
-	    wrkerord[i].resize(1);
-	    wrkerord[i][0] = 0;
-	}
+        if (sort) {
+            LeastUsedCPUs(nprocs,ord);
+        } else {
+            ord.resize(nprocs);
+            std::iota(ord.begin(), ord.end(), 0);
+        }
     } else {
-	LeastUsedTeams(ord,wrkerord,nteams,nworkers);
+        if (sort) {
+            LeastUsedTeams(ord,wrkerord,nteams,nworkers);
+        } else {
+            ord.resize(nteams);
+            std::iota(ord.begin(), ord.end(), 0);
+            wrkerord.resize(nteams);
+            for (auto& v : wrkerord) {
+                v.resize(nworkers);
+                std::iota(v.begin(), v.end(), 0);
+            }
+        }
     }
 
     for (int i = 0; i < nteams; ++i)
@@ -818,7 +829,8 @@ DistributionMapping::KnapSackProcessorMap (const std::vector<long>& wgts,
                                            int                      nprocs,
                                            Real*                    efficiency,
                                            bool                     do_full_knapsack,
-					   int                      nmax)
+                                           int                      nmax,
+                                           bool                     sort)
 {
     BL_ASSERT(wgts.size() > 0);
 
@@ -834,7 +846,7 @@ DistributionMapping::KnapSackProcessorMap (const std::vector<long>& wgts,
     else
     {
         Real eff = 0;
-        KnapSackDoIt(wgts, nprocs, eff, do_full_knapsack, nmax);
+        KnapSackDoIt(wgts, nprocs, eff, do_full_knapsack, nmax, sort);
         if (efficiency) *efficiency = eff;
     }
 }
@@ -1377,7 +1389,7 @@ DistributionMapping::makeKnapSack (const Vector<Real>& rcost, int nmax)
 }
 
 DistributionMapping
-DistributionMapping::makeKnapSack (const Vector<Real>& rcost, Real& eff, int nmax)
+DistributionMapping::makeKnapSack (const Vector<Real>& rcost, Real& eff, int nmax, bool sort)
 {
     BL_PROFILE("makeKnapSack");
 
@@ -1394,7 +1406,7 @@ DistributionMapping::makeKnapSack (const Vector<Real>& rcost, Real& eff, int nma
 
     int nprocs = ParallelContext::NProcsSub();
 
-    r.KnapSackProcessorMap(cost, nprocs, &eff, true, nmax);
+    r.KnapSackProcessorMap(cost, nprocs, &eff, true, nmax, sort);
 
     return r;
 }
