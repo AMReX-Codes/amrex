@@ -1512,6 +1512,8 @@ DistributionMapping::makeRoundRobin (const MultiFab& weight)
 DistributionMapping
 DistributionMapping::makeSFC (const MultiFab& weight, bool sort)
 {
+    BL_PROFILE("makeSFC");
+
     DistributionMapping r;
 
     Vector<Long> cost(weight.size());
@@ -1547,6 +1549,8 @@ DistributionMapping::makeSFC (const MultiFab& weight, bool sort)
 DistributionMapping
 DistributionMapping::makeSFC (const MultiFab& weight, Real& eff, bool sort)
 {
+    BL_PROFILE("makeSFC");
+
     DistributionMapping r;
 
     Vector<Long> cost(weight.size());
@@ -1582,6 +1586,8 @@ DistributionMapping::makeSFC (const MultiFab& weight, Real& eff, bool sort)
 DistributionMapping
 DistributionMapping::makeSFC (const Vector<Real>& rcost, const BoxArray& ba, bool sort)
 {
+    BL_PROFILE("makeSFC");
+
     DistributionMapping r;
 
     Vector<Long> cost(rcost.size());
@@ -1603,6 +1609,8 @@ DistributionMapping::makeSFC (const Vector<Real>& rcost, const BoxArray& ba, boo
 DistributionMapping
 DistributionMapping::makeSFC (const Vector<Real>& rcost, const BoxArray& ba, Real& eff, bool sort)
 {
+    BL_PROFILE("makeSFC");
+
     DistributionMapping r;
 
     Vector<Long> cost(rcost.size());
@@ -1624,6 +1632,8 @@ DistributionMapping::makeSFC (const Vector<Real>& rcost, const BoxArray& ba, Rea
 std::vector<std::vector<int> >
 DistributionMapping::makeSFC (const BoxArray& ba, bool use_box_vol)
 {
+    BL_PROFILE("makeSFC");
+
     std::vector<SFCToken> tokens;
 
     const int N = ba.size();
