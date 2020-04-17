@@ -103,6 +103,7 @@ Diagnostics::InitData ()
                 all_field_functors[lev][comp] = new CellCenterFunctor(warpx.get_pointer_Efield_aux(lev, 1), lev, m_crse_ratio);
             } else if ( varnames[comp] == "Ez" ){
                 all_field_functors[lev][comp] = new CellCenterFunctor(warpx.get_pointer_Efield_aux(lev, 2), lev, m_crse_ratio);
+            } else if ( varnames[comp] == "Bx" ){
                 all_field_functors[lev][comp] = new CellCenterFunctor(warpx.get_pointer_Bfield_aux(lev, 0), lev, m_crse_ratio);
             } else if ( varnames[comp] == "By" ){
                 all_field_functors[lev][comp] = new CellCenterFunctor(warpx.get_pointer_Bfield_aux(lev, 1), lev, m_crse_ratio);
