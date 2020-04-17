@@ -1031,18 +1031,6 @@ Numerics and algorithms
     Therefore, all the approximations that are usually made when using local FFTs with guard cells
     (for problems with multiple boxes) become exact in the case of the periodic, single-box FFT without guard cells.
 
-* ``psatd.hybrid_mpi_decomposition`` (`0` or `1`; default: 0)
-    Whether to use a different MPI decomposition for the particle-grid operations
-    (deposition and gather) and for the PSATD solver. If `1`, the FFT will
-    be performed over MPI groups.
-
-* ``psatd.ngroups_fft`` (`integer`)
-    The number of MPI groups that are created for the FFT, when using the code compiled with a PSATD solver
-    (and only if `hybrid_mpi_decomposition` is `1`).
-    The FFTs are global within one MPI group and use guard cell exchanges in between MPI groups.
-    (If ``ngroups_fft`` is larger than the number of MPI ranks used,
-    than the actual number of MPI ranks is used instead.)
-
 * ``psatd.fftw_plan_measure`` (`0` or `1`)
     Defines whether the parameters of FFTW plans will be initialized by
     measuring and optimizing performance (``FFTW_MEASURE`` mode; activated by default here).

@@ -24,7 +24,6 @@ public:
      * \param do_fdtd_nci_corr bool, whether to use Godfrey NCI corrector
      * \param do_nodal bool, whether the field solver is nodal
      * \param do_moving_window bool, whether to use moving window
-     * \param do_fft_mpi_dec bool, whether to do parallel FFTs for PSATD
      * \param aux_is_nodal bool, true if the aux grid is nodal
      * \param moving_window_dir direction of moving window
      * \param nox order of current deposition
@@ -40,7 +39,6 @@ public:
         const bool do_fdtd_nci_corr,
         const bool do_nodal,
         const bool do_moving_window,
-        const bool do_fft_mpi_dec,
         const bool aux_is_nodal,
         const int moving_window_dir,
         const int nox,

@@ -37,7 +37,6 @@ SpectralKSpace::SpectralKSpace( const BoxArray& realspace_ba,
         // For local FFTs, boxes in spectral space start at 0 in
         // each direction and have the same number of points as the
         // (cell-centered) real space box
-        // TODO: this will be different for the hybrid FFT scheme
         Box realspace_bx = realspace_ba[i];
         IntVect fft_size = realspace_bx.length();
         // Because the spectral solver uses real-to-complex FFTs, we only
@@ -115,7 +114,6 @@ SpectralKSpace::getKComponent( const DistributionMapping& dm,
                 k[i] = (i-N)*dk;
             }
         }
-        // TODO: this will be different for the hybrid FFT scheme
     }
     return k_comp;
 }

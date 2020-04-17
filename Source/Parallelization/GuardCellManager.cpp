@@ -17,7 +17,6 @@ guardCellManager::Init(
     const bool do_fdtd_nci_corr,
     const bool do_nodal,
     const bool do_moving_window,
-    const bool do_fft_mpi_dec,
     const bool aux_is_nodal,
     const int moving_window_dir,
     const int nox,
@@ -95,40 +94,38 @@ guardCellManager::Init(
     ng_alloc_F = IntVect(AMREX_D_DECL(ng_alloc_F_int, ng_alloc_F_int, ng_alloc_F_int));
 
 #ifdef WARPX_USE_PSATD
-    if (do_fft_mpi_dec == false){
-        // All boxes should have the same number of guard cells
-        // (to avoid temporary parallel copies)
-        // Thus take the max of the required number of guards for each field
-        // Also: the number of guard cell should be enough to contain
-        // the stencil of the FFT solver. Here, this number (`ngFFT`)
-        // is determined *empirically* to be the order of the solver
-        // for nodal, and half the order of the solver for staggered.
+    // All boxes should have the same number of guard cells
+    // (to avoid temporary parallel copies)
+    // Thus take the max of the required number of guards for each field
+    // Also: the number of guard cell should be enough to contain
+    // the stencil of the FFT solver. Here, this number (`ngFFT`)
+    // is determined *empirically* to be the order of the solver
+    // for nodal, and half the order of the solver for staggered.
 
-        int ngFFt_x = do_nodal ? nox_fft : nox_fft/2.;
-        int ngFFt_y = do_nodal ? noy_fft : noy_fft/2.;
-        int ngFFt_z = do_nodal ? noz_fft : noz_fft/2.;
+    int ngFFt_x = do_nodal ? nox_fft : nox_fft/2.;
+    int ngFFt_y = do_nodal ? noy_fft : noy_fft/2.;
+    int ngFFt_z = do_nodal ? noz_fft : noz_fft/2.;
 
-        ParmParse pp("psatd");
-        pp.query("nx_guard", ngFFt_x);
-        pp.query("ny_guard", ngFFt_y);
-        pp.query("nz_guard", ngFFt_z);
+    ParmParse pp("psatd");
+    pp.query("nx_guard", ngFFt_x);
+    pp.query("ny_guard", ngFFt_y);
+    pp.query("nz_guard", ngFFt_z);
 
-        IntVect ngFFT = IntVect(AMREX_D_DECL(ngFFt_x, ngFFt_y, ngFFt_z));
+    IntVect ngFFT = IntVect(AMREX_D_DECL(ngFFt_x, ngFFt_y, ngFFt_z));
 
-        for (int i_dim=0; i_dim<AMREX_SPACEDIM; i_dim++ ){
-            int ng_required = ngFFT[i_dim];
-            // Get the max
-            ng_required = std::max( ng_required, ng_alloc_EB[i_dim] );
-            ng_required = std::max( ng_required, ng_alloc_J[i_dim] );
-            ng_required = std::max( ng_required, ng_alloc_Rho[i_dim] );
-            ng_required = std::max( ng_required, ng_alloc_F[i_dim] );
-            // Set the guard cells to this max
-            ng_alloc_EB[i_dim] = ng_required;
-            ng_alloc_J[i_dim] = ng_required;
-            ng_alloc_F[i_dim] = ng_required;
-            ng_alloc_Rho[i_dim] = ng_required;
-            ng_alloc_F_int = ng_required;
-        }
+    for (int i_dim=0; i_dim<AMREX_SPACEDIM; i_dim++ ){
+        int ng_required = ngFFT[i_dim];
+        // Get the max
+        ng_required = std::max( ng_required, ng_alloc_EB[i_dim] );
+        ng_required = std::max( ng_required, ng_alloc_J[i_dim] );
+        ng_required = std::max( ng_required, ng_alloc_Rho[i_dim] );
+        ng_required = std::max( ng_required, ng_alloc_F[i_dim] );
+        // Set the guard cells to this max
+        ng_alloc_EB[i_dim] = ng_required;
+        ng_alloc_J[i_dim] = ng_required;
+        ng_alloc_F[i_dim] = ng_required;
+        ng_alloc_Rho[i_dim] = ng_required;
+        ng_alloc_F_int = ng_required;
     }
     ng_alloc_F = IntVect(AMREX_D_DECL(ng_alloc_F_int, ng_alloc_F_int, ng_alloc_F_int));
 #endif

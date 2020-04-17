@@ -95,13 +95,7 @@ WarpX::PushPSATD (amrex::Real a_dt)
 {
     for (int lev = 0; lev <= finest_level; ++lev) {
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(dt[lev] == a_dt, "dt must be consistent");
-        if (fft_hybrid_mpi_decomposition){
-#ifdef WARPX_USE_PSATD_HYBRID
-            PushPSATD_hybridFFT(lev, a_dt);
-#endif
-        } else {
-            PushPSATD_localFFT(lev, a_dt);
-        }
+        PushPSATD(lev, a_dt);
 
         // Evolve the fields in the PML boxes
         if (do_pml && pml[lev]->ok()) {
@@ -111,7 +105,7 @@ WarpX::PushPSATD (amrex::Real a_dt)
 }
 
 void
-WarpX::PushPSATD_localFFT (int lev, amrex::Real /* dt */)
+WarpX::PushPSATD (int lev, amrex::Real /* dt */)
 {
     // Update the fields on the fine and coarse patch
     PushPSATDSinglePatch( *spectral_solver_fp[lev],

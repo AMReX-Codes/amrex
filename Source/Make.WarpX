@@ -63,7 +63,6 @@ include $(WARPX_HOME)/Source/BoundaryConditions/Make.package
 include $(WARPX_HOME)/Source/Diagnostics/Make.package
 include $(WARPX_HOME)/Source/FieldSolver/Make.package
 include $(WARPX_HOME)/Source/Filter/Make.package
-include $(WARPX_HOME)/Source/FortranInterface/Make.package
 include $(WARPX_HOME)/Source/Initialization/Make.package
 include $(WARPX_HOME)/Source/Laser/Make.package
 include $(WARPX_HOME)/Source/Parallelization/Make.package
@@ -165,11 +164,6 @@ ifeq ($(USE_PSATD),TRUE)
        VPATH_LOCATIONS += $(FFTW_HOME)/include
        INCLUDE_LOCATIONS += $(FFTW_HOME)/include
        LIBRARY_LOCATIONS += $(FFTW_HOME)/lib
-     endif
-     ifeq ($(USE_PSATD_PICSAR),TRUE)
-        # Compile with PICSAR's Hybrid-MPI PSATD
-        DEFINES += -DWARPX_USE_PSATD_HYBRID
-        DEFINES += -DFFTW # PICSAR uses it
      endif
   else
     # Use cuFFT

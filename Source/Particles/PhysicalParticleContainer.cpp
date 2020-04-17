@@ -11,7 +11,6 @@
 #include "PhysicalParticleContainer.H"
 
 #include "MultiParticleContainer.H"
-#include "FortranInterface/WarpX_f.H"
 #include "WarpX.H"
 #include "Utils/WarpXConst.H"
 #include "Utils/WarpXUtil.H"

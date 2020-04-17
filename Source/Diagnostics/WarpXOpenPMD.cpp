@@ -586,7 +586,7 @@ WarpXOpenPMDPlot::WriteOpenPMDFields( //const std::string& filename,
   auto meshes = series_iteration.meshes;
   meshes.setAttribute( "fieldSolver", [](){
 #ifdef WARPX_USE_PSATD
-      return "PSATD"; // TODO double-check if WARPX_USE_PSATD_HYBRID is covered
+      return "PSATD";
 #else
       switch( WarpX::particle_pusher_algo ) {
           case MaxwellSolverAlgo::Yee : return "Yee";

@@ -31,9 +31,6 @@
 #       include "FieldSolver/SpectralSolver/SpectralSolver.H"
 #   endif
 #endif
-#ifdef WARPX_USE_PSATD_HYBRID
-#   include "FieldSolver/PicsarHybridSpectralSolver/PicsarHybridFFTData.H"
-#endif
 
 #include "Parallelization/GuardCellManager.H"
 
@@ -809,21 +806,6 @@ private:
     amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Efield_slice;
     amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Bfield_slice;
 
-#ifdef WARPX_USE_PSATD_HYBRID
-    // Store fields in real space on the dual grid (i.e. the grid for the FFT push of the fields)
-    // This includes data for the FFT guard cells (between FFT groups)
-    amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Efield_fp_fft;
-    amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Bfield_fp_fft;
-    amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > current_fp_fft;
-    amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho_fp_fft;
-
-    amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Efield_cp_fft;
-    amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Bfield_cp_fft;
-    amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > current_cp_fft;
-    amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho_cp_fft;
-#endif
-
-    bool fft_hybrid_mpi_decomposition = false;
     bool fft_periodic_single_box = false;
     int nox_fft = 16;
     int noy_fft = 16;
@@ -833,9 +815,8 @@ private:
 private:
     void EvolvePSATD (int numsteps);
     void PushPSATD (amrex::Real dt);
-    void PushPSATD_localFFT (int lev, amrex::Real dt);
+    void PushPSATD (int lev, amrex::Real dt);
 
-    int ngroups_fft = 4;
     int fftw_plan_measure = 1;
 
 #   ifdef WARPX_DIM_RZ
@@ -848,33 +829,6 @@ private:
 #endif
     amrex::Vector<std::unique_ptr<FiniteDifferenceSolver>> m_fdtd_solver_fp;
     amrex::Vector<std::unique_ptr<FiniteDifferenceSolver>> m_fdtd_solver_cp;
-
-#ifdef WARPX_USE_PSATD_HYBRID
-private:
-    amrex::Vector<std::unique_ptr<amrex::LayoutData<FFTData> > > dataptr_fp_fft;
-    amrex::Vector<std::unique_ptr<amrex::LayoutData<FFTData> > > dataptr_cp_fft;
-
-    // Domain decomposition containing the valid part of the dual grids (i.e. without FFT guard cells)
-    amrex::Vector<amrex::BoxArray> ba_valid_fp_fft;
-    amrex::Vector<amrex::BoxArray> ba_valid_cp_fft;
-
-    amrex::Vector<amrex::Box> domain_fp_fft;  //  "global" domain for the group this process belongs to
-    amrex::Vector<amrex::Box> domain_cp_fft;
-
-    amrex::Vector<MPI_Comm> comm_fft;
-    amrex::Vector<int>      color_fft;
-
-    void AllocLevelDataFFT (int lev);
-    void InitLevelDataFFT (int lev, amrex::Real time);
-
-    void InitFFTComm (int lev);
-    void FFTDomainDecomposition (int lev, amrex::BoxArray& ba_fft, amrex::DistributionMapping& dm_fft,
-                                 amrex::BoxArray& ba_valid, amrex::Box& domain_fft,
-                                 const amrex::Box& domain);
-    void InitFFTDataPlan (int lev);
-    void FreeFFT (int lev);
-    void PushPSATD_hybridFFT (int lev, amrex::Real dt);
-#endif
 
 #if defined(BL_USE_SENSEI_INSITU)
     amrex::AmrMeshInSituBridge *insitu_bridge;
