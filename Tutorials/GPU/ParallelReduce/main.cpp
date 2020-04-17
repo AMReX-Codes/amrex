@@ -85,8 +85,8 @@ void main_main ()
         BL_PROFILE("FabReduceTuple");
 
         ReduceOps<ReduceOpSum, ReduceOpMin, ReduceOpMax, ReduceOpSum> reduce_op;
-        ReduceData<Real, Real, Real, long> reduce_data(reduce_op);
-        // For iMultiFab::sum, we use long to avoid overflow.
+        ReduceData<Real, Real, Real, Long> reduce_data(reduce_op);
+        // For iMultiFab::sum, we use Long to avoid overflow.
         using ReduceTuple = typename decltype(reduce_data)::Type;
 
         for (MFIter mfi(mf); mfi.isValid(); ++mfi)
@@ -98,7 +98,7 @@ void main_main ()
             [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
             {
                 Real x =  fab(i,j,k);
-                long ix = static_cast<long>(ifab(i,j,k));
+                Long ix = static_cast<Long>(ifab(i,j,k));
                 return {x,x,x,ix};
             });
         }
@@ -119,8 +119,8 @@ void main_main ()
         BL_PROFILE("FabReduceTuple-box");
 
         ReduceOps<ReduceOpSum, ReduceOpMin, ReduceOpMax, ReduceOpSum> reduce_op;
-        ReduceData<Real, Real, Real, long> reduce_data(reduce_op);
-        // For iMultiFab::sum, we use long to avoid overflow.
+        ReduceData<Real, Real, Real, Long> reduce_data(reduce_op);
+        // For iMultiFab::sum, we use Long to avoid overflow.
         using ReduceTuple = typename decltype(reduce_data)::Type;
 
         for (MFIter mfi(mf); mfi.isValid(); ++mfi)
@@ -134,11 +134,11 @@ void main_main ()
                 Real rsum = 0.;
                 Real rmin =  1.e30; // If not because of cuda 9.2,
                 Real rmax = -1.e30; // we should use numeric_limits.
-                long lsum = 0;
+                Long lsum = 0;
                 amrex::Loop(bx,
                 [=,&rsum,&rmin,&rmax,&lsum] (int i, int j, int k) AMREX_NOEXCEPT {
                     Real x =  fab(i,j,k);
-                    long ix = static_cast<long>(ifab(i,j,k));
+                    Long ix = static_cast<Long>(ifab(i,j,k));
                     rsum += x;
                     rmin = amrex::min(rmin,x);
                     rmax = amrex::max(rmax,x);
@@ -236,7 +236,7 @@ void main_main ()
         BL_PROFILE("FabReduce-isum");
 
         ReduceOps<ReduceOpSum> reduce_op;
-        ReduceData<long> reduce_data(reduce_op);
+        ReduceData<Long> reduce_data(reduce_op);
         using ReduceTuple = typename decltype(reduce_data)::Type;
 
         for (MFIter mfi(imf); mfi.isValid(); ++mfi)
@@ -246,11 +246,11 @@ void main_main ()
             reduce_op.eval(bx, reduce_data,
             [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
             {
-                return static_cast<long>(ifab(i,j,k));
+                return static_cast<Long>(ifab(i,j,k));
             });
         }
 
-        long hv = amrex::get<0>(reduce_data.value());
+        Long hv = amrex::get<0>(reduce_data.value());
         // MPI reduce
         ParallelDescriptor::ReduceLongSum(hv);
         amrex::Print() << "isum: " << hv << "\n";
