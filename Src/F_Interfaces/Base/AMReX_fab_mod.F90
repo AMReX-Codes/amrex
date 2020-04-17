@@ -126,8 +126,8 @@ contains
     type(amrex_box), intent(in) :: bx
     integer, intent(in) :: nc
     if (.not.associated(this%fp) .or. &
-         &         bx%numpts()*int(     nc,c_long) &
-         .gt. this%bx%numpts()*int(this%nc,c_long)) then
+         &         bx%numpts()*int(     nc,amrex_long) &
+         .gt. this%bx%numpts()*int(this%nc,amrex_long)) then
        call amrex_fab_build(this, bx, nc)
     else
        this%bx = bx

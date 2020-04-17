@@ -1744,7 +1744,7 @@ void DataServices::CheckProfData()
 
     if(bCommDataAvailable) {
       if(bIOP) { cout << "Checking CommProfStats." << endl; }
-      Vector<long> nBMin, nBMax, nRMin, nRMax;
+      Vector<Long> nBMin, nBMax, nRMin, nRMax;
       const Vector<string> &commHeaderFileNames = CommProfStats::GetHeaderFileNames();
 
       if(myProc < commHeaderFileNames.size()) {
@@ -1822,8 +1822,8 @@ void DataServices::ProcessGridLog(const std::string &gridlogFileName) {
         fclose(yyin);
         cout << endl;
 
-        const std::map<int, long> &glMap = glOutputStats.GLMap();
-        std::map<int, long>::const_iterator it;
+        const std::map<int, Long> &glMap = glOutputStats.GLMap();
+        std::map<int, Long>::const_iterator it;
         std::ofstream glout("grdlogRankNPoints.xgr");
         for(it = glMap.begin(); it != glMap.end(); ++it) {
           glout << it->first << ' ' << it->second << '\n';
@@ -1905,12 +1905,12 @@ void DataServices::RunStats(std::map<int, string> &mpiFuncNames,
     int nMsgSizes(10000), bytesPerSlot(100);
     int minMsgSize(std::numeric_limits<int>::max());
     int maxMsgSize(std::numeric_limits<int>::min());
-    Vector<long> msgSizes(nMsgSizes, 0);
-    Vector<long> totalFunctionCalls(BLProfiler::NUMBER_OF_CFTS, 0);
+    Vector<Long> msgSizes(nMsgSizes, 0);
+    Vector<Long> totalFunctionCalls(BLProfiler::NUMBER_OF_CFTS, 0);
     Real timeMin(std::numeric_limits<Real>::max());
     Real timeMax(-std::numeric_limits<Real>::max());
     Real timerTime(0.0);
-    long totalNCommStats(0), totalSentData(0);
+    Long totalNCommStats(0), totalSentData(0);
     int dataNProcs(BLProfStats::GetNProcs());
     Vector<int> rankNodeNumbers(dataNProcs, 0);
     const Vector<string> &commHeaderFileNames = CommProfStats::GetHeaderFileNames();
@@ -2047,9 +2047,9 @@ void DataServices::RunSendsPF(std::string &plotfileName,
     if(bIOP) { cout << endl << "---------------- Process Sends PF." << endl; }
 
     int dataNProcs(BLProfStats::GetNProcs());
-    long totalSends(0), totalSentData(0);
-    Vector<long> totalSendsPerProc(dataNProcs, 0);
-    Vector<long> totalSentDataPerProc(dataNProcs, 0);
+    Long totalSends(0), totalSentData(0);
+    Vector<Long> totalSendsPerProc(dataNProcs, 0);
+    Vector<Long> totalSentDataPerProc(dataNProcs, 0);
 
     IntVect maxGrid((dataNProcs / nProcs) + refRatioAll, dataNProcs);
     int nLevels(1), finestLevel(0), numState(2), nGrow(0);
@@ -3046,7 +3046,7 @@ void DataServices::RunSyncPointData()
     Vector<Vector<Real> > barrierWaitTimes(dataNProcs);
     Vector<Vector<Real> > barrierSkewTimes(dataNProcs);
     Vector<Vector<Real> > reductionWaitTimes(dataNProcs);
-    long nBMax(0), nRMax(0);
+    Long nBMax(0), nRMax(0);
 
     const Vector<string> &commHeaderFileNames = CommProfStats::GetHeaderFileNames();
     CommProfStats::SetInitDataBlocks(true);
@@ -3103,8 +3103,8 @@ void DataServices::RunSyncPointData()
 
     CommProfStats::CloseAllStreams();
 
-    long nBarriers(nBMax + 1);
-    long nReductions(nRMax + 1);
+    Long nBarriers(nBMax + 1);
+    Long nReductions(nRMax + 1);
     Vector<Real> bExitAll(dataNProcs * nBarriers);
     Vector<Real> bWaitAll(dataNProcs * nBarriers);
     Vector<Real> rwAll;

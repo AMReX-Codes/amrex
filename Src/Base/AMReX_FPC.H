@@ -47,14 +47,14 @@ public:
     *      format[6] = high order mantissa bit (CRAY needs this)
     *      format[7] = bias of exponent
     */
-    static const long ieee_float[];
+    static const Long ieee_float[];
 
     //! Array detailing the format of IEEE 64-bit normal order doubles.
-    static const long ieee_double[];
+    static const Long ieee_double[];
 
     /**
     * \brief Returns a constant reference to an IntDescriptor describing
-    * the native "long" under which AMReX was compiled.  Each
+    * the native "Long" under which AMReX was compiled.  Each
     * AMReX library will have exactly one of these compiled into it.
     */
     static const IntDescriptor&  NativeLongDescriptor ();

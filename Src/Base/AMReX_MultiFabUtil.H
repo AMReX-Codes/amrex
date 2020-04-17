@@ -172,8 +172,8 @@ namespace amrex
 
     //! Convert iMultiFab to MultiFab
     MultiFab ToMultiFab (const iMultiFab& imf);
-    //! Convert iMultiFab to long
-    FabArray<BaseFab<long> > ToLongMultiFab (const iMultiFab& imf);
+    //! Convert iMultiFab to Long
+    FabArray<BaseFab<Long> > ToLongMultiFab (const iMultiFab& imf);
 
     //! Periodic shift MultiFab
     MultiFab periodicShift (MultiFab const& mf, IntVect const& offset,
@@ -190,7 +190,7 @@ namespace amrex
 #endif
         for (MFIter mfi(mf_in); mfi.isValid(); ++mfi)
         {
-            const long n = mfi.fabbox().numPts() * mf_in.nComp();
+            const Long n = mfi.fabbox().numPts() * mf_in.nComp();
             auto pdst = mf_out[mfi].dataPtr();
             auto psrc = mf_in [mfi].dataPtr();
             AMREX_HOST_DEVICE_PARALLEL_FOR_1D ( n, i,

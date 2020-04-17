@@ -21,15 +21,15 @@ namespace range_detail {
 //! integer version
 template <typename T, typename = amrex::EnableIf_t<std::is_integral<T>::value> >
 AMREX_GPU_HOST_DEVICE
-long size (T const& b) noexcept { return static_cast<long>(b); }
+Long size (T const& b) noexcept { return static_cast<Long>(b); }
 
 template <typename T, typename = amrex::EnableIf_t<std::is_integral<T>::value> >
 AMREX_GPU_HOST_DEVICE
-long at (T const& b, long offset) noexcept { return offset; }
+Long at (T const& b, Long offset) noexcept { return offset; }
 
 //! Box version
 AMREX_GPU_HOST_DEVICE
-AMREX_FORCE_INLINE long size (Box const& b) noexcept
+AMREX_FORCE_INLINE Long size (Box const& b) noexcept
 {
 #if AMREX_DEVICE_COMPILE
     return b.numPts();
@@ -39,13 +39,13 @@ AMREX_FORCE_INLINE long size (Box const& b) noexcept
 }
 
 AMREX_GPU_HOST_DEVICE
-AMREX_FORCE_INLINE Box at (Box const& b, long offset) noexcept
+AMREX_FORCE_INLINE Box at (Box const& b, Long offset) noexcept
 {
 #if AMREX_DEVICE_COMPILE
     auto len = b.length3d();
-    long k = offset / (len[0]*len[1]);
-    long j = (offset - k*(len[0]*len[1])) / len[0];
-    long i = (offset - k*(len[0]*len[1])) - j*len[0];
+    Long k = offset / (len[0]*len[1]);
+    Long j = (offset - k*(len[0]*len[1])) / len[0];
+    Long i = (offset - k*(len[0]*len[1])) - j*len[0];
     IntVect iv{AMREX_D_DECL(static_cast<int>(i),
                             static_cast<int>(j),
                             static_cast<int>(k))};
@@ -63,14 +63,14 @@ struct range_impl
     explicit range_impl (T const& b) noexcept : m_b(b), m_n(range_detail::size(b)) {}
 
 #ifdef AMREX_USE_DPCPP
-    range_impl (T const& b, long gid, long grange) noexcept
+    range_impl (T const& b, Long gid, Long grange) noexcept
         : m_b(b), m_n(range_detail::size(b)), m_gid(gid), m_grange(grange) {}
 #endif
 
     struct iterator
     {
         AMREX_GPU_HOST_DEVICE
-        iterator (T const& b, long i, long s) noexcept : mi_b(b), mi_i(i), mi_s(s)  {}
+        iterator (T const& b, Long i, Long s) noexcept : mi_b(b), mi_i(i), mi_s(s)  {}
 
         AMREX_GPU_HOST_DEVICE
         void operator++ () noexcept { mi_i += mi_s; }
@@ -83,8 +83,8 @@ struct range_impl
 
     private:
         T const& mi_b;
-        long mi_i;
-        long mi_s;
+        Long mi_i;
+        Long mi_s;
     };
 
     AMREX_GPU_HOST_DEVICE
@@ -103,17 +103,17 @@ struct range_impl
 
 private:
     T m_b;
-    long m_n;
+    Long m_n;
 #ifdef AMREX_USE_DPCPP
-    long m_gid;
-    long m_grange;
+    Long m_gid;
+    Long m_grange;
 #endif
 };
 }
 
 #ifdef AMREX_USE_DPCPP
 template <typename T>
-range_detail::range_impl<T> Range (T const& b, long gid, long grange) noexcept {
+range_detail::range_impl<T> Range (T const& b, Long gid, Long grange) noexcept {
     return range_detail::range_impl<T>(b,gid,grange);
 }
 #endif

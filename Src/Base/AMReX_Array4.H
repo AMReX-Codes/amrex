@@ -10,9 +10,9 @@ namespace amrex {
     struct Array4
     {
         T* AMREX_RESTRICT p;
-        long jstride;
-        long kstride;
-        long nstride;
+        Long jstride;
+        Long kstride;
+        Long nstride;
         Dim3 begin;
         Dim3 end;  // end is hi + 1
         int  ncomp;

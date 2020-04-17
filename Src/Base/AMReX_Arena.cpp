@@ -25,8 +25,8 @@ namespace {
     Arena* the_cpu_arena = nullptr;
 
     bool use_buddy_allocator = false;
-    long buddy_allocator_size = 0L;
-    long the_arena_init_size = 0L;
+    Long buddy_allocator_size = 0L;
+    Long the_arena_init_size = 0L;
     bool abort_on_out_of_gpu_memory = false;
 }
 
@@ -221,8 +221,8 @@ Arena::PrintUsage ()
 #ifdef AMREX_USE_GPU
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
     {
-        long min_megabytes = Gpu::Device::totalGlobalMem() / (1024*1024);
-        long max_megabytes = min_megabytes;
+        Long min_megabytes = Gpu::Device::totalGlobalMem() / (1024*1024);
+        Long max_megabytes = min_megabytes;
         ParallelDescriptor::ReduceLongMin(min_megabytes, IOProc);
         ParallelDescriptor::ReduceLongMax(max_megabytes, IOProc);
 #ifdef AMREX_USE_MPI
@@ -233,8 +233,8 @@ Arena::PrintUsage ()
 #endif
     }
     {
-        long min_megabytes = Gpu::Device::freeMemAvailable() / (1024*1024);
-        long max_megabytes = min_megabytes;
+        Long min_megabytes = Gpu::Device::freeMemAvailable() / (1024*1024);
+        Long max_megabytes = min_megabytes;
         ParallelDescriptor::ReduceLongMin(min_megabytes, IOProc);
         ParallelDescriptor::ReduceLongMax(max_megabytes, IOProc);
 #ifdef AMREX_USE_MPI
@@ -274,7 +274,11 @@ Arena::PrintUsage ()
 void
 Arena::Finalize ()
 {
+#ifdef AMREX_USE_GPU
     if (amrex::Verbose() > 0) {
+#else
+    if (amrex::Verbose() > 1) {
+#endif
         PrintUsage();
     }
     

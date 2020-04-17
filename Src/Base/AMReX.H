@@ -7,6 +7,7 @@
 #include <AMReX_GpuAssert.H>
 #include <AMReX_ccse-mpi.H>
 #include <AMReX_Exception.H>
+#include <AMReX_INT.H>
 
 #include <iostream>
 #include <functional>
@@ -35,16 +36,16 @@ namespace amrex
     namespace system
     {
 #ifndef AMREX_DEBUG
-	constexpr bool NDebug = true;
+        constexpr bool NDebug = true;
         constexpr bool  Debug = false;
 #else
-	constexpr bool NDebug = false;
+        constexpr bool NDebug = false;
         constexpr bool  Debug = true;
 #endif
 
-	extern std::string exename;
+        extern std::string exename;
 	
-	extern int verbose;
+        extern int verbose;
 
         extern int signal_handling;
         extern int call_addr2line;
@@ -189,9 +190,11 @@ namespace amrex
         std::allocator<char> a_c;
         std::allocator<int> a_i;
         std::allocator<long> a_l;
+        std::allocator<long long> a_ll;
         std::allocator<unsigned char> a_uc;
         std::allocator<unsigned int> a_ui;
         std::allocator<unsigned long> a_ul;
+        std::allocator<unsigned long long> a_ull;
         std::allocator<float> a_f;
         std::allocator<double> a_d;
         std::allocator<std::string> a_s;

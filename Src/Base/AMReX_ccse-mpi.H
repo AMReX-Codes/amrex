@@ -21,7 +21,7 @@ namespace ParallelDescriptor
     //! Communication datatype (note: this structure also works without MPI)
     struct Mpi_typemap
     {
-	static MPI_Datatype type();
+        static MPI_Datatype type();
     };
     //
     // Template functions to return MPI_Datatype depending on argument type.
@@ -30,6 +30,7 @@ namespace ParallelDescriptor
     template <> MPI_Datatype Mpi_typemap<short>::type();
     template <> MPI_Datatype Mpi_typemap<int>::type();
     template <> MPI_Datatype Mpi_typemap<long>::type();
+    template <> MPI_Datatype Mpi_typemap<long long>::type();
     template <> MPI_Datatype Mpi_typemap<unsigned char>::type();
     template <> MPI_Datatype Mpi_typemap<unsigned short>::type();
     template <> MPI_Datatype Mpi_typemap<unsigned int>::type();

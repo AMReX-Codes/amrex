@@ -81,7 +81,7 @@ struct ParticleCopyPlan
     Gpu::DeviceVector<int> m_rcv_box_ids;
     Gpu::DeviceVector<int> m_rcv_box_levs;
 
-    long m_NumSnds;
+    Long m_NumSnds;
     int m_nrcvs;
     mutable Vector<MPI_Status> m_build_stats;
     mutable Vector<MPI_Request> m_build_rreqs;
@@ -89,13 +89,13 @@ struct ParticleCopyPlan
     mutable Vector<MPI_Status> m_particle_stats;
     mutable Vector<MPI_Request> m_particle_rreqs;
 
-    Vector<long> m_snd_num_particles;
-    Vector<long> m_rcv_num_particles;
+    Vector<Long> m_snd_num_particles;
+    Vector<Long> m_rcv_num_particles;
 
     Vector<int> m_neighbor_procs;
         
-    Vector<long> m_Snds;
-    Vector<long> m_Rcvs;
+    Vector<Long> m_Snds;
+    Vector<Long> m_Rcvs;
     Vector<int> m_RcvProc;
     Vector<std::size_t> m_rOffset;
     Gpu::HostVector<int> m_rcv_data;
@@ -175,25 +175,25 @@ private:
     // Rcvs - a Vector that, after calling this method, will contain the
     //        number of bytes this process will reveive from each proc.
     //
-    void doHandShake (const Vector<long>& Snds, Vector<long>& Rcvs) const;
+    void doHandShake (const Vector<Long>& Snds, Vector<Long>& Rcvs) const;
 
     //
     // In the local version of this method, each proc knows which other
     // procs it could possibly receive messages from, meaning we can do
     // this purely with point-to-point communication.
     //
-    void doHandShakeLocal (const Vector<long>& Snds, Vector<long>& Rcvs) const;
+    void doHandShakeLocal (const Vector<Long>& Snds, Vector<Long>& Rcvs) const;
     
     //
     // In the global version, we don't know who we'll receive from, so we
     // need to do some collective communication first.
     //
-    void doHandShakeGlobal (const Vector<long>& Snds, Vector<long>& Rcvs) const;
+    void doHandShakeGlobal (const Vector<Long>& Snds, Vector<Long>& Rcvs) const;
 
     //
     // Another version of the above that is implemented using MPI All-to-All
     //    
-    void doHandShakeAllToAll (const Vector<long>& Snds, Vector<long>& Rcvs) const;
+    void doHandShakeAllToAll (const Vector<Long>& Snds, Vector<Long>& Rcvs) const;
 
     bool m_local;
 };
@@ -205,11 +205,11 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
 
     using ParticleType = typename PC::ParticleType;
 
-    long psize = pc.superParticleSize();
+    Long psize = pc.superParticleSize();
 
     int num_levels = pc.BufferMap().numLevels();
     int num_buckets = pc.BufferMap().numBuckets();
-    long total_buffer_size = plan.m_box_offsets[num_buckets]*psize;
+    Long total_buffer_size = plan.m_box_offsets[num_buckets]*psize;
     snd_buffer.resize(total_buffer_size);
 
     auto p_comm_real = pc.communicate_real_comp.dataPtr();
@@ -283,7 +283,7 @@ void unpackBuffer (PC& pc, const ParticleCopyPlan& plan, const Buffer& snd_buffe
     int num_levels = pc.BufferMap().numLevels();
     int num_buckets = pc.BufferMap().numBuckets();
 
-    long psize = pc.superParticleSize();
+    Long psize = pc.superParticleSize();
 
     // count how many particles we have to add to each tile
     std::vector<int> sizes;
@@ -350,7 +350,7 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buff
 {
     BL_PROFILE("amrex::communicateParticlesStart");
     
-    long psize = pc.superParticleSize();
+    Long psize = pc.superParticleSize();
 
 #ifdef AMREX_USE_MPI
     const int NProcs = ParallelDescriptor::NProcs();
@@ -359,8 +359,8 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buff
     if (NProcs == 1) return;
 
     Vector<int> RcvProc;
-    Vector<long> rOffset;    
-    long TotRcvParticles = 0;
+    Vector<Long> rOffset;    
+    Long TotRcvParticles = 0;
     for (int i = 0; i < NProcs; ++i) {
         if (plan.m_rcv_num_particles[i] > 0) {
             RcvProc.push_back(i);
@@ -471,7 +471,7 @@ void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, co
             int size = sizes[uindex];
             ++uindex;
 
-            long psize = pc.superParticleSize();
+            Long psize = pc.superParticleSize();
 
             AMREX_FOR_1D ( size, ip,
 	    {

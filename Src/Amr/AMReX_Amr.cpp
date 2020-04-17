@@ -210,7 +210,7 @@ Amr::getAmrLevels () noexcept
     return amr_level;
 }
 
-long
+Long
 Amr::cellCount (int lev) noexcept
 {
     return amr_level[lev]->countCells();
@@ -835,10 +835,10 @@ Amr::setNCycle (const Vector<int>& ns) noexcept
         n_cycle[i] = ns[i];
 }
 
-long
+Long
 Amr::cellCount () noexcept
 {
-    long cnt = 0;
+    Long cnt = 0;
     for (int i = 0; i <= finest_level; i++)
         cnt += amr_level[i]->countCells();
     return cnt;
@@ -2457,8 +2457,8 @@ Amr::coarseTimeStep (Real stop_time)
 #endif
 
 #ifndef AMREX_MEM_PROFILING
-        long min_fab_kilobytes  = amrex::TotalBytesAllocatedInFabsHWM()/1024;
-        long max_fab_kilobytes  = min_fab_kilobytes;
+        Long min_fab_kilobytes  = amrex::TotalBytesAllocatedInFabsHWM()/1024;
+        Long max_fab_kilobytes  = min_fab_kilobytes;
 
 #ifdef BL_LAZY
 	Lazy::QueueReduction( [=] () mutable {
@@ -3163,7 +3163,7 @@ Amr::printGridInfo (std::ostream& os,
     {
         const BoxArray&           bs      = amr_level[lev]->boxArray();
         int                       numgrid = bs.size();
-        long                      ncells  = amr_level[lev]->countCells();
+        Long                      ncells  = amr_level[lev]->countCells();
         double                    ntot    = Geom(lev).Domain().d_numPts();
         Real                      frac    = 100.0_rt*(Real(ncells) / ntot);
         const DistributionMapping& map    = amr_level[lev]->get_new_data(0).DistributionMap();
