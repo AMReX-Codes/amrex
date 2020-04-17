@@ -1,0 +1,2 @@
+INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/Particles/Filter
+VPATH_LOCATIONS   += $(WARPX_HOME)/Source/Particles/Filter

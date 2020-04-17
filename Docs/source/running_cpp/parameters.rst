@@ -1132,6 +1132,30 @@ Diagnostics and output
     Use a negative number to disable data dumping.
     This is ``-1`` (disabled) by default.
 
+    * ``<species_name>.random_fraction`` (`float`) optional
+        If provided ``<species_name>.random_fraction = a``,
+        only `a` fraction of the particle data of this species will be dumped randomly,
+        i.e. if `rand() < a`, this particle will be dumped,
+        where `rand()` denotes a random number generator.
+        The value `a` provided should be between 0 and 1.
+
+    * ``<species_name>.uniform_stride`` (`int`) optional
+        If provided ``<species_name>.uniform_stride = n``,
+        every `n` particle of this species will be dumped, selected uniformly.
+        The value provided should be an integer greater than or equal to 0.
+
+    * ``<species_name>.plot_filter_function(t,x,y,z,ux,uy,uz)`` (`string`) optional
+        Users can provide an expression returning a boolean for whether a particle is dumped (the exact test is whether the return value is `> 0.5`).
+        `t` represents the physical time in seconds during the simulation.
+        `x, y, z` represent particle positions in the unit of meter.
+        `ux, uy, uz` represent particle velocities in the unit of
+        :math:`\gamma v/c`, where
+        :math:`\gamma` is the Lorentz factor,
+        :math:`v/c` is the particle velocity normalized by the speed of light.
+        E.g. If provided `(x>0.0)*(uz<10.0)` only those particles located at
+        positions `x` greater than `0`, and those having velocity `uz` less than 10,
+        will be dumped.
+
 * ``warpx.openpmd_int`` (`integer`) optional
     The number of PIC cycles (interval) in between two consecutive `openPMD <https://www.openPMD.org>`_ data dumps.
     Requires to build WarpX with ``USE_OPENPMD=TRUE`` (see :ref:`instructions <building-openpmd>`).

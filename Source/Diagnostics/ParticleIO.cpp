@@ -1,11 +1,13 @@
 /* Copyright 2019 Andrew Myers, Axel Huebl, David Grote
  * Luca Fedeli, Maxence Thevenet, Revathi Jambunathan
- * Weiqun Zhang, levinem
+ * Weiqun Zhang, levinem, Yinjian Zhao
  *
  * This file is part of WarpX.
  *
  * License: BSD-3-Clause-LBNL
  */
+
+#include "FilterFunctors.H"
 #include "Particles/MultiParticleContainer.H"
 #include "WarpX.H"
 
@@ -130,13 +132,27 @@ MultiParticleContainer::WritePlotFile (const std::string& dir) const
 
             // Convert momentum to SI
             pc->ConvertUnits(ConvertDirection::WarpX_to_SI);
+
+            RandomFilter const random_filter(pc->m_do_random_filter,
+                                             pc->m_random_fraction);
+            UniformFilter const uniform_filter(pc->m_do_uniform_filter,
+                                               pc->m_uniform_stride);
+            ParserFilter const parser_filter(pc->m_do_parser_filter,i);
+
             // real_names contains a list of all particle attributes.
             // pc->plot_flags is 1 or 0, whether quantity is dumped or not.
-            pc->WritePlotFile(dir, species_names[i],
-                              pc->plot_flags, int_flags,
-                              real_names, int_names);
+            pc->WritePlotFile(
+                dir, species_names[i],
+                pc->plot_flags, int_flags,
+                real_names, int_names,
+                [=] AMREX_GPU_HOST_DEVICE (const SuperParticleType& p)
+                {
+                    return random_filter(p) * uniform_filter(p) * parser_filter(p);
+                });
+
             // Convert momentum back to WarpX units
             pc->ConvertUnits(ConvertDirection::SI_to_WarpX);
+
         }
     }
 }
