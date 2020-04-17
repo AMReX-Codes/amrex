@@ -110,11 +110,11 @@ AllGatherBoxes (Vector<Box>& bxs)
     // cell centered boxes only!
     const auto szof_bx = Box::linearSize();
 
-    const long count = bxs.size() * static_cast<long>(szof_bx);
+    const Long count = bxs.size() * static_cast<Long>(szof_bx);
     const auto& countvec = ParallelDescriptor::Gather(count, ParallelDescriptor::IOProcessorNumber());
     
-    long count_tot = 0L;
-    Vector<long> offset(countvec.size(),0L);
+    Long count_tot = 0L;
+    Vector<Long> offset(countvec.size(),0L);
     if (ParallelDescriptor::IOProcessor())
     {
         count_tot = countvec[0];
@@ -141,7 +141,7 @@ AllGatherBoxes (Vector<Box>& bxs)
 
     ParallelDescriptor::Bcast(recv_buffer.data(), count_tot, ParallelDescriptor::IOProcessorNumber());
 
-    const long nboxes_tot = count_tot/szof_bx;
+    const Long nboxes_tot = count_tot/szof_bx;
     bxs.resize(nboxes_tot);
 
     p = recv_buffer.data();

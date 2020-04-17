@@ -2,7 +2,7 @@
 module amrex_boxarray_module
 
   use iso_c_binding
-
+  use amrex_fort_module, only : amrex_long
   use amrex_box_module
 
   implicit none
@@ -107,7 +107,7 @@ module amrex_boxarray_module
        import
        implicit none
        type(c_ptr), value, intent(in) :: ba
-       integer(c_long) :: amrex_fi_boxarray_numpts
+       integer(amrex_long) :: amrex_fi_boxarray_numpts
      end function amrex_fi_boxarray_numpts
 
      pure integer function amrex_fi_boxarray_intersects_box (ba, lo, hi) bind(c)
@@ -219,7 +219,7 @@ contains
 
   pure function amrex_boxarray_num_pts (this) result(n)
     class(amrex_boxarray), intent(in) :: this
-    integer(c_long) :: n
+    integer(amrex_long) :: n
     n = amrex_fi_boxarray_numpts(this%p)
   end function amrex_boxarray_num_pts
 

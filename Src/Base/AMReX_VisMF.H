@@ -19,7 +19,7 @@ namespace amrex {
 
 struct WriteAsyncStatus {
     int64_t nbytes;
-    long nspins;
+    Long nspins;
     Real t_total;
     Real t_header;
     Real t_spin;
@@ -67,26 +67,26 @@ public:
         //! The default constructor -- null out all fields.
         FabOnDisk ();
         //! Constructor that sets the two values.
-        FabOnDisk (const std::string& name, long offset);
+        FabOnDisk (const std::string& name, Long offset);
         //! The two data values in a FabOnDisk structure.
         std::string m_name; //!< The name of file containing the FAB.
-        long    m_head;     //!< Offset to start of FAB in file.
+        Long    m_head;     //!< Offset to start of FAB in file.
     };
     //! An on-disk FabArray<FArrayBox> contains this info in a header file.
     struct Header
     {
         //! The versions of the FabArray<FArrayBox> Header code.
         enum Version {
-	  Undefined_v1           = 0,  //!< ---- undefined
-	  Version_v1             = 1,  //!< ---- auto converting version with headers
-	                               //!< ---- for each fab in the data files and
-				       //!< ---- min and max values for each fab in the header
-	  NoFabHeader_v1         = 2,  //!< ---- no fab headers, no fab mins or maxes
-	  NoFabHeaderMinMax_v1   = 3,  //!< ---- no fab headers,
-				       //!< ---- min and max values for each fab in the header
-	  NoFabHeaderFAMinMax_v1 = 4   //!< ---- no fab headers, no fab mins or maxes,
-				       //!< ---- min and max values for each FabArray in the header
-	};
+            Undefined_v1           = 0,  //!< ---- undefined
+            Version_v1             = 1,  //!< ---- auto converting version with headers
+                                         //!< ---- for each fab in the data files and
+                                         //!< ---- min and max values for each fab in the header
+            NoFabHeader_v1         = 2,  //!< ---- no fab headers, no fab mins or maxes
+            NoFabHeaderMinMax_v1   = 3,  //!< ---- no fab headers,
+                                         //!< ---- min and max values for each fab in the header
+            NoFabHeaderFAMinMax_v1 = 4   //!< ---- no fab headers, no fab mins or maxes,
+                                         //!< ---- min and max values for each FabArray in the header
+        };
         //! The default constructor.
         Header ();
         //! Construct from a FabArray<FArrayBox>.
@@ -95,9 +95,9 @@ public:
 
         Header (Header&& rhs) noexcept = default;
 
-	//! Calculate the min and max arrays
-	void CalculateMinMax(const FabArray<FArrayBox>& fafab,
-			     int procToWrite = ParallelDescriptor::IOProcessorNumber(),
+        //! Calculate the min and max arrays
+        void CalculateMinMax(const FabArray<FArrayBox>& fafab,
+                             int procToWrite = ParallelDescriptor::IOProcessorNumber(),
                              MPI_Comm = ParallelDescriptor::Communicator());
         //
         // The data.
@@ -108,26 +108,26 @@ public:
         IntVect              m_ngrow; //!< The number of ghost cells in MF.
         BoxArray             m_ba;    //!< The BoxArray of the MF.
         Vector< FabOnDisk >   m_fod;   //!< FabOnDisk info for contained FABs.
-	//
-	// These are not defined if they are not in the header
-	//
+        //
+        // These are not defined if they are not in the header
+        //
         Vector< Vector<Real> > m_min;   //!< The min()s of each component of FABs.  [findex][comp]
         Vector< Vector<Real> > m_max;   //!< The max()s of each component of FABs.  [findex][comp]
         Vector<Real>          m_famin; //!< The min()s of each component of the FabArray.  [comp]
         Vector<Real>          m_famax; //!< The max()s of each component of the FabArray.  [comp]
-	RealDescriptor       m_writtenRD;
+        RealDescriptor       m_writtenRD;
     };
 
     //! This structure is used to store the read order for each FabArray file
     struct FabReadLink
     {
         int rankToRead;
-	int faIndex;
-	long fileOffset;
-	Box box;
+        int faIndex;
+        Long fileOffset;
+        Box box;
 
-	FabReadLink();
-	FabReadLink(int ranktoread, int faindex, long fileoffset, const Box &b);
+        FabReadLink();
+        FabReadLink(int ranktoread, int faindex, Long fileoffset, const Box &b);
     };
 
     //! This structure is used to store file ifstreams that remain open
@@ -135,11 +135,11 @@ public:
     {
         std::ifstream   *pstr;
         std::streampos   currentPosition;
-	bool             isOpen;
-	VisMF::IO_Buffer ioBuffer;
+        bool             isOpen;
+        VisMF::IO_Buffer ioBuffer;
 
-	PersistentIFStream();
-	~PersistentIFStream();
+        PersistentIFStream();
+        ~PersistentIFStream();
     };
 
     /**
@@ -192,7 +192,7 @@ public:
     * one-half the average of the min and max over the valid region
     * of each contained FAB.
     */
-    static long Write (const FabArray<FArrayBox> &fafab,
+    static Long Write (const FabArray<FArrayBox> &fafab,
                        const std::string& name,
                        VisMF::How         how = NFiles,
                        bool               set_ghost = false);
@@ -207,7 +207,7 @@ public:
     * when the FAB data is not needed. Returns the total number of bytes written
     * on this processor.
     */
-    static long WriteOnlyHeader (const FabArray<FArrayBox> & mf,
+    static Long WriteOnlyHeader (const FabArray<FArrayBox> & mf,
                                  const std::string         & mf_name,
                                  VisMF::How                  how = NFiles);
     //! this will remove nfiles associated with name and the header
@@ -224,21 +224,21 @@ public:
     */
     static void Read (FabArray<FArrayBox> &fafab,
                       const std::string &name,
-		      const char *faHeader = nullptr,
-		      int coordinatorProc = ParallelDescriptor::IOProcessorNumber(),
-		      int allow_empty_mf = 0);
+                      const char *faHeader = nullptr,
+                      int coordinatorProc = ParallelDescriptor::IOProcessorNumber(),
+                      int allow_empty_mf = 0);
 
     //! Does FabArray exist?
     static bool Exist (const std::string &name);
 
     //! Read only the header of a FabArray, header will be resized here.
     static void ReadFAHeader (const std::string &fafabName,
-		              Vector<char> &header);
+                              Vector<char> &header);
 
     //! Check if the multifab is ok, false is returned if not ok
     static bool Check (const std::string &name);
     //! The file offset of the passed ostream.
-    static long FileOffset (std::ostream& os);
+    static Long FileOffset (std::ostream& os);
     //! Read the entire fab (all components).
     FArrayBox* readFAB (int fabIndex, const std::string& fafabName);
     //! Read the specified fab component.
@@ -281,8 +281,8 @@ public:
     static bool GetUseDynamicSetSelection () { return useDynamicSetSelection; }
     static void SetUseDynamicSetSelection (bool usedss) { useDynamicSetSelection = usedss; }
 
-    static long GetIOBufferSize () { return ioBufferSize; }
-    static void SetIOBufferSize (long iobuffersize) {
+    static Long GetIOBufferSize () { return ioBufferSize; }
+    static void SetIOBufferSize (Long iobuffersize) {
       BL_ASSERT(iobuffersize > 0);
       ioBufferSize = iobuffersize;
     }
@@ -300,22 +300,22 @@ private:
     static FabOnDisk Write (const FArrayBox&   fab,
                             const std::string& filename,
                             std::ostream&      os,
-                            long&              bytes);
+                            Long&              bytes);
 
-    static long WriteHeaderDoit (const std::string &fafab_name,
+    static Long WriteHeaderDoit (const std::string &fafab_name,
                                  VisMF::Header const &hdr);
 
-    static long WriteHeader (const std::string &fafab_name,
+    static Long WriteHeader (const std::string &fafab_name,
                              VisMF::Header     &hdr,
-			     int procToWrite = ParallelDescriptor::IOProcessorNumber(),
+                             int procToWrite = ParallelDescriptor::IOProcessorNumber(),
                              MPI_Comm comm = ParallelDescriptor::Communicator());
 
     //! fileNumbers must be passed in for dynamic set selection [proc]
     static void FindOffsets (const FabArray<FArrayBox> &fafab,
 			     const std::string &fafab_name,
                              VisMF::Header &hdr,
-			     VisMF::Header::Version whichVersion,
-			     NFilesIter &nfi,
+                             VisMF::Header::Version whichVersion,
+                             NFilesIter &nfi,
                              MPI_Comm comm = ParallelDescriptor::Communicator());
     /**
     * \brief Make a new FAB from a fab in a FabArray<FArrayBox> on disk.
@@ -327,12 +327,12 @@ private:
     static FArrayBox *readFAB (int                fabIndex,
                                const std::string &fafab_name,
                                const Header      &hdr,
-			       int                whichComp = -1);
+                               int                whichComp = -1);
     //! Read the whole FAB into fafab[fabIndex]
     static void readFAB (FabArray<FArrayBox> &fafab,
-			 int                fabIndex,
-			 const std::string &fafab_name,
-			 const Header&      hdr);
+                         int                fabIndex,
+                         const std::string &fafab_name,
+                         const Header&      hdr);
 
     static std::string DirName (const std::string& filename);
 
@@ -365,7 +365,7 @@ private:
     static bool useDynamicSetSelection;
     static bool allowSparseWrites;
 
-    static long ioBufferSize;   //!< ---- the settable buffer size
+    static Long ioBufferSize;   //!< ---- the settable buffer size
 };
 
 //! Write a FabOnDisk to an ostream in ASCII.

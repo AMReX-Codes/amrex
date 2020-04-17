@@ -49,7 +49,7 @@ extern "C" {
     }
 
     void amrex_fi_get_particles_mfi(FParticleContainer* particlecontainer,
-                                    int lev, MFIter* mfi, Real*& dp, long& np)
+                                    int lev, MFIter* mfi, Real*& dp, Long& np)
     {
         const int grid = mfi->index();
         const int tile = mfi->LocalTileIndex();
@@ -81,7 +81,7 @@ extern "C" {
     }
     
     void amrex_fi_num_particles_mfi(FParticleContainer* particlecontainer,
-                                    int lev, MFIter* mfi, long& np)
+                                    int lev, MFIter* mfi, Long& np)
     {
         const int grid = mfi->index();
         const int tile = mfi->LocalTileIndex();
@@ -96,7 +96,7 @@ extern "C" {
     }
 
     void amrex_fi_get_particles_i(FParticleContainer* particlecontainer,
-                                  int lev, int grid, int tile, Real*& dp, long& np)
+                                  int lev, int grid, int tile, Real*& dp, Long& np)
     {
         auto& particle_level = particlecontainer->GetParticles(lev);
         auto search = particle_level.find(std::make_pair(grid, tile));
@@ -124,7 +124,7 @@ extern "C" {
     }
     
     void amrex_fi_num_particles_i(FParticleContainer* particlecontainer,
-                                  int lev, int grid, int tile, long& np)
+                                  int lev, int grid, int tile, Long& np)
     {
         auto& particle_level = particlecontainer->GetParticles(lev);
         auto search = particle_level.find(std::make_pair(grid, tile));

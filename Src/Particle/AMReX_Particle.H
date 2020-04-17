@@ -135,7 +135,7 @@ struct Particle
 
     static int MaxReaders ();
 
-    static long MaxParticlesPerRead ();
+    static Long MaxParticlesPerRead ();
 
 
     /**
@@ -506,7 +506,7 @@ Particle<NReal, NInt>::MaxReaders ()
 }
 
 template <int NReal, int NInt>
-long
+Long
 Particle<NReal, NInt>::MaxParticlesPerRead ()
 {
 
@@ -514,9 +514,9 @@ Particle<NReal, NInt>::MaxParticlesPerRead ()
     // This is the maximum particles that "each" reader will attempt to read
     // before doing a Redistribute().
     //
-    const long Max_Particles_Per_Read_def = 100000;
+    const Long Max_Particles_Per_Read_def = 100000;
 
-    static long Max_Particles_Per_Read;
+    static Long Max_Particles_Per_Read;
 
     static bool first = true;
 

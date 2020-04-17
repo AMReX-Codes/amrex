@@ -320,7 +320,7 @@ public:
         const auto dx = geom.CellSizeArray();
         const Box& bx = levelset.box();
         const auto& a = levelset.array();
-        amrex::LoopOnCpu(bx, [=] (int i, int j, int k) noexcept
+        amrex::LoopOnCpu(bx, [&] (int i, int j, int k) noexcept
         {
             a(i,j,k) = m_f(RealArray{AMREX_D_DECL(problo[0]+i*dx[0],
                                                   problo[1]+j*dx[1],
@@ -374,7 +374,7 @@ public:
             Array4<Type_t const> const& type = type_fab[idim].array();
             const Box& bx = inter_fab[idim].box();
             int dir = (AMREX_SPACEDIM==2) ? 1-idim : idim;
-            amrex::LoopOnCpu(bx, [=] (int i, int j, int k) noexcept
+            amrex::LoopOnCpu(bx, [&] (int i, int j, int k) noexcept
             {
                 if (type(i,j,k) == Type::irregular) {
                     IntVect ivlo(AMREX_D_DECL(i,j,k));

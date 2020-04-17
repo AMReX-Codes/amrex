@@ -91,7 +91,7 @@ void amrex_mempool_init ()
 			 ([] () -> MemProfiler::MemInfo {
 			     int MB_min, MB_max, MB_tot;
 			     amrex_mempool_get_stats(MB_min, MB_max, MB_tot);
-			     long b = MB_tot * (1024L*1024L);
+			     Long b = MB_tot * (1024L*1024L);
 			     return {b, b};
 			 }));
 #endif

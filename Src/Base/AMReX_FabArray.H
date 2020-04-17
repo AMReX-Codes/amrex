@@ -48,10 +48,10 @@
 namespace amrex {
 
 template <typename T, class = typename std::enable_if<!IsBaseFab<T>::value>::type >
-long nBytesOwned (T const& t) noexcept { return 0; }
+Long nBytesOwned (T const& t) noexcept { return 0; }
 
 template <typename T>
-long nBytesOwned (BaseFab<T> const& fab) noexcept { return fab.nBytesOwned(); }
+Long nBytesOwned (BaseFab<T> const& fab) noexcept { return fab.nBytesOwned(); }
 
 /*
   A Collection of Fortran Array-like Objects
@@ -813,8 +813,8 @@ protected:
 	ShMem (const ShMem&) = delete;
 	ShMem& operator= (const ShMem&) = delete;
 	bool  alloc;
-	long  n_values;
-	long  n_points;
+	Long  n_values;
+	Long  n_points;
 #if defined(BL_USE_MPI3)
 	MPI_Win win;
 #endif
@@ -1057,7 +1057,7 @@ FabArray<FAB>::clear ()
         clearThisBD();  //!< addThisBD is called in define
     }
 
-    long nbytes = 0L;
+    Long nbytes = 0L;
     for (auto x : m_fabs_v) {
         if (x) nbytes += amrex::nBytesOwned(*x);
         m_factory->destroy(x);
@@ -1297,10 +1297,10 @@ FabArray<FAB>::AllocFabs (const FabFactory<FAB>& factory, Arena* ar,
 
     m_fabs_v.reserve(n);
 
-    long nbytes = 0L;
+    Long nbytes = 0L;
     for (int i = 0; i < n; ++i)
     {
-	int K = indexArray[i];
+        int K = indexArray[i];
         const Box& tmpbox = fabbox(K);
         m_fabs_v.push_back(factory.create(tmpbox, n_comp, fab_info, K));
         nbytes += amrex::nBytesOwned(*m_fabs_v.back());
@@ -1321,74 +1321,74 @@ FabArray<FAB>::AllocFabs (const FabFactory<FAB>& factory, Arena* ar,
 #ifdef BL_USE_TEAM
     if (shmem.alloc)
     {
-	const int teamlead = ParallelDescriptor::MyTeamLead();
+        const int teamlead = ParallelDescriptor::MyTeamLead();
 
-	shmem.n_values = 0;
-	shmem.n_points = 0;
-	Vector<long> offset(n,0);
-	Vector<long> nextoffset(nworkers,-1);
-	for (int i = 0; i < n; ++i) {
-	    int K = indexArray[i];
-	    int owner = distributionMap[K] - teamlead;
-	    long s = m_fabs_v[i]->size();
-	    if (ownership[i]) {
-		shmem.n_values += s;
-		shmem.n_points += m_fabs_v[i]->numPts();
-	    }
-	    if (nextoffset[owner] < 0) {
-		offset[i] = 0;
-		nextoffset[owner] = s;
-	    } else {
-		offset[i] = nextoffset[owner];
-		nextoffset[owner] += s;
-	    }
-	}
+        shmem.n_values = 0;
+        shmem.n_points = 0;
+        Vector<Long> offset(n,0);
+        Vector<Long> nextoffset(nworkers,-1);
+        for (int i = 0; i < n; ++i) {
+            int K = indexArray[i];
+            int owner = distributionMap[K] - teamlead;
+            Long s = m_fabs_v[i]->size();
+            if (ownership[i]) {
+                shmem.n_values += s;
+                shmem.n_points += m_fabs_v[i]->numPts();
+            }
+            if (nextoffset[owner] < 0) {
+                offset[i] = 0;
+                nextoffset[owner] = s;
+            } else {
+                offset[i] = nextoffset[owner];
+                nextoffset[owner] += s;
+            }
+        }
 
-	size_t bytes = shmem.n_values*sizeof(value_type);
+        size_t bytes = shmem.n_values*sizeof(value_type);
 
-	value_type *mfp;
-	Vector<value_type*> dps;
+        value_type *mfp;
+        Vector<value_type*> dps;
 
 #if defined (BL_USE_MPI3)
 
-	static MPI_Info info = MPI_INFO_NULL;
-	if (info == MPI_INFO_NULL) {
-	    MPI_Info_create(&info);
-	    MPI_Info_set(info, "alloc_shared_noncontig", "true");
-	}
+        static MPI_Info info = MPI_INFO_NULL;
+        if (info == MPI_INFO_NULL) {
+            MPI_Info_create(&info);
+            MPI_Info_set(info, "alloc_shared_noncontig", "true");
+        }
 
-	const MPI_Comm& team_comm = ParallelDescriptor::MyTeam().get();
+        const MPI_Comm& team_comm = ParallelDescriptor::MyTeam().get();
 
-	BL_MPI_REQUIRE( MPI_Win_allocate_shared(bytes, sizeof(value_type),
-						info, team_comm, &mfp, &shmem.win) );
+        BL_MPI_REQUIRE( MPI_Win_allocate_shared(bytes, sizeof(value_type),
+                                                info, team_comm, &mfp, &shmem.win) );
 
-	for (int w = 0; w < nworkers; ++w) {
-	    MPI_Aint sz;
-	    int disp;
-	    value_type *dptr = 0;
-	    BL_MPI_REQUIRE( MPI_Win_shared_query(shmem.win, w, &sz, &disp, &dptr) );
+        for (int w = 0; w < nworkers; ++w) {
+            MPI_Aint sz;
+            int disp;
+            value_type *dptr = 0;
+            BL_MPI_REQUIRE( MPI_Win_shared_query(shmem.win, w, &sz, &disp, &dptr) );
             // BL_ASSERT(disp == sizeof(value_type));
-	    dps.push_back(dptr);
-	}
+            dps.push_back(dptr);
+        }
 
 #else
 
-	amrex::Abort("BaseFab::define: to allocate shared memory, USE_MPI3 must be true");
+        amrex::Abort("BaseFab::define: to allocate shared memory, USE_MPI3 must be true");
 
 #endif
 
-	for (int i = 0; i < n; ++i) {
-	    int K = indexArray[i];
-	    int owner = distributionMap[K] - teamlead;
-	    value_type *p = dps[owner] + offset[i];
-	    m_fabs_v[i]->setPtr(p, m_fabs_v[i]->size());
-	}
+        for (int i = 0; i < n; ++i) {
+            int K = indexArray[i];
+            int owner = distributionMap[K] - teamlead;
+            value_type *p = dps[owner] + offset[i];
+            m_fabs_v[i]->setPtr(p, m_fabs_v[i]->size());
+        }
 
-	for (long i = 0; i < shmem.n_values; i++, mfp++) {
-	    new (mfp) value_type;
-	}
+        for (Long i = 0; i < shmem.n_values; i++, mfp++) {
+            new (mfp) value_type;
+        }
 
-	amrex::update_fab_stats(shmem.n_points, shmem.n_values, sizeof(value_type));
+        amrex::update_fab_stats(shmem.n_points, shmem.n_values, sizeof(value_type));
     }
 #endif
 }

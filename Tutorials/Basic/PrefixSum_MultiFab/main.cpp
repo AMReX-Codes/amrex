@@ -109,15 +109,15 @@ void main_main ()
 
     // prefix sum along the dimension 0 axis
     const int axis = 0;
-    long num_grids = ba.size();
+    Long num_grids = ba.size();
 
     struct GidLo {
-        long gid;
+        Long gid;
         int lo;
         int reverse;
         Real exclusive_sum;
 
-        GidLo(long id, int smallend, int reverse_order) : gid(id), lo(smallend), reverse(reverse_order), exclusive_sum(0.0) {};
+        GidLo(Long id, int smallend, int reverse_order) : gid(id), lo(smallend), reverse(reverse_order), exclusive_sum(0.0) {};
 
         // sort grids either increasing (forward) or decreasing (reverse) by their lo index
         bool operator<(const GidLo& other) const
@@ -132,7 +132,7 @@ void main_main ()
     // make a vector of GidLo structs with the grid ID, lo index, and exclusive sum for each grid in the domain
     Vector<GidLo> grids;
 
-    for (long i = 0; i < num_grids; ++i) {
+    for (Long i = 0; i < num_grids; ++i) {
         grids.emplace_back(i, ba[i].smallEnd(axis), reverse);
     }
 
@@ -140,8 +140,8 @@ void main_main ()
     std::sort(grids.begin(), grids.end());
 
     // make inverse map of grid IDs to indexes in the sorted grids
-    Vector<long> grid_inv(num_grids);
-    for (long i = 0; i < num_grids; ++i) grid_inv[grids[i].gid] = i;
+    Vector<Long> grid_inv(num_grids);
+    for (Long i = 0; i < num_grids; ++i) grid_inv[grids[i].gid] = i;
 
     // array of prefix sums for each grid
     Vector<Real> prefix_sums(num_grids, 0.0);
@@ -149,7 +149,7 @@ void main_main ()
     // compute the partial prefix sums for the grids on this MPI rank
     for (MFIter mfi(phi); mfi.isValid(); ++mfi)
     {
-        long gidi = mfi.index();
+        Long gidi = mfi.index();
         const Box& box = mfi.validbox();
         const auto lo = amrex::lbound(box);
         const auto hi = amrex::ubound(box);
@@ -184,14 +184,14 @@ void main_main ()
     //   so now we cumulative sum the partial sums in GidLo::exclusive_sum.
     //   This gets us the quantity we need to add to the partial sums of each grid.
     //   It is exclusive because it does not include the partial sum of its corresponding grid.
-    for (long i = 1; i < num_grids; ++i) {
+    for (Long i = 1; i < num_grids; ++i) {
         grids[i].exclusive_sum = grids[i-1].exclusive_sum + prefix_sums[grids[i-1].gid];
     }
 
     // Add the exclusive sums to the data on our corresponding local grids
     for (MFIter mfi(phi_psum); mfi.isValid(); ++mfi)
     {
-        long gidi = mfi.index();
+        Long gidi = mfi.index();
         auto& phi_psum_fab = phi_psum[mfi];
         phi_psum_fab.plus<RunOn::Host>(grids[grid_inv[gidi]].exclusive_sum, 0, 1);
     }

@@ -484,7 +484,7 @@ AmrLevel::isStateVariable (const std::string& name, int& typ, int& n)
     return false;
 }
 
-long
+Long
 AmrLevel::countCells () const noexcept
 {
     return grids.numPts();
@@ -1937,7 +1937,7 @@ AmrLevel::derive (const std::string& name, Real time, MultiFab& mf, int dcomp)
 void
 AmrLevel::UpdateDistributionMaps ( DistributionMapping& update_dmap )
 {
-    long mapsize = update_dmap.size();
+    Long mapsize = update_dmap.size();
 
     if (dmap.size() == mapsize)
     { dmap = update_dmap; }

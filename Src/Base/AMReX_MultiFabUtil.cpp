@@ -575,9 +575,9 @@ namespace amrex
         return amrex::cast<MultiFab>(imf);
     }
 
-    FabArray<BaseFab<long> > ToLongMultiFab (const iMultiFab& imf)
+    FabArray<BaseFab<Long> > ToLongMultiFab (const iMultiFab& imf)
     {
-        return amrex::cast<FabArray<BaseFab<long> > > (imf);
+        return amrex::cast<FabArray<BaseFab<Long> > > (imf);
     }
 
     std::unique_ptr<MultiFab> get_slice_data(int dir, Real coord, const MultiFab& cc, const Geometry& geom, int start_comp, int ncomp, bool interpolate) {

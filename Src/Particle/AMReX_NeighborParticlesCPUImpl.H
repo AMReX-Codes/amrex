@@ -110,8 +110,8 @@ sumNeighborsMPI (std::map<int, Vector<char> >& not_ours,
 #ifdef AMREX_USE_MPI
     const int NProcs = ParallelDescriptor::NProcs();
     
-    Vector<long> isnds(NProcs, 0);
-    Vector<long> ircvs(NProcs, 0);
+    Vector<Long> isnds(NProcs, 0);
+    Vector<Long> ircvs(NProcs, 0);
     for (int i = 0; i < NProcs; ++i)
         ircvs[i] = 0;
     
@@ -119,7 +119,7 @@ sumNeighborsMPI (std::map<int, Vector<char> >& not_ours,
         // each proc figures out how many bytes it will send, and how
         // many it will receive
         
-        long num_isnds = 0;
+        Long num_isnds = 0;
         for (const auto& kv : not_ours)
         {
             num_isnds      += kv.second.size();
@@ -139,7 +139,7 @@ sumNeighborsMPI (std::map<int, Vector<char> >& not_ours,
         for (int i = 0; i < num_ircvs; ++i)
         {
             const int Who = neighbor_procs[i];
-            const long Cnt = 1;
+            const Long Cnt = 1;
             
             AMREX_ASSERT(Who >= 0 && Who < NProcs);
             
@@ -149,7 +149,7 @@ sumNeighborsMPI (std::map<int, Vector<char> >& not_ours,
         // Send.
         for (int i = 0; i < num_ircvs; ++i) {
         const int Who = neighbor_procs[i];
-        const long Cnt = 1;
+        const Long Cnt = 1;
         
         AMREX_ASSERT(Who >= 0 && Who < NProcs);
         
@@ -387,7 +387,7 @@ getRcvCountsMPI () {
 
     // each proc figures out how many bytes it will send, and how
     // many it will receive
-    Vector<long> snds(NProcs, 0);
+    Vector<Long> snds(NProcs, 0);
     rcvs.resize(NProcs);
     for (int i = 0; i < NProcs; ++i)
         rcvs[i] = 0;
@@ -409,7 +409,7 @@ getRcvCountsMPI () {
     // Post receives
     for (int i = 0; i < num_rcvs; ++i) {
         const int Who = neighbor_procs[i];
-        const long Cnt = 1;
+        const Long Cnt = 1;
 
         AMREX_ASSERT(Who >= 0 && Who < NProcs);
 
@@ -419,7 +419,7 @@ getRcvCountsMPI () {
     // Send.
     for (int i = 0; i < num_rcvs; ++i) {
         const int Who = neighbor_procs[i];
-        const long Cnt = 1;
+        const Long Cnt = 1;
 
         AMREX_ASSERT(Who >= 0 && Who < NProcs);
 

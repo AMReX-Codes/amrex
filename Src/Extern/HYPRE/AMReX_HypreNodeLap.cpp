@@ -35,9 +35,9 @@ HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& d
     const BoxArray& nba = amrex::convert(grids,IntVect::TheNodeVector());
 
 #if defined(AMREX_DEBUG) || defined(AMREX_TESTING)
-    if (sizeof(Int) < sizeof(long)) {
-        long nnodes_grids = nba.numPts();
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(nnodes_grids < static_cast<long>(std::numeric_limits<Int>::max()),
+    if (sizeof(Int) < sizeof(Long)) {
+        Long nnodes_grids = nba.numPts();
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(nnodes_grids < static_cast<Long>(std::numeric_limits<Int>::max()),
                                          "You might need to configure Hypre with --enable-bigint");
     }
 #endif

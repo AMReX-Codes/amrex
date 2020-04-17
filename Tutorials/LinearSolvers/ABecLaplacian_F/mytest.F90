@@ -261,7 +261,7 @@ contains
     type(amrex_abeclaplacian) :: abeclap
     type(amrex_multigrid) :: multigrid
     integer :: ilev, idim
-    integer(c_long) :: npts
+    integer(amrex_long) :: npts
     real(amrex_real) :: err, avg1, avg2, offset
     type(amrex_multifab), allocatable :: beta(:,:)
     logical :: nodal(3)
