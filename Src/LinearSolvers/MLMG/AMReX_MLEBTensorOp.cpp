@@ -642,7 +642,7 @@ MLEBTensorOp::compVelGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fl
     const Geometry& geom = m_geom[amrlev][mglev];
     const auto dxinv = geom.InvCellSizeArray();
 
-    const int dim_fluxes = pow(AMREX_SPACEDIM,2);
+    const int dim_fluxes = AMREX_SPACEDIM*AMREX_SPACEDIM;
 
 
     MFItInfo mfi_info;
