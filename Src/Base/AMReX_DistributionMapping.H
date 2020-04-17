@@ -135,9 +135,10 @@ class DistributionMapping
     void SFCProcessorMap(const BoxArray& boxes, const std::vector<Long>& wgts, int nprocs,
                          Real& efficiency, bool sort=true);
     void KnapSackProcessorMap(const std::vector<Long>& wgts, int nprocs,
-                              Real* efficiency = 0,
-			      bool do_full_knapsack = true,
-			      int nmax = std::numeric_limits<int>::max());
+                              Real* efficiency=0,
+                              bool do_full_knapsack=true,
+                              int nmax=std::numeric_limits<int>::max(),
+                              bool sort=true);
     void RoundRobinProcessorMap(int nboxes, int nprocs);
     void RoundRobinProcessorMap(const std::vector<Long>& wgts, int nprocs);
 
@@ -166,7 +167,8 @@ class DistributionMapping
     static DistributionMapping makeKnapSack   (const Vector<Real>& rcost,
                                                int nmax=std::numeric_limits<int>::max());
     static DistributionMapping makeKnapSack   (const Vector<Real>& rcost, Real& eff,
-                                               int nmax=std::numeric_limits<int>::max());
+                                               int nmax=std::numeric_limits<int>::max(),
+                                               bool sort=true);
 
     static DistributionMapping makeRoundRobin (const MultiFab& weight);
     static DistributionMapping makeSFC        (const MultiFab& weight, bool sort=true);
@@ -223,7 +225,8 @@ private:
                        int                      nprocs,
                        Real&                    efficiency,
                        bool                     do_full_knapsack,
-                       int                      nmax=std::numeric_limits<int>::max());
+                       int                      nmax=std::numeric_limits<int>::max(),
+                       bool                     sort=true);
 
     void SFCProcessorMapDoIt (const BoxArray&          boxes,
                               const std::vector<Long>& wgts,
