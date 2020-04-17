@@ -74,7 +74,7 @@ ElectrostaticParticleContainer::DepositCharge(ScalarMeshData& rho) {
             auto& wp = pti.GetAttribs(PIdx::w);
             const auto& particles = pti.GetArrayOfStructs();
             int nstride = particles.dataShape().first;
-            const long np  = pti.numParticles();
+            const Long np  = pti.numParticles();
             
             FArrayBox& rhofab = (*rho[lev])[pti];
             
@@ -143,7 +143,7 @@ FieldGather(const VectorMeshData& E,
 
             const auto& particles = pti.GetArrayOfStructs();
             int nstride = particles.dataShape().first;
-            const long np  = pti.numParticles();
+            const Long np  = pti.numParticles();
 
             auto& attribs = pti.GetAttribs();
             auto& Exp = attribs[PIdx::Ex];
@@ -212,7 +212,7 @@ FieldGather(const VectorMeshData& E,
 
             const auto& particles = pti.GetArrayOfStructs();
             int nstride = particles.dataShape().first;
-            const long np  = pti.numParticles();
+            const Long np  = pti.numParticles();
 
             auto& attribs = pti.GetAttribs();
             auto& Exp = attribs[PIdx::Ex];
@@ -292,7 +292,7 @@ Evolve(const VectorMeshData& E, ScalarMeshData& rho, const Real& dt) {
             // Particle structs
             auto& particles = pti.GetArrayOfStructs();
             int nstride = particles.dataShape().first;           
-            const long np  = pti.numParticles();
+            const Long np  = pti.numParticles();
             
             // Particle attributes
             auto& attribs = pti.GetAttribs();
@@ -335,7 +335,7 @@ void ElectrostaticParticleContainer::pushX(const Real& dt) {
         for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
             auto& particles = pti.GetArrayOfStructs();
             int nstride = particles.dataShape().first;
-            const long np  = pti.numParticles();
+            const Long np  = pti.numParticles();
             
             auto& attribs = pti.GetAttribs();
             auto& vxp = attribs[PIdx::vx];
