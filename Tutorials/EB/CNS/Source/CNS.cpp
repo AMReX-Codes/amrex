@@ -11,12 +11,13 @@
 
 using namespace amrex;
 
+#if __cplusplus < 201703L
 constexpr int CNS::level_mask_interior;
 constexpr int CNS::level_mask_covered;
 constexpr int CNS::level_mask_notcovered;
 constexpr int CNS::level_mask_physbnd;
-
 constexpr int CNS::NUM_GROW;
+#endif
 
 BCRec     CNS::phys_bc;
 
@@ -358,7 +359,6 @@ CNS::errorEst (TagBoxArray& tags, int, int, Real time, int, int)
         {
             const Box& bx = mfi.tilebox();
 
-            const auto& sfab = S_new[mfi];
             const auto& flag = flags[mfi];
 
             const FabType typ = flag.getType(bx);
@@ -484,7 +484,6 @@ CNS::estTimeStep ()
         {
             const Box& box = mfi.tilebox();
 
-            const auto& sfab = S[mfi];
             const auto& flag = flags[mfi];
 
             if (flag.getType(box) != FabType::covered) {
@@ -523,7 +522,6 @@ CNS::computeTemp (MultiFab& State, int ng)
     {
         const Box& bx = mfi.growntilebox(ng);
 
-        const auto& sfab = State[mfi];
         const auto& flag = flags[mfi];
 
         if (flag.getType(bx) != FabType::covered) {

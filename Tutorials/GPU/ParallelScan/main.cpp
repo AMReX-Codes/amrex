@@ -57,7 +57,7 @@ int main (int argc, char* argv[])
 
 void main_main ()
 {
-    long N = 256*1024*1024 - 37;
+    Long N = 256*1024*1024 - 37;
 
     {
         ParmParse pp;

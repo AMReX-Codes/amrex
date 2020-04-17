@@ -224,10 +224,10 @@ FabArrayBase::fabbox (int K) const noexcept
     return amrex::grow(boxarray[K], n_grow);
 }
 
-long
+Long
 FabArrayBase::bytesOfMapOfCopyComTagContainers (const FabArrayBase::MapOfCopyComTagContainers& m)
 {
-    long r = sizeof(MapOfCopyComTagContainers);
+    Long r = sizeof(MapOfCopyComTagContainers);
     for (MapOfCopyComTagContainers::const_iterator it = m.begin(); it != m.end(); ++it) {
 	r += sizeof(it->first) + amrex::bytesOf(it->second)
 	    + amrex::gcc_map_node_extra_bytes;
@@ -235,10 +235,10 @@ FabArrayBase::bytesOfMapOfCopyComTagContainers (const FabArrayBase::MapOfCopyCom
     return r;
 }
 
-long
+Long
 FabArrayBase::CPC::bytes () const
 {
-    long cnt = sizeof(FabArrayBase::CPC);
+    Long cnt = sizeof(FabArrayBase::CPC);
 
     if (m_LocTags)
 	cnt += amrex::bytesOf(*m_LocTags);
@@ -252,7 +252,7 @@ FabArrayBase::CPC::bytes () const
     return cnt;
 }
 
-long
+Long
 FabArrayBase::FB::bytes () const
 {
     int cnt = sizeof(FabArrayBase::FB);
@@ -269,7 +269,7 @@ FabArrayBase::FB::bytes () const
     return cnt;
 }
 
-long
+Long
 FabArrayBase::TileArray::bytes () const
 {
     return sizeof(*this) 
@@ -1153,10 +1153,10 @@ FabArrayBase::FPinfo::~FPinfo ()
     delete m_coarsener;
 }
 
-long
+Long
 FabArrayBase::FPinfo::bytes () const
 {
-    long cnt = sizeof(FabArrayBase::FPinfo);
+    Long cnt = sizeof(FabArrayBase::FPinfo);
     cnt += sizeof(Box) * (ba_crse_patch.capacity() + dst_boxes.capacity());
     cnt += sizeof(int) * (dm_crse_patch.capacity() + dst_idxs.capacity());
     return cnt;
@@ -1320,10 +1320,10 @@ FabArrayBase::CFinfo::Domain (const Geometry& geom, const IntVect& ng,
     return bx;
 }
 
-long
+Long
 FabArrayBase::CFinfo::bytes () const
 {
-    long cnt = sizeof(FabArrayBase::CFinfo);
+    Long cnt = sizeof(FabArrayBase::CFinfo);
     cnt += sizeof(Box) * ba_cfb.capacity();
     cnt += sizeof(int) * (dm_cfb.capacity() + fine_grid_idx.capacity());
     return cnt;
@@ -1728,7 +1728,7 @@ operator<< (std::ostream& os, const FabArrayBase::BDKey& id)
 }
 
 void
-FabArrayBase::updateMemUsage (std::string const& tag, long nbytes, Arena const* /*ar*/)
+FabArrayBase::updateMemUsage (std::string const& tag, Long nbytes, Arena const* /*ar*/)
 {
     auto& mi = m_mem_usage[tag];
     mi.nbytes += nbytes;
@@ -1747,7 +1747,7 @@ FabArrayBase::printMemUsage ()
     }
 }
 
-long
+Long
 FabArrayBase::queryMemUsage (const std::string& t)
 {
     auto r = m_mem_usage.find(t);
@@ -1758,7 +1758,7 @@ FabArrayBase::queryMemUsage (const std::string& t)
     }
 }
 
-long
+Long
 FabArrayBase::queryMemUsageHWM (const std::string& t)
 {
     auto r = m_mem_usage.find(t);

@@ -258,7 +258,7 @@ public:
     //
     const IntVect& fineRatio () const noexcept { return fine_ratio; }
     //! Returns number of cells on level.
-    long countCells () const noexcept;
+    Long countCells () const noexcept;
 
     //! Get the area not to tag.
     const BoxArray& getAreaNotToTag() noexcept;

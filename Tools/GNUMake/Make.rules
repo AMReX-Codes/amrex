@@ -9,6 +9,7 @@ vpath %.c    $(FINAL_VPATH_LOCATIONS)
 vpath %.cpp  $(FINAL_VPATH_LOCATIONS)
 vpath %.h    $(FINAL_VPATH_LOCATIONS)
 vpath %.H    $(FINAL_VPATH_LOCATIONS)
+vpath %.hpp  $(FINAL_VPATH_LOCATIONS)
 
 FCPPFLAGS := $(addprefix $(CPP_PREFIX), $(CPPFLAGS))
 
@@ -60,8 +61,9 @@ else
 
 # multiple executables
 %.$(machineSuffix).ex:%.cpp $(objForExecs)
+	$(SLIENT) $(CCACHE) $(CXX) $(CXXFLAGS) $(EXTRACXXFLAGS) $(CPPFLAGS) $(includes) -c $< -o $(objEXETempDir)/$<.o
 	@echo "Linking $@ ..."
-	$(SLIENT) $(AMREX_LINKER) $(LINKFLAGS) $(CPPFLAGS) $(includes) $(LDFLAGS) -o $@ $^ $(libraries)
+	$(SLIENT) $(AMREX_LINKER) $(LINKFLAGS) $(CPPFLAGS) $(includes) $(LDFLAGS) -o $@ $(objEXETempDir)/$<.o $(objForExecs) $(libraries)
 
 endif
 

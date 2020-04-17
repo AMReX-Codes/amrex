@@ -231,8 +231,9 @@ T PrefixSum (int n, FIN && fin, FOUT && fout, Type type)
             // participate.
             if (warp == 0 && lane < nwarps) {
                 T y = shared[lane];
-                AMREX_HIP_OR_CUDA( long mask = (1 << nwarps) - 1;,
-                                   int  mask = (1 << nwarps) - 1; );
+#ifdef AMREX_USE_CUDA
+                int mask = (1 << nwarps) - 1;
+#endif
                 for (int i = 1; i <= nwarps; i *= 2) {
                     AMREX_HIP_OR_CUDA( T s = __shfl_up(y, i, nwarps);,
                                        T s = __shfl_up_sync(mask, y, i, nwarps); );
@@ -349,7 +350,7 @@ T PrefixSum (int n, FIN && fin, FOUT && fout, Type type)
 template <typename N, typename T, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
 T InclusiveSum (N n, T const* in, T * out)
 {
-    AMREX_ALWAYS_ASSERT(static_cast<long>(n) < static_cast<long>(std::numeric_limits<int>::max()));
+    AMREX_ALWAYS_ASSERT(static_cast<Long>(n) < static_cast<Long>(std::numeric_limits<int>::max()));
     return PrefixSum<T>(n,
                  [=] AMREX_GPU_DEVICE (int i) -> T { return in[i]; },
                  [=] AMREX_GPU_DEVICE (int i, T const& x) { out[i] = x; },
@@ -360,7 +361,7 @@ T InclusiveSum (N n, T const* in, T * out)
 template <typename N, typename T, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
 T ExclusiveSum (N n, T const* in, T * out)
 {
-    AMREX_ALWAYS_ASSERT(static_cast<long>(n) < static_cast<long>(std::numeric_limits<int>::max()));
+    AMREX_ALWAYS_ASSERT(static_cast<Long>(n) < static_cast<Long>(std::numeric_limits<int>::max()));
     return PrefixSum<T>(n,
                  [=] AMREX_GPU_DEVICE (int i) -> T { return in[i]; },
                  [=] AMREX_GPU_DEVICE (int i, T const& x) { out[i] = x; },

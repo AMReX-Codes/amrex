@@ -18,7 +18,7 @@ struct ParticleTileData
     using ParticleType = Particle<NStructReal, NStructInt>;
     using SuperParticleType = Particle<NStructReal+NArrayReal, NStructInt+NArrayInt>;
 
-    long m_size;
+    Long m_size;
     ParticleType* AMREX_RESTRICT m_aos;
     GpuArray<ParticleReal* AMREX_RESTRICT, NArrayReal> m_rdata;
     GpuArray<int* AMREX_RESTRICT, NArrayInt> m_idata;    
@@ -150,7 +150,7 @@ struct ConstParticleTileData
     using ParticleType = Particle<NStructReal, NStructInt>;
     using SuperParticleType = Particle<NStructReal+NArrayReal, NStructInt+NArrayInt>;
 
-    long m_size;
+    Long m_size;
     const ParticleType* AMREX_RESTRICT m_aos;
     GpuArray<const ParticleReal* AMREX_RESTRICT, NArrayReal> m_rdata;
     GpuArray<const int* AMREX_RESTRICT, NArrayInt > m_idata;    
@@ -408,9 +408,9 @@ struct ParticleTile
         }        
     }
 
-    long capacity () const
+    Long capacity () const
     {
-        long nbytes = 0;
+        Long nbytes = 0;
         nbytes += m_aos_tile().capacity() * sizeof(ParticleType);
         for (int j = 0; j < NumRealComps(); ++j)
         {

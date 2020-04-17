@@ -38,13 +38,21 @@ list of important variables.
    | CXXSTD     | C++ standard (``c++11``, ``c++14``) | compiler default,  |
    |            |                                     | at least ``c++11`` |
    +------------+-------------------------------------+--------------------+
-   | DEBUG      | TRUE or FALSE                       | TRUE               |
+   | DEBUG      | TRUE or FALSE                       | FALSE              |
    +------------+-------------------------------------+--------------------+
-   | DIM        | 1 or 2 or 3                         | none               |
+   | DIM        | 1 or 2 or 3                         | 3                  |
+   +------------+-------------------------------------+--------------------+
+   | PRECISION  | DOUBLE or FLOAT                     | DOUBLE             |
    +------------+-------------------------------------+--------------------+
    | USE_MPI    | TRUE or FALSE                       | FALSE              |
    +------------+-------------------------------------+--------------------+
    | USE_OMP    | TRUE or FALSE                       | FALSE              |
+   +------------+-------------------------------------+--------------------+
+   | USE_CUDA   | TRUE or FALSE                       | FALSE              |
+   +------------+-------------------------------------+--------------------+
+   | USE_HIP    | TRUE or FALSE                       | FALSE              |
+   +------------+-------------------------------------+--------------------+
+   | USE_DPC++  | TRUE or FALSE                       | FALSE              |
    +------------+-------------------------------------+--------------------+
    | USE_RPATH  | TRUE or FALSE                       | FALSE              |
    +------------+-------------------------------------+--------------------+
@@ -78,20 +86,27 @@ Note: when setting ``AMREX_HOME`` in the ``GNUmakefile``, be aware that ``~`` do
 not expand, so ``AMREX_HOME=~/amrex/`` will yield an error.
 
 One must set the ``COMP`` variable to choose a compiler. Currently the list of
-supported compilers includes gnu, cray, ibm, intel, llvm, and pgi. One must
-also set the ``DIM`` variable to either 1, 2, or 3, depending on the dimensionality
-of the problem.
+supported compilers includes gnu, cray, ibm, intel, llvm, and pgi.
+
+One could set the ``DIM`` variable to either 1, 2, or 3, depending on
+the dimensionality of the problem.  The default dimensionality is 3.
+AMReX uses double precision by default.  One can change to single
+precision by setting ``PRECISION=FLOAT``.
 
 Variables ``DEBUG``, ``USE_MPI`` and ``USE_OMP`` are optional with default set
-to TRUE, FALSE and FALSE, respectively.  The meaning of these variables should
-be obvious.  When ``DEBUG = TRUE``, aggressive compiler optimization flags are
+to FALSE.  The meaning of these variables should
+be obvious.  When ``DEBUG=TRUE``, aggressive compiler optimization flags are
 turned off and assertions in  source code are turned on. For production runs,
 ``DEBUG`` should be set to FALSE.
+
+Variables ``USE_CUDA``, ``USE_HIP`` and ``USE_DPCPP`` are used for
+targeting Nvidia, AMD and Intel GPUs, respectively.  At most one of
+the three can be TRUE.
 
 The variable ``USE_RPATH`` controls the link mechanism to dependent libraries.
 If enabled, the library path at link time will be saved as a
 `rpath hint <https://en.wikipedia.org/wiki/Rpath>`_ in created binaries.
-When disabled, library paths must be provided via ``export LD_LIBRARY_PATH``
+When disabled, dynamic library paths could be provided via ``export LD_LIBRARY_PATH``
 hints at runtime.
 
 After defining these make variables, a number of files, ``Make.defs,
@@ -109,7 +124,7 @@ source files are shown below.
         extension.
 
     CEXE_headers
-        C++ headers with .h or .H extension.
+        C++ headers with .h, .hpp, or .H extension.
 
     cEXE_sources
         C source files with .c extension.
@@ -162,8 +177,10 @@ Besides building executable, other common make commands include:
         and tweaking the make system.
 
 Compiler flags are set in ``amrex/Tools/GNUMake/comps/``. Note that variables
-like ``CC`` and ``CFLAGS`` are reset in that directory and their values in
-environment variables are disregarded.  Site-specific setups (e.g., the MPI
+like ``CXX`` and ``CXXFLAGS`` are reset in that directory and their values in
+environment variables are disregarded.  However, one could override them
+with make command line arguments (e.g., ``make CXX=/path/to/my/mpicxx``).
+Site-specific setups (e.g., the MPI
 installation) are in ``amrex/Tools/GNUMake/sites/``, which includes a generic
 setup in ``Make.unknown``. You can override the setup by having your own
 ``sites/Make.$(host_name)`` file, where variable ``host_name`` is your host
@@ -249,9 +266,20 @@ using ``gcc-8`` (with and without MPI) by using the following
 
 The additional ``INCLUDE_LOCATIONS`` are installed using homebrew also. Note
 that if you are building AMReX using homebrew's gcc, it is recommended that you
-use homebrew's mpich. Normally is it fine to simply install its binaries:
+use homebrew's mpich. Normally it is fine to simply install its binaries:
 ``brew install mpich``. But if you are experiencing problems, we suggest
 building mpich using homebrew's gcc: ``brew install mpich --cc=gcc-8``.
+
+Fortran
+-------
+
+If your code does not use Fortran, you can add ``BL_NO_FORT=TRUE`` to
+your makefile to disable Fortran.
+
+ccache
+------
+
+If you use ccache, you can add ``USE_CCACHE=TRUE`` to your makefile.
 
 .. _sec:build:lib:
 
@@ -375,11 +403,13 @@ below.
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | CMAKE_CXX_FLAGS              |  User-defined C++ flags                         |             | user-defined    |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | AMREX_CXX_STANDARD           |  C++ standard                                   | 14          | 11, 14, 17      |
+   | CMAKE_CXX_STANDARD           |  C++ standard                                   | compiler/11 | 11, 14, 17, 20  |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | DIM                          |  Dimension of AMReX build                       | 3           | 1, 2, 3         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | USE_XSDK_DEFAULTS            |  Use XSDK defaults settings                     | NO          | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | ENABLE_FORTRAN               |  Enable Fortran language                        | YES         | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | ENABLE_DP                    |  Build with double-precision reals              | YES         | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
@@ -463,7 +493,7 @@ they will be initialized with the value of the environmental variables ``FFLAGS`
 ``CXXFLAGS``. If neither ``FFLAGS``/ ``CXXFLAGS`` nor ``CMAKE_Fortran_FLAGS``/ ``CMAKE_CXX_FLAGS``
 are defined, AMReX default flags are used.
 
-For a detailed explanation of CUDA support in AMReX CMake, refer to section :ref:`sec:gpu:build`.
+For a detailed explanation of GPU support in AMReX CMake, refer to section :ref:`sec:gpu:build`.
 
 
 
@@ -665,7 +695,3 @@ Some of the POSIX handling is platform-dependent, and Windows does seem to have 
 
 (3) Memory profiling:  This is an optional feature in AMReX that is not enabled by default.
 It reads memory system information from the OS to give us a summary of our memory usage.
-
-One other caveat is regarding the size of ``long``, which is 4 on Windows and 8 on other 64-bit systems.
-This might cause integer overflow for really big runs (unlikely on Windows desktops as opposd to clusters).
-If this becomes an issue, please let us know and we could define amrex::Long that would be guaranteed to be 64 bits.

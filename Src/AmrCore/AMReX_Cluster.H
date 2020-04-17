@@ -39,8 +39,7 @@ public:
     * \param a
     * \param len
     */
-    Cluster (IntVect* a,
-             long     len) noexcept;
+    Cluster (IntVect* a, Long len) noexcept;
 
     /**
     * \brief Construct new cluster by removing all points from c that lie
@@ -70,14 +69,14 @@ public:
     /**
     * \brief Returns number of tagged points in cluster.
     */
-    long numTag () const noexcept { return m_len; }
+    Long numTag () const noexcept { return m_len; }
 
     /**
     * \brief Return number of tagged points in intersection of cluster and Box b.
     *
     * \param b
     */
-    long numTag (const Box& b) const noexcept;
+    Long numTag (const Box& b) const noexcept;
 
     /**
     * \brief This operation splits a cluster into two pieces by selecting
@@ -135,7 +134,7 @@ private:
     //! The data.
     Box      m_bx;
     IntVect* m_ar = nullptr;
-    long     m_len = 0;
+    Long     m_len = 0;
 };
 
 
@@ -160,8 +159,7 @@ public:
     * \param pts
     * \param len
     */
-    ClusterList (IntVect* pts,
-                 long     len);
+    ClusterList (IntVect* pts, Long len);
 
     /**
     * \brief The destructor.

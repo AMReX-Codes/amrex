@@ -156,7 +156,7 @@ void main_main()
         Array<Real,AMREX_SPACEDIM> problo = pf.probLo();
         Array<Real,AMREX_SPACEDIM> dx = pf.cellSize(max_level);
         for (int idim = 0; idim < dim; ++idim) {
-            iloc[idim] = (location[idim]-problo[idim]) / dx[idim];
+            iloc[idim] = static_cast<int>((location[idim]-problo[idim]) / dx[idim]);
         }
     }
 
@@ -221,7 +221,7 @@ void main_main()
                         const auto& data = datamf[idir].array(0); // there is only one box
                         IntVect rrslice = rrlev;
                         rrslice[idir] = 1;
-                        amrex::For(ibox, [=] (int i, int j, int k)
+                        amrex::For(ibox, [=] AMREX_GPU_DEVICE (int i, int j, int k)
                         {
                             if (m(i,j,k) == 0) { // not covered by fine
                                 const Real d = plt(i,j,k);
@@ -248,7 +248,7 @@ void main_main()
                     const Box& ibox = bx & finebox[idir];
                     if (ibox.ok()) {
                         const auto& data = datamf[idir].array(0); // there is only one box
-                        amrex::ParallelFor(ibox, [=] (int i, int j, int k)
+                        amrex::ParallelFor(ibox, [=] AMREX_GPU_DEVICE (int i, int j, int k)
                         {
                             data(i,j,k) = plt(i,j,k);
                         });
@@ -284,7 +284,7 @@ void main_main()
         const auto& intarr = intdat.array();
         const auto& realarr = datamf[idir].array(0);
         Real fac = 253.999 / (gmx-gmn);
-        amrex::ParallelFor(finebox[idir], [=] (int i, int j, int k)
+        amrex::LoopOnCpu(finebox[idir], [=] (int i, int j, int k)
         {
             int jj = (idir == 2) ? height - 1 - j : j;  // flip the data in second image direction
             int kk = (idir == 2) ? k : height - 1 - k;

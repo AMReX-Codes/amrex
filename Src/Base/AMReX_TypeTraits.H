@@ -82,9 +82,16 @@ namespace amrex
     template <class T, class Enable = void>
     struct IsDeviceLambda : std::false_type {};
 
+    template <class T, class Enable = void>
+    struct IsHostDeviceLambda : std::false_type {};
+
 #if defined(AMREX_USE_CUDA)
     template <class T>
     struct IsDeviceLambda<T, amrex::EnableIf_t<__nv_is_extended_device_lambda_closure_type(T)> >
+        : std::true_type {};
+
+    template <class T>
+    struct IsHostDeviceLambda<T, amrex::EnableIf_t<__nv_is_extended_host_device_lambda_closure_type(T)> >
         : std::true_type {};
 #endif
 

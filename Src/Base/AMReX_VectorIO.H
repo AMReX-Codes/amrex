@@ -33,7 +33,7 @@ namespace amrex {
     //! IntDescriptor that describes the data format to use for writing. If no
     //! IntDescriptor is provided, the data will be written using the native
     //! format for your machine.
-    void writeLongData(const long* data, std::size_t size, std::ostream& os,
+    void writeLongData(const Long* data, std::size_t size, std::ostream& os,
                        const IntDescriptor& id = FPC::NativeLongDescriptor());
 
     //! Read int data from the istream. The arguments are a pointer to data buffer
@@ -41,7 +41,7 @@ namespace amrex {
     //! that describes the format of the data on disk. 
     //! The buffer is assumed to be large enough to store 'size' longs, and it is
     //! the user's reponsiblity to allocate this data.
-    void readLongData(long* data, std::size_t size, std::istream& is, const IntDescriptor& id);
+    void readLongData(Long* data, std::size_t size, std::istream& is, const IntDescriptor& id);
 
     //! Write Real data to the ostream. The arguments are a pointer to data
     //! to write, the size of the data buffer, the ostream, and an optional
@@ -96,7 +96,7 @@ namespace amrex {
         writeIntData(data, size, os);
     }
 
-    inline void writeData (long const* data, std::size_t size, std::ostream& os)
+    inline void writeData (Long const* data, std::size_t size, std::ostream& os)
     {
         writeLongData(data, size, os);
     }
@@ -116,7 +116,7 @@ namespace amrex {
         readIntData(data, size, is, FPC::NativeIntDescriptor());
     }
 
-    inline void readData (long * data, std::size_t size, std::istream& is)
+    inline void readData (Long * data, std::size_t size, std::istream& is)
     {
         readLongData(data, size, is, FPC::NativeLongDescriptor());
     }

@@ -6,10 +6,10 @@
   several numbers.  For example, we get 8, 16 and 32 for Gen9.  We
   would like to specify the sub group size and this feature is
   supported.  All three sizes seem to work except that subgroup
-  primitives such as shuffle_down do not work for sizes.  By try and
-  error, we have found that shuffle_down works for 16.  Could oneAPI
-  provide a query function for returning the "primitive" subgroup
-  size?
+  primitives such as `shuffle_down` do not work for all sizes.  By try
+  and error, we have found that shuffle_down works for 16.  Could
+  oneAPI provide a query function for returning the "primitive"
+  subgroup size?
 
 * ~~Classes that are not standard layout.  The current specification of
   oneAPI does not support the capture of objects that are not standard
@@ -47,7 +47,9 @@
   bug when `this` is implicitly captured onto device via `[=]`.
 
 * `assert(0)`. `assert(0)` when called on device does not throw any
-  errors or abort the run.  Is it possible to make it abort?
+  errors or abort the run.  Is it possible to make it abort or return
+  an error code that can be checked on the host?  In CUDA, the users
+  can check an error code.
 
 * `sycl::abs`. `sycl::abs(int)` returns an `unsigned int` in contrast to
   `int std::abs(int)`.  Currently `std::abs` does not work on device.  If

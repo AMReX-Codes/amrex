@@ -88,19 +88,19 @@ public:
     * \param ar
     * \param start
     */
-    long collate (Vector<IntVect>& ar, int start) const noexcept;
+    Long collate (Vector<IntVect>& ar, int start) const noexcept;
 
     /**
     * \brief Returns number of tagged cells in specified Box.
     *
     * \param bx
     */
-    long numTags (const Box& bx) const noexcept;
+    Long numTags (const Box& bx) const noexcept;
 
     /**
     * \brief Returns total number of tagged cells in the TagBox.
     */
-    long numTags () const noexcept;
+    Long numTags () const noexcept;
 
     /**
     * \brief Returns Vector\<int\> of size domain.numPts() suitable for calling
@@ -244,7 +244,7 @@ public:
     /**
     * \brief The total number of Tags in all the contained TagBoxes.
     */
-    long numTags () const;
+    Long numTags () const;
 
     /**
     * \brief Calls collate() on all contained TagBoxes.

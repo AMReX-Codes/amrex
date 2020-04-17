@@ -81,7 +81,7 @@ struct CudaGraph
         }
     }
 
-    void resize(long num) {
+    void resize(Long num) {
         m_parms.resize(num);
         if (m_parms_d != nullptr)
         {

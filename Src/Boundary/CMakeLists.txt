@@ -1,7 +1,7 @@
 target_include_directories(amrex PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>)
 
 target_sources(amrex
-   PRIVATE 
+   PRIVATE
    AMReX_FabSet.cpp
    AMReX_BndryRegister.cpp
    AMReX_Mask.cpp
@@ -21,12 +21,17 @@ target_sources(amrex
    AMReX_MacBndry.H
    AMReX_InterpBndryData_K.H
    AMReX_InterpBndryData_${DIM}D_K.H
-   AMReX_LO_UTIL.F90
    AMReX_LOUtil_K.H
    AMReX_YAFluxRegister.H
    AMReX_YAFluxRegister_K.H
    AMReX_YAFluxRegister_${DIM}D_K.H
    AMReX_YAFluxRegister.cpp
-   AMReX_lo_bctypes_mod.F90
    )
 
+if (ENABLE_FORTRAN)
+   target_sources(amrex
+      PRIVATE
+      AMReX_LO_UTIL.F90
+      AMReX_lo_bctypes_mod.F90
+      )
+endif ()

@@ -135,7 +135,7 @@ struct Particle
 
     static int MaxReaders ();
 
-    static long MaxParticlesPerRead ();
+    static Long MaxParticlesPerRead ();
 
 
     /**
@@ -379,7 +379,9 @@ Particle<NReal, NInt>::CIC_Cells_Fracs_Basic (const Particle<NReal, NInt>& p,
                                                     static_cast<Real>((p.m_rdata.pos[1]-plo[1])/dx[1] + 0.5_rt),
                                                     static_cast<Real>((p.m_rdata.pos[2]-plo[2])/dx[2] + 0.5_rt)) };
 
-    const IntVect cell(AMREX_D_DECL(floor(len[0]), floor(len[1]), floor(len[2])));
+    const IntVect cell(AMREX_D_DECL(static_cast<int>(amrex::Math::floor(len[0])),
+                                    static_cast<int>(amrex::Math::floor(len[1])),
+                                    static_cast<int>(amrex::Math::floor(len[2]))));
 
     const Real frac[AMREX_SPACEDIM] = { AMREX_D_DECL(len[0]-cell[0], len[1]-cell[1], len[2]-cell[2]) };
 
@@ -417,9 +419,12 @@ Particle<NReal, NInt>::CIC_Cells_Fracs (const Particle<NReal, NInt>& p,
                                              (p.m_rdata.pos[1]-plo[1]-dx_part[1]/2)/dx_geom[1],
                                              (p.m_rdata.pos[2]-plo[2]-dx_part[2]/2)/dx_geom[2]) };
 
-    const IntVect hicell(AMREX_D_DECL(floor(hilen[0]), floor(hilen[1]), floor(hilen[2])));
-
-    const IntVect locell(AMREX_D_DECL(floor(lolen[0]), floor(lolen[1]), floor(lolen[2])));
+    const IntVect hicell(AMREX_D_DECL(static_cast<int>(amrex::Math::floor(hilen[0])),
+                                      static_cast<int>(amrex::Math::floor(hilen[1])),
+                                      static_cast<int>(amrex::Math::floor(hilen[2]))));
+    const IntVect locell(AMREX_D_DECL(static_cast<int>(amrex::Math::floor(lolen[0])),
+                                      static_cast<int>(amrex::Math::floor(lolen[1])),
+                                      static_cast<int>(amrex::Math::floor(lolen[2]))));
 
     const Real cell_density = AMREX_D_TERM(dx_geom[0]/dx_part[0],*dx_geom[1]/dx_part[1],*dx_geom[2]/dx_part[2]);
 
@@ -501,7 +506,7 @@ Particle<NReal, NInt>::MaxReaders ()
 }
 
 template <int NReal, int NInt>
-long
+Long
 Particle<NReal, NInt>::MaxParticlesPerRead ()
 {
 
@@ -509,9 +514,9 @@ Particle<NReal, NInt>::MaxParticlesPerRead ()
     // This is the maximum particles that "each" reader will attempt to read
     // before doing a Redistribute().
     //
-    const long Max_Particles_Per_Read_def = 100000;
+    const Long Max_Particles_Per_Read_def = 100000;
 
-    static long Max_Particles_Per_Read;
+    static Long Max_Particles_Per_Read;
 
     static bool first = true;
 

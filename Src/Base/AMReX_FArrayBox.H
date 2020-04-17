@@ -473,14 +473,14 @@ bool
 FArrayBox::contains_nan () const noexcept
 {
     const Real* dp = dptr;
-    const long n = numPts()*nvar;
+    const Long n = numPts()*nvar;
 #ifdef AMREX_USE_GPU
     if (run_on == RunOn::Device and Gpu::inLaunchRegion()) {
         ReduceOps<ReduceOpLogicalOr> reduce_op;
         ReduceData<int> reduce_data(reduce_op);
         using ReduceTuple = ReduceData<int>::Type;
         reduce_op.eval(n, reduce_data,
-        [=] AMREX_GPU_DEVICE (long i) -> ReduceTuple
+        [=] AMREX_GPU_DEVICE (Long i) -> ReduceTuple
         {
             return { static_cast<int>(amrex::isnan(dp[i])) };
         });
@@ -489,7 +489,7 @@ FArrayBox::contains_nan () const noexcept
     } else
 #endif
     {
-        for (long i = 0; i < n; i++) {
+        for (Long i = 0; i < n; i++) {
             if (amrex::isnan(*dp++)) {
                 return true;
             }
@@ -617,14 +617,14 @@ bool
 FArrayBox::contains_inf () const noexcept
 {
     const Real* dp = dptr;
-    const long n = numPts()*nvar;
+    const Long n = numPts()*nvar;
 #ifdef AMREX_USE_GPU
     if (run_on == RunOn::Device and Gpu::inLaunchRegion()) {
         ReduceOps<ReduceOpLogicalOr> reduce_op;
         ReduceData<int> reduce_data(reduce_op);
         using ReduceTuple = ReduceData<int>::Type;
         reduce_op.eval(n, reduce_data,
-        [=] AMREX_GPU_DEVICE (long i) -> ReduceTuple
+        [=] AMREX_GPU_DEVICE (Long i) -> ReduceTuple
         {
             return { static_cast<int>(amrex::isinf(dp[i])) };
         });
@@ -633,7 +633,7 @@ FArrayBox::contains_inf () const noexcept
     } else
 #endif
     {
-        for (long i = 0; i < n; i++) {
+        for (Long i = 0; i < n; i++) {
             if (amrex::isinf(*dp++)) {
                 return true;
             }

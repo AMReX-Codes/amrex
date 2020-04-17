@@ -22,7 +22,7 @@ struct Managed {
     
     void operator delete (void *ptr)
     {
-        The_Managed_Arena()->free(ptr);
+        if (ptr) The_Managed_Arena()->free(ptr);
     }
 
 #endif
@@ -39,7 +39,7 @@ struct Pinned {
     
     void operator delete (void *ptr)
     {
-        The_Pinned_Arena()->free(ptr);
+        if (ptr) The_Pinned_Arena()->free(ptr);
     }
     
 #endif
@@ -163,6 +163,16 @@ struct SharedMemory<long>
 };
 
 template <>
+struct SharedMemory<long long>
+{
+    AMREX_GPU_DEVICE long long* dataPtr () noexcept {
+        AMREX_HIP_OR_CUDA(HIP_DYNAMIC_SHARED(long long,amrex_sm_long_long);,
+                          extern __shared__  long long amrex_sm_long_long[];)
+        return amrex_sm_long_long;
+    }
+};
+
+template <>
 struct SharedMemory<int>
 {
     AMREX_GPU_DEVICE int* dataPtr () noexcept {
@@ -199,6 +209,16 @@ struct SharedMemory<unsigned long>
         AMREX_HIP_OR_CUDA(HIP_DYNAMIC_SHARED(unsigned long,amrex_sm_ulong);,
                           extern __shared__  unsigned long amrex_sm_ulong[];)
         return amrex_sm_ulong;
+    }
+};
+
+template <>
+struct SharedMemory<unsigned long long>
+{
+    AMREX_GPU_DEVICE unsigned long long* dataPtr () noexcept {
+        AMREX_HIP_OR_CUDA(HIP_DYNAMIC_SHARED(unsigned long long,amrex_sm_ulonglong);,
+                          extern __shared__  unsigned long long amrex_sm_ulonglong[];)
+        return amrex_sm_ulonglong;
     }
 };
 

@@ -1,5 +1,5 @@
 if (DIM EQUAL 1)
-    return()
+   return()
 endif ()
 
 #
@@ -14,12 +14,16 @@ set(exe_name "${exe_name}.exe")
 add_executable( ${exe_name} EXCLUDE_FROM_ALL "")
 
 target_sources( ${exe_name}
-    PRIVATE
-    main.cpp
-    MyTest.cpp
-    MyTest.H
-    MyTestPlotfile.cpp
-    )
+   PRIVATE
+   main.cpp
+   MyTest.cpp
+   MyTest.H
+   MyTestPlotfile.cpp
+   )
+
+if (ENABLE_CUDA)
+   set_cpp_sources_to_cuda_language( ${exe_name} )
+endif ()
 
 target_include_directories(${exe_name} PRIVATE ${CMAKE_CURRENT_LIST_DIR})
 

@@ -2,81 +2,83 @@
 # For NERSC machines: Cori and corigpu
 #
 
-ifneq ($(which_computer),$(filter $(which_computer),cori))
+NERSC_MACHINES := cori cgpu
+
+ifneq ($(which_computer),$(filter $(which_computer), ${NERSC_MACHINES}))
   $(error Unknown NERSC computer, $(which_computer))
 endif
 
+ifeq ($(which_computer),$(filter $(which_computer),cori))
 
-ifdef PE_ENV
-ifneq ($(USE_CUDA),TRUE)
-  lowercase_peenv := $(shell echo $(PE_ENV) | tr A-Z a-z)
-  ifneq ($(lowercase_peenv),$(lowercase_comp))
-    has_compiler_mismatch = COMP=$(COMP) does not match PrgEnv-$(lowercase_peenv)
+  ifdef PE_ENV
+  ifneq ($(USE_CUDA),TRUE)
+    lowercase_peenv := $(shell echo $(PE_ENV) | tr A-Z a-z)
+    ifneq ($(lowercase_peenv),$(lowercase_comp))
+      has_compiler_mismatch = COMP=$(COMP) does not match PrgEnv-$(lowercase_peenv)
+    endif
   endif
-endif
-endif
+  endif
 
-
-ifeq ($(USE_MPI),TRUE)
-ifeq ($(USE_CUDA),TRUE)
-  CC  = mpicc
-  CXX = mpic++ 
-  FC  = mpif90
-  F90 = mpif90
-  cori_mvapich_link_flags := $(shell mpic++ -link_info)
-
-# Using OPENMPI + UCX
-  ifeq ($(cori_mvapich_link_flags),)
-    CXX := nvcc
-    cori_openmpi_compile_flags := $(shell mpic++ --showme:compile)
-    cori_openmpi_link_flags := $(shell mpic++ --showme:link)
-
-    ifeq ($(findstring -pthread,$(cori_openmpi_compile_flags)),-pthread)
-       CXXFLAGS += -Xcompiler='-pthread'
-    endif
-
-    ifeq ($(findstring -pthread,$(cori_openmpi_link_flags)),-pthread)
-        LDFLAGS += -Xcompiler='-pthread'
-    endif
-
-    includes += $(wordlist 1,1024,$(filter-out -pthread,$(cori_openmpi_compile_flags)))
-#   NOTE: MUST be done in LIBRARIES so -Wl -> -Xlinker substitution occurs. 
-    LIBRARIES  += $(wordlist 1,1024,$(filter-out -pthread,$(cori_openmpi_link_flags)))
-
-# Using mvapich
+  ifeq ($(USE_MPI),TRUE)
+  ifeq ($(USE_CUDA),TRUE)
+    $(error USE_CUDA is not allowed on the cori login nodes, please build from a cgpu node))
   else
+    CC  = cc
+    CXX = CC
+    FC  = ftn
+    F90 = ftn
+    LIBRARIES += -lmpichf90
+  endif
+  endif
+
+  ifeq ($(USE_SENSEI_INSITU),TRUE)
+    CXXFLAGS += -fPIC -dynamic
+    LIBRARIES += -ldl
+  endif
+
+endif
+
+ifeq ($(which_computer),$(filter $(which_computer),cgpu))
+
+  ifeq ($(USE_MPI),TRUE)
+
+    CC  = mpicc
+    CXX = mpic++
+    FC  = mpif90
+    F90 = mpif90
 
     ifneq ($(LINK_WITH_FORTRAN_COMPILER),TRUE)
-      LIBRARIES += --compiler-options '-fPIC' $(wordlist 2,1024,$(filter-out -m64,$(filter-out -fPIC,$(cori_mvapich_link_flags))))
+      ifneq ($(findstring mvapich,$(shell mpif90 -show 2>&1 | tr A-Z a-z)),)
+        cori_mvapich_link_flags := $(shell mpif90 -link_info)
+        LIBRARIES += --compiler-options '-fPIC' $(wordlist 2,1024,$(filter-out -m64,$(filter-out -fPIC,$(cori_mvapich_link_flags))))
+      else ifneq ($(findstring Open MPI, $(shell mpif90 -showme:version 2>&1)),)
+        cori_openmpi_link_flags := $(shell mpif90 -showme:link)
+        LIBRARIES += $(cori_openmpi_link_flags)
+      endif
     endif
 
   endif
 
-else
-  CC  = cc
-  CXX = CC
-  FC  = ftn
-  F90 = ftn
-  LIBRARIES += -lmpichf90
-endif
-endif
+  ifeq ($(USE_CUDA),TRUE)
 
-ifeq ($(USE_CUDA),TRUE)
+    FIX_NVCC_PTHREAD=TRUE
 
-  ifneq ($(CUDA_ROOT),)
-      SYSTEM_CUDA_PATH := $(CUDA_ROOT)
-      COMPILE_CUDA_PATH := $(CUDA_ROOT)
-  else ifneq ($(CUDA_HOME),)
-      SYSTEM_CUDA_PATH := $(CUDA_HOME)
-      COMPILE_CUDA_PATH := $(CUDA_HOME)
+    ifneq ($(CUDA_ROOT),)
+        SYSTEM_CUDA_PATH := $(CUDA_ROOT)
+        COMPILE_CUDA_PATH := $(CUDA_ROOT)
+    else ifneq ($(CUDA_HOME),)
+        SYSTEM_CUDA_PATH := $(CUDA_HOME)
+        COMPILE_CUDA_PATH := $(CUDA_HOME)
+    endif
+
+    CUDA_ARCH = 70
+    GPUS_PER_NODE = 8
+    GPUS_PER_SOCKET = 4
   endif
 
-  CUDA_ARCH = 70
-  GPUS_PER_NODE = 8
-  GPUS_PER_SOCKET = 4
-endif
+  ifeq ($(USE_SENSEI_INSITU),TRUE)
+    CXXFLAGS += -fPIC -dynamic
+    LIBRARIES += -ldl
+  endif
 
-ifeq ($(USE_SENSEI_INSITU),TRUE)
-  CXXFLAGS += -fPIC -dynamic
-  LIBRARIES += -ldl
 endif

@@ -2,16 +2,17 @@
 #define CNS_PROB_PARM_H_
 
 #include <AMReX_REAL.H>
-#include <AMReX_GpuQualifiers.H>
+#include <AMReX_GpuMemory.H>
 
-namespace ProbParm
+struct ProbParm
+    : amrex::Gpu::Managed
 {
-    extern AMREX_GPU_DEVICE_MANAGED amrex::Real p_l;
-    extern AMREX_GPU_DEVICE_MANAGED amrex::Real p_r;
-    extern AMREX_GPU_DEVICE_MANAGED amrex::Real rho_l;
-    extern AMREX_GPU_DEVICE_MANAGED amrex::Real rho_r;
-    extern AMREX_GPU_DEVICE_MANAGED amrex::Real u_l;
-    extern AMREX_GPU_DEVICE_MANAGED amrex::Real u_r;
-}
+    amrex::Real p_l = 1.0;
+    amrex::Real p_r = 0.1;
+    amrex::Real rho_l = 1.0;
+    amrex::Real rho_r = 0.125;
+    amrex::Real u_l = 0.0;
+    amrex::Real u_r = 0.0;
+};
 
 #endif

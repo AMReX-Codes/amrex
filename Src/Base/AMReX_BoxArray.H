@@ -67,7 +67,7 @@ struct BARef
     void define (BoxList&& bl) noexcept;
     void define (std::istream& is, int& ndims);
     //!
-    void resize (long n);
+    void resize (Long n);
 #ifdef AMREX_MEM_PROFILING
     void updateMemoryUsage_box (int s);
     void updateMemoryUsage_hash (int s);
@@ -100,10 +100,10 @@ struct BARef
 
     static int  numboxarrays;
     static int  numboxarrays_hwm;
-    static long total_box_bytes;
-    static long total_box_bytes_hwm;
-    static long total_hash_bytes;
-    static long total_hash_bytes_hwm;
+    static Long total_box_bytes;
+    static Long total_box_bytes_hwm;
+    static Long total_hash_bytes;
+    static Long total_hash_bytes_hwm;
 
     static void Initialize ();
     static void Finalize ();
@@ -568,19 +568,19 @@ public:
     void clear ();
 
     //! Resize the BoxArray.  See Vector<T>::resize() for the gory details.
-    void resize (long len);
+    void resize (Long len);
 
     //! Return the number of boxes in the BoxArray.
-    long size () const noexcept { return m_ref->m_abox.size(); }
+    Long size () const noexcept { return m_ref->m_abox.size(); }
 
     //! Return the number of boxes that can be held in the current allocated storage
-    long capacity () const noexcept { return m_ref->m_abox.capacity(); }
+    Long capacity () const noexcept { return m_ref->m_abox.capacity(); }
 
     //! Return whether the BoxArray is empty
     bool empty () const noexcept { return m_ref->m_abox.empty(); }
 
     //! Returns the total number of cells contained in all boxes in the BoxArray.
-    long numPts() const noexcept;
+    Long numPts() const noexcept;
 
     //! Returns the total number of cells (in double type) contained in all boxes in the BoxArray.
     double d_numPts () const noexcept;
@@ -728,7 +728,7 @@ public:
 
     //! Return smallest Box that contains all Boxes in this BoxArray.
     Box minimalBox () const;
-    Box minimalBox (long& npts_avg_box) const;
+    Box minimalBox (Long& npts_avg_box) const;
 
     /**
     * \brief True if the Box intersects with this BoxArray(+ghostcells).

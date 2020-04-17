@@ -362,9 +362,6 @@ int main (int argc, char* argv[])
     amrex::SetVerbose(0);
     amrex::Initialize(argc, argv, false);
     int r = main_main();
-    ignore_unused(r);
     amrex::Finalize();
-#ifndef BL_USE_MPI
     return r;
-#endif
 }

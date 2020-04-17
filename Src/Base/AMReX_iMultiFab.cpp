@@ -317,20 +317,20 @@ iMultiFab::max (const Box& region, int comp, int nghost, bool local) const
     return mx;
 }
 
-long
+Long
 iMultiFab::sum (int comp, int nghost, bool local) const
 {
     AMREX_ASSERT(nghost >= 0 && nghost <= n_grow.min());
 
-    long sm = 0;
+    Long sm = 0;
 
-// HIP FIX HERE - __shfl_down long used 
+// HIP FIX HERE - __shfl_down Long used 
 
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
     {
         ReduceOps<ReduceOpSum> reduce_op;
-        ReduceData<long> reduce_data(reduce_op);
+        ReduceData<Long> reduce_data(reduce_op);
         using ReduceTuple = typename decltype(reduce_data)::Type;
 
         for (MFIter mfi(*this); mfi.isValid(); ++mfi)
@@ -340,7 +340,7 @@ iMultiFab::sum (int comp, int nghost, bool local) const
             reduce_op.eval(bx, reduce_data,
             [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
             {
-                return { static_cast<long>(arr(i,j,k,comp)) };
+                return { static_cast<Long>(arr(i,j,k,comp)) };
             });
         }
 

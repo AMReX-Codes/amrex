@@ -107,7 +107,9 @@ public:
 private:
     ParticleVector m_data;
 };
+#if __cplusplus < 201703L
 template <int NReal, int NInt> constexpr int ArrayOfStructs<NReal, NInt>::SizeInReal;
+#endif
 
 } // namespace amrex
 

@@ -15,7 +15,6 @@ sudo apt-get update
 
 sudo apt-get install -y --no-install-recommends\
     build-essential     \
-    cmake               \
     g++-4.8             \
     gfortran-4.8        \
     libopenmpi-dev      \

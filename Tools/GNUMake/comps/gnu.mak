@@ -43,6 +43,8 @@ ifeq ($(EXPORT_DYNAMIC),TRUE)
 endif
 
 gcc_major_ge_8 = $(shell expr $(gcc_major_version) \>= 8)
+gcc_major_ge_9 = $(shell expr $(gcc_major_version) \>= 9)
+gcc_major_ge_10 = $(shell expr $(gcc_major_version) \>= 10)
 
 ifeq ($(THREAD_SANITIZER),TRUE)
   GENERIC_GNU_FLAGS += -fsanitize=thread
@@ -86,6 +88,11 @@ ifeq ($(DEBUG),TRUE)
     CFLAGS += -Wnull-dereference
   endif
 
+  ifneq ($(gcc_major_version),$(filter $(gcc_major_version),4))
+    CXXFLAGS += -Wfloat-conversion
+    CFLAGS += -Wfloat-conversion
+  endif
+
   ifneq ($(WARN_SHADOW),FALSE)
     CXXFLAGS += -Wshadow
     CFLAGS += -Wshadow
@@ -100,18 +107,19 @@ endif
 
 
 ifeq ($(USE_GPROF),TRUE)
-
   CXXFLAGS += -pg
   CFLAGS += -pg
-
 endif
 
 
 ifeq ($(USE_COMPILE_PIC),TRUE)
-
   CXXFLAGS = -fPIC
   CFLAGS = -fPIC
+endif
 
+ifeq ($(ERROR_DEPRECATED),TRUE)
+  CXXFLAGS += -Werror=deprecated
+  CFLAGS += -Werror=deprecated
 endif
 
 ########################################################################

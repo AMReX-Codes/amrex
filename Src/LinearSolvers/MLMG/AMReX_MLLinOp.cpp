@@ -21,9 +21,11 @@
 
 namespace amrex {
 
+#if __cplusplus < 201703L
 constexpr int MLLinOp::mg_coarsen_ratio;
 constexpr int MLLinOp::mg_box_min_width;
 constexpr int MLLinOp::mg_domain_min_width;
+#endif
 
 namespace {
     // experimental features
@@ -358,9 +360,9 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
         if (info.do_consolidation) {
             avg_npts = static_cast<Real>(a_grids[0].d_numPts()) / static_cast<Real>(ParallelContext::NProcsSub());
             if (consolidation_threshold == -1) {
-                consolidation_threshold = static_cast<Real>(AMREX_D_TERM(info.con_grid_size,
-                                                                         *info.con_grid_size,
-                                                                         *info.con_grid_size));
+                consolidation_threshold = AMREX_D_TERM(info.con_grid_size,
+                                                       *info.con_grid_size,
+                                                       *info.con_grid_size);
             }
         }
         while (m_num_mg_levels[0] < info.max_coarsening_level + 1

@@ -615,4 +615,116 @@ MLEBTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxe
     }
 }
 
+
+
+
+
+
+
+void
+MLEBTensorOp::compVelGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
+                       MultiFab& sol, Location loc) const
+{
+    BL_PROFILE("MLEBTensorOp::compVelGrad()");
+
+    if ( !(loc==Location::FaceCenter || loc==Location::FaceCentroid) )
+      amrex::Abort("MLEBTensorOp::compVelGrad() unknown location for VelGradients.");
+
+    const int mglev = 0;
+
+    applyBCTensor(amrlev, mglev, sol, BCMode::Inhomogeneous, StateMode::Solution, m_bndry_sol[amrlev].get());
+
+    auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
+    const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
+    auto area = (factory) ? factory->getAreaFrac()
+        : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
+
+    const Geometry& geom = m_geom[amrlev][mglev];
+    const auto dxinv = geom.InvCellSizeArray();
+
+    const int dim_fluxes = AMREX_SPACEDIM*AMREX_SPACEDIM;
+
+
+    MFItInfo mfi_info;
+    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+  {
+    Array<FArrayBox,AMREX_SPACEDIM> fluxfab_tmp;
+    for (MFIter mfi(sol, mfi_info); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+
+        auto fabtyp = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
+        if (fabtyp == FabType::covered) continue;
+
+        if (fabtyp == FabType::regular)
+        {
+ 
+            Array4<Real const> const vfab = sol.const_array(mfi);
+            AMREX_D_TERM(Box const xbx = mfi.nodaltilebox(0);,
+                         Box const ybx = mfi.nodaltilebox(1);,
+                         Box const zbx = mfi.nodaltilebox(2););
+            AMREX_D_TERM(fluxfab_tmp[0].resize(xbx,dim_fluxes);,
+                         fluxfab_tmp[1].resize(ybx,dim_fluxes);,
+                         fluxfab_tmp[2].resize(zbx,dim_fluxes););
+            AMREX_D_TERM(Elixir fxeli = fluxfab_tmp[0].elixir();,
+                         Elixir fyeli = fluxfab_tmp[1].elixir();,
+                         Elixir fzeli = fluxfab_tmp[2].elixir(););
+            AMREX_D_TERM(Array4<Real> const fxfab = fluxfab_tmp[0].array();,
+                         Array4<Real> const fyfab = fluxfab_tmp[1].array();,
+                         Array4<Real> const fzfab = fluxfab_tmp[2].array(););
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA
+            ( xbx, txbx,
+              {
+                  mltensor_vel_grads_fx(txbx,fxfab,vfab,dxinv);
+              }
+            , ybx, tybx,
+              {
+                  mltensor_vel_grads_fy(tybx,fyfab,vfab,dxinv);
+              }
+#if (AMREX_SPACEDIM == 3)
+            , zbx, tzbx,
+              {
+                  mltensor_vel_grads_fz(tzbx,fzfab,vfab,dxinv);
+              }
+#endif
+            );
+
+// The derivatives are put in the array with the following order:
+// component: 0    ,  1    ,  2    ,  3    ,  4    , 5    ,  6    ,  7    ,  8   
+// in 2D:     dU/dx,  dV/dx,  dU/dy,  dV/dy 
+// in 3D:     dU/dx,  dV/dx,  dW/dx,  dU/dy,  dV/dy, dW/dy,  dU/dz,  dV/dz,  dW/dz      
+
+
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                const Box& nbx = mfi.nodaltilebox(idim);
+                Array4<Real      > dst = fluxes[idim]->array(mfi);
+                Array4<Real const> src = fluxfab_tmp[idim].const_array();
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D (nbx, dim_fluxes, i, j, k, n,
+                {
+                    dst(i,j,k,n) = src(i,j,k,n);
+                });
+            }
+
+
+        }
+        else if ( loc==Location::FaceCenter )
+        {
+
+          amrex::Abort("compVelGrad not yet implemented for cut-cells  ");
+
+        }
+        else // loc==Location::FaceCentroid
+        {
+           
+          amrex::Abort("compVelGrad not yet implemented for cut-cells  ");
+
+        }
+
+    }
+  }
+}
+
 }

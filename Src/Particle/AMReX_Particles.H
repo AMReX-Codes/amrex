@@ -451,7 +451,7 @@ public:
     * \param serialize
     * \param bx
     */
-    void InitRandom (long icount, unsigned long iseed,
+    void InitRandom (Long icount, ULong iseed,
                      const ParticleInitData& mass,
                      bool serialize = false, RealBox bx = RealBox());
 
@@ -471,7 +471,7 @@ public:
     * \param iseed
     * \param pdata
     */
-    void InitRandomPerBox (long icount, unsigned long iseed, const ParticleInitData& pdata);
+    void InitRandomPerBox (Long icount, ULong iseed, const ParticleInitData& pdata);
 
 
     /**
@@ -511,7 +511,7 @@ public:
 
     void Increment (MultiFab& mf, int level);
 
-    long IncrementWithTotal (MultiFab& mf, int level, bool local = false);
+    Long IncrementWithTotal (MultiFab& mf, int level, bool local = false);
 
     /**
     * \brief rho_index: rho index in rdata
@@ -584,9 +584,9 @@ public:
     * \param only_valid
     * \param only_local
     */
-    long NumberOfParticlesAtLevel (int level, bool only_valid = true, bool only_local = false) const;
+    Long NumberOfParticlesAtLevel (int level, bool only_valid = true, bool only_local = false) const;
 
-    Vector<long> NumberOfParticlesInGrid  (int level, bool only_valid = true, bool only_local = false) const;
+    Vector<Long> NumberOfParticlesInGrid  (int level, bool only_valid = true, bool only_local = false) const;
 
     /**
     * \brief Returns # of particles at all levels
@@ -596,7 +596,7 @@ public:
     * \param only_valid
     * \param only_local
     */
-    long TotalNumberOfParticles (bool only_valid=true, bool only_local=false) const;
+    Long TotalNumberOfParticles (bool only_valid=true, bool only_local=false) const;
 
 
     /**
@@ -1100,7 +1100,7 @@ public:
 
     bool OKGPU (int lev_min = 0, int lev_max = -1, int nGrow = 0) const;
 
-    long superParticleSize() const { return superparticle_size; }
+    Long superParticleSize() const { return superparticle_size; }
 
     void EnforcePeriodic ();
 
@@ -1169,11 +1169,11 @@ protected:
 
     void
 	WriteParticles (int level, std::ofstream& ofs, int fnum,
-					Vector<int>& which, Vector<int>& count, Vector<long>& where,
+					Vector<int>& which, Vector<int>& count, Vector<Long>& where,
 					const Vector<int>& write_real_comp, const Vector<int>& write_int_comp,
-					const Vector<std::map<std::pair<int, int>, Vector<int>>>& particle_io_flags) const;
+                        const Vector<std::map<std::pair<int, int>, Gpu::DeviceVector<int>>>& particle_io_flags) const;
 #ifdef AMREX_USE_HDF5
-void WriteParticlesHDF5 ( hid_t grp, int level, Vector<int>& count, Vector<long>& where ) const;
+void WriteParticlesHDF5 ( hid_t grp, int level, Vector<int>& count, Vector<Long>& where ) const;
 
 template <class RTYPE>
 void ReadParticlesHDF5 (hsize_t offset, hsize_t cnt, int grd, int lev, hid_t int_dset, hid_t real_dset, int finest_level_in_file);
@@ -1202,11 +1202,11 @@ void ReadParticlesHDF5 (hsize_t offset, hsize_t cnt, int grd, int lev, hid_t int
     bool         doUnlink;
     int maxnextidPrePost;
     mutable int nOutFilesPrePost;
-    long nparticlesPrePost;
-    Vector<long> nParticlesAtLevelPrePost;          //!< ---- [level]
+    Long nparticlesPrePost;
+    Vector<Long> nParticlesAtLevelPrePost;          //!< ---- [level]
     mutable Vector<Vector<int>>  whichPrePost;      //!< ---- [level]
     mutable Vector<Vector<int>>  countPrePost;      //!< ---- [level]
-    mutable Vector<Vector<long>> wherePrePost;      //!< ---- [level]
+    mutable Vector<Vector<Long>> wherePrePost;      //!< ---- [level]
     mutable std::string HdrFileNamePrePost;
     mutable Vector<std::string> filePrefixPrePost;
 

@@ -125,7 +125,7 @@ AmrCore::printGridSummary (std::ostream& os, int min_lev, int max_lev) const noe
     {
         const BoxArray&           bs      = boxArray(lev);
         int                       numgrid = bs.size();
-        long                      ncells  = bs.numPts();
+        Long                      ncells  = bs.numPts();
         double                    ntot    = Geom(lev).Domain().d_numPts();
         Real                      frac    = 100.0_rt*(Real(ncells) / ntot);
 
@@ -141,8 +141,8 @@ AmrCore::printGridSummary (std::ostream& os, int min_lev, int max_lev) const noe
            << '\n';
 
 	if (numgrid > 1) {
-	    long vmin = std::numeric_limits<long>::max();
-	    long vmax = -1;
+	    Long vmin = std::numeric_limits<Long>::max();
+	    Long vmax = -1;
 	    int lmax = -1;
 	    int smin = std::numeric_limits<int>::max();
             int imax = std::numeric_limits<int>::lowest();
@@ -151,8 +151,8 @@ AmrCore::printGridSummary (std::ostream& os, int min_lev, int max_lev) const noe
 #pragma omp parallel
 #endif	    
 	    {
-		long vmin_this = std::numeric_limits<long>::max();
-		long vmax_this = -1;
+		Long vmin_this = std::numeric_limits<Long>::max();
+		Long vmax_this = -1;
 		int lmax_this = -1;
 		int smin_this = std::numeric_limits<int>::max();
                 int imax_this = std::numeric_limits<int>::lowest();
@@ -162,7 +162,7 @@ AmrCore::printGridSummary (std::ostream& os, int min_lev, int max_lev) const noe
 #endif	    	    
 		for (int k = 0; k < numgrid; k++) {
 		    const Box& bx = bs[k];
-		    long v = bx.volume();
+		    Long v = bx.volume();
 		    int ss = bx.shortside();
 		    int ls = bx.longside();
 		    if (v < vmin_this || (v == vmin_this && ss < smin_this)) {

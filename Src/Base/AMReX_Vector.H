@@ -5,6 +5,7 @@
 #include <vector>
 #include <memory>
 #include <AMReX_BLassert.H>
+#include <AMReX_INT.H>
 #ifdef AMREX_SPACEDIM
 #include <AMReX_Array.H>
 #include <AMReX_TypeTraits.H>
@@ -44,7 +45,7 @@ public:
     //! get access to the underlying data pointer
     const T* dataPtr () const noexcept { return this->data(); }
 
-    long size () const noexcept {return static_cast<long>(std::vector<T, Allocator>::size());}
+    Long size () const noexcept {return static_cast<Long>(std::vector<T, Allocator>::size());}
 
 };
     
@@ -57,19 +58,19 @@ namespace amrex
     template <class T, typename = typename T::FABType>
     Vector<T*> GetVecOfPtrs (Vector<T>& a)
     {
-	Vector<T*> r;
+        Vector<T*> r;
         r.reserve(a.size());
-	for (auto& x : a)  r.push_back(&x);
-	return r;
+        for (auto& x : a)  r.push_back(&x);
+        return r;
     }
 
     template <class T>
     Vector<T*> GetVecOfPtrs (const Vector<std::unique_ptr<T> >& a)
     {
-	Vector<T*> r;
+        Vector<T*> r;
         r.reserve(a.size());
-	for (const auto& x : a)  r.push_back(x.get());
-	return r;
+        for (const auto& x : a)  r.push_back(x.get());
+        return r;
     }
 
     /////////////////////////////////////////////////////////////
@@ -77,25 +78,25 @@ namespace amrex
     template <class T, typename = typename T::FABType>
     Vector<const T*> GetVecOfConstPtrs (const Vector<T>& a)
     {
-	Vector<const T*> r;
+        Vector<const T*> r;
         r.reserve(a.size());
-	for (const auto& x : a)  r.push_back(&x);
-	return r;
+        for (const auto& x : a)  r.push_back(&x);
+        return r;
     }
 
     template <class T>
     Vector<const T*> GetVecOfConstPtrs (const Vector<std::unique_ptr<T> >& a)
     {
-	Vector<const T*> r;
+        Vector<const T*> r;
         r.reserve(a.size());
-	for (const auto& x : a)  r.push_back(x.get());
-	return r;
+        for (const auto& x : a)  r.push_back(x.get());
+        return r;
     }
 
     template <class T, typename = typename T::FABType>
     Vector<const T*> GetVecOfConstPtrs (const Vector<T*>& a)
     {
-	return {a.begin(), a.end()};
+        return {a.begin(), a.end()};
     }
 
     /////////////////////////////////////////////////////////////
@@ -103,10 +104,10 @@ namespace amrex
     template <class T>
     Vector<Vector<T*> > GetVecOfVecOfPtrs (const Vector<Vector<std::unique_ptr<T> > >& a)
     {
-	Vector<Vector<T*> > r;
+        Vector<Vector<T*> > r;
         r.reserve(a.size());
-	for (const auto& x : a)  r.push_back(GetVecOfPtrs(x));
-	return r;
+        for (const auto& x : a)  r.push_back(GetVecOfPtrs(x));
+        return r;
     }
 
     /////////////////////////////////////////////////////////////
@@ -172,13 +173,13 @@ namespace amrex
     template <class T>
     void FillNull (Vector<T*>& a)
     {
-	std::for_each(a.begin(), a.end(), [](T*& p) { p = nullptr; });
+        std::for_each(a.begin(), a.end(), [](T*& p) { p = nullptr; });
     }
 
     template <class T>
     void FillNull (Vector<std::unique_ptr<T> >& a)
     {
-	std::for_each(a.begin(), a.end(), [](std::unique_ptr<T>& p) { p.reset(); });
+        std::for_each(a.begin(), a.end(), [](std::unique_ptr<T>& p) { p.reset(); });
     }
 
     /////////////////////////////////////////////////////////////

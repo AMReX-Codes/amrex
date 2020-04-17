@@ -6,6 +6,7 @@
 #include <AMReX_BLBackTrace.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_BLassert.H>
+#include <AMReX_INT.H>
 #include <AMReX_REAL.H>
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
@@ -465,40 +466,40 @@ while ( false )
     void ReduceIntMin (Vector<std::reference_wrapper<int> >&& rvar, int cpu);
 
     //! Long sum reduction.
-    void ReduceLongSum (long& rvar);
-    void ReduceLongSum (long* rvar, int cnt);
-    void ReduceLongSum (Vector<std::reference_wrapper<long> >&& rvar);
+    void ReduceLongSum (Long& rvar);
+    void ReduceLongSum (Long* rvar, int cnt);
+    void ReduceLongSum (Vector<std::reference_wrapper<Long> >&& rvar);
     //! Long sum reduction to specified cpu.
-    void ReduceLongSum (long& rvar, int cpu);
-    void ReduceLongSum (long* rvar, int cnt, int cpu);
-    void ReduceLongSum (Vector<std::reference_wrapper<long> >&& rvar, int cpu);
+    void ReduceLongSum (Long& rvar, int cpu);
+    void ReduceLongSum (Long* rvar, int cnt, int cpu);
+    void ReduceLongSum (Vector<std::reference_wrapper<Long> >&& rvar, int cpu);
 
     //! Long max reduction.
-    void ReduceLongMax (long& rvar);
-    void ReduceLongMax (long* rvar, int cnt);
-    void ReduceLongMax (Vector<std::reference_wrapper<long> >&& rvar);
+    void ReduceLongMax (Long& rvar);
+    void ReduceLongMax (Long* rvar, int cnt);
+    void ReduceLongMax (Vector<std::reference_wrapper<Long> >&& rvar);
     //! Long max reduction to specified cpu.
-    void ReduceLongMax (long& rvar, int cpu);
-    void ReduceLongMax (long* rvar, int cnt, int cpu);
-    void ReduceLongMax (Vector<std::reference_wrapper<long> >&& rvar, int cpu);
+    void ReduceLongMax (Long& rvar, int cpu);
+    void ReduceLongMax (Long* rvar, int cnt, int cpu);
+    void ReduceLongMax (Vector<std::reference_wrapper<Long> >&& rvar, int cpu);
 
     //! Long min reduction.
-    void ReduceLongMin (long& rvar);
-    void ReduceLongMin (long* rvar, int cnt);
-    void ReduceLongMin (Vector<std::reference_wrapper<long> >&& rvar);
+    void ReduceLongMin (Long& rvar);
+    void ReduceLongMin (Long* rvar, int cnt);
+    void ReduceLongMin (Vector<std::reference_wrapper<Long> >&& rvar);
     //! Long min reduction to specified cpu.
-    void ReduceLongMin (long& rvar, int cpu);
-    void ReduceLongMin (long* rvar, int cnt, int cpu);
-    void ReduceLongMin (Vector<std::reference_wrapper<long> >&& rvar, int cpu);
+    void ReduceLongMin (Long& rvar, int cpu);
+    void ReduceLongMin (Long* rvar, int cnt, int cpu);
+    void ReduceLongMin (Vector<std::reference_wrapper<Long> >&& rvar, int cpu);
 
     //! Long and-wise reduction.
-    void ReduceLongAnd (long& rvar);
-    void ReduceLongAnd (long* rvar, int cnt);
-    void ReduceLongAnd (Vector<std::reference_wrapper<long> >&& rvar);
+    void ReduceLongAnd (Long& rvar);
+    void ReduceLongAnd (Long* rvar, int cnt);
+    void ReduceLongAnd (Vector<std::reference_wrapper<Long> >&& rvar);
     //! Long and-wise reduction to specified cpu.
-    void ReduceLongAnd (long& rvar, int cpu);
-    void ReduceLongAnd (long* rvar, int cnt, int cpu);
-    void ReduceLongAnd (Vector<std::reference_wrapper<long> >&& rvar, int cpu);
+    void ReduceLongAnd (Long& rvar, int cpu);
+    void ReduceLongAnd (Long* rvar, int cnt, int cpu);
+    void ReduceLongAnd (Vector<std::reference_wrapper<Long> >&& rvar, int cpu);
 
     //! Parallel gather.
     void Gather (Real* sendbuf,
@@ -539,8 +540,8 @@ while ( false )
     template <class T> void Gatherv (const T* send, int sc,
 				     T* recv, const std::vector<int>& rc, const std::vector<int>& disp,
 				     int root);
-    template <class T> void Gatherv (const T* send, long sc,
-				     T* recv, const std::vector<long>& rc, const std::vector<long>& disp,
+    template <class T> void Gatherv (const T* send, Long sc,
+				     T* recv, const std::vector<Long>& rc, const std::vector<Long>& disp,
 				     int root);
 
     void Wait     (MPI_Request& req, MPI_Status& status);
@@ -964,11 +965,11 @@ ParallelDescriptor::Gatherv (const T* send, int sc,
 
 template <class T>
 void
-ParallelDescriptor::Gatherv (const T* send, long sc,
-			     T* recv, const std::vector<long>& rc, const std::vector<long>& disp,
+ParallelDescriptor::Gatherv (const T* send, Long sc,
+			     T* recv, const std::vector<Long>& rc, const std::vector<Long>& disp,
 			     int root)
 {
-    BL_PROFILE_T_S("ParallelDescriptor::Gatherv(Tlong)", T);
+    BL_PROFILE_T_S("ParallelDescriptor::Gatherv(TLong)", T);
     BL_COMM_PROFILE(BLProfiler::Gatherv,  BLProfiler::BeforeCall(), root, BLProfiler::NoTag());
 
     int tag = ParallelDescriptor::SeqNum();
