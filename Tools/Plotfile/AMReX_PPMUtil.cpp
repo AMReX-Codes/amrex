@@ -22,7 +22,7 @@ int loadPalette (const std::string& filename,
     }
 
     std::fseek(fp, 0, SEEK_END);
-    long length = std::ftell(fp);
+    Long length = std::ftell(fp);
     std::fseek(fp, 0, SEEK_SET);
 
     /* check for RGB or RGBA palette */
