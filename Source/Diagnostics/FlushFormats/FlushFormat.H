@@ -15,7 +15,8 @@ public:
         MultiParticleContainer& mpc, int nlev,
         const std::string prefix,
         bool plot_raw_fields,
-        bool plot_raw_fields_guards, bool plot_rho, bool plot_F) const = 0;
+        bool plot_raw_fields_guards,
+        bool plot_raw_rho, bool plot_raw_F) const = 0;
 
      virtual ~FlushFormat() {};
 };

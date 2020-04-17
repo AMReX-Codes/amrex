@@ -30,9 +30,12 @@ Diagnostics::ReadParameters ()
     file_prefix = "diags/" + diag_name;
     pp.query("file_prefix", file_prefix);
     pp.query("period", m_period);
+    pp.query("format", m_format);
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+        m_format == "plotfile" || m_format == "openpmd",
+        "<diag>.format must be plotfile or openpmd");
     pp.query("plot_raw_fields", m_plot_raw_fields);
     pp.query("plot_raw_fields_guards", m_plot_raw_fields_guards);
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_plot_F==false, "cannot plot_F yet");
     if (!pp.queryarr("fields_to_plot", varnames)){
         varnames = {"Ex", "Ey", "Ez", "Bx", "By", "Bz", "jx", "jy", "jz"};
     }
@@ -140,8 +143,18 @@ Diagnostics::InitData ()
         DefineDiagMultiFab( lev );
 
     }
-    // Construct Flush class. So far, only Plotfile is implemented.
-    m_flush_format = new FlushFormatPlotfile;
+    // Construct Flush class.
+    if        (m_format == "plotfile"){
+        m_flush_format = new FlushFormatPlotfile;
+    } else if (m_format == "openpmd"){
+#ifdef WARPX_USE_OPENPMD
+        m_flush_format = new FlushFormatOpenPMD(diag_name);
+#else
+        amrex::Abort("To use openpmd output format, need to compile with USE_OPENPMD=TRUE");
+#endif
+    } else {
+        amrex::Abort("unknown output format");
+    }
 }
 
 void
@@ -182,7 +195,7 @@ Diagnostics::Flush ()
     m_flush_format->WriteToFile(
         varnames, GetVecOfConstPtrs(mf_avg), warpx.Geom(), warpx.getistep(),
         warpx.gett_new(0), warpx.GetPartContainer(), nlev, file_prefix,
-        m_plot_raw_fields, m_plot_raw_fields_guards, m_plot_rho, m_plot_F);
+        m_plot_raw_fields, m_plot_raw_fields_guards, m_plot_raw_rho, m_plot_raw_F);
 }
 
 void

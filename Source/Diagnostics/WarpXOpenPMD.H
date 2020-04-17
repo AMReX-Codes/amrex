@@ -96,9 +96,9 @@ public:
    * @note If an iteration has been written, then it will give a warning
    *
    */
-  void SetStep(int ts);
+    void SetStep(int ts, const std::string& filePrefix);
 
-  void WriteOpenPMDParticles(const std::unique_ptr<MultiParticleContainer>&);
+  void WriteOpenPMDParticles (MultiParticleContainer&);
 
   void WriteOpenPMDFields(
               const std::vector<std::string>& varnames,
@@ -108,8 +108,7 @@ public:
 
 
 private:
-  void Init(//const std::string& filename,
-        openPMD::AccessType accessType);
+  void Init(openPMD::AccessType accessType, const std::string& filePrefix);
 
   /** This function sets up the entries for storing the particle positions, global IDs, and constant records (charge, mass)
   *
@@ -166,7 +165,7 @@ private:
             const amrex::Vector<std::string>&  int_comp_names) const;
 
   // no need for ts in the name, openPMD  handles it
-  void GetFileName(std::string& filename);
+    void GetFileName(std::string& filename);
 
   //std::string m_Dir;
   std::unique_ptr<openPMD::Series> m_Series;

@@ -3,6 +3,11 @@
 
 #include "FlushFormat.H"
 
+/**
+ * \brief This class aims at dumping diags data to disk using the AMReX Plotfile format.
+ * In particular, function WriteToFile takes fields and particles as input arguments,
+ * and writes data to file.
+ */
 class FlushFormatPlotfile : public FlushFormat
 {
 public:
@@ -15,7 +20,7 @@ public:
         MultiParticleContainer& mpc, int nlev, const std::string prefix,
         bool plot_raw_fields,
         bool plot_raw_fields_guards,
-        bool plot_rho, bool plot_F) const override final;
+        bool plot_raw_rho, bool plot_raw_F) const override final;
 
     /** Write general info of the run into the plotfile */
     void WriteJobInfo(const std::string& dir) const;
@@ -24,7 +29,7 @@ public:
     void WriteAllRawFields (const bool plot_raw_fields, const int nlevels,
                             const std::string& plotfilename,
                             const bool plot_raw_fields_guards,
-                            const bool plot_rho, bool plot_F) const;
+                            const bool plot_raw_rho, bool plot_raw_F) const;
 
     ~FlushFormatPlotfile() {};
 };

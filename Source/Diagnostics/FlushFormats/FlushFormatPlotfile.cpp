@@ -19,11 +19,10 @@ FlushFormatPlotfile::WriteToFile (
     const amrex::Vector<int> iteration, const double time,
     MultiParticleContainer& mpc, int nlev,
     const std::string prefix, bool plot_raw_fields,
-    bool plot_raw_fields_guards, bool plot_rho, bool plot_F) const
+    bool plot_raw_fields_guards, bool plot_raw_rho, bool plot_raw_F) const
 {
     auto & warpx = WarpX::GetInstance();
-    const auto step = iteration[0];
-    const std::string& filename = amrex::Concatenate(prefix, step);
+    const std::string& filename = amrex::Concatenate(prefix, iteration[0]);
     amrex::Print() << "  Writing plotfile " << filename << "\n";
 
     Vector<std::string> rfs;
@@ -41,7 +40,7 @@ FlushFormatPlotfile::WriteToFile (
                                    );
 
     WriteAllRawFields(plot_raw_fields, nlev, filename, plot_raw_fields_guards,
-                      plot_rho, plot_F);
+                      plot_raw_rho, plot_raw_F);
 
     mpc.WritePlotFile(filename);
 
@@ -368,7 +367,7 @@ WriteCoarseScalar( const std::string field_name,
 void
 FlushFormatPlotfile::WriteAllRawFields(
     const bool plot_raw_fields, const int nlevels, const std::string& plotfilename,
-    const bool plot_raw_fields_guards, const bool plot_rho, bool plot_F) const
+    const bool plot_raw_fields_guards, const bool plot_raw_rho, bool plot_raw_F) const
 {
     if (!plot_raw_fields) return;
     auto & warpx = WarpX::GetInstance();
@@ -397,8 +396,8 @@ FlushFormatPlotfile::WriteAllRawFields(
         WriteRawMF( warpx.getBfield_fp(lev, 0), dm, raw_pltname, level_prefix, "Bx_fp", lev, plot_raw_fields_guards);
         WriteRawMF( warpx.getBfield_fp(lev, 1), dm, raw_pltname, level_prefix, "By_fp", lev, plot_raw_fields_guards);
         WriteRawMF( warpx.getBfield_fp(lev, 2), dm, raw_pltname, level_prefix, "Bz_fp", lev, plot_raw_fields_guards);
-        if (plot_F) WriteRawMF( warpx.getF_fp(lev), dm, raw_pltname, level_prefix, "F_fp", lev, plot_raw_fields_guards);
-        if (plot_rho) {
+        if (plot_raw_F) WriteRawMF( warpx.getF_fp(lev), dm, raw_pltname, level_prefix, "F_fp", lev, plot_raw_fields_guards);
+        if (plot_raw_rho) {
             // Use the component 1 of `rho_fp`, i.e. rho_new for time synchronization
             // If nComp > 1, this is the upper half of the list of components.
             MultiFab rho_new(warpx.getF_fp(lev), amrex::make_alias, warpx.getF_fp(lev).nComp()/2, warpx.getF_fp(lev).nComp()/2);
@@ -420,11 +419,11 @@ FlushFormatPlotfile::WriteAllRawFields(
                                warpx.get_pointer_current_fp(lev, 0), warpx.get_pointer_current_fp(lev, 1), warpx.get_pointer_current_fp(lev, 2),
                                dm, raw_pltname, level_prefix, lev, plot_raw_fields_guards);
         }
-        if (plot_F) WriteCoarseScalar(
+        if (plot_raw_F) WriteCoarseScalar(
             "F", warpx.get_pointer_F_cp(lev), warpx.get_pointer_F_fp(lev),
             dm, raw_pltname, level_prefix, lev,
             plot_raw_fields_guards, 0);
-        if (plot_rho) WriteCoarseScalar(
+        if (plot_raw_rho) WriteCoarseScalar(
             "rho", warpx.get_pointer_rho_cp(lev), warpx.get_pointer_rho_fp(lev),
             dm, raw_pltname, level_prefix, lev,
             plot_raw_fields_guards, 1);

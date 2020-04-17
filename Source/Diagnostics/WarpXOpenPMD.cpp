@@ -121,9 +121,6 @@ WarpXOpenPMDPlot::~WarpXOpenPMDPlot()
 //
 void WarpXOpenPMDPlot::GetFileName(std::string& filename)
 {
-  std::string dir = "diags/";
-
-  filename = dir;
   filename.append(m_OpenPMDFileType).append("/simData");
   //
   // OpenPMD supports timestepped names
@@ -134,7 +131,7 @@ void WarpXOpenPMDPlot::GetFileName(std::string& filename)
 }
 
 
-void WarpXOpenPMDPlot::SetStep(int ts)
+void WarpXOpenPMDPlot::SetStep(int ts, const std::string& filePrefix)
 {
   AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ts >= 0 , "openPMD iterations are unsigned");
 
@@ -147,16 +144,16 @@ void WarpXOpenPMDPlot::SetStep(int ts)
   }
 
     m_CurrentStep =  ts;
-    Init(openPMD::AccessType::CREATE);
+    Init(openPMD::AccessType::CREATE, filePrefix);
 
 }
 
 void
-WarpXOpenPMDPlot::Init(openPMD::AccessType accessType)
+WarpXOpenPMDPlot::Init(openPMD::AccessType accessType, const std::string& filePrefix)
 {
     // either for the next ts file,
     // or init a single file for all ts
-    std::string filename;
+    std::string filename = filePrefix;
     GetFileName(filename);
 
     // close a previously open series before creating a new one
@@ -193,13 +190,13 @@ WarpXOpenPMDPlot::Init(openPMD::AccessType accessType)
 
 
 void
-WarpXOpenPMDPlot::WriteOpenPMDParticles(const std::unique_ptr<MultiParticleContainer>& mpc)
+WarpXOpenPMDPlot::WriteOpenPMDParticles (MultiParticleContainer& mpc)
 {
   WARPX_PROFILE("WarpXOpenPMDPlot::WriteOpenPMDParticles()");
-  std::vector<std::string> species_names = mpc->GetSpeciesNames();
+  std::vector<std::string> species_names = mpc.GetSpeciesNames();
 
   for (unsigned i = 0, n = species_names.size(); i < n; ++i) {
-    auto& pc  = mpc->GetUniqueContainer(i);
+    auto& pc  = mpc.GetUniqueContainer(i);
     if (pc->plot_species) {
 
       // names of amrex::Real and int particle attributes in SoA data

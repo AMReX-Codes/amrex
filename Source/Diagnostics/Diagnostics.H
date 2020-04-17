@@ -3,6 +3,9 @@
 
 #include "FlushFormats/FlushFormat.H"
 #include "FlushFormats/FlushFormatPlotfile.H"
+#ifdef WARPX_USE_OPENPMD
+#   include "FlushFormats/FlushFormatOpenPMD.H"
+#endif
 #include "ComputeDiagFunctors/ComputeDiagFunctor.H"
 #include <AMReX_Vector.H>
 #include <AMReX_MultiFab.H>
@@ -73,10 +76,11 @@ private:
     bool m_plot_raw_fields = false;
     /** Whether to plot guard cells of raw fields */
     bool m_plot_raw_fields_guards = false;
-    /** Whether to plot charge density rho */
-    bool m_plot_rho = false;
-    /** Whether to plot F (charge conservation error) */
-    bool m_plot_F = false;
+    /** Whether to plot charge density rho in raw fields */
+    bool m_plot_raw_rho = false;
+    /** Whether to plot F (charge conservation error) in raw fields */
+    bool m_plot_raw_F = false;
+
     /** Coarsening ratio such that, fields are averaged to the coarsened grid.
       * The ratio should render the grid to be coarsenable (as defined by AMReX). */
     amrex::IntVect m_crse_ratio = amrex::IntVect(1);
@@ -91,6 +95,9 @@ private:
       * \param[in] lev level on which source multifabs are defined
       */
     void DefineDiagMultiFab ( int lev );
+
+    /** format for output files, "plotfile" or "openpmd" */
+    std::string m_format = "plotfile";
 };
 
 #endif // WARPX_DIAGNOSTICS_H_
