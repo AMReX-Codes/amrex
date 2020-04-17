@@ -32,7 +32,7 @@ class BLProfiler
     struct ProfStats {
       ProfStats() : nCalls(0), totalTime(0.0), minTime(0.0),
                     maxTime(0.0), avgTime(0.0), variance(0.0) { }
-      long nCalls;
+      Long nCalls;
       Real totalTime, minTime, maxTime, avgTime, variance;
     };
 
@@ -50,7 +50,7 @@ class BLProfiler
                                                  nCSCalls(ncalls), totalTime(totaltime),
 					         stackTime(stacktime), callTime(calltime)  { }
       int callStackDepth, csFNameNumber;
-      long nCSCalls;
+      Long nCSCalls;
       Real totalTime, stackTime, callTime;
 
       static int cstatsVersion;
@@ -66,9 +66,9 @@ class BLProfiler
 
     struct CallStatsPatch {
       CallStatsPatch() : seekPos(-1), callStats(), fileName("")        { }
-      CallStatsPatch(long spos, const CallStats &cs, const std::string &fname)
+      CallStatsPatch(Long spos, const CallStats &cs, const std::string &fname)
                        : seekPos(spos), callStats(cs), fileName(fname) { }
-      long seekPos;
+      Long seekPos;
       CallStats callStats;
       std::string fileName;
     };

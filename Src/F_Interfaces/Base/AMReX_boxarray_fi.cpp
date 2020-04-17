@@ -69,7 +69,7 @@ extern "C" {
         }
     }
 
-    long amrex_fi_boxarray_numpts (const BoxArray* ba)
+    Long amrex_fi_boxarray_numpts (const BoxArray* ba)
     {
         return ba->numPts();
     }

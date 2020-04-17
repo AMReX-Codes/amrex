@@ -18,6 +18,7 @@
 
 #include <AMReX_BLassert.H>
 #include <AMReX_REAL.H>
+#include <AMReX_INT.H>
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
 #include <AMReX_Box.H>
@@ -237,9 +238,9 @@ namespace amrex
     //
     // For gcc, there are extra 32 bytes for each map node.
     // For others, this number may be different.
-    static const long gcc_map_node_extra_bytes = 32L;
-    template <typename T> long bytesOf (const std::vector<T>& v);
-    template <typename Key, typename T, class Compare> long bytesOf (const std::map<Key,T,Compare>& m);
+    static const Long gcc_map_node_extra_bytes = 32L;
+    template <typename T> Long bytesOf (const std::vector<T>& v);
+    template <typename Key, typename T, class Compare> Long bytesOf (const std::map<Key,T,Compare>& m);
 
     void BroadcastBool(bool &bBool, int myLocalId, int rootId, const MPI_Comm &localComm);
 
@@ -356,14 +357,14 @@ template<class T> void amrex::BroadcastArray(Vector<T> &aT, int myLocalId, int r
 #define BL_IGNORE_MAX 100000
 
 template <typename T> 
-long 
+amrex::Long
 amrex::bytesOf (const std::vector<T>& v)
 {
     return sizeof(v) + v.capacity()*sizeof(T);
 }
 
 template <typename Key, typename T, class Compare>
-long
+amrex::Long
 amrex::bytesOf (const std::map<Key,T,Compare>& m)
 {
     return sizeof(m) + m.size()*(sizeof(Key)+sizeof(T)+gcc_map_node_extra_bytes);

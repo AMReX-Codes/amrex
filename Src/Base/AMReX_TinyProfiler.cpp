@@ -367,15 +367,15 @@ TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, double dt_max)
 
     std::vector<ProcStats> allprocstats;
     int maxfnamelen = 0;
-    long maxncalls = 0;
+    Long maxncalls = 0;
 
     // now collect global data onto the ioproc
     for (auto it = regstats.cbegin(); it != regstats.cend(); ++it)
     {
-        long n = it->second.n;
+        Long n = it->second.n;
         double dts[2] = {it->second.dtin, it->second.dtex};
 
-        std::vector<long> ncalls(nprocs);
+        std::vector<Long> ncalls(nprocs);
         std::vector<double> dtdt(2*nprocs);
 
         if (ParallelDescriptor::NProcs() == 1)

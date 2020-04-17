@@ -37,6 +37,21 @@ jobs:
         make -j 2 tutorials
 
   # Build libamrex and all tutorials
+  tutorials-macos:
+    name: AppleClang@11.0 GFortran@9.3 [tutorials]
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Dependencies
+      run: .github/workflows/cmake/dependencies_mac.sh
+    - name: Build & Install
+      run: |
+        mkdir build
+        cd build
+        cmake .. -DENABLE_TUTORIALS=ON
+        make -j 2 tutorials
+
+  # Build libamrex and all tutorials
   tutorials-nofortran:
     name: GNU@7.5 C++11 w/o Fortran [tutorials]
     runs-on: ubuntu-latest

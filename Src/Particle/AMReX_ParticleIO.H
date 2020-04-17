@@ -217,7 +217,7 @@ static int CreateWriteHDF5AttrDouble(hid_t loc, const char *name, hsize_t n, con
     return 1;
 }
 
-static int CreateWriteHDF5AttrLong(hid_t loc, const char *name, hsize_t n, const long *data)
+static int CreateWriteHDF5AttrLong(hid_t loc, const char *name, hsize_t n, const Long *data)
 {
     herr_t ret;
     hid_t attr, attr_space;
@@ -225,13 +225,13 @@ static int CreateWriteHDF5AttrLong(hid_t loc, const char *name, hsize_t n, const
 
     attr_space = H5Screate_simple(1, &dims, NULL);
 
-    attr = H5Acreate(loc, name, H5T_NATIVE_LONG, attr_space, H5P_DEFAULT, H5P_DEFAULT);
+    attr = H5Acreate(loc, name, H5T_NATIVE_LLONG, attr_space, H5P_DEFAULT, H5P_DEFAULT);
     if (attr < 0) {
         amrex::Print() << " Error with H5Acreate [" << name << "]\n";
         return -1;
     }
 
-    ret  = H5Awrite(attr, H5T_NATIVE_LONG, (void*)data);
+    ret  = H5Awrite(attr, H5T_NATIVE_LLONG, (void*)data);
     if (ret < 0) {
         amrex::Print() << " Error with H5Awrite [" << name << "]\n";
         return -1;
@@ -372,7 +372,7 @@ static int ReadHDF5AttrLong(hid_t loc, const char *name, void *data)
         return -1;
     }
 
-    ret  = H5Aread(attr, H5T_NATIVE_LONG, data);
+    ret  = H5Aread(attr, H5T_NATIVE_LLONG, data);
     if (ret < 0) {
         amrex::Print() << " Error with H5Aread [" << name << "]\n";
         return -1;
@@ -435,7 +435,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         ParallelDescriptor::Barrier();
     }
 
-    long nparticles = 0;
+    Long nparticles = 0;
     int maxnextid;
     
     if(usePrePost)
@@ -657,7 +657,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         // into that file into which each grid of particles is written.
         Vector<int>  which(state.size(),0);
         Vector<int > count(state.size(),0);
-        Vector<long> where(state.size(),0);
+        Vector<Long> where(state.size(),0);
 	
 
 	bool groupSets(false), setBuf(true);
@@ -697,7 +697,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
-::WriteParticlesHDF5 ( hid_t grp, int lev, Vector<int>& count, Vector<long>& where) const
+::WriteParticlesHDF5 ( hid_t grp, int lev, Vector<int>& count, Vector<Long>& where) const
 {
     BL_PROFILE("ParticleContainer::WriteParticlesHDF5()");
 
@@ -727,13 +727,13 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     MultiFab state(ParticleBoxArray(lev), ParticleDistributionMap(lev), 1, 0, info);
 
     int            my_mfi_cnt = 0;
-    size_t         my_mfi_int_total_size = 0, my_mfi_real_total_size = 0, int_size, real_size;
+    ULong          my_mfi_int_total_size = 0, my_mfi_real_total_size = 0, int_size, real_size;
     Vector<int>    all_mfi_cnt(ParallelDescriptor::NProcs());
     Vector<int>    my_mfi_real_size;
     Vector<int>    my_mfi_int_size;
     Vector<int>    my_nparticles;
-    Vector<size_t> all_mfi_real_total_size(ParallelDescriptor::NProcs());
-    Vector<size_t> all_mfi_int_total_size(ParallelDescriptor::NProcs());
+    Vector<ULong>  all_mfi_real_total_size(ParallelDescriptor::NProcs());
+    Vector<ULong>  all_mfi_int_total_size(ParallelDescriptor::NProcs());
     hid_t          offset_id, offset_space, real_mem_space, real_dset_space, real_dset_id;
     hid_t          int_mem_space, int_dset_id, int_dset_space;
     hsize_t        total_mfi = 0, total_real_size = 0, total_int_size = 0, real_file_offset = 0, int_file_offset = 0;
@@ -762,8 +762,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         total_mfi += all_mfi_cnt[i];
 
     // Create the int data 
-    MPI_Allgather(&my_mfi_int_total_size, 1, MPI_UNSIGNED_LONG, 
-                  &(all_mfi_int_total_size[0]), 1, MPI_UNSIGNED_LONG, ParallelDescriptor::Communicator());
+    MPI_Allgather(&my_mfi_int_total_size, 1, Mpi_typemap<ULong>::type(), 
+                  &(all_mfi_int_total_size[0]), 1, Mpi_typemap<ULong>::type(), ParallelDescriptor::Communicator());
     
     for (int i = 0; i < ParallelDescriptor::NProcs(); i++) 
         total_int_size += all_mfi_int_total_size[i]; 
@@ -780,8 +780,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     
 
     // Create the real data 
-    MPI_Allgather(&my_mfi_real_total_size, 1, MPI_UNSIGNED_LONG, 
-                  &(all_mfi_real_total_size[0]), 1, MPI_UNSIGNED_LONG, ParallelDescriptor::Communicator());
+    MPI_Allgather(&my_mfi_real_total_size, 1, Mpi_typemap<ULong>::type(), 
+                  &(all_mfi_real_total_size[0]), 1, Mpi_typemap<ULong>::type(), ParallelDescriptor::Communicator());
 
     for (int i = 0; i < ParallelDescriptor::NProcs(); i++) 
         total_real_size += all_mfi_real_total_size[i];
@@ -1039,7 +1039,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         amrex::Abort("ParticleContainer::Restart(): ni != NStructInt");
     
     aname = "nparticles";
-    long nparticles;
+    Long nparticles;
     ret = ReadHDF5AttrLong(fid, aname.c_str(), &nparticles);
     if (ret < 0) {
         std::string msg("ParticleContainer::RestartHDF5(): unable to read attribute ");
@@ -1739,7 +1739,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     
     std::ofstream HdrFile;
     
-    long nparticles = 0;
+    Long nparticles = 0;
     int maxnextid;
 
     // evaluate f for every particle to determine which ones to output
@@ -1927,7 +1927,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 		// into that file into which each grid of particles is written.
 		Vector<int>  which(state.size(),0);
 		Vector<int > count(state.size(),0);
-		Vector<long> where(state.size(),0);
+		Vector<Long> where(state.size(),0);
 		
 		std::string filePrefix(LevelDir);
 		filePrefix += '/';
@@ -1970,7 +1970,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 				if (gotsome && doUnlink)
 				{
 					// Unlink any zero-length data files.
-					Vector<long> cnt(nOutFiles,0);
+					Vector<Long> cnt(nOutFiles,0);
 					
 					for (int i = 0, N=count.size(); i < N; i++) {
 						cnt[which[i]] += count[i];
@@ -2020,7 +2020,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     BL_PROFILE("ParticleContainer::CheckpointPre()");
     
     const int IOProcNumber = ParallelDescriptor::IOProcessorNumber();
-    long nparticles = 0;
+    Long nparticles = 0;
     int  maxnextid  = ParticleType::NextID();
     
     for (int lev = 0; lev < m_particles.size();  lev++) {
@@ -2094,7 +2094,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             if(gotsome && doUnlink) {
 //            BL_PROFILE_VAR("PC<NNNN>::Checkpoint:unlink", unlink_post);
                 // Unlink any zero-length data files.
-                Vector<long> cnt(nOutFilesPrePost,0);
+                Vector<Long> cnt(nOutFilesPrePost,0);
                 
                 for(int i(0), N = countPrePost[lev].size(); i < N; ++i) {
                     cnt[whichPrePost[lev][i]] += countPrePost[lev][i];
@@ -2141,7 +2141,7 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::WriteParticles (int lev, std::ofstream& ofs, int fnum,
-                  Vector<int>& which, Vector<int>& count, Vector<long>& where,
+                  Vector<int>& which, Vector<int>& count, Vector<Long>& where,
                   const Vector<int>& write_real_comp,
                   const Vector<int>& write_int_comp,
                   const Vector<std::map<std::pair<int, int>, Gpu::DeviceVector<int>>>& particle_io_flags) const
@@ -2376,7 +2376,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     bool checkpoint;
     HdrFile >> checkpoint;
     
-    long nparticles;
+    Long nparticles;
     HdrFile >> nparticles;
     AMREX_ASSERT(nparticles >= 0);
     
@@ -2461,7 +2461,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     for (int lev = 0; lev <= finest_level_in_file; lev++) {
         Vector<int>  which(ngrids[lev]);
         Vector<int>  count(ngrids[lev]);
-        Vector<long> where(ngrids[lev]);
+        Vector<Long> where(ngrids[lev]);
         for (int i = 0; i < ngrids[lev]; i++) {
             HdrFile >> which[i] >> count[i] >> where[i];
         }
@@ -2692,7 +2692,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteAsciiFil
     //
     // Count # of valid particles.
     //
-    long nparticles = 0;
+    Long nparticles = 0;
 
     for (int lev = 0; lev < m_particles.size();  lev++) {
         auto& pmap = m_particles[lev];
@@ -2842,7 +2842,7 @@ ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt>::WriteCoarsenedA
     //
     // Count # of valid particles.
     //
-    long nparticles = 0;
+    Long nparticles = 0;
 
     for (int lev = 0; lev < m_particles.size();  lev++) {
         auto& pmap = m_particles[lev];

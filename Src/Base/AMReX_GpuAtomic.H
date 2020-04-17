@@ -103,9 +103,9 @@ namespace detail {
 #elif defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    long Add_device (long* sum, long value) noexcept
+    Long Add_device (Long* sum, Long value) noexcept
     {
-        return detail::atomic_op<long, unsigned long long>(sum, value, amrex::Plus<long>());
+        return detail::atomic_op<Long, unsigned long long>(sum, value, amrex::Plus<Long>());
     }
 
 #endif
@@ -162,9 +162,9 @@ namespace detail {
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    long Min_device (long* m, long value) noexcept
+    Long Min_device (Long* m, Long value) noexcept
     {
-        return detail::atomic_op<long, unsigned long long int>(m,value,amrex::Less<long>());
+        return detail::atomic_op<Long, unsigned long long int>(m,value,amrex::Less<Long>());
     }
 
 #endif
@@ -221,9 +221,9 @@ namespace detail {
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    long Max_device (long* m, long value) noexcept
+    Long Max_device (Long* m, Long value) noexcept
     {
-        return detail::atomic_op<long, unsigned long long int>(m,value,amrex::Greater<long>());
+        return detail::atomic_op<Long, unsigned long long int>(m,value,amrex::Greater<Long>());
     }
 
 #endif

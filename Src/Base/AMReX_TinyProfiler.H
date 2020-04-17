@@ -10,6 +10,7 @@
 #include <limits>
 #include <iostream>
 
+#include <AMReX_INT.H>
 #include <AMReX_REAL.H>
 
 #ifdef AMREX_USE_CUDA
@@ -46,36 +47,36 @@ private:
     struct Stats
     {
         Stats () noexcept : depth(0), n(0L), dtin(0.0), dtex(0.0),
-          usesCUPTI(false), nk(0) { }
+                            usesCUPTI(false), nk(0) { }
         int  depth;     //!< recursive depth
-        long n;         //!< number of calls
+        Long n;         //!< number of calls
         double dtin;    //!< inclusive dt
         double dtex;    //!< exclusive dt
         bool usesCUPTI; //!< uses CUPTI
-        long nk;        //!< number of kernel calls
+        Long nk;        //!< number of kernel calls
     };
   
     //! stats across processes
     struct ProcStats
     {
-	ProcStats () : nmin(std::numeric_limits<long>::max()),
-		       navg(0L), nmax(0L),
-		       dtinmin(std::numeric_limits<double>::max()),
-		       dtinavg(0.0), dtinmax(0.0),
-		       dtexmin(std::numeric_limits<double>::max()),
-		       dtexavg(0.0), dtexmax(0.0),
-		       usesCUPTI(false) {}
-	long nmin, navg, nmax;
-	double dtinmin, dtinavg, dtinmax;
-	double dtexmin, dtexavg, dtexmax;
+        ProcStats () : nmin(std::numeric_limits<Long>::max()),
+                       navg(0L), nmax(0L),
+                       dtinmin(std::numeric_limits<double>::max()),
+                       dtinavg(0.0), dtinmax(0.0),
+                       dtexmin(std::numeric_limits<double>::max()),
+                       dtexavg(0.0), dtexmax(0.0),
+                       usesCUPTI(false) {}
+        Long nmin, navg, nmax;
+        double dtinmin, dtinavg, dtinmax;
+        double dtexmin, dtexavg, dtexmax;
         bool usesCUPTI;
-	std::string fname;
-	static bool compex (const ProcStats& lhs, const ProcStats& rhs) {
+        std::string fname;
+        static bool compex (const ProcStats& lhs, const ProcStats& rhs) {
 	    return lhs.dtexmax > rhs.dtexmax;
-	}
-	static bool compin (const ProcStats& lhs, const ProcStats& rhs) {
-	    return lhs.dtinmax > rhs.dtinmax;
-	}
+        }
+        static bool compin (const ProcStats& lhs, const ProcStats& rhs) {
+            return lhs.dtinmax > rhs.dtinmax;
+        }
     };
 
     std::string fname;

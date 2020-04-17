@@ -172,9 +172,9 @@ HypreABecLap3::prepareSolver ()
     const DistributionMapping& dm = acoefs.DistributionMap();
     
 #if defined(AMREX_DEBUG) || defined(AMREX_TESTING)
-    if (sizeof(HYPRE_Int) < sizeof(long)) {
-        long ncells_grids = ba.numPts();
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ncells_grids < static_cast<long>(std::numeric_limits<HYPRE_Int>::max()),
+    if (sizeof(HYPRE_Int) < sizeof(Long)) {
+        Long ncells_grids = ba.numPts();
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ncells_grids < static_cast<Long>(std::numeric_limits<HYPRE_Int>::max()),
                                          "You might need to configure Hypre with --enable-bigint");
     }
 #endif
@@ -223,13 +223,13 @@ HypreABecLap3::prepareSolver ()
         else
 #endif
         {
-            long npts = bx.numPts();
+            Long npts = bx.numPts();
             ncells_grid[mfi] = npts;
             ncells_proc += npts;
 
             ifab.resize(bx);
             HYPRE_Int* p = ifab.dataPtr();
-            for (long i = 0; i < npts; ++i) {
+            for (Long i = 0; i < npts; ++i) {
                 *p++ = i;
             }
             cid_fab.copy<RunOn::Host>(ifab,bx);

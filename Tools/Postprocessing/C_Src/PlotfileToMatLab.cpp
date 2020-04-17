@@ -79,14 +79,14 @@ ByteOrder ()
 
   union
   {
-    long Long;
-    char Char[sizeof(long)];
+    long m_Long;
+    char m_Char[sizeof(long)];
   }
   SwapTest;
 
-  SwapTest.Long = 1;
+  SwapTest.m_Long = 1;
 
-  return SwapTest.Char[0] == 1 ? SmallEndian : BigEndian;
+  return SwapTest.m_Char[0] == 1 ? SmallEndian : BigEndian;
 }
 
 static

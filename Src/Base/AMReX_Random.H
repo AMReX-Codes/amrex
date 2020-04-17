@@ -62,7 +62,7 @@ namespace amrex
     * The CPU version of this function uses C++11's mt19937.
     * There is no GPU version.
     */
-    AMREX_GPU_HOST unsigned long Random_long (unsigned long n); // [0,n-1]
+    AMREX_GPU_HOST ULong Random_long (ULong n); // [0,n-1]
 
     /** \brief Set the seed of the random number generator.
     *
@@ -76,13 +76,13 @@ namespace amrex
     *  INTEGER seed
     *  call blinitrand(seed)
     */
-    void InitRandom (unsigned long seed, int nprocs=ParallelDescriptor::NProcs());
+    void InitRandom (ULong seed, int nprocs=ParallelDescriptor::NProcs());
 
     /**
     * \brief Resize seed array and copy address to global symbol
     */
     void ResizeRandomSeed (int N);
-    void ResetRandomSeed (unsigned long seed);
+    void ResetRandomSeed (ULong seed);
 
     /**
     * \brief Set the seeds of the random number generator for each CUDA thread .
