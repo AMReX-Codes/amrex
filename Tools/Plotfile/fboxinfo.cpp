@@ -101,8 +101,8 @@ void main_main()
         if (!b_gridfile)
         {
             for (int ilev = 0; ilev < nlevels; ++ilev) {
-                const long nboxes = plotfile.boxArray(ilev).size();
-                const long ncells = plotfile.boxArray(ilev).numPts();
+                const Long nboxes = plotfile.boxArray(ilev).size();
+                const Long ncells = plotfile.boxArray(ilev).numPts();
                 const Box prob_domain = plotfile.probDomain(ilev);
                 const Real ncells_domain = prob_domain.d_numPts();
                 amrex::Print() << " level " << std::setw(3) << ilev
@@ -134,8 +134,8 @@ void main_main()
             for (int ilev = 0; ilev < nlevels; ++ilev) {
                 amrex::Print() << "\n  level " << ilev << "\n";
                 const BoxArray& ba = plotfile.boxArray(ilev);
-                const long nboxes = ba.size();
-                for (long ibox = 0; ibox < nboxes; ++ibox) {
+                const Long nboxes = ba.size();
+                for (Long ibox = 0; ibox < nboxes; ++ibox) {
                     const Box& b = ba[ibox];
                     if (dim == 1) {
                         amrex::Print() << "   box " << std::setw(5) << ibox
@@ -173,7 +173,7 @@ void main_main()
             amrex::Print() << " " << std::setw(2) << nlevels << "\n";
             for (int ilev = 0; ilev < nlevels; ++ilev) {
                 const BoxArray& ba = plotfile.boxArray(ilev);
-                const long nboxes = ba.size();
+                const Long nboxes = ba.size();
                 const Box prob_domain = plotfile.probDomain(ilev);
                 amrex::Print() << "   " << BoxND(prob_domain,dim)
                                << "  " << nboxes << "\n";
