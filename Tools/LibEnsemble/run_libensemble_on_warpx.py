@@ -19,6 +19,7 @@ generator_type = 'aposmm'
 # Either 'local' or 'summit'
 machine = 'local'
 
+import sys
 import numpy as np
 from warpx_simf import run_warpx  # Sim function from current directory
 
