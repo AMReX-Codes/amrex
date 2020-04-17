@@ -30,9 +30,6 @@ public:
     ~FlushFormatOpenPMD ();
 
 private:
-    /** Which backend to use (ADIOS, ADIOS2 or HDF5). Default depends on what is available */
-    std::string openpmd_backend {"default"};
-    bool openpmd_tspf = true; //!< one file per timestep (or one file for all steps)
     /** This is responsible for dumping to file */
     WarpXOpenPMDPlot* m_OpenPMDPlotWriter = nullptr;
 };
