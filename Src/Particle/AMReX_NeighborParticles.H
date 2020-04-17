@@ -386,8 +386,8 @@ protected:
     //! each proc knows how many sends it will do, and how many bytes it will rcv
     //! from each other proc.
     amrex::Vector<int> neighbor_procs;
-    amrex::Vector<long> rcvs;
-    long num_snds;
+    amrex::Vector<Long> rcvs;
+    Long num_snds;
     std::map<int, Vector<char> > send_data;
 
     std::array<bool, AMREX_SPACEDIM + NStructReal> rc;

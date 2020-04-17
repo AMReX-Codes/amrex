@@ -73,19 +73,19 @@ namespace ParallelDescriptor
 	// Reduce helper functions.
 	//
 	void DoAllReduceReal     (Real&      r, MPI_Op op);
-	void DoAllReduceLong     (long&      r, MPI_Op op);
+	void DoAllReduceLong     (Long&      r, MPI_Op op);
 	void DoAllReduceInt      (int&       r, MPI_Op op);
 
 	void DoAllReduceReal     (Real*      r, MPI_Op op, int cnt);
-	void DoAllReduceLong     (long*      r, MPI_Op op, int cnt);
+	void DoAllReduceLong     (Long*      r, MPI_Op op, int cnt);
 	void DoAllReduceInt      (int*       r, MPI_Op op, int cnt);
 
 	void DoReduceReal     (Real&      r, MPI_Op op, int cpu);
-	void DoReduceLong     (long&      r, MPI_Op op, int cpu);
+	void DoReduceLong     (Long&      r, MPI_Op op, int cpu);
 	void DoReduceInt      (int&       r, MPI_Op op, int cpu);
 
 	void DoReduceReal     (Real*      r, MPI_Op op, int cnt, int cpu);
-	void DoReduceLong     (long*      r, MPI_Op op, int cnt, int cpu);
+	void DoReduceLong     (Long*      r, MPI_Op op, int cnt, int cpu);
 	void DoReduceInt      (int*       r, MPI_Op op, int cnt, int cpu);
     }
 
@@ -758,22 +758,22 @@ ParallelDescriptor::ReduceIntMin (Vector<std::reference_wrapper<int> >&& rvar, i
 }
 
 void
-ParallelDescriptor::ReduceLongSum (long& r)
+ParallelDescriptor::ReduceLongSum (Long& r)
 {
     util::DoAllReduceLong(r,MPI_SUM);
 }
 
 void
-ParallelDescriptor::ReduceLongSum (long* r, int cnt)
+ParallelDescriptor::ReduceLongSum (Long* r, int cnt)
 {
     util::DoAllReduceLong(r,MPI_SUM,cnt);
 }
 
 void
-ParallelDescriptor::ReduceLongSum (Vector<std::reference_wrapper<long> >&& rvar)
+ParallelDescriptor::ReduceLongSum (Vector<std::reference_wrapper<Long> >&& rvar)
 {
     int cnt = rvar.size();
-    Vector<long> tmp{std::begin(rvar), std::end(rvar)};
+    Vector<Long> tmp{std::begin(rvar), std::end(rvar)};
     util::DoAllReduceLong(tmp.data(),MPI_SUM,cnt);
     for (int i = 0; i < cnt; ++i) {
         rvar[i].get() = tmp[i];
@@ -781,22 +781,22 @@ ParallelDescriptor::ReduceLongSum (Vector<std::reference_wrapper<long> >&& rvar)
 }
 
 void
-ParallelDescriptor::ReduceLongSum (long& r, int cpu)
+ParallelDescriptor::ReduceLongSum (Long& r, int cpu)
 {
     util::DoReduceLong(r,MPI_SUM,cpu);
 }
 
 void
-ParallelDescriptor::ReduceLongSum (long* r, int cnt, int cpu)
+ParallelDescriptor::ReduceLongSum (Long* r, int cnt, int cpu)
 {
     util::DoReduceLong(r,MPI_SUM,cnt,cpu);
 }
 
 void
-ParallelDescriptor::ReduceLongSum (Vector<std::reference_wrapper<long> >&& rvar, int cpu)
+ParallelDescriptor::ReduceLongSum (Vector<std::reference_wrapper<Long> >&& rvar, int cpu)
 {
     int cnt = rvar.size();
-    Vector<long> tmp{std::begin(rvar), std::end(rvar)};
+    Vector<Long> tmp{std::begin(rvar), std::end(rvar)};
     util::DoReduceLong(tmp.data(),MPI_SUM,cnt,cpu);
     for (int i = 0; i < cnt; ++i) {
         rvar[i].get() = tmp[i];
@@ -804,22 +804,22 @@ ParallelDescriptor::ReduceLongSum (Vector<std::reference_wrapper<long> >&& rvar,
 }
 
 void
-ParallelDescriptor::ReduceLongMax (long& r)
+ParallelDescriptor::ReduceLongMax (Long& r)
 {
     util::DoAllReduceLong(r,MPI_MAX);
 }
 
 void
-ParallelDescriptor::ReduceLongMax (long* r, int cnt)
+ParallelDescriptor::ReduceLongMax (Long* r, int cnt)
 {
     util::DoAllReduceLong(r,MPI_MAX,cnt);
 }
 
 void
-ParallelDescriptor::ReduceLongMax (Vector<std::reference_wrapper<long> >&& rvar)
+ParallelDescriptor::ReduceLongMax (Vector<std::reference_wrapper<Long> >&& rvar)
 {
     int cnt = rvar.size();
-    Vector<long> tmp{std::begin(rvar), std::end(rvar)};
+    Vector<Long> tmp{std::begin(rvar), std::end(rvar)};
     util::DoAllReduceLong(tmp.data(),MPI_MAX,cnt);
     for (int i = 0; i < cnt; ++i) {
         rvar[i].get() = tmp[i];
@@ -827,22 +827,22 @@ ParallelDescriptor::ReduceLongMax (Vector<std::reference_wrapper<long> >&& rvar)
 }
 
 void
-ParallelDescriptor::ReduceLongMax (long& r, int cpu)
+ParallelDescriptor::ReduceLongMax (Long& r, int cpu)
 {
     util::DoReduceLong(r,MPI_MAX,cpu);
 }
 
 void
-ParallelDescriptor::ReduceLongMax (long* r, int cnt, int cpu)
+ParallelDescriptor::ReduceLongMax (Long* r, int cnt, int cpu)
 {
     util::DoReduceLong(r,MPI_MAX,cnt,cpu);
 }
 
 void
-ParallelDescriptor::ReduceLongMax (Vector<std::reference_wrapper<long> >&& rvar, int cpu)
+ParallelDescriptor::ReduceLongMax (Vector<std::reference_wrapper<Long> >&& rvar, int cpu)
 {
     int cnt = rvar.size();
-    Vector<long> tmp{std::begin(rvar), std::end(rvar)};
+    Vector<Long> tmp{std::begin(rvar), std::end(rvar)};
     util::DoReduceLong(tmp.data(),MPI_MAX,cnt,cpu);
     for (int i = 0; i < cnt; ++i) {
         rvar[i].get() = tmp[i];
@@ -850,22 +850,22 @@ ParallelDescriptor::ReduceLongMax (Vector<std::reference_wrapper<long> >&& rvar,
 }
 
 void
-ParallelDescriptor::ReduceLongMin (long& r)
+ParallelDescriptor::ReduceLongMin (Long& r)
 {
     util::DoAllReduceLong(r,MPI_MIN);
 }
 
 void
-ParallelDescriptor::ReduceLongMin (long* r, int cnt)
+ParallelDescriptor::ReduceLongMin (Long* r, int cnt)
 {
     util::DoAllReduceLong(r,MPI_MIN,cnt);
 }
 
 void
-ParallelDescriptor::ReduceLongMin (Vector<std::reference_wrapper<long> >&& rvar)
+ParallelDescriptor::ReduceLongMin (Vector<std::reference_wrapper<Long> >&& rvar)
 {
     int cnt = rvar.size();
-    Vector<long> tmp{std::begin(rvar), std::end(rvar)};
+    Vector<Long> tmp{std::begin(rvar), std::end(rvar)};
     util::DoAllReduceLong(tmp.data(),MPI_MIN,cnt);
     for (int i = 0; i < cnt; ++i) {
         rvar[i].get() = tmp[i];
@@ -873,22 +873,22 @@ ParallelDescriptor::ReduceLongMin (Vector<std::reference_wrapper<long> >&& rvar)
 }
 
 void
-ParallelDescriptor::ReduceLongMin (long& r, int cpu)
+ParallelDescriptor::ReduceLongMin (Long& r, int cpu)
 {
     util::DoReduceLong(r,MPI_MIN,cpu);
 }
 
 void
-ParallelDescriptor::ReduceLongMin (long* r, int cnt, int cpu)
+ParallelDescriptor::ReduceLongMin (Long* r, int cnt, int cpu)
 {
     util::DoReduceLong(r,MPI_MIN,cnt,cpu);
 }
 
 void
-ParallelDescriptor::ReduceLongMin (Vector<std::reference_wrapper<long> >&& rvar, int cpu)
+ParallelDescriptor::ReduceLongMin (Vector<std::reference_wrapper<Long> >&& rvar, int cpu)
 {
     int cnt = rvar.size();
-    Vector<long> tmp{std::begin(rvar), std::end(rvar)};
+    Vector<Long> tmp{std::begin(rvar), std::end(rvar)};
     util::DoReduceLong(tmp.data(),MPI_MIN,cnt,cpu);
     for (int i = 0; i < cnt; ++i) {
         rvar[i].get() = tmp[i];
@@ -896,22 +896,22 @@ ParallelDescriptor::ReduceLongMin (Vector<std::reference_wrapper<long> >&& rvar,
 }
 
 void
-ParallelDescriptor::ReduceLongAnd (long& r)
+ParallelDescriptor::ReduceLongAnd (Long& r)
 {
     util::DoAllReduceLong(r,MPI_LAND);
 }
 
 void
-ParallelDescriptor::ReduceLongAnd (long* r, int cnt)
+ParallelDescriptor::ReduceLongAnd (Long* r, int cnt)
 {
     util::DoAllReduceLong(r,MPI_LAND,cnt);
 }
 
 void
-ParallelDescriptor::ReduceLongAnd (Vector<std::reference_wrapper<long> >&& rvar)
+ParallelDescriptor::ReduceLongAnd (Vector<std::reference_wrapper<Long> >&& rvar)
 {
     int cnt = rvar.size();
-    Vector<long> tmp{std::begin(rvar), std::end(rvar)};
+    Vector<Long> tmp{std::begin(rvar), std::end(rvar)};
     util::DoAllReduceLong(tmp.data(),MPI_LAND,cnt);
     for (int i = 0; i < cnt; ++i) {
         rvar[i].get() = tmp[i];
@@ -919,22 +919,22 @@ ParallelDescriptor::ReduceLongAnd (Vector<std::reference_wrapper<long> >&& rvar)
 }
 
 void
-ParallelDescriptor::ReduceLongAnd (long& r, int cpu)
+ParallelDescriptor::ReduceLongAnd (Long& r, int cpu)
 {
     util::DoReduceLong(r,MPI_LAND,cpu);
 }
 
 void
-ParallelDescriptor::ReduceLongAnd (long* r, int cnt, int cpu)
+ParallelDescriptor::ReduceLongAnd (Long* r, int cnt, int cpu)
 {
     util::DoReduceLong(r,MPI_LAND,cnt,cpu);
 }
 
 void
-ParallelDescriptor::ReduceLongAnd (Vector<std::reference_wrapper<long> >&& rvar,int cpu)
+ParallelDescriptor::ReduceLongAnd (Vector<std::reference_wrapper<Long> >&& rvar,int cpu)
 {
     int cnt = rvar.size();
-    Vector<long> tmp{std::begin(rvar), std::end(rvar)};
+    Vector<Long> tmp{std::begin(rvar), std::end(rvar)};
     util::DoReduceLong(tmp.data(),MPI_LAND,cnt,cpu);
     for (int i = 0; i < cnt; ++i) {
         rvar[i].get() = tmp[i];
@@ -963,7 +963,7 @@ ParallelDescriptor::util::DoAllReduceReal (Real&  r,
 	    BL_MPI_REQUIRE( MPI_Allreduce(&recv_team, &recv, 1, Mpi_typemap<Real>::type(), op,
 					  MyTeam().get_lead_comm()) );
 	}
-	BL_MPI_REQUIRE( MPI_Bcast(&recv, 1, Mpi_typemap<Real>::type(), 
+	BL_MPI_REQUIRE( MPI_Bcast(&recv, 1, Mpi_typemap<Real>::type(),
 				  0, MyTeam().get_team_comm()) );
     }
     else
@@ -1002,11 +1002,11 @@ ParallelDescriptor::util::DoAllReduceReal (Real*  r,
 	BL_MPI_REQUIRE( MPI_Reduce(r, recv_team.dataPtr(), cnt, Mpi_typemap<Real>::type(), op,
 				   0, MyTeam().get_team_comm()) );
 	if (isTeamLead()) {
-	    BL_MPI_REQUIRE( MPI_Allreduce(recv_team.dataPtr(), recv.dataPtr(), cnt, 
+	    BL_MPI_REQUIRE( MPI_Allreduce(recv_team.dataPtr(), recv.dataPtr(), cnt,
 					  Mpi_typemap<Real>::type(), op,
 					  MyTeam().get_lead_comm()) );
 	}
-	BL_MPI_REQUIRE( MPI_Bcast(recv.dataPtr(), cnt, Mpi_typemap<Real>::type(), 
+	BL_MPI_REQUIRE( MPI_Bcast(recv.dataPtr(), cnt, Mpi_typemap<Real>::type(),
 				  0, MyTeam().get_team_comm()) );
     }
     else
@@ -1049,7 +1049,7 @@ ParallelDescriptor::util::DoReduceReal (Real&  r,
 				       RankInLeadComm(cpu), MyTeam().get_lead_comm()) );
 	}
 	if (sameTeam(cpu)) {
-	    BL_MPI_REQUIRE( MPI_Bcast(&recv, 1, Mpi_typemap<Real>::type(), 
+	    BL_MPI_REQUIRE( MPI_Bcast(&recv, 1, Mpi_typemap<Real>::type(),
 				      0, MyTeam().get_team_comm()) );
 	}
     }
@@ -1098,7 +1098,7 @@ ParallelDescriptor::util::DoReduceReal (Real*  r,
 				       RankInLeadComm(cpu), MyTeam().get_lead_comm()) );
 	}
 	if (sameTeam(cpu)) {
-	    BL_MPI_REQUIRE( MPI_Bcast(&recv[0], cnt, Mpi_typemap<Real>::type(), 
+	    BL_MPI_REQUIRE( MPI_Bcast(&recv[0], cnt, Mpi_typemap<Real>::type(),
 				      0, MyTeam().get_team_comm()) );
 	}
     }
@@ -1123,7 +1123,7 @@ ParallelDescriptor::util::DoReduceReal (Real*  r,
 }
 
 void
-ParallelDescriptor::util::DoAllReduceLong (long&  r,
+ParallelDescriptor::util::DoAllReduceLong (Long&  r,
                                            MPI_Op op)
 {
 #ifdef BL_LAZY
@@ -1133,18 +1133,18 @@ ParallelDescriptor::util::DoAllReduceLong (long&  r,
     BL_PROFILE_S("ParallelDescriptor::util::DoAllReduceLong()");
     BL_COMM_PROFILE_ALLREDUCE(BLProfiler::AllReduceL, BLProfiler::BeforeCall(), true);
 
-    long recv;
+    Long recv;
 
 #if defined(BL_USE_MPI3)
     if (doTeamReduce() > 1) {
-	long recv_team;
-	BL_MPI_REQUIRE( MPI_Reduce(&r, &recv_team, 1, MPI_LONG, op,
+	Long recv_team;
+	BL_MPI_REQUIRE( MPI_Reduce(&r, &recv_team, 1, Mpi_typemap<Long>::type(), op,
 				   0, MyTeam().get_team_comm()) );
 	if (isTeamLead()) {
-	    BL_MPI_REQUIRE( MPI_Allreduce(&recv_team, &recv, 1, MPI_LONG, op,
+	    BL_MPI_REQUIRE( MPI_Allreduce(&recv_team, &recv, 1, Mpi_typemap<Long>::type(), op,
 					  MyTeam().get_lead_comm()) );
 	}
-	BL_MPI_REQUIRE( MPI_Bcast(&recv, 1, MPI_LONG, 
+	BL_MPI_REQUIRE( MPI_Bcast(&recv, 1, Mpi_typemap<Long>::type(),
 				  0, MyTeam().get_team_comm()) );
     }
     else
@@ -1153,16 +1153,16 @@ ParallelDescriptor::util::DoAllReduceLong (long&  r,
 	BL_MPI_REQUIRE( MPI_Allreduce(&r,
 				      &recv,
 				      1,
-				      MPI_LONG,
+				      Mpi_typemap<Long>::type(),
 				      op,
 				      Communicator()) );
     }
-    BL_COMM_PROFILE_ALLREDUCE(BLProfiler::AllReduceL, sizeof(long), false);
+    BL_COMM_PROFILE_ALLREDUCE(BLProfiler::AllReduceL, sizeof(Long), false);
     r = recv;
 }
 
 void
-ParallelDescriptor::util::DoAllReduceLong (long*  r,
+ParallelDescriptor::util::DoAllReduceLong (Long*  r,
                                            MPI_Op op,
                                            int    cnt)
 {
@@ -1175,19 +1175,19 @@ ParallelDescriptor::util::DoAllReduceLong (long*  r,
 
     BL_ASSERT(cnt > 0);
 
-    Vector<long> recv(cnt);
+    Vector<Long> recv(cnt);
 
 #if defined(BL_USE_MPI3)
     if (doTeamReduce() > 1) {
-	Vector<long> recv_team(cnt);
-	BL_MPI_REQUIRE( MPI_Reduce(r, recv_team.dataPtr(), cnt, MPI_LONG, op,
+	Vector<Long> recv_team(cnt);
+	BL_MPI_REQUIRE( MPI_Reduce(r, recv_team.dataPtr(), cnt, Mpi_typemap<Long>::type(), op,
 				   0, MyTeam().get_team_comm()) );
 	if (isTeamLead()) {
-	    BL_MPI_REQUIRE( MPI_Allreduce(recv_team.dataPtr(), recv.dataPtr(), cnt, 
-					  MPI_LONG, op,
+	    BL_MPI_REQUIRE( MPI_Allreduce(recv_team.dataPtr(), recv.dataPtr(), cnt,
+					  Mpi_typemap<Long>::type(), op,
 					  MyTeam().get_lead_comm()) );
 	}
-	BL_MPI_REQUIRE( MPI_Bcast(recv.dataPtr(), cnt, MPI_LONG,
+	BL_MPI_REQUIRE( MPI_Bcast(recv.dataPtr(), cnt, Mpi_typemap<Long>::type(),
 				  0, MyTeam().get_team_comm()) );
     }
     else
@@ -1196,17 +1196,17 @@ ParallelDescriptor::util::DoAllReduceLong (long*  r,
 	BL_MPI_REQUIRE( MPI_Allreduce(r,
 				      recv.dataPtr(),
 				      cnt,
-				      MPI_LONG,
+				      Mpi_typemap<Long>::type(),
 				      op,
 				      Communicator()) );
     }
-    BL_COMM_PROFILE_ALLREDUCE(BLProfiler::AllReduceL, cnt * sizeof(long), false);
+    BL_COMM_PROFILE_ALLREDUCE(BLProfiler::AllReduceL, cnt * sizeof(Long), false);
     for (int i = 0; i < cnt; i++)
         r[i] = recv[i];
 }
 
 void
-ParallelDescriptor::util::DoReduceLong (long&  r,
+ParallelDescriptor::util::DoReduceLong (Long&  r,
                                         MPI_Op op,
                                         int    cpu)
 {
@@ -1215,22 +1215,22 @@ ParallelDescriptor::util::DoReduceLong (long&  r,
 #endif
 
     BL_PROFILE_S("ParallelDescriptor::util::DoReduceLong()");
-    BL_COMM_PROFILE_REDUCE(BLProfiler::ReduceL, sizeof(long), cpu);
+    BL_COMM_PROFILE_REDUCE(BLProfiler::ReduceL, sizeof(Long), cpu);
 
-    long recv;
+    Long recv;
 
 #if defined(BL_USE_MPI3)
     if (doTeamReduce() > 1) {
-	long recv_team;
-	BL_MPI_REQUIRE( MPI_Reduce(&r, &recv_team, 1, MPI_LONG, op,
+	Long recv_team;
+	BL_MPI_REQUIRE( MPI_Reduce(&r, &recv_team, 1, Mpi_typemap<Long>::type(), op,
 				   0, MyTeam().get_team_comm()) );
 
 	if (isTeamLead()) {
-	    BL_MPI_REQUIRE( MPI_Reduce(&recv_team, &recv, 1, MPI_LONG, op,
+	    BL_MPI_REQUIRE( MPI_Reduce(&recv_team, &recv, 1, Mpi_typemap<Long>::type(), op,
 				       RankInLeadComm(cpu), MyTeam().get_lead_comm()) );
 	}
 	if (sameTeam(cpu)) {
-	    BL_MPI_REQUIRE( MPI_Bcast(&recv, 1, MPI_LONG,
+	    BL_MPI_REQUIRE( MPI_Bcast(&recv, 1, Mpi_typemap<Long>::type(),
 				      0, MyTeam().get_team_comm()) );
 	}
     }
@@ -1240,7 +1240,7 @@ ParallelDescriptor::util::DoReduceLong (long&  r,
 	BL_MPI_REQUIRE( MPI_Reduce(&r,
 				   &recv,
 				   1,
-				   MPI_LONG,
+				   Mpi_typemap<Long>::type(),
 				   op,
 				   cpu,
 				   Communicator()));
@@ -1252,7 +1252,7 @@ ParallelDescriptor::util::DoReduceLong (long&  r,
 }
 
 void
-ParallelDescriptor::util::DoReduceLong (long*  r,
+ParallelDescriptor::util::DoReduceLong (Long*  r,
                                         MPI_Op op,
                                         int    cnt,
                                         int    cpu)
@@ -1262,24 +1262,24 @@ ParallelDescriptor::util::DoReduceLong (long*  r,
 #endif
 
     BL_PROFILE_S("ParallelDescriptor::util::DoReduceLong()");
-    BL_COMM_PROFILE_REDUCE(BLProfiler::ReduceL, cnt * sizeof(long), cpu);
+    BL_COMM_PROFILE_REDUCE(BLProfiler::ReduceL, cnt * sizeof(Long), cpu);
 
     BL_ASSERT(cnt > 0);
 
-    Vector<long> recv(cnt);
+    Vector<Long> recv(cnt);
 
 #if defined(BL_USE_MPI3)
     if (doTeamReduce() > 1) {
-	Vector<long> recv_team(cnt);
-	BL_MPI_REQUIRE( MPI_Reduce(r, &recv_team[0], cnt, MPI_LONG, op,
+	Vector<Long> recv_team(cnt);
+	BL_MPI_REQUIRE( MPI_Reduce(r, &recv_team[0], cnt, Mpi_typemap<Long>::type(), op,
 				   0, MyTeam().get_team_comm()) );
 
 	if (isTeamLead()) {
-	    BL_MPI_REQUIRE( MPI_Reduce(&recv_team[0], &recv[0], cnt, MPI_LONG, op,
+	    BL_MPI_REQUIRE( MPI_Reduce(&recv_team[0], &recv[0], cnt, Mpi_typemap<Long>::type(), op,
 				       RankInLeadComm(cpu), MyTeam().get_lead_comm()) );
 	}
 	if (sameTeam(cpu)) {
-	    BL_MPI_REQUIRE( MPI_Bcast(&recv[0], cnt, MPI_LONG, 
+	    BL_MPI_REQUIRE( MPI_Bcast(&recv[0], cnt, Mpi_typemap<Long>::type(),
 				      0, MyTeam().get_team_comm()) );
 	}
     }
@@ -1289,7 +1289,7 @@ ParallelDescriptor::util::DoReduceLong (long*  r,
 	BL_MPI_REQUIRE( MPI_Reduce(r,
 				   recv.dataPtr(),
 				   cnt,
-				   MPI_LONG,
+				   Mpi_typemap<Long>::type(),
 				   op,
 				   cpu,
 				   Communicator()));
@@ -1325,7 +1325,7 @@ ParallelDescriptor::util::DoAllReduceInt (int&   r,
 	    BL_MPI_REQUIRE( MPI_Allreduce(&recv_team, &recv, 1, MPI_INT, op,
 					  MyTeam().get_lead_comm()) );
 	}
-	BL_MPI_REQUIRE( MPI_Bcast(&recv, 1, MPI_INT, 
+	BL_MPI_REQUIRE( MPI_Bcast(&recv, 1, MPI_INT,
 				  0, MyTeam().get_team_comm()) );
     }
     else
@@ -1364,7 +1364,7 @@ ParallelDescriptor::util::DoAllReduceInt (int*   r,
 	BL_MPI_REQUIRE( MPI_Reduce(r, recv_team.dataPtr(), cnt, MPI_INT, op,
 				   0, MyTeam().get_team_comm()) );
 	if (isTeamLead()) {
-	    BL_MPI_REQUIRE( MPI_Allreduce(recv_team.dataPtr(), recv.dataPtr(), cnt, 
+	    BL_MPI_REQUIRE( MPI_Allreduce(recv_team.dataPtr(), recv.dataPtr(), cnt,
 					  MPI_INT, op,
 					  MyTeam().get_lead_comm()) );
 	}
@@ -1451,16 +1451,16 @@ ParallelDescriptor::util::DoReduceInt (int*   r,
 
 #if defined(BL_USE_MPI3)
     if (doTeamReduce() > 1) {
-	Vector<long> recv_team(cnt);
-	BL_MPI_REQUIRE( MPI_Reduce(r, &recv_team[0], cnt, MPI_LONG, op,
+	Vector<Long> recv_team(cnt);
+	BL_MPI_REQUIRE( MPI_Reduce(r, &recv_team[0], cnt, Mpi_typemap<Long>::type(), op,
 				   0, MyTeam().get_team_comm()) );
 
 	if (isTeamLead()) {
-	    BL_MPI_REQUIRE( MPI_Reduce(&recv_team[0], &recv[0], cnt, MPI_LONG, op,
+	    BL_MPI_REQUIRE( MPI_Reduce(&recv_team[0], &recv[0], cnt, Mpi_typemap<Long>::type(), op,
 				       RankInLeadComm(cpu), MyTeam().get_lead_comm()) );
 	}
 	if (sameTeam(cpu)) {
-	    BL_MPI_REQUIRE( MPI_Bcast(&recv[0], cnt, MPI_LONG, 
+	    BL_MPI_REQUIRE( MPI_Bcast(&recv[0], cnt, Mpi_typemap<Long>::type(),
 				      0, MyTeam().get_team_comm()) );
 	}
     }
@@ -1541,6 +1541,13 @@ ParallelDescriptor::Mpi_typemap<long>::type ()
 
 template <>
 MPI_Datatype
+ParallelDescriptor::Mpi_typemap<long long>::type ()
+{
+    return  MPI_LONG_LONG;
+}
+
+template <>
+MPI_Datatype
 ParallelDescriptor::Mpi_typemap<unsigned char>::type ()
 {
     return  MPI_UNSIGNED_CHAR;
@@ -1573,7 +1580,7 @@ ParallelDescriptor::Mpi_typemap<unsigned long long>::type ()
 {
     return  MPI_UNSIGNED_LONG_LONG;
 }
-    
+
 template <>
 MPI_Datatype
 ParallelDescriptor::Mpi_typemap<float>::type ()
@@ -1723,13 +1730,13 @@ ParallelDescriptor::Message::test ()
     return m_finished;
 }
 
-void ParallelDescriptor::EndParallel () 
+void ParallelDescriptor::EndParallel ()
 {
     ParallelContext::pop();
 }
 
 void ParallelDescriptor::Abort (int s, bool backtrace)
-{ 
+{
     if (backtrace && amrex::system::signal_handling) {
 	BLBackTrace::handler(s);
     } else {
@@ -1772,35 +1779,35 @@ void ParallelDescriptor::ReduceRealSum (Vector<std::reference_wrapper<Real> >&& 
 void ParallelDescriptor::ReduceRealMax (Vector<std::reference_wrapper<Real> >&& rvar, int cpu) {}
 void ParallelDescriptor::ReduceRealMin (Vector<std::reference_wrapper<Real> >&& rvar, int cpu) {}
 
-void ParallelDescriptor::ReduceLongAnd (long&) {}
-void ParallelDescriptor::ReduceLongSum (long&) {}
-void ParallelDescriptor::ReduceLongMax (long&) {}
-void ParallelDescriptor::ReduceLongMin (long&) {}
+void ParallelDescriptor::ReduceLongAnd (Long&) {}
+void ParallelDescriptor::ReduceLongSum (Long&) {}
+void ParallelDescriptor::ReduceLongMax (Long&) {}
+void ParallelDescriptor::ReduceLongMin (Long&) {}
 
-void ParallelDescriptor::ReduceLongAnd (long&,int) {}
-void ParallelDescriptor::ReduceLongSum (long&,int) {}
-void ParallelDescriptor::ReduceLongMax (long&,int) {}
-void ParallelDescriptor::ReduceLongMin (long&,int) {}
+void ParallelDescriptor::ReduceLongAnd (Long&,int) {}
+void ParallelDescriptor::ReduceLongSum (Long&,int) {}
+void ParallelDescriptor::ReduceLongMax (Long&,int) {}
+void ParallelDescriptor::ReduceLongMin (Long&,int) {}
 
-void ParallelDescriptor::ReduceLongAnd (long*,int) {}
-void ParallelDescriptor::ReduceLongSum (long*,int) {}
-void ParallelDescriptor::ReduceLongMax (long*,int) {}
-void ParallelDescriptor::ReduceLongMin (long*,int) {}
+void ParallelDescriptor::ReduceLongAnd (Long*,int) {}
+void ParallelDescriptor::ReduceLongSum (Long*,int) {}
+void ParallelDescriptor::ReduceLongMax (Long*,int) {}
+void ParallelDescriptor::ReduceLongMin (Long*,int) {}
 
-void ParallelDescriptor::ReduceLongAnd (long*,int,int) {}
-void ParallelDescriptor::ReduceLongSum (long*,int,int) {}
-void ParallelDescriptor::ReduceLongMax (long*,int,int) {}
-void ParallelDescriptor::ReduceLongMin (long*,int,int) {}
+void ParallelDescriptor::ReduceLongAnd (Long*,int,int) {}
+void ParallelDescriptor::ReduceLongSum (Long*,int,int) {}
+void ParallelDescriptor::ReduceLongMax (Long*,int,int) {}
+void ParallelDescriptor::ReduceLongMin (Long*,int,int) {}
 
-void ParallelDescriptor::ReduceLongAnd (Vector<std::reference_wrapper<long> >&& rvar) {}
-void ParallelDescriptor::ReduceLongSum (Vector<std::reference_wrapper<long> >&& rvar) {}
-void ParallelDescriptor::ReduceLongMax (Vector<std::reference_wrapper<long> >&& rvar) {}
-void ParallelDescriptor::ReduceLongMin (Vector<std::reference_wrapper<long> >&& rvar) {}
+void ParallelDescriptor::ReduceLongAnd (Vector<std::reference_wrapper<Long> >&& rvar) {}
+void ParallelDescriptor::ReduceLongSum (Vector<std::reference_wrapper<Long> >&& rvar) {}
+void ParallelDescriptor::ReduceLongMax (Vector<std::reference_wrapper<Long> >&& rvar) {}
+void ParallelDescriptor::ReduceLongMin (Vector<std::reference_wrapper<Long> >&& rvar) {}
 
-void ParallelDescriptor::ReduceLongAnd (Vector<std::reference_wrapper<long> >&& rvar, int cpu) {}
-void ParallelDescriptor::ReduceLongSum (Vector<std::reference_wrapper<long> >&& rvar, int cpu) {}
-void ParallelDescriptor::ReduceLongMax (Vector<std::reference_wrapper<long> >&& rvar, int cpu) {}
-void ParallelDescriptor::ReduceLongMin (Vector<std::reference_wrapper<long> >&& rvar, int cpu) {}
+void ParallelDescriptor::ReduceLongAnd (Vector<std::reference_wrapper<Long> >&& rvar, int cpu) {}
+void ParallelDescriptor::ReduceLongSum (Vector<std::reference_wrapper<Long> >&& rvar, int cpu) {}
+void ParallelDescriptor::ReduceLongMax (Vector<std::reference_wrapper<Long> >&& rvar, int cpu) {}
+void ParallelDescriptor::ReduceLongMin (Vector<std::reference_wrapper<Long> >&& rvar, int cpu) {}
 
 void ParallelDescriptor::ReduceIntSum (int&) {}
 void ParallelDescriptor::ReduceIntMax (int&) {}
@@ -1865,6 +1872,8 @@ ParallelDescriptor::Waitsome (Vector<MPI_Request>& reqs,
 
 #endif
 
+#ifndef BL_NO_FORT
+
 BL_FORT_PROC_DECL(BL_PD_BARRIER,bl_pd_barrier)()
 {
     ParallelDescriptor::Barrier();
@@ -1928,6 +1937,8 @@ BL_FORT_PROC_DECL(BL_PD_ABORT,bl_pd_abort)()
 {
     ParallelDescriptor::Abort();
 }
+
+#endif
 
 #ifdef BL_USE_MPI
 namespace ParallelDescriptor
@@ -2035,7 +2046,7 @@ ParallelDescriptor::ReadAndBcastFile (const std::string& filename,
 
     Vector<Setbuf_Char_Type> io_buffer(IO_Buffer_Size);
 
-    long fileLength(0), fileLengthPadded(0);
+    Long fileLength(0), fileLengthPadded(0);
 
     std::ifstream iss;
 
@@ -2128,7 +2139,7 @@ ParallelDescriptor::StartTeams ()
 	    team_ranks[i] = MyTeamLead() + i;
 	}
 	BL_MPI_REQUIRE( MPI_Group_incl(grp, team_size, team_ranks, &team_grp) );
-	BL_MPI_REQUIRE( MPI_Comm_create(ParallelDescriptor::Communicator(), 
+	BL_MPI_REQUIRE( MPI_Comm_create(ParallelDescriptor::Communicator(),
 					team_grp, &m_Team.m_team_comm) );
 
 	std::vector<int>lead_ranks(m_Team.m_numTeams);
@@ -2136,7 +2147,7 @@ ParallelDescriptor::StartTeams ()
 	    lead_ranks[i] = i * team_size;
 	}
 	BL_MPI_REQUIRE( MPI_Group_incl(grp, lead_ranks.size(), &lead_ranks[0], &lead_grp) );
-	BL_MPI_REQUIRE( MPI_Comm_create(ParallelDescriptor::Communicator(), 
+	BL_MPI_REQUIRE( MPI_Comm_create(ParallelDescriptor::Communicator(),
 					lead_grp, &m_Team.m_lead_comm) );
 
         BL_MPI_REQUIRE( MPI_Group_free(&grp) );

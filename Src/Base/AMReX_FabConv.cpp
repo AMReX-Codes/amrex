@@ -19,7 +19,7 @@ int  RealDescriptor::readBufferSize(262144);   // ---- not bytes
 
 IntDescriptor::IntDescriptor () {}
 
-IntDescriptor::IntDescriptor (long     nb,
+IntDescriptor::IntDescriptor (Long     nb,
                               Ordering o)
     : numbytes(nb),
       ord(o)
@@ -91,21 +91,21 @@ operator>> (std::istream& is,
 RealDescriptor::RealDescriptor ()
 {}
 
-RealDescriptor::RealDescriptor (const long* fr_,
+RealDescriptor::RealDescriptor (const Long* fr_,
                                 const int*  ord_,
                                 int         ordl_)
     : fr(fr_, fr_+8),
       ord(ord_, ord_+ordl_)
 {}
 
-const long*
+const Long*
 RealDescriptor::format () const &
 {
     BL_ASSERT(fr.size() != 0);
     return fr.dataPtr();
 }
 
-const Vector<long>&
+const Vector<Long>&
 RealDescriptor::formatarray () const &
 {
     BL_ASSERT(fr.size() != 0);
@@ -251,15 +251,15 @@ RealDescriptor::newRealDescriptor (int         iot,
 
 inline
 void
-ONES_COMP_NEG (long& n,
+ONES_COMP_NEG (Long& n,
                int   nb,
-               long  incr)
+               Long  incr)
 {
-    if (nb == 8*sizeof(long))
+    if (nb == 8*sizeof(Long))
         n = ~n + incr;
     else
     {
-        const long MSK = (1L << nb) - 1L;
+        const Long MSK = (1LL << nb) - 1LL;
         n = (~n + incr) & MSK;
     }
 }
@@ -293,13 +293,13 @@ _pd_get_bit (char const* base,
 //
 // Make a copy of the bit field specified by the starting bit, OFFS and
 // the number of bits, NBI, from the byte array pointed to by IN.
-// All indexing is 0 based.  The copy is to be put in a long and returned.
+// All indexing is 0 based.  The copy is to be put in a Long and returned.
 // This imposes a 32 bit limit (minimum) so repeated calls - must be made
 // for longer fields
 //
 
 static
-long
+Long
 _pd_extract_field (char const* in,
                    int         offs,
                    int         nbi,
@@ -307,13 +307,13 @@ _pd_extract_field (char const* in,
                    const int*  ord)
 {
     int ind;
-    long bit_field = 0L;
+    Long bit_field = 0L;
     //
     // Move past the apropriate number of bytes so that the start bit is
     // in the first byte.  OFFY is the offset of the byte containing the
     // bit OFFS
     //
-    long n   = offs >> 3;
+    Long n   = offs >> 3;
     int offy = int(n % nby);
     n   -= offy;
     offs = offs % 8;
@@ -371,21 +371,21 @@ _pd_extract_field (char const* in,
 }
 
 //
-// Byte reverse nitems words.  Each word is nb bytes long where nb is even.
+// Byte reverse nitems words.  Each word is nb bytes Long where nb is even.
 //
 
 static
 void
 _pd_btrvout (char* out,
-             long  nb,
-             long  nitems)
+             Long  nb,
+             Long  nitems)
 {
-    for (long jl = 0, nbo2 = nb >> 1; jl < nbo2; jl++)
+    for (Long jl = 0, nbo2 = nb >> 1; jl < nbo2; jl++)
     {
-        long jh  = nb - jl - 1;
+        Long jh  = nb - jl - 1;
         char* p1 = out + jh;
         char* p2 = out + jl;
-        for (long i = 0L; i < nitems; i++)
+        for (Long i = 0L; i < nitems; i++)
         {
             char tmp = *p1;
             *p1 = *p2;
@@ -396,11 +396,11 @@ _pd_btrvout (char* out,
     }
 }
 
-const int BitsMax       = 8*sizeof(long);
+const int BitsMax       = 8*sizeof(Long);
 const int REVERSE_ORDER = 2;
 
 //
-// Copy the least significant NB bits from the given long into the byte array
+// Copy the least significant NB bits from the given Long into the byte array
 // pointed to by OUT.  All indexing is 0 based.  OFFS is the offset from the
 // beginning of OUT in bits.  This assumes that the output bit array is
 // initialized to all zeros after offs.
@@ -408,7 +408,7 @@ const int REVERSE_ORDER = 2;
 
 inline
 void
-_pd_insert_field (long  in_long,
+_pd_insert_field (Long  in_long,
                   int   nb,
                   char* out,
                   int   offs,
@@ -416,7 +416,7 @@ _pd_insert_field (long  in_long,
                   int   l_bytes)
 {
     int  dm;
-    long longmask;
+    Long longmask;
 
     char* in = (char *) &in_long;
     //
@@ -437,11 +437,11 @@ _pd_insert_field (long  in_long,
     {
         dm = BitsMax - (8 - offs);
         if (nb == BitsMax)
-            longmask = ~((1L << dm) - 1L);
+            longmask = ~((1LL << dm) - 1LL);
         else
-            longmask = ((1L << nb) - 1L) ^ ((1L << dm) - 1L);
+            longmask = ((1LL << nb) - 1LL) ^ ((1LL << dm) - 1LL);
 
-        unsigned char fb = ((in_long&longmask)>>dm)&((1L<<(nb-dm))-1L);
+        unsigned char fb = ((in_long&longmask)>>dm)&((1LL<<(nb-dm))-1LL);
         *(out++) |= fb;
 
         mi  += 8 - offs;
@@ -452,7 +452,7 @@ _pd_insert_field (long  in_long,
     // with the output.
     //
     dm       = mi - offs;
-    longmask = ~((1L << dm) - 1L);
+    longmask = ~((1LL << dm) - 1LL);
     in_long  = (in_long << dm) & longmask;
     //
     // Reorder the bytes apropriately.
@@ -493,7 +493,7 @@ _pd_set_bit (char* base, int offs)
 static
 void
 _pd_reorder (char*      arr,
-             long       nitems,
+             Long       nitems,
              int        nbytes,
              const int* ord)
 {
@@ -519,7 +519,7 @@ static
 void
 permute_real_word_order (void*       out,
                          const void* in,
-                         long        nitems,
+                         Long        nitems,
                          const int*  outord,
                          const int*  inord, 
                          int         REALSIZE)
@@ -610,18 +610,18 @@ permute_real_word_order (void*       out,
 void
 PD_fconvert (void*       out,
              const void* in,
-             long        nitems,
+             Long        nitems,
              int         boffs,
-             const long* outfor,
+             const Long* outfor,
              const int*  outord,
-             const long* infor,
+             const Long* infor,
              const int*  inord,
              int         l_order,
              int         l_bytes,
              int         onescmp)
 {
     BL_PROFILE("PD_fconvert");
-    long i, expn, expn_max, hexpn, mant, DeltaBias, hmbo, hmbi;
+    Long i, expn, expn_max, hexpn, mant, DeltaBias, hmbo, hmbi;
     int nbits, inbytes, outbytes, sign;
     int indxin, indxout, inrem, outrem, dindx;
     int bi_sign, bo_sign, bi_exp, bo_exp, bi_mant, bo_mant;
@@ -640,14 +640,14 @@ PD_fconvert (void*       out,
     bi_mant = int(infor[5] + boffs);
     bo_mant = int(outfor[5]);
 
-    hmbo    = (outfor[6] & 1L);
-    hmbi    = (infor[6] & 1L);
+    hmbo    = (outfor[6] & 1LL);
+    hmbi    = (infor[6] & 1LL);
 
     inbytes   = (nbi + 7) >> 3;
     outbytes  = (nbo + 7) >> 3;
     DeltaBias = outfor[7] + hmbo - infor[7] - hmbi;
-    hexpn     = 1L << (outfor[1] - 1L);
-    expn_max  = (1L << outfor[1]) - 1L;
+    hexpn     = 1LL << (outfor[1] - 1L);
+    expn_max  = (1LL << outfor[1]) - 1LL;
 
     size_t number = size_t(nitems);
     BL_ASSERT(int(number) == nitems);
@@ -713,7 +713,7 @@ PD_fconvert (void*       out,
                 inrem  += dindx;
             }
             //
-            // Move the mantissa over in sizeof(long) packets.
+            // Move the mantissa over in sizeof(Long) packets.
             //
             while ((inrem > 0) && (outrem > 0))
             {
@@ -780,8 +780,8 @@ PD_fconvert (void*       out,
 static
 void
 PD_fixdenormals (void*       out,
-                 long        nitems,
-                 const long* outfor,
+                 Long        nitems,
+                 const Long* outfor,
                  const int*  outord)
 {
     BL_PROFILE("PD_fixdenormals");
@@ -793,7 +793,7 @@ PD_fixdenormals (void*       out,
 
     char* lout = (char*) out;
 
-    for (long i = 0L; i < nitems; i++)
+    for (Long i = 0L; i < nitems; i++)
     {
         if (_pd_extract_field(lout, bo_exp, nbo_exp, outbytes, outord) == 0)
         {
@@ -841,7 +841,7 @@ getarray (std::istream&  is,                                       \
         amrex::Error("getarray(istream&): expected a \')\'");     \
 }
 GETARRAY(int)
-GETARRAY(long)
+GETARRAY(Long)
 #undef GETARRAY
 
 #undef  PUTARRAY
@@ -863,7 +863,7 @@ putarray (std::ostream&        os,     \
     os << "))";                        \
 }
 PUTARRAY(int)
-PUTARRAY(long)
+PUTARRAY(Long)
 #undef PUTARRAY
 
 std::ostream&
@@ -890,7 +890,7 @@ operator>> (std::istream&   is,
     is >> c;
     if (c != '(')
         amrex::Error("operator>>(istream&,RealDescriptor&): expected a \'(\'");
-    Vector<long> fmt;
+    Vector<Long> fmt;
     getarray(is, fmt);
     is >> c;
     if (c != ',')
@@ -908,7 +908,7 @@ static
 void
 PD_convert (void*                 out,
             const void*           in,
-            long                  nitems,
+            Long                  nitems,
             int                   boffs,
             const RealDescriptor& ord,
             const RealDescriptor& ird,
@@ -929,11 +929,11 @@ PD_convert (void*                 out,
     else if (ird == FPC::NativeRealDescriptor() && ord == FPC::Native32RealDescriptor()) {
       auto rIn = static_cast<const char*>(in);
       auto rOut= static_cast<char*>(out);
-      for(long i(0); i < nitems; ++i) {
+      for(Long i(0); i < nitems; ++i) {
         Real x;
         float y;
         std::memcpy(&x, rIn, sizeof(Real));
-        y = x;
+        y = static_cast<float>(x);
         std::memcpy(rOut, &y, sizeof(float));
         rOut += sizeof(float);
         rIn += sizeof(Real);
@@ -954,7 +954,7 @@ PD_convert (void*                 out,
 
 void
 RealDescriptor::convertToNativeFormat (Real*                 out,
-                                       long                  nitems,
+                                       Long                  nitems,
                                        void*                 in,
                                        const RealDescriptor& id)
 {
@@ -980,13 +980,13 @@ RealDescriptor::convertToNativeFormat (Real*                 out,
 
 void
 RealDescriptor::convertToNativeFormat (Real*                 out,
-                                       long                  nitems,
+                                       Long                  nitems,
                                        std::istream&         is,
                                        const RealDescriptor& id)
 {
     BL_PROFILE("RD:convertToNativeFormat_is");
 
-    long buffSize(std::min(long(readBufferSize), nitems));
+    Long buffSize(std::min(Long(readBufferSize), nitems));
     char *bufr = new char[buffSize * id.numBytes()];
 
     while (nitems > 0)
@@ -1010,7 +1010,7 @@ RealDescriptor::convertToNativeFormat (Real*                 out,
     }
 
     if(is.fail()) {
-      amrex::Error("convert(Real*,long,istream&,RealDescriptor&) failed");
+      amrex::Error("convert(Real*,Long,istream&,RealDescriptor&) failed");
     }
 
     delete [] bufr;
@@ -1022,7 +1022,7 @@ RealDescriptor::convertToNativeFormat (Real*                 out,
 
 void
 RealDescriptor::convertFromNativeFormat (void*                 out,
-                                         long                  nitems,
+                                         Long                  nitems,
                                          const void*           in,
                                          const RealDescriptor& od)
 {
@@ -1043,13 +1043,13 @@ RealDescriptor::convertFromNativeFormat (void*                 out,
 
 void
 RealDescriptor::convertFromNativeFormat (std::ostream&         os,
-                                         long                  nitems,
+                                         Long                  nitems,
                                          const Real*           in,
                                          const RealDescriptor& od)
 {
   BL_PROFILE("RD:convertFromNativeFormat_os");
-  long nitemsSave(nitems);
-  long buffSize(std::min(long(writeBufferSize), nitems));
+  Long nitemsSave(nitems);
+  Long buffSize(std::min(Long(writeBufferSize), nitems));
   const Real *inSave(in);
   amrex::StreamRetry sr(os, "RD_cFNF", 4);
 
@@ -1085,13 +1085,13 @@ RealDescriptor::convertFromNativeFormat (std::ostream&         os,
 
 void
 RealDescriptor::convertFromNativeFloatFormat (std::ostream&         os,
-                                              long                  nitems,
+                                              Long                  nitems,
                                               const float*          in,
                                               const RealDescriptor& od)
 {
   BL_PROFILE("RD:convertFromNativeFloatFormat");
-  long nitemsSave(nitems);
-  long buffSize(std::min(long(writeBufferSize), nitems));
+  Long nitemsSave(nitems);
+  Long buffSize(std::min(Long(writeBufferSize), nitems));
   const float *inSave(in);
   amrex::StreamRetry sr(os, "RD_cFNF", 4);
 
@@ -1127,13 +1127,13 @@ RealDescriptor::convertFromNativeFloatFormat (std::ostream&         os,
 
 void
 RealDescriptor::convertFromNativeDoubleFormat (std::ostream&         os,
-                                               long                  nitems,
+                                               Long                  nitems,
                                                const double*         in,
                                                const RealDescriptor& od)
 {
   BL_PROFILE("RD:convertFromNativeDoubleFormat");
-  long nitemsSave(nitems);
-  long buffSize(std::min(long(writeBufferSize), nitems));
+  Long nitemsSave(nitems);
+  Long buffSize(std::min(Long(writeBufferSize), nitems));
   const double *inSave(in);
   amrex::StreamRetry sr(os, "RD_cFNF", 4);
 
@@ -1168,13 +1168,13 @@ RealDescriptor::convertFromNativeDoubleFormat (std::ostream&         os,
 
 void
 RealDescriptor::convertToNativeFloatFormat (float*                out,
-                                            long                  nitems,
+                                            Long                  nitems,
                                             std::istream&         is,
                                             const RealDescriptor& id)
 {
     BL_PROFILE("RD:convertToNativeFloatFormat");
 
-    long buffSize(std::min(long(readBufferSize), nitems));
+    Long buffSize(std::min(Long(readBufferSize), nitems));
     char *bufr = new char[buffSize * id.numBytes()];
 
     while (nitems > 0)
@@ -1198,7 +1198,7 @@ RealDescriptor::convertToNativeFloatFormat (float*                out,
     }
 
     if(is.fail()) {
-      amrex::Error("convert(Real*,long,istream&,RealDescriptor&) failed");
+      amrex::Error("convert(Real*,Long,istream&,RealDescriptor&) failed");
     }
 
     delete [] bufr;
@@ -1210,13 +1210,13 @@ RealDescriptor::convertToNativeFloatFormat (float*                out,
 
 void
 RealDescriptor::convertToNativeDoubleFormat (double*               out,
-                                             long                  nitems,
+                                             Long                  nitems,
                                              std::istream&         is,
                                              const RealDescriptor& id)
 {
     BL_PROFILE("RD:convertToNativeDoubleFormat");
 
-    long buffSize(std::min(long(readBufferSize), nitems));
+    Long buffSize(std::min(Long(readBufferSize), nitems));
     char *bufr = new char[buffSize * id.numBytes()];
 
     while (nitems > 0)
@@ -1240,7 +1240,7 @@ RealDescriptor::convertToNativeDoubleFormat (double*               out,
     }
 
     if(is.fail()) {
-      amrex::Error("convert(Real*,long,istream&,RealDescriptor&) failed");
+      amrex::Error("convert(Real*,Long,istream&,RealDescriptor&) failed");
     }
 
     delete [] bufr;

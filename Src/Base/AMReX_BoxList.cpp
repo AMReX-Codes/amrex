@@ -344,12 +344,12 @@ BoxList::complementIn (const Box& b, const BoxArray& ba)
     }
     else
     {
-        long npts_avgbox;
-	Box mbox = ba.minimalBox(npts_avgbox);
+        Long npts_avgbox;
+        Box mbox = ba.minimalBox(npts_avgbox);
         *this = amrex::boxDiff(b, mbox);
         auto mytyp = ixType();
 
-	BoxList bl_mesh(mbox & b);
+        BoxList bl_mesh(mbox & b);
 
 #if (AMREX_SPACEDIM == 1)
         Real s_avgbox = npts_avgbox;
@@ -360,8 +360,8 @@ BoxList::complementIn (const Box& b, const BoxArray& ba)
 #endif
 
         const int block_size = 4 * std::max(1,static_cast<int>(std::ceil(s_avgbox/4.))*4);
-	bl_mesh.maxSize(block_size);
-	const int N = bl_mesh.size();
+        bl_mesh.maxSize(block_size);
+        const int N = bl_mesh.size();
 
 #ifdef _OPENMP
         bool start_omp_parallel = !omp_in_parallel();

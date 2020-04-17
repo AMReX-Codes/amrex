@@ -5,6 +5,7 @@
 #include <AMReX_Box.H>
 #include <AMReX_Gpu.H>
 #include <AMReX_Print.H>
+#include <AMReX_Math.H>
 #include <AMReX_MFIter.H>
 #include <AMReX_ParGDB.H>
 #include <AMReX_ParticleTile.H>
@@ -56,9 +57,9 @@ numParticlesOutOfRange (Iterator const& pti, int nGrow)
         const ParticleType& p = pstruct[i];
         if ((p.id() < 0)) return false;
         IntVect iv = IntVect(
-            AMREX_D_DECL(int(floor((p.pos(0)-plo[0])*dxi[0])),
-                         int(floor((p.pos(1)-plo[1])*dxi[1])),
-                         int(floor((p.pos(2)-plo[2])*dxi[2]))));
+            AMREX_D_DECL(int(amrex::Math::floor((p.pos(0)-plo[0])*dxi[0])),
+                         int(amrex::Math::floor((p.pos(1)-plo[1])*dxi[1])),
+                         int(amrex::Math::floor((p.pos(2)-plo[2])*dxi[2]))));
         iv += domain.smallEnd();
         return !box.contains(iv);
     });
@@ -178,9 +179,9 @@ IntVect getParticleCell (P const& p,
                          const Box& domain) noexcept
 {
     IntVect iv = IntVect(
-        AMREX_D_DECL(floor((p.pos(0)-plo[0])*dxi[0]),
-                     floor((p.pos(1)-plo[1])*dxi[1]),
-                     floor((p.pos(2)-plo[2])*dxi[2])));
+        AMREX_D_DECL(int(amrex::Math::floor((p.pos(0)-plo[0])*dxi[0])),
+                     int(amrex::Math::floor((p.pos(1)-plo[1])*dxi[1])),
+                     int(amrex::Math::floor((p.pos(2)-plo[2])*dxi[2]))));
     iv += domain.smallEnd();
     return iv;
 }

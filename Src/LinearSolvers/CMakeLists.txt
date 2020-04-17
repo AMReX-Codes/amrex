@@ -15,8 +15,6 @@ target_sources(amrex
    MLMG/AMReX_MLLinOp.H
    MLMG/AMReX_MLLinOp.cpp
    MLMG/AMReX_MLLinOp_K.H
-   MLMG/AMReX_MLLinOp_F.H
-   MLMG/AMReX_MLLinOp_nd.F90
    MLMG/AMReX_MLCellLinOp.H
    MLMG/AMReX_MLCellLinOp.cpp
    MLMG/AMReX_MLNodeLinOp.H
@@ -56,7 +54,8 @@ target_sources(amrex
    )
 
 if (ENABLE_EB)
-   target_sources(amrex PRIVATE 
+   target_sources(amrex
+      PRIVATE
       MLMG/AMReX_MLEBABecLap.H
       MLMG/AMReX_MLEBABecLap.cpp
       MLMG/AMReX_MLEBABecLap_K.H
@@ -65,5 +64,13 @@ if (ENABLE_EB)
       MLMG/AMReX_MLEBTensorOp.cpp
       MLMG/AMReX_MLEBTensor_K.H
       MLMG/AMReX_MLEBTensor_${DIM}D_K.H
+      )
+endif ()
+
+if (ENABLE_FORTRAN)
+   target_sources(amrex
+      PRIVATE
+      MLMG/AMReX_MLLinOp_F.H
+      MLMG/AMReX_MLLinOp_nd.F90
       )
 endif ()

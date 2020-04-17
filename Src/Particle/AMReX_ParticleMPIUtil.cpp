@@ -7,9 +7,9 @@ namespace amrex {
 
 #ifdef AMREX_USE_MPI    
     
-    long CountSnds(const std::map<int, Vector<char> >& not_ours, Vector<long>& Snds)
+    Long CountSnds(const std::map<int, Vector<char> >& not_ours, Vector<Long>& Snds)
     {
-        long NumSnds = 0;        
+        Long NumSnds = 0;        
         for (const auto& kv : not_ours)
         {
             NumSnds       += kv.second.size();
@@ -21,36 +21,36 @@ namespace amrex {
         return NumSnds;
     }
 
-    long doHandShake(const std::map<int, Vector<char> >& not_ours,
-                     Vector<long>& Snds, Vector<long>& Rcvs)
+    Long doHandShake(const std::map<int, Vector<char> >& not_ours,
+                     Vector<Long>& Snds, Vector<Long>& Rcvs)
     {
-        long NumSnds = CountSnds(not_ours, Snds);
+        Long NumSnds = CountSnds(not_ours, Snds);
         if (NumSnds == 0) return NumSnds;
 
-        BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(long),
+        BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(Long),
                         ParallelDescriptor::MyProc(), BLProfiler::BeforeCall());
         
         BL_MPI_REQUIRE( MPI_Alltoall(Snds.dataPtr(),
                                      1,
-                                     ParallelDescriptor::Mpi_typemap<long>::type(),
+                                     ParallelDescriptor::Mpi_typemap<Long>::type(),
                                      Rcvs.dataPtr(),
                                      1,
-                                     ParallelDescriptor::Mpi_typemap<long>::type(),
+                                     ParallelDescriptor::Mpi_typemap<Long>::type(),
                                      ParallelDescriptor::Communicator()) );
 
         AMREX_ASSERT(Rcvs[ParallelDescriptor::MyProc()] == 0);
         
-        BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(long),
+        BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(Long),
                         ParallelDescriptor::MyProc(), BLProfiler::AfterCall());
 
         return NumSnds;
     }
 
-    long doHandShakeLocal(const std::map<int, Vector<char> >& not_ours,
-                          const Vector<int>& neighbor_procs, Vector<long>& Snds, Vector<long>& Rcvs)
+    Long doHandShakeLocal(const std::map<int, Vector<char> >& not_ours,
+                          const Vector<int>& neighbor_procs, Vector<Long>& Snds, Vector<Long>& Rcvs)
     {
 
-        long NumSnds = 0;        
+        Long NumSnds = 0;        
         for (const auto& kv : not_ours)
         {
             NumSnds       += kv.second.size();
@@ -66,7 +66,7 @@ namespace amrex {
         // Post receives
         for (int i = 0; i < num_rcvs; ++i) {
             const int Who = neighbor_procs[i];
-            const long Cnt = 1;
+            const Long Cnt = 1;
             
             AMREX_ASSERT(Who >= 0 && Who < ParallelDescriptor::NProcs());
             
@@ -76,7 +76,7 @@ namespace amrex {
         // Send.
         for (int i = 0; i < num_rcvs; ++i) {
             const int Who = neighbor_procs[i];
-            const long Cnt = 1;
+            const Long Cnt = 1;
             
             AMREX_ASSERT(Who >= 0 && Who < ParallelDescriptor::NProcs());
             

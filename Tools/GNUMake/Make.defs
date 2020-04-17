@@ -99,7 +99,7 @@ endif
 ifdef DEBUG
   DEBUG := $(strip $(DEBUG))
 else
-  DEBUG := TRUE
+  DEBUG := FALSE
 endif
 
 ifdef PROFILE
@@ -184,10 +184,10 @@ else
   LAZY := FALSE
 endif
 
-ifndef DIM
-  $(error DIM must be set)
-else
+ifdef DIM
   DIM := $(strip $(DIM))
+else
+  DIM := 3
 endif
 
 ifdef USE_MPI
@@ -234,6 +234,12 @@ ifdef USE_CUDA_FAST_MATH
   USE_CUDA_FAST_MATH := $(strip $(USE_CUDA_FAST_MATH))
 else
   USE_CUDA_FAST_MATH := TRUE
+endif
+
+ifdef USE_CUPTI
+  USE_CUPTI := $(strip $(USE_CUPTI))
+else
+  USE_CUPTI := FALSE
 endif
 
 ifeq ($(USE_CUDA),TRUE)
@@ -584,6 +590,15 @@ ifeq ($(USE_ACC),TRUE)
 
 endif
 
+ifeq ($(USE_CUPTI),TRUE)
+  ifeq ($(USE_CUDA),TRUE)	
+    DEFINES += -DAMREX_USE_CUPTI
+    CUPTISuffix := .CUPTI
+  else
+    $(error CUPTI can only be used with USE_CUDA=TRUE)
+  endif
+endif
+
 ifeq ($(USE_HIP),TRUE)
 
     USE_GPU := TRUE
@@ -802,7 +817,7 @@ ifeq ($(USE_RPATH),TRUE)
 endif
 LDFLAGS	+= -L. $(addprefix -L, $(LIBRARY_LOCATIONS))
 
-machineSuffix	= $(lowercase_comp)$(archSuffix)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(MProfSuffix)$(BTSuffix)$(MPISuffix)$(UPCXXSuffix)$(OMPSuffix)$(ACCSuffix)$(GPUSuffix)$(USERSuffix)
+machineSuffix	= $(lowercase_comp)$(archSuffix)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(MProfSuffix)$(BTSuffix)$(MPISuffix)$(UPCXXSuffix)$(OMPSuffix)$(ACCSuffix)$(GPUSuffix)$(CUPTISuffix)$(USERSuffix)
 
 optionsSuffix	= $(DIM)d.$(machineSuffix)
 
@@ -1024,6 +1039,12 @@ else ifeq ($(USE_CUDA),TRUE)
 
           OMPI_CFLAGS_ORIG = $(shell mpicc -showme:compile)
           export OMPI_CFLAGS := $(subst -pthread,-Xcompiler$(space)-pthread,$(OMPI_CXXFLAGS_ORIG))
+
+          # If we're compiling with PGI, it doesn't know -pthread, replace
+          # with -lpthread.
+
+          OMPI_FCFLAGS_ORIG = $(shell mpif90 -showme:compile)
+          export OMPI_FCFLAGS := $(subst -pthread,-lpthread,$(OMPI_FCFLAGS_ORIG))
         endif
 
       endif

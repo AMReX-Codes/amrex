@@ -100,12 +100,12 @@ class DistributionMapping
     const Vector<int>& ProcessorMap () const noexcept;
 
     //! Length of the underlying processor map.
-    long size () const noexcept { return m_ref->m_pmap.size(); }
-    long capacity () const noexcept { return m_ref->m_pmap.capacity(); }
+    Long size () const noexcept { return m_ref->m_pmap.size(); }
+    Long capacity () const noexcept { return m_ref->m_pmap.capacity(); }
     bool empty () const noexcept { return m_ref->m_pmap.empty(); }
 
     //! Number of references to this DistributionMapping
-    long linkCount () const noexcept { return m_ref.use_count(); }
+    Long linkCount () const noexcept { return m_ref.use_count(); }
 
     //! Equivalent to ProcessorMap()[index].
     int operator[] (int index) const noexcept { return m_ref->m_pmap[index]; }
@@ -130,16 +130,17 @@ class DistributionMapping
     //! Are the distributions different?
     bool operator!= (const DistributionMapping& rhs) const noexcept;
 
-    void SFCProcessorMap(const BoxArray& boxes, const std::vector<long>& wgts, int nprocs,
+    void SFCProcessorMap(const BoxArray& boxes, const std::vector<Long>& wgts, int nprocs,
                          bool sort=true);
-    void SFCProcessorMap(const BoxArray& boxes, const std::vector<long>& wgts, int nprocs,
+    void SFCProcessorMap(const BoxArray& boxes, const std::vector<Long>& wgts, int nprocs,
                          Real& efficiency, bool sort=true);
-    void KnapSackProcessorMap(const std::vector<long>& wgts, int nprocs,
-                              Real* efficiency = 0,
-			      bool do_full_knapsack = true,
-			      int nmax = std::numeric_limits<int>::max());
+    void KnapSackProcessorMap(const std::vector<Long>& wgts, int nprocs,
+                              Real* efficiency=0,
+                              bool do_full_knapsack=true,
+                              int nmax=std::numeric_limits<int>::max(),
+                              bool sort=true);
     void RoundRobinProcessorMap(int nboxes, int nprocs);
-    void RoundRobinProcessorMap(const std::vector<long>& wgts, int nprocs);
+    void RoundRobinProcessorMap(const std::vector<Long>& wgts, int nprocs);
 
     /**
     * \brief Initializes distribution strategy from ParmParse.
@@ -166,7 +167,8 @@ class DistributionMapping
     static DistributionMapping makeKnapSack   (const Vector<Real>& rcost,
                                                int nmax=std::numeric_limits<int>::max());
     static DistributionMapping makeKnapSack   (const Vector<Real>& rcost, Real& eff,
-                                               int nmax=std::numeric_limits<int>::max());
+                                               int nmax=std::numeric_limits<int>::max(),
+                                               bool sort=true);
 
     static DistributionMapping makeRoundRobin (const MultiFab& weight);
     static DistributionMapping makeSFC        (const MultiFab& weight, bool sort=true);
@@ -193,7 +195,7 @@ private:
     void SFCProcessorMap        (const BoxArray& boxes, int nprocs);
     void RRSFCProcessorMap      (const BoxArray& boxes, int nprocs);
 
-    using LIpair = std::pair<long,int>;
+    using LIpair = std::pair<Long,int>;
 
     struct LIpairLT
     {
@@ -219,14 +221,15 @@ private:
                          int                  nprocs,
                          std::vector<LIpair>* LIpairV = 0);
 
-    void KnapSackDoIt (const std::vector<long>& wgts,
+    void KnapSackDoIt (const std::vector<Long>& wgts,
                        int                      nprocs,
                        Real&                    efficiency,
                        bool                     do_full_knapsack,
-		       int                      nmax=std::numeric_limits<int>::max());
+                       int                      nmax=std::numeric_limits<int>::max(),
+                       bool                     sort=true);
 
     void SFCProcessorMapDoIt (const BoxArray&          boxes,
-                              const std::vector<long>& wgts,
+                              const std::vector<Long>& wgts,
                               int                      nprocs,
                               bool                     sort=true,
                               Real*                    efficiency=nullptr);

@@ -183,6 +183,10 @@ AmrLevel::writePlotFile (const std::string& dir,
 
     int n_data_items = plot_var_map.size() + derive_names.size();
 
+#ifdef AMREX_USE_EB
+    n_data_items += 1;
+#endif
+
     // get the time from the first State_Type
     // if the State_Type is ::Interval, this will get t^{n+1/2} instead of t^n
     Real cur_time = state[0].curTime();
@@ -213,6 +217,10 @@ AmrLevel::writePlotFile (const std::string& dir,
         for (auto const& dname : derive_names) {
             os << derive_lst.get(dname)->variableName(0) << '\n';
         }
+
+#ifdef AMREX_USE_EB
+        os << "vfrac\n";
+#endif
 
         os << AMREX_SPACEDIM << '\n';
         os << parent->cumTime() << '\n';
@@ -294,6 +302,15 @@ AmrLevel::writePlotFile (const std::string& dir,
             PathNameInHeader += BaseName;
             os << PathNameInHeader << '\n';
         }
+
+#ifdef AMREX_USE_EB
+        // volfrac threshhold for amrvis
+        if (level == parent->finestLevel()) {
+            for (int lev = 0; lev <= parent->finestLevel(); ++lev) {
+                os << "1.0e-6\n";
+            }
+        }
+#endif
     }
     //
     // We combine all of the multifabs -- state, derived, etc -- into one
@@ -323,6 +340,12 @@ AmrLevel::writePlotFile (const std::string& dir,
 	    cnt++;
 	}
     }
+
+#ifdef AMREX_USE_EB
+    plotMF.setVal(0.0, cnt, 1, nGrow);
+    auto factory = static_cast<EBFArrayBoxFactory*>(m_factory.get());
+    MultiFab::Copy(plotMF,factory->getVolFrac(),0,cnt,1,nGrow);
+#endif
 
     amrex::prefetchToHost(plotMF);
 
@@ -461,7 +484,7 @@ AmrLevel::isStateVariable (const std::string& name, int& typ, int& n)
     return false;
 }
 
-long
+Long
 AmrLevel::countCells () const noexcept
 {
     return grids.numPts();
@@ -1914,7 +1937,7 @@ AmrLevel::derive (const std::string& name, Real time, MultiFab& mf, int dcomp)
 void
 AmrLevel::UpdateDistributionMaps ( DistributionMapping& update_dmap )
 {
-    long mapsize = update_dmap.size();
+    Long mapsize = update_dmap.size();
 
     if (dmap.size() == mapsize)
     { dmap = update_dmap; }

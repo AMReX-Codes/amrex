@@ -155,12 +155,12 @@ public:
     {
 	int         size;     //!< current size: nbuild - nerase
 	int         maxsize;  //!< highest water mark of size
-	long        maxuse;   //!< max # of uses of a cached item
-	long        nuse;     //!< # of uses of the whole cache
-	long        nbuild;   //!< # of build operations
-	long        nerase;   //!< # of erase operations
-	long        bytes;
-	long        bytes_hwm;
+	Long        maxuse;   //!< max # of uses of a cached item
+	Long        nuse;     //!< # of uses of the whole cache
+	Long        nbuild;   //!< # of build operations
+	Long        nerase;   //!< # of erase operations
+	Long        bytes;
+	Long        bytes_hwm;
 	std::string name;     //!< name of the cache
 	explicit CacheStats (const std::string& name_)
 	    : size(0),maxsize(0),maxuse(0),nuse(0),nbuild(0),nerase(0),
@@ -170,7 +170,7 @@ public:
 	    ++nbuild;
 	    maxsize = std::max(maxsize, size);
 	}
-	void recordErase (long n) noexcept {
+	void recordErase (Long n) noexcept {
 	    // n: how many times the item to be deleted has been used.
 	    --size;
 	    ++nerase;
@@ -217,7 +217,7 @@ public:
     typedef CopyComTag::CopyComTagsContainer CopyComTagsContainer;
     typedef CopyComTag::MapOfCopyComTagContainers MapOfCopyComTagContainers;
     //
-    static long bytesOfMapOfCopyComTagContainers (const MapOfCopyComTagContainers&);
+    static Long bytesOfMapOfCopyComTagContainers (const MapOfCopyComTagContainers&);
 
     /**
     * Key for unique combination of BoxArray and DistributionMapping
@@ -254,14 +254,14 @@ public:
     //! Tiling
     struct TileArray
     {
-	long nuse;
-	Vector<int> numLocalTiles;
-	Vector<int> indexMap;
-	Vector<int> localIndexMap;
-	Vector<int> localTileIndexMap;
-	Vector<Box> tileArray;
-	TileArray () noexcept : nuse(-1) {;}
-	long bytes () const;
+        Long nuse;
+        Vector<int> numLocalTiles;
+        Vector<int> indexMap;
+        Vector<int> localIndexMap;
+        Vector<int> localTileIndexMap;
+        Vector<Box> tileArray;
+        TileArray () noexcept : nuse(-1) {;}
+        Long bytes () const;
     };
 
     //
@@ -327,23 +327,23 @@ public:
                 const Box&          cdomain,
                 const EB2::IndexSpace* index_space);
 
-	~FPinfo ();
+        ~FPinfo ();
 
-	long bytes () const;
+        Long bytes () const;
 
-	BoxArray            ba_crse_patch;
-	DistributionMapping dm_crse_patch;
+        BoxArray            ba_crse_patch;
+        DistributionMapping dm_crse_patch;
         std::unique_ptr<FabFactory<FArrayBox> > fact_crse_patch;
-	Vector<int>          dst_idxs;
-	Vector<Box>          dst_boxes;
-	//
-	BDKey               m_srcbdk;
-	BDKey               m_dstbdk;
-	Box                 m_dstdomain;
-	IntVect             m_dstng;
-	BoxConverter*       m_coarsener;
-	//
-	long                m_nuse;
+        Vector<int>          dst_idxs;
+        Vector<Box>          dst_boxes;
+        //
+        BDKey               m_srcbdk;
+        BDKey               m_dstbdk;
+        Box                 m_dstdomain;
+        IntVect             m_dstng;
+        BoxConverter*       m_coarsener;
+        //
+        Long                m_nuse;
     };
 
     typedef std::multimap<BDKey,FabArrayBase::FPinfo*> FPinfoCache;
@@ -373,7 +373,7 @@ public:
                 bool                include_periodic,
                 bool                include_physbndry);
 
-        long bytes () const;
+        Long bytes () const;
 
         static Box Domain (const Geometry& geom, const IntVect& ng,
                            bool include_periodic, bool include_physbndry);
@@ -388,7 +388,7 @@ public:
         bool                m_include_periodic;
         bool                m_include_physbndry;
         //
-        long                m_nuse;
+        Long                m_nuse;
     };
 
     using CFinfoCache = std::multimap<BDKey,FabArrayBase::CFinfo*>;
@@ -420,15 +420,15 @@ public:
 
     // Memory Usage Tags
     struct meminfo {
-        long nbytes = 0L;
-        long nbytes_hwm = 0L;
+        Long nbytes = 0L;
+        Long nbytes_hwm = 0L;
     };
     static std::map<std::string, meminfo> m_mem_usage;
 
-    static void updateMemUsage (std::string const& tag, long nbytes, Arena const* ar);
+    static void updateMemUsage (std::string const& tag, Long nbytes, Arena const* ar);
     static void printMemUsage ();
-    static long queryMemUsage (const std::string& tag = std::string("All"));
-    static long queryMemUsageHWM (const std::string& tag = std::string("All"));
+    static Long queryMemUsage (const std::string& tag = std::string("All"));
+    static Long queryMemUsageHWM (const std::string& tag = std::string("All"));
 
     static void pushRegionTag (const char* t);
     static void pushRegionTag (std::string t);
@@ -504,25 +504,25 @@ public:
 	    bool enforce_periodicity_only);
         ~FB ();
 
-	IndexType    m_typ;
+        IndexType    m_typ;
         IntVect      m_crse_ratio; //!< BoxArray in FabArrayBase may have crse_ratio.
         IntVect      m_ngrow;
         bool         m_cross;
-	bool         m_epo;
-	Periodicity  m_period;
-	//
-	long         m_nuse;
-	//
+        bool         m_epo;
+        Periodicity  m_period;
+        //
+        Long         m_nuse;
+        //
 #if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
         CudaGraph<CopyMemory> m_localCopy;
         CudaGraph<CopyMemory> m_copyToBuffer;
         CudaGraph<CopyMemory> m_copyFromBuffer;
 #endif
         //
-	long bytes () const;
+        Long bytes () const;
     private:
-	void define_fb (const FabArrayBase& fa);
-	void define_epo (const FabArrayBase& fa);
+        void define_fb (const FabArrayBase& fa);
+        void define_epo (const FabArrayBase& fa);
     };
     //
     typedef std::multimap<BDKey,FabArrayBase::FB*> FBCache;
@@ -542,36 +542,36 @@ public:
     struct CPC
         : CommMetaData
     {
-	CPC (const FabArrayBase& dstfa, const IntVect& dstng,
-	     const FabArrayBase& srcfa, const IntVect& srcng,
-	     const Periodicity& period);
-	CPC (const BoxArray& dstba, const DistributionMapping& dstdm,
-	     const Vector<int>& dstidx, const IntVect& dstng,
-	     const BoxArray& srcba, const DistributionMapping& srcdm,
-	     const Vector<int>& srcidx, const IntVect& srcng,
-	     const Periodicity& period, int myproc);
+        CPC (const FabArrayBase& dstfa, const IntVect& dstng,
+             const FabArrayBase& srcfa, const IntVect& srcng,
+             const Periodicity& period);
+        CPC (const BoxArray& dstba, const DistributionMapping& dstdm,
+             const Vector<int>& dstidx, const IntVect& dstng,
+             const BoxArray& srcba, const DistributionMapping& srcdm,
+             const Vector<int>& srcidx, const IntVect& srcng,
+             const Periodicity& period, int myproc);
         CPC (const BoxArray& ba, const IntVect& ng,
              const DistributionMapping& dstdm, const DistributionMapping& srcdm);
         ~CPC ();
 
-        long bytes () const;
+        Long bytes () const;
 
-	BDKey       m_srcbdk;
-	BDKey       m_dstbdk;
-	IntVect     m_srcng;
-	IntVect     m_dstng;
-	Periodicity m_period;
-	BoxArray    m_srcba;
-	BoxArray    m_dstba;
-	//
-        long        m_nuse;
+        BDKey       m_srcbdk;
+        BDKey       m_dstbdk;
+        IntVect     m_srcng;
+        IntVect     m_dstng;
+        Periodicity m_period;
+        BoxArray    m_srcba;
+        BoxArray    m_dstba;
+        //
+        Long        m_nuse;
 
     private:
-	void define (const BoxArray& ba_dst, const DistributionMapping& dm_dst,
-		     const Vector<int>& imap_dst,
-		     const BoxArray& ba_src, const DistributionMapping& dm_src,
-		     const Vector<int>& imap_src,
-		     int MyProc = ParallelDescriptor::MyProc());
+        void define (const BoxArray& ba_dst, const DistributionMapping& dm_dst,
+                     const Vector<int>& imap_dst,
+                     const BoxArray& ba_src, const DistributionMapping& dm_src,
+                     const Vector<int>& imap_src,
+                     int MyProc = ParallelDescriptor::MyProc());
     };
 
     //
@@ -599,34 +599,34 @@ public:
     //
     struct FabArrayStats
     {
-	int  num_fabarrays;
-	int  max_num_fabarrays;
-	int  max_num_boxarrays;
-	int  max_num_ba_use;
-	long num_build;
-	FabArrayStats () noexcept : num_fabarrays(0), max_num_fabarrays(0), max_num_boxarrays(0),
-			   max_num_ba_use(1), num_build(0) {;}
-	void recordBuild () noexcept {
-	    ++num_fabarrays;
-	    ++num_build;
-	    max_num_fabarrays = std::max(max_num_fabarrays, num_fabarrays);
-	}
-	void recordDelete () noexcept {
-	    --num_fabarrays;
-	}
-	void recordMaxNumBoxArrays (int n) noexcept {
-	    max_num_boxarrays = std::max(max_num_boxarrays, n);
-	}
-	void recordMaxNumBAUse (int n) noexcept {
-	    max_num_ba_use = std::max(max_num_ba_use, n);
-	}
-	void print () {
-	    amrex::Print(Print::AllProcs) << "### FabArray ###\n"
-					  << "    tot # of builds       : " << num_build         << "\n"
-					  << "    max # of FabArrays    : " << max_num_fabarrays << "\n"
-					  << "    max # of BoxArrays    : " << max_num_boxarrays << "\n"
-					  << "    max # of BoxArray uses: " << max_num_ba_use    << "\n";
-	}
+        int  num_fabarrays;
+        int  max_num_fabarrays;
+        int  max_num_boxarrays;
+        int  max_num_ba_use;
+        Long num_build;
+        FabArrayStats () noexcept : num_fabarrays(0), max_num_fabarrays(0), max_num_boxarrays(0),
+                                    max_num_ba_use(1), num_build(0) {;}
+        void recordBuild () noexcept {
+            ++num_fabarrays;
+            ++num_build;
+            max_num_fabarrays = std::max(max_num_fabarrays, num_fabarrays);
+        }
+        void recordDelete () noexcept {
+            --num_fabarrays;
+        }
+        void recordMaxNumBoxArrays (int n) noexcept {
+            max_num_boxarrays = std::max(max_num_boxarrays, n);
+        }
+        void recordMaxNumBAUse (int n) noexcept {
+            max_num_ba_use = std::max(max_num_ba_use, n);
+        }
+        void print () {
+            amrex::Print(Print::AllProcs) << "### FabArray ###\n"
+                                          << "    tot # of builds       : " << num_build         << "\n"
+                                          << "    max # of FabArrays    : " << max_num_fabarrays << "\n"
+                                          << "    max # of BoxArrays    : " << max_num_boxarrays << "\n"
+                                          << "    max # of BoxArray uses: " << max_num_ba_use    << "\n";
+        }
     };
     static FabArrayStats m_FA_stats;
 

@@ -5,7 +5,7 @@
 Downloading the Code
 ====================
 
-The source code of  is available at https://github.com/AMReX-Codes/amrex. The
+The source code of is available at https://github.com/AMReX-Codes/amrex. The
 GitHub repo is our central repo for development. The development branch
 includes the latest state of the code, and it is merged into the master branch
 on a monthly basis. The master branch is considered the release branch. The
@@ -13,8 +13,8 @@ releases are tagged with version number YY.MM (e.g., 17.04). The MM part of the
 version is incremented every month, and the YY part every year.  Bug fix
 releases are tagged with YY.MM.patch (e.g., 17.04.1).
 
-It is also possible to download a lagged version of the master branch of AMReX using spack 
-(https://spack.io/).  Assuming you have spack installed, simply type "spack install amrex".  
+AMReX can also be obtained using spack (https://spack.io/).  Assuming
+you have spack installed, simply type "spack install amrex".
 
 Example: Hello World
 ====================

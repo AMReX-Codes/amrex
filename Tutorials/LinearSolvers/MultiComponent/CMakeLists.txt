@@ -1,4 +1,4 @@
-if (DIM EQUAL 1)
+if ( (DIM EQUAL 1) OR ENABLE_CUDA)
     return()
 endif ()
 

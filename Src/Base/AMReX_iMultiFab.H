@@ -151,7 +151,7 @@ public:
     * \param nghost
     * \param local
     */
-    long sum (int comp, int nghost = 0, bool local = false) const;
+    Long sum (int comp, int nghost = 0, bool local = false) const;
 
     /**
     * \brief Adds the scalar value val to the value of each cell in the

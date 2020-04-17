@@ -184,10 +184,10 @@ void BLProfiler::Initialize() {
   CommStats::cftExclude.insert(AllCFTypes);  // temporarily
 
   CommStats::cftNames["InvalidCFT"]     = InvalidCFT;
-  CommStats::cftNames["AllReduceT"]     = AllReduceT; 
-  CommStats::cftNames["AllReduceR"]     = AllReduceR; 
-  CommStats::cftNames["AllReduceL"]     = AllReduceL; 
-  CommStats::cftNames["AllReduceI"]     = AllReduceI; 
+  CommStats::cftNames["AllReduceT"]     = AllReduceT;
+  CommStats::cftNames["AllReduceR"]     = AllReduceR;
+  CommStats::cftNames["AllReduceL"]     = AllReduceL;
+  CommStats::cftNames["AllReduceI"]     = AllReduceI;
   CommStats::cftNames["AsendTsii"]      = AsendTsii;
   CommStats::cftNames["AsendTsiiM"]     = AsendTsiiM;
   CommStats::cftNames["AsendvTii"]      = AsendvTii;
@@ -199,15 +199,15 @@ void BLProfiler::Initialize() {
   CommStats::cftNames["ArecvvTii"]      = ArecvvTii;
   CommStats::cftNames["RecvTsii"]       = RecvTsii;
   CommStats::cftNames["RecvvTii"]       = RecvvTii;
-  CommStats::cftNames["ReduceT"]        = ReduceT; 
-  CommStats::cftNames["ReduceR"]        = ReduceR; 
-  CommStats::cftNames["ReduceL"]        = ReduceL; 
-  CommStats::cftNames["ReduceI"]        = ReduceI; 
-  CommStats::cftNames["BCastTsi"]       = BCastTsi; 
-  CommStats::cftNames["GatherTsT1Si"]   = GatherTsT1Si; 
-  CommStats::cftNames["GatherTi"]       = GatherTi; 
-  CommStats::cftNames["GatherRiRi"]     = GatherRiRi; 
-  CommStats::cftNames["ScatterTsT1si"]  = ScatterTsT1si; 
+  CommStats::cftNames["ReduceT"]        = ReduceT;
+  CommStats::cftNames["ReduceR"]        = ReduceR;
+  CommStats::cftNames["ReduceL"]        = ReduceL;
+  CommStats::cftNames["ReduceI"]        = ReduceI;
+  CommStats::cftNames["BCastTsi"]       = BCastTsi;
+  CommStats::cftNames["GatherTsT1Si"]   = GatherTsT1Si;
+  CommStats::cftNames["GatherTi"]       = GatherTi;
+  CommStats::cftNames["GatherRiRi"]     = GatherRiRi;
+  CommStats::cftNames["ScatterTsT1si"]  = ScatterTsT1si;
   CommStats::cftNames["Barrier"]        = Barrier;
   CommStats::cftNames["Waitsome"]       = Waitsome;
   CommStats::cftNames["NameTag"]        = NameTag;
@@ -346,7 +346,7 @@ void BLProfiler::start() {
 }
 }
 
-  
+
 void BLProfiler::stop() {
 #ifdef _OPENMP
 #pragma omp master
@@ -478,7 +478,7 @@ void BLProfiler::Finalize(bool bFlushing, bool memCheck) {
     return;
   }
 
-  WriteBaseProfile(bFlushing); 
+  WriteBaseProfile(bFlushing);
 
   BL_PROFILE_REGION_STOP(noRegionName);
 
@@ -823,7 +823,7 @@ void BLProfiler::WriteBaseProfile(bool bFlushing, bool memCheck) {   // ---- wri
     // ---------------------------------- now collect global data onto the ioproc
     int maxlen(0);
     Vector<Real> gtimes(1);
-    Vector<long> ncalls(1);
+    Vector<Long> ncalls(1);
     if(ParallelDescriptor::IOProcessor()) {
       gtimes.resize(nProcs);
       ncalls.resize(nProcs);
@@ -845,7 +845,7 @@ void BLProfiler::WriteBaseProfile(bool bFlushing, bool memCheck) {   // ---- wri
         ParallelDescriptor::Gather(&pstats.nCalls, 1, ncalls.dataPtr(), 1, iopNum);
       }
       Real tsum(0.0), tmin(gtimes[0]), tmax(gtimes[0]), tavg(0.0), variance(0.0);
-      long ncsum(0);
+      Long ncsum(0);
       if(ParallelDescriptor::IOProcessor()) {
         for(int i(0); i < gtimes.size(); ++i) {
           tsum += gtimes[i];
@@ -885,7 +885,7 @@ void BLProfiler::WriteBaseProfile(bool bFlushing, bool memCheck) {   // ---- wri
     // ---- if we use an unordered_map for mProfStats, copy to a sorted container
     // ----
     ParallelDescriptor::Barrier();  // ---- wait for everyone (remove after adding filters)
-    Vector<long> nCallsOut(mProfStats.size(), 0);
+    Vector<Long> nCallsOut(mProfStats.size(), 0);
     Vector<Real> totalTimesOut(mProfStats.size(), 0.0);
     int count(0);
     for(std::map<std::string, ProfStats>::const_iterator phit = mProfStats.begin();
@@ -906,14 +906,14 @@ void BLProfiler::WriteBaseProfile(bool bFlushing, bool memCheck) {   // ---- wri
     const int nOutFiles = std::max(1, std::min(nProcs, nProfFiles));
     std::string phFilePrefix("bl_prof");
     std::string cFileName(cdir + '/' + phFilePrefix + "_D_");
-    long seekPos(0);
+    Long seekPos(0);
     bool setBuf(true);
     NFilesIter nfi(nOutFiles, cFileName, groupSets, setBuf);
     for( ; nfi.ReadyToWrite(); ++nfi) {
       seekPos = nfi.SeekPos();
       if(nCallsOut.size() > 0) {
         nfi.Stream().write((char *) nCallsOut.dataPtr(),
-        nCallsOut.size() * sizeof(long));
+        nCallsOut.size() * sizeof(Long));
       }
       if(totalTimesOut.size() > 0) {
         nfi.Stream().write((char *) totalTimesOut.dataPtr(),
@@ -922,7 +922,7 @@ void BLProfiler::WriteBaseProfile(bool bFlushing, bool memCheck) {   // ---- wri
     }
 
 
-    Vector<long> seekPosOut(1);
+    Vector<Long> seekPosOut(1);
     if(ParallelDescriptor::IOProcessor()) {
       seekPosOut.resize(nProcs, 0);
     }
@@ -1053,7 +1053,7 @@ void BLProfiler::WriteCallTrace(bool bFlushing, bool memCheck) {   // ---- write
     std::string longDFileNamePrefix(cdir + '/' + shortDFileNamePrefix);
     std::string longDFileName(NFilesIter::FileName(nOutFiles, longDFileNamePrefix, myProc, groupSets));
 
-    long baseSeekPos(-1);
+    Long baseSeekPos(-1);
 
     bool setBuf(true);
     bool appendFirstFile;
@@ -1112,7 +1112,7 @@ void BLProfiler::WriteCallTrace(bool bFlushing, bool memCheck) {   // ---- write
 	    amrex::Print(Print::AllProcs) << "**** Error:  baseSeekPos = " << baseSeekPos << "\n";
 	    break;
 	  }
-	  long spos(baseSeekPos + csStack.index * sizeof(CallStats));
+	  Long spos(baseSeekPos + csStack.index * sizeof(CallStats));
 	  callIndexPatch.push_back(CallStatsPatch(spos, vCallTrace[csStack.index], longDFileName));
 	  csStack.bFlushed = true;
 	  csStack.index    = callIndexPatch.size() - 1;
@@ -1364,13 +1364,13 @@ void BLProfiler::WriteFortProfErrors() {
 
 
 bool BLProfiler::OnExcludeList(CommFuncType cft) {
-  // 
+  //
   // the idea for NoCFTypes is to allow local filtering/unfiltering
   // while preserving the users exclude list
   // possibly use a filter stack instead
   // might need caching if performance is a problem
   // what to do if both all and none are on the list?
-  // 
+  //
   if(CommStats::cftExclude.empty()) {  // nothing on the exclude list
     return false;
   }
@@ -1570,6 +1570,9 @@ namespace {
   }
 }
 
+
+#ifndef BL_NO_FORT
+
 BL_FORT_PROC_DECL(BL_PROFFORTFUNCSTART_CPP, bl_proffortfuncstart_cpp)
   (const int istr[], const int *NSTR)
 {
@@ -1642,10 +1645,15 @@ BL_FORT_PROC_DECL(BL_PROFFORTFUNCSTOP_CPP_INT, bl_proffortfuncstop_cpp_int)
 #endif
 }
 
+#endif
+
 }
+
+
 
 #else  // BL_PROFILING not defined
 
+#ifndef BL_NO_FORT
 namespace amrex {
 
 BL_FORT_PROC_DECL(BL_PROFFORTFUNCSTART_CPP,bl_proffortfuncstart_cpp)
@@ -1680,7 +1688,4 @@ BL_FORT_PROC_DECL(BL_PROFFORTFUNCSTOP_CPP_INT,bl_proffortfuncstop_cpp_int)
 
 #endif
 
-
-
-
-
+#endif

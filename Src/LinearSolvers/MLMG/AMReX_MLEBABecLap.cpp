@@ -126,9 +126,19 @@ void
 MLEBABecLap::setBCoeffs (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& beta)
 {
     const int ncomp = getNComp();
-    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        for (int icomp = 0; icomp < ncomp; ++icomp) {
-            MultiFab::Copy(m_b_coeffs[amrlev][0][idim], *beta[idim], 0, icomp, 1, 0);
+    const int beta_ncomp = beta[0]->nComp();
+    AMREX_ALWAYS_ASSERT(beta_ncomp == 1 or beta_ncomp == ncomp);
+    if (beta[0]->nComp() == ncomp) {
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            for (int icomp = 0; icomp < ncomp; ++icomp) {
+                MultiFab::Copy(m_b_coeffs[amrlev][0][idim], *beta[idim], icomp, icomp, 1, 0);
+            }
+        }
+    } else {
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            for (int icomp = 0; icomp < ncomp; ++icomp) {
+                MultiFab::Copy(m_b_coeffs[amrlev][0][idim], *beta[idim], 0, icomp, 1, 0);
+            }
         }
     }
     m_needs_update = true;
@@ -144,9 +154,24 @@ MLEBABecLap::setBCoeffs (int amrlev, Real beta)
 }
 
 void
+MLEBABecLap::setBCoeffs (int amrlev, Vector<Real> const& beta)
+{
+    const int ncomp = getNComp();
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        for (int icomp = 0; icomp < ncomp; ++icomp) {
+            m_b_coeffs[amrlev][0][idim].setVal(beta[icomp]);
+        }
+    }
+    m_needs_update = true;
+}
+
+void
 MLEBABecLap::setEBDirichlet (int amrlev, const MultiFab& phi, const MultiFab& beta)
 {
     const int ncomp = getNComp();
+    const int beta_ncomp = beta.nComp();
+    AMREX_ALWAYS_ASSERT(beta_ncomp == 1 or beta_ncomp == ncomp);
+
     if (m_eb_phi[amrlev] == nullptr) {
         const int mglev = 0;
         m_eb_phi[amrlev].reset(new MultiFab(m_grids[amrlev][mglev], m_dmap[amrlev][mglev],
@@ -185,16 +210,29 @@ MLEBABecLap::setEBDirichlet (int amrlev, const MultiFab& phi, const MultiFab& be
             Array4<Real const> const& phiin = phi.const_array(mfi);
             Array4<Real const> const& betain = beta.const_array(mfi);
             const auto& flag = flags->const_array(mfi);
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
-            {
-                if (flag(i,j,k).isSingleValued()) {
-                    phiout(i,j,k,n) = phiin(i,j,k,n);
-                    betaout(i,j,k,n) = betain(i,j,k,0);
-                } else {
-                    phiout(i,j,k,n) = 0.0;
-                    betaout(i,j,k,n) = 0.0;
-                }
-            });
+            if (beta_ncomp == ncomp) {
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
+                {
+                    if (flag(i,j,k).isSingleValued()) {
+                        phiout(i,j,k,n) = phiin(i,j,k,n);
+                        betaout(i,j,k,n) = betain(i,j,k,n);
+                    } else {
+                        phiout(i,j,k,n) = 0.0;
+                        betaout(i,j,k,n) = 0.0;
+                    }
+                });
+            } else {
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
+                {
+                    if (flag(i,j,k).isSingleValued()) {
+                        phiout(i,j,k,n) = phiin(i,j,k,n);
+                        betaout(i,j,k,n) = betain(i,j,k,0);
+                    } else {
+                        phiout(i,j,k,n) = 0.0;
+                        betaout(i,j,k,n) = 0.0;
+                    }
+                });
+            }
         }
     }
 }
@@ -255,9 +293,70 @@ MLEBABecLap::setEBDirichlet (int amrlev, const MultiFab& phi, Real beta)
 }
 
 void
+MLEBABecLap::setEBDirichlet (int amrlev, const MultiFab& phi, Vector<Real> const& hv_beta)
+{
+    const int ncomp = getNComp();
+    if (m_eb_phi[amrlev] == nullptr) {
+        const int mglev = 0;
+        m_eb_phi[amrlev].reset(new MultiFab(m_grids[amrlev][mglev], m_dmap[amrlev][mglev],
+                                            ncomp, 0, MFInfo(), *m_factory[amrlev][mglev]));
+    }
+    if (m_eb_b_coeffs[amrlev][0] == nullptr) {
+        for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev) {
+            m_eb_b_coeffs[amrlev][mglev].reset(new MultiFab(m_grids[amrlev][mglev],
+                                                            m_dmap[amrlev][mglev],
+                                                            ncomp, 0, MFInfo(),
+                                                            *m_factory[amrlev][mglev]));
+        }
+    }
+
+    auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
+    const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
+
+    Gpu::DeviceVector<Real> dv_beta(hv_beta.size());
+    Gpu::copy(Gpu::hostToDevice, hv_beta.begin(), hv_beta.end(), dv_beta.begin());
+    Real const* beta = dv_beta.data();
+
+    MFItInfo mfi_info;
+    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(phi, mfi_info); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        Array4<Real> const& phiout = m_eb_phi[amrlev]->array(mfi);
+        Array4<Real> const& betaout = m_eb_b_coeffs[amrlev][0]->array(mfi);
+        FabType t = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
+        if (FabType::regular == t or FabType::covered == t) {
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
+            {
+                phiout(i,j,k,n) = 0.0;
+                betaout(i,j,k,n) = 0.0;
+            });
+        } else {
+            Array4<Real const> const& phiin = phi.const_array(mfi);
+            const auto& flag = flags->const_array(mfi);
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
+            {
+                if (flag(i,j,k).isSingleValued()) {
+                    phiout(i,j,k,n) = phiin(i,j,k,n);
+                    betaout(i,j,k,n) = beta[n];
+                } else {
+                    phiout(i,j,k,n) = 0.0;
+                    betaout(i,j,k,n) = 0.0;
+                }
+            });
+        }
+    }
+}
+
+void
 MLEBABecLap::setEBHomogDirichlet (int amrlev, const MultiFab& beta)
 {
     const int ncomp = getNComp();
+    const int beta_ncomp = beta.nComp();
+    AMREX_ALWAYS_ASSERT(beta_ncomp == 1 or beta_ncomp == ncomp);
     if (m_eb_phi[amrlev] == nullptr) {
         const int mglev = 0;
         m_eb_phi[amrlev].reset(new MultiFab(m_grids[amrlev][mglev], m_dmap[amrlev][mglev],
@@ -298,14 +397,25 @@ MLEBABecLap::setEBHomogDirichlet (int amrlev, const MultiFab& beta)
         } else {
             Array4<Real const> const& betain = beta.const_array(mfi);
             const auto& flag = flags->const_array(mfi);
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
-            {
-                if (flag(i,j,k).isSingleValued()) {
-                    betaout(i,j,k,n) = betain(i,j,k,0);
-                } else {
-                    betaout(i,j,k,n) = 0.0;
-                }
-            });
+            if (beta_ncomp == ncomp) {
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
+                {
+                    if (flag(i,j,k).isSingleValued()) {
+                        betaout(i,j,k,n) = betain(i,j,k,n);
+                    } else { 
+                        betaout(i,j,k,n) = 0.0;
+                    }
+                });
+            } else {
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
+                {
+                    if (flag(i,j,k).isSingleValued()) {
+                        betaout(i,j,k,n) = betain(i,j,k,0);
+                    } else {
+                        betaout(i,j,k,n) = 0.0;
+                    }
+                });
+            }
         }
     }
 }
@@ -357,6 +467,65 @@ MLEBABecLap::setEBHomogDirichlet (int amrlev, Real beta)
             {
                 if (flag(i,j,k).isSingleValued()) {
                     betaout(i,j,k,n) = beta;
+                } else {
+                    betaout(i,j,k,n) = 0.0;
+                }
+            });
+        }
+    }
+}
+
+void
+MLEBABecLap::setEBHomogDirichlet (int amrlev, Vector<Real> const& hv_beta)
+{
+    const int ncomp = getNComp();
+    if (m_eb_phi[amrlev] == nullptr) {
+        const int mglev = 0;
+        m_eb_phi[amrlev].reset(new MultiFab(m_grids[amrlev][mglev], m_dmap[amrlev][mglev],
+                                            ncomp, 0, MFInfo(), *m_factory[amrlev][mglev]));
+    }
+    if (m_eb_b_coeffs[amrlev][0] == nullptr) {
+        for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev) {
+            m_eb_b_coeffs[amrlev][mglev].reset(new MultiFab(m_grids[amrlev][mglev],
+                                                            m_dmap[amrlev][mglev],
+                                                            ncomp, 0, MFInfo(),
+                                                            *m_factory[amrlev][mglev]));
+        }
+    }
+
+    auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
+    const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
+
+    Gpu::DeviceVector<Real> dv_beta(hv_beta.size());
+    Gpu::copy(Gpu::hostToDevice, hv_beta.begin(), hv_beta.end(), dv_beta.begin());
+    Real const* beta = dv_beta.data();
+
+    MFItInfo mfi_info;
+    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(*m_eb_phi[amrlev], mfi_info); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        Array4<Real> const& phifab = m_eb_phi[amrlev]->array(mfi);
+        Array4<Real> const& betaout = m_eb_b_coeffs[amrlev][0]->array(mfi);
+        FabType t = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
+        {
+            phifab(i,j,k,n) = 0.0;
+        });
+        if (FabType::regular == t or FabType::covered == t) {
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
+            {
+                betaout(i,j,k,n) = 0.0;
+            });
+        } else {
+            const auto& flag = flags->const_array(mfi);
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
+            {
+                if (flag(i,j,k).isSingleValued()) {
+                    betaout(i,j,k,n) = beta[n];
                 } else {
                     betaout(i,j,k,n) = 0.0;
                 }

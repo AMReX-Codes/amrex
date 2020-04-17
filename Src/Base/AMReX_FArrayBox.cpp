@@ -188,7 +188,7 @@ void
 FArrayBox::initVal () noexcept
 {
     Real * p = dataPtr();
-    long s = size();
+    Long s = size();
     if (p and s > 0) {
         RunOn runon;
 #if defined(AMREX_USE_GPU)
@@ -210,7 +210,7 @@ FArrayBox::initVal () noexcept
             if (runon == RunOn::Gpu)
             {
 #if (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
-                amrex::ParallelFor(s, [=] AMREX_GPU_DEVICE (long i) noexcept
+                amrex::ParallelFor(s, [=] AMREX_GPU_DEVICE (Long i) noexcept
                 {
                     p[i] = std::numeric_limits<Real>::signaling_NaN();
                 });
@@ -782,7 +782,7 @@ FABio_8bit::write (std::ostream&    os,
     BL_ASSERT(comp >= 0 && num_comp >= 1 && (comp+num_comp) <= f.nComp());
 
     const Real eps = 1.0e-8_rt; // FIXME - whats a better value?
-    const long siz = f.box().numPts();
+    const Long siz = f.box().numPts();
 
     unsigned char *c = new unsigned char[siz];
 
@@ -792,7 +792,7 @@ FABio_8bit::write (std::ostream&    os,
         const Real* dat = f.dataPtr(k+comp);
         Real rng = std::fabs(mx-mn);
         rng = (rng < eps) ? 0.0 : 255.0/(mx-mn);
-        for(long i(0); i < siz; ++i) {
+        for(Long i(0); i < siz; ++i) {
             Real v = rng*(dat[i]-mn);
             int iv = (int) v;
             c[i]   = (unsigned char) iv;
@@ -812,7 +812,7 @@ void
 FABio_8bit::read (std::istream& is,
                   FArrayBox&    f) const
 {
-    long siz         = f.box().numPts();
+    Long siz         = f.box().numPts();
     unsigned char* c = new unsigned char[siz];
 
     Real mn, mx;
@@ -825,7 +825,7 @@ FABio_8bit::read (std::istream& is,
         is.read((char*)c,siz);
         Real* dat       = f.dataPtr(k);
         const Real rng  = (mx-mn)/255.0;
-        for (long i = 0; i < siz; i++)
+        for (Long i = 0; i < siz; i++)
         {
             int iv = (int) c[i];
             Real v = (Real) iv;
@@ -844,7 +844,7 @@ FABio_8bit::skip (std::istream& is,
                   FArrayBox&    f) const
 {
     const Box& bx = f.box();
-    long siz      = bx.numPts();
+    Long siz      = bx.numPts();
     Real mn, mx;
     for(int nbytes, k = 0; k < f.nComp(); ++k) {
         is >> mn >> mx >> nbytes;
@@ -866,7 +866,7 @@ FABio_8bit::skip (std::istream& is,
 		  int           nCompToSkip) const
 {
     const Box& bx = f.box();
-    long siz      = bx.numPts();
+    Long siz      = bx.numPts();
     Real mn, mx;
     for(int nbytes, k = 0; k < nCompToSkip; ++k) {
         is >> mn >> mx >> nbytes;
@@ -912,9 +912,9 @@ FABio_binary::read (std::istream& is,
                     FArrayBox&    f) const
 {
 //    BL_PROFILE("FABio_binary::read");
-    const long base_siz = f.box().numPts();
+    const Long base_siz = f.box().numPts();
     Real* comp_ptr      = f.dataPtr(0);
-    const long siz      = base_siz*f.nComp();
+    const Long siz      = base_siz*f.nComp();
     RealDescriptor::convertToNativeFormat(comp_ptr, siz, is, *realDesc);
     if(is.fail()) {
         amrex::Error("FABio_binary::read() failed");
@@ -930,9 +930,9 @@ FABio_binary::write (std::ostream&    os,
 //    BL_PROFILE("FABio_binary::write");
     BL_ASSERT(comp >= 0 && num_comp >= 1 && (comp+num_comp) <= f.nComp());
 
-    const long base_siz  = f.box().numPts();
+    const Long base_siz  = f.box().numPts();
     const Real* comp_ptr = f.dataPtr(comp);
-    const long siz       = base_siz*num_comp;
+    const Long siz       = base_siz*num_comp;
 
     RealDescriptor::convertFromNativeFormat(os, siz, comp_ptr, *realDesc);
 
@@ -946,8 +946,8 @@ FABio_binary::skip (std::istream& is,
                     FArrayBox&    f) const
 {
     const Box& bx = f.box();
-    long base_siz = bx.numPts();
-    long siz      = base_siz * f.nComp();
+    Long base_siz = bx.numPts();
+    Long siz      = base_siz * f.nComp();
     is.seekg(siz*realDesc->numBytes(), std::ios::cur);
     if(is.fail()) {
         amrex::Error("FABio_binary::skip() failed");
@@ -960,8 +960,8 @@ FABio_binary::skip (std::istream& is,
 		    int           nCompToSkip) const
 {
     const Box& bx = f.box();
-    long base_siz = bx.numPts();
-    long siz      = base_siz * nCompToSkip;
+    Long base_siz = bx.numPts();
+    Long siz      = base_siz * nCompToSkip;
     is.seekg(siz*realDesc->numBytes(), std::ios::cur);
     if(is.fail()) {
         amrex::Error("FABio_binary::skip(..., int nCompToSkip) failed");

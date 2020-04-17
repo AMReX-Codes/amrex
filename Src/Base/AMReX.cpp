@@ -23,6 +23,10 @@
 
 #include <AMReX_Gpu.H>
 
+#ifdef AMREX_USE_CUPTI
+#include <AMReX_CuptiTrace.H>
+#endif
+
 #include <AMReX_Machine.H>
 
 #ifdef AMREX_USE_EB
@@ -379,15 +383,22 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         func_parm_parse();
     }
 
+    {
+        ParmParse pp("amrex");
+        pp.query("v", system::verbose);
+        pp.query("verbose", system::verbose);
+    }
+
 #ifdef AMREX_USE_GPU
     // Initialize after ParmParse so that we can read inputs.
     Gpu::Device::Initialize();
+#ifdef AMREX_USE_CUPTI
+    CuptiInitialize();
+#endif
 #endif
 
     {
-	ParmParse pp("amrex");
-	pp.query("v", system::verbose);
-	pp.query("verbose", system::verbose);
+        ParmParse pp("amrex");
         pp.query("regtest_reduction", system::regtest_reduction);
         pp.query("signal_handling", system::signal_handling);
         pp.query("throw_exception", system::throw_exception);
@@ -469,15 +480,6 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     BL_PROFILE_INITPARAMS();
 #endif
     machine::Initialize();
-
-    if (double(std::numeric_limits<long>::max()) < 9.e18)
-    {
-        if (system::verbose) {
-            amrex::Print() << "!\n! WARNING: Maximum of long int, "
-                           << std::numeric_limits<long>::max() 
-                           << ", might be too small for big runs.\n!\n";
-        }
-    }
 
     if (system::verbose > 0)
     {

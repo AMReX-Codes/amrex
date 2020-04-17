@@ -942,7 +942,7 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
         H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, ch_offset, NULL, hs_procsize, NULL);
         
         Vector<Real> a_buffer(procBufferSize[myProc], -1.0);
-        long dataCount(0);
+        Long dataCount(0);
         for(MFIter mfi(*mf[level]); mfi.isValid(); ++mfi) {
             const Box &vbox    = mfi.validbox();
             const Real *dataPtr = (*mf[level])[mfi].dataPtr();

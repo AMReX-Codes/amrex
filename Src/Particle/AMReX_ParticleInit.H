@@ -49,8 +49,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromAscii
     if (Nrep != 0)
         lNrep = *Nrep;
 
-    long how_many      = 0;
-    long how_many_read = 0;
+    Long how_many      = 0;
+    Long how_many_read = 0;
     //
     // NReaders will read particles into a AoS.
     // Later they'll each put their chunk into m_particles and call Redistribute().
@@ -284,7 +284,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromAscii
     {
         const int IOProcNumber = ParallelDescriptor::IOProcessorNumber();
 
-        long num_particles = how_many; 
+        Long num_particles = how_many; 
 
         ParallelDescriptor::ReduceLongSum(num_particles, IOProcNumber);
 
@@ -294,7 +294,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromAscii
         }
         else
         {
-            long num_particles_read = how_many_read; 
+            Long num_particles_read = how_many_read; 
 
             ParallelDescriptor::ReduceLongSum(num_particles_read, IOProcNumber);
 
@@ -322,7 +322,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromAscii
 //
 // The format of a binary particle init file:
 //
-// NP -- The number of particles in the file.   A "long".
+// NP -- The number of particles in the file.   A "Long".
 // DM -- Our dimension.  Either 1, 2, or 3.     A "int".
 // NX -- The amount of "extra" data.            A "int".
 // NP*(DM+NX) native floating-point numbers.    A "float" or "double".
@@ -355,7 +355,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinar
     //
     // How many particles each NReaders reads before redistributing.
     //
-    const long NPartPerRedist = ParticleType::MaxParticlesPerRead();
+    const Long NPartPerRedist = ParticleType::MaxParticlesPerRead();
 
     if (m_verbose > 0)
     {
@@ -377,7 +377,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinar
     // All the processors need to participate in Redistribute() though.
     //
     int  NX = 0;
-    long NP = 0;
+    Long NP = 0;
 
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
     
@@ -543,7 +543,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinar
     //
     // How many particles each reader gets to read.
     //
-    long MyCnt = NP / NReaders;
+    Long MyCnt = NP / NReaders;
 
     if (MyProc == rprocs[0])
         //
@@ -551,7 +551,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinar
         //
         MyCnt += NP % NReaders;
 
-    long how_many_redists = NP / (NPartPerRedist*NReaders), how_many_read = 0;
+    Long how_many_redists = NP / (NPartPerRedist*NReaders), how_many_read = 0;
 
     if (NP % (NPartPerRedist*NReaders)) how_many_redists++;
 
@@ -585,9 +585,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinar
 
             AMREX_ASSERT(MyCnt > how_many_read);
 
-            const long NRead = std::min((MyCnt-how_many_read), NPartPerRedist);
+            const Long NRead = std::min((MyCnt-how_many_read), NPartPerRedist);
 
-            for (long i = 0; i < NRead; i++)
+            for (Long i = 0; i < NRead; i++)
             {
                 //
                 // We don't read in idata.id or idata.cpu.  We'll set those later
@@ -735,7 +735,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinar
     //
     if (m_verbose > 0)
     {
-        long num_particles_read = how_many_read; 
+        Long num_particles_read = how_many_read; 
 
         ParallelDescriptor::ReduceLongSum(num_particles_read, ParallelDescriptor::IOProcessorNumber());
 
@@ -803,8 +803,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinar
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
-InitRandom (long                    icount,
-            unsigned long           iseed,
+InitRandom (Long                    icount,
+            ULong                   iseed,
             const ParticleInitData& pdata,
             bool                    serialize,
             RealBox                 containing_bx)
@@ -854,7 +854,7 @@ InitRandom (long                    icount,
 
         if (ParallelDescriptor::IOProcessor())
         {
-            for (long j = 0; j < icount; j++)
+            for (Long j = 0; j < icount; j++)
             {
                 for (int i = 0; i < AMREX_SPACEDIM; i++)
                 {
@@ -888,7 +888,7 @@ InitRandom (long                    icount,
         host_int_attribs.reserve(15);
         host_int_attribs.resize(finestLevel()+1);
 
-        for (long j = 0; j < icount; j++)
+        for (Long j = 0; j < icount; j++)
         {
             ParticleType p;
 
@@ -972,7 +972,7 @@ InitRandom (long                    icount,
     else {
         // We'll generate the particles in parallel.
         // Each CPU will key off the given seed to get independent streams of random numbers.
-        long M = icount / NProcs;
+        Long M = icount / NProcs;
         // Processor 0 will get the slop.
         if (MyProc == 0) {
             M += (icount % NProcs);
@@ -992,7 +992,7 @@ InitRandom (long                    icount,
         host_int_attribs.reserve(15);
         host_int_attribs.resize(finestLevel()+1);
 
-        for (long icnt = 0; icnt < M; icnt++) {
+        for (Long icnt = 0; icnt < M; icnt++) {
             ParticleType p;
             for (int i = 0; i < AMREX_SPACEDIM; i++) {
                 do {
@@ -1071,7 +1071,7 @@ InitRandom (long                    icount,
 		}
             }
         }
-        // Let Redistribute() sort out where the particles belong.
+        // Let Redistribute() sort out where the particles beLong.
         Redistribute();
     }
 
@@ -1090,8 +1090,8 @@ InitRandom (long                    icount,
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
-::InitRandomPerBox (long                    icount_per_box,
-                    unsigned long           iseed,
+::InitRandomPerBox (Long                    icount_per_box,
+                    ULong                   iseed,
                     const ParticleInitData& pdata)
 {
     BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::InitRandomPerBox()");
@@ -1127,9 +1127,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         Box grid = m_gdb->ParticleBoxArray(0)[mfi.index()];
         RealBox grid_box = RealBox(grid,dx,geom.ProbLo());
 
-        for (long icnt = 0; icnt < icount_per_box; icnt++) {
-        for (long jcnt = 0; jcnt < icount_per_box; jcnt++) {
-        for (long kcnt = 0; kcnt < icount_per_box; kcnt++)
+        for (Long icnt = 0; icnt < icount_per_box; icnt++) {
+        for (Long jcnt = 0; jcnt < icount_per_box; jcnt++) {
+        for (Long kcnt = 0; kcnt < icount_per_box; kcnt++)
         {
             p.pos(0) = grid_box.lo(0) + (dist(mt) + icnt) / icount_per_box;
             p.pos(1) = grid_box.lo(1) + (dist(mt) + jcnt) / icount_per_box;

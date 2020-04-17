@@ -114,11 +114,11 @@ void main_main ()
         {
             FArrayBox& fab = mf[mfi];
             Real* AMREX_RESTRICT p = fab.dataPtr();
-            const long nitems = fab.box().numPts() * mf.nComp();
+            const Long nitems = fab.box().numPts() * mf.nComp();
             // Enough threads are launched to work over nitems.
             // This only works on a contiguous chunk of memory.
             amrex::ParallelFor(nitems,
-            [=] AMREX_GPU_DEVICE (long idx)
+            [=] AMREX_GPU_DEVICE (Long idx)
             {
                 p[idx] += 1.;
             });
@@ -132,7 +132,7 @@ void main_main ()
         {
             FArrayBox& fab = mf[mfi];
             Real* AMREX_RESTRICT p = fab.dataPtr();
-            const long nitems = fab.box().numPts() * mf.nComp();
+            const Long nitems = fab.box().numPts() * mf.nComp();
             // Enough threads are launched to work over nitems.
             // This only works on a contiguous chunk of memory.
             AMREX_PARALLEL_FOR_1D ( nitems, idx,

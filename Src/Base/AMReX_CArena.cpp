@@ -219,14 +219,14 @@ CArena::sizeOf (void* p) const noexcept
 void
 CArena::PrintUsage (std::string const& name) const
 {
-    long min_megabytes = heap_space_used() / (1024*1024);
-    long max_megabytes = min_megabytes;
-    long actual_min_megabytes = heap_space_actually_used() / (1024*1024);
-    long actual_max_megabytes = actual_min_megabytes;
+    Long min_megabytes = heap_space_used() / (1024*1024);
+    Long max_megabytes = min_megabytes;
+    Long actual_min_megabytes = heap_space_actually_used() / (1024*1024);
+    Long actual_max_megabytes = actual_min_megabytes;
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
-    ParallelReduce::Min<long>({min_megabytes, actual_min_megabytes},
+    ParallelReduce::Min<Long>({min_megabytes, actual_min_megabytes},
                               IOProc, ParallelDescriptor::Communicator());
-    ParallelReduce::Max<long>({max_megabytes, actual_max_megabytes},
+    ParallelReduce::Max<Long>({max_megabytes, actual_max_megabytes},
                               IOProc, ParallelDescriptor::Communicator());
 #ifdef AMREX_USE_MPI
     amrex::Print() << "[" << name << "]" << " space (MB) allocated spread across MPI: ["

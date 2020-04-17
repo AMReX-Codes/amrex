@@ -206,11 +206,13 @@ GpuBndryFuncFab<F>::operator() (Box const& bx, FArrayBox& dest,
 
     if (gdomain.contains(bx)) return;
 
-    AsyncArray<BCRec> bcr_aa(bcr.data()+bcomp, numcomp);
-    BCRec* bcr_p = bcr_aa.data();
-
     Array4<Real> const& fab = dest.array();
     const auto geomdata = geom.data();
+
+#ifdef AMREX_USE_GPU
+
+    AsyncArray<BCRec> bcr_aa(bcr.data()+bcomp, numcomp);
+    BCRec* bcr_p = bcr_aa.data();
 
     const auto f_user = m_user_f;
 
@@ -230,16 +232,25 @@ GpuBndryFuncFab<F>::operator() (Box const& bx, FArrayBox& dest,
             if (tmp.ok()) face_boxes.push_back(tmp);
         }
         const int n_face_boxes = face_boxes.size();
-        if (n_face_boxes > 0) {
+        if (n_face_boxes == 1) {
+            amrex::ParallelFor(face_boxes[0],
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                IntVect const cell(AMREX_D_DECL(i,j,k));
+                filcc_cell(cell, fab, dcomp, numcomp, geomdata, time,
+                           bcr_p, 0, orig_comp);
+                f_user(cell, fab, dcomp, numcomp, geomdata, time,
+                       bcr_p, 0, orig_comp);
+            });
+        } else if (n_face_boxes > 1) {
             AsyncArray<Box> face_boxes_aa(face_boxes.data(), n_face_boxes);
             Box* boxes_p = face_boxes_aa.data();
-
-            long ncells = 0;
+            Long ncells = 0;
             for (const auto& b : face_boxes) {
                 ncells += b.numPts();
             }
-
-            AMREX_LAUNCH_DEVICE_LAMBDA (ncells, icell,
+            amrex::ParallelFor(ncells,
+            [=] AMREX_GPU_DEVICE (Long icell) noexcept
             {
                 const auto& cell = getCell(boxes_p, n_face_boxes, icell);
                 filcc_cell(cell, fab, dcomp, numcomp, geomdata, time,
@@ -283,16 +294,25 @@ GpuBndryFuncFab<F>::operator() (Box const& bx, FArrayBox& dest,
             if (tmp.ok()) edge_boxes.push_back(tmp);
         }
         const int n_edge_boxes = edge_boxes.size();
-        if (n_edge_boxes > 0) {
+        if (n_edge_boxes == 1) {
+            amrex::ParallelFor(edge_boxes[0],
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                IntVect const cell(AMREX_D_DECL(i,j,k));
+                filcc_cell(cell, fab, dcomp, numcomp, geomdata, time,
+                           bcr_p, 0, orig_comp);
+                f_user(cell, fab, dcomp, numcomp, geomdata, time,
+                       bcr_p, 0, orig_comp);
+            });
+        } else if (n_edge_boxes > 1) {
             AsyncArray<Box> edge_boxes_aa(edge_boxes.data(), n_edge_boxes);
             Box* boxes_p = edge_boxes_aa.data();
-
-            long ncells = 0;
+            Long ncells = 0;
             for (const auto& b : edge_boxes) {
                 ncells += b.numPts();
             }
-
-            AMREX_LAUNCH_DEVICE_LAMBDA (ncells, icell,
+            amrex::ParallelFor(ncells,
+            [=] AMREX_GPU_DEVICE (Long icell) noexcept
             {
                 const auto& cell = getCell(boxes_p, n_edge_boxes, icell);
                 filcc_cell(cell, fab, dcomp, numcomp, geomdata, time,
@@ -323,16 +343,25 @@ GpuBndryFuncFab<F>::operator() (Box const& bx, FArrayBox& dest,
             if (tmp.ok()) corner_boxes.push_back(tmp);
         }
         const int n_corner_boxes = corner_boxes.size();
-        if (n_corner_boxes > 0) {
+        if (n_corner_boxes == 1) {
+            amrex::ParallelFor(corner_boxes[0],
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                IntVect const cell(AMREX_D_DECL(i,j,k));
+                filcc_cell(cell, fab, dcomp, numcomp, geomdata, time,
+                           bcr_p, 0, orig_comp);
+                f_user(cell, fab, dcomp, numcomp, geomdata, time,
+                       bcr_p, 0, orig_comp);
+            });
+        } else if (n_corner_boxes > 1) {
             AsyncArray<Box> corner_boxes_aa(corner_boxes.data(), n_corner_boxes);
             Box* boxes_p = corner_boxes_aa.data();
-
-            long ncells = 0;
+            Long ncells = 0;
             for (const auto& b : corner_boxes) {
                 ncells += b.numPts();
             }
-
-            AMREX_LAUNCH_DEVICE_LAMBDA (ncells, icell,
+            amrex::ParallelFor(ncells,
+            [=] AMREX_GPU_DEVICE (Long icell) noexcept
             {
                 const auto& cell = getCell(boxes_p, n_corner_boxes, icell);
                 filcc_cell(cell, fab, dcomp, numcomp, geomdata, time,
@@ -342,6 +371,105 @@ GpuBndryFuncFab<F>::operator() (Box const& bx, FArrayBox& dest,
             });
         }
     }
+#endif
+
+#else
+
+    BCRec const* bcr_p = bcr.data()+bcomp;
+
+    const auto& f_user = m_user_f;
+
+    // filcc on the faces first
+    {
+        Array<Box,2*AMREX_SPACEDIM> dom_face_boxes
+            = { AMREX_D_DECL(amrex::adjCellLo(gdomain, 0, len[0]),
+                             amrex::adjCellLo(gdomain, 1, len[1]),
+                             amrex::adjCellLo(gdomain, 2, len[2])),
+                AMREX_D_DECL(amrex::adjCellHi(gdomain, 0, len[0]),
+                             amrex::adjCellHi(gdomain, 1, len[1]),
+                             amrex::adjCellHi(gdomain, 2, len[2])) };
+
+        for (const Box& b : dom_face_boxes) {
+            Box tmp = b & bx;
+            amrex::For(tmp, [=] (int i, int j, int k) noexcept
+            {
+                IntVect const cell(AMREX_D_DECL(i,j,k));
+                filcc_cell(cell, fab, dcomp, numcomp, geomdata, time,
+                           bcr_p, 0, orig_comp);
+                f_user(cell, fab, dcomp, numcomp, geomdata, time,
+                       bcr_p, 0, orig_comp);
+            });
+        }
+    }
+
+#if (AMREX_SPACEDIM >= 2)
+    // filcc on the edges
+    {
+#if (AMREX_SPACEDIM == 2)
+        Array<Box,4> dom_edge_boxes
+            = { amrex::adjCellLo(amrex::adjCellLo(gdomain,0,len[0]),1,len[1]),
+                amrex::adjCellLo(amrex::adjCellHi(gdomain,0,len[0]),1,len[1]),
+                amrex::adjCellHi(amrex::adjCellLo(gdomain,0,len[0]),1,len[1]),
+                amrex::adjCellHi(amrex::adjCellHi(gdomain,0,len[0]),1,len[1]) };
+#else
+        Array<Box,12> dom_edge_boxes
+            = { amrex::adjCellLo(amrex::adjCellLo(gdomain,0,len[0]),1,len[1]),
+                amrex::adjCellLo(amrex::adjCellHi(gdomain,0,len[0]),1,len[1]),
+                amrex::adjCellHi(amrex::adjCellLo(gdomain,0,len[0]),1,len[1]),
+                amrex::adjCellHi(amrex::adjCellHi(gdomain,0,len[0]),1,len[1]),
+                //
+                amrex::adjCellLo(amrex::adjCellLo(gdomain,0,len[0]),2,len[2]),
+                amrex::adjCellLo(amrex::adjCellHi(gdomain,0,len[0]),2,len[2]),
+                amrex::adjCellHi(amrex::adjCellLo(gdomain,0,len[0]),2,len[2]),
+                amrex::adjCellHi(amrex::adjCellHi(gdomain,0,len[0]),2,len[2]),
+                //
+                amrex::adjCellLo(amrex::adjCellLo(gdomain,1,len[1]),2,len[2]),
+                amrex::adjCellLo(amrex::adjCellHi(gdomain,1,len[1]),2,len[2]),
+                amrex::adjCellHi(amrex::adjCellLo(gdomain,1,len[1]),2,len[2]),
+                amrex::adjCellHi(amrex::adjCellHi(gdomain,1,len[1]),2,len[2]) };
+#endif
+
+        for (const Box& b : dom_edge_boxes) {
+            Box tmp = b & bx;
+            amrex::For(tmp, [=] (int i, int j, int k) noexcept
+            {
+                IntVect const cell(AMREX_D_DECL(i,j,k));
+                filcc_cell(cell, fab, dcomp, numcomp, geomdata, time,
+                           bcr_p, 0, orig_comp);
+                f_user(cell, fab, dcomp, numcomp, geomdata, time,
+                       bcr_p, 0, orig_comp);
+            });
+        }
+    }
+#endif
+
+#if (AMREX_SPACEDIM == 3)
+    // filcc on corners
+    {
+        Array<Box,8> dom_corner_boxes
+            = { amrex::adjCellLo(amrex::adjCellLo(amrex::adjCellLo(gdomain,0,len[0]),1,len[1]),2,len[2]),
+                amrex::adjCellLo(amrex::adjCellLo(amrex::adjCellHi(gdomain,0,len[0]),1,len[1]),2,len[2]),
+                amrex::adjCellLo(amrex::adjCellHi(amrex::adjCellLo(gdomain,0,len[0]),1,len[1]),2,len[2]),
+                amrex::adjCellLo(amrex::adjCellHi(amrex::adjCellHi(gdomain,0,len[0]),1,len[1]),2,len[2]),
+                amrex::adjCellHi(amrex::adjCellLo(amrex::adjCellLo(gdomain,0,len[0]),1,len[1]),2,len[2]),
+                amrex::adjCellHi(amrex::adjCellLo(amrex::adjCellHi(gdomain,0,len[0]),1,len[1]),2,len[2]),
+                amrex::adjCellHi(amrex::adjCellHi(amrex::adjCellLo(gdomain,0,len[0]),1,len[1]),2,len[2]),
+                amrex::adjCellHi(amrex::adjCellHi(amrex::adjCellHi(gdomain,0,len[0]),1,len[1]),2,len[2]) };
+
+        for (const Box& b : dom_corner_boxes) {
+            Box tmp = b & bx;
+            amrex::For(tmp, [=] (int i, int j, int k) noexcept
+            {
+                IntVect const cell(AMREX_D_DECL(i,j,k));
+                filcc_cell(cell, fab, dcomp, numcomp, geomdata, time,
+                           bcr_p, 0, orig_comp);
+                f_user(cell, fab, dcomp, numcomp, geomdata, time,
+                       bcr_p, 0, orig_comp);
+            });
+        }
+    }
+#endif
+
 #endif
 }
 

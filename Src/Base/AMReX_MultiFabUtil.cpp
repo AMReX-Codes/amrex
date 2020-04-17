@@ -11,13 +11,13 @@ namespace {
     getIndexBox(const RealBox& real_box, const Geometry& geom) {
         IntVect slice_lo, slice_hi;
 
-        AMREX_D_TERM(slice_lo[0]=std::floor((real_box.lo(0) - geom.ProbLo(0))/geom.CellSize(0));,
-                     slice_lo[1]=std::floor((real_box.lo(1) - geom.ProbLo(1))/geom.CellSize(1));,
-                     slice_lo[2]=std::floor((real_box.lo(2) - geom.ProbLo(2))/geom.CellSize(2)););
+        AMREX_D_TERM(slice_lo[0]=static_cast<int>(std::floor((real_box.lo(0) - geom.ProbLo(0))/geom.CellSize(0)));,
+                     slice_lo[1]=static_cast<int>(std::floor((real_box.lo(1) - geom.ProbLo(1))/geom.CellSize(1)));,
+                     slice_lo[2]=static_cast<int>(std::floor((real_box.lo(2) - geom.ProbLo(2))/geom.CellSize(2))););
 
-        AMREX_D_TERM(slice_hi[0]=std::floor((real_box.hi(0) - geom.ProbLo(0))/geom.CellSize(0));,
-                     slice_hi[1]=std::floor((real_box.hi(1) - geom.ProbLo(1))/geom.CellSize(1));,
-                     slice_hi[2]=std::floor((real_box.hi(2) - geom.ProbLo(2))/geom.CellSize(2)););
+        AMREX_D_TERM(slice_hi[0]=static_cast<int>(std::floor((real_box.hi(0) - geom.ProbLo(0))/geom.CellSize(0)));,
+                     slice_hi[1]=static_cast<int>(std::floor((real_box.hi(1) - geom.ProbLo(1))/geom.CellSize(1)));,
+                     slice_hi[2]=static_cast<int>(std::floor((real_box.hi(2) - geom.ProbLo(2))/geom.CellSize(2))););
 
         return Box(slice_lo, slice_hi) & geom.Domain();
     }
@@ -575,9 +575,9 @@ namespace amrex
         return amrex::cast<MultiFab>(imf);
     }
 
-    FabArray<BaseFab<long> > ToLongMultiFab (const iMultiFab& imf)
+    FabArray<BaseFab<Long> > ToLongMultiFab (const iMultiFab& imf)
     {
-        return amrex::cast<FabArray<BaseFab<long> > > (imf);
+        return amrex::cast<FabArray<BaseFab<Long> > > (imf);
     }
 
     std::unique_ptr<MultiFab> get_slice_data(int dir, Real coord, const MultiFab& cc, const Geometry& geom, int start_comp, int ncomp, bool interpolate) {
@@ -665,7 +665,7 @@ namespace amrex
 
                 for (const auto& iv : pshifts) {
                     cfba.intersections(bx+iv, isects);
-                    for (const auto is : isects) {
+                    for (const auto& is : isects) {
                         Box const& b = is.second-iv;
                         if (run_on_gpu) {
                             tags.push_back({arr,b});

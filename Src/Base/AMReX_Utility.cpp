@@ -103,7 +103,7 @@ amrex::Tokenize (const std::string& instr,
     if (!((token = std::strtok(line, separators.c_str())) == 0))
     {
         ptr.push_back(token);
-        while (!((token = strtok(0, separators.c_str())) == 0))
+        while (!((token = std::strtok(0, separators.c_str())) == 0))
             ptr.push_back(token);
     }
 
@@ -113,7 +113,7 @@ amrex::Tokenize (const std::string& instr,
     {
         char* p = ptr[i];
 
-        while (strchr(separators.c_str(), *(p-1)) != 0)
+        while (std::strchr(separators.c_str(), *(p-1)) != 0)
             *--p = 0;
     }
 
@@ -140,6 +140,15 @@ amrex::toUpper (std::string s)
     return s;
 }
 
+std::string
+amrex::trim(std::string s, std::string const& space)
+{
+    const auto sbegin = s.find_first_not_of(space);
+    if (sbegin == std::string::npos) return std::string{};
+    const auto send = s.find_last_not_of(space);
+    s = s.substr(sbegin, send-sbegin+1);
+    return s;
+}
 
 std::string
 amrex::Concatenate (const std::string& root,
@@ -166,17 +175,17 @@ amrex::UtilCreateDirectory (const std::string& path,
 
     errno = 0;
 
-    if(strchr(path.c_str(), *path_sep_str) == 0) {
+    if(std::strchr(path.c_str(), *path_sep_str) == 0) {
         //
         // No slashes in the path.
         //
         errno = 0;
         if(mkdir(path.c_str(), mode) < 0 && errno != EEXIST) {
-	  retVal = false;
-	} else {
-	  retVal = true;
-	}
-	pathError.push_back(std::make_pair(path, errno));
+            retVal = false;
+        } else {
+            retVal = true;
+        }
+        pathError.push_back(std::make_pair(path, errno));
     } else {
         //
         // Make copy of the directory pathname so we can write to it.
@@ -184,26 +193,26 @@ amrex::UtilCreateDirectory (const std::string& path,
         char *dir = new char[path.length() + 1];
         (void) strcpy(dir, path.c_str());
 
-        char *slash = strchr(dir, *path_sep_str);
+        char *slash = std::strchr(dir, *path_sep_str);
 
         if(dir[0] == *path_sep_str) {  // full pathname.
             do {
                 if(*(slash+1) == 0) {
                     break;
-		}
-                if((slash = strchr(slash+1, *path_sep_str)) != 0) {
+                }
+                if((slash = std::strchr(slash+1, *path_sep_str)) != 0) {
                     *slash = 0;
-		}
+                }
                 errno = 0;
                 if(mkdir(dir, mode) < 0 && errno != EEXIST) {
-	          retVal = false;
-		} else {
-	          retVal = true;
-		}
-	        pathError.push_back(std::make_pair(dir, errno));
+                    retVal = false;
+                } else {
+                    retVal = true;
+                }
+                pathError.push_back(std::make_pair(dir, errno));
                 if(slash) {
-                  *slash = *path_sep_str;
-		}
+                    *slash = *path_sep_str;
+                }
             } while(slash);
 
         } else {  // relative pathname.
@@ -212,21 +221,21 @@ amrex::UtilCreateDirectory (const std::string& path,
                 *slash = 0;
                 errno = 0;
                 if(mkdir(dir, mode) < 0 && errno != EEXIST) {
-	          retVal = false;
-		} else {
-	          retVal = true;
-		}
-	        pathError.push_back(std::make_pair(dir, errno));
+                    retVal = false;
+                } else {
+                    retVal = true;
+                }
+                pathError.push_back(std::make_pair(dir, errno));
                 *slash = *path_sep_str;
-            } while((slash = strchr(slash+1, *path_sep_str)) != 0);
+            } while((slash = std::strchr(slash+1, *path_sep_str)) != 0);
 
             errno = 0;
             if(mkdir(dir, mode) < 0 && errno != EEXIST) {
-	      retVal = false;
-	    } else {
-	      retVal = true;
-	    }
-	    pathError.push_back(std::make_pair(dir, errno));
+                retVal = false;
+            } else {
+                retVal = true;
+            }
+            pathError.push_back(std::make_pair(dir, errno));
         }
 
         delete [] dir;
@@ -404,36 +413,36 @@ amrex::InvNormDist (double p)
     //
     static const double a[6] =
     {
-	-3.969683028665376e+01,
+        -3.969683028665376e+01,
         2.209460984245205e+02,
-	-2.759285104469687e+02,
+        -2.759285104469687e+02,
         1.383577518672690e+02,
-	-3.066479806614716e+01,
+        -3.066479806614716e+01,
         2.506628277459239e+00
     };
     static const double b[5] =
     {
-	-5.447609879822406e+01,
+        -5.447609879822406e+01,
         1.615858368580409e+02,
-	-1.556989798598866e+02,
+        -1.556989798598866e+02,
         6.680131188771972e+01,
-	-1.328068155288572e+01
+        -1.328068155288572e+01
     };
     static const double c[6] =
     {
-	-7.784894002430293e-03,
-	-3.223964580411365e-01,
-	-2.400758277161838e+00,
-	-2.549732539343734e+00,
+        -7.784894002430293e-03,
+        -3.223964580411365e-01,
+        -2.400758277161838e+00,
+        -2.549732539343734e+00,
         4.374664141464968e+00,
         2.938163982698783e+00
     };
     static const double d[4] =
     {
-	7.784695709041462e-03,
-	3.224671290700398e-01,
-	2.445134137142996e+00,
-	3.754408661907416e+00
+        7.784695709041462e-03,
+        3.224671290700398e-01,
+        2.445134137142996e+00,
+        3.754408661907416e+00
     };
 
     static const double lo = 0.02425;
@@ -1034,7 +1043,7 @@ void amrex::BroadcastStringArray(Vector<std::string> &bSA, int myLocalId, int ro
 
 void amrex::USleep(double sleepsec) {
   constexpr unsigned int msps = 1000000;
-  usleep(sleepsec * msps);
+  usleep(static_cast<useconds_t>(sleepsec * msps));
 }
 
 

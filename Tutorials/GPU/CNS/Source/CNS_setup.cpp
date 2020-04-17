@@ -5,6 +5,8 @@
 using namespace amrex;
 
 int CNS::num_state_data_types = NUM_STATE_DATA_TYPE;
+std::unique_ptr<Parm> CNS::parm;
+std::unique_ptr<ProbParm> CNS::prob_parm;
 
 static Box the_same_box (const Box& b) { return b; }
 //static Box grow_box_by_one (const Box& b) { return amrex::grow(b,1); }
@@ -98,6 +100,9 @@ set_z_vel_bc(BCRec& bc, const BCRec& phys_bc)
 void
 CNS::variableSetUp ()
 {
+    parm.reset(new Parm{}); // This is deleted in CNS::variableCleanUp().
+    prob_parm.reset(new ProbParm{});
+
     read_params();
 
     bool state_data_extrap = false;
@@ -156,6 +161,8 @@ CNS::variableSetUp ()
 void
 CNS::variableCleanUp ()
 {
+    parm.reset();
+    prob_parm.reset();
     desc_lst.clear();
     derive_lst.clear();
 }

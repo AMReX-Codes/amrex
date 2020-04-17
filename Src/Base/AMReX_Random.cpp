@@ -1,5 +1,6 @@
 #include <set>
 #include <random>
+#include <limits>
 #include <AMReX_Arena.H>
 #include <AMReX_BLFort.H>
 #include <AMReX_Print.H>
@@ -50,7 +51,7 @@ namespace
 }
 
 void
-amrex::InitRandom (unsigned long seed, int nprocs)
+amrex::InitRandom (amrex::ULong seed, int nprocs)
 {
 #ifdef _OPENMP
     nthreads = omp_get_max_threads();
@@ -63,7 +64,7 @@ amrex::InitRandom (unsigned long seed, int nprocs)
 #pragma omp parallel
     {
         int tid = omp_get_thread_num();
-        unsigned long init_seed = seed + tid*nprocs;
+        amrex::ULong init_seed = seed + tid*nprocs;
         generators[tid].seed(init_seed);
     }
 #else
@@ -191,7 +192,7 @@ amrex::Random ()
 AMREX_GPU_HOST_DEVICE unsigned int
 amrex::RandomPoisson (amrex::Real lambda)
 {
-    amrex::Real rand;
+    unsigned int rand;
 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
     const auto blockId = blockIdx.x + blockIdx.y * gridDim.x + gridDim.x * gridDim.y * blockIdx.z;
@@ -258,15 +259,15 @@ amrex::Random_int (unsigned int n)
 #endif
 }
 
-AMREX_GPU_HOST unsigned long
-amrex::Random_long (unsigned long n)
+AMREX_GPU_HOST amrex::ULong
+amrex::Random_long (amrex::ULong n)
 {
 #ifdef _OPENMP
     int tid = omp_get_thread_num();
 #else
     int tid = 0;
 #endif
-    std::uniform_int_distribution<unsigned long> distribution(0, n-1);
+    std::uniform_int_distribution<amrex::ULong> distribution(0, n-1);
     return distribution(generators[tid]);
 }
 
@@ -288,8 +289,10 @@ amrex::RestoreRandomState (std::istream& is, int nthreads_old, int nstep_old)
         const int NProcs = ParallelDescriptor::NProcs();
         const int MyProc = ParallelDescriptor::MyProc();
         for (int i = nthreads_old; i < nthreads; i++) {
-            unsigned long seed = MyProc+1 + i*NProcs;
-            if (ULONG_MAX/(unsigned long)(nstep_old+1) >static_cast<unsigned long>(nthreads*NProcs)) { // avoid overflow
+            amrex::ULong seed = MyProc+1 + i*NProcs;
+            if (std::numeric_limits<amrex::ULong>::max()/(amrex::ULong)(nstep_old+1)
+                > static_cast<amrex::ULong>(nthreads*NProcs)) // avoid overflow
+            {
                 seed += nstep_old*nthreads*NProcs;
             }
 
@@ -322,7 +325,7 @@ amrex::UniqueRandomSubset (Vector<int> &uSet, int setSize, int poolSize,
   }
 }
 
-void amrex::ResetRandomSeed (unsigned long seed)
+void amrex::ResetRandomSeed (amrex::ULong seed)
 {
     InitRandom(seed);
 }
@@ -382,7 +385,7 @@ amrex::ResizeRandomSeed (int N)
     const int MyProc = amrex::ParallelDescriptor::MyProc();
     amrex::ParallelFor (SizeDiff, [=] AMREX_GPU_DEVICE (int idx) noexcept
     {
-        unsigned long seed = MyProc*1234567UL + 12345UL ;
+        amrex::ULong seed = MyProc*1234567ULL + 12345ULL ;
         int seqstart = idx + 10 * idx ;
         int loc = idx + PrevSize;
 
@@ -451,16 +454,16 @@ amrex::NItemsPerBin (int totalItems, Vector<int> &binCounts)
 // Fortran entry points for amrex::Random().
 //
 
-#ifndef AMREX_XSDK
+#if !defined(AMREX_XSDK) && !defined(BL_NO_FORT)
 BL_FORT_PROC_DECL(BLUTILINITRAND,blutilinitrand)(const int* sd)
 {
-    unsigned long seed = *sd;
+    amrex::ULong seed = *sd;
     amrex::InitRandom(seed);
 }
 
 BL_FORT_PROC_DECL(BLINITRAND,blinitrand)(const int* sd)
 {
-    unsigned long seed = *sd;
+    amrex::ULong seed = *sd;
     amrex::InitRandom(seed);
 }
 
@@ -476,8 +479,9 @@ extern "C" {
         return amrex::Random();
     }
 
-    long amrex_random_int (long n)  // This is for Fortran, which doesn't have unsigned long.
+    // This is for Fortran, which doesn't have unsigned long.
+    amrex::Long amrex_random_int (amrex::Long n)
     {
-        return static_cast<long>(amrex::Random_int(static_cast<unsigned long>(n)));
+        return static_cast<amrex::Long>(amrex::Random_int(static_cast<amrex::ULong>(n)));
     }
 }

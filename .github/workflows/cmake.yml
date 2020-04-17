@@ -5,6 +5,7 @@ on: [push, pull_request]
 jobs:
   # Build and install libamrex as AMReX CMake project
   library:
+    name: GNU@7.5 C++17 [lib]
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
@@ -14,12 +15,15 @@ jobs:
       run: |
         mkdir build
         cd build
-        cmake .. -DCMAKE_INSTALL_PREFIX=/tmp/my-amrex
-        make -j 2
+        cmake ..                                  \
+            -DCMAKE_INSTALL_PREFIX=/tmp/my-amrex  \
+            -DCMAKE_CXX_STANDARD=17
+        make -j 2 VERBOSE=ON
         make install
 
   # Build libamrex and all tutorials
   tutorials:
+    name: GNU@7.5 C++14 [tutorials]
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
@@ -30,10 +34,44 @@ jobs:
         mkdir build
         cd build
         cmake .. -DENABLE_TUTORIALS=ON
-        make -j 2
+        make -j 2 tutorials
+
+  # Build libamrex and all tutorials
+  tutorials-macos:
+    name: AppleClang@11.0 GFortran@9.3 [tutorials]
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Dependencies
+      run: .github/workflows/cmake/dependencies_mac.sh
+    - name: Build & Install
+      run: |
+        mkdir build
+        cd build
+        cmake .. -DENABLE_TUTORIALS=ON
+        make -j 2 tutorials
+
+  # Build libamrex and all tutorials
+  tutorials-nofortran:
+    name: GNU@7.5 C++11 w/o Fortran [tutorials]
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Dependencies
+      run: .github/workflows/cmake/dependencies_nofortran.sh
+    - name: Build & Install
+      run: |
+        mkdir build
+        cd build
+        cmake ..                    \
+            -DENABLE_TUTORIALS=ON   \
+            -DENABLE_FORTRAN=OFF    \
+            -DCMAKE_CXX_STANDARD=11
+        make -j 2 tutorials
 
   # Build libamrex and all tutorials with CUDA
   tutorials-cuda:
+    name: CUDA@9.1.85 GNU@4.8.5 C++11 [tutorials]
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
@@ -46,9 +84,9 @@ jobs:
         cmake ..                                         \
             -DENABLE_TUTORIALS=ON                        \
             -DENABLE_CUDA=ON                             \
+            -DCMAKE_C_COMPILER=$(which gcc-4.8)              \
             -DCMAKE_CXX_COMPILER=$(which g++-4.8)            \
             -DCMAKE_CUDA_HOST_COMPILER=$(which g++-4.8)      \
             -DCMAKE_Fortran_COMPILER=$(which gfortran-4.8)   \
-            -DAMREX_CXX_STANDARD=11   \
             -DCUDA_ARCH=6.0
-        make -j 2
+        make -j 2 tutorials

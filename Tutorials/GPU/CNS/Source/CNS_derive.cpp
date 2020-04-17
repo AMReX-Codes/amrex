@@ -1,4 +1,5 @@
 #include "CNS_derive.H"
+#include "CNS.H"
 #include "CNS_parm.H"
 
 using namespace amrex;
@@ -9,10 +10,11 @@ void cns_derpres (const Box& bx, FArrayBox& pfab, int dcomp, int /*ncomp*/,
 {
     auto const rhoe = rhoefab.array();
     auto       p    = pfab.array();
+    Parm const* parm = CNS::parm.get();
     amrex::ParallelFor(bx,
     [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
     {
-        p(i,j,k,dcomp) = (Parm::eos_gamma-1.)*rhoe(i,j,k);
+        p(i,j,k,dcomp) = (parm->eos_gamma-1.)*rhoe(i,j,k);
     });
 }
 
