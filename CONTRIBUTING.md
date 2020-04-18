@@ -1,6 +1,47 @@
-# Contribute to AMReX
+## Development Model
 
-Here the workflow we use for AMReX development.
+Development generally follows the following ideas:
+
+  * New features are merged into to the `development` branch using
+    Pull Requests (PRs).
+
+    Nightly regression testing is used to ensure that no answers
+    change (or if they do, that the changes were expected).
+
+    If a change is critical, we can cherry-pick the commit from
+    `development` to `master`.
+
+  * Bug fixes, questions and contributions of new features are welcome!
+
+       * Bugs should be reported through GitHub issues
+       * We suggest asking questions through GitHub issues as well
+       * *Any contributions of new features that have the potential
+         to change answers should be done via pull requests.*
+         A pull request should be generated from your fork of
+         amrex and target the `development` branch. See below for
+         details on how this process works.
+
+         In general we squash commits upon merge to have a clean history.
+         *Please ensure that your PR title and first post are descriptive,
+         since these will be used for a squashed commit message.*
+
+         Please note the following:
+            If you choose to make contributions to the code 
+            then you hereby grant a non-exclusive, royalty-free perpetual license 
+            to install, use, modify, prepare derivative works, 
+            incorporate into other computer software,
+            distribute, and sublicense such enhancements or derivative works
+            thereof, in binary and source code form.
+
+  * On the first workday of each month, we perform a merge of
+    `development` into `master`.  For this merge to take place, we
+    need to be passing the regression tests.
+
+    To accommodate this need, we close the merge window into
+    `development` a few days before the merge day.  While the merge
+    window is closed, only bug fixes should be pushed into
+    `development`.  Once the merge from `development` -> `master` is
+    done, the merge window reopens.
 
 ## Git workflow
 
@@ -85,7 +126,7 @@ and fix any conflicts that may occur.
 
 ### Submit a Pull Request
 
-A Pull Request (PR) is the way to efficiently visualize the changes you made
+A Pull Request is the way to efficiently visualize the changes you made
 and to propose your new feature/improvement/fix to the AMReX project.
 Right after you push changes, a banner should appear on the Github page of
 your fork, with your `<branch_name>`.
@@ -109,3 +150,20 @@ If you want to implement a feature and are not too sure how to split it, just op
 Even before your work is ready to merge, it can be convenient to create a PR
 (so you can use Github tools to visualize your changes). In this case, please
 put the `[WIP]` tag (for Work In Progress) at the beginning of the PR title.
+
+## Core Developers
+
+People who make a number of substantive contributions will be named
+"core developers" of AMReX.  The criteria for becoming a core
+developer are flexible, but generally involve one of the following:
+
+  * 100 non-trivial commits to `amrex/Src/`  *and/or*
+
+  * addition of a new algorithm / module  *and/or*
+
+  * substantial input into the code design process or testing
+
+If a core developer is inactive for multiple years, we may reassess their
+status as a core developer.
+
+The current list of core developers is: Ann Almgren (LBNL), Vince Beckner, John Bell (LBNL), Johannes Blaschke (LBNL), Cy Chan (LBNL), Marcus Day (LBNL), Brian Friesen (NERSC), Kevin Gott (NERSC), Daniel Graves (LBNL), Max Katz (NVIDIA), Andrew Myers (LBNL), Tan Nguyen (LBNL), Andrew Nonaka (LBNL), Michele Rosso (LBNL), Sam Williams (LBNL), Weiqun Zhang (LBNL), Michael Zingale (Stonybrook University).
