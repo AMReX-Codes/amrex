@@ -152,7 +152,7 @@ If you want to implement a feature and are not too sure how to split it, just op
 
 Even before your work is ready to merge, it can be convenient to create a PR
 (so you can use Github tools to visualize your changes). In this case, please
-put the `[WIP]` tag (for Work In Progress) at the beginning of the PR title.
+make a "draft" PR using the drop-down menu next to the "Create pull request" button.
 
 ## Core Developers
 
