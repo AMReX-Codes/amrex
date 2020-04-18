@@ -112,7 +112,6 @@ NodalProjector::setOptions ()
 {
 
     // Default values
-    int          maxorder(3);
     int          bottom_verbose(0);
     int          maxiter(100);
     int          bottom_maxiter(100);
@@ -123,7 +122,6 @@ NodalProjector::setOptions ()
     // Read from input file
     ParmParse pp("nodal_proj");
     pp.query( "verbose"       , m_verbose );
-    pp.query( "maxorder"      , maxorder );
     pp.query( "bottom_verbose", bottom_verbose );
     pp.query( "maxiter"       , maxiter );
     pp.query( "bottom_maxiter", bottom_maxiter );
@@ -132,7 +130,6 @@ NodalProjector::setOptions ()
     pp.query( "bottom_solver" , bottom_solver );
 
     // Set default/input values
-    m_linop->setMaxOrder(maxorder);
     m_mlmg->setVerbose(m_verbose);
     m_mlmg->setBottomVerbose(bottom_verbose);
     m_mlmg->setMaxIter(maxiter);
