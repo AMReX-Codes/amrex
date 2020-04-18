@@ -70,6 +70,9 @@ git clone --branch development https://github.com/<myGithubUsername>/amrex.git
 # Add a new remote for the main AMReX repo, to remain up-to-date.
 git remote add upstream https://github.com/AMReX-Codes/amrex
 
+# We recommend setting your development branch to track the upstream one instead of your fork:
+git branch -u upstream/development
+
 # For safety, disable pushing directly to upstream (only relevant if you have write access)
 git remote set-url --push upstream no_push
 ```
@@ -81,7 +84,7 @@ Now you are free to play with your fork (for additional information, you can vis
 > on your fork with
 > ```
 > git checkout development
-> git pull upstream development
+> git pull development
 > ```
 
 Make sure you are on the `development` branch with
