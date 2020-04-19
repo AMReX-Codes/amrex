@@ -72,8 +72,9 @@ cd amrex
 git remote add upstream https://github.com/AMReX-Codes/amrex
 git fetch upstream
 
-# We recommend setting your development branch to track the upstream one instead of your fork:
+# We recommend setting your development and master branches to track the upstream ones instead of your fork:
 git branch -u upstream/development
+git branch -u upstream/master
 
 # For safety, disable pushing directly to upstream (only relevant if you have write access)
 git remote set-url --push upstream no_push
