@@ -50,10 +50,26 @@ else
   CXXSTD := c++14
 endif
 
-CXXFLAGS += -std=$(CXXSTD) -Wno-error=sycl-strict
-CFLAGS   += -std=c99 -Wno-error=sycl-strict
+CXXFLAGS += -std=$(CXXSTD) -Wno-error=sycl-strict -fsycl -fsycl-unnamed-lambda
+CFLAGS   += -std=c99
 
-EXTRACXXFLAGS += -fsycl -fsycl-unnamed-lambda # -fsycl-targets=spir64_gen-unknown-unknown-sycldevice -Xsycl-target-backend '-device skl,cfl,glk,kbl'
+ifneq ($(DEBUG),TRUE)  # There is currently a bug that DEBUG build will crash.
+ifeq ($(DPCPP_AOT),TRUE)
+  INTEL_CPU_LONG_NAME = $(shell cat /sys/devices/cpu/caps/pmu_name)
+  ifneq ($(INTEL_CPU_LONG_NAME),)
+    ifeq ($(INTEL_CPU_LONG_NAME),skylake)
+      INTEL_CPU_SHORT_NAME = skl
+    else ifeq ($(INTEL_CPU_LONG_NAME),kabylake)
+      INTEL_CPU_SHORT_NAME = kbl
+    else ifeq ($(INTEL_CPU_LONG_NAME),cascadelake)
+      INTEL_CPU_SHORT_NAME = cfl
+    else
+      $(error AOT TODO: $(INTEL_CPU_LONG_NAME))
+    endif
+    CXXFLAGS += -fsycl-targets=spir64_gen-unknown-unknown-sycldevice -Xsycl-target-backend '-device $(INTEL_CPU_SHORT_NAME)'
+  endif
+endif
+endif
 
 #FFLAGS   += -ffixed-line-length-none -fno-range-check -fno-second-underscore
 #F90FLAGS += -ffree-line-length-none -fno-range-check -fno-second-underscore -fimplicit-none
