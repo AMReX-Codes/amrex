@@ -25,7 +25,7 @@ publicly and display publicly, and to permit other to do so.
 
 License for AMReX can be found at [LICENSE](LICENSE).
 
-Please see CONTRIBUTING.md for details on how to contribute to AMReX.
+Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details on how to contribute to AMReX.
 
 ## Citation
 
