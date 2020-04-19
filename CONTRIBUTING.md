@@ -61,7 +61,7 @@ your fork;
 
 First, let us setup your local git repo. Make your own fork of the main
 (`upstream`) repository:
-on the [AMReX Github page](https://github.com/atmyers/amrex), press the
+on the [AMReX Github page](https://github.com/AMReX-Codes/amrex), press the
 fork button. 
 
 If you already had a fork of AMReX prior to 4/17/2020, we recommend deleting it and re-forking.
