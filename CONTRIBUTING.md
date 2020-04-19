@@ -67,8 +67,10 @@ fork button. Then, you can execute:
 # Clone your fork on your local computer. You can get this address on your fork's Github page.
 git clone --branch development https://github.com/<myGithubUsername>/amrex.git
 
-# Add a new remote for the main AMReX repo, to remain up-to-date.
+# Navigate into your repo, add a new remote for the main AMReX repo, and fetch it
+cd amrex
 git remote add upstream https://github.com/AMReX-Codes/amrex
+git fetch upstream
 
 # We recommend setting your development branch to track the upstream one instead of your fork:
 git branch -u upstream/development
