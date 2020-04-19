@@ -62,7 +62,9 @@ your fork;
 First, let us setup your local git repo. Make your own fork of the main
 (`upstream`) repository:
 on the [AMReX Github page](https://github.com/atmyers/amrex), press the
-fork button. Then, you can execute:
+fork button. 
+
+Then, you can execute:
 ```
 # Clone your fork on your local computer. You can get this address on your fork's Github page.
 git clone --branch development https://github.com/<myGithubUsername>/amrex.git
@@ -76,8 +78,8 @@ git fetch upstream
 git branch -u upstream/development
 git branch -u upstream/master
 
-# For safety, disable pushing directly to upstream (only relevant if you have write access)
-git remote set-url --push upstream no_push
+# Set push for the upstream remote to the fork
+git remote set-url --push upstream https://github.com/<myGithubUsername>/amrex.git
 ```
 Now you are free to play with your fork (for additional information, you can visit the
 [Github fork help page](https://help.github.com/en/articles/fork-a-repo)).
