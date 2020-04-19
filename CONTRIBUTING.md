@@ -76,14 +76,12 @@ git clone --branch development https://github.com/<myGithubUsername>/amrex.git
 # Navigate into your repo, add a new remote for the main AMReX repo, and fetch it
 cd amrex
 git remote add upstream https://github.com/AMReX-Codes/amrex
+git remote set-url --push upstream https://github.com/<myGithubUsername>/amrex.git
 git fetch upstream
 
 # We recommend setting your development and master branches to track the upstream ones instead of your fork:
 git branch -u upstream/development
-git branch -u upstream/master
-
-# Set push for the upstream remote to the fork
-git remote set-url --push upstream https://github.com/<myGithubUsername>/amrex.git
+git checkout -t -b master upstream/master
 ```
 Now you are free to play with your fork (for additional information, you can visit the
 [Github fork help page](https://help.github.com/en/articles/fork-a-repo)).
