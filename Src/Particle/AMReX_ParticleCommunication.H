@@ -159,7 +159,7 @@ struct ParticleCopyPlan
                 {
                     int dst_box = p_boxes[i];
                     int dst_lev = p_levs[i];
-                    if (dst_box < 0) continue;
+                    if (dst_box < 0) return;
                     int index = Gpu::Atomic::Inc(
                         &p_dst_box_counts[p_box_perm[p_lev_offsets[dst_lev]+dst_box]], max_unsigned_int);
                     p_dst_indices[i] = index;
@@ -293,7 +293,7 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
             AMREX_FOR_1D ( num_copies, i,
             {
                 int dst_box = p_boxes[i];
-                if (dst_box < 0) continue;
+                if (dst_box < 0) return;
                 int dst_lev = p_levels[i];
                 auto dst_offset = get_offset(dst_box, dst_lev, psize, p_dst_indices[i]); 
                 int src_index = p_src_indices[i];
