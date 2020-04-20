@@ -636,10 +636,6 @@ void eb_interp_centroid2facecent (Box const& bx,
   //
   amrex::Loop(ubx, ncomp, [=] (int i, int j, int k, int n) noexcept
     {
-      if (i == 3 && j == 9 && k == 0) 
-      {
-          std::cout << "DOING FX(3,9,0): APX = " << apx(i,j,k) << std::endl;
-      }
       if (apx(i,j,k) == 0)
       {
           phi_x(i,j,k,n) = 1e40;
