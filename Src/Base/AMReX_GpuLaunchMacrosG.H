@@ -439,399 +439,58 @@
 
 // FOR_1D
 
-#ifdef AMREX_USE_DPCPP
 #define AMREX_GPU_HOST_DEVICE_FOR_1D(n,i,block) \
-    { auto const& amrex_i_n = n; \
-      using amrex_i_inttype = typename std::remove_const<decltype(n)>::type; \
-    if (!amrex::isEmpty(amrex_i_n)) { \
-    if (amrex::Gpu::inLaunchRegion()) \
-    { \
-        const auto amrex_i_ec = amrex::Gpu::ExecutionConfig(amrex_i_n); \
-        if (amrex::Gpu::onNullStream()) amrex::Gpu::nonNullStreamSynchronize(); \
-        int amrex_i_nthreads_per_block = amrex_i_ec.numThreads.x; \
-        int amrex_i_nthreads_total = amrex_i_nthreads_per_block * amrex_i_ec.numBlocks.x; \
-        auto& amrex_i_q = amrex::Gpu::Device::streamQueue(); \
-        try { \
-            amrex_i_q.submit([&] (sycl::handler& amrex_i_h) { \
-                amrex_i_h.parallel_for(sycl::nd_range<1>(sycl::range<1>(amrex_i_nthreads_total), \
-                                                         sycl::range<1>(amrex_i_nthreads_per_block)), \
-                [=] (sycl::nd_item<1> amrex_i_item) \
-                AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size) \
-                { \
-                    for (amrex_i_inttype i = amrex_i_item.get_global_id(0), amrex_i_stride = amrex_i_item.get_global_range(0); \
-                         i < amrex_i_n; i += amrex_i_stride) { \
-                        block \
-                    } \
-                }); \
-            }); \
-        } catch (sycl::exception const& ex) { \
-            amrex::Abort(std::string("FOR: ")+ex.what()+"!!!!!"); \
-        } \
-    } \
-    else { \
+{ \
+    auto const& amrex_i_n = n; \
+    using amrex_i_inttype = typename std::remove_const<decltype(n)>::type; \
+    if (amrex::Gpu::inLaunchRegion()) { \
+        amrex::ParallelFor(amrex_i_n,[=] AMREX_GPU_DEVICE (amrex_i_inttype i) noexcept block); \
+    } else { \
         AMREX_PRAGMA_SIMD \
-        for (amrex_i_inttype i = 0; i < amrex_i_n; ++i) block     \
-    }}}
-#else
-#define AMREX_GPU_HOST_DEVICE_FOR_1D(n,i,block) \
-    { auto const& amrex_i_n = n; \
-      using amrex_i_inttype = typename std::remove_const<decltype(n)>::type; \
-    if (!amrex::isEmpty(amrex_i_n)) { \
-    if (amrex::Gpu::inLaunchRegion()) \
-    { \
-        const auto amrex_i_ec = amrex::Gpu::ExecutionConfig(amrex_i_n); \
-        AMREX_LAUNCH_KERNEL(amrex_i_ec.numBlocks, amrex_i_ec.numThreads, amrex_i_ec.sharedMem, amrex::Gpu::gpuStream(), \
-        [=] AMREX_GPU_DEVICE () noexcept { \
-            for (amrex_i_inttype i = blockDim.x*blockIdx.x+threadIdx.x, amrex_i_stride = blockDim.x*gridDim.x; \
-                     i < amrex_i_n; i += amrex_i_stride) { \
-                block \
-            } \
-        }); \
-        AMREX_GPU_ERROR_CHECK(); \
+        for (amrex_i_inttype i = 0; i < amrex_i_n; ++i) block \
     } \
-    else { \
-        AMREX_PRAGMA_SIMD \
-        for (amrex_i_inttype i = 0; i < amrex_i_n; ++i) block     \
-    }}}
-#endif
+}
 
-#ifdef AMREX_USE_DPCPP
 #define AMREX_GPU_DEVICE_FOR_1D(n,i,block) \
-    { auto const& amrex_i_n = n; \
-      using amrex_i_inttype = typename std::remove_const<decltype(n)>::type; \
-    if (!amrex::isEmpty(amrex_i_n)) { \
-        const auto amrex_i_ec = amrex::Gpu::ExecutionConfig(amrex_i_n); \
-        if (amrex::Gpu::onNullStream()) amrex::Gpu::nonNullStreamSynchronize(); \
-        int amrex_i_nthreads_per_block = amrex_i_ec.numThreads.x; \
-        int amrex_i_nthreads_total = amrex_i_nthreads_per_block * amrex_i_ec.numBlocks.x; \
-        auto& amrex_i_q = amrex::Gpu::Device::streamQueue(); \
-        try { \
-            amrex_i_q.submit([&] (sycl::handler& amrex_i_h) { \
-                amrex_i_h.parallel_for(sycl::nd_range<1>(sycl::range<1>(amrex_i_nthreads_total), \
-                                                         sycl::range<1>(amrex_i_nthreads_per_block)), \
-                [=] (sycl::nd_item<1> amrex_i_item) \
-                AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size) \
-                { \
-                    for (amrex_i_inttype i = amrex_i_item.get_global_id(0), amrex_i_stride = amrex_i_item.get_global_range(0); \
-                         i < amrex_i_n; i += amrex_i_stride) { \
-                        block \
-                    } \
-                }); \
-            }); \
-        } catch (sycl::exception const& ex) { \
-            amrex::Abort(std::string("FOR: ")+ex.what()+"!!!!!"); \
-        } \
-    }}
-#else
-#define AMREX_GPU_DEVICE_FOR_1D(n,i,block) \
-    { auto const& amrex_i_n = n; \
-      using amrex_i_inttype = typename std::remove_const<decltype(n)>::type; \
-    if (!amrex::isEmpty(amrex_i_n)) { \
-        const auto amrex_i_ec = amrex::Gpu::ExecutionConfig(amrex_i_n); \
-        AMREX_LAUNCH_KERNEL(amrex_i_ec.numBlocks, amrex_i_ec.numThreads, amrex_i_ec.sharedMem, amrex::Gpu::gpuStream(), \
-        [=] AMREX_GPU_DEVICE () noexcept { \
-            for (amrex_i_inttype i = blockDim.x*blockIdx.x+threadIdx.x, amrex_i_stride = blockDim.x*gridDim.x; \
-                     i < amrex_i_n; i += amrex_i_stride) { \
-                block \
-            } \
-        }); \
-        AMREX_GPU_ERROR_CHECK(); \
-    }}
-#endif
+{ \
+    using amrex_i_inttype = typename std::remove_const<decltype(n)>::type; \
+    amrex::ParallelFor(n,[=] AMREX_GPU_DEVICE (amrex_i_inttype i) noexcept block); \
+}
 
 // FOR_3D
 
-#ifdef AMREX_USE_DPCPP
 #define AMREX_GPU_HOST_DEVICE_FOR_3D(box,i,j,k,block) \
-    { auto const& amrex_i_box = box; \
-    if (!amrex::isEmpty(amrex_i_box)) { \
-    if (amrex::Gpu::inLaunchRegion()) \
-    { \
-        int amrex_i_ncells = amrex_i_box.numPts();          \
-        const auto amrex_i_lo  = amrex::lbound(amrex_i_box); \
-        const auto amrex_i_len = amrex::length(amrex_i_box); \
-        const auto amrex_i_ec = amrex::Gpu::ExecutionConfig(amrex_i_ncells); \
-        if (amrex::Gpu::onNullStream()) amrex::Gpu::nonNullStreamSynchronize(); \
-        int amrex_i_nthreads_per_block = amrex_i_ec.numThreads.x; \
-        int amrex_i_nthreads_total = amrex_i_nthreads_per_block * amrex_i_ec.numBlocks.x; \
-        auto& amrex_i_q = amrex::Gpu::Device::streamQueue(); \
-        try { \
-            amrex_i_q.submit([&] (sycl::handler& amrex_i_h) { \
-                amrex_i_h.parallel_for(sycl::nd_range<1>(sycl::range<1>(amrex_i_nthreads_total), \
-                                                         sycl::range<1>(amrex_i_nthreads_per_block)), \
-                [=] (sycl::nd_item<1> amrex_i_item) \
-                AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size) \
-                { \
-                    for (int amrex_i_icell = amrex_i_item.get_global_id(0), amrex_i_stride = amrex_i_item.get_global_range(0); \
-                         amrex_i_icell < amrex_i_ncells; amrex_i_icell += amrex_i_stride) { \
-                        int k =  amrex_i_icell /   (amrex_i_len.x*amrex_i_len.y); \
-                        int j = (amrex_i_icell - k*(amrex_i_len.x*amrex_i_len.y)) /   amrex_i_len.x; \
-                        int i = (amrex_i_icell - k*(amrex_i_len.x*amrex_i_len.y)) - j*amrex_i_len.x; \
-                        i += amrex_i_lo.x; \
-                        j += amrex_i_lo.y; \
-                        k += amrex_i_lo.z; \
-                        block \
-                    } \
-                }); \
-            }); \
-        } catch (sycl::exception const& ex) { \
-            amrex::Abort(std::string("FOR: ")+ex.what()+"!!!!!"); \
-        } \
+{ \
+    auto const& amrex_i_box = box; \
+    if (amrex::Gpu::inLaunchRegion()) { \
+        amrex::ParallelFor(amrex_i_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept block); \
+    } else { \
+        amrex::LoopConcurrentOnCpu(amrex_i_box,[=] (int i, int j, int k) noexcept block); \
     } \
-    else { \
-        const auto amrex_i_lo = amrex::lbound(amrex_i_box); \
-        const auto amrex_i_hi = amrex::ubound(amrex_i_box); \
-        for (int k = amrex_i_lo.z; k <= amrex_i_hi.z; ++k) { \
-        for (int j = amrex_i_lo.y; j <= amrex_i_hi.y; ++j) { \
-        AMREX_PRAGMA_SIMD \
-        for (int i = amrex_i_lo.x; i <= amrex_i_hi.x; ++i) { \
-            block \
-        }}} \
-    }}}
-#else
-#define AMREX_GPU_HOST_DEVICE_FOR_3D(box,i,j,k,block) \
-    { auto const& amrex_i_box = box; \
-    if (!amrex::isEmpty(amrex_i_box)) { \
-    if (amrex::Gpu::inLaunchRegion()) \
-    { \
-        int amrex_i_ncells = amrex_i_box.numPts();          \
-        const auto amrex_i_lo  = amrex::lbound(amrex_i_box); \
-        const auto amrex_i_len = amrex::length(amrex_i_box); \
-        const auto amrex_i_ec = amrex::Gpu::ExecutionConfig(amrex_i_ncells); \
-        AMREX_LAUNCH_KERNEL(amrex_i_ec.numBlocks, amrex_i_ec.numThreads, amrex_i_ec.sharedMem, amrex::Gpu::gpuStream(), \
-        [=] AMREX_GPU_DEVICE () noexcept { \
-            for (int amrex_i_icell = blockDim.x*blockIdx.x+threadIdx.x, amrex_i_stride = blockDim.x*gridDim.x; \
-                     amrex_i_icell < amrex_i_ncells; amrex_i_icell += amrex_i_stride) { \
-                int k =  amrex_i_icell /   (amrex_i_len.x*amrex_i_len.y); \
-                int j = (amrex_i_icell - k*(amrex_i_len.x*amrex_i_len.y)) /   amrex_i_len.x; \
-                int i = (amrex_i_icell - k*(amrex_i_len.x*amrex_i_len.y)) - j*amrex_i_len.x; \
-                i += amrex_i_lo.x; \
-                j += amrex_i_lo.y; \
-                k += amrex_i_lo.z; \
-                block \
-            } \
-        }); \
-        AMREX_GPU_ERROR_CHECK(); \
-    } \
-    else { \
-        const auto amrex_i_lo = amrex::lbound(amrex_i_box); \
-        const auto amrex_i_hi = amrex::ubound(amrex_i_box); \
-        for (int k = amrex_i_lo.z; k <= amrex_i_hi.z; ++k) { \
-        for (int j = amrex_i_lo.y; j <= amrex_i_hi.y; ++j) { \
-        AMREX_PRAGMA_SIMD \
-        for (int i = amrex_i_lo.x; i <= amrex_i_hi.x; ++i) { \
-            block \
-        }}} \
-    }}}
-#endif
+}
 
-#ifdef AMREX_USE_DPCPP
 #define AMREX_GPU_DEVICE_FOR_3D(box,i,j,k,block) \
-    { auto const& amrex_i_box = box; \
-    if (!amrex::isEmpty(amrex_i_box)) { \
-        int amrex_i_ncells = amrex_i_box.numPts();          \
-        const auto amrex_i_lo  = amrex::lbound(amrex_i_box); \
-        const auto amrex_i_len = amrex::length(amrex_i_box); \
-        const auto amrex_i_ec = amrex::Gpu::ExecutionConfig(amrex_i_ncells); \
-        if (amrex::Gpu::onNullStream()) amrex::Gpu::nonNullStreamSynchronize(); \
-        int amrex_i_nthreads_per_block = amrex_i_ec.numThreads.x; \
-        int amrex_i_nthreads_total = amrex_i_nthreads_per_block * amrex_i_ec.numBlocks.x; \
-        auto& amrex_i_q = amrex::Gpu::Device::streamQueue(); \
-        try { \
-            amrex_i_q.submit([&] (sycl::handler& amrex_i_h) { \
-                amrex_i_h.parallel_for(sycl::nd_range<1>(sycl::range<1>(amrex_i_nthreads_total), \
-                                                         sycl::range<1>(amrex_i_nthreads_per_block)), \
-                [=] (sycl::nd_item<1> amrex_i_item) \
-                AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size) \
-                { \
-                    for (int amrex_i_icell = amrex_i_item.get_global_id(0), amrex_i_stride = amrex_i_item.get_global_range(0); \
-                         amrex_i_icell < amrex_i_ncells; amrex_i_icell += amrex_i_stride) { \
-                        int k =  amrex_i_icell /   (amrex_i_len.x*amrex_i_len.y); \
-                        int j = (amrex_i_icell - k*(amrex_i_len.x*amrex_i_len.y)) /   amrex_i_len.x; \
-                        int i = (amrex_i_icell - k*(amrex_i_len.x*amrex_i_len.y)) - j*amrex_i_len.x; \
-                        i += amrex_i_lo.x; \
-                        j += amrex_i_lo.y; \
-                        k += amrex_i_lo.z; \
-                        block \
-                    } \
-                }); \
-            }); \
-        } catch (sycl::exception const& ex) { \
-            amrex::Abort(std::string("FOR: ")+ex.what()+"!!!!!"); \
-        } \
-    }}
-#else
-#define AMREX_GPU_DEVICE_FOR_3D(box,i,j,k,block) \
-    { auto const& amrex_i_box = box; \
-    if (!amrex::isEmpty(amrex_i_box)) { \
-        int amrex_i_ncells = amrex_i_box.numPts(); \
-        const auto amrex_i_lo  = amrex::lbound(amrex_i_box); \
-        const auto amrex_i_len = amrex::length(amrex_i_box); \
-        const auto amrex_i_ec = amrex::Gpu::ExecutionConfig(amrex_i_ncells); \
-        AMREX_LAUNCH_KERNEL(amrex_i_ec.numBlocks, amrex_i_ec.numThreads, amrex_i_ec.sharedMem, amrex::Gpu::gpuStream(), \
-        [=] AMREX_GPU_DEVICE () noexcept { \
-            for (int amrex_i_icell = blockDim.x*blockIdx.x+threadIdx.x, amrex_i_stride = blockDim.x*gridDim.x; \
-                     amrex_i_icell < amrex_i_ncells; amrex_i_icell += amrex_i_stride) { \
-                int k =  amrex_i_icell /   (amrex_i_len.x*amrex_i_len.y); \
-                int j = (amrex_i_icell - k*(amrex_i_len.x*amrex_i_len.y)) /   amrex_i_len.x; \
-                int i = (amrex_i_icell - k*(amrex_i_len.x*amrex_i_len.y)) - j*amrex_i_len.x; \
-                i += amrex_i_lo.x; \
-                j += amrex_i_lo.y; \
-                k += amrex_i_lo.z; \
-                block \
-            } \
-        }); \
-        AMREX_GPU_ERROR_CHECK(); \
-    }}
-#endif
+{ \
+    amrex::ParallelFor(box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept block); \
+}
 
 // FOR_4D
 
-#ifdef AMREX_USE_DPCPP
 #define AMREX_GPU_HOST_DEVICE_FOR_4D(box,ncomp,i,j,k,n,block) \
-    { auto const& amrex_i_box = box; auto const& amrex_i_ncomp = ncomp; \
-    if (!amrex::isEmpty(amrex_i_box)) { \
-    if (amrex::Gpu::inLaunchRegion()) \
-    { \
-        int amrex_i_ncells = amrex_i_box.numPts();          \
-        const auto amrex_i_lo  = amrex::lbound(amrex_i_box); \
-        const auto amrex_i_len = amrex::length(amrex_i_box); \
-        const auto amrex_i_ec = amrex::Gpu::ExecutionConfig(amrex_i_ncells); \
-        if (amrex::Gpu::onNullStream()) amrex::Gpu::nonNullStreamSynchronize(); \
-        int amrex_i_nthreads_per_block = amrex_i_ec.numThreads.x; \
-        int amrex_i_nthreads_total = amrex_i_nthreads_per_block * amrex_i_ec.numBlocks.x; \
-        auto& amrex_i_q = amrex::Gpu::Device::streamQueue(); \
-        try { \
-            amrex_i_q.submit([&] (sycl::handler& amrex_i_h) { \
-                amrex_i_h.parallel_for(sycl::nd_range<1>(sycl::range<1>(amrex_i_nthreads_total), \
-                                                         sycl::range<1>(amrex_i_nthreads_per_block)), \
-                [=] (sycl::nd_item<1> amrex_i_item) \
-                AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size) \
-                { \
-                    for (int amrex_i_icell = amrex_i_item.get_global_id(0), amrex_i_stride = amrex_i_item.get_global_range(0); \
-                         amrex_i_icell < amrex_i_ncells; amrex_i_icell += amrex_i_stride) { \
-                        int k =  amrex_i_icell /   (amrex_i_len.x*amrex_i_len.y); \
-                        int j = (amrex_i_icell - k*(amrex_i_len.x*amrex_i_len.y)) /   amrex_i_len.x; \
-                        int i = (amrex_i_icell - k*(amrex_i_len.x*amrex_i_len.y)) - j*amrex_i_len.x; \
-                        i += amrex_i_lo.x; \
-                        j += amrex_i_lo.y; \
-                        k += amrex_i_lo.z; \
-                        for (int n = 0; n < amrex_i_ncomp; ++n) block \
-                    } \
-                }); \
-            }); \
-        } catch (sycl::exception const& ex) { \
-            amrex::Abort(std::string("FOR: ")+ex.what()+"!!!!!"); \
-        } \
+{ \
+    auto const& amrex_i_box = box; \
+    auto const& amrex_i_ncomp = ncomp; \
+    if (amrex::Gpu::inLaunchRegion()) { \
+        amrex::ParallelFor(amrex_i_box,amrex_i_ncomp,[=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept block); \
+    } else { \
+        amrex::LoopConcurrentOnCpu(amrex_i_box,amrex_i_ncomp,[=] (int i, int j, int k, int n) noexcept block); \
     } \
-    else { \
-        const auto amrex_i_lo = amrex::lbound(amrex_i_box); \
-        const auto amrex_i_hi = amrex::ubound(amrex_i_box); \
-        for (int n = 0; n < amrex_i_ncomp; ++n) { \
-        for (int k = amrex_i_lo.z; k <= amrex_i_hi.z; ++k) { \
-        for (int j = amrex_i_lo.y; j <= amrex_i_hi.y; ++j) { \
-        AMREX_PRAGMA_SIMD \
-        for (int i = amrex_i_lo.x; i <= amrex_i_hi.x; ++i) { \
-            block \
-        }}}} \
-    }}}
-#else
-#define AMREX_GPU_HOST_DEVICE_FOR_4D(box,ncomp,i,j,k,n,block) \
-    { auto const& amrex_i_box = box; auto const& amrex_i_ncomp = ncomp; \
-    if (!amrex::isEmpty(amrex_i_box)) { \
-    if (amrex::Gpu::inLaunchRegion()) \
-    { \
-        int amrex_i_ncells = amrex_i_box.numPts();          \
-        const auto amrex_i_lo  = amrex::lbound(amrex_i_box); \
-        const auto amrex_i_len = amrex::length(amrex_i_box); \
-        const auto amrex_i_ec = amrex::Gpu::ExecutionConfig(amrex_i_ncells); \
-        AMREX_LAUNCH_KERNEL(amrex_i_ec.numBlocks, amrex_i_ec.numThreads, amrex_i_ec.sharedMem, amrex::Gpu::gpuStream(), \
-        [=] AMREX_GPU_DEVICE () noexcept { \
-            for (int amrex_i_icell = blockDim.x*blockIdx.x+threadIdx.x, amrex_i_stride = blockDim.x*gridDim.x; \
-                     amrex_i_icell < amrex_i_ncells; amrex_i_icell += amrex_i_stride) { \
-                int k =  amrex_i_icell /   (amrex_i_len.x*amrex_i_len.y); \
-                int j = (amrex_i_icell - k*(amrex_i_len.x*amrex_i_len.y)) /   amrex_i_len.x; \
-                int i = (amrex_i_icell - k*(amrex_i_len.x*amrex_i_len.y)) - j*amrex_i_len.x; \
-                i += amrex_i_lo.x; \
-                j += amrex_i_lo.y; \
-                k += amrex_i_lo.z; \
-                for (int n = 0; n < amrex_i_ncomp; ++n) block \
-            } \
-        }); \
-        AMREX_GPU_ERROR_CHECK(); \
-    } \
-    else { \
-        const auto amrex_i_lo = amrex::lbound(amrex_i_box); \
-        const auto amrex_i_hi = amrex::ubound(amrex_i_box); \
-        for (int n = 0; n < amrex_i_ncomp; ++n) { \
-        for (int k = amrex_i_lo.z; k <= amrex_i_hi.z; ++k) { \
-        for (int j = amrex_i_lo.y; j <= amrex_i_hi.y; ++j) { \
-        AMREX_PRAGMA_SIMD \
-        for (int i = amrex_i_lo.x; i <= amrex_i_hi.x; ++i) { \
-            block \
-        }}}} \
-    }}}
-#endif
+}
 
-#ifdef AMREX_USE_DPCPP
 #define AMREX_GPU_DEVICE_FOR_4D(box,ncomp,i,j,k,n,block) \
-    { auto const& amrex_i_box = box; auto const& amrex_i_ncomp = ncomp; \
-    if (!amrex::isEmpty(amrex_i_box)) { \
-        int amrex_i_ncells = amrex_i_box.numPts();          \
-        const auto amrex_i_lo  = amrex::lbound(amrex_i_box); \
-        const auto amrex_i_len = amrex::length(amrex_i_box); \
-        const auto amrex_i_ec = amrex::Gpu::ExecutionConfig(amrex_i_ncells); \
-        if (amrex::Gpu::onNullStream()) amrex::Gpu::nonNullStreamSynchronize(); \
-        int amrex_i_nthreads_per_block = amrex_i_ec.numThreads.x; \
-        int amrex_i_nthreads_total = amrex_i_nthreads_per_block * amrex_i_ec.numBlocks.x; \
-        auto& amrex_i_q = amrex::Gpu::Device::streamQueue(); \
-        try { \
-            amrex_i_q.submit([&] (sycl::handler& amrex_i_h) { \
-                amrex_i_h.parallel_for(sycl::nd_range<1>(sycl::range<1>(amrex_i_nthreads_total), \
-                                                         sycl::range<1>(amrex_i_nthreads_per_block)), \
-                [=] (sycl::nd_item<1> amrex_i_item) \
-                AMREX_REQUIRE_SUBGROUP_SIZE(Gpu::Device::warp_size) \
-                { \
-                    for (int amrex_i_icell = amrex_i_item.get_global_id(0), amrex_i_stride = amrex_i_item.get_global_range(0); \
-                         amrex_i_icell < amrex_i_ncells; amrex_i_icell += amrex_i_stride) { \
-                        int k =  amrex_i_icell /   (amrex_i_len.x*amrex_i_len.y); \
-                        int j = (amrex_i_icell - k*(amrex_i_len.x*amrex_i_len.y)) /   amrex_i_len.x; \
-                        int i = (amrex_i_icell - k*(amrex_i_len.x*amrex_i_len.y)) - j*amrex_i_len.x; \
-                        i += amrex_i_lo.x; \
-                        j += amrex_i_lo.y; \
-                        k += amrex_i_lo.z; \
-                        for (int n = 0; n < amrex_i_ncomp; ++n) block \
-                    } \
-                }); \
-            }); \
-        } catch (sycl::exception const& ex) { \
-            amrex::Abort(std::string("FOR: ")+ex.what()+"!!!!!"); \
-        } \
-    }}
-#else
-#define AMREX_GPU_DEVICE_FOR_4D(box,ncomp,i,j,k,n,block) \
-    { auto const& amrex_i_box = box; auto const& amrex_i_ncomp = ncomp; \
-    if (!amrex::isEmpty(amrex_i_box)) { \
-        int amrex_i_ncells = amrex_i_box.numPts(); \
-        const auto amrex_i_lo  = amrex::lbound(amrex_i_box); \
-        const auto amrex_i_len = amrex::length(amrex_i_box); \
-        const auto amrex_i_ec = amrex::Gpu::ExecutionConfig(amrex_i_ncells); \
-        AMREX_LAUNCH_KERNEL(amrex_i_ec.numBlocks, amrex_i_ec.numThreads, amrex_i_ec.sharedMem, amrex::Gpu::gpuStream(), \
-        [=] AMREX_GPU_DEVICE () noexcept { \
-            for (int amrex_i_icell = blockDim.x*blockIdx.x+threadIdx.x, amrex_i_stride = blockDim.x*gridDim.x; \
-                     amrex_i_icell < amrex_i_ncells; amrex_i_icell += amrex_i_stride) { \
-                int k =  amrex_i_icell /   (amrex_i_len.x*amrex_i_len.y); \
-                int j = (amrex_i_icell - k*(amrex_i_len.x*amrex_i_len.y)) /   amrex_i_len.x; \
-                int i = (amrex_i_icell - k*(amrex_i_len.x*amrex_i_len.y)) - j*amrex_i_len.x; \
-                i += amrex_i_lo.x; \
-                j += amrex_i_lo.y; \
-                k += amrex_i_lo.z; \
-                for (int n = 0; n < amrex_i_ncomp; ++n) block \
-            } \
-        }); \
-        AMREX_GPU_ERROR_CHECK(); \
-    }}
-#endif
+{ \
+    amrex::ParallelFor(box,ncomp,[=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept block); \
+}
 
 #define AMREX_GPU_DEVICE_PARALLEL_FOR_1D(...) AMREX_GPU_DEVICE_FOR_1D(__VA_ARGS__)
 #define AMREX_GPU_DEVICE_PARALLEL_FOR_3D(...) AMREX_GPU_DEVICE_FOR_3D(__VA_ARGS__)
