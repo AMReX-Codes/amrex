@@ -636,6 +636,10 @@ void eb_interp_centroid2facecent (Box const& bx,
   //
   amrex::Loop(ubx, ncomp, [=] (int i, int j, int k, int n) noexcept
     {
+      if (i == 3 && j == 9 && k == 0) 
+      {
+          std::cout << "DOING FX(3,9,0): APX = " << apx(i,j,k) << std::endl;
+      }
       if (apx(i,j,k) == 0)
       {
           phi_x(i,j,k,n) = 1e40;
@@ -654,33 +658,36 @@ void eb_interp_centroid2facecent (Box const& bx,
       } 
       else 
       {
-          int kk = (fcx(i,j,k,1) < 0.0) ? k - 1 : k + 1;
           int jj = (fcx(i,j,k,0) < 0.0) ? j - 1 : j + 1;
+          int kk = (fcx(i,j,k,1) < 0.0) ? k - 1 : k + 1;
 
-          if ( cvol(i,j-1,k-1) == 0 or cvol(i-1,j-1,k-1) == 0 ) 
+          // If any of these cells has zero volume we don't want to use this stencil
+          Real test_zero =  cvol(i-1,jj,k  ) * cvol(i-1,j  ,kk) *  cvol(i-1,jj,kk) *
+                            cvol(i  ,jj,k  ) * cvol(i  ,j  ,kk) *  cvol(i  ,jj,kk);
+
+          if (test_zero ==  0.)
           {
-               jj = j+1; kk = k+1;
-          } 
-          else if ( cvol(i,j+1,k+1) == 0 or cvol(i-1,j+1,k+1) == 0 ) 
-          {
-               jj = j-1; kk = k-1;
-          } 
-          else if ( cvol(i,j-1,k) == 0 or cvol(i-1,j-1,k) == 0 )
-          {
-               jj = j+1;
-          } 
-          else if ( cvol(i,j+1,k) == 0 or cvol(i-1,j+1,k) == 0 )
-          {
-               jj = j-1;
-          } 
-          else if ( cvol(i,j,k-1) == 0 or cvol(i-1,j,k-1) == 0 )
-          {
-               kk = k+1;
-          } 
-          else if ( cvol(i,j,k+1) == 0 or cvol(i-1,j,k+1) == 0 )
-          {
-               kk = k-1;
-          } 
+              int jalt = 2*j - jj;
+              int kalt = 2*k - kk;
+              Real test_zero_jalt  = cvol(i-1,jalt,k) * cvol(i-1,j,kk  ) *  cvol(i-1,jalt,kk  ) *
+                                     cvol(i  ,jalt,k) * cvol(i  ,j,kk  ) *  cvol(i  ,jalt,kk  );
+
+              Real test_zero_kalt  = cvol(i-1,jj  ,k) * cvol(i-1,j,kalt) *  cvol(i-1,jj  ,kalt) *
+                                     cvol(i  ,jj  ,k) * cvol(i  ,j,kalt) *  cvol(i  ,jj  ,kalt);
+
+              Real test_zero_jkalt = cvol(i-1,jalt,k) * cvol(i-1,j,kalt) *  cvol(i-1,jalt,kalt) *
+                                     cvol(i  ,jalt,k) * cvol(i  ,j,kalt) *  cvol(i  ,jalt,kalt);
+
+              if (test_zero_jalt > 0.) 
+                 jj = jalt;
+              else if (test_zero_kalt > 0.) 
+                 kk = kalt;
+              else if (test_zero_jkalt > 0.) 
+              {
+                 jj = jalt;
+                 kk = kalt;
+              }
+          }
 
           Real d0       = 0.5 + ccent(i  , j, k,0);                     // distance in x-dir from centroid(i  , j, k) to face(i,j,k)
           Real d1       = 0.5 - ccent(i-1, j, k,0);                     // distance in x-dir from centroid(i-1, j, k) to face(i,j,k)
@@ -835,30 +842,33 @@ void eb_interp_centroid2facecent (Box const& bx,
           int ii = (fcy(i,j,k,0) < 0.0) ? i - 1 : i + 1;
           int kk = (fcy(i,j,k,1) < 0.0) ? k - 1 : k + 1;
 
-          if ( cvol(i-1,j,k-1) == 0 or cvol(i-1,j-1,k-1) == 0 ) 
+          // If any of these cells has zero volume we don't want to use this stencil
+          Real test_zero =  cvol(ii,j-1,k) * cvol(i,j-1,kk) *  cvol(ii,j-1,kk) *
+                            cvol(ii,j  ,k) * cvol(i,j  ,kk) *  cvol(ii,j  ,kk);
+
+          if (test_zero ==  0.)
           {
-               ii = i+1; kk = k+1;
-          } 
-          else if ( cvol(i+1,j,k+1) == 0 or cvol(i+1,j-1,k+1) == 0 ) 
-          {
-               ii = i-1; kk = k-1;
-          } 
-          else if ( cvol(i-1,j,k) == 0 or cvol(i-1,j-1,k) == 0 )
-          {
-               ii = i+1;
-          } 
-          else if ( cvol(i+1,j,k) == 0 or cvol(i+1,j-1,k) == 0 )
-          {
-               ii = i-1;
-          } 
-          else if ( cvol(i,j,k-1) == 0 or cvol(i,j-1,k-1) == 0 )
-          {
-               kk = k+1;
-          } 
-          else if ( cvol(i,j,k+1) == 0 or cvol(i,j-1,k+1) == 0 )
-          {
-               kk = k-1;
-          } 
+              int ialt = 2*i - ii;
+              int kalt = 2*k - kk;
+              Real test_zero_ialt  = cvol(ialt,j-1,k) * cvol(i,j-1,kk  ) *  cvol(ialt,j-1,kk  ) *
+                                     cvol(ialt,j  ,k) * cvol(i,j  ,kk  ) *  cvol(ialt,j  ,kk  );
+
+              Real test_zero_kalt  = cvol(ii  ,j-1,k) * cvol(i,j-1,kalt) *  cvol(ii  ,j-1,kalt) *
+                                     cvol(ii  ,j  ,k) * cvol(i,j  ,kalt) *  cvol(ii  ,j  ,kalt);
+
+              Real test_zero_ikalt = cvol(ialt,j-1,k) * cvol(i,j-1,kalt) *  cvol(ialt,j-1,kalt) * 
+                                     cvol(ialt,j  ,k) * cvol(i,j  ,kalt) *  cvol(ialt,j  ,kalt);
+
+              if (test_zero_ialt > 0.) 
+                 ii = ialt;
+              else if (test_zero_kalt > 0.) 
+                 kk = kalt;
+              else if (test_zero_ikalt > 0.)
+              {
+                 ii = ialt;
+                 kk = kalt;
+              }
+          }
 
           Real d0       = 0.5 + ccent( i,j  , k,1); // distance in y-dir from centroid( i,j  , k) to face(i,j,k)
           Real d1       = 0.5 - ccent( i,j-1, k,1); // distance in y-dir from centroid( i,j-1, k) to face(i,j,k)
@@ -1010,30 +1020,33 @@ void eb_interp_centroid2facecent (Box const& bx,
           int ii = (fcz(i,j,k,0) < 0.0) ? i - 1 : i + 1;
           int jj = (fcz(i,j,k,1) < 0.0) ? j - 1 : j + 1;
 
-          if ( cvol(i-1,j-1,k) == 0 or cvol(i-1,j-1,k-1) == 0 ) 
+          // If any of these cells has zero volume we don't want to use this stencil
+          Real test_zero =  cvol(ii,j,k-1) * cvol(i,jj,k-1) *  cvol(ii,jj,k-1) *
+                            cvol(ii,j,k  ) * cvol(i,jj,k  ) *  cvol(ii,jj,k  );
+
+          if (test_zero ==  0.)
           {
-               ii = i+1; jj = j+1;
-          } 
-          else if ( cvol(i+1,j+1,k) == 0 or cvol(i+1,j+1,k-1) == 0 ) 
-          {
-               ii = i-1; jj = j-1;
-          } 
-          else if ( cvol(i-1,j,k) == 0 or cvol(i-1,j,k-1) == 0 )
-          {
-               ii = i+1;
-          } 
-          else if ( cvol(i+1,j,k) == 0 or cvol(i+1,j,k-1) == 0 )
-          {
-               ii = i-1;
-          } 
-          else if ( cvol(i,j-1,k) == 0 or cvol(i,j-1,k-1) == 0 )
-          {
-               jj = j+1;
-          } 
-          else if ( cvol(i,j+1,k) == 0 or cvol(i,j+1,k-1) == 0 )
-          {
-               jj = j-1;
-          } 
+              int ialt = 2*i - ii;
+              int jalt = 2*j - jj;
+              Real test_zero_ialt  = cvol(ialt,j,k-1) * cvol(i,jj  ,k-1) *  cvol(ialt,jj  ,k-1) *
+                                     cvol(ialt,j,k  ) * cvol(i,jj  ,k  ) *  cvol(ialt,jj  ,k  );
+
+              Real test_zero_jalt  = cvol(ii  ,j,k-1) * cvol(i,jalt,k-1) *  cvol(ii  ,jalt,k-1) * 
+                                     cvol(ii  ,j,k  ) * cvol(i,jalt,k  ) *  cvol(ii  ,jalt,k  );
+
+              Real test_zero_ijalt = cvol(ialt,j,k-1) * cvol(i,jalt,k-1) *  cvol(ialt,jalt,k-1) *
+                                     cvol(ialt,j,k  ) * cvol(i,jalt,k  ) *  cvol(ialt,jalt,k  );
+
+              if (test_zero_ialt > 0.) 
+                 ii = ialt;
+              else if (test_zero_jalt > 0.) 
+                 jj = jalt;
+              else if (test_zero_ijalt > 0.)
+              {
+                 ii = ialt;
+                 jj = jalt;
+              }
+          }
 
           Real d0       = 0.5 + ccent( i, j,k  ,2);  // distance in z-dir from centroid(i,j,k  ) to face(i,j,k)
           Real d1       = 0.5 - ccent( i, j,k-1,2);  // distance in z-dir from centroid(i,j,k-1) to face(i,j,k)
