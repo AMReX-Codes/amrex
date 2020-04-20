@@ -214,8 +214,8 @@ riemann (const amrex::Real gamma, const amrex::Real smallp, const amrex::Real sm
         wlsq = (.5*(gamma-1.)*(pstar+pl)+pstar)*rl;
         wrsq = (.5*(gamma-1.)*(pstar+pr)+pstar)*rr;
 
-        wl = 1./sqrt(wlsq);
-        wr = 1./sqrt(wrsq);
+        wl = 1./std::sqrt(wlsq);
+        wr = 1./std::sqrt(wrsq);
 
         amrex::Real ustnm1 = ustarm;
         amrex::Real ustnp1 = ustarp;
@@ -269,7 +269,7 @@ riemann (const amrex::Real gamma, const amrex::Real smallp, const amrex::Real sm
     amrex::Real wo = std::sqrt(wosq);
     amrex::Real dpjmp = pstar-po;
     amrex::Real rstar = ro/(1.-ro*dpjmp/wosq);
-    amrex::Real cstar = sqrt(gamma * pstar / rstar);
+    amrex::Real cstar = std::sqrt(gamma * pstar / rstar);
     amrex::Real spout = co-sgnm*uo;
     amrex::Real spin = cstar - sgnm*uo;
     if(pstar >= po) {
