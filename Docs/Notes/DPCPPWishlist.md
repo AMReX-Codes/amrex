@@ -2,7 +2,7 @@
 * Recursive function call on device.  This is very important for ECP
   WarpX code.
 
-* Subgrourp size.  Querying `sycl::info::device::sub_group_size` gives
+* Subgroup size.  Querying `sycl::info::device::sub_group_size` gives
   several numbers.  For example, we get 8, 16 and 32 for Gen9.  We
   would like to specify the sub group size and this feature is
   supported.  All three sizes seem to work except that subgroup
