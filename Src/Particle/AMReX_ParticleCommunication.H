@@ -158,11 +158,13 @@ struct ParticleCopyPlan
                 AMREX_FOR_1D ( num_copies, i,
                 {
                     int dst_box = p_boxes[i];
-                    int dst_lev = p_levs[i];
-                    if (dst_box < 0) continue;
-                    int index = Gpu::Atomic::Inc(
-                        &p_dst_box_counts[p_box_perm[p_lev_offsets[dst_lev]+dst_box]], max_unsigned_int);
-                    p_dst_indices[i] = index;
+                    if (dst_box >= 0)
+                    {
+                        int dst_lev = p_levs[i];
+                        int index = Gpu::Atomic::Inc(
+                            &p_dst_box_counts[p_box_perm[p_lev_offsets[dst_lev]+dst_box]], max_unsigned_int);
+                        p_dst_indices[i] = index;
+                    }
                 });
             }
         }
@@ -293,21 +295,23 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
             AMREX_FOR_1D ( num_copies, i,
             {
                 int dst_box = p_boxes[i];
-                if (dst_box < 0) continue;
-                int dst_lev = p_levels[i];
-                auto dst_offset = get_offset(dst_box, dst_lev, psize, p_dst_indices[i]); 
-                int src_index = p_src_indices[i];
-                ptd.packParticleData(p_snd_buffer, src_index, dst_offset, p_comm_real, p_comm_int);
-                
-                ParticleType* p = (ParticleType*) &p_snd_buffer[dst_offset];
-                const IntVect& pshift = p_periodic_shift[i];
-                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+                if (dst_box >= 0)
                 {
-                    if (not is_per[idim]) continue;
-                    if (pshift[idim] > 0) 
-                        p->pos(idim) += phi[idim] - plo[idim]; 
-                    else if (pshift[idim] < 0)
-                        p->pos(idim) -= phi[idim] - plo[idim];
+                    int dst_lev = p_levels[i];
+                    auto dst_offset = get_offset(dst_box, dst_lev, psize, p_dst_indices[i]); 
+                    int src_index = p_src_indices[i];
+                    ptd.packParticleData(p_snd_buffer, src_index, dst_offset, p_comm_real, p_comm_int);
+                
+                    ParticleType* p = (ParticleType*) &p_snd_buffer[dst_offset];
+                    const IntVect& pshift = p_periodic_shift[i];
+                    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+                    {
+                        if (not is_per[idim]) continue;
+                        if (pshift[idim] > 0) 
+                            p->pos(idim) += phi[idim] - plo[idim]; 
+                        else if (pshift[idim] < 0)
+                            p->pos(idim) -= phi[idim] - plo[idim];
+                    }
                 }
             });
         }
