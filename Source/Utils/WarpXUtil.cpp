@@ -1,6 +1,5 @@
 /* Copyright 2019-2020 Andrew Myers, Burlen Loring, Luca Fedeli
  * Maxence Thevenet, Remi Lehe, Revathi Jambunathan
- * Revathi Jambunathan
  *
  * This file is part of WarpX.
  *

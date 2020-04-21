@@ -10,6 +10,8 @@
 
 #include "WarpX.H"
 #include "ReducedDiags.H"
+#include "LoadBalanceCosts.H"
+
 
 /**
  *  This class mainly contains a function that update the
@@ -19,9 +21,26 @@ class LoadBalanceCosts : public ReducedDiags
 {
 public:
 
+    /** stores the host identifiers */
+    amrex::Vector<char> m_data_string_recvbuf;
+
+    /** length of the total string to be collected to IOProc  */
+    int m_data_string_recvbuf_length = 0;
+
+    /** easier storage of strings after the MPI Gatherv */
+    std::vector<std::string> m_data_string;
+
+    /** stores information needed for MPI Gatherv */
+    amrex::Vector<long> m_data_string_recvcount; // array of size N_procs, how many message root recv from sender
+    amrex::Vector<long> m_data_string_disp;      // array of size N_procs, where to place data in IOProc
+
     /** number of data fields we save for each box
-     *  (cost, processor, level, i_low, j_low, k_low) */
+     *  (cost, processor, level, i_low, j_low, k_low, gpu_ID [if GPU run]) */
+#ifdef AMREX_USE_GPU
+    const int m_nDataFields = 7;
+#else
     const int m_nDataFields = 6;
+#endif
 
     /** used to keep track of max number of boxes over all timesteps; this allows
      *  to compute the number of NaNs required to fill jagged array into a
