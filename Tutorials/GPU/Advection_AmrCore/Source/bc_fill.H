@@ -20,8 +20,4 @@ struct AmrCoreFill
         }
 };
 
-namespace {
-    static AmrCoreFill amrcore_fill_func;
-}
-
 #endif

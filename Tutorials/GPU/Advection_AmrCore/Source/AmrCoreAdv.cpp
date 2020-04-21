@@ -397,7 +397,7 @@ AmrCoreAdv::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int ncomp)
 
         if(Gpu::inLaunchRegion())
         {
-            GpuBndryFuncFab<AmrCoreFill> gpu_bndry_func(amrcore_fill_func);
+            GpuBndryFuncFab<AmrCoreFill> gpu_bndry_func(AmrCoreFill{});
             PhysBCFunct<GpuBndryFuncFab<AmrCoreFill> > physbc(geom[lev],bcs,gpu_bndry_func);
             amrex::FillPatchSingleLevel(mf, time, smf, stime, 0, icomp, ncomp, 
                                         geom[lev], physbc, 0);
@@ -421,7 +421,7 @@ AmrCoreAdv::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int ncomp)
 
         if(Gpu::inLaunchRegion())
         {
-            GpuBndryFuncFab<AmrCoreFill> gpu_bndry_func(amrcore_fill_func);
+            GpuBndryFuncFab<AmrCoreFill> gpu_bndry_func(AmrCoreFill{});
             PhysBCFunct<GpuBndryFuncFab<AmrCoreFill> > cphysbc(geom[lev-1],bcs,gpu_bndry_func);
             PhysBCFunct<GpuBndryFuncFab<AmrCoreFill> > fphysbc(geom[lev],bcs,gpu_bndry_func);
 
@@ -462,7 +462,7 @@ AmrCoreAdv::FillCoarsePatch (int lev, Real time, MultiFab& mf, int icomp, int nc
 
     if(Gpu::inLaunchRegion())
     {
-        GpuBndryFuncFab<AmrCoreFill> gpu_bndry_func(amrcore_fill_func);
+        GpuBndryFuncFab<AmrCoreFill> gpu_bndry_func(AmrCoreFill{});
         PhysBCFunct<GpuBndryFuncFab<AmrCoreFill> > cphysbc(geom[lev-1],bcs,gpu_bndry_func);
         PhysBCFunct<GpuBndryFuncFab<AmrCoreFill> > fphysbc(geom[lev],bcs,gpu_bndry_func);
 
