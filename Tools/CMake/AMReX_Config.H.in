@@ -1,0 +1,51 @@
+#ifndef AMREX_CONFIG_H_
+#define AMREX_CONFIG_H_
+#cmakedefine AMREX_GIT_VERSION @AMREX_GIT_VERSION@
+#cmakedefine AMREX_XSDK
+#cmakedefine AMREX_DEBUG
+#cmakedefine AMREX_PROFILING
+#cmakedefine BL_PROFILING
+#cmakedefine AMREX_TRACE_PROFILING
+#cmakedefine BL_TRACE_PROFILING
+#cmakedefine AMREX_COMM_PROFILING
+#cmakedefine BL_COMM_PROFILING
+#cmakedefine AMREX_TINY_PROFILING
+#cmakedefine AMREX_MEM_PROFILING
+#cmakedefine AMREX_BACKTRACING
+#cmakedefine AMREX_TESTING
+#cmakedefine AMREX_USE_MPI
+#cmakedefine BL_USE_MPI
+#cmakedefine AMREX_USE_OMP
+#cmakedefine BL_USE_OMP
+#cmakedefine AMREX_USE_FLOAT
+#cmakedefine BL_USE_FLOAT
+#cmakedefine AMREX_SPACEDIM @AMREX_SPACEDIM@
+#cmakedefine BL_SPACEDIM @BL_SPACEDIM@
+#cmakedefine AMREX_USE_ASSERTION
+#cmakedefine BL_FORT_USE_UNDERSCORE
+#cmakedefine BL_FORT_USE_LOWERCASE
+#cmakedefine BL_FORT_USE_UPPERCASE
+#cmakedefine BL_NO_FORT
+#cmakedefine BL_USE_SENSEI_INSITU
+#cmakedefine AMREX_USE_CONDUIT
+#cmakedefine AMREX_USE_ASCENT
+#cmakedefine AMREX_USE_EB
+#cmakedefine AMREX_USE_CUDA
+#cmakedefine AMREX_USE_NVML
+#cmakedefine AMREX_GPU_MAX_THREADS @AMREX_GPU_MAX_THREADS@
+#cmakedefine AMREX_USE_ACC
+#cmakedefine AMREX_USE_GPU
+#cmakedefine BL_COALESCE_FABS
+#cmakedefine AMREX_GPUS_PER_SOCKET @AMREX_GPUS_PER_SOCKET@
+#cmakedefine AMREX_GPUS_PER_NODE   @AMREX_GPUS_PER_NODE@
+#cmakedefine BL_GCC_VERSION @BL_GCC_VERSION@
+#cmakedefine BL_GCC_MAJOR_VERSION @BL_GCC_MAJOR_VERSION@
+#cmakedefine BL_GCC_MINOR_VERSION @BL_GCC_MINOR_VERSION@
+#cmakedefine AMREX_PARTICLES
+#ifdef __cplusplus
+#ifndef @COMPILER_ID_MACRO@
+static_assert(false,"libamrex was built with @CMAKE_CXX_COMPILER_ID@");
+#endif
+@OMP_DECLS@
+#endif
+#endif

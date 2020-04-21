@@ -1,60 +1,51 @@
 #
 #
-# 
+#
 function ( generate_amrex_config_header )
 
    get_target_property(_defines amrex COMPILE_DEFINITIONS)
    evaluate_genex(_defines _defines_list )
 
-   set(_config_fname "${CMAKE_CURRENT_BINARY_DIR}/AMReX_Config.H")
-
-   file(WRITE  "${_config_fname}" "#ifndef AMREX_CONFIG_H_\n")
-   file(APPEND "${_config_fname}" "#define AMREX_CONFIG_H_\n" )
-
+   # set variables from list of defines
+   # configure_file() will use these variables to
+   # define or undefine items in AMReX_Config.H
    foreach(_define IN LISTS _defines_list)
-      string(REPLACE "=" " " _define "${_define}")
-      file(APPEND "${_config_fname}" "#define ${_define}\n" )      
+      string(FIND "${_define}" "=" idx)
+      if (idx EQUAL -1) # define without value
+         set(${_define} " ")
+      else ()   # define with value
+         string(SUBSTRING "${_define}" 0      ${idx}  _def)
+         string(SUBSTRING "${_define}" ${idx} -1      _val)
+         string(REPLACE "=" " " _val "${_val}")
+         string(STRIP "${_val}" _val)
+         set(${_def} ${_val})
+      endif ()
+
    endforeach ()
 
-   file(APPEND "${_config_fname}" "#ifdef __cplusplus\n")
-
    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" )
-      file(APPEND "${_config_fname}" "#ifndef __GNUC__\n")
-      file(APPEND "${_config_fname}" "static_assert(false,\"libamrex was built with GNU\");\n")
-      file(APPEND "${_config_fname}" "#endif\n" )
+      set(COMPILER_ID_MACRO __GNUC__)
    elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel" )
-      file(APPEND "${_config_fname}" "#ifndef __INTEL_COMPILER\n")
-      file(APPEND "${_config_fname}" "static_assert(false,\"libamrex was built with Intel\");\n")
-      file(APPEND "${_config_fname}" "#endif\n" )
+      set(COMPILER_ID_MACRO __INTEL_COMPILER)
    elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Cray" )
-      file(APPEND "${_config_fname}" "#ifndef __CRAYC\n")
-      file(APPEND "${_config_fname}" "static_assert(false,\"libamrex was built with Cray\");\n")
-      file(APPEND "${_config_fname}" "#endif\n" )
-    elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "PGI" )
-      file(APPEND "${_config_fname}" "#ifndef __PGI\n")
-      file(APPEND "${_config_fname}" "static_assert(false,\"libamrex was built with PGI\");\n")
-      file(APPEND "${_config_fname}" "#endif\n" )
+      set(COMPILER_ID_MACRO  __CRAYC)
+   elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "PGI" )
+      set(COMPILER_ID_MACRO  __PGI)
    elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" )
-      file(APPEND "${_config_fname}" "#ifndef __llvm__\n")
-      file(APPEND "${_config_fname}" "static_assert(false,\"libamrex was built with Clang/LLVM\");\n")
-      file(APPEND "${_config_fname}" "#endif\n" )   
+      set(COMPILER_ID_MACRO  __llvm__)
    endif ()
 
    if (ENABLE_OMP)
-      file(APPEND "${_config_fname}" "#ifndef _OPENMP\n")
-      file(APPEND "${_config_fname}" "static_assert(false,\"libamrex was built with OpenMP\");\n")
-      file(APPEND "${_config_fname}" "#endif\n" )      
+      set(OMP_DECLS "#ifndef _OPENMP\nstatic_assert(false,\"libamrex was built with OpenMP\");\n#endif")
    else ()
-      file(APPEND "${_config_fname}" "#ifdef _OPENMP\n")
-      file(APPEND "${_config_fname}" "static_assert(false,\"libamrex was built without OpenMP\");\n")
-      file(APPEND "${_config_fname}" "#endif\n" )        
+      set(OMP_DECLS "#ifdef _OPENMP\nstatic_assert(false,\"libamrex was built without OpenMP\");\n#endif")
    endif ()
 
-   file(APPEND "${_config_fname}" "#endif\n" )   
-   file(APPEND "${_config_fname}" "#endif\n" )
+   configure_file(${AMREX_CMAKE_MODULES_PATH}/AMReX_Config.H.in
+      "${CMAKE_CURRENT_BINARY_DIR}/AMReX_Config.H")
 
    install(FILES ${_config_fname} DESTINATION include)
-   
+
 endfunction ()
 
 
@@ -73,8 +64,8 @@ function (install_amrex)
          message(WARNING "Target ${_arg} does not exist: skipping installation")
       endif ()
    endforeach ()
-   
-   # Write and install configure file 
+
+   # Write and install configure file
    include(CMakePackageConfigHelpers)
 
    configure_package_config_file(${AMREX_CMAKE_MODULES_PATH}/AMReXConfig.cmake.in
@@ -88,15 +79,15 @@ function (install_amrex)
    install( FILES
       ${PROJECT_BINARY_DIR}/export/AMReXConfig.cmake
       ${PROJECT_BINARY_DIR}/export/AMReXConfigVersion.cmake
-      DESTINATION lib/cmake/AMReX ) 
+      DESTINATION lib/cmake/AMReX )
 
    # Setup for target amrex installation
    install(
       TARGETS       ${_targets}
       EXPORT        AMReXTargets
-      ARCHIVE       DESTINATION lib 
-      LIBRARY       DESTINATION lib 
-      INCLUDES      DESTINATION include # Adds proper directory to INTERFACE_INCLUDE_DIRECTORIES 
+      ARCHIVE       DESTINATION lib
+      LIBRARY       DESTINATION lib
+      INCLUDES      DESTINATION include # Adds proper directory to INTERFACE_INCLUDE_DIRECTORIES
       PUBLIC_HEADER DESTINATION include
       )
 
@@ -115,7 +106,7 @@ function (install_amrex)
 
    # Generate config header
    generate_amrex_config_header()
-   
+
    # Install Tools directory
    install(DIRECTORY ${PROJECT_SOURCE_DIR}/Tools/CMake
       ${PROJECT_SOURCE_DIR}/Tools/C_scripts
