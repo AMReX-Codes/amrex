@@ -21,15 +21,14 @@ class Diagnostics
 public:
     Diagnostics (int i, std::string name);
     ~Diagnostics ();
-    /** Pack (stack) all fields in the cell-centered output MultiFab mf_avg.
+    /** Pack (stack) all fields in the cell-centered output MultiFab m_mf_output.
      * Fields are computed (e.g., cell-centered) on-the-fly using a functor.*/
     void ComputeAndPack ();
-    /** Flush mf_avg and particles to file. */
+    /** Flush m_mf_output and particles to file. */
     void Flush ();
     /** Flush raw data */
     void FlushRaw ();
-    /** Initialize pointers to main fields and allocate output multifab
-     * mf_avg*/
+    /** Initialize pointers to main fields and allocate output multifab m_mf_output. */
     void InitData ();
     /** whether to flush at this time step
      * \param[in] step current time step
@@ -44,31 +43,31 @@ private:
      * \param[in] ncomp number of components (modes, real and imag)
      */
     void AddRZModesToOutputNames (const std::string& field, int ncomp);
-    /** Append all_field_functors[lev] with all modes of all components of E B and j
+    /** Append m_all_field_functors[lev] with all modes of all components of E B and j
      * and add name to varnames.
      * \param[in] lev level on which source multifabs are defined.
      */
     void AddRZModesToDiags (int lev);
     /** Name of diagnostics: runtime parameter given in the input file. */
-    std::string diag_name;
+    std::string m_diag_name;
     /** Prefix for output directories */
-    std::string file_prefix;
+    std::string m_file_prefix;
     /** Index of diagnostics in MultiDiagnostics::alldiags */
-    int diag_index;
+    int m_diag_index;
     /** Period at which diagnostics is written to file */
     int m_period = -1;
     /** Names of  each component requested by the user.
      * in cylindrical geometry, this list is appended with
      * automatically-constructed names for all modes of all fields */
-    amrex::Vector< std::string > varnames;
+    amrex::Vector< std::string > m_varnames;
     /** Vector of (pointers to) functors to compute output fields, per level,
      * per component. This allows for simple operations (averaging to
      * cell-center for standard EB fields) as well as more involved operations
      * (back-transformed diagnostics, filtering, reconstructing cartesian
      * fields in cylindrical). */
-    amrex::Vector< amrex::Vector <ComputeDiagFunctor const *> > all_field_functors;
+    amrex::Vector< amrex::Vector <ComputeDiagFunctor const *> > m_all_field_functors;
     /** output multifab, where all fields are cell-centered and stacked */
-    amrex::Vector< amrex::MultiFab > mf_avg;
+    amrex::Vector< amrex::MultiFab > m_mf_output;
     int nlev; /**< number of levels to output */
     /** This class is responsible for flushing the data to file */
     FlushFormat* m_flush_format;
@@ -88,7 +87,7 @@ private:
     amrex::Vector< amrex::Real> m_lo;
     /** Higher corner of the diagnostics output, in physical coordinates */
     amrex::Vector< amrex::Real> m_hi;
-    /** Define the cell-centered multifab mf_avg depending on user-defined
+    /** Define the cell-centered multifab m_mf_output depending on user-defined
       * lo and hi and coarsening ratio. This MultiFab may have a different BoxArray and
       * DistributionMap than field MultiFabs in the simulation.
       *
