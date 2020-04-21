@@ -161,6 +161,18 @@ Even before your work is ready to merge, it can be convenient to create a PR
 (so you can use Github tools to visualize your changes). In this case, please
 make a "draft" PR using the drop-down menu next to the "Create pull request" button.
 
+Once your pull request is made, we will review and potentially merge it.
+We recommend always creating a new branch for each pull request, as per the above instructions.
+Once your pull request is merged, you can delete your local PR branch with
+```
+git branch -D <branch_name>
+```
+
+and you can delete the remote one on your fork with
+```
+git push origin --delete <branch_name>
+```
+
 ## Core Developers
 
 People who make a number of substantive contributions will be named
