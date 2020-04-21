@@ -1,3 +1,5 @@
+.. _building-cori:
+
 Building WarpX for Cori (NERSC)
 ===============================
 
@@ -90,36 +92,39 @@ Finally, navigate to the base of the WarpX repository and compile in GPU mode:
     make -j 16 USE_GPU=TRUE
 
 
+.. _building-cori-openPMD:
+
 Building WarpX with openPMD support
 -----------------------------------
 
 First, load the appropriate modules:
 
-::
+.. code-block:: bash
 
-    module swap craype-haswell craype-mic-knl
-    module swap PrgEnv-intel PrgEnv-gnu
-    module load cmake/3.14.4
-    module load cray-hdf5-parallel
-    module load adios/1.13.1
-    export CRAYPE_LINK_TYPE=dynamic
+   module swap craype-haswell craype-mic-knl
+   module swap PrgEnv-intel PrgEnv-gnu
+   module load cmake/3.14.4
+   module load cray-hdf5-parallel
+   module load adios/1.13.1
+   export CRAYPE_LINK_TYPE=dynamic
 
-Then, in the `warpx_directory`, download and build the openPMD API:
+Then, in the ``warpx_directory``, download and build openPMD-api:
 
-::
+.. code-block:: bash
 
-    git clone https://github.com/openPMD/openPMD-api.git
-    mkdir openPMD-api-build
-    cd openPMD-api-build
-    cmake ../openPMD-api -DopenPMD_USE_PYTHON=OFF -DCMAKE_INSTALL_PREFIX=../openPMD-install/ -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=ON -DCMAKE_INSTALL_RPATH='$ORIGIN'
-    cmake --build . --target install
+   git clone https://github.com/openPMD/openPMD-api.git
+   mkdir openPMD-api-build
+   cd openPMD-api-build
+   cmake ../openPMD-api -DopenPMD_USE_PYTHON=OFF -DCMAKE_INSTALL_PREFIX=../openPMD-install/ -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=ON -DCMAKE_INSTALL_RPATH='$ORIGIN'
+   cmake --build . --target install
 
 Finally, compile WarpX:
 
-::
+.. code-block:: bash
 
-    cd ../WarpX
-    export PKG_CONFIG_PATH=$PWD/../openPMD-install/lib64/pkgconfig:$PKG_CONFIG_PATH
-    make -j 16 COMP=gcc USE_OPENPMD=TRUE
+   cd ../WarpX
+   export PKG_CONFIG_PATH=$PWD/../openPMD-install/lib64/pkgconfig:$PKG_CONFIG_PATH
+   export CMAKE_PREFIX_PATH=$PWD/../openPMD-install:$CMAKE_PREFIX_PATH
+   make -j 16 COMP=gcc USE_OPENPMD=TRUE
 
 In order to run WarpX, load the same modules again.

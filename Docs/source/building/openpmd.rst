@@ -16,74 +16,94 @@ library from source.
 
 In order to install spack, you can simply do:
 
-::
+.. code-block:: bash
 
-  git clone https://github.com/spack/spack.git
-  export SPACK_ROOT=/path/to/spack
-  . $SPACK_ROOT/share/spack/setup-env.sh
+   git clone https://github.com/spack/spack.git
+   export SPACK_ROOT=$PWD/spack
+   . $SPACK_ROOT/share/spack/setup-env.sh
 
-(You may want to add the last 2 lines to your ``.bashrc`` file.)
+You may want to auto-activate spack when you open a new terminal by adding this to your ``$HOME/.bashrc`` file:
+
+.. code-block:: bash
+
+   echo -e "# activate spack package manager\n. ${SPACK_ROOT}/share/spack/setup-env.sh" >> $HOME/.bashrc
 
 
-Building openPMD support, by installing openPMD-api directly from spack
------------------------------------------------------------------------
+WarpX Development Environment with Spack
+----------------------------------------
 
-First, install the openPMD-api library:
+Create and activate a Spack environment with all software needed to build WarpX
 
-::
+.. code-block:: bash
 
-    spack install openpmd-api -python
+   spack env create warpx-dev    # you do this once
+   spack env activate warpx-dev
+   spack add gmake
+   spack add mpi
+   spack add openpmd-api
+   spack add pkg-config
+   spack install
 
-Then, ``cd`` into the ``WarpX`` folder, and type:
+This will download and compile all dependencies.
 
-::
+Whenever you need this development environment in the future, just repeat the quick ``spack env activate warpx-dev`` step.
+For example, we can now compile WarpX by ``cd``-ing into the ``WarpX`` folder and typing:
 
-    spack load -r openpmd-api
-    make -j 4 USE_OPENPMD=TRUE
+.. code-block:: bash
+
+   spack env activate warpx-dev
+   make -j 4 USE_OPENPMD=TRUE
 
 You will also need to load the same spack environment when running WarpX, for instance:
 
-::
+.. code-block:: bash
 
-    spack load -r openpmd-api
+   spack env activate warpx-dev
+   mpirun -np 4 ./warpx.exe inputs
 
-    mpirun -np 4 ./warpx.exe inputs
+You can check which Spack environments exist and if one is still active with
 
-Building openPMD support, by installing openPMD-api from source
----------------------------------------------------------------
+.. code-block:: bash
 
-First, install the openPMD-api library, and load it in your environment:
+   spack env list  # already created environments
+   spack env st    # is an environment active?
 
-::
 
-    spack install hdf5
-    spack install adios2
-    spack load -r hdf5
-    spack load -r adios2
+Installing openPMD-api from source
+----------------------------------
 
-Then, in the `warpx_directory`, download and build the openPMD API:
+You can also build openPMD-api from source, e.g. to build against the module environment of a supercomputer cluster.
 
-::
+First, load the according modules of the cluster to support the openPMD-api dependencies.
+You can find the `required and optional dependencies here <https://github.com/openPMD/openPMD-api#dependencies_`.
 
-    git clone https://github.com/openPMD/openPMD-api.git
-    mkdir openPMD-api-build
-    cd openPMD-api-build
-    cmake ../openPMD-api -DopenPMD_USE_PYTHON=OFF -DCMAKE_INSTALL_PREFIX=../openPMD-install/ -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=ON -DCMAKE_INSTALL_RPATH='$ORIGIN'
-    cmake --build . --target install
+You usually just need a C++ compiler, CMake, and one or more file backend libraries, such as HDF5 and/or ADIOS2.
+See for example `our installation guidelines for Cori :ref`<building-cori-openPMD>`.
+
+Then, in the ``$HOME/warpx_directory/``, download and build openPMD-api:
+
+.. code-block:: bash
+
+   git clone https://github.com/openPMD/openPMD-api.git
+   mkdir openPMD-api-build
+   cd openPMD-api-build
+   cmake ../openPMD-api -DopenPMD_USE_PYTHON=OFF -DCMAKE_INSTALL_PREFIX=$HOME/warpx_directory/openPMD-install/ -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=ON -DCMAKE_INSTALL_RPATH='$ORIGIN'
+   cmake --build . --target install
 
 Finally, compile WarpX:
 
-::
+.. code-block:: bash
 
-    cd ../WarpX
-    export PKG_CONFIG_PATH=$PWD/../openPMD-install/lib/pkgconfig:$PKG_CONFIG_PATH
-    make -j 4 USE_OPENPMD=TRUE
+   cd ../WarpX
+   export PKG_CONFIG_PATH=$HOME/warpx_directory/openPMD-install/lib/pkgconfig:$PKG_CONFIG_PATH
+   export CMAKE_PREFIX_PATH=$HOME/warpx_directory/openPMD-install:$CMAKE_PREFIX_PATH
 
-You will also need to load the same spack environment when running WarpX, for instance:
+   make -j 4 USE_OPENPMD=TRUE
 
-::
+When running WarpX, we will recall where you installed openPMD-api via RPATHs, so you just need to load the same module environment as used for building (same MPI, HDF5, ADIOS2, for instance).
 
-    spack load -r hdf5
-    spack load -r adios2
+.. code-block:: bash
 
-    mpirun -np 4 ./warpx.exe inputs
+   # module load ...  (compiler, MPI, HDF5, ADIOS2, ...)
+
+   mpirun -np 4 ./warpx.exe inputs
