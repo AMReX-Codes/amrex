@@ -446,8 +446,9 @@
     if (amrex::Gpu::inLaunchRegion()) { \
         amrex::ParallelFor(amrex_i_n,[=] AMREX_GPU_DEVICE (amrex_i_inttype i) noexcept block); \
     } else { \
+        auto amrex_i_lambda = [=] (amrex_i_inttype i) noexcept block; \
         AMREX_PRAGMA_SIMD \
-        for (amrex_i_inttype i = 0; i < amrex_i_n; ++i) block \
+        for (amrex_i_inttype i = 0; i < amrex_i_n; ++i) amrex_i_lambda(i); \
     } \
 }
 
