@@ -44,7 +44,7 @@ function ( generate_amrex_config_header )
    configure_file(${AMREX_CMAKE_MODULES_PATH}/AMReX_Config.H.in
       "${CMAKE_CURRENT_BINARY_DIR}/AMReX_Config.H")
 
-   install(FILES ${_config_fname} DESTINATION include)
+   install(FILES "${CMAKE_CURRENT_BINARY_DIR}/AMReX_Config.H" DESTINATION include)
 
 endfunction ()
 
