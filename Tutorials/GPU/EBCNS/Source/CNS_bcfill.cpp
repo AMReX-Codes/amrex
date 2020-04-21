@@ -18,12 +18,6 @@ struct CnsFillExtDir
         }
 };
 
-namespace {
-    static CnsFillExtDir cns_fill_ext_dir;
-    static GpuBndryFuncFab<CnsFillExtDir> gpu_bndry_func(cns_fill_ext_dir);
-    static CpuBndryFuncFab cpu_bndry_func(nullptr); // Without EXT_DIR (e.g., inflow), we can pass a nullptr
-}
-
 // bx                  : Cells outside physical domain and inside bx are filled.
 // data, dcomp, numcomp: Fill numcomp components of data starting from dcomp.
 // bcr, bcomp          : bcr[bcomp] specifies BC for component dcomp and so on.
@@ -36,8 +30,11 @@ void cns_bcfill (Box const& bx, FArrayBox& data,
                  const int scomp)
 {
     if (Gpu::inLaunchRegion()) {
+        GpuBndryFuncFab<CnsFillExtDir> gpu_bndry_func(CnsFillExtDir{});
         gpu_bndry_func(bx,data,dcomp,numcomp,geom,time,bcr,bcomp,scomp);
     } else {
+        // Without EXT_DIR (e.g., inflow), we can pass a nullptr
+        CpuBndryFuncFab cpu_bndry_func(nullptr);
         cpu_bndry_func(bx,data,dcomp,numcomp,geom,time,bcr,bcomp,scomp);
     }
 }
