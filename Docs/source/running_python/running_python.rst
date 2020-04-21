@@ -6,4 +6,3 @@ Running WarpX from Python
 
    how_to_run
    examples
-   running_picmi
