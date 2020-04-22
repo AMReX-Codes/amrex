@@ -136,7 +136,7 @@ void copyParticles (PTile& dst, const PTile& src) noexcept
  * 
  * \tparam PTile the particle tile type
  * \tparam Index the index type, e.g. unsigned int
- * \tparam N the size type, e.g. long
+ * \tparam N the size type, e.g. Long
  *
  * \param dst the destination tile
  * \param src the source tile
@@ -186,7 +186,7 @@ void transformParticles (DstTile& dst, const SrcTile& src, F&& f) noexcept
  * \tparam DstTile the dst particle tile type
  * \tparam SrcTile the src particle tile type
  * \tparam Index the index type, e.g. unsigned int
- * \tparam N the size type, e.g. long
+ * \tparam N the size type, e.g. Long
  * \tparam F a function object
  *
  * \param dst the destination tile
@@ -241,7 +241,7 @@ void transformParticles (DstTile1& dst1, DstTile2& dst2, const SrcTile& src, F&&
  * \tparam DstTile2 the dst2 particle tile type
  * \tparam SrcTile the src particle tile type
  * \tparam Index the index type, e.g. unsigned int
- * \tparam N the size type, e.g. long
+ * \tparam N the size type, e.g. Long
  * \tparam F a function object
  *
  * \param dst1 the first destination tile
@@ -500,7 +500,7 @@ auto filterAndTransformParticles (DstTile1& dst1, DstTile2& dst2, const SrcTile&
  * will be copied to the index i in dst.
  * 
  * \tparam PTile the particle tile type
- * \tparam N the size type, e.g. long
+ * \tparam N the size type, e.g. Long
  * \tparam Index the index type, e.g. unsigned int
  *
  * \param dst the destination tile
@@ -528,7 +528,7 @@ void gatherParticles (PTile& dst, const PTile& src, N np, const Index* inds)
  * will be copied to the index inds[i] in dst.
  * 
  * \tparam PTile the particle tile type
- * \tparam N the size type, e.g. long
+ * \tparam N the size type, e.g. Long
  * \tparam Index the index type, e.g. unsigned int
  *
  * \param dst the destination tile
