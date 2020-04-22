@@ -1,12 +1,15 @@
 # ############################################################################ #
 #
-#  AMReX Configuration File 
+#  AMReX Configuration File
 #  To import into other CMake projects
 #
 # ############################################################################ #
 @PACKAGE_INIT@
 
-# Provides find_dependency 
+# Set the minimum CMake version required
+cmake_minimum_required(VERSION @CMAKE_MINIMUM_REQUIRED_VERSION@)
+
+# Provides find_dependency
 include(CMakeFindDependencyMacro)
 
 #
@@ -16,7 +19,7 @@ set(AMReX_BUILD_TYPE  @CMAKE_BUILD_TYPE@)
 
 #
 # Versioning
-# 
+#
 set(AMReX_GIT_VERSION \"@AMREX_GIT_VERSION@\")
 
 #
@@ -24,17 +27,17 @@ set(AMReX_GIT_VERSION \"@AMREX_GIT_VERSION@\")
 #
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "@CMAKE_INSTALL_PREFIX@/Tools/CMake/")
 
-# 
+#
 # AMReX CMake modules PATH
 #
 set(AMReX_MODULES_PATH @CMAKE_INSTALL_PREFIX@/Tools/CMake)
 
 #
 # Path to amrex typechecker command
-# 
+#
 set(AMReX_TYPECHECKER "@CMAKE_INSTALL_PREFIX@/Tools/typechecker/typechecker.py")
 
-# 
+#
 # Configuration options
 # Each option is treated like a "component" so that find_package can be easily
 # used to check weather the option is enabled
@@ -47,7 +50,7 @@ set(AMReX_OMP_FOUND                 @ENABLE_OMP@)
 set(AMReX_CUDA_FOUND                @ENABLE_CUDA@)
 set(AMReX_DP_FOUND                  @ENABLE_DP@)
 
-# Actual components selection 
+# Actual components selection
 set(AMReX_EB_FOUND                  @ENABLE_EB@)
 set(AMReX_FINTERFACES_FOUND         @ENABLE_FORTRAN_INTERFACES@)
 set(AMReX_LSOLVERS_FOUND            @ENABLE_LINEAR_SOLVERS@)
@@ -60,7 +63,7 @@ set(AMReX_SUNDIALS_FOUND            @ENABLE_SUNDIALS@)
 set(AMReX_ASCENT_FOUND              @ENABLE_ASCENT@)
 set(AMReX_HYPRE_FOUND               @ENABLE_HYPRE@)
 
-# Compilation options 
+# Compilation options
 set(AMReX_FPE_FOUND                 @ENABLE_FPE@)
 set(AMReX_PIC_FOUND                 @ENABLE_PIC@)
 set(AMReX_ASSERTIONS_FOUND          @ENABLE_ASSERTIONS@)
@@ -74,7 +77,7 @@ set(AMReX_COMMP_FOUND               @ENABLE_COMM_PROFILE@)
 set(AMReX_BACKTRACE_FOUND           @ENABLE_BACKTRACE@)
 set(AMReX_PROFPARSER_FOUND          @ENABLE_PROFPARSER@)
 
-# 
+#
 # Find dependencies if needed
 #
 set( THREADS_PREFER_PTHREAD_FLAG on)
@@ -105,7 +108,7 @@ endif ()
 if (@ENABLE_CONDUIT@)
    find_dependency(Conduit REQUIRED)
    if (@ENABLE_ASCENT@)
-      find_dependency(Ascent REQUIRED)     
+      find_dependency(Ascent REQUIRED)
    endif ()
 endif ()
 
@@ -115,7 +118,7 @@ endif ()
 
 #
 # CUDA
-# 
+#
 if (@ENABLE_CUDA@)
    include(AMReX_SetupCUDA)
 endif ()
@@ -125,7 +128,7 @@ endif ()
 include( "${CMAKE_CURRENT_LIST_DIR}/AMReXTargets.cmake" )
 
 #
-# Check components 
+# Check components
 #
 check_required_components("@PROJECT_NAME@")
 #check_required_components(AMReX)

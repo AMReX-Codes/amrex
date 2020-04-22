@@ -36,7 +36,7 @@ function ( set_amrex_defines )
    add_amrex_define( "AMREX_GIT_VERSION=\"${AMREX_GIT_VERSION}\"" NO_LEGACY )
 
    # XSDK mode
-   add_amrex_define( AMREX_XSDK IF USE_XSDK_DEFAULTS )
+   add_amrex_define( AMREX_XSDK NO_LEGACY IF USE_XSDK_DEFAULTS )
 
    # Debug flag
    if ( "${CMAKE_BUILD_TYPE}" MATCHES "Debug" )
@@ -49,21 +49,21 @@ function ( set_amrex_defines )
    add_amrex_define( AMREX_COMM_PROFILING  IF ENABLE_COMM_PROFILE )
 
    # Tiny profiler
-   add_amrex_define( AMREX_TINY_PROFILING IF ENABLE_TINY_PROFILE )
+   add_amrex_define( AMREX_TINY_PROFILING NO_LEGACY IF ENABLE_TINY_PROFILE )
 
    # Mem profiler
-   add_amrex_define( AMREX_MEM_PROFILING IF ENABLE_MEM_PROFILE )
+   add_amrex_define( AMREX_MEM_PROFILING NO_LEGACY IF ENABLE_MEM_PROFILE )
 
    # Backtrace
    if (ENABLE_BACKTRACE)
-      add_amrex_define( AMREX_BACKTRACING )
-      add_amrex_define( AMREX_TESTING )
+      add_amrex_define( AMREX_BACKTRACING NO_LEGACY)
+      add_amrex_define( AMREX_TESTING NO_LEGACY )
    endif ()
 
    # MPI
    add_amrex_define( AMREX_USE_MPI IF ENABLE_MPI )
 
-   # OpenMP
+   # OpenMP -- This one has legacy definition only in Base/AMReX_omp_mod.F90
    add_amrex_define( AMREX_USE_OMP IF ENABLE_OMP )
 
    # Precision
@@ -74,11 +74,12 @@ function ( set_amrex_defines )
    # Dimensionality
    add_amrex_define( AMREX_SPACEDIM=${DIM} )
 
-   # System
+   # System -- not used anywhere in the source code but mentioned
+   # in /Src/AmrTask/ Makefiles
    add_amrex_define( AMREX_${CMAKE_SYSTEM_NAME} )
 
    #  Assertions
-   add_amrex_define( AMREX_USE_ASSERTION IF ENABLE_ASSERTIONS )
+   add_amrex_define( AMREX_USE_ASSERTION NO_LEGACY IF ENABLE_ASSERTIONS )
 
    #
    # Fortran-specific defines: BL_LANG_FORT and AMREX_LANG_FORT
@@ -108,20 +109,21 @@ function ( set_amrex_defines )
          message(AUTHOR_WARNING "Fortran to C mangling not compatible with AMReX code")
       endif ()
 
-      add_amrex_define( AMREX_FORT_USE_${FORTLINK} )
+      add_amrex_define( BL_FORT_USE_${FORTLINK} )  # Only legacy form
+      #add_amrex_define( AMREX_FORT_USE_${FORTLINK} )
 
    else ()
       add_amrex_define(BL_NO_FORT)
    endif ()
 
-   # SENSEI Insitu
-   add_amrex_define( AMREX_USE_SENSEI_INSITU IF ENABLE_SENSEI_INSITU )
+   # SENSEI Insitu -- only legacy
+   add_amrex_define( BL_USE_SENSEI_INSITU IF ENABLE_SENSEI_INSITU )
 
    # Conduit Support
-   add_amrex_define( AMREX_USE_CONDUIT IF ENABLE_CONDUIT )
+   add_amrex_define( AMREX_USE_CONDUIT NO_LEGACY IF ENABLE_CONDUIT )
 
    # Ascent Support
-   add_amrex_define( AMREX_USE_ASCENT IF ENABLE_ASCENT )
+   add_amrex_define( AMREX_USE_ASCENT NO_LEGACY IF ENABLE_ASCENT )
 
    # EB
    add_amrex_define( AMREX_USE_EB NO_LEGACY IF ENABLE_EB )

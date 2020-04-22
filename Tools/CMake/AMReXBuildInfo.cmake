@@ -109,6 +109,8 @@ function (generate_buildinfo _target _git_dir)
             endif ()
          endif ()
 
+         # Manually escape quotes
+         string(REPLACE "\"" "\\\""  _${_l}${_p} "${_${_l}${_p}}")
       endforeach()
 
       # The configure file needs ${_l}_FLAGS: we set these variables here
@@ -146,21 +148,23 @@ function (generate_buildinfo _target _git_dir)
          WORKING_DIRECTORY ${_git_dir}
          OUTPUT_VARIABLE _hash )
       string(STRIP "${_hash}" _hash)
-      set(_hash "\"${_hash}\"")  # add quotes
-      set(GIT_DECLS "static const char HASH1[] = ${_hash};\n")
+      set(GIT_DECLS "static const char HASH1[] = \"${_hash}\";\n")
       set(GIT_CASE  "case 1: return HASH1;\n")
    endif ()
 
    # AMReX app code
-   if (AMReX_GIT_VERSION)
+   if (AMReX_GIT_VERSION)  # If using AMReX as a library
       set(GIT_DECLS "${GIT_DECLS}  static const char HASH2[] = ${AMReX_GIT_VERSION};")
       set(GIT_CASE  "${GIT_CASE}    case 2: return HASH2;")
-   elseif ( Git_FOUND AND (EXISTS ${AMREX_TOP_DIR}/.git) )
+   elseif (AMREX_GIT_VERSION)  # If using AMReX via add_subdirectory()
+      set(GIT_DECLS "${GIT_DECLS}  static const char HASH2[] = \"${AMREX_GIT_VERSION}\";")
+      set(GIT_CASE  "${GIT_CASE}    case 2: return HASH2;")
+   elseif ( Git_FOUND AND (EXISTS ${AMREX_TOP_DIR}/.git) )   # Backup case
       execute_process(
          COMMAND git describe --abbrev=12 --dirty --always --tags
          WORKING_DIRECTORY ${AMREX_TOP_DIR}
          OUTPUT_VARIABLE _hash )
-      string(STRIP "${_hash}" _hash)  # add quotes
+      string(STRIP "${_hash}" _hash)
       set(GIT_DECLS "${GIT_DECLS}  static const char HASH2[] = \"${_hash}\";")
       set(GIT_CASE  "${GIT_CASE}    case 2: return HASH2;")
    endif ()
