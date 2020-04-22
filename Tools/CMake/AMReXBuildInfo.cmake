@@ -170,8 +170,8 @@ function (generate_buildinfo _target _git_dir)
    endif ()
 
    # Other variables to be left unfilled for now
-   set(BUILDGIT_DECLS "static const char HASH[] = {};")
-   set(BUILDGIT_NAME  "static const char NAME[] = {};")
+   set(BUILDGIT_DECLS "static const char HASH[] = \"\";")
+   set(BUILDGIT_NAME  "static const char NAME[] = \"\";")
 
    # Generate AMReX_buildInfo.cpp
    configure_file( ${AMREX_BUILDINFO_IFILE}
