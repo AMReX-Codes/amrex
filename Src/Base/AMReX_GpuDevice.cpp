@@ -447,6 +447,8 @@ Device::initialize_gpu ()
         device_prop.warpSize = warp_size;
         auto sgss = d.get_info<sycl::info::device::sub_group_sizes>();
         device_prop.maxMemAllocSize = d.get_info<sycl::info::device::max_mem_alloc_size>();
+        device_prop.managedMemory = d.get_info<sycl::info::device::host_unified_memory>();
+        device_prop.concurrentManagedAccess = d.get_info<sycl::info::device::usm_shared_allocations>();
         {
             amrex::Print() << "Device Properties:\n"
                            << "  name: " << device_prop.name << "\n"
@@ -461,6 +463,8 @@ Device::initialize_gpu ()
             }
             amrex::Print() << " (" << warp_size << " is used)\n"
                            << "  maxMemAllocSize: " << device_prop.maxMemAllocSize << "\n"
+                           << "  managedMemory: " << (device_prop.managedMemory ? "Yes" : "No") << "\n"
+                           << "  concurrentManagedAccess: " << (device_prop.concurrentManagedAccess ? "Yes" : "No") << "\n"
                            << std::endl;
         }
         auto found = std::find(sgss.begin(), sgss.end(), static_cast<decltype(sgss)::value_type>(warp_size));
@@ -740,6 +744,12 @@ Device::mem_advise_set_preferred (void* p, const std::size_t sz, const int devic
     {
         AMREX_CUDA_SAFE_CALL(cudaMemAdvise(p, sz, cudaMemAdviseSetPreferredLocation, device));
     }
+#elif defined(AMREX_USE_DPCPP)
+    if (device_prop.managedMemory == 1 && device_prop.concurrentManagedAccess == 1)
+    {
+        auto& q = streamQueue();
+        q.mem_advise(p, sz, PI_MEM_ADVICE_SET_PREFERRED_LOCATION);
+    }
 #endif
 
 }
@@ -754,6 +764,12 @@ Device::mem_advise_set_readonly (void* p, const std::size_t sz)
 #endif
     {
         AMREX_CUDA_SAFE_CALL(cudaMemAdvise(p, sz, cudaMemAdviseSetReadMostly, cudaCpuDeviceId));
+    }
+#elif defined(AMREX_USE_DPCPP)
+    if (device_prop.managedMemory == 1 && device_prop.concurrentManagedAccess == 1)
+    {
+        auto& q = streamQueue();
+        q.mem_advise(p, sz, PI_MEM_ADVICE_SET_READ_MOSTLY);
     }
 #endif
 }
