@@ -729,31 +729,26 @@ void eb_interp_centroid2facecent (Box const& bx,
           // to centroid of x-face(i,j,k) at (fcx(i,j,k,0), fcx(i,j,k,1))
 
           // We order these in order to form a set of four points on the x-face ... 
-          // (x0,y0) : lower left   aka (jm,km)
-          // (x1,y1) : lower right  aka (jp,km)
-          // (x2,y2) : upper right  aka (jp,kp)
-          // (x3,y3) : upper left   aka (jm,kp)
-
-          int jm = std::min(j,jj);
-          int jp = jm+1;
-          int km = std::min(k,kk);
-          int kp = km+1;
+          // (x0,y0) : lower left
+          // (x1,y1) : lower right
+          // (x2,y2) : upper right
+          // (x3,y3) : upper left
 
           Real y,z;
 
           // This is the location of the face centroid relative to the central node
           // Recall fcx holds (y,z) of the x-face centroid as components ( /0/1)
-          if (jm == j)
+          if (j < jj)
              y = -0.5 + fcx(i,j,k,0);  // (j,k) is in lower half of stencil so y < 0
           else
              y =  0.5 + fcx(i,j,k,0);  // (j,k) is in upper half of stencil so y > 0
 
-          if (km == k)
+          if (k < kk)
              z = -0.5 + fcx(i,j,k,1);  // (j,k) is in lower half of stencil so z < 0
           else
              z =  0.5 + fcx(i,j,k,1);  // (j,k) is in upper half of stencil so z > 0
 
-          if (jm == j && km == k) // (j,k) is lower left, (j+1,k+1) is upper right 
+          if (j < jj && k < kk) // (j,k) is lower left, (j+1,k+1) is upper right 
           {
               Real y_ll = -0.5+y01;
               Real z_ll = -0.5+z01;
@@ -766,7 +761,7 @@ void eb_interp_centroid2facecent (Box const& bx,
               phi_x(i,j,k,n) = EB_interp_in_quad(y,z, phi01, phi01_jj, phi01_jj_kk, phi01_kk,
                                                  y_ll, z_ll, y_hl, z_hl, y_hh, z_hh, y_lh, z_lh);
           }
-          else if (jm == j-1 && km == k) // (j-1,k) is lower left, (j,k+1) is upper right 
+          else if (jj < j && k < kk) // (j-1,k) is lower left, (j,k+1) is upper right 
           {
               Real y_ll = -0.5+y01_jj;
               Real z_ll = -0.5+z01_jj;
@@ -779,7 +774,7 @@ void eb_interp_centroid2facecent (Box const& bx,
               phi_x(i,j,k,n) = EB_interp_in_quad(y,z,phi01_jj,phi01,phi01_kk, phi01_jj_kk,
                                                  y_ll, z_ll, y_hl, z_hl, y_hh, z_hh, y_lh, z_lh);
           }
-          else if (jm == j && km == k-1) // (j,k-1) is lower left, (j+1,k) is upper right 
+          else if (j < jj && kk < k) // (j,k-1) is lower left, (j+1,k) is upper right 
           {
               Real y_ll = -0.5+y01_kk;
               Real z_ll = -0.5+z01_kk;
@@ -792,7 +787,7 @@ void eb_interp_centroid2facecent (Box const& bx,
               phi_x(i,j,k,n) = EB_interp_in_quad(y,z,phi01_kk,phi01_jj_kk,phi01_jj, phi01,
                                                  y_ll, z_ll, y_hl, z_hl, y_hh, z_hh, y_lh, z_lh);
           }
-          else if (jm == j-1 && km == k-1) // (j-1,k-1) is lower left, (j,k) is upper right 
+          else if (jj < j && kk < k) // (j-1,k-1) is lower left, (j,k) is upper right 
           {
               Real y_ll = -0.5+y01_jj_kk;
               Real z_ll = -0.5+z01_jj_kk;
@@ -907,31 +902,26 @@ void eb_interp_centroid2facecent (Box const& bx,
           Real z01_ii_kk   = a0_ii_kk * ccent(ii, j,kk,2)  + a1_ii_kk * ccent(ii, j-1,kk,2); // interpolation in y-dir of z-loc
 
           // We order these in order to form a set of four points on the x-face ... 
-          // (x0,y0) : lower left   aka (im,km)
-          // (x1,y1) : lower right  aka (ip,km)
-          // (x2,y2) : upper right  aka (ip,kp)
-          // (x3,y3) : upper left   aka (im,kp)
-
-          int im = std::min(i,ii);
-          int ip = im+1;
-          int km = std::min(k,kk);
-          int kp = km+1;
+          // (x0,y0) : lower left
+          // (x1,y1) : lower right
+          // (x2,y2) : upper right
+          // (x3,y3) : upper left
 
           Real x,z;
 
           // This is the location of the face centroid relative to the central node
           // Recall fcy holds (x,z) of the x-face centroid as components (0/ /1)
-          if (im == i)
+          if (i < ii)
              x = -0.5 + fcy(i,j,k,0);  // (i,k) is in lower half of stencil so x < 0
           else
              x =  0.5 + fcy(i,j,k,0);  // (i,k) is in upper half of stencil so x > 0
 
-          if (km == k)
+          if (k < kk)
              z = -0.5 + fcy(i,j,k,1);  // (i,k) is in lower half of stencil so z < 0
           else
              z =  0.5 + fcy(i,j,k,1);  // (i,k) is in upper half of stencil so z > 0
 
-          if (im == i && km == k) // (i,k) is lower left, (i+1,k+1) is upper right 
+          if (i < ii && k < kk) // (i,k) is lower left, (i+1,k+1) is upper right 
           {
               Real x_ll = -0.5+x01;
               Real z_ll = -0.5+z01;
@@ -944,7 +934,7 @@ void eb_interp_centroid2facecent (Box const& bx,
               phi_y(i,j,k,n) = EB_interp_in_quad(x,z, phi01, phi01_ii, phi01_ii_kk, phi01_kk,
                                                  x_ll, z_ll, x_hl, z_hl, x_hh, z_hh, x_lh, z_lh);
           }
-          else if (im == i-1 && km == k) // (i-1,k) is lower left, (i,k+1) is upper right 
+          else if (ii < i && k < kk) // (i-1,k) is lower left, (i,k+1) is upper right 
           {
               Real x_ll = -0.5+x01_ii;
               Real z_ll = -0.5+z01_ii;
@@ -957,7 +947,7 @@ void eb_interp_centroid2facecent (Box const& bx,
               phi_y(i,j,k,n) = EB_interp_in_quad(x,z,phi01_ii,phi01,phi01_kk, phi01_ii_kk,
                                                  x_ll, z_ll, x_hl, z_hl, x_hh, z_hh, x_lh, z_lh);
           }
-          else if (im == i && km == k-1) // (i,k-1) is lower left, (i+1,k) is upper right 
+          else if (i < ii && kk < k) // (i,k-1) is lower left, (i+1,k) is upper right 
           {
               Real x_ll = -0.5+x01_kk;
               Real z_ll = -0.5+z01_kk;
@@ -970,7 +960,7 @@ void eb_interp_centroid2facecent (Box const& bx,
               phi_y(i,j,k,n) = EB_interp_in_quad(x,z,phi01_kk,phi01_ii_kk,phi01_ii, phi01,
                                                  x_ll, z_ll, x_hl, z_hl, x_hh, z_hh, x_lh, z_lh);
           }
-          else if (im == i-1 && km == k-1) // (i-1,k-1) is lower left, (i,k) is upper right 
+          else if (ii < i && kk < k) // (i-1,k-1) is lower left, (i,k) is upper right 
           {
               Real x_ll = -0.5+x01_ii_kk;
               Real z_ll = -0.5+z01_ii_kk;
@@ -1085,31 +1075,26 @@ void eb_interp_centroid2facecent (Box const& bx,
           Real y01_ii_jj   = a0_ii_jj * ccent(ii,jj,k,1)  + a1_ii_jj * ccent(ii,jj,k-1,1); // interpolation of y-loc in z-direction
 
           // We order these in order to form a set of four points on the x-face ... 
-          // (x0,y0) : lower left   aka (im,jm)
-          // (x1,y1) : lower right  aka (ip,jm)
-          // (x2,y2) : upper right  aka (ip,jp)
-          // (x3,y3) : upper left   aka (im,jp)
-
-          int im = std::min(i,ii);
-          int ip = im+1;
-          int jm = std::min(j,jj);
-          int jp = jm+1;
+          // (x0,y0) : lower left  
+          // (x1,y1) : lower right
+          // (x2,y2) : upper right
+          // (x3,y3) : upper left 
 
           Real x,y;
 
           // This is the location of the face centroid relative to the central node
           // Recall fcz holds (x,y) of the x-face centroid as components (0/1/ )
-          if (im == i)
+          if (i < ii)
              x = -0.5 + fcz(i,j,k,0);  // (i,k) is in lower half of stencil so x < 0
           else
              x =  0.5 + fcz(i,j,k,0);  // (i,k) is in upper half of stencil so x > 0
 
-          if (jm == j)
+          if (j < jj)
              y = -0.5 + fcz(i,j,k,1);  // (i,k) is in lower half of stencil so z < 0
           else
              y =  0.5 + fcz(i,j,k,1);  // (i,k) is in upper half of stencil so z > 0
 
-          if (im == i && jm == j) // (i,j) is lower left, (i+1,j+1) is upper right 
+          if (i < ii && j < jj) // (i,j) is lower left, (i+1,j+1) is upper right 
           {
               Real x_ll = -0.5+x01;
               Real y_ll = -0.5+y01;
@@ -1122,7 +1107,7 @@ void eb_interp_centroid2facecent (Box const& bx,
               phi_z(i,j,k,n) = EB_interp_in_quad(x,y, phi01, phi01_ii, phi01_ii_jj, phi01_jj,
                                                  x_ll, y_ll, x_hl, y_hl, x_hh, y_hh, x_lh, y_lh);
           }
-          else if (im == i-1 && jm == j) // (i-1,j) is lower left, (i,j+1) is upper right 
+          else if (ii < i && j < jj) // (i-1,j) is lower left, (i,j+1) is upper right 
           {
               Real x_ll = -0.5+x01_ii;
               Real y_ll = -0.5+y01_ii;
@@ -1135,7 +1120,7 @@ void eb_interp_centroid2facecent (Box const& bx,
               phi_z(i,j,k,n) = EB_interp_in_quad(x,y,phi01_ii,phi01,phi01_jj, phi01_ii_jj,
                                                  x_ll, y_ll, x_hl, y_hl, x_hh, y_hh, x_lh, y_lh);
           }
-          else if (im == i && jm == j-1) // (i,j-1) is lower left, (i+1,j) is upper right 
+          else if (i < ii && jj < j) // (i,j-1) is lower left, (i+1,j) is upper right 
           {
               Real x_ll = -0.5+x01_jj;
               Real y_ll = -0.5+y01_jj;
@@ -1148,7 +1133,7 @@ void eb_interp_centroid2facecent (Box const& bx,
               phi_z(i,j,k,n) = EB_interp_in_quad(x,y,phi01_jj,phi01_ii_jj,phi01_ii, phi01,
                                                  x_ll, y_ll, x_hl, y_hl, x_hh, y_hh, x_lh, y_lh);
           }
-          else if (im == i-1 && jm == j-1) // (i-1,j-1) is lower left, (i,j) is upper right 
+          else if (ii < i && jj < j) // (i-1,j-1) is lower left, (i,j) is upper right 
           {
               Real x_ll = -0.5+x01_ii_jj;
               Real y_ll = -0.5+y01_ii_jj;
