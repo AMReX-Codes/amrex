@@ -209,6 +209,112 @@ void VecReduce (N n, T const& init_val,
     f2(r);
 }
 
+template <typename T, typename L, typename M=amrex::EnableIf_t<std::is_integral<T>::value> >
+void HostDeviceParallelFor (T n, L&& f) noexcept
+{
+    ParallelFor(n,std::forward<L>(f));
+}
+
+template <typename L>
+void HostDeviceParallelFor (Box const& box, L&& f) noexcept
+{
+    ParallelFor(box,std::forward<L>(f));
+}
+
+template <typename T, typename L, typename M=amrex::EnableIf_t<std::is_integral<T>::value> >
+void HostDeviceParallelFor (Box const& box, T ncomp, L&& f) noexcept
+{
+    ParallelFor(box,ncomp,std::forward<L>(f));
+}
+
+template <typename L1, typename L2>
+void HostDeviceParallelFor (Box const& box1, Box const& box2, L1&& f1, L2&& f2) noexcept
+{
+    ParallelFor(box1,box2,std::forward<L1>(f1),std::forward<L2>(f2));
+}
+
+template <typename L1, typename L2, typename L3>
+void HostDeviceParallelFor (Box const& box1, Box const& box2, Box const& box3,
+                            L1&& f1, L2&& f2, L3&& f3) noexcept
+{
+    ParallelFor(box1,box2,box3,std::forward<L1>(f1),std::forward<L2>(f2),std::forward<L3>(f3));
+}
+
+template <typename T1, typename T2, typename L1, typename L2,
+          typename M1=amrex::EnableIf_t<std::is_integral<T1>::value>,
+          typename M2=amrex::EnableIf_t<std::is_integral<T2>::value> >
+void HostDeviceParallelFor (Box const& box1, T1 ncomp1, L1&& f1,
+                            Box const& box2, T2 ncomp2, L2&& f2) noexcept
+{
+    ParallelFor(box1,ncomp1,std::forward<L1>(f1),box2,ncomp2,std::forward<L2>(f2));
+}
+
+template <typename T1, typename T2, typename T3, typename L1, typename L2, typename L3,
+          typename M1=amrex::EnableIf_t<std::is_integral<T1>::value>,
+          typename M2=amrex::EnableIf_t<std::is_integral<T2>::value>,
+          typename M3=amrex::EnableIf_t<std::is_integral<T3>::value> >
+void HostDeviceParallelFor (Box const& box1, T1 ncomp1, L1&& f1,
+                            Box const& box2, T2 ncomp2, L2&& f2,
+                            Box const& box3, T3 ncomp3, L3&& f3) noexcept
+{
+    ParallelFor(box1,ncomp1,std::forward<L1>(f1),
+                box2,ncomp2,std::forward<L2>(f2),
+                box3,ncomp3,std::forward<L3>(f3));
+}
+
+template <typename T, typename L, typename M=amrex::EnableIf_t<std::is_integral<T>::value> >
+void HostDeviceFor (T n, L&& f) noexcept
+{
+    For(n,std::forward<L>(f));
+}
+
+template <typename L>
+void HostDeviceFor (Box const& box, L&& f) noexcept
+{
+    For(box,std::forward<L>(f));
+}
+
+template <typename T, typename L, typename M=amrex::EnableIf_t<std::is_integral<T>::value> >
+void HostDeviceFor (Box const& box, T ncomp, L&& f) noexcept
+{
+    For(box,ncomp,std::forward<L>(f));
+}
+
+template <typename L1, typename L2>
+void HostDeviceFor (Box const& box1, Box const& box2, L1&& f1, L2&& f2) noexcept
+{
+    For(box1,box2,std::forward<L1>(f1),std::forward<L2>(f2));
+}
+
+template <typename L1, typename L2, typename L3>
+void HostDeviceFor (Box const& box1, Box const& box2, Box const& box3,
+                    L1&& f1, L2&& f2, L3&& f3) noexcept
+{
+    For(box1,box2,box3,std::forward<L1>(f1),std::forward<L2>(f2),std::forward<L3>(f3));
+}
+
+template <typename T1, typename T2, typename L1, typename L2,
+          typename M1=amrex::EnableIf_t<std::is_integral<T1>::value>,
+          typename M2=amrex::EnableIf_t<std::is_integral<T2>::value> >
+void HostDeviceFor (Box const& box1, T1 ncomp1, L1&& f1,
+                    Box const& box2, T2 ncomp2, L2&& f2) noexcept
+{
+    For(box1,ncomp1,std::forward<L1>(f1),box2,ncomp2,std::forward<L2>(f2));
+}
+
+template <typename T1, typename T2, typename T3, typename L1, typename L2, typename L3,
+          typename M1=amrex::EnableIf_t<std::is_integral<T1>::value>,
+          typename M2=amrex::EnableIf_t<std::is_integral<T2>::value>,
+          typename M3=amrex::EnableIf_t<std::is_integral<T3>::value> >
+void HostDeviceFor (Box const& box1, T1 ncomp1, L1&& f1,
+                    Box const& box2, T2 ncomp2, L2&& f2,
+                    Box const& box3, T3 ncomp3, L3&& f3) noexcept
+{
+    For(box1,ncomp1,std::forward<L1>(f1),
+        box2,ncomp2,std::forward<L2>(f2),
+        box3,ncomp3,std::forward<L3>(f3));
+}
+
 }
 
 #endif
