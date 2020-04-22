@@ -42,7 +42,7 @@ void ParticleCopyPlan::clear ()
     m_rcv_box_ids.clear();
 }
 
-void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, long psize)
+void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, Long psize)
 {
     BL_PROFILE("ParticleCopyPlan::buildMPIStart");
 
@@ -178,10 +178,10 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, long psize)
     m_snd_pad_correction_h.push_back(0);
     for (int i = 0; i < NProcs; ++i)
     {
-        long nbytes = m_snd_num_particles[i]*psize;
+        Long nbytes = m_snd_num_particles[i]*psize;
         std::size_t acd = ParallelDescriptor::alignof_comm_data(nbytes);
-        long Cnt = amrex::aligned_size(acd, nbytes);
-        long bytes_to_send = (i == MyProc) ? 0 : Cnt;
+        Long Cnt = amrex::aligned_size(acd, nbytes);
+        Long bytes_to_send = (i == MyProc) ? 0 : Cnt;
         m_snd_counts.push_back(bytes_to_send);
         m_snd_offsets.push_back(amrex::aligned_size(acd, m_snd_offsets.back()) + Cnt);
         m_snd_pad_correction_h.push_back(m_snd_pad_correction_h.back() + nbytes);
@@ -251,7 +251,7 @@ void ParticleCopyPlan::buildMPIFinish (const ParticleBufferMap& map)
         const auto offset = m_rOffset[j];
         const auto Cnt    = m_Rcvs[Who]/sizeof(int);
         
-        long nparticles = 0;
+        Long nparticles = 0;
         for (int i = offset; i < offset + Cnt; i +=4)
         {
             nparticles += m_rcv_data[i];
