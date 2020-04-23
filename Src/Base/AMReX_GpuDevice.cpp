@@ -745,13 +745,13 @@ Device::mem_advise_set_preferred (void* p, const std::size_t sz, const int devic
         AMREX_CUDA_SAFE_CALL(cudaMemAdvise(p, sz, cudaMemAdviseSetPreferredLocation, device));
     }
 #elif defined(AMREX_USE_DPCPP)
-    if (device_prop.managedMemory == 1 && device_prop.concurrentManagedAccess == 1)
-    {
-        auto& q = streamQueue();
-        q.mem_advise(p, sz, PI_MEM_ADVICE_SET_PREFERRED_LOCATION);
-    }
+    // xxxxx DPCPP todo: mem_advise
+    // if (device_prop.managedMemory == 1 && device_prop.concurrentManagedAccess == 1)
+    // {
+    //     auto& q = Gpu::Device::streamQueue();
+    //     q.mem_advise(p, sz, PI_MEM_ADVICE_SET_PREFERRED_LOCATION);
+    // }
 #endif
-
 }
 
 void
@@ -766,11 +766,12 @@ Device::mem_advise_set_readonly (void* p, const std::size_t sz)
         AMREX_CUDA_SAFE_CALL(cudaMemAdvise(p, sz, cudaMemAdviseSetReadMostly, cudaCpuDeviceId));
     }
 #elif defined(AMREX_USE_DPCPP)
-    if (device_prop.managedMemory == 1 && device_prop.concurrentManagedAccess == 1)
-    {
-        auto& q = streamQueue();
-        q.mem_advise(p, sz, PI_MEM_ADVICE_SET_READ_MOSTLY);
-    }
+    // xxxxx DPCPP todo: mem_advise
+    // if (device_prop.managedMemory == 1 && device_prop.concurrentManagedAccess == 1)
+    // {
+    //     auto& q = Gpu::Device::streamQueue();
+    //     q.mem_advise(p, sz, PI_MEM_ADVICE_SET_READ_MOSTLY);
+    // }
 #endif
 }
 
