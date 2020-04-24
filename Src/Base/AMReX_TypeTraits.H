@@ -57,15 +57,6 @@ namespace amrex
     template <> struct HasAtomicAdd<float> : std::true_type {};
     template <> struct HasAtomicAdd<double> : std::true_type {};
 
-    template <class T, class Allocator=std::allocator<T> >
-    class Vector;
-
-    template <class T, class Enable = void>
-    struct IsVector : std::false_type {};
-    
-    template <class T>
-    struct IsVector<Vector<T> > : std::true_type {};    
-    
 #ifdef AMREX_PARTICLES
     template <bool is_const, int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
     class ParIterBase;

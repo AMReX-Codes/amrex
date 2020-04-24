@@ -1567,7 +1567,7 @@ WritePlotFile (const std::string& dir, const std::string& name,
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-template <class F, EnableIf_t<!IsVector<F>::value, int> foo>
+template <class F, typename std::enable_if<!std::is_same<F, Vector<std::string>>::value>::type*>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::WritePlotFile (const std::string& dir, const std::string& name, F&& f) const
@@ -1621,7 +1621,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-template <class F, EnableIf_t<!IsVector<F>::value, int> foo>
+template <class F, typename std::enable_if<!std::is_same<F, Vector<std::string>>::value>::type*>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::WritePlotFile (const std::string& dir, const std::string& name,
