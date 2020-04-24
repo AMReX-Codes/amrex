@@ -18,7 +18,7 @@ namespace amrex {
 * DEBUG=TRUE.
 */
 
-template <class T, class Allocator=std::allocator<T> >
+template <class T, class Allocator>
 class Vector
     :
         public std::vector<T, Allocator>
