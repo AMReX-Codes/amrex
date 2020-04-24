@@ -237,7 +237,7 @@ std::unique_ptr<Vector<Real>> LSFactory::eb_facets(const FArrayBox & norm_tile,
                                                    const RealVect & dx_eb,
                                                    const Box & eb_search)
 {
-    BL_PROFILE("LSFactory::eb_facets(tile)")
+    BL_PROFILE("LSFactory::eb_facets(tile)");
 
     // 1-D list of eb-facet data. Format:
     // { px_1, py_1, pz_1, nx_1, ny_1, nz_1, px_2, py_2, ... , nz_N }
@@ -550,7 +550,7 @@ void LSFactory::fill_data (MultiFab & data, iMultiFab & valid,
                            const IntVect & ebt_size, int ls_ref, int eb_ref,
                            const Geometry & geom, const Geometry & geom_eb) {
 
-    BL_PROFILE("LSFactory::fill_data()")
+    BL_PROFILE("LSFactory::fill_data()");
 
     /****************************************************************************
      *                                                                          *
