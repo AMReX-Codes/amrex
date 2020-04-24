@@ -355,6 +355,22 @@ NeighborParticleContainer<NStructReal, NStructInt>
     BL_PROFILE_VAR_STOP(update);
 
     fillNeighborsMPI(reuse_rcv_counts);
+
+    for (int lev = 0; lev < this->numLevels(); ++lev)
+    {
+        for(MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
+        {
+            int src_grid = mfi.index();
+            int src_tile = mfi.LocalTileIndex();
+            auto index = std::make_pair(src_grid, src_tile);
+            auto& ptile = this->GetParticles(lev)[index];
+            ptile.setNumNeighbors(neighbors[lev][index].size());
+            auto& aos = ptile.GetArrayOfStructs();
+            std::copy(neighbors[lev][index].begin(), neighbors[lev][index].end(),
+                      aos().begin() + ptile.numRealParticles());
+        }
+    }
+
 }
 
 template <int NStructReal, int NStructInt>
@@ -367,9 +383,17 @@ NeighborParticleContainer<NStructReal, NStructInt>
     resizeContainers(this->numLevels());
     for (int lev = 0; lev < this->numLevels(); ++lev) {
         neighbors[lev].clear();
-        if ( enableInverse() )
-           inverse_tags[lev].clear();
+        if ( enableInverse() ) inverse_tags[lev].clear();
         buffer_tag_cache[lev].clear();
+
+        for(MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
+        {
+            int src_grid = mfi.index();
+            int src_tile = mfi.LocalTileIndex();
+            auto index = std::make_pair(src_grid, src_tile);
+            auto& ptile = this->GetParticles(lev)[index];
+            ptile.setNumNeighbors(0);
+        }
     }
 
     send_data.clear();
@@ -563,159 +587,6 @@ fillNeighborsMPI (bool reuse_rcv_counts) {
         }
     }
 #endif
-}
-
-template <int NStructReal, int NStructInt>
-template <class CheckPair>
-void
-NeighborParticleContainer<NStructReal, NStructInt>::
-buildNeighborListCPU (CheckPair check_pair, bool sort) {
-
-    BL_PROFILE("NeighborParticleContainer::buildNeighborList");
-    AMREX_ASSERT(this->OK());
-
-    for (int lev = 0; lev < this->numLevels(); ++lev) {
-
-        neighbor_list[lev].clear();
-
-        for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
-            PairIndex index(pti.index(), pti.LocalTileIndex());
-            neighbor_list[lev][index];
-        }
-
-        IntVect ref_fac = computeRefFac(0, lev);
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-        {
-
-        Vector<IntVect> cells;
-        Vector<ParticleType> tmp_particles;
-        BaseFab<int> head;
-        Vector<int>  list;
-
-        for (MyParIter pti(*this, lev, MFItInfo().SetDynamic(true)); pti.isValid(); ++pti) {
-
-            PairIndex index(pti.index(), pti.LocalTileIndex());
-#ifdef AMREX_USE_CUDA
-            Gpu::HostVector<int> nl;
-#else
-            IntVector& nl = neighbor_list[lev][index];
-#endif
-            AoS& particles = pti.GetArrayOfStructs();
-
-            int Np = particles.size();
-            int Nn = neighbors[lev][index].size();
-            int N = Np + Nn;
-
-            cells.resize(N);
-            tmp_particles.resize(N);
-            std::memcpy(&tmp_particles[0], particles.data(), Np*sizeof(ParticleType));
-            if (Nn > 0)
-                std::memcpy(&tmp_particles[Np], neighbors[lev][index].dataPtr(), Nn*pdata_size);
-
-            // For each cell on this tile, we build linked lists storing the
-            // indices of the particles belonging to it.
-            Box box = pti.tilebox();
-            box.coarsen(ref_fac);
-            box.grow(m_num_neighbor_cells+1); // need an extra cell to account for roundoff errors.
-            head.resize(box);
-            head.setVal<RunOn::Host>(-1);
-            list.resize(N, -1);
-
-            for (int i = 0; i < N; ++i) {
-                const ParticleType& p = tmp_particles[i];
-                const IntVect& cell = this->Index(p, 0);  // we always bin on level 0
-                cells[i] = cell;
-                list[i] = head(cell);
-                head(cell) = i;
-            }
-
-            // using these lists, we build a neighbor list containing both
-            // kinds of particles.
-            int p_start_index = 0;
-            for (unsigned i = 0; i < Np; ++i) {
-                const ParticleType& p = tmp_particles[i];
-
-                int num_neighbors = 0;
-                nl.push_back(0);
-
-                const IntVect& cell = cells[i];
-                Box bx(cell, cell);
-                bx.grow(m_num_neighbor_cells);
-
-                for (IntVect iv = bx.smallEnd(); iv <= bx.bigEnd(); bx.next(iv)) {
-                    int j = head(iv);
-                    while (j >= 0) {
-                        if (i == j) {
-                            j = list[j];
-                            continue;
-                        }
-                        if ( check_pair(p, tmp_particles[j]) ) {
-                            nl.push_back(j+1);
-                            num_neighbors += 1;
-                        }
-                        j = list[j];
-                    }
-                }
-
-                nl[p_start_index] = num_neighbors;
-                p_start_index += num_neighbors + 1;
-            }
-
-            if (sort) {
-                for (unsigned i = 0; i < nl.size(); i += nl[i] +1) {
-                    std::sort(nl.begin() + i + 1,
-                              nl.begin() + nl[i] + i + 1);
-                }
-            }
-#ifdef AMREX_USE_CUDA
-            neighbor_list[lev][index].resize(nl.size());
-            Gpu::copy(Gpu::hostToDevice, nl.begin(), nl.end(), neighbor_list[lev][index].begin());
-#endif
-        }
-        }
-    }
-}
-
-template <int NStructReal, int NStructInt>
-void
-NeighborParticleContainer<NStructReal, NStructInt>::
-printNeighborListCPU (const std::string& prefix)
-{
-    BL_PROFILE("NeighborParticleContainer::printNeighborListCPU");
-
-    for (int lev = 0; lev < this->numLevels(); ++lev) {
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-        {
-            for (MyParIter pti(*this, lev, MFItInfo().SetDynamic(true)); pti.isValid(); ++pti) {
-                PairIndex index(pti.index(), pti.LocalTileIndex());
-#ifdef AMREX_USE_CUDA
-                Gpu::HostVector<int> nl;
-#else
-                IntVector& nl = neighbor_list[lev][index];
-#endif
-                if (nl.size() == 0) continue;
-                std::stringstream ss;
-                ss << prefix << "_level_" << lev;
-                int ind = 0;
-                while (ind < nl.size()) {
-                    int num_partners = nl[ind++];
-                    amrex::AllPrintToFile(ss.str()) << num_partners << ": \n ";
-                    amrex::AllPrintToFile(ss.str()) << "\t";
-                    for (int i = ind; i < ind + num_partners; ++i) {
-                        amrex::AllPrintToFile(ss.str()) << nl[i] << " ";
-                    }
-                    amrex::AllPrintToFile(ss.str()) << "\n";
-                    ind += num_partners;
-                }
-            }
-        }
-    }
 }
 
 #endif

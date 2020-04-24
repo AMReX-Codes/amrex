@@ -78,6 +78,11 @@ public:
 
     int numParticles () const { return GetArrayOfStructs().numParticles(); }
 
+    int numRealParticles () const { return GetArrayOfStructs().numRealParticles(); }
+
+    int numNeighborParticles () const { return GetArrayOfStructs().numNeighborParticles(); }
+
+    
     int GetLevel () const { return m_level; }
 
     std::pair<int, int> GetPairIndex () const { return std::make_pair(this->index(), this->LocalTileIndex()); }
