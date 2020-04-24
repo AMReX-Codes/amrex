@@ -25,43 +25,37 @@ namespace amrex {
 
 }
 
-// If on GPUs, use a simple array wrapper that 
-// designates needed functions as __host__ __device__
-#ifdef AMREX_USE_GPU
-
 namespace amrex {
     template <class T, std::size_t N>
     struct GpuArray
     {
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T& operator [] (int i) const noexcept { return arr[i]; }
+
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T& operator [] (int i) noexcept { return arr[i]; }
+
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T* data() const noexcept { return arr; };
+
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         std::size_t size() const noexcept { return N; };
+
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T* begin() const noexcept { return arr; };
+
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T* end() const noexcept { return arr + N; };
+
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T* begin() noexcept { return arr; };
+
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T* end() noexcept { return arr + N; };
 
         T arr[N];
     };
 }
-
-#else
-
-namespace amrex {
-    template <class T, std::size_t N>
-    using GpuArray = std::array<T,N>;
-}
-
-#endif
 
 namespace amrex {
     template <class T, int XLO, int XHI>
