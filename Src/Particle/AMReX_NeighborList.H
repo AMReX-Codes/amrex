@@ -91,18 +91,18 @@ public:
     template <class PTile, class CheckPair>
     void build (const PTile& ptile,
                 const amrex::Box& bx, const amrex::Geometry& geom,
-                CheckPair check_pair)
+                CheckPair check_pair, int num_cells=1)
     {
         const auto& vec = ptile.GetArrayOfStructs()();
         m_pstruct = vec.dataPtr();
         
         const auto dxi = geom.InvCellSizeArray();
         const auto plo = geom.ProbLoArray();
-
+		
         const size_t np_real  = ptile.numRealParticles();
         const size_t np_total = vec.size();
         const ParticleType* pstruct_ptr = vec.dataPtr();
-
+		
         const auto lo = lbound(bx);
         const auto hi = ubound(bx);
         m_bins.build(np_total, pstruct_ptr, bx,
@@ -134,9 +134,9 @@ public:
             
             int count = 0;
             
-            for (int ii = amrex::max(ix-1, 0); ii <= amrex::min(ix+1, nx-1); ++ii) {
-                for (int jj = amrex::max(iy-1, 0); jj <= amrex::min(iy+1, ny-1); ++jj) {
-                    for (int kk = amrex::max(iz-1, 0); kk <= amrex::min(iz+1, nz-1); ++kk) {
+            for (int ii = amrex::max(ix-num_cells, 0); ii <= amrex::min(ix+num_cells, nx-1); ++ii) {
+                for (int jj = amrex::max(iy-num_cells, 0); jj <= amrex::min(iy+num_cells, ny-1); ++jj) {
+                    for (int kk = amrex::max(iz-num_cells, 0); kk <= amrex::min(iz+num_cells, nz-1); ++kk) {
                         int index = (ii * ny + jj) * nz + kk;
                         for (int p = poffset[index]; p < poffset[index+1]; ++p) {
                             if (pperm[p] == i) continue;
@@ -146,7 +146,7 @@ public:
                     }
                 }
             }
-            
+
             pnbor_counts[i] = count;
         });
 
@@ -175,9 +175,9 @@ public:
             int nz = hi.z-lo.z+1;            
             
             int n = 0;            
-            for (int ii = amrex::max(ix-1, 0); ii <= amrex::min(ix+1, nx-1); ++ii) {
-                for (int jj = amrex::max(iy-1, 0); jj <= amrex::min(iy+1, ny-1); ++jj) {
-                    for (int kk = amrex::max(iz-1, 0); kk <= amrex::min(iz+1, nz-1); ++kk) {
+            for (int ii = amrex::max(ix-num_cells, 0); ii <= amrex::min(ix+num_cells, nx-1); ++ii) {
+                for (int jj = amrex::max(iy-num_cells, 0); jj <= amrex::min(iy+num_cells, ny-1); ++jj) {
+                    for (int kk = amrex::max(iz-num_cells, 0); kk <= amrex::min(iz+num_cells, nz-1); ++kk) {
                         int index = (ii * ny + jj) * nz + kk;
                         for (int p = poffset[index]; p < poffset[index+1]; ++p) {
                             if (pperm[p] == i) continue;
