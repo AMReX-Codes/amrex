@@ -79,49 +79,30 @@ namespace amrex
 
 #ifdef AMREX_USE_GPU
 
+    template <class T, class Enable = void>
+    struct MaybeDeviceRunnable : std::true_type {};
+
+    template <class T, class Enable = void>
+    struct MaybeHostDeviceRunnable : std::true_type {};
+
+    template <class T, class Enable = void>
+    struct DefinitelyNotHostRunnable : std::false_type {};
+
 #if defined(AMREX_USE_CUDA)
 
-    template <class T, class Enable = void>
-    struct HostRunnable : std::true_type {};
-    //
     template <class T>
-    struct HostRunnable<T, amrex::EnableIf_t<__nv_is_extended_device_lambda_closure_type(T)> >
+    struct MaybeHostDeviceRunnable<T, amrex::EnableIf_t<__nv_is_extended_device_lambda_closure_type(T)> >
         : std::false_type {};
 
-    template <class T, class Enable = void>
-    struct DeviceRunnable : std::false_type {};
-    //
     template <class T>
-    struct DeviceRunnable<T, amrex::EnableIf_t<__nv_is_extended_host_device_lambda_closure_type(T)
-                                            or __nv_is_extended_device_lambda_closure_type(T)> >
+    struct DefinitelyNotHostRunnable<T, amrex::EnableIf_t<__nv_is_extended_device_lambda_closure_type(T)> >
         : std::true_type {};
 
 #elif defined(AMREX_USE_HIP)
 
     // xxxxx HIP todo
-    template <class T, class Enable = void>
-    struct HostRunnable : std::true_type {};
-
-    template <class T, class Enable = void>
-    struct DeviceRunnable : std::true_type {};
-
-#elif defined(AMREX_USE_DPCPP)
-
-    template <class T, class Enable = void>
-    struct HostRunnable : std::true_type {};
-
-    template <class T, class Enable = void>
-    struct DeviceRunnable : std::true_type {};
 
 #endif
-
-    template <class T, class Enable = void>
-    struct HostDeviceRunnable : std::false_type {};
-    //
-    template <class T>
-    struct HostDeviceRunnable<T, amrex::EnableIf_t<HostRunnable<T>::value
-                                                   and DeviceRunnable<T>::value> >
-        : std::true_type {};
 
 #endif
 
