@@ -28,6 +28,8 @@ using gpuDeviceProp_t = cudaDeviceProp;
         int maxGridSize[3];
         int warpSize;
         Long maxMemAllocSize; // oneAPI only
+        int managedMemory;
+        int concurrentManagedAccess;
     };
 #endif
 
@@ -76,7 +78,7 @@ public:
 #endif
 
 #if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
-    // Generic graph selection. These should be called by users. 
+    // Generic graph selection. These should be called by users.
     static void startGraphRecording(bool first_iter, void* h_ptr, void* d_ptr, size_t sz);
     static cudaGraphExec_t stopGraphRecording(bool last_iter);
 
