@@ -305,7 +305,34 @@ ParallelDescriptor::StartParallel (int*    argc,
     MPI_Initialized(&sflag);
 
     if ( ! sflag) {
-	MPI_Init(argc, argv);
+#ifdef AMREX_MPI_INIT
+        MPI_Init(argc, argv);
+#else
+
+    #ifdef AMREX_MPI_SINGLE
+        int requested = MPI_THREAD_SINGLE;
+    #elif AMREX_MPI_FUNNELED
+        int requested = MPI_THREAD_FUNNELED;
+    #elif AMREX_MPI_SERIALIZED
+        int requested = MPI_THREAD_SERIALIZED;
+    #elif AMREX_MPI_MULTIPLE
+        int requested = MPI_THREAD_MULTIPLE;
+    #else
+        amrex::Abort("Incorrect MPI_Init type defined\n"); 
+    #endif
+        int provided = -1;
+
+        MPI_Init_thread(argc, argv, requested, &provided);
+
+        if (provided < requested)
+        {
+            std::cout << "MPI provided < requested: " + std::to_string(provided) + 
+                                                " < " + std::to_string(requested);
+            abort();
+        }
+
+#endif // MPI_INIT
+
         m_comm = MPI_COMM_WORLD;
         call_mpi_finalize = 1;
     } else {
@@ -337,6 +364,14 @@ ParallelDescriptor::StartParallel (int*    argc,
     int mpi_version, mpi_subversion;
     BL_MPI_REQUIRE( MPI_Get_version(&mpi_version, &mpi_subversion) );
     if (mpi_version < 3) amrex::Abort("MPI 3 is needed because USE_MPI3=TRUE");
+#endif
+
+#ifdef AMREX_MPI_INIT
+    amrex::Print() << "MPI Initialized." << std::endl;
+#else
+    int provided = -1;
+    MPI_Query_thread(&provided);
+    amrex::Print() << "MPI Thread Initialized with support level " << provided << "." << std::endl;
 #endif
 
     // Wait until all other processes are properly started.
@@ -396,6 +431,30 @@ ParallelDescriptor::Barrier (const MPI_Comm &comm, const std::string &message)
 
     BL_COMM_PROFILE_BARRIER(message, false);
 }
+
+
+ParallelDescriptor::Message
+ParallelDescriptor::Abarrier ()
+{
+    MPI_Request req;
+    BL_MPI_REQUIRE( MPI_Ibarrier(ParallelDescriptor::Communicator(), &req) );
+
+    // Use a char/(byte) as a faux-type for compatibility. 
+
+    return Message(req, Mpi_typemap<char>::type());
+}
+
+ParallelDescriptor::Message
+ParallelDescriptor::Abarrier (const MPI_Comm & comm)
+{
+    MPI_Request req;
+    BL_MPI_REQUIRE( MPI_Ibarrier(comm, &req) );
+
+    // Use a char/(byte) as a faux-type for compatibility.
+
+    return Message(req, Mpi_typemap<char>::type());   
+}
+
 
 void
 ParallelDescriptor::Test (MPI_Request& request, int& flag, MPI_Status& status)
@@ -1748,6 +1807,8 @@ const char* ParallelDescriptor::ErrorString (int) { return ""; }
 
 void ParallelDescriptor::Barrier (const std::string &message) {}
 void ParallelDescriptor::Barrier (const MPI_Comm &comm, const std::string &message) {}
+ParallelDescriptor::Message ParallelDescriptor::Abarrier () { return ParallelDescriptor::Message(); }
+ParallelDescriptor::Message ParallelDescriptor::Abarrier (const MPI_Comm &comm) { return ParallelDescriptor::Message(); }
 
 void ParallelDescriptor::Test (MPI_Request&, int&, MPI_Status&) {}
 void ParallelDescriptor::IProbe (int, int, int&, MPI_Status&) {}

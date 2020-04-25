@@ -196,6 +196,30 @@ else
   USE_MPI := FALSE
 endif
 
+ifdef MPI_SINGLE
+  MPI_SINGLE := $(strip $(MPI_SINGLE))
+else
+  MPI_SINGLE := FALSE
+endif
+
+ifdef MPI_FUNNELED
+  MPI_FUNNELED := $(strip $(MPI_FUNNELED))
+else
+  MPI_FUNNELED := FALSE
+endif
+
+ifdef MPI_SERIALIZED
+  MPI_SERIALIZED := $(strip $(MPI_SERIALIZED))
+else
+  MPI_SERIALIZED := FALSE
+endif
+
+ifdef MPI_MULTIPLE
+  MPI_MULTIPLE := $(strip $(MPI_MULTIPLE))
+else
+  MPI_MULTIPLE := FALSE
+endif
+
 ifdef USE_CONDUIT
   USE_CONDUIT := $(strip $(USE_CONDUIT))
 else
@@ -538,7 +562,7 @@ ifeq ($(USE_ARRAYVIEW), TRUE)
 endif
 
 ifeq ($(USE_MPI),TRUE)
-    MPISuffix	:= .MPI
+#    MPISuffix	:= .MPI
     CPPFLAGS	+= -DBL_USE_MPI -DAMREX_USE_MPI
 else
     MPISuffix	:=
@@ -547,6 +571,25 @@ endif
 ifeq ($(USE_MPI3),TRUE)
     MPISuffix := .MPI3
     CPPFLAGS  += -DBL_USE_MPI3 -DAMREX_USE_MPI3
+endif
+
+ifeq ($(USE_MPI),TRUE)
+    ifeq ($(MPI_MULTIPLE),TRUE)
+        MPISuffix := .MPI-MULTIPLE
+        CPPFLAGS += -DAMREX_MPI_MULTIPLE
+    else ifeq ($(MPI_FUNNELED),TRUE)
+        MPISuffix := .MPI-FUNNELED
+        CPPFLAGS += -DAMREX_MPI_FUNNELED
+    else ifeq ($(MPI_SERIALIZED),TRUE)
+        MPISuffix := .MPI-SERIALIZED
+        CPPFLAGS += -DAMREX_MPI_SERIALIZED
+    else ifeq ($(MPI_SINGLE),TRUE)
+        MPISuffix := .MPI-SINGLE
+        CPPFLAGS += -DAMREX_MPI_SINGLE
+    else
+        MPISuffix := .MPI
+        CPPFLAGS += -DAMREX_MPI_INIT
+    endif
 endif
 
 ifeq ($(USE_UPCXX),TRUE)
