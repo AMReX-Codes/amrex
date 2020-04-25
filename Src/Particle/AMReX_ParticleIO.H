@@ -453,7 +453,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             for (const auto& kv : pmap)
             {
                 const auto& aos = kv.second.GetArrayOfStructs();
-                for (int k = 0; k < aos.size(); ++k) 
+                for (int k = 0; k < aos.numParticles(); ++k) 
                 {
                     // Only count (and checkpoint) valid particles.
                     const ParticleType& p = aos[k];
@@ -711,7 +711,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
         // Only write out valid particles.
         int cnt = 0;	
-	for (int k = 0; k < kv.second.GetArrayOfStructs().size(); ++k)
+	for (int k = 0; k < kv.second.GetArrayOfStructs().numParticles(); ++k)
 	{
 	    const ParticleType& p = kv.second.GetArrayOfStructs()[k];
   	    if (p.m_idata.id > 0) {
@@ -814,7 +814,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
         for (unsigned i = 0; i < tile_map[grid].size(); i++) {
             const auto& pbox = m_particles[lev].at(std::make_pair(grid, tile_map[grid][i]));
-            for (int pindex = 0; pindex < pbox.GetArrayOfStructs().size(); ++pindex) {
+            for (int pindex = 0; pindex < pbox.GetArrayOfStructs().numParticles(); ++pindex) {
                 const ParticleType& p = pbox.GetArrayOfStructs()[pindex];
                 if (p.m_idata.id > 0) {
                     for (int j = 0; j < 2 + NStructInt; j++) {
@@ -851,7 +851,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         
         for (unsigned i = 0; i < tile_map[grid].size(); i++) {
             const auto& pbox = m_particles[lev].at(std::make_pair(grid, tile_map[grid][i]));
-            for (int pindex = 0; pindex < pbox.GetArrayOfStructs().size(); ++pindex) {
+            for (int pindex = 0; pindex < pbox.GetArrayOfStructs().numParticles(); ++pindex) {
                 const ParticleType& p = pbox.GetArrayOfStructs()[pindex];
                 if (p.m_idata.id > 0) {
                     for (int j = 0; j < AMREX_SPACEDIM + NStructReal; j++) {
@@ -2027,14 +2027,14 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         const auto& pmap = m_particles[lev];
         for (const auto& kv : pmap) {
             const auto& aos = kv.second.GetArrayOfStructs();
-			for (int k = 0; k < aos.size(); ++k) {
-				const ParticleType& p = aos[k];
+            for (int k = 0; k < aos.numParticles(); ++k) {
+                const ParticleType& p = aos[k];
                 if (p.m_idata.id > 0) {
                     //
                     // Only count (and checkpoint) valid particles.
                     //
                     nparticles++;
-				}
+                }
             }
         }
     }
@@ -2160,7 +2160,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 		
         // Only write out valid particles.
         int cnt = 0;	
-        for (int k = 0; k < kv.second.GetArrayOfStructs().size(); ++k)
+        for (int k = 0; k < kv.second.GetArrayOfStructs().numParticles(); ++k)
         {
             if (pflags[k]) cnt++;
         }
@@ -2194,7 +2194,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             auto ptile_index = std::make_pair(grid, tile_map[grid][i]);
             const auto& pbox = m_particles[lev].at(ptile_index);
             const auto& pflags = particle_io_flags[lev].at(ptile_index);
-            for (int pindex = 0; pindex < pbox.GetArrayOfStructs().size(); ++pindex) {
+            for (int pindex = 0; pindex < pbox.GetArrayOfStructs().numParticles(); ++pindex) {
                 const auto& aos = pbox.GetArrayOfStructs();
                 const auto& p = aos[pindex];
                 if (pflags[pindex])
@@ -2242,9 +2242,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 			auto ptile_index = std::make_pair(grid, tile_map[grid][i]);
             const auto& pbox = m_particles[lev].at(ptile_index);
 			const auto& pflags = particle_io_flags[lev].at(ptile_index);
-            for (int pindex = 0; pindex < pbox.GetArrayOfStructs().size(); ++pindex) {
-				const auto& aos = pbox.GetArrayOfStructs();
-				const auto& p = aos[pindex];				
+            for (int pindex = 0; pindex < pbox.GetArrayOfStructs().numParticles(); ++pindex) {
+                const auto& aos = pbox.GetArrayOfStructs();
+                const auto& p = aos[pindex];				
                 if (pflags[pindex])
                 {
                     // always write these
@@ -2700,7 +2700,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteAsciiFil
             const auto& aos = kv.second.GetArrayOfStructs();
 	    auto np = aos.numParticles();
 	    Gpu::HostVector<ParticleType> host_aos(np);
-	    Gpu::copy(Gpu::deviceToHost, aos.begin(), aos.end(), host_aos.begin());
+	    Gpu::copy(Gpu::deviceToHost, aos.begin(), aos.begin() + np, host_aos.begin());
 	    for (int k = 0; k < np; ++k) {
 	        const ParticleType& p = host_aos[k];
                 if (p.m_idata.id > 0)
@@ -2848,7 +2848,7 @@ ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt>::WriteCoarsenedA
         auto& pmap = m_particles[lev];
         for (const auto& kv : pmap) {
             const auto& aos = kv.second.GetArrayOfStructs();
-            for (int k = 0; k < aos.size(); ++k) {
+            for (int k = 0; k < aos.numParticles(); ++k) {
 	        const ParticleType& p = aos[k];
                 if (p.m_idata.id > 0)
                     //
@@ -2918,8 +2918,8 @@ ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt>::WriteCoarsenedA
                   
                   int index = 0;
                   ParticleLocData pld;
-                  for (int k = 0; k < aos.size(); ++k) {
-					  ParticleType* it = &aos[k];
+                  for (int k = 0; k < aos.numParticles(); ++k) {
+                      ParticleType* it = &aos[k];
                       locateParticle(*it, pld, 0, finestLevel(), 0);
                       // Only keep particles in even cells
                       if (it->id() > 0 &&
