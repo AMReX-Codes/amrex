@@ -71,6 +71,12 @@ ifeq ($(DPCPP_AOT),TRUE)
 endif
 endif
 
+ifneq ($(DPCPP_AOT),TRUE)
+ifneq ($(DPCPP_SPLIT_KERNEL),FALSE)
+  CXXFLAGS += -fsycl-device-code-split=per_kernel
+endif
+endif
+
 #FFLAGS   += -ffixed-line-length-none -fno-range-check -fno-second-underscore
 #F90FLAGS += -ffree-line-length-none -fno-range-check -fno-second-underscore -fimplicit-none
 

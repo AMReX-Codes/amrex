@@ -237,9 +237,6 @@ inline void mlndlap_bc_doit (Box const& vbx, Array4<T> const& a, Box const& doma
                              GpuArray<bool,AMREX_SPACEDIM> const& bflo,
                              GpuArray<bool,AMREX_SPACEDIM> const& bfhi) noexcept
 {
-#ifdef AMREX_USE_DPCPP
-    amrex::Abort("xxxxx DPCPP todo: mlndlap_bc_doit: kernel too big");
-#else
     Box gdomain = domain;
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         if (not bflo[idim]) gdomain.growLo(idim,1);
@@ -731,7 +728,6 @@ inline void mlndlap_bc_doit (Box const& vbx, Array4<T> const& a, Box const& doma
             }
         }
     });
-#endif
 }
 
 //
