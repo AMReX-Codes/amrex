@@ -670,11 +670,66 @@ void
 NeighborParticleContainer<NStructReal, NStructInt>::
 buildNeighborList (CheckPair check_pair, bool sort) 
 {
-#ifdef AMREX_USE_CUDA
-    buildNeighborListGPU(check_pair);
-#else
-    buildNeighborListCPU(check_pair, sort);
+    AMREX_ASSERT(numParticlesOutOfRange(*this, m_num_neighbor_cells) == 0);
+
+    resizeContainers(this->numLevels());
+
+    for (int lev = 0; lev < this->numLevels(); ++lev)
+    {
+        m_neighbor_list[lev].clear();
+                
+        for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
+            PairIndex index(pti.index(), pti.LocalTileIndex());
+            m_neighbor_list[lev][index];
+        }
+
+#ifndef AMREX_USE_GPU        
+        neighbor_list[lev].clear();                
+        for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
+            PairIndex index(pti.index(), pti.LocalTileIndex());
+            neighbor_list[lev][index];
+        }
 #endif
+        
+        IntVect ref_fac = computeRefFac(0, lev);
+              auto& plev = this->GetParticles(lev);
+        const auto& geom = this->Geom(lev);
+        
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for(MFIter mfi = this->MakeMFIter(lev,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            int gid = mfi.index();
+            int tid = mfi.LocalTileIndex();
+            auto index = std::make_pair(gid, tid);
+            
+            auto& ptile = plev[index];
+
+            if (ptile.numParticles() == 0) continue;
+            
+            Box bx = mfi.tilebox();
+            bx.coarsen(ref_fac);
+            bx.grow(m_num_neighbor_cells);
+            
+            m_neighbor_list[lev][index].build(ptile, bx, geom, check_pair, m_num_neighbor_cells);
+#ifndef AMREX_USE_GPU
+            const auto& counts = m_neighbor_list[lev][index].GetCounts();
+            const auto& list   = m_neighbor_list[lev][index].GetList();
+            
+            int li = 0;
+            for (int i = 0; i < ptile.numParticles(); ++i)
+            {
+                auto cnt = counts[i];
+                neighbor_list[lev][index].push_back(cnt);
+                for (int j = 0; j < cnt; ++j)
+                {
+                    neighbor_list[lev][index].push_back(list[li++]+1);
+                }
+            }
+#endif
+        }        
+    }
 }
 
 template <int NStructReal, int NStructInt>
@@ -682,11 +737,18 @@ void
 NeighborParticleContainer<NStructReal, NStructInt>::
 printNeighborList ()
 {
-#ifdef AMREX_USE_CUDA
-    printNeighborListGPU();
-#else
-    printNeighborListCPU("nl");
-#endif
+    BL_PROFILE("NeighborParticleContainer::printNeighborList");
+
+    for (int lev = 0; lev < this->numLevels(); ++lev)
+    {
+        for(MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
+        {
+            int gid = mfi.index();
+            int tid = mfi.LocalTileIndex();
+            auto index = std::make_pair(gid, tid);            
+            m_neighbor_list[lev][index].print();
+        }        
+    }
 }
 
 template <int NStructReal, int NStructInt>
@@ -697,6 +759,7 @@ resizeContainers (const int num_levels)
     if ( static_cast<int>(neighbors.size()) <= num_levels )
     {
         neighbors.resize(num_levels);
+        m_neighbor_list.resize(num_levels);
         neighbor_list.resize(num_levels);
         mask_ptr.resize(num_levels);
         buffer_tag_cache.resize(num_levels);
@@ -704,6 +767,6 @@ resizeContainers (const int num_levels)
         if ( enableInverse() ) inverse_tags.resize(num_levels);
     }
 
-    AMREX_ASSERT((neighbors.size() == neighbor_list.size()) and
+    AMREX_ASSERT((neighbors.size() == m_neighbor_list.size()) and
                  (neighbors.size() == mask_ptr.size()     )    );
 }
