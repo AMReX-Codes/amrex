@@ -14,10 +14,14 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
                         Array4<Real const> const& bc, Array4<Real const> const& beb,
                         bool is_dirichlet, Array4<Real const> const& phieb,
                         bool is_inhomog, GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
-                        Real alpha, Real beta, int ncomp) noexcept
+                        Real alpha, Real beta, int ncomp, 
+                        bool beta_on_centroid, bool phi_on_centroid) noexcept
 {
     Real dhx = beta*dxinv[0]*dxinv[0];
     Real dhy = beta*dxinv[1]*dxinv[1];
+
+    bool beta_on_center = !(beta_on_centroid);
+    bool  phi_on_center = !( phi_on_centroid);
 
     amrex::Loop(box, ncomp, [=] (int i, int j, int k, int n) noexcept
     {
@@ -41,32 +45,56 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
             Real apym = apy(i,j,k);
             Real apyp = apy(i,j+1,k);
 
-            Real fxm = bX(i,j,k,n)*(x(i,j,k,n)-x(i-1,j,k,n));
+            Real fxm = bX(i,j,k,n) * (x(i,j,k,n)-x(i-1,j,k,n));
             if (apxm != 0.0 and apxm != 1.0) {
                 int jj = j + static_cast<int>(amrex::Math::copysign(1.0,fcx(i,j,k)));
                 Real fracy = (ccm(i-1,jj,k) || ccm(i,jj,k)) ? amrex::Math::abs(fcx(i,j,k)) : 0.0;
-                fxm = (1.0-fracy)*fxm + fracy*bX(i,jj,k,n)*(x(i,jj,k,n)-x(i-1,jj,k,n));
+                if (beta_on_center and phi_on_center) 
+                   fxm = (1.0-fracy)*fxm + fracy*bX(i,jj,k,n)*(x(i,jj,k,n)-x(i-1,jj,k,n));
+                else if (beta_on_centroid and phi_on_center) 
+                   fxm = bX(i,j,k,n) * ( (1.0-fracy)*(x(i, j,k,n)-x(i-1, j,k,n))
+                                           + fracy  *(x(i,jj,k,n)-x(i-1,jj,k,n)) );
+                else if (beta_on_centroid and phi_on_centroid) 
+                   amrex::Abort("beta_on_centroid and phi_on_centroid is still a WIP");
             }
 
             Real fxp = bX(i+1,j,k,n)*(x(i+1,j,k,n)-x(i,j,k,n));
             if (apxp != 0.0 and apxp != 1.0) {
                 int jj = j + static_cast<int>(amrex::Math::copysign(1.0,fcx(i+1,j,k)));
                 Real fracy = (ccm(i,jj,k) || ccm(i+1,jj,k)) ? amrex::Math::abs(fcx(i+1,j,k)) : 0.0;
-                fxp = (1.0-fracy)*fxp + fracy*bX(i+1,jj,k,n)*(x(i+1,jj,k,n)-x(i,jj,k,n));
+                if (beta_on_center and phi_on_center) 
+                    fxp = (1.0-fracy)*fxp + fracy*bX(i+1,jj,k,n)*(x(i+1,jj,k,n)-x(i,jj,k,n));
+                else if (beta_on_centroid and phi_on_center) 
+                    fxp = bX(i+1,j,k,n) * ( (1.0-fracy)*(x(i+1, j,k,n)-x(i, j,k,n))
+                                               + fracy *(x(i+1,jj,k,n)-x(i,jj,k,n)) );
+                else if (beta_on_centroid and phi_on_centroid) 
+                   amrex::Abort("beta_on_centroid and phi_on_centroid is still a WIP");
             }
 
             Real fym = bY(i,j,k,n)*(x(i,j,k,n)-x(i,j-1,k,n));
             if (apym != 0.0 and apym != 1.0) {
                 int ii = i + static_cast<int>(amrex::Math::copysign(1.0,fcy(i,j,k)));
                 Real fracx = (ccm(ii,j-1,k) || ccm(ii,j,k)) ? amrex::Math::abs(fcy(i,j,k)) : 0.0;
-                fym = (1.0-fracx)*fym + fracx*bY(ii,j,k,n)*(x(ii,j,k,n)-x(ii,j-1,k,n));
+                if (beta_on_center and phi_on_center) 
+                    fym = (1.0-fracx)*fym + fracx*bY(ii,j,k,n)*(x(ii,j,k,n)-x(ii,j-1,k,n));
+                else if (beta_on_centroid and phi_on_center) 
+                    fym = bY(i,j,k,n) * ( (1.0-fracx)*(x( i,j,k,n)-x( i,j-1,k,n))
+                                             + fracx *(x(ii,j,k,n)-x(ii,j-1,k,n)) );
+                else if (beta_on_centroid and phi_on_centroid) 
+                   amrex::Abort("beta_on_centroid and phi_on_centroid is still a WIP");
             }
 
             Real fyp = bY(i,j+1,k,n)*(x(i,j+1,k,n)-x(i,j,k,n));
             if (apyp != 0.0 and apyp != 1.0) {
                 int ii = i + static_cast<int>(amrex::Math::copysign(1.0,fcy(i,j+1,k)));
                 Real fracx = (ccm(ii,j,k) || ccm(ii,j+1,k)) ? amrex::Math::abs(fcy(i,j+1,k)) : 0.0;
-                fyp = (1.0-fracx)*fyp + fracx*bY(ii,j+1,k,n)*(x(ii,j+1,k,n)-x(ii,j,k,n));
+                if (beta_on_center and phi_on_center) 
+                    fyp = (1.0-fracx)*fyp + fracx*bY(ii,j+1,k,n)*(x(ii,j+1,k,n)-x(ii,j,k,n));
+                else if (beta_on_centroid and phi_on_center) 
+                    fyp = bY(i,j+1,k,n) * ( (1.0-fracx)*(x( i,j+1,k,n)-x( i,j,k,n))
+                                               + fracx *(x(ii,j+1,k,n)-x(ii,j,k,n)) );
+                else if (beta_on_centroid and phi_on_centroid) 
+                   amrex::Abort("beta_on_centroid and phi_on_centroid is still a WIP");
             }
 
             Real feb = 0.0;
@@ -204,7 +232,8 @@ void mlebabeclap_gsrb (Box const& box,
                        Array4<Real const> const& fcx, Array4<Real const> const& fcy,
                        Array4<Real const> const& ba, Array4<Real const> const& bc,
                        Array4<Real const> const& beb,
-                       bool is_dirichlet, Box const& vbox, int redblack, int ncomp) noexcept
+                       bool is_dirichlet, bool beta_on_centroid, bool phi_on_centroid,
+                       Box const& vbox, int redblack, int ncomp) noexcept
 {
     const auto vlo = amrex::lbound(vbox);
     const auto vhi = amrex::ubound(vbox);
@@ -260,8 +289,19 @@ void mlebabeclap_gsrb (Box const& box,
                         int jj = j + static_cast<int>(amrex::Math::copysign(1.0,fcx(i,j,k)));
                         Real fracy = (ccm(i-1,jj,k) || ccm(i,jj,k))
                             ? amrex::Math::abs(fcx(i,j,k)) : 0.0;
-                        fxm = (1.0-fracy)*fxm + fracy*bX(i,jj,k,n)*
-                            (phi(i,jj,k,n)-phi(i-1,jj,k,n));
+                        if (!beta_on_centroid and !phi_on_centroid)
+                        {
+                            fxm = (1.0-fracy)*fxm + 
+                                       fracy *bX(i,jj,k,n)*(phi(i,jj,k,n)-phi(i-1,jj,k,n));
+                        } 
+                        else if (beta_on_centroid and !phi_on_centroid)
+                        {
+                            fxm = (1.0-fracy)*(             -phi(i-1,j,k,n)) +
+                                       fracy *(phi(i,jj,k,n)-phi(i-1,jj,k,n));
+                            fxm *= bX(i,j,k,n);
+                        }
+                        else if (beta_on_centroid and phi_on_centroid) 
+                           amrex::Abort("beta_on_centroid and phi_on_centroid is still a WIP");
                         oxm = 0.0;
                         sxm = (1.0-fracy)*sxm;
                     }
@@ -273,8 +313,19 @@ void mlebabeclap_gsrb (Box const& box,
                         int jj = j + static_cast<int>(amrex::Math::copysign(1.0,fcx(i+1,j,k)));
                         Real fracy = (ccm(i,jj,k) || ccm(i+1,jj,k))
                             ? amrex::Math::abs(fcx(i+1,j,k)) : 0.0;
-                        fxp = (1.0-fracy)*fxp + fracy*bX(i+1,jj,k,n)*
-                            (phi(i+1,jj,k,n)-phi(i,jj,k,n));
+                        if (!beta_on_centroid and !phi_on_centroid)
+                        {
+                            fxp = (1.0-fracy)*fxp + 
+                                       fracy *bX(i+1,jj,k,n)*(phi(i+1,jj,k,n)-phi(i,jj,k,n));
+                        } 
+                        else if (beta_on_centroid and !phi_on_centroid)
+                        {
+                            fxp = (1.0-fracy)*(phi(i+1,j,k,n)               ) +
+                                       fracy *(phi(i+1,jj,k,n)-phi(i,jj,k,n));
+                            fxp *= bX(i+1,j,k,n);
+                        }
+                        else if (beta_on_centroid and phi_on_centroid) 
+                           amrex::Abort("beta_on_centroid and phi_on_centroid is still a WIP");
                         oxp = 0.0;
                         sxp = (1.0-fracy)*sxp;
                     }
@@ -286,8 +337,20 @@ void mlebabeclap_gsrb (Box const& box,
                         int ii = i + static_cast<int>(amrex::Math::copysign(1.0,fcy(i,j,k)));
                         Real fracx = (ccm(ii,j-1,k) || ccm(ii,j,k))
                             ? amrex::Math::abs(fcy(i,j,k)) : 0.0;
-                        fym = (1.0-fracx)*fym + fracx*bY(ii,j,k,n)*
-                            (phi(ii,j,k,n)-phi(ii,j-1,k,n));
+                        if (!beta_on_centroid and !phi_on_centroid)
+                        {
+                            fym = (1.0-fracx)*fym + 
+                                       fracx *bY(ii,j,k,n)*(phi(ii,j,k,n)-phi(ii,j-1,k,n));
+                        } 
+                        else if (beta_on_centroid and !phi_on_centroid)
+                        {
+                            fym = (1.0-fracx)*(             -phi( i,j-1,k,n)) +
+                                       fracx *(phi(ii,j,k,n)-phi(ii,j-1,k,n));
+                            fym *= bY(i,j,k,n);
+                        }
+                        else if (beta_on_centroid and phi_on_centroid) 
+                           amrex::Abort("beta_on_centroid and phi_on_centroid is still a WIP");
+
                         oym = 0.0;
                         sym = (1.0-fracx)*sym;
                     }
@@ -299,8 +362,19 @@ void mlebabeclap_gsrb (Box const& box,
                         int ii = i + static_cast<int>(amrex::Math::copysign(1.0,fcy(i,j+1,k)));
                         Real fracx = (ccm(ii,j,k) || ccm(ii,j+1,k))
                             ? amrex::Math::abs(fcy(i,j+1,k)) : 0.0;
-                        fyp = (1.0-fracx)*fyp + fracx*bY(ii,j+1,k,n)*
-                            (phi(ii,j+1,k,n)-phi(ii,j,k,n));
+                        if (!beta_on_centroid and !phi_on_centroid)
+                        {
+                            fyp = (1.0-fracx)*fyp + 
+                                       fracx*bY(ii,j+1,k,n)*(phi(ii,j+1,k,n)-phi(ii,j,k,n));
+                        } 
+                        else if (beta_on_centroid and !phi_on_centroid)
+                        {
+                            fyp = (1.0-fracx)*(phi(i,j+1,k,n)               )+
+                                       fracx *(phi(ii,j+1,k,n)-phi(ii,j,k,n));
+                            fyp *= bY(i,j+1,k,n);
+                        }
+                        else if (beta_on_centroid and phi_on_centroid) 
+                           amrex::Abort("beta_on_centroid and phi_on_centroid is still a WIP");
                         oyp = 0.0;
                         syp = (1.0-fracx)*syp;
                     }
@@ -374,7 +448,8 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebabeclap_flux_x (Box const& box, Array4<Real> const& fx, Array4<Real const> const& apx,
                          Array4<Real const> const& fcx, Array4<Real const> const& sol,
                          Array4<Real const> const& bX, Array4<int const> const& ccm,
-                         Real dhx, int face_only, int ncomp, Box const& xbox) noexcept
+                         Real dhx, int face_only, int ncomp, Box const& xbox,
+                         bool beta_on_centroid, bool phi_on_centroid) noexcept
 {
     int lof = xbox.smallEnd(0);
     int hif = xbox.bigEnd(0);
@@ -389,7 +464,14 @@ void mlebabeclap_flux_x (Box const& box, Array4<Real> const& fx, Array4<Real con
                 Real fxm = bX(i,j,k,n)*(sol(i,j,k,n)-sol(i-1,j,k,n));
                 int jj = j + static_cast<int>(amrex::Math::copysign(1.0,fcx(i,j,k)));
                 Real fracy = (ccm(i-1,jj,k) || ccm(i,jj,k)) ? amrex::Math::abs(fcx(i,j,k)) : 0.0;
-                fxm = (1.0-fracy)*fxm + fracy*bX(i,jj,k,n)*(sol(i,jj,k,n)-sol(i-1,jj,k,n));
+                if (!beta_on_centroid and !phi_on_centroid)
+                {
+                    fxm = (1.0-fracy)*fxm + fracy*bX(i,jj,k,n)*(sol(i,jj,k,n)-sol(i-1,jj,k,n));
+                } else if (beta_on_centroid and !phi_on_centroid)
+                    fxm = bX(i,j,k,n) * ( (1.0-fracy)*(sol(i, j,k,n)-sol(i-1, j,k,n)) +
+                                               fracy *(sol(i,jj,k,n)-sol(i-1,jj,k,n)) );
+                else if (beta_on_centroid and phi_on_centroid) 
+                   amrex::Abort("beta_on_centroid and phi_on_centroid is still a WIP");
                 fx(i,j,k,n) = -fxm*dhx;
             }
         }
@@ -400,7 +482,8 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebabeclap_flux_y (Box const& box, Array4<Real> const& fy, Array4<Real const> const& apy,
                          Array4<Real const> const& fcy, Array4<Real const> const& sol,
                          Array4<Real const> const& bY, Array4<int const> const& ccm,
-                         Real dhy, int face_only, int ncomp, Box const& ybox) noexcept
+                         Real dhy, int face_only, int ncomp, Box const& ybox,
+                         bool beta_on_centroid, bool phi_on_centroid) noexcept
 {
     int lof = ybox.smallEnd(1);
     int hif = ybox.bigEnd(1);
@@ -415,7 +498,14 @@ void mlebabeclap_flux_y (Box const& box, Array4<Real> const& fy, Array4<Real con
                 Real fym = bY(i,j,k,n)*(sol(i,j,k,n)-sol(i,j-1,k,n));
                 int ii = i + static_cast<int>(amrex::Math::copysign(1.0,fcy(i,j,k)));
                 Real fracx = (ccm(ii,j-1,k) || ccm(ii,j,k)) ? amrex::Math::abs(fcy(i,j,k)) : 0.0;
-                fym = (1.0-fracx)*fym + fracx*bY(ii,j,k,n)*(sol(ii,j,k,n)-sol(ii,j-1,k,n));
+                if (!beta_on_centroid and !phi_on_centroid)
+                {
+                    fym = (1.0-fracx)*fym + fracx*bY(ii,j,k,n)*(sol(ii,j,k,n)-sol(ii,j-1,k,n));
+                } else if (beta_on_centroid and !phi_on_centroid)
+                    fym = bY(i,j,k,n) * ( (1.0-fracx)*(sol( i,j,k,n)-sol( i,j-1,k,n)) +
+                                               fracx *(sol(ii,j,k,n)-sol(ii,j-1,k,n)) );
+                else if (beta_on_centroid and phi_on_centroid) 
+                   amrex::Abort("beta_on_centroid and phi_on_centroid is still a WIP");
                 fy(i,j,k,n) = -fym*dhy;
             }
         }
@@ -464,7 +554,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebabeclap_grad_x (Box const& box, Array4<Real> const& gx, Array4<Real const> const& sol,
                          Array4<Real const> const& apx, Array4<Real const> const& fcx,
                          Array4<int const> const& ccm, 
-                         Real dxi, int ncomp) noexcept
+                         Real dxi, int ncomp, bool phi_on_centroid) noexcept
 {
     amrex::LoopConcurrent(box, ncomp, [=] (int i, int j, int k, int n) noexcept
     {
@@ -476,7 +566,10 @@ void mlebabeclap_grad_x (Box const& box, Array4<Real> const& gx, Array4<Real con
             Real gxm = (sol(i,j,k,n)-sol(i-1,j,k,n));
             int jj = j + static_cast<int>(amrex::Math::copysign(1.0,fcx(i,j,k)));
             Real fracy = (ccm(i-1,jj,k) || ccm(i,jj,k)) ? amrex::Math::abs(fcx(i,j,k)) : 0.0;
-            gxm = (1.0-fracy)*gxm + fracy*(sol(i,jj,k,n)-sol(i-1,jj,k,n));
+            if (!phi_on_centroid) 
+               gxm = (1.0-fracy)*gxm + fracy*(sol(i,jj,k,n)-sol(i-1,jj,k,n));
+            else 
+               amrex::Abort("phi_on_centroid is still a WIP");
             gx(i,j,k,n) = gxm*dxi;
         }
     });
@@ -486,7 +579,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebabeclap_grad_y (Box const& box, Array4<Real> const& gy, Array4<Real const> const& sol,
                          Array4<Real const> const& apy, Array4<Real const> const& fcy,
                          Array4<int const> const& ccm,
-                         Real dyi, int ncomp) noexcept
+                         Real dyi, int ncomp, bool phi_on_centroid) noexcept
 {
     amrex::LoopConcurrent(box, ncomp, [=] (int i, int j, int k, int n) noexcept
     {
@@ -498,7 +591,10 @@ void mlebabeclap_grad_y (Box const& box, Array4<Real> const& gy, Array4<Real con
             Real gym = (sol(i,j,k,n)-sol(i,j-1,k,n));
             int ii = i + static_cast<int>(amrex::Math::copysign(1.0,fcy(i,j,k)));
             Real fracx = (ccm(ii,j-1,k) || ccm(ii,j,k)) ? amrex::Math::abs(fcy(i,j,k)) : 0.0;
-            gym = (1.0-fracx)*gym + fracx*(sol(ii,j,k,n)-sol(ii,j-1,k,n));
+            if (!phi_on_centroid) 
+                gym = (1.0-fracx)*gym + fracx*(sol(ii,j,k,n)-sol(ii,j-1,k,n));
+            else 
+               amrex::Abort("phi_on_centroid is still a WIP");
             gy(i,j,k,n) = gym*dyi;
         }
     });
@@ -543,7 +639,7 @@ void mlebabeclap_normalize (Box const& box, Array4<Real> const& phi,
                             Array4<Real const> const& fcx, Array4<Real const> const& fcy,
                             Array4<Real const> const& ba, Array4<Real const> const& bc,
                             Array4<Real const> const& beb,
-                            bool is_dirichlet, int ncomp) noexcept
+                            bool is_dirichlet, bool beta_on_centroid, int ncomp) noexcept
 {
     amrex::Loop(box, ncomp, [=] (int i, int j, int k, int n) noexcept
     {
@@ -561,7 +657,7 @@ void mlebabeclap_normalize (Box const& box, Array4<Real> const& phi,
             Real apyp = apy(i,j+1,k);
 
             Real sxm =  bX(i,j,k,n);
-            if (apxm != 0.0 and apxm != 1.0) {
+            if (apxm != 0.0 and apxm != 1.0 && !beta_on_centroid) {
                 int jj = j + static_cast<int>(amrex::Math::copysign(1.0,fcx(i,j,k)));
                 Real fracy = (ccm(i-1,jj,k) || ccm(i,jj,k))
                     ? amrex::Math::abs(fcx(i,j,k)) : 0.0;
@@ -569,7 +665,7 @@ void mlebabeclap_normalize (Box const& box, Array4<Real> const& phi,
             }
 
             Real sxp = -bX(i+1,j,k,n);
-            if (apxp != 0.0 and apxp != 1.0) {
+            if (apxp != 0.0 and apxp != 1.0 && !beta_on_centroid) {
                 int jj = j + static_cast<int>(amrex::Math::copysign(1.0,fcx(i+1,j,k)));
                 Real fracy = (ccm(i,jj,k) || ccm(i+1,jj,k))
                     ? amrex::Math::abs(fcx(i+1,j,k)) : 0.0;
@@ -577,7 +673,7 @@ void mlebabeclap_normalize (Box const& box, Array4<Real> const& phi,
             }
 
             Real sym =  bY(i,j,k,n);
-            if (apym != 0.0 and apym != 1.0) {
+            if (apym != 0.0 and apym != 1.0 && !beta_on_centroid) {
                 int ii = i + static_cast<int>(amrex::Math::copysign(1.0,fcy(i,j,k)));
                 Real fracx = (ccm(ii,j-1,k) || ccm(ii,j,k))
                     ? amrex::Math::abs(fcy(i,j,k)) : 0.0;
@@ -585,7 +681,7 @@ void mlebabeclap_normalize (Box const& box, Array4<Real> const& phi,
             }
 
             Real syp = -bY(i,j+1,k,n);
-            if (apyp != 0.0 and apyp != 1.0) {
+            if (apyp != 0.0 and apyp != 1.0 && !beta_on_centroid) {
                 int ii = i + static_cast<int>(amrex::Math::copysign(1.0,fcy(i,j+1,k)));
                 Real fracx = (ccm(ii,j,k) || ccm(ii,j+1,k))
                     ? amrex::Math::abs(fcy(i,j+1,k)) : 0.0;

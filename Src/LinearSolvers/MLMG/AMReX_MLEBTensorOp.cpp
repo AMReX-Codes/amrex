@@ -72,9 +72,10 @@ MLEBTensorOp::define (const Vector<Geometry>& a_geom,
 }
 
 void
-MLEBTensorOp::setShearViscosity (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& eta)
+MLEBTensorOp::setShearViscosity (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& eta,
+                                 Location a_beta_loc)
 {
-    MLEBABecLap::setBCoeffs(amrlev, eta);
+    MLEBABecLap::setBCoeffs(amrlev, eta, a_beta_loc);
 }
 
 void

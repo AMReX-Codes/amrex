@@ -47,12 +47,16 @@ public:
                  const LPInfo& a_info,
                  const Vector<EBFArrayBoxFactory const*>& a_factory);
 
-    void setShearViscosity (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& eta);
+    void setShearViscosity (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& eta,
+                            Location a_beta_loc);
     void setShearViscosity (int amrlev, Real eta);
+
     void setBulkViscosity (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& kappa);
     void setBulkViscosity (int amrlev, Real kappa);
+
     void setEBShearViscosity (int amrlev, MultiFab const& eta);
     void setEBShearViscosity (int amrlev, Real eta);
+
     void setEBBulkViscosity (int amrlev, MultiFab const& kappa);
     void setEBBulkViscosity (int amrlev, Real eta);
 
@@ -90,7 +94,8 @@ protected:
     Vector<Vector<MultiFab> > m_eb_kappa;
     mutable Vector<Vector<Array<MultiFab,AMREX_SPACEDIM> > > m_tauflux;
 
-    void setBCoeffs (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& beta) = delete;
+    void setBCoeffs (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& beta,
+                     Location a_beta_loc) = delete;
     void setEBDirichlet (int amrlev, const MultiFab& phi, const MultiFab& beta) = delete;
     void setEBHomogDirichlet (int amrlev, const MultiFab& beta) = delete;
 
