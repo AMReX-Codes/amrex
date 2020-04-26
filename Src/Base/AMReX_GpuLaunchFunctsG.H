@@ -605,7 +605,8 @@ void launch (T const& n, L&& f) noexcept
 }
 
 template <typename T, typename L, typename M=amrex::EnableIf_t<std::is_integral<T>::value> >
-void ParallelFor (T n, L&& f) noexcept
+amrex::EnableIf_t<MaybeDeviceRunnable<L>::value>
+ParallelFor (T n, L&& f) noexcept
 {
     if (amrex::isEmpty(n)) return;
     const auto ec = Gpu::ExecutionConfig(n);
@@ -620,7 +621,8 @@ void ParallelFor (T n, L&& f) noexcept
 }
 
 template <typename L>
-void ParallelFor (Box const& box, L&& f) noexcept
+amrex::EnableIf_t<MaybeDeviceRunnable<L>::value>
+ParallelFor (Box const& box, L&& f) noexcept
 {
     if (amrex::isEmpty(box)) return;
     int ncells = box.numPts();
@@ -644,7 +646,8 @@ void ParallelFor (Box const& box, L&& f) noexcept
 }
 
 template <typename T, typename L, typename M=amrex::EnableIf_t<std::is_integral<T>::value> >
-void ParallelFor (Box const& box, T ncomp, L&& f) noexcept
+amrex::EnableIf_t<MaybeDeviceRunnable<L>::value>
+ParallelFor (Box const& box, T ncomp, L&& f) noexcept
 {
     if (amrex::isEmpty(box)) return;
     int ncells = box.numPts();
@@ -670,7 +673,8 @@ void ParallelFor (Box const& box, T ncomp, L&& f) noexcept
 }
 
 template <typename L1, typename L2>
-void ParallelFor (Box const& box1, Box const& box2, L1&& f1, L2&& f2) noexcept
+amrex::EnableIf_t<MaybeDeviceRunnable<L1>::value and MaybeDeviceRunnable<L2>::value>
+ParallelFor (Box const& box1, Box const& box2, L1&& f1, L2&& f2) noexcept
 {
     if (amrex::isEmpty(box1) and amrex::isEmpty(box2)) return;
     int ncells1 = box1.numPts();
@@ -709,7 +713,8 @@ void ParallelFor (Box const& box1, Box const& box2, L1&& f1, L2&& f2) noexcept
 }
 
 template <typename L1, typename L2, typename L3>
-void ParallelFor (Box const& box1, Box const& box2, Box const& box3, L1&& f1, L2&& f2, L3&& f3) noexcept
+amrex::EnableIf_t<MaybeDeviceRunnable<L1>::value and MaybeDeviceRunnable<L2>::value and MaybeDeviceRunnable<L3>::value>
+ParallelFor (Box const& box1, Box const& box2, Box const& box3, L1&& f1, L2&& f2, L3&& f3) noexcept
 {
     if (amrex::isEmpty(box1) and amrex::isEmpty(box2) and amrex::isEmpty(box3)) return;
     int ncells1 = box1.numPts();
@@ -762,8 +767,9 @@ void ParallelFor (Box const& box1, Box const& box2, Box const& box3, L1&& f1, L2
 template <typename T1, typename T2, typename L1, typename L2,
           typename M1=amrex::EnableIf_t<std::is_integral<T1>::value>,
           typename M2=amrex::EnableIf_t<std::is_integral<T2>::value> >
-void ParallelFor (Box const& box1, T1 ncomp1, L1&& f1,
-                  Box const& box2, T2 ncomp2, L2&& f2) noexcept
+amrex::EnableIf_t<MaybeDeviceRunnable<L1>::value and MaybeDeviceRunnable<L2>::value>
+ParallelFor (Box const& box1, T1 ncomp1, L1&& f1,
+             Box const& box2, T2 ncomp2, L2&& f2) noexcept
 {
     if (amrex::isEmpty(box1) and amrex::isEmpty(box2)) return;
     int ncells1 = box1.numPts();
@@ -809,9 +815,10 @@ template <typename T1, typename T2, typename T3, typename L1, typename L2, typen
           typename M1=amrex::EnableIf_t<std::is_integral<T1>::value>,
           typename M2=amrex::EnableIf_t<std::is_integral<T2>::value>,
           typename M3=amrex::EnableIf_t<std::is_integral<T3>::value> >
-void ParallelFor (Box const& box1, T1 ncomp1, L1&& f1,
-                  Box const& box2, T2 ncomp2, L2&& f2,
-                  Box const& box3, T3 ncomp3, L3&& f3) noexcept
+amrex::EnableIf_t<MaybeDeviceRunnable<L1>::value and MaybeDeviceRunnable<L2>::value and MaybeDeviceRunnable<L3>::value>
+ParallelFor (Box const& box1, T1 ncomp1, L1&& f1,
+             Box const& box2, T2 ncomp2, L2&& f2,
+             Box const& box3, T3 ncomp3, L3&& f3) noexcept
 {
     if (amrex::isEmpty(box1) and amrex::isEmpty(box2) and amrex::isEmpty(box3)) return;
     int ncells1 = box1.numPts();
@@ -868,7 +875,8 @@ void ParallelFor (Box const& box1, T1 ncomp1, L1&& f1,
 }
 
 template <typename T, typename L1, typename L2>
-void FabReduce (Box const& box, T const& init_val, L1&& f1, L2&& f2) noexcept
+amrex::EnableIf_t<MaybeDeviceRunnable<L1>::value and MaybeDeviceRunnable<L2>::value>
+FabReduce (Box const& box, T const& init_val, L1&& f1, L2&& f2) noexcept
 {
     if (amrex::isEmpty(box)) return;
     int ncells = box.numPts();
@@ -896,7 +904,8 @@ void FabReduce (Box const& box, T const& init_val, L1&& f1, L2&& f2) noexcept
 
 template <typename N, typename T, typename L1, typename L2,
           typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
-void FabReduce (Box const& box, N ncomp, T const& init_val, L1&& f1, L2&& f2) noexcept
+amrex::EnableIf_t<MaybeDeviceRunnable<L1>::value and MaybeDeviceRunnable<L2>::value>
+FabReduce (Box const& box, N ncomp, T const& init_val, L1&& f1, L2&& f2) noexcept
 {
     if (amrex::isEmpty(box)) return;
     int ncells = box.numPts();
@@ -926,7 +935,8 @@ void FabReduce (Box const& box, N ncomp, T const& init_val, L1&& f1, L2&& f2) no
 
 template <typename N, typename T, typename L1, typename L2,
           typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
-void VecReduce (N n, T const& init_val, L1&& f1, L2&& f2) noexcept
+amrex::EnableIf_t<MaybeDeviceRunnable<L1>::value and MaybeDeviceRunnable<L2>::value>
+VecReduce (N n, T const& init_val, L1&& f1, L2&& f2) noexcept
 {
     if (amrex::isEmpty(n)) return;
     auto ec = Gpu::ExecutionConfig(n);
@@ -995,6 +1005,154 @@ void For (Box const& box1, T1 ncomp1, L1&& f1,
     ParallelFor(box1,ncomp1,std::forward<L1>(f1),
                 box2,ncomp2,std::forward<L2>(f2),
                 box3,ncomp3,std::forward<L3>(f3));
+}
+
+template <typename T, typename L, typename M=amrex::EnableIf_t<std::is_integral<T>::value> >
+amrex::EnableIf_t<MaybeHostDeviceRunnable<L>::value>
+HostDeviceParallelFor (T n, L&& f) noexcept
+{
+    if (Gpu::inLaunchRegion()) {
+        ParallelFor(n,std::forward<L>(f));
+    } else {
+        AMREX_PRAGMA_SIMD
+        for (T i = 0; i < n; ++i) f(i);
+    }
+}
+
+template <typename L>
+amrex::EnableIf_t<MaybeHostDeviceRunnable<L>::value>
+HostDeviceParallelFor (Box const& box, L&& f) noexcept
+{
+    if (Gpu::inLaunchRegion()) {
+        ParallelFor(box,std::forward<L>(f));
+    } else {
+        LoopConcurrentOnCpu(box,std::forward<L>(f));
+    }
+}
+
+template <typename T, typename L, typename M=amrex::EnableIf_t<std::is_integral<T>::value> >
+amrex::EnableIf_t<MaybeHostDeviceRunnable<L>::value>
+HostDeviceParallelFor (Box const& box, T ncomp, L&& f) noexcept
+{
+    if (Gpu::inLaunchRegion()) {
+        ParallelFor(box,ncomp,std::forward<L>(f));
+    } else {
+        LoopConcurrentOnCpu(box,ncomp,std::forward<L>(f));
+    }
+}
+
+template <typename L1, typename L2>
+amrex::EnableIf_t<MaybeHostDeviceRunnable<L1>::value and MaybeHostDeviceRunnable<L2>::value>
+HostDeviceParallelFor (Box const& box1, Box const& box2, L1&& f1, L2&& f2) noexcept
+{
+    if (Gpu::inLaunchRegion()) {
+        ParallelFor(box1,box2,std::forward<L1>(f1),std::forward<L2>(f2));
+    } else {
+        LoopConcurrentOnCpu(box1,std::forward<L1>(f1));
+        LoopConcurrentOnCpu(box2,std::forward<L2>(f2));
+    }
+}
+
+template <typename L1, typename L2, typename L3>
+amrex::EnableIf_t<MaybeHostDeviceRunnable<L1>::value and MaybeHostDeviceRunnable<L2>::value and MaybeHostDeviceRunnable<L3>::value>
+HostDeviceParallelFor (Box const& box1, Box const& box2, Box const& box3,
+                       L1&& f1, L2&& f2, L3&& f3) noexcept
+{
+    if (Gpu::inLaunchRegion()) {
+        ParallelFor(box1,box2,box3,std::forward<L1>(f1),std::forward<L2>(f2),std::forward<L3>(f3));
+    } else {
+        LoopConcurrentOnCpu(box1,std::forward<L1>(f1));
+        LoopConcurrentOnCpu(box2,std::forward<L2>(f2));
+        LoopConcurrentOnCpu(box3,std::forward<L3>(f3));
+    }
+}
+
+template <typename T1, typename T2, typename L1, typename L2,
+          typename M1=amrex::EnableIf_t<std::is_integral<T1>::value>,
+          typename M2=amrex::EnableIf_t<std::is_integral<T2>::value> >
+amrex::EnableIf_t<MaybeHostDeviceRunnable<L1>::value and MaybeHostDeviceRunnable<L2>::value>
+HostDeviceParallelFor (Box const& box1, T1 ncomp1, L1&& f1,
+                       Box const& box2, T2 ncomp2, L2&& f2) noexcept
+{
+    if (Gpu::inLaunchRegion()) {
+        ParallelFor(box1,ncomp1,std::forward<L1>(f1),box2,ncomp2,std::forward<L2>(f2));
+    } else {
+        LoopConcurrentOnCpu(box1,ncomp1,std::forward<L1>(f1));
+        LoopConcurrentOnCpu(box2,ncomp2,std::forward<L2>(f2));
+    }
+}
+
+template <typename T1, typename T2, typename T3, typename L1, typename L2, typename L3,
+          typename M1=amrex::EnableIf_t<std::is_integral<T1>::value>,
+          typename M2=amrex::EnableIf_t<std::is_integral<T2>::value>,
+          typename M3=amrex::EnableIf_t<std::is_integral<T3>::value> >
+amrex::EnableIf_t<MaybeHostDeviceRunnable<L1>::value and MaybeHostDeviceRunnable<L2>::value and MaybeHostDeviceRunnable<L3>::value>
+HostDeviceParallelFor (Box const& box1, T1 ncomp1, L1&& f1,
+                       Box const& box2, T2 ncomp2, L2&& f2,
+                       Box const& box3, T3 ncomp3, L3&& f3) noexcept
+{
+    if (Gpu::inLaunchRegion()) {
+        ParallelFor(box1,ncomp1,std::forward<L1>(f1),
+                    box2,ncomp2,std::forward<L2>(f2),
+                    box3,ncomp3,std::forward<L3>(f3));
+    } else {
+        LoopConcurrentOnCpu(box1,ncomp1,std::forward<L1>(f1));
+        LoopConcurrentOnCpu(box2,ncomp2,std::forward<L2>(f2));
+        LoopConcurrentOnCpu(box3,ncomp3,std::forward<L3>(f3));
+    }
+}
+
+template <typename T, typename L, typename M=amrex::EnableIf_t<std::is_integral<T>::value> >
+void HostDeviceFor (T n, L&& f) noexcept
+{
+    HostDeviceParallelFor(n,std::forward<L>(f));
+}
+
+template <typename L>
+void HostDeviceFor (Box const& box, L&& f) noexcept
+{
+    HostDeviceParallelFor(box,std::forward<L>(f));
+}
+
+template <typename T, typename L, typename M=amrex::EnableIf_t<std::is_integral<T>::value> >
+void HostDeviceFor (Box const& box, T ncomp, L&& f) noexcept
+{
+    HostDeviceParallelFor(box,ncomp,std::forward<L>(f));
+}
+
+template <typename L1, typename L2>
+void HostDeviceFor (Box const& box1, Box const& box2, L1&& f1, L2&& f2) noexcept
+{
+    HostDeviceParallelFor(box1,box2,std::forward<L1>(f1),std::forward<L2>(f2));
+}
+
+template <typename L1, typename L2, typename L3>
+void HostDeviceFor (Box const& box1, Box const& box2, Box const& box3,
+                    L1&& f1, L2&& f2, L3&& f3) noexcept
+{
+    HostDeviceParallelFor(box1,box2,box3,std::forward<L1>(f1),std::forward<L2>(f2),std::forward<L3>(f3));
+}
+
+template <typename T1, typename T2, typename L1, typename L2,
+          typename M1=amrex::EnableIf_t<std::is_integral<T1>::value>,
+          typename M2=amrex::EnableIf_t<std::is_integral<T2>::value> >
+void HostDeviceFor (Box const& box1, T1 ncomp1, L1&& f1,
+                    Box const& box2, T2 ncomp2, L2&& f2) noexcept
+{
+    HostDeviceParallelFor(box1,ncomp1,std::forward<L1>(f1),box2,ncomp2,std::forward<L2>(f2));
+}
+
+template <typename T1, typename T2, typename T3, typename L1, typename L2, typename L3,
+          typename M1=amrex::EnableIf_t<std::is_integral<T1>::value>,
+          typename M2=amrex::EnableIf_t<std::is_integral<T2>::value>,
+          typename M3=amrex::EnableIf_t<std::is_integral<T3>::value> >
+void HostDeviceFor (Box const& box1, T1 ncomp1, L1&& f1,
+                    Box const& box2, T2 ncomp2, L2&& f2,
+                    Box const& box3, T3 ncomp3, L3&& f3) noexcept
+{
+    HostDeviceParallelFor(box1,ncomp1,std::forward<L1>(f1),
+                          box2,ncomp2,std::forward<L2>(f2),
+                          box3,ncomp3,std::forward<L3>(f3));
 }
 
 }

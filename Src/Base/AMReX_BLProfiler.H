@@ -479,37 +479,37 @@ inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
 #define BL_PROFILE_INITPARAMS()
 #define BL_PROFILE_FINALIZE()
 
-#define BL_TINY_PROFILE_INITIALIZE()   amrex::TinyProfiler::Initialize();
-#define BL_TINY_PROFILE_FINALIZE()     amrex::TinyProfiler::Finalize();
+#define BL_TINY_PROFILE_INITIALIZE()   amrex::TinyProfiler::Initialize()
+#define BL_TINY_PROFILE_FINALIZE()     amrex::TinyProfiler::Finalize()
 
-#define BL_PROFILE(fname)         amrex::TinyProfiler BL_PROFILE_PASTE(tiny_profiler_,__COUNTER__)((fname));
+#define BL_PROFILE(fname)         amrex::TinyProfiler BL_PROFILE_PASTE(tiny_profiler_,__COUNTER__)((fname))
 #define BL_PROFILE_T(a, T)
 #define BL_PROFILE_S(fname)
 #define BL_PROFILE_T_S(fname, T)
 
-#define BL_PROFILE_VAR(fname, vname)                      amrex::TinyProfiler tiny_profiler_##vname((fname));
-#define BL_PROFILE_VAR_NS(fname, vname)                   amrex::TinyProfiler tiny_profiler_##vname(fname, false, false);
-#define BL_PROFILE_VAR_START(vname)                       tiny_profiler_##vname.start();
-#define BL_PROFILE_VAR_STOP(vname)                        tiny_profiler_##vname.stop();
+#define BL_PROFILE_VAR(fname, vname)                      amrex::TinyProfiler tiny_profiler_##vname((fname))
+#define BL_PROFILE_VAR_NS(fname, vname)                   amrex::TinyProfiler tiny_profiler_##vname(fname, false, false)
+#define BL_PROFILE_VAR_START(vname)                       tiny_profiler_##vname.start()
+#define BL_PROFILE_VAR_STOP(vname)                        tiny_profiler_##vname.stop()
 #ifdef AMREX_USE_CUPTI
 #include <AMReX_CuptiTrace.H>
-#define BL_PROFILE_VAR_NS_CUPTI(fname, vname)             amrex::TinyProfiler tiny_profiler_##vname(fname, false, true);
-#define BL_PROFILE_VAR_START_CUPTI(vname)                 tiny_profiler_##vname.start();
-#define BL_PROFILE_VAR_STOP_CUPTI(vname)                  tiny_profiler_##vname.stop();
-#define BL_PROFILE_VAR_STOP_CUPTI_ID(vname, uintID)       tiny_profiler_##vname.stop(uintID);
+#define BL_PROFILE_VAR_NS_CUPTI(fname, vname)             amrex::TinyProfiler tiny_profiler_##vname(fname, false, true)
+#define BL_PROFILE_VAR_START_CUPTI(vname)                 tiny_profiler_##vname.start()
+#define BL_PROFILE_VAR_STOP_CUPTI(vname)                  tiny_profiler_##vname.stop()
+#define BL_PROFILE_VAR_STOP_CUPTI_ID(vname, uintID)       tiny_profiler_##vname.stop(uintID)
 #endif // AMREX_USE_CUPTI
 #define BL_PROFILE_INIT_PARAMS(ptl,wall,wfabs)
 #define BL_PROFILE_ADD_STEP(snum)
 #define BL_PROFILE_SET_RUN_TIME(rtime)
-#define BL_PROFILE_REGION(rname)          amrex::TinyProfileRegion tiny_profile_region_##vname((rname));
+#define BL_PROFILE_REGION(rname)          amrex::TinyProfileRegion tiny_profile_region_##vname((rname))
 #define BL_PROFILE_REGION_START(rname)
 #define BL_PROFILE_REGION_STOP(rname)
-//#define BL_PROFILE_REGION_START(rname)    amrex::TinyProfiler::StartRegion(rname);
-//#define BL_PROFILE_REGION_STOP(rname)     amrex::TinyProfiler::StopRegion(rname);
+//#define BL_PROFILE_REGION_START(rname)    amrex::TinyProfiler::StartRegion(rname)
+//#define BL_PROFILE_REGION_STOP(rname)     amrex::TinyProfiler::StopRegion(rname)
 #define BL_PROFILE_REGION_VAR(fname, rvname)
 #define BL_PROFILE_REGION_VAR_START(fname, rvname)
 #define BL_PROFILE_REGION_VAR_STOP(fname, rvname)
-#define BL_PROFILE_TINY_FLUSH() amrex::TinyProfiler::Finalize(true);
+#define BL_PROFILE_TINY_FLUSH() amrex::TinyProfiler::Finalize(true)
 #define BL_PROFILE_FLUSH()
 #define BL_TRACE_PROFILE_FLUSH()
 #define BL_TRACE_PROFILE_SETFLUSHSIZE(fsize)

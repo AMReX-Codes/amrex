@@ -5,10 +5,7 @@
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_Particles.H>
 #include <AMReX_ParticleUtil.H>
-
-#ifdef AMREX_USE_CUDA
 #include <AMReX_NeighborList.H>
-#endif
 
 namespace amrex {
 
@@ -17,7 +14,6 @@ namespace amrex {
       int grid_id;
       IntVect periodic_shift;
   };
-
 
 ///
 /// This is a container for particles that undergo short-range interations.
@@ -261,16 +257,6 @@ public:
         return neighbors[lev][std::make_pair(grid,tile)];
     }
 
-    IntVector& GetNeighborList (int lev, int grid, int tile)
-    {
-        return neighbor_list[lev][std::make_pair(grid,tile)];
-    }
-
-    const IntVector& GetNeighborList (int lev, int grid, int tile) const
-    {
-        return neighbor_list[lev][std::make_pair(grid,tile)];
-    }
-
     void RedistributeLocal ()
     {
         const int lev_min = 0;
@@ -282,34 +268,15 @@ public:
     }
 
 #ifdef AMREX_USE_CUDA
-
-    template <class CheckPair>
-    void buildNeighborListGPU (CheckPair check_pair);
-    
-    void printNeighborListGPU ();
-    
     void fillNeighborsGPU ();
-    
-    void updateNeighborsGPU ();
-    
-    void clearNeighborsGPU ();
-    
+    void updateNeighborsGPU ();    
+    void clearNeighborsGPU ();    
 #else 
-
-    template <class CheckPair>
-    void buildNeighborListCPU (CheckPair check_pair, bool sort);
-    
-    void printNeighborListCPU (const std::string& prefix);
-    
     void fillNeighborsCPU ();
-
     void sumNeighborsCPU (int real_start_comp, int real_num_comp,
-                          int int_start_comp, int int_num_comp);
-    
-    void updateNeighborsCPU (bool reuse_rcv_counts=true);
-    
-    void clearNeighborsCPU ();    
-
+                          int int_start_comp, int int_num_comp);    
+    void updateNeighborsCPU (bool reuse_rcv_counts=true);    
+    void clearNeighborsCPU ();
 #endif
 
     void setEnableInverse (bool flag)
@@ -369,24 +336,24 @@ protected:
 
     IntVect computeRefFac (const int src_lev, const int lev);
 
-    amrex::Vector<std::map<PairIndex, amrex::Vector<InverseCopyTag> > > inverse_tags;
-    amrex::Vector<std::map<PairIndex, ParticleVector> > neighbors;
-    amrex::Vector<std::map<PairIndex, IntVector> >      neighbor_list;
+    Vector<std::map<PairIndex, Vector<InverseCopyTag> > > inverse_tags;
+    Vector<std::map<PairIndex, ParticleVector> > neighbors;
+    Vector<std::map<PairIndex, IntVector> >      neighbor_list;
     const size_t pdata_size = sizeof(ParticleType);
 
     static constexpr int num_mask_comps = 3;  //!< grid, tile, level
     size_t cdata_size;
     int m_num_neighbor_cells;
-    amrex::Vector<NeighborCommTag> local_neighbors;
-    amrex::Vector<std::unique_ptr<iMultiFab> > mask_ptr;
+    Vector<NeighborCommTag> local_neighbors;
+    Vector<std::unique_ptr<iMultiFab> > mask_ptr;
 
-    amrex::Vector<std::map<PairIndex, Vector<Vector<NeighborCopyTag> > > > buffer_tag_cache;
-    amrex::Vector<std::map<PairIndex, int> > local_neighbor_sizes;
+    Vector<std::map<PairIndex, Vector<Vector<NeighborCopyTag> > > > buffer_tag_cache;
+    Vector<std::map<PairIndex, int> > local_neighbor_sizes;
 
     //! each proc knows how many sends it will do, and how many bytes it will rcv
     //! from each other proc.
-    amrex::Vector<int> neighbor_procs;
-    amrex::Vector<Long> rcvs;
+    Vector<int> neighbor_procs;
+    Vector<Long> rcvs;
     Long num_snds;
     std::map<int, Vector<char> > send_data;
 
@@ -438,10 +405,10 @@ protected:
 
     Gpu::PinnedVector<char> pinned_snd_buffer;
     Gpu::PinnedVector<char> pinned_rcv_buffer;
-
-    std::map<std::pair<int, int>, amrex::NeighborList<ParticleType> > m_neighbor_list;
 #endif
 
+    Vector<std::map<std::pair<int, int>, amrex::NeighborList<ParticleType> > > m_neighbor_list;
+    
     bool hasNeighbors() const { return m_has_neighbors; };
   
     bool m_has_neighbors = false;

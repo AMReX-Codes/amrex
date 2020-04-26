@@ -63,7 +63,7 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
             int grid    = pti.index();
             auto& ptile = ParticlesAt(lev, pti);
             auto& aos  = ptile.GetArrayOfStructs();
-            const int n = aos.size();
+            const int n = aos.numParticles();
             auto p_pbox = aos().data();
             const FArrayBox* fab[AMREX_SPACEDIM] = { AMREX_D_DECL(&((*umac_pointer[0])[grid]),
                                                                   &((*umac_pointer[1])[grid]),
@@ -147,7 +147,7 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
             int grid    = pti.index();
             auto& ptile = ParticlesAt(lev, pti);
             auto& aos  = ptile.GetArrayOfStructs();
-            const int n          = aos.size();
+            const int n          = aos.numParticles();
             const FArrayBox& fab = Ucc[grid];
             const auto uccarr = fab.array();
             auto  p_pbox = aos().data();
@@ -244,7 +244,7 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
             const auto& pmap = GetParticles(lev);
 	    for (auto& kv : pmap) {
               const auto& pbox = kv.second.GetArrayOfStructs();
-	      for (int k = 0; k < pbox.size(); ++k)
+	      for (int k = 0; k < pbox.numParticles(); ++k)
 	      {
 		const ParticleType& p = pbox[k];
 		if (p.m_idata.id > 0) {
@@ -287,7 +287,7 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
 		  const Box&       bx   = ba[grid];
 		  const FArrayBox& fab  = mf[grid];
 
-		  for (int k = 0; k < pbox.size(); ++k)
+		  for (int k = 0; k < pbox.numParticles(); ++k)
 		    {
 		      const ParticleType& p = pbox[k];
 

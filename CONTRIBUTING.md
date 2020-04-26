@@ -53,9 +53,9 @@ are new to git, you can follow one of these tutorials:
 ### Make your own fork and create a branch on it
 
 The basic workflow is:
-- fork the main repo (or update it if you already created it);
+- Fork the main repo (or update it if you already created it).
 - Implement your changes and push them on a new branch `<branch_name>` on
-your fork;
+your fork.
 - Create a Pull Request from branch `<branch_name>` on your fork to branch
 `development` on the main AMReX repository.
 
