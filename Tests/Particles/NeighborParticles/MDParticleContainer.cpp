@@ -127,7 +127,7 @@ std::pair<Real, Real> MDParticleContainer::minAndMaxDistance()
         auto& aos   = ptile.GetArrayOfStructs();
         const size_t np = aos.numParticles();
 
-        auto nbor_data = m_neighbor_list[index].data();
+        auto nbor_data = m_neighbor_list[lev][index].data();
         ParticleType* pstruct = aos().dataPtr();
 
 	Gpu::DeviceScalar<Real> min_d_gpu(min_d);
@@ -326,7 +326,7 @@ void MDParticleContainer::checkNeighborList()
         amrex::Gpu::ManagedVector<int> d_full_count(np,0);
         int* p_full_count = d_full_count.data();
 
-        auto nbor_data = m_neighbor_list[index].data();
+        auto nbor_data = m_neighbor_list[lev][index].data();
         ParticleType* pstruct = aos().dataPtr();
 
         // ON DEVIDE: 
