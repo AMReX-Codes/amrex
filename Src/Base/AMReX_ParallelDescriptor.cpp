@@ -305,21 +305,9 @@ ParallelDescriptor::StartParallel (int*    argc,
     MPI_Initialized(&sflag);
 
     if ( ! sflag) {
-#ifdef AMREX_MPI_INIT
-        MPI_Init(argc, argv);
-#else
 
-    #ifdef AMREX_MPI_SINGLE
-        int requested = MPI_THREAD_SINGLE;
-    #elif AMREX_MPI_FUNNELED
-        int requested = MPI_THREAD_FUNNELED;
-    #elif AMREX_MPI_SERIALIZED
-        int requested = MPI_THREAD_SERIALIZED;
-    #elif AMREX_MPI_MULTIPLE
+#ifdef AMREX_MPI_MULTIPLE
         int requested = MPI_THREAD_MULTIPLE;
-    #else
-        amrex::Abort("Incorrect MPI_Init type defined\n"); 
-    #endif
         int provided = -1;
 
         MPI_Init_thread(argc, argv, requested, &provided);
@@ -330,8 +318,9 @@ ParallelDescriptor::StartParallel (int*    argc,
                                                 " < " + std::to_string(requested);
             abort();
         }
-
-#endif // MPI_INIT
+#else // 
+        MPI_Init(argc, argv);
+#endif
 
         m_comm = MPI_COMM_WORLD;
         call_mpi_finalize = 1;
@@ -366,12 +355,13 @@ ParallelDescriptor::StartParallel (int*    argc,
     if (mpi_version < 3) amrex::Abort("MPI 3 is needed because USE_MPI3=TRUE");
 #endif
 
-#ifdef AMREX_MPI_INIT
-    amrex::Print() << "MPI Initialized." << std::endl;
-#else
+#ifdef AMREX_MPI_MULTIPLE
     int provided = -1;
     MPI_Query_thread(&provided);
     amrex::Print() << "MPI Thread Initialized with support level " << provided << "." << std::endl;
+
+#else
+    amrex::Print() << "MPI Initialized." << std::endl;
 #endif
 
     // Wait until all other processes are properly started.

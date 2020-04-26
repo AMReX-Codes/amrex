@@ -208,48 +208,15 @@ public:
     static std::array<int,3>
     StaticWriteInfo (const int &rank);
 
-//  File based method, for comparison
+//  File based Multifab (for comparison. Better at very small scales.) 
     static std::future<WriteAsyncStatus>
     WriteAsync (const FabArray<FArrayBox>& mf, const std::string& mf_name);
 
-// Blocking comm tests
-// *****************************
-
-// Note: All except WriteAsyncMPI use a file-specific MPI Communicator,
-//       as this is considerably clearer and better practice, whether there
-//       is a performance improvement or not. So unless it's worse, this
-//       method will likely be preferred, but still tested here.
-
-    static std::future<WriteAsyncStatus>
-    WriteAsyncMPI (const FabArray<FArrayBox>& mf, const std::string& mf_name);
-
-    static std::future<WriteAsyncStatus>
-    WriteAsyncMPIComm (const FabArray<FArrayBox>& mf, const std::string& mf_name);
-
-    static std::future<WriteAsyncStatus>
-    WriteAsyncMPIWait (const FabArray<FArrayBox>& mf, const std::string& mf_name);
-
-    static std::future<WriteAsyncStatus>
-    WriteAsyncMPIBarrier (const FabArray<FArrayBox>& mf, const std::string& mf_name);
-
-    static std::future<WriteAsyncStatus>
-    WriteAsyncMPIABarrier (const FabArray<FArrayBox>& mf, const std::string& mf_name);
-
-    static std::future<WriteAsyncStatus>
-    WriteAsyncMPIABarrierWaitall (const FabArray<FArrayBox>& mf, const std::string& mf_name);
-
-    static std::future<WriteAsyncStatus>
-    WriteAsyncMPIOneSidedFence (const FabArray<FArrayBox>& mf, const std::string& mf_name);
-
-    static std::future<WriteAsyncStatus>
-    WriteAsyncMPIOneSidedPost (const FabArray<FArrayBox>& mf, const std::string& mf_name);
-
-// Async Write Plotfile 
-// *****************************
-
+//  MPI based Multifab
     static void
-    WriteAsyncMPIAPI (const FabArray<FArrayBox>& mf, const std::string& mf_name);
+    WriteAsyncMultiFab (const FabArray<FArrayBox>& mf, const std::string& mf_name);
 
+//  MPI based Plotfile
     static void 
     WriteAsyncPlotfile (const Vector<const MultiFab*>& mf, const Vector<std::string>& mf_names,
                         int nlevels, bool strip_ghost_cells, int hdr_proc);
@@ -437,8 +404,7 @@ private:
     // Async I/O data.
     static int asyncTag;                     // Tag for async comms.
     static int current_comm;                 // Round-robin index for current comm.
-    static Vector<MPI_Comm> async_comm;      // MPI_Communicator for each file.
-    static Vector<MPI_Win> async_window;     // Blank window (zero size) for cases where the comm is enough.
+    static Vector<MPI_Comm> async_comm;      // Copies of MPI_Communicator based on file, one for each simul write.
 };
 
 //! Write a FabOnDisk to an ostream in ASCII.
@@ -465,11 +431,6 @@ inline void VisMF::asyncAddWrite (Func&& f, Params&&... args)
     future_list.push( std::async(std::launch::async, f, async_comm[current_comm], std::forward<Params>(args)...) );
 #endif
 }
-
-
-
-
-
 
 }
 
