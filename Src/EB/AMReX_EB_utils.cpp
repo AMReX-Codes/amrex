@@ -247,10 +247,10 @@ namespace amrex {
     //
     // Do small cell redistribution on a MultiFab -- with a weighting function
     //
-    void single_level_weighted_redistribute ( int lev, MultiFab& div_tmp_in, MultiFab& div_out, const MultiFab& weights,
-                                              int div_comp, int ncomp, const Vector<Geometry>& geom)
+    void single_level_weighted_redistribute (MultiFab& div_tmp_in, MultiFab& div_out, const MultiFab& weights,
+                                             int div_comp, int ncomp, const Geometry& geom)
     {
-        Box domain(geom[lev].Domain());
+        Box domain(geom.Domain());
 
         Real covered_val = 1.e40;
 
@@ -259,7 +259,7 @@ namespace amrex {
 
         EB_set_covered(div_tmp_in, 0, ncomp, div_tmp_in.nGrow(), covered_val);
               
-        div_tmp_in.FillBoundary(geom[lev].periodicity());
+        div_tmp_in.FillBoundary(geom.periodicity());
 
         // Here we take care of both the regular and covered cases ... all we do below is the cut cell cases
         MultiFab::Copy(div_out, div_tmp_in, 0, div_comp, ncomp, 0);
@@ -283,7 +283,7 @@ namespace amrex {
                 // Compute div(tau) with EB algorithm
                 apply_eb_redistribution(bx, div_out, div_tmp_in, weights, &mfi,
                                                div_comp, ncomp, flags, volfrac, domain,
-                                               geom[lev]);
+                                               geom);
 
             }
         }
@@ -292,14 +292,14 @@ namespace amrex {
     //
     // Do small cell redistribution on a MultiFab -- without a weighting function
     //
-    void single_level_redistribute ( int lev, MultiFab& div_tmp_in, MultiFab& div_out,
-                                     int div_comp, int ncomp, const Vector<Geometry>& geom)
+    void single_level_redistribute (MultiFab& div_tmp_in, MultiFab& div_out,
+                                    int div_comp, int ncomp, const Geometry& geom)
     {
         // We create a weighting array to use inside the redistribution array
         MultiFab weights(div_out.boxArray(), div_out.DistributionMap(), 1, div_tmp_in.nGrow());
         weights.setVal(1.0);
 
-        single_level_weighted_redistribute ( lev, div_tmp_in, div_out, weights, div_comp, ncomp, geom);
+        single_level_weighted_redistribute (div_tmp_in, div_out, weights, div_comp, ncomp, geom);
     }
 #endif
 
