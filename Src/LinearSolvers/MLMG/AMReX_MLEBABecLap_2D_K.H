@@ -54,8 +54,6 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
                 else if (beta_on_centroid and phi_on_center) 
                    fxm = bX(i,j,k,n) * ( (1.0-fracy)*(x(i, j,k,n)-x(i-1, j,k,n))
                                            + fracy  *(x(i,jj,k,n)-x(i-1,jj,k,n)) );
-                else if (beta_on_centroid and phi_on_centroid) 
-                   amrex::Abort("beta_on_centroid and phi_on_centroid is still a WIP");
             }
 
             Real fxp = bX(i+1,j,k,n)*(x(i+1,j,k,n)-x(i,j,k,n));
@@ -67,8 +65,6 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
                 else if (beta_on_centroid and phi_on_center) 
                     fxp = bX(i+1,j,k,n) * ( (1.0-fracy)*(x(i+1, j,k,n)-x(i, j,k,n))
                                                + fracy *(x(i+1,jj,k,n)-x(i,jj,k,n)) );
-                else if (beta_on_centroid and phi_on_centroid) 
-                   amrex::Abort("beta_on_centroid and phi_on_centroid is still a WIP");
             }
 
             Real fym = bY(i,j,k,n)*(x(i,j,k,n)-x(i,j-1,k,n));
@@ -80,8 +76,6 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
                 else if (beta_on_centroid and phi_on_center) 
                     fym = bY(i,j,k,n) * ( (1.0-fracx)*(x( i,j,k,n)-x( i,j-1,k,n))
                                              + fracx *(x(ii,j,k,n)-x(ii,j-1,k,n)) );
-                else if (beta_on_centroid and phi_on_centroid) 
-                   amrex::Abort("beta_on_centroid and phi_on_centroid is still a WIP");
             }
 
             Real fyp = bY(i,j+1,k,n)*(x(i,j+1,k,n)-x(i,j,k,n));
@@ -93,8 +87,6 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
                 else if (beta_on_centroid and phi_on_center) 
                     fyp = bY(i,j+1,k,n) * ( (1.0-fracx)*(x( i,j+1,k,n)-x( i,j,k,n))
                                                + fracx *(x(ii,j+1,k,n)-x(ii,j,k,n)) );
-                else if (beta_on_centroid and phi_on_centroid) 
-                   amrex::Abort("beta_on_centroid and phi_on_centroid is still a WIP");
             }
 
             Real feb = 0.0;
@@ -300,8 +292,6 @@ void mlebabeclap_gsrb (Box const& box,
                                        fracy *(phi(i,jj,k,n)-phi(i-1,jj,k,n));
                             fxm *= bX(i,j,k,n);
                         }
-                        else if (beta_on_centroid and phi_on_centroid) 
-                           amrex::Abort("beta_on_centroid and phi_on_centroid is still a WIP");
                         oxm = 0.0;
                         sxm = (1.0-fracy)*sxm;
                     }
@@ -324,8 +314,6 @@ void mlebabeclap_gsrb (Box const& box,
                                        fracy *(phi(i+1,jj,k,n)-phi(i,jj,k,n));
                             fxp *= bX(i+1,j,k,n);
                         }
-                        else if (beta_on_centroid and phi_on_centroid) 
-                           amrex::Abort("beta_on_centroid and phi_on_centroid is still a WIP");
                         oxp = 0.0;
                         sxp = (1.0-fracy)*sxp;
                     }
@@ -348,8 +336,6 @@ void mlebabeclap_gsrb (Box const& box,
                                        fracx *(phi(ii,j,k,n)-phi(ii,j-1,k,n));
                             fym *= bY(i,j,k,n);
                         }
-                        else if (beta_on_centroid and phi_on_centroid) 
-                           amrex::Abort("beta_on_centroid and phi_on_centroid is still a WIP");
 
                         oym = 0.0;
                         sym = (1.0-fracx)*sym;
@@ -373,8 +359,6 @@ void mlebabeclap_gsrb (Box const& box,
                                        fracx *(phi(ii,j+1,k,n)-phi(ii,j,k,n));
                             fyp *= bY(i,j+1,k,n);
                         }
-                        else if (beta_on_centroid and phi_on_centroid) 
-                           amrex::Abort("beta_on_centroid and phi_on_centroid is still a WIP");
                         oyp = 0.0;
                         syp = (1.0-fracx)*syp;
                     }
@@ -470,8 +454,6 @@ void mlebabeclap_flux_x (Box const& box, Array4<Real> const& fx, Array4<Real con
                 } else if (beta_on_centroid and !phi_on_centroid)
                     fxm = bX(i,j,k,n) * ( (1.0-fracy)*(sol(i, j,k,n)-sol(i-1, j,k,n)) +
                                                fracy *(sol(i,jj,k,n)-sol(i-1,jj,k,n)) );
-                else if (beta_on_centroid and phi_on_centroid) 
-                   amrex::Abort("beta_on_centroid and phi_on_centroid is still a WIP");
                 fx(i,j,k,n) = -fxm*dhx;
             }
         }
@@ -504,8 +486,6 @@ void mlebabeclap_flux_y (Box const& box, Array4<Real> const& fy, Array4<Real con
                 } else if (beta_on_centroid and !phi_on_centroid)
                     fym = bY(i,j,k,n) * ( (1.0-fracx)*(sol( i,j,k,n)-sol( i,j-1,k,n)) +
                                                fracx *(sol(ii,j,k,n)-sol(ii,j-1,k,n)) );
-                else if (beta_on_centroid and phi_on_centroid) 
-                   amrex::Abort("beta_on_centroid and phi_on_centroid is still a WIP");
                 fy(i,j,k,n) = -fym*dhy;
             }
         }
@@ -568,8 +548,6 @@ void mlebabeclap_grad_x (Box const& box, Array4<Real> const& gx, Array4<Real con
             Real fracy = (ccm(i-1,jj,k) || ccm(i,jj,k)) ? amrex::Math::abs(fcx(i,j,k)) : 0.0;
             if (!phi_on_centroid) 
                gxm = (1.0-fracy)*gxm + fracy*(sol(i,jj,k,n)-sol(i-1,jj,k,n));
-            else 
-               amrex::Abort("phi_on_centroid is still a WIP");
             gx(i,j,k,n) = gxm*dxi;
         }
     });
@@ -593,8 +571,6 @@ void mlebabeclap_grad_y (Box const& box, Array4<Real> const& gy, Array4<Real con
             Real fracx = (ccm(ii,j-1,k) || ccm(ii,j,k)) ? amrex::Math::abs(fcy(i,j,k)) : 0.0;
             if (!phi_on_centroid) 
                 gym = (1.0-fracx)*gym + fracx*(sol(ii,j,k,n)-sol(ii,j-1,k,n));
-            else 
-               amrex::Abort("phi_on_centroid is still a WIP");
             gy(i,j,k,n) = gym*dyi;
         }
     });

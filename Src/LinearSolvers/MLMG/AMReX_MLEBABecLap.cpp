@@ -742,6 +742,8 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
             bool beta_on_centroid = (m_beta_loc == Location::FaceCentroid);
             bool  phi_on_centroid = (m_phi_loc  == Location::CellCentroid);
 
+            if (phi_on_centroid) amrex::Abort("phi_on_centroid is still a WIP");
+
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
             {
                 mlebabeclap_adotx(tbx, yfab, xfab, afab, AMREX_D_DECL(bxfab,byfab,bzfab),
@@ -890,8 +892,10 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
             Array4<Real const> const& bebfab = (is_eb_dirichlet)
                 ? m_eb_b_coeffs[amrlev][mglev]->const_array(mfi) : foo;
 
-           bool beta_on_centroid = (m_beta_loc == Location::FaceCentroid);
-           bool  phi_on_centroid = (m_phi_loc  == Location::CellCentroid);
+            bool beta_on_centroid = (m_beta_loc == Location::FaceCentroid);
+            bool  phi_on_centroid = (m_phi_loc  == Location::CellCentroid);
+
+            if (phi_on_centroid) amrex::Abort("phi_on_centroid is still a WIP");
 
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( vbx, thread_box,
             {
@@ -979,6 +983,8 @@ MLEBABecLap::FFlux (int amrlev, const MFIter& mfi, const Array<FArrayBox*,AMREX_
 
         bool beta_on_centroid = (m_beta_loc == Location::FaceCentroid);
         bool  phi_on_centroid = (m_phi_loc  == Location::CellCentroid);
+
+        if (phi_on_centroid) amrex::Abort("phi_on_centroid is still a WIP");
 
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
             xbx, txbx,
@@ -1111,6 +1117,8 @@ MLEBABecLap::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
             Array4<int const> const& msk = ccmask.const_array(mfi);
 
             bool phi_on_centroid = (m_phi_loc == Location::CellCentroid);
+
+            if (phi_on_centroid) amrex::Abort("phi_on_centroid is still a WIP");
 
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
                 fbx, txbx,
