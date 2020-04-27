@@ -284,7 +284,7 @@ void single_component_solve(MultiFab& soln, const MultiFab& rhs,
 
     mlabec.setScalars(a, b);
     mlabec.setACoeffs(0, alpha);
-    mlabec.setBCoeffs(0, {AMREX_D_DECL(beta[0], beta[1], beta[2])});
+    mlabec.setBCoeffs(0, Array<MultiFab const*,AMREX_SPACEDIM>{AMREX_D_DECL(beta[0], beta[1], beta[2])});
 
     MLMG mlmg(mlabec);
     mlmg.setVerbose(mlmg_verbose);
