@@ -287,7 +287,7 @@ void MCNodalLinOp::buildMasks ()
 				}
 
                                 mlndlap_fillbc_cc<int>(mfi.validbox(), fab.array(), ccdom,
-                                                       m_lobc[0], m_hibc[0]);
+                                                       LoBC(0), HiBC(0));
 			}
 		}
 
@@ -324,7 +324,7 @@ void MCNodalLinOp::buildMasks ()
 			const Box& bx = mfi.tilebox();
                         Array4<Real> const& dfab = m_bottom_dot_mask.array(mfi);
                         Array4<int const> const& sfab = omask.const_array(mfi);
-                        mlndlap_set_dot_mask(bx, dfab, sfab, nddomain, m_lobc[0], m_hibc[0]);
+                        mlndlap_set_dot_mask(bx, dfab, sfab, nddomain, LoBC(0), HiBC(0));
 		}
 	}
 }

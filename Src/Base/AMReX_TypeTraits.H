@@ -76,23 +76,32 @@ namespace amrex
     template <typename T>
     struct IsParticleContainer : public std::is_base_of<ParticleContainerBase, T>::type {};
 #endif
-    
-#if defined(AMREX_USE_GPU)
+
+#ifdef AMREX_USE_GPU
 
     template <class T, class Enable = void>
-    struct IsDeviceLambda : std::false_type {};
+    struct MaybeDeviceRunnable : std::true_type {};
 
     template <class T, class Enable = void>
-    struct IsHostDeviceLambda : std::false_type {};
+    struct MaybeHostDeviceRunnable : std::true_type {};
+
+    template <class T, class Enable = void>
+    struct DefinitelyNotHostRunnable : std::false_type {};
 
 #if defined(AMREX_USE_CUDA)
-    template <class T>
-    struct IsDeviceLambda<T, amrex::EnableIf_t<__nv_is_extended_device_lambda_closure_type(T)> >
-        : std::true_type {};
 
     template <class T>
-    struct IsHostDeviceLambda<T, amrex::EnableIf_t<__nv_is_extended_host_device_lambda_closure_type(T)> >
+    struct MaybeHostDeviceRunnable<T, amrex::EnableIf_t<__nv_is_extended_device_lambda_closure_type(T)> >
+        : std::false_type {};
+
+    template <class T>
+    struct DefinitelyNotHostRunnable<T, amrex::EnableIf_t<__nv_is_extended_device_lambda_closure_type(T)> >
         : std::true_type {};
+
+#elif defined(AMREX_USE_HIP)
+
+    // xxxxx HIP todo
+
 #endif
 
 #endif

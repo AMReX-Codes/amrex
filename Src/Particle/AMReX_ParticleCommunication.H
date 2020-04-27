@@ -187,7 +187,7 @@ struct ParticleCopyPlan
 
 private:
     
-    void buildMPIStart (const ParticleBufferMap& map, long psize);
+    void buildMPIStart (const ParticleBufferMap& map, Long psize);
 
     //
     // Snds - a Vector with the number of bytes that is process will send to each proc.
@@ -235,10 +235,10 @@ struct GetSendBufferOffset
     {}
     
     AMREX_FORCE_INLINE AMREX_GPU_HOST_DEVICE
-    long operator() (int dst_box, int dst_lev, std::size_t psize, int i) const
+    Long operator() (int dst_box, int dst_lev, std::size_t psize, int i) const
     {
         int dst_pid = m_buck_to_pid[m_box_perm[m_lev_offsets[dst_lev]+dst_box]];
-        long dst_offset = psize*(m_box_offsets[m_box_perm[m_lev_offsets[dst_lev]+dst_box]] + i);
+        Long dst_offset = psize*(m_box_offsets[m_box_perm[m_lev_offsets[dst_lev]+dst_box]] + i);
         dst_offset += m_pad_correction[dst_pid];
         return dst_offset;
     }
@@ -412,7 +412,7 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buff
         if (plan.m_rcv_num_particles[i] > 0) {
             RcvProc.push_back(i);
             rOffset.push_back(TotRcvBytes);
-            long nbytes = plan.m_rcv_num_particles[i]*psize;
+            Long nbytes = plan.m_rcv_num_particles[i]*psize;
             std::size_t acd = ParallelDescriptor::alignof_comm_data(nbytes);
             TotRcvBytes = amrex::aligned_size(acd, TotRcvBytes);
             TotRcvBytes += amrex::aligned_size(acd, nbytes);
@@ -445,7 +445,7 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buff
     for (int i = 0; i < plan.m_nrcvs; ++i) {
         const auto Who    = RcvProc[i];
         const auto offset = rOffset[i];
-        long nbytes       = plan.m_rcv_num_particles[Who]*psize;
+        Long nbytes       = plan.m_rcv_num_particles[Who]*psize;
         std::size_t acd   = ParallelDescriptor::alignof_comm_data(nbytes);
         const auto Cnt    = amrex::aligned_size(acd, nbytes) / acd;
 
@@ -476,7 +476,7 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buff
     {
         if (i == MyProc) continue;
         const auto Who  = i;
-        long nbytes     = plan.m_snd_num_particles[i]*psize;
+        Long nbytes     = plan.m_snd_num_particles[i]*psize;
         std::size_t acd = ParallelDescriptor::alignof_comm_data(nbytes);
         const auto Cnt  = plan.m_snd_counts[i] / acd;
         if (Cnt == 0) continue;
@@ -565,7 +565,7 @@ void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, co
             
             AMREX_FOR_1D ( size, ip,
 	    {
-                long src_offset = psize*(offset + ip) + p_pad_adjust[procindex];
+                Long src_offset = psize*(offset + ip) + p_pad_adjust[procindex];
                 int dst_index = dst_offset + ip;
                 ptd.unpackParticleData(p_rcv_buffer, src_offset, dst_index,
                                        p_comm_real, p_comm_int);
