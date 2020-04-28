@@ -176,36 +176,14 @@ target_sources( amrex
    AMReX_BCUtil.cpp
    AMReX_BCUtil.H
    AMReX_BC_TYPES.H
+   AMReX_FilCC_${DIM}D_C.H
+   AMReX_FilCC_C.H
+   AMReX_FilCC_C.cpp
    # Plotfile ----------------------------------------------------------------
    AMReX_PlotFileUtil.cpp
    AMReX_PlotFileUtil.H
    AMReX_PlotFileDataImpl.H
    AMReX_PlotFileDataImpl.cpp
-   # # Fortran interface routines.
-   # # In GNUMake system, this is included only if BL_NO_FORT=FALSE ------------
-   # AMReX_COORDSYS_${DIM}D_C.H
-   # AMReX_COORDSYS_C.H
-   # AMReX_filcc_f.H
-   # AMReX_BLutil_F.F90
-   # AMReX_BLProfiler_F.F90
-   # AMReX_FILCC_${DIM}D.F90
-   # AMReX_MultiFabUtil_${DIM}D_C.H
-   # AMReX_MultiFabUtil_nd_C.H
-   # AMReX_MultiFabUtil_C.H
-   # AMReX_FilCC_${DIM}D_C.H
-   # AMReX_FilCC_C.H
-   # AMReX_FilCC_C.cpp
-   # AMReX_filcc_mod.F90
-   # AMReX_omp_mod.F90
-   # AMReX_acc_mod.F90
-   # AMReX_fort_mod.F90
-   # AMReX_constants_mod.f90
-   # AMReX_error_mod.F90
-   # AMReX_parmparse_mod.F90
-   # AMReX_string_mod.F90
-   # AMReX_bc_types_mod.F90
-   # AMReX_ParallelDescriptor_F.F90
-   # AMReX_io_mod.F90
    # GPU --------------------------------------------------------------------
    AMReX_Gpu.H
    AMReX_GpuQualifiers.H
@@ -243,7 +221,6 @@ target_sources( amrex
    # Memory pool -------------------------------------------------------------
    AMReX_MemPool.cpp
    AMReX_MemPool.H
-   AMReX_mempool_mod.F90 # if BL_NO_FORT = FALSE
    # Profiling ---------------------------------------------------------------
    AMReX_BLProfiler.cpp
    AMReX_BLBackTrace.cpp
@@ -262,9 +239,6 @@ if (ENABLE_FORTRAN)
       AMReX_MultiFabUtil_${DIM}D_C.H
       AMReX_MultiFabUtil_nd_C.H
       AMReX_MultiFabUtil_C.H
-      AMReX_FilCC_${DIM}D_C.H
-      AMReX_FilCC_C.H
-      AMReX_FilCC_C.cpp
       AMReX_filcc_mod.F90
       AMReX_omp_mod.F90
       AMReX_acc_mod.F90
@@ -276,6 +250,7 @@ if (ENABLE_FORTRAN)
       AMReX_bc_types_mod.F90
       AMReX_ParallelDescriptor_F.F90
       AMReX_io_mod.F90
+      AMReX_mempool_mod.F90
       )
 endif ()
 # LAZY mode not supported in CMake yet
