@@ -92,7 +92,7 @@ MyTest::solve ()
             face_bcoef[idim].define(ba, dmap, 1, 0, MFInfo(), *factory);
         }
         amrex::average_cellcenter_to_face(amrex::GetArrOfPtrs(face_bcoef), eta, geom);
-        ebtensorop.setShearViscosity(0, amrex::GetArrOfConstPtrs(face_bcoef));
+        ebtensorop.setShearViscosity(0, amrex::GetArrOfConstPtrs(face_bcoef), MLMG::Location::FaceCenter);
         ebtensorop.setEBShearViscosity(0, eta);
     }
 
