@@ -132,7 +132,7 @@ MacProjector::project (Real reltol, Real atol)
         MultiFab divu(m_rhs[ilev].boxArray(), m_rhs[ilev].DistributionMap(),
                       1, 0, MFInfo(), m_rhs[ilev].Factory());
 #ifdef AMREX_USE_EB
-        if (m_umac_loc != MLMG::Location::FaceCentroid);
+        if (m_umac_loc != MLMG::Location::FaceCentroid)
         {
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                 AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_umac[ilev][idim]->nGrow() > 0,
