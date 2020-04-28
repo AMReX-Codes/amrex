@@ -39,7 +39,11 @@ public:
     void setACoeffs (int amrlev, const MultiFab& alpha);
     void setACoeffs (int amrlev, Real alpha);
 
-    void setBCoeffs (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& beta);
+    void setBCoeffs (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& beta,
+                     Location a_beta_loc);
+    void setBCoeffs (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& beta)
+        {setBCoeffs (amrlev, beta, Location::FaceCenter);}
+                    
     void setBCoeffs (int amrlev, Real beta);
     void setBCoeffs (int amrlev, Vector<Real> const& beta);
 
