@@ -1020,7 +1020,6 @@ ParallelDescriptor::GatherLayoutDataToVector (const LayoutData<T>& sendbuf,
 {
     BL_PROFILE_T_S("ParallelDescriptor::GatherLayoutData(Ti)", T);
     
-#ifdef BL_USE_MPI
     // Gather prelims
     Vector<int> index_to_send = sendbuf.IndexArray();
     Vector<T> T_to_send;
@@ -1094,12 +1093,6 @@ ParallelDescriptor::GatherLayoutDataToVector (const LayoutData<T>& sendbuf,
                 recvbuf[i] = new_index_to_T[old_index_to_new_index[i]];
         }
     }
-#else
-    for (int i=0; i<sendbuf.size(); ++i)
-    {
-        recvbuf[i] = sendbuf[i];
-    }
- #endif
 }
 
 template <class T, class T1>
@@ -1234,6 +1227,17 @@ Gather(const T& t, int root)
     std::vector<T> resl(1);
     resl[0] = t;
     return resl;
+}
+
+template <class T>
+void
+ParallelDescriptor::GatherLayoutDataToVector (const LayoutData<T>& sendbuf,
+                                              Vector<T>& recvbuf, int root)
+{
+    for (int i=0; i<sendbuf.size(); ++i)
+    {
+        recvbuf[i] = sendbuf[i];
+    }
 }
 
 template <class T, class T1>
