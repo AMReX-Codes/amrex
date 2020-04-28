@@ -1231,8 +1231,8 @@ Gather(const T& t, int root)
 
 template <class T>
 void
-ParallelDescriptor::GatherLayoutDataToVector (const LayoutData<T>& sendbuf,
-                                              Vector<T>& recvbuf, int root)
+GatherLayoutDataToVector (const LayoutData<T>& sendbuf,
+                          Vector<T>& recvbuf, int root)
 {
     for (int i=0; i<sendbuf.size(); ++i)
     {
