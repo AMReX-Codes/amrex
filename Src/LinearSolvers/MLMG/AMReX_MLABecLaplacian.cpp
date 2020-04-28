@@ -101,7 +101,6 @@ MLABecLaplacian::setBCoeffs (int amrlev,
             }
         }
     m_needs_update = true;
-    m_beta_loc     = Location::FaceCenter;
 }
 
 void
@@ -111,7 +110,6 @@ MLABecLaplacian::setBCoeffs (int amrlev, Real beta)
         m_b_coeffs[amrlev][0][idim].setVal(beta);
     }
     m_needs_update = true;
-    m_beta_loc     = Location::FaceCenter;
 }
 
 void
@@ -124,7 +122,6 @@ MLABecLaplacian::setBCoeffs (int amrlev, Vector<Real> const& beta)
         }
     }
     m_needs_update = true;
-    m_beta_loc     = Location::FaceCenter;
 }
 
 

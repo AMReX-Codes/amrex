@@ -89,10 +89,19 @@ MLEBABecLap::define (const Vector<Geometry>& a_geom,
                                                1, 0, 0, 1);
         }
     }
+   
+    // Default to cell center; can be re-set to cell centroid via setPhiOnCentroid call
+    m_phi_loc = Location::CellCenter;
 }
 
 MLEBABecLap::~MLEBABecLap ()
 {}
+
+void
+MLEBABecLap::setPhiOnCentroid ()
+{
+    m_phi_loc = Location::CellCentroid;
+}
 
 void
 MLEBABecLap::setScalars (Real a, Real b)

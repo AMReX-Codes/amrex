@@ -146,9 +146,6 @@ protected:
 
     bool m_has_metric_term = false;
 
-    Location m_beta_loc; // Location of coefficients: face centers or face centroids 
-    Location m_phi_loc;  // Location of solution variable: cell centers or cell centroids 
-
     Vector<std::unique_ptr<MLMGBndry> >   m_bndry_sol;
     Vector<std::unique_ptr<BndryRegister> > m_crse_sol_br;
 
