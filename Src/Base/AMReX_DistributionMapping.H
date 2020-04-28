@@ -19,6 +19,7 @@ namespace amrex {
 class BoxArray;
 class MultiFab;
 template <typename T> class FabArray;
+template <typename T> class LayoutData;
 class FabArrayBase;
 
 /**
@@ -160,23 +161,76 @@ class DistributionMapping
                           const DistributionMapping& rhs)
 		  { return lhs.m_ref == rhs.m_ref; }
 
-    static DistributionMapping makeKnapSack   (const MultiFab& weight,
-                                               int nmax=std::numeric_limits<int>::max());
-    static DistributionMapping makeKnapSack   (const MultiFab& weight, Real& eff,
-                                               int nmax=std::numeric_limits<int>::max());
-    static DistributionMapping makeKnapSack   (const Vector<Real>& rcost,
-                                               int nmax=std::numeric_limits<int>::max());
-    static DistributionMapping makeKnapSack   (const Vector<Real>& rcost, Real& eff,
-                                               int nmax=std::numeric_limits<int>::max(),
-                                               bool sort=true);
+    static DistributionMapping makeKnapSack (const MultiFab& weight,
+                                             int nmax=std::numeric_limits<int>::max());
+    static DistributionMapping makeKnapSack (const MultiFab& weight, Real& eff,
+                                             int nmax=std::numeric_limits<int>::max());
+    static DistributionMapping makeKnapSack (const Vector<Real>& rcost,
+                                             int nmax=std::numeric_limits<int>::max());
+    static DistributionMapping makeKnapSack (const Vector<Real>& rcost, Real& eff,
+                                             int nmax=std::numeric_limits<int>::max(),
+                                             bool sort=true);
+
+    /** \brief Computes a new distribution mapping by distributing input costs
+     * according to the `knapsack` algorithm.
+     * @param[in] rcost_local LayoutData of costs; contains, e.g., costs for the 
+     *            local boxes in the FAB array, corresponding indices in the global
+     *            indices in the FAB array, and the distribution mapping
+     * @param[in,out] currentEfficiency writes the efficiency (i.e., mean cost over
+     *                all MPI ranks, normalized to the max cost) given the current
+     *                distribution mapping
+     * @param[in,out] proposedEfficiency writes the efficiency for the proposed 
+     *                distribution mapping
+     * @param[in] nmax the maximum number of boxes that can be assigned to any 
+     *            MPI rank by the knapsack algorithm
+     * @param[in] broadcastToAll controls whether to transmit the proposed 
+     *            distribution mapping to all other processes; setting this to
+     *            false allows to, e.g., test whether the proposed distribution
+     *            mapping is an improvement relative to the current distribution
+     *            mapping, before deciding to broadcast the proposed distribution
+     *            mapping
+     * @param[in] root which process to collect the local costs from others and
+     *            compute the proposed distribution mapping
+     * @return the proposed load-balanced distribution mapping
+     */
+    static DistributionMapping makeKnapSack (const LayoutData<Real>& rcost_local,
+                                             Real& currentEfficiency, Real& proposedEfficiency,
+                                             int nmax=std::numeric_limits<int>::max(),
+                                             bool broadcastToAll=true,
+                                             int root=ParallelDescriptor::IOProcessorNumber());
 
     static DistributionMapping makeRoundRobin (const MultiFab& weight);
-    static DistributionMapping makeSFC        (const MultiFab& weight, bool sort=true);
-    static DistributionMapping makeSFC        (const MultiFab& weight, Real& eff, bool sort=true);
-    static DistributionMapping makeSFC        (const Vector<Real>& rcost,
-                                               const BoxArray& ba, bool sort=true);
-    static DistributionMapping makeSFC        (const Vector<Real>& rcost,
-                                               const BoxArray& ba, Real& eff, bool sort=true);
+    static DistributionMapping makeSFC (const MultiFab& weight, bool sort=true);
+    static DistributionMapping makeSFC (const MultiFab& weight, Real& eff, bool sort=true);
+    static DistributionMapping makeSFC (const Vector<Real>& rcost,
+                                        const BoxArray& ba, bool sort=true);
+    static DistributionMapping makeSFC (const Vector<Real>& rcost,
+                                        const BoxArray& ba, Real& eff, bool sort=true);
+
+    /** \brief Computes a new distribution mapping by distributing input costs
+     * according to a `space filling curve` (SFC) algorithm.
+     * @param[in] rcost_local LayoutData of costs; contains, e.g., costs for the 
+     *            local boxes in the FAB array, corresponding indices in the global
+     *            indices in the FAB array, and the distribution mapping
+     * @param[in,out] currentEfficiency writes the efficiency (i.e., mean cost over
+     *                all MPI ranks, normalized to the max cost) given the current
+     *                distribution mapping
+     * @param[in,out] proposedEfficiency writes the efficiency for the proposed 
+     *                distribution mapping
+     * @param[in] broadcastToAll controls whether to transmit the proposed 
+     *            distribution mapping to all other processes; setting this to
+     *            false allows to, e.g., test whether the proposed distribution
+     *            mapping is an improvement relative to the current distribution
+     *            mapping, before deciding to broadcast the proposed distribution
+     *            mapping
+     * @param[in] root which process to collect the local costs from others and
+     *            compute the proposed distribution mapping
+     * @return the proposed load-balanced distribution mapping
+     */
+    static DistributionMapping makeSFC (const LayoutData<Real>& rcost_local,
+                                        Real& currentEfficiency, Real& proposedEfficiency,
+                                        bool broadcastToAll=true,
+                                        int root=ParallelDescriptor::IOProcessorNumber());
 
     /**
     * if use_box_vol is true, weight boxes by their volume in Distribute
@@ -184,6 +238,17 @@ class DistributionMapping
     */
     static std::vector<std::vector<int> > makeSFC (const BoxArray& ba, bool use_box_vol=true);
 
+    /** \brief Computes the average cost per MPI rank given a distribution mapping
+     * global cost vector.
+     * @param[in] dm distribution mapping (mapping from FAB to MPI processes)
+     * @param[in] cost vector giving mapping from FAB to the corresponding cost
+     * @param[in,out] efficiency average cost per MPI process, as computed from
+     *                the given distribution mapping and cost
+     */
+    static void ComputeDistributionMappingEfficiency (const DistributionMapping& dm,
+                                                      const Vector<Real>& cost,
+                                                      Real* efficiency);
+    
 private:
 
     const Vector<int>& getIndexArray ();

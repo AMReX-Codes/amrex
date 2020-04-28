@@ -1410,6 +1410,117 @@ DistributionMapping::makeKnapSack (const Vector<Real>& rcost, Real& eff, int nma
 
     return r;
 }
+
+DistributionMapping
+DistributionMapping::makeKnapSack (const LayoutData<Real>& rcost_local,
+                                   Real& currentEfficiency, Real& proposedEfficiency,
+                                   int nmax, bool broadcastToAll, int root)
+{
+    BL_PROFILE("makeKnapSack");
+
+    // Proposed distribution mapping is computed from global vector of costs on root;
+    // required information is gathered on root from the layoutData information
+    //
+    // Two main steps:
+    // 1. collect from rcost_local into the global cost vector rcost; then rcost is
+    //    complete (only) on root
+    // 2. (optional; default true) Broadcast processor map of the new dm to others
+    
+    Vector<Real> rcost(rcost_local.size());
+    ParallelDescriptor::GatherLayoutDataToVector<Real>(rcost_local, rcost, root);
+    // rcost is now filled out on root
+
+    DistributionMapping r;
+    if (ParallelDescriptor::MyProc() == root)
+    {
+        Vector<Long> cost(rcost.size());
+
+        Real wmax = *std::max_element(rcost.begin(), rcost.end());
+        Real scale = (wmax == 0) ? 1.e9 : 1.e9/wmax;
+
+        for (int i = 0; i < rcost.size(); ++i) {
+            cost[i] = Long(rcost[i]*scale) + 1L;
+        }
+
+        // `sort` needs to be false here since there's a parallel reduce function
+        // in the processor map function, but we are executing only on root
+        int nprocs = ParallelDescriptor::NProcs();
+        r.KnapSackProcessorMap(cost, nprocs, &proposedEfficiency, true, nmax, false);
+
+        ComputeDistributionMappingEfficiency(rcost_local.DistributionMap(),
+                                             rcost,
+                                             &currentEfficiency);
+    }
+
+#ifdef BL_USE_MPI
+    // Load-balanced distribution mapping is computed on root; broadcast the cost
+    // to all proc (optional)
+    if (broadcastToAll)
+    {
+        Vector<int> pmap(rcost_local.DistributionMap().size());
+        if (ParallelDescriptor::MyProc() == root)
+        {
+            pmap = r.ProcessorMap();
+        }
+        
+        // Broadcast vector from which to construct new distribution mapping
+        ParallelDescriptor::Bcast(&pmap[0], pmap.size(), root);
+        if (ParallelDescriptor::MyProc() != root)
+        {
+            r = DistributionMapping(pmap);
+        }
+    }
+#endif
+    
+    return r;
+}
+
+void
+DistributionMapping::ComputeDistributionMappingEfficiency (const DistributionMapping& dm,
+                                                           const Vector<Real>& cost,
+                                                           Real* efficiency)
+{
+    const Real nprocs = ParallelDescriptor::NProcs();
+        
+    // This will store mapping from processor to the costs of FABs it controls,
+    // (proc) --> ([cost_FAB_1, cost_FAB_2, ... ]),
+    // for each proc
+    Vector<Vector<Real>> rankToCosts(nprocs);
+
+    // Count the number of costs belonging to each rank
+    Vector<int> cnt(nprocs);
+    for (int i=0; i<dm.size(); ++i)
+    {
+        ++cnt[dm[i]];
+    }
+    
+    for (int i=0; i<rankToCosts.size(); ++i)
+    {
+        rankToCosts[i].reserve(cnt[i]);
+    }
+    
+    for (int i=0; i<cost.size(); ++i)
+    {
+        rankToCosts[dm[i]].push_back(cost[i]);
+    }
+
+    Real maxCost = -1.0;
+
+    // This will store mapping from (proc) --> (sum of cost) for each proc
+    Vector<Real> rankToCost(nprocs);
+    for (int i=0; i<nprocs; ++i)
+    {
+        const Real rwSum = std::accumulate(rankToCosts[i].begin(),
+                                           rankToCosts[i].end(), 0.0);
+        rankToCost[i] = rwSum;
+        maxCost = std::max(maxCost, rwSum);
+    }
+
+    // Write `efficiency` (number between 0 and 1), the mean cost per processor
+    // (normalized to the max cost)
+    *efficiency = (std::accumulate(rankToCost.begin(),
+                                   rankToCost.end(), 0.0) / (nprocs*maxCost));
+}
   
 DistributionMapping
 DistributionMapping::makeKnapSack (const MultiFab& weight, int nmax)
@@ -1641,6 +1752,70 @@ DistributionMapping::makeSFC (const Vector<Real>& rcost, const BoxArray& ba, Rea
     return r;
 }
 
+DistributionMapping
+DistributionMapping::makeSFC (const LayoutData<Real>& rcost_local,
+                              Real& currentEfficiency, Real& proposedEfficiency,
+                              bool broadcastToAll, int root)
+{
+    BL_PROFILE("makeSFC");
+
+    // Proposed distribution mapping is computed from global vector of costs on root;
+    // required information is gathered on root from the layoutData information
+    //
+    // Two main steps:
+    // 1. collect from rcost_local into the global cost vector rcost; then rcost is
+    //    complete (only) on root
+    // 2. (optional; default true) Broadcast processor map of the new dm to others
+    
+    Vector<Real> rcost(rcost_local.size());
+    ParallelDescriptor::GatherLayoutDataToVector<Real>(rcost_local, rcost, root);
+    // rcost is now filled out on root;
+
+    DistributionMapping r;
+    if (ParallelDescriptor::MyProc() == root)
+    {
+        Vector<Long> cost(rcost.size());
+
+        Real wmax = *std::max_element(rcost.begin(), rcost.end());
+        Real scale = (wmax == 0) ? 1.e9 : 1.e9/wmax;
+
+        for (int i = 0; i < rcost.size(); ++i) {
+            cost[i] = Long(rcost[i]*scale) + 1L;
+        }
+
+        // `sort` needs to be false here since there's a parallel reduce function
+        // in the processor map function, but we are executing only on root
+        int nprocs = ParallelDescriptor::NProcs();
+        r.SFCProcessorMap(rcost_local.boxArray(), cost, nprocs, proposedEfficiency, false);
+
+        ComputeDistributionMappingEfficiency(rcost_local.DistributionMap(),
+                                             rcost,
+                                             &currentEfficiency);
+    }
+
+#ifdef BL_USE_MPI
+    // Load-balanced distribution mapping is computed on root; broadcast the cost
+    // to all proc (optional)
+    if (broadcastToAll)
+    {
+        Vector<int> pmap(rcost_local.DistributionMap().size());
+        if (ParallelDescriptor::MyProc() == root)
+        {
+            pmap = r.ProcessorMap();
+        }
+
+        // Broadcast vector from which to construct new distribution mapping
+        ParallelDescriptor::Bcast(&pmap[0], pmap.size(), root);
+        if (ParallelDescriptor::MyProc() != root)
+        {
+            r = DistributionMapping(pmap);
+        }
+    }
+#endif
+
+    return r;
+}
+    
 std::vector<std::vector<int> >
 DistributionMapping::makeSFC (const BoxArray& ba, bool use_box_vol)
 {
