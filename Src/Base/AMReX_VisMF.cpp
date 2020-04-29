@@ -148,7 +148,7 @@ VisMF::SetNOutFiles (int newoutfiles, MPI_Comm comm)
         // Function is being recalled, so free MPI objects. 
         if (initialized)
         {
-            for (int i=0; i<nAsyncWrites; ++i)
+            for (int i=0; i<async_comm.size(); ++i)
             {
                 MPI_Comm_free(&async_comm[i]);
                 async_comm[i] = MPI_COMM_NULL;
@@ -2557,10 +2557,10 @@ VisMF::WriteAsyncMultiFab (const FabArray<FArrayBox>& mf, const std::string& mf_
     const int n_local_fabs = mf.local_size();
     const int n_global_fabs = mf.size();
     const int ncomp = mf.nComp();
-    const long n_fab_reals = 2*ncomp;
-    const long n_fab_int64 = 1;
-    const long n_fab_nums = n_fab_reals*sizeof_int64_over_real + n_fab_int64;
-    const long n_local_nums = n_fab_nums * n_local_fabs + 1;
+    const Long n_fab_reals = 2*ncomp;
+    const Long n_fab_int64 = 1;
+    const Long n_fab_nums = n_fab_reals*sizeof_int64_over_real + n_fab_int64;
+    const Long n_local_nums = n_fab_nums * n_local_fabs + 1;
     Vector<int64_t> localdata(n_local_nums);
 
     RunOn runon;
@@ -2631,7 +2631,7 @@ VisMF::WriteAsyncMultiFab (const FabArray<FArrayBox>& mf, const std::string& mf_
     }
 #ifdef BL_USE_MPI
     else {
-        const long n_global_nums = n_fab_nums * n_global_fabs + nprocs;
+        const Long n_global_nums = n_fab_nums * n_global_fabs + nprocs;
         Vector<int> rcnt, rdsp;
         if (myproc == nprocs-1) {
             globaldata.resize(n_global_nums);
@@ -2666,7 +2666,7 @@ VisMF::WriteAsyncMultiFab (const FabArray<FArrayBox>& mf, const std::string& mf_
         auto tstr = hss.str();
         std::memcpy(p, tstr.c_str(), nbytes);
         p += nbytes;
-        long nreals = fab.size();
+        Long nreals = fab.size();
 
         if (doConvert) {
             ptmp = The_Pinned_Arena()->alloc(nreals*sizeof(Real));
@@ -2886,10 +2886,10 @@ VisMF::WriteAsyncPlotfile (const Vector<const MultiFab*>& mf, const Vector<std::
     Vector<VisMF::Header> hdrs;
     Vector<DistributionMapping> dms(nlevels);
     Vector<int64_t> all_local_bytes_per_level(nlevels);
-    long all_local_written_bytes = 0;        // Only needed for the WriteAsyncStatus output.
+    Long all_local_written_bytes = 0;        // Only needed for the WriteAsyncStatus output.
 
-    long n_all_local_nums = 0;
-    long n_all_global_nums = 0;
+    Long n_all_local_nums = 0;
+    Long n_all_global_nums = 0;
 
     for (int level = 0; level < nlevels; ++level)
     {
@@ -2911,9 +2911,9 @@ VisMF::WriteAsyncPlotfile (const Vector<const MultiFab*>& mf, const Vector<std::
         const int n_global_fabs = mfl.size();
         const int ncomp = mfl.nComp();
 
-        const long n_fab_reals = n_reals_per_fab*ncomp;
-        const long n_fab_nums = n_fab_reals*sizeof_int64_over_real + n_fab_int64;
-        const long n_local_nums = n_fab_nums * n_local_fabs + n_local_int64;
+        const Long n_fab_reals = n_reals_per_fab*ncomp;
+        const Long n_fab_nums = n_fab_reals*sizeof_int64_over_real + n_fab_int64;
+        const Long n_local_nums = n_fab_nums * n_local_fabs + n_local_int64;
 
         n_all_local_nums += n_local_nums;
         n_all_global_nums += n_fab_nums*n_global_fabs + nprocs;
@@ -3027,7 +3027,7 @@ VisMF::WriteAsyncPlotfile (const Vector<const MultiFab*>& mf, const Vector<std::
             std::memcpy(p, tstr.c_str(), nbytes);
             p += nbytes;
 
-            long nreals;
+            Long nreals;
             if (do_strip) {
                 const Box &vbx = mfi.validbox();
                 nreals = vbx.numPts() * ncomp; 
@@ -3122,7 +3122,7 @@ VisMF::WriteAsyncPlotfile (const Vector<const MultiFab*>& mf, const Vector<std::
         {
             Vector<Vector<int64_t> > nbytes_on_rank(nlevels);  // [Level] [Proc]
             Vector<Vector<Vector<int> > > gidx(nprocs);        // [Level] [Rank] [Grid #]
-            long n_all_global_fabs = 0;
+            Long n_all_global_fabs = 0;
 
             // Setup objects
             for (int level=0; level<nlevels; ++level)
