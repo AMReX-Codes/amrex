@@ -60,7 +60,7 @@ MacProjector::MacProjector (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_um
 
         m_eb_abeclap->setScalars(0.0, 1.0);
         for (int ilev = 0; ilev < nlevs; ++ilev) {
-            m_eb_abeclap->setBCoeffs(ilev, a_beta[ilev]);
+	  m_eb_abeclap->setBCoeffs(ilev, a_beta[ilev], m_beta_loc);
         }
     }
     else
