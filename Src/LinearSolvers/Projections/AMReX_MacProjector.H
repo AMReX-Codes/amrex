@@ -115,12 +115,6 @@ private:
     // Location of umac -- face center vs face centroid
     MLMG::Location m_umac_loc;
 
-    // Location of beta (coefficient) -- face center vs face centroid
-    MLMG::Location m_beta_loc;
-
-    // Location of phi (solution variable) -- cell center vs cell centroid
-    MLMG::Location m_phi_loc;
-
     // Location of divu (RHS -- optional) -- cell center vs cell centroid
     MLMG::Location m_divu_loc;
 
