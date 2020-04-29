@@ -34,12 +34,11 @@ void
 BLBackTrace::handler(int s)
 {
 
+    signal(s, SIG_DFL);
+
 #ifdef AMREX_MPI_MULTIPLE
-    amrex::Print() << "Aborting. Completing Asynchronous Prints." << std::endl;
     VisMF::asyncWaitAll();
 #endif
-
-    signal(s, SIG_DFL);
 
     switch (s) {
     case SIGSEGV:

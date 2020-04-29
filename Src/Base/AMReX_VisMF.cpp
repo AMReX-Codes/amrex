@@ -3330,6 +3330,11 @@ VisMF::asyncWaitAll ()
 {
     WriteAsyncStatus status;
 #ifdef AMREX_MPI_MULTIPLE
+    if (verbose)
+    { 
+        amrex::Print() << "VisMF::asyncWaitAll(): Waiting for "
+                       << future_list.size() << " writes to finish." << std::endl; 
+    }
     while (!future_list.empty())
     {
         status = asyncWaitOne();
