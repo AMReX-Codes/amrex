@@ -20,8 +20,6 @@ MacProjector::MacProjector (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_um
     : m_umac(a_umac),
       m_geom(a_geom),
       m_umac_loc(a_umac_loc),
-      m_beta_loc(a_beta_loc),
-      m_phi_loc ( a_phi_loc),
       m_divu_loc(a_divu_loc)
 {
     int nlevs = a_umac.size();
@@ -56,11 +54,11 @@ MacProjector::MacProjector (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_um
         m_eb_abeclap.reset(new MLEBABecLap(a_geom, ba, dm, a_lpinfo, m_eb_factory));
         m_linop = m_eb_abeclap.get();
 
-        if (m_phi_loc == MLMG::Location::CellCentroid) m_eb_abeclap->setPhiOnCentroid();
+        if (a_phi_loc == MLMG::Location::CellCentroid) m_eb_abeclap->setPhiOnCentroid();
 
         m_eb_abeclap->setScalars(0.0, 1.0);
         for (int ilev = 0; ilev < nlevs; ++ilev) {
-            m_eb_abeclap->setBCoeffs(ilev, a_beta[ilev]);
+	  m_eb_abeclap->setBCoeffs(ilev, a_beta[ilev], a_beta_loc);
         }
     }
     else
