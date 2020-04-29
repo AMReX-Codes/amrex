@@ -112,7 +112,7 @@ VisMF::Finalize ()
 #ifdef AMREX_MPI_MULTIPLE
     VisMF::asyncWaitAll();
 
-    for (int i=0; i<nAsyncWrites; ++i)
+    for (int i=0; i<async_comm.size(); ++i)
     {
         if (async_comm[i] != MPI_COMM_NULL)
         {
@@ -127,9 +127,11 @@ VisMF::Finalize ()
 void
 VisMF::SetNOutFiles (int newoutfiles, MPI_Comm comm)
 {
-
     const int nranks = ParallelDescriptor::NProcs(comm);
     const int myproc = ParallelDescriptor::MyProc(comm);
+#ifdef AMREX_MPI_MULTIPLE
+    int prevNOutFiles = nOutFiles;
+#endif
 
     // Must be called globally with this change (MPI_Comm_split on m_comm == MPI_COMM_WORLD)
     // So, minimize when it's done?? How?? (Comm / newoutfiles could both change!)
@@ -137,39 +139,34 @@ VisMF::SetNOutFiles (int newoutfiles, MPI_Comm comm)
 
 #ifdef AMREX_MPI_MULTIPLE
 
-    VisMF::asyncWaitAll();
-    current_comm = 0;
-
-    // Function is being recalled, so free MPI objects. 
-    if (initialized)
+    if (nOutFiles != prevNOutFiles)
     {
+
+        VisMF::asyncWaitAll();
+        current_comm = 0;
+
+        // Function is being recalled, so free MPI objects. 
+        if (initialized)
+        {
+            for (int i=0; i<nAsyncWrites; ++i)
+            {
+                MPI_Comm_free(&async_comm[i]);
+                async_comm[i] = MPI_COMM_NULL;
+            }
+        }
+
+        auto data = StaticWriteInfo(myproc);
+        int myfile = std::get<0>(data); 
+
+        // Perhaps Split once, then Dup for remainder?
+        // Is Dup performance better than Split?
         for (int i=0; i<nAsyncWrites; ++i)
         {
-            MPI_Comm_free(&async_comm[i]);
-            async_comm[i] = MPI_COMM_NULL;
+            MPI_Comm_split(comm, myfile, myproc, &async_comm[i]);
         }
     }
 
-    // Object to set optional flags for the window.
-    MPI_Info win_info;
-    MPI_Info_create(&win_info);
-    MPI_Info_set(win_info, "same_size", "true");
-    MPI_Info_set(win_info, "same_disp_unit", "true");
-
-    auto data = StaticWriteInfo(myproc);
-    int myfile = std::get<0>(data); 
-
-    // Perhaps Split once, then dup for remainder?
-    // Is initialization, so likely doesn't matter.
-    for (int i=0; i<nAsyncWrites; ++i)
-    {
-        MPI_Comm_split(comm, myfile, myproc, &async_comm[i]);
-    }
-
-    MPI_Info_free(&win_info);
-
 #endif
-
 }
 
 void
