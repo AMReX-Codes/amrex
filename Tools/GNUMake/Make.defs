@@ -553,6 +553,8 @@ ifeq ($(USE_MPI),TRUE)
     else
         MPISuffix := .MPI
     endif
+else
+    MPISuffix :=
 endif
 
 ifeq ($(USE_MPI3),TRUE)
