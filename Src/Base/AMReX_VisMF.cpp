@@ -2603,24 +2603,21 @@ VisMF::WriteAsyncMultiFab (const FabArray<FArrayBox>& mf, const std::string& mf_
             {
                 Real cmin = fab.min<RunOn::Host>(bx,icomp);
                 Real cmax = fab.max<RunOn::Host>(bx,icomp);
-                std::memcpy(pld, &cmin, sizeof(Real));
-                pld += sizeof(Real);
-                std::memcpy(pld, &cmax, sizeof(Real));
-                pld += sizeof(Real);
             }
             else if (runon == RunOn::Device)
             {
                 Real cmin = fab.min<RunOn::Device>(bx,icomp);
                 Real cmax = fab.max<RunOn::Device>(bx,icomp);
-                std::memcpy(pld, &cmin, sizeof(Real));
-                pld += sizeof(Real);
-                std::memcpy(pld, &cmax, sizeof(Real));
-                pld += sizeof(Real);
             }
             else
             {
                 amrex::Abort("VisMF::WriteAsyncMPIABarrierWaitall -- Invalid RunOn");
             }
+
+            std::memcpy(pld, &cmin, sizeof(Real));
+            pld += sizeof(Real);
+            std::memcpy(pld, &cmax, sizeof(Real));
+            pld += sizeof(Real);
         }
     }
     localdata[0] = total_bytes;
@@ -2789,6 +2786,7 @@ VisMF::WriteAsyncMultiFab (const FabArray<FArrayBox>& mf, const std::string& mf_
 
         // If not the first MPI writing on this rank,
         // block until it is your turn.
+
         while (barrier_count < ispot)
         {
             waiting_reqs[barrier_count++] =
@@ -2978,24 +2976,22 @@ VisMF::WriteAsyncPlotfile (const Vector<const MultiFab*>& mf, const Vector<std::
                 {
                     Real cmin = fab.min<RunOn::Host>(vbx,icomp);
                     Real cmax = fab.max<RunOn::Host>(vbx,icomp);
-                    std::memcpy(phdr, &cmin, sizeof(Real));
-                    phdr += sizeof(Real);
-                    std::memcpy(phdr, &cmax, sizeof(Real));
-                    phdr += sizeof(Real);
                 }
                 else if (runon == RunOn::Device)
                 {
                     Real cmin = fab.min<RunOn::Device>(vbx,icomp);
                     Real cmax = fab.max<RunOn::Device>(vbx,icomp);
-                    std::memcpy(phdr, &cmin, sizeof(Real));
-                    phdr += sizeof(Real);
-                    std::memcpy(phdr, &cmax, sizeof(Real));
-                    phdr += sizeof(Real);
                 }
                 else
                 {
                     amrex::Abort("VisMF::WriteAsyncPlotfile() -- Invalid RunOn");
                 }
+
+                std::memcpy(phdr, &cmin, sizeof(Real));
+                phdr += sizeof(Real);
+                std::memcpy(phdr, &cmax, sizeof(Real));
+                phdr += sizeof(Real);
+
             }
         }
 
