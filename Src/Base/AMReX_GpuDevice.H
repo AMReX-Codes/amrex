@@ -51,9 +51,9 @@ public:
     static cudaStream_t cudaStream () noexcept { return gpu_stream; }
 #endif
 #ifdef AMREX_USE_DPCPP
-    static sycl::ordered_queue& nullQueue () noexcept { return *(gpu_default_stream.queue); }
-    static sycl::ordered_queue& streamQueue () noexcept { return *(gpu_stream.queue); }
-    static sycl::ordered_queue& streamQueue (int i) noexcept { return *(gpu_streams[i].queue); }
+    static sycl::queue& nullQueue () noexcept { return *(gpu_default_stream.queue); }
+    static sycl::queue& streamQueue () noexcept { return *(gpu_stream.queue); }
+    static sycl::queue& streamQueue (int i) noexcept { return *(gpu_streams[i].queue); }
     static bool onNullStream () noexcept { return gpu_stream == gpu_default_stream; }
     static bool onNullStream (gpuStream_t stream) noexcept { return stream == gpu_default_stream; }
 #endif

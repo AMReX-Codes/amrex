@@ -423,9 +423,11 @@ Device::initialize_gpu ()
         sycl::gpu_selector device_selector;
         sycl_device.reset(new sycl::device(device_selector));
         sycl_context.reset(new sycl::context(*sycl_device, amrex_sycl_error_handler));
-        gpu_default_stream.queue = new sycl::ordered_queue(*sycl_context, device_selector);
+        gpu_default_stream.queue = new sycl::queue(*sycl_context, device_selector,
+                                         sycl::property_list{sycl::property::queue::in_order{}});
         for (int i = 0; i < max_gpu_streams; ++i) {
-            gpu_streams[i].queue = new sycl::ordered_queue(*sycl_context, device_selector);
+            gpu_streams[i].queue = new sycl::queue(*sycl_context, device_selector,
+                                         sycl::property_list{sycl::property::queue::in_order{}});
         }
     }
 
