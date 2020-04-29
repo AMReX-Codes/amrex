@@ -35,6 +35,8 @@ public:
                  const LPInfo& a_info,
                  const Vector<EBFArrayBoxFactory const*>& a_factory);
 
+    void setPhiOnCentroid ();
+
     void setScalars (Real a, Real b);
     void setACoeffs (int amrlev, const MultiFab& alpha);
     void setACoeffs (int amrlev, Real alpha);
@@ -118,6 +120,9 @@ public:
 protected:
 
     bool m_needs_update = true;
+
+    Location m_beta_loc; // Location of coefficients: face centers or face centroids
+    Location m_phi_loc;  // Location of solution variable: cell centers or cell centroids
 
     Real m_a_scalar = std::numeric_limits<Real>::quiet_NaN();
     Real m_b_scalar = std::numeric_limits<Real>::quiet_NaN();
