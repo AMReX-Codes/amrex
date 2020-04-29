@@ -8,7 +8,7 @@ jobs:
     name: GNU@7.5 C++17 [lib]
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
     - name: Dependencies
       run: .github/workflows/cmake/dependencies.sh
     - name: Build & Install
@@ -26,7 +26,7 @@ jobs:
     name: GNU@7.5 C++14 [tutorials]
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
     - name: Dependencies
       run: .github/workflows/cmake/dependencies.sh
     - name: Build & Install
@@ -41,7 +41,7 @@ jobs:
     name: GNU@7.5 C++14 non-MPI [tutorials]
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
     - name: Dependencies
       run: .github/workflows/cmake/dependencies.sh
     - name: Build & Install
@@ -56,7 +56,7 @@ jobs:
     name: AppleClang@11.0 GFortran@9.3 [tutorials]
     runs-on: macos-latest
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
     - name: Dependencies
       run: .github/workflows/cmake/dependencies_mac.sh
     - name: Build & Install
@@ -71,7 +71,7 @@ jobs:
     name: GNU@7.5 C++11 w/o Fortran [tutorials]
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
     - name: Dependencies
       run: .github/workflows/cmake/dependencies_nofortran.sh
     - name: Build & Install
@@ -89,7 +89,7 @@ jobs:
     name: CUDA@9.1.85 GNU@4.8.5 C++11 [tutorials]
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
     - name: Dependencies
       run: .github/workflows/cmake/dependencies_nvcc.sh
     - name: Build & Install
