@@ -314,9 +314,8 @@ ParallelDescriptor::StartParallel (int*    argc,
 
         if (provided < requested)
         {
-            std::cout << "MPI provided < requested: " + std::to_string(provided) + 
-                                                " < " + std::to_string(requested);
-            abort();
+            std::cout << "MPI provided < requested: " << provided << " < " << requested;
+            std::abort();
         }
 #else // 
         MPI_Init(argc, argv);
@@ -353,15 +352,6 @@ ParallelDescriptor::StartParallel (int*    argc,
     int mpi_version, mpi_subversion;
     BL_MPI_REQUIRE( MPI_Get_version(&mpi_version, &mpi_subversion) );
     if (mpi_version < 3) amrex::Abort("MPI 3 is needed because USE_MPI3=TRUE");
-#endif
-
-#ifdef AMREX_MPI_MULTIPLE
-    int provided = -1;
-    MPI_Query_thread(&provided);
-    amrex::Print() << "MPI Thread Initialized with support level " << provided << "." << std::endl;
-
-#else
-    amrex::Print() << "MPI Initialized." << std::endl;
 #endif
 
     // Wait until all other processes are properly started.
@@ -431,7 +421,7 @@ ParallelDescriptor::Abarrier ()
 
     // Use a char/(byte) as a faux-type for compatibility. 
 
-    return Message(req, Mpi_typemap<char>::type());
+    return Message(req, Mpi_typemap<MPI_DATATYPE_NULL>::type());
 }
 
 ParallelDescriptor::Message
@@ -442,7 +432,7 @@ ParallelDescriptor::Abarrier (const MPI_Comm & comm)
 
     // Use a char/(byte) as a faux-type for compatibility.
 
-    return Message(req, Mpi_typemap<char>::type());   
+    return Message(req, Mpi_typemap<MPI_DATATYPE_NULL>::type());   
 }
 
 
