@@ -3061,7 +3061,7 @@ VisMF::WriteAsyncPlotfile (const Vector<const MultiFab*>& mf, const Vector<std::
             }
             p += nreals * whichRD.numBytes();
         }
-        local_plotfile_data[level].swap(level_data);  
+        local_plotfile_data[level] = std::move(level_data);  
 
     }  // nlevels
 
