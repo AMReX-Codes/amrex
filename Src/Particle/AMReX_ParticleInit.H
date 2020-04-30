@@ -224,6 +224,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromAscii
 
     for (int nr = 0; nr < NRedist; nr++)
     {
+
+        Vector<std::map<std::pair<int, int>, Gpu::HostVector<ParticleType> > > host_particles;
+        host_particles.reserve(15);
+        host_particles.resize(finestLevel()+1);
+
         if (m_verbose > 0) {
             amrex::Print() << "Redistributing from processor " << nr*NRedist_chunk << " to " 
                                                            << (nr+1)*NRedist_chunk-1 << '\n';
@@ -237,16 +242,34 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromAscii
                     ParticleType& p = nparticles.back();
 		    Where(p, pld);
 
-                    m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
+                    host_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
     
                     nparticles.pop_back();
                 }
             }
         }
+
+        for (int lev = 0; lev < static_cast<int>(host_particles.size()); ++lev)
+        {
+            for (auto& kv : host_particles[lev]) {
+                auto grid = kv.first.first;
+                auto tile = kv.first.second;
+                const auto& src_tile = kv.second;
+                
+                auto& dst_tile = GetParticles(lev)[std::make_pair(grid,tile)];
+                auto old_size = dst_tile.GetArrayOfStructs().size();
+                auto new_size = old_size + src_tile.size();
+                dst_tile.resize(new_size);
+                
+                Gpu::copy(Gpu::hostToDevice, src_tile.begin(), src_tile.end(),
+                          dst_tile.GetArrayOfStructs().begin() + old_size);
+            }
+        }
+
         //
         // Let Redistribute() sort'm out.
         //
-        Redistribute();
+        Redistribute();        
     }
     //
     // Take care of any leftover chunk
