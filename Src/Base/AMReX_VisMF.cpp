@@ -2598,16 +2598,17 @@ VisMF::WriteAsyncMultiFab (const FabArray<FArrayBox>& mf, const std::string& mf_
         // compute min and max
         const Box& bx = mfi.validbox();
 
+        Real cmin, cmax;
         for (int icomp = 0; icomp < ncomp; ++icomp) {
             if (runon == RunOn::Host)
             {
-                Real cmin = fab.min<RunOn::Host>(bx,icomp);
-                Real cmax = fab.max<RunOn::Host>(bx,icomp);
+                cmin = fab.min<RunOn::Host>(bx,icomp);
+                cmax = fab.max<RunOn::Host>(bx,icomp);
             }
             else if (runon == RunOn::Device)
             {
-                Real cmin = fab.min<RunOn::Device>(bx,icomp);
-                Real cmax = fab.max<RunOn::Device>(bx,icomp);
+                cmin = fab.min<RunOn::Device>(bx,icomp);
+                cmax = fab.max<RunOn::Device>(bx,icomp);
             }
             else
             {
@@ -2774,7 +2775,6 @@ VisMF::WriteAsyncMultiFab (const FabArray<FArrayBox>& mf, const std::string& mf_
             VisMF::WriteHeaderDoit(mf_name, h);
         }
 
-        int barrier_count = 0;
         int ranks_in_file = ParallelDescriptor::NProcs(io_comm);
 
         Vector<MPI_Request> waiting_reqs(ispot);
@@ -2965,16 +2965,17 @@ VisMF::WriteAsyncPlotfile (const Vector<const MultiFab*>& mf, const Vector<std::
                 total_bytes += fab.size() * whichRD.numBytes();
             }
 
+            Real cmin, cmax;
             for (int icomp = 0; icomp < ncomp; ++icomp) {
                 if (runon == RunOn::Host)
                 {
-                    Real cmin = fab.min<RunOn::Host>(vbx,icomp);
-                    Real cmax = fab.max<RunOn::Host>(vbx,icomp);
+                    cmin = fab.min<RunOn::Host>(vbx,icomp);
+                    cmax = fab.max<RunOn::Host>(vbx,icomp);
                 }
                 else if (runon == RunOn::Device)
                 {
-                    Real cmin = fab.min<RunOn::Device>(vbx,icomp);
-                    Real cmax = fab.max<RunOn::Device>(vbx,icomp);
+                    cmin = fab.min<RunOn::Device>(vbx,icomp);
+                    cmax = fab.max<RunOn::Device>(vbx,icomp);
                 }
                 else
                 {
@@ -3221,7 +3222,6 @@ VisMF::WriteAsyncPlotfile (const Vector<const MultiFab*>& mf, const Vector<std::
             }
         }
 
-        int barrier_count = 0;
         int ranks_in_file = ParallelDescriptor::NProcs(io_comm);
 
         Vector<MPI_Request> waiting_reqs(ispot);
@@ -3262,14 +3262,6 @@ VisMF::WriteAsyncPlotfile (const Vector<const MultiFab*>& mf, const Vector<std::
             { req = ParallelDescriptor::Abarrier(io_comm).req(); }
         if (syncing_reqs.size() > 0)
             { ParallelDescriptor::Waitall(syncing_reqs, syncing_status); }
-
-        // If not the last, release the next rank to write
-        while (barrier_count < ranks_in_file-ispot)
-        {
-            syncing_reqs[barrier_count++] =
-                ParallelDescriptor::Abarrier(io_comm).req();
-        }
-        ParallelDescriptor::Waitall(syncing_reqs, syncing_status);
 
         Real tend = amrex::second();
 

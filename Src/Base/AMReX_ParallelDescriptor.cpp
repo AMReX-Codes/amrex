@@ -419,9 +419,7 @@ ParallelDescriptor::Abarrier ()
     MPI_Request req;
     BL_MPI_REQUIRE( MPI_Ibarrier(ParallelDescriptor::Communicator(), &req) );
 
-    // Use a char/(byte) as a faux-type for compatibility. 
-
-    return Message(req, Mpi_typemap<MPI_DATATYPE_NULL>::type());
+    return Message(req, MPI_DATATYPE_NULL);
 }
 
 ParallelDescriptor::Message
@@ -430,9 +428,7 @@ ParallelDescriptor::Abarrier (const MPI_Comm & comm)
     MPI_Request req;
     BL_MPI_REQUIRE( MPI_Ibarrier(comm, &req) );
 
-    // Use a char/(byte) as a faux-type for compatibility.
-
-    return Message(req, Mpi_typemap<MPI_DATATYPE_NULL>::type());   
+    return Message(req, MPI_DATATYPE_NULL);   
 }
 
 

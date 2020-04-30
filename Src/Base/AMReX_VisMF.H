@@ -424,7 +424,7 @@ std::ostream& operator<< (std::ostream& os, const WriteAsyncStatus& status);
 template <typename Func, typename... Params>
 inline void VisMF::asyncAddWrite (Func&& f, Params&&... args)
 {
-#ifdef AMREX_MPI_MULTIPLrE
+#ifdef AMREX_MPI_MULTIPLE
     asyncWaitUntilFree();
 
     current_comm = ((current_comm + 1) % nAsyncWrites);
