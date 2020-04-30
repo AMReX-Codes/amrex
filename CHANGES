@@ -1,3 +1,29 @@
+# 20.05
+
+  -- AMReX's git history has been rewritten.  If you have problems due
+     to this, follow the instruction here. https://xkcd.com/1597/  We
+     also have a new CONTRIBUTING.md.
+
+  -- EB linear solvers: You now need to specify the location of
+     diffusion coefficient (face center or face centroid) and the
+     location of the unknowns (cell center or cell centroid).
+
+  -- Optimization of makeKnapSack and makeSFC.
+
+  -- Unification of GPU and CPU versions of neighbor particle /
+     neighbor list implementations.
+
+  -- New HostDeviceParallelFor functions that can run on either host
+     or device depending on the launch region flag.
+
+  -- Add CUPTI trace for CUDA kernel timing.
+
+  -- Implement ENABLE_FORTRAN (BL_NO_FORT) option in CMake.
+
+  -- Fix CUDA build of tools.
+
+  -- Fix invalid git version in CMake.
+
 # 20.04
 
   -- BaseFab can no longer be used on device.  Many BaseFab functions
