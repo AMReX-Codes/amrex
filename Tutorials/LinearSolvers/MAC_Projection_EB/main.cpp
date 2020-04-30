@@ -188,7 +188,10 @@ int main (int argc, char* argv[])
             lp_info.setMaxCoarseningLevel(0);
 
         MacProjector macproj({amrex::GetArrOfPtrs(vel)},       // mac velocity
+                             MLMG::Location::FaceCenter,       // Location of vel
                              {amrex::GetArrOfConstPtrs(beta)}, // beta
+                             MLMG::Location::FaceCenter,       // Location of beta
+                             MLMG::Location::CellCenter,       // Location of solution variable phi
                              {geom},                           // the geometry object
                              lp_info);                         // structure for passing info to the operator
 
@@ -231,7 +234,7 @@ int main (int argc, char* argv[])
 
 	// Solve for phi and subtract from the velocity to make it divergence-free
 	// Note that the normal velocities are at face centers (not centroids)
-        macproj.project(reltol,abstol,MLMG::Location::FaceCenter);
+        macproj.project(reltol,abstol);
 
 	// If we want to use phi elsewhere, we can pass in an array in which to return the solution
 	// MultiFab phi_inout(grids, dmap, 1, 1, MFInfo(), factory);

@@ -9,12 +9,18 @@
 namespace amrex {
 
 MacProjector::MacProjector (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_umac,
+                            MLMG::Location a_umac_loc,
                             const Vector<Array<MultiFab const*,AMREX_SPACEDIM> >& a_beta,
+                            MLMG::Location a_beta_loc,
+                            MLMG::Location  a_phi_loc,
                             const Vector<Geometry>& a_geom,
                             const LPInfo& a_lpinfo,
-                            const Vector<MultiFab const*>& a_divu)
+                            const Vector<MultiFab const*>& a_divu,
+                            MLMG::Location a_divu_loc)
     : m_umac(a_umac),
-      m_geom(a_geom)
+      m_geom(a_geom),
+      m_umac_loc(a_umac_loc),
+      m_divu_loc(a_divu_loc)
 {
     int nlevs = a_umac.size();
     Vector<BoxArray> ba(nlevs);
@@ -48,9 +54,11 @@ MacProjector::MacProjector (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_um
         m_eb_abeclap.reset(new MLEBABecLap(a_geom, ba, dm, a_lpinfo, m_eb_factory));
         m_linop = m_eb_abeclap.get();
 
+        if (a_phi_loc == MLMG::Location::CellCentroid) m_eb_abeclap->setPhiOnCentroid();
+
         m_eb_abeclap->setScalars(0.0, 1.0);
         for (int ilev = 0; ilev < nlevs; ++ilev) {
-            m_eb_abeclap->setBCoeffs(ilev, a_beta[ilev]);
+	  m_eb_abeclap->setBCoeffs(ilev, a_beta[ilev], a_beta_loc);
         }
     }
     else
@@ -111,7 +119,7 @@ MacProjector::setLevelBC (int amrlev, const MultiFab* levelbcdata)
 
 
 void
-MacProjector::project (Real reltol, Real atol, MLMG::Location loc)
+MacProjector::project (Real reltol, Real atol)
 {
     const int nlevs = m_rhs.size();
 
@@ -124,15 +132,16 @@ MacProjector::project (Real reltol, Real atol, MLMG::Location loc)
         MultiFab divu(m_rhs[ilev].boxArray(), m_rhs[ilev].DistributionMap(),
                       1, 0, MFInfo(), m_rhs[ilev].Factory());
 #ifdef AMREX_USE_EB
-        bool already_on_centroid = (loc == MLMG::Location::FaceCentroid);
-        if (!already_on_centroid) {
+        if (m_umac_loc != MLMG::Location::FaceCentroid)
+        {
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                 AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_umac[ilev][idim]->nGrow() > 0,
                                                  "MacProjector: with EB, umac must have at least one ghost cell if not already_on_centroid");
                 m_umac[ilev][idim]->FillBoundary(m_geom[ilev].periodicity());
             }
         }
-        EB_computeDivergence(divu, u, m_geom[ilev], already_on_centroid);
+        
+        EB_computeDivergence(divu, u, m_geom[ilev], (m_umac_loc == MLMG::Location::FaceCentroid));
 #else
         computeDivergence(divu, u, m_geom[ilev]);
 #endif
@@ -141,7 +150,7 @@ MacProjector::project (Real reltol, Real atol, MLMG::Location loc)
 
     m_mlmg->solve(amrex::GetVecOfPtrs(m_phi), amrex::GetVecOfConstPtrs(m_rhs), reltol, atol);
 
-    m_mlmg->getFluxes(amrex::GetVecOfArrOfPtrs(m_fluxes), loc);
+    m_mlmg->getFluxes(amrex::GetVecOfArrOfPtrs(m_fluxes), m_umac_loc);
 
     for (int ilev = 0; ilev < nlevs; ++ilev) {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
@@ -154,9 +163,8 @@ MacProjector::project (Real reltol, Real atol, MLMG::Location loc)
 }
 
 void
-MacProjector::project (const Vector<MultiFab*>& phi_inout, Real reltol, Real atol, MLMG::Location loc)
+MacProjector::project (const Vector<MultiFab*>& phi_inout, Real reltol, Real atol)
 {
-
     const int nlevs = m_rhs.size();
 
     for (int ilev = 0; ilev < nlevs; ++ilev)
@@ -168,15 +176,15 @@ MacProjector::project (const Vector<MultiFab*>& phi_inout, Real reltol, Real ato
         MultiFab divu(m_rhs[ilev].boxArray(), m_rhs[ilev].DistributionMap(),
                       1, 0, MFInfo(), m_rhs[ilev].Factory());
 #ifdef AMREX_USE_EB
-        bool already_on_centroid = (loc == MLMG::Location::FaceCentroid);
-        if (!already_on_centroid) {
+        bool umac_on_centroid = (m_umac_loc == MLMG::Location::FaceCentroid);
+        if (!umac_on_centroid) {
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                 AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_umac[ilev][idim]->nGrow() > 0,
                                                  "MacProjector: with EB, umac must have at least one ghost cell if not already_on_centroid");
                 m_umac[ilev][idim]->FillBoundary(m_geom[ilev].periodicity());
             }
         }
-        EB_computeDivergence(divu, u, m_geom[ilev], already_on_centroid);
+        EB_computeDivergence(divu, u, m_geom[ilev], (m_umac_loc == MLMG::Location::FaceCentroid));
 #else
         computeDivergence(divu, u, m_geom[ilev]);
 #endif
@@ -187,7 +195,7 @@ MacProjector::project (const Vector<MultiFab*>& phi_inout, Real reltol, Real ato
 
     m_mlmg->solve(amrex::GetVecOfPtrs(m_phi), amrex::GetVecOfConstPtrs(m_rhs), reltol, atol);
 
-    m_mlmg->getFluxes(amrex::GetVecOfArrOfPtrs(m_fluxes), loc);
+    m_mlmg->getFluxes(amrex::GetVecOfArrOfPtrs(m_fluxes), m_umac_loc);
 
 
     for (int ilev = 0; ilev < nlevs; ++ilev) {

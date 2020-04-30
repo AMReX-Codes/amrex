@@ -21,7 +21,7 @@ struct dim3 {
 };
 
 struct gpuStream_t {
-    sycl::ordered_queue* queue = nullptr;
+    sycl::queue* queue = nullptr;
     bool operator== (gpuStream_t const& rhs) noexcept { return queue == rhs.queue; }
 };
 

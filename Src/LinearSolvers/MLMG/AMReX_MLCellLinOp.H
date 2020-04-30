@@ -200,7 +200,6 @@ private:
 
     void defineAuxData ();
     void defineBC ();
-
 };
 
 }

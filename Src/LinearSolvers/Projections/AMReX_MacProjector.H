@@ -18,16 +18,44 @@ public:
     // Constructors
     //
     MacProjector (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_umac,
+                  MLMG::Location a_umac_loc,
+                  const Vector<Array<MultiFab const*,AMREX_SPACEDIM> >& a_beta,
+                  MLMG::Location a_beta_loc,
+                  MLMG::Location  a_phi_loc,
+                  const Vector<Geometry>& a_geom,
+                  const LPInfo& a_lpinfo,
+                  const Vector<MultiFab const*>& a_divu,
+                  MLMG::Location a_divu_loc);
+
+    MacProjector (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_umac,
+                  MLMG::Location a_umac_loc,
+                  const Vector<Array<MultiFab const*,AMREX_SPACEDIM> >& a_beta,
+                  MLMG::Location a_beta_loc,
+                  MLMG::Location  a_phi_loc,
+                  const Vector<Geometry>& a_geom,
+                  const LPInfo& a_lpinfo,
+                  const Vector<MultiFab const*>& a_divu = {})
+     : MacProjector(a_umac, a_umac_loc, a_beta, a_beta_loc, a_phi_loc,
+                    a_geom, a_lpinfo, a_divu, MLMG::Location::CellCenter) {};
+
+#ifndef AMREX_USE_EB
+    MacProjector (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_umac,
                   const Vector<Array<MultiFab const*,AMREX_SPACEDIM> >& a_beta,
                   const Vector<Geometry>& a_geom,
                   const LPInfo& a_lpinfo,
-                  const Vector<MultiFab const*>& a_divu = {});
+                  const Vector<MultiFab const*>& a_divu = {}) 
+     : MacProjector(a_umac, MLMG::Location::FaceCenter,
+                    a_beta, MLMG::Location::FaceCenter, MLMG::Location::CellCenter,
+                    a_geom, a_lpinfo, a_divu, MLMG::Location::CellCenter) {};
 
     MacProjector (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_umac,
                   const Vector<Array<MultiFab const*,AMREX_SPACEDIM> >& a_beta,
                   const Vector<Geometry>& a_geom,
                   const Vector<MultiFab const*>& a_divu = {})
-     : MacProjector(a_umac, a_beta, a_geom, LPInfo(), a_divu) {};
+     : MacProjector(a_umac, MLMG::Location::FaceCenter,
+                    a_beta, MLMG::Location::FaceCenter, MLMG::Location::CellCenter,
+                    a_geom, LPInfo(), a_divu, MLMG::Location::CellCenter) {};
+#endif
 
     //
     // Methods to set BCs and coarse/fine values
@@ -47,15 +75,8 @@ public:
     //
     // Methods to perform projection
     //
-#ifndef AMREX_USE_EB
-    void project (const Vector<MultiFab*>& phi_in, Real reltol, Real atol)
-     { project(phi_in, reltol, atol, MLMG::Location::FaceCenter); }
-    void project (Real reltol, Real atol)
-     { project(reltol, atol, MLMG::Location::FaceCenter); }
-#endif
-
-    void project (const Vector<MultiFab*>& phi_in, Real reltol, Real atol, MLMG::Location);
-    void project (Real reltol, Real atol, MLMG::Location);
+    void project (const Vector<MultiFab*>& phi_in, Real reltol, Real atol);
+    void project (Real reltol, Real atol);
 
     //
     // Setters and getters
@@ -90,6 +111,12 @@ private:
     int m_verbose = 0;
 
     bool m_needs_domain_bcs = true;
+
+    // Location of umac -- face center vs face centroid
+    MLMG::Location m_umac_loc;
+
+    // Location of divu (RHS -- optional) -- cell center vs cell centroid
+    MLMG::Location m_divu_loc;
 
 };
 

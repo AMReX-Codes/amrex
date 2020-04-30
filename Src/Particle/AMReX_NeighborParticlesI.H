@@ -698,17 +698,17 @@ buildNeighborList (CheckPair check_pair, bool sort)
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        for(MFIter mfi = this->MakeMFIter(lev,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        for (MyParIter pti(*this, lev); pti.isValid(); ++pti)
         {
-            int gid = mfi.index();
-            int tid = mfi.LocalTileIndex();
+            int gid = pti.index();
+            int tid = pti.LocalTileIndex();
             auto index = std::make_pair(gid, tid);
             
             auto& ptile = plev[index];
 
             if (ptile.numParticles() == 0) continue;
             
-            Box bx = mfi.tilebox();
+            Box bx = pti.tilebox();
             bx.coarsen(ref_fac);
             bx.grow(m_num_neighbor_cells);
             

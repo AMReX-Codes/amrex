@@ -8,7 +8,7 @@ jobs:
     name: GNU@7.5 C++17 [lib]
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
     - name: Dependencies
       run: .github/workflows/cmake/dependencies.sh
     - name: Build & Install
@@ -26,7 +26,7 @@ jobs:
     name: GNU@7.5 C++14 [tutorials]
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
     - name: Dependencies
       run: .github/workflows/cmake/dependencies.sh
     - name: Build & Install
@@ -36,12 +36,27 @@ jobs:
         cmake .. -DENABLE_TUTORIALS=ON
         make -j 2 tutorials
 
+  # Build libamrex and all tutorials w/o MPI
+  tutorials-nonmpi:
+    name: GNU@7.5 C++14 non-MPI [tutorials]
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Dependencies
+      run: .github/workflows/cmake/dependencies.sh
+    - name: Build & Install
+      run: |
+        mkdir build
+        cd build
+        cmake .. -DENABLE_TUTORIALS=ON -DENABLE_MPI=OFF
+        make -j 2 tutorials
+
   # Build libamrex and all tutorials
   tutorials-macos:
     name: AppleClang@11.0 GFortran@9.3 [tutorials]
     runs-on: macos-latest
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
     - name: Dependencies
       run: .github/workflows/cmake/dependencies_mac.sh
     - name: Build & Install
@@ -56,7 +71,7 @@ jobs:
     name: GNU@7.5 C++11 w/o Fortran [tutorials]
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
     - name: Dependencies
       run: .github/workflows/cmake/dependencies_nofortran.sh
     - name: Build & Install
@@ -74,7 +89,7 @@ jobs:
     name: CUDA@9.1.85 GNU@4.8.5 C++11 [tutorials]
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
     - name: Dependencies
       run: .github/workflows/cmake/dependencies_nvcc.sh
     - name: Build & Install

@@ -41,6 +41,9 @@
 #include <numeric>
 
 namespace amrex {
+    
+template <typename T> class LayoutData;
+    
 //! Parallel frontend that abstracts functionalities needed to spawn processes and handle communication
 namespace ParallelDescriptor
 {
@@ -544,6 +547,11 @@ while ( false )
 				     T* recv, const std::vector<Long>& rc, const std::vector<Long>& disp,
 				     int root);
 
+    //! Gather LayoutData values to a vector on root
+    template <class T> void GatherLayoutDataToVector (const LayoutData<T>& sendbuf,
+                                                      Vector<T>& recvbuf,
+                                                      int root);
+
     void Wait     (MPI_Request& req, MPI_Status& status);
     void Waitall  (Vector<MPI_Request>& reqs, Vector<MPI_Status>& status);
     void Waitany  (Vector<MPI_Request>& reqs, int &index, MPI_Status& status);
@@ -1005,6 +1013,88 @@ ParallelDescriptor::Gatherv (const T* send, Long sc,
     BL_COMM_PROFILE(BLProfiler::Gatherv, std::accumulate(rc.begin(),rc.end(),0L)*sizeof(T), root, BLProfiler::NoTag());
 }
 
+template <class T>
+void
+ParallelDescriptor::GatherLayoutDataToVector (const LayoutData<T>& sendbuf,
+                                              Vector<T>& recvbuf, int root)
+{
+    BL_PROFILE_T_S("ParallelDescriptor::GatherLayoutData(Ti)", T);
+    
+    // Gather prelims
+    Vector<int> index_to_send = sendbuf.IndexArray();
+    Vector<T> T_to_send;
+    T_to_send.reserve(sendbuf.local_size());
+    
+    for (int i : sendbuf.IndexArray())
+    {
+        T_to_send.push_back(sendbuf[i]);
+    }
+
+    int nprocs = ParallelDescriptor::NProcs();
+    Vector<Long> recvcount(nprocs, 0);
+    const Vector<int>& old_pmap = sendbuf.DistributionMap().ProcessorMap();
+    for (int i=0; i<old_pmap.size(); ++i)
+    {
+        ++recvcount[old_pmap[i]];
+    }
+
+    // Make a map from post-gather to pre-gather index
+    Vector<Vector<int>> new_ind_to_old_ind(nprocs);
+    for (int i=0; i<nprocs; ++i)
+    {
+        new_ind_to_old_ind[i].reserve(recvcount[i]);
+    }
+    for (int i=0; i<old_pmap.size(); ++i)
+    {
+        new_ind_to_old_ind[old_pmap[i]].push_back(i);
+    }
+    
+    // Flatten
+    Vector<int> new_index_to_old_index;
+    new_index_to_old_index.reserve(old_pmap.size());
+    for (const Vector<int>& v : new_ind_to_old_ind)
+    {
+        if (v.size()>0)
+        {
+            for (int el : v)
+            {
+                new_index_to_old_index.push_back(el);
+            }
+        }
+    }
+
+    Vector<Long> disp(nprocs);
+    disp[0] = 0;
+    std::partial_sum(recvcount.begin(), recvcount.end()-1, disp.begin()+1);
+    Vector<T> new_index_to_T(sendbuf.size());
+
+    ParallelDescriptor::Gatherv(&T_to_send[0],
+                                T_to_send.size(),
+                                &new_index_to_T[0],
+                                recvcount,
+                                disp,
+                                root);
+
+    // Now work just on the root, which now has global information on the collected;
+    // LayoutData information; with new_index_to_old_index and new_index_to_T,
+    // sort the gathered vector in pre-gather index space
+    if (ParallelDescriptor::MyProc() == root)
+    {
+        // Invert the map (new_index) --> (old_index)
+        Vector<int> old_index_to_new_index(sendbuf.size());
+        
+        for (int i=0; i<old_index_to_new_index.size(); ++i)
+        {
+            old_index_to_new_index[new_index_to_old_index[i]] = i;
+        }
+
+        for (int i=0; i<recvbuf.size(); ++i)
+        {
+                recvbuf[i] = new_index_to_T[old_index_to_new_index[i]];
+        }
+    }
+}
+
 template <class T, class T1>
 void
 ParallelDescriptor::Scatter (T*        t,
@@ -1137,6 +1227,17 @@ Gather(const T& t, int root)
     std::vector<T> resl(1);
     resl[0] = t;
     return resl;
+}
+
+template <class T>
+void
+GatherLayoutDataToVector (const LayoutData<T>& sendbuf,
+                          Vector<T>& recvbuf, int root)
+{
+    for (int i=0; i<sendbuf.size(); ++i)
+    {
+        recvbuf[i] = sendbuf[i];
+    }
 }
 
 template <class T, class T1>

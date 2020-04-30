@@ -89,10 +89,19 @@ MLEBABecLap::define (const Vector<Geometry>& a_geom,
                                                1, 0, 0, 1);
         }
     }
+   
+    // Default to cell center; can be re-set to cell centroid via setPhiOnCentroid call
+    m_phi_loc = Location::CellCenter;
 }
 
 MLEBABecLap::~MLEBABecLap ()
 {}
+
+void
+MLEBABecLap::setPhiOnCentroid ()
+{
+    m_phi_loc = Location::CellCentroid;
+}
 
 void
 MLEBABecLap::setScalars (Real a, Real b)
@@ -123,10 +132,14 @@ MLEBABecLap::setACoeffs (int amrlev, Real alpha)
 }
 
 void
-MLEBABecLap::setBCoeffs (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& beta)
+MLEBABecLap::setBCoeffs (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& beta,
+                         Location a_beta_loc)
 {
     const int ncomp = getNComp();
     const int beta_ncomp = beta[0]->nComp();
+
+    m_beta_loc     = a_beta_loc;
+
     AMREX_ALWAYS_ASSERT(beta_ncomp == 1 or beta_ncomp == ncomp);
     if (beta[0]->nComp() == ncomp) {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
@@ -151,6 +164,7 @@ MLEBABecLap::setBCoeffs (int amrlev, Real beta)
         m_b_coeffs[amrlev][0][idim].setVal(beta);
     }
     m_needs_update = true;
+    m_beta_loc     = Location::FaceCenter;
 }
 
 void
@@ -163,6 +177,7 @@ MLEBABecLap::setBCoeffs (int amrlev, Vector<Real> const& beta)
         }
     }
     m_needs_update = true;
+    m_beta_loc     = Location::FaceCenter;
 }
 
 void
@@ -733,6 +748,11 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
             Array4<Real const> const& phiebfab = (is_eb_dirichlet && m_is_eb_inhomog)
                 ? m_eb_phi[amrlev]->const_array(mfi) : foo;
 
+            bool beta_on_centroid = (m_beta_loc == Location::FaceCentroid);
+            bool  phi_on_centroid = (m_phi_loc  == Location::CellCentroid);
+
+            if (phi_on_centroid) amrex::Abort("phi_on_centroid is still a WIP");
+
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
             {
                 mlebabeclap_adotx(tbx, yfab, xfab, afab, AMREX_D_DECL(bxfab,byfab,bzfab),
@@ -740,7 +760,7 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
                                   AMREX_D_DECL(apxfab,apyfab,apzfab),
                                   AMREX_D_DECL(fcxfab,fcyfab,fczfab), bafab, bcfab, bebfab,
                                   is_eb_dirichlet, phiebfab, is_eb_inhomog, dxinvarr,
-                                  ascalar, bscalar, ncomp);
+                                  ascalar, bscalar, ncomp, beta_on_centroid, phi_on_centroid);
             });
         }
     }
@@ -881,6 +901,11 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
             Array4<Real const> const& bebfab = (is_eb_dirichlet)
                 ? m_eb_b_coeffs[amrlev][mglev]->const_array(mfi) : foo;
 
+            bool beta_on_centroid = (m_beta_loc == Location::FaceCentroid);
+            bool  phi_on_centroid = (m_phi_loc  == Location::CellCentroid);
+
+            if (phi_on_centroid) amrex::Abort("phi_on_centroid is still a WIP");
+
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( vbx, thread_box,
             {
                 mlebabeclap_gsrb(thread_box, solnfab, rhsfab, alpha, afab,
@@ -894,7 +919,8 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
                                  AMREX_D_DECL(apxfab,apyfab,apzfab),
                                  AMREX_D_DECL(fcxfab,fcyfab,fczfab),
                                  bafab, bcfab, bebfab,
-                                 is_eb_dirichlet, vbx, redblack, nc);
+                                 is_eb_dirichlet, beta_on_centroid, phi_on_centroid,
+                                 vbx, redblack, nc);
             });
         }
     }
@@ -902,10 +928,10 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
 
 void
 MLEBABecLap::FFlux (int amrlev, const MFIter& mfi, const Array<FArrayBox*,AMREX_SPACEDIM>& flux,
-                    const FArrayBox& sol, Location loc, const int face_only) const
+                    const FArrayBox& sol, Location flux_loc, const int face_only) const
 {
     BL_PROFILE("MLEBABecLap::FFlux()");
-    const int at_centroid = (Location::FaceCentroid == loc) ? 1 : 0;
+    const int compute_flux_at_centroid = (Location::FaceCentroid == flux_loc) ? 1 : 0;
     const int mglev = 0; 
     const Box& box = mfi.tilebox();
     const int ncomp = getNComp();
@@ -946,7 +972,7 @@ MLEBABecLap::FFlux (int amrlev, const MFIter& mfi, const Array<FArrayBox*,AMREX_
         MLABecLaplacian::FFlux(box, dxinv, m_b_scalar,
                                Array<FArrayBox const*,AMREX_SPACEDIM>{AMREX_D_DECL(&bx,&by,&bz)},
                                flux, sol, face_only, ncomp);
-    } else if (at_centroid) {
+    } else if (compute_flux_at_centroid) {
         const auto& area = factory->getAreaFrac();
         const auto& fcent = factory->getFaceCent();
         AMREX_D_TERM(Array4<Real const> const& apx = area[0]->const_array(mfi);,
@@ -964,19 +990,27 @@ MLEBABecLap::FFlux (int amrlev, const MFIter& mfi, const Array<FArrayBox*,AMREX_
                      Real dhy = m_b_scalar*dxinv[1];,
                      Real dhz = m_b_scalar*dxinv[2];);
 
+        bool beta_on_centroid = (m_beta_loc == Location::FaceCentroid);
+        bool  phi_on_centroid = (m_phi_loc  == Location::CellCentroid);
+
+        if (phi_on_centroid) amrex::Abort("phi_on_centroid is still a WIP");
+
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
             xbx, txbx,
             {
-                mlebabeclap_flux_x(txbx, fx, apx, fcx, phi, bxcoef, msk, dhx, face_only, ncomp, xbx);
+                mlebabeclap_flux_x(txbx, fx, apx, fcx, phi, bxcoef, msk, dhx, face_only, ncomp, xbx,
+                                   beta_on_centroid, phi_on_centroid);
             }
             , ybx, tybx,
             {
-                mlebabeclap_flux_y(tybx, fy, apy, fcy, phi, bycoef, msk, dhy, face_only, ncomp, ybx);
+                mlebabeclap_flux_y(tybx, fy, apy, fcy, phi, bycoef, msk, dhy, face_only, ncomp, ybx,
+                                   beta_on_centroid, phi_on_centroid);
             }
 #if (AMREX_SPACEDIM == 3)
             , zbx, tzbx,
             {
-                mlebabeclap_flux_z(tzbx, fz, apz, fcz, phi, bzcoef, msk, dhz, face_only, ncomp, zbx);
+                mlebabeclap_flux_z(tzbx, fz, apz, fcz, phi, bzcoef, msk, dhz, face_only, ncomp, zbx,
+                                   beta_on_centroid, phi_on_centroid);
             }
 #endif
         );
@@ -1014,12 +1048,12 @@ MLEBABecLap::FFlux (int amrlev, const MFIter& mfi, const Array<FArrayBox*,AMREX_
 
 void
 MLEBABecLap::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
-                       MultiFab& sol, Location loc) const
+                       MultiFab& sol, Location grad_loc) const
 {
     BL_PROFILE("MLEBABecLap::compGrad()");
 
     const int ncomp = getNComp();
-    const int at_centroid = (Location::FaceCentroid == loc) ? 1 : 0;
+    const int compute_grad_at_centroid = (Location::FaceCentroid == grad_loc) ? 1 : 0;
     const int mglev = 0;
     applyBC(amrlev, mglev, sol, BCMode::Inhomogeneous, StateMode::Solution,
             m_bndry_sol[amrlev].get());
@@ -1082,7 +1116,7 @@ MLEBABecLap::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
                 gz(i,j,k,n) = dzi*(s(i,j,k,n) - s(i,j,k-1,n));
             });
 #endif
-        } else if (at_centroid) {
+        } else if (compute_grad_at_centroid) {
             AMREX_D_TERM(Array4<Real const> const& apx = area[0]->const_array(mfi);,
                          Array4<Real const> const& apy = area[1]->const_array(mfi);,
                          Array4<Real const> const& apz = area[2]->const_array(mfi););
@@ -1091,26 +1125,35 @@ MLEBABecLap::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
                          Array4<Real const> const& fcz = fcent[2]->const_array(mfi););
             Array4<int const> const& msk = ccmask.const_array(mfi);
 
+            bool phi_on_centroid = (m_phi_loc == Location::CellCentroid);
+
+            if (phi_on_centroid) amrex::Abort("phi_on_centroid is still a WIP");
+
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
                 fbx, txbx,
                 {
-                    mlebabeclap_grad_x(txbx, gx, s, apx, fcx, msk, dxi, ncomp);
+                    mlebabeclap_grad_x(txbx, gx, s, apx, fcx, msk, dxi, ncomp, phi_on_centroid);
                 }
                 , fby, tybx,
                 {
-                    mlebabeclap_grad_y(tybx, gy, s, apy, fcy, msk, dyi, ncomp);
+                    mlebabeclap_grad_y(tybx, gy, s, apy, fcy, msk, dyi, ncomp, phi_on_centroid);
                 }
 #if (AMREX_SPACEDIM == 3)
                 , fbz, tzbx,
                 {
-                    mlebabeclap_grad_z(tzbx, gz, s, apz, fcz, msk, dzi, ncomp);
+                    mlebabeclap_grad_z(tzbx, gz, s, apz, fcz, msk, dzi, ncomp, phi_on_centroid);
                 }
 #endif
             );
         } else {
+
             AMREX_D_TERM(Array4<Real const> const& ax = area[0]->const_array(mfi);,
                          Array4<Real const> const& ay = area[1]->const_array(mfi);,
                          Array4<Real const> const& az = area[2]->const_array(mfi););
+
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_phi_loc == Location::CellCenter, 
+             "If computing the gradient at face centers we assume phi at cell centers");
+
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
                 fbx, txbx,
                 {
@@ -1203,6 +1246,8 @@ MLEBABecLap::normalize (int amrlev, int mglev, MultiFab& mf) const
             Array4<Real const> const& bafab = barea->const_array(mfi);
             Array4<Real const> const& bcfab = bcent->const_array(mfi);
 
+            bool beta_on_centroid = (m_beta_loc == Location::FaceCentroid);
+
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
             {
                 mlebabeclap_normalize(tbx, fab, ascalar, afab,
@@ -1211,7 +1256,8 @@ MLEBABecLap::normalize (int amrlev, int mglev, MultiFab& mf) const
                                       ccmfab, flagfab, vfracfab,
                                       AMREX_D_DECL(apxfab,apyfab,apzfab),
                                       AMREX_D_DECL(fcxfab,fcyfab,fczfab),
-                                      bafab, bcfab, bebfab, is_eb_dirichlet, ncomp);
+                                      bafab, bcfab, bebfab, is_eb_dirichlet, 
+                                      beta_on_centroid, ncomp);
             });
         }
     }
