@@ -464,14 +464,13 @@ VisMF::boxArray () const
 }
 
 Real
-VisMF::min (int fabIndex,
-            int nc) const
+VisMF::min (int fabIndex, int nc) const
 {
     BL_ASSERT(0 <= fabIndex && fabIndex < m_hdr.m_ba.size());
     BL_ASSERT(0 <= nc && nc < m_hdr.m_ncomp);
 
     if(m_hdr.m_min.size() == 0) {  // ---- these were not in the header
-      return std::numeric_limits<int>::max();
+        return std::numeric_limits<Real>::max();
     }
 
     return m_hdr.m_min[fabIndex][nc];
@@ -483,21 +482,20 @@ VisMF::min (int nc) const
     BL_ASSERT(0 <= nc && nc < m_hdr.m_ncomp);
 
     if(m_hdr.m_famin.size() == 0) {  // ---- these were not in the header
-      return std::numeric_limits<int>::max();
+        return std::numeric_limits<Real>::max();
     }
 
     return m_hdr.m_famin[nc];
 }
 
 Real
-VisMF::max (int fabIndex,
-            int nc) const
+VisMF::max (int fabIndex, int nc) const
 {
     BL_ASSERT(0 <= fabIndex && fabIndex < m_hdr.m_ba.size());
     BL_ASSERT(0 <= nc && nc < m_hdr.m_ncomp);
 
     if(m_hdr.m_max.size() == 0) {  // ---- these were not in the header
-      return -std::numeric_limits<int>::max();
+        return std::numeric_limits<Real>::lowest();
     }
 
     return m_hdr.m_max[fabIndex][nc];
@@ -509,7 +507,7 @@ VisMF::max (int nc) const
     BL_ASSERT(0 <= nc && nc < m_hdr.m_ncomp);
 
     if(m_hdr.m_famax.size() == 0) {  // ---- these were not in the header
-      return -std::numeric_limits<int>::max();
+        return std::numeric_limits<Real>::lowest();
     }
 
     return m_hdr.m_famax[nc];
