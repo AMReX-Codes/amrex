@@ -134,6 +134,10 @@ git pull upstream development
 ```
 and fix any conflicts that may occur.
 
+Do not merge your branch for PR into your local `development` branch,
+because it will make you local `development` branch diverge from the
+matching branch in the main repository after your PR is merged.
+
 ### Submit a Pull Request
 
 A Pull Request is the way to efficiently visualize the changes you made
