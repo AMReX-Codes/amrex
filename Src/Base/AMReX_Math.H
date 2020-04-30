@@ -12,6 +12,9 @@ namespace amrex { namespace Math {
 
 #ifdef AMREX_USE_DPCPP
 
+//List of unsupported math function can be found at
+// https://github.com/intel/llvm/blob/sycl/sycl/doc/extensions/C-CXX-StandardLibrary/C-CXX-StandardLibrary.rst
+
 //using sycl::abs;
 // We have to do this because somehow sycl::abs(int) return unsigned int.
 template <typename T> T abs (T a) { return sycl::abs(a); }
