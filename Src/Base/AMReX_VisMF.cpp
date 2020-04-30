@@ -2787,13 +2787,10 @@ VisMF::WriteAsyncMultiFab (const FabArray<FArrayBox>& mf, const std::string& mf_
         // If not the first MPI writing on this rank,
         // block until it is your turn.
 
-        while (barrier_count < ispot)
-        {
-            waiting_reqs[barrier_count++] =
-                ParallelDescriptor::Abarrier(io_comm).req();
-        }
-        barrier_count = 0; // reset while waiting.
-        ParallelDescriptor::Waitall(waiting_reqs, waiting_status);
+        for (auto& req : waiting_reqs)
+            { req = ParallelDescriptor::Abarrier(io_comm).req(); }
+        if (waiting_reqs.size() > 0)
+            { ParallelDescriptor::Waitall(waiting_reqs, waiting_status); }
 
         Real t1 = amrex::second();
 
@@ -2810,13 +2807,10 @@ VisMF::WriteAsyncMultiFab (const FabArray<FArrayBox>& mf, const std::string& mf_
 
         Real t2 = amrex::second();
 
-        // If not the last, release the next rank to write
-        while (barrier_count < ranks_in_file-ispot)
-        {
-            syncing_reqs[barrier_count++] =
-                ParallelDescriptor::Abarrier(io_comm).req();
-        }
-        ParallelDescriptor::Waitall(syncing_reqs, syncing_status);
+        for (auto& req : syncing_reqs)
+            { req = ParallelDescriptor::Abarrier(io_comm).req(); }
+        if (syncing_reqs.size() > 0)
+            { ParallelDescriptor::Waitall(syncing_reqs, syncing_status); }
 
         Real tend = amrex::second();
 
@@ -3239,13 +3233,10 @@ VisMF::WriteAsyncPlotfile (const Vector<const MultiFab*>& mf, const Vector<std::
 
         // If not the first MPI writing on this rank,
         // block until it is your turn.
-        while (barrier_count < ispot)
-        {
-            waiting_reqs[barrier_count++] =
-                ParallelDescriptor::Abarrier(io_comm).req();
-        }
-        barrier_count = 0; // reset while waiting.
-        ParallelDescriptor::Waitall(waiting_reqs, waiting_status);
+        for (auto& req : waiting_reqs)
+            { req = ParallelDescriptor::Abarrier(io_comm).req(); }
+        if (waiting_reqs.size() > 0)
+            { ParallelDescriptor::Waitall(waiting_reqs, waiting_status); }
 
         Real t1 = amrex::second();
 
@@ -3266,6 +3257,11 @@ VisMF::WriteAsyncPlotfile (const Vector<const MultiFab*>& mf, const Vector<std::
         }
 
         Real t2 = amrex::second();
+
+        for (auto& req : syncing_reqs)
+            { req = ParallelDescriptor::Abarrier(io_comm).req(); }
+        if (syncing_reqs.size() > 0)
+            { ParallelDescriptor::Waitall(syncing_reqs, syncing_status); }
 
         // If not the last, release the next rank to write
         while (barrier_count < ranks_in_file-ispot)
