@@ -67,8 +67,8 @@ function (generate_buildinfo _target _git_dir)
    # Set variables to be used in generated source file
    #
 
-   # Date and time
-   string(TIMESTAMP BUILD_DATE "%Y-%m-%d %H:%M:%S"  )
+   # Date and time -- C++ preprocessor macros
+   set(BUILD_DATE "__DATE__ \" \"  __TIME__")
 
    # Target build directory
    get_target_property(BUILD_DIR ${_target} BINARY_DIR)
@@ -190,6 +190,13 @@ function (generate_buildinfo _target _git_dir)
    target_include_directories( ${_target}
       PUBLIC
       $<BUILD_INTERFACE:${AMREX_C_SCRIPTS_DIR}>
+      )
+
+   # Make AMReX_buildInfo.cpp always out of date before building
+   add_custom_command( TARGET ${_target}
+      PRE_BUILD
+      COMMAND ${CMAKE_COMMAND} -E touch_nocreate AMReX_buildInfo.cpp
+      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
       )
 
 endfunction ()
