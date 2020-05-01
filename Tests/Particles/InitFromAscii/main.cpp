@@ -40,12 +40,27 @@ void test_init_ascii (TestParams& parms)
 
     DistributionMapping dmap(ba);
 
-    typedef ParticleContainer<1, 0, AMREX_SPACEDIM> MyParticleContainer;
+    typedef ParticleContainer<1 + AMREX_SPACEDIM> MyParticleContainer;
     MyParticleContainer myPC(geom, dmap, ba);
 
     myPC.InitFromAsciiFile("particles.txt", 1 + AMREX_SPACEDIM);
-    
+
+    // should be 8
     amrex::Print() << myPC.TotalNumberOfParticles() << "\n";
+
+    // should be 8010.0
+    using PType = MyParticleContainer::SuperParticleType;
+    amrex::Print() << amrex::ReduceSum(myPC,
+                                       [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real
+                                       {
+                                           Real total = 0.0;
+                                           for (int i = 0; i < 1 + AMREX_SPACEDIM; ++i)
+                                           {
+                                               total += p.rdata(i);
+                                           }
+                                           return total;
+                                       })
+                   << "\n";    
 }
 
 int main(int argc, char* argv[])
