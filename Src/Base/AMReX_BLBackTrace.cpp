@@ -9,6 +9,7 @@
 #include <AMReX_BLBackTrace.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Print.H>
+#include <AMReX_VisMF.H>
 #include <AMReX.H>
 
 #ifdef AMREX_TINY_PROFILING
@@ -32,7 +33,12 @@ std::stack<std::pair<std::string, std::string> >  BLBackTrace::bt_stack;
 void
 BLBackTrace::handler(int s)
 {
+
     signal(s, SIG_DFL);
+
+#ifdef AMREX_MPI_MULTIPLE
+    VisMF::asyncWaitAll();
+#endif
 
     switch (s) {
     case SIGSEGV:

@@ -1,0 +1,11 @@
+##n_cell = 512
+n_boxes_per_rank = 8 
+max_grid_size = 128
+noutfiles = 2 
+nwork = 10
+nwrites = 4 
+
+#default value
+#noutfiles = 256
+#nwork = 50
+

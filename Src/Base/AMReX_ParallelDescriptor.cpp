@@ -305,7 +305,22 @@ ParallelDescriptor::StartParallel (int*    argc,
     MPI_Initialized(&sflag);
 
     if ( ! sflag) {
-	MPI_Init(argc, argv);
+
+#ifdef AMREX_MPI_MULTIPLE
+        int requested = MPI_THREAD_MULTIPLE;
+        int provided = -1;
+
+        MPI_Init_thread(argc, argv, requested, &provided);
+
+        if (provided < requested)
+        {
+            std::cout << "MPI provided < requested: " << provided << " < " << requested;
+            std::abort();
+        }
+#else // 
+        MPI_Init(argc, argv);
+#endif
+
         m_comm = MPI_COMM_WORLD;
         call_mpi_finalize = 1;
     } else {
@@ -396,6 +411,26 @@ ParallelDescriptor::Barrier (const MPI_Comm &comm, const std::string &message)
 
     BL_COMM_PROFILE_BARRIER(message, false);
 }
+
+
+ParallelDescriptor::Message
+ParallelDescriptor::Abarrier ()
+{
+    MPI_Request req;
+    BL_MPI_REQUIRE( MPI_Ibarrier(ParallelDescriptor::Communicator(), &req) );
+
+    return Message(req, MPI_DATATYPE_NULL);
+}
+
+ParallelDescriptor::Message
+ParallelDescriptor::Abarrier (const MPI_Comm & comm)
+{
+    MPI_Request req;
+    BL_MPI_REQUIRE( MPI_Ibarrier(comm, &req) );
+
+    return Message(req, MPI_DATATYPE_NULL);   
+}
+
 
 void
 ParallelDescriptor::Test (MPI_Request& request, int& flag, MPI_Status& status)
@@ -1748,6 +1783,8 @@ const char* ParallelDescriptor::ErrorString (int) { return ""; }
 
 void ParallelDescriptor::Barrier (const std::string &message) {}
 void ParallelDescriptor::Barrier (const MPI_Comm &comm, const std::string &message) {}
+ParallelDescriptor::Message ParallelDescriptor::Abarrier () { return ParallelDescriptor::Message(); }
+ParallelDescriptor::Message ParallelDescriptor::Abarrier (const MPI_Comm &comm) { return ParallelDescriptor::Message(); }
 
 void ParallelDescriptor::Test (MPI_Request&, int&, MPI_Status&) {}
 void ParallelDescriptor::IProbe (int, int, int&, MPI_Status&) {}

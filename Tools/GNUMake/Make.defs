@@ -196,6 +196,13 @@ else
   USE_MPI := FALSE
 endif
 
+ifdef MPI_MULTIPLE
+  MPI_MULTIPLE := $(strip $(MPI_MULTIPLE))
+  USE_MPI := TRUE
+else
+  MPI_MULTIPLE := FALSE
+endif
+
 ifdef USE_CONDUIT
   USE_CONDUIT := $(strip $(USE_CONDUIT))
 else
@@ -538,10 +545,16 @@ ifeq ($(USE_ARRAYVIEW), TRUE)
 endif
 
 ifeq ($(USE_MPI),TRUE)
-    MPISuffix	:= .MPI
-    CPPFLAGS	+= -DBL_USE_MPI -DAMREX_USE_MPI
+    CPPFLAGS += -DBL_USE_MPI -DAMREX_USE_MPI
+
+    ifeq ($(MPI_MULTIPLE),TRUE)
+        MPISuffix := .MPI-MULTIPLE
+        CPPFLAGS += -DAMREX_MPI_MULTIPLE
+    else
+        MPISuffix := .MPI
+    endif
 else
-    MPISuffix	:=
+    MPISuffix :=
 endif
 
 ifeq ($(USE_MPI3),TRUE)

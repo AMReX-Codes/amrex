@@ -484,9 +484,14 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     if (system::verbose > 0)
     {
 #ifdef BL_USE_MPI
+
         amrex::Print() << "MPI initialized with "
                        << ParallelDescriptor::NProcs()
                        << " MPI processes\n";
+
+        int provided = -1;
+        MPI_Query_thread(&provided);
+        amrex::Print() << "MPI initialized with thread support level " << provided << std::endl;
 #endif
         
 #ifdef _OPENMP

@@ -100,7 +100,11 @@ void main_main ()
     {
         int n = 0;
         const std::string& pltfile = amrex::Concatenate("plt",n,5);
+#ifdef AMREX_MPI_MULTIPLE
+        WriteAsyncSingleLevelPlotfile(pltfile, phi_new, {"phi"}, geom, time, 0);
+#else
         WriteSingleLevelPlotfile(pltfile, phi_new, {"phi"}, geom, time, 0);
+#endif
     }
 
     // build the flux multifabs
@@ -128,7 +132,11 @@ void main_main ()
         if (plot_int > 0 && n%plot_int == 0)
         {
             const std::string& pltfile = amrex::Concatenate("plt",n,5);
+#ifdef AMREX_MPI_MULTIPLE
+            WriteAsyncSingleLevelPlotfile(pltfile, phi_new, {"phi"}, geom, time, n);
+#else
             WriteSingleLevelPlotfile(pltfile, phi_new, {"phi"}, geom, time, n);
+#endif
         }
     }
 

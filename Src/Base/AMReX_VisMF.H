@@ -9,6 +9,7 @@
 #include <future>
 #include <utility>
 #include <cstdint>
+#include <queue>
 
 #include <AMReX_REAL.H>
 #include <AMReX_FabArray.H>
@@ -18,16 +19,17 @@
 namespace amrex {
 
 struct WriteAsyncStatus {
-    int64_t nbytes;
-    Long nspins;
-    Real t_total;
-    Real t_header;
-    Real t_spin;
-    Real t_write;
-    Real t_send;
+    int64_t nbytes = 0;
+    Long nspins = 0L;
+    Real t_total = 0.0;
+    Real t_header = 0.0;
+    Real t_spin = 0.0;
+    Real t_write = 0.0;
+    Real t_send = 0.0;
 };
 
 class NFilesIter;
+class MultiFab;
 
 /**
 * \brief File I/O for FabArray<FArrayBox>.
@@ -37,6 +39,8 @@ class NFilesIter;
 class VisMF
 {
 public:
+    struct aligner { char data[sizeof(Real)]; };
+
     //! We try to do I/O with buffers of this size.
     enum { IO_Buffer_Size = 262144 * 8 };
     //! The type of a char buffer required by [p]setbuf().
@@ -197,8 +201,35 @@ public:
                        VisMF::How         how = NFiles,
                        bool               set_ghost = false);
 
+// Async output tests 
+// *****************************
+
+    // Output rank output information for static writing. 
+    static std::array<int,3>
+    StaticWriteInfo (const int &rank);
+
+//  File based Multifab (for comparison. Better at very small scales.) 
     static std::future<WriteAsyncStatus>
-    WriteAsync (const FabArray<FArrayBox>& fafab, const std::string& name);
+    WriteAsync (const FabArray<FArrayBox>& mf, const std::string& mf_name);
+
+//  MPI based Multifab
+    static void
+    WriteAsyncMultiFab (const FabArray<FArrayBox>& mf, const std::string& mf_name);
+
+//  MPI based Plotfile
+    static void 
+    WriteAsyncPlotfile (const Vector<const MultiFab*>& mf, const Vector<std::string>& mf_names,
+                        int nlevels, bool strip_ghost_cells, int hdr_proc);
+
+// API for FIFO operated queue of futures
+// **************************************
+
+    template <typename Func, typename... Params>
+    static inline void asyncAddWrite (Func&& f, Params&&... args);
+
+    static WriteAsyncStatus asyncWaitOne ();
+    static WriteAsyncStatus asyncWaitAll ();
+    static WriteAsyncStatus asyncWaitUntilFree ();
 
     /**
     * \brief Write only the header-file corresponding to FabArray<FArrayBox> to
@@ -245,7 +276,7 @@ public:
     FArrayBox* readFAB (int fabIndex, int icomp);
 
     static int  GetNOutFiles ();
-    static void SetNOutFiles (int noutfiles, MPI_Comm comm = ParallelDescriptor::Communicator());
+    static void SetNOutFiles (int newoutfiles, MPI_Comm comm = ParallelDescriptor::Communicator());
 
     static int  GetMFFileInStreams ()  { return nMFFileInStreams; }
     static void SetMFFileInStreams (int nstreams, MPI_Comm comm = ParallelDescriptor::Communicator());
@@ -352,6 +383,9 @@ private:
     //! The number of files to write for a FabArray<FArrayBox>.
     static int nOutFiles;
     static int nMFFileInStreams;
+    static int nAsyncWrites;
+
+    static std::queue<std::future<WriteAsyncStatus> > future_list;
 
     static int verbose;
     static VisMF::Header::Version currentVersion;
@@ -366,6 +400,11 @@ private:
     static bool allowSparseWrites;
 
     static Long ioBufferSize;   //!< ---- the settable buffer size
+
+    // Async I/O data.
+    static int asyncTag;                     // Tag for async comms.
+    static int current_comm;                 // Round-robin index for current comm.
+    static Vector<MPI_Comm> async_comm;      // Copies of MPI_Communicator based on file, one for each simul write.
 };
 
 //! Write a FabOnDisk to an ostream in ASCII.
@@ -381,6 +420,18 @@ std::ostream& operator<< (std::ostream& os, const VisMF::Header& hd);
 //! Read a VisMF::Header from an istream.
 std::istream& operator>> (std::istream& is, VisMF::Header& hd);
 std::ostream& operator<< (std::ostream& os, const WriteAsyncStatus& status);
+
+template <typename Func, typename... Params>
+inline void VisMF::asyncAddWrite (Func&& f, Params&&... args)
+{
+#ifdef AMREX_MPI_MULTIPLE
+    asyncWaitUntilFree();
+
+    current_comm = ((current_comm + 1) % nAsyncWrites);
+    future_list.push( std::async(std::launch::async, std::forward<Func>(f), 
+                                 async_comm[current_comm], std::forward<Params>(args)...) );
+#endif
+}
 
 }
 
