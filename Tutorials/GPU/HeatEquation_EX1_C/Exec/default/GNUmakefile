@@ -12,6 +12,9 @@ USE_CUDA  = TRUE
 USE_HIP   = FALSE
 USE_DPCPP = FALSE
 
+TINY_PROFILE = TRUE
+MPI_MULTIPLE = FALSE 
+
 Bpack   := ./Make.package
 Blocs   := .
 

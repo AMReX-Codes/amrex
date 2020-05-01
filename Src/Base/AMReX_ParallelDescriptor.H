@@ -393,6 +393,8 @@ while ( false )
 
     void Barrier (const std::string& message = Unnamed);
     void Barrier (const MPI_Comm &comm, const std::string& message = Unnamed);
+    Message Abarrier ();
+    Message Abarrier (const MPI_Comm &comm);
 
     void Test (MPI_Request& request, int& flag, MPI_Status& status);
 
