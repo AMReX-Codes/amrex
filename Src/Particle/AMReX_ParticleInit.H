@@ -8,7 +8,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 {
     BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::InitFromAsciiFile()");
     AMREX_ASSERT(!file.empty());
-    AMREX_ASSERT(extradata <= NStructReal);
+    AMREX_ASSERT(extradata <= NStructReal + NumRealComps());
 
     const int  MyProc   = ParallelDescriptor::MyProc();
     const int  NProcs   = ParallelDescriptor::NProcs();
@@ -52,7 +52,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     Long how_many_read = 0;
 
     Gpu::HostVector<ParticleType> nparticles;
-
+    Vector<Gpu::HostVector<Real> > nreals;
+    if (extradata > NStructReal) nreals.resize(extradata - NStructReal);    
+    
     if (MyProc < NReaders)
     {
         VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
@@ -74,7 +76,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
 	ParticleLocData pld;
         ParticleType p, p_rep;
+        Vector<Real> r;
 
+        if (extradata > NStructReal) r.resize(extradata - NStructReal);
+        
         const int Chunk = cnt / NReaders;
 
         for (int i = 0; i < MyProc*Chunk; i++)
@@ -108,7 +113,14 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
             for (int n = 0; n < extradata; n++)
             {
-                ifs >> p.m_rdata.arr[AMREX_SPACEDIM+n];
+                if (n < NStructReal)
+                {
+                    ifs >> p.m_rdata.arr[AMREX_SPACEDIM+n];
+                }
+                else
+                {
+                    ifs >> r[n - NStructReal];
+                }
             }
 
             if (!ifs.good())
@@ -141,7 +153,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             p.m_idata.cpu = MyProc;
 
             nparticles.push_back(p);
-
+            for (int n = NStructReal; n < extradata; n++)
+            {
+                nreals[n-NStructReal].push_back(r[n-NStructReal]);
+            }
+            
             how_many++;
             how_many_read++;
 
@@ -163,18 +179,22 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                     {
                         if (!(AMREX_D_TERM( (rep[0] == 1), && (rep[1] == 1), && (rep[2] == 1) ) ) )
                         {
-
-                            amrex::Print() << rep[0] << " " << rep[1] << " " << rep[2] << "\n";;
-                            
                             // Shift the position.
                             for (int d=0; d<AMREX_SPACEDIM; ++d)
                             {
                                 p_rep.m_rdata.pos[d] = p.m_rdata.pos[d] + (rep[d]-1)*DomSize[d];
                             }
-                            // Copy the mass and velocity.
-                            for (int n = 0; n < extradata; n++)
-                                p_rep.m_rdata.arr[AMREX_SPACEDIM+n] = p.m_rdata.arr[AMREX_SPACEDIM+n];
 
+                            // Copy the extra data
+                            for (int n = 0; n < extradata; n++)
+                            {
+                                if (n < NStructReal)
+                                {
+                                    p_rep.m_rdata.arr[AMREX_SPACEDIM+n]
+                                        = p.m_rdata.arr[AMREX_SPACEDIM+n];
+                                }
+                            }
+                            
                             if (!Where(p_rep, pld))
                             {
                                 PeriodicShift(p_rep);
@@ -191,7 +211,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                             p_rep.m_idata.cpu = MyProc;
    
                             nparticles.push_back(p_rep);
-
+                            for (int n = NStructReal; n < extradata; n++)
+                            {
+                                nreals[n-NStructReal].push_back(r[n-NStructReal]);
+                            }
+ 
                             how_many++;
                         }
                     }
@@ -215,6 +239,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         host_particles.reserve(15);
         host_particles.resize(finestLevel()+1);
 
+	Vector<std::map<std::pair<int, int>, std::array<Gpu::HostVector<Real>, NArrayReal > > > host_real_attribs;
+        host_real_attribs.reserve(15);
+        host_real_attribs.resize(finestLevel()+1);
+        
         if (m_verbose > 0) {
             amrex::Print() << "Redistributing from processor "
                            << nr*NRedist_chunk << " to " 
@@ -228,11 +256,90 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                 {
                     ParticleType& p = nparticles.back();
 		    Where(p, pld);
-
+                    
                     host_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
-    
+                    
+                    for (int n = NStructReal; n < extradata; n++)
+                    {
+                        Real rdata = nreals[n-NStructReal].back();
+                        host_real_attribs[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)][n-NStructReal].push_back(rdata);
+                    }
+                                        
                     nparticles.pop_back();
+                        
+                    for (int n = NStructReal; n < extradata; n++)
+                    {
+                        nreals[n-NStructReal].pop_back();
+                    }
                 }
+            }
+        }
+        
+        for (int lev = 0; lev < static_cast<int>(host_particles.size()); ++lev)
+        {
+            for (auto& kv : host_particles[lev])
+            {
+                auto grid = kv.first.first;
+                auto tile = kv.first.second;
+                const auto& src_tile = kv.second;
+                
+                auto& dst_tile = GetParticles(lev)[std::make_pair(grid,tile)];
+                auto old_size = dst_tile.GetArrayOfStructs().size();
+                auto new_size = old_size + src_tile.size();
+                dst_tile.resize(new_size);
+                
+                Gpu::copy(Gpu::hostToDevice, src_tile.begin(), src_tile.end(),
+                          dst_tile.GetArrayOfStructs().begin() + old_size);
+
+                for (int i = 0; i < NArrayReal; ++i) {
+                    Gpu::copy(Gpu::hostToDevice,
+                              host_real_attribs[lev][std::make_pair(grid,tile)][i].begin(),
+                              host_real_attribs[lev][std::make_pair(grid,tile)][i].end(),
+                              dst_tile.GetStructOfArrays().GetRealData(i).begin() + old_size);
+		}
+            }
+        }
+        
+        Redistribute();        
+    }
+
+    if (m_verbose > 0)
+    {
+        if (NRedist*NRedist_chunk < NReaders) {
+            amrex::Print() << "Redistributing from processor "
+                           << NRedist*NRedist_chunk << " to " 
+                           << NReaders << '\n';
+        }
+    }
+    for (int which = NRedist*NRedist_chunk; which < NReaders; which++)
+    {
+        Vector<std::map<std::pair<int, int>,Gpu::HostVector<ParticleType> > > host_particles;
+        host_particles.reserve(15);
+        host_particles.resize(finestLevel()+1);
+
+	Vector<std::map<std::pair<int, int>, std::array<Gpu::HostVector<Real>, NArrayReal > > > host_real_attribs;
+        host_real_attribs.reserve(15);
+        host_real_attribs.resize(finestLevel()+1);
+        
+        if (which == MyProc)
+        {
+	    while (!nparticles.empty())
+            {
+                ParticleType& p = nparticles.back();
+		Where(p, pld);
+
+                host_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);               
+                for (int n = NStructReal; n < extradata; n++)
+                {
+                    Real rdata = nreals[n-NStructReal].back();
+                    host_real_attribs[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)][n-NStructReal].push_back(rdata);
+                }
+                
+                nparticles.pop_back();                        
+                for (int n = NStructReal; n < extradata; n++)
+                {
+                    nreals[n-NStructReal].pop_back();
+                }                
             }
         }
 
@@ -251,35 +358,16 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                 
                 Gpu::copy(Gpu::hostToDevice, src_tile.begin(), src_tile.end(),
                           dst_tile.GetArrayOfStructs().begin() + old_size);
+
+                for (int i = 0; i < NArrayReal; ++i) {
+                    Gpu::copy(Gpu::hostToDevice,
+                              host_real_attribs[lev][std::make_pair(grid,tile)][i].begin(),
+                              host_real_attribs[lev][std::make_pair(grid,tile)][i].end(),
+                              dst_tile.GetStructOfArrays().GetRealData(i).begin() + old_size);
+		}
             }
         }
         
-        Redistribute();        
-    }
-
-    if (m_verbose > 0)
-    {
-        if (NRedist*NRedist_chunk < NReaders) {
-            amrex::Print() << "Redistributing from processor "
-                           << NRedist*NRedist_chunk << " to " 
-                           << NReaders << '\n';
-        }
-    }
-    for (int which = NRedist*NRedist_chunk; which < NReaders; which++)
-    {
-        if (which == MyProc)
-        {
-	    while (!nparticles.empty())
-            {
-                ParticleType& p = nparticles.back();
-		Where(p, pld);
-
-                m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
-
-                nparticles.pop_back();
-            }
-        }
-
         Redistribute();
     }
 

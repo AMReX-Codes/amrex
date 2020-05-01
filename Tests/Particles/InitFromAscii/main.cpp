@@ -40,7 +40,7 @@ void test_init_ascii (TestParams& parms)
 
     DistributionMapping dmap(ba);
 
-    typedef ParticleContainer<1 + AMREX_SPACEDIM> MyParticleContainer;
+    typedef ParticleContainer<1, 0, AMREX_SPACEDIM> MyParticleContainer;
     MyParticleContainer myPC(geom, dmap, ba);
 
     myPC.InitFromAsciiFile("particles.txt", 1 + AMREX_SPACEDIM);
@@ -60,7 +60,7 @@ void test_init_ascii (TestParams& parms)
                                            }
                                            return total;
                                        })
-                   << "\n";    
+                   << "\n";
 }
 
 int main(int argc, char* argv[])
