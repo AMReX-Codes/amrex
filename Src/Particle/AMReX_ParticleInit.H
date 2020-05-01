@@ -1,6 +1,34 @@
 #ifndef AMREX_PARTICLEINIT_H
 #define AMREX_PARTICLEINIT_H
 
+/*
+  \brief Initialize particles from an Ascii file in the following format:
+
+         8
+         0.1  0.1 16.2 1000.0 4.0 1.0 6.0
+         8.1  0.1 16.2 1000.0 -5 0.0 -7.0
+         16.1  0.1 16.2 1000.0 6.0 -8.0 2.0
+         24.1  0.1 16.2 1000.0 9.0 4.0 8.0
+         0.1  8.1 16.2 1000.0 -8.0 -3.0 -10.0
+         8.1  8.1 16.2 1000.0 2.0 1.0 0.0
+         16.1  8.1 16.2 1000.0 0.0 2.0 3.0
+         24.1  8.1 16.2 1000.0 -9.0 7.0 5.0
+
+  The first line is the number of particles. The remaining lines give the particle
+  data to read, one particle on each line. The first AMREX_SPACEDIM components are
+  positions. The next extradata components are the additional real data to read in.
+
+  Integer data is not currently supported by this function.
+
+  Parameters:
+
+     file:      the name of the Ascii file with the particles
+     extradata: the number of real components to read in, beyond the AMREX_SPACEDIM 
+                positions
+     Nrep:      pointer to IntVect that lets you replicate the incoming particles 
+                across the domain so that you only need to specify a sub-volume of 
+                them. By default particles are not replicated.
+ */
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
@@ -421,7 +449,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 // Note that there is nothing separating all these values.
 // They're packed into the binary file like sardines.
 //
-
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinaryFile (const std::string& file,
