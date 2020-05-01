@@ -2269,7 +2269,7 @@ VisMF::WriteAsync (const FabArray<FArrayBox>& mf, const std::string& mf_name)
     const int ncomp = mf.nComp();
     const Long n_fab_reals = 2*ncomp;
     const Long n_fab_int64 = 1;
-    const Long n_fab_nums = n_fab_reals*sizeof_int64_over_real + n_fab_int64;
+    const Long n_fab_nums = (n_fab_reals/sizeof_int64_over_real) + n_fab_int64;
     const Long n_local_nums = n_fab_nums * n_local_fabs + 1;
     Vector<int64_t> localdata(n_local_nums);
 
@@ -2559,7 +2559,7 @@ VisMF::WriteAsyncMultiFab (const FabArray<FArrayBox>& mf, const std::string& mf_
     const int ncomp = mf.nComp();
     const Long n_fab_reals = 2*ncomp;
     const Long n_fab_int64 = 1;
-    const Long n_fab_nums = n_fab_reals*sizeof_int64_over_real + n_fab_int64;
+    const Long n_fab_nums = (n_fab_reals/sizeof_int64_over_real) + n_fab_int64;
     const Long n_local_nums = n_fab_nums * n_local_fabs + 1;
     Vector<int64_t> localdata(n_local_nums);
 
@@ -2904,7 +2904,7 @@ VisMF::WriteAsyncPlotfile (const Vector<const MultiFab*>& mf, const Vector<std::
         const int ncomp = mfl.nComp();
 
         const Long n_fab_reals = n_reals_per_fab*ncomp;
-        const Long n_fab_nums = n_fab_reals*sizeof_int64_over_real + n_fab_int64;
+        const Long n_fab_nums = (n_fab_reals/sizeof_int64_over_real) + n_fab_int64;
         const Long n_local_nums = n_fab_nums * n_local_fabs + n_local_int64;
 
         n_all_local_nums += n_local_nums;
