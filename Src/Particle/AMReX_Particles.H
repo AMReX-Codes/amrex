@@ -429,7 +429,8 @@ public:
 
     void RedefineDummyMF (int lev);
 
-    void InitFromAsciiFile (const std::string& file, int extradata, const IntVect* Nrep = 0);
+    void InitFromAsciiFile (const std::string& file, int extradata,
+                            const IntVect* Nrep = nullptr);
 
     void InitFromBinaryFile (const std::string& file, int extradata);
 

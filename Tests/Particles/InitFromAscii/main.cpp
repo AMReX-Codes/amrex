@@ -40,11 +40,10 @@ void test_init_ascii (TestParams& parms)
 
     DistributionMapping dmap(ba);
 
-    constexpr int ncomps = 1 + AMREX_SPACEDIM;
-    typedef ParticleContainer<ncomps> MyParticleContainer;
+    typedef ParticleContainer<1, 0, AMREX_SPACEDIM> MyParticleContainer;
     MyParticleContainer myPC(geom, dmap, ba);
 
-    myPC.InitFromAsciiFile("particles.txt", ncomps);
+    myPC.InitFromAsciiFile("particles.txt", 1 + AMREX_SPACEDIM);
     
     amrex::Print() << myPC.TotalNumberOfParticles() << "\n";
 }
