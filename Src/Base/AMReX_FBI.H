@@ -419,7 +419,7 @@ fab_to_fab (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, in
             } else {
                 if (sycl::intel::any_of(item.get_sub_group(), msk > mypriority)) {
                     if (m) *m = 0; // yield
-                    item.mem_fence(); // xxxxx DPCPP todo: Is this block or device level?
+                    item.mem_fence(); // xxxxx DPCPP todo: This is block level, but needs to be device level fence, which is currently a PR in intel/llvm
                     to_try = 1;
                 } else {
                     to_try = (msk > 0); // hold on to my lock
