@@ -218,7 +218,7 @@ void main_main ()
         WriteAsyncStatus status;
         {
             BL_PROFILE_REGION("vismf-async-overlap");
-            auto wrt_future = VisMF::WriteAsync(mf, "vismfdata/mf2");
+            auto wrt_future = VisMF::WriteAsync_file(mf, "vismfdata/mf2");
             {
                 BL_PROFILE_VAR("vismf-async-work", blp2);
                 for (int i = 0; i < nwork; ++i) {

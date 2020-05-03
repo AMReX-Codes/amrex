@@ -76,6 +76,8 @@ target_sources( amrex
    AMReX_ParallelContext.cpp
    AMReX_VisMF.H
    AMReX_VisMF.cpp
+   AMReX_AsyncOut.H
+   AMReX_AsyncOut.cpp
    AMReX_Arena.H
    AMReX_Arena.cpp
    AMReX_BArena.H
