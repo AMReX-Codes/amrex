@@ -298,6 +298,7 @@ will be stored in Struct-of-Array style. To add a runtime component, use the
 
 ::
 
+
     const bool communicate_this_comp = true;
     for (int i = 0; i < num_runtime_real; ++i)
     {
@@ -314,16 +315,26 @@ The new components will be added at the end of the compile-time defined ones.
 When you are using runtime components, it is crucial that when you are adding
 particles to the container, you call the `DefineAndReturnParticleTile` method
 for each tile prior to adding any particles. This will make sure the space
-for the new components has been allocated. For example:
+for the new components has been allocated. For example, in the above section
+on :ref:`initializing particle data <sec:Particles:Initializing>`, we accessed 
+the particle tile data using the `GetParticles` method. If we runtime components 
+are used, `DefineAndReturnParticleTile` should be used instead:
 
 .. highlight:: c++
 
 ::
 
+
    for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
    {
+       // instead of this...
+       // auto& particles = GetParticles(lev)[std::make_pair(mfi.index(),
+       //                                     mfi.LocalTileIndex())];
+       
+       // we do this...
        auto& particle_tile = DefineAndReturnParticleTile(lev, mfi);
-       // add particles to particle_tile       
+
+       // add particles to particle_tile as above...
    }
 
 .. _sec:Particles:Iterating:
