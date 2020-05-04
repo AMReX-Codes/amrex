@@ -284,6 +284,58 @@ particles, if the processes generate particles they don’t own (for example, if
 the particle positions are perturbed from the cell centers and thus end up
 outside their parent grid).
 
+.. _sec:Particles:Runtime:
+
+Adding particle components at runtime
+=====================================
+
+In addition to the components specified as template parameters, you can also
+add additional :cpp:`Real` and :cpp:`int` components at runtime. These components
+will be stored in Struct-of-Array style. To add a runtime component, use the 
+:cpp:`AddRealComp` and :cpp:`AddIntComp` methods of :cpp:`ParticleContainer`, like so:
+
+.. highlight:: c++
+
+::
+
+
+    const bool communicate_this_comp = true;
+    for (int i = 0; i < num_runtime_real; ++i)
+    {
+        AddRealComp(communicate_this_comp);
+    }
+    for (int i = 0; i < num_runtime_int; ++i)
+    {
+        AddIntComp(communicate_this_comp);
+    }
+
+Runtime-added components can be accessed like regular Struct-of-Array data.
+The new components will be added at the end of the compile-time defined ones.
+
+When you are using runtime components, it is crucial that when you are adding
+particles to the container, you call the :cpp:`DefineAndReturnParticleTile` method
+for each tile prior to adding any particles. This will make sure the space
+for the new components has been allocated. For example, in the above section
+on :ref:`initializing particle data <sec:Particles:Initializing>`, we accessed 
+the particle tile data using the :cpp:`GetParticles` method. If we runtime components 
+are used, :cpp:`DefineAndReturnParticleTile` should be used instead:
+
+.. highlight:: c++
+
+::
+
+
+   for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
+   {
+       // instead of this...
+       // auto& particles = GetParticles(lev)[std::make_pair(mfi.index(),
+       //                                     mfi.LocalTileIndex())];
+       
+       // we do this...
+       auto& particle_tile = DefineAndReturnParticleTile(lev, mfi);
+
+       // add particles to particle_tile as above...
+   }
 
 .. _sec:Particles:Iterating:
 
