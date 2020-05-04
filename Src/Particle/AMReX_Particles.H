@@ -1252,6 +1252,7 @@ private:
 #include "AMReX_ParticleInit.H"
 #include "AMReX_ParticleContainerI.H"
 #include "AMReX_ParticleIO.H"
+#include "AMReX_ParticleHDF5.H"
 
 }
 
