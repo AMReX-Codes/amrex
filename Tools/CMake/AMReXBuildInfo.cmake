@@ -24,6 +24,8 @@ This module
 * sets internal variables AMREX_C_SCRIPTS_DIR, AMREX_BUILDINFO_IFILE,
   and AMREX_TOP_DIR
 
+* defines cache variable AMREX_BUILD_DATETIME
+
 * provides the function "generate_buildinfo(_target _git_dir)"
 
 #]=======================================================================]
@@ -44,6 +46,9 @@ set( AMREX_BUILDINFO_IFILE ${CMAKE_CURRENT_LIST_DIR}/AMReX_buildInfo.cpp.in
 
 set( AMREX_C_SCRIPTS_DIR "${AMREX_TOP_DIR}/Tools/C_scripts"
    CACHE INTERNAL "Path to AMReX' C_scripts dir")
+
+set(AMREX_BUILD_DATETIME "" CACHE STRING
+   "User defined build date and time. Set ONLY for reproducibly built binary distributions")
 
 #
 # FUNCTION: generate_buildinfo(_target _git_dir)
@@ -68,7 +73,12 @@ function (generate_buildinfo _target _git_dir)
    #
 
    # Date and time -- C++ preprocessor macros
-   set(BUILD_DATE "__DATE__ \" \"  __TIME__")
+   # If AMREX_BUILD_DATETIME is not set, use macros __DATE__ and __TIME__
+   if (AMREX_BUILD_DATETIME)
+      set(BUILD_DATE "\"${AMREX_BUILD_DATETIME}\"")
+   else()
+      set(BUILD_DATE "__DATE__ \" \"  __TIME__" )
+   endif ()
 
    # Target build directory
    get_target_property(BUILD_DIR ${_target} BINARY_DIR)
