@@ -292,7 +292,7 @@ Adding particle components at runtime
 In addition to the components specified as template parameters, you can also
 add additional :cpp:`Real` and :cpp:`int` components at runtime. These components
 will be stored in Struct-of-Array style. To add a runtime component, use the 
-`AddRealComp` and `AddIntComp` methods of :cpp:`ParticleContainer`, like so:
+:cpp:`AddRealComp` and :cpp:`AddIntComp` methods of :cpp:`ParticleContainer`, like so:
 
 .. highlight:: c++
 
@@ -313,12 +313,12 @@ Runtime-added components can be accessed like regular Struct-of-Array data.
 The new components will be added at the end of the compile-time defined ones.
 
 When you are using runtime components, it is crucial that when you are adding
-particles to the container, you call the `DefineAndReturnParticleTile` method
+particles to the container, you call the :cpp:`DefineAndReturnParticleTile` method
 for each tile prior to adding any particles. This will make sure the space
 for the new components has been allocated. For example, in the above section
 on :ref:`initializing particle data <sec:Particles:Initializing>`, we accessed 
-the particle tile data using the `GetParticles` method. If we runtime components 
-are used, `DefineAndReturnParticleTile` should be used instead:
+the particle tile data using the :cpp:`GetParticles` method. If we runtime components 
+are used, :cpp:`DefineAndReturnParticleTile` should be used instead:
 
 .. highlight:: c++
 
