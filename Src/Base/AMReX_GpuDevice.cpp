@@ -367,9 +367,6 @@ Device::Finalize ()
 #ifdef AMREX_USE_ACC
     amrex_finalize_acc();
 #endif
-
-    AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL( hipDeviceReset());,
-                      AMREX_CUDA_SAFE_CALL(cudaDeviceReset()); ); 
 }
 
 void
