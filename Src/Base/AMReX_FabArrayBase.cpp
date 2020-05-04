@@ -1699,6 +1699,8 @@ FabArrayBase::CheckRcvStats(Vector<MPI_Status>& recv_stats,
                               ParallelDescriptor::Mpi_typemap<ParallelDescriptor::lull_t>::type(),
                               &tmp_count);
                 count = sizeof(ParallelDescriptor::lull_t) * tmp_count;
+            } else {
+                amrex::Abort("TODO: message size is too big");
             }
 
 	    if (count != recv_size[i]) {

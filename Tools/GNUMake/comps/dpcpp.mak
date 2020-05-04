@@ -35,8 +35,10 @@ ifeq ($(DEBUG),TRUE)
 
 else
 
-  CXXFLAGS += -g -O3
-  CFLAGS   += -g -O3
+  CXXFLAGS += -O3 # // xxxx DPCPP: todo -g in beta6 causes a lot of warning messages
+  CFLAGS   += -O3
+#  CXXFLAGS += -g -O3
+#  CFLAGS   += -g -O3
 #  FFLAGS   += -g -O3
 #  F90FLAGS += -g -O3
 
