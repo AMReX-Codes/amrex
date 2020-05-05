@@ -152,8 +152,10 @@ VisMF::SetNOutFiles (int newoutfiles, MPI_Comm comm)
         {
             for (int i=0; i<async_comm.size(); ++i)
             {
-                MPI_Comm_free(&async_comm[i]);
-                async_comm[i] = MPI_COMM_NULL;
+                if (async_comm[i] != MPI_COMM_NULL) {
+                    MPI_Comm_free(&async_comm[i]);
+                    async_comm[i] = MPI_COMM_NULL;
+                }
             }
         }
 
