@@ -347,16 +347,12 @@ AmrLevel::writePlotFile (const std::string& dir,
     MultiFab::Copy(plotMF,factory->getVolFrac(),0,cnt,1,nGrow);
 #endif
 
-    amrex::prefetchToHost(plotMF);
-
     //
     // Use the Full pathname when naming the MultiFab.
     //
     std::string TheFullPath = FullPath;
     TheFullPath += BaseName;
     VisMF::Write(plotMF,TheFullPath,how,true);
-
-    amrex::prefetchToDevice(plotMF);
 
     levelDirectoryCreated = false;  // ---- now that the plotfile is finished
 }
