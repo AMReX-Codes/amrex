@@ -1646,37 +1646,41 @@ template <class T>
 void
 BaseFab<T>::prefetchToHost () const noexcept
 {
+    if (this->arena() == The_Arena() or this->arena() == The_Managed_Arena()) {
 #if defined(AMREX_USE_DPCPP)
-    // xxxxx DPCPP todo: prefetchToHost
-    // std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
-    // auto& q = Gpu::Device::streamQueue();
-    // q.submit([&] (sycl::handler& h) { h.prefetch(this->dptr, s); });
+        // xxxxx DPCPP todo: prefetchToHost
+        // std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
+        // auto& q = Gpu::Device::streamQueue();
+        // q.submit([&] (sycl::handler& h) { h.prefetch(this->dptr, s); });
 #elif defined(AMREX_USE_CUDA)
-    std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
-    AMREX_CUDA_SAFE_CALL(cudaMemPrefetchAsync(this->dptr, s,
-                                              cudaCpuDeviceId,
-                                              Gpu::gpuStream()));
+        std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
+        AMREX_CUDA_SAFE_CALL(cudaMemPrefetchAsync(this->dptr, s,
+                                                  cudaCpuDeviceId,
+                                                  Gpu::gpuStream()));
 #elif defined(AMREX_USE_HIP)
-    // HIP FIX HERE
+        // HIP FIX HERE
 #endif
+    }
 }
 
 template <class T>
 void
 BaseFab<T>::prefetchToDevice () const noexcept
 {
+    if (this->arena() == The_Arena() or this->arena() == The_Managed_Arena()) {
 #if defined(AMREX_USE_DPCPP)
-    std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
-    auto& q = Gpu::Device::streamQueue();
-    q.submit([&] (sycl::handler& h) { h.prefetch(this->dptr, s); });
+        std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
+        auto& q = Gpu::Device::streamQueue();
+        q.submit([&] (sycl::handler& h) { h.prefetch(this->dptr, s); });
 #elif defined(AMREX_USE_CUDA)
-    std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
-    AMREX_CUDA_SAFE_CALL(cudaMemPrefetchAsync(this->dptr, s,
-                                              Gpu::Device::deviceId(),
-                                              Gpu::gpuStream()));
+        std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
+        AMREX_CUDA_SAFE_CALL(cudaMemPrefetchAsync(this->dptr, s,
+                                                  Gpu::Device::deviceId(),
+                                                  Gpu::gpuStream()));
 #elif defined(AMREX_USE_HIP)
-    // HIP FIX HERE
+        // HIP FIX HERE
 #endif
+    }
 }
 
 template <class T>
