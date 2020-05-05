@@ -221,14 +221,10 @@ CNS::writePlotFile (const std::string& dir, std::ostream& os, VisMF::How how)
 
     MultiFab::Copy(plotMF,volFrac(),0,cnt,1,nGrow);
 
-    amrex::prefetchToHost(plotMF);
-
     //
     // Use the Full pathname when naming the MultiFab.
     //
     std::string TheFullPath = FullPath;
     TheFullPath += BaseName;
     VisMF::Write(plotMF,TheFullPath,how,true);
-
-    amrex::prefetchToDevice(plotMF);
 }

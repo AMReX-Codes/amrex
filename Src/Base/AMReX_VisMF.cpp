@@ -1002,21 +1002,34 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
     }
     bool doConvert(*whichRD != FPC::NativeRealDescriptor());
 
-    if(set_ghost) {
+    if(set_ghost and mf.nGrowVect() != 0) {
         FabArray<FArrayBox>* the_mf = const_cast<FabArray<FArrayBox>*>(&mf);
+
+        bool run_on_device = Gpu::inLaunchRegion()
+            and (mf.arena() == The_Arena() or
+                 mf.arena() == The_Device_Arena() or
+                 mf.arena() == The_Managed_Arena());
 
         for(MFIter mfi(*the_mf); mfi.isValid(); ++mfi) {
             const int idx(mfi.index());
 
             for(int j(0); j < mf.nComp(); ++j) {
-                const Real valMin(mf[mfi].min<RunOn::Host>(mf.box(idx), j));
-                const Real valMax(mf[mfi].max<RunOn::Host>(mf.box(idx), j));
-                const Real val((valMin + valMax) / 2.0);
-
-                the_mf->get(mfi).setComplement<RunOn::Host>(val, mf.box(idx), j, 1);
+                if (run_on_device) {
+                    const Real valMin(mf[mfi].min<RunOn::Device>(mf.box(idx), j));
+                    const Real valMax(mf[mfi].max<RunOn::Device>(mf.box(idx), j));
+                    const Real val((valMin + valMax) / 2.0);
+                    the_mf->get(mfi).setComplement<RunOn::Device>(val, mf.box(idx), j, 1);
+                } else {
+                    const Real valMin(mf[mfi].min<RunOn::Host>(mf.box(idx), j));
+                    const Real valMax(mf[mfi].max<RunOn::Host>(mf.box(idx), j));
+                    const Real val((valMin + valMax) / 2.0);
+                    the_mf->get(mfi).setComplement<RunOn::Host>(val, mf.box(idx), j, 1);
+                }
             }
         }
     }
+
+    amrex::prefetchToHost(mf);
 
     // ---- check if mf has sparse data
     bool useSparseFPP(false);
@@ -1151,6 +1164,10 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
     bytesWritten += VisMF::WriteHeader(mf_name, hdr, coordinatorProc);
 
     delete whichRD;
+
+    if (Gpu::inLaunchRegion()) {
+        amrex::prefetchToDevice(mf);
+    }
 
     return bytesWritten;
 }
@@ -1962,6 +1979,8 @@ VisMF::Read (FabArray<FArrayBox> &mf,
     }
 
     BL_ASSERT(mf.ok());
+
+    if (Gpu::inLaunchRegion()) amrex::prefetchToDevice(mf);
 }
 
 
