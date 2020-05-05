@@ -1646,6 +1646,7 @@ template <class T>
 void
 BaseFab<T>::prefetchToHost () const noexcept
 {
+#ifdef AMREX_USE_GPU
     if (this->arena() == The_Arena() or this->arena() == The_Managed_Arena()) {
 #if defined(AMREX_USE_DPCPP)
         // xxxxx DPCPP todo: prefetchToHost
@@ -1661,12 +1662,14 @@ BaseFab<T>::prefetchToHost () const noexcept
         // HIP FIX HERE
 #endif
     }
+#endif
 }
 
 template <class T>
 void
 BaseFab<T>::prefetchToDevice () const noexcept
 {
+#ifdef AMREX_USE_GPU
     if (this->arena() == The_Arena() or this->arena() == The_Managed_Arena()) {
 #if defined(AMREX_USE_DPCPP)
         std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
@@ -1681,6 +1684,7 @@ BaseFab<T>::prefetchToDevice () const noexcept
         // HIP FIX HERE
 #endif
     }
+#endif
 }
 
 template <class T>
