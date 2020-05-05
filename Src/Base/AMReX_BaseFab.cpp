@@ -71,7 +71,7 @@ TotalBytesAllocatedInFabs () noexcept
     }
     return r + atomic_total_bytes_allocated_in_fabs.load();
 #else
-    return private_total_bytes_allocated_in_fabs + atomic_total_bytes_allocated_in_fabs.load();;
+    return private_total_bytes_allocated_in_fabs + atomic_total_bytes_allocated_in_fabs.load();
 #endif
 }
 
