@@ -21,7 +21,7 @@ bool UseAsyncOut ();
 WriteInfo GetWriteInfo (int rank);
 
 void Submit (std::function<void()>&& a_f);
-void Sumbit (std::function<void()> const& a_f);
+void Submit (std::function<void()> const& a_f);
 
 void Finish (); // If you want to wait for jobs submitted to finish
 
