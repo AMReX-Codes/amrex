@@ -450,7 +450,22 @@ int coarsen_from_fine (int i, int j, int k, Box const& bx, Box const& gbx,
             cbn(i,j,k,0) = nx*nfac;
             cbn(i,j,k,1) = ny*nfac;
             cbn(i,j,k,2) = nz*nfac;
-            ierr = (nx == 0.0 and ny == 0.0 and nz == 0.0);
+            ierr = (nx == 0.0 and ny == 0.0 and nz == 0.0)
+                // we must check the enclosing surface to make sure the coarse cell does not
+                // fully contains the geometry object.
+                or ( fapx(ii,jj  ,kk  )==1.0 and fapx(ii+2,jj  ,kk  )==1.0
+                 and fapx(ii,jj+1,kk  )==1.0 and fapx(ii+2,jj+1,kk  )==1.0
+                 and fapx(ii,jj  ,kk+1)==1.0 and fapx(ii+2,jj  ,kk+1)==1.0
+                 and fapx(ii,jj+1,kk+1)==1.0 and fapx(ii+2,jj+1,kk+1)==1.0
+                 and fapy(ii,jj  ,kk  )==1.0 and fapy(ii+1,jj  ,kk  )==1.0
+                 and fapy(ii,jj+2,kk  )==1.0 and fapy(ii+1,jj+2,kk  )==1.0
+                 and fapy(ii,jj  ,kk+1)==1.0 and fapy(ii+1,jj  ,kk+1)==1.0
+                 and fapy(ii,jj+2,kk+1)==1.0 and fapy(ii+1,jj+2,kk+1)==1.0
+                 and fapz(ii,jj  ,kk  )==1.0 and fapz(ii+1,jj  ,kk  )==1.0
+                 and fapz(ii,jj+1,kk  )==1.0 and fapz(ii+1,jj+1,kk  )==1.0
+                 and fapz(ii,jj  ,kk+2)==1.0 and fapz(ii+1,jj  ,kk+2)==1.0
+                 and fapz(ii,jj+1,kk+2)==1.0 and fapz(ii+1,jj+1,kk+2)==1.0);
+
         }
     }
     else if (gbx.contains(iv))
