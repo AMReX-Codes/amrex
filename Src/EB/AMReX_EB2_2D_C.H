@@ -182,7 +182,13 @@ int coarsen_from_fine (int i, int j, Box const& bx, Box const& gbx,
              Real nfac = 1.0/std::sqrt(nx*nx+ny*ny+1.e-50);
              cbn(i,j,k,0) = nx*nfac;
              cbn(i,j,k,1) = ny*nfac;
-             ierr = (nx == 0.0 and ny == 0.0);
+             ierr = (nx == 0.0 and ny == 0.0)
+                 // we must check the enclosing surface to make sure the coarse cell does not
+                 // fully contains the geometry object.
+                 or ( fapx(ii,jj  ,k)==1.0 and fapx(ii+2,jj  ,k)==1.0
+                  and fapx(ii,jj+1,k)==1.0 and fapx(ii+2,jj+1,k)==1.0
+                  and fapy(ii,jj  ,k)==1.0 and fapy(ii+1,jj  ,k)==1.0
+                  and fapy(ii,jj+2,k)==1.0 and fapy(ii+1,jj+2,k)==1.0);
         }
     }
     else if (gbx.contains(iv))
