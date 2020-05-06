@@ -368,7 +368,7 @@ public:
     friend std::istream& operator>> (std::istream& is, FArrayBox& fb);
     /**
     * \brief Writes out the FAB in whatever format you've set.
-    * The default format is ASCII.
+    * The default format is NATIVE.
     */
     void writeOn (std::ostream& of) const;
 
