@@ -548,7 +548,7 @@ ifeq ($(USE_MPI),TRUE)
     CPPFLAGS += -DBL_USE_MPI -DAMREX_USE_MPI
 
     ifeq ($(MPI_MULTIPLE),TRUE)
-        MPISuffix := .MPI-MULTIPLE
+        MPISuffix := .MTMPI
         CPPFLAGS += -DAMREX_MPI_MULTIPLE
     else
         MPISuffix := .MPI

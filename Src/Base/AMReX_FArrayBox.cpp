@@ -96,39 +96,6 @@ private:
 };
 
 //
-// Our binary FABio type.
-//
-class FABio_binary
-    :
-    public FABio
-{
-public:
-    FABio_binary (RealDescriptor* rd_);
-
-    virtual void read (std::istream& is,
-                       FArrayBox&    fb) const override;
-
-    virtual void write (std::ostream&    os,
-                        const FArrayBox& fb,
-                        int              comp,
-                        int              num_comp) const override;
-
-    virtual void skip (std::istream& is,
-                       FArrayBox&    f) const override;
-
-    virtual void skip (std::istream& is,
-                       FArrayBox&    f,
-		       int           nCompToSkip) const override;
-
-private:
-    virtual void write_header (std::ostream&    os,
-                               const FArrayBox& f,
-                               int              nvar) const override;
-
-    std::unique_ptr<RealDescriptor> realDesc;
-};
-
-//
 // This isn't inlined as it's virtual.
 //
 

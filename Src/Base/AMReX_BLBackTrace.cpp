@@ -10,6 +10,7 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Print.H>
 #include <AMReX_VisMF.H>
+#include <AMReX_AsyncOut.H>
 #include <AMReX.H>
 
 #ifdef AMREX_TINY_PROFILING
@@ -39,6 +40,8 @@ BLBackTrace::handler(int s)
 #ifdef AMREX_MPI_MULTIPLE
     VisMF::asyncWaitAll();
 #endif
+
+    AsyncOut::Finalize();
 
     switch (s) {
     case SIGSEGV:

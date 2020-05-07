@@ -524,7 +524,7 @@ permute_real_word_order (void*       out,
                          const int*  inord, 
                          int         REALSIZE)
 {
-    BL_PROFILE("permute_real_word_order");
+//    BL_PROFILE("permute_real_word_order");
     
     char* pin  = (char*) in;
     char* pout = (char*) out;
@@ -620,7 +620,7 @@ PD_fconvert (void*       out,
              int         l_bytes,
              int         onescmp)
 {
-    BL_PROFILE("PD_fconvert");
+//    BL_PROFILE("PD_fconvert");
     Long i, expn, expn_max, hexpn, mant, DeltaBias, hmbo, hmbi;
     int nbits, inbytes, outbytes, sign;
     int indxin, indxout, inrem, outrem, dindx;
@@ -784,7 +784,7 @@ PD_fixdenormals (void*       out,
                  const Long* outfor,
                  const int*  outord)
 {
-    BL_PROFILE("PD_fixdenormals");
+//    BL_PROFILE("PD_fixdenormals");
     const int nbo = int(outfor[0]);
 
     int nbo_exp  = int(outfor[1]);
@@ -915,7 +915,7 @@ PD_convert (void*                 out,
             const IntDescriptor&  iid,
             int                   onescmp = 0)
 {
-    BL_PROFILE("PD_convert");
+//    BL_PROFILE("PD_convert");
     if (ord == ird && boffs == 0)
     {
         size_t n = size_t(nitems);
@@ -958,7 +958,7 @@ RealDescriptor::convertToNativeFormat (Real*                 out,
                                        void*                 in,
                                        const RealDescriptor& id)
 {
-    BL_PROFILE("RD:convertToNativeFormat_vp");
+//    BL_PROFILE("RD:convertToNativeFormat_vp");
 
     PD_convert(out,
                in,
@@ -984,7 +984,7 @@ RealDescriptor::convertToNativeFormat (Real*                 out,
                                        std::istream&         is,
                                        const RealDescriptor& id)
 {
-    BL_PROFILE("RD:convertToNativeFormat_is");
+//    BL_PROFILE("RD:convertToNativeFormat_is");
 
     Long buffSize(std::min(Long(readBufferSize), nitems));
     char *bufr = new char[buffSize * id.numBytes()];
@@ -1026,7 +1026,7 @@ RealDescriptor::convertFromNativeFormat (void*                 out,
                                          const void*           in,
                                          const RealDescriptor& od)
 {
-    BL_PROFILE("RD:convertFromNativeFormat_vp");
+//    BL_PROFILE("RD:convertFromNativeFormat_vp");
     PD_convert(out,
                in,
                nitems,
@@ -1047,7 +1047,7 @@ RealDescriptor::convertFromNativeFormat (std::ostream&         os,
                                          const Real*           in,
                                          const RealDescriptor& od)
 {
-  BL_PROFILE("RD:convertFromNativeFormat_os");
+//  BL_PROFILE("RD:convertFromNativeFormat_os");
   Long nitemsSave(nitems);
   Long buffSize(std::min(Long(writeBufferSize), nitems));
   const Real *inSave(in);
@@ -1089,7 +1089,7 @@ RealDescriptor::convertFromNativeFloatFormat (std::ostream&         os,
                                               const float*          in,
                                               const RealDescriptor& od)
 {
-  BL_PROFILE("RD:convertFromNativeFloatFormat");
+//  BL_PROFILE("RD:convertFromNativeFloatFormat");
   Long nitemsSave(nitems);
   Long buffSize(std::min(Long(writeBufferSize), nitems));
   const float *inSave(in);
@@ -1131,7 +1131,7 @@ RealDescriptor::convertFromNativeDoubleFormat (std::ostream&         os,
                                                const double*         in,
                                                const RealDescriptor& od)
 {
-  BL_PROFILE("RD:convertFromNativeDoubleFormat");
+//  BL_PROFILE("RD:convertFromNativeDoubleFormat");
   Long nitemsSave(nitems);
   Long buffSize(std::min(Long(writeBufferSize), nitems));
   const double *inSave(in);
@@ -1172,7 +1172,7 @@ RealDescriptor::convertToNativeFloatFormat (float*                out,
                                             std::istream&         is,
                                             const RealDescriptor& id)
 {
-    BL_PROFILE("RD:convertToNativeFloatFormat");
+//    BL_PROFILE("RD:convertToNativeFloatFormat");
 
     Long buffSize(std::min(Long(readBufferSize), nitems));
     char *bufr = new char[buffSize * id.numBytes()];
@@ -1214,7 +1214,7 @@ RealDescriptor::convertToNativeDoubleFormat (double*               out,
                                              std::istream&         is,
                                              const RealDescriptor& id)
 {
-    BL_PROFILE("RD:convertToNativeDoubleFormat");
+//    BL_PROFILE("RD:convertToNativeDoubleFormat");
 
     Long buffSize(std::min(Long(readBufferSize), nitems));
     char *bufr = new char[buffSize * id.numBytes()];

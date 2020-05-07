@@ -9,6 +9,7 @@
 #include <array>
 #include <type_traits>
 #include <memory>
+#include <atomic>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -40,6 +41,10 @@
 namespace amrex
 {
 
+extern std::atomic<Long> atomic_total_bytes_allocated_in_fabs;
+extern std::atomic<Long> atomic_total_bytes_allocated_in_fabs_hwm;
+extern std::atomic<Long> atomic_total_cells_allocated_in_fabs;
+extern std::atomic<Long> atomic_total_cells_allocated_in_fabs_hwm;
 extern Long private_total_bytes_allocated_in_fabs;     //!< total bytes at any given time
 extern Long private_total_bytes_allocated_in_fabs_hwm; //!< high-water-mark over a given interval
 extern Long private_total_cells_allocated_in_fabs;     //!< total cells at any given time

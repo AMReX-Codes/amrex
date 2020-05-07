@@ -15,6 +15,7 @@
 #include <AMReX_FabArray.H>
 #include <AMReX_FArrayBox.H>
 #include <AMReX_FabConv.H>
+#include <AMReX_AsyncOut.H>
 
 namespace amrex {
 
@@ -201,6 +202,9 @@ public:
                        VisMF::How         how = NFiles,
                        bool               set_ghost = false);
 
+    static void AsyncWrite (const FabArray<FArrayBox>& mf, const std::string& mf_name);
+    static void AsyncWrite (FabArray<FArrayBox>&& mf, const std::string& mf_name);
+
 // Async output tests 
 // *****************************
 
@@ -210,7 +214,7 @@ public:
 
 //  File based Multifab (for comparison. Better at very small scales.) 
     static std::future<WriteAsyncStatus>
-    WriteAsync (const FabArray<FArrayBox>& mf, const std::string& mf_name);
+    WriteAsync_file (const FabArray<FArrayBox>& mf, const std::string& mf_name);
 
 //  MPI based Multifab
     static void
@@ -368,6 +372,10 @@ private:
     static std::string DirName (const std::string& filename);
 
     static std::string BaseName (const std::string& filename);
+
+    static void AsyncWriteDoit (const FabArray<FArrayBox>& mf, const std::string& mf_name,
+                                bool is_rvalue);
+
     //! Name of the FabArray<FArrayBox>.
     std::string m_fafabname;
     //! The VisMF header as read from disk.
