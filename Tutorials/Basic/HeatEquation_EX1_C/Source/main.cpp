@@ -65,7 +65,7 @@ void main_main ()
         RealBox real_box({AMREX_D_DECL(-1.0,-1.0,-1.0)},
                          {AMREX_D_DECL( 1.0, 1.0, 1.0)});
 
-        // periodic in all direction by default
+        // periodic in all direction
         Array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(1,1,1)};
 
         // This defines a Geometry object
