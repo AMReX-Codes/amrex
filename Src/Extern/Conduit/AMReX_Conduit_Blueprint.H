@@ -91,7 +91,7 @@ namespace amrex
                   const Vector<const BoxArray*> box_arrays,
                   const Vector<IntVect> &ref_ratio,
                   const Vector<int> &domain_offsets,
-                  conduit::Node &nestsets);
+                  conduit::Node &nestset);
 
 
 #ifdef AMREX_PARTICLES
