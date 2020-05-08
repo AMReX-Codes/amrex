@@ -260,7 +260,8 @@ public:
 
     bool isValid (const Vector<BoxArray>& a_ba) const
     {
-        if ( (m_locators.size() == 0) or !m_defined) return false;
+        if ( !m_defined or (m_locators.size() == 0) or
+             (m_locators.size() != a_ba.size()) ) return false;
         bool all_valid = true;
         int num_levels = m_locators.size();
         for (int lev = 0; lev < num_levels; ++lev)

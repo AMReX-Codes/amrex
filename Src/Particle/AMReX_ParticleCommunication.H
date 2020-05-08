@@ -63,9 +63,10 @@ struct ParticleCopyOp
     void resize (const int gid, const int lev, const int size);
 
     int numCopies (const int gid, const int lev) const 
-    { 
+    {
         if (m_boxes.size() <= lev) return 0;
-        return m_boxes[lev].at(gid).size(); 
+        auto mit = m_boxes[lev].find(gid);
+        return mit == m_boxes[lev].end() ? 0 : mit->second.size();
     }
 };
     
