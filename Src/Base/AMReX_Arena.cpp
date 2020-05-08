@@ -156,9 +156,11 @@ Arena::Initialize ()
     if (use_buddy_allocator)
     {
         if (buddy_allocator_size <= 0) {
-            buddy_allocator_size = Gpu::Device::totalGlobalMem() / 4 * 3;
 #ifdef AMREX_USE_DPCPP
-            buddy_allocator_size = std::min(buddy_allocator_size,Gpu::Device::maxMemAllocSize());
+            // buddy_allocator_size = Gpu::Device::maxMemAllocSize() / 4L * 3L;
+            buddy_allocator_size = 1024L*1024L*1024L; // xxxxx DPCPP: todo
+#else
+            buddy_allocator_size = Gpu::Device::totalGlobalMem() / 4L * 3L;
 #endif
         }
         std::size_t chunk = 512*1024*1024;
@@ -172,9 +174,11 @@ Arena::Initialize ()
         the_arena = new CArena(0, ArenaInfo().SetPreferred());
 #ifdef AMREX_USE_GPU
         if (the_arena_init_size <= 0) {
-            the_arena_init_size = Gpu::Device::totalGlobalMem() / 4L * 3L;
 #ifdef AMREX_USE_DPCPP
-            the_arena_init_size = std::min(the_arena_init_size,Gpu::Device::maxMemAllocSize());
+//            the_arena_init_size = Gpu::Device::maxMemAllocSize() / 4L * 3L;
+            the_arena_init_size = 1024L*1024L*1024L; // xxxxx DPCPP: todo
+#else
+            the_arena_init_size = Gpu::Device::totalGlobalMem() / 4L * 3L;
 #endif
         }
         void *p = the_arena->alloc(static_cast<std::size_t>(the_arena_init_size));
