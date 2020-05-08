@@ -2186,14 +2186,14 @@ Here, :cpp:`ParallelFor` takes two arguments.  The first argument is a
 argument is a C++ lambda function that works on cell :cpp:`(i,j,k)`.
 Variables a, b and c in the lambda function are captured by value from
 the enclosing scope.  The code above is performance portable.  It
-works with and without GPU.  When AMReX is built with GPU support,
+works with and without GPU support.  When AMReX is built with GPU support,
 AMREX_GPU_DEVICE indicates that the lambda function is a device
 function and :cpp:`ParallelFor` launches a GPU kernel to do the work.
 When it is built without GPU support, AMREX_GPU_DEVICE has no effects
 whatsoever.  More details on :cpp:`ParalleFor` will be presented in
 section :ref:`sec:gpu:for`.  It should be emphasized that
-`ParallelFor` does not start OpenMP parallel region.  OpenMP parallel
-region will start by the pragma above the :cpp:`MFIter` loop if it is
+`ParallelFor` does not start an OpenMP parallel region.  The OpenMP parallel
+region will be started by the pragma above the :cpp:`MFIter` loop if it is
 built with OpenMP and without enabling GPU.  Tiling is turned off if
 GPU is enabled so that more parallelism is exposed to GPU kernels.
 Also note that when tiling is off, :cpp:`tilbox` returns
@@ -2269,7 +2269,7 @@ The basic idea behind physical boundary conditions is as follows:
    integer array of :cpp:`2*DIM` components. Each component defines a boundary
    condition type for the lo/hi side of the domain, for each direction.  See
    ``amrex/Src/Base/AMReX_BC_TYPES.H`` for common physical and mathematical
-   types.  Below is an example of setting up :cpp:`Vector<BCRec>` for
+   types.  Below is an example of setting up a :cpp:`Vector<BCRec>` for
    multiple components before the call to ghost cell routines.
 
    .. highlight:: c++
@@ -2316,7 +2316,7 @@ The basic idea behind physical boundary conditions is as follows:
            Reflection from interior cells with sign
            changed, :math:`q(-i) = -q(i)`.
 
--  For external Dirichlet boundary, the user needs to provide a
+-  For external Dirichlet boundaries, the user needs to provide a
    callable object like below.
 
    .. highlight:: c++
@@ -2335,8 +2335,8 @@ The basic idea behind physical boundary conditions is as follows:
            }
        };
 
-   Here, for CPU build, the AMREX_GPU_DEVICE has no effects
-   whatsoever, whereas for GPU build, this marks the operator as a GPU
+   Here, for the CPU build, the AMREX_GPU_DEVICE macro has no effect
+   whatsoever, whereas for the GPU build, this marks the operator as a GPU
    device function.
 
 -  It is the user’s responsibility to have a consisent definition of
