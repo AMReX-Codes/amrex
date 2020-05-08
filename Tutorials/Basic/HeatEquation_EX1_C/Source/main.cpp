@@ -1,10 +1,10 @@
-
+#include <AMReX_Gpu.H>
+#include <AMReX_Utility.H>
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_Print.H>
 
 #include "myfunc.H"
-#include "myfunc_F.H"
 
 using namespace amrex;
 
@@ -21,11 +21,10 @@ int main (int argc, char* argv[])
 void main_main ()
 {
     // What time is it now?  We'll use this to compute total run time.
-    Real strt_time = amrex::second();
+    Real strt_time = ParallelDescriptor::second();
 
     // AMREX_SPACEDIM: number of dimensions
     int n_cell, max_grid_size, nsteps, plot_int;
-    Vector<int> is_periodic(AMREX_SPACEDIM,1);  // periodic in all direction by default
 
     // inputs parameters
     {
@@ -40,15 +39,13 @@ void main_main ()
         pp.get("max_grid_size",max_grid_size);
 
         // Default plot_int to -1, allow us to set it to something else in the inputs file
-        //  If plot_int < 0 then no plot files will be writtenq
+        //  If plot_int < 0 then no plot files will be written
         plot_int = -1;
         pp.query("plot_int",plot_int);
 
-        // Default nsteps to 10, allow us to set it to something else in the inputs file
+        // Default nsteps to 0, allow us to set it to something else in the inputs file
         nsteps = 10;
         pp.query("nsteps",nsteps);
-
-        pp.queryarr("is_periodic", is_periodic);
     }
 
     // make BoxArray and Geometry
@@ -68,8 +65,11 @@ void main_main ()
         RealBox real_box({AMREX_D_DECL(-1.0,-1.0,-1.0)},
                          {AMREX_D_DECL( 1.0, 1.0, 1.0)});
 
+        // periodic in all direction by default
+        Array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(1,1,1)};
+
         // This defines a Geometry object
-        geom.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
+        geom.define(domain,real_box,CoordSys::cartesian,is_periodic);
     }
 
     // Nghost = number of ghost cells for each array 
@@ -85,19 +85,11 @@ void main_main ()
     MultiFab phi_old(ba, dm, Ncomp, Nghost);
     MultiFab phi_new(ba, dm, Ncomp, Nghost);
 
-    // Initialize phi_new by calling a Fortran routine.
-    // MFIter = MultiFab Iterator
-    for ( MFIter mfi(phi_new); mfi.isValid(); ++mfi )
-    {
-        const Box& bx = mfi.validbox();
+    GpuArray<Real,AMREX_SPACEDIM> dx = geom.CellSizeArray();
 
-        init_phi(BL_TO_FORTRAN_BOX(bx),
-                 BL_TO_FORTRAN_ANYD(phi_new[mfi]),
-                 geom.CellSize(), geom.ProbLo(), geom.ProbHi());
-    }
+    init_phi(phi_new, geom);
+    // ========================================
 
-    // compute the time step
-    const Real* dx = geom.CellSize();
     Real dt = 0.9*dx[0]*dx[0] / (2.0*AMREX_SPACEDIM);
 
     // time = starting time in the simulation
@@ -142,7 +134,7 @@ void main_main ()
 
     // Call the timer again and compute the maximum difference between the start time and stop time
     //   over all processors
-    Real stop_time = amrex::second() - strt_time;
+    Real stop_time = ParallelDescriptor::second() - strt_time;
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
     ParallelDescriptor::ReduceRealMax(stop_time,IOProc);
 
