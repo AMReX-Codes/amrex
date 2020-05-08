@@ -69,7 +69,7 @@ function (configure_amrex)
       if (CMAKE_Fortran_COMPILER_LOADED)
          target_link_libraries(amrex PUBLIC OpenMP::OpenMP_Fortran )
          set_target_properties(OpenMP::OpenMP_Fortran PROPERTIES IMPORTED_GLOBAL True )
-      endforeach ()
+      endif ()
 
       # We have to manually pass OpenMP flags to host compiler if CUDA is enabled
       # Since OpenMP imported targets are generated only for the Compiler ID in use, i.e.
