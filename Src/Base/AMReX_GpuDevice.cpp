@@ -448,6 +448,7 @@ Device::initialize_gpu ()
         device_prop.maxMemAllocSize = d.get_info<sycl::info::device::max_mem_alloc_size>();
         device_prop.managedMemory = d.get_info<sycl::info::device::host_unified_memory>();
         device_prop.concurrentManagedAccess = d.get_info<sycl::info::device::usm_shared_allocations>();
+        device_prop.maxParameterSize = d.get_info<sycl::info::device::max_parameter_size>();
         {
             amrex::Print() << "Device Properties:\n"
                            << "  name: " << device_prop.name << "\n"
@@ -464,6 +465,7 @@ Device::initialize_gpu ()
                            << "  maxMemAllocSize: " << device_prop.maxMemAllocSize << "\n"
                            << "  managedMemory: " << (device_prop.managedMemory ? "Yes" : "No") << "\n"
                            << "  concurrentManagedAccess: " << (device_prop.concurrentManagedAccess ? "Yes" : "No") << "\n"
+                           << "  maxParameterSize: " << device_prop.maxParameterSize << "\n"
                            << std::endl;
         }
         auto found = std::find(sgss.begin(), sgss.end(), static_cast<decltype(sgss)::value_type>(warp_size));

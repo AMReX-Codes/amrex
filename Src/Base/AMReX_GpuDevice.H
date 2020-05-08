@@ -30,6 +30,7 @@ using gpuDeviceProp_t = cudaDeviceProp;
         Long maxMemAllocSize; // oneAPI only
         int managedMemory;
         int concurrentManagedAccess;
+        int maxParameterSize;
     };
 #endif
 
