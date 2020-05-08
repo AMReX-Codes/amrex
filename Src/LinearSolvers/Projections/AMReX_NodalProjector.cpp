@@ -119,6 +119,9 @@ NodalProjector::setOptions ()
     Real         bottom_atol(-1.0);
     std::string  bottom_solver("bicgcg");
 
+    int          num_pre_smooth (2);
+    int          num_post_smooth(2);
+
     // Read from input file
     ParmParse pp("nodal_proj");
     pp.query( "verbose"       , m_verbose );
@@ -129,6 +132,9 @@ NodalProjector::setOptions ()
     pp.query( "bottom_atol"   , bottom_atol );
     pp.query( "bottom_solver" , bottom_solver );
 
+    pp.query( "num_pre_smooth"  , num_pre_smooth );
+    pp.query( "num_post_smooth" , num_post_smooth );
+
     // Set default/input values
     m_mlmg->setVerbose(m_verbose);
     m_mlmg->setBottomVerbose(bottom_verbose);
@@ -136,6 +142,9 @@ NodalProjector::setOptions ()
     m_mlmg->setBottomMaxIter(bottom_maxiter);
     m_mlmg->setBottomTolerance(bottom_rtol);
     m_mlmg->setBottomToleranceAbs(bottom_atol);
+
+    m_mlmg->setPreSmooth(num_pre_smooth);
+    m_mlmg->setPostSmooth(num_post_smooth);
 
     if (bottom_solver == "smoother")
     {
