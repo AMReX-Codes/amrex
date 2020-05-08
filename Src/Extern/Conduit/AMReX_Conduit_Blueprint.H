@@ -19,8 +19,8 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 // These functions generate a Conduit Blueprint Mesh representation of
-// AMReX AMR meshes and particle containers. 
-// 
+// AMReX AMR meshes and particle containers.
+//
 // Data from MultiFABs and ParticleContainers are zero copied and annotated
 // in Conduit Node Trees. This is the format used to pass meshes to ALPINE
 // Ascent for in situ rendering and analysis.
@@ -83,6 +83,17 @@ namespace amrex
                                 const Vector<IntVect> &ref_ratio,
                                 conduit::Node &bp_mesh);
 
+    // Creates an the parent-child relationships for a fab
+    //
+    void Nestsets(const int level,
+                  const int n_levels,
+                  const FArrayBox &fab,
+                  const Vector<const BoxArray*> box_arrays,
+                  const Vector<IntVect> &ref_ratio,
+                  const Vector<int> &domain_offsets,
+                  conduit::Node &nestsets);
+
+
 #ifdef AMREX_PARTICLES
     // Creates an in-memory Mesh Blueprint representation of an AMReX
     // particle container.
@@ -91,8 +102,8 @@ namespace amrex
     //   real_comp_names are first mapped in order to the aos then soa reals
     //   int_comp_names are first mapped in order to the aos then soa ints
     //
-    // `topology_name` allows you to control the name of the topology, 
-    //  coordset and fields used to represent the passed particle container. 
+    // `topology_name` allows you to control the name of the topology,
+    //  coordset and fields used to represent the passed particle container.
     //  This allows you to use unique names to wrap multiple particle containers
     //  into a single blueprint tree.
     template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>

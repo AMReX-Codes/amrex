@@ -23,7 +23,7 @@ void FabToBlueprintTopology(const Geometry& geom,
                             Node &res)
 {
     int dims = BL_SPACEDIM;
-    
+
     // get the details of the entire level from geom
     amrex::Box level_box = geom.Domain();
 
@@ -46,12 +46,12 @@ void FabToBlueprintTopology(const Geometry& geom,
     // geom.CellSize()[j] == (level_y_max - level_y_min) / float64(level_ny);
     float64 level_dy = geom.CellSize()[1];
 
-    // geom.CellSize()[k] == (level_z_max - level_z_min) / float64(level_nz) 
+    // geom.CellSize()[k] == (level_z_max - level_z_min) / float64(level_nz)
     float64 level_dz = dims > 2 ? geom.CellSize()[2] : 0.0;
-    
+
     // now extract the FAB details
     const amrex::Box &fab_box = fab.box();
-    
+
     int i_min = fab_box.smallEnd(0);
     int i_max = fab_box.bigEnd(0);
 
@@ -68,21 +68,21 @@ void FabToBlueprintTopology(const Geometry& geom,
 
     float64 x_min = level_x_min + level_dx * i_min;
     float64 x_max = level_x_min + level_dx * i_max;
-    
+
     float64 y_min = level_y_min + level_dy * j_min;
     float64 y_max = level_y_min + level_dy * j_max;
-    
+
     float64 z_min = dims > 2 ? level_z_min + level_dz * k_min : 0.0;
     float64 z_max = dims > 2 ? level_z_min + level_dz * k_max : 0.0;
 
-    // create rectilinear coordset 
+    // create rectilinear coordset
     // (which also holds all implicit details needed for the topology)
     res["coordsets/coords/type"] = "rectilinear";
     res["coordsets/coords/values/x"] = DataType::float64(nx+1);
     res["coordsets/coords/values/y"] = DataType::float64(ny+1);
-    
+
     float64_array x_coords = res["coordsets/coords/values/x"].value();
-    float64_array y_coords = res["coordsets/coords/values/y"].value(); 
+    float64_array y_coords = res["coordsets/coords/values/y"].value();
 
     float64 vx = x_min;
     for(index_t i =0; i< nx+1; i++)
@@ -90,19 +90,19 @@ void FabToBlueprintTopology(const Geometry& geom,
         x_coords[i] = vx;
         vx+=level_dx;
     }
-    
+
     float64 vy = y_min;
     for(index_t i =0; i< ny+1; i++)
     {
         y_coords[i] = vy;
         vy+=level_dy;
     }
-    
+
     if(dims > 2)
     {
         res["coordsets/coords/values/z"] = DataType::float64(nz+1);
         float64_array z_coords = res["coordsets/coords/values/z"].value();
-        
+
         float64 vz = z_min;
         for(index_t i =0; i< nz+1; i++)
         {
@@ -110,7 +110,7 @@ void FabToBlueprintTopology(const Geometry& geom,
             vz+=level_dz;
         }
     }
-    
+
     // create a rectilinear topology that refs our coordset
     res["topologies/topo/type"] = "rectilinear";
     res["topologies/topo/coordset"] = "coords";
@@ -122,14 +122,14 @@ void FabToBlueprintTopology(const Geometry& geom,
     {
         res["topologies/topo/elements/origin/k0"] = k_min;
     }
-    
+
 }
 
 //---------------------------------------------------------------------------//
 // Creates a Blueprint Field that identifies the cells in the ghost or "grow"
-// region of the fab. 
+// region of the fab.
 //
-// The values indicate: 
+// The values indicate:
 //    0 = normal cell
 //    1 = ghost cell
 //
@@ -145,10 +145,10 @@ void AddFabGhostIndicatorField (const FArrayBox& fab,
     float64_array vals_array = n_field["values"].value();
 
     int dims = BL_SPACEDIM;
-    
+
     // find the FAB details
     const amrex::Box &fab_box = fab.box();
-    
+
     int i_min = fab_box.smallEnd(0);
     int i_max = fab_box.bigEnd(0);
 
@@ -157,11 +157,11 @@ void AddFabGhostIndicatorField (const FArrayBox& fab,
 
     int k_min = dims > 2 ? fab_box.smallEnd(2) : 0;
     int k_max = dims > 2 ? fab_box.bigEnd(2) : 0;
-    
+
     int ni = (i_max - i_min + 1);
     int nj = (j_max - j_min + 1);
     int nk = dims > 2 ? (k_max - k_min +1) : 1;
-    
+
     // ngrow is the number of ghosts on each side of the box
     // set indicator to 1 if the zone is a ghost
     int idx = 0;
@@ -173,7 +173,7 @@ void AddFabGhostIndicatorField (const FArrayBox& fab,
             {
                 if(  (i < ngrow ) || ( (ni - ngrow -1) < i ) ||
                      (j < ngrow ) || ( (nj - ngrow -1) < j ) ||
-                     ( (dims >2 )  && 
+                     ( (dims >2 )  &&
                        ( (k < ngrow ) || ( (nk - ngrow -1) < k ) )
                      )
                   )
@@ -203,7 +203,7 @@ void FabToBlueprintFields (const FArrayBox& fab,
         n_field["association"] = "element";
         n_field["topology"] = "topo";
         //
-        // const_cast is used b/c zero copy via Node::set_external 
+        // const_cast is used b/c zero copy via Node::set_external
         // requires non-const
         //
         // the field data values are the i'th component
@@ -219,7 +219,7 @@ void FabToBlueprintFields (const FArrayBox& fab,
 void
 SingleLevelToBlueprint (const MultiFab& mf,
                         const Vector<std::string>& varnames,
-                        const Geometry& geom, 
+                        const Geometry& geom,
                         Real time_value,
                         int level_step,
                         Node &res)
@@ -263,30 +263,45 @@ MultiLevelToBlueprint (int n_levels,
     BL_ASSERT(mfs[0]->nComp() == varnames.size());
 
     int finest_level = n_levels-1;
-    
+
     int num_levels = geoms.size();
-    
+
     // get mpi rank and # of tasks
     int rank   = ParallelDescriptor::MyProc();
     int ntasks = ParallelDescriptor::NProcs();
 
+    Vector<const BoxArray*> box_arrays;
+    Vector<int> box_offsets;
+    for(int i = 0; i < num_levels; i++)
+    {
+      const BoxArray &boxs = mfs[i]->boxArray();
+      box_arrays.push_back(&boxs);
+      if(i == 0)
+      {
+        box_offsets.push_back(0);
+      }
+      else
+      {
+        box_offsets[i] = box_offsets[i-1] + mfs[i]->size();
+      }
+    }
 
     int num_domains = 0;
     for(int i = 0; i < num_levels; i++)
     {
         //
         // Geometry represents the physical and logical space of an entire level.
-        // 
+        //
         // Multifab contains the patches or blocks for this level.
-        // In Blueprint speak, Each Multifab contains several domains and 
+        // In Blueprint speak, Each Multifab contains several domains and
         // each fab has "components" which map to a Blueprint field.
-        
+
         const Geometry &geom = geoms[i];
         const MultiFab &mf = *mfs[i];
-                
+
         // ngrow tells us how many layers of ghosts
         int ngrow = mf.nGrow();
-        
+
         // mfiter allows us to iterate over local patches
         for(MFIter mfi(mf); mfi.isValid(); ++mfi)
         {
@@ -295,6 +310,7 @@ MultiLevelToBlueprint (int n_levels,
             const std::string& patch_name = amrex::Concatenate("domain_",
                                                                domain_id,
                                                                6);
+
             Node &patch = res[patch_name];
             // add basic state info
             patch["state/domain_id"] = domain_id;
@@ -302,6 +318,10 @@ MultiLevelToBlueprint (int n_levels,
             patch["state/time"] = time_value;
 
             const FArrayBox &fab = mf[mfi];
+
+            std::cout<<"***************** domain "<<domain_id<<" level "<<i<<"\n";
+            conduit::Node nestsets;
+            Nestsets(i, n_levels, fab, box_arrays, ref_ratio, box_offsets, nestsets);
             // create coordset and topo
             FabToBlueprintTopology(geom,fab,patch);
             // add fields
@@ -319,9 +339,9 @@ MultiLevelToBlueprint (int n_levels,
     Node info;
     // if we have mesh data, use blueprint verify
     // to make sure we conform to whats expected
-    // for a multi-domain mesh 
-    
-    if(!res.dtype().is_empty() && 
+    // for a multi-domain mesh
+
+    if(!res.dtype().is_empty() &&
        !blueprint::mesh::verify(res,info))
     {
         // ERROR -- doesn't conform to the mesh blueprint
@@ -333,7 +353,7 @@ MultiLevelToBlueprint (int n_levels,
 }
 
 //---------------------------------------------------------------------------//
-// Write a Conduit Mesh Blueprint Hierarchy to a set of files that can 
+// Write a Conduit Mesh Blueprint Hierarchy to a set of files that can
 // be viewed in Visit using the Blueprint plugin.
 //---------------------------------------------------------------------------//
 void WriteBlueprintFiles (const conduit::Node &bp_mesh,
@@ -350,7 +370,7 @@ void WriteBlueprintFiles (const conduit::Node &bp_mesh,
     // get numer of mpi tasks and this task's rank
     int rank   = ParallelDescriptor::MyProc();
     int ntasks = ParallelDescriptor::NProcs();
-    
+
     // gen base file name that includes padded step #
     const std::string& bp_base = amrex::Concatenate(fname_base,
                                                     step,
@@ -359,9 +379,9 @@ void WriteBlueprintFiles (const conduit::Node &bp_mesh,
     std::string bp_root_file = bp_base + ".blueprint_root";
 
     //
-    // For the 1 processor case, save everything (including the 
+    // For the 1 processor case, save everything (including the
     // blueprint index) to one file
-    // 
+    //
     if(ntasks == 1 )  // save everything to one file
     {
         // we don't want to modify the input tree,
@@ -387,8 +407,8 @@ void WriteBlueprintFiles (const conduit::Node &bp_mesh,
     else // save 1 per file domain + root file
     {
         // one file per domain, until blueprint clients
-        // get generalized 
-        
+        // get generalized
+
         // create a folder to hold data files
         UtilCreateCleanDirectory(bp_base, true);
 
@@ -414,11 +434,11 @@ void WriteBlueprintFiles (const conduit::Node &bp_mesh,
                                                          6);
             // save this domain's data
             relay::io::save(n,
-                            fname_data + domain_path, 
+                            fname_data + domain_path,
                             protocol);
         }
 
-        // generate root file on the MPI Task designated as 
+        // generate root file on the MPI Task designated as
         // the AMReX IO Processor
         if(rank == ParallelDescriptor::IOProcessorNumber())
         {
@@ -443,5 +463,49 @@ void WriteBlueprintFiles (const conduit::Node &bp_mesh,
 }
 
 
+void Nestsets(const int level,
+              const int n_levels,
+              const FArrayBox &fab,
+              const Vector<const BoxArray*> box_arrays,
+              const Vector<IntVect> &ref_ratio,
+              const Vector<int> &domain_offsets,
+              conduit::Node &nestsets)
+{
+    nestsets.reset();
+    const Box &box = fab.box();
+    std::cout<<"my box "<<box<<"\n";
+    if(level > 0)
+    {
+      // check for parents
+      std::vector<std::pair<int,Box> > isects
+        = box_arrays[level-1]->intersections(amrex::coarsen(box, ref_ratio[level-1]));
+
+      std::cout<<"Parent Intersections = "<<isects.size()<<"\n";
+      for(int b = 0; b < isects.size(); ++b)
+      {
+        std::cout<<"Box id "<<isects[b].first<<"\n";
+        // get parent box in terms of this level
+        Box parent = amrex::refine(isects[b].second, ref_ratio[level-1]);
+        std::cout<<"       "<<parent<<"\n";
+      }
+    }
+
+    if(level < n_levels - 1)
+    {
+      // check for children
+      std::vector<std::pair<int,Box> > isects
+        = box_arrays[level+1]->intersections(amrex::refine(box, ref_ratio[level]));
+
+      std::cout<<"Child Intersections = "<<isects.size()<<"\n";
+      std::cout<<"child level size "<<box_arrays[level+1]->size()<<"\n";
+      for(int b = 0; b < isects.size(); ++b)
+      {
+        std::cout<<"Box id "<<isects[b].first<<"\n";
+        // get parent box in terms of this level
+        Box child = amrex::coarsen(isects[b].second, ref_ratio[level]);
+        std::cout<<"       "<<child<<"\n";
+      }
+    }
+  }
 
 }
