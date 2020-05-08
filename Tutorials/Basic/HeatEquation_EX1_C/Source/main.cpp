@@ -43,7 +43,7 @@ void main_main ()
         plot_int = -1;
         pp.query("plot_int",plot_int);
 
-        // Default nsteps to 0, allow us to set it to something else in the inputs file
+        // Default nsteps to 10, allow us to set it to something else in the inputs file
         nsteps = 10;
         pp.query("nsteps",nsteps);
     }
