@@ -189,8 +189,10 @@ public:
                        VisMF::How         how = NFiles,
                        bool               set_ghost = false);
 
-    static void AsyncWrite (const FabArray<FArrayBox>& mf, const std::string& mf_name);
-    static void AsyncWrite (FabArray<FArrayBox>&& mf, const std::string& mf_name);
+    static void AsyncWrite (const FabArray<FArrayBox>& mf, const std::string& mf_name,
+                            bool valid_cells_only = false);
+    static void AsyncWrite (FabArray<FArrayBox>&& mf, const std::string& mf_name,
+                            bool valid_cells_only = false);
 
     /**
     * \brief Write only the header-file corresponding to FabArray<FArrayBox> to
@@ -331,7 +333,7 @@ private:
     static std::string BaseName (const std::string& filename);
 
     static void AsyncWriteDoit (const FabArray<FArrayBox>& mf, const std::string& mf_name,
-                                bool is_rvalue);
+                                bool is_rvalue, bool valid_cells_only);
 
     //! Name of the FabArray<FArrayBox>.
     std::string m_fafabname;
