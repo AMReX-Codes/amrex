@@ -51,15 +51,6 @@ launching a Fortran function using CUDA and launching work using OpenACC and
 OpenMP offloading. This tutorial will be regularly updated with AMReX's 
 preferred GPU launch methodologies.
 
-**HeatEquation_EX1_C**
-----------------------
-
-HeatEquation is a direct GPU port of the ``Tutorials/Basic/HeatEquation_EX1_C``
-tutorial that solves the 2D or 3D heat equation on a domain-decomposed mesh. It
-offloads the phi :cpp:`Multifab` initialization, flux computation and phi update
-kernels to the GPU using AMReX CUDA launch macros and has converted all Fortran
-loops into C++ inlined functions. 
-
 **CNS**
 -------
 

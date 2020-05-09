@@ -2158,7 +2158,7 @@ ParallelFor
 ===========
 
 In the examples so far, we have explicitly written out the for loops
-when we iterate over a :cpp:`Box.  AMReX also provides function
+when we iterate over a :cpp:`Box`.  AMReX also provides function
 templates for writing these in a concise and performance portable way
 like below,
 
@@ -2192,7 +2192,7 @@ function and :cpp:`ParallelFor` launches a GPU kernel to do the work.
 When it is built without GPU support, AMREX_GPU_DEVICE has no effects
 whatsoever.  More details on :cpp:`ParalleFor` will be presented in
 section :ref:`sec:gpu:for`.  It should be emphasized that
-`ParallelFor` does not start an OpenMP parallel region.  The OpenMP parallel
+:cpp:`ParallelFor` does not start an OpenMP parallel region.  The OpenMP parallel
 region will be started by the pragma above the :cpp:`MFIter` loop if it is
 built with OpenMP and without enabling GPU.  Tiling is turned off if
 GPU is enabled so that more parallelism is exposed to GPU kernels.
@@ -2383,7 +2383,7 @@ Memory Allocation
 Some constructors of :cpp:`MultiFab`, :cpp:`FArrayBox`, etc. can take
 an :cpp:`Arena` argument for memory allocation.  This is usually not
 important for CPU codes, but very important for GPU codes.  We will
-present more details in Section :ref:`sec:gpu:memory`.
+present more details in :ref:`sec:gpu:memory` in Chapter GPU.
 
 AMReX has a Fortran module, :fortran:`amrex_mempool_module` that can be used to
 allocate memory for Fortran pointers. The reason that such a module exists in
@@ -2547,16 +2547,15 @@ Source code tree for the HeatEquation_EX1_C example
 
         #. ``Make.package``: lists the source code files
         #. ``main.cpp``: contains the C++ ``main`` function
-        #. ``advance.cpp``: advance the solution by a time step
-        #. ``init_phi_Xd.f90, advance_Xd.f90``: fortran work functions used to
-           initialize and advance the solution
+        #. ``myfunc.cpp``: contains function ``advance`` that advances
+           the solution by a time step, and function ``init_phi`` that
+           initializes the initial solution.
         #. ``myfunc.H``: header file for C++ functions
-        #. ``myfunc_F.H``: header file for fortran90 functions that are called
-           in .cpp files
+        #. ``mykernel.H``: kernels functions called by ``advance`` and ``init_phi``.
 
     amrex/Tutorials/HeatEquation_EX1_C/Exec
         This is where you build the code with make.  There is a GNUmakefile
-        and inputs files, inputs_2d and inputs_3d.
+        and inputs file.
 
 Now we highlight a few key sections of the code.  In ``main.cpp`` we
 demonstrate how to read in parameters from the inputs file:
@@ -2585,8 +2584,6 @@ demonstrate how to read in parameters from the inputs file:
         // Default nsteps to 10, allow us to set it to something else in the inputs file
         nsteps = 10;
         pp.query("nsteps",nsteps);
-
-        pp.queryarr("is_periodic", is_periodic);
     }
 
 In ``main.cpp`` we demonstrate how to define a ``Box`` for the problem domain,
@@ -2613,8 +2610,11 @@ domain, the physical coordinates of the box, and the periodicity:
         RealBox real_box({AMREX_D_DECL(-1.0,-1.0,-1.0)},
                          {AMREX_D_DECL( 1.0, 1.0, 1.0)});
 
+        // periodic in all direction by default
+        Array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(1,1,1)};
+
         // This defines a Geometry object
-        geom.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
+        geom.define(domain,real_box,CoordSys::cartesian,is_periodic);
     }
 
 In ``main.cpp`` we demonstrate how to build a ``DistributionMapping`` from the
@@ -2641,7 +2641,7 @@ We demonstrate how to build an array of face-based ``MultiFabs`` :
 ::
 
     // build the flux multifabs
-    std::array<MultiFab, AMREX_SPACEDIM> flux;
+    Array<MultiFab, AMREX_SPACEDIM> flux;
     for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
     {
         // flux(dir) has one component, zero ghost cells, and is nodal in direction dir
@@ -2659,54 +2659,19 @@ processor loops over grids it owns to access and/or modify data on that grid:
     // MFIter = MultiFab Iterator
     for ( MFIter mfi(phi_new); mfi.isValid(); ++mfi )
     {
-        const Box& bx = mfi.validbox();
-
-        init_phi(BL_TO_FORTRAN_BOX(bx),
-                 BL_TO_FORTRAN_ANYD(phi_new[mfi]),
-                 geom.CellSize(), geom.ProbLo(), geom.ProbHi());
+        const Box& vbx = mfi.validbox();
+        auto const& phiNew = phi_new.array(mfi);
+        amrex::ParallelFor(vbx,
+        [=] AMREX_GPU_DEVICE(int i, int j, int k)
+        {
+            init_phi(i,j,k,phiNew,dx,prob_lo);
+        });
     }
 
-Note that these calls to fortran subroutines require a header in
-``myfunc_F.H``:
-
-::
-
-    void init_phi(const int* lo, const int* hi,
-                  amrex_real* data, const int* dlo, const int* dhi,
-                  const amrex_real* dx, const amrex_real* prob_lo, const amrex_real* prob_hi);
-
-The associated fortran routines must shape the data accordinly:
-
-::
-
- subroutine init_phi(lo, hi, phi, philo, phihi, dx, prob_lo, prob_hi) bind(C, name="init_phi")
-
-   use amrex_fort_module, only : amrex_real
-
-   implicit none
-
-   integer, intent(in) :: lo(2), hi(2), philo(2), phihi(2)
-   real(amrex_real), intent(inout) :: phi(philo(1):phihi(1),philo(2):phihi(2))
-   real(amrex_real), intent(in   ) :: dx(2)
-   real(amrex_real), intent(in   ) :: prob_lo(2)
-   real(amrex_real), intent(in   ) :: prob_hi(2)
-
-   integer          :: i,j
-   double precision :: x,y,r2
-
-   do j = lo(2), hi(2)
-      y = prob_lo(2) + (dble(j)+0.5d0) * dx(2)
-      do i = lo(1), hi(1)
-         x = prob_lo(1) + (dble(i)+0.5d0) * dx(1)
-
-         r2 = ((x-0.25d0)**2 + (y-0.25d0)**2) / 0.01d0
-
-         phi(i,j) = 1.d0 + exp(-r2)
-
-      end do
-   end do
-
- end subroutine init_phi
+Note that the kernel function ``init_phi`` for initializing a single
+cell is is ``mykernel.H``.  It's marked with `AMREX_GPU_DEVICE` to
+make it a GPU device function, if it built with GPU support.  It's
+also marked with `AMREX_FORCE_INLINE` for inlining.
 
 Ghost cells are filled using the ``FillBoundary`` function:
 
