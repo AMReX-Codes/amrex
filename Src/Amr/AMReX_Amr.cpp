@@ -1726,11 +1726,11 @@ Amr::checkPoint ()
         runlog << "CHECKPOINT: file = " << ckfile << '\n';
     }
 
-
   amrex::StreamRetry sretry(ckfile, abort_on_stream_retry_failure,
                              stream_max_tries);
 
-  const std::string ckfileTemp(ckfile + ".temp");
+  // For AsyncOut, we need to turn off stream retry and write to ckfile directly.
+  const std::string ckfileTemp = (AsyncOut::UseAsyncOut()) ? ckfile : (ckfile + ".temp");
 
   while(sretry.TryFileOutput()) {
 
@@ -1853,13 +1853,16 @@ Amr::checkPoint ()
 
 	amrex::Print() << "checkPoint() time = " << dCheckPointTime << " secs." << '\n';
     }
-    ParallelDescriptor::Barrier("Amr::checkPoint::end");
 
-    if(ParallelDescriptor::IOProcessor()) {
-      std::rename(ckfileTemp.c_str(), ckfile.c_str());
+    if (AsyncOut::UseAsyncOut()) {
+        break;
+    } else {
+        ParallelDescriptor::Barrier("Amr::checkPoint::end");
+        if(ParallelDescriptor::IOProcessor()) {
+            std::rename(ckfileTemp.c_str(), ckfile.c_str());
+        }
+        ParallelDescriptor::Barrier("Renaming temporary checkPoint file.");
     }
-    ParallelDescriptor::Barrier("Renaming temporary checkPoint file.");
-
   }  // end while
 
   //
