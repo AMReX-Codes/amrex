@@ -94,6 +94,10 @@ protected:
 
 class PhysBCFunctBase {
 public:
+    void operator() (MultiFab& mf, int dcomp, int ncomp, IntVect const& nghost, Real time, int bccomp)
+    {
+        FillBoundary(mf, dcomp, ncomp, nghost, time, bccomp);
+    }
     //! note this is pure virtual and must be implemented in a derived class
     //! (see PhysBCFunct below for an example)
     //!
