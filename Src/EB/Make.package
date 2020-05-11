@@ -24,7 +24,7 @@ CEXE_headers += AMReX_EBInterpolater.H
 CEXE_sources += AMReX_EBInterpolater.cpp
 
 CEXE_headers += AMReX_EBFluxRegister.H
-CEXE_headers += AMReX_EBFluxRegister_C.H AMReX_EBFluxRegister_$(DIM)_C.H
+CEXE_headers += AMReX_EBFluxRegister_C.H AMReX_EBFluxRegister_$(DIM)D_C.H
 CEXE_sources += AMReX_EBFluxRegister.cpp
 
 CEXE_headers += AMReX_EBAmrUtil.H
