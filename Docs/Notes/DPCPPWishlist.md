@@ -69,3 +69,7 @@
   whole device (not just group)?  Or is the CUDA distinction between
   `__threadfence` and `__thread_block` unnecessary for Intel GPUs?
   [oneAPI-spec issue #130](https://github.com/oneapi-src/oneAPI-spec/issues/130)
+
+* Device API for random number generator.  Currently we can only use
+  oneMKL's host API to generate random numbers.
+  [Intel oneAPI Base Toolkit Forum](https://software.intel.com/en-us/forums/intel-oneapi-base-toolkit/topic/856436)
