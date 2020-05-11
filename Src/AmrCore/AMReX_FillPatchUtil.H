@@ -39,7 +39,7 @@ namespace amrex
                           const Vector<MF*>& smf, const Vector<Real>& stime,
                           int scomp, int dcomp, int ncomp,
                           const Geometry& geom,
-                          PhysBCFunctBase& physbcf, int bcfcomp);
+                          PhysBCFunctBase<MF>& physbcf, int bcfcomp);
 
     template <typename MF>
     EnableIf_t<IsFabArray<MF>::value>
@@ -47,7 +47,7 @@ namespace amrex
                           const Vector<MF*>& smf, const Vector<Real>& stime,
                           int scomp, int dcomp, int ncomp,
                           const Geometry& geom,
-                          PhysBCFunctBase& physbcf, int bcfcomp);
+                          PhysBCFunctBase<MF>& physbcf, int bcfcomp);
 
     template <typename MF, typename Interp,
               typename PreInterpHook=NullInterpHook<typename MF::FABType::value_type>,
@@ -58,8 +58,8 @@ namespace amrex
                         const Vector<MF*>& fmf, const Vector<Real>& ft,
                         int scomp, int dcomp, int ncomp,
                         const Geometry& cgeom, const Geometry& fgeom,
-                        PhysBCFunctBase& cbc, int cbccomp,
-                        PhysBCFunctBase& fbc, int fbccomp,
+                        PhysBCFunctBase<MF>& cbc, int cbccomp,
+                        PhysBCFunctBase<MF>& fbc, int fbccomp,
                         const IntVect& ratio,
                         Interp* mapper,
                         const Vector<BCRec>& bcs, int bcscomp,
@@ -75,8 +75,8 @@ namespace amrex
                         const Vector<MF*>& fmf, const Vector<Real>& ft,
                         int scomp, int dcomp, int ncomp,
                         const Geometry& cgeom, const Geometry& fgeom,
-                        PhysBCFunctBase& cbc, int cbccomp,
-                        PhysBCFunctBase& fbc, int fbccomp,
+                        PhysBCFunctBase<MF>& cbc, int cbccomp,
+                        PhysBCFunctBase<MF>& fbc, int fbccomp,
                         const IntVect& ratio,
                         Interp* mapper,
                         const Vector<BCRec>& bcs, int bcscomp,
@@ -92,8 +92,8 @@ namespace amrex
                         const Vector<MF*>& fmf, const Vector<Real>& ft,
                         int scomp, int dcomp, int ncomp,
                         const Geometry& cgeom, const Geometry& fgeom,
-                        PhysBCFunctBase& cbc, int cbccomp,
-                        PhysBCFunctBase& fbc, int fbccomp,
+                        PhysBCFunctBase<MF>& cbc, int cbccomp,
+                        PhysBCFunctBase<MF>& fbc, int fbccomp,
                         const IntVect& ratio,
                         Interp* mapper,
                         const Vector<BCRec>& bcs, int bcscomp,
@@ -108,8 +108,8 @@ namespace amrex
                         const Vector<MF*>& fmf, const Vector<Real>& ft,
                         int scomp, int dcomp, int ncomp,
                         const Geometry& cgeom, const Geometry& fgeom,
-                        PhysBCFunctBase& cbc, int cbccomp,
-                        PhysBCFunctBase& fbc, int fbccomp,
+                        PhysBCFunctBase<MF>& cbc, int cbccomp,
+                        PhysBCFunctBase<MF>& fbc, int fbccomp,
                         const IntVect& ratio,
                         Interp* mapper,
                         const Vector<BCRec>& bcs, int bcscomp,
@@ -124,8 +124,8 @@ namespace amrex
     InterpFromCoarseLevel (MF& mf, Real time,
                            const MF& cmf, int scomp, int dcomp, int ncomp,
                            const Geometry& cgeom, const Geometry& fgeom,
-                           PhysBCFunctBase& cbc, int cbccomp,
-                           PhysBCFunctBase& fbc, int fbccomp,
+                           PhysBCFunctBase<MF>& cbc, int cbccomp,
+                           PhysBCFunctBase<MF>& fbc, int fbccomp,
                            const IntVect& ratio,
                            Interp* mapper,
                            const Vector<BCRec>& bcs, int bcscomp,
@@ -139,8 +139,8 @@ namespace amrex
     InterpFromCoarseLevel (MF& mf, IntVect const& nghost, Real time,
                            const MF& cmf, int scomp, int dcomp, int ncomp,
                            const Geometry& cgeom, const Geometry& fgeom,
-                           PhysBCFunctBase& cbc, int cbccomp,
-                           PhysBCFunctBase& fbc, int fbccomp,
+                           PhysBCFunctBase<MF>& cbc, int cbccomp,
+                           PhysBCFunctBase<MF>& fbc, int fbccomp,
                            const IntVect& ratio,
                            Interp* mapper,
                            const Vector<BCRec>& bcs, int bcscomp,

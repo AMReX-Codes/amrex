@@ -92,21 +92,23 @@ protected:
 };
 #endif
 
+template <typename MF>
 class PhysBCFunctBase {
 public:
     //! note this is pure virtual and must be implemented in a derived class
     //! (see PhysBCFunct below for an example)
     //!
-    virtual void FillBoundary (MultiFab& mf, int dcomp, int ncomp, IntVect const& nghost,
+    virtual void FillBoundary (MF& mf, int dcomp, int ncomp, IntVect const& nghost,
                                 Real time, int bccomp) = 0;
     virtual ~PhysBCFunctBase () = 0;
 };
 
-inline PhysBCFunctBase::~PhysBCFunctBase () {}
+template <typename MF>
+inline PhysBCFunctBase<MF>::~PhysBCFunctBase () {}
 
 
 class PhysBCFunctNoOp final
-    : public PhysBCFunctBase
+    : public PhysBCFunctBase<MultiFab>
 {
 public:
     virtual void FillBoundary (MultiFab& mf, int dcomp, int ncomp, IntVect const& nghost,
@@ -117,7 +119,7 @@ public:
 
 template <class F>
 class PhysBCFunct
-    : public PhysBCFunctBase
+    : public PhysBCFunctBase<MultiFab>
 {
 public:
     PhysBCFunct () {}

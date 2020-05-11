@@ -456,7 +456,7 @@ private:
 };
 
 class StateDataPhysBCFunct
-    : public PhysBCFunctBase
+    : public PhysBCFunctBase<MultiFab>
 {
 public:
 

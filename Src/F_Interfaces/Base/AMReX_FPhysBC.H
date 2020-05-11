@@ -7,7 +7,7 @@ namespace amrex
 {
 
 class FPhysBC
-    : public PhysBCFunctBase
+    : public PhysBCFunctBase<MultiFab>
 {
 public:
     using fill_physbc_funptr_t = void(*)(MultiFab* mf, int scomp, int ncomp, Real time, const Geometry* geom);
