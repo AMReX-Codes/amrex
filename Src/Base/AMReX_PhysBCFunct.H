@@ -92,7 +92,7 @@ protected:
 };
 #endif
 
-template <typename MF>
+template <typename MF=MultiFab>
 class PhysBCFunctBase {
 public:
     //! note this is pure virtual and must be implemented in a derived class
