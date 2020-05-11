@@ -37,10 +37,6 @@ BLBackTrace::handler(int s)
 
     signal(s, SIG_DFL);
 
-#ifdef AMREX_MPI_MULTIPLE
-    VisMF::asyncWaitAll();
-#endif
-
     AsyncOut::Finalize();
 
     switch (s) {
