@@ -107,3 +107,17 @@ function (set_cpp_sources_to_cuda_language _target)
    list(FILTER _sources INCLUDE REGEX "\\.cpp")
    set_source_files_properties(${_sources} PROPERTIES LANGUAGE CUDA )
 endfunction ()
+
+#
+# Setup an amrex-dependent target for cuda compilation.
+# This function ensures that the CUDA compilation of _target
+# is compatible with amrex CUDA build.
+#
+function (setup_target_for_cuda_compilation _target)
+   set_target_properties( ${_target}
+      PROPERTIES
+      CUDA_SEPARABLE_COMPILATION ON      # This adds -dc
+      CUDA_RESOLVE_DEVICE_SYMBOLS OFF
+      )
+   set_cpp_sources_to_cuda_language(${_target})
+endfunction ()
