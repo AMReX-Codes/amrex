@@ -1547,6 +1547,10 @@ MLMG::apply (const Vector<MultiFab*>& out, const Vector<MultiFab*>& a_in)
         linop.update();
     }
 
+    for (int alev = 0; alev < namrlevs; ++alev) {
+        linop.applyInhomogNeumannTerm(alev, rh[alev]);
+    }
+
     const auto& amrrr = linop.AMRRefRatio();
 
     for (int alev = finest_amr_lev; alev >= 0; --alev) {
