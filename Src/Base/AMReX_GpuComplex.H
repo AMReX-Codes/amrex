@@ -200,7 +200,7 @@ GpuComplex<T> operator- (const T& a_x, const GpuComplex<T>& a_y) noexcept
 {
     GpuComplex<T> r = a_y;
     r -= a_x;
-    return r;
+    return -r;
 }
 
 /**
