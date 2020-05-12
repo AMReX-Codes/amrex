@@ -311,12 +311,6 @@ ParallelDescriptor::StartParallel (int*    argc,
         int provided = -1;
 
         MPI_Init_thread(argc, argv, requested, &provided);
-
-        if (provided < requested)
-        {
-            std::cout << "MPI provided < requested: " << provided << " < " << requested;
-            std::abort();
-        }
 #else // 
         MPI_Init(argc, argv);
 #endif
@@ -327,6 +321,34 @@ ParallelDescriptor::StartParallel (int*    argc,
         MPI_Comm_dup(a_mpi_comm, &m_comm);
         call_mpi_finalize = 0;
     }
+
+#ifdef AMREX_MPI_THREAD_MULTIPLE
+    {
+        int requested = MPI_THREAD_MULTIPLE;
+        int provided = -1;
+        MPI_Query_thread(&provided);
+
+        if (provided < requested)
+        {
+            auto f = [] (int tlev) -> std::string {
+                if (tlev == MPI_THREAD_SINGLE) {
+                    return std::string("MPI_THREAD_SINGLE");
+                } else if (tlev == MPI_THREAD_FUNNELED) {
+                    return std::string("MPI_THREAD_FUNNELED");
+                } else if (tlev == MPI_THREAD_SERIALIZED) {
+                    return std::string("MPI_THREAD_SERIALIZED");
+                } else if (tlev == MPI_THREAD_MULTIPLE) {
+                    return std::string("MPI_THREAD_MULTIPLE");
+                } else {
+                    return std::string("UNKNOWN");
+                }
+            };
+            std::cout << "MPI provided < requested: " << f(provided) << " < "
+                      << f(requested) << std::endl;;
+            std::abort();
+        }
+    }
+#endif
 
     ParallelContext::push(m_comm);
 
