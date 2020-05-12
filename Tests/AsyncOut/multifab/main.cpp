@@ -30,10 +30,8 @@ void main_main ()
     int n_boxes_per_rank = 0;
     amrex::Vector<int> n_cell_3d (AMREX_SPACEDIM, 512);
     int max_grid_size = 64;
-
-    int n_files = 256;
-    int nwork = 50;
-    int nwrites = 1;
+    int nwork = 10;
+    int nwrites = 4;
 
     {
         ParmParse pp;
@@ -41,7 +39,6 @@ void main_main ()
         pp.queryarr("n_cell_3d", n_cell_3d, 0, AMREX_SPACEDIM);
         pp.query("n_boxes_per_rank", n_boxes_per_rank);
         pp.query("max_grid_size", max_grid_size);
-        pp.query("noutfiles", n_files);
         pp.query("nwork", nwork);
         pp.query("nwrites", nwrites);
 
@@ -61,7 +58,6 @@ void main_main ()
         }
     }
 
-    VisMF::SetNOutFiles(n_files);
     BoxArray ba(Box(IntVect(0),IntVect(n_cell_3d)));
     ba.maxSize(max_grid_size);
     DistributionMapping dm(ba);
@@ -73,7 +69,6 @@ void main_main ()
         mfs[m].define(ba, dm, 1, 0);   
     }
 
-//    amrex::ResetRandomSeed(33344455666);
     for (MFIter mfi(mfs[0]); mfi.isValid(); ++mfi) {
         const Box& bx = mfi.validbox();
         for (int m = 0; m < nwrites; ++m) {
@@ -88,7 +83,7 @@ void main_main ()
                arrs_ptr[m](i,j,k) = amrex::Random();
             }
         });
-        Gpu::streamSynchronize(); // because of random nubmer generator
+        Gpu::streamSynchronize(); // because of arrs
     }
 
     { // touch pinned memory so that the one-time cost is removed from timers.
@@ -104,7 +99,6 @@ void main_main ()
     amrex::Print() << "I/O printing randomly filled multifab with: "
                    << "\n  dimensions = "    << ba.minimalBox() 
                    << "\n  max_grid_size = " << max_grid_size
-                   << "\n  noutfiles = "     << n_files
                    << "\n  boxes = "         << ba.size()
                    << "\n  and nwork = "     << nwork << std::endl;
 
@@ -179,16 +173,14 @@ void main_main ()
 
 // ***************************************************************
 
-    amrex::Print() << " Async file " << std::endl; 
-    Vector<WriteAsyncStatus> status_file(nwrites);
+    amrex::Print() << " AsyncOut " << std::endl; 
     {
-        BL_PROFILE_REGION("vismf-async-file-overlap");
-        Vector<std::future<WriteAsyncStatus> > wrt_futures(nwrites);
+        BL_PROFILE_REGION("vismf-async-overlap");
         for (int m = 0; m < nwrites; ++m) {
-            wrt_futures[m] = VisMF::WriteAsync(mfs[m], std::string("vismfdata/file-" + std::to_string(m)));
+            VisMF::AsyncWrite(mfs[m], std::string("vismfdata/file-" + std::to_string(m)));
         }
         {
-            BL_PROFILE_VAR("vismf-async-file-work", blp2);
+            BL_PROFILE_VAR("vismf-async-work", blp2);
             for (int m = 0; m < nwrites; ++m) {
                 for (int i = 0; i < nwork*2; ++i) {
                     Real min = mfs[m].min(0);
@@ -201,73 +193,9 @@ void main_main ()
             }
         }
         {
-            BL_PROFILE_VAR("vismf-async-file-wait", blp3);
-            for (int m = 0; m < nwrites; ++m) {
-                wrt_futures[m].wait();
-                status_file[m] = wrt_futures[m].get();
-            }
+            BL_PROFILE_VAR("vismf-async-finish", blp3);
+            AsyncOut::Finish();
         }
     }
     ParallelDescriptor::Barrier();
-
-// ***************************************************************
-
-#ifdef AMREX_MPI_MULTIPLE
-
-    amrex::Print() << " Async MPI" << std::endl;
-    WriteAsyncStatus status_async_mpi;
-    {
-        BL_PROFILE_REGION("vismf-async-mpi-overlap");
-        for (int m = 0; m < nwrites; ++m) {
-            VisMF::WriteAsyncMultiFab(mfs[m], std::string("vismfdata/async-" + std::to_string(m)));
-        }
-        {
-            BL_PROFILE_VAR("vismf-async-mpi-work", blp2);
-            for (int m = 0; m < nwrites; ++m) {
-                for (int i = 0; i < nwork*2; ++i) {
-                    Real min = mfs[m].min(0);
-                    Real max = mfs[m].max(0);
-                    if (mf_min[m] != min)
-                        { amrex::AllPrint() << "Min failed: " << min << " != " << mf_min[m] << std::endl; }
-                    if (mf_max[m] != max)
-                        { amrex::AllPrint() << "Max failed: " << max << " != " << mf_max[m] << std::endl; }
-                }
-            }
-        }
-
-        // Wait for all to finish. Store last write status for representative stats. 
-        {
-            BL_PROFILE_VAR("vismf-async-mpi-wait", blp3);
-            for (int m = 0; m < nwrites; ++m) {
-                status_async_mpi = VisMF::asyncWaitAll();
-            }
-        }
-    }
-    ParallelDescriptor::Barrier();
-
-// ***************************************************************
-
-#endif
-
-    for (int ip = 0; ip < ParallelDescriptor::NProcs(); ++ip) {
-        if (ip == ParallelDescriptor::MyProc()) {
-            amrex::AllPrint() << " ====== " << std::endl;
-            amrex::AllPrint() << " Proc. " << ip << std::endl;
-
-            for (int m = 0; m < nwrites; ++m)
-            {
-                amrex::AllPrint() << " MultiFab #" << m << std::endl;
-                amrex::AllPrint() << " File: " << status_file[m] << std::endl;
-            }
-#ifdef AMREX_MPI_MULTIPLE
-                amrex::AllPrint() << " Final Async: " << status_async_mpi << std::endl;
-#endif
-
-        }
-        amrex::USleep(0.001);
-        ParallelDescriptor::Barrier();
-    }
-
-
-
 }
