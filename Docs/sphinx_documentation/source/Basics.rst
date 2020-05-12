@@ -2374,7 +2374,7 @@ to fill the ghost cells on each grid.
     if (not geom.isAllPeriodic()) {
         GpuBndryFuncFab<MyExtBCFill> bf(MyExtBCFill{});
         PhysBCFunct<GpuBndryFuncFab<MyExtBCFill> > physbcf(geom, bc, bf);
-        physbcf.FillBoundary(mf, 0, mf.nComp(), mf.nGrowVector(), time, 0);
+        physbcf(mf, 0, mf.nComp(), mf.nGrowVector(), time, 0);
     }
 
 Memory Allocation
