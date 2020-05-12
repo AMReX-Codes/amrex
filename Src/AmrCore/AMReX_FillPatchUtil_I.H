@@ -199,10 +199,14 @@ namespace {
 
 	    if ( ! fpc.ba_crse_patch.empty())
 	    {
+#ifdef AMREX_USE_EB
 		MF mf_crse_patch(fpc.ba_crse_patch, fpc.dm_crse_patch, ncomp, 0, MFInfo(),
                                  *fpc.fact_crse_patch);
+#else 
+        MF mf_crse_patch(fpc.ba_crse_patch, fpc.dm_crse_patch, ncomp, 0);
+#endif
 
-                mf_crse_patch.setDomainBndry(std::numeric_limits<Real>::quiet_NaN(), cgeom);
+        //mf_crse_patch.setDomainBndry(std::numeric_limits<Real>::quiet_NaN(), cgeom);
 
 		FillPatchSingleLevel(mf_crse_patch, time, cmf, ct, scomp, 0, ncomp, cgeom, cbc, cbccomp);
 
