@@ -53,7 +53,7 @@ void Initialize ()
 
     if (s_asyncout and s_noutfiles < nprocs)
     {
-#ifdef AMREX_MPI_MULTIPLE
+#ifdef AMREX_MPI_THREAD_MULTIPLE
         int myproc = ParallelDescriptor::MyProc();
         s_info = GetWriteInfo(myproc);
         MPI_Comm_split(ParallelDescriptor::Communicator(), s_info.ifile, myproc, &s_comm);

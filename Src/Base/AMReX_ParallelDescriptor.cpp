@@ -306,7 +306,7 @@ ParallelDescriptor::StartParallel (int*    argc,
 
     if ( ! sflag) {
 
-#ifdef AMREX_MPI_MULTIPLE
+#ifdef AMREX_MPI_THREAD_MULTIPLE
         int requested = MPI_THREAD_MULTIPLE;
         int provided = -1;
 
