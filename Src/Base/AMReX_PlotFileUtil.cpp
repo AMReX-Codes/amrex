@@ -84,7 +84,7 @@ WriteGenericPlotfileHeader (std::ostream &HeaderFile,
                             const std::string &levelPrefix,
                             const std::string &mfPrefix)
 {
-        BL_PROFILE("WriteGenericPlotfileHeader()");
+//        BL_PROFILE("WriteGenericPlotfileHeader()");
 
         BL_ASSERT(nlevels <= bArray.size());
         BL_ASSERT(nlevels <= geom.size());
