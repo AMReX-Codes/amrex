@@ -15,8 +15,8 @@ int main (int argc, char* argv[])
     BL_PROFILE_VAR("main()", pmain);
 
     Real timer_tot = amrex::second();
-    Real timer_init = 0.;
-    Real timer_advance = 0.;
+    Real timer_init = 0._rt;
+    Real timer_advance = 0._rt;
 
     int  max_step;
     Real strt_time;
@@ -26,19 +26,19 @@ int main (int argc, char* argv[])
         ParmParse pp; 
 
         max_step  = -1;
-        strt_time =  0.0;
-        stop_time = -1.0;
+        strt_time =  0.0_rt;
+        stop_time = -1.0_rt;
 
         pp.query("max_step",max_step);
         pp.query("strt_time",strt_time);
         pp.query("stop_time",stop_time);
     }
 
-    if (strt_time < 0.0) {
+    if (strt_time < 0.0_rt) {
         amrex::Abort("MUST SPECIFY a non-negative strt_time"); 
     }
 
-    if (max_step < 0 && stop_time < 0.0) {
+    if (max_step < 0 && stop_time < 0.0_rt) {
 	amrex::Abort("Exiting because neither max_step nor stop_time is non-negative.");
     }
 
@@ -54,7 +54,7 @@ int main (int argc, char* argv[])
 
 	while ( amr.okToContinue() &&
   	       (amr.levelSteps(0) < max_step || max_step < 0) &&
-	       (amr.cumTime() < stop_time || stop_time < 0.0) )
+	       (amr.cumTime() < stop_time || stop_time < 0.0_rt) )
 	    
 	{
 	    //

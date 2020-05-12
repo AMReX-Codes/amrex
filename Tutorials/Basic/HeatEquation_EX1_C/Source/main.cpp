@@ -62,8 +62,8 @@ void main_main ()
         ba.maxSize(max_grid_size);
 
        // This defines the physical box, [-1,1] in each direction.
-        RealBox real_box({AMREX_D_DECL(-1.0,-1.0,-1.0)},
-                         {AMREX_D_DECL( 1.0, 1.0, 1.0)});
+        RealBox real_box({AMREX_D_DECL(-1.0_rt,-1.0_rt,-1.0_rt)},
+                         {AMREX_D_DECL( 1.0_rt, 1.0_rt, 1.0_rt)});
 
         // periodic in all direction
         Array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(1,1,1)};
@@ -90,10 +90,10 @@ void main_main ()
     init_phi(phi_new, geom);
     // ========================================
 
-    Real dt = 0.9*dx[0]*dx[0] / (2.0*AMREX_SPACEDIM);
+    Real dt = 0.9_rt*dx[0]*dx[0] / (2.0_rt*AMREX_SPACEDIM);
 
     // time = starting time in the simulation
-    Real time = 0.0;
+    Real time = 0.0_rt;
 
     // Write a plotfile of the initial data if plot_int > 0 (plot_int was defined in the inputs file)
     if (plot_int > 0)
