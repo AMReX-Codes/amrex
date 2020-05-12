@@ -4,8 +4,6 @@
 #include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
 
-using namespace amrex;
-
 void main_main ();
 
 void advance (amrex::MultiFab& phi_old,
