@@ -1,0 +1,12 @@
+nsteps = 1000 
+plot_int = 100 
+n_cell = 12 
+max_grid_size = 7 
+
+# HIP Vega 10 total size: 8573157376 
+#   divide by 3 to work without managed memory:
+    (2x this amount is allocated in init. Will overflow if default is used (3/4)).
+amrex.the_arena_init_size =  2857719125 
+
+amrex.v = 1
+#amrex.v = 0
