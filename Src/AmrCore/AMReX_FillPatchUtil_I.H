@@ -420,7 +420,7 @@ InterpFromCoarseLevel (MF& mf, IntVect const& nghost, Real time,
     MF mf_crse_patch(ba_crse_patch, dm, ncomp, 0);
 #endif
 
-    mf_crse_patch.setDomainBndry(std::numeric_limits<Real>::quiet_NaN(), cgeom);
+    //mf_crse_patch.setDomainBndry(std::numeric_limits<Real>::quiet_NaN(), cgeom);
 
     mf_crse_patch.copy(cmf, scomp, 0, ncomp, cgeom.periodicity());
 
