@@ -2,7 +2,7 @@
 # Generic setup for using gcc
 #
 CXX = dpcpp
-CC  = fpcpp
+CC  = dpcpp
 FC  = none
 F90 = none
 

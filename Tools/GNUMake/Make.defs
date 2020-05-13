@@ -196,11 +196,11 @@ else
   USE_MPI := FALSE
 endif
 
-ifdef MPI_MULTIPLE
-  MPI_MULTIPLE := $(strip $(MPI_MULTIPLE))
+ifdef MPI_THREAD_MULTIPLE
+  MPI_THREAD_MULTIPLE := $(strip $(MPI_THREAD_MULTIPLE))
   USE_MPI := TRUE
 else
-  MPI_MULTIPLE := FALSE
+  MPI_THREAD_MULTIPLE := FALSE
 endif
 
 ifdef USE_CONDUIT
@@ -547,9 +547,9 @@ endif
 ifeq ($(USE_MPI),TRUE)
     CPPFLAGS += -DBL_USE_MPI -DAMREX_USE_MPI
 
-    ifeq ($(MPI_MULTIPLE),TRUE)
+    ifeq ($(MPI_THREAD_MULTIPLE),TRUE)
         MPISuffix := .MTMPI
-        CPPFLAGS += -DAMREX_MPI_MULTIPLE
+        CPPFLAGS += -DAMREX_MPI_THREAD_MULTIPLE
     else
         MPISuffix := .MPI
     endif

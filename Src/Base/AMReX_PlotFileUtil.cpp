@@ -84,7 +84,7 @@ WriteGenericPlotfileHeader (std::ostream &HeaderFile,
                             const std::string &levelPrefix,
                             const std::string &mfPrefix)
 {
-        BL_PROFILE("WriteGenericPlotfileHeader()");
+//        BL_PROFILE("WriteGenericPlotfileHeader()");
 
         BL_ASSERT(nlevels <= bArray.size());
         BL_ASSERT(nlevels <= geom.size());
@@ -233,91 +233,6 @@ WriteMultiLevelPlotfile (const std::string& plotfilename, int nlevels,
         }
     }
 }
-
-
-void WriteAsyncSingleLevelPlotfile (const std::string& plotfilename,
-                                    const MultiFab& mf, const Vector<std::string>& varnames,
-                                    const Geometry& geom, Real time, int level_step,
-                                    const std::string &versionName,
-                                    const std::string &levelPrefix,
-                                    const std::string &mfPrefix,
-                                    const Vector<std::string>& extra_dirs)
-{
-    Vector<const MultiFab*> mfarr(1,&mf);
-    Vector<Geometry> geomarr(1,geom);
-    Vector<int> level_steps(1,level_step);
-    Vector<IntVect> ref_ratio;
-
-    WriteAsyncMultiLevelPlotfile(plotfilename, 1, mfarr, varnames, geomarr, time,
-                                 level_steps, ref_ratio, versionName, levelPrefix, mfPrefix, extra_dirs);
-}
-
-void WriteAsyncMultiLevelPlotfile (const std::string& plotfilename, int nlevels,
-                                   const Vector<const MultiFab*>& mf,
-                                   const Vector<std::string>& varnames,
-                                   const Vector<Geometry>& geom, Real time, const Vector<int>& level_steps,
-                                   const Vector<IntVect>& ref_ratio,
-                                   const std::string &versionName,
-                                   const std::string &levelPrefix,
-                                   const std::string &mfPrefix,
-                                   const Vector<std::string>& extra_dirs)
-{
-    BL_PROFILE("WriteAsyncMultiLevelPlotfile()");
-
-    BL_ASSERT(nlevels <= mf.size());
-    BL_ASSERT(nlevels <= geom.size());
-    BL_ASSERT(nlevels <= ref_ratio.size()+1);
-    BL_ASSERT(nlevels <= level_steps.size());
-    BL_ASSERT(mf[0]->nComp() == varnames.size());
-
-    int finest_level = nlevels-1;
-
-//    int saveNFiles(VisMF::GetNOutFiles());
-//    VisMF::SetNOutFiles(std::max(1024,saveNFiles));
-
-    bool callBarrier(false);
-    PreBuildDirectorHierarchy(plotfilename, levelPrefix, nlevels, callBarrier);
-    if (!extra_dirs.empty()) {
-        for (const auto& d : extra_dirs) {
-            const std::string ed = plotfilename+"/"+d;
-            amrex::PreBuildDirectorHierarchy(ed, levelPrefix, nlevels, callBarrier);
-        }
-    }
-    ParallelDescriptor::Barrier();
-
-    if (ParallelDescriptor::IOProcessor()) {
-        VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
-        std::string HeaderFileName(plotfilename + "/Header");
-        std::ofstream HeaderFile;
-        HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
-        HeaderFile.open(HeaderFileName.c_str(), std::ofstream::out   |
-                                             std::ofstream::trunc |
-                                              std::ofstream::binary);
-        if( ! HeaderFile.good()) {
-            FileOpenFailed(HeaderFileName);
-        }
-
-        Vector<BoxArray> boxArrays(nlevels);
-        for(int level(0); level < boxArrays.size(); ++level) {
-            boxArrays[level] = mf[level]->boxArray();
-        }
-
-        WriteGenericPlotfileHeader(HeaderFile, nlevels, boxArrays, varnames,
-                                   geom, time, level_steps, ref_ratio, versionName, levelPrefix, mfPrefix);
-    }
-
-    Vector<std::string> filePrefixes(nlevels); 
-    for (int level = 0; level <= finest_level; ++level)
-    {
-        filePrefixes[level] = MultiFabFileFullPrefix(level, plotfilename, levelPrefix, mfPrefix);
-    }
-
-    VisMF::WriteAsyncPlotfile(mf, filePrefixes, nlevels, true, ParallelDescriptor::NProcs()-1);
-}
-
-
-
-
 
 // write a plotfile to disk given:
 // -plotfile name

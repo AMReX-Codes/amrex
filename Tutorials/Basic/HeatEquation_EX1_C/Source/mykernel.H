@@ -6,18 +6,20 @@
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void init_phi (int i, int j, int k,
                amrex::Array4<amrex::Real> const& phi,
-               GpuArray<amrex::Real,AMREX_SPACEDIM> const& dx,
-               GpuArray<amrex::Real,AMREX_SPACEDIM> const& prob_lo)
+               amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dx,
+               amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& prob_lo)
 {
-    amrex::Real x = prob_lo[0] + (i+0.5) * dx[0];
-    amrex::Real y = prob_lo[1] + (j+0.5) * dx[1];
+    using namespace amrex::literals;
+
+    amrex::Real x = prob_lo[0] + (i+0.5_rt) * dx[0];
+    amrex::Real y = prob_lo[1] + (j+0.5_rt) * dx[1];
 #if (AMREX_SPACEDIM > 2)
-    amrex::Real z = prob_lo[2] + (k+0.5) * dx[2];
+    amrex::Real z = prob_lo[2] + (k+0.5_rt) * dx[2];
 #else
-    amrex::Real z = 0.;
+    amrex::Real z = 0._rt;
 #endif
-    amrex::Real r2 = ((x-0.25)*(x-0.25)+(y-0.25)*(y-0.25)+(z-0.25)*(z-0.25))/0.01;
-    phi(i,j,k) = 1. + std::exp(-r2);
+    amrex::Real r2 = ((x-0.25_rt)*(x-0.25_rt)+(y-0.25_rt)*(y-0.25_rt)+(z-0.25_rt)*(z-0.25_rt))/0.01_rt;
+    phi(i,j,k) = 1._rt + std::exp(-r2);
 }
 
 

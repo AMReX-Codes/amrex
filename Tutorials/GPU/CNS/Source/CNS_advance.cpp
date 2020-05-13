@@ -32,24 +32,24 @@ CNS::advance (Real time, Real dt, int iteration, int ncycle)
     }
 
     if (fr_as_crse) {
-        fr_as_crse->setVal(0.0);
+        fr_as_crse->setVal(0.0_rt);
     }
 
     // RK2 stage 1
     FillPatch(*this, Sborder, NUM_GROW, time, State_Type, 0, NUM_STATE);
-    compute_dSdt(Sborder, dSdt, 0.5*dt, fr_as_crse, fr_as_fine);
+    compute_dSdt(Sborder, dSdt, 0.5_rt*dt, fr_as_crse, fr_as_fine);
     // U^* = U^n + dt*dUdt^n
-    MultiFab::LinComb(S_new, 1.0, Sborder, 0, dt, dSdt, 0, 0, NUM_STATE, 0);
+    MultiFab::LinComb(S_new, 1.0_rt, Sborder, 0, dt, dSdt, 0, 0, NUM_STATE, 0);
     computeTemp(S_new,0);
 
     // RK2 stage 2
     // After fillpatch Sborder = U^n+dt*dUdt^n
     FillPatch(*this, Sborder, NUM_GROW, time+dt, State_Type, 0, NUM_STATE);
-    compute_dSdt(Sborder, dSdt, 0.5*dt, fr_as_crse, fr_as_fine);
+    compute_dSdt(Sborder, dSdt, 0.5_rt*dt, fr_as_crse, fr_as_fine);
     // S_new = 0.5*(Sborder+S_old) = U^n + 0.5*dt*dUdt^n
-    MultiFab::LinComb(S_new, 0.5, Sborder, 0, 0.5, S_old, 0, 0, NUM_STATE, 0);
+    MultiFab::LinComb(S_new, 0.5_rt, Sborder, 0, 0.5_rt, S_old, 0, 0, NUM_STATE, 0);
     // S_new += 0.5*dt*dSdt
-    MultiFab::Saxpy(S_new, 0.5*dt, dSdt, 0, 0, NUM_STATE, 0);
+    MultiFab::Saxpy(S_new, 0.5_rt*dt, dSdt, 0, 0, NUM_STATE, 0);
     // We now have S_new = U^{n+1} = (U^n+0.5*dt*dUdt^n) + 0.5*dt*dUdt^*
     computeTemp(S_new,0);
     
@@ -117,7 +117,7 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             cns_riemann_x(i, j, k, fxfab, slope, q, *lparm);
-            for (int n = neqns; n < ncons; ++n) fxfab(i,j,k,n) = 0.0;
+            for (int n = neqns; n < ncons; ++n) fxfab(i,j,k,n) = 0.0_rt;
         });
 
         // y-direction
@@ -133,7 +133,7 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             cns_riemann_y(i, j, k, fyfab, slope, q, *lparm);
-            for (int n = neqns; n < ncons; ++n) fyfab(i,j,k,n) = 0.0;
+            for (int n = neqns; n < ncons; ++n) fyfab(i,j,k,n) = 0.0_rt;
         });
 
         // z-direction
@@ -149,7 +149,7 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             cns_riemann_z(i, j, k, fzfab, slope, q, *lparm);
-            for (int n = neqns; n < ncons; ++n) fzfab(i,j,k,n) = 0.0;
+            for (int n = neqns; n < ncons; ++n) fzfab(i,j,k,n) = 0.0_rt;
         });
 
         // don't have to do this, but we could
@@ -162,7 +162,7 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
             cns_flux_to_dudt(i, j, k, n, dsdtfab, AMREX_D_DECL(fxfab,fyfab,fzfab), dxinv);
         });
 
-        if (gravity != 0.0) {
+        if (gravity != 0.0_rt) {
             const Real g = gravity;
             const int irho = Density;
             const int imz = Zmom;

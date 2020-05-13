@@ -68,6 +68,8 @@ namespace amrex {
     using Real = amrex_real;
     using ParticleReal = amrex_particle_real;
 
+inline namespace literals {
+
     /** @{
       C++ user literals ``_rt`` &  ``_prt`` for short-hand notations
 
@@ -101,6 +103,7 @@ namespace amrex {
         return ParticleReal( x );
     }
     /// @}
+} // namespace literals
 } // namespace amrex
 #endif
 

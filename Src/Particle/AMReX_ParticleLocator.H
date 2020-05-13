@@ -45,14 +45,14 @@ struct AssignGrid
 
     template <typename P>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    int operator() (const P& p) const noexcept
+    int operator() (const P& p, int nGrow=0) const noexcept
     {
         const auto iv = getParticleCell(p, m_plo, m_dxi, m_domain);
-        return this->operator()(iv);
+        return this->operator()(iv, nGrow);
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    int operator() (const IntVect& iv) const noexcept
+    int operator() (const IntVect& iv, int nGrow=0) const noexcept
     {
         const auto lo = iv.dim3();
         int ix = (lo.x - m_lo.x) / m_bin_size.x;
@@ -68,7 +68,9 @@ struct AssignGrid
                 for (int kk = amrex::max(iz-1, 0); kk <= amrex::min(iz, nz-1); ++kk) {
                     int index = (ii * ny + jj) * nz + kk;
                     for (const auto& nbor : m_bif.getBinIterator(index)) {
-                        if (nbor.second.contains(iv)) return nbor.first;
+                        Box bx = nbor.second;
+                        bx.grow(nGrow);
+                        if (bx.contains(iv)) return nbor.first;
                     }
                 }
             }
@@ -194,11 +196,13 @@ struct AmrAssignGrid
 
     template <typename P>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE   
-    GpuTuple<int, int> operator() (const P& p) const noexcept
+    GpuTuple<int, int> operator() (const P& p, int lev_min=-1, int lev_max=-1, int nGrow=0) const noexcept
     {
-        for (int lev = m_size-1; lev >= 0; --lev)
+        lev_min = (lev_min == -1) ? 0 : lev_min;
+        lev_max = (lev_max == -1) ? m_size - 1 : lev_max;
+        for (int lev = lev_max; lev >= lev_min; --lev)
         {
-            int grid = m_funcs[lev](p);
+            int grid = m_funcs[lev](p, nGrow);
             if (grid >= 0) return makeTuple(grid, lev);
         }
         return makeTuple(-1, -1);
