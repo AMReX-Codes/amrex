@@ -50,7 +50,10 @@ void main_main ()
         // Default nsteps to 0, allow us to set it to something else in the inputs file
         nsteps = 10;
         pp.query("nsteps",nsteps);
-
+	
+	// By default, the boundary conditions will be set to periodic, or bc_lo = bc_hi = 0.
+	//Other options in this program include bc_lo, bc_hi = 2 for homogeneous Neumann, or
+	//bc_lo, bc_hi = 3 for external Dirichlet boundary conditions.
         pp.queryarr("bc_lo", bc_lo);
 	pp.queryarr("bc_hi", bc_hi);
     }
@@ -99,19 +102,23 @@ void main_main ()
     GpuArray<Real,AMREX_SPACEDIM> dx = geom.CellSizeArray();
 
     init_phi(phi_new, geom);
-    // ========================================
 
+    //Boundary conditions are assigned to phi_old such that the ghost cells at the boundary will
+    //be filled to satisfy those conditions.
     Vector<BCRec> bc(phi_old.nComp());
     for (int n = 0; n < phi_old.nComp(); ++n)
     {
 	for(int idim = 0; idim < AMREX_SPACEDIM; ++idim)
 	{
+	    //Internal Dirichlet Periodic Boundary conditions, or bc_lo = bc_hi = 0
 	    if (bc_lo[idim] == INT_DIR) {
 		bc[n].setLo(idim, BCType::int_dir);
 	    }
+	    //First Order Extrapolation for Neumann boundary conditions or bc_lo, bc_hi = 2
 	    else if (bc_lo[idim] == FOEXTRAP) {
 		bc[n].setLo(idim, BCType::foextrap);
 	    }
+	    //External Dirichlet Boundary Condition, or bc_lo, bc_hi = 3
 	    else if(bc_lo[idim] == EXT_DIR) {
 		bc[n].setLo(idim, BCType::ext_dir);
 	    }
@@ -119,12 +126,15 @@ void main_main ()
 		amrex::Abort("Invalid bc_lo");
 	    }
 
+	    //Internal Dirichlet Periodic Boundary conditions, or bc_lo = bc_hi = 0
 	    if (bc_hi[idim] == INT_DIR) {
 		bc[n].setHi(idim, BCType::int_dir);
 	    }
+	    //First Order Extrapolation for Neumann boundary conditions or bc_lo, bc_hi = 2
 	    else if (bc_hi[idim] == FOEXTRAP) {
 		bc[n].setHi(idim, BCType::foextrap);
 	    }
+	    //External Dirichlet Boundary Condition, or bc_lo, bc_hi = 3
 	    else if(bc_hi[idim] == EXT_DIR) {
 		bc[n].setHi(idim, BCType::ext_dir);
 	    }
