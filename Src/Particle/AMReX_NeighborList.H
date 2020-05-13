@@ -108,9 +108,9 @@ public:
         m_bins.build(np_total, pstruct_ptr, bx,
                      [=] AMREX_GPU_HOST_DEVICE (const ParticleType& p) noexcept -> IntVect
                      {
-                         return IntVect(AMREX_D_DECL(static_cast<int>((p.pos(0)-plo[0])*dxi[0] - lo.x),
-                                                     static_cast<int>((p.pos(1)-plo[1])*dxi[1] - lo.y),
-                                                     static_cast<int>((p.pos(2)-plo[2])*dxi[2] - lo.z)));
+                         return IntVect(AMREX_D_DECL(static_cast<int>((p.pos(0)-plo[0])*dxi[0]) - lo.x,
+                                                     static_cast<int>((p.pos(1)-plo[1])*dxi[1]) - lo.y,
+                                                     static_cast<int>((p.pos(2)-plo[2])*dxi[2]) - lo.z));
                      });
 
         // first pass - count the number of neighbors for each particle
