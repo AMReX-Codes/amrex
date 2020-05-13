@@ -1197,7 +1197,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     }
 
     Gpu::Device::synchronize();    
-    AMREX_ASSERT(numParticlesOutOfRange(*this, 0) == 0);
+    AMREX_ASSERT(numParticlesOutOfRange(*this, nGrow) == 0);
 #endif
 }
 
