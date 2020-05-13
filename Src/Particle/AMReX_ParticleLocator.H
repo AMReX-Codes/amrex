@@ -75,7 +75,7 @@ struct AssignGrid
                 }
             }
         }
-
+        
         return -1;
     }
 };
@@ -200,11 +200,19 @@ struct AmrAssignGrid
     {
         lev_min = (lev_min == -1) ? 0 : lev_min;
         lev_max = (lev_max == -1) ? m_size - 1 : lev_max;
+
         for (int lev = lev_max; lev >= lev_min; --lev)
+        {
+            int grid = m_funcs[lev](p);
+            if (grid >= 0) return makeTuple(grid, lev);
+        }
+
+        for (int lev = lev_min; lev >= lev_min; --lev)
         {
             int grid = m_funcs[lev](p, nGrow);
             if (grid >= 0) return makeTuple(grid, lev);
         }
+
         return makeTuple(-1, -1);
     }
 };
