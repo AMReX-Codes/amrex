@@ -42,3 +42,6 @@ amr.probin_file = probin
 
 # TRACER PARTICLES
 adv.do_tracers = 1
+
+particles.do_tiling = true
+particles.tile_size = 1024000 4 4

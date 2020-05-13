@@ -561,7 +561,7 @@ AmrLevelAdv::post_timestep (int iteration)
         if (iteration < ncycle || level == 0)
 	  {
             int ngrow = (level == 0) ? 0 : iteration;
-	    
+
 	    TracerPC->Redistribute(level, TracerPC->finestLevel(), ngrow);
 	  }
       }
@@ -765,8 +765,6 @@ AmrLevelAdv::init_particles ()
       BL_ASSERT(TracerPC == nullptr);
       
       TracerPC.reset(new AmrTracerParticleContainer(parent));
-      TracerPC->do_tiling = true;
-      TracerPC->tile_size = IntVect(AMREX_D_DECL(1024000,4,4));
 
       AmrTracerParticleContainer::ParticleInitData pdata = {AMREX_D_DECL(0.0, 0.0, 0.0)};
 
