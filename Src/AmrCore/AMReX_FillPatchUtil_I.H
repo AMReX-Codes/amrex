@@ -158,6 +158,27 @@ FillPatchSingleLevel (MF& mf, IntVect const& nghost, Real time,
 }
 
 namespace {
+    template <typename MF,
+              typename std::enable_if<std::is_same<typename MF::FABType::value_type,
+                                                   FArrayBox>::value,
+                                      int>::type = 0>
+    MF make_mf_crse_patch (FabArrayBase::FPinfo const& fpc, int ncomp, Geometry const& cgeom)
+    {
+        MF mf_crse_patch(fpc.ba_crse_patch, fpc.dm_crse_patch, ncomp, 0, MFInfo(),
+                         *fpc.fact_crse_patch);
+        mf_crse_patch.setDomainBndry(std::numeric_limits<Real>::quiet_NaN(), cgeom);
+        return mf_crse_patch;
+    }
+
+    template <typename MF,
+              typename std::enable_if<!std::is_same<typename MF::FABType::value_type,
+                                                    FArrayBox>::value,
+                                      int>::type = 0>
+    MF make_mf_crse_patch (FabArrayBase::FPinfo const& fpc, int ncomp, Geometry const&)
+    {
+        return MF(fpc.ba_crse_patch, fpc.dm_crse_patch, ncomp, 0);
+    }
+
     template <typename MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
     EnableIf_t<IsFabArray<MF>::value>
     FillPatchTwoLevels_doit (MF& mf, IntVect const& nghost, Real time,
@@ -199,10 +220,7 @@ namespace {
 
 	    if ( ! fpc.ba_crse_patch.empty())
 	    {
-		MF mf_crse_patch(fpc.ba_crse_patch, fpc.dm_crse_patch, ncomp, 0, MFInfo(),
-                                 *fpc.fact_crse_patch);
-
-                mf_crse_patch.setDomainBndry(std::numeric_limits<Real>::quiet_NaN(), cgeom);
+                MF mf_crse_patch = make_mf_crse_patch<MF>(fpc, ncomp, cgeom);
 
 		FillPatchSingleLevel(mf_crse_patch, time, cmf, ct, scomp, 0, ncomp, cgeom, cbc, cbccomp);
 
