@@ -186,7 +186,7 @@ FillPatchUtil and Interpolater
    ghost cells using the :cpp:`FillPatch` routines.  Refer to
    ``amrex/Tutorials/Amr/Advection_AmrCore/`` for an example.  The class
    :cpp:`PhysBCFunct` in ``amrex/Src/Base/AMReX_PhysBCFunct.cpp``
-   contains a :cpp:`Vecotr<BCRec>`, :cpp:`Geometry`, and a functor
+   contains a :cpp:`Vector<BCRec>`, :cpp:`Geometry`, and a functor
    handling external Dirichlet boundaries, and provides an
    :cpp:`operator()` that fills domain boundaries for a :cpp:`MultiFab`.
 
