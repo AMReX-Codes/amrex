@@ -1043,7 +1043,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 {
 #ifdef AMREX_USE_CUDA
 
-    if (local) AMREX_ASSERT(numParticlesOutOfRange(*this, local) == 0);
+    if (local) AMREX_ASSERT(numParticlesOutOfRange(*this, lev_min, lev_max, local) == 0);
     
     // sanity check
     AMREX_ASSERT(do_tiling == false);
@@ -1197,7 +1197,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     }
 
     Gpu::Device::synchronize();    
-    AMREX_ASSERT(numParticlesOutOfRange(*this, nGrow) == 0);
+    AMREX_ASSERT(numParticlesOutOfRange(*this, lev_min, lev_max, nGrow) == 0);
 #endif
 }
 
