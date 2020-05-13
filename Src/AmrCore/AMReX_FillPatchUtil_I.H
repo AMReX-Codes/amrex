@@ -166,7 +166,6 @@ namespace {
     {
         MF mf_crse_patch(fpc.ba_crse_patch, fpc.dm_crse_patch, ncomp, 0, MFInfo(),
                          *fpc.fact_crse_patch);
-        mf_crse_patch.setDomainBndry(std::numeric_limits<Real>::quiet_NaN(), cgeom);
         return mf_crse_patch;
     }
 
@@ -177,6 +176,24 @@ namespace {
     MF make_mf_crse_patch (FabArrayBase::FPinfo const& fpc, int ncomp, Geometry const&)
     {
         return MF(fpc.ba_crse_patch, fpc.dm_crse_patch, ncomp, 0);
+    }
+
+    template <typename MF,
+              typename std::enable_if<std::is_same<typename MF::FABType::value_type,
+                                                   FArrayBox>::value,
+                                      int>::type = 0>
+    void mf_set_domain_bndry (MF &mf, Geometry const & cgeom)
+    {
+        mf.setDomainBndry(std::numeric_limits<Real>::quiet_NaN(), cgeom);
+    }
+
+    template <typename MF,
+              typename std::enable_if<!std::is_same<typename MF::FABType::value_type,
+                                                    FArrayBox>::value,
+                                      int>::type = 0>
+    void mf_set_domain_bndry (MF &mf, Geometry const & cgeom)
+    {
+        // nothing
     }
 
     template <typename MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
@@ -221,6 +238,7 @@ namespace {
 	    if ( ! fpc.ba_crse_patch.empty())
 	    {
                 MF mf_crse_patch = make_mf_crse_patch<MF>(fpc, ncomp, cgeom);
+                mf_set_domain_bndry (mf_crse_patch, cgeom);
 
 		FillPatchSingleLevel(mf_crse_patch, time, cmf, ct, scomp, 0, ncomp, cgeom, cbc, cbccomp);
 
@@ -433,8 +451,7 @@ InterpFromCoarseLevel (MF& mf, IntVect const& nghost, Real time,
 #else
     MF mf_crse_patch(ba_crse_patch, dm, ncomp, 0);
 #endif
-
-    mf_crse_patch.setDomainBndry(std::numeric_limits<Real>::quiet_NaN(), cgeom);
+    mf_set_domain_bndry (mf_crse_patch, cgeom);
 
     mf_crse_patch.copy(cmf, scomp, 0, ncomp, cgeom.periodicity());
 
