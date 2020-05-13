@@ -1,8 +1,0 @@
-./main3d.gnu.MPI.CUDA.ex: /lib64/libstdc++.so.6: version `GLIBCXX_3.4.20' not found (required by ./main3d.gnu.MPI.CUDA.ex)
-./main3d.gnu.MPI.CUDA.ex: /lib64/libstdc++.so.6: version `CXXABI_1.3.9' not found (required by ./main3d.gnu.MPI.CUDA.ex)
-./main3d.gnu.MPI.CUDA.ex: /lib64/libstdc++.so.6: version `GLIBCXX_3.4.22' not found (required by ./main3d.gnu.MPI.CUDA.ex)
-./main3d.gnu.MPI.CUDA.ex: /lib64/libstdc++.so.6: version `GLIBCXX_3.4.21' not found (required by ./main3d.gnu.MPI.CUDA.ex)
-./main3d.gnu.MPI.CUDA.ex: /lib64/libstdc++.so.6: version `GLIBCXX_3.4.20' not found (required by ./main3d.gnu.MPI.CUDA.ex)
-./main3d.gnu.MPI.CUDA.ex: /lib64/libstdc++.so.6: version `CXXABI_1.3.9' not found (required by ./main3d.gnu.MPI.CUDA.ex)
-./main3d.gnu.MPI.CUDA.ex: /lib64/libstdc++.so.6: version `GLIBCXX_3.4.22' not found (required by ./main3d.gnu.MPI.CUDA.ex)
-./main3d.gnu.MPI.CUDA.ex: /lib64/libstdc++.so.6: version `GLIBCXX_3.4.21' not found (required by ./main3d.gnu.MPI.CUDA.ex)
