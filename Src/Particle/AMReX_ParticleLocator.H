@@ -55,18 +55,18 @@ struct AssignGrid
     int operator() (const IntVect& iv, int nGrow=0) const noexcept
     {
         const auto lo = iv.dim3();
-        int ix = (lo.x - m_lo.x) / m_bin_size.x;
-        int iy = (lo.y - m_lo.y) / m_bin_size.y;
-        int iz = (lo.z - m_lo.z) / m_bin_size.z;
+        int ix_lo = amrex::max((lo.x - nGrow - m_lo.x) / m_bin_size.x - 1, 0);
+        int iy_lo = amrex::max((lo.y - nGrow - m_lo.y) / m_bin_size.y - 1, 0);
+        int iz_lo = amrex::max((lo.z - nGrow - m_lo.z) / m_bin_size.z - 1, 0);
 
-        int nx = m_num_bins.x;
-        int ny = m_num_bins.y;
-        int nz = m_num_bins.z;
-
-        for (int ii = amrex::max(ix-1, 0); ii <= amrex::min(ix, nx-1); ++ii) {
-            for (int jj = amrex::max(iy-1, 0); jj <= amrex::min(iy, ny-1); ++jj) {
-                for (int kk = amrex::max(iz-1, 0); kk <= amrex::min(iz, nz-1); ++kk) {
-                    int index = (ii * ny + jj) * nz + kk;
+        int ix_hi = amrex::min((lo.x + nGrow - m_lo.x) / m_bin_size.x, m_num_bins.x-1);
+        int iy_hi = amrex::min((lo.y + nGrow - m_lo.y) / m_bin_size.y, m_num_bins.y-1);
+        int iz_hi = amrex::min((lo.z + nGrow - m_lo.z) / m_bin_size.z, m_num_bins.z-1);
+        
+        for (int ii = ix_lo; ii <= ix_hi; ++ii) {
+            for (int jj = iy_lo; jj <= iy_hi; ++jj) {
+                for (int kk = iz_lo; kk <= iz_hi; ++kk) {
+                    int index = (ii * m_num_bins.y + jj) * m_num_bins.z + kk;
                     for (const auto& nbor : m_bif.getBinIterator(index)) {
                         Box bx = nbor.second;
                         bx.grow(nGrow);
