@@ -49,92 +49,24 @@ void advance (MultiFab& phi_old,
         auto const& fluxz = flux[2].array(mfi);
         auto const& phi = phi_old.array(mfi);
 
-	if (lo.x == dom_lo.x &&
-	    (bc.lo(0) == BCType::foextrap ||
-	     bc.lo(0) == BCType::ext_dir))
-	{
-	    amrex::ParallelFor(xbx,
+	amrex::ParallelFor(xbx,
 	    [=] AMREX_GPU_DEVICE (int i, int j, int k)
 	    {
-		compute_flux_x_bc(i,j,k,fluxx,phi,dxinv, lo.x);
+		compute_flux_x(i,j,k,fluxx,phi,dxinv,
+			       lo.x, hi.x, dom_lo.x, dom_hi.x, bc.lo(0), bc.hi(0));
 	    });
-	}
-	else if (hi.x == dom_hi.x &&
-	    (bc.hi(0) == BCType::foextrap ||
-	     bc.hi(0) == BCType::ext_dir))
-	{
-	    amrex::ParallelFor(xbx,
+	amrex::ParallelFor(ybx,
 	    [=] AMREX_GPU_DEVICE (int i, int j, int k)
 	    {
-		compute_flux_x_bc(i,j,k,fluxx,phi,dxinv, hi.x+1);
+		compute_flux_y(i,j,k,fluxy,phi,dyinv,
+			       lo.y, hi.y, dom_lo.y, dom_hi.y, bc.lo(1), bc.hi(1));
 	    });
-	}
-	else
-	{
-	    amrex::ParallelFor(xbx,
-            [=] AMREX_GPU_DEVICE (int i, int j, int k)
-	    {
-		compute_flux_x(i,j,k,fluxx,phi,dxinv);
-            });
-	}
-	
-	if (lo.y == dom_lo.y &&
-	    (bc.lo(1) == BCType::foextrap ||
-	     bc.lo(1) == BCType::ext_dir))
-	{
-	    amrex::ParallelFor(ybx,
+	amrex::ParallelFor(zbx,
 	    [=] AMREX_GPU_DEVICE (int i, int j, int k)
 	    {
-		compute_flux_y_bc(i,j,k,fluxy,phi,dyinv, lo.y);
+		compute_flux_z(i,j,k,fluxz,phi,dzinv,
+			       lo.z, hi.z, dom_lo.z, dom_hi.z, bc.lo(2), bc.hi(2));
 	    });
-	}
-	else if (hi.y == dom_hi.y &&
-	    (bc.hi(1) == BCType::foextrap ||
-	     bc.hi(1) == BCType::ext_dir))
-	{
-	    amrex::ParallelFor(ybx,
-	    [=] AMREX_GPU_DEVICE (int i, int j, int k)
-	    {
-		compute_flux_y_bc(i,j,k,fluxy,phi,dyinv, hi.y+1);
-	    });
-	}
-	else
-	{
-	    amrex::ParallelFor(ybx,
-	    [=] AMREX_GPU_DEVICE (int i, int j, int k)
-	    {
-		compute_flux_y(i,j,k,fluxy,phi,dyinv);
-	    });
-	}
-	
-	if (lo.z == dom_lo.z &&
-	    (bc.lo(2) == BCType::foextrap ||
-	     bc.lo(2) == BCType::ext_dir))
-	{
-	    amrex::ParallelFor(zbx,
-	    [=] AMREX_GPU_DEVICE (int i, int j, int k)
-	    {
-		compute_flux_z_bc(i,j,k,fluxz,phi,dzinv, lo.z);
-	    });
-	}
-	else if (hi.z == dom_hi.z &&
-	    (bc.hi(2) == BCType::foextrap ||
-	     bc.hi(2) == BCType::ext_dir))
-	{
-	    amrex::ParallelFor(zbx,
-	    [=] AMREX_GPU_DEVICE (int i, int j, int k)
-	    {
-		compute_flux_z_bc(i,j,k,fluxz,phi,dzinv, hi.z+1);
-	    });
-	}
-	else
-	{
-	    amrex::ParallelFor(zbx,
-            [=] AMREX_GPU_DEVICE (int i, int j, int k)
-            {
-		compute_flux_z(i,j,k,fluxz,phi,dzinv);
-            });
-	}
     }
 
     // Advance the solution one grid at a time

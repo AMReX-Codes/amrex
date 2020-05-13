@@ -24,19 +24,34 @@ void init_phi (int i, int j, int k,
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void compute_flux_x (int i, int j, int k,
                      amrex::Array4<amrex::Real> const& fluxx,
-                     amrex::Array4<amrex::Real const> const& phi, amrex::Real dxinv)
+                     amrex::Array4<amrex::Real const> const& phi, amrex::Real dxinv,
+		     int lo, int hi, int dom_lo, int dom_hi, int bc_lo, int bc_hi)
 {
-    fluxx(i,j,k) = (phi(i,j,k)-phi(i-1,j,k)) * dxinv;
-}
-
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-void compute_flux_x_bc (int i, int j, int k,
-                     amrex::Array4<amrex::Real> const& fluxx,
-		     amrex::Array4<amrex::Real const> const& phi, amrex::Real dxinv, int b)
-{
-    if(i == b)
+    if (lo == dom_lo &&
+	(bc_lo == BCType::foextrap ||
+	 bc_lo == BCType::ext_dir))
     {
-	fluxx(i,j,k) = (phi(i,j,k)-phi(i-1,j,k)) * dxinv / 0.5;
+	if(i == lo)
+	{
+	    fluxx(i,j,k) = (phi(i,j,k)-phi(i-1,j,k)) * dxinv / 0.5;
+	}
+	else
+	{
+	    fluxx(i,j,k) = (phi(i,j,k)-phi(i-1,j,k)) * dxinv;
+	}
+    }
+    else if (hi == dom_hi &&
+	     (bc_hi == BCType::foextrap ||
+	      bc_hi == BCType::ext_dir))
+    {
+	if(i == hi+1)
+	{
+	    fluxx(i,j,k) = (phi(i,j,k)-phi(i-1,j,k)) * dxinv / 0.5;
+	}
+	else
+	{
+	    fluxx(i,j,k) = (phi(i,j,k)-phi(i-1,j,k)) * dxinv;
+	}
     }
     else
     {
@@ -44,23 +59,37 @@ void compute_flux_x_bc (int i, int j, int k,
     }
 }
 
-
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void compute_flux_y (int i, int j, int k,
                      amrex::Array4<amrex::Real> const& fluxy,
-                     amrex::Array4<amrex::Real const> const& phi, amrex::Real dyinv)
+                     amrex::Array4<amrex::Real const> const& phi, amrex::Real dyinv,
+		     int lo, int hi, int dom_lo, int dom_hi, int bc_lo, int bc_hi)
 {
-    fluxy(i,j,k) = (phi(i,j,k)-phi(i,j-1,k)) * dyinv;
-}
-
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-void compute_flux_y_bc (int i, int j, int k,
-                     amrex::Array4<amrex::Real> const& fluxy,
-		     amrex::Array4<amrex::Real const> const& phi, amrex::Real dyinv, int b)
-{
-    if(j == b)
+    if (lo == dom_lo &&
+	(bc_lo == BCType::foextrap ||
+	 bc_lo == BCType::ext_dir))
     {
-	fluxy(i,j,k) = (phi(i,j,k)-phi(i,j-1,k)) * dyinv / 0.5;
+	if(j == lo)
+	{
+	    fluxy(i,j,k) = (phi(i,j,k)-phi(i,j-1,k)) * dyinv / 0.5;
+	}
+	else
+	{
+	    fluxy(i,j,k) = (phi(i,j,k)-phi(i,j-1,k)) * dyinv;
+	}
+    }
+    else if (hi == dom_hi &&
+	     (bc_hi == BCType::foextrap ||
+	      bc_hi == BCType::ext_dir))
+    {
+	if(j == hi+1)
+	{
+	    fluxy(i,j,k) = (phi(i,j,k)-phi(i,j-1,k)) * dyinv / 0.5;
+	}
+	else
+	{
+	    fluxy(i,j,k) = (phi(i,j,k)-phi(i,j-1,k)) * dyinv;
+	}
     }
     else
     {
@@ -68,30 +97,43 @@ void compute_flux_y_bc (int i, int j, int k,
     }
 }
 
-
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void compute_flux_z (int i, int j, int k,
                      amrex::Array4<amrex::Real> const& fluxz,
-                     amrex::Array4<amrex::Real const> const& phi, amrex::Real dzinv)
+                     amrex::Array4<amrex::Real const> const& phi, amrex::Real dzinv,
+		     int lo, int hi, int dom_lo, int dom_hi, int bc_lo, int bc_hi)
 {
-    fluxz(i,j,k) = (phi(i,j,k)-phi(i,j,k-1)) * dzinv;
-}
-
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-void compute_flux_z_bc (int i, int j, int k,
-                     amrex::Array4<amrex::Real> const& fluxz,
-		     amrex::Array4<amrex::Real const> const& phi, amrex::Real dzinv, int b)
-{
-    if(k == b)
+    if (lo == dom_lo &&
+	(bc_lo == BCType::foextrap ||
+	 bc_lo == BCType::ext_dir))
     {
-	fluxz(i,j,k) = (phi(i,j,k)-phi(i,j,k-1)) * dzinv / 0.5;
+	if(k == lo)
+	{
+	    fluxz(i,j,k) = (phi(i,j,k)-phi(i,j,k-1)) * dzinv / 0.5;
+	}
+	else
+	{
+	    fluxz(i,j,k) = (phi(i,j,k)-phi(i,j,k-1)) * dzinv;
+	}
+    }
+    else if (hi == dom_hi &&
+	     (bc_hi == BCType::foextrap ||
+	      bc_hi == BCType::ext_dir))
+    {
+	if(k == hi+1)
+	{
+	    fluxz(i,j,k) = (phi(i,j,k)-phi(i,j,k-1)) * dzinv / 0.5;
+	}
+	else
+	{
+	    fluxz(i,j,k) = (phi(i,j,k)-phi(i,j,k-1)) * dzinv;
+	}
     }
     else
     {
 	fluxz(i,j,k) = (phi(i,j,k)-phi(i,j,k-1)) * dzinv;
     }
-}
-
+} 
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void update_phi (int i, int j, int k,
