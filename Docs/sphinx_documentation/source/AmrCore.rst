@@ -185,17 +185,10 @@ FillPatchUtil and Interpolater
    avoid using the single-level calls directly if you fill all your grids and
    ghost cells using the :cpp:`FillPatch` routines.  Refer to
    ``amrex/Tutorials/Amr/Advection_AmrCore/`` for an example.  The class
-   :cpp:`PhysBCFunct` in ``amrex/Src/Base/AMReX_PhysBCFunct.cpp`` is derived from
-   :cpp:`PhysBCFunctBase` and contains a :cpp:`BCRec`, :cpp:`Geometry`, and a
-   pointer to a :cpp:`BndryFunctBase` function.
-
-   Note that :cpp:`PhyBCFunct` is an example of how to derive from
-   :cpp:`PhysBCFunctBase` and is not meant to be a base class.
-   :cpp:`PhysBCFunctBase` is the base class.  PhysBCFunctBase is designed for
-   users to derive and extend.  You could/should write your own class derived from
-   PhysBCFuncBase.  There you can make modifications such as storing a vector of
-   BCRecs for, e.g., multiple component MultiFabs.
-
+   :cpp:`PhysBCFunct` in ``amrex/Src/Base/AMReX_PhysBCFunct.cpp``
+   contains a :cpp:`Vector<BCRec>`, :cpp:`Geometry`, and a functor
+   handling external Dirichlet boundaries, and provides an
+   :cpp:`operator()` that fills domain boundaries for a :cpp:`MultiFab`.
 
 Many codes, including the Advection_AmrCore example, contain an array of MultiFabs
 (one for each level of refinement), and then use “fillpatch” operations to fill temporary
