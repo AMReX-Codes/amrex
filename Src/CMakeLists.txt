@@ -170,7 +170,7 @@ set_target_properties( amrex PROPERTIES PUBLIC_HEADER "${AMREX_PUBLIC_HEADERS}")
 # If ENABLE_CUDA, C++ files will be compiled as CUDA sources
 #
 if (ENABLE_CUDA)
-   set_cpp_sources_to_cuda_language( amrex )
+   setup_target_for_cuda_compilation( amrex )
 endif ()
 
 
