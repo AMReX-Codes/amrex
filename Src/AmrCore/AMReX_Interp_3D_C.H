@@ -490,8 +490,9 @@ namespace {
     static constexpr int ixyz = 6;
 }
 
+template<typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
-nodebilin_slopes (Box const& bx, Array4<Real> const& slope, Array4<Real const> const& u,
+nodebilin_slopes (Box const& bx, Array4<T> const& slope, Array4<T const> const& u,
                   const int icomp, const int ncomp, IntVect const& ratio) noexcept
 {
     const auto lo = amrex::lbound(bx);
@@ -507,15 +508,15 @@ nodebilin_slopes (Box const& bx, Array4<Real> const& slope, Array4<Real const> c
             for     (int j = lo.y; j <= hi.y; ++j) {
                 AMREX_PRAGMA_SIMD
                 for (int i = lo.x; i <= hi.x; ++i) {
-                    Real dx00 = u(i+1,j,k,nu) - u(i,j,k,nu);
-                    Real d0x0 = u(i,j+1,k,nu) - u(i,j,k,nu);
-                    Real d00x = u(i,j,k+1,nu) - u(i,j,k,nu);
+                    T dx00 = u(i+1,j,k,nu) - u(i,j,k,nu);
+                    T d0x0 = u(i,j+1,k,nu) - u(i,j,k,nu);
+                    T d00x = u(i,j,k+1,nu) - u(i,j,k,nu);
 
-                    Real dx10 = u(i+1,j+1,k,nu) - u(i,j+1,k,nu);
-                    Real dx01 = u(i+1,j,k+1,nu) - u(i,j,k+1,nu);
-                    Real d0x1 = u(i,j+1,k+1,nu) - u(i,j,k+1,nu);
+                    T dx10 = u(i+1,j+1,k,nu) - u(i,j+1,k,nu);
+                    T dx01 = u(i+1,j,k+1,nu) - u(i,j,k+1,nu);
+                    T d0x1 = u(i,j+1,k+1,nu) - u(i,j,k+1,nu);
 
-                    Real dx11 = u(i+1,j+1,k+1,nu) - u(i,j+1,k+1,nu);
+                    T dx11 = u(i+1,j+1,k+1,nu) - u(i,j+1,k+1,nu);
 
                     slope(i,j,k,n+ncomp*ix  ) = rx*dx00;
                     slope(i,j,k,n+ncomp*iy  ) = ry*d0x0;
@@ -530,9 +531,10 @@ nodebilin_slopes (Box const& bx, Array4<Real> const& slope, Array4<Real const> c
     }
 }
 
+template<typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
-nodebilin_interp (Box const& bx, Array4<Real> const& fine, const int fcomp, const int ncomp,
-                  Array4<Real const> const& slope, Array4<Real const> const& crse,
+nodebilin_interp (Box const& bx, Array4<T> const& fine, const int fcomp, const int ncomp,
+                  Array4<T const> const& slope, Array4<T const> const& crse,
                   const int ccomp, IntVect const& ratio) noexcept
 {
     const auto lo = amrex::lbound(bx);
