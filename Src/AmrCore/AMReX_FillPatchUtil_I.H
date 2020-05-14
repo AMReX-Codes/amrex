@@ -166,6 +166,7 @@ namespace {
     {
         MF mf_crse_patch(fpc.ba_crse_patch, fpc.dm_crse_patch, ncomp, 0, MFInfo(),
                          *fpc.fact_crse_patch);
+        mf_crse_patch.setDomainBndry(std::numeric_limits<Real>::quiet_NaN(), cgeom);
         return mf_crse_patch;
     }
 

@@ -861,10 +861,10 @@ StateDataPhysBCFunct::StateDataPhysBCFunct (StateData&sd, int sc, const Geometry
 { }
 
 void
-StateDataPhysBCFunct::FillBoundary (MultiFab& mf, int dest_comp, int num_comp, IntVect const& /* */,
-                                    Real time, int /*bccomp*/)
+StateDataPhysBCFunct::operator() (MultiFab& mf, int dest_comp, int num_comp, IntVect const& /* */,
+                                  Real time, int /*bccomp*/)
 {
-    BL_PROFILE("StateDataPhysBCFunct::FillBoundary");
+    BL_PROFILE("StateDataPhysBCFunct::()");
 
     const Box&     domain      = statedata->getDomain();
     const int*     domainlo    = domain.loVect();
