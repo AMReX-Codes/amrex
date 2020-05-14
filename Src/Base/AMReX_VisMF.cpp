@@ -2176,27 +2176,40 @@ void VisMF::CloseAllStreams() {
 
 
 void
-VisMF::AsyncWrite (const FabArray<FArrayBox>& mf, const std::string& mf_name)
+VisMF::AsyncWrite (const FabArray<FArrayBox>& mf, const std::string& mf_name, bool valid_cells_only)
 {
     if (AsyncOut::UseAsyncOut()) {
-        AsyncWriteDoit(mf, mf_name, false);
+        AsyncWriteDoit(mf, mf_name, false, valid_cells_only);
     } else {
-        Write(mf, mf_name);
+        if (valid_cells_only and mf.nGrowVect() != 0) {
+            FabArray<FArrayBox> mf_tmp(mf.boxArray(), mf.DistributionMap(), mf.nComp(), 0);
+            amrex::Copy(mf_tmp, mf, 0, 0, mf.nComp(), 0);
+            Write(mf_tmp, mf_name);
+        } else {
+            Write(mf, mf_name);
+        }
     }
 }
 
 void
-VisMF::AsyncWrite (FabArray<FArrayBox>&& mf, const std::string& mf_name)
+VisMF::AsyncWrite (FabArray<FArrayBox>&& mf, const std::string& mf_name, bool valid_cells_only)
 {
     if (AsyncOut::UseAsyncOut()) {
-        AsyncWriteDoit(mf, mf_name, true);
+        AsyncWriteDoit(mf, mf_name, true, valid_cells_only);
     } else {
-        Write(mf, mf_name);
+        if (valid_cells_only and mf.nGrowVect() != 0) {
+            FabArray<FArrayBox> mf_tmp(mf.boxArray(), mf.DistributionMap(), mf.nComp(), 0);
+            amrex::Copy(mf_tmp, mf, 0, 0, mf.nComp(), 0);
+            Write(mf_tmp, mf_name);
+        } else {
+            Write(mf, mf_name);
+        }
     }
 }
 
 void
-VisMF::AsyncWriteDoit (const FabArray<FArrayBox>& mf, const std::string& mf_name, bool is_rvalue)
+VisMF::AsyncWriteDoit (const FabArray<FArrayBox>& mf, const std::string& mf_name,
+                       bool is_rvalue, bool valid_cells_only)
 {
     BL_PROFILE("VisMF::AsyncWrite()");
 
@@ -2229,6 +2242,8 @@ VisMF::AsyncWriteDoit (const FabArray<FArrayBox>& mf, const std::string& mf_name
                            mf.arena() == The_Managed_Arena());
     bool run_on_device = Gpu::inLaunchRegion() and data_on_device;
 
+    bool strip_ghost = valid_cells_only and mf.nGrowVect() != 0;
+
     int64_t total_bytes = 0;
     auto pld = (char*)(&(localdata[1]));
     const FABio& fio = FArrayBox::getFABio();
@@ -2238,15 +2253,16 @@ VisMF::AsyncWriteDoit (const FabArray<FArrayBox>& mf, const std::string& mf_name
         pld += sizeof(int64_t);
 
         const FArrayBox& fab = mf[mfi];
-
-        std::stringstream hss;
-        fio.write_header(hss, fab, ncomp);
-        total_bytes += static_cast<std::streamoff>(hss.tellp());
-        total_bytes += fab.size() * whichRD.numBytes();
-
-        // compute min and max
         const Box& bx = mfi.validbox();
 
+        std::stringstream hss;
+        FArrayBox valid_fab(bx, ncomp, false);
+        FArrayBox const& header_fab = (strip_ghost) ? valid_fab : fab;
+        fio.write_header(hss, header_fab, ncomp);
+        total_bytes += static_cast<std::streamoff>(hss.tellp());
+        total_bytes += header_fab.size() * whichRD.numBytes();
+
+        // compute min and max
         Real cmin, cmax;
         for (int icomp = 0; icomp < ncomp; ++icomp) {
             if (run_on_device) {
@@ -2295,19 +2311,26 @@ VisMF::AsyncWriteDoit (const FabArray<FArrayBox>& mf, const std::string& mf_name
 
     auto myfabs = std::make_shared<Vector<FArrayBox> >();
     for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
+        Box bx = strip_ghost ? mfi.validbox() : mfi.fabbox();
 #ifdef AMREX_USE_GPU
         if (data_on_device) {
-            myfabs->emplace_back(mf[mfi].box(), mf.nComp(), The_Pinned_Arena());
+            myfabs->emplace_back(bx, mf.nComp(), The_Pinned_Arena());
             auto& new_fab = myfabs->back();
-            Gpu::dtoh_memcpy(new_fab.dataPtr(), mf[mfi].dataPtr(), new_fab.size()*sizeof(Real));
+            if (strip_ghost) {
+                new_fab.copy<RunOn::Device>(mf[mfi], bx);
+            } else {
+                Gpu::dtoh_memcpy(new_fab.dataPtr(), mf[mfi].dataPtr(), new_fab.size()*sizeof(Real));
+            }
         } else
 #endif
-        if (is_rvalue) {
-            myfabs->emplace_back(std::move(const_cast<FArrayBox&>(mf[mfi])));
-        } else {
-            myfabs->emplace_back(mf[mfi].box(), mf.nComp(), The_Cpu_Arena());
-            auto& new_fab = myfabs->back();
-            new_fab.copy<RunOn::Host>(mf[mfi]);
+        {
+            if (is_rvalue and not strip_ghost) {
+                myfabs->emplace_back(std::move(const_cast<FArrayBox&>(mf[mfi])));
+            } else {
+                myfabs->emplace_back(bx, mf.nComp(), The_Cpu_Arena());
+                auto& new_fab = myfabs->back();
+                new_fab.copy<RunOn::Host>(mf[mfi], bx);
+            }
         }
     }
 
