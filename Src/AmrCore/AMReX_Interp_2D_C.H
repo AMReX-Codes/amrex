@@ -374,8 +374,9 @@ namespace {
     static constexpr int ixy  = 2;
 }
 
+template<typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
-nodebilin_slopes (Box const& bx, Array4<Real> const& slope, Array4<Real const> const& u,
+nodebilin_slopes (Box const& bx, Array4<T> const& slope, Array4<T const> const& u,
                   const int icomp, const int ncomp, IntVect const& ratio) noexcept
 {
     const auto lo = amrex::lbound(bx);
@@ -388,9 +389,9 @@ nodebilin_slopes (Box const& bx, Array4<Real> const& slope, Array4<Real const> c
         for     (int j = lo.y; j <= hi.y; ++j) {
             AMREX_PRAGMA_SIMD
             for (int i = lo.x; i <= hi.x; ++i) {
-                Real dx0 = u(i+1,j,0,n+icomp) - u(i,j,0,n+icomp);
-                Real d0x = u(i,j+1,0,n+icomp) - u(i,j,0,n+icomp);
-                Real dx1 = u(i+1,j+1,0,n+icomp) - u(i,j+1,0,n+icomp);
+                T dx0 = u(i+1,j,0,n+icomp) - u(i,j,0,n+icomp);
+                T d0x = u(i,j+1,0,n+icomp) - u(i,j,0,n+icomp);
+                T dx1 = u(i+1,j+1,0,n+icomp) - u(i,j+1,0,n+icomp);
 
                 slope(i,j,0,n+ncomp*ix ) = rx*dx0;
                 slope(i,j,0,n+ncomp*iy ) = ry*d0x;
@@ -400,9 +401,10 @@ nodebilin_slopes (Box const& bx, Array4<Real> const& slope, Array4<Real const> c
     }
 }
 
+template<typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
-nodebilin_interp (Box const& bx, Array4<Real> const& fine, const int fcomp, const int ncomp,
-                  Array4<Real const> const& slope, Array4<Real const> const& crse,
+nodebilin_interp (Box const& bx, Array4<T> const& fine, const int fcomp, const int ncomp,
+                  Array4<T const> const& slope, Array4<T const> const& crse,
                   const int ccomp, IntVect const& ratio) noexcept
 {
     const auto lo = amrex::lbound(bx);
