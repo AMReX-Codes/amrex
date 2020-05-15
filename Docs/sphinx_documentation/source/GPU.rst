@@ -442,9 +442,9 @@ allocations and deallocations when (for example) resizing vectors.
 
     \begin{center}
 
-.. _tab:gpu:arena:
+.. _tab:gpu:gpuvectors:
 
-.. table:: Memory Arenas
+.. table:: Memory Arenas Associated with each Gpu Vector
 
     +----------------+----------------------+
     | Vector         | Arena                |
