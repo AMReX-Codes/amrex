@@ -10,7 +10,7 @@ Dimensionality
 ==============
 
 As we have mentioned in :ref:`Chap:BuildingAMReX`, the dimensionality of
-AMReX must be set at compile time. A macro, ``AMREX_SPACEDIM``, is defined to
+AMReX must be set at compile time. A macro, ``AMREX_SPACEDIM``, is defined to
 be the number of spatial dimensions. C++ codes can also use the
 :cpp:`amrex::SpaceDim` variable. Fortran codes can use either the macro and
 preprocessing or do
@@ -46,7 +46,7 @@ Real
 ====
 
 AMReX can be compiled to use either double precision (which is the default) or
-single precision. :cpp:`amrex::Real` is typedef’d to either :cpp:`double` or
+single precision. :cpp:`amrex::Real` is typedef'd to either :cpp:`double` or
 :cpp:`float`. C codes can use :cpp:`amrex_real`. They are defined in
 :cpp:`AMReX_REAL.H`. The data type is accessible in Fortran codes via
 
@@ -72,9 +72,9 @@ C, the type alias is :cpp:`amrex_long`.  In Fortran, one can use
 ParallelDescriptor
 ==================
 
-AMReX users do not need to use MPI directly. Parallel communication is often
+AMReX users do not need to use MPI directly. Parallel communication is often
 handled by the data abstraction classes (e.g.,MultiFab; section on
-:ref:`sec:basics:multifab`). In addition, AMReX has provided namespace
+:ref:`sec:basics:multifab`). In addition, AMReX has provided namespace
 :cpp:`ParallelDescriptor` in ``AMReX_ParallelDescriptor.H.`` The frequently
 used functions are
 
@@ -169,8 +169,8 @@ a full listing of the available functions.
 Print
 =====
 
-AMReX provides classes in ``AMReX_Print.H`` for printing messages to standard
-output or any C++ :cpp:`ostream`. The main reason one should use them instead
+AMReX provides classes in ``AMReX_Print.H`` for printing messages to standard
+output or any C++ :cpp:`ostream`. The main reason one should use them instead
 of :cpp:`std::cout` is that messages from multiple processes or threads do not
 get mixed up. Below are some examples.
 
@@ -357,7 +357,7 @@ Example of AMR Grids
 In block-structured AMR, there is a hierarchy of logically rectangular grids.
 The computational domain on each AMR level is decomposed into a union of
 rectangular domains. :numref:`fig:basics:amrgrids` below shows an example of
-AMR with three total levels.  In the AMReX numbering convention, the coarsest
+AMR with three total levels.  In the AMReX numbering convention, the coarsest
 level is level 0. The coarsest grid (*black*) covers the domain with
 :math:`16^2` cells. Bold lines represent grid boundaries. There are two
 intermediate resolution grids (*blue*) at level 1 and the cells are a factor of
@@ -540,7 +540,7 @@ output, three integer tuples for each box are the lower corner indices, upper
 corner indices, and the index types. Note that 0 and 1 denote cell and node,
 respectively. For each tuple like :cpp:`(64,64,64)`, the 3 numbers are for 3
 directions. The two Boxes in the code above represent different indexing views
-of the same domain of :math:`64^3` cells. Note that in AMReX convention, the
+of the same domain of :math:`64^3` cells. Note that in AMReX convention, the
 lower side of a cell has the same integer value as the cell centered index.
 That is if we consider a cell based index represent :math:`i`, the nodal index
 with the same integer value represents :math:`i-1/2`.
@@ -749,12 +749,12 @@ Here the constructors take a cell-centered :cpp:`Box` specifying the indexing
 space domain, a :cpp:`RealBox` specifying the
 physical domain, an :cpp:`int` specifying coordinate system type, and
 an :cpp:`int` pointer or array specifying periodicity. If a :cpp:`RealBox` is not
-given in the first constructor, AMReX will construct one based on :cpp:`ParmParse` parameters,
+given in the first constructor, AMReX  will construct one based on :cpp:`ParmParse` parameters,
 ``geometry.prob_lo`` and ``geometry.prob_hi``, where each of the parameter is
-an array of ``AMREX_SPACEDIM`` real numbers. It’s a runtime error if this
+an array of ``AMREX_SPACEDIM`` real numbers. It's a runtime error if this
 fails. The argument for coordinate system is an integer type with
 valid values being 0 (Cartesian), or 1 (cylindrical), or 2 (spherical). If it
-is invalid as in the case of the default argument value of the first constructor, AMReX will query the
+is invalid as in the case of the default argument value of the first constructor, AMReX will query the
 :cpp:`ParmParse` database for ``geometry.coord_sys`` and use it if one is
 found. If it cannot find the parameter, the coordinate system is set to 0
 (i.e., Cartesian coordinates). The :cpp:`Geometry` class has the concept of
@@ -843,9 +843,9 @@ In AMReX, :cpp:`BoxArray` is a global data structure. It holds all the Boxes in
 a collection, even though a single process in a parallel run only owns some of
 the Boxes via domain decomposition. In the example above, a 4-process run may
 divide the work and each process owns say 2 Boxes (see section
-on :ref:`sec:basics:dm`). Each process can then allocate memory for the
+on :ref:`sec:basics:dm`). Each process can then allocate memory for the
 floating point data on the Boxes it owns (see sections
-on :ref:`sec:basics:multifab` & :ref:`sec:basics:fab`).
+on :ref:`sec:basics:multifab` & :ref:`sec:basics:fab`).
 
 :cpp:`BoxArray` has an indexing type, just like :cpp:`Box`. Each Box in a
 BoxArray has the same type as the BoxArray itself. In the following example, we
@@ -913,7 +913,7 @@ of them as completely independent of each other.
       ba2.coarsen(2);    // Modify the copy
       // The original copy is unmodified even though they share internal data.
 
-For advanced users, AMReX provides functions performing the intersection of a
+For advanced users, AMReX provides functions performing the intersection of a
 :cpp:`BoxArray` and a :cpp:`Box`. These functions are much faster than a naive
 implementation of performing intersection of the Box with each Box in the
 BoxArray. If one needs to perform those intersections, functions
@@ -974,7 +974,7 @@ mapping of grids to processes.
 BaseFab, FArrayBox, IArrayBox, and Array4
 =========================================
 
-AMReX is a block-structured AMR framework. Although AMR introduces irregularity
+AMReX is a block-structured AMR framework. Although AMR introduces irregularity
 to the data and algorithms, there is regularity at the block/Box level because
 each is still logically rectangular, and the data structure at the Box level is
 conceptually simple. :cpp:`BaseFab` is a class template for multi-dimensional
@@ -988,7 +988,7 @@ contiguous block of memory because of the ordering. For example, a
 :cpp:`BaseFab<Real>` with 4 components defined on a three-dimensional
 :cpp:`Box(IntVect{-4,8,32},IntVect{32,64,48})` is like a Fortran array of
 :fortran:`real(amrex_real), dimension(-4:32,8:64,32:48,0:3)`.  Note that the
-convention in C++ part of AMReX is the component index is zero based. The code
+convention in C++ part of AMReX is the component index is zero based. The code
 for constructing such an object is as follows,
 
 .. highlight:: c++
@@ -1034,7 +1034,7 @@ To get a pointer to the array data, one can call
       const T* dataPtr(int n=0) const; // const version
 
 The typical usage of the returned pointer is then to pass it to a Fortran or C
-function that works on the array data (see the section on
+function that works on the array data (see the section on
 :ref:`sec:basics:fortran`).  :cpp:`BaseFab` has several functions that set the
 array data to a constant value. Two examples are as follows.
 
@@ -1113,7 +1113,7 @@ to run for these :cpp:`BaseFab` functions.  For example,
 
 For more complicated expressions that are not supported, one can write
 Fortran or C/C++ functions for those (see the section
-on :ref:`sec:basics:fortran`).  In C++, one can use :cpp:`Array4`,
+on :ref:`sec:basics:fortran`).  In C++, one can use :cpp:`Array4`,
 which is a class template for accessing :cpp:`BaseFab` data in a more
 array like manner using :cpp:`operator()`.  Below is an example of
 using :cpp:`Array4`.
@@ -1156,7 +1156,7 @@ to point to other data.  In the example above, neither ``m(i,j,k) =
 The behavior is in some sense similar to ``double const * const p``.
 
 :cpp:`BaseFab` and its derived classes are containers for data on :cpp:`Box`.
-Recall that :cpp:`Box` has various types (see the section on :ref:`sec:basics:box`).
+Recall that :cpp:`Box` has various types (see the section on :ref:`sec:basics:box`).
 The examples in this section so far use the default cell based type.  However,
 some functions will result in a runtime error if the types mismatch.  For
 example.
@@ -1172,7 +1172,7 @@ example.
       ccfab.setVal(0.0);
       ndfab.copy(ccfab);   // runtime error due to type mismatch
 
-Because it typically contains a lot of data, BaseFab’s copy constructor and
+Because it typically contains a lot of data, BaseFab's copy constructor and
 copy assignment operator are disabled to prevent performance degradation. However, BaseFab does
 provide a move constructor. In addition, it also provides a constructor for
 making an alias of an existing object. Here is an example using
@@ -1211,7 +1211,7 @@ FabArray, MultiFab and iMultiFab
 
 :cpp:`FabArray<FAB>` is a class template in AMReX_FabArray.H for a collection
 of FABs on the same AMR level associated with a :cpp:`BoxArray` (see the
-section on :ref:`sec:basics:ba`). The template parameter :cpp:`FAB` is usually
+section on :ref:`sec:basics:ba`). The template parameter :cpp:`FAB` is usually
 :cpp:`BaseFab<T>` or its derived classes (e.g., :cpp:`FArrayBox`). However, FabArray
 can also be used to hold other data structures. To construct a FabArray, a
 :cpp:`BoxArray` must be provided because the FabArray is intended to hold *grid* data
@@ -1224,7 +1224,7 @@ distributed among parallel processes. For each process, a FabArray contains
 only the FAB objects owned by that process, and the process operates only on
 its local data. For operations that require data owned by other processes,
 remote communications are involved. Thus, the construction of a :cpp:`FabArray`
-requires a :cpp:`DistributionMapping` (see the section on :ref:`sec:basics:dm`)
+requires a :cpp:`DistributionMapping` (see the section on :ref:`sec:basics:dm`)
 that specifies which process owns which Box. For level 2 (*red*) in
 :numref:`fig:basics:amrgrids`, there are two Boxes. Suppose there are two
 parallel processes, and we use a DistributionMapping that assigns one Box to
@@ -1251,7 +1251,7 @@ ways to define a MultiFab. For example,
 
 Here we define a :cpp:`MultiFab` with 4 components and 1 ghost cell. A MultiFab
 contains a number of :cpp:`FArrayBox`\ es (see the section
-on :ref:`sec:basics:fab`) defined on Boxes grown by the number of ghost cells
+on :ref:`sec:basics:fab`) defined on Boxes grown by the number of ghost cells
 (1 in this example). That is the :cpp:`Box` in the :cpp:`FArrayBox` is not
 exactly the same as in the :cpp:`BoxArray`.  If the :cpp:`BoxArray` has a
 :cpp:`Box{(7,7,7) (15,15,15)}`, the one used for constructing :cpp:`FArrayBox`
@@ -1290,7 +1290,7 @@ as follows.
 
 Here the first integer parameter is the starting component in the original
 :cpp:`MultiFab` that will become component 0 in the alias :cpp:`MultiFab` and
-the second integer parameter is the number of components in the alias. It’s a
+the second integer parameter is the number of components in the alias. It's a
 runtime error if the sum of the two integer parameters is greater than the
 number of the components in the original MultiFab. Note that the alias MultiFab
 has exactly the same number of ghost cells as the original MultiFab.
@@ -1317,7 +1317,7 @@ As we have repeatedly mentioned in this chapter that :cpp:`Box` and
 :cpp:`BoxArray` have various index types. Thus, :cpp:`MultiFab` also has an
 index type that is obtained from the :cpp:`BoxArray` used for defining the
 :cpp:`MultiFab`. It should be noted again that index type is a very important
-concept in AMReX. Let’s consider an example of a finite-volume code, in which
+concept in AMReX. Let's consider an example of a finite-volume code, in which
 the state is defined as cell averaged variables and the fluxes are defined as
 face averaged variables.
 
@@ -1401,7 +1401,7 @@ Note that :cpp:`FillBoundary` does not modify any valid cells. Also note that
 :cpp:`Geometry` has, and we can provide that information so that periodic
 boundaries can be filled as well. You might have noticed that a ghost cell
 could overlap with multiple valid cells from different FArrayBoxes in the case
-of nodal index type. In that case, it is unspecified that which valid cell’s
+of nodal index type. In that case, it is unspecified that which valid cell's
 value is used to fill the ghost cell. It ought to be the case the values in
 those overlapping valid cells are the same up to roundoff errors.  If
 a ghost cell does not overlap with any valid cells, its value will not
@@ -1464,10 +1464,10 @@ logical tiling can be launched via :cpp:`MFIter`.
 MFIter without Tiling
 ---------------------
 
-In the section on :ref:`sec:basics:multifab`, we have shown some of the
+In the section on :ref:`sec:basics:multifab`, we have shown some of the
 arithmetic functionalities of :cpp:`MultiFab`, such as adding two MultiFabs
 together. In this section, we will show how you can operate on the
-:cpp:`MultiFab` data with your own functions. AMReX  provides an iterator,
+:cpp:`MultiFab` data with your own functions. AMReX provides an iterator,
 :cpp:`MFIter` for looping over the FArrayBoxes in MultiFabs. For example,
 
 .. highlight:: c++
@@ -1613,7 +1613,7 @@ And the manually tiled loops might look like
       end do
 
 As we can see, to manually tile individual loops is very labor-intensive and
-error-prone for large applications. AMReX has incorporated the tiling construct
+error-prone for large applications. AMReX has incorporated the tiling construct
 into :cpp:`MFIter` so that the application codes can get the benefit of tiling
 easily. An :cpp:`MFIter` loop with tiling is almost the same as the non-tiling
 version. The first example in (see the previous section on
@@ -1638,7 +1638,7 @@ version. The first example in (see the previous section on
           f1(box, a);
       }
 
-The second example in the previous section on :ref:`sec:basics:mfiter:notiling`
+The second example in the previous section on :ref:`sec:basics:mfiter:notiling`
 also requires only two minor changes.
 
 .. highlight:: c++
@@ -1715,7 +1715,7 @@ The tile size can be explicitly set when defining :cpp:`MFIter`.
 
 An :cpp:`IntVect` is used to specify the tile size for every dimension.  A tile
 size larger than the grid size simply means tiling is disabled in that
-direction. AMReX has a default tile size :cpp:`IntVect{1024000,8,8}` in 3D and
+direction. AMReX has a default tile size :cpp:`IntVect{1024000,8,8}` in 3D and
 no tiling in 2D. This is used when tile size is not explicitly set but the
 tiling flag is on. One can change the default size using :cpp:`ParmParse`
 (section :ref:`sec:basics:parmparse`) parameter ``fabarray.mfiter_tile_size.``
@@ -1905,11 +1905,11 @@ These Fortran functions take C pointers and view them
 as multi-dimensional arrays of the shape specified by the additional integer
 arguments.  Note that Fortran takes arguments by reference unless the
 :fortran:`value` keyword is used. So an integer argument on the Fortran side
-matches an integer pointer on the C++ side. Thanks to Fortran 2003, function
+matches an integer pointer on the C++ side. Thanks to Fortran 2003, function
 name mangling is easily achieved by declaring the Fortran function as
 :fortran:`bind(c)`.
 
-AMReX provides many macros for passing an FArrayBox’s data into Fortran/C. For
+AMReX provides many macros for passing an FArrayBox's data into Fortran/C. For
 example
 
 .. highlight:: c++
@@ -1962,8 +1962,8 @@ one can use
       real(amrex_real),intent(inout)::u(ulo(1):uhi(1),ulo(2):uhi(2))
     end subroutine f2d
 
-Note that this does not require any changes in the C++ part, because when
-C++ passes an integer pointer pointing to an array of three integers Fortran
+Note that this does not require any changes in the C++ part, because when
+C++ passes an integer pointer pointing to an array of three integers Fortran
 can treat it as a 2-element integer array.
 
 Another commonly used macro is :cpp:`BL_TO_FORTRAN`. This macro takes an
@@ -2246,7 +2246,7 @@ coarse/fine boundary.
 The third type of boundary is the physical boundary at the physical domain.
 Note that both coarse and fine AMR levels could have grids touching the
 physical boundary. It is up to the application codes to properly fill the ghost
-cells at the physical boundary. However, AMReX does provide support for some
+cells at the physical boundary. However, AMReX does provide support for some
 common operations.  See the section on :ref:`sec:basics:boundary` for a
 discussion on domain boundary conditions in general, including how to implement
 physical (non-periodic) boundary conditions.
@@ -2258,7 +2258,7 @@ Boundary Conditions
 
 This section describes how to implement domain boundary conditions in AMReX.  A
 ghost cell that is outside of the valid region can be thought of as either
-“interior” (which includes periodic and coarse-fine ghost cells), or “physical”.
+"interior" (which includes periodic and coarse-fine ghost cells), or "physical".
 Physical boundary conditions can occur on domain boundaries and can
 be characterized as inflow, outflow, slip/no-slip walls, etc., and are
 ultimately linked to mathematical Dirichlet or Neumann conditions.
@@ -2301,11 +2301,11 @@ The basic idea behind physical boundary conditions is as follows:
            Interior, including periodic boundary
 
        ext_dir
-           “External Dirichlet”. It is the user’s responsibility to write a routine
+           "External Dirichlet". It is the user's responsibility to write a routine
            to fill ghost cells (more details below).
 
        foextrap
-           “First Order Extrapolation”
+           "First Order Extrapolation"
            First order extrapolation from last cell in interior.
 
        reflect_even
@@ -2339,12 +2339,12 @@ The basic idea behind physical boundary conditions is as follows:
    whatsoever, whereas for the GPU build, this marks the operator as a GPU
    device function.
 
--  It is the user’s responsibility to have a consisent definition of
-   what the ghost cells represent. A common option used in AMReX codes is to
+-  It is the user's responsibility to have a consisent definition of
+   what the ghost cells represent. A common option used in AMReX codes is to
    fill the domain ghost cells with the value that lies on the boundary (as
    opposed to another common option where the value in the ghost cell represents
    an extrapolated value based on the boundary condition type). Then in our
-   stencil based “work” codes, we also pass in the :cpp:`BCRec` object and use
+   stencil based "work" codes, we also pass in the :cpp:`BCRec` object and use
    modified stencils near the domain boundary that know the value in the first
    ghost cell represents the value on the boundary.
 
@@ -2387,7 +2387,7 @@ present more details in :ref:`sec:gpu:memory` in Chapter GPU.
 
 AMReX has a Fortran module, :fortran:`amrex_mempool_module` that can be used to
 allocate memory for Fortran pointers. The reason that such a module exists in
-AMReX, is that memory allocation is often very slow in multi-threaded OpenMP
+AMReX is that memory allocation is often very slow in multi-threaded OpenMP
 parallel regions. AMReX :cpp:`amrex_mempool_module` provides a much faster
 alternative approach, in which each thread has its own memory pool. Here are
 examples of using the module.

@@ -188,7 +188,7 @@ add the line ``USE_PARTICLES = TRUE`` and build the code
 (do a ``make realclean first``).
 In the inputs file, add the line ``adv.do_tracers = 1``.
 When you run the code, within each plotfile directory there will be a subdirectory
-called “Tracer”.
+called "Tracer".
 
 Copy the files from amrex/Tools/Py_util/amrex_particles_to_vtp into
 the run directory and type, e.g.,
@@ -199,4 +199,4 @@ the run directory and type, e.g.,
 
     python amrex_binary_particles_to_vtp.py plt00000 Tracer
 
-To generate a vtp file you can open with ParaView (Refer to the chapter on :ref:`Chap:Visualization`).
+To generate a vtp file you can open with ParaView (Refer to the chapter on :ref:`Chap:Visualization`).

@@ -238,7 +238,7 @@ AMRProfParser
 database. It is a command line application that can create performance
 summaries, plotfiles showing point to point communication and timelines, HTML
 call trees, communication call statistics, function timing graphs, and other
-data products. The parser’s data services functionality can be called from an
+data products. The parser's data services functionality can be called from an
 interactive environment such as Amrvis, from a sidecar for dynamic performance
 optimization, and from other utilities such as the command line version of the
 parser itself. It has been integrated into Amrvis for visual interpretation of

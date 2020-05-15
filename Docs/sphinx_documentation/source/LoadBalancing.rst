@@ -21,7 +21,7 @@ already assigned to them (assign heaviest set of grids to the least loaded rank)
 Options supported by AMReX include the following; the default is SFC:
 
 - Knapsack: the default weight of a grid in the knapsack algorithm is the number of grid cells, 
-  but AMReX supports the option to pass an array of weights – one per grid – or alternatively 
+  but AMReX supports the option to pass an array of weights -- one per grid -- or alternatively 
   to pass in a MultiFab of weights per cell which is used to compute the weight per grid
 
 - SFC: enumerate grids with a space-filling Z-morton curve, then partition the 
