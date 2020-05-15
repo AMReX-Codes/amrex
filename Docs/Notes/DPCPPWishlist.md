@@ -73,3 +73,4 @@
 * Device API for random number generator.  Currently we can only use
   oneMKL's host API to generate random numbers.
   [Intel oneAPI Base Toolkit Forum](https://software.intel.com/en-us/forums/intel-oneapi-base-toolkit/topic/856436)
+  [oneAPI-spec issue #139](https://github.com/oneapi-src/oneAPI-spec/issues/139)
