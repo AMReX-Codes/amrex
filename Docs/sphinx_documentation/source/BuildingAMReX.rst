@@ -96,7 +96,7 @@ precision by setting ``PRECISION=FLOAT``.
 Variables ``DEBUG``, ``USE_MPI`` and ``USE_OMP`` are optional with default set
 to FALSE.  The meaning of these variables should
 be obvious.  When ``DEBUG=TRUE``, aggressive compiler optimization flags are
-turned off and assertions in  source code are turned on. For production runs,
+turned off and assertions in source code are turned on. For production runs,
 ``DEBUG`` should be set to FALSE.
 
 Variables ``USE_CUDA``, ``USE_HIP`` and ``USE_DPCPP`` are used for
@@ -296,7 +296,7 @@ the configure script. In particular, one can specify the installation path for t
   ./configure --prefix=[AMReX library path]
 
 This approach is built on the AMReX GNU Make system. Thus
-the section on :ref:`sec:build:make` is recommended if any fine tuning is
+the section on :ref:`sec:build:make` is recommended if any fine tuning is
 needed.  The result of ``./configure`` is ``GNUmakefile`` in the AMReX
 top directory.  One can modify the make file for fine tuning.
 
@@ -331,8 +331,8 @@ library paths used to build AMReX::
 Building with CMake
 ===================
 
-An alternative to the approach described in the section on :ref:`sec:build:lib`
-is to install AMReX as an external library by using the CMake build system.  A
+An alternative to the approach described in the section on :ref:`sec:build:lib`
+is to install AMReX as an external library by using the CMake build system.  A
 CMake build is a two-step process. First ``cmake`` is invoked to create
 configuration files and makefiles in a chosen directory (``builddir``).  This
 is roughly equivalent to running ``./configure`` (see the section on
@@ -352,9 +352,9 @@ The CMake build process is summarized as follows:
     make  install
 
 In the above snippet, ``[options]`` indicates one or more options for the
-customization of the build, as described in the subsection on
+customization of the build, as described in the subsection on
 :ref:`sec:build:cmake:options`. If the option ``CMAKE_BUILD_TYPE`` is omitted,
-``CMAKE_BUILD_TYPE=Release`` is assumed. Although the AMReX source could be used as
+``CMAKE_BUILD_TYPE=Release`` is assumed. Although the AMReX source could be used as
 build directory, we advise against doing so.  After the installation is
 complete, ``builddir`` can be removed.
 
@@ -380,7 +380,7 @@ Configuration variables requiring a boolen value are evaluated to true if they
 are assigned a value of ``1``, ``ON``, ``YES``, ``TRUE``, ``Y``. Conversely they are evaluated to false
 if they are assigned a value of ``0``, ``OFF``, ``NO``, ``FALSE``, ``N``.
 Boolean configuration variables are case-insensitive.
-The list of available options is reported in the table on :ref:`tab:cmakevar`
+The list of available options is reported in the table on :ref:`tab:cmakevar`
 below.
 
 

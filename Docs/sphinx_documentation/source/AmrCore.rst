@@ -25,7 +25,7 @@
 
 .. _fig:Adv:
 
-.. table:: Time sequence (:math:`t=0,0.5,1,1.5,2` s) of advection of a Gaussian profile using the SingleVortex tutorial. The analytic velocity field distorts the profile, and then restores the profile to the original configuration.  The red, green, and blue boxes indicate grids at AMR levels :math:`\ell=0,1`, and :math:`2`.  
+.. table:: Time sequence (:math:`t=0,0.5,1,1.5,2` s) of advection of a Gaussian profile using the SingleVortex tutorial. The analytic velocity field distorts the profile, and then restores the profile to the original configuration.  The red, green, and blue boxes indicate grids at AMR levels :math:`\ell=0,1`, and :math:`2`.  
    :align: center
    
    +-----+-----+-----+-----+-----+
@@ -85,7 +85,7 @@ The protected data members are:
         Vector<BoxArray>            grids;    
 
 The following parameters are frequently set via the inputs file or the command line.
-Their usage is described in the section on :ref:`sec:grid_creation`
+Their usage is described in the section on :ref:`sec:grid_creation`
 
 .. raw:: latex
 
@@ -165,7 +165,7 @@ TagBox, and Cluster
 
 These classes are used in the grid generation process.
 The :cpp:`TagBox` class is essentially a data structure that marks which
-cells are “tagged” for refinement.
+cells are "tagged" for refinement.
 :cpp:`Cluster` (and :cpp:`ClusterList` contained within the same file) are classes
 that help sort tagged cells and generate a grid structure that contains all
 the tagged cells. These classes and their member functions are largely
@@ -191,7 +191,7 @@ FillPatchUtil and Interpolater
    :cpp:`operator()` that fills domain boundaries for a :cpp:`MultiFab`.
 
 Many codes, including the Advection_AmrCore example, contain an array of MultiFabs
-(one for each level of refinement), and then use “fillpatch” operations to fill temporary
+(one for each level of refinement), and then use "fillpatch" operations to fill temporary
 MultiFabs that may include a different number of ghost cells. Fillpatch operations fill
 all cells, valid and ghost, from actual valid data at that level, space-time interpolated data
 from the next-coarser level, neighboring grids at the same level, and domain
@@ -272,7 +272,7 @@ difference in fluxes between the coarse grid and fine grid advance over each
 face over a given coarse time step. The simplest possible synchronization step
 is to modify the coarse grid solution in coarse cells immediately adjacent to
 the coarse-fine interface are updated to account for the mismatch stored in the
-FluxRegister. This can be done “simply” by taking the coarse-level divergence of
+FluxRegister. This can be done "simply" by taking the coarse-level divergence of
 the data in the FluxRegister using the :cpp:`reflux` function.
 
 The Fortran routines that perform the actual floating point work associated with
@@ -312,7 +312,7 @@ Gaussian profile. To integrate these equations on a given level, we use a simple
 
 where the velocities on faces are prescribed functions of space and time, and the scalars on faces
 are computed using a Godunov advection integration scheme. The fluxes in this case are the face-centered,
-time-centered “:math:`\phi u`” and “:math:`\phi v`” terms.
+time-centered ":math:`\phi u`" and ":math:`\phi v`" terms.
 
 We use a subcycling-in-time approach where finer levels are advanced with smaller
 time steps than coarser levels, and then synchronization is later performed between levels.
@@ -533,7 +533,7 @@ The synchronization is performed at the end of :cpp:`AmrCoreAdv::timeStep`:
 Regridding
 ----------
 
-The regrid function belongs to the :cpp:`AmrCore` class (it is virtual – in this
+The regrid function belongs to the :cpp:`AmrCore` class (it is virtual -- in this
 tutorial we use the instance in :cpp:`AmrCore`).
 
 At the beginning of each time step, we check whether we need to regrid.
@@ -569,7 +569,7 @@ advanced a multiple of :cpp:`regrid_int`, we call the :cpp:`regrid` function.
         }
         }
 
-Central to the regridding process is the concept of “tagging” which cells need refinement.
+Central to the regridding process is the concept of "tagging" which cells need refinement.
 :cpp:`ErrorEst` is a pure virtual function of :cpp:`AmrCore`, so each application code must
 contain an implementation. In AmrCoreAdv.cpp the ErrorEst function is essentially an
 interface to a Fortran routine that tags cells (in this case, :fortran:`state_error` in
