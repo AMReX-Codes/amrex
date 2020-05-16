@@ -163,7 +163,7 @@ BLBackTrace::print_backtrace_info (FILE* f)
 {
 #ifdef AMREX_BACKTRACE_SUPPORTED
 
-    const int nbuf = 32;
+    const int nbuf = 64;
     void *bt_buffer[nbuf];
     int nentries = backtrace(bt_buffer, nbuf);
 
