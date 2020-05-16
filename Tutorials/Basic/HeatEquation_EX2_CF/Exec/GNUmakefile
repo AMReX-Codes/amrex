@@ -3,18 +3,12 @@
 AMREX_HOME ?= ../../../../
 
 DEBUG     = FALSE
-USE_MPI   = TRUE 
+USE_MPI   = FALSE
 USE_OMP   = FALSE
-COMP      = gcc
-DIM       = 3 
-
-USE_CUDA  = TRUE 
-USE_HIP   = FALSE
-USE_DPCPP = FALSE
-
+COMP      = gnu
+DIM       = 2
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
-
 
 include ../Source/Make.package
 VPATH_LOCATIONS  += ../Source
