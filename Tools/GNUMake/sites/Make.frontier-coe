@@ -1,0 +1,4 @@
+ifeq ($(which_computer),$(filter $(which_computer),tulip))
+  CXXFLAGS += --amdgpu-target=gfx906
+  HIPCC_FLAGS += --amdgpu-target=gfx906
+endif
