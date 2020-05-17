@@ -49,7 +49,7 @@ public:
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void setSingleValued () noexcept {
         flag &= zero_lower_mask;
-        flag |= single_vauled_bits;
+        flag |= single_valued_bits;
         flag |= single_vof_bits;
     }
 
@@ -86,7 +86,7 @@ public:
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool isSingleValued () const noexcept {
-        return (flag & one_type_mask) == single_vauled_bits;
+        return (flag & one_type_mask) == single_valued_bits;
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -238,7 +238,7 @@ private:
     //! these represent cell types
     //! note that single-valued means single-value cut cell
     static constexpr uint32_t regular_bits        =  0x0;
-    static constexpr uint32_t single_vauled_bits  =  0x1;
+    static constexpr uint32_t single_valued_bits  =  0x1;
     static constexpr uint32_t multi_valued_bits   =  0x2;
     static constexpr uint32_t covered_bits        =  0x3;
 
