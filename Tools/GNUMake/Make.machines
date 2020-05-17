@@ -130,3 +130,8 @@ ifeq ($(findstring raijin, $(host_name)), raijin)
   which_site := nci
   which_computer := raijin
 endif
+
+ifeq ($(findstring tulip, $(host_name)), tulip)
+  which_site := frontier-coe
+  which_computer := tulip
+endif
