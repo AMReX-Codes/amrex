@@ -1127,10 +1127,6 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
     const int N_rcvs = recv_cctc.size();
     if (N_rcvs == 0) return;
 
-    // HIP FIX HERE - Dim3
-    Dim3 zero;
-    zero.x = 0; zero.y = 0; zero.z = 0;
-
     typedef Array4CopyTag<value_type> TagType;
     Vector<TagType> recv_copy_tags;
 
@@ -1158,7 +1154,7 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
                     dst.atLocalIdx(li).array(),
                     amrex::makeArray4((value_type*)(dptr), tag.dbox, ncomp),
                     tag.dbox,
-                    zero
+                    Dim3{0,0.0}
                 });
                 dptr += tag.dbox.numPts() * ncomp * sizeof(value_type);
 

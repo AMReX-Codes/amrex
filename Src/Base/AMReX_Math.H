@@ -26,6 +26,8 @@ using sycl::copysign;
 using sycl::floor;
 using sycl::round;
 
+using std::sqrt;
+
 #elif defined (AMREX_USE_HIP)
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -42,6 +44,8 @@ using ::copysign;
 using ::floor;
 using ::round;
 
+using ::sqrt;
+
 #else
 
 using std::abs;
@@ -49,6 +53,8 @@ using std::ceil;
 using std::copysign;
 using std::floor;
 using std::round;
+
+using std::sqrt;
 
 #endif
 

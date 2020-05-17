@@ -324,8 +324,6 @@ iMultiFab::sum (int comp, int nghost, bool local) const
 
     Long sm = 0;
 
-// HIP FIX HERE - __shfl_down Long used 
-
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
     {
