@@ -198,7 +198,9 @@ endif
 
 ifdef MPI_THREAD_MULTIPLE
   MPI_THREAD_MULTIPLE := $(strip $(MPI_THREAD_MULTIPLE))
-  USE_MPI := TRUE
+  ifeq ($(MPI_THREAD_MULTIPLE),TRUE)
+    USE_MPI := TRUE
+  endif
 else
   MPI_THREAD_MULTIPLE := FALSE
 endif
