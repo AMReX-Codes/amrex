@@ -74,9 +74,9 @@ void testParticleMesh(TestParams& parms)
           amrex::Real ly = (p.pos(1) - plo[1]) * dxi[1] + 0.5;
           amrex::Real lz = (p.pos(2) - plo[2]) * dxi[2] + 0.5;
 
-          int i = std::floor(lx);
-          int j = std::floor(ly);
-          int k = std::floor(lz);
+          int i = amrex::Math::floor(lx);
+          int j = amrex::Math::floor(ly);
+          int k = amrex::Math::floor(lz);
 
           amrex::Real xint = lx - i;
           amrex::Real yint = ly - j;
@@ -119,9 +119,9 @@ void testParticleMesh(TestParams& parms)
           amrex::Real ly = (p.pos(1) - plo[1]) * dxi[1] + 0.5;
           amrex::Real lz = (p.pos(2) - plo[2]) * dxi[2] + 0.5;
 
-          int i = std::floor(lx);
-          int j = std::floor(ly);
-          int k = std::floor(lz);
+          int i = amrex::Math::floor(lx);
+          int j = amrex::Math::floor(ly);
+          int k = amrex::Math::floor(lz);
 
           amrex::Real xint = lx - i;
           amrex::Real yint = ly - j;
