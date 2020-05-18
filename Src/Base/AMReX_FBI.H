@@ -1154,7 +1154,7 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
                     dst.atLocalIdx(li).array(),
                     amrex::makeArray4((value_type*)(dptr), tag.dbox, ncomp),
                     tag.dbox,
-                    Dim3{0,0.0}
+                    Dim3{0,0,0}
                 });
                 dptr += tag.dbox.numPts() * ncomp * sizeof(value_type);
 
