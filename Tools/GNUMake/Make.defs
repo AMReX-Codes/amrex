@@ -34,7 +34,6 @@ ifeq ($(USE_DPCPP),TRUE)
   USE_HIP := FALSE
   # disable mpi, fortran and ccache for now
   USE_MPI := FALSE
-  BL_NO_FORT := TRUE
   USE_CCACHE := FALSE
 endif
 
