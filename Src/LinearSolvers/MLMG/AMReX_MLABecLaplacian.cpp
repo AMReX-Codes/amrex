@@ -402,6 +402,33 @@ MLABecLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
 #endif
 #endif
 
+#ifdef AMREX_USE_DPCPP
+        // xxxxx DPCPP todo: kernel size
+        Vector<Array4<Real const> > ha(6);
+        ha[0] = f0fab;
+        ha[1] = f1fab;
+#if (AMREX_SPACEDIM > 1)
+        ha[2] = f2fab;
+        ha[3] = f3fab;
+#if (AMREX_SPACEDIM == 3)
+        ha[4] = f4fab;
+        ha[5] = f5fab;
+#endif
+#endif
+        Gpu::AsyncArray<Array4<Real const> > aa(ha.data(), 6);
+        auto dp = aa.data();
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
+        {
+            abec_gsrb(thread_box, solnfab, rhsfab, alpha, afab,
+                      AMREX_D_DECL(dhx, dhy, dhz),
+                      AMREX_D_DECL(bxfab, byfab, bzfab),
+                      AMREX_D_DECL(m0,m2,m4),
+                      AMREX_D_DECL(m1,m3,m5),
+                      AMREX_D_DECL(dp[0],dp[2],dp[4]),
+                      AMREX_D_DECL(dp[1],dp[3],dp[5]),
+                      vbx, redblack, nc);
+        });
+#else
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
         {
             abec_gsrb(thread_box, solnfab, rhsfab, alpha, afab,
@@ -413,6 +440,7 @@ MLABecLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                       AMREX_D_DECL(f1fab,f3fab,f5fab),
                       vbx, redblack, nc);
         });
+#endif
     }
 }
 
