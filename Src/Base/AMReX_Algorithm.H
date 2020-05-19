@@ -11,38 +11,38 @@ namespace amrex
 {
     template <class T>
     AMREX_GPU_HOST_DEVICE
-    AMREX_FORCE_INLINE const T& min (const T& a, const T& b) noexcept
+    AMREX_FORCE_INLINE constexpr const T& min (const T& a, const T& b) noexcept
     {
         return (b < a) ? b : a;
     }
 
     template <class T, class ... Ts>
     AMREX_GPU_HOST_DEVICE
-    AMREX_FORCE_INLINE const T& min (const T& a, const T& b, const Ts& ... c) noexcept
+    AMREX_FORCE_INLINE constexpr const T& min (const T& a, const T& b, const Ts& ... c) noexcept
     {
         return min(min(a,b),c...);
     }
 
     template <class T>
     AMREX_GPU_HOST_DEVICE
-    AMREX_FORCE_INLINE const T& max (const T& a, const T& b) noexcept
+    AMREX_FORCE_INLINE constexpr const T& max (const T& a, const T& b) noexcept
     {
         return (a < b) ? b : a;
     }
 
     template <class T, class ... Ts>
     AMREX_GPU_HOST_DEVICE
-    AMREX_FORCE_INLINE const T& max (const T& a, const T& b, const Ts& ... c) noexcept
+    AMREX_FORCE_INLINE constexpr const T& max (const T& a, const T& b, const Ts& ... c) noexcept
     {
         return max(max(a,b),c...);
     }
 
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE constexpr
     Dim3 elemwiseMin (Dim3 const& a, Dim3 const& b) noexcept {
         return Dim3{amrex::min(a.x,b.x),amrex::min(a.y,b.y),amrex::min(a.z,b.z)};
     }
 
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE constexpr
     Dim3 elemwiseMax (Dim3 const& a, Dim3 const& b) noexcept {
         return Dim3{amrex::max(a.x,b.x),amrex::max(a.y,b.y),amrex::max(a.z,b.z)};
     }
