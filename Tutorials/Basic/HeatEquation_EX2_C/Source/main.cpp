@@ -1,10 +1,12 @@
-
+#include <AMReX_Gpu.H>
+#include <AMReX_Utility.H>
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_Print.H>
+#include <AMReX_BCRec.H>
+// #include <AMReX_BCUtil.H>
 
 #include "myfunc.H"
-#include "myfunc_F.H"
 
 using namespace amrex;
 
@@ -21,7 +23,7 @@ int main (int argc, char* argv[])
 void main_main ()
 {
     // What time is it now?  We'll use this to compute total run time.
-    Real strt_time = amrex::second();
+    Real strt_time = ParallelDescriptor::second();
 
     // AMREX_SPACEDIM: number of dimensions
     int n_cell, max_grid_size, nsteps, plot_int;
@@ -41,25 +43,26 @@ void main_main ()
         pp.get("max_grid_size",max_grid_size);
 
         // Default plot_int to -1, allow us to set it to something else in the inputs file
-        //  If plot_int < 0 then no plot files will be writtenq
+        //  If plot_int < 0 then no plot files will be written
         plot_int = -1;
         pp.query("plot_int",plot_int);
 
         // Default nsteps to 0, allow us to set it to something else in the inputs file
         nsteps = 10;
         pp.query("nsteps",nsteps);
-
-        // read in BC; see Src/Base/AMReX_BC_TYPES.H for supported types
+	
+	// By default, the boundary conditions will be set to periodic, or bc_lo = bc_hi = 0.
+	//Other options in this program include bc_lo, bc_hi = 2 for homogeneous Neumann, or
+	//bc_lo, bc_hi = 3 for external Dirichlet boundary conditions.
         pp.queryarr("bc_lo", bc_lo);
-        pp.queryarr("bc_hi", bc_hi);
+	pp.queryarr("bc_hi", bc_hi);
     }
 
-    // determine whether boundary conditions are periodic
     Vector<int> is_periodic(AMREX_SPACEDIM,0);
     for (int idim=0; idim < AMREX_SPACEDIM; ++idim) {
-        if (bc_lo[idim] == INT_DIR && bc_hi[idim] == INT_DIR) {
-            is_periodic[idim] = 1;
-        }
+	if (bc_lo[idim] == INT_DIR && bc_hi[idim] == INT_DIR){
+	    is_periodic[idim] = 1;
+	}
     }
 
     // make BoxArray and Geometry
@@ -88,9 +91,6 @@ void main_main ()
     
     // Ncomp = number of components for each array
     int Ncomp  = 1;
-
-    // time = starting time in the simulation
-    Real time = 0.0;
   
     // How Boxes are distrubuted among MPI processes
     DistributionMapping dm(ba);
@@ -99,64 +99,61 @@ void main_main ()
     MultiFab phi_old(ba, dm, Ncomp, Nghost);
     MultiFab phi_new(ba, dm, Ncomp, Nghost);
 
-    // Initialize phi_new by calling a Fortran routine.
-    // MFIter = MultiFab Iterator
-    for ( MFIter mfi(phi_new); mfi.isValid(); ++mfi )
-    {
-        const Box& bx = mfi.validbox();
+    GpuArray<Real,AMREX_SPACEDIM> dx = geom.CellSizeArray();
 
-        init_phi(BL_TO_FORTRAN_BOX(bx),
-                 BL_TO_FORTRAN_ANYD(phi_new[mfi]),
-                 geom.CellSize(), geom.ProbLo(), geom.ProbHi());
-    }
+    init_phi(phi_new, geom);
 
-    // Set up BCRec; see Src/Base/AMReX_BC_TYPES.H for supported types
+    //Boundary conditions are assigned to phi_old such that the ghost cells at the boundary will
+    //be filled to satisfy those conditions.
     Vector<BCRec> bc(phi_old.nComp());
     for (int n = 0; n < phi_old.nComp(); ++n)
     {
-        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-        {
-            
-            // lo-side BCs
-            if (bc_lo[idim] == INT_DIR) {
-                bc[n].setLo(idim, BCType::int_dir);  // periodic uses "internal Dirichlet"
-            }
-            else if (bc_lo[idim] == FOEXTRAP) {
-                bc[n].setLo(idim, BCType::foextrap); // first-order extrapolation
-            }
-            else if (bc_lo[idim] == EXT_DIR) {
-                bc[n].setLo(idim, BCType::ext_dir);  // external Dirichlet
-            }
-            else {
-                amrex::Abort("Invalid bc_lo");
-            }
+	for(int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+	{
+	    //Internal Dirichlet Periodic Boundary conditions, or bc_lo = bc_hi = 0
+	    if (bc_lo[idim] == INT_DIR) {
+		bc[n].setLo(idim, BCType::int_dir);
+	    }
+	    //First Order Extrapolation for Neumann boundary conditions or bc_lo, bc_hi = 2
+	    else if (bc_lo[idim] == FOEXTRAP) {
+		bc[n].setLo(idim, BCType::foextrap);
+	    }
+	    //External Dirichlet Boundary Condition, or bc_lo, bc_hi = 3
+	    else if(bc_lo[idim] == EXT_DIR) {
+		bc[n].setLo(idim, BCType::ext_dir);
+	    }
+	    else {
+		amrex::Abort("Invalid bc_lo");
+	    }
 
-            // hi-side BCs
-            if (bc_hi[idim] == INT_DIR) {
-                bc[n].setHi(idim, BCType::int_dir);  // periodic uses "internal Dirichlet"
-            }
-            else if (bc_hi[idim] == FOEXTRAP) {
-                bc[n].setHi(idim, BCType::foextrap); // first-order extrapolation
-            }
-            else if (bc_hi[idim] == EXT_DIR) {
-                bc[n].setHi(idim, BCType::ext_dir);  // external Dirichlet
-            }
-            else {
-                amrex::Abort("Invalid bc_hi");
-            }
-
-        }
+	    //Internal Dirichlet Periodic Boundary conditions, or bc_lo = bc_hi = 0
+	    if (bc_hi[idim] == INT_DIR) {
+		bc[n].setHi(idim, BCType::int_dir);
+	    }
+	    //First Order Extrapolation for Neumann boundary conditions or bc_lo, bc_hi = 2
+	    else if (bc_hi[idim] == FOEXTRAP) {
+		bc[n].setHi(idim, BCType::foextrap);
+	    }
+	    //External Dirichlet Boundary Condition, or bc_lo, bc_hi = 3
+	    else if(bc_hi[idim] == EXT_DIR) {
+		bc[n].setHi(idim, BCType::ext_dir);
+	    }
+	    else {
+		amrex::Abort("Invalid bc_hi");
+	    }
+	}
     }
 
-    // compute the time step
-    const Real* dx = geom.CellSize();
     Real dt = 0.9*dx[0]*dx[0] / (2.0*AMREX_SPACEDIM);
+
+    // time = starting time in the simulation
+    Real time = 0.0;
 
     // Write a plotfile of the initial data if plot_int > 0 (plot_int was defined in the inputs file)
     if (plot_int > 0)
     {
         int n = 0;
-        const std::string& pltfile = amrex::Concatenate("plt",n,5);
+	const std::string& pltfile = amrex::Concatenate("plt",n,5);
         WriteSingleLevelPlotfile(pltfile, phi_new, {"phi"}, geom, time, 0);
     }
 
@@ -175,7 +172,7 @@ void main_main ()
         MultiFab::Copy(phi_old, phi_new, 0, 0, 1, 0);
 
         // new_phi = old_phi + dt * (something)
-        advance(phi_old, phi_new, flux, dt, geom, bc); 
+        advance(phi_old, phi_new, flux, dt, geom, bc);
         time = time + dt;
         
         // Tell the I/O Processor to write out which step we're doing
@@ -191,7 +188,7 @@ void main_main ()
 
     // Call the timer again and compute the maximum difference between the start time and stop time
     //   over all processors
-    Real stop_time = amrex::second() - strt_time;
+    Real stop_time = ParallelDescriptor::second() - strt_time;
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
     ParallelDescriptor::ReduceRealMax(stop_time,IOProc);
 

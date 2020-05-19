@@ -267,7 +267,7 @@ public:
         this->Redistribute(lev_min, lev_max, nGrow, local);    
     }
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
     void fillNeighborsGPU ();
     void updateNeighborsGPU ();    
     void clearNeighborsGPU ();    
@@ -364,7 +364,7 @@ protected:
 
     static bool enable_inverse;
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
     
     struct NeighborTask {
         int grid_id;
@@ -416,7 +416,7 @@ protected:
     
 #include "AMReX_NeighborParticlesI.H"
     
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
 #include "AMReX_NeighborParticlesGPUImpl.H"
 #else
 #include "AMReX_NeighborParticlesCPUImpl.H"

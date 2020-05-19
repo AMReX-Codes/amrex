@@ -944,7 +944,7 @@ void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::Redistribute (int lev_min, int lev_max, int nGrow, int local)
 {
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
     if ( Gpu::inLaunchRegion() )
     {
         RedistributeGPU(lev_min, lev_max, nGrow, local);
@@ -1041,7 +1041,7 @@ void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::RedistributeGPU (int lev_min, int lev_max, int nGrow, int local)
 {
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
 
     if (local) AMREX_ASSERT(numParticlesOutOfRange(*this, lev_min, lev_max, local) == 0);
     
@@ -1185,14 +1185,14 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         Gpu::PinnedVector<char> pinned_snd_buffer;
         Gpu::PinnedVector<char> pinned_rcv_buffer;
         pinned_snd_buffer.resize(snd_buffer.size());
-        cudaMemcpyAsync(pinned_snd_buffer.dataPtr(), snd_buffer.dataPtr(), snd_buffer.size(), cudaMemcpyDeviceToHost);    
+        Gpu::dtoh_memcpy_async(pinned_snd_buffer.dataPtr(), snd_buffer.dataPtr(), snd_buffer.size());
         plan.buildMPIFinish(BufferMap());
         Gpu::Device::synchronize();
         communicateParticlesStart(*this, plan, pinned_snd_buffer, pinned_rcv_buffer);
         rcv_buffer.resize(pinned_rcv_buffer.size());   
         unpackBuffer(*this, plan, snd_buffer, RedistributeUnpackPolicy());
         communicateParticlesFinish(plan);        
-        cudaMemcpyAsync(rcv_buffer.dataPtr(), pinned_rcv_buffer.dataPtr(), pinned_rcv_buffer.size(), cudaMemcpyHostToDevice);    
+        Gpu::htod_memcpy_async(rcv_buffer.dataPtr(), pinned_rcv_buffer.dataPtr(), pinned_rcv_buffer.size());
         unpackRemotes(*this, plan, rcv_buffer, RedistributeUnpackPolicy());
     }
 
@@ -1790,7 +1790,7 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
 
         BL_PROFILE_VAR_START(blp_copy);
 
-#ifndef AMREX_USE_CUDA
+#ifndef AMREX_USE_GPU
         ipart = 0;
         for (int i = 0; i < nrcvs; ++i)
         {

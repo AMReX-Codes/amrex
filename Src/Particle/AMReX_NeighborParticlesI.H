@@ -615,7 +615,7 @@ template <int NStructReal, int NStructInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>
 ::fillNeighbors () {
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
     fillNeighborsGPU();
 #else
     fillNeighborsCPU();
@@ -628,7 +628,7 @@ void
 NeighborParticleContainer<NStructReal, NStructInt>
 ::sumNeighbors (int real_start_comp, int real_num_comp,
                 int int_start_comp,  int int_num_comp) {
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
     amrex::Abort("Not implemented.");
 #else
     sumNeighborsCPU(real_start_comp, real_num_comp, int_start_comp, int_num_comp);
@@ -643,7 +643,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
 
   AMREX_ASSERT(hasNeighbors());
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
     updateNeighborsGPU();
 #else
     updateNeighborsCPU(true);
@@ -656,7 +656,7 @@ void
 NeighborParticleContainer<NStructReal, NStructInt>
 ::clearNeighbors ()
 {
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
     clearNeighborsGPU();
 #else
     clearNeighborsCPU();

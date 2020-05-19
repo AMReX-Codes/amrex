@@ -370,22 +370,24 @@ struct ImplicitIntegral
         Real x_max = xrange.max(e0);
         roots[0] = x_min;
         int nroots = 1;
-        for (int i = 0; i < psiCount; ++i)
-        {
-            for (int dim = 0; dim < N; ++dim) {
-                if (!free[dim]) {
-                    x[dim] = xrange(psi[i].side(dim),dim);
+        if (phi.grad(e0) != 0.0_rt) {
+            for (int i = 0; i < psiCount; ++i)
+            {
+                for (int dim = 0; dim < N; ++dim) {
+                    if (!free[dim]) {
+                        x[dim] = xrange(psi[i].side(dim),dim);
+                    }
+                }
+                // x is now valid in all variables except e0
+                x[e0] = x_min;
+                Real phi_lo = phi(x);
+                Real xroot = x[e0] - phi_lo / phi.grad(e0);
+                if (xroot > x_min and xroot < x_max) {
+                    roots[nroots++] = xroot;
                 }
             }
-            // x is now valid in all variables except e0
-            x[e0] = x_min;
-            Real phi_lo = phi(x);
-            Real xroot = x[e0] - phi_lo / phi.grad(e0);
-            if (xroot > x_min and xroot < x_max) {
-                roots[nroots++] = xroot;
-            }
+            AMREX_ASSERT(nroots <= 3);
         }
-        AMREX_ASSERT(nroots <= 3);
         if (nroots == 3 and roots[1] > roots[2]) {
             detail::swap(roots[1],roots[2]);
         }

@@ -33,8 +33,8 @@ ccinterp_compute_voff (Box const& cbx, IntVect const& ratio, Geometry const& cge
         const int ic = amrex::coarsen(i, ratio[0]);
         const int ii = i - flo.x;
         const int iic = ic - clo.x;
-        const Real fcen = 0.5*(fvc[ii ]+fvc[ii +1]);
-        const Real ccen = 0.5*(cvc[iic]+cvc[iic+1]);
+        const Real fcen = 0.5_rt*(fvc[ii ]+fvc[ii +1]);
+        const Real ccen = 0.5_rt*(cvc[iic]+cvc[iic+1]);
         xoff[ii] = (fcen-ccen)/(cvc[iic+1]-cvc[iic]);
     }
 
@@ -51,17 +51,17 @@ compute_slopes (const Dim3& lo, const Dim3& hi,
 {
     AMREX_PRAGMA_SIMD
     for (int i = lo.x; i <= hi.x; ++i) {
-        slopes(i,0,0,ns) = 0.5*(u(i+1,0,0,nu)-u(i-1,0,0,nu));
+        slopes(i,0,0,ns) = 0.5_rt*(u(i+1,0,0,nu)-u(i-1,0,0,nu));
     }
 
     if (lo.x == slo.x && (bc.lo(0) == BCType::ext_dir || bc.lo(0) == BCType::hoextrap))
     {
         const int i = slo.x;
         if (shi.x-slo.x >= 1) {
-            slopes(i,0,0,ns) = -(16./15.)*u(i-1,0,0,nu) + 0.5*u(i,0,0,nu)
-                + (2./3.)*u(i+1,0,0,nu) - 0.1*u(i+2,0,0,nu);
+            slopes(i,0,0,ns) = -(16._rt/15._rt)*u(i-1,0,0,nu) + 0.5_rt*u(i,0,0,nu)
+                + (2._rt/3._rt)*u(i+1,0,0,nu) - 0.1_rt*u(i+2,0,0,nu);
         } else {
-            slopes(i,0,0,ns) = 0.25*(u(i+1,0,0,nu)+5.*u(i,0,0,nu)-6.*u(i-1,0,0,nu));
+            slopes(i,0,0,ns) = 0.25_rt*(u(i+1,0,0,nu)+5._rt*u(i,0,0,nu)-6._rt*u(i-1,0,0,nu));
         }
     }
 
@@ -69,10 +69,10 @@ compute_slopes (const Dim3& lo, const Dim3& hi,
     {
         const int i = shi.x;
         if (shi.x-slo.x >= 1) {
-            slopes(i,0,0,ns) = (16./15.)*u(i+1,0,0,nu) - 0.5*u(i,0,0,nu)
-                - (2./3.)*u(i-1,0,0,nu) + 0.1*u(i-2,0,0,nu);
+            slopes(i,0,0,ns) = (16._rt/15._rt)*u(i+1,0,0,nu) - 0.5_rt*u(i,0,0,nu)
+                - (2._rt/3._rt)*u(i-1,0,0,nu) + 0.1_rt*u(i-2,0,0,nu);
         } else {
-            slopes(i,0,0,ns) = -0.25*(u(i-1,0,0,nu)+5.*u(i,0,0,nu)-6.*u(i+1,0,0,nu));
+            slopes(i,0,0,ns) = -0.25_rt*(u(i-1,0,0,nu)+5._rt*u(i,0,0,nu)-6._rt*u(i+1,0,0,nu));
         }
     }
 }
@@ -94,7 +94,7 @@ cellconslin_slopes_linlim (Box const& bx, Array4<Real> const& slopes,
 
     AMREX_PRAGMA_SIMD
     for (int i = lo.x; i <= hi.x; ++i) {
-        sf(i,0,0) = 1.0;
+        sf(i,0,0) = 1.0_rt;
     }
 
     for (int n = 0; n < ncomp; ++n)
@@ -105,14 +105,14 @@ cellconslin_slopes_linlim (Box const& bx, Array4<Real> const& slopes,
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
             Real cen  = slopes(i,0,0,n);
-            Real forw = 2.0*(u(i+1,0,0,nu)-u(i  ,0,0,nu));
-            Real back = 2.0*(u(i  ,0,0,nu)-u(i-1,0,0,nu));
-            Real slp = (forw*back >= 0.0) ? amrex::min(amrex::Math::abs(forw),amrex::Math::abs(back)) : 0.0;
-            slopes(i,0,0,n) = amrex::Math::copysign(1.0,cen)*amrex::min(slp,amrex::Math::abs(cen));
-            if (cen != 0.0) {
+            Real forw = 2.0_rt*(u(i+1,0,0,nu)-u(i  ,0,0,nu));
+            Real back = 2.0_rt*(u(i  ,0,0,nu)-u(i-1,0,0,nu));
+            Real slp = (forw*back >= 0.0_rt) ? amrex::min(amrex::Math::abs(forw),amrex::Math::abs(back)) : 0.0_rt;
+            slopes(i,0,0,n) = amrex::Math::copysign(1.0_rt,cen)*amrex::min(slp,amrex::Math::abs(cen));
+            if (cen != 0.0_rt) {
                 sf(i,0,0) = amrex::min(sf(i,0,0), slopes(i,0,0,n)/cen);
             } else {
-                sf(i,0,0) = 0.0;
+                sf(i,0,0) = 0.0_rt;
             }
         }
     }
@@ -181,10 +181,10 @@ cellconslin_slopes_mclim (Box const& bx, Array4<Real> const& slopes,
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
             Real cen  = slopes(i,0,0,n);
-            Real forw = 2.0*(u(i+1,0,0,nu)-u(i  ,0,0,nu));
-            Real back = 2.0*(u(i  ,0,0,nu)-u(i-1,0,0,nu));
-            Real slp = (forw*back >= 0.0) ? amrex::min(amrex::Math::abs(forw),amrex::Math::abs(back)) : 0.0;
-            slopes(i,0,0,n) = amrex::Math::copysign(1.0,cen)*amrex::min(slp,amrex::Math::abs(cen));
+            Real forw = 2.0_rt*(u(i+1,0,0,nu)-u(i  ,0,0,nu));
+            Real back = 2.0_rt*(u(i  ,0,0,nu)-u(i-1,0,0,nu));
+            Real slp = (forw*back >= 0.0_rt) ? amrex::min(amrex::Math::abs(forw),amrex::Math::abs(back)) : 0.0_rt;
+            slopes(i,0,0,n) = amrex::Math::copysign(1.0_rt,cen)*amrex::min(slp,amrex::Math::abs(cen));
         }
     }
 }
@@ -208,12 +208,12 @@ cellconslin_fine_alpha (Box const& bx, Array4<Real> const& alpha,
             const int ic = amrex::coarsen(i,ratio[0]);
             const Real dummy_fine = xoff[i-vlo.x]*slopes(ic,0,0,n);
 
-            if (dummy_fine > mm(ic,0,0,n+ncomp) && dummy_fine != 0.0) {
+            if (dummy_fine > mm(ic,0,0,n+ncomp) && dummy_fine != 0.0_rt) {
                 alpha(i,0,0,n) = mm(ic,0,0,n+ncomp) / dummy_fine;
-            } else if (dummy_fine < mm(ic,0,0,n) && dummy_fine != 0.0) {
+            } else if (dummy_fine < mm(ic,0,0,n) && dummy_fine != 0.0_rt) {
                 alpha(i,0,0,n) = mm(ic,0,0,n) / dummy_fine;
             } else {
-                alpha(i,0,0,n) = 1.0;
+                alpha(i,0,0,n) = 1.0_rt;
             }
         }
     }
@@ -230,7 +230,7 @@ cellconslin_slopes_mmlim (Box const& bx, Array4<Real> const& slopes,
     for (int n = 0; n < ncomp; ++n) {
         for (int i = lo.x; i <= hi.x; ++i) {
             const int ii = i*ratio[0];
-            Real a = 1.0;
+            Real a = 1.0_rt;
             for (int ioff = 0; ioff < ratio[0]; ++ioff) {
                 a = amrex::min(a, alpha(ii+ioff,0,0,n));
             }
@@ -257,27 +257,29 @@ pcinterp_interp (Box const& bx,
     }
 }
 
+template<typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
-nodebilin_slopes (Box const& bx, Array4<Real> const& slope, Array4<Real const> const& u,
+nodebilin_slopes (Box const& bx, Array4<T> const& slope, Array4<T const> const& u,
                   const int icomp, const int ncomp, IntVect const& ratio) noexcept
 {
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
 
-    const Real rx = 1.0/ratio[0];
+    const Real rx = 1.0_rt/ratio[0];
 
     for (int n = 0; n < ncomp; ++n) {
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
-            Real dx0 = u(i+1,0,0,n+icomp) - u(i,0,0,n+icomp);
+            T dx0 = u(i+1,0,0,n+icomp) - u(i,0,0,n+icomp);
             slope(i,0,0,n) = rx*dx0;
         }
     }
 }
 
+template<typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
-nodebilin_interp (Box const& bx, Array4<Real> const& fine, const int fcomp, const int ncomp,
-                  Array4<Real const> const& slope, Array4<Real const> const& crse,
+nodebilin_interp (Box const& bx, Array4<T> const& fine, const int fcomp, const int ncomp,
+                  Array4<T const> const& slope, Array4<T const> const& crse,
                   const int ccomp, IntVect const& ratio) noexcept
 {
     const auto lo = amrex::lbound(bx);

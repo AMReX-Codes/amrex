@@ -104,12 +104,6 @@ function (configure_amrex)
          AMREX_NVCC_MAJOR_VERSION=${NVCC_VERSION_MAJOR}
          AMREX_NVCC_MINOR_VERSION=${NVCC_VERSION_MINOR} )
 
-      set_target_properties( amrex
-         PROPERTIES
-         CUDA_SEPARABLE_COMPILATION ON      # This adds -dc
-         CUDA_RESOLVE_DEVICE_SYMBOLS OFF
-         )
-
       #
       # Retrieve compile flags for the current configuration
       # I haven't find a way to set host compiler flags for all the

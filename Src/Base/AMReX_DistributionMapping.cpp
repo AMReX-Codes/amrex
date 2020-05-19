@@ -1480,7 +1480,7 @@ DistributionMapping::ComputeDistributionMappingEfficiency (const DistributionMap
                                                            const Vector<Real>& cost,
                                                            Real* efficiency)
 {
-    const Real nprocs = ParallelDescriptor::NProcs();
+    const int nprocs = ParallelDescriptor::NProcs();
         
     // This will store mapping from processor to the costs of FABs it controls,
     // (proc) --> ([cost_FAB_1, cost_FAB_2, ... ]),

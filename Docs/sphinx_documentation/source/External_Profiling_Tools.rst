@@ -8,10 +8,10 @@ CrayPat
 =======
 
 The profiling suite available on Cray XC systems is Cray Performance
-Measurement and Analysis Tools (“CrayPat”) [1]_.  Most CrayPat functionality is
-supported for all compilers available in the Cray “programming environments“
-(modules which begin “``PrgEnv-``”); however, a few features, chiefly the
-“Reveal” tool, are supported only on applications compiled with Cray’s compiler
+Measurement and Analysis Tools ("CrayPat") [1]_.  Most CrayPat functionality is
+supported for all compilers available in the Cray "programming environments"
+(modules which begin "``PrgEnv-``"); however, a few features, chiefly the
+"Reveal" tool, are supported only on applications compiled with Cray's compiler
 CCE [2]_ [3]_.
 
 CrayPat supports both high-level profiling tools, as well as fine-grained
@@ -21,7 +21,7 @@ uses sampling to identify the most time-consuming functions in an application.
 High-level application profiling
 --------------------------------
 
-The simplest way to obtain a high-level overview of an application’s
+The simplest way to obtain a high-level overview of an application's
 performance consists of the following steps:
 
 #. Load the ``perftools-base`` module, then the ``perftools-lite`` module. (The

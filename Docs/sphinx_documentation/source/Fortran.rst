@@ -8,13 +8,13 @@
 Getting Started
 ===============
 
-We have discussed AMReX’s build systems in the chapter on
+We have discussed AMReX's build systems in the chapter on
 :ref:`Chap:BuildingAMReX`.  To build with GNU Make, we need to include the
 Fortran interface source tree into the make system. The source codes for the
 Fortran interface are in ``amrex/Src/F_Interfaces`` and there are several
 sub-directories. The "Base" directory includes sources for the basic
 functionality, the "AmrCore" directory wraps around the :cpp:`AmrCore` class
-(see the chapter on :ref:`Chap:AmrCore`), and the "Octree" directory adds
+(see the chapter on :ref:`Chap:AmrCore`), and the "Octree" directory adds
 support for octree type of AMR grids. Each directory has a "Make.package" file
 that can be included in make files (see ``amrex/Tutorials/Basic/HelloWorld_F`` and
 ``amrex/Tutorials/Amr/Advection_F`` for examples). The libamrex approach includes the
@@ -37,11 +37,11 @@ is shown below in its entirety.
       call amrex_finalize()
     end program main
 
-To access the AMReX Fortran interfaces, we can use these three
+To access the AMReX Fortran interfaces, we can use these three
 modules, amrex_base_module for the basics functionalities
-(Section `2 <#sec:fi:basics>`__), amrex_amrcore_module for AMR
-support (Section `3 <#sec:fi:amrcore>`__) and amrex_octree_module
-for octree style AMR (Section `4 <#sec:fi:octree>`__).
+(Section `2 <#sec:fi:basics>`__), amrex_amrcore_module for AMR
+support (Section `3 <#sec:fi:amrcore>`__) and amrex_octree_module
+for octree style AMR (Section `4 <#sec:fi:octree>`__).
 
 .. _sec:fi:basics:
 
@@ -49,15 +49,15 @@ The Basics
 ==========
 
 Module :fortran:`amrex_base_module` is a collection of various Fortran modules
-providing interfaces to most of the basics of AMReX C++ library (see the
-chapter on :ref:`Chap:Basics`). These modules shown in this section can be used
+providing interfaces to most of the basics of AMReX C++ library (see the
+chapter on :ref:`Chap:Basics`). These modules shown in this section can be used
 without being explicitly included because they are included by
 :fortran:`amrex_base_module`.
 
 The spatial dimension is an integer parameter :fortran:`amrex_spacedim`.  We
 can also use the :fortran:`AMREX_SPACEDIM` macro in preprocessed Fortran codes
-(e.g., .F90 files) just like in the C++ codes. Unlike in C++, the convention
-for AMReX Fortran interface is that coordinate direction index starts at 1.
+(e.g., .F90 files) just like in the C++ codes. Unlike in C++, the convention
+for AMReX Fortran interface is that coordinate direction index starts at 1.
 
 There is an integer parameter :fortran:`amrex_real`, a Fortran kind parameter
 for :fortran:`real`. Fortran :fortran:`real(amrex_real)` corresponds to
@@ -67,11 +67,11 @@ the setting of precision.
 The module :fortran:`amrex_parallel_module` (
 ``amrex/Src/F_Interfaces/Base/AMReX_parallel_mod.F90``) includes wrappers to the
 :cpp:`ParallelDescriptor` namespace, which is in turn a wrapper to the parallel
-communication library used by AMReX (e.g. MPI).
+communication library used by AMReX (e.g. MPI).
 
 The module :cpp:`amrex_parmparse_module` (
 ``amrex/Src/Base/AMReX_parmparse_mod.F90``) provides interface to
-:cpp:`ParmParse` (see the section on :ref:`sec:basics:parmparse`). Here are some
+:cpp:`ParmParse` (see the section on :ref:`sec:basics:parmparse`). Here are some
 examples.
 
 .. highlight:: fortran
@@ -200,10 +200,10 @@ C++.
       call mf%parallel_copy(mfsrc, geom) ! Parallel copy from another multifab
 
 It should be emphasized that the component index for :fortran:`amrex_multifab`
-starts with 1 following Fortran convention. This is different from the C++ part
+starts with 1 following Fortran convention. This is different from the C++ part
 of AMReX.
 
-AMReX provides a Fortran interface to :fortran:`MFIter` for iterating over the
+AMReX provides a Fortran interface to :fortran:`MFIter` for iterating over the
 data in :fortran:`amrex_multifab`. The Fortran type for this is
 :fortran:`amrex_mfiter`. Here is an example of using :fortran:`amrex_mfiter` to
 loop over :fortran:`amrex_multifab` with tiling and launch a kernel function.
@@ -242,7 +242,7 @@ Here procedure :fortran:`update_phi` is
        ! ...
      end subroutine update_phi
 
-Note that amrex_multifab’s procedure :fortran:`dataptr` takes
+Note that amrex_multifab's procedure :fortran:`dataptr` takes
 :fortran:`amrex_mfiter` and returns a 4-dimensional Fortran pointer. For
 performance, we should declare the pointer as :fortran:`contiguous`. In C++,
 the similar operation returns a reference to :cpp:`FArrayBox`.  However,
@@ -251,10 +251,10 @@ array bound information. We can call :fortran:`lbound` and :fortran:`ubound` on
 the pointer to return its lower and upper bounds. The first three dimensions of
 the bounds are spatial and the fourth is for the number of component.
 
-Many of the derived Fortran types in  (e.g., :fortran:`amrex_multifab`,
+Many of the derived Fortran types in (e.g., :fortran:`amrex_multifab`,
 :fortran:`amrex_boxarray`, :fortran:`amrex_distromap`, :fortran:`amrex_mfiter`,
 and :fortran:`amrex_geometry`) contain a :fortran:`type(c_ptr)` that points a
-C++ object. They also contain a :fortran:`logical` type indicating whether or
+C++ object. They also contain a :fortran:`logical` type indicating whether or
 not this object owns the underlying object (i.e., responsible for deleting the
 object). Due to the semantics of Fortran, one should not return these types
 with functions. Instead we should pass them as arguments to procedures
@@ -295,7 +295,7 @@ If we need to transfer the ownership, :fortran:`amrex_multifab`,
 :fortran:`amrex_multifab` also has a type-bound :fortran:`swap` procedure for
 exchanging the data.
 
-AMReX also provides :fortran:`amrex_plotfile_module` for writing plotfiles. The
+AMReX also provides :fortran:`amrex_plotfile_module` for writing plotfiles. The
 interface is similar to the C++ versions.
 
 
@@ -325,7 +325,7 @@ infrastructure. With AMR, the main program might look like below,
 
 Here we need to call :fortran:`amrex_amrcore_init` and
 :fortran:`amrex_amrcore_finalize`. And usually we need to call application code
-specific procedures to provide some “hooks” needed by AMReX.  In C++, this is
+specific procedures to provide some "hooks" needed by AMReX.  In C++, this is
 achieved by using virtual functions. In Fortran, we need to call
 
 .. highlight:: fortran
@@ -383,7 +383,7 @@ interfaces:
 Tutorials/Amr/Advection_F/Source/my_amr_mod.F90 shows an
 example of the setup process. The user provided
 :fortran:`procedure(amrex_error_est_proc)` has a tags argument that
-is of type :fortran:`c_ptr` and its value is a pointer to a  
+is of type :fortran:`c_ptr` and its value is a pointer to a
 :fortran:`TagBoxArray` object. We need to convert this into a Fortran
 :fortran:`amrex_tagboxarray` object.
 
@@ -393,13 +393,13 @@ is of type :fortran:`c_ptr` and its value is a pointer to a  
       tag = tags
 
 The module :fortran:`amrex_fillpatch_module` provides interface to
-C++ functions :cpp:`FillPatchSinglelevel` and :cpp:`FillPatchTwoLevels`. To use
+C++ functions :cpp:`FillPatchSinglelevel` and :cpp:`FillPatchTwoLevels`. To use
 it, the application code needs to provide procedures for interpolation and
 filling physical boundaries.  See
 Tutorials/Amr/Advection_F/Source/fillpatch_mod.F90 for an example.
 
 Module :fortran:`amrex_fluxregister_module` provides interface to
-:cpp:`FluxRegister` (see the section on :ref:`sec:amrcore:fluxreg`). Its usage
+:cpp:`FluxRegister` (see the section on :ref:`sec:amrcore:fluxreg`). Its usage
 is demonstrated in the tutorial at Tutorials/Amr/Advection_F/.
 
 
@@ -410,9 +410,9 @@ Octree
 
 In AMReX, the union of fine level grids is properly contained within the union
 of coarse level grids. There are no required direct parent-child connections
-between levels. Therefore, grids in AMReX in general cannot be represented by
+between levels. Therefore, grids in AMReX in general cannot be represented by
 trees. Nevertheless, octree type grids are supported via Fortran interface,
-because  grids are more general than octree grids. A tutorial example using
+because grids are more general than octree grids. A tutorial example using
 amrex_octree_module ( ``amrex/Src/F_Interfaces/Octree/AMReX_octree_mod.f90``) is
 available at ``amrex/Tutorials/Amr/Advection_octree_F/``. Procedures
 :fortran:`amrex_octree_init` and :fortran:`amrex_octree_finalize` must be

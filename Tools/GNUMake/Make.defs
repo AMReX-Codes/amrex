@@ -34,7 +34,6 @@ ifeq ($(USE_DPCPP),TRUE)
   USE_HIP := FALSE
   # disable mpi, fortran and ccache for now
   USE_MPI := FALSE
-  BL_NO_FORT := TRUE
   USE_CCACHE := FALSE
 endif
 
@@ -198,7 +197,9 @@ endif
 
 ifdef MPI_THREAD_MULTIPLE
   MPI_THREAD_MULTIPLE := $(strip $(MPI_THREAD_MULTIPLE))
-  USE_MPI := TRUE
+  ifeq ($(MPI_THREAD_MULTIPLE),TRUE)
+    USE_MPI := TRUE
+  endif
 else
   MPI_THREAD_MULTIPLE := FALSE
 endif

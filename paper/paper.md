@@ -124,7 +124,7 @@ AMReX provides data structures and iterators for performing data-parallel partic
 The approach is particularly suited to particles that interact with data defined on a (possibly adaptive) 
 block-structured hierarchy of meshes. Example applications include those that use Particle-in-Cell (PIC) methods, 
 Lagrangian tracers, or solid particles that exchange momentum with the surrounding fluid through drag forces.
-AMReX’s particle implementation allows users flexibility in specifying how the particle data 
+AMReX's particle implementation allows users flexibility in specifying how the particle data 
 is laid out in memory and in choosing how to optimize parallel communication of particle data. 
 
 ### Complex Geometries
@@ -137,7 +137,7 @@ values in the valid domain are computed.  Examples are provided in the tutorials
 
 ### Parallelism
 
-AMReX’s GPU strategy focuses on providing performant GPU support with 
+AMReX's GPU strategy focuses on providing performant GPU support with 
 minimal changes to AMReX-based application codes and maximum flexibility. 
 This allows application teams to get running on GPUs quickly while allowing 
 long term performance tuning and programming model selection. 

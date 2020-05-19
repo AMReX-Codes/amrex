@@ -91,8 +91,11 @@ int main (int argc, char* argv[])
         plotfile_mf.copy(divu,0,AMREX_SPACEDIM,1);
         
         MacProjector macproj({amrex::GetArrOfPtrs(vel)},       // mac velocity
-                             {amrex::GetArrOfConstPtrs(beta)}, // beta 
-                             {geom});                          // Geometry        
+                             MLMG::Location::FaceCenter,
+                             {amrex::GetArrOfConstPtrs(beta)}, // beta
+                             MLMG::Location::FaceCenter, MLMG::Location::CellCenter,
+                             {geom},                           // Geometry
+                             LPInfo());
 
         macproj.setVerbose(verbose);
 
@@ -109,7 +112,7 @@ int main (int argc, char* argv[])
         // Define the absolute tolerance; note that this argument is optional
         Real abstol = 1.e-15;
 
-        macproj.project(reltol,abstol,MLMG::Location::FaceCenter);
+        macproj.project(reltol,abstol);
 
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             vel[idim].FillBoundary(geom.periodicity());

@@ -39,7 +39,7 @@ cns_estdt (amrex::Box const& bx, amrex::Array4<Real const> const& state,
                 amrex::Real vy = my*rhoinv;
                 amrex::Real vz = mz*rhoinv;
                 amrex::Real p = amrex::max((parm.eos_gamma-1.0_rt)*ei, parm.smallp);
-                amrex::Real cs = std::sqrt(parm.eos_gamma*p*rhoinv);
+                amrex::Real cs = amrex::Math::sqrt(parm.eos_gamma*p*rhoinv);
                 amrex::Real dtx = dx[0]/(amrex::Math::abs(vx)+cs);
                 amrex::Real dty = dx[1]/(amrex::Math::abs(vy)+cs);
                 amrex::Real dtz = dx[2]/(amrex::Math::abs(vz)+cs);

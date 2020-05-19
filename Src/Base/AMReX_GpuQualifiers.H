@@ -12,6 +12,7 @@
 #define AMREX_GPU_GLOBAL __global__
 #define AMREX_GPU_HOST_DEVICE __host__ __device__
 #define AMREX_GPU_CONSTANT __constant__
+#define AMREX_GPU_EXTERNAL
 
 #if defined(AMREX_USE_HIP) && !defined(AMREX_USE_CUDA)
 #define AMREX_GPU_MANAGED __device__
@@ -30,6 +31,11 @@
 #define AMREX_GPU_CONSTANT
 #define AMREX_GPU_MANAGED
 #define AMREX_GPU_DEVICE_MANAGED
+#ifdef AMREX_USE_DPCPP
+#define AMREX_GPU_EXTERNAL SYCL_EXTERNAL
+#else
+#define AMREX_GPU_EXTERNAL
+#endif
 
 #endif
 

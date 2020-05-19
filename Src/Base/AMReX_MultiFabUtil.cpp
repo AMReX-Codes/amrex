@@ -132,14 +132,17 @@ namespace amrex
                          Array4<Real const> const& fyarr = fc[1]->const_array(mfi);,
                          Array4<Real const> const& fzarr = fc[2]->const_array(mfi););
 
+#if (AMREX_SPACEDIM == 1)
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
             {
-#if (AMREX_SPACEDIM == 1)
-                amrex_avg_fc_to_cc(tbx, ccarr, AMREX_D_DECL(fxarr,fyarr,fzarr), dcomp, GeometryData());
-#else
-                amrex_avg_fc_to_cc(tbx, ccarr, AMREX_D_DECL(fxarr,fyarr,fzarr), dcomp);
-#endif
+                amrex_avg_fc_to_cc(tbx, ccarr, fxarr, dcomp, GeometryData());
             });
+#else
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+            {
+                amrex_avg_fc_to_cc(tbx, ccarr, AMREX_D_DECL(fxarr,fyarr,fzarr), dcomp);
+            });
+#endif
         }
     }
 
@@ -164,14 +167,17 @@ namespace amrex
                          Array4<Real const> const& fyarr = fc[1]->const_array(mfi);,
                          Array4<Real const> const& fzarr = fc[2]->const_array(mfi););
 
+#if (AMREX_SPACEDIM == 1)
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
             {
-#if (AMREX_SPACEDIM == 1)
-                amrex_avg_fc_to_cc(tbx, ccarr, AMREX_D_DECL(fxarr,fyarr,fzarr), 0, gd);
-#else
-                amrex_avg_fc_to_cc(tbx, ccarr, AMREX_D_DECL(fxarr,fyarr,fzarr), 0);
-#endif
+                amrex_avg_fc_to_cc(tbx, ccarr, fxarr, 0, gd);
             });
+#else
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+            {
+                amrex_avg_fc_to_cc(tbx, ccarr, AMREX_D_DECL(fxarr,fyarr,fzarr), 0);
+            });
+#endif
         }
     }
 
@@ -209,16 +215,18 @@ namespace amrex
                          Array4<Real> const& fzarr = fc[2]->array(mfi););
             Array4<Real const> const& ccarr = cc.const_array(mfi);
 
+#if (AMREX_SPACEDIM == 1)
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA (index_bounds, tbx,
             {
-#if (AMREX_SPACEDIM == 1)
-                amrex_avg_cc_to_fc(tbx, AMREX_D_DECL(xbx,ybx,zbx),
-                                   AMREX_D_DECL(fxarr,fyarr,fzarr), ccarr, gd);
+                amrex_avg_cc_to_fc(tbx, xbx, fxarr, ccarr, gd);
+            });
 #else
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (index_bounds, tbx,
+            {
                 amrex_avg_cc_to_fc(tbx, AMREX_D_DECL(xbx,ybx,zbx),
                                    AMREX_D_DECL(fxarr,fyarr,fzarr), ccarr);
-#endif
             });
+#endif
 	}
     }
 

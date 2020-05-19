@@ -1846,15 +1846,7 @@ BaseFab<T>::copy (const BaseFab<T>& src, const Box& srcbox, int srccomp,
     Array4<T const> const& s = src.const_array();
     const auto dlo = amrex::lbound(destbox);
     const auto slo = amrex::lbound(srcbox);
-// HIP FIX HERE - Dim3
-#ifdef AMREX_USE_HIP
-    Dim3 offset;
-    offset.x = slo.x-dlo.x;
-    offset.y = slo.y-dlo.y;
-    offset.z = slo.z-dlo.z; 
-#else
     const Dim3 offset{slo.x-dlo.x,slo.y-dlo.y,slo.z-dlo.z};
-#endif
 
     AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on, destbox, numcomp, i, j, k, n,
     {
@@ -2933,20 +2925,8 @@ BaseFab<T>::linComb (const BaseFab<T>& f1, const Box& b1, int comp1,
     const auto dlo = amrex::lbound(b);
     const auto slo1 = amrex::lbound(b1);
     const auto slo2 = amrex::lbound(b2);
-// HIP FIX HERE - Dim3
-#ifdef AMREX_USE_HIP 
-    Dim3 off1;
-    off1.x = slo1.x-dlo.x;
-    off1.y = slo1.y-dlo.y;
-    off1.z = slo1.z-dlo.z;
-    Dim3 off2;
-    off2.x = slo2.x-dlo.x;
-    off2.y = slo2.y-dlo.y;
-    off2.z = slo2.z-dlo.z;
-#else
     const Dim3 off1{slo1.x-dlo.x,slo1.y-dlo.y,slo1.z-dlo.z};
     const Dim3 off2{slo2.x-dlo.x,slo2.y-dlo.y,slo2.z-dlo.z};    
-#endif
 
     AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on, b, numcomp, i, j, k, n,
     {
@@ -2974,15 +2954,7 @@ BaseFab<T>::dot (const Box& xbx, int xcomp,
 
     const auto xlo = amrex::lbound(xbx);
     const auto ylo = amrex::lbound(ybx);
-// HIP FIX HERE - Dim3 
-#ifdef AMREX_USE_HIP
-    Dim3 offset;
-    offset.x = ylo.x-xlo.x;
-    offset.y = ylo.y-xlo.y;
-    offset.z = ylo.z-xlo.z;
-#else
     const Dim3 offset{ylo.x-xlo.x,ylo.y-xlo.y,ylo.z-xlo.z};
-#endif
     Array4<T const> const& xa = this->const_array();
     Array4<T const> const& ya = y.const_array();
 
@@ -3032,15 +3004,7 @@ BaseFab<T>::dotmask (const BaseFab<int>& mask, const Box& xbx, int xcomp,
 
     const auto xlo = amrex::lbound(xbx);
     const auto ylo = amrex::lbound(ybx);
-    // HIP FIX HERE - Initialization List: simple amrex::Dim3
-#ifdef AMREX_USE_HIP
-    Dim3 offset;
-    offset.x = ylo.x-xlo.x;
-    offset.y = ylo.y-xlo.y;
-    offset.z = ylo.z-xlo.z;
-#else
     const Dim3 offset{ylo.x-xlo.x,ylo.y-xlo.y,ylo.z-xlo.z};
-#endif
 
     Array4<T const> const& xa = this->const_array();
     Array4<T const> const& ya = y.const_array();
@@ -3196,15 +3160,7 @@ BaseFab<T>::plus (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
     Array4<T const> const& s = src.const_array();
     const auto dlo = amrex::lbound(destbox);
     const auto slo = amrex::lbound(srcbox);
-// HIP FIX HERE - Dim3
-#ifdef AMREX_USE_HIP
-    Dim3 offset;
-    offset.x = slo.x-dlo.x;
-    offset.y = slo.y-dlo.y;
-    offset.z = slo.z-dlo.z;
-#else
     const Dim3 offset{slo.x-dlo.x,slo.y-dlo.y,slo.z-dlo.z};
-#endif
     AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on, destbox, numcomp, i, j, k, n,
     {
         d(i,j,k,n+destcomp) += s(i+offset.x,j+offset.y,k+offset.z,n+srccomp);

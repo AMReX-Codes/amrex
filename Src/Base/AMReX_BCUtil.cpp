@@ -44,14 +44,14 @@ void FillDomainBoundary (MultiFab& phi, const Geometry& geom, const Vector<BCRec
         GpuBndryFuncFab<dummy_gpu_fill_extdir> gpu_bndry_func(dummy_gpu_fill_extdir{});
         PhysBCFunct<GpuBndryFuncFab<dummy_gpu_fill_extdir> > physbcf
             (geom, bc, gpu_bndry_func);
-        physbcf.FillBoundary(phi, 0, phi.nComp(), phi.nGrowVect(), 0.0, 0);
+        physbcf(phi, 0, phi.nComp(), phi.nGrowVect(), 0.0, 0);
 #if !(defined(AMREX_USE_CUDA) && defined(AMREX_USE_GPU_PRAGMA) && defined(AMREX_GPU_PRAGMA_NO_HOST))
     }
     else
     {
         CpuBndryFuncFab cpu_bndry_func(dummy_cpu_fill_extdir);;
         PhysBCFunct<CpuBndryFuncFab> physbcf(geom, bc, cpu_bndry_func);
-        physbcf.FillBoundary(phi, 0, phi.nComp(), phi.nGrowVect(), 0.0, 0);
+        physbcf(phi, 0, phi.nComp(), phi.nGrowVect(), 0.0, 0);
     }
 #endif
 }

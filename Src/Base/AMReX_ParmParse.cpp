@@ -480,12 +480,16 @@ read_file (const char*                     fname,
             auto r = std::find_if(std::begin(line), std::end(line),
                                   [](int c) -> bool { return !std::isspace(c); });
             if (fortran_namelist) { // already inside fortran namelist
-                os_fortran << line << "\n";
+                // os_fortran << line << "\n";
+                // pgi and ibm do not like `\n`.  We strip comments for them too.
+                os_fortran << line.substr(0, line.find('!')) << " ";
                 if (r != std::end(line) && *r == '/') {
                     fortran_namelist = false; // end of Fortran namelist
                 }
             } else if (r != std::end(line) && *r == '&') {
-                os_fortran << line << "\n";
+                // os_fortran << line << "\n";
+                // pgi and ibm do not like `\n`.  We strip comments for them too.
+                os_fortran << line.substr(0, line.find('!')) << " ";
                 fortran_namelist = true;  // begin of Fortran namelist
             } else {
                 os_cxx << line << "\n";

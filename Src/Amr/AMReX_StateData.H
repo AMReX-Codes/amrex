@@ -456,14 +456,18 @@ private:
 };
 
 class StateDataPhysBCFunct
-    : public PhysBCFunctBase
 {
 public:
 
     StateDataPhysBCFunct (StateData& sd, int sc, const Geometry& geom_);
     
-    virtual void FillBoundary (MultiFab& mf, int dcomp, int ncomp, IntVect const& nghost,
-                               Real time, int bccomp) override;
+    void operator() (MultiFab& mf, int dcomp, int ncomp, IntVect const& nghost,
+                     Real time, int bccomp);
+
+    void FillBoundary (MultiFab& mf, int dcomp, int ncomp, IntVect const& nghost,
+                       Real time, int bccomp) {
+        this->operator()(mf,dcomp,ncomp,nghost,time,bccomp);
+    }
 private:
     StateData* statedata;
     int src_comp;
