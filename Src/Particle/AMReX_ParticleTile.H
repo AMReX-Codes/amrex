@@ -466,10 +466,10 @@ struct ParticleTile
 
     ConstParticleTileDataType getConstParticleTileData () const
     {
-        for (int i = 0; i < m_runtime_r_ptrs.size(); ++i) {
+        for (size_t i = 0; i < m_runtime_r_ptrs.size(); ++i) {
             m_runtime_r_cptrs[i] = m_soa_tile.GetRealData(NArrayReal + i).dataPtr();
         }
-        for (int i = 0; i < m_runtime_i_ptrs.size(); ++i) 
+        for (size_t i = 0; i < m_runtime_i_ptrs.size(); ++i)
             m_runtime_i_cptrs[i] = m_soa_tile.GetIntData(NArrayInt + i).dataPtr();
 
         ConstParticleTileDataType ptd;

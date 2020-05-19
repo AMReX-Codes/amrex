@@ -1,4 +1,3 @@
-
 template <int NStructReal, int NStructInt>
 bool NeighborParticleContainer<NStructReal, NStructInt>::use_mask = false;
 
@@ -352,7 +351,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
                 auto& cache = buffer_tag_cache[lev][src_index][thread_num];
 
                 auto& particles = pti.GetArrayOfStructs();
-                for (unsigned i = 0; i < pti.numParticles(); ++i) {
+                for (int i = 0; i < pti.numParticles(); ++i) {
                     const ParticleType& p = particles[i];
 
                     getNeighborTags(tags, p, m_num_neighbor_cells, src_tag, pti);
@@ -722,7 +721,7 @@ buildNeighborList (CheckPair check_pair, bool sort)
             {
                 auto cnt = counts[i];
                 neighbor_list[lev][index].push_back(cnt);
-                for (int j = 0; j < cnt; ++j)
+                for (size_t j = 0; j < cnt; ++j)
                 {
                     neighbor_list[lev][index].push_back(list[li++]+1);
                 }
