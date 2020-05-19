@@ -14,6 +14,8 @@
 #include <AMReX_BLassert.H>
 #include <AMReX_SPACE.H>
 #include <AMReX_REAL.H>
+#include <AMReX_Algorithm.H>
+#include <AMReX_Dim3.H>
 
 namespace amrex {
 
@@ -53,7 +55,7 @@ namespace amrex {
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T* end() noexcept { return arr + N; };
 
-        T arr[N];
+        T arr[amrex::max(N,std::size_t{1})];
     };
 }
 
@@ -141,6 +143,20 @@ namespace amrex
         return {AMREX_D_DECL(a[0].get(), a[1].get(), a[2].get())};
     }
 
+}
+
+namespace amrex
+{
+    inline XDim3 makeXDim3 (const Array<Real,AMREX_SPACEDIM>& a) noexcept
+    {
+#if (AMREX_SPACEDIM == 1)
+        return XDim3{a[0], 0., 0.};
+#elif (AMREX_SPACEDIM == 2)
+        return XDim3{a[0], a[1], 0.};
+#else
+        return XDim3{a[0], a[1], a[2]};
+#endif
+    }
 }
 
 #endif
