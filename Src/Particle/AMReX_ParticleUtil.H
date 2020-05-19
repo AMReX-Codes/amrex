@@ -231,7 +231,7 @@ void enforcePeriodic (P& p,
     }
 }
 
-#if defined(AMREX_USE_GPU) && !defined(AMREX_USE_DPCPP)
+#if defined(AMREX_USE_GPU)
 
 template <typename PTile, typename PLocator>
 int
