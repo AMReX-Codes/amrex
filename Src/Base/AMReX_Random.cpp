@@ -134,6 +134,13 @@ amrex::RandomNormal (amrex::Real mean, amrex::Real stddev)
 #endif
     __threadfence();
     free_state(tid);
+
+#elif defined(__SYCL_DEVICE_ONLY__)
+
+    assert(0);
+    rand = 0.0_rt;
+    return rand;
+
 #else
 
 #ifdef _OPENMP
@@ -174,6 +181,12 @@ amrex::Random ()
     __threadfence();
     free_state(tid);
 
+#elif defined(__SYCL_DEVICE_ONLY__)
+
+    assert(0);
+    rand = 0.0_rt;
+    return rand;
+
 #else     // on the host
 
 #ifdef _OPENMP
@@ -208,6 +221,13 @@ amrex::RandomPoisson (amrex::Real lambda)
 
     __threadfence();
     free_state(tid);
+
+#elif defined(__SYCL_DEVICE_ONLY__)
+
+    assert(0);
+    rand = 0.0_rt;
+    return rand;
+
 #else
 
 #ifdef _OPENMP
@@ -245,6 +265,11 @@ amrex::Random_int (unsigned int n)
     free_state(tid);
 
     return rand % n;
+
+#elif defined(__SYCL_DEVICE_ONLY__)
+
+    assert(0);
+    return 0;
 
 #else // on the host
 
