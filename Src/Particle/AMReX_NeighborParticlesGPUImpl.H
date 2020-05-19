@@ -265,13 +265,13 @@ updateNeighborsGPU ()
     else
     {
         pinned_snd_buffer.resize(snd_buffer.size());
-        cudaMemcpyAsync(pinned_snd_buffer.dataPtr(), snd_buffer.dataPtr(), snd_buffer.size(), cudaMemcpyDeviceToHost);        
+        Gpu::dtoh_memcpy_async(pinned_snd_buffer.dataPtr(), snd_buffer.dataPtr(), snd_buffer.size());
         neighbor_copy_plan.buildMPIFinish(this->BufferMap());
         communicateParticlesStart(*this, neighbor_copy_plan, pinned_snd_buffer, pinned_rcv_buffer);
         rcv_buffer.resize(pinned_rcv_buffer.size());
         unpackBuffer(*this, neighbor_copy_plan, snd_buffer, NeighborUnpackPolicy());
         communicateParticlesFinish(neighbor_copy_plan);
-        cudaMemcpyAsync(rcv_buffer.dataPtr(), pinned_rcv_buffer.dataPtr(), pinned_rcv_buffer.size(), cudaMemcpyHostToDevice);
+        Gpu::htod_memcpy_async(rcv_buffer.dataPtr(), pinned_rcv_buffer.dataPtr(), pinned_rcv_buffer.size());
         unpackRemotes(*this, neighbor_copy_plan, rcv_buffer, NeighborUnpackPolicy());
     }
 }
