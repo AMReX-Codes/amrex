@@ -284,7 +284,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-                for (unsigned i = 0; i < num_tags; ++i) {
+                for (int i = 0; i < num_tags; ++i) {
                     const NeighborCopyTag& tag = tags[i];
                     const int who = this->ParticleDistributionMap(tag.level)[tag.grid];
                     ParticleType p = particles[tag.src_index];  // copy

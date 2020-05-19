@@ -142,7 +142,7 @@ public:
                 for (int jj = amrex::max(iy-num_cells, 0); jj <= amrex::min(iy+num_cells, ny-1); ++jj) {
                     for (int kk = amrex::max(iz-num_cells, 0); kk <= amrex::min(iz+num_cells, nz-1); ++kk) {
                         int index = (ii * ny + jj) * nz + kk;
-                        for (int p = poffset[index]; p < poffset[index+1]; ++p) {
+                        for (auto p = poffset[index]; p < poffset[index+1]; ++p) {
                             if (pperm[p] == i) continue;
                             if (check_pair(pstruct_ptr[i], pstruct_ptr[pperm[p]]))
                                 count += 1;
@@ -183,7 +183,7 @@ public:
                 for (int jj = amrex::max(iy-num_cells, 0); jj <= amrex::min(iy+num_cells, ny-1); ++jj) {
                     for (int kk = amrex::max(iz-num_cells, 0); kk <= amrex::min(iz+num_cells, nz-1); ++kk) {
                         int index = (ii * ny + jj) * nz + kk;
-                        for (int p = poffset[index]; p < poffset[index+1]; ++p) {
+                        for (auto p = poffset[index]; p < poffset[index+1]; ++p) {
                             if (pperm[p] == i) continue;
                             if (check_pair(pstruct_ptr[i], pstruct_ptr[pperm[p]])) {
                                 pm_nbor_list[pnbor_offset[i] + n] = pperm[p]; 
