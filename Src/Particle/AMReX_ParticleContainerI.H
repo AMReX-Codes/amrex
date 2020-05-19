@@ -945,7 +945,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::Redistribute (int lev_min, int lev_max, int nGrow, int local)
 {
 #ifdef AMREX_USE_GPU
-    if ( (nGrow == 0) and Gpu::inLaunchRegion() )
+    if ( Gpu::inLaunchRegion() )
     {
         RedistributeGPU(lev_min, lev_max, nGrow, local);
     }
@@ -1043,10 +1043,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 {
 #ifdef AMREX_USE_GPU
 
-    if (local) AMREX_ASSERT(numParticlesOutOfRange(*this, local) == 0);
+    if (local) AMREX_ASSERT(numParticlesOutOfRange(*this, lev_min, lev_max, local) == 0);
     
-    // sanity checks
-    AMREX_ASSERT(nGrow == 0);
+    // sanity check
     AMREX_ASSERT(do_tiling == false);
 
     BL_PROFILE("ParticleContainer::RedistributeGPU()");
@@ -1098,7 +1097,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             const size_t np = aos.numParticles();
 
             int num_stay = partitionParticlesByDest(src_tile, assign_grid, BufferMap(),
-                                                    geom, lev, gid, tid);
+                                                    geom, lev, gid, tid,
+                                                    lev_min, lev_max, nGrow);
 
             int num_move = np - num_stay;
             new_sizes[lev][gid] = num_stay;
@@ -1120,7 +1120,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                 }
                 else
                 {
-                    const auto tup = assign_grid(p);
+                    const auto tup = assign_grid(p, lev_min, lev_max, nGrow);
                     p_boxes[i] = amrex::get<0>(tup);
                     p_levs[i]  = amrex::get<1>(tup);
                 }
@@ -1197,7 +1197,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     }
 
     Gpu::Device::synchronize();    
-    AMREX_ASSERT(numParticlesOutOfRange(*this, 0) == 0);
+    AMREX_ASSERT(numParticlesOutOfRange(*this, lev_min, lev_max, nGrow) == 0);
 #endif
 }
 
