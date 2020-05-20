@@ -65,7 +65,7 @@ void mlebabeclap_apply_bc_x (int side, Box const& box, int blen,
         GpuArray<Real,4> x{-bcl * dxinv, 0.5_rt, 1.5_rt, 2.5_rt};
         Array2D<Real, 0, 2, 0, 3> coef{};
         for (int r = 0; r <= maxorder-2; ++r) {
-            poly_interp_coeff(-0.5_rt, &x[0], NX, &(coef[r][0]));
+            poly_interp_coeff(-0.5_rt, &x[0], NX, &(coef(r,0)));
         }
         for     (int k = lo.z; k <= hi.z; ++k) {
             for (int j = lo.y; j <= hi.y; ++j) {
@@ -87,11 +87,11 @@ void mlebabeclap_apply_bc_x (int side, Box const& box, int blen,
                     } else {
                         Real tmp = 0.0_rt;
                         for (int m = 1; m < order; ++m) {
-                            tmp += phi(i+m*s,j,k,icomp) * coef[order-2][m];
+                            tmp += phi(i+m*s,j,k,icomp) * coef(order-2,m);
                         }
                         phi(i,j,k,icomp) = tmp;
                         if (inhomog) {
-                            phi(i,j,k,icomp) += bcval(i,j,k,icomp)*coef[order-2][0];
+                            phi(i,j,k,icomp) += bcval(i,j,k,icomp)*coef(order-2,0);
                         }
                     }
                 }
@@ -145,7 +145,7 @@ void mlebabeclap_apply_bc_y (int side, Box const& box, int blen,
         GpuArray<Real,4> x{-bcl * dyinv, 0.5_rt, 1.5_rt, 2.5_rt};
         Array2D<Real, 0, 2, 0, 3> coef{};
         for (int r = 0; r <= maxorder-2; ++r) {
-            poly_interp_coeff(-0.5_rt, &x[0], NX, &(coef[r][0]));
+            poly_interp_coeff(-0.5_rt, &x[0], NX, &(coef(r,0)));
         }
         for     (int k = lo.z; k <= hi.z; ++k) {
             for (int i = lo.x; i <= hi.x; ++i) {
@@ -167,11 +167,11 @@ void mlebabeclap_apply_bc_y (int side, Box const& box, int blen,
                     } else {
                         Real tmp = 0.0_rt;
                         for (int m = 1; m < order; ++m) {
-                            tmp += phi(i,j+m*s,k,icomp) * coef[order-2][m];
+                            tmp += phi(i,j+m*s,k,icomp) * coef(order-2,m);
                         }
                         phi(i,j,k,icomp) = tmp;
                         if (inhomog) {
-                            phi(i,j,k,icomp) += bcval(i,j,k,icomp)*coef[order-2][0];
+                            phi(i,j,k,icomp) += bcval(i,j,k,icomp)*coef(order-2,0);
                         }
                     }
                 }
@@ -225,7 +225,7 @@ void mlebabeclap_apply_bc_z (int side, Box const& box, int blen,
         GpuArray<Real,4> x{-bcl * dzinv, 0.5_rt, 1.5_rt, 2.5_rt};
         Array2D<Real, 0, 2, 0, 3> coef{};
         for (int r = 0; r <= maxorder-2; ++r) {
-            poly_interp_coeff(-0.5_rt, &x[0], NX, &(coef[r][0]));
+            poly_interp_coeff(-0.5_rt, &x[0], NX, &(coef(r,0)));
         }
         for     (int j = lo.y; j <= hi.y; ++j) {
             for (int i = lo.x; i <= hi.x; ++i) {
@@ -247,11 +247,11 @@ void mlebabeclap_apply_bc_z (int side, Box const& box, int blen,
                     } else {
                         Real tmp = 0.0_rt;
                         for (int m = 1; m < order; ++m) {
-                            tmp += phi(i,j,k+m*s,icomp) * coef[order-2][m];
+                            tmp += phi(i,j,k+m*s,icomp) * coef(order-2,m);
                         }
                         phi(i,j,k,icomp) = tmp;
                         if (inhomog) {
-                            phi(i,j,k,icomp) += bcval(i,j,k,icomp)*coef[order-2][0];
+                            phi(i,j,k,icomp) += bcval(i,j,k,icomp)*coef(order-2,0);
                         }
                     }
                 }
