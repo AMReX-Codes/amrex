@@ -24,6 +24,10 @@
 * The maximum size of kernel parameter is 1KB on current Intel GPUs.
   This is not sufficient for many of our kernels.
 
+* Sometimes the JIT compilation will raise floating-point exception at
+  runtime.  This forces us to disable floating-point exception signal
+  handling that we often rely on for debugging.
+
 * Option to be less OOP.  Could we have access to thread id, group id,
   memory fence, barrier functions, etc. without using an nd_item like
   object?
