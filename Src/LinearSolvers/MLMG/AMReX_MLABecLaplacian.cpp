@@ -404,7 +404,7 @@ MLABecLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
 
 #ifdef AMREX_USE_DPCPP
         // xxxxx DPCPP todo: kernel size
-        Vector<Array4<Real const> > ha(6);
+        Vector<Array4<Real const> > ha(2*AMREX_SPACEDIM);
         ha[0] = f0fab;
         ha[1] = f1fab;
 #if (AMREX_SPACEDIM > 1)
@@ -415,7 +415,7 @@ MLABecLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
         ha[5] = f5fab;
 #endif
 #endif
-        Gpu::AsyncArray<Array4<Real const> > aa(ha.data(), 6);
+        Gpu::AsyncArray<Array4<Real const> > aa(ha.data(), 2*AMREX_SPACEDIM);
         auto dp = aa.data();
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
         {
