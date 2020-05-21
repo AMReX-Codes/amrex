@@ -8,18 +8,6 @@
 
 #include <string>
 
-namespace amrex
-{
-    template <typename T, typename S> 
-    std::ostream& operator<<(std::ostream& os, const std::pair<T, S>& v) 
-    { 
-        os << "("; 
-        os << v.first << ", " 
-           << v.second << ")"; 
-        return os; 
-    } 
-}
-
 using namespace amrex;
 
 struct TestParams

@@ -4,6 +4,7 @@
 #include <sstream>
 #include <fstream>
 #include <iomanip>
+#include <utility>
 
 #include <AMReX.H>
 #include <AMReX_ParallelContext.H>
@@ -11,6 +12,13 @@
 
 namespace amrex
 {
+    template <typename T, typename S>
+    std::ostream& operator<<(std::ostream& os, const std::pair<T, S>& v)
+    {
+        os << "(" << v.first << ", " << v.second << ")";
+        return os;
+    }
+
     //! This class provides the user with a few print options
     class Print
     {
