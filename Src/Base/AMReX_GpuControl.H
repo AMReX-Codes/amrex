@@ -3,7 +3,6 @@
 
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_GpuTypes.H>
-#include <AMReX_Utility.H>
 
 #ifndef AMREX_GPU_MAX_THREADS
 #define AMREX_GPU_MAX_THREADS 256
