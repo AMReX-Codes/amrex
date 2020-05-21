@@ -305,6 +305,55 @@ other ways, one can call :cpp:`setMetricTerm(bool)` with :cpp:`false`
 on the :cpp:`LPInfo` object passed to the constructor of linear
 operators.
 
+Embedded Boundaries
+===================
+
+AMReX supports multi-level solvers for use with embedded boundaries.
+These include
+1) cell-centered solvers with homogeneous Neumann, homogeneous Dirichlet, 
+or inhomogeneous Dirichlet boundary conditions on the EB faces, and 
+2) nodal solvers with homogeneous Neumann boundary conditions on the EB faces.
+
+To use a cell-centered solver with EB, one builds a linear operator
+:cpp:`MLEBABecLap` with :cpp:`EBFArrayBoxFactory` (instead of a :cpp`MLABecLaplacian`)
+
+.. highlight:: c++
+
+::
+
+    MLEBABecLap (const Vector<Geometry>& a_geom,
+                 const Vector<BoxArray>& a_grids,
+                 const Vector<DistributionMapping>& a_dmap,
+                 const LPInfo& a_info,
+                 const Vector<EBFArrayBoxFactory const*>& a_factory);
+
+The usage of this EB-specific class is essentially the same as
+:cpp:`MLABecLaplacian`.
+
+Currently there are options to define the face-based coefficients on 
+face centers vs face centroids, and to interpret the solution variable
+as being defined on cell centers vs cell centroids.   
+
+The default is for the solution variable to be defined at cell centers;
+to tell the solver to interpret the solution variable as living
+at cell centroids, you must set
+
+.. highlight:: c++
+
+::
+
+    ml_ebabeclap->setPhiOnCentroid();
+
+The default is for the face-based coefficients to be defined at face centers;
+to tell the that the face-based coefficients should be interpreted
+as living at face centroids, modify the setBCoeffs command to be
+
+.. highlight:: c++
+
+::
+
+    ml_ebabeclap->setBCoeffs(lev, beta, MLMG::Location::FaceCentroid);
+
 External Solvers
 ================
 
@@ -797,8 +846,6 @@ An example (implemented in the ``MultiComponent`` tutorial) might be:
   `reflux` is a straightforward restriction from fine to coarse, using level 1 ghost nodes for restriction as described above.
   
   See ``Tutorials/LinearSolvers/MultiComponent`` for a complete working example.
-
-   
 
 .. solver reuse
 

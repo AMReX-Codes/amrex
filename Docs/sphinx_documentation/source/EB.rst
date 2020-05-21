@@ -1074,8 +1074,6 @@ Here the :cpp:`make_my_eb` is only defines the EB geometry. The function call
 :cpp:`ls_core->InitData()` constructs level hierarchy and fills it with
 level-set values.
 
-
-
 Linear Solvers
 ==============
 
@@ -1087,7 +1085,7 @@ or inhomogeneous Dirichlet boundary conditions on the EB faces, and
 2) nodal solvers with homogeneous Neumann boundary conditions on the EB faces.
 
 To use a cell-centered solver with EB, one builds a linear operator
-:cpp:`MLEBABecLap` with :cpp:`EBFArrayBoxFactory` (instead of a :cpp"`MLABecLaplacian`)
+:cpp:`MLEBABecLap` with :cpp:`EBFArrayBoxFactory` (instead of a :cpp`MLABecLaplacian`)
 
 .. highlight:: c++
 
