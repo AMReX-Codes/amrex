@@ -1225,11 +1225,11 @@ void ReadParticlesHDF5 (hsize_t offset, hsize_t cnt, int grd, int lev, hid_t int
     
 private:
 
-    virtual void particlePostLocate(ParticleType& p, const ParticleLocData& pld,
-                                    const int lev) {};
+    virtual void particlePostLocate(ParticleType& /*p*/, const ParticleLocData& /*pld*/,
+                                    const int /*lev*/) {};
 
-    virtual void correctCellVectors(int old_index, int new_index,
-				    int grid, const ParticleType& p) {};
+    virtual void correctCellVectors(int /*old_index*/, int /*new_index*/,
+				    int /*grid*/, const ParticleType& /*p*/) {};
 
     void RedistributeMPI (std::map<int, Vector<char> >& not_ours,
 			  int lev_min = 0, int lev_max = 0, int nGrow = 0, int local=0);

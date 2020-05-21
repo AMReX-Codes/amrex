@@ -142,7 +142,7 @@ makeArray4 (T* p, Box const& bx, int ncomp) noexcept
 
 template <typename T>
 typename std::enable_if<std::is_arithmetic<T>::value>::type
-placementNew (T* const ptr, Long n)
+placementNew (T* const /*ptr*/, Long /*n*/)
 {}
 
 template <typename T>
@@ -166,7 +166,7 @@ placementNew (T* const ptr, Long n)
 
 template <typename T>
 typename std::enable_if<std::is_trivially_destructible<T>::value>::type
-placementDelete (T* const ptr, Long n)
+placementDelete (T* const /*ptr*/, Long /*n*/)
 {}
 
 template <typename T>

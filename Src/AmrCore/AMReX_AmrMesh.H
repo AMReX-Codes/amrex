@@ -221,13 +221,13 @@ public:
     //! This function is called by the second version of MakeNewGrids.
     //! Make a new level from scratch using provided BoxArray and DistributionMapping.
     //! Only used during initialization.
-    virtual void MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba, const DistributionMapping& dm) {}
+    virtual void MakeNewLevelFromScratch (int /*lev*/, Real /*time*/, const BoxArray& /*ba*/, const DistributionMapping& /*dm*/) {}
 
     //! Tag cells for refinement.  TagBoxArray tags is built on level lev grids.
-    virtual void ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow) {}
+    virtual void ErrorEst (int /*lev*/, TagBoxArray& /*tags*/, Real /*time*/, int /*ngrow*/) {}
 
     //! Manually tag.  Note that tags is built on level lev grids coarsened by bf_lev[lev].
-    virtual void ManualTagsPlacement (int lev, TagBoxArray& tags, const Vector<IntVect>& bf_lev) {}
+    virtual void ManualTagsPlacement (int /*lev*/, TagBoxArray& /*tags*/, const Vector<IntVect>& /*bf_lev*/) {}
 
     //! Apply some user-defined changes the to base grids.
     //!
@@ -235,9 +235,9 @@ public:
     //! and before calling MakeNewLevelFromScratch.
     //!
     //! For example, use this function if you want to remove covered grids on the coarsest refinement level.
-    virtual void PostProcessBaseGrids(BoxArray& box_array) const {}
+    virtual void PostProcessBaseGrids(BoxArray& /*box_array*/) const {}
 
-    virtual BoxArray GetAreaNotToTag (int lev) { return BoxArray(); }
+    virtual BoxArray GetAreaNotToTag (int /*lev*/) { return BoxArray(); }
 
     long CountCells (int lev) noexcept;
 
