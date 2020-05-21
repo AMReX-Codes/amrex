@@ -49,7 +49,7 @@ class FabFactory
 public:
     virtual ~FabFactory () {}
     virtual FAB* create (const Box& box, int ncomps, const FabInfo& info, int box_index) const = 0;
-    virtual FAB* create_alias (FAB const& rhs, int scomp, int ncomp) const { return nullptr; }
+    virtual FAB* create_alias (FAB const& /*rhs*/, int /*scomp*/, int /*ncomp*/) const { return nullptr; }
     virtual void destroy (FAB* fab) const = 0;
     virtual FabFactory<FAB>* clone () const = 0;
 };
@@ -59,7 +59,7 @@ class DefaultFabFactory
     : public FabFactory<FAB>
 {
 public:
-    virtual FAB* create (const Box& box, int ncomps, const FabInfo& info, int box_index) const override
+    virtual FAB* create (const Box& box, int ncomps, const FabInfo& info, int /*box_index*/) const override
     {
         return new FAB(box, ncomps, info.alloc, info.shared, info.arena);
     }

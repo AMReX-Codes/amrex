@@ -54,6 +54,7 @@ namespace Gpu {
 //        auto type = sycl::get_pointer_type(p,Device::syclContext());
         return false;
 #else
+        amrex::ignore_unused(p);
         return false;
 #endif
     }
@@ -74,6 +75,7 @@ namespace Gpu {
         // xxxxx DPCPP todo: get_pointer_type
         return false;
 #else
+        amrex::ignore_unused(p);
         return false;
 #endif
     }
@@ -94,6 +96,7 @@ namespace Gpu {
         // xxxxx DPCPP todo: get_pointer_type
         return false;
 #else
+        amrex::ignore_unused(p);
         return false;
 #endif
     }
@@ -124,6 +127,7 @@ namespace Gpu {
         // xxxxx DPCPP todo: get_pointer_type
         return false;
 #else
+        amrex::ignore_unused(p);
         return false;
 #endif
     }

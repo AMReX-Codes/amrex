@@ -34,6 +34,7 @@ AMREX_FORCE_INLINE Long size (Box const& b) noexcept
 #if AMREX_DEVICE_COMPILE
     return b.numPts();
 #else
+    amrex::ignore_unused(b);
     return 1;
 #endif
 }
@@ -52,6 +53,7 @@ AMREX_FORCE_INLINE Box at (Box const& b, Long offset) noexcept
     iv += b.smallEnd();
     return Box(iv,iv,b.type());
 #else
+    amrex::ignore_unused(offset);
     return b;
 #endif
 }
