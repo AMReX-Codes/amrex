@@ -205,6 +205,7 @@ nonNullStreamSynchronize () noexcept
 inline void
 htod_memcpy (void* p_d, const void* p_h, const std::size_t sz) noexcept
 {
+    if (sz == 0) return;
 #ifdef AMREX_USE_DPCPP
     Device::nonNullStreamSynchronize();
     auto& q = Device::nullQueue();
@@ -224,6 +225,7 @@ htod_memcpy (void* p_d, const void* p_h, const std::size_t sz) noexcept
 inline void
 dtoh_memcpy (void* p_h, const void* p_d, const std::size_t sz) noexcept
 {
+    if (sz == 0) return;
 #ifdef AMREX_USE_DPCPP
     Device::nonNullStreamSynchronize();
     auto& q = Device::nullQueue();
@@ -243,6 +245,7 @@ dtoh_memcpy (void* p_h, const void* p_d, const std::size_t sz) noexcept
 inline void
 dtod_memcpy (void* p_d_dst, const void* p_d_src, const std::size_t sz) noexcept
 {
+    if (sz == 0) return;
 #ifdef AMREX_USE_DPCPP
     Device::nonNullStreamSynchronize();
     auto& q = Device::nullQueue();
@@ -262,6 +265,7 @@ dtod_memcpy (void* p_d_dst, const void* p_d_src, const std::size_t sz) noexcept
 inline void
 htod_memcpy_async (void* p_d, const void* p_h, const std::size_t sz) noexcept
 {
+    if (sz == 0) return;
 #ifdef AMREX_USE_DPCPP
     auto& q = Device::streamQueue();
     q.submit([&] (sycl::handler& h) { h.memcpy(p_d, p_h, sz); });
@@ -275,6 +279,7 @@ htod_memcpy_async (void* p_d, const void* p_h, const std::size_t sz) noexcept
 inline void
 dtoh_memcpy_async (void* p_h, const void* p_d, const std::size_t sz) noexcept
 {
+    if (sz == 0) return;
 #ifdef AMREX_USE_DPCPP
     auto& q = Device::streamQueue();
     q.submit([&] (sycl::handler& h) { h.memcpy(p_h, p_d, sz); });
@@ -288,6 +293,7 @@ dtoh_memcpy_async (void* p_h, const void* p_d, const std::size_t sz) noexcept
 inline void
 dtod_memcpy_async (void* p_d_dst, const void* p_d_src, const std::size_t sz) noexcept
 {
+    if (sz == 0) return;
 #ifdef AMREX_USE_DPCPP
     auto& q = Device::streamQueue();
     q.submit([&] (sycl::handler& h) { h.memcpy(p_d_dst, p_d_src, sz); });
