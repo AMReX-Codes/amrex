@@ -1074,20 +1074,19 @@ Here the :cpp:`make_my_eb` is only defines the EB geometry. The function call
 :cpp:`ls_core->InitData()` constructs level hierarchy and fills it with
 level-set values.
 
-
-
 Linear Solvers
 ==============
 
 Linear solvers for the canonical form (equation :eq:`eqn::abeclap`)
 have been discussed in chapter :ref:`Chap:LinearSolvers`.  
+
 AMReX supports multi-level 
 1) cell-centered solvers with homogeneous Neumann, homogeneous Dirichlet, 
 or inhomogeneous Dirichlet boundary conditions on the EB faces, and 
 2) nodal solvers with homogeneous Neumann boundary conditions on the EB faces.
 
 To use a cell-centered solver with EB, one builds a linear operator
-:cpp:`MLEBABecLap` with :cpp:`EBFArrayBoxFactory` (instead of a :cpp"`MLABecLaplacian`)
+:cpp:`MLEBABecLap` with :cpp:`EBFArrayBoxFactory` (instead of a :cpp:`MLABecLaplacian`)
 
 .. highlight:: c++
 
@@ -1101,6 +1100,31 @@ To use a cell-centered solver with EB, one builds a linear operator
 
 The usage of this EB-specific class is essentially the same as
 :cpp:`MLABecLaplacian`.
+
+The default boundary condition on EB faces is homogeneous Neumann.
+
+To set homogeneous Dirichlet boundary conditions, call
+
+.. highlight:: c++
+
+::
+
+    ml_ebabeclap->setEBHomogDirichlet(lev, coeff);
+
+where coeff can be a real number (i.e. the value is the same at every cell)
+or is the MultiFab holding the coefficient of the gradient at each cell with an EB face.
+
+To set inhomogeneous Dirichlet boundary conditions, call
+
+.. highlight:: c++
+
+::
+
+    ml_ebabeclap->setEBDirichlet(lev, phi_on_eb, coeff);
+
+where phi_on_eb is the MultiFab holding the Dirichlet values in every cut cell,
+and coeff again is a real number (i.e. the value is the same at every cell)
+or a MultiFab holding the coefficient of the gradient at each cell with an EB face.
 
 Currently there are options to define the face-based coefficients on 
 face centers vs face centroids, and to interpret the solution variable
