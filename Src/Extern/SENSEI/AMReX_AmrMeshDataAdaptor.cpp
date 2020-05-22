@@ -27,6 +27,7 @@
 
 #include <iostream>
 #include <sstream>
+#include <array>
 
 namespace amrex {
 namespace InSituUtils {
@@ -151,30 +152,56 @@ int AmrMeshDataAdaptor::GetMeshMetadata(unsigned int id,
     metadata->MeshType = VTK_OVERLAPPING_AMR;
     metadata->BlockType = VTK_UNIFORM_GRID;
     metadata->NumBlocks = 0;
+    metadata->NumCells = 0;
+    metadata->NumPoints = 0;
     metadata->NumBlocksLocal = {-1};
     metadata->CoordinateType = InSituUtils::amrex_tt<amrex_real>::vtk_type_enum();
     metadata->StaticMesh = 0;
-/*
-    // TODO
-    //metadata->PeriodicBoundary = ;
 
-    amrex::Vector<std::unique_ptr<amrex::AmrLevel>> &levels =
-     this->Internals->SimData->getAmrLevels();
+    // num levels
+    metadata->NumLevels = this->Internals->Mesh->finestLevel() + 1;
 
-    // num levels and blocks per level
-    metadata->NumLevels = numActiveLevels(levels);
-
-    metadata->NumBlocks = 0;
-    metadata->BlocksPerLevel.resize(metadata->NumLevels);
+    // total number of blocks
     for (unsigned int i = 0; i < metadata->NumLevels; ++i)
     {
-        unsigned long nb = levels[i]->boxArray().size();
-        metadata->NumBlocks += nb;
-        metadata->BlocksPerlevel[i] = nb;
+        int numBlocks = this->Internals->Mesh->boxArray(i).size();
+        metadata->NumBlocks += numBlocks;
     }
 
-    // bounds
-    const amrex::RealBox& pd = levels[0]->Geom().ProbDomain();
+    // allocate per block decomp metadata
+    if (metadata->Flags.BlockDecompSet())
+    {
+        metadata->BlockIds.resize(metadata->NumBlocks);
+        metadata->BlockOwner.resize(metadata->NumBlocks);
+        metadata->BlockLevel.resize(metadata->NumBlocks);
+        metadata->RefRatio.resize(metadata->NumLevels);
+        metadata->BlocksPerLevel.resize(metadata->NumLevels);
+    }
+
+    // allocate per block size metadata
+    if (metadata->Flags.BlockSizeSet())
+    {
+        metadata->NumCells = 0;
+        metadata->NumPoints = 0;
+
+        metadata->BlockNumCells.resize(metadata->NumBlocks);
+        metadata->BlockNumPoints.resize(metadata->NumBlocks);
+    }
+
+    // allocate per block bounds metadata
+    if (metadata->Flags.BlockBoundsSet())
+    {
+        metadata->BlockBounds.resize(metadata->NumBlocks);
+    }
+
+    // allocate per block extent metadata
+    if (metadata->Flags.BlockBoundsSet())
+    {
+        metadata->BlockExtents.resize(metadata->NumBlocks);
+    }
+
+    // global bounds
+    const amrex::RealBox& pd = this->Internals->Mesh->Geom(0).ProbDomain();
 
     double pdLo[3] = {AMREX_ARLIM(pd.lo())};
     double pdHi[3] = {AMREX_ARLIM(pd.hi())};
@@ -190,105 +217,113 @@ int AmrMeshDataAdaptor::GetMeshMetadata(unsigned int id,
         }
     }
 
+    // global bounds
     if (metadata->Flags.BlockBoundsSet())
     {
-        metadata->Bounds = std::array<double,6>({pdLo[0], pdHi[0],
-              pdLo[1], pdHi[1], pdLo[2], pdHi[2]});
-
-        metadata->BlockBounds.reserve(metadata->NumBlocks);
+        metadata->Bounds = std::array<double,6>(
+            {pdLo[0], pdHi[0], pdLo[1], pdHi[1], pdLo[2], pdHi[2]});
     }
 
-    // extent
-    const amrex::Box& dom = levels[0]->Geom().Domain();
-    int domLo[3] = {AMREX_ARLIM(dom.lo())};
-    int domHi[3] = {AMREX_ARLIM(dom.hi())};
+    // global extent (note: VTK uses point centered indexing)
+    const amrex::Box& cdom = this->Internals->Mesh->Geom(0).Domain();
+    amrex::Box ndom = surroundingNodes(cdom);
 
+    int i0[3] = {AMREX_ARLIM(ndom.loVect())};
+    int i1[3] = {AMREX_ARLIM(ndom.hiVect())};
+
+    // global extent
     if (metadata->Flags.BlockExtentsSet())
     {
-        metadata->Extent = std::array<int,6>({domLo[0], domHi[0],
-            domLo[1], domHi[1], domLo[2], domHi[2]});
-
-        metadata->BlockExtents.reserve(metadata->NumBlocks);
-        metadata->BlockLevel.reserve(metadata->NumBlocks);
+        metadata->Extent = std::array<int,6>(
+            {i0[0], i1[0], i0[1], i1[1], i0[2], i1[2]});
     }
 
-    // ghost zones
-    metadata->NumGhostCells = levels[0]->get_new_data(0).nGrow();
+    // num ghosts
+    metadata->NumGhostCells = this->Internals->States[0]->at(0).nGrow();
+    metadata->NumGhostNodes = 0;
 
-    // arrays
-    metadata->NumArrays = 0;
-    const DescriptorList &descriptors = levels[0]->get_desc_lst();
-    int ndesc = descriptors.size();
-    for (int i = 0; i < ndesc; ++i)
+    // per array metadata
+    amrex::MultiFab& state0 = this->Internals->States[id]->at(0);
+
+    // number of arrays
+    metadata->NumArrays = state0.nComp();
+
+    // resize per array containers
+    metadata->ArrayName.resize(metadata->NumArrays);
+    metadata->ArrayComponents.resize(metadata->NumArrays);
+    metadata->ArrayType.resize(metadata->NumArrays);
+    metadata->ArrayCentering.resize(metadata->NumArrays);
+
+    for (int j = 0; j < metadata->NumArrays; ++j)
     {
-        const StateDescriptor &desc = descriptors[i];
-
-        int ncomp = desc.nComp();
-        metadata->NumArrays += ncomp;
-
-        IndexType itype = desc.getType();
-
-        for (int j = 0; j < ncomp; ++j)
+        // array name
+        metadata->ArrayName[j] = this->Internals->Names[id][j];
+        // scalar, vector, tensor
+        metadata->ArrayComponents[j] = 1;
+        // POD type
+        metadata->ArrayType[j] = InSituUtils::amrex_tt<amrex_real>::vtk_type_enum();
+        // mesh centering
+        if (state0.is_cell_centered())
         {
-            std::string arrayName = desc.name(j);
-            metadata->ArrayName.push_back(arrayName);
-            metadata->ArrayComponents.push_back(1);
-            metadata->ArrayType.push_back(InSituUtils::amrex_tt<amrex_real>::vtk_type_enum());
-
-            if (itype.cellCentered())
-                metadata->ArrayCentering.push_back(vtkDataObject::CELL);
-            else if (itype.nodeCentered())
-                metadata->ArrayCentering.push_back(vtkDataObject::POINT);
-            else
-                metadata->ArrayCentering.push_back(vtkDataObject::FIELD);
+            metadata->ArrayCentering[j] = vtkDataObject::CELL;
         }
-
+        else if (state0.is_nodal())
+        {
+            metadata->ArrayCentering[j] = vtkDataObject::POINT;
+        }
+        else
+        {
+            metadata->ArrayCentering[j] = vtkDataObject::FIELD;
+        }
     }
 
+    // TODO -- port code from AmrDataAdaptor
     if (metadata->Flags.BlockArrayRangeSet())
-        metadata->BlockArrayRange.reserve(metadata->NumBlocks);
+    {
+        SENSEI_ERROR("Per-array per-block array ranges not yet implemented")
+    }
 
-    // per-level and per-block metadata
+    // gather per block metadata
     long gid = 0;
-    for (unsigned int i = 0; i < nLevels; ++i)
+    for (unsigned int i = 0; i < metadata->NumLevels; ++i)
     {
         // domain decomp
-        const amrex::DistributionMapping &dmap = levels[i]->DistributionMap();
+        const amrex::DistributionMapping &dmap = this->Internals->Mesh->DistributionMap(i);
 
         // ghost zones
-        amrex::MultiFab &state = levels[i]->get_new_data(0);
+        amrex::MultiFab& state = this->Internals->States[0]->at(i);
         unsigned int ng = state.nGrow();
 
         // spacing
-        const amrex::Geometry &geom = levels[i]->Geom();
-        double spacing[3] = {AMREX_ARLIM(geom.CellSize())};
+        const amrex::Geometry &geom = this->Internals->Mesh->Geom(i);
+        double spacing [3] = {AMREX_ARLIM(geom.CellSize())};
 
-        // refinement ratio
-        std::array<int,3> rr = {AMREX_ARLIM(levels[i]->fineRatio())};
-        metadata->RefRatio.push_back(rr);
-
-        // loop over boxes
-        const amrex::BoxArray& ba = levels[i]->boxArray();
+        // boxes
+        const amrex::BoxArray& ba = this->Internals->Mesh->boxArray(i);
         unsigned int nBoxes = ba.size();
 
-        //metadata->NumBlocks += nBoxes;
-        //metadata->BlocksPerLevel.push_back(nBoxes);
+        if (metadata->Flags.BlockDecompSet())
+        {
+            // blocks per level
+            metadata->BlocksPerLevel[i] = nBoxes;
 
-        for (unsigned int j = 0; j < nBoxes; ++j)
+            // refinement ratio
+            if (i != this->Internals->Mesh->maxLevel())
+                metadata->RefRatio[i] = std::array<int,3>(
+                    {AMREX_ARLIM(this->Internals->Mesh->refRatio(i))});
+            else
+                metadata->RefRatio[i] = std::array<int,3>({1,1,1});
+        }
+
+        // process boxes this level
+        for (unsigned int j = 0; j < nBoxes; ++j, ++gid)
         {
             // cell centered box
             amrex::Box cbox = ba[j];
 
-            // cell centered dimensions
-            int cboxLo[3] = {AMREX_ARLIM(cbox.loVect())};
-            int cboxHi[3] = {AMREX_ARLIM(cbox.hiVect())};
-
             // add ghost zones
             for (int q = 0; q < AMREX_SPACEDIM; ++q)
                 cbox.grow(q, ng);
-
-            int gboxLo[3] = {AMREX_ARLIM(cbox.loVect())};
-            int gboxHi[3] = {AMREX_ARLIM(cbox.hiVect())};
 
             // node centered box
             amrex::Box nbox = surroundingNodes(cbox);
@@ -300,70 +335,48 @@ int AmrMeshDataAdaptor::GetMeshMetadata(unsigned int id,
             // domain decomp
             if (metadata->Flags.BlockDecompSet())
             {
-                metadata->BlockOwner.push_back(dmap[j]);
-                metadata->BlockIds.push_back(gid++);
+                metadata->BlockOwner[gid] = dmap[j];
+                metadata->BlockIds[gid] = gid;
+
+                metadata->BlockLevel[gid] = i;
             }
 
             // block sizes
             if (metadata->Flags.BlockSizeSet())
             {
-                metadata->BlockNumPoints.push_back(nbox.numPts());
-                metadata->BlockNumCells.push_back(cbox.numPts());
+                long nPts = nbox.numPts();
+                long nCells = cbox.numPts();
+
+                metadata->NumPoints += nPts;
+                metadata->NumCells += nCells;
+
+                metadata->BlockNumPoints[gid] = nPts;
+                metadata->BlockNumCells[gid] = nCells;
             }
 
             // block extent
-            if (metadata->BlockExtentSet())
+            if (metadata->Flags.BlockExtentsSet())
             {
-                metadata->BlockExtents.push_back({nboxLo[0], nboxHi[0],
-                    nboxLo[1], nboxHi[1], nboxLo[2], nboxHi[2]});
-
-                metadata->BlockLevel.push_back(i);
+                metadata->BlockExtents[gid] = std::array<int,6>({
+                    nboxLo[0], nboxHi[0], nboxLo[1], nboxHi[1], nboxLo[2], nboxHi[2]});
             }
 
             // block bounds
-            if (metadata->BlockBoundsSet())
-                metadata->BlockBounds.push_back({pdLo[0] + spacing[0]*nboxLo[0],
-                    pdHi[0] + spacing[0]*nboxHi[0], pdLo[1] + spacing[1]*nboxLo[1],
-                    pdHi[1] + spacing[1]*nboxHi[1], pdLo[2] + spacing[2]*nboxLo[2],
-                    pdHi[2] + spacing[2]*nboxHi[2]});
-
-
-            // only for local blocks
-            if ((dmap[j] == rank) && (metadata->Flags.BlockArrayRangeSet()))
+            if (metadata->Flags.BlockBoundsSet())
             {
-                std::vector<std::array<double,2>> arrayRange;
-                arrayRange.reserve(metadata->NumArrays);
-
-                // block array range
-                for (int k = 0; k < ndesc; ++k)
-                {
-                    const StateDescriptor &desc = descriptors[k];
-                    amrex::MultiFab &state = levels[i]->get_new_data(k);
-
-                    int ncomp = desc.nComp();
-                    IndexType itype = desc.getType();
-
-                    for (int l = 0; l < ncomp; ++l)
-                    {
-                        // calculate min/max on this block for this array
-                        amrex_real mn = state[j].min(l);
-                        amrex_real mx = state[j].max(l);
-                        arrayRange.push_back({mn, mx});
-                    }
-                }
-
-                metadata->BlockArrayRange.push_back(arrayRange);
+                metadata->BlockBounds[gid] = std::array<double,6>(
+                    {pdLo[0] + spacing[0]*nboxLo[0], pdHi[0] + spacing[0]*nboxHi[0],
+                    pdLo[1] + spacing[1]*nboxLo[1], pdHi[1] + spacing[1]*nboxHi[1],
+                    pdLo[2] + spacing[2]*nboxLo[2], pdHi[2] + spacing[2]*nboxHi[2]});
             }
+
         }
     }
 
-    // make the block array range global
-    if (metadata->Flags.BlockArrayRangeSet())
-        GlobalViewV(this->GetCommunicator(), metadata->BlockArrayRange);
-*/
     return 0;
 }
 #else
+
 //-----------------------------------------------------------------------------
 int AmrMeshDataAdaptor::GetMeshName(unsigned int id, std::string &meshName)
 {
@@ -527,8 +540,10 @@ int AmrMeshDataAdaptor::GetMesh(const std::string &meshName,
         amrMesh->SetSpacing(i, spacing);
 
         // refinement ratio
-        int cRefRatio = nLevels > 1 ? this->Internals->Mesh->refRatio(i)[0] : 1;
-        amrMesh->SetRefinementRatio(i, cRefRatio);
+        int rr = 1;
+        if (i != this->Internals->Mesh->maxLevel())
+            rr = this->Internals->Mesh->refRatio(i)[0];
+        amrMesh->SetRefinementRatio(i, rr);
 
         // loop over boxes
         const amrex::BoxArray& ba = this->Internals->Mesh->boxArray(i);
