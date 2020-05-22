@@ -68,6 +68,10 @@ int DescriptorMap::Initialize(const DescriptorList &descriptors)
             {
                 this->Map[vtkDataObject::POINT][arrayName] = std::make_pair(i,j);
             }
+            else
+            {
+                this->Map[vtkDataObject::FIELD][arrayName] = std::make_pair(i,j);
+            }
         }
     }
 
@@ -238,12 +242,10 @@ int AmrDataAdaptor::GetMeshMetadata(unsigned int id,
     metadata->NumLevels = InSituUtils::NumActiveLevels(levels);
 
     metadata->NumBlocks = 0;
-    metadata->BlocksPerLevel.resize(metadata->NumLevels);
     for (unsigned int i = 0; i < metadata->NumLevels; ++i)
     {
         unsigned long nb = levels[i]->boxArray().size();
         metadata->NumBlocks += nb;
-        metadata->BlocksPerLevel[i] = nb;
     }
 
     // bounds
@@ -282,7 +284,17 @@ int AmrDataAdaptor::GetMeshMetadata(unsigned int id,
             domLo[1], domHi[1], domLo[2], domHi[2]});
 
         metadata->BlockExtents.reserve(metadata->NumBlocks);
+    }
+
+
+    // allocate decomp
+    if (metadata->Flags.BlockDecompSet())
+    {
+        metadata->BlockOwner.reserve(metadata->NumBlocks);
+        metadata->BlockIds.reserve(metadata->NumBlocks);
         metadata->BlockLevel.reserve(metadata->NumBlocks);
+        metadata->BlocksPerLevel.reserve(metadata->NumLevels);
+        metadata->RefRatio.reserve(metadata->NumLevels);
     }
 
     // ghost zones
@@ -318,6 +330,7 @@ int AmrDataAdaptor::GetMeshMetadata(unsigned int id,
 
     }
 
+    // allocate and generate ghost zones
     std::vector<std::vector<std::array<double,2>>> blockArrayRange;
     std::vector<int> blockId;
     if (metadata->Flags.BlockArrayRangeSet())
@@ -344,13 +357,20 @@ int AmrDataAdaptor::GetMeshMetadata(unsigned int id,
         const amrex::Geometry &geom = levels[i]->Geom();
         double spacing[3] = {AMREX_ARLIM(geom.CellSize())};
 
-        // refinement ratio
-        std::array<int,3> rr = {AMREX_ARLIM(levels[i]->fineRatio())};
-        metadata->RefRatio.push_back(rr);
 
         // loop over boxes
         const amrex::BoxArray& ba = levels[i]->boxArray();
         unsigned int nBoxes = ba.size();
+
+        if (metadata->Flags.BlockDecompSet())
+        {
+            // blocks this level
+            metadata->BlocksPerLevel.push_back(nBoxes);
+
+            // refinement ratio
+            std::array<int,3> rr = {AMREX_ARLIM(levels[i]->fineRatio())};
+            metadata->RefRatio.push_back(rr);
+        }
 
         for (unsigned int j = 0; j < nBoxes; ++j, ++gid)
         {
@@ -379,6 +399,8 @@ int AmrDataAdaptor::GetMeshMetadata(unsigned int id,
             {
                 metadata->BlockOwner.push_back(dmap[j]);
                 metadata->BlockIds.push_back(gid);
+
+                metadata->BlockLevel.push_back(i);
             }
 
             // block sizes
@@ -393,8 +415,6 @@ int AmrDataAdaptor::GetMeshMetadata(unsigned int id,
             {
                 metadata->BlockExtents.push_back({nboxLo[0], nboxHi[0],
                     nboxLo[1], nboxHi[1], nboxLo[2], nboxHi[2]});
-
-                metadata->BlockLevel.push_back(i);
             }
 
             // block bounds
@@ -775,9 +795,6 @@ int AmrDataAdaptor::AddGhostCellsArray(vtkDataObject* mesh,
             blockMesh->GetCellData()->AddArray(ga);
             ga->Delete();
 
-            // because VTK takes ownership
-            mask[j] = nullptr;
-
             // for debug can visualize the ghost cells
             // FIXME -- a bug in Catalyst ignores internal ghost zones
             // when using the VTK writrer. Until that bug gets fixed, one
@@ -787,6 +804,9 @@ int AmrDataAdaptor::AddGhostCellsArray(vtkDataObject* mesh,
             ga->SetArray(mask[j], nCells, 1);
             blockMesh->GetCellData()->AddArray(ga);
             ga->Delete();
+
+            // because VTK takes ownership
+            mask[j] = nullptr;
         }
     }
 
