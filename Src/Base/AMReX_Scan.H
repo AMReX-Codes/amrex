@@ -35,25 +35,44 @@ struct BlockStatus<T, true>
     Data<T> d;
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-#ifdef AMREX_USE_DPCPP
-    void write (char a_status, T a_value, sycl::nd_item<1> const& item) {
-#else
-    void write (char a_status, T a_value) {
+#if defined(AMREX_USE_DPCPP) || defined(AMREX_USE_CUDA)
+    void write (char a_status, T a_value
+#if defined(AMREX_USE_DPCPP)
+                , sycl::nd_item<1> const& /*item*/
 #endif
+                ) {
         volatile uint64_t tmp;
         reinterpret_cast<STVA<T> volatile&>(tmp).status = a_status;
         reinterpret_cast<STVA<T> volatile&>(tmp).value  = a_value;
-        d.i = tmp;
+        reinterpret_cast<uint64_t&>(d.s) = tmp;
     }
+#elif defined(AMREX_USE_HIP)
+    void write (char a_status, T a_value) {
+        Data<T> tmp;
+        tmp.s = {a_status, a_value};
+        static_assert(sizeof(unsigned long long) == sizeof(uint64_t),
+                      "HIP: unsigned long long must be 64 bits");
+        Gpu::Atomic::Exch(reinterpret_cast<unsigned long long*>(&d),
+                          reinterpret_cast<unsigned long long&>(tmp));
+    }
+#endif
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     T get_aggregate() const { return d.s.value; }
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     STVA<T> read () volatile {
-        volatile uint64_t tmp = d.i;
+#ifdef AMREX_USE_HIP
+        static_assert(sizeof(unsigned long long) == sizeof(uint64_t),
+                      "HIP: unsigned long long must be 64 bits");
+        unsigned long long tmp = Gpu::Atomic::Add
+            (reinterpret_cast<unsigned long long*>(const_cast<Data<T>*>(&d)), 0ull);
+        return (*reinterpret_cast<Data<T>*>(&tmp)).s;
+#else
+        volatile uint64_t tmp = reinterpret_cast<uint64_t volatile&>(d);
         return {reinterpret_cast<STVA<T> volatile&>(tmp).status,
                 reinterpret_cast<STVA<T> volatile&>(tmp).value };
+#endif
     }
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
@@ -360,7 +379,8 @@ T PrefixSum (int n, FIN && fin, FOUT && fout, Type type)
     });
 
     T totalsum;
-    Gpu::dtoh_memcpy(&totalsum, totalsum_p, sizeof(T));
+    Gpu::dtoh_memcpy_async(&totalsum, totalsum_p, sizeof(T));
+    Gpu::streamSynchronize();
 
     The_Device_Arena()->free(dp);
 
@@ -475,19 +495,31 @@ T PrefixSum (int n, FIN && fin, FOUT && fout, Type type)
             // The first warp will do scan on the warp sums for the
             // whole block.  Not all threads in the warp need to
             // participate.
+#ifdef AMREX_USE_CUDA
             if (warp == 0 && lane < nwarps) {
                 T y = shared[lane];
-#ifdef AMREX_USE_CUDA
                 int mask = (1 << nwarps) - 1;
-#endif
                 for (int i = 1; i <= nwarps; i *= 2) {
-                    AMREX_HIP_OR_CUDA( T s = __shfl_up(y, i, nwarps);,
-                                       T s = __shfl_up_sync(mask, y, i, nwarps); );
+                    T s = __shfl_up_sync(mask, y, i, nwarps);
                     if (lane >= i) y += s;
                 }
-
                 shared2[lane] = y;
             }
+#else
+            if (warp == 0) {
+                T y = 0;
+                if (lane < nwarps) {
+                    y = shared[lane];
+                }
+                for (int i = 1; i <= nwarps; i *= 2) {
+                    T s = __shfl_up(y, i, nwarps);
+                    if (lane >= i) y += s;
+                }
+                if (lane < nwarps) {
+                    shared2[lane] = y;
+                }
+            }
+#endif
 
             __syncthreads();
 
@@ -533,13 +565,14 @@ T PrefixSum (int n, FIN && fin, FOUT && fout, Type type)
                     T x = stva.value;
 
                     AMREX_HIP_OR_CUDA( uint64_t const status_bf = __ballot(stva.status == 'p');,
-                                       unsigned const status_bf = __ballot_sync(0xffffffff, stva.status == 'p'); );
+                                       unsigned const status_bf = __ballot_sync(0xffffffff, stva.status == 'p'));
                     bool stop_lookback = status_bf & 0x1u;
                     if (stop_lookback == false) {
                         if (status_bf != 0) {
                             T y = x;
                             if (lane > 0) x = 0;
-                            unsigned int bit_mask = 0x1u;
+                            AMREX_HIP_OR_CUDA(uint64_t bit_mask = 0x1ull;,
+                                              unsigned bit_mask = 0x1u);
                             for (int i = 1; i < Gpu::Device::warp_size; ++i) {
                                 bit_mask <<= 1;
                                 if (i == lane) x = y;
@@ -583,7 +616,8 @@ T PrefixSum (int n, FIN && fin, FOUT && fout, Type type)
     });
 
     T totalsum;
-    Gpu::dtoh_memcpy(&totalsum, totalsum_p, sizeof(T));
+    Gpu::dtoh_memcpy_async(&totalsum, totalsum_p, sizeof(T));
+    Gpu::streamSynchronize();
 
     The_Device_Arena()->free(dp);
 
