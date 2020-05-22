@@ -201,6 +201,10 @@ template <typename L1, typename L2>
 void ParallelFor (Box const& box1, Box const& box2, L1&& f1, L2&& f2) noexcept
 {
     if (amrex::isEmpty(box1) and amrex::isEmpty(box2)) return;
+    // xxxxx DPC++ todo: launch separate kernel to reduce kernel size
+    ParallelFor(box1, std::forward<L1>(f1));
+    ParallelFor(box2, std::forward<L2>(f2));
+#if 0
     int ncells1 = box1.numPts();
     int ncells2 = box2.numPts();
     int ncells = amrex::max(ncells1, ncells2);
@@ -247,12 +251,18 @@ void ParallelFor (Box const& box1, Box const& box2, L1&& f1, L2&& f2) noexcept
     } catch (sycl::exception const& ex) {
         amrex::Abort(std::string("ParallelFor: ")+ex.what()+"!!!!!");
     }
+#endif
 }
 
 template <typename L1, typename L2, typename L3>
 void ParallelFor (Box const& box1, Box const& box2, Box const& box3, L1&& f1, L2&& f2, L3&& f3) noexcept
 {
-    if (amrex::isEmpty(box1) and amrex::isEmpty(box2) and amrex::isEmpty(box3)) return;
+    if (amrex::isEmpty(box1) and amrex::isEmpty(box2) and amrex::isEmpty(box3)) return
+    // xxxxx DPC++ todo: launch separate kernel to reduce kernel size
+    ParallelFor(box1, std::forward<L1>(f1));
+    ParallelFor(box2, std::forward<L2>(f2));
+    ParallelFor(box3, std::forward<L3>(f3));
+#if 0
     int ncells1 = box1.numPts();
     int ncells2 = box2.numPts();
     int ncells3 = box3.numPts();
@@ -311,6 +321,7 @@ void ParallelFor (Box const& box1, Box const& box2, Box const& box3, L1&& f1, L2
     } catch (sycl::exception const& ex) {
         amrex::Abort(std::string("ParallelFor: ")+ex.what()+"!!!!!");
     }
+#endif
 }
 
 template <typename T1, typename T2, typename L1, typename L2,
@@ -320,6 +331,10 @@ void ParallelFor (Box const& box1, T1 ncomp1, L1&& f1,
                   Box const& box2, T2 ncomp2, L2&& f2) noexcept
 {
     if (amrex::isEmpty(box1) and amrex::isEmpty(box2)) return;
+    // xxxxx DPC++ todo: launch separate kernel to reduce kernel size
+    ParallelFor(box1, ncomp1, std::forward<L1>(f1));
+    ParallelFor(box2, ncomp2, std::forward<L2>(f2));
+#if 0
     int ncells1 = box1.numPts();
     int ncells2 = box2.numPts();
     int ncells = amrex::max(ncells1, ncells2);
@@ -370,6 +385,7 @@ void ParallelFor (Box const& box1, T1 ncomp1, L1&& f1,
     } catch (sycl::exception const& ex) {
         amrex::Abort(std::string("ParallelFor: ")+ex.what()+"!!!!!");
     }
+#endif
 }
 
 template <typename T1, typename T2, typename T3, typename L1, typename L2, typename L3,
@@ -381,6 +397,11 @@ void ParallelFor (Box const& box1, T1 ncomp1, L1&& f1,
                   Box const& box3, T3 ncomp3, L3&& f3) noexcept
 {
     if (amrex::isEmpty(box1) and amrex::isEmpty(box2) and amrex::isEmpty(box3)) return;
+    // xxxxx DPC++ todo: launch separate kernel to reduce kernel size
+    ParallelFor(box1, ncomp1, std::forward<L1>(f1));
+    ParallelFor(box2, ncomp2, std::forward<L2>(f2));
+    ParallelFor(box3, ncomp3, std::forward<L3>(f3));
+#if 0
     int ncells1 = box1.numPts();
     int ncells2 = box2.numPts();
     int ncells3 = box3.numPts();
@@ -445,6 +466,7 @@ void ParallelFor (Box const& box1, T1 ncomp1, L1&& f1,
     } catch (sycl::exception const& ex) {
         amrex::Abort(std::string("ParallelFor: ")+ex.what()+"!!!!!");
     }
+#endif
 }
 
 template <typename T, typename L1, typename L2>
