@@ -272,11 +272,22 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
         const auto& bvzhi = (bndry != nullptr) ?
 	  (*bndry)[Orientation(2,Orientation::high)].array(mfi) : foo;
 
+#ifdef AMREX_USE_DPCPP
+        // xxxxx DPCPP todo: kernel size
+        Vector<Array4<int const> > htmp = {mxlo,mylo,mzlo,mxhi,myhi,mzhi};
+        Gpu::AsyncArray<Array4<int const> > dtmp(htmp.data(), 6);
+        auto dp = dtmp.data();
+#endif
+
 	// only edge vals used in 3D stencil
         AMREX_HOST_DEVICE_FOR_1D ( 12, iedge,
         {
             mltensor_fill_edges(iedge, vbx, velfab,
+#ifdef AMREX_USE_DPCPP
+                                dp[0],dp[1],dp[2],dp[3],dp[4],dp[5],
+#else
                                 mxlo, mylo, mzlo, mxhi, myhi, mzhi,
+#endif
                                 bvxlo, bvylo, bvzlo, bvxhi, bvyhi, bvzhi,
                                 bct, bcl, inhomog, imaxorder,
 				dxinv, domain);

@@ -261,13 +261,23 @@ MLEBTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode 
                          Array4<Real const> const& fcy = fcent[1]->const_array(mfi);,
                          Array4<Real const> const& fcz = fcent[2]->const_array(mfi););
             Array4<Real const> const& bc = bcent->const_array(mfi);
+#ifdef AMREX_USE_DPCPP
+            // xxxxx DPCPP todo: kernel size
+            Vector<Array4<Real const> > htmp = {AMREX_D_DECL(fcx,fcy,fcz)};
+            Gpu::AsyncArray<Array4<Real const> > dtmp(htmp.data(), htmp.size());
+            auto dp = dtmp.data();
+#endif
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
             {
                 mlebtensor_cross_terms(tbx, axfab,
                                        AMREX_D_DECL(fxfab,fyfab,fzfab),
                                        vfab, etab, kapb, ccm, flag, vol,
                                        AMREX_D_DECL(apx,apy,apz),
+#ifdef AMREX_USE_DPCPP
+                                       AMREX_D_DECL(dp[0],dp[1],dp[2]),
+#else
                                        AMREX_D_DECL(fcx,fcy,fcz),
+#endif
                                        bc, dxinv, bscalar);
             });
         }
@@ -353,10 +363,24 @@ MLEBTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
             const auto& bvzhi = (bndry != nullptr) ?
                 (*bndry)[Orientation(2,Orientation::high)].array(mfi) : foo;
 
+#ifdef AMREX_USE_DPCPP
+            // xxxxx DPCPP todo: kernel size
+            Vector<Array4<int const> > htmp = {mxlo,mylo,mzlo,mxhi,myhi,mzhi};
+//            Gpu::AsyncArray<Array4<int const> > dtmp(htmp.data(), 6);
+//            auto dp = dtmp.data();
+            // Bug # 2: It hangs if the lines above are uncommented and Gpu launch region is on
+            Gpu::LaunchSafeGuard lsg(false);
+            auto dp = htmp.data();
+#endif
+
             AMREX_HOST_DEVICE_FOR_1D ( 12, iedge,
             {
                 mltensor_fill_edges(iedge, vbx, velfab,
+#ifdef AMREX_USE_DPCPP
+                                    dp[0],dp[1],dp[2],dp[3],dp[4],dp[5],
+#else
                                     mxlo, mylo, mzlo, mxhi, myhi, mzhi,
+#endif
                                     bvxlo, bvylo, bvzlo, bvxhi, bvyhi, bvzhi,
                                     bct, bcl, inhomog, imaxorder,
                                     dxinv, domain);
@@ -365,7 +389,11 @@ MLEBTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
             AMREX_HOST_DEVICE_FOR_1D ( 8, icorner,
             {
                 mltensor_fill_corners(icorner, vbx, velfab,
+#ifdef AMREX_USE_DPCPP
+                                      dp[0],dp[1],dp[2],dp[3],dp[4],dp[5],
+#else
                                       mxlo, mylo, mzlo, mxhi, myhi, mzhi,
+#endif
                                       bvxlo, bvylo, bvzlo, bvxhi, bvyhi, bvzhi,
                                       bct, bcl, inhomog, imaxorder,
                                       dxinv, domain);
