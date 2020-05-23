@@ -38,7 +38,10 @@ namespace amrex {
         T& operator [] (int i) noexcept { return arr[i]; }
 
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        const T* data() const noexcept { return arr; };
+        const T* data () const noexcept { return arr; };
+
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        T* data () noexcept { return arr; };
 
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         std::size_t size() const noexcept { return N; };
