@@ -261,13 +261,23 @@ MLEBTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode 
                          Array4<Real const> const& fcy = fcent[1]->const_array(mfi);,
                          Array4<Real const> const& fcz = fcent[2]->const_array(mfi););
             Array4<Real const> const& bc = bcent->const_array(mfi);
+#ifdef AMREX_USE_DPCPP
+            // xxxxx DPCPP todo: kernel size
+            Vector<Array4<Real const> > htmp = {AMREX_D_DECL(fcx,fcy,fcz)};
+            Gpu::AsyncArray<Array4<Real const> > dtmp(htmp.data(), htmp.size());
+            auto dp = dtmp.data();
+#endif
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
             {
                 mlebtensor_cross_terms(tbx, axfab,
                                        AMREX_D_DECL(fxfab,fyfab,fzfab),
                                        vfab, etab, kapb, ccm, flag, vol,
                                        AMREX_D_DECL(apx,apy,apz),
+#ifdef AMREX_USE_DPCPP
+                                       AMREX_D_DECL(dp[0],dp[1],dp[2]),
+#else
                                        AMREX_D_DECL(fcx,fcy,fcz),
+#endif
                                        bc, dxinv, bscalar);
             });
         }
@@ -356,8 +366,11 @@ MLEBTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
 #ifdef AMREX_USE_DPCPP
             // xxxxx DPCPP todo: kernel size
             Vector<Array4<int const> > htmp = {mxlo,mylo,mzlo,mxhi,myhi,mzhi};
-            Gpu::AsyncArray<Array4<int const> > dtmp(htmp.data(), 6);
-            auto dp = dtmp.data();
+//            Gpu::AsyncArray<Array4<int const> > dtmp(htmp.data(), 6);
+//            auto dp = dtmp.data();
+            // Bug # 2: It hangs if the lines above are uncommented and Gpu launch region is on
+            Gpu::LaunchSafeGuard lsg(false);
+            auto dp = htmp.data();
 #endif
 
             AMREX_HOST_DEVICE_FOR_1D ( 12, iedge,
