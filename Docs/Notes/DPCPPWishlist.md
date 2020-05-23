@@ -19,6 +19,12 @@
   `__threadfence` and `__thread_block` unnecessary for Intel GPUs?
   [oneAPI-spec issue #130](https://github.com/oneapi-src/oneAPI-spec/issues/130)
 
+* The compiler has some troubles with some very big device functions
+  (e.g., `mlndlap_stencil_rap` in
+  `Src/LinearSolvers/MLMG/AMReX_MLNodeLap_3D_K.H`).  It hangs at JIT
+  compilation.  We have to disable GPU launch for these functions and
+  run them on CPU. 
+
 # Major
 
 * The maximum size of kernel parameter is 1KB on current Intel GPUs.
