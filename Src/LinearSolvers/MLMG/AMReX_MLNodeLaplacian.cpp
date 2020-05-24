@@ -970,6 +970,10 @@ MLNodeLaplacian::buildStencil ()
                 bx &= vbx;
                 Array4<Real> const& csten = pcrse->array(mfi);
                 Array4<Real const> const& fsten = fine.const_array(mfi);
+#ifdef AMREX_USE_DPCPP
+                // xxxxx DPCPP todo: this kernel hangs at JIT compilation
+                Gpu::LaunchSafeGuard lsg(false);
+#endif
                 AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
                 {
                     mlndlap_stencil_rap(i,j,k,csten,fsten);
