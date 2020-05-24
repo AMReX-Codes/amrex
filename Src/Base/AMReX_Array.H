@@ -8,6 +8,7 @@
 #include <iostream>
 #include <sstream>
 #include <cstdio>
+#include <type_traits>
 #include <AMReX.H>
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_GpuControl.H>
@@ -63,6 +64,12 @@ namespace amrex {
 }
 
 namespace amrex {
+
+    namespace Order {
+        struct C {};
+        struct F {};
+    }
+
     template <class T, int XLO, int XHI>
     struct Array1D
     {
@@ -79,35 +86,75 @@ namespace amrex {
         T arr[(XHI-XLO+1)];
     };
 
-    template <class T, int XLO, int XHI, int YLO, int YHI>
+    template <class T, int XLO, int XHI, int YLO, int YHI,
+              class ORDER=Order::F> // Fortran order by default
     struct Array2D
     {
+        template <typename O=ORDER,
+                  typename std::enable_if<std::is_same<O,Order::F>::value,int>::type=0>
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T& operator() (int i, int j) const noexcept {
             return arr[i+j*(XHI-XLO+1)-(YLO*(XHI-XLO+1)+XLO)];
         }
 
+        template <typename O=ORDER,
+                  typename std::enable_if<std::is_same<O,Order::F>::value,int>::type=0>
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T& operator() (int i, int j) noexcept {
             return arr[i+j*(XHI-XLO+1)-(YLO*(XHI-XLO+1)+XLO)];
         }
 
+        template <typename O=ORDER,
+                  typename std::enable_if<std::is_same<O,Order::C>::value,int>::type=0>
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        const T& operator() (int i, int j) const noexcept {
+            return arr[j+i*(YHI-YLO+1)-(XLO*(YHI-YLO+1)+YLO)];
+        }
+
+        template <typename O=ORDER,
+                  typename std::enable_if<std::is_same<O,Order::C>::value,int>::type=0>
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        T& operator() (int i, int j) noexcept {
+            return arr[j+i*(YHI-YLO+1)-(XLO*(YHI-YLO+1)+YLO)];
+        }
+
         T arr[(XHI-XLO+1)*(YHI-YLO+1)];
     };
 
-    template <class T, int XLO, int XHI, int YLO, int YHI, int ZLO, int ZHI>
+    template <class T, int XLO, int XHI, int YLO, int YHI, int ZLO, int ZHI,
+              class ORDER=Order::F> // Fortran order by default
     struct Array3D
     {
+        template <typename O=ORDER,
+                  typename std::enable_if<std::is_same<O,Order::F>::value,int>::type=0>
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T& operator() (int i, int j, int k) const noexcept {
             return arr[i+j*(XHI-XLO+1)+k*((XHI-XLO+1)*(YHI-YLO+1))
                        -(ZLO*((XHI-XLO+1)*(YHI-YLO+1))+YLO*(XHI-XLO+1)+XLO)];
         }
 
+        template <typename O=ORDER,
+                  typename std::enable_if<std::is_same<O,Order::F>::value,int>::type=0>
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T& operator() (int i, int j, int k) noexcept {
             return arr[i+j*(XHI-XLO+1)+k*((XHI-XLO+1)*(YHI-YLO+1))
                        -(ZLO*((XHI-XLO+1)*(YHI-YLO+1))+YLO*(XHI-XLO+1)+XLO)];
+        }
+
+        template <typename O=ORDER,
+                  typename std::enable_if<std::is_same<O,Order::C>::value,int>::type=0>
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        const T& operator() (int i, int j, int k) const noexcept {
+            return arr[k+j*(ZHI-ZLO+1)+i*((ZHI-ZLO+1)*(YHI-YLO+1))
+                       -(XLO*((ZHI-ZLO+1)*(YHI-YLO+1))+YLO*(ZHI-ZLO+1)+ZLO)];
+        }
+
+        template <typename O=ORDER,
+                  typename std::enable_if<std::is_same<O,Order::C>::value,int>::type=0>
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        T& operator() (int i, int j, int k) noexcept {
+            return arr[k+j*(ZHI-ZLO+1)+i*((ZHI-ZLO+1)*(YHI-YLO+1))
+                       -(XLO*((ZHI-ZLO+1)*(YHI-YLO+1))+YLO*(ZHI-ZLO+1)+ZLO)];
         }
 
         T arr[(XHI-XLO+1)*(YHI-YLO+1)*(ZHI-ZLO+1)];
