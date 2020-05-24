@@ -1068,20 +1068,46 @@ MLEBABecLap::FFlux (int amrlev, const MFIter& mfi, const Array<FArrayBox*,AMREX_
 
         if (phi_on_centroid) amrex::Abort("phi_on_centroid is still a WIP");
 
+#ifdef AMREX_USE_DPCPP
+        // xxxxx DPCPP todo: kernel size
+#if (AMREX_SPACEDIM == 2)
+        Vector<Array4<Real const> > htmp = {apx, fcx, bxcoef, apy, fcy, bycoef};
+#elif (AMREX_SPACEDIM == 3)
+        Vector<Array4<Real const> > htmp = {apx, fcx, bxcoef, apy, fcy, bycoef, apz, fcz, bzcoef};
+#endif
+        Gpu::AsyncArray<Array4<Real const> > dtmp(htmp.data(), htmp.size());
+        auto dp = dtmp.data();
+#endif
+
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
             xbx, txbx,
             {
+#ifdef AMREX_USE_DPCPP
+                auto apx = dp[0];
+                auto fcx = dp[1];
+                auto bxcoef = dp[2];
+#endif
                 mlebabeclap_flux_x(txbx, fx, apx, fcx, phi, bxcoef, msk, dhx, face_only, ncomp, xbx,
                                    beta_on_centroid, phi_on_centroid);
             }
             , ybx, tybx,
             {
+#ifdef AMREX_USE_DPCPP
+                auto apy = dp[3];
+                auto fcy = dp[4];
+                auto bycoef = dp[5];
+#endif
                 mlebabeclap_flux_y(tybx, fy, apy, fcy, phi, bycoef, msk, dhy, face_only, ncomp, ybx,
                                    beta_on_centroid, phi_on_centroid);
             }
 #if (AMREX_SPACEDIM == 3)
             , zbx, tzbx,
             {
+#ifdef AMREX_USE_DPCPP
+                auto apz = dp[6];
+                auto fcz = dp[7];
+                auto bzcoef = dp[8];
+#endif
                 mlebabeclap_flux_z(tzbx, fz, apz, fcz, phi, bzcoef, msk, dhz, face_only, ncomp, zbx,
                                    beta_on_centroid, phi_on_centroid);
             }
@@ -1100,18 +1126,41 @@ MLEBABecLap::FFlux (int amrlev, const MFIter& mfi, const Array<FArrayBox*,AMREX_
                      Real dhy = m_b_scalar*dxinv[1];,
                      Real dhz = m_b_scalar*dxinv[2];);
 
+#ifdef AMREX_USE_DPCPP
+        // xxxxx DPCPP todo: kernel size
+#if (AMREX_SPACEDIM == 2)
+        Vector<Array4<Real const> > htmp = {apx, bxcoef, apy, bycoef};
+#elif (AMREX_SPACEDIM == 3)
+        Vector<Array4<Real const> > htmp = {apx, bxcoef, apy, bycoef, apz, bzcoef};
+#endif
+        Gpu::AsyncArray<Array4<Real const> > dtmp(htmp.data(), htmp.size());
+        auto dp = dtmp.data();
+#endif
+
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
             xbx, txbx,
             {
+#ifdef AMREX_USE_DPCPP
+                auto apx = dp[0];
+                auto bxcoef = dp[1];
+#endif
                 mlebabeclap_flux_x_0(txbx, fx, apx, phi, bxcoef, dhx, face_only, ncomp, xbx);
             }
             , ybx, tybx,
             {
+#ifdef AMREX_USE_DPCPP
+                auto apy = dp[2];
+                auto bycoef = dp[3];
+#endif
                 mlebabeclap_flux_y_0(tybx, fy, apy, phi, bycoef, dhy, face_only, ncomp, ybx);
             }
 #if (AMREX_SPACEDIM == 3)
             , zbx, tzbx,
             {
+#ifdef AMREX_USE_DPCPP
+                auto apz = dp[4];
+                auto bzcoef = dp[5];
+#endif
                 mlebabeclap_flux_z_0(tzbx, fz, apz, phi, bzcoef, dhz, face_only, ncomp, zbx);
             }
 #endif
