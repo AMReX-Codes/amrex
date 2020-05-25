@@ -66,7 +66,7 @@ function (configure_amrex)
       # in projects that use amrex directly in the build (via add_subdirectory()).
       set_target_properties(OpenMP::OpenMP_CXX PROPERTIES IMPORTED_GLOBAL True )
 
-      if (CMAKE_Fortran_COMPILER_LOADED)
+      if (ENABLE_FORTRAN_INTERFACES OR ENABLE_HYPRE)
          target_link_libraries(amrex PUBLIC OpenMP::OpenMP_Fortran )
          set_target_properties(OpenMP::OpenMP_Fortran PROPERTIES IMPORTED_GLOBAL True )
       endif ()
