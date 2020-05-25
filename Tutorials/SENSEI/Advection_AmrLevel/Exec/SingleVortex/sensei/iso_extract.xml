@@ -1,0 +1,12 @@
+<sensei>
+  <analysis type="SliceExtract" operation="iso_surface"
+    enable_partitioner="1" verbose="1" enabled="1">
+
+    <iso_values mesh_name="mesh" array_name="phi"
+       array_centering="cell">
+       1.5
+    </iso_values>
+
+    <writer mode="visit" output_dir="./isos" />
+  </analysis>
+</sensei>
