@@ -49,7 +49,7 @@ function (configure_amrex)
    #
    set_target_properties(amrex PROPERTIES CXX_EXTENSIONS OFF)
 
-   target_compile_features(amrex PUBLIC cxx_std_11)  # minimum: C++11
+   target_compile_features(amrex PUBLIC cxx_std_14)  # minimum: C++14
 
    #
    # Setup OpenMP
