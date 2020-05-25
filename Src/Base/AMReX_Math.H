@@ -10,6 +10,16 @@
 namespace sycl = cl::sycl;
 #endif
 
+namespace amrex { inline namespace disabled {
+    // disable unqualified abs function
+    AMREX_GPU_HOST_DEVICE double abs (double);
+    AMREX_GPU_HOST_DEVICE float abs (float);
+    AMREX_GPU_HOST_DEVICE long double abs (long double);
+    AMREX_GPU_HOST_DEVICE int abs (int);
+    AMREX_GPU_HOST_DEVICE long abs (long);
+    AMREX_GPU_HOST_DEVICE long long abs (long long);
+}}
+
 namespace amrex { namespace Math {
 
 #ifdef AMREX_USE_DPCPP
