@@ -11,7 +11,12 @@ namespace sycl = cl::sycl;
 #endif
 
 namespace amrex { inline namespace disabled {
-    // disable unqualified abs function
+    // If it is inside namespace amrex, or amrex namespace is imported with
+    // using namespace amrex or amrex::disabled, unqualified abs functions are
+    // disabled with a link time error such as, undefined reference to
+    // `amrex::disabled::abs(double)'.  To fix it, one can use `std::abs` or
+    // `amrex::Math::abs`.  The latter works in both host and device functions,
+    // whereas `std::abs` does not currently work on device with HIP and DPC++.
     AMREX_GPU_HOST_DEVICE double abs (double);
     AMREX_GPU_HOST_DEVICE float abs (float);
     AMREX_GPU_HOST_DEVICE long double abs (long double);
