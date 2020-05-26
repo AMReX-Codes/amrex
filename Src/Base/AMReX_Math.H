@@ -4,6 +4,7 @@
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_Extension.H>
 #include <cmath>
+#include <cstdlib>
 
 #ifdef AMREX_USE_DPCPP
 #include <CL/sycl.hpp>
