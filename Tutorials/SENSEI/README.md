@@ -5,6 +5,19 @@ one to chose the desired visualization and analysis back end for a given task
 with out limitting ones options, as the back ends can be inter-changed at run
 time via a text based config file.
 
+## Organization of the code ##
+There are two path ways to SENSEI through AMReX. Which one to use depends on
+if your code uses `amrex::Amr` or `amrex::AmrMesh`. Most codes will use `amrex::Amr`.
+The tutorial for `amrex::Amr` is in the `AmrLevel` directory. The tutorial for
+`amrex::AmrMesh` is in the `AmrCore` directory. Both tutorials work the same and
+will be compiled from the Exec/SingleVortex directories.
+
+## Compatible versions ##
+This code was tested on 5/22/2020 with SENSEI 3.2, ParaView 5.7, VisIt 3.0.2,
+and Python 3.7. As these dependencies evolve small upadtes to configurations
+supplied here may be needed. This tutorial assumes local installs of one or
+more of these dependencies.
+
 ## Configuring the environment ##
 First select the desired SENSEI install. Each install will support different set of
 backends. This is necessary because not all of the back ends are compatible with
@@ -22,7 +35,7 @@ module load sensei/2.1.0-libsim
 
 ## Compiling ##
 SENSEI features in AMReX are conditionally compiled when the Make file variable
-`USE_SENSEI_INSITU` is set. When this variable is set, the Make file will query
+`USE_SENSEI_INSITU` is set. When this variable is set, the Make file will querry
 environment variables to determine the list of include directories and link
 libraries needed to compile with SENSEI.
 

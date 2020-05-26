@@ -7,7 +7,7 @@
 #include <DataAdaptor.h>
 #include <AnalysisAdaptor.h>
 #include <ConfigurableAnalysis.h>
-#include <timer/Timer.h>
+#include <Profiler.h>
 #include <AMReX_AmrDataAdaptor.H>
 #include <AMReX_AmrMeshDataAdaptor.H>
 #endif
@@ -24,7 +24,8 @@ InSituBridge::InSituBridge() :
     enabled(0), frequency(1), counter(0), pinMesh(0)
 {
 #if defined(BL_USE_SENSEI_INSITU)
-    timer::Initialize();
+    sensei::Profiler::Initialize();
+    sensei::Profiler::StartEvent("InSituBridge::LifeTime");
 #endif
 }
 
@@ -33,7 +34,8 @@ InSituBridge::~InSituBridge()
 #if defined(BL_USE_SENSEI_INSITU)
     if (analysis_adaptor)
         analysis_adaptor->Delete();
-    timer::Finalize();
+    sensei::Profiler::EndEvent("InSituBridge::LifeTime");
+    sensei::Profiler::Finalize();
 #endif
 }
 
@@ -42,7 +44,7 @@ InSituBridge::initialize()
 {
 #if defined(BL_USE_SENSEI_INSITU)
     auto t0 = std::chrono::high_resolution_clock::now();
-    timer::MarkEvent event("InSituBridge::initialize");
+    sensei::TimeEvent<64> event("InSituBridge::initialize");
 
     // read config from ParmParse
     ParmParse pp("sensei");
@@ -61,13 +63,19 @@ InSituBridge::initialize()
     // Check for invalid values
     if (config.empty())
     {
-        amrex::ErrorStream() << "Error: Missing SENSEI XML configuration." << std::endl;
+        amrex::ErrorStream()
+            << "Error: Missing SENSEI XML configuration. To correct add "
+               "\"sensei.config=/path/to/file.xml\" to your inputs file."
+            << std::endl;
         return -1;
     }
 
     if (frequency < 1)
     {
-        amrex::ErrorStream() << "Error: Frequency must be greater or equal to 1." << std::endl;
+        amrex::ErrorStream()
+            << "Error: sensei.frequency=" << frequency
+            << " Frequency must be greater or equal to 1. "
+            << std::endl;
         return -1;
     }
 
@@ -114,7 +122,7 @@ InSituBridge::finalize()
     amrex::Print() << "SENSEI Begin finalize..." << std::endl;
     auto t0 = std::chrono::high_resolution_clock::now();
 
-    timer::MarkEvent event("InSituBridge::finalize");
+    sensei::TimeEvent<64> event("InSituBridge::finalize");
     ret = analysis_adaptor->Finalize();
 
     auto t1 = std::chrono::high_resolution_clock::now();

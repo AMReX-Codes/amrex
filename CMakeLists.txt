@@ -69,9 +69,9 @@ set( CMAKE_MODULE_PATH ${AMREX_CMAKE_MODULES_PATH} )
 #
 # Provide a default install directory
 #
-if ( CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT )
-   set ( CMAKE_INSTALL_PREFIX "${PROJECT_SOURCE_DIR}/installdir"
-      CACHE PATH "AMReX installation directory" FORCE)
+if ( CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR AND CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT )
+    set ( CMAKE_INSTALL_PREFIX "${PROJECT_SOURCE_DIR}/installdir"
+          CACHE PATH "AMReX installation directory" FORCE)
 endif ()
 
 #

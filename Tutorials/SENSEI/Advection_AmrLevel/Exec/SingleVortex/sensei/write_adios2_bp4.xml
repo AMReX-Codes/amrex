@@ -1,0 +1,3 @@
+<sensei>
+  <analysis type="adios2" filename="single_vortex_advect.bp" engine="BP4" enabled="1" />
+</sensei>
