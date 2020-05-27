@@ -35,6 +35,8 @@ StreamIter::StreamIter (const int n, const StreamItInfo& info, bool is_thread_sa
 void
 StreamIter::init() noexcept
 {
+    amrex::ignore_unused(m_threadsafe);
+    amrex::ignore_unused(m_sync);
 #if defined(AMREX_USE_GPU)
     Gpu::Device::setStreamIndex(m_i);
 #elif defined(_OPENMP)

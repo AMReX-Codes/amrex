@@ -24,6 +24,7 @@ struct DoubleInt {
 
 using Coord = Array<int, 4>;
 
+#ifdef AMREX_DEBUG
 // returns coordinate in an index space with no switches
 // for dragonfly network
 Coord read_df_node_coord (const std::string & name)
@@ -50,6 +51,7 @@ Coord read_df_node_coord (const std::string & name)
 
     return Coord {node, slot, chas, group};
 }
+#endif
 
 #ifdef BL_USE_MPI
 std::string get_mpi_processor_name ()
@@ -63,11 +65,13 @@ std::string get_mpi_processor_name ()
 }
 #endif
 
+#ifdef AMREX_DEBUG
 // assumes groups are in 4x16x6 configuration
 int df_coord_to_id (const Coord & c)
 {
     return c[0] + 4 * (c[1] + 16 * (c[2] + 6 * c[3]));
 }
+#endif
 
 // assumes groups are in 4x16x6 configuration
 Coord df_id_to_coord (int id)

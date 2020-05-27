@@ -254,6 +254,7 @@ void amrex_interpolate_cic (P const& p, int nc, amrex::Array4<amrex::Real const>
     for (int comp=0; comp < nc; ++comp) {    
         for (int ii = 0; ii <= 1; ++ii) { 
             amrex::Real acceleration = sx[ii]*acc(i+ii-1,0,0,comp);
+            amrex::ignore_unused(acceleration);
         }
     }
 #elif (AMREX_SPACEDIM == 2)
@@ -273,6 +274,7 @@ void amrex_interpolate_cic (P const& p, int nc, amrex::Array4<amrex::Real const>
         for (int jj = 0; jj <= 1; ++jj) { 
             for (int ii = 0; ii <= 1; ++ii) { 
                 amrex::Real acceleration = sx[ii]*sy[jj]*acc(i+ii-1,j+jj-1,0,comp);
+                amrex::ignore_unused(acceleration);
             }
         }
     }
@@ -298,6 +300,7 @@ void amrex_interpolate_cic (P const& p, int nc, amrex::Array4<amrex::Real const>
             for (int jj = 0; jj <= 1; ++jj) { 
                 for (int ii = 0; ii <= 1; ++ii) {
                     amrex::Real acceleration = sx[ii]*sy[jj]*sz[kk]*acc(i+ii-1,j+jj-1,k+kk-1,comp);
+                    amrex::ignore_unused(acceleration);
                 }
             }
         }

@@ -22,6 +22,7 @@ MacProjector::MacProjector (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_um
       m_umac_loc(a_umac_loc),
       m_divu_loc(a_divu_loc)
 {
+    amrex::ignore_unused(m_divu_loc);
     int nlevs = a_umac.size();
     Vector<BoxArray> ba(nlevs);
     Vector<DistributionMapping> dm(nlevs);

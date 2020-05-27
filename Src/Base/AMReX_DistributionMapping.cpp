@@ -988,6 +988,7 @@ Distribute (const std::vector<SFCToken>&     tokens,
             Print() << "  Rank/Team " << i << ":" << std::endl;
             Real rank_vol = 0;
             for (const auto &box : v[i]) {
+                amrex::ignore_unused(box);
                 const auto &t = tokens[idx];
                 BL_ASSERT(box == t.m_box);
                 Print() << "    " << idx << ": "
