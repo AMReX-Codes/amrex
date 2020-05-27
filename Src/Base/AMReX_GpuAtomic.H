@@ -363,8 +363,8 @@ namespace detail {
 
     template <typename T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    T CAS (T* const address, T const compare, T const val) noexcept
-    {
+    T CAS (T* const address, T compare, T const val) noexcept
+    {           // cannot be T const compare because of compare_exchange_strong
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
         return atomicCAS(address, compare, val);
 #elif defined(__SYCL_DEVICE_ONLY__)
