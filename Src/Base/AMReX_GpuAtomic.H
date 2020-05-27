@@ -232,7 +232,7 @@ namespace detail {
 
     template<class T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    T Max (T* const m, T value) noexcept
+    T Max (T* const m, T const value) noexcept
     {
 #if AMREX_DEVICE_COMPILE
         return Max_device(m, value);
