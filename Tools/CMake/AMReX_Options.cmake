@@ -6,17 +6,13 @@
 ###############################################
 include_guard(GLOBAL)
 
-#
-# Include module
-#
 include(CMakeDependentOption)
-
 
 #
 # Define a macro to check the value of the inputs integer options
 #
 macro (print_option var)
-   message ( STATUS "   ${var} = ${${var}}")
+   message( STATUS "   ${var} = ${${var}}")
 endmacro ()
 
 #
@@ -96,12 +92,9 @@ endif ()
 option( ENABLE_EB "Build EB Code" OFF )
 print_option(ENABLE_EB)
 
-if (ENABLE_FORTRAN)
-   option( ENABLE_FORTRAN_INTERFACES "Build Fortran API" OFF )
-   print_option(ENABLE_FORTRAN_INTERFACES)
-else ()
-   set(ENABLE_FORTRAN_INTERFACES OFF CACHE INTERNAL "Build Fortran API")
-endif ()
+cmake_dependent_option( ENABLE_FORTRAN_INTERFACES "Build Fortran API" OFF
+   "ENABLE_FORTRAN" OFF )
+print_option(ENABLE_FORTRAN_INTERFACES)
 
 option( ENABLE_LINEAR_SOLVERS  "Build AMReX Linear solvers" ON )
 print_option( ENABLE_LINEAR_SOLVERS )
@@ -133,32 +126,32 @@ print_option( ENABLE_SENSEI_INSITU )
 # Conduit Support (for features in Src/Extern/Conduit)
 # Note: ENABLE_CONDUIT = ON, requires CONDUIT_DIR.
 #
-option ( ENABLE_CONDUIT "Enable Conduit support" OFF )
-print_option ( ENABLE_CONDUIT )
+option( ENABLE_CONDUIT "Enable Conduit support" OFF )
+print_option( ENABLE_CONDUIT )
 
-if (ENABLE_CONDUIT)
-   option ( ENABLE_ASCENT "Enable Ascent support" OFF )
-   print_option ( ENABLE_ASCENT )
-endif ()
+cmake_dependent_option( ENABLE_ASCENT "Enable Ascent support" OFF
+   "ENABLE_CONDUIT" OFF )
+print_option( ENABLE_ASCENT )
 
 
 #
 # External packages
 #
-option(ENABLE_SUNDIALS "Enable SUNDIALS4 interfaces" OFF)
+
+# SUNDIALS
+cmake_dependent_option(ENABLE_SUNDIALS "Enable SUNDIALS4 interfaces" OFF
+   "ENABLE_FORTRAN_INTERFACES" OFF)
 print_option(ENABLE_SUNDIALS)
 
 # Hypre
-if (ENABLE_LINEAR_SOLVERS)
-   option(ENABLE_HYPRE "Enable Hypre interfaces" OFF)
-   print_option(ENABLE_HYPRE)
-   option(ENABLE_PETSC "Enable PETSc interfaces" OFF)
-   print_option(ENABLE_PETSC)
-else ()
-   set(ENABLE_HYPRE OFF CACHE INTERNAL "Enable Hypre interfaces")
-   set(ENABLE_PETSC OFF CACHE INTERNAL "Enable PETSc interfaces")
-endif ()
+cmake_dependent_option(ENABLE_HYPRE "Enable Hypre interfaces" OFF
+   "ENABLE_FORTRAN;ENABLE_LINEAR_SOLVERS" OFF)
+print_option(ENABLE_HYPRE)
 
+# PETSc
+cmake_dependent_option(ENABLE_PETSC "Enable PETSc interfaces" OFF
+   "ENABLE_FORTRAN;ENABLE_LINEAR_SOLVERS" OFF )
+print_option(ENABLE_PETSC)
 
 #
 # Compilation options
