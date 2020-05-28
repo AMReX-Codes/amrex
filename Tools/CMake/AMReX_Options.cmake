@@ -20,17 +20,6 @@ macro (print_option var)
 endmacro ()
 
 #
-# Check if CMAKE_BUILD_TYPE is given. If not, use default
-#
-if ( NOT CMAKE_BUILD_TYPE )
-   message(STATUS "Setting build type to Release as none was specified.")
-   set( CMAKE_BUILD_TYPE Release )
-else ()
-   message(STATUS "Build type set by user to '${CMAKE_BUILD_TYPE}'.")
-endif()
-
-
-#
 # Populate the cache and check the value of the user-definable options
 #
 message(STATUS "Configuring AMReX with the following options: ")
@@ -52,11 +41,6 @@ else ()
    option( BUILD_SHARED_LIBS "Build AMReX shared library" OFF )
 endif ()
 print_option( BUILD_SHARED_LIBS )
-
-#
-# Print out info on install path
-#
-print_option( CMAKE_INSTALL_PREFIX )
 
 
 #

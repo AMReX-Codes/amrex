@@ -74,6 +74,18 @@ if ( CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR AND CMAKE_INSTALL_PREFIX_INITI
           CACHE PATH "AMReX installation directory" FORCE)
 endif ()
 
+message(STATUS "AMReX installation directory: ${CMAKE_INSTALL_PREFIX}")
+
+#
+# Check if CMAKE_BUILD_TYPE is given. If not, use default
+#
+if ( NOT CMAKE_BUILD_TYPE )
+   message(STATUS "Setting build type to Release as none was specified.")
+   set( CMAKE_BUILD_TYPE Release )
+else ()
+   message(STATUS "Build type set by user to '${CMAKE_BUILD_TYPE}'.")
+endif()
+
 #
 # Include options, utilities and other stuff we need
 #
