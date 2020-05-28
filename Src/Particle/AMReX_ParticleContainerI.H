@@ -1208,7 +1208,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 {
     BL_PROFILE("ParticleContainer::EnforcePeriodic()");
     const int lev = 0;
-    const Geometry& geom = Geom(lev);
     auto& plev = m_particles[lev];
     const auto plo = Geom(lev).ProbLoArray();
     const auto phi = Geom(lev).ProbHiArray();
@@ -1584,9 +1583,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 defineBufferMap () const
 {    
     BL_PROFILE("ParticleContainer::defineBufferMap");
-    const int lev = 0;
-    const BoxArray& ba = ParticleBoxArray(lev);
-    const DistributionMapping& dm = ParticleDistributionMap(lev);
 
     if (not m_buffer_map.isValid(GetParGDB()))
     {
@@ -2160,7 +2156,6 @@ InterpolateSingleLevel (MultiFab& mesh_data, int lev)
         auto pstruct = particles().data();
         FArrayBox& fab = mesh_data[pti];
         const auto fabarr = fab.array();
-        const Box& box = fab.box();
         const Long np = particles.numParticles();
         
         int nComp = fab.nComp();

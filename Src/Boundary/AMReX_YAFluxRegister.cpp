@@ -287,6 +287,7 @@ YAFluxRegister::FineAdd (const MFIter& mfi,
 
     std::array<FArrayBox const*,AMREX_SPACEDIM> flux{AMREX_D_DECL(a_flux[0],a_flux[1],a_flux[2])};
     bool use_gpu = (runon == RunOn::Gpu) && Gpu::inLaunchRegion();
+    amrex::ignore_unused(use_gpu);
     std::array<FArrayBox,AMREX_SPACEDIM> ftmp;
     if (fbx != tbx) {
         AMREX_ASSERT(!use_gpu);
