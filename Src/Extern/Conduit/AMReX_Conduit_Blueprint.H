@@ -83,17 +83,6 @@ namespace amrex
                                 const Vector<IntVect> &ref_ratio,
                                 conduit::Node &bp_mesh);
 
-    // Creates an the parent-child relationships for a fab
-    //
-    void Nestsets(const int level,
-                  const int n_levels,
-                  const FArrayBox &fab,
-                  const Vector<const BoxArray*> box_arrays,
-                  const Vector<IntVect> &ref_ratio,
-                  const Vector<int> &domain_offsets,
-                  conduit::Node &nestset);
-
-
 #ifdef AMREX_PARTICLES
     // Creates an in-memory Mesh Blueprint representation of an AMReX
     // particle container.

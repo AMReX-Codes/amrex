@@ -14,103 +14,112 @@ using namespace conduit;
 
 namespace amrex {
 
-void paint_2d_nestsets(conduit::Node &domain,
-                       const std::string topo_name)
+//---------------------------------------------------------------------------//
+// Creates the Blueprint nesting relationships
+//---------------------------------------------------------------------------//
+void Nestsets(const int level,
+              const int n_levels,
+              const FArrayBox &fab,
+              const Vector<const BoxArray*> box_arrays,
+              const Vector<IntVect> &ref_ratio,
+              const Vector<int> &domain_offsets,
+              conduit::Node &nestset)
 {
+    nestset.reset();
+    nestset["association"] = "element";
+    nestset["topology"] = "topo";
 
-  if(!domain.has_path("topologies/"+topo_name))
-  {
-    std::cout<<"Paint nestsets: no topology named: "<<topo_name<<"\n";
-  }
+    const int dims = BL_SPACEDIM;
+    const Box &box = fab.box();
 
-  const Node &topo = domain["topologies/"+topo_name];
-
-  if(topo["type"].as_string() == "unstructured")
-  {
-    std::cout<<"Paint nestsets: cannot paint on unstructured topology\n";
-  }
-
-  int el_dims[2] = {1,1};
-  if(topo["type"].as_string() == "structured")
-  {
-    el_dims[0] = topo["elements/dims/i"].to_int32();
-    el_dims[1] = topo["elements/dims/j"].to_int32();
-  }
-  else
-  {
-    const std::string coord_name = topo["coordset"].as_string();
-    const Node &coords = domain["coordsets/"+coord_name];
-    if(coords["type"].as_string() == "uniform")
+    if(level > 0)
     {
-      el_dims[0] = coords["dims/i"].as_int32() - 1;
-      el_dims[1] = coords["dims/j"].as_int32() - 1;
-    }
-    else if(coords["type"].as_string() == "rectilinear")
-    {
-      el_dims[0] = coords["values/x"].dtype().number_of_elements() - 1;
-      el_dims[1] = coords["values/y"].dtype().number_of_elements() - 1;
-    }
-    else
-    {
-      CONDUIT_ERROR("unknown coord type");
-    }
-  }
+      // check for parents
+      std::vector<std::pair<int,Box> > isects
+        = box_arrays[level-1]->intersections(amrex::coarsen(box, ref_ratio[level-1]));
 
-  const int32 field_size = el_dims[0] * el_dims[1];
-
-  Node &levels_field = domain["fields/mask"];
-  levels_field["association"] = "element";
-  levels_field["topology"] = topo_name;
-  levels_field["values"] = DataType::int32(field_size);
-  int32_array levels = levels_field["values"].value();
-
-
-  for(int i = 0; i < field_size; ++i)
-  {
-    levels[i] = 0;
-  }
-
-  int nest_id = -1;
-  for(int i = 0; i < domain["nestsets"].number_of_children(); ++i)
-  {
-    const Node &nestset = domain["nestsets"].child(0);
-    if(nestset["topology"].as_string() == topo_name)
-    {
-      nest_id = i;
-      break;
-    }
-  }
-  if(nest_id == -1) return;
-
-  const Node &nestset = domain["nestsets"].child(nest_id);
-  const int windows = nestset["windows"].number_of_children();
-  for(int i = 0; i < windows; ++i)
-  {
-    const Node &window = nestset["windows"].child(i);
-    if(window["domain_type"].as_string() != "child")
-    {
-      continue;
-    }
-
-    int origin[2];
-    origin[0] = window["origin/i"].to_int32();
-    origin[1] = window["origin/j"].to_int32();
-
-    int dims[2];
-    dims[0] = window["dims/i"].to_int32();
-    dims[1] = window["dims/j"].to_int32();
-    // all the nesting relationship is local
-    for(int y = origin[1]; y < origin[1] + dims[1]; ++y)
-    {
-      const int32 y_offset = y * el_dims[0];
-      for(int x = origin[0]; x < origin[0] + dims[0]; ++x)
+      for(int b = 0; b < isects.size(); ++b)
       {
-        levels[y_offset + x] += 1;
+        // get parent box in terms of this level
+        Box parent = amrex::refine(isects[b].second, ref_ratio[level-1]);
+        Box overlap = box & parent;
+        int parent_id = isects[b].first + domain_offsets[level-1];
+
+        const std::string& w_name = amrex::Concatenate("window_",
+                                                        parent_id,
+                                                        4);
+        conduit::Node &window = nestset["windows/"+w_name];
+        window["domain_id"] = parent_id;
+        window["domain_type"] = "parent";
+        // box coordinates are global to the level,
+        // but the the window is local to this box so
+        // subtract the current box origin
+        window["origin/i"] = overlap.smallEnd()[0] - box.smallEnd()[0];
+        window["origin/j"] = overlap.smallEnd()[1] - box.smallEnd()[1];
+        if(dims == 3)
+        {
+            window["origin/k"] = overlap.smallEnd()[2] - box.smallEnd()[2];
+        }
+        window["dims/i"] = overlap.size()[0];
+        window["dims/j"] = overlap.size()[1];
+        if(dims == 3)
+        {
+            window["dims/k"] = overlap.size()[2];
+        }
+        window["ratio/i"] = ref_ratio[level-1][0];
+        window["ratio/j"] = ref_ratio[level-1][1];
+        if(dims == 3)
+        {
+            window["ratio/k"] = ref_ratio[level-1][2];
+        }
       }
     }
-  }
-}
 
+    if(level < n_levels - 1)
+    {
+      // check for children
+      std::vector<std::pair<int,Box> > isects
+        = box_arrays[level+1]->intersections(amrex::refine(box, ref_ratio[level]));
+
+      for(int b = 0; b < isects.size(); ++b)
+      {
+        // get child box in terms of this level
+        Box child = amrex::coarsen(isects[b].second, ref_ratio[level]);
+        int child_id = isects[b].first + domain_offsets[level+1];
+        Box overlap = box & child;
+
+        const std::string& w_name = amrex::Concatenate("window_",
+                                                        child_id,
+                                                        4);
+
+        conduit::Node &window = nestset["windows/"+w_name];
+        window["domain_id"] = child_id;
+        window["domain_type"] = "child";
+        // box coordinates are global to the level,
+        // but the the window is local to this box so
+        // subtract the current box origin
+        window["origin/i"] = overlap.smallEnd()[0] - box.smallEnd()[0];
+        window["origin/j"] = overlap.smallEnd()[1] - box.smallEnd()[1];
+        if(dims == 3)
+        {
+            window["origin/k"] = overlap.smallEnd()[2] - box.smallEnd()[2];
+        }
+        window["dims/i"] = overlap.size()[0];
+        window["dims/j"] = overlap.size()[1];
+        if(dims == 3)
+        {
+            window["dims/k"] = overlap.size()[2];
+        }
+        window["ratio/i"] = ref_ratio[level+1][0];
+        window["ratio/j"] = ref_ratio[level+1][1];
+        if(dims == 3)
+        {
+            window["ratio/k"] = ref_ratio[level+1][2];
+        }
+      }
+    }
+    nestset.print();
+}
 
 //---------------------------------------------------------------------------//
 // Creates a Rectilinear Blueprint Topology from the Geom and Fab.
@@ -150,7 +159,6 @@ void FabToBlueprintTopology(const Geometry& geom,
     const amrex::Box &fab_box = fab.box();
 
 
-    std::cout<<"FAB box "<<fab_box<<"\n";
     int i_min = fab_box.smallEnd(0);
     int i_max = fab_box.bigEnd(0);
 
@@ -179,7 +187,6 @@ void FabToBlueprintTopology(const Geometry& geom,
     res["coordsets/coords/type"] = "rectilinear";
     res["coordsets/coords/values/x"] = DataType::float64(nx+1);
     res["coordsets/coords/values/y"] = DataType::float64(ny+1);
-    std::cout<<"NX "<<nx<<" NY "<<ny<<"\n";
 
     float64_array x_coords = res["coordsets/coords/values/x"].value();
     float64_array y_coords = res["coordsets/coords/values/y"].value();
@@ -423,7 +430,6 @@ MultiLevelToBlueprint (int n_levels,
             FabToBlueprintTopology(geom,fab,patch);
             // add the nesting relationship
             conduit::Node &nestset = patch["nestsets/nest"];
-            std::cout<<"*********** domain "<<domain_id<<" level "<<i<<"\n";
             patch["topologies"].print();
             Nestsets(i, n_levels, fab, box_arrays, ref_ratio, box_offsets, nestset);
             paint_2d_nestsets(patch,"topo");
@@ -565,109 +571,5 @@ void WriteBlueprintFiles (const conduit::Node &bp_mesh,
     }
 }
 
-
-void Nestsets(const int level,
-              const int n_levels,
-              const FArrayBox &fab,
-              const Vector<const BoxArray*> box_arrays,
-              const Vector<IntVect> &ref_ratio,
-              const Vector<int> &domain_offsets,
-              conduit::Node &nestset)
-{
-    nestset.reset();
-    nestset["association"] = "element";
-    nestset["topology"] = "topo";
-
-    const int dims = BL_SPACEDIM;
-    const Box &box = fab.box();
-
-    if(level > 0)
-    {
-      // check for parents
-      std::vector<std::pair<int,Box> > isects
-        = box_arrays[level-1]->intersections(amrex::coarsen(box, ref_ratio[level-1]));
-
-      for(int b = 0; b < isects.size(); ++b)
-      {
-        // get parent box in terms of this level
-        Box parent = amrex::refine(isects[b].second, ref_ratio[level-1]);
-        Box overlap = box & parent;
-        int parent_id = isects[b].first + domain_offsets[level-1];
-
-        const std::string& w_name = amrex::Concatenate("window_",
-                                                        parent_id,
-                                                        4);
-        conduit::Node &window = nestset["windows/"+w_name];
-        window["domain_id"] = parent_id;
-        window["domain_type"] = "parent";
-        // box coordinates are global to the level,
-        // but the the window is local to this box so
-        // subtract the current box origin
-        window["origin/i"] = overlap.smallEnd()[0] - box.smallEnd()[0];
-        window["origin/j"] = overlap.smallEnd()[1] - box.smallEnd()[1];
-        if(dims == 3)
-        {
-            window["origin/k"] = overlap.smallEnd()[2] - box.smallEnd()[2];
-        }
-        window["dims/i"] = overlap.size()[0];
-        window["dims/j"] = overlap.size()[1];
-        if(dims == 3)
-        {
-            window["dims/k"] = overlap.size()[2];
-        }
-        window["ratio/i"] = ref_ratio[level-1][0];
-        window["ratio/j"] = ref_ratio[level-1][1];
-        if(dims == 3)
-        {
-            window["ratio/k"] = ref_ratio[level-1][2];
-        }
-      }
-    }
-
-    if(level < n_levels - 1)
-    {
-      // check for children
-      std::vector<std::pair<int,Box> > isects
-        = box_arrays[level+1]->intersections(amrex::refine(box, ref_ratio[level]));
-
-      for(int b = 0; b < isects.size(); ++b)
-      {
-        // get child box in terms of this level
-        Box child = amrex::coarsen(isects[b].second, ref_ratio[level]);
-        int child_id = isects[b].first + domain_offsets[level+1];
-        Box overlap = box & child;
-
-        const std::string& w_name = amrex::Concatenate("window_",
-                                                        child_id,
-                                                        4);
-
-        conduit::Node &window = nestset["windows/"+w_name];
-        window["domain_id"] = child_id;
-        window["domain_type"] = "child";
-        // box coordinates are global to the level,
-        // but the the window is local to this box so
-        // subtract the current box origin
-        window["origin/i"] = overlap.smallEnd()[0] - box.smallEnd()[0];
-        window["origin/j"] = overlap.smallEnd()[1] - box.smallEnd()[1];
-        if(dims == 3)
-        {
-            window["origin/k"] = overlap.smallEnd()[2] - box.smallEnd()[2];
-        }
-        window["dims/i"] = overlap.size()[0];
-        window["dims/j"] = overlap.size()[1];
-        if(dims == 3)
-        {
-            window["dims/k"] = overlap.size()[2];
-        }
-        window["ratio/i"] = ref_ratio[level+1][0];
-        window["ratio/j"] = ref_ratio[level+1][1];
-        if(dims == 3)
-        {
-            window["ratio/k"] = ref_ratio[level+1][2];
-        }
-      }
-    }
-    nestset.print();
-}
 
 }
