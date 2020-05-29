@@ -118,7 +118,6 @@ void Nestsets(const int level,
         }
       }
     }
-    nestset.print();
 }
 
 //---------------------------------------------------------------------------//
@@ -430,7 +429,6 @@ MultiLevelToBlueprint (int n_levels,
             FabToBlueprintTopology(geom,fab,patch);
             // add the nesting relationship
             conduit::Node &nestset = patch["nestsets/nest"];
-            patch["topologies"].print();
             Nestsets(i, n_levels, fab, box_arrays, ref_ratio, box_offsets, nestset);
             paint_2d_nestsets(patch,"topo");
             // add fields
