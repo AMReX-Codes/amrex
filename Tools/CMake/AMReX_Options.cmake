@@ -29,7 +29,7 @@ message(STATUS "Configuring AMReX with the following options: ")
 # Under policy CMP0077, normal variables prevent option()
 # to set internal variables of the same name.
 # Example: if XSDK mode is ON and XSDK_ENABLE_Fortran=ON, a normal
-# variable ENABLE_FORTRAN will be created and se to ON.
+# variable ENABLE_FORTRAN will be created and set to ON.
 # This will stop the subsequent option( ENABLE_FORTRAN "Enable Fortran language" ON )
 # from being executed and no entry ENABLE_FORTRAN will be created in the cache
 #
