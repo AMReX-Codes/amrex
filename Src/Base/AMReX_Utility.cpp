@@ -4,15 +4,13 @@
 #include <cmath>
 #include <cstdio>
 #include <ctime>
+#include <chrono>
 #include <iostream>
 #include <sstream>
 #include <iomanip>
 #include <set>
 #include <random>
-
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <errno.h>
+#include <thread>
 
 #include <AMReX_BLFort.H>
 #include <AMReX_REAL.H>
@@ -20,8 +18,7 @@
 #include <AMReX_Utility.H>
 #include <AMReX_BLassert.H>
 #include <AMReX_BLProfiler.H>
-#include <AMReX_Print.H>
-
+#include <AMReX_FileSystem.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_BoxArray.H>
 #include <AMReX_Print.H>
@@ -30,12 +27,17 @@
 #include <omp.h>
 #endif
 
-#include <sys/types.h>
+#if defined(_WIN32) || __cplusplus >= 201703L
+#include <filesystem>
+#include <system_error>
+#else
+#include <sys/stat.h> // for mkdir
+#endif
+
 #include <sys/times.h>
 #include <sys/time.h>
 #include <sys/param.h>
-#include <unistd.h>
-
+#include <errno.h>
 
 using std::ostringstream;
 
@@ -166,6 +168,15 @@ bool
 amrex::UtilCreateDirectory (const std::string& path,
 			    mode_t mode, bool verbose)
 {
+#if defined(_WIN32) || __cplusplus >= 201703L
+    std::error_code ec;
+    bool ret = std::filesystem::create_directories(std::filesystem::path{path}, ec);
+    if (ec and verbose) {
+        amrex::AllPrint() << "amrex::UtilCreateDirectory failed to create "
+                          << path << ": " << ec.message() << std::endl;
+    }
+    return !ec;
+#else
     bool retVal(false);
     Vector<std::pair<std::string, int> > pathError;
 
@@ -251,6 +262,7 @@ amrex::UtilCreateDirectory (const std::string& path,
     }
 
     return retVal;
+#endif
 }
 
 void
@@ -269,17 +281,10 @@ amrex::FileOpenFailed (const std::string& file)
     amrex::Error(msg.c_str());
 }
 
-void
-amrex::UnlinkFile (const std::string& file)
-{
-    unlink(file.c_str());
-}
-
 bool
 amrex::FileExists(const std::string &filename)
 {
-  struct stat statbuff;
-  return(::lstat(filename.c_str(), &statbuff) != -1);
+    return amrex::FileSystem::Exists(filename);
 }
 
 std::string
@@ -1041,9 +1046,8 @@ void amrex::BroadcastStringArray(Vector<std::string> &bSA, int myLocalId, int ro
   }
 }
 
-void amrex::USleep(double sleepsec) {
-  constexpr unsigned int msps = 1000000;
-  usleep(static_cast<useconds_t>(sleepsec * msps));
+void amrex::Sleep(double sleepsec) {
+    std::this_thread::sleep_for(std::chrono::duration<double>(sleepsec));
 }
 
 

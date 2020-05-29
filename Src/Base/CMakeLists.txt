@@ -54,6 +54,8 @@ target_sources( amrex
    AMReX_Functional.H
    AMReX_Utility.H
    AMReX_Utility.cpp
+   AMReX_FileSystem.H
+   AMReX_FileSystem.cpp
    AMReX_Reduce.H
    AMReX_Scan.H
    AMReX_Partition.H

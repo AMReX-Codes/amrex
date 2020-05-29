@@ -1,4 +1,3 @@
-#include <unistd.h>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -10,6 +9,7 @@
 #include <vector>
 #include <algorithm>
 
+#include <AMReX_FileSystem.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX.H>
 #include <AMReX_BaseFab.H>
@@ -315,13 +315,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     if (argc > 0)
     {
         if (argv[0][0] != '/') {
-            constexpr int bufSize = 1024;
-            char temp[bufSize];
-            char *rCheck = getcwd(temp, bufSize);
-            if(rCheck == 0) {
-                amrex::Abort("**** Error:  getcwd buffer too small.");
-            }
-            system::exename = temp;
+            system::exename = FileSystem::CurrentPath();
             system::exename += "/";
         }
         system::exename += argv[0];

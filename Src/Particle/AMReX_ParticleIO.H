@@ -671,7 +671,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                         if (cnt[i] == 0)
                         {
                             std::string FullFileName = NFilesIter::FileName(i, filePrefix);
-                            amrex::UnlinkFile(FullFileName.c_str());
+                            FileSystem::Remove(FullFileName);
                         }
                     }
                 }                
@@ -793,7 +793,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                 for(int i(0), N = cnt.size(); i < N; ++i) {
                     if(cnt[i] == 0) {
                         std::string FullFileName = NFilesIter::FileName(i, filePrefixPrePost[lev]);
-                        amrex::UnlinkFile(FullFileName.c_str());
+                        FileSystem::Remove(FullFileName);
                     }
                 }
             }

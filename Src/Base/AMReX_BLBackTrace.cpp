@@ -4,14 +4,13 @@
 #include <cstring>
 #include <cstdio>
 
-#include <unistd.h>
-
 #include <AMReX_BLBackTrace.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Print.H>
 #include <AMReX_VisMF.H>
 #include <AMReX_AsyncOut.H>
 #include <AMReX.H>
+#include <AMReX_Utility.H>
 
 #ifdef AMREX_TINY_PROFILING
 #include <AMReX_TinyProfiler.H>
@@ -23,6 +22,10 @@
 #define AMREX_BACKTRACE_SUPPORTED 1
 #elif defined(__linux__)
 #define AMREX_BACKTRACE_SUPPORTED 1
+#endif
+
+#ifdef __linux__
+#include <unistd.h>
 #endif
 
 namespace amrex {
@@ -107,7 +110,7 @@ BLBackTrace::handler(int s)
 #endif
 
     if (ParallelDescriptor::NProcs() > 1) {
-	sleep(3);
+	amrex::Sleep(3);
     }
 
 #endif

@@ -4,7 +4,6 @@
 #include <cstdlib>
 #include <iostream>
 #include <fstream>
-#include <unistd.h>
 #include <sstream>
 #include <stack>
 #include <list>

@@ -2,8 +2,6 @@
 #include <iostream>
 #include <algorithm>
 
-#include <unistd.h>
-
 #include <AMReX_RealBox.H>
 #include <AMReX_StateData.H>
 #include <AMReX_StateDescriptor.H>
