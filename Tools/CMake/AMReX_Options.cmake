@@ -215,7 +215,12 @@ cmake_dependent_option(ENABLE_PROFPARSER "Enable profile parser" OFF
    "ENABLE_BASE_PROFILE;ENABLE_TRACE_PROFILE;ENABLE_AMRDATA" OFF)
 print_option( ENABLE_PROFPARSER )
 
-set( TP_PROFILE "None" CACHE STRING "Third-party profiling options:<CRAYPAT,FORGE,VTUNE>")
+set(TP_PROFILE_VALUES None CRAYPAT FORGE VTUNE)
+set(TP_PROFILE None CACHE STRING "Third-party profiling options: <CRAYPAT,FORGE,VTUNE>")
+set_property(CACHE TP_PROFILE PROPERTY STRINGS ${TP_PROFILE_VALUES})
+if(NOT TP_PROFILE IN_LIST TP_PROFILE_VALUES)
+    message(FATAL_ERROR "TP_PROFILE (${TP_PROFILE}) must be one of ${TP_PROFILE_VALUES}")
+endif()
 print_option( TP_PROFILE )
 
 # Check profile options
