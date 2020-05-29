@@ -232,7 +232,7 @@ WriteMultiLevelPlotfile (const std::string& plotfilename, int nlevels,
 // -plotfile name
 // -vector of MultiFabs
 // -vector of Geometrys
-// variable names are written as "Var0", "Var1", etc.
+// variable names are written as "Var0", "Var1", etc.    
 // refinement ratio is computed from the Geometry vector
 // "time" and "level_steps" are set to zero
 void WriteMLMF (const std::string &plotfilename,
@@ -263,11 +263,11 @@ void WriteMLMF (const std::string &plotfilename,
 
     // set time to zero
     Real time = 0.;
-
+    
     WriteMultiLevelPlotfile(plotfilename, nlevs, mf, varnames,
-                            geom, time, step_array, ref_ratio);
-
-}
+                            geom, time, step_array, ref_ratio);   
+    
+}    
 
 
 void
@@ -564,7 +564,7 @@ WriteGenericPlotfileHeaderHDF5 (hid_t fid,
                             const Vector<IntVect> &ref_ratio,
                             const std::string &versionName,
                             const std::string &levelPrefix,
-                            const std::string &mfPrefix,
+                            const std::string &mfPrefix, 
                             const Vector<std::string>& extra_dirs)
 {
     BL_PROFILE("WriteGenericPlotfileHeaderHDF5()");
@@ -640,9 +640,9 @@ WriteGenericPlotfileHeaderHDF5 (hid_t fid,
         }
 
         int ratio = 1;
-        if (ref_ratio.size() > 0)
+        if (ref_ratio.size() > 0) 
             ratio = ref_ratio[level][0];
-
+        
         if (level == finest_level) {
             ratio = 1;
         }
@@ -713,12 +713,12 @@ WriteGenericPlotfileHeaderHDF5 (hid_t fid,
     H5Tclose(comp_dtype);
 }
 
-void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
+void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename, 
 				  int nlevels,
                          	  const Vector<const MultiFab*>& mf,
                          	  const Vector<std::string>& varnames,
-                         	  const Vector<Geometry>& geom,
-				  Real time,
+                         	  const Vector<Geometry>& geom, 
+				  Real time, 
 				  const Vector<int>& level_steps,
                          	  const Vector<IntVect>& ref_ratio,
                          	  const std::string &versionName,
@@ -736,7 +736,7 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
 
     int myProc(ParallelDescriptor::MyProc());
     int nProcs(ParallelDescriptor::NProcs());
-
+    
 
     herr_t  ret;
     int ndim = AMREX_SPACEDIM;
@@ -755,7 +755,7 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
 
         // Create the HDF5 file
         fid = H5Fcreate(filename.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, fapl);
-        if (fid < 0)
+        if (fid < 0) 
             FileOpenFailed(filename.c_str());
 
         H5Pclose(fapl);
@@ -776,7 +776,7 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
 
     // All process open the file
     fid = H5Fopen(filename.c_str(), H5F_ACC_RDWR, fapl);
-    if (fid < 0)
+    if (fid < 0) 
         FileOpenFailed(filename.c_str());
 
     H5Pclose(fapl);
@@ -803,10 +803,10 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
         std::string dataname("data:datatype=0");
         hsize_t  flatdims[1], count[1];
         flatdims[0] = grids.size();
-
+        
         flatdims[0] = grids.size();
         boxdataspace = H5Screate_simple(1, flatdims, NULL);
-
+       
         hid_t babox_id;
         babox_id = H5Tcreate (H5T_COMPOUND, 2 * AMREX_SPACEDIM * sizeof(int));
         if (1 == AMREX_SPACEDIM) {
@@ -827,9 +827,9 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
             H5Tinsert (babox_id, "hi_j", 4 * sizeof(int), H5T_NATIVE_INT);
             H5Tinsert (babox_id, "hi_k", 5 * sizeof(int), H5T_NATIVE_INT);
         }
-
+    
         boxdataset = H5Dcreate(grp, bdsname.c_str(), babox_id, boxdataspace, H5P_DEFAULT, H5P_DEFAULT,H5P_DEFAULT);
-
+        
         // Create a boxarray sorted by rank
         std::map<int, Vector<Box> > gridMap;
         for(int i(0); i < grids.size(); ++i) {
@@ -849,7 +849,7 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
                 ++bIndex;
             }
         }
-
+        
         hsize_t  oflatdims[1];
         oflatdims[0] = sortedGrids.size() + 1;
         offsetdataspace = H5Screate_simple(1, oflatdims, NULL);
@@ -868,12 +868,12 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
             H5Tinsert (center_id, "j", 1 * sizeof(int), H5T_NATIVE_INT);
             H5Tinsert (center_id, "k", 2 * sizeof(int), H5T_NATIVE_INT);
         }
-
+ 
         hsize_t centerdims[1];
         centerdims[0]   = sortedGrids.size() ;
         centerdataspace = H5Screate_simple(1, centerdims, NULL);
         centerdataset   = H5Dcreate(grp, centername.c_str(), center_id, centerdataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-
+        
         Vector<unsigned long long> offsets(sortedGrids.size() + 1);
         unsigned long long currentOffset(0L);
         for(int b(0); b < sortedGrids.size(); ++b) {
@@ -881,7 +881,7 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
             currentOffset += sortedGrids[b].numPts() * ncomp;
         }
         offsets[sortedGrids.size()] = currentOffset;
-
+        
         Vector<unsigned long long> procOffsets(nProcs);
         int posCount(0);
         Vector<unsigned long long> procBufferSize(nProcs);
@@ -898,7 +898,7 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
             }
             totalOffset += procBufferSize[proc];
         }
-
+        
         hid_t dxpl = H5Pcreate(H5P_DATASET_XFER);
         ret = H5Pset_dxpl_mpio(dxpl, H5FD_MPIO_INDEPENDENT);
 
@@ -915,7 +915,7 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
                 }
                 ++vbCount;
             }
-
+           
             // Only proc zero needs to write out this information
             ret = H5Dwrite(offsetdataset, H5T_NATIVE_LLONG, H5S_ALL, H5S_ALL, dxpl, &(offsets[0]));
             if(ret < 0) { std::cout << "Write offset dataset failed! ret = " << ret << std::endl; }
@@ -926,21 +926,21 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
             ret = H5Dwrite(boxdataset, babox_id, H5S_ALL, H5S_ALL, dxpl, &(vbox[0]));
             if(ret < 0) { std::cout << "Write box dataset failed! ret = " << ret << std::endl; }
         }
-
-
+       
+        
         BL_PROFILE_VAR("H5Dwritedata", h5dwd);
         hsize_t hs_procsize[1], hs_allprocsize[1], ch_offset[1];
-
+        
         ch_offset[0]       = procOffsets[myProc];          // ---- offset on this proc
         hs_procsize[0]     = procBufferSize[myProc];       // ---- size of buffer on this proc
         hs_allprocsize[0]  = offsets[sortedGrids.size()];  // ---- size of buffer on all procs
-
+        
         hid_t dataspace    = H5Screate_simple(1, hs_allprocsize, NULL);
         hid_t memdataspace = H5Screate_simple(1, hs_procsize, NULL);
         hid_t dataset      = H5Dcreate(grp, dataname.c_str(), H5T_NATIVE_DOUBLE, dataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-
+        
         H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, ch_offset, NULL, hs_procsize, NULL);
-
+        
         Vector<Real> a_buffer(procBufferSize[myProc], -1.0);
         Long dataCount(0);
         for(MFIter mfi(*mf[level]); mfi.isValid(); ++mfi) {
@@ -950,18 +950,18 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
                 a_buffer[dataCount++] = dataPtr[i];
             }
         }
-
+        
         /* ret = H5Pset_dxpl_mpio(dxpl, H5FD_MPIO_COLLECTIVE); */
-
+           
         BL_PROFILE_VAR("H5DwriteGrids", h5dwg);
 
         ret = H5Dwrite(dataset, H5T_NATIVE_DOUBLE, memdataspace, dataspace, dxpl, a_buffer.dataPtr());
-        if(ret < 0)
+        if(ret < 0) 
             std::cout << ParallelDescriptor::MyProc() << "Write data failed!  ret = " << ret << std::endl;
 
         BL_PROFILE_VAR_STOP(h5dwg);
 
-
+        
         H5Tclose(center_id);
         H5Tclose(babox_id);
         H5Pclose(dxpl);
@@ -974,7 +974,7 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
         H5Dclose(centerdataset);
         H5Sclose(boxdataspace);
         H5Dclose(boxdataset);
-
+        
         BL_PROFILE_VAR_STOP(h5dwd);
 
         H5Gclose(grp);
@@ -988,7 +988,7 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
 
     /* if(ParallelDescriptor::IOProcessor()) { */
     /*     std::cout << "WriteMultiLevelPlotfileHDF5 Time = " << total_write_time << "  seconds." << std::endl; */
-    /* } */
+    /* } */    
 
 }
 
