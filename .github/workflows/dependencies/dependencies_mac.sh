@@ -12,4 +12,5 @@
 set -eu -o pipefail
 
 brew update
-brew install openmpi
+brew install libomp
+brew install open-mpi
