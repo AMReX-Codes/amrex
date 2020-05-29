@@ -181,44 +181,27 @@ void FabToBlueprintTopology(const Geometry& geom,
     float64 z_min = dims > 2 ? level_z_min + level_dz * k_min : 0.0;
     float64 z_max = dims > 2 ? level_z_min + level_dz * k_max : 0.0;
 
-    // create rectilinear coordset
+    // create uniform coordset
     // (which also holds all implicit details needed for the topology)
-    res["coordsets/coords/type"] = "rectilinear";
-    res["coordsets/coords/values/x"] = DataType::float64(nx+1);
-    res["coordsets/coords/values/y"] = DataType::float64(ny+1);
+    res["coordsets/coords/type"] = "uniform";
+    res["coordsets/coords/dims/i"] = nx+1;
+    res["coordsets/coords/dims/j"] = ny+1;
 
-    float64_array x_coords = res["coordsets/coords/values/x"].value();
-    float64_array y_coords = res["coordsets/coords/values/y"].value();
+    res["coordsets/coords/spacing/dx"] = level_dx;
+    res["coordsets/coords/spacing/dy"] = level_dy;
 
-    float64 vx = x_min;
-    for(index_t i =0; i< nx+1; i++)
-    {
-        x_coords[i] = vx;
-        vx+=level_dx;
-    }
-
-    float64 vy = y_min;
-    for(index_t i =0; i< ny+1; i++)
-    {
-        y_coords[i] = vy;
-        vy+=level_dy;
-    }
+    res["coordsets/coords/origin/x"] = x_min;
+    res["coordsets/coords/origin/y"] = y_min;
 
     if(dims > 2)
     {
-        res["coordsets/coords/values/z"] = DataType::float64(nz+1);
-        float64_array z_coords = res["coordsets/coords/values/z"].value();
-
-        float64 vz = z_min;
-        for(index_t i =0; i< nz+1; i++)
-        {
-            z_coords[i] = vz;
-            vz+=level_dz;
-        }
+      res["coordsets/coords/dims/k"] = nz+1;
+      res["coordsets/coords/spacing/dz"] = level_dz;
+      res["coordsets/coords/origin/z"] = z_min;
     }
 
     // create a rectilinear topology that refs our coordset
-    res["topologies/topo/type"] = "rectilinear";
+    res["topologies/topo/type"] = "uniform";
     res["topologies/topo/coordset"] = "coords";
 
     // add logical elements origin
@@ -430,7 +413,6 @@ MultiLevelToBlueprint (int n_levels,
             // add the nesting relationship
             conduit::Node &nestset = patch["nestsets/nest"];
             Nestsets(i, n_levels, fab, box_arrays, ref_ratio, box_offsets, nestset);
-            paint_2d_nestsets(patch,"topo");
             // add fields
             FabToBlueprintFields(fab,varnames,patch);
 
