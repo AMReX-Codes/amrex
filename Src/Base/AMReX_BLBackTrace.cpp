@@ -1,9 +1,3 @@
-#include <iostream>
-#include <sstream>
-#include <fstream>
-#include <cstring>
-#include <cstdio>
-
 #include <AMReX_BLBackTrace.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Print.H>
@@ -16,6 +10,14 @@
 #include <AMReX_TinyProfiler.H>
 #endif
 
+#include <iostream>
+#include <sstream>
+#include <fstream>
+#include <cstring>
+#include <cstdio>
+#include <csignal>
+#include <cfenv>
+
 #if defined(AMREX_EXPORT_DYNAMIC) && defined(__APPLE__)
 #include <cxxabi.h>
 #include <dlfcn.h>
@@ -24,7 +26,12 @@
 #define AMREX_BACKTRACE_SUPPORTED 1
 #endif
 
-#ifdef __linux__
+#if defined(__APPLE__)
+#include <xmmintrin.h>
+#endif
+
+#ifndef _WIN32
+#include <execinfo.h>
 #include <unistd.h>
 #endif
 

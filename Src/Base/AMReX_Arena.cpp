@@ -11,7 +11,15 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_Gpu.H>
 
+#ifdef _WIN32
+#include <memoryapi.h>
+#define AMREX_MLOCK(x,y) VirtualLock(x,y)
+#define AMREX_MUNLOCK(x,y) VirtualUnlock(x,y)
+#else
 #include <sys/mman.h>
+#define AMREX_MLOCK(x,y) mlock(x,y);
+#define AMREX_MUNLOCK(x,y) munlock(x,y);
+#endif
 
 namespace amrex {
 
@@ -54,7 +62,7 @@ Arena::allocate_system (std::size_t nbytes)
     if (arena_info.use_cpu_memory)
     {
         p = std::malloc(nbytes);
-        if (p && arena_info.device_use_hostalloc) mlock(p, nbytes);
+        if (p && arena_info.device_use_hostalloc) AMREX_MLOCK(p, nbytes);
     }
     else if (arena_info.device_use_hostalloc)
     {
@@ -99,7 +107,7 @@ Arena::allocate_system (std::size_t nbytes)
     }
 #else
     p = std::malloc(nbytes);
-    if (p && arena_info.device_use_hostalloc) mlock(p, nbytes);
+    if (p && arena_info.device_use_hostalloc) AMREX_MLOCK(p, nbytes);
 #endif
     if (p == nullptr) amrex::Abort("Sorry, malloc failed");
     return p;
@@ -111,7 +119,7 @@ Arena::deallocate_system (void* p, std::size_t nbytes)
 #ifdef AMREX_USE_GPU
     if (arena_info.use_cpu_memory)
     {
-        if (p && arena_info.device_use_hostalloc) munlock(p, nbytes);
+        if (p && arena_info.device_use_hostalloc) AMREX_MUNLOCK(p, nbytes);
         std::free(p);
     }
     else if (arena_info.device_use_hostalloc)
@@ -129,7 +137,7 @@ Arena::deallocate_system (void* p, std::size_t nbytes)
              sycl::free(p,Gpu::Device::syclContext()););
     }
 #else
-    if (p && arena_info.device_use_hostalloc) munlock(p, nbytes);
+    if (p && arena_info.device_use_hostalloc) AMREX_MUNLOCK(p, nbytes);
     std::free(p);
 #endif
 }

@@ -1,17 +1,3 @@
-#include <cstdlib>
-#include <cstring>
-#include <cctype>
-#include <cmath>
-#include <cstdio>
-#include <ctime>
-#include <chrono>
-#include <iostream>
-#include <sstream>
-#include <iomanip>
-#include <set>
-#include <random>
-#include <thread>
-
 #include <AMReX_BLFort.H>
 #include <AMReX_REAL.H>
 #include <AMReX.H>
@@ -34,13 +20,20 @@
 #include <sys/stat.h> // for mkdir
 #endif
 
-#include <sys/times.h>
-#include <sys/time.h>
-#include <sys/param.h>
-#include <errno.h>
-
-using std::ostringstream;
-
+#include <cerrno>
+#include <cstdlib>
+#include <cstring>
+#include <cctype>
+#include <cmath>
+#include <cstdio>
+#include <ctime>
+#include <chrono>
+#include <iostream>
+#include <sstream>
+#include <iomanip>
+#include <set>
+#include <random>
+#include <thread>
 
 namespace {
     const char* path_sep_str = "/";
