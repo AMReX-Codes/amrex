@@ -36,6 +36,26 @@ jobs:
         cmake .. -DENABLE_TUTORIALS=ON
         make -j 2 tutorials
 
+  # Build libamrex and all tutorials
+  tutorials_cxx20:
+    name: GNU@10.1 C++20 [tutorials]
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Dependencies
+      run: .github/workflows/dependencies/dependencies_gcc10.sh
+    - name: Build & Install
+      run: |
+        mkdir build
+        cd build
+        cmake ..                     \
+            -DENABLE_TUTORIALS=ON    \
+            -DCMAKE_CXX_STANDARD=20  \
+            -DCMAKE_C_COMPILER=$(which gcc-10)              \
+            -DCMAKE_CXX_COMPILER=$(which g++-10)            \
+            -DCMAKE_Fortran_COMPILER=$(which gfortran-10)
+        make -j 2 tutorials
+
   # Build libamrex and all tutorials w/o MPI
   tutorials-nonmpi:
     name: GNU@7.5 C++14 non-MPI [tutorials]

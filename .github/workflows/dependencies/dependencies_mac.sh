@@ -1,13 +1,9 @@
 #!/usr/bin/env bash
 #
-# Copyright 2020 Axel Huebl
+# Copyright 2020 The AMReX Community
 #
 # License: BSD-3-Clause-LBNL
-
-# search recursive inside a folder if a file contains tabs
-#
-# @result 0 if no files are found, else 1
-#
+# Authors: Axel Huebl
 
 set -eu -o pipefail
 
