@@ -91,7 +91,7 @@ RemoveAll (std::string const& p)
         return false;
     }
     char command[2000];
-    std::snprintf(command, 2000, "\\rm -rf %s", path.c_str());;
+    std::snprintf(command, 2000, "\\rm -rf %s", p.c_str());;
     int retVal = std::system(command);
     if (retVal == -1 || WEXITSTATUS(retVal) != 0) {
         amrex::Error("Removing old directory failed.");
