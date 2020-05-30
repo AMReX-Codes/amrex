@@ -26,10 +26,6 @@
 #define AMREX_BACKTRACE_SUPPORTED 1
 #endif
 
-#if defined(__APPLE__)
-#include <xmmintrin.h>
-#endif
-
 #ifndef _WIN32
 #include <execinfo.h>
 #include <unistd.h>

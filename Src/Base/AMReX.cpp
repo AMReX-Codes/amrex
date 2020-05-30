@@ -44,6 +44,10 @@
 #include <omp.h>
 #endif
 
+#if defined(__APPLE__)
+#include <xmmintrin.h>
+#endif
+
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
