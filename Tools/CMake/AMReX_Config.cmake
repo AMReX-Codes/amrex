@@ -51,6 +51,9 @@ function (configure_amrex)
 
    target_compile_features(amrex PUBLIC cxx_std_11)  # minimum: C++11
 
+   target_compile_options(amrex PUBLIC
+       $<$<CXX_COMPILER_ID:MSVC>:/Za;/bigobj>)
+
    #
    # Setup OpenMP
    #
