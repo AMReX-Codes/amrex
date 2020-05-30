@@ -64,8 +64,8 @@ target_compile_options( Flags_CXX
    $<${_cxx_clang_rel}:>
    $<${_cxx_appleclang_dbg}:-O0 -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable>
    $<${_cxx_appleclang_rel}:>
-   $<${_cxx_msvc_dbg}:/Za /bigobj>
-   $<${_cxx_msvc_rel}:/Za /bigobj>
+   $<${_cxx_msvc_dbg}:/Za /bigobj /experimental:preprocessor>
+   $<${_cxx_msvc_rel}:/Za /bigobj /experimental:preprocessor>
    )
 
 #
