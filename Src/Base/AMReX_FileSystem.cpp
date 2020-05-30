@@ -33,16 +33,27 @@ Remove (std::string const& filename)
 {
     std::error_code ec;
     bool r = std::filesystem::remove(std::filesystem::path(filename),ec);
-    return (!ec and r);
+    return !ec;
+}
+
+bool
+RemoveAll (std::string const& p)
+{
+    std::error_code ec;
+    std::filesystem::remove_all(std::filesystem::path(filename),ec);
+    return !ec;
 }
 
 }}
 
 #else
 
+#include <cstdio>
 #include <cstddef>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 namespace amrex {
 namespace FileSystem {
@@ -70,6 +81,23 @@ bool
 Remove (std::string const& filename)
 {
     return unlink(filename.c_str());
+}
+
+bool
+RemoveAll (std::string const& p)
+{
+    if (p.size() >= 1990) {
+        amrex::Error("FileSystem::RemoveAll: Path name too long");
+        return false;
+    }
+    char command[2000];
+    std::snprintf(command, 2000, "\\rm -rf %s", path.c_str());;
+    int retVal = std::system(command);
+    if (retVal == -1 || WEXITSTATUS(retVal) != 0) {
+        amrex::Error("Removing old directory failed.");
+        return false;
+    }
+    return true;
 }
 
 }}

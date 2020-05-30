@@ -15,6 +15,9 @@ Exists (std::string const& filename);
 bool
 Remove (std::string const& filename);
 
+bool
+RemoveAll (std::string const& p); // recursive remove
+
 }}
 
 #endif

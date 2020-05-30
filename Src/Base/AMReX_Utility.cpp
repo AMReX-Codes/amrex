@@ -323,12 +323,7 @@ amrex::UtilCreateDirectoryDestructive(const std::string &path, bool callbarrier)
           amrex::Print() << "amrex::UtilCreateCleanDirectoryDestructive():  " << path
                          << " exists.  I am destroying it.  " << std::endl;
       }
-      char command[2000];
-      sprintf(command, "\\rm -rf %s", path.c_str());;
-      int retVal = std::system(command);
-      if (retVal == -1 || WEXITSTATUS(retVal) != 0) {
-          amrex::Error("Removing old directory failed.");
-      }
+      FileSystem::RemoveAll(path);
     }
     if( ! amrex::UtilCreateDirectory(path, 0755)) 
     {
