@@ -2,7 +2,7 @@
 #include <AMReX_Print.H>
 #include <AMReX.H>
 
-#if defined(_WIN32) || __cplusplus >= 201703L
+#if defined(_WIN32) // || __cplusplus >= 201703L
 
 #include <filesystem>
 #include <system_error>

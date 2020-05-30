@@ -13,7 +13,7 @@
 #include <omp.h>
 #endif
 
-#if defined(_WIN32) || __cplusplus >= 201703L
+#if defined(_WIN32) // || __cplusplus >= 201703L
 #include <filesystem>
 #include <system_error>
 #else
@@ -161,7 +161,7 @@ bool
 amrex::UtilCreateDirectory (const std::string& path,
 			    mode_t mode, bool verbose)
 {
-#if defined(_WIN32) || __cplusplus >= 201703L
+#if defined(_WIN32) // || __cplusplus >= 201703L
     std::error_code ec;
     bool ret = std::filesystem::create_directories(std::filesystem::path{path}, ec);
     if (ec and verbose) {
