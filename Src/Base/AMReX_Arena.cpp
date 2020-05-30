@@ -12,6 +12,7 @@
 #include <AMReX_Gpu.H>
 
 #ifdef _WIN32
+#include <windows.h>
 #include <memoryapi.h>
 #define AMREX_MLOCK(x,y) VirtualLock(x,y)
 #define AMREX_MUNLOCK(x,y) VirtualUnlock(x,y)
