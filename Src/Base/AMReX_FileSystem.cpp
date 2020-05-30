@@ -18,7 +18,7 @@ CreateDirectories (std::string const& p, mode_t /*mode*/, bool verbose)
     bool ret = std::filesystem::create_directories(std::filesystem::path{p}, ec);
     if (ec and verbose) {
         amrex::AllPrint() << "amrex::UtilCreateDirectory failed to create "
-                          << path << ": " << ec.message() << std::endl;
+                          << p << ": " << ec.message() << std::endl;
     }
     return !ec;    
 }

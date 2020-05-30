@@ -29,7 +29,7 @@ AMREX_HIP_OR_CUDA(
 namespace amrex {
 namespace Gpu {
 
-template <typename T, typename = amrex::EnableIf_t<AMREX_IS_TRIVIALLY_COPYABLE(T)> >
+template <typename T, typename std::enable_if<AMREX_IS_TRIVIALLY_COPYABLE(T),int>::type = 0>
 class AsyncArray
 {
 public:
@@ -48,7 +48,7 @@ public:
 #endif
     }
 
-    template <typename U = T, typename = amrex::EnableIf_t<std::is_pod<U>::value> >
+    template <typename U = T, typename std::enable_if<std::is_pod<U>::value,int>::type = 0>
     explicit AsyncArray (const std::size_t n)
     {
         if (n == 0) return;

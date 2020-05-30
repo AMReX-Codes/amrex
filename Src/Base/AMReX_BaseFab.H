@@ -278,7 +278,7 @@ public:
     */
     void resize (const Box& b, int N = 1);
 
-    template <class U=T, class = typename std::enable_if<std::is_trivially_destructible<U>::value>::type >
+    template <class U=T, typename std::enable_if<std::is_trivially_destructible<U>::value,int>::type = 0>
     Elixir elixir () noexcept;
 
     /**
@@ -2036,7 +2036,7 @@ BaseFab<T>::resize (const Box& b, int n)
 }
 
 template <class T>
-template <class,class>
+template <class U, typename std::enable_if<std::is_trivially_destructible<U>::value,int>::type>
 Elixir
 BaseFab<T>::elixir () noexcept
 {
