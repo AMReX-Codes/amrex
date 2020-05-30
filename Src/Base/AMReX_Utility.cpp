@@ -13,13 +13,6 @@
 #include <omp.h>
 #endif
 
-#if defined(_WIN32) // || __cplusplus >= 201703L
-#include <filesystem>
-#include <system_error>
-#else
-#include <sys/stat.h> // for mkdir
-#endif
-
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>
@@ -34,10 +27,6 @@
 #include <set>
 #include <random>
 #include <thread>
-
-namespace {
-    const char* path_sep_str = "/";
-}
 
 //
 // Return true if argument is a non-zero length string of digits.
@@ -161,101 +150,7 @@ bool
 amrex::UtilCreateDirectory (const std::string& path,
 			    mode_t mode, bool verbose)
 {
-#if defined(_WIN32) // || __cplusplus >= 201703L
-    std::error_code ec;
-    bool ret = std::filesystem::create_directories(std::filesystem::path{path}, ec);
-    if (ec and verbose) {
-        amrex::AllPrint() << "amrex::UtilCreateDirectory failed to create "
-                          << path << ": " << ec.message() << std::endl;
-    }
-    return !ec;
-#else
-    bool retVal(false);
-    Vector<std::pair<std::string, int> > pathError;
-
-    if (path.length() == 0 || path == path_sep_str) {
-        return true;
-    }
-
-    errno = 0;
-
-    if(std::strchr(path.c_str(), *path_sep_str) == 0) {
-        //
-        // No slashes in the path.
-        //
-        errno = 0;
-        if(mkdir(path.c_str(), mode) < 0 && errno != EEXIST) {
-            retVal = false;
-        } else {
-            retVal = true;
-        }
-        pathError.push_back(std::make_pair(path, errno));
-    } else {
-        //
-        // Make copy of the directory pathname so we can write to it.
-        //
-        char *dir = new char[path.length() + 1];
-        (void) strcpy(dir, path.c_str());
-
-        char *slash = std::strchr(dir, *path_sep_str);
-
-        if(dir[0] == *path_sep_str) {  // full pathname.
-            do {
-                if(*(slash+1) == 0) {
-                    break;
-                }
-                if((slash = std::strchr(slash+1, *path_sep_str)) != 0) {
-                    *slash = 0;
-                }
-                errno = 0;
-                if(mkdir(dir, mode) < 0 && errno != EEXIST) {
-                    retVal = false;
-                } else {
-                    retVal = true;
-                }
-                pathError.push_back(std::make_pair(dir, errno));
-                if(slash) {
-                    *slash = *path_sep_str;
-                }
-            } while(slash);
-
-        } else {  // relative pathname.
-
-            do {
-                *slash = 0;
-                errno = 0;
-                if(mkdir(dir, mode) < 0 && errno != EEXIST) {
-                    retVal = false;
-                } else {
-                    retVal = true;
-                }
-                pathError.push_back(std::make_pair(dir, errno));
-                *slash = *path_sep_str;
-            } while((slash = std::strchr(slash+1, *path_sep_str)) != 0);
-
-            errno = 0;
-            if(mkdir(dir, mode) < 0 && errno != EEXIST) {
-                retVal = false;
-            } else {
-                retVal = true;
-            }
-            pathError.push_back(std::make_pair(dir, errno));
-        }
-
-        delete [] dir;
-    }
-
-    if(retVal == false  || verbose == true) {
-      for(int i(0); i < pathError.size(); ++i) {
-          amrex::AllPrint()<< "amrex::UtilCreateDirectory:: path errno:  " 
-                           << pathError[i].first << " :: "
-                           << strerror(pathError[i].second)
-                           << std::endl;
-      }
-    }
-
-    return retVal;
-#endif
+    return FileSystem::CreateDirectories(path, mode, verbose);
 }
 
 void

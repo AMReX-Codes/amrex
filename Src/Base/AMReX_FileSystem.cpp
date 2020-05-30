@@ -1,5 +1,6 @@
 #include <AMReX_FileSystem.H>
 #include <AMReX_Print.H>
+#include <AMReX_Vector.H>
 #include <AMReX.H>
 
 #if defined(_WIN32) // || __cplusplus >= 201703L
@@ -9,6 +10,18 @@
 
 namespace amrex {
 namespace FileSystem {
+
+bool
+CreateDirectories (std::string const& p, mode_t /*mode*/, bool verbose)
+{
+    std::error_code ec;
+    bool ret = std::filesystem::create_directories(std::filesystem::path{p}, ec);
+    if (ec and verbose) {
+        amrex::AllPrint() << "amrex::UtilCreateDirectory failed to create "
+                          << path << ": " << ec.message() << std::endl;
+    }
+    return !ec;    
+}
 
 bool
 Exists (std::string const& filename)
@@ -22,7 +35,7 @@ CurrentPath ()
 {
     std::error_code ec;
     auto path = std::filesystem::current_path(ec);
-    if (ec) {
+    if (ec && amrex::Verbose() > 0) {
         amrex::AllPrint() << "amrex::FileSystem::CurrentPath failed. " << ec.message() << std::endl;
     }
     return path.string();
@@ -40,7 +53,7 @@ bool
 RemoveAll (std::string const& p)
 {
     std::error_code ec;
-    std::filesystem::remove_all(std::filesystem::path(filename),ec);
+    std::filesystem::remove_all(std::filesystem::path(p),ec);
     return !ec;
 }
 
@@ -50,6 +63,7 @@ RemoveAll (std::string const& p)
 
 #include <cstdio>
 #include <cstddef>
+#include <cstring>
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -57,6 +71,98 @@ RemoveAll (std::string const& p)
 
 namespace amrex {
 namespace FileSystem {
+
+bool
+CreateDirectories (std::string const& path, mode_t mode, bool verbose)
+{
+    bool retVal(false);
+    Vector<std::pair<std::string, int> > pathError;
+
+    const char* path_sep_str = "/";
+
+    if (path.length() == 0 || path == path_sep_str) {
+        return true;
+    }
+
+    errno = 0;
+
+    if(std::strchr(path.c_str(), *path_sep_str) == 0) {
+        //
+        // No slashes in the path.
+        //
+        errno = 0;
+        if(mkdir(path.c_str(), mode) < 0 && errno != EEXIST) {
+            retVal = false;
+        } else {
+            retVal = true;
+        }
+        pathError.push_back(std::make_pair(path, errno));
+    } else {
+        //
+        // Make copy of the directory pathname so we can write to it.
+        //
+        char *dir = new char[path.length() + 1];
+        (void) strcpy(dir, path.c_str());
+
+        char *slash = std::strchr(dir, *path_sep_str);
+
+        if(dir[0] == *path_sep_str) {  // full pathname.
+            do {
+                if(*(slash+1) == 0) {
+                    break;
+                }
+                if((slash = std::strchr(slash+1, *path_sep_str)) != 0) {
+                    *slash = 0;
+                }
+                errno = 0;
+                if(mkdir(dir, mode) < 0 && errno != EEXIST) {
+                    retVal = false;
+                } else {
+                    retVal = true;
+                }
+                pathError.push_back(std::make_pair(dir, errno));
+                if(slash) {
+                    *slash = *path_sep_str;
+                }
+            } while(slash);
+
+        } else {  // relative pathname.
+
+            do {
+                *slash = 0;
+                errno = 0;
+                if(mkdir(dir, mode) < 0 && errno != EEXIST) {
+                    retVal = false;
+                } else {
+                    retVal = true;
+                }
+                pathError.push_back(std::make_pair(dir, errno));
+                *slash = *path_sep_str;
+            } while((slash = std::strchr(slash+1, *path_sep_str)) != 0);
+
+            errno = 0;
+            if(mkdir(dir, mode) < 0 && errno != EEXIST) {
+                retVal = false;
+            } else {
+                retVal = true;
+            }
+            pathError.push_back(std::make_pair(dir, errno));
+        }
+
+        delete [] dir;
+    }
+
+    if(retVal == false  || verbose == true) {
+      for(int i(0); i < pathError.size(); ++i) {
+          amrex::AllPrint()<< "amrex::UtilCreateDirectory:: path errno:  "
+                           << pathError[i].first << " :: "
+                           << strerror(pathError[i].second)
+                           << std::endl;
+      }
+    }
+
+    return retVal;
+}
 
 bool
 Exists (std::string const& filename)

@@ -25,12 +25,6 @@
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_FileSystem.H>
 
-#ifdef _WIN32
-typedef unsigned short mode_t;
-#else
-#include <sys/types.h>  // for mode_t
-#endif
-
 namespace amrex
 {
 /**
