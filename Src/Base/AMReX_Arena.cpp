@@ -19,8 +19,8 @@
 #define AMREX_MUNLOCK(x,y) ((void)0)
 #else
 #include <sys/mman.h>
-#define AMREX_MLOCK(x,y) mlock(x,y);
-#define AMREX_MUNLOCK(x,y) munlock(x,y);
+#define AMREX_MLOCK(x,y) mlock(x,y)
+#define AMREX_MUNLOCK(x,y) munlock(x,y)
 #endif
 
 namespace amrex {

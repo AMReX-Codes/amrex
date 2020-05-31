@@ -169,8 +169,8 @@ MLTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc
             AMREX_D_TERM(Array4<Real> const fxfab = fluxfab_tmp[0].array();,
                          Array4<Real> const fyfab = fluxfab_tmp[1].array();,
                          Array4<Real> const fzfab = fluxfab_tmp[2].array(););
-#if (AMREX_SPACEDIM == 3)
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA
+
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM
             ( xbx, txbx,
               {
                   mltensor_cross_terms_fx(txbx,fxfab,vfab,etaxfab,kapxfab,dxinv);
@@ -184,18 +184,6 @@ MLTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc
                   mltensor_cross_terms_fz(tzbx,fzfab,vfab,etazfab,kapzfab,dxinv);
               }
             );
-#else
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA
-            ( xbx, txbx,
-              {
-                  mltensor_cross_terms_fx(txbx,fxfab,vfab,etaxfab,kapxfab,dxinv);
-              }
-            , ybx, tybx,
-              {
-                  mltensor_cross_terms_fy(tybx,fyfab,vfab,etayfab,kapyfab,dxinv);
-              }
-            );
-#endif
 
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
             {
@@ -295,7 +283,7 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
                                 dp[0],dp[1],dp[2],dp[3],dp[4],dp[5],
                                 bvxlo, bvylo, bvzlo, bvxhi, bvyhi, bvzhi,
                                 bct, bcl, inhomog, imaxorder,
-				dxinv, domain);
+                                dxinv, domain);
         });
 #else
         AMREX_HOST_DEVICE_FOR_1D ( 12, iedge,
@@ -304,7 +292,7 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
                                 mxlo, mylo, mzlo, mxhi, myhi, mzhi,
                                 bvxlo, bvylo, bvzlo, bvxhi, bvyhi, bvzhi,
                                 bct, bcl, inhomog, imaxorder,
-				dxinv, domain);
+                                dxinv, domain);
         });
 #endif
 
@@ -362,8 +350,8 @@ MLTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
             AMREX_D_TERM(Array4<Real> const fxfab = fluxfab_tmp[0].array();,
                          Array4<Real> const fyfab = fluxfab_tmp[1].array();,
                          Array4<Real> const fzfab = fluxfab_tmp[2].array(););
-#if (AMREX_SPACEDIM == 3)
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA
+
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM
             ( xbx, txbx,
               {
                   mltensor_cross_terms_fx(txbx,fxfab,vfab,etaxfab,kapxfab,dxinv);
@@ -377,18 +365,6 @@ MLTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
                   mltensor_cross_terms_fz(tzbx,fzfab,vfab,etazfab,kapzfab,dxinv);
               }
             );
-#else
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA
-            ( xbx, txbx,
-              {
-                  mltensor_cross_terms_fx(txbx,fxfab,vfab,etaxfab,kapxfab,dxinv);
-              }
-            , ybx, tybx,
-              {
-                  mltensor_cross_terms_fy(tybx,fyfab,vfab,etayfab,kapyfab,dxinv);
-              }
-            );
-#endif
 
 	    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
 	        const Box& nbx = mfi.nodaltilebox(idim);
@@ -442,8 +418,8 @@ MLTensorOp::compVelGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& flux
             AMREX_D_TERM(Array4<Real> const fxfab = fluxfab_tmp[0].array();,
                          Array4<Real> const fyfab = fluxfab_tmp[1].array();,
                          Array4<Real> const fzfab = fluxfab_tmp[2].array(););
-#if (AMREX_SPACEDIM == 3)
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA
+
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM
             ( xbx, txbx,
               {
                   mltensor_vel_grads_fx(txbx,fxfab,vfab,dxinv);
@@ -457,18 +433,6 @@ MLTensorOp::compVelGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& flux
                   mltensor_vel_grads_fz(tzbx,fzfab,vfab,dxinv);
               }
             );
-#else
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA
-            ( xbx, txbx,
-              {
-                  mltensor_vel_grads_fx(txbx,fxfab,vfab,dxinv);
-              }
-            , ybx, tybx,
-              {
-                  mltensor_vel_grads_fy(tybx,fyfab,vfab,dxinv);
-              }
-            );
-#endif
 
 // The derivatives are put in the array with the following order:
 // component: 0    ,  1    ,  2    ,  3    ,  4    , 5    ,  6    ,  7    ,  8   

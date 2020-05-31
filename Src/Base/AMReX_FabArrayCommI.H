@@ -3,7 +3,7 @@
 #include <AMReX_PCI.H>
 
 template <class FAB>
-template <class F, typename std::enable_if<IsBaseFab<F>::value,int>::type>
+template <class F, typename std::enable_if<IsBaseFab<F>::value,int>::type Z>
 void
 FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                             const Periodicity& period, bool cross,
@@ -231,7 +231,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
 }
 
 template <class FAB>
-template <class F, typename std::enable_if<IsBaseFab<F>::value,int>::type>
+template <class F, typename std::enable_if<IsBaseFab<F>::value,int>::type Z>
 void
 FabArray<FAB>::FillBoundary_finish ()
 {
