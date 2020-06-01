@@ -1,3 +1,28 @@
+# 20.06
+
+  -- Set a non-default CMAKE_INSTALL_PREFIX only if AMReX is the
+     top-level CMake project. Otherwise, the default of a downstream
+     project using AMReX as subproject will be placed in a quite
+     confusing, temporary directory.
+
+  -- C order support for Array2D and Array3D.
+
+  -- Disable unqualified abs function within amrex namespace.
+
+  -- Updates for SENSEI 3.2.
+
+  -- CMake: link to OpenMP::Fortran only when needed.
+
+  -- DPC++ support.
+
+  -- Add non-const data() to GpuArray.
+
+  -- Fix HIP version of scan.
+
+  -- Return immediately from GPU memcpy if size is zero.
+
+  -- Documentation on EB linear solvers.
+
 # 20.05
 
   -- AMReX's git history has been rewritten.  If you have problems due
