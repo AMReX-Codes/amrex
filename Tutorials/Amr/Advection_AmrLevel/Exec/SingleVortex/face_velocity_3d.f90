@@ -20,7 +20,7 @@ subroutine get_face_velocity(level, time, &
   double precision, intent(in) :: dx(3), prob_lo(3)
 
   integer :: i, j, k, plo(2), phi(2)
-  double precision :: x, y, z
+  double precision :: x, y
   double precision, pointer, contiguous :: psi(:,:)
   double precision, parameter :: M_PI = 3.141592653589793238462643383279502884197d0
 
