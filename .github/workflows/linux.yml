@@ -1,4 +1,4 @@
-name: cmake
+name: linux
 
 on: [push, pull_request]
 
@@ -10,7 +10,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
-      run: .github/workflows/cmake/dependencies.sh
+      run: .github/workflows/dependencies/dependencies.sh
     - name: Build & Install
       run: |
         mkdir build
@@ -28,12 +28,32 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
-      run: .github/workflows/cmake/dependencies.sh
+      run: .github/workflows/dependencies/dependencies.sh
     - name: Build & Install
       run: |
         mkdir build
         cd build
         cmake .. -DENABLE_TUTORIALS=ON
+        make -j 2 tutorials
+
+  # Build libamrex and all tutorials
+  tutorials_cxx20:
+    name: GNU@10.1 C++20 [tutorials]
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Dependencies
+      run: .github/workflows/dependencies/dependencies_gcc10.sh
+    - name: Build & Install
+      run: |
+        mkdir build
+        cd build
+        cmake ..                     \
+            -DENABLE_TUTORIALS=ON    \
+            -DCMAKE_CXX_STANDARD=20  \
+            -DCMAKE_C_COMPILER=$(which gcc-10)              \
+            -DCMAKE_CXX_COMPILER=$(which g++-10)            \
+            -DCMAKE_Fortran_COMPILER=$(which gfortran-10)
         make -j 2 tutorials
 
   # Build libamrex and all tutorials w/o MPI
@@ -43,27 +63,12 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
-      run: .github/workflows/cmake/dependencies.sh
+      run: .github/workflows/dependencies/dependencies.sh
     - name: Build & Install
       run: |
         mkdir build
         cd build
         cmake .. -DENABLE_TUTORIALS=ON -DENABLE_MPI=OFF
-        make -j 2 tutorials
-
-  # Build libamrex and all tutorials
-  tutorials-macos:
-    name: AppleClang@11.0 GFortran@9.3 [tutorials]
-    runs-on: macos-latest
-    steps:
-    - uses: actions/checkout@v2
-    - name: Dependencies
-      run: .github/workflows/cmake/dependencies_mac.sh
-    - name: Build & Install
-      run: |
-        mkdir build
-        cd build
-        cmake .. -DENABLE_TUTORIALS=ON
         make -j 2 tutorials
 
   # Build libamrex and all tutorials
@@ -73,7 +78,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
-      run: .github/workflows/cmake/dependencies_nofortran.sh
+      run: .github/workflows/dependencies/dependencies_nofortran.sh
     - name: Build & Install
       run: |
         mkdir build
@@ -91,7 +96,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
-      run: .github/workflows/cmake/dependencies_nvcc.sh
+      run: .github/workflows/dependencies/dependencies_nvcc.sh
     - name: Build & Install
       run: |
         mkdir build

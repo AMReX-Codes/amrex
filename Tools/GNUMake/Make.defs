@@ -28,7 +28,7 @@ ifeq ($(USE_DPCPP),TRUE)
   else
     DPCPP_DIR ?= /opt/intel/inteloneapi/compiler/latest/linux
   endif
-  COMP := dpcpp
+  override COMP = dpcpp
   DEFINES += -DAMREX_USE_DPCPP -DAMREX_USE_GPU
   USE_CUDA := FALSE
   USE_HIP := FALSE
