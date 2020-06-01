@@ -1818,7 +1818,7 @@ DistributionMapping::makeSFC (const LayoutData<Real>& rcost_local,
 }
     
 std::vector<std::vector<int> >
-DistributionMapping::makeSFC (const BoxArray& ba, bool use_box_vol)
+DistributionMapping::makeSFC (const BoxArray& ba, bool use_box_vol, const int nprocs)
 {
     BL_PROFILE("makeSFC");
 
@@ -1857,7 +1857,6 @@ DistributionMapping::makeSFC (const BoxArray& ba, bool use_box_vol)
     //
     std::sort(tokens.begin(), tokens.end(), SFCToken::Compare());
 
-    const int nprocs = ParallelContext::NProcsSub();
     Real volper;
     volper = vol_sum / nprocs;
 
