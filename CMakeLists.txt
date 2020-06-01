@@ -80,8 +80,10 @@ message(STATUS "AMReX installation directory: ${CMAKE_INSTALL_PREFIX}")
 # Check if CMAKE_BUILD_TYPE is given. If not, use default
 #
 if ( NOT CMAKE_BUILD_TYPE )
-   message(STATUS "Setting build type to Release as none was specified.")
-   set( CMAKE_BUILD_TYPE Release )
+   set(CMAKE_CONFIGURATION_TYPES "Release;Debug;MinSizeRel;RelWithDebInfo")
+   set(CMAKE_BUILD_TYPE Release
+       CACHE STRING
+       "Choose the build type, e.g. Release, Debug, or RelWithDebInfo." FORCE)
 else ()
    message(STATUS "Build type set by user to '${CMAKE_BUILD_TYPE}'.")
 endif()
