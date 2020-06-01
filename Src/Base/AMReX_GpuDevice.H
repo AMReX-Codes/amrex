@@ -202,6 +202,8 @@ nonNullStreamSynchronize () noexcept
 }
 #endif
 
+#ifdef AMREX_USE_GPU
+
 inline void
 htod_memcpy (void* p_d, const void* p_h, const std::size_t sz) noexcept
 {
@@ -303,6 +305,8 @@ dtod_memcpy_async (void* p_d_dst, const void* p_d_src, const std::size_t sz) noe
         AMREX_CUDA_SAFE_CALL(cudaMemcpyAsync(p_d_dst, p_d_src, sz, cudaMemcpyDeviceToDevice, gpuStream())); )
 #endif
 }
+
+#endif
 
 #ifdef AMREX_USE_DPCPP
 inline bool
