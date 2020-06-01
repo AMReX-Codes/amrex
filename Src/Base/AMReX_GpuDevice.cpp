@@ -124,7 +124,7 @@ Device::Initialize ()
         AMREX_HIP_OR_CUDA_OR_DPCPP
             ( amrex::Print() << "Initializing HIP...\n";,
               amrex::Print() << "Initializing CUDA...\n";,
-              amrex::Print() << "Initializing oneAPI...\n"; );
+              amrex::Print() << "Initializing oneAPI...\n"; )
     }
 
     // XL CUDA Fortran support needs to be initialized

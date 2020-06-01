@@ -479,7 +479,7 @@ T PrefixSum (int n, FIN && fin, FOUT && fout, Type type)
             // Scan within a warp
             for (int i = 1; i <= Gpu::Device::warp_size; i *= 2) {
                 AMREX_HIP_OR_CUDA( T s = __shfl_up(x,i);,
-                                   T s = __shfl_up_sync(0xffffffff, x, i); );
+                                   T s = __shfl_up_sync(0xffffffff, x, i); )
                 if (lane >= i) x += s;
             }
 
@@ -585,7 +585,7 @@ T PrefixSum (int n, FIN && fin, FOUT && fout, Type type)
 
                         for (int i = Gpu::Device::warp_size/2; i > 0; i /= 2) {
                             AMREX_HIP_OR_CUDA( x += __shfl_down(x,i);,
-                                               x += __shfl_down_sync(0xffffffff, x, i); );
+                                               x += __shfl_down_sync(0xffffffff, x, i); )
                         }
                     }
 
