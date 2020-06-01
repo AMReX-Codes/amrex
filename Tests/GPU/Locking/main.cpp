@@ -153,7 +153,7 @@ void blockCountingTest ()
 #endif
 
         AMREX_HIP_OR_CUDA( hipPeekAtLastError();,
-                           cudaPeekAtLastError(); );
+                           cudaPeekAtLastError(); )
 
         Gpu::Device::synchronize();
 
