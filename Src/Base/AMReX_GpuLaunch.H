@@ -114,6 +114,7 @@ namespace Gpu {
         iv += bx.smallEnd();
         return (bx & Box(iv,iv,bx.type()));
 #else
+        amrex::ignore_unused(offset);
         return bx;
 #endif
     }
