@@ -1680,8 +1680,8 @@ FabArrayBase::CheckRcvStats(Vector<MPI_Status>& recv_stats,
 {
     for (int i = 0, n = recv_size.size(); i < n; ++i) {
 	if (recv_size[i] > 0) {
-	    std::size_t count;
-            int tmp_count;
+	    std::size_t count = 0;
+            int tmp_count = 0;
 
             const int comm_data_type = ParallelDescriptor::select_comm_data_type(recv_size[i]);
             if (comm_data_type == 1) {

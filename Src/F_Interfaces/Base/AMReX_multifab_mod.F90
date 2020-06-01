@@ -1332,7 +1332,7 @@ contains
   function amrex_mfiter_fabbox (this) result (bx)
     class(amrex_mfiter), intent(in) :: this
     type(amrex_box) :: bx
-    integer :: dir, inodal(3)
+    integer :: inodal(3)
     inodal = 0
     call amrex_fi_mfiter_fabbox(this%p, bx%lo, bx%hi, inodal)
     where (inodal .ne. 0) bx%nodal = .true.  ! note default is false
