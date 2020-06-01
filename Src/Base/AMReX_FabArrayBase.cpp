@@ -25,7 +25,7 @@ namespace amrex {
 //
 int     FabArrayBase::MaxComp;
 
-#if defined(AMREX_USE_GPU) && defined(AMREX_USE_GPU_PRAGMA)
+#if defined(AMREX_USE_GPU)
 
 #if AMREX_SPACEDIM == 1
 IntVect FabArrayBase::mfiter_tile_size(1024000);
