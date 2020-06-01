@@ -656,7 +656,7 @@ public:
     void copyParticles (const ParticleContainerType& other, bool local=false);
 
     /**
-    * \brief Add particles from other to this ParticleContainer. local controls 
+    * \brief Add particles from other to this ParticleContainer. local controls
     * whether or not to call Redistribute after adding the particles.
     *
     * \param other
@@ -665,25 +665,22 @@ public:
 
     /**
     * \brief Write a contiguous chunk of real particle data to an ostream.
-    * 
+    *
     * \param data A pointer to the start of the buffer to write
     * \param size The number of elements to write
     * \param os The ostream into which to write the data
-    * \param rd A RealDescriptor describing the type of the floating point data
-    */    
-    void WriteParticleRealData (void* data, size_t size,
-                                std::ostream& os, const RealDescriptor& rd) const;
-    
+    */
+    void WriteParticleRealData (void* data, size_t size, std::ostream& os) const;
+
     /**
     * \brief Read a contiguous chunk of real particle data from an istream.
-    * 
+    *
     * \param data A pointer to the start of the buffer into which to read
     * \param size The number of elements to read
     * \param os The istream from which to read the data
     * \param rd A RealDescriptor describing the type of the floating point data
-    */    
-    void ReadParticleRealData (void* data, size_t size,
-                               std::istream& is, const RealDescriptor& rd);
+    */
+    void ReadParticleRealData (void* data, size_t size, std::istream& is);
 
     /**
      * \brief Writes a particle checkpoint to file, suitable for restarting.
