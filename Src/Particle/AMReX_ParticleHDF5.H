@@ -747,10 +747,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                     for (int j = 0; j < AMREX_SPACEDIM; j++) {
                         rptr[j] = p.pos(j);
                     }
+                    rptr += AMREX_SPACEDIM;
                     for (int j = 0; j < NStructReal; j++) {
                         rptr[j] = p.rdata(j);
                     }
-                    rptr += AMREX_SPACEDIM + NStructReal;
+                    rptr += NStructReal;
                     const auto& soa  = pbox.GetStructOfArrays();
                     for (int j = 0; j < NArrayReal; j++) {
                         rptr[j] = (typename ParticleType::RealType) soa.GetRealData(j)[pindex];

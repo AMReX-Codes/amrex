@@ -785,8 +785,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinar
                             amrex::AllPrint() << "BAD PARTICLE ID WOULD BE " << ParticleType::NextID() << '\n'
                                               << "BAD PARTICLE POS "
                                               << AMREX_D_TERM(   p.pos(0),
-                                                              << p.pos(2),
-                                                              << p.pos(3))
+                                                              << p.pos(1),
+                                                              << p.pos(2))
                                               << "\n";
                         }
                         amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinaryFile(): invalid particle");
