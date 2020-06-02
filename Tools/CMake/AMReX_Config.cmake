@@ -48,9 +48,14 @@ function (configure_amrex)
    # Moreover, it will also enforce such standard on all the consuming targets
    #
    set_target_properties(amrex PROPERTIES CXX_EXTENSIONS OFF)
-
    target_compile_features(amrex PUBLIC cxx_std_11)  # minimum: C++11
 
+   if (ENABLE_CUDA)
+       set_target_properties(amrex PROPERTIES CUDA_EXTENSIONS OFF)
+       target_compile_features(amrex PUBLIC cuda_std_11)  # minimum: C++11
+   endif()
+
+   # flags needed for MSVC on Windows
    target_compile_options(amrex PUBLIC
        $<$<CXX_COMPILER_ID:MSVC>:/Za;/bigobj;/experimental:preprocessor>)
 
