@@ -67,8 +67,8 @@ public:
     
     bool empty () const { return m_data.empty(); }
     
-    const RealType* data () const { return &(m_data[0].m_rdata.arr[0]); }
-    RealType* data () { return &(m_data[0].m_rdata.arr[0]); }
+    const RealType* data () const { return &(m_data[0].pos(0)); }
+    RealType* data () { return &(m_data[0].pos(0)); }
 
     const RealType* dataPtr () const { return data(); }
     RealType*       dataPtr ()       { return data(); }

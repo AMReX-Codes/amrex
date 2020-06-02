@@ -117,28 +117,36 @@ struct ParticleTileData
     {
         AMREX_ASSERT(index < m_size);
         SuperParticleType sp;
-        for (int i = 0; i < NStructReal+AMREX_SPACEDIM; ++i)
-            sp.m_rdata.arr[i] = m_aos[index].m_rdata.arr[i];
+        for (int i = 0; i < AMREX_SPACEDIM; ++i)
+            sp.pos(i) = m_aos[index].pos(i);
+        for (int i = 0; i < NStructReal; ++i)
+            sp.rdata(i) = m_aos[index].rdata(i);
         for (int i = 0; i < NArrayReal; ++i)
-            sp.m_rdata.arr[NStructReal+AMREX_SPACEDIM+i] = m_rdata[i][index];
-        for (int i = 0; i < NStructInt+2; ++i)
-            sp.m_idata.arr[i] = m_aos[index].m_idata.arr[i];
+            sp.rdata(NStructReal+i) = m_rdata[i][index];
+        sp.id() = m_aos[index].id();
+        sp.cpu() = m_aos[index].cpu();
+        for (int i = 0; i < NStructInt; ++i)
+            sp.idata(i) = m_aos[index].idata(i);
         for (int i = 0; i < NArrayInt; ++i)
-            sp.m_idata.arr[NStructInt+2+i] = m_idata[i][index];
+            sp.idata(NStructInt+i) = m_idata[i][index];
         return sp;
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void setSuperParticle (const SuperParticleType& sp, int index) const noexcept
     {
-        for (int i = 0; i < NStructReal+AMREX_SPACEDIM; ++i)
-            m_aos[index].m_rdata.arr[i] = sp.m_rdata.arr[i];
+        for (int i = 0; i < AMREX_SPACEDIM; ++i)
+            m_aos[index].pos(i) = sp.pos(i);
+        for (int i = 0; i < NStructReal; ++i)
+            m_aos[index].rdata(i) = sp.rdata(i);
         for (int i = 0; i < NArrayReal; ++i)
-            m_rdata[i][index] = sp.m_rdata.arr[NStructReal+AMREX_SPACEDIM+i];
-        for (int i = 0; i < NStructInt+2; ++i)
-            m_aos[index].m_idata.arr[i] = sp.m_idata.arr[i];
+            m_rdata[i][index] = sp.rdata(NStructReal+i);
+        m_aos[index].id() == sp.id();
+        m_aos[index].cpu() == sp.cpu();
+        for (int i = 0; i < NStructInt; ++i)
+            m_aos[index].idata(i) = sp.idata(i);
         for (int i = 0; i < NArrayInt; ++i)
-            m_idata[i][index] = sp.m_idata.arr[NStructInt+2+i];
+            m_idata[i][index] = sp.idata(NStructInt+i);
     }
 };
 
@@ -153,7 +161,7 @@ struct ConstParticleTileData
     Long m_size;
     const ParticleType* AMREX_RESTRICT m_aos;
     GpuArray<const ParticleReal* AMREX_RESTRICT, NArrayReal> m_rdata;
-    GpuArray<const int* AMREX_RESTRICT, NArrayInt > m_idata;    
+    GpuArray<const int* AMREX_RESTRICT, NArrayInt > m_idata;
 
     int m_num_runtime_real;
     int m_num_runtime_int;
@@ -199,22 +207,26 @@ struct ConstParticleTileData
                 memcpy(dst, m_runtime_idata[i] + src_index, sizeof(int));
                 dst += sizeof(int);
             }
-        }        
+        }
     }
 
-    AMREX_GPU_HOST_DEVICE
-    SuperParticleType getSuperParticle (int index) const
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    SuperParticleType getSuperParticle (int index) const noexcept
     {
         AMREX_ASSERT(index < m_size);
         SuperParticleType sp;
-        for (int i = 0; i < NStructReal+AMREX_SPACEDIM; ++i)
-            sp.m_rdata.arr[i] = m_aos[index].m_rdata.arr[i];
+        for (int i = 0; i < AMREX_SPACEDIM; ++i)
+            sp.pos(i) = m_aos[index].pos(i);
+        for (int i = 0; i < NStructReal; ++i)
+            sp.rdata(i) = m_aos[index].rdata(i);
         for (int i = 0; i < NArrayReal; ++i)
-            sp.m_rdata.arr[NStructReal+AMREX_SPACEDIM+i] = m_rdata[i][index];
-        for (int i = 0; i < NStructInt+2; ++i)
-            sp.m_idata.arr[i] = m_aos[index].m_idata.arr[i];
+            sp.rdata(NStructReal+i) = m_rdata[i][index];
+        sp.id() = m_aos[index].id();
+        sp.cpu() = m_aos[index].cpu();
+        for (int i = 0; i < NStructInt; ++i)
+            sp.idata(i) = m_aos[index].idata(i);
         for (int i = 0; i < NArrayInt; ++i)
-            sp.m_idata.arr[NStructInt+2+i] = m_idata[i][index];
+            sp.idata(NStructInt+i) = m_idata[i][index];
         return sp;
     }
 };

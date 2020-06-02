@@ -27,7 +27,7 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
     const Geometry& geom     = m_gdb->Geom(lev);
     const auto          plo      = geom.ProbLoArray();
     const auto          dxi      = geom.InvCellSizeArray();
-    
+
     Vector<std::unique_ptr<MultiFab> > raii_umac(AMREX_SPACEDIM);
     Vector<MultiFab*> umac_pointer(AMREX_SPACEDIM);
     if (OnSameGrids(lev, umac[0]))
@@ -46,13 +46,13 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
 
 					                   m_gdb->ParticleDistributionMap(lev),
 					                   umac[i].nComp(), ng));
-					    
+
 
 	    umac_pointer[i] = raii_umac[i].get();
 	    umac_pointer[i]->copy(umac[i],0,0,umac[i].nComp(),ng,ng);
         }
     }
-    
+
     for (int ipass = 0; ipass < 2; ipass++)
     {
 #ifdef _OPENMP
@@ -68,40 +68,40 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
             const FArrayBox* fab[AMREX_SPACEDIM] = { AMREX_D_DECL(&((*umac_pointer[0])[grid]),
                                                                   &((*umac_pointer[1])[grid]),
                                                                   &((*umac_pointer[2])[grid])) };
-	  
+
             //array of these pointers to pass to the GPU
             amrex::GpuArray<amrex::Array4<const Real>, AMREX_SPACEDIM>
             const umacarr {AMREX_D_DECL((*fab[0]).array(),
                                         (*fab[1]).array(),
                                         (*fab[2]).array() )};
 
-            amrex::ParallelFor(n,   
-                               [=] AMREX_GPU_DEVICE (int i)      
-            {					
+            amrex::ParallelFor(n,
+                               [=] AMREX_GPU_DEVICE (int i)
+            {
                 ParticleType& p = p_pbox[i];
-                if (p.m_idata.id <= 0) return;
+                if (p.id() <= 0) return;
                 Real v[AMREX_SPACEDIM];
                 mac_interpolate(p, plo, dxi, umacarr, v);
                 if (ipass == 0)
                 {
                     for (int dim=0; dim < AMREX_SPACEDIM; dim++)
                     {
-                        p.m_rdata.arr[AMREX_SPACEDIM+dim] = p.m_rdata.pos[dim];     
-                        p.m_rdata.pos[dim] += 0.5*dt*v[dim];   		 
-                    }    		  
+                        p.rdata(dim) = p.pos(dim);
+                        p.pos(dim) += 0.5*dt*v[dim];
+                    }
                 }
                 else
                 {
                     for (int dim=0; dim < AMREX_SPACEDIM; dim++)
                     {
-                        p.m_rdata.pos[dim]  = p.m_rdata.arr[AMREX_SPACEDIM+dim] + dt*v[dim];
-                        p.m_rdata.arr[AMREX_SPACEDIM+dim] = v[dim];
+                        p.pos(dim) = p.rdata(dim) + dt*v[dim];
+                        p.rdata(dim) = v[dim];
                     }
                 }
             });
         }
     }
-    
+
     if (m_verbose > 1)
     {
         Real stoptime = amrex::second() - strttime;
@@ -156,31 +156,31 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
                                [=] AMREX_GPU_DEVICE (int i)
             {
                 ParticleType& p  = p_pbox[i];
-                if (p.m_idata.id <= 0) return;
+                if (p.id() <= 0) return;
                 Real v[AMREX_SPACEDIM];
-                
+
                 cic_interpolate(p, plo, dxi, uccarr, v);
-                
+
                 if (ipass == 0)
                 {
                     for (int dim=0; dim < AMREX_SPACEDIM; dim++)
                     {
-                        p.m_rdata.arr[AMREX_SPACEDIM+dim] = p.m_rdata.pos[dim];
-                        p.m_rdata.pos[dim] += 0.5*dt*v[dim];
-                    }                  
+                        p.rdata(dim) = p.pos(dim);
+                        p.pos(dim) += 0.5*dt*v[dim];
+                    }
                 }
                 else
                 {
                     for (int dim=0; dim < AMREX_SPACEDIM; dim++)
                     {
-                        p.m_rdata.pos[dim]  = p.m_rdata.arr[AMREX_SPACEDIM+dim] + dt*v[dim];
-                        p.m_rdata.arr[AMREX_SPACEDIM+dim] = v[dim];
+                        p.rdata(dim) = p.rdata(dim) + dt*v[dim];
+                        p.rdata(dim) = v[dim];
                     }
                 }
             });
         }
     }
-    
+
     if (m_verbose > 1)
     {
         Real stoptime = amrex::second() - strttime;
@@ -247,7 +247,7 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
 	      for (int k = 0; k < pbox.numParticles(); ++k)
 	      {
 		const ParticleType& p = pbox[k];
-		if (p.m_idata.id > 0) {
+		if (p.id() > 0) {
 		  gotwork = true;
 		  break;
 		}
@@ -291,25 +291,25 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
 		    {
 		      const ParticleType& p = pbox[k];
 
-		      if (p.m_idata.id <= 0) continue;
+		      if (p.id() <= 0) continue;
 
 		      const IntVect& iv = Index(p,lev);
 
 		      if (!bx.contains(iv) && !ba.contains(iv)) continue;
 
-		      TimeStampFile << p.m_idata.id  << ' ' << p.m_idata.cpu << ' ';
+		      TimeStampFile << p.id()  << ' ' << p.cpu() << ' ';
 
-		      AMREX_D_TERM(TimeStampFile << p.m_rdata.pos[0] << ' ';,
-			     TimeStampFile << p.m_rdata.pos[1] << ' ';,
-			     TimeStampFile << p.m_rdata.pos[2] << ' ';);
+		      AMREX_D_TERM(TimeStampFile << p.pos(0) << ' ';,
+                                   TimeStampFile << p.pos(1) << ' ';,
+                                   TimeStampFile << p.pos(2) << ' ';);
 
 		      TimeStampFile << time;
 		      //
 		      // AdvectWithUmac stores the velocity in rdata ...
 		      //
-		      AMREX_D_TERM(TimeStampFile << ' ' << p.m_rdata.arr[AMREX_SPACEDIM+0];,
-			     TimeStampFile << ' ' << p.m_rdata.arr[AMREX_SPACEDIM+1];,
-			     TimeStampFile << ' ' << p.m_rdata.arr[AMREX_SPACEDIM+2];);
+		      AMREX_D_TERM(TimeStampFile << ' ' << p.rdata(0);,
+                                   TimeStampFile << ' ' << p.rdata(1);,
+                                   TimeStampFile << ' ' << p.rdata(2););
 
 		      if (M > 0)
                         {

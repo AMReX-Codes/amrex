@@ -66,43 +66,43 @@ struct Particle
 
     static int the_next_id;
 
-    AMREX_GPU_HOST_DEVICE int&  id()       & {return m_idata.id;}
-    AMREX_GPU_HOST_DEVICE int   id() const & {return m_idata.id;}
-    AMREX_GPU_HOST_DEVICE int& cpu()       & {return m_idata.cpu;}
-    AMREX_GPU_HOST_DEVICE int  cpu() const & {return m_idata.cpu;}
+    AMREX_GPU_HOST_DEVICE int&  id ()       & {return m_idata.id;}
+    AMREX_GPU_HOST_DEVICE int   id () const & {return m_idata.id;}
+    AMREX_GPU_HOST_DEVICE int& cpu ()       & {return m_idata.cpu;}
+    AMREX_GPU_HOST_DEVICE int  cpu () const & {return m_idata.cpu;}
 
-    AMREX_GPU_HOST_DEVICE RealVect pos() const &
+    AMREX_GPU_HOST_DEVICE RealVect pos () const &
     {return RealVect(AMREX_D_DECL(m_rdata.pos[0], m_rdata.pos[1], m_rdata.pos[2]));}
 
-    AMREX_GPU_HOST_DEVICE RealType& pos(int index)       &
+    AMREX_GPU_HOST_DEVICE RealType& pos (int index)       &
 	{
 		AMREX_ASSERT(index < AMREX_SPACEDIM);
 		return m_rdata.pos[index];
 	}
-    AMREX_GPU_HOST_DEVICE RealType  pos(int index) const &
+    AMREX_GPU_HOST_DEVICE RealType  pos (int index) const &
 	{
 		AMREX_ASSERT(index < AMREX_SPACEDIM);
 		return m_rdata.pos[index];
 	}
 
-    AMREX_GPU_HOST_DEVICE RealType& rdata(int index)       &
+    AMREX_GPU_HOST_DEVICE RealType& rdata (int index)       &
 	{
 		AMREX_ASSERT(index < NReal);
 		return m_rdata.arr[AMREX_SPACEDIM + index];
 	}
-    AMREX_GPU_HOST_DEVICE RealType  rdata(int index) const &
+    AMREX_GPU_HOST_DEVICE RealType  rdata (int index) const &
 	{
 		AMREX_ASSERT(index < NReal);
 		return m_rdata.arr[AMREX_SPACEDIM + index];
 	}
-    AMREX_GPU_HOST_DEVICE RealVect  rvec(AMREX_D_DECL(int indx, int indy, int indz)) const &
+    AMREX_GPU_HOST_DEVICE RealVect  rvec (AMREX_D_DECL(int indx, int indy, int indz)) const &
 	{
 		AMREX_ASSERT(AMREX_D_TERM(indx < NReal, and indy < NReal, and indz < NReal));
 		return RealVect(AMREX_D_DECL(m_rdata.arr[AMREX_SPACEDIM + indx],
                                  m_rdata.arr[AMREX_SPACEDIM + indy],
                                  m_rdata.arr[AMREX_SPACEDIM + indz]));
 	}
-    AMREX_GPU_HOST_DEVICE RealVect  rvec(const IntVect& indexes) const &
+    AMREX_GPU_HOST_DEVICE RealVect  rvec (const IntVect& indexes) const &
 	{
 		AMREX_ASSERT(indexes.max() < NReal);
 		return RealVect(AMREX_D_DECL(m_rdata.arr[AMREX_SPACEDIM + indexes[0]],
@@ -110,14 +110,14 @@ struct Particle
                                  m_rdata.arr[AMREX_SPACEDIM + indexes[2]]));
 	}
 
-    AMREX_GPU_HOST_DEVICE int& idata(int index)       &
+    AMREX_GPU_HOST_DEVICE int& idata (int index)       &
 	{
 		AMREX_ASSERT(index < NInt);
 		return m_idata.arr[2 + index];
 	}
-    AMREX_GPU_HOST_DEVICE int  idata(int index) const &
+    AMREX_GPU_HOST_DEVICE int  idata (int index) const &
 	{
-		AMREX_ASSERT(index < NInt);		
+		AMREX_ASSERT(index < NInt);
 		return m_idata.arr[2 + index];
 	}
 
