@@ -33,7 +33,9 @@ jobs:
       run: |
         mkdir build
         cd build
-        cmake .. -DENABLE_TUTORIALS=ON
+        cmake ..                    \
+            -DENABLE_TUTORIALS=ON   \
+            -DENABLE_PARTICLES=ON
         make -j 2 tutorials
 
   # Build libamrex and all tutorials
@@ -50,6 +52,7 @@ jobs:
         cd build
         cmake ..                     \
             -DENABLE_TUTORIALS=ON    \
+            -DENABLE_PARTICLES=ON    \
             -DCMAKE_CXX_STANDARD=20  \
             -DCMAKE_C_COMPILER=$(which gcc-10)              \
             -DCMAKE_CXX_COMPILER=$(which g++-10)            \
@@ -68,7 +71,7 @@ jobs:
       run: |
         mkdir build
         cd build
-        cmake .. -DENABLE_TUTORIALS=ON -DENABLE_MPI=OFF
+        cmake .. -DENABLE_TUTORIALS=ON -DENABLE_MPI=OFF -DENABLE_PARTICLES=ON
         make -j 2 tutorials
 
   # Build libamrex and all tutorials
@@ -85,6 +88,7 @@ jobs:
         cd build
         cmake ..                    \
             -DENABLE_TUTORIALS=ON   \
+            -DENABLE_PARTICLES=ON   \
             -DENABLE_FORTRAN=OFF    \
             -DCMAKE_CXX_STANDARD=11
         make -j 2 tutorials
@@ -103,6 +107,7 @@ jobs:
         cd build
         cmake ..                                         \
             -DENABLE_TUTORIALS=ON                        \
+            -DENABLE_PARTICLES=ON                        \
             -DENABLE_CUDA=ON                             \
             -DCMAKE_C_COMPILER=$(which gcc-4.8)              \
             -DCMAKE_CXX_COMPILER=$(which g++-4.8)            \
