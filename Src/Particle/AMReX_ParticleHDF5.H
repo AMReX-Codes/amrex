@@ -344,7 +344,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                 {
                     // Only count (and checkpoint) valid particles.
                     const ParticleType& p = aos[k];
-                    if (p.m_idata.id > 0) nparticles++;
+                    if (p.id() > 0) nparticles++;
                 }
             }
         }
@@ -601,7 +601,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 	for (int k = 0; k < kv.second.GetArrayOfStructs().numParticles(); ++k)
 	{
 	    const ParticleType& p = kv.second.GetArrayOfStructs()[k];
-  	    if (p.m_idata.id > 0) {
+  	    if (p.id() > 0) {
                 cnt++;
 	    }	    
 	}
@@ -703,11 +703,14 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             const auto& pbox = m_particles[lev].at(std::make_pair(grid, tile_map[grid][i]));
             for (int pindex = 0; pindex < pbox.GetArrayOfStructs().numParticles(); ++pindex) {
                 const ParticleType& p = pbox.GetArrayOfStructs()[pindex];
-                if (p.m_idata.id > 0) {
-                    for (int j = 0; j < 2 + NStructInt; j++) {
-                        iptr[j] = p.m_idata.arr[j];
+                if (p.id() > 0) {
+                    *iptr = p.id(); ++iptr;
+                    *iptr = p.cpu(); ++iptr;
+
+                    for (int j = 0; j < NStructInt; j++) {
+                        iptr[j] = p.idata(j);
                     }
-                    iptr += 2 + NStructInt;
+                    iptr += NStructInt;
                     const auto& soa  = pbox.GetStructOfArrays();
                     for (int j = 0; j < NArrayInt; j++) {
                         iptr[j] = soa.GetIntData(j)[pindex];
@@ -740,11 +743,15 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             const auto& pbox = m_particles[lev].at(std::make_pair(grid, tile_map[grid][i]));
             for (int pindex = 0; pindex < pbox.GetArrayOfStructs().numParticles(); ++pindex) {
                 const ParticleType& p = pbox.GetArrayOfStructs()[pindex];
-                if (p.m_idata.id > 0) {
-                    for (int j = 0; j < AMREX_SPACEDIM + NStructReal; j++) {
-                        rptr[j] = p.m_rdata.arr[j];
+                if (p.id() > 0) {
+                    for (int j = 0; j < AMREX_SPACEDIM; j++) {
+                        rptr[j] = p.pos(j);
                     }
-                    rptr += AMREX_SPACEDIM + NStructReal;
+                    rptr += AMREX_SPACEDIM;
+                    for (int j = 0; j < NStructReal; j++) {
+                        rptr[j] = p.rdata(j);
+                    }
+                    rptr += NStructReal;
                     const auto& soa  = pbox.GetStructOfArrays();
                     for (int j = 0; j < NArrayReal; j++) {
                         rptr[j] = (typename ParticleType::RealType) soa.GetRealData(j)[pindex];
@@ -1225,28 +1232,28 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     host_int_attribs.resize(finest_level_in_file+1);
 
     for (int i = 0; i < cnt; i++) {
-        p.m_idata.id   = iptr[0];
-        p.m_idata.cpu  = iptr[1];
-        
+        p.id()   = iptr[0];
+        p.cpu()  = iptr[1];
+
         iptr += 2;
-            
+
         for (int j = 0; j < NStructInt; j++)
         {
-            p.m_idata.arr[2+j] = *iptr;
+            p.idata(j) = *iptr;
             ++iptr;
         }
 
-        AMREX_ASSERT(p.m_idata.id > 0);
-        
-        AMREX_D_TERM(p.m_rdata.pos[0] = rptr[0];,
-                     p.m_rdata.pos[1] = rptr[1];,
-                     p.m_rdata.pos[2] = rptr[2];);
-        
+        AMREX_ASSERT(p.id() > 0);
+
+        AMREX_D_TERM(p.pos(0) = rptr[0];,
+                     p.pos(1) = rptr[1];,
+                     p.pos(2) = rptr[2];);
+
         rptr += AMREX_SPACEDIM;
-        
+
         for (int j = 0; j < NStructReal; j++)
         {
-            p.m_rdata.arr[AMREX_SPACEDIM+j] = *rptr;
+            p.rdata(j) = *rptr;
             ++rptr;
         }
 

@@ -64,18 +64,18 @@ ParticleTileToBlueprint(const ParticleTile<NStructReal,
     // point locations from from aos
     //----------------------------------//
 
-    n_coords["values/x"].set_external(const_cast<ParticleReal*>(&p_aos.m_rdata.pos[0]),
+    n_coords["values/x"].set_external(const_cast<ParticleReal*>(&p_aos.pos(0)),
                                       num_particles,
                                       0,
                                       struct_size);
 #if AMREX_SPACEDIM > 1
-    n_coords["values/y"].set_external(const_cast<ParticleReal*>(&p_aos.m_rdata.pos[1]),
+    n_coords["values/y"].set_external(const_cast<ParticleReal*>(&p_aos.pos(1)),
                                       num_particles,
                                       0,
                                       struct_size);
 #endif
 #if AMREX_SPACEDIM > 2
-    n_coords["values/z"].set_external(const_cast<ParticleReal*>(&p_aos.m_rdata.pos[2]),
+    n_coords["values/z"].set_external(const_cast<ParticleReal*>(&p_aos.pos(2)),
                                       num_particles,
                                       0,
                                       struct_size);
@@ -94,7 +94,7 @@ ParticleTileToBlueprint(const ParticleTile<NStructReal,
 
     n_f_id["topology"] = topology_name;
     n_f_id["association"] = "element";
-    n_f_id["values"].set_external(const_cast<int*>(&p_aos.m_idata.arr[0]),
+    n_f_id["values"].set_external(const_cast<int*>(&p_aos.id()),
                                   num_particles,
                                   0,
                                   struct_size);
@@ -104,7 +104,7 @@ ParticleTileToBlueprint(const ParticleTile<NStructReal,
 
     n_f_cpu["topology"] = topology_name;
     n_f_cpu["association"] = "element";
-    n_f_cpu["values"].set_external(const_cast<int*>(&p_aos.m_idata.arr[1]),
+    n_f_cpu["values"].set_external(const_cast<int*>(&p_aos.cpu()),
                                    num_particles,
                                    0,
                                    struct_size);
@@ -116,12 +116,12 @@ ParticleTileToBlueprint(const ParticleTile<NStructReal,
     int vname_real_idx = 0;
     // struct real fields, the first set are always the particle positions
     // which we wrap above
-    for (int i = AMREX_SPACEDIM; i < AMREX_SPACEDIM + NStructReal; i++)
+    for (int i = 0; i < NStructReal; i++)
     {
         conduit::Node &n_f = n_fields[real_comp_names[vname_real_idx]];
         n_f["topology"] = topology_name;
         n_f["association"] = "element";
-        n_f["values"].set_external(const_cast<ParticleReal*>(&p_aos.m_rdata.arr[i]),
+        n_f["values"].set_external(const_cast<ParticleReal*>(&p_aos.rdata(i)),
                                    num_particles,
                                    0,
                                    struct_size);
@@ -130,14 +130,12 @@ ParticleTileToBlueprint(const ParticleTile<NStructReal,
     }
 
     int vname_int_idx = 0;
-    // struct int fields, first two are always id, and cpu --
-    // which we wrap above
-    for (int i = 2; i < 2 + NStructInt; i++)
+    for (int i = 0; i < NStructInt; i++)
     {
         conduit::Node &n_f = n_fields[int_comp_names[vname_int_idx]];
         n_f["topology"] = topology_name;
         n_f["association"] = "element";
-        n_f["values"].set_external(const_cast<int*>(&p_aos.m_idata.arr[i]),
+        n_f["values"].set_external(const_cast<int*>(&p_aos.idata(i)),
                                    num_particles,
                                    0,
                                    struct_size);
@@ -150,7 +148,7 @@ ParticleTileToBlueprint(const ParticleTile<NStructReal,
 
      const auto &soa = ptile.GetStructOfArrays();
 
-    // for soa entries, we can use standard strides, 
+    // for soa entries, we can use standard strides,
     // since these are contiguous arrays
 
     // array real fields

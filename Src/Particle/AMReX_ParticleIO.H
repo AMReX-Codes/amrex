@@ -717,7 +717,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             const auto& aos = kv.second.GetArrayOfStructs();
             for (int k = 0; k < aos.numParticles(); ++k) {
                 const ParticleType& p = aos[k];
-                if (p.m_idata.id > 0) {
+                if (p.id() > 0) {
                     //
                     // Only count (and checkpoint) valid particles.
                     //
@@ -888,19 +888,19 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                 if (pflags[pindex])
                 {
                     // always write these
-                    for (int j = 0; j < 2; j++) iptr[j] = p.m_idata.arr[j];
-                    iptr += 2;
-                    
+                    *iptr = p.id(); ++iptr;
+                    *iptr = p.cpu(); ++iptr;
+
                     // optionally write these
                     for (int j = 0; j < NStructInt; j++)
                     {
                         if (write_int_comp[j])
                         {
-                            *iptr = p.m_idata.arr[2+j];
+                            *iptr = p.idata(j);
                             ++iptr;
                         }
                     }
-                    
+
                     const auto& soa  = pbox.GetStructOfArrays();
                     for (int j = 0; j < NumIntComps(); j++)
                     {
@@ -932,19 +932,19 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 			const auto& pflags = particle_io_flags[lev].at(ptile_index);
             for (int pindex = 0; pindex < pbox.GetArrayOfStructs().numParticles(); ++pindex) {
                 const auto& aos = pbox.GetArrayOfStructs();
-                const auto& p = aos[pindex];				
+                const auto& p = aos[pindex];
                 if (pflags[pindex])
                 {
                     // always write these
-                    for (int j = 0; j < AMREX_SPACEDIM; j++) rptr[j] = p.m_rdata.arr[j];
+                    for (int j = 0; j < AMREX_SPACEDIM; j++) rptr[j] = p.pos(j);
                     rptr += AMREX_SPACEDIM;
-                    
+
                     // optionally write these
                     for (int j = 0; j < NStructReal; j++)
                     {
                         if (write_real_comp[j])
                         {
-                            *rptr = p.m_rdata.arr[AMREX_SPACEDIM+j];
+                            *rptr = p.rdata(j);
                             ++rptr;
                         }
                     }
@@ -1287,33 +1287,33 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     host_int_attribs.resize(finest_level_in_file+1);
 
     for (int i = 0; i < cnt; i++) {
-        p.m_idata.id   = iptr[0];
-        p.m_idata.cpu  = iptr[1];
-        
+        p.id()   = iptr[0];
+        p.cpu()  = iptr[1];
+
         iptr += 2;
-            
+
         for (int j = 0; j < NStructInt; j++)
         {
-            p.m_idata.arr[2+j] = *iptr;
+            p.idata(j) = *iptr;
             ++iptr;
         }
 
-        AMREX_ASSERT(p.m_idata.id > 0);
-        
-        AMREX_D_TERM(p.m_rdata.pos[0] = rptr[0];,
-                     p.m_rdata.pos[1] = rptr[1];,
-                     p.m_rdata.pos[2] = rptr[2];);
-        
+        AMREX_ASSERT(p.id() > 0);
+
+        AMREX_D_TERM(p.pos(0) = rptr[0];,
+                     p.pos(1) = rptr[1];,
+                     p.pos(2) = rptr[2];);
+
         rptr += AMREX_SPACEDIM;
-        
+
         for (int j = 0; j < NStructReal; j++)
         {
-            p.m_rdata.arr[AMREX_SPACEDIM+j] = *rptr;
+            p.rdata(j) = *rptr;
             ++rptr;
         }
 
         locateParticle(p, pld, 0, finestLevel(), 0);
-        
+
 	std::pair<int, int> ind(grd, pld.m_tile);
 
         host_real_attribs[lev][ind].resize(NumRealComps());
@@ -1391,7 +1391,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteAsciiFil
 	    Gpu::copy(Gpu::deviceToHost, aos.begin(), aos.begin() + np, host_aos.begin());
 	    for (int k = 0; k < np; ++k) {
 	        const ParticleType& p = host_aos[k];
-                if (p.m_idata.id > 0)
+                if (p.id() > 0)
                     //
                     // Only count (and checkpoint) valid particles.
                     //
@@ -1467,51 +1467,51 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteAsciiFil
 
 		for (int index = 0; index < np; ++index) {
 		    const ParticleType* it = &host_aos[index];
-		    if (it->m_idata.id > 0) {
+		    if (it->id() > 0) {
 
-                        // write out the particle struct first... 
-                        AMREX_D_TERM(File << it->m_rdata.pos[0] << ' ',
-                               << it->m_rdata.pos[1] << ' ',
-                               << it->m_rdata.pos[2] << ' ');
+                        // write out the particle struct first...
+                        AMREX_D_TERM(File << it->pos(0) << ' ',
+                                          << it->pos(1) << ' ',
+                                          << it->pos(2) << ' ');
 
-                        for (int i = AMREX_SPACEDIM; i < AMREX_SPACEDIM + NStructReal; i++)
-                            File << it->m_rdata.arr[i] << ' ';
+                        for (int i = 0; i < NStructReal; i++)
+                            File << it->rdata(i) << ' ';
 
-                        File << it->m_idata.id  << ' ';
-                        File << it->m_idata.cpu << ' ';
-                        
-                        for (int i = 2; i < 2 + NStructInt; i++)
-                            File << it->m_idata.arr[i] << ' ';
-		      
+                        File << it->id()  << ' ';
+                        File << it->cpu() << ' ';
+
+                        for (int i = 0; i < NStructInt; i++)
+                            File << it->idata(i) << ' ';
+
                         // then the particle attributes.
                         for (int i = 0; i < NumRealComps(); i++)
                             File << soa.GetRealData(i)[index] << ' ';
-                        
+
                         for (int i = 0; i < NumIntComps(); i++)
                             File << soa.GetIntData(i)[index] << ' ';
-                        
-                        File << '\n';                                                    
+
+                        File << '\n';
                     }
                 }
               }
             }
-	    
+
             File.flush();
-	    
+
             File.close();
-            
+
             if (!File.good())
                 amrex::Abort("ParticleContainer::WriteAsciiFile(): problem writing file");
-	    
+
         }
-	
+
         ParallelDescriptor::Barrier();
     }
-    
+
     if (m_verbose > 1)
     {
         Real stoptime = amrex::second() - strttime;
-        
+
         ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
         
         amrex::Print() << "ParticleContainer::WriteAsciiFile() time: " << stoptime << '\n';
@@ -1538,7 +1538,7 @@ ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt>::WriteCoarsenedA
             const auto& aos = kv.second.GetArrayOfStructs();
             for (int k = 0; k < aos.numParticles(); ++k) {
 	        const ParticleType& p = aos[k];
-                if (p.m_idata.id > 0)
+                if (p.id() > 0)
                     //
                     // Only count (and checkpoint) valid particles.
                     //
@@ -1615,29 +1615,29 @@ ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt>::WriteCoarsenedA
                         {
                             
                             // Only keep particles in even cells               
-                            if (it->m_idata.id > 0) {
+                            if (it->id() > 0) {
                               
-                                File << it->m_idata.id  << ' ';
-                                File << it->m_idata.cpu << ' ';
+                                File << it->id()  << ' ';
+                                File << it->cpu() << ' ';
                               
-                                AMREX_D_TERM(File << it->m_rdata.pos[0] << ' ',
-                                                  << it->m_rdata.pos[1] << ' ',
-                                                  << it->m_rdata.pos[2] << ' ');
+                                AMREX_D_TERM(File << it->pos(0) << ' ',
+                                                  << it->pos(1) << ' ',
+                                                  << it->pos(2) << ' ');
                               
                                 for (int i = 0; i < NumRealComps(); i++) {
                                     File << soa.GetRealData(i)[index] << ' ';
                                 }
                                 index++;
                                 
-                                for (int i = AMREX_SPACEDIM; i < AMREX_SPACEDIM + NStructReal; i++) {
-                                    char ws = (i == AMREX_SPACEDIM + NStructReal - 1) ? '\n' : ' ';
-                                    if (i == AMREX_SPACEDIM) {
+                                for (int i = 0; i < NStructReal; i++) {
+                                    char ws = (i == NStructReal - 1) ? '\n' : ' ';
+                                    if (i == 0) {
                                         // Multiply mass by 8 since we are only taking 1/8 of the 
                                         // total particles and want to keep the mass in the domain the same.
-                                        File << 8.0* it->m_rdata.arr[i] << ws;
+                                        File << 8.0* it->rdata(i) << ws;
                                     }
                                     else {
-                                        File << it->m_rdata.arr[i] << ws;
+                                        File << it->rdata(i) << ws;
                                     }
                                 }
                             }
