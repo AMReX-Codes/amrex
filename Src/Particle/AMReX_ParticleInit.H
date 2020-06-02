@@ -167,7 +167,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                     if (m_verbose) {
                         amrex::AllPrint() << "BAD PARTICLE ID WOULD BE " << ParticleType::NextID() << '\n'
                                           << "BAD PARTICLE POS "
-                                          << AMREX_D_TERM(   p.pos[0],
+                                          << AMREX_D_TERM(   p.pos(0),
                                                           << p.pos(1),
                                                           << p.pos(2))
                                           << "\n";
