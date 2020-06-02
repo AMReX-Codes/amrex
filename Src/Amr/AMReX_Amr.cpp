@@ -12,10 +12,6 @@
 #include <omp.h>
 #endif
 
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-
 #include <AMReX_Geometry.H>
 #include <AMReX_TagBox.H>
 #include <AMReX_Array.H>

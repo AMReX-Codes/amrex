@@ -5,17 +5,8 @@
 #include <string>
 #include <utility>
 #include <sstream>
-
 #include <cstdio>
 #include <cstdlib>
-
-#include <execinfo.h>
-#if defined(__APPLE__)
-#include <xmmintrin.h>
-#endif
-
-#include <csignal>
-#include <cfenv>
 
 #ifdef _OPENMP
 #include <omp.h>

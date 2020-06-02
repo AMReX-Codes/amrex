@@ -26,6 +26,37 @@
 #define AMREX_HIP_OR_CUDA_OR_DPCPP(a,b,c) ((void)0);
 #endif
 
+#ifdef AMREX_USE_GPU
+#define AMREX_GPU_OR_CPU(a,b) a
+#else
+#define AMREX_GPU_OR_CPU(a,b) b
+#endif
+
+#ifdef AMREX_USE_DPCPP
+#define AMREX_DPCPP_ONLY(a) a
+#else
+#define AMREX_DPCPP_ONLY(a) ((void)0)
+#endif
+
+#ifdef AMREX_USE_DPCPP
+#if (AMREX_SPACEDIM == 1)
+#  define AMREX_DPCPP_1D_ONLY(a) a
+#  define AMREX_DPCPP_2D_ONLY(a) ((void)0)
+#  define AMREX_DPCPP_3D_ONLY(a) ((void)0)
+#elif (AMREX_SPACEDIM == 2)
+#  define AMREX_DPCPP_1D_ONLY(a) ((void)0)
+#  define AMREX_DPCPP_2D_ONLY(a) a
+#  define AMREX_DPCPP_3D_ONLY(a) ((void)0)
+#elif (AMREX_SPACEDIM == 3)
+#  define AMREX_DPCPP_1D_ONLY(a) ((void)0)
+#  define AMREX_DPCPP_2D_ONLY(a) ((void)0)
+#  define AMREX_DPCPP_3D_ONLY(a) a
+#endif
+#else
+#  define AMREX_DPCPP_1D_ONLY(a) ((void)0)
+#  define AMREX_DPCPP_2D_ONLY(a) ((void)0)
+#  define AMREX_DPCPP_3D_ONLY(a) ((void)0)
+#endif
 
 namespace amrex {
     enum struct RunOn { Gpu, Cpu, Device=Gpu, Host=Cpu };

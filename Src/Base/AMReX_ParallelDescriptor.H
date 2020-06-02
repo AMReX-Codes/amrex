@@ -39,6 +39,7 @@
 #include <iostream>
 #include <limits>
 #include <numeric>
+#include <csignal>
 
 namespace amrex {
     

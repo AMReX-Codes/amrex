@@ -5,7 +5,7 @@
 #include <iomanip>
 #include <fstream>
 
-#ifdef __linux
+#ifdef __linux__
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/sysinfo.h>
@@ -98,7 +98,7 @@ MemProfiler::report_ (const std::string& prefix, const std::string& memory_log_n
     std::vector<int>  num_builds_max = num_builds_min;
     std::vector<int>  hwm_builds_max = hwm_builds_min;
 
-#ifdef __linux
+#ifdef __linux__
     const int N = 9;
 #else
     const int N = 1;
@@ -109,7 +109,7 @@ MemProfiler::report_ (const std::string& prefix, const std::string& memory_log_n
 
     mymin[0] = mymax[0] = std::accumulate(cur_min.begin(), cur_min.end(), 0L);
 
-#ifdef __linux
+#ifdef __linux__
     int ierr_proc_status = 0;
     const int ipstat = 1;
     const int npstat = 4;
@@ -292,7 +292,7 @@ MemProfiler::report_ (const std::string& prefix, const std::string& memory_log_n
 	    }
 	}
 
-#ifdef __linux
+#ifdef __linux__
 	if (ierr_proc_status == 0) {
 	    memlog << "\n";
 	    memlog << " * " << std::setw(width_bytes) << std::left << "Proc VmPeak"

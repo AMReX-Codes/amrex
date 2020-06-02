@@ -900,27 +900,35 @@ MLCellLinOp::applyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const
     {
         const Box& tbx = mfi.tilebox();
         Array4<Real> const& rhsarr = rhs.array(mfi);
+#if (AMREX_SPACEDIM == 1)
         if (cc) {
             AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( tbx, ncomp, i, j, k, n,
             {
                 Real rc = probxlo + (i+0.5)*dx;
-#if (AMREX_SPACEDIM == 2)
-                rhsarr(i,j,k,n) *= rc;
-#else
                 rhsarr(i,j,k,n) *= rc*rc;
-#endif
             });
         } else {
             AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( tbx, ncomp, i, j, k, n,
             {
                 Real re = probxlo + i*dx;
-#if (AMREX_SPACEDIM == 2)
-                rhsarr(i,j,k,n) *= re;
-#else
                 rhsarr(i,j,k,n) *= re*re;
-#endif
             });
         }
+#elif (AMREX_SPACEDIM == 2)
+        if (cc) {
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( tbx, ncomp, i, j, k, n,
+            {
+                Real rc = probxlo + (i+0.5)*dx;
+                rhsarr(i,j,k,n) *= rc;
+            });
+        } else {
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( tbx, ncomp, i, j, k, n,
+            {
+                Real re = probxlo + i*dx;
+                rhsarr(i,j,k,n) *= re;
+            });
+        }
+#endif
     }
 #endif
 }
@@ -947,28 +955,37 @@ MLCellLinOp::unapplyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const
     {
         const Box& tbx = mfi.tilebox();
         Array4<Real> const& rhsarr = rhs.array(mfi);
+#if (AMREX_SPACEDIM == 1)
         if (cc) {
             AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( tbx, ncomp, i, j, k, n,
             {
                 Real rcinv = 1.0/(probxlo + (i+0.5)*dx);
-#if (AMREX_SPACEDIM == 2)
-                rhsarr(i,j,k,n) *= rcinv;
-#else
                 rhsarr(i,j,k,n) *= rcinv*rcinv;
-#endif
             });
         } else {
             AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( tbx, ncomp, i, j, k, n,
             {
                 Real re = probxlo + i*dx;
                 Real reinv = (re==0.0) ? 0.0 : 1./re;
-#if (AMREX_SPACEDIM == 2)
-                rhsarr(i,j,k,n) *= reinv;
-#else
                 rhsarr(i,j,k,n) *= reinv*reinv;
-#endif
             });
         }
+#elif (AMREX_SPACEDIM == 2)
+        if (cc) {
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( tbx, ncomp, i, j, k, n,
+            {
+                Real rcinv = 1.0/(probxlo + (i+0.5)*dx);
+                rhsarr(i,j,k,n) *= rcinv;
+            });
+        } else {
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( tbx, ncomp, i, j, k, n,
+            {
+                Real re = probxlo + i*dx;
+                Real reinv = (re==0.0) ? 0.0 : 1./re;
+                rhsarr(i,j,k,n) *= reinv;
+            });
+        }
+#endif
     }
 #endif
 }

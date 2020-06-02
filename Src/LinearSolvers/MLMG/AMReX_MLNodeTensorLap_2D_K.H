@@ -15,7 +15,7 @@ namespace {
     Real ts_interp_line_y (Array4<Real const> const& crse, int i, int j, int ic, int jc) noexcept
     {
         return (crse(ic,jc,0)+crse(ic,jc+1,0))*0.5_rt;
-    };
+    }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real ts_interp_face_xy (Array4<Real const> const& crse, int i, int j, int ic, int jc) noexcept

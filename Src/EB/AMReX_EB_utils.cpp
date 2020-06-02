@@ -147,12 +147,8 @@ namespace amrex {
             Real divnc(0.0);
             Real vtot(0.0);
             Real wted_frac(0.0);
-            int  ks(0);
-            int  ke(0);
-#if (AMREX_SPACEDIM==3)
-            ks = -1;
-            ke = 1;
-#endif
+            int  ks = (AMREX_SPACEDIM == 3) ? -1 : 0;
+            int  ke = (AMREX_SPACEDIM == 3) ?  1 : 0;
 
             for (int kk(ks); kk <= ke; ++kk) {
               for (int jj(-1); jj <= 1; ++jj) {
@@ -193,12 +189,9 @@ namespace amrex {
         if(flags(i,j,k).isSingleValued())
         {
             Real wtot(0.0);
-            int  ks(0);
-            int  ke(0);
-#if (AMREX_SPACEDIM==3)
-            ks = -1;
-            ke = 1;
-#endif
+            int  ks = (AMREX_SPACEDIM == 3) ? -1 : 0;
+            int  ke = (AMREX_SPACEDIM == 3) ?  1 : 0;
+
             for (int kk(ks); kk <= ke; ++kk) {
               for (int jj(-1); jj <= 1; ++jj) {
                 for (int ii(-1); ii <= 1; ++ii) {         
@@ -221,14 +214,10 @@ namespace amrex {
                             (flags(i,j,k).isConnected(ii,jj,kk)) and
                             bx.contains(IntVect(AMREX_D_DECL(i+ii,j+jj,k+kk))) )
                         {
-#ifdef AMREX_USE_CUDA
                             Gpu::Atomic::Add(&optmp(i+ii,j+jj,k+kk,n),
                                              delm(i,j,k,n) * wtot * mask(i+ii,j+jj,k+kk) * wt(i+ii,j+jj,k+kk));
-#else
-                            optmp(i+ii,j+jj,k+kk,n) += delm(i,j,k,n) * wtot * mask(i+ii,j+jj,k+kk) * wt(i+ii,j+jj,k+kk);
-#endif
                         }
-                        }}}
+                }}}
 
         }
         });

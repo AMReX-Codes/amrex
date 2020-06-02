@@ -22,13 +22,13 @@ include_guard(GLOBAL)
 # for every combination of
 #
 #     <lang> = cxx,fortran
-#     <id>   = gnu,intel,pgi,cray,clang,appleclang
+#     <id>   = gnu,intel,pgi,cray,clang,appleclang,msvc
 #
 foreach (_language CXX Fortran )
    set(_comp_lang   "$<COMPILE_LANGUAGE:${_language}>")
    string(TOLOWER "${_language}" _lang)
 
-   foreach (_comp GNU Intel PGI Cray Clang AppleClang )
+   foreach (_comp GNU Intel PGI Cray Clang AppleClang MSVC )
       string(TOLOWER "${_comp}" _id)
       # Define variables
       set(_comp_id              "$<${_language}_COMPILER_ID:${_comp}>")
@@ -62,6 +62,10 @@ target_compile_options( Flags_CXX
    $<${_cxx_cray_rel}:>
    $<${_cxx_clang_dbg}:-O0 -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable>
    $<${_cxx_clang_rel}:>
+   $<${_cxx_appleclang_dbg}:-O0 -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable>
+   $<${_cxx_appleclang_rel}:>
+   $<${_cxx_msvc_dbg}:/Za /bigobj /experimental:preprocessor>
+   $<${_cxx_msvc_rel}:/Za /bigobj /experimental:preprocessor>
    )
 
 #
@@ -123,7 +127,7 @@ target_compile_options ( Flags_FPE
 # Unset all the variables defined in this module
 #
 foreach (_lang cxx fortran)
-   foreach (_comp gnu intel pgi cray clang apple)
+   foreach (_comp gnu intel pgi cray clang appleclang msvc)
       unset(_${_lang}_${_comp})
       unset(_${_lang}_${_comp}_dbg)
       unset(_${_lang}_${_comp}_rel)

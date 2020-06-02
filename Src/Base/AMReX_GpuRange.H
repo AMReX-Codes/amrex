@@ -9,7 +9,7 @@
 
 namespace amrex {
 
-template <typename T, typename = amrex::EnableIf_t<std::is_integral<T>::value> >
+template <typename T, typename std::enable_if<std::is_integral<T>::value,int>::type = 0>
 bool isEmpty (T n) noexcept { return n <= 0; }
 
 AMREX_FORCE_INLINE bool isEmpty (Box const& b) noexcept { return b.isEmpty(); }
@@ -19,11 +19,11 @@ namespace Gpu {
 namespace range_detail {
 
 //! integer version
-template <typename T, typename = amrex::EnableIf_t<std::is_integral<T>::value> >
+template <typename T, typename std::enable_if<std::is_integral<T>::value,int>::type = 0>
 AMREX_GPU_HOST_DEVICE
 Long size (T const& b) noexcept { return static_cast<Long>(b); }
 
-template <typename T, typename = amrex::EnableIf_t<std::is_integral<T>::value> >
+template <typename T, typename std::enable_if<std::is_integral<T>::value,int>::type = 0>
 AMREX_GPU_HOST_DEVICE
 Long at (T const& b, Long offset) noexcept { return offset; }
 
