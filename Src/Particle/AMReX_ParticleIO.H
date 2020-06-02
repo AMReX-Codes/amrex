@@ -1263,7 +1263,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     // Then the real data in binary.
     const int rChunkSize = AMREX_SPACEDIM + NStructReal + NumRealComps();
     Vector<RTYPE> rstuff(cnt*rChunkSize);
-    ReadParticleRealData(rstuff.dataPtr(), rstuff.size(), ifs, ParticleRealDescriptor);
+    ReadParticleRealData(rstuff.dataPtr(), rstuff.size(), ifs);
     
     // Now reassemble the particles.
     int*   iptr = istuff.dataPtr();
