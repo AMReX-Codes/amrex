@@ -411,8 +411,11 @@ MultiLevelToBlueprint (int n_levels,
             // create coordset and topo
             FabToBlueprintTopology(geom,fab,patch);
             // add the nesting relationship
-            conduit::Node &nestset = patch["nestsets/nest"];
-            Nestsets(i, n_levels, fab, box_arrays, ref_ratio, box_offsets, nestset);
+            if(num_levels > 1)
+            {
+                conduit::Node &nestset = patch["nestsets/nest"];
+                Nestsets(i, n_levels, fab, box_arrays, ref_ratio, box_offsets, nestset);
+            }
             // add fields
             FabToBlueprintFields(fab,varnames,patch);
 
