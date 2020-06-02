@@ -4,12 +4,11 @@
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
-::WriteParticleRealData (void* data, size_t size,
-                         std::ostream& os, const RealDescriptor& rd) const
+::WriteParticleRealData (void* data, size_t size, std::ostream& os) const
 {
     if (sizeof(typename ParticleType::RealType) == 4) {
         writeFloatData((float*) data, size, os, ParticleRealDescriptor);
-    } 
+    }
     else if (sizeof(typename ParticleType::RealType) == 8) {
         writeDoubleData((double*) data, size, os, ParticleRealDescriptor);
     }
@@ -18,12 +17,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
-::ReadParticleRealData (void* data, size_t size,
-                         std::istream& is, const RealDescriptor& rd)
+::ReadParticleRealData (void* data, size_t size, std::istream& is)
 {
     if (sizeof(typename ParticleType::RealType) == 4) {
         readFloatData((float*) data, size, is, ParticleRealDescriptor);
-    } 
+    }
     else if (sizeof(typename ParticleType::RealType) == 8) {
         readDoubleData((double*) data, size, is, ParticleRealDescriptor);
     }
@@ -950,7 +948,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                             ++rptr;
                         }
                     }
-                    
+
                     const auto& soa  = pbox.GetStructOfArrays();
                     for (int j = 0; j < NumRealComps(); j++)
                     {
@@ -963,8 +961,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                 }
             }
         }
-        
-        WriteParticleRealData(rstuff.dataPtr(), rstuff.size(), ofs, ParticleRealDescriptor);
+
+        WriteParticleRealData(rstuff.dataPtr(), rstuff.size(), ofs);
         ofs.flush();  // Some systems require this flush() (probably due to a bug)
     }
 }
