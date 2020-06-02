@@ -60,7 +60,7 @@ cuda_select_nvcc_arch_flags(_nvcc_arch_flags ${CUDA_ARCH})
 #
 # Remove unsupported architecture: anything less the 6.0 must go
 #
-string(REPLACE "-gencode;" "-gencode " _nvcc_arch_flags "${_nvcc_arch_flags}")
+string(REPLACE "-gencode;" "-gencode=" _nvcc_arch_flags "${_nvcc_arch_flags}")
 
 foreach (_item IN LISTS _nvcc_arch_flags)
    # Match one time the regex [0-9]+.
