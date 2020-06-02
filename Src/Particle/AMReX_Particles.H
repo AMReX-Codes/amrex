@@ -947,18 +947,16 @@ public:
     void WritePlotFile (const std::string& dir,
                         const std::string& name,
                         const Vector<int>& write_real_comp,
-                        const Vector<int>& write_int_comp,    
+                        const Vector<int>& write_int_comp,
                         const Vector<std::string>& real_comp_names,
                         const Vector<std::string>&  int_comp_names,
                         F&& f) const;
-	
+
     void WritePlotFilePre ();
 
     void WritePlotFilePost ();
 
     void WriteAsciiFile (const std::string& file);
-
-    void WriteCoarsenedAsciiFile (const std::string& filename);
 
     int Verbose () { return m_verbose; }
 
