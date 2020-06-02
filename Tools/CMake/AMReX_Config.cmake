@@ -50,7 +50,7 @@ function (configure_amrex)
    set_target_properties(amrex PROPERTIES CXX_EXTENSIONS OFF)
    target_compile_features(amrex PUBLIC cxx_std_11)  # minimum: C++11
 
-   if (ENABLE_CUDA)
+   if (ENABLE_CUDA AND (CMAKE_VERSION VERSION_GREATER_EQUAL 3.17) )
        set_target_properties(amrex PROPERTIES CUDA_EXTENSIONS OFF)
        target_compile_features(amrex PUBLIC cuda_std_11)  # minimum: C++11
    endif()
