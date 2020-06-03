@@ -55,10 +55,6 @@ function (configure_amrex)
        target_compile_features(amrex PUBLIC cuda_std_11)  # minimum: C++11
    endif()
 
-   # flags needed for MSVC on Windows
-   target_compile_options(amrex PUBLIC
-       $<$<CXX_COMPILER_ID:MSVC>:/Za;/bigobj;/experimental:preprocessor>)
-
    #
    # Setup OpenMP
    #
