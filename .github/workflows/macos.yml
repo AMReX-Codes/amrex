@@ -15,5 +15,9 @@ jobs:
       run: |
         mkdir build
         cd build
-        cmake .. -DENABLE_TUTORIALS=ON -DENABLE_PARTICLES=ON
+        cmake ..                     \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DENABLE_BACKTRACE=ON    \
+            -DENABLE_TUTORIALS=ON    \
+            -DENABLE_PARTICLES=ON
         make -j 2 tutorials

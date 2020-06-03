@@ -5,7 +5,7 @@ on: [push, pull_request]
 jobs:
   # Build and install libamrex as AMReX CMake project
   library:
-    name: GNU@7.5 C++17 [lib]
+    name: GNU@7.5 C++17 Release [lib]
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -33,8 +33,10 @@ jobs:
       run: |
         mkdir build
         cd build
-        cmake ..                    \
-            -DENABLE_TUTORIALS=ON   \
+        cmake ..                     \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DENABLE_BACKTRACE=ON    \
+            -DENABLE_TUTORIALS=ON    \
             -DENABLE_PARTICLES=ON
         make -j 2 tutorials
 
@@ -51,6 +53,8 @@ jobs:
         mkdir build
         cd build
         cmake ..                     \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DENABLE_BACKTRACE=ON    \
             -DENABLE_TUTORIALS=ON    \
             -DENABLE_PARTICLES=ON    \
             -DCMAKE_CXX_STANDARD=20  \
@@ -71,7 +75,12 @@ jobs:
       run: |
         mkdir build
         cd build
-        cmake .. -DENABLE_TUTORIALS=ON -DENABLE_MPI=OFF -DENABLE_PARTICLES=ON
+        cmake ..                     \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DENABLE_BACKTRACE=ON    \
+            -DENABLE_TUTORIALS=ON    \
+            -DENABLE_MPI=OFF         \
+            -DENABLE_PARTICLES=ON
         make -j 2 tutorials
 
   # Build libamrex and all tutorials
@@ -86,16 +95,18 @@ jobs:
       run: |
         mkdir build
         cd build
-        cmake ..                    \
-            -DENABLE_TUTORIALS=ON   \
-            -DENABLE_PARTICLES=ON   \
-            -DENABLE_FORTRAN=OFF    \
+        cmake ..                     \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DENABLE_BACKTRACE=ON    \
+            -DENABLE_TUTORIALS=ON    \
+            -DENABLE_PARTICLES=ON    \
+            -DENABLE_FORTRAN=OFF     \
             -DCMAKE_CXX_STANDARD=11
         make -j 2 tutorials
 
   # Build libamrex and all tutorials with CUDA
   tutorials-cuda:
-    name: CUDA@9.1.85 GNU@4.8.5 C++11 [tutorials]
+    name: CUDA@9.1.85 GNU@4.8.5 C++11 Release [tutorials]
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
