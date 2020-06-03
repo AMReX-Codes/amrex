@@ -994,12 +994,12 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
                 AMREX_DPCPP_2D_ONLY(auto m1 = dp2[2]);
                 AMREX_DPCPP_2D_ONLY(auto m3 = dp2[3]);
 
-                AMREX_DPCPP_2D_ONLY(auto m0 = dp2[0]);
-                AMREX_DPCPP_2D_ONLY(auto m2 = dp2[1]);
-                AMREX_DPCPP_2D_ONLY(auto m4 = dp2[2]);
-                AMREX_DPCPP_2D_ONLY(auto m1 = dp2[3]);
-                AMREX_DPCPP_2D_ONLY(auto m3 = dp2[4]);
-                AMREX_DPCPP_2D_ONLY(auto m5 = dp2[5]);
+                AMREX_DPCPP_3D_ONLY(auto m0 = dp2[0]);
+                AMREX_DPCPP_3D_ONLY(auto m2 = dp2[1]);
+                AMREX_DPCPP_3D_ONLY(auto m4 = dp2[2]);
+                AMREX_DPCPP_3D_ONLY(auto m1 = dp2[3]);
+                AMREX_DPCPP_3D_ONLY(auto m3 = dp2[4]);
+                AMREX_DPCPP_3D_ONLY(auto m5 = dp2[5]);
 
                 mlebabeclap_gsrb(thread_box, solnfab, rhsfab, alpha, afab,
                                  AMREX_D_DECL(dhx, dhy, dhz),
