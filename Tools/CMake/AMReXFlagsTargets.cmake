@@ -64,8 +64,6 @@ target_compile_options( Flags_CXX
    $<${_cxx_clang_rel}:>
    $<${_cxx_appleclang_dbg}:-O0 -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable>
    $<${_cxx_appleclang_rel}:>
-   $<${_cxx_msvc_dbg}:/Za /bigobj /experimental:preprocessor>
-   $<${_cxx_msvc_rel}:/Za /bigobj /experimental:preprocessor>
    )
 
 #
@@ -85,6 +83,17 @@ target_compile_options( Flags_Fortran
    $<${_fortran_pgi_rel}:-gopt -fast>
    $<${_fortran_cray_dbg}:-O0 -e i>
    $<${_fortran_cray_rel}:>
+   )
+
+#
+# CXX REQUIRED flags
+#
+add_library(Flags_CXX_REQUIRED INTERFACE)
+add_library(AMReX::Flags_CXX_REQUIRED ALIAS Flags_CXX_REQUIRED)
+
+target_compile_options( Flags_CXX_REQUIRED
+   INTERFACE
+   $<${_cxx_msvc}:/Za /bigobj /experimental:preprocessor>
    )
 
 #
@@ -120,7 +129,6 @@ target_compile_options ( Flags_FPE
    $<${_cxx_cray}:-K trap=fp>
    $<${_fortran_clang}:>
    $<${_cxx_clang}:-ftrapv>
-
    )
 
 #
