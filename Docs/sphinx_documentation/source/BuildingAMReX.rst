@@ -681,17 +681,17 @@ More details on ``find_package`` can be found
 AMReX on Windows
 ================
 
-The AMReX team does development on Linux machines, from desktop workstations to supercomputers. Many people also use AMReX on Macs without issues.
+The AMReX team does development on Linux machines, from laptops to supercomputers. Many people also use AMReX on Macs without issues.
 
-We do not officially support AMReX on Windows.  However, we believe there are no fundamental issues for making it work on Windows.
-AMReX mostly uses standard C++11,  and there are only a few places that are UNIX/Linux specific. These are:
+We do not officially support AMReX on Windows, and many of us do not have access to any Windows
+machines.  However, we believe there are no fundamental issues for it to work on Windows.
 
-(1) File system:  We use some of the POSIX standard functions for operations like making a new directory, detecting if a file exists, etc.
-C++17 now has a filesystem library that should work on any platform.  AMReX does not require C++17, but we are happy to provide a C++17 support for the file system part.
+(1) AMReX mostly uses standard C++11, but for Windows C++17 is required.  This is because we use
+    C++17 to support file system operations when POSIX I/O is not available.
 
-(2) Signal handling:  We use POSIX handling when floating point exceptions, segmentation faults, etc. happen.
-This capability allows us to print a backtrace of what leads to the error and is very useful for debugging but not required for using AMReX.
-Some of the POSIX handling is platform-dependent, and Windows does seem to have this capability.  If you need it, it should not be hard for you to make it work on Windows.
+(2) We use POSIX signal handling when floating point exceptions, segmentation faults, etc. happen.
+This capability is not supported on Windows.
 
-(3) Memory profiling:  This is an optional feature in AMReX that is not enabled by default.
-It reads memory system information from the OS to give us a summary of our memory usage.
+(3) Memory profiling is an optional feature in AMReX that is not enabled by default.  It reads
+memory system information from the OS to give us a summary of our memory usage.  This is not
+supported on Windows.
