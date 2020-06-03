@@ -1019,10 +1019,6 @@ public:
     void AssignCellDensitySingleLevel (int rho_index, MultiFab& mf, int level,
                                        int ncomp=1, int particle_lvl_offset = 0) const;
 
-    void moveKick (MultiFab& acceleration, int level, Real timestep,
-		   Real a_new = 1.0, Real a_half = 1.0,
-		   int start_comp_for_accel = -1);
-
     IntVect Index (const Particle<NStructReal, NStructInt>& p, int lev) const;
 
 
