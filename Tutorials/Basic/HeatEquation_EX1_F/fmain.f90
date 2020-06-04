@@ -66,7 +66,7 @@ program main
   time = 0.d0
 
   ! choose a time step with a diffusive CFL of 0.9
-  dt = 0.9d0*geom%dx(1)**2/(2.d0*amrex_spacedim)
+  dt = 0.9d0*(geom%dx(1)**2 + geom%dx(2)**2 + geom%dx(3)**2)/(2.d0*amrex_spacedim)
 
   do istep = 1, nsteps
 

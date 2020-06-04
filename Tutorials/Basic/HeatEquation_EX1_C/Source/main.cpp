@@ -90,7 +90,7 @@ void main_main ()
     init_phi(phi_new, geom);
     // ========================================
 
-    Real dt = 0.9_rt*dx[0]*dx[0] / (2.0_rt*AMREX_SPACEDIM);
+    Real dt = 0.9_rt*(dx[0]*dx[0] + dx[1]*dx[1] + dx[2]*dx[2])/ (2.0_rt*AMREX_SPACEDIM);
 
     // time = starting time in the simulation
     Real time = 0.0_rt;
