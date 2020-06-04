@@ -15,6 +15,7 @@ macro (print_option var)
    message( STATUS "   ${var} = ${${var}}")
 endmacro ()
 
+
 #
 # Populate the cache and check the value of the user-definable options
 #
@@ -90,15 +91,20 @@ endif ()
 print_option( DIM )
 
 #
-# Programming models  ========================================================
+# Parallel backends    ========================================================
 #
-option( ENABLE_MPI  "Enable MPI"  ON)
+option( ENABLE_DPCPP  "Enable DPCPP support" OFF )
+print_option( ENABLE_DPCPP )
+
+cmake_dependent_option( ENABLE_MPI  "Enable MPI"  ON
+   "NOT ENABLE_DPCPP" OFF)
 print_option( ENABLE_MPI )
 
 option( ENABLE_OMP  "Enable OpenMP" OFF)
 print_option( ENABLE_OMP )
 
-option( ENABLE_CUDA "Enable GPU support via CUDA" OFF )
+cmake_dependent_option( ENABLE_CUDA "Enable GPU support via CUDA" OFF
+   "NOT ENABLE_DPCPP" OFF)
 print_option( ENABLE_CUDA )
 
 option( ENABLE_ACC  "Enable GPU support via OpenACC" OFF )
