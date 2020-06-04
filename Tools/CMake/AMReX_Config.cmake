@@ -129,7 +129,7 @@ function (configure_amrex)
          list(APPEND _amrex_flags ${_amrex_flags_2})
       endif ()
       if (_amrex_flags_3)
-         list(APPEND _amrex_flags ${_amrex_flags_2})
+         list(APPEND _amrex_flags ${_amrex_flags_3})
       endif ()
 
       evaluate_genex(_amrex_flags _amrex_cxx_flags
