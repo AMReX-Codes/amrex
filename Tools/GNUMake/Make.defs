@@ -452,6 +452,7 @@ CXXFLAGS += $(XTRA_CXXFLAGS)
 CFLAGS   += $(XTRA_CFLAGS)
 FFLAGS   += $(XTRA_FFLAGS)
 F90FLAGS += $(XTRA_F90FLAGS)
+CPPFLAGS += $(XTRA_CPPFLAGS)
 
 ifeq ($(MAKECMDGOALS),check_fortran)
   ifneq ($(lowercase_comp),gnu)

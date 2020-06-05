@@ -365,11 +365,8 @@ MLEBTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
 #ifdef AMREX_USE_DPCPP
             // xxxxx DPCPP todo: kernel size
             Vector<Array4<int const> > htmp = {mxlo,mylo,mzlo,mxhi,myhi,mzhi};
-//            Gpu::AsyncArray<Array4<int const> > dtmp(htmp.data(), 6);
-//            auto dp = dtmp.data();
-            // Bug # 2: It hangs if the lines above are uncommented and Gpu launch region is on
-            Gpu::LaunchSafeGuard lsg(false);
-            auto dp = htmp.data();
+            Gpu::AsyncArray<Array4<int const> > dtmp(htmp.data(), htmp.size());
+            auto dp = dtmp.data();
 #endif
 
             AMREX_HOST_DEVICE_FOR_1D ( 12, iedge,
