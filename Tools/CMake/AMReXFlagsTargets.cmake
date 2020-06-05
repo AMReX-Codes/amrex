@@ -4,6 +4,7 @@
 #
 #   Flags_CXX                 --> Optional flags for C++ code
 #   Flags_Fortran             --> Optional flags for Fortran code
+#   Flags_CXX_REQUIRED        --> Required C++ flags
 #   Flags_Fortran_REQUIRED    --> Required Fortran flags for some components of AMReX
 #   Flags_FPE                 --> Floating-Point Exception flags for both C++ and Fortran
 #
