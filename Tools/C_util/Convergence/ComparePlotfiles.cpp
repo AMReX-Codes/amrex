@@ -40,29 +40,39 @@ main (int   argc,
         amrex::Abort("You must specify `reffile'");
 
     pp.query("diffile", difFile);
-
-    // read in only level 0 for now
-    iFile1 += "/Level_0/Cell";
-    iFile2 += "/Level_0/Cell";
-    
-    MultiFab mf_c, mf_f;
-    VisMF::Read(mf_c, iFile1);
-    VisMF::Read(mf_f, iFile2);
-
-    Print() << "HACK " << mf_c.nComp();
-
         
     // single-level for now
     // AMR comes later, where we iterate over each level in isolation
+    iFile1 += "/Level_0/Cell";
+    iFile2 += "/Level_0/Cell";
 
+    // storage for the input coarse and fine MultiFabs
+    MultiFab mf_c, mf_f;
+    
     // read in plotfiles, 'coarse' and 'fine' to MultiFabs
     // note: fine could be the same resolution as coarse
+    VisMF::Read(mf_c, iFile1);
+    VisMF::Read(mf_f, iFile2);
 
-    // get the nodality of the data
-
-    // check to make sure they have the same number of variables and variable names
-      // const Vector<std::string>& varNames () const noexcept { return m_impl->varNames(); }
+    // check number of components
+    Print() << "ncomp_c = " << mf_c.nComp() << std::endl;
+    Print() << "ncomp_f = " << mf_f.nComp() << std::endl;
     
+    if (mf_c.nComp() != mf_f.nComp()) {
+        Abort("plotfiles do not have the same number of variables");
+    }
+
+    // check nodality
+    IntVect c_nodality = mf_c.ixType().toIntVect();
+    IntVect f_nodality = mf_f.ixType().toIntVect();
+    
+    Print() << "c_nodality " << c_nodality << std::endl;
+    Print() << "f_nodality " << f_nodality << std::endl;
+    
+    if (c_nodality != f_nodality) {
+        Abort("plotfiles do not have the same nodality");
+    }
+        
     // figure out refinement ratio, make sure it is 1, or an even number,
     // and is the same in all directions
 
