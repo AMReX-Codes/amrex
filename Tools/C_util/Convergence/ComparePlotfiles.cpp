@@ -66,6 +66,8 @@ main (int   argc,
         Abort("plotfiles do not have the same number of variables");
     }
 
+    int ncomp = mf_c.nComp();
+
     // check nodality
     IntVect c_nodality = mf_c.ixType().toIntVect();
     IntVect f_nodality = mf_f.ixType().toIntVect();
@@ -80,6 +82,7 @@ main (int   argc,
     BoxArray ba_f = mf_f.boxArray();
 
     Print() << "ba_c " << ba_c << std::endl;
+    Print() << "ba_f " << ba_f << std::endl;
 
     // minimalBox() computes a single box to enclose all the boxes
     // enclosedCells() converts it to a cell-centered Box
@@ -87,8 +90,10 @@ main (int   argc,
     Box bx_f = ba_f.minimalBox().enclosedCells();
 
     // assume ref_ratio is the same in each direction
-    int ref_ratio = bx_f.length(0)/bx_c.length(0);
+    int rr = bx_f.length(0)/bx_c.length(0);
 
+    Print() << "ref_ratio = " << rr << std::endl;
+    
     // check to make sure refinement ratio is an integer
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         if (bx_f.length(i)%bx_c.length(i) != 0) {
@@ -98,7 +103,7 @@ main (int   argc,
 
     // check to make sure refinement ration is the same in each direction
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
-        if ( bx_f.length(i)/bx_c.length(i) != ref_ratio ) {
+        if ( bx_f.length(i)/bx_c.length(i) != rr ) {
             Abort("ref_ratio not the same in each direction");
         }
     }
@@ -106,62 +111,92 @@ main (int   argc,
     // make a new BoxArray that is a refined version of the coarse BoxArray with the same
     // problem domain as the fine BoxArray
     BoxArray ba_c2 = ba_c;
-    ba_c2.refine(ref_ratio);
+    ba_c2.refine(rr);
 
     // grab the distribtion map from the coarse MultiFab
     DistributionMapping dm = mf_c.DistributionMap();
 
+    Print() << "ba_c2 " << ba_c2 << std::endl;
+    
     // create a fine MultiFab with same distribution mapping as coarse MultiFab
-    MultiFab mf_f2(ba_c2,dm,mf_f.nComp(),0);
+    MultiFab mf_f2(ba_c2,dm,ncomp,0);
 
     // copy fine data into new fine MultiFab
-    mf_f2.ParallelCopy(mf_f,0,0,mf_f.nComp(),0,0);
+    mf_f2.ParallelCopy(mf_f,0,0,ncomp,0,0);
 
+    VisMF::Write(mf_f2,"a_mf_f2");
+    
     // storage for averaged-down fine MultiFab
-    MultiFab mf_c2(ba_c,dm,mf_c.nComp(),0);
+    MultiFab mf_c2(ba_c,dm,ncomp,0);
 
     // now we average down mf_f2 into mf_c2
 
     int how_many_nodal = 0;
     for (int i=0; i<AMREX_SPACEDIM; ++i ) {
         if (c_nodality[i] == 1) {
-            ++how_many_nodal;
+            ++how_many_nodal;            
         }
     }
 
     if (how_many_nodal == 0) {
         // cell-centered
+        // average down ref_ratio^dim fine cells into coarse
+        int npts = pow(rr,AMREX_SPACEDIM);
+        
+        for ( MFIter mfi(mf_c,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
+        
+            const Box& bx = mfi.tilebox();
+
+            const Array4<Real const>& fine   = mf_f2.array(mfi);
+            const Array4<Real      >& coarse = mf_c2.array(mfi);
+
+            amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+            {
+                coarse(i,j,k,n) = 0.;
+
+#if (AMREX_SPACEDIM==3)
+                for (int kk=0; kk<rr; ++kk) {
+#else
+                    int kk=0;    
+#endif
+                    for (int jj=0; jj<rr; ++jj) {
+                        for (int ii=0; ii<rr; ++ii) {
+                            coarse(i,j,k,n) += fine(rr*i+ii,rr*j+jj,rr*k+kk,n);
+                        }
+                    }
+#if (AMREX_SPACEDIM==3)
+                }
+#endif
+                coarse(i,j,k,n) /= npts;            
+            });
+            
+        } // end MFIter
         
     } else if (how_many_nodal == 1) {
         // face-centered
+        // average down ref_ratio^{dim-1} fine faces into coarse
+        
+    } else if (how_many_nodal == 2 && AMREX_SPACEDIM == 3) {
+        // edge (3D)
+        // average down ref_ratio^{dim-2} fine edges into coarse
 
-    } else if (how_many_nodal == 2) {
-        // nodal (2D)
-        // edge  (3D)
-
-    } else if (how_many_nodal == 3) {
-        // nodal (3D)
+    } else {
+        // nodal
+        // direct inject fine nodes into coarse nodes
         
     }
-    
-    
+
+    // subtract coarsened fine from coarse
+    MultiFab::Subtract(mf_c,mf_c2,0,0,ncomp,0);
+
+    // compute norms of mf_c
+
+    // force periodicity so faces/edges/nodes get weighted accordingly for L1 and L2 norms
+    IntVect ones(AMREX_D_DECL(1,1,1));
+    Periodicity period(ones);
+
 
     
-        // coarsenable
-        
-    // figure out refinement ratio, make sure it is 1, or an even number,
-    // and is the same in all directions
-
-    // get the coarse boxarray
-
-    // refine this boxarray to the resolution of 'fine'
-
-    // create a new multifab, 'fine2' with the same nodality and distribution mapping of 'coarse',
-    // but with fine resolution
-    
-    // parallel copy 'fine' into 'fine2'
-
-    // create a new multifab 'coarse2' (same nodality and distribution mapping of 'coarse')
 
     // loop over components
     
