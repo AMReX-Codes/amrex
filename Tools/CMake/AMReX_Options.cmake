@@ -96,6 +96,11 @@ print_option( DIM )
 option( ENABLE_DPCPP  "Enable DPCPP support" OFF )
 print_option( ENABLE_DPCPP )
 
+# Check whether the C++ compiler is dpcpp
+if (ENABLE_DPCPP AND (NOT (CMAKE_CXX_COMPILER MATCHES "dpcpp") ) )
+   message(FATAL_ERROR "\nENABLE_DPCPP=${ENABLE_DPCPP} but CXX compiler is not dpcpp\n")
+endif ()
+
 cmake_dependent_option( ENABLE_MPI  "Enable MPI"  ON
    "NOT ENABLE_DPCPP" OFF)
 print_option( ENABLE_MPI )
