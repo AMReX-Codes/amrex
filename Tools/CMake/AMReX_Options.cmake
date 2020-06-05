@@ -11,10 +11,9 @@ include(CMakeDependentOption)
 #
 # Define a macro to check the value of the inputs integer options
 #
-macro (print_option var)
+macro (print_option _var)
    message( STATUS "   ${var} = ${${var}}")
 endmacro ()
-
 
 #
 # Populate the cache and check the value of the user-definable options
@@ -100,6 +99,14 @@ print_option( ENABLE_DPCPP )
 if (ENABLE_DPCPP AND (NOT (CMAKE_CXX_COMPILER MATCHES "dpcpp") ) )
    message(FATAL_ERROR "\nENABLE_DPCPP=${ENABLE_DPCPP} but CXX compiler is not dpcpp\n")
 endif ()
+
+cmake_dependent_option( ENABLE_DPCPP_AOT  "Enable DPCPP AOT"  OFF
+   "ENABLE_DPCPP" OFF)
+print_option( ENABLE_DPCPP_AOT )
+
+cmake_dependent_option( ENABLE_DPCPP_SPLIT_KERNEL "Enable DPCPP kernel splitting"  OFF
+   "ENABLE_DPCPP" OFF)
+print_option(  ENABLE_DPCPP_SPLIT_KERNEL )
 
 cmake_dependent_option( ENABLE_MPI  "Enable MPI"  ON
    "NOT ENABLE_DPCPP" OFF)
