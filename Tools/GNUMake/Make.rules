@@ -296,7 +296,7 @@ ifeq ($(USE_GPU_PRAGMA),TRUE)
 	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
 endif
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
-	$(CXX) $(CXXDEPFLAGS) $< -o $@
+	$(CXX) $(CXXDEPFLAGS) $< > $@
 	@$(SHELL) -ec 'sed -i -e '\''s,$*\.o,$(objEXETempDir)/& $@,g'\'' $@'
 
 $(depEXETempDir)/%.d: %.c
@@ -305,7 +305,7 @@ ifeq ($(USE_GPU_PRAGMA),TRUE)
 	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
 endif
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
-	$(CC) $(CDEPFLAGS) $< -o $@
+	$(CC) $(CDEPFLAGS) $< > $@
 	@$(SHELL) -ec 'sed -i -e '\''s,$*\.o,$(objEXETempDir)/& $@,g'\'' $@'
 
 #
