@@ -1045,15 +1045,23 @@ MultiFab::norm2 (int comp) const
 Real
 MultiFab::norm2 (int comp, const Periodicity& period) const
 {
-    MultiFab tmpmf(boxArray(), DistributionMap(), 1, 0, MFInfo(), Factory());
-    MultiFab::Copy(tmpmf, *this, comp, 0, 1, 0);
-
     auto mask = OverlapMask(period);
-    MultiFab::Divide(tmpmf, *mask, 0, 0, 1, 0);
 
-    Real nm2 = MultiFab::Dot(*this, comp, tmpmf, 0, 1, 0);
-    nm2 = std::sqrt(nm2);
-    return nm2;
+    Real nm2 = amrex::ReduceSum(*this, *mask, 0,
+    [=] AMREX_GPU_HOST_DEVICE (Box const& bx, Array4<Real const> const& xfab,
+                               Array4<Real const> const& mfab) -> Real
+    {
+        Real r = 0.0;
+        AMREX_LOOP_3D(bx, i, j, k,
+        {
+            Real tmp = xfab(i,j,k,comp);
+            r += tmp*tmp/mfab(i,j,k);
+        });
+        return r;
+    });
+
+    ParallelAllReduce::Sum(nm2, ParallelContext::CommunicatorSub());
+    return std::sqrt(nm2);
 }
 
 Vector<Real>
