@@ -51,7 +51,7 @@ ifeq ($(lowercase_nvcc_host_comp),gnu)
 
   NVCC_CCBIN ?= g++
 
-  CXXFLAGS_FROM_HOST := -ccbin=$(NVCC_CCBIN) -Xcompiler='$(CXXFLAGS) --std=$(CXXSTD)' --std=$(CXXSTD)
+  CXXFLAGS_FROM_HOST := -ccbin=$(NVCC_CCBIN) -Xcompiler='$(CXXFLAGS)' --std=$(CXXSTD)
   CFLAGS_FROM_HOST := $(CXXFLAGS_FROM_HOST)
   ifeq ($(USE_OMP),TRUE)
      LIBRARIES += -lgomp
