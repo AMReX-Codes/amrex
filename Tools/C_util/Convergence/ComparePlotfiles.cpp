@@ -89,6 +89,11 @@ main (int   argc,
     Box bx_c = ba_c.minimalBox().enclosedCells();
     Box bx_f = ba_f.minimalBox().enclosedCells();
 
+    // number of cells in the coarse domain
+    long numPts = bx_c.numPts();
+
+    Print() << "numPts in coarse domain = " << numPts << std::endl;
+    
     // assume ref_ratio is the same in each direction
     int rr = bx_f.length(0)/bx_c.length(0);
 
@@ -101,7 +106,7 @@ main (int   argc,
         }
     }
 
-    // check to make sure refinement ration is the same in each direction
+    // check to make sure refinement ratio is the same in each direction
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         if ( bx_f.length(i)/bx_c.length(i) != rr ) {
             Abort("ref_ratio not the same in each direction");
@@ -124,8 +129,6 @@ main (int   argc,
     // copy fine data into new fine MultiFab
     mf_f2.ParallelCopy(mf_f,0,0,ncomp,0,0);
 
-    VisMF::Write(mf_f2,"a_mf_f2");
-    
     // storage for averaged-down fine MultiFab
     MultiFab mf_c2(ba_c,dm,ncomp,0);
 
@@ -186,14 +189,32 @@ main (int   argc,
         
     }
 
-    // subtract coarsened fine from coarse
-    MultiFab::Subtract(mf_c,mf_c2,0,0,ncomp,0);
-
-    // compute norms of mf_c
-
+    // subtract coarse from coarsened fine
+    MultiFab::Subtract(mf_c2,mf_c,0,0,ncomp,0);
+    
     // force periodicity so faces/edges/nodes get weighted accordingly for L1 and L2 norms
-    IntVect ones(AMREX_D_DECL(1,1,1));
-    Periodicity period(ones);
+    Abort("FIXME GENERALIZE");
+    IntVect iv(AMREX_D_DECL(16,16,16));
+    Periodicity period(iv);
+
+    // compute norms of mf_c2
+    for (int i=0; i<ncomp; ++i) {
+        Real norm = mf_c2.norm0(i);
+        Print() << "L0 comp " << i << " " << norm << std::endl;
+    }
+
+    for (int i=0; i<ncomp; ++i) {
+        Real norm = mf_c2.norm1(i,period);
+        Print() << "L1 comp " << i << " " << norm/numPts << std::endl;
+    }
+
+    for (int i=0; i<ncomp; ++i) {
+        Real norm = mf_c2.norm2(i,period);
+        Print() << "L2 comp " << i << " " << norm/sqrt(numPts) << std::endl;
+    }
+    
+    
+
 
 
     
