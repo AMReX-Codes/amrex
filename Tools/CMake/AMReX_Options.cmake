@@ -12,7 +12,7 @@ include(CMakeDependentOption)
 # Define a macro to check the value of the inputs integer options
 #
 macro (print_option _var)
-   message( STATUS "   ${var} = ${${var}}")
+   message( STATUS "   ${_var} = ${${_var}}")
 endmacro ()
 
 #
