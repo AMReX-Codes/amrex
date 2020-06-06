@@ -994,7 +994,9 @@ MLNodeLaplacian::buildStencil ()
                 Array4<Real const> const& fsten = fine.const_array(mfi);
 #ifdef AMREX_USE_DPCPP
                 // xxxxx DPCPP todo: this kernel hangs at JIT compilation
+#ifndef AMREX_DPCPP_STENCIL_RAP_ON_GPU
                 Gpu::LaunchSafeGuard lsg(false);
+#endif
 #endif
                 AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
                 {
