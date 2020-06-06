@@ -19,10 +19,6 @@ gcc_minor_version = $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' |
 
 COMP_VERSION = $(gcc_version)
 
-DEFINES += -DBL_GCC_VERSION='$(gcc_version)'
-DEFINES += -DBL_GCC_MAJOR_VERSION=$(gcc_major_version)
-DEFINES += -DBL_GCC_MINOR_VERSION=$(gcc_minor_version)
-
 ########################################################################
 
 ifeq ($(DEBUG),TRUE)
@@ -100,4 +96,3 @@ FFLAGS   += $(GENERIC_FORT_FLAGS)
 F90FLAGS += $(GENERIC_FORT_FLAGS)
 
 ########################################################################
-

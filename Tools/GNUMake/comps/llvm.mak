@@ -19,15 +19,11 @@ clang_minor_version = $(shell $(CXX) --version | head -1 | sed -e 's/.*version.*
 
 COMP_VERSION = $(clang_version)
 
-DEFINES += -DBL_CLANG_VERSION='$(clang_version)'
-DEFINES += -DBL_CLANG_MAJOR_VERSION='$(clang_major_version)'
-DEFINES += -DBL_CLANG_MINOR_VERSION='$(clang_minor_version)'
-
 ########################################################################
 
 ifeq ($(DEBUG),TRUE)
 
-  CXXFLAGS += -g -O0 -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable -Wno-missing-braces -Wmissing-field-initializers -ftrapv 
+  CXXFLAGS += -g -O0 -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable -Wno-missing-braces -Wmissing-field-initializers -ftrapv
   CFLAGS   += -g -O0 -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable -Wno-missing-braces -Wmissing-field-initializers -ftrapv
 
   FFLAGS   += -g -O0 -ggdb -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan -finit-integer=2147483647 -ftrapv
