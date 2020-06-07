@@ -9,9 +9,7 @@ using std::ios;
 #include <unistd.h>
 
 #include <WritePlotFile.H>
-#include <AMReX_REAL.H>
-#include <AMReX_Box.H>
-#include <AMReX_FArrayBox.H>
+
 #include <AMReX_ParmParse.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_DataServices.H>
@@ -21,11 +19,37 @@ using std::ios;
 
 using namespace amrex;
 
+static
+void
+PrintUsage (const char* progName)
+{
+    std::cout << std::endl
+              << "This utility performs a diff operation between two"           << std::endl
+              << "plotfiles that have the same geometrical domain and nodality" << std::endl
+              << "but possibly a factor of refinement between the cells,"       << std::endl
+              << "and outputs the L0, L1, and L2 norms"                         << std::endl
+              << "L1 = sum(|diff_ijk|)/npts_coarsedomain"                       << std::endl
+              << "L2 = sqrt[sum(diff_ijk^2)]/sqrt(npts_coarsedomain)"           << std::endl
+              <<  "(only single-level supported)"                               << std::endl << std::endl;
+    std::cout << "Usage:" << '\n';
+    std::cout << progName << '\n';
+    std::cout << "    infile1 = inputFileName1" << '\n';
+    std::cout << "    reffile = refinedPlotFile" << '\n';
+    std::cout << "    diffile = differenceFileName" << '\n';
+    std::cout << "              (If not specified no file is written)" << '\n';
+    std::cout << '\n';
+    exit(1);
+}
+
 int
 main (int   argc,
       char* argv[])
 {
     amrex::Initialize(argc,argv);
+
+    if (argc == 1) {
+        PrintUsage(argv[0]);
+    }
 
     // plotfile names for the coarse, fine, and subtracted output
     std::string iFile1, iFile2, difFile;
@@ -90,9 +114,9 @@ main (int   argc,
     Box bx_f = ba_f.minimalBox().enclosedCells();
 
     // number of cells in the coarse domain
-    long numPts = bx_c.numPts();
+    long npts_coarsedomain = bx_c.numPts();
 
-    Print() << "numPts in coarse domain = " << numPts << std::endl;
+    Print() << "npts_coarsedomain in coarse domain = " << npts_coarsedomain << std::endl;
     
     // assume ref_ratio is the same in each direction
     int rr = bx_f.length(0)/bx_c.length(0);
@@ -144,7 +168,7 @@ main (int   argc,
     if (how_many_nodal == 0) {
         // cell-centered
         // average down ref_ratio^dim fine cells into coarse
-        int npts = pow(rr,AMREX_SPACEDIM);
+        int npts_avg = pow(rr,AMREX_SPACEDIM);
         
         for ( MFIter mfi(mf_c,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
         
@@ -170,7 +194,7 @@ main (int   argc,
 #if (AMREX_SPACEDIM==3)
                 }
 #endif
-                coarse(i,j,k,n) /= npts;            
+                coarse(i,j,k,n) /= npts_avg;
             });
             
         } // end MFIter
@@ -178,14 +202,109 @@ main (int   argc,
     } else if (how_many_nodal == 1) {
         // face-centered
         // average down ref_ratio^{dim-1} fine faces into coarse
+        int npts_avg = pow(rr,AMREX_SPACEDIM-1);
+
+        int rr_i=1, rr_j=1, rr_k=1;
+
+        if (c_nodality[0] == 1) {
+            rr_j = rr_k = rr;
+        }
+        else if (c_nodality[1] == 1) {
+            rr_i = rr_k = rr;
+        }
+        else {
+            rr_i = rr_j = rr;
+        }
+        
+        for ( MFIter mfi(mf_c,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
+        
+            const Box& bx = mfi.tilebox();
+
+            const Array4<Real const>& fine   = mf_f2.array(mfi);
+            const Array4<Real      >& coarse = mf_c2.array(mfi);
+
+            amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+            {
+                coarse(i,j,k,n) = 0.;
+
+#if (AMREX_SPACEDIM==3)
+                for (int kk=0; kk<rr_k; ++kk) {
+#else
+                    int kk=0;    
+#endif
+                    for (int jj=0; jj<rr_j; ++jj) {
+                        for (int ii=0; ii<rr_i; ++ii) {
+                            coarse(i,j,k,n) += fine(rr*i+ii,rr*j+jj,rr*k+kk,n);
+                        }
+                    }
+#if (AMREX_SPACEDIM==3)
+                }
+#endif
+                coarse(i,j,k,n) /= npts_avg;
+            });
+            
+        } // end MFIter        
         
     } else if (how_many_nodal == 2 && AMREX_SPACEDIM == 3) {
         // edge (3D)
         // average down ref_ratio^{dim-2} fine edges into coarse
+        // (note npts_avg is always rr since AMREX_SPACEDIM=3)
+        int npts_avg = pow(rr,AMREX_SPACEDIM-2);
 
+        int rr_i=1, rr_j=1, rr_k=1;
+
+        if (c_nodality[0] == 1 && c_nodality[1] == 1) {
+            rr_k = rr;
+        }
+        else if (c_nodality[0] == 1 && c_nodality[2] == 1) {
+            rr_j = rr;
+        }
+        else {
+            rr_i = rr;
+        }
+        
+        for ( MFIter mfi(mf_c,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
+        
+            const Box& bx = mfi.tilebox();
+
+            const Array4<Real const>& fine   = mf_f2.array(mfi);
+            const Array4<Real      >& coarse = mf_c2.array(mfi);
+
+            amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+            {
+                coarse(i,j,k,n) = 0.;
+
+                for (int kk=0; kk<rr_k; ++kk) {
+                    for (int jj=0; jj<rr_j; ++jj) {
+                        for (int ii=0; ii<rr_i; ++ii) {
+                            coarse(i,j,k,n) += fine(rr*i+ii,rr*j+jj,rr*k+kk,n);
+                        }
+                    }
+                }
+                
+                coarse(i,j,k,n) /= npts_avg;
+            });
+            
+        } // end MFIter
+
+        
     } else {
         // nodal
         // direct inject fine nodes into coarse nodes
+        
+        for ( MFIter mfi(mf_c,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
+        
+            const Box& bx = mfi.tilebox();
+
+            const Array4<Real const>& fine   = mf_f2.array(mfi);
+            const Array4<Real      >& coarse = mf_c2.array(mfi);
+
+            amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+            {
+                coarse(i,j,k,n) = fine(rr*i,rr*j,rr*k,n);
+            });
+            
+        } // end MFIter
         
     }
 
@@ -193,43 +312,18 @@ main (int   argc,
     MultiFab::Subtract(mf_c2,mf_c,0,0,ncomp,0);
     
     // force periodicity so faces/edges/nodes get weighted accordingly for L1 and L2 norms
-    Abort("FIXME GENERALIZE");
     IntVect iv(AMREX_D_DECL(16,16,16));
     Periodicity period(iv);
 
     // compute norms of mf_c2
     for (int i=0; i<ncomp; ++i) {
-        Real norm = mf_c2.norm0(i);
-        Print() << "L0 comp " << i << " " << norm << std::endl;
+        Real norm0 = mf_c2.norm0(i);
+        Real norm1 = mf_c2.norm1(i,period);
+        Real norm2 = mf_c2.norm2(i,period);
+        Print() << "(comp,L0,L1,L2) " << i << " "
+                << norm0 << " "
+                << norm1/npts_coarsedomain << " "
+                << norm2/sqrt(npts_coarsedomain) << " " << std::endl;
     }
-
-    for (int i=0; i<ncomp; ++i) {
-        Real norm = mf_c2.norm1(i,period);
-        Print() << "L1 comp " << i << " " << norm/numPts << std::endl;
-    }
-
-    for (int i=0; i<ncomp; ++i) {
-        Real norm = mf_c2.norm2(i,period);
-        Print() << "L2 comp " << i << " " << norm/sqrt(numPts) << std::endl;
-    }
-    
-    
-
-
-
-    
-
-    // loop over components
-    
-      // average 'fine2' down to 'coarse2' (check nodality to call the correct averaging routine)
-
-      // subtract 'coarse' and 'coarse2'
-    
-      // apply the OverlapMask and compute the norm (L0, L1, or L2)
-
-    // write out results
-
-    
-    
     
 }
