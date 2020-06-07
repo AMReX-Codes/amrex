@@ -153,8 +153,6 @@ main (int   argc,
 #else
     int rr_k = 0;
 #endif
-
-    Print() << "npts_avg " << npts_avg << " " << rr_i << " " << rr_j << " " << rr_k << std::endl;
         
     for ( MFIter mfi(mf_c,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
         
