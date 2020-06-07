@@ -142,148 +142,46 @@ main (int   argc,
         }
     }
 
-    if (how_many_nodal == 0) {
-        // cell-centered
-        // average down ref_ratio^dim fine cells into coarse
-        int npts_avg = pow(rr,AMREX_SPACEDIM);
-        
-        for ( MFIter mfi(mf_c,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
-        
-            const Box& bx = mfi.tilebox();
+    int npts_avg = pow(rr,AMREX_SPACEDIM-how_many_nodal);
 
-            const Array4<Real const>& fine   = mf_f2.array(mfi);
-            const Array4<Real      >& coarse = mf_c2.array(mfi);
-
-            amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
-            {
-                coarse(i,j,k,n) = 0.;
-
-#if (AMREX_SPACEDIM==3)
-                for (int kk=0; kk<rr; ++kk) {
+    int rr_i = (c_nodality[0] == 0) ? rr : 1;
+    int rr_j = (c_nodality[1] == 0) ? rr : 1;
+#if (AMREX_SPACEDIM == 3)
+    int rr_k = (c_nodality[2] == 0) ? rr : 1;
 #else
-                    int kk=0;    
+    int rr_k = 0;
 #endif
-                    for (int jj=0; jj<rr; ++jj) {
-                        for (int ii=0; ii<rr; ++ii) {
-                            coarse(i,j,k,n) += fine(rr*i+ii,rr*j+jj,rr*k+kk,n);
-                        }
-                    }
-#if (AMREX_SPACEDIM==3)
-                }
-#endif
-                coarse(i,j,k,n) /= npts_avg;
-            });
-            
-        } // end MFIter
+
+    Print() << "npts_avg " << npts_avg << " " << rr_i << " " << rr_j << " " << rr_k << std::endl;
         
-    } else if (how_many_nodal == 1) {
-        // face-centered
-        // average down ref_ratio^{dim-1} fine faces into coarse
-        int npts_avg = pow(rr,AMREX_SPACEDIM-1);
-
-        int rr_i=1, rr_j=1, rr_k=1;
-
-        if (c_nodality[0] == 1) {
-            rr_j = rr_k = rr;
-        }
-        else if (c_nodality[1] == 1) {
-            rr_i = rr_k = rr;
-        }
-        else {
-            rr_i = rr_j = rr;
-        }
+    for ( MFIter mfi(mf_c,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
         
-        for ( MFIter mfi(mf_c,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
-        
-            const Box& bx = mfi.tilebox();
+        const Box& bx = mfi.tilebox();
 
-            const Array4<Real const>& fine   = mf_f2.array(mfi);
-            const Array4<Real      >& coarse = mf_c2.array(mfi);
+        const Array4<Real const>& fine   = mf_f2.array(mfi);
+        const Array4<Real      >& coarse = mf_c2.array(mfi);
 
-            amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
-            {
-                coarse(i,j,k,n) = 0.;
+        amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+        {
+            coarse(i,j,k,n) = 0.;
 
 #if (AMREX_SPACEDIM==3)
-                for (int kk=0; kk<rr_k; ++kk) {
+            for (int kk=0; kk<rr_k; ++kk) {
 #else
-                    int kk=0;    
+                int kk=0;    
 #endif
-                    for (int jj=0; jj<rr_j; ++jj) {
-                        for (int ii=0; ii<rr_i; ++ii) {
-                            coarse(i,j,k,n) += fine(rr*i+ii,rr*j+jj,rr*k+kk,n);
-                        }
+                for (int jj=0; jj<rr_j; ++jj) {
+                    for (int ii=0; ii<rr_i; ++ii) {
+                        coarse(i,j,k,n) += fine(rr*i+ii,rr*j+jj,rr*k+kk,n);
                     }
+                }
 #if (AMREX_SPACEDIM==3)
-                }
+            }
 #endif
-                coarse(i,j,k,n) /= npts_avg;
-            });
+            coarse(i,j,k,n) /= npts_avg;
+        });
             
-        } // end MFIter        
-        
-    } else if (how_many_nodal == 2 && AMREX_SPACEDIM == 3) {
-        // edge (3D)
-        // average down ref_ratio^{dim-2} fine edges into coarse
-        // (note npts_avg is always rr since AMREX_SPACEDIM=3)
-        int npts_avg = pow(rr,AMREX_SPACEDIM-2);
-
-        int rr_i=1, rr_j=1, rr_k=1;
-
-        if (c_nodality[0] == 1 && c_nodality[1] == 1) {
-            rr_k = rr;
-        }
-        else if (c_nodality[0] == 1 && c_nodality[2] == 1) {
-            rr_j = rr;
-        }
-        else {
-            rr_i = rr;
-        }
-        
-        for ( MFIter mfi(mf_c,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
-        
-            const Box& bx = mfi.tilebox();
-
-            const Array4<Real const>& fine   = mf_f2.array(mfi);
-            const Array4<Real      >& coarse = mf_c2.array(mfi);
-
-            amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
-            {
-                coarse(i,j,k,n) = 0.;
-
-                for (int kk=0; kk<rr_k; ++kk) {
-                    for (int jj=0; jj<rr_j; ++jj) {
-                        for (int ii=0; ii<rr_i; ++ii) {
-                            coarse(i,j,k,n) += fine(rr*i+ii,rr*j+jj,rr*k+kk,n);
-                        }
-                    }
-                }
-                
-                coarse(i,j,k,n) /= npts_avg;
-            });
-            
-        } // end MFIter
-
-        
-    } else {
-        // nodal
-        // direct inject fine nodes into coarse nodes
-        
-        for ( MFIter mfi(mf_c,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
-        
-            const Box& bx = mfi.tilebox();
-
-            const Array4<Real const>& fine   = mf_f2.array(mfi);
-            const Array4<Real      >& coarse = mf_c2.array(mfi);
-
-            amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
-            {
-                coarse(i,j,k,n) = fine(rr*i,rr*j,rr*k,n);
-            });
-            
-        } // end MFIter
-        
-    }
+    } // end MFIter        
 
     // subtract coarse from coarsened fine
     MultiFab::Subtract(mf_c2,mf_c,0,0,ncomp,0);
