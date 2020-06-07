@@ -11,11 +11,13 @@ PrintUsage (const char* progName)
     std::cout << std::endl
               << "This utility performs a diff operation between two"           << std::endl
               << "plotfiles that have the same geometrical domain and nodality" << std::endl
+              << "(supports all nodality types; cell, face, edge, node)"        << std::endl
               << "but possibly a factor of refinement between the cells,"       << std::endl
               << "and outputs the L0, L1, and L2 norms"                         << std::endl
               << "L1 = sum(|diff_ijk|)/npts_coarsedomain"                       << std::endl
               << "L2 = sqrt[sum(diff_ijk^2)]/sqrt(npts_coarsedomain)"           << std::endl
               <<  "(only single-level supported)"                               << std::endl << std::endl;
+    
     std::cout << "Usage:" << '\n';
     std::cout << progName << '\n';
     std::cout << "    infile1 = inputFileName1" << '\n';
