@@ -1,21 +1,6 @@
 
-#include <new>
-#include <iostream>
-#include <cstdio>
-#include <cstdlib>
-#include <string>
-using std::ios;
-
-#include <unistd.h>
-
-#include <WritePlotFile.H>
-
 #include <AMReX_ParmParse.H>
-#include <AMReX_ParallelDescriptor.H>
-#include <AMReX_DataServices.H>
-#include <AMReX_Utility.H>
-#include <AMReX_VisMF.H>
-#include <AMReX_AVGDOWN_F.H>
+#include <AMReX_PlotFileUtil.H>
 
 using namespace amrex;
 
@@ -52,7 +37,7 @@ main (int   argc,
     }
 
     // plotfile names for the coarse, fine, and subtracted output
-    std::string iFile1, iFile2, difFile;
+    std::string iFile1, iFile2, difFile="";
 
     // read in parameters from inputs file
     ParmParse pp;
@@ -84,29 +69,23 @@ main (int   argc,
     VisMF::Read(mf_f, iFile2);
 
     // check number of components
-    Print() << "ncomp_c = " << mf_c.nComp() << std::endl;
-    Print() << "ncomp_f = " << mf_f.nComp() << std::endl;
     if (mf_c.nComp() != mf_f.nComp()) {
         Abort("plotfiles do not have the same number of variables");
     }
-
     int ncomp = mf_c.nComp();
+    Print() << "ncomp = " << ncomp << std::endl;
 
     // check nodality
     IntVect c_nodality = mf_c.ixType().toIntVect();
     IntVect f_nodality = mf_f.ixType().toIntVect();
-    Print() << "c_nodality " << c_nodality << std::endl;
-    Print() << "f_nodality " << f_nodality << std::endl;
     if (c_nodality != f_nodality) {
         Abort("plotfiles do not have the same nodality");
     }
+    Print() << "nodality " << c_nodality << std::endl;
 
     // get coarse and fine boxArrays
     BoxArray ba_c = mf_c.boxArray();
     BoxArray ba_f = mf_f.boxArray();
-
-    Print() << "ba_c " << ba_c << std::endl;
-    Print() << "ba_f " << ba_f << std::endl;
 
     // minimalBox() computes a single box to enclose all the boxes
     // enclosedCells() converts it to a cell-centered Box
@@ -114,9 +93,9 @@ main (int   argc,
     Box bx_f = ba_f.minimalBox().enclosedCells();
 
     // number of cells in the coarse domain
+    Print() << "npts in coarse domain = " << bx_c.numPts() << std::endl;
+    Print() << "npts in fine   domain = " << bx_f.numPts() << std::endl;
     long npts_coarsedomain = bx_c.numPts();
-
-    Print() << "npts_coarsedomain in coarse domain = " << npts_coarsedomain << std::endl;
     
     // assume ref_ratio is the same in each direction
     int rr = bx_f.length(0)/bx_c.length(0);
@@ -145,8 +124,6 @@ main (int   argc,
     // grab the distribtion map from the coarse MultiFab
     DistributionMapping dm = mf_c.DistributionMap();
 
-    Print() << "ba_c2 " << ba_c2 << std::endl;
-    
     // create a fine MultiFab with same distribution mapping as coarse MultiFab
     MultiFab mf_f2(ba_c2,dm,ncomp,0);
 
@@ -312,7 +289,9 @@ main (int   argc,
     MultiFab::Subtract(mf_c2,mf_c,0,0,ncomp,0);
     
     // force periodicity so faces/edges/nodes get weighted accordingly for L1 and L2 norms
-    IntVect iv(AMREX_D_DECL(16,16,16));
+    IntVect iv(AMREX_D_DECL(bx_c.length(0),
+                            bx_c.length(1),
+                            bx_c.length(2)));
     Periodicity period(iv);
 
     // compute norms of mf_c2
@@ -324,6 +303,27 @@ main (int   argc,
                 << norm0 << " "
                 << norm1/npts_coarsedomain << " "
                 << norm2/sqrt(npts_coarsedomain) << " " << std::endl;
+    }
+
+    // write out the subtracted plotfile if diffile was specified at the command line
+    if (difFile != "") {
+
+        // define the problem domain as (0,1) for now
+        RealBox real_box({AMREX_D_DECL(0.,0.,0.)},
+                         {AMREX_D_DECL(1.,1.,1.)});
+
+        Vector<int> is_periodic(AMREX_SPACEDIM,1);
+
+        // build a geometry object so we can use WriteSingleLevelPlotfile
+        Geometry geom(bx_c,&real_box,CoordSys::cartesian,is_periodic.data());
+
+        // give generic variables names for now
+        Vector<std::string> varNames(ncomp);
+        for (int i=0; i<ncomp; ++i) {
+            varNames[i] = std::to_string(i);
+        }
+
+        WriteSingleLevelPlotfile(difFile,mf_c2,varNames,geom,0.,0);
     }
     
 }
