@@ -14,7 +14,7 @@ struct Neighbors
     struct iterator
     {
         AMREX_GPU_HOST_DEVICE
-        iterator (int start, int stop, const unsigned int * nbor_list_ptr, const ParticleType* pstruct) 
+        iterator (int start, int stop, const unsigned int * nbor_list_ptr, ParticleType* pstruct) 
             : m_index(start), m_stop(stop), m_nbor_list_ptr(nbor_list_ptr), m_pstruct(pstruct)   
         {}
         
@@ -25,13 +25,16 @@ struct Neighbors
         bool operator!= (iterator const& rhs) const { return m_index < m_stop; }
         
         AMREX_GPU_HOST_DEVICE
-        ParticleType operator* () const { return m_pstruct[m_nbor_list_ptr[m_index]];  }
+        ParticleType  operator* () const { return m_pstruct[m_nbor_list_ptr[m_index]];  }
+        
+        AMREX_GPU_HOST_DEVICE
+        ParticleType& operator* ()       { return m_pstruct[m_nbor_list_ptr[m_index]];  }
         
     private:
         int m_index;
         int m_stop;
         const unsigned int* m_nbor_list_ptr;
-        const ParticleType* m_pstruct;
+              ParticleType* m_pstruct;
     };
     
     AMREX_GPU_HOST_DEVICE
@@ -48,7 +51,7 @@ struct Neighbors
 
     AMREX_GPU_HOST_DEVICE    
     Neighbors (int i, const unsigned int *nbor_offsets_ptr, const unsigned int *nbor_list_ptr,
-               const ParticleType* pstruct)
+               ParticleType* pstruct)
         : m_i(i),
           m_nbor_offsets_ptr(nbor_offsets_ptr),
           m_nbor_list_ptr(nbor_list_ptr),
@@ -60,7 +63,7 @@ private:
     const int m_i;
     const unsigned int * m_nbor_offsets_ptr;
     const unsigned int * m_nbor_list_ptr;
-    const ParticleType * m_pstruct;
+          ParticleType * m_pstruct;
 };
 
 template <class ParticleType>
@@ -68,7 +71,7 @@ struct NeighborData
 {
     NeighborData (const Gpu::DeviceVector<unsigned int>& offsets, 
                   const Gpu::DeviceVector<unsigned int>& list,
-                  const ParticleType* pstruct)
+                        ParticleType* pstruct)
         : m_nbor_offsets_ptr(offsets.dataPtr()),
           m_nbor_list_ptr(list.dataPtr()),
           m_pstruct(pstruct)
@@ -80,7 +83,7 @@ struct NeighborData
     
     const unsigned int * m_nbor_offsets_ptr;
     const unsigned int * m_nbor_list_ptr;
-    const ParticleType * m_pstruct;
+          ParticleType * m_pstruct;
 };
 
 template <class ParticleType>
@@ -89,11 +92,11 @@ class NeighborList
 public:
 
     template <class PTile, class CheckPair>
-    void build (const PTile& ptile,
+    void build (      PTile& ptile,
                 const amrex::Box& bx, const amrex::Geometry& geom,
                 CheckPair check_pair, int num_cells=1)
     {
-        const auto& vec = ptile.GetArrayOfStructs()();
+        auto& vec = ptile.GetArrayOfStructs()();
         m_pstruct = vec.dataPtr();
         
         const auto dxi = geom.InvCellSizeArray();
@@ -233,7 +236,7 @@ public:
 
 protected:
     
-    const ParticleType* m_pstruct;
+    ParticleType* m_pstruct;
 
     // This is the neighbor list data structure
     Gpu::DeviceVector<unsigned int> m_nbor_offsets;
