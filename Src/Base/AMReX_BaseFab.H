@@ -2470,7 +2470,7 @@ BaseFab<T>::maxabs (const Box& subbox, int comp) const noexcept
 #endif
     {
         T r = 0;
-        amrex::Loop(subbox, [=,&r] (int i, int j, int k) AMREX_NOEXCEPT
+        amrex::Loop(subbox, [=,&r] (int i, int j, int k) noexcept
         {
             r = amrex::max(r, amrex::Math::abs(a(i,j,k)));
         });
@@ -3943,7 +3943,7 @@ BaseFab<T>::sum (const Box& bx, DestComp dcomp, NumComps ncomp) const noexcept
     } else
 #endif
     {
-        amrex::LoopOnCpu(bx, ncomp.n, [=,&r] (int i, int j, int k, int n) AMREX_NOEXCEPT
+        amrex::LoopOnCpu(bx, ncomp.n, [=,&r] (int i, int j, int k, int n) noexcept
         {
             r += a(i,j,k,n+dcomp.i);
         });
@@ -3983,7 +3983,7 @@ BaseFab<T>::dot (const BaseFab<T>& src, const Box& bx, SrcComp scomp, DestComp d
     } else
 #endif
     {
-        amrex::LoopOnCpu(bx, ncomp.n, [=,&r] (int i, int j, int k, int n) AMREX_NOEXCEPT
+        amrex::LoopOnCpu(bx, ncomp.n, [=,&r] (int i, int j, int k, int n) noexcept
         {
             r += d(i,j,k,n+dcomp.i) * s(i,j,k,n+scomp.i);
         });
@@ -4029,7 +4029,7 @@ BaseFab<T>::dot (const Box& bx, DestComp dcomp, NumComps ncomp) const noexcept
     } else
 #endif
     {
-        amrex::LoopOnCpu(bx, ncomp.n, [=,&r] (int i, int j, int k, int n) AMREX_NOEXCEPT
+        amrex::LoopOnCpu(bx, ncomp.n, [=,&r] (int i, int j, int k, int n) noexcept
         {
             r += a(i,j,k,n+dcomp.i)*a(i,j,k,n+dcomp.i);
         });
@@ -4073,7 +4073,7 @@ BaseFab<T>::dotmask (const BaseFab<T>& src, const Box& bx, const BaseFab<int>& m
     } else
 #endif
     {
-        amrex::LoopOnCpu(bx, ncomp.n, [=,&r] (int i, int j, int k, int n) AMREX_NOEXCEPT
+        amrex::LoopOnCpu(bx, ncomp.n, [=,&r] (int i, int j, int k, int n) noexcept
         {
             int mi = static_cast<int>(static_cast<bool>(m(i,j,k)));
             r += d(i,j,k,n+dcomp.i)*s(i,j,k,n+scomp.i)*mi;

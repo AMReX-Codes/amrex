@@ -48,15 +48,12 @@ ifeq ($(USE_HIP),TRUE)
   COMP := hip
   HIP_PLATFORM = $(shell hipconfig --compiler)
   ifeq ($(HIP_PLATFORM),nvcc)
-  $(error HIP_PLATFORM nvcc is not supported at this time. Use USE_CUDA to compile for NVIDIA platforms)
-#    If nvcc is supported, put this back.
-#    CUDA_ARCH ?= 60
-#    CUDA_MAX_THREADS ?= 256
-#    CUDA_MAXREGCOUNT ?= 255
+    $(error HIP_PLATFORM nvcc is not supported at this time. Use USE_CUDA to compile for NVIDIA platforms)
   else ifeq ($(HIP_PLATFORM),hcc)
-# do nothing special for now, but also don't abort
+    $(error HIP_PLATFORM=hcc is no longer supported)
+  else ifeq ($(HIP_PLATFORM),clang)
   else
-    $(error only HIP_PLATFORM=hcc is supported)
+    $(error Unknown HIP_PLATFORM=$(HIP_PLATFORM))
   endif
 endif
 
@@ -659,14 +656,7 @@ ifeq ($(USE_HIP),TRUE)
 
     endif
 
-    DEFINES += -DAMREX_USE_HIP
-
-    ifeq ($(HIP_PLATFORM),nvcc)
-        $(error HIP_PLATFORM nvcc is not supported at this time. Use USE_CUDA to compile for NVIDIA platforms.)
- #       DEFINES += -DAMREX_USE_CUDA -DAMREX_HIP_PLATFORM_NVCC
-    else ifeq ($(HIP_PLATFORM),hcc)
-        DEFINES += -DAMREX_HIP_PLATFORM_HCC
-    endif
+    DEFINES += -DAMREX_USE_HIP -DAMREX_HIP_PLATFORM=$(HIP_PLATFORM)
 
     GPUSuffix := .HIP
 
