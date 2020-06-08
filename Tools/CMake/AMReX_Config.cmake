@@ -143,15 +143,6 @@ function (configure_amrex)
 
    endif ()
 
-   #
-   # Check compiler version
-   #
-   if (  ( CMAKE_CXX_COMPILER_ID STREQUAL "GNU" ) AND
-         ( CMAKE_CXX_COMPILER_VERSION VERSION_LESS "4.8" ) )
-      message( WARNING
-         " Your default GCC is version ${CMAKE_CXX_COMPILER_VERSION}. This might break during build. GCC>=4.8 is recommended.")
-   endif ()
-
    if ( ENABLE_PIC OR BUILD_SHARED_LIBS )
       set_target_properties ( amrex PROPERTIES POSITION_INDEPENDENT_CODE True )
    endif ()
