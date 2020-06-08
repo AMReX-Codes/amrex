@@ -104,7 +104,7 @@ cmake_dependent_option( ENABLE_DPCPP_AOT  "Enable DPCPP AOT"  OFF
    "ENABLE_DPCPP" OFF)
 print_option( ENABLE_DPCPP_AOT )
 
-cmake_dependent_option( ENABLE_DPCPP_SPLIT_KERNEL "Enable DPCPP kernel splitting"  OFF
+cmake_dependent_option( ENABLE_DPCPP_SPLIT_KERNEL "Enable DPCPP kernel splitting"  ON
    "ENABLE_DPCPP" OFF)
 print_option(  ENABLE_DPCPP_SPLIT_KERNEL )
 
