@@ -4,10 +4,6 @@ nvcc_version       := $(shell nvcc --version | tail -1 | awk 'BEGIN {FS = ","} {
 nvcc_major_version := $(shell nvcc --version | tail -1 | awk 'BEGIN {FS = ","} {print $$2}' | awk '{print $$2}' | awk 'BEGIN {FS = "."} {print $$1}')
 nvcc_minor_version := $(shell nvcc --version | tail -1 | awk 'BEGIN {FS = ","} {print $$2}' | awk '{print $$2}' | awk 'BEGIN {FS = "."} {print $$2}')
 
-DEFINES += -DAMREX_NVCC_VERSION=$(nvcc_version)
-DEFINES += -DAMREX_NVCC_MAJOR_VERSION=$(nvcc_major_version)
-DEFINES += -DAMREX_NVCC_MINOR_VERSION=$(nvcc_minor_version)
-
 # Disallow CUDA toolkit versions < 8.0.
 
 nvcc_major_lt_8 = $(shell expr $(nvcc_major_version) \< 8)
@@ -55,7 +51,7 @@ ifeq ($(lowercase_nvcc_host_comp),gnu)
 
   NVCC_CCBIN ?= g++
 
-  CXXFLAGS_FROM_HOST := -ccbin=$(NVCC_CCBIN) -Xcompiler='$(CXXFLAGS) --std=$(CXXSTD)' --std=$(CXXSTD)
+  CXXFLAGS_FROM_HOST := -ccbin=$(NVCC_CCBIN) -Xcompiler='$(CXXFLAGS)' --std=$(CXXSTD)
   CFLAGS_FROM_HOST := $(CXXFLAGS_FROM_HOST)
   ifeq ($(USE_OMP),TRUE)
      LIBRARIES += -lgomp
@@ -114,7 +110,7 @@ endif
 
 ifeq ($(USE_CUPTI),TRUE)
   INCLUDE_LOCATIONS += $(MAKE_CUDA_PATH)/extras/CUPTI/include
-  LIBRARY_LOCATIONS += ${MAKE_CUDA_PATH}/extras/CUPTI/lib64 
+  LIBRARY_LOCATIONS += ${MAKE_CUDA_PATH}/extras/CUPTI/lib64
   LIBRARIES += -Wl,-rpath,${MAKE_CUDA_PATH}/extras/CUPTI/lib64 -lcupti
 endif
 
