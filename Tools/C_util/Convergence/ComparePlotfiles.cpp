@@ -11,32 +11,32 @@ static
 void
 PrintUsage (const char* progName)
 {
-    std::cout << std::endl
-              << "This utility performs a diff operation between two"           << std::endl
-              << "plotfiles that have the same geometrical domain and nodality" << std::endl
-              << "(supports all nodality types; cell, face, edge, node)"        << std::endl
-              << "but possibly a factor of refinement between the cells,"       << std::endl
-              << "and outputs the L0, L1, and L2 norms"                         << std::endl
-              << "L1 = sum(|diff_ijk|)/npts_coarsedomain"                       << std::endl
-              << "L2 = sqrt[sum(diff_ijk^2)]/sqrt(npts_coarsedomain)"           << std::endl
-              <<  "(only single-level supported)"                               << std::endl << std::endl;
+    Print() << std::endl
+            << "This utility performs a diff operation between two"           << std::endl
+            << "plotfiles that have the same geometrical domain and nodality" << std::endl
+            << "(supports all nodality types; cell, face, edge, node)"        << std::endl
+            << "but possibly a factor of refinement between the cells,"       << std::endl
+            << "and outputs the L0, L1, and L2 norms"                         << std::endl
+            << "L1 = sum(|diff_ijk|)/npts_coarsedomain"                       << std::endl
+            << "L2 = sqrt[sum(diff_ijk^2)]/sqrt(npts_coarsedomain)"           << std::endl
+            <<  "(only single-level supported)"                               << std::endl << std::endl;
     
-    std::cout << "Usage:" << '\n';
-    std::cout << progName << '\n';
-    std::cout << "    infile1 = inputFileName1" << '\n';
-    std::cout << "    reffile = refinedPlotFile" << '\n';
-    std::cout << "    diffile = differenceFileName" << '\n';
-    std::cout << "              (If not specified no file is written)" << '\n' << '\n';
+    Print() << "Usage:" << '\n';
+    Print() << progName << '\n';
+    Print() << "    infile1 = inputFileName1" << '\n';
+    Print() << "    reffile = refinedPlotFile" << '\n';
+    Print() << "    diffile = differenceFileName" << '\n';
+    Print() << "              (If not specified no file is written)" << '\n' << '\n';
     
-    std::cout << "You can either point to the plotfile base directory itself, e.g."      << std::endl
-              << "  infile=plt00000"                                                     << std::endl
-              << "Or the raw data itself, e.g."                                          << std::endl
-              << "  infile=plt00000/Level_0/Cell"                                        << std::endl
-              << "the latter is useful for some applications that dump out raw"          << std::endl
-              << "nodal data within a plotfile directory."                               << std::endl
-              << "The program will first try appending 'Level_0/Cell'"                   << std::endl
-              << "onto the specified filenames."                                         << std::endl
-              << "If that _H file doesn't exist, it tries using the full specified name" << std::endl << std::endl;
+    Print() << "You can either point to the plotfile base directory itself, e.g."      << std::endl
+            << "  infile=plt00000"                                                     << std::endl
+            << "Or the raw data itself, e.g."                                          << std::endl
+            << "  infile=plt00000/Level_0/Cell"                                        << std::endl
+            << "the latter is useful for some applications that dump out raw"          << std::endl
+            << "nodal data within a plotfile directory."                               << std::endl
+            << "The program will first try appending 'Level_0/Cell'"                   << std::endl
+            << "onto the specified filenames."                                         << std::endl
+            << "If that _H file doesn't exist, it tries using the full specified name" << std::endl << std::endl;
         
     exit(1);
 }
@@ -75,17 +75,11 @@ main (int   argc,
 
     // check to see whether the user pointed to the plotfile base directory
     // or the data itself
-    std::ifstream xxx;
-    xxx.open(iFile1+"/Level_0/Cell_H");
-    if (xxx) {
+    if (amrex::FileExists(iFile1+"/Level_0/Cell_H")) {
        iFile1 += "/Level_0/Cell";
-        xxx.close();
     }
-    std::ifstream yyy;
-    yyy.open(iFile2+"/Level_0/Cell_H");
-    if (yyy) {
-        iFile2 += "/Level_0/Cell";
-        yyy.close();
+    if (amrex::FileExists(iFile2+"/Level_0/Cell_H")) {
+       iFile2 += "/Level_0/Cell";
     }
 
     // storage for the input coarse and fine MultiFabs
