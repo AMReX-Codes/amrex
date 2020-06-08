@@ -52,7 +52,9 @@ function (configure_amrex)
 
    if (ENABLE_CUDA AND (CMAKE_VERSION VERSION_GREATER_EQUAL 3.17) )
        set_target_properties(amrex PROPERTIES CUDA_EXTENSIONS OFF)
-       target_compile_features(amrex PUBLIC cuda_std_11)  # minimum: C++11
+       if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.17.0)
+           target_compile_features(amrex PUBLIC cuda_std_11)  # minimum: C++11
+       endif()
    endif()
 
    # flags needed for MSVC on Windows
