@@ -37,6 +37,9 @@ else
 endif
 endif
 
+CXXDEPFLAGS = $(DEPFLAGS) $(filter-out -dc,$(CXXFLAGS)) $(CPPFLAGS) $(includes)
+CDEPFLAGS = $(DEPFLAGS) $(filter-out -dc,$(CFLAGS)) -DBL_LANG_C -DAMREX_LANG_C $(CPPFLAGS) $(includes)
+
 #
 # Rules for building executable.
 #
@@ -287,12 +290,38 @@ endif
 # Rules for dependencies in bare object files.
 #
 
+$(depEXETempDir)/%.d: %.cpp
+	@echo Depending $< ...
+ifeq ($(USE_GPU_PRAGMA),TRUE)
+	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
+endif
+	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
+ifeq ($(USE_DPCPP),TRUE)
+	$(CXX) $(CXXDEPFLAGS) $< -o $@
+else
+	$(CXX) $(CXXDEPFLAGS) $< > $@
+endif
+	@$(SHELL) -ec 'sed -i -e '\''s,$*\.o,$(objEXETempDir)/& $@,g'\'' $@'
+
+$(depEXETempDir)/%.d: %.c
+	@echo Depending $< ...
+ifeq ($(USE_GPU_PRAGMA),TRUE)
+	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
+endif
+	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
+ifeq ($(USE_DPCPP),TRUE)
+	$(CC) $(CDEPFLAGS) $< -o $@
+else
+	$(CC) $(CDEPFLAGS) $< > $@
+endif
+	@$(SHELL) -ec 'sed -i -e '\''s,$*\.o,$(objEXETempDir)/& $@,g'\'' $@'
+
 #
 # The sed foo below:
 #
 # First it starts a shell that runs `$MKDEP` command on `$<`, the
-# first prerequisite of make rule, say `/path/to/y.H`.  The output
-# of `$MKDEP` are lines like `/path/to/x.o: /path/to/y.H`.
+# first prerequisite of make rule, say `/path/to/y.cpp`.  The output
+# of `$MKDEP` are lines like `/path/to/x.o: /path/to/y.cpp`.
 #
 # It is then piped into two `sed` commands and then into the target
 # (i.e., `$(depEXETempDir)/x.d`).  We need sed to modify the output
@@ -301,57 +330,37 @@ endif
 #
 # The command of `sed` needs to be inside a pair of `'`s.  But the
 # whole `sed -e '......'` is already inside a pair of `'`s for the
-# shell.  So we have to use escape, thus `'\''mycommand'\''`. 
+# shell.  So we have to use escape, thus `'\''mycommand'\''`.
 #
 # The sed command is search and replace, `s,X,Y` that replaces `X` by
-# `Y`. 
+# `Y`.
 #
 # In the first sed, `X` is `^[^:]*\/`.  This matches the beginning
 # of the line to the last `/` before `:`.  The `Y` contains nothing.
-# So the matched string is removed, and the line becomes `x.o: /path/to/x.xpp`. 
+# So the matched string is removed, and the line becomes `x.o: /path/to/x.xpp`.
 #
 # In the second sed, we replace `x.o` with `$(objEXETempDir)/o`.  Note
 # that `$*` is make variable set to `%` (i.e., `x` in our example).
 # `&` is sed variable meaning the whole matched string.  The
 # replacement string also includes the target of the make rule (i.e.,
-# `$(depEXETempDir)/x.d`). 
+# `$(depEXETempDir)/x.d`).
 #
-# The final result is `$(objEXETempDir)/x.o $(depEXETempDir)/x.d: /path/to/y.H`.
+# The final result is `$(objEXETempDir)/x.o $(depEXETempDir)/x.d: /path/to/y.cpp`.
 #
-
-$(depEXETempDir)/%.d: %.cpp
-	@echo Depending $< ...
-ifeq ($(USE_GPU_PRAGMA),TRUE)
-	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
-endif
-	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
-	@$(SHELL) -ec '$(MKDEP) $(includes) $< | \
-		sed -e '\''s,^[^:]*\/,,'\'' | \
-		sed -e '\''s,$*.o,$(objEXETempDir)/& $@,'\'' > $@'
-
-$(depEXETempDir)/%.d: %.c
-	@echo Depending $< ...
-ifeq ($(USE_GPU_PRAGMA),TRUE)
-	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
-endif
-	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
-	@$(SHELL) -ec '$(MKDEP) $(includes) $< | \
-		sed -e '\''s,^[^:]*\/,,'\'' | \
-		sed -e '\''s,$*.o,$(objEXETempDir)/& $@,'\'' > $@'
 
 $(depEXETempDir)/%.d: %.F
 	@echo Depending $< ...
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
 	@$(SHELL) -ec '$(MKDEP) -fortran $(fincludes) $< | \
 		sed -e '\''s,^[^:]*\/,,'\'' | \
-		sed -e '\''s,$*.o,$(objEXETempDir)/& $@,'\'' > $@'
+		sed -e '\''s,$*\.o,$(objEXETempDir)/& $@,'\'' > $@'
 
 $(depEXETempDir)/%.d: %.f
 	@echo Depending $< ...
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
 	@$(SHELL) -ec '$(MKDEP) -fortran $(fincludes) $< | \
 		sed -e '\''s,^[^:]*\/,,'\'' | \
-		sed -e '\''s,$*.o,$(objEXETempDir)/& $@,'\'' > $@'
+		sed -e '\''s,$*\.o,$(objEXETempDir)/& $@,'\'' > $@'
 
 DEP_CHECK_OPTS :=
 
