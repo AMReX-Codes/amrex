@@ -150,7 +150,11 @@ void main_main ()
 
     // compute the time step
     const Real* dx = geom.CellSize();
-    Real dt = 0.9*dx[0]*dx[0] / (2.0*AMREX_SPACEDIM);
+    Real cfl = 0.9_rt;
+    Real coeff = AMREX_D_TERM(   1./(dx[0]*dx[0]),
+                               + 1./(dx[1]*dx[1]),
+                               + 1./(dx[2]*dx[2]) );
+    Real dt = cfl/(2.0_rt*coeff);
 
     // Write a plotfile of the initial data if plot_int > 0 (plot_int was defined in the inputs file)
     if (plot_int > 0)
