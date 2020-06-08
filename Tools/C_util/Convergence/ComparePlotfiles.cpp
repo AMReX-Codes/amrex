@@ -1,4 +1,7 @@
 
+#include <fstream>
+#include <iostream>
+
 #include <AMReX_ParmParse.H>
 #include <AMReX_PlotFileUtil.H>
 
@@ -23,8 +26,18 @@ PrintUsage (const char* progName)
     std::cout << "    infile1 = inputFileName1" << '\n';
     std::cout << "    reffile = refinedPlotFile" << '\n';
     std::cout << "    diffile = differenceFileName" << '\n';
-    std::cout << "              (If not specified no file is written)" << '\n';
-    std::cout << '\n';
+    std::cout << "              (If not specified no file is written)" << '\n' << '\n';
+    
+    std::cout << "You can either point to the plotfile base directory itself, e.g."      << std::endl
+              << "  infile=plt00000"                                                     << std::endl
+              << "Or the raw data itself, e.g."                                          << std::endl
+              << "  infile=plt00000/Level_0/Cell"                                        << std::endl
+              << "the latter is useful for some applications that dump out raw"          << std::endl
+              << "nodal data within a plotfile directory."                               << std::endl
+              << "The program will first try appending 'Level_0/Cell'"                   << std::endl
+              << "onto the specified filenames."                                         << std::endl
+              << "If that _H file doesn't exist, it tries using the full specified name" << std::endl << std::endl;
+        
     exit(1);
 }
 
@@ -56,11 +69,24 @@ main (int   argc,
 
     // subtracted output (optional)
     pp.query("diffile", difFile);
-        
+
     // single-level for now
     // AMR comes later, where we iterate over each level in isolation
-    iFile1 += "/Level_0/Cell";
-    iFile2 += "/Level_0/Cell";
+
+    // check to see whether the user pointed to the plotfile base directory
+    // or the data itself
+    std::ifstream xxx;
+    xxx.open(iFile1+"/Level_0/Cell_H");
+    if (xxx) {
+       iFile1 += "/Level_0/Cell";
+        xxx.close();
+    }
+    std::ifstream yyy;
+    yyy.open(iFile2+"/Level_0/Cell_H");
+    if (yyy) {
+        iFile2 += "/Level_0/Cell";
+        yyy.close();
+    }
 
     // storage for the input coarse and fine MultiFabs
     MultiFab mf_c, mf_f;
