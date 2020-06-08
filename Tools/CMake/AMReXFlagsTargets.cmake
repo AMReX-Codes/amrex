@@ -94,7 +94,8 @@ add_library(AMReX::Flags_CXX_REQUIRED ALIAS Flags_CXX_REQUIRED)
 
 target_compile_options( Flags_CXX_REQUIRED
    INTERFACE
-   $<${_cxx_msvc}:/Za /bigobj /Zc:preprocessor>
+   $<${_cxx_msvc}:/Za /bigobj
+   $<IF:$<VERSION_LESS:$<CXX_COMPILER_VERSION>,19.26>,/experimental:preprocessor,/Zc:preprocessor> >
    )
 
 #
