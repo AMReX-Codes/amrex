@@ -170,6 +170,8 @@ function (configure_amrex)
          PUBLIC
          $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:Clang>>:-Wno-error=sycl-strict -fsycl -fsycl-unnamed-lambda>)
 
+      target_link_options(amrex PUBLIC -Wno-error=sycl-strict -fsycl -fsycl-unnamed-lambda)
+
       if (ENABLE_DPCPP_AOT)
          if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
             execute_process( COMMAND cat /sys/devices/cpu/caps/pmu_name OUTPUT_VARIABLE _cpu_long_name )
@@ -192,6 +194,7 @@ function (configure_amrex)
             PUBLIC
             $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:Clang>,$<NOT:$<CONFIG:Debug>>>:
             -fsycl-targets=spir64_gen-unknown-unknown-sycldevice -Xsycl-target-backend "-device ${_cpu_short_name}" >)
+         target_link_options(amrex PUBLIC -fsycl-targets=spir64_gen-unknown-unknown-sycldevice -Xsycl-target-backend "-device ${_cpu_short_name}" )
          unset(_cpu_long_name)
          unset(_cpu_short_name)
        else ()
@@ -199,6 +202,7 @@ function (configure_amrex)
             target_compile_options( amrex
                PUBLIC
                $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:Clang>>:-fsycl-device-code-split=per_kernel>)
+            target_link_options(amrex PUBLIC -fsycl-device-code-split=per_kernel)
          endif ()
       endif ()
    endif ()
