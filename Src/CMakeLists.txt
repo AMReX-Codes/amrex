@@ -32,6 +32,12 @@ if (CMAKE_Fortran_COMPILER_LOADED AND (NOT CMAKE_Fortran_FLAGS) )
       )
 endif ()
 
+
+target_link_libraries(amrex
+   PUBLIC
+   $<BUILD_INTERFACE:Flags_CXX_REQUIRED>
+   )
+
 if (NOT CMAKE_CXX_FLAGS)
    target_link_libraries(amrex
       PUBLIC

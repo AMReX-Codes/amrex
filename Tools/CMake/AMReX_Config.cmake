@@ -55,10 +55,6 @@ function (configure_amrex)
        target_compile_features(amrex PUBLIC cuda_std_11)  # minimum: C++11
    endif()
 
-   # flags needed for MSVC on Windows
-   target_compile_options(amrex PUBLIC
-       $<$<CXX_COMPILER_ID:MSVC>:/Za;/bigobj;/experimental:preprocessor>)
-
    #
    # Setup OpenMP
    #
@@ -111,7 +107,9 @@ function (configure_amrex)
 
       if (NOT CMAKE_CXX_FLAGS)
          get_target_property( _amrex_flags_2 Flags_CXX INTERFACE_COMPILE_OPTIONS)
-      endif ()
+      endif()
+
+      get_target_property( _amrex_flags_3 Flags_CXX_REQUIRED INTERFACE_COMPILE_OPTIONS)
 
       set(_amrex_flags)
       if (_amrex_flags_1)
@@ -119,6 +117,9 @@ function (configure_amrex)
       endif ()
       if (_amrex_flags_2)
          list(APPEND _amrex_flags ${_amrex_flags_2})
+      endif ()
+      if (_amrex_flags_3)
+         list(APPEND _amrex_flags ${_amrex_flags_3})
       endif ()
 
       evaluate_genex(_amrex_flags _amrex_cxx_flags
@@ -140,15 +141,6 @@ function (configure_amrex)
           target_link_libraries(amrex PUBLIC ${LIBNVTOOLSEXT})
       endif ()
 
-   endif ()
-
-   #
-   # Check compiler version
-   #
-   if (  ( CMAKE_CXX_COMPILER_ID STREQUAL "GNU" ) AND
-         ( CMAKE_CXX_COMPILER_VERSION VERSION_LESS "4.8" ) )
-      message( WARNING
-         " Your default GCC is version ${CMAKE_CXX_COMPILER_VERSION}. This might break during build. GCC>=4.8 is recommended.")
    endif ()
 
    if ( ENABLE_PIC OR BUILD_SHARED_LIBS )
