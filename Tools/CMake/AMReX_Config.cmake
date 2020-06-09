@@ -156,9 +156,16 @@ function (configure_amrex)
    endif()
 
    #
-   # Setup DHC++ -- for now simply add public compile flags
+   # Setup DPC++ -- for now simply add public compile flags
    #
    if (ENABLE_DPCPP)
+
+
+      string(REPLACE "/bin/dpcpp" "" _dpcpp_dir "${CMAKE_CXX_COMPILER}" )
+      set(_dpcpp_dir "${_dpcpp_dir}/lib")
+
+      target_link_libraries(amrex PUBLIC ${_dpcpp_dir}/libsycl-glibc.o ${_dpcpp_dir}/libsycl-cmath.o ${_dpcpp_dir}/libsycl-cmath-fp64.o)
+
       target_compile_options( amrex
          PUBLIC
          $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:Clang>>:-Wno-error=sycl-strict -fsycl -fsycl-unnamed-lambda>)
