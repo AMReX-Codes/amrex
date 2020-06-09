@@ -111,6 +111,12 @@ if (ENABLE_CUDA)
 endif ()
 
 #
+# Check compiler version
+#
+set_mininum_cxx_compiler_version(GNU 4.8)
+set_mininum_cxx_compiler_version(MSVC 19.23)
+
+#
 # Set CMAKE_<LANG>_FLAGS_<CONFIG> if not already defined
 #
 set_default_config_flags ()

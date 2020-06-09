@@ -278,7 +278,7 @@ Device::Initialize ()
     // is only available starting from CUDA 10.0, so we will
     // leave num_devices_used as 0 for older CUDA toolkits.
 
-#if AMREX_NVCC_MAJOR_VERSION >= 10
+#if (__CUDACC_VER_MAJOR__ >= 10)
     size_t uuid_length = 16;
     size_t recv_sz = uuid_length * ParallelDescriptor::NProcs();
     const char* sendbuf = &device_prop.uuid.bytes[0];
@@ -309,7 +309,7 @@ Device::Initialize ()
     cudaProfilerStart();
 
     if (amrex::Verbose()) {
-#if defined(AMREX_USE_MPI) && (AMREX_NVCC_MAJOR_VERSION >= 10)
+#if defined(AMREX_USE_MPI) && (__CUDACC_VER_MAJOR__ >= 10)
         if (num_devices_used == ParallelDescriptor::NProcs())
         {
             amrex::Print() << "CUDA initialized with 1 GPU per MPI rank; "

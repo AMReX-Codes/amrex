@@ -189,4 +189,4 @@ namespace amrex
 #  define AMREX_3D_ONLY(a) a
 #endif
 
-#endif /*BL_SPACE_H*/
+#endif /*AMREX_SPACE_H*/

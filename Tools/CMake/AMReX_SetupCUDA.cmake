@@ -105,8 +105,14 @@ set(NVCC_VERSION_MINOR "${_nvcc_version_minor}" CACHE INTERNAL "CUDA compiler ve
 
 # We gotta set CUDA flags globally since there is no other way at this time to pass CUDA flags to
 # device linking stage
+if (NOT (CMAKE_SYSTEM_NAME STREQUAL "Windows" ) )
+   # CUDA only supports 64bit builds on windows ( 32bit builds are deprecated ).
+   # Thus the option "--machine 64" is being set by the msbuild configuration.
+   # For Linux and MAC, we need to enforce that manually
+   set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -m64")
+endif ()
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-relaxed-constexpr --expt-extended-lambda")
-set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Wno-deprecated-gpu-targets -m64 ${NVCC_ARCH_FLAGS}")
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Wno-deprecated-gpu-targets ${NVCC_ARCH_FLAGS}")
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -maxrregcount=${CUDA_MAXREGCOUNT}")
 
 if (ENABLE_CUDA_FASTMATH)
