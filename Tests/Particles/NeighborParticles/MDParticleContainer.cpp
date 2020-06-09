@@ -140,8 +140,11 @@ std::pair<Real, Real> MDParticleContainer::minAndMaxDistance()
         {
             ParticleType& p1 = pstruct[i];
 
-            for (const auto& p2 : nbor_data.getNeighbors(i))
-            {                	      
+            auto nbors = nbor_data.getNeighbors(i);            
+            for (Neighbors<ParticleType>::const_iterator pit = nbors.cbegin(); pit != nbors.cend(); ++pit)
+                //            for (const auto& p2 : nbors)
+            { 
+                const auto& p2 = *pit;
                 Real dx = p1.pos(0) - p2.pos(0);
                 Real dy = p1.pos(1) - p2.pos(1);
                 Real dz = p1.pos(2) - p2.pos(2);
