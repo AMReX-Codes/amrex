@@ -24,8 +24,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> :: SetParticle
     }
 
     particle_size = sizeof(ParticleType);
-    superparticle_size = particle_size + 
-        num_real_comm_comps*sizeof(ParticleReal) + num_int_comm_comps*sizeof(int);    
+    superparticle_size = particle_size +
+        num_real_comm_comps*sizeof(ParticleReal) + num_int_comm_comps*sizeof(int);
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
@@ -376,7 +376,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::TotalNumberOf
         nparticles += NumberOfParticlesAtLevel(lev,only_valid,true);
     }
     if (!only_local) {
-	ParallelDescriptor::ReduceLongSum(nparticles);
+        ParallelAllReduce::Max(nparticles, ParallelContext::CommunicatorSub());
     }
     return nparticles;
 }
@@ -392,7 +392,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::NumberOfParti
     for (const auto& kv : GetParticles(lev)) {
       int gid = kv.first.first;
       const auto& ptile = kv.second;
-      
+
       if (only_valid) {
 	for (int k = 0; k < ptile.GetArrayOfStructs().numParticles(); ++k) {
 	  const ParticleType& p = ptile.GetArrayOfStructs()[k];
@@ -402,8 +402,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::NumberOfParti
 	nparticles[gid] += ptile.numParticles();
       }
     }
-    
-    if (!only_local) ParallelDescriptor::ReduceLongSum(&nparticles[0],ngrids);
+
+    if (!only_local) {
+        ParallelAllReduce::Sum(&nparticles[0], ngrids, ParallelContext::CommunicatorSub());
+    }
   }
 
   return nparticles;
@@ -417,7 +419,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::NumberOfParti
 
     if (lev >= 0 && lev < int(m_particles.size())) {
         for (const auto& kv : GetParticles(lev)) {
-            const auto& ptile = kv.second;	
+            const auto& ptile = kv.second;
             if (only_valid) {
                 for (int k = 0; k < ptile.GetArrayOfStructs().numParticles(); ++k) {
                     const ParticleType& p = ptile.GetArrayOfStructs()[k];
@@ -429,8 +431,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::NumberOfParti
         }
     }
 
-    if (!only_local) ParallelDescriptor::ReduceLongSum(nparticles);
-    
+    if (!only_local) {
+        ParallelAllReduce::Sum(nparticles, ParallelContext::CommunicatorSub());
+    }
+
     return nparticles;
 }
 
@@ -454,25 +458,25 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::ByteSpread ()
 
     Long mn = cnt, mx = mn;
 
-    const int IOProc = ParallelDescriptor::IOProcessorNumber();
+    const int IOProc = ParallelContext::IOProcessorNumberSub();
     const std::size_t sz = sizeof(ParticleType)+NumRealComps()*sizeof(Real)+NumIntComps()*sizeof(int);
 
 #ifdef AMREX_LAZY
     Lazy::QueueReduction( [=] () mutable {
 #endif
-    ParallelDescriptor::ReduceLongMin(mn, IOProc);
-    ParallelDescriptor::ReduceLongMax(mx, IOProc);
-    ParallelDescriptor::ReduceLongSum(cnt,IOProc);
+            ParallelReduce::Min(mn,  IOProc, ParallelContext::CommunicatorSub());
+            ParallelReduce::Max(mx,  IOProc, ParallelContext::CommunicatorSub());
+            ParallelReduce::Sum(cnt, IOProc, ParallelContext::CommunicatorSub());
 
-    amrex::Print() << "ParticleContainer byte spread across MPI nodes: ["
-                   << mn*sz
-                   << " (" << mn << ")"
-                   << " ... "
-                   << mx*sz
-                   << " (" << mx << ")"
-                   << "] total particles: (" << cnt << ")\n";
+            amrex::Print() << "ParticleContainer byte spread across MPI nodes: ["
+                           << mn*sz
+                           << " (" << mn << ")"
+                           << " ... "
+                           << mx*sz
+                           << " (" << mx << ")"
+                           << "] total particles: (" << cnt << ")\n";
 #ifdef AMREX_LAZY
-    });
+        });
 #endif
 }
 
@@ -492,24 +496,24 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::PrintCapacity
 
     Long mn = cnt, mx = mn;
 
-    const int IOProc = ParallelDescriptor::IOProcessorNumber();
+    const int IOProc = ParallelContext::IOProcessorNumberSub();
 
 #ifdef AMREX_LAZY
     Lazy::QueueReduction( [=] () mutable {
 #endif
-    ParallelDescriptor::ReduceLongMin(mn, IOProc);
-    ParallelDescriptor::ReduceLongMax(mx, IOProc);
-    ParallelDescriptor::ReduceLongSum(cnt,IOProc);
+            ParallelReduce::Min(mn,  IOProc, ParallelContext::CommunicatorSub());
+            ParallelReduce::Max(mx,  IOProc, ParallelContext::CommunicatorSub());
+            ParallelReduce::Sum(cnt, IOProc, ParallelContext::CommunicatorSub());
 
-    amrex::Print() << "ParticleContainer byte spread across MPI nodes: ["
-                   << mn
-                   << " (" << mn << ")"
-                   << " ... "
-                   << mx
-                   << " (" << mx << ")"
-                   << "] total memory: (" << cnt << ")\n";
+            amrex::Print() << "ParticleContainer byte spread across MPI nodes: ["
+                           << mn
+                           << " (" << mn << ")"
+                           << " ... "
+                           << mx
+                           << " (" << mx << ")"
+                           << "] total memory: (" << cnt << ")\n";
 #ifdef AMREX_LAZY
-    });
+        });
 #endif
 }
 
@@ -633,18 +637,20 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::IncrementWith
           }
       }
   }
-  
+
   // If mf is not defined on the particle_box_array, then we need
   // to copy here from mf_pointer into mf.   I believe that we don't
   // need any information in ghost cells so we don't copy those.
-  if (mf_pointer != &mf) 
+  if (mf_pointer != &mf)
     {
-      mf.copy(*mf_pointer,0,0,mf.nComp());  
+      mf.copy(*mf_pointer,0,0,mf.nComp());
       delete mf_pointer;
     }
-  
-  if (!local) ParallelDescriptor::ReduceLongSum(num_particles_in_domain);
-  
+
+  if (!local) {
+      ParallelAllReduce::Sum(num_particles_in_domain, ParallelContext::CommunicatorSub());
+  }
+
   return num_particles_in_domain;
 }
 
@@ -655,9 +661,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::sumParticleMa
   BL_PROFILE("ParticleContainer::sumParticleMass(lev)");
   AMREX_ASSERT(NStructReal >= 1);
   AMREX_ASSERT(lev >= 0 && lev < int(m_particles.size()));
-  
+
   Real msum = 0;
-  
+
   const auto& pmap = m_particles[lev];
   for (const auto& kv : pmap) {
       const auto& pbox = kv.second.GetArrayOfStructs();
@@ -668,9 +674,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::sumParticleMa
 	  }
       }
   }
-  
-  if (!local) ParallelDescriptor::ReduceRealSum(msum);
-  
+
+  if (!local) {
+      ParallelAllReduce::Sum(msum, ParallelContext::CommunicatorSub());
+  }
+
   return msum;
 }
 
@@ -680,7 +688,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::RemoveParticl
 {
     BL_PROFILE("ParticleContainer::RemoveParticlesAtLevel()");
     if (level >= int(this->m_particles.size())) return;
-    
+
     if (!this->m_particles[level].empty())
     {
         ParticleLevel().swap(this->m_particles[level]);
@@ -693,9 +701,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::RemoveParticl
 {
   BL_PROFILE("ParticleContainer::RemoveParticlesNotAtFinestLevel()");
   AMREX_ASSERT(this->finestLevel()+1 == int(this->m_particles.size()));
-  
+
   Long cnt = 0;
-  
+
   for (unsigned lev = 0; lev < m_particles.size() - 1; ++lev) {
       auto& pmap = m_particles[lev];
       if (!pmap.empty()) {
@@ -711,7 +719,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::RemoveParticl
   // Print how many particles removed on each processor if any were removed.
   //
   if (this->m_verbose > 1 && cnt > 0) {
-      amrex::AllPrint() << "Processor " << ParallelDescriptor::MyProc() << " removed " << cnt
+      amrex::AllPrint() << "Processor " << ParallelContext::MyProcSub() << " removed " << cnt
                         << " particles not in finest level\n";
   }
 }
@@ -1159,7 +1167,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     {
         auto& pmap = m_particles[lev];
         for (auto pmap_it = pmap.begin(); pmap_it != pmap.end(); /* no ++ */)
-        {          
+        {
             if (pmap_it->second.empty())
             {
                 pmap.erase(pmap_it++);
@@ -1177,7 +1185,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         communicateParticlesStart(*this, plan, snd_buffer, rcv_buffer);
         unpackBuffer(*this, plan, snd_buffer, RedistributeUnpackPolicy());
         communicateParticlesFinish(plan);
-        unpackRemotes(*this, plan, rcv_buffer, RedistributeUnpackPolicy());        
+        unpackRemotes(*this, plan, rcv_buffer, RedistributeUnpackPolicy());
     }
     else
     {
@@ -1189,14 +1197,14 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         plan.buildMPIFinish(BufferMap());
         Gpu::Device::synchronize();
         communicateParticlesStart(*this, plan, pinned_snd_buffer, pinned_rcv_buffer);
-        rcv_buffer.resize(pinned_rcv_buffer.size());   
+        rcv_buffer.resize(pinned_rcv_buffer.size());
         unpackBuffer(*this, plan, snd_buffer, RedistributeUnpackPolicy());
-        communicateParticlesFinish(plan);        
+        communicateParticlesFinish(plan);
         Gpu::htod_memcpy_async(rcv_buffer.dataPtr(), pinned_rcv_buffer.dataPtr(), pinned_rcv_buffer.size());
         unpackRemotes(*this, plan, rcv_buffer, RedistributeUnpackPolicy());
     }
 
-    Gpu::Device::synchronize();    
+    Gpu::Device::synchronize();
     AMREX_ASSERT(numParticlesOutOfRange(*this, lev_min, lev_max, nGrow) == 0);
 #endif
 }
@@ -1238,10 +1246,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::RedistributeCPU (int lev_min, int lev_max, int nGrow, int local)
 {
   BL_PROFILE("ParticleContainer::RedistributeCPU()");
-    
-  const int MyProc    = ParallelDescriptor::MyProc();
+
+  const int MyProc    = ParallelContext::MyProcSub();
   Real      strttime  = amrex::second();
-  
+
   if (local > 0) BuildRedistributeMask(0, local);
 
   // On startup there are cases where Redistribute() could be called
@@ -1308,7 +1316,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     for (int i = 0; i < neighbor_procs.size(); ++i)
       tmp_remote[neighbor_procs[i]].resize(num_threads);
   } else {
-    for (int i = 0; i < ParallelDescriptor::NProcs(); ++i)
+    for (int i = 0; i < ParallelContext::NProcsSub(); ++i)
       tmp_remote[i].resize(num_threads);
   }
 
@@ -1547,29 +1555,31 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                          << m_particles.size() << " to " << theEffectiveFinestLevel+1 << '\n';
       }
       AMREX_ASSERT(int(m_particles.size()) >= 2);
-      
+
       m_particles.resize(theEffectiveFinestLevel + 1);
       m_dummy_mf.resize(theEffectiveFinestLevel + 1);
   }
-  
-  if (ParallelDescriptor::NProcs() == 1) {
+
+  if (ParallelContext::NProcsSub() == 1) {
       AMREX_ASSERT(not_ours.empty());
   }
   else {
       RedistributeMPI(not_ours, lev_min, lev_max, nGrow, local);
   }
-  
+
   AMREX_ASSERT(OK(lev_min, lev_max, nGrow));
-  
+
   if (m_verbose > 0) {
       Real stoptime = amrex::second() - strttime;
-      
+
       ByteSpread();
-      
+
 #ifdef AMREX_LAZY
       Lazy::QueueReduction( [=] () mutable {
 #endif
-              ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
+              ParallelReduce::Max(stoptime, ParallelContext::IOProcessorNumberSub(),
+                                  ParallelContext::CommunicatorSub());
+
               amrex::Print() << "ParticleContainer::Redistribute() time: " << stoptime << "\n\n";
 #ifdef AMREX_LAZY
           });
@@ -1581,7 +1591,7 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 defineBufferMap () const
-{    
+{
     BL_PROFILE("ParticleContainer::defineBufferMap");
 
     if (not m_buffer_map.isValid(GetParGDB()))
@@ -1637,7 +1647,7 @@ BuildRedistributeMask (int lev, int nghost) const
                 if (grid >= 0)
                 {
                     const int proc = this->ParticleDistributionMap(lev)[grid];
-                    if (proc != ParallelDescriptor::MyProc())  
+                    if (proc != ParallelContext::MyProcSub())  
                         neighbor_procs.push_back(proc);
                 }
             }
@@ -1668,7 +1678,7 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
         std::memcpy((char*) mpi_snd_data[kv.first].data(), kv.second.data(), kv.second.size());
     }
     
-    const int NProcs = ParallelDescriptor::NProcs();
+    const int NProcs = ParallelContext::NProcsSub();
     const int NNeighborProcs = neighbor_procs.size();
     
     // We may now have particles that are rightfully owned by another CPU.
@@ -1719,14 +1729,14 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
             TotRcvInts += nbt;
         }
     }
-    
+
     const int nrcvs = RcvProc.size();
     Vector<MPI_Status>  stats(nrcvs);
     Vector<MPI_Request> rreqs(nrcvs);
-    
+
     // Allocate data for rcvs as one big chunk.
     Vector<unsigned long long> recvdata(TotRcvInts);
-    
+
     // Post receives.
     for (int i = 0; i < nrcvs; ++i) {
         const auto Who    = RcvProc[i];
@@ -1735,29 +1745,31 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
         AMREX_ASSERT(Cnt > 0);
         AMREX_ASSERT(Cnt < size_t(std::numeric_limits<int>::max()));
         AMREX_ASSERT(Who >= 0 && Who < NProcs);
-        
-        rreqs[i] = ParallelDescriptor::Arecv(&recvdata[offset], Cnt, Who, SeqNum).req();
+
+        rreqs[i] = ParallelDescriptor::Arecv(&recvdata[offset], Cnt, Who, SeqNum,
+                                             ParallelContext::CommunicatorSub()).req();
     }
-    
+
     // Send.
     for (const auto& kv : mpi_snd_data) {
         const auto Who = kv.first;
         const auto Cnt = kv.second.size();
-        
+
         AMREX_ASSERT(Cnt > 0);
         AMREX_ASSERT(Who >= 0 && Who < NProcs);
         AMREX_ASSERT(Cnt < std::numeric_limits<int>::max());
-        
-        ParallelDescriptor::Send(kv.second.data(), Cnt, Who, SeqNum);
+
+        ParallelDescriptor::Send(kv.second.data(), Cnt, Who, SeqNum,
+                                 ParallelContext::CommunicatorSub());
     }
-    
+
     if (nrcvs > 0) {
         ParallelDescriptor::Waitall(rreqs, stats);
-     
+
 	BL_PROFILE_VAR_START(blp_locate);
-   
+
         int npart = TotRcvBytes / superparticle_size;
-        
+
         Vector<int> rcv_levs(npart);
         Vector<int> rcv_grid(npart);
         Vector<int> rcv_tile(npart);
@@ -1768,7 +1780,7 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
         {
             const auto offset = rOffset[j];
             const auto Who    = RcvProc[j];
-            const auto Cnt    = Rcvs[Who] / superparticle_size;            
+            const auto Cnt    = Rcvs[Who] / superparticle_size;
             for (int i = 0; i < int(Cnt); ++i)
             {
                 char* pbuf = ((char*) &recvdata[offset]) + i*superparticle_size;
@@ -2069,7 +2081,7 @@ AssignCellDensitySingleLevel (int rho_index,
                     amrex_deposit_particle_dx_cic(pstruct[i], ncomp, rhoarr, plo, dxi, pdxi);
                 });
             }
-                
+
 #ifdef _OPENMP
             if (Gpu::notInLaunchRegion())
             {
@@ -2078,10 +2090,10 @@ AssignCellDensitySingleLevel (int rho_index,
 #endif
         }
     }
-    
+
     mf_pointer->SumBoundary(Geom(lev).periodicity());
-    
-    // If ncomp > 1, first divide the momenta (component n) 
+
+    // If ncomp > 1, first divide the momenta (component n)
     // by the mass (component 0) in order to get velocities.
     // Be careful not to divide by zero.
     for (int n = 1; n < ncomp; n++)
@@ -2091,15 +2103,15 @@ AssignCellDensitySingleLevel (int rho_index,
             (*mf_pointer)[mfi].protected_divide<RunOn::Device>((*mf_pointer)[mfi],0,n,1);
         }
     }
-    
+
     // Only multiply the first component by (1/vol) because this converts mass
     // to density. If there are additional components (like velocity), we don't
     // want to divide those by volume.
     const Real* dx = Geom(lev).CellSize();
     const Real vol = AMREX_D_TERM(dx[0], *dx[1], *dx[2]);
-    
+
     mf_pointer->mult(1.0/vol, 0, 1, mf_pointer->nGrow());
-    
+
     // If mf_to_be_filled is not defined on the particle_box_array, then we need
     // to copy here from mf_pointer into mf_to_be_filled. I believe that we don't
     // need any information in ghost cells so we don't copy those.
@@ -2108,13 +2120,14 @@ AssignCellDensitySingleLevel (int rho_index,
         mf_to_be_filled.copy(*mf_pointer,0,0,ncomp);
         delete mf_pointer;
     }
-    
+
     if (m_verbose > 1)
     {
         Real stoptime = amrex::second() - strttime;
-        
-        ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
-        
+
+        ParallelReduce::Max(stoptime, ParallelContext::IOProcessorNumberSub(),
+                            ParallelContext::CommunicatorSub());
+
         amrex::Print() << "ParticleContainer::AssignCellDensitySingleLevel) time: "
                        << stoptime << '\n';
     }
@@ -2122,12 +2135,12 @@ AssignCellDensitySingleLevel (int rho_index,
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Interpolate (Vector<std::unique_ptr<MultiFab> >& mesh_data, 
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Interpolate (Vector<std::unique_ptr<MultiFab> >& mesh_data,
                                                                                 int lev_min, int lev_max)
 {
     BL_PROFILE("ParticleContainer::Interpolate()");
     for (int lev = lev_min; lev <= lev_max; ++lev) {
-        InterpolateSingleLevel(*mesh_data[lev], lev); 
+        InterpolateSingleLevel(*mesh_data[lev], lev);
     }
 }
 
@@ -2137,16 +2150,16 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 InterpolateSingleLevel (MultiFab& mesh_data, int lev)
 {
     BL_PROFILE("ParticleContainer::InterpolateSingleLevel()");
-    
+
     if (mesh_data.nGrow() < 1)
         amrex::Error("Must have at least one ghost cell when in InterpolateSingleLevel");
-    
+
     const Geometry& gm = Geom(lev);
     const auto     plo = gm.ProbLoArray();
     const auto     dxi = gm.InvCellSizeArray();
 
     using ParIter = ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
-    
+
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -2157,7 +2170,7 @@ InterpolateSingleLevel (MultiFab& mesh_data, int lev)
         FArrayBox& fab = mesh_data[pti];
         const auto fabarr = fab.array();
         const Long np = particles.numParticles();
-        
+
         int nComp = fab.nComp();
         AMREX_FOR_1D( np, i,
         {

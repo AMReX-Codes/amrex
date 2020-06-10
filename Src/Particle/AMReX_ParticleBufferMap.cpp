@@ -79,7 +79,7 @@ void ParticleBufferMap::define (const ParGDBBase* a_gdb)
     }
 
     m_proc_box_counts.resize(0);
-    m_proc_box_counts.resize(ParallelDescriptor::NProcs(), 0);
+    m_proc_box_counts.resize(ParallelContext::NProcsSub(), 0);
 
     for (int i = 0; i < num_buckets; ++i)
     {

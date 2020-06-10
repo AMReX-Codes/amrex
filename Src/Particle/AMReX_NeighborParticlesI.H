@@ -187,7 +187,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
                     const int proc = this->ParticleDistributionMap(level)[grid];
                     NeighborCommTag comm_tag(proc, level, grid, tile);
                     local_neighbors.push_back(comm_tag);
-                    if (proc != ParallelDescriptor::MyProc())
+                    if (proc != ParallelContext::MyProcSub())
                         neighbor_procs.push_back(proc);
                 }
             }
@@ -204,7 +204,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
                 GetCommTagsBox(comm_tags, lev, box);
                 for (auto const& tag : comm_tags) {
                     local_neighbors.push_back(tag);
-                    if (tag.proc_id != ParallelDescriptor::MyProc())
+                    if (tag.proc_id != ParallelContext::MyProcSub())
                         neighbor_procs.push_back(tag.proc_id);
                 }
             }
@@ -295,7 +295,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
 
     AMREX_ASSERT(hasNeighbors() == false);
 
-    const int MyProc = ParallelDescriptor::MyProc();
+    const int MyProc = ParallelContext::MyProcSub();
 
     amrex::Vector<std::map<PairIndex,       Vector<NeighborIndexMap> > > local_map;
     std::map<NeighborCommTag, Vector<NeighborIndexMap> > remote_map;
