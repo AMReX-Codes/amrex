@@ -287,14 +287,14 @@ struct TestParams
     int sort;
 };
 
-void testRedistribute();
+void testParallelContext();
 
 int main (int argc, char* argv[])
 {
     amrex::Initialize(argc,argv);
 
     amrex::Print() << "Running redistribute test \n";
-    testRedistribute();
+    testParallelContext();
 
     amrex::Finalize();
 }
@@ -317,9 +317,9 @@ void get_test_params(TestParams& params, const std::string& prefix)
     pp.query("sort", params.sort);
 }
 
-void testRedistribute ()
+void testParallelContext ()
 {
-    BL_PROFILE("testRedistribute");
+    BL_PROFILE("testParallelContext");
 
     AMREX_ALWAYS_ASSERT(AMREX_SPACEDIM == 3);
 
