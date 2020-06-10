@@ -1,3 +1,67 @@
+function ( eval_conditional_expressions _out _in)
+
+   #
+   # Genex in the form $<bool:true_string> where bool=<0|1>
+   #
+   string(REGEX MATCHALL "\\$<[0-1:][^>]*>" _matches "${_in}")
+   foreach(_match IN LISTS _matches)
+      string(REGEX MATCH "[0-1]" _bool "${_match}")
+      if (_bool)
+         string(REGEX REPLACE "(\\$<1:)|>$" "" _true_string "${_match}")
+         string(REPLACE "${_match}" "${_true_string}" _in "${_in}")
+      else ()
+         string(REPLACE "${_match}" "" _in "${_in}")
+      endif ()
+   endforeach ()
+
+   #
+   # Genex in the form $<IF:condition,true_string,false_string> where bool=<0|1>
+   #
+   string(REGEX MATCHALL "\\$<IF:[0-1][^>]*>" _matches "${_in}")
+   foreach(_match IN LISTS _matches)
+      string(REGEX MATCH "[0-1]" _bool "${_match}")
+      if (_bool)
+         string(REGEX MATCH ",.*," _true_string "${_match}")
+         string(REPLACE "," "" _true_string "${_true_string}")
+         string(REPLACE "${_match}" "${_true_string}" _in "${_in}")
+      else ()
+         string(REGEX MATCH "[^,>]*>" _false_string "${_match}")
+         string(REGEX REPLACE ">$" "" _false_string "${_false_string}")
+         string(REPLACE "${_match}" "${_false_string}" _in "${_in}")
+      endif ()
+   endforeach()
+
+   set(${_out} "${_in}" PARENT_SCOPE)
+
+endfunction ()
+
+
+#
+# Does not support yet STREQUAL, EQUAL, IN_LIST
+#
+function (eval_string_comparisons _out _in)
+   #
+   # Genex in the form $<ops:v1,v2> where ops=VERSION_* and v1,v2 = version strings
+   #
+   string(REGEX MATCHALL "\\$<VERSION[^>]*>" _matches "${_in}")
+
+   foreach(_match IN LISTS _matches)
+      string(REGEX MATCHALL "[0-9][^,>]*" _versions "${_match}")
+      string(REGEX MATCHALL "[A-Z][^\$<:,>]*" _ops "${_match}")
+      list(GET _versions 0 _v1)
+      list(GET _versions 1 _v2)
+      if (_v1 ${_ops} _v2)
+         string(REPLACE "${_match}" "1" _in "${_in}")
+      else ()
+         string(REPLACE "${_match}" "0" _in "${_in}")
+      endif ()
+   endforeach()
+
+   set(${_out} "${_in}" PARENT_SCOPE)
+endfunction ()
+
+
+
 #
 #
 # FUNCTION: evaluate_genex
@@ -13,7 +77,7 @@
 #
 # Additionally, passing the keyword STRING will return a string
 # rather than a list (default).
-# 
+#
 # Example:
 #
 # evaluate_genex(IN OUT COMP GNU LANG CXX STRING)
@@ -33,20 +97,20 @@ function( evaluate_genex input output )
    set(one_value_args LANG COMP CONFIG INTERFACE)
    cmake_parse_arguments( ARG "${option_arg}" "${one_value_args}" "" ${ARGN} )
 
-   
+
    # Split input into two lists: one containing genex, the other with
    # no genex inside.
    # Since ";" can be used as both item separator in a list and
    # semi-column, we replace ";" with placeholders to indicate which
    # of these two function ";" is performing.
    set(list_sep "$SEP$" ) # Use this to indicate a item separator in list
-   set(semicol  "$SC$"  ) # Use this to indicate a simple semi-column 
+   set(semicol  "$SC$"  ) # Use this to indicate a simple semi-column
    set(genex_list ${${input}})
    string(GENEX_STRIP "${genex_list}" nogenex_list)
    if (nogenex_list)
       list(REMOVE_ITEM genex_list ${nogenex_list})
    endif ()
-   
+
    if (genex_list)
       # The genex_list is a list of genex-es in the form
       # $<SOME_GENEX:something;something;something;...>.
@@ -59,7 +123,7 @@ function( evaluate_genex input output )
       string(REPLACE  "${list_sep}" ";" genex_list "${genex_list}" )
 
       # Now we can tag wih true or false the genex-es which satisfy
-      # or not our criteria  
+      # or not our criteria
       set(true ".true.")
       set(false ".false.")
 
@@ -75,7 +139,7 @@ function( evaluate_genex input output )
             endif ()
          endforeach()
       endif ()
-      
+
       string(REPLACE "$<COMPILE_LANGUAGE:" "${false}"
          genex_list "${genex_list}")
 
@@ -107,18 +171,18 @@ function( evaluate_genex input output )
                genex_list "${genex_list}")
          elseif ("${ARG_INTERFACE}" STREQUAL "INSTALL")
             string(REPLACE "$<INSTALL_INTERFACE:" "${true}"
-               genex_list "${genex_list}")         
+               genex_list "${genex_list}")
          endif ()
       endif ()
-      
+
       # Build interface is default
       string(REPLACE "$<BUILD_INTERFACE:" "${true}"  genex_list "${genex_list}")
-      string(REPLACE "_INTERFACE:"        "${false}" genex_list "${genex_list}")   
+      string(REPLACE "_INTERFACE:"        "${false}" genex_list "${genex_list}")
 
       # Take care of logical NOT
       string(REPLACE "NOT:${true}"  "${false}"  genex_list "${genex_list}")
       string(REPLACE "NOT:${false}" "${true}"   genex_list "${genex_list}")
-      
+
       # Remove genex-es not satisfying our criteria
       set(valid_genex_list ${genex_list})
       if(valid_genex_list)
@@ -141,7 +205,7 @@ function( evaluate_genex input output )
       string(REPLACE "<:"        "" valid_genex_list "${valid_genex_list}")
       string(REGEX REPLACE "\\$|<|>" "" valid_genex_list "${valid_genex_list}")
    else()
-     set(valid_genex_list "") 
+     set(valid_genex_list "")
    endif ()
 
    if (ARG_STRING)
@@ -151,5 +215,5 @@ function( evaluate_genex input output )
    else ()
       set(${output} ${nogenex_list} ${valid_genex_list} PARENT_SCOPE)
    endif ()
-   
+
 endfunction ()
