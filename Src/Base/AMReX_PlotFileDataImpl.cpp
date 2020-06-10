@@ -110,7 +110,7 @@ PlotFileDataImpl::syncDistributionMap (PlotFileDataImpl const& src) noexcept
 void
 PlotFileDataImpl::syncDistributionMap (int level, PlotFileDataImpl const& src) noexcept
 {
-    if (level <= src.finestLevel() and m_dmap[level].size() == src.DistributionMap(level).size()) {
+    if (level <= src.finestLevel() && m_dmap[level].size() == src.DistributionMap(level).size()) {
         m_dmap[level] = src.DistributionMap(level);
     }
 }

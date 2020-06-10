@@ -25,12 +25,12 @@ void set_eb_data (const int i, const int j, const int k,
     // We know there are no multiple cuts on faces by now.
     // So we only need to check the case that there are two cuts
     // at the opposite corners.
-    bool multi_cuts = (axm >= 0.5 and axm < 1.0 and
-                       axp >= 0.5 and axp < 1.0 and
-                       aym >= 0.5 and aym < 1.0 and
-                       ayp >= 0.5 and ayp < 1.0 and
-                       azm >= 0.5 and azm < 1.0 and
-                       azp >= 0.5 and azp < 1.0);
+    bool multi_cuts = (axm >= 0.5 && axm < 1.0 &&
+                       axp >= 0.5 && axp < 1.0 &&
+                       aym >= 0.5 && aym < 1.0 &&
+                       ayp >= 0.5 && ayp < 1.0 &&
+                       azm >= 0.5 && azm < 1.0 &&
+                       azp >= 0.5 && azp < 1.0);
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!multi_cuts,
                                      "amrex::EB2::build_cells: multi-cuts not supported");
 
@@ -138,7 +138,7 @@ void cut_face_2d (Real& areafrac, Real& centx, Real& centy,
     Real nxabs = amrex::Math::abs(nx);
     Real nyabs = amrex::Math::abs(ny);
 
-    if (nxabs < tiny or nyabs > 1.0-tiny) {
+    if (nxabs < tiny || nyabs > 1.0-tiny) {
         areafrac = 0.5*(axm+axp);
         if (areafrac > 1.0-small) {
             areafrac = 1.0;
@@ -160,7 +160,7 @@ void cut_face_2d (Real& areafrac, Real& centx, Real& centy,
             Sy2 = (1./24.)*(ayp+aym) + ny*(1./3.)*(bcy*bcy*bcy);
             Sxy = 0.0;
         }
-    } else if (nyabs < tiny or nxabs > 1.0-tiny) {
+    } else if (nyabs < tiny || nxabs > 1.0-tiny) {
         areafrac = 0.5*(aym+ayp);
         if (areafrac > 1.0-small) {
             areafrac = 1.0;
@@ -335,14 +335,14 @@ void build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
             AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ncuts <= 2,
                                              "amrex::EB2::build_faces: more than 2 cuts not supported");
 
-            if (lym <= small and lyp <= small and lzm <= small and lzp <= small) {
+            if (lym <= small && lyp <= small && lzm <= small && lzp <= small) {
                 apx(i,j,k) = 0.0;
                 fcx(i,j,k,0) = 0.0;
                 fcx(i,j,k,1) = 0.0;
                 m2x(i,j,k,0) = 0.0;
                 m2x(i,j,k,1) = 0.0;
                 m2x(i,j,k,2) = 0.0;
-            } else if (lym == lyp and lzm == lzp) {
+            } else if (lym == lyp && lzm == lzp) {
                 apx(i,j,k) = 1.0;
                 fcx(i,j,k,0) = 0.0;
                 fcx(i,j,k,1) = 0.0;
@@ -442,14 +442,14 @@ void build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
             AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ncuts <= 2,
                                              "amrex::EB2::build_faces: more than 2 cuts not supported");
 
-            if (lxm <= small and lxp <= small and lzm <= small and lzp <= small) {
+            if (lxm <= small && lxp <= small && lzm <= small && lzp <= small) {
                 apy(i,j,k) = 0.0;
                 fcy(i,j,k,0) = 0.0;
                 fcy(i,j,k,1) = 0.0;
                 m2y(i,j,k,0) = 0.0;
                 m2y(i,j,k,1) = 0.0;
                 m2y(i,j,k,2) = 0.0;
-            } else if (lxm == lxp and lzm == lzp) {
+            } else if (lxm == lxp && lzm == lzp) {
                 apy(i,j,k) = 1.0;
                 fcy(i,j,k,0) = 0.0;
                 fcy(i,j,k,1) = 0.0;
@@ -549,14 +549,14 @@ void build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
             AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ncuts <= 2,
                                              "amrex::EB2::build_faces: more than 2 cuts not supported");
 
-            if (lxm <= small and lxp <= small and lym <= small and lyp <= small) {
+            if (lxm <= small && lxp <= small && lym <= small && lyp <= small) {
                 apz(i,j,k) = 0.0;
                 fcz(i,j,k,0) = 0.0;
                 fcz(i,j,k,1) = 0.0;
                 m2z(i,j,k,0) = 0.0;
                 m2z(i,j,k,1) = 0.0;
                 m2z(i,j,k,2) = 0.0;
-            } else if (lxm == lxp and lym == lyp) {
+            } else if (lxm == lxp && lym == lyp) {
                 apz(i,j,k) = 1.0;
                 fcz(i,j,k,0) = 0.0;
                 fcz(i,j,k,1) = 0.0;
@@ -583,15 +583,15 @@ void build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
     AMREX_HOST_DEVICE_FOR_3D ( bxg1, i, j, k,
     {
         if (cell(i,j,k).isSingleValued()) {
-            if (fx(i,j,k) == Type::covered and fx(i+1,j,k) == Type::covered and
-                fy(i,j,k) == Type::covered and fy(i,j+1,k) == Type::covered and
-                fz(i,j,k) == Type::covered and fz(i,j,k+1) == Type::covered)
+            if (fx(i,j,k) == Type::covered && fx(i+1,j,k) == Type::covered &&
+                fy(i,j,k) == Type::covered && fy(i,j+1,k) == Type::covered &&
+                fz(i,j,k) == Type::covered && fz(i,j,k+1) == Type::covered)
             {
                 cell(i,j,k).setCovered();
             }
-            else if (fx(i,j,k) == Type::regular and fx(i+1,j,k) == Type::regular and
-                     fy(i,j,k) == Type::regular and fy(i,j+1,k) == Type::regular and
-                     fz(i,j,k) == Type::regular and fz(i,j,k+1) == Type::regular)
+            else if (fx(i,j,k) == Type::regular && fx(i+1,j,k) == Type::regular &&
+                     fy(i,j,k) == Type::regular && fy(i,j+1,k) == Type::regular &&
+                     fz(i,j,k) == Type::regular && fz(i,j,k+1) == Type::regular)
             {
                 cell(i,j,k).setRegular();
             }
@@ -689,7 +689,7 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
         for (int j = lo.y; j <= hi.y; ++j) {
         for (int i = lo.x; i <= hi.x; ++i)
         {
-            if (vfrac(i-1,j,k) < small_volfrac or vfrac(i,j,k) < small_volfrac) {
+            if (vfrac(i-1,j,k) < small_volfrac || vfrac(i,j,k) < small_volfrac) {
                 fx(i,j,k) = Type::covered;
                 apx(i,j,k) = 0.0;
                 if (cell(i  ,j,k).isRegular())
@@ -715,7 +715,7 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
         for (int j = lo.y; j <= hi.y; ++j) {
         for (int i = lo.x; i <= hi.x; ++i)
         {
-            if (vfrac(i,j-1,k) < small_volfrac or vfrac(i,j,k) < small_volfrac) {
+            if (vfrac(i,j-1,k) < small_volfrac || vfrac(i,j,k) < small_volfrac) {
                 fy(i,j,k) = Type::covered;
                 apy(i,j,k) = 0.0;
                 if (cell(i,j  ,k).isRegular())
@@ -741,7 +741,7 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
         for (int j = lo.y; j <= hi.y; ++j) {
         for (int i = lo.x; i <= hi.x; ++i)
         {
-            if (vfrac(i,j,k-1) < small_volfrac or vfrac(i,j,k) < small_volfrac) {
+            if (vfrac(i,j,k-1) < small_volfrac || vfrac(i,j,k) < small_volfrac) {
                 fz(i,j,k) = Type::covered;
                 apz(i,j,k) = 0.0;
 
@@ -791,76 +791,76 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
             }
 
             // x-y
-            if ((fx(i,j,k) == Type::covered or fy(i-1,j,k) == Type::covered) and
-                (fx(i,j-1,k) == Type::covered or fy(i,j,k) == Type::covered))
+            if ((fx(i,j,k) == Type::covered || fy(i-1,j,k) == Type::covered) &&
+                (fx(i,j-1,k) == Type::covered || fy(i,j,k) == Type::covered))
             {
                 flg.setDisconnected(-1,-1,0);
             }
 
-            if ((fx(i+1,j,k) == Type::covered or fy(i+1,j,k) == Type::covered) and
-                (fx(i+1,j-1,k) == Type::covered or fy(i,j,k) == Type::covered))
+            if ((fx(i+1,j,k) == Type::covered || fy(i+1,j,k) == Type::covered) &&
+                (fx(i+1,j-1,k) == Type::covered || fy(i,j,k) == Type::covered))
             {
                 flg.setDisconnected(1,-1,0);
             }
 
-            if ((fx(i,j,k) == Type::covered or fy(i-1,j+1,k) == Type::covered) and
-                (fx(i,j+1,k) == Type::covered or fy(i,j+1,k) == Type::covered))
+            if ((fx(i,j,k) == Type::covered || fy(i-1,j+1,k) == Type::covered) &&
+                (fx(i,j+1,k) == Type::covered || fy(i,j+1,k) == Type::covered))
             {
                 flg.setDisconnected(-1,1,0);
             }
 
-            if ((fx(i+1,j,k) == Type::covered or fy(i+1,j+1,k) == Type::covered) and
-                (fx(i+1,j+1,k) == Type::covered or fy(i,j+1,k) == Type::covered))
+            if ((fx(i+1,j,k) == Type::covered || fy(i+1,j+1,k) == Type::covered) &&
+                (fx(i+1,j+1,k) == Type::covered || fy(i,j+1,k) == Type::covered))
             {
                 flg.setDisconnected(1,1,0);
             }
 
             // x-z
-            if ((fx(i,j,k) == Type::covered or fz(i-1,j,k) == Type::covered) and
-                (fx(i,j,k-1) == Type::covered or fz(i,j,k) == Type::covered))
+            if ((fx(i,j,k) == Type::covered || fz(i-1,j,k) == Type::covered) &&
+                (fx(i,j,k-1) == Type::covered || fz(i,j,k) == Type::covered))
             {
                 flg.setDisconnected(-1,0,-1);
             }
 
-            if ((fx(i+1,j,k) == Type::covered or fz(i+1,j,k) == Type::covered) and
-                (fx(i+1,j,k-1) == Type::covered or fz(i,j,k) == Type::covered))
+            if ((fx(i+1,j,k) == Type::covered || fz(i+1,j,k) == Type::covered) &&
+                (fx(i+1,j,k-1) == Type::covered || fz(i,j,k) == Type::covered))
             {
                 flg.setDisconnected(1,0,-1);
             }
 
-            if ((fx(i,j,k) == Type::covered or fz(i-1,j,k+1) == Type::covered) and
-                (fx(i,j,k+1) == Type::covered or fz(i,j,k+1) == Type::covered))
+            if ((fx(i,j,k) == Type::covered || fz(i-1,j,k+1) == Type::covered) &&
+                (fx(i,j,k+1) == Type::covered || fz(i,j,k+1) == Type::covered))
             {
                 flg.setDisconnected(-1,0,1);
             }
 
-            if ((fx(i+1,j,k) == Type::covered or fz(i+1,j,k+1) == Type::covered) and
-                (fx(i+1,j,k+1) == Type::covered or fz(i,j,k+1) == Type::covered))
+            if ((fx(i+1,j,k) == Type::covered || fz(i+1,j,k+1) == Type::covered) &&
+                (fx(i+1,j,k+1) == Type::covered || fz(i,j,k+1) == Type::covered))
             {
                 flg.setDisconnected(1,0,1);
             }
 
             // y-z
-            if ((fy(i,j,k) == Type::covered or fz(i,j-1,k) == Type::covered) and
-                (fy(i,j,k-1) == Type::covered or fz(i,j,k) == Type::covered))
+            if ((fy(i,j,k) == Type::covered || fz(i,j-1,k) == Type::covered) &&
+                (fy(i,j,k-1) == Type::covered || fz(i,j,k) == Type::covered))
             {
                 flg.setDisconnected(0,-1,-1);
             }
 
-            if ((fy(i,j+1,k) == Type::covered or fz(i,j+1,k) == Type::covered) and
-                (fy(i,j+1,k-1) == Type::covered or fz(i,j,k) == Type::covered))
+            if ((fy(i,j+1,k) == Type::covered || fz(i,j+1,k) == Type::covered) &&
+                (fy(i,j+1,k-1) == Type::covered || fz(i,j,k) == Type::covered))
             {
                 flg.setDisconnected(0,1,-1);
             }
 
-            if ((fy(i,j,k) == Type::covered or fz(i,j-1,k+1) == Type::covered) and
-                (fy(i,j,k+1) == Type::covered or fz(i,j,k+1) == Type::covered))
+            if ((fy(i,j,k) == Type::covered || fz(i,j-1,k+1) == Type::covered) &&
+                (fy(i,j,k+1) == Type::covered || fz(i,j,k+1) == Type::covered))
             {
                 flg.setDisconnected(0,-1,1);
             }
 
-            if ((fy(i,j+1,k) == Type::covered or fz(i,j+1,k+1) == Type::covered) and
-                (fy(i,j+1,k+1) == Type::covered or fz(i,j,k+1) == Type::covered))
+            if ((fy(i,j+1,k) == Type::covered || fz(i,j+1,k+1) == Type::covered) &&
+                (fy(i,j+1,k+1) == Type::covered || fz(i,j,k+1) == Type::covered))
             {
                 flg.setDisconnected(0,1,1);
             }
@@ -878,65 +878,65 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
             auto newflg = tmpflg;
 
             // -1, -1, -1 corner
-            if ((tmpflg.isDisconnected(-1, 0, 0) or ctmp(i-1,j  ,k  ).isDisconnected( 0,-1,-1)) and
-                (tmpflg.isDisconnected( 0,-1, 0) or ctmp(i  ,j-1,k  ).isDisconnected(-1, 0,-1)) and
-                (tmpflg.isDisconnected( 0, 0,-1) or ctmp(i  ,j  ,k-1).isDisconnected(-1,-1, 0)))
+            if ((tmpflg.isDisconnected(-1, 0, 0) || ctmp(i-1,j  ,k  ).isDisconnected( 0,-1,-1)) &&
+                (tmpflg.isDisconnected( 0,-1, 0) || ctmp(i  ,j-1,k  ).isDisconnected(-1, 0,-1)) &&
+                (tmpflg.isDisconnected( 0, 0,-1) || ctmp(i  ,j  ,k-1).isDisconnected(-1,-1, 0)))
             {
                 newflg.setDisconnected(-1,-1,-1);
             }
 
             // 1, -1, -1 corner
-            if ((tmpflg.isDisconnected( 1, 0, 0) or ctmp(i+1,j  ,k  ).isDisconnected( 0,-1,-1)) and
-                (tmpflg.isDisconnected( 0,-1, 0) or ctmp(i  ,j-1,k  ).isDisconnected( 1, 0,-1)) and
-                (tmpflg.isDisconnected( 0, 0,-1) or ctmp(i  ,j  ,k-1).isDisconnected( 1,-1, 0)))
+            if ((tmpflg.isDisconnected( 1, 0, 0) || ctmp(i+1,j  ,k  ).isDisconnected( 0,-1,-1)) &&
+                (tmpflg.isDisconnected( 0,-1, 0) || ctmp(i  ,j-1,k  ).isDisconnected( 1, 0,-1)) &&
+                (tmpflg.isDisconnected( 0, 0,-1) || ctmp(i  ,j  ,k-1).isDisconnected( 1,-1, 0)))
             {
                 newflg.setDisconnected(1,-1,-1);
             }
 
             // -1, 1, -1 corner
-            if ((tmpflg.isDisconnected(-1, 0, 0) or ctmp(i-1,j  ,k  ).isDisconnected( 0, 1,-1)) and
-                (tmpflg.isDisconnected( 0, 1, 0) or ctmp(i  ,j+1,k  ).isDisconnected(-1, 0,-1)) and
-                (tmpflg.isDisconnected( 0, 0,-1) or ctmp(i  ,j  ,k-1).isDisconnected(-1, 1, 0)))
+            if ((tmpflg.isDisconnected(-1, 0, 0) || ctmp(i-1,j  ,k  ).isDisconnected( 0, 1,-1)) &&
+                (tmpflg.isDisconnected( 0, 1, 0) || ctmp(i  ,j+1,k  ).isDisconnected(-1, 0,-1)) &&
+                (tmpflg.isDisconnected( 0, 0,-1) || ctmp(i  ,j  ,k-1).isDisconnected(-1, 1, 0)))
             {
                 newflg.setDisconnected(-1, 1,-1);
             }
 
             // 1, 1, -1 corner
-            if ((tmpflg.isDisconnected( 1, 0, 0) or ctmp(i+1,j  ,k  ).isDisconnected( 0, 1,-1)) and
-                (tmpflg.isDisconnected( 0, 1, 0) or ctmp(i  ,j+1,k  ).isDisconnected( 1, 0,-1)) and
-                (tmpflg.isDisconnected( 0, 0,-1) or ctmp(i  ,j  ,k-1).isDisconnected( 1, 1, 0)))
+            if ((tmpflg.isDisconnected( 1, 0, 0) || ctmp(i+1,j  ,k  ).isDisconnected( 0, 1,-1)) &&
+                (tmpflg.isDisconnected( 0, 1, 0) || ctmp(i  ,j+1,k  ).isDisconnected( 1, 0,-1)) &&
+                (tmpflg.isDisconnected( 0, 0,-1) || ctmp(i  ,j  ,k-1).isDisconnected( 1, 1, 0)))
             {
                 newflg.setDisconnected(1, 1,-1);
             }
 
             // -1, -1, 1 corner
-            if ((tmpflg.isDisconnected(-1, 0, 0) or ctmp(i-1,j  ,k  ).isDisconnected( 0,-1, 1)) and
-                (tmpflg.isDisconnected( 0,-1, 0) or ctmp(i  ,j-1,k  ).isDisconnected(-1, 0, 1)) and
-                (tmpflg.isDisconnected( 0, 0, 1) or ctmp(i  ,j  ,k+1).isDisconnected(-1,-1, 0)))
+            if ((tmpflg.isDisconnected(-1, 0, 0) || ctmp(i-1,j  ,k  ).isDisconnected( 0,-1, 1)) &&
+                (tmpflg.isDisconnected( 0,-1, 0) || ctmp(i  ,j-1,k  ).isDisconnected(-1, 0, 1)) &&
+                (tmpflg.isDisconnected( 0, 0, 1) || ctmp(i  ,j  ,k+1).isDisconnected(-1,-1, 0)))
             {
                 newflg.setDisconnected(-1,-1, 1);
             }
 
             // 1, -1, 1 corner
-            if ((tmpflg.isDisconnected( 1, 0, 0) or ctmp(i+1,j  ,k  ).isDisconnected( 0,-1, 1)) and
-                (tmpflg.isDisconnected( 0,-1, 0) or ctmp(i  ,j-1,k  ).isDisconnected( 1, 0, 1)) and
-                (tmpflg.isDisconnected( 0, 0, 1) or ctmp(i  ,j  ,k+1).isDisconnected( 1,-1, 0)))
+            if ((tmpflg.isDisconnected( 1, 0, 0) || ctmp(i+1,j  ,k  ).isDisconnected( 0,-1, 1)) &&
+                (tmpflg.isDisconnected( 0,-1, 0) || ctmp(i  ,j-1,k  ).isDisconnected( 1, 0, 1)) &&
+                (tmpflg.isDisconnected( 0, 0, 1) || ctmp(i  ,j  ,k+1).isDisconnected( 1,-1, 0)))
             {
                 newflg.setDisconnected(1,-1, 1);
             }
 
             // -1, 1, 1 corner
-            if ((tmpflg.isDisconnected(-1, 0, 0) or ctmp(i-1,j  ,k  ).isDisconnected( 0, 1, 1)) and
-                (tmpflg.isDisconnected( 0, 1, 0) or ctmp(i  ,j+1,k  ).isDisconnected(-1, 0, 1)) and
-                (tmpflg.isDisconnected( 0, 0, 1) or ctmp(i  ,j  ,k+1).isDisconnected(-1, 1, 0)))
+            if ((tmpflg.isDisconnected(-1, 0, 0) || ctmp(i-1,j  ,k  ).isDisconnected( 0, 1, 1)) &&
+                (tmpflg.isDisconnected( 0, 1, 0) || ctmp(i  ,j+1,k  ).isDisconnected(-1, 0, 1)) &&
+                (tmpflg.isDisconnected( 0, 0, 1) || ctmp(i  ,j  ,k+1).isDisconnected(-1, 1, 0)))
             {
                 newflg.setDisconnected(-1,1,1);
             }
 
             // 1, 1, 1 corner
-            if ((tmpflg.isDisconnected( 1, 0, 0) or ctmp(i+1,j  ,k  ).isDisconnected( 0, 1, 1)) and
-                (tmpflg.isDisconnected( 0, 1, 0) or ctmp(i  ,j+1,k  ).isDisconnected( 1, 0, 1)) and
-                (tmpflg.isDisconnected( 0, 0, 1) or ctmp(i  ,j  ,k+1).isDisconnected( 1, 1, 0)))
+            if ((tmpflg.isDisconnected( 1, 0, 0) || ctmp(i+1,j  ,k  ).isDisconnected( 0, 1, 1)) &&
+                (tmpflg.isDisconnected( 0, 1, 0) || ctmp(i  ,j+1,k  ).isDisconnected( 1, 0, 1)) &&
+                (tmpflg.isDisconnected( 0, 0, 1) || ctmp(i  ,j  ,k+1).isDisconnected( 1, 1, 0)))
             {
                 newflg.setDisconnected(1,1,1);
             }

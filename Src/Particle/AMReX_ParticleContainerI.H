@@ -247,7 +247,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
             shifted = true;
 	    }
-        AMREX_ASSERT( (p.pos(i) >= (typename ParticleType::RealType) geom.ProbLo(i) ) and ( p.pos(i) < (typename ParticleType::RealType) geom.ProbHi(i) ));
+        AMREX_ASSERT( (p.pos(i) >= (typename ParticleType::RealType) geom.ProbLo(i) ) && ( p.pos(i) < (typename ParticleType::RealType) geom.ProbHi(i) ));
     }
 
     return shifted;
@@ -933,7 +933,7 @@ addParticles (const ParticleContainerType& other, bool local)
         }
     }
     
-    if (not local) Redistribute();
+    if (! local) Redistribute();
 }
 
 //
@@ -1063,7 +1063,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     {
         const auto& ba = ParticleBoxArray(0);
         const auto& geom = Geom(0);
-        if ((ba.size() == 1) and geom.isAllPeriodic())
+        if ((ba.size() == 1) && geom.isAllPeriodic())
         {
             EnforcePeriodic();
             AMREX_ASSERT(OK());
@@ -1071,7 +1071,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         }
     }
 
-    if (not m_particle_locator.isValid(GetParGDB())) m_particle_locator.build(GetParGDB());
+    if (! m_particle_locator.isValid(GetParGDB())) m_particle_locator.build(GetParGDB());
     m_particle_locator.setGeometry(GetParGDB());
     auto assign_grid = m_particle_locator.getGridAssignor();
 
@@ -1584,7 +1584,7 @@ defineBufferMap () const
 {    
     BL_PROFILE("ParticleContainer::defineBufferMap");
 
-    if (not m_buffer_map.isValid(GetParGDB()))
+    if (! m_buffer_map.isValid(GetParGDB()))
     {
         m_buffer_map.define(GetParGDB());
     }
@@ -1689,7 +1689,7 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
 
     const int SeqNum = ParallelDescriptor::SeqNum();
     
-    if ((not local) and NumSnds == 0)
+    if ((! local) && NumSnds == 0)
         return;  // There's no parallel work to do.
 
     if (local)
@@ -1700,7 +1700,7 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
             tot_snds_this_proc += Snds[neighbor_procs[i]];
             tot_rcvs_this_proc += Rcvs[neighbor_procs[i]];
         }
-        if ( (tot_snds_this_proc == 0) and (tot_rcvs_this_proc == 0) ) {
+        if ( (tot_snds_this_proc == 0) && (tot_rcvs_this_proc == 0) ) {
             return; // There's no parallel work to do.
         } 
     }

@@ -214,7 +214,7 @@ void enforcePeriodic (P& p,
 
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
-        if (not is_per[idim]) continue;
+        if (! is_per[idim]) continue;
         if (p.pos(idim) >= phi[idim]) { 
             while (p.pos(idim) >= phi[idim]) { 
                 p.pos(idim) -= (phi[idim] - plo[idim]);

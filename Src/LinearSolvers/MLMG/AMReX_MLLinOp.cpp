@@ -153,7 +153,7 @@ MLLinOp::define (const Vector<Geometry>& a_geom,
     }
 
 #ifdef AMREX_USE_EB
-    if (!a_factory.empty() and eb_limit_coarsening) {
+    if (!a_factory.empty() && eb_limit_coarsening) {
         auto f = dynamic_cast<EBFArrayBoxFactory const*>(a_factory[0]);
         if (f) {
             info.max_coarsening_level = std::min(info.max_coarsening_level,
@@ -283,8 +283,8 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
         domainboxes.push_back(dbx);
         boundboxes.push_back(bbx);
         agg_flag.push_back(false);
-        while (    dbx.coarsenable(mg_coarsen_ratio,mg_domain_min_width)
-               and bbx.coarsenable(mg_coarsen_ratio,mg_box_min_width))
+        while (   dbx.coarsenable(mg_coarsen_ratio,mg_domain_min_width)
+               && bbx.coarsenable(mg_coarsen_ratio,mg_box_min_width))
         {
             dbx.coarsen(mg_coarsen_ratio);
             domainboxes.push_back(dbx);
@@ -366,8 +366,8 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
             }
         }
         while (m_num_mg_levels[0] < info.max_coarsening_level + 1
-               and a_geom[0].Domain().coarsenable(rr, mg_domain_min_width)
-               and a_grids[0].coarsenable(rr, mg_box_min_width))
+               && a_geom[0].Domain().coarsenable(rr, mg_domain_min_width)
+               && a_grids[0].coarsenable(rr, mg_box_min_width))
         {
             m_geom[0].emplace_back(amrex::coarsen(a_geom[0].Domain(),rr),rb,coord,is_per);
             
@@ -492,7 +492,7 @@ MLLinOp::setDomainBC (const Array<BCType,AMREX_SPACEDIM>& a_lobc,
             AMREX_ALWAYS_ASSERT(a_lobc[idim] == BCType::Periodic);
             AMREX_ALWAYS_ASSERT(a_hibc[idim] == BCType::Periodic);
         }
-        if (a_lobc[idim] == BCType::Periodic or
+        if (a_lobc[idim] == BCType::Periodic ||
             a_hibc[idim] == BCType::Periodic) {
             AMREX_ALWAYS_ASSERT(m_geom[0][0].isPeriodic(idim));
         }
@@ -534,7 +534,7 @@ MLLinOp::setDomainBC (const Vector<Array<BCType,AMREX_SPACEDIM> >& a_lobc,
                 AMREX_ALWAYS_ASSERT(m_lobc[icomp][idim] == BCType::Periodic);
                 AMREX_ALWAYS_ASSERT(m_hibc[icomp][idim] == BCType::Periodic);
             }
-            if (m_lobc[icomp][idim] == BCType::Periodic or
+            if (m_lobc[icomp][idim] == BCType::Periodic ||
                 m_hibc[icomp][idim] == BCType::Periodic) {
                 AMREX_ALWAYS_ASSERT(m_geom[0][0].isPeriodic(idim));
             }

@@ -32,7 +32,7 @@ void do_job ()
     while (true)
     {
         std::unique_lock<std::mutex> lck(s_mutx);
-        s_cond.wait(lck, [] () -> bool { return not s_func.empty(); });
+        s_cond.wait(lck, [] () -> bool { return ! s_func.empty(); });
         auto f = s_func.front();
         s_func.pop();
         lck.unlock();
@@ -54,7 +54,7 @@ void Initialize ()
     int nprocs = ParallelDescriptor::NProcs();
     s_noutfiles = std::min(s_noutfiles, nprocs);
 
-    if (s_asyncout and s_noutfiles < nprocs)
+    if (s_asyncout && s_noutfiles < nprocs)
     {
 #ifdef AMREX_MPI_THREAD_MULTIPLE
         int myproc = ParallelDescriptor::MyProc();

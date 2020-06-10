@@ -7,8 +7,8 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void eb_set_covered_nodes (int i, int j, int k, int n, int icomp, Array4<Real> const& d,
                            Array4<EBCellFlag const> const& f, Real v)
 {
-    if (f(i-1,j-1,k).isCovered() and f(i  ,j-1,k).isCovered() and
-        f(i-1,j  ,k).isCovered() and f(i  ,j  ,k).isCovered())
+    if (f(i-1,j-1,k).isCovered() && f(i  ,j-1,k).isCovered() &&
+        f(i-1,j  ,k).isCovered() && f(i  ,j  ,k).isCovered())
     {
         d(i,j,k,n+icomp) = v;
     }
@@ -18,8 +18,8 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void eb_set_covered_nodes (int i, int j, int k, int n, int icomp, Array4<Real> const& d,
                            Array4<EBCellFlag const> const& f, Real const * AMREX_RESTRICT v)
 {
-    if (f(i-1,j-1,k).isCovered() and f(i  ,j-1,k).isCovered() and
-        f(i-1,j  ,k).isCovered() and f(i  ,j  ,k).isCovered())
+    if (f(i-1,j-1,k).isCovered() && f(i  ,j-1,k).isCovered() &&
+        f(i-1,j  ,k).isCovered() && f(i  ,j  ,k).isCovered())
     {
         d(i,j,k,n+icomp) = v[n];
     }
@@ -177,28 +177,28 @@ void eb_compute_divergence (int i, int j, int k, int n, Array4<Real> const& divu
     else
     {
         Real fxm = u(i,j,k,n);
-        if (apx(i,j,k) != 0.0 and apx(i,j,k) != 1.0) {
+        if (apx(i,j,k) != 0.0 && apx(i,j,k) != 1.0) {
             int jj = j + static_cast<int>(amrex::Math::copysign(1.0,fcx(i,j,k)));
             Real fracy = (ccm(i-1,jj,k) || ccm(i,jj,k)) ? amrex::Math::abs(fcx(i,j,k)) : 0.0;
             fxm = (1.0-fracy)*fxm + fracy*u(i,jj,k,n);
         }
 
         Real fxp = u(i+1,j,k,n);
-        if (apx(i+1,j,k) != 0.0 and apx(i+1,j,k) != 1.0) {
+        if (apx(i+1,j,k) != 0.0 && apx(i+1,j,k) != 1.0) {
             int jj = j + static_cast<int>(amrex::Math::copysign(1.0,fcx(i+1,j,k)));
             Real fracy = (ccm(i,jj,k) || ccm(i+1,jj,k)) ? amrex::Math::abs(fcx(i+1,j,k)) : 0.0;
             fxp = (1.0-fracy)*fxp + fracy*u(i+1,jj,k,n);
         }
 
         Real fym = v(i,j,k,n);
-        if (apy(i,j,k) != 0.0 and apy(i,j,k) != 1.0) {
+        if (apy(i,j,k) != 0.0 && apy(i,j,k) != 1.0) {
             int ii = i + static_cast<int>(amrex::Math::copysign(1.0,fcy(i,j,k)));
             Real fracx = (ccm(ii,j-1,k) || ccm(ii,j,k)) ? amrex::Math::abs(fcy(i,j,k)) : 0.0;
             fym = (1.0-fracx)*fym + fracx*v(ii,j,k,n);
         }
 
         Real fyp = v(i,j+1,k,n);
-        if (apy(i,j+1,k) != 0.0 and apy(i,j+1,k) != 1.0) {
+        if (apy(i,j+1,k) != 0.0 && apy(i,j+1,k) != 1.0) {
             int ii = i + static_cast<int>(amrex::Math::copysign(1.0,fcy(i,j+1,k)));
             Real fracx = (ccm(ii,j,k) || ccm(ii,j+1,k)) ? amrex::Math::abs(fcy(i,j+1,k)) : 0.0;
             fyp = (1.0-fracx)*fyp + fracx*v(ii,j+1,k,n);
@@ -309,11 +309,11 @@ void eb_interp_cc2facecent (Box const& box,
       {
         if (apx(i,j,k) == 1)
         {
-          if ( (i == domlo.x) and (bc[n].lo(0) == BCType::ext_dir) )
+          if ( (i == domlo.x) && (bc[n].lo(0) == BCType::ext_dir) )
           {
             edg_x(i,j,k,n) = phi(domlo.x-1,j,k,n);
           }
-          else if ( (i == domhi.x+1) and (bc[n].hi(0) == BCType::ext_dir) )
+          else if ( (i == domhi.x+1) && (bc[n].hi(0) == BCType::ext_dir) )
           {
             edg_x(i,j,k,n) = phi(domhi.x+1,j,k,n);
           }
@@ -351,11 +351,11 @@ void eb_interp_cc2facecent (Box const& box,
       {
         if (apy(i,j,k) == 1)
         {
-          if ( (j == domlo.y) and (bc[n].lo(1) == BCType::ext_dir) )
+          if ( (j == domlo.y) && (bc[n].lo(1) == BCType::ext_dir) )
           {
             edg_y(i,j,k,n) = phi(i,domlo.y-1,k,n);
           }
-          else if ( (j == domhi.y+1) and (bc[n].hi(1) == BCType::ext_dir) )
+          else if ( (j == domhi.y+1) && (bc[n].hi(1) == BCType::ext_dir) )
           {
             edg_y(i,j,k,n) = phi(i,domhi.y+1,k,n);
           }
@@ -410,11 +410,11 @@ void eb_interp_centroid2facecent (Box const& box,
       {
           edg_x(i,j,k,n) = 1e40;
       }
-      else if ( (i == domlo.x) and (bc[n].lo(0) == BCType::ext_dir) )
+      else if ( (i == domlo.x) && (bc[n].lo(0) == BCType::ext_dir) )
       {
           edg_x(i,j,k,n) = phi(domlo.x-1,j,k,n);
       }
-      else if ( (i == domhi.x+1) and (bc[n].hi(0) == BCType::ext_dir) )
+      else if ( (i == domhi.x+1) && (bc[n].hi(0) == BCType::ext_dir) )
       {
           edg_x(i,j,k,n) = phi(domhi.x+1,j,k,n);
       }
@@ -460,11 +460,11 @@ void eb_interp_centroid2facecent (Box const& box,
         {
             edg_y(i,j,k,n) = 1e40;
         }
-        else if ( (j == domlo.y) and (bc[n].lo(1) == BCType::ext_dir) )
+        else if ( (j == domlo.y) && (bc[n].lo(1) == BCType::ext_dir) )
         {
             edg_y(i,j,k,n) = phi(i,domlo.y-1,k,n);
         }
-        else if ( (j == domhi.y+1) and (bc[n].hi(1) == BCType::ext_dir) )
+        else if ( (j == domhi.y+1) && (bc[n].hi(1) == BCType::ext_dir) )
         {
             edg_y(i,j,k,n) = phi(i,domhi.y+1,k,n);
         }
@@ -522,11 +522,11 @@ void eb_interp_cc2face (Box const& box,
   //
   amrex::Loop(ubx, ncomp, [=] (int i, int j, int k, int n) noexcept
     {
-        if ( (i == domlo.x) and (bc[n].lo(0) == BCType::ext_dir) )
+        if ( (i == domlo.x) && (bc[n].lo(0) == BCType::ext_dir) )
         {
           edg_x(i,j,k,n) = phi(domlo.x-1,j,k,n);
         }
-        else if ( (i == domhi.x+1) and (bc[n].hi(0) == BCType::ext_dir) )
+        else if ( (i == domhi.x+1) && (bc[n].hi(0) == BCType::ext_dir) )
         {
           edg_x(i,j,k,n) = phi(domhi.x+1,j,k,n);
         }
@@ -542,11 +542,11 @@ void eb_interp_cc2face (Box const& box,
   //
   amrex::Loop(vbx, ncomp, [=] (int i, int j, int k, int n) noexcept
     {
-        if ( (j == domlo.y) and (bc[n].lo(1) == BCType::ext_dir) )
+        if ( (j == domlo.y) && (bc[n].lo(1) == BCType::ext_dir) )
         {
           edg_y(i,j,k,n) = phi(i,domlo.y-1,k,n);
         }
-        else if ( (j == domhi.y+1) and (bc[n].hi(1) == BCType::ext_dir) )
+        else if ( (j == domhi.y+1) && (bc[n].hi(1) == BCType::ext_dir) )
         {
           edg_y(i,j,k,n) = phi(i,domhi.y+1,k,n);
         }

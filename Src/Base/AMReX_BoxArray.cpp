@@ -451,7 +451,7 @@ BoxArray::readFrom (std::istream& is)
     clear();
     int ndims;
     m_ref->define(is, ndims);
-    if (not m_ref->m_abox.empty()) {
+    if (! m_ref->m_abox.empty()) {
         m_bat = BATransformer(m_ref->m_abox[0].ixType());
         type_update();
     }
@@ -495,7 +495,7 @@ BoxArray::writeOn (std::ostream& os) const
 bool
 BoxArray::operator== (const BoxArray& rhs) const noexcept
 {
-    return m_bat == rhs.m_bat and
+    return m_bat == rhs.m_bat &&
         (m_ref == rhs.m_ref || m_ref->m_abox == rhs.m_ref->m_abox);
 }
 
@@ -537,7 +537,7 @@ BoxArray::maxSize (int block_size)
 BoxArray&
 BoxArray::maxSize (const IntVect& block_size)
 {
-    if ((not m_bat.is_simple()) or (crseRatio() != IntVect::TheUnitVector())) {
+    if ((! m_bat.is_simple()) || (crseRatio() != IntVect::TheUnitVector())) {
         uniqify();
     }
     BoxList blst(*this);
@@ -853,17 +853,17 @@ BoxArray::ok () const
         auto const& bxs = this->m_ref->m_abox;
         if (m_bat.is_null()) {
             for (int i = 0; i < N; ++i) {
-                if (not bxs[i].ok()) return false;
+                if (! bxs[i].ok()) return false;
             }
         } else if (m_bat.is_simple()) {
             IndexType t = ixType();
             IntVect cr = crseRatio();
             for (int i = 0; i < N; ++i) {
-                if (not amrex::convert(amrex::coarsen(bxs[i],cr),t).ok()) return false;
+                if (! amrex::convert(amrex::coarsen(bxs[i],cr),t).ok()) return false;
             }
         } else {
             for (int i = 0; i < N; ++i) {
-                if (not m_bat.m_op.m_bndryReg(bxs[i]).ok()) return false;
+                if (! m_bat.m_op.m_bndryReg(bxs[i]).ok()) return false;
             }
         }
     }
@@ -1458,7 +1458,7 @@ BoxArray::type_update ()
 {
     if (!empty())
     {
-	if (not ixType().cellCentered())
+	if (! ixType().cellCentered())
 	{
             for (auto& bx : m_ref->m_abox) {
 		bx.enclosedCells();

@@ -669,8 +669,8 @@ VisMF::Header::Header (const FabArray<FArrayBox>& mf,
     }
 
     bool run_on_device = Gpu::inLaunchRegion()
-        and (mf.arena() == The_Arena() or
-             mf.arena() == The_Device_Arena() or
+        &&  (mf.arena() == The_Arena() ||
+             mf.arena() == The_Device_Arena() ||
              mf.arena() == The_Managed_Arena());
 
     if(version == NoFabHeaderFAMinMax_v1) {
@@ -713,8 +713,8 @@ VisMF::Header::CalculateMinMax (const FabArray<FArrayBox>& mf,
     m_max.resize(m_ba.size());
 
     bool run_on_device = Gpu::inLaunchRegion()
-        and (mf.arena() == The_Arena() or
-             mf.arena() == The_Device_Arena() or
+        &&  (mf.arena() == The_Arena() ||
+             mf.arena() == The_Device_Arena() ||
              mf.arena() == The_Managed_Arena());
 
 #ifdef BL_USE_MPI
@@ -961,12 +961,12 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
     }
     bool doConvert(*whichRD != FPC::NativeRealDescriptor());
 
-    if(set_ghost and mf.nGrowVect() != 0) {
+    if(set_ghost && mf.nGrowVect() != 0) {
         FabArray<FArrayBox>* the_mf = const_cast<FabArray<FArrayBox>*>(&mf);
 
         bool run_on_device = Gpu::inLaunchRegion()
-            and (mf.arena() == The_Arena() or
-                 mf.arena() == The_Device_Arena() or
+            &&  (mf.arena() == The_Arena() ||
+                 mf.arena() == The_Device_Arena() ||
                  mf.arena() == The_Managed_Arena());
 
         for(MFIter mfi(*the_mf); mfi.isValid(); ++mfi) {
@@ -2181,7 +2181,7 @@ VisMF::AsyncWrite (const FabArray<FArrayBox>& mf, const std::string& mf_name, bo
     if (AsyncOut::UseAsyncOut()) {
         AsyncWriteDoit(mf, mf_name, false, valid_cells_only);
     } else {
-        if (valid_cells_only and mf.nGrowVect() != 0) {
+        if (valid_cells_only && mf.nGrowVect() != 0) {
             FabArray<FArrayBox> mf_tmp(mf.boxArray(), mf.DistributionMap(), mf.nComp(), 0);
             amrex::Copy(mf_tmp, mf, 0, 0, mf.nComp(), 0);
             Write(mf_tmp, mf_name);
@@ -2197,7 +2197,7 @@ VisMF::AsyncWrite (FabArray<FArrayBox>&& mf, const std::string& mf_name, bool va
     if (AsyncOut::UseAsyncOut()) {
         AsyncWriteDoit(mf, mf_name, true, valid_cells_only);
     } else {
-        if (valid_cells_only and mf.nGrowVect() != 0) {
+        if (valid_cells_only && mf.nGrowVect() != 0) {
             FabArray<FArrayBox> mf_tmp(mf.boxArray(), mf.DistributionMap(), mf.nComp(), 0);
             amrex::Copy(mf_tmp, mf, 0, 0, mf.nComp(), 0);
             Write(mf_tmp, mf_name);
@@ -2214,7 +2214,7 @@ VisMF::AsyncWriteDoit (const FabArray<FArrayBox>& mf, const std::string& mf_name
     BL_PROFILE("VisMF::AsyncWrite()");
 
     AMREX_ASSERT(mf_name[mf_name.length() - 1] != '/');
-    static_assert(sizeof(int64_t) == sizeof(Real)*2 or sizeof(int64_t) == sizeof(Real),
+    static_assert(sizeof(int64_t) == sizeof(Real)*2 || sizeof(int64_t) == sizeof(Real),
                   "AsyncWrite: unsupported Real size");
 
     const DistributionMapping& dm = mf.DistributionMap();
@@ -2237,12 +2237,12 @@ VisMF::AsyncWriteDoit (const FabArray<FArrayBox>& mf, const std::string& mf_name
     const Long n_local_nums = n_fab_nums * n_local_fabs + 1;
     Vector<int64_t> localdata(n_local_nums);
 
-    bool data_on_device = (mf.arena() == The_Arena() or
-                           mf.arena() == The_Device_Arena() or
+    bool data_on_device = (mf.arena() == The_Arena() ||
+                           mf.arena() == The_Device_Arena() ||
                            mf.arena() == The_Managed_Arena());
-    bool run_on_device = Gpu::inLaunchRegion() and data_on_device;
+    bool run_on_device = Gpu::inLaunchRegion() && data_on_device;
 
-    bool strip_ghost = valid_cells_only and mf.nGrowVect() != 0;
+    bool strip_ghost = valid_cells_only && mf.nGrowVect() != 0;
 
     int64_t total_bytes = 0;
     auto pld = (char*)(&(localdata[1]));
@@ -2324,7 +2324,7 @@ VisMF::AsyncWriteDoit (const FabArray<FArrayBox>& mf, const std::string& mf_name
         } else
 #endif
         {
-            if (is_rvalue and not strip_ghost) {
+            if (is_rvalue && !strip_ghost) {
                 myfabs->emplace_back(std::move(const_cast<FArrayBox&>(mf[mfi])));
             } else {
                 myfabs->emplace_back(bx, mf.nComp(), The_Cpu_Arena());

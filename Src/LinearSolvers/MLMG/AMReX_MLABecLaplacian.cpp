@@ -87,7 +87,7 @@ MLABecLaplacian::setBCoeffs (int amrlev,
                              const Array<MultiFab const*,AMREX_SPACEDIM>& beta)
 {
     const int ncomp = getNComp();
-    AMREX_ALWAYS_ASSERT(beta[0]->nComp() == 1 or beta[0]->nComp() == ncomp);
+    AMREX_ALWAYS_ASSERT(beta[0]->nComp() == 1 || beta[0]->nComp() == ncomp);
     if (beta[0]->nComp() == ncomp)
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             for (int icomp = 0; icomp < ncomp; ++icomp) {

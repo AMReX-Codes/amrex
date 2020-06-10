@@ -39,8 +39,8 @@ void interpbndrydata_x_o3 (int i, int j, int k, int n,
     Real dz = fac*(crse(ic,jc,hi,n+nc)-crse(ic,jc,lo,n+nc));
     Real dz2 = (hi==lo+2) ? 0.5_rt*(crse(ic,jc,kc+1,n+nc) - 2._rt*crse(ic,jc,kc,n+nc) + crse(ic,jc,kc-1,n+nc)) : 0._rt;
 
-    Real dyz = (mask(i,j-r.y,k-r.z) == not_covered and mask(i,j+r.y,k-r.z) == not_covered and
-                mask(i,j-r.y,k+r.z) == not_covered and mask(i,j+r.y,k+r.z) == not_covered)
+    Real dyz = (mask(i,j-r.y,k-r.z) == not_covered && mask(i,j+r.y,k-r.z) == not_covered &&
+                mask(i,j-r.y,k+r.z) == not_covered && mask(i,j+r.y,k+r.z) == not_covered)
         ? 0.25_rt*(crse(ic,jc+1,kc+1,n+nc)-crse(ic,jc-1,kc+1,n+nc)+crse(ic,jc-1,kc-1,n+nc)-crse(ic,jc+1,kc-1,n+nc))
         : 0.0;
 
@@ -71,8 +71,8 @@ void interpbndrydata_y_o3 (int i, int j, int k, int n,
     Real dz = fac*(crse(ic,jc,hi,n+nc)-crse(ic,jc,lo,n+nc));
     Real dz2 = (hi==lo+2) ? 0.5_rt*(crse(ic,jc,kc+1,n+nc) - 2._rt*crse(ic,jc,kc,n+nc) + crse(ic,jc,kc-1,n+nc)) : 0._rt;
 
-    Real dxz = (mask(i-r.x,j,k-r.z) == not_covered and mask(i+r.x,j,k-r.z) == not_covered and
-                mask(i-r.x,j,k+r.z) == not_covered and mask(i+r.x,j,k+r.z) == not_covered)
+    Real dxz = (mask(i-r.x,j,k-r.z) == not_covered && mask(i+r.x,j,k-r.z) == not_covered &&
+                mask(i-r.x,j,k+r.z) == not_covered && mask(i+r.x,j,k+r.z) == not_covered)
         ? 0.25_rt*(crse(ic+1,jc,kc+1,n+nc)-crse(ic-1,jc,kc+1,n+nc)+crse(ic-1,jc,kc-1,n+nc)-crse(ic+1,jc,kc-1,n+nc))
         : 0.0;
 
@@ -104,8 +104,8 @@ void interpbndrydata_z_o3 (int i, int j, int k, int n,
     Real dy = fac*(crse(ic,hi,kc,n+nc)-crse(ic,lo,kc,n+nc));
     Real dy2 = (hi==lo+2) ? 0.5_rt*(crse(ic,jc+1,kc,n+nc) - 2._rt*crse(ic,jc,kc,n+nc) + crse(ic,jc-1,kc,n+nc)) : 0._rt;
 
-    Real dxy = (mask(i-r.x,j-r.y,k) == not_covered and mask(i+r.x,j-r.y,k) == not_covered and
-                mask(i-r.x,j+r.y,k) == not_covered and mask(i+r.x,j+r.y,k) == not_covered)
+    Real dxy = (mask(i-r.x,j-r.y,k) == not_covered && mask(i+r.x,j-r.y,k) == not_covered &&
+                mask(i-r.x,j+r.y,k) == not_covered && mask(i+r.x,j+r.y,k) == not_covered)
         ? 0.25_rt*(crse(ic+1,jc+1,kc,n+nc)-crse(ic-1,jc+1,kc,n+nc)+crse(ic-1,jc-1,kc,n+nc)-crse(ic+1,jc-1,kc,n+nc))
         : 0.0;
 

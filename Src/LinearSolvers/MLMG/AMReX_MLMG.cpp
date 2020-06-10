@@ -100,7 +100,7 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
 
     Real max_norm;
     std::string norm_name;
-    if (always_use_bnorm or rhsnorm0 >= resnorm0) {
+    if (always_use_bnorm || rhsnorm0 >= resnorm0) {
         norm_name = "bnorm";
         max_norm = rhsnorm0;
     } else {
@@ -139,7 +139,7 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
             }
             bool fine_converged = (fine_norminf <= res_target);
 
-            if (namrlevs == 1 and fine_converged) {
+            if (namrlevs == 1 && fine_converged) {
                 converged = true;
             } else if (fine_converged) {
                 // finest level is converged, but we still need to test the coarse levels
@@ -679,7 +679,7 @@ MLMG::interpCorrection (int alev)
         for (MFIter mfi(fine_cor, TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             Box fbx = mfi.tilebox();
-            if (cf_strategy == CFStrategy::ghostnodes and nghost >1) fbx.grow(2);
+            if (cf_strategy == CFStrategy::ghostnodes && nghost >1) fbx.grow(2);
             Array4<Real> const& ffab = fine_cor.array(mfi);
             Array4<Real const> const& cfab = cfine.const_array(mfi);
 

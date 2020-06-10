@@ -414,7 +414,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     AMREX_ALWAYS_ASSERT( int_comp_names.size() == NumIntComps() + NStructInt);
 
     std::string pdir = dir;
-    if ( not pdir.empty() and pdir[pdir.size()-1] != '/') pdir += '/';
+    if ( ! pdir.empty() && pdir[pdir.size()-1] != '/') pdir += '/';
     pdir += name;
     
     if ( ! levelDirectoriesCreated)
@@ -593,7 +593,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         }
 	
         // Write out the header for each particle
-        if (gotsome and ParallelDescriptor::IOProcessor()) {
+        if (gotsome && ParallelDescriptor::IOProcessor()) {
             std::string HeaderFileName = LevelDir;
             HeaderFileName += "/Particle_H";
             std::ofstream ParticleHeader(HeaderFileName);
@@ -1019,7 +1019,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     if (version.find("Version_One_Dot_Zero") != std::string::npos) {
         how = "double";
     }
-    else if (version.find("Version_One_Dot_One")  != std::string::npos or
+    else if (version.find("Version_One_Dot_One")  != std::string::npos ||
              version.find("Version_Two_Dot_Zero") != std::string::npos) {
         if (version.find("_single") != std::string::npos) {
             how = "single";
@@ -1102,7 +1102,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             phdr_name = amrex::Concatenate(phdr_name + "/Level_", lev, 1);
             phdr_name += "/Particle_H";
 
-            if (not amrex::FileExists(phdr_name)) continue;
+            if (! amrex::FileExists(phdr_name)) continue;
             
             Vector<char> phdr_chars;
             ParallelDescriptor::ReadAndBcastFile(phdr_name, phdr_chars);
@@ -1116,7 +1116,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             }
         
             particle_box_arrays[lev].readFrom(phdr_file);
-            if (not particle_box_arrays[lev].CellEqual(ParticleBoxArray(lev))) dual_grid = true;
+            if (! particle_box_arrays[lev].CellEqual(ParticleBoxArray(lev))) dual_grid = true;
         }
     } else // if no particle box array information exists in the file, we assume a single grid restart
     {

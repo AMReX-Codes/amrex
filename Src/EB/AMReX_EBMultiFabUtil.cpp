@@ -416,7 +416,7 @@ EB_average_down (const MultiFab& S_fine, MultiFab& S_crse, int scomp, int ncomp,
         BoxArray crse_S_fine_BA = S_fine.boxArray(); crse_S_fine_BA.coarsen(ratio);
 
         if (crse_S_fine_BA == S_crse.boxArray()
-            and S_fine.DistributionMap() == S_crse.DistributionMap())
+            && S_fine.DistributionMap() == S_crse.DistributionMap())
         {
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())

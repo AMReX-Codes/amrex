@@ -57,7 +57,7 @@ void set_eb_data (const int i, const int j, Array4<EBCellFlag> const& cell,
     bnorm(i,j,0,0) = nx;
     bnorm(i,j,0,1) = ny;
 
-    if (nxabs < tiny or nyabs > almostone) {
+    if (nxabs < tiny || nyabs > almostone) {
         barea(i,j,0) = 1.0;
         bcent(i,j,0,0) = 0.0;
         bnorm(i,j,0,0) = 0.0;
@@ -65,7 +65,7 @@ void set_eb_data (const int i, const int j, Array4<EBCellFlag> const& cell,
         vfrac(i,j,0) = 0.5*(axm+axp);
         vcent(i,j,0,0) = 0.0;
         vcent(i,j,0,1) = (0.125*(ayp-aym) + ny*0.5*bcent(i,j,0,1)*bcent(i,j,0,1)) / vfrac(i,j,0);
-    } else if (nyabs < tiny or nxabs > almostone) {
+    } else if (nyabs < tiny || nxabs > almostone) {
         barea(i,j,0) = 1.0;
         bcent(i,j,0,1) = 0.0;
         bnorm(i,j,0,0) = signx;
@@ -193,13 +193,13 @@ void build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
     AMREX_HOST_DEVICE_FOR_3D ( bxg1, i, j, k,
     {
         if (cell(i,j,0).isSingleValued()) {
-            if (fx(i,j,0) == Type::regular and fx(i+1,j,0) == Type::regular and
-                fy(i,j,0) == Type::regular and fy(i,j+1,0) == Type::regular)
+            if (fx(i,j,0) == Type::regular && fx(i+1,j,0) == Type::regular &&
+                fy(i,j,0) == Type::regular && fy(i,j+1,0) == Type::regular)
             {
                 cell(i,j,0).setRegular();
             }
-            else if (fx(i,j,0) == Type::covered and fx(i+1,j,0) == Type::covered and
-                     fy(i,j,0) == Type::covered and fy(i,j+1,0) == Type::covered)
+            else if (fx(i,j,0) == Type::covered && fx(i+1,j,0) == Type::covered &&
+                     fy(i,j,0) == Type::covered && fy(i,j+1,0) == Type::covered)
             {
                 cell(i,j,0).setCovered();
             }
@@ -273,7 +273,7 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
         auto hi = amrex::min_ubound(tbx, lbx);
         for (int j = lo.y; j <= hi.y; ++j) {
         for (int i = lo.x; i <= hi.x; ++i) {
-            if (vfrac(i-1,j,0) < small_volfrac or vfrac(i,j,0) < small_volfrac) {
+            if (vfrac(i-1,j,0) < small_volfrac || vfrac(i,j,0) < small_volfrac) {
                 fx(i,j,0) = Type::covered;
                 apx(i,j,0) = 0.0;
                 if (cell(i,j,0).isRegular())
@@ -294,7 +294,7 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
         hi = amrex::min_ubound(tbx, lbx);
         for (int j = lo.y; j <= hi.y; ++j) {
         for (int i = lo.x; i <= hi.x; ++i) {
-            if (vfrac(i,j-1,0) < small_volfrac or vfrac(i,j,0) < small_volfrac) {
+            if (vfrac(i,j-1,0) < small_volfrac || vfrac(i,j,0) < small_volfrac) {
                 fy(i,j,0) = Type::covered;
                 apy(i,j,0) = 0.0;
                 if (cell(i,j,0).isRegular())
@@ -321,26 +321,26 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
         if (fy(i  ,j  ,0) == Type::covered) flg.setDisconnected(IntVect( 0,-1));
         if (fy(i  ,j+1,0) == Type::covered) flg.setDisconnected(IntVect( 0, 1));
 
-        if (((fx(i,j,0) == Type::covered) or fy(i-1,j,0) == Type::covered) and
-            ((fx(i,j-1,0) == Type::covered) or fy(i,j,0) == Type::covered))
+        if (((fx(i,j,0) == Type::covered) || fy(i-1,j,0) == Type::covered) &&
+            ((fx(i,j-1,0) == Type::covered) || fy(i,j,0) == Type::covered))
         {
             flg.setDisconnected(IntVect(-1,-1));
         }
 
-        if (((fx(i+1,j,0) == Type::covered) or fy(i+1,j,0) == Type::covered) and
-            ((fx(i+1,j-1,0) == Type::covered) or fy(i,j,0) == Type::covered))
+        if (((fx(i+1,j,0) == Type::covered) || fy(i+1,j,0) == Type::covered) &&
+            ((fx(i+1,j-1,0) == Type::covered) || fy(i,j,0) == Type::covered))
         {
             flg.setDisconnected(IntVect(1,-1));
         }
 
-        if (((fx(i,j,0) == Type::covered) or fy(i-1,j+1,0) == Type::covered) and
-            ((fx(i,j+1,0) == Type::covered) or fy(i,j+1,0) == Type::covered))
+        if (((fx(i,j,0) == Type::covered) || fy(i-1,j+1,0) == Type::covered) &&
+            ((fx(i,j+1,0) == Type::covered) || fy(i,j+1,0) == Type::covered))
         {
             flg.setDisconnected(IntVect(-1,1));
         }
 
-        if (((fx(i+1,j,0) == Type::covered) or fy(i+1,j+1,0) == Type::covered) and
-            ((fx(i+1,j+1,0) == Type::covered) or fy(i,j+1,0) == Type::covered))
+        if (((fx(i+1,j,0) == Type::covered) || fy(i+1,j+1,0) == Type::covered) &&
+            ((fx(i+1,j+1,0) == Type::covered) || fy(i,j+1,0) == Type::covered))
         {
             flg.setDisconnected(IntVect(1,1));
         }

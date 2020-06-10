@@ -140,7 +140,7 @@ MLEBABecLap::setBCoeffs (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>
 
     m_beta_loc     = a_beta_loc;
 
-    AMREX_ALWAYS_ASSERT(beta_ncomp == 1 or beta_ncomp == ncomp);
+    AMREX_ALWAYS_ASSERT(beta_ncomp == 1 || beta_ncomp == ncomp);
     if (beta[0]->nComp() == ncomp) {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             for (int icomp = 0; icomp < ncomp; ++icomp) {
@@ -185,7 +185,7 @@ MLEBABecLap::setEBDirichlet (int amrlev, const MultiFab& phi, const MultiFab& be
 {
     const int ncomp = getNComp();
     const int beta_ncomp = beta.nComp();
-    AMREX_ALWAYS_ASSERT(beta_ncomp == 1 or beta_ncomp == ncomp);
+    AMREX_ALWAYS_ASSERT(beta_ncomp == 1 || beta_ncomp == ncomp);
 
     if (m_eb_phi[amrlev] == nullptr) {
         const int mglev = 0;
@@ -215,7 +215,7 @@ MLEBABecLap::setEBDirichlet (int amrlev, const MultiFab& phi, const MultiFab& be
         Array4<Real> const& phiout = m_eb_phi[amrlev]->array(mfi);
         Array4<Real> const& betaout = m_eb_b_coeffs[amrlev][0]->array(mfi);
         FabType t = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
-        if (FabType::regular == t or FabType::covered == t) {
+        if (FabType::regular == t || FabType::covered == t) {
             AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
             {
                 phiout(i,j,k,n) = 0.0;
@@ -284,7 +284,7 @@ MLEBABecLap::setEBDirichlet (int amrlev, const MultiFab& phi, Real beta)
         Array4<Real> const& phiout = m_eb_phi[amrlev]->array(mfi);
         Array4<Real> const& betaout = m_eb_b_coeffs[amrlev][0]->array(mfi);
         FabType t = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
-        if (FabType::regular == t or FabType::covered == t) {
+        if (FabType::regular == t || FabType::covered == t) {
             AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
             {
                 phiout(i,j,k,n) = 0.0;
@@ -343,7 +343,7 @@ MLEBABecLap::setEBDirichlet (int amrlev, const MultiFab& phi, Vector<Real> const
         Array4<Real> const& phiout = m_eb_phi[amrlev]->array(mfi);
         Array4<Real> const& betaout = m_eb_b_coeffs[amrlev][0]->array(mfi);
         FabType t = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
-        if (FabType::regular == t or FabType::covered == t) {
+        if (FabType::regular == t || FabType::covered == t) {
             AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
             {
                 phiout(i,j,k,n) = 0.0;
@@ -371,7 +371,7 @@ MLEBABecLap::setEBHomogDirichlet (int amrlev, const MultiFab& beta)
 {
     const int ncomp = getNComp();
     const int beta_ncomp = beta.nComp();
-    AMREX_ALWAYS_ASSERT(beta_ncomp == 1 or beta_ncomp == ncomp);
+    AMREX_ALWAYS_ASSERT(beta_ncomp == 1 || beta_ncomp == ncomp);
     if (m_eb_phi[amrlev] == nullptr) {
         const int mglev = 0;
         m_eb_phi[amrlev].reset(new MultiFab(m_grids[amrlev][mglev], m_dmap[amrlev][mglev],
@@ -404,7 +404,7 @@ MLEBABecLap::setEBHomogDirichlet (int amrlev, const MultiFab& beta)
         {
             phifab(i,j,k,n) = 0.0;
         });
-        if (FabType::regular == t or FabType::covered == t) {
+        if (FabType::regular == t || FabType::covered == t) {
             AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
             {
                 betaout(i,j,k,n) = 0.0;
@@ -471,7 +471,7 @@ MLEBABecLap::setEBHomogDirichlet (int amrlev, Real beta)
         {
             phifab(i,j,k,n) = 0.0;
         });
-        if (FabType::regular == t or FabType::covered == t) {
+        if (FabType::regular == t || FabType::covered == t) {
             AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
             {
                 betaout(i,j,k,n) = 0.0;
@@ -530,7 +530,7 @@ MLEBABecLap::setEBHomogDirichlet (int amrlev, Vector<Real> const& hv_beta)
         {
             phifab(i,j,k,n) = 0.0;
         });
-        if (FabType::regular == t or FabType::covered == t) {
+        if (FabType::regular == t || FabType::covered == t) {
             AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
             {
                 betaout(i,j,k,n) = 0.0;
@@ -1709,7 +1709,7 @@ MLEBABecLap::getEBFluxes (const Vector<MultiFab*>& a_flux, const Vector<MultiFab
 
                 auto fabtyp = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
 
-                if (fabtyp == FabType::covered or fabtyp == FabType::regular) {
+                if (fabtyp == FabType::covered || fabtyp == FabType::regular) {
                     AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, ncomp, i, j, k, n,
                     {
                         febfab(i,j,k,n) = 0.0;

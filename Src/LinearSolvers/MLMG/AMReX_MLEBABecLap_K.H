@@ -41,7 +41,7 @@ void mlebabeclap_apply_bc_x (int side, Box const& box, int blen,
     {
         for     (int k = lo.z; k <= hi.z; ++k) {
             for (int j = lo.y; j <= hi.y; ++j) {
-                if (mask(i,j,k) == 0 and mask(i+s,j,k) == 1) {
+                if (mask(i,j,k) == 0 && mask(i+s,j,k) == 1) {
                     phi(i,j,k,icomp) = phi(i+s,j,k,icomp);
                 }
             }
@@ -52,7 +52,7 @@ void mlebabeclap_apply_bc_x (int side, Box const& box, int blen,
     {
         for     (int k = lo.z; k <= hi.z; ++k) {
             for (int j = lo.y; j <= hi.y; ++j) {
-                if (mask(i,j,k) == 0 and mask(i+s,j,k) == 1) {
+                if (mask(i,j,k) == 0 && mask(i+s,j,k) == 1) {
                     phi(i,j,k,icomp) = -phi(i+s,j,k,icomp);
                 }
             }
@@ -69,7 +69,7 @@ void mlebabeclap_apply_bc_x (int side, Box const& box, int blen,
         }
         for     (int k = lo.z; k <= hi.z; ++k) {
             for (int j = lo.y; j <= hi.y; ++j) {
-                if (mask(i,j,k) == 0 and mask(i+s,j,k) == 1) {
+                if (mask(i,j,k) == 0 && mask(i+s,j,k) == 1) {
                     int order = 1;
                     for (int r = 0; r <= NX-2; ++r) {
                         if (area(i+(1-side)+s*r,j,k) > 0.0_rt) {
@@ -121,7 +121,7 @@ void mlebabeclap_apply_bc_y (int side, Box const& box, int blen,
     {
         for     (int k = lo.z; k <= hi.z; ++k) {
             for (int i = lo.x; i <= hi.x; ++i) {
-                if (mask(i,j,k) == 0 and mask(i,j+s,k) == 1) {
+                if (mask(i,j,k) == 0 && mask(i,j+s,k) == 1) {
                     phi(i,j,k,icomp) = phi(i,j+s,k,icomp);
                 }
             }
@@ -132,7 +132,7 @@ void mlebabeclap_apply_bc_y (int side, Box const& box, int blen,
     {
         for     (int k = lo.z; k <= hi.z; ++k) {
             for (int i = lo.x; i <= hi.x; ++i) {
-                if (mask(i,j,k) == 0 and mask(i,j+s,k) == 1) {
+                if (mask(i,j,k) == 0 && mask(i,j+s,k) == 1) {
                     phi(i,j,k,icomp) = -phi(i,j+s,k,icomp);
                 }
             }
@@ -149,7 +149,7 @@ void mlebabeclap_apply_bc_y (int side, Box const& box, int blen,
         }
         for     (int k = lo.z; k <= hi.z; ++k) {
             for (int i = lo.x; i <= hi.x; ++i) {
-                if (mask(i,j,k) == 0 and mask(i,j+s,k) == 1) {
+                if (mask(i,j,k) == 0 && mask(i,j+s,k) == 1) {
                     int order = 1;
                     for (int r = 0; r <= NX-2; ++r) {
                         if (area(i,j+(1-side)+s*r,k) > 0.0_rt) {
@@ -201,7 +201,7 @@ void mlebabeclap_apply_bc_z (int side, Box const& box, int blen,
     {
         for     (int j = lo.y; j <= hi.y; ++j) {
             for (int i = lo.x; i <= hi.x; ++i) {
-                if (mask(i,j,k) == 0 and mask(i,j,k+s) == 1) {
+                if (mask(i,j,k) == 0 && mask(i,j,k+s) == 1) {
                     phi(i,j,k,icomp) = phi(i,j,k+s,icomp);
                 }
             }
@@ -212,7 +212,7 @@ void mlebabeclap_apply_bc_z (int side, Box const& box, int blen,
     {
         for     (int j = lo.y; j <= hi.y; ++j) {
             for (int i = lo.x; i <= hi.x; ++i) {
-                if (mask(i,j,k) == 0 and mask(i,j,k+s) == 1) {
+                if (mask(i,j,k) == 0 && mask(i,j,k+s) == 1) {
                     phi(i,j,k,icomp) = -phi(i,j,k+s,icomp);
                 }
             }
@@ -229,7 +229,7 @@ void mlebabeclap_apply_bc_z (int side, Box const& box, int blen,
         }
         for     (int j = lo.y; j <= hi.y; ++j) {
             for (int i = lo.x; i <= hi.x; ++i) {
-                if (mask(i,j,k) == 0 and mask(i,j,k+s) == 1) {
+                if (mask(i,j,k) == 0 && mask(i,j,k+s) == 1) {
                     int order = 1;
                     for (int r = 0; r <= NX-2; ++r) {
                         if (area(i,j,k+(1-side)+s*r) > 0.0_rt) {
