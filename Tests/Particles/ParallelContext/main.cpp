@@ -374,7 +374,7 @@ void testRedistribute ()
         dm.define(ba, ParallelContext::NProcsSub());
 
         // by doing it this way, we have each subcommunicator making
-        // separate Redisitribute calls at the same time.
+        // separate Redistribute calls at the same time.
         if (task_me == 0)
         {
             TestParticleContainer pc(geom, dm, ba);
