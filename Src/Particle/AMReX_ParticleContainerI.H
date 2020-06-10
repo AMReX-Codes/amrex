@@ -376,7 +376,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::TotalNumberOf
         nparticles += NumberOfParticlesAtLevel(lev,only_valid,true);
     }
     if (!only_local) {
-        ParallelAllReduce::Max(nparticles, ParallelContext::CommunicatorSub());
+        ParallelAllReduce::Sum(nparticles, ParallelContext::CommunicatorSub());
     }
     return nparticles;
 }
