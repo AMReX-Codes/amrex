@@ -170,7 +170,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             IntVect iv;
             const BoxArray& ba = ParticleBoxArray(lev);
             AMREX_ASSERT(ba.ixType().cellCentered());
-            
+
 	    if (local_grid < 0) {
                 iv = Index(p_prime, lev);
                 ba.intersections(Box(iv, iv), isects, true, 0);
@@ -191,14 +191,14 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 		    }
 		}
 	    }
-            
+
             if (grid >= 0) {
                 AMREX_D_TERM(p.pos(0) = p_prime.pos(0);,
                              p.pos(1) = p_prime.pos(1);,
                              p.pos(2) = p_prime.pos(2););
-                
+
                 const Box& bx = ba.getCellCenteredBox(grid);
-                
+
                 pld.m_lev  = lev;
                 pld.m_grid = grid;
 		pld.m_tile = getTileIndex(iv, bx, do_tiling, tile_size, pld.m_tilebox);
@@ -209,7 +209,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             }
         }
     }
-    
+
     return false;
 }
 
@@ -310,21 +310,21 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::resizeData ()
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::RedefineDummyMF (int lev) 
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::RedefineDummyMF (int lev)
 {
     if (lev > m_dummy_mf.size()-1) m_dummy_mf.resize(lev+1);
-    
-    if (m_dummy_mf[lev] == nullptr || 
+
+    if (m_dummy_mf[lev] == nullptr ||
         ! BoxArray::SameRefs(m_dummy_mf[lev]->boxArray(),
                              ParticleBoxArray(lev))          ||
-        ! DistributionMapping::SameRefs(m_dummy_mf[lev]->DistributionMap(), 
+        ! DistributionMapping::SameRefs(m_dummy_mf[lev]->DistributionMap(),
                                         ParticleDistributionMap(lev)))
     {
         m_dummy_mf[lev].reset(new MultiFab(ParticleBoxArray(lev),
                                            ParticleDistributionMap(lev),
                                            1,0,MFInfo().SetAlloc(false)));
     };
-}  
+}
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
@@ -1052,7 +1052,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 #ifdef AMREX_USE_GPU
 
     if (local) AMREX_ASSERT(numParticlesOutOfRange(*this, lev_min, lev_max, local) == 0);
-    
+
     // sanity check
     AMREX_ASSERT(do_tiling == false);
 
@@ -1063,7 +1063,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
     if (lev_max < 0)
         lev_max = GetParGDB()->finestLevel();
-    
+
     this->defineBufferMap();
 
     int num_levels = numLevels();
@@ -1086,12 +1086,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     BL_PROFILE_VAR_START(blp_partition);
     ParticleCopyOp op;
     op.setNumLevels(num_levels);
-    Vector<std::map<int, int> > new_sizes(num_levels);    
+    Vector<std::map<int, int> > new_sizes(num_levels);
     for (int lev = lev_min; lev <= lev_max; ++lev)
     {
         const Geometry& geom = Geom(lev);
         const BoxArray& ba   = ParticleBoxArray(lev);
-        const DistributionMapping& dmap = ParticleDistributionMap(lev);
 
         auto& plev = m_particles[lev];
         for (auto& kv : plev)
@@ -1099,7 +1098,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             int gid = kv.first.first;
             int tid = kv.first.second;
             auto index = std::make_pair(gid, tid);
-            
+
             auto& src_tile = plev[index];
             auto& aos = src_tile.GetArrayOfStructs();
             const size_t np = aos.numParticles();
@@ -1262,22 +1261,22 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
   if (int(m_particles.size()) < theEffectiveFinestLevel+1) {
       if (Verbose()) {
           amrex::Print() << "ParticleContainer::Redistribute() resizing containers from "
-                         << m_particles.size() << " to " 
+                         << m_particles.size() << " to "
                          << theEffectiveFinestLevel + 1 << '\n';
       }
       m_particles.resize(theEffectiveFinestLevel+1);
       m_dummy_mf.resize(theEffectiveFinestLevel+1);
   }
-  
-  // It is important to do this even if we don't have more levels because we may have changed the 
+
+  // It is important to do this even if we don't have more levels because we may have changed the
   // grids at this level in a regrid.
   for (int lev = 0; lev < theEffectiveFinestLevel+1; ++lev)
       RedefineDummyMF(lev);
-  
+
   int nlevs_particles;
   if (lev_max == -1) {
       lev_max = theEffectiveFinestLevel;
-      nlevs_particles = m_particles.size() - 1; 
+      nlevs_particles = m_particles.size() - 1;
   } else {
       nlevs_particles = lev_max;
   }
@@ -1285,14 +1284,14 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
   // This will hold the valid particles that go to another process
   std::map<int, Vector<char> > not_ours;
-  
+
   int num_threads = 1;
 #ifdef _OPENMP
 #pragma omp parallel
 #pragma omp single
   num_threads = omp_get_num_threads();
 #endif
-  
+
   // these are temporary buffers for each thread
   std::map<int, Vector<Vector<char> > > tmp_remote;
   Vector<std::map<std::pair<int, int>, Vector<ParticleVector> > > tmp_local;
@@ -1332,7 +1331,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
           grid_tile_ids.push_back(kv.first);
           ptile_ptrs.push_back(&(kv.second));
       }
-      
+
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
@@ -1383,7 +1382,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                       continue;
                   }
 
-                  const int who = ParticleDistributionMap(pld.m_lev)[pld.m_grid];
+                  const int who = ParallelContext::global_to_local_rank(ParticleDistributionMap(pld.m_lev)[pld.m_grid]);
                   if (who == MyProc) {
                       if (pld.m_lev != lev || pld.m_grid != grid || pld.m_tile != tile) {
                           // We own it but must shift it to another place.
@@ -1604,7 +1603,7 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 BuildRedistributeMask (int lev, int nghost) const
-{    
+{
     BL_PROFILE("ParticleContainer::BuildRedistributeMask");
     AMREX_ASSERT(lev == 0);
 
@@ -1616,12 +1615,12 @@ BuildRedistributeMask (int lev, int nghost) const
         const Geometry& geom = this->Geom(lev);
         const BoxArray& ba = this->ParticleBoxArray(lev);
         const DistributionMapping& dmap = this->ParticleDistributionMap(lev);
-        
+
         redistribute_mask_nghost = nghost;
         redistribute_mask_ptr.reset(new iMultiFab(ba, dmap, 2, nghost));
         redistribute_mask_ptr->setVal(-1, nghost);
 
-        const auto tile_size_do = this->do_tiling ? this->tile_size : IntVect::TheZeroVector();            
+        const auto tile_size_do = this->do_tiling ? this->tile_size : IntVect::TheZeroVector();
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -1634,11 +1633,11 @@ BuildRedistributeMask (int lev, int nghost) const
             (*redistribute_mask_ptr)[mfi].template setVal<RunOn::Host>(grid_id, box, 0, 1);
             (*redistribute_mask_ptr)[mfi].template setVal<RunOn::Host>(tile_id, box, 1, 1);
         }
-        
+
         redistribute_mask_ptr->FillBoundary(geom.periodicity());
 
         neighbor_procs.clear();
-        for (MFIter mfi(*redistribute_mask_ptr, tile_size_do); mfi.isValid(); ++mfi) 
+        for (MFIter mfi(*redistribute_mask_ptr, tile_size_do); mfi.isValid(); ++mfi)
         {
             const Box& box = mfi.growntilebox();
             for (IntVect iv = box.smallEnd(); iv <= box.bigEnd(); box.next(iv))
@@ -1646,14 +1645,15 @@ BuildRedistributeMask (int lev, int nghost) const
                 const int grid = (*redistribute_mask_ptr)[mfi](iv, 0);
                 if (grid >= 0)
                 {
-                    const int proc = this->ParticleDistributionMap(lev)[grid];
-                    if (proc != ParallelContext::MyProcSub())  
-                        neighbor_procs.push_back(proc);
+                    const int global_rank = this->ParticleDistributionMap(lev)[grid];
+                    const int rank = ParallelContext::global_to_local_rank(global_rank);
+                    if (rank != ParallelContext::MyProcSub())
+                        neighbor_procs.push_back(rank);
                 }
             }
         }
         RemoveDuplicates(neighbor_procs);
-    }    
+    }
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
@@ -1669,7 +1669,7 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
 #ifdef AMREX_USE_MPI
 
     using buffer_type = unsigned long long;
-    
+
     std::map<int, Vector<buffer_type> > mpi_snd_data;
     for (const auto& kv : not_ours)
     {
@@ -1677,10 +1677,10 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
         mpi_snd_data[kv.first].resize(nbt);
         std::memcpy((char*) mpi_snd_data[kv.first].data(), kv.second.data(), kv.second.size());
     }
-    
+
     const int NProcs = ParallelContext::NProcsSub();
     const int NNeighborProcs = neighbor_procs.size();
-    
+
     // We may now have particles that are rightfully owned by another CPU.
     Vector<Long> Snds(NProcs, 0), Rcvs(NProcs, 0);  // bytes!
 
@@ -1698,7 +1698,7 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
     }
 
     const int SeqNum = ParallelDescriptor::SeqNum();
-    
+
     if ((not local) and NumSnds == 0)
         return;  // There's no parallel work to do.
 
@@ -1712,12 +1712,12 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
         }
         if ( (tot_snds_this_proc == 0) and (tot_rcvs_this_proc == 0) ) {
             return; // There's no parallel work to do.
-        } 
+        }
     }
 
     Vector<int> RcvProc;
     Vector<std::size_t> rOffset; // Offset (in bytes) in the receive buffer
-    
+
     std::size_t TotRcvInts = 0;
     std::size_t TotRcvBytes = 0;
     for (int i = 0; i < NProcs; ++i) {
@@ -1804,9 +1804,9 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
         {
             const auto offset = rOffset[i];
             const auto Who    = RcvProc[i];
-            const auto Cnt = Rcvs[Who] / superparticle_size;            
+            const auto Cnt = Rcvs[Who] / superparticle_size;
             for (int j = 0; j < int(Cnt); ++j)
-            {                
+            {
                 auto& ptile = m_particles[rcv_levs[ipart]][std::make_pair(rcv_grid[ipart],
                                                                           rcv_tile[ipart])];
                 char* pbuf = ((char*) &recvdata[offset]) + j*superparticle_size;
@@ -1825,7 +1825,7 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
                         ptile.push_back_real(comp, 0.0);
                     }
                 }
-            
+
                 for (int comp = 0; comp < NumIntComps(); ++comp) {
                     if (communicate_int_comp[comp]) {
                         int idata;
@@ -1838,7 +1838,7 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
                 }
                 ++ipart;
             }
-        }	    
+        }
 #else
 	Vector<std::map<std::pair<int, int>, Gpu::HostVector<ParticleType> > > host_particles;
 	host_particles.reserve(15);
@@ -1859,9 +1859,9 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
         {
             const auto offset = rOffset[i];
             const auto Who    = RcvProc[i];
-            const auto Cnt = Rcvs[Who] / superparticle_size;            
+            const auto Cnt = Rcvs[Who] / superparticle_size;
             for (int j = 0; j < Cnt; ++j)
-            {                
+            {
                 int lev = rcv_levs[ipart];
                 std::pair<int, int> ind(std::make_pair(rcv_grid[ipart], rcv_tile[ipart]));
 
@@ -1870,10 +1870,10 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
                 ParticleType p;
                 std::memcpy(&p, pbuf, sizeof(ParticleType));
                 pbuf += sizeof(ParticleType);
-                
+
                 host_real_attribs[lev][ind].resize(NumRealComps());
                 host_int_attribs[lev][ind].resize(NumIntComps());
-	  
+
                 // add the struct
                 host_particles[lev][ind].push_back(p);
 	  

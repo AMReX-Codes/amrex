@@ -375,7 +375,7 @@ void testRedistribute ()
             geom[lev].define(amrex::refine(geom[lev-1].Domain(), rr[lev-1]),
                              &real_box, CoordSys::cartesian, is_per);
         }
-    
+
         Vector<BoxArray> ba(params.nlevs);
         Vector<DistributionMapping> dm(params.nlevs);
         IntVect lo = IntVect(D_DECL(0, 0, 0));
@@ -407,7 +407,9 @@ void testRedistribute ()
             if (params.sort) pc.SortParticlesByCell();
             pc.checkAnswer();
         }
-        
+
+        amrex::Print() << np_old << " " << pc.TotalNumberOfParticles() << "\n";
+
         if (geom[0].isAllPeriodic()) AMREX_ALWAYS_ASSERT(np_old == pc.TotalNumberOfParticles());
 
     }

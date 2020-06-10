@@ -215,10 +215,10 @@ void ParticleCopyPlan::buildMPIFinish (const ParticleBufferMap& map)
 
         Gpu::HostVector<int> rcv_box_offsets;
         Gpu::HostVector<int> rcv_box_counts;
-        Gpu::HostVector<int> rcv_box_ids;        
+        Gpu::HostVector<int> rcv_box_ids;
         Gpu::HostVector<int> rcv_box_levs;
-        Gpu::HostVector<int> rcv_box_pids;        
-        
+        Gpu::HostVector<int> rcv_box_pids;
+
         rcv_box_offsets.push_back(0);
         for (int i = 0; i < m_rcv_data.size(); i+=4)
         {
@@ -229,13 +229,13 @@ void ParticleCopyPlan::buildMPIFinish (const ParticleBufferMap& map)
             rcv_box_pids.push_back(m_rcv_data[i+3]);
             rcv_box_offsets.push_back(rcv_box_offsets.back() + rcv_box_counts.back());
         }
-        
+
         m_rcv_box_counts.resize(rcv_box_counts.size());
         Gpu::copy(Gpu::hostToDevice, rcv_box_counts.begin(), rcv_box_counts.end(), m_rcv_box_counts.begin());
-        
+
         m_rcv_box_offsets.resize(rcv_box_offsets.size());
         Gpu::copy(Gpu::hostToDevice, rcv_box_offsets.begin(), rcv_box_offsets.end(), m_rcv_box_offsets.begin());
-        
+
         m_rcv_box_ids.resize(rcv_box_ids.size());
         Gpu::copy(Gpu::hostToDevice, rcv_box_ids.begin(), rcv_box_ids.end(), m_rcv_box_ids.begin());
 
@@ -245,13 +245,13 @@ void ParticleCopyPlan::buildMPIFinish (const ParticleBufferMap& map)
         m_rcv_box_pids.resize(rcv_box_pids.size());
         Gpu::copy(Gpu::hostToDevice, rcv_box_pids.begin(), rcv_box_pids.end(), m_rcv_box_pids.begin());
     }
-    
+
     for (int j = 0; j < m_nrcvs; ++j)
     {
         const auto Who    = m_RcvProc[j];
         const auto offset = m_rOffset[j];
         const auto Cnt    = m_Rcvs[Who]/sizeof(int);
-        
+
         Long nparticles = 0;
         for (int i = offset; i < offset + Cnt; i +=4)
         {
@@ -277,31 +277,31 @@ void ParticleCopyPlan::doHandShakeLocal (const Vector<Long>& Snds, Vector<Long>&
     const int num_rcvs = m_neighbor_procs.size();
     Vector<MPI_Status>  stats(num_rcvs);
     Vector<MPI_Request> rreqs(num_rcvs);
-    
+
     // Post receives
     for (int i = 0; i < num_rcvs; ++i)
     {
         const int Who = m_neighbor_procs[i];
         const Long Cnt = 1;
-        
+
         AMREX_ASSERT(Who >= 0 && Who < ParallelContext::NProcsSub());
-        
+
         rreqs[i] = ParallelDescriptor::Arecv(&Rcvs[Who], Cnt, Who, SeqNum,
                                              ParallelContext::CommunicatorSub()).req();
     }
-        
+
     // Send.
     for (int i = 0; i < num_rcvs; ++i)
     {
         const int Who = m_neighbor_procs[i];
         const Long Cnt = 1;
-        
+
         AMREX_ASSERT(Who >= 0 && Who < ParallelContext::NProcsSub());
-        
+
         ParallelDescriptor::Send(&Snds[Who], Cnt, Who, SeqNum,
                                  ParallelContext::CommunicatorSub());
     }
-        
+
     if (num_rcvs > 0)
     {
         ParallelDescriptor::Waitall(rreqs, stats);

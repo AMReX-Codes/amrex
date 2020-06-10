@@ -44,7 +44,8 @@ NeighborParticleContainer<NStructReal, NStructInt>
                 const auto& neighb = neighbs[i];
                 const auto& tag = tags[i];
                 const int dst_grid = tag.src_grid;
-                const int dst_proc = this->ParticleDistributionMap(lev)[dst_grid];
+                const int global_rank = this->ParticleDistributionMap(lev)[dst_grid];
+                const int dst_proc = ParallelContext::global_to_local_rank(global_rank);
                 const int dst_tile = tag.src_tile;
                 const int dst_index = tag.src_index;
                 const int dst_level = tag.src_level;
@@ -291,7 +292,8 @@ NeighborParticleContainer<NStructReal, NStructInt>
 #endif
                 for (int i = 0; i < num_tags; ++i) {
                     const NeighborCopyTag& tag = tags[i];
-                    const int who = this->ParticleDistributionMap(tag.level)[tag.grid];
+                    const int global_who = this->ParticleDistributionMap(tag.level)[tag.grid];
+                    const int who = ParallelContext::global_to_local_rank(global_who);
                     ParticleType p = particles[tag.src_index];  // copy
                     if (periodicity.isAnyPeriodic()) {
                         for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {

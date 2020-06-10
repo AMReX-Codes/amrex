@@ -184,7 +184,8 @@ NeighborParticleContainer<NStructReal, NStructInt>
                 if (grid >= 0) {
                     const int tile = (*mask_ptr[lev])[mfi](iv, MaskComps::tile);
                     const int level = (*mask_ptr[lev])[mfi](iv, MaskComps::level);
-                    const int proc = this->ParticleDistributionMap(level)[grid];
+                    const int global_proc = this->ParticleDistributionMap(level)[grid];
+                    const int proc = ParallelContext::global_to_local_rank(global_proc);
                     NeighborCommTag comm_tag(proc, level, grid, tile);
                     local_neighbors.push_back(comm_tag);
                     if (proc != ParallelContext::MyProcSub())
@@ -265,7 +266,8 @@ NeighborParticleContainer<NStructReal, NStructInt>
             ba.intersections(pbox, isects, first_only, 0);
             for (const auto& isec : isects) {
                 const int grid = isec.first;
-                const int proc = this->ParticleDistributionMap(lev)[grid];
+                const int global_proc = this->ParticleDistributionMap(level)[grid];
+                const int proc = ParallelContext::global_to_local_rank(global_proc);
                 for (IntVect iv = pbox.smallEnd(); iv <= pbox.bigEnd(); pbox.next(iv))
                 {
                     if (ba[grid].contains(iv))
@@ -366,7 +368,8 @@ NeighborParticleContainer<NStructReal, NStructInt>
                         const int cache_index = cache.size();
                         cache.push_back(tag);
 
-                        const int who = this->ParticleDistributionMap(tag.level)[tag.grid];
+                        const int global_who = this->ParticleDistributionMap(tag.level)[tag.grid];
+                        const int who = ParallelContext::global_to_local_rank(global_who);
                         NeighborIndexMap nim(tag.level, dst_index.first, dst_index.second, -1,
                                              lev, src_index.first, src_index.second,
                                              cache_index, thread_num);
