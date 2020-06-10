@@ -329,6 +329,8 @@ void testRedistribute ()
     int myproc = ParallelContext::MyProcSub();
     int task_me = myproc / (amrex::max(rank_n, 2) / 2);
 
+    if (task_me > 1) task_me = 1;
+
     MPI_Comm new_comm;
     MPI_Comm_split(ParallelContext::CommunicatorSub(), task_me, myproc, &new_comm);
 
