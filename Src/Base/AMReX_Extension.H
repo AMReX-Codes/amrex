@@ -137,6 +137,10 @@
 #define AMREX_ATTRIBUTE_WEAK __attribute__((weak))
 #endif
 
+#if defined(__cplusplus) && defined(_WIN32)
+#include <iso646.h>
+#endif
+
 #endif /* !BL_LANG_FORT */
 
 #endif
