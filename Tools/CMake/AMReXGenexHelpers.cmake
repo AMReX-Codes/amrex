@@ -1,35 +1,63 @@
 function ( eval_conditional_expressions _out _in)
 
+   # Replace each ";" with a place holder so that we can use REGEX MATCHALL
+   # which returns a list of matches without getting messed up by
+   # ";" which are not delimiters in a list
+   # This is need it here because the genex below may contain ";" as part of
+   # their argument or because CMake introduced it
+   set(_semicol "$SC$")
+   string(REPLACE ";" "${_semicol}" _in "${_in}")
+
    #
    # Genex in the form $<bool:true_string> where bool=<0|1>
    #
-   string(REGEX MATCHALL "\\$<[0-1:][^>]*>" _matches "${_in}")
+   string(REGEX REPLACE "\\$<0:[^>]*>" "" _in "${_in}")     # false
+   string(REGEX MATCHALL "\\$<1:[^>]*>" _matches "${_in}")  # true
    foreach(_match IN LISTS _matches)
-      string(REGEX MATCH "[0-1]" _bool "${_match}")
-      if (_bool)
-         string(REGEX REPLACE "(\\$<1:)|>$" "" _true_string "${_match}")
-         string(REPLACE "${_match}" "${_true_string}" _in "${_in}")
-      else ()
-         string(REPLACE "${_match}" "" _in "${_in}")
-      endif ()
+      string(REGEX REPLACE "(\\$<1:)|>$" "" _true_string "${_match}")
+      string(REPLACE "${_match}" "${_true_string}" _in "${_in}")
    endforeach ()
 
    #
    # Genex in the form $<IF:condition,true_string,false_string> where bool=<0|1>
    #
-   string(REGEX MATCHALL "\\$<IF:[0-1][^>]*>" _matches "${_in}")
+   string(REGEX REPLACE "\\$<IF:0[^>]*>"  "" _in "${_in}")       # false
+   string(REGEX MATCHALL "\\$<IF:1[^>]*>" _matches "${_in}")  # true
    foreach(_match IN LISTS _matches)
-      string(REGEX MATCH "[0-1]" _bool "${_match}")
-      if (_bool)
-         string(REGEX MATCH ",.*," _true_string "${_match}")
-         string(REPLACE "," "" _true_string "${_true_string}")
-         string(REPLACE "${_match}" "${_true_string}" _in "${_in}")
-      else ()
-         string(REGEX MATCH "[^,>]*>" _false_string "${_match}")
-         string(REGEX REPLACE ">$" "" _false_string "${_false_string}")
-         string(REPLACE "${_match}" "${_false_string}" _in "${_in}")
-      endif ()
+      string(REGEX MATCH ",.*," _true_string "${_match}")
+      string(REPLACE "," "" _true_string "${_true_string}")
+      string(REPLACE "${_match}" "${_true_string}" _in "${_in}")
    endforeach()
+
+   # Put back the ";"s
+   string(REPLACE "${_semicol}" ";" _in "${_in}")
+   set(${_out} "${_in}" PARENT_SCOPE)
+
+endfunction ()
+
+
+#
+# Does not support yet BOOL
+#
+function (eval_logical_operators _out _in)
+
+   #
+   # Genex in the form $<AND:conditions> where conditions=<0|1>
+   #
+   string(REGEX REPLACE "\\$<AND:[1,]*>" "1" _in "${_in}")  # Deal with "true" first
+   string(REGEX REPLACE "\\$<AND:[^>]*>" "0" _in "${_in}")  # The remaining are "false"
+
+   #
+   # Genex in the form $<OR:conditions> where conditions=<0|1>
+   #
+   string(REGEX REPLACE "\\$<OR:[0,]*>" "0" _in "${_in}")  # Deal with "false" first
+   string(REGEX REPLACE "\\$<OR:[^>]*>" "1" _in "${_in}")  # The remaining are "true"
+
+   #
+   # Genex in the form $<NOT:condition> where condition=<0|1>
+   #
+   string(REGEX REPLACE "\\$<NOT:1>" "0" _in "${_in}")
+   string(REGEX REPLACE "\\$<NOT:0>" "1" _in "${_in}")
 
    set(${_out} "${_in}" PARENT_SCOPE)
 
@@ -40,6 +68,7 @@ endfunction ()
 # Does not support yet STREQUAL, EQUAL, IN_LIST
 #
 function (eval_string_comparisons _out _in)
+
    #
    # Genex in the form $<ops:v1,v2> where ops=VERSION_* and v1,v2 = version strings
    #
@@ -58,8 +87,8 @@ function (eval_string_comparisons _out _in)
    endforeach()
 
    set(${_out} "${_in}" PARENT_SCOPE)
-endfunction ()
 
+endfunction ()
 
 
 #
@@ -215,5 +244,78 @@ function( evaluate_genex input output )
    else ()
       set(${output} ${nogenex_list} ${valid_genex_list} PARENT_SCOPE)
    endif ()
+
+endfunction ()
+
+
+#  _in must be a string
+function ( eval_genex _out _in )
+
+   set(_option_arg STRING)
+   set(_one_value_args LANG COMP COMP_VERSION CONFIG INTERFACE)
+   cmake_parse_arguments( ARG "${_option_arg}" "${_one_value_args}" "" ${ARGN} )
+
+   # Check if there are any genex-es in the input. If not, return _in as is
+   # and exit right away
+   string(GENEX_STRIP "${_in}" _nogenex_string)
+   if (_nogenex_string STREQUAL _in)
+      set(${_out} "${_in}" PARENT_SCOPE)
+      return()
+   endif ()
+
+
+   #
+   #  Replace GENEX variable queries
+   #
+
+   # Genex in the form $<CONFIG:cfg>
+   # Ignore if no CONFIG arg is given
+   if (ARG_CONFIG)
+      string(REGEX REPLACE "\\$<CONFIG:${ARG_CONFIG}>" "1"  _in "${_in}")
+   endif ()
+   string(REGEX REPLACE "\\$<CONFIG:[A-Za-z]*>" "0"  _in "${_in}")
+
+   # Genex in the form $<*_COMPILER_ID:compiler_id>
+   # Ignore if no COMP arg is given
+   if (ARG_COMP)
+      string(REGEX REPLACE "\\$<[A-Za-z]*_COMPILER_ID:${ARG_COMP}>" "1"  _in "${_in}")
+   endif ()
+   string(REGEX REPLACE "\\$<[A-Za-z]*_COMPILER_ID:[A-Za-z]*>" "0"  _in "${_in}")
+
+   # Genex in the form $<*_COMPILER_VERSION:version>
+   # Ignore if no COMP_VERSION arg is given
+   if (ARG_COMP_VERSION)
+      string(REGEX REPLACE "\\$<[A-Za-z]*_COMPILER_VERSION:${ARG_COMP_VERSION}>" "1"  _in "${_in}")
+   endif ()
+   string(REGEX REPLACE "\\$<[A-Za-z]*_COMPILER_ID:[^>]*>" "0"  _in "${_in}")
+
+   # Genex in the form $<COMPILE_LANGUAGE:language>
+   # Ignore if no LANG arg is given
+   if (ARG_LANG)
+      string(REGEX REPLACE "\\$<COMPILE_LANGUAGE:${ARG_LANG}>" "1"  _in "${_in}")
+   endif ()
+   string(REGEX REPLACE "\\$<COMPILE_LANGUAGE:[A-Za-z]*>" "0"  _in "${_in}")
+
+   # Logical operators
+   eval_logical_operators(_in "${_in}")
+
+   # Conditional expressions
+   eval_conditional_expressions(_in "${_in}")
+
+   # Remove empty elements, i.e. the ";;" resulting from
+   # deleting false genex.
+   # In this case, _in is treated as a list
+   list(REMOVE_ITEM _in "")
+
+   # More clean up
+   list(TRANSFORM _in STRIP)
+
+   # If string is required
+   if (ARG_STRING)
+      string(REPLACE ";" " " _in "${_in}" )
+      string(STRIP "${tmp}" tmp)
+   endif ()
+
+   set(${_out} "${_in}" PARENT_SCOPE)
 
 endfunction ()
