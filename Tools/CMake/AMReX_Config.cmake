@@ -160,20 +160,15 @@ function (configure_amrex)
    #
    if (ENABLE_DPCPP)
 
-
-      string(REPLACE "/bin/dpcpp" "" _dpcpp_dir "${CMAKE_CXX_COMPILER}" )
-      set(_dpcpp_dir "${_dpcpp_dir}/lib")
-
-      target_link_libraries(amrex PUBLIC ${_dpcpp_dir}/libsycl-glibc.o ${_dpcpp_dir}/libsycl-cmath.o ${_dpcpp_dir}/libsycl-cmath-fp64.o)
-
       target_compile_options( amrex
          PUBLIC
          $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:Clang>>:-Wno-error=sycl-strict -fsycl -fsycl-unnamed-lambda>)
 
-      target_link_options(amrex PUBLIC -Wno-error=sycl-strict -fsycl -fsycl-unnamed-lambda)
+      target_link_options(amrex PUBLIC -Wno-error=sycl-strict -fsycl -fsycl-unnamed-lambda -device-math-lib=fp32,fp64)
 
       if (ENABLE_DPCPP_AOT)
          if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+            ## TODO: use file(READ)
             execute_process( COMMAND cat /sys/devices/cpu/caps/pmu_name OUTPUT_VARIABLE _cpu_long_name )
          else ()
             message(FATAL_ERROR "\nENABLE_DPCPP_AOT is not supported on ${CMAKE_SYSTEM_NAME}\n")
