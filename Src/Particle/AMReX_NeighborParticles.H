@@ -141,13 +141,13 @@ private:
             amrex::Error("operator<<(ostream&, const InverseCopyTag&) failed");
         return os;
     }
-    
+
     struct NeighborCommTag {
 
         NeighborCommTag (int pid, int lid, int gid, int tid)
             : proc_id(pid), level_id(lid), grid_id(gid), tile_id(tid)
             {}
-        
+
         int proc_id;
         int level_id;
         int grid_id;
@@ -318,7 +318,7 @@ protected:
     void sumNeighborsMPI (std::map<int, Vector<char> >& not_ours,
                           int real_start_comp, int real_num_comp,
                           int int_start_comp, int int_num_comp);
-    
+
     ///
     /// Perform handshake to figure out how many bytes each proc should receive
     ///
@@ -365,7 +365,7 @@ protected:
     static bool enable_inverse;
 
 #ifdef AMREX_USE_GPU
-    
+
     struct NeighborTask {
         int grid_id;
         Box box;
@@ -388,7 +388,7 @@ protected:
             return false;
         }
     };
-        
+
     // These are used to keep track of which particles need to be ghosted to which grids
     bool m_neighbor_mask_initialized = false;
     std::unique_ptr<amrex::iMultiFab> m_neighbor_mask_ptr;
@@ -408,20 +408,20 @@ protected:
 #endif
 
     Vector<std::map<std::pair<int, int>, amrex::NeighborList<ParticleType> > > m_neighbor_list;
-    
+
     bool hasNeighbors() const { return m_has_neighbors; };
-  
+
     bool m_has_neighbors = false;
 };
-    
+
 #include "AMReX_NeighborParticlesI.H"
-    
+
 #ifdef AMREX_USE_GPU
 #include "AMReX_NeighborParticlesGPUImpl.H"
 #else
 #include "AMReX_NeighborParticlesCPUImpl.H"
 #endif
-    
+
 }
 
 #endif // _NEIGHBORPARTICLES_H_
