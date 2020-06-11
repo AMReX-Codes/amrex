@@ -825,6 +825,12 @@ ifeq ($(AMREX_XSDK),TRUE)
    DEFINES += -DAMREX_XSDK
 endif
 
+ifneq ($(DEBUG),TRUE)
+ifneq ($(USE_ASSERTION),TRUE)
+  DEFINES += -DNDEBUG
+endif
+endif
+
 CPPFLAGS	+= $(DEFINES)
 
 libraries	= $(XTRAOBJS) $(LIBRARIES) $(XTRALIBS)
