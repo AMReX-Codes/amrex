@@ -97,7 +97,7 @@ struct Particle
 	}
     AMREX_GPU_HOST_DEVICE RealVect  rvec (AMREX_D_DECL(int indx, int indy, int indz)) const &
 	{
-		AMREX_ASSERT(AMREX_D_TERM(indx < NReal, and indy < NReal, and indz < NReal));
+		AMREX_ASSERT(AMREX_D_TERM(indx < NReal, && indy < NReal, && indz < NReal));
 		return RealVect(AMREX_D_DECL(m_rdata.arr[AMREX_SPACEDIM + indx],
                                  m_rdata.arr[AMREX_SPACEDIM + indy],
                                  m_rdata.arr[AMREX_SPACEDIM + indz]));
