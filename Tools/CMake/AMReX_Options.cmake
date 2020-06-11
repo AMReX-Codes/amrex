@@ -92,10 +92,10 @@ print_option( DIM )
 #
 # Parallel backends    ========================================================
 #
-option( ENABLE_DPCPP  "Enable DPCPP support" OFF )
-print_option( ENABLE_DPCPP )
 
+# For the time being ENABLE_DPCPP is defined before project() is called
 # Check whether the C++ compiler is dpcpp
+print_option(ENABLE_DPCPP)
 if (ENABLE_DPCPP AND (NOT (CMAKE_CXX_COMPILER MATCHES "dpcpp") ) )
    message(FATAL_ERROR "\nENABLE_DPCPP=${ENABLE_DPCPP} but CXX compiler is not dpcpp\n")
 endif ()
