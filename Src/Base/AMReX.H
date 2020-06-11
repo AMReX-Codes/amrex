@@ -150,14 +150,6 @@ namespace amrex
     }
 
     /**
-    * \brief Prints out an out-of-memory message and aborts.  It is
-    *         called by various routines when a call to new fails.
-    *
-    *        Called as amrex::OutOfMemory(__FILE__, __LINE__);
-    */
-    void OutOfMemory (const char* file, int line);
-
-    /**
     * \brief This is used by amrex::Error(), amrex::Abort(), and amrex::Assert()
     * to ensure that when writing the message to stderr, that no additional
     * heap-based memory is allocated.

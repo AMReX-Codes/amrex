@@ -38,7 +38,7 @@ namespace detail
                 }
             }
         }
-        
+
         RemoveDuplicates(bl);
         return bl;
     }
@@ -48,9 +48,9 @@ template <int NStructReal, int NStructInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>::
 buildNeighborMask ()
-{    
+{
     BL_PROFILE("NeighborParticleContainer<NStructReal, NStructInt>::buildNeighborMask");
-    AMREX_ALWAYS_ASSERT(this->numLevels() == 1);    
+    AMREX_ALWAYS_ASSERT(this->numLevels() == 1);
     m_neighbor_mask_initialized = true;
     const int lev = 0;
     const Geometry& geom = this->Geom(lev);
@@ -73,24 +73,24 @@ buildNeighborMask ()
         {
             int grid = mfi.index();
 	    int num_codes = 0;
-       
+
             std::set<NeighborTask> neighbor_grids;
             for (auto pit=pshifts.cbegin(); pit!=pshifts.cend(); ++pit)
             {
                 const Box box = ba[mfi] + *pit;
-                
+
                 const bool first_only = false;
                 auto isecs = ba.intersections(box, first_only, m_num_neighbor_cells);
-                
+
                 for (auto& isec : isecs)
                 {
                     int nbor_grid = isec.first;
                     const Box isec_box = isec.second - *pit;
-                    if ( (grid == nbor_grid) and (*pit == IntVect(AMREX_D_DECL(0, 0, 0)))) continue; 
+                    if ( (grid == nbor_grid) and (*pit == IntVect(AMREX_D_DECL(0, 0, 0)))) continue;
                     neighbor_grids.insert(NeighborTask(nbor_grid, isec_box, *pit));
                 }
             }
-            
+
             BoxList isec_bl;
             std::vector<int> isec_grids;
             std::vector<IntVect> isec_pshifts;
@@ -101,20 +101,20 @@ buildNeighborMask ()
                 isec_pshifts.push_back(nbor_grid.periodic_shift);
             }
             BoxArray isec_ba(isec_bl);
-            
+
             Vector<Box> bl = detail::getBoundaryBoxes(
                 amrex::grow(ba[mfi], -m_num_neighbor_cells), m_num_neighbor_cells);
-            
+
             m_grid_map[grid].resize(bl.size());
 	    m_code_offsets[grid].push_back(0);
             for (int i = 0; i < static_cast<int>(bl.size()); ++i)
             {
                 const Box& box = bl[i];
-            
+
                 const int nGrow = 0;
                 const bool first_only = false;
                 auto isecs = isec_ba.intersections(box, first_only, nGrow);
-                
+
                 if (! isecs.empty() ) (*m_neighbor_mask_ptr)[mfi].setVal<RunOn::Host>(i, box);
 
                 for (auto& isec : isecs)
@@ -124,11 +124,12 @@ buildNeighborMask ()
                     code.periodic_shift = isec_pshifts[isec.first];
                     m_grid_map[grid][i].push_back(code);
 		    m_code_array[grid].push_back(code);
-                    neighbor_procs.push_back(dmap[code.grid_id]);
+                    const int global_rank = dmap[code.grid_id];
+                    neighbor_procs.push_back(ParallelContext::global_to_local_rank(global_rank));
 		    ++num_codes;
                 }
    	        m_code_offsets[grid].push_back(m_code_array[grid].size());
-            }        
+            }
 	}
         RemoveDuplicates(neighbor_procs);
     }
