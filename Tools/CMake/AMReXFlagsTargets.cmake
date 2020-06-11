@@ -94,7 +94,7 @@ add_library(AMReX::Flags_CXX_REQUIRED ALIAS Flags_CXX_REQUIRED)
 
 target_compile_options( Flags_CXX_REQUIRED
    INTERFACE
-   $<${_cxx_msvc}:/Za /bigobj>
+   $<${_cxx_msvc}:/bigobj>
    )
 
 # Currently can't make this a generator expression as amrex_evaluate_genex fails
