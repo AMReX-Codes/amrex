@@ -95,6 +95,7 @@ jobs:
       run: |
         mkdir build
         cd build
+        export CXXFLAGS="-fno-operator-names"
         cmake ..                     \
             -DCMAKE_BUILD_TYPE=Debug \
             -DENABLE_BACKTRACE=ON    \
