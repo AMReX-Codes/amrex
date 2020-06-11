@@ -1592,29 +1592,28 @@ Divide (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, 
 template <class FAB,
           class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
 void
-Abs (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, int nghost)
+Abs (FabArray<FAB>& fa, int icomp, int numcomp, int nghost)
 {
-    Abs(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
+    Abs(fa,icomp,numcomp,IntVect(nghost));
 }
 
 template <class FAB,
           class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
 void
-Abs (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
+Abs (FabArray<FAB>& fa, int icomp, int numcomp, const IntVect& nghost)
 {
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    for (MFIter mfi(fa,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
         if (bx.ok())
         {
-            auto const srcFab = src.array(mfi);
-            auto       dstFab = dst.array(mfi);
+            auto const& fab = fa.array(mfi);
             AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, numcomp, i, j, k, n,
             {
-                dstFab(i,j,k,n+dstcomp) /= srcFab(i,j,k,n+srccomp);
+                fab(i,j,k,n+icomp) = amrex::Math::abs(fab(i,j,k,n+icomp));
             });
         }
     }
