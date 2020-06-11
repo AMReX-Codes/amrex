@@ -11,6 +11,10 @@ vpath %.h    $(FINAL_VPATH_LOCATIONS)
 vpath %.H    $(FINAL_VPATH_LOCATIONS)
 vpath %.hpp  $(FINAL_VPATH_LOCATIONS)
 
+ifneq ($(DEBUG),TRUE)
+  CPPFLAGS += -DNDEBUG
+endif
+
 FCPPFLAGS := $(addprefix $(CPP_PREFIX), $(CPPFLAGS))
 
 # Suppress display of executed commands.  Default verbose
