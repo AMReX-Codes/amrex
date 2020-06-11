@@ -386,36 +386,42 @@ public:
     void prefetchToHost () const noexcept;
     void prefetchToDevice () const noexcept;
 
+    AMREX_GPU_HOST_DEVICE
     AMREX_FORCE_INLINE
     Array4<T const> array () const noexcept
     {
         return makeArray4<T const>(this->dptr, this->domain, this->nvar);
     }
 
+    AMREX_GPU_HOST_DEVICE
     AMREX_FORCE_INLINE
     Array4<T const> array (int start_comp) const noexcept
     {
         return Array4<T const>(makeArray4<T const>(this->dptr, this->domain, this->nvar),start_comp);
     }
 
+    AMREX_GPU_HOST_DEVICE
     AMREX_FORCE_INLINE
     Array4<T> array () noexcept
     {
         return makeArray4<T>(this->dptr, this->domain, this->nvar);
     }
 
+    AMREX_GPU_HOST_DEVICE
     AMREX_FORCE_INLINE
     Array4<T> array (int start_comp) noexcept
     {
         return Array4<T>(makeArray4<T>(this->dptr, this->domain, this->nvar),start_comp);
     }
 
+    AMREX_GPU_HOST_DEVICE
     AMREX_FORCE_INLINE
     Array4<T const> const_array () const noexcept
     {
         return makeArray4<T const>(this->dptr, this->domain, this->nvar);
     }
 
+    AMREX_GPU_HOST_DEVICE
     AMREX_FORCE_INLINE
     Array4<T const> const_array (int start_comp) const noexcept
     {
