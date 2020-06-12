@@ -15,7 +15,11 @@
 
 namespace amrex {
 
-static constexpr Real INVALID_TIME = std::numeric_limits<Real>::lowest();
+#ifdef AMREX_USE_FLOAT
+static constexpr Real INVALID_TIME = -1.0e20;
+#else
+static constexpr Real INVALID_TIME = -1.0e200; 
+#endif
 
 static constexpr int MFNEWDATA = 0;
 static constexpr int MFOLDDATA = 1;
