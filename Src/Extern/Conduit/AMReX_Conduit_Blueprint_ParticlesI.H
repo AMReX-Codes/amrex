@@ -36,9 +36,9 @@ ParticleTileToBlueprint(const ParticleTile<NStructReal,
 
     // knowing the above, we can zero copy the x,y,z positions + id, cpu
     // and any user fields in the AOS
-    
+
     // get the first particle's struct
-    const auto &p_aos = ptile.GetArrayOfStructs()[0];
+    const auto &p_struct = ptile.GetArrayOfStructs();
 
     // setup a blueprint description for the particle mesh
     // create a coordinate set
@@ -64,18 +64,21 @@ ParticleTileToBlueprint(const ParticleTile<NStructReal,
     // point locations from from aos
     //----------------------------------//
 
-    n_coords["values/x"].set_external(const_cast<ParticleReal*>(&p_aos.pos(0)),
+    const ParticleReal* xp = pstruct.data();
+    n_coords["values/x"].set_external(const_cast<ParticleReal*>(xp),
                                       num_particles,
                                       0,
                                       struct_size);
 #if AMREX_SPACEDIM > 1
-    n_coords["values/y"].set_external(const_cast<ParticleReal*>(&p_aos.pos(1)),
+    const ParticleReal* yp = pstruct.data() + 1;
+    n_coords["values/y"].set_external(const_cast<ParticleReal*>(yp),
                                       num_particles,
                                       0,
                                       struct_size);
 #endif
 #if AMREX_SPACEDIM > 2
-    n_coords["values/z"].set_external(const_cast<ParticleReal*>(&p_aos.pos(2)),
+    const ParticleReal* zp = pstruct.data() + 2;
+    n_coords["values/z"].set_external(const_cast<ParticleReal*>(zp),
                                       num_particles,
                                       0,
                                       struct_size);
