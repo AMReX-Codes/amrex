@@ -1,5 +1,6 @@
 
 #include <iostream>
+#include <limits>
 #include <algorithm>
 
 #include <AMReX_RealBox.H>
@@ -14,7 +15,7 @@
 
 namespace amrex {
 
-static constexpr Real INVALID_TIME = -1.0e200;
+static constexpr Real INVALID_TIME = std::numeric_limits<Real>::lowest();
 
 static constexpr int MFNEWDATA = 0;
 static constexpr int MFOLDDATA = 1;
