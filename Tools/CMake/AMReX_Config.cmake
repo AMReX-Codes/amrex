@@ -189,7 +189,8 @@ function (configure_amrex)
          # elseif (_cpu_long_name STREQUAL "cascadelake")
          #    set(_cpu_short_name "cfl")
          # else ()
-         #    message(FATAL_ERROR "\n AOT CPU ${_cpu_long_name} not yet supported\n")
+         #    message(FATAL_ERROR "\n Ahead-of-time compilation for CPU ${_cpu_long_name} is not yet supported\n"
+         #       "Maybe set ENABLE_DPCPP_AOT to OFF?\n")
          # endif ()
 
          # target_compile_options( amrex

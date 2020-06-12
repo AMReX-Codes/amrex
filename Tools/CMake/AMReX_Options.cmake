@@ -100,7 +100,7 @@ if (ENABLE_DPCPP AND (NOT (CMAKE_CXX_COMPILER MATCHES "dpcpp") ) )
    message(FATAL_ERROR "\nENABLE_DPCPP=${ENABLE_DPCPP} but CXX compiler is not dpcpp\n")
 endif ()
 
-cmake_dependent_option( ENABLE_DPCPP_AOT  "Enable DPCPP AOT"  OFF
+cmake_dependent_option( ENABLE_DPCPP_AOT  "Enable DPCPP ahead-of-time compilation (WIP)"  OFF
    "ENABLE_DPCPP" OFF)
 print_option( ENABLE_DPCPP_AOT )
 
