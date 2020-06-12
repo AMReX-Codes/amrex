@@ -16,7 +16,7 @@
 namespace amrex {
 
 #ifdef AMREX_USE_FLOAT
-static constexpr Real INVALID_TIME = -1.0e20;
+static constexpr Real INVALID_TIME = -1.0e30;
 #else
 static constexpr Real INVALID_TIME = -1.0e200; 
 #endif
