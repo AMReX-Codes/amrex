@@ -167,31 +167,36 @@ function (configure_amrex)
       target_link_options(amrex PUBLIC -Wno-error=sycl-strict -fsycl -fsycl-unnamed-lambda -device-math-lib=fp32,fp64)
 
       if (ENABLE_DPCPP_AOT)
-         if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
-            ## TODO: use file(READ)
-            execute_process( COMMAND cat /sys/devices/cpu/caps/pmu_name OUTPUT_VARIABLE _cpu_long_name )
-         else ()
-            message(FATAL_ERROR "\nENABLE_DPCPP_AOT is not supported on ${CMAKE_SYSTEM_NAME}\n")
-         endif ()
+         message(FATAL_ERROR "\nAhead-of-time (AOT) compilation support not available yet.\nRe-configure with ENABLE_DPCPP_AOT=OFF.")
 
-         string(STRIP "${_cpu_long_name}" _cpu_long_name)
-         if (_cpu_long_name STREQUAL "skylake")
-            set(_cpu_short_name "skl")
-         elseif (_cpu_long_name STREQUAL "kabylake")
-            set(_cpu_short_name "kbl")
-         elseif (_cpu_long_name STREQUAL "cascadelake")
-            set(_cpu_short_name "cfl")
-         else ()
-            message(FATAL_ERROR "\n AOT CPU ${_cpu_long_name} not yet supported\n")
-         endif ()
+         #
+         # TODO: remove comments to enable AOT support when the time comes
+         #
+         # if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+         #    ## TODO: use file(READ)
+         #    execute_process( COMMAND cat /sys/devices/cpu/caps/pmu_name OUTPUT_VARIABLE _cpu_long_name )
+         # else ()
+         #    message(FATAL_ERROR "\nENABLE_DPCPP_AOT is not supported on ${CMAKE_SYSTEM_NAME}\n")
+         # endif ()
 
-         target_compile_options( amrex
-            PUBLIC
-            $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:Clang>,$<NOT:$<CONFIG:Debug>>>:
-            -fsycl-targets=spir64_gen-unknown-unknown-sycldevice -Xsycl-target-backend "-device ${_cpu_short_name}" >)
-         target_link_options(amrex PUBLIC -fsycl-targets=spir64_gen-unknown-unknown-sycldevice -Xsycl-target-backend "-device ${_cpu_short_name}" )
-         unset(_cpu_long_name)
-         unset(_cpu_short_name)
+         # string(STRIP "${_cpu_long_name}" _cpu_long_name)
+         # if (_cpu_long_name STREQUAL "skylake")
+         #    set(_cpu_short_name "skl")
+         # elseif (_cpu_long_name STREQUAL "kabylake")
+         #    set(_cpu_short_name "kbl")
+         # elseif (_cpu_long_name STREQUAL "cascadelake")
+         #    set(_cpu_short_name "cfl")
+         # else ()
+         #    message(FATAL_ERROR "\n AOT CPU ${_cpu_long_name} not yet supported\n")
+         # endif ()
+
+         # target_compile_options( amrex
+         #    PUBLIC
+         #    $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:Clang>,$<NOT:$<CONFIG:Debug>>>:
+         #    -fsycl-targets=spir64_gen-unknown-unknown-sycldevice -Xsycl-target-backend "-device ${_cpu_short_name}" >)
+         # target_link_options(amrex PUBLIC -fsycl-targets=spir64_gen-unknown-unknown-sycldevice -Xsycl-target-backend "-device ${_cpu_short_name}" )
+         # unset(_cpu_long_name)
+         # unset(_cpu_short_name)
        else ()
          if (ENABLE_DPCPP_SPLIT_KERNEL)
             target_compile_options( amrex
