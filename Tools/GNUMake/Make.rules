@@ -448,6 +448,7 @@ ifneq ($(MAKECMDGOALS),clean)
 ifneq ($(MAKECMDGOALS),uninstall)
 ifneq ($(MAKECMDGOALS),distclean)
 ifneq ($(findstring print-,$(MAKECMDGOALS)),print-)
+ifneq ($(MAKECMDGOALS),help)
 
 ifeq ($(USE_GPU_PRAGMA),TRUE)
 include $(TmpBuildDir)/$(optionsSuffix)_cuda_done
@@ -473,6 +474,7 @@ ifneq "$(strip $(f90EXE_sources) $(F90EXE_sources))" ""
 include $(depEXETempDir)/f90.depends
 endif
 
+endif
 endif
 endif
 endif

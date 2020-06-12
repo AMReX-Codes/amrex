@@ -111,9 +111,9 @@ if (NOT (CMAKE_SYSTEM_NAME STREQUAL "Windows" ) )
    # For Linux and MAC, we need to enforce that manually
    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -m64")
 endif ()
-set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-relaxed-constexpr --expt-extended-lambda")
-set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Wno-deprecated-gpu-targets ${NVCC_ARCH_FLAGS}")
-set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -maxrregcount=${CUDA_MAXREGCOUNT}")
+string(APPEND CMAKE_CUDA_FLAGS " --expt-relaxed-constexpr --expt-extended-lambda")
+string(APPEND CMAKE_CUDA_FLAGS " -Wno-deprecated-gpu-targets ${NVCC_ARCH_FLAGS}")
+string(APPEND CMAKE_CUDA_FLAGS " -maxrregcount=${CUDA_MAXREGCOUNT}")
 
 if (ENABLE_CUDA_FASTMATH)
    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --use_fast_math")

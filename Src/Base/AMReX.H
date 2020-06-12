@@ -8,6 +8,7 @@
 #include <AMReX_ccse-mpi.H>
 #include <AMReX_Exception.H>
 #include <AMReX_INT.H>
+#include <AMReX_REAL.H>
 #include <AMReX_Math.H>
 
 #include <iostream>
@@ -148,14 +149,6 @@ namespace amrex
         detail::Assert_host_doit(EX, file, line, msg);
 #endif
     }
-
-    /**
-    * \brief Prints out an out-of-memory message and aborts.  It is
-    *         called by various routines when a call to new fails.
-    *
-    *        Called as amrex::OutOfMemory(__FILE__, __LINE__);
-    */
-    void OutOfMemory (const char* file, int line);
 
     /**
     * \brief This is used by amrex::Error(), amrex::Abort(), and amrex::Assert()

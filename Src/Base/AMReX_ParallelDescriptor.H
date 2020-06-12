@@ -42,9 +42,9 @@
 #include <csignal>
 
 namespace amrex {
-    
+
 template <typename T> class LayoutData;
-    
+
 //! Parallel frontend that abstracts functionalities needed to spawn processes and handle communication
 namespace ParallelDescriptor
 {

@@ -109,15 +109,16 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
 #ifdef AMREX_LAZY
 	Lazy::QueueReduction( [=] () mutable {
 #endif
-        ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
+                ParallelReduce::Max(stoptime, ParallelContext::IOProcessorNumberSub(),
+                                    ParallelContext::CommunicatorSub());
 
-        amrex::Print() << "TracerParticleContainer::AdvectWithUmac() time: " << stoptime << '\n';
+                amrex::Print() << "TracerParticleContainer::AdvectWithUmac() time: " << stoptime << '\n';
 #ifdef AMREX_LAZY
 	});
 #endif
     }
 }
-	
+
 //
 // Uses midpoint method to advance particles using cell-centered velocity
 //
@@ -188,11 +189,12 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
 #ifdef AMREX_LAZY
 	Lazy::QueueReduction( [=] () mutable {
 #endif
-        ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
+                ParallelReduce::Max(stoptime, ParallelContext::IOProcessorNumberSub(),
+                                    ParallelContext::CommunicatorSub());
 
-        amrex::Print() << "TracerParticleContainer::AdvectWithUcc() time: " << stoptime << '\n';
+                amrex::Print() << "TracerParticleContainer::AdvectWithUcc() time: " << stoptime << '\n';
 #ifdef AMREX_LAZY
-	});
+            });
 #endif
     }
 }
@@ -220,7 +222,7 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
     const Real strttime = amrex::second();
 
     const int   MyProc    = ParallelDescriptor::MyProc();
-    const int   NProcs    = ParallelDescriptor::NProcs();
+    const int   NProcs    = ParallelContext::NProcsSub();
     // We'll spread the output over this many files.
     int nOutFiles(64);
     ParmParse pp("particles");
