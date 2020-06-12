@@ -266,7 +266,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
             ba.intersections(pbox, isects, first_only, 0);
             for (const auto& isec : isects) {
                 const int grid = isec.first;
-                const int global_proc = this->ParticleDistributionMap(level)[grid];
+                const int global_proc = this->ParticleDistributionMap(lev)[grid];
                 const int proc = ParallelContext::global_to_local_rank(global_proc);
                 for (IntVect iv = pbox.smallEnd(); iv <= pbox.bigEnd(); pbox.next(iv))
                 {
