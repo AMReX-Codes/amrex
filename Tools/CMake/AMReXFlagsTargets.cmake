@@ -94,17 +94,25 @@ add_library(AMReX::Flags_CXX_REQUIRED ALIAS Flags_CXX_REQUIRED)
 
 target_compile_options( Flags_CXX_REQUIRED
    INTERFACE
-   $<${_cxx_msvc}:/Za /bigobj>
+   $<${_cxx_msvc}:/bigobj>
    )
 
 # Currently can't make this a generator expression as amrex_evaluate_genex fails
 # to parse it and propagate the flags to cuda
-if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" AND CXX_COMPILER_VERSION VERSION_LESS 19.26)
-   target_compile_options( Flags_CXX_REQUIRED
-      INTERFACE
-      $<${_cxx_msvc}:/experimental:preprocessor /Zc:preprocessor>
-   )
+if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+   if (CXX_COMPILER_VERSION VERSION_LESS 19.26)
+      target_compile_options( Flags_CXX_REQUIRED
+         INTERFACE
+         $<${_cxx_msvc}:/experimental:preprocessor>
+         )
+   else ()
+      target_compile_options( Flags_CXX_REQUIRED
+         INTERFACE
+         $<${_cxx_msvc}:/Zc:preprocessor>
+         )
+   endif ()
 endif()
+
 #
 # Fortran REQUIRED flags -- This is for internal use only: it is useless to export it
 #

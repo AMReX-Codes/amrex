@@ -8,6 +8,7 @@
 #include <AMReX_ccse-mpi.H>
 #include <AMReX_Exception.H>
 #include <AMReX_INT.H>
+#include <AMReX_REAL.H>
 #include <AMReX_Math.H>
 
 #include <iostream>
