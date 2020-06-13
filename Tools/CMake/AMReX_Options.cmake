@@ -11,8 +11,8 @@ include(CMakeDependentOption)
 #
 # Define a macro to check the value of the inputs integer options
 #
-macro (print_option var)
-   message( STATUS "   ${var} = ${${var}}")
+macro (print_option _var)
+   message( STATUS "   ${_var} = ${${_var}}")
 endmacro ()
 
 #
@@ -90,15 +90,33 @@ endif ()
 print_option( DIM )
 
 #
-# Programming models  ========================================================
+# Parallel backends    ========================================================
 #
-option( ENABLE_MPI  "Enable MPI"  ON)
+
+# For the time being ENABLE_DPCPP is defined before project() is called
+# Check whether the C++ compiler is dpcpp
+print_option(ENABLE_DPCPP)
+if (ENABLE_DPCPP AND (NOT (CMAKE_CXX_COMPILER MATCHES "dpcpp") ) )
+   message(FATAL_ERROR "\nENABLE_DPCPP=${ENABLE_DPCPP} but CXX compiler is not dpcpp\n")
+endif ()
+
+cmake_dependent_option( ENABLE_DPCPP_AOT  "Enable DPCPP ahead-of-time compilation (WIP)"  OFF
+   "ENABLE_DPCPP" OFF)
+print_option( ENABLE_DPCPP_AOT )
+
+cmake_dependent_option( ENABLE_DPCPP_SPLIT_KERNEL "Enable DPCPP kernel splitting"  ON
+   "ENABLE_DPCPP" OFF)
+print_option(  ENABLE_DPCPP_SPLIT_KERNEL )
+
+cmake_dependent_option( ENABLE_MPI  "Enable MPI"  ON
+   "NOT ENABLE_DPCPP" OFF)
 print_option( ENABLE_MPI )
 
 option( ENABLE_OMP  "Enable OpenMP" OFF)
 print_option( ENABLE_OMP )
 
-option( ENABLE_CUDA "Enable GPU support via CUDA" OFF )
+cmake_dependent_option( ENABLE_CUDA "Enable GPU support via CUDA" OFF
+   "NOT ENABLE_DPCPP" OFF)
 print_option( ENABLE_CUDA )
 
 option( ENABLE_ACC  "Enable GPU support via OpenACC" OFF )

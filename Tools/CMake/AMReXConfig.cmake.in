@@ -48,6 +48,7 @@ set(AMReX_@DIM@D_FOUND                  ON)
 set(AMReX_MPI_FOUND                 @ENABLE_MPI@)
 set(AMReX_OMP_FOUND                 @ENABLE_OMP@)
 set(AMReX_CUDA_FOUND                @ENABLE_CUDA@)
+set(AMReX_DPCPP_FOUND               @ENABLE_DPCPP@)
 set(AMReX_DP_FOUND                  @ENABLE_DP@)
 
 # Actual components selection
