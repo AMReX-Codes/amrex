@@ -166,7 +166,7 @@ function (configure_amrex)
          PUBLIC
          $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:Clang>>:-Wno-error=sycl-strict -fsycl -fsycl-unnamed-lambda>)
 
-      target_link_options(amrex PUBLIC -Wno-error=sycl-strict -fsycl -fsycl-unnamed-lambda -device-math-lib=fp32,fp64)
+      target_link_options(amrex PUBLIC -Wno-error=sycl-strict -fsycl  -device-math-lib=fp32,fp64)
 
       if (ENABLE_DPCPP_AOT)
          message(FATAL_ERROR "\nAhead-of-time (AOT) compilation support not available yet.\nRe-configure with ENABLE_DPCPP_AOT=OFF.")
