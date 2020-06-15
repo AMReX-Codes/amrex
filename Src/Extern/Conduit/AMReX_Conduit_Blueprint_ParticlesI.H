@@ -64,23 +64,23 @@ ParticleTileToBlueprint(const ParticleTile<NStructReal,
     // point locations from from aos
     //----------------------------------//
 
-    char* pbuf = reinterpret_cast<char*>(pstruct.data());
+    const char* pbuf = reinterpret_cast<const char*>(pstruct.data());
 
-    ParticleReal* xp = reinterpret_cast<ParticleReal*>(pbuf); pbuf += sizeof(ParticleReal);
-    n_coords["values/x"].set_external(const_cast<ParticleReal*>(xp),
+    const ParticleReal* xp = reinterpret_cast<const ParticleReal*>(pbuf); pbuf += sizeof(ParticleReal);
+    n_coords["values/x"].set_external(xp,
                                       num_particles,
                                       0,
                                       struct_size);
 #if AMREX_SPACEDIM > 1
-    ParticleReal* yp = reinterpret_cast<ParticleReal*>(pbuf); pbuf += sizeof(ParticleReal);
-    n_coords["values/y"].set_external(const_cast<ParticleReal*>(yp),
+    const ParticleReal* yp = reinterpret_cast<const ParticleReal*>(pbuf); pbuf += sizeof(ParticleReal);
+    n_coords["values/y"].set_external(yp,
                                       num_particles,
                                       0,
                                       struct_size);
 #endif
 #if AMREX_SPACEDIM > 2
-    ParticleReal* zp = reinterpret_cast<ParticleReal*>(pbuf); pbuf += sizeof(ParticleReal);
-    n_coords["values/z"].set_external(const_cast<ParticleReal*>(zp),
+    const ParticleReal* zp = reinterpret_cast<const ParticleReal*>(pbuf); pbuf += sizeof(ParticleReal);
+    n_coords["values/z"].set_external(zp,
                                       num_particles,
                                       0,
                                       struct_size);
@@ -98,11 +98,11 @@ ParticleTileToBlueprint(const ParticleTile<NStructReal,
     // which we wrap above
     for (int i = 0; i < NStructReal; i++)
     {
-        ParticleReal* val = reinterpret_cast<ParticleReal*>(pbuf); pbuf += sizeof(ParticleReal);
+        const ParticleReal* val = reinterpret_cast<const ParticleReal*>(pbuf); pbuf += sizeof(ParticleReal);
         conduit::Node &n_f = n_fields[real_comp_names[vname_real_idx]];
         n_f["topology"] = topology_name;
         n_f["association"] = "element";
-        n_f["values"].set_external(const_cast<ParticleReal*>(val),
+        n_f["values"].set_external(val,
                                    num_particles,
                                    0,
                                    struct_size);
@@ -116,23 +116,23 @@ ParticleTileToBlueprint(const ParticleTile<NStructReal,
     //----------------------------------//
 
     // id is the first int entry
-    int* id = reinterpret_cast<int*>(pbuf); pbuf += sizeof(int);
+    const int* id = reinterpret_cast<const int*>(pbuf); pbuf += sizeof(int);
     conduit::Node &n_f_id = n_fields[topology_name + "_id"];
 
     n_f_id["topology"] = topology_name;
     n_f_id["association"] = "element";
-    n_f_id["values"].set_external(const_cast<int*>(id),
+    n_f_id["values"].set_external(id,
                                   num_particles,
                                   0,
                                   struct_size);
 
     // cpu is the second int entry
-    int* cpu = reinterpret_cast<int*>(pbuf); pbuf += sizeof(int);
+    const int* cpu = reinterpret_cast<const int*>(pbuf); pbuf += sizeof(int);
     conduit::Node &n_f_cpu = n_fields[topology_name + "_cpu"];
 
     n_f_cpu["topology"] = topology_name;
     n_f_cpu["association"] = "element";
-    n_f_cpu["values"].set_external(const_cast<int*>(cpu),
+    n_f_cpu["values"].set_external(cpu,
                                    num_particles,
                                    0,
                                    struct_size);
@@ -144,11 +144,11 @@ ParticleTileToBlueprint(const ParticleTile<NStructReal,
     int vname_int_idx = 0;
     for (int i = 0; i < NStructInt; i++)
     {
-        int* val = reinterpret_cast<int*>(pbuf); pbuf += sizeof(int);
+        const int* val = reinterpret_cast<const int*>(pbuf); pbuf += sizeof(int);
         conduit::Node &n_f = n_fields[int_comp_names[vname_int_idx]];
         n_f["topology"] = topology_name;
         n_f["association"] = "element";
-        n_f["values"].set_external(const_cast<int*>(val),
+        n_f["values"].set_external(val,
                                    num_particles,
                                    0,
                                    struct_size);
