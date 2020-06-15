@@ -3,7 +3,7 @@
 // Template implementation of functions for Conduit Mesh Blueprint Support
 // for AMReX Particle Containers
 //
-// This file is included in AMReX_Conduit_Blueprint.H when 
+// This file is included in AMReX_Conduit_Blueprint.H when
 // when USE_PARTICLES = TRUE
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -38,7 +38,7 @@ ParticleTileToBlueprint(const ParticleTile<NStructReal,
     // and any user fields in the AOS
 
     // get the first particle's struct
-    const auto &p_struct = ptile.GetArrayOfStructs();
+    const auto &pstruct = ptile.GetArrayOfStructs();
 
     // setup a blueprint description for the particle mesh
     // create a coordinate set
@@ -64,20 +64,22 @@ ParticleTileToBlueprint(const ParticleTile<NStructReal,
     // point locations from from aos
     //----------------------------------//
 
-    const ParticleReal* xp = pstruct.data();
+    char* pbuf = reinterpret_cast<char*>(pstruct.data());
+
+    ParticleReal* xp = reinterpret_cast<ParticleReal*>(pbuf); pbuf += sizeof(ParticleReal);
     n_coords["values/x"].set_external(const_cast<ParticleReal*>(xp),
                                       num_particles,
                                       0,
                                       struct_size);
 #if AMREX_SPACEDIM > 1
-    const ParticleReal* yp = pstruct.data() + 1;
+    ParticleReal* yp = reinterpret_cast<ParticleReal*>(pbuf); pbuf += sizeof(ParticleReal);
     n_coords["values/y"].set_external(const_cast<ParticleReal*>(yp),
                                       num_particles,
                                       0,
                                       struct_size);
 #endif
 #if AMREX_SPACEDIM > 2
-    const ParticleReal* zp = pstruct.data() + 2;
+    ParticleReal* zp = reinterpret_cast<ParticleReal*>(pbuf); pbuf += sizeof(ParticleReal);
     n_coords["values/z"].set_external(const_cast<ParticleReal*>(zp),
                                       num_particles,
                                       0,
@@ -87,44 +89,20 @@ ParticleTileToBlueprint(const ParticleTile<NStructReal,
     // fields
     conduit::Node &n_fields = res["fields"];
 
-    //----------------------------------//
-    // standard integer fields from aos
-    // (id, cpu)
-    //----------------------------------//
-
-    // id is the first int entry
-    conduit::Node &n_f_id = n_fields[topology_name + "_id"];
-
-    n_f_id["topology"] = topology_name;
-    n_f_id["association"] = "element";
-    n_f_id["values"].set_external(const_cast<int*>(&p_aos.id()),
-                                  num_particles,
-                                  0,
-                                  struct_size);
-
-    // cpu is the second int entry
-    conduit::Node &n_f_cpu = n_fields[topology_name + "_cpu"];
-
-    n_f_cpu["topology"] = topology_name;
-    n_f_cpu["association"] = "element";
-    n_f_cpu["values"].set_external(const_cast<int*>(&p_aos.cpu()),
-                                   num_particles,
-                                   0,
-                                   struct_size);
-
-    // -------------------------
-    // user defined aos fields
-    // -------------------------
+    // -----------------------------
+    // user defined, real aos fields
+    // -----------------------------
 
     int vname_real_idx = 0;
     // struct real fields, the first set are always the particle positions
     // which we wrap above
     for (int i = 0; i < NStructReal; i++)
     {
+        ParticleReal* val = reinterpret_cast<ParticleReal*>(pbuf); pbuf += sizeof(ParticleReal);
         conduit::Node &n_f = n_fields[real_comp_names[vname_real_idx]];
         n_f["topology"] = topology_name;
         n_f["association"] = "element";
-        n_f["values"].set_external(const_cast<ParticleReal*>(&p_aos.rdata(i)),
+        n_f["values"].set_external(const_cast<ParticleReal*>(val),
                                    num_particles,
                                    0,
                                    struct_size);
@@ -132,13 +110,45 @@ ParticleTileToBlueprint(const ParticleTile<NStructReal,
         vname_real_idx++;
     }
 
+    //----------------------------------//
+    // standard integer fields from aos
+    // (id, cpu)
+    //----------------------------------//
+
+    // id is the first int entry
+    int* id = reinterpret_cast<int*>(pbuf); pbuf += sizeof(int);
+    conduit::Node &n_f_id = n_fields[topology_name + "_id"];
+
+    n_f_id["topology"] = topology_name;
+    n_f_id["association"] = "element";
+    n_f_id["values"].set_external(const_cast<int*>(id),
+                                  num_particles,
+                                  0,
+                                  struct_size);
+
+    // cpu is the second int entry
+    int* cpu = reinterpret_cast<int*>(pbuf); pbuf += sizeof(int);
+    conduit::Node &n_f_cpu = n_fields[topology_name + "_cpu"];
+
+    n_f_cpu["topology"] = topology_name;
+    n_f_cpu["association"] = "element";
+    n_f_cpu["values"].set_external(const_cast<int*>(cpu),
+                                   num_particles,
+                                   0,
+                                   struct_size);
+
+    // --------------------------------
+    // user defined, integer aos fields
+    // --------------------------------
+
     int vname_int_idx = 0;
     for (int i = 0; i < NStructInt; i++)
     {
+        int* val = reinterpret_cast<int*>(pbuf); pbuf += sizeof(int);
         conduit::Node &n_f = n_fields[int_comp_names[vname_int_idx]];
         n_f["topology"] = topology_name;
         n_f["association"] = "element";
-        n_f["values"].set_external(const_cast<int*>(&p_aos.idata(i)),
+        n_f["values"].set_external(const_cast<int*>(val),
                                    num_particles,
                                    0,
                                    struct_size);
