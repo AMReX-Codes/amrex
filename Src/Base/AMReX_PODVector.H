@@ -37,7 +37,11 @@ namespace amrex
         typename std::enable_if<RunOnGpu<T>::value>::type
         memCopyImpl (void* dst, const void* src, std::size_t count)
         {
+#ifdef AMREX_USE_GPU
             Gpu::dtod_memcpy(dst, src, count);
+#else
+            std::memcpy(dst, src, count);
+#endif
         }
 
         template <typename T>
@@ -51,15 +55,19 @@ namespace amrex
         typename std::enable_if<RunOnGpu<T>::value>::type
         memMoveImpl (void* dst, const void* src, std::size_t count, T& allocator)
         {
+#ifdef AMREX_USE_GPU
             AMREX_ASSERT(count % sizeof(typename T::value_type) == 0);
 
             auto N = count / sizeof(typename T::value_type);
             auto tmp = allocator.allocate(N);
-            
+
             Gpu::dtod_memcpy(tmp, src, count);
             Gpu::dtod_memcpy(dst, tmp, count);
 
             allocator.deallocate(tmp, N);
+#else
+            std::memmove(dst, src, count);
+#endif
         }
 
         template <typename T>
@@ -68,12 +76,16 @@ namespace amrex
         {
             std::memmove(dst, src, count);
         }
-        
+
         template <typename T, typename U>
         typename std::enable_if<RunOnGpu<T>::value>::type
         initFromListImpl (U* data, std::initializer_list<U> list)
         {
+#ifdef AMREX_USE_GPU
             Gpu::htod_memcpy(data, &(*list.begin()), list.size() * sizeof(U));
+#else
+            std::memcpy(data, &(*list.begin()), list.size() * sizeof(U));
+#endif
         }
 
         template <typename T, typename U>

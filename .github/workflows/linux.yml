@@ -1,21 +1,22 @@
-name: cmake
+name: linux
 
 on: [push, pull_request]
 
 jobs:
   # Build and install libamrex as AMReX CMake project
   library:
-    name: GNU@7.5 C++17 [lib]
+    name: GNU@7.5 C++17 Release [lib]
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
-      run: .github/workflows/cmake/dependencies.sh
+      run: .github/workflows/dependencies/dependencies.sh
     - name: Build & Install
       run: |
         mkdir build
         cd build
         cmake ..                                  \
+            -DCMAKE_VERBOSE_MAKEFILE=ON           \
             -DCMAKE_INSTALL_PREFIX=/tmp/my-amrex  \
             -DCMAKE_CXX_STANDARD=17
         make -j 2 VERBOSE=ON
@@ -28,12 +29,41 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
-      run: .github/workflows/cmake/dependencies.sh
+      run: .github/workflows/dependencies/dependencies.sh
     - name: Build & Install
       run: |
         mkdir build
         cd build
-        cmake .. -DENABLE_TUTORIALS=ON
+        cmake ..                        \
+            -DCMAKE_BUILD_TYPE=Debug    \
+            -DCMAKE_VERBOSE_MAKEFILE=ON \
+            -DENABLE_BACKTRACE=ON       \
+            -DENABLE_TUTORIALS=ON       \
+            -DENABLE_PARTICLES=ON
+        make -j 2 tutorials
+
+  # Build libamrex and all tutorials
+  tutorials_cxx20:
+    name: GNU@10.1 C++20 [tutorials]
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Dependencies
+      run: .github/workflows/dependencies/dependencies_gcc10.sh
+    - name: Build & Install
+      run: |
+        mkdir build
+        cd build
+        cmake ..                        \
+            -DCMAKE_BUILD_TYPE=Debug    \
+            -DCMAKE_VERBOSE_MAKEFILE=ON \
+            -DENABLE_BACKTRACE=ON       \
+            -DENABLE_TUTORIALS=ON       \
+            -DENABLE_PARTICLES=ON       \
+            -DCMAKE_CXX_STANDARD=20     \
+            -DCMAKE_C_COMPILER=$(which gcc-10)              \
+            -DCMAKE_CXX_COMPILER=$(which g++-10)            \
+            -DCMAKE_Fortran_COMPILER=$(which gfortran-10)
         make -j 2 tutorials
 
   # Build libamrex and all tutorials w/o MPI
@@ -43,27 +73,18 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
-      run: .github/workflows/cmake/dependencies.sh
+      run: .github/workflows/dependencies/dependencies.sh
     - name: Build & Install
       run: |
         mkdir build
         cd build
-        cmake .. -DENABLE_TUTORIALS=ON -DENABLE_MPI=OFF
-        make -j 2 tutorials
-
-  # Build libamrex and all tutorials
-  tutorials-macos:
-    name: AppleClang@11.0 GFortran@9.3 [tutorials]
-    runs-on: macos-latest
-    steps:
-    - uses: actions/checkout@v2
-    - name: Dependencies
-      run: .github/workflows/cmake/dependencies_mac.sh
-    - name: Build & Install
-      run: |
-        mkdir build
-        cd build
-        cmake .. -DENABLE_TUTORIALS=ON
+        cmake ..                        \
+            -DCMAKE_BUILD_TYPE=Debug    \
+            -DCMAKE_VERBOSE_MAKEFILE=ON \
+            -DENABLE_BACKTRACE=ON       \
+            -DENABLE_TUTORIALS=ON       \
+            -DENABLE_MPI=OFF            \
+            -DENABLE_PARTICLES=ON
         make -j 2 tutorials
 
   # Build libamrex and all tutorials
@@ -73,31 +94,37 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
-      run: .github/workflows/cmake/dependencies_nofortran.sh
+      run: .github/workflows/dependencies/dependencies_nofortran.sh
     - name: Build & Install
       run: |
         mkdir build
         cd build
-        cmake ..                    \
-            -DENABLE_TUTORIALS=ON   \
-            -DENABLE_FORTRAN=OFF    \
+        cmake ..                        \
+            -DCMAKE_BUILD_TYPE=Debug    \
+            -DCMAKE_VERBOSE_MAKEFILE=ON \
+            -DENABLE_BACKTRACE=ON       \
+            -DENABLE_TUTORIALS=ON       \
+            -DENABLE_PARTICLES=ON       \
+            -DENABLE_FORTRAN=OFF        \
             -DCMAKE_CXX_STANDARD=11
         make -j 2 tutorials
 
   # Build libamrex and all tutorials with CUDA
   tutorials-cuda:
-    name: CUDA@9.1.85 GNU@4.8.5 C++11 [tutorials]
+    name: CUDA@9.1.85 GNU@4.8.5 C++11 Release [tutorials]
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
-      run: .github/workflows/cmake/dependencies_nvcc.sh
+      run: .github/workflows/dependencies/dependencies_nvcc.sh
     - name: Build & Install
       run: |
         mkdir build
         cd build
         cmake ..                                         \
+            -DCMAKE_VERBOSE_MAKEFILE=ON                  \
             -DENABLE_TUTORIALS=ON                        \
+            -DENABLE_PARTICLES=ON                        \
             -DENABLE_CUDA=ON                             \
             -DCMAKE_C_COMPILER=$(which gcc-4.8)              \
             -DCMAKE_CXX_COMPILER=$(which g++-4.8)            \

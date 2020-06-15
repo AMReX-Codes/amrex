@@ -1,7 +1,6 @@
 
 #include <sstream>
 
-#include <unistd.h>
 #include <memory>
 #include <limits>
 

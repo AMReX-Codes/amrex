@@ -66,6 +66,10 @@ function ( set_amrex_defines )
    # OpenMP -- This one has legacy definition only in Base/AMReX_omp_mod.F90
    add_amrex_define( AMREX_USE_OMP IF ENABLE_OMP )
 
+   # DPCPP
+   add_amrex_define( AMREX_USE_DPCPP NO_LEGACY IF ENABLE_DPCPP )
+   add_amrex_define( AMREX_USE_GPU NO_LEGACY IF ENABLE_DPCPP )
+
    # Precision
    if (NOT ENABLE_DP)
       add_amrex_define(AMREX_USE_FLOAT)

@@ -169,7 +169,8 @@ MLTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc
             AMREX_D_TERM(Array4<Real> const fxfab = fluxfab_tmp[0].array();,
                          Array4<Real> const fyfab = fluxfab_tmp[1].array();,
                          Array4<Real> const fzfab = fluxfab_tmp[2].array(););
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA
+
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM
             ( xbx, txbx,
               {
                   mltensor_cross_terms_fx(txbx,fxfab,vfab,etaxfab,kapxfab,dxinv);
@@ -178,12 +179,10 @@ MLTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc
               {
                   mltensor_cross_terms_fy(tybx,fyfab,vfab,etayfab,kapyfab,dxinv);
               }
-#if (AMREX_SPACEDIM == 3)
             , zbx, tzbx,
               {
                   mltensor_cross_terms_fz(tzbx,fzfab,vfab,etazfab,kapzfab,dxinv);
               }
-#endif
             );
 
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
@@ -272,26 +271,30 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
         const auto& bvzhi = (bndry != nullptr) ?
 	  (*bndry)[Orientation(2,Orientation::high)].array(mfi) : foo;
 
+	// only edge vals used in 3D stencil
 #ifdef AMREX_USE_DPCPP
         // xxxxx DPCPP todo: kernel size
         Vector<Array4<int const> > htmp = {mxlo,mylo,mzlo,mxhi,myhi,mzhi};
         Gpu::AsyncArray<Array4<int const> > dtmp(htmp.data(), 6);
         auto dp = dtmp.data();
-#endif
-
-	// only edge vals used in 3D stencil
         AMREX_HOST_DEVICE_FOR_1D ( 12, iedge,
         {
             mltensor_fill_edges(iedge, vbx, velfab,
-#ifdef AMREX_USE_DPCPP
                                 dp[0],dp[1],dp[2],dp[3],dp[4],dp[5],
-#else
-                                mxlo, mylo, mzlo, mxhi, myhi, mzhi,
-#endif
                                 bvxlo, bvylo, bvzlo, bvxhi, bvyhi, bvzhi,
                                 bct, bcl, inhomog, imaxorder,
-				dxinv, domain);
+                                dxinv, domain);
         });
+#else
+        AMREX_HOST_DEVICE_FOR_1D ( 12, iedge,
+        {
+            mltensor_fill_edges(iedge, vbx, velfab,
+                                mxlo, mylo, mzlo, mxhi, myhi, mzhi,
+                                bvxlo, bvylo, bvzlo, bvxhi, bvyhi, bvzhi,
+                                bct, bcl, inhomog, imaxorder,
+                                dxinv, domain);
+        });
+#endif
 
 #endif
     }
@@ -347,7 +350,8 @@ MLTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
             AMREX_D_TERM(Array4<Real> const fxfab = fluxfab_tmp[0].array();,
                          Array4<Real> const fyfab = fluxfab_tmp[1].array();,
                          Array4<Real> const fzfab = fluxfab_tmp[2].array(););
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA
+
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM
             ( xbx, txbx,
               {
                   mltensor_cross_terms_fx(txbx,fxfab,vfab,etaxfab,kapxfab,dxinv);
@@ -356,12 +360,10 @@ MLTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
               {
                   mltensor_cross_terms_fy(tybx,fyfab,vfab,etayfab,kapyfab,dxinv);
               }
-#if (AMREX_SPACEDIM == 3)
             , zbx, tzbx,
               {
                   mltensor_cross_terms_fz(tzbx,fzfab,vfab,etazfab,kapzfab,dxinv);
               }
-#endif
             );
 
 	    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
@@ -416,7 +418,8 @@ MLTensorOp::compVelGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& flux
             AMREX_D_TERM(Array4<Real> const fxfab = fluxfab_tmp[0].array();,
                          Array4<Real> const fyfab = fluxfab_tmp[1].array();,
                          Array4<Real> const fzfab = fluxfab_tmp[2].array(););
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA
+
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM
             ( xbx, txbx,
               {
                   mltensor_vel_grads_fx(txbx,fxfab,vfab,dxinv);
@@ -425,12 +428,10 @@ MLTensorOp::compVelGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& flux
               {
                   mltensor_vel_grads_fy(tybx,fyfab,vfab,dxinv);
               }
-#if (AMREX_SPACEDIM == 3)
             , zbx, tzbx,
               {
                   mltensor_vel_grads_fz(tzbx,fzfab,vfab,dxinv);
               }
-#endif
             );
 
 // The derivatives are put in the array with the following order:

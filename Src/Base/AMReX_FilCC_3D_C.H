@@ -12,9 +12,9 @@ inline
 void
 filcc_cell (const IntVect& iv, Array4<Real> const& q,
             const int dcomp, const int numcomp,
-            GeometryData const& geom, const Real time,
+            GeometryData const& geom, const Real /*time*/,
             const BCRec* bcr, const int bcomp,
-            const int orig_comp) noexcept
+            const int /*orig_comp*/) noexcept
 {
     const int i = iv[0];
     const int j = iv[1];

@@ -95,8 +95,8 @@ protected:
 class PhysBCFunctNoOp
 {
 public:
-    void operator() (MultiFab& mf, int dcomp, int ncomp, IntVect const& nghost,
-                     Real time, int bccomp) {}
+    void operator() (MultiFab& /*mf*/, int /*dcomp*/, int /*ncomp*/, IntVect const& /*nghost*/,
+                     Real /*time*/, int /*bccomp*/) {}
 };
 
 

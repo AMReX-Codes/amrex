@@ -269,15 +269,14 @@ MLEBTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode 
 #endif
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
             {
+                AMREX_DPCPP_ONLY(   auto fcx = dp[0]);
+                AMREX_DPCPP_ONLY(   auto fcy = dp[1]);
+                AMREX_DPCPP_3D_ONLY(auto fcz = dp[2]);
                 mlebtensor_cross_terms(tbx, axfab,
                                        AMREX_D_DECL(fxfab,fyfab,fzfab),
                                        vfab, etab, kapb, ccm, flag, vol,
                                        AMREX_D_DECL(apx,apy,apz),
-#ifdef AMREX_USE_DPCPP
-                                       AMREX_D_DECL(dp[0],dp[1],dp[2]),
-#else
                                        AMREX_D_DECL(fcx,fcy,fcz),
-#endif
                                        bc, dxinv, bscalar);
             });
         }
@@ -366,21 +365,20 @@ MLEBTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
 #ifdef AMREX_USE_DPCPP
             // xxxxx DPCPP todo: kernel size
             Vector<Array4<int const> > htmp = {mxlo,mylo,mzlo,mxhi,myhi,mzhi};
-//            Gpu::AsyncArray<Array4<int const> > dtmp(htmp.data(), 6);
-//            auto dp = dtmp.data();
-            // Bug # 2: It hangs if the lines above are uncommented and Gpu launch region is on
-            Gpu::LaunchSafeGuard lsg(false);
-            auto dp = htmp.data();
+            Gpu::AsyncArray<Array4<int const> > dtmp(htmp.data(), htmp.size());
+            auto dp = dtmp.data();
 #endif
 
             AMREX_HOST_DEVICE_FOR_1D ( 12, iedge,
             {
+                AMREX_DPCPP_ONLY(auto mxlo = dp[0]);
+                AMREX_DPCPP_ONLY(auto mylo = dp[1]);
+                AMREX_DPCPP_ONLY(auto mzlo = dp[2]);
+                AMREX_DPCPP_ONLY(auto mxhi = dp[3]);
+                AMREX_DPCPP_ONLY(auto myhi = dp[4]);
+                AMREX_DPCPP_ONLY(auto mzhi = dp[5]);
                 mltensor_fill_edges(iedge, vbx, velfab,
-#ifdef AMREX_USE_DPCPP
-                                    dp[0],dp[1],dp[2],dp[3],dp[4],dp[5],
-#else
                                     mxlo, mylo, mzlo, mxhi, myhi, mzhi,
-#endif
                                     bvxlo, bvylo, bvzlo, bvxhi, bvyhi, bvzhi,
                                     bct, bcl, inhomog, imaxorder,
                                     dxinv, domain);
@@ -388,12 +386,14 @@ MLEBTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
 
             AMREX_HOST_DEVICE_FOR_1D ( 8, icorner,
             {
+                AMREX_DPCPP_ONLY(auto mxlo = dp[0]);
+                AMREX_DPCPP_ONLY(auto mylo = dp[1]);
+                AMREX_DPCPP_ONLY(auto mzlo = dp[2]);
+                AMREX_DPCPP_ONLY(auto mxhi = dp[3]);
+                AMREX_DPCPP_ONLY(auto myhi = dp[4]);
+                AMREX_DPCPP_ONLY(auto mzhi = dp[5]);
                 mltensor_fill_corners(icorner, vbx, velfab,
-#ifdef AMREX_USE_DPCPP
-                                      dp[0],dp[1],dp[2],dp[3],dp[4],dp[5],
-#else
                                       mxlo, mylo, mzlo, mxhi, myhi, mzhi,
-#endif
                                       bvxlo, bvylo, bvzlo, bvxhi, bvyhi, bvzhi,
                                       bct, bcl, inhomog, imaxorder,
                                       dxinv, domain);
@@ -441,7 +441,7 @@ MLEBTensorOp::compCrossTerms(int amrlev, int mglev, MultiFab const& mf) const
 	  AMREX_D_TERM(Array4<Real> const& fxfab = fluxmf[0].array(mfi);,
 		       Array4<Real> const& fyfab = fluxmf[1].array(mfi);,
 		       Array4<Real> const& fzfab = fluxmf[2].array(mfi););
-	  AMREX_LAUNCH_HOST_DEVICE_LAMBDA
+	  AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM
 	  ( xbx, txbx,
 	    {
                 AMREX_LOOP_4D(txbx, AMREX_SPACEDIM, i, j, k, n,
@@ -456,7 +456,6 @@ MLEBTensorOp::compCrossTerms(int amrlev, int mglev, MultiFab const& mf) const
                     fyfab(i,j,k,n) = 0.0;
                 });
 	    }
-#if (AMREX_SPACEDIM == 3)
 	    , zbx, tzbx,
 	    {
                 AMREX_LOOP_4D(tzbx, AMREX_SPACEDIM, i, j, k, n,
@@ -464,7 +463,6 @@ MLEBTensorOp::compCrossTerms(int amrlev, int mglev, MultiFab const& mf) const
                     fzfab(i,j,k,n) = 0.0;
                 });
 	    }
-#endif
 	  );
 	} else {
 	  AMREX_D_TERM(Array4<Real> const fxfab = fluxmf[0].array(mfi);,
@@ -480,7 +478,7 @@ MLEBTensorOp::compCrossTerms(int amrlev, int mglev, MultiFab const& mf) const
 	  
 	  if (fabtyp == FabType::regular)
 	  {
-	      AMREX_LAUNCH_HOST_DEVICE_LAMBDA
+	      AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM
 	      ( xbx, txbx,
 		{
 		  mltensor_cross_terms_fx(txbx,fxfab,vfab,etaxfab,kapxfab,dxinv);
@@ -489,12 +487,10 @@ MLEBTensorOp::compCrossTerms(int amrlev, int mglev, MultiFab const& mf) const
 		{
 		  mltensor_cross_terms_fy(tybx,fyfab,vfab,etayfab,kapyfab,dxinv);
 		}
-#if (AMREX_SPACEDIM == 3)
 		, zbx, tzbx,
 		{
 		  mltensor_cross_terms_fz(tzbx,fzfab,vfab,etazfab,kapzfab,dxinv);
 		}
-#endif
 	      );
 	  }
 	  else
@@ -504,7 +500,7 @@ MLEBTensorOp::compCrossTerms(int amrlev, int mglev, MultiFab const& mf) const
 			 Array4<Real const> const& apz = area[2]->const_array(mfi););
 	    Array4<EBCellFlag const> const& flag = flags->const_array(mfi);
 	    
-	    AMREX_LAUNCH_HOST_DEVICE_LAMBDA
+	    AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM
 	    ( xbx, txbx,
 	      {
 		mlebtensor_cross_terms_fx(txbx,fxfab,vfab,etaxfab,kapxfab,apx,flag,dxinv);
@@ -513,12 +509,10 @@ MLEBTensorOp::compCrossTerms(int amrlev, int mglev, MultiFab const& mf) const
 	      {
 		mlebtensor_cross_terms_fy(tybx,fyfab,vfab,etayfab,kapyfab,apy,flag,dxinv);
 	      }
-#if (AMREX_SPACEDIM == 3)
 	      , zbx, tzbx,
 	      {
 		mlebtensor_cross_terms_fz(tzbx,fzfab,vfab,etazfab,kapzfab,apz,flag,dxinv);
 	      }
-#endif
 	      );
 	  }
 	}
@@ -622,7 +616,7 @@ MLEBTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxe
 
 	    int face_only = 0;
 
-	    AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
+	    AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM (
                 xbx, txbx,
 		{
 		  mlebtensor_flux_x(txbx, Ax, fx, apx, fcx, bscalar, msk, face_only, xbx);
@@ -631,24 +625,16 @@ MLEBTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxe
 		{
 		  mlebtensor_flux_y(tybx, Ay, fy, apy, fcy, bscalar, msk, face_only, ybx);
 		}
-#if (AMREX_SPACEDIM == 3)
 		, zbx, tzbx,
 		{
 		  mlebtensor_flux_z(tzbx, Az, fz, apz, fcz, bscalar, msk, face_only, zbx);
 		}
-#endif
 	    );
 
 	}
 
     }
 }
-
-
-
-
-
-
 
 void
 MLEBTensorOp::compVelGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
@@ -704,7 +690,7 @@ MLEBTensorOp::compVelGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fl
             AMREX_D_TERM(Array4<Real> const fxfab = fluxfab_tmp[0].array();,
                          Array4<Real> const fyfab = fluxfab_tmp[1].array();,
                          Array4<Real> const fzfab = fluxfab_tmp[2].array(););
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM
             ( xbx, txbx,
               {
                   mltensor_vel_grads_fx(txbx,fxfab,vfab,dxinv);
@@ -713,12 +699,10 @@ MLEBTensorOp::compVelGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fl
               {
                   mltensor_vel_grads_fy(tybx,fyfab,vfab,dxinv);
               }
-#if (AMREX_SPACEDIM == 3)
             , zbx, tzbx,
               {
                   mltensor_vel_grads_fz(tzbx,fzfab,vfab,dxinv);
               }
-#endif
             );
 
 // The derivatives are put in the array with the following order:

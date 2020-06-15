@@ -1,8 +1,7 @@
 
 #include <iostream>
+#include <limits>
 #include <algorithm>
-
-#include <unistd.h>
 
 #include <AMReX_RealBox.H>
 #include <AMReX_StateData.H>
@@ -16,7 +15,11 @@
 
 namespace amrex {
 
-static constexpr Real INVALID_TIME = -1.0e200;
+#ifdef AMREX_USE_FLOAT
+static constexpr Real INVALID_TIME = -1.0e30;
+#else
+static constexpr Real INVALID_TIME = -1.0e200; 
+#endif
 
 static constexpr int MFNEWDATA = 0;
 static constexpr int MFOLDDATA = 1;

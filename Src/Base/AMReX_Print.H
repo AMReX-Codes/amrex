@@ -116,14 +116,14 @@ namespace amrex
 
 	explicit PrintToFile (const std::string& file_name_) 
 	    : file_name(file_name_)
-            , rank(ParallelDescriptor::IOProcessorNumber())
-	    , comm(ParallelDescriptor::Communicator())
+            , rank(ParallelContext::IOProcessorNumberSub())
+	    , comm(ParallelContext::CommunicatorSub())
         { Initialize(); }
         
 	PrintToFile (const std::string& file_name_, int rank_ ) 
 	    : file_name(file_name_)
 	    , rank(rank_)
-	    , comm(ParallelDescriptor::Communicator())
+	    , comm(ParallelContext::CommunicatorSub())
         { Initialize(); }
         
 	PrintToFile (const std::string& file_name_, int rank_, MPI_Comm comm_)
@@ -133,7 +133,7 @@ namespace amrex
         { Initialize(); }
 
 	~PrintToFile () {
-	    if (rank == AllProcs || rank == ParallelDescriptor::MyProc(comm)) {
+	    if (rank == AllProcs || rank == ParallelContext::MyProcSub()) {
 		ofs.flush();
 		ofs << ss.str();
 		ofs.flush();
@@ -161,9 +161,10 @@ namespace amrex
     private:
 
         void Initialize() {
-            int my_proc = ParallelDescriptor::MyProc(comm);
+            int my_proc = ParallelContext::MyProcSub();
             if (rank == AllProcs || rank == my_proc) {
-                std::string proc_file_name = file_name + "." + std::to_string(my_proc);
+                int my_proc_global = ParallelDescriptor::MyProc();
+                std::string proc_file_name = file_name + "." + std::to_string(my_proc_global);
 #ifdef _OPENMP
                 proc_file_name += "." + std::to_string(omp_get_thread_num());
 #endif
