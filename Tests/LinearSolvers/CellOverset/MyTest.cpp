@@ -208,7 +208,6 @@ MyTest::initData ()
                 if (loverset and overset_box.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
                     mask(i,j,k) = 1;
                     phifab(i,j,k) = exact(i,j,k);
-                    rhsfab(i,j,k) = 0.0;
                 } else {
                     mask(i,j,k) = 0;
                 }

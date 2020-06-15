@@ -82,7 +82,7 @@ public:
         return std::unique_ptr<MLLinOp>{};
     }
 
-    virtual void interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiFab& crse) const final override;
+    virtual void applyOverset (int amlev, MultiFab& rhs) const override;
 
     void averageDownCoeffsSameAmrLevel (int amrlev, Vector<MultiFab>& a,
                                         Vector<Array<MultiFab,AMREX_SPACEDIM> >& b);

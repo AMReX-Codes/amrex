@@ -744,33 +744,23 @@ MLABecLaplacian::update ()
 }
 
 void
-MLABecLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiFab& crse) const
+MLABecLaplacian::applyOverset (int amrlev, MultiFab& rhs) const
 {
-    const int ncomp = getNComp();
-
-    if (m_overset_mask[amrlev][fmglev])
-    {
+    if (m_overset_mask[amrlev][0]) {
+        const int ncomp = getNComp();
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        for (MFIter mfi(fine,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        for (MFIter mfi(*m_overset_mask[amrlev][0],TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
-            const Box& bx    = mfi.tilebox();
-            Array4<Real const> const& cfab = crse.const_array(mfi);
-            Array4<Real> const& ffab = fine.array(mfi);
-            const auto& osm = m_overset_mask[amrlev][fmglev]->array(mfi);
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
+            const Box& bx = mfi.tilebox();
+            Array4<Real> const& rfab = rhs.array(mfi);
+            Array4<int const> const& osm = m_overset_mask[amrlev][0]->const_array(mfi);
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D(bx, ncomp, i, j, k, n,
             {
-                if (!osm(i,j,k)) {
-                    int ic = amrex::coarsen(i,2);
-                    int jc = amrex::coarsen(j,2);
-                    int kc = amrex::coarsen(k,2);
-                    ffab(i,j,k,n) += cfab(ic,jc,kc,n);
-                }
+                if (osm(i,j,k)) rfab(i,j,k,n) = 0.0;
             });
         }
-    } else {
-        MLCellABecLap::interpolation(amrlev, fmglev, fine, crse);
     }
 }
 

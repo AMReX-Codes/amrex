@@ -445,7 +445,7 @@ void overset_rescale_bcoef_z (Box const& box, Array4<Real> const& bZ, Array4<int
         for (int k = lo.z; k <= hi.z; ++k) {
         for (int j = lo.y; j <= hi.y; ++j) {
         for (int i = lo.x; i <= hi.x; ++i) {
-            if ((osm(i,j-1,k)+osm(i,j,k)) == 1) {
+            if ((osm(i,j,k-1)+osm(i,j,k)) == 1) {
                 bZ(i,j,k,n) *= osfac;
             }
         }}}
