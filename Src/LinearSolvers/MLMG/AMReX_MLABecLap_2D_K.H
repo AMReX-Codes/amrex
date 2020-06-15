@@ -290,5 +290,37 @@ int coarsen_overset_mask (Box const& bx, Array4<int> const& cmsk, Array4<int con
     return nerrors;
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void overset_rescale_bcoef_x (Box const& box, Array4<Real> const& bX, Array4<int const> const& osm,
+                              int ncomp, Real osfac) noexcept
+{
+    const auto lo = amrex::lbound(box);
+    const auto hi = amrex::ubound(box);
+    for (int n = 0; n < ncomp; ++n) {
+        for (int j = lo.y; j <= hi.y; ++j) {
+        for (int i = lo.x; i <= hi.x; ++i) {
+            if ((osm(i-1,j,0)+osm(i,j,0)) == 1) {
+                bX(i,j,0,n) *= osfac;
+            }
+        }}
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void overset_rescale_bcoef_y (Box const& box, Array4<Real> const& bY, Array4<int const> const& osm,
+                              int ncomp, Real osfac) noexcept
+{
+    const auto lo = amrex::lbound(box);
+    const auto hi = amrex::ubound(box);
+    for (int n = 0; n < ncomp; ++n) {
+        for (int j = lo.y; j <= hi.y; ++j) {
+        for (int i = lo.x; i <= hi.x; ++i) {
+            if ((osm(i,j-1,0)+osm(i,j,0)) == 1) {
+                bY(i,j,0,n) *= osfac;
+            }
+        }}
+    }
+}
+
 }
 #endif

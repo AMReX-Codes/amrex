@@ -84,7 +84,7 @@ public:
 
     virtual void interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiFab& crse) const final override;
 
-    void averageDownCoeffsSameAmrLevel (Vector<MultiFab>& a,
+    void averageDownCoeffsSameAmrLevel (int amrlev, Vector<MultiFab>& a,
                                         Vector<Array<MultiFab,AMREX_SPACEDIM> >& b);
     void averageDownCoeffs ();
     void averageDownCoeffsToCoarseAmrLevel (int flev);

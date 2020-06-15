@@ -124,8 +124,8 @@ MyTest::initData ()
     bcoef.define(grids, dmap, 1, 1);
     oversetmask.define(grids, dmap, 1, 0);
 
-//xxxxxx    Box overset_box = amrex::grow(geom.Domain(), -n_cell/4);
-    Box overset_box = amrex::shift(geom.Domain(), 0, n_cell/2);
+    Box overset_box = amrex::grow(geom.Domain(), -n_cell/4); // middle of the domain
+    // Box overset_box = amrex::shift(geom.Domain(), 0, n_cell/2); // right half
 
     const auto prob_lo = geom.ProbLoArray();
     const auto prob_hi = geom.ProbHiArray();
