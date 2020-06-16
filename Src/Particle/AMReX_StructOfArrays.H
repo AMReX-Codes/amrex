@@ -9,11 +9,12 @@
 
 namespace amrex {
 
-template <int NReal, int NInt>
+template <int NReal, int NInt,
+          template<class> class Allocator=DefaultAllocator>
 struct StructOfArrays {
 
-    using RealVector = Gpu::DeviceVector<ParticleReal>;
-    using IntVector = Gpu::DeviceVector<int>;    
+    using RealVector = amrex::PODVector<ParticleReal, Allocator<ParticleReal> >;
+    using IntVector = amrex::PODVector<int, Allocator<int> >;
 
     StructOfArrays()
         : m_num_neighbor_particles(0),
@@ -26,7 +27,7 @@ struct StructOfArrays {
         m_runtime_rdata.resize(a_num_runtime_real);
         m_runtime_idata.resize(a_num_runtime_int );
     }
-    
+
     int NumRealComps () const noexcept { return NReal + m_runtime_rdata.size(); }
 
     int NumIntComps () const noexcept { return NInt + m_runtime_idata.size(); }
@@ -45,7 +46,7 @@ struct StructOfArrays {
             return m_runtime_rdata[index - NReal];
         }
     }
-    
+
     const RealVector& GetRealData (const int index) const {
         AMREX_ASSERT(index < NReal + m_runtime_rdata.size());
         if (index < NReal) return m_rdata[index];
@@ -63,7 +64,7 @@ struct StructOfArrays {
             return m_runtime_idata[index - NInt];
         }
    }
-    
+
     const IntVector& GetIntData (const int index) const {
         AMREX_ASSERT(size_t(index) < NInt + m_runtime_idata.size());
         if (index < NInt) return m_idata[index];
@@ -81,7 +82,7 @@ struct StructOfArrays {
     {
         if (NReal > 0)
             return m_rdata[0].size();
-        else if (NInt > 0) 
+        else if (NInt > 0)
             return m_idata[0].size();
         else if (m_runtime_rdata.size() > 0)
             return m_runtime_rdata[0].size();
@@ -90,7 +91,7 @@ struct StructOfArrays {
         else
             return 0;
     }
-    
+
     /**
     * \brief Returns the number of real particles (excluding neighbors)
     *
@@ -116,7 +117,7 @@ struct StructOfArrays {
     int numTotalParticles () const { return size(); }
 
     void setNumNeighbors (int num_neighbors)
-    { 
+    {
         auto nrp = numRealParticles();
         m_num_neighbor_particles = num_neighbors;
         resize(nrp + num_neighbors);
@@ -127,7 +128,7 @@ struct StructOfArrays {
     void resize (size_t count)
     {
         for (int i = 0; i < NReal; ++i) m_rdata[i].resize(count);
-        for (int i = 0; i < NInt;  ++i) m_idata[i].resize(count); 
+        for (int i = 0; i < NInt;  ++i) m_idata[i].resize(count);
         for (int i = 0; i < (int) m_runtime_rdata.size(); ++i) m_runtime_rdata[i].resize(count);
         for (int i = 0; i < (int) m_runtime_idata.size(); ++i) m_runtime_idata[i].resize(count);
     }
@@ -160,7 +161,7 @@ private:
 
     std::vector<RealVector> m_runtime_rdata;
     std::vector<IntVector > m_runtime_idata;
-    
+
     bool m_defined;
 };
 
