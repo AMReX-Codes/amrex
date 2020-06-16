@@ -294,7 +294,7 @@ struct ParticleTile
     * \brief Returns the number of neighbor particles (excluding reals)
     *
     */
-    int numNeighborParticles () const { return m_aos_tile.numNeighborParticles(); }    
+    int numNeighborParticles () const { return m_aos_tile.numNeighborParticles(); }
 
     /**
     * \brief Returns the total number of particles, real and neighbor
@@ -302,13 +302,13 @@ struct ParticleTile
     */
     int numTotalParticles () const { return m_aos_tile.numTotalParticles() ; }
 
-    void setNumNeighbors (int num_neighbors) 
+    void setNumNeighbors (int num_neighbors)
     {
         m_soa_tile.setNumNeighbors(num_neighbors);
         m_aos_tile.setNumNeighbors(num_neighbors);
     }
 
-    int getNumNeighbors () 
+    int getNumNeighbors ()
     {
         AMREX_ASSERT( m_soa_tile.getNumNeighbors() == m_aos_tile.getNumNeighbors() );
         return m_aos_tile.getNumNeighbors();
@@ -329,7 +329,7 @@ struct ParticleTile
     /// Add a Real value to the struct-of-arrays at index comp.
     /// This sets the data for one particle.
     ///
-    void push_back_real (int comp, ParticleReal v) { 
+    void push_back_real (int comp, ParticleReal v) {
         m_soa_tile.GetRealData(comp).push_back(v);
     }
 
@@ -337,7 +337,7 @@ struct ParticleTile
     /// Add Real values to the struct-of-arrays, for all comps at once.
     /// This sets the data for one particle.
     ///
-    void push_back_real (const std::array<ParticleReal, NArrayReal>& v) { 
+    void push_back_real (const std::array<ParticleReal, NArrayReal>& v) {
         for (int i = 0; i < NArrayReal; ++i) {
             m_soa_tile.GetRealData(i).push_back(v[i]);
         }
@@ -506,11 +506,11 @@ private:
 
     bool m_defined;
 
-    Gpu::DeviceVector<ParticleReal*> m_runtime_r_ptrs;
-    Gpu::DeviceVector<int*> m_runtime_i_ptrs;
+    amrex::PODVector<ParticleReal*, Allocator<ParticleReal*> > m_runtime_r_ptrs;
+    amrex::PODVector<int*, Allocator<int*> > m_runtime_i_ptrs;
 
-    mutable Gpu::DeviceVector<const ParticleReal*> m_runtime_r_cptrs;
-    mutable Gpu::DeviceVector<const int*> m_runtime_i_cptrs;
+    mutable amrex::PODVector<const ParticleReal*, Allocator<const ParticleReal*> > m_runtime_r_cptrs;
+    mutable amrex::PODVector<const int*, Allocator<const int*> >m_runtime_i_cptrs;
 };
 
 } // namespace amrex;
