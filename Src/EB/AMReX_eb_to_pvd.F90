@@ -641,10 +641,10 @@ contains
     if(allocated(lines)) deallocate(lines)
     allocate(lines(0:lnodes))
 
-    grid_start = problo + real(lo)*ldx
+    grid_start = problo + real(lo,amrex_real)*ldx
 
     do llc = 0, lnodes
-       lines(llc) = grid_start + real(llc)*ldx
+       lines(llc) = grid_start + real(llc,amrex_real)*ldx
     enddo
 
     write(100,'(A,F14.8,A,F14.8,A)') '<DataArray &
