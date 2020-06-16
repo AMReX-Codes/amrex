@@ -85,7 +85,6 @@ MLABecLaplacian::define (const Vector<Geometry>& a_geom,
         }
     }
 
-    int max_overset_mask_coarsening_level = 0;
     int amrlev = 0;
     Box dom = a_geom[0].Domain();
     for (int mglev = 1; mglev <= a_info.max_coarsening_level; ++mglev)
@@ -93,6 +92,7 @@ MLABecLaplacian::define (const Vector<Geometry>& a_geom,
         AMREX_ALWAYS_ASSERT(mg_coarsen_ratio == 2);
         iMultiFab const& fine = *m_overset_mask[amrlev][mglev-1];
         if (dom.coarsenable(2) and fine.boxArray().coarsenable(2)) {
+            dom.coarsen(2);
             std::unique_ptr<iMultiFab> crse(new iMultiFab(amrex::coarsen(fine.boxArray(),2),
                                                           fine.DistributionMap(), 1, 1));
             ReduceOps<ReduceOpSum> reduce_op;
@@ -115,7 +115,6 @@ MLABecLaplacian::define (const Vector<Geometry>& a_geom,
             ReduceTuple hv = reduce_data.value();
             if (amrex::get<0>(hv) == 0) {
                 m_overset_mask[amrlev].push_back(std::move(crse));
-                max_overset_mask_coarsening_level = mglev;
             } else {
                 break;
             }
@@ -123,6 +122,7 @@ MLABecLaplacian::define (const Vector<Geometry>& a_geom,
             break;
         }
     }
+    int max_overset_mask_coarsening_level = m_overset_mask[amrlev].size()-1;
 
     LPInfo info = a_info;
     info.max_coarsening_level = std::min(a_info.max_coarsening_level,
@@ -341,8 +341,6 @@ MLABecLaplacian::prepareForSolve ()
 
     MLCellABecLap::prepareForSolve();
 
-    const int ncomp = getNComp();
-
 #if (AMREX_SPACEDIM != 3)
     applyMetricTermsCoeffs();
 #endif
@@ -392,9 +390,6 @@ MLABecLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& i
     const Real bscalar = m_b_scalar;
 
     const int ncomp = getNComp();
-
-    const Real fac = static_cast<Real>(1 << mglev); // 2**mglev
-    const Real osfac = 2.0*fac/(fac+1.0);
 
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
