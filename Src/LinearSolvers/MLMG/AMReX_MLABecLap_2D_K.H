@@ -33,6 +33,40 @@ void mlabeclap_adotx (Box const& box, Array4<Real> const& y,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlabeclap_adotx_os (Box const& box, Array4<Real> const& y,
+                         Array4<Real const> const& x,
+                         Array4<Real const> const& a,
+                         Array4<Real const> const& bX,
+                         Array4<Real const> const& bY,
+                         Array4<int const> const& osm,
+                         GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                         Real alpha, Real beta, int ncomp) noexcept
+{
+    const Real dhx = beta*dxinv[0]*dxinv[0];
+    const Real dhy = beta*dxinv[1]*dxinv[1];
+
+    const auto lo = amrex::lbound(box);
+    const auto hi = amrex::ubound(box);
+
+    for (int n = 0; n < ncomp; ++n) {
+    for     (int j = lo.y; j <= hi.y; ++j) {
+        AMREX_PRAGMA_SIMD
+        for (int i = lo.x; i <= hi.x; ++i) {
+            if (osm(i,j,0)) {
+                y(i,j,0,n) = 0.0;
+            } else {
+                y(i,j,0,n) = alpha*a(i,j,0)*x(i,j,0,n)
+                    - dhx * (bX(i+1,j,0,n)*(x(i+1,j,0,n) - x(i  ,j,0,n))
+                           - bX(i  ,j,0,n)*(x(i  ,j,0,n) - x(i-1,j,0,n)))
+                    - dhy * (bY(i,j+1,0,n)*(x(i,j+1,0,n) - x(i,j  ,0,n))
+                           - bY(i,j  ,0,n)*(x(i,j  ,0,n) - x(i,j-1,0,n)));
+            }
+        }
+    }
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlabeclap_normalize (Box const& box, Array4<Real> const& x,
                           Array4<Real const> const& a,
                           Array4<Real const> const& bX,
@@ -177,6 +211,114 @@ void abec_gsrb (Box const& box, Array4<Real> const& phi, Array4<Real const> cons
                 }
             }
         }
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void abec_gsrb_os (Box const& box, Array4<Real> const& phi, Array4<Real const> const& rhs,
+                   Real alpha, Array4<Real const> const& a,
+                   Real dhx, Real dhy,
+                   Array4<Real const> const& bX, Array4<Real const> const& bY,
+                   Array4<int const> const& m0, Array4<int const> const& m2,
+                   Array4<int const> const& m1, Array4<int const> const& m3,
+                   Array4<Real const> const& f0, Array4<Real const> const& f2,
+                   Array4<Real const> const& f1, Array4<Real const> const& f3,
+                   Array4<int const> const& osm,
+                   Box const& vbox, int redblack, int nc) noexcept
+{
+    const auto lo = amrex::lbound(box);
+    const auto hi = amrex::ubound(box);
+    const auto vlo = amrex::lbound(vbox);
+    const auto vhi = amrex::ubound(vbox);
+
+    for (int n = 0; n < nc; ++n) {
+        for     (int j = lo.y; j <= hi.y; ++j) {
+            AMREX_PRAGMA_SIMD
+            for (int i = lo.x; i <= hi.x; ++i) {
+                if ((i+j+redblack)%2 == 0) {
+                    if (osm(i,j,0)) {
+                        phi(i,j,0,n) = 0.0;
+                    } else {
+                        Real cf0 = (i == vlo.x and m0(vlo.x-1,j,0) > 0)
+                            ? f0(vlo.x,j,0,n) : 0.0;
+                        Real cf1 = (j == vlo.y and m1(i,vlo.y-1,0) > 0)
+                            ? f1(i,vlo.y,0,n) : 0.0;
+                        Real cf2 = (i == vhi.x and m2(vhi.x+1,j,0) > 0)
+                            ? f2(vhi.x,j,0,n) : 0.0;
+                        Real cf3 = (j == vhi.y and m3(i,vhi.y+1,0) > 0)
+                            ? f3(i,vhi.y,0,n) : 0.0;
+
+                        Real delta = dhx*(bX(i,j,0,n)*cf0 + bX(i+1,j,0,n)*cf2)
+                                  +  dhy*(bY(i,j,0,n)*cf1 + bY(i,j+1,0,n)*cf3);
+
+                        Real gamma = alpha*a(i,j,0)
+                            +   dhx*( bX(i,j,0,n) + bX(i+1,j,0,n) )
+                            +   dhy*( bY(i,j,0,n) + bY(i,j+1,0,n) );
+
+                        Real rho = dhx*(bX(i  ,j  ,0,n)*phi(i-1,j  ,0,n)
+                                      + bX(i+1,j  ,0,n)*phi(i+1,j  ,0,n))
+                                  +dhy*(bY(i  ,j  ,0,n)*phi(i  ,j-1,0,n)
+                                      + bY(i  ,j+1,0,n)*phi(i  ,j+1,0,n));
+
+                        phi(i,j,0,n) = (rhs(i,j,0,n) + rho - phi(i,j,0,n)*delta)
+                            / (gamma - delta);
+                    }
+                }
+            }
+        }
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+int coarsen_overset_mask (Box const& bx, Array4<int> const& cmsk, Array4<int const> const& fmsk)
+    noexcept
+{
+    int nerrors = 0;
+    const auto lo = amrex::lbound(bx);
+    const auto hi = amrex::ubound(bx);
+    for (int j = lo.y; j <= hi.y; ++j) {
+    for (int i = lo.x; i <= hi.x; ++i) {
+        int ii = 2*i;
+        int jj = 2*j;
+        cmsk(i,j,0) = fmsk(ii,jj,0) + fmsk(ii+1,jj,0) + fmsk(ii,jj+1,0) + fmsk(ii+1,jj+1,0);
+        if (cmsk(i,j,0) == 4) {
+            cmsk(i,j,0) = 1;
+        } else if (cmsk(i,j,0) != 0) {
+            ++nerrors;
+        }
+    }}
+    return nerrors;
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void overset_rescale_bcoef_x (Box const& box, Array4<Real> const& bX, Array4<int const> const& osm,
+                              int ncomp, Real osfac) noexcept
+{
+    const auto lo = amrex::lbound(box);
+    const auto hi = amrex::ubound(box);
+    for (int n = 0; n < ncomp; ++n) {
+        for (int j = lo.y; j <= hi.y; ++j) {
+        for (int i = lo.x; i <= hi.x; ++i) {
+            if ((osm(i-1,j,0)+osm(i,j,0)) == 1) {
+                bX(i,j,0,n) *= osfac;
+            }
+        }}
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void overset_rescale_bcoef_y (Box const& box, Array4<Real> const& bY, Array4<int const> const& osm,
+                              int ncomp, Real osfac) noexcept
+{
+    const auto lo = amrex::lbound(box);
+    const auto hi = amrex::ubound(box);
+    for (int n = 0; n < ncomp; ++n) {
+        for (int j = lo.y; j <= hi.y; ++j) {
+        for (int i = lo.x; i <= hi.x; ++i) {
+            if ((osm(i,j-1,0)+osm(i,j,0)) == 1) {
+                bY(i,j,0,n) *= osfac;
+            }
+        }}
     }
 }
 

@@ -209,6 +209,7 @@ public:
 
     virtual void unimposeNeumannBC (int amrlev, MultiFab& rhs) const {} // only nodal solver might need it
     virtual void applyInhomogNeumannTerm (int amrlev, MultiFab& rhs) const {}
+    virtual void applyOverset (int amlev, MultiFab& rhs) const {}
 
     virtual void prepareForSolve () = 0;
     virtual bool isSingular (int amrlev) const = 0;
