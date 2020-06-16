@@ -26,7 +26,8 @@ namespace amrex {
 void WriteEBSurface (const BoxArray & ba, const DistributionMapping & dmap, const Geometry & geom,
                      const EBFArrayBoxFactory * ebf) {
 
-    const Real * dx = geom.CellSize();
+    const Real* dx     = geom.CellSize();
+    const Real* problo = geom.ProbLo();
 
     MultiFab mf_ba(ba, dmap, 1, 0, MFInfo(), *ebf);
 
@@ -46,7 +47,7 @@ void WriteEBSurface (const BoxArray & ba, const DistributionMapping & dmap, cons
         areafrac  =   ebf->getAreaFrac();
         bndrycent = &(ebf->getBndryCent());
 
-        amrex_eb_to_polygon(dx, BL_TO_FORTRAN_BOX(bx),
+        amrex_eb_to_polygon(problo, dx, BL_TO_FORTRAN_BOX(bx),
                             BL_TO_FORTRAN_3D(my_flag),
                             BL_TO_FORTRAN_3D((* bndrycent)[mfi]),
                             BL_TO_FORTRAN_3D((* areafrac[0])[mfi]),
@@ -62,7 +63,6 @@ void WriteEBSurface (const BoxArray & ba, const DistributionMapping & dmap, cons
     if(ParallelDescriptor::IOProcessor())
         amrex_write_pvtp(& nProcs);
 
-
     for (MFIter mfi(mf_ba); mfi.isValid(); ++mfi) {
 
         const auto & sfab    = static_cast<EBFArrayBox const &>(mf_ba[mfi]);
@@ -73,7 +73,7 @@ void WriteEBSurface (const BoxArray & ba, const DistributionMapping & dmap, cons
         if (my_flag.getType(bx) == FabType::covered or
             my_flag.getType(bx) == FabType::regular) continue;
 
-        amrex_eb_grid_coverage(& cpu, dx, BL_TO_FORTRAN_BOX(bx), BL_TO_FORTRAN_3D(my_flag));
+        amrex_eb_grid_coverage(& cpu, problo, dx, BL_TO_FORTRAN_BOX(bx), BL_TO_FORTRAN_3D(my_flag));
     }
 }
 
