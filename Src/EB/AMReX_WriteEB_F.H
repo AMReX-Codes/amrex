@@ -9,6 +9,7 @@ extern "C"
 #endif
 
     void amrex_eb_to_polygon(
+            const amrex::Real* problo,
             const amrex::Real* dx,
             const int* slo, const int* shi,
             const void* flag,        const int* fglo, const int* fghi,
@@ -22,7 +23,9 @@ extern "C"
     void amrex_write_pvtp(int* nProcs);
 
     void amrex_eb_grid_coverage(
-            int* myID, const amrex::Real* dx,
+            int* myID, 
+            const amrex::Real* problo, 
+            const amrex::Real* dx,
             const int* slo, const int* shi,
             const void* flag, const int* fglo, const int* fghi
         );
