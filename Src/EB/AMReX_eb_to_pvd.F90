@@ -16,7 +16,7 @@ module amrex_eb_to_vtk
 
 contains
 
-  subroutine amrex_eb_to_polygon (dx, lo, hi, flag, fglo, fghi, bcent, blo, bhi, &
+  subroutine amrex_eb_to_polygon (problo, dx, lo, hi, flag, fglo, fghi, bcent, blo, bhi, &
        apx, axlo, axhi,  apy, aylo, ayhi, apz, azlo, azhi) &
        bind(C, name="amrex_eb_to_polygon")
 
@@ -34,7 +34,7 @@ contains
   integer,          intent(in   ) :: &
        flag(fglo(1):fghi(1),fglo(2):fghi(2),fglo(3):fghi(3))
 
-  real(amrex_real), intent(in   ) :: dx(3), &
+  real(amrex_real), intent(in   ) :: problo(3), dx(3), &
        bcent(blo(1):bhi(1),blo(2):bhi(2),blo(3):bhi(3),3),   &
        apx(axlo(1):axhi(1),axlo(2):axhi(2),axlo(3):axhi(3)), &
        apy(aylo(1):ayhi(1),aylo(2):ayhi(2),aylo(3):ayhi(3)), &
@@ -88,20 +88,19 @@ contains
               normal(3) = (azp-azm) * apnorminv
 
               ! convert bcent to global coordinate system centered at plo
-              centroid(1) = bcent(i,j,k,1)*dx(1) + (dble(i) + 0.5d0)*dx(1)
-              centroid(2) = bcent(i,j,k,2)*dx(2) + (dble(j) + 0.5d0)*dx(2)
-              centroid(3) = bcent(i,j,k,3)*dx(3) + (dble(k) + 0.5d0)*dx(3)
+              centroid(1) = problo(1) + bcent(i,j,k,1)*dx(1) + (dble(i) + 0.5d0)*dx(1)
+              centroid(2) = problo(2) + bcent(i,j,k,2)*dx(2) + (dble(j) + 0.5d0)*dx(2)
+              centroid(3) = problo(3) + bcent(i,j,k,3)*dx(3) + (dble(k) + 0.5d0)*dx(3)
 
               ! vertices of bounding cell (i,j,k)
-              vertex(1,:) = (/dble(i  )*dx(1), dble(j  )*dx(2), dble(k  )*dx(3)/)
-              vertex(2,:) = (/dble(i+1)*dx(1), dble(j  )*dx(2), dble(k  )*dx(3)/)
-              vertex(3,:) = (/dble(i  )*dx(1), dble(j+1)*dx(2), dble(k  )*dx(3)/)
-              vertex(4,:) = (/dble(i+1)*dx(1), dble(j+1)*dx(2), dble(k  )*dx(3)/)
-              vertex(5,:) = (/dble(i  )*dx(1), dble(j  )*dx(2), dble(k+1)*dx(3)/)
-              vertex(6,:) = (/dble(i+1)*dx(1), dble(j  )*dx(2), dble(k+1)*dx(3)/)
-              vertex(7,:) = (/dble(i  )*dx(1), dble(j+1)*dx(2), dble(k+1)*dx(3)/)
-              vertex(8,:) = (/dble(i+1)*dx(1), dble(j+1)*dx(2), dble(k+1)*dx(3)/)
-
+              vertex(1,:) = (/problo(1)+dble(i  )*dx(1), problo(2)+dble(j  )*dx(2), problo(3)+dble(k  )*dx(3)/)
+              vertex(2,:) = (/problo(1)+dble(i+1)*dx(1), problo(2)+dble(j  )*dx(2), problo(3)+dble(k  )*dx(3)/)
+              vertex(3,:) = (/problo(1)+dble(i  )*dx(1), problo(2)+dble(j+1)*dx(2), problo(3)+dble(k  )*dx(3)/)
+              vertex(4,:) = (/problo(1)+dble(i+1)*dx(1), problo(2)+dble(j+1)*dx(2), problo(3)+dble(k  )*dx(3)/)
+              vertex(5,:) = (/problo(1)+dble(i  )*dx(1), problo(2)+dble(j  )*dx(2), problo(3)+dble(k+1)*dx(3)/)
+              vertex(6,:) = (/problo(1)+dble(i+1)*dx(1), problo(2)+dble(j  )*dx(2), problo(3)+dble(k+1)*dx(3)/)
+              vertex(7,:) = (/problo(1)+dble(i  )*dx(1), problo(2)+dble(j+1)*dx(2), problo(3)+dble(k+1)*dx(3)/)
+              vertex(8,:) = (/problo(1)+dble(i+1)*dx(1), problo(2)+dble(j+1)*dx(2), problo(3)+dble(k+1)*dx(3)/)
 
               ! NOTE: this seems to be unncessary:
               ! skip cells that have a tiny intersection and cells that have
@@ -555,7 +554,7 @@ end subroutine amrex_write_pvtp
 !                                                                       !
 !                                                                       !
 !.......................................................................!
-  subroutine amrex_eb_grid_coverage (myID, dx, lo, hi, flag, fglo, fghi)&
+  subroutine amrex_eb_grid_coverage (myID, problo, dx, lo, hi, flag, fglo, fghi)&
        bind(C, name="amrex_eb_grid_coverage")
 
   use amrex_ebcellflag_module, only : is_regular_cell, is_covered_cell
@@ -569,7 +568,7 @@ end subroutine amrex_write_pvtp
   integer,          intent(in   ) :: &
        flag(fglo(1):fghi(1),fglo(2):fghi(2),fglo(3):fghi(3))
 
-  real(amrex_real), intent(in   ) :: dx(3)
+  real(amrex_real), intent(in   ) :: problo(3), dx(3)
 
   integer :: i, j, k, lc1
 
@@ -614,9 +613,9 @@ end subroutine amrex_write_pvtp
      nodes(1),0,nodes(2),0,nodes(3),'">'
   write(100,'(A)') '<Coordinates>'
 
-  call data_array(lo(1), nodes(1), dx(1))
-  call data_array(lo(2), nodes(2), dx(2))
-  call data_array(lo(3), nodes(3), dx(3))
+  call data_array(problo(1), lo(1), nodes(1), dx(1))
+  call data_array(problo(2), lo(2), nodes(2), dx(2))
+  call data_array(problo(3), lo(3), nodes(3), dx(3))
 
   write(100,'("</Coordinates>")')
   write(100,'("</Piece>")')
@@ -627,21 +626,25 @@ end subroutine amrex_write_pvtp
 
 contains
 
-  subroutine data_array(lo, lnodes, ldx)
+  subroutine data_array(problo, lo, lnodes, ldx)
 
     implicit none
 
     integer,          intent(in) :: lo, lnodes
+    real(amrex_real), intent(in) :: problo
     real(amrex_real), intent(in) :: ldx
 
     integer :: llc
     real(amrex_real), allocatable :: lines(:)
+    real(amrex_real)              :: grid_start 
 
     if(allocated(lines)) deallocate(lines)
     allocate(lines(0:lnodes))
 
-    do llc=0, lnodes
-       lines(llc) = real(lo + llc)*ldx
+    grid_start = problo + real(lo,amrex_real)*ldx
+
+    do llc = 0, lnodes
+       lines(llc) = grid_start + real(llc,amrex_real)*ldx
     enddo
 
     write(100,'(A,F14.8,A,F14.8,A)') '<DataArray &
