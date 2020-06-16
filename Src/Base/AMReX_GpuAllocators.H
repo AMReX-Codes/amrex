@@ -164,8 +164,13 @@ namespace amrex {
 
 #endif // AMREX_USE_GPU
 
+#ifdef AMREX_USE_GPU
+    template <class T>
+    using DefaultAllocator = amrex::ArenaAllocator<T>;
+#else
     template <class T>
     using DefaultAllocator = std::allocator<T>;
+#endif // AMREX_USE_GPU
 
 } // namespace amrex
 
