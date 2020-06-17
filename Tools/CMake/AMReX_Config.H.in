@@ -17,6 +17,7 @@
 #cmakedefine BL_USE_MPI
 #cmakedefine AMREX_USE_OMP
 #cmakedefine BL_USE_OMP
+#cmakedefine AMREX_USE_DPCPP
 #cmakedefine AMREX_USE_FLOAT
 #cmakedefine BL_USE_FLOAT
 #cmakedefine AMREX_SPACEDIM @AMREX_SPACEDIM@
