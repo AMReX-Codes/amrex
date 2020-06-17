@@ -1182,6 +1182,44 @@ void mltensor_cross_terms (Box const& box, Array4<Real> const& Ax,
     }
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mltensor_cross_terms_os (Box const& box, Array4<Real> const& Ax,
+                              Array4<Real const> const& fx,
+                              Array4<Real const> const& fy,
+                              Array4<Real const> const& fz,
+                              Array4<int const> const& osm,
+                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                              Real bscalar) noexcept
+{
+    const Real dxi = bscalar * dxinv[0];
+    const Real dyi = bscalar * dxinv[1];
+    const Real dzi = bscalar * dxinv[2];
+    const auto lo = amrex::lbound(box);
+    const auto hi = amrex::ubound(box);
+
+    for         (int k = lo.z; k <= hi.z; ++k) {
+        for     (int j = lo.y; j <= hi.y; ++j) {
+            AMREX_PRAGMA_SIMD
+            for (int i = lo.x; i <= hi.x; ++i) {
+                if (osm(i,j,k)) {
+                    Ax(i,j,k,0) = 0.0;
+                    Ax(i,j,k,1) = 0.0;
+                    Ax(i,j,k,2) = 0.0;
+                } else {
+                    Ax(i,j,k,0) += dxi*(fx(i+1,j  ,k  ,0) - fx(i,j,k,0))
+                        +          dyi*(fy(i  ,j+1,k  ,0) - fy(i,j,k,0))
+                        +          dzi*(fz(i  ,j  ,k+1,0) - fz(i,j,k,0));
+                    Ax(i,j,k,1) += dxi*(fx(i+1,j  ,k  ,1) - fx(i,j,k,1))
+                        +          dyi*(fy(i  ,j+1,k  ,1) - fy(i,j,k,1))
+                        +          dzi*(fz(i  ,j  ,k+1,1) - fz(i,j,k,1));
+                    Ax(i,j,k,2) += dxi*(fx(i+1,j  ,k  ,2) - fx(i,j,k,2))
+                        +          dyi*(fy(i  ,j+1,k  ,2) - fy(i,j,k,2))
+                        +          dzi*(fz(i  ,j  ,k+1,2) - fz(i,j,k,2));
+                }
+            }
+        }
+    }
+}
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mltensor_vel_grads_fx (Box const& box, Array4<Real> const& fx,

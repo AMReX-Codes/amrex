@@ -32,6 +32,12 @@ public:
                 const Vector<DistributionMapping>& a_dmap,
                 const LPInfo& a_info = LPInfo(),
                 const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
+    MLTensorOp (const Vector<Geometry>& a_geom,
+                const Vector<BoxArray>& a_grids,
+                const Vector<DistributionMapping>& a_dmap,
+                const Vector<iMultiFab const*>& a_overset_mask,
+                const LPInfo& a_info = LPInfo(),
+                const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
     virtual ~MLTensorOp ();
 
     MLTensorOp (const MLTensorOp&) = delete;
@@ -42,6 +48,13 @@ public:
     void define (const Vector<Geometry>& a_geom,
                  const Vector<BoxArray>& a_grids,
                  const Vector<DistributionMapping>& a_dmap,
+                 const LPInfo& a_info = LPInfo(),
+                 const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
+
+    void define (const Vector<Geometry>& a_geom,
+                 const Vector<BoxArray>& a_grids,
+                 const Vector<DistributionMapping>& a_dmap,
+                 const Vector<iMultiFab const*>& a_overset_mask,
                  const LPInfo& a_info = LPInfo(),
                  const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
 
