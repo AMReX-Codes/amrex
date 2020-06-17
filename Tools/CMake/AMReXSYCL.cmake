@@ -43,6 +43,7 @@ if (ENABLE_DPCPP_AOT)
 
    #
    # TODO: remove comments to enable AOT support when the time comes
+   #       (main blocker: missing math library)
    #
    # if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
    #    ## TODO: use file(READ)
