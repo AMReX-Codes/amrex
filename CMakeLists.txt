@@ -107,7 +107,6 @@ endif()
 #
 include( AMReX_Utils )
 include( AMReX_Options )
-include( AMReX_Machines )
 
 #
 # Enable Fortran if requested
