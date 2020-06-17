@@ -7,13 +7,14 @@
 
 namespace amrex {
 
-template <int NReal, int NInt>
+template <int NReal, int NInt,
+          template<class> class Allocator=DefaultAllocator>
 class ArrayOfStructs {
 public:
     using ParticleType  = Particle<NReal, NInt>;
     using RealType      = typename ParticleType::RealType;
 
-    using ParticleVector = Gpu::DeviceVector<ParticleType>;
+    using ParticleVector = amrex::PODVector<ParticleType, Allocator<ParticleType> >;
 
     using Iterator      = typename ParticleVector::iterator;
     using ConstIterator = typename ParticleVector::const_iterator;
@@ -107,8 +108,11 @@ public:
 private:
     ParticleVector m_data;
 };
+
 #if __cplusplus < 201703L
-template <int NReal, int NInt> constexpr int ArrayOfStructs<NReal, NInt>::SizeInReal;
+template <int NReal, int NInt,
+          template<class> class Allocator>
+constexpr int ArrayOfStructs<NReal, NInt, Allocator>::SizeInReal;
 #endif
 
 } // namespace amrex
