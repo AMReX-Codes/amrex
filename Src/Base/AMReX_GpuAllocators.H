@@ -20,9 +20,7 @@ namespace amrex {
 
     template <typename T>
     struct RunOnGpu : std::false_type {};
-        
-#ifdef AMREX_USE_GPU
-  
+
     template<typename T>
     class ArenaAllocator
     {
@@ -33,14 +31,14 @@ namespace amrex {
         inline value_type* allocate(std::size_t n)
         {
 	    value_type* result = nullptr;
-            result = (value_type*) The_Arena()->alloc(n * sizeof(T));  
+            result = (value_type*) The_Arena()->alloc(n * sizeof(T));
 	    return result;
         }
-    
+
         inline void deallocate(value_type* ptr, std::size_t)
         {
             The_Arena()->free(ptr);
-        }    
+        }
     };
 
     template<typename T>
@@ -53,14 +51,14 @@ namespace amrex {
         inline value_type* allocate(std::size_t n)
         {
 	    value_type* result = nullptr;
-            result = (value_type*) The_Device_Arena()->alloc(n * sizeof(T));  
+            result = (value_type*) The_Device_Arena()->alloc(n * sizeof(T));
 	    return result;
         }
-    
+
         inline void deallocate(value_type* ptr, std::size_t)
         {
             The_Device_Arena()->free(ptr);
-        }    
+        }
     };
 
     template<typename T>
@@ -73,14 +71,14 @@ namespace amrex {
         inline value_type* allocate(std::size_t n)
         {
 	    value_type* result = nullptr;
-            result = (value_type*) The_Pinned_Arena()->alloc(n * sizeof(T));  
+            result = (value_type*) The_Pinned_Arena()->alloc(n * sizeof(T));
 	    return result;
         }
-    
+
         inline void deallocate(value_type* ptr, std::size_t)
         {
             The_Pinned_Arena()->free(ptr);
-        }    
+        }
     };
 
     template<typename T>
@@ -93,14 +91,14 @@ namespace amrex {
         inline value_type* allocate(std::size_t n)
         {
 	    value_type* result = nullptr;
-            result = (value_type*) The_Managed_Arena()->alloc(n * sizeof(T));  
+            result = (value_type*) The_Managed_Arena()->alloc(n * sizeof(T));
 	    return result;
         }
-    
+
         inline void deallocate(value_type* ptr, std::size_t)
         {
             The_Managed_Arena()->free(ptr);
-        }    
+        }
     };
 
     template<typename T>
@@ -113,7 +111,7 @@ namespace amrex {
         inline value_type* allocate(std::size_t n)
         {
 	    value_type* result = nullptr;
-            if (ParallelDescriptor::UseGpuAwareMpi()) 
+            if (ParallelDescriptor::UseGpuAwareMpi())
             {
                 result = (value_type*) The_Device_Arena()->alloc(n * sizeof(T));
             }
@@ -123,10 +121,10 @@ namespace amrex {
             }
 	    return result;
         }
-    
+
         inline void deallocate(value_type* ptr, std::size_t)
         {
-            if (ParallelDescriptor::UseGpuAwareMpi()) 
+            if (ParallelDescriptor::UseGpuAwareMpi())
             {
                 The_Device_Arena()->free(ptr);
             }
@@ -134,7 +132,7 @@ namespace amrex {
             {
                 The_Pinned_Arena()->free(ptr);
             }
-        }    
+        }
     };
 
     template <template <typename> class Allocator, class T, class U>
@@ -143,13 +141,17 @@ namespace amrex {
     {
         return true;
     }
-    
+
     template <template <typename> class Allocator, class T, class U>
     bool
     operator!=(Allocator<T> const& x, Allocator<U> const& y) noexcept
     {
         return !(x == y);
     }
+
+#ifdef AMREX_USE_GPU
+    template <class T>
+    using DefaultAllocator = amrex::ArenaAllocator<T>;
 
     template <typename T>
     struct RunOnGpu<ArenaAllocator<T> > : std::true_type {};
@@ -160,6 +162,14 @@ namespace amrex {
     template <typename T>
     struct RunOnGpu<ManagedArenaAllocator<T> > : std::true_type {};
 
+#endif // AMREX_USE_GPU
+
+#ifdef AMREX_USE_GPU
+    template <class T>
+    using DefaultAllocator = amrex::ArenaAllocator<T>;
+#else
+    template <class T>
+    using DefaultAllocator = std::allocator<T>;
 #endif // AMREX_USE_GPU
 
 } // namespace amrex

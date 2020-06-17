@@ -1,6 +1,7 @@
 #include <AMReX_MLTensorOp.H>
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_MLTensor_K.H>
+#include <AMReX_MLABecLap_K.H>
 
 namespace amrex {
 
@@ -23,6 +24,17 @@ MLTensorOp::MLTensorOp (const Vector<Geometry>& a_geom,
     define(a_geom, a_grids, a_dmap, a_info, a_factory);
 }
 
+MLTensorOp::MLTensorOp (const Vector<Geometry>& a_geom,
+                        const Vector<BoxArray>& a_grids,
+                        const Vector<DistributionMapping>& a_dmap,
+                        const Vector<iMultiFab const*>& a_overset_mask,
+                        const LPInfo& a_info,
+                        const Vector<FabFactory<FArrayBox> const*>& a_factory)
+{
+    MLABecLaplacian::setScalars(1.0,1.0);
+    define(a_geom, a_grids, a_dmap, a_overset_mask, a_info, a_factory);
+}
+
 MLTensorOp::~MLTensorOp ()
 {}
 
@@ -36,6 +48,34 @@ MLTensorOp::define (const Vector<Geometry>& a_geom,
     BL_PROFILE("MLTensorOp::define()");
 
     MLABecLaplacian::define(a_geom, a_grids, a_dmap, a_info, a_factory);
+
+    m_kappa.clear();
+    m_kappa.resize(NAMRLevels());
+    for (int amrlev = 0; amrlev < NAMRLevels(); ++amrlev) {
+        m_kappa[amrlev].resize(std::min(kappa_num_mglevs,NMGLevels(amrlev)));
+        for (int mglev = 0; mglev < m_kappa[amrlev].size(); ++mglev) {
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                m_kappa[amrlev][mglev][idim].define
+                    (amrex::convert(m_grids[amrlev][mglev],
+                                    IntVect::TheDimensionVector(idim)),
+                     m_dmap[amrlev][mglev], 1, 0,
+                     MFInfo(), *m_factory[amrlev][mglev]);
+            }
+        }
+    }
+}
+
+void
+MLTensorOp::define (const Vector<Geometry>& a_geom,
+                    const Vector<BoxArray>& a_grids,
+                    const Vector<DistributionMapping>& a_dmap,
+                    const Vector<iMultiFab const*>& a_overset_mask,
+                    const LPInfo& a_info,
+                    const Vector<FabFactory<FArrayBox> const*>& a_factory)
+{
+    BL_PROFILE("MLTensorOp::define(oveset)");
+
+    MLABecLaplacian::define(a_geom, a_grids, a_dmap, a_overset_mask, a_info, a_factory);
 
     m_kappa.clear();
     m_kappa.resize(NAMRLevels());
@@ -120,6 +160,41 @@ MLTensorOp::prepareForSolve ()
     }
 
     MLABecLaplacian::prepareForSolve();
+
+    for (int amrlev = NAMRLevels()-1; amrlev >= 0; --amrlev) {
+        for (int mglev = 1; mglev < m_kappa[amrlev].size(); ++mglev) {
+            if (m_has_kappa and m_overset_mask[amrlev][mglev]) {
+                const Real fac = static_cast<Real>(1 << mglev); // 2**mglev
+                const Real osfac = 2.0*fac/(fac+1.0);
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+                for (MFIter mfi(m_kappa[amrlev][mglev][0],TilingIfNotGPU()); mfi.isValid(); ++mfi)
+                {
+                    AMREX_D_TERM(Box const& xbx = mfi.nodaltilebox(0);,
+                                 Box const& ybx = mfi.nodaltilebox(1);,
+                                 Box const& zbx = mfi.nodaltilebox(2));
+                    AMREX_D_TERM(Array4<Real> const& bx = m_kappa[amrlev][mglev][0].array(mfi);,
+                                 Array4<Real> const& by = m_kappa[amrlev][mglev][1].array(mfi);,
+                                 Array4<Real> const& bz = m_kappa[amrlev][mglev][2].array(mfi));
+                    Array4<int const> const& osm = m_overset_mask[amrlev][mglev]->const_array(mfi);
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM
+                        (xbx, t_xbx,
+                         {
+                             overset_rescale_bcoef_x(t_xbx, bx, osm, 1, osfac);
+                         },
+                         ybx, t_ybx,
+                         {
+                             overset_rescale_bcoef_y(t_ybx, by, osm, 1, osfac);
+                         },
+                         zbx, t_zbx,
+                         {
+                             overset_rescale_bcoef_z(t_zbx, bz, osm, 1, osfac);
+                         });
+                }
+            }
+        }
+    }
 }
 
 void
@@ -185,10 +260,20 @@ MLTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc
               }
             );
 
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
-            {
-                mltensor_cross_terms(tbx, axfab, AMREX_D_DECL(fxfab,fyfab,fzfab), dxinv, bscalar);
-            });
+            if (m_overset_mask[amrlev][mglev]) {
+                const auto& osm = m_overset_mask[amrlev][mglev]->array(mfi);
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+                {
+                    mltensor_cross_terms_os(tbx, axfab, AMREX_D_DECL(fxfab,fyfab,fzfab),
+                                            osm, dxinv, bscalar);
+                });
+            } else {
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+                {
+                    mltensor_cross_terms(tbx, axfab, AMREX_D_DECL(fxfab,fyfab,fzfab),
+                                         dxinv, bscalar);
+                });
+            }
         }
     }
 #endif

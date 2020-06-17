@@ -43,10 +43,10 @@ numParticlesOutOfRange (Iterator const& pti, int nGrow)
     const auto domain = geom.Domain();
     const auto plo = geom.ProbLoArray();
     const auto dxi = geom.InvCellSizeArray();
-    
+
     Box box = pti.tilebox();
     box.grow(nGrow);
-        
+
     ReduceOps<ReduceOpSum> reduce_op;
     ReduceData<int> reduce_data(reduce_op);
     using ReduceTuple = typename decltype(reduce_data)::Type;
@@ -66,7 +66,7 @@ numParticlesOutOfRange (Iterator const& pti, int nGrow)
     int hv = amrex::get<0>(reduce_data.value());
     return hv;
 }
-    
+
 /**
  * \brief Returns the number of particles that are more than nGrow cells
  * from their assigned box.
@@ -78,7 +78,7 @@ numParticlesOutOfRange (Iterator const& pti, int nGrow)
  * \param pc the particle container to test
  * \param nGrow the number of grow cells allowed.
  *
- */    
+ */
 template <class PC, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
 int
 numParticlesOutOfRange (PC const& pc, int nGrow)
@@ -99,7 +99,7 @@ numParticlesOutOfRange (PC const& pc, int nGrow)
  * \param lev_max the maximum level to test
  * \param nGrow the number of grow cells allowed.
  *
- */        
+ */
 template <class PC, EnableIf_t<IsParticleContainer<PC>::value, int> foo = 0>
 int
 numParticlesOutOfRange (PC const& pc, int lev_min, int lev_max, int nGrow)
@@ -118,13 +118,13 @@ numParticlesOutOfRange (PC const& pc, int lev_min, int lev_max, int nGrow)
             num_wrong += numParticlesOutOfRange(pti, nGrow);
         }
     }
-    ParallelDescriptor::ReduceIntSum(num_wrong);
+    ParallelAllReduce::Sum(num_wrong, ParallelContext::CommunicatorSub());
 
     return num_wrong;
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-int getTileIndex (const IntVect& iv, const Box& box, const bool a_do_tiling, 
+int getTileIndex (const IntVect& iv, const Box& box, const bool a_do_tiling,
 		  const IntVect& a_tile_size, Box& tbx)
 {
     if (a_do_tiling == false) {
@@ -193,7 +193,7 @@ int getParticleGrid (P const& p, amrex::Array4<int> const& mask,
                      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
                      const Box& domain) noexcept
 {
-    if (p.id() < 0) return -1;    
+    if (p.id() < 0) return -1;
     IntVect iv = getParticleCell(p, plo, dxi, domain);
     return mask(iv);
 }
@@ -215,15 +215,15 @@ void enforcePeriodic (P& p,
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
         if (not is_per[idim]) continue;
-        if (p.pos(idim) >= phi[idim]) { 
-            while (p.pos(idim) >= phi[idim]) { 
+        if (p.pos(idim) >= phi[idim]) {
+            while (p.pos(idim) >= phi[idim]) {
                 p.pos(idim) -= (phi[idim] - plo[idim]);
             }
             if (p.pos(idim) < plo[idim]) p.pos(idim) = plo[idim]; // clamp to avoid precision issues;
-        } 
+        }
         else if (p.pos(idim) < plo[idim]) {
             while (p.pos(idim) < plo[idim]) {
-                p.pos(idim) += (phi[idim] - plo[idim]); 
+                p.pos(idim) += (phi[idim] - plo[idim]);
             }
             if (p.pos(idim) == phi[idim]) p.pos(idim) = plo[idim]; // clamp to avoid precision issues;
             if (p.pos(idim) > phi[idim]) p.pos(idim) = phi[idim]-eps; // clamp to avoid precision issues;
@@ -247,16 +247,16 @@ partitionParticlesByDest (PTile& ptile, const PLocator& ploc, const ParticleBuff
     const int np = aos.numParticles();
 
     if (np == 0) return 0;
-    
+
     auto p_lev_offsets = pmap.levelOffsetsPtr();
     auto p_box_perm = pmap.levGridToBucketPtr();
     auto p_pids = pmap.bucketToPIDPtr();
     auto p_ptr = &(aos[0]);
-    
-    int pid = ParallelDescriptor::MyProc();
+
+    int pid = ParallelContext::MyProcSub();
     int chunk_size = 256*256*256;
     int num_chunks = std::max(1, (np + (chunk_size - 1)) / chunk_size);
-    
+
     PTile ptile_tmp;
     ptile_tmp.define(ptile.NumRuntimeRealComps(), ptile.NumRuntimeIntComps());
     ptile_tmp.resize(std::min(np, chunk_size));
@@ -269,16 +269,16 @@ partitionParticlesByDest (PTile& ptile, const PLocator& ploc, const ParticleBuff
     {
         int this_offset = ichunk*chunk_size;
         int this_chunk_size = std::min(chunk_size, np - this_offset);
-        
+
         int num_stay;
         {
             auto particle_stays = [=] AMREX_GPU_DEVICE (int i) -> int
             {
                 int assigned_grid;
                 int assigned_lev;
-        
+
                 auto& p = p_ptr[i+this_offset];
-                
+
                 if (p.id() < 0 )
                 {
                     assigned_grid = -1;
@@ -291,13 +291,13 @@ partitionParticlesByDest (PTile& ptile, const PLocator& ploc, const ParticleBuff
                     assigned_grid = amrex::get<0>(tup);
                     assigned_lev  = amrex::get<1>(tup);
                 }
-        
+
                 return ((assigned_grid == gid) && (assigned_lev == lev)
                         && (p_pids[p_box_perm[p_lev_offsets[lev]+gid]] == pid));
             };
-        
-            num_stay = Scan::PrefixSum<int> (this_chunk_size, 
-                          [=] AMREX_GPU_DEVICE (int i) -> int 
+
+            num_stay = Scan::PrefixSum<int> (this_chunk_size,
+                          [=] AMREX_GPU_DEVICE (int i) -> int
                           {
                               return particle_stays(i);
                           },
@@ -311,7 +311,7 @@ partitionParticlesByDest (PTile& ptile, const PLocator& ploc, const ParticleBuff
                               {
                                   copyParticle(dst_data, src_data, i + this_offset, this_chunk_size-1-(i-s));
                               }
-                          }, 
+                          },
                           Scan::Type::exclusive);
         }
 
@@ -326,7 +326,7 @@ partitionParticlesByDest (PTile& ptile, const PLocator& ploc, const ParticleBuff
                              copyParticle(src_data, dst_data, i, i + this_offset);
                          });
         }
-        
+
         if ( ichunk > 0 )
         {
             int num_swap = std::min(this_offset - last_offset, num_stay);

@@ -45,6 +45,20 @@ endif ()
 set( AMREX_PKG_VERSION "${_pkg_version}" CACHE INTERNAL "" )
 unset(_pkg_version)
 
+#
+# For the time being, set this option here.
+# We must do this because we need to provide a default for CMAKE_CXX_COMPILER
+#
+option( ENABLE_DPCPP  "Enable DPCPP support" OFF )
+if (ENABLE_DPCPP)
+   if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
+      # Set default for CMAKE_CXX_COMPILER only if amrex
+      # is not a subproject
+      set(CMAKE_CXX_COMPILER dpcpp)
+   endif ()
+   message(STATUS "Enabling experimental support for dpc++")
+endif ()
+
 
 ########################################################################
 #
@@ -93,7 +107,6 @@ endif()
 #
 include( AMReX_Utils )
 include( AMReX_Options )
-include( AMReX_Machines )
 
 #
 # Enable Fortran if requested
@@ -109,6 +122,12 @@ if (ENABLE_CUDA)
     enable_language(CUDA)
     include(AMReX_SetupCUDA)
 endif ()
+
+#
+# Check compiler version
+#
+set_mininum_cxx_compiler_version(GNU 4.8)
+set_mininum_cxx_compiler_version(MSVC 19.23)
 
 #
 # Set CMAKE_<LANG>_FLAGS_<CONFIG> if not already defined

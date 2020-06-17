@@ -19,54 +19,55 @@ NeighborParticleContainer<NStructReal, NStructInt>
                    int int_start_comp,  int int_num_comp)
 {
     BL_PROFILE("NeighborParticleContainer::sumNeighborsCPU");
-    
+
     if ( not enableInverse() )
     {
         amrex::Abort("Need to enable inverse to true to use sumNeighbors. \n");
     }
-    
-    const int MyProc = ParallelDescriptor::MyProc();
+
+    const int MyProc = ParallelContext::MyProcSub();
 
     std::map<int, Vector<char> > isend_data;
-    
+
     for (int lev = 0; lev < this->numLevels(); ++lev)
     {
         for (MyParIter pti(*this, lev); pti.isValid(); ++pti)
         {
             PairIndex src_index(pti.index(), pti.LocalTileIndex());
             const auto& tags = inverse_tags[lev][src_index];
-            const auto& neighbs = neighbors[lev][src_index];            
+            const auto& neighbs = neighbors[lev][src_index];
             AMREX_ASSERT(tags.size() == neighbs.size());
-            
+
             const int num_neighbs = neighbs.size();
             for (int i = 0; i < num_neighbs; ++i)
             {
                 const auto& neighb = neighbs[i];
                 const auto& tag = tags[i];
                 const int dst_grid = tag.src_grid;
-                const int dst_proc = this->ParticleDistributionMap(lev)[dst_grid];
+                const int global_rank = this->ParticleDistributionMap(lev)[dst_grid];
+                const int dst_proc = ParallelContext::global_to_local_rank(global_rank);
                 const int dst_tile = tag.src_tile;
                 const int dst_index = tag.src_index;
                 const int dst_level = tag.src_level;
-                
+
                 if (dst_proc == MyProc)
                 {
                     auto pair = std::make_pair(dst_grid, dst_tile);
                     auto& dst_ptile = this->GetParticles(dst_level)[pair];
                     auto& dst_parts = dst_ptile.GetArrayOfStructs();
                     auto& p = dst_parts[dst_index];
-                    
+
                     for (int comp = real_start_comp; comp < real_start_comp + real_num_comp; ++comp)
                     {
-                        p.rdata(comp) += neighb.rdata(comp);                        
+                        p.rdata(comp) += neighb.rdata(comp);
                     }
 
                     for (int comp = int_start_comp; comp < int_start_comp + int_num_comp; ++comp)
                     {
-                        p.idata(comp) += neighb.idata(comp);                        
+                        p.idata(comp) += neighb.idata(comp);
                     }
                 }
-                
+
                 else
                 {
                     auto& sdata = isend_data[dst_proc];
@@ -91,7 +92,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
                         dst += sizeof(int);
                     }
                 }
-            }                    
+            }
         }
     }
 
@@ -103,62 +104,65 @@ void
 NeighborParticleContainer<NStructReal, NStructInt>::
 sumNeighborsMPI (std::map<int, Vector<char> >& not_ours,
                  int real_start_comp, int real_num_comp,
-                 int int_start_comp, int int_num_comp) 
+                 int int_start_comp, int int_num_comp)
 {
     BL_PROFILE("NeighborParticleContainer::sumNeighborsMPI");
-    
+
 #ifdef AMREX_USE_MPI
-    const int NProcs = ParallelDescriptor::NProcs();
-    
+    const int NProcs = ParallelContext::NProcsSub();
+
     Vector<Long> isnds(NProcs, 0);
     Vector<Long> ircvs(NProcs, 0);
     for (int i = 0; i < NProcs; ++i)
         ircvs[i] = 0;
-    
+
     {
         // each proc figures out how many bytes it will send, and how
         // many it will receive
-        
+
         Long num_isnds = 0;
         for (const auto& kv : not_ours)
         {
             num_isnds      += kv.second.size();
             isnds[kv.first] = kv.second.size();
         }
-        ParallelDescriptor::ReduceLongMax(num_isnds);
-        
+
+        ParallelAllReduce::Max(num_isnds, ParallelContext::CommunicatorSub());
+
         if (num_isnds == 0) return;
-        
+
         const int num_ircvs = neighbor_procs.size();
         Vector<MPI_Status>  stats(num_ircvs);
         Vector<MPI_Request> rreqs(num_ircvs);
-        
+
         const int SeqNum = ParallelDescriptor::SeqNum();
-        
+
         // Post receives
         for (int i = 0; i < num_ircvs; ++i)
         {
             const int Who = neighbor_procs[i];
             const Long Cnt = 1;
-            
+
             AMREX_ASSERT(Who >= 0 && Who < NProcs);
-            
-            rreqs[i] = ParallelDescriptor::Arecv(&ircvs[Who], Cnt, Who, SeqNum).req();
+
+            rreqs[i] = ParallelDescriptor::Arecv(&ircvs[Who], Cnt, Who, SeqNum,
+                                                 ParallelContext::CommunicatorSub()).req();
         }
-        
+
         // Send.
         for (int i = 0; i < num_ircvs; ++i) {
         const int Who = neighbor_procs[i];
         const Long Cnt = 1;
-        
+
         AMREX_ASSERT(Who >= 0 && Who < NProcs);
-        
-        ParallelDescriptor::Send(&isnds[Who], Cnt, Who, SeqNum);
+
+        ParallelDescriptor::Send(&isnds[Who], Cnt, Who, SeqNum,
+                                 ParallelContext::CommunicatorSub());
         }
-        
-        if (num_ircvs > 0) ParallelDescriptor::Waitall(rreqs, stats);        
+
+        if (num_ircvs > 0) ParallelDescriptor::Waitall(rreqs, stats);
     }
-    
+
     Vector<int> RcvProc;
     Vector<std::size_t> rOffset; // Offset (in bytes) in the receive buffer
     std::size_t TotRcvBytes = 0;
@@ -189,19 +193,21 @@ sumNeighborsMPI (std::map<int, Vector<char> >& not_ours,
         AMREX_ASSERT(Cnt < std::numeric_limits<int>::max());
         AMREX_ASSERT(Who >= 0 && Who < NProcs);
 
-        rreqs[i] = ParallelDescriptor::Arecv(&recvdata[offset], Cnt, Who, SeqNum).req();
+        rreqs[i] = ParallelDescriptor::Arecv(&recvdata[offset], Cnt, Who, SeqNum,
+                                             ParallelContext::CommunicatorSub()).req();
     }
 
     // Send.
     for (const auto& kv : not_ours) {
         const auto Who = kv.first;
         const auto Cnt = kv.second.size();
-        
+
         AMREX_ASSERT(Cnt > 0);
         AMREX_ASSERT(Who >= 0 && Who < NProcs);
         AMREX_ASSERT(Cnt < std::numeric_limits<int>::max());
 
-        ParallelDescriptor::Send(kv.second.data(), Cnt, Who, SeqNum);
+        ParallelDescriptor::Send(kv.second.data(), Cnt, Who, SeqNum,
+                                 ParallelContext::CommunicatorSub());
     }
 
     // unpack the received data and put them into the proper neighbor buffers
@@ -210,7 +216,7 @@ sumNeighborsMPI (std::map<int, Vector<char> >& not_ours,
         ParallelDescriptor::Waitall(rreqs, stats);
 
         const size_t data_size = real_num_comp*sizeof(Real) + int_num_comp*sizeof(int) + 4 * sizeof(int);
-        
+
         if (recvdata.size() % data_size != 0) {
             amrex::Print() << recvdata.size() << " " << data_size << "\n";
             if (this->m_verbose) {
@@ -263,7 +269,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
 
     BL_PROFILE_VAR("NeighborParticleContainer::updateNeighborsCPU", update);
 
-    const int MyProc = ParallelDescriptor::MyProc();
+    const int MyProc = ParallelContext::MyProcSub();
 
     for (int lev = 0; lev < this->numLevels(); ++lev) {
         const Periodicity& periodicity = this->Geom(lev).periodicity();
@@ -286,7 +292,8 @@ NeighborParticleContainer<NStructReal, NStructInt>
 #endif
                 for (int i = 0; i < num_tags; ++i) {
                     const NeighborCopyTag& tag = tags[i];
-                    const int who = this->ParticleDistributionMap(tag.level)[tag.grid];
+                    const int global_who = this->ParticleDistributionMap(tag.level)[tag.grid];
+                    const int who = ParallelContext::global_to_local_rank(global_who);
                     ParticleType p = particles[tag.src_index];  // copy
                     if (periodicity.isAnyPeriodic()) {
                         for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
@@ -407,7 +414,7 @@ getRcvCountsMPI () {
     BL_PROFILE("NeighborParticleContainer::getRcvCountsMPI");
 
 #ifdef AMREX_USE_MPI
-    const int NProcs = ParallelDescriptor::NProcs();
+    const int NProcs = ParallelContext::NProcsSub();
 
     // each proc figures out how many bytes it will send, and how
     // many it will receive
@@ -421,7 +428,9 @@ getRcvCountsMPI () {
         num_snds      += kv.second.size();
         snds[kv.first] = kv.second.size();
     }
-    ParallelDescriptor::ReduceLongMax(num_snds);
+
+    ParallelAllReduce::Max(num_snds, ParallelContext::CommunicatorSub());
+
     if (num_snds == 0) return;
 
     const int num_rcvs = neighbor_procs.size();
@@ -429,7 +438,7 @@ getRcvCountsMPI () {
     Vector<MPI_Request> rreqs(num_rcvs);
 
     const int SeqNum = ParallelDescriptor::SeqNum();
-    
+
     // Post receives
     for (int i = 0; i < num_rcvs; ++i) {
         const int Who = neighbor_procs[i];
@@ -437,7 +446,8 @@ getRcvCountsMPI () {
 
         AMREX_ASSERT(Who >= 0 && Who < NProcs);
 
-        rreqs[i] = ParallelDescriptor::Arecv(&rcvs[Who], Cnt, Who, SeqNum).req();
+        rreqs[i] = ParallelDescriptor::Arecv(&rcvs[Who], Cnt, Who, SeqNum,
+                                             ParallelContext::CommunicatorSub()).req();
     }
 
     // Send.
@@ -447,7 +457,8 @@ getRcvCountsMPI () {
 
         AMREX_ASSERT(Who >= 0 && Who < NProcs);
 
-        ParallelDescriptor::Send(&snds[Who], Cnt, Who, SeqNum);
+        ParallelDescriptor::Send(&snds[Who], Cnt, Who, SeqNum,
+                                 ParallelContext::CommunicatorSub());
     }
 
     if (num_rcvs > 0) ParallelDescriptor::Waitall(rreqs, stats);
@@ -463,7 +474,7 @@ fillNeighborsMPI (bool reuse_rcv_counts) {
     BL_PROFILE("NeighborParticleContainer::fillNeighborsMPI");
 
 #ifdef AMREX_USE_MPI
-    const int NProcs = ParallelDescriptor::NProcs();
+    const int NProcs = ParallelContext::NProcsSub();
 
     // each proc figures out how many bytes it will send, and how
     // many it will receive
@@ -500,7 +511,8 @@ fillNeighborsMPI (bool reuse_rcv_counts) {
         AMREX_ASSERT(Cnt < std::numeric_limits<int>::max());
         AMREX_ASSERT(Who >= 0 && Who < NProcs);
 
-        rreqs[i] = ParallelDescriptor::Arecv(&recvdata[offset], Cnt, Who, SeqNum).req();
+        rreqs[i] = ParallelDescriptor::Arecv(&recvdata[offset], Cnt, Who, SeqNum,
+                                             ParallelContext::CommunicatorSub()).req();
     }
 
     // Send.
@@ -545,7 +557,7 @@ fillNeighborsMPI (bool reuse_rcv_counts) {
                     inverse_tags[lev][dst_index].resize(new_size);
                 }
                 neighbors[lev][dst_index].resize(new_size);
-                
+
                 char* dst = (char*) &neighbors[lev][dst_index][old_size];
                 char* src = buffer;
 
@@ -571,10 +583,10 @@ fillNeighborsMPI (bool reuse_rcv_counts) {
                         auto& tag = inverse_tags[lev][dst_index][old_size+n];
                         std::memcpy(&(tag.src_grid),src,sizeof(int));
                         src += sizeof(int);
-                        
+
                         std::memcpy(&(tag.src_tile),src,sizeof(int));
                         src += sizeof(int);
-                        
+
                         std::memcpy(&(tag.src_index),src,sizeof(int));
                         src += sizeof(int);
 

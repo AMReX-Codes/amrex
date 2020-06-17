@@ -84,8 +84,10 @@ function (generate_buildinfo _target _git_dir)
    get_target_property(BUILD_DIR ${_target} BINARY_DIR)
 
    # Build machine
-   execute_process(COMMAND uname -a OUTPUT_VARIABLE BUILD_MACHINE
-      OUTPUT_STRIP_TRAILING_WHITESPACE)
+   cmake_host_system_information( RESULT BUILD_MACHINE
+      QUERY OS_NAME HOSTNAME OS_RELEASE OS_VERSION OS_PLATFORM )
+   string(REPLACE ";" " " BUILD_MACHINE "${BUILD_MACHINE}")
+
 
    #
    # Build flags

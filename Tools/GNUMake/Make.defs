@@ -338,6 +338,8 @@ CHECKFORT       = $(AMREX_HOME)/Tools/typechecker/typechecker.py
 MKCONFIG        = $(AMREX_HOME)/Tools/libamrex/mkconfig.py
 MKPKGCONFIG     = $(AMREX_HOME)/Tools/libamrex/mkpkgconfig.py
 
+DEPFLAGS        = -M
+
 RANLIB          = ranlib
 
 EXE_OUTPUT_OPTION      = -o $(objEXETempDir)/$*.o
@@ -452,6 +454,7 @@ CXXFLAGS += $(XTRA_CXXFLAGS)
 CFLAGS   += $(XTRA_CFLAGS)
 FFLAGS   += $(XTRA_FFLAGS)
 F90FLAGS += $(XTRA_F90FLAGS)
+CPPFLAGS += $(XTRA_CPPFLAGS)
 
 ifeq ($(MAKECMDGOALS),check_fortran)
   ifneq ($(lowercase_comp),gnu)
@@ -820,6 +823,12 @@ endif
 
 ifeq ($(AMREX_XSDK),TRUE)
    DEFINES += -DAMREX_XSDK
+endif
+
+ifneq ($(DEBUG),TRUE)
+ifneq ($(USE_ASSERTION),TRUE)
+  DEFINES += -DNDEBUG
+endif
 endif
 
 CPPFLAGS	+= $(DEFINES)

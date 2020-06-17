@@ -1,6 +1,7 @@
 #include <AMReX_AsyncOut.H>
 #include <AMReX_Vector.H>
 #include <AMReX_ParmParse.H>
+#include <AMReX_Utility.H>
 #include <AMReX.H>
 #include <algorithm>
 #include <condition_variable>
@@ -44,6 +45,8 @@ void do_job ()
 
 void Initialize ()
 {
+    amrex::ignore_unused(s_comm,s_info);
+
     ParmParse pp("amrex");
     pp.query("async_out", s_asyncout);
     pp.query("async_out_nfiles", s_noutfiles);

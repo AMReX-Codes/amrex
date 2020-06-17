@@ -1,5 +1,6 @@
 
 #include <iostream>
+#include <limits>
 #include <algorithm>
 
 #include <AMReX_RealBox.H>
@@ -14,7 +15,11 @@
 
 namespace amrex {
 
-static constexpr Real INVALID_TIME = -1.0e200;
+#ifdef AMREX_USE_FLOAT
+static constexpr Real INVALID_TIME = -1.0e30;
+#else
+static constexpr Real INVALID_TIME = -1.0e200; 
+#endif
 
 static constexpr int MFNEWDATA = 0;
 static constexpr int MFOLDDATA = 1;
@@ -458,7 +463,7 @@ StateData::FillBoundary (FArrayBox&     dest,
         const int sc  = src_comp+i;
         Real*     dat = dest.dataPtr(dc);
 
-        if (desc->master(sc))
+        if (desc->primary(sc))
         {
             const int groupsize = desc->groupsize(sc);
 
@@ -533,7 +538,7 @@ StateData::FillBoundary (Box const&      bx,
         const int dc  = dest_comp+i;
         const int sc  = src_comp+i;
 
-        if (desc->master(sc))
+        if (desc->primary(sc))
         {
             const int groupsize = desc->groupsize(sc);
 

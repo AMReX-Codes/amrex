@@ -14,14 +14,14 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 struct ParticleTileData
 {
     static constexpr int NAR = NArrayReal;
-    static constexpr int NAI = NArrayInt;    
+    static constexpr int NAI = NArrayInt;
     using ParticleType = Particle<NStructReal, NStructInt>;
     using SuperParticleType = Particle<NStructReal+NArrayReal, NStructInt+NArrayInt>;
 
     Long m_size;
     ParticleType* AMREX_RESTRICT m_aos;
     GpuArray<ParticleReal* AMREX_RESTRICT, NArrayReal> m_rdata;
-    GpuArray<int* AMREX_RESTRICT, NArrayInt> m_idata;    
+    GpuArray<int* AMREX_RESTRICT, NArrayInt> m_idata;
 
     int m_num_runtime_real;
     int m_num_runtime_int;
@@ -67,7 +67,7 @@ struct ParticleTileData
                 memcpy(dst, m_runtime_idata[i] + src_index, sizeof(int));
                 dst += sizeof(int);
             }
-        }        
+        }
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -231,17 +231,18 @@ struct ConstParticleTileData
     }
 };
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
+          template<class> class Allocator=DefaultAllocator>
 struct ParticleTile
 {
     using ParticleType = Particle<NStructReal, NStructInt>;
     static constexpr int NAR = NArrayReal;
     static constexpr int NAI = NArrayInt;
 
-    using AoS = ArrayOfStructs<NStructReal, NStructInt>;
+    using AoS = ArrayOfStructs<NStructReal, NStructInt, Allocator>;
     using ParticleVector = typename AoS::ParticleVector;
 
-    using SoA = StructOfArrays<NArrayReal, NArrayInt>;
+    using SoA = StructOfArrays<NArrayReal, NArrayInt, Allocator>;
     using RealVector = typename SoA::RealVector;
     using IntVector = typename SoA::IntVector;
 
@@ -261,7 +262,7 @@ struct ParticleTile
         m_runtime_r_cptrs.resize(a_num_runtime_real);
         m_runtime_i_cptrs.resize(a_num_runtime_int);
     }
-    
+
     AoS&       GetArrayOfStructs ()       { return m_aos_tile; }
     const AoS& GetArrayOfStructs () const { return m_aos_tile; }
 
@@ -269,7 +270,7 @@ struct ParticleTile
     const SoA& GetStructOfArrays () const { return m_soa_tile; }
 
     bool empty () const { return m_aos_tile.empty(); }
-    
+
     /**
     * \brief Returns the total number of particles (real and neighbor)
     *
@@ -293,7 +294,7 @@ struct ParticleTile
     * \brief Returns the number of neighbor particles (excluding reals)
     *
     */
-    int numNeighborParticles () const { return m_aos_tile.numNeighborParticles(); }    
+    int numNeighborParticles () const { return m_aos_tile.numNeighborParticles(); }
 
     /**
     * \brief Returns the total number of particles, real and neighbor
@@ -301,13 +302,13 @@ struct ParticleTile
     */
     int numTotalParticles () const { return m_aos_tile.numTotalParticles() ; }
 
-    void setNumNeighbors (int num_neighbors) 
+    void setNumNeighbors (int num_neighbors)
     {
         m_soa_tile.setNumNeighbors(num_neighbors);
         m_aos_tile.setNumNeighbors(num_neighbors);
     }
 
-    int getNumNeighbors () 
+    int getNumNeighbors ()
     {
         AMREX_ASSERT( m_soa_tile.getNumNeighbors() == m_aos_tile.getNumNeighbors() );
         return m_aos_tile.getNumNeighbors();
@@ -328,7 +329,7 @@ struct ParticleTile
     /// Add a Real value to the struct-of-arrays at index comp.
     /// This sets the data for one particle.
     ///
-    void push_back_real (int comp, ParticleReal v) { 
+    void push_back_real (int comp, ParticleReal v) {
         m_soa_tile.GetRealData(comp).push_back(v);
     }
 
@@ -336,7 +337,7 @@ struct ParticleTile
     /// Add Real values to the struct-of-arrays, for all comps at once.
     /// This sets the data for one particle.
     ///
-    void push_back_real (const std::array<ParticleReal, NArrayReal>& v) { 
+    void push_back_real (const std::array<ParticleReal, NArrayReal>& v) {
         for (int i = 0; i < NArrayReal; ++i) {
             m_soa_tile.GetRealData(i).push_back(v[i]);
         }
@@ -505,11 +506,11 @@ private:
 
     bool m_defined;
 
-    Gpu::DeviceVector<ParticleReal*> m_runtime_r_ptrs;
-    Gpu::DeviceVector<int*> m_runtime_i_ptrs;
+    amrex::PODVector<ParticleReal*, Allocator<ParticleReal*> > m_runtime_r_ptrs;
+    amrex::PODVector<int*, Allocator<int*> > m_runtime_i_ptrs;
 
-    mutable Gpu::DeviceVector<const ParticleReal*> m_runtime_r_cptrs;
-    mutable Gpu::DeviceVector<const int*> m_runtime_i_cptrs;
+    mutable amrex::PODVector<const ParticleReal*, Allocator<const ParticleReal*> > m_runtime_r_cptrs;
+    mutable amrex::PODVector<const int*, Allocator<const int*> >m_runtime_i_cptrs;
 };
 
 } // namespace amrex;
