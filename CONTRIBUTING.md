@@ -8,9 +8,6 @@ Development generally follows the following ideas:
     Nightly regression testing is used to ensure that no answers
     change (or if they do, that the changes were expected).
 
-    If a change is critical, we can cherry-pick the commit from
-    `development` to `master`.
-
   * Bug fixes, questions and contributions of new features are welcome!
 
        * Bugs should be reported through GitHub issues
@@ -33,15 +30,10 @@ Development generally follows the following ideas:
             distribute, and sublicense such enhancements or derivative works
             thereof, in binary and source code form.
 
-  * On the first workday of each month, we perform a merge of
-    `development` into `master`.  For this merge to take place, we
-    need to be passing the regression tests.
-
-    To accommodate this need, we close the merge window into
-    `development` a few days before the merge day.  While the merge
-    window is closed, only bug fixes should be pushed into
-    `development`.  Once the merge from `development` -> `master` is
-    done, the merge window reopens.
+  * On the first workday of each month, we make a tagged release.  The merge window into
+    `development` is closed a few days before the release day.  While the merge window is closed,
+    only bug fixes should be merged into `development`.  Once the release is done, the merge window
+    reopens.
 
 ## Git workflow
 
@@ -79,9 +71,8 @@ git remote add upstream https://github.com/AMReX-Codes/amrex
 git remote set-url --push upstream https://github.com/<myGithubUsername>/amrex.git
 git fetch upstream
 
-# We recommend setting your development and master branches to track the upstream ones instead of your fork:
+# We recommend setting your development branch to track the upstream one instead of your fork:
 git branch -u upstream/development
-git checkout -t -b master upstream/master
 ```
 Now you are free to play with your fork (for additional information, you can visit the
 [Github fork help page](https://help.github.com/en/articles/fork-a-repo)).
