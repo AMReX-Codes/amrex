@@ -25,18 +25,14 @@ set(_cxx_clang "$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:Clang>>") # Only
 add_library(SYCL INTERFACE)
 add_library(AMReX::SYCL ALIAS SYCL)
 
-target_sources(SYCL INTERFACE ${LIBSYCL_GLIBC_OBJ})
-set_source_files_properties( ${LIBSYCL_GLIBC_OBJ}
-   PROPERTIES
-   EXTERNAL_OBJECT TRUE
-   GENERATED TRUE )
+target_link_libraries(SYCL INTERFACE ${LIBSYCL_GLIBC_OBJ})
 
 target_compile_options( SYCL
    INTERFACE
    $<${_cxx_clang}:-Wno-error=sycl-strict -fsycl -fsycl-unnamed-lambda>
    $<${_cxx_clang}:$<$<BOOL:${ENABLE_DPCPP_SPLIT_KERNEL}>:-fsycl-device-code-split=per_kernel>>)
 
-
+# TODO: use $<LINK_LANG_AND_ID:> genex for CMake >=3.17
 target_link_options( SYCL
    INTERFACE
    $<${_cxx_clang}:-fsycl -device-math-lib=fp32,fp64>
