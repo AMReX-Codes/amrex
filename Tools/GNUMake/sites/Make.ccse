@@ -1,9 +1,0 @@
-#
-# CCSE machines just use the default now
-#
-
-include $(AMREX_HOME)/Tools/GNUMake/sites/Make.unknown
-
-ifeq ($(which_computer),garuda)
-  CUDA_ARCH=75
-endif
