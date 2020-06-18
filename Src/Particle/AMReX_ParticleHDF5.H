@@ -667,13 +667,13 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     }
 
     // Collect the number of mf and total size of mf from each rank
-    MPI_Allgather(&my_mfi_cnt, 1, MPI_INT, &(all_mfi_cnt[0]), 1, MPI_INT, ParallelDescriptor::Communicator());
+    MPI_Allgather(&my_mfi_cnt, 1, ParallelDescriptor::Mpi_typemap<int>::type(), &(all_mfi_cnt[0]), 1, ParallelDescriptor::Mpi_typemap<int>::type(), ParallelDescriptor::Communicator());
     for (int i = 0; i < ParallelDescriptor::NProcs(); i++) 
         total_mfi += all_mfi_cnt[i];
 
     // Create the int data 
-    MPI_Allgather(&my_mfi_int_total_size, 1, MPI_UNSIGNED_LONG_LONG, 
-                  &(all_mfi_int_total_size[0]), 1, MPI_UNSIGNED_LONG_LONG, ParallelDescriptor::Communicator());
+    MPI_Allgather(&my_mfi_int_total_size, 1, ParallelDescriptor::Mpi_typemap<ULong>::type(), 
+                  &(all_mfi_int_total_size[0]), 1, ParallelDescriptor::Mpi_typemap<ULong>::type(), ParallelDescriptor::Communicator());
     
     for (int i = 0; i < ParallelDescriptor::NProcs(); i++) 
         total_int_size += all_mfi_int_total_size[i]; 
@@ -690,8 +690,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     
 
     // Create the real data 
-    MPI_Allgather(&my_mfi_real_total_size, 1, MPI_UNSIGNED_LONG_LONG, 
-                  &(all_mfi_real_total_size[0]), 1, MPI_UNSIGNED_LONG_LONG, ParallelDescriptor::Communicator());
+    MPI_Allgather(&my_mfi_real_total_size, 1, ParallelDescriptor::Mpi_typemap<ULong>::type(), 
+                  &(all_mfi_real_total_size[0]), 1, ParallelDescriptor::Mpi_typemap<ULong>::type(), ParallelDescriptor::Communicator());
 
     for (int i = 0; i < ParallelDescriptor::NProcs(); i++) 
         total_real_size += all_mfi_real_total_size[i];
