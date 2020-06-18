@@ -376,13 +376,13 @@ void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 WritePlotFile (const std::string& dir, const std::string& name,
                const Vector<int>& write_real_comp,
-               const Vector<int>& write_int_comp,    
+               const Vector<int>& write_int_comp,
                const Vector<std::string>& real_comp_names,
                const Vector<std::string>&  int_comp_names,
                F&& f) const
 {
     BL_PROFILE("ParticleContainer::WritePlotFile()");
-    
+
     WriteBinaryParticleData(dir, name,
                             write_real_comp, write_int_comp,
                             real_comp_names, int_comp_names,
@@ -402,14 +402,14 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 {
     BL_PROFILE("ParticleContainer::WriteBinaryParticleData()");
     AMREX_ASSERT(OK());
-    
+
     AMREX_ASSERT(sizeof(typename ParticleType::RealType) == 4 ||
                  sizeof(typename ParticleType::RealType) == 8);
-    
+
     const int NProcs = ParallelDescriptor::NProcs();
     const int IOProcNumber = ParallelDescriptor::IOProcessorNumber();
     const Real strttime = amrex::second();
-    
+
     AMREX_ALWAYS_ASSERT(real_comp_names.size() == NumRealComps() + NStructReal);
     AMREX_ALWAYS_ASSERT( int_comp_names.size() == NumIntComps() + NStructInt);
 
@@ -431,7 +431,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     int maxnextid;
 
     // evaluate f for every particle to determine which ones to output
-    Vector<std::map<std::pair<int, int>, Gpu::DeviceVector<int> > > particle_io_flags(m_particles.size());		
+    Vector<std::map<std::pair<int, int>, Gpu::DeviceVector<int> > > particle_io_flags(m_particles.size());
     for (int lev = 0; lev < m_particles.size();  lev++)
     {
         const auto& pmap = m_particles[lev];
@@ -441,7 +441,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             const auto np = kv.second.numParticles();
             particle_io_flags[lev][kv.first].resize(np, 0);
             auto pflags = particle_io_flags[lev][kv.first].data();
-            AMREX_HOST_DEVICE_FOR_1D( np, k, 
+            AMREX_HOST_DEVICE_FOR_1D( np, k,
             {
                 const auto p = ptd.getSuperParticle(k);
                 pflags[k] = f(p);
@@ -450,7 +450,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     }
 
     Gpu::Device::synchronize();
-    
+
     if(usePrePost)
     {
         nparticles = nparticlesPrePost;
@@ -467,13 +467,13 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             for (const auto& kv : pmap)
             {
                 const auto& pflags = particle_io_flags[lev][kv.first];
-                for (int k = 0; k < kv.second.numParticles(); ++k) 
+                for (int k = 0; k < kv.second.numParticles(); ++k)
                 {
                     if (pflags[k]) nparticles++;
                 }
             }
         }
-        
+
         ParallelDescriptor::ReduceLongSum(nparticles, IOProcNumber);
         ParticleType::NextID(maxnextid);
         ParallelDescriptor::ReduceIntMax(maxnextid, IOProcNumber);
@@ -511,24 +511,24 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         int num_output_real = 0;
         for (int i = 0; i < NumRealComps() + NStructReal; ++i)
             if (write_real_comp[i]) ++num_output_real;
-        
+
         int num_output_int = 0;
         for (int i = 0; i < NumIntComps() + NStructInt; ++i)
             if (write_int_comp[i]) ++num_output_int;
-        
+
         // AMREX_SPACEDIM and N for sanity checking.
         HdrFile << AMREX_SPACEDIM << '\n';
-	
+
         // The number of extra real parameters
         HdrFile << num_output_real << '\n';
-        
+
         // Real component names
         for (int i = 0; i < NStructReal + NumRealComps(); ++i )
             if (write_real_comp[i]) HdrFile << real_comp_names[i] << '\n';
-        
+
         // The number of extra int parameters
         HdrFile << num_output_int << '\n';
-        
+
         // int component names
         for (int i = 0; i < NStructInt + NumIntComps(); ++i )
             if (write_int_comp[i]) HdrFile << int_comp_names[i] << '\n';

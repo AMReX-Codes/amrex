@@ -68,6 +68,7 @@ public:
 
         const int MyProc = ParallelDescriptor::MyProc();
         const int NProcs = ParallelDescriptor::NProcs();
+        const int IOProcNumber = ParallelDescriptor::IOProcessorNumber();
 
         AMREX_ALWAYS_ASSERT(real_comp_names.size() == NumRealComps() + NStructReal);
         AMREX_ALWAYS_ASSERT( int_comp_names.size() == NumIntComps() + NStructInt);
@@ -84,11 +85,16 @@ public:
             ParallelDescriptor::Barrier();
         }
 
+        Long total_np = 0;
         Vector<Vector<Long> > np_per_grid(finestLevel()+1);;
         for (int lev = 0; lev <= finestLevel(); lev++)
         {
             np_per_grid[lev] = NumberOfParticlesInGrid(lev);
+            total_np += std::accumulate(np_per_grid[lev].begin(), np_per_grid[lev].end(), 0);
         }
+
+        int maxnextid = ParticleType::NextID();
+        ParallelDescriptor::ReduceIntMax(maxnextid, IOProcNumber);
 
         Vector<int64_t> np_on_rank(NProcs,-1L);
         for (int lev = 0; lev <= finestLevel(); lev++)
@@ -126,6 +132,56 @@ public:
 
             if ( ! HdrFile.good()) amrex::FileOpenFailed(HdrFileName);
 
+            if (sizeof(typename ParticleType::RealType) == 4)
+            {
+                HdrFile << ParticleType::Version() << "_single" << '\n';
+            }
+            else
+            {
+                HdrFile << ParticleType::Version() << "_double" << '\n';
+            }
+
+            int num_output_real = 0;
+            for (int i = 0; i < NumRealComps() + NStructReal; ++i)
+                if (write_real_comp[i]) ++num_output_real;
+
+            int num_output_int = 0;
+            for (int i = 0; i < NumIntComps() + NStructInt; ++i)
+                if (write_int_comp[i]) ++num_output_int;
+
+            // AMREX_SPACEDIM and N for sanity checking.
+            HdrFile << AMREX_SPACEDIM << '\n';
+
+            // The number of extra real parameters
+            HdrFile << num_output_real << '\n';
+
+            // Real component names
+            for (int i = 0; i < NStructReal + NumRealComps(); ++i )
+                if (write_real_comp[i]) HdrFile << real_comp_names[i] << '\n';
+
+            // The number of extra int parameters
+            HdrFile << num_output_int << '\n';
+
+            // int component names
+            for (int i = 0; i < NStructInt + NumIntComps(); ++i )
+                if (write_int_comp[i]) HdrFile << int_comp_names[i] << '\n';
+
+            bool is_checkpoint = true; // legacy
+            HdrFile << is_checkpoint << '\n';
+
+            // The total number of particles.
+            HdrFile << total_np << '\n';
+
+            // The value of nextid that we need to restore on restart.
+            HdrFile << maxnextid << '\n';
+
+            // Then the finest level of the AMR hierarchy.
+            HdrFile << finestLevel() << '\n';
+
+            // Then the number of grids at each level.
+            for (int lev = 0; lev <= finestLevel(); lev++)
+                HdrFile << ParticleBoxArray(lev).size() << '\n';
+
             for (int lev = 0; lev <= finestLevel(); lev++)
             {
                 Vector<int64_t> grid_offset(NProcs, 0);
@@ -149,6 +205,7 @@ public:
             }
         }
 
+        // make tmp particle tiles in pinned memory to write
         using PinnedPTile = ParticleTile<NStructReal, NStructInt, NArrayReal, NArrayInt,
                                          PinnedArenaAllocator>;
         auto myptiles = std::make_shared<Vector<PinnedPTile> >();

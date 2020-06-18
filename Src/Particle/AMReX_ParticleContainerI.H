@@ -909,7 +909,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 copyParticles (const ParticleContainerType& other, bool local)
 {
     BL_PROFILE("ParticleContainer::copyParticles");
-    clearParticles();   
+    clearParticles();
     addParticles(other, local);
 }
 
@@ -926,7 +926,7 @@ addParticles (const ParticleContainerType& other, bool local)
         auto& plevel = GetParticles(lev);
         for(MFIter mfi = other.MakeMFIter(lev); mfi.isValid(); ++mfi)
         {
-            auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());            
+            auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());
             if(plevel_other.find(index) == plevel_other.end()) continue;
 
             auto& ptile = plevel[index];
@@ -937,10 +937,10 @@ addParticles (const ParticleContainerType& other, bool local)
             auto dst_index = ptile.numParticles();
             ptile.resize(dst_index + np);
 
-            amrex::copyParticles(ptile, ptile_other, 0, dst_index, np);            
+            amrex::copyParticles(ptile, ptile_other, 0, dst_index, np);
         }
     }
-    
+
     if (not local) Redistribute();
 }
 
