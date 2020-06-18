@@ -416,17 +416,17 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     std::string pdir = dir;
     if ( not pdir.empty() and pdir[pdir.size()-1] != '/') pdir += '/';
     pdir += name;
-    
+
     if ( ! levelDirectoriesCreated)
     {
-        if (ParallelDescriptor::IOProcessor()) 
-            if ( ! amrex::UtilCreateDirectory(pdir, 0755)) 
+        if (ParallelDescriptor::IOProcessor())
+            if ( ! amrex::UtilCreateDirectory(pdir, 0755))
                 amrex::CreateDirectoryFailed(pdir);
         ParallelDescriptor::Barrier();
     }
-    
+
     std::ofstream HdrFile;
-    
+
     Long nparticles = 0;
     int maxnextid;
 
@@ -574,16 +574,16 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
         // We store the particles at each level in their own subdirectory.
         std::string LevelDir = pdir;
-        
+
         if (gotsome)
         {
             if ( ! LevelDir.empty() && LevelDir[LevelDir.size()-1] != '/') LevelDir += '/';
-	    
+
             LevelDir = amrex::Concatenate(LevelDir + "Level_", lev, 1);
-            
+
             if ( ! levelDirectoriesCreated) {
-                if (ParallelDescriptor::IOProcessor()) 
-                    if ( ! amrex::UtilCreateDirectory(LevelDir, 0755)) 
+                if (ParallelDescriptor::IOProcessor())
+                    if ( ! amrex::UtilCreateDirectory(LevelDir, 0755))
                         amrex::CreateDirectoryFailed(LevelDir);
                 //
                 // Force other processors to wait until directory is built.
@@ -591,32 +591,32 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                 ParallelDescriptor::Barrier();
             }
         }
-	
+
         // Write out the header for each particle
         if (gotsome and ParallelDescriptor::IOProcessor()) {
             std::string HeaderFileName = LevelDir;
             HeaderFileName += "/Particle_H";
             std::ofstream ParticleHeader(HeaderFileName);
-            
+
             ParticleBoxArray(lev).writeOn(ParticleHeader);
             ParticleHeader << '\n';
-            
+
             ParticleHeader.flush();
             ParticleHeader.close();
         }
-        
+
         MFInfo info;
         info.SetAlloc(false);
         MultiFab state(ParticleBoxArray(lev),
                        ParticleDistributionMap(lev),
                        1,0,info);
-        
+
         // We eventually want to write out the file name and the offset
         // into that file into which each grid of particles is written.
         Vector<int>  which(state.size(),0);
         Vector<int > count(state.size(),0);
         Vector<Long> where(state.size(),0);
-	
+
         std::string filePrefix(LevelDir);
         filePrefix += '/';
         filePrefix += ParticleType::DataPrefix();
@@ -624,7 +624,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             filePrefixPrePost[lev] = filePrefix;
         }
         bool groupSets(false), setBuf(true);
-        
+
         if (gotsome)
         {
             for(NFilesIter nfi(nOutFiles, filePrefix, groupSets, setBuf); nfi.ReadyToWrite(); ++nfi)
@@ -633,7 +633,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                 WriteParticles(lev, myStream, nfi.FileNumber(), which, count, where,
                                write_real_comp, write_int_comp, particle_io_flags);
             }
-            
+
             if(usePrePost) {
                 whichPrePost[lev] = which;
                 countPrePost[lev] = count;
@@ -644,7 +644,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                 ParallelDescriptor::ReduceLongSum(where.dataPtr(), where.size(), IOProcNumber);
             }
         }
-	
+
         if (ParallelDescriptor::IOProcessor())
         {
             if(usePrePost) {

@@ -86,11 +86,49 @@ public:
         }
 
         Long total_np = 0;
+        Vector<Long> np_per_level(finestLevel()+1);
         Vector<Vector<Long> > np_per_grid(finestLevel()+1);;
         for (int lev = 0; lev <= finestLevel(); lev++)
         {
             np_per_grid[lev] = NumberOfParticlesInGrid(lev);
-            total_np += std::accumulate(np_per_grid[lev].begin(), np_per_grid[lev].end(), 0);
+            np_per_level[lev] = std::accumulate(np_per_grid[lev].begin(),
+                                                np_per_grid[lev].end(), 0);
+            total_np += np_per_level[lev];
+        }
+
+
+        for (int lev = 0; lev <= finestLevel(); lev++)
+        {
+            std::string LevelDir = pdir;
+            bool gotsome = np_per_level[lev];
+
+            if (gotsome)
+            {
+                if ( ! LevelDir.empty() && LevelDir[LevelDir.size()-1] != '/') LevelDir += '/';
+
+                LevelDir = amrex::Concatenate(LevelDir + "Level_", lev, 1);
+
+                if ( ! levelDirectoriesCreated) {
+                    if (ParallelDescriptor::IOProcessor())
+                        if ( ! amrex::UtilCreateDirectory(LevelDir, 0755))
+                            amrex::CreateDirectoryFailed(LevelDir);
+                    ParallelDescriptor::Barrier();
+                }
+            }
+
+            // Write out the header for each particle
+            if (gotsome and ParallelDescriptor::IOProcessor())
+            {
+                std::string HeaderFileName = LevelDir;
+                HeaderFileName += "/Particle_H";
+                std::ofstream ParticleHeader(HeaderFileName);
+
+                ParticleBoxArray(lev).writeOn(ParticleHeader);
+                ParticleHeader << '\n';
+
+                ParticleHeader.flush();
+                ParticleHeader.close();
+            }
         }
 
         int maxnextid = ParticleType::NextID();
@@ -126,7 +164,6 @@ public:
                 HdrFileName += '/';
 
             HdrFileName += "Header";
-            HdrFileNamePrePost = HdrFileName;
 
             HdrFile.open(HdrFileName.c_str(), std::ios::out|std::ios::trunc);
 
@@ -182,6 +219,9 @@ public:
             for (int lev = 0; lev <= finestLevel(); lev++)
                 HdrFile << ParticleBoxArray(lev).size() << '\n';
 
+            Vector<Vector<int> > which(finestLevel()+1);
+            Vector<Vector<int> > count(finestLevel()+1);
+            Vector<Vector<Long>> where(finestLevel()+1);
             for (int lev = 0; lev <= finestLevel(); lev++)
             {
                 Vector<int64_t> grid_offset(NProcs, 0);
@@ -189,11 +229,13 @@ public:
                 {
                     int rank = ParticleDistributionMap(lev)[k];
                     auto info = AsyncOut::GetWriteInfo(rank);
-                    auto which = info.ifile;
-                    auto count = np_per_grid[lev][k];
-                    auto offset = grid_offset[rank] + rank_start_offset[rank];
-                    HdrFile << which << ' ' << count << ' ' << offset << '\n';
-                    grid_offset[rank] += count*psize;
+                    which[lev].push_back(info.ifile);
+                    count[lev].push_back(np_per_grid[lev][k]);
+                    where[lev].push_back(grid_offset[rank] + rank_start_offset[rank]);
+                    HdrFile << which[lev].back() << ' '
+                            << count[lev].back() << ' '
+                            << where[lev].back() << '\n';
+                    grid_offset[rank] += count[lev].back()*psize;
                 }
             }
 
@@ -208,13 +250,14 @@ public:
         // make tmp particle tiles in pinned memory to write
         using PinnedPTile = ParticleTile<NStructReal, NStructInt, NArrayReal, NArrayInt,
                                          PinnedArenaAllocator>;
-        auto myptiles = std::make_shared<Vector<PinnedPTile> >();
+        auto myptiles = std::make_shared<Vector<std::map<std::pair<int, int>,PinnedPTile> > >();
+        myptiles->resize(finestLevel()+1);
         for (int lev = 0; lev <= finestLevel(); lev++)
         {
-            for (MFIter mfi = MakeMFIter(lev, false); mfi.isValid(); ++mfi)
+            for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
             {
-                myptiles->emplace_back();
-                auto& new_ptile = myptiles->back();
+                auto& new_ptile = (*myptiles)[lev][std::make_pair(mfi.index(),
+                                                                  mfi.LocalTileIndex())];
 
                 if (np_per_grid[lev][mfi.index()] > 0)
                 {
@@ -222,6 +265,130 @@ public:
                     new_ptile.resize(ptile.numParticles());
                     amrex::copyParticles(new_ptile, ptile);
                 }
+            }
+        }
+
+        for (int lev = 0; lev <= finestLevel(); lev++)
+        {
+            // For a each grid, the tiles it contains
+            std::map<int, Vector<int> > tile_map;
+
+            for (const auto& kv : (*myptiles)[lev])
+            {
+                const int grid = kv.first.first;
+                const int tile = kv.first.second;
+                tile_map[grid].push_back(tile);
+            }
+
+            std::string LevelDir = pdir;
+            if ( ! LevelDir.empty() && LevelDir[LevelDir.size()-1] != '/') LevelDir += '/';
+            LevelDir = amrex::Concatenate(LevelDir + "Level_", lev, 1);
+            std::string filePrefix(LevelDir);
+            filePrefix += '/';
+            filePrefix += ParticleType::DataPrefix();
+            auto info = AsyncOut::GetWriteInfo(MyProc);
+            std::string file_name = amrex::Concatenate(filePrefix, info.ifile, 5);
+            std::ofstream ofs;
+            ofs.open(file_name.c_str(), (info.ispot == 0) ? (std::ios::binary | std::ios::trunc)
+                     : (std::ios::binary | std::ios::app));
+            for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
+            {
+                const int grid = mfi.index();
+                if (np_per_grid[lev][grid] == 0) continue;
+
+                // First write out the integer data in binary.
+                int num_output_int = 0;
+                for (int i = 0; i < NumIntComps() + NStructInt; ++i)
+                    if (write_int_comp[i]) ++num_output_int;
+
+                const int iChunkSize = 2 + num_output_int;
+                Vector<int> istuff(np_per_grid[lev][grid]*iChunkSize);
+                int* iptr = istuff.dataPtr();
+
+                for (unsigned i = 0; i < tile_map[grid].size(); i++) {
+                    auto ptile_index = std::make_pair(grid, tile_map[grid][i]);
+                    const auto& pbox = (*myptiles)[lev][ptile_index];
+                    for (int pindex = 0;
+                         pindex < pbox.GetArrayOfStructs().numParticles(); ++pindex)
+                    {
+                        const auto& aos = pbox.GetArrayOfStructs();
+                        const auto& p = aos[pindex];
+
+                        // always write these
+                        *iptr = p.id(); ++iptr;
+                        *iptr = p.cpu(); ++iptr;
+
+                        // optionally write these
+                        for (int j = 0; j < NStructInt; j++)
+                        {
+                            if (write_int_comp[j])
+                            {
+                                *iptr = p.idata(j);
+                                ++iptr;
+                            }
+                        }
+
+                        const auto& soa  = pbox.GetStructOfArrays();
+                        for (int j = 0; j < NumIntComps(); j++)
+                        {
+                            if (write_int_comp[NStructInt+j])
+                            {
+                                *iptr = soa.GetIntData(j)[pindex];
+                                ++iptr;
+                            }
+                        }
+                    }
+                }
+
+                writeIntData(istuff.dataPtr(), istuff.size(), ofs);
+                ofs.flush();  // Some systems require this flush() (probably due to a bug)
+
+                // Write the Real data in binary.
+                int num_output_real = 0;
+                for (int i = 0; i < NumRealComps() + NStructReal; ++i)
+                    if (write_real_comp[i]) ++num_output_real;
+
+                const int rChunkSize = AMREX_SPACEDIM + num_output_real;
+                Vector<typename ParticleType::RealType> rstuff(np_per_grid[lev][grid]*rChunkSize);
+                typename ParticleType::RealType* rptr = rstuff.dataPtr();
+
+                for (unsigned i = 0; i < tile_map[grid].size(); i++) {
+                    auto ptile_index = std::make_pair(grid, tile_map[grid][i]);
+                    const auto& pbox = (*myptiles)[lev][ptile_index];
+                    for (int pindex = 0;
+                         pindex < pbox.GetArrayOfStructs().numParticles(); ++pindex)
+                    {
+                        const auto& aos = pbox.GetArrayOfStructs();
+                        const auto& p = aos[pindex];
+
+                        // always write these
+                        for (int j = 0; j < AMREX_SPACEDIM; j++) rptr[j] = p.pos(j);
+                        rptr += AMREX_SPACEDIM;
+
+                        // optionally write these
+                        for (int j = 0; j < NStructReal; j++)
+                        {
+                            if (write_real_comp[j])
+                            {
+                                *rptr = p.rdata(j);
+                                ++rptr;
+                            }
+                        }
+
+                        const auto& soa  = pbox.GetStructOfArrays();
+                        for (int j = 0; j < NumRealComps(); j++)
+                        {
+                            if (write_real_comp[NStructReal+j])
+                            {
+                                *rptr = (typename ParticleType::RealType) soa.GetRealData(j)[pindex];
+                                ++rptr;
+                            }
+                        }
+                    }
+                }
+
+                WriteParticleRealData(rstuff.dataPtr(), rstuff.size(), ofs);
+                ofs.flush();  // Some systems require this flush() (probably due to a bug)
             }
         }
     }
