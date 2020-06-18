@@ -482,15 +482,15 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     if (ParallelDescriptor::IOProcessor())
     {
         std::string HdrFileName = pdir;
-	
+
         if ( ! HdrFileName.empty() && HdrFileName[HdrFileName.size()-1] != '/')
             HdrFileName += '/';
-        
+
         HdrFileName += "Header";
         HdrFileNamePrePost = HdrFileName;
-	
+
         HdrFile.open(HdrFileName.c_str(), std::ios::out|std::ios::trunc);
-	
+
         if ( ! HdrFile.good()) amrex::FileOpenFailed(HdrFileName);
 
         //
@@ -845,39 +845,39 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         const int tile = kv.first.second;
         tile_map[grid].push_back(tile);
         const auto& pflags = particle_io_flags[lev].at(kv.first);
-		
+
         // Only write out valid particles.
-        int cnt = 0;	
+        int cnt = 0;
         for (int k = 0; k < kv.second.GetArrayOfStructs().numParticles(); ++k)
         {
             if (pflags[k]) cnt++;
         }
-		
+
         count[grid] += cnt;
     }
-    
+
     MFInfo info;
     info.SetAlloc(false);
     MultiFab state(ParticleBoxArray(lev), ParticleDistributionMap(lev), 1,0,info);
-    
+
     for (MFIter mfi(state); mfi.isValid(); ++mfi)
     {
         const int grid = mfi.index();
-        
+
         which[grid] = fnum;
         where[grid] = VisMF::FileOffset(ofs);
-        
+
         if (count[grid] == 0) continue;
-      
+
         // First write out the integer data in binary.
         int num_output_int = 0;
         for (int i = 0; i < NumIntComps() + NStructInt; ++i)
             if (write_int_comp[i]) ++num_output_int;
-        
+
         const int iChunkSize = 2 + num_output_int;
         Vector<int> istuff(count[grid]*iChunkSize);
         int* iptr = istuff.dataPtr();
-        
+
         for (unsigned i = 0; i < tile_map[grid].size(); i++) {
             auto ptile_index = std::make_pair(grid, tile_map[grid][i]);
             const auto& pbox = m_particles[lev].at(ptile_index);
@@ -913,19 +913,19 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                 }
             }
         }
-                
+
         writeIntData(istuff.dataPtr(), istuff.size(), ofs);
         ofs.flush();  // Some systems require this flush() (probably due to a bug)
-        
+
         // Write the Real data in binary.
         int num_output_real = 0;
         for (int i = 0; i < NumRealComps() + NStructReal; ++i)
             if (write_real_comp[i]) ++num_output_real;
-        
+
         const int rChunkSize = AMREX_SPACEDIM + num_output_real;
         Vector<typename ParticleType::RealType> rstuff(count[grid]*rChunkSize);
         typename ParticleType::RealType* rptr = rstuff.dataPtr();
-        
+
         for (unsigned i = 0; i < tile_map[grid].size(); i++) {
 			auto ptile_index = std::make_pair(grid, tile_map[grid][i]);
             const auto& pbox = m_particles[lev].at(ptile_index);
