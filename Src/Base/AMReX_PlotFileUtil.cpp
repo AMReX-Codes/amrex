@@ -12,6 +12,11 @@
 
 #ifdef AMREX_USE_HDF5
 #include "hdf5.h"
+
+#ifdef AMREX_USE_HDF5_ASYNC
+#include "h5_vol_external_async_native.h"
+#endif
+
 #endif
 
 namespace amrex {
@@ -453,7 +458,6 @@ EB_WriteMultiLevelPlotfile (const std::string& plotfilename, int nlevels,
 
 #endif
 
-
 #ifdef AMREX_USE_HDF5
 static int CreateWriteHDF5AttrDouble(hid_t loc, const char *name, hsize_t n, const double *data)
 {
@@ -753,12 +757,14 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
     std::string filename(plotfilename + ".h5");
 
     // Write out root level metadata
-    hid_t fapl, fid, grp;
+    hid_t fapl, dxpl, fid, grp;
 
     if(ParallelDescriptor::IOProcessor()) {
         // Have only one rank to create and write metadata (header)
         fapl = H5Pcreate (H5P_FILE_ACCESS);
         H5Pset_fapl_mpio(fapl, MPI_COMM_SELF, MPI_INFO_NULL);
+        H5Pset_coll_metadata_write(fapl, true);
+        H5Pset_all_coll_metadata_ops(fapl, true);
 
         // Create the HDF5 file
         fid = H5Fcreate(filename.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, fapl);
@@ -778,15 +784,61 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
 
     ParallelDescriptor::Barrier();
 
+    hid_t babox_id;
+    babox_id = H5Tcreate (H5T_COMPOUND, 2 * AMREX_SPACEDIM * sizeof(int));
+    if (1 == AMREX_SPACEDIM) {
+	H5Tinsert (babox_id, "lo_i", 0 * sizeof(int), H5T_NATIVE_INT);
+	H5Tinsert (babox_id, "hi_i", 1 * sizeof(int), H5T_NATIVE_INT);
+    }
+    else if (2 == AMREX_SPACEDIM) {
+	H5Tinsert (babox_id, "lo_i", 0 * sizeof(int), H5T_NATIVE_INT);
+	H5Tinsert (babox_id, "lo_j", 1 * sizeof(int), H5T_NATIVE_INT);
+	H5Tinsert (babox_id, "hi_i", 2 * sizeof(int), H5T_NATIVE_INT);
+	H5Tinsert (babox_id, "hi_j", 3 * sizeof(int), H5T_NATIVE_INT);
+    }
+    else if (3 == AMREX_SPACEDIM) {
+	H5Tinsert (babox_id, "lo_i", 0 * sizeof(int), H5T_NATIVE_INT);
+	H5Tinsert (babox_id, "lo_j", 1 * sizeof(int), H5T_NATIVE_INT);
+	H5Tinsert (babox_id, "lo_k", 2 * sizeof(int), H5T_NATIVE_INT);
+	H5Tinsert (babox_id, "hi_i", 3 * sizeof(int), H5T_NATIVE_INT);
+	H5Tinsert (babox_id, "hi_j", 4 * sizeof(int), H5T_NATIVE_INT);
+	H5Tinsert (babox_id, "hi_k", 5 * sizeof(int), H5T_NATIVE_INT);
+    }
+ 
+    hid_t center_id = H5Tcreate (H5T_COMPOUND, AMREX_SPACEDIM * sizeof(int));
+    if (1 == AMREX_SPACEDIM) {
+	H5Tinsert (center_id, "i", 0 * sizeof(int), H5T_NATIVE_INT);
+    }
+    else if (2 == AMREX_SPACEDIM) {
+	H5Tinsert (center_id, "i", 0 * sizeof(int), H5T_NATIVE_INT);
+	H5Tinsert (center_id, "j", 1 * sizeof(int), H5T_NATIVE_INT);
+    }
+    else if (3 == AMREX_SPACEDIM) {
+	H5Tinsert (center_id, "i", 0 * sizeof(int), H5T_NATIVE_INT);
+	H5Tinsert (center_id, "j", 1 * sizeof(int), H5T_NATIVE_INT);
+	H5Tinsert (center_id, "k", 2 * sizeof(int), H5T_NATIVE_INT);
+    }
+ 
     fapl = H5Pcreate (H5P_FILE_ACCESS);
     H5Pset_fapl_mpio(fapl,  ParallelDescriptor::Communicator(), MPI_INFO_NULL);
+    int alignment = 16 * 1024 * 1024;
+    H5Pset_alignment(fapl, alignment, alignment);
+    H5Pset_coll_metadata_write(fapl, true);
+    H5Pset_all_coll_metadata_ops(fapl, true);
+
+    dxpl = H5Pcreate(H5P_DATASET_XFER);
+    H5Pset_dxpl_mpio(dxpl, H5FD_MPIO_INDEPENDENT);
+
+    // Only use async for writing actual data
+    #ifdef AMREX_USE_HDF5_ASYNC
+    H5Pset_vol_async(fapl);
+    H5Pset_dxpl_async(dxpl, true);
+    #endif
 
     // All process open the file
     fid = H5Fopen(filename.c_str(), H5F_ACC_RDWR, fapl);
     if (fid < 0) 
         FileOpenFailed(filename.c_str());
-
-    H5Pclose(fapl);
 
     // Write data for each level
     char level_name[32];
@@ -797,6 +849,20 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
             std::cout << "H5Gopen [" << level_name << "] failed!" << std::endl;
             continue;
         }
+
+        /* const MultiFab* data; */
+        /* std::unique_ptr<MultiFab> mf_tmp; */
+        /* if (mf[level]->nGrow() > 0) { */
+        /*     mf_tmp.reset(new MultiFab(mf[level]->boxArray(), */
+        /*                               mf[level]->DistributionMap(), */
+        /*                               mf[level]->nComp(), 0, MFInfo(), */
+        /*                               mf[level]->Factory())); */
+        /*     MultiFab::Copy(*mf_tmp, *mf[level], 0, 0, mf[level]->nComp(), 0); */
+        /*     data = mf_tmp.get(); */
+        /* } else { */
+        /*     data = mf[level]; */
+        /* } */
+	/* VisMF::Write(*data, MultiFabFileFullPrefix(level, plotfilename, levelPrefix, mfPrefix)); */
 
         // Get the boxes assigned to all ranks and calculate their offsets and sizes
         Vector<int> procMap = mf[level]->DistributionMap().ProcessorMap();
@@ -814,27 +880,7 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
         flatdims[0] = grids.size();
         boxdataspace = H5Screate_simple(1, flatdims, NULL);
        
-        hid_t babox_id;
-        babox_id = H5Tcreate (H5T_COMPOUND, 2 * AMREX_SPACEDIM * sizeof(int));
-        if (1 == AMREX_SPACEDIM) {
-            H5Tinsert (babox_id, "lo_i", 0 * sizeof(int), H5T_NATIVE_INT);
-            H5Tinsert (babox_id, "hi_i", 1 * sizeof(int), H5T_NATIVE_INT);
-        }
-        else if (2 == AMREX_SPACEDIM) {
-            H5Tinsert (babox_id, "lo_i", 0 * sizeof(int), H5T_NATIVE_INT);
-            H5Tinsert (babox_id, "lo_j", 1 * sizeof(int), H5T_NATIVE_INT);
-            H5Tinsert (babox_id, "hi_i", 2 * sizeof(int), H5T_NATIVE_INT);
-            H5Tinsert (babox_id, "hi_j", 3 * sizeof(int), H5T_NATIVE_INT);
-        }
-        else if (3 == AMREX_SPACEDIM) {
-            H5Tinsert (babox_id, "lo_i", 0 * sizeof(int), H5T_NATIVE_INT);
-            H5Tinsert (babox_id, "lo_j", 1 * sizeof(int), H5T_NATIVE_INT);
-            H5Tinsert (babox_id, "lo_k", 2 * sizeof(int), H5T_NATIVE_INT);
-            H5Tinsert (babox_id, "hi_i", 3 * sizeof(int), H5T_NATIVE_INT);
-            H5Tinsert (babox_id, "hi_j", 4 * sizeof(int), H5T_NATIVE_INT);
-            H5Tinsert (babox_id, "hi_k", 5 * sizeof(int), H5T_NATIVE_INT);
-        }
-    
+   
         boxdataset = H5Dcreate(grp, bdsname.c_str(), babox_id, boxdataspace, H5P_DEFAULT, H5P_DEFAULT,H5P_DEFAULT);
         
         // Create a boxarray sorted by rank
@@ -862,20 +908,6 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
         offsetdataspace = H5Screate_simple(1, oflatdims, NULL);
         offsetdataset   = H5Dcreate(grp, odsname.c_str(), H5T_NATIVE_LLONG, offsetdataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
-        hid_t center_id = H5Tcreate (H5T_COMPOUND, AMREX_SPACEDIM * sizeof(int));
-        if (1 == AMREX_SPACEDIM) {
-            H5Tinsert (center_id, "i", 0 * sizeof(int), H5T_NATIVE_INT);
-        }
-        else if (2 == AMREX_SPACEDIM) {
-            H5Tinsert (center_id, "i", 0 * sizeof(int), H5T_NATIVE_INT);
-            H5Tinsert (center_id, "j", 1 * sizeof(int), H5T_NATIVE_INT);
-        }
-        else if (3 == AMREX_SPACEDIM) {
-            H5Tinsert (center_id, "i", 0 * sizeof(int), H5T_NATIVE_INT);
-            H5Tinsert (center_id, "j", 1 * sizeof(int), H5T_NATIVE_INT);
-            H5Tinsert (center_id, "k", 2 * sizeof(int), H5T_NATIVE_INT);
-        }
- 
         hsize_t centerdims[1];
         centerdims[0]   = sortedGrids.size() ;
         centerdataspace = H5Screate_simple(1, centerdims, NULL);
@@ -906,9 +938,6 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
             totalOffset += procBufferSize[proc];
         }
         
-        hid_t dxpl = H5Pcreate(H5P_DATASET_XFER);
-        ret = H5Pset_dxpl_mpio(dxpl, H5FD_MPIO_INDEPENDENT);
-
         if(ParallelDescriptor::IOProcessor()) {
             int vbCount(0);
             Vector<int> vbox(sortedGrids.size() * 2 * AMREX_SPACEDIM);
@@ -949,7 +978,7 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
         H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, ch_offset, NULL, hs_procsize, NULL);
         
         Vector<Real> a_buffer(procBufferSize[myProc], -1.0);
-        Long dataCount(0);
+        long dataCount(0);
         for(MFIter mfi(*mf[level]); mfi.isValid(); ++mfi) {
             const Box &vbox    = mfi.validbox();
             const Real *dataPtr = (*mf[level])[mfi].dataPtr();
@@ -969,9 +998,6 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
         BL_PROFILE_VAR_STOP(h5dwg);
 
         
-        H5Tclose(center_id);
-        H5Tclose(babox_id);
-        H5Pclose(dxpl);
         H5Sclose(memdataspace);
         H5Sclose(dataspace);
         H5Dclose(dataset);
@@ -987,6 +1013,10 @@ void WriteMultiLevelPlotfileHDF5 (const std::string& plotfilename,
         H5Gclose(grp);
     } // For group
 
+    H5Tclose(center_id);
+    H5Tclose(babox_id);
+    H5Pclose(fapl);
+    H5Pclose(dxpl);
     H5Fclose(fid);
 
     /* double total_write_end_time(ParallelDescriptor::second()); */
@@ -1016,8 +1046,6 @@ WriteSingleLevelPlotfileHDF5 (const std::string& plotfilename,
     WriteMultiLevelPlotfileHDF5(plotfilename, 1, mfarr, varnames, geomarr, time,
                             level_steps, ref_ratio, versionName, levelPrefix, mfPrefix, extra_dirs);
 }
-
-
 
 #endif
 }
