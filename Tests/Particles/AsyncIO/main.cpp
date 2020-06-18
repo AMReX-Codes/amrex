@@ -148,6 +148,25 @@ public:
                 amrex::Abort("ParticleContainer::Checkpoint(): problem writing HdrFile");
             }
         }
+
+        using PinnedPTile = ParticleTile<NStructReal, NStructInt, NArrayReal, NArrayInt,
+                                         PinnedArenaAllocator>;
+        auto myptiles = std::make_shared<Vector<PinnedPTile> >();
+        for (int lev = 0; lev <= finestLevel(); lev++)
+        {
+            for (MFIter mfi = MakeMFIter(lev, false); mfi.isValid(); ++mfi)
+            {
+                myptiles->emplace_back();
+                auto& new_ptile = myptiles->back();
+
+                if (np_per_grid[lev][mfi.index()] > 0)
+                {
+                    const auto& ptile = ParticlesAt(lev, mfi);
+                    new_ptile.resize(ptile.numParticles());
+                    amrex::copyParticles(new_ptile, ptile);
+                }
+            }
+        }
     }
 };
 
