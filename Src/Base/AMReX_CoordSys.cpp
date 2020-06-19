@@ -437,14 +437,18 @@ operator>> (std::istream& is,
     int coord;
     is.ignore(BL_IGNORE_MAX, '(') >> coord;
     c.c_sys = (CoordSys::CoordType) coord;
-    AMREX_D_EXPR(is.ignore(BL_IGNORE_MAX, '(') >> c.offset[0],
-                 is.ignore(BL_IGNORE_MAX, ',') >> c.offset[1],
-                 is.ignore(BL_IGNORE_MAX, ',') >> c.offset[2]);
+    is.ignore(BL_IGNORE_MAX, '(') >> c.offset[0];
+    if (!amrex::is_next_non_space(is, ')') && AMREX_SPACEDIM >= 2)
+        is.ignore(BL_IGNORE_MAX, ',') >> c.offset[1];
+    if (!amrex::is_next_non_space(is, ')') && AMREX_SPACEDIM == 3)
+        is.ignore(BL_IGNORE_MAX, ',') >> c.offset[2];
     is.ignore(BL_IGNORE_MAX, ')');
-    Real cellsize[3];
-    AMREX_D_EXPR(is.ignore(BL_IGNORE_MAX, '(') >> cellsize[0],
-                 is.ignore(BL_IGNORE_MAX, ',') >> cellsize[1],
-                 is.ignore(BL_IGNORE_MAX, ',') >> cellsize[2]);
+    Real cellsize[3] {1.0, 1.0, 1.0};
+    is.ignore(BL_IGNORE_MAX, '(') >> cellsize[0];
+    if (!amrex::is_next_non_space(is, ')'))
+        is.ignore(BL_IGNORE_MAX, ',') >> cellsize[1];
+    if (!amrex::is_next_non_space(is, ')'))
+        is.ignore(BL_IGNORE_MAX, ',') >> cellsize[2];
     is.ignore(BL_IGNORE_MAX, ')');
     int tmp;
     is >> tmp;
