@@ -57,18 +57,25 @@ operator >> (std::istream &is, RealBox& b)
         amrex::Abort();
     }
 
-    Real lo[AMREX_SPACEDIM];
-    Real hi[AMREX_SPACEDIM];
+    Real lo[AMREX_SPACEDIM] {};
+    Real hi[AMREX_SPACEDIM] {};
 #ifdef BL_USE_FLOAT
     double dlotemp, dhitemp;
     for (int i = 0; i < AMREX_SPACEDIM; i++) {
         is >> dlotemp >> dhitemp;
         lo[i] = dlotemp;
         hi[i] = dhitemp;
+
+        if (amrex::is_next_non_space(is, ')'))
+            break;
     }
 #else
-    for (int i = 0; i < AMREX_SPACEDIM; i++)
+    for (int i = 0; i < AMREX_SPACEDIM; i++) {
         is >> lo[i] >> hi[i];
+
+        if (amrex::is_next_non_space(is, ')'))
+            break;
+    }
 #endif
 
     is.ignore(BL_IGNORE_MAX, ')');
