@@ -130,7 +130,8 @@ override XTRALIBS += -lgfortran -lquadmath
 
 endif
 
-override XTRAOBJS += $(DPCPP_DIR)/lib/libsycl-glibc.o $(DPCPP_DIR)/lib/libsycl-cmath.o $(DPCPP_DIR)/lib/libsycl-cmath-fp64.o
+override XTRAOBJS += $(DPCPP_DIR)/lib/libsycl-glibc.o
+LDFLAGS += -device-math-lib=fp32,fp64
 
 ifeq ($(FSANITIZER),TRUE)
   override XTRALIBS += -lubsan
