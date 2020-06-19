@@ -31,9 +31,9 @@ void MCNodalLinOp::Fapply (int amrlev, int mglev, MultiFab& a_out,const MultiFab
 	domain.grow(-1); // Shrink domain so we don't operate on any boundaries
 	const Real* DX = m_geom[amrlev][mglev].CellSize();
 
-        amrex::AsyncArray<Real> aa(coeff.data(), coeff.size());
-        amrex::Real const* dcoeff = aa.data();
-        const int N = getNComp();
+     amrex::AsyncArray<Real> aa(coeff.data(), coeff.size());
+     amrex::Real const* dcoeff = aa.data();
+     const int N = getNComp();
 
 	for (MFIter mfi(a_out, amrex::TilingIfNotGPU()); mfi.isValid(); ++mfi)
 	{
@@ -66,9 +66,9 @@ void MCNodalLinOp::Diag (int amrlev, int mglev, MultiFab& a_diag)
 	domain.grow(-1); // Shrink domain so we don't operate on any boundaries
 	const Real* DX = m_geom[amrlev][mglev].CellSize();
 
-        amrex::AsyncArray<Real> aa(coeff.data(), coeff.size());
-        amrex::Real const* dcoeff = aa.data();
-        const int N = getNComp();
+      amrex::AsyncArray<Real> aa(coeff.data(), coeff.size());
+      amrex::Real const* dcoeff = aa.data();
+      const int N = getNComp();
 
 	for (MFIter mfi(a_diag, amrex::TilingIfNotGPU()); mfi.isValid(); ++mfi)
 	{
