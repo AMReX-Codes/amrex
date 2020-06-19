@@ -94,7 +94,7 @@ public:
     }
 
     //! Read static values from ParmParse database.
-    static void Setup (const RealBox* rb = nullptr, int coord = -1, int const* is_per = nullptr) noexcept;
+    static void Setup (const RealBox* rb = nullptr, int coord = -1, int const* is_per = nullptr, bool reset = false) noexcept;
     static void ResetDefaultProbDomain (const RealBox& rb) noexcept;
     static void ResetDefaultPeriodicity (const Array<int,AMREX_SPACEDIM>& is_per) noexcept;
     static void ResetDefaultCoord (int coord) noexcept;

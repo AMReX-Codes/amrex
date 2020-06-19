@@ -113,11 +113,11 @@ Geometry::define (const Box& dom, const RealBox* rb, int coord,
 }
 
 void
-Geometry::Setup (const RealBox* rb, int coord, int const* isper) noexcept
+Geometry::Setup (const RealBox* rb, int coord, int const* isper, bool reset) noexcept
 {
     Geometry* gg = AMReX::top()->getDefaultGeometry();
 
-    if (gg->ok) return;
+    if (gg->ok && !reset) return;
 
 #ifdef _OPENMP
     BL_ASSERT(!omp_in_parallel());
