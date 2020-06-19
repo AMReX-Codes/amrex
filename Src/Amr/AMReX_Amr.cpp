@@ -1468,11 +1468,13 @@ Amr::restart (const std::string& filename)
         spdim = atoi(first_line.c_str());
     }
 
+#ifndef AMREX_PERMISSIVE_SPACEDIM
     if (spdim != AMREX_SPACEDIM)
     {
         amrex::ErrorStream() << "Amr::restart(): bad spacedim = " << spdim << '\n';
         amrex::Abort();
     }
+#endif
 
     is >> cumtime;
     int mx_lev;
@@ -1663,6 +1665,7 @@ Amr::restart (const std::string& filename)
     last_checkpoint = level_steps[0];
     last_plotfile = level_steps[0];
 
+#ifndef AMREX_PERMISSIVE_SPACEDIM
     for (int lev = 0; lev <= finest_level; ++lev)
     {
         Box restart_domain(Geom(lev).Domain());
@@ -1677,6 +1680,7 @@ Amr::restart (const std::string& filename)
             amrex::Abort(ss.str());
         }
     }
+#endif
 
     if (verbose > 0)
     {
