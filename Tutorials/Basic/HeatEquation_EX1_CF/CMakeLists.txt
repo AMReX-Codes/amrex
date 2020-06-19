@@ -44,7 +44,7 @@ set (INPUT_FILES ${EXE_DIR}/inputs_${DIM}d )
 
 file ( COPY ${INPUT_FILES} DESTINATION ${CMAKE_CURRENT_BINARY_DIR} )
 
-if (NOT ENABLE_CUDA)
+if ( (NOT ENABLE_CUDA) AND (NOT ENABLE_DPCPP) )
 
    add_custom_target( run_${EXENAME}
       COMMAND
