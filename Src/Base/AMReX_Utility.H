@@ -57,6 +57,10 @@ namespace amrex
     std::string Concatenate (const std::string& root,
                              int                num,
                              int                mindigits = 5);
+
+    //! Check if the given stream contains the supplied character after any amount of whitespace
+    bool is_next_non_space(std::istream& is, char c);
+
     /**
     *  \brief Creates the specified directories.  path may be either a full pathname
     *  or a relative pathname.  It will create all the directories in the

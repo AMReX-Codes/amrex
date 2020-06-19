@@ -145,6 +145,34 @@ amrex::Concatenate (const std::string& root,
     return result.str();
 }
 
+bool
+amrex::is_next_non_space(std::istream& is, char c)
+{
+    // save current position
+    const int pos = is.tellg();
+    const int cseek = static_cast<int>(c);
+
+    bool found = false;
+    int ic;
+
+    // search for first non-whitespace char and test if c
+    while (! is.eof()) {
+      ic = is.peek();
+      if (ic == cseek) {
+        found = true;
+        break;
+      } else if (! isspace(ic))
+        break;
+
+      is.seekg(1, is.cur);
+    }
+
+    // reset input stream is
+    is.clear();
+    is.seekg(pos);
+
+    return found;
+}
 
 bool
 amrex::UtilCreateDirectory (const std::string& path,
