@@ -110,7 +110,7 @@ contains
     real(amrex_real) :: x, y, z
     real(amrex_real), parameter :: tpi =  8.d0*atan(1.0)
     real(amrex_real), parameter :: fpi = 16.d0*atan(1.0)
-    real(amrex_real), parameter :: fac = tpi*tpi*3.d0
+    real(amrex_real), parameter :: fac = tpi*tpi*real(amrex_spacedim,amrex_real)
 
     do k = lo(3), hi(3)
        z = prob_lo(3) + dx(3) * (dble(k)+0.5d0)
@@ -150,7 +150,7 @@ contains
     pi = 4.d0 * atan(1.d0)
     tpi = 2.0d0 * pi
     fpi = 4.0d0 * pi
-    fac = 12.d0 * pi**2
+    fac = real(amrex_spacedim*4,amrex_real) * pi**2
 
     xc = (prob_hi(1) + prob_lo(1))/2.d0
     yc = (prob_hi(2) + prob_lo(2))/2.d0
