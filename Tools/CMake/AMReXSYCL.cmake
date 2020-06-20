@@ -25,6 +25,8 @@ set(_cxx_clang "$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:Clang>>") # Only
 add_library(SYCL INTERFACE)
 add_library(AMReX::SYCL ALIAS SYCL)
 
+target_compile_features(SYCL INTERFACE cxx_std_17)
+
 target_link_libraries(SYCL INTERFACE ${LIBSYCL_GLIBC_OBJ})
 
 target_compile_options( SYCL
