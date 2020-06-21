@@ -87,7 +87,7 @@ public:
 
         Long total_np = 0;
         Vector<Long> np_per_level(finestLevel()+1);
-        Vector<Vector<Long> > np_per_grid(finestLevel()+1);;
+        Vector<Vector<Long> > np_per_grid(finestLevel()+1);
         for (int lev = 0; lev <= finestLevel(); lev++)
         {
             np_per_grid[lev] = NumberOfParticlesInGrid(lev);
@@ -155,98 +155,6 @@ public:
             }
         }
 
-        if (ParallelDescriptor::IOProcessor())
-        {
-            std::string HdrFileName = pdir;
-            std::ofstream HdrFile;
-
-            if ( ! HdrFileName.empty() && HdrFileName[HdrFileName.size()-1] != '/')
-                HdrFileName += '/';
-
-            HdrFileName += "Header";
-
-            HdrFile.open(HdrFileName.c_str(), std::ios::out|std::ios::trunc);
-
-            if ( ! HdrFile.good()) amrex::FileOpenFailed(HdrFileName);
-
-            if (sizeof(typename ParticleType::RealType) == 4)
-            {
-                HdrFile << ParticleType::Version() << "_single" << '\n';
-            }
-            else
-            {
-                HdrFile << ParticleType::Version() << "_double" << '\n';
-            }
-
-            int num_output_real = 0;
-            for (int i = 0; i < NumRealComps() + NStructReal; ++i)
-                if (write_real_comp[i]) ++num_output_real;
-
-            int num_output_int = 0;
-            for (int i = 0; i < NumIntComps() + NStructInt; ++i)
-                if (write_int_comp[i]) ++num_output_int;
-
-            // AMREX_SPACEDIM and N for sanity checking.
-            HdrFile << AMREX_SPACEDIM << '\n';
-
-            // The number of extra real parameters
-            HdrFile << num_output_real << '\n';
-
-            // Real component names
-            for (int i = 0; i < NStructReal + NumRealComps(); ++i )
-                if (write_real_comp[i]) HdrFile << real_comp_names[i] << '\n';
-
-            // The number of extra int parameters
-            HdrFile << num_output_int << '\n';
-
-            // int component names
-            for (int i = 0; i < NStructInt + NumIntComps(); ++i )
-                if (write_int_comp[i]) HdrFile << int_comp_names[i] << '\n';
-
-            bool is_checkpoint = true; // legacy
-            HdrFile << is_checkpoint << '\n';
-
-            // The total number of particles.
-            HdrFile << total_np << '\n';
-
-            // The value of nextid that we need to restore on restart.
-            HdrFile << maxnextid << '\n';
-
-            // Then the finest level of the AMR hierarchy.
-            HdrFile << finestLevel() << '\n';
-
-            // Then the number of grids at each level.
-            for (int lev = 0; lev <= finestLevel(); lev++)
-                HdrFile << ParticleBoxArray(lev).size() << '\n';
-
-            Vector<Vector<int> > which(finestLevel()+1);
-            Vector<Vector<int> > count(finestLevel()+1);
-            Vector<Vector<Long>> where(finestLevel()+1);
-            for (int lev = 0; lev <= finestLevel(); lev++)
-            {
-                Vector<int64_t> grid_offset(NProcs, 0);
-                for (int k = 0; k < ParticleBoxArray(lev).size(); ++k)
-                {
-                    int rank = ParticleDistributionMap(lev)[k];
-                    auto info = AsyncOut::GetWriteInfo(rank);
-                    which[lev].push_back(info.ifile);
-                    count[lev].push_back(np_per_grid[lev][k]);
-                    where[lev].push_back(grid_offset[rank] + rank_start_offset[rank]);
-                    HdrFile << which[lev].back() << ' '
-                            << count[lev].back() << ' '
-                            << where[lev].back() << '\n';
-                    grid_offset[rank] += count[lev].back()*psize;
-                }
-            }
-
-            HdrFile.flush();
-            HdrFile.close();
-            if ( ! HdrFile.good())
-            {
-                amrex::Abort("ParticleContainer::Checkpoint(): problem writing HdrFile");
-            }
-        }
-
         // make tmp particle tiles in pinned memory to write
         using PinnedPTile = ParticleTile<NStructReal, NStructInt, NArrayReal, NArrayInt,
                                          PinnedArenaAllocator>;
@@ -268,129 +176,230 @@ public:
             }
         }
 
-        for (int lev = 0; lev <= finestLevel(); lev++)
+        AsyncOut::Submit([=] ()
         {
-            // For a each grid, the tiles it contains
-            std::map<int, Vector<int> > tile_map;
-
-            for (const auto& kv : (*myptiles)[lev])
+            if (ParallelDescriptor::IOProcessor())
             {
-                const int grid = kv.first.first;
-                const int tile = kv.first.second;
-                tile_map[grid].push_back(tile);
-            }
+                std::string HdrFileName = pdir;
+                std::ofstream HdrFile;
 
-            std::string LevelDir = pdir;
-            if ( ! LevelDir.empty() && LevelDir[LevelDir.size()-1] != '/') LevelDir += '/';
-            LevelDir = amrex::Concatenate(LevelDir + "Level_", lev, 1);
-            std::string filePrefix(LevelDir);
-            filePrefix += '/';
-            filePrefix += ParticleType::DataPrefix();
-            auto info = AsyncOut::GetWriteInfo(MyProc);
-            std::string file_name = amrex::Concatenate(filePrefix, info.ifile, 5);
-            std::ofstream ofs;
-            ofs.open(file_name.c_str(), (info.ispot == 0) ? (std::ios::binary | std::ios::trunc)
-                     : (std::ios::binary | std::ios::app));
-            for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
-            {
-                const int grid = mfi.index();
-                if (np_per_grid[lev][grid] == 0) continue;
+                if ( ! HdrFileName.empty() && HdrFileName[HdrFileName.size()-1] != '/')
+                    HdrFileName += '/';
 
-                // First write out the integer data in binary.
-                int num_output_int = 0;
-                for (int i = 0; i < NumIntComps() + NStructInt; ++i)
-                    if (write_int_comp[i]) ++num_output_int;
+                HdrFileName += "Header";
 
-                const int iChunkSize = 2 + num_output_int;
-                Vector<int> istuff(np_per_grid[lev][grid]*iChunkSize);
-                int* iptr = istuff.dataPtr();
+                HdrFile.open(HdrFileName.c_str(), std::ios::out|std::ios::trunc);
 
-                for (unsigned i = 0; i < tile_map[grid].size(); i++) {
-                    auto ptile_index = std::make_pair(grid, tile_map[grid][i]);
-                    const auto& pbox = (*myptiles)[lev][ptile_index];
-                    for (int pindex = 0;
-                         pindex < pbox.GetArrayOfStructs().numParticles(); ++pindex)
-                    {
-                        const auto& aos = pbox.GetArrayOfStructs();
-                        const auto& p = aos[pindex];
+                if ( ! HdrFile.good()) amrex::FileOpenFailed(HdrFileName);
 
-                        // always write these
-                        *iptr = p.id(); ++iptr;
-                        *iptr = p.cpu(); ++iptr;
-
-                        // optionally write these
-                        for (int j = 0; j < NStructInt; j++)
-                        {
-                            if (write_int_comp[j])
-                            {
-                                *iptr = p.idata(j);
-                                ++iptr;
-                            }
-                        }
-
-                        const auto& soa  = pbox.GetStructOfArrays();
-                        for (int j = 0; j < NumIntComps(); j++)
-                        {
-                            if (write_int_comp[NStructInt+j])
-                            {
-                                *iptr = soa.GetIntData(j)[pindex];
-                                ++iptr;
-                            }
-                        }
-                    }
+                if (sizeof(typename ParticleType::RealType) == 4)
+                {
+                    HdrFile << ParticleType::Version() << "_single" << '\n';
+                }
+                else
+                {
+                    HdrFile << ParticleType::Version() << "_double" << '\n';
                 }
 
-                writeIntData(istuff.dataPtr(), istuff.size(), ofs);
-                ofs.flush();  // Some systems require this flush() (probably due to a bug)
-
-                // Write the Real data in binary.
                 int num_output_real = 0;
                 for (int i = 0; i < NumRealComps() + NStructReal; ++i)
                     if (write_real_comp[i]) ++num_output_real;
 
-                const int rChunkSize = AMREX_SPACEDIM + num_output_real;
-                Vector<typename ParticleType::RealType> rstuff(np_per_grid[lev][grid]*rChunkSize);
-                typename ParticleType::RealType* rptr = rstuff.dataPtr();
+                int num_output_int = 0;
+                for (int i = 0; i < NumIntComps() + NStructInt; ++i)
+                    if (write_int_comp[i]) ++num_output_int;
 
-                for (unsigned i = 0; i < tile_map[grid].size(); i++) {
-                    auto ptile_index = std::make_pair(grid, tile_map[grid][i]);
-                    const auto& pbox = (*myptiles)[lev][ptile_index];
-                    for (int pindex = 0;
-                         pindex < pbox.GetArrayOfStructs().numParticles(); ++pindex)
+                // AMREX_SPACEDIM and N for sanity checking.
+                HdrFile << AMREX_SPACEDIM << '\n';
+
+                // The number of extra real parameters
+                HdrFile << num_output_real << '\n';
+
+                // Real component names
+                for (int i = 0; i < NStructReal + NumRealComps(); ++i )
+                    if (write_real_comp[i]) HdrFile << real_comp_names[i] << '\n';
+
+                // The number of extra int parameters
+                HdrFile << num_output_int << '\n';
+
+                // int component names
+                for (int i = 0; i < NStructInt + NumIntComps(); ++i )
+                    if (write_int_comp[i]) HdrFile << int_comp_names[i] << '\n';
+
+                bool is_checkpoint = true; // legacy
+                HdrFile << is_checkpoint << '\n';
+
+                // The total number of particles.
+                HdrFile << total_np << '\n';
+
+                // The value of nextid that we need to restore on restart.
+                HdrFile << maxnextid << '\n';
+
+                // Then the finest level of the AMR hierarchy.
+                HdrFile << finestLevel() << '\n';
+
+                // Then the number of grids at each level.
+                for (int lev = 0; lev <= finestLevel(); lev++)
+                    HdrFile << ParticleBoxArray(lev).size() << '\n';
+
+                Vector<Vector<int> > which(finestLevel()+1);
+                Vector<Vector<int> > count(finestLevel()+1);
+                Vector<Vector<Long>> where(finestLevel()+1);
+                for (int lev = 0; lev <= finestLevel(); lev++)
+                {
+                    Vector<int64_t> grid_offset(NProcs, 0);
+                    for (int k = 0; k < ParticleBoxArray(lev).size(); ++k)
                     {
-                        const auto& aos = pbox.GetArrayOfStructs();
-                        const auto& p = aos[pindex];
-
-                        // always write these
-                        for (int j = 0; j < AMREX_SPACEDIM; j++) rptr[j] = p.pos(j);
-                        rptr += AMREX_SPACEDIM;
-
-                        // optionally write these
-                        for (int j = 0; j < NStructReal; j++)
-                        {
-                            if (write_real_comp[j])
-                            {
-                                *rptr = p.rdata(j);
-                                ++rptr;
-                            }
-                        }
-
-                        const auto& soa  = pbox.GetStructOfArrays();
-                        for (int j = 0; j < NumRealComps(); j++)
-                        {
-                            if (write_real_comp[NStructReal+j])
-                            {
-                                *rptr = (typename ParticleType::RealType) soa.GetRealData(j)[pindex];
-                                ++rptr;
-                            }
-                        }
+                        int rank = ParticleDistributionMap(lev)[k];
+                        auto info = AsyncOut::GetWriteInfo(rank);
+                        which[lev].push_back(info.ifile);
+                        count[lev].push_back(np_per_grid[lev][k]);
+                        where[lev].push_back(grid_offset[rank] + rank_start_offset[rank]);
+                        HdrFile << which[lev].back() << ' '
+                                << count[lev].back() << ' '
+                                << where[lev].back() << '\n';
+                        grid_offset[rank] += count[lev].back()*psize;
                     }
                 }
 
-                WriteParticleRealData(rstuff.dataPtr(), rstuff.size(), ofs);
-                ofs.flush();  // Some systems require this flush() (probably due to a bug)
+                HdrFile.flush();
+                HdrFile.close();
+                if ( ! HdrFile.good())
+                {
+                    amrex::Abort("ParticleContainer::Checkpoint(): problem writing HdrFile");
+                }
             }
-        }
+
+            AsyncOut::Wait();  // Wait for my turn
+
+            for (int lev = 0; lev <= finestLevel(); lev++)
+            {
+                // For a each grid, the tiles it contains
+                std::map<int, Vector<int> > tile_map;
+
+                for (const auto& kv : (*myptiles)[lev])
+                {
+                    const int grid = kv.first.first;
+                    const int tile = kv.first.second;
+                    tile_map[grid].push_back(tile);
+                }
+
+                std::string LevelDir = pdir;
+                if ( ! LevelDir.empty() && LevelDir[LevelDir.size()-1] != '/') LevelDir += '/';
+                LevelDir = amrex::Concatenate(LevelDir + "Level_", lev, 1);
+                std::string filePrefix(LevelDir);
+                filePrefix += '/';
+                filePrefix += ParticleType::DataPrefix();
+                auto info = AsyncOut::GetWriteInfo(MyProc);
+                std::string file_name = amrex::Concatenate(filePrefix, info.ifile, 5);
+                std::ofstream ofs;
+                ofs.open(file_name.c_str(), (info.ispot == 0) ? (std::ios::binary | std::ios::trunc)
+                         : (std::ios::binary | std::ios::app));
+
+                for (int k = 0; k < ParticleBoxArray(lev).size(); ++k)
+                {
+                    int rank = ParticleDistributionMap(lev)[k];
+                    if (rank != MyProc) continue;
+                    const int grid = k;
+                    if (np_per_grid[lev][grid] == 0) continue;
+
+                    // First write out the integer data in binary.
+                    int num_output_int = 0;
+                    for (int i = 0; i < NumIntComps() + NStructInt; ++i)
+                        if (write_int_comp[i]) ++num_output_int;
+
+                    const int iChunkSize = 2 + num_output_int;
+                    Vector<int> istuff(np_per_grid[lev][grid]*iChunkSize);
+                    int* iptr = istuff.dataPtr();
+
+                    for (unsigned i = 0; i < tile_map[grid].size(); i++) {
+                        auto ptile_index = std::make_pair(grid, tile_map[grid][i]);
+                        const auto& pbox = (*myptiles)[lev][ptile_index];
+                        for (int pindex = 0;
+                             pindex < pbox.GetArrayOfStructs().numParticles(); ++pindex)
+                        {
+                            const auto& aos = pbox.GetArrayOfStructs();
+                            const auto& p = aos[pindex];
+
+                            // always write these
+                            *iptr = p.id(); ++iptr;
+                            *iptr = p.cpu(); ++iptr;
+
+                            // optionally write these
+                            for (int j = 0; j < NStructInt; j++)
+                            {
+                                if (write_int_comp[j])
+                                {
+                                    *iptr = p.idata(j);
+                                    ++iptr;
+                                }
+                            }
+
+                            const auto& soa  = pbox.GetStructOfArrays();
+                            for (int j = 0; j < NumIntComps(); j++)
+                            {
+                                if (write_int_comp[NStructInt+j])
+                                {
+                                    *iptr = soa.GetIntData(j)[pindex];
+                                    ++iptr;
+                                }
+                            }
+                        }
+                    }
+
+                    writeIntData(istuff.dataPtr(), istuff.size(), ofs);
+                    ofs.flush();  // Some systems require this flush() (probably due to a bug)
+
+                    // Write the Real data in binary.
+                    int num_output_real = 0;
+                    for (int i = 0; i < NumRealComps() + NStructReal; ++i)
+                        if (write_real_comp[i]) ++num_output_real;
+
+                    const int rChunkSize = AMREX_SPACEDIM + num_output_real;
+                    Vector<typename ParticleType::RealType> rstuff(np_per_grid[lev][grid]*rChunkSize);
+                    typename ParticleType::RealType* rptr = rstuff.dataPtr();
+
+                    for (unsigned i = 0; i < tile_map[grid].size(); i++) {
+                        auto ptile_index = std::make_pair(grid, tile_map[grid][i]);
+                        const auto& pbox = (*myptiles)[lev][ptile_index];
+                        for (int pindex = 0;
+                             pindex < pbox.GetArrayOfStructs().numParticles(); ++pindex)
+                        {
+                            const auto& aos = pbox.GetArrayOfStructs();
+                            const auto& p = aos[pindex];
+
+                            // always write these
+                            for (int j = 0; j < AMREX_SPACEDIM; j++) rptr[j] = p.pos(j);
+                            rptr += AMREX_SPACEDIM;
+
+                            // optionally write these
+                            for (int j = 0; j < NStructReal; j++)
+                            {
+                                if (write_real_comp[j])
+                                {
+                                    *rptr = p.rdata(j);
+                                    ++rptr;
+                                }
+                            }
+
+                            const auto& soa  = pbox.GetStructOfArrays();
+                            for (int j = 0; j < NumRealComps(); j++)
+                            {
+                                if (write_real_comp[NStructReal+j])
+                                {
+                                    *rptr = (typename ParticleType::RealType) soa.GetRealData(j)[pindex];
+                                    ++rptr;
+                                }
+                            }
+                        }
+                    }
+
+                    WriteParticleRealData(rstuff.dataPtr(), rstuff.size(), ofs);
+                    ofs.flush();  // Some systems require this flush() (probably due to a bug)
+                }
+            }
+            AsyncOut::Notify();  // Notify others I am done
+        });
     }
 };
 
