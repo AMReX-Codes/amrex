@@ -6,6 +6,8 @@
 #include <AMReX_AmrParticles.H>
 #include <AMReX_PlotFileUtil.H>
 
+#include <thread>
+
 using namespace amrex;
 
 static constexpr int NSR = 1 + AMREX_SPACEDIM;
@@ -68,7 +70,7 @@ public:
 
         const int MyProc = ParallelDescriptor::MyProc();
         const int NProcs = ParallelDescriptor::NProcs();
-        const int IOProcNumber = ParallelDescriptor::IOProcessorNumber();
+        const int IOProcNumber = NProcs - 1;
 
         AMREX_ALWAYS_ASSERT(real_comp_names.size() == NumRealComps() + NStructReal);
         AMREX_ALWAYS_ASSERT( int_comp_names.size() == NumIntComps() + NStructInt);
@@ -79,7 +81,7 @@ public:
 
         if ( ! levelDirectoriesCreated)
         {
-            if (ParallelDescriptor::IOProcessor())
+            if (MyProc == IOProcNumber)
                 if ( ! amrex::UtilCreateDirectory(pdir, 0755))
                     amrex::CreateDirectoryFailed(pdir);
             ParallelDescriptor::Barrier();
@@ -109,7 +111,7 @@ public:
                 LevelDir = amrex::Concatenate(LevelDir + "Level_", lev, 1);
 
                 if ( ! levelDirectoriesCreated) {
-                    if (ParallelDescriptor::IOProcessor())
+                    if (MyProc == IOProcNumber)
                         if ( ! amrex::UtilCreateDirectory(LevelDir, 0755))
                             amrex::CreateDirectoryFailed(LevelDir);
                     ParallelDescriptor::Barrier();
@@ -117,7 +119,7 @@ public:
             }
 
             // Write out the header for each particle
-            if (gotsome and ParallelDescriptor::IOProcessor())
+            if (gotsome and (MyProc == IOProcNumber))
             {
                 std::string HeaderFileName = LevelDir;
                 HeaderFileName += "/Particle_H";
@@ -176,9 +178,28 @@ public:
             }
         }
 
+        auto wrc = std::make_shared<Vector<int> >(write_real_comp);
+        auto wic = std::make_shared<Vector<int> >(write_int_comp);
+        auto rcn = std::make_shared<Vector<std::string> >(real_comp_names);
+        auto icn = std::make_shared<Vector<std::string> >(int_comp_names);
+
+        int finest_level = finestLevel();
+        Vector<BoxArray> bas;
+        Vector<DistributionMapping> dms;
+        for (int lev = 0; lev <= finestLevel(); lev++)
+        {
+            bas.push_back(ParticleBoxArray(lev));
+            dms.push_back(ParticleDistributionMap(lev));
+        }
+
+        int nrc = NumRealComps();
+        int nic = NumIntComps();
+
+        auto RD = ParticleRealDescriptor;
+
         AsyncOut::Submit([=] ()
         {
-            if (ParallelDescriptor::IOProcessor())
+            if (MyProc == IOProcNumber)
             {
                 std::string HdrFileName = pdir;
                 std::ofstream HdrFile;
@@ -202,12 +223,12 @@ public:
                 }
 
                 int num_output_real = 0;
-                for (int i = 0; i < NumRealComps() + NStructReal; ++i)
-                    if (write_real_comp[i]) ++num_output_real;
+                for (int i = 0; i < nrc + NStructReal; ++i)
+                    if ((*wrc)[i]) ++num_output_real;
 
                 int num_output_int = 0;
-                for (int i = 0; i < NumIntComps() + NStructInt; ++i)
-                    if (write_int_comp[i]) ++num_output_int;
+                for (int i = 0; i < nic + NStructInt; ++i)
+                    if ((*wic)[i]) ++num_output_int;
 
                 // AMREX_SPACEDIM and N for sanity checking.
                 HdrFile << AMREX_SPACEDIM << '\n';
@@ -216,15 +237,15 @@ public:
                 HdrFile << num_output_real << '\n';
 
                 // Real component names
-                for (int i = 0; i < NStructReal + NumRealComps(); ++i )
-                    if (write_real_comp[i]) HdrFile << real_comp_names[i] << '\n';
+                for (int i = 0; i < NStructReal + nrc; ++i )
+                    if ((*wrc)[i]) HdrFile << (*rcn)[i] << '\n';
 
                 // The number of extra int parameters
                 HdrFile << num_output_int << '\n';
 
                 // int component names
-                for (int i = 0; i < NStructInt + NumIntComps(); ++i )
-                    if (write_int_comp[i]) HdrFile << int_comp_names[i] << '\n';
+                for (int i = 0; i < NStructInt + nic; ++i )
+                    if ((*wic)[i]) HdrFile << (*icn)[i] << '\n';
 
                 bool is_checkpoint = true; // legacy
                 HdrFile << is_checkpoint << '\n';
@@ -236,29 +257,23 @@ public:
                 HdrFile << maxnextid << '\n';
 
                 // Then the finest level of the AMR hierarchy.
-                HdrFile << finestLevel() << '\n';
+                HdrFile << finest_level << '\n';
 
                 // Then the number of grids at each level.
-                for (int lev = 0; lev <= finestLevel(); lev++)
-                    HdrFile << ParticleBoxArray(lev).size() << '\n';
+                for (int lev = 0; lev <= finest_level; lev++)
+                    HdrFile << dms[lev].size() << '\n';
 
-                Vector<Vector<int> > which(finestLevel()+1);
-                Vector<Vector<int> > count(finestLevel()+1);
-                Vector<Vector<Long>> where(finestLevel()+1);
-                for (int lev = 0; lev <= finestLevel(); lev++)
+                for (int lev = 0; lev <= finest_level; lev++)
                 {
                     Vector<int64_t> grid_offset(NProcs, 0);
-                    for (int k = 0; k < ParticleBoxArray(lev).size(); ++k)
+                    for (int k = 0; k < bas[lev].size(); ++k)
                     {
-                        int rank = ParticleDistributionMap(lev)[k];
+                        int rank = dms[lev][k];
                         auto info = AsyncOut::GetWriteInfo(rank);
-                        which[lev].push_back(info.ifile);
-                        count[lev].push_back(np_per_grid[lev][k]);
-                        where[lev].push_back(grid_offset[rank] + rank_start_offset[rank]);
-                        HdrFile << which[lev].back() << ' '
-                                << count[lev].back() << ' '
-                                << where[lev].back() << '\n';
-                        grid_offset[rank] += count[lev].back()*psize;
+                        HdrFile << info.ifile << ' '
+                                << np_per_grid[lev][k] << ' '
+                                << grid_offset[rank] + rank_start_offset[rank] << '\n';
+                        grid_offset[rank] += np_per_grid[lev][k]*psize;
                     }
                 }
 
@@ -272,7 +287,7 @@ public:
 
             AsyncOut::Wait();  // Wait for my turn
 
-            for (int lev = 0; lev <= finestLevel(); lev++)
+            for (int lev = 0; lev <= finest_level; lev++)
             {
                 // For a each grid, the tiles it contains
                 std::map<int, Vector<int> > tile_map;
@@ -296,17 +311,17 @@ public:
                 ofs.open(file_name.c_str(), (info.ispot == 0) ? (std::ios::binary | std::ios::trunc)
                          : (std::ios::binary | std::ios::app));
 
-                for (int k = 0; k < ParticleBoxArray(lev).size(); ++k)
+                for (int k = 0; k < bas[lev].size(); ++k)
                 {
-                    int rank = ParticleDistributionMap(lev)[k];
+                    int rank = dms[lev][k];
                     if (rank != MyProc) continue;
                     const int grid = k;
                     if (np_per_grid[lev][grid] == 0) continue;
 
                     // First write out the integer data in binary.
                     int num_output_int = 0;
-                    for (int i = 0; i < NumIntComps() + NStructInt; ++i)
-                        if (write_int_comp[i]) ++num_output_int;
+                    for (int i = 0; i < nic + NStructInt; ++i)
+                        if ((*wic)[i]) ++num_output_int;
 
                     const int iChunkSize = 2 + num_output_int;
                     Vector<int> istuff(np_per_grid[lev][grid]*iChunkSize);
@@ -336,7 +351,7 @@ public:
                             }
 
                             const auto& soa  = pbox.GetStructOfArrays();
-                            for (int j = 0; j < NumIntComps(); j++)
+                            for (int j = 0; j < nic; j++)
                             {
                                 if (write_int_comp[NStructInt+j])
                                 {
@@ -352,8 +367,8 @@ public:
 
                     // Write the Real data in binary.
                     int num_output_real = 0;
-                    for (int i = 0; i < NumRealComps() + NStructReal; ++i)
-                        if (write_real_comp[i]) ++num_output_real;
+                    for (int i = 0; i < nrc + NStructReal; ++i)
+                        if ((*wrc)[i]) ++num_output_real;
 
                     const int rChunkSize = AMREX_SPACEDIM + num_output_real;
                     Vector<typename ParticleType::RealType> rstuff(np_per_grid[lev][grid]*rChunkSize);
@@ -383,7 +398,7 @@ public:
                             }
 
                             const auto& soa  = pbox.GetStructOfArrays();
-                            for (int j = 0; j < NumRealComps(); j++)
+                            for (int j = 0; j < nrc; j++)
                             {
                                 if (write_real_comp[NStructReal+j])
                                 {
@@ -394,7 +409,13 @@ public:
                         }
                     }
 
-                    WriteParticleRealData(rstuff.dataPtr(), rstuff.size(), ofs);
+                    if (sizeof(typename ParticleType::RealType) == 4) {
+                        writeFloatData((float*) rstuff.dataPtr(), rstuff.size(), ofs, RD);
+                    }
+                    else if (sizeof(typename ParticleType::RealType) == 8) {
+                        writeDoubleData((double*) rstuff.dataPtr(), rstuff.size(), ofs, RD);
+                    }
+
                     ofs.flush();  // Some systems require this flush() (probably due to a bug)
                 }
             }
