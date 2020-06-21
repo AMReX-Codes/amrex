@@ -47,12 +47,10 @@ endif
 ########################################################################
 
 ifdef CXXSTD
-  CXXSTD := $(strip $(CXXSTD))
-else
-  CXXSTD := c++14
+  CXXFLAGS += -std=$(strip $(CXXSTD))
 endif
 
-CXXFLAGS += -std=$(CXXSTD) -Wno-error=sycl-strict -fsycl -fsycl-unnamed-lambda
+CXXFLAGS += -Wno-error=sycl-strict -fsycl -fsycl-unnamed-lambda
 CFLAGS   += -std=c99
 
 ifneq ($(DEBUG),TRUE)  # There is currently a bug that DEBUG build will crash.
