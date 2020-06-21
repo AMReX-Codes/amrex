@@ -7,16 +7,15 @@ namespace amrex
 {
 
 class FPhysBC
-    : public PhysBCFunctBase
 {
 public:
     using fill_physbc_funptr_t = void(*)(MultiFab* mf, int scomp, int ncomp, Real time, const Geometry* geom);
 
     FPhysBC (fill_physbc_funptr_t fill, const Geometry* geom_) : fill_physbc(fill), geom(geom_) {}
 
-    virtual ~FPhysBC () {}
-    virtual void FillBoundary (MultiFab& mf, int scomp, int ncomp, IntVect const& nghost,
-                               Real time, int bccomp) override;
+    ~FPhysBC () {}
+    void operator() (MultiFab& mf, int scomp, int ncomp, IntVect const& nghost,
+                     Real time, int bccomp);
 
 private:
     fill_physbc_funptr_t fill_physbc = nullptr;

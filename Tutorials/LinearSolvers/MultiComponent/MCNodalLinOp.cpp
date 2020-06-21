@@ -31,6 +31,10 @@ void MCNodalLinOp::Fapply (int amrlev, int mglev, MultiFab& a_out,const MultiFab
 	domain.grow(-1); // Shrink domain so we don't operate on any boundaries
 	const Real* DX = m_geom[amrlev][mglev].CellSize();
 
+     amrex::AsyncArray<Real> aa(coeff.data(), coeff.size());
+     amrex::Real const* dcoeff = aa.data();
+     const int N = getNComp();
+
 	for (MFIter mfi(a_out, amrex::TilingIfNotGPU()); mfi.isValid(); ++mfi)
 	{
 		Box bx = mfi.tilebox();
@@ -43,9 +47,9 @@ void MCNodalLinOp::Fapply (int amrlev, int mglev, MultiFab& a_out,const MultiFab
 		for (int n = 0; n < getNComp(); n++)
 			amrex::ParallelFor (bx,[=] AMREX_GPU_DEVICE(int i, int j, int k) {
 				out(i,j,k,n) = 0.0;
-				for (int m = 0; m < getNComp(); m++)
+				for (int m = 0; m < N; m++)
 				{ 
-					out(i,j,k,n) += coeff[ncomp*n + m] *
+					out(i,j,k,n) += dcoeff[ncomp*n + m] *
 					( AMREX_D_TERM(- (in(i-1,j,k,m) - 2.0 * in(i,j,k,m) + in(i+1,j,k,m)) / DX[0] / DX[0],
 					  			   - (in(i,j-1,k,m) - 2.0 * in(i,j,k,m) + in(i,j+1,k,m)) / DX[1] / DX[1],
 					  			   - (in(i,j,k-1,m) - 2.0 * in(i,j,k,m) + in(i,j,k+1,m)) / DX[2] / DX[2])) ;
@@ -62,6 +66,10 @@ void MCNodalLinOp::Diag (int amrlev, int mglev, MultiFab& a_diag)
 	domain.grow(-1); // Shrink domain so we don't operate on any boundaries
 	const Real* DX = m_geom[amrlev][mglev].CellSize();
 
+      amrex::AsyncArray<Real> aa(coeff.data(), coeff.size());
+      amrex::Real const* dcoeff = aa.data();
+      const int N = getNComp();
+
 	for (MFIter mfi(a_diag, amrex::TilingIfNotGPU()); mfi.isValid(); ++mfi)
 	{
 		Box bx = mfi.tilebox();
@@ -72,7 +80,7 @@ void MCNodalLinOp::Diag (int amrlev, int mglev, MultiFab& a_diag)
 
 		for (int n = 0; n < getNComp(); n++)
 			amrex::ParallelFor (bx,[=] AMREX_GPU_DEVICE(int i, int j, int k) {
-				diag(i,j,k,n) = coeff[ncomp*n + n] *
+				diag(i,j,k,n) = dcoeff[N*n + n] *
 					( AMREX_D_TERM(+ 2.0 / DX[0] / DX[0],
 					  			   + 2.0 / DX[1] / DX[1],
 					  			   + 2.0 / DX[2] / DX[2]) );

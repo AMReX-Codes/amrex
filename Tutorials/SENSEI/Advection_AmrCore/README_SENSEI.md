@@ -22,7 +22,7 @@ module load sensei/2.1.0-libsim
 
 ## Compiling ##
 SENSEI features in AMReX are conditionally compiled when the Make file variable
-`USE_SENSEI_INSITU` is set. When this variable is set, the Make file will querry
+`USE_SENSEI_INSITU` is set. When this variable is set, the Make file will query
 environment variables to determine the list of include directories and link
 libraries needed to compile with SENSEI.
 

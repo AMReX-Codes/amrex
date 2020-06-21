@@ -22,13 +22,13 @@ namespace detail {
 
     template <typename R, typename I, typename F>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    R atomic_op (R* address, R val, F f) noexcept
+    R atomic_op (R* const address, R const val, F const f) noexcept
     {
 #if defined(__SYCL_DEVICE_ONLY__)
         constexpr auto mo = sycl::memory_order::relaxed;
         constexpr auto as = sycl::access::address_space::global_space;
         static_assert(sizeof(R) == sizeof(I), "sizeof R != sizeof I");
-        I* add_as_I = reinterpret_cast<I*>(address);
+        I* const add_as_I = reinterpret_cast<I*>(address);
         sycl::atomic<I,as> a{sycl::multi_ptr<I,as>(add_as_I)};
         I old_I = a.load(mo), new_I;
         do {
@@ -47,10 +47,10 @@ namespace detail {
 
     template <typename R, typename I, typename F>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    R atomic_op (R* address, R val, F f) noexcept
+    R atomic_op (R* const address, R const val, F const f) noexcept
     {
         static_assert(sizeof(R) == sizeof(I), "sizeof R != sizeof I");
-        I* add_as_I = reinterpret_cast<I*>(address);
+        I* const add_as_I = reinterpret_cast<I*>(address);
         I old_I = *add_as_I, assumed_I;
         do {
             assumed_I = old_I;
@@ -72,7 +72,7 @@ namespace detail {
 
     template<class T>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    T Add_device (T* sum, T value) noexcept
+    T Add_device (T* const sum, T const value) noexcept
     {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
         return atomicAdd(sum, value);
@@ -89,13 +89,13 @@ namespace detail {
 #ifdef AMREX_USE_DPCPP
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    float Add_device (float* sum, float value) noexcept
+    float Add_device (float* const sum, float const value) noexcept
     {
         return detail::atomic_op<float, int>(sum, value, amrex::Plus<float>());
     }
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    double Add_device (double* sum, double value) noexcept
+    double Add_device (double* const sum, double const value) noexcept
     {
         return detail::atomic_op<double, unsigned long long>(sum, value, amrex::Plus<double>());
     }
@@ -103,7 +103,7 @@ namespace detail {
 #elif defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    Long Add_device (Long* sum, Long value) noexcept
+    Long Add_device (Long* const sum, Long const value) noexcept
     {
         return detail::atomic_op<Long, unsigned long long>(sum, value, amrex::Plus<Long>());
     }
@@ -114,7 +114,7 @@ namespace detail {
 
     template<class T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    T Add (T* sum, T value) noexcept
+    T Add (T* const sum, T const value) noexcept
     {
 #if AMREX_DEVICE_COMPILE
         return Add_device(sum, value);
@@ -133,7 +133,7 @@ namespace detail {
 
     template<class T>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    T Min_device (T* m, T value) noexcept
+    T Min_device (T* const m, T const value) noexcept
     {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
         return atomicMin(m, value);
@@ -148,13 +148,13 @@ namespace detail {
     }
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    float Min_device (float* m, float value) noexcept
+    float Min_device (float* const m, float const value) noexcept
     {
         return detail::atomic_op<float,int>(m,value,amrex::Less<float>());
     }
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    double Min_device (double* m, double value) noexcept
+    double Min_device (double* const m, double const value) noexcept
     {
         return detail::atomic_op<double, unsigned long long int>(m,value,amrex::Less<double>());
     }
@@ -162,7 +162,7 @@ namespace detail {
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    Long Min_device (Long* m, Long value) noexcept
+    Long Min_device (Long* const m, Long const value) noexcept
     {
         return detail::atomic_op<Long, unsigned long long int>(m,value,amrex::Less<Long>());
     }
@@ -173,12 +173,12 @@ namespace detail {
 
     template<class T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    T Min (T* m, T value) noexcept
+    T Min (T* const m, T const value) noexcept
     {
 #if AMREX_DEVICE_COMPILE
         return Min_device(m, value);
 #else
-        auto old = *m;
+        auto const old = *m;
         *m = (*m) < value ? (*m) : value;
         return old;
 #endif
@@ -192,7 +192,7 @@ namespace detail {
 
     template<class T>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    T Max_device (T* m, T value) noexcept
+    T Max_device (T* const m, T const value) noexcept
     {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
         return atomicMax(m, value);
@@ -207,13 +207,13 @@ namespace detail {
     }
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    float Max_device (float* m, float value) noexcept
+    float Max_device (float* const m, float const value) noexcept
     {
         return detail::atomic_op<float,int>(m,value,amrex::Greater<float>());
     }
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    double Max_device (double* m, double value) noexcept
+    double Max_device (double* const m, double const value) noexcept
     {
         return detail::atomic_op<double, unsigned long long int>(m,value,amrex::Greater<double>());
     }
@@ -221,7 +221,7 @@ namespace detail {
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    Long Max_device (Long* m, Long value) noexcept
+    Long Max_device (Long* const m, Long const value) noexcept
     {
         return detail::atomic_op<Long, unsigned long long int>(m,value,amrex::Greater<Long>());
     }
@@ -232,12 +232,12 @@ namespace detail {
 
     template<class T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    T Max (T* m, T value) noexcept
+    T Max (T* const m, T const value) noexcept
     {
 #if AMREX_DEVICE_COMPILE
         return Max_device(m, value);
 #else
-        auto old = *m;
+        auto const old = *m;
         *m = (*m) > value ? (*m) : value;
         return old;
 #endif
@@ -248,7 +248,7 @@ namespace detail {
 ////////////////////////////////////////////////////////////////////////
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    int LogicalOr (int* m, int value) noexcept
+    int LogicalOr (int* const m, int const value) noexcept
     {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
         return atomicOr(m, value);
@@ -258,7 +258,7 @@ namespace detail {
         sycl::atomic<int,as> a{sycl::multi_ptr<int,as>(m)};
         return sycl::atomic_fetch_or(a, value, mo);
 #else
-        int old = *m;
+        int const old = *m;
         *m = (*m) || value;
         return old;
 #endif
@@ -269,7 +269,7 @@ namespace detail {
 ////////////////////////////////////////////////////////////////////////
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    int LogicalAnd (int* m, int value) noexcept
+    int LogicalAnd (int* const m, int const value) noexcept
     {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
         return atomicAnd(m, value ? ~0x0 : 0);
@@ -279,7 +279,7 @@ namespace detail {
         sycl::atomic<int,as> a{sycl::multi_ptr<int,as>(m)};
         return sycl::atomic_fetch_and(a, value ? ~0x0 : 0, mo);
 #else
-        int old = *m;
+        int const old = *m;
         *m = (*m) && value;
         return old;
 #endif
@@ -290,7 +290,7 @@ namespace detail {
 ////////////////////////////////////////////////////////////////////////
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    unsigned int Inc (unsigned int* m, unsigned int value) noexcept
+    unsigned int Inc (unsigned int* const m, unsigned int const value) noexcept
     {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
         return atomicInc(m, value);
@@ -304,7 +304,7 @@ namespace detail {
         } while (not a.compare_exchange_strong(oldi, newi, mo));
         return oldi;
 #else
-        auto old = *m;
+        auto const old = *m;
         *m = (old >= value) ? 0u : (old+1u);
         return old;
 #endif
@@ -315,7 +315,7 @@ namespace detail {
 ////////////////////////////////////////////////////////////////////////
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    unsigned int Dec (unsigned int* m, unsigned int value) noexcept
+    unsigned int Dec (unsigned int* const m, unsigned int const value) noexcept
     {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
         return atomicDec(m, value);
@@ -329,7 +329,7 @@ namespace detail {
         } while (not a.compare_exchange_strong(oldi, newi, mo));
         return oldi;
 #else
-        auto old = *m;
+        auto const old = *m;
         *m = ((old == 0u) || (old > value)) ? value : (old-1u);
         return old;
 #endif
@@ -341,7 +341,7 @@ namespace detail {
 
     template <typename T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    T Exch (T* address, T val) noexcept
+    T Exch (T* const address, T const val) noexcept
     {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
         return atomicExch(address, val);
@@ -351,7 +351,7 @@ namespace detail {
         sycl::atomic<T,as> a{sycl::multi_ptr<T,as>(address)};
         return sycl::atomic_exchange(a, val, mo);
 #else
-        auto old = *address;
+        auto const old = *address;
         *address = val;
         return old;
 #endif
@@ -363,8 +363,8 @@ namespace detail {
 
     template <typename T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    T CAS (T* address, T compare, T val) noexcept
-    {
+    T CAS (T* const address, T compare, T const val) noexcept
+    {           // cannot be T const compare because of compare_exchange_strong
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
         return atomicCAS(address, compare, val);
 #elif defined(__SYCL_DEVICE_ONLY__)
@@ -374,7 +374,7 @@ namespace detail {
         a.compare_exchange_strong(compare, val, mo);
         return compare;
 #else
-        auto old = *address;
+        auto const old = *address;
         *address = (old == compare ? val : old);
         return old;
 #endif
@@ -385,7 +385,7 @@ namespace HostDevice { namespace Atomic {
 
     template <class T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    void Add (T* sum, T value) noexcept
+    void Add (T* const sum, T const value) noexcept
     {
 #if AMREX_DEVICE_COMPILE
         Gpu::Atomic::Add(sum,value);

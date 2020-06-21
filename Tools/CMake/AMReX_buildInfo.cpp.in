@@ -2,7 +2,7 @@ namespace amrex {
 
 const char* buildInfoGetBuildDate() {
 
-  static const char BUILD_DATE[] = "@BUILD_DATE@";
+  static const char BUILD_DATE[] = @BUILD_DATE@;
   return BUILD_DATE;
 }
 

@@ -5057,7 +5057,7 @@
                                 <Field name="plotName" type="string">Plot0002</Field>
                                 <Field name="pluginID" type="string">Contour_1.0</Field>
                                 <Field name="sourceID" type="string">SOURCE00</Field>
-                                <Field name="variableName" type="string">phi</Field>
+                                <Field name="variableName" type="string">mesh/cell/phi</Field>
                                 <Field name="active" type="bool">false</Field>
                                 <Field name="hidden" type="bool">false</Field>
                                 <Field name="realized" type="bool">true</Field>

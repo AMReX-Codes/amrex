@@ -132,12 +132,12 @@ NodeBilinear::interp (const FArrayBox&  crse,
 
     AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG (runon, cslope_bx, tbx,
     {
-        amrex::nodebilin_slopes(tbx, slopearr, crsearr, crse_comp, ncomp, ratio);
+        amrex::nodebilin_slopes<Real>(tbx, slopearr, crsearr, crse_comp, ncomp, ratio);
     });
 
     AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG (runon, fine_region, tbx,
     {
-        amrex::nodebilin_interp(tbx, finearr, fine_comp, ncomp, slopearr, crsearr, crse_comp, ratio);
+        amrex::nodebilin_interp<Real>(tbx, finearr, fine_comp, ncomp, slopearr, crsearr, crse_comp, ratio);
     });
 }
 

@@ -13,12 +13,14 @@ void
 cns_initdata (int i, int j, int k, amrex::Array4<amrex::Real> const& state,
               amrex::GeometryData const& geomdata, Parm const& parm, ProbParm const& prob_parm)
 {
+    using namespace amrex::literals;
+
     const amrex::Real* prob_lo = geomdata.ProbLo();
     const amrex::Real* dx      = geomdata.CellSize();
 
-    amrex::Real x = prob_lo[0] + (i+0.5)*dx[0];
+    amrex::Real x = prob_lo[0] + (i+0.5_rt)*dx[0];
     amrex::Real Pt, rhot, uxt;
-    if (x < 0.5) {
+    if (x < 0.5_rt) {
         Pt = prob_parm.p_l;
         rhot = prob_parm.rho_l;
         uxt = prob_parm.u_l;
@@ -29,12 +31,12 @@ cns_initdata (int i, int j, int k, amrex::Array4<amrex::Real> const& state,
     }
     state(i,j,k,URHO ) = rhot;
     state(i,j,k,UMX  ) = rhot*uxt;
-    state(i,j,k,UMY  ) = 0.0;
-    state(i,j,k,UMZ  ) = 0.0;
-    amrex::Real et = Pt/(parm.eos_gamma-1.0);
+    state(i,j,k,UMY  ) = 0.0_rt;
+    state(i,j,k,UMZ  ) = 0.0_rt;
+    amrex::Real et = Pt/(parm.eos_gamma-1.0_rt);
     state(i,j,k,UEINT) = et;
-    state(i,j,k,UEDEN) = et + 0.5*rhot*uxt*uxt;
-    state(i,j,k,UTEMP) = 0.0;
+    state(i,j,k,UEDEN) = et + 0.5_rt*rhot*uxt*uxt;
+    state(i,j,k,UTEMP) = 0.0_rt;
 }
 
 #endif

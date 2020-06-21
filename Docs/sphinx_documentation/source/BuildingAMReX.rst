@@ -96,7 +96,7 @@ precision by setting ``PRECISION=FLOAT``.
 Variables ``DEBUG``, ``USE_MPI`` and ``USE_OMP`` are optional with default set
 to FALSE.  The meaning of these variables should
 be obvious.  When ``DEBUG=TRUE``, aggressive compiler optimization flags are
-turned off and assertions in  source code are turned on. For production runs,
+turned off and assertions in source code are turned on. For production runs,
 ``DEBUG`` should be set to FALSE.
 
 Variables ``USE_CUDA``, ``USE_HIP`` and ``USE_DPCPP`` are used for
@@ -296,7 +296,7 @@ the configure script. In particular, one can specify the installation path for t
   ./configure --prefix=[AMReX library path]
 
 This approach is built on the AMReX GNU Make system. Thus
-the section on :ref:`sec:build:make` is recommended if any fine tuning is
+the section on :ref:`sec:build:make` is recommended if any fine tuning is
 needed.  The result of ``./configure`` is ``GNUmakefile`` in the AMReX
 top directory.  One can modify the make file for fine tuning.
 
@@ -331,8 +331,8 @@ library paths used to build AMReX::
 Building with CMake
 ===================
 
-An alternative to the approach described in the section on :ref:`sec:build:lib`
-is to install AMReX as an external library by using the CMake build system.  A
+An alternative to the approach described in the section on :ref:`sec:build:lib`
+is to install AMReX as an external library by using the CMake build system.  A
 CMake build is a two-step process. First ``cmake`` is invoked to create
 configuration files and makefiles in a chosen directory (``builddir``).  This
 is roughly equivalent to running ``./configure`` (see the section on
@@ -352,9 +352,9 @@ The CMake build process is summarized as follows:
     make  install
 
 In the above snippet, ``[options]`` indicates one or more options for the
-customization of the build, as described in the subsection on
+customization of the build, as described in the subsection on
 :ref:`sec:build:cmake:options`. If the option ``CMAKE_BUILD_TYPE`` is omitted,
-``CMAKE_BUILD_TYPE=Release`` is assumed. Although the AMReX source could be used as
+``CMAKE_BUILD_TYPE=Release`` is assumed. Although the AMReX source could be used as
 build directory, we advise against doing so.  After the installation is
 complete, ``builddir`` can be removed.
 
@@ -380,7 +380,7 @@ Configuration variables requiring a boolen value are evaluated to true if they
 are assigned a value of ``1``, ``ON``, ``YES``, ``TRUE``, ``Y``. Conversely they are evaluated to false
 if they are assigned a value of ``0``, ``OFF``, ``NO``, ``FALSE``, ``N``.
 Boolean configuration variables are case-insensitive.
-The list of available options is reported in the table on :ref:`tab:cmakevar`
+The list of available options is reported in the table on :ref:`tab:cmakevar`
 below.
 
 
@@ -681,17 +681,17 @@ More details on ``find_package`` can be found
 AMReX on Windows
 ================
 
-The AMReX team does development on Linux machines, from desktop workstations to supercomputers. Many people also use AMReX on Macs without issues.
+The AMReX team does development on Linux machines, from laptops to supercomputers. Many people also use AMReX on Macs without issues.
 
-We do not officially support AMReX on Windows.  However, we believe there are no fundamental issues for making it work on Windows.
-AMReX mostly uses standard C++11,  and there are only a few places that are UNIX/Linux specific. These are:
+We do not officially support AMReX on Windows, and many of us do not have access to any Windows
+machines.  However, we believe there are no fundamental issues for it to work on Windows.
 
-(1) File system:  We use some of the POSIX standard functions for operations like making a new directory, detecting if a file exists, etc.
-C++17 now has a filesystem library that should work on any platform.  AMReX does not require C++17, but we are happy to provide a C++17 support for the file system part.
+(1) AMReX mostly uses standard C++11, but for Windows C++17 is required.  This is because we use
+    C++17 to support file system operations when POSIX I/O is not available.
 
-(2) Signal handling:  We use POSIX handling when floating point exceptions, segmentation faults, etc. happen.
-This capability allows us to print a backtrace of what leads to the error and is very useful for debugging but not required for using AMReX.
-Some of the POSIX handling is platform-dependent, and Windows does seem to have this capability.  If you need it, it should not be hard for you to make it work on Windows.
+(2) We use POSIX signal handling when floating point exceptions, segmentation faults, etc. happen.
+This capability is not supported on Windows.
 
-(3) Memory profiling:  This is an optional feature in AMReX that is not enabled by default.
-It reads memory system information from the OS to give us a summary of our memory usage.
+(3) Memory profiling is an optional feature in AMReX that is not enabled by default.  It reads
+memory system information from the OS to give us a summary of our memory usage.  This is not
+supported on Windows.

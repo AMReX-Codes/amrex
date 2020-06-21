@@ -9,10 +9,10 @@
 Plotfile
 ========
 
-AMReX has its own native plotfile format. Many visualization tools are
-available for AMReX plotfiles (see the chapter on :ref:`Chap:Visualization`). 
-AMReX provides the following two functions for writing a generic AMReX plotfile.
-Many AMReX application codes may have their own plotfile routines that store
+AMReX has its own native plotfile format. Many visualization tools are
+available for AMReX plotfiles (see the chapter on :ref:`Chap:Visualization`). 
+AMReX provides the following two functions for writing a generic AMReX plotfile.
+Many AMReX application codes may have their own plotfile routines that store
 additional information such as compiler options, git hashes of the
 source codes and :cpp:`ParmParse` runtime parameters.
 
@@ -39,7 +39,7 @@ source codes and :cpp:`ParmParse` runtime parameters.
 :cpp:`WriteSingleLevelPlotfile` is for single level runs and
 :cpp:`WriteMultiLevelPlotfile` is for multiple levels. The name of the
 plotfile is specified by the plotfilename argument. This is the
-top level directory name for the plotfile. In AMReX convention, the
+top level directory name for the plotfile. In AMReX convention, the
 plotfile name consist of letters followed by numbers (e.g.,
 plt00258). :cpp:`amrex::Concatenate` is a useful helper function for
 making such strings.
@@ -68,7 +68,7 @@ that level. This involves local data copy in memory and is not
 expected to significantly increase the total wall time for writing
 plotfiles. For the multi-level version, the function expects
 :cpp:`Vector<const MultiFab*>`, whereas the multi-level data are often
-stored as :cpp:`Vector<std::unique_ptr<MultiFab>>`. AMReX has a
+stored as :cpp:`Vector<std::unique_ptr<MultiFab>>`. AMReX has a
 helper function for this and one can use it as follows,
 
 .. highlight:: c++
@@ -87,7 +87,7 @@ associated with the data. For multi-level plotfiles, the argument
 :cpp:`nlevels` is the total number of levels, and we also need to provide
 the refinement ratio via an :cpp:`Vector` of size nlevels-1.
 
-We note that AMReX does not overwrite old plotfiles if the new
+We note that AMReX does not overwrite old plotfiles if the new
 plotfile has the same name. The old plotfiles will be renamed to
 new directories named like plt00350.old.46576787980.
 
@@ -168,7 +168,7 @@ information such as
 the time, the physical domain size, grids, etc. that are necessary for
 restarting the simulation. To guarantee that precision is not lost
 for storing floating point number like time in clear text file, the
-file stream’s precision needs to be set properly. And a stream buffer
+file stream's precision needs to be set properly. And a stream buffer
 can also be used. For example,
 
 .. highlight:: c++

@@ -24,6 +24,9 @@ C$(AMREX_BASE)_sources += AMReX_ParmParse.cpp AMReX_parmparse_fi.cpp AMReX_Utili
 C$(AMREX_BASE)_headers += AMReX_ParmParse.H AMReX_Utility.H AMReX_BLassert.H AMReX_ArrayLim.H
 C$(AMREX_BASE)_headers += AMReX_Functional.H AMReX_Reduce.H AMReX_Scan.H AMReX_Partition.H
 
+C$(AMREX_BASE)_headers += AMReX_FileSystem.H
+C$(AMREX_BASE)_sources += AMReX_FileSystem.cpp
+
 C$(AMREX_BASE)_headers += AMReX_Random.H
 C$(AMREX_BASE)_sources += AMReX_Random.cpp
 
@@ -39,6 +42,9 @@ C$(AMREX_BASE)_sources += AMReX_ForkJoin.cpp AMReX_ParallelContext.cpp
 
 C$(AMREX_BASE)_sources += AMReX_VisMF.cpp AMReX_Arena.cpp AMReX_BArena.cpp AMReX_CArena.cpp AMReX_DArena.cpp AMReX_EArena.cpp
 C$(AMREX_BASE)_headers += AMReX_VisMF.H AMReX_Arena.H AMReX_BArena.H AMReX_CArena.H AMReX_DArena.H AMReX_EArena.H
+
+C$(AMREX_BASE)_sources += AMReX_AsyncOut.cpp
+C$(AMREX_BASE)_headers += AMReX_AsyncOut.H
 
 C$(AMREX_BASE)_headers += AMReX_BLProfiler.H
 

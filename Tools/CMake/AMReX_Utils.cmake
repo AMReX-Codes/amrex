@@ -367,3 +367,26 @@ function ( add_amrex_define new_define )
    
 endfunction ()
 
+
+#
+#
+# FUNCTION: set_mininum_cxx_compiler_version
+#
+# Check whether the C++ compiler version is >= a required minimum.
+# If not, stop with a fatal error
+#
+# Arguments:
+#
+#    _comp_id         = the compiler ID
+#    _minimum_version = the minimum version required for _comp_id
+#
+# Author: Michele Rosso
+# Date  : June 8, 2020
+#
+function (set_mininum_cxx_compiler_version _comp_id  _minimum_version)
+   if (  (CMAKE_CXX_COMPILER_ID STREQUAL _comp_id ) AND
+         (CMAKE_CXX_COMPILER_VERSION VERSION_LESS _minimum_version ) )
+      message( FATAL_ERROR
+         "\n${_comp_id} compiler version is ${CMAKE_CXX_COMPILER_VERSION}. Minimum required is ${_minimum_version}.\n")
+   endif ()
+endfunction ()

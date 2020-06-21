@@ -429,7 +429,8 @@ public:
 
     void RedefineDummyMF (int lev);
 
-    void InitFromAsciiFile (const std::string& file, int extradata, const IntVect* Nrep = 0);
+    void InitFromAsciiFile (const std::string& file, int extradata,
+                            const IntVect* Nrep = nullptr);
 
     void InitFromBinaryFile (const std::string& file, int extradata);
 
@@ -655,7 +656,7 @@ public:
     void copyParticles (const ParticleContainerType& other, bool local=false);
 
     /**
-    * \brief Add particles from other to this ParticleContainer. local controls 
+    * \brief Add particles from other to this ParticleContainer. local controls
     * whether or not to call Redistribute after adding the particles.
     *
     * \param other
@@ -664,25 +665,22 @@ public:
 
     /**
     * \brief Write a contiguous chunk of real particle data to an ostream.
-    * 
+    *
     * \param data A pointer to the start of the buffer to write
     * \param size The number of elements to write
     * \param os The ostream into which to write the data
-    * \param rd A RealDescriptor describing the type of the floating point data
-    */    
-    void WriteParticleRealData (void* data, size_t size,
-                                std::ostream& os, const RealDescriptor& rd) const;
-    
+    */
+    void WriteParticleRealData (void* data, size_t size, std::ostream& os) const;
+
     /**
     * \brief Read a contiguous chunk of real particle data from an istream.
-    * 
+    *
     * \param data A pointer to the start of the buffer into which to read
     * \param size The number of elements to read
     * \param os The istream from which to read the data
     * \param rd A RealDescriptor describing the type of the floating point data
-    */    
-    void ReadParticleRealData (void* data, size_t size,
-                               std::istream& is, const RealDescriptor& rd);
+    */
+    void ReadParticleRealData (void* data, size_t size, std::istream& is);
 
     /**
      * \brief Writes a particle checkpoint to file, suitable for restarting.
@@ -949,18 +947,16 @@ public:
     void WritePlotFile (const std::string& dir,
                         const std::string& name,
                         const Vector<int>& write_real_comp,
-                        const Vector<int>& write_int_comp,    
+                        const Vector<int>& write_int_comp,
                         const Vector<std::string>& real_comp_names,
                         const Vector<std::string>&  int_comp_names,
                         F&& f) const;
-	
+
     void WritePlotFilePre ();
 
     void WritePlotFilePost ();
 
     void WriteAsciiFile (const std::string& file);
-
-    void WriteCoarsenedAsciiFile (const std::string& filename);
 
     int Verbose () { return m_verbose; }
 
@@ -1022,10 +1018,6 @@ public:
 
     void AssignCellDensitySingleLevel (int rho_index, MultiFab& mf, int level,
                                        int ncomp=1, int particle_lvl_offset = 0) const;
-
-    void moveKick (MultiFab& acceleration, int level, Real timestep,
-		   Real a_new = 1.0, Real a_half = 1.0,
-		   int start_comp_for_accel = -1);
 
     IntVect Index (const Particle<NStructReal, NStructInt>& p, int lev) const;
 
@@ -1224,11 +1216,11 @@ void ReadParticlesHDF5 (hsize_t offset, hsize_t cnt, int grd, int lev, hid_t int
     
 private:
 
-    virtual void particlePostLocate(ParticleType& p, const ParticleLocData& pld,
-                                    const int lev) {};
+    virtual void particlePostLocate(ParticleType& /*p*/, const ParticleLocData& /*pld*/,
+                                    const int /*lev*/) {};
 
-    virtual void correctCellVectors(int old_index, int new_index,
-				    int grid, const ParticleType& p) {};
+    virtual void correctCellVectors(int /*old_index*/, int /*new_index*/,
+				    int /*grid*/, const ParticleType& /*p*/) {};
 
     void RedistributeMPI (std::map<int, Vector<char> >& not_ours,
 			  int lev_min = 0, int lev_max = 0, int nGrow = 0, int local=0);
@@ -1251,6 +1243,7 @@ private:
 #include "AMReX_ParticleInit.H"
 #include "AMReX_ParticleContainerI.H"
 #include "AMReX_ParticleIO.H"
+#include "AMReX_ParticleHDF5.H"
 
 }
 

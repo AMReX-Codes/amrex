@@ -1,15 +1,4 @@
-#include <unistd.h>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-#include <iostream>
-#include <iomanip>
-#include <new>
-#include <stack>
-#include <limits>
-#include <vector>
-#include <algorithm>
-
+#include <AMReX_FileSystem.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX.H>
 #include <AMReX_BaseFab.H>
@@ -20,7 +9,9 @@
 #include <AMReX_Random.H>
 #include <AMReX_Print.H>
 #include <AMReX_Arena.H>
-
+#include <AMReX_BLBackTrace.H>
+#include <AMReX_MemPool.H>
+#include <AMReX_Geometry.H>
 #include <AMReX_Gpu.H>
 
 #ifdef AMREX_USE_CUPTI
@@ -38,6 +29,7 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_iMultiFab.H>
 #include <AMReX_VisMF.H>
+#include <AMReX_AsyncOut.H>
 #endif
 
 #ifdef BL_LAZY
@@ -52,10 +44,22 @@
 #include <omp.h>
 #endif
 
-#include <AMReX_BLBackTrace.H>
-#include <AMReX_MemPool.H>
+#if defined(__APPLE__)
+#include <xmmintrin.h>
+#endif
 
-#include <AMReX_Geometry.H>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <csignal>
+#include <cfenv>
+#include <iostream>
+#include <iomanip>
+#include <new>
+#include <stack>
+#include <limits>
+#include <vector>
+#include <algorithm>
 
 namespace amrex {
 
@@ -314,13 +318,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     if (argc > 0)
     {
         if (argv[0][0] != '/') {
-            constexpr int bufSize = 1024;
-            char temp[bufSize];
-            char *rCheck = getcwd(temp, bufSize);
-            if(rCheck == 0) {
-                amrex::Abort("**** Error:  getcwd buffer too small.");
-            }
-            system::exename = temp;
+            system::exename = FileSystem::CurrentPath();
             system::exename += "/";
         }
         system::exename += argv[0];
@@ -474,6 +472,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     MultiFab::Initialize();
     iMultiFab::Initialize();
     VisMF::Initialize();
+    AsyncOut::Initialize();
 #ifdef AMREX_USE_EB
     EB2::Initialize();
 #endif
@@ -484,9 +483,14 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     if (system::verbose > 0)
     {
 #ifdef BL_USE_MPI
+
         amrex::Print() << "MPI initialized with "
                        << ParallelDescriptor::NProcs()
                        << " MPI processes\n";
+
+        int provided = -1;
+        MPI_Query_thread(&provided);
+        amrex::Print() << "MPI initialized with thread support level " << provided << std::endl;
 #endif
         
 #ifdef _OPENMP

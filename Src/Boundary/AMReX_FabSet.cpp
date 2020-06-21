@@ -212,7 +212,11 @@ FabSet::linComb (Real a, const MultiFab& mfa, int a_comp,
 void
 FabSet::write(const std::string& name) const
 {
-    VisMF::Write(m_mf,name);
+    if (AsyncOut::UseAsyncOut()) {
+        VisMF::AsyncWrite(m_mf,name);
+    } else {
+        VisMF::Write(m_mf,name);
+    }
 }
 
 void

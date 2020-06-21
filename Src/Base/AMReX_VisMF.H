@@ -6,28 +6,20 @@
 #include <string>
 #include <fstream>
 #include <thread>
-#include <future>
 #include <utility>
 #include <cstdint>
+#include <queue>
 
 #include <AMReX_REAL.H>
 #include <AMReX_FabArray.H>
 #include <AMReX_FArrayBox.H>
 #include <AMReX_FabConv.H>
+#include <AMReX_AsyncOut.H>
 
 namespace amrex {
 
-struct WriteAsyncStatus {
-    int64_t nbytes;
-    Long nspins;
-    Real t_total;
-    Real t_header;
-    Real t_spin;
-    Real t_write;
-    Real t_send;
-};
-
 class NFilesIter;
+class MultiFab;
 
 /**
 * \brief File I/O for FabArray<FArrayBox>.
@@ -197,8 +189,10 @@ public:
                        VisMF::How         how = NFiles,
                        bool               set_ghost = false);
 
-    static std::future<WriteAsyncStatus>
-    WriteAsync (const FabArray<FArrayBox>& fafab, const std::string& name);
+    static void AsyncWrite (const FabArray<FArrayBox>& mf, const std::string& mf_name,
+                            bool valid_cells_only = false);
+    static void AsyncWrite (FabArray<FArrayBox>&& mf, const std::string& mf_name,
+                            bool valid_cells_only = false);
 
     /**
     * \brief Write only the header-file corresponding to FabArray<FArrayBox> to
@@ -245,7 +239,7 @@ public:
     FArrayBox* readFAB (int fabIndex, int icomp);
 
     static int  GetNOutFiles ();
-    static void SetNOutFiles (int noutfiles, MPI_Comm comm = ParallelDescriptor::Communicator());
+    static void SetNOutFiles (int newoutfiles, MPI_Comm comm = ParallelDescriptor::Communicator());
 
     static int  GetMFFileInStreams ()  { return nMFFileInStreams; }
     static void SetMFFileInStreams (int nstreams, MPI_Comm comm = ParallelDescriptor::Communicator());
@@ -337,6 +331,10 @@ private:
     static std::string DirName (const std::string& filename);
 
     static std::string BaseName (const std::string& filename);
+
+    static void AsyncWriteDoit (const FabArray<FArrayBox>& mf, const std::string& mf_name,
+                                bool is_rvalue, bool valid_cells_only);
+
     //! Name of the FabArray<FArrayBox>.
     std::string m_fafabname;
     //! The VisMF header as read from disk.
@@ -380,7 +378,6 @@ std::istream& operator>> (std::istream& is, Vector<VisMF::FabOnDisk>& fa);
 std::ostream& operator<< (std::ostream& os, const VisMF::Header& hd);
 //! Read a VisMF::Header from an istream.
 std::istream& operator>> (std::istream& is, VisMF::Header& hd);
-std::ostream& operator<< (std::ostream& os, const WriteAsyncStatus& status);
 
 }
 

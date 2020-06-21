@@ -98,19 +98,19 @@ public:
     * \param fine_geom
     * \param bcr
     */
-    virtual void protect (const FArrayBox& crse,
-                          int              crse_comp,
-                          FArrayBox&       fine,
-                          int              fine_comp,
-                          FArrayBox&       fine_state,
-                          int              state_comp,
-                          int              ncomp,
-                          const Box&       fine_region,
-                          const IntVect&   ratio,
-                          const Geometry&  crse_geom,
-                          const Geometry&  fine_geom,
-                          Vector<BCRec>&   bcr,
-                          RunOn            gpu_or_cpu) {};
+    virtual void protect (const FArrayBox& /*crse*/,
+                          int              /*crse_comp*/,
+                          FArrayBox&       /*fine*/,
+                          int              /*fine_comp*/,
+                          FArrayBox&       /*fine_state*/,
+                          int              /*state_comp*/,
+                          int              /*ncomp*/,
+                          const Box&       /*fine_region*/,
+                          const IntVect&   /*ratio*/,
+                          const Geometry&  /*crse_geom*/,
+                          const Geometry&  /*fine_geom*/,
+                          Vector<BCRec>&   /*bcr*/,
+                          RunOn            /*gpu_or_cpu*/) {};
 
     virtual InterpolaterBoxCoarsener BoxCoarsener (const IntVect& ratio);
 

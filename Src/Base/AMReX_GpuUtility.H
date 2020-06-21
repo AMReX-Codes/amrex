@@ -7,6 +7,7 @@
 #include <AMReX_GpuDevice.H>
 #include <AMReX_Extension.H>
 #include <AMReX_REAL.H>
+#include <AMReX_INT.H>
 #include <AMReX_Array.H>
 #include <AMReX_Array4.H>
 #include <iostream>
@@ -15,17 +16,6 @@
 #ifdef AMREX_USE_CUDA
 #include <cuda.h>
 #include <curand_kernel.h>   // Is this needed here?
-#endif
-
-
-#ifdef AMREX_USE_HIP
-// HIP FIX HERE - hand made long __shfl_down through double casting.
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-Long __shfl_down(Long var, unsigned int offset, int warpSize = amrex::Gpu::Device::warp_size)
-{
-    double d = __shfl_down(*((double*)(&var)), offset, warpSize);
-    return *((Long*)(&d));
-}
 #endif
 
 namespace amrex {
@@ -64,6 +54,7 @@ namespace Gpu {
 //        auto type = sycl::get_pointer_type(p,Device::syclContext());
         return false;
 #else
+        amrex::ignore_unused(p);
         return false;
 #endif
     }
@@ -84,6 +75,7 @@ namespace Gpu {
         // xxxxx DPCPP todo: get_pointer_type
         return false;
 #else
+        amrex::ignore_unused(p);
         return false;
 #endif
     }
@@ -104,6 +96,7 @@ namespace Gpu {
         // xxxxx DPCPP todo: get_pointer_type
         return false;
 #else
+        amrex::ignore_unused(p);
         return false;
 #endif
     }
@@ -134,6 +127,7 @@ namespace Gpu {
         // xxxxx DPCPP todo: get_pointer_type
         return false;
 #else
+        amrex::ignore_unused(p);
         return false;
 #endif
     }

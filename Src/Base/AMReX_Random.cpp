@@ -127,13 +127,20 @@ amrex::RandomNormal (amrex::Real mean, amrex::Real stddev)
     int i = get_state(tid);
 #ifdef BL_USE_FLOAT
     AMREX_HIP_OR_CUDA( rand = stddev * hiprand_normal(&d_states_d_ptr[i]) + mean;,
-                       rand = stddev *  curand_normal(&d_states_d_ptr[i]) + mean; );
+                       rand = stddev *  curand_normal(&d_states_d_ptr[i]) + mean; )
 #else
     AMREX_HIP_OR_CUDA( rand = stddev * hiprand_normal_double(&d_states_d_ptr[i]) + mean;,
-                       rand = stddev *  curand_normal_double(&d_states_d_ptr[i]) + mean; );
+                       rand = stddev *  curand_normal_double(&d_states_d_ptr[i]) + mean; )
 #endif
     __threadfence();
     free_state(tid);
+
+#elif defined(__SYCL_DEVICE_ONLY__)
+
+    assert(0);
+    rand = 0.0_rt;
+    return rand;
+
 #else
 
 #ifdef _OPENMP
@@ -165,14 +172,20 @@ amrex::Random ()
     // std::uniform_real_distribution in [0.0, 1.0)
 #ifdef BL_USE_FLOAT
     AMREX_HIP_OR_CUDA( rand = 1.0f - hiprand_uniform(&d_states_d_ptr[i]);,
-                       rand = 1.0f - curand_uniform(&d_states_d_ptr[i]); );
+                       rand = 1.0f - curand_uniform(&d_states_d_ptr[i]); )
 #else
     AMREX_HIP_OR_CUDA( rand = 1.0 - hiprand_uniform_double(&d_states_d_ptr[i]);,
-                       rand = 1.0 - curand_uniform_double(&d_states_d_ptr[i]); );
+                       rand = 1.0 - curand_uniform_double(&d_states_d_ptr[i]); )
 #endif
 
     __threadfence();
     free_state(tid);
+
+#elif defined(__SYCL_DEVICE_ONLY__)
+
+    assert(0);
+    rand = 0.0_rt;
+    return rand;
 
 #else     // on the host
 
@@ -204,10 +217,17 @@ amrex::RandomPoisson (amrex::Real lambda)
     const auto i = get_state(tid);
 
     AMREX_HIP_OR_CUDA( rand = hiprand_poisson(&d_states_d_ptr[i], lambda);,
-                       rand = curand_poisson(&d_states_d_ptr[i], lambda););
+                       rand = curand_poisson(&d_states_d_ptr[i], lambda);)
 
     __threadfence();
     free_state(tid);
+
+#elif defined(__SYCL_DEVICE_ONLY__)
+
+    assert(0);
+    rand = 0.0_rt;
+    return rand;
+
 #else
 
 #ifdef _OPENMP
@@ -239,12 +259,17 @@ amrex::Random_int (unsigned int n)
     int i = get_state(tid);
     do {
         AMREX_HIP_OR_CUDA( rand = hiprand(&d_states_d_ptr[i]);,
-                           rand =  curand(&d_states_d_ptr[i]); );
+                           rand =  curand(&d_states_d_ptr[i]); )
     } while (rand > (RAND_M - RAND_M % n));
     __threadfence();
     free_state(tid);
 
     return rand % n;
+
+#elif defined(__SYCL_DEVICE_ONLY__)
+
+    assert(0);
+    return 0;
 
 #else // on the host
 
@@ -390,7 +415,7 @@ amrex::ResizeRandomSeed (int N)
         int loc = idx + PrevSize;
 
         AMREX_HIP_OR_CUDA( hiprand_init(seed, seqstart, 0, &d_states_d_ptr[loc]);,
-                            curand_init(seed, seqstart, 0, &d_states_d_ptr[loc]); );
+                            curand_init(seed, seqstart, 0, &d_states_d_ptr[loc]); )
     });
 
 #endif

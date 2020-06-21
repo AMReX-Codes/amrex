@@ -22,7 +22,7 @@ IntVect computeRefFac (const ParGDBBase* a_gdb, int src_lev, int lev)
 Vector<int> computeNeighborProcs (const ParGDBBase* a_gdb, int ngrow)
 {
     BL_PROFILE("amrex::computeNeighborProcs");
-    
+
     Vector<int> neighbor_procs;
     for (int src_lev = 0; src_lev < a_gdb->finestLevel()+1; ++src_lev)
     {
@@ -39,11 +39,11 @@ Vector<int> computeNeighborProcs (const ParGDBBase* a_gdb, int ngrow)
                 if (ref_fac < IntVect::TheZeroVector()) box.coarsen(-1*ref_fac);
                 else if (ref_fac > IntVect::TheZeroVector()) box.refine(ref_fac);
                 box.grow(computeRefFac(a_gdb, 0, src_lev)*ngrow);
-                
+
                 const Periodicity& periodicity = a_gdb->Geom(lev).periodicity();
                 const std::vector<IntVect>& pshifts = periodicity.shiftIntVect();
                 const BoxArray& ba = a_gdb->ParticleBoxArray(lev);
-                
+
                 for (auto pit=pshifts.cbegin(); pit!=pshifts.cend(); ++pit)
                 {
                     const Box& pbox = box + (*pit);
@@ -52,7 +52,8 @@ Vector<int> computeNeighborProcs (const ParGDBBase* a_gdb, int ngrow)
                     for (const auto& isec : isects)
                     {
                         const int grid = isec.first;
-                        const int proc = a_gdb->ParticleDistributionMap(lev)[grid];
+                        const int global_proc = a_gdb->ParticleDistributionMap(lev)[grid];
+                        const int proc = ParallelContext::global_to_local_rank(global_proc);
                         neighbor_procs.push_back(proc);
                     }
                 }

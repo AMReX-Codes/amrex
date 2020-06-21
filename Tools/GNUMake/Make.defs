@@ -28,13 +28,12 @@ ifeq ($(USE_DPCPP),TRUE)
   else
     DPCPP_DIR ?= /opt/intel/inteloneapi/compiler/latest/linux
   endif
-  COMP := dpcpp
+  override COMP = dpcpp
   DEFINES += -DAMREX_USE_DPCPP -DAMREX_USE_GPU
   USE_CUDA := FALSE
   USE_HIP := FALSE
   # disable mpi, fortran and ccache for now
   USE_MPI := FALSE
-  BL_NO_FORT := TRUE
   USE_CCACHE := FALSE
 endif
 
@@ -196,6 +195,15 @@ else
   USE_MPI := FALSE
 endif
 
+ifdef MPI_THREAD_MULTIPLE
+  MPI_THREAD_MULTIPLE := $(strip $(MPI_THREAD_MULTIPLE))
+  ifeq ($(MPI_THREAD_MULTIPLE),TRUE)
+    USE_MPI := TRUE
+  endif
+else
+  MPI_THREAD_MULTIPLE := FALSE
+endif
+
 ifdef USE_CONDUIT
   USE_CONDUIT := $(strip $(USE_CONDUIT))
 else
@@ -330,6 +338,8 @@ CHECKFORT       = $(AMREX_HOME)/Tools/typechecker/typechecker.py
 MKCONFIG        = $(AMREX_HOME)/Tools/libamrex/mkconfig.py
 MKPKGCONFIG     = $(AMREX_HOME)/Tools/libamrex/mkpkgconfig.py
 
+DEPFLAGS        = -M
+
 RANLIB          = ranlib
 
 EXE_OUTPUT_OPTION      = -o $(objEXETempDir)/$*.o
@@ -444,6 +454,7 @@ CXXFLAGS += $(XTRA_CXXFLAGS)
 CFLAGS   += $(XTRA_CFLAGS)
 FFLAGS   += $(XTRA_FFLAGS)
 F90FLAGS += $(XTRA_F90FLAGS)
+CPPFLAGS += $(XTRA_CPPFLAGS)
 
 ifeq ($(MAKECMDGOALS),check_fortran)
   ifneq ($(lowercase_comp),gnu)
@@ -538,10 +549,16 @@ ifeq ($(USE_ARRAYVIEW), TRUE)
 endif
 
 ifeq ($(USE_MPI),TRUE)
-    MPISuffix	:= .MPI
-    CPPFLAGS	+= -DBL_USE_MPI -DAMREX_USE_MPI
+    CPPFLAGS += -DBL_USE_MPI -DAMREX_USE_MPI
+
+    ifeq ($(MPI_THREAD_MULTIPLE),TRUE)
+        MPISuffix := .MTMPI
+        CPPFLAGS += -DAMREX_MPI_THREAD_MULTIPLE
+    else
+        MPISuffix := .MPI
+    endif
 else
-    MPISuffix	:=
+    MPISuffix :=
 endif
 
 ifeq ($(USE_MPI3),TRUE)
@@ -806,6 +823,12 @@ endif
 
 ifeq ($(AMREX_XSDK),TRUE)
    DEFINES += -DAMREX_XSDK
+endif
+
+ifneq ($(DEBUG),TRUE)
+ifneq ($(USE_ASSERTION),TRUE)
+  DEFINES += -DNDEBUG
+endif
 endif
 
 CPPFLAGS	+= $(DEFINES)

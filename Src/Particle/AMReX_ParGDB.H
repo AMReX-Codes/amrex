@@ -219,7 +219,7 @@ ParGDB::refRatio (int level) const
 
 inline
 int
-ParGDB::MaxRefRatio (int level) const
+ParGDB::MaxRefRatio (int /*level*/) const
 {
     int max_ref_ratio = 0;
     for (int lev = 0; lev < m_nlevels-1; lev++)

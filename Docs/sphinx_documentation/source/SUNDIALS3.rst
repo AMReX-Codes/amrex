@@ -5,22 +5,22 @@
    :language: fortran
 
 
-Compiling AMReX with Sundials version 3.X or later
+Compiling AMReX with Sundials version 3.X or later
 ---------------------------------------------------
 
-The following steps describe how to compile an AMReX application with
+The following steps describe how to compile an AMReX application with
 SUNDIALS_3.X support.  On Cray systems (e.g., Cori or Edison at NERSC), Cray provides
-a system module called ``cray-tpsl`` (“Cray Third-Party Scientific Libraries”)
-which as of this writing contains the 2.7 version of the SUNDIALS solver suite (including
+a system module called ``cray-tpsl`` ("Cray Third-Party Scientific Libraries")
+which as of this writing contains the 2.7 version of the SUNDIALS solver suite (including
 CVODE).  
 
 In order to use the Sundials 3.X version:
 
-#. Obtain the CVODE source code, which is hosted here:
+#. Obtain the CVODE source code, which is hosted here:
    https://computation.llnl.gov/projects/sundials/sundials-software.
-   One can download either the complete SUNDIALS package, or just the CVODE components.
+   One can download either the complete SUNDIALS package, or just the CVODE components.
 
-#. Unpack the CVODE / SUNDIALS tarball, and create a new “build” directory (it
+#. Unpack the CVODE / SUNDIALS tarball, and create a new "build" directory (it
    can be anywhere).
 
 #. Navigate to the new, empty build directory, and type
@@ -56,23 +56,23 @@ In order to use the Sundials 3.X version:
    ``cc`` statement when compiling the source code.  Here one may wish to add
    something like ``"-O2 -g"`` to provide an optimized library that still
    contains debugging symbols; if one neglects debugging symbols in the CVODE
-   library, and if a code that uses CVODE encounters a segmentation fault in
+   library, and if a code that uses CVODE encounters a segmentation fault in
    the solve, then the backtrace has no information about where in the solver
    the error occurred.  Also, if one wishes to compile only the solver library
    itself and not the examples that come with the source (compiling the
    examples is enabled by default), one can add ``"-DEXAMPLES_ENABLE=OFF"``.
-   Users should be aware that the CVODE examples are linked dynamically, so
+   Users should be aware that the CVODE examples are linked dynamically, so
    when compiling the solver library on Cray system using the Cray compiler
    wrappers ``cc``, ``CC``, and ``ftn``, one should explicitly disable
    compiling the examples via the ``"-DEXAMPLES_ENABLE=OFF"`` flag.
 
-#. In the ``GNUmakefile`` for the  application which uses the Fortran 2003
+#. In the ``GNUmakefile`` for the application which uses the Fortran 2003
    interface to CVODE or ARKODE, add ``SUNDIALS_3x4x = TRUE``, which will compile the Fortran 2003
-   interfaces and link the  libraries.  Note that one must define the
+   interfaces and link the libraries.  Note that one must define the
    ``CVODE_LIB_DIR`` environment variable to point to the location where the
    libraries are installed.
 
-#. In the ``GNUmakefile`` for the  application which uses the Fortran 2003
+#. In the ``GNUmakefile`` for the application which uses the Fortran 2003
    interface to ARKODE, also add ``USE_ARKODE_LIBS = TRUE``. It is assumed that the
    ``CVODE_LIB_DIR`` environment variable points to the location where the ARKODE
    libraries are installed as well.
@@ -80,10 +80,10 @@ In order to use the Sundials 3.X version:
 #. Fortran 2003 interfaces for the pgi compilers and for developmental versions of SUNDIALS
    are currently not supported.
 
-SUNDIALS 3.X Tutorials
+SUNDIALS 3.X Tutorials
 -------------------------
 
-AMReX provides six tutorials in the ``amrex/Tutorials/CVODE/SUNDIALS3_finterface`` directory.
+AMReX provides six tutorials in the ``amrex/Tutorials/CVODE/SUNDIALS3_finterface`` directory.
 ``EX1`` is modeled after the CVODE Tutorial ``EX1`` showing use with AMReX.
 The four ``EX_cv_*`` tutorials are based on examples provided with the interface, which
 are more closely modeled after CVODE examples. The ``EX_ark_analytic_fp`` tutorial is based

@@ -1,68 +1,47 @@
-if ( (DIM EQUAL 1) OR NOT ENABLE_FORTRAN)
-   return()
-endif ()
+get_filename_component( _base_name ${CMAKE_CURRENT_LIST_DIR} NAME )
 
-get_filename_component ( DIRNAME ${CMAKE_CURRENT_LIST_DIR} NAME )
-
-set ( TESTNAME ${DIRNAME} )
-set ( EXENAME  ${DIRNAME}.exe )
-set ( SRC_DIR  ${CMAKE_CURRENT_LIST_DIR}/Source )
-set ( EXE_DIR  ${CMAKE_CURRENT_LIST_DIR}/Exec )
+set( _test_name ${_base_name} )
+set( _exe_name  ${_base_name}.exe )
+set( _src_dir   ${CMAKE_CURRENT_LIST_DIR}/Source )
+set( _exe_dir   ${CMAKE_CURRENT_LIST_DIR}/Exec )
 
 #
 # Create target (executable) for this tutorial
 #
-add_executable ( ${EXENAME} EXCLUDE_FROM_ALL "" )
+add_executable( ${_exe_name} EXCLUDE_FROM_ALL "" )
 
-target_sources ( ${EXENAME}
+target_sources( ${_exe_name}
    PRIVATE
-   ${SRC_DIR}/advance_${DIM}d.f90
-   ${SRC_DIR}/advance.cpp
-   ${SRC_DIR}/init_phi_${DIM}d.f90
-   ${SRC_DIR}/main.cpp
-   ${SRC_DIR}/myfunc_F.H
-   ${SRC_DIR}/myfunc.H )
+   ${_src_dir}/main.cpp
+   ${_src_dir}/myfunc.cpp
+   ${_src_dir}/myfunc.H
+   ${_src_dir}/mykernel.H
+   )
 
-set_target_properties ( ${EXENAME} PROPERTIES
-   INCLUDE_DIRECTORIES
-   "${SRC_DIR};${CMAKE_CURRENT_BINARY_DIR}/mod_files"
-   Fortran_MODULE_DIRECTORY
-   ${CMAKE_CURRENT_BINARY_DIR}/mod_files
-   RUNTIME_OUTPUT_DIRECTORY
-   ${CMAKE_CURRENT_BINARY_DIR} )
-
-target_link_libraries ( ${EXENAME} amrex )
+target_include_directories( ${_exe_name} PRIVATE  ${_src_dir} )
 
 if (ENABLE_CUDA)
-   set_cpp_sources_to_cuda_language( ${EXENAME} )
+   set_cpp_sources_to_cuda_language( ${_exe_name} )
 endif ()
+
+target_link_libraries( ${_exe_name} amrex )
 
 #
-# Copy input files to corresponding build dir
-# First copy operation is run when builddir is setup
-set (INPUT_FILES ${EXE_DIR}/inputs_${DIM}d )
+# Find input files and copy them to corresponding build dir
+#
+file( GLOB_RECURSE _input_files LIST_DIRECTORIES false  ${_exe_dir}/input* )
+file( COPY ${_input_files} DESTINATION ${CMAKE_CURRENT_BINARY_DIR} )
 
-file ( COPY ${INPUT_FILES} DESTINATION ${CMAKE_CURRENT_BINARY_DIR} )
+#
+# Add to the "tutorial" target
+#
+add_tutorial(${_exe_name})
 
-if (NOT ENABLE_CUDA)
-
-   add_custom_target( run_${EXENAME}
-      COMMAND
-      cp ${INPUT_FILES} ${CMAKE_CURRENT_BINARY_DIR}
-      COMMAND
-      ${EXENAME} inputs_${DIM}d  nsteps = 10
-      DEPENDS
-      ${INPUT_FILES}
-      WORKING_DIRECTORY
-      ${CMAKE_CURRENT_BINARY_DIR}
-      COMMENT
-      "Running ${EXENAME}"
-      VERBATIM
-      )
-
-   #
-   # Add to the "tutorial" target
-   #
-   add_tutorial (run_${EXENAME})
-
-endif ()
+#
+# Clean up
+#
+unset( _test_name )
+unset( _exe_name  )
+unset( _src_dir   )
+unset( _exe_dir   )
+unset( _input_files )

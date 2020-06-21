@@ -200,7 +200,7 @@ GpuComplex<T> operator- (const T& a_x, const GpuComplex<T>& a_y) noexcept
 {
     GpuComplex<T> r = a_y;
     r -= a_x;
-    return r;
+    return -r;
 }
 
 /**
@@ -358,7 +358,7 @@ T abs (const GpuComplex<T>& a_z) noexcept
         return s;
     x /= s;
     y /= s;
-    return s * std::sqrt(x * x + y * y);
+    return s * amrex::Math::sqrt(x * x + y * y);
 }
 
 /**
@@ -373,12 +373,12 @@ GpuComplex<T> sqrt (const GpuComplex<T>& a_z) noexcept
 
     if (x == T())
     {
-        T t = std::sqrt(amrex::Math::abs(y) / 2);
+        T t = amrex::Math::sqrt(amrex::Math::abs(y) / 2);
         return GpuComplex<T>(t, y < T() ? -t : t);
     }
     else
     {
-        T t = std::sqrt(2 * (amrex::abs(a_z) + amrex::Math::abs(x)));
+        T t = amrex::Math::sqrt(2 * (amrex::abs(a_z) + amrex::Math::abs(x)));
         T u = t / 2;
         return x > T()
             ? GpuComplex<T>(u, y / t)

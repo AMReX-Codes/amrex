@@ -30,25 +30,25 @@ bool ProperlyNested (const IntVect& ratio, const IntVect& blocking_factor, int n
     return crse_box.contains(fine_box_coarsened);
 }
 
-template <typename MF>
+template <typename MF, typename BC>
 EnableIf_t<IsFabArray<MF>::value>
 FillPatchSingleLevel (MF& mf, Real time,
                       const Vector<MF*>& smf, const Vector<Real>& stime,
                       int scomp, int dcomp, int ncomp,
                       const Geometry& geom,
-                      PhysBCFunctBase& physbcf, int bcfcomp)
+                      BC& physbcf, int bcfcomp)
 {
     FillPatchSingleLevel(mf, mf.nGrowVect(), time, smf, stime, scomp, dcomp, ncomp,
                          geom, physbcf, bcfcomp);
 }
 
-template <typename MF>
+template <typename MF, typename BC>
 EnableIf_t<IsFabArray<MF>::value>
 FillPatchSingleLevel (MF& mf, IntVect const& nghost, Real time,
                       const Vector<MF*>& smf, const Vector<Real>& stime,
                       int scomp, int dcomp, int ncomp,
                       const Geometry& geom,
-                      PhysBCFunctBase& physbcf, int bcfcomp)
+                      BC& physbcf, int bcfcomp)
 {
     BL_PROFILE("FillPatchSingleLevel");
 
@@ -154,19 +154,57 @@ FillPatchSingleLevel (MF& mf, IntVect const& nghost, Real time,
         amrex::Abort("FillPatchSingleLevel: high-order interpolation in time not implemented yet");
     }
 
-    physbcf.FillBoundary(mf, dcomp, ncomp, nghost, time, bcfcomp);
+    physbcf(mf, dcomp, ncomp, nghost, time, bcfcomp);
 }
 
 namespace {
-    template <typename MF, typename Interp, typename PreInterpHook, typename PostInterpHook>
+    template <typename MF,
+              typename std::enable_if<std::is_same<typename MF::FABType::value_type,
+                                                   FArrayBox>::value,
+                                      int>::type = 0>
+    MF make_mf_crse_patch (FabArrayBase::FPinfo const& fpc, int ncomp)
+    {
+        MF mf_crse_patch(fpc.ba_crse_patch, fpc.dm_crse_patch, ncomp, 0, MFInfo(),
+                         *fpc.fact_crse_patch);
+        return mf_crse_patch;
+    }
+
+    template <typename MF,
+              typename std::enable_if<!std::is_same<typename MF::FABType::value_type,
+                                                    FArrayBox>::value,
+                                      int>::type = 0>
+    MF make_mf_crse_patch (FabArrayBase::FPinfo const& fpc, int ncomp)
+    {
+        return MF(fpc.ba_crse_patch, fpc.dm_crse_patch, ncomp, 0);
+    }
+
+    template <typename MF,
+              typename std::enable_if<std::is_same<typename MF::FABType::value_type,
+                                                   FArrayBox>::value,
+                                      int>::type = 0>
+    void mf_set_domain_bndry (MF &mf, Geometry const & cgeom)
+    {
+        mf.setDomainBndry(std::numeric_limits<Real>::quiet_NaN(), cgeom);
+    }
+
+    template <typename MF,
+              typename std::enable_if<!std::is_same<typename MF::FABType::value_type,
+                                                    FArrayBox>::value,
+                                      int>::type = 0>
+    void mf_set_domain_bndry (MF &mf, Geometry const & cgeom)
+    {
+        // nothing
+    }
+
+    template <typename MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
     EnableIf_t<IsFabArray<MF>::value>
     FillPatchTwoLevels_doit (MF& mf, IntVect const& nghost, Real time,
 			     const Vector<MF*>& cmf, const Vector<Real>& ct,
 			     const Vector<MF*>& fmf, const Vector<Real>& ft,
 			     int scomp, int dcomp, int ncomp,
 			     const Geometry& cgeom, const Geometry& fgeom,
-			     PhysBCFunctBase& cbc, int cbccomp,
-                             PhysBCFunctBase& fbc, int fbccomp,
+			     BC& cbc, int cbccomp,
+                             BC& fbc, int fbccomp,
 			     const IntVect& ratio,
 			     Interp* mapper,
                              const Vector<BCRec>& bcs, int bcscomp,
@@ -199,10 +237,8 @@ namespace {
 
 	    if ( ! fpc.ba_crse_patch.empty())
 	    {
-		MF mf_crse_patch(fpc.ba_crse_patch, fpc.dm_crse_patch, ncomp, 0, MFInfo(),
-                                 *fpc.fact_crse_patch);
-
-                mf_crse_patch.setDomainBndry(std::numeric_limits<Real>::quiet_NaN(), cgeom);
+                MF mf_crse_patch = make_mf_crse_patch<MF>(fpc, ncomp);
+                mf_set_domain_bndry (mf_crse_patch, cgeom);
 
 		FillPatchSingleLevel(mf_crse_patch, time, cmf, ct, scomp, 0, ncomp, cgeom, cbc, cbccomp);
 
@@ -248,15 +284,15 @@ namespace {
                              fgeom, fbc, fbccomp);
     } }
 
-template <typename MF, typename Interp, typename PreInterpHook, typename PostInterpHook>
+template <typename MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
 EnableIf_t<IsFabArray<MF>::value>
 FillPatchTwoLevels (MF& mf, IntVect const& nghost, Real time,
                     const Vector<MF*>& cmf, const Vector<Real>& ct,
                     const Vector<MF*>& fmf, const Vector<Real>& ft,
                     int scomp, int dcomp, int ncomp,
                     const Geometry& cgeom, const Geometry& fgeom,
-                    PhysBCFunctBase& cbc, int cbccomp,
-                    PhysBCFunctBase& fbc, int fbccomp,
+                    BC& cbc, int cbccomp,
+                    BC& fbc, int fbccomp,
                     const IntVect& ratio,
                     Interp* mapper,
                     const Vector<BCRec>& bcs, int bcscomp,
@@ -274,15 +310,15 @@ FillPatchTwoLevels (MF& mf, IntVect const& nghost, Real time,
                             pre_interp,post_interp,index_space);
 }
 
-template <typename MF, typename Interp, typename PreInterpHook, typename PostInterpHook>
+template <typename MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
 EnableIf_t<IsFabArray<MF>::value>
 FillPatchTwoLevels (MF& mf, Real time,
                     const Vector<MF*>& cmf, const Vector<Real>& ct,
                     const Vector<MF*>& fmf, const Vector<Real>& ft,
                     int scomp, int dcomp, int ncomp,
                     const Geometry& cgeom, const Geometry& fgeom,
-                    PhysBCFunctBase& cbc, int cbccomp,
-                    PhysBCFunctBase& fbc, int fbccomp,
+                    BC& cbc, int cbccomp,
+                    BC& fbc, int fbccomp,
                     const IntVect& ratio,
                     Interp* mapper,
                     const Vector<BCRec>& bcs, int bcscomp,
@@ -302,7 +338,7 @@ FillPatchTwoLevels (MF& mf, Real time,
 }
 
 #ifdef AMREX_USE_EB
-template <typename MF, typename Interp, typename PreInterpHook, typename PostInterpHook>
+template <typename MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
 EnableIf_t<IsFabArray<MF>::value>
 FillPatchTwoLevels (MF& mf, IntVect const& nghost, Real time,
                     const EB2::IndexSpace& index_space,
@@ -310,8 +346,8 @@ FillPatchTwoLevels (MF& mf, IntVect const& nghost, Real time,
                     const Vector<MF*>& fmf, const Vector<Real>& ft,
                     int scomp, int dcomp, int ncomp,
                     const Geometry& cgeom, const Geometry& fgeom,
-                    PhysBCFunctBase& cbc, int cbccomp,
-                    PhysBCFunctBase& fbc, int fbccomp,
+                    BC& cbc, int cbccomp,
+                    BC& fbc, int fbccomp,
                     const IntVect& ratio,
                     Interp* mapper,
                     const Vector<BCRec>& bcs, int bcscomp,
@@ -324,7 +360,7 @@ FillPatchTwoLevels (MF& mf, IntVect const& nghost, Real time,
                             pre_interp,post_interp,&index_space);
 }
 
-template <typename MF, typename Interp, typename PreInterpHook, typename PostInterpHook>
+template <typename MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
 EnableIf_t<IsFabArray<MF>::value>
 FillPatchTwoLevels (MF& mf, Real time,
                     const EB2::IndexSpace& index_space,
@@ -332,8 +368,8 @@ FillPatchTwoLevels (MF& mf, Real time,
                     const Vector<MF*>& fmf, const Vector<Real>& ft,
                     int scomp, int dcomp, int ncomp,
                     const Geometry& cgeom, const Geometry& fgeom,
-                    PhysBCFunctBase& cbc, int cbccomp,
-                    PhysBCFunctBase& fbc, int fbccomp,
+                    BC& cbc, int cbccomp,
+                    BC& fbc, int fbccomp,
                     const IntVect& ratio,
                     Interp* mapper,
                     const Vector<BCRec>& bcs, int bcscomp,
@@ -347,13 +383,13 @@ FillPatchTwoLevels (MF& mf, Real time,
 }
 #endif
 
-template <typename MF, typename Interp, typename PreInterpHook, typename PostInterpHook>
+template <typename MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
 EnableIf_t<IsFabArray<MF>::value>
 InterpFromCoarseLevel (MF& mf, Real time,
                        const MF& cmf, int scomp, int dcomp, int ncomp,
                        const Geometry& cgeom, const Geometry& fgeom,
-                       PhysBCFunctBase& cbc, int cbccomp,
-                       PhysBCFunctBase& fbc, int fbccomp,
+                       BC& cbc, int cbccomp,
+                       BC& fbc, int fbccomp,
                        const IntVect& ratio,
                        Interp* mapper,
                        const Vector<BCRec>& bcs, int bcscomp,
@@ -365,13 +401,13 @@ InterpFromCoarseLevel (MF& mf, Real time,
                           pre_interp,post_interp);
 }
 
-template <typename MF, typename Interp, typename PreInterpHook, typename PostInterpHook>
+template <typename MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
 EnableIf_t<IsFabArray<MF>::value>
 InterpFromCoarseLevel (MF& mf, IntVect const& nghost, Real time,
                        const MF& cmf, int scomp, int dcomp, int ncomp,
                        const Geometry& cgeom, const Geometry& fgeom,
-                       PhysBCFunctBase& cbc, int cbccomp,
-                       PhysBCFunctBase& fbc, int fbccomp,
+                       BC& cbc, int cbccomp,
+                       BC& fbc, int fbccomp,
                        const IntVect& ratio,
                        Interp* mapper,
                        const Vector<BCRec>& bcs, int bcscomp,
@@ -415,12 +451,11 @@ InterpFromCoarseLevel (MF& mf, IntVect const& nghost, Real time,
 #else
     MF mf_crse_patch(ba_crse_patch, dm, ncomp, 0);
 #endif
-
-    mf_crse_patch.setDomainBndry(std::numeric_limits<Real>::quiet_NaN(), cgeom);
+    mf_set_domain_bndry (mf_crse_patch, cgeom);
 
     mf_crse_patch.copy(cmf, scomp, 0, ncomp, cgeom.periodicity());
 
-    cbc.FillBoundary(mf_crse_patch, 0, ncomp, mf_crse_patch.nGrowVect(), time, cbccomp);
+    cbc(mf_crse_patch, 0, ncomp, mf_crse_patch.nGrowVect(), time, cbccomp);
 
     int idummy1=0, idummy2=0;
 
@@ -458,7 +493,7 @@ InterpFromCoarseLevel (MF& mf, IntVect const& nghost, Real time,
         }
     }
 
-    fbc.FillBoundary(mf, dcomp, ncomp, nghost, time, fbccomp);
+    fbc(mf, dcomp, ncomp, nghost, time, fbccomp);
 }
 
 }

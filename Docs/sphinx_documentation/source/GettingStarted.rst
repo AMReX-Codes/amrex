@@ -7,9 +7,8 @@ Downloading the Code
 
 The source code is available at https://github.com/AMReX-Codes/amrex. The
 GitHub repo is our central repo for development. The development branch
-includes the latest state of the code, and it is merged into the master branch
-on a monthly basis. The master branch is considered the release branch. The
-releases are tagged with version number YY.MM (e.g., 17.04). The MM part of the
+includes the latest state of the code, and it is tagged as a release
+on a monthly basis with version number YY.MM (e.g., 17.04). The MM part of the
 version is incremented every month, and the YY part every year.  Bug fix
 releases are tagged with YY.MM.patch (e.g., 17.04.1).
 
@@ -42,9 +41,9 @@ first and last statements for the :cpp:`int main(...)` function of every
 program should be calling :cpp:`amrex::Initialize` and :cpp:`amrex::Finalize`,
 respectively. The second statement calls :cpp:`amrex::Print` to print out a
 string that includes the AMReX version returned by the :cpp:`amrex::Version`
-function. The example code includes two AMReX header files. Note that the name
-of all AMReX header files starts with ``AMReX_`` (or just AMReX in the case of
-AMReX.H). All AMReX C++ functions are in the :cpp:`amrex` namespace.
+function. The example code includes two AMReX header files. Note that the name
+of all AMReX header files starts with ``AMReX_`` (or just AMReX in the case of
+AMReX.H). All AMReX C++ functions are in the :cpp:`amrex` namespace.
 
 Building the Code
 -----------------
@@ -52,11 +51,11 @@ Building the Code
 You build the code in the ``amrex/Tutorials/Basic/HelloWorld_C/`` directory.
 Typing ``make`` will start the compilation process and result in an executable
 named ``main3d.gnu.DEBUG.ex``. The name shows that the GNU compiler with debug
-options set by AMReX is used.  It also shows that the executable is built for
+options set by AMReX is used.  It also shows that the executable is built for
 3D. Although this simple example code is dimension independent, dimensionality
 does matter for all non-trivial examples. The build process can be adjusted by
 modifying the ``amrex/Tutorials/Basic/HelloWorld_C/GNUmakefile`` file.  More
-details on how to build AMReX can be found in :ref:`Chap:BuildingAMReX`.
+details on how to build AMReX can be found in :ref:`Chap:BuildingAMReX`.
 
 Running the Code
 ----------------
@@ -81,7 +80,7 @@ The result may look like,
 
 The version string means the current commit 5775aed933c4 (note that the first
 letter g in g577.. is not part of the hash) is based on 17.05 with 30
-additional commits and the AMReX work tree is dirty (i.e. there are uncommitted
+additional commits and the AMReX work tree is dirty (i.e. there are uncommitted
 changes).
 
 In the GNUmakefile there are compilation options for DEBUG mode (less optimized
@@ -113,7 +112,7 @@ The result may look like,
       Hello world from AMReX version 17.05-30-g5775aed933c4-dirty
       AMReX (17.05-30-g5775aed933c4-dirty) finalized
 
-If the compilation fails, you are referred to :ref:`Chap:BuildingAMReX` for
+If the compilation fails, you are referred to :ref:`Chap:BuildingAMReX` for
 more details on how to configure the build system.  The *optional* command line
 argument ``amrex.v=1`` sets the AMReX verbosity level
 to 1 to print the number of MPI processes used.  The default verbosity

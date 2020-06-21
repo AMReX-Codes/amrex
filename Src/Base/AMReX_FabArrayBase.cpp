@@ -25,7 +25,7 @@ namespace amrex {
 //
 int     FabArrayBase::MaxComp;
 
-#if defined(AMREX_USE_GPU) && defined(AMREX_USE_GPU_PRAGMA)
+#if defined(AMREX_USE_GPU)
 
 #if AMREX_SPACEDIM == 1
 IntVect FabArrayBase::mfiter_tile_size(1024000);
@@ -1680,8 +1680,8 @@ FabArrayBase::CheckRcvStats(Vector<MPI_Status>& recv_stats,
 {
     for (int i = 0, n = recv_size.size(); i < n; ++i) {
 	if (recv_size[i] > 0) {
-	    std::size_t count;
-            int tmp_count;
+	    std::size_t count = 0;
+            int tmp_count = 0;
 
             const int comm_data_type = ParallelDescriptor::select_comm_data_type(recv_size[i]);
             if (comm_data_type == 1) {
@@ -1699,6 +1699,8 @@ FabArrayBase::CheckRcvStats(Vector<MPI_Status>& recv_stats,
                               ParallelDescriptor::Mpi_typemap<ParallelDescriptor::lull_t>::type(),
                               &tmp_count);
                 count = sizeof(ParallelDescriptor::lull_t) * tmp_count;
+            } else {
+                amrex::Abort("TODO: message size is too big");
             }
 
 	    if (count != recv_size[i]) {

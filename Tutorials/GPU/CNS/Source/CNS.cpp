@@ -17,12 +17,12 @@ BCRec     CNS::phys_bc;
 
 int       CNS::verbose = 0;
 IntVect   CNS::hydro_tile_size {AMREX_D_DECL(1024,16,16)};
-Real      CNS::cfl       = 0.3;
+Real      CNS::cfl       = 0.3_rt;
 int       CNS::do_reflux = 1;
 int       CNS::refine_max_dengrad_lev   = -1;
-Real      CNS::refine_dengrad           = 1.0e10;
+Real      CNS::refine_dengrad           = 1.0e10_rt;
 
-Real      CNS::gravity = 0.0;
+Real      CNS::gravity = 0.0_rt;
 
 CNS::CNS ()
 {}
@@ -127,9 +127,9 @@ CNS::computeInitialDt (int                    finest_level,
     //
     // Limit dt's by the value of stop_time.
     //
-    const Real eps = 0.001*dt_0;
+    const Real eps = 0.001_rt*dt_0;
     Real cur_time  = state[State_Type].curTime();
-    if (stop_time >= 0.0) {
+    if (stop_time >= 0.0_rt) {
         if ((cur_time + dt_0) > (stop_time - eps))
             dt_0 = stop_time - cur_time;
     }
@@ -201,9 +201,9 @@ CNS::computeNewDt (int                    finest_level,
     //
     // Limit dt's by the value of stop_time.
     //
-    const Real eps = 0.001*dt_0;
+    const Real eps = 0.001_rt*dt_0;
     Real cur_time  = state[State_Type].curTime();
-    if (stop_time >= 0.0) {
+    if (stop_time >= 0.0_rt) {
         if ((cur_time + dt_0) > (stop_time - eps)) {
             dt_0 = stop_time - cur_time;
         }
@@ -230,7 +230,7 @@ CNS::post_timestep (int iteration)
     if (do_reflux && level < parent->finestLevel()) {
         MultiFab& S = get_new_data(State_Type);
         CNS& fine_level = getLevel(level+1);
-        fine_level.flux_reg->Reflux(S, 1.0, 0, 0, NUM_STATE, geom);
+        fine_level.flux_reg->Reflux(S, 1.0_rt, 0, 0, NUM_STATE, geom);
     }
 
     if (level < parent->finestLevel()) {
@@ -383,7 +383,7 @@ CNS::buildMetrics ()
 {
     // make sure dx == dy == dz
     const Real* dx = geom.CellSize();
-    if (std::abs(dx[0]-dx[1]) > 1.e-12*dx[0] || std::abs(dx[0]-dx[2]) > 1.e-12*dx[0]) {
+    if (std::abs(dx[0]-dx[1]) > 1.e-12_rt*dx[0] || std::abs(dx[0]-dx[2]) > 1.e-12_rt*dx[0]) {
         amrex::Abort("CNS: must have dx == dy == dz\n");
     }
 }
@@ -398,7 +398,7 @@ CNS::estTimeStep ()
     Parm const* lparm = parm.get();
 
     Real estdt = amrex::ReduceMin(S, 0,
-    [=] AMREX_GPU_DEVICE (Box const& bx, Array4<Real const> const& fab) noexcept -> Real
+    [=] AMREX_GPU_HOST_DEVICE (Box const& bx, Array4<Real const> const& fab) noexcept -> Real
     {
         return cns_estdt(bx, fab, dx, *lparm);
     });

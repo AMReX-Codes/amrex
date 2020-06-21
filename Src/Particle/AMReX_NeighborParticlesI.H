@@ -1,4 +1,3 @@
-
 template <int NStructReal, int NStructInt>
 bool NeighborParticleContainer<NStructReal, NStructInt>::use_mask = false;
 
@@ -185,10 +184,11 @@ NeighborParticleContainer<NStructReal, NStructInt>
                 if (grid >= 0) {
                     const int tile = (*mask_ptr[lev])[mfi](iv, MaskComps::tile);
                     const int level = (*mask_ptr[lev])[mfi](iv, MaskComps::level);
-                    const int proc = this->ParticleDistributionMap(level)[grid];
+                    const int global_proc = this->ParticleDistributionMap(level)[grid];
+                    const int proc = ParallelContext::global_to_local_rank(global_proc);
                     NeighborCommTag comm_tag(proc, level, grid, tile);
                     local_neighbors.push_back(comm_tag);
-                    if (proc != ParallelDescriptor::MyProc())
+                    if (proc != ParallelContext::MyProcSub())
                         neighbor_procs.push_back(proc);
                 }
             }
@@ -205,7 +205,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
                 GetCommTagsBox(comm_tags, lev, box);
                 for (auto const& tag : comm_tags) {
                     local_neighbors.push_back(tag);
-                    if (tag.proc_id != ParallelDescriptor::MyProc())
+                    if (tag.proc_id != ParallelContext::MyProcSub())
                         neighbor_procs.push_back(tag.proc_id);
                 }
             }
@@ -266,7 +266,8 @@ NeighborParticleContainer<NStructReal, NStructInt>
             ba.intersections(pbox, isects, first_only, 0);
             for (const auto& isec : isects) {
                 const int grid = isec.first;
-                const int proc = this->ParticleDistributionMap(lev)[grid];
+                const int global_proc = this->ParticleDistributionMap(lev)[grid];
+                const int proc = ParallelContext::global_to_local_rank(global_proc);
                 for (IntVect iv = pbox.smallEnd(); iv <= pbox.bigEnd(); pbox.next(iv))
                 {
                     if (ba[grid].contains(iv))
@@ -296,7 +297,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
 
     AMREX_ASSERT(hasNeighbors() == false);
 
-    const int MyProc = ParallelDescriptor::MyProc();
+    const int MyProc = ParallelContext::MyProcSub();
 
     amrex::Vector<std::map<PairIndex,       Vector<NeighborIndexMap> > > local_map;
     std::map<NeighborCommTag, Vector<NeighborIndexMap> > remote_map;
@@ -352,7 +353,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
                 auto& cache = buffer_tag_cache[lev][src_index][thread_num];
 
                 auto& particles = pti.GetArrayOfStructs();
-                for (unsigned i = 0; i < pti.numParticles(); ++i) {
+                for (int i = 0; i < pti.numParticles(); ++i) {
                     const ParticleType& p = particles[i];
 
                     getNeighborTags(tags, p, m_num_neighbor_cells, src_tag, pti);
@@ -367,7 +368,8 @@ NeighborParticleContainer<NStructReal, NStructInt>
                         const int cache_index = cache.size();
                         cache.push_back(tag);
 
-                        const int who = this->ParticleDistributionMap(tag.level)[tag.grid];
+                        const int global_who = this->ParticleDistributionMap(tag.level)[tag.grid];
+                        const int who = ParallelContext::global_to_local_rank(global_who);
                         NeighborIndexMap nim(tag.level, dst_index.first, dst_index.second, -1,
                                              lev, src_index.first, src_index.second,
                                              cache_index, thread_num);
@@ -615,7 +617,7 @@ template <int NStructReal, int NStructInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>
 ::fillNeighbors () {
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
     fillNeighborsGPU();
 #else
     fillNeighborsCPU();
@@ -628,7 +630,7 @@ void
 NeighborParticleContainer<NStructReal, NStructInt>
 ::sumNeighbors (int real_start_comp, int real_num_comp,
                 int int_start_comp,  int int_num_comp) {
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
     amrex::Abort("Not implemented.");
 #else
     sumNeighborsCPU(real_start_comp, real_num_comp, int_start_comp, int_num_comp);
@@ -643,7 +645,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
 
   AMREX_ASSERT(hasNeighbors());
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
     updateNeighborsGPU();
 #else
     updateNeighborsCPU(true);
@@ -656,7 +658,7 @@ void
 NeighborParticleContainer<NStructReal, NStructInt>
 ::clearNeighbors ()
 {
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
     clearNeighborsGPU();
 #else
     clearNeighborsCPU();
@@ -722,7 +724,7 @@ buildNeighborList (CheckPair check_pair, bool sort)
             {
                 auto cnt = counts[i];
                 neighbor_list[lev][index].push_back(cnt);
-                for (int j = 0; j < cnt; ++j)
+                for (size_t j = 0; j < cnt; ++j)
                 {
                     neighbor_list[lev][index].push_back(list[li++]+1);
                 }

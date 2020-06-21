@@ -4,5 +4,6 @@
     visitdir="/work/SENSEI/visit2.13.2-install" mode="batch"
     session="sensei/render_iso_libsim_2d.session"
     image-filename="ls_image_2d_%ts" image-width="800" image-height="800"
+    compute_nesting="0"
     image-format="png" frequency="1" enabled="1" />
 </sensei>

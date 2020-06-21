@@ -1,0 +1,17 @@
+name: windows
+
+on: [push, pull_request]
+
+jobs:
+  # Build libamrex and all tutorials
+  tutorials:
+    name: MSVC C++17 w/o Fortran w/o MPI
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build & Install
+      run: |
+        mkdir build
+        cd build
+        cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_VERBOSE_MAKEFILE=ON -DENABLE_TUTORIALS=ON -DENABLE_FORTRAN=OFF -DENABLE_MPI=OFF
+        cmake --build . --config Debug --target tutorials

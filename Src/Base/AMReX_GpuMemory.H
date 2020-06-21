@@ -51,7 +51,7 @@ struct Deleter {
     void operator() (void* pt) const noexcept { m_arena->free(pt); }
 };
 
-template <class T, typename = amrex::EnableIf_t<AMREX_IS_TRIVIALLY_COPYABLE(T)> >
+template <class T, typename std::enable_if<AMREX_IS_TRIVIALLY_COPYABLE(T),int>::type = 0>
 struct DeviceScalar
 {
     DeviceScalar (DeviceScalar const&) = delete;

@@ -2,11 +2,12 @@
 # If you set AMREX_HOME as an environment variable, this line will be ignored
 AMREX_HOME ?= ../../../../
 
-DEBUG     = FALSE
-USE_MPI   = FALSE
-USE_OMP   = FALSE
-COMP      = gnu
-DIM       = 2
+DEBUG        = FALSE
+USE_MPI      = FALSE
+MPI_THREAD_MULTIPLE = FALSE  # amrex.async_out=1 with more than 64 processes requires MPI_THREAD_MULTIPLE
+USE_OMP      = FALSE
+COMP         = gnu
+DIM          = 3
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 

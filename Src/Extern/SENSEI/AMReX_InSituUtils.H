@@ -23,40 +23,44 @@
 namespace amrex {
 namespace InSituUtils {
 
-//The following bit fields are consistent with VisIt ghost zones specification
-//For details, see http://www.visitusers.org/index.php?title=Representing_ghost_data
+// The following bit fields are consistent with VisIt ghost zones specification
+// For details, see http://www.visitusers.org/index.php?title=Representing_ghost_data
 
 enum CellGhostTypes
 {
-  DUPLICATECELL           = 1,  //the cell is present on multiple processors
-  HIGHCONNECTIVITYCELL    = 2,  //the cell has more neighbors than in a regular mesh
-  LOWCONNECTIVITYCELL     = 4,  //the cell has less neighbors than in a regular mesh
-  REFINEDCELL             = 8,  //other cells are present that refines it.
-  EXTERIORCELL            = 16, //the cell is on the exterior of the data set
-  HIDDENCELL              = 32  //the cell is needed to maintain connectivity, but the data values should be ignored.
+  DUPLICATECELL           = 1,  // the cell is present on multiple processors
+  HIGHCONNECTIVITYCELL    = 2,  // the cell has more neighbors than in a regular mesh
+  LOWCONNECTIVITYCELL     = 4,  // the cell has less neighbors than in a regular mesh
+  REFINEDCELL             = 8,  // other cells are present that refines it.
+  EXTERIORCELL            = 16, // the cell is on the exterior of the data set
+  HIDDENCELL              = 32  // the cell is needed to maintain connectivity,
+                                // but the data values should be ignored.
 };
 
 enum PointGhostTypes
 {
-  DUPLICATEPOINT          =1,   //the cell is present on multiple processors
-  HIDDENPOINT             =2    //the point is needed to maintain connectivity, but the data values should be ignored.
+  DUPLICATEPOINT          = 1,  // the cell is present on multiple processors
+  HIDDENPOINT             = 2   // the point is needed to maintain connectivity,
+                                // but the data values should be ignored.
 };
 
 
 
-// traits helper for delaing with amrex_real
+// traits helper for mapping between amrex_real and vtkDataArray
 template <typename cpp_t> struct amrex_tt {};
 
-
-#define amrex_tt_specialize(cpp_t, vtk_t)     \
-template <>                                   \
-struct amrex_tt<cpp_t>                        \
-{                                             \
-    using vtk_type = vtk_t;                   \
+#define amrex_tt_specialize(cpp_t, vtk_t, vtk_t_e)      \
+template <>                                             \
+struct amrex_tt<cpp_t>                                  \
+{                                                       \
+    using vtk_type = vtk_t;                             \
+                                                        \
+    static                                              \
+    constexpr int vtk_type_enum() { return vtk_t_e; }   \
 };
 
-amrex_tt_specialize(float, vtkFloatArray)
-amrex_tt_specialize(double, vtkDoubleArray)
+amrex_tt_specialize(float, vtkFloatArray, VTK_FLOAT)
+amrex_tt_specialize(double, vtkDoubleArray, VTK_DOUBLE)
 
 
 // helpers to modify values

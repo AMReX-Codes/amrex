@@ -1,8 +1,7 @@
 
 #include <iostream>
+#include <limits>
 #include <algorithm>
-
-#include <unistd.h>
 
 #include <AMReX_RealBox.H>
 #include <AMReX_StateData.H>
@@ -16,7 +15,11 @@
 
 namespace amrex {
 
-static constexpr Real INVALID_TIME = -1.0e200;
+#ifdef AMREX_USE_FLOAT
+static constexpr Real INVALID_TIME = -1.0e30;
+#else
+static constexpr Real INVALID_TIME = -1.0e200; 
+#endif
 
 static constexpr int MFNEWDATA = 0;
 static constexpr int MFOLDDATA = 1;
@@ -460,7 +463,7 @@ StateData::FillBoundary (FArrayBox&     dest,
         const int sc  = src_comp+i;
         Real*     dat = dest.dataPtr(dc);
 
-        if (desc->master(sc))
+        if (desc->primary(sc))
         {
             const int groupsize = desc->groupsize(sc);
 
@@ -535,7 +538,7 @@ StateData::FillBoundary (Box const&      bx,
         const int dc  = dest_comp+i;
         const int sc  = src_comp+i;
 
-        if (desc->master(sc))
+        if (desc->primary(sc))
         {
             const int groupsize = desc->groupsize(sc);
 
@@ -820,13 +823,21 @@ StateData::checkPoint (const std::string& name,
     {
        BL_ASSERT(new_data);
        std::string mf_fullpath_new(fullpathname + NewSuffix);
-       VisMF::Write(*new_data,mf_fullpath_new,how);
+       if (AsyncOut::UseAsyncOut()) {
+           VisMF::AsyncWrite(*new_data,mf_fullpath_new);
+       } else {
+           VisMF::Write(*new_data,mf_fullpath_new,how);
+       }
 
        if (dump_old)
        {
            BL_ASSERT(old_data);
            std::string mf_fullpath_old(fullpathname + OldSuffix);
-           VisMF::Write(*old_data,mf_fullpath_old,how);
+           if (AsyncOut::UseAsyncOut()) {
+               VisMF::AsyncWrite(*old_data,mf_fullpath_old);
+           } else {
+               VisMF::Write(*old_data,mf_fullpath_old,how);
+           }
        }
     }
 }
@@ -853,10 +864,10 @@ StateDataPhysBCFunct::StateDataPhysBCFunct (StateData&sd, int sc, const Geometry
 { }
 
 void
-StateDataPhysBCFunct::FillBoundary (MultiFab& mf, int dest_comp, int num_comp, IntVect const& /* */,
-                                    Real time, int /*bccomp*/)
+StateDataPhysBCFunct::operator() (MultiFab& mf, int dest_comp, int num_comp, IntVect const& /* */,
+                                  Real time, int /*bccomp*/)
 {
-    BL_PROFILE("StateDataPhysBCFunct::FillBoundary");
+    BL_PROFILE("StateDataPhysBCFunct::()");
 
     const Box&     domain      = statedata->getDomain();
     const int*     domainlo    = domain.loVect();

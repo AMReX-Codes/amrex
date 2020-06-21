@@ -92,32 +92,16 @@ protected:
 };
 #endif
 
-class PhysBCFunctBase {
-public:
-    //! note this is pure virtual and must be implemented in a derived class
-    //! (see PhysBCFunct below for an example)
-    //!
-    virtual void FillBoundary (MultiFab& mf, int dcomp, int ncomp, IntVect const& nghost,
-                                Real time, int bccomp) = 0;
-    virtual ~PhysBCFunctBase () = 0;
-};
-
-inline PhysBCFunctBase::~PhysBCFunctBase () {}
-
-
-class PhysBCFunctNoOp final
-    : public PhysBCFunctBase
+class PhysBCFunctNoOp
 {
 public:
-    virtual void FillBoundary (MultiFab& mf, int dcomp, int ncomp, IntVect const& nghost,
-                               Real time, int bccomp) override {}
-    virtual ~PhysBCFunctNoOp () override {}
+    void operator() (MultiFab& /*mf*/, int /*dcomp*/, int /*ncomp*/, IntVect const& /*nghost*/,
+                     Real /*time*/, int /*bccomp*/) {}
 };
 
 
 template <class F>
 class PhysBCFunct
-    : public PhysBCFunctBase
 {
 public:
     PhysBCFunct () {}
@@ -130,7 +114,7 @@ public:
         : m_geom(geom), m_bcr(bcr), m_f(std::move(f))
         {}
 
-    virtual ~PhysBCFunct () {}
+    ~PhysBCFunct () {}
 
     void define (const Geometry& geom, const Vector<BCRec>& bcr, F const& f) {
         m_geom = geom; m_bcr = bcr; m_f = f;
@@ -140,12 +124,12 @@ public:
         m_geom = geom; m_bcr = bcr; m_f = std::move(f);
     }
 
-    virtual void FillBoundary (MultiFab& mf, int icomp, int ncomp, IntVect const& nghost,
-                               Real time, int bccomp) override
+    void operator() (MultiFab& mf, int icomp, int ncomp, IntVect const& nghost,
+                     Real time, int bccomp)
     {
         if (m_geom.isAllPeriodic()) return;
 
-        BL_PROFILE("PhysBCFunct::FillBoundary");
+        BL_PROFILE("PhysBCFunct::()");
 
         //! create a grown domain box containing valid + periodic cells
         const Box& domain = m_geom.Domain();
@@ -179,6 +163,12 @@ public:
                 }
             }
         }
+    }
+
+    // For backward compatibility
+    void FillBoundary (MultiFab& mf, int dcomp, int ncomp, IntVect const& nghost,
+                       Real time, int bccomp) {
+        this->operator()(mf,dcomp,ncomp,nghost,time,bccomp);
     }
 
 private:

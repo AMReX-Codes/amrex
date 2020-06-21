@@ -665,8 +665,24 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
     // fix faces for small cells
     const auto bxlo = amrex::lbound(bx);
     const auto bxhi = amrex::ubound(bx);
+
+#ifdef AMREX_USE_DPCPP
+    // xxxxx DPCPP todo: kernel parameter size
+    Vector<Array4<Real const> > htmp = {fcx,fcy,fcz,m2x,m2y,m2z};
+    std::unique_ptr<Gpu::AsyncArray<Array4<Real const> > > dtmp;
+    if (Gpu::inLaunchRegion()) dtmp.reset(new Gpu::AsyncArray<Array4<Real const> >(htmp.data(), 6));
+    Array4<Real const>* ptmp = (Gpu::inLaunchRegion()) ? dtmp->data() : htmp.data();
+#endif
+
     AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bxg1, tbx,
     {
+        AMREX_DPCPP_ONLY(auto fcx = ptmp[0]);
+        AMREX_DPCPP_ONLY(auto fcy = ptmp[1]);
+        AMREX_DPCPP_ONLY(auto fcz = ptmp[2]);
+        AMREX_DPCPP_ONLY(auto m2x = ptmp[3]);
+        AMREX_DPCPP_ONLY(auto m2y = ptmp[4]);
+        AMREX_DPCPP_ONLY(auto m2z = ptmp[5]);
+
         auto lo = amrex::max_lbound(tbx, Dim3{bxlo.x  ,bxlo.y-1,bxlo.z-1});
         auto hi = amrex::min_ubound(tbx, Dim3{bxhi.x+1,bxhi.y+1,bxhi.z+1});
         for (int k = lo.z; k <= hi.z; ++k) {

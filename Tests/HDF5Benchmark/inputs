@@ -14,5 +14,14 @@ ncomp = 6
 # Number of particles per cell
 nppc = 2
 
+# Number of plot files to write
+nplotfile = 5
+
+# Number of plot files to write
+nparticlefile = 5
+
+# Time to sleep before each write
+sleeptime = 2
+
 # Whether to check the correctness of Checkpoint / Restart
 restart_check = 1

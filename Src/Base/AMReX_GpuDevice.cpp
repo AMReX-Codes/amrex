@@ -124,7 +124,7 @@ Device::Initialize ()
         AMREX_HIP_OR_CUDA_OR_DPCPP
             ( amrex::Print() << "Initializing HIP...\n";,
               amrex::Print() << "Initializing CUDA...\n";,
-              amrex::Print() << "Initializing oneAPI...\n"; );
+              amrex::Print() << "Initializing oneAPI...\n"; )
     }
 
     // XL CUDA Fortran support needs to be initialized
@@ -278,7 +278,7 @@ Device::Initialize ()
     // is only available starting from CUDA 10.0, so we will
     // leave num_devices_used as 0 for older CUDA toolkits.
 
-#if AMREX_NVCC_MAJOR_VERSION >= 10
+#if (__CUDACC_VER_MAJOR__ >= 10)
     size_t uuid_length = 16;
     size_t recv_sz = uuid_length * ParallelDescriptor::NProcs();
     const char* sendbuf = &device_prop.uuid.bytes[0];
@@ -309,7 +309,7 @@ Device::Initialize ()
     cudaProfilerStart();
 
     if (amrex::Verbose()) {
-#if defined(AMREX_USE_MPI) && (AMREX_NVCC_MAJOR_VERSION >= 10)
+#if defined(AMREX_USE_MPI) && (__CUDACC_VER_MAJOR__ >= 10)
         if (num_devices_used == ParallelDescriptor::NProcs())
         {
             amrex::Print() << "CUDA initialized with 1 GPU per MPI rank; "
@@ -367,9 +367,6 @@ Device::Finalize ()
 #ifdef AMREX_USE_ACC
     amrex_finalize_acc();
 #endif
-
-    AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL( hipDeviceReset());,
-                      AMREX_CUDA_SAFE_CALL(cudaDeviceReset()); ); 
 }
 
 void
@@ -451,6 +448,7 @@ Device::initialize_gpu ()
         device_prop.maxMemAllocSize = d.get_info<sycl::info::device::max_mem_alloc_size>();
         device_prop.managedMemory = d.get_info<sycl::info::device::host_unified_memory>();
         device_prop.concurrentManagedAccess = d.get_info<sycl::info::device::usm_shared_allocations>();
+        device_prop.maxParameterSize = d.get_info<sycl::info::device::max_parameter_size>();
         {
             amrex::Print() << "Device Properties:\n"
                            << "  name: " << device_prop.name << "\n"
@@ -467,6 +465,7 @@ Device::initialize_gpu ()
                            << "  maxMemAllocSize: " << device_prop.maxMemAllocSize << "\n"
                            << "  managedMemory: " << (device_prop.managedMemory ? "Yes" : "No") << "\n"
                            << "  concurrentManagedAccess: " << (device_prop.concurrentManagedAccess ? "Yes" : "No") << "\n"
+                           << "  maxParameterSize: " << device_prop.maxParameterSize << "\n"
                            << std::endl;
         }
         auto found = std::find(sgss.begin(), sgss.end(), static_cast<decltype(sgss)::value_type>(warp_size));

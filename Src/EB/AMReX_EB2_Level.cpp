@@ -356,6 +356,18 @@ Level::coarsenFromFine (Level& fineLevel, bool fill_boundary)
                          Box const& zgbx = amrex::surroundingNodes(gbx,2););
             Box const& ndgbx = amrex::surroundingNodes(gbx);
 
+#ifdef AMREX_USE_DPCPP
+            // xxxxx DPCPP todo: kernel size
+            Vector<Array4<Real const> > htmp = {fvol, fcent, fba, fbc, fbn,
+                                                AMREX_D_DECL(fapx,fapy,fapz),
+                                                AMREX_D_DECL(ffcx,ffcy,ffcz)};
+            Vector<Array4<Real> > htmp2 = {AMREX_D_DECL(capx,capy,capz)};
+            Gpu::AsyncArray<Array4<Real const> > dtmp(htmp.data(), 5+2*AMREX_SPACEDIM);
+            Gpu::AsyncArray<Array4<Real> > dtmp2(htmp2.data(), AMREX_SPACEDIM);
+            auto dp = dtmp.data();
+            auto dp2 = dtmp2.data();
+#endif
+
             reduce_op.eval(ndgbx, reduce_data,
             [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
             {
@@ -364,12 +376,24 @@ Level::coarsenFromFine (Level& fineLevel, bool fill_boundary)
                                              AMREX_D_DECL(xbx,ybx,zbx),
                                              AMREX_D_DECL(xgbx,ygbx,zgbx),
                                              cvol,ccent,cba,cbc,cbn,
+#ifdef AMREX_USE_DPCPP
+                                             AMREX_D_DECL(dp2[0],dp2[1],dp2[2]),
+#else
                                              AMREX_D_DECL(capx,capy,capz),
+#endif
                                              AMREX_D_DECL(cfcx,cfcy,cfcz),
                                              cflag,
+#ifdef AMREX_USE_DPCPP
+                                             dp[0], dp[1], dp[2], dp[3], dp[4],
+                                             dp[5], dp[6], dp[7], dp[8],
+#if (AMREX_SPACEDIM == 3)
+                                             dp[9], dp[10],
+#endif
+#else
                                              fvol,fcent,fba,fbc,fbn,
                                              AMREX_D_DECL(fapx,fapy,fapz),
                                              AMREX_D_DECL(ffcx,ffcy,ffcz),
+#endif
                                              fflag);
                 return {ierr};
             });

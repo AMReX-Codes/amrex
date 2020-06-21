@@ -496,6 +496,8 @@ public:
 
     static bool first_smallplotfile;
 
+private:
+    void writePlotFileDoit (std::string const& pltfile, bool regular);
 };
 
 }

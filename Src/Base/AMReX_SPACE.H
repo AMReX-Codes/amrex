@@ -174,4 +174,19 @@ namespace amrex
 
 #endif
 
-#endif /*BL_SPACE_H*/
+
+#if (AMREX_SPACEDIM == 1)
+#  define AMREX_1D_ONLY(a) a
+#  define AMREX_2D_ONLY(a) ((void)0)
+#  define AMREX_3D_ONLY(a) ((void)0)
+#elif (AMREX_SPACEDIM == 2)
+#  define AMREX_1D_ONLY(a) ((void)0)
+#  define AMREX_2D_ONLY(a) a
+#  define AMREX_3D_ONLY(a) ((void)0)
+#elif (AMREX_SPACEDIM == 3)
+#  define AMREX_1D_ONLY(a) ((void)0)
+#  define AMREX_2D_ONLY(a) ((void)0)
+#  define AMREX_3D_ONLY(a) a
+#endif
+
+#endif /*AMREX_SPACE_H*/

@@ -129,10 +129,16 @@
 
 // __attribute__((weak))
 
-#ifdef AMREX_TYPECHECK
+#if defined(AMREX_TYPECHECK)
 #define AMREX_ATTRIBUTE_WEAK 
+#elif defined(_WIN32)
+#define AMREX_ATTRIBUTE_WEAK
 #else
 #define AMREX_ATTRIBUTE_WEAK __attribute__((weak))
+#endif
+
+#if defined(__cplusplus) && defined(_WIN32)
+#include <iso646.h>
 #endif
 
 #endif /* !BL_LANG_FORT */

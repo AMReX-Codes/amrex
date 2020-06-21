@@ -14,18 +14,22 @@
 #define HIPRT_CB 
 #endif
 
-#if defined(AMREX_USE_GPU) && !defined(AMREX_USE_DPCPP)
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
 extern "C" {
-AMREX_HIP_OR_CUDA(
-         void HIPRT_CB  amrex_asyncarray_delete ( hipStream_t stream,  hipError_t error, void* p);,
-         void CUDART_CB amrex_asyncarray_delete (cudaStream_t stream, cudaError_t error, void* p);)
+#if defined(AMREX_USE_HIP)
+    void HIPRT_CB  amrex_asyncarray_delete ( hipStream_t stream,  hipError_t error, void* p);
+#elif defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10)
+    void CUDART_CB amrex_asyncarray_delete (void* p);
+#elif defined(AMREX_USE_CUDA)
+    void CUDART_CB amrex_asyncarray_delete (cudaStream_t stream, cudaError_t error, void* p);
+#endif
 }
 #endif
 
 namespace amrex {
 namespace Gpu {
 
-template <typename T, typename = amrex::EnableIf_t<AMREX_IS_TRIVIALLY_COPYABLE(T)> >
+template <typename T, typename std::enable_if<AMREX_IS_TRIVIALLY_COPYABLE(T),int>::type = 0>
 class AsyncArray
 {
 public:
@@ -44,7 +48,7 @@ public:
 #endif
     }
 
-    template <typename U = T, typename = amrex::EnableIf_t<std::is_pod<U>::value> >
+    template <typename U = T, typename std::enable_if<std::is_pod<U>::value,int>::type = 0>
     explicit AsyncArray (const std::size_t n)
     {
         if (n == 0) return;
@@ -74,11 +78,16 @@ public:
                 T** p = static_cast<T**>(std::malloc(2*sizeof(T*)));
                 p[0] = d_data;
                 p[1] = h_data;
-                AMREX_HIP_OR_CUDA(
-                    AMREX_HIP_SAFE_CALL ( hipStreamAddCallback(Gpu::gpuStream(),
-                                                               amrex_asyncarray_delete, p, 0));,
-                    AMREX_CUDA_SAFE_CALL(cudaStreamAddCallback(Gpu::gpuStream(),
-                                                               amrex_asyncarray_delete, p, 0)););
+#if defined(AMREX_USE_HIP)
+                AMREX_HIP_SAFE_CALL ( hipStreamAddCallback(Gpu::gpuStream(),
+                                                           amrex_asyncarray_delete, p, 0));
+#elif defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10)
+                AMREX_CUDA_SAFE_CALL(cudaLaunchHostFunc(Gpu::gpuStream(),
+                                                        amrex_asyncarray_delete, p));
+#elif defined(AMREX_USE_CUDA)
+                AMREX_CUDA_SAFE_CALL(cudaStreamAddCallback(Gpu::gpuStream(),
+                                                           amrex_asyncarray_delete, p, 0));
+#endif
                 Gpu::callbackAdded();
 #else
                 // xxxxx DPCPP todo

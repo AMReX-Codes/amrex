@@ -12,6 +12,7 @@
 namespace amrex {
 
 class FArrayBox;
+class RealDescriptor;
 
 /**
 * \brief A Class Facilitating I/O for Fabs
@@ -156,6 +157,39 @@ public:
                                FArrayBox&    f,
 			       int           compIndex,
 			       int&          nCompAvailable);
+};
+
+//
+// Our binary FABio type.
+//
+class FABio_binary
+    :
+    public FABio
+{
+public:
+    FABio_binary (RealDescriptor* rd_);
+
+    virtual void read (std::istream& is,
+                       FArrayBox&    fb) const override;
+
+    virtual void write (std::ostream&    os,
+                        const FArrayBox& fb,
+                        int              comp,
+                        int              num_comp) const override;
+
+    virtual void skip (std::istream& is,
+                       FArrayBox&    f) const override;
+
+    virtual void skip (std::istream& is,
+                       FArrayBox&    f,
+		       int           nCompToSkip) const override;
+
+private:
+    virtual void write_header (std::ostream&    os,
+                               const FArrayBox& f,
+                               int              nvar) const override;
+
+    std::unique_ptr<RealDescriptor> realDesc;
 };
 
 /**
@@ -334,7 +368,7 @@ public:
     friend std::istream& operator>> (std::istream& is, FArrayBox& fb);
     /**
     * \brief Writes out the FAB in whatever format you've set.
-    * The default format is ASCII.
+    * The default format is NATIVE.
     */
     void writeOn (std::ostream& of) const;
 
@@ -346,7 +380,7 @@ public:
     * It must be the case the comp >= 0 && num_comp >= 1 &&
     * (comp+num_comp) <= nComp().  The FAB is written out in
     * whatever format you've set, with the default format being
-    * ASCII.  The FAB that is written to disk will be an
+    * NATIVE.  The FAB that is written to disk will be an
     * num_comp component FAB.
     */
     void writeOn (std::ostream& of,

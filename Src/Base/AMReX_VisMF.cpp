@@ -8,6 +8,7 @@
 #include <cstdio>
 #include <limits>
 #include <array>
+#include <memory>
 #include <numeric>
 
 #include <AMReX_ccse-mpi.H>
@@ -17,6 +18,7 @@
 #include <AMReX_NFiles.H>
 #include <AMReX_FPC.H>
 #include <AMReX_FabArrayUtility.H>
+#include <AMReX_AsyncOut.H>
 
 namespace amrex {
 
@@ -39,7 +41,6 @@ bool VisMF::useDynamicSetSelection(true);
 bool VisMF::allowSparseWrites(true);
 
 Long VisMF::ioBufferSize(VisMF::IO_Buffer_Size);
-
 
 //
 // Set these in Initialize().
@@ -667,6 +668,11 @@ VisMF::Header::Header (const FabArray<FArrayBox>& mf,
       return;
     }
 
+    bool run_on_device = Gpu::inLaunchRegion()
+        and (mf.arena() == The_Arena() or
+             mf.arena() == The_Device_Arena() or
+             mf.arena() == The_Managed_Arena());
+
     if(version == NoFabHeaderFAMinMax_v1) {
       // ---- calculate FabArray min max values only
       m_min.clear();
@@ -677,8 +683,13 @@ VisMF::Header::Header (const FabArray<FArrayBox>& mf,
       for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
         const int idx = mfi.index();
         for(int i(0); i < m_ncomp; ++i) {
-          m_famin[i] = std::min(m_famin[i], mf[mfi].min<RunOn::Host>(m_ba[idx],i));
-          m_famax[i] = std::max(m_famax[i], mf[mfi].max<RunOn::Host>(m_ba[idx],i));
+            if (run_on_device) {
+              m_famin[i] = std::min(m_famin[i], mf[mfi].min<RunOn::Device>(m_ba[idx],i));
+              m_famax[i] = std::max(m_famax[i], mf[mfi].max<RunOn::Device>(m_ba[idx],i));
+            } else {
+              m_famin[i] = std::min(m_famin[i], mf[mfi].min<RunOn::Host>(m_ba[idx],i));
+              m_famax[i] = std::max(m_famax[i], mf[mfi].max<RunOn::Host>(m_ba[idx],i));
+            }
         }
       }
       ParallelAllReduce::Min(m_famin.dataPtr(), m_famin.size(), comm);
@@ -701,6 +712,11 @@ VisMF::Header::CalculateMinMax (const FabArray<FArrayBox>& mf,
     m_min.resize(m_ba.size());
     m_max.resize(m_ba.size());
 
+    bool run_on_device = Gpu::inLaunchRegion()
+        and (mf.arena() == The_Arena() or
+             mf.arena() == The_Device_Arena() or
+             mf.arena() == The_Managed_Arena());
+
 #ifdef BL_USE_MPI
     //
     // Calculate m_min and m_max on the CPU owning the fab.
@@ -714,8 +730,13 @@ VisMF::Header::CalculateMinMax (const FabArray<FArrayBox>& mf,
         BL_ASSERT(mf[mfi].box().contains(m_ba[idx]));
 
         for(Long j(0); j < m_ncomp; ++j) {
-            m_min[idx][j] = mf[mfi].min<RunOn::Host>(m_ba[idx],j);
-            m_max[idx][j] = mf[mfi].max<RunOn::Host>(m_ba[idx],j);
+            if (run_on_device) {
+                m_min[idx][j] = mf[mfi].min<RunOn::Device>(m_ba[idx],j);
+                m_max[idx][j] = mf[mfi].max<RunOn::Device>(m_ba[idx],j);
+            } else {
+                m_min[idx][j] = mf[mfi].min<RunOn::Host>(m_ba[idx],j);
+                m_max[idx][j] = mf[mfi].max<RunOn::Host>(m_ba[idx],j);
+            }
         }
     }
 
@@ -808,8 +829,13 @@ VisMF::Header::CalculateMinMax (const FabArray<FArrayBox>& mf,
         BL_ASSERT(mf[mfi].box().contains(m_ba[idx]));
 
         for(Long j(0); j < m_ncomp; ++j) {
-            m_min[idx][j] = mf[mfi].min<RunOn::Host>(m_ba[idx],j);
-            m_max[idx][j] = mf[mfi].max<RunOn::Host>(m_ba[idx],j);
+            if (run_on_device) {
+                m_min[idx][j] = mf[mfi].min<RunOn::Device>(m_ba[idx],j);
+                m_max[idx][j] = mf[mfi].max<RunOn::Device>(m_ba[idx],j);
+            } else {
+                m_min[idx][j] = mf[mfi].min<RunOn::Host>(m_ba[idx],j);
+                m_max[idx][j] = mf[mfi].max<RunOn::Host>(m_ba[idx],j);
+            }
         }
     }
 #endif /*BL_USE_MPI*/
@@ -935,21 +961,34 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
     }
     bool doConvert(*whichRD != FPC::NativeRealDescriptor());
 
-    if(set_ghost) {
+    if(set_ghost and mf.nGrowVect() != 0) {
         FabArray<FArrayBox>* the_mf = const_cast<FabArray<FArrayBox>*>(&mf);
+
+        bool run_on_device = Gpu::inLaunchRegion()
+            and (mf.arena() == The_Arena() or
+                 mf.arena() == The_Device_Arena() or
+                 mf.arena() == The_Managed_Arena());
 
         for(MFIter mfi(*the_mf); mfi.isValid(); ++mfi) {
             const int idx(mfi.index());
 
             for(int j(0); j < mf.nComp(); ++j) {
-                const Real valMin(mf[mfi].min<RunOn::Host>(mf.box(idx), j));
-                const Real valMax(mf[mfi].max<RunOn::Host>(mf.box(idx), j));
-                const Real val((valMin + valMax) / 2.0);
-
-                the_mf->get(mfi).setComplement<RunOn::Host>(val, mf.box(idx), j, 1);
+                if (run_on_device) {
+                    const Real valMin(mf[mfi].min<RunOn::Device>(mf.box(idx), j));
+                    const Real valMax(mf[mfi].max<RunOn::Device>(mf.box(idx), j));
+                    const Real val((valMin + valMax) / 2.0);
+                    the_mf->get(mfi).setComplement<RunOn::Device>(val, mf.box(idx), j, 1);
+                } else {
+                    const Real valMin(mf[mfi].min<RunOn::Host>(mf.box(idx), j));
+                    const Real valMax(mf[mfi].max<RunOn::Host>(mf.box(idx), j));
+                    const Real val((valMin + valMax) / 2.0);
+                    the_mf->get(mfi).setComplement<RunOn::Host>(val, mf.box(idx), j, 1);
+                }
             }
         }
     }
+
+    amrex::prefetchToHost(mf);
 
     // ---- check if mf has sparse data
     bool useSparseFPP(false);
@@ -1067,9 +1106,12 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
         }
     }
 
-
     if(nfi.GetDynamic()) {
         coordinatorProc = nfi.CoordinatorProc();
+    }
+
+    if (Gpu::inLaunchRegion()) {
+        amrex::prefetchToDevice(mf);  // CalculateMinMax might do work on device
     }
 
     if(currentVersion == VisMF::Header::Version_v1 ||
@@ -1895,6 +1937,8 @@ VisMF::Read (FabArray<FArrayBox> &mf,
     }
 
     BL_ASSERT(mf.ok());
+
+    if (Gpu::inLaunchRegion()) amrex::prefetchToDevice(mf);
 }
 
 
@@ -2130,75 +2174,75 @@ void VisMF::CloseAllStreams() {
   VisMF::persistentIFStreams.clear();
 }
 
-std::future<WriteAsyncStatus>
-VisMF::WriteAsync (const FabArray<FArrayBox>& mf, const std::string& mf_name)
-{
-    BL_PROFILE("VisMF::WriteAysnc()");
-    AMREX_ASSERT(mf_name[mf_name.length() - 1] != '/');
 
-    const int nfiles = nOutFiles;
-    // const int nfiles = 2; // for testing only
+void
+VisMF::AsyncWrite (const FabArray<FArrayBox>& mf, const std::string& mf_name, bool valid_cells_only)
+{
+    if (AsyncOut::UseAsyncOut()) {
+        AsyncWriteDoit(mf, mf_name, false, valid_cells_only);
+    } else {
+        if (valid_cells_only and mf.nGrowVect() != 0) {
+            FabArray<FArrayBox> mf_tmp(mf.boxArray(), mf.DistributionMap(), mf.nComp(), 0);
+            amrex::Copy(mf_tmp, mf, 0, 0, mf.nComp(), 0);
+            Write(mf_tmp, mf_name);
+        } else {
+            Write(mf, mf_name);
+        }
+    }
+}
+
+void
+VisMF::AsyncWrite (FabArray<FArrayBox>&& mf, const std::string& mf_name, bool valid_cells_only)
+{
+    if (AsyncOut::UseAsyncOut()) {
+        AsyncWriteDoit(mf, mf_name, true, valid_cells_only);
+    } else {
+        if (valid_cells_only and mf.nGrowVect() != 0) {
+            FabArray<FArrayBox> mf_tmp(mf.boxArray(), mf.DistributionMap(), mf.nComp(), 0);
+            amrex::Copy(mf_tmp, mf, 0, 0, mf.nComp(), 0);
+            Write(mf_tmp, mf_name);
+        } else {
+            Write(mf, mf_name);
+        }
+    }
+}
+
+void
+VisMF::AsyncWriteDoit (const FabArray<FArrayBox>& mf, const std::string& mf_name,
+                       bool is_rvalue, bool valid_cells_only)
+{
+    BL_PROFILE("VisMF::AsyncWrite()");
+
+    AMREX_ASSERT(mf_name[mf_name.length() - 1] != '/');
+    static_assert(sizeof(int64_t) == sizeof(Real)*2 or sizeof(int64_t) == sizeof(Real),
+                  "AsyncWrite: unsupported Real size");
 
     const DistributionMapping& dm = mf.DistributionMap();
 
-    int myproc = ParallelDescriptor::MyProc();
-    int nprocs = ParallelDescriptor::NProcs();
+    const int myproc = ParallelDescriptor::MyProc();
+    const int nprocs = ParallelDescriptor::NProcs();
+    const int io_proc = nprocs - 1;
 
-    RealDescriptor const& whichRD = []() -> RealDescriptor const& {
-        switch (FArrayBox::getFormat())
-        {
-        case FABio::FAB_NATIVE:
-            return FPC::NativeRealDescriptor();
-        case FABio::FAB_NATIVE_32:
-            return FPC::Native32RealDescriptor();
-        case FABio::FAB_IEEE_32:
-            return FPC::Ieee32NormalRealDescriptor();
-        default:
-            return FPC::NativeRealDescriptor();
-        }
-    }();
-    bool doConvert = whichRD != FPC::NativeRealDescriptor();
+    RealDescriptor const& whichRD = FPC::NativeRealDescriptor();
 
-    VisMF::Header hdr(mf, VisMF::NFiles, VisMF::Header::Version_v1, true);
+    auto hdr = std::make_shared<VisMF::Header>(mf, VisMF::NFiles, VisMF::Header::Version_v1, false);
 
-    const int nspots = (nprocs + (nfiles-1)) / nfiles;   // max spots per file
-    const int nfull = nfiles + nprocs - nspots*nfiles;  // the first nfull files are full
-    auto rank_to_info = [=] (int rank) -> std::array<int,3> {
-        int ifile, ispot, iamlast;
-        if (rank < nfull*nspots) {
-            ifile = rank / nspots;
-            ispot = rank - ifile*nspots;
-            iamlast = (ispot == nspots-1);
-        } else {
-            int tmpproc = rank-nfull*nspots;
-            ifile = tmpproc/(nspots-1);
-            ispot = tmpproc - ifile*(nspots-1);
-            ifile += nfull;
-            iamlast = (ispot == nspots-2);
-        }
-        return {ifile, ispot, iamlast};
-    };
-    auto myinfo = rank_to_info(myproc);
-    int ifile = std::get<0>(myinfo);   // file #
-    int ispot = std::get<1>(myinfo);   // spot #
-    int iamlast = std::get<2>(myinfo); // Am I last the process that touches the file?
-
-    static_assert(sizeof(int64_t) == sizeof(Real)*2 or sizeof(int64_t) == sizeof(Real),
-                  "WriteAsync: unsupported Real size");
     constexpr int sizeof_int64_over_real = sizeof(int64_t) / sizeof(Real);
     const int n_local_fabs = mf.local_size();
     const int n_global_fabs = mf.size();
     const int ncomp = mf.nComp();
     const Long n_fab_reals = 2*ncomp;
     const Long n_fab_int64 = 1;
-    const Long n_fab_nums = n_fab_reals*sizeof_int64_over_real + n_fab_int64;
+    const Long n_fab_nums = (n_fab_reals/sizeof_int64_over_real) + n_fab_int64;
     const Long n_local_nums = n_fab_nums * n_local_fabs + 1;
     Vector<int64_t> localdata(n_local_nums);
 
-#if defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ == 9) && (__CUDACC_VER_MINOR__ == 2)
-    constexpr Real value_max = std::numeric_limits<Real>::max();
-    constexpr Real value_min = std::numeric_limits<Real>::lowest();
-#endif
+    bool data_on_device = (mf.arena() == The_Arena() or
+                           mf.arena() == The_Device_Arena() or
+                           mf.arena() == The_Managed_Arena());
+    bool run_on_device = Gpu::inLaunchRegion() and data_on_device;
+
+    bool strip_ghost = valid_cells_only and mf.nGrowVect() != 0;
 
     int64_t total_bytes = 0;
     auto pld = (char*)(&(localdata[1]));
@@ -2209,70 +2253,44 @@ VisMF::WriteAsync (const FabArray<FArrayBox>& mf, const std::string& mf_name)
         pld += sizeof(int64_t);
 
         const FArrayBox& fab = mf[mfi];
-
-        std::stringstream hss;
-        fio.write_header(hss, fab, ncomp);
-        total_bytes += static_cast<std::streamoff>(hss.tellp());
-        total_bytes += fab.size() * whichRD.numBytes();
-
-        // compute min and max
         const Box& bx = mfi.validbox();
 
-#ifdef AMREX_USE_GPU
-#if 0
-        // xxxxx todo
-        AsyncArray<Real> mm(ncomp*2);
-        const auto& arr = fab.array();
-        const auto ec = amrex::Gpu::ExecutionConfig(bx.numPts()/Gpu::Device::warp_size);
-        amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(Real), 0>>>(
-        [=] AMREX_GPU_DEVICE () noexcept {
-            Gpu::SharedMemory<Real> gsm;
-                Real* block_r = gsm.dataPtr();
-                Real* sdata = block_r + 1;
+        std::stringstream hss;
+        FArrayBox valid_fab(bx, ncomp, false);
+        FArrayBox const& header_fab = (strip_ghost) ? valid_fab : fab;
+        fio.write_header(hss, header_fab, ncomp);
+        total_bytes += static_cast<std::streamoff>(hss.tellp());
+        total_bytes += header_fab.size() * whichRD.numBytes();
 
-                const FAB fab(arr,bx.ixType());
-
-#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
-                Real tmin = std::numeric_limits<Real>::max();
-#else
-                Real tmin = value_max;
-#endif
-                for (auto const tbx : Gpu::Range(bx)) {
-                    Real local_tmin = f(tbx, fab);
-                    tmin = amrex::min(tmin, local_tmin);
-                }
-                sdata[threadIdx.x] = tmin;
-                __syncthreads();
-
-                Gpu::blockReduceMin<AMREX_GPU_MAX_THREADS,Gpu::Device::warp_size>(sdata, *block_r);
-
-                if (threadIdx.x == 0) Gpu::Atomic::Min(d_r, *block_r);
-        });
-#endif
-
-#else
+        // compute min and max
+        Real cmin, cmax;
         for (int icomp = 0; icomp < ncomp; ++icomp) {
-            Real cmin = fab.min<RunOn::Host>(bx,icomp);
-            Real cmax = fab.max<RunOn::Host>(bx,icomp);
+            if (run_on_device) {
+                cmin = fab.min<RunOn::Device>(bx,icomp);
+                cmax = fab.max<RunOn::Device>(bx,icomp);
+            } else {
+                cmin = fab.min<RunOn::Host>(bx,icomp);
+                cmax = fab.max<RunOn::Host>(bx,icomp);
+            }
+
             std::memcpy(pld, &cmin, sizeof(Real));
             pld += sizeof(Real);
             std::memcpy(pld, &cmax, sizeof(Real));
             pld += sizeof(Real);
         }
-#endif
     }
     localdata[0] = total_bytes;
 
-    Vector<int64_t> globaldata;
+    auto globaldata = std::make_shared<Vector<int64_t> >();
     if (nprocs == 1) {
-        globaldata = std::move(localdata);
+        *globaldata = std::move(localdata);
     }
 #ifdef BL_USE_MPI
     else {
         const Long n_global_nums = n_fab_nums * n_global_fabs + nprocs;
         Vector<int> rcnt, rdsp;
-        if (myproc == nprocs-1) {
-            globaldata.resize(n_global_nums);
+        if (myproc == io_proc) {
+            globaldata->resize(n_global_nums);
             rcnt.resize(nprocs,1);
             rdsp.resize(nprocs,0);
             for (int k = 0; k < n_global_fabs; ++k) {
@@ -2281,61 +2299,54 @@ VisMF::WriteAsync (const FabArray<FArrayBox>& mf, const std::string& mf_name)
             }
             std::partial_sum(rcnt.begin(), rcnt.end()-1, rdsp.begin()+1);
         } else {
-            globaldata.resize(1,0);
+            globaldata->resize(1,0);
             rcnt.resize(1,0);
             rdsp.resize(1,0);
         }
         BL_MPI_REQUIRE(MPI_Gatherv(localdata.data(), localdata.size(), MPI_INT64_T,
-                                   globaldata.data(), rcnt.data(), rdsp.data(), MPI_INT64_T,
-                                   nprocs-1, ParallelDescriptor::Communicator()));
+                                   globaldata->data(), rcnt.data(), rdsp.data(), MPI_INT64_T,
+                                   io_proc, ParallelDescriptor::Communicator()));
     }
 #endif
 
-    std::unique_ptr<char,DataDeleter> alldata((char*)(The_Pinned_Arena()->alloc(total_bytes)),
-                                              DataDeleter(The_Pinned_Arena()));
-    char* p = alldata.get();
-    void* ptmp;
-    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
-    {
-        const FArrayBox& fab = mf[mfi];
-        std::stringstream hss;
-        fio.write_header(hss, fab, ncomp);
-        int nbytes = static_cast<std::streamoff>(hss.tellp());
-        auto tstr = hss.str();
-        std::memcpy(p, tstr.c_str(), nbytes);
-        p += nbytes;
-        Long nreals = fab.size();
-        if (doConvert) {
-            ptmp = The_Pinned_Arena()->alloc(nreals*sizeof(Real));
-        } else {
-            ptmp = p;
-        }
+    auto myfabs = std::make_shared<Vector<FArrayBox> >();
+    for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
+        Box bx = strip_ghost ? mfi.validbox() : mfi.fabbox();
 #ifdef AMREX_USE_GPU
-        Gpu::dtoh_memcpy(ptmp, fab.dataPtr(), nreals*sizeof(Real));
-#else
-        std::memcpy(ptmp, fab.dataPtr(), nreals*sizeof(Real));
+        if (data_on_device) {
+            myfabs->emplace_back(bx, mf.nComp(), The_Pinned_Arena());
+            auto& new_fab = myfabs->back();
+            if (strip_ghost) {
+                new_fab.copy<RunOn::Device>(mf[mfi], bx);
+            } else {
+                Gpu::dtoh_memcpy(new_fab.dataPtr(), mf[mfi].dataPtr(), new_fab.size()*sizeof(Real));
+            }
+        } else
 #endif
-        if (doConvert) {
-            RealDescriptor::convertFromNativeFormat(p, nreals, ptmp, whichRD);
-            The_Pinned_Arena()->free(ptmp);
-        }        
-        p += nreals * whichRD.numBytes();
+        {
+            if (is_rvalue and not strip_ghost) {
+                myfabs->emplace_back(std::move(const_cast<FArrayBox&>(mf[mfi])));
+            } else {
+                myfabs->emplace_back(bx, mf.nComp(), The_Cpu_Arena());
+                auto& new_fab = myfabs->back();
+                new_fab.copy<RunOn::Host>(mf[mfi], bx);
+            }
+        }
     }
 
-    auto af = std::async(std::launch::async,
-    [=] (std::unique_ptr<char,DataDeleter> d, Header h, Vector<int64_t> const& gdata)
-         -> WriteAsyncStatus
+    std::shared_ptr<FABio> fabio(new FABio_binary(FPC::NativeRealDescriptor().clone()));
+
+    AsyncOut::Submit([=] ()
     {
-        Real tbegin = amrex::second();
-        if (myproc == nprocs-1)
+        if (myproc == io_proc)
         {
-            h.m_fod.resize(n_global_fabs);
-            h.m_min.resize(n_global_fabs);
-            h.m_max.resize(n_global_fabs);
-            h.m_famin.clear();
-            h.m_famax.clear();
-            h.m_famin.resize(ncomp,std::numeric_limits<Real>::max());
-            h.m_famax.resize(ncomp,std::numeric_limits<Real>::lowest());
+            hdr->m_fod.resize(n_global_fabs);
+            hdr->m_min.resize(n_global_fabs);
+            hdr->m_max.resize(n_global_fabs);
+            hdr->m_famin.clear();
+            hdr->m_famax.clear();
+            hdr->m_famin.resize(ncomp,std::numeric_limits<Real>::max());
+            hdr->m_famax.resize(ncomp,std::numeric_limits<Real>::lowest());
 
             Vector<int64_t> nbytes_on_rank(nprocs,-1L);
             Vector<Vector<int> > gidx(nprocs);
@@ -2344,7 +2355,7 @@ VisMF::WriteAsync (const FabArray<FArrayBox>& mf, const std::string& mf_name)
                 gidx[rank].push_back(k);
             }
 
-            auto pgd = (char*)(gdata.data());
+            auto pgd = (char*)(globaldata->data());
             {
                 int rank = 0, lidx = 0;
                 for (int j = 0; j < n_global_fabs; ++j)
@@ -2359,42 +2370,41 @@ VisMF::WriteAsync (const FabArray<FArrayBox>& mf, const std::string& mf_name)
                             lidx = 0;
                         }
                     } while (k < 0);
-                    
-                    h.m_min[k].resize(ncomp);
-                    h.m_max[k].resize(ncomp);
-                    
+
+                    hdr->m_min[k].resize(ncomp);
+                    hdr->m_max[k].resize(ncomp);
+
                     if (nbytes_on_rank[rank] < 0) { // First time for this rank
                         std::memcpy(&(nbytes_on_rank[rank]), pgd, sizeof(int64_t));
                         pgd += sizeof(int64_t);
                     }
-                    
+
                     int64_t nbytes;
                     std::memcpy(&nbytes, pgd, sizeof(int64_t));
                     pgd += sizeof(int64_t);
-                    
+
                     for (int icomp = 0; icomp < ncomp; ++icomp) {
                         Real cmin, cmax;
                         std::memcpy(&cmin, pgd             , sizeof(Real));
                         std::memcpy(&cmax, pgd+sizeof(Real), sizeof(Real));
                         pgd += sizeof(Real)*2;
-                        h.m_min[k][icomp] = cmin;
-                        h.m_max[k][icomp] = cmax;
-                        h.m_famin[icomp] = std::min(h.m_famin[icomp],cmin);
-                        h.m_famax[icomp] = std::max(h.m_famax[icomp],cmax);
+                        hdr->m_min[k][icomp] = cmin;
+                        hdr->m_max[k][icomp] = cmax;
+                        hdr->m_famin[icomp] = std::min(hdr->m_famin[icomp],cmin);
+                        hdr->m_famax[icomp] = std::max(hdr->m_famax[icomp],cmax);
                     }
-                    
-                    auto info = rank_to_info(rank);
-                    int fno = std::get<0>(info);   // file #
-                    h.m_fod[k].m_name = amrex::Concatenate(VisMF::BaseName(mf_name)+FabFileSuffix, fno, 5);
-                    h.m_fod[k].m_head = nbytes;
+
+                    auto info = AsyncOut::GetWriteInfo(rank);
+                    hdr->m_fod[k].m_name = amrex::Concatenate(VisMF::BaseName(mf_name)+FabFileSuffix,
+                                                              info.ifile, 5);
+                    hdr->m_fod[k].m_head = nbytes;
                 }
             }
 
             Vector<int64_t> offset(nprocs);
             for (int ip = 0; ip < nprocs; ++ip) {
-                auto info = rank_to_info(ip);
-                int sno = std::get<1>(info);
-                if (sno == 0) {
+                auto info = AsyncOut::GetWriteInfo(ip);
+                if (info.ispot == 0) {
                     offset[ip] = 0;
                 } else {
                     offset[ip] = offset[ip-1] + nbytes_on_rank[ip-1];
@@ -2402,81 +2412,32 @@ VisMF::WriteAsync (const FabArray<FArrayBox>& mf, const std::string& mf_name)
             }
 
             for (int k = 0; k < n_global_fabs; ++k) {
-                h.m_fod[k].m_head += offset[dm[k]];
+                hdr->m_fod[k].m_head += offset[dm[k]];
             }
 
-            VisMF::WriteHeaderDoit(mf_name, h);
+            VisMF::WriteHeaderDoit(mf_name, *hdr);
         }
 
-        const std::string my_turn_file = mf_name + "_proc_" + std::to_string(myproc);
-        const std::string next_in_line_file = mf_name + "_proc_" + std::to_string(myproc+1);
-        bool myturn = (ispot == 0);
-        std::chrono::microseconds tsleep(std::min(10000*ispot,1000000));
-        std::chrono::microseconds tsleep_min = tsleep/10;
-        Long nchecks = 0;
+        VisMF::IO_Buffer io_buffer(ioBufferSize);
 
-        Real t0 = amrex::second();
+        AsyncOut::Wait();  // Wait for my turn
 
-        while (!myturn) {
-            ++nchecks;
-            std::this_thread::sleep_for(tsleep);
-            tsleep /= 5; tsleep *= 4;
-            tsleep = std::max(tsleep, tsleep_min);
-            if (FILE* fp = fopen(my_turn_file.c_str(), "r")) {
-                fclose(fp);
-                myturn = true;
-            }
-            if (myturn) {
-                remove(my_turn_file.c_str());
-            }
+        auto info = AsyncOut::GetWriteInfo(myproc);
+        std::string file_name = amrex::Concatenate(mf_name + FabFileSuffix, info.ifile, 5);
+        std::ofstream ofs;
+        ofs.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
+        ofs.open(file_name.c_str(), (info.ispot == 0) ? (std::ios::binary | std::ios::trunc)
+                                                      : (std::ios::binary | std::ios::app));
+        if (!ofs.good()) amrex::FileOpenFailed(file_name);
+        for (auto const& fab : *myfabs) {
+            fabio->write_header(ofs, fab, fab.nComp());
+            fabio->write(ofs, fab, 0, fab.nComp());
         }
+        ofs.flush();
+        ofs.close();
 
-        Real t1 = amrex::second();
-
-        if (total_bytes > 0) {
-            std::string file_name = amrex::Concatenate(mf_name + FabFileSuffix, ifile, 5);
-            std::ofstream ofs;
-            ofs.open(file_name.c_str(), (ispot == 0)
-                     ? (std::ios::binary | std::ios::trunc)
-                     : (std::ios::binary | std::ios::app));
-            if (!ofs.good()) amrex::FileOpenFailed(file_name);
-            ofs.write(d.get(), total_bytes);
-            ofs.close();
-        }
-
-        Real t2 = amrex::second();
-
-        if (!iamlast) {
-            if (FILE* fp = fopen(next_in_line_file.c_str(), "w")) {
-                fclose(fp);
-            }
-        }
-
-        Real tend = amrex::second();
-
-        WriteAsyncStatus status;
-        status.nbytes = total_bytes;
-        status.nspins = nchecks;
-        status.t_total = tend-tbegin;
-        status.t_header = t0-tbegin;
-        status.t_spin = t1-t0;
-        status.t_write = t2-t1;
-        status.t_send = tend-t2;
-        return status;
-    },
-    std::move(alldata), std::move(hdr), std::move(globaldata));
-
-    return af;
-}
-
-std::ostream&
-operator<< (std::ostream& os, const WriteAsyncStatus& status)
-{
-    os << "total bytes: " << status.nbytes << ", nspins: " << status.nspins
-       << ", t_total: " << status.t_total << ", t_header: " << status.t_header
-       << ", t_spin: " << status.t_spin << ", t_write: " << status.t_write
-       << ", t_send: " << status.t_send;
-    return os;
+        AsyncOut::Notify();  // Notify others I am done
+    });
 }
 
 }

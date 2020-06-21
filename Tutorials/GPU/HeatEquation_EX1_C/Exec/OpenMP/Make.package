@@ -1,4 +1,0 @@
-FEXE_headers += myfunc_F.H
-CEXE_headers += myfunc.H
-CEXE_sources += myfunc.cpp
-F90EXE_sources += mykernel.F90

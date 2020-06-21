@@ -1166,6 +1166,7 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
         linop.applyMetricTerm(alev, 0, rhs[alev]);
         linop.unimposeNeumannBC(alev, rhs[alev]);
         linop.applyInhomogNeumannTerm(alev, rhs[alev]);
+        linop.applyOverset(alev, rhs[alev]);
 
 #ifdef AMREX_USE_EB
         auto factory = dynamic_cast<EBFArrayBoxFactory const*>(linop.Factory(alev));
@@ -1545,6 +1546,10 @@ MLMG::apply (const Vector<MultiFab*>& out, const Vector<MultiFab*>& a_in)
         linop_prepared = true;
     } else if (linop.needsUpdate()) {
         linop.update();
+    }
+
+    for (int alev = 0; alev < namrlevs; ++alev) {
+        linop.applyInhomogNeumannTerm(alev, rh[alev]);
     }
 
     const auto& amrrr = linop.AMRRefRatio();

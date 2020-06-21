@@ -2082,6 +2082,7 @@ void mlndlap_stencil_rap (int i, int j, int k, Array4<Real> const& csten,
         p *= amrex::Math::abs(fsten(i_-1,j_-1,k_-1,ist_ppp)) * fsten(i_,j_,k_,ist_inv);
         return p;
     };
+    amrex::ignore_unused(interp_from_mmm_to);
 
     auto interp_from_pmm_to = [&fsten] (int i_, int j_, int k_) -> Real {
         Real p = 1._rt;
@@ -2548,6 +2549,7 @@ void mlndlap_stencil_rap (int i, int j, int k, Array4<Real> const& csten,
     auto Ammm = [&fsten] (int i_, int j_, int k_) -> Real {
         return fsten(i_-1,j_-1,k_-1,ist_ppp);
     };
+    amrex::ignore_unused(Ammm);
 
     auto A0mm = [&fsten] (int i_, int j_, int k_) -> Real {
         return fsten(i_  ,j_-1,k_-1,ist_0pp);
@@ -2682,6 +2684,7 @@ void mlndlap_stencil_rap (int i, int j, int k, Array4<Real> const& csten,
         r *= amrex::Math::abs(fsten(ii_-1,jj_-1,kk_-1,ist_ppp)) * fsten(ii_-1,jj_-1,kk_-1,ist_inv);
         return r;
     };
+    amrex::ignore_unused(restrict_from_mmm_to);
 
     auto restrict_from_0mm_to = [&fsten] (int ii_, int jj_, int kk_) -> Real {
         Real w1m = amrex::Math::abs(fsten(ii_,jj_-2,kk_-1,ist_0p0)) / (amrex::Math::abs(fsten(ii_,jj_-2,kk_-2,ist_0pp))
@@ -2899,7 +2902,7 @@ void mlndlap_stencil_rap (int i, int j, int k, Array4<Real> const& csten,
         }
     };
 
-    auto restrict_from_000_to = [&fsten] (int ii_, int jj_, int kk_) -> Real {
+    auto restrict_from_000_to = [] (int ii_, int jj_, int kk_) -> Real {
         return 1._rt;
     };
 

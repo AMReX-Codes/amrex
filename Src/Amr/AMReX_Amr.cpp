@@ -12,10 +12,6 @@
 #include <omp.h>
 #endif
 
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-
 #include <AMReX_Geometry.H>
 #include <AMReX_TagBox.H>
 #include <AMReX_Array.H>
@@ -875,10 +871,6 @@ Amr::writePlotFile ()
     BL_PROFILE_REGION_START("Amr::writePlotFile()");
     BL_PROFILE("Amr::writePlotFile()");
 
-    VisMF::SetNOutFiles(plot_nfiles);
-    VisMF::Header::Version currentVersion(VisMF::GetHeaderVersion());
-    VisMF::SetHeaderVersion(plot_headerversion);
-
     if (first_plotfile) {
         first_plotfile = false;
         amr_level[0]->setPlotVariables();
@@ -890,9 +882,9 @@ Amr::writePlotFile ()
       return;
     }
 
-    Real dPlotFileTime0 = amrex::second();
-
-    const std::string& pltfile = amrex::Concatenate(plot_file_root,level_steps[0],file_name_digits);
+    const std::string& pltfile = amrex::Concatenate(plot_file_root,
+                                                    level_steps[0],
+                                                    file_name_digits);
 
     if (verbose > 0) {
 	amrex::Print() << "PLOTFILE: file = " << pltfile << '\n';
@@ -902,99 +894,9 @@ Amr::writePlotFile ()
         runlog << "PLOTFILE: file = " << pltfile << '\n';
     }
 
-  amrex::StreamRetry sretry(pltfile, abort_on_stream_retry_failure,
-                             stream_max_tries);
+    writePlotFileDoit(pltfile, true);
 
-  const std::string pltfileTemp(pltfile + ".temp");
-
-  while(sretry.TryFileOutput()) {
-    //
-    //  if either the pltfile or pltfileTemp exists, rename them
-    //  to move them out of the way.  then create pltfile
-    //  with the temporary name, then rename it back when
-    //  it is finished writing.  then stream retry can rename
-    //  it to a bad suffix if there were stream errors.
-    //
-
-    if (precreateDirectories) {    // ---- make all directories at once
-      amrex::UtilRenameDirectoryToOld(pltfile, false);      // dont call barrier
-      amrex::UtilCreateCleanDirectory(pltfileTemp, false);  // dont call barrier
-      for(int i(0); i <= finest_level; ++i) {
-	amr_level[i]->CreateLevelDirectory(pltfileTemp);
-      }
-      ParallelDescriptor::Barrier("Amr::writePlotFile:PCD");
-
-    } else {
-      amrex::UtilRenameDirectoryToOld(pltfile, false);     // dont call barrier
-      amrex::UtilCreateCleanDirectory(pltfileTemp, true);  // call barrier
-    }
-
-    std::string HeaderFileName(pltfileTemp + "/Header");
-
-    VisMF::IO_Buffer io_buffer(VisMF::GetIOBufferSize());
-
-    std::ofstream HeaderFile;
-
-    HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
-
-    int old_prec(0);
-
-    if (ParallelDescriptor::IOProcessor()) {
-        //
-        // Only the IOProcessor() writes to the header file.
-        //
-        HeaderFile.open(HeaderFileName.c_str(), std::ios::out | std::ios::trunc |
-	                                        std::ios::binary);
-        if ( ! HeaderFile.good()) {
-            amrex::FileOpenFailed(HeaderFileName);
-	}
-        old_prec = HeaderFile.precision(15);
-    }
-
-    for (int k(0); k <= finest_level; ++k) {
-        amr_level[k]->writePlotFilePre(pltfileTemp, HeaderFile);
-    }
-
-    for (int k(0); k <= finest_level; ++k) {
-        amr_level[k]->writePlotFile(pltfileTemp, HeaderFile);
-    }
-
-    for (int k(0); k <= finest_level; ++k) {
-        amr_level[k]->writePlotFilePost(pltfileTemp, HeaderFile);
-    }
-
-    if (ParallelDescriptor::IOProcessor()) {
-        HeaderFile.precision(old_prec);
-        if ( ! HeaderFile.good()) {
-            amrex::Error("Amr::writePlotFile() failed");
-	}
-    }
-
-    last_plotfile = level_steps[0];
-
-    if (verbose > 0) {
-        const int IOProc        = ParallelDescriptor::IOProcessorNumber();
-        Real      dPlotFileTime = amrex::second() - dPlotFileTime0;
-
-        ParallelDescriptor::ReduceRealMax(dPlotFileTime,IOProc);
-
-	amrex::Print() << "Write plotfile time = " << dPlotFileTime << "  seconds" << "\n\n";
-    }
-    ParallelDescriptor::Barrier("Amr::writePlotFile::end");
-
-    if(ParallelDescriptor::IOProcessor()) {
-      std::rename(pltfileTemp.c_str(), pltfile.c_str());
-    }
-    ParallelDescriptor::Barrier("Renaming temporary plotfile.");
-    //
-    // the plotfile file now has the regular name
-    //
-
-  }  // end while
-
-  VisMF::SetHeaderVersion(currentVersion);
-  
-  BL_PROFILE_REGION_STOP("Amr::writePlotFile()");
+    BL_PROFILE_REGION_STOP("Amr::writePlotFile()");
 }
 
 void
@@ -1007,9 +909,6 @@ Amr::writeSmallPlotFile ()
     BL_PROFILE_REGION_START("Amr::writeSmallPlotFile()");
     BL_PROFILE("Amr::writeSmallPlotFile()");
 
-    VisMF::SetNOutFiles(plot_nfiles);
-    VisMF::Header::Version currentVersion(VisMF::GetHeaderVersion());
-    VisMF::SetHeaderVersion(plot_headerversion);
 
     if (first_smallplotfile) {
         first_smallplotfile = false;
@@ -1017,16 +916,14 @@ Amr::writeSmallPlotFile ()
     }
 
     // Don't continue if we have no variables to plot.
-    
+
     if (stateSmallPlotVars().size() == 0) {
       return;
     }
 
-    Real dPlotFileTime0 = amrex::second();
-
     const std::string& pltfile = amrex::Concatenate(small_plot_file_root,
-                                                     level_steps[0],
-                                                     file_name_digits);
+                                                    level_steps[0],
+                                                    file_name_digits);
 
     if (verbose > 0) {
 	amrex::Print() << "SMALL PLOTFILE: file = " << pltfile << '\n';
@@ -1036,90 +933,127 @@ Amr::writeSmallPlotFile ()
         runlog << "SMALL PLOTFILE: file = " << pltfile << '\n';
     }
 
-  amrex::StreamRetry sretry(pltfile, abort_on_stream_retry_failure,
-                             stream_max_tries);
+    writePlotFileDoit(pltfile, false);
 
-  const std::string pltfileTemp(pltfile + ".temp");
+    BL_PROFILE_REGION_STOP("Amr::writeSmallPlotFile()");
+}
 
-  while(sretry.TryFileOutput()) {
-    //
-    //  if either the pltfile or pltfileTemp exists, rename them
-    //  to move them out of the way.  then create pltfile
-    //  with the temporary name, then rename it back when
-    //  it is finished writing.  then stream retry can rename
-    //  it to a bad suffix if there were stream errors.
-    //
-    if (precreateDirectories) {    // ---- make all directories at once
-      amrex::UtilRenameDirectoryToOld(pltfile, false);      // dont call barrier
-      amrex::UtilCreateCleanDirectory(pltfileTemp, false);  // dont call barrier
-      for(int i(0); i <= finest_level; ++i) {
-        amr_level[i]->CreateLevelDirectory(pltfileTemp);
-      }
-      ParallelDescriptor::Barrier("Amr::precreate smallplotfile Directories");
-    } else {
-      amrex::UtilRenameDirectoryToOld(pltfile, false);     // dont call barrier
-      amrex::UtilCreateCleanDirectory(pltfileTemp, true);  // call barrier
-    }
+void
+Amr::writePlotFileDoit (std::string const& pltfile, bool regular)
+{
+    Real dPlotFileTime0 = amrex::second();
 
+    VisMF::SetNOutFiles(plot_nfiles);
+    VisMF::Header::Version currentVersion(VisMF::GetHeaderVersion());
+    VisMF::SetHeaderVersion(plot_headerversion);
 
-    std::string HeaderFileName(pltfileTemp + "/Header");
+    amrex::StreamRetry sretry(pltfile, abort_on_stream_retry_failure,
+                              stream_max_tries);
 
-    VisMF::IO_Buffer io_buffer(VisMF::GetIOBufferSize());
+    const std::string pltfileTemp = (AsyncOut::UseAsyncOut()) ? pltfile : (pltfile + ".temp");
 
-    std::ofstream HeaderFile;
-
-    HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
-
-    int old_prec(0);
-
-    if (ParallelDescriptor::IOProcessor()) {
+    while(sretry.TryFileOutput()) {
         //
-        // Only the IOProcessor() writes to the header file.
+        //  if either the pltfile or pltfileTemp exists, rename them
+        //  to move them out of the way.  then create pltfile
+        //  with the temporary name, then rename it back when
+        //  it is finished writing.  then stream retry can rename
+        //  it to a bad suffix if there were stream errors.
         //
-        HeaderFile.open(HeaderFileName.c_str(), std::ios::out | std::ios::trunc |
-	                                        std::ios::binary);
-        if ( ! HeaderFile.good()) {
-            amrex::FileOpenFailed(HeaderFileName);
-	}
-        old_prec = HeaderFile.precision(15);
-    }
 
-    for (int k(0); k <= finest_level; ++k) {
-        amr_level[k]->writeSmallPlotFile(pltfileTemp, HeaderFile);
-    }
+        if (precreateDirectories) {    // ---- make all directories at once
+            amrex::UtilRenameDirectoryToOld(pltfile, false);      // dont call barrier
+            amrex::UtilCreateCleanDirectory(pltfileTemp, false);  // dont call barrier
+            for(int i(0); i <= finest_level; ++i) {
+                amr_level[i]->CreateLevelDirectory(pltfileTemp);
+            }
+            ParallelDescriptor::Barrier("Amr::writePlotFile:PCD");
+        } else {
+            amrex::UtilRenameDirectoryToOld(pltfile, false);     // dont call barrier
+            amrex::UtilCreateCleanDirectory(pltfileTemp, true);  // call barrier
+        }
 
-    if (ParallelDescriptor::IOProcessor()) {
-        HeaderFile.precision(old_prec);
-        if ( ! HeaderFile.good()) {
-            amrex::Error("Amr::writeSmallPlotFile() failed");
-	}
-    }
+        std::string HeaderFileName(pltfileTemp + "/Header");
 
-    last_smallplotfile = level_steps[0];
+        VisMF::IO_Buffer io_buffer(VisMF::GetIOBufferSize());
 
-    if (verbose > 0) {
-        const int IOProc        = ParallelDescriptor::IOProcessorNumber();
-        Real      dPlotFileTime = amrex::second() - dPlotFileTime0;
+        std::ofstream HeaderFile;
 
-        ParallelDescriptor::ReduceRealMax(dPlotFileTime,IOProc);
+        HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
 
-	amrex::Print() << "Write small plotfile time = " << dPlotFileTime << "  seconds" << "\n\n";
-    }
-    ParallelDescriptor::Barrier("Amr::writeSmallPlotFile::end");
+        int old_prec(0);
 
-    if(ParallelDescriptor::IOProcessor()) {
-      std::rename(pltfileTemp.c_str(), pltfile.c_str());
-    }
-    ParallelDescriptor::Barrier("Renaming temporary plotfile.");
-    //
-    // the plotfile file now has the regular name
-    //
+        if (ParallelDescriptor::IOProcessor()) {
+            //
+            // Only the IOProcessor() writes to the header file.
+            //
+            HeaderFile.open(HeaderFileName.c_str(), std::ios::out | std::ios::trunc |
+                            std::ios::binary);
+            if ( ! HeaderFile.good()) {
+                amrex::FileOpenFailed(HeaderFileName);
+            }
+            old_prec = HeaderFile.precision(15);
+        }
 
-  }  // end while
+        if (regular) {
+            for (int k(0); k <= finest_level; ++k) {
+                amr_level[k]->writePlotFilePre(pltfileTemp, HeaderFile);
+            }
+            for (int k(0); k <= finest_level; ++k) {
+                amr_level[k]->writePlotFile(pltfileTemp, HeaderFile);
+            }
+            for (int k(0); k <= finest_level; ++k) {
+                amr_level[k]->writePlotFilePost(pltfileTemp, HeaderFile);
+            }
+        } else {
+            for (int k(0); k <= finest_level; ++k) {
+                amr_level[k]->writeSmallPlotFile(pltfileTemp, HeaderFile);
+            }
+        }
 
-  VisMF::SetHeaderVersion(currentVersion);
-  
-  BL_PROFILE_REGION_STOP("Amr::writeSmallPlotFile()");
+        if (ParallelDescriptor::IOProcessor()) {
+            HeaderFile.precision(old_prec);
+            if ( ! HeaderFile.good()) {
+                if (regular) {
+                    amrex::Error("Amr::writePlotFile() failed");
+                } else {
+                    amrex::Error("Amr::writeSmallPlotFile() failed");
+                }
+            }
+        }
+
+        if (regular) {
+            last_plotfile = level_steps[0];
+        } else {
+            last_smallplotfile = level_steps[0];
+        }
+
+        if (verbose > 0) {
+            const int IOProc        = ParallelDescriptor::IOProcessorNumber();
+            Real      dPlotFileTime = amrex::second() - dPlotFileTime0;
+            ParallelDescriptor::ReduceRealMax(dPlotFileTime,IOProc);
+            if (regular) {
+                amrex::Print() << "Write plotfile time = " << dPlotFileTime << "  seconds" << "\n\n";
+            } else {
+                amrex::Print() << "Write small plotfile time = " << dPlotFileTime << "  seconds" << "\n\n";
+            }
+        }
+
+        if (AsyncOut::UseAsyncOut()) {
+            break;
+        } else {
+            ParallelDescriptor::Barrier("Amr::writePlotFile::end");
+            if(ParallelDescriptor::IOProcessor()) {
+            std::rename(pltfileTemp.c_str(), pltfile.c_str());
+            }
+            ParallelDescriptor::Barrier("Renaming temporary plotfile.");
+            //
+            // the plotfile file now has the regular name
+            //
+        }
+    }  // end while
+
+    VisMF::SetHeaderVersion(currentVersion);
 }
 
 void
@@ -1215,8 +1149,9 @@ Amr::init (Real strt_time,
             writePlotFile();
         }
 
-        if (small_plot_int > 0 || small_plot_per > 0 || small_plot_log_per > 0)
-	        writeSmallPlotFile();
+        if (small_plot_int > 0 || small_plot_per > 0 || small_plot_log_per > 0) {
+            writeSmallPlotFile();
+        }
 
         updateInSitu();
     }
@@ -1787,11 +1722,11 @@ Amr::checkPoint ()
         runlog << "CHECKPOINT: file = " << ckfile << '\n';
     }
 
-
   amrex::StreamRetry sretry(ckfile, abort_on_stream_retry_failure,
                              stream_max_tries);
 
-  const std::string ckfileTemp(ckfile + ".temp");
+  // For AsyncOut, we need to turn off stream retry and write to ckfile directly.
+  const std::string ckfileTemp = (AsyncOut::UseAsyncOut()) ? ckfile : (ckfile + ".temp");
 
   while(sretry.TryFileOutput()) {
 
@@ -1914,13 +1849,16 @@ Amr::checkPoint ()
 
 	amrex::Print() << "checkPoint() time = " << dCheckPointTime << " secs." << '\n';
     }
-    ParallelDescriptor::Barrier("Amr::checkPoint::end");
 
-    if(ParallelDescriptor::IOProcessor()) {
-      std::rename(ckfileTemp.c_str(), ckfile.c_str());
+    if (AsyncOut::UseAsyncOut()) {
+        break;
+    } else {
+        ParallelDescriptor::Barrier("Amr::checkPoint::end");
+        if(ParallelDescriptor::IOProcessor()) {
+            std::rename(ckfileTemp.c_str(), ckfile.c_str());
+        }
+        ParallelDescriptor::Barrier("Renaming temporary checkPoint file.");
     }
-    ParallelDescriptor::Barrier("Renaming temporary checkPoint file.");
-
   }  // end while
 
   //

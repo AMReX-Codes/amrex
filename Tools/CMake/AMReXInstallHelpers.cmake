@@ -96,13 +96,12 @@ function (install_amrex)
       NAMESPACE AMReX::
       DESTINATION lib/cmake/AMReX )
 
-   # Install fortran modules
-   get_target_property(_mod_dir amrex Fortran_MODULE_DIRECTORY )
-   install( DIRECTORY ${_mod_dir}/ DESTINATION include ) # Trailing backslash is crucial here!
-
-   # # This header in a weird path has to be copied to install includes
-   # install( FILES ${PROJECT_SOURCE_DIR}/Tools/C_scripts/AMReX_buildInfo.H
-   #    DESTINATION include )
+   # Install fortran modules if Fortran is enabled
+   get_property(_lang GLOBAL PROPERTY ENABLED_LANGUAGES)
+   if ("Fortran" IN_LIST _lang )
+      get_target_property(_mod_dir amrex Fortran_MODULE_DIRECTORY )
+      install( DIRECTORY ${_mod_dir}/ DESTINATION include ) # Trailing backslash is crucial here!
+   endif ()
 
    # Generate config header
    generate_amrex_config_header()

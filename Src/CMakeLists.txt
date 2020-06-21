@@ -8,27 +8,40 @@
 add_library( amrex )
 add_library( AMReX::amrex ALIAS amrex )
 
+if (ENABLE_DPCPP)
+   include(AMReXSYCL)
+   target_link_libraries(amrex PUBLIC SYCL)
+endif ()
+
 # Where to store Fortran modules
-set_target_properties( amrex
-   PROPERTIES
-   Fortran_MODULE_DIRECTORY
-   ${PROJECT_BINARY_DIR}/mod_files
-   INTERFACE_INCLUDE_DIRECTORIES
-   $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/mod_files>
-   )
-# adding those is a work-around that avoids that downstream C++ projects have
-# to `enable_language(Fortran)`
-target_link_libraries(amrex PUBLIC ${CMAKE_Fortran_IMPLICIT_LINK_LIBRARIES})
+if (CMAKE_Fortran_COMPILER_LOADED)
+   set_target_properties( amrex
+      PROPERTIES
+      Fortran_MODULE_DIRECTORY
+      ${PROJECT_BINARY_DIR}/mod_files
+      INTERFACE_INCLUDE_DIRECTORIES
+      $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/mod_files>
+      )
+   # adding those is a work-around that avoids that downstream C++ projects have
+   # to `enable_language(Fortran)`
+   target_link_libraries(amrex PUBLIC ${CMAKE_Fortran_IMPLICIT_LINK_LIBRARIES})
+endif ()
 
 # Load Flags targets and use them if no user-defined flags is given
 include(AMReXFlagsTargets)
 
-if (NOT CMAKE_Fortran_FLAGS)
+if (CMAKE_Fortran_COMPILER_LOADED AND (NOT CMAKE_Fortran_FLAGS) )
    target_link_libraries(amrex
       PUBLIC
       $<BUILD_INTERFACE:Flags_Fortran>
       )
 endif ()
+
+
+target_link_libraries(amrex
+   PUBLIC
+   $<BUILD_INTERFACE:Flags_CXX_REQUIRED>
+   )
 
 if (NOT CMAKE_CXX_FLAGS)
    target_link_libraries(amrex
@@ -170,7 +183,7 @@ set_target_properties( amrex PROPERTIES PUBLIC_HEADER "${AMREX_PUBLIC_HEADERS}")
 # If ENABLE_CUDA, C++ files will be compiled as CUDA sources
 #
 if (ENABLE_CUDA)
-   set_cpp_sources_to_cuda_language( amrex )
+   setup_target_for_cuda_compilation( amrex )
 endif ()
 
 
@@ -178,4 +191,8 @@ endif ()
 # Install amrex  -- Export
 #
 include(AMReXInstallHelpers)
-install_amrex(Flags_CXX Flags_Fortran Flags_FPE)
+set(_amrex_targets Flags_CXX Flags_Fortran Flags_FPE )
+if (ENABLE_DPCPP)
+   list(APPEND _amrex_targets SYCL)
+endif()
+install_amrex(${_amrex_targets})

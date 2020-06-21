@@ -25,8 +25,8 @@ number of extra :cpp:`Real` variables this particle will have (either single or
 double precision [1]_), while the second is the number of extra integer
 variables.  It is important to note that this is the number of *extra* real and
 integer variables; a particle will always have at least :cpp:`BL_SPACEDIM` real
-components that store the particle’s position and 2 integer components that
-store the particle’s :cpp:`id` and :cpp:`cpu` numbers. [2]_
+components that store the particle's position and 2 integer components that
+store the particle's :cpp:`id` and :cpp:`cpu` numbers. [2]_
 
 The particle struct is designed to store these variables in a way that
 minimizes padding, which in practice means that the :cpp:`Real` components
@@ -47,8 +47,8 @@ Setting Particle data
 ---------------------
 
 The :cpp:`Particle` struct provides a number of methods for getting and setting
-a particle’s data. For the required particle components, there are special,
-named methods. For the “extra” real and integer data, you can use the
+a particle's data. For the required particle components, there are special,
+named methods. For the "extra" real and integer data, you can use the
 :cpp:`rdata` and :cpp:`idata` methods, respectively.
 
 .. highlight:: c++
@@ -124,7 +124,7 @@ Struct-of-Arrays as particle *attributes*. See the figure
    integer arrays.  In the tile shown, there are only 2 particles. We have
    labelled the extra real data member of the particle struct to be
    :cpp:`mass`, while the extra integer members of the particle struct are
-   labeled :cpp:`p`, and :cpp:`s`, for “phase” and “state”. The variables in
+   labeled :cpp:`p`, and :cpp:`s`, for "phase" and "state". The variables in
    the real and integer arrays are labelled :cpp:`foo`, :cpp:`bar`, :cpp:`l`,
    and :cpp:`n`, respectively. We have assumed that the particles are double
    precision.
@@ -142,11 +142,11 @@ inefficient, since most of the time you are reading 97 extra variables into
 cache that you will never use. By splitting up the particle variables into
 stuff that gets used all the time (stored in the AoS) and stuff that only gets
 used infrequently (stored in the SoA), you can in principle achieve much better
-cache reuse. Of course, the usage pattern of your application likely won’t be
+cache reuse. Of course, the usage pattern of your application likely won't be
 so clear-cut. Flexibility in how the particle data is stored also makes it
 easier to interface between AMReX and already-existing Fortran subroutines.
 
-Note that while “extra” particle data can be stored in either the SoA or AoS
+Note that while "extra" particle data can be stored in either the SoA or AoS
 style, the particle positions and id numbers are **always** stored in the
 particle structs. This is because these particle variables are special and used
 internally by AMReX to assign the particles to grids and to mark particles as
@@ -180,10 +180,10 @@ Or, if you have multiple levels, you can use following constructor instead:
                            const Vector<BoxArray>            & ba,
                            const Vector<int>                 & rr);
 
-Note the set of grids used to define the :cpp:`ParticleContainer` doesn’t have
-to be the same set used to define the simulation’s mesh data. However, it is
+Note the set of grids used to define the :cpp:`ParticleContainer` doesn't have
+to be the same set used to define the simulation's mesh data. However, it is
 often desirable to have the two hierarchies track each other. If you are using
-an :cpp:`AmrCore` class in your simulation (see the Chapter on
+an :cpp:`AmrCore` class in your simulation (see the Chapter on
 :ref:`Chap:AmrCore`), you can achieve this by using the
 :cpp:`AmrParticleContainer` class. The constructor for this class takes a
 pointer to your AmrCore derived class, instead:
@@ -210,7 +210,7 @@ what happens with mesh data. With mesh data, the tiling is strictly logical;
 the data is laid out in memory the same whether tiling is turned on or off.
 With particle data, however, the particles are actually stored in different
 arrays when tiling is enabled. As with mesh data, the particle tile size can be
-tuned so that an entire tile’s worth of particles will fit into a cache line at
+tuned so that an entire tile's worth of particles will fit into a cache line at
 once.
 
 Once the particles move, their data may no longer be in the right place in the
@@ -280,10 +280,62 @@ conditions for both SoA and AoS data. We loop over all the tiles using
 Often, it makes sense to have each process only generate particles that it
 owns, so that the particles are already in the right place in the container.
 In general, however, users may need to call :cpp:`Redistribute()` after adding
-particles, if the processes generate particles they don’t own (for example, if
+particles, if the processes generate particles they don't own (for example, if
 the particle positions are perturbed from the cell centers and thus end up
 outside their parent grid).
 
+.. _sec:Particles:Runtime:
+
+Adding particle components at runtime
+=====================================
+
+In addition to the components specified as template parameters, you can also
+add additional :cpp:`Real` and :cpp:`int` components at runtime. These components
+will be stored in Struct-of-Array style. To add a runtime component, use the 
+:cpp:`AddRealComp` and :cpp:`AddIntComp` methods of :cpp:`ParticleContainer`, like so:
+
+.. highlight:: c++
+
+::
+
+
+    const bool communicate_this_comp = true;
+    for (int i = 0; i < num_runtime_real; ++i)
+    {
+        AddRealComp(communicate_this_comp);
+    }
+    for (int i = 0; i < num_runtime_int; ++i)
+    {
+        AddIntComp(communicate_this_comp);
+    }
+
+Runtime-added components can be accessed like regular Struct-of-Array data.
+The new components will be added at the end of the compile-time defined ones.
+
+When you are using runtime components, it is crucial that when you are adding
+particles to the container, you call the :cpp:`DefineAndReturnParticleTile` method
+for each tile prior to adding any particles. This will make sure the space
+for the new components has been allocated. For example, in the above section
+on :ref:`initializing particle data <sec:Particles:Initializing>`, we accessed 
+the particle tile data using the :cpp:`GetParticles` method. If we runtime components 
+are used, :cpp:`DefineAndReturnParticleTile` should be used instead:
+
+.. highlight:: c++
+
+::
+
+
+   for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
+   {
+       // instead of this...
+       // auto& particles = GetParticles(lev)[std::make_pair(mfi.index(),
+       //                                     mfi.LocalTileIndex())];
+       
+       // we do this...
+       auto& particle_tile = DefineAndReturnParticleTile(lev, mfi);
+
+       // add particles to particle_tile as above...
+   }
 
 .. _sec:Particles:Iterating:
 
@@ -308,7 +360,7 @@ example, to iterate over all the AoS data:
     }
 
 The outer loop will execute once every grid (or tile, if tiling is enabled)
-*that contains particles*; grids or tiles that don’t have any particles will be
+*that contains particles*; grids or tiles that don't have any particles will be
 skipped. You can also access the SoA data using the :math:`ParIter` as follows:
 
 .. highlight:: c++
@@ -452,12 +504,12 @@ mesh refinement, please see ``amrex/Tutorials/Particles/ElectrostaticPIC``.
 Short Range Forces
 ==================
 
-In a PIC calculation, the particles don’t interact with each other directly;
+In a PIC calculation, the particles don't interact with each other directly;
 they only see each other through the mesh. An alternative use case is particles
 that exert short-range forces on each other. In this case, beyond some cut-off
-distance, the particles don’t interact with each other and therefore don’t need
+distance, the particles don't interact with each other and therefore don't need
 to be included in the force calculation. Our approach to these kind of
-particles is to fill “neighbor buffers” on each tile that contain copies of the
+particles is to fill "neighbor buffers" on each tile that contain copies of the
 particles on neighboring tiles that are within some number of cells :math:`N_g`
 of the tile boundaries. See :numref:`fig:particles:neighbor_particles`, below
 for an illustration. By choosing the number of ghost cells to match the
@@ -479,7 +531,7 @@ of each other using a variety of methods.
    calculations. Here, we have a domain consisting of one :math:`32 \times 32`
    grid, broken up into :math:`8 \times 8` tiles. The number of ghost cells is
    taken to be :math:`1`.  For the tile in green, particles on other tiles in
-   the entire shaded region will copied and packed into the green tile’s
+   the entire shaded region will copied and packed into the green tile's
    neighbor buffer. These particles can then be included in the force
    calculation. If the domain is periodic, particles in the grown region for
    the blue tile that lie on the other side of the domain will also be copied,
@@ -571,11 +623,11 @@ mesh data IO. For example:
     pc.Checkpoint("plt00000", "particle0");
 
 
-will create a plot file called “plt00000” and write the mesh data in :cpp:`output` to it, and then write the particle data in a subdirectory called “particle0”. There is also the :cpp:`WriteAsciiFile` method, which writes the particles in a human-readable text format. This is mainly useful for testing and debugging.
+will create a plot file called "plt00000" and write the mesh data in :cpp:`output` to it, and then write the particle data in a subdirectory called "particle0". There is also the :cpp:`WriteAsciiFile` method, which writes the particles in a human-readable text format. This is mainly useful for testing and debugging.
 
 The binary file format is currently readable by :cpp:`yt`. In additional, there is a Python conversion script in 
 ``amrex/Tools/Py_util/amrex_particles_to_vtp`` that can convert both the ASCII and the binary particle files to a 
-format readable by Paraview. See the chapter on :ref:`Chap:Visualization` for more information on visualizing AMReX datasets, including those with particles.
+format readable by Paraview. See the chapter on :ref:`Chap:Visualization` for more information on visualizing AMReX datasets, including those with particles.
 
 Inputs parameters
 =================
@@ -649,4 +701,4 @@ running on GPU platforms like Summit. We recommend leaving it off.
 
 .. [3]
    Note that for the extra particle components, which component refers to which
-   variable is an application-specific convention - the particles have 4 extra real comps, but which one is “mass” is up to the user. We suggest using an :cpp:`enum` to keep these indices straight; please see ``amrex/Tutorials/Particles/ElectrostaticPIC/ElectrosticParticleContainer.H`` for an example of this.
+   variable is an application-specific convention - the particles have 4 extra real comps, but which one is "mass" is up to the user. We suggest using an :cpp:`enum` to keep these indices straight; please see ``amrex/Tutorials/Particles/ElectrostaticPIC/ElectrosticParticleContainer.H`` for an example of this.

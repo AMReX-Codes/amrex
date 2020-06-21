@@ -1,8 +1,10 @@
 #include "AMReX_AmrDataAdaptor.H"
 
-#include "timer/Timer.h"
-#include "Error.h"
+#include "MPIUtils.h"
+#include "STLUtils.h"
 #include "VTKUtils.h"
+#include "Profiler.h"
+#include "Error.h"
 
 #include <vtkObjectFactory.h>
 #include <vtkOverlappingAMR.h>
@@ -32,24 +34,6 @@
 #include <sstream>
 #include <map>
 #include <utility>
-
-// return the number of levels currently in use
-static
-unsigned int numActiveLevels(
-    amrex::Vector<std::unique_ptr<amrex::AmrLevel>> &levels)
-{
-    unsigned int nLevels = levels.size();
-    for (int i = 0; i < nLevels; ++i)
-    {
-        if (!levels[i])
-        {
-            nLevels = i;
-            break;
-        }
-    }
-    return nLevels;
-}
-
 
 namespace amrex {
 namespace InSituUtils {
@@ -84,7 +68,79 @@ int DescriptorMap::Initialize(const DescriptorList &descriptors)
             {
                 this->Map[vtkDataObject::POINT][arrayName] = std::make_pair(i,j);
             }
+            else
+            {
+                this->Map[vtkDataObject::FIELD][arrayName] = std::make_pair(i,j);
+            }
         }
+    }
+
+    return 0;
+}
+
+// return the number of levels currently in use
+unsigned int NumActiveLevels(
+    amrex::Vector<std::unique_ptr<amrex::AmrLevel>> &levels)
+{
+    unsigned int nLevels = levels.size();
+    for (int i = 0; i < nLevels; ++i)
+    {
+        if (!levels[i])
+        {
+            nLevels = i;
+            break;
+        }
+    }
+    return nLevels;
+}
+
+// generate the ghost cells arrays
+template <typename n_t>
+int GenerateMasks(amrex::Vector<std::unique_ptr<amrex::AmrLevel>> &levels,
+    std::vector<std::vector<n_t*>> &masks)
+{
+    unsigned int nLevels = InSituUtils::NumActiveLevels(levels);
+
+    masks.resize(nLevels);
+
+    for (unsigned int i = 0; i < nLevels; ++i)
+    {
+        // allocate mask arrays
+        const amrex::BoxArray &boxes = levels[i]->boxArray();
+        const amrex::DistributionMapping &dmap = levels[i]->DistributionMap();
+        const amrex::Box &pdom = levels[i]->Domain();
+
+        amrex::MultiFab& state = levels[i]->get_new_data(0);
+        unsigned int ng = state.nGrow();
+
+        std::vector<n_t*> mask;
+        InSituUtils::AllocateBoxArray<n_t>(pdom, boxes, dmap, ng, mask);
+
+        // mask ghost cells
+        InSituUtils::MaskGhostCells<n_t>(pdom, boxes, dmap, ng, mask);
+
+        // store mask array
+        masks[i] = mask;
+    }
+
+    // loop over coarse levels
+    unsigned int nCoarseLevels = nLevels - 1;
+    for (unsigned int i = 0; i < nCoarseLevels; ++i)
+    {
+        int ii = i + 1;
+
+        // mask regions covered by refinement
+        amrex::MultiFab& state = levels[i]->get_new_data(0);
+        unsigned int ng = state.nGrow();
+
+        const amrex::Box &pdom = levels[i]->Domain();
+        const amrex::BoxArray &cBoxes = levels[i]->boxArray();
+        const amrex::DistributionMapping &cMap = levels[i]->DistributionMap();
+        const amrex::BoxArray &fBoxes = levels[ii]->boxArray();
+        amrex::IntVect fRefRatio = levels[i]->fineRatio();
+
+        InSituUtils::MaskCoveredCells<n_t>(
+            pdom, cBoxes, cMap, fBoxes, fRefRatio, ng, masks[i]);
     }
 
     return 0;
@@ -99,7 +155,10 @@ struct AmrDataAdaptor::InternalsType
     amrex::Amr *SimData;
     int PinMesh;
     amrex::InSituUtils::DescriptorMap SimMetadata;
+#if SENSEI_VERSION_MAJOR < 3
     std::vector<vtkDataObject*> ManagedObjects;
+#endif
+    std::vector<std::vector<unsigned char *>> Masks;
 };
 
 //-----------------------------------------------------------------------------
@@ -120,6 +179,8 @@ AmrDataAdaptor::~AmrDataAdaptor()
 //-----------------------------------------------------------------------------
 int AmrDataAdaptor::SetDataSource(amrex::Amr *amr)
 {
+    sensei::TimeEvent<64> event("AmrDataAdaptor::SetDataSource");
+
     this->ReleaseData();
 
     this->Internals->SimData = amr;
@@ -142,22 +203,409 @@ void AmrDataAdaptor::SetPinMesh(int pinMesh)
 //-----------------------------------------------------------------------------
 int AmrDataAdaptor::GetNumberOfMeshes(unsigned int &numMeshes)
 {
+    sensei::TimeEvent<64> event("AmrDataAdaptor::GetNumberOfMeshes");
     numMeshes = 1;
     return 0;
 }
 
+#if SENSEI_VERSION_MAJOR >= 3
 //-----------------------------------------------------------------------------
-int AmrDataAdaptor::GetMeshName(unsigned int id, std::string &meshName)
+int AmrDataAdaptor::GetMeshMetadata(unsigned int id,
+    sensei::MeshMetadataPtr &metadata)
 {
-    meshName = "mesh";
+    sensei::TimeEvent<64> event("AmrDataAdaptor::GetMeshMetadata");
+
+    if (id != 0)
+      {
+      SENSEI_ERROR("invalid mesh id " << id)
+      return -1;
+      }
+
+    // AMR data is always expected to be a global view
+    metadata->GlobalView = true;
+
+    metadata->MeshName = "mesh";
+    metadata->MeshType = VTK_OVERLAPPING_AMR;
+    metadata->BlockType = VTK_UNIFORM_GRID;
+    metadata->NumBlocks = 0;
+    metadata->NumBlocksLocal = {-1};
+    metadata->CoordinateType = InSituUtils::amrex_tt<amrex_real>::vtk_type_enum();
+    metadata->StaticMesh = 0;
+
+    // TODO
+    //metadata->PeriodicBoundary = ;
+
+    amrex::Vector<std::unique_ptr<amrex::AmrLevel>> &levels =
+     this->Internals->SimData->getAmrLevels();
+
+    // num levels and blocks per level
+    metadata->NumLevels = InSituUtils::NumActiveLevels(levels);
+
+    metadata->NumBlocks = 0;
+    for (unsigned int i = 0; i < metadata->NumLevels; ++i)
+    {
+        unsigned long nb = levels[i]->boxArray().size();
+        metadata->NumBlocks += nb;
+    }
+
+    // bounds
+    const amrex::RealBox& pd = levels[0]->Geom().ProbDomain();
+
+    double pdLo[3] = {AMREX_ARLIM(pd.lo())};
+    double pdHi[3] = {AMREX_ARLIM(pd.hi())};
+
+    // PinMesh works around a bug in VisIt 2.13.2.
+    // force the origin to 0,0,0
+    if (this->Internals->PinMesh)
+    {
+        for (int i = 0; i < 3; ++i)
+        {
+            pdHi[i] = pdHi[i] - pdLo[i];
+            pdLo[i] = 0.0;
+        }
+    }
+
+    if (metadata->Flags.BlockBoundsSet())
+    {
+        metadata->Bounds = std::array<double,6>({pdLo[0], pdHi[0],
+            pdLo[1], pdHi[1], pdLo[2], pdHi[2]});
+
+        metadata->BlockBounds.reserve(metadata->NumBlocks);
+    }
+
+    // extent
+    const amrex::Box& dom = levels[0]->Geom().Domain();
+    int domLo[3] = {AMREX_ARLIM(dom.smallEnd())};
+    int domHi[3] = {AMREX_ARLIM(dom.bigEnd())};
+
+    if (metadata->Flags.BlockExtentsSet())
+    {
+        metadata->Extent = std::array<int,6>({domLo[0], domHi[0],
+            domLo[1], domHi[1], domLo[2], domHi[2]});
+
+        metadata->BlockExtents.reserve(metadata->NumBlocks);
+    }
+
+
+    // allocate decomp
+    if (metadata->Flags.BlockDecompSet())
+    {
+        metadata->BlockOwner.reserve(metadata->NumBlocks);
+        metadata->BlockIds.reserve(metadata->NumBlocks);
+        metadata->BlockLevel.reserve(metadata->NumBlocks);
+        metadata->BlocksPerLevel.reserve(metadata->NumLevels);
+        metadata->RefRatio.reserve(metadata->NumLevels);
+    }
+
+    // ghost zones
+    metadata->NumGhostCells = levels[0]->get_new_data(0).nGrow();
+
+    // arrays
+    metadata->NumArrays = 0;
+    const DescriptorList &descriptors = levels[0]->get_desc_lst();
+    int ndesc = descriptors.size();
+    for (int i = 0; i < ndesc; ++i)
+    {
+        const StateDescriptor &desc = descriptors[i];
+
+        int ncomp = desc.nComp();
+        metadata->NumArrays += ncomp;
+
+        IndexType itype = desc.getType();
+
+        for (int j = 0; j < ncomp; ++j)
+        {
+            std::string arrayName = desc.name(j);
+            metadata->ArrayName.push_back(arrayName);
+            metadata->ArrayComponents.push_back(1);
+            metadata->ArrayType.push_back(InSituUtils::amrex_tt<amrex_real>::vtk_type_enum());
+
+            if (itype.cellCentered())
+                metadata->ArrayCentering.push_back(vtkDataObject::CELL);
+            else if (itype.nodeCentered())
+                metadata->ArrayCentering.push_back(vtkDataObject::POINT);
+            else
+                metadata->ArrayCentering.push_back(vtkDataObject::FIELD);
+        }
+
+    }
+
+    // allocate and generate ghost zones
+    std::vector<std::vector<std::array<double,2>>> blockArrayRange;
+    std::vector<int> blockId;
+    if (metadata->Flags.BlockArrayRangeSet())
+    {
+        blockArrayRange.reserve(metadata->NumBlocks);
+        blockId.reserve(metadata->NumBlocks);
+        InSituUtils::GenerateMasks(levels, this->Internals->Masks);
+    }
+
+    int rank = 0;
+    MPI_Comm_rank(this->GetCommunicator(), &rank);
+
+    // per-level and per-block metadata
+    long gid = 0;
+    for (unsigned int i = 0; i < metadata->NumLevels; ++i)
+    {
+        // domain decomp
+        const amrex::DistributionMapping &dmap = levels[i]->DistributionMap();
+
+        // ghost zones
+        unsigned int ng = levels[i]->get_new_data(0).nGrow();
+
+        // spacing
+        const amrex::Geometry &geom = levels[i]->Geom();
+        double spacing[3] = {AMREX_ARLIM(geom.CellSize())};
+
+
+        // loop over boxes
+        const amrex::BoxArray& ba = levels[i]->boxArray();
+        unsigned int nBoxes = ba.size();
+
+        if (metadata->Flags.BlockDecompSet())
+        {
+            // blocks this level
+            metadata->BlocksPerLevel.push_back(nBoxes);
+
+            // refinement ratio
+            std::array<int,3> rr = {AMREX_ARLIM(levels[i]->fineRatio())};
+            metadata->RefRatio.push_back(rr);
+        }
+
+        for (unsigned int j = 0; j < nBoxes; ++j, ++gid)
+        {
+            // cell centered box
+            amrex::Box cbox = ba[j];
+
+            // add ghost zones
+            for (int q = 0; q < AMREX_SPACEDIM; ++q)
+                cbox.grow(q, ng);
+
+            // cell centered size
+            long clen = cbox.numPts();
+
+            // node centered box
+            amrex::Box nbox = surroundingNodes(cbox);
+
+            // node centered dimensions
+            int nboxLo[3] = {AMREX_ARLIM(nbox.loVect())};
+            int nboxHi[3] = {AMREX_ARLIM(nbox.hiVect())};
+
+            // node centered size
+            long nlen = nbox.numPts();
+
+            // domain decomp
+            if (metadata->Flags.BlockDecompSet())
+            {
+                metadata->BlockOwner.push_back(dmap[j]);
+                metadata->BlockIds.push_back(gid);
+
+                metadata->BlockLevel.push_back(i);
+            }
+
+            // block sizes
+            if (metadata->Flags.BlockSizeSet())
+            {
+                metadata->BlockNumPoints.push_back(nlen);
+                metadata->BlockNumCells.push_back(clen);
+            }
+
+            // block extent
+            if (metadata->Flags.BlockExtentsSet())
+            {
+                metadata->BlockExtents.push_back({nboxLo[0], nboxHi[0],
+                    nboxLo[1], nboxHi[1], nboxLo[2], nboxHi[2]});
+            }
+
+            // block bounds
+            if (metadata->Flags.BlockBoundsSet())
+                metadata->BlockBounds.push_back({pdLo[0] + spacing[0]*nboxLo[0],
+                    pdLo[0] + spacing[0]*nboxHi[0], pdLo[1] + spacing[1]*nboxLo[1],
+                    pdLo[1] + spacing[1]*nboxHi[1], pdLo[2] + spacing[2]*nboxLo[2],
+                    pdLo[2] + spacing[2]*nboxHi[2]});
+
+            // block array range, compute only for local blocks, and then
+            // make a global view
+            if ((dmap[j] == rank) && (metadata->Flags.BlockArrayRangeSet()))
+            {
+                std::vector<std::array<double,2>> arrayRange;
+                arrayRange.reserve(metadata->NumArrays);
+
+                // for each collection (point,cell,edge,face...)
+                for (int k = 0; k < ndesc; ++k)
+                {
+                    const StateDescriptor &desc = descriptors[k];
+                    amrex::MultiFab &state = levels[i]->get_new_data(k);
+
+                    int ncomp = desc.nComp();
+                    IndexType itype = desc.getType();
+
+                    if (state[j].box().ixType() == amrex::IndexType::TheCellType())
+                    {
+                        // min max on cell centered data only includes
+                        // non ghost and non covered cells
+                        for (int l = 0; l < ncomp; ++l)
+                        {
+                            // pointer to the data
+                            amrex_real *pcd = state[j].dataPtr(l);
+
+                            // pointer to the mask (valid cells are not masked)
+                            unsigned char *mask = this->Internals->Masks[i][j];
+
+                            // compute min / max for valid cells
+                            amrex_real mn = std::numeric_limits<amrex_real>::max();
+                            amrex_real mx = std::numeric_limits<amrex_real>::lowest();
+                            for (long q = 0; q < clen; ++q)
+                            {
+                                amrex_real val = pcd[q];
+                                bool valid = mask[q] == 0;
+                                mn = valid ? std::min(mn, val) : mn;
+                                mx = valid ? std::max(mx, val) : mx;
+                            }
+                            arrayRange.push_back({mn, mx});
+                        }
+                    }
+                    else
+                    {
+                        // min max on node, edge and face centered data
+                        // includes non ghost cells and covered cells
+                        for (int l = 0; l < ncomp; ++l)
+                        {
+                            amrex_real mn = state[j].min(l);
+                            amrex_real mx = state[j].max(l);
+                            arrayRange.push_back({mn, mx});
+                        }
+                    }
+
+                }
+
+                blockArrayRange.push_back(arrayRange);
+                blockId.push_back(gid);
+            }
+        }
+    }
+
+    // make the block array range global
+    if (metadata->Flags.BlockArrayRangeSet())
+    {
+        // global view by rank.
+        sensei::MPIUtils::GlobalViewV(this->GetCommunicator(), blockArrayRange);
+        sensei::STLUtils::ReduceRange(blockArrayRange, metadata->ArrayRange);
+
+        // move from rank order back into block order
+        metadata->BlockArrayRange.resize(metadata->NumBlocks);
+        sensei::MPIUtils::GlobalViewV(this->GetCommunicator(), blockId);
+        for (int i = 0; i < metadata->NumBlocks; ++i)
+        {
+            gid = blockId[i];
+            metadata->BlockArrayRange[gid] = blockArrayRange[i];
+        }
+    }
+
     return 0;
 }
+
+#else
+
+//-----------------------------------------------------------------------------
+int AmrDataAdaptor::GetMeshHasGhostNodes(const std::string &meshName, int &nLayers)
+{
+    nLayers = 0;
+
+    if (meshName != "mesh")
+    {
+        SENSEI_ERROR("no mesh named \"" << meshName << "\"")
+        return -1;
+    }
+
+    return 0;
+}
+
+//-----------------------------------------------------------------------------
+int AmrDataAdaptor::GetMeshHasGhostCells(const std::string &meshName, int &nLayers)
+{
+    nLayers = 0;
+
+    if (meshName != "mesh")
+    {
+        SENSEI_ERROR("no mesh named \"" << meshName << "\"")
+        return -1;
+    }
+
+    if (!this->Internals->SimData)
+    {
+        SENSEI_ERROR("No simulation data")
+        return -1;
+    }
+
+    nLayers = 1;
+
+    return 0;
+}
+
+//-----------------------------------------------------------------------------
+int AmrDataAdaptor::GetNumberOfArrays(const std::string &meshName,
+    int association, unsigned int &numberOfArrays)
+{
+    timer::MarkEvent("AmrDataAdaptor::GetNumberOfArrays");
+
+    numberOfArrays = 0;
+
+    if (meshName != "mesh")
+    {
+        SENSEI_ERROR("no mesh named \"" << meshName << "\"")
+        return -1;
+    }
+
+    if ((association != vtkDataObject::POINT) &&
+        (association != vtkDataObject::CELL))
+    {
+        SENSEI_ERROR("Invalid association " << association)
+        return -1;
+    }
+
+    if (!this->Internals->SimData)
+    {
+        SENSEI_ERROR("No simulation data")
+        return -1;
+    }
+
+    numberOfArrays = this->Internals->SimMetadata.Size(association);
+
+    return 0;
+}
+
+//-----------------------------------------------------------------------------
+int AmrDataAdaptor::GetArrayName(const std::string &meshName,
+    int association, unsigned int index, std::string &arrayName)
+{
+    timer::MarkEvent("AmrDataAdaptor::GetArrayName");
+
+    if (meshName != "mesh")
+    {
+        SENSEI_ERROR("No mesh named \"" << meshName << "\"")
+        return -1;
+    }
+
+    if (this->Internals->SimMetadata.GetName(association, index, arrayName))
+    {
+        SENSEI_ERROR("No array named \"" << arrayName << "\" in "
+            << sensei::VTKUtils::GetAttributesName(association)
+            << " data")
+        return -1;
+    }
+
+    return 0;
+}
+
+
+#endif
 
 //-----------------------------------------------------------------------------
 int AmrDataAdaptor::GetMesh(const std::string &meshName,
     bool structureOnly, vtkDataObject *&mesh)
 {
-    timer::MarkEvent("AmrDataAdaptor::GetMesh");
+    sensei::TimeEvent<64> event("AmrDataAdaptor::GetMesh");
 
     mesh = nullptr;
 
@@ -168,17 +616,19 @@ int AmrDataAdaptor::GetMesh(const std::string &meshName,
     }
 
     int rank = 0;
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_rank(this->GetCommunicator(), &rank);
 
     // get levels
     amrex::Vector<std::unique_ptr<amrex::AmrLevel>> &levels =
      this->Internals->SimData->getAmrLevels();
 
-    unsigned int nLevels = numActiveLevels(levels);
+    unsigned int nLevels = InSituUtils::NumActiveLevels(levels);
 
     // initialize new vtk datasets
     vtkOverlappingAMR *amrMesh = vtkOverlappingAMR::New();
+#if SENSEI_VERSION_MAJOR < 3
     Internals->ManagedObjects.push_back(amrMesh);
+#endif
     mesh = amrMesh;
 
     // num levels and blocks per level
@@ -270,59 +720,10 @@ int AmrDataAdaptor::GetMesh(const std::string &meshName,
 }
 
 //-----------------------------------------------------------------------------
-int AmrDataAdaptor::GetMeshHasGhostNodes(const std::string &meshName, int &nLayers)
-{
-    nLayers = 0;
-
-    if (meshName != "mesh")
-    {
-        SENSEI_ERROR("no mesh named \"" << meshName << "\"")
-        return -1;
-    }
-
-    return 0;
-}
-
-//-----------------------------------------------------------------------------
-int AmrDataAdaptor::AddGhostNodesArray(vtkDataObject *mesh,
-    const std::string &meshName)
-{
-    if (meshName != "mesh")
-    {
-        SENSEI_ERROR("no mesh named \"" << meshName << "\"")
-        return -1;
-    }
-
-    return 0;
-}
-
-//-----------------------------------------------------------------------------
-int AmrDataAdaptor::GetMeshHasGhostCells(const std::string &meshName, int &nLayers)
-{
-    nLayers = 0;
-
-    if (meshName != "mesh")
-    {
-        SENSEI_ERROR("no mesh named \"" << meshName << "\"")
-        return -1;
-    }
-
-    if (!this->Internals->SimData)
-    {
-        SENSEI_ERROR("No simulation data")
-        return -1;
-    }
-
-    nLayers = 1;
-
-    return 0;
-}
-
-//-----------------------------------------------------------------------------
 int AmrDataAdaptor::AddGhostCellsArray(vtkDataObject* mesh,
     const std::string &meshName)
 {
-    timer::MarkEvent("AmrDataAdaptor::AddGhostCellsArray");
+    sensei::TimeEvent<64> event("AmrDataAdaptor::AddGhostCellsArray");
 
     if (meshName != "mesh")
     {
@@ -344,54 +745,20 @@ int AmrDataAdaptor::AddGhostCellsArray(vtkDataObject* mesh,
     }
 
     int rank = 0;
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_rank(this->GetCommunicator(), &rank);
 
     // loop over levels
     amrex::Vector<std::unique_ptr<amrex::AmrLevel>> &levels =
      this->Internals->SimData->getAmrLevels();
 
-    unsigned int nLevels = numActiveLevels(levels);
+    unsigned int nLevels = InSituUtils::NumActiveLevels(levels);
 
-    std::vector<std::vector<unsigned char*>> masks(nLevels);
-    for (unsigned int i = 0; i < nLevels; ++i)
-    {
-        // allocate mask arrays
-        const amrex::BoxArray &boxes = levels[i]->boxArray();
-        const amrex::DistributionMapping &dmap = levels[i]->DistributionMap();
-        const amrex::Box &pdom = levels[i]->Domain();
-
-        amrex::MultiFab& state = levels[i]->get_new_data(0);
-        unsigned int ng = state.nGrow();
-
-        std::vector<unsigned char*> mask;
-        InSituUtils::AllocateBoxArray<unsigned char>(pdom, boxes, dmap, ng, mask);
-
-        // mask ghost cells
-        InSituUtils::MaskGhostCells<unsigned char>(pdom, boxes, dmap, ng, mask);
-
-        // store mask array
-        masks[i] = mask;
-    }
-
-    // loop over coarse levels
-    unsigned int nCoarseLevels = nLevels - 1;
-    for (unsigned int i = 0; i < nCoarseLevels; ++i)
-    {
-        int ii = i + 1;
-
-        // mask regions covered by refinement
-        amrex::MultiFab& state = levels[i]->get_new_data(0);
-        unsigned int ng = state.nGrow();
-
-        const amrex::Box &pdom = levels[i]->Domain();
-        const amrex::BoxArray &cBoxes = levels[i]->boxArray();
-        const amrex::DistributionMapping &cMap = levels[i]->DistributionMap();
-        const amrex::BoxArray &fBoxes = levels[ii]->boxArray();
-        amrex::IntVect fRefRatio = levels[i]->fineRatio();
-
-        InSituUtils::MaskCoveredCells<unsigned char>(
-            pdom, cBoxes, cMap, fBoxes, fRefRatio, ng, masks[i]);
-    }
+    // generate a mask array for each box in each level
+    // the mask arrays may be chached as they are used in
+    // GetMeshMetadata to determine array min/max over
+    // valid cells
+    if (!this->Internals->Masks.size())
+        InSituUtils::GenerateMasks(levels, this->Internals->Masks);
 
     // loop over levels
     for (unsigned int i = 0; i < nLevels; ++i)
@@ -399,7 +766,7 @@ int AmrDataAdaptor::AddGhostCellsArray(vtkDataObject* mesh,
         const amrex::DistributionMapping &dMap = levels[i]->DistributionMap();
 
         // mask arrays for this level
-        std::vector<unsigned char*> &mask = masks[i];
+        std::vector<unsigned char*> &mask = this->Internals->Masks[i];
 
         // loop over boxes
         const amrex::BoxArray& ba = levels[i]->boxArray();
@@ -437,7 +804,25 @@ int AmrDataAdaptor::AddGhostCellsArray(vtkDataObject* mesh,
             ga->SetArray(mask[j], nCells, 1);
             blockMesh->GetCellData()->AddArray(ga);
             ga->Delete();
+
+            // because VTK takes ownership
+            mask[j] = nullptr;
         }
+    }
+
+    return 0;
+}
+
+//-----------------------------------------------------------------------------
+int AmrDataAdaptor::AddGhostNodesArray(vtkDataObject *mesh,
+    const std::string &meshName)
+{
+    sensei::TimeEvent<64> event("AmrDataAdaptor::AddGhostNodesArray");
+
+    if (meshName != "mesh")
+    {
+        SENSEI_ERROR("no mesh named \"" << meshName << "\"")
+        return -1;
     }
 
     return 0;
@@ -447,10 +832,10 @@ int AmrDataAdaptor::AddGhostCellsArray(vtkDataObject* mesh,
 int AmrDataAdaptor::AddArray(vtkDataObject* mesh, const std::string &meshName,
     int association, const std::string &arrayName)
 {
-    timer::MarkEvent("AmrDataAdaptor::AddArray");
+    sensei::TimeEvent<64> event("AmrDataAdaptor::AddArray");
 
     int rank = 0;
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_rank(this->GetCommunicator(), &rank);
 
     if (meshName != "mesh")
     {
@@ -494,7 +879,7 @@ int AmrDataAdaptor::AddArray(vtkDataObject* mesh, const std::string &meshName,
     }
 
     // loop over levels
-    unsigned int nLevels = numActiveLevels(levels);
+    unsigned int nLevels = InSituUtils::NumActiveLevels(levels);
     for (unsigned int i = 0; i < nLevels; ++i)
     {
         // domain decomp
@@ -613,72 +998,32 @@ int AmrDataAdaptor::AddArray(vtkDataObject* mesh, const std::string &meshName,
 }
 
 //-----------------------------------------------------------------------------
-int AmrDataAdaptor::GetNumberOfArrays(const std::string &meshName,
-    int association, unsigned int &numberOfArrays)
-{
-    timer::MarkEvent("AmrDataAdaptor::GetNumberOfArrays");
-
-    numberOfArrays = 0;
-
-    if (meshName != "mesh")
-    {
-        SENSEI_ERROR("no mesh named \"" << meshName << "\"")
-        return -1;
-    }
-
-    if ((association != vtkDataObject::POINT) &&
-        (association != vtkDataObject::CELL))
-    {
-        SENSEI_ERROR("Invalid association " << association)
-        return -1;
-    }
-
-    if (!this->Internals->SimData)
-    {
-        SENSEI_ERROR("No simulation data")
-        return -1;
-    }
-
-    numberOfArrays = this->Internals->SimMetadata.Size(association);
-
-    return 0;
-}
-
-//-----------------------------------------------------------------------------
-int AmrDataAdaptor::GetArrayName(const std::string &meshName,
-    int association, unsigned int index, std::string &arrayName)
-{
-    timer::MarkEvent("AmrDataAdaptor::GetArrayName");
-
-    if (meshName != "mesh")
-    {
-        SENSEI_ERROR("No mesh named \"" << meshName << "\"")
-        return -1;
-    }
-
-    if (this->Internals->SimMetadata.GetName(association, index, arrayName))
-    {
-        SENSEI_ERROR("No array named \"" << arrayName << "\" in "
-            << sensei::VTKUtils::GetAttributesName(association)
-            << " data")
-        return -1;
-    }
-
-    return 0;
-}
-
-//-----------------------------------------------------------------------------
 int AmrDataAdaptor::ReleaseData()
 {
-    timer::MarkEvent("AmrDataAdaptor::ReleaseData");
+    sensei::TimeEvent<64> event("AmrDataAdaptor::ReleaseData");
 
     this->Internals->SimData = nullptr;
 
-    // free up mesh objects we allocated
-    size_t n = this->Internals->ManagedObjects.size();
-    for (size_t i = 0; i < n; ++i)
-        this->Internals->ManagedObjects[i]->Delete();
-    this->Internals->ManagedObjects.clear();
+#if SENSEI_VERSION_MAJOR < 3
+     // free up mesh objects we allocated
+     size_t n = this->Internals->ManagedObjects.size();
+     for (size_t i = 0; i < n; ++i)
+         this->Internals->ManagedObjects[i]->Delete();
+     this->Internals->ManagedObjects.clear();
+#endif
+
+    // if masks are cached free them
+    int numLevels = this->Internals->Masks.size();
+    for (int j = 0; j < numLevels; ++j)
+    {
+        std::vector<unsigned char*> &masks = this->Internals->Masks[j];
+        long numBoxes = masks.size();
+        for (long i = 0; i < numBoxes; ++i)
+        {
+            free(masks[i]);
+        }
+    }
+    this->Internals->Masks.clear();
 
     return 0;
 }

@@ -353,19 +353,16 @@ In this section, we discuss some examples of AMReX device classes and functions
 that are important for programming GPUs.
 
 
-GpuArray
---------
+GpuArray, Array1D, Array2D, and Array3D
+---------------------------------------
 
-:cpp:`std::array` is used throughout AMReX, however its functions are not defined
-in device code. :cpp:`GpuArray` is AMReX's built-in alternative. It is a POD (plain old
-data structure) that can be passed to the device by value and has device functions
-for the :cpp:`[]` operator, :cpp:`size()` and a :cpp:`data()` function that returns a
-pointer to the underlying data. :cpp:`GpuArray` can be used whenever a fixed size array
-needs to be passed to the GPU.  :cpp:`GpuArray` is also portable; when compiled without
-CUDA, it is simply aliased to a :cpp:`std::array`.
-
-A variety of functions have been created to return :cpp:`GpuArray` instead of :cpp:`std::array`,
-and allow direct access to GPU-ready data structures from common AMReX classes. For example,
+As we have mentioned in :ref:`sec:basics:vecandarr`, :cpp:`std::array`
+cannot be used in device code, whereas :cpp:`GpuArray`,
+:cpp:`Array1D`, :cpp:`Array2D`, and :cpp:`Array3D` are trivial types
+that work on both host and device. They can be used whenever a fixed size array
+needs to be passed to the GPU or created on GPU.  A variety of
+functions in AMReX return :cpp:`GpuArray` and they can be
+lambda-captured to GPU code. For example,
 :cpp:`GeometryData::CellSizeArray()`, :cpp:`GeometryData::InvCellSizeArray()`
 and :cpp:`Box::length3d()` all return :cpp:`GpuArray`\s.
 
@@ -445,9 +442,9 @@ allocations and deallocations when (for example) resizing vectors.
 
     \begin{center}
 
-.. _tab:gpu:arena:
+.. _tab:gpu:gpuvectors:
 
-.. table:: Memory Arenas
+.. table:: Memory Arenas Associated with each Gpu Vector
 
     +----------------+----------------------+
     | Vector         | Arena                |

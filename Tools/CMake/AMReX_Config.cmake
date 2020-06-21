@@ -48,28 +48,38 @@ function (configure_amrex)
    # Moreover, it will also enforce such standard on all the consuming targets
    #
    set_target_properties(amrex PROPERTIES CXX_EXTENSIONS OFF)
+   # minimum: C++11 on Linux, C++17 on Windows
+   target_compile_features(amrex PUBLIC $<IF:$<STREQUAL:$<PLATFORM_ID>,Windows>,cxx_std_17,cxx_std_11>)
 
-   target_compile_features(amrex PUBLIC cxx_std_11)  # minimum: C++11
+   if (ENABLE_CUDA AND (CMAKE_VERSION VERSION_GREATER_EQUAL 3.17) )
+      set_target_properties(amrex PROPERTIES CUDA_EXTENSIONS OFF)
+      # minimum: C++11 on Linux, C++17 on Windows
+      target_compile_features(amrex PUBLIC $<IF:$<STREQUAL:$<PLATFORM_ID>,Windows>,cuda_std_17,cuda_std_11>)
+   endif()
 
    #
    # Setup OpenMP
    #
    if (ENABLE_OMP)
-      find_package(OpenMP REQUIRED CXX Fortran)
 
-      target_link_libraries(amrex
-         PUBLIC
-         OpenMP::OpenMP_CXX
-         OpenMP::OpenMP_Fortran)
+      find_package(OpenMP REQUIRED)
+      target_link_libraries(amrex PUBLIC OpenMP::OpenMP_CXX)
 
-      set_target_properties(
-         OpenMP::OpenMP_CXX OpenMP::OpenMP_Fortran
-         PROPERTIES
-         IMPORTED_GLOBAL True )
+      # Make imported target "global" so that it can be seen
+      # from other directories in the project.
+      # This is especially useful when get_target_properties_flattened()
+      # (see module AMReXTargetHelpers.cmake) is called to recover dependecy tree info
+      # in projects that use amrex directly in the build (via add_subdirectory()).
+      set_target_properties(OpenMP::OpenMP_CXX PROPERTIES IMPORTED_GLOBAL True )
+
+      if (ENABLE_FORTRAN_INTERFACES OR ENABLE_HYPRE)
+         target_link_libraries(amrex PUBLIC OpenMP::OpenMP_Fortran )
+         set_target_properties(OpenMP::OpenMP_Fortran PROPERTIES IMPORTED_GLOBAL True )
+      endif ()
 
       # We have to manually pass OpenMP flags to host compiler if CUDA is enabled
       # Since OpenMP imported targets are generated only for the Compiler ID in use, i.e.
-      # they do not provide flags for all possible compiler ids, we assume the same compiler used
+      # they do not provide flags for all possible compiler ids, we assume the same compiler use
       # for building amrex will be used to build the application code
       if (ENABLE_CUDA)
          get_target_property(_cxx_omp_flags OpenMP::OpenMP_CXX INTERFACE_COMPILE_OPTIONS)
@@ -90,22 +100,6 @@ function (configure_amrex)
 
 
    if (ENABLE_CUDA)
-      # After we load the setups for ALL the supported compilers
-      # we can load the setup for NVCC if required
-      # This is necessary because we need to know the C++ flags
-      # to pass to the Xcompiler option.
-      target_compile_definitions( amrex
-         PUBLIC
-         AMREX_NVCC_VERSION=${CMAKE_CUDA_COMPILER_VERSION}
-         AMREX_NVCC_MAJOR_VERSION=${NVCC_VERSION_MAJOR}
-         AMREX_NVCC_MINOR_VERSION=${NVCC_VERSION_MINOR} )
-
-      set_target_properties( amrex
-         PROPERTIES
-         CUDA_SEPARABLE_COMPILATION ON      # This adds -dc
-         CUDA_RESOLVE_DEVICE_SYMBOLS OFF
-         )
-
       #
       # Retrieve compile flags for the current configuration
       # I haven't find a way to set host compiler flags for all the
@@ -115,7 +109,9 @@ function (configure_amrex)
 
       if (NOT CMAKE_CXX_FLAGS)
          get_target_property( _amrex_flags_2 Flags_CXX INTERFACE_COMPILE_OPTIONS)
-      endif ()
+      endif()
+
+      get_target_property( _amrex_flags_3 Flags_CXX_REQUIRED INTERFACE_COMPILE_OPTIONS)
 
       set(_amrex_flags)
       if (_amrex_flags_1)
@@ -123,6 +119,9 @@ function (configure_amrex)
       endif ()
       if (_amrex_flags_2)
          list(APPEND _amrex_flags ${_amrex_flags_2})
+      endif ()
+      if (_amrex_flags_3)
+         list(APPEND _amrex_flags ${_amrex_flags_3})
       endif ()
 
       evaluate_genex(_amrex_flags _amrex_cxx_flags
@@ -146,35 +145,6 @@ function (configure_amrex)
 
    endif ()
 
-   #
-   # Add compiler version defines
-   #
-   string( REPLACE "." ";" VERSION_LIST ${CMAKE_CXX_COMPILER_VERSION})
-   list( GET VERSION_LIST 0 COMP_VERSION_MAJOR )
-   list( GET VERSION_LIST 1 COMP_VERSION_MINOR )
-
-   if ( ${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU" )
-
-      if ( CMAKE_CXX_COMPILER_VERSION VERSION_LESS "4.8" )
-         message( WARNING
-            " Your default GCC is version ${CMAKE_CXX_COMPILER_VERSION}. This might break during build. GCC>=4.8 is recommended.")
-      endif ()
-
-      target_compile_definitions( amrex PUBLIC $<BUILD_INTERFACE:
-          BL_GCC_VERSION=${CMAKE_CXX_COMPILER_VERSION}
-          BL_GCC_MAJOR_VERSION=${COMP_VERSION_MAJOR}
-          BL_GCC_MINOR_VERSION=${COMP_VERSION_MINOR}
-          >
-          )
-  elseif ( ${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang" )
-     target_compile_definitions( amrex PUBLIC $<BUILD_INTERFACE:
-          BL_CLANG_VERSION=${CMAKE_CXX_COMPILER_VERSION}
-          BL_CLANG_MAJOR_VERSION=${COMP_VERSION_MAJOR}
-          BL_CLANG_MINOR_VERSION=${COMP_VERSION_MINOR}
-          >
-          )
-  endif ()
-
    if ( ENABLE_PIC OR BUILD_SHARED_LIBS )
       set_target_properties ( amrex PROPERTIES POSITION_INDEPENDENT_CODE True )
    endif ()
@@ -186,6 +156,7 @@ function (configure_amrex)
          target_link_options(amrex PUBLIC -Wl,--warn-unresolved-symbols)
       endif()
    endif()
+
 
    #
    # Setup third-party profilers
@@ -266,22 +237,30 @@ function (print_amrex_configuration_summary)
    message( STATUS "   Build type               = ${CMAKE_BUILD_TYPE}")
    message( STATUS "   Install directory        = ${CMAKE_INSTALL_PREFIX}")
    message( STATUS "   C++ compiler             = ${CMAKE_CXX_COMPILER}")
-   message( STATUS "   Fortran compiler         = ${CMAKE_Fortran_COMPILER}")
+   if (CMAKE_Fortran_COMPILER_LOADED)
+      message( STATUS "   Fortran compiler         = ${CMAKE_Fortran_COMPILER}")
+   endif ()
    if (ENABLE_CUDA)
       message( STATUS "   CUDA compiler            = ${CMAKE_CUDA_COMPILER}")
    endif ()
 
    message( STATUS "   C++ defines              = ${_cxx_defines}")
-   message( STATUS "   Fortran defines          = ${_fortran_defines}")
+   if (CMAKE_Fortran_COMPILER_LOADED)
+      message( STATUS "   Fortran defines          = ${_fortran_defines}")
+   endif ()
 
    message( STATUS "   C++ flags                = ${_cxx_flags}")
-   message( STATUS "   Fortran flags            = ${_fortran_flags}")
+   if (CMAKE_Fortran_COMPILER_LOADED)
+      message( STATUS "   Fortran flags            = ${_fortran_flags}")
+   endif ()
    if (ENABLE_CUDA)
       message( STATUS "   CUDA flags               = ${CMAKE_CUDA_FLAGS_${AMREX_BUILD_TYPE}} ${CMAKE_CUDA_FLAGS}"
          "${AMREX_CUDA_FLAGS}")
    endif ()
    message( STATUS "   C++ include paths        = ${_cxx_includes}")
-   message( STATUS "   Fortran include paths    = ${_fortran_includes}")
+   if (CMAKE_Fortran_COMPILER_LOADED)
+      message( STATUS "   Fortran include paths    = ${_fortran_includes}")
+   endif ()
    message( STATUS "   Link line                = ${_cxx_link_line}")
 
 endfunction ()

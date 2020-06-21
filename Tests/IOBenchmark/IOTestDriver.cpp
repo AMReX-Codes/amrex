@@ -225,8 +225,8 @@ int main(int argc, char *argv[]) {
   int myThread(omp_get_thread_num());
   long baseDataItems(8);
   long dataItems(baseDataItems * (myThread + 1));
-  amrex::USleep(myproc+1/10.0);
-  amrex::USleep(myThread/10.0);
+  amrex::Sleep(myproc+1/10.0);
+  amrex::Sleep(myThread/10.0);
   if(myproc == 0 && myThread == 0) {
     cout << "nThreads = " << nThreads << endl;
   }
@@ -433,7 +433,7 @@ int main(int argc, char *argv[]) {
 
     for(int itimes(0); itimes < ntimes; ++itimes) {
       ParallelDescriptor::Barrier("TestWriteNFiles::BeforeSleep2");
-      amrex::USleep(2);
+      amrex::Sleep(2);
       ParallelDescriptor::Barrier("TestWriteNFiles::AfterSleep2");
 
       if(ParallelDescriptor::IOProcessor()) {
@@ -460,7 +460,7 @@ int main(int argc, char *argv[]) {
     VisMF::SetMFFileInStreams(nReadStreams);
     for(int itimes(0); itimes < ntimes; ++itimes) {
       ParallelDescriptor::Barrier("TestReadMF::BeforeSleep2");
-      amrex::USleep(2);
+      amrex::Sleep(2);
       ParallelDescriptor::Barrier("TestReadMF::AfterSleep2");
 
       if(ParallelDescriptor::IOProcessor()) {

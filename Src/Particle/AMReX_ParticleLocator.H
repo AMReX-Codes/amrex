@@ -45,35 +45,37 @@ struct AssignGrid
 
     template <typename P>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    int operator() (const P& p) const noexcept
+    int operator() (const P& p, int nGrow=0) const noexcept
     {
         const auto iv = getParticleCell(p, m_plo, m_dxi, m_domain);
-        return this->operator()(iv);
+        return this->operator()(iv, nGrow);
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    int operator() (const IntVect& iv) const noexcept
+    int operator() (const IntVect& iv, int nGrow=0) const noexcept
     {
         const auto lo = iv.dim3();
-        int ix = (lo.x - m_lo.x) / m_bin_size.x;
-        int iy = (lo.y - m_lo.y) / m_bin_size.y;
-        int iz = (lo.z - m_lo.z) / m_bin_size.z;
+        int ix_lo = amrex::max((lo.x - nGrow - m_lo.x) / m_bin_size.x - 1, 0);
+        int iy_lo = amrex::max((lo.y - nGrow - m_lo.y) / m_bin_size.y - 1, 0);
+        int iz_lo = amrex::max((lo.z - nGrow - m_lo.z) / m_bin_size.z - 1, 0);
 
-        int nx = m_num_bins.x;
-        int ny = m_num_bins.y;
-        int nz = m_num_bins.z;
-
-        for (int ii = amrex::max(ix-1, 0); ii <= amrex::min(ix, nx-1); ++ii) {
-            for (int jj = amrex::max(iy-1, 0); jj <= amrex::min(iy, ny-1); ++jj) {
-                for (int kk = amrex::max(iz-1, 0); kk <= amrex::min(iz, nz-1); ++kk) {
-                    int index = (ii * ny + jj) * nz + kk;
+        int ix_hi = amrex::min((lo.x + nGrow - m_lo.x) / m_bin_size.x, m_num_bins.x-1);
+        int iy_hi = amrex::min((lo.y + nGrow - m_lo.y) / m_bin_size.y, m_num_bins.y-1);
+        int iz_hi = amrex::min((lo.z + nGrow - m_lo.z) / m_bin_size.z, m_num_bins.z-1);
+        
+        for (int ii = ix_lo; ii <= ix_hi; ++ii) {
+            for (int jj = iy_lo; jj <= iy_hi; ++jj) {
+                for (int kk = iz_lo; kk <= iz_hi; ++kk) {
+                    int index = (ii * m_num_bins.y + jj) * m_num_bins.z + kk;
                     for (const auto& nbor : m_bif.getBinIterator(index)) {
-                        if (nbor.second.contains(iv)) return nbor.first;
+                        Box bx = nbor.second;
+                        bx.grow(nGrow);
+                        if (bx.contains(iv)) return nbor.first;
                     }
                 }
             }
         }
-
+        
         return -1;
     }
 };
@@ -194,13 +196,23 @@ struct AmrAssignGrid
 
     template <typename P>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE   
-    GpuTuple<int, int> operator() (const P& p) const noexcept
+    GpuTuple<int, int> operator() (const P& p, int lev_min=-1, int lev_max=-1, int nGrow=0) const noexcept
     {
-        for (int lev = m_size-1; lev >= 0; --lev)
+        lev_min = (lev_min == -1) ? 0 : lev_min;
+        lev_max = (lev_max == -1) ? m_size - 1 : lev_max;
+
+        for (int lev = lev_max; lev >= lev_min; --lev)
         {
             int grid = m_funcs[lev](p);
             if (grid >= 0) return makeTuple(grid, lev);
         }
+
+        for (int lev = lev_min; lev >= lev_min; --lev)
+        {
+            int grid = m_funcs[lev](p, nGrow);
+            if (grid >= 0) return makeTuple(grid, lev);
+        }
+
         return makeTuple(-1, -1);
     }
 };
@@ -260,7 +272,8 @@ public:
 
     bool isValid (const Vector<BoxArray>& a_ba) const
     {
-        if ( (m_locators.size() == 0) or !m_defined) return false;
+        if ( !m_defined or (m_locators.size() == 0) or
+             (m_locators.size() != a_ba.size()) ) return false;
         bool all_valid = true;
         int num_levels = m_locators.size();
         for (int lev = 0; lev < num_levels; ++lev)

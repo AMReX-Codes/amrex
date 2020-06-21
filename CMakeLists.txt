@@ -45,6 +45,20 @@ endif ()
 set( AMREX_PKG_VERSION "${_pkg_version}" CACHE INTERNAL "" )
 unset(_pkg_version)
 
+#
+# For the time being, set this option here.
+# We must do this because we need to provide a default for CMAKE_CXX_COMPILER
+#
+option( ENABLE_DPCPP  "Enable DPCPP support" OFF )
+if (ENABLE_DPCPP)
+   if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
+      # Set default for CMAKE_CXX_COMPILER only if amrex
+      # is not a subproject
+      set(CMAKE_CXX_COMPILER dpcpp)
+   endif ()
+   message(STATUS "Enabling experimental support for dpc++")
+endif ()
+
 
 ########################################################################
 #
@@ -69,17 +83,30 @@ set( CMAKE_MODULE_PATH ${AMREX_CMAKE_MODULES_PATH} )
 #
 # Provide a default install directory
 #
-if ( CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT )
-   set ( CMAKE_INSTALL_PREFIX "${PROJECT_SOURCE_DIR}/installdir"
-      CACHE PATH "AMReX installation directory" FORCE)
+if ( CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR AND CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT )
+    set ( CMAKE_INSTALL_PREFIX "${PROJECT_SOURCE_DIR}/installdir"
+          CACHE PATH "AMReX installation directory" FORCE)
 endif ()
+
+message(STATUS "AMReX installation directory: ${CMAKE_INSTALL_PREFIX}")
+
+#
+# Check if CMAKE_BUILD_TYPE is given. If not, use default
+#
+if ( NOT CMAKE_BUILD_TYPE )
+   set(CMAKE_CONFIGURATION_TYPES "Release;Debug;MinSizeRel;RelWithDebInfo")
+   set(CMAKE_BUILD_TYPE Release
+       CACHE STRING
+       "Choose the build type, e.g. Release, Debug, or RelWithDebInfo." FORCE)
+else ()
+   message(STATUS "Build type set by user to '${CMAKE_BUILD_TYPE}'.")
+endif()
 
 #
 # Include options, utilities and other stuff we need
 #
 include( AMReX_Utils )
 include( AMReX_Options )
-include( AMReX_Machines )
 
 #
 # Enable Fortran if requested
@@ -95,6 +122,12 @@ if (ENABLE_CUDA)
     enable_language(CUDA)
     include(AMReX_SetupCUDA)
 endif ()
+
+#
+# Check compiler version
+#
+set_mininum_cxx_compiler_version(GNU 4.8)
+set_mininum_cxx_compiler_version(MSVC 19.23)
 
 #
 # Set CMAKE_<LANG>_FLAGS_<CONFIG> if not already defined

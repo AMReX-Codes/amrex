@@ -9,6 +9,7 @@
 #include <array>
 #include <type_traits>
 #include <memory>
+#include <atomic>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -40,6 +41,10 @@
 namespace amrex
 {
 
+extern std::atomic<Long> atomic_total_bytes_allocated_in_fabs;
+extern std::atomic<Long> atomic_total_bytes_allocated_in_fabs_hwm;
+extern std::atomic<Long> atomic_total_cells_allocated_in_fabs;
+extern std::atomic<Long> atomic_total_cells_allocated_in_fabs_hwm;
 extern Long private_total_bytes_allocated_in_fabs;     //!< total bytes at any given time
 extern Long private_total_bytes_allocated_in_fabs_hwm; //!< high-water-mark over a given interval
 extern Long private_total_cells_allocated_in_fabs;     //!< total cells at any given time
@@ -137,7 +142,7 @@ makeArray4 (T* p, Box const& bx, int ncomp) noexcept
 
 template <typename T>
 typename std::enable_if<std::is_arithmetic<T>::value>::type
-placementNew (T* const ptr, Long n)
+placementNew (T* const /*ptr*/, Long /*n*/)
 {}
 
 template <typename T>
@@ -161,7 +166,7 @@ placementNew (T* const ptr, Long n)
 
 template <typename T>
 typename std::enable_if<std::is_trivially_destructible<T>::value>::type
-placementDelete (T* const ptr, Long n)
+placementDelete (T* const /*ptr*/, Long /*n*/)
 {}
 
 template <typename T>
@@ -273,7 +278,7 @@ public:
     */
     void resize (const Box& b, int N = 1);
 
-    template <class U=T, class = typename std::enable_if<std::is_trivially_destructible<U>::value>::type >
+    template <class U=T, typename std::enable_if<std::is_trivially_destructible<U>::value,int>::type = 0>
     Elixir elixir () noexcept;
 
     /**
@@ -1646,18 +1651,22 @@ template <class T>
 void
 BaseFab<T>::prefetchToHost () const noexcept
 {
+#ifdef AMREX_USE_GPU
+    if (this->arena() == The_Arena() or this->arena() == The_Managed_Arena()) {
 #if defined(AMREX_USE_DPCPP)
-    // xxxxx DPCPP todo: prefetchToHost
-    // std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
-    // auto& q = Gpu::Device::streamQueue();
-    // q.submit([&] (sycl::handler& h) { h.prefetch(this->dptr, s); });
+        // xxxxx DPCPP todo: prefetchToHost
+        // std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
+        // auto& q = Gpu::Device::streamQueue();
+        // q.submit([&] (sycl::handler& h) { h.prefetch(this->dptr, s); });
 #elif defined(AMREX_USE_CUDA)
-    std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
-    AMREX_CUDA_SAFE_CALL(cudaMemPrefetchAsync(this->dptr, s,
-                                              cudaCpuDeviceId,
-                                              Gpu::gpuStream()));
+        std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
+        AMREX_CUDA_SAFE_CALL(cudaMemPrefetchAsync(this->dptr, s,
+                                                  cudaCpuDeviceId,
+                                                  Gpu::gpuStream()));
 #elif defined(AMREX_USE_HIP)
-    // HIP FIX HERE
+        // HIP FIX HERE
+#endif
+    }
 #endif
 }
 
@@ -1665,17 +1674,21 @@ template <class T>
 void
 BaseFab<T>::prefetchToDevice () const noexcept
 {
+#ifdef AMREX_USE_GPU
+    if (this->arena() == The_Arena() or this->arena() == The_Managed_Arena()) {
 #if defined(AMREX_USE_DPCPP)
-    std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
-    auto& q = Gpu::Device::streamQueue();
-    q.submit([&] (sycl::handler& h) { h.prefetch(this->dptr, s); });
+        std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
+        auto& q = Gpu::Device::streamQueue();
+        q.submit([&] (sycl::handler& h) { h.prefetch(this->dptr, s); });
 #elif defined(AMREX_USE_CUDA)
-    std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
-    AMREX_CUDA_SAFE_CALL(cudaMemPrefetchAsync(this->dptr, s,
-                                              Gpu::Device::deviceId(),
-                                              Gpu::gpuStream()));
+        std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
+        AMREX_CUDA_SAFE_CALL(cudaMemPrefetchAsync(this->dptr, s,
+                                                  Gpu::Device::deviceId(),
+                                                  Gpu::gpuStream()));
 #elif defined(AMREX_USE_HIP)
-    // HIP FIX HERE
+        // HIP FIX HERE
+#endif
+    }
 #endif
 }
 
@@ -1833,15 +1846,7 @@ BaseFab<T>::copy (const BaseFab<T>& src, const Box& srcbox, int srccomp,
     Array4<T const> const& s = src.const_array();
     const auto dlo = amrex::lbound(destbox);
     const auto slo = amrex::lbound(srcbox);
-// HIP FIX HERE - Dim3
-#ifdef AMREX_USE_HIP
-    Dim3 offset;
-    offset.x = slo.x-dlo.x;
-    offset.y = slo.y-dlo.y;
-    offset.z = slo.z-dlo.z; 
-#else
     const Dim3 offset{slo.x-dlo.x,slo.y-dlo.y,slo.z-dlo.z};
-#endif
 
     AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on, destbox, numcomp, i, j, k, n,
     {
@@ -2031,7 +2036,7 @@ BaseFab<T>::resize (const Box& b, int n)
 }
 
 template <class T>
-template <class,class>
+template <class U, typename std::enable_if<std::is_trivially_destructible<U>::value,int>::type>
 Elixir
 BaseFab<T>::elixir () noexcept
 {
@@ -2920,20 +2925,8 @@ BaseFab<T>::linComb (const BaseFab<T>& f1, const Box& b1, int comp1,
     const auto dlo = amrex::lbound(b);
     const auto slo1 = amrex::lbound(b1);
     const auto slo2 = amrex::lbound(b2);
-// HIP FIX HERE - Dim3
-#ifdef AMREX_USE_HIP 
-    Dim3 off1;
-    off1.x = slo1.x-dlo.x;
-    off1.y = slo1.y-dlo.y;
-    off1.z = slo1.z-dlo.z;
-    Dim3 off2;
-    off2.x = slo2.x-dlo.x;
-    off2.y = slo2.y-dlo.y;
-    off2.z = slo2.z-dlo.z;
-#else
     const Dim3 off1{slo1.x-dlo.x,slo1.y-dlo.y,slo1.z-dlo.z};
     const Dim3 off2{slo2.x-dlo.x,slo2.y-dlo.y,slo2.z-dlo.z};    
-#endif
 
     AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on, b, numcomp, i, j, k, n,
     {
@@ -2961,15 +2954,7 @@ BaseFab<T>::dot (const Box& xbx, int xcomp,
 
     const auto xlo = amrex::lbound(xbx);
     const auto ylo = amrex::lbound(ybx);
-// HIP FIX HERE - Dim3 
-#ifdef AMREX_USE_HIP
-    Dim3 offset;
-    offset.x = ylo.x-xlo.x;
-    offset.y = ylo.y-xlo.y;
-    offset.z = ylo.z-xlo.z;
-#else
     const Dim3 offset{ylo.x-xlo.x,ylo.y-xlo.y,ylo.z-xlo.z};
-#endif
     Array4<T const> const& xa = this->const_array();
     Array4<T const> const& ya = y.const_array();
 
@@ -3019,15 +3004,7 @@ BaseFab<T>::dotmask (const BaseFab<int>& mask, const Box& xbx, int xcomp,
 
     const auto xlo = amrex::lbound(xbx);
     const auto ylo = amrex::lbound(ybx);
-    // HIP FIX HERE - Initialization List: simple amrex::Dim3
-#ifdef AMREX_USE_HIP
-    Dim3 offset;
-    offset.x = ylo.x-xlo.x;
-    offset.y = ylo.y-xlo.y;
-    offset.z = ylo.z-xlo.z;
-#else
     const Dim3 offset{ylo.x-xlo.x,ylo.y-xlo.y,ylo.z-xlo.z};
-#endif
 
     Array4<T const> const& xa = this->const_array();
     Array4<T const> const& ya = y.const_array();
@@ -3183,15 +3160,7 @@ BaseFab<T>::plus (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
     Array4<T const> const& s = src.const_array();
     const auto dlo = amrex::lbound(destbox);
     const auto slo = amrex::lbound(srcbox);
-// HIP FIX HERE - Dim3
-#ifdef AMREX_USE_HIP
-    Dim3 offset;
-    offset.x = slo.x-dlo.x;
-    offset.y = slo.y-dlo.y;
-    offset.z = slo.z-dlo.z;
-#else
     const Dim3 offset{slo.x-dlo.x,slo.y-dlo.y,slo.z-dlo.z};
-#endif
     AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on, destbox, numcomp, i, j, k, n,
     {
         d(i,j,k,n+destcomp) += s(i+offset.x,j+offset.y,k+offset.z,n+srccomp);

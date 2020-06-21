@@ -10,6 +10,10 @@
 
 namespace amrex {
 
+std::atomic<Long> atomic_total_bytes_allocated_in_fabs     {0L};
+std::atomic<Long> atomic_total_bytes_allocated_in_fabs_hwm {0L};
+std::atomic<Long> atomic_total_cells_allocated_in_fabs     {0L};
+std::atomic<Long> atomic_total_cells_allocated_in_fabs_hwm {0L};
 Long private_total_bytes_allocated_in_fabs     = 0L;
 Long private_total_bytes_allocated_in_fabs_hwm = 0L;
 Long private_total_cells_allocated_in_fabs     = 0L;
@@ -65,9 +69,11 @@ TotalBytesAllocatedInFabs () noexcept
     {
         r += private_total_bytes_allocated_in_fabs;
     }
-    return r;
+    return r
+        + atomic_total_bytes_allocated_in_fabs.load(std::memory_order_relaxed);
 #else
-    return private_total_bytes_allocated_in_fabs;
+    return private_total_bytes_allocated_in_fabs
+        + atomic_total_bytes_allocated_in_fabs.load(std::memory_order_relaxed);
 #endif
 }
 
@@ -80,9 +86,11 @@ TotalBytesAllocatedInFabsHWM () noexcept
     {
         r += private_total_bytes_allocated_in_fabs_hwm;
     }
-    return r;
+    return r
+        + atomic_total_bytes_allocated_in_fabs_hwm.load(std::memory_order_relaxed);
 #else
-    return private_total_bytes_allocated_in_fabs_hwm;
+    return private_total_bytes_allocated_in_fabs_hwm
+        + atomic_total_bytes_allocated_in_fabs_hwm.load(std::memory_order_relaxed);
 #endif
 }
 
@@ -95,9 +103,11 @@ TotalCellsAllocatedInFabs () noexcept
     {
         r += private_total_cells_allocated_in_fabs;
     }
-    return r;
+    return r
+        + atomic_total_cells_allocated_in_fabs.load(std::memory_order_relaxed);
 #else
-    return private_total_cells_allocated_in_fabs;
+    return private_total_cells_allocated_in_fabs
+        + atomic_total_cells_allocated_in_fabs.load(std::memory_order_relaxed);
 #endif
 }
 
@@ -110,9 +120,11 @@ TotalCellsAllocatedInFabsHWM () noexcept
     {
         r += private_total_cells_allocated_in_fabs_hwm;
     }
-    return r;
+    return r
+        + atomic_total_cells_allocated_in_fabs_hwm.load(std::memory_order_relaxed);
 #else
-    return private_total_cells_allocated_in_fabs_hwm;
+    return private_total_cells_allocated_in_fabs_hwm
+        + atomic_total_cells_allocated_in_fabs_hwm.load(std::memory_order_relaxed);
 #endif
 }
 
@@ -125,22 +137,56 @@ ResetTotalBytesAllocatedInFabsHWM () noexcept
     {
         private_total_bytes_allocated_in_fabs_hwm = 0;
     }
+    atomic_total_bytes_allocated_in_fabs_hwm.store(0,std::memory_order_relaxed);
 }
 
 void
 update_fab_stats (Long n, Long s, size_t szt) noexcept
 {
-    Long tst = s*szt;
-    amrex::private_total_bytes_allocated_in_fabs += tst;
-    amrex::private_total_bytes_allocated_in_fabs_hwm 
-        = std::max(amrex::private_total_bytes_allocated_in_fabs_hwm,
-                   amrex::private_total_bytes_allocated_in_fabs);
-	
-    if(szt == sizeof(Real)) {
-	amrex::private_total_cells_allocated_in_fabs += n;
-	amrex::private_total_cells_allocated_in_fabs_hwm 
-	    = std::max(amrex::private_total_cells_allocated_in_fabs_hwm,
-                   amrex::private_total_cells_allocated_in_fabs);
+#ifdef _OPENMP
+    if (omp_in_parallel())
+    {
+        Long tst = s*szt;
+        amrex::private_total_bytes_allocated_in_fabs += tst;
+        amrex::private_total_bytes_allocated_in_fabs_hwm
+            = std::max(amrex::private_total_bytes_allocated_in_fabs_hwm,
+                       amrex::private_total_bytes_allocated_in_fabs);
+
+        if(szt == sizeof(Real)) {
+            amrex::private_total_cells_allocated_in_fabs += n;
+            amrex::private_total_cells_allocated_in_fabs_hwm
+                = std::max(amrex::private_total_cells_allocated_in_fabs_hwm,
+                           amrex::private_total_cells_allocated_in_fabs);
+        }
+    } else
+#endif
+    {
+        Long tst = s*szt;
+        Long old_bytes = amrex::atomic_total_bytes_allocated_in_fabs.fetch_add
+            (tst,std::memory_order_relaxed);
+        Long new_bytes = old_bytes + tst;
+        Long prev_bytes_hwm = amrex::atomic_total_bytes_allocated_in_fabs_hwm.load
+            (std::memory_order_relaxed);
+        while (prev_bytes_hwm < new_bytes) {
+            if (amrex::atomic_total_bytes_allocated_in_fabs_hwm.compare_exchange_weak
+                (prev_bytes_hwm, new_bytes, std::memory_order_release, std::memory_order_relaxed)) {
+                break;
+            }
+        }
+
+        if(szt == sizeof(Real)) {
+            Long old_cells = amrex::atomic_total_cells_allocated_in_fabs.fetch_add
+                (n,std::memory_order_relaxed);
+            Long new_cells = old_cells + n;
+            Long prev_cells_hwm = amrex::atomic_total_cells_allocated_in_fabs_hwm.load
+                (std::memory_order_relaxed);
+            while (prev_cells_hwm < new_cells) {
+                if (amrex::atomic_total_cells_allocated_in_fabs_hwm.compare_exchange_weak
+                    (prev_cells_hwm, new_cells, std::memory_order_release, std::memory_order_relaxed)) {
+                    break;
+                }
+            }
+        }
     }
 }
 

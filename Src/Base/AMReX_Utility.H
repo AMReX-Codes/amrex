@@ -12,10 +12,6 @@
 #include <limits>
 #include <cfloat>
 
-#include <sys/types.h>
-#include <unistd.h>
-#include <sys/wait.h>
-
 #include <AMReX_BLassert.H>
 #include <AMReX_REAL.H>
 #include <AMReX_INT.H>
@@ -27,6 +23,7 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Random.H>
 #include <AMReX_GpuQualifiers.H>
+#include <AMReX_FileSystem.H>
 
 namespace amrex
 {
@@ -91,8 +88,6 @@ namespace amrex
     void CreateDirectoryFailed (const std::string& dir);
     //! Output a message and abort when couldn't open the file.
     void FileOpenFailed (const std::string& dir);
-    //! Attempt to unlink the file.  Ignore any errors.
-    void UnlinkFile (const std::string& file);
     /**
     * \brief Check if a file already exists.
     *   Return true if the filename is an existing file, directory,
@@ -249,7 +244,7 @@ namespace amrex
 
     template<class T> void BroadcastArray(Vector<T> &aT, int myLocalId, int rootId, const MPI_Comm &localComm);
 
-    void USleep(double sleepsec);
+    void Sleep (double sleepsec);  // Sleep for sleepsec seconds
 
 
     using MaxResSteadyClock = std::conditional<std::chrono::high_resolution_clock::is_steady,
