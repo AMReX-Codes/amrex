@@ -376,9 +376,6 @@ MLNodeLinOp::makeHypreNodeLap (int bottom_verbose) const
     const auto& dirichlet_mask = *(m_dirichlet_mask[0].back());
     MPI_Comm comm = BottomCommunicator();
 
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(NMGLevels(0) == 1,
-                                     "MLNodeLaplacian: To use hypre, max_coarsening_level must be 0");
-
     std::unique_ptr<HypreNodeLap> hypre_solver
         (new amrex::HypreNodeLap(ba, dm, geom, factory, owner_mask, dirichlet_mask,
                                  comm, this, bottom_verbose));
