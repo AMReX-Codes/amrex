@@ -17,7 +17,7 @@ namespace amrex {
 //---------------------------------------------------------------------------//
 // Creates the Blueprint nesting relationships
 //---------------------------------------------------------------------------//
-void Nestsets(const int level,
+bool Nestsets(const int level,
               const int n_levels,
               const FArrayBox &fab,
               const Vector<const BoxArray*> box_arrays,
@@ -32,6 +32,7 @@ void Nestsets(const int level,
     const int dims = BL_SPACEDIM;
     const Box &box = fab.box();
 
+    bool valid = false;
     if(level > 0)
     {
       // check for parents
@@ -40,6 +41,7 @@ void Nestsets(const int level,
 
       for(int b = 0; b < isects.size(); ++b)
       {
+        valid = true;
         // get parent box in terms of this level
         Box parent = amrex::refine(isects[b].second, ref_ratio[level-1]);
         Box overlap = box & parent;
@@ -83,6 +85,7 @@ void Nestsets(const int level,
 
       for(int b = 0; b < isects.size(); ++b)
       {
+        valid = true;
         // get child box in terms of this level
         Box child = amrex::coarsen(isects[b].second, ref_ratio[level]);
         int child_id = isects[b].first + domain_offsets[level+1];
@@ -118,6 +121,7 @@ void Nestsets(const int level,
         }
       }
     }
+    return valid;
 }
 
 //---------------------------------------------------------------------------//
@@ -413,8 +417,12 @@ MultiLevelToBlueprint (int n_levels,
             // add the nesting relationship
             if(num_levels > 1)
             {
-                conduit::Node &nestset = patch["nestsets/nest"];
-                Nestsets(i, n_levels, fab, box_arrays, ref_ratio, box_offsets, nestset);
+                conduit::Node nestset;
+                bool valid = Nestsets(i, n_levels, fab, box_arrays, ref_ratio, box_offsets, nestset);
+                if(valid)
+                {
+                    patch["nestsets/nest"].set(nestset);
+                }
             }
             // add fields
             FabToBlueprintFields(fab,varnames,patch);
