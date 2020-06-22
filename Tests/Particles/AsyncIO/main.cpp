@@ -505,35 +505,46 @@ void test_async_io(TestParams& parms)
 
     myPC.InitRandom(num_particles, iseed, pdata, serialize);
 
-    myPC.AssignDensity(0, partMF, 0, 1, nlevs-1);
+    for (int step = 0; step < 100; ++step)
+    {
+        myPC.AssignDensity(0, partMF, 0, 1, nlevs-1);
 
-    for (int lev = 0; lev < nlevs; ++lev) {
-        MultiFab::Copy(*density[lev], *partMF[lev], 0, 0, 1, 0);
+        for (int lev = 0; lev < nlevs; ++lev) {
+            MultiFab::Copy(*density[lev], *partMF[lev], 0, 0, 1, 0);
+        }
+
+        if (step % 10 == 0) {
+            Vector<std::string> varnames;
+            varnames.push_back("density");
+
+            Vector<std::string> particle_varnames;
+            particle_varnames.push_back("mass");
+
+            Vector<int> level_steps;
+            level_steps.push_back(0);
+            level_steps.push_back(0);
+
+            int output_levs = nlevs;
+
+            Vector<const MultiFab*> outputMF(output_levs);
+            Vector<IntVect> outputRR(output_levs);
+            for (int lev = 0; lev < output_levs; ++lev) {
+                outputMF[lev] = density[lev].get();
+                outputRR[lev] = IntVect(D_DECL(2, 2, 2));
+            }
+
+            std::string fn = amrex::Concatenate("plt", step, 5);
+
+            WriteMultiLevelPlotfile(fn, output_levs, outputMF,
+                                    varnames, geom, 0.0, level_steps, outputRR);
+
+            if (AsyncOut::UseAsyncOut()) {
+                myPC.WritePlotFileAsync(fn, "particle0");
+            } else{
+                myPC.WritePlotFile(fn, "particle0");
+            }
+        }
     }
-
-    Vector<std::string> varnames;
-    varnames.push_back("density");
-
-    Vector<std::string> particle_varnames;
-    particle_varnames.push_back("mass");
-
-    Vector<int> level_steps;
-    level_steps.push_back(0);
-    level_steps.push_back(0);
-
-    int output_levs = nlevs;
-
-    Vector<const MultiFab*> outputMF(output_levs);
-    Vector<IntVect> outputRR(output_levs);
-    for (int lev = 0; lev < output_levs; ++lev) {
-        outputMF[lev] = density[lev].get();
-        outputRR[lev] = IntVect(D_DECL(2, 2, 2));
-    }
-
-    WriteMultiLevelPlotfile("plt00000", output_levs, outputMF,
-                            varnames, geom, 0.0, level_steps, outputRR);
-    myPC.Checkpoint("plt00000", "particle0");
-    myPC.WritePlotFileAsync("plt00000", "particle1");
 }
 
 int main(int argc, char* argv[])
