@@ -38,14 +38,22 @@ void get_position_unit_cell(Real* r, const IntVect& nppc, int i_part)
 #else
     int nz = 1;
 #endif
-    
+
     int ix_part = i_part/(ny * nz);
     int iy_part = (i_part % (ny * nz)) % ny;
     int iz_part = (i_part % (ny * nz)) / ny;
-    
+
     r[0] = (0.5+ix_part)/nx;
     r[1] = (0.5+iy_part)/ny;
     r[2] = (0.5+iz_part)/nz;
+}
+
+template <typename ParticleReal>
+std::size_t PSizeInFile (const Vector<int>& wrc, const Vector<int>& wic)
+{
+    std::size_t rsize = sizeof(ParticleReal)*std::accumulate(wrc.begin(), wrc.end(), 0);
+    std::size_t isize = sizeof(int)*std::accumulate(wic.begin(), wic.end(), 0);
+    return rsize + isize + AMREX_SPACEDIM*sizeof(ParticleReal) + 2*sizeof(int);
 }
 
 class MyParticleContainer
@@ -64,11 +72,11 @@ public:
     void InitParticles (const amrex::IntVect& a_num_particles_per_cell)
     {
         BL_PROFILE("InitParticles");
-        
+
         const int lev = 0;  // only add particles on level 0
         const Real* dx = Geom(lev).CellSize();
         const Real* plo = Geom(lev).ProbLo();
-    
+
         const int num_ppc = AMREX_D_TERM( a_num_particles_per_cell[0],
                                          *a_num_particles_per_cell[1],
                                          *a_num_particles_per_cell[2]);
@@ -89,10 +97,10 @@ public:
                 for (int i_part=0; i_part<num_ppc;i_part++) {
                     Real r[3];
                     get_position_unit_cell(r, a_num_particles_per_cell, i_part);
-                
+
                     ParticleType p;
                     p.id()  = ParticleType::NextID();
-                    p.cpu() = ParallelDescriptor::MyProc();                
+                    p.cpu() = ParallelDescriptor::MyProc();
                     p.pos(0) = plo[0] + (iv[0] + r[0])*dx[0];
 #if AMREX_SPACEDIM > 1
                     p.pos(1) = plo[1] + (iv[1] + r[1])*dx[1];
@@ -100,10 +108,10 @@ public:
 #if AMREX_SPACEDIM > 2
                     p.pos(2) = plo[2] + (iv[2] + r[2])*dx[2];
 #endif
-                    
+
                     for (int i = 0; i < NSR; ++i) p.rdata(i) = p.id();
                     for (int i = 0; i < NSI; ++i) p.idata(i) = p.id();
-                    
+
                     host_particles.push_back(p);
                     for (int i = 0; i < NAR; ++i)
                         host_real[i].push_back(p.id());
@@ -115,16 +123,16 @@ public:
                         host_runtime_int[i].push_back(p.id());
                 }
             }
-        
+
             auto& particle_tile = DefineAndReturnParticleTile(lev, mfi.index(), mfi.LocalTileIndex());
             auto old_size = particle_tile.GetArrayOfStructs().size();
             auto new_size = old_size + host_particles.size();
             particle_tile.resize(new_size);
-            
+
             Gpu::copy(Gpu::hostToDevice,
                       host_particles.begin(),
                       host_particles.end(),
-                      particle_tile.GetArrayOfStructs().begin() + old_size);        
+                      particle_tile.GetArrayOfStructs().begin() + old_size);
 
             auto& soa = particle_tile.GetStructOfArrays();
             for (int i = 0; i < NAR; ++i)
@@ -160,13 +168,6 @@ public:
         }
 
         Redistribute();
-    }
-
-    std::size_t PSizeInFile (const Vector<int>& wrc, const Vector<int>& wic) const
-    {
-        std::size_t rsize = sizeof(ParticleReal)*std::accumulate(wrc.begin(), wrc.end(), 0);
-        std::size_t isize = sizeof(int)*std::accumulate(wic.begin(), wic.end(), 0);
-        return rsize + isize + AMREX_SPACEDIM*sizeof(ParticleReal) + 2*sizeof(int);
     }
 
     void WritePlotFileAsync (const std::string& dir, const std::string& name) const
@@ -222,7 +223,6 @@ public:
             total_np += np_per_level[lev];
         }
 
-
         for (int lev = 0; lev <= finestLevel(); lev++)
         {
             std::string LevelDir = pdir;
@@ -270,7 +270,7 @@ public:
             }
         }
 
-        std::size_t psize = PSizeInFile(write_real_comp, write_int_comp);
+        std::size_t psize = PSizeInFile<ParticleReal>(write_real_comp, write_int_comp);
         Vector<int64_t> rank_start_offset(NProcs);
         for (int ip = 0; ip < NProcs; ++ip) {
             auto info = AsyncOut::GetWriteInfo(ip);
@@ -621,11 +621,7 @@ void test_async_io(TestParams& parms)
     MyParticleContainer myPC(geom, dmap, ba, rr);
     myPC.SetVerbose(false);
 
-    int num_particles = parms.nppc * AMREX_D_TERM(parms.nx, * parms.ny, * parms.nz);
-    bool serialize = true;
-    int iseed = 451;
-    Real mass = 10.0;
-    MyParticleContainer::ParticleInitData pdata = {mass};
+    MyParticleContainer::ParticleInitData pdata = {10.0};
 
     myPC.InitParticles(IntVect(2, 2, 2));
 
