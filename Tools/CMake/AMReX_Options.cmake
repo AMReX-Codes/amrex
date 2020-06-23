@@ -195,6 +195,10 @@ cmake_dependent_option(ENABLE_HDF5_ASYNC "Enable asynchronous writes in the HDF5
    "ENABLE_HDF5" OFF )
 print_option(ENABLE_HDF5_ASYNC)
 
+if (ENABLE_HDF5_ASYNC)
+   message(FATAL_ERROR "\nENABLE_HDF5_ASYNC not yet supported\n")
+endif ()
+
 
 #
 # Miscellanoues options  =====================================================
