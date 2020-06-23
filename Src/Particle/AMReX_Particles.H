@@ -1125,6 +1125,12 @@ public:
 
     bool OnSameGrids (int level, const MultiFab& mf) const { return m_gdb->OnSameGrids(level, mf); }
 
+    int NumRuntimeRealComps () const { return m_num_runtime_real; }
+    int NumRuntimeIntComps  () const { return m_num_runtime_int;  }
+
+    int NumRealComps () const { return NArrayReal + NumRuntimeRealComps(); }
+    int NumIntComps  () const { return NArrayInt  + NumRuntimeIntComps() ; }
+
 protected:
 
     mutable amrex::Vector<int> neighbor_procs;
@@ -1203,17 +1209,11 @@ void ReadParticlesHDF5 (hsize_t offset, hsize_t cnt, int grd, int lev, hid_t int
     mutable Vector<std::string> filePrefixPrePost;
 
     DenseBins<ParticleType> m_bins;
-    
+
 #ifdef AMREX_USE_GPU
     mutable AmrParticleLocator<DenseBins<Box> > m_particle_locator;
 #endif
 
-    int NumRuntimeRealComps () const { return m_num_runtime_real; }
-    int NumRuntimeIntComps  () const { return m_num_runtime_int;  } 
-    
-    int NumRealComps () const { return NArrayReal + NumRuntimeRealComps(); }
-    int NumIntComps  () const { return NArrayInt  + NumRuntimeIntComps() ; } 
-    
 private:
 
     virtual void particlePostLocate(ParticleType& /*p*/, const ParticleLocData& /*pld*/,
@@ -1233,7 +1233,7 @@ private:
     bool m_runtime_comps_defined;
     int m_num_runtime_real;
     int m_num_runtime_int;
-    
+
     size_t particle_size, superparticle_size;
     int num_real_comm_comps, num_int_comm_comps;
     Vector<ParticleLevel> m_particles;
