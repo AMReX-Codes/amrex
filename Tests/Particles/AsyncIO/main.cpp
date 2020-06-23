@@ -25,6 +25,29 @@ struct TestParams {
   bool verbose;
 };
 
+void get_position_unit_cell(Real* r, const IntVect& nppc, int i_part)
+{
+    int nx = nppc[0];
+#if AMREX_SPACEDIM > 1
+    int ny = nppc[1];
+#else
+    int ny = 1;
+#endif
+#if AMREX_SPACEDIM > 2
+    int nz = nppc[2];
+#else
+    int nz = 1;
+#endif
+    
+    int ix_part = i_part/(ny * nz);
+    int iy_part = (i_part % (ny * nz)) % ny;
+    int iz_part = (i_part % (ny * nz)) / ny;
+    
+    r[0] = (0.5+ix_part)/nx;
+    r[1] = (0.5+iy_part)/ny;
+    r[2] = (0.5+iz_part)/nz;
+}
+
 class MyParticleContainer
     : public amrex::ParticleContainer<NSR, NSI, NAR, NAI>
 {
@@ -37,6 +60,107 @@ public:
                          const Vector<amrex::IntVect>             & a_rr)
         : amrex::ParticleContainer<NSR, NSI, NAR, NAI>(a_geom, a_dmap, a_ba, a_rr)
     {}
+
+    void InitParticles (const amrex::IntVect& a_num_particles_per_cell)
+    {
+        BL_PROFILE("InitParticles");
+        
+        const int lev = 0;  // only add particles on level 0
+        const Real* dx = Geom(lev).CellSize();
+        const Real* plo = Geom(lev).ProbLo();
+    
+        const int num_ppc = AMREX_D_TERM( a_num_particles_per_cell[0],
+                                         *a_num_particles_per_cell[1],
+                                         *a_num_particles_per_cell[2]);
+
+        for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
+        {
+            const Box& tile_box  = mfi.tilebox();
+
+            Gpu::HostVector<ParticleType> host_particles;
+            std::array<Gpu::HostVector<Real>, NAR> host_real;
+            std::array<Gpu::HostVector<int>, NAI> host_int;
+
+            std::vector<Gpu::HostVector<Real> > host_runtime_real(NumRuntimeRealComps());
+            std::vector<Gpu::HostVector<int> > host_runtime_int(NumRuntimeIntComps());
+
+            for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv))
+            {
+                for (int i_part=0; i_part<num_ppc;i_part++) {
+                    Real r[3];
+                    get_position_unit_cell(r, a_num_particles_per_cell, i_part);
+                
+                    ParticleType p;
+                    p.id()  = ParticleType::NextID();
+                    p.cpu() = ParallelDescriptor::MyProc();                
+                    p.pos(0) = plo[0] + (iv[0] + r[0])*dx[0];
+#if AMREX_SPACEDIM > 1
+                    p.pos(1) = plo[1] + (iv[1] + r[1])*dx[1];
+#endif
+#if AMREX_SPACEDIM > 2
+                    p.pos(2) = plo[2] + (iv[2] + r[2])*dx[2];
+#endif
+                    
+                    for (int i = 0; i < NSR; ++i) p.rdata(i) = p.id();
+                    for (int i = 0; i < NSI; ++i) p.idata(i) = p.id();
+                    
+                    host_particles.push_back(p);
+                    for (int i = 0; i < NAR; ++i)
+                        host_real[i].push_back(p.id());
+                    for (int i = 0; i < NAI; ++i)
+                        host_int[i].push_back(p.id());
+                    for (int i = 0; i < NumRuntimeRealComps(); ++i)
+                        host_runtime_real[i].push_back(p.id());
+                    for (int i = 0; i < NumRuntimeIntComps(); ++i)
+                        host_runtime_int[i].push_back(p.id());
+                }
+            }
+        
+            auto& particle_tile = DefineAndReturnParticleTile(lev, mfi.index(), mfi.LocalTileIndex());
+            auto old_size = particle_tile.GetArrayOfStructs().size();
+            auto new_size = old_size + host_particles.size();
+            particle_tile.resize(new_size);
+            
+            Gpu::copy(Gpu::hostToDevice,
+                      host_particles.begin(),
+                      host_particles.end(),
+                      particle_tile.GetArrayOfStructs().begin() + old_size);        
+
+            auto& soa = particle_tile.GetStructOfArrays();
+            for (int i = 0; i < NAR; ++i)
+            {
+                Gpu::copy(Gpu::hostToDevice,
+                          host_real[i].begin(),
+                          host_real[i].end(),
+                          soa.GetRealData(i).begin() + old_size);
+            }
+
+            for (int i = 0; i < NAI; ++i)
+            {
+                Gpu::copy(Gpu::hostToDevice,
+                          host_int[i].begin(),
+                          host_int[i].end(),
+                          soa.GetIntData(i).begin() + old_size);
+            }
+            for (int i = 0; i < NumRuntimeRealComps(); ++i)
+            {
+                Gpu::copy(Gpu::hostToDevice,
+                          host_runtime_real[i].begin(),
+                          host_runtime_real[i].end(),
+                          soa.GetRealData(NAR+i).begin() + old_size);
+            }
+
+            for (int i = 0; i < NumRuntimeIntComps(); ++i)
+            {
+                Gpu::copy(Gpu::hostToDevice,
+                          host_runtime_int[i].begin(),
+                          host_runtime_int[i].end(),
+                          soa.GetIntData(NAI+i).begin() + old_size);
+            }
+        }
+
+        Redistribute();
+    }
 
     std::size_t PSizeInFile (const Vector<int>& wrc, const Vector<int>& wic) const
     {
@@ -503,9 +627,9 @@ void test_async_io(TestParams& parms)
     Real mass = 10.0;
     MyParticleContainer::ParticleInitData pdata = {mass};
 
-    myPC.InitRandom(num_particles, iseed, pdata, serialize);
+    myPC.InitParticles(IntVect(2, 2, 2));
 
-    for (int step = 0; step < 100; ++step)
+    for (int step = 0; step < 4000; ++step)
     {
         myPC.AssignDensity(0, partMF, 0, 1, nlevs-1);
 
@@ -513,7 +637,7 @@ void test_async_io(TestParams& parms)
             MultiFab::Copy(*density[lev], *partMF[lev], 0, 0, 1, 0);
         }
 
-        if (step % 10 == 0) {
+        if (step % 1000 == 0) {
             Vector<std::string> varnames;
             varnames.push_back("density");
 

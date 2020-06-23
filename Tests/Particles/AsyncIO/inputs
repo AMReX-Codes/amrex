@@ -25,3 +25,5 @@ verbose = true   # set to true to get more verbosity
 
 # Number of levels
 nlevs = 2
+
+amrex.async_io=1
