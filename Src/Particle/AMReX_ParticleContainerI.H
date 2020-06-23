@@ -32,7 +32,6 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> :: Initialize ()
 {
-    levelDirectoriesCreated = false;
     usePrePost = false;
     doUnlink = true;
 
@@ -43,7 +42,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> :: Initialize 
     {
         static_assert(sizeof(ParticleType)%sizeof(RealType) == 0,
                       "sizeof ParticleType is not a multiple of sizeof RealType");
-        
+
         ParmParse pp("particles");
         pp.query("do_tiling", do_tiling);
         Vector<int> tilesize(AMREX_SPACEDIM);
@@ -54,7 +53,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> :: Initialize 
         static_assert(std::is_standard_layout<ParticleType>::value
                    && std::is_trivial<ParticleType>::value,
                       "Particle type must be standard layout and trivial.");
-        
+
         pp.query("use_prepost", usePrePost);
         pp.query("do_unlink", doUnlink);
 

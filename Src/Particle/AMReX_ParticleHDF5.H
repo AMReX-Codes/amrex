@@ -292,35 +292,32 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
     std::string pdir = dir;
     if ( not pdir.empty() and pdir[pdir.size()-1] != '/') pdir += '/';
-    
-    if ( ! levelDirectoriesCreated)
-    {
-        if (ParallelDescriptor::IOProcessor()) {
-            if ( ! amrex::UtilCreateDirectory(pdir, 0755)) 
-                amrex::CreateDirectoryFailed(pdir);
 
-            int set_stripe = 0;
-            char setstripe[1024];
-            int stripe_count = 128;
-            int stripe_size = 32;
-            char *stripe_count_str = getenv("HDF5_STRIPE_COUNT");
-            char *stripe_size_str  = getenv("HDF5_STRIPE_SIZE");
-            if (stripe_count_str) { 
-                stripe_count = atoi(stripe_count_str);
-                set_stripe = 1;
-            }
-            if (stripe_size_str) {
-                stripe_size = atoi(stripe_size_str);
-                set_stripe = 1;
-            }
-            if (set_stripe == 1) {
-                sprintf(setstripe, "lfs setstripe -c %d -S %dm %s", stripe_count, stripe_size, pdir.c_str());
-                std::cout << "Setting stripe parameters for HDF5 output: " << setstripe << std::endl; 
-                amrex::ignore_unused(std::system(setstripe));
-            }
+    if (ParallelDescriptor::IOProcessor()) {
+        if ( ! amrex::UtilCreateDirectory(pdir, 0755))
+            amrex::CreateDirectoryFailed(pdir);
+
+        int set_stripe = 0;
+        char setstripe[1024];
+        int stripe_count = 128;
+        int stripe_size = 32;
+        char *stripe_count_str = getenv("HDF5_STRIPE_COUNT");
+        char *stripe_size_str  = getenv("HDF5_STRIPE_SIZE");
+        if (stripe_count_str) {
+            stripe_count = atoi(stripe_count_str);
+            set_stripe = 1;
         }
-        ParallelDescriptor::Barrier();
+        if (stripe_size_str) {
+            stripe_size = atoi(stripe_size_str);
+            set_stripe = 1;
+        }
+        if (set_stripe == 1) {
+            sprintf(setstripe, "lfs setstripe -c %d -S %dm %s", stripe_count, stripe_size, pdir.c_str());
+            std::cout << "Setting stripe parameters for HDF5 output: " << setstripe << std::endl; 
+            amrex::ignore_unused(std::system(setstripe));
+        }
     }
+    ParallelDescriptor::Barrier();
 
     Long nparticles = 0;
     int maxnextid;

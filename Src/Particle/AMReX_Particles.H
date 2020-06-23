@@ -1065,22 +1065,21 @@ public:
     static bool do_tiling;
     static IntVect tile_size;
 
-    void SetLevelDirectoriesCreated(bool tf) {
-      levelDirectoriesCreated = tf;
-    }
-
-    void SetUsePrePost(bool tf) {
+    void SetUsePrePost (bool tf) const {
       usePrePost = tf;
     }
-    bool GetUsePrePost() {
+    bool GetUsePrePost() const {
       return usePrePost;
     }
 
-    void SetUseUnlink(bool tf) {
+    int GetMaxNextIDPrePost () const { return maxnextidPrePost; }
+    Long GetNParticlesPrePost () const { return nparticlesPrePost; }
+
+    void SetUseUnlink (bool tf) const {
       doUnlink = tf;
     }
 
-    bool GetUseUnlink() {
+    bool GetUseUnlink() const {
       return doUnlink;
     }
 
@@ -1131,6 +1130,19 @@ public:
     int NumRealComps () const { return NArrayReal + NumRuntimeRealComps(); }
     int NumIntComps  () const { return NArrayInt  + NumRuntimeIntComps() ; }
 
+    //! ---- variables for i/o optimization saved for pre and post checkpoint
+    bool usePrePost;
+    bool doUnlink;
+    int maxnextidPrePost;
+    mutable int nOutFilesPrePost;
+    Long nparticlesPrePost;
+    Vector<Long> nParticlesAtLevelPrePost;          //!< ---- [level]
+    mutable Vector<Vector<int>>  whichPrePost;      //!< ---- [level]
+    mutable Vector<Vector<int>>  countPrePost;      //!< ---- [level]
+    mutable Vector<Vector<Long>> wherePrePost;      //!< ---- [level]
+    mutable std::string HdrFileNamePrePost;
+    mutable Vector<std::string> filePrefixPrePost;
+
 protected:
 
     mutable amrex::Vector<int> neighbor_procs;
@@ -1165,11 +1177,14 @@ protected:
     bool EnforcePeriodicWhere (ParticleType& prt, ParticleLocData& pld,
                                int lev_min = 0, int lev_max = -1, int local_grid=-1) const;
 
+public:
     void
-	WriteParticles (int level, std::ofstream& ofs, int fnum,
-					Vector<int>& which, Vector<int>& count, Vector<Long>& where,
-					const Vector<int>& write_real_comp, const Vector<int>& write_int_comp,
-                        const Vector<std::map<std::pair<int, int>, Gpu::DeviceVector<int>>>& particle_io_flags) const;
+    WriteParticles (int level, std::ofstream& ofs, int fnum,
+                    Vector<int>& which, Vector<int>& count, Vector<Long>& where,
+                    const Vector<int>& write_real_comp, const Vector<int>& write_int_comp,
+                    const Vector<std::map<std::pair<int, int>, Gpu::DeviceVector<int>>>& particle_io_flags) const;
+protected:
+
 #ifdef AMREX_USE_HDF5
 void WriteParticlesHDF5 ( hid_t grp, int level, Vector<int>& count, Vector<Long>& where ) const;
 
@@ -1179,7 +1194,7 @@ void ReadParticlesHDF5 (hsize_t offset, hsize_t cnt, int grd, int lev, hid_t int
 
     template <class RTYPE>
     void ReadParticles (int cnt, int grd, int lev, std::ifstream& ifs, int finest_level_in_file);
-    
+
     void SetParticleSize ();
 
     void BuildRedistributeMask(int lev, int nghost=1) const;
@@ -1193,20 +1208,6 @@ void ReadParticlesHDF5 (hsize_t offset, hsize_t cnt, int grd, int lev, hid_t int
     int         m_verbose;
     ParGDBBase* m_gdb;
     ParGDB      m_gdb_object;
-
-    //! ---- variables for i/o optimization saved for pre and post checkpoint
-    bool         levelDirectoriesCreated;
-    bool         usePrePost;
-    bool         doUnlink;
-    int maxnextidPrePost;
-    mutable int nOutFilesPrePost;
-    Long nparticlesPrePost;
-    Vector<Long> nParticlesAtLevelPrePost;          //!< ---- [level]
-    mutable Vector<Vector<int>>  whichPrePost;      //!< ---- [level]
-    mutable Vector<Vector<int>>  countPrePost;      //!< ---- [level]
-    mutable Vector<Vector<Long>> wherePrePost;      //!< ---- [level]
-    mutable std::string HdrFileNamePrePost;
-    mutable Vector<std::string> filePrefixPrePost;
 
     DenseBins<ParticleType> m_bins;
 
