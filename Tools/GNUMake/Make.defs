@@ -282,6 +282,12 @@ else
   USE_SENSEI_INSITU := FALSE
 endif
 
+ifdef USE_HDF5
+  USE_HDF5 := $(strip $(USE_HDF5))
+else
+  USE_HDF5 := FALSE
+endif
+
 ifdef EBASE
   EBASE := $(strip $(EBASE))
 else
@@ -962,6 +968,11 @@ endif
 ifeq ($(USE_SENSEI_INSITU),TRUE)
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/tools/Make.sensei...)
   include        $(AMREX_HOME)/Tools/GNUMake/tools/Make.sensei
+endif
+
+ifeq ($(USE_HDF5),TRUE)
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.hdf5...)
+  include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.hdf5
 endif
 
 ifneq ("$(wildcard $(AMREX_HOME)/Tools/GNUMake/Make.local)","")
