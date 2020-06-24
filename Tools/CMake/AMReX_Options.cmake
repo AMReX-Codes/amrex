@@ -209,11 +209,12 @@ print_option( ENABLE_PIC )
 option(ENABLE_FPE "Enable Floating Point Exceptions checks" OFF)
 print_option( ENABLE_FPE )
 
+set(ENABLE_ASSERTIONS_DEFAULT OFF)
 if ( "${CMAKE_BUILD_TYPE}" MATCHES "Debug" )
-   option( ENABLE_ASSERTIONS "Enable assertions" ON)
-else ()
-   option( ENABLE_ASSERTIONS "Enable assertions" OFF)
+   set(ENABLE_ASSERTIONS_DEFAULT ON)
 endif ()
+cmake_dependent_option(ENABLE_ASSERTIONS "Enable assertions" ENABLE_ASSERTIONS_DEFAULT
+    "ON" ENABLE_ASSERTIONS_DEFAULT)
 
 print_option( ENABLE_ASSERTIONS )
 
