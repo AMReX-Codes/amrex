@@ -5,7 +5,7 @@ DEBUG	= FALSE
 
 DIM	= 3
 
-COMP    = gnu 
+COMP    = gnu
 
 PRECISION = DOUBLE
 
@@ -18,14 +18,6 @@ TINY_PROFILE = TRUE
 
 EBASE     = main
 
-# HDF5_HOME   = /home/khl7265/.local
-USE_HDF5 = TRUE
-ifeq ($(USE_HDF5), TRUE)
-DEFINES += -DAMREX_USE_HDF5
-INCLUDE_LOCATIONS += $(HDF5_HOME)/include
-LIBRARIES         += -lhdf5 -lz -ldl -L$(HDF5_HOME)/lib
-endif
-
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
 include ./Make.package
@@ -34,3 +26,15 @@ include $(AMREX_HOME)/Src/Particle/Make.package
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 
+USE_HDF5  = TRUE
+HDF5_HOME = $(HOME)/hdf5/develop_build/hdf5
+
+# To use HDF5 asynchronous I/O VOL connector, follow the instructions at https://bitbucket.hdfgroup.org/projects/HDF5VOL/repos/async/browse
+USE_HDF5_ASYNC = FALSE
+ABT_HOME       = $(HOME)/cori/argobots/install
+ASYNC_HOME     = $(HOME)/hdf5vol/async/src
+ifeq ($(USE_HDF5_ASYNC), TRUE)
+DEFINES   	  += -DAMREX_USE_HDF5_ASYNC -DAMREX_MPI_THREAD_MULTIPLE
+INCLUDE_LOCATIONS += $(ABT_HOME)/include $(ASYNC_HOME)
+LIBRARIES 	  += -L$(ABT_HOME)/lib -L$(ASYNC_HOME) -lh5async -labt
+endif

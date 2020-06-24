@@ -8,6 +8,11 @@
 add_library( amrex )
 add_library( AMReX::amrex ALIAS amrex )
 
+if (ENABLE_DPCPP)
+   include(AMReXSYCL)
+   target_link_libraries(amrex PUBLIC SYCL)
+endif ()
+
 # Where to store Fortran modules
 if (CMAKE_Fortran_COMPILER_LOADED)
    set_target_properties( amrex
@@ -186,4 +191,8 @@ endif ()
 # Install amrex  -- Export
 #
 include(AMReXInstallHelpers)
-install_amrex(Flags_CXX Flags_Fortran Flags_FPE)
+set(_amrex_targets Flags_CXX Flags_Fortran Flags_FPE )
+if (ENABLE_DPCPP)
+   list(APPEND _amrex_targets SYCL)
+endif()
+install_amrex(${_amrex_targets})

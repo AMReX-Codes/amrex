@@ -12,7 +12,7 @@ void actual_init_poisson (int i, int j, int k,
 {
     constexpr amrex::Real tpi = 2.*3.1415926535897932;
     constexpr amrex::Real fpi = 4.*3.1415926535897932;
-    constexpr amrex::Real fac = tpi*tpi*3.;
+    constexpr amrex::Real fac = tpi*tpi*static_cast<amrex::Real>(AMREX_SPACEDIM);
     amrex::Real x = prob_lo[0] + dx[0] * (i + 0.5);
     amrex::Real y = prob_lo[1] + dx[1] * (j + 0.5);
     amrex::Real z = prob_lo[2] + dx[2] * (k + 0.5);
@@ -65,7 +65,7 @@ void actual_init_abeclap (int i, int j, int k,
     constexpr amrex::Real pi = 3.1415926535897932;
     constexpr amrex::Real tpi =  2.*pi;
     constexpr amrex::Real fpi =  4.*pi;
-    constexpr amrex::Real fac = 12.*pi*pi;
+    constexpr amrex::Real fac = static_cast<amrex::Real>(AMREX_SPACEDIM*4)*pi*pi;
 
     amrex::Real xc = (prob_hi[0] + prob_lo[0])*0.5;
     amrex::Real yc = (prob_hi[1] + prob_lo[1])*0.5;
@@ -115,7 +115,7 @@ void actual_init_abeclap_in (int i, int j, int k,
     constexpr amrex::Real pi = 3.1415926535897932;
     constexpr amrex::Real tpi =  2.*pi;
     constexpr amrex::Real fpi =  4.*pi;
-    constexpr amrex::Real fac = 12.*pi*pi;
+    constexpr amrex::Real fac = static_cast<amrex::Real>(AMREX_SPACEDIM*4)*pi*pi;
 
     amrex::Real xc = (prob_hi[0] + prob_lo[0])*0.5;
     amrex::Real yc = (prob_hi[1] + prob_lo[1])*0.5;

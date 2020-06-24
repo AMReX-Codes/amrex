@@ -12,8 +12,8 @@ AMReX is developed at LBNL, NREL, and ANL as part of the Block-Structured AMR
 Co-Design Center in DOE's Exascale Computing Project.
 
 All of AMReX's development is done in the github repository under the
-development branch; anyone can see the latest updates. Changes are merged into
-the master branch at the beginning of each month.
+development branch; anyone can see the latest updates. A monthly release is tagged at the beginning
+of each month.
 
 We are always happy to have users contribute to the AMReX source code. To
 contribute, issue a pull request against the development branch (details `here

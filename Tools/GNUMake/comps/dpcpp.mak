@@ -47,12 +47,10 @@ endif
 ########################################################################
 
 ifdef CXXSTD
-  CXXSTD := $(strip $(CXXSTD))
-else
-  CXXSTD := c++14
+  CXXFLAGS += -std=$(strip $(CXXSTD))
 endif
 
-CXXFLAGS += -std=$(CXXSTD) -Wno-error=sycl-strict -fsycl -fsycl-unnamed-lambda
+CXXFLAGS += -Wno-error=sycl-strict -fsycl -fsycl-unnamed-lambda
 CFLAGS   += -std=c99
 
 ifneq ($(DEBUG),TRUE)  # There is currently a bug that DEBUG build will crash.
@@ -130,7 +128,8 @@ override XTRALIBS += -lgfortran -lquadmath
 
 endif
 
-override XTRAOBJS += $(DPCPP_DIR)/lib/libsycl-glibc.o $(DPCPP_DIR)/lib/libsycl-cmath.o $(DPCPP_DIR)/lib/libsycl-cmath-fp64.o
+override XTRAOBJS += $(DPCPP_DIR)/lib/libsycl-glibc.o
+LDFLAGS += -device-math-lib=fp32,fp64
 
 ifeq ($(FSANITIZER),TRUE)
   override XTRALIBS += -lubsan

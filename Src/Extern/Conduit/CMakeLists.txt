@@ -17,11 +17,11 @@ target_sources(amrex
 find_package(Conduit REQUIRED)
 
 target_link_libraries(amrex PUBLIC conduit::conduit)
-set_target_properties(conduit:conduit PROPERTIES IMPORTED_GLOBAL True )
+set_target_properties(conduit::conduit PROPERTIES IMPORTED_GLOBAL True )
 
 if (ENABLE_MPI)
    target_link_libraries(amrex PUBLIC conduit::conduit_mpi)
-   set_target_properties(conduit:conduit_mpi PROPERTIES IMPORTED_GLOBAL True )   
+   set_target_properties(conduit::conduit_mpi PROPERTIES IMPORTED_GLOBAL True )   
 endif ()
 
 if (ENABLE_ASCENT)
