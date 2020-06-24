@@ -639,6 +639,34 @@ public:
     */
     void AddParticlesAtLevel (AoS& particles, int level, int nGrow=0);
 
+    /**
+    * \brief Creates virtual particles for a given level that represent
+    * in some capacity all particles at finer levels
+    *
+    * \param level
+    * \param virts
+    */
+    void CreateVirtualParticles (int level, ParticleTileType& virts) const;
+
+    /**
+    * \brief Create ghost particles for a given level that are copies of particles
+    * near coarse-\>fine boundaries in level-1
+    *
+    * \param level
+    * \param ngrow
+    * \param ghosts
+    */
+    void CreateGhostParticles (int level, int ngrow, ParticleTileType& ghosts) const;
+
+    /**
+    * \brief Add particles from a pbox to the grid at this level
+    *
+    * \param particles
+    * \param level
+    * \param nGrow
+    */
+    void AddParticlesAtLevel (ParticleTileType& particles, int level, int nGrow=0);
+
 
     /**
     * \brief Clear all the particles in this container. This does not free memory.
@@ -904,7 +932,7 @@ public:
                         const std::string& name,
                         const Vector<int>& write_real_comp,
                         const Vector<int>& write_int_comp, F&& f) const;
-	
+
     /**
      * \brief This is the most general version of WritePlotFile, which takes component 
      * names and flags for whether to write each variable as components. Note that 

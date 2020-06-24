@@ -111,18 +111,18 @@ void swapParticle (const ParticleTileData<NSR, NSI, NAR, NAI>& dst,
     for (int j = 0; j < dst.m_num_runtime_int; ++j)
         amrex::Swap(dst.m_runtime_idata[j][dst_i], src.m_runtime_idata[j][src_i]);
 }
-    
+
 /**
- * \brief Copy particles from src to dst. This version copies all the 
+ * \brief Copy particles from src to dst. This version copies all the
  * particles, writing them to the beginning of dst.
- * 
+ *
  * \tparam PTile the particle tile type
  *
  * \param dst the destination tile
  * \param src the source tile
  * \param f the function that will be applied to each particle
  *
- */    
+ */
 template <typename PTile>
 void copyParticles (PTile& dst, const PTile& src) noexcept
 {
@@ -133,7 +133,7 @@ void copyParticles (PTile& dst, const PTile& src) noexcept
 /**
  * \brief Copy particles from src to dst. This version copies n particles
  * starting at index src_start, writing the result starting at dst_start.
- * 
+ *
  * \tparam PTile the particle tile type
  * \tparam Index the index type, e.g. unsigned int
  * \tparam N the size type, e.g. Long
@@ -157,11 +157,11 @@ void copyParticles (PTile& dst, const PTile& src,
         copyParticle(dst_data, src_data, src_start+i, dst_start+i);
     });
 }
-    
+
 /**
  * \brief Apply the function f to all the particles in src, writing the
  * result to dst. This version does all the particles in src.
- * 
+ *
  * \tparam DstTile the dst particle tile type
  * \tparam SrcTile the src particle tile type
  * \tparam F a function object
