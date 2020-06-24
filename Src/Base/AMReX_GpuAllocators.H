@@ -115,16 +115,17 @@ namespace amrex {
 
     template<typename T>
     class PolymorphicAllocator
-        : public ArenaAllocatorTraits
     {
     public :
 
         using value_type = T;
 
+        PolymorphicAllocator () : m_use_gpu_aware_mpi(ParallelDescriptor::UseGpuAwareMpi()) {}
+
         inline value_type* allocate(std::size_t n)
         {
 	    value_type* result = nullptr;
-            if (ParallelDescriptor::UseGpuAwareMpi())
+            if (m_use_gpu_aware_mpi)
             {
                 result = (value_type*) The_Device_Arena()->alloc(n * sizeof(T));
             }
@@ -137,7 +138,7 @@ namespace amrex {
 
         inline void deallocate(value_type* ptr, std::size_t)
         {
-            if (ParallelDescriptor::UseGpuAwareMpi())
+            if (m_use_gpu_aware_mpi)
             {
                 The_Device_Arena()->free(ptr);
             }
@@ -147,7 +148,24 @@ namespace amrex {
             }
         }
 
+        bool m_use_gpu_aware_mpi;
+
+        template <class U, class V>
+        friend bool
+        operator== (PolymorphicAllocator<U> const& a, PolymorphicAllocator<V> const& b) noexcept
+        {
+            return a.m_use_gpu_aware_mpi == b.m_use_gpu_aware_mpi;
+        }
+
+        template <class U, class V>
+        friend bool
+        operator!= (PolymorphicAllocator<U> const& a, PolymorphicAllocator<V> const& b) noexcept
+        {
+            return a.m_use_gpu_aware_mpi != b.m_use_gpu_aware_mpi;
+        }
+
     };
+
 
 #ifdef AMREX_USE_GPU
     template <class T>
