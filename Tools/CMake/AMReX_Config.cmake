@@ -162,7 +162,7 @@ function (configure_amrex)
    #
    if (ENABLE_HDF5)
       set(HDF5_PREFER_PARALLEL TRUE)
-      find_package(HDF5 1.12 REQUIRED COMPONENTS CXX)
+      find_package(HDF5 1.10.4 REQUIRED COMPONENTS CXX)
       target_include_directories(amrex PUBLIC ${HDF5_CXX_INCLUDE_DIRS})
       target_compile_definitions(amrex PUBLIC ${HDF5_CXX_DEFINES})
       target_link_libraries(amrex PUBLIC ${HDF5_CXX_LIBRARIES})
