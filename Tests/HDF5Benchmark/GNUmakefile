@@ -27,7 +27,7 @@ include $(AMREX_HOME)/Src/Particle/Make.package
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 
 USE_HDF5  = TRUE
-HDF5_HOME = $(HOME)/hdf5/develop_build/hdf5
+HDF5_HOME = /Users/atmyers/hdf5-1.12.0/
 
 # To use HDF5 asynchronous I/O VOL connector, follow the instructions at https://bitbucket.hdfgroup.org/projects/HDF5VOL/repos/async/browse
 USE_HDF5_ASYNC = FALSE
