@@ -5,6 +5,7 @@
 #include <memory>
 #include <limits>
 #include <memory>
+#include <type_traits>
 
 #include <AMReX_Print.H>
 #include <AMReX_Arena.H>
@@ -21,8 +22,16 @@ namespace amrex {
     template <typename T>
     struct RunOnGpu : std::false_type {};
 
+    struct ArenaAllocatorTraits {
+        typedef std::true_type propagate_on_container_copy_assignment;
+        typedef std::true_type propagate_on_container_move_assignment;
+        typedef std::true_type propagate_on_container_swap;
+        typedef std::true_type is_always_equal;
+    };
+
     template<typename T>
     class ArenaAllocator
+        : public ArenaAllocatorTraits
     {
     public :
 
@@ -43,6 +52,7 @@ namespace amrex {
 
     template<typename T>
     class DeviceArenaAllocator
+        : public ArenaAllocatorTraits
     {
     public :
 
@@ -62,6 +72,7 @@ namespace amrex {
     };
 
     template<typename T>
+        : public ArenaAllocatorTraits
     class PinnedArenaAllocator
     {
     public :
@@ -83,6 +94,7 @@ namespace amrex {
 
     template<typename T>
     class ManagedArenaAllocator
+        : public ArenaAllocatorTraits
     {
     public :
 
@@ -103,6 +115,7 @@ namespace amrex {
 
     template<typename T>
     class PolymorphicAllocator
+        : public ArenaAllocatorTraits
     {
     public :
 
@@ -133,21 +146,8 @@ namespace amrex {
                 The_Pinned_Arena()->free(ptr);
             }
         }
+
     };
-
-    template <template <typename> class Allocator, class T, class U>
-    bool
-    operator==(Allocator<T> const&, Allocator<U> const&) noexcept
-    {
-        return true;
-    }
-
-    template <template <typename> class Allocator, class T, class U>
-    bool
-    operator!=(Allocator<T> const& x, Allocator<U> const& y) noexcept
-    {
-        return !(x == y);
-    }
 
 #ifdef AMREX_USE_GPU
     template <class T>
