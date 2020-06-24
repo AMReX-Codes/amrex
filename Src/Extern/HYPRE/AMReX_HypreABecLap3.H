@@ -38,7 +38,7 @@ private :
     HYPRE_Solver solver = NULL;
 
     LayoutData<HYPRE_Int> ncells_grid;
-    LayoutData<Vector<HYPRE_Int> > cell_id_vec;
+    LayoutData<Gpu::ManagedDeviceVector<HYPRE_Int> > cell_id_vec;
     FabArray<BaseFab<HYPRE_Int> > cell_id;
 
     MultiFab const* m_eb_b_coeffs = nullptr;

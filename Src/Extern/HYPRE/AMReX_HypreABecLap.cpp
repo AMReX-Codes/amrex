@@ -1,8 +1,13 @@
 
 #include <AMReX_HypreABecLap.H>
-#include <AMReX_HypreABec_F.H>
 #include <string>
 #include <algorithm>
+
+#if (AMREX_SPACEDIM == 2)
+#include <AMReX_Habec_2D_K.H>
+#elif (AMREX_SPACEDIM == 3)
+#include <AMReX_Habec_3D_K.H>
+#endif
 
 #include <_hypre_struct_mv.h>
 
@@ -195,24 +200,16 @@ HypreABecLap::prepareSolver ()
     std::iota(stencil_indices.begin(), stencil_indices.end(), 0);
     const Real* dx = geom.CellSize();
     const int bho = (m_maxorder > 2) ? 1 : 0;
-    FArrayBox rfab;
+    BaseFab<GpuArray<Real,regular_stencil_size>> rfab;
     for (MFIter mfi(acoefs); mfi.isValid(); ++mfi)
     {  
         const Box &reg = mfi.validbox();
 
         rfab.resize(reg,regular_stencil_size);
-        Real* mat = rfab.dataPtr();
-
-        amrex_hpacoef(BL_TO_FORTRAN_BOX(reg),
-                      mat,
-                      BL_TO_FORTRAN_ANYD(acoefs[mfi]),
-                      &scalar_a);
+        amrex_hpacoef(reg, rfab, acoefs[mfi], scalar_a); 
 
         for (int idim = 0; idim < AMREX_SPACEDIM; idim++) {
-            amrex_hpbcoef(BL_TO_FORTRAN_BOX(reg),
-                          mat,
-                          BL_TO_FORTRAN_ANYD(bcoefs[idim][mfi]),
-                          &scalar_b, dx, &idim);
+            amrex_hpbcoef(reg, rfab, bcoefs[idim][mfi], scalar_b, dx, idim);
         }
 
         const Vector< Vector<BoundCond> > & bcs_i = m_bndry->bndryConds(mfi);
@@ -227,17 +224,12 @@ HypreABecLap::prepareSolver ()
             const int bctype = bcs_i[cdir][0];
             const Real  &bcl = bcl_i[cdir];
             const Mask  &msk = m_bndry->bndryMasks(ori)[mfi];
-      
-            amrex_hpmat(BL_TO_FORTRAN_BOX(reg),
-                        mat,
-                        BL_TO_FORTRAN_ANYD(bcoefs[idim][mfi]),
-                        BL_TO_FORTRAN_ANYD(msk),
-                        &scalar_b, dx, &cdir, &bctype, &bcl, &bho);
+   
+            amrex_hpmat(reg, rfab, bcoefs[idim][mfi], msk, scalar_b, dx, cdir, bctype, bcl, bho);   
         }
-
-        amrex_hpdiag(BL_TO_FORTRAN_BOX(reg),
-                     mat,
-                     BL_TO_FORTRAN_ANYD(diaginv[mfi]));
+        
+        amrex_hpdiag(reg, rfab, diaginv[mfi]);
+        Real* mat = (Real*) rfab.dataPtr();
 
         auto reglo = Hypre::loV(reg);
         auto reghi = Hypre::hiV(reg);
