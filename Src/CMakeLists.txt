@@ -8,6 +8,8 @@
 add_library( amrex )
 add_library( AMReX::amrex ALIAS amrex )
 
+include(AMReXParallelBackends)
+
 if (ENABLE_DPCPP)
    include(AMReXSYCL)
    target_link_libraries(amrex PUBLIC SYCL)
