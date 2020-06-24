@@ -157,6 +157,19 @@ function (configure_amrex)
       endif()
    endif()
 
+   #
+   # Setup HDF5 -- for now we do not create an imported target
+   #
+   if (ENABLE_HDF5)
+      set(HDF5_PREFER_PARALLEL TRUE)
+      find_package(HDF5 1.10.4 REQUIRED COMPONENTS CXX)
+      if (NOT HDF5_IS_PARALLEL)
+         message(FATAL_ERROR "\nHDF5 library does not support parallel I/O")
+      endif ()
+      target_include_directories(amrex PUBLIC ${HDF5_CXX_INCLUDE_DIRS})
+      target_compile_definitions(amrex PUBLIC ${HDF5_CXX_DEFINES})
+      target_link_libraries(amrex PUBLIC ${HDF5_CXX_LIBRARIES})
+   endif ()
 
    #
    # Setup third-party profilers
