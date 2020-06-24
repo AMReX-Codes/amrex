@@ -530,7 +530,7 @@ namespace amrex
         {
             if (static_cast<Allocator const&>(a_vector) == static_cast<Allocator&>(*this))
             {
-                CopyAssignmentDoIt(a_vector, std::false_type());
+                return CopyAssignmentDoIt(a_vector, std::true_type());
             }
             else
             {
