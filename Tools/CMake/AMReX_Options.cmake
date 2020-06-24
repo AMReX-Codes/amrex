@@ -9,17 +9,29 @@ include_guard(GLOBAL)
 include(CMakeDependentOption)
 
 #
-# Define a macro to check the value of the inputs integer options
+# Define a macro to print active options
 #
 macro (print_option _var)
-   message( STATUS "   ${_var} = ${${_var}}")
+   if (${_var})
+      message( STATUS "   ${_var}")
+   endif ()
 endmacro ()
+
+
+#
+# Dimensionality of the build  ===============================================
+#
+set (DIM 3 CACHE STRING "Dimension of AMReX build")
+if ( (DIM GREATER 3) OR (DIM LESS 1) )
+   message( FATAL_ERROR "DIM must be either 1, 2 or 3.")
+endif ()
+message( STATUS "Building AMReX with DIM = ${DIM}")
+
 
 #
 # Populate the cache and check the value of the user-definable options
 #
-message(STATUS "Configuring AMReX with the following options: ")
-
+message(STATUS "Configuring AMReX with the following options enabled: ")
 
 #
 # This is the option to enable/disable xSDK mode
@@ -80,14 +92,7 @@ endif ()
 option( ENABLE_DP "Enable double precision" ON )
 print_option( ENABLE_DP )
 
-#
-# Dimensionality of the build  ===============================================
-#
-set (DIM 3 CACHE STRING "Dimension of AMReX build")
-if ( (DIM GREATER 3) OR (DIM LESS 1) )
-   message( FATAL_ERROR "DIM must be either 1, 2 or 3.")
-endif ()
-print_option( DIM )
+
 
 #
 # Parallel backends    ========================================================
@@ -233,8 +238,8 @@ cmake_dependent_option(ENABLE_PROFPARSER "Enable profile parser" OFF
    "ENABLE_BASE_PROFILE;ENABLE_TRACE_PROFILE;ENABLE_AMRDATA" OFF)
 print_option( ENABLE_PROFPARSER )
 
-set(TP_PROFILE_VALUES None CRAYPAT FORGE VTUNE)
-set(TP_PROFILE None CACHE STRING "Third-party profiling options: <CRAYPAT,FORGE,VTUNE>")
+set(TP_PROFILE_VALUES IGNORE CRAYPAT FORGE VTUNE)
+set(TP_PROFILE IGNORE CACHE STRING "Third-party profiling options: <CRAYPAT,FORGE,VTUNE>")
 set_property(CACHE TP_PROFILE PROPERTY STRINGS ${TP_PROFILE_VALUES})
 if(NOT TP_PROFILE IN_LIST TP_PROFILE_VALUES)
     message(FATAL_ERROR "TP_PROFILE (${TP_PROFILE}) must be one of ${TP_PROFILE_VALUES}")
