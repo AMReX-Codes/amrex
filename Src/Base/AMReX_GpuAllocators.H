@@ -72,8 +72,8 @@ namespace amrex {
     };
 
     template<typename T>
-        : public ArenaAllocatorTraits
     class PinnedArenaAllocator
+        : public ArenaAllocatorTraits
     {
     public :
 

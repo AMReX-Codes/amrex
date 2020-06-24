@@ -517,7 +517,7 @@ namespace amrex
             m_capacity = a_capacity;
         }
         
-        PODVector& CopyAssignmentDoIt (const PODVector<T, Allocator>& a_vector, std::false_type) noexcept
+        PODVector& CopyAssignmentDoIt (const PODVector<T, Allocator>& a_vector, std::true_type) noexcept
         {
             const size_t other_size = a_vector.size();            
             if ( other_size > capacity() ) { AllocateBuffer(other_size); }            
@@ -526,7 +526,7 @@ namespace amrex
             return *this;
         }
         
-        PODVector& CopyAssignmentDoIt (const PODVector<T, Allocator>& a_vector, std::true_type) noexcept
+        PODVector& CopyAssignmentDoIt (const PODVector<T, Allocator>& a_vector, std::false_type) noexcept
         {
             if (static_cast<Allocator&>(a_vector) == static_cast<Allocator&>(*this))
             {
