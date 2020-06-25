@@ -436,11 +436,6 @@ void WriteBinaryParticleDataAsync (PC const& pc,
         }
     }
 
-    auto wrc = std::make_shared<Vector<int> >(write_real_comp);
-    auto wic = std::make_shared<Vector<int> >(write_int_comp);
-    auto rcn = std::make_shared<Vector<std::string> >(real_comp_names);
-    auto icn = std::make_shared<Vector<std::string> >(int_comp_names);
-
     int finest_level = pc.finestLevel();
     Vector<BoxArray> bas;
     Vector<DistributionMapping> dms;
@@ -482,11 +477,11 @@ void WriteBinaryParticleDataAsync (PC const& pc,
 
             int num_output_real = 0;
             for (int i = 0; i < nrc + NStructReal; ++i)
-                if ((*wrc)[i]) ++num_output_real;
+                if (write_real_comp[i]) ++num_output_real;
 
             int num_output_int = 0;
             for (int i = 0; i < nic + NStructInt; ++i)
-                if ((*wic)[i]) ++num_output_int;
+                if (write_int_comp[i]) ++num_output_int;
 
             // AMREX_SPACEDIM and N for sanity checking.
             HdrFile << AMREX_SPACEDIM << '\n';
@@ -496,14 +491,14 @@ void WriteBinaryParticleDataAsync (PC const& pc,
 
             // Real component names
             for (int i = 0; i < NStructReal + nrc; ++i )
-                if ((*wrc)[i]) HdrFile << (*rcn)[i] << '\n';
+                if (write_real_comp[i]) HdrFile << real_comp_names[i] << '\n';
 
             // The number of extra int parameters
             HdrFile << num_output_int << '\n';
 
             // int component names
             for (int i = 0; i < NStructInt + nic; ++i )
-                if ((*wic)[i]) HdrFile << (*icn)[i] << '\n';
+                if (write_int_comp[i]) HdrFile << int_comp_names[i] << '\n';
 
             bool is_checkpoint = true; // legacy
             HdrFile << is_checkpoint << '\n';
@@ -579,7 +574,7 @@ void WriteBinaryParticleDataAsync (PC const& pc,
                 // First write out the integer data in binary.
                 int num_output_int = 0;
                 for (int i = 0; i < nic + NStructInt; ++i)
-                    if ((*wic)[i]) ++num_output_int;
+                    if (write_int_comp[i]) ++num_output_int;
 
                 const int iChunkSize = 2 + num_output_int;
                 Vector<int> istuff(np_per_grid[lev][grid]*iChunkSize);
@@ -628,7 +623,7 @@ void WriteBinaryParticleDataAsync (PC const& pc,
                 // Write the Real data in binary.
                 int num_output_real = 0;
                 for (int i = 0; i < nrc + NStructReal; ++i)
-                    if ((*wrc)[i]) ++num_output_real;
+                    if (write_real_comp[i]) ++num_output_real;
 
                 const int rChunkSize = AMREX_SPACEDIM + num_output_real;
                 Vector<typename PC::ParticleType::RealType> rstuff(np_per_grid[lev][grid]*rChunkSize);
