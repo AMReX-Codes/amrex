@@ -15,6 +15,8 @@ PRECISION = DOUBLE
 USE_MPI   = TRUE
 USE_OMP   = FALSE
 
+MPI_THREAD_MULTIPLE = TRUE
+
 ###################################################
 
 EBASE     = main
