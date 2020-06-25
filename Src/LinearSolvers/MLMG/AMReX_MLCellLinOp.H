@@ -101,6 +101,7 @@ public:
 
     BoxArray makeNGrids (int grid_size) const;
 
+    virtual void restriction (int, int, MultiFab& crse, MultiFab& fine, IntVect& ratio) const;
     virtual void restriction (int, int, MultiFab& crse, MultiFab& fine) const override;
 
     virtual void interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiFab& crse) const override;

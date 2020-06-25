@@ -178,6 +178,8 @@ public:
     virtual void update () {}
 
     virtual void restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& fine) const = 0;
+    virtual void restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& fine, IntVect& ratio) const = 0;
+
     virtual void interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiFab& crse) const = 0;
     virtual void averageDownSolutionRHS (int camrlev, MultiFab& crse_sol, MultiFab& crse_rhs,
                                          const MultiFab& fine_sol, const MultiFab& fine_rhs) = 0;

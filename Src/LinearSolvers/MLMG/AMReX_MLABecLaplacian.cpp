@@ -244,13 +244,27 @@ MLABecLaplacian::averageDownCoeffsSameAmrLevel (int amrlev, Vector<MultiFab>& a,
     int nmglevs = a.size();
     for (int mglev = 1; mglev < nmglevs; ++mglev)
     {
+        IntVect ratio;
+        bool allow_semicoarsening = true;
+        if (allow_semicoarsening)
+        {
+            const Box& fine_domain = m_geom[0][mglev-1].Domain();
+            const Box& crse_domain = m_geom[0][mglev].Domain();
+
+            ratio[0] = fine_domain.length()[0] / crse_domain.length()[0];
+            ratio[1] = fine_domain.length()[1] / crse_domain.length()[1];
+            ratio[2] = fine_domain.length()[2] / crse_domain.length()[2];
+        } else {
+            ratio = IntVect(mg_coarsen_ratio);
+        }
+
         if (m_a_scalar == 0.0)
         {
             a[mglev].setVal(0.0);
         }
         else
         {
-            amrex::average_down(a[mglev-1], a[mglev], 0, 1, mg_coarsen_ratio);
+            amrex::average_down(a[mglev-1], a[mglev], 0, 1, ratio);
         }
         
         Vector<const MultiFab*> fine {AMREX_D_DECL(&(b[mglev-1][0]),
@@ -259,7 +273,7 @@ MLABecLaplacian::averageDownCoeffsSameAmrLevel (int amrlev, Vector<MultiFab>& a,
         Vector<MultiFab*> crse {AMREX_D_DECL(&(b[mglev][0]),
                                              &(b[mglev][1]),
                                              &(b[mglev][2]))};
-        IntVect ratio {mg_coarsen_ratio};
+
         amrex::average_down_faces(fine, crse, ratio, 0);
     }
 
@@ -597,17 +611,33 @@ MLABecLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                              osm, vbx, redblack, nc);
             });
         } else {
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
+            if (dhx == dhz)
             {
-                abec_gsrb(thread_box, solnfab, rhsfab, alpha, afab,
-                          AMREX_D_DECL(dhx, dhy, dhz),
-                          AMREX_D_DECL(bxfab, byfab, bzfab),
-                          AMREX_D_DECL(m0,m2,m4),
-                          AMREX_D_DECL(m1,m3,m5),
-                          AMREX_D_DECL(f0fab,f2fab,f4fab),
-                          AMREX_D_DECL(f1fab,f3fab,f5fab),
-                          vbx, redblack, nc);
-            });
+               AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
+               { 
+                   abec_gsrb(thread_box, solnfab, rhsfab, alpha, afab,
+                             AMREX_D_DECL(dhx, dhy, dhz),
+                             AMREX_D_DECL(bxfab, byfab, bzfab),
+                             AMREX_D_DECL(m0,m2,m4),
+                             AMREX_D_DECL(m1,m3,m5),
+                             AMREX_D_DECL(f0fab,f2fab,f4fab),
+                             AMREX_D_DECL(f1fab,f3fab,f5fab),
+                             vbx, redblack, nc);
+               });
+            } else {
+               AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
+               {   
+                   abec_gsrb_with_line_solve(thread_box, solnfab, rhsfab, alpha, afab,
+                             AMREX_D_DECL(dhx, dhy, dhz),
+                             AMREX_D_DECL(bxfab, byfab, bzfab),
+                             AMREX_D_DECL(m0,m2,m4),
+                             AMREX_D_DECL(m1,m3,m5),
+                             AMREX_D_DECL(f0fab,f2fab,f4fab),
+                             AMREX_D_DECL(f1fab,f3fab,f5fab),
+                             vbx, redblack, nc);
+               });
+            }
+
         }
 #endif
     }

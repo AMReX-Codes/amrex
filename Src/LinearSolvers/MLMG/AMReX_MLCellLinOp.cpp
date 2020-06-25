@@ -281,13 +281,20 @@ MLCellLinOp::makeNGrids (int grid_size) const
 }
 
 void
-MLCellLinOp::restriction (int, int, MultiFab& crse, MultiFab& fine) const
+MLCellLinOp::restriction (int i1, int i2, MultiFab& crse, MultiFab& fine) const
+{
+    IntVect ratio(2,2,2);
+    restriction(i1,i2,crse,fine,ratio);
+}
+
+void
+MLCellLinOp::restriction (int i1, int i2, MultiFab& crse, MultiFab& fine, IntVect& ratio) const
 {
     const int ncomp = getNComp();
 #ifdef AMREX_SOFT_PERF_COUNTERS
     perf_counters.restrict(crse);
 #endif
-    amrex::average_down(fine, crse, 0, ncomp, 2);
+    amrex::average_down(fine, crse, 0, ncomp, ratio);
 }
 
 void
@@ -299,6 +306,20 @@ MLCellLinOp::interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiF
 
     const int ncomp = getNComp();
 
+    bool allow_semicoarsening = true;
+    IntVect ratio; 
+    if (allow_semicoarsening)
+    {
+        const Box& fine_domain = m_geom[0][fmglev].Domain();
+        const Box& crse_domain = m_geom[0][fmglev+1].Domain();
+
+        ratio[0] = fine_domain.length()[0] / crse_domain.length()[0];
+        ratio[1] = fine_domain.length()[1] / crse_domain.length()[1];
+        ratio[2] = fine_domain.length()[2] / crse_domain.length()[2];
+    } else {
+        ratio = IntVect(mg_coarsen_ratio);
+    }
+
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -307,11 +328,12 @@ MLCellLinOp::interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiF
         const Box& bx    = mfi.tilebox();
         Array4<Real const> const& cfab = crse.const_array(mfi);
         Array4<Real> const& ffab = fine.array(mfi);
+        int rx = ratio[0]; int ry = ratio[1]; int rz = ratio[2]; 
         AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
         {
-            int ic = amrex::coarsen(i,2);
-            int jc = amrex::coarsen(j,2);
-            int kc = amrex::coarsen(k,2);
+            int ic = amrex::coarsen(i,rx);
+            int jc = amrex::coarsen(j,ry);
+            int kc = amrex::coarsen(k,rz);
             ffab(i,j,k,n) += cfab(ic,jc,kc,n);
         });
     }    

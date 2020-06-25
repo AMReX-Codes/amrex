@@ -435,8 +435,21 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
         }
 
         // res_crse = R(rescor_fine); this provides res/b to the level below
-        linop.restriction(amrlev, mglev+1, res[amrlev][mglev+1], rescor[amrlev][mglev]);
+        bool allow_semicoarsening = true;
+        IntVect ratio;
+        if (allow_semicoarsening)
+        {
+            const Box& fine_domain = linop.m_geom[0][mglev].Domain();
+            const Box& crse_domain = linop.m_geom[0][mglev+1].Domain();
 
+            ratio[0] = fine_domain.length()[0] / crse_domain.length()[0];
+            ratio[1] = fine_domain.length()[1] / crse_domain.length()[1];
+            ratio[2] = fine_domain.length()[2] / crse_domain.length()[2];
+        } else {
+            ratio = IntVect(AMREX_D_DECL(2,2,2));
+        }
+
+        linop.restriction(amrlev, mglev+1, res[amrlev][mglev+1], rescor[amrlev][mglev], ratio);
     }
 
     BL_PROFILE_VAR("MLMG::mgVcycle_bottom", blp_bottom);
