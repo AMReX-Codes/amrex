@@ -177,4 +177,10 @@ function ( set_amrex_defines )
          NO_LEGACY IF GPUS_PER_NODE)
    endif ()
 
+   #
+   # HDF5
+   #
+   add_amrex_define(AMREX_USE_HDF5 NO_LEGACY IF ENABLE_HDF5)
+   add_amrex_define(AMREX_USE_HDF5_ASYNC NO_LEGACY IF ENABLE_HDF5_ASYNC)
+
 endfunction ()
