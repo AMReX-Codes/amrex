@@ -64,22 +64,23 @@ ParticleTileToBlueprint(const ParticleTile<NStructReal,
     // point locations from from aos
     //----------------------------------//
 
-    const char* pbuf = reinterpret_cast<const char*>(pstruct.data());
+    const char* pbuf_const = reinterpret_cast<const char*>(pstruct.data());
+    char* pbuf = const_cast<char*>(pbuf_const);
 
-    const ParticleReal* xp = reinterpret_cast<const ParticleReal*>(pbuf); pbuf += sizeof(ParticleReal);
+    ParticleReal* xp = reinterpret_cast<ParticleReal*>(pbuf); pbuf += sizeof(ParticleReal);
     n_coords["values/x"].set_external(xp,
                                       num_particles,
                                       0,
                                       struct_size);
 #if AMREX_SPACEDIM > 1
-    const ParticleReal* yp = reinterpret_cast<const ParticleReal*>(pbuf); pbuf += sizeof(ParticleReal);
+    ParticleReal* yp = reinterpret_cast<ParticleReal*>(pbuf); pbuf += sizeof(ParticleReal);
     n_coords["values/y"].set_external(yp,
                                       num_particles,
                                       0,
                                       struct_size);
 #endif
 #if AMREX_SPACEDIM > 2
-    const ParticleReal* zp = reinterpret_cast<const ParticleReal*>(pbuf); pbuf += sizeof(ParticleReal);
+    ParticleReal* zp = reinterpret_cast<ParticleReal*>(pbuf); pbuf += sizeof(ParticleReal);
     n_coords["values/z"].set_external(zp,
                                       num_particles,
                                       0,
@@ -98,7 +99,7 @@ ParticleTileToBlueprint(const ParticleTile<NStructReal,
     // which we wrap above
     for (int i = 0; i < NStructReal; i++)
     {
-        const ParticleReal* val = reinterpret_cast<const ParticleReal*>(pbuf); pbuf += sizeof(ParticleReal);
+        ParticleReal* val = reinterpret_cast<ParticleReal*>(pbuf); pbuf += sizeof(ParticleReal);
         conduit::Node &n_f = n_fields[real_comp_names[vname_real_idx]];
         n_f["topology"] = topology_name;
         n_f["association"] = "element";
@@ -116,7 +117,7 @@ ParticleTileToBlueprint(const ParticleTile<NStructReal,
     //----------------------------------//
 
     // id is the first int entry
-    const int* id = reinterpret_cast<const int*>(pbuf); pbuf += sizeof(int);
+    int* id = reinterpret_cast<int*>(pbuf); pbuf += sizeof(int);
     conduit::Node &n_f_id = n_fields[topology_name + "_id"];
 
     n_f_id["topology"] = topology_name;
@@ -127,7 +128,7 @@ ParticleTileToBlueprint(const ParticleTile<NStructReal,
                                   struct_size);
 
     // cpu is the second int entry
-    const int* cpu = reinterpret_cast<const int*>(pbuf); pbuf += sizeof(int);
+    int* cpu = reinterpret_cast<int*>(pbuf); pbuf += sizeof(int);
     conduit::Node &n_f_cpu = n_fields[topology_name + "_cpu"];
 
     n_f_cpu["topology"] = topology_name;
@@ -144,7 +145,7 @@ ParticleTileToBlueprint(const ParticleTile<NStructReal,
     int vname_int_idx = 0;
     for (int i = 0; i < NStructInt; i++)
     {
-        const int* val = reinterpret_cast<const int*>(pbuf); pbuf += sizeof(int);
+        int* val = reinterpret_cast<int*>(pbuf); pbuf += sizeof(int);
         conduit::Node &n_f = n_fields[int_comp_names[vname_int_idx]];
         n_f["topology"] = topology_name;
         n_f["association"] = "element";

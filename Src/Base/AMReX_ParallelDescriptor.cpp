@@ -321,6 +321,11 @@ ParallelDescriptor::StartParallel (int*    argc,
         call_mpi_finalize = 0;
     }
 
+    // It seems that for some MPI implementation, the first call to MPI_Wtime is always 0.  That
+    // sometimes causes problems for amrex::UniqueString function.  So we call MPI_Wtime here.
+    auto tfoo = MPI_Wtime();
+    amrex::ignore_unused(tfoo);
+
 #ifdef AMREX_MPI_THREAD_MULTIPLE
     {
         int requested = MPI_THREAD_MULTIPLE;

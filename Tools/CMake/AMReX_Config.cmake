@@ -158,58 +158,18 @@ function (configure_amrex)
    endif()
 
    #
-   # Setup DPC++ -- for now simply add public compile flags
+   # Setup HDF5 -- for now we do not create an imported target
    #
-   if (ENABLE_DPCPP)
-
-      target_compile_options( amrex
-         PUBLIC
-         $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:Clang>>:-Wno-error=sycl-strict -fsycl -fsycl-unnamed-lambda>)
-
-      target_link_options(amrex PUBLIC -Wno-error=sycl-strict -fsycl -fsycl-unnamed-lambda -device-math-lib=fp32,fp64)
-
-      if (ENABLE_DPCPP_AOT)
-         message(FATAL_ERROR "\nAhead-of-time (AOT) compilation support not available yet.\nRe-configure with ENABLE_DPCPP_AOT=OFF.")
-
-         #
-         # TODO: remove comments to enable AOT support when the time comes
-         #
-         # if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
-         #    ## TODO: use file(READ)
-         #    execute_process( COMMAND cat /sys/devices/cpu/caps/pmu_name OUTPUT_VARIABLE _cpu_long_name )
-         # else ()
-         #    message(FATAL_ERROR "\nENABLE_DPCPP_AOT is not supported on ${CMAKE_SYSTEM_NAME}\n")
-         # endif ()
-
-         # string(STRIP "${_cpu_long_name}" _cpu_long_name)
-         # if (_cpu_long_name STREQUAL "skylake")
-         #    set(_cpu_short_name "skl")
-         # elseif (_cpu_long_name STREQUAL "kabylake")
-         #    set(_cpu_short_name "kbl")
-         # elseif (_cpu_long_name STREQUAL "cascadelake")
-         #    set(_cpu_short_name "cfl")
-         # else ()
-         #    message(FATAL_ERROR "\n Ahead-of-time compilation for CPU ${_cpu_long_name} is not yet supported\n"
-         #       "Maybe set ENABLE_DPCPP_AOT to OFF?\n")
-         # endif ()
-
-         # target_compile_options( amrex
-         #    PUBLIC
-         #    $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:Clang>,$<NOT:$<CONFIG:Debug>>>:
-         #    -fsycl-targets=spir64_gen-unknown-unknown-sycldevice -Xsycl-target-backend "-device ${_cpu_short_name}" >)
-         # target_link_options(amrex PUBLIC -fsycl-targets=spir64_gen-unknown-unknown-sycldevice -Xsycl-target-backend "-device ${_cpu_short_name}" )
-         # unset(_cpu_long_name)
-         # unset(_cpu_short_name)
-       else ()
-         if (ENABLE_DPCPP_SPLIT_KERNEL)
-            target_compile_options( amrex
-               PUBLIC
-               $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:Clang>>:-fsycl-device-code-split=per_kernel>)
-            target_link_options(amrex PUBLIC -fsycl-device-code-split=per_kernel)
-         endif ()
+   if (ENABLE_HDF5)
+      set(HDF5_PREFER_PARALLEL TRUE)
+      find_package(HDF5 1.10.4 REQUIRED COMPONENTS CXX)
+      if (NOT HDF5_IS_PARALLEL)
+         message(FATAL_ERROR "\nHDF5 library does not support parallel I/O")
       endif ()
+      target_include_directories(amrex PUBLIC ${HDF5_CXX_INCLUDE_DIRS})
+      target_compile_definitions(amrex PUBLIC ${HDF5_CXX_DEFINES})
+      target_link_libraries(amrex PUBLIC ${HDF5_CXX_LIBRARIES})
    endif ()
-
 
    #
    # Setup third-party profilers
@@ -290,22 +250,30 @@ function (print_amrex_configuration_summary)
    message( STATUS "   Build type               = ${CMAKE_BUILD_TYPE}")
    message( STATUS "   Install directory        = ${CMAKE_INSTALL_PREFIX}")
    message( STATUS "   C++ compiler             = ${CMAKE_CXX_COMPILER}")
-   message( STATUS "   Fortran compiler         = ${CMAKE_Fortran_COMPILER}")
+   if (CMAKE_Fortran_COMPILER_LOADED)
+      message( STATUS "   Fortran compiler         = ${CMAKE_Fortran_COMPILER}")
+   endif ()
    if (ENABLE_CUDA)
       message( STATUS "   CUDA compiler            = ${CMAKE_CUDA_COMPILER}")
    endif ()
 
    message( STATUS "   C++ defines              = ${_cxx_defines}")
-   message( STATUS "   Fortran defines          = ${_fortran_defines}")
+   if (CMAKE_Fortran_COMPILER_LOADED)
+      message( STATUS "   Fortran defines          = ${_fortran_defines}")
+   endif ()
 
    message( STATUS "   C++ flags                = ${_cxx_flags}")
-   message( STATUS "   Fortran flags            = ${_fortran_flags}")
+   if (CMAKE_Fortran_COMPILER_LOADED)
+      message( STATUS "   Fortran flags            = ${_fortran_flags}")
+   endif ()
    if (ENABLE_CUDA)
       message( STATUS "   CUDA flags               = ${CMAKE_CUDA_FLAGS_${AMREX_BUILD_TYPE}} ${CMAKE_CUDA_FLAGS}"
          "${AMREX_CUDA_FLAGS}")
    endif ()
    message( STATUS "   C++ include paths        = ${_cxx_includes}")
-   message( STATUS "   Fortran include paths    = ${_fortran_includes}")
+   if (CMAKE_Fortran_COMPILER_LOADED)
+      message( STATUS "   Fortran include paths    = ${_fortran_includes}")
+   endif ()
    message( STATUS "   Link line                = ${_cxx_link_line}")
 
 endfunction ()

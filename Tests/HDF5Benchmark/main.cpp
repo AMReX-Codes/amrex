@@ -3,6 +3,11 @@
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_Particles.H>
 
+#include <unistd.h>
+#ifdef AMREX_USE_HDF5_ASYNC
+#include "h5_vol_external_async_native.h" 
+#endif
+
 using namespace amrex;
 
 int main(int argc, char* argv[])
@@ -11,7 +16,7 @@ int main(int argc, char* argv[])
     { 
     const int nghost = 0;
     int ncells, max_grid_size, ncomp, nlevs, nppc;
-    int restart_check = 0;
+    int restart_check = 0, nplotfile = 1, nparticlefile = 1, sleeptime = 0;
 
     ParmParse pp;
     pp.get("ncells", ncells);
@@ -19,6 +24,9 @@ int main(int argc, char* argv[])
     pp.get("ncomp", ncomp);
     pp.get("nlevs", nlevs);
     pp.get("nppc", nppc);
+    pp.query("nplotfile", nplotfile);
+    pp.query("nparticlefile", nparticlefile);
+    pp.query("sleeptime", sleeptime);
     pp.query("restart_check", restart_check);
     
     AMREX_ALWAYS_ASSERT(nlevs < 2); // relax this later
@@ -110,12 +118,36 @@ int main(int argc, char* argv[])
 
     Vector<int> level_steps(nlevs, 0);
 
-    WriteMultiLevelPlotfile("plt00000", nlevs, amrex::GetVecOfConstPtrs(mf),
-                            varnames, geom, time, level_steps, ref_ratio);
+    char fname[128];
+    for (int ts = 0; ts < nplotfile; ts++) {
+        sprintf(fname, "plt%05d", ts);
+
+        // Fake computation 
+        if (ts > 0 && sleeptime > 0) {
+            if (ParallelDescriptor::IOProcessor()) {
+                std::cout << "Sleep for " << sleeptime << " seconds." << std::endl;
+                fflush(stdout);
+            }
+            sleep(sleeptime);
+        }
+            
+        if (ParallelDescriptor::IOProcessor()) 
+            std::cout << "Writing plot file [" << fname << "]" << std::endl;
 #ifdef AMREX_USE_HDF5    
-    WriteMultiLevelPlotfileHDF5("plt00000", nlevs, amrex::GetVecOfConstPtrs(mf), 
+        WriteMultiLevelPlotfileHDF5(fname, nlevs, amrex::GetVecOfConstPtrs(mf), 
+                                    varnames, geom, time, level_steps, ref_ratio);
+#else
+        WriteMultiLevelPlotfile(fname, nlevs, amrex::GetVecOfConstPtrs(mf),
                                 varnames, geom, time, level_steps, ref_ratio);
 #endif
+    }
+
+#ifdef AMREX_USE_HDF5_ASYNC
+    // Complete all previous async writes 
+    H5VLasync_waitall();
+#endif
+
+    /* ParallelDescriptor::Barrier(); */
 
     Vector<std::string> particle_realnames;
     for (int i = 0; i < NStructReal + NArrayReal; ++i)
@@ -129,11 +161,30 @@ int main(int argc, char* argv[])
         particle_intnames.push_back("particle_int_component_" + std::to_string(i));
     }
     
+    for (int ts = 0; ts < nparticlefile; ts++) {
+        sprintf(fname, "plt%05d", ts);
+
+        // Fake computation 
+        if (ts > 0 && sleeptime > 0) {
+            if (ParallelDescriptor::IOProcessor()) {
+                std::cout << "Sleep for " << sleeptime << " seconds." << std::endl;
+                fflush(stdout);
+            }
+            sleep(sleeptime);
+        }
+     
 #ifdef AMREX_USE_HDF5    
-    myPC.CheckpointHDF5("plt00000", "particle0", false, particle_realnames, particle_intnames);
+        myPC.CheckpointHDF5(fname, "particle0", false, particle_realnames, particle_intnames);
 #else
-    myPC.Checkpoint("plt00000", "particle0", false, particle_realnames, particle_intnames);
-    /* myPC.WriteAsciiFile("particle0_ascii"); */
+        myPC.Checkpoint(fname, "particle0", false, particle_realnames, particle_intnames);
+        /* myPC.WriteAsciiFile("particle0_ascii"); */
+#endif
+    }
+
+#ifdef AMREX_USE_HDF5_ASYNC
+    // Complete all previous async writes 
+    H5VLasync_waitall();
+    /* ParallelDescriptor::Barrier(); */
 #endif
 
     if (restart_check)
@@ -169,5 +220,6 @@ int main(int argc, char* argv[])
     }
     
     }
+
     amrex::Finalize();
 }

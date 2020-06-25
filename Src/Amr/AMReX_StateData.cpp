@@ -463,7 +463,7 @@ StateData::FillBoundary (FArrayBox&     dest,
         const int sc  = src_comp+i;
         Real*     dat = dest.dataPtr(dc);
 
-        if (desc->master(sc))
+        if (desc->primary(sc))
         {
             const int groupsize = desc->groupsize(sc);
 
@@ -538,7 +538,7 @@ StateData::FillBoundary (Box const&      bx,
         const int dc  = dest_comp+i;
         const int sc  = src_comp+i;
 
-        if (desc->master(sc))
+        if (desc->primary(sc))
         {
             const int groupsize = desc->groupsize(sc);
 

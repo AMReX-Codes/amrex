@@ -7,9 +7,8 @@ Downloading the Code
 
 The source code is available at https://github.com/AMReX-Codes/amrex. The
 GitHub repo is our central repo for development. The development branch
-includes the latest state of the code, and it is merged into the master branch
-on a monthly basis. The master branch is considered the release branch. The
-releases are tagged with version number YY.MM (e.g., 17.04). The MM part of the
+includes the latest state of the code, and it is tagged as a release
+on a monthly basis with version number YY.MM (e.g., 17.04). The MM part of the
 version is incremented every month, and the YY part every year.  Bug fix
 releases are tagged with YY.MM.patch (e.g., 17.04.1).
 
