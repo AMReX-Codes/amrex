@@ -174,17 +174,11 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
 {
     BL_PROFILE("MLLinOp::defineGrids()");
 
-    Vector<Vector<Geometry> >   n_geom;
-
-
     m_num_amr_levels = a_geom.size();
 
     m_amr_ref_ratio.resize(m_num_amr_levels);
     m_num_mg_levels.resize(m_num_amr_levels);
 
-// MH testing
-
-    n_geom.resize(m_num_amr_levels);
     m_geom.resize(m_num_amr_levels);
     m_grids.resize(m_num_amr_levels);
     m_dmap.resize(m_num_amr_levels);
@@ -201,9 +195,6 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
     {
         m_num_mg_levels[amrlev] = 1;
         m_geom[amrlev].push_back(a_geom[amrlev]);
-// MH testing
-        n_geom[amrlev].push_back(a_geom[amrlev]);
-
         m_grids[amrlev].push_back(a_grids[amrlev]);
         m_dmap[amrlev].push_back(a_dmap[amrlev]);
         if (amrlev < a_factory.size()) {
@@ -224,10 +215,6 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
             ++(m_num_mg_levels[amrlev]);
 
             m_geom[amrlev].emplace_back(cdom, rb, coord, is_per);
-// MH testing
-            n_geom[amrlev].emplace_back(cdom, rb, coord, is_per);
-
-
             m_grids[amrlev].push_back(a_grids[amrlev]);
             AMREX_ASSERT(m_grids[amrlev].back().coarsenable(rr));
             m_grids[amrlev].back().coarsen(rr);
@@ -244,8 +231,6 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
     // coarsest amr level
     m_num_mg_levels[0] = 1;
     m_geom[0].push_back(a_geom[0]);
-// MH testing
-    n_geom[0].push_back(a_geom[0]);
     m_grids[0].push_back(a_grids[0]);
     m_dmap[0].push_back(a_dmap[0]);
     if (a_factory.size() > 0) {
