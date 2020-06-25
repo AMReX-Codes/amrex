@@ -33,9 +33,7 @@
 
 namespace amrex {
 
-#ifdef AMREX_BACKTRACING
 std::stack<std::pair<std::string, std::string> >  BLBackTrace::bt_stack;
-#endif
 
 void
 BLBackTrace::handler(int s)
@@ -84,7 +82,6 @@ BLBackTrace::handler(int s)
     
     amrex::ErrorStream() << "See " << errfilename << " file for details" << std::endl;
 
-#ifdef AMREX_BACKTRACING
     if (!bt_stack.empty()) {
 	std::ofstream errfile;
 	errfile.open(errfilename.c_str(), std::ofstream::out | std::ofstream::app);
@@ -98,7 +95,6 @@ BLBackTrace::handler(int s)
 	    errfile << std::endl;
 	}
     }
-#endif
 
 #ifdef AMREX_TINY_PROFILING
     {
@@ -298,8 +294,6 @@ BLBackTrace::print_backtrace_info (FILE* f)
 #endif
 }
 
-#ifdef AMREX_BACKTRACING
-
 BLBTer::BLBTer(const std::string& s, const char* file, int line)
 {
     std::ostringstream ss;
@@ -358,7 +352,5 @@ BLBTer::pop_bt_stack()
 	}
     }
 }
-
-#endif
 
 }

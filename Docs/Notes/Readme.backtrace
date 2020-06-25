@@ -19,27 +19,23 @@ with TEST=TRUE or DEBUG=TRUE in C++ AMReX, or TEST=t or NDEBUG= in
 Fortran AMReX.  In C++ AMReX, one can also control the setting using
 the runtime parameter, fab.init_snan.
 
-If it is compiled with BACKTRACE=TRUE, one can get more information
-than the backtrace of the call stack by instrumenting the code.  (This
-is in C++ code only.)  Here is an example.  You know the line "Real
-rho = state(cell,0);" is causing a segfault.  You could add a print
-statement before that.  But it might print out thousands (or even
-millions) of line before it hits the segfault.  With BACKTRACE, you
-could do
+One can get more information than the backtrace of the call stack by
+instrumenting the code.  (This is in C++ code only.)  Here is an example.
+You know the line "Real rho = state(cell,0);" is causing a segfault.  You
+could add a print statement before that.  But it might print out
+thousands (or even millions) of line before it hits the segfault.  What
+you could do is the following,
 
    #include <AMReX_BLBackTrace.H>
    
-   #ifdef AMREX_BACKTRACING
-       std::ostringstream ss;
-       ss << "state.box() = " << state.box() << " cell = " << cell;
-       BL_BACKTRACE_PUSH(ss.str()); // PUSH takes std::string
-   #endif
-       Real rho = state(cell,0);  // state is a Fab, and cell is an IntVect.
-   #ifdef AMREX_BACKTRACING
-       BL_BACKTRACE_POP(); // One can omit this line.  In that case,
-                           // there is an implicit POP when "PUSH" is
-                           // out of scope.
-   #endif
+   std::ostringstream ss;
+   ss << "state.box() = " << state.box() << " cell = " << cell;
+   BL_BACKTRACE_PUSH(ss.str()); // PUSH takes std::string
+
+   Real rho = state(cell,0);  // state is a Fab, and cell is an IntVect.
+
+   BL_BACKTRACE_POP(); // One can omit this line.  In that case,
+                       // there is an implicit POP when "PUSH" is
+                       // out of scope.
 
 When it hits the segfault, you will only see the last pint out.
-
