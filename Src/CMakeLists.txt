@@ -152,7 +152,7 @@ if (ENABLE_SUNDIALS)
    add_subdirectory(Extern/SUNDIALS4)
 endif ()
 
-if (ENABLE_CONDUIT)
+if (ENABLE_CONDUIT OR ENABLE_ASCENT)
    add_subdirectory(Extern/Conduit)
 endif ()
 
