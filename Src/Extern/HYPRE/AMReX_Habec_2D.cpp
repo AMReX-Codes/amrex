@@ -159,7 +159,7 @@ void amrex_hpijmatrix (Box const& box,
                        HYPRE_Int* rows, 
                        HYPRE_Int* colsg,
                        Real* matg, 
-                       BaseFab<int>& cell_id,
+                       BaseFab<HYPRE_Int>& cell_id,
                        HYPRE_Int& offset, FArrayBox& diaginv,
                        FArrayBox& acoefs, FArrayBox& bcoefsx,
                        FArrayBox& bcoefsy, 
@@ -206,7 +206,7 @@ void amrex_hpijmatrix (Box const& box,
 
     Gpu::DeviceVector<int> iter(2,0);
 
-    Array4<int> const& cell_id_arr = cell_id.array();
+    Array4<HYPRE_Int> const& cell_id_arr = cell_id.array();
     Gpu::DeviceVector<int> cols_tmp(AMREX_SPACEDIM*2+1,0.0);
     Gpu::DeviceVector<Real> mat_tmp(AMREX_SPACEDIM*2+1,0.0);
     Array4<Real const> const& a_arr = acoefs.const_array();
@@ -278,11 +278,11 @@ void amrex_hpijmatrix (Box const& box,
 #ifdef AMREX_USE_EB
 
 void amrex_hpeb_fill_cellid (Box const& box,
-                             int& nrows,
+                             HYPRE_Int& nrows,
                              BaseFab<HYPRE_Int>& cell_id, 
                              const EBCellFlagFab& flag) 
 {
-    Array4<int> const& cell_id_arr = cell_id.array();
+    Array4<HYPRE_Int> const& cell_id_arr = cell_id.array();
     Array4<const EBCellFlag> const& flag_arr = flag.array();
 
     nrows = 0;
@@ -347,7 +347,7 @@ void amrex_hpeb_ijmatrix (Box const& box,
                           HYPRE_Int* rows,
                           HYPRE_Int* colsg,
                           Real* matg,
-                          BaseFab<int>& cell_id,
+                          BaseFab<HYPRE_Int>& cell_id,
                           HYPRE_Int& offset, FArrayBox& diaginv,
                           FArrayBox& acoefs, FArrayBox& bcoefsx,
                           FArrayBox& bcoefsy,
@@ -406,7 +406,7 @@ void amrex_hpeb_ijmatrix (Box const& box,
     }
 
     Gpu::DeviceVector<int> iter(2,0);
-    Array4<int> const& cell_id_arr = cell_id.array();
+    Array4<HYPRE_Int> const& cell_id_arr = cell_id.array();
     Array4<Real const> const& a_arr = acoefs.const_array();
     Array4<Real const> const& bx_arr = bcoefsx.const_array();
     Array4<Real const> const& by_arr = bcoefsy.const_array();
