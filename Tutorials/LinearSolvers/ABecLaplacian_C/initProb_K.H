@@ -10,18 +10,18 @@ void actual_init_poisson (int i, int j, int k,
                           amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& prob_lo,
                           amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dx)
 {
-    constexpr amrex::Real tpi = 2.*3.1415926535897932;
-    constexpr amrex::Real fpi = 4.*3.1415926535897932;
-    constexpr amrex::Real fac = tpi*tpi*static_cast<amrex::Real>(AMREX_SPACEDIM);
+    constexpr amrex::Real pi = 3.1415926535897932;
+    constexpr amrex::Real qpi = 1./32* 3.1415926535897932;
+    constexpr amrex::Real fac = pi*pi*1026./1024.;
     amrex::Real x = prob_lo[0] + dx[0] * (i + 0.5);
     amrex::Real y = prob_lo[1] + dx[1] * (j + 0.5);
     amrex::Real z = prob_lo[2] + dx[2] * (k + 0.5);
 
-    exact(i,j,k) = (std::sin(tpi*x) * std::sin(tpi*y) * std::sin(tpi*z))
-           + .25 * (std::sin(fpi*x) * std::sin(fpi*y) * std::sin(fpi*z));
+    exact(i,j,k) = (std::sin(qpi*x) * std::sin(qpi*y) * std::sin(pi*z));
+           + .25 * (std::sin(pi*x) * std::sin(pi*y) * std::sin(2.*pi*z));
                 
-    rhs(i,j,k) = -fac * (std::sin(tpi*x) * std::sin(tpi*y) * std::sin(tpi*z))
-                 -fac * (std::sin(fpi*x) * std::sin(fpi*y) * std::sin(fpi*z));
+    rhs(i,j,k) = -fac*(std::sin(qpi*x) * std::sin(qpi*y) * std::sin(pi*z));
+                - 1.5*pi*pi* (std::sin(pi*x) * std::sin(pi*y) * std::sin(2.*pi*z));
 }
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
@@ -44,7 +44,7 @@ void actual_init_bcoef (int i, int j, int k,
     amrex::Real z = prob_lo[2] + dx[2] * (k + 0.5);
 
     amrex::Real r = std::sqrt((x-xc)*(x-xc) + (y-yc)*(y-yc) + (z-zc)*(z-zc));
-    beta(i,j,k) = (sigma-1.)/2.*std::tanh(theta*(r-0.25)) + (sigma+1.)/2.;
+    beta(i,j,k) = 1.;//(sigma-1.)/2.*std::tanh(theta*(r-0.25)) + (sigma+1.)/2.;
 }
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
@@ -65,7 +65,7 @@ void actual_init_abeclap (int i, int j, int k,
     constexpr amrex::Real pi = 3.1415926535897932;
     constexpr amrex::Real tpi =  2.*pi;
     constexpr amrex::Real fpi =  4.*pi;
-    constexpr amrex::Real fac = static_cast<amrex::Real>(AMREX_SPACEDIM*4)*pi*pi;
+    constexpr amrex::Real fac = 12.*pi*pi;
 
     amrex::Real xc = (prob_hi[0] + prob_lo[0])*0.5;
     amrex::Real yc = (prob_hi[1] + prob_lo[1])*0.5;
@@ -77,10 +77,10 @@ void actual_init_abeclap (int i, int j, int k,
 
     amrex::Real r = std::sqrt((x-xc)*(x-xc) + (y-yc)*(y-yc) + (z-zc)*(z-zc));
     amrex::Real tmp = std::cosh(theta*(r-0.25));
-    amrex::Real dbdrfac = (sigma-1.)/2./(tmp*tmp) * theta/r;
+    amrex::Real dbdrfac = 1.;// (sigma-1.)/2./(tmp*tmp) * theta/r;
     dbdrfac *= b;
              
-    alpha(i,j,k) = 1.;
+    alpha(i,j,k) = 0.;
 
     exact(i,j,k) = std::cos(tpi*x) * std::cos(tpi*y) * std::cos(tpi*z)
            + .25 * std::cos(fpi*x) * std::cos(fpi*y) * std::cos(fpi*z);
@@ -115,7 +115,7 @@ void actual_init_abeclap_in (int i, int j, int k,
     constexpr amrex::Real pi = 3.1415926535897932;
     constexpr amrex::Real tpi =  2.*pi;
     constexpr amrex::Real fpi =  4.*pi;
-    constexpr amrex::Real fac = static_cast<amrex::Real>(AMREX_SPACEDIM*4)*pi*pi;
+    constexpr amrex::Real fac = 12.*pi*pi;
 
     amrex::Real xc = (prob_hi[0] + prob_lo[0])*0.5;
     amrex::Real yc = (prob_hi[1] + prob_lo[1])*0.5;

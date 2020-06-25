@@ -1,20 +1,20 @@
 
-max_level = 1
+max_level = 0
 ref_ratio = 2
-n_cell = 128
-max_grid_size = 64
+n_cell = 512
+max_grid_size = 512
 
-composite_solve = 1   # composite solve or level by level?
+composite_solve = 0   # composite solve or level by level?
 
 # In this tutorial, we set up two examples.
-prob_type = 1
-# prob_type = 2
+# prob_type = 1
+ prob_type = 2
 
 # For MLMG
-verbose = 2
-bottom_verbose = 0
-max_iter = 100
+verbose = 5
+bottom_verbose = 1
+max_iter = 600
 max_fmg_iter = 0     # # of F-cycles before switching to V.  To do pure V-cycle, set to 0
 linop_maxorder = 2
-agglomeration = 1    # Do agglomeration on AMR Level 0?
-consolidation = 1    # Do consolidation?
+agglomeration = 0    # Do agglomeration on AMR Level 0?
+consolidation = 0    # Do consolidation?
