@@ -64,7 +64,8 @@ ParticleTileToBlueprint(const ParticleTile<NStructReal,
     // point locations from from aos
     //----------------------------------//
 
-    const char* pbuf = reinterpret_cast<const char*>(pstruct.data());
+    const char* pbuf_const = reinterpret_cast<const char*>(pstruct.data());
+    char* pbuf = const_cast<char*>(pbuf_const);
 
     ParticleReal* xp = reinterpret_cast<ParticleReal*>(pbuf); pbuf += sizeof(ParticleReal);
     n_coords["values/x"].set_external(xp,
