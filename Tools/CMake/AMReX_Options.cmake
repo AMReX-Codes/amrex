@@ -206,17 +206,19 @@ endif ()
 option( ENABLE_PIC "Build position-independent code" OFF)
 print_option( ENABLE_PIC )
 
-option(ENABLE_FPE "Enable Floating Point Exceptions checks" OFF)
-print_option( ENABLE_FPE )
-
+set(ENABLE_FPE_DEFAULT OFF)
 set(ENABLE_ASSERTIONS_DEFAULT OFF)
 if ( "${CMAKE_BUILD_TYPE}" MATCHES "Debug" )
    set(ENABLE_ASSERTIONS_DEFAULT ON)
+   set(ENABLE_FPE_DEFAULT ON)
 endif ()
 cmake_dependent_option(ENABLE_ASSERTIONS "Enable assertions" ENABLE_ASSERTIONS_DEFAULT
     "ON" ENABLE_ASSERTIONS_DEFAULT)
+cmake_dependent_option(ENABLE_FPE "Enable Floating Point Exceptions checks" ENABLE_FPE_DEFAULT
+    "ON" ENABLE_FPE_DEFAULT)
 
 print_option( ENABLE_ASSERTIONS )
+print_option( ENABLE_FPE )
 
 
 #
