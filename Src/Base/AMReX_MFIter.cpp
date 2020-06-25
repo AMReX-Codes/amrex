@@ -387,12 +387,12 @@ Box
 MFIter::tilebox (const IntVect& nodal, const IntVect& ngrow) const noexcept
 {
     Box bx = tilebox(nodal);
-    const Box& vbx = validbox();
+    const Box& vccbx = amrex::enclosedCells(validbox());
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-	if (bx.smallEnd(d) == vbx.smallEnd(d)) {
+	if (bx.smallEnd(d) == vccbx.smallEnd(d)) {
 	    bx.growLo(d, ngrow[d]);
 	}
-	if (bx.bigEnd(d) >= vbx.bigEnd(d)) {
+	if (bx.bigEnd(d) >= vccbx.bigEnd(d)) {
 	    bx.growHi(d, ngrow[d]);
 	}
     }
@@ -473,17 +473,7 @@ Box
 MFIter::grownnodaltilebox (int dir, IntVect const& a_ng) const noexcept
 {
     BL_ASSERT(dir < AMREX_SPACEDIM);
-    Box bx = nodaltilebox(dir);
-    const Box& vbx = validbox();
-    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-	if (bx.smallEnd(d) == vbx.smallEnd(d)) {
-	    bx.growLo(d, a_ng[d]);
-	}
-	if (bx.bigEnd(d) >= vbx.bigEnd(d)) {
-	    bx.growHi(d, a_ng[d]);
-	}
-    }
-    return bx;
+    return tilebox(IntVect::TheDimensionVector(dir), a_ng);
 }
 
 void
