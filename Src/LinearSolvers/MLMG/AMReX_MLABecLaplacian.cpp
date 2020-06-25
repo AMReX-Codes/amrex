@@ -123,6 +123,8 @@ MLABecLaplacian::define (const Vector<Geometry>& a_geom,
         }
     }
     int max_overset_mask_coarsening_level = m_overset_mask[amrlev].size()-1;
+    ParallelAllReduce::Min(max_overset_mask_coarsening_level, ParallelContext::CommunicatorSub());
+    m_overset_mask[amrlev].resize(max_overset_mask_coarsening_level+1);
 
     LPInfo info = a_info;
     info.max_coarsening_level = std::min(a_info.max_coarsening_level,
