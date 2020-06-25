@@ -22,7 +22,7 @@ void WriteBinaryParticleDataSync (PC const& pc,
                                   F&& f)
 {
     BL_PROFILE("WriteBinaryParticleData()");
-    AMREX_ASSERT(OK());
+    AMREX_ASSERT(pc.OK());
 
     AMREX_ASSERT(sizeof(typename PC::ParticleType::RealType) == 4 ||
                  sizeof(typename PC::ParticleType::RealType) == 8);
@@ -316,7 +316,7 @@ void WriteBinaryParticleDataAsync (PC const& pc,
                                    const Vector<std::string>& int_comp_names)
 {
     BL_PROFILE("WriteBinaryParticleDataAsync");
-    AMREX_ASSERT(OK());
+    AMREX_ASSERT(pc.OK());
 
     AMREX_ASSERT(sizeof(typename PC::ParticleType::RealType) == 4 ||
                  sizeof(typename PC::ParticleType::RealType) == 8);
