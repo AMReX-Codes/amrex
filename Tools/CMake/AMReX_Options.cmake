@@ -244,9 +244,6 @@ cmake_dependent_option( ENABLE_COMM_PROFILE  "Enable communicator-profiling" OFF
    "ENABLE_BASE_PROFILE" OFF)
 print_option( ENABLE_COMM_PROFILE )
 
-option( ENABLE_BACKTRACE "Enable backtracing" OFF)
-print_option( ENABLE_BACKTRACE )
-
 cmake_dependent_option(ENABLE_PROFPARSER "Enable profile parser" OFF
    "ENABLE_BASE_PROFILE;ENABLE_TRACE_PROFILE;ENABLE_AMRDATA" OFF)
 print_option( ENABLE_PROFPARSER )

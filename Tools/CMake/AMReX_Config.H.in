@@ -11,7 +11,6 @@
 #cmakedefine BL_COMM_PROFILING
 #cmakedefine AMREX_TINY_PROFILING
 #cmakedefine AMREX_MEM_PROFILING
-#cmakedefine AMREX_BACKTRACING
 #cmakedefine AMREX_TESTING
 #cmakedefine AMREX_USE_MPI
 #cmakedefine BL_USE_MPI
