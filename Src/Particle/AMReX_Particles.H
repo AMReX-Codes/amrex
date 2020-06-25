@@ -1131,8 +1131,8 @@ public:
     int NumIntComps  () const { return NArrayInt  + NumRuntimeIntComps() ; }
 
     //! ---- variables for i/o optimization saved for pre and post checkpoint
-    bool usePrePost;
-    bool doUnlink;
+    mutable bool usePrePost;
+    mutable bool doUnlink;
     int maxnextidPrePost;
     mutable int nOutFilesPrePost;
     Long nparticlesPrePost;
