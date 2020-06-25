@@ -477,8 +477,8 @@ below.
 
    \end{center}
 
-The option ``CMAKE_BUILD_TYPE=Debug`` implies ``ENABLE_ASSERTION=YES``. In order to turn off
-assertions in debug mode, ``ENABLE_ASSERTION=NO`` must be set explicitly while
+The option ``CMAKE_BUILD_TYPE=Debug`` implies ``ENABLE_ASSERTIONS=YES``. In order to turn off
+assertions in debug mode, ``ENABLE_ASSERTIONS=NO`` must be set explicitly while
 invoking CMake.
 
 
