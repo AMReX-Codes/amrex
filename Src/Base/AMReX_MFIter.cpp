@@ -488,16 +488,8 @@ MFIter::operator++ () noexcept
     else
 #endif
     {
-#ifdef AMREX_USE_GPU
-#ifdef _OPENMP
-        int numOmpThreads = omp_get_num_threads();
-#else
-        int numOmpThreads = 1;
-#endif
-        
-        bool use_gpu = (numOmpThreads == 1) && Gpu::inLaunchRegion();
 #ifdef AMREX_USE_GPU_PRAGMA
-        if (use_gpu) {
+        if (Gpu::inLaunchRegion()) {
             if (!real_reduce_list.empty()) {
                 for (int i = 0; i < real_reduce_list[currentIndex].size(); ++i) {
                     Gpu::dtoh_memcpy_async(&real_reduce_list[currentIndex][i],
@@ -507,12 +499,11 @@ MFIter::operator++ () noexcept
             }
         }
 #endif
-#endif
 
         ++currentIndex;
 
 #ifdef AMREX_USE_GPU
-        if (use_gpu) {
+        if (Gpu::inLaunchRegion()) {
             Gpu::Device::setStreamIndex((streams > 0) ? currentIndex%streams : -1);
             AMREX_GPU_ERROR_CHECK();
 #ifdef AMREX_DEBUG
