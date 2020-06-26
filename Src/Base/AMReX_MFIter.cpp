@@ -216,11 +216,11 @@ MFIter::~MFIter ()
     if (device_sync) Gpu::synchronize();
 #endif
 
-#ifdef AMREX_USE_GPU
+#ifdef AMREX_USE_GPU_PRAGMA
     reduce();
 #endif
 
-#ifdef AMREX_USE_GPU
+#ifdef AMREX_USE_GPU_PRAGMA
     if (Gpu::inLaunchRegion()) {
         for (int i = 0; i < real_reduce_list.size(); ++i)
             for (int j = 0; j < real_reduce_list[i].size(); ++j)
@@ -496,6 +496,7 @@ MFIter::operator++ () noexcept
 #endif
         
         bool use_gpu = (numOmpThreads == 1) && Gpu::inLaunchRegion();
+#ifdef AMREX_USE_GPU_PRAGMA
         if (use_gpu) {
             if (!real_reduce_list.empty()) {
                 for (int i = 0; i < real_reduce_list[currentIndex].size(); ++i) {
@@ -505,6 +506,7 @@ MFIter::operator++ () noexcept
                 }
             }
         }
+#endif
 #endif
 
         ++currentIndex;
@@ -521,7 +523,7 @@ MFIter::operator++ () noexcept
     }
 }
 
-#ifdef AMREX_USE_GPU
+#ifdef AMREX_USE_GPU_PRAGMA
 Real*
 MFIter::add_reduce_value(Real* val, MFReducer r)
 {
@@ -583,7 +585,7 @@ MFIter::add_reduce_value(Real* val, MFReducer r)
 }
 #endif
 
-#ifdef AMREX_USE_GPU
+#ifdef AMREX_USE_GPU_PRAGMA
 // Reduce over the values in the list.
 void
 MFIter::reduce()
